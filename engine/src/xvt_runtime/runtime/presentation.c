@@ -83,8 +83,8 @@ void xvt_presentation_require_classic(void)
 
 void xvt_presentation_init(void)
 {
-	AeronDx5Config config = {0};
 	g_logical_rect = (AeronRectI){0, 0, 640, 480};
+	AeronDx5Config config = {0};
 	config.presentation_rect = classic_rect;
 	AeronDx5_Configure(&config);
 	AeronDx5_ResetPresentationState();

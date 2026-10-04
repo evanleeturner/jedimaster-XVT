@@ -83,11 +83,6 @@ int xvt_flight_sim_update_player_step(int player_idx)
 		FLIGHT_INPUT_WAIT_FOR_ANY_KEY = -2,
 	};
 
-	int object_index;
-	uint16_t saved_key_mods;
-	uint16_t *key_mods_hold_timer;
-	int16_t new_target_object_index;
-
 	if (!g_sim.player_step_pending) {
 		if (g_flight_mission_state.mission_end_pending == 1) {
 			return 1;
@@ -291,7 +286,7 @@ int xvt_flight_sim_update_player_step(int player_idx)
 
 	if (g_players[player_idx].awaiting_new_craft != 0) {
 		if (g_flight_sim_side_effects_suppressed == 0) {
-			object_index = g_players[player_idx].object_index;
+			int object_index = g_players[player_idx].object_index;
 			if (object_index != -1 &&
 			    g_object_table[object_index].object_type == 0) {
 				mission_process_flight_group_wave_completion(
@@ -321,11 +316,11 @@ int xvt_flight_sim_update_player_step(int player_idx)
 			laser_fireplayerweapon(player_idx);
 		}
 
-		saved_key_mods = g_players[player_idx].saved_key_mods &
-				 TARGET_MODIFIER_MASK;
+		uint16_t saved_key_mods = g_players[player_idx].saved_key_mods &
+					  TARGET_MODIFIER_MASK;
 		if ((g_flight_key_mods & TARGET_MODIFIER_MASK) ==
 		    TARGET_MODIFIER) {
-			key_mods_hold_timer =
+			uint16_t *key_mods_hold_timer =
 				&g_players[player_idx].key_mods_hold_timer;
 			if (saved_key_mods == TARGET_MODIFIER) {
 				*key_mods_hold_timer += g_elapsed_ticks;
@@ -341,6 +336,7 @@ int xvt_flight_sim_update_player_step(int player_idx)
 			if (saved_key_mods == TARGET_MODIFIER &&
 			    g_players[player_idx].key_mods_hold_timer <
 				    TARGET_TAP_MAX_TICKS) {
+				int16_t new_target_object_index;
 				if (g_players[player_idx].map_camera_state !=
 				    0) {
 					new_target_object_index =
@@ -418,41 +414,35 @@ int xvt_flight_sim_advance(int target_game_time)
 		MINIMUM_REPLAY_TICKS = 4,
 	};
 
-	int suppress_side_effects;
-	int player_idx;
-	int saved_elapsed_ticks;
-	int saved_sim_steps_per_second;
-
 	if (g_sim.replay_pending) {
 		target_game_time = g_sim.advance_target;
 	} else {
 		g_sim.advance_target = target_game_time;
 	}
-	suppress_side_effects = !xvt_flight_timing_is_network125()
-					? 1
-					: g_flight_sim_side_effects_suppressed;
-	for (player_idx = g_sim.replay_pending ? g_sim.player : 0;
+	int suppress_side_effects =
+		!xvt_flight_timing_is_network125()
+			? 1
+			: g_flight_sim_side_effects_suppressed;
+	int saved_elapsed_ticks;
+	int saved_sim_steps_per_second;
+	for (int player_idx = g_sim.replay_pending ? g_sim.player : 0;
 	     player_idx < PLAYER_COUNT; ++player_idx) {
-		struct input_frame *frame;
-		int frame_iteration;
-		int frame_count;
-
 		if (g_players[player_idx].participation_state == 0) {
 			continue;
 		}
 
-		frame_count = g_sim.replay_pending
-				      ? g_sim.frame_count
-				      : g_input_frame_count[player_idx];
-		frame = &g_input_history[player_idx][g_sim.replay_pending
+		int frame_count = g_sim.replay_pending
+					  ? g_sim.frame_count
+					  : g_input_frame_count[player_idx];
+		struct input_frame *frame =
+			&g_input_history[player_idx][g_sim.replay_pending
 							     ? g_sim.frame_index
 							     : 0];
-		for (frame_iteration =
+		for (int frame_iteration =
 			     g_sim.replay_pending ? g_sim.frame_iteration : 0;
 		     frame_iteration < frame_count;
 		     ++frame_iteration, ++frame) {
 			int saved_game_time;
-			uint8_t participation_state;
 
 			if (!g_sim.replay_pending) {
 				if (!((suppress_side_effects != 0 &&
@@ -480,14 +470,12 @@ int xvt_flight_sim_advance(int target_game_time)
 				saved_game_time = g_game_time;
 				if (g_game_time >= frame->timestamp &&
 				    g_players[player_idx].object_index != -1) {
-					struct object_record *object;
-					struct mobile_object *mobile_object;
-
-					object =
+					struct object_record *object =
 						&g_object_table
 							[g_players[player_idx]
 								 .object_index];
-					mobile_object = object->mobj;
+					struct mobile_object *mobile_object =
+						object->mobj;
 					if (mobile_object == NULL ||
 					    mobile_object->p_craft == NULL) {
 						continue;
@@ -635,8 +623,6 @@ int xvt_flight_sim_advance(int target_game_time)
 					if (g_object_table
 						    [g_single_object_update_override_idx]
 							    .mobj != NULL) {
-						struct object_record *object;
-
 						g_elapsed_ticks =
 							(uint16_t)(frame->timestamp -
 								   g_game_time);
@@ -659,7 +645,7 @@ int xvt_flight_sim_advance(int target_game_time)
 							.mobj
 							->sim_state_timestamp =
 							frame->timestamp;
-						object =
+						struct object_record *object =
 							&g_object_table
 								[g_single_object_update_override_idx];
 						g_players[player_idx].saved_x =
@@ -780,7 +766,7 @@ int xvt_flight_sim_advance(int target_game_time)
 			g_elapsed_ticks = (uint16_t)saved_elapsed_ticks;
 			g_sim_steps_per_second =
 				(uint16_t)saved_sim_steps_per_second;
-			participation_state =
+			uint8_t participation_state =
 				g_players[player_idx].participation_state;
 			g_game_time = saved_game_time;
 			g_flight_sfx_side_effect_gate = 0;
@@ -808,15 +794,13 @@ xvt_flight_step_result xvt_flight_sim_step_to_time(int target_game_time)
 {
 	enum { MINIMUM_SIM_STEP_TICKS = 1, MINIMUM_SIM_STEPS_PER_SECOND = 1 };
 
-	int game_time;
-
 	if (!g_sim.step_pending) {
 		g_sim.target = target_game_time;
 		g_sim.step_game_time = g_game_time;
 		g_gunner_collision_probe_count = 0;
 	}
 	target_game_time = g_sim.target;
-	game_time = g_sim.step_game_time;
+	int game_time = g_sim.step_game_time;
 	if (g_sim.zero_step) {
 		if (!xvt_flight_sim_advance(game_time +
 					    (uint16_t)g_elapsed_ticks)) {
@@ -962,11 +946,11 @@ xvt_flight_history_insert(unsigned player, int tick,
 		return XVT_INPUT_INVALID;
 	}
 	int count = g_input_frame_count[player];
-	int index = 0;
 	if (count < 0 || count > XVT_INPUT_HISTORY_CAPACITY) {
 		return XVT_INPUT_INVALID;
 	}
 	struct input_frame *frames = g_input_history[player];
+	int index = 0;
 	while (index < count && frames[index].timestamp < tick) {
 		++index;
 	}

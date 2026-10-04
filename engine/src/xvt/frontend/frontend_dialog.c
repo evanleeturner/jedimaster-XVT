@@ -90,10 +90,7 @@ int frontend_dialog_show_confirm_dialog(const char *line1, const char *line2,
 		SOUND_CENTER_PAN = 63,
 	};
 
-	struct RECT rect;
-	int overlay_text_enabled;
-
-	overlay_text_enabled = frontend_button_is_overlay_text_enabled();
+	int overlay_text_enabled = frontend_button_is_overlay_text_enabled();
 	frontend_button_disable_overlay_text();
 	if (g_game_config.sfx_datapad_enabled != 0) {
 		frontend_sound_play_ui_sound(
@@ -102,6 +99,7 @@ int frontend_dialog_show_confirm_dialog(const char *line1, const char *line2,
 			SOUND_VOLUME_SCALE * g_game_config.sfx_datapad_volume,
 			SOUND_CENTER_PAN);
 	}
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT,
 				  SCREEN_BOTTOM);
 	frontend_cursor_get_pos(&g_front_dialog_saved_mouse_x,
@@ -184,11 +182,7 @@ int frontend_dialog_confirm_update_callback(int frame_counter)
 		TEXT_FADE_FRAMES = 20,
 	};
 
-	struct RECT rect;
-	int finished;
-	int pressed;
-
-	finished = 0;
+	int finished = 0;
 	if (frame_counter == 0) {
 		keyboard_flush_char_buffer();
 		if (g_front_dialog_okay_label[0] ||
@@ -211,6 +205,7 @@ int frontend_dialog_confirm_update_callback(int frame_counter)
 		g_dialog_result = 0;
 		finished = 1;
 	}
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, DIALOG_LEFT, DIALOG_TOP, DIALOG_RIGHT,
 				  DIALOG_BOTTOM);
 	rect.bottom = rect.top + DIALOG_LINE_HEIGHT;
@@ -224,6 +219,7 @@ int frontend_dialog_confirm_update_callback(int frame_counter)
 	frontend_text_draw_centered(DIALOG_FONT_SIZE, g_front_dialog_line3,
 				    &rect, TEXT_COLOR);
 
+	int pressed;
 	if (!g_front_dialog_okay_label[0] && !g_front_dialog_cancel_label[0]) {
 		frontend_draw_rect_assign(&rect, OK_BUTTON_LEFT, OK_BUTTON_TOP,
 					  OK_BUTTON_RIGHT, BUTTON_BOTTOM);
@@ -395,11 +391,9 @@ int frontend_dialog_prompt_for_pilot_name(char *out_name)
 		PILOT_NAME_LENGTH = 12,
 	};
 
-	struct RECT rect;
-	int overlay_text_enabled;
-
-	overlay_text_enabled = frontend_button_is_overlay_text_enabled();
+	int overlay_text_enabled = frontend_button_is_overlay_text_enabled();
 	frontend_button_disable_overlay_text();
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT,
 				  SCREEN_BOTTOM);
 	frontend_cursor_get_pos(&g_front_dialog_saved_mouse_x,
@@ -433,9 +427,6 @@ int frontend_dialog_prompt_for_pilot_name(char *out_name)
 // FUNCTION: XVT 0x4DD2C0
 int frontend_dialog_create_pilot_name_callback(int frame_counter)
 {
-	struct RECT rect;
-	int accepted;
-
 	if (frame_counter == 0) {
 		frontend_cursor_set_pos(417, 291);
 		keyboard_flush_char_buffer();
@@ -453,12 +444,13 @@ int frontend_dialog_create_pilot_name_callback(int frame_counter)
 		frontend_display_unlock_offscreen_surface(1);
 	}
 
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 245, 225, 445, 245);
 	frontend_text_draw_centered(
 		15, frontend_string_get(FRONTSTR_716_CREATE_A_NEW_PILOT), &rect,
 		0xFFFF);
 	frontend_draw_rect_assign(&rect, 250, 245, 440, 265);
-	accepted = frontend_text_handle_editable_field(
+	int accepted = frontend_text_handle_editable_field(
 		&rect, g_front_dialog_line1_or_edit, 13, 0, 12, "\\*$");
 	frontend_draw_rect_assign(&rect, 250, 275, 440, 295);
 	accepted |= frontend_button_handle_text_button(
@@ -513,10 +505,7 @@ int frontend_dialog_show_network_abort_error(const char *line1,
 		SOUND_CENTER_PAN = 63,
 	};
 
-	struct RECT rect;
-	int overlay_text_enabled;
-
-	overlay_text_enabled = frontend_button_is_overlay_text_enabled();
+	int overlay_text_enabled = frontend_button_is_overlay_text_enabled();
 	frontend_button_disable_overlay_text();
 	if (g_game_config.sfx_datapad_enabled != 0) {
 		frontend_sound_play_ui_sound(
@@ -525,6 +514,7 @@ int frontend_dialog_show_network_abort_error(const char *line1,
 			SOUND_VOLUME_SCALE * g_game_config.sfx_datapad_volume,
 			SOUND_CENTER_PAN);
 	}
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT,
 				  SCREEN_BOTTOM);
 	frontend_cursor_get_pos(&g_front_dialog_saved_mouse_x,
@@ -571,11 +561,7 @@ int frontend_dialog_show_network_abort_error(const char *line1,
 // FUNCTION: XVT 0x4DD620
 int frontend_dialog_network_abort_error_callback(int frame_counter)
 {
-	struct RECT rect;
-	int finished;
-	int pressed;
-
-	finished = 0;
+	int finished = 0;
 	if (frame_counter == 0) {
 		keyboard_flush_char_buffer();
 		if (g_front_dialog_okay_label[0] != '\0' ||
@@ -593,6 +579,7 @@ int frontend_dialog_network_abort_error_callback(int frame_counter)
 		return 0;
 	}
 
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 166, 225, 518, 245);
 	rect.bottom = rect.top + 20;
 	frontend_text_draw_centered(15, g_front_dialog_line1_or_edit, &rect,
@@ -602,6 +589,7 @@ int frontend_dialog_network_abort_error_callback(int frame_counter)
 	frontend_draw_rect_offset_xy(&rect, 0, 20);
 	frontend_text_draw_centered(15, g_front_dialog_line3, &rect, 0xFFFF);
 
+	int pressed;
 	if (g_front_dialog_okay_label[0] == '\0') {
 		if (g_front_dialog_cancel_label[0] == '\0') {
 			frontend_draw_rect_assign(&rect, 171, 240, 202, 275);

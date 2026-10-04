@@ -107,8 +107,8 @@ static void check_mirrors_game_camera(void)
 					  view->angle_d, view->aim_x,
 					  view->aim_y, NULL);
 		int32_t q[9];
-		float rows[9];
 		get_live_rows(q);
+		float rows[9];
 		xvt_render_camera_copy_rows(rows);
 		for (int r = 0; r < 9; r += 3) {
 			double dot = 0;
@@ -135,15 +135,14 @@ static void check_mirrors_game_camera(void)
 static void check_tag_chooses_source(void)
 {
 	const struct angles *view = &k_views[2];
-	float game[9];
-	float tagged[9];
-	float rows[9];
 	fview_build_camera_orient(view->roll, view->pitch, view->yaw,
 				  view->angle_d, view->aim_x, view->aim_y,
 				  NULL);
+	float game[9];
 	xvt_render_camera_copy_rows(game);
 
 	build_tagged(view, k_tag1);
+	float tagged[9];
 	xvt_render_camera_copy_rows(tagged);
 	check_same_rows(tagged, game);
 
@@ -153,6 +152,7 @@ static void check_tag_chooses_source(void)
 	}
 	moved[4] += 1;
 	set_live_rows(moved);
+	float rows[9];
 	xvt_render_camera_copy_rows(rows);
 	check_q15_rows(rows, moved);
 
@@ -165,18 +165,18 @@ static void check_tag_chooses_source(void)
  * match its tag. */
 static void check_restore_keeps_matching_basis(void)
 {
-	float first[9];
-	float second[9];
-	float rows[9];
 	build_tagged(&k_views[1], k_tag1);
+	float first[9];
 	xvt_render_camera_copy_rows(first);
 	xvt_render_camera_save_viewport();
 	build_tagged(&k_views[2], k_tag2);
+	float second[9];
 	xvt_render_camera_copy_rows(second);
 	XVT_ASSERT_TRUE(!same_rows(first, second));
 
 	set_live_rows(k_tag1);
 	xvt_render_camera_restore_viewport();
+	float rows[9];
 	xvt_render_camera_copy_rows(rows);
 	check_same_rows(rows, first);
 }
@@ -185,12 +185,12 @@ static void check_restore_keeps_matching_basis(void)
  * live rows are written, and stay written even after the rows come back to the old tag. */
 static void check_restore_drops_stale_basis(void)
 {
-	float rows[9];
 	build_tagged(&k_views[1], k_tag1);
 	xvt_render_camera_save_viewport();
 	build_tagged(&k_views[2], k_tag2);
 
 	xvt_render_camera_restore_viewport();
+	float rows[9];
 	xvt_render_camera_copy_rows(rows);
 	check_q15_rows(rows, k_tag2);
 
@@ -202,17 +202,17 @@ static void check_restore_drops_stale_basis(void)
 /* A second Save overwrites the first. */
 static void check_second_save_overwrites(void)
 {
-	float second[9];
-	float rows[9];
 	build_tagged(&k_views[1], k_tag1);
 	xvt_render_camera_save_viewport();
 	build_tagged(&k_views[2], k_tag2);
+	float second[9];
 	xvt_render_camera_copy_rows(second);
 	xvt_render_camera_save_viewport();
 	build_tagged(&k_views[3], k_tag3);
 
 	set_live_rows(k_tag2);
 	xvt_render_camera_restore_viewport();
+	float rows[9];
 	xvt_render_camera_copy_rows(rows);
 	check_same_rows(rows, second);
 

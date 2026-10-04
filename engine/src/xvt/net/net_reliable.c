@@ -59,18 +59,15 @@ int net_reliable_check_and_record_recv_sequence(int direct_play_id,
 						int sequence, int channel_a,
 						int channel_b)
 {
-	uint32_t saved_slot_count;
-	unsigned int slot;
-	int recv_sequence;
-	int delta;
-
-	saved_slot_count = g_net_session.reliable_peer_slot_count;
-	slot = net_reliable_find_or_create_peer_slot(direct_play_id);
+	uint32_t saved_slot_count = g_net_session.reliable_peer_slot_count;
+	unsigned int slot =
+		net_reliable_find_or_create_peer_slot(direct_play_id);
 	if (saved_slot_count != g_net_session.reliable_peer_slot_count ||
 	    slot >= 40) {
 		return 0;
 	}
 
+	int recv_sequence;
 	if (channel_a) {
 		recv_sequence = g_net_session.reliable_peer_slots[slot]
 					.recv_seq_channel_a;
@@ -82,7 +79,7 @@ int net_reliable_check_and_record_recv_sequence(int direct_play_id,
 					.recv_seq_default;
 	}
 
-	delta = sequence - recv_sequence;
+	int delta = sequence - recv_sequence;
 	if (delta >= -64 && (delta <= 0 || delta >= 64)) {
 		return 1;
 	}
@@ -113,33 +110,25 @@ int net_reliable_find_queued_recv_packet(int unused_search_index,
 					 int remote_seq, int channel_a,
 					 int channel_b, int peer_slot)
 {
-	unsigned int i;
-	int index;
-	int sequence_byte;
-	int is_class0;
-	int is_class2;
-	unsigned int slot;
-	DPID direct_play_id;
-	struct net_reliable_peer_slot *peer;
-
 	(void)unused_search_index;
 
-	index = g_net_recv_queue_read_index;
-	for (i = g_net_recv_queue_count; i != 0; --i) {
+	int index = g_net_recv_queue_read_index;
+	for (unsigned int i = g_net_recv_queue_count; i != 0; --i) {
 		if (g_net_session_recv_queue[index].is_resent_copy != 0) {
-			direct_play_id =
+			DPID direct_play_id =
 				g_net_session_recv_queue[index].direct_play_id;
-			sequence_byte =
+			int sequence_byte =
 				g_net_session_recv_queue[index].sequence_byte;
-			is_class0 =
+			int is_class0 =
 				g_net_session_recv_queue[index].packet_class ==
 				0;
-			is_class2 =
+			int is_class2 =
 				g_net_session_recv_queue[index].packet_class ==
 				2;
-			slot = 0;
+			unsigned int slot = 0;
 			if (g_net_session.reliable_peer_slot_count != 0) {
-				peer = g_net_session.reliable_peer_slots;
+				struct net_reliable_peer_slot *peer =
+					g_net_session.reliable_peer_slots;
 				while (peer->direct_play_id != direct_play_id) {
 					++peer;
 					++slot;
@@ -190,14 +179,11 @@ int net_reliable_remove_queued_packet(unsigned int queue_index)
 		}
 		return 1;
 	} else {
-		unsigned int src_index;
-		unsigned int end_index;
-
-		src_index = queue_index + 1;
+		unsigned int src_index = queue_index + 1;
 		if (src_index >= 1024u) {
 			src_index = 0;
 		}
-		end_index =
+		unsigned int end_index =
 			g_net_recv_queue_read_index + g_net_recv_queue_count;
 		if (end_index >= 1024u) {
 			end_index -= 1024u;
@@ -237,14 +223,10 @@ int net_reliable_remove_queued_packet(unsigned int queue_index)
 // FUNCTION: XVT 0x46FEE0
 unsigned int net_reliable_find_or_create_peer_slot(int direct_play_id)
 {
-	unsigned int slot;
-	struct net_reliable_peer_slot *peer;
-	unsigned int initialize_slot;
-	unsigned int *peer_slot_count;
-
-	slot = 0;
+	unsigned int slot = 0;
 	if (g_net_session.reliable_peer_slot_count != 0) {
-		peer = g_net_session.reliable_peer_slots;
+		struct net_reliable_peer_slot *peer =
+			g_net_session.reliable_peer_slots;
 		do {
 			if (peer->direct_play_id == (DPID)direct_play_id) {
 				return slot;
@@ -257,7 +239,7 @@ unsigned int net_reliable_find_or_create_peer_slot(int direct_play_id)
 	if (g_net_session.reliable_peer_slot_count == slot && slot < 40) {
 		g_net_session.reliable_peer_slots[slot].direct_play_id =
 			direct_play_id;
-		initialize_slot = slot;
+		unsigned int initialize_slot = slot;
 		g_net_session.reliable_peer_slots[initialize_slot]
 			.last_delivered_seq_default = 127;
 		g_net_session.reliable_peer_slots[initialize_slot]
@@ -279,7 +261,8 @@ unsigned int net_reliable_find_or_create_peer_slot(int direct_play_id)
 			timeGetTime();
 		g_net_session.reliable_peer_slots[slot].packet_count = 0;
 		g_net_session.reliable_peer_slots[slot].packet_drop_count = 0;
-		peer_slot_count = &g_net_session.reliable_peer_slot_count;
+		unsigned int *peer_slot_count =
+			&g_net_session.reliable_peer_slot_count;
 		++*peer_slot_count;
 	}
 
@@ -293,12 +276,11 @@ unsigned int net_reliable_find_or_create_peer_slot(int direct_play_id)
 // FUNCTION: XVT 0x46FFC0
 void net_reliable_reset_recv_queue_state(void)
 {
-	unsigned int slot;
-
 	g_net_recv_queue_read_index = g_net_recv_queue_write_index;
 	g_net_recv_queue_count = 0;
 
-	for (slot = 0; slot < g_net_session.reliable_peer_slot_count; ++slot) {
+	for (unsigned int slot = 0;
+	     slot < g_net_session.reliable_peer_slot_count; ++slot) {
 		g_net_session.reliable_peer_slots[slot]
 			.last_delivered_seq_default =
 			g_net_session.reliable_peer_slots[slot]
@@ -322,12 +304,10 @@ void net_reliable_reset_recv_queue_state(void)
 // FUNCTION: XVT 0x470020
 int net_reliable_get_peer_packet_drop_count_by_dpid(int direct_play_id)
 {
-	unsigned int slot;
-	struct net_reliable_peer_slot *peer;
-
-	slot = 0;
+	unsigned int slot = 0;
 	if (g_net_session.reliable_peer_slot_count != 0) {
-		peer = g_net_session.reliable_peer_slots;
+		struct net_reliable_peer_slot *peer =
+			g_net_session.reliable_peer_slots;
 		do {
 			if ((DPID)direct_play_id == peer->direct_play_id) {
 				return g_net_session.reliable_peer_slots[slot]
@@ -355,20 +335,13 @@ int net_reliable_get_peer_packet_drop_count_by_dpid(int direct_play_id)
 // FUNCTION: XVT 0x470060
 int net_reliable_keep_only_host_received_packets(void)
 {
-	unsigned int dst_index;
-	unsigned int src_index;
-	unsigned int kept_count;
-	unsigned int slot;
-	DPID direct_play_id;
-	struct net_queued_packet *source_packet;
-	struct net_reliable_peer_slot *peer;
-
-	dst_index = (unsigned int)g_net_recv_queue_read_index;
-	src_index = (unsigned int)g_net_recv_queue_read_index;
-	kept_count = 0;
+	unsigned int dst_index = (unsigned int)g_net_recv_queue_read_index;
+	unsigned int src_index = (unsigned int)g_net_recv_queue_read_index;
+	unsigned int kept_count = 0;
 	while ((int)g_net_recv_queue_count > 0) {
-		source_packet = &g_net_session_recv_queue[src_index];
-		direct_play_id = source_packet->direct_play_id;
+		struct net_queued_packet *source_packet =
+			&g_net_session_recv_queue[src_index];
+		DPID direct_play_id = source_packet->direct_play_id;
 		if (direct_play_id == 0 ||
 		    (DPID)g_net_session.host_dplay_id == direct_play_id) {
 			memcpy(&g_net_session_recv_queue[dst_index],
@@ -389,9 +362,10 @@ int net_reliable_keep_only_host_received_packets(void)
 
 	g_net_recv_queue_count = kept_count;
 	g_net_recv_queue_write_index = (int)dst_index;
-	slot = 0;
+	unsigned int slot = 0;
 	if (g_net_session.reliable_peer_slot_count != 0) {
-		peer = g_net_session.reliable_peer_slots;
+		struct net_reliable_peer_slot *peer =
+			g_net_session.reliable_peer_slots;
 		do {
 			if (peer->direct_play_id !=
 			    (DPID)g_net_session.host_dplay_id) {

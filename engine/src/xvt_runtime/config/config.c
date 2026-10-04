@@ -506,8 +506,6 @@ int xvt_config_update_user(const AeronConfigFile *candidate, int save,
 	AeronConfigFile *user_root = NULL;
 	AeronConfigFile *updated = NULL;
 	AeronConfigFile *resolved = NULL;
-	AeronConfigError detail;
-	struct xvt_settings settings;
 	int success = 0;
 	if (!g_defaults || !g_config_vfs) {
 		return xvt_config_error(error, capacity,
@@ -517,6 +515,7 @@ int xvt_config_update_user(const AeronConfigFile *candidate, int save,
 	if (!xvt_config_check_version(candidate, 1, error, capacity)) {
 		return 0;
 	}
+	AeronConfigError detail;
 	/* The destination always belongs to USER, independently of node provenance. */
 	if (!AeronConfigFile_CreateMap(AERON_VFS_ROOT_USER, "config.yaml",
 				       &user_root, &detail) ||
@@ -527,6 +526,7 @@ int xvt_config_update_user(const AeronConfigFile *candidate, int save,
 		xvt_settings_file_error(&detail, error, capacity);
 		goto done;
 	}
+	struct xvt_settings settings;
 	if (!xvt_keyboard_config_resolve(&g_default_settings.keyboard, updated,
 					 resolved, error, capacity) ||
 	    !xvt_config_validate_and_parse(resolved, &settings, error,
@@ -556,15 +556,14 @@ done:
 
 int xvt_config_reset_to_defaults(char *error, size_t capacity)
 {
-	AeronConfigFile *replacement = NULL;
-	AeronConfigError detail;
-	int success;
 	if (!g_defaults) {
 		return xvt_config_error(
 			error, capacity,
 			"cannot reset without valid shipped defaults",
 			"RESOURCE/config.yaml");
 	}
+	AeronConfigFile *replacement = NULL;
+	AeronConfigError detail;
 	if (!AeronConfigFile_CreateMap(AERON_VFS_ROOT_USER, "config.yaml",
 				       &replacement, &detail) ||
 	    !AeronConfigFile_SetInt(replacement, "version", XVT_CONFIG_VERSION,
@@ -572,26 +571,24 @@ int xvt_config_reset_to_defaults(char *error, size_t capacity)
 		AeronConfigFile_Destroy(replacement);
 		return xvt_settings_file_error(&detail, error, capacity);
 	}
-	success = xvt_config_update_user(replacement, 0, error, capacity);
+	int success = xvt_config_update_user(replacement, 0, error, capacity);
 	AeronConfigFile_Destroy(replacement);
 	return success;
 }
 
 int xvt_config_load(AeronVfs *vfs, char *error, size_t capacity)
 {
-	AeronConfigError detail;
-	AeronConfigFile *scene_defaults = NULL;
-	AeronConfigFile *user = NULL;
-	int success;
 	xvt_config_shutdown();
 	xvt_keyboard_mapping_set_policy(Aeron_DebugUiAvailable() != 0);
 	g_config_vfs = vfs;
+	AeronConfigError detail;
+	AeronConfigFile *scene_defaults = NULL;
 	if (!AeronConfigFile_LoadYamlEx(vfs, AERON_VFS_ROOT_RESOURCE,
 					"aeron/scene3d_defaults.yaml",
 					&scene_defaults, &detail)) {
 		return xvt_settings_file_error(&detail, error, capacity);
 	}
-	success = AeronSceneSettings_Load(
+	int success = AeronSceneSettings_Load(
 		AeronConfigFile_Root(scene_defaults), &g_scene_defaults.ssao,
 		&g_scene_defaults.shadows, &g_scene_defaults.tonemap, &detail);
 	AeronConfigFile_Destroy(scene_defaults);
@@ -614,6 +611,7 @@ int xvt_config_load(AeronVfs *vfs, char *error, size_t capacity)
 			"cannot inspect configuration; file preserved",
 			"USER/config.yaml");
 	}
+	AeronConfigFile *user = NULL;
 	if (!AeronConfigFile_LoadYamlEx(vfs, AERON_VFS_ROOT_USER, "config.yaml",
 					&user, &detail)) {
 		if (detail.code == AERON_CONFIG_ERROR_NOT_FOUND) {
@@ -639,33 +637,32 @@ int xvt_config_save(char *error, size_t capacity)
 int xvt_config_set_game_data(const char *path, int save, char *error,
 			     size_t capacity)
 {
-	AeronConfigFile *updated = NULL;
-	AeronConfigError detail;
-	int success;
 	if (!g_writable) {
 		return xvt_config_error(error, capacity,
 					"configuration is not loaded", NULL);
 	}
+	AeronConfigFile *updated = NULL;
+	AeronConfigError detail;
 	if (!AeronConfigFile_Clone(g_user, &updated, &detail) ||
 	    !AeronConfigFile_SetString(updated, "paths.game_data", path,
 				       &detail)) {
 		AeronConfigFile_Destroy(updated);
 		return xvt_settings_file_error(&detail, error, capacity);
 	}
-	success = xvt_config_update_user(updated, save, error, capacity);
+	int success = xvt_config_update_user(updated, save, error, capacity);
 	AeronConfigFile_Destroy(updated);
 	return success;
 }
 
 bool xvt_config_set_flight_rate(bool unlocked, char *error, size_t capacity)
 {
-	AeronConfigFile *updated = NULL;
-	AeronConfigError detail;
 	if (!g_writable) {
 		return xvt_config_error(error, capacity,
 					"configuration saving is disabled",
 					NULL);
 	}
+	AeronConfigFile *updated = NULL;
+	AeronConfigError detail;
 	if (!AeronConfigFile_Clone(g_user, &updated, &detail)) {
 		return xvt_settings_file_error(&detail, error, capacity);
 	}
@@ -688,13 +685,13 @@ bool xvt_config_set_flight_rate(bool unlocked, char *error, size_t capacity)
 
 bool xvt_config_set_skip_intro(bool enabled, char *error, size_t capacity)
 {
-	AeronConfigFile *updated = NULL;
-	AeronConfigError detail;
 	if (!g_writable) {
 		return xvt_config_error(error, capacity,
 					"configuration saving is disabled",
 					NULL);
 	}
+	AeronConfigFile *updated = NULL;
+	AeronConfigError detail;
 	if (!AeronConfigFile_Clone(g_user, &updated, &detail)) {
 		return xvt_settings_file_error(&detail, error, capacity);
 	}
@@ -716,14 +713,13 @@ bool xvt_config_set_skip_intro(bool enabled, char *error, size_t capacity)
 int xvt_config_write(const struct game_config *game, char *error,
 		     size_t capacity)
 {
-	AeronConfigFile *updated = NULL;
-	AeronConfigError detail;
-	int committed;
 	if (!g_writable || !game) {
 		return xvt_config_error(error, capacity,
 					"configuration saving is disabled",
 					NULL);
 	}
+	AeronConfigFile *updated = NULL;
+	AeronConfigError detail;
 	if (!AeronConfigFile_Clone(g_user, &updated, &detail)) {
 		return xvt_settings_file_error(&detail, error, capacity);
 	}
@@ -776,19 +772,13 @@ int xvt_config_write(const struct game_config *game, char *error,
 						       capacity);
 		}
 	}
-	committed = xvt_config_update_user(updated, 1, error, capacity);
+	int committed = xvt_config_update_user(updated, 1, error, capacity);
 	AeronConfigFile_Destroy(updated);
 	return committed;
 }
 
 int xvt_config_import(const char *path, char *error, size_t capacity)
 {
-	char line[512];
-	AeronFile *file;
-	AeronConfigFile *imported = NULL;
-	AeronConfigError detail;
-	int success = 1;
-	int recognized = 0;
 	const char *base = strrchr(path, '/');
 	int is_config_cfg = strcmp(base ? base + 1 : path, "config.cfg") == 0;
 	if (!g_writable) {
@@ -796,16 +786,22 @@ int xvt_config_import(const char *path, char *error, size_t capacity)
 					"Configuration saving is disabled",
 					"config.yaml");
 	}
-	file = xvt_storage_open_root(AERON_VFS_ROOT_ASSET, path, "r");
+	AeronFile *file =
+		xvt_storage_open_root(AERON_VFS_ROOT_ASSET, path, "r");
 	if (!file) {
 		return xvt_config_error(error, capacity,
 					"Cannot open legacy configuration",
 					path);
 	}
+	AeronConfigFile *imported = NULL;
+	AeronConfigError detail;
 	if (!AeronConfigFile_Clone(g_user, &imported, &detail)) {
 		AeronVfs_Close(file);
 		return xvt_config_error(error, capacity, detail.message, path);
 	}
+	char line[512];
+	int success = 1;
+	int recognized = 0;
 	while (success && xvt_file_gets(line, sizeof(line), file)) {
 		if (!strchr(line, '\n') && strlen(line) == sizeof(line) - 1) {
 			success = 0;
@@ -836,10 +832,9 @@ int xvt_config_import(const char *path, char *error, size_t capacity)
 						  imported, field->path, value,
 						  &detail);
 			} else {
-				char *end;
-				int64_t number;
 				errno = 0;
-				number = strtoll(value, &end, 10);
+				char *end;
+				int64_t number = strtoll(value, &end, 10);
 				while (isspace((unsigned char)*end)) {
 					++end;
 				}
@@ -879,12 +874,12 @@ int xvt_config_import(const char *path, char *error, size_t capacity)
 bool xvt_config_set_keyboard(const struct xvt_keyboard_bindings *bindings,
 			     char *error, size_t capacity)
 {
-	AeronConfigFile *candidate = NULL;
-	AeronConfigError detail = {0};
 	if (!g_writable) {
 		return xvt_config_error(error, capacity,
 					"configuration is not loaded", NULL);
 	}
+	AeronConfigFile *candidate = NULL;
+	AeronConfigError detail = {0};
 	if (!AeronConfigFile_Clone(g_user, &candidate, &detail) ||
 	    !xvt_keyboard_config_write(candidate, bindings, &detail)) {
 		AeronConfigFile_Destroy(candidate);
@@ -897,12 +892,12 @@ bool xvt_config_set_keyboard(const struct xvt_keyboard_bindings *bindings,
 
 bool xvt_config_restore_keyboard(char *error, size_t capacity)
 {
-	AeronConfigFile *candidate = NULL;
-	AeronConfigError detail = {0};
 	if (!g_writable) {
 		return xvt_config_error(error, capacity,
 					"configuration is not loaded", NULL);
 	}
+	AeronConfigFile *candidate = NULL;
+	AeronConfigError detail = {0};
 	if (!AeronConfigFile_Clone(g_user, &candidate, &detail) ||
 	    !AeronConfigFile_Remove(candidate, "input.keyboard", &detail)) {
 		AeronConfigFile_Destroy(candidate);

@@ -197,12 +197,12 @@ static void check_feature_covers(void)
 {
 	cockpit_instruments_start();
 	struct xvt_cockpit_indicator shown[13];
-	struct xvt_cockpit_indicator hidden[13];
 	memcpy(shown, built(HUD_VIEW_FORWARD, 1, 0)->systems.feature_covers,
 	       sizeof shown);
 	/* Every feature is installed and most are inactive, so this cockpit has covers to show. */
 	XVT_ASSERT_INT_EQ(all_zero(shown, sizeof shown), 0);
 
+	struct xvt_cockpit_indicator hidden[13];
 	/* In the forward view they are built whether or not instruments show, map open or closed. */
 	memcpy(hidden, built(HUD_VIEW_FORWARD, 0, 0)->systems.feature_covers,
 	       sizeof hidden);

@@ -676,35 +676,15 @@ void hud_draw_box_overlay_hw(int x, int y, int width, int height, int color_idx,
 		MAX_BOX_TRIANGLE_COUNT = 16,
 	};
 
-	const std3d_render_state_flags render_flags =
-		STD3D_RS_Z_COMPARE_ENABLE | STD3D_RS_Z_WRITE_ENABLE |
-		STD3D_RS_MONO_DISABLE;
-	uint8_t saved_text_background_color;
-	uint16_t marker_x;
-	uint16_t marker_y;
-	uint32_t color;
-	float depth_value;
-	int box_width;
-	int box_height;
-	int adjusted_depth;
-	int box_top;
-	int right;
-	int bottom;
-	int corner_width;
-	int corner_height;
-	int start;
-	int end;
-	int vertex_index;
-
-	box_width = width;
-	adjusted_depth = depth;
+	int box_width = width;
+	int adjusted_depth = depth;
 	if (adjusted_depth == 1 && box_width == MARKER_SIZE &&
 	    height == MARKER_SIZE) {
 		flight_surface_lock();
-		saved_text_background_color = g_flight_text_bg_color;
+		uint8_t saved_text_background_color = g_flight_text_bg_color;
 		g_flight_text_bg_color = (uint8_t)color_idx;
-		marker_x = (uint16_t)(g_flight_vp_x + x);
-		marker_y = (uint16_t)(g_flight_vp_y + y);
+		uint16_t marker_x = (uint16_t)(g_flight_vp_x + x);
+		uint16_t marker_y = (uint16_t)(g_flight_vp_y + y);
 		flight_text_set_clip_rect(g_flight_vp_x, g_flight_vp_y,
 					  g_flight_vp_x + g_flight_vp_width,
 					  g_flight_vp_y + g_flight_vp_height);
@@ -715,7 +695,7 @@ void hud_draw_box_overlay_hw(int x, int y, int width, int height, int color_idx,
 		flight_surface_unlock();
 		return;
 	}
-	box_height = height;
+	int box_height = height;
 
 	if (g_d3d_vertex_count + MAX_BOX_VERTEX_COUNT > g_max_batch_verts ||
 	    g_d3d_triangle_count + MAX_BOX_TRIANGLE_COUNT > g_max_batch_tris) {
@@ -733,15 +713,15 @@ void hud_draw_box_overlay_hw(int x, int y, int width, int height, int color_idx,
 		g_d3d_vertex_count = 0;
 	}
 
-	color = 4 * (g_sw_palette[color_idx].b +
-		     ((g_sw_palette[color_idx].g +
-		       ((g_sw_palette[color_idx].r - 64) << 8))
-		      << 8));
-	box_top = y;
-	right = x + box_width;
-	bottom = box_top + box_height;
-	corner_width = box_width >> 3;
-	corner_height = box_height >> 3;
+	uint32_t color = 4 * (g_sw_palette[color_idx].b +
+			      ((g_sw_palette[color_idx].g +
+				((g_sw_palette[color_idx].r - 64) << 8))
+			       << 8));
+	int box_top = y;
+	int right = x + box_width;
+	int bottom = box_top + box_height;
+	int corner_width = box_width >> 3;
+	int corner_height = box_height >> 3;
 	if (corner_width < MIN_CORNER_LENGTH) {
 		corner_width = MIN_CORNER_LENGTH;
 	}
@@ -757,13 +737,19 @@ void hud_draw_box_overlay_hw(int x, int y, int width, int height, int color_idx,
 	if (adjusted_depth < 1) {
 		adjusted_depth = 1;
 	}
-	depth_value = g_render_unit_float /
-		      ((float)adjusted_depth * g_inv_depth_proj_scale +
-		       g_render_unit_float);
+	float depth_value = g_render_unit_float /
+			    ((float)adjusted_depth * g_inv_depth_proj_scale +
+			     g_render_unit_float);
 	if (g_std3dz_compare_cap == 2) {
 		depth_value = g_render_unit_float - depth_value;
 	}
 
+	const std3d_render_state_flags render_flags =
+		STD3D_RS_Z_COMPARE_ENABLE | STD3D_RS_Z_WRITE_ENABLE |
+		STD3D_RS_MONO_DISABLE;
+	int start;
+	int end;
+	int vertex_index;
 	if (box_top >= 0 && box_top < g_flight_vp_height) {
 		start = x;
 		end = x + corner_width;
@@ -1315,11 +1301,7 @@ void hud_draw_box_overlay_hw(int x, int y, int width, int height, int color_idx,
 // FUNCTION: XVT 0x427720
 int hud_set_hud_view_state(int hud_view_state, int player_idx)
 {
-	int local_player;
-	int saved_lock_count;
-	int remaining_locks;
-
-	local_player = g_local_player;
+	int local_player = g_local_player;
 	if (player_idx == local_player &&
 	    g_hud_cockpit_resource_descriptors[hud_view_state].resource_ref ==
 		    0) {
@@ -1337,9 +1319,9 @@ int hud_set_hud_view_state(int hud_view_state, int player_idx)
 		hud_rebuild_display_for_view_state(hud_view_state, player_idx);
 		flight_surface_unlock();
 
-		saved_lock_count = flight_surface_get_lock_count();
+		int saved_lock_count = flight_surface_get_lock_count();
 		if (saved_lock_count > 0) {
-			for (remaining_locks = saved_lock_count;
+			for (int remaining_locks = saved_lock_count;
 			     remaining_locks != 0; --remaining_locks) {
 				flight_surface_unlock();
 			}
@@ -1379,9 +1361,6 @@ void hud_init_hud(int player_idx)
 		HUD_ELEMENT_STATE_INVALID = -2,
 		HUD_ELEMENT_STATE_INACTIVE = -3,
 	};
-
-	uint16_t instrument_set;
-	uint16_t instrument_index;
 
 	g_hud_full_redraw_in_progress = 1;
 	if (g_local_player == player_idx) {
@@ -1469,10 +1448,10 @@ void hud_init_hud(int player_idx)
 						.clip_height_or_foreground_color;
 		}
 
-		for (instrument_set = 0;
+		for (uint16_t instrument_set = 0;
 		     instrument_set < HUD_INSTRUMENT_SET_COUNT;
 		     ++instrument_set) {
-			for (instrument_index = 0;
+			for (uint16_t instrument_index = 0;
 			     instrument_index < HUD_INSTRUMENTS_PER_SET;
 			     ++instrument_index) {
 				if (instrument_index >=
@@ -1532,8 +1511,6 @@ void hud_init_hud(int player_idx)
 // FUNCTION: XVT 0x438DF0
 void hud_render_hud(int player_idx)
 {
-	uint8_t hud_state;
-
 #ifdef XVT_MODERN
 	xvt_cockpit_instruments_begin_update(player_idx);
 #endif
@@ -1551,8 +1528,8 @@ void hud_render_hud(int player_idx)
 			flight_surface_lock();
 			hud_update_critical_hull_shield_warning();
 		} else {
-			hud_state = g_players[g_local_player]
-					    .view_state.hud_state_live;
+			uint8_t hud_state = g_players[g_local_player]
+						    .view_state.hud_state_live;
 			if (hud_state == HUD_VIEW_FORWARD) {
 				hud_update_hud();
 				hud_update_critical_hull_shield_warning();
@@ -1595,8 +1572,6 @@ void hud_draw_hud_target_inset_if_enabled(int player_index)
 		TARGET_INSET_FEATURE_MASK = 1,
 	};
 
-	uint8_t hud_state;
-
 #ifdef XVT_MODERN
 	xvt_render_draw_scope(XVT_SCOPE_COCKPIT);
 #endif
@@ -1629,8 +1604,8 @@ void hud_draw_hud_target_inset_if_enabled(int player_index)
 				g_hud_target_inset_mask_refresh_pending);
 			return;
 		} else {
-			hud_state = g_players[player_index]
-					    .view_state.hud_state_live;
+			uint8_t hud_state = g_players[player_index]
+						    .view_state.hud_state_live;
 			if (hud_state != HUD_VIEW_FORWARD &&
 			    hud_state != HUD_VIEW_HUD_ONLY) {
 				return;
@@ -1677,12 +1652,6 @@ void hud_draw_hud_target_inset_if_enabled(int player_index)
 // FUNCTION: XVT 0x439030
 void hud_draw_static_cockpit_text(uint16_t player_idx)
 {
-	struct craft_data *craft;
-	uint16_t layout_index;
-	uint16_t system_flags;
-	uint16_t feature_mask;
-	uint16_t text_width;
-
 	if (g_local_player != player_idx) {
 		return;
 	}
@@ -1692,13 +1661,15 @@ void hud_draw_static_cockpit_text(uint16_t player_idx)
 		    HUD_VIEW_HUD_ONLY) {
 		return;
 	}
-	craft = g_object_table[g_players[g_local_player].object_index]
+	struct craft_data *craft =
+		g_object_table[g_players[g_local_player].object_index]
 			.mobj->p_craft;
-	system_flags = craft->system_flags;
-	feature_mask = craft->damage_stats.active_hud_feature_mask;
+	uint16_t system_flags = craft->system_flags;
+	uint16_t feature_mask = craft->damage_stats.active_hud_feature_mask;
 
 	flight_text_set_font_tier(0);
 	flight_text_set_color(0x2F);
+	uint16_t layout_index;
 	for (layout_index = 122; layout_index < 126; ++layout_index) {
 		if (g_hud_element_layouts[g_hud_instrument_set_base_index +
 					  layout_index]
@@ -1906,7 +1877,7 @@ void hud_draw_static_cockpit_text(uint16_t player_idx)
 		} else {
 			flight_text_set_font_tier(2);
 		}
-		text_width = flight_text_measure_string_width(
+		uint16_t text_width = flight_text_measure_string_width(
 			g_three_digit_width_text);
 		flight_text_set_color(0x4A);
 		flight_text_set_background_color(0x2C);
@@ -2080,11 +2051,6 @@ void hud_update_hud(void)
 		S_FOIL_CLOSED_MASK = 2,
 	};
 
-	int object_index;
-	int is_rebel_fighter;
-	struct craft_data *craft;
-	uint16_t s_foil_indicator_state;
-
 	flight_text_set_font_tier(2);
 	hud_draw_radar_blips();
 	hud_draw_laser_cannon_indicators();
@@ -2095,20 +2061,21 @@ void hud_update_hud(void)
 	hud_draw_beam_strength2d();
 	hud_update_mission_clock_display();
 
-	object_index = g_players[g_local_player].object_index;
-	is_rebel_fighter = object_index != -1 &&
-			   (g_object_table[object_index].object_type ==
-				    CRAFT_SPECIES_X_WING ||
-			    g_object_table[object_index].object_type ==
-				    CRAFT_SPECIES_Y_WING ||
-			    g_object_table[object_index].object_type ==
-				    CRAFT_SPECIES_A_WING ||
-			    g_object_table[object_index].object_type ==
-				    CRAFT_SPECIES_Z_95_HEADHUNTER ||
-			    g_object_table[object_index].object_type ==
-				    CRAFT_SPECIES_B_WING);
+	int object_index = g_players[g_local_player].object_index;
+	int is_rebel_fighter = object_index != -1 &&
+			       (g_object_table[object_index].object_type ==
+					CRAFT_SPECIES_X_WING ||
+				g_object_table[object_index].object_type ==
+					CRAFT_SPECIES_Y_WING ||
+				g_object_table[object_index].object_type ==
+					CRAFT_SPECIES_A_WING ||
+				g_object_table[object_index].object_type ==
+					CRAFT_SPECIES_Z_95_HEADHUNTER ||
+				g_object_table[object_index].object_type ==
+					CRAFT_SPECIES_B_WING);
 	if (is_rebel_fighter) {
-		craft = g_object_table[object_index].mobj->p_craft;
+		struct craft_data *craft =
+			g_object_table[object_index].mobj->p_craft;
 		if ((craft->damage_stats.active_hud_feature_mask &
 		     SHIELD_DISPLAY_FEATURE_MASK) != 0 &&
 		    (uint16_t)g_hud_element_layouts[SHIELD_DISTRIBUTION_ELEMENT]
@@ -2143,9 +2110,10 @@ void hud_update_hud(void)
 				    CRAFT_SPECIES_B_WING);
 	if (is_rebel_fighter &&
 	    g_hud_element_layouts[S_FOIL_STATE_ELEMENT].x != 0) {
-		s_foil_indicator_state = (g_object_table[object_index]
-						  .mobj->p_craft->s_foil_state &
-					  S_FOIL_CLOSED_MASK) == 0;
+		uint16_t s_foil_indicator_state =
+			(g_object_table[object_index]
+				 .mobj->p_craft->s_foil_state &
+			 S_FOIL_CLOSED_MASK) == 0;
 		hud_draw_cached_sprite_element(S_FOIL_STATE_ELEMENT,
 					       s_foil_indicator_state);
 	}
@@ -2193,12 +2161,11 @@ void hud_draw_map_view_overlay(void)
 		OBJECT_DISPLAY_FLAGS = 3,
 	};
 
+	hud_update_targeting_computer_display();
+	hud_update_mfd_pages();
 	uint16_t object_idx;
 	const char *object_name;
 	char text[80];
-
-	hud_update_targeting_computer_display();
-	hud_update_mfd_pages();
 	if ((uint16_t)
 		    g_hud_element_state_cache[g_hud_instrument_set_base_index +
 					      CAMERA_FOCUS_LAYOUT] !=
@@ -2355,15 +2322,13 @@ void hud_update_cmd_text(void)
 		HUD_ELEMENT_STATE_INVALID = UINT16_MAX - 1,
 	};
 
-	uint16_t layout_index;
-
 	if (((const uint16_t *)
 		     g_hud_element_state_cache)[CMD_TEXT_CACHE_INDEX] ==
 	    HUD_ELEMENT_STATE_INVALID) {
 		hud_update_mfd_pages();
 		flight_text_set_background_color(COLOR_MFD_BACKGROUND);
 		flight_text_set_font_tier(2);
-		for (layout_index = CMD_TEXT_LAYOUT_FIRST;
+		for (uint16_t layout_index = CMD_TEXT_LAYOUT_FIRST;
 		     layout_index < CMD_TEXT_LAYOUT_END; ++layout_index) {
 			flight_text_set_cursor(
 				g_hud_element_layouts[layout_index].x,
@@ -2432,7 +2397,6 @@ void hud_draw_radar_blips(void)
 	uint16_t player_object_idx = g_players[g_local_player].object_index;
 	struct craft_data *player_craft =
 		g_object_table[player_object_idx].mobj->p_craft;
-	int object_idx;
 
 	if ((player_craft->damage_stats.active_hud_feature_mask & 0x80) == 0 ||
 	    (player_craft->damage_stats.active_hud_feature_mask & 0x100) == 0) {
@@ -2457,6 +2421,7 @@ void hud_draw_radar_blips(void)
 		g_radar_aft_draw_blips = g_radar_aft_blip_buffer_b;
 	}
 
+	int object_idx;
 	for (object_idx = g_active_region_object_slot_start;
 	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
 		struct object_record *object = &g_object_table[object_idx];
@@ -2554,21 +2519,6 @@ void hud_add_blip_to_radar(int16_t obj_idx)
 		      g_object_table[player_object_idx].world_y;
 	int delta_z = g_object_table[object_idx].world_z -
 		      g_object_table[player_object_idx].world_z;
-	int up;
-	int side;
-	int16_t front_blip;
-	int forward;
-	struct mobile_object *mobile_object;
-	int fwd_z_product;
-	int fwd_x_product;
-	int fwd_y_product;
-	int side_z_product;
-	int side_y_product;
-	int side_x_product;
-	int up_x_product;
-	int up_y_product;
-	int up_z_product;
-	int side_z;
 
 	if (g_object_table[player_object_idx].mobj->orient_matrix_dirty != 0) {
 		fview_calcrotatemove(g_object_table[player_object_idx].pitch,
@@ -2577,38 +2527,38 @@ void hud_add_blip_to_radar(int16_t obj_idx)
 		fview_calcrotateorient(g_object_table[player_object_idx].roll,
 				       0, &g_object_table[player_object_idx]);
 	}
-	fwd_x_product = math_mul_q15(
+	int fwd_x_product = math_mul_q15(
 		delta_x, g_object_table[player_object_idx].mobj->cached_fwd_x);
-	fwd_y_product = math_mul_q15(
+	int fwd_y_product = math_mul_q15(
 		delta_y, g_object_table[player_object_idx].mobj->cached_fwd_y);
-	forward = fwd_x_product + fwd_y_product;
-	fwd_z_product = math_mul_q15(
+	int forward = fwd_x_product + fwd_y_product;
+	int fwd_z_product = math_mul_q15(
 		delta_z, g_object_table[player_object_idx].mobj->cached_fwd_z);
 	forward += fwd_z_product;
-	side_x_product = math_mul_q15(
+	int side_x_product = math_mul_q15(
 		delta_x, g_object_table[player_object_idx].mobj->cached_side_x);
-	side_y_product = math_mul_q15(
+	int side_y_product = math_mul_q15(
 		delta_y, g_object_table[player_object_idx].mobj->cached_side_y);
-	side = side_x_product + side_y_product;
-	side_z = g_object_table[player_object_idx].mobj->cached_side_z;
-	side_z_product = math_mul_q15(delta_z, side_z);
+	int side = side_x_product + side_y_product;
+	int side_z = g_object_table[player_object_idx].mobj->cached_side_z;
+	int side_z_product = math_mul_q15(delta_z, side_z);
 	side += side_z_product;
-	up_x_product = math_mul_q15(
+	int up_x_product = math_mul_q15(
 		delta_x, g_object_table[player_object_idx].mobj->cached_up_x);
-	up_y_product = math_mul_q15(
+	int up_y_product = math_mul_q15(
 		delta_y, g_object_table[player_object_idx].mobj->cached_up_y);
-	up = up_x_product + up_y_product;
-	up_z_product = math_mul_q15(
+	int up = up_x_product + up_y_product;
+	int up_z_product = math_mul_q15(
 		delta_z, g_object_table[player_object_idx].mobj->cached_up_z);
 	up += up_z_product;
 	up = -up;
-	front_blip = 1;
+	int16_t front_blip = 1;
 	if (forward < 0) {
 		forward = -forward;
 		front_blip = 0;
 	}
 
-	mobile_object = g_object_table[object_idx].mobj;
+	struct mobile_object *mobile_object = g_object_table[object_idx].mobj;
 	if (mobile_object == NULL) {
 		g_radar_blip_color = 47;
 	} else if (g_object_table[object_idx].genus_id ==
@@ -2774,35 +2724,20 @@ void hud_update_targeting_computer_display(void)
 		WAYPOINT_ZERO_OBJECT_REF = 0x8000,
 	};
 
-	int local_object_index;
-	uint16_t current_target_object_index;
-	int16_t previous_target_object_index;
-	uint8_t map_camera_state;
 	bool draw_target_display;
 	bool use_left_aligned_details;
-	struct object_record *target_object;
-	struct mobile_object *target_mobile_object;
-	struct craft_data *target_craft;
-	unsigned int shield_percentage;
-	unsigned int hull_percentage;
-	unsigned int system_percentage;
-	uint16_t left;
-	uint16_t top;
-	uint16_t dirty_state = UINT16_MAX;
-	uint16_t invalid_state = UINT16_MAX - 1;
-	char status_first_word[64];
 
 #ifdef XVT_MODERN
 	xvt_cockpit_readouts_begin_target(0);
 #endif
 
 	g_flight_text_shadow_enabled = 0;
-	left = g_hud_element_layouts[g_hud_instrument_set_base_index +
-				     TARGET_INSET_ELEMENT]
-		       .x;
-	top = g_hud_element_layouts[g_hud_instrument_set_base_index +
-				    TARGET_INSET_ELEMENT]
-		      .y;
+	uint16_t left = g_hud_element_layouts[g_hud_instrument_set_base_index +
+					      TARGET_INSET_ELEMENT]
+				.x;
+	uint16_t top = g_hud_element_layouts[g_hud_instrument_set_base_index +
+					     TARGET_INSET_ELEMENT]
+			       .y;
 	if (g_flight_mission_state.proving_grounds_mode_active != 0) {
 #ifdef XVT_MODERN
 		xvt_cockpit_readouts_hide_target();
@@ -2812,7 +2747,7 @@ void hud_update_targeting_computer_display(void)
 	}
 
 	draw_target_display = true;
-	map_camera_state = g_players[g_local_player].map_camera_state;
+	uint8_t map_camera_state = g_players[g_local_player].map_camera_state;
 	if (map_camera_state == 0) {
 		if ((g_object_table[g_players[g_local_player].object_index]
 			     .mobj->p_craft->damage_stats
@@ -2822,7 +2757,7 @@ void hud_update_targeting_computer_display(void)
 		}
 	}
 
-	local_object_index = g_players[g_local_player].object_index;
+	int local_object_index = g_players[g_local_player].object_index;
 	use_left_aligned_details =
 		local_object_index != -1 &&
 		(g_object_table[local_object_index].object_type == 1 ||
@@ -2831,6 +2766,7 @@ void hud_update_targeting_computer_display(void)
 		 g_object_table[local_object_index].object_type == 14 ||
 		 g_object_table[local_object_index].object_type == 4);
 
+	uint16_t dirty_state = UINT16_MAX;
 	if (map_camera_state == 0) {
 		if (!draw_target_display) {
 #ifdef XVT_MODERN
@@ -2916,14 +2852,18 @@ void hud_update_targeting_computer_display(void)
 		flight_text_set_font_tier(2);
 	}
 	g_hud_target_inset_mask_refresh_pending = 0;
-	current_target_object_index =
+	uint16_t current_target_object_index =
 		(uint16_t)g_players[g_local_player].current_target_object_idx;
+	struct object_record *target_object;
+	struct mobile_object *target_mobile_object;
+	struct craft_data *target_craft;
 	if (current_target_object_index !=
 	    (uint16_t)g_hud_cached_target_object_idx) {
 #ifdef XVT_MODERN
 		xvt_cockpit_text_clear_target_fields();
 #endif
-		previous_target_object_index = g_hud_cached_target_object_idx;
+		int16_t previous_target_object_index =
+			g_hud_cached_target_object_idx;
 		g_hud_target_inset_mask_refresh_pending = 1;
 		g_hud_cached_target_object_idx =
 			(int16_t)current_target_object_index;
@@ -2993,8 +2933,6 @@ void hud_update_targeting_computer_display(void)
 		if (previous_target_object_index == -1 ||
 		    previous_target_object_index == -2 ||
 		    previous_target_object_index == -3) {
-			uint16_t percent_width;
-
 			if (use_left_aligned_details ||
 			    g_flight_resolution_mode !=
 				    FLIGHT_RESOLUTION_320X240) {
@@ -3041,8 +2979,9 @@ void hud_update_targeting_computer_display(void)
 			if (use_left_aligned_details) {
 				flight_text_set_font_tier(0);
 			}
-			percent_width = flight_text_measure_string_width(
-				g_three_digit_width_text);
+			uint16_t percent_width =
+				flight_text_measure_string_width(
+					g_three_digit_width_text);
 			flight_text_set_cursor(
 				g_hud_element_layouts
 					[g_hud_instrument_set_base_index +
@@ -3160,11 +3099,10 @@ void hud_update_targeting_computer_display(void)
 		}
 
 		if (current_target_object_index != UINT16_MAX) {
-			uint16_t target_object_type;
-
 			target_object =
 				&g_object_table[current_target_object_index];
-			target_object_type = target_object->object_type;
+			uint16_t target_object_type =
+				target_object->object_type;
 			target_mobile_object = target_object->mobj;
 			target_craft = target_mobile_object != NULL
 					       ? target_mobile_object->p_craft
@@ -3196,26 +3134,23 @@ void hud_update_targeting_computer_display(void)
 				    g_flight_mission_state
 						    .locate_players_enabled ==
 					    0) {
-					int player_team;
-
-					player_team = (uint16_t)g_players
-							      [g_local_player]
-								      .team;
+					int player_team =
+						(uint16_t)g_players
+							[g_local_player]
+								.team;
 					if (target_craft
 						    ->identified_order_by_team
 							    [player_team] ==
 					    0) {
-						int flight_group_index;
-						int team;
-						int hostile;
-
-						flight_group_index =
+						int flight_group_index =
 							g_object_table[current_target_object_index]
 								.flight_group_idx;
-						team = g_mission_flight_groups
-							       [flight_group_index]
-								       .fg.team;
-						hostile = 0;
+						int team =
+							g_mission_flight_groups
+								[flight_group_index]
+									.fg
+									.team;
+						int hostile = 0;
 						if (team != player_team) {
 							hostile =
 								g_mission_teams[player_team]
@@ -3443,9 +3378,9 @@ void hud_update_targeting_computer_display(void)
 					[(uint16_t)g_players[g_local_player]
 						 .current_target_object_idx]
 						.mobj->p_craft;
-			int player_team;
 
-			player_team = (uint16_t)g_players[g_local_player].team;
+			int player_team =
+				(uint16_t)g_players[g_local_player].team;
 			if (display_craft
 				    ->identified_order_by_team[player_team] ==
 			    0) {
@@ -3454,13 +3389,11 @@ void hud_update_targeting_computer_display(void)
 						[(uint16_t)g_players[g_local_player]
 							 .current_target_object_idx]
 							.flight_group_idx;
-				int team;
-				int hostile;
 
-				team = g_mission_flight_groups
-					       [flight_group_index]
-						       .fg.team;
-				hostile = 0;
+				int team = g_mission_flight_groups
+						   [flight_group_index]
+							   .fg.team;
+				int hostile = 0;
 				if (team != player_team) {
 					hostile = g_mission_teams[player_team]
 							  .allies[team] == 0;
@@ -3528,6 +3461,7 @@ void hud_update_targeting_computer_display(void)
 	if (target_mobile_object != NULL) {
 		target_craft = target_mobile_object->p_craft;
 	}
+	unsigned int shield_percentage;
 	if (target_mobile_object == NULL) {
 		shield_percentage = 0;
 	} else {
@@ -3571,6 +3505,7 @@ void hud_update_targeting_computer_display(void)
 		flight_text_set_font_tier(2);
 	}
 
+	unsigned int hull_percentage;
 	if ((uint16_t)g_players[g_local_player].current_target_object_idx <
 		    g_active_region_craft_object_slot_end &&
 	    target_craft != NULL) {
@@ -3607,6 +3542,7 @@ void hud_update_targeting_computer_display(void)
 
 	target_object = &g_object_table[(uint16_t)g_players[g_local_player]
 						.current_target_object_idx];
+	unsigned int system_percentage;
 	if (target_object->mobj != NULL) {
 		if (target_craft == NULL ||
 		    target_craft->object_kind ==
@@ -3680,7 +3616,6 @@ void hud_update_targeting_computer_display(void)
 		uint16_t cargo_state = 2;
 		const char *cargo_text =
 			g_str_mesh_component_names[MESH_COMPONENT_32_DASHES];
-		int8_t component_display_state;
 
 		if ((uint16_t)g_players[g_local_player]
 				    .current_target_object_idx <
@@ -3749,7 +3684,7 @@ void hud_update_targeting_computer_display(void)
 			}
 		}
 
-		component_display_state = 0;
+		int8_t component_display_state = 0;
 		if (target_mobile_object == NULL) {
 			component_display_state = 1;
 		} else if (target_craft != NULL) {
@@ -3880,21 +3815,17 @@ void hud_update_targeting_computer_display(void)
 			    g_flight_player_count > 1 && target_craft != NULL &&
 			    g_flight_mission_state.locate_players_enabled ==
 				    0) {
-				int player_team;
-
-				player_team =
+				int player_team =
 					(uint16_t)g_players[g_local_player]
 						.team;
 				if (target_craft->identified_order_by_team
 					    [player_team] == 0) {
-					int team;
-					int hostile;
-
-					team = g_mission_flight_groups
-						       [target_object
-								->flight_group_idx]
-							       .fg.team;
-					hostile =
+					int team =
+						g_mission_flight_groups
+							[target_object
+								 ->flight_group_idx]
+								.fg.team;
+					int hostile =
 						team == player_team
 							? 0
 							: g_mission_teams[player_team]
@@ -3919,20 +3850,21 @@ void hud_update_targeting_computer_display(void)
 					: 0;
 		}
 
+		uint16_t invalid_state = UINT16_MAX - 1;
+		char status_first_word[64];
 		if (ownership_display_mode == 1) {
 			struct mobile_object *order_mobile_object =
 				target_object->mobj;
 			struct craft_data *order_craft =
 				order_mobile_object->p_craft;
-			struct ai_controller *ai_controller;
-			uint16_t display_plan_id;
-			uint16_t ai_target_object_index;
 
 			if (order_craft == NULL) {
 				return;
 			}
-			ai_controller = &order_craft->ai_controller;
-			display_plan_id = ai_controller->running_plan_id;
+			struct ai_controller *ai_controller =
+				&order_craft->ai_controller;
+			uint16_t display_plan_id =
+				ai_controller->running_plan_id;
 			if (order_craft->working_subsystems == 0) {
 				display_plan_id = (uint16_t)
 					pai_find_plan_id_by_name_or_zero(
@@ -3964,10 +3896,6 @@ void hud_update_targeting_computer_display(void)
 			}
 			if (display_plan_id !=
 			    g_hud_element_state_cache[TARGET_CARGO_ELEMENT]) {
-				const char *status_text;
-				const char *status_char;
-				uint16_t word_length;
-
 				g_hud_element_state_cache
 					[TARGET_CARGO_ELEMENT] =
 						display_plan_id;
@@ -3989,11 +3917,11 @@ void hud_update_targeting_computer_display(void)
 				g_flight_fill_clip_rect_fn();
 				flight_text_set_cursor(left, top);
 				flight_text_set_color(0x46);
-				status_text = g_str_in_flight_messages
+				const char *status_text = g_str_in_flight_messages
 					[g_plan_report_message_id_by_plan_id
 						 [display_plan_id]];
-				status_char = status_text;
-				for (word_length = 0;
+				const char *status_char = status_text;
+				for (uint16_t word_length = 0;
 				     word_length < MAX_STATUS_FIRST_WORD_LENGTH;
 				     ++word_length, ++status_char) {
 					if (*status_char == ' ') {
@@ -4014,7 +3942,8 @@ void hud_update_targeting_computer_display(void)
 				flight_text_draw_string(status_first_word);
 			}
 
-			ai_target_object_index = ai_controller->target_obj_idx;
+			uint16_t ai_target_object_index =
+				ai_controller->target_obj_idx;
 			if (ai_target_object_index == 255 ||
 			    ai_target_object_index == UINT16_MAX) {
 				if (g_hud_element_state_cache
@@ -4164,9 +4093,6 @@ void hud_update_targeting_computer_display(void)
 				if (g_hud_element_state_cache
 					    [TARGET_CARGO_ELEMENT] !=
 				    IFMSG_181_HYPERING_OUT_OF_COMBAT_AREA) {
-					const char *status_char;
-					uint16_t word_length;
-
 					g_hud_element_state_cache
 						[TARGET_CARGO_ELEMENT] =
 							IFMSG_181_HYPERING_OUT_OF_COMBAT_AREA;
@@ -4189,9 +4115,9 @@ void hud_update_targeting_computer_display(void)
 					g_flight_fill_clip_rect_fn();
 					flight_text_set_cursor(left, top);
 					flight_text_set_color(0x46);
-					status_char = g_str_in_flight_messages
+					const char *status_char = g_str_in_flight_messages
 						[IFMSG_181_HYPERING_OUT_OF_COMBAT_AREA];
-					for (word_length = 0;
+					for (uint16_t word_length = 0;
 					     word_length <
 					     MAX_STATUS_FIRST_WORD_LENGTH;
 					     ++word_length, ++status_char) {
@@ -4258,9 +4184,6 @@ void hud_update_targeting_computer_display(void)
 					if (owner_target_object_index !=
 					    g_hud_element_state_cache
 						    [TARGET_CARGO_ELEMENT]) {
-						const char *status_char;
-						uint16_t word_length;
-
 						g_hud_element_state_cache
 							[TARGET_CARGO_ELEMENT] =
 								owner_target_object_index;
@@ -4284,13 +4207,13 @@ void hud_update_targeting_computer_display(void)
 						flight_text_set_cursor(left,
 								       top);
 						flight_text_set_color(0x46);
-						status_char = g_str_in_flight_messages
+						const char *status_char = g_str_in_flight_messages
 							[IFMSG_165_ATTACKING_TARGET];
-						for (word_length = 0;
+						for (uint16_t word_length = 0;
 						     word_length <
 						     MAX_STATUS_FIRST_WORD_LENGTH;
 						     ++word_length,
-						    ++status_char) {
+							      ++status_char) {
 							if (*status_char ==
 							    ' ') {
 								strncpy(status_first_word,
@@ -4359,9 +4282,6 @@ void hud_update_targeting_computer_display(void)
 					if (g_hud_element_state_cache
 						    [TARGET_CARGO_ELEMENT] !=
 					    IFMSG_160_PATROLLING) {
-						const char *status_char;
-						uint16_t word_length;
-
 						g_hud_element_state_cache
 							[TARGET_CARGO_ELEMENT] =
 								IFMSG_160_PATROLLING;
@@ -4385,13 +4305,13 @@ void hud_update_targeting_computer_display(void)
 						flight_text_set_cursor(left,
 								       top);
 						flight_text_set_color(0x46);
-						status_char = g_str_in_flight_messages
+						const char *status_char = g_str_in_flight_messages
 							[IFMSG_160_PATROLLING];
-						for (word_length = 0;
+						for (uint16_t word_length = 0;
 						     word_length <
 						     MAX_STATUS_FIRST_WORD_LENGTH;
 						     ++word_length,
-						    ++status_char) {
+							      ++status_char) {
 							if (*status_char ==
 							    ' ') {
 								strncpy(status_first_word,
@@ -4472,19 +4392,6 @@ void hud_update_targeting_computer_display(void)
 // FUNCTION: XVT 0x43C290
 void hud_format_object_display_name(uint16_t object_ref, int16_t display_flags)
 {
-	int object_index;
-	struct object_record *object;
-	uint16_t object_type;
-	int8_t iff;
-	struct mobile_object *mobile_object;
-	struct craft_data *craft;
-	int flight_group_idx;
-	int16_t craft_number;
-	uint8_t static_iff;
-	uint16_t hundreds_digit;
-	uint16_t tens_digit;
-	uint16_t ones_digit;
-
 	g_flight_text_scratch_buffer[0] = 0;
 	if (object_ref >= 0x8000) {
 		if ((display_flags & 1) != 0) {
@@ -4496,13 +4403,14 @@ void hud_format_object_display_name(uint16_t object_ref, int16_t display_flags)
 		return;
 	}
 
-	object_index = object_ref;
-	object = &g_object_table[object_index];
+	int object_index = object_ref;
+	struct object_record *object = &g_object_table[object_index];
+	uint16_t object_type;
 	if (g_object_table[object_index].mobj != NULL) {
 		object_type = object->object_type;
 		if (object_type != 0) {
 			flight_text_append_scratch_char(254);
-			iff = g_object_table[object_index].mobj->iff;
+			int8_t iff = g_object_table[object_index].mobj->iff;
 			if (iff == 0) {
 				flight_text_append_scratch_char(81);
 			} else if (iff == 1 || iff == 4) {
@@ -4515,9 +4423,11 @@ void hud_format_object_display_name(uint16_t object_ref, int16_t display_flags)
 				flight_text_append_scratch_char(77);
 			}
 
-			mobile_object = g_object_table[object_index].mobj;
+			struct mobile_object *mobile_object =
+				g_object_table[object_index].mobj;
 			if (mobile_object->family == 0) {
-				craft = mobile_object->p_craft;
+				struct craft_data *craft =
+					mobile_object->p_craft;
 				if ((display_flags & 1) != 0) {
 					flight_text_append_scratch_string(
 						g_model_defs[craft->model_index]
@@ -4549,14 +4459,14 @@ void hud_format_object_display_name(uint16_t object_ref, int16_t display_flags)
 						flight_text_append_scratch_char(
 							78);
 					}
-					flight_group_idx =
+					int flight_group_idx =
 						g_object_table[object_index]
 							.flight_group_idx;
 					flight_text_append_scratch_string(
 						g_mission_flight_groups
 							[flight_group_idx]
 								.fg.name);
-					craft_number =
+					int16_t craft_number =
 						hud_mission_fg_get_craft_number_if_shown(
 							flight_group_idx,
 							craft);
@@ -4567,9 +4477,11 @@ void hud_format_object_display_name(uint16_t object_ref, int16_t display_flags)
 						    1000) {
 							craft_number = 999;
 						}
+						uint16_t tens_digit;
+						uint16_t ones_digit;
 						if ((uint16_t)craft_number >=
 						    100) {
-							hundreds_digit =
+							uint16_t hundreds_digit =
 								(uint16_t)
 									craft_number /
 								100;
@@ -4634,10 +4546,11 @@ void hud_format_object_display_name(uint16_t object_ref, int16_t display_flags)
 		object_type = object->object_type;
 		if (object_type != 0) {
 			flight_text_append_scratch_char(254);
-			static_iff = g_mission_flight_groups
-					     [g_object_table[object_index]
-						      .flight_group_idx]
-						     .fg.iff;
+			uint8_t static_iff =
+				g_mission_flight_groups
+					[g_object_table[object_index]
+						 .flight_group_idx]
+						.fg.iff;
 			if (static_iff == 0) {
 				flight_text_append_scratch_char(81);
 			} else if (static_iff == 1 || static_iff == 4) {
@@ -4713,15 +4626,12 @@ int hud_mission_fg_get_craft_number_if_shown(int flight_group_idx,
 // FUNCTION: XVT 0x43C890
 void hud_draw_target_distance(int polar_distance)
 {
-	uint16_t distance_hundredths;
-	uint16_t whole_distance;
-
-	distance_hundredths = (uint32_t)(polar_distance * 161) >> 16;
+	uint16_t distance_hundredths = (uint32_t)(polar_distance * 161) >> 16;
 	if (distance_hundredths >= 10000) {
 		distance_hundredths = 9999;
 	}
 
-	whole_distance = distance_hundredths / 100;
+	uint16_t whole_distance = distance_hundredths / 100;
 	hud_draw_cached_numeric_element(g_hud_instrument_set_base_index + 83,
 					whole_distance, 1);
 	hud_draw_cached_numeric_element(
@@ -4793,52 +4703,39 @@ void hud_draw_laser_cannon_indicators(void)
 		DEFAULT_HUD_HEIGHT = 200,
 	};
 
-	struct craft_data *craft;
-	uint8_t *laser_group_last_slot;
-	uint16_t laser_slot_count;
-	uint16_t laser_slot;
-
 	g_target_lock_active = 0;
-	craft = g_object_table[g_players[g_local_player].object_index]
+	struct craft_data *craft =
+		g_object_table[g_players[g_local_player].object_index]
 			.mobj->p_craft;
-	laser_slot = 0;
-	laser_slot_count = craft->laser_slot_count;
+	uint16_t laser_slot = 0;
+	uint16_t laser_slot_count = craft->laser_slot_count;
 	if (laser_slot_count == 0) {
 		return;
 	}
 
-	laser_group_last_slot =
+	uint8_t *laser_group_last_slot =
 		g_model_defs[craft->model_index].laser_group_last_slot;
 	for (; laser_slot_count > laser_slot; ++laser_slot) {
-		uint16_t laser_bank;
-		int layout_index;
-		int x;
-		int y;
-		uint16_t selector;
-		int16_t charge;
-		int16_t charged_segment_state = 0;
-		uint16_t ready_state;
-		uint16_t lock_state;
-		int object_index;
-		int is_rebel_fighter;
-
-		laser_bank = laser_slot > *laser_group_last_slot;
-		layout_index = g_hud_instrument_set_base_index + laser_slot;
-		x = (int16_t)g_hud_element_layouts[layout_index +
-						   LASER_CHARGE_ELEMENT_BASE]
-			    .x;
-		y = g_hud_element_layouts[layout_index +
-					  LASER_CHARGE_ELEMENT_BASE]
-			    .y;
+		uint16_t laser_bank = laser_slot > *laser_group_last_slot;
+		int layout_index = g_hud_instrument_set_base_index + laser_slot;
+		int x = (int16_t)
+				g_hud_element_layouts[layout_index +
+						      LASER_CHARGE_ELEMENT_BASE]
+					.x;
+		int y = g_hud_element_layouts[layout_index +
+					      LASER_CHARGE_ELEMENT_BASE]
+				.y;
 		if (x + y == 0 && g_hud_instrument_set_base_index ==
 					  HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
 			continue;
 		}
 
-		selector = g_hud_element_layouts[layout_index +
-						 LASER_CHARGE_ELEMENT_BASE]
-				   .selector;
-		charge = craft->weapon_slots[laser_slot].laser_charge;
+		uint16_t selector =
+			g_hud_element_layouts[layout_index +
+					      LASER_CHARGE_ELEMENT_BASE]
+				.selector;
+		int16_t charge = craft->weapon_slots[laser_slot].laser_charge;
+		int16_t charged_segment_state = 0;
 		if (g_players[g_local_player].view_state.hud_state_live ==
 			    HUD_VIEW_FORWARD &&
 		    (craft->damage_stats.active_hud_feature_mask & 2) != 0 &&
@@ -4874,14 +4771,11 @@ void hud_draw_laser_cannon_indicators(void)
 				    [layout_index +
 				     LASER_CHARGE_ELEMENT_BASE] !=
 			    charged_segment_count) {
-				int16_t x_step;
-				uint16_t reverse_direction;
-
 				g_hud_element_state_cache
 					[layout_index +
 					 LASER_CHARGE_ELEMENT_BASE] =
 						charged_segment_count;
-				x_step = 3;
+				int16_t x_step = 3;
 				if (g_flight_resolution_mode !=
 				    FLIGHT_RESOLUTION_320X240) {
 					if (g_flight_resolution_mode ==
@@ -4891,7 +4785,7 @@ void hud_draw_laser_cannon_indicators(void)
 						x_step = 6;
 					}
 				}
-				reverse_direction = 0;
+				uint16_t reverse_direction = 0;
 				if (g_hud_element_layouts
 					    [layout_index +
 					     LASER_CHARGE_ELEMENT_BASE]
@@ -4940,9 +4834,7 @@ void hud_draw_laser_cannon_indicators(void)
 							DEFAULT_HUD_HEIGHT, 0);
 					}
 				} else {
-					uint16_t segment;
-
-					for (segment = 0;
+					for (uint16_t segment = 0;
 					     segment <
 					     LASER_CHARGE_SEGMENT_COUNT;
 					     ++segment) {
@@ -4964,7 +4856,8 @@ void hud_draw_laser_cannon_indicators(void)
 
 		/* lock_state first holds this cannon's fire-ready state, drawn on the ready indicator; after that draw
 		 * it becomes the target lock state. */
-		lock_state = 0;
+		uint16_t lock_state = 0;
+		uint16_t ready_state;
 		if (charge > 0 && (craft->working_subsystems &
 				   CRAFT_SUBSYSTEM_FLAG_CANNONS) != 0) {
 			if (g_players[g_local_player].selected_weapon_mode ==
@@ -5024,8 +4917,8 @@ void hud_draw_laser_cannon_indicators(void)
 			++ready_state;
 		}
 
-		object_index = g_players[g_local_player].object_index;
-		is_rebel_fighter =
+		int object_index = g_players[g_local_player].object_index;
+		int is_rebel_fighter =
 			object_index != -1 &&
 			(g_object_table[object_index].object_type == 1 ||
 			 g_object_table[object_index].object_type == 2 ||
@@ -5113,13 +5006,11 @@ void hud_draw_laser_cannon_indicators(void)
 // FUNCTION: XVT 0x43D010
 void hud_update_warhead_cnt(void)
 {
-	struct object_record *object;
-	int16_t first_launcher_slot_count;
-
-	object = &g_object_table[g_players[g_local_player].object_index];
+	struct object_record *object =
+		&g_object_table[g_players[g_local_player].object_index];
 	if ((object->mobj->p_craft->damage_stats.active_hud_feature_mask & 8) !=
 	    0) {
-		first_launcher_slot_count =
+		int16_t first_launcher_slot_count =
 			g_model_defs[get_model_index_from_type(
 					     object->object_type)]
 				.warhead_launcher_slot_count[0];
@@ -5205,10 +5096,6 @@ void hud_output_warhead_count(uint16_t warhead_slot_idx, uint16_t display_slot,
 	uint16_t selection_state;
 	uint8_t launcher_flags;
 	model_index craft_model_index;
-	int object_index;
-	int is_rebel_fighter;
-	int local_player;
-	struct mobile_object **player_mobile_object;
 
 	if (g_hud_instrument_set_base_index !=
 	    HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
@@ -5216,8 +5103,8 @@ void hud_output_warhead_count(uint16_t warhead_slot_idx, uint16_t display_slot,
 					    g_screen_width, g_screen_height,
 					    g_screen_width *
 						    g_flight_bytes_per_pixel);
-		local_player = g_local_player;
-		player_mobile_object =
+		int local_player = g_local_player;
+		struct mobile_object **player_mobile_object =
 			&g_object_table[g_players[local_player].object_index]
 				 .mobj;
 		craft = (*player_mobile_object)->p_craft;
@@ -5418,13 +5305,14 @@ void hud_output_warhead_count(uint16_t warhead_slot_idx, uint16_t display_slot,
 		selection_state = 0;
 	}
 
-	object_index = g_players[g_local_player].object_index;
-	is_rebel_fighter = object_index != -1 &&
-			   (g_object_table[object_index].object_type == 1 ||
-			    g_object_table[object_index].object_type == 2 ||
-			    g_object_table[object_index].object_type == 3 ||
-			    g_object_table[object_index].object_type == 14 ||
-			    g_object_table[object_index].object_type == 4);
+	int object_index = g_players[g_local_player].object_index;
+	int is_rebel_fighter =
+		object_index != -1 &&
+		(g_object_table[object_index].object_type == 1 ||
+		 g_object_table[object_index].object_type == 2 ||
+		 g_object_table[object_index].object_type == 3 ||
+		 g_object_table[object_index].object_type == 14 ||
+		 g_object_table[object_index].object_type == 4);
 	if (is_rebel_fighter && selection_state == 2) {
 		selection_state = 4;
 	}
@@ -5449,30 +5337,26 @@ void hud_draw_shield_strength2d(void)
 	struct craft_data *craft =
 		g_object_table[g_players[g_local_player].object_index]
 			.mobj->p_craft;
-	int shield;
-	int max_shield;
 
 	if ((craft->damage_stats.active_hud_feature_mask & 0x20u) == 0) {
 		return;
 	}
 
-	shield = craft->shield_energy[0];
+	int shield = craft->shield_energy[0];
 	if (shield < 0) {
 		shield = 0;
 	}
 	if (!(craft->working_subsystems & CRAFT_SUBSYSTEM_FLAG_SHIELDS)) {
 		shield = 0;
 	}
-	max_shield = craft_get_object_max_shield(
-			     g_players[g_local_player].object_index) /
-		     2;
+	int max_shield = craft_get_object_max_shield(
+				 g_players[g_local_player].object_index) /
+			 2;
 	if (g_hud_element_layouts[g_hud_instrument_set_base_index + 35]
 		    .color_index_or_widget_param != 0xFFFFu) {
 		uint16_t shield_ratio_q16;
 		uint16_t strength_level;
 		uint16_t shield_percent;
-		int16_t primary_fade;
-		int16_t secondary_fade;
 		if (max_shield <= shield) {
 			strength_level = 9;
 			shield_ratio_q16 = math2_longratio_q16(
@@ -5496,13 +5380,13 @@ void hud_draw_shield_strength2d(void)
 				shield_percent = 10;
 			}
 		}
-		primary_fade =
+		int16_t primary_fade =
 			strength_level != 0
 				? g_hud_element_layouts
 					  [g_hud_instrument_set_base_index + 35]
 						  .clip_width
 				: -1;
-		secondary_fade =
+		int16_t secondary_fade =
 			shield_percent != 0
 				? g_hud_element_layouts
 					  [g_hud_instrument_set_base_index + 36]
@@ -5601,8 +5485,6 @@ void hud_draw_shield_strength2d(void)
 		uint16_t shield_ratio_q16;
 		uint16_t strength_level;
 		uint16_t secondary_level;
-		int16_t primary_fade;
-		int16_t secondary_fade;
 		if (max_shield <= shield) {
 			strength_level = 9;
 			shield_ratio_q16 = math2_longratio_q16(
@@ -5626,13 +5508,13 @@ void hud_draw_shield_strength2d(void)
 				secondary_level = 10;
 			}
 		}
-		primary_fade =
+		int16_t primary_fade =
 			strength_level != 0
 				? g_hud_element_layouts
 					  [g_hud_instrument_set_base_index + 37]
 						  .clip_width
 				: -1;
-		secondary_fade =
+		int16_t secondary_fade =
 			secondary_level != 0
 				? g_hud_element_layouts
 					  [g_hud_instrument_set_base_index + 38]
@@ -5717,7 +5599,6 @@ void hud_draw_shield_strength2d(void)
 
 	{
 		uint16_t hull_state;
-		unsigned int hull_third;
 		if (g_player_flight_transient_timers[g_local_player]
 			    .hull_hit_flash_timer != 0) {
 			hull_state = 3;
@@ -5725,7 +5606,7 @@ void hud_draw_shield_strength2d(void)
 			craft = g_object_table[g_players[g_local_player]
 						       .object_index]
 					.mobj->p_craft;
-			hull_third = craft->hull_max / 3;
+			unsigned int hull_third = craft->hull_max / 3;
 			if (!hull_third) {
 				hull_state = 2;
 			} else {
@@ -5752,54 +5633,44 @@ void hud_draw_shield_strength2d(void)
 // FUNCTION: XVT 0x43DE10
 void hud_draw_beam_strength2d(void)
 {
-	uint16_t layout_index;
-	struct craft_data *craft;
-	int16_t beam_strength;
-	int16_t beam_system_available;
-	uint16_t beam_active_state;
-	int original_beam_strength;
-	int16_t segment_index;
-	uint16_t segment_color;
-	int16_t clamped_strength;
-	uint16_t x;
-	uint16_t y;
-
-	layout_index = g_hud_instrument_set_base_index + 51;
-	craft = g_object_table[g_players[g_local_player].object_index]
+	uint16_t layout_index = g_hud_instrument_set_base_index + 51;
+	struct craft_data *craft =
+		g_object_table[g_players[g_local_player].object_index]
 			.mobj->p_craft;
 	if ((craft->damage_stats.active_hud_feature_mask & 0x10) == 0) {
 		return;
 	}
 
-	beam_strength = craft->beam_charge;
+	int16_t beam_strength = craft->beam_charge;
 	if (beam_strength < 0) {
 		beam_strength = 0;
 	}
-	beam_system_available =
+	int16_t beam_system_available =
 		craft->working_subsystems & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM;
 	if (beam_system_available == 0) {
 		beam_strength = 0;
 	}
-	beam_active_state = craft->beam_active != 0;
+	uint16_t beam_active_state = craft->beam_active != 0;
 	if (beam_system_available == 0) {
 		beam_active_state = 0;
 	}
 	hud_draw_cached_sprite_element(g_hud_instrument_set_base_index + 116,
 				       beam_active_state);
 
-	original_beam_strength = beam_strength;
+	int original_beam_strength = beam_strength;
 	if ((uint16_t)g_hud_element_state_cache[51] == beam_strength) {
 		return;
 	}
 	g_hud_element_state_cache[51] = beam_strength;
 
-	segment_index = 0;
+	int16_t segment_index = 0;
+	uint16_t segment_color;
 	do {
 		if (200 * (5 * segment_index + 5) < original_beam_strength) {
 			segment_color =
 				g_hud_beam_segment_color_by_charge_step[3];
 		} else {
-			clamped_strength = beam_strength;
+			int16_t clamped_strength = beam_strength;
 			if (beam_strength < 0) {
 				segment_color =
 					g_hud_beam_segment_color_by_charge_step
@@ -5814,8 +5685,8 @@ void hud_draw_beam_strength2d(void)
 			}
 		}
 
-		x = g_hud_element_layouts[layout_index].x;
-		y = g_hud_element_layouts[layout_index].y;
+		uint16_t x = g_hud_element_layouts[layout_index].x;
+		uint16_t y = g_hud_element_layouts[layout_index].y;
 		if (g_flight_resolution_mode == FLIGHT_RESOLUTION_640X480) {
 			x += 3 * (8 - segment_index);
 			y += 3 * (8 - segment_index);
@@ -5855,13 +5726,11 @@ void hud_draw_beam_strength2d(void)
 // FUNCTION: XVT 0x43E050
 void hud_update_speed_percent(void)
 {
-	int16_t speed_percent;
-
 	if ((g_object_table[g_players[g_local_player].object_index]
 		     .mobj->p_craft->damage_stats.active_hud_feature_mask &
 	     0x40) != 0) {
 		flight_text_set_background_color(0x40);
-		speed_percent = math2_fraction(
+		int16_t speed_percent = math2_fraction(
 			g_object_table[g_players[g_local_player].object_index]
 				.mobj->speed,
 			0x71C7);
@@ -5882,19 +5751,15 @@ void hud_update_speed_percent(void)
 // FUNCTION: XVT 0x43E110
 void hud_update_throttle_percent(void)
 {
-	struct mobile_object *mobile_object;
-	struct craft_data *craft;
-	int16_t throttle_percent;
-
 	if ((g_object_table[g_players[g_local_player].object_index]
 		     .mobj->p_craft->damage_stats.active_hud_feature_mask &
 	     0x40) != 0) {
 		flight_text_set_background_color(0x40);
-		mobile_object =
+		struct mobile_object *mobile_object =
 			g_object_table[g_players[g_local_player].object_index]
 				.mobj;
-		craft = mobile_object->p_craft;
-		throttle_percent = craft->throttle_speed / 0x28F;
+		struct craft_data *craft = mobile_object->p_craft;
+		int16_t throttle_percent = craft->throttle_speed / 0x28F;
 		if (craft->engine_overdrive_off == 0) {
 			throttle_percent *= 2;
 		}
@@ -5920,7 +5785,6 @@ void hud_update_mission_clock_display(void)
 {
 	uint8_t seconds;
 	int16_t minute_seconds;
-	int16_t total_seconds;
 
 	if (g_flight_mission_state.proving_grounds_mode_active != 0 ||
 	    g_flight_mission_state.mission_time_limit_minutes != 0) {
@@ -5930,7 +5794,7 @@ void hud_update_mission_clock_display(void)
 		minute_seconds = 60 * g_mission_elapsed_clock.minutes;
 		seconds = g_mission_elapsed_clock.seconds;
 	}
-	total_seconds = minute_seconds + seconds;
+	int16_t total_seconds = minute_seconds + seconds;
 	if (g_hud_element_state_cache[46] != total_seconds) {
 		g_hud_element_state_cache[46] = total_seconds;
 		flight_text_set_font_tier(2);
@@ -6011,22 +5875,10 @@ void hud_update_mission_clock_display(void)
 // FUNCTION: XVT 0x43E390
 void hud_draw_power_settings2d(void)
 {
-	int object_index;
-	struct object_record *object;
-	struct craft_data *craft;
-	int uses_compact_power_display;
-	int16_t y_step;
-	uint16_t active_hud_feature_mask;
-	uint16_t segment_count;
-	uint16_t laser_power;
-	uint16_t shield_power;
-	uint16_t engine_power;
-	uint16_t system_flags;
-
-	object_index = g_players[g_local_player].object_index;
-	object = &g_object_table[object_index];
-	craft = object->mobj->p_craft;
-	uses_compact_power_display = 0;
+	int object_index = g_players[g_local_player].object_index;
+	struct object_record *object = &g_object_table[object_index];
+	struct craft_data *craft = object->mobj->p_craft;
+	int uses_compact_power_display = 0;
 	if (object_index != -1) {
 		if (object->object_type == 1 || object->object_type == 2 ||
 		    object->object_type == 3 || object->object_type == 14 ||
@@ -6035,6 +5887,8 @@ void hud_draw_power_settings2d(void)
 		}
 	}
 
+	int16_t y_step;
+	uint16_t engine_power;
 	if (!uses_compact_power_display) {
 		y_step = 2;
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240) {
@@ -6081,7 +5935,7 @@ void hud_draw_power_settings2d(void)
 			engine_power =
 				(uint16_t)(8 - (uint8_t)craft
 						       ->laser_recharge_level);
-			system_flags = craft->system_flags;
+			uint16_t system_flags = craft->system_flags;
 			if ((system_flags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) !=
 			    0) {
 				engine_power =
@@ -6104,13 +5958,13 @@ void hud_draw_power_settings2d(void)
 				y_step);
 		}
 	} else {
-		active_hud_feature_mask =
+		uint16_t active_hud_feature_mask =
 			craft->damage_stats.active_hud_feature_mask;
 		if ((active_hud_feature_mask & 0xE00) == 0) {
 			return;
 		}
 
-		segment_count = 0;
+		uint16_t segment_count = 0;
 		y_step = 0;
 		switch (g_flight_resolution_mode) {
 		case FLIGHT_RESOLUTION_320X240:
@@ -6129,8 +5983,8 @@ void hud_draw_power_settings2d(void)
 			break;
 		}
 
-		laser_power = (uint8_t)craft->laser_recharge_level;
-		shield_power = (uint8_t)craft->shield_recharge_level;
+		uint16_t laser_power = (uint8_t)craft->laser_recharge_level;
+		uint16_t shield_power = (uint8_t)craft->shield_recharge_level;
 		engine_power = (uint16_t)(8 - shield_power - laser_power);
 		if (g_hud_instrument_set_base_index !=
 		    HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
@@ -6168,27 +6022,21 @@ void hud_draw_power_settings2d(void)
 void hud_draw_cached_segmented_bar(uint16_t filled_count, uint16_t element_idx,
 				   uint16_t segment_count, int16_t y_step)
 {
-	uint16_t segment_index;
-	uint16_t x;
-	uint16_t y;
-	uint16_t selector;
-	uint16_t sprite_offset;
-
 	if ((uint16_t)g_hud_element_state_cache[element_idx] == filled_count) {
 		return;
 	}
 
-	segment_index = 0;
+	uint16_t segment_index = 0;
 	g_hud_element_state_cache[element_idx] = (int16_t)filled_count;
-	x = g_hud_element_layouts[element_idx].x;
-	y = g_hud_element_layouts[element_idx].y;
-	selector = g_hud_element_layouts[element_idx].selector;
+	uint16_t x = g_hud_element_layouts[element_idx].x;
+	uint16_t y = g_hud_element_layouts[element_idx].y;
+	uint16_t selector = g_hud_element_layouts[element_idx].selector;
 	if (segment_count == segment_index) {
 		return;
 	}
 
 	do {
-		sprite_offset = segment_index < filled_count;
+		uint16_t sprite_offset = segment_index < filled_count;
 		g_flight_blit_sprite_fn(
 			g_hud_panel_sprite_data_by_index[selector +
 							 sprite_offset],
@@ -6210,29 +6058,21 @@ void hud_draw_cached_segmented_bar(uint16_t filled_count, uint16_t element_idx,
 // FUNCTION: XVT 0x43E790
 void hud_update_threat_indicators(int hud_mode)
 {
-	int object_idx;
-	uint16_t beam_threat;
-	uint16_t attack_threat;
-	uint16_t laser_threat;
-	int player_object_idx;
-	int16_t max_warhead_lock;
-	uint16_t warning_state;
-
 	(void)hud_mode;
 
-	attack_threat = 0;
-	laser_threat = 0;
-	beam_threat = 0;
-	player_object_idx = g_players[g_local_player].object_index;
+	uint16_t attack_threat = 0;
+	uint16_t laser_threat = 0;
+	uint16_t beam_threat = 0;
+	int player_object_idx = g_players[g_local_player].object_index;
+	int object_idx;
 	for (object_idx = g_active_region_object_slot_start;
 	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
-		struct craft_data *craft;
-
 		if (g_object_table[object_idx].object_type == 0 ||
 		    g_object_table[object_idx].mobj->family != 0) {
 			continue;
 		}
-		craft = g_object_table[object_idx].mobj->p_craft;
+		struct craft_data *craft =
+			g_object_table[object_idx].mobj->p_craft;
 		if (craft->working_subsystems == 0 ||
 		    craft->object_kind != CRAFT_OBJECT_KIND_ACTIVE) {
 			continue;
@@ -6244,9 +6084,7 @@ void hud_update_threat_indicators(int hud_mode)
 			    (ai->maneuver_mode == AI_MANEUVER_MODE_ATTACK ||
 			     ai->maneuver_mode ==
 				     AI_MANEUVER_MODE_ROCKET_ATTACK)) {
-				int cannon;
-
-				for (cannon = 0;
+				for (int cannon = 0;
 				     cannon < craft->cannon_group_count;
 				     ++cannon) {
 					if ((craft->laser_state
@@ -6274,7 +6112,6 @@ void hud_update_threat_indicators(int hud_mode)
 		} else {
 			struct craft_data *player_craft =
 				g_object_table[player_object_idx].mobj->p_craft;
-			int player_owner_idx;
 
 			if (player_craft->last_attacker_obj_idx == object_idx &&
 			    (uint16_t)mission_clock_to_seconds(
@@ -6286,7 +6123,7 @@ void hud_update_threat_indicators(int hud_mode)
 				    5) {
 				attack_threat = 1;
 			}
-			player_owner_idx =
+			int player_owner_idx =
 				g_object_table[object_idx].player_owner_idx;
 			if ((uint16_t)g_players[player_owner_idx]
 					    .current_target_object_idx ==
@@ -6315,9 +6152,8 @@ void hud_update_threat_indicators(int hud_mode)
 		if (g_mission_flight_groups[g_object_table[object_idx]
 						    .flight_group_idx]
 			    .fg.status1 != 5) {
-			int slot;
-
-			for (slot = 0; slot < craft->laser_slot_count; ++slot) {
+			for (int slot = 0; slot < craft->laser_slot_count;
+			     ++slot) {
 				if (craft->weapon_slots[slot]
 						    .projectile_type_id == 2 &&
 				    craft->turret_target_states[slot]
@@ -6347,22 +6183,21 @@ void hud_update_threat_indicators(int hud_mode)
 				       laser_threat);
 	hud_draw_cached_sprite_element(g_hud_instrument_set_base_index + 92,
 				       beam_threat);
-	max_warhead_lock = 0;
+	int16_t max_warhead_lock = 0;
 	for (object_idx = g_active_region_object_slot_start;
 	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
-		struct craft_data *craft;
-		int player_owner_idx;
-
 		if (g_object_table[object_idx].object_type == 0 ||
 		    g_object_table[object_idx].mobj->family != 0) {
 			continue;
 		}
-		craft = g_object_table[object_idx].mobj->p_craft;
+		struct craft_data *craft =
+			g_object_table[object_idx].mobj->p_craft;
 		if (craft->working_subsystems == 0 ||
 		    craft->object_kind != CRAFT_OBJECT_KIND_ACTIVE) {
 			continue;
 		}
-		player_owner_idx = g_object_table[object_idx].player_owner_idx;
+		int player_owner_idx =
+			g_object_table[object_idx].player_owner_idx;
 		if (player_owner_idx == -1) {
 			struct ai_controller *ai = &craft->ai_controller;
 
@@ -6388,6 +6223,7 @@ void hud_update_threat_indicators(int hud_mode)
 			}
 		}
 	}
+	uint16_t warning_state;
 	if (max_warhead_lock > 944) {
 		warning_state = 2;
 	} else if (max_warhead_lock > 0) {
@@ -6421,22 +6257,13 @@ void hud_update_threat_indicators(int hud_mode)
 // FUNCTION: XVT 0x43EC40
 void hud_update_critical_hull_shield_warning(void)
 {
-	int object_idx;
-	int supported_craft;
-	struct craft_data *craft;
-	unsigned int shield_energy;
-	unsigned int hull_third;
-	unsigned int hull_damage_level;
-	uint16_t warning_state;
-	unsigned int warning_text_idx;
-
-	object_idx = g_players[g_local_player].object_index;
-	supported_craft = object_idx != -1 &&
-			  (g_object_table[object_idx].object_type == 1 ||
-			   g_object_table[object_idx].object_type == 2 ||
-			   g_object_table[object_idx].object_type == 3 ||
-			   g_object_table[object_idx].object_type == 14 ||
-			   g_object_table[object_idx].object_type == 4);
+	int object_idx = g_players[g_local_player].object_index;
+	int supported_craft = object_idx != -1 &&
+			      (g_object_table[object_idx].object_type == 1 ||
+			       g_object_table[object_idx].object_type == 2 ||
+			       g_object_table[object_idx].object_type == 3 ||
+			       g_object_table[object_idx].object_type == 14 ||
+			       g_object_table[object_idx].object_type == 4);
 	if (supported_craft == 0 ||
 	    (uint16_t)g_hud_element_layouts[50].y +
 			    (uint16_t)g_hud_element_layouts[50].x ==
@@ -6444,13 +6271,15 @@ void hud_update_critical_hull_shield_warning(void)
 		return;
 	}
 
-	craft = g_object_table[object_idx].mobj->p_craft;
-	shield_energy = craft->shield_energy[0] + craft->shield_energy[1];
-	hull_third = craft->hull_max / 3;
-	hull_damage_level = 2;
+	struct craft_data *craft = g_object_table[object_idx].mobj->p_craft;
+	unsigned int shield_energy =
+		craft->shield_energy[0] + craft->shield_energy[1];
+	unsigned int hull_third = craft->hull_max / 3;
+	unsigned int hull_damage_level = 2;
 	if (hull_third != 0) {
 		hull_damage_level = craft->hull_damage / hull_third;
 	}
+	uint16_t warning_state;
 	if (shield_energy < 100 && hull_damage_level == 2) {
 		warning_state =
 			(g_mission_elapsed_clock.subsecond_ticks / 59) & 1;
@@ -6494,8 +6323,9 @@ void hud_update_critical_hull_shield_warning(void)
 	flight_text_set_background_color(
 		(uint16_t)g_hud_element_layouts[127].selector +
 		(warning_state == 0 ? 0 : 2));
-	warning_text_idx = (uint16_t)g_hud_element_layouts[127]
-				   .clip_height_or_foreground_color;
+	unsigned int warning_text_idx =
+		(uint16_t)g_hud_element_layouts[127]
+			.clip_height_or_foreground_color;
 	if (warning_text_idx > 0x200) {
 		warning_text_idx -= 0x200;
 		g_flight_fill_clip_rect_fn();
@@ -6521,11 +6351,7 @@ void hud_update_critical_hull_shield_warning(void)
 // FUNCTION: XVT 0x43EE80
 void hud_update_countermeasure_status(void)
 {
-	uint16_t countermeasure_count;
-	uint16_t left;
-	uint16_t y;
-
-	countermeasure_count =
+	uint16_t countermeasure_count =
 		g_object_table[g_players[g_local_player].object_index]
 			.mobj->p_craft->cm_ammo_count;
 	if (g_hud_instrument_set_base_index ==
@@ -6533,12 +6359,14 @@ void hud_update_countermeasure_status(void)
 		if ((uint16_t)g_hud_element_state_cache
 			    [g_hud_instrument_set_base_index + 48] !=
 		    countermeasure_count) {
-			left = g_hud_element_layouts
-				       [g_hud_instrument_set_base_index + 48]
-					       .x;
-			y = g_hud_element_layouts
-				    [g_hud_instrument_set_base_index + 48]
-					    .y;
+			uint16_t left =
+				g_hud_element_layouts
+					[g_hud_instrument_set_base_index + 48]
+						.x;
+			uint16_t y =
+				g_hud_element_layouts
+					[g_hud_instrument_set_base_index + 48]
+						.y;
 			if (left + y == 0) {
 				return;
 			}
@@ -6582,16 +6410,10 @@ void hud_update_countermeasure_status(void)
 // FUNCTION: XVT 0x43F010
 void hud_clear_unavailable_craft_system_indicators(void)
 {
-	struct object_record *object;
-	int object_index;
-	uint8_t object_type;
-	int excluded_craft;
-	uint8_t hud_state;
-	unsigned int instrument_base_index;
-
 	if (g_players[g_local_player].map_camera_state == 0) {
-		object_index = g_players[g_local_player].object_index;
-		excluded_craft =
+		int object_index = g_players[g_local_player].object_index;
+		uint8_t object_type;
+		int excluded_craft =
 			object_index != -1 &&
 			((object_type =
 				  g_object_table[object_index].object_type) ==
@@ -6602,12 +6424,14 @@ void hud_clear_unavailable_craft_system_indicators(void)
 			 object_type == CRAFT_SPECIES_B_WING);
 
 		if (!excluded_craft) {
-			object = &g_object_table[object_index];
+			struct object_record *object =
+				&g_object_table[object_index];
 			if (object->object_type != CRAFT_SPECIES_TIE_FIGHTER) {
-				hud_state = g_players[g_local_player]
-						    .view_state.hud_state_live;
+				uint8_t hud_state =
+					g_players[g_local_player]
+						.view_state.hud_state_live;
 				if (hud_state == 0 || hud_state == 19) {
-					instrument_base_index =
+					unsigned int instrument_base_index =
 						g_hud_instrument_set_base_index;
 					if ((object->mobj->p_craft
 						     ->system_flags &
@@ -6651,16 +6475,13 @@ void hud_clear_unavailable_craft_system_indicators(void)
 // FUNCTION: XVT 0x43F140
 void hud_update_craft_system_status_indicators(void)
 {
-	uint8_t hud_state;
+	uint8_t hud_state = g_players[g_local_player].view_state.hud_state_live;
 	uint16_t feature_index;
 	uint16_t feature_mask;
 	uint16_t indicator_state;
 	int object_index;
 	uint8_t object_type;
 	int excluded_craft;
-	struct craft_data *craft;
-
-	hud_state = g_players[g_local_player].view_state.hud_state_live;
 	if (hud_state == 0) {
 		feature_mask = 1;
 		for (feature_index = 0; feature_index < 13;
@@ -6710,6 +6531,7 @@ void hud_update_craft_system_status_indicators(void)
 	}
 
 	feature_mask = 1;
+	struct craft_data *craft;
 	for (feature_index = 0; feature_index < 13;
 	     feature_mask *= 2, ++feature_index) {
 		switch (feature_mask) {
@@ -6803,11 +6625,6 @@ void hud_draw_cmd_target_details(void)
 		NO_AI_TARGET = 255,
 	};
 
-	uint16_t panel_left;
-	uint16_t panel_right;
-	int16_t previous_target_object_idx;
-	uint16_t current_target_object_idx;
-
 #ifdef XVT_MODERN
 	xvt_cockpit_readouts_begin_target(1);
 #endif
@@ -6815,19 +6632,15 @@ void hud_draw_cmd_target_details(void)
 	g_flight_text_shadow_enabled = 0;
 	flight_text_set_background_color(0x2C);
 	flight_text_set_font_tier(2);
-	panel_left = g_hud_element_layouts[CMD_PANEL_BOUNDS_ELEMENT].x;
-	panel_right =
+	uint16_t panel_left = g_hud_element_layouts[CMD_PANEL_BOUNDS_ELEMENT].x;
+	uint16_t panel_right =
 		panel_left +
 		g_hud_element_layouts[CMD_PANEL_BOUNDS_ELEMENT].clip_width;
-	previous_target_object_idx = g_hud_cached_target_object_idx;
+	int16_t previous_target_object_idx = g_hud_cached_target_object_idx;
 
+	uint16_t current_target_object_idx;
 	if (g_players[g_local_player].current_target_object_idx !=
 	    g_hud_cached_target_object_idx) {
-		uint16_t left;
-		uint16_t top;
-		uint16_t dirty_state;
-		uint16_t invalid_state;
-
 #ifdef XVT_MODERN
 		xvt_cockpit_text_clear_target_fields();
 #endif
@@ -6835,8 +6648,8 @@ void hud_draw_cmd_target_details(void)
 		previous_target_object_idx = g_hud_cached_target_object_idx;
 		g_hud_cached_target_object_idx =
 			g_players[g_local_player].current_target_object_idx;
-		dirty_state = UINT16_MAX;
-		invalid_state = UINT16_MAX - 1;
+		uint16_t dirty_state = UINT16_MAX;
+		uint16_t invalid_state = UINT16_MAX - 1;
 		g_hud_element_state_cache[CMD_CARGO_ELEMENT] = dirty_state;
 		g_hud_element_state_cache[CMD_RANGE_ELEMENT] = dirty_state;
 		g_hud_element_state_cache[CMD_RANGE_FRACTION_CACHE] =
@@ -6848,8 +6661,9 @@ void hud_draw_cmd_target_details(void)
 			invalid_state;
 		g_hud_element_state_cache[CMD_ORDER_TIME_ELEMENT] = dirty_state;
 
-		left = g_hud_element_layouts[CMD_TARGET_NAME_ELEMENT].x;
-		top = g_hud_element_layouts[CMD_TARGET_NAME_ELEMENT].y;
+		uint16_t left =
+			g_hud_element_layouts[CMD_TARGET_NAME_ELEMENT].x;
+		uint16_t top = g_hud_element_layouts[CMD_TARGET_NAME_ELEMENT].y;
 		flight_text_set_clip_rect(
 			left, top,
 			left + g_hud_element_layouts[CMD_TARGET_NAME_ELEMENT]
@@ -6862,47 +6676,41 @@ void hud_draw_cmd_target_details(void)
 		current_target_object_idx = (uint16_t)g_players[g_local_player]
 						    .current_target_object_idx;
 		if (current_target_object_idx != dirty_state) {
-			struct object_record *target_object;
-			struct mobile_object *target_mobile_object;
-			struct craft_data *target_craft;
-
-			target_object =
+			struct object_record *target_object =
 				&g_object_table[current_target_object_idx];
-			target_mobile_object = target_object->mobj;
-			target_craft = target_mobile_object != NULL
-					       ? target_mobile_object->p_craft
-					       : NULL;
+			struct mobile_object *target_mobile_object =
+				target_object->mobj;
+			struct craft_data *target_craft =
+				target_mobile_object != NULL
+					? target_mobile_object->p_craft
+					: NULL;
 			if (g_mission_header.mission_type ==
 				    MISSION_TYPE_MELEE &&
 			    g_flight_player_count > 1) {
-				int16_t display_flags;
-
-				display_flags = NORMAL_TARGET_DISPLAY_FLAGS;
+				int16_t display_flags =
+					NORMAL_TARGET_DISPLAY_FLAGS;
 				if (target_mobile_object != NULL &&
 				    target_craft != NULL &&
 				    g_flight_mission_state
 						    .locate_players_enabled ==
 					    0) {
-					int player_team;
-
-					player_team = (uint16_t)g_players
-							      [g_local_player]
-								      .team;
+					int player_team =
+						(uint16_t)g_players
+							[g_local_player]
+								.team;
 					if (target_craft
 						    ->identified_order_by_team
 							    [player_team] ==
 					    0) {
-						int flight_group_idx;
-						int team;
-						int hostile;
-
-						flight_group_idx =
+						int flight_group_idx =
 							target_object
 								->flight_group_idx;
-						team = g_mission_flight_groups
-							       [flight_group_idx]
-								       .fg.team;
-						hostile =
+						int team =
+							g_mission_flight_groups
+								[flight_group_idx]
+									.fg
+									.team;
+						int hostile =
 							team == player_team
 								? 0
 								: g_mission_teams[player_team]
@@ -6952,16 +6760,8 @@ void hud_draw_cmd_target_details(void)
 	}
 
 	if (g_players[g_local_player].current_target_object_idx != -1) {
-		uint16_t left;
-		uint16_t top;
-		uint16_t distance;
-		uint16_t whole_distance;
-		uint16_t fractional_distance;
-		int16_t cargo_state;
-		const char *cargo_text;
-
-		left = g_hud_element_layouts[CMD_RANGE_ELEMENT].x;
-		top = g_hud_element_layouts[CMD_RANGE_ELEMENT].y;
+		uint16_t left = g_hud_element_layouts[CMD_RANGE_ELEMENT].x;
+		uint16_t top = g_hud_element_layouts[CMD_RANGE_ELEMENT].y;
 		if (previous_target_object_idx == -1) {
 			flight_text_set_cursor((uint16_t)g_hud_element_layouts
 						       [CMD_RANGE_LABEL_ELEMENT]
@@ -6982,12 +6782,12 @@ void hud_draw_cmd_target_details(void)
 			top + g_flight_font_line_height + 1);
 		flight_text_set_color(0x4A);
 		trig2_polardistance *= DISTANCE_FIXED_SCALE;
-		distance = (uint16_t)(trig2_polardistance >> 16);
+		uint16_t distance = (uint16_t)(trig2_polardistance >> 16);
 		if (distance >= MAX_DISPLAY_DISTANCE + 1) {
 			distance = MAX_DISPLAY_DISTANCE;
 		}
-		whole_distance = distance / DISTANCE_DECIMAL_SCALE;
-		fractional_distance =
+		uint16_t whole_distance = distance / DISTANCE_DECIMAL_SCALE;
+		uint16_t fractional_distance =
 			distance - whole_distance * DISTANCE_DECIMAL_SCALE;
 		if (whole_distance != (uint16_t)g_hud_element_state_cache
 					      [CMD_RANGE_ELEMENT] ||
@@ -7017,21 +6817,18 @@ void hud_draw_cmd_target_details(void)
 			flight_text_draw_string(g_flight_text_scratch_buffer);
 		}
 
-		cargo_state = 2;
-		cargo_text =
+		int16_t cargo_state = 2;
+		const char *cargo_text =
 			g_str_cmd_threat_display_text[CMD_THREAT_STR_NO_CARGO];
 		current_target_object_idx = (uint16_t)g_players[g_local_player]
 						    .current_target_object_idx;
 		if (current_target_object_idx <
 		    g_active_region_craft_object_slot_end) {
-			struct mobile_object *target_mobile_object;
-
-			target_mobile_object =
+			struct mobile_object *target_mobile_object =
 				g_object_table[current_target_object_idx].mobj;
 			if (target_mobile_object->family == 0) {
-				struct craft_data *target_craft;
-
-				target_craft = target_mobile_object->p_craft;
+				struct craft_data *target_craft =
+					target_mobile_object->p_craft;
 				if (target_craft->identified_order_by_team
 					    [(uint16_t)g_players[g_local_player]
 						     .team] != 0) {
@@ -7077,34 +6874,26 @@ void hud_draw_cmd_target_details(void)
 		(uint16_t)g_players[g_local_player].current_target_object_idx;
 	if (current_target_object_idx < g_active_region_craft_object_slot_end &&
 	    g_players[g_local_player].current_target_object_idx != -1) {
-		struct mobile_object *target_mobile_object;
-		struct craft_data *target_craft;
-		struct ai_controller *controller;
-		int display_plan_id;
-
-		target_mobile_object =
+		struct mobile_object *target_mobile_object =
 			g_object_table[current_target_object_idx].mobj;
-		target_craft = target_mobile_object->p_craft;
-		controller = &target_craft->ai_controller;
+		struct craft_data *target_craft = target_mobile_object->p_craft;
+		struct ai_controller *controller = &target_craft->ai_controller;
 		if (g_mission_header.mission_type == MISSION_TYPE_MELEE &&
 		    g_flight_player_count > 1 && target_mobile_object != NULL &&
 		    target_craft != NULL &&
 		    g_flight_mission_state.locate_players_enabled == 0) {
-			int player_team;
-
-			player_team = (uint16_t)g_players[g_local_player].team;
+			int player_team =
+				(uint16_t)g_players[g_local_player].team;
 			if (target_craft
 				    ->identified_order_by_team[player_team] ==
 			    0) {
-				int team;
-				int hostile;
-
-				team = g_mission_flight_groups
-					       [g_object_table
-							[current_target_object_idx]
-								.flight_group_idx]
-						       .fg.team;
-				hostile =
+				int team =
+					g_mission_flight_groups
+						[g_object_table
+							 [current_target_object_idx]
+								 .flight_group_idx]
+							.fg.team;
+				int hostile =
 					team == player_team
 						? 0
 						: g_mission_teams[player_team]
@@ -7116,14 +6905,13 @@ void hud_draw_cmd_target_details(void)
 			}
 		}
 
-		display_plan_id = controller->running_plan_id;
+		int display_plan_id = controller->running_plan_id;
 		if (target_craft->working_subsystems == 0) {
 			display_plan_id =
 				pai_find_plan_id_by_name_or_zero("disabledpln");
 		} else if (target_mobile_object->speed == 0) {
-			const char *plan_name;
-
-			plan_name = g_plan_table[display_plan_id].name;
+			const char *plan_name =
+				g_plan_table[display_plan_id].name;
 			if (strcmp(plan_name, "flyhomepln") == 0 ||
 			    strcmp(plan_name, "followhomepln") == 0 ||
 			    strcmp(plan_name, "flyhomeevadepln") == 0 ||
@@ -7142,14 +6930,12 @@ void hud_draw_cmd_target_details(void)
 
 		if ((uint16_t)g_hud_element_state_cache[CMD_ORDERS_ELEMENT] !=
 		    display_plan_id) {
-			uint16_t left;
-			uint16_t top;
-			const char *time_label;
-
 			g_hud_element_state_cache[CMD_ORDERS_ELEMENT] =
 				(int16_t)display_plan_id;
-			left = g_hud_element_layouts[CMD_ORDERS_ELEMENT].x;
-			top = g_hud_element_layouts[CMD_ORDERS_ELEMENT].y;
+			uint16_t left =
+				g_hud_element_layouts[CMD_ORDERS_ELEMENT].x;
+			uint16_t top =
+				g_hud_element_layouts[CMD_ORDERS_ELEMENT].y;
 			flight_text_set_clip_rect(
 				left, top, panel_right,
 				top + g_flight_font_line_height + 1);
@@ -7210,6 +6996,7 @@ void hud_draw_cmd_target_details(void)
 			} else {
 				flight_text_set_color(0x46);
 			}
+			const char *time_label;
 			if (g_object_table[(uint16_t)g_players[g_local_player]
 						   .current_target_object_idx]
 				    .mobj->speed == 0) {
@@ -7240,11 +7027,6 @@ void hud_draw_cmd_target_details(void)
 
 		{
 			uint16_t order_target_object_idx;
-			unsigned int target_distance;
-			uint16_t value_left;
-			uint16_t value_top;
-			uint16_t distance_whole;
-			uint16_t distance_fraction;
 
 			if (g_object_table[current_target_object_idx]
 				    .player_owner_idx != -1) {
@@ -7266,14 +7048,11 @@ void hud_draw_cmd_target_details(void)
 				order_target_object_idx = UINT16_MAX;
 			}
 
+			uint16_t value_left;
+			uint16_t value_top;
 			if (order_target_object_idx !=
 			    (uint16_t)g_hud_element_state_cache
 				    [CMD_ORDER_TARGET_ELEMENT]) {
-				const char *target_label;
-				const char *distance_label;
-				uint16_t left;
-				uint16_t top;
-
 				g_hud_element_state_cache
 					[CMD_ORDER_TARGET_ELEMENT] = (int16_t)
 						order_target_object_idx;
@@ -7283,17 +7062,20 @@ void hud_draw_cmd_target_details(void)
 				} else {
 					flight_text_set_color(0x46);
 				}
-				left = g_hud_element_layouts
-					       [CMD_ORDER_TARGET_ELEMENT]
-						       .x;
-				top = g_hud_element_layouts
-					      [CMD_ORDER_TARGET_ELEMENT]
-						      .y;
+				uint16_t left =
+					g_hud_element_layouts
+						[CMD_ORDER_TARGET_ELEMENT]
+							.x;
+				uint16_t top =
+					g_hud_element_layouts
+						[CMD_ORDER_TARGET_ELEMENT]
+							.y;
 				flight_text_set_clip_rect(
 					left, top, panel_right,
 					top + g_flight_font_line_height);
 				g_flight_fill_clip_rect_fn();
 				flight_text_set_cursor(left, top);
+				const char *target_label;
 				if (order_target_object_idx < 0x8000) {
 					target_label = g_str_cmd_threat_display_text
 						[CMD_THREAT_STR_CURRENT_TARGET];
@@ -7326,6 +7108,7 @@ void hud_draw_cmd_target_details(void)
 					top + g_flight_font_line_height);
 				g_flight_fill_clip_rect_fn();
 				flight_text_set_cursor(left, top);
+				const char *distance_label;
 				if (order_target_object_idx < 0x8000) {
 					distance_label = g_str_cmd_threat_display_text
 						[CMD_THREAT_STR_DISTANCE_FROM_TARGET];
@@ -7390,10 +7173,8 @@ void hud_draw_cmd_target_details(void)
 				}
 			}
 
-			target_distance = 0;
+			unsigned int target_distance = 0;
 			if (order_target_object_idx != UINT16_MAX) {
-				uint16_t distance;
-
 				if (g_object_table[current_target_object_idx]
 					    .player_owner_idx != -1) {
 					pai_object_ref_direction_to_object_ref(
@@ -7431,14 +7212,14 @@ void hud_draw_cmd_target_details(void)
 						1);
 				flight_text_set_color(0x4A);
 				trig2_polardistance *= DISTANCE_FIXED_SCALE;
-				distance =
+				uint16_t distance =
 					(uint16_t)(trig2_polardistance >> 16);
 				if (distance >= MAX_DISPLAY_DISTANCE + 1) {
 					distance = MAX_DISPLAY_DISTANCE;
 				}
-				distance_whole =
+				uint16_t distance_whole =
 					distance / DISTANCE_DECIMAL_SCALE;
-				distance_fraction =
+				uint16_t distance_fraction =
 					distance -
 					distance_whole * DISTANCE_DECIMAL_SCALE;
 				if (distance_fraction !=
@@ -7487,10 +7268,6 @@ void hud_draw_cmd_target_details(void)
 			flight_text_set_cursor(value_left, value_top);
 			if (g_object_table[current_target_object_idx]
 				    .mobj->speed == 0) {
-				uint16_t total_seconds;
-				uint16_t minutes;
-				uint16_t seconds;
-
 				if (strcmp(g_plan_table
 						   [controller->running_plan_id]
 							   .name,
@@ -7542,12 +7319,13 @@ void hud_draw_cmd_target_details(void)
 					}
 					return;
 				}
-				total_seconds =
+				uint16_t total_seconds =
 					(uint16_t)(controller->maneuver_timer /
 						   SIMULATION_TICKS_PER_SECOND);
-				minutes = total_seconds / SECONDS_PER_MINUTE;
-				seconds = total_seconds -
-					  minutes * SECONDS_PER_MINUTE;
+				uint16_t minutes =
+					total_seconds / SECONDS_PER_MINUTE;
+				uint16_t seconds = total_seconds -
+						   minutes * SECONDS_PER_MINUTE;
 				if (seconds ==
 				    (uint16_t)g_hud_element_state_cache
 					    [CMD_ORDER_TIME_ELEMENT]) {
@@ -7580,22 +7358,19 @@ void hud_draw_cmd_target_details(void)
 #endif
 				flight_text_draw_decimal_number(seconds, 2, 2);
 			} else {
-				uint16_t total_seconds;
-				uint16_t minutes;
-				uint16_t seconds;
-				uint16_t distance_per_second;
-
-				distance_per_second =
+				uint16_t distance_per_second =
 					(uint16_t)(DISTANCE_PER_SPEED_SECOND *
 						   g_object_table
 							   [current_target_object_idx]
 								   .mobj
 								   ->speed);
-				total_seconds = (uint16_t)(target_distance /
-							   distance_per_second);
-				minutes = total_seconds / SECONDS_PER_MINUTE;
-				seconds = total_seconds -
-					  minutes * SECONDS_PER_MINUTE;
+				uint16_t total_seconds =
+					(uint16_t)(target_distance /
+						   distance_per_second);
+				uint16_t minutes =
+					total_seconds / SECONDS_PER_MINUTE;
+				uint16_t seconds = total_seconds -
+						   minutes * SECONDS_PER_MINUTE;
 				if (seconds ==
 				    (uint16_t)g_hud_element_state_cache
 					    [CMD_ORDER_TIME_ELEMENT]) {
@@ -7646,31 +7421,25 @@ void hud_draw_cmd_target_details(void)
 // FUNCTION: XVT 0x440140
 void hud_draw_cmd_target_status_indicators(void)
 {
-	int current_target_object_idx;
-	struct craft_data *craft;
-	int16_t y;
-	uint16_t width;
-
-	current_target_object_idx =
+	int current_target_object_idx =
 		(uint16_t)g_players[g_local_player].current_target_object_idx;
 
+	struct craft_data *craft;
 	{
 		unsigned int shield_percent;
 		if (g_active_region_craft_object_slot_end >
 		    current_target_object_idx) {
-			unsigned int shield;
-			unsigned int max_shield;
-			unsigned int shield_ratio_q16;
 			craft = g_object_table[current_target_object_idx]
 					.mobj->p_craft;
-			shield = (unsigned int)(craft->shield_energy[0] +
-						craft->shield_energy[1]);
-			max_shield = craft_get_object_max_shield(
+			unsigned int shield =
+				(unsigned int)(craft->shield_energy[0] +
+					       craft->shield_energy[1]);
+			unsigned int max_shield = craft_get_object_max_shield(
 				g_players[g_local_player]
 					.current_target_object_idx);
 			shield >>= 1;
 			if (max_shield != 0) {
-				shield_ratio_q16 =
+				unsigned int shield_ratio_q16 =
 					math2_longratio_q16(shield, max_shield);
 				shield_ratio_q16 &= 0xFFFFu;
 				shield_percent = 2 * (shield_ratio_q16 / 0x28F);
@@ -7685,7 +7454,6 @@ void hud_draw_cmd_target_status_indicators(void)
 
 	{
 		unsigned int hull_percent;
-		unsigned int hull_ratio_q16;
 		if (g_active_region_craft_object_slot_end >
 		    current_target_object_idx) {
 			craft = g_object_table[current_target_object_idx]
@@ -7696,7 +7464,7 @@ void hud_draw_cmd_target_status_indicators(void)
 				if (craft->hull_max < craft->hull_damage) {
 					hull_percent = 1;
 				} else {
-					hull_ratio_q16 =
+					unsigned int hull_ratio_q16 =
 						(uint16_t)math2_longratio_q16(
 							craft->hull_max -
 								craft->hull_damage,
@@ -7716,19 +7484,17 @@ void hud_draw_cmd_target_status_indicators(void)
 		hud_draw_cached_numeric_element(0x67, hull_percent, 1);
 	}
 
+	int16_t y;
+	uint16_t width;
 	{
-		uint16_t laser_state;
-		uint16_t i;
-		laser_state = 0;
+		uint16_t laser_state = 0;
 		if (g_active_region_craft_object_slot_end >
 		    current_target_object_idx) {
-			uint8_t cannon_class_count;
-			i = 0;
-			cannon_class_count = craft->cannon_group_count;
+			uint16_t i = 0;
+			uint8_t cannon_class_count = craft->cannon_group_count;
 			if (cannon_class_count != 0) {
 				do {
-					uint8_t projectile_type;
-					projectile_type =
+					uint8_t projectile_type =
 						craft->laser_state
 							.projectile_type_id[i];
 					if (projectile_type ==
@@ -7757,7 +7523,6 @@ void hud_draw_cmd_target_status_indicators(void)
 		hud_draw_cached_sprite_element(0x62, laser_state);
 		if (laser_state != 0 &&
 		    (uint16_t)g_hud_element_state_cache[135] != laser_state) {
-			int16_t bottom;
 			if (laser_state == 1) {
 				flight_text_set_color(
 					g_hud_element_layouts[135]
@@ -7771,8 +7536,8 @@ void hud_draw_cmd_target_status_indicators(void)
 					1);
 			}
 			y = g_hud_element_layouts[135].y;
-			bottom = g_hud_element_layouts[135].y +
-				 g_flight_font_line_height;
+			int16_t bottom = g_hud_element_layouts[135].y +
+					 g_flight_font_line_height;
 			width = flight_text_measure_string_width(
 				g_str_threat_display_text[0]);
 			width += g_hud_element_layouts[135].x;
@@ -7792,14 +7557,11 @@ void hud_draw_cmd_target_status_indicators(void)
 	}
 
 	{
-		uint16_t ion_state;
-		uint16_t i;
-		ion_state = 0;
+		uint16_t ion_state = 0;
 		if (g_active_region_craft_object_slot_end >
 		    current_target_object_idx) {
-			uint8_t cannon_class_count;
-			i = 0;
-			cannon_class_count = craft->cannon_group_count;
+			uint16_t i = 0;
+			uint8_t cannon_class_count = craft->cannon_group_count;
 			while (i < cannon_class_count) {
 				if (craft->laser_state.projectile_type_id[i] ==
 				    PROJECTILE_OBJECT_TYPE_ION_LASER) {
@@ -7823,7 +7585,6 @@ void hud_draw_cmd_target_status_indicators(void)
 		hud_draw_cached_sprite_element(0x63, ion_state);
 		if (ion_state != 0 &&
 		    (uint16_t)g_hud_element_state_cache[136] != ion_state) {
-			int16_t bottom;
 			if (ion_state == 1) {
 				flight_text_set_color(
 					g_hud_element_layouts[136]
@@ -7837,8 +7598,8 @@ void hud_draw_cmd_target_status_indicators(void)
 					1);
 			}
 			y = g_hud_element_layouts[136].y;
-			bottom = g_hud_element_layouts[136].y +
-				 g_flight_font_line_height;
+			int16_t bottom = g_hud_element_layouts[136].y +
+					 g_flight_font_line_height;
 			width = flight_text_measure_string_width(
 				g_str_threat_display_text[1]);
 			width += g_hud_element_layouts[136].x;
@@ -7858,18 +7619,16 @@ void hud_draw_cmd_target_status_indicators(void)
 	}
 
 	{
-		uint16_t warhead_state;
-		uint16_t i;
-		warhead_state = 0;
+		uint16_t warhead_state = 0;
 		if (g_active_region_craft_object_slot_end >
 		    current_target_object_idx) {
+			uint16_t i;
 			if (g_object_table[current_target_object_idx]
 				    .player_owner_idx == -1) {
 				if (craft->ai_controller.maneuver_mode ==
 				    AI_MANEUVER_MODE_ROCKET_ATTACK) {
-					uint8_t warhead_launcher_count;
 					i = 0;
-					warhead_launcher_count =
+					uint8_t warhead_launcher_count =
 						craft->warhead_launcher_count;
 					if (warhead_launcher_count != 0) {
 						do {
@@ -7894,9 +7653,8 @@ void hud_draw_cmd_target_status_indicators(void)
 					}
 				}
 			} else {
-				uint8_t warhead_launcher_count;
 				i = 0;
-				warhead_launcher_count =
+				uint8_t warhead_launcher_count =
 					craft->warhead_launcher_count;
 				if (warhead_launcher_count != 0) {
 					do {
@@ -7924,7 +7682,6 @@ void hud_draw_cmd_target_status_indicators(void)
 		hud_draw_cached_sprite_element(0x64, warhead_state);
 		if (warhead_state != 0 &&
 		    (uint16_t)g_hud_element_state_cache[137] != warhead_state) {
-			int16_t bottom;
 			if (warhead_state == 1) {
 				flight_text_set_color(
 					g_hud_element_layouts[137]
@@ -7938,8 +7695,8 @@ void hud_draw_cmd_target_status_indicators(void)
 					1);
 			}
 			y = g_hud_element_layouts[137].y;
-			bottom = g_hud_element_layouts[137].y +
-				 g_flight_font_line_height;
+			int16_t bottom = g_hud_element_layouts[137].y +
+					 g_flight_font_line_height;
 			width = flight_text_measure_string_width(
 				g_str_threat_display_text[2]);
 			width += g_hud_element_layouts[137].x;
@@ -7959,8 +7716,7 @@ void hud_draw_cmd_target_status_indicators(void)
 	}
 
 	{
-		uint16_t beam_state;
-		beam_state = 0;
+		uint16_t beam_state = 0;
 		if (g_active_region_craft_object_slot_end >
 			    current_target_object_idx &&
 		    craft->beam_type_id != BEAM_TYPE_NONE) {
@@ -7976,7 +7732,6 @@ void hud_draw_cmd_target_status_indicators(void)
 		hud_draw_cached_sprite_element(0x65, beam_state);
 		if (beam_state != 0 &&
 		    (uint16_t)g_hud_element_state_cache[138] != beam_state) {
-			int16_t bottom;
 			if (beam_state == 1) {
 				flight_text_set_color(
 					g_hud_element_layouts[138]
@@ -7990,8 +7745,8 @@ void hud_draw_cmd_target_status_indicators(void)
 					1);
 			}
 			y = g_hud_element_layouts[138].y;
-			bottom = g_hud_element_layouts[138].y +
-				 g_flight_font_line_height;
+			int16_t bottom = g_hud_element_layouts[138].y +
+					 g_flight_font_line_height;
 			width = flight_text_measure_string_width(
 				g_str_threat_display_text[3]);
 			width += g_hud_element_layouts[138].x;
@@ -8065,15 +7820,12 @@ void hud_draw_cached_faded_sprite_element(uint16_t element_idx, int16_t state,
 void hud_draw_cached_numeric_element(uint16_t element_idx, int16_t value,
 				     uint16_t min_digits)
 {
-	uint16_t normalized_element_idx;
-	uint16_t selector;
-
-	normalized_element_idx = element_idx;
+	uint16_t normalized_element_idx = element_idx;
 	if (g_hud_element_state_cache[element_idx] == value) {
 		return;
 	}
 	g_hud_element_state_cache[element_idx] = value;
-	selector = g_hud_element_layouts[element_idx].selector;
+	uint16_t selector = g_hud_element_layouts[element_idx].selector;
 	flight_text_set_clip_rect(g_hud_element_layouts[element_idx].x,
 				  g_hud_element_layouts[element_idx].y,
 				  g_hud_element_layouts[element_idx].x +
@@ -8125,16 +7877,14 @@ void hud_draw_cached_numeric_element(uint16_t element_idx, int16_t value,
 // FUNCTION: XVT 0x4409D0
 void hud_load_cockpit_resources(void)
 {
-	char cockpit_resource_name[16];
-	const char *source_name;
-	model_index model_index;
-	unsigned int name_index;
-
 	strcpy(g_hud_cockpit_base_path, g_hud_cockpit_resolution_directory);
-	model_index = get_model_index_from_type(
+	model_index model_index = get_model_index_from_type(
 		g_object_table[g_players[g_local_player].object_index]
 			.object_type);
-	source_name = g_model_defs[model_index].cockpit_resource_name;
+	const char *source_name =
+		g_model_defs[model_index].cockpit_resource_name;
+	char cockpit_resource_name[16];
+	unsigned int name_index;
 	for (name_index = 0; source_name[name_index] != '\0'; ++name_index) {
 		cockpit_resource_name[name_index] = source_name[name_index];
 	}
@@ -8159,12 +7909,10 @@ void hud_load_cockpit_resources(void)
 // FUNCTION: XVT 0x440B10
 void hud_load_cockpit_interface_file(const char *base_path)
 {
-	xvt_file *stream;
-
 	strcpy(g_hud_cockpit_resource_path, base_path);
 	strcat(g_hud_cockpit_resource_path, ".INT");
 	fe_disk_io_open_global_stream(g_hud_cockpit_resource_path, "rb", 1, 0);
-	stream = g_stream;
+	xvt_file *stream = g_stream;
 	fe_disk_io_read_with_retry_prompt(
 		g_hud_cockpit_resource_descriptors,
 		sizeof(struct hud_cockpit_resource_descriptor), 28, stream);
@@ -8204,15 +7952,13 @@ void hud_load_cockpit_interface_file(const char *base_path)
 // FUNCTION: XVT 0x440C50
 int16_t hud_load_auxiliary_cockpit_interface_file(void)
 {
-	xvt_file *stream;
-
 	strcpy(g_hud_cockpit_resource_path, g_hud_cockpit_resolution_directory);
 	strcat(g_hud_cockpit_resource_path,
 	       g_hud_cockpit_resource_descriptors[HUD_VIEW_CRAFT_LIST]
 		       .lfd_name);
 	strcat(g_hud_cockpit_resource_path, ".INT");
 	fe_disk_io_open_global_stream(g_hud_cockpit_resource_path, "rb", 1, 0);
-	stream = g_stream;
+	xvt_file *stream = g_stream;
 	fe_disk_io_read_with_retry_prompt(
 		&g_hud_element_layouts[HUD_CRAFT_LIST_INSTRUMENT_BASE_INDEX],
 		sizeof(struct hud_element_layout), HUD_INSTRUMENTS_PER_SET,
@@ -8282,15 +8028,6 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 		PALETTE_COCKPIT_COLOR_COUNT = 0x40,
 	};
 
-	uint8_t mirror_horizontal;
-	int cockpit_x;
-	unsigned int resource_index;
-	unsigned int viewport_descriptor_index;
-	unsigned int base_offset;
-	unsigned int page_index;
-	int resource_loaded;
-	unsigned int text_y;
-
 	if (g_local_player != player_idx) {
 		return;
 	}
@@ -8301,9 +8038,9 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 	xvt_cockpit_pages_reset_working();
 	xvt_cockpit_messages_reset_working();
 #endif
-	mirror_horizontal = 0;
-	cockpit_x = 0;
-	resource_index =
+	uint8_t mirror_horizontal = 0;
+	int cockpit_x = 0;
+	unsigned int resource_index =
 		g_hud_cockpit_resource_descriptors[hud_view_state].resource_ref;
 	if (hud_view_state != HUD_VIEW_FULL_SCREEN) {
 		if (resource_index >= HUD_RESOURCE_MIRRORED_REFERENCE) {
@@ -8364,7 +8101,7 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 	flight_render_invoke_transition_hook(1);
 	if (g_players[g_local_player].view_state.hud_state_live !=
 	    HUD_VIEW_FULL_SCREEN) {
-		resource_loaded =
+		int resource_loaded =
 			g_hud_cockpit_resources[resource_index].memory_handle !=
 				0 &&
 			g_hud_cockpit_resources_loaded != 0;
@@ -8395,10 +8132,10 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 			g_hud_cockpit_resources[resource_index].entries[0],
 			cockpit_x, 0, 0, mirror_horizontal);
 
-		viewport_descriptor_index =
+		unsigned int viewport_descriptor_index =
 			mirror_horizontal == 1 ? (unsigned int)hud_view_state
 					       : resource_index;
-		base_offset = g_flight_compute_pixel_offset_fn(
+		unsigned int base_offset = g_flight_compute_pixel_offset_fn(
 			g_hud_cockpit_resource_descriptors
 				[viewport_descriptor_index]
 					.viewport_origin_x,
@@ -8432,6 +8169,7 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 		g_proj_offset_y = 0;
 	}
 
+	unsigned int page_index;
 	if (g_players[player_idx].view_state.hud_state_mirror ==
 		    HUD_VIEW_HUD_ONLY ||
 	    g_players[player_idx].view_state.hud_state_mirror ==
@@ -8555,7 +8293,7 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 	g_flight_display_rebuild_pending = 0;
 	if (resource_index == HUD_VIEW_RESOURCE_NAME) {
 		flight_text_set_font_tier(2);
-		text_y = 0;
+		unsigned int text_y = 0;
 		text_y = (uint16_t)
 				 g_hud_element_layouts[HUD_RESOURCE_NAME_LAYOUT]
 					 .y;
@@ -8601,27 +8339,20 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 void hud_load_cockpit_lfd_entries(const char *lfd_name, uint8_t **out_entries,
 				  unsigned int entry_count)
 {
-	xvt_file *stream;
-	uint8_t **output_entry;
-	int16_t is_palette;
-	uint16_t palette_tag_index;
-	size_t data_size;
-	uint16_t entry_index;
-	struct lfd_entry_header header;
-
 	strcpy(g_hud_cockpit_resource_path, g_hud_cockpit_resolution_directory);
 	strcat(g_hud_cockpit_resource_path, lfd_name);
 	strcat(g_hud_cockpit_resource_path, ".LFD");
 	fe_disk_io_open_global_stream(g_hud_cockpit_resource_path, "rb", 1, 0);
-	stream = g_stream;
-	entry_index = 0;
+	xvt_file *stream = g_stream;
+	uint16_t entry_index = 0;
+	struct lfd_entry_header header;
 	while (entry_index < entry_count) {
-		output_entry = &out_entries[entry_index];
+		uint8_t **output_entry = &out_entries[entry_index];
 		*output_entry = g_hud_cockpit_resource_write_cursor;
-		is_palette = 1;
+		int16_t is_palette = 1;
 		fe_disk_io_read_with_retry_prompt(&header, sizeof(header), 1,
 						  stream);
-		palette_tag_index = 0;
+		uint16_t palette_tag_index = 0;
 		while (palette_tag_index < 4) {
 			if (g_lfd_palette_resource_type_tag
 				    [palette_tag_index] !=
@@ -8630,7 +8361,7 @@ void hud_load_cockpit_lfd_entries(const char *lfd_name, uint8_t **out_entries,
 			}
 			++palette_tag_index;
 		}
-		data_size = header.data_size;
+		size_t data_size = header.data_size;
 		fe_disk_io_read_with_retry_prompt(
 			g_hud_cockpit_resource_write_cursor, data_size, 1,
 			stream);
@@ -8662,18 +8393,15 @@ void hud_load_cockpit_lfd_entries(const char *lfd_name, uint8_t **out_entries,
 // FUNCTION: XVT 0x4416F0
 void hud_load_cockpit_sprite_resources(unsigned int model_index)
 {
-	uint16_t resource_index;
-
 	(void)model_index;
 
+	uint16_t resource_index;
 	for (resource_index = 0;
 	     resource_index < (uint16_t)(sizeof(g_hud_cockpit_resources) /
 					 sizeof(g_hud_cockpit_resources[0]));
 	     ++resource_index) {
-		uint16_t memory_handle;
-		size_t file_size;
-
 		g_hud_cockpit_resources[resource_index].memory_handle = 0;
+		size_t file_size;
 		if (g_hud_cockpit_resource_descriptors[resource_index]
 			    .resource_ref == 1) {
 			strcpy(g_hud_cockpit_resource_path,
@@ -8697,7 +8425,7 @@ void hud_load_cockpit_sprite_resources(unsigned int model_index)
 #endif
 				fe_disk_io_close_global_stream(0);
 				fe_disk_io_unlock_global_buffers();
-				memory_handle =
+				uint16_t memory_handle =
 					memory_alloc_handle(file_size, 0);
 				if (memory_handle == 0) {
 					fe_disk_io_fatal_error(
@@ -8735,8 +8463,6 @@ void hud_load_cockpit_sprite_resources(unsigned int model_index)
 	     resource_index < (uint16_t)(sizeof(g_hud_cockpit_resources) /
 					 sizeof(g_hud_cockpit_resources[0]));
 	     ++resource_index) {
-		uint16_t memory_handle;
-
 		if (g_hud_cockpit_resource_descriptors[resource_index]
 			    .resource_ref == 1) {
 			strcpy(g_hud_cockpit_resource_path,
@@ -8746,7 +8472,7 @@ void hud_load_cockpit_sprite_resources(unsigned int model_index)
 				       [resource_index]
 					       .lfd_name);
 			strcat(g_hud_cockpit_resource_path, ".LFD");
-			memory_handle =
+			uint16_t memory_handle =
 				(uint16_t)
 					g_hud_cockpit_resources[resource_index]
 						.memory_handle;
@@ -8957,15 +8683,9 @@ void hud_update_mfd_pages(void)
 void hud_blit_software_mfd_pages(void)
 {
 	int16_t page_state;
-	uint16_t page;
-	struct craft_data *craft;
-	int model_index;
-	uint16_t launcher_index;
-	uint16_t launcher_count;
-	int layout_index;
-	int16_t selector;
 
-	for (page = MFD_PAGE_SCOREBOARD; page < MFD_PAGE_COUNT; ++page) {
+	for (uint16_t page = MFD_PAGE_SCOREBOARD; page < MFD_PAGE_COUNT;
+	     ++page) {
 		page_state = g_mfd_page_states[page];
 		switch (page) {
 		case MFD_PAGE_SCOREBOARD:
@@ -9166,21 +8886,23 @@ void hud_blit_software_mfd_pages(void)
 
 	if (g_hud_instrument_set_base_index ==
 	    HUD_ONLY_VIEW_INSTRUMENT_BASE_INDEX) {
-		craft = g_object_table[g_players[g_local_player].object_index]
+		struct craft_data *craft =
+			g_object_table[g_players[g_local_player].object_index]
 				.mobj->p_craft;
 		if ((craft->damage_stats.active_hud_feature_mask & 8) != 0) {
-			model_index = craft->model_index;
+			int model_index = craft->model_index;
 			flight_text_set_font_tier(0);
-			launcher_index = 0;
-			launcher_count =
+			uint16_t launcher_index = 0;
+			uint16_t launcher_count =
 				g_model_defs[model_index]
 					.warhead_launcher_slot_count[1] +
 				g_model_defs[model_index]
 					.warhead_launcher_slot_count[0];
 			while (launcher_index < launcher_count) {
-				layout_index = g_hud_instrument_set_base_index +
-					       launcher_index;
-				selector =
+				int layout_index =
+					g_hud_instrument_set_base_index +
+					launcher_index;
+				int16_t selector =
 					g_hud_element_layouts[layout_index + 27]
 						.selector;
 				if (selector != 0) {
@@ -9252,45 +8974,29 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 		COMPONENT_MARKER_COLOR = 0xCE,
 	};
 
-	int saved_proj_offset_y;
-	int saved_camera_world_x;
-	int saved_camera_world_y;
-	int saved_camera_world_z;
-	uint16_t saved_render_object_ref;
-	unsigned int base_offset;
-	int component_rel_x;
-	int component_rel_y;
-	int component_rel_z;
-	uint16_t target_object_idx;
-	struct object_record *target_object;
-	struct mobile_object *target_mobile_object;
-	uint16_t object_index;
-
 #ifdef XVT_MODERN
 	xvt_render_draw_scope(XVT_SCOPE_CRT);
 #endif
-	saved_proj_offset_y = g_proj_offset_y;
-	saved_camera_world_x =
+	int saved_proj_offset_y = g_proj_offset_y;
+	int saved_camera_world_x =
 		g_players[g_local_player].view_state.camera_world_x;
-	saved_render_object_ref = g_render_object_ref;
-	saved_camera_world_y =
+	uint16_t saved_render_object_ref = g_render_object_ref;
+	int saved_camera_world_y =
 		g_players[g_local_player].view_state.camera_world_y;
-	saved_camera_world_z =
+	int saved_camera_world_z =
 		g_players[g_local_player].view_state.camera_world_z;
 	g_proj_offset_y = 0;
-	base_offset = (unsigned int)g_flight_compute_pixel_offset_fn(screen_x,
-								     screen_y);
+	unsigned int base_offset =
+		(unsigned int)g_flight_compute_pixel_offset_fn(screen_x,
+							       screen_y);
 	push_flight_viewport(width, height, refresh_span_mask, base_offset);
 
 	if (refresh_span_mask != 0) {
-		unsigned int hud_instrument_base_index;
-		uint8_t *destination_mask;
-		const uint8_t *source_mask;
-		uint16_t mask_index;
-
-		destination_mask =
+		uint8_t *destination_mask =
 			&g_flight_aux_buffer[g_viewport_span_mask_offset];
-		hud_instrument_base_index = g_hud_instrument_set_base_index;
+		unsigned int hud_instrument_base_index =
+			g_hud_instrument_set_base_index;
+		const uint8_t *source_mask;
 		if (hud_instrument_base_index !=
 		    HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
 			if (hud_instrument_base_index ==
@@ -9305,6 +9011,7 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 		} else {
 			source_mask = g_hud_cockpit_inset_span_mask;
 		}
+		uint16_t mask_index;
 		if (g_flight_resolution_mode == FLIGHT_RESOLUTION_320X240) {
 			for (mask_index = LOW_RESOLUTION_MASK_SIZE;
 			     mask_index != 0; --mask_index) {
@@ -9344,6 +9051,10 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 	g_cam_rel_world_z = g_world_loc_z -
 			    g_players[g_local_player].view_state.camera_world_z;
 
+	int component_rel_x;
+	int component_rel_y;
+	int component_rel_z;
+	uint16_t target_object_idx;
 	if (g_players[g_local_player].target_box_enabled != 0) {
 		target_object_idx = (uint16_t)g_players[g_local_player]
 					    .current_target_object_idx;
@@ -9394,8 +9105,9 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
 	target_object_idx =
 		(uint16_t)g_players[g_local_player].current_target_object_idx;
-	target_object = &g_object_table[target_object_idx];
-	target_mobile_object = target_object->mobj;
+	struct object_record *target_object =
+		&g_object_table[target_object_idx];
+	struct mobile_object *target_mobile_object = target_object->mobj;
 	if (target_mobile_object != NULL) {
 		switch (target_object->genus_id) {
 		case CRAFT_GENUS_STARFIGHTER:
@@ -9446,13 +9158,8 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 		render_non_craft_scene_object(target_object_idx);
 	}
 
-	for (object_index = 0; object_index < g_region_main_object_slot_end;
-	     ++object_index) {
-		int object_table_index;
-		struct object_record *object;
-		int genus_id;
-		uint16_t object_type;
-
+	for (uint16_t object_index = 0;
+	     object_index < g_region_main_object_slot_end; ++object_index) {
 		if (object_index == g_local_transient_slot_start &&
 		    (g_debris_enabled == 0 ||
 		     g_flight_mission_state.proving_grounds_mode_active != 0)) {
@@ -9466,15 +9173,16 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 		    g_players[g_local_player]
 				    .view_state.external_camera_active != 0 ||
 		    g_replay_view_mode != 0) {
-			object_table_index = object_index;
-			object = &g_object_table[object_table_index];
-			object_type =
+			int object_table_index = object_index;
+			struct object_record *object =
+				&g_object_table[object_table_index];
+			uint16_t object_type =
 				g_object_table[object_table_index].object_type;
 			if (object_type != 0) {
 				g_current_object_bounds_extent =
 					g_object_type_table[object_type]
 						.max_bounds_extent;
-				genus_id = object->genus_id;
+				int genus_id = object->genus_id;
 				if (genus_id >= CRAFT_GENUS_PLAYER_PROJECTILE) {
 					if (object->genus_id <=
 					    CRAFT_GENUS_OTHER_PROJECTILE) {
@@ -9560,9 +9268,6 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 		if (target_object_idx < g_active_region_craft_object_slot_end &&
 		    g_object_table[target_object_idx].genus_id !=
 			    CRAFT_GENUS_STARFIGHTER) {
-			int marker_x;
-			int marker_y;
-
 			g_view_space_x = transfm2_cam_mat_dot_row0(
 				component_rel_x, component_rel_y,
 				component_rel_z);
@@ -9577,9 +9282,9 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 			g_view_space_depth = transfm2_cam_mat_dot_row2(
 				component_rel_x, component_rel_y,
 				component_rel_z);
-			marker_x = transfm2_project_screen_x(
+			int marker_x = transfm2_project_screen_x(
 				g_view_space_x, g_view_space_depth);
-			marker_y = transfm2_project_screen_y(
+			int marker_y = transfm2_project_screen_y(
 				g_view_space_y, g_view_space_depth);
 			hud_draw_component_marker_box(
 				marker_x - COMPONENT_MARKER_HALF_SIZE,
@@ -9638,23 +9343,10 @@ void hud_point_camera(uint16_t target_idx, int16_t use_hud_layout_scale,
 		CAMERA_OFFSET_COUNT = 3,
 	};
 
+	mission_resolve_object_or_mission_point_world_loc(target_idx, 0);
 	int delta_x;
 	int delta_y;
 	int delta_z;
-	int scaled_x;
-	int scaled_y;
-	int scaled_z;
-	int camera_x;
-	int camera_y;
-	int camera_z;
-	int max_extent;
-	unsigned int scale;
-	uint16_t scale_shift;
-	uint16_t camera_divisor;
-	uint16_t resolution_mode;
-	model_index model_index;
-
-	mission_resolve_object_or_mission_point_world_loc(target_idx, 0);
 	if (g_players[player_idx].map_camera_state != 0) {
 		delta_x = (int32_t)((uint32_t)g_world_loc_x -
 				    (uint32_t)g_players[player_idx]
@@ -9675,15 +9367,14 @@ void hud_point_camera(uint16_t target_idx, int16_t use_hud_layout_scale,
 		delta_z = (int32_t)((uint32_t)g_world_loc_z -
 				    (uint32_t)player_object->world_z);
 	}
-	scaled_x = (int32_t)((uint32_t)delta_x * 2u);
-	scaled_y = (int32_t)((uint32_t)delta_y * 2u);
+	int scaled_x = (int32_t)((uint32_t)delta_x * 2u);
+	int scaled_y = (int32_t)((uint32_t)delta_y * 2u);
+	int scaled_z;
 	{
 		int16_t high_y = (int16_t)(scaled_y >> 16);
-		int16_t high_x;
-		int16_t high_z;
 		scaled_z = (int32_t)((uint32_t)delta_z * 2u);
-		high_x = (int16_t)(scaled_x >> 16);
-		high_z = (int16_t)(scaled_z >> 16);
+		int16_t high_x = (int16_t)(scaled_x >> 16);
+		int16_t high_z = (int16_t)(scaled_z >> 16);
 		if ((high_x & 0x8000) != 0) {
 			high_x = (int16_t)-high_x;
 		}
@@ -9706,6 +9397,9 @@ void hud_point_camera(uint16_t target_idx, int16_t use_hud_layout_scale,
 	scaled_y >>= 1;
 	scaled_z >>= 1;
 
+	int camera_x;
+	int camera_y;
+	int camera_z;
 	if (g_players[player_idx].map_camera_state != 0) {
 		fview_build_camera_orient(
 			g_players[player_idx].view_state.view_roll,
@@ -9778,16 +9472,18 @@ void hud_point_camera(uint16_t target_idx, int16_t use_hud_layout_scale,
 			trig2_xyangle, NULL);
 	}
 
+	int max_extent;
 	{
 		struct object_record *target = &g_object_table[target_idx];
 		if (target->mobj != NULL && target->mobj->p_craft != NULL) {
-			int16_t bound_y;
-			int16_t bound_x;
+			model_index model_index =
+				target->mobj->p_craft->model_index;
+			int16_t bound_y =
+				g_model_defs[model_index].bound_size_y;
+			int16_t bound_x =
+				g_model_defs[model_index].bound_size_x;
 			int largest_a;
 			int largest_b;
-			model_index = target->mobj->p_craft->model_index;
-			bound_y = g_model_defs[model_index].bound_size_y;
-			bound_x = g_model_defs[model_index].bound_size_x;
 			if (bound_x <= bound_y &&
 			    bound_x <= g_model_defs[model_index].bound_size_z) {
 				largest_a = bound_y;
@@ -9812,6 +9508,8 @@ void hud_point_camera(uint16_t target_idx, int16_t use_hud_layout_scale,
 					     .max_bounds_extent;
 		}
 	}
+	uint16_t camera_divisor;
+	uint16_t resolution_mode;
 	if (use_hud_layout_scale != 0) {
 		camera_divisor =
 			g_hud_element_layouts[g_hud_instrument_set_base_index +
@@ -9828,12 +9526,12 @@ void hud_point_camera(uint16_t target_idx, int16_t use_hud_layout_scale,
 					   : CAMERA_DIVISOR_DEFAULT);
 	}
 	resolution_mode = g_players[player_idx].network.flight_resolution_mode;
-	scale_shift = (resolution_mode == FLIGHT_RESOLUTION_640X480 ||
-		       resolution_mode == FLIGHT_RESOLUTION_480X360)
-			      ? 9
-			      : 8;
-	scale = ((unsigned int)max_extent << scale_shift) /
-		(unsigned int)camera_divisor;
+	uint16_t scale_shift = (resolution_mode == FLIGHT_RESOLUTION_640X480 ||
+				resolution_mode == FLIGHT_RESOLUTION_480X360)
+				       ? 9
+				       : 8;
+	unsigned int scale = ((unsigned int)max_extent << scale_shift) /
+			     (unsigned int)camera_divisor;
 	scale_shift = 0;
 	while (scale > CAMERA_SCALE_LIMIT) {
 		scale >>= 1;
@@ -9990,14 +9688,10 @@ void hud_reset_flight_message_panes(int force_expire_active_messages)
 // FUNCTION: XVT 0x450BC0
 void hud_shift_ready_message_queue_for_replacement(void)
 {
-	uint8_t old_pending_count;
-	uint16_t destination_index;
-	uint8_t new_pending_count;
-
 	if (g_ready_message_pane_queue[0].show_count < 2 &&
 	    g_ready_message_pane_queue[0].age_seconds == 0) {
-		old_pending_count = g_ready_message_queue_count;
-		destination_index = old_pending_count + 1;
+		uint8_t old_pending_count = g_ready_message_queue_count;
+		uint16_t destination_index = old_pending_count + 1;
 		if (destination_index != 0) {
 			do {
 				g_ready_message_pane_queue[destination_index] =
@@ -10007,7 +9701,7 @@ void hud_shift_ready_message_queue_for_replacement(void)
 			} while (destination_index != 0);
 		}
 
-		new_pending_count = old_pending_count + 1;
+		uint8_t new_pending_count = old_pending_count + 1;
 		g_ready_message_queue_count = new_pending_count;
 		if (new_pending_count >= 10) {
 			g_ready_message_queue_count = new_pending_count - 1;
@@ -10022,9 +9716,9 @@ void hud_shift_ready_message_queue_for_replacement(void)
 void hud_advance_ready_message_queue(void)
 {
 	uint8_t old_pending_count = g_ready_message_queue_count;
-	uint16_t destination_index = 0;
 
 	if (old_pending_count != 0) {
+		uint16_t destination_index = 0;
 		do {
 			g_ready_message_pane_queue[destination_index] =
 				g_ready_message_pane_queue[destination_index +
@@ -10057,12 +9751,6 @@ void hud_advance_ready_message_queue(void)
 void hud_show_flight_message_pane(int16_t pane_type)
 {
 
-	char *text;
-	uint16_t pane_width;
-	uint16_t text_width;
-	uint8_t prefix;
-	uint8_t current_char;
-	uint16_t visible_chars;
 	char last_char;
 
 #ifdef XVT_MODERN
@@ -10085,6 +9773,9 @@ void hud_show_flight_message_pane(int16_t pane_type)
 				     0, 0, 0, 0xFFFFu);
 	}
 
+	char *text;
+	uint16_t pane_width;
+	uint16_t text_width;
 	if (pane_type == 3 || pane_type == 4 || pane_type == 7) {
 		flight_text_set_font_tier(1);
 		text = g_system_message_pane.text;
@@ -10145,7 +9836,8 @@ void hud_show_flight_message_pane(int16_t pane_type)
 #ifdef XVT_MODERN
 	xvt_cockpit_messages_begin_message(pane_type);
 #endif
-	prefix = (uint8_t)*text;
+	uint8_t prefix = (uint8_t)*text;
+	uint8_t current_char;
 	if (prefix < 9) {
 		++text;
 		flight_text_set_color(
@@ -10168,7 +9860,7 @@ void hud_show_flight_message_pane(int16_t pane_type)
 		flight_text_set_color(0x42);
 	}
 
-	visible_chars = 0;
+	uint16_t visible_chars = 0;
 	while (*text != '\0' && visible_chars < 70) {
 		current_char = (uint8_t)*text;
 		if (current_char == '[') {
@@ -10220,9 +9912,6 @@ void hud_show_flight_message_pane(int16_t pane_type)
 // FUNCTION: XVT 0x451060
 void hud_setup_ready_message_pane_text(void)
 {
-	uint16_t pane_width;
-	uint16_t text_width;
-
 	flight_text_set_font_tier(1);
 	flight_text_set_background_color(g_flight_transparent_color_index);
 	g_flight_text_shadow_enabled = 1;
@@ -10231,8 +9920,9 @@ void hud_setup_ready_message_pane_text(void)
 		g_ready_message_pane_left, g_ready_message_pane_top,
 		g_ready_message_pane_right, g_ready_message_pane_bottom);
 	g_flight_fill_clip_rect_fn();
-	pane_width = g_ready_message_pane_right - g_ready_message_pane_left;
-	text_width = hud_measure_flight_message_pane_text(0);
+	uint16_t pane_width =
+		g_ready_message_pane_right - g_ready_message_pane_left;
+	uint16_t text_width = hud_measure_flight_message_pane_text(0);
 	pane_width >>= 1;
 	text_width >>= 1;
 	pane_width -= text_width;
@@ -10411,8 +10101,7 @@ void hud_update_flight_message_panes(void)
 		}
 	}
 	{
-		int player_index;
-		for (player_index = 0; player_index < 8; ++player_index) {
+		for (int player_index = 0; player_index < 8; ++player_index) {
 			if (g_players[player_index].participation_state != 0 &&
 			    g_players[player_index].pending_action_timer == 0) {
 				g_players[player_index].pending_action_id = 0;
@@ -10466,11 +10155,8 @@ void hud_advance_flight_message_pane_timers(void)
 void hud_draw_craft_name_fps_and_network_status(void)
 {
 
-	uint8_t hud_state_live;
-	int element_index;
-	int offscreen_pitch_bytes;
-
-	hud_state_live = g_players[g_local_player].view_state.hud_state_live;
+	uint8_t hud_state_live =
+		g_players[g_local_player].view_state.hud_state_live;
 	if (hud_state_live != HUD_VIEW_FORWARD &&
 	    hud_state_live != HUD_VIEW_HUD_ONLY) {
 		return;
@@ -10490,7 +10176,7 @@ void hud_draw_craft_name_fps_and_network_status(void)
 	flight_text_set_cursor(
 		g_hud_element_layouts[g_hud_instrument_set_base_index + 126].x,
 		g_hud_element_layouts[g_hud_instrument_set_base_index + 126].y);
-	element_index = g_hud_instrument_set_base_index;
+	int element_index = g_hud_instrument_set_base_index;
 	flight_text_set_clip_rect(
 		g_hud_element_layouts[element_index + 126].x,
 		g_hud_element_layouts[element_index + 126].y,
@@ -10523,7 +10209,7 @@ void hud_draw_craft_name_fps_and_network_status(void)
 	if (g_flight_player_count > 1) {
 		g_flight_text_shadow_enabled = 0;
 		flight_text_set_font_tier(0);
-		offscreen_pitch_bytes =
+		int offscreen_pitch_bytes =
 			g_flight_bytes_per_pixel * g_screen_width;
 		flight_sw_set_render_target(g_flight_offscreen_buffer,
 					    g_screen_width, g_screen_height,
@@ -10616,12 +10302,10 @@ uint16_t hud_get_system_message_pane_state(void)
 // FUNCTION: XVT 0x452960
 void hud_blit_software_hud_text_panes(void)
 {
-	uint16_t transparent_color;
-
 #ifdef XVT_MODERN
 	xvt_cockpit_begin_message_placement();
 #endif
-	transparent_color = g_flight_transparent_color_index;
+	uint16_t transparent_color = g_flight_transparent_color_index;
 	if (g_flight_player_count >= 1) {
 		flight_text_set_font_tier(0);
 #ifdef XVT_MODERN
@@ -10829,10 +10513,6 @@ void hud_blit_software_hud_text_panes(void)
 uint16_t hud_measure_flight_message_pane_text(int16_t pane_type)
 {
 	const char *text;
-	char measured_text[80];
-	char current_char;
-	unsigned int processed_count;
-	uint16_t output_length;
 
 	if (pane_type == 3 || pane_type == 4 || pane_type == 7) {
 		text = g_system_message_pane.text;
@@ -10846,14 +10526,15 @@ uint16_t hud_measure_flight_message_pane_text(int16_t pane_type)
 		++text;
 	}
 
-	processed_count = 0;
-	output_length = 0;
+	unsigned int processed_count = 0;
+	uint16_t output_length = 0;
+	char measured_text[80];
 	if (text[processed_count] != '\0') {
 		do {
 			if ((uint16_t)processed_count >= 70) {
 				break;
 			}
-			current_char = text[processed_count];
+			char current_char = text[processed_count];
 			if (current_char == '[' || current_char == ']') {
 				if (current_char == (char)0xFE) {
 					text += 2;
@@ -10882,15 +10563,8 @@ void hud_draw_depth_tested_box_corners(int x, int y, int width, int height,
 				       int color_idx, int depth)
 {
 
-	int bottom;
-	int corner_width;
-	int left;
-	int corner_height;
-	uint8_t *span;
-	float span_depth;
-
-	left = x;
-	bottom = y + height;
+	int left = x;
+	int bottom = y + height;
 	if (bottom <= 0) {
 		return;
 	}
@@ -10904,8 +10578,8 @@ void hud_draw_depth_tested_box_corners(int x, int y, int width, int height,
 		return;
 	}
 
-	corner_width = width >> 3;
-	corner_height = height >> 3;
+	int corner_width = width >> 3;
+	int corner_height = height >> 3;
 	if (corner_width < 3) {
 		corner_width = 3;
 	}
@@ -10919,27 +10593,21 @@ void hud_draw_depth_tested_box_corners(int x, int y, int width, int height,
 		corner_height = height;
 	}
 
-	span = g_panel_box_span_scratch;
+	uint8_t *span = g_panel_box_span_scratch;
 	if (g_flight_bytes_per_pixel == 2) {
-		uint16_t *span16;
-		uint16_t color;
-		int i;
-
 		if (left > 0) {
 			span = &g_panel_box_span_scratch[2 * left];
 		}
-		span16 = (uint16_t *)span;
-		color = g_flight_palette16_bpp[color_idx];
-		for (i = 0; i < corner_width; ++i) {
+		uint16_t *span16 = (uint16_t *)span;
+		uint16_t color = g_flight_palette16_bpp[color_idx];
+		for (int i = 0; i < corner_width; ++i) {
 			span16[i] = color;
 		}
 	} else {
-		int i;
-
 		if (left > 0) {
 			span = &g_panel_box_span_scratch[left];
 		}
-		for (i = 0; i < corner_width; ++i) {
+		for (int i = 0; i < corner_width; ++i) {
 			span[i] = (uint8_t)color_idx;
 		}
 	}
@@ -10947,17 +10615,14 @@ void hud_draw_depth_tested_box_corners(int x, int y, int width, int height,
 	if (depth < 1) {
 		depth = 1;
 	}
-	span_depth = (float)(uint32_t)g_proj_scale_int / (float)depth;
+	float span_depth = (float)(uint32_t)g_proj_scale_int / (float)depth;
 	if (g_flight_surface_already_locked == 0) {
 		flight_surface_lock();
 	}
 
 	if (y >= 0) {
-		int span_start;
-		int span_end;
-
-		span_start = left;
-		span_end = left + corner_width;
+		int span_start = left;
+		int span_end = left + corner_width;
 		if (span_end > 0 && g_flight_vp_width > left) {
 			if (span_start < 0) {
 				span_start = 0;
@@ -10984,11 +10649,8 @@ void hud_draw_depth_tested_box_corners(int x, int y, int width, int height,
 	}
 
 	if (g_flight_vp_height >= bottom) {
-		int span_start;
-		int span_end;
-
-		span_start = left;
-		span_end = left + corner_width;
+		int span_start = left;
+		int span_end = left + corner_width;
 		if (span_end > 0 && g_flight_vp_width > left) {
 			if (span_start < 0) {
 				span_start = 0;
@@ -11015,12 +10677,9 @@ void hud_draw_depth_tested_box_corners(int x, int y, int width, int height,
 	}
 
 	{
-		int row_offset;
-
-		for (row_offset = 1; row_offset < corner_height; ++row_offset) {
-			int scan_y;
-
-			scan_y = y + row_offset;
+		for (int row_offset = 1; row_offset < corner_height;
+		     ++row_offset) {
+			int scan_y = y + row_offset;
 			if (scan_y >= 0 && g_flight_vp_height > scan_y) {
 				if (left >= 0) {
 					sw3d_blit_occluded_span(
@@ -11038,16 +10697,11 @@ void hud_draw_depth_tested_box_corners(int x, int y, int width, int height,
 	}
 
 	{
-		int row_offset;
-		int last_row;
-
-		last_row = height - 1;
-		for (row_offset = height - corner_height; row_offset < last_row;
-		     ++row_offset) {
+		int last_row = height - 1;
+		for (int row_offset = height - corner_height;
+		     row_offset < last_row; ++row_offset) {
 			if (row_offset >= corner_height) {
-				int scan_y;
-
-				scan_y = y + row_offset;
+				int scan_y = y + row_offset;
 				if (scan_y >= 0 &&
 				    g_flight_vp_height > scan_y) {
 					if (left >= 0) {
@@ -11084,20 +10738,16 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
 				      int16_t sprite_count,
 				      uint16_t records_to_skip)
 {
-	int16_t remaining_sprites;
-	int16_t record_index;
-	int16_t byte_value;
-	xvt_file *stream;
-
 	fe_disk_io_open_global_stream(file_name, "rb", 1, 0);
-	remaining_sprites = sprite_count;
-	stream = g_stream;
+	int16_t remaining_sprites = sprite_count;
+	xvt_file *stream = g_stream;
 #ifdef XVT_MODERN
 	if (!stream) {
 		return 1;
 	}
 #endif
-	record_index = 0;
+	int16_t record_index = 0;
+	int16_t byte_value;
 	while (remaining_sprites != 0) {
 		g_hud_panel_sprite_data_by_index[first_sprite_index] =
 			g_hud_panel_sprite_data_write_cursor;
@@ -11154,9 +10804,6 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
 int flight_icon_load_frames(const char *file_name, uint8_t *data_buffer,
 			    uint8_t **frame_pointers)
 {
-	int16_t frame_count;
-	xvt_file *stream;
-	int16_t value;
 #ifndef XVT_MODERN
 	int *stream_flags;
 #endif
@@ -11164,8 +10811,9 @@ int flight_icon_load_frames(const char *file_name, uint8_t *data_buffer,
 	if (fe_disk_io_open_global_stream(file_name, "rb", 1, 0) == 0) {
 		return 0;
 	}
-	frame_count = 0;
-	stream = g_stream;
+	int16_t frame_count = 0;
+	xvt_file *stream = g_stream;
+	int16_t value;
 #ifdef XVT_MODERN
 	while (1) {
 		if (FILE_HAS_ERROR(stream)) {

@@ -34,24 +34,19 @@ uint8_t g_frontend_joystick_centering_fill_color = 0;
 // FUNCTION: XVT 0x4D5E70
 int joystick_init_devices(void)
 {
-	JOYINFOEX joystick_info;
-	JOYCAPSA joystick_caps;
-	int device_count;
-	int device;
-	int slot;
-	int initialized_count;
-
-	device_count = (int)joyGetNumDevs();
+	int device_count = (int)joyGetNumDevs();
 	if (device_count == 0) {
 		return 0;
 	}
-	slot = 0;
+	int slot = 0;
 	g_front_state.joystick_present[1] = 0;
 	g_front_state.joystick_present[0] = 0;
-	initialized_count = 0;
+	int initialized_count = 0;
 	g_front_state.joystick_init_flags[1] = 1;
 	g_front_state.joystick_init_flags[0] = 1;
-	for (device = 0; device < device_count; ++device) {
+	JOYINFOEX joystick_info;
+	JOYCAPSA joystick_caps;
+	for (int device = 0; device < device_count; ++device) {
 		if (joyGetDevCapsA((uint32_t)device, &joystick_caps,
 				   sizeof(joystick_caps)) == JOYERR_NOERROR) {
 			g_front_state.joystick_button_count[slot] =
@@ -161,12 +156,6 @@ int joystick_get_count(void)
 // FUNCTION: XVT 0x4D5FE0
 void joystick_update_state(int joy_slot)
 {
-	JOYINFOEX joystick_info;
-	int axis_delta_x;
-	int axis_delta_y;
-	unsigned int button_mask;
-	int button_index;
-
 #ifdef XVT_MODERN
 	if ((unsigned int)joy_slot >= 2 ||
 	    g_front_state.joystick_present[joy_slot] == 0) {
@@ -175,6 +164,7 @@ void joystick_update_state(int joy_slot)
 #endif
 		return;
 	}
+	JOYINFOEX joystick_info;
 	joystick_info.dwSize = sizeof(joystick_info);
 	joystick_info.dwFlags = JOY_RETURNX | JOY_RETURNY | JOY_RETURNBUTTONS |
 				JOY_RETURNPOV | JOY_RETURNCENTERED;
@@ -195,10 +185,10 @@ void joystick_update_state(int joy_slot)
 	joyGetPosEx(g_front_state.joy_device_ids[joy_slot], &joystick_info);
 #endif
 
-	axis_delta_x = (int)joystick_info.dwXpos -
-		       g_front_state.joystick_x_center[joy_slot];
-	axis_delta_y = (int)joystick_info.dwYpos -
-		       g_front_state.joystick_y_center[joy_slot];
+	int axis_delta_x = (int)joystick_info.dwXpos -
+			   g_front_state.joystick_x_center[joy_slot];
+	int axis_delta_y = (int)joystick_info.dwYpos -
+			   g_front_state.joystick_y_center[joy_slot];
 	if (axis_delta_x > 1000 || axis_delta_x < -1000) {
 		if (axis_delta_x < 0) {
 			g_front_state.joystick_axis_x[joy_slot] =
@@ -230,8 +220,8 @@ void joystick_update_state(int joy_slot)
 		g_front_state.joystick_axis_y[joy_slot] = 0;
 	}
 
-	button_mask = 1;
-	for (button_index = 0; button_index < 32; ++button_index) {
+	unsigned int button_mask = 1;
+	for (int button_index = 0; button_index < 32; ++button_index) {
 		g_front_state.joystick_button_released[joy_slot][button_index] =
 			(joystick_info.dwButtons & button_mask) == 0 &&
 			g_front_state.joystick_button_held[joy_slot]
@@ -296,8 +286,6 @@ int joystick_is_button1_released(int joystick_slot)
 // FUNCTION: XVT 0x4D6240
 int joystick_get_first_pressed_button(int joy_slot)
 {
-	int button_index;
-
 #ifdef XVT_MODERN
 	if ((unsigned int)joy_slot >= 2) {
 #else
@@ -309,7 +297,7 @@ int joystick_get_first_pressed_button(int joy_slot)
 		return -1;
 	}
 
-	for (button_index = 0; button_index < 32; ++button_index) {
+	for (int button_index = 0; button_index < 32; ++button_index) {
 		if (g_front_state.joystick_button_held[joy_slot]
 						      [button_index] != 0) {
 			return button_index;
@@ -324,8 +312,6 @@ int joystick_get_first_pressed_button(int joy_slot)
 // FUNCTION: XVT 0x4D6280
 int joystick_get_first_released_button(int joystick_slot)
 {
-	int button_index;
-
 #ifdef XVT_MODERN
 	if ((unsigned int)joystick_slot >= 2) {
 #else
@@ -337,7 +323,7 @@ int joystick_get_first_released_button(int joystick_slot)
 		return -1;
 	}
 
-	for (button_index = 0; button_index < 32; ++button_index) {
+	for (int button_index = 0; button_index < 32; ++button_index) {
 		if (g_front_state.joystick_button_released[joystick_slot]
 							  [button_index] != 0) {
 			return button_index;
@@ -401,13 +387,12 @@ int joystick_get_button_count(int joy_slot)
 int frontend_joystick_begin_centering_prompt(void)
 {
 	struct RECT screen_rect;
-	int fill_color;
 
 	screen_rect.left = 120;
 	screen_rect.right = 520;
 	screen_rect.top = 190;
 	screen_rect.bottom = 290;
-	fill_color = frontend_display_pack_rgb(0, 0, 255);
+	int fill_color = frontend_display_pack_rgb(0, 0, 255);
 	g_frontend_joystick_centering_fill_color = (uint8_t)fill_color;
 	g_frontend_joystick_centering_slot = 0;
 	return frontend_screen_queue_push(
@@ -425,24 +410,21 @@ int frontend_joystick_begin_centering_prompt(void)
 // FUNCTION: XVT 0x4D6380
 int frontend_joystick_update_centering_prompt(int frame_counter)
 {
-	int joystick_slot;
-	struct RECT *screen_rect;
-	char prompt_text[100];
-
 	(void)frame_counter;
-	joystick_slot = g_frontend_joystick_centering_slot;
+	int joystick_slot = g_frontend_joystick_centering_slot;
 	if (g_front_state
 		    .joystick_present[g_frontend_joystick_centering_slot] ==
 	    0) {
 		++joystick_slot;
 	} else {
-		screen_rect =
+		struct RECT *screen_rect =
 			&g_front_state
 				 .screen_states[g_front_state.screen_stack_top -
 						1]
 				 .saved_rect;
 		frontend_draw_rect(screen_rect, 0, 0,
 				   g_frontend_joystick_centering_fill_color, 1);
+		char prompt_text[100];
 		sprintf(prompt_text, "Center joystick %d and press a button.",
 			g_frontend_joystick_centering_slot + 1);
 		frontend_text_draw_centered(20, prompt_text, screen_rect, 255);

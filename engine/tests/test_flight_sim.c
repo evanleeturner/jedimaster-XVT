@@ -105,7 +105,6 @@ static void check_insert_refusals(void)
 {
 	flight_sim_world();
 	struct flight_input_frame_record input = controls(10);
-	struct flight_input_frame_record bad;
 	static struct input_frame sentinel;
 	struct input_frame *out = &sentinel;
 
@@ -119,7 +118,7 @@ static void check_insert_refusals(void)
 			  XVT_INPUT_INVALID);
 	XVT_ASSERT_INT_EQ(xvt_flight_history_insert(1, 8, NULL, &out),
 			  XVT_INPUT_INVALID);
-	bad = input;
+	struct flight_input_frame_record bad = input;
 	bad.flags = 2;
 	XVT_ASSERT_INT_EQ(xvt_flight_history_insert(1, 8, &bad, &out),
 			  XVT_INPUT_INVALID);
@@ -203,10 +202,10 @@ static void check_insert_full(void)
 	flight_sim_world();
 	struct flight_input_frame_record input = controls(10);
 	static struct input_frame sentinel;
-	struct input_frame *out = &sentinel;
 	for (int i = 0; i < XVT_INPUT_HISTORY_CAPACITY; ++i) {
 		add_frame(1, 2 * (i + 1), XVT_INPUT_REAL, 1, 10);
 	}
+	struct input_frame *out = &sentinel;
 	XVT_ASSERT_INT_EQ(
 		xvt_flight_history_insert(1, 2 * XVT_INPUT_HISTORY_CAPACITY + 2,
 					  &input, &out),

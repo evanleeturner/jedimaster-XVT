@@ -145,12 +145,12 @@ static void submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 		if (table && g->component_index < AERON_MAX_MESH_SLOTS) {
 			const float (*rw)[4] = table->rows[g->component_index];
 			float tp[3];
-			float tv[3];
 			for (int r = 0; r < 3; r++) {
 				tp[r] = rw[r][0] * p[0] + rw[r][1] * p[1] +
 					rw[r][2] * p[2] + rw[r][3];
 			}
 			memcpy(p, tp, sizeof tp);
+			float tv[3];
 			for (int r = 0; r < 3; r++) {
 				tv[r] = rw[r][0] * ax_look[0] +
 					rw[r][1] * ax_look[1] +
@@ -326,8 +326,8 @@ static void submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 
 		/* Authored OPT colors are sRGB; the coverage mask and tint use PMA. */
 		float core[4];
-		float outer[4];
 		core[3] = g->core_rgba[3];
+		float outer[4];
 		outer[3] = g->outer_rgba[3];
 		for (int ch = 0; ch < 3; ch++) {
 			core[ch] = linear(g->core_rgba[ch]) * core[3] *
@@ -392,7 +392,6 @@ static void lights(AeronScene3D *scene, const AeronSceneMesh *mesh,
 			continue;
 		}
 		float local[3];
-		float world[3];
 		float color[3];
 		for (int r = 0; r < 3; ++r) {
 			const float *row = table->rows[c][r];
@@ -401,6 +400,7 @@ static void lights(AeronScene3D *scene, const AeronSceneMesh *mesh,
 				   row[2] * g->position.z + row[3];
 			color[r] = linear(g->core_rgba[r]);
 		}
+		float world[3];
 		for (int r = 0; r < 3; ++r) {
 			world[r] = transform[r * 4] * local[0] +
 				   transform[r * 4 + 1] * local[1] +

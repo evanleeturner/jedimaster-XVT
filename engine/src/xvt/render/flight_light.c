@@ -83,31 +83,11 @@ float flight_light_compute_software_face_sample_intensity(
 	struct scene_face *face, int screen_x, int screen_y,
 	float reciprocal_depth)
 {
-	struct scene_mesh *mesh;
-	struct opt_vector normal;
-	struct opt_vector vector;
-	float screen_to_view_scale;
-	float sample_x;
-	float sample_y;
-	float sample_z;
-	float intensity;
-	float dx;
-	float dy;
-	float dz;
-	float specular;
-	float contribution;
-	float component_x;
-	float component_y;
-	float component_z;
-	float distance;
-	float reciprocal;
-	float light_dot;
-	int light_index;
-
-	mesh = face->p_mesh;
+	struct scene_mesh *mesh = face->p_mesh;
 	if (mesh == NULL) {
 		return g_render_zero_float;
 	}
+	int light_index;
 	if (mesh->p_object != g_sw_face_light_cached_object) {
 		flight_light_setup_object_lighting(mesh->p_object);
 		g_sw_face_light_cached_point_light_count =
@@ -141,13 +121,15 @@ float flight_light_compute_software_face_sample_intensity(
 		math3d_rotate_vec3(&g_sw_face_light_dir.x, mesh->view_orient);
 	}
 
-	sample_z = 1.0f / reciprocal_depth;
-	screen_to_view_scale = sample_z * g_inv_proj_scale;
-	sample_x = (float)(screen_x - (g_flight_vp_width >> 1)) *
-		   screen_to_view_scale;
-	sample_y = (float)(screen_y - (g_flight_vp_height >> 1) -
-			   g_proj_offset_y) *
-		   screen_to_view_scale;
+	float sample_z = 1.0f / reciprocal_depth;
+	float screen_to_view_scale = sample_z * g_inv_proj_scale;
+	float sample_x = (float)(screen_x - (g_flight_vp_width >> 1)) *
+			 screen_to_view_scale;
+	float sample_y = (float)(screen_y - (g_flight_vp_height >> 1) -
+				 g_proj_offset_y) *
+			 screen_to_view_scale;
+	struct opt_vector normal;
+	struct opt_vector vector;
 	if (face != g_sw_face_light_cached_face) {
 		g_sw_face_light_cached_face = face;
 		vector = mesh->p_face_normals[face->face_index];
@@ -157,8 +139,15 @@ float flight_light_compute_software_face_sample_intensity(
 	} else {
 		normal = g_sw_face_light_face_normal;
 	}
-	intensity = 0.0f;
+	float intensity = 0.0f;
 
+	float specular;
+	float contribution;
+	float component_x;
+	float component_y;
+	float component_z;
+	float distance;
+	float reciprocal;
 	if (g_specular_enabled != 0) {
 		/* vector is reused here for the direction from the sample point to the eye, normalized by an
 		 * estimated length, for the specular half vector. */
@@ -220,10 +209,10 @@ float flight_light_compute_software_face_sample_intensity(
 		const struct opt_vector *position =
 			&g_sw_face_light_point_positions[light_index];
 
-		dx = position->x - sample_x;
-		dy = position->y - sample_y;
-		dz = position->z - sample_z;
-		light_dot = normal.x * dx + normal.y * dy + normal.z * dz;
+		float dx = position->x - sample_x;
+		float dy = position->y - sample_y;
+		float dz = position->z - sample_z;
+		float light_dot = normal.x * dx + normal.y * dy + normal.z * dz;
 		if (light_dot > g_render_zero_float) {
 			component_x = dx;
 			component_y = dy;
@@ -257,15 +246,13 @@ float flight_light_compute_software_face_sample_intensity(
 			}
 			light_dot = light_dot / (distance * distance);
 			if (g_specular_enabled != 0) {
-				float half_dot;
-				float cosine;
-
 				dx -= sample_x;
 				dy -= sample_y;
 				dz -= sample_z;
-				half_dot = (normal.x * dx + normal.y * dy +
-					    normal.z * dz) *
-					   g_render_half_float;
+				float half_dot =
+					(normal.x * dx + normal.y * dy +
+					 normal.z * dz) *
+					g_render_half_float;
 				component_x = dx;
 				component_y = dy;
 				component_z = dz;
@@ -300,7 +287,7 @@ float flight_light_compute_software_face_sample_intensity(
 							g_render_specular_approx_other_components_scale;
 				}
 				reciprocal = 1.0f / distance;
-				cosine = half_dot * reciprocal;
+				float cosine = half_dot * reciprocal;
 				if (cosine >= g_render_zero_float) {
 					specular = cosine * cosine * cosine;
 					specular *= specular;
@@ -345,38 +332,26 @@ float flight_light_compute_software_face_sample_intensity(
 // FUNCTION: XVT 0x44F880
 void flight_light_setup_object_lighting(const struct object_record *object)
 {
-	int light_count;
-	int object_idx;
-	unsigned int max_distance;
-	int world_x;
-	int world_y;
-	int world_z;
-	struct object_record *light_object;
-
 	g_object_point_light_count = 0;
 	if (g_local_lights_enabled == 0) {
 		return;
 	}
-	max_distance =
+	unsigned int max_distance =
 		g_object_type_table[object->object_type].max_bounds_extent +
 		0x4000;
-	world_x = object->world_x;
-	world_y = object->world_y;
-	world_z = object->world_z;
-	light_object = g_object_table;
-	light_count = 0;
-	object_idx = 0;
+	int world_x = object->world_x;
+	int world_y = object->world_y;
+	int world_z = object->world_z;
+	struct object_record *light_object = g_object_table;
+	int light_count = 0;
+	int object_idx = 0;
 	if (g_region_main_object_slot_end > 0) {
 		do {
-			int delta_x;
-			int delta_y;
-			int delta_z;
-
 			if (light_object->object_type != 0 &&
 			    light_object->genus_id == CRAFT_GENUS_EXPLOSION) {
-				delta_x = light_object->world_x - world_x;
-				delta_y = light_object->world_y - world_y;
-				delta_z = light_object->world_z - world_z;
+				int delta_x = light_object->world_x - world_x;
+				int delta_y = light_object->world_y - world_y;
+				int delta_z = light_object->world_z - world_z;
 				if ((unsigned int)collide_roughdistance3d(
 					    delta_x, delta_y, delta_z) <
 				    max_distance) {

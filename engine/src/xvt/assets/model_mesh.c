@@ -48,12 +48,20 @@ void model_mesh_apply_animated_mesh_rotation_to_point(int16_t angle_q16,
 						      int local_x, int local_y,
 						      int local_z)
 {
-	float *rot_scale_data;
-	int axis_x;
-	int axis_y;
-	int axis_z;
-	int cosine;
-	int sine;
+	g_rotated_x = local_x;
+	g_rotated_y = local_y;
+	g_rotated_z = local_z;
+	float *rot_scale_data =
+		model_mesh_get_rot_scale_data(object_type, mesh_index);
+	if (rot_scale_data == NULL) {
+		return;
+	}
+
+	int axis_x = (int)rot_scale_data[3];
+	int axis_y = (int)rot_scale_data[4];
+	int axis_z = (int)rot_scale_data[5];
+	int cosine = trig2_getsignedcos(angle_q16);
+	int sine = trig2_getsignedsin(angle_q16);
 	int coefficient00;
 	int coefficient01;
 	int coefficient02;
@@ -63,23 +71,6 @@ void model_mesh_apply_animated_mesh_rotation_to_point(int16_t angle_q16,
 	int coefficient20;
 	int coefficient21;
 	int coefficient22;
-	int transformed_x;
-	int transformed_y;
-	int transformed_z;
-
-	g_rotated_x = local_x;
-	g_rotated_y = local_y;
-	g_rotated_z = local_z;
-	rot_scale_data = model_mesh_get_rot_scale_data(object_type, mesh_index);
-	if (rot_scale_data == NULL) {
-		return;
-	}
-
-	axis_x = (int)rot_scale_data[3];
-	axis_y = (int)rot_scale_data[4];
-	axis_z = (int)rot_scale_data[5];
-	cosine = trig2_getsignedcos(angle_q16);
-	sine = trig2_getsignedsin(angle_q16);
 	if (cosine >= 0) {
 		const int one_minus_cosine = MODEL_MESH_Q15_ONE - cosine;
 
@@ -131,13 +122,13 @@ void model_mesh_apply_animated_mesh_rotation_to_point(int16_t angle_q16,
 	local_x -= (int)rot_scale_data[0];
 	local_y += (int)rot_scale_data[1];
 	local_z -= (int)rot_scale_data[2];
-	transformed_x =
+	int transformed_x =
 		math_dot3q15_wrapped(local_x, local_y, local_z, coefficient00,
 				     coefficient10, coefficient20);
-	transformed_y =
+	int transformed_y =
 		math_dot3q15_wrapped(local_x, local_y, local_z, coefficient01,
 				     coefficient11, coefficient21);
-	transformed_z =
+	int transformed_z =
 		math_dot3q15_wrapped(local_x, local_y, local_z, coefficient02,
 				     coefficient12, coefficient22);
 	transformed_y -= (int)rot_scale_data[1];
@@ -154,11 +145,7 @@ void model_mesh_apply_animated_mesh_rotation_to_point(int16_t angle_q16,
 // FUNCTION: XVT 0x4ADC40
 int model_mesh_get_object_type_mesh_count(int object_type)
 {
-	uint16_t model_handle;
-	struct optimized_poly_object *model;
-	int mesh_count;
-
-	model_handle = g_loaded_models[object_type];
+	uint16_t model_handle = g_loaded_models[object_type];
 	if (model_handle == 0) {
 		return 0;
 	}
@@ -166,12 +153,13 @@ int model_mesh_get_object_type_mesh_count(int object_type)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		model_handle);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			model_handle);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	mesh_count = model->root_node_count;
+	int mesh_count = model->root_node_count;
 	if (model->root_nodes[0]->node_type == OPT_TEXTURE) {
 		--mesh_count;
 	}
@@ -189,9 +177,6 @@ int model_mesh_get_object_type_mesh_count(int object_type)
 // FUNCTION: XVT 0x4ADCC0
 struct opt_node *model_mesh_find_first_mesh_verts_node(struct opt_node *node)
 {
-	struct opt_node *result;
-	int child_index;
-
 	if (node == 0) {
 		return 0;
 	}
@@ -200,10 +185,12 @@ struct opt_node *model_mesh_find_first_mesh_verts_node(struct opt_node *node)
 		return node;
 	}
 
-	for (child_index = 0; child_index < node->child_count; child_index++) {
+	for (int child_index = 0; child_index < node->child_count;
+	     child_index++) {
 		if (node->p_children[child_index] != 0) {
-			result = model_mesh_find_first_mesh_verts_node(
-				node->p_children[child_index]);
+			struct opt_node *result =
+				model_mesh_find_first_mesh_verts_node(
+					node->p_children[child_index]);
 			if (result != 0) {
 				return result;
 			}
@@ -218,9 +205,6 @@ struct opt_node *model_mesh_find_first_mesh_verts_node(struct opt_node *node)
 // FUNCTION: XVT 0x4ADD10
 struct opt_node *model_mesh_find_first_rot_scale_node(struct opt_node *node)
 {
-	struct opt_node *result;
-	int child_index;
-
 	if (node == 0) {
 		return 0;
 	}
@@ -229,10 +213,12 @@ struct opt_node *model_mesh_find_first_rot_scale_node(struct opt_node *node)
 		return node;
 	}
 
-	for (child_index = 0; child_index < node->child_count; child_index++) {
+	for (int child_index = 0; child_index < node->child_count;
+	     child_index++) {
 		if (node->p_children[child_index] != 0) {
-			result = model_mesh_find_first_rot_scale_node(
-				node->p_children[child_index]);
+			struct opt_node *result =
+				model_mesh_find_first_rot_scale_node(
+					node->p_children[child_index]);
 			if (result != 0) {
 				return result;
 			}
@@ -250,9 +236,6 @@ struct mesh_descriptor *
 model_mesh_find_descriptor_node_recursive(const struct opt_node *node,
 					  struct optimized_poly_object *model)
 {
-	struct mesh_descriptor *descriptor;
-	int child_index;
-
 	if (node == NULL) {
 		return NULL;
 	}
@@ -260,10 +243,12 @@ model_mesh_find_descriptor_node_recursive(const struct opt_node *node,
 		return (struct mesh_descriptor *)node->payload;
 	}
 
-	for (child_index = 0; child_index < node->child_count; ++child_index) {
+	for (int child_index = 0; child_index < node->child_count;
+	     ++child_index) {
 		if (node->p_children[child_index] != NULL) {
-			descriptor = model_mesh_find_descriptor_node_recursive(
-				node->p_children[child_index], model);
+			struct mesh_descriptor *descriptor =
+				model_mesh_find_descriptor_node_recursive(
+					node->p_children[child_index], model);
 			if (descriptor != NULL) {
 				return descriptor;
 			}
@@ -282,11 +267,7 @@ model_mesh_find_descriptor_node_recursive(const struct opt_node *node,
 struct mesh_descriptor *model_mesh_get_descriptor(int object_type,
 						  int mesh_index)
 {
-	uint16_t model_handle;
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-
-	model_handle = g_loaded_models[object_type];
+	uint16_t model_handle = g_loaded_models[object_type];
 	if (model_handle == 0) {
 		return NULL;
 	}
@@ -297,14 +278,15 @@ struct mesh_descriptor *model_mesh_get_descriptor(int object_type,
 		return NULL;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		model_handle);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			model_handle);
 	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -322,12 +304,7 @@ struct mesh_descriptor *model_mesh_get_descriptor(int object_type,
 mesh_component_type model_mesh_get_object_type_mesh_type(int object_type,
 							 int mesh_index)
 {
-	uint16_t model_handle;
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-
-	model_handle = g_loaded_models[object_type];
+	uint16_t model_handle = g_loaded_models[object_type];
 	if (model_handle == 0) {
 		return MESH_COMPONENT_00_DEFAULT;
 	}
@@ -338,13 +315,14 @@ mesh_component_type model_mesh_get_object_type_mesh_type(int object_type,
 		return MESH_COMPONENT_00_DEFAULT;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		model_handle);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			model_handle);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -352,8 +330,9 @@ mesh_component_type model_mesh_get_object_type_mesh_type(int object_type,
 		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
 	/* From here mesh_index holds the result, no longer a root node index: the descriptor's mesh type,
 	 * or MESH_COMPONENT_00_DEFAULT without a descriptor. */
 	if (descriptor != NULL) {
@@ -372,24 +351,19 @@ mesh_component_type model_mesh_get_object_type_mesh_type(int object_type,
 // FUNCTION: XVT 0x4AE340
 int model_mesh_get_vertex_count(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	int node_type;
-	struct opt_node *vertex_node;
-	int vertex_count;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
-	node_type = root_nodes[0]->node_type;
+	struct opt_node **root_nodes = model->root_nodes;
+	int node_type = root_nodes[0]->node_type;
 	if (node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -397,9 +371,9 @@ int model_mesh_get_vertex_count(int object_type, int mesh_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	vertex_node =
+	struct opt_node *vertex_node =
 		model_mesh_find_first_mesh_verts_node(root_nodes[mesh_index]);
-	vertex_count = vertex_node->payload_count;
+	int vertex_count = vertex_node->payload_count;
 
 	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return vertex_count;
@@ -412,24 +386,18 @@ int model_mesh_get_vertex_count(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AE3C0
 int model_mesh_get_vertex_x(int object_type, int mesh_index, int vertex_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct opt_node *vertex_node;
-	struct opt_vector *vertices;
-	int clamped_vertex_index;
-	int result;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -437,14 +405,14 @@ int model_mesh_get_vertex_x(int object_type, int mesh_index, int vertex_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	vertex_node =
+	struct opt_node *vertex_node =
 		model_mesh_find_first_mesh_verts_node(root_nodes[mesh_index]);
-	vertices = (struct opt_vector *)vertex_node->payload;
-	clamped_vertex_index = vertex_index;
+	struct opt_vector *vertices = (struct opt_vector *)vertex_node->payload;
+	int clamped_vertex_index = vertex_index;
 	if (clamped_vertex_index >= vertex_node->payload_count) {
 		clamped_vertex_index = vertex_node->payload_count - 1;
 	}
-	result = (int)vertices[clamped_vertex_index].x;
+	int result = (int)vertices[clamped_vertex_index].x;
 
 	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
@@ -457,24 +425,18 @@ int model_mesh_get_vertex_x(int object_type, int mesh_index, int vertex_index)
 // FUNCTION: XVT 0x4AE460
 int model_mesh_get_vertex_y(int object_type, int mesh_index, int vertex_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct opt_node *vertex_node;
-	struct opt_vector *vertices;
-	int clamped_vertex_index;
-	int result;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -482,14 +444,14 @@ int model_mesh_get_vertex_y(int object_type, int mesh_index, int vertex_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	vertex_node =
+	struct opt_node *vertex_node =
 		model_mesh_find_first_mesh_verts_node(root_nodes[mesh_index]);
-	vertices = (struct opt_vector *)vertex_node->payload;
-	clamped_vertex_index = vertex_index;
+	struct opt_vector *vertices = (struct opt_vector *)vertex_node->payload;
+	int clamped_vertex_index = vertex_index;
 	if (clamped_vertex_index >= vertex_node->payload_count) {
 		clamped_vertex_index = vertex_node->payload_count - 1;
 	}
-	result = (int)vertices[clamped_vertex_index].y;
+	int result = (int)vertices[clamped_vertex_index].y;
 
 	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
@@ -502,24 +464,18 @@ int model_mesh_get_vertex_y(int object_type, int mesh_index, int vertex_index)
 // FUNCTION: XVT 0x4AE500
 int model_mesh_get_vertex_z(int object_type, int mesh_index, int vertex_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct opt_node *vertex_node;
-	struct opt_vector *vertices;
-	int clamped_vertex_index;
-	int result;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -527,14 +483,14 @@ int model_mesh_get_vertex_z(int object_type, int mesh_index, int vertex_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	vertex_node =
+	struct opt_node *vertex_node =
 		model_mesh_find_first_mesh_verts_node(root_nodes[mesh_index]);
-	vertices = (struct opt_vector *)vertex_node->payload;
-	clamped_vertex_index = vertex_index;
+	struct opt_vector *vertices = (struct opt_vector *)vertex_node->payload;
+	int clamped_vertex_index = vertex_index;
 	if (clamped_vertex_index >= vertex_node->payload_count) {
 		clamped_vertex_index = vertex_node->payload_count - 1;
 	}
-	result = (int)vertices[clamped_vertex_index].z;
+	int result = (int)vertices[clamped_vertex_index].z;
 
 	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return result;
@@ -546,12 +502,6 @@ int model_mesh_get_vertex_z(int object_type, int mesh_index, int vertex_index)
 // FUNCTION: XVT 0x4AE5A0
 int model_mesh_get_center_x(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int node_index;
-	int result;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -559,14 +509,15 @@ int model_mesh_get_center_x(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
-	node_index = mesh_index;
+	struct opt_node **root_nodes = model->root_nodes;
+	int node_index = mesh_index;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++node_index;
 	}
@@ -574,8 +525,10 @@ int model_mesh_get_center_x(int object_type, int mesh_index)
 		node_index = model->root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[node_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[node_index], model);
+	int result;
 	if (descriptor != NULL) {
 		result = (int)descriptor->center.x;
 	} else {
@@ -592,12 +545,6 @@ int model_mesh_get_center_x(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AE640
 int model_mesh_get_center_y(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int root_node_count;
-	int result;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -605,23 +552,26 @@ int model_mesh_get_center_y(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
-	root_node_count = model->root_node_count;
+	int root_node_count = model->root_node_count;
 	if (root_node_count <= mesh_index) {
 		mesh_index = root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
+	int result;
 	if (descriptor != NULL) {
 		result = (int)descriptor->center.y;
 	} else {
@@ -638,11 +588,6 @@ int model_mesh_get_center_y(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AE6E0
 int model_mesh_get_center_z(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int result;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -650,13 +595,14 @@ int model_mesh_get_center_z(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -664,8 +610,10 @@ int model_mesh_get_center_z(int object_type, int mesh_index)
 			     ? mesh_index
 			     : model->root_node_count - 1;
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
+	int result;
 	if (descriptor != NULL) {
 		result = (int)descriptor->center.z;
 	} else {
@@ -682,12 +630,6 @@ int model_mesh_get_center_z(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AE780
 int model_mesh_get_bounds_min_x(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int node_index;
-	int result;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -695,14 +637,15 @@ int model_mesh_get_bounds_min_x(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
-	node_index = mesh_index;
+	struct opt_node **root_nodes = model->root_nodes;
+	int node_index = mesh_index;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++node_index;
 	}
@@ -710,8 +653,10 @@ int model_mesh_get_bounds_min_x(int object_type, int mesh_index)
 		node_index = model->root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[node_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[node_index], model);
+	int result;
 	if (descriptor != NULL) {
 		result = (int)descriptor->box_min.x;
 	} else {
@@ -728,12 +673,6 @@ int model_mesh_get_bounds_min_x(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AE820
 int model_mesh_get_bounds_min_y(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int node_index;
-	int result;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -741,22 +680,25 @@ int model_mesh_get_bounds_min_y(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
-	node_index = mesh_index;
+	struct opt_node **root_nodes = model->root_nodes;
+	int node_index = mesh_index;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++node_index;
 	}
 	if (node_index >= model->root_node_count) {
 		node_index = model->root_node_count - 1;
 	}
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[node_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[node_index], model);
+	int result;
 	if (descriptor != NULL) {
 		result = (int)descriptor->box_min.y;
 	} else {
@@ -773,11 +715,6 @@ int model_mesh_get_bounds_min_y(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AE8C0
 int model_mesh_get_bounds_min_z(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int result;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -785,13 +722,14 @@ int model_mesh_get_bounds_min_z(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -799,8 +737,10 @@ int model_mesh_get_bounds_min_z(int object_type, int mesh_index)
 			     ? mesh_index
 			     : model->root_node_count - 1;
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
+	int result;
 	if (descriptor != NULL) {
 		result = (int)descriptor->box_min.z;
 	} else {
@@ -817,12 +757,6 @@ int model_mesh_get_bounds_min_z(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AE960
 int model_mesh_get_bounds_max_x(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int node_index;
-	int result;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -830,14 +764,15 @@ int model_mesh_get_bounds_max_x(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
-	node_index = mesh_index;
+	struct opt_node **root_nodes = model->root_nodes;
+	int node_index = mesh_index;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++node_index;
 	}
@@ -845,8 +780,10 @@ int model_mesh_get_bounds_max_x(int object_type, int mesh_index)
 		node_index = model->root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[node_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[node_index], model);
+	int result;
 	if (descriptor != NULL) {
 		result = (int)descriptor->box_max.x;
 	} else {
@@ -863,11 +800,6 @@ int model_mesh_get_bounds_max_x(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AEA00
 int model_mesh_get_bounds_max_y(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int result;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -875,13 +807,14 @@ int model_mesh_get_bounds_max_y(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -889,8 +822,10 @@ int model_mesh_get_bounds_max_y(int object_type, int mesh_index)
 			     ? mesh_index
 			     : model->root_node_count - 1;
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
+	int result;
 	if (descriptor != NULL) {
 		result = (int)descriptor->box_max.y;
 	} else {
@@ -907,11 +842,6 @@ int model_mesh_get_bounds_max_y(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AEAA0
 int model_mesh_get_bounds_max_z(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int result;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -919,13 +849,14 @@ int model_mesh_get_bounds_max_z(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -933,8 +864,10 @@ int model_mesh_get_bounds_max_z(int object_type, int mesh_index)
 			     ? mesh_index
 			     : model->root_node_count - 1;
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
+	int result;
 	if (descriptor != NULL) {
 		result = (int)descriptor->box_max.z;
 	} else {
@@ -951,10 +884,6 @@ int model_mesh_get_bounds_max_z(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AEB40
 int model_mesh_get_target_id(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -962,13 +891,14 @@ int model_mesh_get_target_id(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -976,8 +906,9 @@ int model_mesh_get_target_id(int object_type, int mesh_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
 	/* From here mesh_index holds the result, no longer a root node index: the descriptor's target id,
 	 * or 0 without a descriptor. */
 	if (descriptor != NULL) {
@@ -996,11 +927,6 @@ int model_mesh_get_target_id(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AEBE0
 int model_mesh_get_component_focus_x(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int value;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -1008,13 +934,14 @@ int model_mesh_get_component_focus_x(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -1022,8 +949,10 @@ int model_mesh_get_component_focus_x(int object_type, int mesh_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
+	int value;
 	if (descriptor != NULL) {
 		if (descriptor->target_id != 0) {
 			value = (int)descriptor->target_point.x;
@@ -1044,11 +973,6 @@ int model_mesh_get_component_focus_x(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AEC90
 int model_mesh_get_component_focus_y(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int value;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -1056,13 +980,14 @@ int model_mesh_get_component_focus_y(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -1070,8 +995,10 @@ int model_mesh_get_component_focus_y(int object_type, int mesh_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
+	int value;
 	if (descriptor != NULL) {
 		if (descriptor->target_id != 0) {
 			value = (int)descriptor->target_point.y;
@@ -1092,11 +1019,6 @@ int model_mesh_get_component_focus_y(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AED40
 int model_mesh_get_component_focus_z(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int value;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -1104,13 +1026,14 @@ int model_mesh_get_component_focus_z(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -1118,8 +1041,10 @@ int model_mesh_get_component_focus_z(int object_type, int mesh_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
+	int value;
 	if (descriptor != NULL) {
 		if (descriptor->target_id != 0) {
 			value = (int)descriptor->target_point.z;
@@ -1140,37 +1065,33 @@ int model_mesh_get_component_focus_z(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AEDF0
 int model_mesh_get_component_max_extent(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-	int extent_x;
-	int extent_y;
-	int extent_z;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
 	if (mesh_index >= model->root_node_count) {
 		mesh_index = model->root_node_count - 1;
 	}
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
+	int extent_x;
 	if (descriptor != NULL) {
 		extent_x = (int)descriptor->span.x;
-		extent_y = (int)descriptor->span.y;
-		extent_z = (int)descriptor->span.z;
+		int extent_y = (int)descriptor->span.y;
+		int extent_z = (int)descriptor->span.z;
 		if (extent_y >= extent_x && extent_z <= extent_y) {
 			extent_x = extent_y;
 		} else if (extent_z >= extent_x && extent_z >= extent_y) {
@@ -1190,10 +1111,6 @@ int model_mesh_get_component_max_extent(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AEEC0
 int model_mesh_is_object_type_mesh_damageable(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -1201,13 +1118,14 @@ int model_mesh_is_object_type_mesh_damageable(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -1215,8 +1133,9 @@ int model_mesh_is_object_type_mesh_damageable(int object_type, int mesh_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
 	/* From here mesh_index holds the result, no longer a root node index: bit 1 (value 2) of the
 	 * descriptor's component flags, or 0 without a descriptor. */
 	if (descriptor != NULL) {
@@ -1237,10 +1156,6 @@ int model_mesh_is_object_type_mesh_damageable(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AEF60
 int model_mesh_has_explosion_type_bit0(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct mesh_descriptor *descriptor;
-
 	if (mesh_index < 0) {
 		return 0;
 	}
@@ -1248,13 +1163,14 @@ int model_mesh_has_explosion_type_bit0(int object_type, int mesh_index)
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -1262,8 +1178,9 @@ int model_mesh_has_explosion_type_bit0(int object_type, int mesh_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	descriptor = model_mesh_find_descriptor_node_recursive(
-		root_nodes[mesh_index], model);
+	struct mesh_descriptor *descriptor =
+		model_mesh_find_descriptor_node_recursive(
+			root_nodes[mesh_index], model);
 	/* From here mesh_index holds the result, no longer a root node index: bit 0 of the descriptor's
 	 * component flags, or 0 without a descriptor. */
 	if (descriptor != NULL) {
@@ -1282,22 +1199,18 @@ int model_mesh_has_explosion_type_bit0(int object_type, int mesh_index)
 // FUNCTION: XVT 0x4AF000
 float *model_mesh_get_rot_scale_data(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct opt_node *rot_scale_node;
-	float *result;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -1305,8 +1218,9 @@ float *model_mesh_get_rot_scale_data(int object_type, int mesh_index)
 		mesh_index = model->root_node_count - 1;
 	}
 
-	rot_scale_node = root_nodes[mesh_index];
+	struct opt_node *rot_scale_node = root_nodes[mesh_index];
 	rot_scale_node = model_mesh_find_first_rot_scale_node(rot_scale_node);
+	float *result;
 	if (rot_scale_node != 0) {
 		result = (float *)rot_scale_node->payload;
 	} else {
@@ -1328,15 +1242,11 @@ struct opt_node *model_mesh_find_nth_hardpoint_node_recursive(
 	struct opt_node *node, struct optimized_poly_object *model,
 	int hardpoint_index)
 {
-	struct opt_node *resolved_node;
-	struct opt_node *result;
-	int child_index;
-	int visited_child_count;
 #ifndef XVT_MODERN
 	char **reference_name;
 #endif
 
-	resolved_node = node;
+	struct opt_node *resolved_node = node;
 	if (resolved_node == NULL) {
 		return NULL;
 	}
@@ -1374,12 +1284,13 @@ struct opt_node *model_mesh_find_nth_hardpoint_node_recursive(
 		}
 		++g_opt_hardpoint_search_index;
 	}
-	child_index = 0;
-	visited_child_count = 0;
+	int child_index = 0;
+	int visited_child_count = 0;
 	while (resolved_node->child_count > visited_child_count) {
-		result = model_mesh_find_nth_hardpoint_node_recursive(
-			resolved_node->p_children[child_index], model,
-			hardpoint_index);
+		struct opt_node *result =
+			model_mesh_find_nth_hardpoint_node_recursive(
+				resolved_node->p_children[child_index], model,
+				hardpoint_index);
 		if (result != NULL) {
 			return result;
 		}
@@ -1410,16 +1321,12 @@ model_mesh_find_nth_hardpoint_node(struct opt_node *node,
 int model_mesh_count_hardpoint_nodes_recursive(
 	struct opt_node *node, struct optimized_poly_object *model)
 {
-	struct opt_node *resolved_node;
-	int count;
-	int child_index;
-	int visited_child_count;
 #ifndef XVT_MODERN
 	char **reference_name;
 #endif
 
-	count = 0;
-	resolved_node = node;
+	int count = 0;
+	struct opt_node *resolved_node = node;
 	if (resolved_node == NULL) {
 		return 0;
 	}
@@ -1454,9 +1361,9 @@ int model_mesh_count_hardpoint_nodes_recursive(
 	if (resolved_node->node_type == OPT_HARDPOINT) {
 		count = 1;
 	}
-	visited_child_count = 0;
+	int visited_child_count = 0;
 	if (resolved_node->child_count > 0) {
-		child_index = 0;
+		int child_index = 0;
 		do {
 			count += model_mesh_count_hardpoint_nodes_recursive(
 				resolved_node->p_children[child_index], model);
@@ -1472,26 +1379,23 @@ int model_mesh_count_hardpoint_nodes_recursive(
 // FUNCTION: XVT 0x4AF250
 int model_mesh_count_hardpoints(int object_type, int mesh_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	int hardpoint_count;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
 	if (mesh_index >= model->root_node_count) {
 		mesh_index = model->root_node_count - 1;
 	}
-	hardpoint_count = model_mesh_count_hardpoint_nodes_recursive(
+	int hardpoint_count = model_mesh_count_hardpoint_nodes_recursive(
 		root_nodes[mesh_index], model);
 	memory_handle_block_done_stub(g_loaded_models[object_type]);
 	return hardpoint_count;
@@ -1517,30 +1421,26 @@ int model_mesh_get_hardpoint_index(int object_type, int mesh_index,
 int model_mesh_get_hardpoint_x(int object_type, int mesh_index,
 			       int hardpoint_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct opt_node *root_node;
-	struct opt_node *hardpoint_node;
-	int result;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
 	if (mesh_index >= model->root_node_count) {
 		mesh_index = model->root_node_count - 1;
 	}
-	root_node = root_nodes[mesh_index];
-	hardpoint_node = model_mesh_find_nth_hardpoint_node(root_node, model,
-							    hardpoint_index);
+	struct opt_node *root_node = root_nodes[mesh_index];
+	struct opt_node *hardpoint_node = model_mesh_find_nth_hardpoint_node(
+		root_node, model, hardpoint_index);
+	int result;
 	if (hardpoint_node != NULL) {
 		result = (int)((struct opt_hardpoint *)hardpoint_node->payload)
 				 ->position.x;
@@ -1558,30 +1458,26 @@ int model_mesh_get_hardpoint_x(int object_type, int mesh_index,
 int model_mesh_get_hardpoint_y(int object_type, int mesh_index,
 			       int hardpoint_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct opt_node *root_node;
-	struct opt_node *hardpoint_node;
-	int result;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
 	if (mesh_index >= model->root_node_count) {
 		mesh_index = model->root_node_count - 1;
 	}
-	root_node = root_nodes[mesh_index];
-	hardpoint_node = model_mesh_find_nth_hardpoint_node(root_node, model,
-							    hardpoint_index);
+	struct opt_node *root_node = root_nodes[mesh_index];
+	struct opt_node *hardpoint_node = model_mesh_find_nth_hardpoint_node(
+		root_node, model, hardpoint_index);
+	int result;
 	if (hardpoint_node != NULL) {
 		result = (int)((struct opt_hardpoint *)hardpoint_node->payload)
 				 ->position.y;
@@ -1599,32 +1495,27 @@ int model_mesh_get_hardpoint_y(int object_type, int mesh_index,
 int model_mesh_get_hardpoint_z(int object_type, int mesh_index,
 			       int hardpoint_index)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct opt_node *root_node;
-	struct opt_node *hardpoint_node;
-	int root_node_count;
-	int result;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
-	root_node_count = model->root_node_count;
+	int root_node_count = model->root_node_count;
 	if (root_node_count <= mesh_index) {
 		mesh_index = root_node_count - 1;
 	}
-	root_node = root_nodes[mesh_index];
-	hardpoint_node = model_mesh_find_nth_hardpoint_node(root_node, model,
-							    hardpoint_index);
+	struct opt_node *root_node = root_nodes[mesh_index];
+	struct opt_node *hardpoint_node = model_mesh_find_nth_hardpoint_node(
+		root_node, model, hardpoint_index);
+	int result;
 	if (hardpoint_node != NULL) {
 		result = (int)((struct opt_hardpoint *)hardpoint_node->payload)
 				 ->position.z;
@@ -1644,23 +1535,18 @@ void model_mesh_get_hardpoint(int object_type, int mesh_index,
 			      int hardpoint_index, int *out_type, int *out_x,
 			      int *out_y, int *out_z)
 {
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct opt_node *hardpoint_node;
-	const struct opt_hardpoint *hardpoint;
-	const struct opt_vector *position;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	root_nodes = model->root_nodes;
+	struct opt_node **root_nodes = model->root_nodes;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		++mesh_index;
 	}
@@ -1668,7 +1554,7 @@ void model_mesh_get_hardpoint(int object_type, int mesh_index,
 			     ? mesh_index
 			     : model->root_node_count - 1;
 
-	hardpoint_node = model_mesh_find_nth_hardpoint_node(
+	struct opt_node *hardpoint_node = model_mesh_find_nth_hardpoint_node(
 		root_nodes[mesh_index], model, hardpoint_index);
 	if (hardpoint_node == NULL) {
 		*out_type = 0;
@@ -1676,9 +1562,9 @@ void model_mesh_get_hardpoint(int object_type, int mesh_index,
 		*out_y = 0;
 		*out_z = 0;
 	} else {
-		hardpoint =
+		const struct opt_hardpoint *hardpoint =
 			(const struct opt_hardpoint *)hardpoint_node->payload;
-		position = &hardpoint->position;
+		const struct opt_vector *position = &hardpoint->position;
 		*out_type = hardpoint->hardpoint_type;
 		*out_x = (int)position->x;
 		*out_y = -(int)position->y;
@@ -1694,28 +1580,24 @@ void model_mesh_get_hardpoint(int object_type, int mesh_index,
 // FUNCTION: XVT 0x4AF5B0
 int model_mesh_has_fuselage(int object_type)
 {
-	struct optimized_poly_object *model;
-	int root_index;
-
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	for (root_index = 0; root_index < model->root_node_count;
+	for (int root_index = 0; root_index < model->root_node_count;
 	     ++root_index) {
-		struct opt_node *root_node;
-		struct mesh_descriptor *descriptor;
-
-		root_node = model->root_nodes[root_index];
+		struct opt_node *root_node = model->root_nodes[root_index];
 		if (root_node != NULL && root_node->node_type != OPT_TEXTURE) {
-			descriptor = model_mesh_find_descriptor_node_recursive(
-				root_node, model);
+			struct mesh_descriptor *descriptor =
+				model_mesh_find_descriptor_node_recursive(
+					root_node, model);
 			if (descriptor != NULL &&
 			    descriptor->mesh_type ==
 				    MESH_COMPONENT_03_FUSELAGE) {
@@ -1739,41 +1621,33 @@ int model_mesh_has_fuselage(int object_type)
 int model_mesh_find_nearest_main_hull_by_bounds(int object_type, int local_x,
 						int local_y, int local_z)
 {
-	float point_x;
-	float point_y;
-	float point_z;
-	float nearest_distance;
-	float bounds_distance;
-	float axis_distance;
-	int nearest_mesh_index;
-	int root_node_index;
-	struct optimized_poly_object *model;
-	struct opt_node *root_node;
-	struct mesh_descriptor *descriptor;
-
-	point_x = (float)local_x;
-	point_y = (float)local_y;
-	nearest_distance = 2147483648.0f;
-	point_z = (float)local_z;
+	float point_x = (float)local_x;
+	float point_y = (float)local_y;
+	float nearest_distance = 2147483648.0f;
+	float point_z = (float)local_z;
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
-	for (root_node_index = 0; root_node_index < model->root_node_count;
+	float axis_distance;
+	int nearest_mesh_index;
+	for (int root_node_index = 0; root_node_index < model->root_node_count;
 	     ++root_node_index) {
-		root_node = model->root_nodes[root_node_index];
+		struct opt_node *root_node = model->root_nodes[root_node_index];
 		if (root_node->node_type == OPT_TEXTURE) {
 			continue;
 		}
 
-		descriptor = model_mesh_find_descriptor_node_recursive(
-			root_node, model);
+		struct mesh_descriptor *descriptor =
+			model_mesh_find_descriptor_node_recursive(root_node,
+								  model);
 		if (descriptor == NULL ||
 		    descriptor->mesh_type != MESH_COMPONENT_01_MAIN_HULL) {
 			continue;
@@ -1786,7 +1660,7 @@ int model_mesh_find_nearest_main_hull_by_bounds(int object_type, int local_x,
 		} else {
 			axis_distance = 0.0f;
 		}
-		bounds_distance = axis_distance;
+		float bounds_distance = axis_distance;
 
 		if (point_y > descriptor->box_max.y) {
 			axis_distance = point_y - descriptor->box_max.y;
@@ -1837,52 +1711,32 @@ int model_mesh_find_nearest_vertex_for_point(int object_type, int local_x,
 					     int local_y, int local_z,
 					     int mesh_index, int nearest_rank)
 {
-	float nearest_distance_sq;
-	float point_x;
-	float point_y;
-	float point_z;
-	float vertex_distance_sq[256];
-	int vertex_indices[256];
-	struct optimized_poly_object *model;
-	struct opt_node **root_nodes;
-	struct opt_node *vertices_node;
-	struct opt_vector *vertices;
-	int root_node_index;
-	int vertex_count;
-	int vertex_index;
-	int selected_count;
-	int candidate_index;
-	int nearest_index;
-	float delta_x;
-	float delta_y;
-	float delta_z;
-	float swap_distance;
-	int swap_index;
-
-	point_x = (float)local_x;
-	point_y = (float)local_y;
-	point_z = (float)local_z;
+	float point_x = (float)local_x;
+	float point_y = (float)local_y;
+	float point_z = (float)local_z;
 	if ((g_object_type_table[object_type].asset_flags & 1) == 0) {
 		return 0;
 	}
 
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[object_type]);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[object_type]);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
-	root_nodes = model->root_nodes;
-	root_node_index = mesh_index;
+	struct opt_node **root_nodes = model->root_nodes;
+	int root_node_index = mesh_index;
 	if (root_nodes[0]->node_type == OPT_TEXTURE) {
 		root_node_index++;
 	}
 	if (root_node_index >= model->root_node_count) {
 		root_node_index = model->root_node_count - 1;
 	}
-	vertices_node = model_mesh_find_first_mesh_verts_node(
+	struct opt_node *vertices_node = model_mesh_find_first_mesh_verts_node(
 		root_nodes[root_node_index]);
-	vertices = (struct opt_vector *)vertices_node->payload;
-	vertex_count = vertices_node->payload_count;
+	struct opt_vector *vertices =
+		(struct opt_vector *)vertices_node->payload;
+	int vertex_count = vertices_node->payload_count;
 	if (vertex_count > 2) {
 		vertex_count -= 2;
 	}
@@ -1893,22 +1747,25 @@ int model_mesh_find_nearest_vertex_for_point(int object_type, int local_x,
 		nearest_rank = vertex_count - 1;
 	}
 
-	for (vertex_index = 0; vertex_index < vertex_count; vertex_index++) {
-		delta_x = vertices[vertex_index].x - point_x;
-		delta_y = vertices[vertex_index].y - point_y;
-		delta_z = vertices[vertex_index].z - point_z;
+	float vertex_distance_sq[256];
+	int vertex_indices[256];
+	for (int vertex_index = 0; vertex_index < vertex_count;
+	     vertex_index++) {
+		float delta_x = vertices[vertex_index].x - point_x;
+		float delta_y = vertices[vertex_index].y - point_y;
+		float delta_z = vertices[vertex_index].z - point_z;
 		vertex_distance_sq[vertex_index] = delta_x * delta_x +
 						   delta_y * delta_y +
 						   delta_z * delta_z;
 		vertex_indices[vertex_index] = vertex_index;
 	}
 
-	selected_count = 0;
-	nearest_distance_sq = 4611686018427387904.0f;
+	int selected_count = 0;
+	float nearest_distance_sq = 4611686018427387904.0f;
 	if (nearest_rank + 1 > 0) {
-		nearest_index = vertex_indices[0];
+		int nearest_index = vertex_indices[0];
 		do {
-			for (candidate_index = selected_count;
+			for (int candidate_index = selected_count;
 			     candidate_index < vertex_count;
 			     candidate_index++) {
 				if (vertex_distance_sq[candidate_index] <
@@ -1918,9 +1775,10 @@ int model_mesh_find_nearest_vertex_for_point(int object_type, int local_x,
 						[candidate_index];
 				}
 			}
-			swap_distance = vertex_distance_sq[selected_count];
+			float swap_distance =
+				vertex_distance_sq[selected_count];
 			vertex_distance_sq[nearest_index] = swap_distance;
-			swap_index = vertex_indices[nearest_index];
+			int swap_index = vertex_indices[nearest_index];
 			vertex_distance_sq[selected_count] =
 				nearest_distance_sq;
 			vertex_indices[nearest_index] =
@@ -1941,20 +1799,17 @@ int model_mesh_find_nearest_vertex_for_point(int object_type, int local_x,
 int model_mesh_find_bridge_index(struct optimized_poly_object *model)
 {
 	int root_index;
-	int mesh_index;
 
-	mesh_index = 0;
+	int mesh_index = 0;
 	for (root_index = 0; root_index < model->root_node_count;
 	     ++root_index) {
-		struct opt_node *root_node;
-		struct mesh_descriptor *descriptor;
-
-		root_node = model->root_nodes[root_index];
+		struct opt_node *root_node = model->root_nodes[root_index];
 		if (root_node->node_type == OPT_TEXTURE) {
 			continue;
 		}
-		descriptor = model_mesh_find_descriptor_node_recursive(
-			root_node, model);
+		struct mesh_descriptor *descriptor =
+			model_mesh_find_descriptor_node_recursive(root_node,
+								  model);
 		if (descriptor != NULL &&
 		    descriptor->mesh_type == MESH_COMPONENT_07_BRIDGE) {
 			break;
@@ -1977,17 +1832,13 @@ int model_mesh_find_bridge_index(struct optimized_poly_object *model)
 struct model_mesh_object_type_cache *
 model_mesh_build_object_type_mesh_cache(void)
 {
-	struct model_mesh_object_type_cache *cache;
-	int object_type;
-
-	object_type = 0;
+	int object_type = 0;
 	do {
-		int mesh_index;
-		int mesh_count;
-
-		cache = &g_object_type_mesh_cache[object_type];
-		mesh_index = 0;
-		mesh_count = model_mesh_get_object_type_mesh_count(object_type);
+		struct model_mesh_object_type_cache *cache =
+			&g_object_type_mesh_cache[object_type];
+		int mesh_index = 0;
+		int mesh_count =
+			model_mesh_get_object_type_mesh_count(object_type);
 		cache->mesh_count = mesh_count;
 		while (mesh_index < mesh_count) {
 			cache->mesh_types[mesh_index] =

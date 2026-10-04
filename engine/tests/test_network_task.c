@@ -190,8 +190,8 @@ static void check_begin(void)
 
 static void check_resume_without_attempt(void)
 {
-	int result = 77;
 	fresh();
+	int result = 77;
 	XVT_ASSERT_INT_EQ(xvt_network_task_resume(&result), 0);
 	XVT_ASSERT_INT_EQ(result, 77);
 
@@ -205,9 +205,9 @@ static void check_resume_without_attempt(void)
 
 static void check_resume_during_attempt(void)
 {
-	int result = 77;
 	fresh();
 	xvt_network_task_begin(XVT_NETWORK_HOST);
+	int result = 77;
 	/* The session is ticked; it is still closing the previous session, so the attempt goes on. */
 	XVT_ASSERT_INT_EQ(xvt_network_task_resume(&result), 1);
 	XVT_ASSERT_INT_EQ(result, 0);
@@ -226,11 +226,11 @@ static void check_resume_during_attempt(void)
 
 static void check_resume_finishes_failed_attempt(void)
 {
-	int result = 77;
 	fresh();
 	xvt_network_task_begin(XVT_NETWORK_HOST);
 	/* The session fails during the attempt: the attempt ends and the failure dialog opens. */
 	xvt_network_session_host_lost();
+	int result = 77;
 	XVT_ASSERT_INT_EQ(xvt_network_task_resume(&result), 1);
 	XVT_ASSERT_INT_EQ(result, 0);
 	XVT_ASSERT_INT_EQ(xvt_network_task_is_active(), 0);

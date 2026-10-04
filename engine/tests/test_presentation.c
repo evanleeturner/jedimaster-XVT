@@ -66,11 +66,11 @@ static void check_sync_to_window(void)
 
 static void check_sync_tells_aeron(void)
 {
-	int width = 0;
-	int height = 0;
 	xvt_presentation_init();
 	XVT_ASSERT_INT_EQ(Aeron_SetLogicalSize(320, 200), 1);
 	xvt_presentation_sync_to_window(1920, 1080);
+	int width = 0;
+	int height = 0;
 	XVT_ASSERT_INT_EQ(Aeron_GetLogicalSize(&width, &height), 1);
 	XVT_ASSERT_INT_EQ(width, 852);
 	XVT_ASSERT_INT_EQ(height, 480);
@@ -113,10 +113,10 @@ static const AeronInputSnapshot *window(int width, int height, int raw_x,
 
 static void check_mouse_to_classic(void)
 {
-	int x = -1;
-	int y = -1;
 	xvt_presentation_init();
 
+	int x = -1;
+	int y = -1;
 	/* 1280x720: the 4:3 area is 960x720, starting 160 points in. Its center is the classic center. */
 	XVT_ASSERT_INT_EQ(xvt_presentation_mouse_to_classic(
 				  window(1280, 720, 160 + 480, 360, 1), &x, &y),
@@ -166,9 +166,9 @@ static void check_mouse_to_classic(void)
 
 static void check_mouse_to_classic_refusals(void)
 {
+	xvt_presentation_init();
 	int x = 77;
 	int y = 88;
-	xvt_presentation_init();
 	XVT_ASSERT_INT_EQ(xvt_presentation_mouse_to_classic(NULL, &x, &y), 0);
 	XVT_ASSERT_INT_EQ(xvt_presentation_mouse_to_classic(
 				  window(0, 720, 0, 0, 1), &x, &y),

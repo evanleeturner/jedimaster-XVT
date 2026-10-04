@@ -96,13 +96,6 @@ void debug_console_set_cursor_position(int column, int row)
 int debug_console_write_text(const char *text)
 {
 	uint8_t *text_buffer;
-	const char *text_cursor;
-	int source_length;
-	int remaining_length;
-	int char_index;
-	int zero;
-	xvt_file *stream;
-	uint8_t *text_cell;
 
 #ifdef XVT_MODERN
 	static uint8_t modern_text_buffer[80 * 25 * 2];
@@ -111,11 +104,8 @@ int debug_console_write_text(const char *text)
 	text_buffer = g_debug_console_text_buffer;
 #endif
 	if (g_debug_console_initialized == 0) {
-		int initialize_count;
-		uint8_t *initialize_cell;
-
-		initialize_cell = text_buffer;
-		initialize_count = 2000;
+		uint8_t *initialize_cell = text_buffer;
+		int initialize_count = 2000;
 		do {
 			*initialize_cell++ = ' ';
 			*initialize_cell++ = 7;
@@ -124,6 +114,8 @@ int debug_console_write_text(const char *text)
 		g_debug_console_initialized = 1;
 	}
 
+	const char *text_cursor;
+	xvt_file *stream;
 	if (g_debug_console_file_dump_enabled != 0) {
 #ifdef XVT_MODERN
 		stream = file_open("mpDump.txt", "a");
@@ -150,10 +142,10 @@ int debug_console_write_text(const char *text)
 		++g_debug_console_cursor_row;
 	}
 
-	zero = 0;
+	int zero = 0;
 	for (;;) {
-		remaining_length = strlen(text_cursor);
-		source_length = remaining_length;
+		int remaining_length = strlen(text_cursor);
+		int source_length = remaining_length;
 		if (g_debug_console_cursor_row >
 		    g_debug_console_scroll_bottom_row) {
 #ifdef XVT_MODERN
@@ -176,14 +168,11 @@ int debug_console_write_text(const char *text)
 					 g_debug_console_scroll_top_row)));
 #endif
 			{
-				int clear_count;
-				uint8_t *clear_cell;
-
-				clear_cell =
+				uint8_t *clear_cell =
 					&text_buffer
 						[160 *
 						 g_debug_console_scroll_bottom_row];
-				clear_count = 80;
+				int clear_count = 80;
 				do {
 					*clear_cell = ' ';
 					++clear_cell;
@@ -199,9 +188,10 @@ int debug_console_write_text(const char *text)
 			remaining_length = 80 - g_debug_console_cursor_column;
 		}
 
-		char_index = zero;
-		text_cell = &text_buffer[2 * (g_debug_console_cursor_column +
-					      80 * g_debug_console_cursor_row)];
+		int char_index = zero;
+		uint8_t *text_cell =
+			&text_buffer[2 * (g_debug_console_cursor_column +
+					  80 * g_debug_console_cursor_row)];
 		if (remaining_length > 0) {
 			for (;;) {
 				if (text_cursor[char_index] == '\n') {

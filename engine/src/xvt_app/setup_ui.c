@@ -122,8 +122,8 @@ xvt_setup_result xvt_setup_ui_run(struct xvt_app_ui *ui, char *path,
 	int valid = path && path[0] &&
 		    xvt_setup_resolve_installation(path, path, path_capacity,
 						   error, capacity);
-	xvt_setup_result outcome = XVT_SETUP_ERROR;
 	Aeron_SetHostCursorVisible(1);
+	xvt_setup_result outcome = XVT_SETUP_ERROR;
 	while (!Aeron_QuitRequested() && !Aeron_FatalErrorRequested()) {
 		const int32_t delta_us = Aeron_BeginFrame();
 		if (Aeron_QuitRequested() || Aeron_FatalErrorRequested()) {

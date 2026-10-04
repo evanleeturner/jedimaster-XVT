@@ -73,8 +73,6 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 			    int maximum_exclusive, int minimum, int page_step,
 			    unsigned int color, int control_id)
 {
-	struct RECT thumb;
-
 	struct {
 		/* The part of the bar being drawn or tested: the track, an
 		 * arrow button or the thumb during a drag. */
@@ -85,31 +83,23 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 		int gate_id;
 	} draw_state;
 
-	int cursor_y;
-	int width;
-	int height;
-	int travel;
-	int range;
-	int thumb_size;
-	int top;
-	int value;
-
 	frontend_register_scrollable_control(control_id);
+	int cursor_y;
 	frontend_cursor_get_pos(&draw_state.cursor_x, &cursor_y);
-	width = bar_rect->right - bar_rect->left;
-	height = bar_rect->bottom - bar_rect->top;
-	travel = height - 2 * width;
-	range = maximum_exclusive - minimum;
+	int width = bar_rect->right - bar_rect->left;
+	int height = bar_rect->bottom - bar_rect->top;
+	int travel = height - 2 * width;
+	int range = maximum_exclusive - minimum;
 #ifdef XVT_MODERN
 	if (range <= 0) {
 		return current_value;
 	}
 #endif
-	thumb_size = travel / range;
+	int thumb_size = travel / range;
 	if (thumb_size < 1) {
 		thumb_size = 1;
 	}
-	value = current_value;
+	int value = current_value;
 	if (height > width) {
 		if (keyboard_peek_char() == 9) {
 			keyboard_discard_char();
@@ -126,6 +116,7 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 			}
 			frontend_draw_rect_copy(&draw_state.part_rect,
 						bar_rect);
+			struct RECT thumb;
 			frontend_draw_rect_assign(
 				&thumb, draw_state.part_rect.left,
 				width + travel * current_value / range +
@@ -276,8 +267,6 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 					draw_state.gate_id);
 			}
 		} else {
-			int thumb_y;
-
 			g_scrollbar_repeat_countdown = 0;
 			g_scrollbar_repeat_interval = 0;
 			if (frontend_mouse_get_left_click_for(
@@ -303,7 +292,7 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 				bar_rect->bottom);
 			front_image_draw_sprite("slidedu", bar_rect->left,
 						bar_rect->bottom - width);
-			top = bar_rect->top;
+			int top = bar_rect->top;
 			value = (cursor_y - width - top) * range / travel;
 			if (value < minimum) {
 				value = minimum;
@@ -311,7 +300,7 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 			if (value >= maximum_exclusive) {
 				value = maximum_exclusive - 1;
 			}
-			thumb_y = cursor_y;
+			int thumb_y = cursor_y;
 			if (thumb_y < top + width) {
 				thumb_y = top + width;
 			} else if (thumb_y >=

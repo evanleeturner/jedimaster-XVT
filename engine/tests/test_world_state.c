@@ -182,10 +182,10 @@ static void check_checksum_image(void)
 	empty_world();
 	size_t written = xvt_snapshot_encode(g_image, g_capacity);
 	unsigned sums[16];
-	unsigned lengths[16];
 
 	/* A refused image leaves both arrays as they were. */
 	memset(sums, 0xAB, sizeof sums);
+	unsigned lengths[16];
 	memset(lengths, 0xAB, sizeof lengths);
 	XVT_ASSERT_INT_EQ(xvt_snapshot_checksum_image(g_image, written - 1,
 						      sums, lengths),
@@ -265,7 +265,6 @@ static void check_validate_refuses_bad_records(void)
 	XVT_ASSERT_TRUE(bad != NULL);
 	size_t mobj = k_slot0_object +
 		      offsetof(struct xvt_snapshot_object_record, mobj);
-	uint32_t link;
 
 	/* The type byte must equal the record's type. */
 	memcpy(bad, g_image, written);
@@ -274,7 +273,7 @@ static void check_validate_refuses_bad_records(void)
 
 	/* A pool link must land on a whole record... */
 	memcpy(bad, g_image, written);
-	link = 2;
+	uint32_t link = 2;
 	memcpy(bad + mobj, &link, sizeof link);
 	XVT_ASSERT_INT_EQ(xvt_snapshot_validate(bad, written), 0);
 
@@ -304,7 +303,6 @@ static void check_checksum_skips_links(void)
 {
 	rich_world();
 	size_t written = xvt_snapshot_encode(g_image, g_capacity);
-	unsigned sums[16];
 	unsigned lengths[16];
 	unsigned before[16];
 	XVT_ASSERT_INT_EQ(
@@ -317,6 +315,7 @@ static void check_checksum_skips_links(void)
 		       offsetof(struct xvt_snapshot_mobile_object,
 				cached_fwd_x),
 	       &fwd, sizeof fwd);
+	unsigned sums[16];
 	XVT_ASSERT_INT_EQ(
 		xvt_snapshot_checksum_image(g_image, written, sums, lengths),
 		1);

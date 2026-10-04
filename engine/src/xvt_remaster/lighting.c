@@ -245,7 +245,6 @@ int xvt_lighting_begin(AeronScene3D *scene, const struct xvt_render_snapshot *s)
 		float intensity = 0;
 		float color[3] = {1, 1, 1};
 		float minimum_range = 1024;
-		float position[3];
 		if (o->genus == CRAFT_GENUS_EXPLOSION) {
 			intensity = explosion_intensity(o);
 			/* OpenTIE's sRGB explosion color (0.9, 0.5, 0.2), converted to linear. */
@@ -257,6 +256,7 @@ int xvt_lighting_begin(AeronScene3D *scene, const struct xvt_render_snapshot *s)
 			   o->genus == CRAFT_GENUS_OTHER_PROJECTILE) {
 			intensity = projectile_light(o->object_type, color);
 		}
+		float position[3];
 		AeronWorld_LocalI32(s->camera.world_pos, o->world_pos,
 				    position);
 		xvt_lighting_add_point(scene, position, color, intensity,
@@ -272,12 +272,12 @@ void xvt_remaster_ship_set_environment(AeronScene3D *scene,
 {
 	const struct xvt_lighting_settings *settings =
 		&xvt_remaster_config_effective()->lighting;
-	struct pbr_light_fs env = {0};
 	const struct xvt_render_settings *config =
 		xvt_remaster_config_effective();
 	int width;
 	int height;
 	AeronScene_RenderDims(scene, &width, &height);
+	struct pbr_light_fs env = {0};
 	env.ssao_intensity = config->scene.ssao.ssao_quality
 				     ? config->scene.ssao.ssao_intensity
 				     : 0;

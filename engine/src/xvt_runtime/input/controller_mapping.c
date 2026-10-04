@@ -123,10 +123,10 @@ xvt_controller_mapping_resolve(const struct xvt_controller_model *model,
 			       const AeronInputSnapshot *input,
 			       uint32_t preferred)
 {
-	const AeronControllerSnapshot *best = NULL;
 	if (!input) {
 		return NULL;
 	}
+	const AeronControllerSnapshot *best = NULL;
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
 		const AeronControllerSnapshot *d = &input->controllers[i];
 		if (!d->connected || strcmp(model->guid, d->guid) ||
@@ -173,7 +173,6 @@ xvt_controller_mapping_install(const struct xvt_controller_options *options)
 	if (xvt_controller_options_equals(options, &g_controller.options)) {
 		return;
 	}
-	uint32_t analog[XVT_CONTROLLER_MODEL_CAP] = {0};
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
 		struct controller_instance *state = &g_controller.instances[i];
 		if (!state->id) {
@@ -189,6 +188,7 @@ xvt_controller_mapping_install(const struct xvt_controller_options *options)
 			release_instance(state);
 		}
 	}
+	uint32_t analog[XVT_CONTROLLER_MODEL_CAP] = {0};
 	for (size_t i = 0; i < options->count; ++i) {
 		int old = xvt_controller_options_find_model(
 			&g_controller.options, options->models[i].guid);

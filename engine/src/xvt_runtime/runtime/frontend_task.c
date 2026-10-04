@@ -115,9 +115,6 @@ void xvt_frontend_task_service_frame_systems(void)
 
 int xvt_frontend_task_run_frame(void)
 {
-	frontend_screen_exit_fn exit_fn;
-	frontend_screen_update_fn update_fn;
-	int result;
 	int stack_top = g_front_state.screen_stack_top;
 	int dialog_was_active = xvt_dialog_is_active();
 	g_continuation_frame = 0;
@@ -126,7 +123,8 @@ int xvt_frontend_task_run_frame(void)
 		memset(&g_front_state.text_fade_color_cache, 0,
 		       sizeof(g_front_state.text_fade_color_cache));
 	}
-	update_fn = g_front_state.screen_states[stack_top].update_fn;
+	frontend_screen_update_fn update_fn =
+		g_front_state.screen_states[stack_top].update_fn;
 	if (!update_fn) {
 		return 0;
 	}
@@ -137,7 +135,9 @@ int xvt_frontend_task_run_frame(void)
 		xvt_storage_fatal("Cannot lock frontend display", 1);
 		return 2;
 	}
-	exit_fn = g_front_state.screen_states[stack_top].exit_fn;
+	frontend_screen_exit_fn exit_fn =
+		g_front_state.screen_states[stack_top].exit_fn;
+	int result;
 	g_continuation_frame = xvt_network_task_resume(&result);
 	if (!g_continuation_frame) {
 		g_continuation_frame = xvt_dialog_resume_continuation(&result);
@@ -192,7 +192,6 @@ int xvt_frontend_task_run_frame(void)
 void xvt_frontend_task_update(void)
 {
 	uint64_t now = xvt_time_get_elapsed_us();
-	int result;
 	if (g_quit || now < g_next_frame_due_us) {
 		return;
 	}
@@ -217,6 +216,7 @@ void xvt_frontend_task_update(void)
 		!xvt_dialog_is_active() &&
 		g_front_state.screen_states[g_front_state.screen_stack_top]
 				.update_fn == credits_update_screen;
+	int result;
 	if (xvt_dialog_is_active()) {
 		xvt_dialog_update();
 		result = 0;
@@ -252,7 +252,6 @@ uint64_t xvt_frontend_task_next_wake_delay_us(void)
 
 void xvt_frontend_task_shutdown(void)
 {
-	int index;
 	if (!g_initialized) {
 		return;
 	}
@@ -284,6 +283,7 @@ void xvt_frontend_task_shutdown(void)
 	free(g_tech_library_spec_text_table);
 	g_tech_library_spec_text_table = NULL;
 	model_preview_free_resources();
+	int index;
 	for (index = 0; index < 32768; ++index) {
 		if (g_handle_tables.ptr_table[index]) {
 			memory_free_handle((unsigned int)index + 1);

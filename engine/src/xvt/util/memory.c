@@ -76,12 +76,9 @@ uint16_t memory_alloc_handle(size_t size, int legacy_tag)
 uint16_t memory_alloc_handle_internal(size_t size, int legacy_tag,
 				      int clear_flag)
 {
-	uint16_t table_index;
-	unsigned int slot_index;
-	void *block;
-
 	(void)legacy_tag;
 	++g_handle_allocation_attempt_count;
+	uint16_t table_index;
 	if (g_handle_allocator_initialized == 0) {
 		for (table_index = 0; table_index < 32768u; ++table_index) {
 			g_handle_tables.ptr_table[table_index] = NULL;
@@ -99,8 +96,8 @@ uint16_t memory_alloc_handle_internal(size_t size, int legacy_tag,
 		return 0;
 	}
 
-	slot_index = table_index;
-	block = malloc(size);
+	unsigned int slot_index = table_index;
+	void *block = malloc(size);
 	g_handle_tables.ptr_table[slot_index] = block;
 	if (block == NULL) {
 		return 0;

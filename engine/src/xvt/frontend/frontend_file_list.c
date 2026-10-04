@@ -54,25 +54,25 @@ struct frontend_file_list *frontend_file_list_build_sorted(const char *wildcard)
 #ifdef XVT_MODERN
 	return frontend_file_list_build_sorted_modern(wildcard);
 #else
-	char current_directory[256];
-	struct frontend_file_list *list;
-	struct frontend_file_list_node *node;
-	frontend_find_handle find_handle;
 	extern struct frontend_find_data find_file_data;
 
+	char current_directory[256];
 	_getcwd(current_directory, sizeof(current_directory));
+	struct frontend_file_list *list;
 	list = (struct frontend_file_list *)malloc(sizeof(*list));
 	if (list == NULL) {
 		_chdir(current_directory);
 		return NULL;
 	}
-	find_handle = FindFirstFileA(wildcard, &find_file_data);
+	frontend_find_handle find_handle =
+		FindFirstFileA(wildcard, &find_file_data);
 	if (find_handle == -1) {
 		_chdir(current_directory);
 		list->head = NULL;
 		list->count = 0;
 		return list;
 	}
+	struct frontend_file_list_node *node;
 	node = (struct frontend_file_list_node *)malloc(sizeof(*node));
 	if (node == NULL) {
 		_chdir(current_directory);
@@ -118,13 +118,10 @@ struct frontend_file_list *frontend_file_list_build_sorted(const char *wildcard)
 // FUNCTION: XVT 0x4DFC30
 void frontend_file_list_free(struct frontend_file_list *list)
 {
-	struct frontend_file_list_node *node;
-	struct frontend_file_list_node *next;
-
 	if (list != NULL) {
-		node = list->head;
+		struct frontend_file_list_node *node = list->head;
 		while (node != NULL) {
-			next = node->next;
+			struct frontend_file_list_node *next = node->next;
 			free(node->path);
 			free(node);
 			node = next;
@@ -142,9 +139,7 @@ void frontend_file_list_free(struct frontend_file_list *list)
 void frontend_file_list_insert_node_sorted(struct frontend_file_list *list,
 					   struct frontend_file_list_node *node)
 {
-	struct frontend_file_list_node *cursor;
-
-	cursor = list->head;
+	struct frontend_file_list_node *cursor = list->head;
 	if (strcmp(node->path, cursor->path) < 0) {
 		node->next = cursor;
 		list->head = node;

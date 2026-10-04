@@ -165,7 +165,6 @@ int xvt_remaster_flight_render(AeronCommandBuffer *cmd,
 		AeronSceneMeshTable *table = &g_tables[i * 3];
 		AeronSceneMeshTable *previous_table = &g_tables[i * 3 + 1];
 		float visual[XVT_SNAP_COMPONENTS];
-		float prior_visual[XVT_SNAP_COMPONENTS];
 		xvt_remaster_ship_build_mesh_table(
 			asset, object, selection.component,
 			xvt_component_animation_angles(s, object, asset,
@@ -208,6 +207,7 @@ int xvt_remaster_flight_render(AeronCommandBuffer *cmd,
 				    memcmp(old->component_state,
 					   object->component_state,
 					   sizeof object->component_state)) {
+					float prior_visual[XVT_SNAP_COMPONENTS];
 					xvt_remaster_ship_build_mesh_table(
 						asset, old,
 						old_selection.component,

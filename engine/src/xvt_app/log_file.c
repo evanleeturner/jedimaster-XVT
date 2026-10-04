@@ -43,10 +43,10 @@ int xvt_log_file_format_name(char *out, size_t capacity, int year, int month,
 
 int xvt_log_file_is_run_name(const char *name)
 {
-	size_t i;
 	if (!name) {
 		return 0;
 	}
+	size_t i;
 	for (i = 0; g_run_name_pattern[i]; ++i) {
 		char c = name[i];
 		char want = g_run_name_pattern[i];
@@ -73,10 +73,10 @@ static int xvt_log_file_compare_names(const void *a, const void *b)
 size_t xvt_log_file_select_expired(const char **names, size_t count,
 				   size_t keep)
 {
-	size_t runs = 0;
 	if (keep == 0) {
 		keep = 1;
 	}
+	size_t runs = 0;
 	for (size_t i = 0; i < count; ++i) {
 		if (xvt_log_file_is_run_name(names[i])) {
 			const char *name = names[i];
@@ -112,10 +112,10 @@ static int xvt_log_file_has_stamp(const char *line, size_t length)
 /* Returns 1 when the length bytes at line are a run's first header line, "= <program> run <id> fmt ...". */
 static int xvt_log_file_is_run_header(const char *line, size_t length)
 {
-	size_t i = 2;
 	if (length < 2 || line[0] != '=' || line[1] != ' ') {
 		return 0;
 	}
+	size_t i = 2;
 	while (i < length && line[i] != ' ') {
 		++i;
 	}
@@ -136,11 +136,7 @@ xvt_log_file_ending xvt_log_file_read_ending(const char *tail, size_t length,
 					     char *last_event, size_t capacity)
 {
 	const char *newest_run = tail;
-	const char *last = NULL;
-	size_t last_length = 0;
 	int header = 0;
-	int stopped = 0;
-	int crashed = 0;
 	/* The newest run starts after the last header line in the text. */
 	for (const char *line = tail; line < tail + length;) {
 		const char *end =
@@ -156,6 +152,10 @@ xvt_log_file_ending xvt_log_file_read_ending(const char *tail, size_t length,
 		}
 		line = end + 1;
 	}
+	const char *last = NULL;
+	size_t last_length = 0;
+	int stopped = 0;
+	int crashed = 0;
 	for (const char *line = newest_run; line < tail + length;) {
 		const char *end =
 			memchr(line, '\n', (size_t)(tail + length - line));

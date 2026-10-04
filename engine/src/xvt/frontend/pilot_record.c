@@ -693,30 +693,24 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 int pilot_record_draw_pilot_list(const struct RECT *bounds,
 				 int first_visible_index)
 {
-	struct RECT rect;
-	struct RECT previous_clip_rect;
-	int mouse_x;
-	int mouse_y;
-	int selected_index;
-	int first_index;
-	int pilot_index;
-	int display_name_index;
-	int count;
-
 	if (g_pilot_file_list == NULL) {
 		return 0;
 	}
 
+	struct RECT rect;
 	frontend_draw_rect_copy(&rect, bounds);
+	int mouse_x;
+	int mouse_y;
 	frontend_cursor_get_pos(&mouse_x, &mouse_y);
 	rect.bottom = rect.top + 14;
-	count = g_pilot_file_list->count;
-	selected_index = 0;
+	int count = g_pilot_file_list->count;
+	int selected_index = 0;
+	struct RECT previous_clip_rect;
 	if (g_pilot_list_display_names != NULL) {
-		first_index = first_visible_index;
-		pilot_index = first_index;
+		int first_index = first_visible_index;
+		int pilot_index = first_index;
 		if (pilot_index < first_index + 13) {
-			display_name_index = first_index;
+			int display_name_index = first_index;
 			do {
 				if (pilot_index >= count) {
 					break;
@@ -792,10 +786,6 @@ int pilot_record_draw_pilot_list(const struct RECT *bounds,
 // FUNCTION: XVT 0x4BF100
 int pilot_record_rebuild_pilot_list(int *selected_index)
 {
-	struct frontend_file_list_node *node;
-	int display_offset;
-	int pilot_index;
-
 	if (g_pilot_list_display_names != NULL) {
 		free(g_pilot_list_display_names);
 		g_pilot_list_display_names = NULL;
@@ -811,7 +801,7 @@ int pilot_record_rebuild_pilot_list(int *selected_index)
 		return 0;
 	}
 
-	node = g_pilot_file_list->head;
+	struct frontend_file_list_node *node = g_pilot_file_list->head;
 	if (g_pilot_file_list->count > 0) {
 		g_pilot_list_display_names = (char (*)[14])malloc(
 			sizeof(*g_pilot_list_display_names) *
@@ -828,9 +818,9 @@ int pilot_record_rebuild_pilot_list(int *selected_index)
 		g_pilot_list_display_names = NULL;
 	}
 	if (g_pilot_list_display_names != NULL) {
-		pilot_index = 0;
+		int pilot_index = 0;
 		if (node != NULL) {
-			display_offset = 0;
+			int display_offset = 0;
 			do {
 				xvt_file *stream = file_open(node->path, "rb");
 
@@ -905,18 +895,6 @@ int pilot_record_draw_pilot_statistics_page(void)
 	};
 
 	struct RECT rect;
-	int mission_type;
-	int craft_type;
-	int rating;
-	int row;
-	int y;
-	int value;
-	int shared_value;
-	int exercise_mission_count;
-	int melee_mission_count;
-	int combat_mission_count;
-	float shared_average;
-	unsigned int shots_fired;
 
 	frontend_draw_rect_assign(&rect, 84, 90, 434, 106);
 	if (g_pilot_data.name[0] == '\0') {
@@ -933,6 +911,9 @@ int pilot_record_draw_pilot_statistics_page(void)
 		return 0;
 	}
 
+	int mission_type;
+	int craft_type;
+	int rating;
 	if (g_pilot_record_pages_need_rebuild != 0) {
 		g_pilot_statistics_scroll_offset = 0;
 		g_pilot_record_pages_need_rebuild = 0;
@@ -1172,8 +1153,8 @@ int pilot_record_draw_pilot_statistics_page(void)
 			g_pilot_record_page_row_count, 0, SCROLLBAR_PAGE_STEP,
 			g_color_navy, SCROLLBAR_CONTROL_ID);
 	}
-	row = 0;
-	y = FIRST_ROW_Y;
+	int row = 0;
+	int y = FIRST_ROW_Y;
 
 	if (row >= g_pilot_statistics_scroll_offset &&
 	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
@@ -1401,6 +1382,7 @@ int pilot_record_draw_pilot_statistics_page(void)
 	}
 	++row;
 
+	int value;
 	if (row >= g_pilot_statistics_scroll_offset &&
 	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
 		frontend_text_draw(
@@ -1444,6 +1426,7 @@ int pilot_record_draw_pilot_statistics_page(void)
 	}
 	++row;
 
+	unsigned int shots_fired;
 	if (row >= g_pilot_statistics_scroll_offset &&
 	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
 		frontend_text_draw(
@@ -1779,7 +1762,7 @@ int pilot_record_draw_pilot_statistics_page(void)
 						frontend_string_id)(craft_type +
 								    CRAFT_NAME_STRING_BASE)),
 					TEXT_X, y, g_color_red);
-				shared_value =
+				int shared_value =
 					g_pilot_data
 						.faction_statistics
 							[g_pilot_data
@@ -1883,7 +1866,7 @@ int pilot_record_draw_pilot_statistics_page(void)
 		y += ROW_HEIGHT;
 	}
 	++row;
-	exercise_mission_count =
+	int exercise_mission_count =
 		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
 			.stats.standalone_missions_played_per_mt[0] +
 		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
@@ -1891,7 +1874,7 @@ int pilot_record_draw_pilot_statistics_page(void)
 	if (exercise_mission_count == 0) {
 		exercise_mission_count = 1;
 	}
-	melee_mission_count =
+	int melee_mission_count =
 		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
 			.stats.standalone_missions_played_per_mt[1] +
 		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
@@ -1899,7 +1882,7 @@ int pilot_record_draw_pilot_statistics_page(void)
 	if (melee_mission_count == 0) {
 		melee_mission_count = 1;
 	}
-	combat_mission_count =
+	int combat_mission_count =
 		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
 			.stats.standalone_missions_played_per_mt[2] +
 		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
@@ -1908,6 +1891,7 @@ int pilot_record_draw_pilot_statistics_page(void)
 		combat_mission_count = 1;
 	}
 
+	float shared_average;
 	if (row >= g_pilot_statistics_scroll_offset &&
 	    row - g_pilot_statistics_scroll_offset < VISIBLE_ROW_COUNT) {
 		frontend_text_draw(
@@ -2503,15 +2487,6 @@ int pilot_record_draw_pilot_statistics_page(void)
 int pilot_record_draw_mission_achievements_page(void)
 {
 	struct RECT rect;
-	struct RECT previous_clip_rect;
-	const char *award_sprite_format;
-	int list_index;
-	int child_list_index;
-	int award_id;
-	int row;
-	int y;
-	int has_previous;
-	int draw_flags;
 
 	frontend_draw_rect_assign(&rect, MISSION_ACHIEVEMENT_TITLE_LEFT,
 				  MISSION_ACHIEVEMENT_TITLE_TOP,
@@ -2534,6 +2509,10 @@ int pilot_record_draw_mission_achievements_page(void)
 		return 0;
 	}
 
+	int list_index;
+	int award_id;
+	int row;
+	int has_previous;
 	if (g_pilot_record_pages_need_rebuild != 0) {
 		if (g_pilot_record_singleplayer_training_mission_list != NULL) {
 			free(g_pilot_record_singleplayer_training_mission_list);
@@ -3145,8 +3124,10 @@ int pilot_record_draw_mission_achievements_page(void)
 	}
 
 	row = 0;
-	y = MISSION_ACHIEVEMENT_FIRST_Y;
+	int y = MISSION_ACHIEVEMENT_FIRST_Y;
 	has_previous = 0;
+	struct RECT previous_clip_rect;
+	int draw_flags;
 	if (g_pilot_sp_training_history_count != 0) {
 		if (has_previous != 0) {
 			if (g_pilot_achievements_scroll_offset <= row &&
@@ -3865,6 +3846,7 @@ int pilot_record_draw_mission_achievements_page(void)
 			}
 		}
 	}
+	int child_list_index;
 	if (g_pilot_sp_campaign_history_row_count != 0) {
 		if (has_previous != 0) {
 			if (g_pilot_achievements_scroll_offset <= row &&
@@ -5018,6 +5000,7 @@ int pilot_record_draw_mission_achievements_page(void)
 	row = 0;
 	y = MISSION_ACHIEVEMENT_FIRST_Y;
 	has_previous = 0;
+	const char *award_sprite_format;
 	if (g_pilot_sp_training_history_count != 0) {
 		if (has_previous != 0) {
 			if (g_pilot_achievements_scroll_offset <= row &&
@@ -6051,22 +6034,11 @@ int pilot_record_draw_mission_achievements_page(void)
 // FUNCTION: XVT 0x4C7CC0
 int pilot_record_draw_cutscene_viewer_page(void)
 {
-	struct RECT rect;
-	struct RECT text_rect;
-	struct RECT previous_clip_rect;
-	struct mission_list_entry *campaign_entry;
-	int campaign_index;
-	unsigned int cutscene_index;
-	unsigned int search_index;
 	int mouse_x;
 	int mouse_y;
-	int has_campaign_cutscene;
-	int selected_cutscene;
-	int y;
-	int thumbnail_x;
-	int thumbnail_height;
 
 	frontend_cursor_get_pos(&mouse_x, &mouse_y);
+	struct RECT text_rect;
 	frontend_draw_rect_assign(&text_rect, 84, 90, 404, 106);
 	if (g_pilot_data.name[0] == '\0') {
 		sprintf(g_frontend_scratch_buffer, "%s",
@@ -6085,6 +6057,10 @@ int pilot_record_draw_cutscene_viewer_page(void)
 		return 0;
 	}
 
+	struct RECT rect;
+	int campaign_index;
+	unsigned int cutscene_index;
+	int has_campaign_cutscene;
 	if (g_pilot_record_pages_need_rebuild != 0) {
 		if (g_pilot_record_singleplayer_campaign_mission_list != NULL) {
 			free(g_pilot_record_singleplayer_campaign_mission_list);
@@ -6101,7 +6077,7 @@ int pilot_record_draw_cutscene_viewer_page(void)
 		     campaign_index <
 		     g_pilot_record_singleplayer_campaign_mission_count;
 		     ++campaign_index) {
-			search_index =
+			unsigned int search_index =
 				(unsigned int)strlen(
 					g_pilot_record_singleplayer_campaign_mission_list
 						[campaign_index]
@@ -6109,7 +6085,7 @@ int pilot_record_draw_cutscene_viewer_page(void)
 				1;
 			search_index -= 2;
 			if (search_index != 0) {
-				campaign_entry =
+				struct mission_list_entry *campaign_entry =
 					&g_pilot_record_singleplayer_campaign_mission_list
 						[campaign_index];
 				do {
@@ -6233,11 +6209,12 @@ int pilot_record_draw_cutscene_viewer_page(void)
 			g_cutscene_viewer_total_rows, 0, 5,
 			(unsigned int)g_color_navy, 11);
 	}
+	struct RECT previous_clip_rect;
 	frontend_display_get_screen_clip_rect(&previous_clip_rect);
 	frontend_draw_rect_assign(&text_rect, 88, 111, 424, 433);
 	frontend_display_set_screen_clip_rect640x480(&text_rect);
-	selected_cutscene = 0;
-	y = 111 - CUTSCENE_VIEWER_ROW_HEIGHT * g_cutscene_viewer_scroll_row;
+	int selected_cutscene = 0;
+	int y = 111 - CUTSCENE_VIEWER_ROW_HEIGHT * g_cutscene_viewer_scroll_row;
 	frontend_draw_rect_assign(&text_rect, 88, y, 424,
 				  y + CUTSCENE_VIEWER_ROW_HEIGHT - 1);
 	for (campaign_index = 0;
@@ -6335,11 +6312,11 @@ int pilot_record_draw_cutscene_viewer_page(void)
 				g_cutscene_table[cutscene_index]
 					.thumbnail_sprite,
 				&rect);
-			thumbnail_x =
+			int thumbnail_x =
 				256 -
 				((unsigned int)(rect.right - rect.left + 1) >>
 				 1);
-			thumbnail_height =
+			int thumbnail_height =
 				CUTSCENE_VIEWER_ROW_HEIGHT *
 				((unsigned int)(rect.bottom - rect.top +
 						CUTSCENE_VIEWER_ROW_HEIGHT +
@@ -6419,19 +6396,6 @@ int pilot_record_draw_cutscene_viewer_page(void)
 int pilot_record_draw_campaign_medals_page(void)
 {
 	struct RECT rect;
-	struct RECT award_rect;
-	struct mission_list_entry *campaign_entry;
-	int *campaign_id;
-	unsigned int campaign_index;
-	unsigned int training_mission_index;
-	unsigned int search_index;
-	unsigned int award_sprite_index;
-	unsigned int award_index;
-	unsigned int remaining_campaign_count;
-	int campaign_mission_id;
-	int eligible_campaign_index;
-	int award_x;
-	int award_y;
 
 	frontend_draw_rect_assign(&rect, 84, 90, 404, 106);
 	if (g_pilot_data.name[0] == '\0') {
@@ -6451,6 +6415,12 @@ int pilot_record_draw_campaign_medals_page(void)
 		return 0;
 	}
 
+	int *campaign_id;
+	unsigned int campaign_index;
+	unsigned int training_mission_index;
+	unsigned int award_sprite_index;
+	unsigned int award_index;
+	int campaign_mission_id;
 	if (g_pilot_record_pages_need_rebuild != 0) {
 		if (g_pilot_record_singleplayer_campaign_mission_list != NULL) {
 			free(g_pilot_record_singleplayer_campaign_mission_list);
@@ -6499,7 +6469,7 @@ int pilot_record_draw_campaign_medals_page(void)
 		if (campaign_index <
 		    g_pilot_record_singleplayer_campaign_mission_count) {
 			do {
-				search_index =
+				unsigned int search_index =
 					(unsigned int)strlen(
 						g_pilot_record_singleplayer_campaign_mission_list
 							[campaign_index]
@@ -6507,7 +6477,7 @@ int pilot_record_draw_campaign_medals_page(void)
 					1;
 				search_index -= 2;
 				if (search_index != 0) {
-					campaign_entry =
+					struct mission_list_entry *campaign_entry =
 						&g_pilot_record_singleplayer_campaign_mission_list
 							[campaign_index];
 					do {
@@ -6530,7 +6500,7 @@ int pilot_record_draw_campaign_medals_page(void)
 
 		g_campaign_medal_scroll_offset = 0;
 		g_campaign_medal_entry_count = 0;
-		remaining_campaign_count =
+		unsigned int remaining_campaign_count =
 			g_pilot_record_singleplayer_campaign_mission_count;
 		campaign_index = 0;
 		if (remaining_campaign_count) {
@@ -6688,8 +6658,9 @@ int pilot_record_draw_campaign_medals_page(void)
 			(unsigned int)g_color_navy, 12);
 	}
 
-	eligible_campaign_index = 0;
+	int eligible_campaign_index = 0;
 	campaign_index = 0;
+	struct RECT award_rect;
 	if (g_pilot_record_singleplayer_campaign_mission_count != 0) {
 		do {
 			campaign_id =
@@ -6733,12 +6704,13 @@ int pilot_record_draw_campaign_medals_page(void)
 								[award_sprite_index]
 									.main_award_sprite_name,
 							&award_rect);
-						award_x = 256 -
-							  ((award_rect.right -
-							    award_rect.left +
-							    1) >>
-							   1);
-						award_y =
+						int award_x =
+							256 -
+							((award_rect.right -
+							  award_rect.left +
+							  1) >>
+							 1);
+						int award_y =
 							279 -
 							((award_rect.bottom -
 							  award_rect.top + 1) >>
@@ -6805,9 +6777,6 @@ int pilot_record_draw_campaign_medals_page(void)
 int pilot_record_draw_pilot_awards_page(void)
 {
 	struct RECT rect;
-	int y;
-	int award_index;
-	int faction_id;
 
 	frontend_draw_rect_assign(&rect, 84, 90, 404, 106);
 	if (g_pilot_data.name[0] == '\0') {
@@ -6827,8 +6796,9 @@ int pilot_record_draw_pilot_awards_page(void)
 	frontend_text_draw_centered(
 		12, frontend_string_get(FRONTSTR_379_TOURNAMENT_TROPHY), &rect,
 		0xFFFF);
-	y = 133;
+	int y = 133;
 	frontend_draw_rect_assign(&rect, 353, 133, 387, 146);
+	int award_index;
 	for (award_index = 0; award_index < 6; ++award_index) {
 		if (g_pilot_data
 			    .faction_statistics[g_pilot_data.current_faction_id]
@@ -6883,6 +6853,7 @@ int pilot_record_draw_pilot_awards_page(void)
 		0xFFFF);
 	y = 284;
 	frontend_draw_rect_assign(&rect, 353, 284, 387, 297);
+	int faction_id;
 	for (award_index = 0; award_index < 6; ++award_index) {
 		if (g_pilot_data
 			    .faction_statistics[g_pilot_data.current_faction_id]
@@ -7005,12 +6976,11 @@ int pilot_record_draw_pilot_awards_page(void)
 // FUNCTION: XVT 0x4C90C0
 int pilot_record_draw_pilot_rating_page(void)
 {
-	struct RECT rect;
-	int rating_index;
 	int mouse_x;
 	int mouse_y;
 
 	frontend_cursor_get_pos(&mouse_x, &mouse_y);
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 84, 90, 404, 106);
 	if (g_pilot_data.name[0] == '\0') {
 		sprintf(g_frontend_scratch_buffer, "%s",
@@ -7110,7 +7080,7 @@ int pilot_record_draw_pilot_rating_page(void)
 				0xFFFF);
 		}
 	}
-	for (rating_index = PILOT_RATING_TRAINEE;
+	for (int rating_index = PILOT_RATING_TRAINEE;
 	     (unsigned)rating_index <= (unsigned)g_pilot_data.rating;
 	     ++rating_index) {
 		struct POINT *icon = &g_pilot_rating_icon_pos[rating_index];
@@ -7149,7 +7119,6 @@ int pilot_record_draw_pilot_rating_page(void)
 // FUNCTION: XVT 0x4C9660
 int pilot_record_update_navigation_controls(void)
 {
-	struct RECT rect;
 	frontend_navigation_slot_state slot_states[8] = {
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
@@ -7171,6 +7140,7 @@ int pilot_record_update_navigation_controls(void)
 		FRONTEND_NAVIGATION_SLOT_SELECTED;
 	frontend_button_draw_eight_slot_navigation_state(slot_states);
 
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 22, 334, 42, 358);
 	if (g_pilot_data.current_faction_id == 1) {
 		frontend_button_draw_sprite_and_tooltip(
@@ -7392,10 +7362,6 @@ int pilot_record_redraw_background(void)
 // FUNCTION: XVT 0x4CC060
 int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 {
-	xvt_file *stream;
-	char *line;
-	unsigned int record_count_or_index;
-	unsigned int sprite_name_byte_offset;
 #ifdef XVT_MODERN
 	unsigned int record_capacity;
 #endif
@@ -7404,7 +7370,7 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 		free(g_campaign_award_sprites);
 		g_campaign_award_sprites = NULL;
 	}
-	stream = file_open(file_name, "r");
+	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return 0;
 	}
@@ -7412,7 +7378,8 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 		file_close(stream);
 		return 0;
 	}
-	record_count_or_index = (unsigned int)atoi(g_frontend_scratch_buffer);
+	unsigned int record_count_or_index =
+		(unsigned int)atoi(g_frontend_scratch_buffer);
 #ifdef XVT_MODERN
 	record_capacity = record_count_or_index;
 #endif
@@ -7428,6 +7395,8 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 	       sizeof(*g_campaign_award_sprites) * record_count_or_index);
 	g_campaign_award_sprite_count = 0;
 
+	char *line;
+	unsigned int sprite_name_byte_offset;
 #ifdef XVT_MODERN
 	while (g_campaign_award_sprite_count < record_capacity) {
 #else

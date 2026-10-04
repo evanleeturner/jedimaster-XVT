@@ -175,8 +175,6 @@ static void check_note(const char *path, const char *first, int in_crash)
 {
 	char *text = read_all(path);
 	char *line = text;
-	int frames = 0;
-	int ours = 0;
 	char *end = strchr(line, '\n');
 	XVT_ASSERT_TRUE(end != NULL);
 	*end = 0;
@@ -185,11 +183,13 @@ static void check_note(const char *path, const char *first, int in_crash)
 			line, first);
 		XVT_ASSERT_TRUE(0);
 	}
+	int frames = 0;
+	int ours = 0;
 	for (line = end + 1; *line; line = end + 1) {
-		char want[64];
 		end = strchr(line, '\n');
 		XVT_ASSERT_TRUE(end != NULL);
 		*end = 0;
+		char want[64];
 		snprintf(want, sizeof want, "C app.crash_frame n=%d module=\"",
 			 frames);
 		XVT_ASSERT_TRUE(strlen(line) > 13 &&
@@ -291,7 +291,6 @@ static void on_previous(int signal)
  * handler of its own for that signal installed before the note; returns the child's wait status. */
 static int run_case(const char *name, const char *path, int previous_signal)
 {
-	int status = 0;
 	unlink(path);
 	pid_t child = fork();
 	XVT_ASSERT_TRUE(child >= 0);
@@ -305,6 +304,7 @@ static int run_case(const char *name, const char *path, int previous_signal)
 		}
 		run_child(name, path);
 	}
+	int status = 0;
 	XVT_ASSERT_INT_EQ(waitpid(child, &status, 0), child);
 	return status;
 }

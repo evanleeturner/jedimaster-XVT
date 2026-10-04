@@ -157,13 +157,13 @@ int xvt_original2d_build_map_icons(const struct xvt_original2d *source,
 	for (unsigned index = 0; index < count && ok; ++index) {
 		unsigned frame = source->images.frames[index].frame_index;
 		AeronPnlBitmap bitmap = {0};
-		AeronDecodeError error = {0};
 		const AeronPnlList *list = &source->panel_records;
 		if (frame >= list->count ||
 		    (list->bitmaps[frame].size == 1 &&
 		     list->bitmaps[frame].data[0] == 0xff)) {
 			ok = empty_frame(&bitmap, (uint16_t)frame);
 		} else {
+			AeronDecodeError error = {0};
 			ok = AeronPnl_DecodeIndexed(list->bitmaps[frame].data,
 						    list->bitmaps[frame].size,
 						    0, 0, &bitmap, &error);
@@ -189,13 +189,13 @@ int xvt_original2d_build_map_icons(const struct xvt_original2d *source,
 			0};
 		AeronIndexedFrame_Free(&bitmap);
 	}
-	AeronRuntimeAtlasOptions options = {
-		.format = AERON_TEXTURE_FORMAT_RGBA8_SRGB,
-		.color_space = AERON_COLOR_SPACE_SRGB,
-		.alpha_mode = AERON_IMAGE_ALPHA_PREMULTIPLIED,
-		.generate_mips = true,
-		.debug_name = "xvt.map.icons"};
 	if (ok) {
+		AeronRuntimeAtlasOptions options = {
+			.format = AERON_TEXTURE_FORMAT_RGBA8_SRGB,
+			.color_space = AERON_COLOR_SPACE_SRGB,
+			.alpha_mode = AERON_IMAGE_ALPHA_PREMULTIPLIED,
+			.generate_mips = true,
+			.debug_name = "xvt.map.icons"};
 		ok = Aeron_RuntimeAtlasBuild(out, cmd, frames, (int)count,
 					     &options);
 	}

@@ -62,25 +62,18 @@ int render_list_project_object_bounds_for_culling(int object_idx,
 						  unsigned int bounds_radius,
 						  int player_idx)
 {
-	struct object_record *object;
-	int camera_world_y;
-	int camera_world_z;
-	int abs_view_coord;
-	int far_z;
-	int cull_radius;
-
-	object = &g_object_table[object_idx];
-	camera_world_y = g_players[player_idx].view_state.camera_world_y;
+	struct object_record *object = &g_object_table[object_idx];
+	int camera_world_y = g_players[player_idx].view_state.camera_world_y;
 	g_cam_rel_world_x = object->world_x -
 			    g_players[player_idx].view_state.camera_world_x;
-	camera_world_z = g_players[player_idx].view_state.camera_world_z;
+	int camera_world_z = g_players[player_idx].view_state.camera_world_z;
 	g_cam_rel_world_y = object->world_y - camera_world_y;
 	g_cam_rel_world_z = object->world_z - camera_world_z;
 	g_view_space_depth = transfm2_cam_mat_dot_row2(
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
-	cull_radius = (int)bounds_radius;
-	far_z = (int)((unsigned int)g_view_space_depth +
-		      (unsigned int)cull_radius);
+	int cull_radius = (int)bounds_radius;
+	int far_z = (int)((unsigned int)g_view_space_depth +
+			  (unsigned int)cull_radius);
 	if (far_z < 0) {
 		return 0;
 	}
@@ -90,7 +83,7 @@ int render_list_project_object_bounds_for_culling(int object_idx,
 
 	g_view_space_x = transfm2_cam_mat_dot_row0(
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
-	abs_view_coord = g_view_space_x;
+	int abs_view_coord = g_view_space_x;
 	if (abs_view_coord < 0) {
 		abs_view_coord = (int)(0U - (unsigned int)abs_view_coord);
 	}
@@ -117,28 +110,20 @@ int render_list_project_object_bounds_for_culling(int object_idx,
 // FUNCTION: XVT 0x436580
 void render_list_sort_depth_descending(void)
 {
-	struct render_object_list_entry *left;
-	struct render_object_list_entry *right;
-	struct render_object_list_entry *previous;
 	struct render_object_list_entry *left_tail;
-	int run_length;
-	int left_run_count;
-	int right_depth;
-	int right_run_count;
-	int processed_count;
-	int object_count;
-	int left_depth;
 
-	object_count = g_render_object_list_count;
-	run_length = 1;
+	int object_count = g_render_object_list_count;
+	int run_length = 1;
 	if (object_count > run_length) {
 		do {
-			right = g_render_list_head;
-			previous = 0;
-			left = g_render_list_head;
-			processed_count = 0;
+			struct render_object_list_entry *right =
+				g_render_list_head;
+			struct render_object_list_entry *previous = 0;
+			struct render_object_list_entry *left =
+				g_render_list_head;
+			int processed_count = 0;
 			while (processed_count < g_render_object_list_count) {
-				left_run_count = 0;
+				int left_run_count = 0;
 				while (left_run_count < run_length &&
 				       right != 0) {
 					left_tail = right;
@@ -149,10 +134,10 @@ void render_list_sort_depth_descending(void)
 					break;
 				}
 
-				right_run_count = 0;
+				int right_run_count = 0;
 				while (right_run_count < run_length) {
-					right_depth = right->sort_depth;
-					left_depth = left->sort_depth;
+					int right_depth = right->sort_depth;
+					int left_depth = left->sort_depth;
 					while (left_depth >= right_depth) {
 						previous = left;
 						left = left->next;
@@ -208,23 +193,16 @@ void render_list_sort_depth_descending(void)
 // FUNCTION: XVT 0x436680
 void render_list_sort_depth_ascending(void)
 {
-	int run_length;
 	struct render_object_list_entry *left_tail;
-	struct render_object_list_entry *right;
-	struct render_object_list_entry *previous;
-	struct render_object_list_entry *left;
-	int left_run_count;
-	int right_run_count;
-	int processed_count;
 
-	for (run_length = 1; run_length < g_render_object_list_count;
+	for (int run_length = 1; run_length < g_render_object_list_count;
 	     run_length *= 2) {
-		right = g_render_list_head;
-		previous = 0;
-		left = g_render_list_head;
-		processed_count = 0;
+		struct render_object_list_entry *right = g_render_list_head;
+		struct render_object_list_entry *previous = 0;
+		struct render_object_list_entry *left = g_render_list_head;
+		int processed_count = 0;
 		while (processed_count < g_render_object_list_count) {
-			left_run_count = 0;
+			int left_run_count = 0;
 			while (left_run_count < run_length && right != 0) {
 				left_tail = right;
 				++left_run_count;
@@ -234,7 +212,7 @@ void render_list_sort_depth_ascending(void)
 				break;
 			}
 
-			right_run_count = 0;
+			int right_run_count = 0;
 			while (right_run_count < run_length) {
 				while (left->sort_depth <= right->sort_depth) {
 					previous = left;

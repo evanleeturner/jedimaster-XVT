@@ -107,16 +107,13 @@ static void xvt_flight_loading_mission_rules(void)
 
 void xvt_flight_loading_globals(void)
 {
-	int16_t abort_player_index;
-	int16_t disconnect_player_index;
-	int16_t connect_player_index;
 	xvt_flight_loading_reset();
 	flight_pump_window_messages();
 	g_packet_drop_indicator = 0;
 	g_lag_indicator = 0;
 	g_sw3d_skip_odd_scanlines = 0;
 	g_flight_net_host_abort_received = 0;
-	for (abort_player_index = 0; abort_player_index < PLAYER_COUNT;
+	for (int16_t abort_player_index = 0; abort_player_index < PLAYER_COUNT;
 	     ++abort_player_index) {
 		g_player_abort_flags[abort_player_index] = 0;
 	}
@@ -161,16 +158,12 @@ void xvt_flight_loading_globals(void)
 	if (g_active_flight_player_count != 1) {
 		g_game_rand_feedback_state = (int16_t)g_game_config.random_seed;
 	} else {
-		uint16_t random_seed;
-
-		random_seed = (uint16_t)timeGetTime();
+		uint16_t random_seed = (uint16_t)timeGetTime();
 		random_seed ^= RANDOM_SEED_XOR;
 		g_game_rand_feedback_state = (int16_t)random_seed;
 	}
 	{
-		uint32_t random_time;
-
-		random_time = timeGetTime();
+		uint32_t random_time = timeGetTime();
 		g_asteroid_field_rand_seed =
 			(uint16_t)ASTEROID_FIELD_RANDOM_SEED;
 		g_game_rand2_feedback_state =
@@ -179,10 +172,8 @@ void xvt_flight_loading_globals(void)
 
 	memset(g_players, 0, sizeof(g_players));
 	{
-		int16_t reset_player_index;
-
-		for (reset_player_index = 0; reset_player_index < PLAYER_COUNT;
-		     ++reset_player_index) {
+		for (int16_t reset_player_index = 0;
+		     reset_player_index < PLAYER_COUNT; ++reset_player_index) {
 			g_input_frame_count[reset_player_index] = 0;
 			g_player_connected[reset_player_index] = 1;
 			g_flight_net_world_checksum_peer_status
@@ -193,12 +184,12 @@ void xvt_flight_loading_globals(void)
 			g_players[reset_player_index].field_5b5 = 0;
 		}
 	}
-	for (disconnect_player_index = 0;
+	for (int16_t disconnect_player_index = 0;
 	     disconnect_player_index < PLAYER_COUNT;
 	     ++disconnect_player_index) {
 		g_players[disconnect_player_index].participation_state = 0;
 	}
-	for (connect_player_index = 0;
+	for (int16_t connect_player_index = 0;
 	     connect_player_index < g_active_flight_player_count;
 	     ++connect_player_index) {
 		g_players[connect_player_index].participation_state = 1;
@@ -221,11 +212,6 @@ void xvt_flight_loading_globals(void)
 
 void xvt_flight_loading_palette(void)
 {
-	uint8_t resource_scratch[FLIGHT_RESOURCE_SCRATCH_BYTES];
-	int16_t palette_byte_offset;
-	int16_t mission_extension_offset;
-	char saved_mission_extension_prefix[2];
-	char saved_mission_extension_third;
 	flight_surface_lock();
 	flight_display_configure_resolution_state();
 	flight_surface_unlock();
@@ -236,15 +222,15 @@ void xvt_flight_loading_palette(void)
 	nullsub_11();
 	flight_display_flip();
 	flight_render_configure_callbacks_for_resolution(3);
+	uint8_t resource_scratch[FLIGHT_RESOURCE_SCRATCH_BYTES];
 	fe_disk_io_read_all_bytes_or_fatal(g_flight_palette_resource_file_name,
 					   resource_scratch);
-	for (palette_byte_offset = 0; palette_byte_offset < PALETTE_HALF_BYTES;
+	for (int16_t palette_byte_offset = 0;
+	     palette_byte_offset < PALETTE_HALF_BYTES;
 	     palette_byte_offset += sizeof(struct rgb_triplet)) {
-		uint8_t channel;
-
-		channel = resource_scratch[palette_byte_offset +
-					   PALETTE_CHANNEL_RED] >>
-			  2;
+		uint8_t channel = resource_scratch[palette_byte_offset +
+						   PALETTE_CHANNEL_RED] >>
+				  2;
 		resource_scratch[palette_byte_offset + PALETTE_CHANNEL_RED] =
 			resource_scratch[PALETTE_LAST_COLOR_OFFSET -
 					 palette_byte_offset +
@@ -285,15 +271,17 @@ void xvt_flight_loading_palette(void)
 	flight_surface_clear_to_black();
 
 	if (g_flight_bytes_per_pixel == 1) {
-		mission_extension_offset = (int)strlen(g_current_mission_file) -
-					   MISSION_EXTENSION_LENGTH;
+		int16_t mission_extension_offset =
+			(int)strlen(g_current_mission_file) -
+			MISSION_EXTENSION_LENGTH;
+		char saved_mission_extension_prefix[2];
 		saved_mission_extension_prefix[MISSION_EXTENSION_FIRST] =
 			g_current_mission_file[mission_extension_offset +
 					       MISSION_EXTENSION_FIRST];
 		saved_mission_extension_prefix[MISSION_EXTENSION_SECOND] =
 			g_current_mission_file[mission_extension_offset +
 					       MISSION_EXTENSION_SECOND];
-		saved_mission_extension_third =
+		char saved_mission_extension_third =
 			g_current_mission_file[mission_extension_offset +
 					       MISSION_EXTENSION_THIRD];
 		g_current_mission_file[mission_extension_offset +
@@ -331,7 +319,6 @@ void xvt_flight_loading_palette(void)
 
 void xvt_flight_loading_mission_setup(void)
 {
-	int16_t mfd_index;
 	if (g_flight_conf_train_course != 0) {
 		g_flight_mission_state.proving_grounds_craft_type =
 			PROVING_GROUNDS_DEFAULT_CRAFT;
@@ -345,9 +332,7 @@ void xvt_flight_loading_mission_setup(void)
 	flight_input_reset_runtime_state();
 	flight_surface_unlock();
 	{
-		int16_t noise_index;
-
-		for (noise_index = 0;
+		for (int16_t noise_index = 0;
 		     noise_index < (int)sizeof(g_flight_noise_table) - 1;
 		     noise_index += 2) {
 			do {
@@ -372,8 +357,9 @@ void xvt_flight_loading_mission_setup(void)
 	g_mfd_secondary_page = MFD_PAGE_NONE;
 	g_mfd_saved_active_page = MFD_PAGE_NONE;
 	g_mfd_saved_secondary_page = MFD_PAGE_NONE;
-	for (mfd_index = 0; mfd_index < (int)(sizeof(g_mfd_page_states) /
-					      sizeof(g_mfd_page_states[0]));
+	for (int16_t mfd_index = 0;
+	     mfd_index <
+	     (int)(sizeof(g_mfd_page_states) / sizeof(g_mfd_page_states[0]));
 	     ++mfd_index) {
 		g_saved_mfd_page_states[mfd_index] = MFD_PAGE_STATE_CLOSED;
 		g_mfd_page_states[mfd_index] = MFD_PAGE_STATE_CLOSED;
@@ -389,14 +375,12 @@ void xvt_flight_loading_runtime(void)
 	g_dynamic_music_outcome_latched = 0;
 	if (g_game_config.music_enabled != 0 &&
 	    g_game_config.music_volume != 0 && music_cd_initialize() != 0) {
-		int music_choice;
-		uint16_t music_volume;
-		uint32_t music_update_ms;
-
-		music_volume = UINT16_MAX * g_game_config.music_volume /
-			       MUSIC_VOLUME_MAX_LEVEL;
+		uint16_t music_volume = UINT16_MAX *
+					g_game_config.music_volume /
+					MUSIC_VOLUME_MAX_LEVEL;
 		music_cd_set_aux_volume(music_volume);
-		music_choice = game_rand2() & (MUSIC_START_CHOICE_COUNT - 1);
+		int music_choice =
+			game_rand2() & (MUSIC_START_CHOICE_COUNT - 1);
 		music_cd_play_track_from_time(
 			MUSIC_TRACK_FLIGHT,
 			g_dynamic_music_initial_start_minute_choices
@@ -413,7 +397,7 @@ void xvt_flight_loading_runtime(void)
 			MILLISECONDS_PER_SECOND *
 			g_dynamic_music_initial_start_second_choices
 				[music_choice];
-		music_update_ms = timeGetTime();
+		uint32_t music_update_ms = timeGetTime();
 		g_dynamic_music_state = MUSIC_TRACK_FLIGHT;
 		g_dynamic_music_last_update_ms = music_update_ms;
 	} else {

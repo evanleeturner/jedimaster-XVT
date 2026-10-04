@@ -720,10 +720,10 @@ static void check_object_link(void)
 {
 	use_test_pools();
 	struct object_record live;
-	struct xvt_snapshot_object_record record;
 	memset(&live, 0, sizeof live);
 
 	live.mobj = &g_test_mobiles[2];
+	struct xvt_snapshot_object_record record;
 	xvt_snapshot_encode_object_record(&record, &live);
 	XVT_ASSERT_INT_EQ(record.mobj,
 			  2 * sizeof(struct xvt_snapshot_mobile_object) + 1);
@@ -749,12 +749,12 @@ static void check_mobile_links(void)
 {
 	use_test_pools();
 	struct mobile_object live;
-	struct xvt_snapshot_mobile_object record;
 	memset(&live, 0, sizeof live);
 
 	live.p_warhead_guidance = &g_test_guidance[0];
 	live.p_craft = &g_test_craft[1];
 	live.p_char_data = &g_test_char_data[2];
+	struct xvt_snapshot_mobile_object record;
 	xvt_snapshot_encode_mobile_object(&record, &live);
 	XVT_ASSERT_INT_EQ(record.p_warhead_guidance, 1);
 	XVT_ASSERT_INT_EQ(record.p_craft,
@@ -837,11 +837,11 @@ static void check_craft_links(void)
 static void check_links_not_range_checked(void)
 {
 	use_test_pools();
-	struct object_record live;
 	struct xvt_snapshot_object_record record;
 	memset(&record, 0, sizeof record);
 	record.mobj =
 		(uint32_t)(3 * sizeof(struct xvt_snapshot_mobile_object) + 1);
+	struct object_record live;
 	xvt_snapshot_decode_object_record(&live, &record);
 	XVT_ASSERT_TRUE(live.mobj == g_test_mobiles + 3);
 }

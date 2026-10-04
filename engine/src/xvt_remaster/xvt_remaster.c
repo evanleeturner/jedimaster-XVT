@@ -22,11 +22,11 @@ static int g_frontend_surfaces_released;
 
 int xvt_remaster_init(void)
 {
-	int width;
-	int height;
 	if (g_initialized) {
 		return 1;
 	}
+	int width;
+	int height;
 	if (!Aeron_GetLogicalSize(&width, &height) || width <= 0 ||
 	    height <= 0) {
 		XVT_LOG_ERROR("remaster.host_missing");
@@ -67,12 +67,11 @@ void xvt_remaster_begin_frame(const struct AeronInputSnapshot *input)
  * replay, HUD dirty, direct). */
 void xvt_remaster_frame(int32_t delta_us)
 {
-	const struct xvt_render_snapshot *snapshot;
-	int assets_ready = 1;
 	if (!g_initialized) {
 		return;
 	}
-	snapshot = xvt_render_snapshot_current();
+	const struct xvt_render_snapshot *snapshot =
+		xvt_render_snapshot_current();
 	if (!snapshot) {
 		return;
 	}
@@ -98,6 +97,7 @@ void xvt_remaster_frame(int32_t delta_us)
 	int prepare_assets = world_needed || loading_assets;
 	int frontend_replay =
 		xvt_frontend_needs_replay(snapshot, width, height);
+	int assets_ready = 1;
 	if ((prepare_assets || frontend_replay) &&
 	    (xvt_remaster_assets_images_need_sync(snapshot) ||
 	     (frontend_replay &&

@@ -83,8 +83,8 @@ static float angle(const struct xvt_snap_object *o,
 		   const struct xvt_snap_camera *cam)
 {
 	float m[16];
-	float r[2][3];
 	xvt_render_math_object_matrix(o, cam->world_pos, m);
+	float r[2][3];
 	for (int col = 0; col < 2; ++col) {
 		for (int row = 0; row < 3; ++row) {
 			r[col][row] = cam->rows[row * 3] * m[col] +
@@ -246,7 +246,6 @@ static void submit_one(AeronScene3D *scene, const struct xvt_render_snapshot *s,
 					   ->explosion_emissive_strength
 				 : 1;
 	xvt_effects_set_frame(&b, &frame, strength, alpha);
-	float previous[4][3];
 	const struct xvt_snap_object *old = effects_previous(p, o);
 	if (regenerate && old && pc) {
 		uint16_t old_code =
@@ -259,6 +258,7 @@ static void submit_one(AeronScene3D *scene, const struct xvt_render_snapshot *s,
 						 k_tau / 65536.0f
 				       : 0);
 		struct xvt_effect_frame old_frame;
+		float previous[4][3];
 		if (corners(p, old, pc, cam->world_pos, old_code,
 			    flame_ordinal ? 256 : base_size(old), old_roll,
 			    previous, &old_frame)) {
@@ -367,8 +367,8 @@ void xvt_effects_projectile_matrix(const struct xvt_snap_object *o,
 {
 	struct xvt_snap_object aligned = *o;
 	float m[16];
-	float delta[3];
 	xvt_render_math_object_matrix(o, origin, m);
+	float delta[3];
 	AeronWorld_DeltaI32(camera, o->world_pos, delta);
 	float side = m[0] * delta[0] + m[4] * delta[1] + m[8] * delta[2];
 	float up = m[2] * delta[0] + m[6] * delta[1] + m[10] * delta[2];

@@ -216,8 +216,8 @@ struct run {
 static struct run run_tool(int count, const char *const *args, int to_full)
 {
 	char out_path[XVT_TEST_PATH_CAPACITY];
-	char err_path[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(out_path, g_folder, "stdout.txt");
+	char err_path[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(err_path, g_folder, "stderr.txt");
 	fflush(stdout);
 	fflush(stderr);
@@ -260,8 +260,8 @@ static void free_run(const struct run *run)
 static struct run dump_bytes(const char *name, const uint8_t *data, size_t size,
 			     int to_full)
 {
-	char path[XVT_TEST_PATH_CAPACITY];
 	xvt_test_write_file(g_folder, name, data, size);
+	char path[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(path, g_folder, name);
 	const char *args[1] = {path};
 	return run_tool(1, args, to_full);
@@ -459,8 +459,8 @@ static void check_consumed_offset(void)
 
 	/* The last line gives how far the file was read: here, all of it. */
 	char decimal[32];
-	char hex[32];
 	snprintf(decimal, sizeof decimal, "%zu", bytes.size);
+	char hex[32];
 	snprintf(hex, sizeof hex, "%zx", bytes.size);
 	XVT_ASSERT_TRUE(strstr(last, decimal) != NULL ||
 			strstr(last, hex) != NULL);

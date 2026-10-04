@@ -391,12 +391,9 @@ void flight_map_update_camera(int player_idx)
 // FUNCTION: XVT 0x436320
 void flight_map_build_render_list(void)
 {
-	unsigned int object_idx;
-	unsigned int object_type;
-	unsigned int genus_id;
-
-	object_idx = 0;
+	unsigned int object_idx = 0;
 	render_list_reset();
+	unsigned int object_type;
 	if (g_explosion_object_slot_end != 0) {
 		do {
 			object_type = g_object_table[object_idx].object_type;
@@ -443,7 +440,8 @@ void flight_map_build_render_list(void)
 		do {
 			object_type = g_object_table[object_idx].object_type;
 			if (object_type != 0) {
-				genus_id = g_object_table[object_idx].genus_id;
+				unsigned int genus_id =
+					g_object_table[object_idx].genus_id;
 				if (genus_id >= CRAFT_GENUS_MINE &&
 				    genus_id <= CRAFT_GENUS_SATELLITE &&
 				    render_list_project_object_bounds_for_culling(
@@ -486,16 +484,12 @@ void flight_map_draw_object_pass(int draw_above_grid_plane)
 		MAP_TARGET_BOX_COLOR = 59,
 	};
 
-	struct render_object_list_entry *saved_render_list_head;
-
 	g_scene_billboard_queue_count = 0;
-	saved_render_list_head = g_render_list_head;
+	struct render_object_list_entry *saved_render_list_head =
+		g_render_list_head;
 	while (g_render_list_head != NULL) {
-		int object_idx;
-		int draw_object;
-
-		object_idx = g_render_list_head->object_idx;
-		draw_object = 0;
+		int object_idx = g_render_list_head->object_idx;
+		int draw_object = 0;
 		if (draw_above_grid_plane != 0) {
 			if (g_object_table[object_idx].world_z >=
 			    MAP_GRID_PLANE_Z) {
@@ -509,16 +503,12 @@ void flight_map_draw_object_pass(int draw_above_grid_plane)
 		}
 
 		if (draw_object != 0) {
-			int genus_id;
-			int camera_world_x;
-			int camera_world_y;
-
 			render_scene_initialize(g_render_scene_reset_pending);
 			g_render_scene_reset_pending = 0;
-			camera_world_x = g_players[g_local_player]
-						 .view_state.camera_world_x;
-			camera_world_y = g_players[g_local_player]
-						 .view_state.camera_world_y;
+			int camera_world_x = g_players[g_local_player]
+						     .view_state.camera_world_x;
+			int camera_world_y = g_players[g_local_player]
+						     .view_state.camera_world_y;
 			g_cam_rel_world_x = g_object_table[object_idx].world_x -
 					    camera_world_x;
 			g_cam_rel_world_y = g_object_table[object_idx].world_y -
@@ -535,7 +525,7 @@ void flight_map_draw_object_pass(int draw_above_grid_plane)
 			g_view_space_y = transfm2_cam_mat_dot_row1(
 				g_cam_rel_world_x, g_cam_rel_world_y,
 				g_cam_rel_world_z);
-			genus_id = g_object_table[object_idx].genus_id;
+			int genus_id = g_object_table[object_idx].genus_id;
 
 			switch (genus_id) {
 			case CRAFT_GENUS_STARFIGHTER:
@@ -724,14 +714,8 @@ void flight_map_draw_other_player_object_box(int object_idx)
 		COLOR_DEFAULT = 59,
 	};
 
-	struct mobile_object *mobile_object;
-	struct craft_data *craft;
+	struct mobile_object *mobile_object = g_object_table[object_idx].mobj;
 	uint8_t color_index;
-	int player_team;
-	int team;
-	int is_hostile;
-
-	mobile_object = g_object_table[object_idx].mobj;
 	switch (mobile_object->iff) {
 	case IFF_REBEL:
 		color_index = COLOR_REBEL;
@@ -748,14 +732,15 @@ void flight_map_draw_other_player_object_box(int object_idx)
 		break;
 	}
 
-	craft = mobile_object->p_craft;
+	struct craft_data *craft = mobile_object->p_craft;
 	if (g_flight_mission_state.locate_players_enabled == 0) {
-		player_team = (uint16_t)g_players[g_local_player].team;
+		int player_team = (uint16_t)g_players[g_local_player].team;
 		if (craft->identified_order_by_team[player_team] == 0) {
-			team = g_mission_flight_groups
-				       [g_object_table[(uint16_t)object_idx]
-						.flight_group_idx]
-					       .fg.team;
+			int team = g_mission_flight_groups
+					   [g_object_table[(uint16_t)object_idx]
+						    .flight_group_idx]
+						   .fg.team;
+			int is_hostile;
 			if (team == player_team) {
 				is_hostile = 0;
 			} else {
@@ -793,45 +778,28 @@ void flight_map_draw_other_player_object_box(int object_idx)
 // FUNCTION: XVT 0x436D00
 void flight_map_draw_object_overlay(int object_idx)
 {
-	int saved_view_position[3];
-	int screen_x;
-	int screen_y;
-	unsigned int target_ref;
-	int iff;
-	int color;
-	int draw_overlay;
-	unsigned int box_extent;
-	int display_extent;
-	int text_x;
-	int text_y;
-	int grid_foot_view_position[3];
-	int line_screen_x;
-	int line_screen_y;
-	int distance;
-	int genus_id;
-	uint16_t packed_target_ref;
-
-	genus_id = g_object_table[object_idx].genus_id;
+	int genus_id = g_object_table[object_idx].genus_id;
 	if (genus_id == 13 || genus_id == 11) {
 		return;
 	}
 
+	int saved_view_position[3];
 	saved_view_position[0] = g_view_space_x;
 	saved_view_position[1] = g_view_space_y;
 	saved_view_position[2] = g_view_space_depth;
 	if (saved_view_position[2] <= 0) {
 		return;
 	}
-	screen_x = transfm2_project_screen_x(saved_view_position[0],
-					     saved_view_position[2]);
-	screen_y = transfm2_project_screen_y(saved_view_position[1],
-					     saved_view_position[2]);
+	int screen_x = transfm2_project_screen_x(saved_view_position[0],
+						 saved_view_position[2]);
+	int screen_y = transfm2_project_screen_y(saved_view_position[1],
+						 saved_view_position[2]);
 	screen_x += g_flight_clip_left;
 	screen_y += g_flight_clip_top;
 
 	if ((uint16_t)g_players[g_local_player].current_target_object_idx ==
 	    object_idx) {
-		target_ref = UINT16_MAX;
+		unsigned int target_ref = UINT16_MAX;
 		if (object_idx < g_craft_data_pool_capacity) {
 			target_ref = g_object_table[object_idx]
 					     .mobj->p_craft->ai_controller
@@ -843,6 +811,7 @@ void flight_map_draw_object_overlay(int object_idx)
 				struct craft_data *craft =
 					mobile_object->p_craft;
 				if (craft != NULL) {
+					uint16_t packed_target_ref;
 					memcpy(&packed_target_ref,
 					       &craft->model_index,
 					       sizeof(packed_target_ref));
@@ -883,6 +852,7 @@ void flight_map_draw_object_overlay(int object_idx)
 		}
 	}
 
+	int iff;
 	if (g_object_table[object_idx].mobj != NULL) {
 		iff = (uint8_t)g_object_table[object_idx].mobj->iff;
 	} else {
@@ -890,6 +860,7 @@ void flight_map_draw_object_overlay(int object_idx)
 						      .flight_group_idx]
 			      .fg.iff;
 	}
+	int color;
 	switch (iff) {
 	case 0:
 		color = 63;
@@ -914,7 +885,7 @@ void flight_map_draw_object_overlay(int object_idx)
 	flight_text_set_background_color(color);
 	flight_text_set_font_tier(0);
 
-	draw_overlay = 0;
+	int draw_overlay = 0;
 	if (object_idx < g_craft_data_pool_capacity ||
 	    g_object_table[object_idx].mobj == NULL ||
 	    g_object_table[object_idx].mobj->p_craft != NULL) {
@@ -938,9 +909,9 @@ void flight_map_draw_object_overlay(int object_idx)
 					saved_view_position[1],
 					saved_view_position[2]);
 	}
-	line_screen_x =
+	int line_screen_x =
 		transfm2_project_screen_x(g_view_space_x, g_view_space_depth);
-	line_screen_y =
+	int line_screen_y =
 		transfm2_project_screen_y(g_view_space_y, g_view_space_depth);
 	line_screen_x += g_flight_clip_left;
 	line_screen_y += g_flight_clip_top;
@@ -949,8 +920,6 @@ void flight_map_draw_object_overlay(int object_idx)
 
 	if (g_object_table[object_idx].mobj != NULL &&
 	    g_object_table[object_idx].mobj->family == 0) {
-		int move_y;
-
 		if (g_object_table[object_idx].mobj->orient_matrix_dirty != 0) {
 			fview_calcrotatemove(g_object_table[object_idx].pitch,
 					     g_object_table[object_idx].yaw,
@@ -962,6 +931,7 @@ void flight_map_draw_object_overlay(int object_idx)
 			256, g_object_table[object_idx].mobj->move_x);
 		g_cam_rel_world_y += math_mul_q15(
 			256, g_object_table[object_idx].mobj->move_y);
+		int move_y;
 		if (g_object_table[object_idx].mobj->speed < 0x400) {
 			g_cam_rel_world_x += math_mul_q15(
 				32 * g_object_table[object_idx].mobj->speed,
@@ -974,6 +944,7 @@ void flight_map_draw_object_overlay(int object_idx)
 				g_object_table[object_idx].mobj->move_x;
 			move_y = g_object_table[object_idx].mobj->move_y;
 		}
+		int grid_foot_view_position[3];
 		grid_foot_view_position[2] = g_view_space_depth;
 		g_cam_rel_world_y += move_y;
 		grid_foot_view_position[0] = g_view_space_x;
@@ -1006,9 +977,9 @@ void flight_map_draw_object_overlay(int object_idx)
 	}
 
 	flight_text_set_background_color(0x40);
-	text_x = (int16_t)screen_x;
-	text_y = (int16_t)screen_y;
-	box_extent = targeting_get_object_box_extent(object_idx);
+	int text_x = (int16_t)screen_x;
+	int text_y = (int16_t)screen_y;
+	unsigned int box_extent = targeting_get_object_box_extent(object_idx);
 	box_extent *= g_proj_scale_int;
 	box_extent /= saved_view_position[2];
 	if (box_extent < g_screen_width / 0x50u) {
@@ -1017,7 +988,7 @@ void flight_map_draw_object_overlay(int object_idx)
 	if (box_extent > (unsigned int)g_screen_width >> 1) {
 		box_extent = (unsigned int)g_screen_width >> 1;
 	}
-	display_extent = box_extent + 4;
+	int display_extent = box_extent + 4;
 	if (g_object_table[object_idx].mobj != NULL ||
 	    g_object_table[object_idx].genus_id != 8) {
 		hud_format_object_display_name(object_idx, 2);
@@ -1047,7 +1018,7 @@ void flight_map_draw_object_overlay(int object_idx)
 				text_x - flight_text_measure_string_width("00"),
 				text_y + 1);
 			trig2_polardistance *= 161;
-			distance = (trig2_polardistance >> 16) & 0xffff;
+			int distance = (trig2_polardistance >> 16) & 0xffff;
 			if (distance >= 10000) {
 				distance = 9999;
 			}
@@ -1071,27 +1042,18 @@ void flight_map_draw_object_overlay(int object_idx)
 void flight_map_draw_object_icon_at_view_pos(int object_idx, int view_x,
 					     int view_y, int view_z)
 {
-	struct object_record *object;
-	struct mobile_object *mobile_object;
-	int object_type;
-	int use_map_icon_blitter;
+	struct object_record *object = &g_object_table[object_idx];
+	int object_type = object->object_type;
+	struct mobile_object *mobile_object = object->mobj;
 	int iff;
-	int color_group;
-	int screen_x;
-	int screen_y;
-	int frame_idx;
-	int icon_width;
-
-	object = &g_object_table[object_idx];
-	object_type = object->object_type;
-	mobile_object = object->mobj;
 	if (mobile_object != NULL) {
 		iff = (uint8_t)mobile_object->iff;
 	} else {
 		iff = g_mission_flight_groups[object->flight_group_idx].fg.iff;
 	}
 
-	use_map_icon_blitter = 0;
+	int use_map_icon_blitter = 0;
+	int color_group;
 	switch (iff) {
 	case 0:
 		color_group = 0;
@@ -1115,10 +1077,12 @@ void flight_map_draw_object_icon_at_view_pos(int object_idx, int view_x,
 		break;
 	}
 
-	screen_x = transfm2_project_screen_x(view_x, view_z);
-	screen_y = transfm2_project_screen_y(view_y, view_z);
+	int screen_x = transfm2_project_screen_x(view_x, view_z);
+	int screen_y = transfm2_project_screen_y(view_y, view_z);
 	screen_x += g_flight_clip_left;
 	screen_y += g_flight_clip_top;
+	int frame_idx;
+	int icon_width;
 	/* In each branch below, objectType picks the frame and is then reused as the icon height beside
 	 * icon_width; the last branch leaves the object type in it. */
 	if (g_flight_icon_resource_path ==
@@ -1192,17 +1156,10 @@ void flight_map_draw_object_icon_at_view_pos(int object_idx, int view_x,
 void flight_map_draw_object_box_corners(int x, int y, int width, int height,
 					unsigned int color_index)
 {
-	int corner_width;
-	int corner_height;
-	int span_start;
-	int span_end;
-	int screen_y;
-	int row;
-
 	if (y + height > 0 && x + width > 0 && g_flight_vp_width > x &&
 	    g_flight_vp_height > y && height > 0 && width > 0) {
-		corner_width = width >> 3;
-		corner_height = height >> 3;
+		int corner_width = width >> 3;
+		int corner_height = height >> 3;
 		if (corner_width < 3) {
 			corner_width = 3;
 		}
@@ -1217,6 +1174,8 @@ void flight_map_draw_object_box_corners(int x, int y, int width, int height,
 		}
 
 		flight_surface_lock();
+		int span_start;
+		int span_end;
 		if (y >= 0) {
 			span_start = x;
 			span_end = x + corner_width;
@@ -1275,6 +1234,8 @@ void flight_map_draw_object_box_corners(int x, int y, int width, int height,
 			}
 		}
 
+		int screen_y;
+		int row;
 		for (row = 1; row < corner_height; ++row) {
 			screen_y = y + row;
 			if (screen_y >= 0 && screen_y < g_flight_vp_height) {
@@ -1321,9 +1282,11 @@ void flight_map_draw_object_box_corners(int x, int y, int width, int height,
 // FUNCTION: XVT 0x437B20
 void flight_map_draw_grid(void)
 {
-	int line_count;
-	int grid_x;
-	int grid_y;
+	g_world_loc_z = 0;
+	g_world_loc_y = 0;
+	g_world_loc_x = 0;
+	int grid_y = -0x100000;
+	int line_count = 33;
 	int other_view_x;
 	int other_view_y;
 	int other_depth_z;
@@ -1331,12 +1294,6 @@ void flight_map_draw_grid(void)
 	int camera_world_x;
 	int camera_world_y;
 	int camera_world_z;
-
-	g_world_loc_z = 0;
-	g_world_loc_y = 0;
-	g_world_loc_x = 0;
-	grid_y = -0x100000;
-	line_count = 33;
 	do {
 		camera_world_x =
 			g_players[g_local_player].view_state.camera_world_x;
@@ -1402,7 +1359,7 @@ void flight_map_draw_grid(void)
 	} while (line_count != 0);
 
 	line_count = 33;
-	grid_x = g_world_loc_x - 0x100000;
+	int grid_x = g_world_loc_x - 0x100000;
 	grid_y = g_world_loc_y - 0x100000;
 	do {
 		camera_world_x =
@@ -1487,11 +1444,6 @@ void flight_map_render_view_end_stub(void) {}
 // FUNCTION: XVT 0x438010
 int flight_map_pick_object_nearest_screen_center(int player_idx)
 {
-	int best_score;
-	int best_object = UINT16_MAX;
-	int object_idx;
-	int object_slot;
-
 	if (g_players[player_idx].map_camera_state > 1) {
 		int hud_pitch = ((g_players[player_idx].map_camera_state & 0x7F)
 				 << 14) /
@@ -1530,12 +1482,14 @@ int flight_map_pick_object_nearest_screen_center(int player_idx)
 		}
 	}
 
-	best_score = (g_screen_height * g_screen_height +
-		      g_screen_width * g_screen_width) >>
-		     3;
+	int best_score = (g_screen_height * g_screen_height +
+			  g_screen_width * g_screen_width) >>
+			 3;
 	/* object_idx and object_slot always hold the same slot: each loop starts both at the same value and steps
 	 * both once per pass. */
-	object_idx = 0;
+	int object_idx = 0;
+	int best_object = UINT16_MAX;
+	int object_slot;
 	for (object_slot = 0; object_slot < (int)g_explosion_object_slot_end;
 	     ++object_slot) {
 		if (g_object_table[object_idx].object_type != 0) {
@@ -1546,10 +1500,6 @@ int flight_map_pick_object_nearest_screen_center(int player_idx)
 			case 3:
 			case 4:
 			case 5: {
-				int projected_x;
-				int projected_y;
-				int score;
-
 				if (!render_list_project_object_bounds_for_culling(
 					    object_slot,
 					    g_object_type_table
@@ -1559,14 +1509,14 @@ int flight_map_pick_object_nearest_screen_center(int player_idx)
 					    player_idx)) {
 					break;
 				}
-				projected_x = (g_view_space_x
-					       << g_perspective_shift) /
-					      g_view_space_depth;
-				projected_y = (g_view_space_y
-					       << g_perspective_shift) /
-					      g_view_space_depth;
-				score = projected_x * projected_x +
-					projected_y * projected_y;
+				int projected_x = (g_view_space_x
+						   << g_perspective_shift) /
+						  g_view_space_depth;
+				int projected_y = (g_view_space_y
+						   << g_perspective_shift) /
+						  g_view_space_depth;
+				int score = projected_x * projected_x +
+					    projected_y * projected_y;
 				if (g_players[player_idx]
 						    .view_state
 						    .aim_target_idx ==

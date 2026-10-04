@@ -63,11 +63,6 @@ void fview_build_camera_orient(int16_t view_roll, int16_t view_pitch,
 			       int16_t hud_aim_x, int16_t hud_aim_y,
 			       const struct object_record *obj_record)
 {
-	/* Build the camera basis from the current orientation and HUD aim offsets. */
-	int axis_x;
-	int axis_y;
-	int axis_z;
-
 	fview_calcrotatemove(view_pitch, view_yaw, obj_record);
 	fview_calcrotateorient(view_roll, view_up_axis_angle, obj_record);
 
@@ -75,11 +70,12 @@ void fview_build_camera_orient(int16_t view_roll, int16_t view_pitch,
 	g_cur_mat_r2_y = -g_cur_mat_r2_y;
 	g_cur_mat_r2_z = -g_cur_mat_r2_z;
 	g_cur_mat_r1_x = -g_cur_mat_r1_x;
-	axis_x = g_cur_mat_r1_x;
+	/* Build the camera basis from the current orientation and HUD aim offsets. */
+	int axis_x = g_cur_mat_r1_x;
 	g_cur_mat_r1_y = -g_cur_mat_r1_y;
-	axis_y = g_cur_mat_r1_y;
+	int axis_y = g_cur_mat_r1_y;
 	g_cur_mat_r1_z = -g_cur_mat_r1_z;
-	axis_z = g_cur_mat_r1_z;
+	int axis_z = g_cur_mat_r1_z;
 
 	fview_transformaxes(g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
 			    hud_aim_x);
@@ -157,15 +153,12 @@ int fview_set_object_transform(int16_t roll, int16_t pitch, int16_t yaw,
 void fview_calcrotatemove(int16_t pitch, int16_t yaw,
 			  const struct object_record *obj_record)
 {
-	int16_t cos_neg_b;
-	int16_t cos_c000_minus_a;
-	int16_t sin_neg_b;
-	int16_t sin_c000_minus_a;
-
-	cos_neg_b = trig2_getsignedcos(-yaw);
-	cos_c000_minus_a = trig2_getsignedcos((int16_t)(0xc000 - pitch));
-	sin_neg_b = trig2_getsignedsin(-yaw);
-	sin_c000_minus_a = trig2_getsignedsin((int16_t)(0xc000 - pitch));
+	int16_t cos_neg_b = trig2_getsignedcos(-yaw);
+	int16_t cos_c000_minus_a =
+		trig2_getsignedcos((int16_t)(0xc000 - pitch));
+	int16_t sin_neg_b = trig2_getsignedsin(-yaw);
+	int16_t sin_c000_minus_a =
+		trig2_getsignedsin((int16_t)(0xc000 - pitch));
 
 	g_cur_mat_r0_x = cos_neg_b;
 	g_cur_mat_r0_y = sin_neg_b;
@@ -237,8 +230,6 @@ void fview_calcrotateorient(int16_t roll, int16_t up_axis_angle,
 // FUNCTION: XVT 0x427E90
 int fview_compute_object_view_matrix(void)
 {
-	int result;
-
 	g_obj_view_mat_r0_x = math_dot3q15_wrapped(
 		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z, g_cam_mat_r0_x,
 		g_cam_mat_r0_y, g_cam_mat_r0_z);
@@ -263,9 +254,9 @@ int fview_compute_object_view_matrix(void)
 	g_obj_view_mat_r2_y = math_dot3q15_wrapped(
 		g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z, g_cam_mat_r1_x,
 		g_cam_mat_r1_y, g_cam_mat_r1_z);
-	result = math_dot3q15_wrapped(g_cur_mat_r1_x, g_cur_mat_r1_y,
-				      g_cur_mat_r1_z, g_cam_mat_r2_x,
-				      g_cam_mat_r2_y, g_cam_mat_r2_z);
+	int result = math_dot3q15_wrapped(g_cur_mat_r1_x, g_cur_mat_r1_y,
+					  g_cur_mat_r1_z, g_cam_mat_r2_x,
+					  g_cam_mat_r2_y, g_cam_mat_r2_z);
 	g_obj_view_mat_r2_z = result;
 	if (g_transform_light_direction_to_object_space != 0) {
 		g_object_light_direction_x = math_dot3q15_wrapped(
@@ -300,8 +291,12 @@ void fview_transformaxes(int axis_x_q15, int axis_y_q15, int axis_z_q15,
 {
 	enum { Q15_ONE = 0x7FFF };
 
-	int16_t cosine;
-	int16_t sine;
+	if (angle_q16 == 0) {
+		return;
+	}
+
+	int16_t cosine = trig2_getsignedcos(angle_q16);
+	int16_t sine = trig2_getsignedsin(angle_q16);
 	int coefficient00;
 	int coefficient01;
 	int coefficient02;
@@ -311,16 +306,6 @@ void fview_transformaxes(int axis_x_q15, int axis_y_q15, int axis_z_q15,
 	int coefficient20;
 	int coefficient21;
 	int coefficient22;
-	int new_x;
-	int new_y;
-	int new_z;
-
-	if (angle_q16 == 0) {
-		return;
-	}
-
-	cosine = trig2_getsignedcos(angle_q16);
-	sine = trig2_getsignedsin(angle_q16);
 	if (cosine >= 0) {
 		const int cosine_complement = Q15_ONE - cosine;
 
@@ -377,15 +362,15 @@ void fview_transformaxes(int axis_x_q15, int axis_y_q15, int axis_z_q15,
 			axis_z_q15, axis_z_q15, cosine_magnitude, cosine);
 	}
 
-	new_x = math_dot3q15_wrapped(g_cur_mat_r0_x, g_cur_mat_r0_y,
-				     g_cur_mat_r0_z, coefficient00,
-				     coefficient10, coefficient20);
-	new_y = math_dot3q15_wrapped(g_cur_mat_r0_x, g_cur_mat_r0_y,
-				     g_cur_mat_r0_z, coefficient01,
-				     coefficient11, coefficient21);
-	new_z = math_dot3q15_wrapped(g_cur_mat_r0_x, g_cur_mat_r0_y,
-				     g_cur_mat_r0_z, coefficient02,
-				     coefficient12, coefficient22);
+	int new_x = math_dot3q15_wrapped(g_cur_mat_r0_x, g_cur_mat_r0_y,
+					 g_cur_mat_r0_z, coefficient00,
+					 coefficient10, coefficient20);
+	int new_y = math_dot3q15_wrapped(g_cur_mat_r0_x, g_cur_mat_r0_y,
+					 g_cur_mat_r0_z, coefficient01,
+					 coefficient11, coefficient21);
+	int new_z = math_dot3q15_wrapped(g_cur_mat_r0_x, g_cur_mat_r0_y,
+					 g_cur_mat_r0_z, coefficient02,
+					 coefficient12, coefficient22);
 	g_cur_mat_r0_x = new_x;
 	g_cur_mat_r0_y = new_y;
 	g_cur_mat_r0_z = new_z;

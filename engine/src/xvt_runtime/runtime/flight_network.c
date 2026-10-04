@@ -178,14 +178,13 @@ static void xvt_flight_network_alert(void)
 static void xvt_flight_network_loading_status(int sender)
 {
 	uint64_t now = xvt_time_get_elapsed_us() / 1000;
-	char text[256];
-	char *name;
 	if (now - g_sync.status_time <= 200) {
 		return;
 	}
 	g_sync.status_time = now;
-	name = net_session_get_player_name(
+	char *name = net_session_get_player_name(
 		net_session_find_player_slot_by_dpid(sender));
+	char text[256];
 	if (!name) {
 		strcpy(text, g_str_disk_io_messages
 				     [DISK_IO_STR_OTHER_PLAYERS_STILL_LOADING]);
@@ -246,9 +245,6 @@ static void xvt_flight_network_send_roster_record(void)
 
 int xvt_flight_network_exchange_roster(void)
 {
-	int sender;
-	int size;
-	int *packet;
 	if (g_sync.phase == SYNC_HOST_PLAYERS &&
 	    g_sync.answer_count >= g_sync.expected) {
 		g_sync.phase = SYNC_ROSTER_SEND;
@@ -262,7 +258,9 @@ int xvt_flight_network_exchange_roster(void)
 			xvt_flight_network_send_roster_record();
 		}
 	}
-	packet = xvt_flight_network_poll(&sender, &size, 60);
+	int sender;
+	int size;
+	int *packet = xvt_flight_network_poll(&sender, &size, 60);
 	if (!packet) {
 		if (!xvt_flight_network_expired()) {
 			return XVT_FLIGHT_NETWORK_PENDING;
@@ -314,13 +312,13 @@ int xvt_flight_network_exchange_roster(void)
 
 static void xvt_flight_network_send_options(void)
 {
+	struct xvt_flight_roster_header header;
+	xvt_wire_set32(header.opcode, NET_PACKET_PLAYER_OPTIONS_ROSTER);
+	xvt_wire_set32(header.new_net, g_flight_conf_new_net);
 	uint8_t bytes[sizeof(struct xvt_flight_roster_header) +
 		      XVT_FLIGHT_PLAYERS *
 			      sizeof(struct xvt_flight_roster_player_wire) +
 		      sizeof(struct xvt_flight_agreement_wire)];
-	struct xvt_flight_roster_header header;
-	xvt_wire_set32(header.opcode, NET_PACKET_PLAYER_OPTIONS_ROSTER);
-	xvt_wire_set32(header.new_net, g_flight_conf_new_net);
 	memcpy(bytes, &header, sizeof header);
 	size_t offset = sizeof header;
 	for (int player = 0; player < g_active_flight_player_count; ++player) {
@@ -416,9 +414,6 @@ static int xvt_flight_network_accept_roster(int sender, const void *packet,
 
 int xvt_flight_network_exchange_options(void)
 {
-	int sender;
-	int size;
-	int *packet;
 	if (!g_sync.phase) {
 		if (net_session_is_local_host() &&
 		    !xvt_flight_network_begin_agreement()) {
@@ -471,8 +466,10 @@ int xvt_flight_network_exchange_options(void)
 	    g_sync.answer_count >= net_session_count_active_players()) {
 		return xvt_flight_network_finish(1);
 	}
-	packet = xvt_flight_network_poll(&sender, &size,
-					 g_sync.phase == SYNC_TAUNTS ? 30 : 60);
+	int sender;
+	int size;
+	int *packet = xvt_flight_network_poll(
+		&sender, &size, g_sync.phase == SYNC_TAUNTS ? 30 : 60);
 	if (!packet) {
 		return xvt_flight_network_expired()
 			       ? xvt_flight_network_give_up("options")
@@ -510,9 +507,6 @@ int xvt_flight_network_exchange_options(void)
 
 int xvt_flight_network_wait_for_mission_start(void)
 {
-	int sender;
-	int size;
-	int *packet;
 	if (!g_sync.phase) {
 		flight_net_reset_world_message_schedule();
 		g_net_update_interval_ticks = XVT_WORLD_MESSAGE_TICKS;
@@ -571,7 +565,9 @@ int xvt_flight_network_wait_for_mission_start(void)
 		}
 		return xvt_flight_network_finish(1);
 	}
-	packet = xvt_flight_network_poll(&sender, &size, 60);
+	int sender;
+	int size;
+	int *packet = xvt_flight_network_poll(&sender, &size, 60);
 	if (!packet) {
 		return xvt_flight_network_expired()
 			       ? xvt_flight_network_give_up("start")
@@ -655,10 +651,10 @@ int xvt_flight_network_send_packet(int dpid, const unsigned *packet, int size)
 	    !xvt_flight_network_has_cookie(packet[0])) {
 		return net_session_send_packet(dpid, (unsigned *)packet, size);
 	}
-	unsigned copy[XVT_FLIGHT_PACKET_BYTES / sizeof(unsigned)];
 	if (size > XVT_FLIGHT_PACKET_BYTES - (int)sizeof(xvt_wire_u32)) {
 		return 0;
 	}
+	unsigned copy[XVT_FLIGHT_PACKET_BYTES / sizeof(unsigned)];
 	memcpy(copy, packet, size);
 	xvt_wire_set32((uint8_t *)copy + size, g_mission_cookie);
 	return net_session_send_packet(dpid, copy,
@@ -672,10 +668,10 @@ int xvt_flight_network_broadcast(const unsigned *packet, int size)
 		return net_session_broadcast_packet_to_players(
 			(unsigned *)packet, size);
 	}
-	unsigned copy[XVT_FLIGHT_PACKET_BYTES / sizeof(unsigned)];
 	if (size > XVT_FLIGHT_PACKET_BYTES - (int)sizeof(xvt_wire_u32)) {
 		return 0;
 	}
+	unsigned copy[XVT_FLIGHT_PACKET_BYTES / sizeof(unsigned)];
 	memcpy(copy, packet, size);
 	xvt_wire_set32((uint8_t *)copy + size, g_mission_cookie);
 	return net_session_broadcast_packet_to_players(
@@ -1100,12 +1096,12 @@ int xvt_flight_network_receive(int sender, const uint8_t *bytes, size_t size)
 			count ? xvt_wire_get32(records[0].tick) : 0u,
 			count ? xvt_wire_get32(records[count - 1].tick) : 0u);
 		for (unsigned i = 0; i < count; ++i) {
-			int tick;
-			struct flight_input_frame_record input;
 			struct xvt_flight_input_wire record;
 			memcpy(&record,
 			       bytes + sizeof header + i * sizeof record,
 			       sizeof record);
+			int tick;
+			struct flight_input_frame_record input;
 			xvt_flight_wire_decode_input(&record, &tick, &input);
 			if (!xvt_flight_network_record_input(player, tick,
 							     &input, 0)) {
@@ -1189,7 +1185,6 @@ uint64_t xvt_flight_network_next_wake_delay_us(int now)
 
 int xvt_flight_network_take_world_send_turn(int input_timestamp)
 {
-	int interval = XVT_WORLD_MESSAGE_TICKS;
 	if (xvt_flight_network_outgoing() ||
 	    xvt_flight_network_needs_recovery() ||
 	    xvt_resync_has_state_request() ||
@@ -1207,6 +1202,7 @@ int xvt_flight_network_take_world_send_turn(int input_timestamp)
 				    XVT_WORLD_START_LEAD_SHIFT);
 	}
 	int elapsed = adjusted - g_flight_net_world_message_turn_timestamp;
+	int interval = XVT_WORLD_MESSAGE_TICKS;
 	if (elapsed < interval) {
 		return 0;
 	}

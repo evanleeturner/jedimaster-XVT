@@ -35,40 +35,23 @@ int model_texture_is_hardware_format555(void)
 // FUNCTION: XVT 0x40DD50
 void model_texture_filter_hardware_palette(uint16_t *palette)
 {
-	uint16_t *entry;
-	int red;
-	int plane_index;
-	uint16_t *comparison_entry;
-	int blue_delta;
-	int green_delta;
-	int red_delta;
-	int color_magnitude;
-	int color_distance;
-	int cleared_count;
-	int palette_index;
-	int first_cleared_index;
-	int blue;
-	int green;
-	uint16_t color;
-	uint16_t comparison_color;
-
 	if (g_texture_resolution_level != 2) {
 		palette[2304] = 0;
 		return;
 	}
 	{
-		cleared_count = 0;
-		palette_index = 0;
-		first_cleared_index = -1;
-		entry = palette;
+		int cleared_count = 0;
+		int palette_index = 0;
+		int first_cleared_index = -1;
+		uint16_t *entry = palette;
 		do {
-			color = *entry;
-			blue = color & 0x1F;
+			uint16_t color = *entry;
+			int blue = color & 0x1F;
 			color >>= 6;
-			green = color & 0x1F;
+			int green = color & 0x1F;
 			color >>= 5;
-			red = color & 0x1F;
-			color_magnitude = blue * blue;
+			int red = color & 0x1F;
+			int color_magnitude = blue * blue;
 			color_magnitude += green * green;
 			color_magnitude += red * red;
 			if (color_magnitude < 32) {
@@ -78,20 +61,22 @@ void model_texture_filter_hardware_palette(uint16_t *palette)
 					first_cleared_index = palette_index;
 				}
 			} else {
-				plane_index = 1;
-				comparison_entry = entry + 256;
+				int plane_index = 1;
+				uint16_t *comparison_entry = entry + 256;
 				for (;;) {
-					comparison_color = *comparison_entry;
-					blue_delta = (comparison_color & 0x1F) -
-						     blue;
+					uint16_t comparison_color =
+						*comparison_entry;
+					int blue_delta =
+						(comparison_color & 0x1F) -
+						blue;
 					comparison_color >>= 6;
-					green_delta =
+					int green_delta =
 						(comparison_color & 0x1F) -
 						green;
 					comparison_color >>= 5;
-					red_delta =
+					int red_delta =
 						(comparison_color & 0x1F) - red;
-					color_distance =
+					int color_distance =
 						blue_delta * blue_delta;
 					color_distance +=
 						green_delta * green_delta;
@@ -146,33 +131,25 @@ void model_texture_build_paletted_shade_table(uint8_t *dst,
 					      const uint8_t *rgb24, int width,
 					      int height)
 {
-	uint8_t target_rgb[3];
 	uint8_t local_palette[256 * 3];
-	unsigned int palette_size;
-	const uint8_t *source_pixel;
-	int pixel_count;
-	uint8_t *dst_texel;
 
-	source_pixel = rgb24;
+	const uint8_t *source_pixel = rgb24;
 	local_palette[0] = source_pixel[2] >> 3;
-	palette_size = 1;
+	unsigned int palette_size = 1;
 	local_palette[1] = source_pixel[1] >> 3;
-	pixel_count = width * height;
+	int pixel_count = width * height;
 	local_palette[2] = source_pixel[0] >> 3;
 	source_pixel += 3;
-	dst_texel = dst + 1;
+	uint8_t *dst_texel = dst + 1;
 	dst[0] = 0;
+	uint8_t target_rgb[3];
 	if ((unsigned int)pixel_count > 1) {
-		int remaining_pixels;
-
-		remaining_pixels = pixel_count - 1;
+		int remaining_pixels = pixel_count - 1;
 		do {
-			uint8_t palette_index;
-
 			target_rgb[0] = source_pixel[2] >> 3;
 			target_rgb[1] = source_pixel[1] >> 3;
 			target_rgb[2] = source_pixel[0] >> 3;
-			palette_index =
+			uint8_t palette_index =
 				(uint8_t)color_find_nearest_rgb_triplet_index(
 					target_rgb, local_palette, 0,
 					palette_size);
@@ -198,21 +175,14 @@ void model_texture_build_paletted_shade_table(uint8_t *dst,
 	}
 
 	{
-		const uint8_t *palette_entry;
-		uint16_t *packed_shade_entry;
-		uint8_t *indexed_shade_entry;
-
-		palette_entry = local_palette;
-		indexed_shade_entry = &dst[pixel_count];
-		packed_shade_entry = (uint16_t *)&dst[pixel_count + 4096];
+		const uint8_t *palette_entry = local_palette;
+		uint8_t *indexed_shade_entry = &dst[pixel_count];
+		uint16_t *packed_shade_entry =
+			(uint16_t *)&dst[pixel_count + 4096];
 		do {
-			unsigned int shade;
-			uint16_t *packed_entry;
-			uint8_t *indexed_entry;
-
-			shade = 0;
-			packed_entry = packed_shade_entry;
-			indexed_entry = indexed_shade_entry;
+			unsigned int shade = 0;
+			uint16_t *packed_entry = packed_shade_entry;
+			uint8_t *indexed_entry = indexed_shade_entry;
 			do {
 				int palette_component;
 				int scaled_component;
@@ -246,10 +216,8 @@ void model_texture_build_paletted_shade_table(uint8_t *dst,
 						((scaled_component & 0xFFFFF8)
 						 << 4);
 				} else {
-					unsigned int light_shade;
-
 					palette_component = palette_entry[0];
-					light_shade = shade - 8;
+					unsigned int light_shade = shade - 8;
 					scaled_component =
 						light_shade *
 						(31 - palette_component);
@@ -323,16 +291,12 @@ void model_texture_build_paletted_shade_table(uint8_t *dst,
 // FUNCTION: XVT 0x479E80
 size_t model_texture_load_rgb_or_tex_file(uint8_t *dst, const char *file_name)
 {
-	uint8_t target_rgb[3];
 	char path[256];
-	uint8_t local_palette[256 * 3];
-	char *extension;
-	xvt_file *stream;
-	uint8_t *texels;
-	int pixel_count;
 
 	strcpy(path, file_name);
-	extension = path + strlen(path) - 3;
+	char *extension = path + strlen(path) - 3;
+	xvt_file *stream;
+	int pixel_count;
 	if (_strcmpi(extension, g_ext_rgb) == 0) {
 		extension[0] = 't';
 		extension[1] = 'e';
@@ -360,22 +324,13 @@ size_t model_texture_load_rgb_or_tex_file(uint8_t *dst, const char *file_name)
 				return 12376;
 			}
 			{
-				const uint8_t *palette_entry;
-				uint16_t *packed_shade_entry;
-				uint8_t *indexed_shade_entry;
-				uint8_t *serialized_end;
-				uint8_t *dst_texel;
-				uint8_t *source_pixel;
-				int remaining_pixels;
-				int palette_size;
-				int height;
-				int width;
-
 				FILE_RAW_READ(dst, 512, 1, stream);
-				width = ((unsigned int)dst[6] << 8) + dst[7];
-				height = ((unsigned int)dst[8] << 8) + dst[9];
+				int width =
+					((unsigned int)dst[6] << 8) + dst[7];
+				int height =
+					((unsigned int)dst[8] << 8) + dst[9];
 				pixel_count = width * height;
-				source_pixel = dst + 24;
+				uint8_t *source_pixel = dst + 24;
 				((unsigned int *)dst)[4] = width;
 				((unsigned int *)dst)[5] = height;
 				FILE_RAW_READ(source_pixel, pixel_count, 3,
@@ -383,21 +338,22 @@ size_t model_texture_load_rgb_or_tex_file(uint8_t *dst, const char *file_name)
 				FILE_RAW_CLOSE(stream);
 
 				/* The three colour planes are converted to palette indices in place. */
-				palette_size = 1;
+				int palette_size = 1;
+				uint8_t local_palette[256 * 3];
 				local_palette[0] = source_pixel[0] >> 3;
 				local_palette[1] =
 					source_pixel[pixel_count] >> 3;
 				local_palette[2] =
 					source_pixel[pixel_count * 2] >> 3;
-				serialized_end = source_pixel + pixel_count;
+				uint8_t *serialized_end =
+					source_pixel + pixel_count;
 				dst[24] = 0;
 				++source_pixel;
-				dst_texel = source_pixel;
+				uint8_t *dst_texel = source_pixel;
+				uint8_t target_rgb[3];
 				if (pixel_count > 1) {
-					remaining_pixels = pixel_count - 1;
+					int remaining_pixels = pixel_count - 1;
 					do {
-						uint8_t palette_index;
-
 						target_rgb[0] =
 							source_pixel[0] >> 3;
 						target_rgb[1] =
@@ -409,7 +365,7 @@ size_t model_texture_load_rgb_or_tex_file(uint8_t *dst, const char *file_name)
 								[pixel_count *
 								 2] >>
 							3;
-						palette_index = (uint8_t)
+						uint8_t palette_index = (uint8_t)
 							color_find_nearest_rgb_triplet_index(
 								target_rgb,
 								local_palette,
@@ -445,21 +401,20 @@ size_t model_texture_load_rgb_or_tex_file(uint8_t *dst, const char *file_name)
 					} while (remaining_pixels != 0);
 				}
 
-				indexed_shade_entry = serialized_end;
+				uint8_t *indexed_shade_entry = serialized_end;
 				serialized_end += 4096;
-				packed_shade_entry = (uint16_t *)serialized_end;
+				uint16_t *packed_shade_entry =
+					(uint16_t *)serialized_end;
 				serialized_end += 8192;
 				((unsigned int *)dst)[0] = 256;
 				((unsigned int *)dst)[1] = 16;
-				palette_entry = local_palette;
+				const uint8_t *palette_entry = local_palette;
 				do {
-					int shade;
-					uint16_t *packed_entry;
-					uint8_t *indexed_entry;
-
-					shade = 0;
-					indexed_entry = indexed_shade_entry;
-					packed_entry = packed_shade_entry;
+					int shade = 0;
+					uint8_t *indexed_entry =
+						indexed_shade_entry;
+					uint16_t *packed_entry =
+						packed_shade_entry;
 					do {
 						int palette_component;
 						int scaled_component;
@@ -611,7 +566,7 @@ size_t model_texture_load_rgb_or_tex_file(uint8_t *dst, const char *file_name)
 		}
 	}
 
-	texels = dst + 24;
+	uint8_t *texels = dst + 24;
 	FILE_RAW_READ(dst, 24, 1, stream);
 	pixel_count = ((unsigned int *)dst)[4] * ((unsigned int *)dst)[5];
 	if (((unsigned int *)dst)[2] == (unsigned int)pixel_count) {

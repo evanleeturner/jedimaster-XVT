@@ -186,8 +186,6 @@ int g_skip_movie_checks = 0;
 // FUNCTION: XVT 0x4BDB90
 int frontend_load_resources(void)
 {
-	struct RECT cursor_rect;
-
 	g_game_main_skip_intro_relaunch_gate = 1;
 	g_skip_movie_checks = 0;
 	frontend_check_host_cd_present();
@@ -205,6 +203,7 @@ int frontend_load_resources(void)
 	front_image_load_resource_list("frontres\\promo.lst");
 	front_image_load_resource_list("frontres\\icons.lst");
 	frontend_sound_load_list("sfx\\sfx.lst");
+	struct RECT cursor_rect;
 	front_image_get_resource_rect("cursor", &cursor_rect);
 	if (g_cursor_save_buffer != NULL) {
 		free(g_cursor_save_buffer);
@@ -321,17 +320,13 @@ int frontend_handle_common_screen_controls(int screen_context)
 		CONFIG_PACKET_SIZE = 19 * sizeof(int),
 	};
 
-	int action_triggered;
-	int transition_needs_session_shutdown;
+	int transition_needs_session_shutdown = 0;
 	int mouse_x;
 	int mouse_y;
-	struct RECT rect;
-	struct RECT screen_rect;
-	const char *tooltip_text;
-
-	transition_needs_session_shutdown = 0;
 	frontend_cursor_get_pos(&mouse_x, &mouse_y);
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 610, 445, 634, 469);
+	int action_triggered;
 	if (g_game_config.help_on != 0) {
 		front_image_draw_sprite("helpdown", 610, 445);
 		action_triggered = frontend_button_handle_sprite_button(
@@ -605,6 +600,7 @@ int frontend_handle_common_screen_controls(int screen_context)
 	frontend_draw_rect_assign(&rect, 503, 4, 581, 56);
 	frontend_button_set_overlay_text(
 		frontend_string_get(FRONTSTR_567_CONFIG));
+	struct RECT screen_rect;
 	if (g_frontend_mission_session_mode == NEVER_STORED_SESSION_MODE ||
 	    screen_context == SCREEN_CONTEXT_CONFIG) {
 		frontend_button_use_pressed_overlay_style();
@@ -711,6 +707,7 @@ int frontend_handle_common_screen_controls(int screen_context)
 		frontend_draw_rect_assign(&rect, 390, 4, 496, 43);
 		frontend_button_set_overlay_text(
 			frontend_string_get(FRONTSTR_003_JOIN_GAME));
+		const char *tooltip_text;
 		switch (g_game_config.network_type) {
 		case NET_TRANSPORT_IPX:
 			if (g_game_config.internet_play != 0) {
@@ -1443,13 +1440,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 // FUNCTION: XVT 0x4C9BF0
 int frontend_format_seconds_to_clock_string(unsigned int seconds)
 {
-	unsigned int hours;
-	unsigned int minutes;
-	unsigned int seconds_remainder;
-
-	seconds_remainder = seconds % 60u;
-	minutes = seconds / 60u % 60u;
-	hours = seconds / 3600u;
+	unsigned int seconds_remainder = seconds % 60u;
+	unsigned int minutes = seconds / 60u % 60u;
+	unsigned int hours = seconds / 3600u;
 	if (hours == 0) {
 		return sprintf(g_frontend_scratch_buffer, "%02d:%02d", minutes,
 			       seconds_remainder);
@@ -1469,17 +1462,13 @@ int frontend_format_seconds_to_clock_string(unsigned int seconds)
 // FUNCTION: XVT 0x4C9E30
 int error_text_load_line(int line_index, char *out_text)
 {
-	xvt_file *stream;
-	int lines_remaining;
-	char *line;
-	int i;
-	char value;
 #ifdef XVT_MODERN
 	char buffer[512];
 #else
 	char buffer[256];
 #endif
 
+	xvt_file *stream;
 #ifdef XVT_MODERN
 	stream = file_open("xvterr.txt", "r");
 #else
@@ -1488,8 +1477,9 @@ int error_text_load_line(int line_index, char *out_text)
 	if (stream == 0) {
 		return 0;
 	}
+	char *line;
 	if (line_index >= 0) {
-		lines_remaining = line_index + 1;
+		int lines_remaining = line_index + 1;
 		do {
 			line = FILE_GETS(buffer, 512, stream);
 			--lines_remaining;
@@ -1509,8 +1499,8 @@ int error_text_load_line(int line_index, char *out_text)
 	if (line == 0) {
 		return 0;
 	}
-	for (i = 0; i < 255; ++i) {
-		value = buffer[i];
+	for (int i = 0; i < 255; ++i) {
+		char value = buffer[i];
 		if (value == '\\' && buffer[i + 1] == 'n') {
 			*out_text++ = '\n';
 			++i;
@@ -1537,17 +1527,14 @@ int frontend_check_host_cd_present(void)
 	return g_host_cd_available;
 #else
 
-	char file_name[128] = "c\\train\\1TA01BF.TIE\0";
-	char cd_drive_letter;
-	xvt_file *stream;
-	int result;
-
-	cd_drive_letter = file_get_cd_drive_letter();
+	char cd_drive_letter = file_get_cd_drive_letter();
 	if (cd_drive_letter == 0) {
 		return 0;
 	}
+	char file_name[128] = "c\\train\\1TA01BF.TIE\0";
 	file_name[0] = cd_drive_letter;
-	stream = FILE_RAW_OPEN(file_name, "rb");
+	xvt_file *stream = FILE_RAW_OPEN(file_name, "rb");
+	int result;
 	if (stream != 0) {
 		FILE_RAW_CLOSE(stream);
 		result = 1;
@@ -1584,15 +1571,12 @@ int frontend_is_scrollable_control_focused(int control_id)
 // FUNCTION: XVT 0x4D9BA0
 int frontend_register_scrollable_control(int control_id)
 {
-	int count;
-	unsigned int index;
-
-	count = g_scrollable_control_count;
+	int count = g_scrollable_control_count;
 	if ((unsigned int)count >= 32u) {
 		return 0;
 	}
 
-	index = 0;
+	unsigned int index = 0;
 	while (index < (unsigned int)count) {
 		if (g_scrollable_control_ids[index] == control_id) {
 			return 1;
@@ -1615,12 +1599,9 @@ int frontend_register_scrollable_control(int control_id)
 // FUNCTION: XVT 0x4D9BF0
 int frontend_unregister_scrollable_control(int control_id)
 {
-	int count;
-	unsigned int index;
-
-	index = 0;
+	unsigned int index = 0;
 	if (index != (unsigned int)g_scrollable_control_count) {
-		count = g_scrollable_control_count;
+		int count = g_scrollable_control_count;
 		do {
 			if (g_scrollable_control_ids[index] == control_id) {
 #ifdef XVT_MODERN
@@ -1652,13 +1633,11 @@ int frontend_unregister_scrollable_control(int control_id)
 // FUNCTION: XVT 0x4D9C50
 int frontend_cycle_scrollable_focus(void)
 {
-	int first_control_id;
-
 	if (g_scrollable_control_count == 0) {
 		return 0;
 	}
 
-	first_control_id = g_scrollable_control_ids[0];
+	int first_control_id = g_scrollable_control_ids[0];
 #ifdef XVT_MODERN
 	/* The source and destination overlap, so modern builds require memmove. */
 	memmove(g_scrollable_control_ids, &g_scrollable_control_ids[1],

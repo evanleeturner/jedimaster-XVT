@@ -85,7 +85,6 @@ void flight_object_update_special_behavior(void)
 		X_WING_LOWER_MAX_ROTATION = 8,
 	};
 
-	uint16_t object_index;
 #ifdef XVT_MODERN
 	struct xvt_flight_clock animation_clock;
 #endif
@@ -107,7 +106,8 @@ void flight_object_update_special_behavior(void)
 #endif
 	g_flight_global_countdown_timers.special_behavior_update_timer =
 		SPECIAL_BEHAVIOR_UPDATE_TICKS;
-	for (object_index = (uint16_t)g_active_region_object_slot_start;
+	for (uint16_t object_index =
+		     (uint16_t)g_active_region_object_slot_start;
 	     object_index <
 	     g_region_main_object_slot_end + g_region_static_object_slot_count;
 	     ++object_index) {
@@ -137,17 +137,16 @@ void flight_object_update_special_behavior(void)
 		}
 
 		if (g_object_table[object_index].mobj != NULL) {
-			uint16_t object_type;
-			struct craft_data *craft;
-
-			object_type = g_object_table[object_index].object_type;
+			uint16_t object_type =
+				g_object_table[object_index].object_type;
 			if (object_type == 0) {
 				continue;
 			}
 			g_billboard_texture_frame_sequence =
 				g_object_type_table[object_type]
 					.texture_frame_sequence;
-			craft = g_object_table[object_index].mobj->p_craft;
+			struct craft_data *craft =
+				g_object_table[object_index].mobj->p_craft;
 			switch (g_object_table[object_index].genus_id) {
 			case CRAFT_GENUS_STARFIGHTER:
 			case CRAFT_GENUS_TRANSPORT:
@@ -156,9 +155,6 @@ void flight_object_update_special_behavior(void)
 			case CRAFT_GENUS_STARSHIP:
 			case CRAFT_GENUS_PLATFORM: {
 				uint16_t mesh_count;
-				int16_t s_foil_mesh_moved;
-				int allow_system_rotation;
-				uint16_t mesh_index;
 
 				if (object_type < FIRST_DYNAMIC_MODEL_TYPE) {
 					mesh_count =
@@ -170,13 +166,12 @@ void flight_object_update_special_behavior(void)
 						model_mesh_get_object_type_mesh_count(
 							object_type);
 				}
-				s_foil_mesh_moved = 0;
+				int16_t s_foil_mesh_moved = 0;
 				g_cur_craft = g_object_table[object_index]
 						      .mobj->p_craft;
+				int allow_system_rotation;
 				if (g_cur_craft->working_subsystems != 0) {
-					const char *plan_name;
-
-					plan_name =
+					const char *plan_name =
 						g_plan_table
 							[g_cur_craft
 								 ->ai_controller
@@ -195,18 +190,10 @@ void flight_object_update_special_behavior(void)
 				}
 
 				if (allow_system_rotation != 0) {
-					int weapon_slot_index;
-
-					for (weapon_slot_index = 0;
+					for (int weapon_slot_index = 0;
 					     weapon_slot_index <
 					     g_cur_craft->laser_slot_count;
 					     ++weapon_slot_index) {
-						unsigned int turret_mesh_index;
-						mesh_component_type
-							turret_mesh_type;
-						struct turret_target_state
-							*turret_target;
-
 						if (g_cur_craft
 							    ->weapon_slots
 								    [weapon_slot_index]
@@ -214,7 +201,7 @@ void flight_object_update_special_behavior(void)
 						    TURRET_PROJECTILE_TYPE) {
 							continue;
 						}
-						turret_mesh_index =
+						unsigned int turret_mesh_index =
 							g_model_defs[g_cur_craft
 									     ->model_index]
 								.weapon_hardpoints
@@ -225,6 +212,8 @@ void flight_object_update_special_behavior(void)
 						    0) {
 							continue;
 						}
+						mesh_component_type
+							turret_mesh_type;
 						if (object_type <
 						    FIRST_DYNAMIC_MODEL_TYPE) {
 							turret_mesh_type = model_mesh_get_cached_object_type_mesh_type(
@@ -240,25 +229,17 @@ void flight_object_update_special_behavior(void)
 							continue;
 						}
 
-						turret_target =
+						struct turret_target_state *turret_target =
 							&g_cur_craft->turret_target_states
 								 [weapon_slot_index];
 						if (turret_target
 							    ->target_obj_idx !=
 						    UINT16_MAX) {
-							struct object_record
-								*object;
-							float *rotation_scale;
-							int turret_side;
-							int turret_forward;
-							int turret_up;
-							int target_along_axis_y;
-							int target_along_axis_x;
-
-							rotation_scale = model_mesh_get_rot_scale_data(
-								object_type,
-								turret_mesh_index);
-							object =
+							float *rotation_scale =
+								model_mesh_get_rot_scale_data(
+									object_type,
+									turret_mesh_index);
+							struct object_record *object =
 								&g_object_table
 									[object_index];
 							mission_resolve_object_or_mission_point_world_loc(
@@ -283,7 +264,7 @@ void flight_object_update_special_behavior(void)
 									0,
 									object);
 							}
-							turret_side = math_dot3q15(
+							int turret_side = math_dot3q15(
 								g_world_loc_x,
 								g_world_loc_y,
 								g_world_loc_z,
@@ -293,7 +274,7 @@ void flight_object_update_special_behavior(void)
 									->cached_side_y,
 								object->mobj
 									->cached_side_z);
-							turret_forward = -math_dot3q15(
+							int turret_forward = -math_dot3q15(
 								g_world_loc_x,
 								g_world_loc_y,
 								g_world_loc_z,
@@ -303,7 +284,7 @@ void flight_object_update_special_behavior(void)
 									->cached_fwd_y,
 								object->mobj
 									->cached_fwd_z);
-							turret_up = math_dot3q15(
+							int turret_up = math_dot3q15(
 								g_world_loc_x,
 								g_world_loc_y,
 								g_world_loc_z,
@@ -335,7 +316,7 @@ void flight_object_update_special_behavior(void)
 									[4],
 								(int)rotation_scale
 									[5]);
-							target_along_axis_x = math_dot3q15(
+							int target_along_axis_x = math_dot3q15(
 								g_world_loc_x,
 								g_world_loc_y,
 								g_world_loc_z,
@@ -345,7 +326,7 @@ void flight_object_update_special_behavior(void)
 									[7],
 								(int)rotation_scale
 									[8]);
-							target_along_axis_y = math_dot3q15(
+							int target_along_axis_y = math_dot3q15(
 								g_world_loc_x,
 								g_world_loc_y,
 								g_world_loc_z,
@@ -362,9 +343,7 @@ void flight_object_update_special_behavior(void)
 										  target_along_axis_x) >>
 									  8);
 						} else {
-							uint8_t rotation;
-
-							rotation =
+							uint8_t rotation =
 								g_cur_craft->mesh_rotation
 									[turret_mesh_index];
 							if ((rotation & 1) !=
@@ -389,8 +368,8 @@ void flight_object_update_special_behavior(void)
 					}
 				}
 
-				for (mesh_index = 0; mesh_index < mesh_count;
-				     ++mesh_index) {
+				for (uint16_t mesh_index = 0;
+				     mesh_index < mesh_count; ++mesh_index) {
 					mesh_component_type mesh_type;
 
 					if (object_type <
@@ -407,9 +386,7 @@ void flight_object_update_special_behavior(void)
 					}
 					if (mesh_type ==
 					    MESH_COMPONENT_03_FUSELAGE) {
-						uint8_t *animation_state;
-
-						animation_state =
+						uint8_t *animation_state =
 							&craft->component_state
 								 [mesh_count];
 						g_billboard_texture_frame_sequence =
@@ -454,9 +431,7 @@ void flight_object_update_special_behavior(void)
 						     MESH_COMPONENT_13_COMM_SYS ||
 					     mesh_type ==
 						     MESH_COMPONENT_25_COMM_SYS)) {
-						uint8_t rotation;
-
-						rotation =
+						uint8_t rotation =
 							g_cur_craft->mesh_rotation
 								[mesh_index];
 						if ((rotation & 1) != 0) {
@@ -515,14 +490,10 @@ void flight_object_update_special_behavior(void)
 						    0) {
 							if (object_type ==
 							    X_WING_OBJECT_TYPE) {
-								int center_z;
-								uint16_t
-									max_rotation;
-
-								center_z = model_mesh_get_center_z(
+								int center_z = model_mesh_get_center_z(
 									object_type,
 									mesh_index);
-								max_rotation =
+								uint16_t max_rotation =
 									X_WING_LOWER_MAX_ROTATION;
 								if (center_z >=
 								    0) {
@@ -636,9 +607,8 @@ void flight_object_update_special_behavior(void)
 				break;
 			}
 		} else {
-			uint16_t object_type;
-
-			object_type = g_object_table[object_index].object_type;
+			uint16_t object_type =
+				g_object_table[object_index].object_type;
 			if (object_type != 0) {
 				g_billboard_texture_frame_sequence =
 					g_object_type_table[object_type]
@@ -672,21 +642,19 @@ void flight_object_update_special_behavior(void)
 // FUNCTION: XVT 0x4021A0
 void flight_object_advance_texture_frame_sequence(unsigned int object_idx)
 {
-	int16_t sequence_value;
-	struct mobile_object *mobile_object;
-
 	if (g_billboard_texture_frame_sequence == NULL) {
 		return;
 	}
 
 	++g_billboard_texture_sequence_index;
-	sequence_value = g_billboard_texture_frame_sequence
+	int16_t sequence_value = g_billboard_texture_frame_sequence
 		[g_billboard_texture_sequence_index];
 	if (sequence_value == -1) {
 		g_object_table[object_idx].object_type = 0;
 		if ((unsigned int)g_active_region_craft_object_slot_end >
 		    object_idx) {
-			mobile_object = g_object_table[object_idx].mobj;
+			struct mobile_object *mobile_object =
+				g_object_table[object_idx].mobj;
 			if (mobile_object->p_craft != NULL) {
 				craft_free_linked_objects(
 					mobile_object->p_craft);
@@ -736,36 +704,25 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 		ANGLE_REVERSE = 0xC000,
 	};
 
-	int object_idx;
-	struct object_record *player_object;
-	struct craft_data *craft;
-	uint16_t tick_delta;
-	unsigned int phase_elapsed_ticks;
-	int hyperspace_phase;
-
-	object_idx = g_players[player_idx].object_index;
-	player_object = &g_object_table[object_idx];
-	craft = player_object->mobj->p_craft;
+	int object_idx = g_players[player_idx].object_index;
+	struct object_record *player_object = &g_object_table[object_idx];
+	struct craft_data *craft = player_object->mobj->p_craft;
 	if (craft->object_kind != CRAFT_OBJECT_KIND_ACTIVE) {
 		g_players[player_idx].hyperspace_phase = HYPERSPACE_PHASE_NONE;
 	}
-	tick_delta = g_elapsed_ticks;
-	phase_elapsed_ticks =
+	uint16_t tick_delta = g_elapsed_ticks;
+	unsigned int phase_elapsed_ticks =
 		g_players[player_idx].hyperspace_runtime.phase_elapsed_ticks +
 		tick_delta;
 	g_players[player_idx].hyperspace_runtime.phase_elapsed_ticks =
 		phase_elapsed_ticks;
-	hyperspace_phase = g_players[player_idx].hyperspace_phase;
+	int hyperspace_phase = g_players[player_idx].hyperspace_phase;
 
 	switch (hyperspace_phase) {
 	case HYPERSPACE_PHASE_ALIGN: {
-		int16_t yaw;
-		int16_t roll;
-		int16_t pitch;
-
-		roll = player_object->roll;
-		yaw = player_object->yaw;
-		pitch = player_object->pitch;
+		int16_t roll = player_object->roll;
+		int16_t yaw = player_object->yaw;
+		int16_t pitch = player_object->pitch;
 		if (roll == 0 && pitch == ANGLE_FORWARD && yaw == 0) {
 			if (phase_elapsed_ticks >= HYPERSPACE_PHASE_DURATION) {
 				g_players[player_idx].hyperspace_phase =
@@ -778,9 +735,7 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 					.phase_elapsed_ticks = 0;
 			}
 		} else {
-			int16_t angle_step;
-
-			angle_step = (int16_t)(16 * g_elapsed_ticks);
+			int16_t angle_step = (int16_t)(16 * g_elapsed_ticks);
 			if ((uint16_t)roll < ANGLE_HALF_TURN) {
 				roll = (int16_t)(roll - 2 * angle_step);
 				if ((uint16_t)roll >= ANGLE_HALF_TURN) {
@@ -839,43 +794,36 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 
 	{
 		if (phase_elapsed_ticks < HYPERSPACE_PHASE_DURATION) {
-			int16_t obstruction_detected;
-			int candidate_object_type;
-
-			obstruction_detected = 0;
+			int16_t obstruction_detected = 0;
 			object_idx = g_players[player_idx].object_index;
 			if (phase_elapsed_ticks <= tick_delta) {
 				int16_t candidate_idx;
 
+				int candidate_object_type;
 				for (candidate_idx = (int16_t)
 					     g_active_region_object_slot_start;
 				     candidate_idx <
 				     g_active_region_craft_object_slot_end;
 				     ++candidate_idx) {
-					struct object_record *candidate;
-					struct object_record
-						*player_craft_object;
-					int delta_x;
-					int delta_y;
-					int delta_z;
-					int candidate_extent;
-					int player_extent;
-
-					candidate =
+					struct object_record *candidate =
 						&g_object_table[candidate_idx];
 					if (candidate->object_type != 0) {
-						player_craft_object =
-							&g_object_table
-								[object_idx];
-						delta_x = candidate->world_x -
-							  player_craft_object
-								  ->world_x;
-						delta_y = candidate->world_y -
-							  player_craft_object
-								  ->world_y;
-						delta_z = candidate->world_z -
-							  player_craft_object
-								  ->world_z;
+						struct object_record
+							*player_craft_object =
+								&g_object_table
+									[object_idx];
+						int delta_x =
+							candidate->world_x -
+							player_craft_object
+								->world_x;
+						int delta_y =
+							candidate->world_y -
+							player_craft_object
+								->world_y;
+						int delta_z =
+							candidate->world_z -
+							player_craft_object
+								->world_z;
 						if (delta_x < 0) {
 							delta_x = -delta_x;
 						}
@@ -884,13 +832,13 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 						}
 						candidate_object_type =
 							candidate->object_type;
-						candidate_extent =
+						int candidate_extent =
 							g_object_type_table
 								[candidate_object_type]
 									.max_bounds_extent;
 						delta_x -= candidate_extent;
 						delta_z -= candidate_extent;
-						player_extent =
+						int player_extent =
 							g_object_type_table
 								[player_craft_object
 									 ->object_type]
@@ -907,44 +855,33 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 					}
 				}
 				if (obstruction_detected == 0) {
-					int static_object_slot_end;
-
 					candidate_idx = (int16_t)
 						g_region_main_object_slot_end;
-					static_object_slot_end =
+					int static_object_slot_end =
 						g_region_main_object_slot_end +
 						g_region_static_object_slot_count;
 					for (; candidate_idx <
 					       static_object_slot_end;
 					     ++candidate_idx) {
-						struct object_record *candidate;
-						struct object_record
-							*player_craft_object;
-						int delta_x;
-						int delta_y;
-						int delta_z;
-						int candidate_extent;
-						int player_extent;
-
-						candidate =
+						struct object_record *candidate =
 							&g_object_table
 								[candidate_idx];
 						if (candidate->object_type !=
 						    0) {
-							player_craft_object =
+							struct object_record *player_craft_object =
 								&g_object_table
 									[object_idx];
-							delta_x =
+							int delta_x =
 								candidate
 									->world_x -
 								player_craft_object
 									->world_x;
-							delta_y =
+							int delta_y =
 								candidate
 									->world_y -
 								player_craft_object
 									->world_y;
-							delta_z =
+							int delta_z =
 								candidate
 									->world_z -
 								player_craft_object
@@ -960,7 +897,7 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 							candidate_object_type =
 								candidate
 									->object_type;
-							candidate_extent =
+							int candidate_extent =
 								g_object_type_table
 									[candidate_object_type]
 										.max_bounds_extent;
@@ -968,7 +905,7 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 								candidate_extent;
 							delta_z -=
 								candidate_extent;
-							player_extent =
+							int player_extent =
 								g_object_type_table
 									[player_craft_object
 										 ->object_type]
@@ -990,18 +927,14 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 			}
 
 			if (obstruction_detected != 0) {
-				int current_object_idx;
-				uint8_t object_type;
-				int use_rebel_craft_sound;
-
 				msg_emit_in_flight_message(
 					IFMSG_112_OBJECT_DETECTED_IN_JUMP_PATH_HYPERSPACE_JUMP_ABORTED,
 					player_idx);
-				current_object_idx =
+				int current_object_idx =
 					g_players[player_idx].object_index;
-				use_rebel_craft_sound = 0;
+				int use_rebel_craft_sound = 0;
 				if (current_object_idx != -1) {
-					object_type =
+					uint8_t object_type =
 						g_object_table
 							[current_object_idx]
 								.object_type;
@@ -1034,9 +967,7 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 			}
 
 			{
-				uint16_t acceleration_stage;
-
-				acceleration_stage =
+				uint16_t acceleration_stage =
 					(uint16_t)(phase_elapsed_ticks /
 						   HYPERSPACE_ACCELERATION_INTERVAL);
 				if (acceleration_stage == 0) {
@@ -1063,9 +994,7 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 		}
 
 		{
-			int flight_group_idx;
-
-			flight_group_idx = player_object->flight_group_idx;
+			int flight_group_idx = player_object->flight_group_idx;
 			mission_record_craft_outcome(
 				(uint16_t)object_idx,
 				(uint16_t)flight_group_idx,
@@ -1078,10 +1007,10 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 			    g_mission_flight_groups[flight_group_idx]
 					    .fg.number_of_waves !=
 				    UNLIMITED_WAVES) {
-				model_index model_index;
-
-				model_index = get_model_index_from_type(
-					g_object_table[object_idx].object_type);
+				model_index model_index =
+					get_model_index_from_type(
+						g_object_table[object_idx]
+							.object_type);
 				g_players[player_idx]
 					.mission_stats.mission_score +=
 					MISSION_SCORE_POINT_SCALE *
@@ -1123,34 +1052,21 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 // FUNCTION: XVT 0x459850
 void flight_object_recycle_local_debris_near_player(void)
 {
-	int object_index;
-	uint16_t debris_index;
-	int delta_x;
-	int delta_y;
-	int delta_z;
-	int16_t random_offset;
-	struct object_record *player_object;
-	struct mobile_object *mobile_object;
-	int world_z;
-	int16_t offset_x;
-	int16_t offset_y;
-	int16_t offset_z;
-
-	object_index = g_players[g_local_player].object_index;
+	int object_index = g_players[g_local_player].object_index;
 	if (object_index == -1) {
 		return;
 	}
-	debris_index = g_local_debris_recycle_slot_cursor++;
+	uint16_t debris_index = g_local_debris_recycle_slot_cursor++;
 	if (g_local_debris_recycle_slot_cursor == g_local_debris_slot_end) {
 		g_local_debris_recycle_slot_cursor =
 			g_local_transient_slot_start;
 	}
-	delta_x = g_object_table[debris_index].world_x -
-		  g_object_table[object_index].world_x;
-	delta_y = g_object_table[debris_index].world_y -
-		  g_object_table[object_index].world_y;
-	delta_z = g_object_table[debris_index].world_z -
-		  g_object_table[object_index].world_z;
+	int delta_x = g_object_table[debris_index].world_x -
+		      g_object_table[object_index].world_x;
+	int delta_y = g_object_table[debris_index].world_y -
+		      g_object_table[object_index].world_y;
+	int delta_z = g_object_table[debris_index].world_z -
+		      g_object_table[object_index].world_z;
 	if (delta_x < 0) {
 		delta_x = -delta_x;
 	}
@@ -1180,28 +1096,29 @@ void flight_object_recycle_local_debris_near_player(void)
 				g_object_table[object_index].roll, 0,
 				&g_object_table[object_index]);
 		}
-		random_offset = (int16_t)((game_rand2() & 0x3FF) - 512);
-		offset_x = (int16_t)math_mul_q15(
+		int16_t random_offset = (int16_t)((game_rand2() & 0x3FF) - 512);
+		int16_t offset_x = (int16_t)math_mul_q15(
 			random_offset,
 			g_object_table[object_index].mobj->cached_side_x);
-		offset_y = (int16_t)math_mul_q15(
+		int16_t offset_y = (int16_t)math_mul_q15(
 			random_offset,
 			g_object_table[object_index].mobj->cached_side_y);
-		offset_z = (int16_t)math_mul_q15(
+		int16_t offset_z = (int16_t)math_mul_q15(
 			random_offset,
 			g_object_table[object_index].mobj->cached_side_z);
 		random_offset = (int16_t)((game_rand2() & 0x3FF) - 512);
-		player_object = &g_object_table[object_index];
+		struct object_record *player_object =
+			&g_object_table[object_index];
 		offset_x += (int16_t)math_mul_q15(
 			random_offset, player_object->mobj->cached_up_x);
 		offset_y += (int16_t)math_mul_q15(
 			random_offset, player_object->mobj->cached_up_y);
 		offset_z += (int16_t)math_mul_q15(
 			random_offset, player_object->mobj->cached_up_z);
-		mobile_object = player_object->mobj;
+		struct mobile_object *mobile_object = player_object->mobj;
 		offset_x += mobile_object->cached_fwd_x >> 4;
 		offset_y += mobile_object->cached_fwd_y >> 4;
-		world_z = player_object->world_z;
+		int world_z = player_object->world_z;
 		offset_z += mobile_object->cached_fwd_z >> 4;
 		g_object_table[debris_index].world_x =
 			player_object->world_x + offset_x;

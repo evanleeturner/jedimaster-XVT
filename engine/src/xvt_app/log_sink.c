@@ -97,25 +97,24 @@ static void xvt_log_sink_emit(const char *line, size_t length)
 static void xvt_log_sink_write(void *userdata, int category,
 			       SDL_LogPriority priority, const char *message)
 {
-	char line[XVT_LOG_SINK_LINE_CAPACITY];
-	char shortened[XVT_LOG_SINK_LINE_CAPACITY];
-	const char *event;
-	size_t event_length;
-	const char *fields;
-	size_t length;
 	(void)userdata;
 	if (!message) {
 		message = "";
 	}
+	const char *event;
+	size_t event_length;
+	const char *fields;
 	if (category != SDL_LOG_CATEGORY_APPLICATION ||
 	    !xvt_log_split_message(message, &event, &event_length, &fields)) {
 		event = "sdl";
 		event_length = 3;
 		fields = message;
 	}
+	char shortened[XVT_LOG_SINK_LINE_CAPACITY];
 	xvt_log_shorten_home(shortened, sizeof(shortened), fields,
 			     g_log_sink_home, g_log_sink_home_length);
-	length = xvt_log_format_line(
+	char line[XVT_LOG_SINK_LINE_CAPACITY];
+	size_t length = xvt_log_format_line(
 		line, sizeof(line), xvt_log_sink_ms_of_day(),
 		xvt_log_sink_letter(priority), event, event_length, shortened);
 	xvt_log_sink_emit(line, length);
@@ -132,11 +131,10 @@ static uint32_t xvt_log_sink_run_id(SDL_Time start)
 static void xvt_log_sink_emit_header_line(char *line, size_t capacity,
 					  int length)
 {
-	size_t used;
 	if (length <= 0) {
 		return;
 	}
-	used = (size_t)length < capacity ? (size_t)length : capacity - 1;
+	size_t used = (size_t)length < capacity ? (size_t)length : capacity - 1;
 	line[used - 1] = '\n';
 	xvt_log_sink_emit(line, used);
 }
@@ -145,26 +143,24 @@ static void xvt_log_sink_write_header(const struct xvt_launch_options *options,
 				      SDL_Time start)
 {
 	AeronConfig config;
-	SDL_DateTime today = {0};
-	char resources[XVT_LOG_SINK_PATH_CAPACITY];
-	char shown[3][XVT_LOG_SINK_PATH_CAPACITY];
-	char line[3 * XVT_LOG_SINK_PATH_CAPACITY + 64];
-	char *preferences;
-	char *cwd;
 	xvt_host_config_fill_aeron_config(options, &config);
+	SDL_DateTime today = {0};
 	SDL_TimeToDateTime(start, &today, false);
+	char line[3 * XVT_LOG_SINK_PATH_CAPACITY + 64];
 	xvt_log_sink_emit_header_line(
 		line, sizeof(line),
 		snprintf(line, sizeof(line),
 			 "= %s run %08x fmt 1 date %04d-%02d-%02d tz utc\n",
 			 config.app_name, (unsigned)xvt_log_sink_run_id(start),
 			 today.year, today.month, today.day));
+	char resources[XVT_LOG_SINK_PATH_CAPACITY];
 	if (!xvt_host_config_resolve_resource_root(options, resources,
 						   sizeof(resources))) {
 		resources[0] = 0;
 	}
-	preferences = SDL_GetPrefPath(config.org_name, config.app_name);
-	cwd = SDL_GetCurrentDirectory();
+	char *preferences = SDL_GetPrefPath(config.org_name, config.app_name);
+	char *cwd = SDL_GetCurrentDirectory();
+	char shown[3][XVT_LOG_SINK_PATH_CAPACITY];
 	xvt_log_shorten_home(shown[0], sizeof(shown[0]), preferences,
 			     g_log_sink_home, g_log_sink_home_length);
 	xvt_log_shorten_home(shown[1], sizeof(shown[1]), resources,
@@ -188,21 +184,17 @@ static int xvt_log_sink_default_folder(const struct xvt_launch_options *options,
 				       size_t error_capacity)
 {
 	AeronConfig config;
-	char *preferences;
-	size_t length;
-	char separator;
-	int written;
 	xvt_host_config_fill_aeron_config(options, &config);
-	preferences = SDL_GetPrefPath(config.org_name, config.app_name);
+	char *preferences = SDL_GetPrefPath(config.org_name, config.app_name);
 	if (!preferences) {
 		snprintf(error, error_capacity, "no preferences folder: %s",
 			 SDL_GetError());
 		return 0;
 	}
-	length = strlen(preferences);
+	size_t length = strlen(preferences);
 	/* SDL ends the preferences path with the system's separator; the logs folder uses the same one. */
-	separator = length ? preferences[length - 1] : '/';
-	written = snprintf(out, capacity, "%slogs", preferences);
+	char separator = length ? preferences[length - 1] : '/';
+	int written = snprintf(out, capacity, "%slogs", preferences);
 	SDL_free(preferences);
 	if (written < 0 || (size_t)written + 1 >= capacity) {
 		snprintf(error, error_capacity,
@@ -227,15 +219,14 @@ static void xvt_log_sink_prune(const char *folder, char *newest,
 {
 	int count = 0;
 	char **names = SDL_GlobDirectory(folder, "openxvt-*.log", 0, &count);
-	const char *latest = NULL;
 	size_t total = count > 0 ? (size_t)count : 0;
-	size_t expired;
 	newest[0] = 0;
 	if (!names) {
 		return;
 	}
-	expired = xvt_log_file_select_expired((const char **)names, total,
-					      XVT_LOG_FILE_KEEP);
+	size_t expired = xvt_log_file_select_expired((const char **)names,
+						     total, XVT_LOG_FILE_KEEP);
+	const char *latest = NULL;
 	for (size_t i = 0; i < total; ++i) {
 		if (xvt_log_file_is_run_name(names[i])) {
 			latest = names[i];
@@ -271,9 +262,6 @@ static int xvt_log_sink_choose_file(const struct xvt_launch_options *options,
 			? options->log_file
 			: SDL_GetEnvironmentVariable(SDL_GetEnvironment(),
 						     "OPENXVT_LOG_FILE");
-	char name[XVT_LOG_FILE_NAME_CAPACITY];
-	SDL_DateTime when = {0};
-	size_t length;
 	out[0] = 0;
 	previous[0] = 0;
 	if (chosen && chosen[0]) {
@@ -289,8 +277,10 @@ static int xvt_log_sink_choose_file(const struct xvt_launch_options *options,
 		return 0;
 	}
 	xvt_log_sink_prune(out, previous, capacity);
+	SDL_DateTime when = {0};
 	SDL_TimeToDateTime(start, &when, false);
-	length = strlen(out);
+	size_t length = strlen(out);
+	char name[XVT_LOG_FILE_NAME_CAPACITY];
 	if (!xvt_log_file_format_name(name, sizeof(name), when.year, when.month,
 				      when.day, when.hour, when.minute,
 				      when.second,
@@ -309,13 +299,12 @@ static size_t xvt_log_sink_read_tail(const char *path, char *out,
 				     size_t capacity)
 {
 	SDL_IOStream *stream = path[0] ? SDL_IOFromFile(path, "rb") : NULL;
-	Sint64 size;
-	size_t read = 0;
 	out[0] = 0;
 	if (!stream) {
 		return 0;
 	}
-	size = SDL_GetIOSize(stream);
+	Sint64 size = SDL_GetIOSize(stream);
+	size_t read = 0;
 	if (size > 0 && SDL_SeekIO(stream,
 				   size > (Sint64)(capacity - 1)
 					   ? size - (Sint64)(capacity - 1)
@@ -341,13 +330,6 @@ xvt_log_sink_judge_previous(const char *path, char *last, size_t capacity)
 int xvt_log_sink_install(const struct xvt_launch_options *options)
 {
 	AeronLogLevel level = AERON_LOG_INFO;
-	SDL_Time start = 0;
-	char path[XVT_LOG_SINK_PATH_CAPACITY];
-	char previous[XVT_LOG_SINK_PATH_CAPACITY];
-	char error[256] = {0};
-	char last[64];
-	xvt_log_file_ending previous_ending;
-	int chosen;
 	const char *name =
 		options && options->log_level
 			? options->log_level
@@ -361,11 +343,17 @@ int xvt_log_sink_install(const struct xvt_launch_options *options)
 	}
 	xvt_log_set_level(level);
 	xvt_log_sink_find_home();
+	SDL_Time start = 0;
 	SDL_GetCurrentTime(&start);
-	chosen = xvt_log_sink_choose_file(options, start, path, previous,
-					  sizeof(path), error, sizeof(error));
+	char path[XVT_LOG_SINK_PATH_CAPACITY];
+	char previous[XVT_LOG_SINK_PATH_CAPACITY];
+	char error[256] = {0};
+	int chosen =
+		xvt_log_sink_choose_file(options, start, path, previous,
+					 sizeof(path), error, sizeof(error));
+	char last[64];
 	/* The previous run's log is read before this run opens a file, which may be the same file. */
-	previous_ending =
+	xvt_log_file_ending previous_ending =
 		xvt_log_sink_judge_previous(previous, last, sizeof(last));
 	SDL_SetLogPriorities(xvt_log_sink_priority(level));
 	SDL_SetLogOutputFunction(xvt_log_sink_write, NULL);

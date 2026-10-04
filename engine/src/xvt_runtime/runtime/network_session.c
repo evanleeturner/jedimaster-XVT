@@ -65,29 +65,24 @@ int xvt_network_session_copy_player_names(
 	const struct net_player_name_message *message, char *short_name,
 	size_t short_capacity, char *long_name, size_t long_capacity)
 {
-	const char *short_end;
-	const char *long_start;
-	const char *long_end;
-	size_t short_size;
-	size_t long_size;
-	size_t remaining;
 	if (!message || !short_name || !long_name || !short_capacity ||
 	    !long_capacity) {
 		return 0;
 	}
-	short_end = memchr(message->names, 0, sizeof(message->names));
+	const char *short_end =
+		memchr(message->names, 0, sizeof(message->names));
 	if (!short_end) {
 		return 0;
 	}
-	long_start = short_end + 1;
-	remaining =
+	const char *long_start = short_end + 1;
+	size_t remaining =
 		sizeof(message->names) - (size_t)(long_start - message->names);
-	long_end = memchr(long_start, 0, remaining);
+	const char *long_end = memchr(long_start, 0, remaining);
 	if (!long_end) {
 		return 0;
 	}
-	short_size = (size_t)(short_end - message->names);
-	long_size = (size_t)(long_end - long_start);
+	size_t short_size = (size_t)(short_end - message->names);
+	size_t long_size = (size_t)(long_end - long_start);
 	if (short_size >= short_capacity) {
 		short_size = short_capacity - 1;
 	}
@@ -258,8 +253,6 @@ static int xvt_network_session_factory(void)
 {
 	const GUID *provider =
 		net_get_direct_play_service_provider_guid(NET_TRANSPORT_TCPIP);
-	IDirectPlay *temporary = NULL;
-	HRESULT result;
 	if (!provider) {
 		return 0;
 	}
@@ -314,7 +307,8 @@ static int xvt_network_session_factory(void)
 	strcpy(g_front_state.net_players[0].long_name, g_session.rating_text);
 	strcpy(g_front_state.net_players[0].player_name, g_session.player_name);
 	strcpy(g_front_state.net_session_name, g_session.name);
-	result = DirectPlayCreate(provider, &temporary, NULL);
+	IDirectPlay *temporary = NULL;
+	HRESULT result = DirectPlayCreate(provider, &temporary, NULL);
 	if (result) {
 		return 0;
 	}
@@ -338,11 +332,11 @@ static int xvt_network_session_handshake(void)
 			continue;
 		}
 		unsigned peers = (unsigned)packet[2];
-		struct net_reliable_peer_slot saved = {0};
 		if (peers > 40 || size < 16 + 8 * peers) {
 			continue;
 		}
 		g_front_state.net_host_player_id = sender;
+		struct net_reliable_peer_slot saved = {0};
 		for (unsigned i = 0;
 		     i < g_front_state.net_reliable_peer_slot_count; ++i) {
 			if (g_front_state.net_runtime_reliable_peer_slots[i]
@@ -463,11 +457,11 @@ static void xvt_network_session_roster(void)
  * whole host and join sequence reads in one switch. */
 int xvt_network_session_update(void)
 {
-	HRESULT result;
 	if (g_session.lost && !g_session.flight) {
 		return xvt_network_session_fail(
 			AERON_DPLAY_DIRECTORY_ERROR_CONNECTION_FAILED);
 	}
+	HRESULT result;
 	switch (g_session.phase) {
 	case SESSION_CLOSE: {
 		if (g_session.closing || AeronDplay_IsActive()) {

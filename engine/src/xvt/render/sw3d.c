@@ -230,56 +230,38 @@ struct proj_vertex *g_sw3d_previous_clip_vertex = NULL;
 void sw3d_project_mesh_vertices(struct scene_mesh *mesh)
 {
 	struct scene_face *face = &g_vis_face_list[mesh->face_base_index];
-	struct proj_vertex *output;
-	int vertex_index;
-	int face_index;
 
 	mesh->vert_base_index = g_proj_vert_count;
-	output = &g_proj_vert_list[mesh->vert_base_index];
+	struct proj_vertex *output = &g_proj_vert_list[mesh->vert_base_index];
 	mesh->proj_vert_cursor = 0;
-	for (vertex_index = 0; vertex_index < mesh->vertex_count;
+	for (int vertex_index = 0; vertex_index < mesh->vertex_count;
 	     ++vertex_index) {
 		g_vertex_remap[vertex_index] = -1;
 	}
-	for (face_index = 0; face_index < mesh->vis_face_count;
+	for (int face_index = 0; face_index < mesh->vis_face_count;
 	     ++face_index, ++face) {
-		struct opt_vector transformed;
-		const struct face_record *geometry;
-		float total_w;
-		float c00;
-		float c01;
-		float c02;
-		float c10;
-		float c11;
-		float c12;
-		float c20;
-		float c21;
-		float c22;
-		float inverse;
-		float scaled;
-		float area;
-		int corner_index;
-
 		render_scene_transform_face_texture_gradients(
 			face, &mesh->p_face_texturing[face->face_index],
 			&mesh->view_pos_x);
-		geometry = &mesh->p_face_geom[face->face_index];
+		const struct face_record *geometry =
+			&mesh->p_face_geom[face->face_index];
 		face->max_scaled_inverse_depth = 0.0f;
-		total_w = 0.0f;
+		float total_w = 0.0f;
 		face->min_scaled_inverse_depth =
 			(float)(unsigned int)g_proj_scale_int;
-		for (corner_index = 0; corner_index < 4; ++corner_index) {
+		struct opt_vector transformed;
+		for (int corner_index = 0; corner_index < 4; ++corner_index) {
 			const int model_vertex_index =
 				geometry->vertex_idx[corner_index];
 			const int normal_index =
 				geometry->normal_idx[corner_index];
-			int remapped_vertex;
-			float vertex_w;
 
 			if (model_vertex_index == -1) {
 				break;
 			}
-			remapped_vertex = g_vertex_remap[model_vertex_index];
+			int remapped_vertex =
+				g_vertex_remap[model_vertex_index];
+			float vertex_w;
 			if (remapped_vertex == -1) {
 				g_vertex_remap[model_vertex_index] =
 					mesh->proj_vert_cursor;
@@ -382,32 +364,32 @@ void sw3d_project_mesh_vertices(struct scene_mesh *mesh)
 				transformed.z -
 				mesh->p_uvs[uv_index].v * face->gradients[5] -
 				mesh->p_uvs[uv_index].u * face->gradients[2];
-			c00 = face->gradients[8] * face->gradients[4] -
-			      face->gradients[5] * face->gradients[7];
-			c01 = face->gradients[5] * face->gradients[6] -
-			      face->gradients[8] * face->gradients[3];
-			c02 = face->gradients[7] * face->gradients[3] -
-			      face->gradients[4] * face->gradients[6];
-			c10 = face->gradients[2] * face->gradients[7] -
-			      face->gradients[8] * face->gradients[1];
-			c11 = face->gradients[8] * face->gradients[0] -
-			      face->gradients[2] * face->gradients[6];
-			c12 = face->gradients[6] * face->gradients[1] -
-			      face->gradients[7] * face->gradients[0];
-			c20 = face->gradients[5] * face->gradients[1] -
-			      face->gradients[2] * face->gradients[4];
-			c21 = face->gradients[2] * face->gradients[3] -
-			      face->gradients[5] * face->gradients[0];
-			c22 = face->gradients[4] * face->gradients[0] -
-			      face->gradients[1] * face->gradients[3];
+			float c00 = face->gradients[8] * face->gradients[4] -
+				    face->gradients[5] * face->gradients[7];
+			float c01 = face->gradients[5] * face->gradients[6] -
+				    face->gradients[8] * face->gradients[3];
+			float c02 = face->gradients[7] * face->gradients[3] -
+				    face->gradients[4] * face->gradients[6];
+			float c10 = face->gradients[2] * face->gradients[7] -
+				    face->gradients[8] * face->gradients[1];
+			float c11 = face->gradients[8] * face->gradients[0] -
+				    face->gradients[2] * face->gradients[6];
+			float c12 = face->gradients[6] * face->gradients[1] -
+				    face->gradients[7] * face->gradients[0];
+			float c20 = face->gradients[5] * face->gradients[1] -
+				    face->gradients[2] * face->gradients[4];
+			float c21 = face->gradients[2] * face->gradients[3] -
+				    face->gradients[5] * face->gradients[0];
+			float c22 = face->gradients[4] * face->gradients[0] -
+				    face->gradients[1] * face->gradients[3];
 			if (c20 == 0.0f && c21 == 0.0f && c22 == 0.0f) {
 				c22 = 1.0f;
 			}
-			inverse = g_sw3d_unit_float /
-				  (c21 * face->gradients[7] +
-				   (c20 * face->gradients[6] +
-				    c22 * face->gradients[8]));
-			scaled = inverse * g_inv_proj_scale;
+			float inverse = g_sw3d_unit_float /
+					(c21 * face->gradients[7] +
+					 (c20 * face->gradients[6] +
+					  c22 * face->gradients[8]));
+			float scaled = inverse * g_inv_proj_scale;
 			face->gradients[0] = scaled * c00;
 			face->gradients[1] = scaled * c01;
 			face->gradients[2] = inverse * c02;
@@ -435,8 +417,8 @@ void sw3d_project_mesh_vertices(struct scene_mesh *mesh)
 				(float)(g_proj_offset_y +
 					(g_flight_vp_height >> 1)) *
 				face->gradients[7];
-			area = face->gradients[0] * face->gradients[4] -
-			       face->gradients[3] * face->gradients[1];
+			float area = face->gradients[0] * face->gradients[4] -
+				     face->gradients[3] * face->gradients[1];
 			if (area < g_sw3d_zero_float) {
 				area = -area;
 			}
@@ -444,7 +426,6 @@ void sw3d_project_mesh_vertices(struct scene_mesh *mesh)
 				const struct opt_texture_data *material =
 					(const struct opt_texture_data *)
 						mesh->p_material;
-				float lod_scale;
 
 				/* total_w, the sum of the corners' w values, becomes the corner count over that sum: the
 				 * reciprocal of their mean. */
@@ -455,7 +436,7 @@ void sw3d_project_mesh_vertices(struct scene_mesh *mesh)
 					total_w = g_sw3d_quad_corner_count /
 						  total_w;
 				}
-				lod_scale =
+				float lod_scale =
 					(float)(unsigned int)g_proj_scale_int *
 					total_w;
 				face->texels_per_pixel_q8 =
@@ -483,48 +464,42 @@ void sw3d_project_mesh_vertices_distant(struct scene_mesh *mesh)
 	const float projection_scale = (float)(unsigned int)g_proj_scale_int /
 				       mesh->view_pos_z * g_sw3d_distant_depth;
 	struct scene_face *face = &g_vis_face_list[mesh->face_base_index];
-	struct proj_vertex *output;
-	int vertex_base_index;
-	int vertex_index;
-	int face_index;
 
-	vertex_base_index = g_proj_vert_count;
+	int vertex_base_index = g_proj_vert_count;
 	mesh->vert_base_index = vertex_base_index;
-	output = &g_proj_vert_list[vertex_base_index];
+	struct proj_vertex *output = &g_proj_vert_list[vertex_base_index];
 	mesh->proj_vert_cursor = 0;
-	for (vertex_index = 0; vertex_index < mesh->vertex_count;
+	for (int vertex_index = 0; vertex_index < mesh->vertex_count;
 	     ++vertex_index) {
 		g_vertex_remap[vertex_index] = -1;
 	}
-	for (face_index = 0; face_index < mesh->vis_face_count;
+	for (int face_index = 0; face_index < mesh->vis_face_count;
 	     ++face_index, ++face) {
-		const struct face_record *geometry;
-		int corner_index;
-
 		render_scene_transform_face_texture_gradients(
 			face, &mesh->p_face_texturing[face->face_index],
 			&mesh->view_pos_x);
-		geometry = &mesh->p_face_geom[face->face_index];
+		const struct face_record *geometry =
+			&mesh->p_face_geom[face->face_index];
 		face->max_scaled_inverse_depth = 0.0f;
 		face->min_scaled_inverse_depth =
 			(float)(unsigned int)g_proj_scale_int;
-		for (corner_index = 0; corner_index < 4; ++corner_index) {
-			struct opt_vector transformed;
+		for (int corner_index = 0; corner_index < 4; ++corner_index) {
 			const int model_vertex_index =
 				geometry->vertex_idx[corner_index];
 			const int normal_index =
 				geometry->normal_idx[corner_index];
-			int remapped_vertex;
-			float vertex_w;
 
 			if (model_vertex_index == -1) {
 				break;
 			}
-			remapped_vertex = g_vertex_remap[model_vertex_index];
+			int remapped_vertex =
+				g_vertex_remap[model_vertex_index];
+			float vertex_w;
 			if (remapped_vertex == -1) {
 				g_vertex_remap[model_vertex_index] =
 					mesh->proj_vert_cursor;
 				++mesh->proj_vert_cursor;
+				struct opt_vector transformed;
 				transformed.x =
 					mesh->p_model_verts[model_vertex_index]
 						.x;
@@ -577,17 +552,6 @@ void sw3d_project_mesh_vertices_distant(struct scene_mesh *mesh)
 			const int uv_index = geometry->uv_idx[0];
 			const struct opt_vector *model_vertex =
 				&mesh->p_model_verts[geometry->vertex_idx[0]];
-			float c00;
-			float c01;
-			float c02;
-			float c10;
-			float c11;
-			float c12;
-			float c20;
-			float c21;
-			float c22;
-			float inverse;
-			float scaled;
 
 			transformed.x = model_vertex->x;
 			transformed.y = model_vertex->y;
@@ -609,32 +573,32 @@ void sw3d_project_mesh_vertices_distant(struct scene_mesh *mesh)
 				transformed.z -
 				mesh->p_uvs[uv_index].v * face->gradients[5] -
 				mesh->p_uvs[uv_index].u * face->gradients[2];
-			c00 = face->gradients[8] * face->gradients[4] -
-			      face->gradients[5] * face->gradients[7];
-			c01 = face->gradients[5] * face->gradients[6] -
-			      face->gradients[8] * face->gradients[3];
-			c02 = face->gradients[7] * face->gradients[3] -
-			      face->gradients[4] * face->gradients[6];
-			c10 = face->gradients[2] * face->gradients[7] -
-			      face->gradients[8] * face->gradients[1];
-			c11 = face->gradients[8] * face->gradients[0] -
-			      face->gradients[2] * face->gradients[6];
-			c12 = face->gradients[1] * face->gradients[6] -
-			      face->gradients[7] * face->gradients[0];
-			c20 = face->gradients[5] * face->gradients[1] -
-			      face->gradients[2] * face->gradients[4];
-			c21 = face->gradients[2] * face->gradients[3] -
-			      face->gradients[5] * face->gradients[0];
-			c22 = face->gradients[4] * face->gradients[0] -
-			      face->gradients[1] * face->gradients[3];
+			float c00 = face->gradients[8] * face->gradients[4] -
+				    face->gradients[5] * face->gradients[7];
+			float c01 = face->gradients[5] * face->gradients[6] -
+				    face->gradients[8] * face->gradients[3];
+			float c02 = face->gradients[7] * face->gradients[3] -
+				    face->gradients[4] * face->gradients[6];
+			float c10 = face->gradients[2] * face->gradients[7] -
+				    face->gradients[8] * face->gradients[1];
+			float c11 = face->gradients[8] * face->gradients[0] -
+				    face->gradients[2] * face->gradients[6];
+			float c12 = face->gradients[1] * face->gradients[6] -
+				    face->gradients[7] * face->gradients[0];
+			float c20 = face->gradients[5] * face->gradients[1] -
+				    face->gradients[2] * face->gradients[4];
+			float c21 = face->gradients[2] * face->gradients[3] -
+				    face->gradients[5] * face->gradients[0];
+			float c22 = face->gradients[4] * face->gradients[0] -
+				    face->gradients[1] * face->gradients[3];
 			if (c20 == 0.0f && c21 == 0.0f && c22 == 0.0f) {
 				c22 = 1.0f;
 			}
-			inverse =
+			float inverse =
 				g_sw3d_unit_float / (c20 * face->gradients[6] +
 						     c21 * face->gradients[7] +
 						     c22 * face->gradients[8]);
-			scaled = inverse / projection_scale;
+			float scaled = inverse / projection_scale;
 			face->gradients[0] = scaled * c00;
 			face->gradients[1] = scaled * c01;
 			face->gradients[2] = inverse * c02;
@@ -666,10 +630,9 @@ void sw3d_project_mesh_vertices_distant(struct scene_mesh *mesh)
 				const struct opt_texture_data *material =
 					(const struct opt_texture_data *)
 						mesh->p_material;
-				float mip_value;
-				mip_value = face->gradients[4] *
-					    face->gradients[0] * transformed.z *
-					    transformed.z;
+				float mip_value = face->gradients[4] *
+						  face->gradients[0] *
+						  transformed.z * transformed.z;
 				if (mip_value < g_sw3d_zero_float) {
 					mip_value = -mip_value;
 				}
@@ -719,36 +682,30 @@ void sw3d_rasterize_mesh_faces(struct scene_mesh *mesh)
 	struct scene_face *face_cursor =
 		&g_vis_face_list[mesh->face_base_index];
 	int scene_edge_cursor = g_scene_edge_cursor;
-	struct scene_face *face;
-	struct scene_edge *output_edge;
-	struct scene_edge *first_edge;
-	int edge_index;
 	const int edge_count = mesh->edge_count;
-	int face_index;
-	int output_count;
 
 	mesh->edge_base_index = scene_edge_cursor;
 	mesh->emitted_edge_count = 0;
-	output_edge = &g_scene_edge_list[scene_edge_cursor];
-	first_edge = output_edge;
+	struct scene_edge *output_edge = &g_scene_edge_list[scene_edge_cursor];
+	struct scene_edge *first_edge = output_edge;
 	if (edge_count > 0) {
-		for (edge_index = 0; edge_index < mesh->edge_count;
+		for (int edge_index = 0; edge_index < mesh->edge_count;
 		     ++edge_index) {
 			g_scene_edge_flags[edge_index] = SW3D_INVALID_EDGE;
 		}
 	}
 
-	for (face_index = 0; face_index < mesh->vis_face_count; ++face_index) {
-		const struct face_record *record;
+	for (int face_index = 0; face_index < mesh->vis_face_count;
+	     ++face_index) {
+		int output_count = 0;
+		const struct face_record *record =
+			&mesh->p_face_geom[face_cursor->face_index];
+		struct scene_face *face = face_cursor;
+		++face_cursor;
+
 		int corner_count;
 		int current_corner;
 		int previous_corner;
-
-		output_count = 0;
-		record = &mesh->p_face_geom[face_cursor->face_index];
-		face = face_cursor;
-		++face_cursor;
-
 		if (face->near_clip_state == SW3D_FACE_NEEDS_NEAR_CLIP) {
 			face->near_clip_state = g_flight_vp_height;
 			g_sw3d_latest_clip_vertex = NULL;
@@ -764,12 +721,11 @@ void sw3d_rasterize_mesh_faces(struct scene_mesh *mesh)
 						  1;
 			current_corner = 0;
 			for (previous_corner = corner_count;;) {
-				int source_edge;
-				int existing_edge;
-
 				--previous_corner;
-				source_edge = record->edge_idx[previous_corner];
-				existing_edge = g_scene_edge_flags[source_edge];
+				int source_edge =
+					record->edge_idx[previous_corner];
+				int existing_edge =
+					g_scene_edge_flags[source_edge];
 				g_sw3d_generated_clip_vertex = NULL;
 				if (existing_edge == SW3D_INVALID_EDGE) {
 					if (sw3d_setup_clipped_edge(
@@ -799,9 +755,8 @@ void sw3d_rasterize_mesh_faces(struct scene_mesh *mesh)
 					}
 				} else if (existing_edge !=
 					   SW3D_REJECTED_EDGE) {
-					struct scene_edge *edge;
-
-					edge = &first_edge[existing_edge];
+					struct scene_edge *edge =
+						&first_edge[existing_edge];
 					face->edges[output_count++] = edge;
 					if (edge->p_clip_vert != NULL) {
 						g_sw3d_previous_clip_vertex =
@@ -840,12 +795,11 @@ void sw3d_rasterize_mesh_faces(struct scene_mesh *mesh)
 						  1;
 			current_corner = 0;
 			for (previous_corner = corner_count;;) {
-				int source_edge;
-				int existing_edge;
-
 				--previous_corner;
-				source_edge = record->edge_idx[previous_corner];
-				existing_edge = g_scene_edge_flags[source_edge];
+				int source_edge =
+					record->edge_idx[previous_corner];
+				int existing_edge =
+					g_scene_edge_flags[source_edge];
 				if (existing_edge == SW3D_INVALID_EDGE) {
 					if (sw3d_setup_edge(
 						    output_edge,
@@ -904,27 +858,12 @@ void sw3d_rasterize_mesh_faces(struct scene_mesh *mesh)
 // FUNCTION: XVT 0x471410
 void sw3d_scan_convert_face(struct scene_face *face)
 {
-	struct scene_edge *left;
-	struct scene_edge *right;
+	int edge_count = face->edge_count;
+	int remaining_edges = edge_count;
+	struct scene_edge *left = face->edges[0];
+	struct scene_edge *right = left;
 	struct scene_edge *edge;
-	struct scene_edge *swap_edge;
 	int edge_index;
-	int edge_count;
-	int remaining_edges;
-	int scan_y;
-	int run_end;
-	int run_rows;
-	int span_count;
-	float run_rows_float;
-	float left_start_x;
-	float right_start_x;
-	float left_start_light;
-	float right_start_light;
-
-	edge_count = face->edge_count;
-	remaining_edges = edge_count;
-	left = face->edges[0];
-	right = left;
 	for (edge_index = 1; edge_index < edge_count; ++edge_index) {
 		edge = face->edges[edge_index];
 		if (left->y_start > edge->y_start) {
@@ -937,7 +876,7 @@ void sw3d_scan_convert_face(struct scene_face *face)
 
 	face->y_top = left->y_start;
 	face->y_bot = right->y_end;
-	span_count = face->y_bot - face->y_top;
+	int span_count = face->y_bot - face->y_top;
 	if (span_count < g_scene_span_ptr_avail) {
 		g_scene_span_ptr_avail -= span_count;
 		face->p_spans = &g_scene_span_ptr_list[g_scene_span_ptr_avail];
@@ -953,6 +892,7 @@ void sw3d_scan_convert_face(struct scene_face *face)
 		if (edge_index == face->edge_count) {
 			face->y_bot = face->y_top;
 		} else {
+			struct scene_edge *swap_edge;
 			if (right->x < left->x ||
 			    (right->x == left->x && right->dxdy < left->dxdy)) {
 				swap_edge = left;
@@ -961,17 +901,18 @@ void sw3d_scan_convert_face(struct scene_face *face)
 			}
 
 			face->p_scan_edge = left;
-			scan_y = left->y_start;
-			run_end = right->y_end;
+			int scan_y = left->y_start;
+			int run_end = right->y_end;
 			if (right->y_end > left->y_end) {
 				run_end = left->y_end;
 			}
-			run_rows = run_end - scan_y;
-			left_start_x = left->x;
-			right_start_x = right->x;
-			left_start_light = left->light_intensity;
-			right_start_light = right->light_intensity;
+			int run_rows = run_end - scan_y;
+			float left_start_x = left->x;
+			float right_start_x = right->x;
+			float left_start_light = left->light_intensity;
+			float right_start_light = right->light_intensity;
 
+			float run_rows_float;
 			if (right_start_x - left_start_x > g_sw3d_unit_float) {
 				do {
 					--run_rows;
@@ -1241,20 +1182,11 @@ int sw3d_setup_clipped_edge(struct scene_mesh *mesh, struct scene_edge *edge,
 			    const struct proj_vertex *first,
 			    const struct proj_vertex *second)
 {
-	const struct proj_vertex *inside;
-	const struct proj_vertex *outside;
 #ifdef XVT_MODERN
 	uint32_t coordinate_bits;
 #endif
-	int second_y;
-	int first_y;
-	const struct proj_vertex *swap_vertex;
-	int swap_y;
-	float inverse_height;
-	float first_row_offset;
-
-	inside = second;
-	outside = first;
+	const struct proj_vertex *inside = second;
+	const struct proj_vertex *outside = first;
 #ifdef XVT_MODERN
 	memcpy(&coordinate_bits, &second->scaled_inverse_depth,
 	       sizeof(coordinate_bits));
@@ -1332,6 +1264,7 @@ int sw3d_setup_clipped_edge(struct scene_mesh *mesh, struct scene_edge *edge,
 		outside = g_sw3d_latest_clip_vertex;
 	}
 
+	int first_y;
 #ifdef XVT_MODERN
 	memcpy(&coordinate_bits, &outside->sy, sizeof(coordinate_bits));
 	if (coordinate_bits > 0x80000000u) {
@@ -1345,6 +1278,7 @@ int sw3d_setup_clipped_edge(struct scene_mesh *mesh, struct scene_edge *edge,
 			++first_y;
 		}
 	}
+	int second_y;
 #ifdef XVT_MODERN
 	memcpy(&coordinate_bits, &inside->sy, sizeof(coordinate_bits));
 	if (coordinate_bits > 0x80000000u) {
@@ -1362,10 +1296,10 @@ int sw3d_setup_clipped_edge(struct scene_mesh *mesh, struct scene_edge *edge,
 		return -1;
 	}
 	if (first_y > second_y) {
-		swap_vertex = outside;
+		const struct proj_vertex *swap_vertex = outside;
 		outside = inside;
 		inside = swap_vertex;
-		swap_y = first_y;
+		int swap_y = first_y;
 		first_y = second_y;
 		second_y = swap_y;
 	}
@@ -1380,13 +1314,13 @@ int sw3d_setup_clipped_edge(struct scene_mesh *mesh, struct scene_edge *edge,
 	}
 
 	edge->y_end = second_y;
-	inverse_height = g_sw3d_unit_float / (inside->sy - outside->sy);
+	float inverse_height = g_sw3d_unit_float / (inside->sy - outside->sy);
 	edge->dxdy = (inside->sx - outside->sx) * inverse_height;
 	edge->d_light_intensity_dy =
 		(inside->light_intensity - outside->light_intensity) *
 		inverse_height;
 	edge->p_clip_vert = NULL;
-	first_row_offset = (float)first_y - outside->sy;
+	float first_row_offset = (float)first_y - outside->sy;
 	edge->x = outside->sx + first_row_offset * edge->dxdy;
 	edge->light_intensity = outside->light_intensity +
 				first_row_offset * edge->d_light_intensity_dy;
@@ -1404,12 +1338,7 @@ int sw3d_setup_clipped_edge(struct scene_mesh *mesh, struct scene_edge *edge,
 int sw3d_setup_edge(struct scene_edge *edge, const struct proj_vertex *first,
 		    const struct proj_vertex *second)
 {
-	const struct proj_vertex *swap_vertex;
 	int first_y;
-	int second_y;
-	int swap_y;
-	float inverse_height;
-	float first_row_offset;
 
 	if (first->sy < 0.0f) {
 		first_y = 0;
@@ -1420,6 +1349,7 @@ int sw3d_setup_edge(struct scene_edge *edge, const struct proj_vertex *first,
 		}
 	}
 
+	int second_y;
 	if (second->sy < 0.0f) {
 		second_y = 0;
 	} else {
@@ -1433,10 +1363,10 @@ int sw3d_setup_edge(struct scene_edge *edge, const struct proj_vertex *first,
 		return -1;
 	}
 	if (first_y > second_y) {
-		swap_vertex = first;
+		const struct proj_vertex *swap_vertex = first;
 		first = second;
 		second = swap_vertex;
-		swap_y = first_y;
+		int swap_y = first_y;
 		first_y = second_y;
 		second_y = swap_y;
 	}
@@ -1451,13 +1381,13 @@ int sw3d_setup_edge(struct scene_edge *edge, const struct proj_vertex *first,
 	}
 
 	edge->y_end = second_y;
-	inverse_height = g_sw3d_unit_float / (second->sy - first->sy);
+	float inverse_height = g_sw3d_unit_float / (second->sy - first->sy);
 	edge->dxdy = (second->sx - first->sx) * inverse_height;
 	edge->d_light_intensity_dy =
 		(second->light_intensity - first->light_intensity) *
 		inverse_height;
 	edge->p_clip_vert = NULL;
-	first_row_offset = (float)first_y - first->sy;
+	float first_row_offset = (float)first_y - first->sy;
 	edge->x = first->sx + first_row_offset * edge->dxdy;
 	edge->light_intensity = first->light_intensity +
 				first_row_offset * edge->d_light_intensity_dy;
@@ -1486,9 +1416,6 @@ void sw3d_draw_visible_faces_to_surface(void)
 		SW3D_TEXTURE_SHIFT_INDEX_SHIFT = 4,
 	};
 
-	struct scene_edge span_start_edge;
-	int face_index;
-
 	flight_light_reset_software_face_sample_cache();
 	if (g_use_hardware3d != 0) {
 		render_scene_flush_geometry();
@@ -1499,26 +1426,18 @@ void sw3d_draw_visible_faces_to_surface(void)
 		flight_surface_lock();
 	}
 	g_sw3d_span_scene_mesh = NULL;
-	face_index = g_vis_face_pass_start;
+	int face_index = g_vis_face_pass_start;
+	struct scene_edge span_start_edge;
 	while (face_index < g_vis_face_count) {
-		const struct opt_texture_data *material;
-		struct scene_mesh **p_mesh;
-		float row_base_w;
-		int mip_texel_offset;
-		int texture_width;
-		int texture_height;
-		int texture_height_shift_index;
-		int span_index;
-
 		g_sw3d_current_face = &g_vis_face_list[face_index];
 		g_sw3d_current_scanline_y = g_sw3d_current_face->y_top;
 		g_sw3d_current_face->p_scan_edge = &span_start_edge;
-		mip_texel_offset = 0;
-		p_mesh = &g_sw3d_current_face->p_mesh;
-		material =
+		int mip_texel_offset = 0;
+		struct scene_mesh **p_mesh = &g_sw3d_current_face->p_mesh;
+		const struct opt_texture_data *material =
 			(const struct opt_texture_data *)(*p_mesh)->p_material;
-		texture_width = material->width;
-		texture_height = material->height;
+		int texture_width = material->width;
+		int texture_height = material->height;
 		if (g_mipmapping_enabled != mip_texel_offset &&
 		    texture_width * texture_height == material->texture_size) {
 			int mip_metric = (int)((float)g_sw3d_current_face
@@ -1538,7 +1457,7 @@ void sw3d_draw_visible_faces_to_surface(void)
 
 		g_sw3d_span_texture_width_float = (float)texture_width;
 		g_sw3d_span_texture_height_float = (float)texture_height;
-		texture_height_shift_index = texture_height;
+		int texture_height_shift_index = texture_height;
 		texture_height_shift_index &= ~SW3D_TEXTURE_SHIFT_MASK;
 		g_sw3d_span_texture_width_shift =
 			g_sw3d_texture_shift_by_size_div16
@@ -1553,30 +1472,26 @@ void sw3d_draw_visible_faces_to_surface(void)
 		g_sw3d_span_texels =
 			(uint8_t *)(*p_mesh)->p_texels + mip_texel_offset;
 		g_sw3d_span_scene_mesh = *p_mesh;
-		row_base_w = (float)(unsigned int)g_sw3d_current_scanline_y *
-				     g_sw3d_current_face->gradients[7] +
-			     g_sw3d_current_face->gradients[8];
+		float row_base_w =
+			(float)(unsigned int)g_sw3d_current_scanline_y *
+				g_sw3d_current_face->gradients[7] +
+			g_sw3d_current_face->gradients[8];
 		g_sw3d_span_framebuffer_row_offset =
 			g_surface_pitch *
 				(g_sw3d_current_scanline_y + g_flight_vp_y) +
 			g_flight_bytes_per_pixel * g_flight_vp_x;
 
-		for (span_index = 0; (unsigned int)g_sw3d_current_scanline_y <
-				     (unsigned int)g_sw3d_current_face->y_bot;
+		for (int span_index = 0;
+		     (unsigned int)g_sw3d_current_scanline_y <
+		     (unsigned int)g_sw3d_current_face->y_bot;
 		     ++span_index, ++g_sw3d_current_scanline_y) {
 			struct scene_face *row_face = g_sw3d_current_face;
 			struct scene_span *span = row_face->p_spans[span_index];
 
 			if (span != NULL) {
-				struct scene_span *occluder;
-				int sample_subrow;
-				int start_x;
-				int end_x;
-				float start_x_float;
-				float light_intensity;
-
-				sample_subrow = g_sw3d_current_scanline_y &
-						g_sw3d_light_sample_block_mask;
+				int sample_subrow =
+					g_sw3d_current_scanline_y &
+					g_sw3d_light_sample_block_mask;
 				if (sample_subrow != 0) {
 					g_sw3d_light_sample_subrow_float =
 						(float)(unsigned int)
@@ -1602,11 +1517,11 @@ void sw3d_draw_visible_faces_to_surface(void)
 						 g_sw3d_current_scanline_y >>
 					 g_sw3d_light_sample_block_shift);
 
-				occluder = span->next;
-				start_x = span->x_start;
-				end_x = span->x_end;
-				start_x_float = (float)start_x;
-				light_intensity = span->light_intensity;
+				struct scene_span *occluder = span->next;
+				int start_x = span->x_start;
+				int end_x = span->x_end;
+				float start_x_float = (float)start_x;
+				float light_intensity = span->light_intensity;
 				span_start_edge.light_intensity =
 					light_intensity;
 				span_start_edge.x = start_x_float;
@@ -1710,22 +1625,8 @@ void sw3d_draw_visible_faces_to_surface(void)
 void sw3d_insert_span(float x_left, float x_right, int scan_y,
 		      struct scene_face *face)
 {
-	struct scene_span *current;
-	struct scene_span *next;
-	struct scene_span *insertion_next;
-	struct scene_span *previous;
-	struct scene_span *span;
-	float new_w;
-	float current_w;
-	int start_x;
-	int end_x;
-	int overlap_width;
-	int crossing_from_right;
-	int crossing_from_left;
-	int current_left_width;
-	int current_right_width;
-
 	face->p_spans[scan_y - face->y_top] = NULL;
+	int start_x;
 	if (x_left < 0.0f) {
 		start_x = 0;
 	} else {
@@ -1734,6 +1635,7 @@ void sw3d_insert_span(float x_left, float x_right, int scan_y,
 			++start_x;
 		}
 	}
+	int end_x;
 	if (x_right < 0.0f) {
 		end_x = 0;
 	} else {
@@ -1750,8 +1652,15 @@ void sw3d_insert_span(float x_left, float x_right, int scan_y,
 		return;
 	}
 
-	previous = NULL;
-	current = g_scanline_span_heads[scan_y];
+	struct scene_span *previous = NULL;
+	struct scene_span *current = g_scanline_span_heads[scan_y];
+	struct scene_span *next;
+	struct scene_span *insertion_next;
+	float new_w;
+	float current_w;
+	int overlap_width;
+	int crossing_from_right;
+	int current_left_width;
 	while (current != NULL) {
 		if (current->x_end <= start_x) {
 			previous = current;
@@ -1914,10 +1823,10 @@ void sw3d_insert_span(float x_left, float x_right, int scan_y,
 			if (crossing_from_right > overlap_width) {
 				crossing_from_right = overlap_width;
 			}
-			crossing_from_left =
+			int crossing_from_left =
 				overlap_width - crossing_from_right;
 			current_left_width = start_x - current->x_start;
-			current_right_width = end_x - current->x_end;
+			int current_right_width = end_x - current->x_end;
 
 			if (current_left_width <= crossing_from_right &&
 			    current_left_width <= crossing_from_left &&
@@ -2052,7 +1961,7 @@ void sw3d_insert_span(float x_left, float x_right, int scan_y,
 		}
 	}
 
-	span = g_p_scene_span_data_cur++;
+	struct scene_span *span = g_p_scene_span_data_cur++;
 	if (g_p_scene_span_data_cur == g_p_scene_span_data_end) {
 		--g_p_scene_span_data_cur;
 	}
@@ -2604,87 +2513,40 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 		SW3D_MAX_SHADE_Q8 = 0xEFF,
 	};
 
-	struct scene_face *face;
-	struct software_light_sample *light_samples;
-	struct software_light_sample *left_sample;
-	struct software_light_sample *right_sample;
-	float *u_gradient;
-	float *v_gradient;
-	float u_at_y;
-	float v_at_y;
-	float w_at_y;
-	float u_numerator;
-	float v_numerator;
-	float inverse_w;
-	float u;
-	float v;
-	float right_u;
-	float right_v;
-	float left_light;
-	float right_light;
-	float light_intensity;
-	float light_intensity_at_end;
-	float light_intensity_block_step;
-	float u_numerator_block_step;
-	float v_numerator_block_step;
-	float w_block_step;
-	float boundary_w;
-	float sample_intensity;
-	float fixed_point_value;
-	float fixed_point_bias;
-	int fixed_point_bits;
-	int fixed_point_bias_bits;
-	int next_uq8;
-	int next_vq8;
-	int end_shade_q8;
-	int shade_delta_q8;
-	int start_block;
-	int end_block;
-	int block;
-	int boundary_x;
-	int block_start_x;
-	int block_start_y;
-	int within_block_x;
-	int within_block_y;
-	int stamp_delta;
-	int pixel_index;
-	int use_specialized_texture_wrap;
-	int texture_width_mask;
-	int texture_height_mask;
-
-	face = g_sw3d_current_face;
-	light_samples = (struct software_light_sample *)face->p_light_samples;
-	w_at_y = (float)(unsigned int)g_sw3d_current_scanline_y *
-			 face->gradients[7] +
-		 face->gradients[8];
-	u_gradient = &face->gradients[0];
-	v_gradient = &face->gradients[3];
-	u_at_y = (float)g_sw3d_current_scanline_y * u_gradient[1];
-	v_at_y = (float)g_sw3d_current_scanline_y * v_gradient[1];
+	struct scene_face *face = g_sw3d_current_face;
+	struct software_light_sample *light_samples =
+		(struct software_light_sample *)face->p_light_samples;
+	float w_at_y = (float)(unsigned int)g_sw3d_current_scanline_y *
+			       face->gradients[7] +
+		       face->gradients[8];
+	float *u_gradient = &face->gradients[0];
+	float *v_gradient = &face->gradients[3];
+	float u_at_y = (float)g_sw3d_current_scanline_y * u_gradient[1];
+	float v_at_y = (float)g_sw3d_current_scanline_y * v_gradient[1];
 	u_at_y += u_gradient[2];
 	v_at_y += v_gradient[2];
-	u_numerator = (float)start_x * u_gradient[0] + u_at_y;
-	v_numerator = (float)start_x * v_gradient[0] + v_at_y;
-	inverse_w = g_sw3d_span_one_float / span_start_w;
-	u = inverse_w * u_numerator;
-	v = inverse_w * v_numerator;
-	light_intensity = ((float)start_x - face->p_scan_edge->x) *
-				  face->span_light_intensity_dx +
-			  face->p_scan_edge->light_intensity;
+	float u_numerator = (float)start_x * u_gradient[0] + u_at_y;
+	float v_numerator = (float)start_x * v_gradient[0] + v_at_y;
+	float inverse_w = g_sw3d_span_one_float / span_start_w;
+	float u = inverse_w * u_numerator;
+	float v = inverse_w * v_numerator;
+	float light_intensity = ((float)start_x - face->p_scan_edge->x) *
+					face->span_light_intensity_dx +
+				face->p_scan_edge->light_intensity;
 
 	g_sw3d_span_shade_dither_accum =
 		g_sw3d_shade_dither_initial_by_scanline_parity
 			[g_sw3d_current_scanline_y & 1];
-	start_block = start_x >> g_sw3d_light_sample_block_shift;
-	end_block = (end_x - 1) >> g_sw3d_light_sample_block_shift;
+	int start_block = start_x >> g_sw3d_light_sample_block_shift;
+	int end_block = (end_x - 1) >> g_sw3d_light_sample_block_shift;
 	g_sw3d_span_start_x = start_x;
-	within_block_x = start_x & g_sw3d_light_sample_block_mask;
-	within_block_y =
+	int within_block_x = start_x & g_sw3d_light_sample_block_mask;
+	int within_block_y =
 		g_sw3d_current_scanline_y & g_sw3d_light_sample_block_mask;
-	block_start_x = start_x - within_block_x;
-	block_start_y = g_sw3d_current_scanline_y - within_block_y;
-	left_sample = &light_samples[start_block];
-	stamp_delta =
+	int block_start_x = start_x - within_block_x;
+	int block_start_y = g_sw3d_current_scanline_y - within_block_y;
+	struct software_light_sample *left_sample = &light_samples[start_block];
+	int stamp_delta =
 		g_sw3d_current_light_sample_cache_stamp - left_sample->stamp;
 	if (stamp_delta != 0) {
 		if (stamp_delta != 1) {
@@ -2713,19 +2575,21 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 						face->gradients[7]) -
 			left_sample->intensity;
 	}
-	left_light = left_sample->intensity +
-		     g_sw3d_light_sample_subrow_lerp_t * left_sample->row_delta;
+	float left_light =
+		left_sample->intensity +
+		g_sw3d_light_sample_subrow_lerp_t * left_sample->row_delta;
 
-	boundary_x = (start_block + 1) << g_sw3d_light_sample_block_shift;
+	int boundary_x = (start_block + 1) << g_sw3d_light_sample_block_shift;
 	g_sw3d_span_length = boundary_x - g_sw3d_span_start_x;
 	u_numerator = (float)boundary_x * u_gradient[0] + u_at_y;
 	v_numerator = (float)boundary_x * v_gradient[0] + v_at_y;
-	boundary_w = (float)boundary_x * face->gradients[6] + w_at_y;
-	block = start_block + 1;
+	float boundary_w = (float)boundary_x * face->gradients[6] + w_at_y;
+	int block = start_block + 1;
 	inverse_w = g_sw3d_span_one_float / boundary_w;
-	right_sample = &light_samples[block];
+	struct software_light_sample *right_sample = &light_samples[block];
 	stamp_delta =
 		g_sw3d_current_light_sample_cache_stamp - right_sample->stamp;
+	float sample_intensity;
 	if (stamp_delta != 0) {
 		right_sample->stamp = g_sw3d_current_light_sample_cache_stamp;
 		if (stamp_delta != 1) {
@@ -2751,23 +2615,25 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 		right_sample->row_delta =
 			sample_intensity - right_sample->intensity;
 	}
-	right_light =
+	float right_light =
 		right_sample->intensity +
 		g_sw3d_light_sample_subrow_lerp_t * right_sample->row_delta;
 	left_light +=
 		(right_light - left_light) *
 		((float)within_block_x * g_sw3d_light_sample_inv_block_size);
-	right_u = inverse_w * u_numerator;
-	right_v = inverse_w * v_numerator;
+	float right_u = inverse_w * u_numerator;
+	float right_v = inverse_w * v_numerator;
 
-	fixed_point_bias =
+	float fixed_point_bias =
 		g_sw3d_tex_coord_bias_by_shift[g_sw3d_span_texture_width_shift];
+	int fixed_point_bias_bits;
 	memcpy(&fixed_point_bias_bits, &fixed_point_bias,
 	       sizeof(fixed_point_bias_bits));
-	fixed_point_value =
+	float fixed_point_value =
 		(right_u - u) *
 			g_sw3d_span_length_reciprocal[g_sw3d_span_length] +
 		fixed_point_bias;
+	int fixed_point_bits;
 	memcpy(&fixed_point_bits, &fixed_point_value, sizeof(fixed_point_bits));
 	g_sw3d_span_step_uq8 = fixed_point_bits - fixed_point_bias_bits;
 	fixed_point_bias = g_sw3d_tex_coord_bias_by_shift
@@ -2781,6 +2647,9 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 	memcpy(&fixed_point_bits, &fixed_point_value, sizeof(fixed_point_bits));
 	g_sw3d_span_step_vq8 = fixed_point_bits - fixed_point_bias_bits;
 
+	float u_numerator_block_step;
+	float v_numerator_block_step;
+	float w_block_step;
 	if ((unsigned int)block > (unsigned int)end_block) {
 		g_sw3d_span_length = end_x - g_sw3d_span_start_x;
 	} else {
@@ -2792,11 +2661,11 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 			       g_sw3d_light_sample_block_size_float;
 	}
 
-	light_intensity_at_end =
+	float light_intensity_at_end =
 		(float)g_sw3d_span_length * face->span_light_intensity_dx +
 		light_intensity;
-	light_intensity_block_step = face->span_light_intensity_dx *
-				     g_sw3d_light_sample_block_size_float;
+	float light_intensity_block_step = face->span_light_intensity_dx *
+					   g_sw3d_light_sample_block_size_float;
 	fixed_point_bias = g_sw3d_tex_coord_bias_by_shift[0];
 	memcpy(&fixed_point_bias_bits, &fixed_point_bias,
 	       sizeof(fixed_point_bias_bits));
@@ -2815,14 +2684,14 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 				    g_sw3d_light_intensity_to_shade_scale +
 			    fixed_point_bias;
 	memcpy(&fixed_point_bits, &fixed_point_value, sizeof(fixed_point_bits));
-	end_shade_q8 = fixed_point_bits - fixed_point_bias_bits;
+	int end_shade_q8 = fixed_point_bits - fixed_point_bias_bits;
 	if (end_shade_q8 < 0) {
 		end_shade_q8 = 0;
 	}
 	if (end_shade_q8 > SW3D_MAX_SHADE_Q8) {
 		end_shade_q8 = SW3D_MAX_SHADE_Q8;
 	}
-	shade_delta_q8 = end_shade_q8 - g_sw3d_span_shade_q8;
+	int shade_delta_q8 = end_shade_q8 - g_sw3d_span_shade_q8;
 	if (shade_delta_q8 < 0) {
 		shade_delta_q8 += g_sw3d_light_sample_block_size;
 	}
@@ -2845,7 +2714,7 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 	g_sw3d_span_uq8 = fixed_point_bits - fixed_point_bias_bits;
 	fixed_point_value = right_u + fixed_point_bias;
 	memcpy(&fixed_point_bits, &fixed_point_value, sizeof(fixed_point_bits));
-	next_uq8 = fixed_point_bits - fixed_point_bias_bits;
+	int next_uq8 = fixed_point_bits - fixed_point_bias_bits;
 	fixed_point_bias = g_sw3d_tex_coord_bias_by_shift
 		[g_sw3d_span_texture_height_shift];
 	memcpy(&fixed_point_bias_bits, &fixed_point_bias,
@@ -2855,8 +2724,8 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 	g_sw3d_span_vq8 = fixed_point_bits - fixed_point_bias_bits;
 	fixed_point_value = right_v + fixed_point_bias;
 	memcpy(&fixed_point_bits, &fixed_point_value, sizeof(fixed_point_bits));
-	next_vq8 = fixed_point_bits - fixed_point_bias_bits;
-	use_specialized_texture_wrap =
+	int next_vq8 = fixed_point_bits - fixed_point_bias_bits;
+	int use_specialized_texture_wrap =
 		g_sw3d_span_texture_width_shift >=
 			SW3D_MIN_SPECIALIZED_TEXTURE_SHIFT &&
 		g_sw3d_span_texture_width_shift <=
@@ -2865,6 +2734,8 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 			SW3D_MIN_SPECIALIZED_TEXTURE_SHIFT &&
 		g_sw3d_span_texture_height_shift <=
 			SW3D_MAX_SPECIALIZED_TEXTURE_SHIFT;
+	int texture_width_mask;
+	int texture_height_mask;
 	if (use_specialized_texture_wrap) {
 		texture_width_mask = (1 << g_sw3d_span_texture_width_shift) - 1;
 		texture_height_mask =
@@ -2884,11 +2755,9 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 		    !use_specialized_texture_wrap) {
 			sw3d_draw_textured_shade_span_generic16bpp();
 		} else {
-			for (pixel_index = 0; pixel_index < g_sw3d_span_length;
-			     ++pixel_index) {
-				unsigned int shade_accum;
+			for (int pixel_index = 0;
+			     pixel_index < g_sw3d_span_length; ++pixel_index) {
 				int texel_index;
-				int texel;
 
 				if (use_specialized_texture_wrap) {
 					texel_index =
@@ -2908,8 +2777,8 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 						 SW3D_FIXED_POINT_SHIFT);
 					texel_index &= g_sw3d_span_texel_mask;
 				}
-				texel = g_sw3d_span_texels[texel_index];
-				shade_accum =
+				int texel = g_sw3d_span_texels[texel_index];
+				unsigned int shade_accum =
 					(unsigned int)(g_sw3d_span_shade_q8 +
 						       g_sw3d_span_shade_dither_accum);
 				g_sw3d_span_shade_dither_accum =
@@ -3057,30 +2926,22 @@ void sw3d_draw_textured_span(int start_x, int end_x, float span_start_w)
 // FUNCTION: XVT 0x497850
 int sw3d_draw_textured_shade_span_generic16bpp(void)
 {
-	uint8_t *pixel;
-	uint8_t *pixel_end;
-	uint8_t *shade_table;
-	int result;
-
-	pixel = (uint8_t *)g_surface_pixels;
-	shade_table = g_sw3d_span_shade_table + 4096;
+	uint8_t *pixel = (uint8_t *)g_surface_pixels;
+	uint8_t *shade_table = g_sw3d_span_shade_table + 4096;
 	pixel += g_sw3d_span_framebuffer_row_offset;
-	pixel_end = pixel;
+	uint8_t *pixel_end = pixel;
 	pixel += 2 * g_sw3d_span_start_x;
-	result = g_sw3d_span_start_x + g_sw3d_span_length;
+	int result = g_sw3d_span_start_x + g_sw3d_span_length;
 	pixel_end += 2 * result;
 	while (pixel < pixel_end) {
-		int texel_index;
-		int texel;
-		unsigned int shade_accum;
-
-		texel_index = ((g_sw3d_span_vq8 >> 8)
-			       << g_sw3d_span_texture_width_shift) +
-			      (g_sw3d_span_uq8 >> 8);
-		texel = g_sw3d_span_texels[texel_index &
-					   g_sw3d_span_texel_mask];
-		shade_accum = (unsigned int)(g_sw3d_span_shade_q8 +
-					     g_sw3d_span_shade_dither_accum);
+		int texel_index = ((g_sw3d_span_vq8 >> 8)
+				   << g_sw3d_span_texture_width_shift) +
+				  (g_sw3d_span_uq8 >> 8);
+		int texel = g_sw3d_span_texels[texel_index &
+					       g_sw3d_span_texel_mask];
+		unsigned int shade_accum =
+			(unsigned int)(g_sw3d_span_shade_q8 +
+				       g_sw3d_span_shade_dither_accum);
 		g_sw3d_span_shade_dither_accum = (uint8_t)shade_accum;
 		*(uint16_t *)pixel = ((uint16_t *)shade_table)
 			[(((shade_accum >> 8) & 0xF) << 8) + texel];
@@ -3105,10 +2966,7 @@ int sw3d_draw_textured_shade_span_generic16bpp(void)
 void sw3d_blit_occluded_span(const uint8_t *p_src_raster, int start_x,
 			     int end_x, int scan_y, float sprite_w)
 {
-	struct scene_span *span;
-	int draw_x;
-
-	draw_x = start_x;
+	int draw_x = start_x;
 	if (g_flight_bytes_per_pixel == 2) {
 		p_src_raster -= 2 * start_x;
 	} else {
@@ -3118,31 +2976,28 @@ void sw3d_blit_occluded_span(const uint8_t *p_src_raster, int start_x,
 		g_flight_bytes_per_pixel * g_flight_vp_x +
 		g_surface_pitch * (scan_y + g_flight_vp_y);
 
+	struct scene_span *span;
 	for (span = g_scanline_span_heads[scan_y]; span != NULL;
 	     span = span->next) {
-		struct scene_face *face;
-		int span_end;
-		float span_w;
-		float delta_x;
-		float depth_falloff;
-
-		span_end = span->x_end;
+		int span_end = span->x_end;
 		if (draw_x >= span_end) {
 			continue;
 		}
 		if (span->x_start > draw_x) {
 			break;
 		}
-		face = span->face;
+		struct scene_face *face = span->face;
 		if (sprite_w <= face->min_scaled_inverse_depth) {
 			draw_x = span_end;
 			if (end_x <= span_end) {
 				return;
 			}
 		} else if (sprite_w < face->max_scaled_inverse_depth) {
-			span_w = (float)scan_y * face->gradients[7] +
-				 face->gradients[8];
+			float span_w = (float)scan_y * face->gradients[7] +
+				       face->gradients[8];
 			span_w = (float)draw_x * face->gradients[6] + span_w;
+			float delta_x;
+			float depth_falloff;
 			if (sprite_w <= span_w) {
 				if (face->gradients[6] >= 0.0f) {
 					draw_x = span_end;
@@ -3219,10 +3074,9 @@ void sw3d_blit_occluded_span(const uint8_t *p_src_raster, int start_x,
 				return;
 			}
 		} else if (sprite_w < span->face->max_scaled_inverse_depth) {
-			float span_w;
-
-			span_w = (float)scan_y * span->face->gradients[7] +
-				 span->face->gradients[8];
+			float span_w =
+				(float)scan_y * span->face->gradients[7] +
+				span->face->gradients[8];
 			span_w = (float)span->x_start *
 					 span->face->gradients[6] +
 				 span_w;
@@ -3243,9 +3097,7 @@ void sw3d_blit_occluded_span(const uint8_t *p_src_raster, int start_x,
 								->gradients[6] +
 						span_w;
 					if (sprite_w > span_w) {
-						float depth_falloff;
-
-						depth_falloff =
+						float depth_falloff =
 							-span->face
 								 ->gradients[6];
 						draw_x -= (int)((sprite_w -
@@ -3253,8 +3105,6 @@ void sw3d_blit_occluded_span(const uint8_t *p_src_raster, int start_x,
 								depth_falloff);
 					}
 				} else {
-					float depth_falloff;
-
 					span_w =
 						(float)(end_x - span->x_start) *
 							span->face
@@ -3263,7 +3113,7 @@ void sw3d_blit_occluded_span(const uint8_t *p_src_raster, int start_x,
 					if (sprite_w <= span_w) {
 						return;
 					}
-					depth_falloff =
+					float depth_falloff =
 						-span->face->gradients[6];
 					draw_x = end_x -
 						 (int)((sprite_w - span_w) /
@@ -3281,9 +3131,7 @@ void sw3d_blit_occluded_span(const uint8_t *p_src_raster, int start_x,
 								->gradients[6] +
 						span_w;
 					if (sprite_w < span_w) {
-						float depth_falloff;
-
-						depth_falloff =
+						float depth_falloff =
 							-span->face
 								 ->gradients[6];
 						sw3d_copy_span_to_framebuffer(
@@ -3296,9 +3144,7 @@ void sw3d_blit_occluded_span(const uint8_t *p_src_raster, int start_x,
 						draw_x = span->x_end;
 					}
 				} else {
-					float delta_x;
-
-					delta_x =
+					float delta_x =
 						(float)(end_x - span->x_start);
 					span_w =
 						delta_x *
@@ -3306,9 +3152,7 @@ void sw3d_blit_occluded_span(const uint8_t *p_src_raster, int start_x,
 								->gradients[6] +
 						span_w;
 					if (sprite_w < span_w) {
-						float depth_falloff;
-
-						depth_falloff =
+						float depth_falloff =
 							-span->face
 								 ->gradients[6];
 						sw3d_copy_span_to_framebuffer(

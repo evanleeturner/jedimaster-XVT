@@ -151,9 +151,6 @@ void xvt_cockpit_latch_composition(void)
 
 static void select_page_placement(struct xvt_cockpit_page *page, unsigned index)
 {
-	unsigned binding = 0;
-	int width = 0;
-	int height = 0;
 	int map = g_players[g_local_player].map_camera_state != 0;
 	memset(page, 0, sizeof *page);
 	page->page_id = (uint16_t)index;
@@ -163,6 +160,9 @@ static void select_page_placement(struct xvt_cockpit_page *page, unsigned index)
 	if (page->original_state == MFD_PAGE_STATE_CLOSED) {
 		return;
 	}
+	unsigned binding = 0;
+	int width = 0;
+	int height = 0;
 	switch (index) {
 	case MFD_PAGE_SCOREBOARD:
 		binding = HUD_MFD_SCOREBOARD_ELEMENT;

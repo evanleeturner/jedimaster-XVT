@@ -86,13 +86,9 @@ uint16_t g_proj_aspect_y = 0;
 // FUNCTION: XVT 0x427390
 int transfm2_clipobjecteyez(int x, int y, int z)
 {
-	int negative_depth;
+	int negative_depth = (int)(0u - (uint32_t)g_view_space_depth);
+	int current_x = g_view_space_x;
 	int interpolation_delta;
-	int current_x;
-	int current_y;
-
-	negative_depth = (int)(0u - (uint32_t)g_view_space_depth);
-	current_x = g_view_space_x;
 	if (current_x < x) {
 		interpolation_delta = math2_ab_over_c32(
 			negative_depth,
@@ -109,7 +105,7 @@ int transfm2_clipobjecteyez(int x, int y, int z)
 				       (uint32_t)interpolation_delta);
 	}
 
-	current_y = g_view_space_y;
+	int current_y = g_view_space_y;
 	if (current_y < y) {
 		interpolation_delta = math2_ab_over_c32(
 			negative_depth,
@@ -181,11 +177,10 @@ int transfm2_project_screen_y(int view_y, int view_z)
 int transfm2_project_screen_x_fixed_point(int view_x, unsigned int depth)
 {
 	if (view_x < 0) {
-		uint64_t numerator;
-
-		numerator = (uint64_t)(0u - (uint32_t)view_x) *
-				    (1u << (g_perspective_shift & 31)) +
-			    (uint32_t)g_proj_scale_half_int;
+		uint64_t numerator =
+			(uint64_t)(0u - (uint32_t)view_x) *
+				(1u << (g_perspective_shift & 31)) +
+			(uint32_t)g_proj_scale_half_int;
 		if ((numerator & ~(uint64_t)UINT32_MAX) >=
 		    ((uint64_t)depth << 32)) {
 			view_x = 0x7FFFFF00;
@@ -194,11 +189,10 @@ int transfm2_project_screen_x_fixed_point(int view_x, unsigned int depth)
 		}
 		view_x = (int)(0u - (uint32_t)view_x);
 	} else {
-		uint64_t numerator;
-
-		numerator = (uint64_t)(uint32_t)view_x *
-				    (1u << (g_perspective_shift & 31)) +
-			    (uint32_t)g_proj_scale_half_int;
+		uint64_t numerator =
+			(uint64_t)(uint32_t)view_x *
+				(1u << (g_perspective_shift & 31)) +
+			(uint32_t)g_proj_scale_half_int;
 		if ((numerator & ~(uint64_t)UINT32_MAX) >=
 		    ((uint64_t)depth << 32)) {
 			view_x = 0x7FFFFF00;
@@ -217,13 +211,13 @@ int transfm2_project_screen_x_fixed_point(int view_x, unsigned int depth)
 int transfm2_project_screen_y_fixed_point(int view_y, unsigned int depth)
 {
 	uint64_t numerator;
-	uint32_t quotient;
 	int projected_offset;
 
 	if (view_y < 0) {
 		numerator = (uint64_t)(0u - (uint32_t)view_y)
 			    << g_perspective_shift;
 		numerator += (uint32_t)g_proj_scale_half_int;
+		uint32_t quotient;
 		if (((uint32_t *)&numerator)[1] < depth) {
 			quotient = (uint32_t)(numerator / depth);
 		} else {

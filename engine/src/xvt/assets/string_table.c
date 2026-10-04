@@ -58,26 +58,15 @@ void string_table_load_game_strings(int load_from_disk)
 		GOAL_CONDITIONS_PER_ROW_BLOCK = 47,
 	};
 
-	xvt_file *stream;
-	int gender_used_by_any_craft;
-	int entry_index;
-	char *write_ptr;
-	char **model_name;
-	char line[STRING_LINE_CAPACITY];
-	size_t file_size;
-	int line_length;
-	int condition_index;
-	int variant_index;
-
 	if (load_from_disk == 0) {
 		return;
 	}
 
 	fe_disk_io_open_global_stream("strings.txt", "r", 1, 0);
-	stream = (xvt_file *)g_stream;
+	xvt_file *stream = (xvt_file *)g_stream;
 	if (stream != NULL) {
 		FILE_RAW_SEEK(stream, 0, SEEK_END);
-		file_size = (size_t)FILE_RAW_TELL(stream);
+		size_t file_size = (size_t)FILE_RAW_TELL(stream);
 		if (file_size > DEFAULT_STRING_DATA_CAPACITY) {
 			memory_free_handle(g_string_data_handle);
 			g_string_data_handle =
@@ -87,7 +76,7 @@ void string_table_load_game_strings(int load_from_disk)
 					FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 			}
 		}
-		write_ptr =
+		char *write_ptr =
 			(char *)memory_get_handle_block(g_string_data_handle);
 		FILE_RAW_SEEK(stream, 0, SEEK_SET);
 		if (FILE_RAW_TELL(stream) != 0) {
@@ -96,6 +85,8 @@ void string_table_load_game_strings(int load_from_disk)
 			stream = (xvt_file *)g_stream;
 		}
 		if (stream != NULL) {
+			int entry_index;
+			char line[STRING_LINE_CAPACITY];
 			if (write_ptr != NULL) {
 				for (entry_index = 0;
 				     entry_index <
@@ -103,9 +94,7 @@ void string_table_load_game_strings(int load_from_disk)
 					   sizeof(g_str_damage_system_names
 							  [0]));
 				     ++entry_index) {
-					int length;
-
-					length =
+					int length =
 						string_table_read_non_comment_line(
 							stream, line);
 					if (length == -1) {
@@ -120,6 +109,7 @@ void string_table_load_game_strings(int load_from_disk)
 				}
 			}
 
+			int line_length;
 			if (write_ptr != NULL) {
 				entry_index = 0;
 				while (entry_index <
@@ -209,6 +199,8 @@ void string_table_load_game_strings(int load_from_disk)
 				}
 			}
 
+			int condition_index;
+			int variant_index;
 			if (write_ptr != NULL) {
 				for (entry_index = 0;
 				     entry_index <
@@ -479,9 +471,6 @@ void string_table_load_game_strings(int load_from_disk)
 				       (int)(sizeof(g_str_in_flight_messages) /
 					     sizeof(g_str_in_flight_messages
 							    [0]))) {
-					int source_index;
-					char *read_ptr;
-
 					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
 						write_ptr = NULL;
@@ -497,8 +486,8 @@ void string_table_load_game_strings(int load_from_disk)
 					}
 					g_str_in_flight_messages[entry_index] =
 						write_ptr;
-					read_ptr = line;
-					source_index = 0;
+					char *read_ptr = line;
+					int source_index = 0;
 					while (line_length > source_index) {
 						if (*read_ptr == '\\') {
 							if (read_ptr[1] ==
@@ -759,8 +748,9 @@ void string_table_load_game_strings(int load_from_disk)
 			if (write_ptr != NULL) {
 				for (entry_index = 0;
 				     entry_index < MODEL_STRING_COUNT;) {
-					model_name = &g_model_defs[entry_index]
-							      .name_long;
+					char **model_name =
+						&g_model_defs[entry_index]
+							 .name_long;
 					if (FILE_GETS(line, sizeof(line),
 						      stream) == NULL) {
 						write_ptr = NULL;
@@ -851,6 +841,7 @@ void string_table_load_game_strings(int load_from_disk)
 				}
 			}
 
+			int gender_used_by_any_craft;
 			if (write_ptr != NULL) {
 				entry_index = 0;
 				gender_used_by_any_craft = 0;
@@ -994,8 +985,6 @@ void string_table_load_game_strings(int load_from_disk)
 // FUNCTION: XVT 0x425A70
 int string_table_read_non_comment_line(xvt_file *stream, char *buffer)
 {
-	int line_length;
-
 	do {
 		if (FILE_GETS(buffer, 1024, stream) == 0) {
 			return -1;
@@ -1003,7 +992,7 @@ int string_table_read_non_comment_line(xvt_file *stream, char *buffer)
 		buffer[1023] = 0;
 	} while (buffer[0] == '/' && buffer[1] == '/');
 
-	line_length = strlen(buffer);
+	int line_length = strlen(buffer);
 	if (buffer[line_length - 1] == '\n') {
 		buffer[line_length - 1] = 0;
 		--line_length;

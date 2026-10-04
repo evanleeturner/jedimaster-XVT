@@ -51,10 +51,8 @@ static const double g_craft_tech_maneuver_rating_scale = 0.005231575698284567;
 void craft_adjust_current_shield_energy(unsigned int unused_object_idx,
 					uint16_t shield_index, int16_t delta)
 {
-	int max_shield_energy;
-
 	(void)unused_object_idx;
-	max_shield_energy =
+	int max_shield_energy =
 		2 * g_model_defs[g_cur_craft->model_index].shield_strength;
 	g_cur_craft->shield_energy[shield_index] =
 		g_cur_craft->shield_energy[shield_index] + delta;
@@ -98,17 +96,8 @@ model_index get_model_index_from_type(object_type_id object_type)
 // FUNCTION: XVT 0x426A00
 int build_craft_tech_stats(struct craft_tech_stats *stats)
 {
-	model_index model_index;
-	int *shield_rating;
-	unsigned int hull_rating;
-	craft_genus genus_id;
-	int scaled_shield_rating;
-	int scaled_hull_rating;
-	int group_index;
-	uint8_t weapon_type;
-
 	stats->genus_id = g_object_type_table[stats->craft_type].genus_id;
-	model_index =
+	model_index model_index =
 		get_model_index_from_type((unsigned int)stats->craft_type);
 	if (model_index == MODEL_INDEX_NONE) {
 		return 0;
@@ -128,33 +117,35 @@ int build_craft_tech_stats(struct craft_tech_stats *stats)
 			      g_craft_tech_maneuver_rating_scale +
 		      g_craft_tech_rating_rounding_bias);
 
-	shield_rating = &stats->shield_rating;
+	int *shield_rating = &stats->shield_rating;
 	if (g_model_defs[model_index].has_shields != 0) {
 		*shield_rating = g_model_defs[model_index].shield_strength / 50;
 	} else {
 		*shield_rating = 0;
 	}
-	hull_rating =
+	unsigned int hull_rating =
 		(unsigned int)g_model_defs[model_index].hull_strength / 105;
-	genus_id = stats->genus_id;
+	craft_genus genus_id = stats->genus_id;
 	stats->hull_rating = (int)hull_rating;
 	if (genus_id == CRAFT_GENUS_STARSHIP ||
 	    genus_id == CRAFT_GENUS_PLATFORM) {
-		scaled_shield_rating = 16 * *shield_rating;
+		int scaled_shield_rating = 16 * *shield_rating;
 		stats->hull_rating = (int)(16 * hull_rating);
 		*shield_rating = scaled_shield_rating;
 	}
 	if (genus_id == CRAFT_GENUS_FREIGHTER) {
-		scaled_hull_rating = 4 * stats->hull_rating;
+		int scaled_hull_rating = 4 * stats->hull_rating;
 		*shield_rating = 4 * *shield_rating;
 		stats->hull_rating = scaled_hull_rating;
 	}
 
 	stats->laser_count = 0;
 	stats->ion_count = 0;
+	int group_index;
 	for (group_index = 0; group_index < 2; ++group_index) {
-		weapon_type = g_model_defs[model_index]
-				      .laser_group_weapon_type[group_index];
+		uint8_t weapon_type =
+			g_model_defs[model_index]
+				.laser_group_weapon_type[group_index];
 		if (weapon_type == 0x89 || weapon_type == 0x8B) {
 			stats->laser_count +=
 				g_model_defs[model_index]
@@ -214,9 +205,7 @@ int build_craft_tech_stats(struct craft_tech_stats *stats)
 // FUNCTION: XVT 0x458750
 void craft_clear_turret_object_links(struct craft_data *craft)
 {
-	uint16_t turret_index;
-
-	for (turret_index = 0; turret_index < 16; ++turret_index) {
+	for (uint16_t turret_index = 0; turret_index < 16; ++turret_index) {
 		craft->turret_object_links[turret_index] = NULL;
 	}
 }
@@ -227,16 +216,13 @@ void craft_clear_turret_object_links(struct craft_data *craft)
 // FUNCTION: XVT 0x458780
 void craft_free_linked_objects(struct craft_data *craft)
 {
-	int remaining;
-	struct object_record **object_link;
-
 	if (craft->effective_ai_object_link != NULL) {
 		craft->effective_ai_object_link->object_type = 0;
 		craft->effective_ai_object_link = NULL;
 	}
 
-	object_link = craft->turret_object_links;
-	remaining = 16;
+	struct object_record **object_link = craft->turret_object_links;
+	int remaining = 16;
 	do {
 		if (*object_link != NULL) {
 			(*object_link)->object_type = 0;
@@ -259,17 +245,8 @@ void craft_free_linked_objects(struct craft_data *craft)
 void craft_detach_damageable_component(uint16_t object_index,
 				       int16_t detach_all)
 {
-	int object_type;
+	int object_type = g_object_table[object_index].object_type;
 	uint16_t mesh_count;
-	unsigned int mesh_index;
-	struct craft_data *craft;
-	uint16_t fragment_object_index;
-	int16_t roll_impulse;
-	int16_t yaw_offset;
-	int16_t pitch_offset;
-	int16_t pitch;
-
-	object_type = g_object_table[object_index].object_type;
 	if (object_type < 73) {
 		mesh_count = (uint16_t)g_object_type_mesh_cache[object_type]
 				     .mesh_count;
@@ -281,8 +258,8 @@ void craft_detach_damageable_component(uint16_t object_index,
 		return;
 	}
 
-	mesh_index = 0;
-	craft = g_object_table[object_index].mobj->p_craft;
+	unsigned int mesh_index = 0;
+	struct craft_data *craft = g_object_table[object_index].mobj->p_craft;
 	if (mesh_count == 0) {
 		return;
 	}
@@ -292,12 +269,16 @@ void craft_detach_damageable_component(uint16_t object_index,
 		    model_mesh_is_object_type_mesh_damageable(
 			    g_object_table[object_index].object_type,
 			    mesh_index) != 0) {
-			fragment_object_index = object_spawn_detached_component(
-				object_index, (int16_t)mesh_index);
+			uint16_t fragment_object_index =
+				object_spawn_detached_component(
+					object_index, (int16_t)mesh_index);
 			if (fragment_object_index != UINT16_MAX) {
-				roll_impulse = (game_rand() & 0x3FFF) + 0x4000;
-				yaw_offset = (game_rand() & 0x7FF) + 0x400;
-				pitch_offset = (game_rand() & 0xFFF) + 0x400;
+				int16_t roll_impulse =
+					(game_rand() & 0x3FFF) + 0x4000;
+				int16_t yaw_offset =
+					(game_rand() & 0x7FF) + 0x400;
+				int16_t pitch_offset =
+					(game_rand() & 0xFFF) + 0x400;
 				if ((game_rand() & 1) != 0) {
 					roll_impulse = -roll_impulse;
 					yaw_offset = -yaw_offset;
@@ -312,7 +293,8 @@ void craft_detach_damageable_component(uint16_t object_index,
 					yaw_offset;
 				g_object_table[fragment_object_index].pitch +=
 					pitch_offset;
-				pitch = g_object_table[fragment_object_index]
+				int16_t pitch =
+					g_object_table[fragment_object_index]
 						.pitch;
 				if ((uint16_t)pitch >= 0x8000) {
 					g_object_table[fragment_object_index]
@@ -391,23 +373,14 @@ warhead_kind_index object_type_get_warhead_kind_index(uint16_t object_type)
 // FUNCTION: XVT 0x484E10
 int craft_is_selectable_damage_component_mesh(int object_type, int mesh_index)
 {
-	int adjusted_mesh_index;
+	int adjusted_mesh_index = mesh_index;
 	mesh_component_type mesh_type;
-	int mesh_count;
-	int candidate_mesh_index;
-	int object_type_mesh_count;
-	int adjusted_candidate_index;
-	mesh_component_type candidate_mesh_type;
-	int candidate_mesh_count;
-	int target_id;
-
-	adjusted_mesh_index = mesh_index;
 	if (object_type < 73) {
 		if (mesh_index < 0) {
 			mesh_type = MESH_COMPONENT_00_DEFAULT;
 		} else {
-			mesh_count = g_object_type_mesh_cache[object_type]
-					     .mesh_count;
+			int mesh_count = g_object_type_mesh_cache[object_type]
+						 .mesh_count;
 			if (mesh_count <= mesh_index) {
 				adjusted_mesh_index = mesh_count - 1;
 			}
@@ -422,7 +395,7 @@ int craft_is_selectable_damage_component_mesh(int object_type, int mesh_index)
 	    mesh_type == MESH_COMPONENT_19_ANTENNA) {
 		return 0;
 	}
-	target_id = model_mesh_get_target_id(object_type, mesh_index);
+	int target_id = model_mesh_get_target_id(object_type, mesh_index);
 	if (target_id == 0) {
 		return 1;
 	}
@@ -430,6 +403,7 @@ int craft_is_selectable_damage_component_mesh(int object_type, int mesh_index)
 	    mesh_type != MESH_COMPONENT_03_FUSELAGE) {
 		return 1;
 	}
+	int object_type_mesh_count;
 	if (object_type < 73) {
 		object_type_mesh_count =
 			g_object_type_mesh_cache[object_type].mesh_count;
@@ -437,17 +411,18 @@ int craft_is_selectable_damage_component_mesh(int object_type, int mesh_index)
 		object_type_mesh_count =
 			model_mesh_get_object_type_mesh_count(object_type);
 	}
-	candidate_mesh_index = 0;
+	int candidate_mesh_index = 0;
+	mesh_component_type candidate_mesh_type;
 	while (object_type_mesh_count > candidate_mesh_index) {
 		if (model_mesh_get_target_id(
 			    object_type, candidate_mesh_index) == target_id) {
-			adjusted_candidate_index = candidate_mesh_index;
+			int adjusted_candidate_index = candidate_mesh_index;
 			if (object_type < 73) {
 				if (candidate_mesh_index < 0) {
 					candidate_mesh_type =
 						MESH_COMPONENT_00_DEFAULT;
 				} else {
-					candidate_mesh_count =
+					int candidate_mesh_count =
 						g_object_type_mesh_cache
 							[object_type]
 								.mesh_count;
@@ -510,27 +485,21 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 		MAX_PLAYERS = 8
 	};
 
-	unsigned int victim_idx;
-	int player_index;
-	int mesh_count;
-	int mesh_type;
-	unsigned int component_hp_as_damage;
-	int mesh_index;
 	--hit_mesh_index;
-	mesh_index = (uint16_t)hit_mesh_index;
+	int mesh_index = (uint16_t)hit_mesh_index;
 
 	if (g_cur_craft->component_hp[mesh_index] == 0) {
 		return damage_amount;
 	}
+	int mesh_count;
+	int mesh_type;
 	if (g_cur_craft->component_hp[mesh_index] == UINT8_MAX) {
-		int adjusted_index;
-		int object_type;
 		if (g_object_table[victim_obj_idx].object_type !=
 		    SUPER_STAR_DESTROYER_OBJECT_TYPE) {
 			return damage_amount;
 		}
-		adjusted_index = mesh_index;
-		object_type = g_object_table[victim_obj_idx].object_type;
+		int adjusted_index = mesh_index;
+		int object_type = g_object_table[victim_obj_idx].object_type;
 		if (object_type < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (adjusted_index < 0) {
 				mesh_type = MESH_COMPONENT_00_DEFAULT;
@@ -581,8 +550,6 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 				object_type, mesh_index);
 		}
 		if (mesh_type == MESH_COMPONENT_07_BRIDGE) {
-			int shield_generator_count;
-			int i;
 			object_type =
 				g_object_table[victim_obj_idx].object_type;
 			if (object_type < OBJECT_TYPE_MESH_CACHE_COUNT) {
@@ -594,8 +561,8 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					model_mesh_get_object_type_mesh_count(
 						object_type);
 			}
-			shield_generator_count = 0;
-			for (i = 0; mesh_count > i; ++i) {
+			int shield_generator_count = 0;
+			for (int i = 0; mesh_count > i; ++i) {
 				int candidate_index = i;
 				object_type = g_object_table[victim_obj_idx]
 						      .object_type;
@@ -660,7 +627,8 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 		}
 	}
 
-	component_hp_as_damage = 16 * g_cur_craft->component_hp[mesh_index];
+	unsigned int component_hp_as_damage =
+		16 * g_cur_craft->component_hp[mesh_index];
 	if (damage_amount >= component_hp_as_damage) {
 		g_cur_craft->component_hp[mesh_index] = 0;
 		damage_amount -= component_hp_as_damage;
@@ -695,8 +663,6 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						object_type, mesh_index);
 			}
 			if (mesh_type == MESH_COMPONENT_08_SHLD_GEN) {
-				int active_generators = 0;
-				int i;
 				object_type = g_object_table[victim_obj_idx]
 						      .object_type;
 				if (object_type <
@@ -710,12 +676,12 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						model_mesh_get_object_type_mesh_count(
 							object_type);
 				}
-				for (i = 0; mesh_count > i; ++i) {
-					int candidate_index;
+				int active_generators = 0;
+				for (int i = 0; mesh_count > i; ++i) {
 					if (mesh_index == i) {
 						continue;
 					}
-					candidate_index = i;
+					int candidate_index = i;
 					object_type =
 						g_object_table[victim_obj_idx]
 							.object_type;
@@ -759,12 +725,12 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 			}
 		}
 
-		victim_idx = victim_obj_idx;
+		unsigned int victim_idx = victim_obj_idx;
 		if (model_mesh_is_object_type_mesh_damageable(
 			    g_object_table[victim_idx].object_type,
 			    mesh_index) != 0) {
 			g_cur_craft->component_state[mesh_index] = 2;
-			for (player_index = 0; player_index < MAX_PLAYERS;
+			for (int player_index = 0; player_index < MAX_PLAYERS;
 			     ++player_index) {
 				if (g_players[player_index]
 						    .participation_state != 0 &&
@@ -825,11 +791,10 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 
 			if (g_flight_mission_state
 				    .proving_grounds_mode_active != 0) {
-				unsigned int score;
-				uint8_t seconds;
 				++g_flight_mission_state
 					  .proving_grounds_targets_destroyed;
-				score = g_flight_mission_state
+				unsigned int score =
+					g_flight_mission_state
 						.proving_grounds_score +
 					50;
 				g_flight_mission_state.proving_grounds_score =
@@ -840,7 +805,8 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						.proving_grounds_score =
 						score + 50;
 				}
-				seconds = g_mission_countdown_clock.seconds + 2;
+				uint8_t seconds =
+					g_mission_countdown_clock.seconds + 2;
 				g_mission_countdown_clock.seconds = seconds;
 				if (seconds >= 60) {
 					g_mission_countdown_clock.seconds =
@@ -854,10 +820,6 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					object_alloc_slot_for_genus(
 						CRAFT_GENUS_EXPLOSION);
 				if (explosion_obj_idx != UINT16_MAX) {
-					int center_x;
-					int center_y;
-					int center_z;
-					int effect_size;
 					g_object_table[explosion_obj_idx]
 						.world_x =
 						g_object_table[victim_idx]
@@ -870,15 +832,15 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						.world_z =
 						g_object_table[victim_idx]
 							.world_z;
-					center_x = model_mesh_get_center_x(
+					int center_x = model_mesh_get_center_x(
 						g_object_table[victim_idx]
 							.object_type,
 						mesh_index);
-					center_y = model_mesh_get_center_y(
+					int center_y = model_mesh_get_center_y(
 						g_object_table[victim_idx]
 							.object_type,
 						mesh_index);
-					center_z = model_mesh_get_center_z(
+					int center_z = model_mesh_get_center_z(
 						g_object_table[victim_idx]
 							.object_type,
 						mesh_index);
@@ -962,7 +924,7 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						 3) + FLIGHT_SOUND_SMALL_EXPLOSION_FIRST,
 						explosion_obj_idx,
 						g_local_player);
-					effect_size =
+					int effect_size =
 						model_mesh_get_component_max_extent(
 							g_object_table[victim_idx]
 								.object_type,
@@ -1073,32 +1035,27 @@ void craft_spawn_main_hull_explosion_effects(uint16_t object_idx,
 		MAIN_EXPLOSION_SLOT_COUNT = 1
 	};
 
-	uint8_t hull_meshes[MAX_HULL_MESHES];
-	struct object_record *object;
-	int mesh_count;
-	uint16_t object_type;
-	uint16_t mesh_index;
-	uint16_t hull_count;
-
 	if ((uint16_t)game_rand() >= 0x1FFF && force_main_explosion == 0) {
 		return;
 	}
 
-	object = &g_object_table[object_idx];
+	struct object_record *object = &g_object_table[object_idx];
 	g_cur_craft = object->mobj->p_craft;
-	object_type = object->object_type;
+	uint16_t object_type = object->object_type;
 	if (object->mobj->orient_matrix_dirty != 0) {
 		fview_set_object_transform(object->roll, object->pitch,
 					   object->yaw, 0, object);
 	}
+	int mesh_count;
 	if (object_type < OBJECT_TYPE_MESH_CACHE_COUNT) {
 		mesh_count = g_object_type_mesh_cache[object_type].mesh_count;
 	} else {
 		mesh_count = model_mesh_get_object_type_mesh_count(object_type);
 	}
 
-	hull_count = 0;
-	for (mesh_index = 0; mesh_index < mesh_count; ++mesh_index) {
+	uint16_t hull_count = 0;
+	uint8_t hull_meshes[MAX_HULL_MESHES];
+	for (uint16_t mesh_index = 0; mesh_index < mesh_count; ++mesh_index) {
 		int lookup_index = mesh_index;
 		int mesh_type;
 		if (object_type < OBJECT_TYPE_MESH_CACHE_COUNT) {
@@ -1132,20 +1089,16 @@ void craft_spawn_main_hull_explosion_effects(uint16_t object_idx,
 	}
 
 	if (force_main_explosion != 0) {
-		uint16_t explosion_slot;
-		uint16_t cleared_slots;
-		uint16_t main_mesh;
-		int main_extent;
-		explosion_slot =
+		uint16_t explosion_slot =
 			g_object_slot_range_by_genus[CRAFT_GENUS_EXPLOSION]
 				.start;
-		for (cleared_slots = 0;
+		for (uint16_t cleared_slots = 0;
 		     cleared_slots < MAIN_EXPLOSION_SLOT_COUNT;
 		     ++cleared_slots) {
 			g_object_table[explosion_slot++].object_type = 0;
 		}
-		main_mesh = hull_meshes[0];
-		main_extent =
+		uint16_t main_mesh = hull_meshes[0];
+		int main_extent =
 			g_object_type_table[object_type].max_bounds_extent;
 		craft_spawn_explosion_object_at_mesh(object, main_mesh,
 						     main_extent, 0);
@@ -1185,13 +1138,11 @@ int craft_spawn_explosion_object_at_mesh(const struct object_record *obj_record,
 					 uint16_t use_random_vertex)
 {
 	/* Place an explosion object at a mesh center or random vertex. */
-	uint16_t object_type;
+	uint16_t object_type = obj_record->object_type;
+
 	int local_x;
 	int local_y;
 	int local_z;
-
-	object_type = obj_record->object_type;
-
 	if (use_random_vertex == 0) {
 		local_x = model_mesh_get_center_x(object_type, mesh_index);
 		local_y = model_mesh_get_center_y(object_type, mesh_index);

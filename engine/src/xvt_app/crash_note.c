@@ -91,9 +91,6 @@ size_t xvt_crash_note_format_line(char *out, size_t capacity,
 				  uint32_t ms_of_day, const char *format,
 				  va_list args)
 {
-	size_t used = 0;
-	size_t limit;
-	uint32_t ms;
 	if (capacity == 0) {
 		return 0;
 	}
@@ -102,8 +99,9 @@ size_t xvt_crash_note_format_line(char *out, size_t capacity,
 		return 0;
 	}
 	/* Two bytes stay reserved for the newline and the terminator. */
-	limit = capacity - 2;
-	ms = ms_of_day % 86400000u;
+	size_t limit = capacity - 2;
+	uint32_t ms = ms_of_day % 86400000u;
+	size_t used = 0;
 	xvt_crash_note_put_number(out, limit, &used, ms / 3600000u, 10, 2);
 	xvt_crash_note_put(out, limit, &used, ':');
 	xvt_crash_note_put_number(out, limit, &used, ms / 60000u % 60u, 10, 2);
@@ -208,11 +206,10 @@ static void xvt_crash_note_output(const char *line, size_t length)
 
 void xvt_crash_note_writef(const char *format, ...)
 {
-	char line[XVT_CRASH_NOTE_LINE];
-	size_t length;
 	va_list args;
 	va_start(args, format);
-	length = xvt_crash_note_format_line(
+	char line[XVT_CRASH_NOTE_LINE];
+	size_t length = xvt_crash_note_format_line(
 		line, sizeof(line), xvt_crash_note_ms_of_day(), format, args);
 	va_end(args);
 	xvt_crash_note_output(line, length);
@@ -463,22 +460,22 @@ static void xvt_crash_note_on_signal(int signal, siginfo_t *info, void *context)
 
 void xvt_crash_note_install(xvt_log_file_handle file)
 {
-	struct sigaction action;
-	stack_t stack;
-	void *warm[1];
 	g_crash_note_file = file;
 	if (g_crash_note_installed) {
 		return;
 	}
 	g_crash_note_installed = 1;
+	void *warm[1];
 	/* The first backtrace call may load the unwinder and allocate; do it now, not in the handler. */
 	backtrace(warm, 1);
+	stack_t stack;
 	memset(&stack, 0, sizeof(stack));
 	stack.ss_sp = malloc(XVT_CRASH_NOTE_STACK);
 	stack.ss_size = XVT_CRASH_NOTE_STACK;
 	if (stack.ss_sp) {
 		sigaltstack(&stack, NULL);
 	}
+	struct sigaction action;
 	memset(&action, 0, sizeof(action));
 	action.sa_sigaction = xvt_crash_note_on_signal;
 	sigemptyset(&action.sa_mask);

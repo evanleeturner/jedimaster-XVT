@@ -24,16 +24,12 @@ void time_reset_elapsed_ticks(void) { g_last_tick_time_ms = 0; }
 // FUNCTION: XVT 0x4AC760
 uint32_t time_consume_elapsed_ticks(void)
 {
-	uint32_t time;
-	uint32_t last_tick_time_ms;
-	uint32_t delta_ticks;
-
-	time = timeGetTime();
-	last_tick_time_ms = g_last_tick_time_ms;
+	uint32_t time = timeGetTime();
+	uint32_t last_tick_time_ms = g_last_tick_time_ms;
 	if (last_tick_time_ms == 0) {
 		last_tick_time_ms = time;
 	}
-	delta_ticks = (time - last_tick_time_ms) >> 2;
+	uint32_t delta_ticks = (time - last_tick_time_ms) >> 2;
 	g_last_tick_time_ms = last_tick_time_ms + 4 * delta_ticks;
 	return delta_ticks;
 }

@@ -195,24 +195,19 @@ int frontend_net_draw_join_game_list(int frame_counter)
 	(void)frame_counter;
 	return xvt_network_browser_draw_list();
 #else
-	struct RECT rect;
-	struct RECT destination;
-	uint32_t now_ms;
-	int mouse_x;
-	int mouse_y;
-	int clicked_index;
-	int row_index;
-
 	if (frame_counter == 0) {
 		g_frontend_net_session_list_scroll_offset = 0;
 	}
-	now_ms = GetTickCount();
+	uint32_t now_ms = GetTickCount();
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 88, 94, 416, 109);
 	frontend_text_draw_aligned_in_rect(
 		12,
 		frontend_string_get(
 			FRONTSTR_016_GAME_NAME_PLAYERS_NEEDED_LAST_QUERY),
 		&rect, 0, 1, 0xFFFF);
+	int mouse_x;
+	int mouse_y;
 	frontend_cursor_get_pos(&mouse_x, &mouse_y);
 	if (g_frontend_net_session_count > 6) {
 		frontend_draw_rect_assign(&rect, 421, 114, 430, 204);
@@ -224,15 +219,15 @@ int frontend_net_draw_join_game_list(int frame_counter)
 				(unsigned int)g_color_navy, 5);
 	}
 	frontend_draw_rect_assign(&rect, 88, 114, 419, 128);
-	clicked_index = -1;
-	row_index = g_frontend_net_session_list_scroll_offset;
+	int clicked_index = -1;
+	int row_index = g_frontend_net_session_list_scroll_offset;
+	struct RECT destination;
 	while (row_index < g_frontend_net_session_list_scroll_offset + 6 &&
 	       row_index < g_frontend_net_session_count) {
-		unsigned short text_color;
-
 		if (row_index == g_frontend_net_selected_session_idx) {
 			frontend_draw_rect(&rect, 0, 0, g_color_navy, 1);
 		}
+		unsigned short text_color;
 		if (g_frontend_net_session_list[row_index].version != 101u) {
 			text_color = g_color_gray;
 		} else if (g_frontend_net_session_list[row_index]
@@ -355,14 +350,8 @@ int frontend_net_join_game_screen(int frame_counter)
 		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 	};
 
-	int packet_type;
-	int clicked_session_index;
-	int animation_frame;
-	int host_player_id;
-	struct RECT rect;
-	struct RECT screen_rect;
-
 	g_config_connection_type_editable = 0;
+	struct RECT screen_rect;
 	if (g_game_config.network_type != NET_TRANSPORT_IPX) {
 		if (g_frontend_skip_screen_entry_setup != 0) {
 			g_frontend_mission_session_mode =
@@ -485,6 +474,7 @@ int frontend_net_join_game_screen(int frame_counter)
 			frontend_text_start_text_fade_in(20);
 		}
 
+		struct RECT rect;
 		frontend_draw_rect_assign(&rect, 158, 52, 491, 68);
 		frontend_text_draw_centered(
 			12, g_frontend_net_selected_game_name, &rect, 0xFFFF);
@@ -493,7 +483,8 @@ int frontend_net_join_game_screen(int frame_counter)
 			frontend_net_refresh_session_list();
 		}
 		if (g_frontend_net_selected_session_idx != -1) {
-			packet_type = frontend_net_process_network_packets();
+			int packet_type =
+				frontend_net_process_network_packets();
 			if (packet_type == NET_PACKET_STATE) {
 				g_frontend_net_session_list
 					[g_frontend_net_selected_session_idx]
@@ -638,7 +629,7 @@ int frontend_net_join_game_screen(int frame_counter)
 			}
 		}
 
-		clicked_session_index =
+		int clicked_session_index =
 			frontend_net_draw_join_game_list(frame_counter);
 		if (clicked_session_index != -1) {
 			if (g_frontend_net_selected_session_idx ==
@@ -700,7 +691,7 @@ int frontend_net_join_game_screen(int frame_counter)
 			frontend_text_draw_centered(12,
 						    g_frontend_scratch_buffer,
 						    &rect, g_color_yellow);
-			animation_frame =
+			int animation_frame =
 				(frame_counter %
 				 PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >>
 				1;
@@ -754,7 +745,7 @@ int frontend_net_join_game_screen(int frame_counter)
 				       g_frontend_net_session_list
 					       [g_frontend_net_selected_session_idx]
 						       .game_name);
-				host_player_id = net_get_host_player_id();
+				int host_player_id = net_get_host_player_id();
 				g_frontend_net_packet_scratch.packet_type =
 					NET_PACKET_JOIN_REQUEST;
 				*(int *)&g_frontend_net_packet_scratch
@@ -802,12 +793,6 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 	};
 
-	int network_result;
-	int animation_frame;
-	int cancel_pressed;
-	struct RECT rect;
-	struct RECT screen_rect;
-
 	if (frame_counter == 0) {
 		front_image_register_resource_default("frontres\\joinback.bmp",
 						      "background");
@@ -824,6 +809,7 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 		frontend_text_start_text_fade_in(20);
 	}
 
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 84, 107, 434, 433);
 	frontend_text_draw_centered(
 		15,
@@ -834,7 +820,7 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 		return 0;
 	}
 #endif
-	network_result = frontend_net_process_network_packets();
+	int network_result = frontend_net_process_network_packets();
 #ifdef XVT_MODERN
 	if (g_frontend_net_packet_sender_player_id !=
 	    net_get_host_player_id()) {
@@ -852,6 +838,7 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 #else
 		net_shutdown_direct_play_session_no_handshake();
 #endif
+		struct RECT screen_rect;
 		switch (network_result - NET_PACKET_FRONTEND_GAME_STARTED) {
 		case NET_PACKET_FRONTEND_GAME_STARTED -
 			NET_PACKET_FRONTEND_GAME_STARTED:
@@ -963,9 +950,9 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 			g_pilot_data.rating_name, 1, g_pilot_data.name);
 		frontend_text_draw_centered(12, g_frontend_scratch_buffer,
 					    &rect, g_color_yellow);
-		animation_frame = (frame_counter %
-				   PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >>
-				  1;
+		int animation_frame = (frame_counter %
+				       PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >>
+				      1;
 		sprintf(g_frontend_scratch_buffer, "rebtiny%d",
 			animation_frame);
 		front_image_draw_sprite(g_frontend_scratch_buffer, 204, 453);
@@ -987,7 +974,7 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 	frontend_button_set_overlay_text(
 		frontend_string_get(FRONTSTR_019_CANCEL));
 	frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
-	cancel_pressed = frontend_button_handle_sprite_button(
+	int cancel_pressed = frontend_button_handle_sprite_button(
 		&rect, "leaveup", "leavedown",
 		frontend_string_get(FRONTSTR_019_CANCEL), 12, 0, 8,
 		"buttonsound");
@@ -1042,10 +1029,8 @@ int frontend_net_draw_join_game_mission_briefing(void)
 
 	if (g_frontend_net_received_mission_description_id != -1 &&
 	    g_mission_text != NULL) {
-		unsigned int line_count;
-
 		frontend_draw_rect_assign(&rect, 88, 328, 420, 426);
-		line_count =
+		unsigned int line_count =
 			frontend_text_draw_wrapped(12, g_mission_text, &rect,
 						   0xFFFF, 4, 4096) +
 			1;
@@ -1077,19 +1062,17 @@ int frontend_net_draw_join_game_player_roster(void)
 	return xvt_network_browser_draw_roster();
 #else
 	struct RECT rect;
-	struct RECT previous_clip_rect;
-	int displayed_count;
-	int roster_index;
 
 	frontend_draw_rect_assign(&rect, 88, 218, 430, 233);
 	frontend_text_draw_aligned_in_rect(
 		12, frontend_string_get(FRONTSTR_201_PLAYERS_IN_GAME), &rect, 0,
 		1, 0xFFFF);
+	struct RECT previous_clip_rect;
 	if (g_frontend_net_received_mission_description_id != -1) {
-		displayed_count = 0;
+		int displayed_count = 0;
 		net_count_ready_players();
 		frontend_draw_rect_assign(&rect, 88, 238, 258, 252);
-		for (roster_index = 0; roster_index < 8; ++roster_index) {
+		for (int roster_index = 0; roster_index < 8; ++roster_index) {
 			if (g_mp_roster[roster_index].player_id != 0) {
 				frontend_display_get_screen_clip_rect(
 					&previous_clip_rect);
@@ -1136,21 +1119,15 @@ int frontend_net_draw_join_game_player_roster(void)
 // FUNCTION: XVT 0x4D8690
 int frontend_net_update_and_draw_chat_panel(int frame_counter)
 {
-	struct RECT rect;
-	int cursor_x;
-	int cursor_y;
-	int local_player_id;
-	int team_message;
-	int line_count;
-	int max_scroll;
-	int player_index;
-
 	if (frame_counter == 0) {
 		keyboard_flush_char_buffer();
 		g_frontend_chat_scroll_offset = 0;
 	}
 
+	struct RECT rect;
 	if (g_mission_setup_roster_authoritative != 0) {
+		int cursor_x;
+		int cursor_y;
 		frontend_cursor_get_pos(&cursor_x, &cursor_y);
 		if (g_frontend_chat_team_only == 0) {
 			front_image_draw_sprite("tab2", 0, 0);
@@ -1211,7 +1188,8 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 						100, 0, 12, NULL) != 0 &&
 	    g_frontend_chat_input_buffer[0] != 0) {
 		g_frontend_net_packet_scratch.packet_type = NET_PACKET_CHAT;
-		local_player_id = net_get_local_player_id();
+		int local_player_id = net_get_local_player_id();
+		int team_message;
 		if (net_is_player_ready(local_player_id) != 0) {
 			team_message = g_frontend_chat_team_only;
 			if (g_frontend_chat_team_only == 1) {
@@ -1237,7 +1215,7 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 		       g_frontend_scratch_buffer,
 		       strlen(g_frontend_scratch_buffer));
 		if (team_message != 0) {
-			player_index = 0;
+			int player_index = 0;
 			while (player_index < 8 &&
 			       net_get_local_player_id() !=
 				       g_mission_setup_player_assignments
@@ -1277,9 +1255,9 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 	}
 
 	frontend_draw_rect_assign(&rect, 461, 117, 595, 407);
-	line_count = frontend_text_draw_wrapped(12, g_frontend_chat_log_buffer,
-						&rect, 0xFFFF, 2, 1024);
-	max_scroll = line_count - 20;
+	int line_count = frontend_text_draw_wrapped(
+		12, g_frontend_chat_log_buffer, &rect, 0xFFFF, 2, 1024);
+	int max_scroll = line_count - 20;
 	if (line_count <= 20) {
 		max_scroll = 0;
 	}
@@ -1337,9 +1315,6 @@ int frontend_net_connect_to_selected_game_screen(int frame_counter)
 	};
 
 	struct RECT rect;
-	char player_info[2];
-	int host_player_id;
-	unsigned int network_type;
 
 	if (frame_counter == 0) {
 		net_clear_player_ready_flags();
@@ -1377,6 +1352,7 @@ int frontend_net_connect_to_selected_game_screen(int frame_counter)
 		return 0;
 	}
 
+	unsigned int network_type;
 	if (frame_counter > 0 && frame_counter < CONNECT_ACTION_FRAME) {
 		frontend_cursor_hide();
 		network_type = g_game_config.network_type;
@@ -1505,6 +1481,7 @@ int frontend_net_connect_to_selected_game_screen(int frame_counter)
 			break;
 		}
 
+		char player_info[2];
 		player_info[0] = (char)(g_pilot_data.rating + 1);
 		player_info[1] = '\0';
 		frontend_display_unlock_back_buffer();
@@ -1520,7 +1497,7 @@ int frontend_net_connect_to_selected_game_screen(int frame_counter)
 			    g_frontend_net_session_list[0].game_name,
 			    (network_transport_type)g_game_config.network_type,
 			    0, 1, g_frontend_scratch_buffer, NULL) != 0) {
-			host_player_id = net_get_host_player_id();
+			int host_player_id = net_get_host_player_id();
 			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_JOIN_REQUEST;
 			*(int *)g_frontend_net_packet_scratch.payload =
@@ -1578,10 +1555,7 @@ int frontend_net_draw_join_game_sidebars_and_query_all(void)
 		QUERY_BUTTON_HELD_SLOT = 11,
 	};
 
-	int cursor_x;
-	int cursor_y;
 	frontend_navigation_slot_state slot_states[8];
-	struct RECT rect;
 
 	slot_states[1] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
 	slot_states[2] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
@@ -1591,7 +1565,10 @@ int frontend_net_draw_join_game_sidebars_and_query_all(void)
 	slot_states[6] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
 	slot_states[7] = FRONTEND_NAVIGATION_SLOT_INACTIVE;
 	slot_states[0] = FRONTEND_NAVIGATION_SLOT_ACTIVE;
+	int cursor_x;
+	int cursor_y;
 	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, QUERY_BUTTON_LEFT, QUERY_BUTTON_TOP,
 				  QUERY_BUTTON_RIGHT, QUERY_BUTTON_BOTTOM);
 	if (frontend_draw_point_in_rect(&rect, cursor_x, cursor_y) &&
@@ -1658,27 +1635,24 @@ int frontend_net_refresh_session_list(void)
 		FRONTEND_NET_UI_SOUND_CENTER_PAN = 63
 	};
 
-	struct net_session_enum_entry
-		enumerated_sessions[FRONTEND_NET_SESSION_CAPACITY];
-	unsigned int enumerated_session_count;
-	unsigned int enumerated_index;
-	int added_session;
-	int existing_index;
-
-	added_session = 0;
+	int added_session = 0;
 	if (g_frontend_net_selected_session_idx != -1) {
 		return 0;
 	}
 
-	enumerated_session_count = (unsigned int)net_enumerate_app_sessions(
-		g_frontend_net_xvt_direct_play_app_guid[0],
-		g_frontend_net_xvt_direct_play_app_guid[1],
-		g_frontend_net_xvt_direct_play_app_guid[2],
-		g_frontend_net_xvt_direct_play_app_guid[3], enumerated_sessions,
-		FRONTEND_NET_SESSION_CAPACITY,
-		(network_transport_type)g_game_config.network_type);
+	struct net_session_enum_entry
+		enumerated_sessions[FRONTEND_NET_SESSION_CAPACITY];
+	unsigned int enumerated_session_count =
+		(unsigned int)net_enumerate_app_sessions(
+			g_frontend_net_xvt_direct_play_app_guid[0],
+			g_frontend_net_xvt_direct_play_app_guid[1],
+			g_frontend_net_xvt_direct_play_app_guid[2],
+			g_frontend_net_xvt_direct_play_app_guid[3],
+			enumerated_sessions, FRONTEND_NET_SESSION_CAPACITY,
+			(network_transport_type)g_game_config.network_type);
 
-	existing_index = 0;
+	int existing_index = 0;
+	unsigned int enumerated_index;
 	if (g_frontend_net_session_count != 0) {
 		do {
 			int existing_guid_key =
@@ -1772,9 +1746,8 @@ int frontend_net_refresh_session_list(void)
 						[existing_index]
 							.session_guid);
 			if (existing_guid_key == 0) {
-				unsigned int replacement_index;
-
-				for (replacement_index = existing_index + 1;
+				for (unsigned int replacement_index =
+					     existing_index + 1;
 				     (unsigned int)replacement_index <
 				     (unsigned int)g_frontend_net_session_count;
 				     ++replacement_index) {
@@ -1830,17 +1803,15 @@ int frontend_net_compare_session_list_entries(
 	const struct frontend_net_session_entry *lhs,
 	const struct frontend_net_session_entry *rhs)
 {
-	int result;
-	unsigned int rhs_players_needed;
-	unsigned int lhs_players_needed;
-
-	result = (rhs->version == 101u) - (lhs->version == 101u);
+	int result = (rhs->version == 101u) - (lhs->version == 101u);
 	if (result == 0) {
 		result =
 			(rhs->game_in_flight == 0) - (lhs->game_in_flight == 0);
 		if (result == 0) {
-			rhs_players_needed = (unsigned int)rhs->players_needed;
-			lhs_players_needed = (unsigned int)lhs->players_needed;
+			unsigned int rhs_players_needed =
+				(unsigned int)rhs->players_needed;
+			unsigned int lhs_players_needed =
+				(unsigned int)lhs->players_needed;
 			result = (rhs_players_needed > 0) -
 				 (lhs_players_needed > 0);
 			if (result == 0) {
@@ -1868,12 +1839,10 @@ int frontend_net_sort_sessions(void)
 {
 	enum { FRONTEND_NET_BRIEFING_TEXT_CAPACITY = 4096 };
 
-	int selected_session_guid_key;
-	int session_index;
-
 	if (g_frontend_net_session_count == 0) {
 		return -1;
 	}
+	int selected_session_guid_key;
 	if (g_frontend_net_selected_session_idx != -1) {
 		selected_session_guid_key = frontend_net_make_session_guid_key(
 			g_frontend_net_session_list
@@ -1886,6 +1855,7 @@ int frontend_net_sort_sessions(void)
 	      (int (*)(const void *,
 		       const void *))frontend_net_compare_session_list_entries);
 	if (g_frontend_net_selected_session_idx != -1) {
+		int session_index;
 		for (session_index = 0;
 		     (unsigned int)session_index <
 		     (unsigned int)g_frontend_net_session_count;
@@ -1923,8 +1893,6 @@ int frontend_net_probe_all_sessions(void)
 {
 	enum { BRIEFING_TEXT_CAPACITY = 4096 };
 
-	int session_index;
-
 	g_frontend_net_selected_session_idx = -1;
 	g_frontend_net_probe_mission_elapsed_seconds = 0;
 	g_frontend_net_received_mission_description_id = -1;
@@ -1933,8 +1901,8 @@ int frontend_net_probe_all_sessions(void)
 	memset(g_mission_text, 0, BRIEFING_TEXT_CAPACITY);
 	net_shutdown_direct_play_session();
 	frontend_net_refresh_session_list();
-	for (session_index = 0; session_index < g_frontend_net_session_count;
-	     ++session_index) {
+	for (int session_index = 0;
+	     session_index < g_frontend_net_session_count; ++session_index) {
 		frontend_net_probe_session_by_index(session_index);
 	}
 	net_shutdown_direct_play_session();
@@ -1963,13 +1931,6 @@ int frontend_net_probe_session_by_index(int session_idx)
 		BRIEFING_TEXT_CAPACITY = 4096,
 	};
 
-	GUID session_guid;
-	char player_info[2];
-	unsigned int probe_start_ms;
-	unsigned int current_time_ms;
-	int host_player_id;
-	int packet_type;
-
 	net_shutdown_direct_play_session();
 	strcpy(g_frontend_net_selected_game_name,
 	       g_frontend_net_session_list[session_idx].game_name);
@@ -1987,9 +1948,11 @@ int frontend_net_probe_session_by_index(int session_idx)
 		break;
 	}
 
+	GUID session_guid;
 	memcpy(&session_guid,
 	       &g_frontend_net_session_list[session_idx].session_guid,
 	       sizeof(session_guid));
+	char player_info[2];
 	player_info[0] = (char)(g_pilot_data.rating + 1);
 	player_info[1] = '\0';
 	if (net_start_network_session(
@@ -2025,7 +1988,7 @@ int frontend_net_probe_session_by_index(int session_idx)
 			MISSION_DIRECTORY_TRAINING_EXERCISES;
 		g_frontend_net_received_mission_description_id = -1;
 	}
-	host_player_id = net_get_host_player_id();
+	int host_player_id = net_get_host_player_id();
 	g_frontend_net_packet_scratch.packet_type = NET_PACKET_PROBE_REQUEST;
 	net_send_packet_and_flush(host_player_id,
 				  &g_frontend_net_packet_scratch,
@@ -2041,7 +2004,9 @@ int frontend_net_probe_session_by_index(int session_idx)
 
 	g_frontend_net_probe_players_needed = 0;
 	g_frontend_net_probe_mission_elapsed_seconds = 0;
-	probe_start_ms = GetTickCount();
+	unsigned int probe_start_ms = GetTickCount();
+	unsigned int current_time_ms;
+	int packet_type;
 	do {
 		packet_type = frontend_net_process_network_packets();
 		current_time_ms = GetTickCount();
@@ -2148,14 +2113,11 @@ int frontend_net_host_game_screen(int frame_counter)
 		HOST_BUTTON_HELD_SLOT = 20,
 	};
 
-	int host_requested;
 #ifndef XVT_MODERN
 	char player_info[2];
 	int local_player_id;
 	int network_type;
 #endif
-	struct RECT rect;
-
 	if (frame_counter == 0) {
 		g_host_game_start_pending = 0;
 		g_frontend_skip_screen_entry_setup = 0;
@@ -2186,6 +2148,7 @@ int frontend_net_host_game_screen(int frame_counter)
 		frontend_text_start_text_fade_in(20);
 	}
 
+	struct RECT rect;
 	if (g_host_game_start_pending == 0) {
 		frontend_draw_rect_assign(&rect, 245, 225, 445, 245);
 		frontend_text_draw_centered(
@@ -2193,7 +2156,7 @@ int frontend_net_host_game_screen(int frame_counter)
 			frontend_string_get(FRONTSTR_017_NAME_THE_GAME_SESSION),
 			&rect, 0xFFFF);
 		frontend_draw_rect_assign(&rect, 250, 245, 440, 265);
-		host_requested = frontend_text_handle_editable_field(
+		int host_requested = frontend_text_handle_editable_field(
 			&rect, g_pilot_data.multiplayer_game_name,
 			HOST_NAME_MAX_CHARS, HOST_TEXT_FIELD_ID, 12, NULL);
 		frontend_draw_rect_assign(&rect, 250, 275, 440, 295);

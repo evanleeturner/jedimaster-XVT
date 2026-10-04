@@ -193,9 +193,8 @@ static int read_word(FILE *fp, unsigned *value)
 /* Quote fixed-length disk strings without reading beyond the field or emitting terminal controls. */
 static void quote(const char *value, size_t size)
 {
-	size_t i;
 	putchar('"');
-	for (i = 0; i < size && value[i] != '\0'; ++i) {
+	for (size_t i = 0; i < size && value[i] != '\0'; ++i) {
 		unsigned char c = (unsigned char)value[i];
 		if (c == '"' || c == '\\') {
 			printf("\\%c", c);
@@ -288,8 +287,7 @@ static void order(const struct dump_mission *mission,
 
 static void teams_enabled(const uint8_t *teams)
 {
-	unsigned i;
-	for (i = 0; i < 10; ++i) {
+	for (unsigned i = 0; i < 10; ++i) {
 		if (teams[i] != 0) {
 			printf(" %u:%u", i, teams[i]);
 		}
@@ -299,7 +297,6 @@ static void teams_enabled(const uint8_t *teams)
 static void group(const struct dump_mission *mission, unsigned index)
 {
 	const struct xvt_flight_group *fg = &mission->groups[index];
-	unsigned i;
 	printf("\nFG[%u] @0x%zx ", index,
 	       2 + sizeof(struct mission_header) + index * sizeof(*fg));
 	quote(fg->name, sizeof(fg->name));
@@ -335,6 +332,7 @@ static void group(const struct dump_mission *mission, unsigned index)
 	       fg->alternate_mothership, fg->alternate_mothership_used,
 	       fg->captured_departure_mothership,
 	       fg->captured_depart_via_mothership);
+	unsigned i;
 	for (i = 0; i < 4; ++i) {
 		order(mission, &fg->orders[i], i);
 	}
@@ -373,12 +371,9 @@ static int messages_and_goals(FILE *fp, const struct dump_mission *mission,
 			      unsigned message_count)
 {
 	unsigned i;
-	unsigned j;
-	unsigned count;
 	unsigned index;
 	uint8_t seen[64] = {0};
 	for (i = 0; i < message_count; ++i) {
-		struct mission_message m;
 		if (!read_word(fp, &index)) {
 			return 0;
 		}
@@ -389,6 +384,7 @@ static int messages_and_goals(FILE *fp, const struct dump_mission *mission,
 			return 0;
 		}
 		seen[index] = 1;
+		struct mission_message m;
 		if (!read_exact(fp, &m, sizeof(m))) {
 			return 0;
 		}
@@ -404,6 +400,8 @@ static int messages_and_goals(FILE *fp, const struct dump_mission *mission,
 		pair(mission, &m.trigger_pairs[1]);
 		putchar('\n');
 	}
+	unsigned j;
+	unsigned count;
 	for (i = 0; i < 10; ++i) {
 		if (!read_word(fp, &count)) {
 			return 0;
@@ -433,13 +431,13 @@ static int messages_and_goals(FILE *fp, const struct dump_mission *mission,
 		}
 	}
 	for (i = 0; i < 10; ++i) {
-		struct team t;
 		if (!read_word(fp, &count)) {
 			return 0;
 		}
 		if (count == 0) {
 			continue;
 		}
+		struct team t;
 		if (!read_exact(fp, &t, sizeof(t))) {
 			return 0;
 		}
@@ -462,8 +460,6 @@ static int text_tail(FILE *fp, unsigned group_count)
 {
 	unsigned i;
 	unsigned j;
-	unsigned k;
-	unsigned n;
 	unsigned length;
 	char script[820];
 	char buffer[65536];
@@ -487,9 +483,9 @@ static int text_tail(FILE *fp, unsigned group_count)
 	printf("\nGoal text overrides @0x%lx (raw display-state slots)\n",
 	       ftell(fp));
 	for (i = 0; i < group_count + 10; ++i) {
-		n = i < group_count ? 8 : 28;
+		unsigned n = i < group_count ? 8 : 28;
 		for (j = 0; j < n; ++j) {
-			for (k = 0; k < 3; ++k) {
+			for (unsigned k = 0; k < 3; ++k) {
 				if (!read_exact(fp, buffer, 64)) {
 					return 0;
 				}
@@ -515,10 +511,7 @@ static int text_tail(FILE *fp, unsigned group_count)
 
 static int dump(FILE *fp)
 {
-	struct dump_mission mission;
 	unsigned version;
-	unsigned message_count;
-	unsigned i;
 	if (!read_word(fp, &version)) {
 		return 0;
 	}
@@ -528,11 +521,12 @@ static int dump(FILE *fp)
 			version);
 		return 0;
 	}
+	struct dump_mission mission;
 	if (!read_exact(fp, &mission.header, sizeof(mission.header))) {
 		return 0;
 	}
 	mission.group_count = u16(&mission.header.num_flight_groups);
-	message_count = u16(&mission.header.num_messages);
+	unsigned message_count = u16(&mission.header.num_messages);
 	if (mission.group_count > 48 || message_count > 64) {
 		fprintf(stderr,
 			"mission_dump: invalid counts: %u groups, %u messages\n",
@@ -548,7 +542,7 @@ static int dump(FILE *fp)
 	       mission.header.mission_type, mission.header.goals_unimportant);
 	printf("Indices are zero-based. Order targets are predicates; fallback is tried if primary finds no "
 	       "target.\n");
-	for (i = 0; i < mission.group_count; ++i) {
+	for (unsigned i = 0; i < mission.group_count; ++i) {
 		group(&mission, i);
 	}
 	return messages_and_goals(fp, &mission, message_count) &&
@@ -557,19 +551,17 @@ static int dump(FILE *fp)
 
 int main(int argc, char **argv)
 {
-	FILE *fp;
-	int ok;
 	if (argc != 2) {
 		fprintf(stderr, "Usage: %s mission.tie\n", argv[0]);
 		return 2;
 	}
-	fp = fopen(argv[1], "rb");
+	FILE *fp = fopen(argv[1], "rb");
 	if (fp == NULL) {
 		fprintf(stderr, "mission_dump: %s: %s\n", argv[1],
 			strerror(errno));
 		return 1;
 	}
-	ok = dump(fp);
+	int ok = dump(fp);
 	if (fclose(fp) != 0) {
 		ok = 0;
 	}

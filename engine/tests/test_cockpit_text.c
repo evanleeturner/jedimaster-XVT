@@ -490,8 +490,8 @@ static void check_capture_glyph_outside_clip(void)
 		g_flight_cursor_x = cursors[index][0];
 		g_flight_cursor_y = cursors[index][1];
 		struct xvt_cockpit_glyph glyph;
-		struct xvt_cockpit_glyph before;
 		memset(&glyph, 0x5A, sizeof glyph);
+		struct xvt_cockpit_glyph before;
 		memcpy(&before, &glyph, sizeof before);
 		XVT_ASSERT_INT_EQ(xvt_cockpit_text_capture_glyph(&glyph, 'Q', 8,
 								 10, 0, 0, 0,

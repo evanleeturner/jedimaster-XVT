@@ -181,9 +181,6 @@ int frontend_button_draw_text_button_state(const struct RECT *rect,
 					   const char *text, int font_size,
 					   int unused_color, char is_pressed)
 {
-	struct RECT inner_rect;
-	int text_color;
-
 	(void)unused_color;
 
 	if (!g_front_button_colors_initialized) {
@@ -194,6 +191,8 @@ int frontend_button_draw_text_button_state(const struct RECT *rect,
 			frontend_display_pack_rgb(0x63, 0xE7, 0xF7);
 	}
 
+	struct RECT inner_rect;
+	int text_color;
 	if (is_pressed) {
 		frontend_draw_rect(rect, 0, 0, g_front_button_light_color, 1);
 		frontend_draw_rect_copy(&inner_rect, rect);
@@ -237,13 +236,6 @@ void frontend_button_draw_sprite_and_tooltip(struct RECT *rect,
 					     const char *tooltip_text,
 					     int font_size, int unused_color)
 {
-	int tooltip_left;
-	int tooltip_top;
-	int cursor_width;
-	int cursor_height;
-	int text_width;
-	struct RECT tooltip_rect;
-
 	(void)unused_color;
 
 	front_image_draw_sprite(sprite_name, 0, 0);
@@ -253,6 +245,8 @@ void frontend_button_draw_sprite_and_tooltip(struct RECT *rect,
 			frontend_display_pack_rgb(0x60, 0x60, 0x60);
 	}
 
+	int tooltip_left;
+	int tooltip_top;
 	frontend_cursor_get_pos(&tooltip_left, &tooltip_top);
 	if (g_button_overlay_text_enabled != 0) {
 		frontend_button_draw_overlay_text(rect, g_button_overlay_text);
@@ -262,7 +256,9 @@ void frontend_button_draw_sprite_and_tooltip(struct RECT *rect,
 		return;
 	}
 
-	text_width = frontend_text_measure_width(tooltip_text, font_size);
+	int text_width = frontend_text_measure_width(tooltip_text, font_size);
+	int cursor_width;
+	int cursor_height;
 	frontend_cursor_get_dimensions(&cursor_width, &cursor_height);
 	tooltip_left += cursor_width;
 	tooltip_top += cursor_height;
@@ -273,6 +269,7 @@ void frontend_button_draw_sprite_and_tooltip(struct RECT *rect,
 		tooltip_top = 474 - font_size;
 	}
 
+	struct RECT tooltip_rect;
 	frontend_draw_rect_assign(&tooltip_rect, tooltip_left, tooltip_top,
 				  text_width + tooltip_left + 5,
 				  font_size + tooltip_top + 3);
@@ -296,11 +293,9 @@ void frontend_button_draw_eight_slot_navigation_state(
 	const frontend_navigation_slot_state *slot_states)
 {
 	frontend_navigation_slot_state states[8];
-	int index;
-	frontend_navigation_slot_state saved_state;
-	frontend_navigation_slot_state *state;
 
 	memcpy(states, slot_states, sizeof(states));
+	int index;
 	for (index = 0; index < 8; ++index) {
 		if (states[index] == FRONTEND_NAVIGATION_SLOT_ACTIVE) {
 			sprintf(g_frontend_scratch_buffer, "active%u",
@@ -310,12 +305,12 @@ void frontend_button_draw_eight_slot_navigation_state(
 		}
 	}
 
-	saved_state = states[7];
+	frontend_navigation_slot_state saved_state = states[7];
 	states[7] = states[6];
 	states[6] = states[5];
 	states[5] = saved_state;
 	index = 0;
-	state = states;
+	frontend_navigation_slot_state *state = states;
 	do {
 		if (*state == FRONTEND_NAVIGATION_SLOT_SELECTED) {
 			if (state != states && state != &states[6]) {

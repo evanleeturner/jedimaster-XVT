@@ -34,23 +34,13 @@ uint16_t static_test_swept_static_collision(uint16_t source_obj_idx,
 {
 	enum { MAX_DISTANCE = 0x20000, LARGE_MODEL_EXTENT = 1095 };
 
-	int source_source_obj_idx;
-	unsigned int static_genus_id;
-	int static_object_type;
-	int hit_radius;
-	int dx;
-	int dy;
-	int dz;
-	unsigned int source_to_static_distance;
-	int static_sweep_abs;
-
-	source_source_obj_idx =
+	int source_source_obj_idx =
 		(uint16_t)g_object_table[source_obj_idx].mobj->source_obj_idx;
 	if (source_source_obj_idx >= static_obj_idx) {
 		return 0;
 	}
 
-	static_genus_id = g_object_table[static_obj_idx].genus_id;
+	unsigned int static_genus_id = g_object_table[static_obj_idx].genus_id;
 	if (static_genus_id == CRAFT_GENUS_OBSTACLE) {
 		return 0;
 	}
@@ -69,7 +59,7 @@ uint16_t static_test_swept_static_collision(uint16_t source_obj_idx,
 		}
 	}
 
-	static_object_type = g_object_table[static_obj_idx].object_type;
+	int static_object_type = g_object_table[static_obj_idx].object_type;
 	mission_resolve_object_or_mission_point_world_loc(static_obj_idx, 0);
 	g_collision_sweep_start_x = g_world_loc_x;
 	g_collision_sweep_end_x = g_world_loc_x;
@@ -78,22 +68,23 @@ uint16_t static_test_swept_static_collision(uint16_t source_obj_idx,
 	g_collision_sweep_start_z = g_world_loc_z;
 	g_collision_sweep_end_z = g_world_loc_z;
 
-	hit_radius = g_object_type_table[static_object_type].max_bounds_extent;
-	dx = g_collision_probe_world_x - g_world_loc_x;
+	int hit_radius =
+		g_object_type_table[static_object_type].max_bounds_extent;
+	int dx = g_collision_probe_world_x - g_world_loc_x;
 	if (dx < 0) {
 		dx = -dx;
 	}
 	if (dx > MAX_DISTANCE) {
 		return 0;
 	}
-	dy = g_collision_probe_world_y - g_world_loc_y;
+	int dy = g_collision_probe_world_y - g_world_loc_y;
 	if (dy < 0) {
 		dy = -dy;
 	}
 	if (dy > MAX_DISTANCE) {
 		return 0;
 	}
-	dz = g_collision_probe_world_z - g_world_loc_z;
+	int dz = g_collision_probe_world_z - g_world_loc_z;
 	if (dz < 0) {
 		dz = -dz;
 	}
@@ -101,7 +92,7 @@ uint16_t static_test_swept_static_collision(uint16_t source_obj_idx,
 		return 0;
 	}
 
-	source_to_static_distance = collide_roughdistance3du(
+	unsigned int source_to_static_distance = collide_roughdistance3du(
 		(unsigned int)dx, (unsigned int)dy, (unsigned int)dz);
 	if ((int)source_to_static_distance > MAX_DISTANCE) {
 		return 0;
@@ -120,7 +111,8 @@ uint16_t static_test_swept_static_collision(uint16_t source_obj_idx,
 		dz = -dz;
 	}
 
-	static_sweep_abs = g_collision_sweep_end_x - g_collision_sweep_start_x;
+	int static_sweep_abs =
+		g_collision_sweep_end_x - g_collision_sweep_start_x;
 	if (static_sweep_abs < 0) {
 		static_sweep_abs = -static_sweep_abs;
 	}

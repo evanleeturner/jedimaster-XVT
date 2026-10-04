@@ -23,9 +23,8 @@
 void frontend_screen_set_callbacks(frontend_screen_update_fn update_fn,
 				   frontend_screen_exit_fn exit_fn)
 {
-	struct frontend_screen_state *state;
-
-	state = &g_front_state.screen_states[g_front_state.screen_stack_top];
+	struct frontend_screen_state *state =
+		&g_front_state.screen_states[g_front_state.screen_stack_top];
 	state->update_fn = update_fn;
 	state = &g_front_state.screen_states[g_front_state.screen_stack_top];
 	state->exit_fn = exit_fn;
@@ -68,8 +67,6 @@ int frontend_screen_run_modal(frontend_screen_update_fn update_fn,
 #else
 	enum { FRAME_FINISHED = 1, FRAME_QUIT = 2 };
 
-	int frame_result;
-
 	frontend_display_unlock_back_buffer();
 	frontend_screen_push_state(update_fn, screen_rect);
 	g_front_state.frame_counter = 0;
@@ -83,7 +80,7 @@ int frontend_screen_run_modal(frontend_screen_update_fn update_fn,
 	g_front_state.mouse_left_click_latch = 0;
 	g_front_state.mouse_right_click_latch = 0;
 	for (;;) {
-		frame_result = frontend_display_run_frame();
+		int frame_result = frontend_display_run_frame();
 		if (frame_result == FRAME_FINISHED) {
 			break;
 		}
@@ -122,21 +119,11 @@ int frontend_screen_run_modal(frontend_screen_update_fn update_fn,
 int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 			       struct RECT *screen_rect)
 {
-	struct RECT rect;
-	int slot;
-	int width;
-	int height;
-	int was_back_buffer_locked;
-	uint8_t *pixels;
-	int x;
-	int y;
-	int display_bpp;
-
 	if (g_front_state.screen_stack_top >= FRONTEND_SCREEN_MAX_STACK - 1) {
 		return 0;
 	}
 
-	slot = g_front_state.screen_stack_top;
+	int slot = g_front_state.screen_stack_top;
 	g_front_state.screen_states[slot].saved_frame_counter =
 		g_front_state.frame_counter;
 	g_front_state.screen_states[slot].saved_clip_min_x =
@@ -169,14 +156,14 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 		frontend_draw_rect_copy(
 			&g_front_state.screen_states[slot].saved_rect,
 			screen_rect);
-		width = screen_rect->right - screen_rect->left + 1;
-		height = screen_rect->bottom - screen_rect->top + 1;
-		display_bpp = g_front_state.display_bpp;
+		int width = screen_rect->right - screen_rect->left + 1;
+		int height = screen_rect->bottom - screen_rect->top + 1;
+		int display_bpp = g_front_state.display_bpp;
+		int was_back_buffer_locked;
+		uint8_t *pixels;
+		int y;
 		switch (display_bpp) {
 		case 8: {
-			uint8_t *destination;
-			uint8_t *source;
-
 			pixels = (uint8_t *)malloc(width * height);
 			if (pixels == NULL) {
 				return 0;
@@ -191,10 +178,11 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 					frontend_display_lock_back_buffer();
 			}
 
-			destination = pixels;
-			source = g_draw_surface_ptr + screen_rect->left +
-				 screen_rect->top *
-					 g_front_state.draw_surface_pitch;
+			uint8_t *destination = pixels;
+			uint8_t *source =
+				g_draw_surface_ptr + screen_rect->left +
+				screen_rect->top *
+					g_front_state.draw_surface_pitch;
 			for (y = 0; y < height; ++y) {
 				memcpy(destination, source, width);
 				source += g_front_state.draw_surface_pitch;
@@ -211,9 +199,6 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 		}
 
 		case 16: {
-			uint16_t *destination;
-			uint16_t *source;
-
 			pixels = (uint8_t *)malloc(2 * width * height);
 			if (pixels == NULL) {
 				return 0;
@@ -228,8 +213,8 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 					frontend_display_lock_back_buffer();
 			}
 
-			destination = (uint16_t *)pixels;
-			source =
+			uint16_t *destination = (uint16_t *)pixels;
+			uint16_t *source =
 				(uint16_t
 					 *)(g_draw_surface_ptr +
 					    2 * screen_rect->left +
@@ -237,7 +222,7 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 						    g_front_state
 							    .draw_surface_pitch);
 			for (y = 0; y < height; ++y) {
-				for (x = 0; x < width; ++x) {
+				for (int x = 0; x < width; ++x) {
 					destination[x] = source[x];
 				}
 				source += g_front_state.draw_surface_pitch >> 1;
@@ -290,6 +275,7 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 		g_front_state.screen_states[slot].saved_image.pixels = NULL;
 		g_front_state.screen_states[slot].saved_image.pixel_data_bytes =
 			0;
+		struct RECT rect;
 		frontend_draw_rect_assign(&rect, 0, 0, 639, 479);
 		frontend_display_set_screen_clip_rect640x480(&rect);
 	}
@@ -315,24 +301,12 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 // FUNCTION: XVT 0x4DC7E0
 void frontend_screen_pop_state(void)
 {
-	int width;
-	int height;
-	int slot;
-	uint8_t *pixels;
-	int row_bytes;
-	int was_back_buffer_locked;
-	struct RECT rect;
-	int column;
-	int display_bpp;
-	uint8_t *row_destination;
-	uint8_t *destination;
-	uint8_t *source;
-
 	if (g_front_state.screen_stack_top == 0) {
 		return;
 	}
 
-	slot = g_front_state.screen_stack_top - 1;
+	int slot = g_front_state.screen_stack_top - 1;
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 0, 0, 640, 480);
 	frontend_display_set_screen_clip_rect640x480(&rect);
 	if (g_front_state.screen_states[slot].saved_image.pixel_data_bytes >
@@ -342,7 +316,8 @@ void frontend_screen_pop_state(void)
 		xvt_render_frontend_screen(slot, 1);
 		xvt_render_frontend_suppress(1);
 #endif
-		display_bpp = g_front_state.display_bpp;
+		int display_bpp = g_front_state.display_bpp;
+		int was_back_buffer_locked;
 		switch (display_bpp) {
 		case 8: {
 			was_back_buffer_locked =
@@ -378,13 +353,13 @@ void frontend_screen_pop_state(void)
 					frontend_display_lock_back_buffer();
 			}
 
-			width = g_front_state.screen_states[slot]
-					.saved_image.width;
-			height = g_front_state.screen_states[slot]
-					 .saved_image.height;
-			pixels = g_front_state.screen_states[slot]
-					 .saved_image.pixels;
-			row_destination =
+			int width = g_front_state.screen_states[slot]
+					    .saved_image.width;
+			int height = g_front_state.screen_states[slot]
+					     .saved_image.height;
+			uint8_t *pixels = g_front_state.screen_states[slot]
+						  .saved_image.pixels;
+			uint8_t *row_destination =
 				&g_draw_surface_ptr
 					[2 * g_front_state.screen_states[slot]
 							 .saved_rect.left +
@@ -393,12 +368,13 @@ void frontend_screen_pop_state(void)
 							 .screen_states[slot]
 							 .saved_rect.top];
 			if (height > 0) {
-				row_bytes = width + width;
+				int row_bytes = width + width;
 				do {
 					if (width > 0) {
-						source = pixels;
-						destination = row_destination;
-						for (column = width;
+						uint8_t *source = pixels;
+						uint8_t *destination =
+							row_destination;
+						for (int column = width;
 						     column != 0; --column) {
 							*(uint16_t *)
 								destination =

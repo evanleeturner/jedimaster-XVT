@@ -96,14 +96,10 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 		DEFAULT_CAMERA_DISTANCE = 1024,
 	};
 
-	struct craft_data *craft;
 	int selected_object_idx;
-	int objects_remaining;
-	int found_craft;
-	int matched_preferred_signature;
 
-	found_craft = 0;
-	matched_preferred_signature = 0;
+	int found_craft = 0;
+	int matched_preferred_signature = 0;
 	if (preferred_object_signature != 0) {
 		for (selected_object_idx = g_active_region_object_slot_start;
 		     selected_object_idx <
@@ -111,9 +107,7 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 		     ++selected_object_idx) {
 			if (g_object_table[selected_object_idx].object_type !=
 			    OBJECT_TYPE_NONE) {
-				uint8_t object_kind;
-
-				object_kind =
+				uint8_t object_kind =
 					g_object_table[selected_object_idx]
 						.mobj->p_craft->object_kind;
 				if (g_mission_flight_groups
@@ -141,11 +135,9 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 
 	if (found_craft == 0) {
 		selected_object_idx = previous_object_idx;
-		objects_remaining = g_active_region_craft_object_slot_end -
-				    g_active_region_object_slot_start;
+		int objects_remaining = g_active_region_craft_object_slot_end -
+					g_active_region_object_slot_start;
 		while (objects_remaining != 0) {
-			uint8_t object_kind;
-
 			++selected_object_idx;
 			if (selected_object_idx >=
 			    g_active_region_craft_object_slot_end) {
@@ -154,7 +146,7 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 			}
 			if (g_object_table[selected_object_idx].object_type !=
 			    OBJECT_TYPE_NONE) {
-				object_kind =
+				uint8_t object_kind =
 					g_object_table[selected_object_idx]
 						.mobj->p_craft->object_kind;
 				if (g_mission_flight_groups
@@ -183,21 +175,18 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 	g_object_table[selected_object_idx].mobj->orient_matrix_dirty = 1;
 	g_object_table[selected_object_idx].mobj->move_vector_dirty = 1;
 	collide_reset_object_proximity_for_slot((uint16_t)selected_object_idx);
-	craft = g_object_table[selected_object_idx].mobj->p_craft;
+	struct craft_data *craft =
+		g_object_table[selected_object_idx].mobj->p_craft;
 	{
-		int weapon_bank;
-
-		for (weapon_bank = 0; weapon_bank < WEAPON_BANK_COUNT;
+		for (int weapon_bank = 0; weapon_bank < WEAPON_BANK_COUNT;
 		     ++weapon_bank) {
-			model_index model_index;
-
 			craft->laser_state.link_mode[weapon_bank] =
 				LASER_LINK_DEFAULT;
 			craft->laser_state.burst_remaining[weapon_bank] = 0;
 			craft->laser_state.next_slot[weapon_bank] = 0;
 			craft->laser_state.fire_cooldown_ticks[weapon_bank] = 0;
 			craft->laser_state.next_fire_timestamp[weapon_bank] = 0;
-			model_index = get_model_index_from_type(
+			model_index model_index = get_model_index_from_type(
 				g_object_table[selected_object_idx]
 					.object_type);
 			if (craft->laser_state
@@ -218,9 +207,7 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 	craft->laser_state.link_mode[1] =
 		g_players[player_idx].saved_craft_settings.laser_link_mode[1];
 	{
-		int launcher_index;
-
-		for (launcher_index = 0; launcher_index < WEAPON_BANK_COUNT;
+		for (int launcher_index = 0; launcher_index < WEAPON_BANK_COUNT;
 		     ++launcher_index) {
 			craft->warhead_launcher_flags[launcher_index] =
 				(int8_t)((craft->warhead_launcher_flags
@@ -247,12 +234,9 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 	{
 		enum { FRONT_SHIELD = 0, REAR_SHIELD = 1 };
 
-		int max_shield_per_face;
-		uint8_t shield_distribution_mode;
-
-		max_shield_per_face =
+		int max_shield_per_face =
 			2 * g_model_defs[craft->model_index].shield_strength;
-		shield_distribution_mode =
+		uint8_t shield_distribution_mode =
 			g_players[player_idx]
 				.saved_craft_settings.shield_distrib_mode;
 		craft->shield_distrib_mode = shield_distribution_mode;
@@ -314,20 +298,18 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 	g_players[player_idx].targeting_state = -1;
 	g_players[player_idx].selected_target_component = 0;
 	if (reset_targeting_state == 1) {
-		int16_t *target_preset_slots;
-
 		g_players[player_idx].target_box_enabled = 1;
 		g_players[player_idx].current_target_object_idx = -1;
-		target_preset_slots = g_players[player_idx].target_preset_slot;
+		int16_t *target_preset_slots =
+			g_players[player_idx].target_preset_slot;
 		memset(target_preset_slots, 0xFF,
 		       sizeof(g_players[player_idx].target_preset_slot));
 	}
 	if (previous_object_idx != UINT32_MAX &&
 	    g_object_table[previous_object_idx].mobj != NULL) {
-		uint16_t target_object_idx;
-
 		g_players[player_idx].current_target_object_idx = -1;
-		target_object_idx = craft->ai_controller.target_obj_idx;
+		uint16_t target_object_idx =
+			craft->ai_controller.target_obj_idx;
 		if (target_object_idx < TARGET_OBJECT_INDEX_LIMIT) {
 			g_players[player_idx].current_target_object_idx =
 				(int16_t)target_object_idx;
@@ -354,9 +336,7 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 	memset(&g_player_flight_transient_timers[player_idx], 0,
 	       sizeof(g_player_flight_transient_timers[player_idx]));
 	{
-		model_index model_index;
-
-		model_index = get_model_index_from_type(
+		model_index model_index = get_model_index_from_type(
 			g_object_table[g_players[player_idx].object_index]
 				.object_type);
 		pai_calcrotatedpoint(
@@ -424,17 +404,9 @@ int player_unbind_from_current_craft(int player_index,
 		ESCORT_THROTTLE_SPEED = 0x8000,
 	};
 
-	int object_idx;
-	int laser_bank;
-	struct craft_data *craft;
-	int launcher_index;
-
 	if (require_multiple_craft == 1) {
-		uint16_t owned_craft_count;
-		int object_slot;
-
-		owned_craft_count = 0;
-		for (object_slot = g_active_region_object_slot_start;
+		uint16_t owned_craft_count = 0;
+		for (int object_slot = g_active_region_object_slot_start;
 		     object_slot < g_active_region_craft_object_slot_end;
 		     ++object_slot) {
 			if (g_object_table[object_slot].object_type != 0 &&
@@ -458,7 +430,7 @@ int player_unbind_from_current_craft(int player_index,
 		}
 	}
 
-	object_idx = g_players[player_index].object_index;
+	int object_idx = g_players[player_index].object_index;
 	if (object_idx == -1) {
 		return 0;
 	}
@@ -470,15 +442,15 @@ int player_unbind_from_current_craft(int player_index,
 	collide_reset_object_proximity_for_slot((uint16_t)object_idx);
 	player_save_craft_settings(player_index);
 
-	craft = g_object_table[object_idx].mobj->p_craft;
-	for (laser_bank = 0; laser_bank < WEAPON_BANK_COUNT; ++laser_bank) {
+	struct craft_data *craft = g_object_table[object_idx].mobj->p_craft;
+	for (int laser_bank = 0; laser_bank < WEAPON_BANK_COUNT; ++laser_bank) {
 		craft->laser_state.link_mode[laser_bank] = 0;
 		craft->laser_state.burst_remaining[laser_bank] = 0;
 		craft->laser_state.next_slot[laser_bank] = 0;
 		craft->laser_state.fire_cooldown_ticks[laser_bank] = 0;
 		craft->laser_state.next_fire_timestamp[laser_bank] = 0;
 	}
-	for (launcher_index = 0; launcher_index < WEAPON_BANK_COUNT;
+	for (int launcher_index = 0; launcher_index < WEAPON_BANK_COUNT;
 	     ++launcher_index) {
 		craft->warhead_launcher_flags[launcher_index] =
 			(int8_t)((craft->warhead_launcher_flags
@@ -512,12 +484,11 @@ int player_unbind_from_current_craft(int player_index,
 						   .flight_group_idx]
 						  .fg.orders[0]
 						  .order]];
-		const char *plan_name;
-		uint16_t throttle_speed;
 
 		g_cur_craft->ai_controller.current_plan_id = plan_id;
 		g_cur_craft->ai_controller.running_plan_id = plan_id;
-		plan_name = g_plan_table[plan_id].name;
+		const char *plan_name = g_plan_table[plan_id].name;
+		uint16_t throttle_speed;
 		if (strcmp(plan_name, "nullpln") == 0 ||
 		    strcmp(plan_name, "stationaryldrpln") == 0 ||
 		    strcmp(plan_name, "stationaryflwpln") == 0 ||
@@ -554,11 +525,8 @@ int player_unbind_from_current_craft(int player_index,
 			     g_region_main_object_slot_end +
 					     g_region_static_object_slot_count >
 				     target_obj_idx)) {
-				unsigned int order_slot;
-				int target_matches_order;
-
-				target_matches_order = 0;
-				for (order_slot = 0;
+				int target_matches_order = 0;
+				for (unsigned int order_slot = 0;
 				     order_slot < ORDER_SLOT_COUNT;
 				     ++order_slot) {
 					g_pai_context.order_slot =
@@ -602,9 +570,8 @@ int player_unbind_from_current_craft(int player_index,
 // FUNCTION: XVT 0x45ACD0
 void player_save_craft_settings(int player_index)
 {
-	struct craft_data *craft;
-
-	craft = g_object_table[g_players[player_index].object_index]
+	struct craft_data *craft =
+		g_object_table[g_players[player_index].object_index]
 			.mobj->p_craft;
 	g_players[player_index].saved_craft_settings.throttle_speed =
 		craft->throttle_speed;
@@ -2019,29 +1986,16 @@ int16_t player_find_nearest_objective(int goal_type, int player_idx)
 	};
 
 	unsigned int object_idx;
-	uint16_t best_actionable_object;
-	uint16_t best_objective_object;
-	unsigned int best_actionable_range;
-	unsigned int best_objective_range;
-	unsigned int player_team;
-	int16_t selected_object;
 
-	player_team = (uint16_t)g_players[player_idx].team;
-	best_actionable_object = UINT16_MAX;
-	best_objective_object = UINT16_MAX;
-	best_actionable_range = UINT_MAX;
-	best_objective_range = UINT_MAX;
+	unsigned int player_team = (uint16_t)g_players[player_idx].team;
+	uint16_t best_actionable_object = UINT16_MAX;
+	uint16_t best_objective_object = UINT16_MAX;
+	unsigned int best_actionable_range = UINT_MAX;
+	unsigned int best_objective_range = UINT_MAX;
 
 	for (object_idx = g_active_region_object_slot_start;
 	     object_idx < (unsigned int)g_active_region_craft_object_slot_end;
 	     ++object_idx) {
-		int flight_group_idx;
-		int objective;
-		int trigger_condition;
-		unsigned int goal_index;
-		struct flight_group_goal *goals;
-		uint8_t *enabled_team_goals;
-
 		if (g_object_table[object_idx].object_type == 0 ||
 		    object_idx ==
 			    (unsigned int)g_players[player_idx].object_index ||
@@ -2050,15 +2004,18 @@ int16_t player_find_nearest_objective(int goal_type, int player_idx)
 		    object_has_active_decoy_beam(object_idx) != 0) {
 			continue;
 		}
-		flight_group_idx = g_object_table[object_idx].flight_group_idx;
+		int flight_group_idx =
+			g_object_table[object_idx].flight_group_idx;
 		if (g_mission_flight_groups[flight_group_idx].fg.team ==
 		    player_team) {
 			continue;
 		}
-		goal_index = 0;
-		goals = g_mission_flight_groups[flight_group_idx].fg.goals;
-		objective = 0;
-		enabled_team_goals = &goals[0].enabled_teams[player_team];
+		unsigned int goal_index = 0;
+		struct flight_group_goal *goals =
+			g_mission_flight_groups[flight_group_idx].fg.goals;
+		int objective = 0;
+		uint8_t *enabled_team_goals =
+			&goals[0].enabled_teams[player_team];
 		for (; goal_index < FLIGHT_GROUP_GOAL_COUNT; ++goal_index) {
 			struct flight_group_goal *goal = &goals[goal_index];
 			if (enabled_team_goals[goal_index * sizeof(*goal)] !=
@@ -2075,7 +2032,7 @@ int16_t player_find_nearest_objective(int goal_type, int player_idx)
 				objective = 1;
 			}
 		}
-		trigger_condition =
+		int trigger_condition =
 			g_mission_global_goals[player_team][goal_type]
 				.trigger_pairs[0]
 				.triggers[0]
@@ -2157,10 +2114,9 @@ int16_t player_find_nearest_objective(int goal_type, int player_idx)
 			     CRAFT_OBJECT_KIND_ACTIVE ||
 		     g_object_table[object_idx].mobj->p_craft->object_kind ==
 			     CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE)) {
-			int actionable;
 			player_compute_polar_to_object_ref(player_idx,
 							   object_idx);
-			actionable = msg_build_target_description(
+			int actionable = msg_build_target_description(
 				object_idx, player_idx, 0, 1);
 			if (actionable != 0) {
 				if (best_actionable_range >
@@ -2182,22 +2138,20 @@ int16_t player_find_nearest_objective(int goal_type, int player_idx)
 	     object_idx < (unsigned int)(g_region_main_object_slot_end +
 					 g_region_static_object_slot_count);
 	     ++object_idx) {
-		int flight_group_idx;
-		unsigned int goal_index;
-		struct flight_group_goal *goals;
-		uint8_t *enabled_team_goals;
-
 		if (g_object_table[object_idx].object_type == 0) {
 			continue;
 		}
-		flight_group_idx = g_object_table[object_idx].flight_group_idx;
+		int flight_group_idx =
+			g_object_table[object_idx].flight_group_idx;
 		if (g_mission_flight_groups[flight_group_idx].fg.team ==
 		    g_players[player_idx].team) {
 			continue;
 		}
-		goal_index = 0;
-		goals = g_mission_flight_groups[flight_group_idx].fg.goals;
-		enabled_team_goals = &goals[0].enabled_teams[player_team];
+		unsigned int goal_index = 0;
+		struct flight_group_goal *goals =
+			g_mission_flight_groups[flight_group_idx].fg.goals;
+		uint8_t *enabled_team_goals =
+			&goals[0].enabled_teams[player_team];
 		for (; goal_index < FLIGHT_GROUP_GOAL_COUNT; ++goal_index) {
 			struct flight_group_goal *goal = &goals[goal_index];
 			if (enabled_team_goals[goal_index * sizeof(*goal)] !=
@@ -2220,7 +2174,7 @@ int16_t player_find_nearest_objective(int goal_type, int player_idx)
 			}
 		}
 	}
-	selected_object = (int16_t)best_actionable_object;
+	int16_t selected_object = (int16_t)best_actionable_object;
 	if (best_actionable_object == UINT16_MAX) {
 		selected_object = (int16_t)best_objective_object;
 	}
@@ -2244,25 +2198,19 @@ int player_scale_control_step_by_elapsed_ticks(int16_t step)
 void player_transfer_shield_bank_energy(uint16_t dst_bank, uint16_t src_bank,
 					int player_idx)
 {
-	struct player_data *player;
-	struct craft_data *craft;
-	int *dst_shield_energy;
-	int16_t object_max_shield;
-	int dst_energy;
-	int src_energy;
-	int16_t transfer_capacity;
-
-	player = &g_players[player_idx];
+	struct player_data *player = &g_players[player_idx];
 	if (g_object_table[player->object_index]
 		    .mobj->p_craft->shield_energy[src_bank] > 0) {
-		object_max_shield = (int16_t)craft_get_object_max_shield(
-			player->object_index);
-		craft = g_object_table[player->object_index].mobj->p_craft;
-		dst_energy = craft->shield_energy[dst_bank];
-		dst_shield_energy = &craft->shield_energy[dst_bank];
-		transfer_capacity = object_max_shield - dst_energy;
+		int16_t object_max_shield =
+			(int16_t)craft_get_object_max_shield(
+				player->object_index);
+		struct craft_data *craft =
+			g_object_table[player->object_index].mobj->p_craft;
+		int dst_energy = craft->shield_energy[dst_bank];
+		int *dst_shield_energy = &craft->shield_energy[dst_bank];
+		int16_t transfer_capacity = object_max_shield - dst_energy;
 		if (transfer_capacity > 0) {
-			src_energy = craft->shield_energy[src_bank];
+			int src_energy = craft->shield_energy[src_bank];
 			if (src_energy > transfer_capacity) {
 				*dst_shield_energy =
 					dst_energy + transfer_capacity;
@@ -2293,8 +2241,6 @@ void player_update_hud_view_for_camera_focus(int player_idx)
 		CAMERA_HISTORY_SAMPLE_COUNT = 60,
 	};
 
-	uint16_t sample_index;
-
 	if (g_players[player_idx].view_state.external_camera_active != 0) {
 		if (g_players[player_idx].view_state.target_camera_active !=
 		    0) {
@@ -2304,7 +2250,7 @@ void player_update_hud_view_for_camera_focus(int player_idx)
 			hud_set_hud_view_state(HUD_VIEW_FULL_SCREEN,
 					       player_idx);
 		}
-		for (sample_index = 0;
+		for (uint16_t sample_index = 0;
 		     sample_index < CAMERA_HISTORY_SAMPLE_COUNT;
 		     ++sample_index) {
 			g_players[player_idx]
@@ -2433,14 +2379,8 @@ uint16_t player_pick_target_in_sight(int player_idx)
 uint16_t player_cycle_target_any_iff(uint16_t current_obj_idx,
 				     int16_t direction, int player_idx)
 {
-	int16_t remaining_objects;
-	int object_count;
-	struct object_record *object;
-	struct mobile_object *mobile_object;
-	uint8_t object_kind;
-
-	object_count = g_region_static_object_slot_count;
-	remaining_objects = (int16_t)object_count;
+	int object_count = g_region_static_object_slot_count;
+	int16_t remaining_objects = (int16_t)object_count;
 	remaining_objects += (int16_t)g_region_main_object_slot_end;
 	for (;;) {
 		if (remaining_objects-- == 0) {
@@ -2460,7 +2400,8 @@ uint16_t player_cycle_target_any_iff(uint16_t current_obj_idx,
 		}
 
 		if (g_players[player_idx].object_index != current_obj_idx) {
-			object = &g_object_table[current_obj_idx];
+			struct object_record *object =
+				&g_object_table[current_obj_idx];
 			if (object->object_type != 0 &&
 			    (g_object_type_table[object->object_type]
 				     .behavior_flags &
@@ -2471,14 +2412,15 @@ uint16_t player_cycle_target_any_iff(uint16_t current_obj_idx,
 				if (object->genus_id != CRAFT_GENUS_EXPLOSION &&
 				    object_has_active_decoy_beam(
 					    current_obj_idx) == 0) {
-					mobile_object =
+					struct mobile_object *mobile_object =
 						g_object_table[current_obj_idx]
 							.mobj;
 					if (mobile_object->family != 0) {
 						break;
 					}
 					g_cur_craft = mobile_object->p_craft;
-					object_kind = g_cur_craft->object_kind;
+					uint8_t object_kind =
+						g_cur_craft->object_kind;
 					if (object_kind !=
 						    CRAFT_OBJECT_KIND_BREAKING_UP &&
 					    object_kind !=
@@ -2503,20 +2445,14 @@ uint16_t player_cycle_target_any_iff(uint16_t current_obj_idx,
 uint16_t player_cycle_target(uint16_t current_obj_idx, int16_t direction,
 			     int player_idx, int iff_filter, int target_flags)
 {
+	uint16_t object_index = current_obj_idx;
+	int object_count = g_region_static_object_slot_count;
+	int16_t remaining_objects = (int16_t)object_count;
+	remaining_objects += (int16_t)g_region_main_object_slot_end;
 	struct object_record *object;
-	struct mobile_object *mobile_object;
-	uint16_t object_index;
-	int16_t remaining_objects;
-	int object_count;
-	uint8_t object_kind;
 	object_type_id object_type;
 	int object_team;
 	uint16_t player_team;
-
-	object_index = current_obj_idx;
-	object_count = g_region_static_object_slot_count;
-	remaining_objects = (int16_t)object_count;
-	remaining_objects += (int16_t)g_region_main_object_slot_end;
 	for (;;) {
 		if (remaining_objects-- == 0) {
 			return UINT16_MAX;
@@ -2614,14 +2550,15 @@ uint16_t player_cycle_target(uint16_t current_obj_idx, int16_t direction,
 				if (object->genus_id != CRAFT_GENUS_EXPLOSION &&
 				    object_has_active_decoy_beam(
 					    object_index) == 0) {
-					mobile_object =
+					struct mobile_object *mobile_object =
 						g_object_table[object_index]
 							.mobj;
 					if (mobile_object->family != 0) {
 						break;
 					}
 					g_cur_craft = mobile_object->p_craft;
-					object_kind = g_cur_craft->object_kind;
+					uint8_t object_kind =
+						g_cur_craft->object_kind;
 					if (object_kind !=
 						    CRAFT_OBJECT_KIND_BREAKING_UP &&
 					    object_kind !=
@@ -2653,23 +2590,19 @@ void player_set_target(int new_target_obj_idx, int player_idx)
 {
 	enum { OBJECT_TYPE_MESH_CACHE_COUNT = 73 };
 
-	int target_obj_idx;
-	int player_object_idx;
-	int can_target;
-
 	if ((uint16_t)new_target_obj_idx == UINT16_MAX) {
 		return;
 	}
-	target_obj_idx = (uint16_t)new_target_obj_idx;
+	int target_obj_idx = (uint16_t)new_target_obj_idx;
 	if (g_object_table[target_obj_idx].object_type == 0 ||
 	    g_object_table[target_obj_idx].genus_id == 13) {
 		return;
 	}
-	player_object_idx = g_players[player_idx].object_index;
+	int player_object_idx = g_players[player_idx].object_index;
 	if (player_object_idx == target_obj_idx) {
 		return;
 	}
-	can_target = 1;
+	int can_target = 1;
 	if (player_object_idx != -1) {
 		if ((g_object_table[player_object_idx]
 			     .mobj->p_craft->working_subsystems &
@@ -2690,15 +2623,12 @@ void player_set_target(int new_target_obj_idx, int player_idx)
 			    target_obj_idx) {
 				if (g_players[player_idx].map_camera_state !=
 				    0) {
-					int object_type;
-					int mesh_count;
-					uint16_t mesh_index;
-
-					object_type =
+					int object_type =
 						g_object_table
 							[(uint16_t)g_players[player_idx]
 								 .current_target_object_idx]
 								.object_type;
+					int mesh_count;
 					if (object_type <
 					    OBJECT_TYPE_MESH_CACHE_COUNT) {
 						mesh_count =
@@ -2710,19 +2640,18 @@ void player_set_target(int new_target_obj_idx, int player_idx)
 							model_mesh_get_object_type_mesh_count(
 								object_type);
 					}
-					for (mesh_index = 0;
+					for (uint16_t mesh_index = 0;
 					     mesh_index < mesh_count;
 					     ++mesh_index) {
-						int cached_mesh_index;
-						int mesh_type;
-
-						cached_mesh_index = mesh_index;
+						int cached_mesh_index =
+							mesh_index;
 						object_type =
 							g_object_table
 								[(uint16_t)g_players
 									 [player_idx]
 										 .current_target_object_idx]
 									.object_type;
+						int mesh_type;
 						if (object_type <
 						    OBJECT_TYPE_MESH_CACHE_COUNT) {
 							mesh_type = model_mesh_get_cached_object_type_mesh_type(
@@ -2804,22 +2733,18 @@ void player_set_target(int new_target_obj_idx, int player_idx)
 uint16_t player_select_target_component_mesh(uint16_t target_obj_idx,
 					     unsigned int player_idx)
 {
+	unsigned int nearest_distance = 0x1000000;
 	/* Prefer the nearest hull or fuselage component for capital ships. */
-	uint16_t genus_id;
+	uint16_t genus_id = g_object_table[target_obj_idx].genus_id;
+
 	int object_type;
 	int mesh_type_index;
 	uint16_t mesh_index;
 	int mesh_count;
 	mesh_component_type mesh_type;
-	uint16_t selected_mesh_idx;
-	unsigned int nearest_distance;
-
-	nearest_distance = 0x1000000;
-	genus_id = g_object_table[target_obj_idx].genus_id;
-
 	if (genus_id == CRAFT_GENUS_STARSHIP ||
 	    genus_id == CRAFT_GENUS_PLATFORM) {
-		selected_mesh_idx = 0;
+		uint16_t selected_mesh_idx = 0;
 		object_type = g_object_table[target_obj_idx].object_type;
 		if (object_type < (int)(sizeof(g_object_type_mesh_cache) /
 					sizeof(g_object_type_mesh_cache[0]))) {
@@ -2916,23 +2841,6 @@ int16_t player_apply_pitch_yaw_steps(int16_t pitch_angle_q16,
 	object->roll = updated.roll;
 	return (int16_t)updated.roll;
 #else
-	int16_t pitch;
-	int16_t yaw;
-	int16_t pitch_cos;
-	int16_t pitch_sin;
-	int16_t yaw_cos;
-	int16_t yaw_sin;
-	int16_t pitch_cos_yaw_cos;
-	int16_t pitch_cos_yaw_sin;
-	int16_t pitch_sin_yaw_cos;
-	int16_t pitch_sin_yaw_sin;
-	int negative_yaw_sin;
-	int negative_pitch_sin;
-	int16_t rotated_x;
-	int16_t rotated_y;
-	int16_t rotated_z;
-	int16_t result;
-
 	if (g_object_table[object_index].mobj->orient_matrix_dirty != 0) {
 		fview_calcrotatemove(g_object_table[object_index].pitch,
 				     g_object_table[object_index].yaw,
@@ -2956,27 +2864,27 @@ int16_t player_apply_pitch_yaw_steps(int16_t pitch_angle_q16,
 				    g_cur_mat_r1_z, yaw_angle_q16);
 	}
 
-	pitch = trig2_w_arccos((int16_t)-g_cur_mat_r2_z);
+	int16_t pitch = trig2_w_arccos((int16_t)-g_cur_mat_r2_z);
 	craft->pitch = pitch;
-	yaw = (int16_t)-trig2_arctan(g_cur_mat_r2_x, -g_cur_mat_r2_y);
-	yaw_cos = trig2_getsignedcos(yaw);
-	yaw_sin = trig2_getsignedsin(yaw);
-	pitch_cos = trig2_getsignedcos(pitch);
-	pitch_sin = trig2_getsignedsin(pitch);
-	pitch_cos_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_cos);
-	pitch_sin_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_sin);
-	pitch_cos_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_cos);
-	pitch_sin_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_sin);
-	negative_yaw_sin = (int16_t)-yaw_sin;
-	negative_pitch_sin = (int16_t)-pitch_sin;
+	int16_t yaw = (int16_t)-trig2_arctan(g_cur_mat_r2_x, -g_cur_mat_r2_y);
+	int16_t yaw_cos = trig2_getsignedcos(yaw);
+	int16_t yaw_sin = trig2_getsignedsin(yaw);
+	int16_t pitch_cos = trig2_getsignedcos(pitch);
+	int16_t pitch_sin = trig2_getsignedsin(pitch);
+	int16_t pitch_cos_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_cos);
+	int16_t pitch_sin_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_sin);
+	int16_t pitch_cos_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_cos);
+	int16_t pitch_sin_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_sin);
+	int negative_yaw_sin = (int16_t)-yaw_sin;
+	int negative_pitch_sin = (int16_t)-pitch_sin;
 
-	rotated_x = (int16_t)math_dot3q15_wrapped(
+	int16_t rotated_x = (int16_t)math_dot3q15_wrapped(
 		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z, yaw_cos,
 		negative_yaw_sin, 0);
-	rotated_y = (int16_t)math_dot3q15_wrapped(
+	int16_t rotated_y = (int16_t)math_dot3q15_wrapped(
 		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
 		pitch_cos_yaw_sin, pitch_cos_yaw_cos, negative_pitch_sin);
-	rotated_z = (int16_t)math_dot3q15_wrapped(
+	int16_t rotated_z = (int16_t)math_dot3q15_wrapped(
 		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
 		pitch_sin_yaw_sin, pitch_sin_yaw_cos, pitch_cos);
 	g_cur_mat_r0_x = rotated_x;
@@ -3009,7 +2917,7 @@ int16_t player_apply_pitch_yaw_steps(int16_t pitch_angle_q16,
 	g_cur_mat_r2_y = rotated_y;
 	g_cur_mat_r2_z = rotated_z;
 
-	result = (int16_t)-trig2_arctan(g_cur_mat_r0_y, g_cur_mat_r0_x);
+	int16_t result = (int16_t)-trig2_arctan(g_cur_mat_r0_y, g_cur_mat_r0_x);
 	g_object_table[object_index].yaw = yaw;
 	g_object_table[object_index].roll = result;
 	return result;
@@ -3027,24 +2935,17 @@ int16_t player_apply_pitch_yaw_steps(int16_t pitch_angle_q16,
 // FUNCTION: XVT 0x4841B0
 int16_t player_can_radio_command_craft(int player_idx)
 {
-	int current_target_object_idx;
-	struct object_record *target_object;
-	int flight_group_idx;
-	int bound_flight_group_idx;
-	uint8_t radio;
-	int player_team;
-	uint8_t global_unit;
-
 	if (g_players[player_idx].current_target_object_idx == -1) {
 		return 0;
 	}
-	current_target_object_idx =
+	int current_target_object_idx =
 		(uint16_t)g_players[player_idx].current_target_object_idx;
 	if (g_active_region_craft_object_slot_end <=
 	    current_target_object_idx) {
 		return 0;
 	}
-	target_object = &g_object_table[current_target_object_idx];
+	struct object_record *target_object =
+		&g_object_table[current_target_object_idx];
 	if (target_object->player_owner_idx != -1) {
 		return 0;
 	}
@@ -3055,21 +2956,22 @@ int16_t player_can_radio_command_craft(int player_idx)
 	if (g_cur_craft->working_subsystems == 0) {
 		return 0;
 	}
-	flight_group_idx = target_object->flight_group_idx;
-	bound_flight_group_idx =
+	int flight_group_idx = target_object->flight_group_idx;
+	int bound_flight_group_idx =
 		(uint16_t)g_players[player_idx].bound_flight_group_idx;
 	if (flight_group_idx == bound_flight_group_idx) {
 		return 1;
 	}
-	radio = g_mission_flight_groups[flight_group_idx].fg.radio;
+	uint8_t radio = g_mission_flight_groups[flight_group_idx].fg.radio;
 	if (radio == 0) {
 		return 0;
 	}
-	player_team = (uint16_t)g_players[player_idx].team;
+	int player_team = (uint16_t)g_players[player_idx].team;
 	if (g_mission_flight_groups[flight_group_idx].fg.team == player_team) {
 		return 1;
 	}
-	global_unit = g_mission_flight_groups[flight_group_idx].fg.global_unit;
+	uint8_t global_unit =
+		g_mission_flight_groups[flight_group_idx].fg.global_unit;
 	if (global_unit != 0 &&
 	    g_mission_flight_groups[bound_flight_group_idx].fg.global_unit ==
 		    global_unit) {
@@ -3100,10 +3002,6 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 					  uint16_t response_index,
 					  int player_idx)
 {
-	uint16_t matching_wingmen;
-	uint16_t object_index;
-	uint16_t last_wingman;
-
 	if (target_obj_idx != UINT16_MAX) {
 		int target_team =
 			g_mission_flight_groups[g_object_table[target_obj_idx]
@@ -3123,40 +3021,35 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 		}
 	}
 
-	matching_wingmen = 0;
-	last_wingman = UINT16_MAX;
-	for (object_index = (uint16_t)g_active_region_object_slot_start;
+	uint16_t matching_wingmen = 0;
+	uint16_t last_wingman = UINT16_MAX;
+	for (uint16_t object_index =
+		     (uint16_t)g_active_region_object_slot_start;
 	     object_index < g_active_region_craft_object_slot_end;
 	     object_index++) {
-		struct object_record *object;
-		struct ai_controller *ai;
-		struct craft_data *craft;
-		int flight_group_idx;
-		int player_slot;
-		uint16_t bound_flight_group_idx;
-
 		if (g_players[player_idx].object_index == object_index) {
 			continue;
 		}
-		object = &g_object_table[object_index];
+		struct object_record *object = &g_object_table[object_index];
 		if (object->player_owner_idx != -1 ||
 		    object->object_type == 0) {
 			continue;
 		}
-		flight_group_idx = object->flight_group_idx;
+		int flight_group_idx = object->flight_group_idx;
 		if (g_mission_flight_groups[flight_group_idx].fg.team !=
 		    (uint16_t)g_players[player_idx].team) {
 			continue;
 		}
-		craft = object->mobj->p_craft;
+		struct craft_data *craft = object->mobj->p_craft;
 		if (craft->object_kind != CRAFT_OBJECT_KIND_ACTIVE) {
 			continue;
 		}
-		bound_flight_group_idx =
+		uint16_t bound_flight_group_idx =
 			g_players[player_idx].bound_flight_group_idx;
-		player_slot = g_mission_flight_groups[bound_flight_group_idx]
-				      .fg.player_number -
-			      1;
+		int player_slot =
+			g_mission_flight_groups[bound_flight_group_idx]
+				.fg.player_number -
+			1;
 		if (flight_group_idx != bound_flight_group_idx) {
 			uint8_t global_unit =
 				g_mission_flight_groups[flight_group_idx]
@@ -3170,7 +3063,7 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 				continue;
 			}
 		}
-		ai = &craft->ai_controller;
+		struct ai_controller *ai = &craft->ai_controller;
 		if (command_id != 155) {
 			const char *plan_name =
 				g_plan_table[ai->running_plan_id].name;
@@ -3235,19 +3128,13 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 int16_t player_find_attacker_of_target(uint16_t target_obj_idx,
 				       int16_t excluded_obj_idx)
 {
-	uint16_t nearest;
-	unsigned int nearest_distance;
-	uint16_t object_idx;
-
 	if (target_obj_idx == UINT16_MAX) {
 		return -1;
 	}
-	nearest_distance = UINT_MAX;
-	nearest = UINT16_MAX;
-	for (object_idx = (uint16_t)g_active_region_object_slot_start;
+	unsigned int nearest_distance = UINT_MAX;
+	uint16_t nearest = UINT16_MAX;
+	for (uint16_t object_idx = (uint16_t)g_active_region_object_slot_start;
 	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
-		struct craft_data *craft;
-		int qualifies;
 		if (g_object_table[object_idx].object_type == 0 ||
 		    target_obj_idx == object_idx ||
 		    object_idx == (uint16_t)excluded_obj_idx ||
@@ -3255,8 +3142,9 @@ int16_t player_find_attacker_of_target(uint16_t target_obj_idx,
 			    CRAFT_GENUS_EXPLOSION) {
 			continue;
 		}
-		craft = g_object_table[object_idx].mobj->p_craft;
-		qualifies = 0;
+		struct craft_data *craft =
+			g_object_table[object_idx].mobj->p_craft;
+		int qualifies = 0;
 		if (craft->working_subsystems == 0 ||
 		    craft->object_kind != CRAFT_OBJECT_KIND_ACTIVE ||
 		    object_has_active_decoy_beam(object_idx)) {
@@ -3272,7 +3160,6 @@ int16_t player_find_attacker_of_target(uint16_t target_obj_idx,
 			}
 			qualifies = 1;
 		} else {
-			int player_owner_idx;
 			if (g_active_region_craft_object_slot_end >
 			    target_obj_idx) {
 				struct craft_data *target_craft =
@@ -3292,7 +3179,7 @@ int16_t player_find_attacker_of_target(uint16_t target_obj_idx,
 					qualifies = 1;
 				}
 			}
-			player_owner_idx =
+			int player_owner_idx =
 				g_object_table[object_idx].player_owner_idx;
 			if ((uint16_t)g_players[player_owner_idx]
 				    .current_target_object_idx ==
@@ -3340,10 +3227,6 @@ void player_start_post_destruction_state(int player_idx,
 		OBJECT_DISPLAY_NAME_AND_TYPE = 3,
 	};
 
-	char source_name[KILL_MESSAGE_NAME_SIZE];
-	char assisting_player_name[KILL_MESSAGE_NAME_SIZE];
-	int local_player;
-
 	g_players[player_idx].hyperspace_phase = 0;
 	if (g_players[player_idx].map_camera_state != 0) {
 		if (player_idx == g_local_player) {
@@ -3358,7 +3241,7 @@ void player_start_post_destruction_state(int player_idx,
 		g_players[player_idx].view_state.camera_world_y =
 			g_object_table[g_players[player_idx].object_index]
 				.mobj->prev_world_y;
-		local_player = g_local_player;
+		int local_player = g_local_player;
 		g_players[player_idx].view_state.camera_world_z =
 			g_object_table[g_players[player_idx].object_index]
 				.mobj->prev_world_z;
@@ -3380,6 +3263,7 @@ void player_start_post_destruction_state(int player_idx,
 			    (unsigned int)
 				    g_active_region_craft_object_slot_end) {
 			if (g_active_flight_player_count > 1) {
+				char source_name[KILL_MESSAGE_NAME_SIZE];
 				if (source_player_idx != -1 &&
 				    g_object_table[source_object_index]
 						    .player_owner_idx !=
@@ -3389,6 +3273,8 @@ void player_start_post_destruction_state(int player_idx,
 					player_append_kill_message_actor_name(
 						0, source_name,
 						(int)source_object_index);
+					char assisting_player_name
+						[KILL_MESSAGE_NAME_SIZE];
 					player_append_kill_message_actor_name(
 						1, assisting_player_name,
 						g_players[source_player_idx]
@@ -3428,27 +3314,20 @@ void player_start_post_destruction_state(int player_idx,
 void player_append_kill_message_actor_name(int slot, char *text,
 					   int object_index)
 {
-	struct object_record *object;
-	int player_owner_idx;
-	struct craft_data *craft;
-	int player_team;
-	int team;
+	struct object_record *object = &g_object_table[object_index];
+	int player_owner_idx = object->player_owner_idx;
+	struct craft_data *craft = object->mobj->p_craft;
 	int is_enemy;
-	char *player_name;
-
-	object = &g_object_table[object_index];
-	player_owner_idx = object->player_owner_idx;
-	craft = object->mobj->p_craft;
 	if (g_flight_mission_state.locate_players_enabled != 0 ||
 	    craft->identified_order_by_team[(uint16_t)g_players[g_local_player]
 						    .team] != 0) {
 		is_enemy = 0;
 	} else {
-		player_team = (uint16_t)g_players[g_local_player].team;
-		team = g_mission_flight_groups
-			       [g_object_table[(uint16_t)object_index]
-					.flight_group_idx]
-				       .fg.team;
+		int player_team = (uint16_t)g_players[g_local_player].team;
+		int team = g_mission_flight_groups
+				   [g_object_table[(uint16_t)object_index]
+					    .flight_group_idx]
+					   .fg.team;
 		if (team == player_team) {
 			is_enemy = 0;
 		} else {
@@ -3456,6 +3335,7 @@ void player_append_kill_message_actor_name(int slot, char *text,
 				g_mission_teams[player_team].allies[team] == 0;
 		}
 	}
+	char *player_name;
 	if (is_enemy == 1) {
 		if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
 			hud_format_object_display_name((uint16_t)object_index,
@@ -3482,18 +3362,13 @@ void player_append_kill_message_actor_name(int slot, char *text,
 // FUNCTION: XVT 0x485000
 void player_compute_polar_to_object_ref(int player_idx, unsigned int object_ref)
 {
-	unsigned int object_index;
-	int delta_x;
-	int delta_y;
-	int delta_z;
-
-	object_index = g_players[player_idx].object_index;
+	unsigned int object_index = g_players[player_idx].object_index;
 	if (object_index == UINT32_MAX) {
 		mission_resolve_object_or_mission_point_world_loc(object_ref,
 								  0);
-		delta_x = g_players[player_idx].view_state.camera_world_x;
-		delta_y = g_players[player_idx].view_state.camera_world_y;
-		delta_z = g_players[player_idx].view_state.camera_world_z;
+		int delta_x = g_players[player_idx].view_state.camera_world_x;
+		int delta_y = g_players[player_idx].view_state.camera_world_y;
+		int delta_z = g_players[player_idx].view_state.camera_world_z;
 		delta_x = g_world_loc_x - delta_x;
 		delta_y = g_world_loc_y - delta_y;
 		delta_z = g_world_loc_z - delta_z;
@@ -3520,12 +3395,9 @@ void player_end_flight_participation(int player_idx)
 		CAMERA_TARGET_EXTENT_SCALE = 16,
 	};
 
-	unsigned int active_player_count;
-	unsigned int player_index;
-
 	g_players[player_idx].participation_state = PLAYER_OUT_OF_MISSION;
-	active_player_count = 0;
-	for (player_index = 0;
+	unsigned int active_player_count = 0;
+	for (unsigned int player_index = 0;
 	     player_index < sizeof(g_players) / sizeof(g_players[0]);
 	     ++player_index) {
 		if (g_players[player_index].participation_state ==
@@ -3585,16 +3457,13 @@ void player_end_flight_participation(int player_idx)
 // FUNCTION: XVT 0x4851D0
 void player_emit_remote_player_departed_messages(int player_idx)
 {
-	int connected_count;
-	int player_index;
-
 	if (g_local_player != player_idx) {
 		msg_add_message_ptr(0, net_session_get_player_name(player_idx));
 		msg_emit_in_flight_message(
 			IFMSG_381_ARG_HAS_NO_MORE_CRAFT_AND_IS_OUT_OF_THE_MISSION,
 			g_local_player);
-		connected_count = 0;
-		for (player_index = 0; player_index < 8; ++player_index) {
+		int connected_count = 0;
+		for (int player_index = 0; player_index < 8; ++player_index) {
 			if (g_players[player_index].participation_state == 1) {
 				++connected_count;
 			}
@@ -3629,17 +3498,14 @@ void player_validate_current_targets(int player_idx)
 		OBJECT_GENUS_EXPLOSION = 13,
 	};
 
-	uint16_t current_target_object_idx;
-	struct object_record *target_object;
-	int local_player;
-
-	current_target_object_idx =
+	uint16_t current_target_object_idx =
 		(uint16_t)g_players[player_idx].current_target_object_idx;
 	if (current_target_object_idx == UINT16_MAX) {
 		return;
 	}
 
-	target_object = &g_object_table[current_target_object_idx];
+	struct object_record *target_object =
+		&g_object_table[current_target_object_idx];
 	if (target_object->mobj != NULL) {
 		if (target_object->object_type == 0 ||
 		    target_object->genus_id == OBJECT_GENUS_EXPLOSION ||
@@ -3667,7 +3533,7 @@ void player_validate_current_targets(int player_idx)
 		    HUD_VIEW_TARGET_CAMERA) {
 			g_players[player_idx]
 				.view_state.external_camera_active = 0;
-			local_player = g_local_player;
+			int local_player = g_local_player;
 			g_players[player_idx].view_state.target_camera_active =
 				0;
 			g_players[player_idx].view_state.camera_focus_obj_idx =
@@ -3692,9 +3558,7 @@ void player_validate_current_targets(int player_idx)
 // FUNCTION: XVT 0x4853C0
 void player_validate_all_current_targets(void)
 {
-	unsigned int player_idx;
-
-	for (player_idx = 0;
+	for (unsigned int player_idx = 0;
 	     player_idx < sizeof(g_players) / sizeof(g_players[0]);
 	     ++player_idx) {
 		if (g_players[player_idx].participation_state != 0) {
@@ -3708,15 +3572,9 @@ void player_validate_all_current_targets(void)
 // FUNCTION: XVT 0x4853F0
 int player_has_available_owned_craft(int player_idx)
 {
-	int object_index;
-	unsigned int remaining_objects;
-	struct object_record *object;
-	struct craft_data *craft;
-	uint8_t object_kind;
-
-	object_index = -1;
-	remaining_objects = g_active_region_craft_object_slot_end -
-			    g_active_region_object_slot_start;
+	int object_index = -1;
+	unsigned int remaining_objects = g_active_region_craft_object_slot_end -
+					 g_active_region_object_slot_start;
 	if (remaining_objects != 0) {
 		do {
 			++object_index;
@@ -3725,14 +3583,17 @@ int player_has_available_owned_craft(int player_idx)
 				object_index =
 					g_active_region_object_slot_start;
 			}
-			object = &g_object_table[object_index];
+			struct object_record *object =
+				&g_object_table[object_index];
 			if (object->object_type != 0) {
-				craft = object->mobj->p_craft;
+				struct craft_data *craft =
+					object->mobj->p_craft;
 				if (g_mission_flight_groups
 					    [object->flight_group_idx]
 						    .player_owner_idx ==
 				    player_idx) {
-					object_kind = craft->object_kind;
+					uint8_t object_kind =
+						craft->object_kind;
 					if (object_kind !=
 						    CRAFT_OBJECT_KIND_BREAKING_UP &&
 					    object_kind !=
@@ -3773,17 +3634,14 @@ void player_update_participation_state(void)
 	for (player_idx = 0;
 	     player_idx < sizeof(g_players) / sizeof(g_players[0]);
 	     ++player_idx) {
-		struct player_data *player;
-
-		player = &g_players[player_idx];
+		struct player_data *player = &g_players[player_idx];
 		if (player->participation_state != 0) {
 			if (player->awaiting_new_craft != 0) {
 				if (g_flight_sim_side_effects_suppressed == 0 &&
 				    player->object_index != -1) {
-					struct object_record *object;
-
-					object = &g_object_table
-							 [player->object_index];
+					struct object_record *object =
+						&g_object_table
+							[player->object_index];
 					if (object->object_type == 0 ||
 					    player->bound_object_signature !=
 						    object->object_signature) {
@@ -3872,36 +3730,24 @@ void player_update_participation_state(void)
 // FUNCTION: XVT 0x485660
 int player_find_nearest_enemy_fighter(int player_idx, int excluded_object_idx)
 {
-	int16_t object_idx;
-	int player_team;
-	int team;
-	uint8_t genus_id;
-	struct craft_data *craft;
-	uint8_t object_kind;
-	uint16_t static_object_idx;
-	struct object_record *static_object;
-	int static_object_team;
-	int static_player_team;
 	int is_enemy;
-	uint32_t nearest_distance;
-	struct object_record *object;
-	int nearest_object_idx;
 
-	nearest_distance = UINT32_MAX;
-	nearest_object_idx = UINT16_MAX;
-	for (object_idx = g_active_region_object_slot_start;
+	uint32_t nearest_distance = UINT32_MAX;
+	int nearest_object_idx = UINT16_MAX;
+	for (int16_t object_idx = g_active_region_object_slot_start;
 	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
-		object = &g_object_table[object_idx];
+		struct object_record *object = &g_object_table[object_idx];
 		if (object->object_type != 0 &&
 		    g_players[player_idx].object_index != object_idx &&
 		    excluded_object_idx != object_idx) {
-			player_team = (uint16_t)g_players[player_idx].team;
+			int player_team = (uint16_t)g_players[player_idx].team;
 			if (object->mobj->team != player_team) {
-				team = g_mission_flight_groups
-					       [g_object_table[(uint16_t)
-								       object_idx]
-							.flight_group_idx]
-						       .fg.team;
+				int team =
+					g_mission_flight_groups
+						[g_object_table[(uint16_t)
+									object_idx]
+							 .flight_group_idx]
+							.fg.team;
 				if (team == player_team) {
 					is_enemy = 0;
 				} else {
@@ -3909,18 +3755,19 @@ int player_find_nearest_enemy_fighter(int player_idx, int excluded_object_idx)
 							   .allies[team] == 0;
 				}
 				if (is_enemy) {
-					genus_id = object->genus_id;
+					uint8_t genus_id = object->genus_id;
 					if (genus_id != CRAFT_GENUS_EXPLOSION &&
 					    genus_id != CRAFT_GENUS_STARSHIP &&
 					    genus_id != CRAFT_GENUS_FREIGHTER &&
 					    genus_id != CRAFT_GENUS_PLATFORM &&
 					    object_has_active_decoy_beam(
 						    object_idx) == 0) {
-						craft = g_object_table[object_idx]
+						struct craft_data *craft =
+							g_object_table[object_idx]
 								.mobj->p_craft;
 						if (craft->working_subsystems !=
 						    0) {
-							object_kind =
+							uint8_t object_kind =
 								craft->object_kind;
 							if (object_kind ==
 								    CRAFT_OBJECT_KIND_ACTIVE ||
@@ -3945,22 +3792,23 @@ int player_find_nearest_enemy_fighter(int player_idx, int excluded_object_idx)
 		}
 	}
 
-	for (static_object_idx = g_region_main_object_slot_end;
+	for (uint16_t static_object_idx = g_region_main_object_slot_end;
 	     (int)(g_region_main_object_slot_end +
 		   g_region_static_object_slot_count) >
 	     (int16_t)static_object_idx;
 	     ++static_object_idx) {
-		static_object = &g_object_table[(int16_t)static_object_idx];
+		struct object_record *static_object =
+			&g_object_table[(int16_t)static_object_idx];
 		if (static_object->object_type != 0 &&
 		    static_object->genus_id == CRAFT_GENUS_MINE &&
 		    excluded_object_idx != (int16_t)static_object_idx &&
 		    static_object->type_specific_word != 0) {
-			static_object_team =
+			int static_object_team =
 				g_mission_flight_groups
 					[g_object_table[static_object_idx]
 						 .flight_group_idx]
 						.fg.team;
-			static_player_team =
+			int static_player_team =
 				(uint16_t)g_players[player_idx].team;
 			if (static_player_team == static_object_team) {
 				is_enemy = 0;
@@ -4017,11 +3865,8 @@ void player_handle_hyperspace_command(struct craft_data *craft,
 					PLAYER_OUT_OF_MISSION;
 			} else if ((craft->working_subsystems &
 				    CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0) {
-				int16_t scan_object_idx;
-				int16_t interdictor_present;
-
-				interdictor_present = 0;
-				for (scan_object_idx =
+				int16_t interdictor_present = 0;
+				for (int16_t scan_object_idx =
 					     g_active_region_object_slot_start;
 				     scan_object_idx <
 				     g_active_region_craft_object_slot_end;
@@ -4050,8 +3895,6 @@ void player_handle_hyperspace_command(struct craft_data *craft,
 						IFMSG_109_INTERDICTOR_PREVENTS_HYPERDRIVE_UNIT_FROM_FUNCTIONING,
 						player_idx);
 				} else {
-					uint8_t object_type;
-
 					if (g_local_player == (int)player_idx) {
 						hud_clear_ready_message_queue();
 					}
@@ -4085,7 +3928,7 @@ void player_handle_hyperspace_command(struct craft_data *craft,
 						.view_state.hud_aim_y = 0;
 					craft->throttle_speed = 0;
 
-					object_type =
+					uint8_t object_type =
 						g_object_table
 							[g_players[player_idx]
 								 .object_index]
@@ -4125,14 +3968,10 @@ void player_handle_hyperspace_command(struct craft_data *craft,
 					player_idx);
 			}
 		} else {
-			uint16_t departure_mothership_obj_idx;
-			uint16_t alternate_mothership_obj_idx;
-			uint16_t object_idx;
-
-			departure_mothership_obj_idx = UINT16_MAX;
-			alternate_mothership_obj_idx =
+			uint16_t departure_mothership_obj_idx = UINT16_MAX;
+			uint16_t alternate_mothership_obj_idx =
 				departure_mothership_obj_idx;
-			for (object_idx = (uint16_t)
+			for (uint16_t object_idx = (uint16_t)
 				     g_active_region_object_slot_start;
 			     object_idx < g_active_region_craft_object_slot_end;
 			     ++object_idx) {

@@ -74,11 +74,11 @@ static int64_t fixed_atan2(int64_t y, int64_t x)
 
 static uint64_t integer_sqrt(uint64_t value)
 {
-	uint64_t root = 0;
 	uint64_t bit = UINT64_C(1) << 62;
 	while (bit > value) {
 		bit >>= 2;
 	}
+	uint64_t root = 0;
 	while (bit) {
 		if (value >= root + bit) {
 			value -= root + bit;

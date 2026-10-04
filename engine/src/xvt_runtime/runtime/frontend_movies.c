@@ -17,10 +17,10 @@ int xvt_frontend_movies_play_viewer(const char *name)
 
 int xvt_frontend_movies_resume_viewer(void)
 {
-	int result;
 	if (!g_viewer_pending) {
 		return 0;
 	}
+	int result;
 	if (!xvt_movie_task_take_result(&result)) {
 		return 1;
 	}

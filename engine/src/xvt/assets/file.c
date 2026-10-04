@@ -48,10 +48,7 @@ xvt_file *file_open(const char *file_name, const char *mode)
 	return xvt_storage_open(file_name, mode);
 #else
 
-	xvt_file *stream;
-	char path[256];
-
-	stream = FILE_RAW_OPEN(file_name, mode);
+	xvt_file *stream = FILE_RAW_OPEN(file_name, mode);
 	if (stream != NULL) {
 		++g_open_file_count;
 	} else {
@@ -63,6 +60,7 @@ xvt_file *file_open(const char *file_name, const char *mode)
 		} else if (*mode != 'w' && *mode != 'a' &&
 			   g_front_state.cd_drive_letter != 0) {
 			cd_audio_suspend_playback();
+			char path[256];
 			sprintf(path, "%c:\\BalanceOfPower\\%s",
 				(uint8_t)g_front_state.cd_drive_letter,
 				file_name);
@@ -138,12 +136,9 @@ int file_get_size(xvt_file *stream)
 	return value < 0 || value > INT_MAX ? -1 : (int)value;
 #else
 
-	int size;
-	int original_position;
-
-	original_position = file_tell(stream);
+	int original_position = file_tell(stream);
 	file_seek(stream, 0, SEEK_END);
-	size = file_tell(stream);
+	int size = file_tell(stream);
 	file_seek(stream, original_position, SEEK_SET);
 	return size;
 
@@ -227,16 +222,14 @@ int file_check_required_cd_movie_assets_present(void)
 					 sizeof(path)) == 1;
 #else
 
-	char file_name[80];
-	xvt_file *stream;
-
 	if (g_front_state.cd_drive_letter == 0) {
 		return 0;
 	}
 	cd_audio_suspend_playback();
+	char file_name[80];
 	strcpy(file_name, "c:\\wave\\PBC\\Pb1los07.wav");
 	file_name[0] = g_front_state.cd_drive_letter;
-	stream = FILE_RAW_OPEN(file_name, "rb");
+	xvt_file *stream = FILE_RAW_OPEN(file_name, "rb");
 	if (stream == 0) {
 		cd_audio_request_resume_playback();
 		return 0;
@@ -266,20 +259,19 @@ int file_check_required_cd_movie_assets_present(void)
 int file_check_game_cd_present(int skip_movie_checks)
 {
 #ifdef XVT_MODERN
-	char path[XVT_PATH_CAPACITY];
 	(void)skip_movie_checks;
+	char path[XVT_PATH_CAPACITY];
 	return xvt_storage_resolve_asset("wave/PBC/Pb1los07.wav", path,
 					 sizeof(path)) == 1 &&
 	       xvt_storage_resolve_asset("ivfiles/cal.opt", path,
 					 sizeof(path)) == 1;
 #else
 
-	xvt_file *stream;
-	char file_name[80];
-
 	if (g_front_state.cd_drive_letter == 0) {
 		return 0;
 	}
+	xvt_file *stream;
+	char file_name[80];
 	if (!skip_movie_checks) {
 		strcpy(file_name, "c:\\");
 		file_name[0] = g_front_state.cd_drive_letter;
@@ -370,19 +362,16 @@ void file_detect_game_and_cd_paths(const char *required_cd_file_path)
 	g_front_state.base_game_install_path[0] = 0;
 #else
 
-	void *registry_key;
-	unsigned int data_size;
-	char version_sub_key[256];
-	uint8_t install_path_first_character;
-
 	if (required_cd_file_path != NULL) {
 		g_front_state.cd_drive_letter =
 			file_find_cd_drive_letter(required_cd_file_path);
 	}
 
+	char version_sub_key[256];
 	sprintf(version_sub_key,
 		"SOFTWARE\\LucasArts Entertainment Company\\X-Wing vs. TIE Fighter\\%d.%d",
 		2, 0);
+	void *registry_key;
 	RegCreateKeyA(0x80000002u, version_sub_key, &registry_key);
 	RegCloseKey(registry_key);
 	if (RegOpenKeyExA(
@@ -399,7 +388,7 @@ void file_detect_game_and_cd_paths(const char *required_cd_file_path)
 		return;
 	}
 
-	data_size = sizeof(g_front_state.install_path);
+	unsigned int data_size = sizeof(g_front_state.install_path);
 	if (RegQueryValueExA(registry_key, "Install Path", NULL, NULL,
 			     g_front_state.install_path, &data_size) != 0) {
 		g_front_state.install_drive_letter = _getdrive() + 'a' - 1;
@@ -413,7 +402,7 @@ void file_detect_game_and_cd_paths(const char *required_cd_file_path)
 		return;
 	}
 
-	install_path_first_character = g_front_state.install_path[0];
+	uint8_t install_path_first_character = g_front_state.install_path[0];
 	if (g_front_state.install_path[strlen(g_front_state.install_path) -
 				       1] == '\\') {
 		g_front_state

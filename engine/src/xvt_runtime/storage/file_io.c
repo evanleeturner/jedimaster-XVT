@@ -12,7 +12,6 @@
 
 size_t xvt_file_read(void *data, size_t size, size_t count, AeronFile *file)
 {
-	size_t bytes = 0;
 	if (!size || !count) {
 		return 0;
 	}
@@ -20,6 +19,7 @@ size_t xvt_file_read(void *data, size_t size, size_t count, AeronFile *file)
 		xvt_storage_fatal("Read size overflow", 1);
 		return 0;
 	}
+	size_t bytes = 0;
 	AeronVfs_Read(file, data, size * count, &bytes);
 	return bytes / size;
 }
@@ -27,7 +27,6 @@ size_t xvt_file_read(void *data, size_t size, size_t count, AeronFile *file)
 size_t xvt_file_write(const void *data, size_t size, size_t count,
 		      AeronFile *file)
 {
-	size_t bytes = 0;
 	if (!size || !count) {
 		return 0;
 	}
@@ -35,6 +34,7 @@ size_t xvt_file_write(const void *data, size_t size, size_t count,
 		xvt_storage_fatal("Write size overflow", 1);
 		return 0;
 	}
+	size_t bytes = 0;
 	AeronVfs_Write(file, data, size * count, &bytes);
 	return bytes / size;
 }
@@ -79,13 +79,12 @@ int xvt_file_flush(AeronFile *file) { return AeronVfs_Flush(file) ? 0 : EOF; }
 int xvt_file_printf(AeronFile *file, const char *format, ...)
 {
 	va_list args;
-	va_list copy;
 	char local[512];
 	char *text = local;
-	int length;
 	va_start(args, format);
+	va_list copy;
 	va_copy(copy, args);
-	length = vsnprintf(local, sizeof(local), format, args);
+	int length = vsnprintf(local, sizeof(local), format, args);
 	va_end(args);
 	if (length >= (int)sizeof(local)) {
 		text = malloc((size_t)length + 1);
@@ -134,13 +133,12 @@ int xvt_file_scanf(AeronFile *file, const char *format, ...)
 	va_start(args, format);
 	while (*format) {
 		int width = 0;
-		int ch;
-		char conversion;
 		if (isspace((unsigned char)*format)) {
 			xvt_file_skip_space(file);
 			++format;
 			continue;
 		}
+		int ch;
 		if (*format++ != '%') {
 			ch = xvt_file_peek(file);
 			if (ch != (unsigned char)format[-1]) {
@@ -157,7 +155,7 @@ int xvt_file_scanf(AeronFile *file, const char *format, ...)
 			}
 			width = width * 10 + *format++ - '0';
 		}
-		conversion = *format++;
+		char conversion = *format++;
 		xvt_file_skip_space(file);
 		if (xvt_file_peek(file) == EOF) {
 			input_failure = 1;
@@ -181,10 +179,8 @@ int xvt_file_scanf(AeronFile *file, const char *format, ...)
 			}
 		} else if (conversion == 'd' || conversion == 'u') {
 			char token[512];
-			char spec[16];
 			int count = 0;
 			int consumed = 0;
-			int result;
 			int64_t start = AeronVfs_Tell(file);
 			void *output = va_arg(args, void *);
 			if (!width || width >= (int)sizeof(token)) {
@@ -196,8 +192,9 @@ int xvt_file_scanf(AeronFile *file, const char *format, ...)
 				token[count++] = (char)xvt_file_getc(file);
 			}
 			token[count] = 0;
+			char spec[16];
 			snprintf(spec, sizeof(spec), "%%%c%%n", conversion);
-			result = sscanf(token, spec, output, &consumed);
+			int result = sscanf(token, spec, output, &consumed);
 			if ((consumed != count &&
 			     !AeronVfs_Seek(file, start + consumed,
 					    SEEK_SET)) ||

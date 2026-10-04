@@ -41,9 +41,8 @@ void inventor_ascii_skip_past_open_bracket(xvt_file *stream)
 // FUNCTION: XVT 0x413920
 void inventor_ascii_skip_list_separator(xvt_file *stream)
 {
-	char character;
-
 	if (inventor_ascii_peek_next_is_close_bracket(stream) == 0) {
+		char character;
 		while (FILE_SCANF(stream, g_inventor_ascii_char_scan_format,
 				  &character) == 1 &&
 		       character != ',') {
@@ -96,10 +95,8 @@ void inventor_ascii_skip_past_close_bracket(xvt_file *stream)
 // FUNCTION: XVT 0x413A30
 int inventor_ascii_peek_next_is_quote(xvt_file *stream)
 {
-	long position;
+	long position = FILE_RAW_TELL(stream);
 	char character;
-
-	position = FILE_RAW_TELL(stream);
 	if (FILE_SCANF(stream, g_inventor_ascii_char_scan_format, &character) !=
 	    1) {
 		FILE_RAW_SEEK(stream, position, SEEK_SET);
@@ -121,10 +118,8 @@ int inventor_ascii_peek_next_is_quote(xvt_file *stream)
 // FUNCTION: XVT 0x413AA0
 int inventor_ascii_peek_next_is_close_brace(xvt_file *stream)
 {
-	long position;
+	long position = FILE_RAW_TELL(stream);
 	char character;
-
-	position = FILE_RAW_TELL(stream);
 	if (FILE_SCANF(stream, g_inventor_ascii_char_scan_format, &character) !=
 	    1) {
 		FILE_RAW_SEEK(stream, position, SEEK_SET);
@@ -146,10 +141,8 @@ int inventor_ascii_peek_next_is_close_brace(xvt_file *stream)
 // FUNCTION: XVT 0x413B10
 int inventor_ascii_peek_next_is_open_brace(xvt_file *stream)
 {
-	long position;
+	long position = FILE_RAW_TELL(stream);
 	char character;
-
-	position = FILE_RAW_TELL(stream);
 	if (FILE_SCANF(stream, g_inventor_ascii_char_scan_format, &character) !=
 	    1) {
 		FILE_RAW_SEEK(stream, position, SEEK_SET);
@@ -171,10 +164,8 @@ int inventor_ascii_peek_next_is_open_brace(xvt_file *stream)
 // FUNCTION: XVT 0x413B80
 int inventor_ascii_peek_next_is_close_bracket(xvt_file *stream)
 {
-	long position;
+	long position = FILE_RAW_TELL(stream);
 	char character;
-
-	position = FILE_RAW_TELL(stream);
 	if (FILE_SCANF(stream, g_inventor_ascii_char_scan_format, &character) !=
 	    1) {
 		FILE_RAW_SEEK(stream, position, SEEK_SET);
@@ -196,10 +187,8 @@ int inventor_ascii_peek_next_is_close_bracket(xvt_file *stream)
 // FUNCTION: XVT 0x413BF0
 int inventor_ascii_peek_next_is_open_bracket(xvt_file *stream)
 {
-	long position;
+	long position = FILE_RAW_TELL(stream);
 	char character;
-
-	position = FILE_RAW_TELL(stream);
 	if (FILE_SCANF(stream, g_inventor_ascii_char_scan_format, &character) !=
 	    1) {
 		FILE_RAW_SEEK(stream, position, SEEK_SET);

@@ -20,20 +20,13 @@
 // FUNCTION: XVT 0x40E6C0
 unsigned int tex_level_convert24_bpp_palettes_to16_bpp(unsigned int *tex_level)
 {
-	struct tex_level_header *header;
-	uint16_t *output_palette16;
+	struct tex_level_header *header = (struct tex_level_header *)tex_level;
+	uint16_t *output_palette16 =
+		(uint16_t *)((uint8_t *)header + header->data_size);
 	uint8_t *source_palette_rgba;
 	unsigned int palette_color_count;
 	struct rgb_triplet *rgb_cursor;
-	unsigned int entries_remaining;
-	unsigned int palette_index;
-	unsigned int image_index;
-	unsigned int result;
-	struct tex_level_image_header *image;
 	struct rgb_triplet src_rgb[1024];
-
-	header = (struct tex_level_header *)tex_level;
-	output_palette16 = (uint16_t *)((uint8_t *)header + header->data_size);
 	if (header->bits_per_pixel == 24) {
 		source_palette_rgba =
 			(uint8_t *)header + header->palette_offset;
@@ -44,7 +37,8 @@ unsigned int tex_level_convert24_bpp_palettes_to16_bpp(unsigned int *tex_level)
 		if (palette_color_count < 1024) {
 			if (palette_color_count != 0) {
 				rgb_cursor = src_rgb;
-				entries_remaining = palette_color_count;
+				unsigned int entries_remaining =
+					palette_color_count;
 				do {
 					rgb_cursor->r =
 						*source_palette_rgba++ >> 2;
@@ -63,11 +57,12 @@ unsigned int tex_level_convert24_bpp_palettes_to16_bpp(unsigned int *tex_level)
 		}
 	}
 
-	image_index = 0;
-	result = header->image_count;
+	unsigned int image_index = 0;
+	unsigned int result = header->image_count;
 	if (result != 0) {
 		do {
-			image = (struct tex_level_image_header
+			struct tex_level_image_header *image =
+				(struct tex_level_image_header
 					 *)((uint8_t *)header +
 					    *(uint32_t
 						      *)((uint8_t *)header +
@@ -83,7 +78,7 @@ unsigned int tex_level_convert24_bpp_palettes_to16_bpp(unsigned int *tex_level)
 				source_palette_rgba = (uint8_t *)image +
 						      image->palette_offset;
 				if (palette_color_count < 1024) {
-					palette_index = 0;
+					unsigned int palette_index = 0;
 					if (palette_color_count != 0) {
 						rgb_cursor = src_rgb;
 						do {
@@ -131,16 +126,11 @@ unsigned int tex_level_convert24_bpp_palettes_to16_bpp(unsigned int *tex_level)
 // FUNCTION: XVT 0x40E7F0
 unsigned int tex_level_convert24_bpp_palettes_to8_bpp(unsigned int *tex_level)
 {
-	struct tex_level_header *header;
-	uint8_t *output_palette8;
+	struct tex_level_header *header = (struct tex_level_header *)tex_level;
+	uint8_t *output_palette8 = (uint8_t *)header + header->data_size;
 	const uint8_t *source_palette_rgba;
 	unsigned int palette_index;
-	unsigned int image_index;
-	struct tex_level_image_header *image;
 	struct rgb_triplet target_rgb;
-
-	header = (struct tex_level_header *)tex_level;
-	output_palette8 = (uint8_t *)header + header->data_size;
 	if (header->bits_per_pixel == 24) {
 		source_palette_rgba =
 			(const uint8_t *)header + header->palette_offset;
@@ -162,9 +152,10 @@ unsigned int tex_level_convert24_bpp_palettes_to8_bpp(unsigned int *tex_level)
 		}
 	}
 
-	image_index = 0;
+	unsigned int image_index = 0;
 	while (image_index < header->image_count) {
-		image = (struct tex_level_image_header
+		struct tex_level_image_header *image =
+			(struct tex_level_image_header
 				 *)((uint8_t *)header +
 				    *(uint32_t
 					      *)((uint8_t *)&tex_level

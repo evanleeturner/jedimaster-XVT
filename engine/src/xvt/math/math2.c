@@ -55,10 +55,7 @@ int16_t radarx = 0;
 // FUNCTION: XVT 0x425AE0
 int math2_ab_over_c32(int a, int b, int c)
 {
-	uint64_t product;
-	int negative;
-
-	negative = 0;
+	int negative = 0;
 	if (a < 0) {
 		negative = 1;
 		a = (int)(0u - (uint32_t)a);
@@ -72,6 +69,7 @@ int math2_ab_over_c32(int a, int b, int c)
 		negative = !negative;
 	}
 
+	uint64_t product;
 	if (negative != 0) {
 		product = (uint64_t)(uint32_t)b * (uint32_t)a;
 		if ((uint32_t)(product >> 32) >= (uint32_t)c) {
@@ -97,12 +95,9 @@ int math2_ab_over_c32(int a, int b, int c)
 // FUNCTION: XVT 0x425B70
 unsigned int math2_fraction(uint16_t value, uint16_t frac_q16)
 {
-	unsigned int product;
-	unsigned int result;
-
-	result = value;
+	unsigned int result = value;
 	if (frac_q16 != 0xffffu) {
-		product = (unsigned int)value * frac_q16;
+		unsigned int product = (unsigned int)value * frac_q16;
 		result = product + 0x8000u;
 		result >>= 16;
 	}
@@ -175,14 +170,10 @@ unsigned int math2_longratio_q16(unsigned int numerator,
 // FUNCTION: XVT 0x425D80
 unsigned int math2_mphconvert(int16_t speed, uint16_t divisor)
 {
-	unsigned int frames_per_second;
-	unsigned int scaled_value;
-	unsigned int result;
-
-	scaled_value = 4660 * speed + 128;
+	unsigned int scaled_value = 4660 * speed + 128;
 	scaled_value >>= 8;
-	frames_per_second = divisor;
-	result = scaled_value / frames_per_second;
+	unsigned int frames_per_second = divisor;
+	unsigned int result = scaled_value / frames_per_second;
 	if ((scaled_value & frames_per_second) > (scaled_value >> 1)) {
 		result++;
 	}
@@ -204,26 +195,19 @@ unsigned int math2_mphconvert(int16_t speed, uint16_t divisor)
 // FUNCTION: XVT 0x425E30
 int16_t math2_getradarcoord(int side, int up, int forward)
 {
-	int angle;
 	int table_index;
-	int projected_y;
-	int projected_x;
-	int16_t arctan_values[2];
-	uint16_t angle_divisor;
-	uint8_t shift;
 
 	if (g_flight_resolution_mode !=
 	    g_radar_ellipse_clamp_cached_resolution_mode) {
+		int angle;
 		if (g_flight_resolution_mode == FLIGHT_RESOLUTION_320X240) {
-			uint8_t y_limit;
-			int remaining;
-
 			table_index = 0;
-			remaining = 37;
+			int remaining = 37;
 			do {
-				y_limit = g_radar_ellipse_clamp320x240_preset
-						  [table_index]
-							  .y_limit;
+				uint8_t y_limit =
+					g_radar_ellipse_clamp320x240_preset
+						[table_index]
+							.y_limit;
 				g_radar_ellipse_clamp_table[table_index]
 					.x_limit =
 					g_radar_ellipse_clamp320x240_preset
@@ -268,11 +252,12 @@ int16_t math2_getradarcoord(int side, int up, int forward)
 			g_flight_resolution_mode;
 	}
 
-	projected_y = up;
-	projected_x = side;
+	int projected_y = up;
+	int projected_x = side;
 	if (side < 0) {
 		projected_x = (int)(0u - (uint32_t)side);
 	}
+	uint8_t shift;
 #ifdef XVT_MODERN
 	shift = (uint8_t)(g_perspective_shift - 5);
 	projected_x = (int)((uint32_t)projected_x << (shift & 31u));
@@ -304,10 +289,11 @@ int16_t math2_getradarcoord(int side, int up, int forward)
 
 	radarx = (int16_t)projected_x;
 	radary = (int16_t)projected_y;
+	int16_t arctan_values[2];
 	trig2_calcarctan_core(projected_x, projected_y, &arctan_values[1],
 			      arctan_values);
 	arctan_values[1] = (int16_t)-arctan_values[1];
-	angle_divisor = 443;
+	uint16_t angle_divisor = 443;
 	arctan_values[1] += 0x4000;
 	arctan_values[1] = (uint16_t)arctan_values[1] / angle_divisor;
 	table_index = (uint16_t)arctan_values[1];

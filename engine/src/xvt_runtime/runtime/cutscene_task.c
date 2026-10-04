@@ -30,7 +30,6 @@ static void xvt_cutscene_task_restore(void)
 
 int xvt_cutscene_task_play(int phase)
 {
-	int result;
 	if (!g_cutscene.active) {
 		if (g_pilot_data.mission_directory_id !=
 			    MISSION_DIRECTORY_TRAINING_EXERCISES ||
@@ -42,6 +41,7 @@ int xvt_cutscene_task_play(int phase)
 		g_cutscene.entry_index = 0;
 		g_cutscene.active = 1;
 	}
+	int result;
 	if (g_cutscene.waiting) {
 		if (!xvt_movie_task_take_result(&result)) {
 			return XVT_MOVIE_PENDING;

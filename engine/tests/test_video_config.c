@@ -39,9 +39,9 @@ static struct xvt_video_settings shipped_record(void)
 {
 	static struct xvt_settings settings;
 	struct xvt_scene_settings scene;
-	char error[512] = "";
 	AeronConfigFile *shipped = fixture_shipped_document();
 	fixture_shipped_scene(&scene);
+	char error[512] = "";
 	XVT_ASSERT_INT_EQ(xvt_settings_parse(shipped, &scene, &settings, error,
 					     sizeof error),
 			  1);
@@ -188,10 +188,9 @@ static void check_validate(void)
 	char error[64] = "";
 	XVT_ASSERT_TRUE(
 		xvt_video_settings_validate(&good, error, sizeof error));
-	struct xvt_video_settings v;
 
 	/* Each flag is 0 or 1. */
-	v = good;
+	struct xvt_video_settings v = good;
 	v.cockpit_undither = 2;
 	expect_invalid(&v, "cockpit_undither 2");
 	v = good;
@@ -298,7 +297,6 @@ static void check_set_and_restore(void)
 
 	fixture_load();
 	struct xvt_video_settings defaults;
-	struct xvt_video_settings now;
 	xvt_video_settings_read(xvt_config_default_settings(), &defaults);
 
 	/* Every field is written, even one equal to the shipped value: the settings.h paths of the window
@@ -314,6 +312,7 @@ static void check_set_and_restore(void)
 	XVT_ASSERT_TRUE(
 		AeronConfigFile_Has(user, "render.temporal_upscaling.mode"));
 	XVT_ASSERT_TRUE(AeronConfigFile_Has(user, "render.msaa_samples"));
+	struct xvt_video_settings now;
 	xvt_video_settings_read(xvt_config_settings(), &now);
 	XVT_ASSERT_TRUE(xvt_video_settings_equals(&now, &defaults));
 

@@ -654,11 +654,8 @@ void flight_reset_unused_resume_slots(void)
 void flight_update_timers(void)
 {
 	int index;
-	int player_index;
-	int object_index;
-	uint16_t *timer;
 
-	timer = (uint16_t *)&g_flight_global_countdown_timers;
+	uint16_t *timer = (uint16_t *)&g_flight_global_countdown_timers;
 	for (index = 0; index < (int)(sizeof(g_flight_global_countdown_timers) /
 				      sizeof(*timer));
 	     ++index) {
@@ -681,6 +678,7 @@ void flight_update_timers(void)
 		}
 	}
 
+	int player_index;
 	if (g_flight_sim_side_effects_suppressed == 0) {
 		for (index = 0;
 		     index <
@@ -727,15 +725,15 @@ void flight_update_timers(void)
 		}
 	}
 
+	int object_index;
 	for (object_index = g_active_region_object_slot_start;
 	     object_index < g_active_region_craft_object_slot_end;
 	     ++object_index) {
 		if (g_object_table[object_index].object_type != 0) {
-			struct ai_controller *controller;
-
 			g_cur_craft =
 				g_object_table[object_index].mobj->p_craft;
-			controller = &g_cur_craft->ai_controller;
+			struct ai_controller *controller =
+				&g_cur_craft->ai_controller;
 			if (controller->think_timer != 0) {
 #ifdef XVT_MODERN
 				controller->think_timer -=
@@ -892,13 +890,11 @@ void flight_update_timers(void)
 		if ((uint16_t)g_players[g_local_player]
 				    .current_target_object_idx != UINT16_MAX &&
 		    g_players[g_local_player].object_index != -1) {
-			int object_type;
-
 			pai_object_ref_direction_to_object_ref(
 				(uint16_t)g_players[g_local_player]
 					.current_target_object_idx,
 				g_players[g_local_player].object_index);
-			object_type =
+			int object_type =
 				g_object_table
 					[(uint16_t)g_players[g_local_player]
 						 .current_target_object_idx]
@@ -1031,12 +1027,10 @@ void flight_update_timers(void)
 		     (g_mission_countdown_clock.minutes == 0 &&
 		      g_mission_countdown_clock.seconds == 0))) {
 			uint8_t team_active[10];
-			int active_flag = 1;
-			int active_team_count;
-			int active_team;
 
 			memset(team_active, 0, sizeof(team_active));
 
+			int active_flag = 1;
 			for (player_index = 0; player_index < 8;
 			     ++player_index) {
 				if (g_players[player_index]
@@ -1072,7 +1066,8 @@ void flight_update_timers(void)
 					}
 				}
 			}
-			active_team_count = 0;
+			int active_team_count = 0;
+			int active_team;
 			for (index = 0; index < 10; ++index) {
 				if (team_active[index] != 0) {
 					++active_team_count;
@@ -1128,12 +1123,12 @@ void flight_update_timers(void)
 		if (player->participation_state != 0 &&
 		    player->object_index != -1) {
 			uint16_t repair_display_slot = UINT16_MAX;
-			uint16_t repair_system = UINT16_MAX;
 			struct craft_data *craft =
 				g_object_table[player->object_index]
 					.mobj->p_craft;
 
 			if (craft->working_subsystems != 0) {
+				uint16_t repair_system = UINT16_MAX;
 				for (index = 0; index < CRAFT_SUBSYSTEM_COUNT;
 				     ++index) {
 					if (craft->system_health[index] == 0 &&
@@ -1204,24 +1199,19 @@ void flight_update_timers(void)
 // FUNCTION: XVT 0x4165B0
 void flight_update_dynamic_music_state(void)
 {
-	uint8_t track_number;
-	uint16_t player_team;
-	uint8_t primary_goal_status;
-	uint32_t current_time_ms;
-	uint32_t elapsed_ms;
-
 	if (g_game_config.music_enabled == 0 ||
 	    g_game_config.music_volume == 0 ||
 	    g_pilot_data.num_human_players_last_mission != 1) {
 		return;
 	}
 
-	track_number = 0;
+	uint8_t track_number = 0;
 	if (g_dynamic_music_state == 2 &&
 	    g_dynamic_music_outcome_latched == 0) {
-		player_team = g_players[g_local_player].team;
-		primary_goal_status = g_flight_mission_state.runtime
-					      .team_goal_status[player_team][0];
+		uint16_t player_team = g_players[g_local_player].team;
+		uint8_t primary_goal_status =
+			g_flight_mission_state.runtime
+				.team_goal_status[player_team][0];
 		if (primary_goal_status == 2 ||
 		    g_flight_mission_state.runtime
 				    .team_goal_status[player_team][1] == 1) {
@@ -1254,8 +1244,8 @@ void flight_update_dynamic_music_state(void)
 		return;
 	}
 
-	current_time_ms = timeGetTime();
-	elapsed_ms = current_time_ms - g_dynamic_music_last_update_ms;
+	uint32_t current_time_ms = timeGetTime();
+	uint32_t elapsed_ms = current_time_ms - g_dynamic_music_last_update_ms;
 	g_dynamic_music_last_update_ms = current_time_ms;
 	g_dynamic_music_track_remaining_ms -= elapsed_ms;
 	if (g_dynamic_music_track_remaining_ms <= 0) {
@@ -1288,9 +1278,7 @@ int flight_get_duplicate_world_state_size(void)
 // FUNCTION: XVT 0x416720
 void flight_alloc_world_state_buffers(void)
 {
-	size_t buffer_size;
-
-	buffer_size = flight_calculate_world_state_buffer_size();
+	size_t buffer_size = flight_calculate_world_state_buffer_size();
 	g_world_state_handle = memory_alloc_handle(buffer_size, 0);
 	if (g_world_state_handle == 0) {
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
@@ -1317,9 +1305,7 @@ void flight_alloc_world_state_buffers(void)
 // FUNCTION: XVT 0x4167A0
 void flight_free_world_state_buffers(void)
 {
-	unsigned int handle;
-
-	handle = g_world_state_handle;
+	unsigned int handle = g_world_state_handle;
 #ifdef XVT_MODERN
 	if (handle) {
 		memory_free_handle((uint16_t)handle);
@@ -1360,11 +1346,8 @@ void flight_save_world_state(void)
 #ifdef XVT_MODERN
 	xvt_snapshot_save();
 #else
-	uint8_t *cursor;
-	int object_index;
-
-	cursor = g_world_state_buffer;
-	for (object_index = 0;
+	uint8_t *cursor = g_world_state_buffer;
+	for (int object_index = 0;
 	     object_index <
 	     g_region_main_object_slot_end + g_region_static_object_slot_count;
 	     ++object_index) {
@@ -1775,11 +1758,8 @@ void flight_restore_world_state(void)
 #ifdef XVT_MODERN
 	xvt_snapshot_restore();
 #else
-	uint8_t *cursor;
-	int object_index;
-
-	cursor = g_world_state_buffer;
-	for (object_index = 0;
+	uint8_t *cursor = g_world_state_buffer;
+	for (int object_index = 0;
 	     object_index <
 	     g_region_main_object_slot_end + g_region_static_object_slot_count;
 	     ++object_index) {
@@ -1877,13 +1857,11 @@ void flight_restore_world_state(void)
 
 			if (g_object_table[object_index].mobj->p_craft !=
 			    NULL) {
-				int link_index;
-
 				memcpy(g_object_table[object_index]
 					       .mobj->p_craft,
 				       cursor, sizeof(struct craft_data));
 				cursor += sizeof(struct craft_data);
-				for (link_index = 0; link_index < 16;
+				for (int link_index = 0; link_index < 16;
 				     ++link_index) {
 					if (g_object_table[object_index]
 						    .mobj->p_craft
@@ -2094,18 +2072,16 @@ size_t flight_calculate_world_state_buffer_size(void)
 #ifdef XVT_MODERN
 	return xvt_snapshot_calculate_size();
 #else
-	int size;
-
 	/* The fixed trailer contains 24 dwords, three words, and one byte around the fixed arrays. */
-	size = (int)(2 * sizeof(struct mission_clock) +
-		     sizeof(struct mission_header) +
-		     sizeof(struct flight_mission_state) +
-		     sizeof(struct flight_global_countdown_timers) +
-		     sizeof(g_plan_table) +
-		     sizeof(g_builtin_plan_id_by_name_index) +
-		     sizeof(g_players) + 24 * sizeof(uint32_t) +
-		     3 * sizeof(uint16_t) + sizeof(uint8_t) +
-		     sizeof(struct warhead_guidance_state));
+	int size = (int)(2 * sizeof(struct mission_clock) +
+			 sizeof(struct mission_header) +
+			 sizeof(struct flight_mission_state) +
+			 sizeof(struct flight_global_countdown_timers) +
+			 sizeof(g_plan_table) +
+			 sizeof(g_builtin_plan_id_by_name_index) +
+			 sizeof(g_players) + 24 * sizeof(uint32_t) +
+			 3 * sizeof(uint16_t) + sizeof(uint8_t) +
+			 sizeof(struct warhead_guidance_state));
 	size += (int)(sizeof(struct mission_fg_runtime_stats) +
 		      sizeof(struct mission_flight_group)) *
 		g_mission_header.num_flight_groups;
@@ -2138,41 +2114,27 @@ void flight_checksum_world_state(int unused_arg0, int unused_arg1)
 #ifdef XVT_MODERN
 	xvt_snapshot_checksum(unused_arg0, unused_arg1);
 #else
-	uint8_t *cursor;
-	uint8_t *region_start;
-	unsigned int checksum;
-	int region_target_size;
-	int checksum_region_index;
-	int object_index;
-	int object_count;
-	int bytes_remaining;
-	int flight_group_count;
-
 	(void)unused_arg0;
 	(void)unused_arg1;
 
-	region_target_size = (int)g_world_state_size >> 4;
-	cursor = g_world_state_buffer;
-	region_start = g_world_state_buffer;
-	checksum = 0;
-	checksum_region_index = 0;
-	object_index = 0;
-	object_count = g_region_main_object_slot_end +
-		       g_region_static_object_slot_count;
+	int region_target_size = (int)g_world_state_size >> 4;
+	uint8_t *cursor = g_world_state_buffer;
+	uint8_t *region_start = g_world_state_buffer;
+	unsigned int checksum = 0;
+	int checksum_region_index = 0;
+	int object_index = 0;
+	int object_count = g_region_main_object_slot_end +
+			   g_region_static_object_slot_count;
+	int bytes_remaining;
 	if (object_count > 0) {
 		do {
 			if (g_local_transient_slot_start > object_index ||
 			    g_local_debris_slot_end <= object_index) {
-				uint8_t object_present;
-
-				object_present = *cursor++;
+				uint8_t object_present = *cursor++;
 				if (object_present != 0) {
-					struct object_record *object_state;
-					int object_data_bytes;
-
-					object_state =
+					struct object_record *object_state =
 						(struct object_record *)cursor;
-					object_data_bytes =
+					int object_data_bytes =
 						sizeof(*object_state) -
 						sizeof(object_state->mobj);
 					do {
@@ -2181,13 +2143,12 @@ void flight_checksum_world_state(int unused_arg0, int unused_arg1)
 					cursor = (uint8_t *)(object_state + 1);
 					if (object_state->mobj != NULL) {
 						struct mobile_object
-							*mobile_state;
-						int mobile_data_bytes;
-
-						mobile_state =
-							(struct mobile_object *)
-								cursor;
-						mobile_data_bytes =
+							*mobile_state =
+								(struct
+								 mobile_object
+									 *)
+									cursor;
+						int mobile_data_bytes =
 							sizeof(*mobile_state) -
 							sizeof(mobile_state
 								       ->move_vector_dirty) -
@@ -2232,15 +2193,11 @@ void flight_checksum_world_state(int unused_arg0, int unused_arg1)
 								    1);
 						if (mobile_state->p_craft !=
 						    NULL) {
-							struct craft_data
-								*craft_state;
-							int craft_data_bytes;
-
-							craft_state =
+							struct craft_data *craft_state =
 								(struct
 								 craft_data *)
 									cursor;
-							craft_data_bytes =
+							int craft_data_bytes =
 								sizeof(*craft_state) -
 								sizeof(craft_state
 									       ->unused3f2) -
@@ -2315,7 +2272,7 @@ void flight_checksum_world_state(int unused_arg0, int unused_arg1)
 	do {
 		checksum += *cursor++;
 	} while (--bytes_remaining != 0);
-	flight_group_count = (int16_t)g_mission_header.num_flight_groups;
+	int flight_group_count = (int16_t)g_mission_header.num_flight_groups;
 	bytes_remaining = 294 * flight_group_count;
 	if (bytes_remaining > 0) {
 		do {
@@ -2531,22 +2488,17 @@ int flight_compute_world_state_resync_segment_size(int world_state_size)
 int flight_build_world_state_resync_segment_checksums(
 	int *out_checksums, const uint8_t *world_state, int world_state_size)
 {
-	int remaining_size;
-	int segment_size;
-	int segment_count;
-
-	remaining_size = world_state_size;
-	segment_size = world_state_size / 124;
+	int remaining_size = world_state_size;
+	int segment_size = world_state_size / 124;
 	if (segment_size == 0) {
 		segment_size = world_state_size;
 	}
-	segment_count = 125;
+	int segment_count = 125;
 	do {
 		uint32_t checksum = 0;
-		int bytes_in_segment;
 
 		if (segment_size > 0) {
-			bytes_in_segment = segment_size;
+			int bytes_in_segment = segment_size;
 			do {
 				if (remaining_size != 0) {
 					checksum += *world_state++;
@@ -2591,39 +2543,31 @@ int flight_build_world_state_object_presence_map(uint8_t *out_map,
 #ifdef XVT_MODERN
 	return xvt_snapshot_build_presence_map(out_map, world_state);
 #else
-	int empty_run_length;
-	uint8_t *map_start;
-	int object_index;
-
-	map_start = out_map;
+	uint8_t *map_start = out_map;
 	*(int *)out_map = g_region_static_object_slot_count +
 			  g_region_main_object_slot_end;
 	out_map += sizeof(int);
-	empty_run_length = 0;
-	object_index = 0;
+	int empty_run_length = 0;
+	int object_index = 0;
 	while (object_index < g_region_static_object_slot_count +
 				      g_region_main_object_slot_end) {
 		if (object_index < g_local_transient_slot_start ||
 		    object_index >= g_local_debris_slot_end) {
-			uint8_t component_flags;
-
-			component_flags = 0;
+			uint8_t component_flags = 0;
 			if (*world_state++ != 0) {
-				const struct object_record *object_state;
-
 				component_flags = FLIGHT_WORLDSTATE_HAS_OBJECT;
-				object_state = (const struct object_record *)
-					world_state;
+				const struct object_record *object_state =
+					(const struct object_record *)
+						world_state;
 				world_state += sizeof(*object_state);
 				if (object_state->mobj != NULL) {
-					const struct mobile_object
-						*mobile_object_state;
-
 					component_flags |=
 						FLIGHT_WORLDSTATE_HAS_MOBILE;
-					mobile_object_state =
-						(const struct mobile_object *)
-							world_state;
+					const struct mobile_object
+						*mobile_object_state =
+							(const struct
+							 mobile_object *)
+								world_state;
 					world_state +=
 						sizeof(*mobile_object_state);
 					if (mobile_object_state->p_craft !=
@@ -2700,38 +2644,29 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 #ifdef XVT_MODERN
 	xvt_snapshot_apply_presence_map(presence_map);
 #else
-	uint8_t *cursor;
-	uint8_t *end;
-	int map_slot_limit;
-	int empty_run_remaining;
-	int object_index;
-
-	cursor = g_world_state_dup_buffer;
-	end = &g_world_state_dup_buffer[g_world_state_dup_size];
-	map_slot_limit = *(const int *)presence_map;
+	uint8_t *cursor = g_world_state_dup_buffer;
+	uint8_t *end = &g_world_state_dup_buffer[g_world_state_dup_size];
+	int map_slot_limit = *(const int *)presence_map;
 	presence_map += sizeof(map_slot_limit);
-	empty_run_remaining = 0;
-	object_index = 0;
+	int empty_run_remaining = 0;
+	int object_index = 0;
 	while (object_index < g_region_static_object_slot_count +
 				      g_region_main_object_slot_end) {
 		if (g_local_transient_slot_start > object_index ||
 		    g_local_debris_slot_end <= object_index) {
 			int8_t presence;
-			int8_t object_type;
 
 			if (empty_run_remaining != 0) {
 				presence = 0;
 				--empty_run_remaining;
 			} else {
-				uint16_t empty_run_length;
-
 				if (map_slot_limit > object_index) {
 					presence = (int8_t)*presence_map++;
 				} else {
 					break;
 				}
 				if (presence < 0) {
-					empty_run_length =
+					uint16_t empty_run_length =
 						presence &
 						FLIGHT_WORLDSTATE_EMPTY_RUN_LENGTH_MASK;
 					presence = 0;
@@ -2740,29 +2675,25 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 				}
 			}
 
-			object_type = *cursor++;
+			int8_t object_type = *cursor++;
 			if (object_type != 0) {
 				if ((presence & FLIGHT_WORLDSTATE_HAS_OBJECT) !=
 				    0) {
 					const struct object_record
-						*object_state;
-
-					object_state =
-						(const struct object_record *)
-							cursor;
+						*object_state =
+							(const struct
+							 object_record *)cursor;
 					cursor += sizeof(*object_state);
 					if (object_state->mobj != NULL) {
 						if ((presence &
 						     FLIGHT_WORLDSTATE_HAS_MOBILE) !=
 						    0) {
 							const struct mobile_object
-								*mobile_state;
-
-							mobile_state =
-								(const struct
-								 mobile_object
-									 *)
-									cursor;
+								*mobile_state =
+									(const struct
+									 mobile_object
+										 *)
+										cursor;
 							cursor += sizeof(
 								*mobile_state);
 							if (mobile_state
@@ -2775,10 +2706,7 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 										struct
 										craft_data);
 								} else {
-									uint8_t *
-										block_start;
-
-									block_start =
+									uint8_t *block_start =
 										cursor;
 									cursor += sizeof(
 										struct
@@ -2797,10 +2725,7 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 								(presence &
 								 FLIGHT_WORLDSTATE_HAS_CRAFT) !=
 								0) {
-								uint8_t *
-									block_start;
-
-								block_start =
+								uint8_t *block_start =
 									cursor;
 								cursor += sizeof(
 									struct
@@ -2828,10 +2753,7 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 										struct
 										warhead_guidance_state);
 								} else {
-									uint8_t *
-										block_start;
-
-									block_start =
+									uint8_t *block_start =
 										cursor;
 									cursor += sizeof(
 										struct
@@ -2850,10 +2772,7 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 								(presence &
 								 FLIGHT_WORLDSTATE_HAS_WARHEAD_GUIDANCE) !=
 								0) {
-								uint8_t *
-									block_start;
-
-								block_start =
+								uint8_t *block_start =
 									cursor;
 								cursor += sizeof(
 									struct
@@ -2881,10 +2800,7 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 										struct
 										mobile_object_char_data);
 								} else {
-									uint8_t *
-										block_start;
-
-									block_start =
+									uint8_t *block_start =
 										cursor;
 									cursor += sizeof(
 										struct
@@ -2903,10 +2819,7 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 								(presence &
 								 FLIGHT_WORLDSTATE_HAS_CHAR_DATA) !=
 								0) {
-								uint8_t *
-									block_start;
-
-								block_start =
+								uint8_t *block_start =
 									cursor;
 								cursor += sizeof(
 									struct
@@ -2924,9 +2837,8 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 									mobile_object_char_data);
 							}
 						} else {
-							uint8_t *block_start;
-
-							block_start = cursor;
+							uint8_t *block_start =
+								cursor;
 							cursor += sizeof(
 								struct
 								mobile_object);
@@ -2943,9 +2855,7 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 						(presence &
 						 FLIGHT_WORLDSTATE_HAS_MOBILE) !=
 						0) {
-						uint8_t *block_start;
-
-						block_start = cursor;
+						uint8_t *block_start = cursor;
 						cursor += sizeof(
 							struct mobile_object);
 						memcpy(cursor, block_start,
@@ -2958,9 +2868,7 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 							struct mobile_object);
 					}
 				} else {
-					uint8_t *block_start;
-
-					block_start = cursor;
+					uint8_t *block_start = cursor;
 					cursor += sizeof(struct object_record);
 					memcpy(block_start, cursor,
 					       (size_t)(end - cursor));
@@ -2969,9 +2877,7 @@ void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
 				}
 			} else if ((presence & FLIGHT_WORLDSTATE_HAS_OBJECT) !=
 				   0) {
-				uint8_t *block_start;
-
-				block_start = cursor;
+				uint8_t *block_start = cursor;
 				cursor += sizeof(struct object_record);
 				memcpy(cursor, block_start,
 				       (size_t)(end - block_start));
@@ -3010,9 +2916,7 @@ void flight_step_sim_to_time(int target_game_time)
 #else
 	enum { MINIMUM_SIM_STEP_TICKS = 1 };
 
-	int game_time;
-
-	game_time = g_game_time;
+	int game_time = g_game_time;
 	g_gunner_collision_probe_count = 0;
 	for (;;) {
 		g_elapsed_ticks = (uint16_t)(target_game_time - game_time);
@@ -3118,30 +3022,19 @@ void flight_advance_one_step(int target_game_time)
 		MINIMUM_REPLAY_TICKS = 4,
 	};
 
-	int suppress_side_effects;
-	int player_idx;
-	int saved_elapsed_ticks;
-	int saved_sim_steps_per_second;
-
-	suppress_side_effects = g_flight_player_count == 1
-					? 1
-					: g_flight_sim_side_effects_suppressed;
-	for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
-		struct input_frame *frame;
-		int frame_iteration;
-		int frame_count;
-
+	int suppress_side_effects =
+		g_flight_player_count == 1
+			? 1
+			: g_flight_sim_side_effects_suppressed;
+	for (int player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
 		if (g_players[player_idx].participation_state == 0) {
 			continue;
 		}
 
-		frame_count = g_input_frame_count[player_idx];
-		frame = g_input_history[player_idx];
-		for (frame_iteration = 0; frame_iteration < frame_count;
+		int frame_count = g_input_frame_count[player_idx];
+		struct input_frame *frame = g_input_history[player_idx];
+		for (int frame_iteration = 0; frame_iteration < frame_count;
 		     ++frame_iteration, ++frame) {
-			int saved_game_time;
-			uint8_t participation_state;
-
 			if (!((suppress_side_effects != 0 &&
 			       g_flight_player_count != 1) ||
 			      frame->timestamp > g_players[player_idx]
@@ -3162,15 +3055,14 @@ void flight_advance_one_step(int target_game_time)
 				continue;
 			}
 
-			saved_game_time = g_game_time;
+			int saved_game_time = g_game_time;
 			if (g_game_time >= frame->timestamp &&
 			    g_players[player_idx].object_index != -1) {
-				struct object_record *object;
-				struct mobile_object *mobile_object;
-
-				object = &g_object_table[g_players[player_idx]
-								 .object_index];
-				mobile_object = object->mobj;
+				struct object_record *object =
+					&g_object_table[g_players[player_idx]
+								.object_index];
+				struct mobile_object *mobile_object =
+					object->mobj;
 				if (mobile_object == NULL ||
 				    mobile_object->p_craft == NULL) {
 					continue;
@@ -3296,16 +3188,14 @@ void flight_advance_one_step(int target_game_time)
 				}
 			}
 
-			saved_elapsed_ticks = g_elapsed_ticks;
-			saved_sim_steps_per_second = g_sim_steps_per_second;
+			int saved_elapsed_ticks = g_elapsed_ticks;
+			int saved_sim_steps_per_second = g_sim_steps_per_second;
 			if (g_players[player_idx].object_index != -1) {
 				g_single_object_update_override_idx =
 					g_players[player_idx].object_index;
 				if (g_object_table
 					    [g_single_object_update_override_idx]
 						    .mobj != NULL) {
-					struct object_record *object;
-
 					g_elapsed_ticks =
 						(uint16_t)(frame->timestamp -
 							   g_game_time);
@@ -3327,7 +3217,7 @@ void flight_advance_one_step(int target_game_time)
 							.mobj
 							->sim_state_timestamp =
 						frame->timestamp;
-					object =
+					struct object_record *object =
 						&g_object_table
 							[g_single_object_update_override_idx];
 					g_players[player_idx].saved_x =
@@ -3405,7 +3295,7 @@ void flight_advance_one_step(int target_game_time)
 			g_elapsed_ticks = (uint16_t)saved_elapsed_ticks;
 			g_sim_steps_per_second =
 				(uint16_t)saved_sim_steps_per_second;
-			participation_state =
+			uint8_t participation_state =
 				g_players[player_idx].participation_state;
 			g_game_time = saved_game_time;
 			g_flight_sfx_side_effect_gate = 0;
@@ -3473,16 +3363,6 @@ void flight_main_loop(int unused)
 		DEFAULT_MODEL_LIGHT_DIRECTION = 18900,
 	};
 
-	uint8_t resource_scratch[FLIGHT_RESOURCE_SCRATCH_BYTES];
-	int16_t abort_player_index;
-	int16_t disconnect_player_index;
-	int16_t connect_player_index;
-	int16_t palette_byte_offset;
-	int16_t mfd_index;
-	int16_t mission_extension_offset;
-	char saved_mission_extension_prefix[2];
-	char saved_mission_extension_third;
-	int mission_sync_succeeded;
 	(void)unused;
 
 	flight_pump_window_messages();
@@ -3490,7 +3370,7 @@ void flight_main_loop(int unused)
 	g_lag_indicator = 0;
 	g_sw3d_skip_odd_scanlines = 0;
 	g_flight_net_host_abort_received = 0;
-	for (abort_player_index = 0; abort_player_index < PLAYER_COUNT;
+	for (int16_t abort_player_index = 0; abort_player_index < PLAYER_COUNT;
 	     ++abort_player_index) {
 		g_player_abort_flags[abort_player_index] = 0;
 	}
@@ -3574,16 +3454,12 @@ void flight_main_loop(int unused)
 	if (g_active_flight_player_count != 1) {
 		g_game_rand_feedback_state = (int16_t)g_game_config.random_seed;
 	} else {
-		uint16_t random_seed;
-
-		random_seed = (uint16_t)timeGetTime();
+		uint16_t random_seed = (uint16_t)timeGetTime();
 		random_seed ^= RANDOM_SEED_XOR;
 		g_game_rand_feedback_state = (int16_t)random_seed;
 	}
 	{
-		uint32_t random_time;
-
-		random_time = timeGetTime();
+		uint32_t random_time = timeGetTime();
 		g_asteroid_field_rand_seed =
 			(uint16_t)ASTEROID_FIELD_RANDOM_SEED;
 		g_game_rand2_feedback_state =
@@ -3592,10 +3468,8 @@ void flight_main_loop(int unused)
 
 	memset(g_players, 0, sizeof(g_players));
 	{
-		int16_t reset_player_index;
-
-		for (reset_player_index = 0; reset_player_index < PLAYER_COUNT;
-		     ++reset_player_index) {
+		for (int16_t reset_player_index = 0;
+		     reset_player_index < PLAYER_COUNT; ++reset_player_index) {
 			g_input_frame_count[reset_player_index] = 0;
 			g_player_connected[reset_player_index] = 1;
 			g_flight_net_world_checksum_peer_status
@@ -3606,12 +3480,12 @@ void flight_main_loop(int unused)
 			g_players[reset_player_index].field_5b5 = 0;
 		}
 	}
-	for (disconnect_player_index = 0;
+	for (int16_t disconnect_player_index = 0;
 	     disconnect_player_index < PLAYER_COUNT;
 	     ++disconnect_player_index) {
 		g_players[disconnect_player_index].participation_state = 0;
 	}
-	for (connect_player_index = 0;
+	for (int16_t connect_player_index = 0;
 	     connect_player_index < g_active_flight_player_count;
 	     ++connect_player_index) {
 		g_players[connect_player_index].participation_state = 1;
@@ -3641,17 +3515,17 @@ void flight_main_loop(int unused)
 	nullsub_11();
 	flight_display_flip();
 	flight_render_configure_callbacks_for_resolution(3);
+	uint8_t resource_scratch[FLIGHT_RESOURCE_SCRATCH_BYTES];
 	fe_disk_io_read_all_bytes_or_fatal(g_flight_palette_resource_file_name,
 					   resource_scratch);
 	/* Inside this loop MISSION_EXTENSION_FIRST, _SECOND and _THIRD are reused as the red, green and blue
 	 * offsets in a palette triplet. */
-	for (palette_byte_offset = 0; palette_byte_offset < PALETTE_HALF_BYTES;
+	for (int16_t palette_byte_offset = 0;
+	     palette_byte_offset < PALETTE_HALF_BYTES;
 	     palette_byte_offset += sizeof(struct rgb_triplet)) {
-		uint8_t channel;
-
-		channel = resource_scratch[palette_byte_offset +
-					   MISSION_EXTENSION_FIRST] >>
-			  2;
+		uint8_t channel = resource_scratch[palette_byte_offset +
+						   MISSION_EXTENSION_FIRST] >>
+				  2;
 		resource_scratch[palette_byte_offset +
 				 MISSION_EXTENSION_FIRST] =
 			resource_scratch[PALETTE_LAST_COLOR_OFFSET -
@@ -3694,6 +3568,9 @@ void flight_main_loop(int unused)
 	flight_surface_unlock();
 	flight_surface_clear_to_black();
 
+	int16_t mission_extension_offset;
+	char saved_mission_extension_prefix[2];
+	char saved_mission_extension_third;
 	if (g_flight_bytes_per_pixel == 1) {
 		mission_extension_offset = (int)strlen(g_current_mission_file) -
 					   MISSION_EXTENSION_LENGTH;
@@ -3751,9 +3628,7 @@ void flight_main_loop(int unused)
 	flight_input_reset_runtime_state();
 	flight_surface_unlock();
 	{
-		int16_t noise_index;
-
-		for (noise_index = 0;
+		for (int16_t noise_index = 0;
 		     noise_index < (int)sizeof(g_flight_noise_table) - 1;
 		     noise_index += 2) {
 			do {
@@ -3778,8 +3653,9 @@ void flight_main_loop(int unused)
 	g_mfd_secondary_page = MFD_PAGE_NONE;
 	g_mfd_saved_active_page = MFD_PAGE_NONE;
 	g_mfd_saved_secondary_page = MFD_PAGE_NONE;
-	for (mfd_index = 0; mfd_index < (int)(sizeof(g_mfd_page_states) /
-					      sizeof(g_mfd_page_states[0]));
+	for (int16_t mfd_index = 0;
+	     mfd_index <
+	     (int)(sizeof(g_mfd_page_states) / sizeof(g_mfd_page_states[0]));
 	     ++mfd_index) {
 		g_saved_mfd_page_states[mfd_index] = MFD_PAGE_STATE_CLOSED;
 		g_mfd_page_states[mfd_index] = MFD_PAGE_STATE_CLOSED;
@@ -3828,14 +3704,12 @@ void flight_main_loop(int unused)
 	g_dynamic_music_outcome_latched = 0;
 	if (g_game_config.music_enabled != 0 &&
 	    g_game_config.music_volume != 0 && music_cd_initialize() != 0) {
-		int music_choice;
-		uint16_t music_volume;
-		uint32_t music_update_ms;
-
-		music_volume = UINT16_MAX * g_game_config.music_volume /
-			       MUSIC_VOLUME_MAX_LEVEL;
+		uint16_t music_volume = UINT16_MAX *
+					g_game_config.music_volume /
+					MUSIC_VOLUME_MAX_LEVEL;
 		music_cd_set_aux_volume(music_volume);
-		music_choice = game_rand2() & (MUSIC_START_CHOICE_COUNT - 1);
+		int music_choice =
+			game_rand2() & (MUSIC_START_CHOICE_COUNT - 1);
 		music_cd_play_track_from_time(
 			MUSIC_TRACK_FLIGHT,
 			g_dynamic_music_initial_start_minute_choices
@@ -3852,7 +3726,7 @@ void flight_main_loop(int unused)
 			MILLISECONDS_PER_SECOND *
 			g_dynamic_music_initial_start_second_choices
 				[music_choice];
-		music_update_ms = timeGetTime();
+		uint32_t music_update_ms = timeGetTime();
 		g_dynamic_music_state = MUSIC_TRACK_FLIGHT;
 		g_dynamic_music_last_update_ms = music_update_ms;
 	} else {
@@ -3885,7 +3759,8 @@ void flight_main_loop(int unused)
 		g_input_timestamp += time_consume_elapsed_ticks();
 	} while (g_input_timestamp == 0);
 	object_relink_mobile_object_pointers();
-	mission_sync_succeeded = flight_net_sync_player_options_and_taunts();
+	int mission_sync_succeeded =
+		flight_net_sync_player_options_and_taunts();
 	if (mission_sync_succeeded == 0) {
 		g_flight_display_surfaces_active = 0;
 		sound_stop_all_instances();
@@ -3900,11 +3775,10 @@ void flight_main_loop(int unused)
 		       sizeof(g_local_player_snapshot_on_options_sync_failure));
 		if (g_game_config.music_enabled != 0 &&
 		    g_game_config.music_volume != 0) {
-			uint16_t music_volume;
-
-			music_volume = (uint16_t)(UINT16_MAX *
-						  g_game_config.music_volume /
-						  MUSIC_VOLUME_MAX_LEVEL);
+			uint16_t music_volume =
+				(uint16_t)(UINT16_MAX *
+					   g_game_config.music_volume /
+					   MUSIC_VOLUME_MAX_LEVEL);
 			music_cd_fade_aux_volume(
 				music_volume, music_volume / MUSIC_FADE_DIVISOR,
 				MUSIC_FADE_DURATION_MS);
@@ -3914,10 +3788,8 @@ void flight_main_loop(int unused)
 	}
 
 	{
-		int16_t object_index;
-
 		g_unused_flight_startup_object_pass_state = 0;
-		for (object_index = 0;
+		for (int16_t object_index = 0;
 		     object_index < g_region_main_object_slot_end;
 		     ++object_index) {
 			if (g_object_table[object_index].mobj != NULL) {
@@ -3950,9 +3822,7 @@ void flight_main_loop(int unused)
 	pilot_save(0);
 	if (g_game_config.music_enabled != 0 &&
 	    g_game_config.music_volume != 0) {
-		uint16_t music_volume;
-
-		music_volume =
+		uint16_t music_volume =
 			(uint16_t)(UINT16_MAX * g_game_config.music_volume /
 				   MUSIC_VOLUME_MAX_LEVEL);
 		music_cd_fade_aux_volume(music_volume,
@@ -4015,16 +3885,6 @@ void flight_run_mission_loop(void)
 		ALERT_BACKGROUND_COLOR = 0x34
 	};
 
-	int previous_remaining_half_seconds;
-	int frame_start_timestamp;
-	int loop_start_timestamp;
-	int simulation_warp_ticks;
-	char countdown_text[80];
-	char status_line[256];
-	char overlay_line[180];
-	char too_far_ahead_log_line[180];
-	char fell_behind_log_line[180];
-
 	g_flight_last_step_target_timestamp = 0;
 	g_last_local_replay_input_timestamp = 0;
 	g_flight_sfx_side_effect_gate = 0;
@@ -4033,25 +3893,22 @@ void flight_run_mission_loop(void)
 	memset(g_flight_update_duration_histogram, 0,
 	       sizeof(g_flight_update_duration_histogram));
 
+	int previous_remaining_half_seconds;
+	char countdown_text[80];
+	char status_line[256];
+	char overlay_line[180];
+	char too_far_ahead_log_line[180];
+	char fell_behind_log_line[180];
 	for (;;) {
-		int network_update_ticks;
-		int render_ticks;
-		int update_ticks;
-		int loop_ticks;
-		int frame_target_timestamp;
-		int saved_input_timestamp;
-		int packet_start_timestamp;
-		int mission_ended;
-
-		simulation_warp_ticks = 0;
+		int simulation_warp_ticks = 0;
 		g_input_timestamp += time_consume_elapsed_ticks();
-		loop_start_timestamp = g_input_timestamp;
+		int loop_start_timestamp = g_input_timestamp;
 		for (g_input_timestamp += time_consume_elapsed_ticks();
 		     g_input_timestamp - g_game_time < MINIMUM_FRAME_WAIT_TICKS;
 		     g_input_timestamp += time_consume_elapsed_ticks()) {
 		}
 
-		packet_start_timestamp = g_input_timestamp;
+		int packet_start_timestamp = g_input_timestamp;
 		flight_net_process_incoming_packets();
 		if (net_session_is_local_host() == 0 &&
 		    g_flight_net_host_timeout_elapsed_ticks >
@@ -4062,8 +3919,9 @@ void flight_run_mission_loop(void)
 			return;
 		}
 		g_input_timestamp += time_consume_elapsed_ticks();
-		network_update_ticks = g_input_timestamp;
-		mission_ended = flight_recount_players_and_check_mission_end();
+		int network_update_ticks = g_input_timestamp;
+		int mission_ended =
+			flight_recount_players_and_check_mission_end();
 		network_update_ticks -= packet_start_timestamp;
 
 		if (mission_ended != 0) {
@@ -4087,10 +3945,10 @@ void flight_run_mission_loop(void)
 			continue;
 		}
 
-		frame_start_timestamp = g_input_timestamp;
+		int frame_start_timestamp = g_input_timestamp;
+		int frame_target_timestamp;
+		int saved_input_timestamp;
 		if (g_flight_player_count == 1) {
-			int frame_adjustment;
-
 			g_input_timestamp += time_consume_elapsed_ticks();
 			if (g_flight_last_step_target_timestamp == 0) {
 				frame_target_timestamp = g_input_timestamp;
@@ -4098,6 +3956,7 @@ void flight_run_mission_loop(void)
 				frame_target_timestamp =
 					g_flight_last_step_target_timestamp +
 					g_predicted_frame_delta;
+				int frame_adjustment;
 				if ((unsigned int)frame_target_timestamp >=
 				    (unsigned int)g_input_timestamp) {
 					if ((unsigned int)
@@ -4172,9 +4031,8 @@ void flight_run_mission_loop(void)
 				saved_input_timestamp - frame_target_timestamp;
 			sound_flush_queued_effects();
 		} else {
-			int clock_adjustment;
-
 			g_input_timestamp += time_consume_elapsed_ticks();
+			int clock_adjustment;
 			if (g_server_tick_time +
 				    g_flight_net_clock_lead_ticks >=
 			    (unsigned int)g_input_timestamp) {
@@ -4241,17 +4099,15 @@ void flight_run_mission_loop(void)
 				    g_flight_net_clock_lead_ticks +
 					    EXCESSIVE_CLOCK_LEAD_TICKS &&
 			    net_session_is_local_host() == 0) {
-				int status_pulse_ticks;
-				unsigned int frame_delta;
-
 				flight_net_broadcast_player_disconnected(
 					g_local_player);
 				sprintf(too_far_ahead_log_line,
 					"Too far Ahead! tickcounter:%-7d serverticks:%-7d warp:%-4d\n",
 					g_input_timestamp, g_server_tick_time,
 					g_input_timestamp - g_server_tick_time);
-				status_pulse_ticks = 0;
-				frame_delta = time_consume_elapsed_ticks();
+				int status_pulse_ticks = 0;
+				unsigned int frame_delta =
+					time_consume_elapsed_ticks();
 				g_flight_net_host_timeout_elapsed_ticks = 0;
 				g_input_timestamp += frame_delta;
 				flight_alert_save_box_background();
@@ -4259,9 +4115,7 @@ void flight_run_mission_loop(void)
 				       g_str_disk_io_messages
 					       [DISK_IO_STR_COM_FAILURE_WAITING]);
 				{
-					char *player_name;
-
-					player_name =
+					char *player_name =
 						flight_net_resolve_resync_player_name();
 					if (player_name != NULL) {
 						strcat(status_line,
@@ -4272,9 +4126,6 @@ void flight_run_mission_loop(void)
 						      ALERT_BACKGROUND_COLOR);
 
 				do {
-					int packet_start_timestamp;
-					int remaining_half_seconds;
-
 					if (g_input_timestamp -
 						    g_server_tick_time <=
 					    g_flight_net_clock_lead_ticks) {
@@ -4298,7 +4149,7 @@ void flight_run_mission_loop(void)
 						return;
 					}
 
-					packet_start_timestamp =
+					int packet_start_timestamp =
 						g_input_timestamp;
 					flight_net_process_incoming_packets();
 					status_pulse_ticks -=
@@ -4333,7 +4184,7 @@ void flight_run_mission_loop(void)
 						flight_net_send_still_loading_pulse();
 					}
 
-					remaining_half_seconds =
+					int remaining_half_seconds =
 						(HOST_TIMEOUT_TICKS -
 						 g_flight_net_host_timeout_elapsed_ticks) /
 						COUNTDOWN_INTERVAL_TICKS;
@@ -4390,8 +4241,6 @@ void flight_run_mission_loop(void)
 
 			if ((unsigned int)g_input_timestamp >
 			    (unsigned int)g_game_time) {
-				int frame_adjustment;
-
 				if (g_flight_last_step_target_timestamp == 0) {
 					frame_target_timestamp =
 						g_input_timestamp;
@@ -4399,6 +4248,7 @@ void flight_run_mission_loop(void)
 					frame_target_timestamp =
 						g_flight_last_step_target_timestamp +
 						g_predicted_frame_delta;
+					int frame_adjustment;
 					if ((unsigned int)
 						    frame_target_timestamp >=
 					    (unsigned int)g_input_timestamp) {
@@ -4481,16 +4331,14 @@ void flight_run_mission_loop(void)
 		}
 
 		g_input_timestamp += time_consume_elapsed_ticks();
-		update_ticks = g_input_timestamp;
+		int update_ticks = g_input_timestamp;
 		update_ticks -= frame_start_timestamp;
 		g_input_timestamp += time_consume_elapsed_ticks();
 		{
-			int lag_ticks;
-
 			saved_input_timestamp = g_input_timestamp;
-			lag_ticks = g_input_timestamp -
-				    g_flight_net_clock_lead_ticks -
-				    g_server_tick_time;
+			int lag_ticks = g_input_timestamp -
+					g_flight_net_clock_lead_ticks -
+					g_server_tick_time;
 			if (lag_ticks < LAG_LEVEL_1_TICKS) {
 				g_lag_indicator = 0;
 			} else if (lag_ticks < LAG_LEVEL_2_TICKS) {
@@ -4505,11 +4353,8 @@ void flight_run_mission_loop(void)
 		if (g_flight_prev_host_packet_drop_count == 0) {
 			g_packet_drop_indicator = 0;
 		} else {
-			int host_dplay_id;
-			int host_drop_count;
-
-			host_dplay_id = net_session_get_host_dplay_id();
-			host_drop_count =
+			int host_dplay_id = net_session_get_host_dplay_id();
+			int host_drop_count =
 				net_reliable_get_peer_packet_drop_count_by_dpid(
 					host_dplay_id);
 			g_flight_packet_drop_score +=
@@ -4542,9 +4387,9 @@ void flight_run_mission_loop(void)
 		sound_flush_queued_effects();
 		flight_sync_capture_samples_and_restore_poses();
 		g_input_timestamp += time_consume_elapsed_ticks();
-		render_ticks = g_input_timestamp;
+		int render_ticks = g_input_timestamp;
 		render_ticks -= saved_input_timestamp;
-		loop_ticks = g_input_timestamp;
+		int loop_ticks = g_input_timestamp;
 		loop_ticks -= loop_start_timestamp;
 		if (g_input_timestamp == loop_start_timestamp) {
 			loop_ticks = 1;
@@ -4554,12 +4399,6 @@ void flight_run_mission_loop(void)
 			g_flight_tick_overlay_sample_count = 0;
 			g_flight_tick_overlay_window_ticks = 0;
 		} else {
-			unsigned int histogram_total;
-			int histogram_index;
-			int ai_projectile_count;
-			int player_projectile_count;
-			int object_index;
-
 			if (g_flight_tick_overlay_window_ticks >
 			    LAG_LEVEL_2_TICKS) {
 				g_flight_tick_overlay_sample_count = 0;
@@ -4616,8 +4455,8 @@ void flight_run_mission_loop(void)
 				g_flight_update_duration_histogram[18],
 				g_flight_update_duration_histogram[19]);
 
-			histogram_total = 0;
-			for (histogram_index = 0;
+			unsigned int histogram_total = 0;
+			for (int histogram_index = 0;
 			     histogram_index < UPDATE_HISTOGRAM_BUCKETS;
 			     ++histogram_index) {
 				histogram_total +=
@@ -4711,9 +4550,9 @@ void flight_run_mission_loop(void)
 						histogram_total);
 			}
 
-			ai_projectile_count = 0;
-			player_projectile_count = 0;
-			for (object_index = g_projectile_object_slot_start;
+			int ai_projectile_count = 0;
+			int player_projectile_count = 0;
+			for (int object_index = g_projectile_object_slot_start;
 			     object_index < g_projectile_object_slot_end;
 			     ++object_index) {
 				if (g_object_table[object_index].object_type !=
@@ -4743,11 +4582,8 @@ void flight_run_mission_loop(void)
 // FUNCTION: XVT 0x448CD0
 int flight_update_active_player_count(void)
 {
-	int active_player_count;
-	int player_index;
-
-	active_player_count = 0;
-	for (player_index = 0; player_index < 8; player_index++) {
+	int active_player_count = 0;
+	for (int player_index = 0; player_index < 8; player_index++) {
 		if (g_players[player_index].participation_state == 1 ||
 		    g_players[player_index].participation_state == 2) {
 			active_player_count++;
@@ -4765,15 +4601,11 @@ int flight_update_active_player_count(void)
 // FUNCTION: XVT 0x448D00
 int flight_recount_players_and_check_mission_end(void)
 {
-	int player_index;
-	int connected_count;
-	int connected_or_pending_count;
-	uint8_t connected_state;
-
-	connected_count = 0;
-	connected_or_pending_count = 0;
-	for (player_index = 0; player_index < 8; player_index++) {
-		connected_state = g_players[player_index].participation_state;
+	int connected_count = 0;
+	int connected_or_pending_count = 0;
+	for (int player_index = 0; player_index < 8; player_index++) {
+		uint8_t connected_state =
+			g_players[player_index].participation_state;
 		if (connected_state == 1 || connected_state == 2) {
 			connected_or_pending_count++;
 		}
@@ -4806,23 +4638,10 @@ int flight_compute_live_world_state_checksum(void)
 #ifdef XVT_MODERN
 	return xvt_snapshot_live_checksum();
 #else
-	uint32_t checksum;
-	uint32_t *checksum_ptr;
-	int first_slot;
-	int char_data_index;
-	int mobile_object_index;
-	int object_index;
-	int static_object_index;
-	int craft_index;
-	int projectile_index;
-	int flight_group_index;
-	int goal_index;
-	int player_index;
-
-	checksum = 0;
-	checksum_ptr = &checksum;
-	first_slot = g_object_slot_range_by_genus[16].start;
-	for (char_data_index = 0;
+	uint32_t checksum = 0;
+	uint32_t *checksum_ptr = &checksum;
+	int first_slot = g_object_slot_range_by_genus[16].start;
+	for (int char_data_index = 0;
 	     char_data_index < (int)g_mobile_object_char_data_count;
 	     char_data_index++) {
 		if (g_object_table[first_slot + char_data_index].object_type !=
@@ -4835,7 +4654,7 @@ int flight_compute_live_world_state_checksum(void)
 		}
 	}
 
-	for (mobile_object_index = 0;
+	for (int mobile_object_index = 0;
 	     mobile_object_index <
 	     g_region_main_object_slot_end - g_local_debris_slot_count;
 	     mobile_object_index++) {
@@ -4846,8 +4665,9 @@ int flight_compute_live_world_state_checksum(void)
 			checksum = flight_rotate_checksum_left(*checksum_ptr);
 		}
 	}
-	for (object_index = 0; object_index < g_region_main_object_slot_end -
-						      g_local_debris_slot_count;
+	for (int object_index = 0;
+	     object_index <
+	     g_region_main_object_slot_end - g_local_debris_slot_count;
 	     object_index++) {
 		if (g_object_table[object_index].object_type != 0) {
 			*checksum_ptr ^= flight_checksum_buffer_rotate_xor(
@@ -4855,7 +4675,7 @@ int flight_compute_live_world_state_checksum(void)
 			checksum = flight_rotate_checksum_left(*checksum_ptr);
 		}
 	}
-	for (static_object_index = g_region_main_object_slot_end;
+	for (int static_object_index = g_region_main_object_slot_end;
 	     static_object_index <
 	     g_region_main_object_slot_end + g_region_static_object_slot_count;
 	     static_object_index++) {
@@ -4867,7 +4687,7 @@ int flight_compute_live_world_state_checksum(void)
 	}
 
 	first_slot = g_object_slot_range_by_genus[0].start;
-	for (craft_index = 0; craft_index < g_craft_data_pool_capacity;
+	for (int craft_index = 0; craft_index < g_craft_data_pool_capacity;
 	     craft_index++) {
 		if (g_object_table[first_slot + craft_index].object_type != 0) {
 			*checksum_ptr ^= flight_checksum_buffer_rotate_xor(
@@ -4876,7 +4696,7 @@ int flight_compute_live_world_state_checksum(void)
 		}
 	}
 	first_slot = g_object_slot_range_by_genus[6].start;
-	for (projectile_index = 0;
+	for (int projectile_index = 0;
 	     projectile_index < (int)g_projectile_object_slots_total;
 	     projectile_index++) {
 		if (g_object_table[first_slot + projectile_index].object_type !=
@@ -4894,6 +4714,7 @@ int flight_compute_live_world_state_checksum(void)
 	*checksum_ptr ^= flight_checksum_buffer_rotate_xor(
 		&g_mission_countdown_clock, sizeof(g_mission_countdown_clock));
 	checksum = flight_rotate_checksum_left(*checksum_ptr);
+	int flight_group_index;
 	for (flight_group_index = 0;
 	     flight_group_index < (int16_t)g_mission_header.num_flight_groups;
 	     flight_group_index++) {
@@ -4925,7 +4746,7 @@ int flight_compute_live_world_state_checksum(void)
 	*checksum_ptr ^= flight_checksum_buffer_rotate_xor(
 		g_mission_messages, sizeof(g_mission_messages));
 	checksum = flight_rotate_checksum_left(*checksum_ptr);
-	for (goal_index = 0; goal_index < 10; goal_index++) {
+	for (int goal_index = 0; goal_index < 10; goal_index++) {
 		*checksum_ptr ^= flight_checksum_buffer_rotate_xor(
 			g_mission_global_goals[goal_index],
 			sizeof(g_mission_global_goals[0]));
@@ -4991,7 +4812,7 @@ int flight_compute_live_world_state_checksum(void)
 	*checksum_ptr ^= g_flight_conf_new_net;
 	checksum = flight_rotate_checksum_left(*checksum_ptr);
 
-	for (player_index = 0; player_index < 8; player_index++) {
+	for (int player_index = 0; player_index < 8; player_index++) {
 		if (g_players[player_index].participation_state != 0) {
 			*checksum_ptr ^= flight_checksum_buffer_rotate_xor(
 				&g_players[player_index], 0x5BD);
@@ -5009,20 +4830,15 @@ int flight_compute_live_world_state_checksum(void)
 unsigned int flight_checksum_buffer_rotate_xor(const void *data,
 					       unsigned int size)
 {
-	const uint8_t *cursor;
-	uint32_t checksum;
-	uint32_t *checksum_ptr;
 #ifdef XVT_MODERN
 	uint32_t word;
 	uint32_t tail_value;
 #endif
-	unsigned int word_count;
-
-	cursor = (const uint8_t *)data;
-	checksum = 0;
-	checksum_ptr = &checksum;
+	const uint8_t *cursor = (const uint8_t *)data;
+	uint32_t checksum = 0;
+	uint32_t *checksum_ptr = &checksum;
 	if (size >= sizeof(uint32_t)) {
-		word_count = size / sizeof(uint32_t);
+		unsigned int word_count = size / sizeof(uint32_t);
 		size -= word_count * sizeof(uint32_t);
 		do {
 #ifdef XVT_MODERN
@@ -5097,11 +4913,6 @@ void flight_update_player_step(int player_idx)
 		TARGET_TAP_MAX_TICKS = 59,
 		FLIGHT_INPUT_WAIT_FOR_ANY_KEY = -2,
 	};
-
-	int object_index;
-	uint16_t saved_key_mods;
-	uint16_t *key_mods_hold_timer;
-	int16_t new_target_object_index;
 
 	if (g_flight_mission_state.mission_end_pending == 1) {
 		return;
@@ -5282,7 +5093,7 @@ void flight_update_player_step(int player_idx)
 
 	if (g_players[player_idx].awaiting_new_craft != 0) {
 		if (g_flight_sim_side_effects_suppressed == 0) {
-			object_index = g_players[player_idx].object_index;
+			int object_index = g_players[player_idx].object_index;
 			if (object_index != -1 &&
 			    g_object_table[object_index].object_type == 0) {
 				mission_process_flight_group_wave_completion(
@@ -5312,11 +5123,11 @@ void flight_update_player_step(int player_idx)
 			laser_fireplayerweapon(player_idx);
 		}
 
-		saved_key_mods = g_players[player_idx].saved_key_mods &
-				 TARGET_MODIFIER_MASK;
+		uint16_t saved_key_mods = g_players[player_idx].saved_key_mods &
+					  TARGET_MODIFIER_MASK;
 		if ((g_flight_key_mods & TARGET_MODIFIER_MASK) ==
 		    TARGET_MODIFIER) {
-			key_mods_hold_timer =
+			uint16_t *key_mods_hold_timer =
 				&g_players[player_idx].key_mods_hold_timer;
 			if (saved_key_mods == TARGET_MODIFIER) {
 				*key_mods_hold_timer += g_elapsed_ticks;
@@ -5332,6 +5143,7 @@ void flight_update_player_step(int player_idx)
 			if (saved_key_mods == TARGET_MODIFIER &&
 			    g_players[player_idx].key_mods_hold_timer <
 				    TARGET_TAP_MAX_TICKS) {
+				int16_t new_target_object_index;
 				if (g_players[player_idx].map_camera_state !=
 				    0) {
 					new_target_object_index =
@@ -5395,20 +5207,8 @@ void flight_update_player_step(int player_idx)
 // FUNCTION: XVT 0x47AC10
 void flight_process_player_actions(int player_idx)
 {
-	const int standard_energy_transfer = 4;
-	const int special_energy_transfer = 32;
-	const int max_laser_charge = 127;
-	const int max_transfer_iterations = 100;
-	const int map_default_distance = 512;
-	const int map_overview_distance = 0x40000;
-	const object_type_id special_slam_craft_type = 12;
-	int transfer_charge_units;
-	unsigned int nearest_object_distance;
-	int energy_transfer_step;
-	int16_t departure_object_index;
-	int object_index;
+	int object_index = g_players[player_idx].object_index;
 	struct craft_data *craft;
-	object_index = g_players[player_idx].object_index;
 	if (object_index != -1) {
 		craft = g_object_table[object_index].mobj->p_craft;
 	} else {
@@ -5447,6 +5247,12 @@ void flight_process_player_actions(int player_idx)
 	}
 
 	if (g_players[player_idx].map_camera_state == 0) {
+		const int standard_energy_transfer = 4;
+		const int special_energy_transfer = 32;
+		const int max_transfer_iterations = 100;
+		const object_type_id special_slam_craft_type = 12;
+		int transfer_charge_units;
+		int energy_transfer_step;
 		switch (g_current_action_key) {
 		case FLIGHT_KEY_BACKSPACE:
 			craft->throttle_speed = UINT16_MAX;
@@ -5523,19 +5329,14 @@ void flight_process_player_actions(int player_idx)
 			}
 			break;
 		case FLIGHT_KEY_QUOTES: {
-			int max_shield;
-			int shield_deficit;
-			int16_t remaining_charge = 0;
-			int slot_index;
-
 			if ((craft->system_flags &
 			     CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
 				if ((craft->working_subsystems &
 				     CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
-					max_shield =
+					int max_shield =
 						craft_get_object_max_shield(
 							(uint16_t)object_index);
-					shield_deficit =
+					int shield_deficit =
 						2 * max_shield -
 						craft->shield_energy[1] -
 						craft->shield_energy[0];
@@ -5553,6 +5354,8 @@ void flight_process_player_actions(int player_idx)
 										special_slam_craft_type)
 								? special_energy_transfer
 								: standard_energy_transfer;
+						int16_t remaining_charge = 0;
+						int slot_index;
 						for (slot_index = 0;
 						     slot_index <
 						     craft->laser_slot_count;
@@ -5681,16 +5484,13 @@ void flight_process_player_actions(int player_idx)
 		}
 		case FLIGHT_KEY_APOSTROPHE:
 		case FLIGHT_KEY_SHIFT_F10: {
-			int max_shield;
-			int missing_shield_energy;
 			int slot_index = 0;
-			int16_t iteration = 0;
 
 			if ((craft->system_flags &
 			     CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
 				if ((craft->working_subsystems &
 				     CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
-					max_shield =
+					int max_shield =
 						2 *
 						g_model_defs
 							[get_model_index_from_type(
@@ -5699,7 +5499,7 @@ void flight_process_player_actions(int player_idx)
 										  .object_index]
 										 .object_type)]
 								.shield_strength;
-					missing_shield_energy =
+					int missing_shield_energy =
 						2 * max_shield -
 						craft->shield_energy[1] -
 						craft->shield_energy[0];
@@ -5730,6 +5530,7 @@ void flight_process_player_actions(int player_idx)
 					}
 					if (transfer_charge_units != 0) {
 
+						int16_t iteration = 0;
 						for (iteration = 0;
 						     transfer_charge_units > 0;
 						     ++iteration) {
@@ -5920,14 +5721,11 @@ void flight_process_player_actions(int player_idx)
 		}
 		case FLIGHT_KEY_SEMICOLON:
 		case FLIGHT_KEY_SHIFT_F9: {
-			int16_t empty_charge_units = 0;
-			int16_t shield_energy_to_remove;
-			int removed_shield_energy;
-			int slot_index;
-			int16_t iteration;
-
 			if ((craft->system_flags &
 			     CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0) {
+				const int max_laser_charge = 127;
+				int16_t empty_charge_units = 0;
+				int slot_index;
 				for (slot_index = 0;
 				     slot_index < craft->laser_slot_count;
 				     ++slot_index) {
@@ -5949,10 +5747,12 @@ void flight_process_player_actions(int player_idx)
 					empty_charge_units =
 						max_transfer_iterations;
 				}
-				shield_energy_to_remove = energy_transfer_step *
-							  empty_charge_units;
+				int16_t shield_energy_to_remove =
+					energy_transfer_step *
+					empty_charge_units;
 
-				removed_shield_energy = shield_energy_to_remove;
+				int removed_shield_energy =
+					shield_energy_to_remove;
 				if (craft->shield_distrib_mode ==
 				    SHIELD_DISTRIBUTION_FULLY_FORWARD) {
 					if (removed_shield_energy >
@@ -5997,7 +5797,7 @@ void flight_process_player_actions(int player_idx)
 							energy_transfer_step;
 				if (transfer_charge_units != 0) {
 					slot_index = 0;
-					for (iteration = 0;
+					for (int16_t iteration = 0;
 					     transfer_charge_units > 0;
 					     ++iteration) {
 						if (iteration >=
@@ -6053,11 +5853,10 @@ void flight_process_player_actions(int player_idx)
 					int target_index =
 						(uint16_t)g_players[player_idx]
 							.current_target_object_idx;
-					struct ai_controller *controller;
 					g_cur_craft =
 						g_object_table[target_index]
 							.mobj->p_craft;
-					controller =
+					struct ai_controller *controller =
 						&g_cur_craft->ai_controller;
 					pai_setupcraftcontext(
 						(uint16_t)target_index);
@@ -6109,7 +5908,6 @@ void flight_process_player_actions(int player_idx)
 		case FLIGHT_KEY_SHIFT_C:
 			if ((craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_COMMUNICATIONS) != 0) {
-				int16_t other_player_idx;
 				int attacker_index =
 					player_find_attacker_of_target(
 						(uint16_t)object_index,
@@ -6119,18 +5917,15 @@ void flight_process_player_actions(int player_idx)
 						(uint16_t)attacker_index, 0x96,
 						6, player_idx);
 				}
-				for (other_player_idx = 0; other_player_idx < 8;
-				     ++other_player_idx) {
-					int other_object_index;
-					int hostile;
-					struct craft_data *other_craft;
+				for (int16_t other_player_idx = 0;
+				     other_player_idx < 8; ++other_player_idx) {
 					if (other_player_idx == player_idx ||
 					    g_players[other_player_idx]
 							    .participation_state !=
 						    1) {
 						continue;
 					}
-					other_object_index =
+					int other_object_index =
 						g_players[other_player_idx]
 							.object_index;
 					if (other_object_index ==
@@ -6138,7 +5933,7 @@ void flight_process_player_actions(int player_idx)
 					    other_object_index == -1) {
 						continue;
 					}
-					hostile =
+					int hostile =
 						g_players[other_player_idx]
 								.team !=
 							g_players[player_idx]
@@ -6156,7 +5951,7 @@ void flight_process_player_actions(int player_idx)
 						    0) {
 						continue;
 					}
-					other_craft =
+					struct craft_data *other_craft =
 						g_object_table
 							[other_object_index]
 								.mobj->p_craft;
@@ -6420,8 +6215,6 @@ void flight_process_player_actions(int player_idx)
 			}
 			break;
 		case FLIGHT_KEY_N: {
-			int16_t have_laser_energy = 0;
-			unsigned int slot_index;
 			if (get_model_index_from_type(
 				    g_object_table[object_index].object_type) ==
 			    get_model_index_from_type(
@@ -6429,7 +6222,8 @@ void flight_process_player_actions(int player_idx)
 				craft->engine_overdrive_off =
 					(uint16_t)~craft->engine_overdrive_off;
 				if (craft->engine_overdrive_off == 0) {
-					for (slot_index = 0;
+					int16_t have_laser_energy = 0;
+					for (unsigned int slot_index = 0;
 					     slot_index <
 					     craft->laser_slot_count;
 					     ++slot_index) {
@@ -6753,11 +6547,10 @@ void flight_process_player_actions(int player_idx)
 					}
 				}
 			} else {
-				uint16_t warhead_kind;
 				craft->warhead_launcher_flags
 					[g_players[player_idx]
 						 .selected_weapon_bank] ^= 2;
-				warhead_kind = object_type_get_warhead_kind_index(
+				uint16_t warhead_kind = object_type_get_warhead_kind_index(
 					craft->warhead_slot_type_ids
 						[g_players[player_idx]
 							 .selected_weapon_bank]);
@@ -7109,6 +6902,7 @@ void flight_process_player_actions(int player_idx)
 			break;
 		}
 	} else {
+		const int map_default_distance = 512;
 		switch (g_current_action_key) {
 		case FLIGHT_KEY_C:
 			if (g_players[player_idx].map_camera_state > 1 &&
@@ -7256,6 +7050,8 @@ void flight_process_player_actions(int player_idx)
 		}
 	}
 
+	const int map_overview_distance = 0x40000;
+	unsigned int nearest_object_distance;
 	switch (g_current_action_key) {
 	case FLIGHT_KEY_TAB:
 		if (g_players[player_idx].map_camera_state == 0 &&
@@ -7567,15 +7363,15 @@ void flight_process_player_actions(int player_idx)
 			break;
 		case 2:
 			if (g_flight_sim_side_effects_suppressed == 0) {
-				departure_object_index =
+				int16_t departure_object_index =
 					g_players[player_idx]
 						.pending_action_param;
 				if (departure_object_index == -1) {
 					if (g_players[player_idx]
 						    .participation_state == 1) {
 						int connected_count = 0;
-						int16_t other_player_idx;
-						for (other_player_idx = 0;
+						for (int16_t other_player_idx =
+							     0;
 						     other_player_idx < 8;
 						     ++other_player_idx) {
 							if (g_players[other_player_idx]
@@ -7944,8 +7740,8 @@ void flight_process_player_actions(int player_idx)
 								    target_index]
 								   .object_type]
 							  .mesh_count;
-			int16_t attempt;
-			for (attempt = 0; attempt < mesh_count; ++attempt) {
+			for (int16_t attempt = 0; attempt < mesh_count;
+			     ++attempt) {
 				++g_players[player_idx]
 					  .selected_target_component;
 				if ((uint16_t)g_players[player_idx]
@@ -7999,8 +7795,8 @@ void flight_process_player_actions(int player_idx)
 								    target_index]
 								   .object_type]
 							  .mesh_count;
-			int16_t attempt;
-			for (attempt = 0; attempt < mesh_count; ++attempt) {
+			for (int16_t attempt = 0; attempt < mesh_count;
+			     ++attempt) {
 				--g_players[player_idx]
 					  .selected_target_component;
 				if ((uint16_t)g_players[player_idx]
@@ -8079,12 +7875,12 @@ void flight_process_player_actions(int player_idx)
 	case FLIGHT_KEY_2:
 	case FLIGHT_KEY_3:
 	case FLIGHT_KEY_4: {
-		int16_t dst_player_idx;
 		int taunt_index = g_current_action_key - FLIGHT_KEY_1;
 		msg_add_message_ptr(0, net_session_get_player_name(player_idx));
 		msg_add_message_ptr(
 			1, g_player_taunt_text[player_idx][taunt_index]);
-		for (dst_player_idx = 0; dst_player_idx < 8; ++dst_player_idx) {
+		for (int16_t dst_player_idx = 0; dst_player_idx < 8;
+		     ++dst_player_idx) {
 			if (g_players[dst_player_idx].participation_state !=
 			    0) {
 				g_msg_sender_iff = 3;
@@ -8098,7 +7894,6 @@ void flight_process_player_actions(int player_idx)
 	case FLIGHT_KEY_SHIFT_A: {
 		int target_index =
 			g_players[player_idx].current_target_object_idx;
-		int16_t other_player_idx;
 		if (g_players[player_idx].map_camera_state == 0 &&
 		    (craft == NULL ||
 		     (craft->working_subsystems &
@@ -8119,9 +7914,8 @@ void flight_process_player_actions(int player_idx)
 		}
 		player_issue_ai_wingman_target_order((uint16_t)target_index,
 						     0x9A, 4, player_idx);
-		for (other_player_idx = 0; other_player_idx < 8;
+		for (int16_t other_player_idx = 0; other_player_idx < 8;
 		     ++other_player_idx) {
-			struct craft_data *other_craft;
 			if (other_player_idx == player_idx ||
 			    g_players[other_player_idx].participation_state !=
 				    1 ||
@@ -8134,9 +7928,10 @@ void flight_process_player_actions(int player_idx)
 				    0) {
 				continue;
 			}
-			other_craft = g_object_table[g_players[other_player_idx]
-							     .object_index]
-					      .mobj->p_craft;
+			struct craft_data *other_craft =
+				g_object_table[g_players[other_player_idx]
+						       .object_index]
+					.mobj->p_craft;
 			if (other_craft == NULL ||
 			    (other_craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_COMMUNICATIONS) == 0) {
@@ -8163,7 +7958,6 @@ void flight_process_player_actions(int player_idx)
 		return;
 	}
 	case FLIGHT_KEY_SHIFT_E: {
-		int16_t other_player_idx;
 		if (g_players[player_idx].map_camera_state == 0 &&
 		    (craft == NULL ||
 		     (craft->working_subsystems &
@@ -8177,10 +7971,10 @@ void flight_process_player_actions(int player_idx)
 		if (player_can_radio_command_craft(player_idx) != 0) {
 			int target_index = (uint16_t)g_players[player_idx]
 						   .current_target_object_idx;
-			struct ai_controller *controller;
 			g_cur_craft =
 				g_object_table[target_index].mobj->p_craft;
-			controller = &g_cur_craft->ai_controller;
+			struct ai_controller *controller =
+				&g_cur_craft->ai_controller;
 			if (strcmp(g_plan_table[controller->running_plan_id]
 					   .name,
 				   "craftwaitforgopln") == 0) {
@@ -8195,7 +7989,7 @@ void flight_process_player_actions(int player_idx)
 					  (uint8_t *)g_cur_craft, 0x97, 7, 0);
 			return;
 		}
-		for (other_player_idx = 0; other_player_idx < 8;
+		for (int16_t other_player_idx = 0; other_player_idx < 8;
 		     ++other_player_idx) {
 			if (g_players[other_player_idx].object_index !=
 			    (uint16_t)g_players[player_idx]
@@ -8232,7 +8026,6 @@ void flight_process_player_actions(int player_idx)
 		return;
 	}
 	case FLIGHT_KEY_SHIFT_G: {
-		int16_t other_player_idx;
 		if (g_players[player_idx].map_camera_state == 0 &&
 		    (craft == NULL ||
 		     (craft->working_subsystems &
@@ -8264,7 +8057,7 @@ void flight_process_player_actions(int player_idx)
 			}
 			return;
 		}
-		for (other_player_idx = 0; other_player_idx < 8;
+		for (int16_t other_player_idx = 0; other_player_idx < 8;
 		     ++other_player_idx) {
 			if (g_players[other_player_idx].object_index !=
 			    (uint16_t)g_players[player_idx]
@@ -8301,7 +8094,6 @@ void flight_process_player_actions(int player_idx)
 		return;
 	}
 	case FLIGHT_KEY_SHIFT_H: {
-		int16_t other_player_idx;
 		if (g_players[player_idx].map_camera_state == 0 &&
 		    (craft == NULL ||
 		     (craft->working_subsystems &
@@ -8317,9 +8109,9 @@ void flight_process_player_actions(int player_idx)
 						   .current_target_object_idx;
 			struct object_record *target =
 				&g_object_table[target_index];
-			struct ai_controller *controller;
 			g_cur_craft = target->mobj->p_craft;
-			controller = &g_cur_craft->ai_controller;
+			struct ai_controller *controller =
+				&g_cur_craft->ai_controller;
 			if (strcmp(g_plan_table[controller->running_plan_id]
 					   .name,
 				   "flyhomeevadepln") != 0 &&
@@ -8357,7 +8149,7 @@ void flight_process_player_actions(int player_idx)
 					  (uint8_t *)g_cur_craft, 0x95, 1, 0);
 			return;
 		}
-		for (other_player_idx = 0; other_player_idx < 8;
+		for (int16_t other_player_idx = 0; other_player_idx < 8;
 		     ++other_player_idx) {
 			if (g_players[other_player_idx].object_index !=
 			    (uint16_t)g_players[player_idx]
@@ -8396,7 +8188,6 @@ void flight_process_player_actions(int player_idx)
 	case FLIGHT_KEY_SHIFT_I: {
 		int target_index =
 			g_players[player_idx].current_target_object_idx;
-		int16_t other_player_idx;
 		if (g_players[player_idx].map_camera_state == 0 &&
 		    (craft == NULL ||
 		     (craft->working_subsystems &
@@ -8416,9 +8207,8 @@ void flight_process_player_actions(int player_idx)
 		}
 		player_issue_ai_wingman_target_order((uint16_t)target_index,
 						     0x9B, 5, player_idx);
-		for (other_player_idx = 0; other_player_idx < 8;
+		for (int16_t other_player_idx = 0; other_player_idx < 8;
 		     ++other_player_idx) {
-			struct craft_data *other_craft;
 			if (other_player_idx == player_idx ||
 			    g_players[other_player_idx].participation_state !=
 				    1 ||
@@ -8435,9 +8225,10 @@ void flight_process_player_actions(int player_idx)
 				    0) {
 				continue;
 			}
-			other_craft = g_object_table[g_players[other_player_idx]
-							     .object_index]
-					      .mobj->p_craft;
+			struct craft_data *other_craft =
+				g_object_table[g_players[other_player_idx]
+						       .object_index]
+					.mobj->p_craft;
 			if (other_craft == NULL ||
 			    (other_craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_COMMUNICATIONS) == 0) {
@@ -8470,28 +8261,26 @@ void flight_process_player_actions(int player_idx)
 				    g_active_region_object_slot_start;
 		int16_t new_target = -1;
 		while (remaining-- != 0) {
-			struct object_record *object;
-			int owner;
-			int team;
-			int hostile;
 			if (++candidate >=
 			    g_active_region_craft_object_slot_end) {
 				candidate = g_active_region_object_slot_start;
 			}
-			object = &g_object_table[candidate];
+			struct object_record *object =
+				&g_object_table[candidate];
 			if (object->object_type == 0 ||
 			    object->genus_id == CRAFT_GENUS_EXPLOSION ||
 			    object_has_active_decoy_beam((uint16_t)candidate) !=
 				    0) {
 				continue;
 			}
-			owner = object->player_owner_idx;
+			int owner = object->player_owner_idx;
 			if (owner == -1 || owner == player_idx) {
 				continue;
 			}
-			team = g_mission_flight_groups[object->flight_group_idx]
-				       .fg.team;
-			hostile =
+			int team = g_mission_flight_groups
+					   [object->flight_group_idx]
+						   .fg.team;
+			int hostile =
 				team != (uint16_t)g_players[player_idx].team &&
 				g_mission_teams[(uint16_t)g_players[player_idx]
 							.team]
@@ -8520,7 +8309,6 @@ void flight_process_player_actions(int player_idx)
 		return;
 	}
 	case FLIGHT_KEY_SHIFT_R: {
-		int target_index;
 		if (g_players[player_idx].map_camera_state == 0 &&
 		    (craft == NULL ||
 		     (craft->working_subsystems &
@@ -8531,7 +8319,8 @@ void flight_process_player_actions(int player_idx)
 						   player_idx);
 			return;
 		}
-		target_index = g_players[player_idx].current_target_object_idx;
+		int target_index =
+			g_players[player_idx].current_target_object_idx;
 		if (target_index != -1 &&
 		    target_index < g_active_region_craft_object_slot_end) {
 			struct object_record *target =
@@ -8552,8 +8341,7 @@ void flight_process_player_actions(int player_idx)
 								 ->ai_controller
 								 .running_plan_id]);
 				} else {
-					int16_t other_player_idx;
-					for (other_player_idx = 0;
+					for (int16_t other_player_idx = 0;
 					     other_player_idx < 8;
 					     ++other_player_idx) {
 						if (other_player_idx !=
@@ -8590,8 +8378,6 @@ void flight_process_player_actions(int player_idx)
 		return;
 	}
 	case FLIGHT_KEY_SHIFT_S: {
-		uint16_t flight_group_idx;
-		uint8_t reinforcement_available = 0;
 		if (g_players[player_idx].map_camera_state == 0 &&
 		    (craft == NULL ||
 		     (craft->working_subsystems &
@@ -8605,7 +8391,8 @@ void flight_process_player_actions(int player_idx)
 		if (g_players[player_idx].pending_action_id != 0) {
 			return;
 		}
-		for (flight_group_idx = 0;
+		uint8_t reinforcement_available = 0;
+		for (uint16_t flight_group_idx = 0;
 		     flight_group_idx < g_mission_header.num_flight_groups;
 		     ++flight_group_idx) {
 			if ((g_mission_flight_groups[flight_group_idx]
@@ -8688,7 +8475,6 @@ void flight_process_player_actions(int player_idx)
 		return;
 	}
 	case FLIGHT_KEY_SHIFT_W: {
-		int16_t other_player_idx;
 		if (g_players[player_idx].map_camera_state == 0 &&
 		    (craft == NULL ||
 		     (craft->working_subsystems &
@@ -8702,10 +8488,10 @@ void flight_process_player_actions(int player_idx)
 		if (player_can_radio_command_craft(player_idx) != 0) {
 			int target_index = (uint16_t)g_players[player_idx]
 						   .current_target_object_idx;
-			struct ai_controller *controller;
 			g_cur_craft =
 				g_object_table[target_index].mobj->p_craft;
-			controller = &g_cur_craft->ai_controller;
+			struct ai_controller *controller =
+				&g_cur_craft->ai_controller;
 			if (strcmp(g_plan_table[controller->running_plan_id]
 					   .name,
 				   "craftwaitforgopln") != 0 &&
@@ -8733,7 +8519,7 @@ void flight_process_player_actions(int player_idx)
 			}
 			return;
 		}
-		for (other_player_idx = 0; other_player_idx < 8;
+		for (int16_t other_player_idx = 0; other_player_idx < 8;
 		     ++other_player_idx) {
 			if (g_players[other_player_idx].object_index !=
 			    (uint16_t)g_players[player_idx]
@@ -8781,24 +8567,24 @@ void flight_process_player_actions(int player_idx)
 			g_players[player_idx].current_target_object_idx;
 		int16_t remaining = g_active_region_craft_object_slot_end -
 				    g_active_region_object_slot_start;
-		int16_t attacker = -1;
 		if (g_players[player_idx].object_index == -1) {
 			return;
 		}
+		int16_t attacker = -1;
 		while (remaining-- != 0) {
-			struct object_record *object;
-			struct craft_data *candidate_craft;
 			if (++candidate >=
 			    g_active_region_craft_object_slot_end) {
 				candidate = g_active_region_object_slot_start;
 			}
-			object = &g_object_table[candidate];
+			struct object_record *object =
+				&g_object_table[candidate];
 			if (object->object_type == 0 ||
 			    candidate == g_players[player_idx].object_index ||
 			    object->genus_id == CRAFT_GENUS_EXPLOSION) {
 				continue;
 			}
-			candidate_craft = object->mobj->p_craft;
+			struct craft_data *candidate_craft =
+				object->mobj->p_craft;
 			if (candidate_craft->working_subsystems == 0 ||
 			    candidate_craft->object_kind !=
 				    CRAFT_OBJECT_KIND_ACTIVE ||
@@ -8918,15 +8704,14 @@ void flight_process_player_actions(int player_idx)
 		}
 		return;
 	case FLIGHT_KEY_I: {
+		nearest_object_distance = UINT32_MAX;
 		int projectile_index;
 		int nearest_projectile = -1;
-		nearest_object_distance = UINT32_MAX;
 		for (projectile_index = g_projectile_object_slot_start;
 		     projectile_index < g_projectile_object_slot_end;
 		     ++projectile_index) {
 			struct object_record *projectile =
 				&g_object_table[projectile_index];
-			struct warhead_guidance_state *guidance;
 			if (projectile->object_type == 0 ||
 			    (projectile->genus_id !=
 				     CRAFT_GENUS_PLAYER_PROJECTILE &&
@@ -8938,7 +8723,8 @@ void flight_process_player_actions(int player_idx)
 				    0) {
 				continue;
 			}
-			guidance = projectile->mobj->p_warhead_guidance;
+			struct warhead_guidance_state *guidance =
+				projectile->mobj->p_warhead_guidance;
 			if (guidance == NULL ||
 			    guidance->target_obj_idx !=
 				    g_players[player_idx].object_index) {
@@ -8959,10 +8745,6 @@ void flight_process_player_actions(int player_idx)
 			     ++projectile_index) {
 				struct object_record *projectile =
 					&g_object_table[projectile_index];
-				struct warhead_guidance_state *guidance;
-				struct mobile_object *target_mobile;
-				int target_team;
-				int player_team;
 				if (projectile->object_type == 0 ||
 				    (projectile->genus_id !=
 					     CRAFT_GENUS_PLAYER_PROJECTILE &&
@@ -8974,20 +8756,21 @@ void flight_process_player_actions(int player_idx)
 					    0) {
 					continue;
 				}
-				guidance = projectile->mobj->p_warhead_guidance;
+				struct warhead_guidance_state *guidance =
+					projectile->mobj->p_warhead_guidance;
 				if (guidance == NULL ||
 				    guidance->target_obj_idx == UINT16_MAX) {
 					continue;
 				}
-				target_mobile =
+				struct mobile_object *target_mobile =
 					g_object_table[guidance->target_obj_idx]
 						.mobj;
 				if (target_mobile == NULL ||
 				    target_mobile->family != 0) {
 					continue;
 				}
-				target_team = target_mobile->team;
-				player_team =
+				int target_team = target_mobile->team;
+				int player_team =
 					(uint16_t)g_players[player_idx].team;
 				if (target_team != player_team &&
 				    g_mission_teams[target_team]
@@ -9027,11 +8810,10 @@ void flight_process_player_actions(int player_idx)
 			if (g_players[player_idx].map_camera_state != 0) {
 				if (g_players[player_idx].participation_state !=
 				    2) {
-					int16_t saved_map_camera_state;
 					mission_process_flight_group_wave_completion(
 						g_players[player_idx]
 							.bound_flight_group_idx);
-					saved_map_camera_state =
+					int16_t saved_map_camera_state =
 						g_players[player_idx]
 							.map_camera_state;
 					g_players[player_idx].map_camera_state =
@@ -9136,34 +8918,31 @@ void flight_process_player_actions(int player_idx)
 		return;
 	}
 	case FLIGHT_KEY_P: {
-		int candidate;
-		int remaining;
-		int nearest_target = -1;
 		nearest_object_distance = UINT32_MAX;
 		if (g_flight_mission_state.locate_players_enabled == 0) {
 			return;
 		}
-		candidate = g_players[player_idx].current_target_object_idx;
-		remaining = g_active_region_craft_object_slot_end -
-			    g_active_region_object_slot_start - 1;
+		int candidate = g_players[player_idx].current_target_object_idx;
+		int remaining = g_active_region_craft_object_slot_end -
+				g_active_region_object_slot_start - 1;
+		int nearest_target = -1;
 		while (remaining-- >= 0) {
-			struct object_record *object;
-			int team;
-			int hostile;
 			if (++candidate >=
 			    g_active_region_craft_object_slot_end) {
 				candidate = g_active_region_object_slot_start;
 			}
-			object = &g_object_table[candidate];
+			struct object_record *object =
+				&g_object_table[candidate];
 			if (object->object_type == 0 ||
 			    object->player_owner_idx == -1 ||
 			    object->player_owner_idx == player_idx ||
 			    object->genus_id == CRAFT_GENUS_EXPLOSION) {
 				continue;
 			}
-			team = g_mission_flight_groups[object->flight_group_idx]
-				       .fg.team;
-			hostile =
+			int team = g_mission_flight_groups
+					   [object->flight_group_idx]
+						   .fg.team;
+			int hostile =
 				team != (uint16_t)g_players[player_idx].team &&
 				g_mission_teams[(uint16_t)g_players[player_idx]
 							.team]
@@ -9259,21 +9038,20 @@ void flight_process_player_actions(int player_idx)
 		}
 		return;
 	case FLIGHT_KEY_U: {
-		int candidate;
 		int newest_target = -1;
 		uint16_t newest_age = UINT16_MAX;
-		for (candidate = g_active_region_object_slot_start;
+		for (int candidate = g_active_region_object_slot_start;
 		     candidate < g_active_region_craft_object_slot_end;
 		     ++candidate) {
 			struct object_record *object =
 				&g_object_table[candidate];
-			struct craft_data *candidate_craft;
 			if (object->object_type == 0 ||
 			    candidate == object_index ||
 			    object->genus_id == CRAFT_GENUS_EXPLOSION) {
 				continue;
 			}
-			candidate_craft = object->mobj->p_craft;
+			struct craft_data *candidate_craft =
+				object->mobj->p_craft;
 			if (candidate_craft->leader_obj_idx != UINT8_MAX ||
 			    (candidate_craft->object_kind !=
 				     CRAFT_OBJECT_KIND_ACTIVE &&
@@ -9431,12 +9209,12 @@ void flight_process_player_actions(int player_idx)
 		return;
 	case FLIGHT_KEY_LEFT:
 	case FLIGHT_KEY_RIGHT: {
-		int16_t page;
-		int16_t page_found = 0;
 		if (player_idx != g_local_player ||
 		    g_flight_sim_side_effects_suppressed != 0) {
 			return;
 		}
+		int16_t page;
+		int16_t page_found = 0;
 		if (g_mfd_active_page == MFD_PAGE_NONE) {
 			for (page = MFD_PAGE_SCOREBOARD; page < MFD_PAGE_COUNT;
 			     ++page) {
@@ -9561,16 +9339,6 @@ int flight_main(char *mission_cmd_line)
 		DISPLAY_INIT_SOUND_ERROR = 13,
 	};
 
-	xvt_file *flicker_file;
-	network_transport_type network_type;
-	const char *connection_address;
-	int argument_count;
-	int argument_index;
-	int command_line_offset;
-	int quoted_argument;
-	int brightness_limit;
-	char *option_match;
-
 	model_preview_free_resources();
 	g_flight_render_to_frontend = 0;
 	if (mission_cmd_line == NULL) {
@@ -9578,7 +9346,7 @@ int flight_main(char *mission_cmd_line)
 	}
 
 	config_load();
-	flicker_file = FILE_RAW_OPEN("flicker.txt", "r");
+	xvt_file *flicker_file = FILE_RAW_OPEN("flicker.txt", "r");
 	if (flicker_file != NULL) {
 		FILE_RAW_CLOSE(flicker_file);
 		g_flight_conf_flicker = 0;
@@ -9588,7 +9356,7 @@ int flight_main(char *mission_cmd_line)
 
 	g_laser_fire_timestamp_tracking_enabled = 1;
 	g_internet_play_enabled = g_game_config.internet_play;
-	option_match = strstr(mission_cmd_line, "traincourse");
+	char *option_match = strstr(mission_cmd_line, "traincourse");
 	g_flight_conf_train_course = 1;
 	if (option_match == NULL) {
 		g_flight_conf_train_course = 0;
@@ -9675,20 +9443,18 @@ int flight_main(char *mission_cmd_line)
 		return 0;
 	}
 
-	command_line_offset = 0;
-	quoted_argument = 0;
-	argument_count = BUILTIN_ARGUMENT_COUNT;
+	int command_line_offset = 0;
+	int quoted_argument = 0;
+	int argument_count = BUILTIN_ARGUMENT_COUNT;
 	g_flight_launch_args.program_name = "xtie";
 	g_flight_launch_args.sentinel = "/trebla";
 	if (mission_cmd_line[0] != '\0') {
-		for (argument_index = 0; argument_index < PARSED_ARGUMENT_COUNT;
-		     ++argument_index) {
+		for (int argument_index = 0;
+		     argument_index < PARSED_ARGUMENT_COUNT; ++argument_index) {
 			g_flight_launch_args.arguments[argument_index] =
 				&mission_cmd_line[command_line_offset];
 			while (1) {
-				char character;
-
-				character =
+				char character =
 					mission_cmd_line[command_line_offset];
 				if (character == ' ') {
 					if (quoted_argument != 1) {
@@ -9731,7 +9497,9 @@ int flight_main(char *mission_cmd_line)
 		return 0;
 	}
 
-	network_type = (network_transport_type)g_game_config.network_type;
+	network_transport_type network_type =
+		(network_transport_type)g_game_config.network_type;
+	const char *connection_address;
 	switch (network_type) {
 	case NET_TRANSPORT_TCPIP:
 		connection_address = g_game_config.ip_address;
@@ -9765,7 +9533,7 @@ int flight_main(char *mission_cmd_line)
 		(g_game_config.brightness[net_session_get_player_count() > 1] +
 		 BRIGHTNESS_CONFIG_OFFSET)
 		<< BRIGHTNESS_CONFIG_SHIFT;
-	brightness_limit = BRIGHTNESS_SCALE_MIN;
+	int brightness_limit = BRIGHTNESS_SCALE_MIN;
 	if ((unsigned int)g_flight_brightness_scale_q8 < BRIGHTNESS_SCALE_MIN) {
 		g_flight_brightness_scale_q8 = brightness_limit;
 	} else {
@@ -9799,10 +9567,9 @@ int flight_main(char *mission_cmd_line)
 	g_bilinear_enabled =
 		g_game_config.bilinear[net_session_get_player_count() > 1];
 	{
-		int bpp_config_value;
-
-		bpp_config_value = g_game_config.color_depth_choice
-					   [net_session_get_player_count() > 1];
+		int bpp_config_value =
+			g_game_config.color_depth_choice
+				[net_session_get_player_count() > 1];
 		switch (bpp_config_value) {
 		case DISPLAY_CONFIG_LOW:
 			g_flight_bytes_per_pixel = PALETTED_BYTES_PER_PIXEL;
@@ -9817,9 +9584,7 @@ int flight_main(char *mission_cmd_line)
 	}
 	net_session_get_player_count();
 	{
-		int lod_config_value;
-
-		lod_config_value =
+		int lod_config_value =
 			g_game_config.lod[net_session_get_player_count() > 1] +
 			LOD_CONFIG_OFFSET;
 		g_lod_distance_scale = (float)lod_config_value;
@@ -9840,15 +9605,11 @@ int flight_main(char *mission_cmd_line)
 				       g_lod_distance_scale;
 	}
 	{
-		int mipmap_config_option;
-
-		mipmap_config_option =
+		int mipmap_config_option =
 			g_game_config
 				.mipmap[net_session_get_player_count() > 1];
 		if (mipmap_config_option != MIPMAPPING_DISABLED_VALUE) {
-			int64_t mipmap_config_value;
-
-			mipmap_config_value =
+			int64_t mipmap_config_value =
 				g_game_config
 					.mipmap[net_session_get_player_count() >
 						1];
@@ -9881,9 +9642,7 @@ int flight_main(char *mission_cmd_line)
 		break;
 	}
 	{
-		int local_lights_enabled;
-
-		local_lights_enabled =
+		int local_lights_enabled =
 			g_game_config
 				.local_lights[net_session_get_player_count() >
 					      1];
@@ -9893,9 +9652,7 @@ int flight_main(char *mission_cmd_line)
 		}
 	}
 	{
-		int specular_enabled;
-
-		specular_enabled =
+		int specular_enabled =
 			g_game_config
 				.specular[net_session_get_player_count() > 1];
 		g_specular_enabled = 1;
@@ -9904,9 +9661,7 @@ int flight_main(char *mission_cmd_line)
 		}
 	}
 	{
-		int diffuse_lighting_enabled;
-
-		diffuse_lighting_enabled =
+		int diffuse_lighting_enabled =
 			g_game_config
 				.diffuse[net_session_get_player_count() > 1];
 		g_dir_lighting_enabled = 1;
@@ -9915,9 +9670,7 @@ int flight_main(char *mission_cmd_line)
 		}
 	}
 	{
-		int dithering_enabled;
-
-		dithering_enabled =
+		int dithering_enabled =
 			g_game_config
 				.dither[net_session_get_player_count() > 1];
 		g_dithering_enabled = 1;
@@ -10073,9 +9826,6 @@ int32_t flight_pump_window_messages(void)
 #ifdef XVT_MODERN
 	return 0;
 #else
-	struct flight_win32_message message;
-	int32_t result;
-
 	if (GetForegroundWindow() != g_flight_main_window_handle) {
 		SetForegroundWindow(g_flight_main_window_handle);
 		flight_palette_reset_if8_bit();
@@ -10083,7 +9833,8 @@ int32_t flight_pump_window_messages(void)
 		}
 	}
 
-	result = PeekMessageA(&message, NULL, 0, 0, 1);
+	struct flight_win32_message message;
+	int32_t result = PeekMessageA(&message, NULL, 0, 0, 1);
 	if (result != 0) {
 		result = (int32_t)message.message;
 		if (message.message != 0x1C && message.message != 0x08 &&
@@ -10757,18 +10508,14 @@ void flight_slew_object_speed_toward_target(unsigned int object_idx,
 					    int target_speed, int allow_decel,
 					    int throttle_fraction)
 {
-	uint32_t speed_delta;
-
-	speed_delta = target_speed;
+	uint32_t speed_delta = target_speed;
 	speed_delta -= g_object_table[object_idx].mobj->speed;
 	if (speed_delta == 0) {
 		return;
 	}
 
 	if (speed_delta < 0x8000u) {
-		uint32_t step;
-
-		step = (uint16_t)math2_fraction(
+		uint32_t step = (uint16_t)math2_fraction(
 			g_model_defs[g_cur_craft_model_index].accel_rate,
 			0x4000u);
 		if (step == 0) {
@@ -10788,9 +10535,7 @@ void flight_slew_object_speed_toward_target(unsigned int object_idx,
 		}
 		flight_accelerate_object_speed(object_idx, speed_delta);
 	} else if (allow_decel == 1) {
-		uint32_t step;
-
-		step = (uint16_t)math2_fraction(
+		uint32_t step = (uint16_t)math2_fraction(
 			g_model_defs[g_cur_craft_model_index].decel_rate,
 			0x4000u);
 		if (step == 0) {
@@ -10815,22 +10560,16 @@ void flight_slew_object_speed_toward_target(unsigned int object_idx,
 // FUNCTION: XVT 0x4AD9E0
 void flight_accelerate_object_speed(int object_idx, int acceleration_per_second)
 {
-	uint32_t product;
-	uint32_t whole_quotient;
-	uint16_t whole_delta;
-	uint16_t frac_delta;
-	uint16_t *speed_remainder;
-	uint16_t old_remainder;
-
-	product = (uint32_t)(uint16_t)g_elapsed_ticks *
-		  (uint32_t)acceleration_per_second;
-	whole_quotient = product / 236u;
-	whole_delta = (uint16_t)whole_quotient;
-	frac_delta =
+	uint32_t product = (uint32_t)(uint16_t)g_elapsed_ticks *
+			   (uint32_t)acceleration_per_second;
+	uint32_t whole_quotient = product / 236u;
+	uint16_t whole_delta = (uint16_t)whole_quotient;
+	uint16_t frac_delta =
 		(uint16_t)(((product - whole_quotient * 236u) << 16) / 236u);
 
-	speed_remainder = &g_object_table[object_idx].mobj->speed_remainder;
-	old_remainder = *speed_remainder;
+	uint16_t *speed_remainder =
+		&g_object_table[object_idx].mobj->speed_remainder;
+	uint16_t old_remainder = *speed_remainder;
 	*speed_remainder = (uint16_t)(old_remainder + frac_delta);
 	if (g_object_table[object_idx].mobj->speed_remainder < old_remainder) {
 		++g_object_table[object_idx].mobj->speed;
@@ -10848,22 +10587,16 @@ void flight_accelerate_object_speed(int object_idx, int acceleration_per_second)
 // FUNCTION: XVT 0x4ADA90
 void flight_decelerate_object_speed(int object_idx, int deceleration_per_second)
 {
-	uint32_t product;
-	uint32_t whole_quotient;
-	uint16_t whole_delta;
-	uint16_t frac_delta;
-	uint16_t *speed_remainder;
-	uint16_t old_remainder;
-
-	product = (uint32_t)(uint16_t)g_elapsed_ticks *
-		  (uint32_t)deceleration_per_second;
-	whole_quotient = product / 236u;
-	whole_delta = (uint16_t)whole_quotient;
-	frac_delta =
+	uint32_t product = (uint32_t)(uint16_t)g_elapsed_ticks *
+			   (uint32_t)deceleration_per_second;
+	uint32_t whole_quotient = product / 236u;
+	uint16_t whole_delta = (uint16_t)whole_quotient;
+	uint16_t frac_delta =
 		(uint16_t)(((product - whole_quotient * 236u) << 16) / 236u);
 
-	speed_remainder = &g_object_table[object_idx].mobj->speed_remainder;
-	old_remainder = *speed_remainder;
+	uint16_t *speed_remainder =
+		&g_object_table[object_idx].mobj->speed_remainder;
+	uint16_t old_remainder = *speed_remainder;
 	*speed_remainder = old_remainder;
 	*speed_remainder -= frac_delta;
 	if (g_object_table[object_idx].mobj->speed_remainder > old_remainder) {
@@ -10885,15 +10618,9 @@ void flight_decelerate_object_speed(int object_idx, int deceleration_per_second)
 // FUNCTION: XVT 0x4ADB50
 void flight_update_dive_pullout_pitch_target(int object_idx)
 {
-	struct ai_controller *controller;
-	int altitude_delta;
-	struct object_record *object;
-	int move_z;
-	int projected_movement;
-
-	controller = &g_cur_craft->ai_controller;
-	object = &g_object_table[object_idx];
-	altitude_delta = object->world_z - controller->aim_point_z;
+	struct ai_controller *controller = &g_cur_craft->ai_controller;
+	struct object_record *object = &g_object_table[object_idx];
+	int altitude_delta = object->world_z - controller->aim_point_z;
 	if (altitude_delta < 0 || altitude_delta <= 0x100) {
 		g_cur_craft->pitch = 0x4000;
 		g_cur_craft->ai_flight.pitch_state = 0;
@@ -10903,8 +10630,8 @@ void flight_update_dive_pullout_pitch_target(int object_idx)
 			fview_calcrotatemove(object->pitch, object->yaw,
 					     object);
 		}
-		move_z = object->mobj->move_z;
-		projected_movement = move_z;
+		int move_z = object->mobj->move_z;
+		int projected_movement = move_z;
 		projected_movement *= g_sim_steps_per_second;
 		if (object->genus_id == 0) {
 			projected_movement *= 3;

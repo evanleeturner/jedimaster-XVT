@@ -150,11 +150,10 @@ static unsigned int xvt_input_windows1252(unsigned int cp)
 		0x02c6, 0x2030, 0x0160, 0x2039, 0x0152, 0,	0x017d, 0,
 		0,	0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2013, 0x2014,
 		0x02dc, 0x2122, 0x0161, 0x203a, 0x0153, 0,	0x017e, 0x0178};
-	unsigned int i;
 	if ((cp >= 32 && cp < 127) || (cp >= 160 && cp <= 255)) {
 		return cp;
 	}
-	for (i = 0; i < 32; ++i) {
+	for (unsigned int i = 0; i < 32; ++i) {
 		if (cp && cp == extended[i]) {
 			return 128 + i;
 		}
@@ -289,7 +288,6 @@ void xvt_input_update(int suppress)
 {
 	xvt_input_update_keyboard(suppress != 0);
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
-	int key;
 	if (!input) {
 		return;
 	}
@@ -306,7 +304,7 @@ void xvt_input_update(int suppress)
 		g_front_state.mouse_right_click_latch = 0;
 		return;
 	}
-	for (key = 0; key < AERON_KEY_COUNT; ++key) {
+	for (int key = 0; key < AERON_KEY_COUNT; ++key) {
 		if (AeronCompat_IsKeySuppressed(key)) {
 			continue;
 		}
@@ -315,9 +313,8 @@ void xvt_input_update(int suppress)
 			g_front_state.key_state[vk] = 0x80;
 		}
 		if (vk == 8 || vk == 9 || vk == 13 || vk == 27) {
-			unsigned int repeat;
-			for (repeat = 0; repeat < input->key_typed[key];
-			     ++repeat) {
+			for (unsigned int repeat = 0;
+			     repeat < input->key_typed[key]; ++repeat) {
 				xvt_input_append(vk);
 			}
 		}

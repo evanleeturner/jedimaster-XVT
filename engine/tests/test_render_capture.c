@@ -336,12 +336,12 @@ static void check_hud_boxes(void)
 static void check_hyperspace(void)
 {
 	fresh_mission();
+	xvt_render_capture_capture_view();
 	const int x[3] = {1, 2, 3};
 	const int y[3] = {-4, -5, -6};
 	const int z[3] = {70, 80, 90};
 	const int width[3] = {9, 8, 7};
 	const int roll[3] = {100, 200, 300};
-	xvt_render_capture_capture_view();
 	xvt_render_capture_hyperspace(3, x, y, z, width, roll);
 	xvt_render_capture_seal_view();
 	xvt_render_capture_presented(1);

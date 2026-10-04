@@ -73,9 +73,6 @@ static int16_t g_palette_remap_cache[256] = {0};
 int front_image_register_resource_default(const char *file_name,
 					  const char *name)
 {
-	struct image_resource *image;
-	struct front_image_resource_record entry;
-
 	if (*file_name == '\0') {
 		return 0;
 	}
@@ -86,6 +83,7 @@ int front_image_register_resource_default(const char *file_name,
 		return 0;
 	}
 
+	struct image_resource *image;
 	image = malloc(sizeof(*image));
 	if (image == NULL) {
 		return 0;
@@ -96,6 +94,7 @@ int front_image_register_resource_default(const char *file_name,
 		return 0;
 	}
 
+	struct front_image_resource_record entry;
 	entry.image = image;
 	strncpy(entry.name, name, sizeof(entry.name));
 	front_image_insert_resource_sorted(&entry);
@@ -109,9 +108,6 @@ int front_image_register_resource(const char *file_name, const char *name,
 				  int remap_to_display_palette,
 				  int compress_rle)
 {
-	struct image_resource *image;
-	struct front_image_resource_record entry;
-
 	if (*file_name == '\0') {
 		return 0;
 	}
@@ -122,6 +118,7 @@ int front_image_register_resource(const char *file_name, const char *name,
 		return 0;
 	}
 
+	struct image_resource *image;
 	image = malloc(sizeof(*image));
 	if (image == NULL) {
 		return 0;
@@ -134,6 +131,7 @@ int front_image_register_resource(const char *file_name, const char *name,
 		return 0;
 	}
 
+	struct front_image_resource_record entry;
 	entry.image = image;
 	strncpy(entry.name, name, sizeof(entry.name));
 	front_image_insert_resource_sorted(&entry);
@@ -146,9 +144,7 @@ int front_image_register_resource(const char *file_name, const char *name,
 // FUNCTION: XVT 0x4B4BF0
 void front_image_free_resource_by_name(const char *name)
 {
-	int resource_index;
-
-	resource_index = front_image_find_resource_by_name(name);
+	int resource_index = front_image_find_resource_by_name(name);
 	if (resource_index == -1) {
 		return;
 	}
@@ -177,13 +173,11 @@ void front_image_free_resource_by_name(const char *name)
 // FUNCTION: XVT 0x4B4C70
 void front_image_free_all_resources(void)
 {
-	int resource_index;
-
 	if (g_front_state.resource_table == NULL) {
 		return;
 	}
 
-	for (resource_index = 511; resource_index >= 0; --resource_index) {
+	for (int resource_index = 511; resource_index >= 0; --resource_index) {
 		front_image_free_resource_by_name(
 			g_front_state.resource_table[resource_index].name);
 	}
@@ -207,14 +201,12 @@ int front_image_resource_exists(const char *name)
 // FUNCTION: XVT 0x4B4CC0
 int front_image_get_resource_rect(const char *name, struct RECT *out_rect)
 {
-	int resource_index;
-
 	if (*name == '\0') {
 		frontend_draw_rect_assign(out_rect, 0, 0, 0, 0);
 		return 0;
 	}
 
-	resource_index = front_image_find_resource_by_name(name);
+	int resource_index = front_image_find_resource_by_name(name);
 	if (resource_index == -1) {
 		frontend_draw_rect_assign(out_rect, 0, 0, 0, 0);
 		return 0;
@@ -233,15 +225,13 @@ int front_image_get_resource_rect(const char *name, struct RECT *out_rect)
 // FUNCTION: XVT 0x4B4D40
 int front_image_draw_sprite_translucent(const char *name, int x, int y)
 {
-	int resource_index;
-	struct image_resource *image;
-
-	resource_index = front_image_find_resource_by_name(name);
+	int resource_index = front_image_find_resource_by_name(name);
 	if (resource_index == -1) {
 		return 0;
 	}
 
-	image = g_front_state.resource_table[resource_index].image;
+	struct image_resource *image =
+		g_front_state.resource_table[resource_index].image;
 	if (image->is_compressed != 0) {
 		return 0;
 	}
@@ -261,39 +251,34 @@ int front_image_draw_sprite_translucent(const char *name, int x, int y)
 int front_image_blit_translucent(const struct image_resource *image, int x,
 				 int y)
 {
-	int clip_offset_x;
-	int clip_offset_y;
-	int image_width;
-	int visible_width;
-	int visible_height;
-	int clip_result;
-	int display_bpp;
-	uint8_t *source;
-	uint8_t *destination;
-	struct RECT clipped_rect;
-	struct RECT unclipped_rect;
-
 	if (image == NULL) {
 		return 0;
 	}
 
 	{
+		struct RECT clipped_rect;
 		clipped_rect.left = x;
-		image_width = image->width;
+		int image_width = image->width;
 		clipped_rect.top = y;
 		clipped_rect.right = x + image_width - 1;
 		clipped_rect.bottom = y + image->height - 1;
+		struct RECT unclipped_rect;
 		frontend_draw_rect_copy(&unclipped_rect, &clipped_rect);
-		clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
+		int clip_result =
+			frontend_draw_rect_clip_to_bounds(&clipped_rect);
 		if (clipped_rect.right >= clipped_rect.left &&
 		    clipped_rect.bottom >= clipped_rect.top) {
-			clip_offset_x = clipped_rect.left - unclipped_rect.left;
-			clip_offset_y = clipped_rect.top - unclipped_rect.top;
+			int clip_offset_x =
+				clipped_rect.left - unclipped_rect.left;
+			int clip_offset_y =
+				clipped_rect.top - unclipped_rect.top;
 			image_width = image->width;
-			visible_width = image->width + clipped_rect.right -
-					clip_offset_x - unclipped_rect.right;
-			visible_height = clipped_rect.bottom + image->height -
-					 unclipped_rect.bottom - clip_offset_y;
+			int visible_width = image->width + clipped_rect.right -
+					    clip_offset_x -
+					    unclipped_rect.right;
+			int visible_height =
+				clipped_rect.bottom + image->height -
+				unclipped_rect.bottom - clip_offset_y;
 
 #ifdef XVT_MODERN
 			xvt_render_frontend_image(
@@ -302,10 +287,10 @@ int front_image_blit_translucent(const struct image_resource *image, int x,
 				visible_width, visible_height,
 				XVT_SPRITE_FRONT_TRANSLUCENT, 0);
 #endif
-			display_bpp = g_front_state.display_bpp;
+			int display_bpp = g_front_state.display_bpp;
+			uint8_t *source;
+			uint8_t *destination;
 			if (display_bpp == 8) {
-				int rows_remaining;
-
 				source = &image->pixels[image_width *
 								clip_offset_y +
 							clip_offset_x];
@@ -315,16 +300,12 @@ int front_image_blit_translucent(const struct image_resource *image, int x,
 						 g_front_state.draw_surface_pitch *
 							 (y + clip_offset_y)];
 				if (visible_height > 0) {
-					rows_remaining = visible_height;
+					int rows_remaining = visible_height;
 					do {
-						int column;
-
-						for (column = 0;
+						for (int column = 0;
 						     visible_width > column;
 						     ++column) {
-							uint8_t source_pixel;
-
-							source_pixel =
+							uint8_t source_pixel =
 								source[column];
 							if (source_pixel != 0) {
 								destination[column] =
@@ -339,8 +320,6 @@ int front_image_blit_translucent(const struct image_resource *image, int x,
 					} while (rows_remaining != 0);
 				}
 			} else if (display_bpp == 16) {
-				int rows_remaining;
-
 				source = &image->pixels[image_width *
 								clip_offset_y +
 							clip_offset_x];
@@ -349,6 +328,7 @@ int front_image_blit_translucent(const struct image_resource *image, int x,
 						[2 * x + 2 * clip_offset_x +
 						 g_front_state.draw_surface_pitch *
 							 (y + clip_offset_y)];
+				int rows_remaining;
 				if (g_front_state.pixel_format555 != 0) {
 					if (visible_height > 0) {
 						rows_remaining =
@@ -357,29 +337,19 @@ int front_image_blit_translucent(const struct image_resource *image, int x,
 							unclipped_rect.bottom -
 							clip_offset_y;
 						do {
-							int column;
-							uint8_t *
-								destination_pixel;
-
-							column = 0;
+							int column = 0;
 							if (visible_width > 0) {
-								destination_pixel =
+								uint8_t *destination_pixel =
 									destination;
 								do {
-									uint8_t source_pixel;
-
-									source_pixel = source
+									uint8_t source_pixel = source
 										[column];
 									if (source_pixel !=
 									    0) {
-										int source_color;
-										unsigned int
-											blended;
-
-										source_color =
+										int source_color =
 											image->color_lut
 												[source_pixel];
-										blended =
+										unsigned int blended =
 											(((*(uint16_t
 												     *)
 												   destination_pixel &
@@ -434,24 +404,16 @@ int front_image_blit_translucent(const struct image_resource *image, int x,
 							 unclipped_rect.bottom -
 							 clip_offset_y;
 					do {
-						int column;
-						uint8_t *destination_pixel;
-
-						column = 0;
+						int column = 0;
 						if (visible_width > 0) {
-							destination_pixel =
+							uint8_t *destination_pixel =
 								destination;
 							do {
-								uint8_t source_pixel;
-
-								source_pixel = source
+								uint8_t source_pixel = source
 									[column];
 								if (source_pixel !=
 								    0) {
-									unsigned int
-										blended;
-
-									blended =
+									unsigned int blended =
 										(((*(uint16_t
 											     *)
 											   destination_pixel &
@@ -515,14 +477,12 @@ int front_image_draw_sprite_rect_transparent(const char *name,
 					     const struct RECT *src_rect,
 					     int dst_x, int dst_y)
 {
-	int resource_index;
-	struct image_resource *image;
-
-	resource_index = front_image_find_resource_by_name(name);
+	int resource_index = front_image_find_resource_by_name(name);
 	if (resource_index == -1) {
 		return 0;
 	}
-	image = g_front_state.resource_table[resource_index].image;
+	struct image_resource *image =
+		g_front_state.resource_table[resource_index].image;
 	if (image->is_compressed != 0) {
 		return 0;
 	}
@@ -540,40 +500,29 @@ int front_image_blit_rect_transparent(const struct image_resource *image,
 				      const struct RECT *src_rect, int dst_x,
 				      int dst_y)
 {
-	int rows_remaining;
-	int display_bpp;
-	int visible_height;
-	int clip_offset_x;
-	int clip_offset_y;
-	int visible_width;
-	int clip_result;
-	struct RECT destination_rect;
-	struct RECT unclipped_rect;
-
 	if (image == NULL) {
 		return 0;
 	}
+	struct RECT destination_rect;
 	frontend_draw_rect_copy(&destination_rect, src_rect);
 	frontend_draw_rect_offset_xy(&destination_rect, dst_x - src_rect->left,
 				     dst_y - src_rect->top);
+	struct RECT unclipped_rect;
 	frontend_draw_rect_copy(&unclipped_rect, &destination_rect);
-	clip_result = frontend_draw_rect_clip_to_bounds(&destination_rect);
+	int clip_result = frontend_draw_rect_clip_to_bounds(&destination_rect);
 	if (destination_rect.right >= destination_rect.left) {
 		if (destination_rect.top <= destination_rect.bottom) {
-			int source_top;
-			int source_left;
-
-			clip_offset_x =
+			int clip_offset_x =
 				destination_rect.left - unclipped_rect.left;
-			clip_offset_y =
+			int clip_offset_y =
 				destination_rect.top - unclipped_rect.top;
-			source_left = src_rect->left;
-			visible_width = src_rect->right - source_left;
+			int source_left = src_rect->left;
+			int visible_width = src_rect->right - source_left;
 			visible_width -= clip_offset_x;
 			visible_width += destination_rect.right + 1;
 			visible_width -= unclipped_rect.right;
-			source_top = src_rect->top;
-			visible_height = src_rect->bottom - source_top;
+			int source_top = src_rect->top;
+			int visible_height = src_rect->bottom - source_top;
 			visible_height += destination_rect.bottom + 1;
 			visible_height -= clip_offset_y;
 			visible_height -= unclipped_rect.bottom;
@@ -586,20 +535,17 @@ int front_image_blit_rect_transparent(const struct image_resource *image,
 				visible_width, visible_height,
 				XVT_SPRITE_FRONT_KEYED, 0);
 #endif
-			display_bpp = g_front_state.display_bpp;
+			int display_bpp = g_front_state.display_bpp;
+			int rows_remaining;
 			switch (display_bpp) {
 			case 8: {
-				uint8_t *source;
-				uint8_t *destination;
-				int column;
-
-				source =
+				uint8_t *source =
 					&image->pixels[image->width *
 							       (source_top +
 								clip_offset_y) +
 						       source_left +
 						       clip_offset_x];
-				destination =
+				uint8_t *destination =
 					&g_draw_surface_ptr
 						[dst_x + clip_offset_x +
 						 g_front_state.draw_surface_pitch *
@@ -608,7 +554,7 @@ int front_image_blit_rect_transparent(const struct image_resource *image,
 				if (visible_height > 0) {
 					rows_remaining = visible_height;
 					do {
-						column = 0;
+						int column = 0;
 						if (visible_width > 0) {
 							do {
 								if (source[column] !=
@@ -632,17 +578,13 @@ int front_image_blit_rect_transparent(const struct image_resource *image,
 				break;
 			}
 			case 16: {
-				uint8_t *source;
-				uint8_t *destination;
-				int column;
-
-				source =
+				uint8_t *source =
 					&image->pixels[image->width *
 							       (source_top +
 								clip_offset_y) +
 						       source_left +
 						       clip_offset_x];
-				destination =
+				uint8_t *destination =
 					&g_draw_surface_ptr
 						[2 * (dst_x + clip_offset_x) +
 						 g_front_state.draw_surface_pitch *
@@ -651,7 +593,7 @@ int front_image_blit_rect_transparent(const struct image_resource *image,
 				if (visible_height > 0) {
 					rows_remaining = visible_height;
 					do {
-						column = 0;
+						int column = 0;
 						if (visible_width > 0) {
 							do {
 								if (source[column] !=
@@ -692,14 +634,12 @@ int front_image_draw_sprite_rect_tinted(const char *name,
 					const struct RECT *src_rect, int dst_x,
 					int dst_y, unsigned int tint_color)
 {
-	int resource_index;
-	struct image_resource *image;
-
-	resource_index = front_image_find_resource_by_name(name);
+	int resource_index = front_image_find_resource_by_name(name);
 	if (resource_index == -1) {
 		return 0;
 	}
-	image = g_front_state.resource_table[resource_index].image;
+	struct image_resource *image =
+		g_front_state.resource_table[resource_index].image;
 	if (image->is_compressed != 0) {
 		return 0;
 	}
@@ -720,57 +660,37 @@ int front_image_blit_rect_tinted(const struct image_resource *image,
 				 const struct RECT *src_rect, int dst_x,
 				 int dst_y, unsigned int tint_color)
 {
-	int visible_height;
-	int display_bpp;
-	int source_top;
-	int source_left;
-	int clip_offset_x;
-	int clip_offset_y;
-	int visible_width;
-	int clip_result;
-	struct RECT destination_rect;
-	uint8_t *source;
-	uint8_t *destination;
-	int rows_remaining;
-	struct RECT unclipped_rect;
-	int column;
-	const struct RECT *source_rect;
-	int destination_y;
-	uint8_t source_pixel;
-	int intensity;
-	unsigned int tint_red;
-	unsigned int tint_green;
-	int red;
-	int green;
-	int blue;
-
 	if (image == NULL) {
 		return 0;
 	}
 
-	source_rect = src_rect;
-	destination_y = dst_y;
+	const struct RECT *source_rect = src_rect;
+	int destination_y = dst_y;
+	struct RECT destination_rect;
 	frontend_draw_rect_copy(&destination_rect, source_rect);
 	frontend_draw_rect_offset_xy(&destination_rect,
 				     dst_x - source_rect->left,
 				     destination_y - source_rect->top);
+	struct RECT unclipped_rect;
 	frontend_draw_rect_copy(&unclipped_rect, &destination_rect);
-	clip_result = frontend_draw_rect_clip_to_bounds(&destination_rect);
+	int clip_result = frontend_draw_rect_clip_to_bounds(&destination_rect);
+	unsigned int tint_red;
+	unsigned int tint_green;
 	if (destination_rect.right >= destination_rect.left) {
 		if (destination_rect.top > destination_rect.bottom) {
 			return clip_result;
 		}
 
-		clip_offset_x = destination_rect.left - unclipped_rect.left;
-		clip_offset_y = destination_rect.top - unclipped_rect.top;
-		source_left = source_rect->left;
-		visible_width = source_rect->right - source_left -
-				clip_offset_x - unclipped_rect.right +
-				destination_rect.right + 1;
-		source_top = source_rect->top;
-		visible_height = source_rect->bottom - source_top -
-				 clip_offset_y - unclipped_rect.bottom +
-				 destination_rect.bottom + 1;
+		int clip_offset_x = destination_rect.left - unclipped_rect.left;
+		int clip_offset_y = destination_rect.top - unclipped_rect.top;
+		int source_left = source_rect->left;
+		int visible_width = source_rect->right - source_left -
+				    clip_offset_x - unclipped_rect.right +
+				    destination_rect.right + 1;
+		int source_top = source_rect->top;
+		int visible_height = source_rect->bottom - source_top -
+				     clip_offset_y - unclipped_rect.bottom +
+				     destination_rect.bottom + 1;
 
 #ifdef XVT_MODERN
 		xvt_render_frontend_image(
@@ -779,7 +699,10 @@ int front_image_blit_rect_tinted(const struct image_resource *image,
 			dst_y + clip_offset_y, visible_width, visible_height,
 			XVT_SPRITE_FRONT_TINTED, tint_color);
 #endif
-		display_bpp = g_front_state.display_bpp;
+		int display_bpp = g_front_state.display_bpp;
+		uint8_t *source;
+		uint8_t *destination;
+		int column;
 		if (display_bpp == 8) {
 			destination =
 				&g_draw_surface_ptr
@@ -818,15 +741,16 @@ int front_image_blit_rect_tinted(const struct image_resource *image,
 						 (destination_y +
 						  clip_offset_y)];
 			if (visible_height > 0) {
-				for (rows_remaining = visible_height;
+				for (int rows_remaining = visible_height;
 				     rows_remaining != 0; --rows_remaining) {
 					for (column = 0; column < visible_width;
 					     ++column) {
-						source_pixel = source[column];
+						uint8_t source_pixel =
+							source[column];
 						if (source_pixel == 0) {
 							continue;
 						}
-						intensity =
+						int intensity =
 							image->color_lut
 								[source_pixel] &
 							0x1F;
@@ -845,15 +769,16 @@ int front_image_blit_rect_tinted(const struct image_resource *image,
 								tint_color &
 								0x7E0;
 						}
-						red = intensity *
-						      (int)tint_red / 31;
-						green = intensity *
+						int red = intensity *
+							  (int)tint_red / 31;
+						int green =
+							intensity *
 							(int)(tint_green >> 5) /
 							31;
-						blue = intensity *
-						       (int)(tint_color &
-							     0x1F) /
-						       31;
+						int blue = intensity *
+							   (int)(tint_color &
+								 0x1F) /
+							   31;
 						if (g_front_state
 							    .pixel_format555 !=
 						    0) {
@@ -884,9 +809,7 @@ int front_image_blit_rect_tinted(const struct image_resource *image,
 // FUNCTION: XVT 0x4B5570
 int front_image_draw_sprite(const char *name, int x, int y)
 {
-	int resource_index;
-
-	resource_index = front_image_find_resource_by_name(name);
+	int resource_index = front_image_find_resource_by_name(name);
 	if (resource_index == -1) {
 		return 0;
 	}
@@ -905,40 +828,27 @@ int front_image_draw_sprite(const char *name, int x, int y)
 int front_image_blit_transparent(const struct image_resource *image, int x,
 				 int y)
 {
-	struct RECT clipped_rect;
-	struct RECT original_rect;
-	int clip_result;
-	int source_x;
-	int source_y;
-	int width;
-	int visible_width;
-	int visible_height;
-	int display_bpp;
-	const uint8_t *source;
-	uint8_t *destination;
-	int row;
-	int column;
-	uint8_t pixel;
-
 	if (image == NULL) {
 		return 0;
 	}
 
+	struct RECT clipped_rect;
 	clipped_rect.left = x;
 	clipped_rect.top = y;
 	clipped_rect.right = x + image->width - 1;
 	clipped_rect.bottom = y + image->height - 1;
+	struct RECT original_rect;
 	frontend_draw_rect_copy(&original_rect, &clipped_rect);
-	clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
+	int clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
 	if (clipped_rect.right >= clipped_rect.left &&
 	    clipped_rect.top <= clipped_rect.bottom) {
-		source_x = clipped_rect.left - original_rect.left;
-		source_y = clipped_rect.top - original_rect.top;
-		width = image->width;
-		visible_width = clipped_rect.right - source_x -
-				original_rect.right + width;
-		visible_height = clipped_rect.bottom + image->height -
-				 source_y - original_rect.bottom;
+		int source_x = clipped_rect.left - original_rect.left;
+		int source_y = clipped_rect.top - original_rect.top;
+		int width = image->width;
+		int visible_width = clipped_rect.right - source_x -
+				    original_rect.right + width;
+		int visible_height = clipped_rect.bottom + image->height -
+				     source_y - original_rect.bottom;
 
 #ifdef XVT_MODERN
 		xvt_render_frontend_image(image, source_x, source_y,
@@ -946,8 +856,12 @@ int front_image_blit_transparent(const struct image_resource *image, int x,
 					  visible_width, visible_height,
 					  XVT_SPRITE_FRONT_KEYED, 0);
 #endif
-		display_bpp = g_front_state.display_bpp;
+		int display_bpp = g_front_state.display_bpp;
 		if (image->is_compressed == 0) {
+			const uint8_t *source;
+			uint8_t *destination;
+			int row;
+			int column;
 			if (display_bpp == 8) {
 				source = &image->pixels[source_y * width +
 							source_x];
@@ -959,7 +873,7 @@ int front_image_blit_transparent(const struct image_resource *image, int x,
 				for (row = visible_height; row > 0; --row) {
 					for (column = 0; column < visible_width;
 					     ++column) {
-						pixel = source[column];
+						uint8_t pixel = source[column];
 						if (pixel != 0) {
 							destination[column] =
 								pixel;
@@ -1026,21 +940,12 @@ void front_image_blit_rle8(const struct image_resource *image, int dest_x,
 			   int visible_width, int visible_height)
 {
 	const uint8_t *row;
-	const uint8_t *row_start;
 	uint8_t *destination;
 	int row_length;
-	int token_offset;
-	int destination_offset;
-	uint8_t started;
 	uint8_t token;
-	int count;
-	int end_offset;
-	int rows_remaining;
 	uint8_t value;
 
 	if (visible_width == image->width) {
-		int fast_rows_remaining;
-
 		row = image->pixels;
 		destination =
 			&g_draw_surface_ptr[g_front_state.draw_surface_pitch *
@@ -1060,11 +965,9 @@ void front_image_blit_rle8(const struct image_resource *image, int dest_x,
 			return;
 		}
 
-		fast_rows_remaining = visible_height;
+		int fast_rows_remaining = visible_height;
 		do {
-			int fast_destination_offset;
-
-			fast_destination_offset = 0;
+			int fast_destination_offset = 0;
 			row += sizeof(row_length);
 			for (;;) {
 				token = *row++;
@@ -1117,17 +1020,19 @@ void front_image_blit_rle8(const struct image_resource *image, int dest_x,
 		return;
 	}
 
-	rows_remaining = visible_height;
+	int rows_remaining = visible_height;
+	int count;
+	int end_offset;
 	do {
-		row_start = row;
-		destination_offset = 0;
-		token_offset = sizeof(row_length);
+		const uint8_t *row_start = row;
+		int destination_offset = 0;
+		int token_offset = sizeof(row_length);
 #ifdef XVT_MODERN
 		memcpy(&row_length, row_start, sizeof(row_length));
 #else
 		row_length = *(const int *)row_start;
 #endif
-		started = 0;
+		uint8_t started = 0;
 
 		for (;;) {
 			token = row_start[token_offset++];
@@ -1251,24 +1156,15 @@ void front_image_blit_rle16(const struct image_resource *image, int dest_x,
 			    int visible_width, int visible_height)
 {
 	const uint8_t *row;
-	const uint8_t *row_start;
 	uint8_t *destination;
 	int row_length;
-	int token_offset;
-	int destination_offset;
-	uint8_t started;
 	uint8_t token;
-	int count;
-	int end_offset;
-	int rows_remaining;
 	int color;
 	int pixel_index;
 	uint16_t *fill_destination;
 	int fill_count;
 
 	if (visible_width == image->width) {
-		int fast_rows_remaining;
-
 		row = image->pixels;
 		destination =
 			&g_draw_surface_ptr[g_front_state.draw_surface_pitch *
@@ -1288,11 +1184,9 @@ void front_image_blit_rle16(const struct image_resource *image, int dest_x,
 			return;
 		}
 
-		fast_rows_remaining = visible_height;
+		int fast_rows_remaining = visible_height;
 		do {
-			int fast_destination_offset;
-
-			fast_destination_offset = 0;
+			int fast_destination_offset = 0;
 			row += sizeof(row_length);
 			for (;;) {
 				token = *row++;
@@ -1358,17 +1252,19 @@ void front_image_blit_rle16(const struct image_resource *image, int dest_x,
 		return;
 	}
 
-	rows_remaining = visible_height;
+	int rows_remaining = visible_height;
+	int count;
+	int end_offset;
 	do {
-		row_start = row;
-		destination_offset = 0;
-		token_offset = sizeof(row_length);
+		const uint8_t *row_start = row;
+		int destination_offset = 0;
+		int token_offset = sizeof(row_length);
 #ifdef XVT_MODERN
 		memcpy(&row_length, row_start, sizeof(row_length));
 #else
 		row_length = *(const int *)row_start;
 #endif
-		started = 0;
+		uint8_t started = 0;
 
 		for (;;) {
 			token = row_start[token_offset++];
@@ -1532,9 +1428,7 @@ void front_image_blit_rle16(const struct image_resource *image, int dest_x,
 // FUNCTION: XVT 0x4B5DE0
 int front_image_draw_sprite_opaque(const char *name, int x, int y)
 {
-	int resource_index;
-
-	resource_index = front_image_find_resource_by_name(name);
+	int resource_index = front_image_find_resource_by_name(name);
 	if (resource_index == -1) {
 		return 0;
 	}
@@ -1552,38 +1446,27 @@ int front_image_draw_sprite_opaque(const char *name, int x, int y)
 // FUNCTION: XVT 0x4B5E20
 int front_image_blit_opaque(const struct image_resource *image, int x, int y)
 {
-	int clip_result;
-	struct RECT clipped_rect;
-	struct RECT original_rect;
-	int source_x;
-	int source_y;
-	int width;
-	int visible_width;
-	int visible_height;
-	int display_bpp;
-	const uint8_t *source;
-	uint8_t *destination;
-	int column;
-
 	if (image == NULL) {
 		return 0;
 	}
 
+	struct RECT clipped_rect;
 	clipped_rect.left = x;
 	clipped_rect.top = y;
 	clipped_rect.right = x + image->width - 1;
 	clipped_rect.bottom = y + image->height - 1;
+	struct RECT original_rect;
 	frontend_draw_rect_copy(&original_rect, &clipped_rect);
-	clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
+	int clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
 	if (clipped_rect.right >= clipped_rect.left &&
 	    clipped_rect.top <= clipped_rect.bottom) {
-		source_x = clipped_rect.left - original_rect.left;
-		source_y = clipped_rect.top - original_rect.top;
-		width = image->width;
-		visible_width = clipped_rect.right - source_x -
-				original_rect.right + width;
-		visible_height = clipped_rect.bottom + image->height -
-				 source_y - original_rect.bottom;
+		int source_x = clipped_rect.left - original_rect.left;
+		int source_y = clipped_rect.top - original_rect.top;
+		int width = image->width;
+		int visible_width = clipped_rect.right - source_x -
+				    original_rect.right + width;
+		int visible_height = clipped_rect.bottom + image->height -
+				     source_y - original_rect.bottom;
 
 #ifdef XVT_MODERN
 		xvt_render_frontend_image(image, source_x, source_y,
@@ -1591,8 +1474,11 @@ int front_image_blit_opaque(const struct image_resource *image, int x, int y)
 					  visible_width, visible_height,
 					  XVT_SPRITE_FRONT_OPAQUE, 0);
 #endif
-		display_bpp = g_front_state.display_bpp;
+		int display_bpp = g_front_state.display_bpp;
 		if (image->is_compressed == 0) {
+			const uint8_t *source;
+			uint8_t *destination;
+			int column;
 			if (display_bpp == 8) {
 				source = &image->pixels[source_y * width +
 							source_x];
@@ -1666,23 +1552,12 @@ void front_image_blit_rle8_opaque(const struct image_resource *image,
 				  int src_top, int visible_width,
 				  int visible_height)
 {
-	const uint8_t *row;
-	const uint8_t *row_start;
+	const uint8_t *row = image->pixels;
 	uint8_t *destination;
 	int row_length;
-	int token_offset;
-	int destination_offset;
-	uint8_t started;
 	uint8_t token;
-	int count;
-	int end_offset;
-	int rows_remaining;
 	uint8_t value;
-
-	row = image->pixels;
 	if (visible_width == image->width) {
-		int fast_rows_remaining;
-
 		destination =
 			&g_draw_surface_ptr[g_front_state.draw_surface_pitch *
 						    dest_y +
@@ -1701,11 +1576,9 @@ void front_image_blit_rle8_opaque(const struct image_resource *image,
 			return;
 		}
 
-		fast_rows_remaining = visible_height;
+		int fast_rows_remaining = visible_height;
 		do {
-			int fast_destination_offset;
-
-			fast_destination_offset = 0;
+			int fast_destination_offset = 0;
 			row += sizeof(row_length);
 			for (;;) {
 				token = *row++;
@@ -1761,17 +1634,19 @@ void front_image_blit_rle8_opaque(const struct image_resource *image,
 		return;
 	}
 
-	rows_remaining = visible_height;
+	int rows_remaining = visible_height;
+	int count;
+	int end_offset;
 	do {
-		row_start = row;
-		destination_offset = 0;
-		token_offset = sizeof(row_length);
+		const uint8_t *row_start = row;
+		int destination_offset = 0;
+		int token_offset = sizeof(row_length);
 #ifdef XVT_MODERN
 		memcpy(&row_length, row_start, sizeof(row_length));
 #else
 		row_length = *(const int *)row_start;
 #endif
-		started = 0;
+		uint8_t started = 0;
 
 		for (;;) {
 			token = row_start[token_offset++];
@@ -1907,16 +1782,9 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 				   int visible_height)
 {
 	const uint8_t *row;
-	const uint8_t *row_start;
 	uint8_t *destination;
 	int row_length;
-	int token_offset;
-	int destination_offset;
-	uint8_t started;
 	uint8_t token;
-	int count;
-	int end_offset;
-	int rows_remaining;
 	int color;
 	int pixel_index;
 	uint16_t *fill_destination;
@@ -1924,8 +1792,6 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 	int source_rows_to_skip;
 
 	if (visible_width == image->width) {
-		int fast_rows_remaining;
-
 		row = image->pixels;
 		destination =
 			&g_draw_surface_ptr[g_front_state.draw_surface_pitch *
@@ -1948,11 +1814,9 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 			return;
 		}
 
-		fast_rows_remaining = visible_height;
+		int fast_rows_remaining = visible_height;
 		do {
-			int fast_destination_offset;
-
-			fast_destination_offset = 0;
+			int fast_destination_offset = 0;
 			row += sizeof(row_length);
 			for (;;) {
 				token = *row++;
@@ -2035,17 +1899,19 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 		return;
 	}
 
-	rows_remaining = visible_height;
+	int rows_remaining = visible_height;
+	int count;
+	int end_offset;
 	do {
-		row_start = row;
-		destination_offset = 0;
-		token_offset = sizeof(row_length);
+		const uint8_t *row_start = row;
+		int destination_offset = 0;
+		int token_offset = sizeof(row_length);
 #ifdef XVT_MODERN
 		memcpy(&row_length, row_start, sizeof(row_length));
 #else
 		row_length = *(const int *)row_start;
 #endif
-		started = 0;
+		uint8_t started = 0;
 
 		for (;;) {
 			token = row_start[token_offset++];
@@ -2223,20 +2089,18 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 int front_image_draw_glyph(const struct image_resource *glyph, int x, int y,
 			   unsigned int color, int apply_text_fade)
 {
-	int clip_result;
-	struct RECT clipped_rect;
-	struct RECT original_rect;
-
 	if (glyph == NULL) {
 		return 0;
 	}
 
+	struct RECT clipped_rect;
 	clipped_rect.left = x;
 	clipped_rect.top = y;
 	clipped_rect.right = x + glyph->width - 1;
 	clipped_rect.bottom = y + glyph->height - 1;
+	struct RECT original_rect;
 	frontend_draw_rect_copy(&original_rect, &clipped_rect);
-	clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
+	int clip_result = frontend_draw_rect_clip_to_bounds(&clipped_rect);
 	if (clipped_rect.right < clipped_rect.left) {
 		return clip_result;
 	}
@@ -2248,38 +2112,28 @@ int front_image_draw_glyph(const struct image_resource *glyph, int x, int y,
 	xvt_render_frontend_glyph(glyph, x, y, color, apply_text_fade);
 #endif
 	{
-		int clip_left_skip;
-		int clip_top_skip;
-		int visible_width;
-		int visible_rows;
-		int display_bpp;
-
-		clip_left_skip = clipped_rect.left - original_rect.left;
-		clip_top_skip = clipped_rect.top - original_rect.top;
-		visible_width = clipped_rect.right - clip_left_skip -
-				original_rect.right + glyph->width;
-		visible_rows = clipped_rect.bottom + glyph->height -
-			       original_rect.bottom - clip_top_skip;
-		display_bpp = g_front_state.display_bpp;
+		int clip_left_skip = clipped_rect.left - original_rect.left;
+		int clip_top_skip = clipped_rect.top - original_rect.top;
+		int visible_width = clipped_rect.right - clip_left_skip -
+				    original_rect.right + glyph->width;
+		int visible_rows = clipped_rect.bottom + glyph->height -
+				   original_rect.bottom - clip_top_skip;
+		int display_bpp = g_front_state.display_bpp;
 		if (glyph->is_compressed == 0) {
 			switch (display_bpp) {
 			case 8: {
-				uint8_t *source;
-				uint8_t *destination;
-
-				source = &glyph->pixels[glyph->width *
-								clip_top_skip +
-							clip_left_skip];
-				destination =
+				uint8_t *source =
+					&glyph->pixels[glyph->width *
+							       clip_top_skip +
+						       clip_left_skip];
+				uint8_t *destination =
 					&g_draw_surface_ptr
 						[x + clip_left_skip +
 						 g_front_state.draw_surface_pitch *
 							 (y + clip_top_skip)];
 				if (visible_rows > 0) {
 					do {
-						int column;
-
-						for (column = 0;
+						for (int column = 0;
 						     column < visible_width;
 						     ++column) {
 							if (source[column] !=
@@ -2299,30 +2153,25 @@ int front_image_draw_glyph(const struct image_resource *glyph, int x, int y,
 				break;
 			}
 			case 16: {
-				uint8_t *source;
-				uint8_t *destination;
-				uint16_t draw_color;
-
-				draw_color = (uint16_t)color;
+				uint16_t draw_color = (uint16_t)color;
 				if (apply_text_fade != 0 &&
 				    g_front_state.text_fade_frames_left != 0) {
 					draw_color = (uint16_t)
 						front_image_get_faded_glyph_color16(
 							color);
 				}
-				source = &glyph->pixels[glyph->width *
-								clip_top_skip +
-							clip_left_skip];
-				destination =
+				uint8_t *source =
+					&glyph->pixels[glyph->width *
+							       clip_top_skip +
+						       clip_left_skip];
+				uint8_t *destination =
 					&g_draw_surface_ptr
 						[2 * (x + clip_left_skip) +
 						 g_front_state.draw_surface_pitch *
 							 (y + clip_top_skip)];
 				if (visible_rows > 0) {
 					do {
-						int column;
-
-						for (column = 0;
+						for (int column = 0;
 						     column < visible_width;
 						     ++column) {
 							if (source[column] !=
@@ -2355,9 +2204,7 @@ int front_image_draw_glyph(const struct image_resource *glyph, int x, int y,
 					visible_rows, (uint8_t)color);
 				break;
 			case 16: {
-				unsigned int draw_color;
-
-				draw_color = color;
+				unsigned int draw_color = color;
 				if (apply_text_fade != 0 &&
 				    g_front_state.text_fade_frames_left != 0) {
 					draw_color =
@@ -2471,13 +2318,10 @@ void front_image_blit_glyph_rle_8bpp(const struct image_resource *glyph,
 	}
 
 	for (y = 0; y < visible_rows; ++y) {
-		int row_length;
-		int token_offset;
-		char started;
-
 		destination_offset = 0;
-		token_offset = 4;
-		started = 0;
+		int token_offset = 4;
+		char started = 0;
+		int row_length;
 #ifdef XVT_MODERN
 		memcpy(&row_length, row, sizeof(row_length));
 #else
@@ -2497,10 +2341,8 @@ void front_image_blit_glyph_rle_8bpp(const struct image_resource *glyph,
 					token &= 0x7F;
 					if (clip_left_skip <=
 					    destination_offset + token) {
-						int skip;
-
-						skip = clip_left_skip -
-						       destination_offset;
+						int skip = clip_left_skip -
+							   destination_offset;
 						started = 1;
 						destination_offset = 0;
 						token_offset += skip;
@@ -2516,10 +2358,8 @@ void front_image_blit_glyph_rle_8bpp(const struct image_resource *glyph,
 					token &= 0x3F;
 					if (clip_left_skip <=
 					    destination_offset + token) {
-						int skip;
-
-						skip = clip_left_skip -
-						       destination_offset;
+						int skip = clip_left_skip -
+							   destination_offset;
 						started = 1;
 						destination_offset = 0;
 						token -= (uint8_t)skip;
@@ -2532,10 +2372,8 @@ void front_image_blit_glyph_rle_8bpp(const struct image_resource *glyph,
 				} else {
 					if (clip_left_skip <=
 					    destination_offset + token) {
-						int skip;
-
-						skip = clip_left_skip -
-						       destination_offset;
+						int skip = clip_left_skip -
+							   destination_offset;
 						started = 1;
 						destination_offset = 0;
 						token -= (uint8_t)skip;
@@ -2613,8 +2451,6 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 	int y;
 
 	if (visible_width == glyph->width) {
-		unsigned int destination_pitch;
-
 		row = glyph->pixels;
 		destination =
 			&g_draw_surface_ptr[2 * dest_x +
@@ -2633,29 +2469,25 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 
 		if (visible_rows > 0) {
 			y = visible_rows;
-			destination_pitch =
+			unsigned int destination_pitch =
 				g_front_state.draw_surface_pitch & 0xFFFFFFFE;
 			do {
 				destination_offset = 0;
 				row += 4;
 				for (;;) {
-					int count;
-
 					token = *row++;
 					if (token == 0x80) {
 						break;
 					}
 
+					int count;
 					if ((token & 0x80) != 0) {
-						uint16_t *fill_destination;
-						int fill_count;
-
 						count = token & 0x7F;
-						fill_destination = (uint16_t
-									    *)&destination
-							[2 *
-							 destination_offset];
-						fill_count = count;
+						uint16_t *fill_destination =
+							(uint16_t *)&destination
+								[2 *
+								 destination_offset];
+						int fill_count = count;
 						while (fill_count > 0) {
 							*fill_destination =
 								(uint16_t)color;
@@ -2668,16 +2500,13 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 						destination_offset +=
 							token & 0x3F;
 					} else {
-						uint16_t *fill_destination;
-						int fill_count;
-
 						count = token;
 						++row;
-						fill_destination = (uint16_t
-									    *)&destination
-							[2 *
-							 destination_offset];
-						fill_count = count;
+						uint16_t *fill_destination =
+							(uint16_t *)&destination
+								[2 *
+								 destination_offset];
+						int fill_count = count;
 						while (fill_count > 0) {
 							*fill_destination =
 								(uint16_t)color;
@@ -2710,19 +2539,14 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 	}
 
 	if (visible_rows > 0) {
-		unsigned int destination_pitch;
-
 		y = visible_rows;
-		destination_pitch =
+		unsigned int destination_pitch =
 			g_front_state.draw_surface_pitch & 0xFFFFFFFE;
 		do {
-			int row_length;
-			int token_offset;
-			char started;
-
 			destination_offset = 0;
-			token_offset = 4;
-			started = 0;
+			int token_offset = 4;
+			char started = 0;
+			int row_length;
 #ifdef XVT_MODERN
 			memcpy(&row_length, row, sizeof(row_length));
 #else
@@ -2743,10 +2567,9 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 						if (clip_left_skip <=
 						    destination_offset +
 							    token) {
-							int skip;
-
-							skip = clip_left_skip -
-							       destination_offset;
+							int skip =
+								clip_left_skip -
+								destination_offset;
 							started = 1;
 							destination_offset = 0;
 							token_offset += skip;
@@ -2764,10 +2587,9 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 						if (clip_left_skip <=
 						    destination_offset +
 							    token) {
-							int skip;
-
-							skip = clip_left_skip -
-							       destination_offset;
+							int skip =
+								clip_left_skip -
+								destination_offset;
 							started = 1;
 							destination_offset = 0;
 							token -= (uint8_t)skip;
@@ -2782,10 +2604,9 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 						if (clip_left_skip <=
 						    destination_offset +
 							    token) {
-							int skip;
-
-							skip = clip_left_skip -
-							       destination_offset;
+							int skip =
+								clip_left_skip -
+								destination_offset;
 							started = 1;
 							destination_offset = 0;
 							token -= (uint8_t)skip;
@@ -2808,11 +2629,9 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 				}
 
 				if ((token & 0x80) != 0) {
-					int count;
+					int count = token & 0x7F;
 					uint16_t *fill_destination;
 					int fill_count;
-
-					count = token & 0x7F;
 					if (destination_offset + count >=
 					    visible_width) {
 						count = (uint8_t)(visible_width -
@@ -2850,12 +2669,10 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 						break;
 					}
 				} else {
-					int count;
+					++token_offset;
+					int count = token;
 					uint16_t *fill_destination;
 					int fill_count;
-
-					++token_offset;
-					count = token;
 					if (destination_offset + count >=
 					    visible_width) {
 						count = (uint8_t)(visible_width -
@@ -2912,25 +2729,19 @@ int front_image_load_bmp_file(const char *file_name,
 			      struct image_resource *image,
 			      int remap_to_display_palette, int compress_rle)
 {
-	uint8_t *pixels;
-	xvt_file *stream;
-	int result;
-	struct BITMAPINFOHEADER info_header;
-	struct BITMAPFILEHEADER file_header;
+	uint8_t *pixels = NULL;
+	xvt_file *stream = file_open(file_name, "rb");
+	int result = 0;
 	uint8_t palette[256 * 4];
-
-	pixels = NULL;
-	stream = file_open(file_name, "rb");
-	result = 0;
 	memset(palette, 0, sizeof(palette));
+	struct BITMAPINFOHEADER info_header;
 	if (stream != NULL) {
+		struct BITMAPFILEHEADER file_header;
 		file_read_bytes(stream, &file_header, sizeof(file_header));
 		if (file_header.bfType == 0x4D42) {
-			int row_padding;
-
 			file_read_bytes(stream, &info_header,
 					sizeof(info_header));
-			row_padding = info_header.biWidth % 4;
+			int row_padding = info_header.biWidth % 4;
 			if (row_padding != 0) {
 				row_padding = 4 - row_padding;
 			}
@@ -2943,10 +2754,8 @@ int front_image_load_bmp_file(const char *file_name,
 					       info_header.biHeight *
 						       info_header.biWidth);
 				if (info_header.biPlanes == 1) {
-					unsigned int bits_per_pixel;
-					int display_bpp;
-
-					bits_per_pixel = info_header.biBitCount;
+					unsigned int bits_per_pixel =
+						info_header.biBitCount;
 					switch (bits_per_pixel) {
 					case 4:
 						front_image_read_bmp_palette(
@@ -2968,7 +2777,8 @@ int front_image_load_bmp_file(const char *file_name,
 						break;
 					}
 
-					display_bpp = g_front_state.display_bpp;
+					int display_bpp =
+						g_front_state.display_bpp;
 					switch (display_bpp) {
 					case 8:
 						if (result == 1 &&
@@ -2981,54 +2791,51 @@ int front_image_load_bmp_file(const char *file_name,
 						break;
 
 					case 16: {
-						int *color_entry;
-						uint8_t *palette_entry;
-
-						palette_entry = palette;
-						color_entry = image->color_lut;
+						uint8_t *palette_entry =
+							palette;
+						int *color_entry =
+							image->color_lut;
 						do {
 							if (g_front_state
 								    .pixel_format555 !=
 							    0) {
-								int green;
-								int red;
-								int blue;
-								int color;
-
-								green = palette_entry
+								int green =
+									palette_entry
 										[1] >>
 									3;
-								color = green;
-								red = palette_entry
-									      [0] >>
-								      3;
+								int color =
+									green;
+								int red =
+									palette_entry
+										[0] >>
+									3;
 								red <<= 5;
 								color += red;
-								blue = palette_entry
-									       [2] >>
-								       3;
+								int blue =
+									palette_entry
+										[2] >>
+									3;
 								color <<= 5;
 								*color_entry =
 									color +
 									blue;
 							} else {
-								int red;
-								int green;
-								int blue;
-								int color;
-
-								red = palette_entry
-									      [0] >>
-								      3;
-								color = red
+								int red =
+									palette_entry
+										[0] >>
+									3;
+								int color =
+									red
 									<< 6;
-								green = palette_entry
+								int green =
+									palette_entry
 										[1] >>
 									2;
 								color += green;
-								blue = palette_entry
-									       [2] >>
-								       3;
+								int blue =
+									palette_entry
+										[2] >>
+									3;
 								color <<= 5;
 								*color_entry =
 									color +
@@ -3057,9 +2864,7 @@ int front_image_load_bmp_file(const char *file_name,
 	}
 
 	{
-		int image_height;
-
-		image_height = info_header.biHeight;
+		int image_height = info_header.biHeight;
 		image->width = info_header.biWidth;
 		image->height = image_height;
 		image->pixels = pixels;
@@ -3088,28 +2893,19 @@ int front_image_decode_bmp4bpp(xvt_file *stream, void *dst_pixels,
 			       const struct BITMAPFILEHEADER *file_header,
 			       const struct BITMAPINFOHEADER *info_header)
 {
-	size_t data_size;
-	uint8_t *data;
-
-	data_size = file_header->bfSize - file_header->bfOffBits;
-	data = malloc(data_size);
+	size_t data_size = file_header->bfSize - file_header->bfOffBits;
+	uint8_t *data = malloc(data_size);
 	if (data == NULL) {
 		return 0;
 	}
 
 	if (info_header->biCompression == 0) {
-		int src_offset;
-		int16_t row;
-
-		src_offset = 0;
+		int src_offset = 0;
 		file_read_bytes(stream, data, data_size);
-		for (row = 0; row < info_header->biHeight; ++row) {
-			int16_t column;
-			int dst_row_offset;
-
-			dst_row_offset = info_header->biWidth *
-					 (info_header->biHeight - row - 1);
-			for (column = 0; column < info_header->biWidth;
+		for (int16_t row = 0; row < info_header->biHeight; ++row) {
+			int dst_row_offset = info_header->biWidth *
+					     (info_header->biHeight - row - 1);
+			for (int16_t column = 0; column < info_header->biWidth;
 			     ++column) {
 				if ((column & 1) != 0) {
 					((uint8_t *)dst_pixels)[dst_row_offset +
@@ -3150,20 +2946,14 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 			       const struct BITMAPFILEHEADER *file_header,
 			       const struct BITMAPINFOHEADER *info_header)
 {
-	int row_padding;
-	uint8_t *data;
-	int source_offset;
-	int destination_offset;
-	uint8_t padding_buffer[4];
-
 	(void)file_header;
 
-	row_padding = info_header->biWidth % 4;
+	int row_padding = info_header->biWidth % 4;
 	if (row_padding != 0) {
 		row_padding = 4 - row_padding;
 	}
 
-	data = NULL;
+	uint8_t *data = NULL;
 	if (info_header->biCompression != 0) {
 		data = malloc(info_header->biSizeImage);
 		if (data == NULL) {
@@ -3171,11 +2961,10 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 		}
 	}
 
+	uint8_t padding_buffer[4];
 	switch (info_header->biCompression) {
 	case 0: {
-		int16_t row;
-
-		for (row = 0; row < info_header->biHeight; ++row) {
+		for (int16_t row = 0; row < info_header->biHeight; ++row) {
 			file_read_bytes(stream,
 					(uint8_t *)dst_pixels +
 						info_header->biWidth *
@@ -3187,24 +2976,17 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 		break;
 	}
 	case 1: {
-		int row_start_offset;
-		int16_t decode_complete;
-
 		file_read_bytes(stream, data, info_header->biSizeImage);
-		source_offset = 0;
-		decode_complete = 0;
-		destination_offset =
+		int source_offset = 0;
+		int16_t decode_complete = 0;
+		int destination_offset =
 			info_header->biWidth * (info_header->biHeight - 1);
-		row_start_offset = destination_offset;
+		int row_start_offset = destination_offset;
 		do {
-			uint8_t run_length;
-
-			run_length = data[source_offset];
+			uint8_t run_length = data[source_offset];
 			++source_offset;
 			if (run_length == 0) {
-				uint8_t escape_code;
-
-				escape_code = data[source_offset];
+				uint8_t escape_code = data[source_offset];
 				++source_offset;
 				switch (escape_code) {
 				case 0:
@@ -3216,16 +2998,12 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 					decode_complete = 1;
 					break;
 				case 2: {
-					uint8_t delta_x;
-					uint8_t delta_y;
-					int column_offset;
-
-					delta_x = data[source_offset];
+					uint8_t delta_x = data[source_offset];
 					++source_offset;
-					delta_y = data[source_offset];
+					uint8_t delta_y = data[source_offset];
 					++source_offset;
-					column_offset = destination_offset -
-							row_start_offset;
+					int column_offset = destination_offset -
+							    row_start_offset;
 					row_start_offset -=
 						delta_y * info_header->biWidth;
 					destination_offset = delta_x +
@@ -3234,9 +3012,7 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 					break;
 				}
 				default: {
-					int16_t run_index;
-
-					for (run_index = 0;
+					for (int16_t run_index = 0;
 					     run_index < escape_code;
 					     ++run_index) {
 						((uint8_t *)dst_pixels)
@@ -3252,13 +3028,10 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 				}
 				}
 			} else {
-				uint8_t run_value;
-				int16_t run_index;
-
-				run_value = data[source_offset];
+				uint8_t run_value = data[source_offset];
 				++source_offset;
-				for (run_index = 0; run_index < run_length;
-				     ++run_index) {
+				for (int16_t run_index = 0;
+				     run_index < run_length; ++run_index) {
 					((uint8_t *)dst_pixels)
 						[destination_offset] =
 							run_value;
@@ -3286,29 +3059,19 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 void front_image_remap_palette(uint8_t *pixels, const uint8_t *src_palette,
 			       const struct BITMAPINFOHEADER *info_header)
 {
-	int width;
-	int height;
-	int i;
-
-	width = info_header->biWidth;
-	height = info_header->biHeight;
-	for (i = 0; i < 256; ++i) {
+	int width = info_header->biWidth;
+	int height = info_header->biHeight;
+	for (int i = 0; i < 256; ++i) {
 		g_palette_remap_cache[i] = 0x100;
 	}
 
 	if (height > 0) {
-		int rows;
-
-		rows = height;
+		int rows = height;
 		do {
 			if (width > 0) {
-				int x;
-
-				x = width;
+				int x = width;
 				do {
-					uint8_t src_index;
-
-					src_index = *pixels;
+					uint8_t src_index = *pixels;
 					*pixels =
 						front_image_remap_palette_index(
 							&src_palette[4 *
@@ -3330,10 +3093,7 @@ void front_image_remap_palette(uint8_t *pixels, const uint8_t *src_palette,
 // FUNCTION: XVT 0x4B7570
 char front_image_remap_palette_index(const uint8_t *src_rgb, int src_index)
 {
-	int16_t *cached_index;
-	int value;
-
-	cached_index = &g_palette_remap_cache[src_index];
+	int16_t *cached_index = &g_palette_remap_cache[src_index];
 	if (*cached_index < 256) {
 		return (char)*cached_index;
 	}
@@ -3341,7 +3101,8 @@ char front_image_remap_palette_index(const uint8_t *src_rgb, int src_index)
 		return 0;
 	}
 
-	value = frontend_display_pack_rgb(src_rgb[0], src_rgb[1], src_rgb[2]);
+	int value =
+		frontend_display_pack_rgb(src_rgb[0], src_rgb[1], src_rgb[2]);
 	*cached_index = (int16_t)value;
 	return (char)value;
 }
@@ -3360,50 +3121,35 @@ char front_image_remap_palette_index(const uint8_t *src_rgb, int src_index)
 // FUNCTION: XVT 0x4B75B0
 int front_image_compress_rle(struct image_resource *image)
 {
-	uint8_t *last_token;
-	uint8_t *compressed_pixels;
-	int compressed_size;
-	uint8_t *source_row;
-	int encoded_width;
-	uint8_t run_length_byte;
-	int source_size;
-	uint8_t *compressed_write;
-	int row;
-
-	source_size = image->width * image->height;
-	compressed_pixels = malloc(source_size);
+	int source_size = image->width * image->height;
+	uint8_t *compressed_pixels = malloc(source_size);
 	if (compressed_pixels == NULL) {
 		image->is_compressed = 0;
 		return 0;
 	}
 
-	compressed_size = 0;
-	compressed_write = compressed_pixels;
-	source_row = image->pixels;
-	encoded_width = 640;
+	int compressed_size = 0;
+	uint8_t *compressed_write = compressed_pixels;
+	uint8_t *source_row = image->pixels;
+	int encoded_width = 640;
 	if (image->width <= encoded_width) {
 		encoded_width = image->width;
 	}
 
-	row = 0;
+	int row = 0;
 	if (image->height > 0) {
 		do {
-			uint8_t *source;
-			uint8_t *token_write;
-			uint8_t value;
-			int encoded_bytes;
-			int consumed;
-			int copy_index;
-			int row_size;
-
-			source = source_row;
-			encoded_bytes = 0;
-			consumed = 0;
-			token_write = g_front_state.rle_row_buffer.data;
-			value = *source_row;
-			last_token = g_front_state.rle_row_buffer.data;
+			uint8_t *source = source_row;
+			int encoded_bytes = 0;
+			int consumed = 0;
+			uint8_t *token_write =
+				g_front_state.rle_row_buffer.data;
+			uint8_t value = *source_row;
+			uint8_t *last_token = g_front_state.rle_row_buffer.data;
 			g_front_state.rle_row_buffer.data[0] = 0;
 
+			int copy_index;
+			int row_size;
 			if (encoded_width > 0) {
 				for (;;) {
 					int run_length;
@@ -3447,7 +3193,7 @@ int front_image_compress_rle(struct image_resource *image)
 										[copy_index];
 								}
 							} else {
-								run_length_byte =
+								uint8_t run_length_byte =
 									(uint8_t)(run_length +
 										  (*last_token &
 										   0x7f));
@@ -3531,9 +3277,8 @@ int front_image_compress_rle(struct image_resource *image)
 	}
 
 	{
-		uint8_t *resized_pixels;
-
-		resized_pixels = realloc(compressed_pixels, compressed_size);
+		uint8_t *resized_pixels =
+			realloc(compressed_pixels, compressed_size);
 		if (compressed_pixels == NULL) {
 			free(compressed_pixels);
 			image->is_compressed = 0;
@@ -3555,23 +3300,13 @@ int front_image_compress_rle(struct image_resource *image)
 int front_image_encode_glyph_row(struct front_image_rle_row_buffer *row_buffer,
 				 const uint8_t *src_pixels, int width)
 {
-	uint8_t *token_write;
-	uint8_t *last_token;
-	const uint8_t *source;
-	uint8_t value;
-	uint8_t run_length_byte;
-	int encoded_bytes;
-	int consumed;
-	int copy_index;
-	int row_size;
-
-	encoded_bytes = 0;
-	source = src_pixels;
-	consumed = 0;
-	value = *source;
+	int encoded_bytes = 0;
+	const uint8_t *source = src_pixels;
+	int consumed = 0;
+	uint8_t value = *source;
 	row_buffer->data[0] = 0;
-	token_write = row_buffer->data;
-	last_token = token_write;
+	uint8_t *token_write = row_buffer->data;
+	uint8_t *last_token = token_write;
 
 	if (width <= 0) {
 		*token_write = 0x80;
@@ -3579,6 +3314,7 @@ int front_image_encode_glyph_row(struct front_image_rle_row_buffer *row_buffer,
 		return 5;
 	}
 
+	int copy_index;
 	for (;;) {
 		int run_length;
 
@@ -3614,7 +3350,7 @@ int front_image_encode_glyph_row(struct front_image_rle_row_buffer *row_buffer,
 						source[copy_index];
 				}
 			} else {
-				run_length_byte =
+				uint8_t run_length_byte =
 					(uint8_t)(run_length +
 						  (*last_token & 0x7f));
 				if (run_length_byte < 0x80) {
@@ -3652,7 +3388,7 @@ int front_image_encode_glyph_row(struct front_image_rle_row_buffer *row_buffer,
 	}
 
 	*token_write = 0x80;
-	row_size = encoded_bytes + 5;
+	int row_size = encoded_bytes + 5;
 	row_buffer->encoded_size = row_size;
 	return row_size;
 }
@@ -3664,11 +3400,7 @@ int front_image_encode_glyph_row(struct front_image_rle_row_buffer *row_buffer,
 void front_image_insert_resource_sorted(
 	const struct front_image_resource_record *entry)
 {
-	int insert_index;
-	int entries_to_shift;
-	int destination_index;
-
-	insert_index = 0;
+	int insert_index = 0;
 	while (g_front_state.resource_count > insert_index) {
 		if (strncmp(entry->name,
 			    g_front_state.resource_table[insert_index].name,
@@ -3679,8 +3411,9 @@ void front_image_insert_resource_sorted(
 	}
 
 	if (g_front_state.resource_count > insert_index) {
-		entries_to_shift = g_front_state.resource_count - insert_index;
-		destination_index = g_front_state.resource_count;
+		int entries_to_shift =
+			g_front_state.resource_count - insert_index;
+		int destination_index = g_front_state.resource_count;
 		do {
 			g_front_state.resource_table[destination_index] =
 				g_front_state
@@ -3700,11 +3433,7 @@ void front_image_insert_resource_sorted(
 // FUNCTION: XVT 0x4B7A10
 void front_image_remove_resource_at(int index)
 {
-	int destination_index;
-	int current_index;
-	struct front_image_resource_record *resource;
-
-	current_index = index;
+	int current_index = index;
 	if (index < 0) {
 		return;
 	}
@@ -3712,10 +3441,11 @@ void front_image_remove_resource_at(int index)
 		return;
 	}
 	if (g_front_state.resource_count - 1 > index) {
-		destination_index = index;
+		int destination_index = index;
 		do {
-			resource = &g_front_state
-					    .resource_table[destination_index];
+			struct front_image_resource_record *resource =
+				&g_front_state
+					 .resource_table[destination_index];
 			*resource = resource[1];
 			++current_index;
 			++destination_index;
@@ -3747,22 +3477,17 @@ int front_image_bsearch_resource(
 	const struct front_image_resource_record *table, int hi,
 	const char *key)
 {
-	int base_index;
-	int search_hi;
-	int middle;
-	int comparison;
-	const struct front_image_resource_record *middle_entry;
-
-	base_index = 0;
-	search_hi = hi;
+	int base_index = 0;
+	int search_hi = hi;
 	while (1) {
 		if (search_hi < 0) {
 			return -1;
 		}
-		middle = search_hi >> 1;
-		middle_entry = &table[middle];
-		comparison = strncmp(middle_entry->name, key,
-				     sizeof(middle_entry->name));
+		int middle = search_hi >> 1;
+		const struct front_image_resource_record *middle_entry =
+			&table[middle];
+		int comparison = strncmp(middle_entry->name, key,
+					 sizeof(middle_entry->name));
 		if (comparison == 0) {
 			return middle + base_index;
 		}
@@ -3793,28 +3518,22 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 			      int width, int height, int pitch, int bpp,
 			      int is555, const void *palette)
 {
-	int y;
-	int x;
-	struct front_image_bmp_info_header info_header;
-	struct front_image_bmp_file_header file_header;
-	const uint8_t *color_table;
-	xvt_file *stream;
-	int file_size;
-	int ok;
-
-	color_table = (const uint8_t *)palette;
+	const uint8_t *color_table = (const uint8_t *)palette;
 	if (bpp == 8 && color_table == NULL) {
 		return 0;
 	}
 
-	stream = file_open(file_name, "wb");
+	xvt_file *stream = file_open(file_name, "wb");
 	if (stream == NULL) {
 		return 0;
 	}
 
 	file_seek(stream, 54, SEEK_SET);
-	file_size = 54;
+	int file_size = 54;
 
+	int y;
+	int x;
+	int ok;
 	switch (bpp) {
 	case 8:
 		for (y = height - 1; y >= 0; y--) {
@@ -3876,13 +3595,10 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 						   y * pitch);
 
 			for (x = 0; x < width; x++) {
-				uint16_t value;
-				uint16_t green_red;
+				uint16_t value = *row;
+				uint16_t green_red = value >> 5;
 				uint16_t green;
 				uint16_t red;
-
-				value = *row;
-				green_red = value >> 5;
 				if (is555) {
 					green = 8 * green_red;
 					red = green_red >> 5;
@@ -3937,9 +3653,11 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 	}
 
 	file_seek(stream, 0, SEEK_SET);
+	struct front_image_bmp_file_header file_header;
 	file_header.signature = 0x4d42;
 	file_header.file_size = (uint32_t)file_size;
 	file_header.pixel_offset = 54;
+	struct front_image_bmp_info_header info_header;
 	info_header.header_size = 40;
 
 	if ((width & 1) != 0) {
@@ -3979,25 +3697,22 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 // FUNCTION: XVT 0x4D6D30
 int front_image_load_bmp_palette_file(const char *file_name, uint8_t *dest_rgba)
 {
-	xvt_file *stream;
-	int result;
-	unsigned int bits_per_pixel;
-	struct front_image_bmp_file_header file_header;
-	struct front_image_bmp_info_header info_header;
-
 	if (dest_rgba == NULL) {
 		return 0;
 	}
 
-	stream = file_open(file_name, "rb");
-	result = 0;
+	xvt_file *stream = file_open(file_name, "rb");
+	int result = 0;
 	if (stream != NULL) {
+		struct front_image_bmp_file_header file_header;
 		file_read_bytes(stream, &file_header, sizeof(file_header));
 		if (file_header.signature == 0x4D42) {
+			struct front_image_bmp_info_header info_header;
 			file_read_bytes(stream, &info_header,
 					sizeof(info_header));
 			if (info_header.planes == 1) {
-				bits_per_pixel = info_header.bits_per_pixel;
+				unsigned int bits_per_pixel =
+					info_header.bits_per_pixel;
 				switch (bits_per_pixel) {
 				case 4:
 					front_image_read_bmp_palette(
@@ -4023,18 +3738,13 @@ int front_image_load_bmp_palette_file(const char *file_name, uint8_t *dest_rgba)
 // FUNCTION: XVT 0x4D6DD0
 void front_image_read_bmp_palette(xvt_file *stream, uint8_t *dest, int count)
 {
-	uint8_t entry[4];
-	uint8_t blue;
-	uint8_t green;
-	uint8_t red;
-	int i;
-
 	memset(dest, 0, 256 * 4);
-	for (i = 0; i < count; i++) {
+	uint8_t entry[4];
+	for (int i = 0; i < count; i++) {
 		file_read_bytes(stream, entry, sizeof(entry));
-		blue = entry[0];
-		green = entry[1];
-		red = entry[2];
+		uint8_t blue = entry[0];
+		uint8_t green = entry[1];
+		uint8_t red = entry[2];
 		dest[i * 4] = red;
 		dest[i * 4 + 1] = green;
 		dest[i * 4 + 2] = blue;
@@ -4052,22 +3762,15 @@ void front_image_read_bmp_palette(xvt_file *stream, uint8_t *dest, int count)
 // FUNCTION: XVT 0x4D6F50
 unsigned int front_image_get_faded_glyph_color16(unsigned int color16)
 {
-	unsigned int green;
-	unsigned int blue;
-	unsigned int color;
-	uint16_t *cache_entry;
-	uint16_t cached_color;
-	unsigned int result;
-	unsigned int fade_multiplier;
-
-	color = color16;
-	cache_entry = &g_front_state.text_fade_color_cache[color];
-	cached_color = *cache_entry;
+	unsigned int color = color16;
+	uint16_t *cache_entry = &g_front_state.text_fade_color_cache[color];
+	uint16_t cached_color = *cache_entry;
 	if (cached_color != 0) {
 		return cached_color;
 	}
 
-	blue = color;
+	unsigned int blue = color;
+	unsigned int green;
 	/* From here color holds only the red channel: masked and shifted down, faded, then shifted back into
 	 * place for packing. */
 	if (g_front_state.pixel_format555 != 0) {
@@ -4086,8 +3789,8 @@ unsigned int front_image_get_faded_glyph_color16(unsigned int color16)
 		color >>= 11;
 	}
 
-	fade_multiplier = g_front_state.text_fade_frame_count -
-			  g_front_state.text_fade_frames_left;
+	unsigned int fade_multiplier = g_front_state.text_fade_frame_count -
+				       g_front_state.text_fade_frames_left;
 	blue = fade_multiplier * blue /
 	       (unsigned int)g_front_state.text_fade_frame_count;
 	green = fade_multiplier * green /
@@ -4104,7 +3807,7 @@ unsigned int front_image_get_faded_glyph_color16(unsigned int color16)
 		blue &= 0x1F;
 	}
 
-	result = ((color + green) << 5) + blue;
+	unsigned int result = ((color + green) << 5) + blue;
 	if (result == 0) {
 		result = 1;
 	}
@@ -4121,21 +3824,19 @@ unsigned int front_image_get_faded_glyph_color16(unsigned int color16)
 // FUNCTION: XVT 0x4DF880
 int front_image_load_resource_list(const char *file_name)
 {
-	int compress_rle;
-	char resource_file_name[256];
-	char resource_name[256];
-	xvt_file *stream;
-	int field_count;
-
-	stream = file_open(file_name, "r");
+	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return 0;
 	}
+	char resource_file_name[256];
 	if (FILE_GETS(resource_file_name, 255, stream) == NULL) {
 		file_close(stream);
 		return 1;
 	}
 
+	int compress_rle;
+	char resource_name[256];
+	int field_count;
 	for (;;) {
 #ifdef XVT_MODERN
 		field_count = FILE_SCANF(stream, "%255s %255s %d\n",
@@ -4166,21 +3867,19 @@ int front_image_load_resource_list(const char *file_name)
 // FUNCTION: XVT 0x4DF950
 int front_image_unload_resource_list(const char *file_name)
 {
-	int ignored_flags;
-	char resource_file_name[256];
-	char resource_name[256];
-	xvt_file *stream;
-	int field_count;
-
-	stream = file_open(file_name, "r");
+	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return 0;
 	}
+	char resource_file_name[256];
 	if (FILE_GETS(resource_file_name, 255, stream) == NULL) {
 		file_close(stream);
 		return 1;
 	}
 
+	int ignored_flags;
+	char resource_name[256];
+	int field_count;
 	for (;;) {
 #ifdef XVT_MODERN
 		field_count = FILE_SCANF(stream, "%255s %255s %d\n",

@@ -181,23 +181,6 @@ uint8_t g_flight_text_shadow_enabled = 0;
 // FUNCTION: XVT 0x40F050
 void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 {
-	uint16_t glyph_advance;
-	int glyph_row_count;
-	int glyph_width;
-	uint8_t glyph_height;
-	uint16_t wrap_line_height;
-	const uint8_t *row_data;
-	int line_offset;
-	uint8_t *destination;
-	int line;
-	uint8_t normalized_char;
-	int draw_x;
-	int pixel_count;
-	int address_each_row_separately;
-	uint8_t glyph_bits;
-	uint8_t shadow_bits;
-	uint8_t palette_index;
-	uint8_t *row_start;
 #ifndef XVT_MODERN
 	unsigned int pixel_offset;
 	unsigned int page;
@@ -216,17 +199,17 @@ void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 		return;
 	}
 
-	normalized_char = ch;
+	uint8_t normalized_char = ch;
 	if (g_flight_font_tier != 0 && g_flight_font_has_lowercase == 0 &&
 	    ch >= 'a' && ch <= 'z') {
 		normalized_char = ch - ('a' - 'A');
 	}
-	row_data =
+	const uint8_t *row_data =
 		&g_flight_font_glyph_table_sw[g_flight_font_glyph_stride_sw *
 					      (uint8_t)(normalized_char - ' ')];
-	glyph_advance = *row_data++;
-	glyph_width = glyph_advance;
-	glyph_height = *row_data++;
+	uint16_t glyph_advance = *row_data++;
+	int glyph_width = glyph_advance;
+	uint8_t glyph_height = *row_data++;
 	if (glyph_width + g_flight_cursor_x >= g_flight_clip_right &&
 	    g_flight_word_wrap_enabled != 0) {
 		if (g_flight_clear_line_bg_enabled != 0) {
@@ -242,12 +225,13 @@ void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
 					  glyph_height, 1);
 #endif
-	shadow_bits = 0;
-	address_each_row_separately = 0;
-	line = g_flight_cursor_y;
+	uint8_t shadow_bits = 0;
+	int address_each_row_separately = 0;
+	int line = g_flight_cursor_y;
 	if (line < g_flight_clip_top) {
 		line = g_flight_clip_top;
 	}
+	int line_offset;
 #ifdef XVT_MODERN
 	/* Fully clipped glyphs still advance the cursor, without looking up a row. */
 	line_offset = line < g_flight_clip_bottom
@@ -277,8 +261,16 @@ void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 		address_each_row_separately = 1;
 	}
 
+	int glyph_row_count;
+	uint16_t wrap_line_height;
+	int draw_x;
+	int pixel_count;
+	uint8_t glyph_bits;
+	uint8_t palette_index;
+	uint8_t *row_start;
 	if (address_each_row_separately == 0) {
-		destination = g_flight_sw_framebuffer_base + line_offset;
+		uint8_t *destination =
+			g_flight_sw_framebuffer_base + line_offset;
 		wrap_line_height = glyph_height;
 		line = g_flight_cursor_y;
 		glyph_row_count = wrap_line_height;
@@ -453,23 +445,6 @@ void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 // FUNCTION: XVT 0x40F520
 void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 {
-	uint16_t glyph_advance;
-	int glyph_row_count;
-	int glyph_width;
-	uint8_t glyph_height;
-	uint16_t wrap_line_height;
-	const uint8_t *row_data;
-	int line_offset;
-	uint8_t *destination;
-	int line;
-	uint8_t normalized_char;
-	int draw_x;
-	int pixel_count;
-	int address_each_row_separately;
-	uint32_t glyph_bits;
-	uint32_t shadow_bits;
-	uint8_t palette_index;
-	uint8_t *row_start;
 #ifndef XVT_MODERN
 	unsigned int pixel_offset;
 	unsigned int page;
@@ -488,17 +463,17 @@ void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 		return;
 	}
 
-	normalized_char = ch;
+	uint8_t normalized_char = ch;
 	if (g_flight_font_tier != 0 && g_flight_font_has_lowercase == 0 &&
 	    ch >= 'a' && ch <= 'z') {
 		normalized_char = ch - ('a' - 'A');
 	}
-	row_data =
+	const uint8_t *row_data =
 		&g_flight_font_glyph_table_sw[g_flight_font_glyph_stride_sw *
 					      (uint8_t)(normalized_char - ' ')];
-	glyph_advance = *row_data++;
-	glyph_width = glyph_advance;
-	glyph_height = *row_data++;
+	uint16_t glyph_advance = *row_data++;
+	int glyph_width = glyph_advance;
+	uint8_t glyph_height = *row_data++;
 	if (glyph_width + g_flight_cursor_x >= g_flight_clip_right &&
 	    g_flight_word_wrap_enabled != 0) {
 		if (g_flight_clear_line_bg_enabled != 0) {
@@ -508,18 +483,19 @@ void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 		g_flight_cursor_y += glyph_height + 2;
 	}
 
-	address_each_row_separately = 0;
+	int address_each_row_separately = 0;
 #ifdef XVT_MODERN
 	xvt_cockpit_pages_record_glyph(normalized_char, glyph_advance,
 				       glyph_height, 0);
 	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
 					  glyph_height, 0);
 #endif
-	shadow_bits = 0;
-	line = g_flight_cursor_y;
+	uint32_t shadow_bits = 0;
+	int line = g_flight_cursor_y;
 	if (line < g_flight_clip_top) {
 		line = g_flight_clip_top;
 	}
+	int line_offset;
 #ifdef XVT_MODERN
 	/* Fully clipped glyphs still advance the cursor, without looking up a row. */
 	line_offset = line < g_flight_clip_bottom
@@ -549,8 +525,16 @@ void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 		address_each_row_separately = 1;
 	}
 
+	int glyph_row_count;
+	uint16_t wrap_line_height;
+	int draw_x;
+	int pixel_count;
+	uint32_t glyph_bits;
+	uint8_t palette_index;
+	uint8_t *row_start;
 	if (address_each_row_separately == 0) {
-		destination = g_flight_sw_framebuffer_base + line_offset;
+		uint8_t *destination =
+			g_flight_sw_framebuffer_base + line_offset;
 		wrap_line_height = glyph_height;
 		line = g_flight_cursor_y;
 		glyph_row_count = wrap_line_height;
@@ -746,15 +730,13 @@ void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 void flight_text_clear_remaining_line_background8bpp(void)
 {
 
-	uint16_t bottom;
-
 	if (g_flight_clip_right <= g_flight_cursor_x) {
 		return;
 	}
 	g_flight_fill_rect_right8bpp = g_flight_clip_right;
 	g_flight_fill_rect_left8bpp = g_flight_cursor_x;
 	g_flight_fill_rect_top8bpp = g_flight_cursor_y;
-	bottom = g_flight_font_line_height + g_flight_cursor_y;
+	uint16_t bottom = g_flight_font_line_height + g_flight_cursor_y;
 	if (g_flight_fill_rect_left8bpp < g_flight_clip_left) {
 		g_flight_fill_rect_left8bpp = g_flight_clip_left;
 	}
@@ -798,16 +780,11 @@ int16_t flight_text_get_wrap_height_for_string(const char *str)
 void flight_text_draw_decimal_number(uint16_t value, unsigned int digit_count,
 				     unsigned int min_digits)
 {
-	uint16_t saved_shadow;
-	uint16_t saved_color;
 	unsigned int digit_index;
-	int16_t started;
-	uint16_t divisor;
-	uint16_t digit;
 
 	if (value == UINT16_MAX) {
-		saved_shadow = g_flight_text_shadow_enabled;
-		saved_color = g_flight_text_color_index;
+		uint16_t saved_shadow = g_flight_text_shadow_enabled;
+		uint16_t saved_color = g_flight_text_color_index;
 		g_flight_text_shadow_enabled = 0;
 		flight_text_set_color('@');
 		for (digit_index = digit_count; digit_index != 0;
@@ -819,10 +796,10 @@ void flight_text_draw_decimal_number(uint16_t value, unsigned int digit_count,
 		return;
 	}
 
-	started = 0;
+	int16_t started = 0;
 	for (digit_index = digit_count; digit_index != 0; --digit_index) {
-		divisor = g_flight_text_decimal_divisors[digit_index];
-		digit = value / divisor;
+		uint16_t divisor = g_flight_text_decimal_divisors[digit_index];
+		uint16_t digit = value / divisor;
 		divisor *= digit;
 		value -= divisor;
 		if (started != 0 || digit_index <= min_digits || digit != 0) {
@@ -845,13 +822,9 @@ void flight_text_draw_decimal_number(uint16_t value, unsigned int digit_count,
 // FUNCTION: XVT 0x4278C0
 uint16_t flight_text_measure_string_width(const char *str)
 {
-	uint16_t total_width;
-	uint8_t ch;
-	const char *cursor;
-
-	total_width = 0;
-	ch = (uint8_t)*str;
-	cursor = str + 1;
+	uint16_t total_width = 0;
+	uint8_t ch = (uint8_t)*str;
+	const char *cursor = str + 1;
 	while (ch != '\0') {
 		if (ch == '\n') {
 			break;
@@ -884,23 +857,6 @@ uint16_t flight_text_measure_string_width(const char *str)
 // FUNCTION: XVT 0x449F70
 void flight_text_draw_narrow_glyph(uint8_t ch)
 {
-	uint8_t normalized_char;
-	uint8_t glyph_height;
-	uint8_t glyph_bits;
-	uint8_t shadow_bits;
-	const uint8_t *glyph_data;
-	const uint8_t *row_data;
-	int16_t glyph_advance;
-	int16_t wrap_line_height;
-	int glyph_row_count;
-	int glyph_width;
-	int line;
-	int draw_x;
-	int pixel_count;
-	int pixels_remaining;
-	unsigned int pixel_offset;
-	unsigned int palette_index;
-	uint16_t *destination;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
@@ -917,18 +873,18 @@ void flight_text_draw_narrow_glyph(uint8_t ch)
 		return;
 	}
 
-	normalized_char = ch;
+	uint8_t normalized_char = ch;
 	if (g_flight_font_tier != 0 && g_flight_font_has_lowercase == 0 &&
 	    ch >= 'a' && ch <= 'z') {
 		normalized_char = ch - ('a' - 'A');
 	}
-	glyph_data =
+	const uint8_t *glyph_data =
 		&g_flight_font_glyph_table_sw[g_flight_font_glyph_stride_sw *
 					      (uint8_t)(normalized_char - ' ')];
-	glyph_advance = *glyph_data++;
-	glyph_height = *glyph_data++;
-	row_data = glyph_data;
-	glyph_width = glyph_advance;
+	int16_t glyph_advance = *glyph_data++;
+	uint8_t glyph_height = *glyph_data++;
+	const uint8_t *row_data = glyph_data;
+	int glyph_width = glyph_advance;
 	if (glyph_width + g_flight_cursor_x >= g_flight_clip_right &&
 	    g_flight_word_wrap_enabled != 0) {
 		if (g_flight_clear_line_bg_enabled != 0) {
@@ -944,18 +900,21 @@ void flight_text_draw_narrow_glyph(uint8_t ch)
 	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
 					  glyph_height, 1);
 #endif
-	shadow_bits = 0;
-	line = g_flight_cursor_y;
-	wrap_line_height = glyph_height;
-	glyph_row_count = glyph_height;
+	uint8_t shadow_bits = 0;
+	int line = g_flight_cursor_y;
+	int16_t wrap_line_height = glyph_height;
+	int glyph_row_count = glyph_height;
+	unsigned int pixel_offset;
+	unsigned int palette_index;
+	uint16_t *destination;
 	if (glyph_row_count + g_flight_cursor_y > line) {
 		do {
-			pixel_count = glyph_width;
-			glyph_bits = *row_data;
+			int pixel_count = glyph_width;
+			uint8_t glyph_bits = *row_data;
 			if (g_flight_text_shadow_enabled != 0) {
 				++pixel_count;
 			}
-			draw_x = g_flight_cursor_x;
+			int draw_x = g_flight_cursor_x;
 			if (g_flight_cursor_x < g_flight_clip_left) {
 				if (g_flight_clip_left - g_flight_cursor_x >=
 				    pixel_count) {
@@ -996,7 +955,7 @@ void flight_text_draw_narrow_glyph(uint8_t ch)
 				&((uint16_t *)g_flight_sw_framebuffer_base)
 					[pixel_offset / 2];
 #endif
-			pixels_remaining = pixel_count;
+			int pixels_remaining = pixel_count;
 			if (pixels_remaining != 0) {
 #ifdef XVT_MODERN
 				/* The original looks up negative rows even when top clipping leaves
@@ -1053,27 +1012,11 @@ void flight_text_draw_narrow_glyph(uint8_t ch)
 // FUNCTION: XVT 0x44A270
 void flight_text_draw_wide_glyph(uint8_t ch)
 {
-	uint8_t normalized_char;
-	uint8_t glyph_height;
-	const uint8_t *glyph_data;
 #ifdef XVT_MODERN
 	const uint8_t *row_data;
 #else
 	const uint32_t *row_data;
 #endif
-	int16_t glyph_advance;
-	int16_t wrap_line_height;
-	int glyph_width;
-	int glyph_row_count;
-	int line;
-	int draw_x;
-	int pixel_count;
-	int pixels_remaining;
-	uint32_t glyph_bits;
-	uint32_t shadow_bits;
-	unsigned int pixel_offset;
-	unsigned int palette_index;
-	uint16_t *destination;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
@@ -1090,22 +1033,22 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 		return;
 	}
 
-	normalized_char = ch;
+	uint8_t normalized_char = ch;
 	if (g_flight_font_tier != 0 && g_flight_font_has_lowercase == 0 &&
 	    normalized_char >= 'a' && normalized_char <= 'z') {
 		normalized_char -= 'a' - 'A';
 	}
-	glyph_data =
+	const uint8_t *glyph_data =
 		&g_flight_font_glyph_table_sw[g_flight_font_glyph_stride_sw *
 					      (uint8_t)(normalized_char - ' ')];
-	glyph_advance = *glyph_data++;
-	glyph_height = *glyph_data++;
+	int16_t glyph_advance = *glyph_data++;
+	uint8_t glyph_height = *glyph_data++;
 #ifdef XVT_MODERN
 	row_data = glyph_data;
 #else
 	row_data = (const uint32_t *)glyph_data;
 #endif
-	glyph_width = glyph_advance;
+	int glyph_width = glyph_advance;
 	if (glyph_width + g_flight_cursor_x >= g_flight_clip_right &&
 	    g_flight_word_wrap_enabled != 0) {
 		if (g_flight_clear_line_bg_enabled != 0) {
@@ -1121,13 +1064,17 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
 					  glyph_height, 0);
 #endif
-	shadow_bits = 0;
-	wrap_line_height = glyph_height;
-	line = g_flight_cursor_y;
-	glyph_row_count = glyph_height;
+	uint32_t shadow_bits = 0;
+	int16_t wrap_line_height = glyph_height;
+	int line = g_flight_cursor_y;
+	int glyph_row_count = glyph_height;
+	uint32_t glyph_bits;
+	unsigned int pixel_offset;
+	unsigned int palette_index;
+	uint16_t *destination;
 	if (g_flight_cursor_y + glyph_row_count > g_flight_cursor_y) {
 		do {
-			pixel_count = glyph_width;
+			int pixel_count = glyph_width;
 #ifdef XVT_MODERN
 			memcpy(&glyph_bits, row_data, sizeof(glyph_bits));
 #else
@@ -1136,7 +1083,7 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 			if (g_flight_text_shadow_enabled != 0) {
 				++pixel_count;
 			}
-			draw_x = g_flight_cursor_x;
+			int draw_x = g_flight_cursor_x;
 			if (g_flight_cursor_x < g_flight_clip_left) {
 				if (g_flight_clip_left - g_flight_cursor_x >=
 				    pixel_count) {
@@ -1177,7 +1124,7 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 				&((uint16_t *)g_flight_sw_framebuffer_base)
 					[pixel_offset / 2];
 #endif
-			pixels_remaining = pixel_count;
+			int pixels_remaining = pixel_count;
 			if (pixels_remaining != 0) {
 #ifdef XVT_MODERN
 				/* The original looks up negative rows even when top clipping leaves
@@ -1240,21 +1187,16 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 void flight_text_clear_remaining_line_background(void)
 {
 
-	uint16_t clipped_top;
-	uint16_t clipped_bottom;
-	int16_t cursor_x;
-	int16_t cursor_y;
-
-	cursor_x = g_flight_cursor_x;
+	int16_t cursor_x = g_flight_cursor_x;
 	if (g_flight_clip_right <= cursor_x) {
 		return;
 	}
 
-	cursor_y = g_flight_cursor_y;
-	clipped_top = cursor_y;
+	int16_t cursor_y = g_flight_cursor_y;
+	uint16_t clipped_top = cursor_y;
 	g_flight_fill_rect_right16bpp = g_flight_clip_right;
 	g_flight_fill_rect_left16bpp = cursor_x;
-	clipped_bottom = g_flight_font_line_height + cursor_y;
+	uint16_t clipped_bottom = g_flight_font_line_height + cursor_y;
 	if (g_flight_clip_left > (int)(uint16_t)cursor_x) {
 		g_flight_fill_rect_left16bpp = g_flight_clip_left;
 	}
@@ -1458,9 +1400,7 @@ void flight_text_set_font_tier(uint8_t tier)
 // FUNCTION: XVT 0x4A97F0
 void flight_text_set_scratch(const char *text)
 {
-	char *destination;
-
-	destination = g_flight_text_scratch_buffer;
+	char *destination = g_flight_text_scratch_buffer;
 	if (text != 0) {
 		while (*text != '\0') {
 			*destination++ = *text++;
@@ -1474,9 +1414,7 @@ void flight_text_set_scratch(const char *text)
 // FUNCTION: XVT 0x4A9820
 void flight_text_append_scratch_string(const char *text)
 {
-	char *destination;
-
-	destination = g_flight_text_scratch_buffer;
+	char *destination = g_flight_text_scratch_buffer;
 	while (*destination != '\0') {
 		destination++;
 	}
@@ -1493,9 +1431,7 @@ void flight_text_append_scratch_string(const char *text)
 // FUNCTION: XVT 0x4A9860
 void flight_text_append_scratch_char(uint8_t ch)
 {
-	char *destination;
-
-	destination = g_flight_text_scratch_buffer;
+	char *destination = g_flight_text_scratch_buffer;
 	while (*destination != '\0') {
 		destination++;
 	}
@@ -1509,41 +1445,32 @@ void flight_text_append_scratch_char(uint8_t ch)
 // FUNCTION: XVT 0x4A9890
 uint16_t flight_text_format_scratch_int(int value)
 {
-	int magnitude;
-	uint16_t digit_count;
-	int expanded_digit_count;
-	int remaining_value;
-	int digit_index;
-	int16_t digit;
-	int16_t is_negative;
-	char *output;
-	char *digit_position;
-
-	is_negative = 0;
-	output = g_flight_text_scratch_buffer;
-	magnitude = value;
+	int16_t is_negative = 0;
+	char *output = g_flight_text_scratch_buffer;
+	int magnitude = value;
 	if (magnitude < 0) {
 		magnitude = -magnitude;
 		g_flight_text_scratch_buffer[0] = '-';
 		output = &g_flight_text_scratch_buffer[1];
 		is_negative = 1;
 	}
+	uint16_t digit_count;
 	if (magnitude != 0) {
 		digit_count = 0;
-		remaining_value = magnitude;
+		int remaining_value = magnitude;
 		if (magnitude > 0) {
 			do {
 				++digit_count;
 				remaining_value /= 10;
 			} while (remaining_value > 0);
 		}
-		digit_index = 0;
+		int digit_index = 0;
 		if (digit_count != 0) {
-			expanded_digit_count = digit_count;
+			int expanded_digit_count = digit_count;
 			do {
-				digit = (int16_t)(magnitude % 10);
+				int16_t digit = (int16_t)(magnitude % 10);
 				magnitude /= 10;
-				digit_position = &output[-digit_index++];
+				char *digit_position = &output[-digit_index++];
 				digit_position[expanded_digit_count - 1] =
 					(char)(digit + '0');
 			} while (digit_index < expanded_digit_count);
@@ -1570,15 +1497,11 @@ uint16_t flight_text_format_scratch_int(int value)
 // FUNCTION: XVT 0x4A9960
 void flight_text_draw_string(const char *str)
 {
-	char word_buffer[80];
-	uint16_t word_length;
-	const char *word_scan;
-	int next_word_width;
-
 	if (*str == '\0') {
 		return;
 	}
 
+	char word_buffer[80];
 	do {
 		if ((uint8_t)*str == 0xfeu) {
 			++str;
@@ -1587,8 +1510,8 @@ void flight_text_draw_string(const char *str)
 			flight_text_set_color((uint8_t)*str);
 		} else if ((uint8_t)*str == ' ' &&
 			   g_flight_word_wrap_enabled != 0) {
-			word_scan = str + 1;
-			word_length = 0;
+			const char *word_scan = str + 1;
+			uint16_t word_length = 0;
 			while (*word_scan != ' ' && *word_scan != '\0'
 #ifdef XVT_MODERN
 			       && word_length <
@@ -1601,7 +1524,7 @@ void flight_text_draw_string(const char *str)
 			}
 			word_buffer[word_length] = '\0';
 
-			next_word_width =
+			int next_word_width =
 				flight_text_measure_string_width(word_buffer);
 			if (g_flight_cursor_x +
 				    flight_text_measure_string_width(" ") +
@@ -1623,19 +1546,15 @@ void flight_text_draw_string(const char *str)
 // FUNCTION: XVT 0x4A9A50
 void flight_text_draw_string_centered(const char *str)
 {
-	uint16_t half_width;
-	uint16_t candidate_x;
-	int cursor_y;
-
-	half_width = flight_text_measure_string_width(str) >> 1;
-	candidate_x = (uint16_t)(((int)g_flight_clip_right +
-				  (int)g_flight_clip_left) /
-					 2 -
-				 half_width);
+	uint16_t half_width = flight_text_measure_string_width(str) >> 1;
+	uint16_t candidate_x = (uint16_t)(((int)g_flight_clip_right +
+					   (int)g_flight_clip_left) /
+						  2 -
+					  half_width);
 	if (candidate_x < (int)g_flight_clip_left) {
 		candidate_x = g_flight_clip_left;
 	}
-	cursor_y = g_flight_cursor_y;
+	int cursor_y = g_flight_cursor_y;
 	flight_text_set_cursor((int16_t)candidate_x, (int16_t)cursor_y);
 	flight_text_draw_string(str);
 }
@@ -1646,12 +1565,8 @@ void flight_text_draw_string_centered(const char *str)
 // FUNCTION: XVT 0x4A9AC0
 void flight_text_draw_string_right_aligned(const char *str)
 {
-	uint16_t width;
-	uint16_t cursor_x;
-	int cursor_y;
-
-	width = flight_text_measure_string_width(str) + 2;
-	cursor_x = g_flight_clip_right;
+	uint16_t width = flight_text_measure_string_width(str) + 2;
+	uint16_t cursor_x = g_flight_clip_right;
 	cursor_x -= width;
 	if (cursor_x >= 0x8000u) {
 		cursor_x = 0;
@@ -1659,7 +1574,7 @@ void flight_text_draw_string_right_aligned(const char *str)
 	if (g_flight_clip_left > (int)cursor_x) {
 		cursor_x = g_flight_clip_left;
 	}
-	cursor_y = g_flight_cursor_y;
+	int cursor_y = g_flight_cursor_y;
 	flight_text_set_cursor(cursor_x, cursor_y);
 	flight_text_draw_string(str);
 }

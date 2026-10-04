@@ -233,9 +233,6 @@ int config_options_datapad_update(int frame_counter)
 		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 	};
 
-	int joystick_entry_index;
-	int animation_frame;
-	int dismiss_requested;
 	struct RECT rect;
 
 	if (frame_counter == 0) {
@@ -249,7 +246,7 @@ int config_options_datapad_update(int frame_counter)
 		g_config_draw_static_control_background = 1;
 		keyboard_flush_char_buffer();
 		config_load_joystick_action_dictionary();
-		for (joystick_entry_index = 0;
+		for (int joystick_entry_index = 0;
 		     joystick_entry_index < g_joystick_entry_count;
 		     ++joystick_entry_index) {
 			if (g_joystick_entries[joystick_entry_index]
@@ -319,7 +316,7 @@ int config_options_datapad_update(int frame_counter)
 			g_pilot_data.rating_name, 1, g_pilot_data.name);
 		frontend_text_draw_centered(12, g_frontend_scratch_buffer,
 					    &rect, g_color_yellow);
-		animation_frame =
+		int animation_frame =
 			frame_counter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES;
 		animation_frame >>= 1;
 		sprintf(g_frontend_scratch_buffer, "rebtiny%d",
@@ -353,7 +350,7 @@ int config_options_datapad_update(int frame_counter)
 	}
 	frontend_button_set_overlay_text(
 		frontend_string_get(FRONTSTR_206_DONE));
-	dismiss_requested = frontend_button_handle_sprite_button(
+	int dismiss_requested = frontend_button_handle_sprite_button(
 		&rect, "leaveup", "leavedown",
 		frontend_string_get(FRONTSTR_206_DONE), 12, 0, 8,
 		"buttonsound");
@@ -463,14 +460,14 @@ void config_draw_video_option_rows(void)
 void config_draw_screen_resolution_option_row(int is_multiplayer)
 {
 	struct RECT rect;
-	int previous_screen_resolution;
 
 	frontend_draw_rect_assign(&rect, 88, 111, 332, 125);
 	frontend_text_draw_aligned_in_rect(
 		12, frontend_string_get(FRONTSTR_220_SCREEN_RESOLUTION), &rect,
 		0, 1, 0xFFFF);
 	frontend_draw_rect_offset_xy(&rect, 0, 15);
-	previous_screen_resolution = g_game_config.screen_res[is_multiplayer];
+	int previous_screen_resolution =
+		g_game_config.screen_res[is_multiplayer];
 	config_draw_three_choice_option(
 		&g_game_config.screen_res[is_multiplayer], &rect,
 		FRONTSTR_221_320_X_240);
@@ -721,14 +718,14 @@ void config_draw_diffuse_lighting_option_row(int config_index)
 void config_draw_use3d_hardware_option_row(int config_index)
 {
 	struct RECT rect;
-	int previous_use3d_hardware;
 
 	frontend_draw_rect_assign(&rect, 356, 359, 600, 373);
 	frontend_text_draw_aligned_in_rect(
 		12, frontend_string_get(FRONTSTR_802_3D_HARDWARE), &rect, 0, 1,
 		0xFFFF);
 	frontend_draw_rect_offset_xy(&rect, 0, 15);
-	previous_use3d_hardware = g_game_config.use3d_hardware[config_index];
+	int previous_use3d_hardware =
+		g_game_config.use3d_hardware[config_index];
 	config_draw_two_choice_option(
 		&g_game_config.use3d_hardware[config_index], &rect,
 		FRONTSTR_236_OFF);
@@ -814,16 +811,14 @@ void config_draw_two_choice_option_impl(uint8_t *value, const struct RECT *rect,
 					int translucent_selection,
 					int disable_input)
 {
-	struct RECT option_rect;
-	struct RECT sprite_rect;
 	int cursor_x;
 	int cursor_y;
-	int option_index;
-	int label_color;
 
 	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	struct RECT sprite_rect;
 	front_image_get_resource_rect("offslot", &sprite_rect);
-	option_index = 0;
+	int option_index = 0;
+	struct RECT option_rect;
 	frontend_draw_rect_copy(&option_rect, rect);
 	do {
 		option_rect.right = option_rect.left + sprite_rect.right -
@@ -876,7 +871,7 @@ void config_draw_two_choice_option_impl(uint8_t *value, const struct RECT *rect,
 							option_rect.top);
 			}
 		}
-		label_color = g_color_yellow;
+		int label_color = g_color_yellow;
 		++option_index;
 		option_rect.left = option_rect.right + 5;
 		option_rect.right = option_rect.left + 100;
@@ -900,13 +895,6 @@ void config_draw_two_choice_option_impl(uint8_t *value, const struct RECT *rect,
 void config_draw_three_choice_option(uint8_t *value, const struct RECT *rect,
 				     frontend_string_id value_base_str_id)
 {
-	struct RECT option_rect;
-	struct RECT sprite_rect;
-	int cursor_x;
-	int cursor_y;
-	int button_width;
-	int right;
-
 	if (g_config_draw_static_control_background != 0) {
 		frontend_display_lock_offscreen_surface();
 		front_image_draw_sprite_translucent("3conbar", rect->left,
@@ -916,11 +904,15 @@ void config_draw_three_choice_option(uint8_t *value, const struct RECT *rect,
 						    rect->top);
 	}
 
+	int cursor_x;
+	int cursor_y;
 	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	struct RECT sprite_rect;
 	front_image_get_resource_rect("3conbtn", &sprite_rect);
-	button_width = sprite_rect.right - sprite_rect.left + 1;
+	int button_width = sprite_rect.right - sprite_rect.left + 1;
 	front_image_get_resource_rect("3conbar", &sprite_rect);
 	frontend_draw_rect_offset_xy(&sprite_rect, rect->left, rect->top);
+	struct RECT option_rect;
 	frontend_draw_rect_copy(&option_rect, rect);
 
 	option_rect.right = option_rect.left + button_width;
@@ -986,7 +978,7 @@ void config_draw_three_choice_option(uint8_t *value, const struct RECT *rect,
 		*value = 2;
 	}
 	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
-	right = sprite_rect.right;
+	int right = sprite_rect.right;
 	option_rect.left =
 		right -
 		frontend_text_measure_width(
@@ -1011,21 +1003,10 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 			       frontend_string_id range_label_id,
 			       int play_sound_on_change)
 {
-	struct RECT option_rect;
-	int cursor_y;
-	int cursor_x;
-	float step_size;
-	struct RECT handle_rect;
-	double step_size_as_double;
-	int slider_width;
-	int selected_value;
-	int half_step_width;
-	int option_index;
-	int integer_step_width;
-
-	slider_width = rect->right - rect->left + 1;
-	selected_value = *value;
-	step_size = (float)((double)slider_width / (double)(value_count - 1));
+	int slider_width = rect->right - rect->left + 1;
+	int selected_value = *value;
+	float step_size =
+		(float)((double)slider_width / (double)(value_count - 1));
 	if (g_config_draw_static_control_background != 0) {
 		frontend_display_lock_offscreen_surface();
 		front_image_draw_sprite_translucent("conbar", rect->left,
@@ -1035,6 +1016,7 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 						    rect->top + 5);
 	}
 
+	struct RECT option_rect;
 	frontend_draw_rect_copy(&option_rect, rect);
 	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
 	option_rect.right = option_rect.left + slider_width / 2 - 1;
@@ -1050,6 +1032,7 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 		g_color_yellow);
 
 	frontend_draw_rect_offset_xy(rect, 2, 0);
+	struct RECT handle_rect;
 	front_image_get_resource_rect("conhandle", &handle_rect);
 	frontend_draw_rect_offset_xy(
 		&handle_rect, (handle_rect.left - handle_rect.right - 1) >> 1,
@@ -1065,10 +1048,12 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 		return;
 	}
 
+	int cursor_y;
+	int cursor_x;
 	frontend_cursor_get_pos(&cursor_x, &cursor_y);
 	frontend_draw_rect_copy(&option_rect, rect);
-	step_size_as_double = step_size;
-	half_step_width = (int)(step_size * 0.5);
+	double step_size_as_double = step_size;
+	int half_step_width = (int)(step_size * 0.5);
 	option_rect.left = option_rect.right - half_step_width;
 	if (frontend_draw_point_in_rect(&option_rect, cursor_x, cursor_y)) {
 		if (play_sound_on_change != 0 && *value != value_count - 1 &&
@@ -1096,10 +1081,10 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 		return;
 	}
 
-	option_index = 0;
+	int option_index = 0;
 	option_rect.left = option_rect.right;
 	option_rect.right += (int)step_size_as_double;
-	integer_step_width = (int)step_size_as_double;
+	int integer_step_width = (int)step_size_as_double;
 	if (value_count - 2 <= 0) {
 		frontend_draw_rect_offset_xy(rect, -2, 0);
 		return;
@@ -1139,9 +1124,6 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 // FUNCTION: XVT 0x4B97E0
 void config_load(void)
 {
-	int legacy_joy_button_loaded[20];
-	int button_count;
-	int config_index;
 #ifndef XVT_MODERN
 	xvt_file *stream;
 	int loaded_legacy_config;
@@ -1151,8 +1133,10 @@ void config_load(void)
 	int matched_keyword_index;
 #endif
 
+	int legacy_joy_button_loaded[20];
 	memset(legacy_joy_button_loaded, 0, sizeof(legacy_joy_button_loaded));
 	memset(&g_game_config, 0, sizeof(g_game_config));
+	int config_index;
 	for (config_index = 0; config_index < 2; ++config_index) {
 		g_game_config.backdrop[config_index] = 1;
 		g_game_config.star_density[config_index] = 2;
@@ -1211,7 +1195,7 @@ void config_load(void)
 
 	/* config_index counted the single-player and multiplayer settings sets above; from here it is a
 	 * joystick button index, here and in the legacy button conversion at the end. */
-	button_count = joystick_get_button_count(0);
+	int button_count = joystick_get_button_count(0);
 	for (config_index = 0; config_index < button_count && config_index < 16;
 	     ++config_index) {
 		switch (config_index) {
@@ -1615,35 +1599,31 @@ void config_load(void)
 void config_write(void)
 {
 #ifdef XVT_MODERN
-	char error[512];
 	snprintf(g_game_config.last_pilot_name,
 		 sizeof(g_game_config.last_pilot_name), "%s",
 		 g_pilot_data.name);
+	char error[512];
 	if (!xvt_config_write(&g_game_config, error, sizeof(error))) {
 		xvt_storage_fatal(error, 1);
 	}
 #else
-
-	xvt_file *stream;
-	int config_index;
-	int option_number;
 
 	strncpy(g_game_config.last_pilot_name, g_pilot_data.name,
 		sizeof(g_game_config.last_pilot_name) - 1);
 	g_game_config
 		.last_pilot_name[sizeof(g_game_config.last_pilot_name) - 1] =
 		'\0';
-	stream = file_open("config2.cfg", "w");
+	xvt_file *stream = file_open("config2.cfg", "w");
 	if (stream == NULL) {
 		return;
 	}
 
 	FILE_PRINTF(stream, "lastpilot %s\n", g_pilot_data.name);
-	for (config_index = 0;
+	for (int config_index = 0;
 	     config_index < (int)(sizeof(g_game_config.backdrop) /
 				  sizeof(g_game_config.backdrop[0]));
 	     ++config_index) {
-		option_number = config_index + 1;
+		int option_number = config_index + 1;
 		FILE_PRINTF(stream, "backdrop%d %d\n", option_number,
 			    g_game_config.backdrop[config_index]);
 		FILE_PRINTF(stream, "stardensity%d %d\n", option_number,
@@ -2385,17 +2365,13 @@ void config_network_options_screen(void)
 		FIELD_WIDTH = 200
 	};
 
-	struct RECT rect;
-	struct RECT source_rect;
-	int label_width;
 #ifndef XVT_MODERN
 	int cursor_x;
 	int cursor_y;
 	int field_label_width;
 	int button_width;
 #endif
-	uint8_t selected_option;
-
+	struct RECT source_rect;
 	frontend_draw_rect_assign(&source_rect, TITLE_LEFT, TITLE_TOP,
 				  TITLE_RIGHT, TITLE_BOTTOM);
 	frontend_text_draw_centered(
@@ -2403,6 +2379,8 @@ void config_network_options_screen(void)
 		frontend_string_get(
 			FRONTSTR_304_MULTIPLAYER_CONNECTION_OPTIONS),
 		&source_rect, 0xFFFF);
+	struct RECT rect;
+	int label_width;
 #ifdef XVT_MODERN
 	frontend_draw_rect_assign(&source_rect, LABEL_LEFT, LABEL_TOP,
 				  LABEL_RIGHT, LABEL_BOTTOM);
@@ -2662,6 +2640,7 @@ void config_network_options_screen(void)
 	}
 
 	frontend_draw_rect_offset_xy(&source_rect, 0, 35);
+	uint8_t selected_option;
 	if (g_frontend_mission_session_mode ==
 	    FRONTEND_MISSION_SESSION_NET_CLIENT) {
 		frontend_text_draw_aligned_in_rect(
@@ -2729,16 +2708,15 @@ void config_draw_two_choice_option_read_only_opaque(
 	const uint8_t *value, const struct RECT *rect,
 	frontend_string_id value_base_str_id)
 {
-	int option_index;
-	struct RECT slot_rect;
-	struct RECT sprite_rect;
 	int cursor_x;
 	int cursor_y;
 
 	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	struct RECT sprite_rect;
 	front_image_get_resource_rect("offslot", &sprite_rect);
+	struct RECT slot_rect;
 	frontend_draw_rect_copy(&slot_rect, rect);
-	for (option_index = 0; option_index < 2; ++option_index) {
+	for (int option_index = 0; option_index < 2; ++option_index) {
 		slot_rect.right = slot_rect.left + sprite_rect.right -
 				  sprite_rect.left + 1;
 		if (g_config_draw_static_control_background != 0) {
@@ -2785,13 +2763,6 @@ void config_draw_three_choice_option_read_only(
 	const uint8_t *selected_option, const struct RECT *bar_rect,
 	frontend_string_id first_option_string_id)
 {
-	struct RECT option_rect;
-	struct RECT sprite_rect;
-	int cursor_x;
-	int cursor_y;
-	int button_width;
-	int right;
-
 	if (g_config_draw_static_control_background != 0) {
 		frontend_display_lock_offscreen_surface();
 		front_image_draw_sprite_translucent("3conbar", bar_rect->left,
@@ -2801,12 +2772,16 @@ void config_draw_three_choice_option_read_only(
 						    bar_rect->top);
 	}
 
+	int cursor_x;
+	int cursor_y;
 	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	struct RECT sprite_rect;
 	front_image_get_resource_rect("3conbtn", &sprite_rect);
-	button_width = sprite_rect.right - sprite_rect.left + 1;
+	int button_width = sprite_rect.right - sprite_rect.left + 1;
 	front_image_get_resource_rect("3conbar", &sprite_rect);
 	frontend_draw_rect_offset_xy(&sprite_rect, bar_rect->left,
 				     bar_rect->top);
+	struct RECT option_rect;
 	frontend_draw_rect_copy(&option_rect, bar_rect);
 
 	option_rect.right = option_rect.left + button_width;
@@ -2842,7 +2817,7 @@ void config_draw_three_choice_option_read_only(
 					option_rect.top);
 	}
 	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
-	right = sprite_rect.right;
+	int right = sprite_rect.right;
 	option_rect.left =
 		right -
 		frontend_text_measure_width(
@@ -2864,8 +2839,6 @@ void config_draw_three_choice_option_read_only(
 void config_sound_options_screen(void)
 {
 	struct RECT rect;
-	int previous_volume;
-	int previous_datapad_music;
 
 	frontend_draw_rect_assign(&rect, 84, 90, 604, 106);
 	frontend_text_draw_centered(
@@ -2880,7 +2853,7 @@ void config_sound_options_screen(void)
 	config_draw_two_choice_option(&g_game_config.sfx_datapad_enabled, &rect,
 				      FRONTSTR_236_OFF);
 	frontend_draw_rect_offset_xy(&rect, 0, 15);
-	previous_volume = g_game_config.sfx_datapad_volume;
+	int previous_volume = g_game_config.sfx_datapad_volume;
 	config_draw_option_slider(&g_game_config.sfx_datapad_volume, &rect, 10,
 				  FRONTSTR_403_VOLUME_LOW, 0);
 	if (g_game_config.sfx_datapad_volume != previous_volume &&
@@ -2990,7 +2963,7 @@ void config_sound_options_screen(void)
 	}
 
 	frontend_draw_rect_offset_xy(&rect, 0, 35);
-	previous_datapad_music = g_game_config.datapad_music_enabled;
+	int previous_datapad_music = g_game_config.datapad_music_enabled;
 	frontend_text_draw_aligned_in_rect(
 		12, frontend_string_get(FRONTSTR_735_DATAPAD_MUSIC), &rect, 0,
 		1, 0xFFFF);
@@ -3035,15 +3008,11 @@ void config_sound_options_screen(void)
 // FUNCTION: XVT 0x4BCC10
 void config_joystick_remap_screen(void)
 {
-	struct RECT rect;
-	int pressed_button;
-	int pov_direction;
 	int cursor_x;
 	int cursor_y;
-	int button_count;
-	int remappable_row_count;
 
 	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 84, 90, 604, 106);
 	frontend_text_draw_centered(
 		15, frontend_string_get(FRONTSTR_415_JOYSTICK_OPTIONS), &rect,
@@ -3117,12 +3086,11 @@ void config_joystick_remap_screen(void)
 		g_color_green);
 
 	{
-		pov_direction = joystick_get_pov_direction(0);
-		pressed_button = joystick_get_first_pressed_button(0);
+		int pov_direction = joystick_get_pov_direction(0);
+		int pressed_button = joystick_get_first_pressed_button(0);
 		if ((pressed_button != -1 && pressed_button < 16) ||
 		    pov_direction != 0) {
 			if (pressed_button != -1) {
-				int scroll_offset;
 				if (g_config_selected_joystick_button_index !=
 					    pressed_button &&
 				    g_game_config.sfx_datapad_enabled != 0) {
@@ -3132,7 +3100,7 @@ void config_joystick_remap_screen(void)
 								.sfx_datapad_volume,
 						63);
 				}
-				scroll_offset =
+				int scroll_offset =
 					g_config_joystick_button_scroll_offset;
 				g_config_selected_joystick_button_index =
 					pressed_button;
@@ -3191,8 +3159,8 @@ void config_joystick_remap_screen(void)
 		}
 	}
 
-	button_count = joystick_get_button_count(0);
-	remappable_row_count = button_count;
+	int button_count = joystick_get_button_count(0);
+	int remappable_row_count = button_count;
 	if (joystick_has_pov(0) != 0) {
 		remappable_row_count += 4;
 	}
@@ -3219,19 +3187,16 @@ void config_joystick_remap_screen(void)
 	frontend_draw_rect_inset_xy(&rect, 2, 0);
 
 	{
-		int list_row_index;
-		int entry_count;
-		for (list_row_index = g_config_joystick_button_scroll_offset;
+		for (int list_row_index =
+			     g_config_joystick_button_scroll_offset;
 		     list_row_index <
 		     g_config_joystick_button_scroll_offset + 10;
 		     ++list_row_index) {
-			int action_index;
-			uint16_t color;
-			entry_count = g_joystick_entry_count;
+			int entry_count = g_joystick_entry_count;
 			if (list_row_index >= remappable_row_count) {
 				break;
 			}
-			action_index = 0;
+			int action_index = 0;
 			if (entry_count > 0) {
 				struct joystick_entry *entries =
 					g_joystick_entries;
@@ -3303,6 +3268,7 @@ void config_joystick_remap_screen(void)
 							action_index;
 					}
 				}
+				uint16_t color;
 				if (list_row_index < button_count) {
 					color = 0xFFFF;
 					if (g_config_selected_joystick_button_index ==
@@ -3363,8 +3329,7 @@ void config_joystick_remap_screen(void)
 	rect.bottom = rect.top + 14;
 	frontend_draw_rect_inset_xy(&rect, 2, 0);
 	{
-		int action_index;
-		for (action_index = g_config_joystick_action_scroll_offset;
+		for (int action_index = g_config_joystick_action_scroll_offset;
 		     action_index <
 			     g_config_joystick_action_scroll_offset + 19 &&
 		     action_index < g_joystick_entry_count;
@@ -3416,12 +3381,11 @@ void config_joystick_remap_screen(void)
 	}
 
 	{
-		struct joystick_entry *entry;
 		int entry_index = 0;
 		uint8_t action_code = config_read_joystick_action_picker_key();
 		int entry_count = g_joystick_entry_count;
 		if (entry_index < entry_count) {
-			entry = g_joystick_entries;
+			struct joystick_entry *entry = g_joystick_entries;
 			{
 				int selected_button =
 					g_config_selected_joystick_button_index;
@@ -3471,20 +3435,16 @@ void config_joystick_remap_screen(void)
 // FUNCTION: XVT 0x4BD5F0
 int config_load_joystick_action_dictionary(void)
 {
-	xvt_file *stream;
-	char *cursor;
-	int token_length;
-	char token[256];
-	char current_character;
-	int entry_index;
-
-	stream = file_open("joystick.txt", "r");
+	xvt_file *stream = file_open("joystick.txt", "r");
 	if (stream == NULL) {
 		return 0;
 	}
 	g_joystick_entry_count = 0;
+	char token[256];
+	char current_character;
 	for (;;) {
-		cursor = FILE_GETS(g_frontend_scratch_buffer, 128, stream);
+		char *cursor =
+			FILE_GETS(g_frontend_scratch_buffer, 128, stream);
 		if (cursor == NULL) {
 			break;
 		}
@@ -3494,7 +3454,7 @@ int config_load_joystick_action_dictionary(void)
 				[strlen(g_frontend_scratch_buffer) - 1] = '\0';
 		}
 
-		token_length = 0;
+		int token_length = 0;
 		while (*cursor != ' ') {
 			current_character = *cursor;
 			if (current_character == '\0' || token_length >= 256) {
@@ -3516,7 +3476,7 @@ int config_load_joystick_action_dictionary(void)
 			token[token_length++] = *cursor++;
 		}
 		token[token_length] = '\0';
-		entry_index = g_joystick_entry_count;
+		int entry_index = g_joystick_entry_count;
 		strcpy(g_joystick_entries[g_joystick_entry_count].name, token);
 		strcpy(g_joystick_entries[entry_index].description, cursor + 1);
 		++g_joystick_entry_count;
@@ -3533,15 +3493,13 @@ int config_load_joystick_action_dictionary(void)
 // FUNCTION: XVT 0x4BD770
 uint8_t config_read_joystick_action_picker_key(void)
 {
-	uint8_t key_code;
-	int is_key_down;
-	int key_index;
-
-	key_code = keyboard_dequeue_char();
+	uint8_t key_code = keyboard_dequeue_char();
 	if (key_code != 0) {
 		return key_code;
 	}
 
+	int is_key_down;
+	int key_index;
 	if (keyboard_is_key_down(0x12)) {
 		for (key_index = 0; key_index < 26; ++key_index) {
 			if (keyboard_is_key_down(key_index + 65)) {
@@ -3672,16 +3630,10 @@ uint8_t config_read_joystick_action_picker_key(void)
 void config_draw_custom_taunts_page(void)
 {
 	struct RECT rect;
-	int widest_label;
-	int label_index;
-	int label_width;
-	int text_y;
-	int field_index;
-	char (*taunt)[70];
 
 	frontend_draw_rect_assign(&rect, 84, 90, 604, 106);
-	widest_label = 0;
-	label_index = 0;
+	int widest_label = 0;
+	int label_index = 0;
 	frontend_text_draw_centered(
 		15, frontend_string_get(FRONTSTR_794_CUSTOM_TAUNTS), &rect,
 		0xFFFF);
@@ -3689,16 +3641,16 @@ void config_draw_custom_taunts_page(void)
 		++label_index;
 		sprintf(g_frontend_scratch_buffer, "%s%d",
 			frontend_string_get(FRONTSTR_795_TAUNT), label_index);
-		label_width = frontend_text_measure_width(
+		int label_width = frontend_text_measure_width(
 			g_frontend_scratch_buffer, 12);
 		if (label_width > widest_label) {
 			widest_label = label_width;
 		}
 	} while (label_index < 4);
 
-	text_y = 126;
-	field_index = 0;
-	taunt = g_game_config.taunts;
+	int text_y = 126;
+	int field_index = 0;
+	char (*taunt)[70] = g_game_config.taunts;
 	frontend_draw_rect_assign(&rect, widest_label + 93, 126, 600, 146);
 	do {
 		label_index = field_index + 1;
@@ -3737,11 +3689,6 @@ void config_draw_custom_taunts_page(void)
 // FUNCTION: XVT 0x4FB670
 int credits_update_screen(int frame_counter)
 {
-	int out_page_duration_frames;
-	int line_index;
-	int key;
-	int logo_id;
-
 	if (frame_counter == 0) {
 		keyboard_flush_char_buffer();
 		if (g_frontend_credits_file != NULL) {
@@ -3820,7 +3767,7 @@ int credits_update_screen(int frame_counter)
 		g_credits_prev_logo_y[1] = g_credits_logo_y[1];
 		frontend_display_lock_offscreen_surface();
 		front_image_draw_sprite_opaque("background", 0, 0);
-		logo_id = g_credits_logo_id[0];
+		int logo_id = g_credits_logo_id[0];
 		switch (logo_id) {
 		case 1:
 			front_image_draw_sprite_translucent(
@@ -3856,6 +3803,7 @@ int credits_update_screen(int frame_counter)
 	if ((g_credits_buffer_idx & 1) != 0) {
 		frontend_text_suspend_text_fade();
 	}
+	int line_index;
 	for (line_index = 0; line_index < 32; ++line_index) {
 		frontend_text_draw(15, g_credits_text_lines[0][line_index],
 				   g_credits_text_x[0],
@@ -3877,6 +3825,7 @@ int credits_update_screen(int frame_counter)
 
 	if (g_credits_has_more_pages != 0) {
 		if (g_credits_page_end_frame <= frame_counter) {
+			int out_page_duration_frames;
 			credits_parse_next_page(&g_credits_buffer_idx,
 						&g_credits_has_more_pages,
 						&out_page_duration_frames,
@@ -3895,7 +3844,7 @@ int credits_update_screen(int frame_counter)
 		cd_audio_fade_aux_volume(0x8000, 0x1000, 2000);
 	}
 
-	key = (uint8_t)keyboard_dequeue_char();
+	int key = (uint8_t)keyboard_dequeue_char();
 	if (frontend_mouse_get_left_click() != 0 ||
 	    frontend_mouse_get_right_click() != 0 || key == 27 || key == 13 ||
 	    key == 32) {

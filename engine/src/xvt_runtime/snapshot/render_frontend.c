@@ -138,16 +138,15 @@ static struct xvt_render_snapshot *writer(void)
 
 static uint32_t render_frontend_color(unsigned c)
 {
-	unsigned r;
-	unsigned g;
-	unsigned b;
 	if (g_front_state.display_bpp == 8) {
 		const struct frontend_palette_entry *p =
 			&g_front_state.display_palette[c & 255];
 		return 0xff000000u | ((unsigned)p->red << 16) |
 		       ((unsigned)p->green << 8) | p->blue;
 	}
-	b = c & 31;
+	unsigned b = c & 31;
+	unsigned r;
+	unsigned g;
 	if (g_front_state.pixel_format555) {
 		r = (c >> 10) & 31;
 		g = (c >> 5) & 31;

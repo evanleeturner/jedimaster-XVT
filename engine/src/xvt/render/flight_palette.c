@@ -48,6 +48,22 @@ void flight_palette_build_rgb_range(const struct rgb_triplet *src_rgb,
 				    struct rgb_triplet *dst_rgb,
 				    int start_index, int count)
 {
+	if (g_flight_brightness_scale_q8 == 256) {
+		if (count-- == 0) {
+			return;
+		}
+		const struct rgb_triplet *src = &src_rgb[start_index];
+		struct rgb_triplet *dst = &dst_rgb[start_index];
+		do {
+			dst->r = src->r;
+			dst->g = src->g;
+			dst->b = src->b;
+			++src;
+			++dst;
+		} while (count-- != 0);
+		return;
+	}
+
 	uint8_t max_channel;
 	uint8_t min_channel;
 	uint8_t r;
@@ -60,36 +76,13 @@ void flight_palette_build_rgb_range(const struct rgb_triplet *src_rgb,
 	uint8_t low_channel;
 	uint8_t offset_channel;
 	uint8_t inverse_offset_channel;
-
-	if (g_flight_brightness_scale_q8 == 256) {
-		const struct rgb_triplet *src;
-		struct rgb_triplet *dst;
-
-		if (count-- == 0) {
-			return;
-		}
-		src = &src_rgb[start_index];
-		dst = &dst_rgb[start_index];
-		do {
-			dst->r = src->r;
-			dst->g = src->g;
-			dst->b = src->b;
-			++src;
-			++dst;
-		} while (count-- != 0);
-		return;
-	}
-
 	{
-		const struct rgb_triplet *src;
-		struct rgb_triplet *dst;
-
 		if (count-- == 0) {
 			return;
 		}
 
-		dst = &dst_rgb[start_index];
-		src = &src_rgb[start_index];
+		struct rgb_triplet *dst = &dst_rgb[start_index];
+		const struct rgb_triplet *src = &src_rgb[start_index];
 		do {
 			r = src->r;
 			g = src->g;
@@ -265,11 +258,8 @@ void flight_palette_apply_to_display(void)
 void flight_palette_set_range(struct rgb_triplet *rgb_triples,
 			      int16_t start_idx, uint16_t count)
 {
-	uint16_t palette_index;
-	int end_index;
-
-	palette_index = (uint16_t)start_idx;
-	end_index = palette_index + count;
+	uint16_t palette_index = (uint16_t)start_idx;
+	int end_index = palette_index + count;
 	while (palette_index < end_index) {
 		g_sw_palette[palette_index].r = rgb_triples->r;
 		g_sw_palette[palette_index].g = rgb_triples->g;
@@ -290,9 +280,7 @@ void flight_palette_set_range(struct rgb_triplet *rgb_triples,
 // FUNCTION: XVT 0x40E660
 void flight_palette_get_full(struct rgb_triplet *dst_palette)
 {
-	uint16_t index;
-
-	index = 0;
+	uint16_t index = 0;
 	do {
 		dst_palette->r = g_sw_palette[index].r;
 		dst_palette->g = g_sw_palette[index].g;
@@ -336,30 +324,15 @@ int16_t flight_palette_build16_bpp_range(struct rgb_triplet *src_rgb,
 {
 	struct rgb_triplet *src;
 	uint16_t *dst;
-	int remaining;
-	int end_index;
-	uint8_t r;
-	uint8_t g;
-	uint8_t b;
-	uint8_t max_channel;
-	uint8_t min_channel;
-	uint8_t saturation6;
-	uint8_t hue_sector;
-	uint8_t hue_offset6;
-	uint8_t value6;
-	uint8_t low_channel;
-	uint8_t offset_channel;
-	uint8_t inverse_offset_channel;
 	uint16_t packed_color;
-	int16_t result;
 
 	if (g_flight_brightness_scale_q8 == 256) {
-		end_index = start_index + count;
-		result = (int16_t)end_index;
+		int end_index = start_index + count;
+		int16_t result = (int16_t)end_index;
 		if (start_index < end_index) {
 			dst = &dst16[start_index];
 			src = &src_rgb[start_index];
-			remaining = count;
+			int remaining = count;
 			do {
 				if (display_is_pixel_format555()) {
 					packed_color =
@@ -392,6 +365,18 @@ int16_t flight_palette_build16_bpp_range(struct rgb_triplet *src_rgb,
 
 	dst = &dst16[start_index];
 	src = &src_rgb[start_index];
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
+	uint8_t max_channel;
+	uint8_t min_channel;
+	uint8_t saturation6;
+	uint8_t hue_sector;
+	uint8_t hue_offset6;
+	uint8_t value6;
+	uint8_t low_channel;
+	uint8_t offset_channel;
+	uint8_t inverse_offset_channel;
 	do {
 		r = src->r;
 		g = src->g;

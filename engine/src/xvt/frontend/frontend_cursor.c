@@ -51,10 +51,7 @@ const uint8_t g_default_cursor_bitmap[100] = {
 int frontend_cursor_set_image_from_resource_name(const char *resource_name,
 						 void *save_buf)
 {
-	struct RECT resource_rect;
-	int resource_index;
-
-	resource_index = front_image_find_resource_by_name(resource_name);
+	int resource_index = front_image_find_resource_by_name(resource_name);
 	if (resource_index == -1) {
 		return 0;
 	}
@@ -62,6 +59,7 @@ int frontend_cursor_set_image_from_resource_name(const char *resource_name,
 	    0) {
 		return 0;
 	}
+	struct RECT resource_rect;
 	front_image_get_resource_rect(resource_name, &resource_rect);
 	g_front_state.cursor_mask_pixels =
 		g_front_state.resource_table[resource_index].image->pixels;
@@ -110,48 +108,39 @@ void frontend_cursor_init(void)
 // FUNCTION: XVT 0x4DDC90
 void frontend_cursor_draw(void)
 {
-	struct RECT clipped_rect;
-	struct RECT original_rect;
-	int cursor_width;
-	int cursor_height;
-	int visible_width;
-	int visible_height;
-	int display_bpp;
-	uint8_t *back_buffer;
-	uint8_t *cursor_pixels;
-	uint8_t *save_buffer;
-	uint8_t *back_buffer_row;
-	int rows_remaining;
-	int column;
-	int mask_value;
-
 	if (g_front_state.mouse_x < 0 || g_front_state.mouse_x >= 640 ||
 	    g_front_state.mouse_y < 0 || g_front_state.mouse_y >= 480) {
 		return;
 	}
 
-	cursor_height = g_front_state.cursor_height;
+	int cursor_height = g_front_state.cursor_height;
+	struct RECT clipped_rect;
 	clipped_rect.left = 0;
-	cursor_width = g_front_state.cursor_width;
+	int cursor_width = g_front_state.cursor_width;
 	clipped_rect.top = 0;
 	clipped_rect.right = g_front_state.cursor_width - 1;
 	clipped_rect.bottom = g_front_state.cursor_height - 1;
 	frontend_draw_rect_offset_xy(&clipped_rect, g_front_state.mouse_x,
 				     g_front_state.mouse_y);
+	struct RECT original_rect;
 	frontend_draw_rect_copy(&original_rect, &clipped_rect);
 	frontend_draw_rect_clip_to_bounds(&clipped_rect);
-	visible_width = clipped_rect.right - original_rect.right + cursor_width;
-	visible_height =
+	int visible_width =
+		clipped_rect.right - original_rect.right + cursor_width;
+	int visible_height =
 		cursor_height + clipped_rect.bottom - original_rect.bottom;
-	back_buffer = frontend_display_lock_back_buffer();
-	cursor_pixels = g_front_state.cursor_mask_pixels;
-	save_buffer = g_front_state.cursor_save_buf;
-	display_bpp = g_front_state.display_bpp;
+	uint8_t *back_buffer = frontend_display_lock_back_buffer();
+	uint8_t *cursor_pixels = g_front_state.cursor_mask_pixels;
+	uint8_t *save_buffer = g_front_state.cursor_save_buf;
+	int display_bpp = g_front_state.display_bpp;
 	g_draw_surface_ptr = back_buffer;
 
 #ifdef XVT_MODERN
 	xvt_render_frontend_cursor(0);
 #endif
+	uint8_t *back_buffer_row;
+	int rows_remaining;
+	int mask_value;
 	if (g_front_state.cursor_sprite_name[0] != '\0') {
 		switch (display_bpp) {
 		case 8: {
@@ -186,15 +175,12 @@ void frontend_cursor_draw(void)
 				rows_remaining = visible_height;
 				do {
 					if (visible_width > 0) {
-						uint16_t *source_pixel;
-						uint16_t *saved_pixel;
-						int pixels_remaining;
-
-						source_pixel = (uint16_t *)
-							back_buffer_row;
-						saved_pixel =
+						uint16_t *source_pixel =
+							(uint16_t *)
+								back_buffer_row;
+						uint16_t *saved_pixel =
 							(uint16_t *)save_buffer;
-						pixels_remaining =
+						int pixels_remaining =
 							visible_width;
 						do {
 							*saved_pixel++ =
@@ -219,6 +205,7 @@ void frontend_cursor_draw(void)
 					g_front_state.mouse_x,
 					g_front_state.mouse_y);
 	} else {
+		int column;
 		switch (display_bpp) {
 		case 8: {
 			back_buffer_row =
@@ -263,12 +250,10 @@ void frontend_cursor_draw(void)
 				do {
 					column = 0;
 					if (visible_width > 0) {
-						uint16_t *destination_pixel;
-						uint16_t *saved_pixel;
-
-						destination_pixel = (uint16_t *)
-							back_buffer_row;
-						saved_pixel =
+						uint16_t *destination_pixel =
+							(uint16_t *)
+								back_buffer_row;
+						uint16_t *saved_pixel =
 							(uint16_t *)save_buffer;
 						do {
 							*saved_pixel =
@@ -328,13 +313,9 @@ void frontend_cursor_draw(void)
 // FUNCTION: XVT 0x4DDF90
 void frontend_cursor_restore(void)
 {
-	uint8_t *destination;
-	uint8_t *source;
-	int display_bpp;
-
-	destination = frontend_display_lock_back_buffer();
-	source = g_front_state.cursor_save_buf;
-	display_bpp = g_front_state.display_bpp;
+	uint8_t *destination = frontend_display_lock_back_buffer();
+	uint8_t *source = g_front_state.cursor_save_buf;
+	int display_bpp = g_front_state.display_bpp;
 	g_draw_surface_ptr = destination;
 #ifdef XVT_MODERN
 	xvt_render_frontend_cursor(1);
@@ -342,19 +323,15 @@ void frontend_cursor_restore(void)
 
 	switch (display_bpp) {
 	case 8: {
-		int source_pitch;
-		int copy_width;
-		int remaining_rows;
-		int row_offset;
-
-		row_offset = g_front_state.draw_surface_pitch;
+		int row_offset = g_front_state.draw_surface_pitch;
 		row_offset *= g_front_state.cursor_prev_draw_y;
 		row_offset += g_front_state.cursor_prev_draw_x;
 		destination += row_offset;
-		source_pitch = g_front_state.cursor_width;
-		copy_width = g_front_state.cursor_prev_draw_width;
+		int source_pitch = g_front_state.cursor_width;
+		int copy_width = g_front_state.cursor_prev_draw_width;
 		if (g_front_state.cursor_prev_draw_height > 0) {
-			remaining_rows = g_front_state.cursor_prev_draw_height;
+			int remaining_rows =
+				g_front_state.cursor_prev_draw_height;
 			do {
 				memcpy(destination, source, copy_width);
 				source += source_pitch;
@@ -365,30 +342,22 @@ void frontend_cursor_restore(void)
 		break;
 	}
 	case 16: {
-		int copy_width;
-		int source_pitch;
-		int remaining_rows;
-		int row_offset;
-		uint8_t *row_destination;
-
-		row_offset = g_front_state.draw_surface_pitch;
+		int row_offset = g_front_state.draw_surface_pitch;
 		row_offset *= g_front_state.cursor_prev_draw_y;
 		row_offset += 2 * g_front_state.cursor_prev_draw_x;
-		row_destination = destination + row_offset;
-		copy_width = g_front_state.cursor_prev_draw_width;
-		source_pitch = g_front_state.cursor_width;
+		uint8_t *row_destination = destination + row_offset;
+		int copy_width = g_front_state.cursor_prev_draw_width;
+		int source_pitch = g_front_state.cursor_width;
 		if (g_front_state.cursor_prev_draw_height > 0) {
-			remaining_rows = g_front_state.cursor_prev_draw_height;
+			int remaining_rows =
+				g_front_state.cursor_prev_draw_height;
 			do {
 				if (copy_width > 0) {
-					uint16_t *source_pixel;
-					uint16_t *destination_pixel;
-					int remaining_pixels;
-
-					source_pixel = (uint16_t *)source;
-					destination_pixel =
+					uint16_t *source_pixel =
+						(uint16_t *)source;
+					uint16_t *destination_pixel =
 						(uint16_t *)row_destination;
-					remaining_pixels = copy_width;
+					int remaining_pixels = copy_width;
 					do {
 						*destination_pixel++ =
 							*source_pixel++;

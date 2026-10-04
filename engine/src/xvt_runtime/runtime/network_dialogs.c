@@ -22,11 +22,11 @@
 int xvt_network_dialogs_resume(int result, int action)
 {
 	(void)result;
-	struct RECT screen = {0, 0, 640, 480};
 	switch ((xvt_network_dialog_action)action) {
 	case XVT_NETWORK_ACCESS_REJECTED:
 	case XVT_NETWORK_ACCESS_PASSWORD:
 		if (action == XVT_NETWORK_ACCESS_PASSWORD) {
+			struct RECT screen = {0, 0, 640, 480};
 			frontend_screen_queue_push(
 				config_options_datapad_update, &screen);
 		}
@@ -38,13 +38,13 @@ int xvt_network_dialogs_resume(int result, int action)
 
 int xvt_network_dialogs_connecting(void)
 {
-	struct RECT message = {0, 0, 640, 480};
-	struct RECT cancel = {85, 447, 176, 471};
 	front_image_draw_sprite_opaque("background", 0, 0);
+	struct RECT message = {0, 0, 640, 480};
 	frontend_text_draw_centered(
 		15, frontend_string_get(FRONTSTR_645_CONNECTING), &message,
 		0xffff);
 	frontend_cursor_show();
+	struct RECT cancel = {85, 447, 176, 471};
 	return frontend_button_handle_sprite_button(
 		       &cancel, "leaveup", "leavedown",
 		       frontend_string_get(FRONTSTR_019_CANCEL), 12, 0, 8,
@@ -81,8 +81,8 @@ static int xvt_network_dialogs_after_failure(int result, int host)
 
 void xvt_network_dialogs_show_failure(AeronDplayDirectoryError error, int host)
 {
-	const char *message;
 	xvt_network_session_leave();
+	const char *message;
 	switch (error) {
 	case AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED:
 		message = "The multiplayer directory is not configured.";

@@ -18,10 +18,10 @@ static const uint16_t g_windows1252[32] = {
 void xvt_network_metadata_to_utf8(char *out, size_t capacity, const char *text,
 				  size_t size)
 {
-	size_t written = 0;
 	if (!capacity) {
 		return;
 	}
+	size_t written = 0;
 	for (size_t i = 0; i < size && text[i]; ++i) {
 		unsigned cp = (uint8_t)text[i];
 		if (cp >= 128 && cp < 160) {
@@ -48,11 +48,11 @@ void xvt_network_metadata_to_utf8(char *out, size_t capacity, const char *text,
 void xvt_network_metadata_from_utf8(char *out, size_t capacity,
 				    const char *text)
 {
-	size_t written = 0;
 	const uint8_t *source = (const uint8_t *)text;
 	if (!capacity) {
 		return;
 	}
+	size_t written = 0;
 	while (*source && written + 1 < capacity) {
 		unsigned lead = *source++;
 		unsigned cp = lead;

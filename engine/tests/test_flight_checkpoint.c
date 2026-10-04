@@ -270,13 +270,12 @@ static void check_read_refusals(void)
 		(size_t)(view.paired - g_saved) +
 		XVT_FLIGHT_PLAYERS * sizeof(struct xvt_paired_motion_wire);
 	struct xvt_state_footer good = flight_checkpoint_footer(g_saved, size);
-	struct xvt_state_footer footer;
 
 	XVT_ASSERT_INT_EQ(
 		read_image(g_image, sizeof(struct xvt_state_footer) - 1), 0);
 
 	/* The footer's magic, schema, profile and cookie. */
-	footer = good;
+	struct xvt_state_footer footer = good;
 	xvt_wire_set32(footer.magic, xvt_wire_get32(good.magic) + 1);
 	set_footer(g_image, size, &footer);
 	XVT_ASSERT_INT_EQ(read_image(g_image, size), 0);

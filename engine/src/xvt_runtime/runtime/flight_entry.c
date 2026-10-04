@@ -42,10 +42,7 @@ static int g_flight_devices_created;
  * mission command line, so a pilot or game name containing a switch's word sets it too. */
 static void xvt_flight_entry_read_launch_switches(const char *mission_cmd_line)
 {
-	xvt_file *flicker_file;
-	char *option_match;
-
-	flicker_file = file_open("flicker.txt", "r");
+	xvt_file *flicker_file = file_open("flicker.txt", "r");
 	if (flicker_file != NULL) {
 		file_close(flicker_file);
 		g_flight_conf_flicker = 0;
@@ -55,7 +52,7 @@ static void xvt_flight_entry_read_launch_switches(const char *mission_cmd_line)
 
 	g_laser_fire_timestamp_tracking_enabled = 1;
 	g_internet_play_enabled = g_game_config.internet_play;
-	option_match = strstr(mission_cmd_line, "traincourse");
+	char *option_match = strstr(mission_cmd_line, "traincourse");
 	g_flight_conf_train_course = 1;
 	if (option_match == NULL) {
 		g_flight_conf_train_course = 0;
@@ -141,13 +138,6 @@ static void xvt_flight_entry_read_launch_switches(const char *mission_cmd_line)
 
 int xvt_flight_entry_prepare(char *mission_cmd_line)
 {
-	network_transport_type network_type;
-	const char *connection_address;
-	int argument_count;
-	int argument_index;
-	int command_line_offset;
-	int quoted_argument;
-
 	g_game_session_started = 0;
 	g_sound_engine_started = 0;
 	g_flight_devices_created = 0;
@@ -164,20 +154,18 @@ int xvt_flight_entry_prepare(char *mission_cmd_line)
 		return 0;
 	}
 
-	command_line_offset = 0;
-	quoted_argument = 0;
-	argument_count = BUILTIN_ARGUMENT_COUNT;
+	int command_line_offset = 0;
+	int quoted_argument = 0;
+	int argument_count = BUILTIN_ARGUMENT_COUNT;
 	g_flight_launch_args.program_name = "xtie";
 	g_flight_launch_args.sentinel = "/trebla";
 	if (mission_cmd_line[0] != '\0') {
-		for (argument_index = 0; argument_index < PARSED_ARGUMENT_COUNT;
-		     ++argument_index) {
+		for (int argument_index = 0;
+		     argument_index < PARSED_ARGUMENT_COUNT; ++argument_index) {
 			g_flight_launch_args.arguments[argument_index] =
 				&mission_cmd_line[command_line_offset];
 			while (1) {
-				char character;
-
-				character =
+				char character =
 					mission_cmd_line[command_line_offset];
 				if (character == ' ') {
 					if (quoted_argument != 1) {
@@ -220,7 +208,9 @@ int xvt_flight_entry_prepare(char *mission_cmd_line)
 		return 0;
 	}
 
-	network_type = (network_transport_type)g_game_config.network_type;
+	network_transport_type network_type =
+		(network_transport_type)g_game_config.network_type;
+	const char *connection_address;
 	switch (network_type) {
 	case NET_TRANSPORT_TCPIP:
 		connection_address = g_game_config.ip_address;
@@ -249,9 +239,7 @@ int xvt_flight_entry_prepare(char *mission_cmd_line)
  * maximum, bent by the configured curve and inverted; clears any forced detail level. */
 static void xvt_flight_entry_configure_lod_distance(void)
 {
-	int lod_config_value;
-
-	lod_config_value =
+	int lod_config_value =
 		g_game_config.lod[net_session_get_player_count() > 1] +
 		LOD_CONFIG_OFFSET;
 	g_lod_distance_scale = (float)lod_config_value;
@@ -275,14 +263,10 @@ static void xvt_flight_entry_configure_lod_distance(void)
  * detail levels. */
 static void xvt_flight_entry_configure_mipmaps(void)
 {
-	int mipmap_config_option;
-
-	mipmap_config_option =
+	int mipmap_config_option =
 		g_game_config.mipmap[net_session_get_player_count() > 1];
 	if (mipmap_config_option != MIPMAPPING_DISABLED_VALUE) {
-		int64_t mipmap_config_value;
-
-		mipmap_config_value =
+		int64_t mipmap_config_value =
 			g_game_config
 				.mipmap[net_session_get_player_count() > 1];
 		g_mip_lod_scale = (float)mipmap_config_value;
@@ -339,12 +323,11 @@ static void xvt_flight_entry_configure_display_size(void)
 
 static void xvt_flight_entry_configure(void)
 {
-	int brightness_limit;
 	g_flight_brightness_scale_q8 =
 		(g_game_config.brightness[net_session_get_player_count() > 1] +
 		 BRIGHTNESS_CONFIG_OFFSET)
 		<< BRIGHTNESS_CONFIG_SHIFT;
-	brightness_limit = BRIGHTNESS_SCALE_MIN;
+	int brightness_limit = BRIGHTNESS_SCALE_MIN;
 	if ((unsigned int)g_flight_brightness_scale_q8 < BRIGHTNESS_SCALE_MIN) {
 		g_flight_brightness_scale_q8 = brightness_limit;
 	} else {
@@ -378,10 +361,9 @@ static void xvt_flight_entry_configure(void)
 	g_bilinear_enabled =
 		g_game_config.bilinear[net_session_get_player_count() > 1];
 	{
-		int bpp_config_value;
-
-		bpp_config_value = g_game_config.color_depth_choice
-					   [net_session_get_player_count() > 1];
+		int bpp_config_value =
+			g_game_config.color_depth_choice
+				[net_session_get_player_count() > 1];
 		switch (bpp_config_value) {
 		case DISPLAY_CONFIG_LOW:
 			g_flight_bytes_per_pixel = PALETTED_BYTES_PER_PIXEL;
@@ -409,9 +391,7 @@ static void xvt_flight_entry_configure(void)
 		break;
 	}
 	{
-		int local_lights_enabled;
-
-		local_lights_enabled =
+		int local_lights_enabled =
 			g_game_config
 				.local_lights[net_session_get_player_count() >
 					      1];
@@ -421,9 +401,7 @@ static void xvt_flight_entry_configure(void)
 		}
 	}
 	{
-		int specular_enabled;
-
-		specular_enabled =
+		int specular_enabled =
 			g_game_config
 				.specular[net_session_get_player_count() > 1];
 		g_specular_enabled = 1;
@@ -432,9 +410,7 @@ static void xvt_flight_entry_configure(void)
 		}
 	}
 	{
-		int diffuse_lighting_enabled;
-
-		diffuse_lighting_enabled =
+		int diffuse_lighting_enabled =
 			g_game_config
 				.diffuse[net_session_get_player_count() > 1];
 		g_dir_lighting_enabled = 1;
@@ -443,9 +419,7 @@ static void xvt_flight_entry_configure(void)
 		}
 	}
 	{
-		int dithering_enabled;
-
-		dithering_enabled =
+		int dithering_enabled =
 			g_game_config
 				.dither[net_session_get_player_count() > 1];
 		g_dithering_enabled = 1;

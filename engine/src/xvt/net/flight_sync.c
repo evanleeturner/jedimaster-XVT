@@ -105,32 +105,29 @@ static uint8_t *g_world_message_buffer = NULL;
 // FUNCTION: XVT 0x418500
 void flight_sync_queue_predicted_remote_input_frames(int predicted_frame_delta)
 {
-	int player_idx;
-	struct flight_input_frame_record input;
-
 	if (g_internet_play_enabled != 0) {
 		return;
 	}
+	struct flight_input_frame_record input;
 	memset(&input, 0, sizeof(input));
-	for (player_idx = 0; player_idx < 8; ++player_idx) {
-		int count;
-		struct input_frame *last_frame;
-		struct input_frame *predicted_frame;
-
+	for (int player_idx = 0; player_idx < 8; ++player_idx) {
 		if (g_players[player_idx].participation_state == 0 ||
 		    player_idx == g_local_player) {
 			continue;
 		}
-		count = g_input_frame_count[player_idx];
+		int count = g_input_frame_count[player_idx];
 		if (count == 0) {
 			continue;
 		}
-		last_frame = &g_input_history[player_idx][count - 1];
+		struct input_frame *last_frame =
+			&g_input_history[player_idx][count - 1];
 		input.axis_x = last_frame->input.axis_x;
 		input.axis_y = last_frame->input.axis_y;
-		predicted_frame = flight_sync_insert_input_frame(
-			player_idx,
-			last_frame->timestamp + predicted_frame_delta, &input);
+		struct input_frame *predicted_frame =
+			flight_sync_insert_input_frame(
+				player_idx,
+				last_frame->timestamp + predicted_frame_delta,
+				&input);
 		if (predicted_frame != NULL) {
 			predicted_frame->awaiting_relay = 0;
 			predicted_frame->input_source = INPUT_FRAME_PREDICTED;
@@ -145,22 +142,18 @@ void flight_sync_queue_predicted_remote_input_frames(int predicted_frame_delta)
 // FUNCTION: XVT 0x4185B0
 void flight_sync_discard_all_predicted_input_frames(void)
 {
-	int player_index;
-
 #ifndef XVT_MODERN
 	if (g_internet_play_enabled != 0) {
 		return;
 	}
 #endif
 
-	for (player_index = 0; player_index < 8; ++player_index) {
+	for (int player_index = 0; player_index < 8; ++player_index) {
 		if (g_players[player_index].participation_state != 0 &&
 		    player_index != g_local_player) {
-			int frame_index;
-			struct input_frame *frame;
-
-			frame = g_input_history[player_index];
-			frame_index = 0;
+			struct input_frame *frame =
+				g_input_history[player_index];
+			int frame_index = 0;
 			while (g_input_frame_count[player_index] >
 			       frame_index) {
 				if (frame->awaiting_relay == 0 &&
@@ -183,9 +176,6 @@ void flight_sync_discard_all_predicted_input_frames(void)
 // FUNCTION: XVT 0x418650
 void flight_sync_discard_predicted_input_frames(int player_idx)
 {
-	int frame_index;
-	struct input_frame *frame;
-
 	if (
 #ifndef XVT_MODERN
 		g_internet_play_enabled != 0 ||
@@ -195,8 +185,8 @@ void flight_sync_discard_predicted_input_frames(int player_idx)
 		return;
 	}
 
-	frame_index = 0;
-	frame = g_input_history[player_idx];
+	int frame_index = 0;
+	struct input_frame *frame = g_input_history[player_idx];
 	while (frame_index < g_input_frame_count[player_idx]) {
 		if (frame->awaiting_relay == 0 &&
 		    frame->input_source == INPUT_FRAME_PREDICTED) {
@@ -217,17 +207,13 @@ void flight_sync_discard_predicted_input_frames(int player_idx)
 void flight_sync_remove_input_history_frame(int player_idx,
 					    const struct input_frame *frame)
 {
-	int frame_count;
-	int copy_index;
-	struct input_frame *current;
-
-	frame_count = g_input_frame_count[player_idx];
+	int frame_count = g_input_frame_count[player_idx];
 	if (frame_count != 0) {
-		current = g_input_history[player_idx];
+		struct input_frame *current = g_input_history[player_idx];
 		if (current <= frame) {
 			--frame_count;
 			g_input_frame_count[player_idx] = frame_count;
-			copy_index = 0;
+			int copy_index = 0;
 			while (copy_index < g_input_frame_count[player_idx]) {
 				if (current >= frame) {
 					*current = current[1];
@@ -263,22 +249,16 @@ flight_sync_insert_input_frame(int player_idx, int timestamp,
 	return inserted;
 #else
 
-	struct input_frame *array_end;
-	int existing_timestamp;
-	int frame_count;
-	int frame_index;
-	struct input_frame *frame;
-
-	frame_index = 0;
-	frame_count = g_input_frame_count[player_idx];
-	frame = g_input_history[player_idx];
-	array_end = &frame[frame_count];
+	int frame_index = 0;
+	int frame_count = g_input_frame_count[player_idx];
+	struct input_frame *frame = g_input_history[player_idx];
+	struct input_frame *array_end = &frame[frame_count];
 
 	while (frame_index < frame_count && frame->timestamp < timestamp) {
 		++frame_index;
 		++frame;
 	}
-	existing_timestamp = frame->timestamp;
+	int existing_timestamp = frame->timestamp;
 	if (existing_timestamp > timestamp || frame_index == frame_count) {
 		if (frame_count == 450) {
 			return NULL;
@@ -313,13 +293,9 @@ flight_sync_insert_input_frame(int player_idx, int timestamp,
 // FUNCTION: XVT 0x418890
 struct input_frame *flight_sync_find_last_unrelayed_input_frame(int player_idx)
 {
-	struct input_frame *frame;
-	int frame_count;
-	struct input_frame *result;
-
-	frame = g_input_history[player_idx];
-	frame_count = g_input_frame_count[player_idx];
-	result = 0;
+	struct input_frame *frame = g_input_history[player_idx];
+	int frame_count = g_input_frame_count[player_idx];
+	struct input_frame *result = 0;
 	while (frame_count > 0) {
 		if (frame->awaiting_relay != 0) {
 			result = frame;
@@ -334,9 +310,7 @@ struct input_frame *flight_sync_find_last_unrelayed_input_frame(int player_idx)
 // FUNCTION: XVT 0x418950
 void flight_sync_reset_remote_player_render_smoothing(void)
 {
-	int player_index;
-
-	for (player_index = 0; player_index < 8; ++player_index) {
+	for (int player_index = 0; player_index < 8; ++player_index) {
 		g_remote_player_render_samples[player_index].valid = 0;
 		g_remote_player_saved_sim_poses[player_index].valid = 0;
 	}
@@ -354,13 +328,11 @@ void flight_sync_reset_remote_player_render_smoothing(void)
 // FUNCTION: XVT 0x418970
 void flight_sync_capture_samples_and_restore_poses(void)
 {
-	int player_index;
-
 	if (g_remote_player_render_smoothing_enabled == 0) {
 		return;
 	}
 
-	player_index = 0;
+	int player_index = 0;
 	do {
 		struct player_data *player = &g_players[player_index];
 		int sample_was_valid =
@@ -487,39 +459,22 @@ void flight_sync_capture_samples_and_restore_poses(void)
 // FUNCTION: XVT 0x418B70
 void flight_sync_apply_remote_player_render_smoothing(void)
 {
-	int player_index;
-	struct object_record *object;
-	int predicted_world_x;
-	int predicted_world_y;
-	int predicted_world_z;
-	int position_delta_x;
-	int position_delta_y;
-	int position_delta_z;
-	int elapsed_time;
-	int prediction_distance;
-	int rough_distance;
-	int position_blend;
-	int max_angle_change;
-	int angle_difference;
-	int signed_angle_difference;
-	int candidate_angle;
-	int candidate_difference;
-	int blended_x;
-	int blended_y;
-	int blended_z;
-
 	if (g_remote_player_render_smoothing_enabled == 0) {
 		return;
 	}
 
-	for (player_index = 0; player_index < 8; ++player_index) {
+	int position_blend;
+	int candidate_angle;
+	int candidate_difference;
+	for (int player_index = 0; player_index < 8; ++player_index) {
 		g_remote_player_saved_sim_poses[player_index].valid = 0;
 		if (g_players[player_index].participation_state == 0 ||
 		    g_players[player_index].object_index == -1) {
 			continue;
 		}
 
-		object = &g_object_table[g_players[player_index].object_index];
+		struct object_record *object =
+			&g_object_table[g_players[player_index].object_index];
 		if (object->object_type == 0 || object->mobj == NULL ||
 		    g_remote_player_render_samples[player_index].valid == 0 ||
 		    player_index == g_local_player ||
@@ -542,21 +497,21 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 			object->world_z;
 		g_remote_player_saved_sim_poses[player_index].valid = 1;
 
-		predicted_world_x =
+		int predicted_world_x =
 			g_remote_player_render_samples[player_index].world_x;
-		predicted_world_y =
+		int predicted_world_y =
 			g_remote_player_render_samples[player_index].world_y;
-		predicted_world_z =
+		int predicted_world_z =
 			g_remote_player_render_samples[player_index].world_z;
 
-		elapsed_time = object->mobj->sim_state_timestamp -
-			       g_remote_player_render_samples[player_index]
-				       .sim_state_timestamp;
+		int elapsed_time = object->mobj->sim_state_timestamp -
+				   g_remote_player_render_samples[player_index]
+					   .sim_state_timestamp;
 		if (elapsed_time < 0) {
 			continue;
 		}
 
-		prediction_distance = 0;
+		int prediction_distance = 0;
 		if (elapsed_time > 0 &&
 		    g_remote_player_render_samples[player_index]
 				    .speed_magnitude != 0) {
@@ -582,10 +537,10 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 				prediction_distance);
 		}
 
-		position_delta_x = object->world_x - predicted_world_x;
-		position_delta_y = object->world_y - predicted_world_y;
-		position_delta_z = object->world_z - predicted_world_z;
-		rough_distance = collide_roughdistance3d(
+		int position_delta_x = object->world_x - predicted_world_x;
+		int position_delta_y = object->world_y - predicted_world_y;
+		int position_delta_z = object->world_z - predicted_world_z;
+		int rough_distance = collide_roughdistance3d(
 			position_delta_x, position_delta_y, position_delta_z);
 		prediction_distance *= 32;
 		if (prediction_distance >= rough_distance &&
@@ -595,9 +550,9 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 		} else {
 			position_blend = 0x4000;
 		}
-		blended_x = math_mul_q15(position_blend, position_delta_x);
-		blended_y = math_mul_q15(position_blend, position_delta_y);
-		blended_z = math_mul_q15(position_blend, position_delta_z);
+		int blended_x = math_mul_q15(position_blend, position_delta_x);
+		int blended_y = math_mul_q15(position_blend, position_delta_y);
+		int blended_z = math_mul_q15(position_blend, position_delta_z);
 		predicted_world_x += blended_x;
 		predicted_world_y += blended_y;
 		predicted_world_z += blended_z;
@@ -605,11 +560,11 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 		object->world_y = predicted_world_y;
 		object->world_z = predicted_world_z;
 
-		angle_difference =
+		int angle_difference =
 			(int16_t)(object->roll -
 				  g_remote_player_render_samples[player_index]
 					  .roll);
-		signed_angle_difference = angle_difference;
+		int signed_angle_difference = angle_difference;
 		if (g_remote_player_render_samples[player_index].roll_delta >
 		    0) {
 			if (angle_difference < 0) {
@@ -632,7 +587,7 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 		if (angle_difference < 0) {
 			angle_difference = -angle_difference;
 		}
-		max_angle_change =
+		int max_angle_change =
 			6144 * elapsed_time / SIMULATION_TICKS_PER_SECOND;
 		if (angle_difference > max_angle_change) {
 			candidate_angle =
@@ -763,22 +718,15 @@ void flight_sync_apply_world_message_packet(uint8_t *packet)
 		WORLD_TIMESTAMP_MASK = 0x7FFFFFFFu
 	};
 
-	uint32_t raw_packet_tick;
-	int object_index;
-	int player_index;
-	int packet_tick;
-	int checksum_requested;
-	struct flight_input_frame_record input;
-
 	if (net_session_is_local_host() == 0 &&
 	    g_flight_net_buffer_world_messages_until_checksum == 1) {
 		flight_sync_buffer_world_message_packet(packet);
 	}
 
-	raw_packet_tick = ((const uint32_t *)packet)[1];
+	uint32_t raw_packet_tick = ((const uint32_t *)packet)[1];
 	packet += 2 * sizeof(int);
-	packet_tick = (int)(raw_packet_tick & WORLD_TIMESTAMP_MASK);
-	checksum_requested = (int)(raw_packet_tick & WORLD_CHECKSUM_FLAG);
+	int packet_tick = (int)(raw_packet_tick & WORLD_TIMESTAMP_MASK);
+	int checksum_requested = (int)(raw_packet_tick & WORLD_CHECKSUM_FLAG);
 	if (packet_tick <= g_server_tick_time) {
 		return;
 	}
@@ -791,7 +739,7 @@ void flight_sync_apply_world_message_packet(uint8_t *packet)
 	g_game_time = g_server_tick_time;
 
 	if (g_flight_net_dirty_all_object_transforms_after_restore != 0) {
-		for (object_index = 0;
+		for (int object_index = 0;
 		     object_index < g_region_main_object_slot_end;
 		     ++object_index) {
 			if (g_object_table[object_index].object_type != 0 &&
@@ -805,16 +753,13 @@ void flight_sync_apply_world_message_packet(uint8_t *packet)
 		g_flight_net_dirty_all_object_transforms_after_restore = 0;
 	}
 
+	int player_index;
+	struct flight_input_frame_record input;
 	{
-		uint8_t *cursor;
-		int remaining_player_blocks;
-
-		cursor = packet;
-		remaining_player_blocks = *cursor++;
+		uint8_t *cursor = packet;
+		int remaining_player_blocks = *cursor++;
 		for (player_index = 0; player_index < PLAYER_SLOT_COUNT;
 		     ++player_index) {
-			int frame_count;
-
 			if (g_players[player_index].participation_state == 0) {
 				continue;
 			}
@@ -823,15 +768,12 @@ void flight_sync_apply_world_message_packet(uint8_t *packet)
 			}
 
 			--remaining_player_blocks;
-			frame_count = *cursor++;
+			int frame_count = *cursor++;
 			while (frame_count > 0) {
-				struct input_frame *inserted;
-				int timestamp_code;
-				int delta_code;
+				int timestamp_code = *cursor++;
+				int delta_code =
+					timestamp_code & DELTA_CODE_MASK;
 				int timestamp;
-
-				timestamp_code = *cursor++;
-				delta_code = timestamp_code & DELTA_CODE_MASK;
 				if (delta_code == FULL_TIMESTAMP_CODE) {
 					timestamp = *(const int *)cursor;
 					cursor += sizeof(timestamp);
@@ -861,8 +803,10 @@ void flight_sync_apply_world_message_packet(uint8_t *packet)
 				input.key_mods |= cursor[0] & 1u;
 				cursor += 2;
 
-				inserted = flight_sync_insert_input_frame(
-					player_index, timestamp, &input);
+				struct input_frame *inserted =
+					flight_sync_insert_input_frame(
+						player_index, timestamp,
+						&input);
 				if (inserted != NULL) {
 					inserted->input_source = 0;
 					inserted->awaiting_relay = 0;
@@ -888,12 +832,11 @@ void flight_sync_apply_world_message_packet(uint8_t *packet)
 	flight_save_world_state();
 
 	if (checksum_requested != 0) {
-		int checksum_dword_count = (int)(sizeof(g_world_checksum) /
-						 sizeof(g_world_checksum[0]));
-
 		flight_checksum_world_state(0, 0);
 		g_flight_net_world_checksum_epoch =
 			(unsigned int)g_server_tick_time;
+		int checksum_dword_count = (int)(sizeof(g_world_checksum) /
+						 sizeof(g_world_checksum[0]));
 		if (net_session_is_local_host() != 0) {
 			flight_net_broadcast_world_checksum(
 				(const int *)g_world_checksum,
@@ -940,13 +883,6 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 		ALL_PEER_STATUS_BITS = 3
 	};
 
-	int all_peer_status;
-	int checksum_mismatch;
-	int local_world_state_size;
-	int player_index;
-	int remote_world_state_size;
-	int sender_player_index;
-
 	if ((unsigned int)packet[PACKET_EPOCH_INDEX] !=
 		    g_flight_net_world_checksum_epoch
 #ifdef XVT_MODERN
@@ -956,8 +892,9 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 		return;
 	}
 
-	sender_player_index = net_session_find_player_slot_by_dpid(sender_dpid);
-	checksum_mismatch = 0;
+	int sender_player_index =
+		net_session_find_player_slot_by_dpid(sender_dpid);
+	int checksum_mismatch = 0;
 #ifdef XVT_MODERN
 	if ((unsigned)sender_player_index >= 8) {
 		return;
@@ -977,13 +914,14 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 		return;
 	}
 
+	int player_index;
 	if (g_local_player != sender_player_index) {
 		const int *remote_checksums = &packet[PACKET_CHECKSUM_INDEX];
 		const int *remote_region_lengths =
 			&packet[PACKET_REGION_LENGTH_INDEX];
 
-		local_world_state_size = 0;
-		remote_world_state_size = 0;
+		int local_world_state_size = 0;
+		int remote_world_state_size = 0;
 		/* player_index is reused here as a checksum region index. */
 		for (player_index = 0; player_index < CHECKSUM_REGION_COUNT;
 		     ++player_index) {
@@ -1028,7 +966,7 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 			PEER_STATUS_MATCHED;
 	}
 
-	all_peer_status = ALL_PEER_STATUS_BITS;
+	int all_peer_status = ALL_PEER_STATUS_BITS;
 	for (player_index = 0;
 	     player_index < (int)(sizeof(g_players) / sizeof(g_players[0]));
 	     ++player_index) {
@@ -1050,18 +988,14 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 // FUNCTION: XVT 0x419510
 void flight_sync_handle_server_checksum_packet(uint8_t *packet)
 {
-	uint32_t *packet_checksum;
-	unsigned int *local_checksum;
-	int checksum_mismatch;
-
 	if (net_session_is_local_host() != 0 ||
 	    ((uint32_t *)packet)[1] != g_flight_net_world_checksum_epoch) {
 		return;
 	}
 
-	packet_checksum = (uint32_t *)packet + 2;
-	checksum_mismatch = 0;
-	local_checksum = g_world_checksum;
+	uint32_t *packet_checksum = (uint32_t *)packet + 2;
+	int checksum_mismatch = 0;
+	unsigned int *local_checksum = g_world_checksum;
 	do {
 		if (*local_checksum != *packet_checksum) {
 			checksum_mismatch = 1;
@@ -1101,8 +1035,6 @@ void flight_sync_copy_world_state_resync_chunk(const void *src, int offset,
 void flight_sync_apply_resync_and_replay_world_messages(
 	unsigned int world_state_bytes, int server_tick_time)
 {
-	int checksum_dword_count;
-
 	g_world_state_dup_size = (int)world_state_bytes;
 	g_flight_net_dirty_all_object_transforms_after_restore = 1;
 	memcpy(g_world_state_buffer, g_world_state_dup_buffer,
@@ -1110,7 +1042,7 @@ void flight_sync_apply_resync_and_replay_world_messages(
 	g_world_state_size = (unsigned int)g_world_state_dup_size;
 	g_server_tick_time = server_tick_time;
 	flight_checksum_world_state(0, 0);
-	checksum_dword_count =
+	int checksum_dword_count =
 		(int)(sizeof(g_world_checksum) / sizeof(g_world_checksum[0]));
 	flight_net_send_world_checksum_to_host(
 		(const int *)g_world_checksum,
@@ -1129,9 +1061,7 @@ void flight_sync_apply_resync_and_replay_world_messages(
 // FUNCTION: XVT 0x419620
 void flight_sync_snapshot_world_state_for_replay(void)
 {
-	unsigned int snapshot_bytes;
-
-	snapshot_bytes = g_world_state_size;
+	unsigned int snapshot_bytes = g_world_state_size;
 	memcpy(g_world_state_dup_buffer, g_world_state_buffer, snapshot_bytes);
 	g_world_state_dup_size = (int)snapshot_bytes;
 }
@@ -1147,27 +1077,18 @@ void flight_sync_snapshot_world_state_for_replay(void)
 // FUNCTION: XVT 0x419650
 void flight_sync_buffer_world_message_packet(uint8_t *packet)
 {
-	uint16_t old_handle;
-	int packet_size;
-	uint8_t *packet_start;
-	int player_block_count;
-
-	packet_size = 9;
-	packet_start = packet;
-	player_block_count = packet[8];
+	int packet_size = 9;
+	uint8_t *packet_start = packet;
+	int player_block_count = packet[8];
 	packet += 8;
 	++packet;
 	if (player_block_count > 0) {
 		do {
-			int frame_count;
-
-			frame_count = *packet++;
+			int frame_count = *packet++;
 			++packet_size;
 			if (frame_count > 0) {
 				do {
-					int timestamp_code;
-
-					timestamp_code = *packet++;
+					int timestamp_code = *packet++;
 					++packet_size;
 					if ((timestamp_code & 0x7F) == 0x7F) {
 						packet += 4;
@@ -1187,13 +1108,9 @@ void flight_sync_buffer_world_message_packet(uint8_t *packet)
 	}
 
 	if (g_world_message_buffer_bytes_free < packet_size) {
-		unsigned int old_capacity;
-		int growth;
-		uint8_t *old_buffer;
-
-		old_handle = g_world_message_buffer_handle;
-		old_capacity = g_world_message_buffer_capacity;
-		growth = 100 * packet_size;
+		uint16_t old_handle = g_world_message_buffer_handle;
+		unsigned int old_capacity = g_world_message_buffer_capacity;
+		int growth = 100 * packet_size;
 		g_world_message_buffer_bytes_free += growth;
 		g_world_message_buffer_capacity += growth;
 		g_world_message_buffer_handle =
@@ -1205,7 +1122,8 @@ void flight_sync_buffer_world_message_packet(uint8_t *packet)
 		g_world_message_buffer =
 			memory_get_handle_block(g_world_message_buffer_handle);
 		if (old_handle != 0) {
-			old_buffer = memory_get_handle_block(old_handle);
+			uint8_t *old_buffer =
+				memory_get_handle_block(old_handle);
 			memcpy(g_world_message_buffer, old_buffer,
 			       old_capacity);
 			memory_handle_block_done_stub(old_handle);
@@ -1252,28 +1170,19 @@ void flight_sync_replay_buffered_world_messages(void)
 		INPUT_AXIS_BYTES = 2
 	};
 
-	int packet_offset;
-
-	packet_offset = 0;
+	int packet_offset = 0;
 	while (g_world_message_buffered_count != 0) {
-		uint8_t *cursor;
-		uint8_t *packet;
-		int player_sections_remaining;
-
 		--g_world_message_buffered_count;
-		packet = &g_world_message_buffer[packet_offset];
+		uint8_t *packet = &g_world_message_buffer[packet_offset];
 		packet_offset += PACKET_PLAYER_COUNT_OFFSET;
-		cursor = packet + PACKET_PLAYER_COUNT_OFFSET;
+		uint8_t *cursor = packet + PACKET_PLAYER_COUNT_OFFSET;
 		++packet_offset;
-		player_sections_remaining = *cursor++;
+		int player_sections_remaining = *cursor++;
 		while (player_sections_remaining > 0) {
-			int frame_header;
-			int frames_remaining;
-
-			frames_remaining = *cursor++;
+			int frames_remaining = *cursor++;
 			++packet_offset;
 			while (frames_remaining > 0) {
-				frame_header = *cursor++;
+				int frame_header = *cursor++;
 				++packet_offset;
 				if ((frame_header & DELTA_CODE_MASK) ==
 				    FULL_TIMESTAMP_CODE) {

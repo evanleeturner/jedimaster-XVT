@@ -512,7 +512,6 @@ static void check_apply_pending_releases_changed(void)
 static void check_throttle_position(void)
 {
 	const AeronControllerKind joystick = AERON_CONTROLLER_KIND_JOYSTICK;
-	const AeronControllerKind gamepad = AERON_CONTROLLER_KIND_GAMEPAD;
 
 	/* A full axis: its ends, and the 328 at each end that snap to it. */
 	XVT_ASSERT_INT_EQ(xvt_controller_mapping_throttle_position(
@@ -533,6 +532,7 @@ static void check_throttle_position(void)
 				INT16_MAX - 329, joystick, 0, false) <
 			UINT16_MAX);
 
+	const AeronControllerKind gamepad = AERON_CONTROLLER_KIND_GAMEPAD;
 	/* A gamepad stick is a full axis too; a trigger spans 0 to 32767. */
 	XVT_ASSERT_INT_EQ(
 		xvt_controller_mapping_throttle_position(
@@ -576,12 +576,11 @@ static void check_throttle_position(void)
 static void check_throttle_sample(void)
 {
 	controller_mapping_start();
-	uint16_t position = 1;
-	uint32_t generation = 0;
-	uint32_t before = 0;
 	AeronControllerSnapshot *pad = gamepad(0, 5);
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_RIGHT_TRIGGER] = 16000;
 	frame();
+	uint16_t position = 1;
+	uint32_t before = 0;
 	XVT_ASSERT_TRUE(
 		xvt_controller_mapping_throttle_sample(&position, &before));
 	XVT_ASSERT_INT_EQ(position,
@@ -591,6 +590,7 @@ static void check_throttle_sample(void)
 
 	/* Nothing changed: the generation holds. */
 	frame();
+	uint32_t generation = 0;
 	XVT_ASSERT_TRUE(
 		xvt_controller_mapping_throttle_sample(&position, &generation));
 	XVT_ASSERT_INT_EQ(generation, before);

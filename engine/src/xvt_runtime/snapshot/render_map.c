@@ -136,7 +136,6 @@ static void endpoint(struct xvt_snap_map *map, unsigned slot)
 static void label(struct xvt_snap_map *map, struct xvt_snap_map_object *m,
 		  const struct object_record *o)
 {
-	char text[96] = {0};
 	unsigned fg = o->flight_group_idx;
 	if (fg >= 48 || (!o->mobj && o->genus_id == CRAFT_GENUS_MINE)) {
 		return;
@@ -155,6 +154,7 @@ static void label(struct xvt_snap_map *map, struct xvt_snap_map_object *m,
 	if (number > 999) {
 		number = 999;
 	}
+	char text[96] = {0};
 	if (number) {
 		snprintf(text, sizeof text, "%.*s %u", (int)sizeof group->name,
 			 group->name, number);

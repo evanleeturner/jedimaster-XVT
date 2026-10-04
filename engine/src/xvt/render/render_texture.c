@@ -59,7 +59,6 @@ struct std3d_tex_cache_node *
 render_texture_find_or_allocate_cache_entry(const void *cache_key)
 {
 	int probe_count;
-	int hash_slot;
 
 	if (g_render_texture_cache_cursor == -1) {
 		memset(g_render_texture_cache_keys, 0,
@@ -69,7 +68,7 @@ render_texture_find_or_allocate_cache_entry(const void *cache_key)
 		}
 	}
 
-	hash_slot = xvt_pointer_key_low_bits(cache_key) & 1023;
+	int hash_slot = xvt_pointer_key_low_bits(cache_key) & 1023;
 	probe_count = 0;
 	g_render_texture_cache_cursor = hash_slot;
 	do {
@@ -140,39 +139,30 @@ render_texture_get_or_create_bitmap(int width, int height, uint16_t *palette,
 		MAX_BITMAP_PIXELS = 65536
 	};
 
-	struct std3d_tex_cache_node *node;
-	int pad_count;
-	struct std3dv_buffer source;
-	uint8_t *output;
-	const uint8_t *input;
-	uint8_t *row_end;
-	uint8_t color;
-	uint8_t run_length;
-	int color_base;
-	unsigned int max_color = 0;
-	int row;
-	int column;
-	int old_alpha_texture;
-
 	if (width * height > MAX_BITMAP_PIXELS) {
 		debug_printf("Error: Bitmap too large! (%d,%d)\n", width,
 			     height);
 		return NULL;
 	}
-	input = pixels;
-	node = render_texture_find_or_allocate_cache_entry(pixels);
+	const uint8_t *input = pixels;
+	struct std3d_tex_cache_node *node =
+		render_texture_find_or_allocate_cache_entry(pixels);
 	if (node->b_cached != 0) {
 		std3d_cache_texture_surface(node);
 		return node;
 	}
-	output = g_render_texture_decode_scratch;
-	color_base = 0;
+	uint8_t *output = g_render_texture_decode_scratch;
+	int color_base = 0;
+	uint8_t color;
+	uint8_t run_length;
+	unsigned int max_color = 0;
+	int row;
 	for (row = 0; row < height; ++row) {
 		if (*input == BITMAP_RLE_END_IMAGE) {
 			break;
 		}
-		column = 0;
-		row_end = output + width;
+		int column = 0;
+		uint8_t *row_end = output + width;
 		while (*input != BITMAP_RLE_END_ROW) {
 			if (*input == BITMAP_RLE_SET_COLOR_BASE) {
 				color_base = input[1] + (input[2] << 8);
@@ -228,7 +218,7 @@ render_texture_get_or_create_bitmap(int width, int height, uint16_t *palette,
 		}
 		++input;
 		if (output < row_end) {
-			pad_count = row_end - output;
+			int pad_count = row_end - output;
 			memset(output, 0, (size_t)pad_count);
 			output += pad_count;
 		}
@@ -236,6 +226,7 @@ render_texture_get_or_create_bitmap(int width, int height, uint16_t *palette,
 	if (row < height) {
 		memset(output, 0, (size_t)width * (size_t)(height - row));
 	}
+	struct std3dv_buffer source;
 	memset(&source, 0, sizeof(source));
 	source.storage_type = 0;
 	source.raster.width = (unsigned int)width;
@@ -244,7 +235,7 @@ render_texture_get_or_create_bitmap(int width, int height, uint16_t *palette,
 	source.pixels = g_render_texture_decode_scratch;
 	source.raster.bpp = 8;
 	source.raster.color_mode = STDCOLOR_PAL;
-	old_alpha_texture = g_p_std3d_cur_device->caps.b_alpha_texture;
+	int old_alpha_texture = g_p_std3d_cur_device->caps.b_alpha_texture;
 	if (g_p_std3d_cur_device->caps.b_color_key_texture != 0) {
 		g_p_std3d_cur_device->caps.b_alpha_texture = 0;
 	}
@@ -283,14 +274,13 @@ struct std3d_tex_cache_node *render_texture_get_or_create_opaque(
 {
 	enum { INDEXED_TEXTURE_BITS_PER_PIXEL = 8, PALETTE_COLOR_COUNT = 256 };
 
-	struct std3d_tex_cache_node *node;
-	struct std3dv_buffer source;
-
-	node = render_texture_find_or_allocate_cache_entry(pixels);
+	struct std3d_tex_cache_node *node =
+		render_texture_find_or_allocate_cache_entry(pixels);
 	if (node->b_cached != 0) {
 		std3d_cache_texture_surface(node);
 		return node;
 	}
+	struct std3dv_buffer source;
 	memset(&source, 0, sizeof(source));
 	source.pixels = (void *)pixels;
 	source.storage_type = 0;
@@ -326,24 +316,18 @@ render_texture_get_or_create_color_key(int width, int height, uint16_t *palette,
 {
 	enum { INDEXED_TEXTURE_BITS_PER_PIXEL = 8, PALETTE_COLOR_COUNT = 256 };
 
-	struct std3d_tex_cache_node *node;
-	int pixel_count;
-	struct std3dv_buffer source;
-	int transparent_index;
-	int has_visible_pixels;
-	int old_alpha_texture;
-	int pixel_index;
-
-	node = render_texture_find_or_allocate_cache_entry(pixels + 1);
+	struct std3d_tex_cache_node *node =
+		render_texture_find_or_allocate_cache_entry(pixels + 1);
 	if (node->b_cached != 0) {
 		std3d_cache_texture_surface(node);
 		return node;
 	}
+	struct std3dv_buffer source;
 	memset(&source, 0, sizeof(source));
-	transparent_index = palette[PALETTE_COLOR_COUNT];
-	has_visible_pixels = 0;
-	pixel_count = width * height;
-	for (pixel_index = 0; pixel_index < pixel_count; ++pixel_index) {
+	int transparent_index = palette[PALETTE_COLOR_COUNT];
+	int has_visible_pixels = 0;
+	int pixel_count = width * height;
+	for (int pixel_index = 0; pixel_index < pixel_count; ++pixel_index) {
 		uint8_t color_index = *pixels++;
 		if (palette[color_index] == 0) {
 			g_render_texture_color_key_scratch[pixel_index] = 0;
@@ -369,7 +353,7 @@ render_texture_get_or_create_color_key(int width, int height, uint16_t *palette,
 	source.raster.color_mode = STDCOLOR_PAL;
 	source.pixels = g_render_texture_color_key_scratch;
 	source.raster.bpp = INDEXED_TEXTURE_BITS_PER_PIXEL;
-	old_alpha_texture = g_p_std3d_cur_device->caps.b_alpha_texture;
+	int old_alpha_texture = g_p_std3d_cur_device->caps.b_alpha_texture;
 	if (g_p_std3d_cur_device->caps.b_color_key_texture != 0) {
 		g_p_std3d_cur_device->caps.b_alpha_texture = 0;
 	}

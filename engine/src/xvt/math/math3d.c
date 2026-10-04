@@ -20,15 +20,12 @@ void math3d_rotate_vec3(float *vec_in_out, const float *matrix3x3)
 	float x = vec_in_out[0];
 	float y = vec_in_out[1];
 	float z = vec_in_out[2];
-	float x_product;
-	float y_product;
-	float z_product;
 
 	vec_in_out[0] = matrix3x3[6] * z + matrix3x3[3] * y + matrix3x3[0] * x;
 	vec_in_out[1] = matrix3x3[1] * x + matrix3x3[7] * z + matrix3x3[4] * y;
-	z_product = z * matrix3x3[8];
-	y_product = y * matrix3x3[5];
-	x_product = x * matrix3x3[2];
+	float z_product = z * matrix3x3[8];
+	float y_product = y * matrix3x3[5];
+	float x_product = x * matrix3x3[2];
 	vec_in_out[2] = z_product + y_product + x_product;
 }
 
@@ -63,34 +60,24 @@ float math3d_rotate_vec3z(const float *vec, const float *matrix3x3)
 // FUNCTION: XVT 0x4210A0
 void math3d_mul_matrix3x3(float *lhs_in_out, const float *rhs)
 {
-	float r00;
-	float r01;
-	float r02;
-	float r10;
-	float r11;
-	float r12;
-	float r20;
-	float r21;
-	float r22;
-
-	r00 = lhs_in_out[0] * rhs[0] + lhs_in_out[1] * rhs[3] +
-	      lhs_in_out[2] * rhs[6];
-	r01 = lhs_in_out[0] * rhs[1] + lhs_in_out[1] * rhs[4] +
-	      lhs_in_out[2] * rhs[7];
-	r02 = lhs_in_out[0] * rhs[2] + lhs_in_out[1] * rhs[5] +
-	      lhs_in_out[2] * rhs[8];
-	r10 = lhs_in_out[3] * rhs[0] + lhs_in_out[4] * rhs[3] +
-	      lhs_in_out[5] * rhs[6];
-	r11 = lhs_in_out[3] * rhs[1] + lhs_in_out[4] * rhs[4] +
-	      lhs_in_out[5] * rhs[7];
-	r12 = lhs_in_out[3] * rhs[2] + lhs_in_out[4] * rhs[5] +
-	      lhs_in_out[5] * rhs[8];
-	r20 = lhs_in_out[6] * rhs[0] + lhs_in_out[7] * rhs[3] +
-	      lhs_in_out[8] * rhs[6];
-	r21 = lhs_in_out[6] * rhs[1] + lhs_in_out[7] * rhs[4] +
-	      lhs_in_out[8] * rhs[7];
-	r22 = lhs_in_out[6] * rhs[2] + lhs_in_out[7] * rhs[5] +
-	      lhs_in_out[8] * rhs[8];
+	float r00 = lhs_in_out[0] * rhs[0] + lhs_in_out[1] * rhs[3] +
+		    lhs_in_out[2] * rhs[6];
+	float r01 = lhs_in_out[0] * rhs[1] + lhs_in_out[1] * rhs[4] +
+		    lhs_in_out[2] * rhs[7];
+	float r02 = lhs_in_out[0] * rhs[2] + lhs_in_out[1] * rhs[5] +
+		    lhs_in_out[2] * rhs[8];
+	float r10 = lhs_in_out[3] * rhs[0] + lhs_in_out[4] * rhs[3] +
+		    lhs_in_out[5] * rhs[6];
+	float r11 = lhs_in_out[3] * rhs[1] + lhs_in_out[4] * rhs[4] +
+		    lhs_in_out[5] * rhs[7];
+	float r12 = lhs_in_out[3] * rhs[2] + lhs_in_out[4] * rhs[5] +
+		    lhs_in_out[5] * rhs[8];
+	float r20 = lhs_in_out[6] * rhs[0] + lhs_in_out[7] * rhs[3] +
+		    lhs_in_out[8] * rhs[6];
+	float r21 = lhs_in_out[6] * rhs[1] + lhs_in_out[7] * rhs[4] +
+		    lhs_in_out[8] * rhs[7];
+	float r22 = lhs_in_out[6] * rhs[2] + lhs_in_out[7] * rhs[5] +
+		    lhs_in_out[8] * rhs[8];
 	lhs_in_out[0] = r00;
 	lhs_in_out[1] = r01;
 	lhs_in_out[2] = r02;
@@ -107,34 +94,24 @@ void math3d_mul_matrix3x3(float *lhs_in_out, const float *rhs)
 // FUNCTION: XVT 0x4211D0
 void math3d_pre_mul_transposed_matrix3x3(float *lhs_in_out, const float *rhs)
 {
-	float r00;
-	float r01;
-	float r02;
-	float r10;
-	float r11;
-	float r12;
-	float r20;
-	float r21;
-	float r22;
-
-	r00 = lhs_in_out[0] * rhs[0] + lhs_in_out[3] * rhs[3] +
-	      lhs_in_out[6] * rhs[6];
-	r01 = lhs_in_out[1] * rhs[0] + lhs_in_out[4] * rhs[3] +
-	      lhs_in_out[7] * rhs[6];
-	r02 = lhs_in_out[2] * rhs[0] + lhs_in_out[5] * rhs[3] +
-	      lhs_in_out[8] * rhs[6];
-	r10 = lhs_in_out[0] * rhs[1] + lhs_in_out[3] * rhs[4] +
-	      lhs_in_out[6] * rhs[7];
-	r11 = lhs_in_out[1] * rhs[1] + lhs_in_out[4] * rhs[4] +
-	      lhs_in_out[7] * rhs[7];
-	r12 = lhs_in_out[2] * rhs[1] + lhs_in_out[5] * rhs[4] +
-	      lhs_in_out[8] * rhs[7];
-	r20 = lhs_in_out[0] * rhs[2] + lhs_in_out[3] * rhs[5] +
-	      lhs_in_out[6] * rhs[8];
-	r21 = lhs_in_out[1] * rhs[2] + lhs_in_out[4] * rhs[5] +
-	      lhs_in_out[7] * rhs[8];
-	r22 = lhs_in_out[2] * rhs[2] + lhs_in_out[5] * rhs[5] +
-	      lhs_in_out[8] * rhs[8];
+	float r00 = lhs_in_out[0] * rhs[0] + lhs_in_out[3] * rhs[3] +
+		    lhs_in_out[6] * rhs[6];
+	float r01 = lhs_in_out[1] * rhs[0] + lhs_in_out[4] * rhs[3] +
+		    lhs_in_out[7] * rhs[6];
+	float r02 = lhs_in_out[2] * rhs[0] + lhs_in_out[5] * rhs[3] +
+		    lhs_in_out[8] * rhs[6];
+	float r10 = lhs_in_out[0] * rhs[1] + lhs_in_out[3] * rhs[4] +
+		    lhs_in_out[6] * rhs[7];
+	float r11 = lhs_in_out[1] * rhs[1] + lhs_in_out[4] * rhs[4] +
+		    lhs_in_out[7] * rhs[7];
+	float r12 = lhs_in_out[2] * rhs[1] + lhs_in_out[5] * rhs[4] +
+		    lhs_in_out[8] * rhs[7];
+	float r20 = lhs_in_out[0] * rhs[2] + lhs_in_out[3] * rhs[5] +
+		    lhs_in_out[6] * rhs[8];
+	float r21 = lhs_in_out[1] * rhs[2] + lhs_in_out[4] * rhs[5] +
+		    lhs_in_out[7] * rhs[8];
+	float r22 = lhs_in_out[2] * rhs[2] + lhs_in_out[5] * rhs[5] +
+		    lhs_in_out[8] * rhs[8];
 	lhs_in_out[0] = r00;
 	lhs_in_out[1] = r01;
 	lhs_in_out[2] = r02;
@@ -154,33 +131,19 @@ void math3d_pre_mul_transposed_matrix3x3(float *lhs_in_out, const float *rhs)
 void math3d_build_axis_angle_matrix(float *matrix3x3_out,
 				    const float *axis_angle)
 {
-	float axis_x;
-	float axis_y;
-	float axis_z;
-	float sin_angle;
-	float cos_angle;
-	float one_minus_cos_times_y;
-	float one_minus_cos_times_z;
-	float xy_term;
-	float xz_term;
-	float yz_term;
-	float sin_x;
-	float sin_y;
-	float sin_z;
-
-	axis_x = axis_angle[0];
-	axis_y = axis_angle[1];
-	axis_z = axis_angle[2];
-	sin_angle = (float)sin(axis_angle[3]);
-	cos_angle = (float)cos(axis_angle[3]);
-	one_minus_cos_times_y = (1.0f - cos_angle) * axis_y;
-	xy_term = one_minus_cos_times_y * axis_x;
-	one_minus_cos_times_z = (1.0f - cos_angle) * axis_z;
-	xz_term = one_minus_cos_times_z * axis_x;
-	yz_term = one_minus_cos_times_z * axis_y;
-	sin_x = sin_angle * axis_x;
-	sin_z = sin_angle * axis_z;
-	sin_y = sin_angle * axis_y;
+	float axis_x = axis_angle[0];
+	float axis_y = axis_angle[1];
+	float axis_z = axis_angle[2];
+	float sin_angle = (float)sin(axis_angle[3]);
+	float cos_angle = (float)cos(axis_angle[3]);
+	float one_minus_cos_times_y = (1.0f - cos_angle) * axis_y;
+	float xy_term = one_minus_cos_times_y * axis_x;
+	float one_minus_cos_times_z = (1.0f - cos_angle) * axis_z;
+	float xz_term = one_minus_cos_times_z * axis_x;
+	float yz_term = one_minus_cos_times_z * axis_y;
+	float sin_x = sin_angle * axis_x;
+	float sin_z = sin_angle * axis_z;
+	float sin_y = sin_angle * axis_y;
 
 	matrix3x3_out[0] = (1.0f - cos_angle) * axis_x * axis_x + cos_angle;
 	matrix3x3_out[1] = xy_term + sin_z;

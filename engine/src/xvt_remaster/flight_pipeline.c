@@ -216,9 +216,9 @@ static int prepare_bars(AeronCommandBuffer *cmd, int width, int height)
 	}
 	/* Retain this mask with the resolved sources, including across idle frames. */
 	AeronRectI r = frame->content_rect;
-	const float black[4] = {0, 0, 0, 1};
 	AeronDrawList_Begin(g_bars, NULL, width, height, AERON_DRAWLIST2D_LOAD,
 			    NULL);
+	const float black[4] = {0, 0, 0, 1};
 	AeronDrawList_AddFill(g_bars, 0, 0, r.x, height, black,
 			      AERON_BLIT2D_BLEND_NONE, NULL);
 	AeronDrawList_AddFill(g_bars, r.x + r.width, 0, width - r.x - r.width,

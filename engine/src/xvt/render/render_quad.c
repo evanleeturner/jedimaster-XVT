@@ -54,44 +54,39 @@ const uint32_t g_explosion_billboard_color_by_frame[32] = {
 void render_quad_draw_model_texture(
 	const struct scene_billboard_queue_entry *quad_record)
 {
-	uint16_t frame;
-	uint16_t model_type;
-	uint16_t screen_size;
-	uint16_t handle;
-	int camera_world_y;
-	struct object_record *object;
-	const uint8_t *model_data;
-	const struct tex_level_header *texture_header;
-	struct sprite_payload *sprite;
-
-	frame = (uint16_t)quad_record->frame & 0x7FFFu;
+	uint16_t frame = (uint16_t)quad_record->frame & 0x7FFFu;
 	g_flight_sw_rot_sprite_span_runs_enabled = 1;
-	model_type = frame >> 7;
+	uint16_t model_type = frame >> 7;
 	g_billboard_object_or_type_index = quad_record->object_or_type_index;
-	object = &g_object_table[g_billboard_object_or_type_index];
-	camera_world_y = g_players[g_local_player].view_state.camera_world_y;
+	struct object_record *object =
+		&g_object_table[g_billboard_object_or_type_index];
+	int camera_world_y =
+		g_players[g_local_player].view_state.camera_world_y;
 	g_cam_rel_world_x = object->world_x -
 			    g_players[g_local_player].view_state.camera_world_x;
 	g_cam_rel_world_y = object->world_y - camera_world_y;
 	g_cam_rel_world_z = object->world_z -
 			    g_players[g_local_player].view_state.camera_world_z;
 	g_view_space_depth = quad_record->depth_z;
-	screen_size = (uint16_t)scene_billboard_compute_projected_size(
+	uint16_t screen_size = (uint16_t)scene_billboard_compute_projected_size(
 		quad_record->depth_z,
 		(uint16_t)g_object_type_table[model_type].max_bounds_extent,
 		(uint16_t)quad_record->screen_size);
-	handle = g_object_type_table[model_type].resource_handle;
-	model_data = (const uint8_t *)memory_get_handle_block(handle);
+	uint16_t handle = g_object_type_table[model_type].resource_handle;
+	const uint8_t *model_data =
+		(const uint8_t *)memory_get_handle_block(handle);
 	frame &= 0x7Fu;
 	memory_handle_block_done_stub(handle);
-	texture_header = (const struct tex_level_header *)model_data;
-	sprite = (struct sprite_payload
-			  *)(model_data +
-			     *(const uint32_t
-				       *)(model_data +
-					  texture_header
-						  ->image_offset_table_offset +
-					  frame * sizeof(uint32_t)));
+	const struct tex_level_header *texture_header =
+		(const struct tex_level_header *)model_data;
+	struct sprite_payload *sprite =
+		(struct sprite_payload
+			 *)(model_data +
+			    *(const uint32_t
+				      *)(model_data +
+					 texture_header
+						 ->image_offset_table_offset +
+					 frame * sizeof(uint32_t)));
 	if (g_use_hardware3d != 0) {
 		render_quad_draw_rotated_sprite(
 			quad_record->rotation_angle, quad_record->screen_x,

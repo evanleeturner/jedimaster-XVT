@@ -181,15 +181,13 @@ int g_dinput_alt_down = 0;
 // FUNCTION: XVT 0x443330
 int dinput_init(void)
 {
-	DxGuid keyboard_guid;
-	DIPROPDWORD buffer_size;
 #ifdef XVT_MODERN
 	AeronMessageBoxButton error_button = {1, "OK", 1, 1};
 	AeronMessageBoxOptions error_options = {
 		AERON_MESSAGE_BOX_ERROR, "ERROR", NULL, &error_button, 1};
 #endif
 
-	keyboard_guid = g_direct_input_system_keyboard_guid;
+	DxGuid keyboard_guid = g_direct_input_system_keyboard_guid;
 	if (DirectInputCreateA(g_h_instance, 0x500, &g_direct_input, NULL) !=
 		    0 &&
 	    DirectInputCreateA(g_h_instance, 0x300, &g_direct_input, NULL) !=
@@ -239,6 +237,7 @@ int dinput_init(void)
 		return 0;
 	}
 
+	DIPROPDWORD buffer_size;
 	buffer_size.diph.dwSize = sizeof(buffer_size);
 	buffer_size.diph.dwHeaderSize = sizeof(buffer_size.diph);
 	buffer_size.diph.dwObj = 0;
@@ -288,8 +287,6 @@ int dinput_skip_to_pending_key_press(void)
 	DIDEVICEOBJECTDATA key_event[2];
 	uint32_t event_count;
 	HRESULT result;
-	uint8_t code;
-	int pressed;
 
 	while (1) {
 		do {
@@ -313,8 +310,9 @@ int dinput_skip_to_pending_key_press(void)
 			return 0;
 		}
 
-		pressed = key_event[0].dwData & 0x80;
-		code = g_dinput_key_code_table[key_event[0].dwOfs & 0xff];
+		int pressed = key_event[0].dwData & 0x80;
+		uint8_t code =
+			g_dinput_key_code_table[key_event[0].dwOfs & 0xff];
 		if (code == 0xfd) {
 			g_dinput_shift_down = pressed;
 			event_count = 1;
@@ -368,19 +366,15 @@ int dinput_skip_to_pending_key_press(void)
 // FUNCTION: XVT 0x443630
 uint8_t dinput_get_key(void)
 {
-	DIDEVICEOBJECTDATA key_event[2];
-	uint32_t event_count;
-	HRESULT result;
-	uint32_t key_offset;
-	uint8_t code;
-	int pressed;
-
 #ifdef XVT_MODERN
 	if (!g_dinput_keyboard_device) {
 		return 0;
 	}
 #endif
 	dinput_update_keyboard_modifier_state();
+	DIDEVICEOBJECTDATA key_event[2];
+	uint32_t event_count;
+	HRESULT result;
 	while (1) {
 		do {
 			event_count = 1;
@@ -407,9 +401,9 @@ uint8_t dinput_get_key(void)
 #endif
 		}
 
-		key_offset = key_event[0].dwOfs;
-		pressed = key_event[0].dwData & 0x80;
-		code = g_dinput_key_code_table[key_offset & 0xff];
+		uint32_t key_offset = key_event[0].dwOfs;
+		int pressed = key_event[0].dwData & 0x80;
+		uint8_t code = g_dinput_key_code_table[key_offset & 0xff];
 		if (code == 0xfd) {
 			g_dinput_shift_down = pressed;
 			continue;

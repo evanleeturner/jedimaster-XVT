@@ -138,9 +138,9 @@ static uint16_t read_file(const char *name, int *version, unsigned *native_size)
 /* Writes the body as a version 1 file and returns whether Read accepts it; frees what Read returned. */
 static int accepts(const struct body *body)
 {
+	write_model("case.opt", 1, body);
 	int version = -9;
 	unsigned native_size = 0;
-	write_model("case.opt", 1, body);
 	uint16_t handle = read_file("case.opt", &version, &native_size);
 	if (handle) {
 		memory_free_handle(handle);
@@ -189,9 +189,9 @@ static void check_versions(void)
 	struct body body = {0};
 	begin(&body, 0);
 	for (int expected = 0; expected <= 2; ++expected) {
+		write_model("case.opt", expected, &body);
 		int version = -9;
 		unsigned native_size = 0;
-		write_model("case.opt", expected, &body);
 		uint16_t handle = read_file("case.opt", &version, &native_size);
 		XVT_ASSERT_TRUE(handle != 0);
 		XVT_ASSERT_INT_EQ(version, expected);
@@ -211,10 +211,10 @@ static void check_versions(void)
 	static const int32_t bad_markers[] = {0, -3, INT32_MIN};
 	for (size_t i = 0; i < sizeof bad_markers / sizeof bad_markers[0];
 	     ++i) {
-		int version = -9;
-		unsigned native_size = 12345;
 		write_raw("case.opt", bad_markers[i], 1, body.size, &body,
 			  body.size);
+		int version = -9;
+		unsigned native_size = 12345;
 		XVT_ASSERT_INT_EQ(read_file("case.opt", &version, &native_size),
 				  0);
 		XVT_ASSERT_INT_EQ(native_size, 12345);
@@ -226,11 +226,11 @@ static void check_body_size(void)
 {
 	struct body body = {0};
 	begin(&body, 0);
-	int version = -9;
-	unsigned native_size = 12345;
 
 	/* 13 bytes is too short, though it fills the file. The version is set once the marker is read. */
 	write_raw("case.opt", -2, 1, 13, &body, 13);
+	int version = -9;
+	unsigned native_size = 12345;
 	XVT_ASSERT_INT_EQ(read_file("case.opt", &version, &native_size), 0);
 	XVT_ASSERT_INT_EQ(version, 2);
 	XVT_ASSERT_INT_EQ(native_size, 12345);
@@ -268,9 +268,9 @@ static void check_rebuild(void)
 		opt_native_node(&body, hull_name, OPT_GROUP, 2, children, 0, 0);
 	put(&body, table, hull);
 
+	write_model("case.opt", 2, &body);
 	int version = -9;
 	unsigned native_size = 0;
-	write_model("case.opt", 2, &body);
 	uint16_t handle = read_file("case.opt", &version, &native_size);
 	XVT_ASSERT_TRUE(handle != 0);
 	XVT_ASSERT_INT_EQ(version, 2);
@@ -315,9 +315,9 @@ static void check_payload_past_end(void)
 	put(&body, table, verts);
 	put(&body, verts + 20, append(&body, tail, sizeof tail));
 
+	write_model("case.opt", 1, &body);
 	int version = -9;
 	unsigned native_size = 0;
-	write_model("case.opt", 1, &body);
 	uint16_t handle = read_file("case.opt", &version, &native_size);
 	XVT_ASSERT_TRUE(handle != 0);
 	struct optimized_poly_object *model = memory_get_handle_block(handle);
@@ -351,9 +351,9 @@ static uint32_t opt_native_payload(struct body *body, uint32_t size)
 static void check_last_payload(const struct body *body, int version,
 			       uint32_t payload, uint32_t size)
 {
+	write_model("case.opt", version, body);
 	int read = -9;
 	unsigned native_size = 0;
-	write_model("case.opt", version, body);
 	uint16_t handle = read_file("case.opt", &read, &native_size);
 	XVT_ASSERT_TRUE(handle != 0);
 	struct optimized_poly_object *model = memory_get_handle_block(handle);

@@ -41,17 +41,12 @@ struct cutscene_entry *g_cutscene_table = NULL;
 // FUNCTION: XVT 0x4DF250
 int cutscene_load_table(const char *file_name)
 {
-	xvt_file *stream;
-	unsigned int declared_count;
-	char *line;
-	size_t allocation_size;
-
 	if (g_cutscene_table != NULL) {
 		free(g_cutscene_table);
 		g_cutscene_table = NULL;
 	}
 
-	stream = file_open(file_name, "r");
+	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return 0;
 	}
@@ -60,8 +55,9 @@ int cutscene_load_table(const char *file_name)
 		return 0;
 	}
 
-	declared_count = (unsigned int)atoi(g_frontend_scratch_buffer);
-	allocation_size = sizeof(struct cutscene_entry) * declared_count;
+	unsigned int declared_count =
+		(unsigned int)atoi(g_frontend_scratch_buffer);
+	size_t allocation_size = sizeof(struct cutscene_entry) * declared_count;
 	g_cutscene_table = (struct cutscene_entry *)malloc(allocation_size);
 	if (g_cutscene_table == NULL) {
 		return 0;
@@ -69,6 +65,7 @@ int cutscene_load_table(const char *file_name)
 	memset(g_cutscene_table, 0, allocation_size);
 	g_cutscene_count = 0;
 
+	char *line;
 	while ((unsigned int)g_cutscene_count < declared_count) {
 		do {
 			line = FILE_GETS(g_frontend_scratch_buffer, 255,
@@ -178,9 +175,6 @@ int cutscene_play_for_current_mission_phase(int phase)
 		SYNCHRONIZE_MULTIPLAYER = 1,
 	};
 
-	unsigned int entry_index;
-	int play_result;
-
 	if (g_pilot_data.mission_directory_id !=
 		    MISSION_DIRECTORY_TRAINING_EXERCISES ||
 	    g_pilot_data.mission_sequence_active != MISSION_SEQUENCE_ACTIVE ||
@@ -191,8 +185,8 @@ int cutscene_play_for_current_mission_phase(int phase)
 		return 0;
 	}
 
-	for (entry_index = 0; entry_index < (unsigned int)g_cutscene_count;
-	     ++entry_index) {
+	for (unsigned int entry_index = 0;
+	     entry_index < (unsigned int)g_cutscene_count; ++entry_index) {
 		if (g_cutscene_table[entry_index].campaign_id ==
 			    g_pilot_data.mission_description_ids
 				    [MISSION_DIRECTORY_CAMPAIGNS] &&
@@ -207,7 +201,7 @@ int cutscene_play_for_current_mission_phase(int phase)
 			frontend_display_clear_back_buffer();
 			frontend_display_present_frame();
 			frontend_display_clear_back_buffer();
-			play_result = movie_play(
+			int play_result = movie_play(
 				g_cutscene_table[entry_index].movie_name,
 				SYNCHRONIZE_MULTIPLAYER);
 			frontend_display_clear_back_buffer();

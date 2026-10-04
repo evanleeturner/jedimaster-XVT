@@ -35,15 +35,15 @@ static uint8_t *g_icons_b[3];
 
 static void make_roots(void)
 {
-	char asset[XVT_TEST_PATH_CAPACITY];
-	char user[XVT_TEST_PATH_CAPACITY];
-	char temp[XVT_TEST_PATH_CAPACITY];
 	xvt_test_make_folder(g_folder);
 	xvt_test_make_subfolder(g_folder, "asset");
 	xvt_test_make_subfolder(g_folder, "user");
 	xvt_test_make_subfolder(g_folder, "temp");
+	char asset[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(asset, g_folder, "asset");
+	char user[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(user, g_folder, "user");
+	char temp[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(temp, g_folder, "temp");
 	static const char *const k_files[] = {
 		"MICRO32.FNT", "MICRO48.FNT", "MICRO64.FNT",

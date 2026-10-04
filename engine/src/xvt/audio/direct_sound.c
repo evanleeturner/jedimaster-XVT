@@ -34,11 +34,10 @@ IDirectSoundBuffer *
 direct_sound_load_wave_buffer(IDirectSound *direct_sound, const char *file_name,
 			      int omit_software_and_frequency_caps)
 {
+	g_wave_file_data_buffer = NULL;
 	IDirectSoundBuffer *buffer = NULL;
 	const void *sample_data;
 	DSBUFFERDESC desc = {0};
-
-	g_wave_file_data_buffer = NULL;
 	if (direct_sound_load_file_and_find_audio_data(
 		    0, file_name, &desc.lpwfxFormat, &sample_data,
 		    &desc.dwBufferBytes)) {
@@ -76,12 +75,10 @@ direct_sound_load_wave_buffer(IDirectSound *direct_sound, const char *file_name,
 int direct_sound_reload_wave_buffer(IDirectSoundBuffer *buffer,
 				    const char *file_name)
 {
-	int result;
+	int result = 0;
+	g_wave_file_data_buffer = NULL;
 	unsigned int sample_bytes;
 	const void *sample_data;
-
-	result = 0;
-	g_wave_file_data_buffer = NULL;
 	if (direct_sound_load_file_and_find_audio_data(
 		    0, file_name, NULL, &sample_data, &sample_bytes) &&
 	    buffer->lpVtbl->Restore(buffer) >= 0 &&
@@ -109,18 +106,14 @@ int direct_sound_load_file_and_find_audio_data(int unused,
 					       const void **sample_data,
 					       unsigned int *sample_bytes)
 {
-	xvt_file *stream;
-	size_t file_size;
-	void *file_data;
-
 	(void)unused;
-	stream = file_open(file_name, "rb");
+	xvt_file *stream = file_open(file_name, "rb");
 	if (stream != NULL) {
 		file_seek(stream, 0, SEEK_END);
-		file_size = (size_t)file_tell(stream);
+		size_t file_size = (size_t)file_tell(stream);
 		file_seek(stream, 0, SEEK_SET);
 		g_wave_file_data_buffer = malloc(file_size);
-		file_data = g_wave_file_data_buffer;
+		void *file_data = g_wave_file_data_buffer;
 		if (file_data != NULL) {
 			if (file_read_bytes(stream, file_data, file_size) &&
 			    direct_sound_find_format_and_data_chunks(
@@ -151,26 +144,19 @@ struct direct_sound_buffer_set *
 direct_sound_load_wave_buffer_set(IDirectSound *direct_sound,
 				  const char *file_name, int buffer_count)
 {
-	struct direct_sound_buffer_set *set;
-	int actual_buffer_count;
-	int buffer_index;
-	IDirectSoundBuffer **buffer_slot;
+	struct direct_sound_buffer_set *set = NULL;
 	const void *sample_data;
 	unsigned int sample_bytes;
 	WAVEFORMATEX *format;
-	size_t allocation_size;
-	IDirectSound *device;
-
-	set = NULL;
 	if (direct_sound_load_file_and_find_audio_data(
 		    0, file_name, &format, &sample_data, &sample_bytes)) {
-		actual_buffer_count = buffer_count;
+		int actual_buffer_count = buffer_count;
 		if (actual_buffer_count < 1) {
 			actual_buffer_count = 1;
 		}
-		device = direct_sound;
-		buffer_index = 1;
-		allocation_size =
+		IDirectSound *device = direct_sound;
+		int buffer_index = 1;
+		size_t allocation_size =
 			offsetof(struct direct_sound_buffer_set, buffers) +
 			actual_buffer_count * sizeof(IDirectSoundBuffer *);
 #ifdef XVT_MODERN
@@ -185,7 +171,8 @@ direct_sound_load_wave_buffer_set(IDirectSound *direct_sound,
 			set->buffers[0] = direct_sound_load_wave_buffer(
 				device, file_name, 0);
 			if (set->buffer_count > 1) {
-				buffer_slot = &set->buffers[1];
+				IDirectSoundBuffer **buffer_slot =
+					&set->buffers[1];
 				do {
 					if (device->lpVtbl
 						    ->DuplicateSoundBuffer(
@@ -219,13 +206,10 @@ direct_sound_load_wave_buffer_set(IDirectSound *direct_sound,
 // FUNCTION: XVT 0x44B920
 void direct_sound_free_wave_buffer_set(struct direct_sound_buffer_set *set)
 {
-	int buffer_index;
-	IDirectSoundBuffer **buffer;
-
 	if (set != NULL) {
-		buffer_index = 0;
+		int buffer_index = 0;
 		if (set->buffer_count > 0) {
-			buffer = set->buffers;
+			IDirectSoundBuffer **buffer = set->buffers;
 			do {
 				if (*buffer != NULL) {
 					(*buffer)->lpVtbl->Release(*buffer);
@@ -255,24 +239,21 @@ void direct_sound_free_wave_buffer_set(struct direct_sound_buffer_set *set)
 IDirectSoundBuffer *
 direct_sound_acquire_wave_buffer_set_buffer(struct direct_sound_buffer_set *set)
 {
-	IDirectSoundBuffer *buffer;
-	int next_buffer_index;
-	int buffer_count;
-	int status;
-
 	if (set == NULL) {
 		return NULL;
 	}
-	buffer = set->buffers[set->next_buffer_index];
+	IDirectSoundBuffer *buffer = set->buffers[set->next_buffer_index];
 	if (buffer != NULL) {
+		int status;
 		if (buffer->lpVtbl->GetStatus(buffer, (uint32_t *)&status) <
 		    0) {
 			status = 0;
 		}
 		if (((uint8_t)status & 1) != 0) {
-			buffer_count = set->buffer_count;
+			int buffer_count = set->buffer_count;
 			if (buffer_count > 1) {
-				next_buffer_index = set->next_buffer_index + 1;
+				int next_buffer_index =
+					set->next_buffer_index + 1;
 				set->next_buffer_index = next_buffer_index;
 				if (buffer_count <= next_buffer_index) {
 					set->next_buffer_index = 0;
@@ -306,15 +287,13 @@ direct_sound_acquire_wave_buffer_set_buffer(struct direct_sound_buffer_set *set)
 int direct_sound_play_wave_buffer_set(struct direct_sound_buffer_set *set,
 				      uint32_t play_flags)
 {
-	int result;
-	IDirectSoundBuffer *buffer;
-
-	result = 0;
+	int result = 0;
 	if (set == NULL) {
 		return 0;
 	}
 	if ((play_flags & 1) == 0 || set->buffer_count == 1) {
-		buffer = direct_sound_acquire_wave_buffer_set_buffer(set);
+		IDirectSoundBuffer *buffer =
+			direct_sound_acquire_wave_buffer_set_buffer(set);
 		if (buffer != NULL) {
 			result = buffer->lpVtbl->Play(buffer, 0, 0,
 						      play_flags) >= 0;
@@ -328,16 +307,13 @@ int direct_sound_play_wave_buffer_set(struct direct_sound_buffer_set *set,
 // FUNCTION: XVT 0x44BA80
 int direct_sound_stop_wave_buffer_set(struct direct_sound_buffer_set *set)
 {
-	int buffer_index;
-	IDirectSoundBuffer **buffer;
-
 	if (set == NULL) {
 		return 0;
 	}
 
-	buffer_index = 0;
+	int buffer_index = 0;
 	if (set->buffer_count > 0) {
-		buffer = set->buffers;
+		IDirectSoundBuffer **buffer = set->buffers;
 		do {
 			(*buffer)->lpVtbl->Stop(*buffer);
 			(*buffer)->lpVtbl->SetCurrentPosition(*buffer, 0);
@@ -392,10 +368,6 @@ int direct_sound_find_format_and_data_chunks(const void *riff_data,
 					     const void **sample_data,
 					     unsigned int *sample_bytes)
 {
-	const uint32_t *chunk;
-	const uint8_t *riff_end;
-	const uint32_t *riff_words;
-
 	if (format != NULL) {
 		*format = NULL;
 	}
@@ -406,21 +378,19 @@ int direct_sound_find_format_and_data_chunks(const void *riff_data,
 		*sample_bytes = 0;
 	}
 
-	riff_words = (const uint32_t *)riff_data;
-	chunk = riff_words + 3;
+	const uint32_t *riff_words = (const uint32_t *)riff_data;
+	const uint32_t *chunk = riff_words + 3;
 	if (riff_words[0] == 0x46464952 && riff_words[2] == 0x45564157) {
-		riff_end = (const uint8_t *)chunk + riff_words[1] - 4;
+		const uint8_t *riff_end =
+			(const uint8_t *)chunk + riff_words[1] - 4;
 		if (riff_end > (const uint8_t *)chunk) {
 			do {
-				uint32_t chunk_id;
-				uint32_t chunk_size;
-				const uint8_t *chunk_data;
-
-				chunk_id = chunk[0];
-				chunk_size = chunk[1];
+				uint32_t chunk_id = chunk[0];
+				uint32_t chunk_size = chunk[1];
 				++chunk;
 				++chunk;
-				chunk_data = (const uint8_t *)chunk;
+				const uint8_t *chunk_data =
+					(const uint8_t *)chunk;
 				switch (chunk_id) {
 				case 0x20746D66:
 					if (format != NULL && *format == NULL) {

@@ -18,19 +18,8 @@
 // FUNCTION: XVT 0x4DD9D0
 void frontend_string_load_table(const char *file_name)
 {
-	unsigned int total_data_size;
-	xvt_file *stream;
-	char *write_position;
-	char *copy_destination;
-	char *resized_data;
-	unsigned int *resized_offsets;
-	unsigned int line_length;
-	unsigned int copy_length;
-	unsigned int string_offset;
-	char line[1024];
-
-	total_data_size = 0;
-	stream = file_open(file_name, "r");
+	unsigned int total_data_size = 0;
+	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
 		return;
 	}
@@ -51,23 +40,24 @@ void frontend_string_load_table(const char *file_name)
 		return;
 	}
 
-	write_position = g_front_state.ui_string_data;
+	char *write_position = g_front_state.ui_string_data;
+	char line[1024];
 	for (;;) {
 		if (FILE_GETS(line, sizeof(line), stream) == NULL) {
 			break;
 		}
 		line[sizeof(line) - 1] = '\0';
 		if (line[0] != '/' || line[1] != '/') {
-			line_length = strlen(line) + 1;
-			copy_length = line_length - 1;
+			unsigned int line_length = strlen(line) + 1;
+			unsigned int copy_length = line_length - 1;
 			if (line[line_length - 2] == '\n') {
 				--copy_length;
 				line[line_length - 2] = '\0';
 			}
 
-			string_offset =
+			unsigned int string_offset =
 				write_position - g_front_state.ui_string_data;
-			copy_destination = write_position;
+			char *copy_destination = write_position;
 			total_data_size += copy_length + 1;
 			write_position += copy_length + 1;
 			g_front_state.ui_string_offsets
@@ -76,7 +66,7 @@ void frontend_string_load_table(const char *file_name)
 			++g_front_state.ui_string_count;
 			if (g_front_state.ui_string_capacity ==
 			    g_front_state.ui_string_count) {
-				resized_offsets = realloc(
+				unsigned int *resized_offsets = realloc(
 					g_front_state.ui_string_offsets,
 					(g_front_state.ui_string_capacity +
 					 64) * sizeof(*g_front_state
@@ -91,7 +81,8 @@ void frontend_string_load_table(const char *file_name)
 		}
 	}
 
-	resized_data = realloc(g_front_state.ui_string_data, total_data_size);
+	char *resized_data =
+		realloc(g_front_state.ui_string_data, total_data_size);
 	if (resized_data != NULL) {
 		g_front_state.ui_string_data = resized_data;
 	} else {
@@ -110,11 +101,8 @@ void frontend_string_load_table(const char *file_name)
 // FUNCTION: XVT 0x4DDBC0
 void frontend_string_unload_table(void)
 {
-	unsigned int **offsets;
-	char **data;
-
-	offsets = &g_front_state.ui_string_offsets;
-	data = &g_front_state.ui_string_data;
+	unsigned int **offsets = &g_front_state.ui_string_offsets;
+	char **data = &g_front_state.ui_string_data;
 	if (*offsets) {
 		free(*offsets);
 		*offsets = 0;

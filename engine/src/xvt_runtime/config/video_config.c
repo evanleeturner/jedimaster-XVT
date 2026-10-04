@@ -157,11 +157,11 @@ static bool xvt_config_write_video(AeronConfigFile *document,
 bool xvt_config_set_video(const struct xvt_video_settings *options, char *error,
 			  size_t capacity)
 {
-	AeronConfigFile *candidate = NULL;
-	AeronConfigError detail;
 	if (!xvt_video_settings_validate(options, error, capacity)) {
 		return false;
 	}
+	AeronConfigFile *candidate = NULL;
+	AeronConfigError detail;
 	if (!AeronConfigFile_Clone(xvt_config_user_document(), &candidate,
 				   &detail)) {
 		return xvt_settings_file_error(&detail, error, capacity);

@@ -131,8 +131,8 @@ static void check_wait_packet_limit(void)
 
 static void check_reset_forgets_wait(void)
 {
-	int *packet = NULL;
 	fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
+	int *packet = NULL;
 	XVT_ASSERT_INT_EQ(xvt_campaign_task_wait_packet(
 				  NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
 			  XVT_CAMPAIGN_PENDING);

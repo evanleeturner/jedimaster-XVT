@@ -300,15 +300,12 @@ int g_flight_net_remote_resync_checksums_received_flag = 0;
 // FUNCTION: XVT 0x462A10
 char *flight_net_resolve_resync_player_name(void)
 {
-	int player_dplay_id;
-	int player_slot;
-
-	player_dplay_id = g_flight_net_resync_player_dplay_id;
+	int player_dplay_id = g_flight_net_resync_player_dplay_id;
 	if (player_dplay_id == 0) {
 		player_dplay_id = net_session_get_host_dplay_id();
 	}
 	g_flight_net_resync_player_dplay_id = player_dplay_id;
-	player_slot = net_session_find_player_slot_by_dpid(player_dplay_id);
+	int player_slot = net_session_find_player_slot_by_dpid(player_dplay_id);
 	if (g_player_abort_flags[player_slot] != 0) {
 		g_flight_net_resync_player_dplay_id =
 			net_session_get_host_dplay_id();
@@ -344,26 +341,19 @@ int flight_net_sync_player_options_and_taunts(void)
 #ifdef XVT_MODERN
 	return xvt_flight_network_exchange_options();
 #else
-	int active_players;
-	int *packet;
-	int sender_dpid;
-	uint32_t status_update_time;
-	int received_player_count;
-	int packet_size;
-	uint32_t last_packet_time;
-	char status_text[256];
-	int blink_state;
-	int host_dplay_id;
-	int player_index;
-	uint32_t current_time;
-	char *player_name;
-	const char *loading_suffix;
-
-	blink_state = 1;
-	player_index = 0;
-	status_update_time = player_index;
-	host_dplay_id = net_session_get_host_dplay_id();
+	int blink_state = 1;
+	int player_index = 0;
+	uint32_t status_update_time = player_index;
+	int host_dplay_id = net_session_get_host_dplay_id();
 	if (g_active_flight_player_count > 1) {
+		int *packet;
+		int sender_dpid;
+		int received_player_count;
+		int packet_size;
+		char status_text[256];
+		uint32_t current_time;
+		char *player_name;
+		const char *loading_suffix;
 		if (net_session_is_local_host() != 0) {
 			if (g_active_flight_player_count > player_index) {
 				int remaining_players =
@@ -393,7 +383,7 @@ int flight_net_sync_player_options_and_taunts(void)
 					[DISK_IO_STR_WAITING_FOR_OTHER_PLAYERS],
 				0x30);
 			received_player_count = 0;
-			last_packet_time = timeGetTime();
+			uint32_t last_packet_time = timeGetTime();
 			while (net_session_count_active_players() - 1 >
 			       received_player_count) {
 				packet = net_session_wait_for_game_packet(
@@ -557,9 +547,8 @@ int flight_net_sync_player_options_and_taunts(void)
 			} while (*packet != NET_PACKET_PLAYER_OPTIONS_ROSTER);
 			flight_alert_restore_box_background();
 			{
-				int remaining_players;
 				g_flight_conf_new_net = packet[1];
-				remaining_players =
+				int remaining_players =
 					g_active_flight_player_count;
 				player_index = 0;
 				if (remaining_players > 0) {
@@ -594,7 +583,7 @@ int flight_net_sync_player_options_and_taunts(void)
 		received_player_count = 0;
 		net_session_count_active_players();
 		for (;;) {
-			active_players = net_session_count_active_players();
+			int active_players = net_session_count_active_players();
 			if (received_player_count >= active_players) {
 				break;
 			}
@@ -704,19 +693,8 @@ int flight_net_wait_for_mission_start(void)
 		char status_text[256];	 /* Loading status line for the alert */
 	} wait_state;
 
-	int *packet;
-	int ready_player_count;
-	int blink_state;
-	int player_slot;
-	int clock_adjustment;
-	uint32_t current_time;
-	int host_dplay_id;
-	int server_update_rate;
-	char *player_name;
-	const char *loading_suffix;
-
 	wait_state.status_update_time = 0;
-	blink_state = 1;
+	int blink_state = 1;
 	memset(g_flight_net_last_input_timestamp_by_player, 0,
 	       sizeof(g_flight_net_last_input_timestamp_by_player));
 	memset(g_flight_net_peer_silence_ticks, 0,
@@ -744,15 +722,16 @@ int flight_net_wait_for_mission_start(void)
 	}
 
 	wait_state.active_player_count = net_session_count_active_players();
-	host_dplay_id = net_session_get_host_dplay_id();
+	int host_dplay_id = net_session_get_host_dplay_id();
 	g_flight_net_scratch_packet.packet_type =
 		NET_PACKET_MISSION_LOADING_READY;
 
 	net_session_send_packet(
 		host_dplay_id, (unsigned int *)&g_flight_net_scratch_packet,
 		sizeof(g_flight_net_scratch_packet.packet_type));
+	int *packet;
 	if (net_session_is_local_host() != 0) {
-		ready_player_count = 0;
+		int ready_player_count = 0;
 		for (;;) {
 			if (wait_state.active_player_count <=
 			    ready_player_count) {
@@ -782,6 +761,7 @@ int flight_net_wait_for_mission_start(void)
 		1,
 		g_str_disk_io_messages[DISK_IO_STR_WAITING_FOR_OTHER_PLAYERS],
 		ALERT_BACKGROUND_COLOR);
+	const char *loading_suffix;
 	do {
 		packet = net_session_wait_for_game_packet(
 			&wait_state.sender_dplay_id, &wait_state.packet_size,
@@ -790,15 +770,15 @@ int flight_net_wait_for_mission_start(void)
 			return 0;
 		}
 		if (*packet == NET_PACKET_STILL_LOADING) {
-			current_time = timeGetTime();
+			uint32_t current_time = timeGetTime();
 			if ((int)(current_time -
 				  wait_state.status_update_time) >
 			    STATUS_UPDATE_INTERVAL_MS) {
 				wait_state.status_update_time = current_time;
-				player_slot =
+				int player_slot =
 					net_session_find_player_slot_by_dpid(
 						wait_state.sender_dplay_id);
-				player_name = net_session_get_player_name(
+				char *player_name = net_session_get_player_name(
 					player_slot);
 				if (player_name == NULL) {
 					strcpy(wait_state.status_text,
@@ -840,7 +820,7 @@ int flight_net_wait_for_mission_start(void)
 	} else {
 		g_flight_net_clock_lead_ticks = DEFAULT_CLOCK_LEAD_TICKS;
 	}
-	server_update_rate = g_game_config.server_update_rate;
+	int server_update_rate = g_game_config.server_update_rate;
 	switch (server_update_rate) {
 	case 4:
 		g_net_update_interval_ticks = 59;
@@ -870,8 +850,8 @@ int flight_net_wait_for_mission_start(void)
 		g_input_timestamp += time_consume_elapsed_ticks();
 		g_flight_net_clock_lead_ticks = g_input_timestamp;
 		if (g_input_timestamp < MINIMUM_CLIENT_CLOCK_LEAD_TICKS) {
-			clock_adjustment = MINIMUM_CLIENT_CLOCK_LEAD_TICKS -
-					   g_input_timestamp;
+			int clock_adjustment = MINIMUM_CLIENT_CLOCK_LEAD_TICKS -
+					       g_input_timestamp;
 			g_flight_net_clock_lead_ticks += clock_adjustment;
 			g_input_timestamp += clock_adjustment;
 			g_flight_net_clock_adjust_accum_ticks -=
@@ -891,12 +871,9 @@ int flight_net_wait_for_mission_start(void)
 // FUNCTION: XVT 0x463B60
 int flight_net_send_clock_probe_to_host(void)
 {
-	struct flight_net_scratch_packet *packet;
-	int input_timestamp;
-
-	packet = &g_flight_net_scratch_packet;
+	struct flight_net_scratch_packet *packet = &g_flight_net_scratch_packet;
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_CLOCK_PROBE;
-	input_timestamp = g_input_timestamp;
+	int input_timestamp = g_input_timestamp;
 	packet->payload_dwords[0] =
 		input_timestamp + g_flight_net_clock_adjust_accum_ticks;
 	g_flight_net_clock_probe_timestamp =
@@ -971,10 +948,10 @@ int flight_net_send_still_loading_pulse(void)
 // FUNCTION: XVT 0x463C10
 int flight_net_broadcast_player_disconnected(int player_slot)
 {
-	int result;
 	g_flight_net_scratch_packet.packet_type =
 		NET_PACKET_PLAYER_DISCONNECTED;
 	g_flight_net_scratch_packet.payload_dwords[0] = player_slot;
+	int result;
 	result =
 #ifdef XVT_MODERN
 		xvt_flight_network_broadcast
@@ -1010,16 +987,13 @@ int flight_net_broadcast_player_abort(int player_slot)
 // FUNCTION: XVT 0x463C80
 int flight_net_find_pilot_network_player_index(int player_idx)
 {
-	int network_player_idx;
-	int *direct_play_id;
-	int player_direct_play_id;
-	const uint8_t *network_player_end;
-
-	network_player_idx = 0;
-	direct_play_id = &g_pilot_data.network_players[0].direct_play_id;
-	player_direct_play_id = g_players[player_idx].network.direct_play_id;
-	network_player_end = (const uint8_t *)direct_play_id +
-			     sizeof(g_pilot_data.network_players);
+	int network_player_idx = 0;
+	int *direct_play_id = &g_pilot_data.network_players[0].direct_play_id;
+	int player_direct_play_id =
+		g_players[player_idx].network.direct_play_id;
+	const uint8_t *network_player_end =
+		(const uint8_t *)direct_play_id +
+		sizeof(g_pilot_data.network_players);
 	while (*direct_play_id != player_direct_play_id) {
 		direct_play_id = (int *)((uint8_t *)direct_play_id +
 					 sizeof(struct pilot_network_player));
@@ -1094,9 +1068,6 @@ void flight_net_process_incoming_packets(void)
 		RECOVERY_ALERT_COLOR = 0x34
 	};
 
-	struct flight_input_frame_record input;
-	int sender_dpid;
-
 	struct {
 		/* Two jobs: a remote-input record's timestamp code byte, or the frames left in an input batch. */
 		int decode_value;
@@ -1111,9 +1082,6 @@ void flight_net_process_incoming_packets(void)
 		int payload_size; /* Filled by each receive; never read */
 	} packet_state;
 
-	int current_timestamp;
-	char status_text[80];
-
 	if (g_players[g_local_player].participation_state == 0) {
 		return;
 	}
@@ -1125,6 +1093,7 @@ void flight_net_process_incoming_packets(void)
 	packet_state.world_frame_elapsed = 0;
 	packet_state.blink_toggle = 0;
 
+	int sender_dpid;
 	if (g_flight_player_count == 1) {
 		while (net_session_receive_game_packet(
 			       &sender_dpid, &packet_state.payload_size) !=
@@ -1133,6 +1102,7 @@ void flight_net_process_incoming_packets(void)
 		return;
 	}
 
+	int current_timestamp;
 	if (g_flight_net_recovery_ui_active != 0) {
 		int blink_time = g_flight_net_recovery_ui_blink_time;
 
@@ -1147,9 +1117,9 @@ void flight_net_process_incoming_packets(void)
 		packet_state.start_timestamp = current_timestamp;
 	}
 
+	struct flight_input_frame_record input;
+	char status_text[80];
 	for (;;) {
-		int *packet;
-
 		if (current_timestamp - packet_state.start_timestamp >
 		    RECOVERY_DELAY_TICKS) {
 			if (g_flight_net_recovery_ui_active != 0) {
@@ -1197,14 +1167,12 @@ void flight_net_process_incoming_packets(void)
 					}
 				}
 			} else {
-				char *player_name;
-
 				packet_state.blink_toggle = 1;
 				flight_alert_save_box_background();
 				strcpy(status_text,
 				       g_str_disk_io_messages
 					       [DISK_IO_STR_COM_FAILURE_WAITING]);
-				player_name =
+				char *player_name =
 					flight_net_resolve_resync_player_name();
 				if (player_name != NULL) {
 					strcat(status_text, player_name);
@@ -1225,7 +1193,7 @@ void flight_net_process_incoming_packets(void)
 		}
 
 		current_timestamp += (int)time_consume_elapsed_ticks();
-		packet = net_session_receive_game_packet(
+		int *packet = net_session_receive_game_packet(
 			&sender_dpid, &packet_state.payload_size);
 		{
 			int frame_delta = (int)time_consume_elapsed_ticks();
@@ -1242,11 +1210,10 @@ void flight_net_process_incoming_packets(void)
 			current_timestamp += (int)time_consume_elapsed_ticks();
 			if (flight_net_take_world_message_turn(
 				    g_input_timestamp) != 0) {
-				int frame_delta;
-
 				flight_net_broadcast_world_message(
 					g_input_timestamp);
-				frame_delta = (int)time_consume_elapsed_ticks();
+				int frame_delta =
+					(int)time_consume_elapsed_ticks();
 				packet_state.server_send_elapsed += frame_delta;
 				current_timestamp += frame_delta;
 				continue;
@@ -1263,14 +1230,8 @@ void flight_net_process_incoming_packets(void)
 
 		switch (packet[0]) {
 		case NET_PACKET_REMOTE_INPUT: {
-			const uint8_t *cursor;
-			struct input_frame *inserted;
-			int frame_delta;
-			int player_index;
-			unsigned int timestamp;
-
 			current_timestamp += (int)time_consume_elapsed_ticks();
-			player_index = net_session_find_player_slot_by_dpid(
+			int player_index = net_session_find_player_slot_by_dpid(
 				sender_dpid);
 			if (g_players[player_index].participation_state != 0) {
 				if (g_flight_net_peer_silence_ticks
@@ -1280,9 +1241,11 @@ void flight_net_process_incoming_packets(void)
 				}
 				flight_sync_discard_predicted_input_frames(
 					player_index);
-				cursor = (const uint8_t *)&packet[1];
+				const uint8_t *cursor =
+					(const uint8_t *)&packet[1];
 				memset(&input, 0, sizeof(input));
 				packet_state.decode_value = *cursor;
+				unsigned int timestamp;
 				if ((packet_state.decode_value &
 				     TIMESTAMP_CODE_MASK) ==
 				    FULL_TIMESTAMP_CODE) {
@@ -1330,8 +1293,10 @@ void flight_net_process_incoming_packets(void)
 				input.key_mods = cursor[1] & 1u;
 				input.key_mods += input.key_mods;
 				input.key_mods |= cursor[0] & 1u;
-				inserted = flight_sync_insert_input_frame(
-					player_index, (int)timestamp, &input);
+				struct input_frame *inserted =
+					flight_sync_insert_input_frame(
+						player_index, (int)timestamp,
+						&input);
 				if (inserted != NULL) {
 					int local_is_host =
 						net_session_is_local_host();
@@ -1354,22 +1319,19 @@ void flight_net_process_incoming_packets(void)
 						 *)&g_flight_net_scratch_packet,
 					2 * sizeof(int));
 			}
-			frame_delta = (int)time_consume_elapsed_ticks();
+			int frame_delta = (int)time_consume_elapsed_ticks();
 			packet_state.remote_input_elapsed += frame_delta;
 			current_timestamp += frame_delta;
 			continue;
 		}
 		case NET_PACKET_WORLD_MESSAGE: {
-			int frame_delta;
-			int player_index;
-
 			current_timestamp += (int)time_consume_elapsed_ticks();
 			g_flight_net_host_timeout_elapsed_ticks = 0;
 			++g_flight_net_received_world_message_count;
 			flight_sync_apply_world_message_packet(
 				(uint8_t *)packet);
 			if (net_session_is_local_host() != 0) {
-				for (player_index = 0;
+				for (int player_index = 0;
 				     player_index < PLAYER_COUNT;
 				     ++player_index) {
 					if (player_index != g_local_player &&
@@ -1403,7 +1365,7 @@ void flight_net_process_incoming_packets(void)
 				}
 				return;
 			}
-			frame_delta = (int)time_consume_elapsed_ticks();
+			int frame_delta = (int)time_consume_elapsed_ticks();
 			packet_state.world_frame_elapsed += frame_delta;
 			current_timestamp += frame_delta;
 			++packet_state.world_message_count;
@@ -1439,10 +1401,8 @@ void flight_net_process_incoming_packets(void)
 			}
 			return;
 		case NET_PACKET_RESYNC_CHUNK_ACK: {
-			unsigned int chunk_index;
-
 			g_flight_net_world_state_ack_received_flag = 1;
-			chunk_index = (unsigned int)packet[1];
+			unsigned int chunk_index = (unsigned int)packet[1];
 			if (chunk_index < WORLD_STATE_CHUNK_COUNT) {
 				g_flight_net_world_state_chunk_acked
 					[chunk_index] = 1;
@@ -1472,11 +1432,7 @@ void flight_net_process_incoming_packets(void)
 			return;
 		}
 		case NET_PACKET_INPUT_BATCH: {
-			const uint8_t *cursor;
-			int frame_count;
-			int player_index;
-
-			player_index = net_session_find_player_slot_by_dpid(
+			int player_index = net_session_find_player_slot_by_dpid(
 				sender_dpid);
 			if (g_players[player_index].participation_state != 0) {
 				if (g_flight_net_peer_silence_ticks
@@ -1486,24 +1442,21 @@ void flight_net_process_incoming_packets(void)
 				}
 				flight_sync_discard_predicted_input_frames(
 					player_index);
-				cursor = (const uint8_t *)packet + sizeof(int);
-				frame_count = *cursor++;
+				const uint8_t *cursor =
+					(const uint8_t *)packet + sizeof(int);
+				int frame_count = *cursor++;
 				if (frame_count > 0) {
 					packet_state.decode_value = frame_count;
 					do {
-						struct input_frame *inserted;
-						char timestamp_code;
-						uint8_t low_code;
-						unsigned int timestamp;
-
 						memset(&input, 0,
 						       sizeof(input));
-						timestamp_code =
+						char timestamp_code =
 							(int8_t)*cursor;
-						low_code =
+						uint8_t low_code =
 							(uint8_t)
 								timestamp_code &
 							TIMESTAMP_CODE_MASK;
+						unsigned int timestamp;
 						if (low_code ==
 						    FULL_TIMESTAMP_CODE) {
 							timestamp = *(
@@ -1560,7 +1513,7 @@ void flight_net_process_incoming_packets(void)
 						input.key_mods |=
 							cursor[0] & 1u;
 						cursor += 2;
-						inserted =
+						struct input_frame *inserted =
 							flight_sync_insert_input_frame(
 								player_index,
 								(int)timestamp,
@@ -1643,9 +1596,6 @@ void flight_net_process_incoming_packets(void)
 			}
 			continue;
 		case NET_PACKET_CLOCK_PROBE: {
-			int adjustment;
-			int target_lead;
-
 			g_flight_net_scratch_packet.packet_type =
 				NET_PACKET_CLOCK_PROBE_REPLY;
 			g_flight_net_scratch_packet.payload_dwords[0] =
@@ -1655,12 +1605,13 @@ void flight_net_process_incoming_packets(void)
 				sender_dpid,
 				(unsigned int *)&g_flight_net_scratch_packet,
 				PACKET_CLOCK_PROBE_REPLY_SIZE);
-			target_lead = packet[2];
+			int target_lead = packet[2];
 			if (g_internet_play_enabled == 0 ||
 			    g_flight_net_small_session_player_threshold >
 				    g_active_flight_player_count) {
 				target_lead >>= 1;
 			}
+			int adjustment;
 			if (g_flight_net_clock_lead_ticks < target_lead) {
 				adjustment = (target_lead -
 					      g_flight_net_clock_lead_ticks) >>
@@ -1684,16 +1635,14 @@ void flight_net_process_incoming_packets(void)
 		case NET_PACKET_CLOCK_PROBE_REPLY:
 			if (net_session_is_local_host() == 0 &&
 			    packet[1] == g_flight_net_clock_probe_timestamp) {
-				int adjustment;
-				int target_lead;
-
-				target_lead =
+				int target_lead =
 					g_flight_net_clock_adjust_accum_ticks;
 				target_lead += g_input_timestamp;
 				target_lead -= packet[1];
 				target_lead += CLOCK_PROBE_BIAS_TICKS;
 
 				if (target_lead < CLOCK_PROBE_LIMIT_TICKS) {
+					int adjustment;
 					if (g_flight_net_clock_lead_ticks <
 					    target_lead) {
 						adjustment =
@@ -1805,8 +1754,6 @@ void flight_net_process_incoming_packets(void)
 int32_t flight_net_sample_local_input(void)
 {
 #ifdef XVT_MODERN
-	struct input_frame *inserted;
-
 	flight_input_read(-2);
 	memset(&g_current_input_frame, 0, sizeof g_current_input_frame);
 	g_current_input_frame.key = (uint8_t)g_action_key;
@@ -1815,7 +1762,7 @@ int32_t flight_net_sample_local_input(void)
 	g_current_input_frame.axis_r = (int8_t)(g_xvt_control_roll & 0xfe);
 	g_current_input_frame.key_mods = (uint8_t)(g_key_mods & 3u);
 	xvt_flight_controls_sample_throttle(&g_current_input_frame);
-	inserted = flight_sync_insert_input_frame(
+	struct input_frame *inserted = flight_sync_insert_input_frame(
 		g_local_player, g_input_timestamp, &g_current_input_frame);
 	if (inserted != NULL) {
 		inserted->awaiting_relay = 0;
@@ -1824,10 +1771,6 @@ int32_t flight_net_sample_local_input(void)
 	return flight_pump_window_messages();
 #else
 	static uint8_t encoded_time;
-	int packet_length;
-	int direct_player_index;
-	uint8_t *packet_bytes = (uint8_t *)&g_flight_net_scratch_packet;
-	struct input_frame *inserted;
 
 	flight_input_read(-2);
 	g_current_input_frame.key = (uint8_t)g_action_key;
@@ -1839,7 +1782,7 @@ int32_t flight_net_sample_local_input(void)
 
 	/* Until the packet bytes are laid out, packet_length holds the 7-bit timestamp code: the low bits of
 	 * g_input_timestamp, or 127 when a full timestamp is sent. */
-	packet_length = g_input_timestamp - g_last_sent_input_timestamp;
+	int packet_length = g_input_timestamp - g_last_sent_input_timestamp;
 	if (packet_length >= 127 || packet_length < 0 ||
 	    g_last_sent_input_timestamp == 0) {
 		packet_length = 127;
@@ -1850,6 +1793,7 @@ int32_t flight_net_sample_local_input(void)
 	    SIMULATION_TICKS_PER_SECOND) {
 		packet_length = 127;
 	}
+	uint8_t *packet_bytes = (uint8_t *)&g_flight_net_scratch_packet;
 	if (packet_length == 127) {
 		g_last_keyframe_time = g_input_timestamp;
 		packet_bytes[4] = 127;
@@ -1897,8 +1841,8 @@ int32_t flight_net_sample_local_input(void)
 			}
 		}
 		if (g_internet_play_enabled == 0) {
-			for (direct_player_index = 0; direct_player_index < 8;
-			     ++direct_player_index) {
+			for (int direct_player_index = 0;
+			     direct_player_index < 8; ++direct_player_index) {
 				if (g_players[direct_player_index]
 						    .participation_state != 0 &&
 				    (g_player_connected[direct_player_index] !=
@@ -1914,10 +1858,7 @@ int32_t flight_net_sample_local_input(void)
 				}
 			}
 		} else {
-			int batch_player_index;
-			uint8_t *batch_frame_count;
-
-			batch_frame_count =
+			uint8_t *batch_frame_count =
 				&g_flight_net_input_batch_packet.frame_count;
 			g_flight_net_input_batch_packet.packet_type =
 				NET_PACKET_INPUT_BATCH;
@@ -1941,7 +1882,7 @@ int32_t flight_net_sample_local_input(void)
 					g_flight_net_input_batch_len);
 				if (g_flight_net_small_session_player_threshold >
 				    g_active_flight_player_count) {
-					for (batch_player_index = 0;
+					for (int batch_player_index = 0;
 					     batch_player_index < 8;
 					     ++batch_player_index) {
 						if (g_players[batch_player_index]
@@ -1975,7 +1916,7 @@ int32_t flight_net_sample_local_input(void)
 		}
 	}
 
-	inserted = flight_sync_insert_input_frame(
+	struct input_frame *inserted = flight_sync_insert_input_frame(
 		g_local_player, g_input_timestamp, &g_current_input_frame);
 	if (inserted != NULL) {
 		inserted->awaiting_relay = 0;
@@ -2014,13 +1955,6 @@ int flight_net_take_world_message_turn(int input_timestamp)
 	return xvt_flight_network_take_world_send_turn(input_timestamp);
 #else
 
-	int adjusted_timestamp;
-	int elapsed_timestamp;
-	int oldest_input_timestamp;
-	int player_idx;
-	uint8_t *participation_state_ptr;
-	const uint8_t *players_end;
-
 	if (g_flight_net_pending_ack_count != 0) {
 		return 0;
 	}
@@ -2028,14 +1962,14 @@ int flight_net_take_world_message_turn(int input_timestamp)
 		return 0;
 	}
 
-	adjusted_timestamp = input_timestamp;
+	int adjusted_timestamp = input_timestamp;
 	adjusted_timestamp += g_flight_net_clock_adjust_accum_ticks;
 	if (g_flight_net_world_message_turn_timestamp == 0) {
 		g_flight_net_world_message_turn_timestamp =
 			adjusted_timestamp +
 			(g_flight_net_clock_lead_ticks >> 3);
 	}
-	elapsed_timestamp =
+	int elapsed_timestamp =
 		adjusted_timestamp - g_flight_net_world_message_turn_timestamp;
 	if (elapsed_timestamp < g_net_update_interval_ticks) {
 		return 0;
@@ -2046,15 +1980,13 @@ int flight_net_take_world_message_turn(int input_timestamp)
 		return 1;
 	}
 
-	oldest_input_timestamp = 0x7FFFFFFF;
-	player_idx = 0;
-	participation_state_ptr = &g_players[0].participation_state;
-	players_end = (const uint8_t *)(g_players + 8);
+	int oldest_input_timestamp = 0x7FFFFFFF;
+	int player_idx = 0;
+	uint8_t *participation_state_ptr = &g_players[0].participation_state;
+	const uint8_t *players_end = (const uint8_t *)(g_players + 8);
 	while (participation_state_ptr < players_end) {
 		if (*participation_state_ptr != 0) {
-			struct input_frame *input_frame;
-
-			input_frame =
+			struct input_frame *input_frame =
 				flight_sync_find_last_unrelayed_input_frame(
 					player_idx);
 			if (input_frame == NULL) {
@@ -2126,30 +2058,14 @@ void flight_net_broadcast_world_message(int input_timestamp)
 		LOGGED_RECORD_SIZE = 10
 	};
 
-	uint8_t *packet_bytes;
-	uint8_t *dest;
-	int current_tick;
-	int packet_length;
-	int player_index;
-	int frame_index;
-	struct input_frame *frame;
-	int code;
-	uint8_t *record_count;
-	int bandwidth_budget;
-	unsigned int bytes_per_player;
-	unsigned int max_records_per_player;
-	const uint8_t *log_cursor;
-	int logged_count;
-	int log_record_index;
-
 	(void)input_timestamp;
 
 	++g_flight_net_sent_world_message_count;
 	if (g_flight_player_count <= 1) {
 		return;
 	}
-	current_tick = g_flight_net_last_sent_world_message_timestamp +
-		       g_net_update_interval_ticks;
+	int current_tick = g_flight_net_last_sent_world_message_timestamp +
+			   g_net_update_interval_ticks;
 	g_flight_net_last_sent_world_message_timestamp = current_tick;
 	g_flight_net_checksum_request_accum_ticks +=
 		current_tick - g_server_tick_time;
@@ -2164,35 +2080,38 @@ void flight_net_broadcast_world_message(int input_timestamp)
 		       sizeof(g_flight_net_world_checksum_peer_status));
 	}
 
-	packet_bytes = (uint8_t *)&g_flight_net_scratch_packet;
+	uint8_t *packet_bytes = (uint8_t *)&g_flight_net_scratch_packet;
 	packet_bytes[PACKET_PLAYER_COUNT_OFFSET] = 0;
-	bandwidth_budget = g_net_update_interval_ticks *
-			   BANDWIDTH_BYTES_PER_SECOND /
-			   SIMULATION_TICKS_PER_SECOND;
+	int bandwidth_budget = g_net_update_interval_ticks *
+			       BANDWIDTH_BYTES_PER_SECOND /
+			       SIMULATION_TICKS_PER_SECOND;
 	if (bandwidth_budget > MAX_PACKET_PAYLOAD) {
 		bandwidth_budget = MAX_PACKET_PAYLOAD;
 	}
-	bytes_per_player = (bandwidth_budget - PACKET_HEADER_SIZE -
-			    g_active_flight_player_count) /
-			   g_active_flight_player_count;
-	max_records_per_player = bytes_per_player / LOGGED_RECORD_SIZE;
+	unsigned int bytes_per_player = (bandwidth_budget - PACKET_HEADER_SIZE -
+					 g_active_flight_player_count) /
+					g_active_flight_player_count;
+	unsigned int max_records_per_player =
+		bytes_per_player / LOGGED_RECORD_SIZE;
 	/* The original computes this budget but limits packets by encoded byte count. */
 	(void)max_records_per_player;
-	dest = &packet_bytes[PACKET_HEADER_SIZE];
-	packet_length = PACKET_HEADER_SIZE;
+	uint8_t *dest = &packet_bytes[PACKET_HEADER_SIZE];
+	int packet_length = PACKET_HEADER_SIZE;
+	int player_index;
 	for (player_index = 0; player_index < PLAYER_SLOT_COUNT;
 	     ++player_index) {
 		if (g_players[player_index].participation_state == 0) {
 			continue;
 		}
 		++packet_bytes[PACKET_PLAYER_COUNT_OFFSET];
-		record_count = dest;
+		uint8_t *record_count = dest;
 		*dest++ = 0;
 		++packet_length;
-		for (frame_index = 0;
+		for (int frame_index = 0;
 		     frame_index < g_input_frame_count[player_index];
 		     ++frame_index) {
-			frame = &g_input_history[player_index][frame_index];
+			struct input_frame *frame =
+				&g_input_history[player_index][frame_index];
 			if (frame->awaiting_relay == 0 ||
 			    frame->timestamp > current_tick) {
 				continue;
@@ -2204,7 +2123,7 @@ void flight_net_broadcast_world_message(int input_timestamp)
 				break;
 			}
 			++*record_count;
-			code = current_tick - frame->timestamp;
+			int code = current_tick - frame->timestamp;
 			if (code >= FULL_TIMESTAMP_DELTA) {
 				code = FULL_TIMESTAMP_CODE;
 			} else if (code >= SHORT_DELTA_THRESHOLD) {
@@ -2262,17 +2181,18 @@ void flight_net_broadcast_world_message(int input_timestamp)
 			FILE_PRINTF(
 				g_flight_net_server_log_file, "%8x\n",
 				g_flight_net_scratch_packet.payload_dwords[0]);
-			log_cursor = &packet_bytes[PACKET_HEADER_SIZE];
+			const uint8_t *log_cursor =
+				&packet_bytes[PACKET_HEADER_SIZE];
 			for (player_index = 0; player_index < PLAYER_SLOT_COUNT;
 			     ++player_index) {
 				if (g_players[player_index]
 					    .participation_state == 0) {
 					continue;
 				}
-				logged_count = *log_cursor++;
+				int logged_count = *log_cursor++;
 				FILE_PRINTF(g_flight_net_server_log_file,
 					    " %2x\n", logged_count);
-				for (log_record_index = 0;
+				for (int log_record_index = 0;
 				     log_record_index < logged_count;
 				     ++log_record_index) {
 					const struct flight_input_frame_record
@@ -2388,9 +2308,6 @@ void flight_net_send_world_state_resync_apply_request(int direct_play_id,
 		ACK_RETRY_COUNT = 10
 	};
 
-	int retries_remaining;
-	int still_loading_elapsed;
-
 	g_flight_net_scratch_packet.payload_dwords[0] =
 		(int)g_flight_net_world_checksum_epoch;
 	g_flight_net_scratch_packet.payload_dwords[1] = world_state_size;
@@ -2402,12 +2319,12 @@ void flight_net_send_world_state_resync_apply_request(int direct_play_id,
 				RESYNC_APPLY_SIZE);
 	time_consume_elapsed_ticks();
 
+	int retries_remaining;
+	int still_loading_elapsed;
 	for (retries_remaining = ACK_RETRY_COUNT, still_loading_elapsed = 0;
 	     retries_remaining != 0; --retries_remaining) {
-		int pass_start_timestamp;
-
 		g_flight_net_pending_ack_count = 1;
-		pass_start_timestamp = g_input_timestamp;
+		int pass_start_timestamp = g_input_timestamp;
 		while ((unsigned int)(g_input_timestamp -
 				      pass_start_timestamp) <
 		       (unsigned int)ACK_WAIT_TICKS) {
@@ -2514,29 +2431,17 @@ int flight_net_send_world_state_resync_to_player(int direct_play_id,
 		ALERT_BACKGROUND_COLOR = 0x30,
 	};
 
-	int still_loading_elapsed;
-	int alert_toggle;
-	char status_text[256];
-	int chunk_slot;
-	int segment_index;
-	int world_offset;
-	int packet_free_bytes;
+	int result = 1;
 	/* Holds in turn: ticks consumed on entry, presence map byte size, segment checksum count. */
-	int build_result;
-	int segment_size;
-	int result;
-	uint8_t *payload;
-	char *player_name;
-
-	result = 1;
-	build_result = time_consume_elapsed_ticks();
-	still_loading_elapsed = 0;
+	int build_result = time_consume_elapsed_ticks();
+	int still_loading_elapsed = 0;
 	g_input_timestamp += build_result;
 	flight_alert_save_box_background();
 
+	char status_text[256];
 	strcpy(status_text,
 	       g_str_disk_io_messages[DISK_IO_STR_COM_FAILURE_SENDING]);
-	player_name = net_session_get_player_name(
+	char *player_name = net_session_get_player_name(
 		net_session_find_player_slot_by_dpid(direct_play_id));
 	if (player_name != NULL) {
 		strcat(status_text, player_name);
@@ -2560,17 +2465,13 @@ int flight_net_send_world_state_resync_to_player(int direct_play_id,
 				(unsigned int *)&g_flight_net_scratch_packet,
 				build_result + 2 * sizeof(int));
 
+	int alert_toggle;
 	{
-		int retry_count;
-
 		g_flight_net_pending_ack_count = 1;
 		alert_toggle = 0;
-		retry_count = CHECKSUM_RETRY_COUNT;
+		int retry_count = CHECKSUM_RETRY_COUNT;
 		do {
-			int elapsed_this_pass;
-			int saved_input_timestamp;
-
-			elapsed_this_pass = 0;
+			int elapsed_this_pass = 0;
 			g_flight_net_remote_resync_checksums_received_flag = 0;
 			while (elapsed_this_pass <
 			       CHECKSUM_POLL_INTERVAL_TICKS) {
@@ -2583,7 +2484,7 @@ int flight_net_send_world_state_resync_to_player(int direct_play_id,
 					break;
 				}
 
-				saved_input_timestamp = g_input_timestamp;
+				int saved_input_timestamp = g_input_timestamp;
 				flight_net_process_incoming_packets();
 				elapsed_this_pass -= saved_input_timestamp;
 				g_input_timestamp +=
@@ -2647,33 +2548,32 @@ int flight_net_send_world_state_resync_to_player(int direct_play_id,
 		return 0;
 	}
 
-	chunk_slot = 0;
+	int chunk_slot = 0;
 	build_result = flight_build_world_state_resync_segment_checksums(
 		g_flight_net_local_resync_checksums, world_state,
 		world_state_size);
 	memset(g_flight_net_world_state_chunk_acked, 0,
 	       sizeof(g_flight_net_world_state_chunk_acked));
-	world_offset = 0;
-	segment_size = flight_compute_world_state_resync_segment_size(
+	int world_offset = 0;
+	int segment_size = flight_compute_world_state_resync_segment_size(
 		world_state_size);
 	g_flight_net_world_state_chunk_packets[0].packet_type =
 		NET_PACKET_RESYNC_CHUNK;
-	packet_free_bytes = CHUNK_FREE_BYTES;
+	int packet_free_bytes = CHUNK_FREE_BYTES;
 	g_flight_net_world_state_chunk_packets[0].checksum_epoch =
 		(int)g_flight_net_world_checksum_epoch;
-	payload = g_flight_net_world_state_chunk_packets[0].payload;
+	uint8_t *payload = g_flight_net_world_state_chunk_packets[0].payload;
 	g_flight_net_world_state_chunk_packets[0].chunk_index = 0;
 
-	for (segment_index = 0; segment_index < build_result; ++segment_index) {
-		int remaining_segment_bytes;
-
+	for (int segment_index = 0; segment_index < build_result;
+	     ++segment_index) {
 		if (g_flight_net_remote_resync_checksums[segment_index] ==
 		    g_flight_net_local_resync_checksums[segment_index]) {
 			world_offset += segment_size;
 			continue;
 		}
 
-		remaining_segment_bytes = segment_size;
+		int remaining_segment_bytes = segment_size;
 		if (world_offset + remaining_segment_bytes > world_state_size) {
 			remaining_segment_bytes =
 				world_state_size - world_offset;
@@ -2683,19 +2583,16 @@ int flight_net_send_world_state_resync_to_player(int direct_play_id,
 		}
 
 		while (remaining_segment_bytes != 0) {
-			struct flight_net_world_state_chunk_record_header
-				*record_header;
-			int record_bytes;
-
-			record_bytes = remaining_segment_bytes +
-				       CHUNK_RECORD_HEADER_SIZE;
+			int record_bytes = remaining_segment_bytes +
+					   CHUNK_RECORD_HEADER_SIZE;
 			if (record_bytes > packet_free_bytes) {
 				record_bytes = packet_free_bytes;
 			}
-			record_header =
-				(struct
-				 flight_net_world_state_chunk_record_header *)
-					payload;
+			struct flight_net_world_state_chunk_record_header
+				*record_header =
+					(struct
+					 flight_net_world_state_chunk_record_header
+						 *)payload;
 			record_header->world_offset = world_offset;
 			record_header->data_size =
 				record_bytes - CHUNK_RECORD_HEADER_SIZE;
@@ -2818,19 +2715,13 @@ int flight_net_wait_for_world_state_chunk_acks(int direct_play_id,
 	};
 
 	int ack_count;
-	int alert_toggle;
 
-	int retry_countdown;
-	int still_loading_elapsed;
-	int last_ack_count;
-
-	alert_toggle = 0;
-	still_loading_elapsed = alert_toggle;
-	last_ack_count = alert_toggle;
-	retry_countdown = UNCHANGED_ACK_RETRY_COUNT;
+	int alert_toggle = 0;
+	int still_loading_elapsed = alert_toggle;
+	int last_ack_count = alert_toggle;
+	int retry_countdown = UNCHANGED_ACK_RETRY_COUNT;
 	do {
 		int elapsed_this_pass = 0;
-		int saved_input_timestamp;
 
 		while (elapsed_this_pass < ACK_POLL_INTERVAL_TICKS) {
 
@@ -2842,7 +2733,7 @@ int flight_net_wait_for_world_state_chunk_acks(int direct_play_id,
 				break;
 			}
 
-			saved_input_timestamp = g_input_timestamp;
+			int saved_input_timestamp = g_input_timestamp;
 			flight_net_process_incoming_packets();
 			elapsed_this_pass -= saved_input_timestamp;
 			g_input_timestamp += time_consume_elapsed_ticks();
@@ -2943,16 +2834,7 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 		COUNTDOWN_HALF_SECOND_TENTHS = 5
 	};
 
-	struct flight_input_frame_record input;
-	/* Two jobs: the low 7-bit timestamp code of an input record, or the frames left in an input batch. */
-	int decode_value;
-	int sender_dpid;
-	int countdown_value;
-	int received_matching_packet;
-	int received_payload_size;
-	char status_text[80];
-
-	countdown_value = 0;
+	int countdown_value = 0;
 	if (packet[0] != NET_PACKET_RESYNC_REQUEST) {
 		return;
 	}
@@ -2966,7 +2848,7 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 						     2 * sizeof(int));
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_RESYNC_CHECKSUMS;
 	/* Before any packet is received, this holds the byte size of the outgoing checksum payload. */
-	received_payload_size =
+	int received_payload_size =
 		(int)(sizeof(int) *
 		      flight_build_world_state_resync_segment_checksums(
 			      g_flight_net_scratch_packet.payload_dwords,
@@ -2977,23 +2859,24 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 				(unsigned int *)&g_flight_net_scratch_packet,
 				received_payload_size + sizeof(int));
 
+	struct flight_input_frame_record input;
+	/* Two jobs: the low 7-bit timestamp code of an input record, or the frames left in an input batch. */
+	int decode_value;
+	int sender_dpid;
+	int received_matching_packet;
+	char status_text[80];
 	for (;;) {
-		int *received_packet;
-
 		if (flight_input_has_key_ready() != 0 &&
 		    flight_input_get_next_key() == FLIGHT_KEY_ESCAPE) {
 			break;
 		}
 
 		received_matching_packet = 0;
+		int *received_packet;
 		do {
-			int elapsed_ticks;
-			int saved_input_timestamp;
-			int remaining_half_seconds;
-
-			saved_input_timestamp = g_input_timestamp;
+			int saved_input_timestamp = g_input_timestamp;
 			g_input_timestamp += time_consume_elapsed_ticks();
-			elapsed_ticks =
+			int elapsed_ticks =
 				g_input_timestamp - saved_input_timestamp;
 			g_input_timestamp = saved_input_timestamp;
 			g_flight_net_host_timeout_elapsed_ticks +=
@@ -3004,7 +2887,7 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 				return;
 			}
 
-			remaining_half_seconds =
+			int remaining_half_seconds =
 				(HOST_TIMEOUT_TICKS -
 				 g_flight_net_host_timeout_elapsed_ticks) /
 				COUNTDOWN_INTERVAL_TICKS;
@@ -3047,14 +2930,7 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 
 			switch (received_packet[0]) {
 			case NET_PACKET_REMOTE_INPUT: {
-				unsigned int timestamp;
-				const uint8_t *cursor;
-				struct input_frame *inserted;
-				int player_index;
-				uint8_t timestamp_code;
-				unsigned int low_code;
-
-				player_index =
+				int player_index =
 					net_session_find_player_slot_by_dpid(
 						sender_dpid);
 				if (g_players[player_index]
@@ -3067,13 +2943,15 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 					flight_sync_discard_predicted_input_frames(
 						player_index);
 					memset(&input, 0, sizeof(input));
-					cursor = (const uint8_t *)
-							 received_packet +
-						 sizeof(int);
-					timestamp_code = *cursor;
-					low_code =
+					const uint8_t *cursor =
+						(const uint8_t *)
+							received_packet +
+						sizeof(int);
+					uint8_t timestamp_code = *cursor;
+					unsigned int low_code =
 						(unsigned int)timestamp_code &
 						TIMESTAMP_CODE_MASK;
+					unsigned int timestamp;
 					if (low_code == FULL_TIMESTAMP_CODE) {
 						timestamp = *(
 							const unsigned int
@@ -3121,7 +2999,7 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 					input.key_mods = cursor[1] & 1u;
 					input.key_mods += input.key_mods;
 					input.key_mods |= cursor[0] & 1u;
-					inserted =
+					struct input_frame *inserted =
 						flight_sync_insert_input_frame(
 							player_index,
 							(int)timestamp, &input);
@@ -3192,10 +3070,7 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 				break;
 			}
 			case NET_PACKET_INPUT_BATCH: {
-				const uint8_t *cursor;
-				int player_index;
-
-				player_index =
+				int player_index =
 					net_session_find_player_slot_by_dpid(
 						sender_dpid);
 				if (g_players[player_index]
@@ -3205,22 +3080,21 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 						g_flight_net_peer_silence_ticks
 							[player_index] = 0;
 					}
-					cursor = (const uint8_t *)
-							 received_packet +
-						 sizeof(int);
+					const uint8_t *cursor =
+						(const uint8_t *)
+							received_packet +
+						sizeof(int);
 					flight_sync_discard_predicted_input_frames(
 						player_index);
 					memset(&input, 0, sizeof(input));
 					decode_value = *cursor++;
 					while (decode_value > 0) {
-						struct input_frame *inserted;
-						uint8_t low_code;
-						uint8_t timestamp_code;
+						uint8_t timestamp_code =
+							*cursor;
+						uint8_t low_code =
+							timestamp_code &
+							TIMESTAMP_CODE_MASK;
 						unsigned int timestamp;
-
-						timestamp_code = *cursor;
-						low_code = timestamp_code &
-							   TIMESTAMP_CODE_MASK;
 						if (low_code ==
 						    FULL_TIMESTAMP_CODE) {
 							timestamp = *(
@@ -3278,7 +3152,7 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 						input.key_mods |=
 							cursor[0] & 1u;
 						cursor += 2;
-						inserted =
+						struct input_frame *inserted =
 							flight_sync_insert_input_frame(
 								player_index,
 								(int)timestamp,

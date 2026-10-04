@@ -84,30 +84,27 @@ int32_t g_backdrop_cam_r0z_steps[16] = {0};
 void backdrop_draw_model_tex_quad_at_screen(int model_type, int screen_x,
 					    int screen_y, int angle)
 {
-	const uint8_t *model_data;
-	const struct tex_level_header *texture_header;
-	struct sprite_payload *sprite;
-	uint16_t software_angle;
-
 	g_flight_sw_rot_sprite_span_runs_enabled = 1;
 	g_cam_rel_world_z = 0x100000;
 	g_view_space_depth = 0x7FFFFFFF;
-	model_data = (const uint8_t *)memory_get_handle_block(
+	const uint8_t *model_data = (const uint8_t *)memory_get_handle_block(
 		g_object_type_table[model_type].resource_handle);
 	memory_handle_block_done_stub(
 		g_object_type_table[model_type].resource_handle);
-	texture_header = (const struct tex_level_header *)model_data;
-	sprite = (struct sprite_payload
-			  *)(model_data +
-			     *(const uint32_t
-				       *)(model_data +
-					  texture_header
-						  ->image_offset_table_offset));
+	const struct tex_level_header *texture_header =
+		(const struct tex_level_header *)model_data;
+	struct sprite_payload *sprite =
+		(struct sprite_payload
+			 *)(model_data +
+			    *(const uint32_t
+				      *)(model_data +
+					 texture_header
+						 ->image_offset_table_offset));
 	if (g_use_hardware3d != 0) {
 		render_quad_draw_rotated_sprite(angle, screen_x, screen_y, 256,
 						sprite);
 	} else {
-		software_angle = (uint16_t)angle;
+		uint16_t software_angle = (uint16_t)angle;
 		flight_sw_prepare_sprite_rotation_tables(
 			software_angle, FLIGHT_SW_16BPP_BYTES_PER_PIXEL);
 		flight_sw_load_sprite_palette_tables(sprite);
@@ -133,42 +130,6 @@ void backdrop_draw_model_tex_quad_at_screen(int model_type, int screen_x,
 // FUNCTION: XVT 0x426080
 void backdrop_build_star_offsets_and_render(void)
 {
-	int accum_r0x;
-	int accum_r0y;
-	int accum_r0z;
-	int accum_r1x;
-	int accum_r1y;
-	int accum_r1z;
-	int accum_r2x;
-	int accum_r2y;
-	int accum_r2z;
-	int grid_base_r0;
-	int grid_base_r1;
-	int grid_base_r2;
-	int grid_row_r0;
-	int grid_row_r1;
-	int grid_row_r2;
-	int grid_value_r0;
-	int grid_value_r1;
-	int grid_value_r2;
-	int step_index;
-	int grid_x;
-	int grid_y;
-	int grid_z;
-	int jitter_index;
-	int16_t angle;
-	unsigned int direction_index;
-	int direction_count;
-	int low_step_index;
-	unsigned int high_step_index;
-	int basis_x;
-	int basis_y;
-	int basis_z;
-	int view_x;
-	int view_y;
-	int view_z;
-	uint8_t packed_direction;
-
 	enum {
 		CAMERA_STEP_COUNT = 16,
 		CAMERA_STEP_SHIFT = 5,
@@ -182,16 +143,16 @@ void backdrop_build_star_offsets_and_render(void)
 		DIRECTION_NEGATE_HIGH_BIT = 0x80
 	};
 
-	accum_r0x = 0;
-	accum_r0y = 0;
-	accum_r0z = 0;
-	accum_r1x = 0;
-	accum_r1y = 0;
-	accum_r1z = 0;
-	accum_r2x = 0;
-	accum_r2y = 0;
-	accum_r2z = 0;
-	for (step_index = 0; step_index < CAMERA_STEP_COUNT; ++step_index) {
+	int accum_r0x = 0;
+	int accum_r0y = 0;
+	int accum_r0z = 0;
+	int accum_r1x = 0;
+	int accum_r1y = 0;
+	int accum_r1z = 0;
+	int accum_r2x = 0;
+	int accum_r2y = 0;
+	int accum_r2z = 0;
+	for (int step_index = 0; step_index < CAMERA_STEP_COUNT; ++step_index) {
 		g_backdrop_cam_r0x_steps[step_index] =
 			accum_r0x >> CAMERA_STEP_SHIFT;
 		g_backdrop_cam_r1x_steps[step_index] =
@@ -221,22 +182,23 @@ void backdrop_build_star_offsets_and_render(void)
 		accum_r2z += g_cam_mat_r2_z;
 	}
 
-	grid_base_r2 = -STAR_GRID_RADIUS *
-		       (g_cam_mat_r2_x + g_cam_mat_r2_y + g_cam_mat_r2_z);
-	grid_base_r1 = -STAR_GRID_RADIUS *
-		       (g_cam_mat_r1_x + g_cam_mat_r1_y + g_cam_mat_r1_z);
-	grid_base_r0 = -STAR_GRID_RADIUS *
-		       (g_cam_mat_r0_x + g_cam_mat_r0_y + g_cam_mat_r0_z);
-	jitter_index = 0;
-	for (grid_x = 0; grid_x < STAR_GRID_SIZE; ++grid_x) {
-		grid_row_r0 = grid_base_r0;
-		grid_row_r1 = grid_base_r1;
-		grid_row_r2 = grid_base_r2;
-		for (grid_y = 0; grid_y < STAR_GRID_SIZE; ++grid_y) {
-			grid_value_r0 = grid_row_r0;
-			grid_value_r1 = grid_row_r1;
-			grid_value_r2 = grid_row_r2;
-			for (grid_z = 0; grid_z < STAR_GRID_SIZE; ++grid_z) {
+	int grid_base_r2 = -STAR_GRID_RADIUS *
+			   (g_cam_mat_r2_x + g_cam_mat_r2_y + g_cam_mat_r2_z);
+	int grid_base_r1 = -STAR_GRID_RADIUS *
+			   (g_cam_mat_r1_x + g_cam_mat_r1_y + g_cam_mat_r1_z);
+	int grid_base_r0 = -STAR_GRID_RADIUS *
+			   (g_cam_mat_r0_x + g_cam_mat_r0_y + g_cam_mat_r0_z);
+	int jitter_index = 0;
+	for (int grid_x = 0; grid_x < STAR_GRID_SIZE; ++grid_x) {
+		int grid_row_r0 = grid_base_r0;
+		int grid_row_r1 = grid_base_r1;
+		int grid_row_r2 = grid_base_r2;
+		for (int grid_y = 0; grid_y < STAR_GRID_SIZE; ++grid_y) {
+			int grid_value_r0 = grid_row_r0;
+			int grid_value_r1 = grid_row_r1;
+			int grid_value_r2 = grid_row_r2;
+			for (int grid_z = 0; grid_z < STAR_GRID_SIZE;
+			     ++grid_z) {
 				g_starfield_jitter_x[jitter_index] =
 					grid_value_r0 >> STAR_JITTER_SHIFT;
 				g_starfield_jitter_y[jitter_index] =
@@ -261,8 +223,18 @@ void backdrop_build_star_offsets_and_render(void)
 		return;
 	}
 
-	direction_index = 0;
-	angle = (int16_t)-trig2_arctan(g_cam_mat_r1_x, g_cam_mat_r0_x);
+	unsigned int direction_index = 0;
+	int16_t angle = (int16_t)-trig2_arctan(g_cam_mat_r1_x, g_cam_mat_r0_x);
+	int direction_count;
+	int low_step_index;
+	unsigned int high_step_index;
+	int basis_x;
+	int basis_y;
+	int basis_z;
+	int view_x;
+	int view_y;
+	int view_z;
+	uint8_t packed_direction;
 	if (g_cam_mat_r2_y >= 0) {
 		for (direction_count = g_backdrop_positive_y_count;
 		     direction_count-- != 0;) {
@@ -573,12 +545,9 @@ void backdrop_build_star_offsets_and_render(void)
 void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 					   int angle, int backdrop_number)
 {
-	int projected_x;
-	int projected_y;
-	uint32_t projection_scale;
-
 	enum { PROJECTION_WORD_BITS = 32, PROJECTION_SATURATION = 0x7FFFFF00 };
 
+	uint32_t projection_scale;
 #ifdef XVT_MODERN
 	projection_scale =
 		1u << (g_perspective_shift & (PROJECTION_WORD_BITS - 1));
@@ -586,13 +555,10 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 	projection_scale = 1u << g_perspective_shift;
 #endif
 
+	int projected_x;
 	if (view_x < 0) {
-		int projection_depth;
+		int projection_depth = view_z;
 		int magnitude;
-		uint64_t numerator;
-		uint32_t quotient;
-
-		projection_depth = view_z;
 #ifdef XVT_MODERN
 		magnitude = (int)(0u - (unsigned int)view_x);
 #else
@@ -601,8 +567,10 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 		if (projection_depth < magnitude) {
 			return;
 		}
-		numerator = (uint64_t)(uint32_t)magnitude * projection_scale +
-			    (uint32_t)g_proj_scale_half_int;
+		uint64_t numerator =
+			(uint64_t)(uint32_t)magnitude * projection_scale +
+			(uint32_t)g_proj_scale_half_int;
+		uint32_t quotient;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
 		    (uint32_t)projection_depth) {
@@ -617,17 +585,14 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 		}
 		projected_x = -(int)quotient;
 	} else {
-		int projection_depth;
-		int magnitude;
-		uint64_t numerator;
-
-		projection_depth = view_z;
-		magnitude = view_x;
+		int projection_depth = view_z;
+		int magnitude = view_x;
 		if (projection_depth < magnitude) {
 			return;
 		}
-		numerator = (uint64_t)(uint32_t)magnitude * projection_scale +
-			    (uint32_t)g_proj_scale_half_int;
+		uint64_t numerator =
+			(uint64_t)(uint32_t)magnitude * projection_scale +
+			(uint32_t)g_proj_scale_half_int;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
 		    (uint32_t)projection_depth) {
@@ -642,13 +607,10 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 		}
 	}
 
+	int projected_y;
 	if (view_y < 0) {
-		int projection_depth;
+		int projection_depth = view_z;
 		int magnitude;
-		uint64_t numerator;
-		uint32_t quotient;
-
-		projection_depth = view_z;
 #ifdef XVT_MODERN
 		magnitude = (int)(0u - (unsigned int)view_y);
 #else
@@ -657,8 +619,10 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 		if (projection_depth < magnitude) {
 			return;
 		}
-		numerator = (uint64_t)(uint32_t)magnitude * projection_scale +
-			    (uint32_t)g_proj_scale_half_int;
+		uint64_t numerator =
+			(uint64_t)(uint32_t)magnitude * projection_scale +
+			(uint32_t)g_proj_scale_half_int;
+		uint32_t quotient;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
 		    (uint32_t)projection_depth) {
@@ -673,17 +637,14 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 		}
 		projected_y = -(int)quotient;
 	} else {
-		int projection_depth;
-		int magnitude;
-		uint64_t numerator;
-
-		projection_depth = view_z;
-		magnitude = view_y;
+		int projection_depth = view_z;
+		int magnitude = view_y;
 		if (projection_depth < magnitude) {
 			return;
 		}
-		numerator = (uint64_t)(uint32_t)magnitude * projection_scale +
-			    (uint32_t)g_proj_scale_half_int;
+		uint64_t numerator =
+			(uint64_t)(uint32_t)magnitude * projection_scale +
+			(uint32_t)g_proj_scale_half_int;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
 		    (uint32_t)projection_depth) {
@@ -716,23 +677,18 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 // FUNCTION: XVT 0x458ED0
 void backdrop_generate_default_records(void)
 {
-	int16_t low_coord_roll;
-	uint16_t low_coord;
-	uint16_t high_coord;
-	uint16_t direction_record_idx;
-	uint16_t model_type_roll;
-	uint8_t model_type;
-
 	g_backdrop_positive_y_count = 4;
 	g_backdrop_negative_y_count = 4;
-	direction_record_idx = 0;
+	uint16_t direction_record_idx = 0;
 	g_backdrop_positive_x_count = 4;
 	g_backdrop_negative_x_count = 4;
 	g_backdrop_positive_z_count = 3;
 	g_backdrop_negative_z_count = 3;
+	uint16_t low_coord;
+	uint16_t high_coord;
 	while (direction_record_idx < 22) {
 		do {
-			low_coord_roll = game_rand() & 14;
+			int16_t low_coord_roll = game_rand() & 14;
 			low_coord = (uint16_t)(low_coord_roll + 4);
 		} while (low_coord > 12);
 		do {
@@ -744,9 +700,10 @@ void backdrop_generate_default_records(void)
 			(uint8_t)high_coord;
 	}
 
+	uint8_t model_type;
 	/* low_coord is reused here as the record index for the model types. */
 	for (low_coord = 0; low_coord < 22; low_coord++) {
-		model_type_roll = (uint16_t)(game_rand() & 31);
+		uint16_t model_type_roll = (uint16_t)(game_rand() & 31);
 		if (model_type_roll < 3) {
 			g_backdrop_model_types[low_coord] = 117;
 		} else {

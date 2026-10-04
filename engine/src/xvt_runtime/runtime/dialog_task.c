@@ -46,15 +46,13 @@ int xvt_dialog_continue_with(xvt_dialog_continuation continuation, int context)
 
 int xvt_dialog_resume_continuation(int *frame_result)
 {
-	xvt_dialog_continuation continuation;
-	int result;
-	int context;
 	if (!g_dialog.complete || !g_dialog.continuation) {
 		return 0;
 	}
-	continuation = g_dialog.continuation;
-	context = g_dialog.context;
+	xvt_dialog_continuation continuation = g_dialog.continuation;
+	int context = g_dialog.context;
 	g_dialog.continuation = NULL;
+	int result;
 	xvt_dialog_take_result(&result);
 	*frame_result = continuation(result, context);
 	return 1;
@@ -114,7 +112,6 @@ static void xvt_dialog_end(void)
 
 void xvt_dialog_update(void)
 {
-	int result;
 	if (!g_dialog.active) {
 		return;
 	}
@@ -145,7 +142,7 @@ void xvt_dialog_update(void)
 		xvt_dialog_end();
 		return;
 	}
-	result = xvt_frontend_task_run_frame();
+	int result = xvt_frontend_task_run_frame();
 	if (result == 1) {
 		g_dialog.result = g_dialog.is_pilot_name_prompt
 					  ? g_front_dialog_line1_or_edit[0] != 0

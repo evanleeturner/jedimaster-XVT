@@ -224,12 +224,12 @@ int xvt_remaster_assets_prepare_frontend_image(
 	if (!variant) {
 		return 0;
 	}
-	uint32_t colors[256];
 	const uint32_t *palette = image->default_palette;
 	if (sprite->kind == XVT_SPRITE_FRONT_TINTED) {
 		int format_555 = image->frontend_pixel_format_555;
 		unsigned shift = format_555 ? 10 : 11;
 		unsigned tint = sprite->tint_color;
+		uint32_t colors[256];
 		for (unsigned i = 0; i < 256; ++i) {
 			unsigned intensity =
 				(image->default_palette[i] & 255) >> 3;

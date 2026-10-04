@@ -113,11 +113,11 @@ static void check_select_expired(void)
 		"openxvt-20261001-170000-0000000a.log",
 		"openxvt-20261001-180000-0000000c.log",
 	};
+	size_t count = sizeof names / sizeof names[0];
+	XVT_ASSERT_INT_EQ(xvt_log_file_select_expired(names, count, 10), 3);
 	const char *oldest[] = {"openxvt-20260101-000000-0000000b.log",
 				"openxvt-20260930-235959-00000004.log",
 				"openxvt-20261001-090000-00000002.log"};
-	size_t count = sizeof names / sizeof names[0];
-	XVT_ASSERT_INT_EQ(xvt_log_file_select_expired(names, count, 10), 3);
 	for (size_t i = 0; i < 3; ++i) {
 		XVT_ASSERT_INT_EQ(strcmp(names[i], oldest[i]), 0);
 	}
@@ -243,16 +243,15 @@ static char *read_all(const char *path, size_t *length)
 static void check_open_write_append(const char *folder)
 {
 	char path[XVT_TEST_PATH_CAPACITY];
-	char error[128] = "";
-	struct stat info;
-	size_t length;
 	xvt_test_join(path, folder, "run.log");
+	char error[128] = "";
 	xvt_log_file_handle file = xvt_log_file_open(path, error, sizeof error);
 	XVT_ASSERT_TRUE(file != XVT_LOG_FILE_NONE);
 	XVT_ASSERT_INT_EQ(xvt_log_file_write(file, "a\n", 2), 1);
 	XVT_ASSERT_INT_EQ(xvt_log_file_write(file, "bb\n", 3), 1);
 	XVT_ASSERT_INT_EQ(xvt_log_file_write(file, "", 0), 1);
 	xvt_log_file_close(file);
+	struct stat info;
 	XVT_ASSERT_INT_EQ(stat(path, &info), 0);
 	XVT_ASSERT_INT_EQ(info.st_mode & 0777, 0600);
 
@@ -261,6 +260,7 @@ static void check_open_write_append(const char *folder)
 	XVT_ASSERT_TRUE(file != XVT_LOG_FILE_NONE);
 	XVT_ASSERT_INT_EQ(xvt_log_file_write(file, "c\n", 2), 1);
 	xvt_log_file_close(file);
+	size_t length;
 	char *text = read_all(path, &length);
 	XVT_ASSERT_INT_EQ(strcmp(text, "a\nbb\nc\n"), 0);
 	free(text);
@@ -297,7 +297,6 @@ static void *write_lines(void *argument)
 static void check_threads_never_interleave(const char *folder)
 {
 	char path[XVT_TEST_PATH_CAPACITY];
-	size_t length;
 	xvt_test_join(path, folder, "threads.log");
 	xvt_log_file_handle file = xvt_log_file_open(path, NULL, 0);
 	XVT_ASSERT_TRUE(file != XVT_LOG_FILE_NONE);
@@ -313,6 +312,7 @@ static void check_threads_never_interleave(const char *folder)
 	}
 	xvt_log_file_close(file);
 
+	size_t length;
 	/* Every line is whole: 100 of one mark, then a newline. */
 	char *text = read_all(path, &length);
 	XVT_ASSERT_INT_EQ(length, 2 * THREAD_LINES * 101);
@@ -333,11 +333,11 @@ static void check_threads_never_interleave(const char *folder)
 
 int main(void)
 {
-	char folder[XVT_TEST_PATH_CAPACITY];
 	check_format_name();
 	check_is_run_name();
 	check_select_expired();
 	check_read_ending();
+	char folder[XVT_TEST_PATH_CAPACITY];
 	xvt_test_make_folder(folder);
 	check_open_write_append(folder);
 	check_threads_never_interleave(folder);

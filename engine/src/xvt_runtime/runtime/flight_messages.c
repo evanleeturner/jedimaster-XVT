@@ -71,11 +71,11 @@ int xvt_flight_messages_validate_batch(const uint8_t *bytes, size_t size,
 	}
 	int previous = 0;
 	for (unsigned i = 0; i < count; ++i) {
-		int tick;
-		struct flight_input_frame_record input;
 		struct xvt_flight_input_wire record;
 		memcpy(&record, bytes + sizeof header + i * sizeof record,
 		       sizeof record);
+		int tick;
+		struct flight_input_frame_record input;
 		if (!xvt_flight_wire_decode_input(&record, &tick, &input) ||
 		    tick <= previous) {
 			return 0;
@@ -190,9 +190,9 @@ int xvt_flight_messages_receive_part(const uint8_t *bytes, size_t size,
 	}
 	for (unsigned i = 0; i < count; ++i) {
 		struct xvt_flight_world_input_wire record;
+		memcpy(&record, payload + i * sizeof record, sizeof record);
 		int record_tick;
 		struct flight_input_frame_record input;
-		memcpy(&record, payload + i * sizeof record, sizeof record);
 		if (record.player >= XVT_FLIGHT_PLAYERS ||
 		    !(mask & (1u << record.player)) ||
 		    !xvt_flight_wire_decode_input(&record.input, &record_tick,

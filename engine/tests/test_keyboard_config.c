@@ -45,8 +45,8 @@ static bool read_text(const char *text, struct xvt_keyboard_bindings *profile,
 static void expect_refused(const char *text)
 {
 	static struct xvt_keyboard_bindings profile;
-	char error[256];
 	fixture_case(text);
+	char error[256];
 	XVT_ASSERT_TRUE(!read_text(text, &profile, error, sizeof error));
 	XVT_ASSERT_TRUE(error[0] != 0);
 	fixture_case(NULL);
@@ -55,8 +55,8 @@ static void expect_refused(const char *text)
 static void expect_accepted(const char *text)
 {
 	static struct xvt_keyboard_bindings profile;
-	char error[256];
 	fixture_case(text);
+	char error[256];
 	bool read = read_text(text, &profile, error, sizeof error);
 	if (!read) {
 		fprintf(stderr, "refused: %s\n", error);

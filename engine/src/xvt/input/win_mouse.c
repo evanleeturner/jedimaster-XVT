@@ -128,9 +128,7 @@ void win_mouse_poll_state(int *position_x, int *position_y, int *delta_x,
 	struct POINT point;
 
 #ifdef XVT_MODERN
-	const AeronInputSnapshot *input;
-
-	input = Aeron_InputSnapshot();
+	const AeronInputSnapshot *input = Aeron_InputSnapshot();
 	if (xvt_input_is_captured() || !input || !input->has_focus) {
 		*position_x = g_win_mouse_pos.x * g_win_mouse_scale_x;
 		*position_y = g_win_mouse_pos.y * g_win_mouse_scale_y;

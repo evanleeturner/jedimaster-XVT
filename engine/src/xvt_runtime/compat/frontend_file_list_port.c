@@ -15,10 +15,9 @@ struct frontend_file_list_build_state {
 static int frontend_file_list_collect_modern_file(void *userdata,
 						  const AeronVfsEntry *entry)
 {
-	struct frontend_file_list_build_state *state;
+	struct frontend_file_list_build_state *state =
+		(struct frontend_file_list_build_state *)userdata;
 	struct frontend_file_list_node *node;
-
-	state = (struct frontend_file_list_build_state *)userdata;
 	node = (struct frontend_file_list_node *)malloc(sizeof(*node));
 	if (node == NULL) {
 		return 0;

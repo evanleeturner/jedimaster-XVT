@@ -24,9 +24,9 @@ static bool parse_text(const char *text, struct xvt_mouse_options *options,
 
 static void expect_refused(const char *text)
 {
+	fixture_case(text);
 	struct xvt_mouse_options options;
 	char error[256];
-	fixture_case(text);
 	XVT_ASSERT_TRUE(!parse_text(text, &options, error, sizeof error));
 	XVT_ASSERT_TRUE(error[0] != 0);
 	fixture_case(NULL);

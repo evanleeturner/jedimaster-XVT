@@ -124,7 +124,6 @@ static void check_encode_decode(void)
 	for (int axis = -128; axis <= 127; ++axis) {
 		for (int mods = 0; mods < 4; ++mods) {
 			struct flight_input_frame_record in;
-			struct flight_input_frame_record out;
 			memset(&in, 0, sizeof in);
 			in.axis_x = (int8_t)axis;
 			in.axis_y = (int8_t)(-1 - axis);
@@ -137,6 +136,7 @@ static void check_encode_decode(void)
 			XVT_ASSERT_INT_EQ(bytes[0] & 1, mods & 1);
 			XVT_ASSERT_INT_EQ(bytes[1] & 1, (mods >> 1) & 1);
 
+			struct flight_input_frame_record out;
 			memset(&out, 0, sizeof out);
 			xvt_flight_controls_decode_axes(bytes, &out);
 			XVT_ASSERT_INT_EQ(out.key_mods, mods);
@@ -226,11 +226,10 @@ static void check_apply_throttle(void)
 
 static void check_sample_throttle_sends_nothing(void)
 {
-	struct flight_input_frame_record record;
-
 	/* No lever was read: no controller mapping is installed. */
 	flight_controls_world();
 	xvt_controller_mapping_shutdown();
+	struct flight_input_frame_record record;
 	memset(&record, 0, sizeof record);
 	record.flags = 0xFF;
 	xvt_flight_controls_sample_throttle(&record);

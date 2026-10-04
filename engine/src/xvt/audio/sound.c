@@ -64,16 +64,10 @@ static unsigned int g_next_sound_instance_seq = 0;
 // FUNCTION: XVT 0x42CD50
 int sound_init_sound_engine(void *hwnd)
 {
-	int instance_index;
-	int effect_index;
-	DSBUFFERDESC primary_buffer_desc;
-	WAVEFORMATEX primary_format;
-	HRESULT result;
-
 	if (g_direct_sound != NULL) {
 		return 1;
 	}
-	for (instance_index = 0; instance_index < 8; ++instance_index) {
+	for (int instance_index = 0; instance_index < 8; ++instance_index) {
 		g_active_sound_instances[instance_index].effect_index = -1;
 		g_active_sound_instances[instance_index].sequence = 0;
 		g_active_sound_instances[instance_index].buffer = NULL;
@@ -81,7 +75,7 @@ int sound_init_sound_engine(void *hwnd)
 	g_active_sound_count = 0;
 	g_sound_count = 0;
 	g_next_sound_instance_seq = 0;
-	for (effect_index = 0; effect_index < 1000; ++effect_index) {
+	for (int effect_index = 0; effect_index < 1000; ++effect_index) {
 		g_sound_defs[effect_index].buffer = NULL;
 		g_sound_defs[effect_index].name[0] = '\0';
 	}
@@ -95,16 +89,18 @@ int sound_init_sound_engine(void *hwnd)
 		return 0;
 	}
 
+	DSBUFFERDESC primary_buffer_desc;
 	memset(&primary_buffer_desc, 0, sizeof(primary_buffer_desc));
 	primary_buffer_desc.dwSize = 20;
 	primary_buffer_desc.dwFlags = DSBCAPS_PRIMARYBUFFER;
-	result = g_direct_sound->lpVtbl->CreateSoundBuffer(
+	HRESULT result = g_direct_sound->lpVtbl->CreateSoundBuffer(
 		g_direct_sound, &primary_buffer_desc, &g_sound_primary_buffer,
 		NULL);
 	if (result != 0) {
 		sound_shutdown_sound_engine();
 		return 0;
 	}
+	WAVEFORMATEX primary_format;
 	memset(&primary_format, 0, sizeof(primary_format));
 	return 1;
 }
@@ -119,20 +115,17 @@ int sound_init_sound_engine(void *hwnd)
 // FUNCTION: XVT 0x42CE60
 int sound_shutdown_sound_engine(void)
 {
-	int effect_index;
-	int instance_index;
-
 	if (g_direct_sound == NULL) {
 		return 1;
 	}
 	sound_unload_all_effects();
 	g_direct_sound->lpVtbl->Release(g_direct_sound);
 	g_direct_sound = NULL;
-	for (effect_index = 0; effect_index < 1000; ++effect_index) {
+	for (int effect_index = 0; effect_index < 1000; ++effect_index) {
 		g_sound_defs[effect_index].buffer = NULL;
 		g_sound_defs[effect_index].name[0] = '\0';
 	}
-	for (instance_index = 0; instance_index < 8; ++instance_index) {
+	for (int instance_index = 0; instance_index < 8; ++instance_index) {
 		g_active_sound_instances[instance_index].effect_index = -1;
 		g_active_sound_instances[instance_index].sequence = 0;
 		g_active_sound_instances[instance_index].buffer = NULL;
@@ -161,8 +154,6 @@ int sound_load_effect(const char *file_name, const char *name)
 int sound_load_effect_ex(const char *file_name, const char *name,
 			 int omit_software_and_frequency_caps)
 {
-	struct sound_effect_def effect;
-
 	if (*file_name == '\0') {
 		return 0;
 	}
@@ -178,6 +169,7 @@ int sound_load_effect_ex(const char *file_name, const char *name,
 	if (sound_find_loaded_effect_by_name(name) != -1) {
 		return 0;
 	}
+	struct sound_effect_def effect;
 	effect.buffer = direct_sound_load_wave_buffer(
 		g_direct_sound, file_name, omit_software_and_frequency_caps);
 	if (effect.buffer != NULL) {
@@ -201,9 +193,7 @@ int sound_load_effect_ex(const char *file_name, const char *name,
 // FUNCTION: XVT 0x42D020
 void sound_unload_all_effects(void)
 {
-	int effect_index;
-
-	effect_index = 0;
+	int effect_index = 0;
 	do {
 		sound_unload_effect_by_name(g_sound_defs[effect_index].name);
 		++effect_index;
@@ -217,12 +207,10 @@ void sound_unload_all_effects(void)
 // FUNCTION: XVT 0x42D040
 int sound_unload_effect_by_name(const char *name)
 {
-	int effect_index;
-
 	if (*name == '\0') {
 		return 0;
 	}
-	effect_index = sound_find_loaded_effect_by_name(name);
+	int effect_index = sound_find_loaded_effect_by_name(name);
 	if (effect_index == -1) {
 		return 0;
 	}
@@ -243,9 +231,7 @@ int sound_unload_effect_by_name(const char *name)
 // FUNCTION: XVT 0x42D0D0
 void sound_flush_queued_effects(void)
 {
-	int queue_index;
-
-	queue_index = 0;
+	int queue_index = 0;
 	if (g_sound_queue_count > 0) {
 		do {
 			sound_play_effect_now(
@@ -278,15 +264,8 @@ void sound_flush_queued_effects(void)
 int sound_queue_effect(const char *sound_name, int allow_restart_existing,
 		       int loop, int priority, int volume, int pan)
 {
-	int queue_index;
-	int queued_priority;
-	int queue_count;
-	const char *name;
-	IDirectSound *direct_sound;
-	struct sound_queue_entry *queue_entry;
-
-	name = sound_name;
-	direct_sound = g_direct_sound;
+	const char *name = sound_name;
+	IDirectSound *direct_sound = g_direct_sound;
 	if (direct_sound == NULL) {
 		return 0;
 	}
@@ -297,7 +276,8 @@ int sound_queue_effect(const char *sound_name, int allow_restart_existing,
 		return 0;
 	}
 
-	queue_index = 0;
+	int queue_index = 0;
+	int queued_priority;
 	if (g_sound_queue_count > queue_index) {
 		queued_priority = priority;
 		do {
@@ -313,7 +293,7 @@ int sound_queue_effect(const char *sound_name, int allow_restart_existing,
 		return 0;
 	}
 
-	queue_entry = &g_sound_queue[queue_index];
+	struct sound_queue_entry *queue_entry = &g_sound_queue[queue_index];
 #ifdef XVT_MODERN
 	memmove(&g_sound_queue[queue_index + 1], queue_entry,
 		sizeof(struct sound_queue_entry) *
@@ -330,7 +310,7 @@ int sound_queue_effect(const char *sound_name, int allow_restart_existing,
 	g_sound_queue[queue_index].priority = queued_priority;
 	g_sound_queue[queue_index].volume = volume;
 	g_sound_queue[queue_index].pan = pan;
-	queue_count = g_sound_queue_count + 1;
+	int queue_count = g_sound_queue_count + 1;
 	g_sound_queue_count = queue_count;
 	if (queue_count > 4) {
 		g_sound_queue_count = 4;
@@ -365,33 +345,24 @@ int sound_queue_effect(const char *sound_name, int allow_restart_existing,
 int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 			  int loop, int priority, int volume, int pan)
 {
-	int effect_index;
-	int instance_index;
-	int scan_index;
-	int active_effect_index;
-	int lowest_priority;
-	int clamped_volume;
-	int clamped_pan;
-	uint32_t buffer_status;
-	uint32_t play_flags;
-	HRESULT result;
-	struct active_sound_instance *instance;
-	IDirectSoundBuffer *buffer;
-	IDirectSoundBuffer *duplicate;
-
 	if (g_direct_sound == NULL) {
 		return 0;
 	}
 	if (*sound_name == '\0') {
 		return 0;
 	}
-	effect_index = sound_find_loaded_effect_by_name(sound_name);
+	int effect_index = sound_find_loaded_effect_by_name(sound_name);
 	if (effect_index == -1) {
 		return 0;
 	}
 
+	int instance_index;
+	uint32_t buffer_status;
+	struct active_sound_instance *instance;
+	IDirectSoundBuffer *buffer;
 	if (g_active_sound_count == 8) {
 		instance_index = 0;
+		int active_effect_index;
 		do {
 			active_effect_index =
 				g_active_sound_instances[instance_index]
@@ -424,9 +395,9 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 		}
 
 		if (instance_index == 8) {
-			lowest_priority = priority;
+			int lowest_priority = priority;
 			instance_index = 8;
-			scan_index = 0;
+			int scan_index = 0;
 			do {
 				active_effect_index =
 					g_active_sound_instances[scan_index]
@@ -497,13 +468,14 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 		} while (instance_index < 8);
 	}
 
+	IDirectSoundBuffer *duplicate;
 	g_direct_sound->lpVtbl->DuplicateSoundBuffer(
 		g_direct_sound, g_sound_defs[effect_index].buffer, &duplicate);
 	if (duplicate == NULL) {
 		return 0;
 	}
 	duplicate->lpVtbl->SetCurrentPosition(duplicate, 0);
-	clamped_volume = volume;
+	int clamped_volume = volume;
 	if (clamped_volume > 127) {
 		clamped_volume = 127;
 	} else if (clamped_volume < 0) {
@@ -511,7 +483,7 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 	}
 	duplicate->lpVtbl->SetVolume(duplicate,
 				     400 * (5 * clamped_volume - 635) / 127);
-	clamped_pan = pan;
+	int clamped_pan = pan;
 	if (clamped_pan > 127) {
 		clamped_pan = 127;
 	}
@@ -520,8 +492,8 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 	}
 	duplicate->lpVtbl->SetPan(duplicate,
 				  400 * (5 * clamped_pan - 315) / 63);
-	play_flags = loop == 1;
-	result = duplicate->lpVtbl->Play(duplicate, 0, 0, play_flags);
+	uint32_t play_flags = loop == 1;
+	HRESULT result = duplicate->lpVtbl->Play(duplicate, 0, 0, play_flags);
 	if (result == (HRESULT)0x88780096) {
 		result = direct_sound_reload_wave_buffer(
 			g_sound_defs[effect_index].buffer,
@@ -563,26 +535,19 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 // FUNCTION: XVT 0x42D600
 int sound_stop_oldest_instance(const char *name)
 {
-	int effect_index;
-	int instance_index;
-	int oldest_sequence;
-	int oldest_index;
-	HRESULT stop_result;
-	IDirectSoundBuffer *buffer;
-
 	if (g_direct_sound == NULL) {
 		return 0;
 	}
 	if (*name == '\0') {
 		return 0;
 	}
-	effect_index = sound_find_loaded_effect_by_name(name);
+	int effect_index = sound_find_loaded_effect_by_name(name);
 	if (effect_index == -1) {
 		return 0;
 	}
-	oldest_sequence = (int)g_next_sound_instance_seq + 1;
-	oldest_index = -1;
-	for (instance_index = 0; instance_index < 8; ++instance_index) {
+	int oldest_sequence = (int)g_next_sound_instance_seq + 1;
+	int oldest_index = -1;
+	for (int instance_index = 0; instance_index < 8; ++instance_index) {
 		if (g_active_sound_instances[instance_index].effect_index !=
 		    effect_index) {
 			continue;
@@ -598,11 +563,12 @@ int sound_stop_oldest_instance(const char *name)
 	if (oldest_index == -1) {
 		return 0;
 	}
-	buffer = g_active_sound_instances[oldest_index].buffer;
+	IDirectSoundBuffer *buffer =
+		g_active_sound_instances[oldest_index].buffer;
 	if (buffer == NULL) {
 		return 0;
 	}
-	stop_result = buffer->lpVtbl->Stop(buffer);
+	HRESULT stop_result = buffer->lpVtbl->Stop(buffer);
 	buffer->lpVtbl->Release(buffer);
 	g_active_sound_instances[oldest_index].buffer = NULL;
 	g_active_sound_instances[oldest_index].effect_index = -1;
@@ -618,11 +584,8 @@ int sound_stop_oldest_instance(const char *name)
 // FUNCTION: XVT 0x42D6D0
 int sound_stop_all_instances(void)
 {
-	int result;
-	int instance_index;
-
-	result = 1;
-	for (instance_index = 0; instance_index < 8; ++instance_index) {
+	int result = 1;
+	for (int instance_index = 0; instance_index < 8; ++instance_index) {
 		if (g_active_sound_instances[instance_index].effect_index !=
 		    -1) {
 			result &= sound_stop_oldest_instance(
@@ -641,11 +604,10 @@ int sound_stop_all_instances(void)
 // FUNCTION: XVT 0x42D770
 int sound_get_primary_buffer_volume(void)
 {
-	int32_t volume_millibels;
-
 	if (g_direct_sound == 0) {
 		return 0;
 	}
+	int32_t volume_millibels;
 	if (g_sound_primary_buffer->lpVtbl->GetVolume(g_sound_primary_buffer,
 						      &volume_millibels) != 0) {
 		return 0;
@@ -663,12 +625,6 @@ int sound_get_primary_buffer_volume(void)
 // FUNCTION: XVT 0x42D7C0
 int sound_set_latest_instance_volume(const char *name, int volume)
 {
-	int effect_index;
-	int newest_index;
-	int instance_index;
-	int newest_sequence;
-	int clamped_volume;
-
 	if (g_direct_sound == 0) {
 		return 0;
 	}
@@ -676,14 +632,14 @@ int sound_set_latest_instance_volume(const char *name, int volume)
 		return 0;
 	}
 
-	effect_index = sound_find_loaded_effect_by_name(name);
+	int effect_index = sound_find_loaded_effect_by_name(name);
 	if (effect_index == -1) {
 		return 0;
 	}
 
-	newest_sequence = -1;
-	instance_index = 0;
-	newest_index = -1;
+	int newest_sequence = -1;
+	int instance_index = 0;
+	int newest_index = -1;
 	do {
 		if (g_active_sound_instances[instance_index].effect_index ==
 			    effect_index &&
@@ -701,7 +657,7 @@ int sound_set_latest_instance_volume(const char *name, int volume)
 		return 0;
 	}
 
-	clamped_volume = volume;
+	int clamped_volume = volume;
 	if (clamped_volume > 127) {
 		clamped_volume = 127;
 	} else if (clamped_volume < 0) {
@@ -722,25 +678,19 @@ int sound_set_latest_instance_volume(const char *name, int volume)
 // FUNCTION: XVT 0x42D880
 int sound_get_latest_instance_volume(const char *name)
 {
-	int effect_index;
-	int newest_index;
-	int instance_index;
-	int newest_sequence;
-	int32_t volume_millibels;
-
 	if (g_direct_sound == 0) {
 		return 0;
 	}
 	if (name[0] == '\0') {
 		return 0;
 	}
-	effect_index = sound_find_loaded_effect_by_name(name);
+	int effect_index = sound_find_loaded_effect_by_name(name);
 	if (effect_index == -1) {
 		return 0;
 	}
-	newest_sequence = -1;
-	instance_index = 0;
-	newest_index = -1;
+	int newest_sequence = -1;
+	int instance_index = 0;
+	int newest_index = -1;
 	do {
 		if (g_active_sound_instances[instance_index].effect_index ==
 			    effect_index &&
@@ -756,6 +706,7 @@ int sound_get_latest_instance_volume(const char *name)
 	if (newest_index == -1) {
 		return 0;
 	}
+	int32_t volume_millibels;
 	if (g_active_sound_instances[newest_index].buffer->lpVtbl->GetVolume(
 		    g_active_sound_instances[newest_index].buffer,
 		    &volume_millibels) != 0) {
@@ -774,12 +725,6 @@ int sound_get_latest_instance_volume(const char *name)
 // FUNCTION: XVT 0x42D940
 int sound_set_latest_instance_pan(const char *name, int pan)
 {
-	int effect_index;
-	int newest_index;
-	int instance_index;
-	int newest_sequence;
-	int clamped_pan;
-
 	if (g_direct_sound == 0) {
 		return 0;
 	}
@@ -787,14 +732,14 @@ int sound_set_latest_instance_pan(const char *name, int pan)
 		return 0;
 	}
 
-	effect_index = sound_find_loaded_effect_by_name(name);
+	int effect_index = sound_find_loaded_effect_by_name(name);
 	if (effect_index == -1) {
 		return 0;
 	}
 
-	newest_sequence = -1;
-	instance_index = 0;
-	newest_index = -1;
+	int newest_sequence = -1;
+	int instance_index = 0;
+	int newest_index = -1;
 	do {
 		if (g_active_sound_instances[instance_index].effect_index ==
 			    effect_index &&
@@ -812,7 +757,7 @@ int sound_set_latest_instance_pan(const char *name, int pan)
 		return 0;
 	}
 
-	clamped_pan = pan;
+	int clamped_pan = pan;
 	if (clamped_pan > 127) {
 		clamped_pan = 127;
 	}
@@ -833,25 +778,19 @@ int sound_set_latest_instance_pan(const char *name, int pan)
 // FUNCTION: XVT 0x42DA00
 int sound_get_latest_instance_pan(const char *name)
 {
-	int effect_index;
-	int newest_sequence;
-	int instance_index;
-	int newest_index;
-	int32_t pan_millibels;
-
 	if (g_direct_sound == 0) {
 		return 0;
 	}
 	if (name[0] == '\0') {
 		return 0;
 	}
-	effect_index = sound_find_loaded_effect_by_name(name);
+	int effect_index = sound_find_loaded_effect_by_name(name);
 	if (effect_index == -1) {
 		return 0;
 	}
-	newest_sequence = -1;
-	instance_index = 0;
-	newest_index = -1;
+	int newest_sequence = -1;
+	int instance_index = 0;
+	int newest_index = -1;
 	do {
 		if (g_active_sound_instances[instance_index].effect_index ==
 			    effect_index &&
@@ -867,6 +806,7 @@ int sound_get_latest_instance_pan(const char *name)
 	if (newest_index == -1) {
 		return 0;
 	}
+	int32_t pan_millibels;
 	if (g_active_sound_instances[newest_index].buffer->lpVtbl->GetPan(
 		    g_active_sound_instances[newest_index].buffer,
 		    &pan_millibels) != 0) {
@@ -884,11 +824,6 @@ int sound_get_latest_instance_pan(const char *name)
 // FUNCTION: XVT 0x42DAC0
 int sound_set_latest_instance_frequency(const char *name, uint32_t frequency)
 {
-	int effect_index;
-	int newest_sequence;
-	int instance_index;
-	int newest_index;
-
 	if (g_direct_sound == 0) {
 		return 0;
 	}
@@ -896,14 +831,14 @@ int sound_set_latest_instance_frequency(const char *name, uint32_t frequency)
 		return 0;
 	}
 
-	effect_index = sound_find_loaded_effect_by_name(name);
+	int effect_index = sound_find_loaded_effect_by_name(name);
 	if (effect_index == -1) {
 		return 0;
 	}
 
-	newest_sequence = -1;
-	instance_index = 0;
-	newest_index = -1;
+	int newest_sequence = -1;
+	int instance_index = 0;
+	int newest_index = -1;
 	do {
 		if (g_active_sound_instances[instance_index].effect_index ==
 			    effect_index &&
@@ -934,15 +869,12 @@ int sound_set_latest_instance_frequency(const char *name, uint32_t frequency)
 // FUNCTION: XVT 0x42DB50
 int sound_set_effect_current_priority(const char *name, int priority)
 {
-	int effect_index;
-	int clamped_priority;
-
-	effect_index = sound_find_loaded_effect_by_name(name);
+	int effect_index = sound_find_loaded_effect_by_name(name);
 	if (effect_index == -1) {
 		return 0;
 	}
 
-	clamped_priority = priority;
+	int clamped_priority = priority;
 	if (clamped_priority > 255) {
 		clamped_priority = 255;
 	}
@@ -959,9 +891,7 @@ int sound_set_effect_current_priority(const char *name, int priority)
 // FUNCTION: XVT 0x42DBA0
 int sound_get_effect_current_priority(const char *name)
 {
-	int effect_index;
-
-	effect_index = sound_find_loaded_effect_by_name(name);
+	int effect_index = sound_find_loaded_effect_by_name(name);
 	if (effect_index == -1) {
 		return 0;
 	}
@@ -976,11 +906,6 @@ int sound_get_effect_current_priority(const char *name)
 // FUNCTION: XVT 0x42DBD0
 int sound_count_playing_instances(const char *name)
 {
-	int effect_index;
-	int playing_count;
-	int instance_index;
-	uint32_t status;
-
 	if (g_direct_sound == 0) {
 		return 0;
 	}
@@ -988,13 +913,14 @@ int sound_count_playing_instances(const char *name)
 		return 0;
 	}
 
-	effect_index = sound_find_loaded_effect_by_name(name);
+	int effect_index = sound_find_loaded_effect_by_name(name);
 	if (effect_index == -1) {
 		return 0;
 	}
 
-	playing_count = 0;
-	instance_index = 0;
+	int playing_count = 0;
+	int instance_index = 0;
+	uint32_t status;
 	do {
 		if (g_active_sound_instances[instance_index].effect_index ==
 			    effect_index &&
@@ -1021,16 +947,10 @@ int sound_count_playing_instances(const char *name)
 // FUNCTION: XVT 0x42DC60
 void sound_insert_effect_def_sorted(const struct sound_effect_def *effect)
 {
-	int insert_index;
-	struct sound_effect_def *current;
+	int insert_index = 0;
 	const struct sound_effect_def *source_effect;
-	int destination_index;
-	int remaining;
-	int instance_index;
-
-	insert_index = 0;
 	if (g_sound_count > 0) {
-		current = g_sound_defs;
+		struct sound_effect_def *current = g_sound_defs;
 		source_effect = effect;
 		do {
 			if (strncmp(source_effect->name, current->name,
@@ -1044,8 +964,8 @@ void sound_insert_effect_def_sorted(const struct sound_effect_def *effect)
 		source_effect = effect;
 	}
 	if (g_sound_count > insert_index) {
-		destination_index = g_sound_count;
-		remaining = g_sound_count - insert_index;
+		int destination_index = g_sound_count;
+		int remaining = g_sound_count - insert_index;
 		do {
 			g_sound_defs[destination_index] =
 				g_sound_defs[destination_index - 1];
@@ -1055,7 +975,7 @@ void sound_insert_effect_def_sorted(const struct sound_effect_def *effect)
 	}
 	g_sound_defs[insert_index] = *source_effect;
 	++g_sound_count;
-	instance_index = 0;
+	int instance_index = 0;
 	do {
 		if (insert_index <=
 		    g_active_sound_instances[instance_index].effect_index) {
@@ -1073,17 +993,14 @@ void sound_insert_effect_def_sorted(const struct sound_effect_def *effect)
 // FUNCTION: XVT 0x42DD20
 void sound_remove_effect_def(int effect_index)
 {
-	int current_index;
-
 	if (effect_index < 0 || g_sound_count <= effect_index) {
 		return;
 	}
 
-	current_index = effect_index;
+	int current_index = effect_index;
 	if (g_sound_count - 1 > effect_index) {
-		struct sound_effect_def *current_effect;
-
-		current_effect = &g_sound_defs[effect_index];
+		struct sound_effect_def *current_effect =
+			&g_sound_defs[effect_index];
 		do {
 			*current_effect = current_effect[1];
 			++current_effect;
@@ -1093,9 +1010,8 @@ void sound_remove_effect_def(int effect_index)
 
 	--g_sound_count;
 	{
-		int instance_index;
-
-		for (instance_index = 0; instance_index < 8; ++instance_index) {
+		for (int instance_index = 0; instance_index < 8;
+		     ++instance_index) {
 			if (g_active_sound_instances[instance_index]
 				    .effect_index > effect_index) {
 				--g_active_sound_instances[instance_index]
@@ -1120,23 +1036,17 @@ int sound_find_loaded_effect_by_name(const char *name)
 int sound_find_effect_by_name(const struct sound_effect_def *records,
 			      int last_index, const char *name)
 {
-	int search_last_index;
-	int middle;
-	int base_index;
-	int comparison;
-	const struct sound_effect_def *middle_effect;
-
-	base_index = 0;
-	search_last_index = last_index;
+	int base_index = 0;
+	int search_last_index = last_index;
 	while (1) {
 		if (search_last_index < 0) {
 			return -1;
 		}
 
-		middle = search_last_index >> 1;
-		middle_effect = &records[middle];
-		comparison = strncmp(middle_effect->name, name,
-				     sizeof(middle_effect->name));
+		int middle = search_last_index >> 1;
+		const struct sound_effect_def *middle_effect = &records[middle];
+		int comparison = strncmp(middle_effect->name, name,
+					 sizeof(middle_effect->name));
 		if (comparison == 0) {
 			return middle + base_index;
 		}

@@ -78,26 +78,12 @@ static struct scene_billboard_queue_entry g_scene_billboard_queue[32] = {{0}};
 // FUNCTION: XVT 0x401000
 void scene_billboard_draw_or_queue_object(int object_index)
 {
-	struct object_record *object;
-	uint16_t source_object_type;
-	uint16_t frame;
-	int abs_r0z;
-	int abs_r1z;
-	int axis_x;
-	int axis_y;
-	uint16_t rotation_angle;
-	int projected_x;
-	int projected_x_high;
-	int projected_y;
-	int projected_y_high;
-	int screen_y;
-	uint16_t screen_size;
-
-	object = &g_object_table[object_index];
-	source_object_type = object->object_type;
+	struct object_record *object = &g_object_table[object_index];
+	uint16_t source_object_type = object->object_type;
 	g_billboard_object_or_type_index = object_index;
 	g_billboard_texture_frame_sequence =
 		g_object_type_table[source_object_type].texture_frame_sequence;
+	uint16_t frame;
 	if (source_object_type == COMPONENT_OBJECT_TYPE) {
 		frame = object->type_specific_byte[0] >> 1;
 	} else {
@@ -133,14 +119,16 @@ void scene_billboard_draw_or_queue_object(int object_index)
 	    frame < BILLBOARD_MODEL_FRAME_LIMIT || g_view_space_depth < 0) {
 		return;
 	}
-	abs_r0z = g_obj_view_mat_r0_z;
-	abs_r1z = g_obj_view_mat_r1_z;
+	int abs_r0z = g_obj_view_mat_r0_z;
+	int abs_r1z = g_obj_view_mat_r1_z;
 	if (abs_r0z < 0) {
 		abs_r0z = -abs_r0z;
 	}
 	if (abs_r1z < 0) {
 		abs_r1z = -abs_r1z;
 	}
+	int axis_x;
+	int axis_y;
 	if (abs_r1z > abs_r0z) {
 		axis_x = g_obj_view_mat_r0_x;
 		axis_y = g_obj_view_mat_r0_y;
@@ -148,29 +136,30 @@ void scene_billboard_draw_or_queue_object(int object_index)
 		axis_x = g_obj_view_mat_r1_x;
 		axis_y = g_obj_view_mat_r1_y;
 	}
+	uint16_t rotation_angle;
 	if (axis_x < 0) {
 		rotation_angle = (uint16_t)trig2_arctan(axis_y, -axis_x);
 	} else {
 		rotation_angle = (uint16_t)-trig2_arctan(axis_y, axis_x);
 	}
 
-	projected_x =
+	int projected_x =
 		transfm2_project_screen_x(g_view_space_x, g_view_space_depth);
-	projected_x_high = projected_x & BILLBOARD_SCREEN_COORD_HIGH_MASK;
+	int projected_x_high = projected_x & BILLBOARD_SCREEN_COORD_HIGH_MASK;
 	if (projected_x_high > 0 ||
 	    projected_x_high < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
 		return;
 	}
-	projected_y =
+	int projected_y =
 		transfm2_project_screen_y(g_view_space_y, g_view_space_depth);
-	projected_y_high = projected_y & BILLBOARD_SCREEN_COORD_HIGH_MASK;
+	int projected_y_high = projected_y & BILLBOARD_SCREEN_COORD_HIGH_MASK;
 	if (projected_y_high > 0 ||
 	    projected_y_high < BILLBOARD_SCREEN_COORD_HIGH_MASK) {
 		return;
 	}
 
-	screen_y = g_flight_vp_height - projected_y;
-	screen_size = g_object_table[object_index].mobj->effect_size;
+	int screen_y = g_flight_vp_height - projected_y;
+	uint16_t screen_size = g_object_table[object_index].mobj->effect_size;
 	if (screen_size != 0) {
 		screen_size =
 			(uint16_t)(screen_size << BILLBOARD_EFFECT_SIZE_SHIFT);
@@ -195,9 +184,7 @@ void scene_billboard_queue_projected_textured(int object_or_type_index,
 					      int screen_x, int screen_y,
 					      int depth_z, int rotation_angle)
 {
-	int16_t count;
-
-	count = g_scene_billboard_queue_count;
+	int16_t count = g_scene_billboard_queue_count;
 	if (count < 32) {
 		g_scene_billboard_queue[count].object_or_type_index =
 			object_or_type_index;
@@ -221,23 +208,17 @@ void scene_billboard_render_queued_textured(int16_t draw_target_markers)
 {
 	enum { TARGET_BOX_COLOR = 59 };
 
-	int16_t queued_count;
-	int16_t swapped;
-	uint16_t queue_index;
-	uint16_t current_target_object_idx;
-
-	queued_count = g_scene_billboard_queue_count;
+	int16_t queued_count = g_scene_billboard_queue_count;
 	--g_scene_billboard_queue_count;
-	swapped = 1;
+	int16_t swapped = 1;
 	if (queued_count != 0) {
 		do {
 			if (swapped != 0) {
-				int count;
-
 				swapped = 0;
-				queue_index = 0;
+				uint16_t queue_index = 0;
 				if (g_scene_billboard_queue_count > 0) {
-					count = g_scene_billboard_queue_count;
+					int count =
+						g_scene_billboard_queue_count;
 					do {
 						if (g_scene_billboard_queue
 							    [queue_index + 1]
@@ -246,10 +227,8 @@ void scene_billboard_render_queued_textured(int16_t draw_target_markers)
 							    [queue_index]
 								    .depth_z) {
 							struct scene_billboard_queue_entry
-								temporary;
-
-							temporary = g_scene_billboard_queue
-								[queue_index];
+								temporary = g_scene_billboard_queue
+									[queue_index];
 							g_scene_billboard_queue
 								[queue_index] = g_scene_billboard_queue
 									[queue_index +
@@ -275,7 +254,7 @@ void scene_billboard_render_queued_textured(int16_t draw_target_markers)
 	if (draw_target_markers == 0) {
 		return;
 	}
-	current_target_object_idx =
+	uint16_t current_target_object_idx =
 		(uint16_t)g_players[g_local_player].current_target_object_idx;
 	if (current_target_object_idx == UINT16_MAX) {
 		return;
@@ -303,29 +282,21 @@ void scene_billboard_render_queued_textured(int16_t draw_target_markers)
 // FUNCTION: XVT 0x41FF70
 void scene_billboard_draw_roll_aligned_object_model(uint16_t object_index)
 {
-	struct object_record *object;
-	int delta_x;
-	int delta_y;
-	int delta_z;
-	int side_projection;
-	int up_projection;
-	int16_t saved_roll;
-
 	g_billboard_object_or_type_index = object_index;
-	object = &g_object_table[object_index];
-	delta_x = g_players[g_local_player].view_state.camera_world_x -
-		  object->world_x;
-	delta_y = g_players[g_local_player].view_state.camera_world_y -
-		  object->world_y;
-	delta_z = g_players[g_local_player].view_state.camera_world_z -
-		  object->world_z;
-	side_projection = math_dot3q15(
+	struct object_record *object = &g_object_table[object_index];
+	int delta_x = g_players[g_local_player].view_state.camera_world_x -
+		      object->world_x;
+	int delta_y = g_players[g_local_player].view_state.camera_world_y -
+		      object->world_y;
+	int delta_z = g_players[g_local_player].view_state.camera_world_z -
+		      object->world_z;
+	int side_projection = math_dot3q15(
 		object->mobj->cached_side_x, object->mobj->cached_side_y,
 		object->mobj->cached_side_z, delta_x, delta_y, delta_z);
-	up_projection = math_dot3q15(
+	int up_projection = math_dot3q15(
 		object->mobj->cached_up_x, object->mobj->cached_up_y,
 		object->mobj->cached_up_z, delta_x, delta_y, delta_z);
-	saved_roll = object->roll;
+	int16_t saved_roll = object->roll;
 	object->roll = (int16_t)(saved_roll +
 				 trig2_arctan(up_projection, side_projection));
 	object->roll -= BILLBOARD_ALIGNMENT_QUARTER_TURN;
@@ -361,9 +332,8 @@ int scene_billboard_compute_projected_size(int depth_z,
 	}
 #ifdef XVT_MODERN
 	{
-		uint32_t product;
-
-		product = (uint32_t)base_screen_size * (uint32_t)depth_z;
+		uint32_t product =
+			(uint32_t)base_screen_size * (uint32_t)depth_z;
 		depth_z = (int)(product >> 8);
 		if ((product & 0x80000000u) != 0) {
 			depth_z -= 0x1000000;

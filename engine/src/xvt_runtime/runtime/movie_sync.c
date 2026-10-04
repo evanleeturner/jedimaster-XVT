@@ -15,8 +15,7 @@
 void xvt_movie_sync_begin(void)
 {
 	unsigned int count = net_count_ready_players();
-	unsigned int index;
-	for (index = 0; index < 8; ++index) {
+	for (unsigned int index = 0; index < 8; ++index) {
 		g_movie_multiplayer_sync_players[index].player_id =
 			index < count ? g_mp_roster[index].player_id : 0;
 		g_movie_multiplayer_sync_players[index].is_waiting = 0;
@@ -27,18 +26,17 @@ void xvt_movie_sync_begin(void)
 
 void xvt_movie_sync_report_finished(void)
 {
-	int packet[2] = {NET_PACKET_MOVIE_SYNC, 0};
-	int index;
 	if (g_movie_playback_completion_state) {
 		return;
 	}
 	g_movie_playback_completion_state = 1;
-	for (index = 0; index < 8; ++index) {
+	for (int index = 0; index < 8; ++index) {
 		if (g_movie_multiplayer_sync_players[index].player_id ==
 		    net_get_local_player_id()) {
 			g_movie_multiplayer_sync_players[index].is_waiting = 1;
 		}
 	}
+	int packet[2] = {NET_PACKET_MOVIE_SYNC, 0};
 	net_send_packet_and_flush(0, packet, sizeof(packet));
 	g_movie_multiplayer_sync_deadline_ms =
 		GetTickCount() + (net_is_host() ? 5000 : 20000);
@@ -46,10 +44,9 @@ void xvt_movie_sync_report_finished(void)
 
 int xvt_movie_sync_update(void)
 {
-	int index;
-	int still_watching = 0;
 	frontend_net_process_network_packets();
-	for (index = 0; index < 8; ++index) {
+	int still_watching = 0;
+	for (int index = 0; index < 8; ++index) {
 		if (g_movie_multiplayer_sync_players[index].player_id &&
 		    !g_movie_multiplayer_sync_players[index].is_waiting) {
 			++still_watching;
@@ -65,21 +62,19 @@ int xvt_movie_sync_update(void)
 
 void xvt_movie_sync_draw(int top_margin, int bottom_margin)
 {
-	int index;
-	int roster_index;
 	int count = net_count_ready_players();
-	struct RECT rect;
-	char text[128];
 	if (!g_movie_playback_completion_state) {
 		return;
 	}
-	for (index = 0; index < 8; ++index) {
+	struct RECT rect;
+	char text[128];
+	for (int index = 0; index < 8; ++index) {
 		if (!g_movie_multiplayer_sync_players[index].player_id) {
 			continue;
 		}
 		text[0] = 0;
-		for (roster_index = 0; roster_index < count && roster_index < 8;
-		     ++roster_index) {
+		for (int roster_index = 0;
+		     roster_index < count && roster_index < 8; ++roster_index) {
 			if (g_mp_roster[roster_index].player_id ==
 			    g_movie_multiplayer_sync_players[index].player_id) {
 				snprintf(

@@ -14,7 +14,6 @@ int xvt_launch_options_parse(int argc, char *argv[],
 		const char *equals = strchr(argument, '=');
 		size_t length =
 			equals ? (size_t)(equals - argument) : strlen(argument);
-		const char **destination = NULL;
 
 		struct {
 			const char *name;
@@ -51,6 +50,7 @@ int xvt_launch_options_parse(int argc, char *argv[],
 		if (handled) {
 			continue;
 		}
+		const char **destination = NULL;
 		for (size_t i = 0;
 		     i < sizeof(value_options) / sizeof(value_options[0]);
 		     ++i) {

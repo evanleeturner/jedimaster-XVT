@@ -126,12 +126,6 @@ int flight_surface_get_lock_count(void) { return g_surface_lock_count; }
 // FUNCTION: XVT 0x4ABA50
 void flight_surface_lock(void)
 {
-	DDSURFACEDESC surface_desc;
-	HRESULT lock_result;
-	uint8_t display_surface_state;
-	unsigned int horizontal_offset;
-	unsigned int vertical_offset;
-
 	if (g_flight_render_to_frontend == 1) {
 		g_flight_sw_framebuffer_base =
 			frontend_display_get_draw_surface_for_flight();
@@ -147,8 +141,13 @@ void flight_surface_lock(void)
 	++g_surface_lock_count;
 
 	if (g_flight_page_flip != 0) {
-		display_surface_state = g_flight_display_surfaces_active;
+		uint8_t display_surface_state =
+			g_flight_display_surfaces_active;
 		display_surface_state |= (uint8_t)g_flight_net_clock_lead_ticks;
+		DDSURFACEDESC surface_desc;
+		HRESULT lock_result;
+		unsigned int horizontal_offset;
+		unsigned int vertical_offset;
 		if (display_surface_state != 0) {
 			if (g_flight_draw_to_hud_layer != 0) {
 				memset(&surface_desc, 0, sizeof(surface_desc));
@@ -321,8 +320,6 @@ void flight_surface_lock(void)
 // FUNCTION: XVT 0x4ABE50
 void flight_surface_unlock(void)
 {
-	uint8_t display_surface_state;
-
 	if (g_flight_render_to_frontend == 1) {
 		return;
 	}
@@ -339,7 +336,7 @@ void flight_surface_unlock(void)
 	if (g_flight_page_flip == 0) {
 		return;
 	}
-	display_surface_state = g_flight_display_surfaces_active;
+	uint8_t display_surface_state = g_flight_display_surfaces_active;
 	display_surface_state |= (uint8_t)g_flight_net_clock_lead_ticks;
 	if (display_surface_state != 0) {
 		if (g_flight_draw_to_hud_layer != 0) {

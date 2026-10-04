@@ -47,22 +47,20 @@ IDirectDrawSurface *dd_util_load_bitmap_surface(IDirectDraw *direct_draw,
 	(void)height;
 	return NULL;
 #else
-	void *bitmap;
-	IDirectDrawSurface *surface;
-	DDSURFACEDESC surface_desc;
-	struct BITMAP bitmap_info;
-
-	bitmap = LoadImageA(NULL, bitmap_name, 0, width, height, 0x2010);
+	void *bitmap = LoadImageA(NULL, bitmap_name, 0, width, height, 0x2010);
 	if (bitmap == NULL) {
 		return NULL;
 	}
+	struct BITMAP bitmap_info;
 	GetObjectA(bitmap, sizeof(bitmap_info), &bitmap_info);
+	DDSURFACEDESC surface_desc;
 	memset(&surface_desc, 0, sizeof(surface_desc));
 	surface_desc.dwWidth = bitmap_info.bmWidth;
 	surface_desc.dwHeight = bitmap_info.bmHeight;
 	surface_desc.dwSize = sizeof(surface_desc);
 	surface_desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
 	surface_desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+	IDirectDrawSurface *surface;
 	if (direct_draw->lpVtbl->CreateSurface(direct_draw, &surface_desc,
 					       &surface, NULL) != DX_DD_OK) {
 		return NULL;
@@ -86,18 +84,16 @@ HRESULT dd_util_reload_bitmap_surface(IDirectDrawSurface *surface,
 	(void)bitmap_name;
 	return DX_E_NOTIMPL;
 #else
-	void *bitmap;
-	HRESULT result;
-
-	bitmap = LoadImageA(GetModuleHandleA(NULL), bitmap_name, 0, 0, 0,
-			    0x2000);
+	void *bitmap = LoadImageA(GetModuleHandleA(NULL), bitmap_name, 0, 0, 0,
+				  0x2000);
 	if (bitmap == NULL) {
 		bitmap = LoadImageA(NULL, bitmap_name, 0, 0, 0, 0x2010);
 		if (bitmap == NULL) {
 			return DX_E_FAIL;
 		}
 	}
-	result = dd_util_copy_bitmap_to_surface(surface, bitmap, 0, 0, 0, 0);
+	HRESULT result =
+		dd_util_copy_bitmap_to_surface(surface, bitmap, 0, 0, 0, 0);
 	DeleteObject(bitmap);
 	return result;
 #endif
@@ -123,34 +119,29 @@ HRESULT dd_util_copy_bitmap_to_surface(IDirectDrawSurface *surface,
 	(void)height;
 	return DX_E_NOTIMPL;
 #else
-	void *compatible_dc;
-	int actual_width;
-	int actual_height;
-	void *destination_dc;
-	HRESULT result;
-	int bitmap_object[6];
-	DDSURFACEDESC surface_desc;
-
 	if (bitmap == NULL || surface == NULL) {
 		return DX_E_FAIL;
 	}
 
 	surface->lpVtbl->Restore(surface);
-	compatible_dc = CreateCompatibleDC(NULL);
+	void *compatible_dc = CreateCompatibleDC(NULL);
 	SelectObject(compatible_dc, bitmap);
+	int bitmap_object[6];
 	GetObjectA(bitmap, sizeof(bitmap_object), bitmap_object);
-	actual_width = width;
+	int actual_width = width;
 	if (actual_width == 0) {
 		actual_width = bitmap_object[1];
 	}
-	actual_height = height;
+	int actual_height = height;
 	if (actual_height == 0) {
 		actual_height = bitmap_object[2];
 	}
+	DDSURFACEDESC surface_desc;
 	surface_desc.dwSize = sizeof(surface_desc);
 	surface_desc.dwFlags = DDSD_HEIGHT | DDSD_WIDTH;
 	surface->lpVtbl->GetSurfaceDesc(surface, &surface_desc);
-	result = ((dd_util_surface_get_dc_func)surface->lpVtbl->GetDC)(
+	void *destination_dc;
+	HRESULT result = ((dd_util_surface_get_dc_func)surface->lpVtbl->GetDC)(
 		surface, &destination_dc);
 	if (result == DX_DD_OK) {
 		StretchBlt(destination_dc, 0, 0, surface_desc.dwWidth,

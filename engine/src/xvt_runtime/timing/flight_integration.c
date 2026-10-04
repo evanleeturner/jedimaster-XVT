@@ -157,13 +157,13 @@ unsigned xvt_flight_integration_steer(unsigned slot, unsigned channel,
 	uint64_t f = factor == UINT16_MAX ? 65536u : factor;
 	/* The complete product fits uint64_t even at the uint16_t elapsed limit. */
 	uint64_t product = (uint64_t)rate * g_elapsed_ticks * a * f;
-	uint64_t divisor = (uint64_t)SIMULATION_TICKS_PER_SECOND *
-			   XVT_Q16_SCALE * XVT_Q16_SCALE;
 	struct integration *s = xvt_flight_integration_sync_entry(slot);
 	if (s && s->direction[channel] != direction) {
 		s->remainder[channel] = 0;
 		s->direction[channel] = direction;
 	}
+	uint64_t divisor = (uint64_t)SIMULATION_TICKS_PER_SECOND *
+			   XVT_Q16_SCALE * XVT_Q16_SCALE;
 	uint64_t whole = product / divisor;
 	uint64_t remainder = product % divisor;
 	if (s) {

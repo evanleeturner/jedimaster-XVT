@@ -177,9 +177,7 @@ static void check_printf(void)
 static void check_scanf_conversions(void)
 {
 	char word[32];
-	char rest[32];
 	int number = 0;
-	int second = 0;
 	unsigned value = 0;
 
 	AeronFile *file = open_text("  alpha -42\n 7 ");
@@ -199,6 +197,8 @@ static void check_scanf_conversions(void)
 
 	/* A width bounds each conversion. */
 	file = open_text("12345 abcdef");
+	char rest[32];
+	int second = 0;
 	XVT_ASSERT_INT_EQ(xvt_file_scanf(file, "%2d%d %3s%s", &number, &second,
 					 word, rest),
 			  4);
@@ -221,12 +221,12 @@ static void check_scanf_conversions(void)
 	XVT_ASSERT_INT_EQ(second, 7);
 	xvt_file_close(file);
 
-	/* %s with no width has no bound. */
-	char long_word[2001];
 	char long_text[2001];
 	memset(long_text, 'w', 2000);
 	long_text[2000] = 0;
 	file = open_text(long_text);
+	/* %s with no width has no bound. */
+	char long_word[2001];
 	XVT_ASSERT_INT_EQ(xvt_file_scanf(file, "%s", long_word), 1);
 	XVT_ASSERT_INT_EQ(strcmp(long_word, long_text), 0);
 	xvt_file_close(file);
@@ -236,7 +236,6 @@ static void check_scanf_literals_and_ends(void)
 {
 	int number = 0;
 	int second = 0;
-	char word[32];
 
 	/* A literal must match the next byte; whitespace in the format skips any whitespace first. */
 	AeronFile *file = open_text("1 ,2");
@@ -265,6 +264,7 @@ static void check_scanf_literals_and_ends(void)
 	XVT_ASSERT_INT_EQ(xvt_file_scanf(file, "%d", &number), EOF);
 	xvt_file_close(file);
 	file = open_text(" \n\t ");
+	char word[32];
 	XVT_ASSERT_INT_EQ(xvt_file_scanf(file, "%s", word), EOF);
 	xvt_file_close(file);
 	file = open_text("");

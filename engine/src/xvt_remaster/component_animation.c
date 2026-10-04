@@ -63,7 +63,6 @@ void xvt_component_animation_prepare(const struct xvt_render_snapshot *s)
 				? s->types[o->object_type].model_asset_id
 				: 0;
 		reset |= p->model != model;
-		int object_changed = 0;
 		int new_event = p->event != s->component_event_serial;
 		if (new_event && p->event + 1 != s->component_event_serial) {
 			reset = 1;
@@ -71,6 +70,7 @@ void xvt_component_animation_prepare(const struct xvt_render_snapshot *s)
 		int64_t age =
 			(int64_t)s->view_time_ticks - s->component_event_time;
 		float alpha = age < 0 ? 0 : age >= 32 ? 1 : (float)age / 32;
+		int object_changed = 0;
 		for (unsigned j = 0; j < XVT_SNAP_COMPONENTS; ++j) {
 			int discontinuity =
 				reset || p->hp[j] != o->component_hp[j] ||

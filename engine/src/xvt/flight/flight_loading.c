@@ -55,31 +55,8 @@ void flight_loading_reset_progress_state(void)
 void flight_loading_pulse_and_draw_progress_screen(void)
 {
 	/* Advance the progress pulse and redraw the loading bar when due. */
-	uint32_t now;
-	uint32_t step_phase;
-	int16_t saved_cursor_x;
-	int16_t saved_cursor_y;
-	int16_t saved_clip_left;
-	int16_t saved_clip_top;
-	int16_t saved_clip_right;
-	int16_t saved_clip_bottom;
-	int16_t saved_word_wrap;
-	int16_t saved_unused_state;
-	uint8_t saved_text_color;
-	int16_t saved_clear_line_background;
-	uint8_t saved_background_color;
-	uint8_t saved_shadow_color;
-	uint8_t saved_shadow_enabled;
-	int lock_count;
-	int unlock_count;
-	unsigned int bar_left;
-	unsigned int bar_top;
-	uint8_t line_height;
-	uint32_t bar_step;
-	unsigned int bar_width;
-
-	now = timeGetTime();
-	step_phase = g_flight_loading_progress_step & 0x3fu;
+	uint32_t now = timeGetTime();
+	uint32_t step_phase = g_flight_loading_progress_step & 0x3fu;
 	if (step_phase != 63u &&
 	    (int32_t)(now - g_flight_loading_progress_last_draw_ms) < 200) {
 		++g_flight_loading_progress_step;
@@ -94,34 +71,34 @@ void flight_loading_pulse_and_draw_progress_screen(void)
 		flight_net_broadcast_still_loading_pulse();
 	}
 
-	saved_cursor_x = g_flight_cursor_x;
-	saved_cursor_y = g_flight_cursor_y;
-	saved_clip_left = g_flight_clip_left;
-	saved_clip_top = g_flight_clip_top;
-	saved_clip_right = g_flight_clip_right;
-	saved_clip_bottom = g_flight_clip_bottom;
-	saved_word_wrap = g_flight_word_wrap_enabled;
-	saved_unused_state = g_flight_text_unused_state;
-	saved_text_color = g_flight_text_color_index;
-	saved_clear_line_background = g_flight_clear_line_bg_enabled;
-	saved_background_color = g_flight_text_bg_color;
-	saved_shadow_color = g_flight_text_shadow_color;
-	saved_shadow_enabled = g_flight_text_shadow_enabled;
+	int16_t saved_cursor_x = g_flight_cursor_x;
+	int16_t saved_cursor_y = g_flight_cursor_y;
+	int16_t saved_clip_left = g_flight_clip_left;
+	int16_t saved_clip_top = g_flight_clip_top;
+	int16_t saved_clip_right = g_flight_clip_right;
+	int16_t saved_clip_bottom = g_flight_clip_bottom;
+	int16_t saved_word_wrap = g_flight_word_wrap_enabled;
+	int16_t saved_unused_state = g_flight_text_unused_state;
+	uint8_t saved_text_color = g_flight_text_color_index;
+	int16_t saved_clear_line_background = g_flight_clear_line_bg_enabled;
+	uint8_t saved_background_color = g_flight_text_bg_color;
+	uint8_t saved_shadow_color = g_flight_text_shadow_color;
+	uint8_t saved_shadow_enabled = g_flight_text_shadow_enabled;
 
-	lock_count = flight_surface_get_lock_count();
-	unlock_count = lock_count;
+	int lock_count = flight_surface_get_lock_count();
+	int unlock_count = lock_count;
 	while (unlock_count > 0) {
 		flight_surface_unlock();
 		--unlock_count;
 	}
 	flight_surface_lock();
 
-	bar_left = g_screen_width >> 2;
-	bar_top = g_screen_height >> 1;
-	line_height = g_flight_font_line_height;
-	bar_step = (g_flight_loading_progress_step & 0x7fu) + 1u;
+	unsigned int bar_left = g_screen_width >> 2;
+	unsigned int bar_top = g_screen_height >> 1;
+	uint8_t line_height = g_flight_font_line_height;
+	uint32_t bar_step = (g_flight_loading_progress_step & 0x7fu) + 1u;
 	++g_flight_loading_progress_step;
-	bar_width = (g_screen_width * bar_step) >> 8;
+	unsigned int bar_width = (g_screen_width * bar_step) >> 8;
 
 	flight_text_set_clip_rect((int16_t)bar_left - 2, (int16_t)bar_top - 2,
 				  (int16_t)(g_screen_width - bar_left + 2),
@@ -190,9 +167,7 @@ void flight_loading_draw_progress_to_completion(void)
 // FUNCTION: XVT 0x4493E0
 int pilot_data_has_network_player_dpid(int dpid)
 {
-	int player_index;
-
-	for (player_index = 0; player_index < 8; ++player_index) {
+	for (int player_index = 0; player_index < 8; ++player_index) {
 		if (g_pilot_data.network_players[player_index].direct_play_id !=
 			    0 &&
 		    g_pilot_data.network_players[player_index].direct_play_id ==

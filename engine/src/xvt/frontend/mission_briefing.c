@@ -205,19 +205,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 		LAUNCH_COUNTDOWN_MS = 60000,
 	};
 
-	int team_index;
-	int text_index;
 	int craft_type;
-	int craft_selectable;
-	int armament_selectable_count;
-	int configuration_allowed;
-	int packet_type;
-	int roster_index;
-	int slot_index;
-	int action_triggered;
-	int packet_countdown_ms;
-	struct RECT rect;
-	struct RECT saved_clip_rect;
 
 	if (frame_counter == 0) {
 		frontend_cursor_set_pos(37, 445);
@@ -229,6 +217,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 
 		if (g_pilot_data.mission_directory_id ==
 		    MISSION_DIRECTORY_MELEES) {
+			int team_index;
 			for (team_index = 0; team_index < g_team_count;
 			     ++team_index) {
 				if (g_team_player_flight_group_count
@@ -437,12 +426,14 @@ int mission_briefing_craft_selection_update(int frame_counter)
 		g_mission_briefing_last_update_ms = g_mission_briefing_now_ms;
 	}
 
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 158, 52, 491, 68);
+	struct RECT saved_clip_rect;
 	frontend_display_get_screen_clip_rect(&saved_clip_rect);
 	frontend_display_set_screen_clip_rect640x480(&rect);
 	sprintf(g_frontend_scratch_buffer, "%c%s", 4,
 		g_mission_list[g_selected_mission_list_index].description);
-	for (text_index = (int)strlen(g_frontend_scratch_buffer) - 1;
+	for (int text_index = (int)strlen(g_frontend_scratch_buffer) - 1;
 	     text_index > 0; --text_index) {
 		if (g_frontend_scratch_buffer[text_index] == '(') {
 			g_frontend_scratch_buffer[text_index] = '\0';
@@ -452,10 +443,10 @@ int mission_briefing_craft_selection_update(int frame_counter)
 	frontend_text_draw_centered(12, g_frontend_scratch_buffer, &rect,
 				    0xFFFF);
 	frontend_display_set_screen_clip_rect640x480(&saved_clip_rect);
-	craft_selectable = 0;
-	armament_selectable_count = 0;
+	int craft_selectable = 0;
+	int armament_selectable_count = 0;
 
-	configuration_allowed = 1;
+	int configuration_allowed = 1;
 	if (g_pilot_data.mission_directory_id ==
 		    MISSION_DIRECTORY_TRAINING_EXERCISES &&
 	    g_pilot_data.mission_sequence_active == 1 &&
@@ -503,9 +494,11 @@ int mission_briefing_craft_selection_update(int frame_counter)
 	frontend_text_draw_centered(15, g_frontend_scratch_buffer, &rect,
 				    0xFFFF);
 
+	int roster_index;
 	if (g_frontend_mission_session_mode !=
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		packet_type = frontend_net_process_network_packets();
+		int packet_type = frontend_net_process_network_packets();
+		int slot_index;
 		if (packet_type == NET_PACKET_HOST_CANCELLED) {
 			net_shutdown_direct_play_session();
 			if (net_is_host() == 0) {
@@ -636,7 +629,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				model_preview_set_light_direction(-1, 0, 1);
 			}
 		} else if (packet_type == NET_PACKET_BRIEFING_COUNTDOWN) {
-			packet_countdown_ms = g_frontend_net_packet_arg0;
+			int packet_countdown_ms = g_frontend_net_packet_arg0;
 			if (packet_countdown_ms <
 			    g_mission_briefing_launch_countdown_ms) {
 				g_mission_briefing_launch_countdown_ms =
@@ -817,6 +810,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 	}
 	if (g_frontend_mission_session_mode ==
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+		int action_triggered;
 		if (g_briefing_skip_player_assignment != 0) {
 			if (g_mission_setup_team_assignment_skipped != 0) {
 				frontend_button_set_overlay_text(
@@ -1149,17 +1143,10 @@ int mission_briefing_broadcast_roster_and_assignments(void)
 {
 	enum { PLAYER_SLOTS_PER_TEAM = 8 };
 
-	uint8_t *output;
-	unsigned int packet_dword_index;
-	unsigned int roster_index;
-	unsigned int team_index;
-	unsigned int player_index;
-	int assignment_index;
-
-	packet_dword_index = 1;
+	unsigned int packet_dword_index = 1;
 	g_frontend_net_packet_scratch.packet_type =
 		NET_PACKET_LAUNCH_ROSTER_AND_ASSIGNMENTS;
-	for (roster_index = 0;
+	for (unsigned int roster_index = 0;
 	     roster_index < sizeof(g_mp_roster) / sizeof(g_mp_roster[0]);
 	     ++roster_index) {
 		memcpy(g_frontend_net_packet_scratch.payload +
@@ -1189,17 +1176,17 @@ int mission_briefing_broadcast_roster_and_assignments(void)
 				      .countermeasure_option_index));
 		++packet_dword_index;
 	}
-	output = g_frontend_net_packet_scratch.payload +
-		 (packet_dword_index - 1) * sizeof(int);
-	assignment_index = 0;
-	for (team_index = 0;
+	uint8_t *output = g_frontend_net_packet_scratch.payload +
+			  (packet_dword_index - 1) * sizeof(int);
+	int assignment_index = 0;
+	for (unsigned int team_index = 0;
 	     team_index <
 	     sizeof(g_mission_setup_player_flight_group_indices) /
 		     (PLAYER_SLOTS_PER_TEAM *
 		      sizeof(g_mission_setup_player_flight_group_indices[0]));
 	     ++team_index) {
-		for (player_index = 0; player_index < PLAYER_SLOTS_PER_TEAM;
-		     ++player_index) {
+		for (unsigned int player_index = 0;
+		     player_index < PLAYER_SLOTS_PER_TEAM; ++player_index) {
 			*output = (uint8_t)
 				g_mission_setup_player_flight_group_indices
 					[assignment_index];
@@ -1229,11 +1216,11 @@ int16_t mission_briefing_handle_map_mouse_input(
 	int16_t suppress_input, int left_down, int right_down, int16_t mouse_x,
 	int16_t mouse_y)
 {
-	struct RECT inset_clip_rect;
 	struct RECT inset_viewport_rect;
 
 	frontend_draw_rect_copy(&inset_viewport_rect, viewport_rect);
 	frontend_draw_rect_inset_xy(&inset_viewport_rect, 1, 1);
+	struct RECT inset_clip_rect;
 	frontend_draw_rect_copy(&inset_clip_rect, clip_rect);
 	frontend_draw_rect_inset_xy(&inset_clip_rect, 1, 1);
 	if (suppress_input != 0) {
@@ -1253,9 +1240,9 @@ int16_t mission_briefing_draw_map_viewport(const struct RECT *viewport_rect,
 					   int16_t highlight_phase)
 {
 	struct RECT viewport_copy;
-	struct RECT clip_copy;
 
 	frontend_draw_rect_copy(&viewport_copy, viewport_rect);
+	struct RECT clip_copy;
 	frontend_draw_rect_copy(&clip_copy, clip_rect);
 	return briefing_map_draw_viewport_and_selection(
 		&viewport_copy, &clip_copy, highlight_phase);
@@ -1268,17 +1255,14 @@ int16_t mission_briefing_draw_map_viewport(const struct RECT *viewport_rect,
 // FUNCTION: XVT 0x4FACC0
 int mission_briefing_are_all_network_players_ready(void)
 {
-	int ready_flag_count;
-	int ready_flag_index;
-	int ready_player_count;
-
-	ready_flag_count = 0;
+	int ready_flag_count = 0;
 	if (g_frontend_mission_session_mode ==
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		return 0;
 	}
-	ready_player_count = net_count_ready_players();
-	for (ready_flag_index = 0; ready_flag_index < 8; ++ready_flag_index) {
+	int ready_player_count = net_count_ready_players();
+	for (int ready_flag_index = 0; ready_flag_index < 8;
+	     ++ready_flag_index) {
 		if (g_mp_roster_ready_flags[ready_flag_index] != 0) {
 			++ready_flag_count;
 		}

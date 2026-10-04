@@ -32,46 +32,42 @@ struct opt_vector g_model_bounds_max[201] = {{0}};
 // FUNCTION: XVT 0x4ADD60
 void model_bounds_ensure_cached(int object_type)
 {
-	struct optimized_poly_object *model;
-	int root_node_index;
-	struct opt_node *root_node;
-	struct opt_node *vertex_node;
-	float *vertex_data;
-	float *bounds;
-	int vertex_count;
 	struct opt_vector min_bounds;
-	struct opt_vector max_bounds;
 
 	min_bounds.x = 1073741800.0f;
 	min_bounds.y = 1073741800.0f;
 	min_bounds.z = 1073741800.0f;
+	struct opt_vector max_bounds;
 	max_bounds.x = -1073741800.0f;
 	max_bounds.y = -1073741800.0f;
 	max_bounds.z = -1073741800.0f;
 	if ((g_object_type_table[object_type].asset_flags & 1) != 0) {
-		model = (struct optimized_poly_object *)memory_get_handle_block(
-			g_loaded_models[object_type]);
+		struct optimized_poly_object *model =
+			(struct optimized_poly_object *)memory_get_handle_block(
+				g_loaded_models[object_type]);
 		if (model->self_marker != model) {
 			opt_model_adjust_optimized_poly_object_pointers(model);
 		}
 
-		for (root_node_index = 0;
+		for (int root_node_index = 0;
 		     root_node_index < model->root_node_count;
 		     ++root_node_index) {
-			root_node = model->root_nodes[root_node_index];
+			struct opt_node *root_node =
+				model->root_nodes[root_node_index];
 			if (root_node != 0 &&
 			    root_node->node_type != OPT_TEXTURE) {
-				vertex_node =
+				struct opt_node *vertex_node =
 					model_mesh_find_first_mesh_verts_node(
 						root_node);
 				if (vertex_node != 0) {
-					vertex_data =
+					float *vertex_data =
 						(float *)vertex_node->payload;
-					vertex_count =
+					int vertex_count =
 						vertex_node->payload_count;
 					if (vertex_count >= 2) {
-						bounds = vertex_data +
-							 3 * vertex_count - 6;
+						float *bounds =
+							vertex_data +
+							3 * vertex_count - 6;
 						if (bounds[0] < min_bounds.x) {
 							min_bounds.x =
 								bounds[0];
@@ -118,12 +114,11 @@ void model_bounds_ensure_cached(int object_type)
 // FUNCTION: XVT 0x4ADF10
 int model_bounds_get_max_extent(int object_type)
 {
-	float size[3];
-
 	if (g_model_bounds_cached[object_type] == 0) {
 		model_bounds_ensure_cached(object_type);
 	}
 
+	float size[3];
 	size[0] = g_model_bounds_max[object_type].x -
 		  g_model_bounds_min[object_type].x;
 	size[1] = g_model_bounds_max[object_type].y -

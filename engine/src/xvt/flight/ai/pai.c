@@ -324,26 +324,22 @@ const uint8_t g_order_follower_builtin_plan_name_index[40] = {
 // FUNCTION: XVT 0x4028A0
 void pai_update_all_craft_ai(void)
 {
-	uint16_t object_index;
-	int16_t saved_rand_state;
-
-	saved_rand_state = g_game_rand_feedback_state;
-	for (object_index = (uint16_t)g_active_region_object_slot_start;
+	int16_t saved_rand_state = g_game_rand_feedback_state;
+	for (uint16_t object_index =
+		     (uint16_t)g_active_region_object_slot_start;
 	     object_index < g_active_region_craft_object_slot_end;
 	     ++object_index) {
 		struct object_record *object = &g_object_table[object_index];
-		struct mobile_object *mobile_object;
-		struct ai_controller *controller;
 
 		if (object->object_type == 0) {
 			continue;
 		}
-		mobile_object = object->mobj;
+		struct mobile_object *mobile_object = object->mobj;
 		if (mobile_object->family != 0) {
 			continue;
 		}
 		g_cur_craft = mobile_object->p_craft;
-		controller = &g_cur_craft->ai_controller;
+		struct ai_controller *controller = &g_cur_craft->ai_controller;
 		if (g_cur_craft->object_kind == CRAFT_OBJECT_KIND_BREAKING_UP ||
 		    g_cur_craft->object_kind == CRAFT_OBJECT_KIND_EXPLODING ||
 		    controller->think_timer > 0) {
@@ -379,14 +375,9 @@ void pai_update_all_craft_ai(void)
 // FUNCTION: XVT 0x402970
 void pai_apply_running_plan_target_and_maneuver(unsigned int object_idx)
 {
-	struct ai_controller *controller;
-	uint8_t *plan_data;
-	uint16_t target_token;
-	uint8_t maneuver_token;
-
-	controller = &g_cur_craft->ai_controller;
-	plan_data = g_plan_data_ptrs[controller->running_plan_id];
-	target_token = *plan_data++;
+	struct ai_controller *controller = &g_cur_craft->ai_controller;
+	uint8_t *plan_data = g_plan_data_ptrs[controller->running_plan_id];
+	uint16_t target_token = *plan_data++;
 
 	if (target_token != 0xFFu) {
 		if (target_token == 0xFDu) {
@@ -446,7 +437,7 @@ void pai_apply_running_plan_target_and_maneuver(unsigned int object_idx)
 	}
 
 	controller->secondary_maneuver_timer = 0;
-	maneuver_token = *plan_data;
+	uint8_t maneuver_token = *plan_data;
 	if (maneuver_token != UINT8_MAX) {
 		controller->maneuver_mode = maneuver_token;
 		paiman_initmaneuver();
@@ -471,10 +462,7 @@ void pai_apply_running_plan_target_and_maneuver(unsigned int object_idx)
 // FUNCTION: XVT 0x402B60
 void pai_process_plan(void)
 {
-	struct ai_controller *controller;
-	uint8_t order_id;
-
-	controller = &g_cur_craft->ai_controller;
+	struct ai_controller *controller = &g_cur_craft->ai_controller;
 	if (g_object_table[g_pai_context.object_index].player_owner_idx != -1 &&
 	    strcmp(g_plan_table[controller->current_plan_id].name,
 		   "escortldr1pln") == 0) {
@@ -482,7 +470,7 @@ void pai_process_plan(void)
 	}
 
 	g_pai_skip_to_order4_checked = 0;
-	order_id = *g_pai_context.plan_cursor++;
+	uint8_t order_id = *g_pai_context.plan_cursor++;
 	if (order_id == 0) {
 		return;
 	}
@@ -522,17 +510,14 @@ void pai_process_plan(void)
 // FUNCTION: XVT 0x402CB0
 void pai_setupcraftcontext(uint16_t object_idx)
 {
-	struct ai_controller *controller;
-	struct craft_data *leader_or_self_craft;
-	struct object_record *object;
-
 	g_pai_context.object_index = object_idx;
-	object = &g_object_table[object_idx];
+	struct object_record *object = &g_object_table[object_idx];
 	g_pai_context.craft = object->mobj->p_craft;
 	g_pai_context.leader_object_index =
 		(uint8_t)g_pai_context.craft->leader_obj_idx;
-	controller = &g_pai_context.craft->ai_controller;
+	struct ai_controller *controller = &g_pai_context.craft->ai_controller;
 	g_pai_context.controller = controller;
+	struct craft_data *leader_or_self_craft;
 	if (g_pai_context.leader_object_index == UINT8_MAX) {
 		leader_or_self_craft = object->mobj->p_craft;
 	} else {
@@ -577,17 +562,12 @@ int pai_skill_value_to_tier(uint16_t skill_value)
 // FUNCTION: XVT 0x402E20
 uint16_t pai_find_mothership_object(int16_t mothership_flight_group_idx)
 {
-	uint16_t object_index;
-	struct craft_data *craft;
-	struct object_record *object;
-	uint8_t object_kind;
-
-	object_index = (uint16_t)g_active_region_object_slot_start;
+	uint16_t object_index = (uint16_t)g_active_region_object_slot_start;
 	while (object_index < g_active_region_craft_object_slot_end) {
-		object = &g_object_table[object_index];
+		struct object_record *object = &g_object_table[object_index];
 		if (object->object_type != 0) {
-			craft = object->mobj->p_craft;
-			object_kind = craft->object_kind;
+			struct craft_data *craft = object->mobj->p_craft;
+			uint8_t object_kind = craft->object_kind;
 			if (object_kind != CRAFT_OBJECT_KIND_EXPLODING &&
 			    object_kind != CRAFT_OBJECT_KIND_BREAKING_UP &&
 			    object->flight_group_idx ==
@@ -613,14 +593,11 @@ uint16_t pai_find_mothership_object(int16_t mothership_flight_group_idx)
 int pai_is_object_targetable_near_craft(int unused_craft_obj_idx,
 					unsigned int obj_idx, int expand_range)
 {
-	int targetable;
-	int max_range_score;
-
 	(void)unused_craft_obj_idx;
-	targetable = pai_is_object_targetable(obj_idx);
+	int targetable = pai_is_object_targetable(obj_idx);
 
 	if (targetable) {
-		max_range_score =
+		int max_range_score =
 			(uint16_t)math2_fraction(
 				0x500u, g_ai_skill_value_q16_by_level
 						[g_pai_context.skill_tier]) +
@@ -645,9 +622,7 @@ int pai_is_object_targetable_near_craft(int unused_craft_obj_idx,
 // FUNCTION: XVT 0x403070
 int16_t pai_is_object_within_skill_range_of_craft(uint16_t obj_idx)
 {
-	uint16_t skill_range;
-
-	skill_range = (uint16_t)math2_fraction(
+	uint16_t skill_range = (uint16_t)math2_fraction(
 		0x500, g_ai_skill_value_q16_by_level[g_pai_context.skill_tier]);
 	return pai_is_object_within_range_of_craft(
 		       obj_idx, (skill_range + 0xA00) << 8) == 1;
@@ -667,9 +642,7 @@ int16_t pai_order_slot_can_board_target(uint16_t order_slot)
 // FUNCTION: XVT 0x403270
 int16_t pai_find_boarding_target_from_order(uint16_t order_slot)
 {
-	int16_t result;
-
-	result = pai_find_nearest_boarding_target(
+	int16_t result = pai_find_nearest_boarding_target(
 		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
 			.fg.orders[order_slot]
 			.target1_type,
@@ -719,15 +692,10 @@ int16_t pai_find_boarding_target_from_order(uint16_t order_slot)
 int pai_is_object_within_range_of_craft(unsigned int obj_idx,
 					unsigned int max_rough_distance)
 {
-	struct object_record *object;
-	int delta_x;
-	int delta_y;
-	int delta_z;
-
-	object = &g_object_table[obj_idx];
-	delta_x = g_pai_context.craft_position_x - object->world_x;
-	delta_y = g_pai_context.craft_position_y - object->world_y;
-	delta_z = g_pai_context.craft_position_z - object->world_z;
+	struct object_record *object = &g_object_table[obj_idx];
+	int delta_x = g_pai_context.craft_position_x - object->world_x;
+	int delta_y = g_pai_context.craft_position_y - object->world_y;
+	int delta_z = g_pai_context.craft_position_z - object->world_z;
 	if (delta_x < 0) {
 		delta_x = (int)(0u - (unsigned int)delta_x);
 	}
@@ -776,17 +744,14 @@ void pai_set_flight_group_formation(unsigned int flight_group_idx,
 				    unsigned int formation_type,
 				    unsigned int formation_spacing)
 {
-	unsigned int object_index;
-	struct object_record *object;
-	struct craft_data *craft;
-
-	for (object_index = (unsigned int)g_active_region_object_slot_start;
+	for (unsigned int object_index =
+		     (unsigned int)g_active_region_object_slot_start;
 	     object_index < (unsigned int)g_active_region_craft_object_slot_end;
 	     ++object_index) {
-		object = &g_object_table[object_index];
+		struct object_record *object = &g_object_table[object_index];
 		if (object->object_type != 0 &&
 		    object->flight_group_idx == flight_group_idx) {
-			craft = object->mobj->p_craft;
+			struct craft_data *craft = object->mobj->p_craft;
 			craft->ai_flight.formation_type = formation_type;
 			craft->ai_flight.separation = formation_spacing;
 		}
@@ -801,14 +766,10 @@ void pai_set_flight_group_formation(unsigned int flight_group_idx,
 void pai_object_ref_direction_to_object_ref(unsigned int from_ref,
 					    unsigned int to_ref)
 {
-	int target_x;
-	int target_y;
-	int target_z;
-
 	mission_resolve_object_or_mission_point_world_loc(to_ref, 0);
-	target_x = g_world_loc_x;
-	target_y = g_world_loc_y;
-	target_z = g_world_loc_z;
+	int target_x = g_world_loc_x;
+	int target_y = g_world_loc_y;
+	int target_z = g_world_loc_z;
 
 	mission_resolve_object_or_mission_point_world_loc(from_ref, 0);
 	target_x = target_x - g_world_loc_x;
@@ -825,15 +786,10 @@ void pai_object_ref_direction_to_object_ref(unsigned int from_ref,
 void pai_object_ref_update_rough_distance(unsigned int from_ref,
 					  unsigned int to_ref)
 {
-	int delta_x;
-	int delta_y;
-	int delta_z;
-	int xy_score;
-
 	mission_resolve_object_or_mission_point_world_loc(from_ref, 0);
-	delta_x = g_world_loc_x;
-	delta_y = g_world_loc_y;
-	delta_z = g_world_loc_z;
+	int delta_x = g_world_loc_x;
+	int delta_y = g_world_loc_y;
+	int delta_z = g_world_loc_z;
 
 	mission_resolve_object_or_mission_point_world_loc(to_ref, 0);
 	delta_x -= g_world_loc_x;
@@ -850,6 +806,7 @@ void pai_object_ref_update_rough_distance(unsigned int from_ref,
 		delta_z = -delta_z;
 	}
 
+	int xy_score;
 	if (delta_x > delta_y) {
 		xy_score = delta_x + (delta_y >> 1);
 	} else {
@@ -875,8 +832,6 @@ void pai_object_ref_update_rough_distance(unsigned int from_ref,
 void pai_calcrotatedpoint(const struct object_record *obj, int16_t side_arg,
 			  int16_t up_arg, int16_t fwd_arg)
 {
-	int result;
-
 	/* Rotate local coordinates through the cached Q15 orientation basis. */
 	if (obj->mobj->orient_matrix_dirty != 0) {
 		fview_calcrotatemove(obj->pitch, obj->yaw, obj);
@@ -884,7 +839,7 @@ void pai_calcrotatedpoint(const struct object_record *obj, int16_t side_arg,
 	}
 
 	g_rotated_x = math_mul_q15(side_arg, obj->mobj->cached_side_x);
-	result = math_mul_q15(up_arg, obj->mobj->cached_up_x);
+	int result = math_mul_q15(up_arg, obj->mobj->cached_up_x);
 	g_rotated_x += result;
 	g_rotated_x += math_mul_q15(fwd_arg, obj->mobj->cached_fwd_x);
 	g_rotated_y = math_mul_q15(side_arg, obj->mobj->cached_side_y);
@@ -901,8 +856,6 @@ void pai_rotate_local_vector_to_world_scratch(
 	const struct object_record *obj_record, int local_side, int local_up,
 	int local_fwd)
 {
-	int result;
-
 	if (obj_record->mobj->orient_matrix_dirty != 0) {
 		fview_calcrotatemove(obj_record->pitch, obj_record->yaw,
 				     obj_record);
@@ -910,7 +863,7 @@ void pai_rotate_local_vector_to_world_scratch(
 	}
 
 	g_rotated_x = math_mul_q15(local_side, obj_record->mobj->cached_side_x);
-	result = math_mul_q15(local_up, obj_record->mobj->cached_up_x);
+	int result = math_mul_q15(local_up, obj_record->mobj->cached_up_x);
 	g_rotated_x += result;
 	g_rotated_x += math_mul_q15(local_fwd, obj_record->mobj->cached_fwd_x);
 	g_rotated_y = math_mul_q15(local_side, obj_record->mobj->cached_side_y);
@@ -927,9 +880,8 @@ void pai_rotate_local_vector_to_world_scratch(
 // FUNCTION: XVT 0x403990
 void pai_calc_angles_to_aim_point(void)
 {
-	struct object_record *object;
-
-	object = &g_object_table[g_pai_context.object_index];
+	struct object_record *object =
+		&g_object_table[g_pai_context.object_index];
 	trig2_ctop(g_pai_context.controller->aim_point_x - object->world_x,
 		   g_pai_context.controller->aim_point_y - object->world_y,
 		   g_pai_context.controller->aim_point_z - object->world_z);
@@ -960,20 +912,12 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 
 	for (object_idx = (uint16_t)g_active_region_object_slot_start;
 	     object_idx < g_active_region_craft_object_slot_end; ++object_idx) {
-		int16_t first_match;
-		int16_t second_match;
-		int16_t craft_reserved_count;
-		struct craft_data *craft;
-		struct object_record *object;
-		struct ai_controller *controller;
-		const char *plan_name;
-
 		if (g_object_table[object_idx].object_type == 0) {
 			continue;
 		}
-		first_match = mission_object_matches_trigger_variable(
+		int16_t first_match = mission_object_matches_trigger_variable(
 			object_idx, target1_type, target1);
-		second_match = mission_object_matches_trigger_variable(
+		int16_t second_match = mission_object_matches_trigger_variable(
 			object_idx, target2_type, target2);
 		if (target_or_mode == 1) {
 			first_match |= second_match;
@@ -986,11 +930,13 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 
 		/* Until the reset that starts the count, this local is a 0/1 flag: 1 when the craft can be boarded
 		 * now (parked, a platform, disabled, stopped, or waiting to be boarded). */
-		craft_reserved_count = 0;
-		object = &g_object_table[object_idx];
-		craft = g_object_table[object_idx].mobj->p_craft;
-		controller = &craft->ai_controller;
-		plan_name = g_plan_table[controller->current_plan_id].name;
+		int16_t craft_reserved_count = 0;
+		struct object_record *object = &g_object_table[object_idx];
+		struct craft_data *craft =
+			g_object_table[object_idx].mobj->p_craft;
+		struct ai_controller *controller = &craft->ai_controller;
+		const char *plan_name =
+			g_plan_table[controller->current_plan_id].name;
 		if (strcmp(plan_name, "nullpln") == 0 ||
 		    strcmp(plan_name, "stationaryldrpln") == 0 ||
 		    strcmp(plan_name, "stationaryflwpln") == 0 ||
@@ -1015,11 +961,8 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 		}
 
 		if (craft_reserved_count != 0) {
-			uint16_t other_idx;
-			uint16_t sig_idx;
-
 			craft_reserved_count = 0;
-			for (other_idx = (uint16_t)
+			for (uint16_t other_idx = (uint16_t)
 				     g_active_region_object_slot_start;
 			     other_idx < g_active_region_craft_object_slot_end;
 			     ++other_idx) {
@@ -1027,15 +970,12 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 					&g_object_table[other_idx];
 				if (other->object_type != 0 &&
 				    other_idx != g_pai_context.object_index) {
-					struct craft_data *other_craft;
-					struct ai_controller *other_controller;
-					int current_plan_id;
-
-					other_craft = other->mobj->p_craft;
-					current_plan_id =
+					struct craft_data *other_craft =
+						other->mobj->p_craft;
+					int current_plan_id =
 						other_craft->ai_controller
 							.current_plan_id;
-					other_controller =
+					struct ai_controller *other_controller =
 						&other_craft->ai_controller;
 					if (strcmp(g_plan_table[current_plan_id]
 							   .name,
@@ -1074,7 +1014,7 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 					}
 				}
 			}
-			for (sig_idx = 0;
+			for (uint16_t sig_idx = 0;
 			     sig_idx <
 			     g_cur_craft->ai_flight.docked_target_count;
 			     ++sig_idx) {
@@ -1102,19 +1042,17 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 	     (int)(g_region_main_object_slot_end +
 		   g_region_static_object_slot_count) > object_idx;
 	     ++object_idx) {
-		int16_t first_match;
-		int16_t second_match;
 		struct object_record *object = &g_object_table[object_idx];
 		uint16_t object_type = object->object_type;
 
 		if (object_type != 0 &&
 		    (g_object_type_table[object_type].behavior_flags & 2) !=
 			    0) {
-			first_match =
+			int16_t first_match =
 				mission_flight_group_matches_trigger_variable(
 					object->flight_group_idx, target1_type,
 					target1);
-			second_match =
+			int16_t second_match =
 				mission_flight_group_matches_trigger_variable(
 					g_object_table[object_idx]
 						.flight_group_idx,
@@ -1126,10 +1064,8 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 			}
 			if (first_match != 0) {
 				int16_t reserved_count = 0;
-				uint16_t other_idx;
-				uint16_t sig_idx;
 
-				for (other_idx = (uint16_t)
+				for (uint16_t other_idx = (uint16_t)
 					     g_active_region_object_slot_start;
 				     other_idx <
 				     g_active_region_craft_object_slot_end;
@@ -1140,14 +1076,10 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 					    other_idx !=
 						    g_pai_context
 							    .object_index) {
-						int current_plan_id;
-						struct ai_controller
-							*other_controller;
-
-						other_controller =
+						struct ai_controller *other_controller =
 							&other->mobj->p_craft
 								 ->ai_controller;
-						current_plan_id =
+						int current_plan_id =
 							other_controller
 								->current_plan_id;
 						if ((strcmp(g_plan_table
@@ -1192,10 +1124,8 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 					}
 				}
 				{
-					uint8_t signature_count;
-
-					sig_idx = 0;
-					signature_count =
+					uint16_t sig_idx = 0;
+					uint8_t signature_count =
 						g_cur_craft->ai_flight
 							.docked_target_count;
 					if (signature_count != 0) {
@@ -1247,9 +1177,7 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 int16_t pai_is_plan_complete_for_order_slot(uint16_t plan_id,
 					    uint16_t order_slot)
 {
-	int16_t result;
-
-	result = 0;
+	int16_t result = 0;
 	if (strcmp(g_plan_table[plan_id].name, "formldr1pln") == 0 ||
 	    strcmp(g_plan_table[plan_id].name, "formevadeldr1pln") == 0 ||
 	    strcmp(g_plan_table[plan_id].name, "starshipformpln") == 0 ||
@@ -1341,9 +1269,7 @@ int16_t pai_is_plan_complete_for_order_slot(uint16_t plan_id,
 int16_t pai_is_boarding_plan_complete_for_order_slot(uint16_t plan_id,
 						     uint16_t order_slot)
 {
-	int16_t result;
-
-	result = 0;
+	int16_t result = 0;
 	if ((strcmp(g_plan_table[plan_id].name, "boardtogivepln") == 0 ||
 	     strcmp(g_plan_table[plan_id].name, "boardtotakepln") == 0 ||
 	     strcmp(g_plan_table[plan_id].name, "boardtoexchangepln") == 0 ||
@@ -1366,11 +1292,7 @@ int16_t pai_is_boarding_plan_complete_for_order_slot(uint16_t plan_id,
 // FUNCTION: XVT 0x404450
 int16_t pai_current_order_targets_match_object(uint16_t object_idx)
 {
-	int16_t primary_match;
-	int16_t secondary_match;
-	int16_t match;
-
-	primary_match = mission_object_matches_trigger_variable(
+	int16_t primary_match = mission_object_matches_trigger_variable(
 		object_idx,
 		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
 			.fg.orders[g_pai_context.order_slot]
@@ -1378,7 +1300,7 @@ int16_t pai_current_order_targets_match_object(uint16_t object_idx)
 		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
 			.fg.orders[g_pai_context.order_slot]
 			.target1);
-	match = mission_object_matches_trigger_variable(
+	int16_t match = mission_object_matches_trigger_variable(
 		object_idx,
 		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
 			.fg.orders[g_pai_context.order_slot]
@@ -1394,7 +1316,7 @@ int16_t pai_current_order_targets_match_object(uint16_t object_idx)
 		primary_match &= match;
 	}
 
-	secondary_match = mission_object_matches_trigger_variable(
+	int16_t secondary_match = mission_object_matches_trigger_variable(
 		object_idx,
 		g_mission_flight_groups[g_pai_context.craft_flight_group_index]
 			.fg.orders[g_pai_context.order_slot]
@@ -1428,9 +1350,7 @@ int16_t pai_current_order_targets_match_object(uint16_t object_idx)
 // FUNCTION: XVT 0x404620
 uint16_t pai_get_effective_skill_value(struct craft_data *craft)
 {
-	struct object_record *linked_object;
-
-	linked_object = craft->effective_ai_object_link;
+	struct object_record *linked_object = craft->effective_ai_object_link;
 	if (linked_object == 0) {
 		return craft->ai_skill;
 	}
@@ -1461,13 +1381,11 @@ int pai_setup_context_and_find_order_plan_on_target(int object_idx,
 						    int leader_plan_name_index,
 						    int target_obj_idx)
 {
-	unsigned int order_slot;
-
 	if (object_idx == -1) {
 		return 0;
 	}
 	pai_setupcraftcontext(object_idx);
-	for (order_slot = 0; order_slot < 3; ++order_slot) {
+	for (unsigned int order_slot = 0; order_slot < 3; ++order_slot) {
 		uint8_t order =
 			g_mission_flight_groups[g_object_table[object_idx]
 							.flight_group_idx]
@@ -1593,10 +1511,8 @@ int pai_find_order_token_index(const char *token)
 // FUNCTION: XVT 0x46ADF0
 int pai_read_plan_text_token(char *token, xvt_file *stream)
 {
-	int token_length = 1;
-	char read_char;
-
 	*token = '\0';
+	char read_char;
 	for (;;) {
 		do {
 			if (FILE_RAW_READ(&read_char, 1, 1, stream) != 1) {
@@ -1618,6 +1534,7 @@ int pai_read_plan_text_token(char *token, xvt_file *stream)
 	}
 
 	*token = read_char;
+	int token_length = 1;
 	for (;;) {
 		if (FILE_RAW_READ(&read_char, 1, 1, stream) != 1) {
 			token[token_length] = '\0';
@@ -1649,24 +1566,19 @@ int pai_read_plan_text_token(char *token, xvt_file *stream)
 int pai_compile_plans_from_text(const char *base_name)
 {
 	char file_name[256];
-	char token[256];
-	xvt_file *stream;
-	uint8_t *cursor;
-	int plan_index;
 
 	strcpy(file_name, base_name);
 	strcat(file_name, ".pln");
 	fe_disk_io_open_global_stream(file_name, "r", 0, 0);
-	stream = (xvt_file *)g_stream;
+	xvt_file *stream = (xvt_file *)g_stream;
 	if (stream == NULL) {
 		return 0;
 	}
 
-	cursor = g_plan_order_data;
+	uint8_t *cursor = g_plan_order_data;
+	char token[256];
+	int plan_index;
 	for (;;) {
-		int target_index;
-		int maneuver_index;
-
 		if (pai_read_plan_text_token(token, stream) == 0) {
 			FILE_RAW_CLOSE(stream);
 			return 0;
@@ -1701,7 +1613,7 @@ int pai_compile_plans_from_text(const char *base_name)
 			FILE_RAW_CLOSE(stream);
 			return 0;
 		}
-		target_index = pai_find_target_token_index(token);
+		int target_index = pai_find_target_token_index(token);
 		if (g_pai_target_token_defs[target_index].name[0] == '\0') {
 			FILE_RAW_CLOSE(stream);
 			return 0;
@@ -1713,7 +1625,7 @@ int pai_compile_plans_from_text(const char *base_name)
 			FILE_RAW_CLOSE(stream);
 			return 0;
 		}
-		maneuver_index = pai_find_maneuver_token_index(token);
+		int maneuver_index = pai_find_maneuver_token_index(token);
 		if (g_pai_maneuver_token_defs[maneuver_index].name[0] == '\0') {
 			FILE_RAW_CLOSE(stream);
 			return 0;
@@ -1722,15 +1634,11 @@ int pai_compile_plans_from_text(const char *base_name)
 				    .value;
 
 		for (;;) {
-			int order_index;
-			int next_plan_id;
-			int free_plan_id;
-
 			if (pai_read_plan_text_token(token, stream) == 0) {
 				FILE_RAW_CLOSE(stream);
 				return 0;
 			}
-			order_index = pai_find_order_token_index(token);
+			int order_index = pai_find_order_token_index(token);
 			if (g_pai_order_token_defs[order_index].name[0] ==
 			    '\0') {
 				FILE_RAW_CLOSE(stream);
@@ -1748,13 +1656,14 @@ int pai_compile_plans_from_text(const char *base_name)
 				FILE_RAW_CLOSE(stream);
 				return 0;
 			}
-			next_plan_id = pai_find_plan_table_index_by_name(token);
+			int next_plan_id =
+				pai_find_plan_table_index_by_name(token);
 			if (next_plan_id != 256) {
 				*cursor++ = (uint8_t)next_plan_id;
 				continue;
 			}
 
-			free_plan_id = pai_find_free_plan_table_index();
+			int free_plan_id = pai_find_free_plan_table_index();
 			if (free_plan_id == 256) {
 				FILE_RAW_CLOSE(stream);
 				return 0;
@@ -1806,10 +1715,6 @@ int pai_compile_plans_from_text(const char *base_name)
 int pai_loadplans(const char *base_name)
 {
 	char file_name[256];
-	uint32_t buffer_size;
-	xvt_file *stream;
-	int plan_index;
-	int plan_count;
 
 	strcpy(file_name, base_name);
 	strcat(file_name, ".plo");
@@ -1817,11 +1722,12 @@ int pai_loadplans(const char *base_name)
 	g_plan_count = 0;
 	memset(g_plan_data_ptrs, 0, 0x100);
 	fe_disk_io_open_global_stream(file_name, g_file_mode_read_binary, 0, 1);
-	stream = (xvt_file *)g_stream;
+	xvt_file *stream = (xvt_file *)g_stream;
 	if (stream == NULL) {
 		return pai_compile_plans_from_text(base_name);
 	}
 
+	uint32_t buffer_size;
 	if (FILE_RAW_READ(&buffer_size, sizeof(buffer_size), 1, stream) != 1) {
 		FILE_RAW_CLOSE(stream);
 		return pai_compile_plans_from_text(base_name);
@@ -1840,8 +1746,8 @@ int pai_loadplans(const char *base_name)
 	}
 
 	FILE_RAW_CLOSE(stream);
-	plan_index = 0;
-	plan_count = g_plan_count;
+	int plan_index = 0;
+	int plan_count = g_plan_count;
 	do {
 		if (g_plan_table[plan_index].name[0] != '\0') {
 			++plan_count;
@@ -1862,14 +1768,10 @@ int pai_loadplans(const char *base_name)
 // FUNCTION: XVT 0x46B5B0
 void pai_cache_builtin_plan_ids(void)
 {
-	int plan_name_ordinal;
-	const char *const *plan_name_cursor;
-	const char *plan_name;
-
-	plan_name = g_builtin_plan_name_table[0];
-	plan_name_ordinal = 0;
+	const char *plan_name = g_builtin_plan_name_table[0];
+	int plan_name_ordinal = 0;
 	if (*plan_name != '\0') {
-		plan_name_cursor = g_builtin_plan_name_table;
+		const char *const *plan_name_cursor = g_builtin_plan_name_table;
 		do {
 			plan_name_cursor++;
 			g_builtin_plan_id_by_name_index[plan_name_ordinal++] =
@@ -1894,9 +1796,7 @@ uint8_t *pai_getplandataptrbyname(const char *plan_name)
 // FUNCTION: XVT 0x46B610
 int pai_find_plan_id_by_name_or_zero(const char *plan_name)
 {
-	int plan_index;
-
-	for (plan_index = 0; plan_index < 256; ++plan_index) {
+	for (int plan_index = 0; plan_index < 256; ++plan_index) {
 		if (strncmp(g_plan_table[plan_index].name, plan_name,
 			    sizeof(g_plan_table[plan_index].name)) == 0) {
 			return plan_index;

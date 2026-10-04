@@ -16,7 +16,6 @@ static struct {
 
 int xvt_cd_task_begin_fade(unsigned int from, unsigned int to, int duration_ms)
 {
-	unsigned int distance;
 	xvt_cd_task_cancel_fade();
 	if (!g_front_state.cd_audio_mci_device_id &&
 	    !g_music_cd_mci_device_id) {
@@ -31,7 +30,7 @@ int xvt_cd_task_begin_fade(unsigned int from, unsigned int to, int duration_ms)
 	if (from == to) {
 		return 1;
 	}
-	distance = from > to ? from - to : to - from;
+	unsigned int distance = from > to ? from - to : to - from;
 	g_fade.current = from;
 	g_fade.target = to;
 	/* Original comparison is strict: a zero step delay still waits one millisecond. */
@@ -105,11 +104,11 @@ uint64_t xvt_cd_task_next_wake_delay_us(void)
 				 ? (now < g_fade.next ? g_fade.next - now : 0)
 				 : UINT64_MAX;
 	uint32_t now_ms = xvt_time_get_elapsed_ms();
-	int32_t remaining;
-	uint64_t candidate;
 	if (xvt_flight_task_is_active()) {
 		return delay;
 	}
+	int32_t remaining;
+	uint64_t candidate;
 	if (g_front_state.cd_audio_suspend_state == CD_AUDIO_RESUME_PENDING) {
 		remaining = (int32_t)(g_front_state.cd_audio_resume_due_ms -
 				      now_ms);

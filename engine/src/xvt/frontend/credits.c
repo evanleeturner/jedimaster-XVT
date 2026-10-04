@@ -161,6 +161,10 @@ int credits_parse_next_page(unsigned int *out_buffer_idx,
 			    int *out_page_duration_frames,
 			    int *out_text_fade_frames)
 {
+	*out_has_more_pages = 0;
+	if (g_frontend_credits_file == NULL) {
+		return 0;
+	}
 	unsigned int logo_id;
 	unsigned int logo_x;
 	unsigned int logo_y;
@@ -168,15 +172,6 @@ int credits_parse_next_page(unsigned int *out_buffer_idx,
 	unsigned int text_y;
 	unsigned int unused_a;
 	unsigned int unused_b;
-	char line[256];
-	int line_index;
-	int clear_index;
-	size_t line_length;
-
-	*out_has_more_pages = 0;
-	if (g_frontend_credits_file == NULL) {
-		return 0;
-	}
 	FILE_SCANF(g_frontend_credits_file, "%u %u %u %u %u %u %u %u %u %u\n",
 		   &text_x, &text_y, out_buffer_idx, out_text_fade_frames,
 		   out_page_duration_frames, &logo_id, &logo_x, &logo_y,
@@ -190,18 +185,19 @@ int credits_parse_next_page(unsigned int *out_buffer_idx,
 	g_credits_logo_y[*out_buffer_idx] = logo_y;
 	g_credits_text_x[*out_buffer_idx] = text_x;
 	g_credits_text_y[*out_buffer_idx] = text_y;
-	for (clear_index = 0; clear_index < 32; clear_index++) {
+	for (int clear_index = 0; clear_index < 32; clear_index++) {
 		g_credits_text_lines[*out_buffer_idx][clear_index][0] = '\0';
 	}
 
-	line_index = 0;
+	int line_index = 0;
+	char line[256];
 	do {
 		if (FILE_GETS(line, sizeof(line), g_frontend_credits_file) ==
 		    NULL) {
 			return 1;
 		}
 		if (line[0] != '/' || line[1] != '/') {
-			line_length = strlen(line);
+			size_t line_length = strlen(line);
 			if (line[line_length - 1] == '\n') {
 				line[line_length - 1] = '\0';
 			}
@@ -235,26 +231,17 @@ int credits_parse_next_page(unsigned int *out_buffer_idx,
 int credits_parse_text_line(const char *line, unsigned int buffer_idx,
 			    unsigned int line_idx)
 {
-	const char *text;
-	int remaining;
-	char token[256];
-
-	text = line;
-	remaining = strlen(line);
+	const char *text = line;
+	int remaining = strlen(line);
 	if (*text == '~') {
-		int token_length;
-		int char_index;
-		int red;
-		int green;
-
 		++text;
-		token_length = 0;
+		int token_length = 0;
+		char token[256];
+		int char_index;
 		if (remaining > 0) {
 			for (char_index = 0; remaining > char_index;
 			     ++char_index) {
-				char c;
-
-				c = *text;
+				char c = *text;
 				if (c == ' ' || c == '\0') {
 					++text;
 					--remaining;
@@ -266,15 +253,13 @@ int credits_parse_text_line(const char *line, unsigned int buffer_idx,
 				--remaining;
 			}
 		}
-		red = atoi(token);
+		int red = atoi(token);
 
 		token_length = 0;
 		if (remaining > 0) {
 			for (char_index = 0; remaining > char_index;
 			     ++char_index) {
-				char c;
-
-				c = *text;
+				char c = *text;
 				if (c == ' ' || c == '\0') {
 					++text;
 					--remaining;
@@ -286,15 +271,13 @@ int credits_parse_text_line(const char *line, unsigned int buffer_idx,
 				--remaining;
 			}
 		}
-		green = atoi(token);
+		int green = atoi(token);
 
 		token_length = 0;
 		if (remaining > 0) {
 			for (char_index = 0; remaining > char_index;
 			     ++char_index) {
-				char c;
-
-				c = *text;
+				char c = *text;
 				if (c == ' ' || c == '\0') {
 					token[token_length] = '\0';
 					++text;

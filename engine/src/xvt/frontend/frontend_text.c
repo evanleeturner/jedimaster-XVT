@@ -104,14 +104,6 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 					unsigned int font_size,
 					const char *ignored_chars)
 {
-	int mouse_x;
-	int completed;
-	int mouse_y;
-	struct RECT previous_clip_rect;
-	struct RECT text_clip_rect;
-	int text_width;
-	int rect_width;
-
 	if (!g_text_field_color_initialized) {
 		g_text_field_color =
 			frontend_display_pack_rgb(0xFF, 0xFF, 0xFF);
@@ -119,7 +111,9 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 	}
 	g_text_field_cursor_char_index = strlen(text);
 	g_text_field_length = strlen(text);
-	completed = 0;
+	int completed = 0;
+	int mouse_x;
+	int mouse_y;
 	frontend_cursor_get_pos(&mouse_x, &mouse_y);
 	if (frontend_draw_point_in_rect(rect, mouse_x, mouse_y) &&
 	    (frontend_mouse_get_left_click() ||
@@ -133,9 +127,7 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 	if (g_active_text_field_id == field_id) {
 		uint8_t input_char = keyboard_peek_char();
 		if (ignored_chars != NULL) {
-			int ignored_index;
-
-			for (ignored_index = 0;
+			for (int ignored_index = 0;
 			     ignored_chars[ignored_index] != '\0';
 			     ++ignored_index) {
 				if ((uint8_t)ignored_chars[ignored_index] ==
@@ -174,8 +166,8 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 		}
 	}
 
-	text_width = frontend_text_measure_width(text, font_size);
-	rect_width = rect->right - rect->left;
+	int text_width = frontend_text_measure_width(text, font_size);
+	int rect_width = rect->right - rect->left;
 	/* From here mouse_x holds the text's horizontal scroll: 0, or the negative shift that keeps the end of
 	 * text wider than the field in view. */
 	mouse_x = 0;
@@ -185,7 +177,9 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 		mouse_x -= text_width;
 		++mouse_x;
 	}
+	struct RECT previous_clip_rect;
 	frontend_display_get_screen_clip_rect(&previous_clip_rect);
+	struct RECT text_clip_rect;
 	frontend_draw_rect_assign(&text_clip_rect, rect->left + 2,
 				  rect->top + 2, rect->right, rect->bottom);
 	frontend_display_set_screen_clip_rect640x480(&text_clip_rect);
@@ -193,12 +187,10 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 			   rect->top + 2, g_text_field_color);
 	frontend_display_set_screen_clip_rect640x480(&previous_clip_rect);
 	if (g_active_text_field_id == field_id) {
-		int caret_offset_x;
-		char saved_char;
-
-		saved_char = text[g_text_field_cursor_char_index];
+		char saved_char = text[g_text_field_cursor_char_index];
 		text[g_text_field_cursor_char_index] = '\0';
-		caret_offset_x = frontend_text_measure_width(text, font_size);
+		int caret_offset_x =
+			frontend_text_measure_width(text, font_size);
 		text[g_text_field_cursor_char_index] = saved_char;
 		if (frontend_display_get_frame_counter() % 10 < 5) {
 			/* previous_clip_rect is reused here as the caret's rectangle. */
@@ -232,10 +224,6 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 // FUNCTION: XVT 0x4DADA0
 int frontend_text_load_font(int point_size)
 {
-	char scratch_buffer[1024];
-	struct bitmap_font *font;
-	xvt_file *stream;
-	int slot_index;
 #ifndef XVT_MODERN
 	void *font_handle;
 	void *dc;
@@ -260,7 +248,7 @@ int frontend_text_load_font(int point_size)
 		point_size = 1;
 	}
 
-	font = NULL;
+	struct bitmap_font *font = NULL;
 #ifndef XVT_MODERN
 	blob_capacity = 0;
 #endif
@@ -268,6 +256,7 @@ int frontend_text_load_font(int point_size)
 		return 1;
 	}
 
+	int slot_index;
 	for (slot_index = 0; slot_index < 10; ++slot_index) {
 		if (g_front_state.font_slots[slot_index].in_use == 0) {
 			font = &g_front_state.font_slots[slot_index];
@@ -278,8 +267,9 @@ int frontend_text_load_font(int point_size)
 		return 0;
 	}
 
+	char scratch_buffer[1024];
 	sprintf(scratch_buffer, "times%u.abp", point_size);
-	stream = file_open(scratch_buffer, g_file_mode_read_binary);
+	xvt_file *stream = file_open(scratch_buffer, g_file_mode_read_binary);
 	if (stream != NULL) {
 		file_close(stream);
 		if (frontend_text_load_font_atlas_file(scratch_buffer,
@@ -415,9 +405,7 @@ int frontend_text_load_font(int point_size)
 					font->glyph_width[glyph_index]);
 				break;
 			case 16: {
-				int column_index;
-
-				for (column_index = 0;
+				for (int column_index = 0;
 				     column_index <
 				     font->glyph_width[glyph_index];
 				     ++column_index) {
@@ -520,9 +508,7 @@ int frontend_text_load_font(int point_size)
 // FUNCTION: XVT 0x4DB420
 void frontend_text_free_all_fonts(void)
 {
-	int index;
-
-	for (index = 0; index < 10; ++index) {
+	for (int index = 0; index < 10; ++index) {
 		if (g_front_state.font_slots[index].in_use == 1) {
 			if (g_front_state.font_slots[index].p_glyph_bits != 0) {
 				free(g_front_state.font_slots[index]
@@ -548,9 +534,7 @@ void frontend_text_free_all_fonts(void)
 // FUNCTION: XVT 0x4DB470
 void frontend_text_free_font(unsigned int point_size)
 {
-	int index;
-
-	for (index = 0; index < 10; ++index) {
+	for (int index = 0; index < 10; ++index) {
 		if (g_front_state.font_slots[index].in_use == 1 &&
 		    g_front_state.font_slots[index].point_size ==
 			    (uint8_t)point_size) {
@@ -577,34 +561,27 @@ void frontend_text_free_font(unsigned int point_size)
 // FUNCTION: XVT 0x4DB4E0
 int frontend_text_draw(int font_size, const char *str, int x, int y, int color)
 {
-	struct bitmap_font *font;
-	int current_color;
-	int text_index;
-	int result;
-	struct image_resource glyph;
-
 	if (str == NULL) {
 		return 0;
 	}
 	if (font_size < 0 || font_size > 255) {
 		return 0;
 	}
-	font = g_front_state.font_by_size[font_size];
+	struct bitmap_font *font = g_front_state.font_by_size[font_size];
 	if (font == NULL) {
 		return 0;
 	}
 
-	current_color = color;
-	text_index = 0;
-	result = 0;
+	int current_color = color;
+	int text_index = 0;
+	int result = 0;
+	struct image_resource glyph;
 	if (*str != '\0') {
 		do {
-			uint8_t character;
-
 			if (x >= 640) {
 				break;
 			}
-			character = (uint8_t)str[text_index];
+			uint8_t character = (uint8_t)str[text_index];
 			if (character == 1) {
 				current_color = color;
 			} else if (character >= 2 && character <= 6) {
@@ -640,40 +617,31 @@ int frontend_text_draw(int font_size, const char *str, int x, int y, int color)
 int frontend_text_draw_centered(int font_size, const char *str,
 				const struct RECT *rect, int color)
 {
-	struct bitmap_font *font;
-	int current_color;
-	int x;
-	int text_index;
-	int y;
-	int result;
-	struct image_resource glyph;
-
 	if (str == NULL) {
 		return 0;
 	}
 	if (font_size < 0 || font_size > 255) {
 		return 0;
 	}
-	font = g_front_state.font_by_size[font_size];
+	struct bitmap_font *font = g_front_state.font_by_size[font_size];
 	if (font == NULL) {
 		return 0;
 	}
 
-	current_color = color;
-	x = rect->left + ((rect->right - rect->left) >> 1) -
-	    (frontend_text_measure_width(str, font_size) >> 1);
-	text_index = 0;
-	y = rect->top + ((rect->bottom - rect->top) >> 1);
-	result = 0;
+	int current_color = color;
+	int x = rect->left + ((rect->right - rect->left) >> 1) -
+		(frontend_text_measure_width(str, font_size) >> 1);
+	int text_index = 0;
+	int y = rect->top + ((rect->bottom - rect->top) >> 1);
+	int result = 0;
 	y -= frontend_text_get_font_height(font_size) >> 1;
+	struct image_resource glyph;
 	if (*str != '\0') {
 		do {
-			uint8_t character;
-
 			if (x >= 640) {
 				break;
 			}
-			character = (uint8_t)str[text_index];
+			uint8_t character = (uint8_t)str[text_index];
 			if (character == 1) {
 				current_color = color;
 			} else if (character >= 2 && character <= 6) {
@@ -710,33 +678,26 @@ int frontend_text_draw_aligned_in_rect(int font_size, const char *str,
 				       const struct RECT *rect, int center_h,
 				       int center_v, int color)
 {
-	int current_color;
-	int half_width;
-	int x;
-	int text_index;
-	struct bitmap_font *font;
-	int y;
-	int result;
-	struct image_resource glyph;
-
 	if (str == NULL) {
 		return 0;
 	}
 	if (font_size < 0 || font_size > 255) {
 		return 0;
 	}
-	font = g_front_state.font_by_size[font_size];
+	struct bitmap_font *font = g_front_state.font_by_size[font_size];
 	if (font == NULL) {
 		return 0;
 	}
 
-	current_color = color;
-	half_width = frontend_text_measure_width(str, font_size) >> 1;
+	int current_color = color;
+	int half_width = frontend_text_measure_width(str, font_size) >> 1;
+	int x;
 	if (center_h) {
 		x = rect->left + ((rect->right - rect->left) >> 1) - half_width;
 	} else {
 		x = rect->left;
 	}
+	int y;
 	if (center_v) {
 		y = rect->top + ((rect->bottom - rect->top) >> 1);
 		y -= frontend_text_get_font_height(font_size) >> 1;
@@ -744,16 +705,15 @@ int frontend_text_draw_aligned_in_rect(int font_size, const char *str,
 		y = rect->top;
 	}
 
-	text_index = 0;
-	result = 0;
+	int text_index = 0;
+	int result = 0;
+	struct image_resource glyph;
 	if (*str != '\0') {
 		do {
-			uint8_t character;
-
 			if (x >= 640) {
 				break;
 			}
-			character = (uint8_t)str[text_index];
+			uint8_t character = (uint8_t)str[text_index];
 			if (character == 1) {
 				current_color = color;
 			} else if (character >= 2 && character <= 6) {
@@ -797,48 +757,39 @@ int frontend_text_draw_line_array_in_rect(int font_size, const char **lines,
 					  int center_vertically,
 					  int line_spacing)
 {
-	const char **line_cursor;
-	int draw_y;
-	int current_color;
-	int draw_status;
-	int lines_remaining;
-	int half_line_width;
-	int draw_x;
-	struct bitmap_font *font;
-	int char_index;
-	const char *char_ptr;
-	int font_height;
-	struct image_resource glyph;
-
-	line_cursor = lines;
+	const char **line_cursor = lines;
 	if (line_cursor == NULL) {
 		return 0;
 	}
 	if (font_size < 0 || font_size > 255) {
 		return 0;
 	}
-	font = g_front_state.font_by_size[font_size];
+	struct bitmap_font *font = g_front_state.font_by_size[font_size];
 	if (font == NULL) {
 		return 0;
 	}
 
-	draw_status = 0;
-	current_color = color;
+	int draw_status = 0;
+	int current_color = color;
+	int draw_y;
 	if (center_vertically) {
 		draw_y = rect->top + ((rect->bottom - rect->top) >> 1);
-		font_height = frontend_text_get_font_height(font_size);
+		int font_height = frontend_text_get_font_height(font_size);
 		draw_y -= (line_spacing * (line_count - 1) +
 			   line_count * font_height) >>
 			  1;
 	} else {
 		draw_y = rect->top;
 	}
+	int draw_x;
+	struct image_resource glyph;
 	if (line_count > 0) {
-		lines_remaining = line_count;
+		int lines_remaining = line_count;
 		do {
-			half_line_width = frontend_text_measure_width(
-						  *line_cursor, font_size) >>
-					  1;
+			int half_line_width =
+				frontend_text_measure_width(*line_cursor,
+							    font_size) >>
+				1;
 			if (center_horizontally) {
 				draw_x = rect->left +
 					 ((rect->right - rect->left) >> 1) -
@@ -846,16 +797,15 @@ int frontend_text_draw_line_array_in_rect(int font_size, const char **lines,
 			} else {
 				draw_x = rect->left;
 			}
-			char_index = 0;
+			int char_index = 0;
 			if (**line_cursor != '\0') {
 				do {
-					uint8_t character;
-
 					if (draw_x >= 640) {
 						break;
 					}
-					char_ptr = &(*line_cursor)[char_index];
-					character = (uint8_t)*char_ptr;
+					const char *char_ptr =
+						&(*line_cursor)[char_index];
+					uint8_t character = (uint8_t)*char_ptr;
 					if (character == 1) {
 						current_color = color;
 					} else if (character >= 2 &&
@@ -918,21 +868,6 @@ int frontend_text_draw_wrapped(int font_size, const char *str,
 			       const struct RECT *rect, int color,
 			       int line_spacing, int first_visible_line)
 {
-	struct bitmap_font *font;
-	int x;
-	int line_index;
-	char word[256];
-	struct image_resource glyph;
-	struct RECT saved_clip;
-	int index;
-	int y;
-	int word_length;
-	int at_line_start;
-	unsigned int current_color;
-	unsigned int next_color;
-	uint8_t current_char;
-	uint8_t glyph_char;
-
 	if (str == NULL) {
 		return 0;
 	}
@@ -942,24 +877,27 @@ int frontend_text_draw_wrapped(int font_size, const char *str,
 	if (font_size < 0 || font_size > 255) {
 		return 0;
 	}
-	font = g_front_state.font_by_size[font_size];
+	struct bitmap_font *font = g_front_state.font_by_size[font_size];
 	if (font == NULL) {
 		return 0;
 	}
 
-	index = 0;
-	x = rect->left;
-	line_index = 0;
-	word_length = 0;
-	at_line_start = 1;
-	current_color = (unsigned int)color;
-	y = rect->top;
+	int index = 0;
+	int x = rect->left;
+	int line_index = 0;
+	int word_length = 0;
+	int at_line_start = 1;
+	unsigned int current_color = (unsigned int)color;
+	int y = rect->top;
+	struct RECT saved_clip;
 	frontend_display_get_screen_clip_rect(&saved_clip);
 	frontend_display_set_screen_clip_rect640x480(rect);
 
+	char word[256];
+	struct image_resource glyph;
 	do {
-		next_color = current_color;
-		current_char = (uint8_t)str[index];
+		unsigned int next_color = current_color;
+		uint8_t current_char = (uint8_t)str[index];
 		if (current_char == 1) {
 			next_color = (unsigned int)color;
 		} else if (current_char >= 2 && current_char <= 7) {
@@ -972,9 +910,8 @@ int frontend_text_draw_wrapped(int font_size, const char *str,
 			word[word_length++] = (char)current_char;
 		} else {
 			int i;
-			int *char_index_ptr;
 
-			char_index_ptr = &i;
+			int *char_index_ptr = &i;
 			if (at_line_start == 1 && current_char == ' ') {
 				++index;
 				continue;
@@ -1005,7 +942,7 @@ int frontend_text_draw_wrapped(int font_size, const char *str,
 						continue;
 					}
 				} else {
-					glyph_char =
+					uint8_t glyph_char =
 						(uint8_t)word[*char_index_ptr];
 					glyph.width =
 						font->glyph_width[glyph_char];
@@ -1057,12 +994,10 @@ int frontend_text_draw_wrapped(int font_size, const char *str,
 // FUNCTION: XVT 0x4DBF70
 int frontend_text_get_font_height(int font_size)
 {
-	struct bitmap_font *font;
-
 	if (font_size < 0 || font_size > 255) {
 		return 0;
 	}
-	font = g_front_state.font_by_size[font_size];
+	struct bitmap_font *font = g_front_state.font_by_size[font_size];
 	if (font == 0) {
 		return 0;
 	}
@@ -1076,10 +1011,6 @@ int frontend_text_get_font_height(int font_size)
 // FUNCTION: XVT 0x4DBFA0
 int frontend_text_measure_width(const char *str, int font_size)
 {
-	struct bitmap_font *font;
-	int width;
-	int index;
-
 	if (str == 0) {
 		return 0;
 	}
@@ -1087,13 +1018,13 @@ int frontend_text_measure_width(const char *str, int font_size)
 		return 0;
 	}
 
-	font = g_front_state.font_by_size[font_size];
+	struct bitmap_font *font = g_front_state.font_by_size[font_size];
 	if (font == 0) {
 		return 0;
 	}
 
-	width = 0;
-	index = 0;
+	int width = 0;
+	int index = 0;
 	if (*str != '\0') {
 		do {
 			if ((uint8_t)str[index] > 6u) {
@@ -1117,12 +1048,10 @@ int frontend_text_measure_width(const char *str, int font_size)
 void frontend_text_save_font_atlas_file(const char *file_name, void **font,
 					unsigned int glyph_blob_size)
 {
-	uint8_t disk_header[0x60B];
-	xvt_file *stream;
-
 	if (font != NULL) {
-		stream = file_open(file_name, "wb");
+		xvt_file *stream = file_open(file_name, "wb");
 		if (stream != NULL) {
+			uint8_t disk_header[0x60B];
 			memcpy(disk_header, font, sizeof(disk_header));
 			*(unsigned int *)disk_header = glyph_blob_size;
 			file_write_bytes(stream, disk_header,
@@ -1146,21 +1075,18 @@ void frontend_text_save_font_atlas_file(const char *file_name, void **font,
 // FUNCTION: XVT 0x4DC0A0
 int frontend_text_load_font_atlas_file(const char *file_name, int slot_index)
 {
-	struct bitmap_font *font;
-	xvt_file *stream;
-	size_t glyph_blob_size;
-	void *glyph_bits;
 #ifdef XVT_MODERN
 	uint8_t disk_header[0x60B];
 	uint32_t disk_glyph_blob_size;
 #endif
 
-	font = &g_front_state.font_slots[slot_index];
-	stream = file_open(file_name, "rb");
+	struct bitmap_font *font = &g_front_state.font_slots[slot_index];
+	xvt_file *stream = file_open(file_name, "rb");
 	if (stream == NULL) {
 		return 0;
 	}
 
+	size_t glyph_blob_size;
 #ifdef XVT_MODERN
 	if (!file_read_bytes(stream, disk_header, sizeof(disk_header))) {
 		file_close(stream);
@@ -1184,7 +1110,7 @@ int frontend_text_load_font_atlas_file(const char *file_name, int slot_index)
 	file_read_bytes(stream, font, 0x60B);
 	glyph_blob_size = *(const uint32_t *)(const void *)font;
 #endif
-	glyph_bits = malloc(glyph_blob_size);
+	void *glyph_bits = malloc(glyph_blob_size);
 	font->p_glyph_bits = glyph_bits;
 	if (glyph_bits == NULL) {
 		font->in_use = 0;
@@ -1262,35 +1188,22 @@ void frontend_text_draw_formatted_wrapped_text(const struct RECT *rect,
 					       int suppress_centered_headings)
 {
 	struct RECT draw_rect;
-	char line_buffer[320];
-	int16_t line_start;
-	int16_t scan_index;
-	int16_t segment_start;
-	int16_t rect_width;
-	int16_t line_end;
-	int16_t last_space;
-	int16_t done;
-	int saved_scan_index;
-	const uint8_t *current_ptr;
-	uint8_t current_char;
-	int16_t color_active;
-	int16_t source_index;
-	int16_t output_index;
 
 	frontend_draw_rect_copy(&draw_rect, rect);
-	line_start = -1;
-	scan_index = 0;
-	segment_start = 0;
+	int16_t line_start = -1;
+	int16_t scan_index = 0;
+	int16_t segment_start = 0;
 	draw_rect.bottom = draw_rect.top + 13;
+	char line_buffer[320];
 	line_buffer[0] = '\0';
-	rect_width = (int16_t)draw_rect.right - (int16_t)draw_rect.left;
-	line_end = -1;
-	last_space = 0;
-	done = 0;
+	int16_t rect_width = (int16_t)draw_rect.right - (int16_t)draw_rect.left;
+	int16_t line_end = -1;
+	int16_t last_space = 0;
+	int16_t done = 0;
 	do {
-		saved_scan_index = scan_index;
-		current_ptr = &text[scan_index];
-		current_char = *current_ptr;
+		int saved_scan_index = scan_index;
+		const uint8_t *current_ptr = &text[scan_index];
+		uint8_t current_char = *current_ptr;
 		if (*current_ptr == '$' || current_char == '\0') {
 			line_start = segment_start;
 			if ((int16_t)suppress_centered_headings != 0 ||
@@ -1339,8 +1252,8 @@ void frontend_text_draw_formatted_wrapped_text(const struct RECT *rect,
 			}
 		}
 
-		color_active = 0;
-		for (source_index = 0; line_start > source_index;
+		int16_t color_active = 0;
+		for (int16_t source_index = 0; line_start > source_index;
 		     ++source_index) {
 			if (text[source_index] == '[') {
 				color_active = 1;
@@ -1350,7 +1263,7 @@ void frontend_text_draw_formatted_wrapped_text(const struct RECT *rect,
 			}
 		}
 		if (line_start != -1) {
-			output_index = 0;
+			int16_t output_index = 0;
 			if (color_active) {
 				line_buffer[output_index++] = 2;
 			}

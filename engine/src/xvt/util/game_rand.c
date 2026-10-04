@@ -36,23 +36,17 @@ uint16_t g_game_rand2_feedback_state = 0;
 // FUNCTION: XVT 0x425CB0
 int16_t game_rand(void)
 {
-	int16_t result;
-	int16_t iterations;
-	int carry_out;
-	int seed_sign;
-	uint16_t high;
-
-	result = g_game_rand_value_state;
-	iterations = 16;
+	int16_t result = g_game_rand_value_state;
+	int16_t iterations = 16;
 	do {
-		high = (uint8_t)(g_game_rand_feedback_state >> 8);
-		carry_out =
+		uint16_t high = (uint8_t)(g_game_rand_feedback_state >> 8);
+		int carry_out =
 			(((uint16_t)(high ^
 				     (uint16_t)((uint8_t)
 							g_game_rand_feedback_state *
 						2))) &
 			 0x80) != 0;
-		seed_sign = (high & 0x80) != 0;
+		int seed_sign = (high & 0x80) != 0;
 		g_game_rand_feedback_state =
 			(int16_t)(2 * g_game_rand_feedback_state + carry_out);
 		result = (int16_t)(2 * result + seed_sign);
@@ -69,20 +63,15 @@ int16_t game_rand(void)
 // FUNCTION: XVT 0x425D10
 uint16_t game_rand2(void)
 {
-	uint16_t result;
-	int16_t iterations;
-	unsigned char carry_out;
-	unsigned char seed_sign;
-
-	result = g_game_rand2_value_state;
-	iterations = 16;
+	uint16_t result = g_game_rand2_value_state;
+	int16_t iterations = 16;
 	do {
-		uint16_t feedback;
-
-		feedback = (uint8_t)(g_game_rand2_feedback_state >> 8) ^
-			   ((uint8_t)g_game_rand2_feedback_state * 2);
-		carry_out = (feedback & 0x80) != 0;
-		seed_sign = (g_game_rand2_feedback_state & 0x8000) != 0;
+		uint16_t feedback =
+			(uint8_t)(g_game_rand2_feedback_state >> 8) ^
+			((uint8_t)g_game_rand2_feedback_state * 2);
+		unsigned char carry_out = (feedback & 0x80) != 0;
+		unsigned char seed_sign =
+			(g_game_rand2_feedback_state & 0x8000) != 0;
 		g_game_rand2_feedback_state =
 			(uint16_t)(2 * g_game_rand2_feedback_state + carry_out);
 		result = (uint16_t)(2 * result + seed_sign);
@@ -96,12 +85,10 @@ uint16_t game_rand2(void)
 // FUNCTION: XVT 0x459B10
 uint16_t game_rand_range(uint16_t modulus)
 {
-	uint16_t value;
-
 	if (modulus == 0) {
 		return 0;
 	}
 
-	value = (uint16_t)game_rand();
+	uint16_t value = (uint16_t)game_rand();
 	return (uint16_t)(value - (value / modulus) * modulus);
 }

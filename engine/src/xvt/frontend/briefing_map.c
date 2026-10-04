@@ -164,16 +164,12 @@ int16_t g_briefing_map_labels_changed = 0;
 int16_t briefing_map_select_nearest_mission_point14_flight_group(
 	const struct RECT *viewport_rect, int16_t mouse_x, int16_t mouse_y)
 {
-	int distance_x;
-	int distance_y;
 	int16_t selected_flight_group_idx = 0;
 	int16_t projected_y;
 	int16_t projected_x;
-	int16_t best_distance;
-	int16_t flight_group_idx;
 
-	best_distance = 999;
-	flight_group_idx = 0;
+	int16_t best_distance = 999;
+	int16_t flight_group_idx = 0;
 	for (;
 	     (int16_t)g_frontend_mission.flight_group_count > flight_group_idx;
 	     flight_group_idx++) {
@@ -188,9 +184,9 @@ int16_t briefing_map_select_nearest_mission_point14_flight_group(
 			briefing_map_project_point_to_viewport(
 				viewport_rect, map_x, map_y, &projected_x,
 				&projected_y);
-			distance_x = abs(mouse_x - projected_x);
+			int distance_x = abs(mouse_x - projected_x);
 			if (distance_x < best_distance) {
-				distance_y = abs(mouse_y - projected_y);
+				int distance_y = abs(mouse_y - projected_y);
 				if (distance_y < best_distance) {
 					best_distance = (int16_t)distance_y;
 					if (distance_y <= distance_x) {
@@ -221,16 +217,13 @@ void briefing_map_project_point_to_viewport(const struct RECT *viewport_rect,
 					    int16_t map_x, int16_t map_y,
 					    int16_t *out_x, int16_t *out_y)
 {
-	int projected_x;
-	int projected_y;
-
-	projected_x = g_briefing_map_scale.x *
-		      (map_x - g_briefing_map_center.x) / 256;
+	int projected_x = g_briefing_map_scale.x *
+			  (map_x - g_briefing_map_center.x) / 256;
 	*out_x = (int16_t)projected_x;
 	*out_x = (int16_t)(projected_x + viewport_rect->left +
 			   ((viewport_rect->right - viewport_rect->left) >> 1));
-	projected_y = g_briefing_map_scale.y *
-		      (map_y - g_briefing_map_center.y) / 256;
+	int projected_y = g_briefing_map_scale.y *
+			  (map_y - g_briefing_map_center.y) / 256;
 	*out_y = (int16_t)projected_y;
 	*out_y = (int16_t)(projected_y + viewport_rect->top +
 			   ((viewport_rect->bottom - viewport_rect->top) >> 1));
@@ -268,21 +261,14 @@ int16_t briefing_map_step_s16_toward_target(int16_t current, int16_t target,
 // FUNCTION: XVT 0x4F7C50
 void briefing_map_animate_view_state(void)
 {
-	int16_t maximum_difference;
-	int16_t axis_difference;
-	int16_t scale_step;
-	int16_t scale_divisor;
-	int16_t center_difference;
-	int16_t index;
-
-	maximum_difference =
+	int16_t maximum_difference =
 		abs(g_briefing_map_scale.x - g_briefing_map_target_scale.x);
-	axis_difference =
+	int16_t axis_difference =
 		abs(g_briefing_map_scale.y - g_briefing_map_target_scale.y);
 	if (maximum_difference < axis_difference) {
 		maximum_difference = axis_difference;
 	}
-	scale_step = 2;
+	int16_t scale_step = 2;
 	if (maximum_difference >= 12) {
 		scale_step = 8;
 	}
@@ -296,12 +282,13 @@ void briefing_map_animate_view_state(void)
 		g_briefing_map_scale.y, g_briefing_map_target_scale.y,
 		scale_step);
 
+	int16_t scale_divisor;
 	if (g_briefing_map_scale.x != 0) {
 		scale_divisor = 256 / g_briefing_map_scale.x + 1;
 	} else {
 		scale_divisor = 1;
 	}
-	center_difference =
+	int16_t center_difference =
 		abs(g_briefing_map_center.x - g_briefing_map_target_center.x);
 	axis_difference =
 		abs(g_briefing_map_center.y - g_briefing_map_target_center.y);
@@ -324,7 +311,7 @@ void briefing_map_animate_view_state(void)
 		g_briefing_map_center.y, g_briefing_map_target_center.y,
 		scale_divisor);
 
-	index = 0;
+	int16_t index = 0;
 	do {
 		if (g_briefing_map_fg_marker_active[index] != 0) {
 			++g_briefing_map_fg_marker_age[index];
@@ -362,13 +349,12 @@ int16_t briefing_map_select_flight_group_at_cursor(
 	const struct RECT *viewport_rect, const struct RECT *clip_rect,
 	int left_down, int right_down, int16_t mouse_x, int16_t mouse_y)
 {
-	struct RECT dst;
-
 	(void)viewport_rect;
 	(void)clip_rect;
 	(void)left_down;
 	(void)right_down;
 
+	struct RECT dst;
 	frontend_draw_rect_copy(&dst, &g_briefing_map_panel_rect);
 	briefing_map_select_nearest_mission_point14_flight_group(&dst, mouse_x,
 								 mouse_y);
@@ -390,18 +376,15 @@ briefing_map_draw_viewport_and_selection(const struct RECT *viewport_rect,
 					 const struct RECT *clip_rect,
 					 int16_t highlight_phase)
 {
-	struct RECT title_rect;
-	struct RECT narration_rect;
-	struct RECT map_viewport_rect;
-	struct RECT clipped_rect;
-
 	(void)highlight_phase;
 
+	struct RECT title_rect;
 	frontend_draw_rect_copy(&title_rect, &g_briefing_map_panel_rect);
 	frontend_draw_rect_offset_xy(&title_rect, viewport_rect->left,
 				     viewport_rect->top);
 	title_rect.bottom = title_rect.top + 12;
 
+	struct RECT narration_rect;
 	frontend_draw_rect_copy(&narration_rect, &g_briefing_map_panel_rect);
 	frontend_draw_rect_offset_xy(&narration_rect, viewport_rect->left,
 				     viewport_rect->top);
@@ -420,10 +403,12 @@ briefing_map_draw_viewport_and_selection(const struct RECT *viewport_rect,
 		}
 	}
 
+	struct RECT map_viewport_rect;
 	frontend_draw_rect_copy(&map_viewport_rect, &g_briefing_map_panel_rect);
 	frontend_draw_rect_offset_xy(&map_viewport_rect, viewport_rect->left,
 				     viewport_rect->top);
 	map_viewport_rect.bottom -= 28;
+	struct RECT clipped_rect;
 	frontend_draw_rect_copy(&clipped_rect, clip_rect);
 	frontend_display_set_screen_clip_rect640x480(&map_viewport_rect);
 	frontend_draw_rect_clip_to_bounds(&clipped_rect);
@@ -450,34 +435,21 @@ briefing_map_draw_viewport_and_selection(const struct RECT *viewport_rect,
 void briefing_map_draw_grid(const struct RECT *viewport_rect,
 			    const struct RECT *clip_rect)
 {
-	int16_t draw_x;
-	int16_t draw_y;
-	int16_t x_phase;
-	int16_t y_phase;
-	int16_t draw_all_minor_lines;
-	int16_t minor_color;
-	int16_t major_color;
-	int16_t x_grid_index;
-	int16_t y_grid_index;
-	int16_t grid_start_x;
-	int16_t grid_start_y;
-	int center_remainder;
-	struct RECT dst;
-
 	(void)clip_rect;
 
-	major_color = (int16_t)frontend_display_pack_rgb(0x96, 0, 0);
-	minor_color = (int16_t)frontend_display_pack_rgb(0x50, 0, 0);
+	int16_t major_color = (int16_t)frontend_display_pack_rgb(0x96, 0, 0);
+	int16_t minor_color = (int16_t)frontend_display_pack_rgb(0x50, 0, 0);
+	struct RECT dst;
 	frontend_draw_rect_copy(&dst, viewport_rect);
 
-	x_grid_index = g_briefing_map_center.x / 256;
+	int16_t x_grid_index = g_briefing_map_center.x / 256;
 	if (g_briefing_map_center.x > 0 &&
 	    (uint8_t)g_briefing_map_center.x != 0) {
 		++x_grid_index;
 	}
-	center_remainder = -g_briefing_map_center.x;
+	int center_remainder = -g_briefing_map_center.x;
 	center_remainder &= 0xFF;
-	grid_start_x =
+	int16_t grid_start_x =
 		(int16_t)(dst.left + ((dst.right - dst.left) >> 1) +
 			  ((g_briefing_map_scale.x * center_remainder) >> 8));
 	while (grid_start_x > dst.left) {
@@ -485,14 +457,14 @@ void briefing_map_draw_grid(const struct RECT *viewport_rect,
 		--x_grid_index;
 	}
 
-	y_grid_index = g_briefing_map_center.y / 256;
+	int16_t y_grid_index = g_briefing_map_center.y / 256;
 	if (g_briefing_map_center.y > 0 &&
 	    (uint8_t)g_briefing_map_center.y != 0) {
 		++y_grid_index;
 	}
 	center_remainder = -g_briefing_map_center.y;
 	center_remainder &= 0xFF;
-	grid_start_y =
+	int16_t grid_start_y =
 		(int16_t)(dst.top + ((dst.bottom - dst.top) >> 1) +
 			  ((g_briefing_map_scale.y * center_remainder) >> 8));
 	while (grid_start_y > dst.top) {
@@ -500,12 +472,12 @@ void briefing_map_draw_grid(const struct RECT *viewport_rect,
 		--y_grid_index;
 	}
 
-	draw_x = grid_start_x;
-	draw_y = grid_start_y;
-	x_phase = x_grid_index;
-	y_phase = y_grid_index;
+	int16_t draw_x = grid_start_x;
+	int16_t draw_y = grid_start_y;
+	int16_t x_phase = x_grid_index;
+	int16_t y_phase = y_grid_index;
 	if (g_briefing_map_scale.x >= 16) {
-		draw_all_minor_lines = g_briefing_map_scale.x >= 32;
+		int16_t draw_all_minor_lines = g_briefing_map_scale.x >= 32;
 		if (grid_start_x < dst.right) {
 			do {
 				if ((x_phase & 3) != 0 &&
@@ -579,20 +551,15 @@ void briefing_map_draw_grid(const struct RECT *viewport_rect,
 void briefing_map_draw_overlays(const struct RECT *viewport_rect,
 				const struct RECT *clip_rect)
 {
-	int16_t projected_x;
-	int16_t projected_y;
-	int16_t index;
-	int player_icon_number;
 	struct RECT map_rect;
-	char text[40];
 
 	frontend_draw_rect_copy(&map_rect, viewport_rect);
-	index = 0;
+	int16_t index = 0;
+	int16_t projected_x;
+	int16_t projected_y;
 	do {
 		if (g_briefing_map_fg_marker_active[index] != 0) {
-			int16_t flight_group_idx;
-
-			flight_group_idx =
+			int16_t flight_group_idx =
 				g_briefing_map_fg_marker_flight_group_idx
 					[index];
 			briefing_map_project_point_to_viewport(
@@ -611,19 +578,18 @@ void briefing_map_draw_overlays(const struct RECT *viewport_rect,
 		++index;
 	} while (index < 8);
 
+	char text[40];
 	for (index = 0; index < 8; ++index) {
 		if (g_briefing_map_label_active[index] != 0) {
-			int16_t character_index;
-			int16_t text_index;
-
-			text_index = g_briefing_map_label_text_idx[index];
+			int16_t text_index =
+				g_briefing_map_label_text_idx[index];
 			briefing_map_project_point_to_viewport(
 				&map_rect, g_briefing_map_label_x[index],
 				g_briefing_map_label_y[index], &projected_x,
 				&projected_y);
 			strcpy(text, g_briefing_map_label_texts[text_index]);
-			for (character_index = 0; text[character_index] != '\0';
-			     ++character_index) {
+			for (int16_t character_index = 0;
+			     text[character_index] != '\0'; ++character_index) {
 				if (text[character_index] == '[') {
 					text[character_index] = 2;
 				}
@@ -638,20 +604,16 @@ void briefing_map_draw_overlays(const struct RECT *viewport_rect,
 		}
 	}
 
-	player_icon_number = 1;
+	int player_icon_number = 1;
 	for (index = 0; index < (int16_t)g_frontend_mission.flight_group_count;
 	     ++index) {
-		int16_t craft_type;
-		int16_t map_x;
-		int16_t map_y;
-		int mission_point_index;
-
-		craft_type = g_frontend_mission.flight_groups[index].craft_type;
-		mission_point_index = g_active_briefing_index + 14;
-		map_x = g_frontend_mission.flight_groups[index]
-				.mission_point_x[mission_point_index];
-		map_y = g_frontend_mission.flight_groups[index]
-				.mission_point_y[mission_point_index];
+		int16_t craft_type =
+			g_frontend_mission.flight_groups[index].craft_type;
+		int mission_point_index = g_active_briefing_index + 14;
+		int16_t map_x = g_frontend_mission.flight_groups[index]
+					.mission_point_x[mission_point_index];
+		int16_t map_y = g_frontend_mission.flight_groups[index]
+					.mission_point_y[mission_point_index];
 		if (g_frontend_mission.flight_groups[index]
 			    .mission_point_enabled[mission_point_index] != 0) {
 			int16_t icon_color_index;
@@ -683,17 +645,13 @@ void briefing_map_draw_overlays(const struct RECT *viewport_rect,
 			}
 
 			if (craft_type >= 0) {
-				int icon_height;
-				int icon_index;
-				int icon_width;
-				struct RECT *icon_rect;
-
-				icon_index =
+				int icon_index =
 					g_map_icon_by_craft_type[craft_type];
-				icon_rect = &g_map_icon_rects[icon_index];
-				icon_width =
+				struct RECT *icon_rect =
+					&g_map_icon_rects[icon_index];
+				int icon_width =
 					icon_rect->right - icon_rect->left + 1;
-				icon_height =
+				int icon_height =
 					icon_rect->bottom - icon_rect->top + 1;
 				briefing_map_project_point_to_viewport(
 					&map_rect, map_x, map_y, &projected_x,
@@ -763,47 +721,39 @@ void briefing_map_draw_revealed_label(const char *text,
 				      int16_t y, int16_t reveal_count,
 				      int16_t shade_group)
 {
-	struct RECT rect;
-	char visible_text[64];
-	int16_t shade_base;
-	int16_t text_length;
-	int16_t visible_count;
-	int16_t reveal_phase;
-	int16_t shade_index;
-	int16_t text_width;
-	int shade_color;
-	int visible_index;
-	int16_t final_shade_index;
-
 	(void)color_ramp_group;
 
 	if (reveal_count < 0) {
 		return;
 	}
 
-	text_length = (int16_t)strlen(text);
+	int16_t text_length = (int16_t)strlen(text);
+	char visible_text[64];
 	strcpy(visible_text, text);
-	shade_base = (int16_t)(8 * shade_group);
+	int16_t shade_base = (int16_t)(8 * shade_group);
 	if (text_length + 2 > reveal_count) {
+		int16_t visible_count;
 		if (text_length >= reveal_count) {
 			visible_text[reveal_count] = '\0';
 			visible_count = reveal_count;
 		} else {
 			visible_count = text_length;
 		}
-		reveal_phase = reveal_count;
+		int16_t reveal_phase = reveal_count;
 		if (reveal_phase > 3) {
 			reveal_phase = 3;
 		}
-		shade_index = (int16_t)(shade_base + 2 * (3 - reveal_phase));
-		text_width =
+		int16_t shade_index =
+			(int16_t)(shade_base + 2 * (3 - reveal_phase));
+		int16_t text_width =
 			(int16_t)frontend_text_measure_width(visible_text, 10);
 		while (shade_index <= shade_base + 6 && visible_count > 0) {
-			shade_color = g_text_shade_ramps[0][shade_index++];
-			visible_index = visible_count--;
+			int shade_color = g_text_shade_ramps[0][shade_index++];
+			int visible_index = visible_count--;
 			visible_text[visible_index] = '\0';
 			frontend_text_draw(10, visible_text, x, y, shade_color);
 		}
+		struct RECT rect;
 		frontend_draw_rect_assign(&rect, x + text_width + 2, y,
 					  x + text_width + 8, y + 6);
 		if (text_length > reveal_count) {
@@ -813,6 +763,7 @@ void briefing_map_draw_revealed_label(const char *text,
 		}
 	} else {
 		strcpy(visible_text, text);
+		int16_t final_shade_index;
 		if (text_length + 5 > reveal_count) {
 			final_shade_index =
 				(int16_t)(text_length - reveal_count +
@@ -840,27 +791,16 @@ void briefing_map_draw_craft_icon_highlight(const struct RECT *viewport_rect,
 					    int flight_group_index,
 					    int highlight_phase)
 {
-	int flight_group_idx;
-	int16_t craft_type;
-	int16_t color_base;
-	int16_t screen_x;
-	int16_t screen_y;
-	int16_t map_x;
-	int16_t map_y;
-	int map_icon_index;
-	int icon_width;
-	int icon_height;
-	struct RECT rect;
-
 	(void)clip_rect;
 
-	flight_group_idx = (int16_t)flight_group_index;
-	craft_type =
+	int flight_group_idx = (int16_t)flight_group_index;
+	int16_t craft_type =
 		g_frontend_mission.flight_groups[flight_group_idx].craft_type;
-	map_x = g_frontend_mission.flight_groups[flight_group_idx]
-			.mission_point_x[g_active_briefing_index + 14];
-	map_y = g_frontend_mission.flight_groups[flight_group_idx]
-			.mission_point_y[g_active_briefing_index + 14];
+	int16_t map_x = g_frontend_mission.flight_groups[flight_group_idx]
+				.mission_point_x[g_active_briefing_index + 14];
+	int16_t map_y = g_frontend_mission.flight_groups[flight_group_idx]
+				.mission_point_y[g_active_briefing_index + 14];
+	int16_t color_base;
 	switch (g_frontend_mission.flight_groups[flight_group_idx].iff) {
 	case 0:
 		color_base = 0;
@@ -887,15 +827,18 @@ void briefing_map_draw_craft_icon_highlight(const struct RECT *viewport_rect,
 		return;
 	}
 
+	int16_t screen_x;
+	int16_t screen_y;
 	briefing_map_project_point_to_viewport(viewport_rect, map_x, map_y,
 					       &screen_x, &screen_y);
-	map_icon_index = g_map_icon_by_craft_type[craft_type];
-	icon_width = g_map_icon_rects[map_icon_index].right -
-		     g_map_icon_rects[map_icon_index].left + 1;
-	icon_height = g_map_icon_rects[map_icon_index].bottom -
-		      g_map_icon_rects[map_icon_index].top + 1;
+	int map_icon_index = g_map_icon_by_craft_type[craft_type];
+	int icon_width = g_map_icon_rects[map_icon_index].right -
+			 g_map_icon_rects[map_icon_index].left + 1;
+	int icon_height = g_map_icon_rects[map_icon_index].bottom -
+			  g_map_icon_rects[map_icon_index].top + 1;
 	screen_x = (int16_t)(screen_x - (icon_width >> 1));
 	screen_y = (int16_t)(screen_y - (icon_height >> 1));
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, screen_x, screen_y,
 				  screen_x + icon_width - 1,
 				  screen_y + icon_height - 1);
@@ -921,9 +864,7 @@ void briefing_map_draw_craft_icon_highlight(const struct RECT *viewport_rect,
 		}
 
 		if ((int16_t)highlight_phase >= 8) {
-			int inset;
-
-			inset = 11 - (int16_t)highlight_phase;
+			int inset = 11 - (int16_t)highlight_phase;
 			frontend_draw_rect_inset_xy(&rect, inset, inset);
 			frontend_draw_rect(
 				&rect, 0, 0,
@@ -936,18 +877,13 @@ void briefing_map_draw_craft_icon_highlight(const struct RECT *viewport_rect,
 		}
 
 		if (count > 0) {
-			int16_t repeat_count;
-
-			repeat_count = count;
+			int16_t repeat_count = count;
 			do {
-				int *tint_color;
-				int tint_index;
-				int draw_offset;
-
-				tint_index = shade_index;
-				draw_offset = (int16_t)offset;
+				int tint_index = shade_index;
+				int draw_offset = (int16_t)offset;
 				shade_index = (int16_t)(shade_index + 2);
-				tint_color = &g_text_shade_ramps[0][tint_index];
+				int *tint_color =
+					&g_text_shade_ramps[0][tint_index];
 				front_image_draw_sprite_rect_tinted(
 					"greyicon",
 					&g_map_icon_rects[map_icon_index],

@@ -403,8 +403,8 @@ static void check_move(void)
 	fresh_world();
 	set_motion(0, 300, 1000, -1000, 32767);
 	set_motion(1, 300, 1000, -1000, 32767);
-	int64_t steps[3];
 	g_elapsed_ticks = 1;
+	int64_t steps[3];
 	move_sum(0, 10, steps);
 	g_elapsed_ticks = 10;
 	xvt_flight_integration_move(1);
@@ -517,8 +517,8 @@ static void check_encode_decode(void)
 {
 	fresh_world();
 	struct xvt_integration_wire record = good_record();
-	struct xvt_integration_wire out;
 	XVT_ASSERT_INT_EQ(xvt_flight_integration_decode(&record, 1), 1);
+	struct xvt_integration_wire out;
 	xvt_flight_integration_encode(2, &out);
 	XVT_ASSERT_TRUE(records_equal(&out, &record));
 
@@ -546,13 +546,13 @@ static void check_encode_empty(void)
 {
 	fresh_world();
 	struct xvt_integration_wire record = good_record();
-	struct xvt_integration_wire out;
-	struct xvt_integration_wire empty;
 	XVT_ASSERT_INT_EQ(xvt_flight_integration_decode(&record, 1), 1);
+	struct xvt_integration_wire empty;
 	memset(&empty, 0, sizeof empty);
 	xvt_wire_set16(empty.slot, 2);
 
 	g_test_objects[2].object_signature = 0x999;
+	struct xvt_integration_wire out;
 	xvt_flight_integration_encode(2, &out);
 	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 	g_test_objects[2].object_signature = 0x102;
@@ -583,9 +583,9 @@ static void check_encode_empty(void)
 static void expect_refused(const struct xvt_integration_wire *record)
 {
 	struct xvt_integration_wire before;
-	struct xvt_integration_wire after;
 	xvt_flight_integration_encode(2, &before);
 	XVT_ASSERT_INT_EQ(xvt_flight_integration_decode(record, 1), 0);
+	struct xvt_integration_wire after;
 	xvt_flight_integration_encode(2, &after);
 	XVT_ASSERT_TRUE(records_equal(&before, &after));
 }
@@ -595,14 +595,8 @@ static void check_decode_refusals(void)
 	fresh_world();
 	seed(2, XVT_INTEGRATE_PITCH);
 	const struct xvt_integration_wire good = good_record();
-	struct xvt_integration_wire bad;
-	const int64_t position_limit =
-		(int64_t)SIMULATION_TICKS_PER_SECOND * 32768;
-	const int64_t steering_limit =
-		(int64_t)SIMULATION_TICKS_PER_SECOND * 65536 * 65536;
-	const int64_t other_limit = INT64_C(1) << 31;
 
-	bad = good;
+	struct xvt_integration_wire bad = good;
 	xvt_wire_set16(bad.slot, SLOTS);
 	expect_refused(&bad);
 
@@ -629,12 +623,16 @@ static void check_decode_refusals(void)
 	expect_refused(&bad);
 
 	bad = good;
+	const int64_t position_limit =
+		(int64_t)SIMULATION_TICKS_PER_SECOND * 32768;
 	xvt_wire_set64(bad.position_remainder[2], (uint64_t)position_limit);
 	expect_refused(&bad);
 	xvt_wire_set64(bad.position_remainder[2], (uint64_t)-position_limit);
 	expect_refused(&bad);
 
 	bad = good;
+	const int64_t steering_limit =
+		(int64_t)SIMULATION_TICKS_PER_SECOND * 65536 * 65536;
 	xvt_wire_set64(bad.remainder[XVT_INTEGRATE_ROLL],
 		       (uint64_t)steering_limit);
 	expect_refused(&bad);
@@ -644,6 +642,7 @@ static void check_decode_refusals(void)
 	expect_refused(&bad);
 
 	bad = good;
+	const int64_t other_limit = INT64_C(1) << 31;
 	xvt_wire_set64(bad.remainder[XVT_INTEGRATE_HOME_SPEED],
 		       (uint64_t)other_limit);
 	expect_refused(&bad);

@@ -451,24 +451,21 @@ void std3d_copy_palette_to_scratch16(const uint16_t *palette, int color_count)
 // FUNCTION: XVT 0x4B0B90
 void std3d_convert_palette_to1555(const uint16_t *palette, int color_count)
 {
-	int color_index;
-	struct color_info *source_format;
-	struct color_info *target_format;
-
 	if (g_p_fmt_opaque_texture == g_p_fmt_rgba1555) {
 		memcpy(g_tex_conv_buf1555, palette,
 		       (size_t)color_count * sizeof(*palette));
 	} else {
-		source_format = &g_p_fmt_opaque_texture->color_info;
-		target_format = &g_p_fmt_rgba1555->color_info;
-		for (color_index = 0; color_index < color_count;
+		struct color_info *source_format =
+			&g_p_fmt_opaque_texture->color_info;
+		struct color_info *target_format =
+			&g_p_fmt_rgba1555->color_info;
+		for (int color_index = 0; color_index < color_count;
 		     ++color_index) {
-			uint8_t channel;
-
-			channel = (uint8_t)((palette[color_index] >>
-					     source_format->red_pos_shift)
-					    << source_format
-						       ->red_pos_shift_right);
+			uint8_t channel =
+				(uint8_t)((palette[color_index] >>
+					   source_format->red_pos_shift)
+					  << source_format
+						     ->red_pos_shift_right);
 			g_tex_conv_buf1555[color_index] =
 				(uint16_t)((channel >>
 					    target_format->red_pos_shift_right)
@@ -512,8 +509,6 @@ void std3d_convert_palette_to1555(const uint16_t *palette, int color_count)
 // FUNCTION: XVT 0x4B0DB0
 int std3d_startup(void)
 {
-	int result;
-
 	g_std3d_direct_draw = renderer_get_direct_draw();
 	if (g_std3d_direct_draw == NULL) {
 		debug_printf("DDraw device not created yet!\n", 0, 0, 0, 0);
@@ -523,7 +518,7 @@ int std3d_startup(void)
 	g_std3d_render_option_flags = 0x19b3;
 	g_std3dz_buffer_enabled = 1;
 	debug_printf("Creating D3D interface object.\n", 0, 0, 0, 0);
-	result = g_std3d_direct_draw->lpVtbl->QueryInterface(
+	int result = g_std3d_direct_draw->lpVtbl->QueryInterface(
 		g_std3d_direct_draw, &CLSID_IDirect3D, (void **)&g_lp_d3d);
 	if (result != 0) {
 		debug_printf("Error %s creating Direct3D interface object.\n",
@@ -566,12 +561,10 @@ struct std3d_render_target_desc *
 std3d_init_render_target_desc(unsigned int width, unsigned int height,
 			      int pitch_bytes)
 {
-	struct std3d_render_target_desc *result;
-	struct std3d_render_target_desc **render_target;
-
 	memset(&g_std3d_render_target_desc, 0,
 	       sizeof(g_std3d_render_target_desc));
-	render_target = &g_p_std3d_render_target;
+	struct std3d_render_target_desc **render_target =
+		&g_p_std3d_render_target;
 	*render_target = &g_std3d_render_target_desc;
 	g_std3d_render_target_desc.width = width;
 	(*render_target)->height = height;
@@ -592,7 +585,7 @@ std3d_init_render_target_desc(unsigned int width, unsigned int height,
 	g_p_std3d_render_target->color_info.blue_pos_shift_right = 3;
 	g_p_std3d_render_target->color_info.alpha_bpp = 0;
 	g_p_std3d_render_target->color_info.alpha_pos_shift = 0;
-	result = g_p_std3d_render_target;
+	struct std3d_render_target_desc *result = g_p_std3d_render_target;
 	result->color_info.alpha_pos_shift_right = 0;
 	return result;
 }
@@ -625,13 +618,6 @@ void std3d_shutdown(void)
 // FUNCTION: XVT 0x4B1030
 int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 {
-	struct std3d_raster_info raster;
-	struct color_info alpha_format;
-	unsigned int max_buffer_size;
-	unsigned int max_vertex_count;
-	HRESULT result;
-	const char *error_string;
-
 	if (g_std3d_device_open != 0) {
 		debug_printf("Error: Multiple Opens Attempted.\n", 0, 0, 0, 0);
 		return 0;
@@ -664,9 +650,10 @@ int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 
 	debug_printf("Creating D3D device #%d.\n", g_std3d_cur_device_idx, 0, 0,
 		     0);
-	result = g_std3d_render_surface->lpVtbl->QueryInterface(
+	HRESULT result = g_std3d_render_surface->lpVtbl->QueryInterface(
 		g_std3d_render_surface, &g_p_std3d_cur_device->guid,
 		(void **)&g_d3d_device);
+	const char *error_string;
 	if (result != 0) {
 		error_string = std3d_lookup_error_string(
 			result, g_std3d_error_string_table, 121);
@@ -706,7 +693,8 @@ int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 	}
 
 	debug_printf("Creating Execute buffer.\n", 0, 0, 0, 0);
-	max_buffer_size = g_p_std3d_cur_device->caps.max_buffer_size;
+	unsigned int max_buffer_size =
+		g_p_std3d_cur_device->caps.max_buffer_size;
 	g_std3d_exec_buf_size = 0x10000;
 	if (max_buffer_size != 0) {
 		g_std3d_exec_buf_size = max_buffer_size;
@@ -718,7 +706,8 @@ int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 	g_d3d_exec_buf_desc.dwSize = 20;
 	g_d3d_exec_buf_desc.dwFlags = 1;
 	g_d3d_exec_buf_desc.dwBufferSize = g_std3d_exec_buf_size;
-	max_vertex_count = g_p_std3d_cur_device->caps.max_vertex_count;
+	unsigned int max_vertex_count =
+		g_p_std3d_cur_device->caps.max_vertex_count;
 	g_std3d_exec_buf_max_verts =
 		max_vertex_count == 0
 			? 512
@@ -747,6 +736,7 @@ int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 	g_p_fmt_opaque_texture =
 		&g_std3d_texture_formats[g_fmt_idx_opaque_texture];
 	if (g_p_std3d_cur_device->caps.b_alpha_texture != 0) {
+		struct color_info alpha_format;
 		alpha_format.color_mode = STDCOLOR_RGBA;
 		alpha_format.bpp = 16;
 		alpha_format.red_bpp = 5;
@@ -767,6 +757,7 @@ int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 				g_std3d_num_texture_formats);
 			g_p_fmt_rgba4444 =
 				&g_std3d_texture_formats[g_fmt_idx_rgba4444];
+			struct std3d_raster_info raster;
 			raster.width = 32;
 			raster.height = 32;
 			memcpy(&raster.color_mode,
@@ -830,14 +821,10 @@ std3d_lookup_error_string(int error_code,
 			  const struct std3d_error_string_entry *entries,
 			  int entry_count)
 {
-	const char *result;
-	int entry_index;
-	const struct std3d_error_string_entry *entry;
-
-	result = g_std3d_unknown_error_message;
-	entry_index = 0;
+	const char *result = g_std3d_unknown_error_message;
+	int entry_index = 0;
 	if (entry_count > 0) {
-		entry = entries;
+		const struct std3d_error_string_entry *entry = entries;
 		do {
 			if (entry->code == error_code) {
 				result = entries[entry_index].message;
@@ -865,10 +852,8 @@ void std3d_build_colormap16(uint8_t *p_rgb888, uint16_t *p_out,
 	uint16_t *output = p_out;
 	struct color_info *format = p_fmt;
 	uint8_t *rgb888 = p_rgb888;
-	int alpha_bpp;
-	int entries_remaining;
 
-	entries_remaining = 256;
+	int entries_remaining = 256;
 	do {
 		*output = (uint16_t)((uint8_t)(rgb888[0] >>
 					       format->red_pos_shift_right)
@@ -882,7 +867,7 @@ void std3d_build_colormap16(uint8_t *p_rgb888, uint16_t *p_out,
 		if ((uint8_t)color_key != 0) {
 			default_alpha = (uint8_t)((*output == 0) - 1);
 		}
-		alpha_bpp = format->alpha_bpp;
+		int alpha_bpp = format->alpha_bpp;
 		if (alpha_bpp == 1) {
 			default_alpha = (uint8_t)(0xFF - default_alpha);
 		}
@@ -965,15 +950,13 @@ void std3d_free_v_buffer(struct std3dv_buffer *vbuffer)
 // FUNCTION: XVT 0x4B1810
 void std3d_lock_v_buffer(struct std3dv_buffer *vbuffer)
 {
-	DDSURFACEDESC surface_desc;
-	HRESULT result;
-
 	if (vbuffer->storage_type == 1 && vbuffer->lock_count == 0) {
+		DDSURFACEDESC surface_desc;
 		memset(&surface_desc, 0, sizeof(surface_desc));
 		surface_desc.dwSize = sizeof(surface_desc);
-		result = vbuffer->dd_surface->lpVtbl->Lock(vbuffer->dd_surface,
-							   NULL, &surface_desc,
-							   DDLOCK_WAIT, NULL);
+		HRESULT result = vbuffer->dd_surface->lpVtbl->Lock(
+			vbuffer->dd_surface, NULL, &surface_desc, DDLOCK_WAIT,
+			NULL);
 		if (result != 0) {
 			debug_printf("Error %x locking buffer %x, surface %x\n",
 				     result, vbuffer, vbuffer->dd_surface);
@@ -999,9 +982,7 @@ void std3d_unlock_v_buffer(struct std3dv_buffer *vbuffer)
 	}
 
 	if (vbuffer->lock_count == 1 && vbuffer->storage_type == 1) {
-		HRESULT result;
-
-		result = vbuffer->dd_surface->lpVtbl->Unlock(
+		HRESULT result = vbuffer->dd_surface->lpVtbl->Unlock(
 			vbuffer->dd_surface, vbuffer->pixels);
 		if (result != 0) {
 			debug_printf(
@@ -1068,23 +1049,21 @@ void std3d_blit_v_buffer(struct std3dv_buffer *destination,
 			 struct std3dv_buffer *source, int destination_x,
 			 int destination_y, int source_x, int source_y)
 {
-	uint8_t *source_pixels;
-	uint8_t *destination_pixels;
-	unsigned int row_bytes;
-	unsigned int row_index;
-
 	(void)source_x;
 	(void)source_y;
 
 	std3d_lock_v_buffer(destination);
 	std3d_lock_v_buffer(source);
 
-	source_pixels = (uint8_t *)source->pixels;
-	destination_pixels = (uint8_t *)destination->pixels +
-			     destination_x * (destination->raster.bpp >> 3) +
-			     destination_y * destination->raster.row_pitch;
-	row_bytes = source->raster.width * (source->raster.bpp >> 3);
-	for (row_index = 0; row_index < source->raster.height; ++row_index) {
+	uint8_t *source_pixels = (uint8_t *)source->pixels;
+	uint8_t *destination_pixels =
+		(uint8_t *)destination->pixels +
+		destination_x * (destination->raster.bpp >> 3) +
+		destination_y * destination->raster.row_pitch;
+	unsigned int row_bytes =
+		source->raster.width * (source->raster.bpp >> 3);
+	for (unsigned int row_index = 0; row_index < source->raster.height;
+	     ++row_index) {
 		memcpy(destination_pixels, source_pixels, row_bytes);
 		destination_pixels += destination->raster.row_pitch;
 		source_pixels += source->raster.row_pitch;
@@ -1104,14 +1083,10 @@ unsigned int std3d_get_cap_flags(void) { return g_std3d_render_option_flags; }
 void std3d_fill_v_buffer(struct std3dv_buffer *vbuffer,
 			 unsigned int packed_color, int fill_mode)
 {
-	uint8_t *row_pixels;
-	unsigned int row_index;
-	unsigned int column_index;
-	uint16_t *destination16;
-
 	(void)fill_mode;
 	std3d_lock_v_buffer(vbuffer);
-	row_pixels = vbuffer->pixels;
+	uint8_t *row_pixels = vbuffer->pixels;
+	unsigned int row_index;
 	switch (vbuffer->raster.bpp) {
 	case 8:
 		row_index = 0;
@@ -1128,9 +1103,10 @@ void std3d_fill_v_buffer(struct std3dv_buffer *vbuffer,
 		row_index = 0;
 		if (vbuffer->raster.height > row_index) {
 			do {
-				column_index = 0;
+				unsigned int column_index = 0;
 				if (vbuffer->raster.width > column_index) {
-					destination16 = (uint16_t *)row_pixels;
+					uint16_t *destination16 =
+						(uint16_t *)row_pixels;
 					do {
 						*destination16 =
 							(uint16_t)packed_color;
@@ -1145,16 +1121,13 @@ void std3d_fill_v_buffer(struct std3dv_buffer *vbuffer,
 		}
 		break;
 	case 32: {
-		unsigned int row32;
-		unsigned int column32;
-		uint32_t *destination32;
-
-		row32 = 0;
+		unsigned int row32 = 0;
 		if (vbuffer->raster.height > row32) {
 			do {
-				column32 = 0;
+				unsigned int column32 = 0;
 				if (vbuffer->raster.width > column32) {
-					destination32 = (uint32_t *)row_pixels;
+					uint32_t *destination32 =
+						(uint32_t *)row_pixels;
 					do {
 						*destination32 = packed_color;
 						++destination32;
@@ -1180,10 +1153,8 @@ void std3d_fill_v_buffer(struct std3dv_buffer *vbuffer,
 // FUNCTION: XVT 0x4B1B70
 void std3d_set_cap_flags(unsigned int cap_flags)
 {
-	int result;
-
 	g_std3d_render_option_flags = cap_flags;
-	result = std3d_set_initial_render_state();
+	int result = std3d_set_initial_render_state();
 	if (result == 0) {
 		debug_printf("Error initializing render state.\n", 0, 0, 0, 0);
 	}
@@ -1228,9 +1199,7 @@ int std3d_set_texture_size_caps(int min_width, int min_height, int max_width,
 // FUNCTION: XVT 0x4B1C10
 void std3d_start_scene(void)
 {
-	int result;
-
-	result = g_d3d_device->lpVtbl->BeginScene(g_d3d_device);
+	int result = g_d3d_device->lpVtbl->BeginScene(g_d3d_device);
 	if (result != 0) {
 		debug_printf(g_std3d_begin_scene_error_format,
 			     std3d_lookup_error_string(
@@ -1243,9 +1212,7 @@ void std3d_start_scene(void)
 // FUNCTION: XVT 0x4B1C50
 void std3d_end_scene(void)
 {
-	int result;
-
-	result = g_d3d_device->lpVtbl->EndScene(g_d3d_device);
+	int result = g_d3d_device->lpVtbl->EndScene(g_d3d_device);
 	if (result != 0) {
 		debug_printf(g_std3d_end_scene_error_format,
 			     std3d_lookup_error_string(
@@ -1261,14 +1228,12 @@ void std3d_end_scene(void)
 // FUNCTION: XVT 0x4B1C90
 int std3d_lock_execute_buffer(void)
 {
-	int result;
-
 	g_d3d_buf_vert_count = 0;
 	g_std3d_exec_buf_tri_count = 0;
 	++g_std3d_texture_batch_tag;
 	g_d3d_cur_texture = (struct std3d_tex_cache_node *)1;
-	result = g_d3d_execute_buffer->lpVtbl->Lock(g_d3d_execute_buffer,
-						    &g_d3d_exec_buf_desc);
+	int result = g_d3d_execute_buffer->lpVtbl->Lock(g_d3d_execute_buffer,
+							&g_d3d_exec_buf_desc);
 	if (result != 0) {
 		debug_printf(g_std3d_lock_execute_buffer_error_format,
 			     std3d_lookup_error_string(
@@ -1287,15 +1252,12 @@ int std3d_lock_execute_buffer(void)
 // FUNCTION: XVT 0x4B1D10
 int std3d_add_vertices(const D3DTLVERTEX *vertices, int count)
 {
-	int previous_vertex_count;
-	uint8_t *write_ptr;
-
-	previous_vertex_count = g_d3d_buf_vert_count;
+	int previous_vertex_count = g_d3d_buf_vert_count;
 	if ((unsigned int)(count + g_d3d_buf_vert_count) >
 	    g_std3d_exec_buf_max_verts) {
 		return 0;
 	}
-	write_ptr = g_d3d_write_ptr;
+	uint8_t *write_ptr = g_d3d_write_ptr;
 	if ((const void *)write_ptr != (const void *)vertices) {
 		memcpy(write_ptr, vertices, (size_t)count * sizeof(*vertices));
 	}
@@ -1335,13 +1297,13 @@ int std3d_begin_instructions(void)
 int std3d_add_triangles(const struct std3d_render_tri *triangles,
 			unsigned int count)
 {
-	struct std3d_tex_cache_node *texture;
-	unsigned int group_start;
 	int group_count;
 	unsigned int triangle_index;
 
-	for (group_start = 0; group_start < count; group_start += group_count) {
-		texture = triangles[group_start].texture;
+	for (unsigned int group_start = 0; group_start < count;
+	     group_start += group_count) {
+		struct std3d_tex_cache_node *texture =
+			triangles[group_start].texture;
 		group_count = 0;
 		if (texture == NULL) {
 			std3d_render_state_flags flags =
@@ -1469,15 +1431,12 @@ int std3d_add_triangles(const struct std3d_render_tri *triangles,
 // FUNCTION: XVT 0x4B2020
 int std3d_execute_buffer(void)
 {
-	D3DEXECUTEDATA execute_data;
-	int result;
-
 	((D3DINSTRUCTION *)g_d3d_write_ptr)->bOpcode = D3DOP_EXIT;
 	((D3DINSTRUCTION *)g_d3d_write_ptr)->bSize = 0;
 	((D3DINSTRUCTION *)g_d3d_write_ptr)->wCount = 0;
 	g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
 
-	result = g_d3d_execute_buffer->lpVtbl->Unlock(g_d3d_execute_buffer);
+	int result = g_d3d_execute_buffer->lpVtbl->Unlock(g_d3d_execute_buffer);
 	if (result != 0) {
 		debug_printf("Error %s unlocking D3D Execute buffer.\n",
 			     std3d_lookup_error_string(
@@ -1486,6 +1445,7 @@ int std3d_execute_buffer(void)
 		return 0;
 	}
 
+	D3DEXECUTEDATA execute_data;
 	memset(&execute_data, 0, sizeof(execute_data));
 	execute_data.dwSize = sizeof(execute_data);
 	execute_data.dwVertexCount = g_d3d_buf_vert_count;
@@ -1521,8 +1481,6 @@ int std3d_execute_buffer(void)
 // FUNCTION: XVT 0x4B2130
 void std3d_set_render_state(std3d_render_state_flags flags)
 {
-	int texture_filter;
-
 	if (g_d3d_state_flags == flags) {
 		return;
 	}
@@ -1632,7 +1590,7 @@ void std3d_set_render_state(std3d_render_state_flags flags)
 		g_d3d_write_ptr += sizeof(D3DINSTRUCTION);
 		((D3DSTATE *)g_d3d_write_ptr)->dwState =
 			D3DRENDERSTATE_TEXTUREMAG;
-		texture_filter =
+		int texture_filter =
 			(flags & STD3D_RS_TEXTURE_MAG_LINEAR) != 0 ? 2 : 1;
 		((D3DSTATE *)g_d3d_write_ptr)->dwArg = texture_filter;
 		g_d3d_write_ptr += sizeof(D3DSTATE);
@@ -1734,7 +1692,6 @@ void std3d_clamp_texture_dimensions(int src_width, int src_height,
 				    int *out_width, int *out_height)
 {
 	unsigned int width;
-	unsigned int height;
 
 	if ((uint32_t)src_width >= 1) {
 		width = (uint32_t)g_std3d_max_texture_width;
@@ -1745,6 +1702,7 @@ void std3d_clamp_texture_dimensions(int src_width, int src_height,
 		width = 1;
 	}
 
+	unsigned int height;
 	if ((uint32_t)src_height >= 1) {
 		/* The height is clamped by the width limit, as in the original; g_std3d_max_texture_height is never
 		 * read. */
@@ -1767,9 +1725,8 @@ void std3d_clamp_texture_dimensions(int src_width, int src_height,
 			}
 			width = height;
 		} else {
-			unsigned int min_width;
-
-			min_width = (unsigned int)g_std3d_min_texture_width;
+			unsigned int min_width =
+				(unsigned int)g_std3d_min_texture_width;
 			if (width <= min_width) {
 				width = min_width;
 			}
@@ -1807,29 +1764,13 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 			       struct std3d_tex_cache_node *node,
 			       int color_keyed, int translucent)
 {
-	IDirectDrawSurface *source_surface;
-	unsigned int width;
-	unsigned int height;
-	unsigned int texel_count;
-	IDirect3DTexture *source_texture;
-	IDirect3DTexture *destination_texture;
-	IDirectDrawSurface *destination_surface;
-	struct std3dv_buffer *temporary_buffer;
-	struct std3dv_buffer *upload_buffer;
-	unsigned int texture_handle;
-	DDCOLORKEY color_key;
-	struct std3d_raster_info resized_raster;
-	DDSURFACEDESC locked_desc;
-	DDSURFACEDESC surface_desc;
-	int result;
-
-	source_surface = NULL;
-	destination_surface = NULL;
-	source_texture = NULL;
-	destination_texture = NULL;
-	upload_buffer = source;
-	temporary_buffer = NULL;
-	width = source->raster.width;
+	IDirectDrawSurface *source_surface = NULL;
+	IDirectDrawSurface *destination_surface = NULL;
+	IDirect3DTexture *source_texture = NULL;
+	IDirect3DTexture *destination_texture = NULL;
+	struct std3dv_buffer *upload_buffer = source;
+	struct std3dv_buffer *temporary_buffer = NULL;
+	unsigned int width = source->raster.width;
 	if (width >= 1) {
 		if (width >= 256) {
 			width = 256;
@@ -1837,7 +1778,7 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 	} else {
 		width = 1;
 	}
-	height = source->raster.height;
+	unsigned int height = source->raster.height;
 	if (height >= 1) {
 		if (height >= 256) {
 			height = 256;
@@ -1850,14 +1791,9 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 	    height < (unsigned int)g_std3d_min_texture_height ||
 	    (g_p_std3d_cur_device->caps.b_square_only_texture &&
 	     width != height)) {
+		struct std3d_raster_info resized_raster = source->raster;
 		int target_width;
 		int target_height;
-		unsigned int horizontal_copies;
-		unsigned int vertical_copies;
-		unsigned int destination_x;
-		unsigned int destination_y;
-
-		resized_raster = source->raster;
 		if (g_p_std3d_cur_device->caps.b_square_only_texture &&
 		    width != height) {
 			target_width = (int)width;
@@ -1876,11 +1812,11 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 				target_height = (int)height;
 			}
 		}
-		horizontal_copies =
+		unsigned int horizontal_copies =
 			(unsigned int)((double)(unsigned int)target_width /
 					       (double)width +
 				       0.5);
-		vertical_copies =
+		unsigned int vertical_copies =
 			(unsigned int)((double)(unsigned int)target_height /
 					       (double)height +
 				       0.5);
@@ -1888,9 +1824,9 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 		resized_raster.height = vertical_copies * resized_raster.height;
 		temporary_buffer =
 			std3d_alloc_v_buffer(&resized_raster, 0, 0, 0);
-		destination_y = 0;
+		unsigned int destination_y = 0;
 		while (vertical_copies != 0) {
-			destination_x = 0;
+			unsigned int destination_x = 0;
 			/* From here targetWidth counts down the copies left in this row, not a width. */
 			for (target_width = horizontal_copies;
 			     target_width != 0; --target_width) {
@@ -1907,7 +1843,8 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 		height = resized_raster.height;
 	}
 
-	texel_count = width * height;
+	unsigned int texel_count = width * height;
+	DDSURFACEDESC surface_desc;
 	if (color_keyed && g_p_std3d_cur_device->caps.b_alpha_texture) {
 		node->uses_alpha_format = 1;
 		if (translucent) {
@@ -1936,6 +1873,10 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 	surface_desc.dwFlags =
 		DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
 	surface_desc.ddsCaps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_SYSTEMMEMORY;
+	unsigned int texture_handle;
+	DDCOLORKEY color_key;
+	DDSURFACEDESC locked_desc;
+	int result;
 	do {
 		result = g_std3d_direct_draw->lpVtbl->CreateSurface(
 			g_std3d_direct_draw, &surface_desc, &source_surface,
@@ -1967,31 +1908,27 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 
 		switch (upload_buffer->raster.color_mode) {
 		case STDCOLOR_PAL: {
-			unsigned int row;
-
 			std3d_lock_v_buffer(upload_buffer);
+			unsigned int row;
 			if (color_keyed &&
 			    g_p_std3d_cur_device->caps.b_alpha_texture) {
 				if (translucent) {
 					for (row = 0; row < height; ++row) {
-						uint16_t *destination_pixels;
-						uint8_t *source_pixels;
-						unsigned int remaining;
-
-						source_pixels =
+						uint8_t *source_pixels =
 							(uint8_t *)upload_buffer
 								->pixels +
 							row * upload_buffer
 									->raster
 									.row_pitch;
-						destination_pixels =
+						uint16_t *destination_pixels =
 							(uint16_t
 								 *)((uint8_t *)locked_desc
 									    .lpSurface +
 								    row * locked_desc
 										    .lPitch);
 						if (width != 0) {
-							remaining = width;
+							unsigned int remaining =
+								width;
 							do {
 								*destination_pixels++ = g_tex_conv_buf4444
 									[*source_pixels++];
@@ -2002,24 +1939,21 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 					}
 				} else {
 					for (row = 0; row < height; ++row) {
-						unsigned int remaining;
-						uint16_t *destination_pixels;
-						uint8_t *source_pixels;
-
-						source_pixels =
+						uint8_t *source_pixels =
 							(uint8_t *)upload_buffer
 								->pixels +
 							row * upload_buffer
 									->raster
 									.row_pitch;
-						destination_pixels =
+						uint16_t *destination_pixels =
 							(uint16_t
 								 *)((uint8_t *)locked_desc
 									    .lpSurface +
 								    row * locked_desc
 										    .lPitch);
 						if (width != 0) {
-							remaining = width;
+							unsigned int remaining =
+								width;
 							do {
 								*destination_pixels++ = g_tex_conv_buf1555
 									[*source_pixels++];
@@ -2031,7 +1965,6 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 				}
 			} else if (translucent) {
 				for (row = 0; row < height; ++row) {
-					unsigned int remaining;
 					uint8_t *source_pixels =
 						(uint8_t *)
 							upload_buffer->pixels +
@@ -2044,7 +1977,7 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 							    row * locked_desc
 									    .lPitch);
 					if (width != 0) {
-						remaining = width;
+						unsigned int remaining = width;
 						do {
 							*destination_pixels++ = g_tex_conv_buf4444
 								[*source_pixels++];
@@ -2054,7 +1987,6 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 				}
 			} else {
 				for (row = 0; row < height; ++row) {
-					unsigned int remaining;
 					uint8_t *source_pixels =
 						(uint8_t *)
 							upload_buffer->pixels +
@@ -2067,7 +1999,7 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 							    row * locked_desc
 									    .lPitch);
 					if (width != 0) {
-						remaining = width;
+						unsigned int remaining = width;
 						do {
 							*destination_pixels++ = g_std3d_palette_scratch16
 								[*source_pixels++];
@@ -2081,10 +2013,8 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 		}
 		case STDCOLOR_RGB:
 		case STDCOLOR_RGBA: {
-			unsigned int row;
-
 			std3d_lock_v_buffer(upload_buffer);
-			for (row = 0; row < height; ++row) {
+			for (unsigned int row = 0; row < height; ++row) {
 				const uint8_t *source_pixels =
 					(const uint8_t *)upload_buffer->pixels +
 					row * upload_buffer->raster.row_pitch;
@@ -2341,13 +2271,8 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 // FUNCTION: XVT 0x4B3070
 void std3d_flush_texture_cache(void)
 {
-	struct std3d_tex_cache_node *node;
-
-	node = g_p_tex_cache_head;
+	struct std3d_tex_cache_node *node = g_p_tex_cache_head;
 	while (node != NULL) {
-		struct std3d_tex_cache_node **next_link;
-		struct std3d_tex_cache_node *current;
-
 		if (node->p_cached_surface != NULL) {
 			node->p_cached_surface->lpVtbl->Release(
 				node->p_cached_surface);
@@ -2358,8 +2283,8 @@ void std3d_flush_texture_cache(void)
 				node->p_cached_texture);
 			node->p_cached_texture = NULL;
 		}
-		current = node;
-		next_link = &node->p_next;
+		struct std3d_tex_cache_node *current = node;
+		struct std3d_tex_cache_node **next_link = &node->p_next;
 		node->b_cached = 0;
 		node->cache_batch_tag = 0;
 		node = *next_link;
@@ -2380,8 +2305,6 @@ void std3d_flush_texture_cache(void)
 // FUNCTION: XVT 0x4B30F0
 void std3d_cache_list_append(struct std3d_tex_cache_node *node)
 {
-	struct std3d_tex_cache_node *previous_tail;
-
 	if (g_p_tex_cache_head == 0) {
 		g_p_tex_cache_tail = node;
 		g_p_tex_cache_head = node;
@@ -2389,7 +2312,7 @@ void std3d_cache_list_append(struct std3d_tex_cache_node *node)
 		node->p_next = 0;
 	} else {
 		g_p_tex_cache_tail->p_next = node;
-		previous_tail = g_p_tex_cache_tail;
+		struct std3d_tex_cache_node *previous_tail = g_p_tex_cache_tail;
 		node->p_next = 0;
 		node->p_prev = previous_tail;
 		g_p_tex_cache_tail = node;
@@ -2435,7 +2358,6 @@ int std3d_query_texture_vid_mem(unsigned int *total_bytes,
 				unsigned int *free_bytes)
 {
 	IDirectDraw *direct_draw2 = 0;
-	DDSCAPS caps;
 
 	if (g_std3d_direct_draw->lpVtbl->QueryInterface(
 		    g_std3d_direct_draw, &CLSID_IDirectDraw2,
@@ -2443,6 +2365,7 @@ int std3d_query_texture_vid_mem(unsigned int *total_bytes,
 		return 0;
 	}
 
+	DDSCAPS caps;
 	caps.dwCaps = DDSCAPS_TEXTURE;
 	if (direct_draw2->lpVtbl->GetAvailableVidMem(
 		    direct_draw2, &caps, total_bytes, free_bytes) != DX_DD_OK) {
@@ -2469,9 +2392,7 @@ void std3d_cache_texture_surface(struct std3d_tex_cache_node *node)
 // FUNCTION: XVT 0x4B32B0
 int std3d_clear_z_buffer(void)
 {
-	int rect[4];
 	DDBLTFX effects;
-	int result;
 
 	memset(&effects, 0, sizeof(effects));
 	effects.dwSize = sizeof(effects);
@@ -2479,13 +2400,14 @@ int std3d_clear_z_buffer(void)
 	if (g_std3dz_compare_cap != 16) {
 		effects.dwFillDepth = 0xFFFF;
 	}
+	int rect[4];
 	rect[0] = g_std3d_quad_rect.x;
 	rect[1] = g_std3d_quad_rect.y;
 	rect[2] = g_std3d_quad_rect.x + g_std3d_quad_rect.width;
 	rect[3] = g_std3d_quad_rect.y + g_std3d_quad_rect.height;
 
 	for (;;) {
-		result = g_std3dz_buffer_surface_block.surface->lpVtbl->Blt(
+		int result = g_std3dz_buffer_surface_block.surface->lpVtbl->Blt(
 			g_std3dz_buffer_surface_block.surface, rect, NULL, NULL,
 			DDBLT_WAIT | DDBLT_DEPTHFILL, &effects);
 		if (result == DX_DD_OK) {
@@ -2515,30 +2437,22 @@ int std3d_clear_z_buffer(void)
 // FUNCTION: XVT 0x4B3380
 int std3d_select_best_device(const struct std3d_device_caps *required_caps)
 {
-	int best_match_quality;
-	struct std3d_device *device;
-	int device_index;
-	int required_perspective;
-	int match_quality;
-	int required_z_buffer;
-	int best_device_index;
-
 	if (g_std3d_num_devices == 0) {
 		return 0;
 	}
-	best_match_quality = 0;
-	device = g_std3d_devices;
-	device_index = 0;
-	best_device_index = 0;
+	int best_match_quality = 0;
+	struct std3d_device *device = g_std3d_devices;
+	int device_index = 0;
+	int best_device_index = 0;
 	if (g_std3d_num_devices > (unsigned int)device_index) {
-		required_perspective = required_caps->b_texture_perspective;
+		int required_perspective = required_caps->b_texture_perspective;
 		do {
-			match_quality = 0;
+			int match_quality = 0;
 			if (required_perspective == 0 ||
 			    device->caps.b_texture_perspective ==
 				    required_perspective) {
 				match_quality = 1;
-				required_z_buffer =
+				int required_z_buffer =
 					required_caps->b_has_z_buffer;
 				if (required_z_buffer == 0 ||
 				    device->caps.b_has_z_buffer ==
@@ -2581,19 +2495,14 @@ int std3d_select_best_device(const struct std3d_device_caps *required_caps)
 int std3d_find_closest_format(const struct color_info *match,
 			      struct std3d_tex_fmt *formats, unsigned int count)
 {
-	int best_format_index;
-	struct std3d_tex_fmt *format;
-	int format_index;
-	unsigned int match_score;
-	int best_match_score;
-
 	if (count == 0) {
 		return 0;
 	}
-	best_match_score = 0;
-	best_format_index = 0;
-	format = formats;
-	for (format_index = 0; (unsigned int)format_index < count;
+	int best_match_score = 0;
+	int best_format_index = 0;
+	struct std3d_tex_fmt *format = formats;
+	unsigned int match_score;
+	for (int format_index = 0; (unsigned int)format_index < count;
 	     ++format_index) {
 		match_score = 0;
 		if (format->color_info.color_mode == match->color_mode) {
@@ -2662,34 +2571,27 @@ int std3d_find_closest_format(const struct color_info *match,
 // FUNCTION: XVT 0x4B3590
 void std3d_draw_color_overlay(void)
 {
-	float maximum;
-	uint8_t blue;
-	uint8_t green;
-	uint8_t red;
-	uint8_t alpha;
-	uint32_t packed_color;
-
 	if (g_std3d_color_overlay_enabled == 0 ||
 	    (g_std3d_color_overlay_red == 0.0f &&
 	     g_std3d_color_overlay_green == 0.0f &&
 	     g_std3d_color_overlay_blue == 0.0f)) {
 		return;
 	}
-	maximum = g_std3d_color_overlay_red >= g_std3d_color_overlay_green
-			  ? g_std3d_color_overlay_red
-			  : g_std3d_color_overlay_green;
+	float maximum = g_std3d_color_overlay_red >= g_std3d_color_overlay_green
+				? g_std3d_color_overlay_red
+				: g_std3d_color_overlay_green;
 	maximum = g_std3d_color_overlay_blue >= maximum
 			  ? g_std3d_color_overlay_blue
 			  : maximum;
-	red = (uint8_t)(g_std3d_color_overlay_red / maximum * 255.0f);
-	green = (uint8_t)(g_std3d_color_overlay_green / maximum * 255.0f);
-	blue = (uint8_t)(g_std3d_color_overlay_blue / maximum * 255.0f);
+	uint8_t red = (uint8_t)(g_std3d_color_overlay_red / maximum * 255.0f);
+	uint8_t green =
+		(uint8_t)(g_std3d_color_overlay_green / maximum * 255.0f);
+	uint8_t blue = (uint8_t)(g_std3d_color_overlay_blue / maximum * 255.0f);
+	uint8_t alpha;
 	if (g_p_std3d_cur_device->caps.b_stippled_shade != 0) {
-		float alpha_scale;
-		float upper_clamped_alpha;
-
-		alpha_scale = maximum * 0.736f;
+		float alpha_scale = maximum * 0.736f;
 		if (alpha_scale >= 0.0f) {
+			float upper_clamped_alpha;
 			if (alpha_scale > 255.0f) {
 				upper_clamped_alpha = 255.0f;
 			} else {
@@ -2701,11 +2603,9 @@ void std3d_draw_color_overlay(void)
 		}
 		alpha = (uint8_t)alpha_scale;
 	} else {
-		float alpha_scale;
-		float upper_clamped_alpha;
-
-		alpha_scale = maximum * 0.9f;
+		float alpha_scale = maximum * 0.9f;
 		if (alpha_scale >= 0.0f) {
+			float upper_clamped_alpha;
 			if (alpha_scale > 255.0f) {
 				upper_clamped_alpha = 255.0f;
 			} else {
@@ -2721,7 +2621,7 @@ void std3d_draw_color_overlay(void)
 		return;
 	}
 	if (g_p_std3d_cur_device->caps.b_alpha_blend != 0) {
-		packed_color =
+		uint32_t packed_color =
 			(uint32_t)blue | ((uint32_t)red << 16) |
 			(((uint32_t)green | ((uint32_t)alpha << 16)) << 8);
 		g_std3d_quad_verts[0].color = packed_color;
@@ -2736,10 +2636,8 @@ void std3d_draw_color_overlay(void)
 		std3d_execute_buffer();
 		std3d_end_scene();
 	} else {
-		uint16_t blue_color;
-		uint16_t color;
-
-		color = (uint16_t)(green >> g_p_fmt_rgba4444->color_info
+		uint16_t color =
+			(uint16_t)(green >> g_p_fmt_rgba4444->color_info
 						    .green_pos_shift_right)
 			<< g_p_fmt_rgba4444->color_info.green_pos_shift;
 		color |= (uint16_t)(red >> g_p_fmt_rgba4444->color_info
@@ -2748,9 +2646,10 @@ void std3d_draw_color_overlay(void)
 		color |= (uint16_t)(alpha >> g_p_fmt_rgba4444->color_info
 						     .alpha_pos_shift_right)
 			 << g_p_fmt_rgba4444->color_info.alpha_pos_shift;
-		blue_color = (uint16_t)(blue >> g_p_fmt_rgba4444->color_info
-							.blue_pos_shift_right)
-			     << g_p_fmt_rgba4444->color_info.blue_pos_shift;
+		uint16_t blue_color =
+			(uint16_t)(blue >> g_p_fmt_rgba4444->color_info
+						   .blue_pos_shift_right)
+			<< g_p_fmt_rgba4444->color_info.blue_pos_shift;
 		std3d_fill_v_buffer(g_p_std3dv_buffer,
 				    (uint16_t)(color | blue_color), 0);
 		std3d_start_scene();
@@ -2832,22 +2731,13 @@ int std3d_build_viewport_quad(const struct std3d_viewport_rect *rect)
 // FUNCTION: XVT 0x4B3980
 int std3d_set_initial_render_state(void)
 {
-	IDirect3DExecuteBuffer *execute_buffer;
+	IDirect3DExecuteBuffer *execute_buffer = NULL;
 	D3DEXECUTEBUFFERDESC descriptor;
-	D3DEXECUTEDATA execute_data;
-	D3DINSTRUCTION *instruction;
-	D3DSTATE *state;
-	uint8_t *base;
-	uint8_t *cursor;
-	int result;
-	int z_enabled;
-
-	execute_buffer = NULL;
 	memset(&descriptor, 0, sizeof(descriptor));
 	descriptor.dwSize = 20;
 	descriptor.dwFlags = 1;
 	descriptor.dwBufferSize = 4096;
-	result = g_d3d_device->lpVtbl->CreateExecuteBuffer(
+	int result = g_d3d_device->lpVtbl->CreateExecuteBuffer(
 		g_d3d_device, &descriptor, &execute_buffer, NULL);
 	if (result != 0) {
 		debug_printf("Error %s creating D3D Execute buffer.\n",
@@ -2864,12 +2754,12 @@ int std3d_set_initial_render_state(void)
 	}
 
 	memset(descriptor.lpData, 0, 4096);
-	base = (uint8_t *)descriptor.lpData;
-	instruction = (D3DINSTRUCTION *)base;
+	uint8_t *base = (uint8_t *)descriptor.lpData;
+	D3DINSTRUCTION *instruction = (D3DINSTRUCTION *)base;
 	instruction->bOpcode = D3DOP_STATERENDER;
 	instruction->bSize = sizeof(D3DSTATE);
 	instruction->wCount = 25;
-	state = (D3DSTATE *)(instruction + 1);
+	D3DSTATE *state = (D3DSTATE *)(instruction + 1);
 
 	state->dwState = D3DRENDERSTATE_TEXTUREPERSPECTIVE;
 	state->dwArg = g_std3d_render_option_flags & 1;
@@ -2938,7 +2828,7 @@ int std3d_set_initial_render_state(void)
 	state->dwState = D3DRENDERSTATE_SHADEMODE;
 	state->dwArg = 2;
 	++state;
-	z_enabled = 1;
+	int z_enabled = 1;
 	state->dwState = D3DRENDERSTATE_MONOENABLE;
 	state->dwArg = (g_std3d_render_option_flags & 0x8000) == 0;
 	++state;
@@ -2981,7 +2871,7 @@ int std3d_set_initial_render_state(void)
 	instruction->bOpcode = D3DOP_EXIT;
 	instruction->bSize = 0;
 	instruction->wCount = 0;
-	cursor = (uint8_t *)(instruction + 1);
+	uint8_t *cursor = (uint8_t *)(instruction + 1);
 	result = execute_buffer->lpVtbl->Unlock(execute_buffer);
 	if (result != 0) {
 		debug_printf("Error %s unlocking D3D Execute buffer.\n",
@@ -2990,6 +2880,7 @@ int std3d_set_initial_render_state(void)
 			     0, 0, 0);
 	}
 
+	D3DEXECUTEDATA execute_data;
 	memset(&execute_data, 0, sizeof(execute_data));
 	execute_data.dwSize = sizeof(execute_data);
 	execute_data.dwInstructionOffset = 0;
@@ -3031,12 +2922,8 @@ int std3d_set_initial_render_state(void)
 // FUNCTION: XVT 0x4B3E30
 int std3d_create_viewport(int width, int height)
 {
-	int result;
-	struct std3d_viewport_rect rect;
-	D3DVIEWPORT viewport;
-
-	result = g_lp_d3d->lpVtbl->CreateViewport(g_lp_d3d, &g_d3d_viewport,
-						  NULL);
+	int result = g_lp_d3d->lpVtbl->CreateViewport(g_lp_d3d, &g_d3d_viewport,
+						      NULL);
 	if (result != 0) {
 		debug_printf("Error %s when creating D3D viewport.\n",
 			     std3d_lookup_error_string(
@@ -3055,6 +2942,7 @@ int std3d_create_viewport(int width, int height)
 		return 0;
 	}
 
+	D3DVIEWPORT viewport;
 	memset(&viewport, 0, sizeof(viewport));
 	viewport.dwY = 0;
 	viewport.dwX = 0;
@@ -3076,6 +2964,7 @@ int std3d_create_viewport(int width, int height)
 		return 0;
 	}
 
+	struct std3d_viewport_rect rect;
 	rect.x = 0;
 	rect.y = 0;
 	rect.width = width;
@@ -3095,9 +2984,6 @@ int std3d_create_viewport(int width, int height)
 // FUNCTION: XVT 0x4B3FC0
 int std3d_create_z_buffer(int width, int height)
 {
-	unsigned int z_buffer_bit_depth;
-	HRESULT result;
-
 	g_std3dz_buffer_target.storage_type = 1;
 	g_std3dz_buffer_target.b_video_memory = 0;
 	memcpy(&g_std3dz_buffer_target.raster, g_p_std3d_render_target,
@@ -3123,7 +3009,7 @@ int std3d_create_z_buffer(int width, int height)
 			DDSCAPS_SYSTEMMEMORY;
 	}
 
-	z_buffer_bit_depth =
+	unsigned int z_buffer_bit_depth =
 		g_p_std3d_cur_device->d3d_desc.dwDeviceZBufferBitDepth;
 	if ((z_buffer_bit_depth & 0x100) != 0) {
 		g_p_std3dz_buffer_state->desc.dwZBufferBitDepth = 32;
@@ -3139,7 +3025,7 @@ int std3d_create_z_buffer(int width, int height)
 	debug_printf("ZBuffer depth: %d.\n",
 		     g_p_std3dz_buffer_state->desc.dwZBufferBitDepth, 0, 0, 0);
 
-	result = g_std3d_direct_draw->lpVtbl->CreateSurface(
+	HRESULT result = g_std3d_direct_draw->lpVtbl->CreateSurface(
 		g_std3d_direct_draw, &g_p_std3dz_buffer_state->desc,
 		&g_p_std3dz_buffer_state->surface, NULL);
 	if (result != 0) {
@@ -3196,13 +3082,12 @@ HRESULT AERON_DXAPI std3d_enum_devices_callback(DxGuid *guid,
 						D3DDEVICEDESC *software_desc,
 						void *context)
 {
-	struct std3d_device *device;
-	unsigned int shade_caps;
 	(void)context;
 
 	if (g_std3d_num_devices < 4) {
 
-		device = &g_std3d_devices[g_std3d_num_devices];
+		struct std3d_device *device =
+			&g_std3d_devices[g_std3d_num_devices];
 		memcpy(&device->guid, guid, sizeof(device->guid));
 		strncpy(device->device_description, device_description,
 			sizeof(device->device_description));
@@ -3233,7 +3118,8 @@ HRESULT AERON_DXAPI std3d_enum_devices_callback(DxGuid *guid,
 			(device->d3d_desc.dpcTriCaps.dwTextureCaps & 0x20) != 0;
 		device->caps.b_alpha_texture =
 			(device->d3d_desc.dpcTriCaps.dwTextureCaps & 4) != 0;
-		shade_caps = device->d3d_desc.dpcTriCaps.dwShadeCaps;
+		unsigned int shade_caps =
+			device->d3d_desc.dpcTriCaps.dwShadeCaps;
 		device->caps.b_stippled_shade = (shade_caps & 0x1000) == 0 &&
 						(shade_caps & 0x2000) != 0;
 		device->caps.b_alpha_blend =
@@ -3289,19 +3175,17 @@ HRESULT AERON_DXAPI std3d_enum_devices_callback(DxGuid *guid,
 int AERON_DXAPI std3d_enum_texture_formats(DDSURFACEDESC *surface_desc,
 					   void *context)
 {
-	struct std3d_tex_fmt *format;
-	/* Each of these four first counts its mask's trailing zeros (the channel's position), then is reset
-	 * to count the mask's set bits (the channel's width, stored as its BPP). */
-	int red_shift;
-	int green_shift;
-	int blue_shift;
-	int alpha_shift;
-	unsigned int mask;
-
 	(void)context;
 	if ((unsigned int)g_std3d_num_texture_formats < 8) {
-		format = &g_std3d_texture_formats[g_std3d_num_texture_formats];
+		struct std3d_tex_fmt *format =
+			&g_std3d_texture_formats[g_std3d_num_texture_formats];
 		memcpy(&format->ddsd, surface_desc, sizeof(format->ddsd));
+		/* Each of these four first counts its mask's trailing zeros (the channel's position), then is reset
+		 * to count the mask's set bits (the channel's width, stored as its BPP). */
+		int red_shift;
+		int green_shift;
+		int blue_shift;
+		unsigned int mask;
 		if ((surface_desc->ddpfPixelFormat.dwFlags &
 		     DDPF_PALETTEINDEXED8) != 0) {
 			format->color_info.color_mode = STDCOLOR_PAL;
@@ -3385,7 +3269,7 @@ int AERON_DXAPI std3d_enum_texture_formats(DDSURFACEDESC *surface_desc,
 			}
 			format->color_info.blue_bpp = blue_shift;
 
-			alpha_shift = 0;
+			int alpha_shift = 0;
 			mask = surface_desc->ddpfPixelFormat.dwRGBAlphaBitMask;
 			while ((mask & 1) == 0) {
 				++alpha_shift;
@@ -3492,9 +3376,7 @@ int AERON_DXAPI std3d_enum_texture_formats(DDSURFACEDESC *surface_desc,
 // FUNCTION: XVT 0x4B47E0
 int std3d_pack_render_bit_depths(int ddbd_flags)
 {
-	int result;
-
-	result = 0;
+	int result = 0;
 	if ((ddbd_flags & 0x4000) != 0) {
 		result |= 0x01;
 	}

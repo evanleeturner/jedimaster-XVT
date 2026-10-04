@@ -40,18 +40,17 @@ void xvt_storage_fatal(const char *message, int exit_code)
 
 int xvt_storage_normalize(const char *path, char *output, size_t capacity)
 {
-	size_t used = 0;
 	if (!path || !path[0] || path[0] == '/' || path[0] == '\\' ||
 	    strchr(path, ':')) {
 		return 0;
 	}
+	size_t used = 0;
 	while (*path) {
 		const char *start = path;
-		size_t length;
 		while (*path && *path != '/' && *path != '\\') {
 			++path;
 		}
-		length = (size_t)(path - start);
+		size_t length = (size_t)(path - start);
 		if (length == 2 && start[0] == '.' && start[1] == '.') {
 			return 0;
 		}
@@ -87,21 +86,18 @@ static int xvt_storage_found(void *context, const AeronVfsEntry *entry)
  * listing lets setup and USER-file callers distinguish the two. */
 int xvt_storage_probe(AeronVfsRoot root, const char *path)
 {
-	AeronFileInfo info;
 	char normalized[XVT_PATH_CAPACITY];
-	char *slash;
-	const char *name;
-	const char *folder = "";
-	int found = 0;
 	if (!g_vfs ||
 	    !xvt_storage_normalize(path, normalized, sizeof(normalized))) {
 		return -1;
 	}
+	AeronFileInfo info;
 	if (AeronVfs_Stat(g_vfs, root, normalized, &info) && info.exists) {
 		return info.is_directory ? -1 : 1;
 	}
-	slash = strrchr(normalized, '/');
-	name = path;
+	char *slash = strrchr(normalized, '/');
+	const char *name = path;
+	const char *folder = "";
 	if (slash) {
 		*slash = 0;
 		folder = normalized;
@@ -118,6 +114,7 @@ int xvt_storage_probe(AeronVfsRoot root, const char *path)
 	} else {
 		name = normalized;
 	}
+	int found = 0;
 	if (!AeronVfs_Glob(g_vfs, root, folder, name,
 			   AERON_VFS_GLOB_CASE_INSENSITIVE, xvt_storage_found,
 			   &found)) {
@@ -129,19 +126,18 @@ int xvt_storage_probe(AeronVfsRoot root, const char *path)
 static AeronFile *xvt_storage_open_asset(const char *path, const char *mode,
 					 char *resolved, size_t capacity)
 {
-	char normalized[XVT_PATH_CAPACITY];
-	AeronFile *file;
 	if (capacity) {
 		resolved[0] = 0;
 	}
+	char normalized[XVT_PATH_CAPACITY];
 	if (!xvt_storage_normalize(path, normalized, sizeof(normalized))) {
 		return NULL;
 	}
 	int length =
 		snprintf(resolved, capacity, "BalanceOfPower/%s", normalized);
 	if (length >= 0 && (size_t)length < capacity) {
-		file = xvt_storage_open_root(AERON_VFS_ROOT_ASSET, resolved,
-					     mode);
+		AeronFile *file = xvt_storage_open_root(AERON_VFS_ROOT_ASSET,
+							resolved, mode);
 		if (file) {
 			return file;
 		}
@@ -214,18 +210,13 @@ static AeronVfsRoot xvt_storage_writable_path(const char *path, char *output,
 AeronFile *xvt_storage_open_root(AeronVfsRoot root, const char *path,
 				 const char *mode)
 {
-	char parent[XVT_PATH_CAPACITY];
-	char *slash;
-	AeronFile *file = NULL;
-	AeronVfsOpenMode open_mode;
-	AeronFileInfo info;
-	int writable;
 	if (!g_vfs || !mode || !strchr("rwa", mode[0]) || !mode[0] ||
 	    !xvt_storage_normalize(path, g_last_path, sizeof(g_last_path))) {
 		return NULL;
 	}
 	g_last_root = root;
-	writable = mode[0] != 'r' || strchr(mode, '+') != NULL;
+	int writable = mode[0] != 'r' || strchr(mode, '+') != NULL;
+	AeronFileInfo info;
 	/* Windows fopen rejects directories; some host file APIs open them for reading. */
 	if (!writable && AeronVfs_Stat(g_vfs, root, g_last_path, &info) &&
 	    info.is_directory) {
@@ -235,14 +226,16 @@ AeronFile *xvt_storage_open_root(AeronVfsRoot root, const char *path,
 	    root != AERON_VFS_ROOT_TEMP) {
 		return NULL;
 	}
-	open_mode = mode[0] == 'w'   ? (strchr(mode, '+') ? AERON_VFS_WRITE_READ
-							  : AERON_VFS_WRITE)
-		    : mode[0] == 'a' ? AERON_VFS_APPEND
-		    : strchr(mode, '+') ? AERON_VFS_READ_WRITE
-					: AERON_VFS_READ;
+	AeronVfsOpenMode open_mode =
+		mode[0] == 'w'	    ? (strchr(mode, '+') ? AERON_VFS_WRITE_READ
+							 : AERON_VFS_WRITE)
+		: mode[0] == 'a'    ? AERON_VFS_APPEND
+		: strchr(mode, '+') ? AERON_VFS_READ_WRITE
+				    : AERON_VFS_READ;
 	if (writable) {
+		char parent[XVT_PATH_CAPACITY];
 		strcpy(parent, g_last_path);
-		slash = strrchr(parent, '/');
+		char *slash = strrchr(parent, '/');
 		if (slash) {
 			*slash = 0;
 			if (!AeronVfs_CreateDirectory(g_vfs, root, parent)) {
@@ -250,6 +243,7 @@ AeronFile *xvt_storage_open_root(AeronVfsRoot root, const char *path,
 			}
 		}
 	}
+	AeronFile *file = NULL;
 	if (!AeronVfs_Open(g_vfs, root, g_last_path, open_mode, &file) &&
 	    writable) {
 		XVT_LOG_ERROR("files.write_failed path=\"%s\"", g_last_path);
@@ -259,17 +253,16 @@ AeronFile *xvt_storage_open_root(AeronVfsRoot root, const char *path,
 
 AeronFile *xvt_storage_open(const char *path, const char *mode)
 {
-	char normalized[XVT_PATH_CAPACITY];
-	char resolved[XVT_PATH_CAPACITY];
-	AeronVfsRoot root;
 	snprintf(g_last_path, sizeof(g_last_path), "%s", path ? path : "");
 	g_last_root = AERON_VFS_ROOT_ASSET;
+	char normalized[XVT_PATH_CAPACITY];
 	if (!mode ||
 	    !xvt_storage_normalize(path, normalized, sizeof(normalized))) {
 		return NULL;
 	}
-	root = xvt_storage_writable_path(normalized, resolved,
-					 sizeof(resolved));
+	char resolved[XVT_PATH_CAPACITY];
+	AeronVfsRoot root = xvt_storage_writable_path(normalized, resolved,
+						      sizeof(resolved));
 	if (mode[0] != 'r' || strchr(mode, '+') ||
 	    xvt_storage_has_extension(path, ".plt") ||
 	    xvt_storage_has_extension(path, ".pl2") ||
@@ -289,13 +282,12 @@ AeronFile *xvt_storage_open(const char *path, const char *mode)
 int xvt_storage_remove(const char *path)
 {
 	char normalized[XVT_PATH_CAPACITY];
-	char resolved[XVT_PATH_CAPACITY];
-	AeronVfsRoot root;
 	if (!xvt_storage_normalize(path, normalized, sizeof(normalized))) {
 		return -1;
 	}
-	root = xvt_storage_writable_path(normalized, resolved,
-					 sizeof(resolved));
+	char resolved[XVT_PATH_CAPACITY];
+	AeronVfsRoot root = xvt_storage_writable_path(normalized, resolved,
+						      sizeof(resolved));
 	return AeronVfs_Remove(g_vfs, root, resolved) ? 0 : -1;
 }
 
@@ -316,11 +308,10 @@ int xvt_storage_glob(AeronVfsRoot root, const char *wildcard,
 		     AeronVfsGlobCallback callback, void *context)
 {
 	char directory[XVT_PATH_CAPACITY];
-	char *slash;
 	if (!xvt_storage_normalize(wildcard, directory, sizeof(directory))) {
 		return 0;
 	}
-	slash = strrchr(directory, '/');
+	char *slash = strrchr(directory, '/');
 	if (slash) {
 		*slash = 0;
 	}
@@ -358,10 +349,10 @@ int xvt_storage_close_global_stream(AeronFile *stream, int remove_on_error)
 int xvt_storage_write_atomic(const char *path, const void *data, size_t size)
 {
 	char normalized[XVT_PATH_CAPACITY];
-	char resolved[XVT_PATH_CAPACITY];
 	if (!xvt_storage_normalize(path, normalized, sizeof(normalized))) {
 		return 0;
 	}
+	char resolved[XVT_PATH_CAPACITY];
 	AeronVfsRoot root = xvt_storage_writable_path(normalized, resolved,
 						      sizeof(resolved));
 	int result = AeronVfs_WriteAllAtomic(g_vfs, root, resolved, data, size);

@@ -94,13 +94,13 @@ void xvt_flight_controls_update_throttle_context(void)
 void xvt_flight_controls_sample_throttle(
 	struct flight_input_frame_record *record)
 {
-	uint16_t position;
-	uint32_t generation;
 	record->flags = 0;
 	record->throttle = 0;
 	bool pause = record->key == FLIGHT_KEY_ALT_P &&
 		     g_flight_player_count == 1 &&
 		     !xvt_port_network_requires_progress();
+	uint16_t position;
+	uint32_t generation;
 	if (pause || !xvt_flight_controls_local_throttle_eligible() ||
 	    !xvt_controller_mapping_throttle_sample(&position, &generation)) {
 		xvt_flight_controls_reset_throttle();

@@ -37,10 +37,10 @@ static void finish_close(void) { xvt_network_session_service(); }
 
 static void check_copy_player_names(void)
 {
-	char short_name[16];
-	char long_name[16];
 	memset(&g_message, 0, sizeof g_message);
 	memcpy(g_message.names, "Luke\0Skywalker", sizeof "Luke\0Skywalker");
+	char short_name[16];
+	char long_name[16];
 	XVT_ASSERT_INT_EQ(xvt_network_session_copy_player_names(
 				  &g_message, short_name, sizeof short_name,
 				  long_name, sizeof long_name),

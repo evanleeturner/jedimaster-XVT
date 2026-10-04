@@ -99,10 +99,10 @@ static void segment(const struct xvt_render_view *view, const int32_t a[3],
 		    const int32_t b[3], uint32_t color)
 {
 	float p[3];
-	float q[3];
-	float clip[2][4];
 	AeronWorld_LocalI32(view->origin_world, a, p);
+	float q[3];
 	AeronWorld_LocalI32(view->origin_world, b, q);
+	float clip[2][4];
 	for (int r = 0; r < 4; ++r) {
 		const float *m = view->view_proj + r * 4;
 		clip[0][r] = m[0] * p[0] + m[1] * p[1] + m[2] * p[2] + m[3];

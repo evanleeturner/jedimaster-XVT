@@ -270,26 +270,10 @@ int16_t mfd_draw_mission_goals_page(void)
 		COCKPIT_OVERLAY_STR_PENALTY = 22,
 	};
 
-	int player_team;
-	int total_goal_lines;
-	int scroll_top;
-	int line_index;
-	int16_t section_idx;
-	uint16_t cursor_y;
-	uint16_t goal_type;
 	int16_t bottom;
 	int16_t top;
 	int16_t left;
 	int16_t right;
-	int16_t line_step;
-	int16_t pair_idx;
-	int16_t last_visible_line;
-	int16_t trigger_idx;
-	uint16_t goal_idx;
-	int16_t flight_group_idx;
-	int16_t status_title;
-	unsigned int status_color;
-	char text[80];
 
 	if (g_players[g_local_player].map_camera_state != 0) {
 		left = g_mfd_map_blit_source_x + 2;
@@ -307,8 +291,14 @@ int16_t mfd_draw_mission_goals_page(void)
 #ifdef XVT_MODERN
 	xvt_cockpit_pages_set_origin(MFD_PAGE_GOALS, left - 2, top - 2);
 #endif
-	total_goal_lines = 0;
-	player_team = (uint16_t)g_players[g_local_player].team;
+	int total_goal_lines = 0;
+	int player_team = (uint16_t)g_players[g_local_player].team;
+	int16_t section_idx;
+	uint16_t goal_type;
+	int16_t pair_idx;
+	int16_t trigger_idx;
+	uint16_t goal_idx;
+	int16_t flight_group_idx;
 	for (section_idx = 0; section_idx < SECTION_COUNT; ++section_idx) {
 		g_mfd_goals_line_counts[section_idx] = 0;
 		for (goal_type = 0; goal_type <= GOAL_TYPE_MAX; ++goal_type) {
@@ -316,7 +306,6 @@ int16_t mfd_draw_mission_goals_page(void)
 				g_flight_mission_state.runtime
 					.team_global_goal_state[player_team]
 							       [goal_type];
-			uint16_t display_state;
 
 			if (global_state != 0 &&
 			    (global_state ==
@@ -427,7 +416,7 @@ int16_t mfd_draw_mission_goals_page(void)
 				}
 			}
 
-			display_state =
+			uint16_t display_state =
 				g_mfd_goals_display_state_by_section_type
 					[section_idx][goal_type];
 			for (goal_idx = 0; goal_idx < FLIGHT_GROUP_GOAL_COUNT;
@@ -532,7 +521,8 @@ int16_t mfd_draw_mission_goals_page(void)
 		flight_text_set_background_color(
 			g_flight_transparent_color_index);
 	}
-	line_step = g_flight_font_line_height + 2;
+	int16_t line_step = g_flight_font_line_height + 2;
+	int scroll_top;
 	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
 				      HUD_MFD_GOALS_ELEMENT] !=
 	    (uint16_t)g_mfd_page_states[MFD_PAGE_GOALS]) {
@@ -596,16 +586,17 @@ int16_t mfd_draw_mission_goals_page(void)
 			MISSION_GOALS_REFRESH_TICKS;
 	}
 	g_mfd_goals_current_scroll_top = scroll_top;
-	last_visible_line = scroll_top + (bottom - top) / line_step - 1;
-	cursor_y = top;
+	int16_t last_visible_line = scroll_top + (bottom - top) / line_step - 1;
+	uint16_t cursor_y = top;
 
+	char text[80];
 	if (g_mfd_goals_redraw_needed != 0) {
 #ifdef XVT_MODERN
 		xvt_cockpit_pages_clear(MFD_PAGE_GOALS);
 		xvt_cockpit_pages_begin_section(MFD_PAGE_GOALS,
 						XVT_COCKPIT_PAGE_BODY);
 #endif
-		line_index = 0;
+		int line_index = 0;
 		flight_text_set_clip_rect(left - 2, top - 2, right + 2,
 					  bottom + 2);
 #ifdef XVT_MODERN
@@ -613,8 +604,9 @@ int16_t mfd_draw_mission_goals_page(void)
 #endif
 		g_flight_fill_clip_rect_fn();
 		flight_text_set_clip_rect(left, top, right, bottom);
-		status_title = GOAL_TITLE_STR_MISSION_OUTCOME;
+		int16_t status_title = GOAL_TITLE_STR_MISSION_OUTCOME;
 		flight_text_set_scratch(g_str_goal_titles[status_title]);
+		unsigned int status_color;
 		switch (g_flight_mission_state.runtime.team_goal_status
 				[(uint16_t)g_players[g_local_player].team][0]) {
 		case 0:
@@ -662,25 +654,20 @@ int16_t mfd_draw_mission_goals_page(void)
 
 		for (section_idx = 0; section_idx < SECTION_COUNT;
 		     ++section_idx) {
-			uint8_t title_pending;
-
 			flight_text_set_color(
 				g_goal_title_color_by_index[section_idx]);
-			title_pending = 1;
+			uint8_t title_pending = 1;
 			for (goal_type = 0; goal_type <= GOAL_TYPE_MAX;
 			     ++goal_type) {
-				uint16_t global_state;
-				uint16_t display_state;
-				uint8_t bonus_prefix_width;
-
 				if (g_mfd_goals_line_counts[section_idx] == 0) {
 					continue;
 				}
-				bonus_prefix_width = 0;
-				global_state = g_flight_mission_state.runtime
-						       .team_global_goal_state
-							       [player_team]
-							       [goal_type];
+				uint8_t bonus_prefix_width = 0;
+				uint16_t global_state =
+					g_flight_mission_state.runtime
+						.team_global_goal_state
+							[player_team]
+							[goal_type];
 				if (global_state != 0 &&
 				    (global_state ==
 					     g_mfd_goals_display_state_by_section_type
@@ -738,8 +725,6 @@ int16_t mfd_draw_mission_goals_page(void)
 										.triggers
 											[trigger_idx]
 										.amount;
-							uint16_t goal_status;
-							uint16_t drawn_height;
 
 							if (condition ==
 								    MISSION_COND_NO_CONDITION ||
@@ -872,7 +857,8 @@ int16_t mfd_draw_mission_goals_page(void)
 									0;
 								++line_index;
 							}
-							drawn_height = 0;
+							uint16_t drawn_height =
+								0;
 							if (line_index >=
 								    g_mfd_goals_current_scroll_top &&
 							    line_index <=
@@ -902,7 +888,7 @@ int16_t mfd_draw_mission_goals_page(void)
 								flight_text_set_cursor(
 									left,
 									cursor_y);
-								goal_status =
+								uint16_t goal_status =
 									section_idx == GOAL_TITLE_STR_CONDITIONS_TO_PREVENT &&
 											goal_type ==
 												1
@@ -1084,7 +1070,7 @@ int16_t mfd_draw_mission_goals_page(void)
 					}
 				}
 
-				display_state =
+				uint16_t display_state =
 					g_mfd_goals_display_state_by_section_type
 						[section_idx][goal_type];
 				for (goal_idx = 0;
@@ -1094,12 +1080,6 @@ int16_t mfd_draw_mission_goals_page(void)
 					     flight_group_idx <
 					     g_mission_header.num_flight_groups;
 					     ++flight_group_idx) {
-						uint16_t drawn_height;
-						uint16_t goal_status;
-						uint16_t event_condition;
-						uint16_t amount_op;
-						uint16_t time_limit;
-
 						if (g_mission_flight_groups[flight_group_idx]
 								    .fg
 								    .goals[goal_idx]
@@ -1121,7 +1101,7 @@ int16_t mfd_draw_mission_goals_page(void)
 							    display_state) {
 							continue;
 						}
-						event_condition =
+						uint16_t event_condition =
 							g_mission_flight_groups[flight_group_idx]
 								.fg
 								.goals[goal_idx]
@@ -1166,14 +1146,14 @@ int16_t mfd_draw_mission_goals_page(void)
 							title_pending = 0;
 							++line_index;
 						}
-						drawn_height = 0;
-						amount_op =
+						uint16_t drawn_height = 0;
+						uint16_t amount_op =
 							(uint8_t)g_mission_flight_groups
 								[flight_group_idx]
 									.fg
 									.goals[goal_idx]
 									.amount;
-						time_limit =
+						uint16_t time_limit =
 							g_mission_flight_groups
 								[flight_group_idx]
 									.fg
@@ -1205,7 +1185,7 @@ int16_t mfd_draw_mission_goals_page(void)
 							}
 							flight_text_set_cursor(
 								left, cursor_y);
-							goal_status =
+							uint16_t goal_status =
 								section_idx == GOAL_TITLE_STR_CONDITIONS_TO_PREVENT &&
 										goal_type ==
 											1
@@ -1393,8 +1373,6 @@ void mfd_draw_mission_scoreboard_page(void)
 		COLOR_WINNING_ENTRY = 0x52,
 	};
 
-	int team_count;
-
 	struct scoreboard_scratch {
 		int participating_team_count;
 		int order[TEAM_COUNT];
@@ -1404,36 +1382,20 @@ void mfd_draw_mission_scoreboard_page(void)
 		int team_placements[TEAM_COUNT];
 	} scratch;
 
-	int16_t pane_width;
-	uint16_t space_width;
-	int16_t score_column_x;
-	uint16_t line_step;
-	int16_t left;
-	int16_t top;
-	int16_t right;
-	int16_t bottom_y;
-	int16_t row_y;
-	int16_t last_visible_exclusive;
-	int16_t row;
-	int entry_count;
-	int16_t player_idx;
-	int16_t needs_redraw;
-	int16_t shared_kill_count;
-
 	flight_sw_set_render_target(g_flight_offscreen_buffer, g_screen_width,
 				    g_screen_height,
 				    g_screen_width * g_flight_bytes_per_pixel);
 	flight_text_set_font_tier(0);
-	pane_width = 0;
-	needs_redraw = 0;
+	int16_t pane_width = 0;
+	int16_t needs_redraw = 0;
+	int16_t player_idx;
 	for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
 		if (g_players[player_idx].participation_state != 0) {
-			int16_t name_width;
-
 			flight_text_set_scratch(
 				net_session_get_player_name(player_idx));
-			name_width = (int16_t)flight_text_measure_string_width(
-				g_flight_text_scratch_buffer);
+			int16_t name_width =
+				(int16_t)flight_text_measure_string_width(
+					g_flight_text_scratch_buffer);
 			if (pane_width < name_width) {
 				pane_width = name_width;
 			}
@@ -1445,10 +1407,10 @@ void mfd_draw_mission_scoreboard_page(void)
 				       flight_text_measure_string_width("(0)"));
 	}
 	{
-		int16_t header_width;
-
-		header_width = (int16_t)flight_text_measure_string_width(
-			g_str_cockpit_overlay_text[COCKPIT_OVERLAY_STR_PLAYER]);
+		int16_t header_width =
+			(int16_t)flight_text_measure_string_width(
+				g_str_cockpit_overlay_text
+					[COCKPIT_OVERLAY_STR_PLAYER]);
 		if (pane_width < header_width) {
 			pane_width = header_width;
 		}
@@ -1458,22 +1420,22 @@ void mfd_draw_mission_scoreboard_page(void)
 	flight_text_append_scratch_string("          ");
 	flight_text_append_scratch_string(
 		g_str_cockpit_overlay_text[COCKPIT_OVERLAY_STR_KILLS]);
-	space_width = flight_text_measure_string_width("  ");
-	score_column_x = (int16_t)(pane_width + space_width);
+	uint16_t space_width = flight_text_measure_string_width("  ");
+	int16_t score_column_x = (int16_t)(pane_width + space_width);
 	pane_width =
 		(int16_t)(pane_width + flight_text_measure_string_width(
 					       g_flight_text_scratch_buffer));
+	int team_count;
+	int16_t row;
+	int entry_count;
 	if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
-		int fg_idx;
-		int team;
-
 		memset(scratch.team_placements, 0,
 		       sizeof(scratch.team_placements));
 		memset(scratch.owned_fg_count_by_team, 0,
 		       sizeof(scratch.owned_fg_count_by_team));
 		memset(scratch.player_fg_count_by_team, 0,
 		       sizeof(scratch.player_fg_count_by_team));
-		for (fg_idx = 0;
+		for (int fg_idx = 0;
 		     fg_idx < (int16_t)g_mission_header.num_flight_groups;
 		     ++fg_idx) {
 			if (g_mission_flight_groups[fg_idx].fg.player_number !=
@@ -1492,7 +1454,7 @@ void mfd_draw_mission_scoreboard_page(void)
 			}
 		}
 		team_count = 0;
-		for (team = 0; team < TEAM_COUNT; ++team) {
+		for (int team = 0; team < TEAM_COUNT; ++team) {
 			if (scratch.player_fg_count_by_team[team] != 0) {
 				scratch.order[team_count++] = team;
 			}
@@ -1514,12 +1476,9 @@ void mfd_draw_mission_scoreboard_page(void)
 					.participating_team_count;
 			for (row = 0; row < scratch.participating_team_count;
 			     ++row) {
-				int placement;
-				int16_t other_team;
-				int score;
-
-				placement = 0;
-				score = g_flight_mission_state.runtime
+				int placement = 0;
+				int score =
+					g_flight_mission_state.runtime
 						.team_scores[TEAM_SCORE_MISSION]
 							    [row] +
 					g_flight_mission_state.runtime
@@ -1529,7 +1488,7 @@ void mfd_draw_mission_scoreboard_page(void)
 						.melee_tournament_sequence_state
 						.team_standings[row]
 						.total_score;
-				for (other_team = 0;
+				for (int16_t other_team = 0;
 				     other_team <
 				     scratch.participating_team_count;
 				     ++other_team) {
@@ -1561,6 +1520,10 @@ void mfd_draw_mission_scoreboard_page(void)
 		entry_count = 1;
 	}
 
+	int16_t left;
+	int16_t top;
+	int16_t right;
+	int16_t bottom_y;
 	if (g_players[g_local_player].map_camera_state != 0) {
 		left = (int16_t)(g_mfd_map_blit_source_x + 2);
 		top = (int16_t)(g_mfd_map_blit_source_y + 2);
@@ -1609,8 +1572,8 @@ void mfd_draw_mission_scoreboard_page(void)
 #ifdef XVT_MODERN
 	xvt_cockpit_pages_set_origin(MFD_PAGE_SCOREBOARD, left - 2, top - 2);
 #endif
-	row_y = top;
-	line_step = (uint16_t)(g_flight_font_line_height + 1);
+	int16_t row_y = top;
+	uint16_t line_step = (uint16_t)(g_flight_font_line_height + 1);
 	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
 				      HUD_MFD_SCOREBOARD_ELEMENT] !=
 		    g_mfd_page_states[MFD_PAGE_SCOREBOARD] ||
@@ -1799,7 +1762,7 @@ void mfd_draw_mission_scoreboard_page(void)
 			break;
 		}
 	}
-	last_visible_exclusive =
+	int16_t last_visible_exclusive =
 		(int16_t)(g_mfd_mission_scoreboard_first_visible_row +
 			  (bottom_y - top) / line_step - 1);
 #ifdef XVT_MODERN
@@ -1813,6 +1776,7 @@ void mfd_draw_mission_scoreboard_page(void)
 					XVT_COCKPIT_PAGE_BODY);
 #endif
 
+	int16_t shared_kill_count;
 	if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
 		if (team_count > 1) {
 			int16_t swapped;
@@ -1820,12 +1784,9 @@ void mfd_draw_mission_scoreboard_page(void)
 			do {
 				swapped = 0;
 				for (row = 0; row < team_count - 1; ++row) {
-					int team;
-					int next_team;
-
-					team = scratch.order[row];
+					int team = scratch.order[row];
 					if (team < TEAM_COUNT) {
-						next_team =
+						int next_team =
 							scratch.order[row + 1];
 						if (g_flight_mission_state
 								    .runtime
@@ -1847,9 +1808,7 @@ void mfd_draw_mission_scoreboard_page(void)
 								    .team_scores
 									    [TEAM_SCORE_MISSION]
 									    [team]) {
-							int16_t previous_team;
-
-							previous_team =
+							int16_t previous_team =
 								scratch.order
 									[row];
 							scratch.order[row] =
@@ -1866,14 +1825,10 @@ void mfd_draw_mission_scoreboard_page(void)
 			} while (swapped != 0);
 		}
 		for (row = 0; row < team_count; ++row) {
-			int team;
-
 			if (row >= g_mfd_mission_scoreboard_first_visible_row &&
 			    row < last_visible_exclusive &&
 			    scratch.order[row] < TEAM_COUNT) {
-				int marker;
-
-				team = scratch.order[row];
+				int team = scratch.order[row];
 				if (scratch.player_fg_count_by_team[team] ==
 					    1 &&
 				    scratch.owned_fg_count_by_team[team] == 1) {
@@ -1908,7 +1863,7 @@ void mfd_draw_mission_scoreboard_page(void)
 					flight_text_set_scratch(
 						g_mission_teams[team].name);
 				}
-				marker = scratch.team_placements[team];
+				int marker = scratch.team_placements[team];
 				if (marker != 0 &&
 				    (marker <= 3 ||
 				     team == (uint16_t)g_players[g_local_player]
@@ -1980,9 +1935,7 @@ void mfd_draw_mission_scoreboard_page(void)
 			}
 		}
 	} else {
-		int16_t connected_count;
-
-		connected_count = 0;
+		int16_t connected_count = 0;
 		for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
 			if (g_players[player_idx].participation_state == 1 ||
 			    g_players[player_idx].participation_state == 2) {
@@ -2005,12 +1958,9 @@ void mfd_draw_mission_scoreboard_page(void)
 				swapped = 0;
 				for (row = 0; row < connected_count - 1;
 				     ++row) {
-					int player;
-					int next_player;
-
-					player = scratch.order[row];
+					int player = scratch.order[row];
 					if (player < PLAYER_COUNT) {
-						next_player =
+						int next_player =
 							scratch.order[row + 1];
 						if (g_players[next_player]
 								    .mission_stats
@@ -2031,9 +1981,7 @@ void mfd_draw_mission_scoreboard_page(void)
 									    [TEAM_SCORE_BONUS]
 									    [(uint16_t)g_players[player]
 										     .team]) {
-							int16_t previous_player;
-
-							previous_player =
+							int16_t previous_player =
 								scratch.order
 									[row];
 							scratch.order[row] =
@@ -2050,21 +1998,14 @@ void mfd_draw_mission_scoreboard_page(void)
 			} while (swapped != 0);
 		}
 		for (row = 0; row < connected_count; ++row) {
-			int player;
-
 			if (row >= g_mfd_mission_scoreboard_first_visible_row &&
 			    row < last_visible_exclusive &&
 			    scratch.order[row] < PLAYER_COUNT) {
-				int16_t digits;
-				int16_t x_offset;
-				int16_t full_kill_count;
-				int16_t fg_idx;
-				int16_t row_bottom_y;
-
-				player = scratch.order[row];
+				int player = scratch.order[row];
 				flight_text_set_scratch(
 					net_session_get_player_name(player));
-				row_bottom_y = (int16_t)(row_y + line_step);
+				int16_t row_bottom_y =
+					(int16_t)(row_y + line_step);
 				flight_text_set_clip_rect(left, row_y, right,
 							  row_bottom_y);
 				g_flight_fill_clip_rect_fn();
@@ -2084,16 +2025,17 @@ void mfd_draw_mission_scoreboard_page(void)
 				flight_text_draw_string(
 					g_flight_text_scratch_buffer);
 				g_flight_draw_char_fn('\n');
-				digits = (int16_t)flight_text_format_scratch_int(
-					g_players[player]
-						.mission_stats.mission_score +
-					g_flight_mission_state.runtime
-						.team_scores
+				int16_t digits =
+					(int16_t)flight_text_format_scratch_int(
+						g_players[player]
+							.mission_stats
+							.mission_score +
+						g_flight_mission_state.runtime.team_scores
 							[TEAM_SCORE_BONUS]
 							[(uint16_t)g_players
 								 [player]
 									 .team]);
-				x_offset = 0;
+				int16_t x_offset = 0;
 				if (digits < SCORE_DIGIT_COLUMNS) {
 					x_offset =
 						(int16_t)(space_width *
@@ -2106,9 +2048,9 @@ void mfd_draw_mission_scoreboard_page(void)
 				strcpy(scratch.text,
 				       g_flight_text_scratch_buffer);
 				strcat(scratch.text, "    ");
-				full_kill_count = 0;
+				int16_t full_kill_count = 0;
 				shared_kill_count = 0;
-				for (fg_idx = 0;
+				for (int16_t fg_idx = 0;
 				     fg_idx < (int16_t)g_mission_header
 						      .num_flight_groups;
 				     ++fg_idx) {
@@ -2191,17 +2133,23 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 		STATUS_COLUMN_OFFSET = 15,
 	};
 
+	flight_sw_set_render_target(g_flight_offscreen_buffer, g_screen_width,
+				    g_screen_height,
+				    g_screen_width * g_flight_bytes_per_pixel);
+	flight_text_set_font_tier(0);
+	int local_player = g_local_player;
 	uint16_t craft_rows[MAX_FLIGHT_GROUPS];
-	int local_player;
-	uint16_t player_team;
-	uint16_t page_index;
-	uint16_t layout_index;
+	craft_rows[0] = g_players[local_player].bound_flight_group_idx;
+	uint16_t player_team = (uint16_t)g_players[local_player].team;
+	uint16_t page_index =
+		(uint16_t)(MFD_PAGE_FRIENDLY_CRAFT - show_hostile_craft);
+	uint16_t layout_index =
+		(uint16_t)(HUD_MFD_CRAFT_LIST_ELEMENT + show_hostile_craft);
+	int player_object_idx = g_players[local_player].object_index;
 	uint16_t row_count;
 	int row_total;
 	int flight_group_idx;
-	int player_object_idx;
 	int row;
-	int other_row;
 	uint16_t line_step;
 	int16_t pane_left;
 	uint16_t pane_top;
@@ -2213,18 +2161,6 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 	uint16_t last_visible_row;
 	uint16_t last_team;
 	int16_t *page_state;
-
-	flight_sw_set_render_target(g_flight_offscreen_buffer, g_screen_width,
-				    g_screen_height,
-				    g_screen_width * g_flight_bytes_per_pixel);
-	flight_text_set_font_tier(0);
-	local_player = g_local_player;
-	craft_rows[0] = g_players[local_player].bound_flight_group_idx;
-	player_team = (uint16_t)g_players[local_player].team;
-	page_index = (uint16_t)(MFD_PAGE_FRIENDLY_CRAFT - show_hostile_craft);
-	layout_index =
-		(uint16_t)(HUD_MFD_CRAFT_LIST_ELEMENT + show_hostile_craft);
-	player_object_idx = g_players[local_player].object_index;
 	do {
 		if (player_object_idx != -1 &&
 		    g_object_table[player_object_idx].mobj->p_craft->system_health
@@ -2246,22 +2182,16 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 
 		{
 			uint16_t friendly_flight_groups[MAX_FLIGHT_GROUPS];
-			uint16_t flight_group_count;
 
 			friendly_flight_groups[0] = craft_rows[0];
-			flight_group_count = 1;
+			uint16_t flight_group_count = 1;
 			if (show_hostile_craft == 1) {
-				int object_idx;
-
 				row_count = 0;
-				for (object_idx =
+				for (int object_idx =
 					     g_active_region_object_slot_start;
 				     object_idx <
 				     g_active_region_craft_object_slot_end;
 				     ++object_idx) {
-					struct craft_data *craft;
-					uint16_t team;
-
 					if (g_object_table[object_idx]
 							    .object_type != 0 &&
 					    g_object_table[object_idx].mobj !=
@@ -2269,10 +2199,11 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 					    g_object_table[object_idx]
 							    .mobj->p_craft !=
 						    NULL) {
-						team = g_object_table
-							       [object_idx]
-								       .mobj
-								       ->team;
+						uint16_t team =
+							g_object_table
+								[object_idx]
+									.mobj
+									->team;
 						if (g_object_table[object_idx]
 								    .mobj
 								    ->team !=
@@ -2280,7 +2211,8 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 						    g_mission_teams[player_team]
 								    .allies[team] ==
 							    0) {
-							craft = g_object_table[object_idx]
+							struct craft_data *craft =
+								g_object_table[object_idx]
 									.mobj
 									->p_craft;
 							if (craft->object_kind !=
@@ -2300,13 +2232,10 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 				     flight_group_idx <
 				     g_mission_header.num_flight_groups;
 				     ++flight_group_idx) {
-					int team;
-					int is_hostile;
-
-					team = g_mission_flight_groups
-						       [flight_group_idx]
-							       .fg.team;
-					is_hostile =
+					int team = g_mission_flight_groups
+							   [flight_group_idx]
+								   .fg.team;
+					int is_hostile =
 						team == player_team
 							? 0
 							: g_mission_teams[player_team]
@@ -2324,33 +2253,27 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 				for (flight_group_idx = 0;
 				     flight_group_idx < flight_group_count;
 				     ++flight_group_idx) {
-					int friendly_flight_group;
-					int object_idx;
-
-					friendly_flight_group =
+					int friendly_flight_group =
 						friendly_flight_groups
 							[flight_group_idx];
-					for (object_idx =
+					for (int object_idx =
 						     g_active_region_object_slot_start;
 					     object_idx <
 					     g_active_region_craft_object_slot_end;
 					     ++object_idx) {
-						struct mobile_object
-							*mobile_object;
-						struct craft_data *craft;
-
 						if (g_object_table[object_idx]
 								    .flight_group_idx ==
 							    friendly_flight_group &&
 						    g_object_table[object_idx]
 								    .object_type !=
 							    0) {
-							mobile_object =
+							struct mobile_object *mobile_object =
 								g_object_table[object_idx]
 									.mobj;
 							if (mobile_object !=
 							    NULL) {
-								craft = mobile_object
+								struct craft_data *craft =
+									mobile_object
 										->p_craft;
 								if (craft !=
 									    NULL &&
@@ -2373,19 +2296,15 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 		row_total = row_count;
 		row = 0;
 		do {
-			for (other_row = row + 1; other_row < row_count;
+			for (int other_row = row + 1; other_row < row_count;
 			     ++other_row) {
-				int current_team;
-				int other_team;
-				int current_row;
-				uint16_t saved_row;
-
-				current_row = craft_rows[row];
-				current_team = current_row & ~0xFF;
-				other_team = (uint16_t)(craft_rows[other_row] &
-							0xFF00);
+				int current_row = craft_rows[row];
+				int current_team = current_row & ~0xFF;
+				int other_team =
+					(uint16_t)(craft_rows[other_row] &
+						   0xFF00);
 				if (other_team < current_team) {
-					saved_row = current_row;
+					uint16_t saved_row = current_row;
 					craft_rows[row] = craft_rows[other_row];
 					craft_rows[other_row] = saved_row;
 					other_row = row + 1;
@@ -2457,8 +2376,6 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 		page_state = &g_mfd_page_states[page_index];
 		if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
 					      layout_index] != *page_state) {
-			int16_t clear_bottom;
-
 			if (g_players[local_player].map_camera_state != 0) {
 				flight_text_set_background_color(
 					COLOR_MAP_BACKGROUND);
@@ -2472,6 +2389,7 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 				flight_text_set_background_color(
 					COLOR_MFD_BACKGROUND);
 			}
+			int16_t clear_bottom;
 			if (g_players[g_local_player].map_camera_state != 0) {
 				if (show_hostile_craft == 1) {
 					clear_bottom =
@@ -2540,9 +2458,7 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 				g_str_cockpit_overlay_text
 					[COCKPIT_OVERLAY_STR_CRAFT]);
 			{
-				int16_t health_header_x;
-
-				health_header_x = character_width;
+				int16_t health_header_x = character_width;
 				health_header_x =
 					(int16_t)(health_header_x *
 							  CRAFT_NAME_COLUMN_WIDTH +
@@ -2557,10 +2473,9 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 			}
 			flight_text_draw_string(g_flight_text_scratch_buffer);
 			{
-				int16_t target_column_x;
-
-				target_column_x = (int16_t)(g_flight_cursor_x +
-							    character_width);
+				int16_t target_column_x =
+					(int16_t)(g_flight_cursor_x +
+						  character_width);
 				if (show_hostile_craft == 1) {
 					flight_text_set_cursor(target_column_x,
 							       pane_top);
@@ -2569,9 +2484,7 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 							[COCKPIT_OVERLAY_STR_TARGET]);
 					if (g_flight_resolution_mode !=
 					    FLIGHT_RESOLUTION_320X240) {
-						int16_t orders_column_x;
-
-						orders_column_x =
+						int16_t orders_column_x =
 							character_width;
 						orders_column_x =
 							(int16_t)(orders_column_x *
@@ -2629,14 +2542,13 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 					g_flight_transparent_color_index);
 			}
 			if (row_count != g_mfd_craft_list_cached_row_count) {
-				int16_t clear_bottom;
-
 				if (g_players[g_local_player]
 					    .view_state.hud_state_live ==
 				    HUD_VIEW_FORWARD) {
 					flight_text_set_background_color(
 						g_flight_transparent_color_index);
 				}
+				int16_t clear_bottom;
 				if (show_hostile_craft == 1 &&
 				    g_players[g_local_player]
 						    .map_camera_state != 0) {
@@ -2658,11 +2570,9 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 				if (g_players[g_local_player]
 					    .view_state.hud_state_live ==
 				    HUD_VIEW_FORWARD) {
-					int16_t new_bottom;
-
 					flight_text_set_background_color(
 						COLOR_MFD_BACKGROUND);
-					new_bottom =
+					int16_t new_bottom =
 						(int16_t)(row_y +
 							  line_step *
 								  row_count);
@@ -2686,9 +2596,8 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 		}
 
 		if (g_mfd_active_page == page_index) {
-			int16_t border_top;
 			flight_text_set_background_color(COLOR_HEALTHY);
-			border_top = (int16_t)(pane_top - 2);
+			int16_t border_top = (int16_t)(pane_top - 2);
 			flight_text_set_clip_rect((int16_t)(pane_left - 2),
 						  border_top,
 						  (int16_t)(pane_right + 2),
@@ -2701,7 +2610,6 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 				(uint16_t)(pane_right + 2),
 				(uint16_t)(pane_bottom + 2), 1);
 		} else if (g_mfd_secondary_page == page_index) {
-			int16_t border_top;
 			if (g_players[g_local_player].map_camera_state != 0) {
 				flight_text_set_background_color(
 					COLOR_MAP_BACKGROUND);
@@ -2713,7 +2621,7 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 				flight_text_set_background_color(
 					g_flight_transparent_color_index);
 			}
-			border_top = (int16_t)(pane_top - 2);
+			int16_t border_top = (int16_t)(pane_top - 2);
 			flight_text_set_clip_rect((int16_t)(pane_left - 2),
 						  border_top,
 						  (int16_t)(pane_right + 2),
@@ -2728,10 +2636,8 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 		} else if (g_players[g_local_player]
 				   .view_state.hud_state_live ==
 			   HUD_VIEW_FORWARD) {
-			int16_t border_top;
-
 			flight_text_set_background_color(COLOR_MEDIUM);
-			border_top = (int16_t)(pane_top - 2);
+			int16_t border_top = (int16_t)(pane_top - 2);
 			flight_text_set_clip_rect((int16_t)(pane_left - 2),
 						  border_top,
 						  (int16_t)(pane_right + 2),
@@ -2756,9 +2662,7 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 		}
 
 		if (g_mfd_active_page == page_index) {
-			unsigned int action_key;
-
-			action_key = g_current_action_key;
+			unsigned int action_key = g_current_action_key;
 			switch (action_key) {
 			case FLIGHT_KEY_UP:
 				if (g_mfd_craft_list_top_row_by_mode
@@ -2810,8 +2714,6 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 #endif
 		last_team = UINT16_MAX;
 		if (needs_redraw != 0) {
-			const uint16_t *craft_row;
-
 #ifdef XVT_MODERN
 			xvt_cockpit_pages_begin_section(page_index,
 							XVT_COCKPIT_PAGE_BODY);
@@ -2821,13 +2723,8 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 			g_flight_fill_clip_rect_fn();
 			row = 0;
 			if (row_count != 0) {
-				craft_row = craft_rows;
+				const uint16_t *craft_row = craft_rows;
 				do {
-					uint16_t packed_row;
-					uint16_t team;
-					uint16_t listed_object_idx;
-					const char *status_color;
-
 					flight_text_set_color(
 						COLOR_NORMAL_TEXT);
 					if (row < (uint16_t)g_mfd_craft_list_top_row_by_mode
@@ -2835,11 +2732,12 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 					    row > (uint16_t)last_visible_row) {
 						continue;
 					}
-					packed_row = *craft_row;
-					listed_object_idx =
+					uint16_t packed_row = *craft_row;
+					uint16_t listed_object_idx =
 						(uint16_t)(packed_row & 0xFF);
-					team = (uint16_t)(packed_row >> 8);
-					status_color =
+					uint16_t team =
+						(uint16_t)(packed_row >> 8);
+					const char *status_color =
 						&g_mfd_craft_list_team_color_codes
 							[team];
 					flight_text_set_color(
@@ -2880,54 +2778,42 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 					flight_text_draw_string(
 						g_flight_text_scratch_buffer);
 					{
-						int16_t health_column_x;
-						int16_t status_column_base_x;
-						struct object_record *object;
-						struct mobile_object
-							*mobile_object;
-
-						health_column_x =
+						int16_t health_column_x =
 							(int16_t)(pane_left +
 								  CRAFT_NAME_COLUMN_WIDTH *
 									  character_width);
-						status_column_base_x =
+						int16_t status_column_base_x =
 							health_column_x;
-						object =
+						struct object_record *object =
 							&g_object_table
 								[listed_object_idx];
-						mobile_object = object->mobj;
+						struct mobile_object
+							*mobile_object =
+								object->mobj;
 						if (mobile_object != NULL) {
-							struct craft_data
-								*craft;
-							int hull_percent;
-
-							craft = mobile_object
+							struct craft_data *craft =
+								mobile_object
 									->p_craft;
 							if (craft != NULL &&
 							    craft->object_kind !=
 								    CRAFT_OBJECT_KIND_BREAKING_UP &&
 							    craft->object_kind !=
 								    CRAFT_OBJECT_KIND_EXPLODING) {
-								int shield_average;
-								unsigned int
-									max_shield;
-								int shield_percent;
-								int percentage;
-
-								shield_average =
+								int shield_average =
 									(craft->shield_energy
 										 [0] +
 									 craft->shield_energy
 										 [1]) /
 									2;
-								max_shield = (unsigned int)
-									craft_get_object_max_shield(
+								unsigned int max_shield =
+									(unsigned int)craft_get_object_max_shield(
 										listed_object_idx);
+								int shield_percent;
 								if (shield_average !=
 									    0 &&
 								    max_shield !=
 									    0) {
-									percentage = (uint16_t)math2_longratio_q16(
+									int percentage = (uint16_t)math2_longratio_q16(
 										(unsigned int)
 											shield_average,
 										max_shield);
@@ -2965,7 +2851,7 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 								g_flight_draw_char_fn(
 									'/');
 							}
-							hull_percent = 0;
+							int hull_percent = 0;
 							if (craft->object_kind !=
 								    CRAFT_OBJECT_KIND_BREAKING_UP &&
 							    craft->object_kind !=
@@ -2991,10 +2877,8 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 								}
 							}
 							if (hull_percent != 0) {
-								int digit_count;
-
-								digit_count = (uint16_t)
-									flight_text_format_scratch_int(
+								int digit_count =
+									(uint16_t)flight_text_format_scratch_int(
 										hull_percent);
 								flight_text_set_cursor(
 									g_flight_cursor_x +
@@ -3021,9 +2905,7 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 							flight_text_set_color((
 								uint8_t)*status_color);
 							{
-								int16_t target_column_x;
-
-								target_column_x =
+								int16_t target_column_x =
 									(int16_t)(g_flight_cursor_x +
 										  2 * character_width);
 								status_column_base_x =
@@ -3041,10 +2923,7 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 									if (g_object_table[listed_object_idx]
 										    .player_owner_idx !=
 									    -1) {
-										uint16_t
-											target_object_idx;
-
-										target_object_idx =
+										uint16_t target_object_idx =
 											g_players[g_object_table[listed_object_idx]
 													  .player_owner_idx]
 												.current_target_object_idx;
@@ -3065,10 +2944,7 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 													[32]);
 										}
 									} else {
-										uint16_t
-											target_object_idx;
-
-										target_object_idx =
+										uint16_t target_object_idx =
 											(uint16_t)craft
 												->ai_controller
 												.target_obj_idx;
@@ -3107,11 +2983,7 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 						if (show_hostile_craft != 0 &&
 						    g_flight_resolution_mode !=
 							    FLIGHT_RESOLUTION_320X240) {
-							int16_t status_column_x;
-							unsigned int
-								status_string_id;
-
-							status_column_x =
+							int16_t status_column_x =
 								character_width;
 							status_column_x =
 								(int16_t)(status_column_x *
@@ -3120,8 +2992,8 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 							flight_text_set_cursor(
 								status_column_x,
 								row_y);
-							status_string_id = (uint16_t)
-								mfd_get_flight_group_goal_status_string_id(
+							unsigned int status_string_id =
+								(uint16_t)mfd_get_flight_group_goal_status_string_id(
 									listed_object_idx);
 							if (status_string_id !=
 							    FG_GOAL_STATUS_STR_NONE) {
@@ -3154,30 +3026,22 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 // FUNCTION: XVT 0x44E0A0
 void mfd_build_scratch_craft_list_name(uint16_t object_idx)
 {
-	struct object_record *object;
-	struct mobile_object *mobile_object;
-	struct craft_data *craft;
-	int flight_group_idx;
-	uint16_t craft_number;
-	uint16_t tens_digit;
-	uint16_t ones_digit;
-
 	g_flight_text_scratch_buffer[0] = '\0';
-	object = &g_object_table[object_idx];
-	mobile_object = object->mobj;
+	struct object_record *object = &g_object_table[object_idx];
+	struct mobile_object *mobile_object = object->mobj;
 	if (mobile_object != 0 && mobile_object->family == 0) {
-		craft = mobile_object->p_craft;
-		flight_group_idx = object->flight_group_idx;
+		struct craft_data *craft = mobile_object->p_craft;
+		int flight_group_idx = object->flight_group_idx;
 		flight_text_append_scratch_string(
 			g_mission_flight_groups[flight_group_idx].fg.name);
-		craft_number =
+		uint16_t craft_number =
 			(uint16_t)hud_mission_fg_get_craft_number_if_shown(
 				flight_group_idx, craft);
 		if (craft_number != 0) {
 			flight_text_append_scratch_char(' ');
 			if (craft_number >= 10) {
-				tens_digit = craft_number / 10;
-				ones_digit = craft_number % 10;
+				uint16_t tens_digit = craft_number / 10;
+				uint16_t ones_digit = craft_number % 10;
 				flight_text_append_scratch_char(
 					(char)(tens_digit + '0'));
 				flight_text_append_scratch_char(
@@ -3202,46 +3066,33 @@ void mfd_build_scratch_craft_list_name(uint16_t object_idx)
 // FUNCTION: XVT 0x44E170
 int16_t mfd_get_flight_group_goal_status_string_id(uint16_t object_index)
 {
-	unsigned int goal_index;
-	struct flight_group_goal *goal;
-	int16_t *player_team;
-	unsigned int global_trigger_index;
-	struct mission_trigger_pair *trigger_pair;
-	struct mission_trigger *trigger;
-	int event_condition;
-	unsigned int flight_group_idx;
-	int inspect_active;
-	int disable_active;
-	int capture_active;
-	int board_active;
-	struct craft_data *craft;
-	int destroy_active;
-	int special_cargo_only;
-	int attack_active;
-
 	if (g_projectile_object_slot_start <= object_index &&
 	    g_projectile_object_slot_end > object_index) {
 		return FG_GOAL_STATUS_STR_NONE;
 	}
+	struct craft_data *craft;
 	if (g_active_region_craft_object_slot_end > object_index) {
 		craft = g_object_table[object_index].mobj->p_craft;
 	} else {
 		craft = NULL;
 	}
 
-	inspect_active = 0;
-	destroy_active = 0;
-	disable_active = 0;
-	attack_active = 0;
-	capture_active = 0;
-	board_active = 0;
-	flight_group_idx = g_object_table[object_index].flight_group_idx;
-	special_cargo_only = 0;
-	player_team = &g_players[g_local_player].team;
+	int inspect_active = 0;
+	int destroy_active = 0;
+	int disable_active = 0;
+	int attack_active = 0;
+	int capture_active = 0;
+	int board_active = 0;
+	unsigned int flight_group_idx =
+		g_object_table[object_index].flight_group_idx;
+	int special_cargo_only = 0;
+	int16_t *player_team = &g_players[g_local_player].team;
 
-	for (goal_index = 0; goal_index < 8; ++goal_index) {
-		goal = &g_mission_flight_groups[flight_group_idx]
-				.fg.goals[goal_index];
+	int event_condition;
+	for (unsigned int goal_index = 0; goal_index < 8; ++goal_index) {
+		struct flight_group_goal *goal =
+			&g_mission_flight_groups[flight_group_idx]
+				 .fg.goals[goal_index];
 		if (goal->enabled_teams[(uint16_t)*player_team] != 0 &&
 		    goal->goal_kind == 0 &&
 		    g_mission_fg_stats[flight_group_idx]
@@ -3272,7 +3123,9 @@ int16_t mfd_get_flight_group_goal_status_string_id(uint16_t object_index)
 		}
 	}
 
-	for (global_trigger_index = 0; global_trigger_index < 4;
+	struct mission_trigger_pair *trigger_pair;
+	struct mission_trigger *trigger;
+	for (unsigned int global_trigger_index = 0; global_trigger_index < 4;
 	     ++global_trigger_index) {
 		if (global_trigger_index < 2) {
 			trigger_pair = &g_mission_global_goals[(
@@ -3385,35 +3238,21 @@ void mfd_draw_map_help_page(void)
 		MFD_DEFAULT_HEIGHT = 200
 	};
 
-	int16_t left;
-	int16_t border_top;
-	int16_t bottom;
-	int16_t top;
-	int16_t right;
-	int16_t column;
-	int16_t line_step;
-	int16_t text_mode;
-	int first_credit;
-	int last_credit;
-	int local_player;
-	int row;
-	int row_start;
-	uint16_t active_page;
-	int pitch_bytes;
-
-	pitch_bytes = g_flight_bytes_per_pixel;
+	int pitch_bytes = g_flight_bytes_per_pixel;
 	pitch_bytes *= g_screen_width;
 	flight_sw_set_render_target(g_flight_offscreen_buffer, g_screen_width,
 				    g_screen_height, pitch_bytes);
 	flight_text_set_font_tier(0);
-	left = (int16_t)(g_mfd_map_blit_source_x + 2);
-	right = (int16_t)(g_mfd_map_blit_width + g_mfd_map_blit_source_x - 2);
-	top = (int16_t)(g_mfd_map_blit_source_y + 2);
-	bottom = (int16_t)(g_mfd_map_blit_source_y + g_mfd_map_blit_height - 2);
+	int16_t left = (int16_t)(g_mfd_map_blit_source_x + 2);
+	int16_t right =
+		(int16_t)(g_mfd_map_blit_width + g_mfd_map_blit_source_x - 2);
+	int16_t top = (int16_t)(g_mfd_map_blit_source_y + 2);
+	int16_t bottom =
+		(int16_t)(g_mfd_map_blit_source_y + g_mfd_map_blit_height - 2);
 #ifdef XVT_MODERN
 	xvt_cockpit_pages_set_origin(MFD_PAGE_MAP_HELP, left - 2, top - 2);
 #endif
-	active_page = g_mfd_active_page;
+	uint16_t active_page = g_mfd_active_page;
 	if (active_page == MFD_PAGE_NONE) {
 		active_page = MFD_PAGE_MAP_HELP;
 	}
@@ -3428,7 +3267,7 @@ void mfd_draw_map_help_page(void)
 			}
 			flight_text_set_background_color(MFD_BACKGROUND_COLOR);
 		}
-		border_top = (int16_t)(top - 2);
+		int16_t border_top = (int16_t)(top - 2);
 		flight_text_set_clip_rect(left - 2, border_top, right + 2,
 					  bottom + 2);
 #ifdef XVT_MODERN
@@ -3439,6 +3278,9 @@ void mfd_draw_map_help_page(void)
 			(uint16_t)(right + 2), (uint16_t)(bottom + 2), 1);
 	} while (0);
 
+	int16_t line_step;
+	int16_t text_mode;
+	int local_player;
 	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
 				      HUD_MFD_MAP_OR_COMMAND_ELEMENT] !=
 	    g_mfd_page_states[MFD_PAGE_MAP_HELP]) {
@@ -3492,6 +3334,8 @@ void mfd_draw_map_help_page(void)
 		}
 	}
 
+	int first_credit;
+	int last_credit;
 	if (g_flight_resolution_mode == FLIGHT_RESOLUTION_640X480 &&
 	    g_players[local_player].map_camera_state != 0 &&
 	    g_mfd_active_page == MFD_PAGE_MAP_HELP) {
@@ -3538,15 +3382,16 @@ void mfd_draw_map_help_page(void)
 						XVT_COCKPIT_PAGE_BODY);
 	}
 #endif
+	int16_t column;
 	if (text_mode == 1) {
 #ifdef XVT_MODERN
 		xvt_cockpit_pages_record_scroll(MFD_PAGE_MAP_HELP, 0, 9, -1);
 #endif
-		row = 0;
+		int row = 0;
 		flight_text_set_word_wrap(0);
 		g_flight_fill_clip_rect_fn();
 		while (row < 9) {
-			row_start = row;
+			int row_start = row;
 			flight_text_set_cursor(left, (uint16_t)top);
 			flight_text_set_scratch(g_str_map_room_text[row_start]);
 			if (row_start > 0 && row_start < 5) {
@@ -3564,8 +3409,8 @@ void mfd_draw_map_help_page(void)
 			}
 			if (g_flight_resolution_mode ==
 			    FLIGHT_RESOLUTION_320X240) {
-				int16_t width;
-				width = (int16_t)(flight_text_measure_string_width(
+				int16_t width =
+					(int16_t)(flight_text_measure_string_width(
 							  g_flight_text_scratch_buffer) +
 						  1);
 				if (width < 16) {
@@ -3597,24 +3442,20 @@ void mfd_draw_map_help_page(void)
 			++row;
 		}
 	} else if (text_mode == 2) {
-		int credit_index;
-
 #ifdef XVT_MODERN
 		xvt_cockpit_pages_record_scroll(MFD_PAGE_MAP_HELP, first_credit,
 						last_credit - first_credit, -1);
 #endif
 		g_flight_fill_clip_rect_fn();
 		flight_text_set_color(MFD_CREDIT_COLOR);
-		for (credit_index = first_credit; credit_index < last_credit;
-		     ++credit_index) {
+		for (int credit_index = first_credit;
+		     credit_index < last_credit; ++credit_index) {
 			flight_text_set_cursor(left, (uint16_t)top);
 			flight_text_draw_string(
 				g_mfd_developer_credits_lines[credit_index]);
 			top = (int16_t)(top + line_step);
 		}
 	} else if (text_mode == 3) {
-		int credit_index;
-
 #ifdef XVT_MODERN
 		xvt_cockpit_pages_record_scroll(MFD_PAGE_MAP_HELP, first_credit,
 						1 + last_credit - first_credit,
@@ -3622,6 +3463,7 @@ void mfd_draw_map_help_page(void)
 #endif
 		g_flight_fill_clip_rect_fn();
 		flight_text_set_color(MFD_CREDIT_COLOR);
+		int credit_index;
 		for (credit_index = 0; credit_index < 1; ++credit_index) {
 			flight_text_set_cursor(left, (uint16_t)top);
 			flight_text_draw_string(
@@ -3659,17 +3501,14 @@ void mfd_draw_map_help_page(void)
 void mfd_toggle_page(uint16_t page)
 {
 	int16_t *page_state;
-	int16_t previous_secondary_page;
-	uint16_t other_page;
 
 	if (g_players[g_local_player].map_camera_state == 0) {
 		page_state = &g_mfd_page_states[page];
+		int16_t previous_secondary_page;
 		if (*page_state != MFD_PAGE_STATE_CLOSED) {
 			*page_state = MFD_PAGE_STATE_CLOSING;
 		} else {
-			int16_t previous_active_page;
-
-			previous_active_page = g_mfd_active_page;
+			int16_t previous_active_page = g_mfd_active_page;
 			*page_state = MFD_PAGE_STATE_OPEN;
 			previous_secondary_page = g_mfd_secondary_page;
 			g_mfd_secondary_page = previous_active_page;
@@ -3696,7 +3535,7 @@ void mfd_toggle_page(uint16_t page)
 	}
 
 	if (page != MFD_PAGE_MESSAGE_LOG) {
-		for (other_page = MFD_PAGE_SCOREBOARD;
+		for (uint16_t other_page = MFD_PAGE_SCOREBOARD;
 		     other_page < MFD_PAGE_COUNT; ++other_page) {
 			if (page != other_page &&
 			    other_page != MFD_PAGE_FRIENDLY_CRAFT &&
@@ -3723,11 +3562,9 @@ void mfd_toggle_page(uint16_t page)
 // FUNCTION: XVT 0x480530
 int16_t mfd_find_secondary_open_page(void)
 {
-	uint16_t active_page;
-	uint16_t page;
-
-	active_page = g_mfd_active_page;
-	for (page = MFD_PAGE_SCOREBOARD; page < MFD_PAGE_COUNT; page++) {
+	uint16_t active_page = g_mfd_active_page;
+	for (uint16_t page = MFD_PAGE_SCOREBOARD; page < MFD_PAGE_COUNT;
+	     page++) {
 		if (g_mfd_page_states[page] != MFD_PAGE_STATE_CLOSED &&
 		    active_page != page) {
 			return (int16_t)page;
@@ -3753,32 +3590,19 @@ int16_t mfd_find_secondary_open_page(void)
 // FUNCTION: XVT 0x49EC40
 int16_t mfd_draw_message_log_page(void)
 {
-	int16_t left;
-	int16_t top;
-	int16_t right;
-	int16_t bottom;
-	int16_t line_height;
 	int16_t cursor_y;
-	int16_t display_offset;
-	int16_t last_display_offset;
-	int16_t max_display_offset;
-	int16_t log_record_count;
-	unsigned int pitch;
-	int record_index;
-	uint8_t prefix_code;
 	uint8_t ch;
-	char *text;
 
 #ifdef XVT_MODERN
 	ch = 0;
 	cursor_y = 0;
 #endif
 
-	left = (int16_t)(g_ready_message_pane_left + 2);
-	top = (int16_t)(g_ready_message_pane_top + 2);
-	right = (int16_t)(g_ready_message_pane_right - 2);
-	bottom = (int16_t)(g_ready_message_pane_bottom - 2);
-	pitch = g_flight_bytes_per_pixel * g_screen_width;
+	int16_t left = (int16_t)(g_ready_message_pane_left + 2);
+	int16_t top = (int16_t)(g_ready_message_pane_top + 2);
+	int16_t right = (int16_t)(g_ready_message_pane_right - 2);
+	int16_t bottom = (int16_t)(g_ready_message_pane_bottom - 2);
+	unsigned int pitch = g_flight_bytes_per_pixel * g_screen_width;
 	flight_sw_set_render_target(g_flight_offscreen_buffer, g_screen_width,
 				    g_screen_height, (int)pitch);
 	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
@@ -3824,9 +3648,9 @@ int16_t mfd_draw_message_log_page(void)
 #endif
 	flight_text_set_background_color(g_flight_transparent_color_index);
 	g_flight_text_shadow_enabled = 1;
-	line_height = (int16_t)(g_flight_font_line_height + 2);
+	int16_t line_height = (int16_t)(g_flight_font_line_height + 2);
 	flight_text_set_color(0x43);
-	log_record_count = (int16_t)g_message_log_write_index;
+	int16_t log_record_count = (int16_t)g_message_log_write_index;
 	g_message_log_records =
 		(struct hud_in_flight_message_record *)memory_get_handle_block(
 			g_message_log_handle);
@@ -3842,6 +3666,7 @@ int16_t mfd_draw_message_log_page(void)
 		g_flight_fill_clip_rect_fn();
 	} else {
 		if (g_mfd_active_page == MFD_PAGE_MESSAGE_LOG) {
+			int16_t max_display_offset;
 			switch (g_current_action_key) {
 			case 0xA6:
 				if (g_mfd_message_log_scroll_offset > 0) {
@@ -3887,8 +3712,9 @@ int16_t mfd_draw_message_log_page(void)
 		}
 	}
 
-	last_display_offset = (int16_t)((bottom - top) / line_height +
-					g_mfd_message_log_scroll_offset);
+	int16_t last_display_offset =
+		(int16_t)((bottom - top) / line_height +
+			  g_mfd_message_log_scroll_offset);
 	if (g_mfd_message_log_redraw != 0) {
 #ifdef XVT_MODERN
 		xvt_cockpit_pages_record_background(MFD_PAGE_MESSAGE_LOG);
@@ -3896,18 +3722,19 @@ int16_t mfd_draw_message_log_page(void)
 						XVT_COCKPIT_PAGE_BODY);
 #endif
 		g_flight_fill_clip_rect_fn();
-		for (display_offset = 0; display_offset <= last_display_offset;
-		     ++display_offset) {
+		for (int16_t display_offset = 0;
+		     display_offset <= last_display_offset; ++display_offset) {
 			if (display_offset >= g_mfd_message_log_scroll_offset &&
 			    display_offset < 300) {
 				flight_text_set_cursor(left, cursor_y);
-				record_index = mfd_get_message_log_record_index(
-					display_offset);
+				int record_index =
+					mfd_get_message_log_record_index(
+						display_offset);
 				if (record_index >= 0) {
-					text = g_message_log_records
-						       [record_index]
-							       .text;
-					prefix_code = (uint8_t)text[0];
+					char *text = g_message_log_records
+							     [record_index]
+								     .text;
+					uint8_t prefix_code = (uint8_t)text[0];
 					if (prefix_code < 9) {
 						flight_text_set_color(
 							g_message_text_prefix_color_codes
@@ -4053,12 +3880,10 @@ int16_t mfd_draw_message_log_page(void)
 // FUNCTION: XVT 0x49F330
 int mfd_get_message_log_record_index(int display_offset)
 {
-	int record_index;
-
 	if (g_message_log_total_count <= 300) {
 		return g_message_log_total_count - display_offset - 1;
 	}
-	record_index = g_message_log_write_index - display_offset - 1;
+	int record_index = g_message_log_write_index - display_offset - 1;
 	if (record_index < 0) {
 		record_index += 300;
 	}

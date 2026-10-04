@@ -327,10 +327,9 @@ void xvt_flight_task_update(void)
 					 : XVT_FLIGHT_CLEANUP;
 		break;
 	case XVT_FLIGHT_START: {
-		int status;
 		g_flight.commit_results = 1;
 		g_flight.result = 1;
-		status = flight_net_wait_for_mission_start();
+		int status = flight_net_wait_for_mission_start();
 		if (status == XVT_FLIGHT_NETWORK_PENDING) {
 			break;
 		}

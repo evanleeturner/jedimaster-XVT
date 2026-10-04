@@ -12,28 +12,23 @@
 // FUNCTION: XVT 0x46C140
 int16_t flight_player_has_disabled_subsystem(void)
 {
-	int object_index;
-	struct craft_data *craft;
-	int16_t system_id;
-	int16_t display_slot;
-	int16_t all_installed_systems_operational;
-	uint16_t system_id_by_display_slot[CRAFT_SUBSYSTEM_COUNT];
-
-	object_index = g_players[g_local_player].object_index;
+	int object_index = g_players[g_local_player].object_index;
 	if (object_index == -1) {
 		return 0;
 	}
-	craft = g_object_table[object_index].mobj->p_craft;
+	struct craft_data *craft = g_object_table[object_index].mobj->p_craft;
 	if (craft == NULL) {
 		return 0;
 	}
-	for (system_id = 0; system_id < CRAFT_SUBSYSTEM_COUNT; ++system_id) {
+	uint16_t system_id_by_display_slot[CRAFT_SUBSYSTEM_COUNT];
+	for (int16_t system_id = 0; system_id < CRAFT_SUBSYSTEM_COUNT;
+	     ++system_id) {
 		system_id_by_display_slot
 			[craft->system_display_slot_by_system[system_id]] =
 				system_id;
 	}
-	all_installed_systems_operational = 1;
-	for (display_slot = 0; display_slot < CRAFT_SUBSYSTEM_COUNT;
+	int16_t all_installed_systems_operational = 1;
+	for (int16_t display_slot = 0; display_slot < CRAFT_SUBSYSTEM_COUNT;
 	     ++display_slot) {
 		if (craft->system_health
 				    [system_id_by_display_slot[display_slot]] ==
@@ -56,14 +51,10 @@ void nullsub_8(const char *message) { (void)message; }
 // FUNCTION: XVT 0x481D90
 void flight_player_increase_throttle_speed(int16_t step, int player_idx)
 {
-	struct player_data *player;
-	uint16_t *throttle_speed_ptr;
-	uint16_t throttle_speed;
-
-	player = &g_players[player_idx];
-	throttle_speed_ptr = &g_object_table[player->object_index]
-				      .mobj->p_craft->throttle_speed;
-	throttle_speed = *throttle_speed_ptr;
+	struct player_data *player = &g_players[player_idx];
+	uint16_t *throttle_speed_ptr = &g_object_table[player->object_index]
+						.mobj->p_craft->throttle_speed;
+	uint16_t throttle_speed = *throttle_speed_ptr;
 	*throttle_speed_ptr = (uint16_t)(throttle_speed + step);
 	if (g_object_table[player->object_index].mobj->p_craft->throttle_speed <
 	    throttle_speed) {
@@ -78,14 +69,10 @@ void flight_player_increase_throttle_speed(int16_t step, int player_idx)
 // FUNCTION: XVT 0x481E10
 void flight_player_decrease_throttle_speed(int16_t step, int player_idx)
 {
-	struct player_data *player;
-	uint16_t *throttle_speed_ptr;
-	uint16_t throttle_speed;
-
-	player = &g_players[player_idx];
-	throttle_speed_ptr = &g_object_table[player->object_index]
-				      .mobj->p_craft->throttle_speed;
-	throttle_speed = *throttle_speed_ptr;
+	struct player_data *player = &g_players[player_idx];
+	uint16_t *throttle_speed_ptr = &g_object_table[player->object_index]
+						.mobj->p_craft->throttle_speed;
+	uint16_t throttle_speed = *throttle_speed_ptr;
 	*throttle_speed_ptr = (uint16_t)(throttle_speed - step);
 	if (g_object_table[player->object_index].mobj->p_craft->throttle_speed >
 	    throttle_speed) {

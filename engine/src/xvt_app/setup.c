@@ -20,8 +20,8 @@ const char *xvt_setup_installation(void) { return g_installation; }
 static AeronFile *xvt_setup_open_asset(AeronVfs *vfs, const char *path,
 				       char *resolved, size_t capacity)
 {
-	AeronFile *file = NULL;
 	snprintf(resolved, capacity, "BalanceOfPower/%s", path);
+	AeronFile *file = NULL;
 	if (AeronVfs_Open(vfs, AERON_VFS_ROOT_ASSET, resolved, AERON_VFS_READ,
 			  &file)) {
 		return file;
@@ -41,7 +41,6 @@ static int xvt_setup_probe_installation(AeronVfs *vfs, const char *path,
 				      "sfx/sfx.lst"};
 	static const char *assets[] = {"ivfiles/cal.opt", "train/1ta01bf.tie",
 				       "wave/PBC/Pb1los07.wav"};
-	char resolved[XVT_PATH_CAPACITY];
 	if (!path || !path[0] ||
 	    (path[0] != '/' &&
 	     !(isalpha((unsigned char)path[0]) && path[1] == ':')) ||
@@ -75,6 +74,7 @@ static int xvt_setup_probe_installation(AeronVfs *vfs, const char *path,
 			return 0;
 		}
 	}
+	char resolved[XVT_PATH_CAPACITY];
 	for (size_t i = 0; i < sizeof(assets) / sizeof(assets[0]); ++i) {
 		AeronFile *file;
 		if (!(file = xvt_setup_open_asset(vfs, assets[i], resolved,
@@ -292,7 +292,6 @@ xvt_setup_result xvt_setup_run(const struct xvt_launch_options *options,
 			       struct xvt_app_ui *ui, char *error,
 			       size_t capacity)
 {
-	char selected[XVT_PATH_CAPACITY];
 	AeronVfs *vfs = xvt_storage_vfs();
 	int save_due = options->save_config;
 	if (!AeronVfs_SetRootOptions(
@@ -334,6 +333,7 @@ xvt_setup_result xvt_setup_run(const struct xvt_launch_options *options,
 	const char *candidate = options->game_data
 					? options->game_data
 					: xvt_config_settings()->game_data;
+	char selected[XVT_PATH_CAPACITY];
 	if (strlen(candidate) >= sizeof(selected)) {
 		snprintf(error, capacity, "Game-data directory is too long.");
 		return XVT_SETUP_ERROR;

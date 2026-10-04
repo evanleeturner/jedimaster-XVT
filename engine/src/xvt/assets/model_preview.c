@@ -251,14 +251,11 @@ int model_preview_load_model(const char *model_file_name)
 		INVENTOR_BINARY_LABEL_LENGTH = sizeof("binary") - 1,
 #endif
 	};
-	char file_name[FILE_NAME_CAPACITY];
-	char base_name[FILE_NAME_CAPACITY];
 #ifdef XVT_MODERN
 	char *extension;
 #else
 	int extension_index;
 #endif
-	xvt_file *stream;
 #ifndef XVT_MODERN
 	uint16_t imported_handle;
 	uint16_t packed_handle;
@@ -271,6 +268,8 @@ int model_preview_load_model(const char *model_file_name)
 		g_loaded_models[MODEL_PREVIEW_SLOT] = 0;
 	}
 
+	char file_name[FILE_NAME_CAPACITY];
+	char base_name[FILE_NAME_CAPACITY];
 #ifdef XVT_MODERN
 	if (!model_file_name || strlen(model_file_name) >= sizeof(base_name)) {
 		return 0;
@@ -297,7 +296,7 @@ int model_preview_load_model(const char *model_file_name)
 	strcpy(file_name, base_name);
 	strcat(file_name, ".opt");
 	fe_disk_io_open_global_stream(file_name, g_file_mode_read_binary, 0, 0);
-	stream = g_stream;
+	xvt_file *stream = g_stream;
 #ifdef XVT_MODERN
 	if (!stream) {
 		return 0;
@@ -480,21 +479,6 @@ int model_preview_render_viewport(int x, int y, int width, int height, ...)
 		SPAN_MASK_LONG_RUN_THRESHOLD = SPAN_MASK_LONG_RUN_LENGTH + 1,
 	};
 
-	float object_row0x;
-	float object_row0y;
-	float object_row0z;
-	float object_row1x;
-	float object_row1y;
-	float object_row1z;
-	float object_row2x;
-	float object_row2y;
-	float object_row2z;
-	uint8_t *aux_buffer;
-	uint8_t *mask_cursor;
-	unsigned int row;
-	unsigned int remaining_width;
-	int saved_local_lights_enabled;
-
 	if (g_loaded_models[MODEL_PREVIEW_SLOT] == 0) {
 		return 0;
 	}
@@ -572,32 +556,32 @@ int model_preview_render_viewport(int x, int y, int width, int height, ...)
 	math3d_rotate_vec3(&g_model_preview_view_delta.x,
 			   g_model_preview_matrix);
 
-	object_row0x = (float)g_obj_view_mat_r0_x *
-		       g_model_preview_matrix_q15_to_float_scale;
+	float object_row0x = (float)g_obj_view_mat_r0_x *
+			     g_model_preview_matrix_q15_to_float_scale;
 	g_model_preview_matrix[0] = object_row0x;
-	object_row0y = (float)g_obj_view_mat_r0_y *
-		       g_model_preview_matrix_q15_to_float_scale;
+	float object_row0y = (float)g_obj_view_mat_r0_y *
+			     g_model_preview_matrix_q15_to_float_scale;
 	g_model_preview_matrix[1] = object_row0y;
-	object_row0z = (float)g_obj_view_mat_r0_z *
-		       g_model_preview_matrix_q15_to_float_scale;
+	float object_row0z = (float)g_obj_view_mat_r0_z *
+			     g_model_preview_matrix_q15_to_float_scale;
 	g_model_preview_matrix[2] = object_row0z;
-	object_row1x = (float)g_obj_view_mat_r1_x *
-		       g_model_preview_matrix_q15_to_float_scale;
+	float object_row1x = (float)g_obj_view_mat_r1_x *
+			     g_model_preview_matrix_q15_to_float_scale;
 	g_model_preview_matrix[3] = object_row1x;
-	object_row1y = (float)g_obj_view_mat_r1_y *
-		       g_model_preview_matrix_q15_to_float_scale;
+	float object_row1y = (float)g_obj_view_mat_r1_y *
+			     g_model_preview_matrix_q15_to_float_scale;
 	g_model_preview_matrix[4] = object_row1y;
-	object_row1z = (float)g_obj_view_mat_r1_z *
-		       g_model_preview_matrix_q15_to_float_scale;
+	float object_row1z = (float)g_obj_view_mat_r1_z *
+			     g_model_preview_matrix_q15_to_float_scale;
 	g_model_preview_matrix[5] = object_row1z;
-	object_row2x = (float)g_obj_view_mat_r2_x *
-		       g_model_preview_matrix_q15_to_float_scale;
+	float object_row2x = (float)g_obj_view_mat_r2_x *
+			     g_model_preview_matrix_q15_to_float_scale;
 	g_model_preview_matrix[6] = object_row2x;
-	object_row2y = (float)g_obj_view_mat_r2_y *
-		       g_model_preview_matrix_q15_to_float_scale;
+	float object_row2y = (float)g_obj_view_mat_r2_y *
+			     g_model_preview_matrix_q15_to_float_scale;
 	g_model_preview_matrix[7] = object_row2y;
-	object_row2z = (float)g_obj_view_mat_r2_z *
-		       g_model_preview_matrix_q15_to_float_scale;
+	float object_row2z = (float)g_obj_view_mat_r2_z *
+			     g_model_preview_matrix_q15_to_float_scale;
 	g_model_preview_matrix[8] = object_row2z;
 
 	g_model_preview_neg_view_delta.x = -g_model_preview_view_delta.x;
@@ -635,13 +619,13 @@ int model_preview_render_viewport(int x, int y, int width, int height, ...)
 				g_flight_vp_height *
 					((g_flight_vp_width >> 7) + 2);
 		}
-		aux_buffer = (uint8_t *)memory_get_handle_block(
+		uint8_t *aux_buffer = (uint8_t *)memory_get_handle_block(
 			g_model_preview_aux_buffer_handle);
 		g_flight_aux_buffer = aux_buffer;
-		mask_cursor = &aux_buffer[g_viewport_span_mask_offset];
-		for (row = 0; row < g_flight_vp_height; ++row) {
+		uint8_t *mask_cursor = &aux_buffer[g_viewport_span_mask_offset];
+		for (unsigned int row = 0; row < g_flight_vp_height; ++row) {
 			*mask_cursor++ = 1;
-			remaining_width = g_flight_vp_width;
+			unsigned int remaining_width = g_flight_vp_width;
 			if (remaining_width >= SPAN_MASK_LONG_RUN_THRESHOLD) {
 				*mask_cursor++ = 0;
 				remaining_width -= SPAN_MASK_LONG_RUN_LENGTH;
@@ -660,7 +644,7 @@ int model_preview_render_viewport(int x, int y, int width, int height, ...)
 	g_view_space_depth = (int)g_model_preview_view_delta.z;
 	g_model_preview_object.mobj->node_switch_index =
 		(uint8_t)g_node_switch_index;
-	saved_local_lights_enabled = g_local_lights_enabled;
+	int saved_local_lights_enabled = g_local_lights_enabled;
 	g_local_lights_enabled = 0;
 	render_scene_initialize(1);
 #ifdef XVT_MODERN
@@ -687,10 +671,7 @@ void model_preview_scale_opt_node_tree(struct opt_node *node,
 				       struct optimized_poly_object *opt,
 				       double scale)
 {
-	struct opt_node *resolved_node;
-	int child_index;
-
-	resolved_node = node;
+	struct opt_node *resolved_node = node;
 	if (resolved_node == NULL) {
 		return;
 	}
@@ -704,19 +685,14 @@ void model_preview_scale_opt_node_tree(struct opt_node *node,
 
 	switch (resolved_node->node_type) {
 	case OPT_FACEDATA: {
-		int count;
-		struct opt_packed_face_data *face_data;
-		struct opt_vector *face_normals;
-		struct face_texture_gradients *gradients;
-		float *points;
-
-		count = resolved_node->payload_count;
-		face_data =
+		int count = resolved_node->payload_count;
+		struct opt_packed_face_data *face_data =
 			(struct opt_packed_face_data *)resolved_node->payload;
-		face_normals = (struct opt_vector *)&face_data->records[count];
-		gradients =
+		struct opt_vector *face_normals =
+			(struct opt_vector *)&face_data->records[count];
+		struct face_texture_gradients *gradients =
 			(struct face_texture_gradients *)&face_normals[count];
-		points = (float *)gradients;
+		float *points = (float *)gradients;
 		if (count > 0) {
 			do {
 				points[0] = (float)(points[0] * scale);
@@ -733,11 +709,8 @@ void model_preview_scale_opt_node_tree(struct opt_node *node,
 		break;
 	}
 	case OPT_MESHVERTS: {
-		int count;
-		float *vertices;
-
-		count = resolved_node->payload_count;
-		vertices = (float *)resolved_node->payload;
+		int count = resolved_node->payload_count;
+		float *vertices = (float *)resolved_node->payload;
 		if (count > 0) {
 			do {
 				vertices[0] = (float)(vertices[0] * scale);
@@ -750,11 +723,8 @@ void model_preview_scale_opt_node_tree(struct opt_node *node,
 		break;
 	}
 	case OPT_FACEGROUP: {
-		int count;
-		float *lod_thresholds;
-
-		count = resolved_node->child_count;
-		lod_thresholds = (float *)resolved_node->payload;
+		int count = resolved_node->child_count;
+		float *lod_thresholds = (float *)resolved_node->payload;
 		if (count > 0) {
 			do {
 				*lod_thresholds =
@@ -769,7 +739,7 @@ void model_preview_scale_opt_node_tree(struct opt_node *node,
 		break;
 	}
 
-	for (child_index = 0; child_index < resolved_node->child_count;
+	for (int child_index = 0; child_index < resolved_node->child_count;
 	     ++child_index) {
 		model_preview_scale_opt_node_tree(
 			resolved_node->p_children[child_index], opt, scale);
@@ -784,10 +754,7 @@ void model_preview_unscale_opt_node_tree(struct opt_node *node,
 					 struct optimized_poly_object *opt,
 					 double scale)
 {
-	struct opt_node *resolved_node;
-	int child_index;
-
-	resolved_node = node;
+	struct opt_node *resolved_node = node;
 	if (resolved_node == NULL) {
 		return;
 	}
@@ -801,19 +768,14 @@ void model_preview_unscale_opt_node_tree(struct opt_node *node,
 
 	switch (resolved_node->node_type) {
 	case OPT_FACEDATA: {
-		int count;
-		struct opt_packed_face_data *face_data;
-		struct opt_vector *face_normals;
-		struct face_texture_gradients *gradients;
-		float *points;
-
-		count = resolved_node->payload_count;
-		face_data =
+		int count = resolved_node->payload_count;
+		struct opt_packed_face_data *face_data =
 			(struct opt_packed_face_data *)resolved_node->payload;
-		face_normals = (struct opt_vector *)&face_data->records[count];
-		gradients =
+		struct opt_vector *face_normals =
+			(struct opt_vector *)&face_data->records[count];
+		struct face_texture_gradients *gradients =
 			(struct face_texture_gradients *)&face_normals[count];
-		points = (float *)gradients;
+		float *points = (float *)gradients;
 		if (count > 0) {
 			do {
 				points[0] = (float)(points[0] / scale);
@@ -830,11 +792,8 @@ void model_preview_unscale_opt_node_tree(struct opt_node *node,
 		break;
 	}
 	case OPT_MESHVERTS: {
-		int count;
-		float *vertices;
-
-		count = resolved_node->payload_count;
-		vertices = (float *)resolved_node->payload;
+		int count = resolved_node->payload_count;
+		float *vertices = (float *)resolved_node->payload;
 		if (count > 0) {
 			do {
 				vertices[0] = (float)(vertices[0] / scale);
@@ -847,11 +806,8 @@ void model_preview_unscale_opt_node_tree(struct opt_node *node,
 		break;
 	}
 	case OPT_FACEGROUP: {
-		int count;
-		float *lod_thresholds;
-
-		count = resolved_node->child_count;
-		lod_thresholds = (float *)resolved_node->payload;
+		int count = resolved_node->child_count;
+		float *lod_thresholds = (float *)resolved_node->payload;
 		if (count > 0) {
 			do {
 				*lod_thresholds =
@@ -866,7 +822,7 @@ void model_preview_unscale_opt_node_tree(struct opt_node *node,
 		break;
 	}
 
-	for (child_index = 0; child_index < resolved_node->child_count;
+	for (int child_index = 0; child_index < resolved_node->child_count;
 	     ++child_index) {
 		model_preview_unscale_opt_node_tree(
 			resolved_node->p_children[child_index], opt, scale);
@@ -878,9 +834,8 @@ void model_preview_unscale_opt_node_tree(struct opt_node *node,
 void model_preview_scale_opt_root_nodes(struct optimized_poly_object *opt,
 					double scale)
 {
-	int root_index;
-
-	for (root_index = 0; root_index < opt->root_node_count; ++root_index) {
+	for (int root_index = 0; root_index < opt->root_node_count;
+	     ++root_index) {
 		model_preview_scale_opt_node_tree(opt->root_nodes[root_index],
 						  opt, scale);
 	}
@@ -892,9 +847,8 @@ void model_preview_scale_opt_root_nodes(struct optimized_poly_object *opt,
 void model_preview_unscale_opt_root_nodes(struct optimized_poly_object *opt,
 					  double scale)
 {
-	int root_index;
-
-	for (root_index = 0; root_index < opt->root_node_count; ++root_index) {
+	for (int root_index = 0; root_index < opt->root_node_count;
+	     ++root_index) {
 		model_preview_unscale_opt_node_tree(opt->root_nodes[root_index],
 						    opt, scale);
 	}
@@ -908,12 +862,7 @@ void model_preview_unscale_opt_root_nodes(struct optimized_poly_object *opt,
 void model_preview_accumulate_opt_node_bounds(
 	struct opt_node *node, struct optimized_poly_object *object)
 {
-	struct opt_node *current_node;
-	int vertex_count;
-	float *vertex;
-	int child_index;
-
-	current_node = node;
+	struct opt_node *current_node = node;
 	if (current_node != NULL) {
 		while (current_node->node_type == OPT_NODEREF) {
 			current_node = opt_model_resolve_node_ref(
@@ -924,8 +873,8 @@ void model_preview_accumulate_opt_node_bounds(
 		}
 
 		if (current_node->node_type == OPT_MESHVERTS) {
-			vertex_count = current_node->payload_count;
-			vertex = current_node->payload;
+			int vertex_count = current_node->payload_count;
+			float *vertex = current_node->payload;
 			if (vertex_count > 0) {
 				do {
 					if (vertex[0] >
@@ -964,7 +913,7 @@ void model_preview_accumulate_opt_node_bounds(
 			}
 		}
 
-		child_index = 0;
+		int child_index = 0;
 		while (current_node->child_count > child_index) {
 			model_preview_accumulate_opt_node_bounds(
 				current_node->p_children[child_index], object);
@@ -983,16 +932,13 @@ double
 model_preview_compute_opt_bounds_extent(struct optimized_poly_object *object,
 					int axis)
 {
-	int root_node_index;
-	double result;
-
 	g_model_preview_bounds_max_x = 0.0f;
 	g_model_preview_bounds_min_x = 0.0f;
 	g_model_preview_bounds_max_y = 0.0f;
 	g_model_preview_bounds_min_y = 0.0f;
 	g_model_preview_bounds_max_z = 0.0f;
 	g_model_preview_bounds_min_z = 0.0f;
-	for (root_node_index = 0; root_node_index < object->root_node_count;
+	for (int root_node_index = 0; root_node_index < object->root_node_count;
 	     ++root_node_index) {
 		model_preview_accumulate_opt_node_bounds(
 			object->root_nodes[root_node_index], object);
@@ -1002,6 +948,7 @@ model_preview_compute_opt_bounds_extent(struct optimized_poly_object *object,
 	g_model_preview_bounds_max_x -= g_model_preview_bounds_min_x;
 	g_model_preview_bounds_max_y -= g_model_preview_bounds_min_y;
 	g_model_preview_bounds_max_z -= g_model_preview_bounds_min_z;
+	double result;
 	if (axis == 0) {
 		if (g_model_preview_bounds_max_y >=
 			    g_model_preview_bounds_max_x ||
@@ -1063,16 +1010,11 @@ int model_preview_reset_view_and_render_state(void)
 // FUNCTION: XVT 0x42B010
 void model_preview_set_light_direction(int x, int y, int z)
 {
-	double light_x;
-	double light_y;
-	double light_z;
-	double inv_length;
-
 	y = -y;
-	light_x = x;
-	light_y = y;
-	light_z = z;
-	inv_length =
+	double light_x = x;
+	double light_y = y;
+	double light_z = z;
+	double inv_length =
 		g_model_preview_inv_length_numerator /
 		sqrt(light_x * light_x + light_y * light_y + light_z * light_z);
 	light_x *= inv_length;
@@ -1095,9 +1037,7 @@ void model_preview_set_light_direction(int x, int y, int z)
 void model_preview_set_object_euler_degrees(float pitch_deg, float yaw_deg,
 					    float roll_deg)
 {
-	double angle;
-
-	angle = pitch_deg;
+	double angle = pitch_deg;
 	g_model_preview_object.pitch =
 		(int16_t)(int)(angle * g_degrees_to_q16_angle_scale);
 	angle = yaw_deg;

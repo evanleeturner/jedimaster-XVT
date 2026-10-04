@@ -49,13 +49,12 @@ void xvt_render_snapshot_shutdown(void)
 
 void xvt_render_snapshot_begin_frame(void)
 {
-	struct xvt_render_snapshot *snapshot;
 	if (!g_initialized || g_snapshot_open) {
 		return;
 	}
 	xvt_render_assets_begin_frame();
 	xvt_render_capture_begin_frame();
-	snapshot = &g_slots[g_write_slot];
+	struct xvt_render_snapshot *snapshot = &g_slots[g_write_slot];
 	snapshot->snapshot_serial = g_snapshot_serial;
 	g_draw_order = 0;
 	snapshot->scene_kind = g_scene_kind;
@@ -96,12 +95,10 @@ void xvt_render_snapshot_set_scene_kind(xvt_scene_kind kind)
 void xvt_render_snapshot_commit(int32_t game_time_ticks, int focused,
 				int paused)
 {
-	struct xvt_render_snapshot *snapshot;
-	int slot;
 	if (!g_initialized || !g_snapshot_open) {
 		return;
 	}
-	snapshot = &g_slots[g_write_slot];
+	struct xvt_render_snapshot *snapshot = &g_slots[g_write_slot];
 	snapshot->game_time_ticks = game_time_ticks;
 	snapshot->capture_host_us = Aeron_NowUs();
 	snapshot->focused = focused != 0;
@@ -113,7 +110,7 @@ void xvt_render_snapshot_commit(int32_t game_time_ticks, int focused,
 	xvt_render_assets_export(snapshot);
 	g_current_slot = g_write_slot;
 	/* Preserve both committed slots while the next task tick fills the writer. */
-	for (slot = 0; slot < 3; ++slot) {
+	for (int slot = 0; slot < 3; ++slot) {
 		if (slot != g_current_slot && slot != g_previous_slot) {
 			g_write_slot = slot;
 			break;

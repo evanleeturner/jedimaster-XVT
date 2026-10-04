@@ -192,11 +192,10 @@ int xvt_settings_node_error(const AeronConfigFile *document, const char *path,
 			    const char *message, char *error, size_t capacity)
 {
 	const AeronConfigNode *node = AeronConfigFile_GetNode(document, path);
-	const char *source;
 	if (!node) {
 		node = AeronConfigFile_Root(document);
 	}
-	source = AeronConfigNode_SourcePath(node);
+	const char *source = AeronConfigNode_SourcePath(node);
 	snprintf(error, capacity, "%s/%s:%d:%d: %s: %s",
 		 xvt_settings_root_name(AeronConfigNode_SourceRoot(node)),
 		 source ? source : "config.yaml", AeronConfigNode_Line(node),
@@ -316,26 +315,25 @@ int xvt_settings_parse(const AeronConfigFile *document,
 		       const struct xvt_scene_settings *scene_defaults,
 		       struct xvt_settings *out, char *error, size_t capacity)
 {
-	struct xvt_settings candidate = {0};
-	AeronConfigError detail;
 	static const char *const flight_rates[] = {"native", "unlocked"};
 	static const char *const window_modes[] = {"windowed", "fullscreen"};
 	static const char *const temporal_modes[] = {
 		"off", "native_aa", "quality", "balanced", "performance"};
 	static const char *const sky_modes[] = {"stars", "cube", "procedural"};
-	int temporal_mode;
 	if (!document || !scene_defaults || !out) {
 		return xvt_settings_node_error(
 			document, "",
 			"configuration document and output are required", error,
 			capacity);
 	}
+	struct xvt_settings candidate = {0};
 	for (size_t i = 0; i < sizeof(g_fields) / sizeof(g_fields[0]); ++i) {
 		if (!xvt_settings_read_field(document, &g_fields[i], &candidate,
 					     error, capacity)) {
 			return 0;
 		}
 	}
+	int temporal_mode;
 	if (!xvt_settings_read_choice(
 		    document, "flight.update_rate", flight_rates, 2,
 		    &candidate.flight_unlocked, error, capacity) ||
@@ -371,6 +369,7 @@ int xvt_settings_parse(const AeronConfigFile *document,
 					       error, capacity);
 	}
 	candidate.render.scene = *scene_defaults;
+	AeronConfigError detail;
 	if (!AeronSceneSettings_Overlay(
 		    AeronConfigFile_GetNode(document, "render"),
 		    &candidate.render.scene.ssao,

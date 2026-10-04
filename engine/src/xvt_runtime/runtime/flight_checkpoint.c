@@ -322,9 +322,9 @@ int xvt_flight_checkpoint_read(const uint8_t *image, size_t size,
 			continue;
 		}
 		struct xvt_reference_motion_wire reference;
-		struct xvt_integration_wire integration;
 		memcpy(&reference, view->reference + row * sizeof reference,
 		       sizeof reference);
+		struct xvt_integration_wire integration;
 		memcpy(&integration,
 		       view->integration + row * sizeof integration,
 		       sizeof integration);
@@ -338,9 +338,9 @@ int xvt_flight_checkpoint_read(const uint8_t *image, size_t size,
 	}
 	for (unsigned player = 0; player < XVT_FLIGHT_PLAYERS; ++player) {
 		struct xvt_player_timing_wire record;
-		struct xvt_paired_motion_wire paired;
 		memcpy(&record, view->players + player * sizeof record,
 		       sizeof record);
+		struct xvt_paired_motion_wire paired;
 		memcpy(&paired, view->paired + player * sizeof paired,
 		       sizeof paired);
 		if (record.player != player || paired.player != player ||
@@ -374,9 +374,9 @@ void xvt_flight_checkpoint_restore(
 	xvt_player_timing_reset_shared();
 	for (unsigned row = 0; row < view->object_count; ++row) {
 		struct xvt_reference_motion_wire reference;
-		struct xvt_integration_wire integration;
 		memcpy(&reference, view->reference + row * sizeof reference,
 		       sizeof reference);
+		struct xvt_integration_wire integration;
 		memcpy(&integration,
 		       view->integration + row * sizeof integration,
 		       sizeof integration);

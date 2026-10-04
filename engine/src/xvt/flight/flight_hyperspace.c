@@ -162,17 +162,15 @@ static int g_hyperspace_streak_roll_angle[1024] = {0};
 // FUNCTION: XVT 0x424410
 void flight_hyperspace_draw_transition_effect_object(void)
 {
-	struct optimized_poly_object *model;
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			g_loaded_models[HYPERSPACE_TRANSITION_OBJECT_TYPE]);
 	struct optimized_poly_object saved_header;
-	struct object_record *object;
-
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		g_loaded_models[HYPERSPACE_TRANSITION_OBJECT_TYPE]);
 	memcpy(&saved_header, model, sizeof(saved_header));
 	g_hyperspace_model_header_patch.self_marker = model;
 	*model = g_hyperspace_model_header_patch;
 	g_billboard_object_or_type_index = 0;
-	object = g_object_table;
+	struct object_record *object = g_object_table;
 	object->mobj->orient_matrix_dirty = 1;
 	fview_set_object_transform(object->roll, object->pitch, object->yaw, 0,
 				   object);
@@ -222,22 +220,16 @@ void flight_hyperspace_render_transition_effect(void)
 		HYPERSPACE_IMPERIAL_IFF = 1,
 	};
 
-	const float fully_stretched_length = 16000.0f;
-	struct object_record saved_object;
-	struct mobile_object saved_mobile_object;
-	int saved_bilinear_enabled;
-	int streak_count;
-	int streak_index;
-
-	streak_count = HYPERSPACE_STREAK_COUNT;
+	int streak_count = HYPERSPACE_STREAK_COUNT;
 	if (g_use_hardware3d == 0) {
 		streak_count = HYPERSPACE_SOFTWARE_STREAK_COUNT;
 	}
-	saved_bilinear_enabled = g_bilinear_enabled;
+	int saved_bilinear_enabled = g_bilinear_enabled;
 	g_bilinear_enabled = 0;
-	saved_object = *g_object_table;
-	saved_mobile_object = *g_object_table->mobj;
+	struct object_record saved_object = *g_object_table;
+	struct mobile_object saved_mobile_object = *g_object_table->mobj;
 
+	int streak_index;
 	if (g_hyperspace_transition_effect_init_pending != 0) {
 		if (g_players[g_local_player].iff == HYPERSPACE_IMPERIAL_IFF) {
 			fsfx_play_sound(FLIGHT_SOUND_HYPERSPACE_ENTER_IMPERIAL,
@@ -249,21 +241,19 @@ void flight_hyperspace_render_transition_effect(void)
 		}
 		for (streak_index = 0; streak_index < HYPERSPACE_STREAK_COUNT;
 		     ++streak_index) {
-			int random_x;
-			int random_z;
-			int random_scale;
 			int offset_x;
 			int offset_z;
 			int average_radius;
 
 			do {
-				random_x =
+				int random_x =
 					rand() & HYPERSPACE_RANDOM_COORD_MASK;
-				random_z =
+				int random_z =
 					rand() & HYPERSPACE_RANDOM_COORD_MASK;
-				random_scale = (rand() &
-						HYPERSPACE_RANDOM_SCALE_MASK) +
-					       HYPERSPACE_RANDOM_SCALE_BASE;
+				int random_scale =
+					(rand() &
+					 HYPERSPACE_RANDOM_SCALE_MASK) +
+					HYPERSPACE_RANDOM_SCALE_BASE;
 				offset_x = (random_x * random_scale) >>
 					   HYPERSPACE_RANDOM_COORD_SHIFT;
 				offset_z = (random_z * random_scale) >>
@@ -308,10 +298,8 @@ void flight_hyperspace_render_transition_effect(void)
 		g_hyperspace_streak_offset_y, g_hyperspace_streak_offset_z,
 		g_hyperspace_streak_half_width, g_hyperspace_streak_roll_angle);
 #endif
+	const float fully_stretched_length = 16000.0f;
 	for (streak_index = 0; streak_index < streak_count; ++streak_index) {
-		unsigned int phase_elapsed_ticks;
-		int streak_length;
-
 		g_object_table->world_x =
 			g_players[g_local_player].view_state.camera_world_x +
 			g_hyperspace_streak_offset_x[streak_index];
@@ -329,7 +317,8 @@ void flight_hyperspace_render_transition_effect(void)
 		/* HYPERSPACE_FORWARD_OFFSET is reused here as an angle: a quarter turn of pitch. */
 		g_object_table->pitch = HYPERSPACE_FORWARD_OFFSET;
 
-		streak_length = g_hyperspace_streak_half_width[streak_index];
+		int streak_length =
+			g_hyperspace_streak_half_width[streak_index];
 		g_hyperspace_streak_quad_vertices[0].x = (float)streak_length;
 		g_hyperspace_streak_quad_vertices[1].x =
 			g_hyperspace_streak_quad_vertices[0].x;
@@ -337,13 +326,11 @@ void flight_hyperspace_render_transition_effect(void)
 		g_hyperspace_streak_quad_vertices[3].x =
 			g_hyperspace_streak_quad_vertices[2].x;
 
-		phase_elapsed_ticks =
+		unsigned int phase_elapsed_ticks =
 			g_players[g_local_player]
 				.hyperspace_runtime.phase_elapsed_ticks;
 		if (phase_elapsed_ticks < HYPERSPACE_STRETCH_PHASE_TICKS) {
-			double stretched_length;
-
-			stretched_length =
+			double stretched_length =
 				(double)(int64_t)(uint32_t)(phase_elapsed_ticks >>
 							    2);
 			stretched_length *= stretched_length;
@@ -355,9 +342,6 @@ void flight_hyperspace_render_transition_effect(void)
 				(int)(phase_elapsed_ticks << 4);
 			g_hyperspace_transition_effect_sound_pending = 1;
 		} else {
-			int64_t stretched_phase_ticks;
-			double stretch_offset;
-
 			if (g_hyperspace_transition_effect_sound_pending != 0) {
 				if (g_players[g_local_player].iff ==
 				    HYPERSPACE_IMPERIAL_IFF) {
@@ -378,14 +362,14 @@ void flight_hyperspace_render_transition_effect(void)
 				fully_stretched_length;
 			g_object_table->world_y -=
 				HYPERSPACE_STRETCH_WORLD_OFFSET;
-			stretched_phase_ticks =
+			int64_t stretched_phase_ticks =
 				(int64_t)(uint32_t)(g_players[g_local_player]
 								    .hyperspace_runtime
 								    .phase_elapsed_ticks *
 							    2 -
 						    HYPERSPACE_STRETCH_TIME_OFFSET);
-			stretch_offset = (double)stretched_phase_ticks *
-					 (double)stretched_phase_ticks;
+			double stretch_offset = (double)stretched_phase_ticks *
+						(double)stretched_phase_ticks;
 			g_object_table->world_y -= (int)stretch_offset;
 		}
 		flight_hyperspace_draw_transition_effect_object();

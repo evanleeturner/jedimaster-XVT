@@ -416,8 +416,6 @@ static size_t batch(uint32_t cookie, const int *ticks, unsigned count)
 
 static void check_receive_batch(void)
 {
-	const int ticks[] = {4, 6};
-
 	/* From a connected remote player: its predicted frames are replaced by the records, as real input. */
 	flight_network_world(0);
 	uint32_t cookie = agree_cookie();
@@ -425,6 +423,7 @@ static void check_receive_batch(void)
 	add_frame(1, 2, XVT_INPUT_REAL, 1);
 	add_frame(1, 4, XVT_INPUT_PREDICTED, 0);
 	add_frame(1, 8, XVT_INPUT_PREDICTED, 0);
+	const int ticks[] = {4, 6};
 	size_t size = batch(cookie, ticks, 2);
 	XVT_ASSERT_INT_EQ(xvt_flight_network_receive(dpid(1), g_packet, size),
 			  1);
@@ -548,11 +547,10 @@ static void check_receive_world(void)
 static void check_decode_control(void)
 {
 	flight_network_world(1);
-	int size;
 
 	/* Sizes under 4 or over a packet, whatever the opcode. */
 	xvt_wire_set32(g_packet, NET_PACKET_INPUT_BATCH);
-	size = 3;
+	int size = 3;
 	XVT_ASSERT_INT_EQ(xvt_flight_network_decode_control(g_packet, &size),
 			  0);
 	size = XVT_FLIGHT_PACKET_BYTES + 1;
@@ -675,11 +673,11 @@ static void check_should_send(void)
 				  1),
 			  1);
 
+	send_ready();
+	xvt_flight_network_request_recovery();
 	/* Refused while recovery is needed, a resync state request is pending, the pending queue has no room
 	 * or start acknowledgements are pending. */
 	int due = PRIME + XVT_WORLD_MESSAGE_TICKS;
-	send_ready();
-	xvt_flight_network_request_recovery();
 	XVT_ASSERT_INT_EQ(xvt_flight_network_take_world_send_turn(due), 0);
 	xvt_flight_network_clear_recovery_request();
 	XVT_ASSERT_INT_EQ(xvt_flight_network_take_world_send_turn(due), 1);

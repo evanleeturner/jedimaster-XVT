@@ -573,12 +573,12 @@ static uint16_t g_flight_sw_rot_sprite_axis_swap_threshold_angle = 0;
 // FUNCTION: XVT 0x40DF00
 void flight_sw_init_framebuffer(void)
 {
-	unsigned int line;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	for (line = 0; line < (unsigned int)g_screen_height; ++line) {
+	for (unsigned int line = 0; line < (unsigned int)g_screen_height;
+	     ++line) {
 		g_flight_line_offset_table[line] = line * g_surface_pitch;
 	}
 
@@ -664,11 +664,6 @@ void flight_sw_init_framebuffer(void)
 void flight_sw_set_render_target(void *surface, int width, unsigned int height,
 				 int pitch_bytes)
 {
-	int16_t line;
-	int line_index;
-	int bytes_per_pixel;
-	int line_offset;
-
 	if (surface == NULL) {
 		g_flight_sw_framebuffer_base =
 			flight_surface_get_software_framebuffer_base();
@@ -678,6 +673,8 @@ void flight_sw_set_render_target(void *surface, int width, unsigned int height,
 	}
 
 	g_flight_sw_framebuffer_base = (uint8_t *)surface;
+	int16_t line;
+	int line_index;
 	if (pitch_bytes == -1) {
 		line = 0;
 		if (height != 0) {
@@ -694,10 +691,10 @@ void flight_sw_set_render_target(void *surface, int width, unsigned int height,
 
 	line = 0;
 	if (height != 0) {
-		bytes_per_pixel = g_flight_bytes_per_pixel;
+		int bytes_per_pixel = g_flight_bytes_per_pixel;
 		do {
 			line_index = line++;
-			line_offset = width;
+			int line_offset = width;
 			line_offset *= bytes_per_pixel;
 			line_offset *= line_index;
 			g_flight_alt_line_offset_table[line_index] =
@@ -768,37 +765,32 @@ void flight_sw_blit_sprite_rle_impl8bpp(uint8_t *rle_data, int x, int y,
 					int transparent_color_index, int mirror,
 					char is_faded, int16_t fade_amount)
 {
-	unsigned int pixel_offset;
-	uint8_t *destination;
-	uint8_t token;
-	uint8_t color;
-	int16_t alternating_pixels_remaining;
-	uint16_t run_length;
-	uint8_t *source;
-	int mirror_flag;
-
-	source = rle_data;
-	mirror_flag = mirror;
+	uint8_t *source = rle_data;
+	int mirror_flag = mirror;
 	g_flight_sw_rle_sprite_x = x;
 	g_flight_sw_rle_sprite_y = y;
 	g_flight_sw_rle_transparent_color = (uint8_t)transparent_color_index;
 
+	uint8_t token;
+	uint8_t color;
+	uint16_t run_length;
 	for (;;) {
-		pixel_offset = (uint16_t)g_flight_sw_rle_sprite_x +
-			       flight_sw_get_line_offset(
-				       (uint16_t)g_flight_sw_rle_sprite_y);
+		unsigned int pixel_offset =
+			(uint16_t)g_flight_sw_rle_sprite_x +
+			flight_sw_get_line_offset(
+				(uint16_t)g_flight_sw_rle_sprite_y);
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			unsigned int page;
-
-			page = pixel_offset / g_vesa_page_size_bytes;
+			unsigned int page =
+				pixel_offset / g_vesa_page_size_bytes;
 			pixel_offset %= g_vesa_page_size_bytes;
 			rts_vga2_set_current_page((uint8_t)g_vesa_window,
 						  (uint16_t)page);
 		}
 #endif
-		destination = g_flight_sw_framebuffer_base + pixel_offset;
+		uint8_t *destination =
+			g_flight_sw_framebuffer_base + pixel_offset;
 
 		for (;;) {
 			token = *source++;
@@ -833,7 +825,7 @@ void flight_sw_blit_sprite_rle_impl8bpp(uint8_t *rle_data, int x, int y,
 							run_length = color;
 							++run_length;
 						}
-						alternating_pixels_remaining =
+						int16_t alternating_pixels_remaining =
 							(int16_t)source[1] + 1;
 						source += 2;
 						while (alternating_pixels_remaining >
@@ -927,12 +919,6 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 		uint8_t padding[3];
 	} color;
 
-	uint8_t *destination;
-	unsigned int pixel_offset;
-	uint16_t run_length;
-	uint16_t next_color;
-	uint16_t *next;
-	uint16_t *count;
 #ifndef XVT_MODERN
 	uint8_t **source;
 	void *color_ref;
@@ -947,8 +933,11 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 		return;
 	}
 
-	next = &next_color;
-	count = &run_length;
+	uint16_t next_color;
+	uint16_t *next = &next_color;
+	uint16_t run_length;
+	uint16_t *count = &run_length;
+	uint8_t *destination;
 #ifndef XVT_MODERN
 	source = &rle_data;
 	color_ref = &color;
@@ -962,16 +951,16 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 	g_flight_sw_rle_transparent_color = (uint8_t)transparent_index;
 
 	for (;;) {
-		pixel_offset = (uint16_t)g_flight_sw_rle_sprite_x +
-			       flight_sw_get_line_offset(
-				       (uint16_t)g_flight_sw_rle_sprite_y);
+		unsigned int pixel_offset =
+			(uint16_t)g_flight_sw_rle_sprite_x +
+			flight_sw_get_line_offset(
+				(uint16_t)g_flight_sw_rle_sprite_y);
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    xvt_framebuffer_address_is_legacy_base(
 			    g_flight_sw_framebuffer_base)) {
-			unsigned int page;
-
-			page = pixel_offset / g_vesa_page_size_bytes;
+			unsigned int page =
+				pixel_offset / g_vesa_page_size_bytes;
 			pixel_offset %= g_vesa_page_size_bytes;
 			rts_vga2_set_current_page((uint8_t)g_vesa_window,
 						  (uint16_t)page);
@@ -997,11 +986,10 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 						*count = *rle_data + 1;
 						++rle_data;
 						if ((int16_t)*count > 0) {
-							uint8_t *pixel;
-
 							color.value += 4;
 							do {
-								pixel = destination;
+								uint8_t *pixel =
+									destination;
 								*pixel =
 									color.value;
 								if (mirror ==
@@ -1070,10 +1058,8 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 				}
 			} else {
 				if (*count > 0) {
-					uint8_t *pixel;
-
 					while (*count > 0) {
-						pixel = destination;
+						uint8_t *pixel = destination;
 						*pixel = (int8_t)(color.value +
 								  4);
 						destination = pixel - 1;
@@ -1096,12 +1082,11 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 // FUNCTION: XVT 0x40EFE0
 void flight_sw_draw_pixel8bpp(uint16_t x, uint16_t y, int8_t color_index)
 {
-	unsigned int pixel_offset;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	pixel_offset = x + flight_sw_get_line_offset(y);
+	unsigned int pixel_offset = x + flight_sw_get_line_offset(y);
 #ifndef XVT_MODERN
 	if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 	    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
@@ -1135,28 +1120,21 @@ void flight_sw_fill_clip_rect8bpp(void)
 // FUNCTION: XVT 0x40FA30
 void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 {
-	int direct_framebuffer;
-	unsigned int pixel_offset;
-	unsigned int border_row;
-	unsigned int bottom_row;
-
 	g_flight_fill_rect_current_y8bpp = g_flight_fill_rect_top8bpp;
 	g_flight_fill_rect_remaining_rows8bpp =
 		g_flight_fill_rect_bottom8bpp - g_flight_fill_rect_top8bpp;
-	direct_framebuffer = 0;
+	int direct_framebuffer = 0;
 	if ((int16_t)(g_flight_fill_rect_right8bpp -
 		      g_flight_fill_rect_left8bpp) <= 0) {
 		return;
 	}
 
-	pixel_offset =
+	unsigned int pixel_offset =
 		flight_sw_get_line_offset(g_flight_fill_rect_current_y8bpp);
 	if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 	    xvt_framebuffer_address_is_legacy_base(
 		    g_flight_sw_framebuffer_base)) {
-		unsigned int page;
-
-		page = pixel_offset / g_vesa_page_size_bytes;
+		unsigned int page = pixel_offset / g_vesa_page_size_bytes;
 		pixel_offset %= g_vesa_page_size_bytes;
 #ifdef XVT_MODERN
 		rts_vga2_set_current_page((uint8_t)g_flight_resolution_mode,
@@ -1175,6 +1153,8 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 		direct_framebuffer = 1;
 	}
 
+	unsigned int border_row;
+	unsigned int bottom_row;
 	if (!direct_framebuffer) {
 		uint8_t *destination;
 
@@ -1183,13 +1163,11 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 				&g_flight_sw_framebuffer_base[pixel_offset];
 			border_row = 0;
 			while (border_row < border_thickness) {
-				uint8_t *row_start;
-				int16_t width;
-
-				row_start =
+				uint8_t *row_start =
 					&destination
 						[g_flight_fill_rect_left8bpp];
-				width = (int16_t)(g_flight_fill_rect_right8bpp -
+				int16_t width =
+					(int16_t)(g_flight_fill_rect_right8bpp -
 						  g_flight_fill_rect_left8bpp);
 				if (width <= 0) {
 					return;
@@ -1204,16 +1182,13 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 			}
 			while (g_flight_fill_rect_remaining_rows8bpp >
 			       border_thickness) {
-				uint8_t *row_start;
-				unsigned int count;
-				int16_t width;
-
-				row_start =
+				uint8_t *row_start =
 					&destination
 						[g_flight_fill_rect_left8bpp];
-				width = (int16_t)(g_flight_fill_rect_right8bpp -
+				int16_t width =
+					(int16_t)(g_flight_fill_rect_right8bpp -
 						  g_flight_fill_rect_left8bpp);
-				count = border_thickness;
+				unsigned int count = border_thickness;
 				while (count-- != 0) {
 					*row_start++ = g_flight_text_bg_color;
 				}
@@ -1229,13 +1204,11 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 			}
 			bottom_row = 0;
 			while (bottom_row < border_thickness) {
-				uint8_t *row_start;
-				int16_t width;
-
-				row_start =
+				uint8_t *row_start =
 					&destination
 						[g_flight_fill_rect_left8bpp];
-				width = (int16_t)(g_flight_fill_rect_right8bpp -
+				int16_t width =
+					(int16_t)(g_flight_fill_rect_right8bpp -
 						  g_flight_fill_rect_left8bpp);
 				if (width <= 0) {
 					return;
@@ -1252,13 +1225,11 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 			destination =
 				&g_flight_sw_framebuffer_base[pixel_offset];
 			while (g_flight_fill_rect_remaining_rows8bpp != 0) {
-				uint8_t *row_start;
-				int16_t width;
-
-				row_start =
+				uint8_t *row_start =
 					&destination
 						[g_flight_fill_rect_left8bpp];
-				width = (int16_t)(g_flight_fill_rect_right8bpp -
+				int16_t width =
+					(int16_t)(g_flight_fill_rect_right8bpp -
 						  g_flight_fill_rect_left8bpp);
 				if (width <= 0) {
 					return;
@@ -1275,9 +1246,6 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 		if (border_thickness != 0) {
 			border_row = 0;
 			while (border_row < border_thickness) {
-				uint8_t *destination;
-				int16_t width;
-
 				pixel_offset =
 					g_flight_fill_rect_left8bpp +
 					flight_sw_get_line_offset(
@@ -1286,10 +1254,9 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 					    FLIGHT_RESOLUTION_320X240 &&
 				    xvt_framebuffer_address_is_legacy_base(
 					    g_flight_sw_framebuffer_base)) {
-					unsigned int page;
-
-					page = pixel_offset /
-					       g_vesa_page_size_bytes;
+					unsigned int page =
+						pixel_offset /
+						g_vesa_page_size_bytes;
 					pixel_offset %= g_vesa_page_size_bytes;
 #ifdef XVT_MODERN
 					rts_vga2_set_current_page(
@@ -1301,10 +1268,12 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 						(uint8_t)g_vesa_window, page);
 #endif
 				}
-				width = (int16_t)(g_flight_fill_rect_right8bpp -
+				int16_t width =
+					(int16_t)(g_flight_fill_rect_right8bpp -
 						  g_flight_fill_rect_left8bpp);
-				destination = &g_flight_sw_framebuffer_base
-						      [pixel_offset];
+				uint8_t *destination =
+					&g_flight_sw_framebuffer_base
+						[pixel_offset];
 				if (width <= 0) {
 					return;
 				}
@@ -1317,10 +1286,6 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 			}
 			while (g_flight_fill_rect_remaining_rows8bpp >
 			       border_thickness) {
-				uint8_t *destination;
-				unsigned int count;
-				int16_t width;
-
 				pixel_offset =
 					g_flight_fill_rect_left8bpp +
 					flight_sw_get_line_offset(
@@ -1329,10 +1294,9 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 					    FLIGHT_RESOLUTION_320X240 &&
 				    xvt_framebuffer_address_is_legacy_base(
 					    g_flight_sw_framebuffer_base)) {
-					unsigned int page;
-
-					page = pixel_offset /
-					       g_vesa_page_size_bytes;
+					unsigned int page =
+						pixel_offset /
+						g_vesa_page_size_bytes;
 					pixel_offset %= g_vesa_page_size_bytes;
 #ifdef XVT_MODERN
 					rts_vga2_set_current_page(
@@ -1344,11 +1308,13 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 						(uint8_t)g_vesa_window, page);
 #endif
 				}
-				width = (int16_t)(g_flight_fill_rect_right8bpp -
+				int16_t width =
+					(int16_t)(g_flight_fill_rect_right8bpp -
 						  g_flight_fill_rect_left8bpp);
-				destination = &g_flight_sw_framebuffer_base
-						      [pixel_offset];
-				count = border_thickness;
+				uint8_t *destination =
+					&g_flight_sw_framebuffer_base
+						[pixel_offset];
+				unsigned int count = border_thickness;
 				while (count-- != 0) {
 					*destination++ = g_flight_text_bg_color;
 				}
@@ -1363,9 +1329,6 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 			}
 			bottom_row = 0;
 			while (bottom_row < border_thickness) {
-				uint8_t *destination;
-				int16_t width;
-
 				pixel_offset =
 					g_flight_fill_rect_left8bpp +
 					flight_sw_get_line_offset(
@@ -1374,10 +1337,9 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 					    FLIGHT_RESOLUTION_320X240 &&
 				    xvt_framebuffer_address_is_legacy_base(
 					    g_flight_sw_framebuffer_base)) {
-					unsigned int page;
-
-					page = pixel_offset /
-					       g_vesa_page_size_bytes;
+					unsigned int page =
+						pixel_offset /
+						g_vesa_page_size_bytes;
 					pixel_offset %= g_vesa_page_size_bytes;
 #ifdef XVT_MODERN
 					rts_vga2_set_current_page(
@@ -1389,10 +1351,12 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 						(uint8_t)g_vesa_window, page);
 #endif
 				}
-				width = (int16_t)(g_flight_fill_rect_right8bpp -
+				int16_t width =
+					(int16_t)(g_flight_fill_rect_right8bpp -
 						  g_flight_fill_rect_left8bpp);
-				destination = &g_flight_sw_framebuffer_base
-						      [pixel_offset];
+				uint8_t *destination =
+					&g_flight_sw_framebuffer_base
+						[pixel_offset];
 				if (width <= 0) {
 					return;
 				}
@@ -1405,9 +1369,6 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 			}
 		} else {
 			while (g_flight_fill_rect_remaining_rows8bpp != 0) {
-				uint8_t *destination;
-				int16_t width;
-
 				pixel_offset =
 					g_flight_fill_rect_left8bpp +
 					flight_sw_get_line_offset(
@@ -1416,10 +1377,9 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 					    FLIGHT_RESOLUTION_320X240 &&
 				    xvt_framebuffer_address_is_legacy_base(
 					    g_flight_sw_framebuffer_base)) {
-					unsigned int page;
-
-					page = pixel_offset /
-					       g_vesa_page_size_bytes;
+					unsigned int page =
+						pixel_offset /
+						g_vesa_page_size_bytes;
 					pixel_offset %= g_vesa_page_size_bytes;
 #ifdef XVT_MODERN
 					rts_vga2_set_current_page(
@@ -1431,10 +1391,12 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 						(uint8_t)g_vesa_window, page);
 #endif
 				}
-				width = (int16_t)(g_flight_fill_rect_right8bpp -
+				int16_t width =
+					(int16_t)(g_flight_fill_rect_right8bpp -
 						  g_flight_fill_rect_left8bpp);
-				destination = &g_flight_sw_framebuffer_base
-						      [pixel_offset];
+				uint8_t *destination =
+					&g_flight_sw_framebuffer_base
+						[pixel_offset];
 				if (width <= 0) {
 					return;
 				}
@@ -1484,20 +1446,16 @@ void flight_sw_fill_rect_clipped8bpp(uint16_t x1, uint16_t y1, uint16_t x2,
 void flight_sw_save_screen_rect8bpp(uint8_t *buffer, int x, int y,
 				    int16_t width, int height)
 {
-	unsigned int pixel_offset;
-	uint8_t *source;
-	int rows_remaining;
-	uint8_t pixel;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	rows_remaining = height;
+	int rows_remaining = height;
 	if (rows_remaining == 0) {
 		return;
 	}
 	do {
-		pixel_offset = flight_sw_get_line_offset(y) + x;
+		unsigned int pixel_offset = flight_sw_get_line_offset(y) + x;
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    g_sw_framebuffer_base == g_flight_sw_framebuffer_base) {
@@ -1509,9 +1467,9 @@ void flight_sw_save_screen_rect8bpp(uint8_t *buffer, int x, int y,
 		}
 #endif
 		g_saved_row_pixels_remaining = width;
-		source = g_flight_sw_framebuffer_base + pixel_offset;
+		uint8_t *source = g_flight_sw_framebuffer_base + pixel_offset;
 		while (g_saved_row_pixels_remaining > 0) {
-			pixel = *source++;
+			uint8_t pixel = *source++;
 			*buffer++ = pixel;
 			--g_saved_row_pixels_remaining;
 		}
@@ -1526,16 +1484,13 @@ void flight_sw_save_screen_rect8bpp(uint8_t *buffer, int x, int y,
 void flight_sw_restore_screen_rect8bpp(uint8_t *buffer, int x, int y,
 				       int16_t width, int height)
 {
-	int rows_remaining;
-	uint8_t *destination;
-	unsigned int pixel_offset;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	rows_remaining = height;
+	int rows_remaining = height;
 	for (; rows_remaining != 0; ++y) {
-		pixel_offset = flight_sw_get_line_offset(y) + x;
+		unsigned int pixel_offset = flight_sw_get_line_offset(y) + x;
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    g_sw_framebuffer_base == g_flight_sw_framebuffer_base) {
@@ -1546,7 +1501,7 @@ void flight_sw_restore_screen_rect8bpp(uint8_t *buffer, int x, int y,
 		}
 #endif
 		g_saved_row_pixels_remaining = width;
-		destination = g_flight_sw_framebuffer_base;
+		uint8_t *destination = g_flight_sw_framebuffer_base;
 		destination += pixel_offset;
 		while (g_saved_row_pixels_remaining > 0) {
 			*destination++ = *buffer++;
@@ -1571,9 +1526,6 @@ void flight_sw_draw_point_array8bpp(uint16_t *points, int16_t count)
 		uint8_t payload_high;
 	};
 
-	unsigned int pixel_offset;
-	uint8_t *destination;
-	uint8_t color;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
@@ -1582,8 +1534,8 @@ void flight_sw_draw_point_array8bpp(uint16_t *points, int16_t count)
 		return;
 	}
 	do {
-		pixel_offset = points[0];
-		color = (uint8_t)points[2];
+		unsigned int pixel_offset = points[0];
+		uint8_t color = (uint8_t)points[2];
 		pixel_offset += flight_sw_get_line_offset(points[1]);
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
@@ -1595,7 +1547,8 @@ void flight_sw_draw_point_array8bpp(uint16_t *points, int16_t count)
 			rts_vga2_set_current_page(1, (uint16_t)page);
 		}
 #endif
-		destination = g_flight_sw_framebuffer_base + pixel_offset;
+		uint8_t *destination =
+			g_flight_sw_framebuffer_base + pixel_offset;
 		if (*destination != 44) {
 			points[2] = 0;
 		} else {
@@ -1640,26 +1593,19 @@ void flight_sw_draw_point_array8bpp(uint16_t *points, int16_t count)
 // FUNCTION: XVT 0x4104D0
 void flight_sw_erase_point_array8bpp(uint16_t *points, int16_t count)
 {
-	uint16_t *current;
-	int16_t remaining;
-	unsigned int pixel_offset;
-	uint8_t *destination;
-	unsigned int x;
-	unsigned int y;
-	uint8_t mask;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	remaining = count;
+	int16_t remaining = count;
 	if (remaining == 0) {
 		return;
 	}
-	current = points;
+	uint16_t *current = points;
 	do {
-		x = current[0];
-		y = current[1];
-		pixel_offset = flight_sw_get_line_offset(y) + x;
+		unsigned int x = current[0];
+		unsigned int y = current[1];
+		unsigned int pixel_offset = flight_sw_get_line_offset(y) + x;
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
@@ -1669,8 +1615,9 @@ void flight_sw_erase_point_array8bpp(uint16_t *points, int16_t count)
 						  (uint16_t)page);
 		}
 #endif
-		destination = g_flight_sw_framebuffer_base + pixel_offset;
-		mask = (uint8_t)current[2];
+		uint8_t *destination =
+			g_flight_sw_framebuffer_base + pixel_offset;
+		uint8_t mask = (uint8_t)current[2];
 		if ((mask & 1) != 0) {
 			*destination = 44;
 		}
@@ -1708,25 +1655,19 @@ void flight_sw_erase_point_array8bpp(uint16_t *points, int16_t count)
 // FUNCTION: XVT 0x4105E0
 void flight_sw_draw_radar_target_marker8bpp(void)
 {
-	unsigned int pixel_offset;
-	uint16_t offset_index;
-	uint16_t saved_pixel_index;
-	int16_t remaining;
-	int8_t *offset;
-	uint8_t *pixel;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	saved_pixel_index = 0;
-	offset_index = 0;
-	remaining = (int16_t)g_radar_target_marker_point_count;
+	uint16_t saved_pixel_index = 0;
+	uint16_t offset_index = 0;
+	int16_t remaining = (int16_t)g_radar_target_marker_point_count;
 	if (remaining == (int16_t)saved_pixel_index) {
 		return;
 	}
 	do {
-		offset = &g_radar_target_marker_shape[offset_index];
-		pixel_offset =
+		int8_t *offset = &g_radar_target_marker_shape[offset_index];
+		unsigned int pixel_offset =
 			flight_sw_get_line_offset(g_radar_target_marker_draw_y +
 						  offset[1]) +
 			offset[0] + g_radar_target_marker_draw_x;
@@ -1741,7 +1682,7 @@ void flight_sw_draw_radar_target_marker8bpp(void)
 		}
 #endif
 		offset_index += 2;
-		pixel = g_flight_sw_framebuffer_base + pixel_offset;
+		uint8_t *pixel = g_flight_sw_framebuffer_base + pixel_offset;
 		g_radar_target_marker_saved_pixels[saved_pixel_index++] =
 			*pixel;
 		*pixel = 206;
@@ -1754,26 +1695,19 @@ void flight_sw_draw_radar_target_marker8bpp(void)
 // FUNCTION: XVT 0x4106C0
 void flight_sw_restore_radar_target_marker8bpp(void)
 {
-	unsigned int pixel_offset;
-	uint16_t offset_index;
-	uint16_t saved_pixel_index;
-	int16_t remaining;
-	int8_t *offset;
-	uint8_t pixel;
-	uint8_t *framebuffer_base;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	offset_index = 0;
-	saved_pixel_index = 0;
-	remaining = (int16_t)g_radar_target_marker_point_count;
+	uint16_t offset_index = 0;
+	uint16_t saved_pixel_index = 0;
+	int16_t remaining = (int16_t)g_radar_target_marker_point_count;
 	if (remaining == (int16_t)saved_pixel_index) {
 		return;
 	}
 	do {
-		offset = g_radar_target_marker_shape + offset_index;
-		pixel_offset =
+		int8_t *offset = g_radar_target_marker_shape + offset_index;
+		unsigned int pixel_offset =
 			offset[0] +
 			flight_sw_get_line_offset(
 				g_radar_target_marker_restore_y + offset[1]) +
@@ -1788,8 +1722,9 @@ void flight_sw_restore_radar_target_marker8bpp(void)
 		}
 #endif
 		offset_index += 2;
-		framebuffer_base = g_flight_sw_framebuffer_base;
-		pixel = g_radar_target_marker_saved_pixels[saved_pixel_index++];
+		uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
+		uint8_t pixel =
+			g_radar_target_marker_saved_pixels[saved_pixel_index++];
 		framebuffer_base[pixel_offset] = pixel;
 		--remaining;
 	} while (remaining != 0);
@@ -1800,23 +1735,18 @@ void flight_sw_restore_radar_target_marker8bpp(void)
 // FUNCTION: XVT 0x410780
 uint8_t flight_sw_draw_cross_marker8bpp(uint16_t x, uint16_t y, uint8_t color)
 {
-	unsigned int pixel_offset;
-	uint16_t offset_index;
-	uint16_t saved_pixel_index;
-	int16_t remaining;
-	unsigned int coordinates[2];
-	uint8_t *pixel;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	remaining = 7;
+	int16_t remaining = 7;
+	unsigned int coordinates[2];
 	coordinates[0] = y;
-	offset_index = 0;
+	uint16_t offset_index = 0;
 	coordinates[1] = x;
-	saved_pixel_index = 0;
+	uint16_t saved_pixel_index = 0;
 	do {
-		pixel_offset =
+		unsigned int pixel_offset =
 			flight_sw_get_line_offset(
 				coordinates[0] +
 				((int8_t *)g_flight_sw_cross_marker_offsets)
@@ -1835,7 +1765,7 @@ uint8_t flight_sw_draw_cross_marker8bpp(uint16_t x, uint16_t y, uint8_t color)
 		}
 #endif
 		offset_index += 2;
-		pixel = g_flight_sw_framebuffer_base + pixel_offset;
+		uint8_t *pixel = g_flight_sw_framebuffer_base + pixel_offset;
 		g_flight_sw_cross_marker_saved_pixels[saved_pixel_index++] =
 			*pixel;
 		*pixel = color;
@@ -1850,18 +1780,16 @@ uint8_t flight_sw_draw_cross_marker8bpp(uint16_t x, uint16_t y, uint8_t color)
 // FUNCTION: XVT 0x410860
 uint8_t flight_sw_restore_cross_marker8bpp(uint16_t x, uint16_t y)
 {
-	int16_t remaining = 7;
-	uint16_t saved_pixel_index = 0;
-	uint16_t offset_index = 0;
-	unsigned int pixel_offset;
-	uint8_t pixel;
-	uint8_t *framebuffer_base;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
+	int16_t remaining = 7;
+	uint16_t saved_pixel_index = 0;
+	uint16_t offset_index = 0;
+	uint8_t pixel;
 	do {
-		pixel_offset =
+		unsigned int pixel_offset =
 			((int8_t *)g_flight_sw_cross_marker_offsets)
 				[offset_index] +
 			flight_sw_get_line_offset(
@@ -1878,7 +1806,7 @@ uint8_t flight_sw_restore_cross_marker8bpp(uint16_t x, uint16_t y)
 		}
 #endif
 		offset_index += 2;
-		framebuffer_base = g_flight_sw_framebuffer_base;
+		uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
 		pixel = g_flight_sw_cross_marker_saved_pixels
 			[saved_pixel_index++];
 		framebuffer_base[pixel_offset] = pixel;
@@ -1908,31 +1836,15 @@ void flight_starfield_render(void)
 		STAR_PLANE_COUNT = 3,
 	};
 
-	int row_index;
-	int plane_index;
+	g_starfield_grid_dimension = STAR_GRID_SPAN / g_star_grid_divisor;
 	uint8_t *colors8;
 	uint16_t *colors16;
-	uint8_t *random_vector_indices;
-	float step_view_z[3];
-	float step_view_y[3];
-	float initial_view[3];
-	float step_view_x[3];
-	int column_index;
-	float base_view[3];
-	int screen_x;
-	int screen_y;
-	int row_axis;
-	int column_axis;
-	int star_index;
 	uint8_t target_rgb[3];
 	uint16_t background_color16;
-
-	g_starfield_grid_dimension = STAR_GRID_SPAN / g_star_grid_divisor;
 	if (g_flight_bytes_per_pixel == 2) {
 		background_color16 =
 			g_flight_palette16_bpp[g_flight_background_color_index];
 		if (!g_starfield_colors16_initialized) {
-			int color_index;
 			g_starfield_colors16_handle = memory_alloc_handle(
 				STAR_COUNT * sizeof(uint16_t), 0);
 			if (g_starfield_colors16_handle == 0) {
@@ -1940,6 +1852,7 @@ void flight_starfield_render(void)
 			}
 			colors16 = (uint16_t *)memory_get_handle_block(
 				g_starfield_colors16_handle);
+			int color_index;
 			if (display_is_pixel_format555()) {
 				for (color_index = 0; color_index < STAR_COUNT;
 				     ++color_index) {
@@ -1963,7 +1876,6 @@ void flight_starfield_render(void)
 			g_starfield_colors16_handle);
 	} else {
 		if (!g_starfield_colors8_initialized) {
-			int color_index;
 			g_starfield_colors8_handle =
 				memory_alloc_handle(STAR_COUNT, 0);
 			if (g_starfield_colors8_handle == 0) {
@@ -1971,7 +1883,7 @@ void flight_starfield_render(void)
 			}
 			colors8 = (uint8_t *)memory_get_handle_block(
 				g_starfield_colors8_handle);
-			for (color_index = 0; color_index < STAR_COUNT;
+			for (int color_index = 0; color_index < STAR_COUNT;
 			     ++color_index) {
 				int shade = (game_rand() & 0xF) + 8;
 				target_rgb[0] = (uint8_t)shade;
@@ -1990,8 +1902,8 @@ void flight_starfield_render(void)
 		colors8 = (uint8_t *)memory_get_handle_block(
 			g_starfield_colors8_handle);
 	}
+	uint8_t *random_vector_indices;
 	if (!g_starfield_random_vector_indices_initialized) {
-		int vector_index;
 		g_starfield_random_vector_indices_handle =
 			memory_alloc_handle(STAR_COUNT * STAR_PLANE_COUNT, 0);
 		if (g_starfield_random_vector_indices_handle == 0) {
@@ -1999,7 +1911,7 @@ void flight_starfield_render(void)
 		}
 		random_vector_indices = (uint8_t *)memory_get_handle_block(
 			g_starfield_random_vector_indices_handle);
-		for (vector_index = 0; vector_index < STAR_COUNT;
+		for (int vector_index = 0; vector_index < STAR_COUNT;
 		     ++vector_index) {
 			int random_index;
 			do {
@@ -2015,6 +1927,7 @@ void flight_starfield_render(void)
 	random_vector_indices = (uint8_t *)memory_get_handle_block(
 		g_starfield_random_vector_indices_handle);
 
+	float initial_view[3];
 	initial_view[0] =
 		(float)(-(g_cam_mat_r0_x + g_cam_mat_r0_y + g_cam_mat_r0_z) >>
 			2);
@@ -2024,15 +1937,19 @@ void flight_starfield_render(void)
 	initial_view[2] =
 		(float)(-(g_cam_mat_r2_x + g_cam_mat_r2_y + g_cam_mat_r2_z) >>
 			2);
+	float base_view[3];
 	base_view[0] = initial_view[0];
 	base_view[1] = initial_view[1];
 	base_view[2] = initial_view[2];
+	float step_view_x[3];
 	step_view_x[0] =
 		(float)(g_cam_mat_r0_x >> 1) *
 		g_sw3d_span_length_reciprocal[g_starfield_grid_dimension];
+	float step_view_y[3];
 	step_view_y[0] =
 		(float)(g_cam_mat_r1_x >> 1) *
 		g_sw3d_span_length_reciprocal[g_starfield_grid_dimension];
+	float step_view_z[3];
 	step_view_z[0] =
 		(float)(g_cam_mat_r2_x >> 1) *
 		g_sw3d_span_length_reciprocal[g_starfield_grid_dimension];
@@ -2054,16 +1971,17 @@ void flight_starfield_render(void)
 	step_view_z[2] =
 		(float)(g_cam_mat_r2_z >> 1) *
 		g_sw3d_span_length_reciprocal[g_starfield_grid_dimension];
-	star_index = 0;
-	column_axis = 0;
-	row_axis = 1;
-	for (plane_index = 0; plane_index < STAR_PLANE_COUNT; ++plane_index) {
-		for (row_index = 0; row_index < g_starfield_grid_dimension;
+	int star_index = 0;
+	int column_axis = 0;
+	int row_axis = 1;
+	for (int plane_index = 0; plane_index < STAR_PLANE_COUNT;
+	     ++plane_index) {
+		for (int row_index = 0; row_index < g_starfield_grid_dimension;
 		     ++row_index) {
 			float current_view_z = base_view[2];
 			float current_view_y = base_view[1];
 			float current_view_x = base_view[0];
-			for (column_index = 0;
+			for (int column_index = 0;
 			     column_index < g_starfield_grid_dimension;
 			     ++column_index) {
 				uint8_t jitter_index =
@@ -2077,12 +1995,12 @@ void flight_starfield_render(void)
 				float view_z =
 					current_view_z +
 					g_starfield_jitter_z[jitter_index];
-				float abs_view;
 				if (view_z < 0.0f) {
 					view_x = -view_x;
 					view_y = -view_y;
 					view_z = -view_z;
 				}
+				float abs_view;
 				if (view_x < 0.0f) {
 					abs_view = -view_x;
 				} else {
@@ -2098,11 +2016,11 @@ void flight_starfield_render(void)
 						float projection_scale =
 							g_proj_scale_int /
 							view_z;
-						screen_x =
+						int screen_x =
 							g_flight_vp_center_x +
 							(int)(view_x *
 							      projection_scale);
-						screen_y =
+						int screen_y =
 							g_flight_vp_center_y +
 							(int)(view_y *
 							      projection_scale) +
@@ -2190,14 +2108,8 @@ void rts_vga2_set_current_page(uint8_t window, uint16_t page)
 void flight_screenshot_capture(void)
 {
 	char file_name[64];
-	uint8_t palette[1024];
-	int file_index;
-	int lock_count;
-	int remaining_locks;
-	int saved_lock_back_buffer_for_hud_draw;
-	int i;
 
-	file_index = 0;
+	int file_index = 0;
 	for (;;) {
 		sprintf(file_name, "flightscreen%d.bmp", file_index);
 #ifdef XVT_MODERN
@@ -2218,16 +2130,17 @@ void flight_screenshot_capture(void)
 		++file_index;
 	}
 
-	for (i = 0; i < 256; ++i) {
+	uint8_t palette[1024];
+	for (int i = 0; i < 256; ++i) {
 		palette[4 * i + 0] = (uint8_t)(g_sw_palette[i].b << 2);
 		palette[4 * i + 1] = (uint8_t)(g_sw_palette[i].g << 2);
 		palette[4 * i + 2] = (uint8_t)(g_sw_palette[i].r << 2);
 		palette[4 * i + 3] = 0;
 	}
 
-	lock_count = flight_surface_get_lock_count();
+	int lock_count = flight_surface_get_lock_count();
 	if (lock_count > 0) {
-		remaining_locks = lock_count;
+		int remaining_locks = lock_count;
 		do {
 			flight_surface_unlock();
 			--remaining_locks;
@@ -2235,7 +2148,7 @@ void flight_screenshot_capture(void)
 	}
 
 	flight_display_flip();
-	saved_lock_back_buffer_for_hud_draw = g_flight_draw_to_hud_layer;
+	int saved_lock_back_buffer_for_hud_draw = g_flight_draw_to_hud_layer;
 	g_flight_draw_to_hud_layer = 0;
 	flight_surface_lock();
 	front_image_save_bmp_file(file_name, g_surface_pixels, g_surface_width,
@@ -2262,19 +2175,13 @@ void flight_screenshot_capture(void)
 // FUNCTION: XVT 0x411120
 void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 {
-	int delta_x;
-	int delta_y;
+	int end_x = x2;
+	int delta_x = end_x - x1;
 	int start_y;
-	int end_x;
 	int end_y;
 	uint8_t *pixel;
-
-	end_x = x2;
-	delta_x = end_x - x1;
 	if (delta_x < 0) {
-		int swap_x;
-
-		swap_x = x1;
+		int swap_x = x1;
 		start_y = y2;
 		end_y = y1;
 		delta_x = -delta_x;
@@ -2282,8 +2189,6 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 		end_x = swap_x;
 	} else {
 		if (delta_x == 0) {
-			int count;
-
 			if (x1 < g_flight_clip_left) {
 				return;
 			}
@@ -2292,9 +2197,7 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 			}
 
 			if (y2 < y1) {
-				int swap_y;
-
-				swap_y = y1;
+				int swap_y = y1;
 				y1 = y2;
 				y2 = swap_y;
 			}
@@ -2305,7 +2208,7 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				y2 = g_flight_clip_bottom - 1;
 			}
 
-			count = y2 - y1;
+			int count = y2 - y1;
 			if (count > 0) {
 				pixel = &g_flight_sw_framebuffer_base
 						[y1 * g_surface_pitch + x1];
@@ -2322,7 +2225,7 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 
 	if (x1 < g_flight_clip_right) {
 		if (end_x >= g_flight_clip_left) {
-			delta_y = end_y - start_y;
+			int delta_y = end_y - start_y;
 			if (delta_y < 0) {
 				delta_y = -delta_y;
 				if (start_y < g_flight_clip_top) {
@@ -2333,9 +2236,7 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				}
 
 				if (start_y >= g_flight_clip_bottom) {
-					int advance;
-
-					advance = math2_ab_over_c32(
+					int advance = math2_ab_over_c32(
 						start_y - g_flight_clip_bottom +
 							1,
 						delta_x, delta_y);
@@ -2346,12 +2247,9 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 					start_y = g_flight_clip_bottom - 1;
 				}
 				if (x1 < g_flight_clip_left) {
-					int advance;
-					int clipped_x_distance;
-
-					clipped_x_distance =
+					int clipped_x_distance =
 						g_flight_clip_left - x1;
-					advance = math2_ab_over_c32(
+					int advance = math2_ab_over_c32(
 						clipped_x_distance, delta_y,
 						delta_x);
 					start_y -= advance;
@@ -2371,13 +2269,9 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 						[start_y * g_surface_pitch +
 						 x1];
 				if (delta_x >= delta_y) {
-					int error;
-					int y_steps;
-					int x_count;
-
-					error = delta_x >> 1;
-					x_count = end_x - x1;
-					y_steps = start_y - end_y + 1;
+					int error = delta_x >> 1;
+					int x_count = end_x - x1;
+					int y_steps = start_y - end_y + 1;
 					while (x_count-- != 0) {
 						*pixel++ = color_idx;
 						error -= delta_y;
@@ -2392,13 +2286,9 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 						}
 					}
 				} else {
-					int error;
-					int x_steps;
-					int y_count;
-
-					error = delta_y >> 1;
-					x_steps = end_x - x1 + 1;
-					y_count = start_y - end_y;
+					int error = delta_y >> 1;
+					int x_steps = end_x - x1 + 1;
+					int y_count = start_y - end_y;
 					while (y_count-- != 0) {
 						*pixel = color_idx;
 						pixel -= g_surface_pitch;
@@ -2422,12 +2312,9 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				}
 
 				if (start_y < g_flight_clip_top) {
-					int advance;
-					int clipped_y_distance;
-
-					clipped_y_distance =
+					int clipped_y_distance =
 						g_flight_clip_top - start_y;
-					advance = math2_ab_over_c32(
+					int advance = math2_ab_over_c32(
 						clipped_y_distance, delta_x,
 						delta_y);
 					x1 += advance;
@@ -2437,12 +2324,9 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 					start_y = g_flight_clip_top;
 				}
 				if (x1 < g_flight_clip_left) {
-					int advance;
-					int clipped_x_distance;
-
-					clipped_x_distance =
+					int clipped_x_distance =
 						g_flight_clip_left - x1;
-					advance = math2_ab_over_c32(
+					int advance = math2_ab_over_c32(
 						clipped_x_distance, delta_y,
 						delta_x);
 					start_y += advance;
@@ -2462,13 +2346,9 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 						[start_y * g_surface_pitch +
 						 x1];
 				if (delta_x >= delta_y) {
-					int error;
-					int y_steps;
-					int x_count;
-
-					error = delta_x >> 1;
-					x_count = end_x - x1;
-					y_steps = end_y - start_y + 1;
+					int error = delta_x >> 1;
+					int x_count = end_x - x1;
+					int y_steps = end_y - start_y + 1;
 					while (x_count-- != 0) {
 						*pixel++ = color_idx;
 						error -= delta_y;
@@ -2483,13 +2363,9 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 						}
 					}
 				} else {
-					int error;
-					int x_steps;
-					int y_count;
-
-					error = delta_y >> 1;
-					x_steps = end_x - x1 + 1;
-					y_count = end_y - start_y;
+					int error = delta_y >> 1;
+					int x_steps = end_x - x1 + 1;
+					int y_count = end_y - start_y;
 					while (y_count-- != 0) {
 						*pixel = color_idx;
 						pixel += g_surface_pitch;
@@ -2506,8 +2382,6 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				}
 			} else if (start_y >= g_flight_clip_top &&
 				   start_y < g_flight_clip_bottom) {
-				int count;
-
 				if (g_flight_clip_left > x1) {
 					x1 = g_flight_clip_left;
 				}
@@ -2515,7 +2389,7 @@ void flight_sw_draw_line8bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 					end_x = g_flight_clip_right - 1;
 				}
 
-				count = end_x - x1;
+				int count = end_x - x1;
 				if (count > 0) {
 					pixel = g_flight_sw_framebuffer_base;
 					pixel += start_y * g_surface_pitch;
@@ -2538,21 +2412,15 @@ void flight_sw_draw_rot_sprite_span_runs8(
 	const struct flight_sw_rot_sprite_span_run *runs, uint8_t *dest_base,
 	const int *span_offsets)
 {
-	int color_index;
-	int dest_offset;
-	int span_x;
-	int length;
-	const int *run_offsets;
-
 	for (;;) {
-		color_index = runs->color_index;
-		span_x = g_flight_sw_rot_sprite_span_base_x;
+		int color_index = runs->color_index;
+		int span_x = g_flight_sw_rot_sprite_span_base_x;
 		span_x += runs->start_x;
-		length = runs->length;
+		int length = runs->length;
 		runs++;
-		run_offsets = &span_offsets[span_x];
+		const int *run_offsets = &span_offsets[span_x];
 		do {
-			dest_offset = *run_offsets++;
+			int dest_offset = *run_offsets++;
 			dest_base += dest_offset;
 			*dest_base = (uint8_t)color_index;
 			dest_base -= dest_offset;
@@ -2573,20 +2441,12 @@ void flight_sw_draw_clipped_rot_sprite_span_runs8(
 	const struct flight_sw_rot_sprite_span_run *runs, uint8_t *dest_base,
 	const int *span_offsets)
 {
-	int length;
-	int span_start;
-	int span_end;
-	int color_index;
-	const struct flight_sw_rot_sprite_span_run *draw_run;
-	const int *run_offsets;
-	int dest_offset;
-
 	do {
-		draw_run = runs++;
-		length = draw_run->length;
-		span_start =
+		const struct flight_sw_rot_sprite_span_run *draw_run = runs++;
+		int length = draw_run->length;
+		int span_start =
 			g_flight_sw_rot_sprite_span_base_x + draw_run->start_x;
-		span_end = span_start + length;
+		int span_end = span_start + length;
 		if (span_start < g_flight_sw_rot_sprite_clip_min_x) {
 			span_start = g_flight_sw_rot_sprite_clip_min_x;
 		}
@@ -2597,10 +2457,11 @@ void flight_sw_draw_clipped_rot_sprite_span_runs8(
 			}
 			length = span_end - span_start;
 			if (length != 0) {
-				color_index = draw_run->color_index;
-				run_offsets = &span_offsets[span_start];
+				int color_index = draw_run->color_index;
+				const int *run_offsets =
+					&span_offsets[span_start];
 				do {
-					dest_offset = *run_offsets++;
+					int dest_offset = *run_offsets++;
 					dest_base[dest_offset] =
 						(uint8_t)color_index;
 					length--;
@@ -2619,21 +2480,15 @@ void flight_sw_draw_rot_sprite_span_runs16(
 	const struct flight_sw_rot_sprite_span_run *runs, uint8_t *dest_base,
 	const int *span_offsets)
 {
-	int color_index;
-	int length;
-	int span_x;
-	const int *run_offsets;
-	int dest_offset;
-
 	do {
-		span_x = g_flight_sw_rot_sprite_span_base_x;
-		color_index = runs->color_index;
+		int span_x = g_flight_sw_rot_sprite_span_base_x;
+		int color_index = runs->color_index;
 		span_x += runs->start_x;
-		length = runs->length;
+		int length = runs->length;
 		runs++;
-		run_offsets = &span_offsets[span_x];
+		const int *run_offsets = &span_offsets[span_x];
 		do {
-			dest_offset = *run_offsets++;
+			int dest_offset = *run_offsets++;
 			dest_base[dest_offset] = (uint8_t)color_index;
 			dest_base[dest_offset + 1] = 0x80;
 			length--;
@@ -2649,23 +2504,14 @@ void flight_sw_draw_clipped_rot_sprite_span_runs16(
 	const struct flight_sw_rot_sprite_span_run *runs, uint8_t *dest_base,
 	const int *span_offsets)
 {
-	const struct flight_sw_rot_sprite_span_run *draw_run;
-	int clip_min_x;
-	int length;
-	int color_index;
-	int dest_offset;
-	int clip_max_x;
-	int span_start;
-	int span_end;
-
 	do {
-		draw_run = runs++;
-		length = draw_run->length;
-		span_start =
+		const struct flight_sw_rot_sprite_span_run *draw_run = runs++;
+		int length = draw_run->length;
+		int span_start =
 			g_flight_sw_rot_sprite_span_base_x + draw_run->start_x;
-		span_end = span_start + length;
-		clip_min_x = g_flight_sw_rot_sprite_clip_min_x;
-		clip_max_x = g_flight_sw_rot_sprite_clip_max_x;
+		int span_end = span_start + length;
+		int clip_min_x = g_flight_sw_rot_sprite_clip_min_x;
+		int clip_max_x = g_flight_sw_rot_sprite_clip_max_x;
 		if (span_start < clip_min_x) {
 			span_start = clip_min_x;
 		}
@@ -2675,9 +2521,10 @@ void flight_sw_draw_clipped_rot_sprite_span_runs16(
 			}
 			length = span_end - span_start;
 			if (length != 0) {
-				color_index = draw_run->color_index;
+				int color_index = draw_run->color_index;
 				do {
-					dest_offset = span_offsets[span_start];
+					int dest_offset =
+						span_offsets[span_start];
 					dest_base[dest_offset] =
 						(uint8_t)color_index;
 					dest_base[dest_offset + 1] = 0x80;
@@ -2705,13 +2552,9 @@ void flight_sw_draw_rotated_sprite_quad(int16_t screen_x, int16_t screen_y,
 					uint16_t screen_size,
 					struct sprite_payload *sprite)
 {
-	struct flight_sw_rot_sprite_data_header *sprite_data;
-	int16_t corner_x;
-	int16_t corner_y;
-	int corner_coords[8];
-
-	sprite_data = (struct flight_sw_rot_sprite_data_header
-			       *)((uint8_t *)sprite + sprite->row_data_offset);
+	struct flight_sw_rot_sprite_data_header *sprite_data =
+		(struct flight_sw_rot_sprite_data_header
+			 *)((uint8_t *)sprite + sprite->row_data_offset);
 	if (g_flight_sw_rot_sprite_span_runs_enabled == 1) {
 		g_flight_sw_rot_sprite_input_corner_x =
 			(int16_t)sprite_data->corner_x;
@@ -2719,9 +2562,9 @@ void flight_sw_draw_rotated_sprite_quad(int16_t screen_x, int16_t screen_y,
 		g_flight_sw_rot_sprite_input_corner_x =
 			-(int16_t)sprite_data->alternate_corner_x;
 	}
-	corner_x = g_flight_sw_rot_sprite_input_corner_x;
+	int16_t corner_x = g_flight_sw_rot_sprite_input_corner_x;
 	g_flight_sw_rot_sprite_input_corner_y = -(int16_t)sprite_data->corner_y;
-	corner_y = g_flight_sw_rot_sprite_input_corner_y;
+	int16_t corner_y = g_flight_sw_rot_sprite_input_corner_y;
 	flight_sw_prepare_rotated_sprite_scale_state(
 		screen_size, g_flight_sw_rot_sprite_coeffs,
 		&g_flight_sw_rot_sprite_scale_state);
@@ -2730,6 +2573,7 @@ void flight_sw_draw_rotated_sprite_quad(int16_t screen_x, int16_t screen_y,
 		&g_flight_sw_rot_sprite_scale_state);
 	g_flight_sw_rot_sprite_edge_cursor_x =
 		screen_x + g_flight_sw_rot_sprite_output_offset_x;
+	int corner_coords[8];
 	corner_coords[0] =
 		(int16_t)(screen_x + g_flight_sw_rot_sprite_output_offset_x);
 	g_flight_sw_rot_sprite_edge_cursor_y =
@@ -2777,36 +2621,21 @@ void flight_sw_draw_rotated_sprite_quad(int16_t screen_x, int16_t screen_y,
 // FUNCTION: XVT 0x421700
 void flight_sw_clip_and_blit_prepared_rotated_sprite(int *corner_coords)
 {
-	int min_x;
-	int max_x;
-	int min_y;
-	int max_y;
-	int raw_y2;
-	int raw_y3;
-	int raw_y4;
-	int flipped_y2;
-	int flipped_y3;
-	int flipped_y4;
-	int start_x;
-	int start_y;
-	int end_x;
-	int end_y;
-
-	max_y = g_flight_vp_max_y - corner_coords[1];
-	raw_y2 = corner_coords[3];
-	raw_y3 = corner_coords[5];
+	int max_y = g_flight_vp_max_y - corner_coords[1];
+	int raw_y2 = corner_coords[3];
+	int raw_y3 = corner_coords[5];
 	corner_coords[1] = max_y;
-	flipped_y2 = g_flight_vp_max_y - raw_y2;
-	raw_y4 = corner_coords[7];
+	int flipped_y2 = g_flight_vp_max_y - raw_y2;
+	int raw_y4 = corner_coords[7];
 	corner_coords[3] = flipped_y2;
-	flipped_y3 = g_flight_vp_max_y - raw_y3;
+	int flipped_y3 = g_flight_vp_max_y - raw_y3;
 	corner_coords[5] = flipped_y3;
-	min_y = max_y;
-	flipped_y4 = g_flight_vp_max_y - raw_y4;
+	int min_y = max_y;
+	int flipped_y4 = g_flight_vp_max_y - raw_y4;
 	corner_coords[7] = flipped_y4;
 
-	min_x = corner_coords[0];
-	max_x = corner_coords[0];
+	int min_x = corner_coords[0];
+	int max_x = corner_coords[0];
 	if (min_x > corner_coords[2]) {
 		min_x = corner_coords[2];
 	}
@@ -2845,10 +2674,10 @@ void flight_sw_clip_and_blit_prepared_rotated_sprite(int *corner_coords)
 		max_y = flipped_y4;
 	}
 
-	start_x = min_x - 2;
-	start_y = min_y - 2;
-	end_x = max_x + 2;
-	end_y = max_y + 2;
+	int start_x = min_x - 2;
+	int start_y = min_y - 2;
+	int end_x = max_x + 2;
+	int end_y = max_y + 2;
 	if (end_y < 0 || start_y >= g_flight_sw_rot_sprite_viewport_height) {
 		return;
 	}
@@ -2927,12 +2756,9 @@ void flight_sw_prepare_sprite_rotation_tables(int16_t rotation_angle,
 // FUNCTION: XVT 0x421930
 int flight_sw_load_sprite_palette_tables(struct sprite_payload *sprite)
 {
-	uint8_t *palette;
-	int color_count;
+	int color_count = sprite->color_count;
+	uint8_t *palette = (uint8_t *)sprite + sprite->display_palette_offset;
 	int color_index;
-
-	color_count = sprite->color_count;
-	palette = (uint8_t *)sprite + sprite->display_palette_offset;
 	if (g_flight_bytes_per_pixel == 2) {
 		for (color_index = 0; color_index < color_count;
 		     color_index++) {
@@ -2982,17 +2808,10 @@ void flight_sw_prepare_rotated_sprite_scale_state(
 	const struct flight_sw_rot_sprite_coeff_state *rotation_coeffs,
 	struct flight_sw_rot_sprite_scale_state *scale_state)
 {
-	uint16_t *aspect_scale_y;
-	uint16_t *inverse_aspect_scale_y;
-	unsigned int base_horizontal_step;
-	unsigned int vertical_step;
-	int square_pixel_mode;
-	uint8_t horizontal_step_low;
-	uint8_t cached_step_low;
-
 	scale_state->screen_scale = screen_size;
-	aspect_scale_y = &scale_state->aspect_scale_y;
-	square_pixel_mode = g_flight_sw_rot_sprite_square_pixel_mode;
+	uint16_t *aspect_scale_y = &scale_state->aspect_scale_y;
+	int square_pixel_mode = g_flight_sw_rot_sprite_square_pixel_mode;
+	uint16_t *inverse_aspect_scale_y;
 	if (square_pixel_mode == 1) {
 		*aspect_scale_y = 256;
 		inverse_aspect_scale_y = &scale_state->inverse_aspect_scale_y;
@@ -3005,49 +2824,44 @@ void flight_sw_prepare_rotated_sprite_scale_state(
 		g_flight_sw_rot_sprite_axis_swap_threshold_angle = 0x2200;
 	}
 
-	base_horizontal_step = ((unsigned int)screen_size *
-				rotation_coeffs->primary_cos_magnitude_q16) >>
-			       16;
+	unsigned int base_horizontal_step =
+		((unsigned int)screen_size *
+		 rotation_coeffs->primary_cos_magnitude_q16) >>
+		16;
 	scale_state->horizontal_step_low_byte = (uint8_t)base_horizontal_step;
 	scale_state->horizontal_step_high_byte =
 		(uint8_t)(base_horizontal_step >> 8);
 	if (rotation_coeffs->primary_axis_swap != 0) {
-		unsigned int scaled_horizontal_step;
-
-		scaled_horizontal_step =
+		unsigned int scaled_horizontal_step =
 			(base_horizontal_step * *aspect_scale_y) >> 8;
 		scale_state->horizontal_step_low_byte =
 			(uint8_t)scaled_horizontal_step;
 		scale_state->horizontal_step_high_byte =
 			(uint8_t)(scaled_horizontal_step >> 8);
 	}
-	vertical_step = ((base_horizontal_step *
-			  rotation_coeffs->secondary_step_byte) >>
-			 8) +
-			base_horizontal_step;
+	unsigned int vertical_step = ((base_horizontal_step *
+				       rotation_coeffs->secondary_step_byte) >>
+				      8) +
+				     base_horizontal_step;
 	if (rotation_coeffs->secondary_axis_swap == 0) {
 		vertical_step = (vertical_step * *inverse_aspect_scale_y) >> 8;
 	}
-	horizontal_step_low = scale_state->horizontal_step_low_byte;
-	cached_step_low = scale_state->cached_step_low_byte;
+	uint8_t horizontal_step_low = scale_state->horizontal_step_low_byte;
+	uint8_t cached_step_low = scale_state->cached_step_low_byte;
 	scale_state->vertical_step_low_byte = (uint8_t)vertical_step;
 	scale_state->vertical_step_high_byte = (uint8_t)(vertical_step >> 8);
 	if (cached_step_low != horizontal_step_low ||
 	    scale_state->cached_step_high_byte !=
 		    scale_state->horizontal_step_high_byte) {
-		uint16_t table_index;
-		unsigned int packed_accumulator;
-		unsigned int packed_step;
-		uint8_t horizontal_step_high;
-
-		horizontal_step_high = scale_state->horizontal_step_high_byte;
+		uint8_t horizontal_step_high =
+			scale_state->horizontal_step_high_byte;
 		scale_state->cached_step_low_byte = horizontal_step_low;
 		scale_state->cached_step_high_byte = horizontal_step_high;
-		packed_accumulator =
+		unsigned int packed_accumulator =
 			((unsigned int)horizontal_step_high << 16) |
 			((unsigned int)horizontal_step_low << 8);
-		packed_step = packed_accumulator;
-		table_index = 0;
+		unsigned int packed_step = packed_accumulator;
+		uint16_t table_index = 0;
 		do {
 			scale_state->low_word_step_table[table_index] =
 				(uint16_t)packed_accumulator;
@@ -3072,66 +2886,55 @@ void flight_sw_rotate_sprite_point(
 	const uint16_t *rotation_coeffs,
 	const struct flight_sw_rot_sprite_scale_state *scale_state)
 {
-	int16_t original_corner_x;
-	int16_t original_corner_y;
-	int scaled_x;
-	int rotated_x_from_x;
-	int scaled_y;
-	int rotated_x_from_y;
-	int rotated_y_from_x;
-	int rotated_y_from_y;
-	int rotated_y;
-	int final_y;
-
-	original_corner_x = g_flight_sw_rot_sprite_input_corner_x;
+	int16_t original_corner_x = g_flight_sw_rot_sprite_input_corner_x;
 	if (g_flight_sw_rot_sprite_input_corner_x < 0) {
 		g_flight_sw_rot_sprite_input_corner_x =
 			-g_flight_sw_rot_sprite_input_corner_x;
 	}
-	scaled_x = (g_flight_sw_rot_sprite_input_corner_x *
-			    scale_state->screen_scale +
-		    128) >>
-		   8;
-	original_corner_y = g_flight_sw_rot_sprite_input_corner_y;
+	int scaled_x = (g_flight_sw_rot_sprite_input_corner_x *
+				scale_state->screen_scale +
+			128) >>
+		       8;
+	int16_t original_corner_y = g_flight_sw_rot_sprite_input_corner_y;
 	if (g_flight_sw_rot_sprite_input_corner_y < 0) {
 		g_flight_sw_rot_sprite_input_corner_y =
 			-g_flight_sw_rot_sprite_input_corner_y;
 	}
-	scaled_y = (g_flight_sw_rot_sprite_input_corner_y *
-			    scale_state->inverse_aspect_scale_y +
-		    128) >>
-		   8;
+	int scaled_y = (g_flight_sw_rot_sprite_input_corner_y *
+				scale_state->inverse_aspect_scale_y +
+			128) >>
+		       8;
 	scaled_y = (scaled_y * scale_state->screen_scale + 128) >> 8;
 
-	rotated_x_from_x = (uint16_t)scaled_x * rotation_coeffs[3];
+	int rotated_x_from_x = (uint16_t)scaled_x * rotation_coeffs[3];
 	if (((original_corner_x ^ rotation_coeffs[4]) & 0x8000) != 0) {
 		rotated_x_from_x = -rotated_x_from_x;
 	}
-	rotated_x_from_y = (uint16_t)scaled_y * rotation_coeffs[1];
+	int rotated_x_from_y = (uint16_t)scaled_y * rotation_coeffs[1];
 	if (((original_corner_y ^ rotation_coeffs[2]) & 0x8000) != 0) {
 		rotated_x_from_y = -rotated_x_from_y;
 	}
 	rotated_x_from_x += rotated_x_from_y + 0x8000;
 	g_flight_sw_rot_sprite_output_offset_x = rotated_x_from_x >> 16;
 
-	rotated_y_from_x = (uint16_t)scaled_x * rotation_coeffs[1];
+	int rotated_y_from_x = (uint16_t)scaled_x * rotation_coeffs[1];
 	if (((original_corner_x ^ rotation_coeffs[2]) & 0x8000) != 0) {
 		rotated_y_from_x = -rotated_y_from_x;
 	}
-	rotated_y_from_y = (uint16_t)scaled_y * rotation_coeffs[3];
+	int rotated_y_from_y = (uint16_t)scaled_y * rotation_coeffs[3];
 	if (((original_corner_y ^ rotation_coeffs[4]) & 0x8000) == 0) {
 		rotated_y_from_y = -rotated_y_from_y;
 	}
 	rotated_y_from_x += rotated_y_from_y + 0x8000;
-	rotated_y = rotated_y_from_x >> 16;
+	int rotated_y = rotated_y_from_x >> 16;
 	g_flight_sw_rot_sprite_output_offset_y = rotated_y;
 	if ((int16_t)rotated_y < 0) {
 		g_flight_sw_rot_sprite_output_offset_y = -(int16_t)rotated_y;
 	}
-	final_y = (g_flight_sw_rot_sprite_output_offset_y *
-			   scale_state->aspect_scale_y +
-		   128) >>
-		  8;
+	int final_y = (g_flight_sw_rot_sprite_output_offset_y *
+			       scale_state->aspect_scale_y +
+		       128) >>
+		      8;
 	if ((int16_t)rotated_y < 0) {
 		final_y = -final_y;
 	}
@@ -3152,26 +2955,13 @@ void flight_sw_rotate_sprite_point(
 void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 					    uint16_t *out_coeffs)
 {
-	struct flight_sw_rot_sprite_coeff_state *coeffs;
-	uint16_t primary_angle;
-	uint16_t primary_step;
-	uint16_t secondary_angle;
-	uint16_t primary_step_reciprocal;
-	uint16_t flip_y;
-	uint16_t flip_x;
-	int16_t primary_axis_swap;
-	int16_t secondary_axis_swap;
-	uint16_t point_index;
-	uint16_t run_index;
-	uint16_t remaining;
-	uint16_t span_index;
-
-	coeffs = (struct flight_sw_rot_sprite_coeff_state *)out_coeffs;
+	struct flight_sw_rot_sprite_coeff_state *coeffs =
+		(struct flight_sw_rot_sprite_coeff_state *)out_coeffs;
 	coeffs->rotation_angle = rotation_angle;
 	coeffs->sin_sign_mask = rotation_angle & 0x8000;
-	flip_y = 0;
+	uint16_t flip_y = 0;
 	coeffs->cos_sign_mask = (rotation_angle + 0x4000) & 0x8000;
-	flip_x = 0;
+	uint16_t flip_x = 0;
 	if (rotation_angle >= 0x8000) {
 		rotation_angle &= 0x7FFF;
 		flip_y = 1;
@@ -3184,6 +2974,7 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 	coeffs->flip_y = flip_y;
 	coeffs->flip_x = flip_x;
 
+	uint16_t primary_angle;
 	if (rotation_angle >= 0x4000) {
 		primary_angle = 0x8000 - rotation_angle;
 	} else {
@@ -3194,6 +2985,8 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 	coeffs->cos_magnitude_q16 = flight_sw_lookup_sprite_sine_magnitude_q16(
 		primary_angle + 0x4000);
 
+	uint16_t primary_step;
+	int16_t primary_axis_swap;
 	if (primary_angle < g_flight_sw_rot_sprite_axis_swap_threshold_angle) {
 		primary_axis_swap = 0;
 		coeffs->primary_axis_swap = primary_axis_swap;
@@ -3219,7 +3012,7 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 	coeffs->primary_cos_magnitude_q16 =
 		flight_sw_lookup_sprite_sine_magnitude_q16(primary_angle +
 							   0x4000);
-	primary_step_reciprocal =
+	uint16_t primary_step_reciprocal =
 		(uint16_t)(0x80000000u / coeffs->primary_cos_magnitude_q16);
 	if (primary_axis_swap != 0 &&
 	    g_flight_sw_rot_sprite_square_pixel_mode == 0) {
@@ -3233,23 +3026,18 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 
 	coeffs->edge_points_with_predecessor[1].x = 0;
 	coeffs->edge_points_with_predecessor[1].y = 0;
+	uint16_t point_index;
 	if (coeffs->primary_axis_swap == 0) {
-		uint16_t accumulator;
-		uint16_t remaining_columns;
-		int16_t edge_x;
-		int16_t edge_y;
-
-		edge_x = 0;
-		edge_y = 0;
-		accumulator = 0x8000;
+		int16_t edge_x = 0;
+		int16_t edge_y = 0;
+		uint16_t accumulator = 0x8000;
 		point_index = 2;
 		coeffs->scan_count = g_flight_sw_rot_sprite_viewport_width;
-		remaining_columns = g_flight_sw_rot_sprite_viewport_width - 1;
+		uint16_t remaining_columns =
+			g_flight_sw_rot_sprite_viewport_width - 1;
 		while (remaining_columns-- != 0) {
-			uint16_t previous_accumulator;
-
 			++edge_x;
-			previous_accumulator = accumulator;
+			uint16_t previous_accumulator = accumulator;
 			accumulator += primary_step;
 			if (previous_accumulator > accumulator) {
 				++edge_y;
@@ -3261,22 +3049,16 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 			++point_index;
 		}
 	} else {
-		uint16_t accumulator;
-		uint16_t remaining_rows;
-		int16_t edge_x;
-		int16_t edge_y;
-
-		accumulator = 0x8000;
-		edge_x = 0;
-		edge_y = 0;
+		uint16_t accumulator = 0x8000;
+		int16_t edge_x = 0;
+		int16_t edge_y = 0;
 		coeffs->scan_count = g_flight_sw_rot_sprite_viewport_height;
 		point_index = 2;
-		remaining_rows = g_flight_sw_rot_sprite_viewport_height - 1;
+		uint16_t remaining_rows =
+			g_flight_sw_rot_sprite_viewport_height - 1;
 		while (remaining_rows-- != 0) {
-			uint16_t previous_accumulator;
-
 			++edge_y;
-			previous_accumulator = accumulator;
+			uint16_t previous_accumulator = accumulator;
 			accumulator += primary_step;
 			if (previous_accumulator > accumulator) {
 				++edge_x;
@@ -3290,13 +3072,11 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 	}
 
 	point_index = 1;
-	run_index = 0;
-	remaining = coeffs->scan_count;
+	uint16_t run_index = 0;
+	uint16_t remaining = coeffs->scan_count;
 	while (remaining != 0) {
-		uint16_t run_length;
+		uint16_t run_length = 1;
 		int16_t coordinate;
-
-		run_length = 1;
 		if (coeffs->primary_axis_swap != 0) {
 			coordinate = coeffs->edge_points_with_predecessor
 					     [point_index]
@@ -3334,10 +3114,11 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 	}
 	coeffs->run_length_count = run_index;
 
-	secondary_angle = (rotation_angle + 0x4000) & 0x7FFF;
+	uint16_t secondary_angle = (rotation_angle + 0x4000) & 0x7FFF;
 	if (secondary_angle >= 0x4000) {
 		secondary_angle = 0x8000 - secondary_angle;
 	}
+	int16_t secondary_axis_swap;
 	if (secondary_angle <
 	    g_flight_sw_rot_sprite_axis_swap_threshold_angle) {
 		secondary_axis_swap = 0;
@@ -3382,9 +3163,7 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 		coeffs->secondary_step_byte =
 			(uint16_t)(((0xD800u * primary_step) >> 16) >> 8);
 	} else {
-		unsigned int secondary_scale;
-
-		secondary_scale =
+		unsigned int secondary_scale =
 			(unsigned int)(uint16_t)(0x1000000 /
 						 coeffs->secondary_scale_low)
 			<< 8;
@@ -3420,19 +3199,19 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 			-coeffs->edge_points_with_predecessor[0].y;
 	}
 
+	uint16_t span_index;
 	if (g_flight_bytes_per_pixel == 2) {
 		for (span_index = 0; span_index < coeffs->scan_count;
 		     ++span_index) {
-			int16_t x;
-			int16_t y;
-
-			x = coeffs->edge_points_with_predecessor[span_index + 1]
-				    .x;
+			int16_t x = coeffs->edge_points_with_predecessor
+					    [span_index + 1]
+						    .x;
 			if (coeffs->flip_x != 0) {
 				x = -x;
 			}
-			y = coeffs->edge_points_with_predecessor[span_index + 1]
-				    .y;
+			int16_t y = coeffs->edge_points_with_predecessor
+					    [span_index + 1]
+						    .y;
 			if (coeffs->flip_y != 0) {
 				y = -y;
 			}
@@ -3451,16 +3230,15 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 	} else {
 		for (span_index = 0; span_index < coeffs->scan_count;
 		     ++span_index) {
-			int16_t x;
-			int16_t y;
-
-			x = coeffs->edge_points_with_predecessor[span_index + 1]
-				    .x;
+			int16_t x = coeffs->edge_points_with_predecessor
+					    [span_index + 1]
+						    .x;
 			if (coeffs->flip_x != 0) {
 				x = -x;
 			}
-			y = coeffs->edge_points_with_predecessor[span_index + 1]
-				    .y;
+			int16_t y = coeffs->edge_points_with_predecessor
+					    [span_index + 1]
+						    .y;
 			if (coeffs->flip_y != 0) {
 				y = -y;
 			}
@@ -3499,27 +3277,6 @@ void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 void flight_sw_rasterize_prepared_rotated_sprite(uint8_t *sprite_data,
 						 int packing_mode)
 {
-	uint8_t color_index;
-	uint8_t scale_overflow;
-	uint8_t scale_low;
-	uint8_t scale_high;
-	int16_t rows_remaining;
-	int16_t rows_to_draw;
-	uint16_t previous_fraction;
-	int palette_base;
-	int previous_scaled_x;
-	uint8_t next_scale_overflow;
-	uint8_t next_scale_high;
-	uint8_t previous_scale_high;
-	unsigned int previous_scale_position;
-	uint8_t token;
-	uint8_t run_length;
-	unsigned int run_index;
-	int span_run_count;
-	int scaled_x;
-	uint16_t scaled_fraction;
-	uint8_t *cursor;
-
 	g_flight_sw_rot_sprite_span_runs_enabled = 1;
 	if (flight_sw_init_rot_sprite_for_current_octant() == 0) {
 		return;
@@ -3554,20 +3311,24 @@ void flight_sw_rasterize_prepared_rotated_sprite(uint8_t *sprite_data,
 			g_flight_sw_rot_sprite_dest_pitch_bytes;
 	}
 
-	scale_low = 0;
-	scale_high = 0;
-	scale_overflow = 0;
-	cursor = sprite_data;
-	palette_base = 0;
+	uint8_t scale_low = 0;
+	uint8_t scale_high = 0;
+	uint8_t scale_overflow = 0;
+	uint8_t *cursor = sprite_data;
+	int palette_base = 0;
 	g_flight_sw_rot_sprite_skip_secondary_scale_step = 1;
 	g_flight_sw_rot_sprite_secondary_scale_accum = 0;
 	g_flight_sw_rot_sprite_dest_line_ptr =
 		g_flight_sw_rot_sprite_coeffs->dest_line_ptr;
+	uint8_t color_index;
+	uint16_t previous_fraction;
+	uint8_t run_length;
+	unsigned int run_index;
 	while (*cursor != 0xFF) {
-		previous_scale_position =
+		unsigned int previous_scale_position =
 			((unsigned int)scale_overflow << 8) + scale_high;
-		next_scale_overflow = scale_overflow;
-		next_scale_high = scale_high;
+		uint8_t next_scale_overflow = scale_overflow;
+		uint8_t next_scale_high = scale_high;
 		if ((uint8_t)(scale_low + g_flight_sw_rot_sprite_scale_state
 						  .vertical_step_low_byte) <
 		    scale_low) {
@@ -3576,23 +3337,23 @@ void flight_sw_rasterize_prepared_rotated_sprite(uint8_t *sprite_data,
 				++next_scale_overflow;
 			}
 		}
-		previous_scale_high = next_scale_high;
+		uint8_t previous_scale_high = next_scale_high;
 		next_scale_high += g_flight_sw_rot_sprite_scale_state
 					   .vertical_step_high_byte;
 		if (next_scale_high < previous_scale_high) {
 			++next_scale_overflow;
 		}
-		rows_remaining =
+		int16_t rows_remaining =
 			(int16_t)(((unsigned int)next_scale_overflow << 8) +
 				  next_scale_high - previous_scale_position);
-		rows_to_draw = rows_remaining;
+		int16_t rows_to_draw = rows_remaining;
 
-		span_run_count = 0;
-		scaled_x = 0;
-		scaled_fraction = 0;
+		int span_run_count = 0;
+		int scaled_x = 0;
+		uint16_t scaled_fraction = 0;
 		if (g_flight_sw_rot_sprite_span_runs_enabled == 1) {
 			while (*cursor != 0xFE) {
-				token = *cursor;
+				uint8_t token = *cursor;
 				if (token == 0xFB) {
 					palette_base =
 						cursor[1] + (cursor[2] << 8);
@@ -3631,7 +3392,7 @@ void flight_sw_rasterize_prepared_rotated_sprite(uint8_t *sprite_data,
 								[packing_mode];
 					}
 					previous_fraction = scaled_fraction;
-					previous_scaled_x = scaled_x;
+					int previous_scaled_x = scaled_x;
 					run_index = run_length;
 					scaled_x +=
 						g_flight_sw_rot_sprite_scale_state
@@ -3720,9 +3481,7 @@ void flight_sw_rasterize_prepared_rotated_sprite(uint8_t *sprite_data,
 		} while (rows_remaining != 0 && rows_to_draw != 0);
 
 		{
-			uint8_t previous_scale_low;
-
-			previous_scale_low = scale_low;
+			uint8_t previous_scale_low = scale_low;
 			scale_low += g_flight_sw_rot_sprite_scale_state
 					     .vertical_step_low_byte;
 			if (scale_low < previous_scale_low) {
@@ -3751,20 +3510,13 @@ void flight_sw_rasterize_prepared_rotated_sprite(uint8_t *sprite_data,
 // FUNCTION: XVT 0x422560
 void flight_sw_advance_rot_sprite_secondary_scale(void)
 {
-	int16_t span_step;
-	uint16_t previous_accum;
-	uint16_t point_index;
-	unsigned int scan_count;
-	struct flight_sw_rot_sprite_edge_point *current_point;
-	int16_t current_coordinate;
-
-	span_step = 1;
+	int16_t span_step = 1;
 	if (g_flight_sw_rot_sprite_skip_secondary_scale_step != 0) {
 		g_flight_sw_rot_sprite_skip_secondary_scale_step = 0;
 		return;
 	}
 
-	previous_accum = g_flight_sw_rot_sprite_secondary_scale_accum;
+	uint16_t previous_accum = g_flight_sw_rot_sprite_secondary_scale_accum;
 	g_flight_sw_rot_sprite_secondary_scale_accum +=
 		g_flight_sw_rot_sprite_coeffs->secondary_scale_low;
 	if (g_flight_sw_rot_sprite_coeffs->secondary_scale_high != 0) {
@@ -3777,16 +3529,18 @@ void flight_sw_advance_rot_sprite_secondary_scale(void)
 		return;
 	}
 
-	point_index = g_flight_sw_rot_sprite_span_base_x;
+	uint16_t point_index = g_flight_sw_rot_sprite_span_base_x;
 	while (point_index < 0) {
 		point_index += g_flight_sw_rot_sprite_coeffs->scan_count;
 	}
-	scan_count = g_flight_sw_rot_sprite_coeffs->scan_count;
+	unsigned int scan_count = g_flight_sw_rot_sprite_coeffs->scan_count;
 	while ((int)point_index >= (int)scan_count) {
 		point_index -=
 			(int16_t)g_flight_sw_rot_sprite_coeffs->scan_count;
 	}
 
+	struct flight_sw_rot_sprite_edge_point *current_point;
+	int16_t current_coordinate;
 	if (g_flight_sw_rot_sprite_coeffs->primary_axis_swap == 0) {
 		current_point =
 			&g_flight_sw_rot_sprite_coeffs
@@ -3837,9 +3591,7 @@ void flight_sw_advance_rot_sprite_secondary_scale(void)
 // FUNCTION: XVT 0x4226A0
 int flight_sw_init_rot_sprite_for_current_octant(void)
 {
-	uint16_t octant;
-
-	octant = g_flight_sw_rot_sprite_coeffs->octant;
+	uint16_t octant = g_flight_sw_rot_sprite_coeffs->octant;
 	switch (octant) {
 	case 0:
 		return flight_sw_init_rot_sprite_octant0();
@@ -3867,9 +3619,7 @@ int flight_sw_init_rot_sprite_for_current_octant(void)
 // FUNCTION: XVT 0x422710
 int flight_sw_step_rot_sprite_for_current_octant(void)
 {
-	uint16_t octant;
-
-	octant = g_flight_sw_rot_sprite_coeffs->octant;
+	uint16_t octant = g_flight_sw_rot_sprite_coeffs->octant;
 	switch (octant) {
 	case 0:
 		return flight_sw_step_rot_sprite_octant0();
@@ -3904,30 +3654,18 @@ int flight_sw_step_rot_sprite_for_current_octant(void)
 // FUNCTION: XVT 0x422780
 int flight_sw_init_rot_sprite_octant0(void)
 {
-	int16_t span_base_offset;
-	int16_t viewport_width;
-	int16_t viewport_height;
-	int16_t *negative_edge_delta_x_ptr;
-	int16_t *negative_edge_delta_y_ptr;
-	int16_t *positive_edge_delta_x_ptr;
-	int16_t *positive_edge_delta_y_ptr;
-	int16_t edge_cursor_minimum;
-	uint16_t point_index;
-	int16_t clip_min_x;
-	uint16_t max_point_index;
-
-	span_base_offset = 0;
+	int16_t span_base_offset = 0;
 	if (g_flight_sw_rot_sprite_edge_cursor_x < 0) {
-		viewport_width = g_flight_sw_rot_sprite_viewport_width;
-		negative_edge_delta_x_ptr =
+		int16_t viewport_width = g_flight_sw_rot_sprite_viewport_width;
+		int16_t *negative_edge_delta_x_ptr =
 			&g_flight_sw_rot_sprite_coeffs
 				 ->edge_points_with_predecessor[0]
 				 .x;
-		negative_edge_delta_y_ptr =
+		int16_t *negative_edge_delta_y_ptr =
 			&g_flight_sw_rot_sprite_coeffs
 				 ->edge_points_with_predecessor[0]
 				 .y;
-		edge_cursor_minimum = 0;
+		int16_t edge_cursor_minimum = 0;
 		do {
 			span_base_offset -= viewport_width;
 			g_flight_sw_rot_sprite_edge_cursor_x +=
@@ -3939,11 +3677,11 @@ int flight_sw_init_rot_sprite_octant0(void)
 	}
 	if (g_flight_sw_rot_sprite_edge_cursor_x >=
 	    g_flight_sw_rot_sprite_viewport_width) {
-		positive_edge_delta_x_ptr =
+		int16_t *positive_edge_delta_x_ptr =
 			&g_flight_sw_rot_sprite_coeffs
 				 ->edge_points_with_predecessor[0]
 				 .x;
-		positive_edge_delta_y_ptr =
+		int16_t *positive_edge_delta_y_ptr =
 			&g_flight_sw_rot_sprite_coeffs
 				 ->edge_points_with_predecessor[0]
 				 .y;
@@ -3958,7 +3696,7 @@ int flight_sw_init_rot_sprite_octant0(void)
 			 g_flight_sw_rot_sprite_viewport_width);
 	}
 
-	viewport_height = g_flight_sw_rot_sprite_viewport_height;
+	int16_t viewport_height = g_flight_sw_rot_sprite_viewport_height;
 	g_flight_sw_rot_sprite_edge_cursor_y -=
 		g_flight_sw_rot_sprite_coeffs
 			->edge_points_with_predecessor
@@ -3975,7 +3713,7 @@ int flight_sw_init_rot_sprite_octant0(void)
 		return 0;
 	}
 
-	clip_min_x = 0;
+	int16_t clip_min_x = 0;
 	g_flight_sw_rot_sprite_primary_edge_x = 0;
 	if (g_flight_sw_rot_sprite_edge_cursor_y < 0) {
 		clip_min_x = -g_flight_sw_rot_sprite_edge_cursor_y;
@@ -3986,7 +3724,7 @@ int flight_sw_init_rot_sprite_octant0(void)
 			    .y < clip_min_x) {
 			clip_min_x = -1;
 		} else {
-			point_index = 0;
+			uint16_t point_index = 0;
 			while (point_index <=
 			       g_flight_sw_rot_sprite_coeffs
 				       ->edge_points_with_predecessor[0]
@@ -4027,7 +3765,7 @@ int flight_sw_init_rot_sprite_octant0(void)
 	} else {
 		g_flight_sw_rot_sprite_clip_max_run_idx03 =
 			viewport_height - g_flight_sw_rot_sprite_primary_edge_y;
-		max_point_index = 0;
+		uint16_t max_point_index = 0;
 		g_flight_sw_rot_sprite_clip_max_x = -1;
 		while (max_point_index <=
 		       g_flight_sw_rot_sprite_coeffs
@@ -4062,18 +3800,15 @@ int flight_sw_init_rot_sprite_octant0(void)
 // FUNCTION: XVT 0x4229F0
 int flight_sw_step_rot_sprite_octant0(void)
 {
-	uint8_t *dest_line_ptr;
-	int16_t viewport_height;
-	int16_t min_run_index;
-
-	dest_line_ptr = g_flight_sw_rot_sprite_dest_line_ptr;
+	uint8_t *dest_line_ptr = g_flight_sw_rot_sprite_dest_line_ptr;
 	dest_line_ptr -= g_flight_sw_rot_sprite_coeffs->dest_pitch_delta;
 	++g_flight_sw_rot_sprite_primary_edge_y;
 	g_flight_sw_rot_sprite_dest_line_ptr = dest_line_ptr;
 	if (g_flight_sw_rot_sprite_primary_edge_y == 0) {
 		g_flight_sw_rot_sprite_clip_min_x = 0;
 	} else {
-		viewport_height = g_flight_sw_rot_sprite_viewport_height;
+		int16_t viewport_height =
+			g_flight_sw_rot_sprite_viewport_height;
 		if (g_flight_sw_rot_sprite_primary_edge_y >= viewport_height) {
 			return 0;
 		}
@@ -4089,7 +3824,7 @@ int flight_sw_step_rot_sprite_octant0(void)
 	if (g_flight_sw_rot_sprite_secondary_edge_y == 0) {
 		g_flight_sw_rot_sprite_clip_max_x =
 			g_flight_sw_rot_sprite_coeffs->scan_count - 1;
-		min_run_index =
+		int16_t min_run_index =
 			g_flight_sw_rot_sprite_coeffs->run_length_count - 1;
 		g_flight_sw_rot_sprite_clip_min_run_idx03 = min_run_index;
 		g_flight_sw_rot_sprite_clip_min_x =
@@ -4122,32 +3857,19 @@ int flight_sw_step_rot_sprite_octant0(void)
 // FUNCTION: XVT 0x422B10
 int flight_sw_init_rot_sprite_octant1(void)
 {
-	int16_t span_base_offset;
-	int16_t clip_min_value;
-	int16_t clip_max_value;
-	int16_t point_index;
-	int16_t target_y;
-	int16_t edge_delta_x;
+	int16_t span_base_offset = 0;
 	int16_t viewport_width;
-	int16_t edge_cursor_minimum;
-	int16_t *negative_edge_delta_x_ptr;
-	int16_t *negative_edge_delta_y_ptr;
-	int16_t *positive_edge_delta_x_ptr;
-	int16_t *positive_edge_delta_y_ptr;
-	int16_t *edge_delta_x_ptr;
-
-	span_base_offset = 0;
 	if (g_flight_sw_rot_sprite_edge_cursor_x < 0) {
 		viewport_width = g_flight_sw_rot_sprite_viewport_width;
-		negative_edge_delta_x_ptr =
+		int16_t *negative_edge_delta_x_ptr =
 			&g_flight_sw_rot_sprite_coeffs
 				 ->edge_points_with_predecessor[0]
 				 .x;
-		negative_edge_delta_y_ptr =
+		int16_t *negative_edge_delta_y_ptr =
 			&g_flight_sw_rot_sprite_coeffs
 				 ->edge_points_with_predecessor[0]
 				 .y;
-		edge_cursor_minimum = 0;
+		int16_t edge_cursor_minimum = 0;
 		do {
 			span_base_offset -= viewport_width;
 			g_flight_sw_rot_sprite_edge_cursor_x +=
@@ -4160,11 +3882,11 @@ int flight_sw_init_rot_sprite_octant1(void)
 	if (g_flight_sw_rot_sprite_edge_cursor_x >=
 	    g_flight_sw_rot_sprite_viewport_width) {
 		viewport_width = g_flight_sw_rot_sprite_viewport_width;
-		positive_edge_delta_x_ptr =
+		int16_t *positive_edge_delta_x_ptr =
 			&g_flight_sw_rot_sprite_coeffs
 				 ->edge_points_with_predecessor[0]
 				 .x;
-		positive_edge_delta_y_ptr =
+		int16_t *positive_edge_delta_y_ptr =
 			&g_flight_sw_rot_sprite_coeffs
 				 ->edge_points_with_predecessor[0]
 				 .y;
@@ -4186,6 +3908,10 @@ int flight_sw_init_rot_sprite_octant1(void)
 			.y;
 	g_flight_sw_rot_sprite_primary_edge_y =
 		g_flight_sw_rot_sprite_edge_cursor_y;
+	int16_t clip_min_value;
+	int16_t point_index;
+	int16_t target_y;
+	int16_t edge_delta_x;
 	if (g_flight_sw_rot_sprite_edge_cursor_y < 0) {
 		clip_min_value = -1;
 	} else if (g_flight_sw_rot_sprite_edge_cursor_y <
@@ -4223,7 +3949,7 @@ int flight_sw_init_rot_sprite_octant1(void)
 	}
 	g_flight_sw_rot_sprite_clip_min_x = clip_min_value;
 
-	edge_delta_x_ptr =
+	int16_t *edge_delta_x_ptr =
 		&g_flight_sw_rot_sprite_coeffs->edge_points_with_predecessor[0]
 			 .x;
 	g_flight_sw_rot_sprite_secondary_edge_x = *edge_delta_x_ptr;
@@ -4238,6 +3964,7 @@ int flight_sw_init_rot_sprite_octant1(void)
 		return 0;
 	}
 
+	int16_t clip_max_value;
 	if (g_flight_sw_rot_sprite_secondary_edge_y >= 0) {
 		clip_max_value = g_flight_sw_rot_sprite_coeffs->scan_count - 1;
 	} else if (g_flight_sw_rot_sprite_edge_cursor_y >= 0) {
@@ -4278,8 +4005,6 @@ int flight_sw_init_rot_sprite_octant1(void)
 // FUNCTION: XVT 0x422D90
 int flight_sw_step_rot_sprite_octant1(void)
 {
-	uint16_t viewport_height;
-
 	g_flight_sw_rot_sprite_dest_line_ptr -=
 		g_flight_sw_rot_sprite_coeffs->dest_pitch_delta;
 	++g_flight_sw_rot_sprite_primary_edge_y;
@@ -4290,7 +4015,8 @@ int flight_sw_step_rot_sprite_octant1(void)
 		--g_flight_sw_rot_sprite_clip_max_x;
 		g_flight_sw_rot_sprite_clip_max_run_idx03 = 0;
 	} else {
-		viewport_height = g_flight_sw_rot_sprite_viewport_height;
+		uint16_t viewport_height =
+			g_flight_sw_rot_sprite_viewport_height;
 		if (g_flight_sw_rot_sprite_primary_edge_y >=
 		    (int16_t)viewport_height) {
 			if (g_flight_sw_rot_sprite_primary_edge_y ==
@@ -4331,12 +4057,7 @@ int flight_sw_step_rot_sprite_octant1(void)
 // FUNCTION: XVT 0x422E90
 int flight_sw_init_rot_sprite_octant2(void)
 {
-	int16_t span_base_offset;
-	int16_t viewport_right_delta;
-	int16_t min_point_index;
-	int16_t max_point_index;
-
-	span_base_offset = 0;
+	int16_t span_base_offset = 0;
 	while (g_flight_sw_rot_sprite_edge_cursor_x < 0) {
 		g_flight_sw_rot_sprite_edge_cursor_x +=
 			g_flight_sw_rot_sprite_coeffs
@@ -4365,8 +4086,8 @@ int flight_sw_init_rot_sprite_octant2(void)
 			1;
 	}
 
-	viewport_right_delta = g_flight_sw_rot_sprite_viewport_max_x -
-			       g_flight_sw_rot_sprite_edge_cursor_x;
+	int16_t viewport_right_delta = g_flight_sw_rot_sprite_viewport_max_x -
+				       g_flight_sw_rot_sprite_edge_cursor_x;
 	g_flight_sw_rot_sprite_edge_cursor_y -=
 		g_flight_sw_rot_sprite_coeffs
 			->edge_points_with_predecessor[viewport_right_delta + 1]
@@ -4389,6 +4110,7 @@ int flight_sw_init_rot_sprite_octant2(void)
 	g_flight_sw_rot_sprite_clip_max_run_idx03 =
 		g_flight_sw_rot_sprite_viewport_height;
 
+	int16_t min_point_index;
 	if (g_flight_sw_rot_sprite_edge_cursor_y >= 0) {
 		if (g_flight_sw_rot_sprite_edge_cursor_y >=
 		    g_flight_sw_rot_sprite_viewport_height) {
@@ -4444,6 +4166,7 @@ int flight_sw_init_rot_sprite_octant2(void)
 	if (g_flight_sw_rot_sprite_secondary_edge_y < 0) {
 		return 0;
 	}
+	int16_t max_point_index;
 	if (g_flight_sw_rot_sprite_secondary_edge_y <
 	    g_flight_sw_rot_sprite_viewport_height) {
 		max_point_index = g_flight_sw_rot_sprite_coeffs->scan_count - 1;
@@ -4535,15 +4258,7 @@ int flight_sw_step_rot_sprite_octant2(void)
 // FUNCTION: XVT 0x423200
 int flight_sw_init_rot_sprite_octant3(void)
 {
-	int16_t span_base_offset;
-	int16_t *edge_delta_x_ptr;
-	int16_t *edge_delta_y_ptr;
-	int16_t clip_value;
-	int16_t point_index;
-	int16_t edge_point_index;
-	int16_t target_y;
-
-	span_base_offset = 0;
+	int16_t span_base_offset = 0;
 	while (g_flight_sw_rot_sprite_edge_cursor_x < 0) {
 		g_flight_sw_rot_sprite_edge_cursor_x +=
 			g_flight_sw_rot_sprite_coeffs
@@ -4572,20 +4287,20 @@ int flight_sw_init_rot_sprite_octant3(void)
 			1;
 	}
 
-	edge_point_index = g_flight_sw_rot_sprite_viewport_max_x -
-			   g_flight_sw_rot_sprite_edge_cursor_x;
+	int16_t edge_point_index = g_flight_sw_rot_sprite_viewport_max_x -
+				   g_flight_sw_rot_sprite_edge_cursor_x;
 	g_flight_sw_rot_sprite_edge_cursor_y +=
 		g_flight_sw_rot_sprite_coeffs
 			->edge_points_with_predecessor[edge_point_index + 1]
 			.y;
 	g_flight_sw_rot_sprite_primary_edge_y =
 		g_flight_sw_rot_sprite_edge_cursor_y;
-	edge_delta_y_ptr =
+	int16_t *edge_delta_y_ptr =
 		&g_flight_sw_rot_sprite_coeffs->edge_points_with_predecessor[0]
 			 .y;
 	g_flight_sw_rot_sprite_primary_edge_x =
 		g_flight_sw_rot_sprite_viewport_max_x;
-	edge_delta_x_ptr =
+	int16_t *edge_delta_x_ptr =
 		&g_flight_sw_rot_sprite_coeffs->edge_points_with_predecessor[0]
 			 .x;
 	g_flight_sw_rot_sprite_secondary_edge_x =
@@ -4601,7 +4316,9 @@ int flight_sw_init_rot_sprite_octant3(void)
 	if (g_flight_sw_rot_sprite_edge_cursor_y < 0) {
 		return 0;
 	}
-	clip_value = 0;
+	int16_t clip_value = 0;
+	int16_t point_index;
+	int16_t target_y;
 	if (g_flight_sw_rot_sprite_edge_cursor_y >=
 	    g_flight_sw_rot_sprite_viewport_height) {
 		target_y = g_flight_sw_rot_sprite_edge_cursor_y -
@@ -4665,15 +4382,10 @@ int flight_sw_init_rot_sprite_octant3(void)
 // FUNCTION: XVT 0x423480
 int flight_sw_step_rot_sprite_octant3(void)
 {
-	uint8_t *dest_line_ptr;
-	int16_t viewport_max_y;
-	uint16_t run_length_count;
-	int16_t min_run_index;
-
-	dest_line_ptr =
+	uint8_t *dest_line_ptr =
 		&g_flight_sw_rot_sprite_dest_line_ptr
 			[g_flight_sw_rot_sprite_coeffs->dest_pitch_delta];
-	viewport_max_y = g_flight_sw_rot_sprite_viewport_max_y;
+	int16_t viewport_max_y = g_flight_sw_rot_sprite_viewport_max_y;
 	--g_flight_sw_rot_sprite_primary_edge_y;
 	g_flight_sw_rot_sprite_dest_line_ptr = dest_line_ptr;
 	--g_flight_sw_rot_sprite_secondary_edge_y;
@@ -4699,9 +4411,9 @@ int flight_sw_step_rot_sprite_octant3(void)
 	    g_flight_sw_rot_sprite_secondary_edge_y) {
 		g_flight_sw_rot_sprite_clip_max_x =
 			g_flight_sw_rot_sprite_coeffs->scan_count - 1;
-		run_length_count =
+		uint16_t run_length_count =
 			g_flight_sw_rot_sprite_coeffs->run_length_count;
-		min_run_index = run_length_count;
+		int16_t min_run_index = run_length_count;
 		--min_run_index;
 		g_flight_sw_rot_sprite_clip_max_run_idx03 = run_length_count;
 		g_flight_sw_rot_sprite_clip_min_run_idx03 = min_run_index;
@@ -4734,17 +4446,9 @@ int flight_sw_step_rot_sprite_octant3(void)
 // FUNCTION: XVT 0x4235D0
 int flight_sw_init_rot_sprite_octant4(void)
 {
-	int16_t span_base_offset;
-	int16_t clip_min_value;
-	int16_t clip_max_value;
-	int16_t point_index;
-	int16_t target_x;
-	int16_t max_point_index;
-	int16_t edge_cursor_minimum;
+	int16_t span_base_offset = 0;
 	int16_t *edge_delta_y_ptr;
 	int16_t *edge_delta_x_ptr;
-
-	span_base_offset = 0;
 	if (g_flight_sw_rot_sprite_edge_cursor_y < 0) {
 		edge_delta_x_ptr = &g_flight_sw_rot_sprite_coeffs
 					    ->edge_points_with_predecessor[0]
@@ -4752,7 +4456,7 @@ int flight_sw_init_rot_sprite_octant4(void)
 		edge_delta_y_ptr = &g_flight_sw_rot_sprite_coeffs
 					    ->edge_points_with_predecessor[0]
 					    .y;
-		edge_cursor_minimum = 0;
+		int16_t edge_cursor_minimum = 0;
 		do {
 			g_flight_sw_rot_sprite_edge_cursor_x +=
 				*edge_delta_x_ptr + 1;
@@ -4794,9 +4498,13 @@ int flight_sw_init_rot_sprite_octant4(void)
 	g_flight_sw_rot_sprite_clip_min_run_idx47 = -1;
 	g_flight_sw_rot_sprite_clip_max_run_idx47 =
 		g_flight_sw_rot_sprite_viewport_width;
+	int16_t point_index;
+	int16_t target_x;
+	int16_t max_point_index;
 	if (g_flight_sw_rot_sprite_edge_cursor_x < 0) {
 		target_x = -g_flight_sw_rot_sprite_edge_cursor_x;
 		g_flight_sw_rot_sprite_clip_min_run_idx47 = target_x - 1;
+		int16_t clip_min_value;
 		if (g_flight_sw_rot_sprite_coeffs
 			    ->edge_points_with_predecessor[0]
 			    .x < target_x) {
@@ -4842,6 +4550,7 @@ int flight_sw_init_rot_sprite_octant4(void)
 		return 0;
 	}
 
+	int16_t clip_max_value;
 	if (g_flight_sw_rot_sprite_secondary_edge_x <
 	    g_flight_sw_rot_sprite_viewport_width) {
 		clip_max_value = g_flight_sw_rot_sprite_coeffs->scan_count - 1;
@@ -4934,14 +4643,7 @@ int flight_sw_step_rot_sprite_octant4(void)
 // FUNCTION: XVT 0x423900
 int flight_sw_init_rot_sprite_octant5(void)
 {
-	int16_t span_base_offset;
-	int16_t *edge_delta_y_ptr;
-	int16_t *edge_delta_x_ptr;
-	int16_t clip_value;
-	int16_t target_x;
-	int16_t point_index;
-
-	span_base_offset = 0;
+	int16_t span_base_offset = 0;
 	while (g_flight_sw_rot_sprite_edge_cursor_y < 0) {
 		g_flight_sw_rot_sprite_edge_cursor_x -=
 			g_flight_sw_rot_sprite_coeffs
@@ -4970,7 +4672,7 @@ int flight_sw_init_rot_sprite_octant5(void)
 			1;
 	}
 
-	edge_delta_y_ptr =
+	int16_t *edge_delta_y_ptr =
 		&g_flight_sw_rot_sprite_coeffs->edge_points_with_predecessor[0]
 			 .y;
 	g_flight_sw_rot_sprite_edge_cursor_x -=
@@ -4986,7 +4688,7 @@ int flight_sw_init_rot_sprite_octant5(void)
 		g_flight_sw_rot_sprite_edge_cursor_x;
 	g_flight_sw_rot_sprite_secondary_edge_y =
 		g_flight_sw_rot_sprite_viewport_max_y - *edge_delta_y_ptr;
-	edge_delta_x_ptr =
+	int16_t *edge_delta_x_ptr =
 		&g_flight_sw_rot_sprite_coeffs->edge_points_with_predecessor[0]
 			 .x;
 	g_flight_sw_rot_sprite_clip_min_x = 0;
@@ -5000,6 +4702,9 @@ int flight_sw_init_rot_sprite_octant5(void)
 		return 0;
 	}
 
+	int16_t clip_value;
+	int16_t target_x;
+	int16_t point_index;
 	if (g_flight_sw_rot_sprite_edge_cursor_x < 0) {
 		if (g_flight_sw_rot_sprite_secondary_edge_x < 0) {
 			g_flight_sw_rot_sprite_span_base_x =
@@ -5140,15 +4845,7 @@ int flight_sw_step_rot_sprite_octant5(void)
 // FUNCTION: XVT 0x423CD0
 int flight_sw_init_rot_sprite_octant6(void)
 {
-	int16_t span_base_offset;
-	int16_t clip_value;
-	int16_t target_x;
-	int16_t point_index;
-	int16_t edge_delta_y;
-	int16_t *edge_delta_x_ptr;
-	int16_t *edge_delta_y_ptr;
-
-	span_base_offset = 0;
+	int16_t span_base_offset = 0;
 	while (g_flight_sw_rot_sprite_edge_cursor_y < 0) {
 		g_flight_sw_rot_sprite_edge_cursor_x -=
 			g_flight_sw_rot_sprite_coeffs
@@ -5182,10 +4879,10 @@ int flight_sw_init_rot_sprite_octant6(void)
 			->edge_points_with_predecessor
 				[g_flight_sw_rot_sprite_edge_cursor_y + 1]
 			.x;
-	edge_delta_x_ptr =
+	int16_t *edge_delta_x_ptr =
 		&g_flight_sw_rot_sprite_coeffs->edge_points_with_predecessor[0]
 			 .x;
-	edge_delta_y_ptr =
+	int16_t *edge_delta_y_ptr =
 		&g_flight_sw_rot_sprite_coeffs->edge_points_with_predecessor[0]
 			 .y;
 	g_flight_sw_rot_sprite_primary_edge_y = 0;
@@ -5203,7 +4900,9 @@ int flight_sw_init_rot_sprite_octant6(void)
 		return 0;
 	}
 
-	clip_value = -1;
+	int16_t clip_value = -1;
+	int16_t target_x;
+	int16_t point_index;
 	if (g_flight_sw_rot_sprite_edge_cursor_x <
 	    g_flight_sw_rot_sprite_viewport_width) {
 		clip_value = 0;
@@ -5213,7 +4912,7 @@ int flight_sw_init_rot_sprite_octant6(void)
 		g_flight_sw_rot_sprite_clip_min_run_idx47 = target_x;
 		if (*edge_delta_x_ptr >= target_x) {
 			point_index = 0;
-			edge_delta_y = *edge_delta_y_ptr;
+			int16_t edge_delta_y = *edge_delta_y_ptr;
 			while (point_index <= edge_delta_y &&
 			       (uint16_t)g_flight_sw_rot_sprite_coeffs
 					       ->edge_points_with_predecessor
@@ -5326,14 +5025,7 @@ int flight_sw_step_rot_sprite_octant6(void)
 // FUNCTION: XVT 0x424060
 int flight_sw_init_rot_sprite_octant7(void)
 {
-	int16_t span_base_offset;
-	int16_t *edge_delta_x_ptr;
-	int16_t *edge_delta_y_ptr;
-	int16_t clip_value;
-	int16_t point_index;
-	int16_t target_x;
-
-	span_base_offset = 0;
+	int16_t span_base_offset = 0;
 	while (g_flight_sw_rot_sprite_edge_cursor_y < 0) {
 		g_flight_sw_rot_sprite_edge_cursor_x +=
 			g_flight_sw_rot_sprite_coeffs
@@ -5362,7 +5054,7 @@ int flight_sw_init_rot_sprite_octant7(void)
 			1;
 	}
 
-	edge_delta_x_ptr =
+	int16_t *edge_delta_x_ptr =
 		&g_flight_sw_rot_sprite_coeffs->edge_points_with_predecessor[0]
 			 .x;
 	g_flight_sw_rot_sprite_edge_cursor_x +=
@@ -5375,7 +5067,7 @@ int flight_sw_init_rot_sprite_octant7(void)
 		g_flight_sw_rot_sprite_viewport_max_y;
 	g_flight_sw_rot_sprite_primary_edge_x =
 		g_flight_sw_rot_sprite_edge_cursor_x;
-	edge_delta_y_ptr =
+	int16_t *edge_delta_y_ptr =
 		&g_flight_sw_rot_sprite_coeffs->edge_points_with_predecessor[0]
 			 .y;
 	g_flight_sw_rot_sprite_secondary_edge_x =
@@ -5386,7 +5078,9 @@ int flight_sw_init_rot_sprite_octant7(void)
 	g_flight_sw_rot_sprite_clip_max_run_idx47 =
 		g_flight_sw_rot_sprite_viewport_width;
 
-	clip_value = -1;
+	int16_t clip_value = -1;
+	int16_t point_index;
+	int16_t target_x;
 	if (g_flight_sw_rot_sprite_edge_cursor_x >= 0) {
 		if (g_flight_sw_rot_sprite_edge_cursor_x <
 		    g_flight_sw_rot_sprite_viewport_width) {
@@ -5526,13 +5220,12 @@ unsigned int set_flight_viewport(unsigned int requested_width,
 				 int viewport_mode,
 				 unsigned int requested_base_offset)
 {
+	(void)viewport_mode;
+
 	unsigned int width;
 	unsigned int height;
 	unsigned int base_offset;
 	int pitch;
-
-	(void)viewport_mode;
-
 	if (g_flight_viewport_inset_x == 160) {
 		width = requested_width >> 1;
 		height = requested_height >> 1;
@@ -5564,30 +5257,21 @@ unsigned int set_flight_viewport(unsigned int requested_width,
 void flight_sw_copy_legacy8_bit_viewport_to_framebuffer(
 	const uint8_t *src_pixels)
 {
-	int row;
-	uint8_t *dst_pixels;
-	uint16_t row_width;
-	const uint8_t **src_cursor;
-	unsigned int copy_width;
-	unsigned int advance_width;
-	int viewport_x;
-	int viewport_y;
-
-	row = 0;
-	src_cursor = &src_pixels;
-	viewport_x = g_flight_vp_x;
-	viewport_y = g_flight_vp_y;
-	dst_pixels = g_flight_sw_framebuffer_base;
+	int row = 0;
+	const uint8_t **src_cursor = &src_pixels;
+	int viewport_x = g_flight_vp_x;
+	int viewport_y = g_flight_vp_y;
+	uint8_t *dst_pixels = g_flight_sw_framebuffer_base;
 	dst_pixels += g_flight_bytes_per_pixel * viewport_x;
 	dst_pixels += g_surface_pitch * viewport_y;
 	if (g_flight_vp_height != 0) {
-		row_width = g_flight_vp_width;
+		uint16_t row_width = g_flight_vp_width;
 		do {
 			++row;
-			copy_width = row_width;
+			unsigned int copy_width = row_width;
 			memcpy(dst_pixels, *src_cursor, copy_width);
 			dst_pixels += g_surface_pitch;
-			advance_width = row_width;
+			unsigned int advance_width = row_width;
 			*src_cursor += advance_width;
 		} while (row < g_flight_vp_height);
 	}
@@ -5629,14 +5313,11 @@ unsigned int push_flight_viewport(uint16_t width, uint16_t height,
 	g_flight_vp_height = height;
 	g_flight_vp_max_y = height - 1;
 	{
-		unsigned int remainder;
-		int pitch;
-
-		pitch = g_surface_pitch;
+		int pitch = g_surface_pitch;
 		g_flight_vp_center_y = height >> 1;
 		g_flight_vp_base_offset = base_offset;
 		g_flight_vp_y = base_offset / (unsigned int)pitch;
-		remainder = base_offset % (unsigned int)pitch;
+		unsigned int remainder = base_offset % (unsigned int)pitch;
 		g_flight_vp_x =
 			remainder / (unsigned int)g_flight_bytes_per_pixel;
 		g_viewport_span_mask_offset = 0xE000;
@@ -5688,14 +5369,9 @@ void flight_sw_blit_rect_to_flight_surface(
 	uint16_t source_pitch)
 {
 	unsigned int transparent_color;
-	int destination_offset;
-	uint8_t *source;
-	uint8_t *destination;
-	int rows_remaining;
-	int columns_remaining;
 
-	destination_offset = g_surface_pitch * destination_y +
-			     g_flight_bytes_per_pixel * destination_x;
+	int destination_offset = g_surface_pitch * destination_y +
+				 g_flight_bytes_per_pixel * destination_x;
 	if (g_flight_bytes_per_pixel == 1) {
 		transparent_color = (transparent_color_index << 24) |
 				    (transparent_color_index << 16) |
@@ -5705,9 +5381,11 @@ void flight_sw_blit_rect_to_flight_surface(
 		transparent_color =
 			g_flight_palette16_bpp[transparent_color_index];
 	}
-	destination = g_flight_sw_framebuffer_base + destination_offset;
-	source = source_base + source_pitch * source_y +
-		 g_flight_bytes_per_pixel * source_x;
+	uint8_t *destination =
+		g_flight_sw_framebuffer_base + destination_offset;
+	uint8_t *source = source_base + source_pitch * source_y +
+			  g_flight_bytes_per_pixel * source_x;
+	int rows_remaining;
 	if (transparent_color_index == 0xFFFF) {
 		if (height_pixels != 0) {
 			rows_remaining = height_pixels;
@@ -5723,7 +5401,7 @@ void flight_sw_blit_rect_to_flight_surface(
 		rows_remaining = height_pixels;
 		do {
 			if (width_pixels != 0) {
-				columns_remaining = width_pixels;
+				int columns_remaining = width_pixels;
 				do {
 					if (g_flight_bytes_per_pixel == 1) {
 						if ((uint8_t)
@@ -5763,16 +5441,13 @@ void flight_sw_copy_framebuffer_rect_to_buffer(uint8_t *dst_pixels,
 					       uint16_t height_pixels,
 					       uint16_t dst_pitch_bytes)
 {
-	uint8_t *source;
-	uint8_t *destination;
-	int rows_remaining;
-
-	source = g_flight_sw_framebuffer_base + g_surface_pitch * src_y +
-		 g_flight_bytes_per_pixel * src_x;
-	destination = dst_pixels + dst_pitch_bytes * dst_y +
-		      g_flight_bytes_per_pixel * dst_x;
+	uint8_t *source = g_flight_sw_framebuffer_base +
+			  g_surface_pitch * src_y +
+			  g_flight_bytes_per_pixel * src_x;
+	uint8_t *destination = dst_pixels + dst_pitch_bytes * dst_y +
+			       g_flight_bytes_per_pixel * dst_x;
 	if (height_pixels != 0) {
-		rows_remaining = height_pixels;
+		int rows_remaining = height_pixels;
 		do {
 			memcpy(destination, source,
 			       width_pixels * g_flight_bytes_per_pixel);
@@ -5790,27 +5465,20 @@ void flight_sw_copy_framebuffer_rect_to_buffer(uint8_t *dst_pixels,
 void flight_sw_draw_horizontal_color_span(int x_start, int x_end, int y,
 					  uint8_t color_index)
 {
-	int framebuffer_x_end;
-	int framebuffer_x_start;
-	int framebuffer_y;
+	int framebuffer_x_start = g_flight_clip_left + x_start;
+	int framebuffer_x_end = g_flight_clip_left + x_end;
+	int framebuffer_y = g_flight_clip_top + y;
+
 	uint8_t *row_base;
-
-	framebuffer_x_start = g_flight_clip_left + x_start;
-	framebuffer_x_end = g_flight_clip_left + x_end;
-	framebuffer_y = g_flight_clip_top + y;
-
 	if (g_flight_bytes_per_pixel == 2) {
-		uint16_t color;
-		uint16_t *destination;
-		uint8_t *framebuffer_base;
-
-		framebuffer_base = g_flight_sw_framebuffer_base;
+		uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
 		row_base = framebuffer_base + g_surface_pitch * framebuffer_y;
-		color = g_flight_palette16_bpp[color_index];
+		uint16_t color = g_flight_palette16_bpp[color_index];
 		if (framebuffer_x_end <= framebuffer_x_start) {
 			return;
 		}
-		destination = (uint16_t *)row_base + framebuffer_x_start;
+		uint16_t *destination =
+			(uint16_t *)row_base + framebuffer_x_start;
 		while (framebuffer_x_start < framebuffer_x_end) {
 			*destination++ = color;
 			++framebuffer_x_start;
@@ -5839,33 +5507,23 @@ void flight_sw_copy_viewport_span_mask_rle(const uint8_t *encoded_mask,
 					   uint16_t width, uint16_t height,
 					   int16_t mirror_horizontal)
 {
-	uint8_t *destination;
-	uint8_t row_start_parity;
-	uint16_t decoded_width;
-	uint8_t encoded_run;
-	uint8_t extended_run;
-	int run_length;
-	uint16_t mirror_decoded_width;
-	uint8_t *temp_write;
-	uint16_t reversed_decoded_width;
-	uint8_t *temp_read;
-	int16_t run_count;
-	unsigned int reverse_index;
-	uint8_t reverse_run;
-	uint16_t rows_remaining;
-
 	struct {
 		uint8_t saved_row_start_parity;
 		uint8_t row_runs[99];
 	} mirror_row;
 
-	destination = g_flight_aux_buffer + g_viewport_span_mask_offset;
+	uint8_t *destination =
+		g_flight_aux_buffer + g_viewport_span_mask_offset;
+	uint8_t encoded_run;
+	uint8_t extended_run;
+	int run_length;
+	uint8_t reverse_run;
 	if (height != 0) {
-		rows_remaining = height;
+		uint16_t rows_remaining = height;
 		do {
-			row_start_parity = *encoded_mask;
+			uint8_t row_start_parity = *encoded_mask;
 			if (mirror_horizontal == 0) {
-				decoded_width = 0;
+				uint16_t decoded_width = 0;
 				*destination++ = row_start_parity;
 				++encoded_mask;
 				while (width > decoded_width) {
@@ -5906,9 +5564,9 @@ void flight_sw_copy_viewport_span_mask_rle(const uint8_t *encoded_mask,
 							   run_length);
 				}
 			} else {
-				mirror_decoded_width = 0;
+				uint16_t mirror_decoded_width = 0;
 				++encoded_mask;
-				temp_write = mirror_row.row_runs;
+				uint8_t *temp_write = mirror_row.row_runs;
 				mirror_row.saved_row_start_parity =
 					row_start_parity;
 				while (width > mirror_decoded_width) {
@@ -5951,15 +5609,13 @@ void flight_sw_copy_viewport_span_mask_rle(const uint8_t *encoded_mask,
 							   run_length);
 				}
 
-				reversed_decoded_width = 0;
-				temp_read = mirror_row.row_runs;
+				uint16_t reversed_decoded_width = 0;
+				uint8_t *temp_read = mirror_row.row_runs;
 				*destination =
 					mirror_row.saved_row_start_parity;
-				run_count = 0;
+				int16_t run_count = 0;
 				while (width > reversed_decoded_width) {
-					uint8_t *extension_prefix;
-
-					extension_prefix = temp_read;
+					uint8_t *extension_prefix = temp_read;
 					reverse_run = *temp_read++;
 					if (reverse_run == 0) {
 						reversed_decoded_width += 0xFFu;
@@ -5983,7 +5639,7 @@ void flight_sw_copy_viewport_span_mask_rle(const uint8_t *encoded_mask,
 							   run_length);
 				}
 
-				reverse_index =
+				unsigned int reverse_index =
 					(unsigned int)(temp_read -
 						       mirror_row.row_runs);
 				if ((run_count & 1) == 0) {
@@ -6030,14 +5686,10 @@ void flight_sw_copy_viewport_span_mask_rle(const uint8_t *encoded_mask,
 void flight_sw_build_full_viewport_span_mask_rle(uint16_t width,
 						 unsigned int height)
 {
-	uint16_t row_index;
-	uint16_t width_code;
-	uint8_t *cursor;
-
-	row_index = 0;
-	cursor = g_flight_aux_buffer + g_viewport_span_mask_offset;
+	uint16_t row_index = 0;
+	uint8_t *cursor = g_flight_aux_buffer + g_viewport_span_mask_offset;
 	while (row_index < height) {
-		width_code = width;
+		uint16_t width_code = width;
 		*cursor++ = 1;
 		if (width >= 0x100u) {
 			*cursor++ = 0;
@@ -6081,10 +5733,8 @@ void flight_sw_blit_sprite_rle_faded16bpp(uint8_t *rle_data, int x, int y,
 					  int8_t palette_shift,
 					  int16_t fade_amount)
 {
-	unsigned int zero_extended_fade_amount;
-
 	g_flight_sw_rle_palette_shift = palette_shift;
-	zero_extended_fade_amount = (uint16_t)fade_amount;
+	unsigned int zero_extended_fade_amount = (uint16_t)fade_amount;
 	flight_sw_blit_sprite_rle_impl16bpp(rle_data, x, y,
 					    transparent_color_index, 0, 1,
 					    (int16_t)zero_extended_fade_amount);
@@ -6099,38 +5749,33 @@ void flight_sw_blit_sprite_rle_impl16bpp(uint8_t *rle_data, int16_t x,
 					 int mirror, char is_faded,
 					 int16_t fade_amount)
 {
-	unsigned int pixel_offset;
-	uint8_t *source;
-	uint8_t token;
-	uint8_t color;
-	int16_t alternating_pixels_remaining;
-	uint16_t run_length;
-	int mirror_flag;
-	uint16_t *destination;
-
 	g_flight_sw_rle_transparent_color = (uint8_t)transparent_color_index;
 	g_flight_sw_rle_sprite_x = x;
 	g_flight_sw_rle_sprite_y = y;
-	mirror_flag = mirror;
-	source = rle_data;
+	int mirror_flag = mirror;
+	uint8_t *source = rle_data;
 
+	uint8_t token;
+	uint8_t color;
+	uint16_t run_length;
 	for (;;) {
-		pixel_offset = flight_sw_get_line_offset(
-				       (uint16_t)g_flight_sw_rle_sprite_y) +
-			       2 * (uint16_t)g_flight_sw_rle_sprite_x;
+		unsigned int pixel_offset =
+			flight_sw_get_line_offset(
+				(uint16_t)g_flight_sw_rle_sprite_y) +
+			2 * (uint16_t)g_flight_sw_rle_sprite_x;
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			unsigned int page;
-
-			page = pixel_offset / g_vesa_page_size_bytes;
+			unsigned int page =
+				pixel_offset / g_vesa_page_size_bytes;
 			pixel_offset %= g_vesa_page_size_bytes;
 			rts_vga2_set_current_page((uint8_t)g_vesa_window,
 						  (uint16_t)page);
 		}
 #endif
-		destination = (uint16_t *)(g_flight_sw_framebuffer_base +
-					   pixel_offset);
+		uint16_t *destination =
+			(uint16_t *)(g_flight_sw_framebuffer_base +
+				     pixel_offset);
 
 		for (;;) {
 			token = *source++;
@@ -6165,7 +5810,7 @@ void flight_sw_blit_sprite_rle_impl16bpp(uint8_t *rle_data, int16_t x,
 							run_length = color;
 							++run_length;
 						}
-						alternating_pixels_remaining =
+						int16_t alternating_pixels_remaining =
 							(int16_t)source[1] + 1;
 						source += 2;
 						while (alternating_pixels_remaining >
@@ -6259,30 +5904,26 @@ void flight_sw_blit_sprite_rle_impl16bpp(uint8_t *rle_data, int16_t x,
 void flight_sw_blit_map_icon_rle16bpp(uint8_t *rle_data, int x, int y,
 				      int transparent_index, int mirror)
 {
-	unsigned int pixel_offset;
-	uint8_t token;
-	uint8_t **source;
-	xvt_framebuffer_address destination;
-	uint16_t *palette_color;
-	uint16_t **palette;
-
 	g_flight_sw_rle_transparent_color = (uint8_t)transparent_index;
 	g_flight_sw_rle_sprite_x = (int16_t)x;
 	g_flight_sw_rle_sprite_y = (int16_t)y;
-	source = &rle_data;
-	palette = &palette_color;
+	uint8_t **source = &rle_data;
+	uint16_t *palette_color;
+	uint16_t **palette = &palette_color;
 
+	uint8_t token;
+	xvt_framebuffer_address destination;
 	for (;;) {
-		pixel_offset = flight_sw_get_line_offset(
-				       (uint16_t)g_flight_sw_rle_sprite_y) +
-			       2 * (uint16_t)g_flight_sw_rle_sprite_x;
+		unsigned int pixel_offset =
+			flight_sw_get_line_offset(
+				(uint16_t)g_flight_sw_rle_sprite_y) +
+			2 * (uint16_t)g_flight_sw_rle_sprite_x;
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    xvt_framebuffer_address_is_legacy_base(
 			    g_flight_sw_framebuffer_base)) {
-			unsigned int page;
-
-			page = pixel_offset / g_vesa_page_size_bytes;
+			unsigned int page =
+				pixel_offset / g_vesa_page_size_bytes;
 			pixel_offset %= g_vesa_page_size_bytes;
 			rts_vga2_set_current_page((uint8_t)g_vesa_window,
 						  (uint16_t)page);
@@ -6294,10 +5935,8 @@ void flight_sw_blit_map_icon_rle16bpp(uint8_t *rle_data, int x, int y,
 								pixel_offset);
 
 		for (;;) {
-			uint16_t run_length;
-			uint16_t pixels_remaining;
-
 			token = *(*source)++;
+			uint16_t run_length;
 			if (token < 0xFB) {
 				run_length = token;
 				run_length &= 3;
@@ -6306,14 +5945,11 @@ void flight_sw_blit_map_icon_rle16bpp(uint8_t *rle_data, int x, int y,
 			} else {
 				if (token > 0xFB) {
 					if (token == 0xFC) {
-						uint16_t palette_index;
-						uint16_t next_palette_index;
-
-						palette_index = 0;
+						uint16_t palette_index = 0;
 						memcpy(&palette_index,
 						       (*source)++,
 						       sizeof(**source));
-						next_palette_index =
+						uint16_t next_palette_index =
 							palette_index;
 						++next_palette_index;
 						run_length = 0;
@@ -6381,6 +6017,7 @@ void flight_sw_blit_map_icon_rle16bpp(uint8_t *rle_data, int x, int y,
 			}
 
 			++run_length;
+			uint16_t pixels_remaining;
 			if (transparent_index == token) {
 				if (mirror == 0) {
 					destination += 2 * run_length;
@@ -6435,14 +6072,11 @@ void flight_sw_blit_map_icon_rle16bpp(uint8_t *rle_data, int x, int y,
 // FUNCTION: XVT 0x449EF0
 void flight_sw_draw_pixel16bpp(uint16_t x, uint16_t y, int8_t color_index)
 {
-	unsigned int pixel_offset;
-	uint16_t color;
-	uint8_t *framebuffer_base;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	pixel_offset = flight_sw_get_line_offset(y) + 2 * x;
+	unsigned int pixel_offset = flight_sw_get_line_offset(y) + 2 * x;
 #ifndef XVT_MODERN
 	if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 	    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
@@ -6452,8 +6086,8 @@ void flight_sw_draw_pixel16bpp(uint16_t x, uint16_t y, int8_t color_index)
 					  (uint16_t)page);
 	}
 #endif
-	color = g_flight_palette16_bpp[(int)color_index];
-	framebuffer_base = g_flight_sw_framebuffer_base;
+	uint16_t color = g_flight_palette16_bpp[(int)color_index];
+	uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
 	*(uint16_t *)(framebuffer_base + pixel_offset) = color;
 }
 
@@ -6475,10 +6109,6 @@ void flight_sw_fill_clip_rect16bpp(void)
 // FUNCTION: XVT 0x44A5B0
 void flight_sw_fill_rect_or_border16bpp(uint16_t border_thickness)
 {
-	int16_t row;
-	unsigned int pixel_offset;
-	uint16_t *destination;
-	int16_t pixels_remaining;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
@@ -6491,7 +6121,11 @@ void flight_sw_fill_rect_or_border16bpp(uint16_t border_thickness)
 		return;
 	}
 
+	unsigned int pixel_offset;
+	uint16_t *destination;
+	int16_t pixels_remaining;
 	if (border_thickness != 0) {
+		int16_t row;
 		for (row = 0; row < border_thickness; ++row) {
 			pixel_offset =
 				flight_sw_get_line_offset(
@@ -6525,10 +6159,6 @@ void flight_sw_fill_rect_or_border16bpp(uint16_t border_thickness)
 
 		while ((unsigned int)g_flight_fill_rect_remaining_rows16bpp >
 		       border_thickness) {
-			int16_t center_width;
-			int16_t left_pixels_remaining;
-			int16_t right_pixels_remaining;
-
 			pixel_offset =
 				flight_sw_get_line_offset(
 					g_flight_fill_rect_current_y16bpp) +
@@ -6547,11 +6177,11 @@ void flight_sw_fill_rect_or_border16bpp(uint16_t border_thickness)
 			destination =
 				&((uint16_t *)g_flight_sw_framebuffer_base)
 					[pixel_offset / 2];
-			left_pixels_remaining = border_thickness;
-			right_pixels_remaining = border_thickness;
-			center_width = g_flight_fill_rect_right16bpp -
-				       2 * border_thickness -
-				       g_flight_fill_rect_left16bpp;
+			int16_t left_pixels_remaining = border_thickness;
+			int16_t right_pixels_remaining = border_thickness;
+			int16_t center_width = g_flight_fill_rect_right16bpp -
+					       2 * border_thickness -
+					       g_flight_fill_rect_left16bpp;
 			while (left_pixels_remaining-- != 0) {
 				*destination++ = g_flight_palette16_bpp
 					[g_flight_text_bg_color];
@@ -6638,13 +6268,10 @@ void flight_sw_fill_rect_or_border16bpp(uint16_t border_thickness)
 void flight_sw_fill_rect_clipped16bpp(uint16_t x1, uint16_t y1, uint16_t x2,
 				      uint16_t y2, uint16_t border_thickness)
 {
-	uint16_t clipped_top;
-	uint16_t clipped_bottom;
-
 	g_flight_fill_rect_left16bpp = x1;
 	g_flight_fill_rect_right16bpp = x2;
-	clipped_top = y1;
-	clipped_bottom = y2;
+	uint16_t clipped_top = y1;
+	uint16_t clipped_bottom = y2;
 	if (x1 < g_flight_clip_left) {
 		g_flight_fill_rect_left16bpp = g_flight_clip_left;
 	}
@@ -6674,20 +6301,17 @@ void flight_sw_fill_rect_clipped16bpp(uint16_t x1, uint16_t y1, uint16_t x2,
 void flight_sw_save_screen_rect16bpp(uint16_t *buffer, int x, int y,
 				     int16_t width, int height)
 {
-	uint16_t *output;
-	uint16_t *source;
-	uint16_t pixel;
-	unsigned int pixel_offset;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	output = buffer;
+	uint16_t *output = buffer;
 	if (height == 0) {
 		return;
 	}
 	do {
-		pixel_offset = flight_sw_get_line_offset(y) + 2 * x;
+		unsigned int pixel_offset =
+			flight_sw_get_line_offset(y) + 2 * x;
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
@@ -6698,10 +6322,10 @@ void flight_sw_save_screen_rect16bpp(uint16_t *buffer, int x, int y,
 		}
 #endif
 		g_saved_row_pixels_remaining = width;
-		source = (uint16_t *)(g_flight_sw_framebuffer_base +
-				      pixel_offset);
+		uint16_t *source = (uint16_t *)(g_flight_sw_framebuffer_base +
+						pixel_offset);
 		while (g_saved_row_pixels_remaining > 0) {
-			pixel = *source++;
+			uint16_t pixel = *source++;
 			*output++ = pixel;
 			--g_saved_row_pixels_remaining;
 		}
@@ -6716,20 +6340,17 @@ void flight_sw_save_screen_rect16bpp(uint16_t *buffer, int x, int y,
 void flight_sw_restore_screen_rect16bpp(uint16_t *buffer, int x, int y,
 					int16_t width, int height)
 {
-	uint16_t *input;
-	uint16_t *destination;
-	uint16_t pixel;
-	unsigned int pixel_offset;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	input = buffer;
+	uint16_t *input = buffer;
 	if (height == 0) {
 		return;
 	}
 	do {
-		pixel_offset = flight_sw_get_line_offset(y) + 2 * x;
+		unsigned int pixel_offset =
+			flight_sw_get_line_offset(y) + 2 * x;
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
@@ -6740,10 +6361,11 @@ void flight_sw_restore_screen_rect16bpp(uint16_t *buffer, int x, int y,
 		}
 #endif
 		g_saved_row_pixels_remaining = width;
-		destination = (uint16_t *)(g_flight_sw_framebuffer_base +
-					   pixel_offset);
+		uint16_t *destination =
+			(uint16_t *)(g_flight_sw_framebuffer_base +
+				     pixel_offset);
 		while (g_saved_row_pixels_remaining > 0) {
-			pixel = *input;
+			uint16_t pixel = *input;
 			*destination = pixel;
 			++destination;
 			++input;
@@ -6760,25 +6382,20 @@ void flight_sw_restore_screen_rect16bpp(uint16_t *buffer, int x, int y,
 // FUNCTION: XVT 0x44AC70
 void flight_sw_draw_point_array16bpp(uint16_t *points, int16_t count)
 {
-	uint16_t x;
-	uint16_t y;
-	uint16_t *current;
-	int16_t remaining;
-	unsigned int pixel_offset;
-	int16_t *destination;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	current = points;
-	remaining = count;
+	uint16_t *current = points;
+	int16_t remaining = count;
 	if (remaining == 0) {
 		return;
 	}
 	do {
-		x = current[0];
-		y = current[1];
-		pixel_offset = flight_sw_get_line_offset(y) + 2 * x;
+		uint16_t x = current[0];
+		uint16_t y = current[1];
+		unsigned int pixel_offset =
+			flight_sw_get_line_offset(y) + 2 * x;
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    g_sw_framebuffer_base == g_flight_sw_framebuffer_base) {
@@ -6789,8 +6406,9 @@ void flight_sw_draw_point_array16bpp(uint16_t *points, int16_t count)
 			rts_vga2_set_current_page(1, (uint16_t)page);
 		}
 #endif
-		destination = (int16_t *)(g_flight_sw_framebuffer_base +
-					  pixel_offset);
+		int16_t *destination =
+			(int16_t *)(g_flight_sw_framebuffer_base +
+				    pixel_offset);
 		if (*destination != g_flight_palette16_bpp[44]) {
 			current[2] = 0;
 		} else {
@@ -6807,32 +6425,26 @@ void flight_sw_draw_point_array16bpp(uint16_t *points, int16_t count)
 // FUNCTION: XVT 0x44AD30
 void flight_sw_erase_point_array16bpp(uint16_t *points, int16_t count)
 {
-	unsigned int pixel_offset;
 #ifndef XVT_MODERN
 	unsigned int legacy_resolution_mode;
 #endif
-	int16_t remaining;
-	uint16_t *current;
-
 #ifndef XVT_MODERN
 	legacy_resolution_mode = FLIGHT_RESOLUTION_320X240;
 #endif
-	remaining = count;
+	int16_t remaining = count;
 	if (remaining == 0) {
 		return;
 	}
-	current = points;
+	uint16_t *current = points;
 	do {
-		unsigned int x;
-		unsigned int y;
-		uint16_t *destination;
 #ifndef XVT_MODERN
 		unsigned int page;
 #endif
 
-		x = current[0];
-		y = current[1];
-		pixel_offset = flight_sw_get_line_offset(y) + 2 * x;
+		unsigned int x = current[0];
+		unsigned int y = current[1];
+		unsigned int pixel_offset =
+			flight_sw_get_line_offset(y) + 2 * x;
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != legacy_resolution_mode &&
 		    g_sw_framebuffer_base == g_flight_sw_framebuffer_base) {
@@ -6842,8 +6454,9 @@ void flight_sw_erase_point_array16bpp(uint16_t *points, int16_t count)
 						  (uint16_t)page);
 		}
 #endif
-		destination = (uint16_t *)(g_flight_sw_framebuffer_base +
-					   pixel_offset);
+		uint16_t *destination =
+			(uint16_t *)(g_flight_sw_framebuffer_base +
+				     pixel_offset);
 		if ((uint8_t)current[2] != 0) {
 			*destination = g_flight_palette16_bpp[44];
 		}
@@ -6859,20 +6472,15 @@ void flight_sw_erase_point_array16bpp(uint16_t *points, int16_t count)
 // FUNCTION: XVT 0x44ADD0
 void flight_sw_draw_radar_target_marker16bpp(void)
 {
-	unsigned int pixel_offset;
-	int16_t remaining;
-	uint16_t offset_index;
-	uint16_t saved_pixel_index;
-	uint16_t *pixel;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	remaining = 10;
-	offset_index = 0;
-	saved_pixel_index = 0;
+	int16_t remaining = 10;
+	uint16_t offset_index = 0;
+	uint16_t saved_pixel_index = 0;
 	do {
-		pixel_offset =
+		unsigned int pixel_offset =
 			flight_sw_get_line_offset(
 				g_radar_target_marker_draw_y +
 				g_radar_target_marker_shape16bpp[offset_index +
@@ -6890,8 +6498,8 @@ void flight_sw_draw_radar_target_marker16bpp(void)
 		}
 #endif
 		offset_index += 2;
-		pixel = (uint16_t *)(g_flight_sw_framebuffer_base +
-				     pixel_offset);
+		uint16_t *pixel = (uint16_t *)(g_flight_sw_framebuffer_base +
+					       pixel_offset);
 		g_radar_target_marker_saved_pixels16bpp[saved_pixel_index++] =
 			*pixel;
 		*pixel = g_flight_palette16_bpp[206];
@@ -6904,21 +6512,15 @@ void flight_sw_draw_radar_target_marker16bpp(void)
 // FUNCTION: XVT 0x44AEB0
 void flight_sw_restore_radar_target_marker16bpp(void)
 {
-	unsigned int pixel_offset;
-	int16_t remaining;
-	uint16_t offset_index;
-	uint16_t saved_pixel_index;
-	uint16_t pixel;
-	uint8_t *framebuffer_base;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	offset_index = 0;
-	remaining = 10;
-	saved_pixel_index = 0;
+	uint16_t offset_index = 0;
+	int16_t remaining = 10;
+	uint16_t saved_pixel_index = 0;
 	do {
-		pixel_offset =
+		unsigned int pixel_offset =
 			flight_sw_get_line_offset(
 				g_radar_target_marker_restore_y +
 				g_radar_target_marker_shape16bpp[offset_index +
@@ -6934,9 +6536,10 @@ void flight_sw_restore_radar_target_marker16bpp(void)
 						  (uint16_t)page);
 		}
 #endif
-		framebuffer_base = g_flight_sw_framebuffer_base + pixel_offset;
+		uint8_t *framebuffer_base =
+			g_flight_sw_framebuffer_base + pixel_offset;
 		offset_index += 2;
-		pixel = g_radar_target_marker_saved_pixels16bpp
+		uint16_t pixel = g_radar_target_marker_saved_pixels16bpp
 			[saved_pixel_index++];
 		*(uint16_t *)framebuffer_base = pixel;
 		--remaining;
@@ -6950,24 +6553,16 @@ void flight_sw_restore_radar_target_marker16bpp(void)
 uint16_t flight_sw_draw_cross_marker16bpp(uint16_t x, uint16_t y,
 					  uint8_t color_index)
 {
-	int16_t remaining;
+	int16_t remaining = 7;
 	unsigned int coordinates[2];
-	uint16_t offset_index;
-	uint16_t saved_pixel_index;
-	uint16_t *color;
-	uint16_t result;
-
-	remaining = 7;
 	coordinates[0] = y;
-	offset_index = 0;
-	saved_pixel_index = 0;
+	uint16_t offset_index = 0;
+	uint16_t saved_pixel_index = 0;
 	coordinates[1] = x;
-	color = &g_flight_palette16_bpp[color_index];
+	uint16_t *color = &g_flight_palette16_bpp[color_index];
+	uint16_t result;
 	do {
-		unsigned int pixel_offset;
-		uint16_t *pixel;
-
-		pixel_offset =
+		unsigned int pixel_offset =
 			flight_sw_get_line_offset(
 				coordinates[0] +
 				((int8_t *)
@@ -6979,9 +6574,8 @@ uint16_t flight_sw_draw_cross_marker16bpp(uint16_t x, uint16_t y,
 #ifndef XVT_MODERN
 		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
 		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			unsigned int page;
-
-			page = pixel_offset / g_vesa_page_size_bytes;
+			unsigned int page =
+				pixel_offset / g_vesa_page_size_bytes;
 			pixel_offset %= g_vesa_page_size_bytes;
 			rts_vga2_set_current_page((uint8_t)g_vesa_window,
 						  (uint16_t)page);
@@ -6989,8 +6583,8 @@ uint16_t flight_sw_draw_cross_marker16bpp(uint16_t x, uint16_t y,
 		}
 #endif
 		offset_index += 2;
-		pixel = (uint16_t *)(g_flight_sw_framebuffer_base +
-				     pixel_offset);
+		uint16_t *pixel = (uint16_t *)(g_flight_sw_framebuffer_base +
+					       pixel_offset);
 		g_flight_sw_cross_marker_saved_pixels16bpp
 			[saved_pixel_index++] = *pixel;
 		result = *color;
@@ -7005,21 +6599,16 @@ uint16_t flight_sw_draw_cross_marker16bpp(uint16_t x, uint16_t y,
 // FUNCTION: XVT 0x44B070
 uint16_t flight_sw_restore_cross_marker16bpp(uint16_t x, uint16_t y)
 {
-	int16_t remaining;
-	uint16_t offset_index;
-	uint16_t saved_pixel_index;
-	unsigned int pixel_offset;
-	uint8_t *framebuffer_base;
-	uint16_t pixel;
 #ifndef XVT_MODERN
 	unsigned int page;
 #endif
 
-	remaining = 7;
-	offset_index = 0;
-	saved_pixel_index = 0;
+	int16_t remaining = 7;
+	uint16_t offset_index = 0;
+	uint16_t saved_pixel_index = 0;
+	uint16_t pixel;
 	do {
-		pixel_offset =
+		unsigned int pixel_offset =
 			flight_sw_get_line_offset(
 				y +
 				((int8_t *)
@@ -7038,7 +6627,7 @@ uint16_t flight_sw_restore_cross_marker16bpp(uint16_t x, uint16_t y)
 		}
 #endif
 		offset_index += 2;
-		framebuffer_base = g_flight_sw_framebuffer_base;
+		uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
 		pixel = g_flight_sw_cross_marker_saved_pixels16bpp
 			[saved_pixel_index++];
 		--remaining;
@@ -7053,20 +6642,13 @@ uint16_t flight_sw_restore_cross_marker16bpp(uint16_t x, uint16_t y)
 // FUNCTION: XVT 0x44B140
 void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 {
-	uint16_t color;
-	int delta_x;
-	int delta_y;
+	uint16_t color = g_flight_palette16_bpp[color_idx];
+	int end_x = x2;
+	int delta_x = end_x - x1;
 	int start_y;
-	int end_x;
 	uint8_t *pixel;
-
-	color = g_flight_palette16_bpp[color_idx];
-	end_x = x2;
-	delta_x = end_x - x1;
 	if (delta_x < 0) {
-		int swap_x;
-
-		swap_x = x1;
+		int swap_x = x1;
 		start_y = y2;
 		y2 = y1;
 		delta_x = -delta_x;
@@ -7074,8 +6656,6 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 		end_x = swap_x;
 	} else {
 		if (delta_x == 0) {
-			int count;
-
 			if (x1 < g_flight_clip_left) {
 				return;
 			}
@@ -7084,9 +6664,7 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 			}
 
 			if (y2 < y1) {
-				int swap_y;
-
-				swap_y = y1;
+				int swap_y = y1;
 				y1 = y2;
 				y2 = swap_y;
 			}
@@ -7097,7 +6675,7 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				y2 = g_flight_clip_bottom - 1;
 			}
 
-			count = y2 - y1;
+			int count = y2 - y1;
 			if (count > 0) {
 				pixel = g_flight_sw_framebuffer_base +
 					y1 * flight_sw_get_line_pitch() +
@@ -7113,7 +6691,7 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 	}
 
 	if (x1 < g_flight_clip_right && end_x >= g_flight_clip_left) {
-		delta_y = y2 - start_y;
+		int delta_y = y2 - start_y;
 		if (delta_y < 0) {
 			delta_y = -delta_y;
 			if (start_y < g_flight_clip_top) {
@@ -7124,9 +6702,7 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 			}
 
 			if (start_y >= g_flight_clip_bottom) {
-				int advance;
-
-				advance = math2_ab_over_c32(
+				int advance = math2_ab_over_c32(
 					start_y - g_flight_clip_bottom + 1,
 					delta_x, delta_y);
 				x1 += advance;
@@ -7136,11 +6712,9 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				start_y = g_flight_clip_bottom - 1;
 			}
 			if (x1 < g_flight_clip_left) {
-				int advance;
-
-				advance = math2_ab_over_c32(g_flight_clip_left -
-								    x1,
-							    delta_y, delta_x);
+				int advance = math2_ab_over_c32(
+					g_flight_clip_left - x1, delta_y,
+					delta_x);
 				start_y -= advance;
 				if (start_y < g_flight_clip_top) {
 					return;
@@ -7164,13 +6738,9 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				start_y * flight_sw_get_line_pitch() +
 				x1 * g_flight_bytes_per_pixel;
 			if (delta_x >= delta_y) {
-				int error;
-				int y_steps;
-				int x_count;
-
-				error = delta_x >> 1;
-				x_count = end_x - x1;
-				y_steps = start_y - y2 + 1;
+				int error = delta_x >> 1;
+				int x_count = end_x - x1;
+				int y_steps = start_y - y2 + 1;
 				while (x_count-- != 0) {
 					*(uint16_t *)pixel = color;
 					pixel += g_flight_bytes_per_pixel;
@@ -7186,13 +6756,9 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 					}
 				}
 			} else {
-				int error;
-				int x_steps;
-				int y_count;
-
-				error = delta_y >> 1;
-				x_steps = end_x - x1 + 1;
-				y_count = start_y - y2;
+				int error = delta_y >> 1;
+				int x_steps = end_x - x1 + 1;
+				int y_count = start_y - y2;
 				while (y_count-- != 0) {
 					*(uint16_t *)pixel = color;
 					pixel -= flight_sw_get_line_pitch();
@@ -7217,11 +6783,9 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 			}
 
 			if (start_y < g_flight_clip_top) {
-				int advance;
-
-				advance = math2_ab_over_c32(g_flight_clip_top -
-								    start_y,
-							    delta_x, delta_y);
+				int advance = math2_ab_over_c32(
+					g_flight_clip_top - start_y, delta_x,
+					delta_y);
 				x1 += advance;
 				if (x1 >= g_flight_clip_right) {
 					return;
@@ -7229,11 +6793,9 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				start_y = g_flight_clip_top;
 			}
 			if (x1 < g_flight_clip_left) {
-				int advance;
-
-				advance = math2_ab_over_c32(g_flight_clip_left -
-								    x1,
-							    delta_y, delta_x);
+				int advance = math2_ab_over_c32(
+					g_flight_clip_left - x1, delta_y,
+					delta_x);
 				start_y += advance;
 				if (start_y >= g_flight_clip_bottom) {
 					return;
@@ -7251,13 +6813,9 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				start_y * flight_sw_get_line_pitch() +
 				x1 * g_flight_bytes_per_pixel;
 			if (delta_x >= delta_y) {
-				int error;
-				int y_steps;
-				int x_count;
-
-				error = delta_x >> 1;
-				x_count = end_x - x1;
-				y_steps = y2 - start_y + 1;
+				int error = delta_x >> 1;
+				int x_count = end_x - x1;
+				int y_steps = y2 - start_y + 1;
 				while (x_count-- != 0) {
 					*(uint16_t *)pixel = color;
 					pixel += g_flight_bytes_per_pixel;
@@ -7273,13 +6831,9 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 					}
 				}
 			} else {
-				int error;
-				int x_steps;
-				int y_count;
-
-				error = delta_y >> 1;
-				x_steps = end_x - x1 + 1;
-				y_count = y2 - start_y;
+				int error = delta_y >> 1;
+				int x_steps = end_x - x1 + 1;
+				int y_count = y2 - start_y;
 				while (y_count-- != 0) {
 					*(uint16_t *)pixel = color;
 					pixel += flight_sw_get_line_pitch();
@@ -7297,8 +6851,6 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 			}
 		} else if (start_y >= g_flight_clip_top &&
 			   start_y < g_flight_clip_bottom) {
-			int count;
-
 			if (x1 < g_flight_clip_left) {
 				x1 = g_flight_clip_left;
 			}
@@ -7306,7 +6858,7 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				end_x = g_flight_clip_right - 1;
 			}
 
-			count = end_x - x1;
+			int count = end_x - x1;
 			if (count > 0) {
 				pixel = g_flight_sw_framebuffer_base +
 					start_y * flight_sw_get_line_pitch() +
@@ -7343,26 +6895,20 @@ void flight_sw_blit_prepared_rotated_sprite_spans(uint8_t *p_dst,
 						  int start_x, int start_y,
 						  int end_x, int end_y)
 {
-	int scan_y;
-	uint8_t *pixel;
-	int scan_x;
-	float sprite_w;
-
 	if (g_flight_surface_already_locked == 0) {
 		flight_surface_lock();
 	}
-	scan_y = start_y;
-	sprite_w = (float)(unsigned int)g_proj_scale_int /
-		   (float)g_view_space_depth;
+	int scan_y = start_y;
+	float sprite_w = (float)(unsigned int)g_proj_scale_int /
+			 (float)g_view_space_depth;
+	uint8_t *pixel;
+	int scan_x;
 	if (g_flight_bytes_per_pixel == 2) {
 		if (end_y > scan_y) {
 			pixel = p_dst;
 			do {
 				scan_x = start_x;
 				while (scan_x < end_x) {
-					uint8_t *run_start;
-					int run_start_x;
-
 					while (scan_x < end_x &&
 					       pixel[1] != 0x80) {
 						pixel += 2;
@@ -7372,8 +6918,8 @@ void flight_sw_blit_prepared_rotated_sprite_spans(uint8_t *p_dst,
 						break;
 					}
 
-					run_start_x = scan_x;
-					run_start = pixel;
+					int run_start_x = scan_x;
+					uint8_t *run_start = pixel;
 					while (scan_x < end_x &&
 					       pixel[1] == 0x80) {
 						pixel[1] =
@@ -7398,9 +6944,6 @@ void flight_sw_blit_prepared_rotated_sprite_spans(uint8_t *p_dst,
 		do {
 			scan_x = start_x;
 			while (scan_x < end_x) {
-				uint8_t *run_start;
-				int run_start_x;
-
 				while (scan_x < end_x && *pixel >= 0x40) {
 					++pixel;
 					++scan_x;
@@ -7409,12 +6952,10 @@ void flight_sw_blit_prepared_rotated_sprite_spans(uint8_t *p_dst,
 					break;
 				}
 
-				run_start_x = scan_x;
-				run_start = pixel;
+				int run_start_x = scan_x;
+				uint8_t *run_start = pixel;
 				while (scan_x < end_x && *pixel < 0x40) {
-					uint8_t color;
-
-					color = *pixel;
+					uint8_t color = *pixel;
 					*pixel = g_flight_sw_rot_sprite_palette8
 						[color];
 					++pixel;

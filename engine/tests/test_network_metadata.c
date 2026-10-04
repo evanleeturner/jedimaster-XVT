@@ -124,8 +124,6 @@ static void check_round_trip(void)
 {
 	/* Every printable Windows-1252 byte survives the trip to UTF-8 and back. */
 	char text[256];
-	char utf8[256 * 3 + 1];
-	char back[256];
 	size_t count = 0;
 	for (unsigned byte = 0x20; byte <= 0xff; ++byte) {
 		if (byte == 0x7f || byte == 0x81 || byte == 0x8d ||
@@ -135,7 +133,9 @@ static void check_round_trip(void)
 		text[count++] = (char)byte;
 	}
 	text[count] = 0;
+	char utf8[256 * 3 + 1];
 	xvt_network_metadata_to_utf8(utf8, sizeof utf8, text, count);
+	char back[256];
 	xvt_network_metadata_from_utf8(back, sizeof back, utf8);
 	XVT_ASSERT_INT_EQ(strlen(back), count);
 	XVT_ASSERT_INT_EQ(memcmp(back, text, count), 0);

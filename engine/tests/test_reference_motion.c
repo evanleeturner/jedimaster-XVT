@@ -228,7 +228,6 @@ static void check_encode_decode(void)
 	xvt_reference_motion_committed(0, 104);
 	move(0, 8, 8, 8);
 	struct xvt_reference_motion_wire record;
-	struct xvt_reference_motion_wire out;
 	xvt_reference_motion_encode(0, &record);
 	XVT_ASSERT_INT_EQ(record.type, 1);
 	XVT_ASSERT_INT_EQ(xvt_wire_get16(record.slot), 0);
@@ -240,6 +239,7 @@ static void check_encode_decode(void)
 	expect_displacement(0, 0, 0, 0);
 	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(&record, 1), 1);
 	expect_displacement(0, 16, 16, 16);
+	struct xvt_reference_motion_wire out;
 	xvt_reference_motion_encode(0, &out);
 	XVT_ASSERT_TRUE(records_equal(&out, &record));
 
@@ -263,10 +263,9 @@ static void check_encode_empty(void)
 {
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	struct xvt_reference_motion_wire out;
-	struct xvt_reference_motion_wire empty;
 
 	xvt_reference_motion_encode(1, &out);
-	empty = empty_record(1);
+	struct xvt_reference_motion_wire empty = empty_record(1);
 	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 
 	xvt_reference_motion_encode(SLOTS + 2, &out);
@@ -286,9 +285,9 @@ static void check_encode_empty(void)
 static void expect_refused(const struct xvt_reference_motion_wire *record)
 {
 	struct xvt_reference_motion_wire before;
-	struct xvt_reference_motion_wire after;
 	xvt_reference_motion_encode(0, &before);
 	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(record, 1), 0);
+	struct xvt_reference_motion_wire after;
 	xvt_reference_motion_encode(0, &after);
 	XVT_ASSERT_TRUE(records_equal(&before, &after));
 }
@@ -297,12 +296,11 @@ static void check_decode_refusals(void)
 {
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	struct xvt_reference_motion_wire good;
-	struct xvt_reference_motion_wire bad;
 	xvt_reference_motion_encode(0, &good);
 	xvt_wire_set32(good.sample_tick, 50);
 	good.flags = XVT_MOTION_VALID | XVT_MOTION_CURRENT_VALID;
 
-	bad = good;
+	struct xvt_reference_motion_wire bad = good;
 	xvt_wire_set16(bad.slot, SLOTS);
 	expect_refused(&bad);
 	bad = good;

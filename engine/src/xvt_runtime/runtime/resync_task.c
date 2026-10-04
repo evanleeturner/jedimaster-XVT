@@ -90,10 +90,10 @@ static void xvt_resync_complete_checksum(void)
 	if (net_session_is_local_host()) {
 		int index = net_session_find_player_slot_by_dpid(
 			g_resync.peer_dpid);
-		int status = 3;
 		if ((unsigned)index < 8) {
 			g_flight_net_world_checksum_peer_status[index] = 2;
 		}
+		int status = 3;
 		for (int i = 0; i < 8; ++i) {
 			if (g_players[i].participation_state) {
 				status &=
@@ -173,8 +173,6 @@ static void xvt_resync_send_request(void)
 
 int xvt_resync_begin_send(int peer_dpid, uint8_t *world, int size)
 {
-	char text[256];
-	char *name;
 	if (g_resync.phase) {
 		return -1;
 	}
@@ -188,8 +186,9 @@ int xvt_resync_begin_send(int peer_dpid, uint8_t *world, int size)
 	g_input_timestamp += time_consume_elapsed_ticks();
 	flight_alert_save_box_background();
 	g_resync.owns_alert = 1;
+	char text[256];
 	strcpy(text, g_str_disk_io_messages[DISK_IO_STR_COM_FAILURE_SENDING]);
-	name = net_session_get_player_name(
+	char *name = net_session_get_player_name(
 		net_session_find_player_slot_by_dpid(peer_dpid));
 	if (name) {
 		strcat(text, name);

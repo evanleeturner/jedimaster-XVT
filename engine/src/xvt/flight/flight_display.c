@@ -149,11 +149,8 @@ static int g_flight_resolution_legacy_extent = 0;
 // FUNCTION: XVT 0x447D90
 void flight_display_configure_resolution_state(void)
 {
-	int primary_surface_pitch;
-	int resolution_mode;
-
-	primary_surface_pitch = flight_display_get_primary_surface_pitch();
-	resolution_mode = g_flight_resolution_mode;
+	int primary_surface_pitch = flight_display_get_primary_surface_pitch();
+	int resolution_mode = g_flight_resolution_mode;
 	g_vesa_page_size_bytes = 480 * primary_surface_pitch;
 	g_vesa_grains_per_page = 1;
 	switch (resolution_mode) {
@@ -267,14 +264,8 @@ enum { FLIGHT_DDPCAPS_INITIALIZE = 0x8 };
 // FUNCTION: XVT 0x4AAFF0
 int flight_display_init(void)
 {
-	struct flight_display_palette_entry palette_entries[256];
-	struct flight_display_driver_caps driver_caps;
-	DDSURFACEDESC surface_desc;
-	DDSCAPS attached_caps;
-	HRESULT result;
-	int palette_index;
-
 	g_flight_direct_draw = frontend_display_get_direct_draw();
+	HRESULT result;
 	if (g_flight_fullscreen != 0) {
 		result = g_flight_direct_draw->lpVtbl->SetCooperativeLevel(
 			g_flight_direct_draw, g_flight_main_window_handle,
@@ -470,6 +461,7 @@ int flight_display_init(void)
 	}
 
 	g_flight_primary_pitch[1] = 1;
+	struct flight_display_driver_caps driver_caps;
 	memset(&driver_caps, 0, sizeof(driver_caps));
 	driver_caps.dwSize = sizeof(driver_caps);
 	result = g_flight_direct_draw->lpVtbl->GetCaps(g_flight_direct_draw,
@@ -480,6 +472,7 @@ int flight_display_init(void)
 		g_flight_primary_pitch[1] = 2;
 	}
 
+	DDSURFACEDESC surface_desc;
 	if (g_flight_fullscreen != 0) {
 		memset(&surface_desc, 0, sizeof(surface_desc));
 		surface_desc.dwSize = sizeof(surface_desc);
@@ -531,6 +524,7 @@ int flight_display_init(void)
 		flight_display_clear_surface(g_flight_primary_surface);
 
 		if (g_flight_page_flip != 0) {
+			DDSCAPS attached_caps;
 			attached_caps.dwCaps = DDSCAPS_BACKBUFFER;
 			result = g_flight_primary_surface->lpVtbl
 					 ->GetAttachedSurface(
@@ -615,7 +609,9 @@ int flight_display_init(void)
 
 	if (g_flight_fullscreen != 0) {
 		if (g_flight_bytes_per_pixel == 1) {
-			for (palette_index = 0; palette_index < 256;
+			struct flight_display_palette_entry
+				palette_entries[256];
+			for (int palette_index = 0; palette_index < 256;
 			     ++palette_index) {
 				palette_entries[palette_index].red =
 					(uint8_t)palette_index;
@@ -657,20 +653,15 @@ int flight_display_init(void)
 uint8_t flight_display_set_palette_entries(const uint8_t *rgb_data,
 					   int first_entry, int entry_count)
 {
-	uint32_t palette_entries[256];
-	uint8_t *destination;
-	unsigned int remaining;
-	int count;
-	int first;
-
 	if (g_flight_fullscreen != 0) {
-		count = entry_count;
+		int count = entry_count;
 		if (g_flight_palette != NULL) {
-			first = first_entry;
+			int first = first_entry;
+			uint32_t palette_entries[256];
 			if (first < first + count) {
 				rgb_data += 3 * first;
-				remaining = count;
-				destination =
+				unsigned int remaining = count;
+				uint8_t *destination =
 					(uint8_t *)&palette_entries[first];
 				do {
 					destination[0] = rgb_data[0] << 2;
@@ -706,10 +697,6 @@ int flight_display_cleanup_and_report_error(int error_code)
 #ifndef XVT_MODERN
 	void(__stdcall * output_debug_string)(const char *output_string);
 #endif
-	IDirectDrawSurface *surface;
-	IDirectDrawPalette *palette;
-	int page_flip;
-
 #ifndef XVT_MODERN
 	output_debug_string = OutputDebugStringA;
 	wsprintfA(g_flight_display_debug_message,
@@ -721,17 +708,17 @@ int flight_display_cleanup_and_report_error(int error_code)
 		 "___CleanupAndExit  err = %d\n", error_code);
 	debug_printf("%s", g_flight_display_debug_message);
 #endif
-	surface = g_flight_primary_surface;
+	IDirectDrawSurface *surface = g_flight_primary_surface;
 	if (surface != NULL) {
 		surface->lpVtbl->Release(surface);
 		g_flight_primary_surface = NULL;
 	}
-	palette = g_flight_palette;
+	IDirectDrawPalette *palette = g_flight_palette;
 	if (palette != NULL) {
 		palette->lpVtbl->Release(palette);
 		g_flight_palette = NULL;
 	}
-	page_flip = g_flight_page_flip;
+	int page_flip = g_flight_page_flip;
 	if (page_flip != 0) {
 		surface = g_flight_offscreen_surface;
 		if (surface != NULL) {
@@ -779,15 +766,11 @@ int flight_display_get_primary_surface_pitch(void)
 // FUNCTION: XVT 0x4ABEE0
 HRESULT flight_display_flip(void)
 {
-	DDSURFACEDESC surface_desc;
 	HRESULT result;
-	HRESULT flip_result;
-	int vertical_blank_status;
-	int phase;
-	int i;
 
 	if (g_flight_page_flip != 0) {
 		if (g_flight_conf_flicker != 0) {
+			int vertical_blank_status;
 			if (g_flight_flicker_last_sync_time_ms == 0) {
 				if (g_flight_direct_draw->lpVtbl
 					    ->GetVerticalBlankStatus(
@@ -815,7 +798,7 @@ HRESULT flight_display_flip(void)
 					    (uint32_t
 						     *)&g_flight_flicker_refresh_rate_scale) !=
 				    DX_DD_OK) {
-					for (i = 0; i < 100; ++i) {
+					for (int i = 0; i < 100; ++i) {
 						while (vertical_blank_status !=
 							       0 &&
 						       g_flight_direct_draw
@@ -841,7 +824,8 @@ HRESULT flight_display_flip(void)
 						      g_flight_flicker_last_sync_time_ms);
 				}
 			} else {
-				phase = (int)(g_flight_flicker_refresh_rate_scale *
+				int phase =
+					(int)(g_flight_flicker_refresh_rate_scale *
 					      (timeGetTime() -
 					       g_flight_flicker_last_sync_time_ms)) %
 					100000;
@@ -866,7 +850,7 @@ HRESULT flight_display_flip(void)
 			}
 		}
 
-		flip_result = g_flight_primary_surface->lpVtbl->Flip(
+		HRESULT flip_result = g_flight_primary_surface->lpVtbl->Flip(
 			g_flight_primary_surface, NULL, DDFLIP_WAIT);
 #ifdef XVT_MODERN
 		xvt_render_capture_presented(flip_result == DX_DD_OK);
@@ -942,6 +926,7 @@ HRESULT flight_display_flip(void)
 			}
 		}
 	} else {
+		DDSURFACEDESC surface_desc;
 		if (g_flight_fullscreen == 0) {
 			memset(&surface_desc, 0, sizeof(surface_desc));
 			surface_desc.dwSize = sizeof(surface_desc);
@@ -1013,15 +998,15 @@ void nullsub_11(void) {}
 int flight_display_blit_render_surface(void)
 {
 	HRESULT result;
-	HRESULT blt_result;
 	uint32_t destination_rect[4];
 	uint32_t source_rect[4];
-	DDBLTFX effects;
 
 	if (g_flight_page_flip != 0) {
+		DDBLTFX effects;
 		memset(&effects, 0, sizeof(effects));
 		effects.dwSize = sizeof(effects);
 		effects.dwROP = 0x00CC0020;
+		HRESULT blt_result;
 		do {
 			destination_rect[0] =
 				(unsigned int)(g_display_mode_width -
@@ -1084,10 +1069,10 @@ void flight_display_apply_resolution_mode_backend_stub(int resolution_mode)
 void flight_display_clear_back_buffer(void)
 {
 	DDBLTFX effects;
-	HRESULT blt_result;
 
 	effects.dwSize = sizeof(effects);
 	effects.dwFillColor = 0;
+	HRESULT blt_result;
 	do {
 		blt_result = g_flight_back_buffer->lpVtbl->Blt(
 			g_flight_back_buffer, NULL, NULL, NULL, DDBLT_COLORFILL,
@@ -1112,10 +1097,10 @@ void flight_display_clear_back_buffer(void)
 void flight_display_clear_surface(IDirectDrawSurface *surface)
 {
 	DDBLTFX effects;
-	HRESULT blt_result;
 
 	effects.dwSize = sizeof(effects);
 	effects.dwFillColor = 0;
+	HRESULT blt_result;
 	do {
 		blt_result = surface->lpVtbl->Blt(surface, NULL, NULL, NULL,
 						  DDBLT_COLORFILL, &effects);

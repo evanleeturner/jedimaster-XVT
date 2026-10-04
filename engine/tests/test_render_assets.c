@@ -45,8 +45,8 @@ static void make_roots(void)
 		xvt_test_write_text(g_asset, k_files[i], "x");
 	}
 	char user[XVT_TEST_PATH_CAPACITY];
-	char temp[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(user, g_folder, "user");
+	char temp[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(temp, g_folder, "temp");
 	AeronVfsConfig config = {0};
 	config.asset_root = g_asset;

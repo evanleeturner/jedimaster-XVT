@@ -1247,8 +1247,6 @@ void object_update_lifetime_and_movement(void)
 // FUNCTION: XVT 0x4464C0
 int object_add_trig_move_delta_and_clamp_world_position(uint32_t *object_words)
 {
-	int32_t result;
-
 	object_words[1] += (uint32_t)trig2_xmovedist;
 	if ((int32_t)object_words[1] < -0x01000000) {
 		object_words[1] = (uint32_t)-0x01000000;
@@ -1269,7 +1267,7 @@ int object_add_trig_move_delta_and_clamp_world_position(uint32_t *object_words)
 	if ((int32_t)object_words[3] < -0x01000000) {
 		object_words[3] = (uint32_t)-0x01000000;
 	}
-	result = (int32_t)object_words[3];
+	int32_t result = (int32_t)object_words[3];
 	if (result > 0x01000000) {
 		object_words[3] = 0x01000000;
 	}
@@ -1297,26 +1295,11 @@ void render_non_craft_scene_object(uint16_t object_index)
 		NONCRAFT_DEFAULT_SCREEN_SIZE = 256,
 	};
 
-	struct object_record *object;
-	struct object_type_info *model_type;
-	uint16_t rotation_angle;
-	int16_t *texture_frame_sequence;
-	uint16_t frame;
-	int abs_r0z;
-	int abs_r1z;
-	int axis_x;
-	int axis_y;
-	int projected_x;
-	int projected_x_high;
-	int projected_y;
-	int projected_y_high;
-	int viewport_center;
-	int screen_y;
-
-	object = &g_object_table[object_index];
-	model_type = &g_object_type_table[object->object_type];
+	struct object_record *object = &g_object_table[object_index];
+	struct object_type_info *model_type =
+		&g_object_type_table[object->object_type];
 	g_billboard_object_or_type_index = object_index;
-	texture_frame_sequence = model_type->texture_frame_sequence;
+	int16_t *texture_frame_sequence = model_type->texture_frame_sequence;
 	if (texture_frame_sequence == NULL) {
 		if (object->type_specific_byte[0] != 0) {
 			return;
@@ -1327,7 +1310,7 @@ void render_non_craft_scene_object(uint16_t object_index)
 		return;
 	}
 
-	frame = texture_frame_sequence[object->type_specific_byte[0]];
+	uint16_t frame = texture_frame_sequence[object->type_specific_byte[0]];
 	if (frame >= NONCRAFT_INVALID_FRAME_START) {
 		return;
 	}
@@ -1339,14 +1322,16 @@ void render_non_craft_scene_object(uint16_t object_index)
 		return;
 	}
 
-	abs_r0z = g_obj_view_mat_r0_z;
-	abs_r1z = g_obj_view_mat_r1_z;
+	int abs_r0z = g_obj_view_mat_r0_z;
+	int abs_r1z = g_obj_view_mat_r1_z;
 	if (abs_r0z < 0) {
 		abs_r0z = -abs_r0z;
 	}
 	if (abs_r1z < 0) {
 		abs_r1z = -abs_r1z;
 	}
+	int axis_x;
+	int axis_y;
 	if (abs_r1z > abs_r0z) {
 		axis_x = g_obj_view_mat_r0_x;
 		axis_y = g_obj_view_mat_r0_y;
@@ -1354,29 +1339,30 @@ void render_non_craft_scene_object(uint16_t object_index)
 		axis_x = g_obj_view_mat_r1_x;
 		axis_y = g_obj_view_mat_r1_y;
 	}
+	uint16_t rotation_angle;
 	if (axis_x < 0) {
 		rotation_angle = (uint16_t)trig2_arctan(axis_y, -axis_x);
 	} else {
 		rotation_angle = (uint16_t)-trig2_arctan(axis_y, axis_x);
 	}
 
-	projected_x =
+	int projected_x =
 		transfm2_project_screen_x(g_view_space_x, g_view_space_depth);
-	projected_x_high = projected_x & NONCRAFT_SCREEN_COORD_HIGH_MASK;
+	int projected_x_high = projected_x & NONCRAFT_SCREEN_COORD_HIGH_MASK;
 	if (projected_x_high > 0 ||
 	    projected_x_high < NONCRAFT_SCREEN_COORD_HIGH_MASK) {
 		return;
 	}
-	projected_y =
+	int projected_y =
 		transfm2_project_screen_y(g_view_space_y, g_view_space_depth);
-	projected_y_high = projected_y & NONCRAFT_SCREEN_COORD_HIGH_MASK;
+	int projected_y_high = projected_y & NONCRAFT_SCREEN_COORD_HIGH_MASK;
 	if (projected_y_high > 0 ||
 	    projected_y_high < NONCRAFT_SCREEN_COORD_HIGH_MASK) {
 		return;
 	}
-	viewport_center = g_flight_vp_height >> 1;
+	int viewport_center = g_flight_vp_height >> 1;
 	projected_y -= viewport_center;
-	screen_y = viewport_center - projected_y;
+	int screen_y = viewport_center - projected_y;
 	scene_billboard_queue_projected_textured(
 		g_billboard_object_or_type_index, frame,
 		NONCRAFT_DEFAULT_SCREEN_SIZE, (int16_t)projected_x,
@@ -1394,16 +1380,14 @@ void render_non_craft_scene_object(uint16_t object_index)
 uint16_t object_spawn_detached_component(uint16_t source_object_index,
 					 int16_t mesh_index)
 {
-	uint16_t object_index;
-	int object_offset_index;
-
-	object_index = object_alloc_slot_for_genus(CRAFT_GENUS_SMALL_DEBRIS);
+	uint16_t object_index =
+		object_alloc_slot_for_genus(CRAFT_GENUS_SMALL_DEBRIS);
 	if (object_index == UINT16_MAX) {
 		return UINT16_MAX;
 	}
 
 	object_copy_state_preserving_storage(object_index, source_object_index);
-	object_offset_index = object_index;
+	int object_offset_index = object_index;
 	g_object_table[object_offset_index].mobj->family = 3;
 	g_object_table[object_offset_index].genus_id = CRAFT_GENUS_SMALL_DEBRIS;
 	g_object_table[object_offset_index].mobj->effect_size = 0;
@@ -1431,20 +1415,14 @@ uint16_t object_spawn_detached_component(uint16_t source_object_index,
 // FUNCTION: XVT 0x4592D0
 uint16_t object_spawn_effect_fragment(uint16_t source_obj_idx)
 {
-	uint16_t object_index;
-	int object_offset_index;
-	int16_t yaw_offset;
-	int16_t pitch_offset;
-	uint16_t *pitch;
-	struct mobile_object *mobile_object;
-
-	object_index = object_alloc_slot_for_genus(CRAFT_GENUS_EXPLOSION);
+	uint16_t object_index =
+		object_alloc_slot_for_genus(CRAFT_GENUS_EXPLOSION);
 	if (object_index == UINT16_MAX) {
 		return UINT16_MAX;
 	}
 
 	object_copy_state_preserving_storage(object_index, source_obj_idx);
-	object_offset_index = object_index;
+	int object_offset_index = object_index;
 	g_object_table[object_offset_index].mobj->family = 5;
 	g_object_table[object_offset_index].genus_id = CRAFT_GENUS_EXPLOSION;
 	g_object_table[object_offset_index].mobj->effect_size = 0;
@@ -1454,8 +1432,8 @@ uint16_t object_spawn_effect_fragment(uint16_t source_obj_idx)
 		g_object_table[source_obj_idx].object_type;
 	g_object_table[object_offset_index].player_owner_idx = -1;
 
-	yaw_offset = (game_rand() & 0x7FF) + 0x100;
-	pitch_offset = (game_rand() & 0x7FF) + 0x100;
+	int16_t yaw_offset = (game_rand() & 0x7FF) + 0x100;
+	int16_t pitch_offset = (game_rand() & 0x7FF) + 0x100;
 	if ((game_rand() & 1) != 0) {
 		yaw_offset = -yaw_offset;
 	}
@@ -1464,7 +1442,7 @@ uint16_t object_spawn_effect_fragment(uint16_t source_obj_idx)
 	}
 	g_object_table[object_offset_index].yaw += yaw_offset;
 	g_object_table[object_offset_index].pitch += pitch_offset;
-	pitch = &g_object_table[object_offset_index].pitch;
+	uint16_t *pitch = &g_object_table[object_offset_index].pitch;
 	if (*pitch >= 0x8000) {
 		*pitch = -*pitch;
 		g_object_table[object_offset_index].yaw += 0x8000;
@@ -1473,7 +1451,8 @@ uint16_t object_spawn_effect_fragment(uint16_t source_obj_idx)
 	g_object_table[object_offset_index].mobj->orient_matrix_dirty = 1;
 	g_object_table[object_offset_index].mobj->move_vector_dirty =
 		g_object_table[object_offset_index].mobj->orient_matrix_dirty;
-	mobile_object = g_object_table[object_offset_index].mobj;
+	struct mobile_object *mobile_object =
+		g_object_table[object_offset_index].mobj;
 	mobile_object->speed += (game_rand() & 0xFF) + 50;
 	g_object_table[object_offset_index].mobj->seconds_alive = 0;
 	g_object_table[object_offset_index].mobj->lifetime_timer =
@@ -1494,20 +1473,14 @@ uint16_t object_spawn_effect_fragment(uint16_t source_obj_idx)
 // FUNCTION: XVT 0x459480
 uint16_t object_spawn_local_effect_fragment(uint16_t source_obj_idx)
 {
-	uint16_t object_index;
-	int object_offset_index;
-	int16_t yaw_offset;
-	int16_t pitch_offset;
-	struct object_record *object;
-	uint16_t speed_per_frame;
-
-	object_index = object_alloc_slot_for_genus(CRAFT_GENUS_EXPLOSION);
+	uint16_t object_index =
+		object_alloc_slot_for_genus(CRAFT_GENUS_EXPLOSION);
 	if (object_index == UINT16_MAX) {
 		return UINT16_MAX;
 	}
 
 	object_copy_state_preserving_storage(object_index, source_obj_idx);
-	object_offset_index = object_index;
+	int object_offset_index = object_index;
 	g_object_table[object_offset_index].mobj->family = 5;
 	g_object_table[object_offset_index].genus_id = CRAFT_GENUS_EXPLOSION;
 	g_object_table[object_offset_index].mobj->effect_size = 2;
@@ -1516,8 +1489,8 @@ uint16_t object_spawn_local_effect_fragment(uint16_t source_obj_idx)
 		g_object_table[source_obj_idx].object_type;
 	g_object_table[object_offset_index].player_owner_idx = -1;
 
-	yaw_offset = (game_rand() & 0x1FFF) + 0x100;
-	pitch_offset = (game_rand() & 0x1FFF) + 0x100;
+	int16_t yaw_offset = (game_rand() & 0x1FFF) + 0x100;
+	int16_t pitch_offset = (game_rand() & 0x1FFF) + 0x100;
 	if ((game_rand() & 1) != 0) {
 		yaw_offset = -yaw_offset;
 	}
@@ -1546,26 +1519,23 @@ uint16_t object_spawn_local_effect_fragment(uint16_t source_obj_idx)
 		(game_rand() & 3) + 39;
 	g_object_table[object_offset_index].type_specific_byte[0] = 2;
 
-	object = &g_object_table[object_offset_index];
+	struct object_record *object = &g_object_table[object_offset_index];
 	object->mobj->prev_world_x = object->world_x;
 	object->mobj->prev_world_y = object->world_y;
 	object->mobj->prev_world_z = object->world_z;
-	speed_per_frame =
+	uint16_t speed_per_frame =
 		math2_mphconvert(object->mobj->speed, g_sim_steps_per_second);
 	if (speed_per_frame != 0) {
-		int movement_speed;
-		int z_move;
-
 		if (object->mobj->move_vector_dirty != 0) {
 			fview_calcrotatemove(object->pitch, object->yaw,
 					     object);
 		}
-		movement_speed = speed_per_frame;
+		int movement_speed = speed_per_frame;
 		trig2_xmovedist =
 			math_mul_q15(object->mobj->move_x, movement_speed);
 		trig2_ymovedist =
 			math_mul_q15(object->mobj->move_y, movement_speed);
-		z_move = math_mul_q15(object->mobj->move_z, movement_speed);
+		int z_move = math_mul_q15(object->mobj->move_z, movement_speed);
 		trig2_xmovedist *= 4;
 		trig2_ymovedist *= 4;
 		trig2_zmovedist = 4 * z_move;
@@ -1585,11 +1555,8 @@ uint16_t object_spawn_local_effect_fragment(uint16_t source_obj_idx)
 // FUNCTION: XVT 0x459750
 uint16_t object_alloc_slot_for_genus(uint16_t genus_id)
 {
-	uint16_t end;
-	uint16_t object_index;
-
-	end = g_object_slot_range_by_genus[genus_id].end;
-	object_index = g_object_slot_range_by_genus[genus_id].start;
+	uint16_t end = g_object_slot_range_by_genus[genus_id].end;
+	uint16_t object_index = g_object_slot_range_by_genus[genus_id].start;
 	if (end > object_index) {
 		for (;;) {
 			if (g_object_table[object_index].object_type == 0) {
@@ -1623,13 +1590,9 @@ uint16_t object_alloc_slot_for_genus(uint16_t genus_id)
 // FUNCTION: XVT 0x4597F0
 uint16_t object_find_free_mission_slot(void)
 {
-	uint16_t object_index;
-	int main_object_slot_end;
-	int mission_slot_end;
-
-	object_index = (uint16_t)g_region_main_object_slot_end;
-	main_object_slot_end = g_region_main_object_slot_end;
-	mission_slot_end = g_region_static_object_slot_count;
+	uint16_t object_index = (uint16_t)g_region_main_object_slot_end;
+	int main_object_slot_end = g_region_main_object_slot_end;
+	int mission_slot_end = g_region_static_object_slot_count;
 	mission_slot_end += main_object_slot_end;
 	while (object_index < mission_slot_end) {
 		if (g_object_table[object_index].object_type == 0) {
@@ -1651,46 +1614,35 @@ uint16_t object_find_free_mission_slot(void)
 void object_copy_state_preserving_storage(unsigned int dst_obj_idx,
 					  unsigned int src_obj_idx)
 {
-	struct craft_data *destination_craft;
-	struct craft_data *source_craft;
-	struct warhead_guidance_state *destination_guidance;
-	struct warhead_guidance_state *source_guidance;
-	struct mobile_object_char_data *destination_char_data;
-	struct mobile_object_char_data *source_char_data;
-	struct mobile_object *destination_mobile_object;
-	struct mobile_object *source_mobile_object;
-	struct craft_data *preserved_craft;
-	struct warhead_guidance_state *preserved_guidance;
-	struct mobile_object_char_data *preserved_char_data;
-	struct object_record *destination_object;
-	struct object_record *source_object;
-
 #ifdef XVT_MODERN
 	xvt_flight_integration_reset_slot_and_motion(dst_obj_idx);
 #endif
 
-	destination_craft = g_object_table[dst_obj_idx].mobj->p_craft;
+	struct craft_data *destination_craft =
+		g_object_table[dst_obj_idx].mobj->p_craft;
 	if (destination_craft != NULL) {
-		source_craft = g_object_table[src_obj_idx].mobj->p_craft;
+		struct craft_data *source_craft =
+			g_object_table[src_obj_idx].mobj->p_craft;
 		if (source_craft != NULL) {
 			memcpy(destination_craft, source_craft,
 			       sizeof(*destination_craft));
 		}
 	}
 
-	destination_guidance =
+	struct warhead_guidance_state *destination_guidance =
 		g_object_table[dst_obj_idx].mobj->p_warhead_guidance;
 	if (destination_guidance != NULL) {
-		source_guidance =
+		struct warhead_guidance_state *source_guidance =
 			g_object_table[src_obj_idx].mobj->p_warhead_guidance;
 		if (source_guidance != NULL) {
 			*destination_guidance = *source_guidance;
 		}
 	}
 
-	destination_char_data = g_object_table[dst_obj_idx].mobj->p_char_data;
+	struct mobile_object_char_data *destination_char_data =
+		g_object_table[dst_obj_idx].mobj->p_char_data;
 	if (destination_char_data != NULL) {
-		source_char_data =
+		struct mobile_object_char_data *source_char_data =
 			g_object_table[src_obj_idx].mobj->p_char_data;
 		if (source_char_data != NULL) {
 			memcpy(destination_char_data, source_char_data,
@@ -1698,14 +1650,17 @@ void object_copy_state_preserving_storage(unsigned int dst_obj_idx,
 		}
 	}
 
-	destination_mobile_object = g_object_table[dst_obj_idx].mobj;
+	struct mobile_object *destination_mobile_object =
+		g_object_table[dst_obj_idx].mobj;
 	if (destination_mobile_object != NULL) {
-		source_mobile_object = g_object_table[src_obj_idx].mobj;
+		struct mobile_object *source_mobile_object =
+			g_object_table[src_obj_idx].mobj;
 		if (source_mobile_object != NULL) {
-			preserved_craft = destination_mobile_object->p_craft;
-			preserved_guidance =
+			struct craft_data *preserved_craft =
+				destination_mobile_object->p_craft;
+			struct warhead_guidance_state *preserved_guidance =
 				destination_mobile_object->p_warhead_guidance;
-			preserved_char_data =
+			struct mobile_object_char_data *preserved_char_data =
 				destination_mobile_object->p_char_data;
 			memcpy(destination_mobile_object, source_mobile_object,
 			       sizeof(*destination_mobile_object));
@@ -1718,9 +1673,9 @@ void object_copy_state_preserving_storage(unsigned int dst_obj_idx,
 		}
 	}
 
-	destination_object = &g_object_table[dst_obj_idx];
+	struct object_record *destination_object = &g_object_table[dst_obj_idx];
 	destination_mobile_object = destination_object->mobj;
-	source_object = &g_object_table[src_obj_idx];
+	struct object_record *source_object = &g_object_table[src_obj_idx];
 	memcpy(destination_object, source_object, sizeof(*destination_object));
 	g_object_table[dst_obj_idx].mobj = destination_mobile_object;
 	collide_reset_object_proximity_for_slot((uint16_t)dst_obj_idx);
@@ -1734,11 +1689,7 @@ void object_copy_state_preserving_storage(unsigned int dst_obj_idx,
 // FUNCTION: XVT 0x45A0C0
 void object_relink_mobile_object_pointers(void)
 {
-	int object_index;
-	struct mobile_object_link_indices *link_indices;
-	int linked_object_index;
-
-	object_index = 0;
+	int object_index = 0;
 	if (g_region_main_object_slot_end > 0) {
 		do {
 			g_object_table[object_index].mobj =
@@ -1749,7 +1700,8 @@ void object_relink_mobile_object_pointers(void)
 
 	object_index = 0;
 	if (g_region_main_object_slot_end > 0) {
-		link_indices = g_mobile_object_link_indices;
+		struct mobile_object_link_indices *link_indices =
+			g_mobile_object_link_indices;
 		do {
 			if (link_indices->warhead_guidance_idx != -1) {
 				g_mobile_object_pool_base[object_index]
@@ -1764,7 +1716,7 @@ void object_relink_mobile_object_pointers(void)
 						[link_indices->craft_data_idx];
 				/* Nothing in this build sets craft_data_idx, so this branch never runs. The table it reads
 				 * holds the object type each slot was spawned with, not an object index. */
-				linked_object_index =
+				int linked_object_index =
 					g_spawn_object_type_by_object_slot
 						[link_indices->craft_data_idx];
 				if (linked_object_index != -1) {
@@ -1800,19 +1752,12 @@ unsigned int object_direction_and_distance_to_mesh_center(
 	int origin_x = from_object->world_x;
 	int origin_y = from_object->world_y;
 	int origin_z = from_object->world_z;
-	int object_type;
-	int delta_x;
-	int delta_y;
-	int delta_z;
-	int target_world_x;
-	int target_world_y;
-	int target_world_z;
 
 	mission_resolve_object_or_mission_point_world_loc(target_obj_idx, 0);
-	target_world_x = g_world_loc_x;
-	target_world_y = g_world_loc_y;
-	target_world_z = g_world_loc_z;
-	object_type = g_object_table[target_obj_idx].object_type;
+	int target_world_x = g_world_loc_x;
+	int target_world_y = g_world_loc_y;
+	int target_world_z = g_world_loc_z;
+	int object_type = g_object_table[target_obj_idx].object_type;
 	g_rotated_x = model_mesh_get_center_x(object_type, mesh_idx);
 	g_rotated_y = model_mesh_get_center_z(object_type, mesh_idx);
 	g_rotated_z = -model_mesh_get_center_y(object_type, mesh_idx);
@@ -1820,9 +1765,9 @@ unsigned int object_direction_and_distance_to_mesh_center(
 		&g_object_table[target_obj_idx], g_rotated_x, g_rotated_y,
 		g_rotated_z);
 
-	delta_x = g_rotated_x + target_world_x - origin_x;
-	delta_y = g_rotated_y + target_world_y - origin_y;
-	delta_z = g_rotated_z + target_world_z - origin_z;
+	int delta_x = g_rotated_x + target_world_x - origin_x;
+	int delta_y = g_rotated_y + target_world_y - origin_y;
+	int delta_z = g_rotated_z + target_world_z - origin_z;
 	trig2_ctop(delta_x, delta_y, delta_z);
 	return (unsigned int)collide_roughdistance3d(delta_x, delta_y, delta_z);
 }
@@ -1833,8 +1778,6 @@ unsigned int object_direction_and_distance_to_mesh_center(
 // FUNCTION: XVT 0x484F80
 uint8_t object_has_active_decoy_beam(uint16_t obj_idx)
 {
-	struct craft_data *craft;
-
 	if (obj_idx == UINT16_MAX) {
 		return 0;
 	}
@@ -1846,7 +1789,7 @@ uint8_t object_has_active_decoy_beam(uint16_t obj_idx)
 		return 0;
 	}
 
-	craft = g_object_table[obj_idx].mobj->p_craft;
+	struct craft_data *craft = g_object_table[obj_idx].mobj->p_craft;
 	if (craft == NULL) {
 		return 0;
 	}

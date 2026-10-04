@@ -100,10 +100,10 @@ static void escape_dialog(void)
 static void check_nothing_open(void)
 {
 	fresh();
-	int result = 123;
 	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 0);
 	XVT_ASSERT_INT_EQ(xvt_dialog_is_text_prompt(), 0);
 	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
+	int result = 123;
 	XVT_ASSERT_INT_EQ(xvt_dialog_take_result(&result), 0);
 	XVT_ASSERT_INT_EQ(result, 123);
 	XVT_ASSERT_INT_EQ(xvt_dialog_continue_with(continuation, 1), 0);
@@ -331,11 +331,11 @@ static void check_pilot_name_escaped(void)
 static void check_pilot_name_after_confirm(void)
 {
 	fresh();
-	char name[13];
 	XVT_ASSERT_INT_EQ(xvt_dialog_confirm("ABCDEFGHIJKLMNOP", NULL, NULL,
 					     NULL, NULL, 0),
 			  XVT_DIALOG_PENDING);
 	escape_dialog();
+	char name[13];
 	/* The confirm's first line, cut to 12 characters and terminated. */
 	memset(name, 'Z', sizeof name);
 	XVT_ASSERT_INT_EQ(xvt_dialog_pilot_name(name), 0);
@@ -346,11 +346,11 @@ static void check_pilot_name_after_confirm(void)
 static void check_continuation(void)
 {
 	fresh();
-	int frame_result = 0;
 	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
 	XVT_ASSERT_INT_EQ(xvt_dialog_continue_with(continuation, 42), 0);
 	xvt_dialog_update();
+	int frame_result = 0;
 	XVT_ASSERT_INT_EQ(xvt_dialog_resume_continuation(&frame_result), 0);
 	g_update_ends = 1;
 	g_update_result = 7;
@@ -410,11 +410,11 @@ static void check_shutdown(void)
 	XVT_ASSERT_TRUE(top_screen() == parent);
 	XVT_ASSERT_INT_EQ(g_front_state.frame_counter, PARENT_FRAME);
 
-	/* The continuation is forgotten too. */
-	int frame_result = 0;
 	XVT_ASSERT_INT_EQ(xvt_dialog_begin(test_update, NULL),
 			  XVT_DIALOG_PENDING);
 	escape_dialog();
+	/* The continuation is forgotten too. */
+	int frame_result = 0;
 	XVT_ASSERT_INT_EQ(xvt_dialog_resume_continuation(&frame_result), 0);
 	XVT_ASSERT_INT_EQ(g_continuation_calls, 0);
 

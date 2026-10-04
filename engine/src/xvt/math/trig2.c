@@ -255,23 +255,18 @@ int16_t trig2_getsignedsin(int16_t angle_q16)
 // FUNCTION: XVT 0x46A3F0
 int16_t trig2_calcsinemagnitude(int16_t angle)
 {
-	uint16_t table_index;
-	uint16_t base;
-	uint16_t delta_magnitude;
-	int16_t signed_delta;
-	uint32_t interpolation;
-
-	table_index = ((uint16_t)angle >> 6) & 0x1FFu;
-	base = g_sin_table[table_index];
-	delta_magnitude = (uint16_t)(g_sin_table[table_index + 1] - base);
-	signed_delta = (int16_t)delta_magnitude;
+	uint16_t table_index = ((uint16_t)angle >> 6) & 0x1FFu;
+	uint16_t base = g_sin_table[table_index];
+	uint16_t delta_magnitude =
+		(uint16_t)(g_sin_table[table_index + 1] - base);
+	int16_t signed_delta = (int16_t)delta_magnitude;
 	if (signed_delta < 0) {
 		delta_magnitude = (uint16_t)-delta_magnitude;
 	}
 
-	interpolation = ((uint32_t)(uint16_t)((uint16_t)angle << 10) *
-			 delta_magnitude) >>
-			16;
+	uint32_t interpolation = ((uint32_t)(uint16_t)((uint16_t)angle << 10) *
+				  delta_magnitude) >>
+				 16;
 	if (signed_delta < 0) {
 		interpolation = 0u - interpolation;
 	}
@@ -297,31 +292,25 @@ int16_t trig2_w_arccos(int16_t cos_q15) { return trig2_arccos(cos_q15); }
 // FUNCTION: XVT 0x46A470
 int16_t trig2_arccos(int16_t cos_q15)
 {
-	int16_t table_index;
-	int16_t remaining_steps;
-	uint16_t target;
-	uint16_t divisor;
-	uint16_t base;
-	uint16_t span;
-	uint16_t delta;
-	uint16_t interpolation;
-	uint16_t angle;
-
-	table_index = 256;
-	target = (uint16_t)cos_q15;
+	int16_t table_index = 256;
+	uint16_t target = (uint16_t)cos_q15;
 	if (cos_q15 < 0) {
 		target = (uint16_t)-target;
 	}
 	target = (uint16_t)(target + target);
-	remaining_steps = 256;
+	int16_t remaining_steps = 256;
+	uint16_t interpolation;
+	uint16_t angle;
 	do {
 		if (g_sin_table[table_index] <= target) {
 			--remaining_steps;
-			base = g_sin_table[table_index - 1];
-			delta = (uint16_t)(target - base);
+			uint16_t base = g_sin_table[table_index - 1];
+			uint16_t delta = (uint16_t)(target - base);
 			if (delta != 0) {
-				span = (uint16_t)(g_sin_table[table_index - 2] -
-						  base);
+				uint16_t span =
+					(uint16_t)(g_sin_table[table_index -
+							       2] -
+						   base);
 				/* Keep the shifted 32-bit pattern signed for division. */
 				interpolation =
 					(uint16_t)((uint16_t)((int32_t)((uint32_t)
@@ -346,7 +335,7 @@ int16_t trig2_arccos(int16_t cos_q15)
 		++table_index;
 	} while (remaining_steps > 0);
 
-	divisor = g_sin_table[table_index - 1];
+	uint16_t divisor = g_sin_table[table_index - 1];
 	interpolation = (uint16_t)((int32_t)((uint32_t)target << 16) /
 				   (int32_t)divisor);
 	interpolation >>= 8;
@@ -375,26 +364,19 @@ int16_t trig2_arccos(int16_t cos_q15)
 // FUNCTION: XVT 0x46A550
 int16_t trig2_arcsin(int16_t sin_q15)
 {
-	int16_t table_index;
-	int16_t remaining_steps;
-	int table_offset;
-	uint16_t target;
-	uint16_t span;
-	uint16_t delta;
 	uint16_t interpolation;
-	int16_t angle;
 
 #ifdef XVT_MODERN
 	interpolation = 0;
 #endif
-	table_index = 0;
-	target = (uint16_t)sin_q15;
+	int16_t table_index = 0;
+	uint16_t target = (uint16_t)sin_q15;
 	if (sin_q15 < 0) {
 		target = (uint16_t)-target;
 	}
 	target = (uint16_t)(target + target);
 
-	remaining_steps = 256;
+	int16_t remaining_steps = 256;
 	while (g_sin_table[table_index] < target) {
 		--remaining_steps;
 		++table_index;
@@ -403,24 +385,24 @@ int16_t trig2_arcsin(int16_t sin_q15)
 		}
 	}
 
-	table_offset = table_index;
+	int table_offset = table_index;
 	--remaining_steps;
 	/* From here table_index holds a table value, the interpolation base below target, not an index. */
 	table_index = 0;
-	span = 0;
+	uint16_t span = 0;
 	if (table_offset >= 2) {
 		table_index = (int16_t)g_sin_table[table_offset - 2];
 		span = (uint16_t)(g_sin_table[table_offset - 1] -
 				  (uint16_t)table_index);
 	}
-	delta = (uint16_t)(target - (uint16_t)table_index);
+	uint16_t delta = (uint16_t)(target - (uint16_t)table_index);
 	if (delta != 0) {
 		interpolation = (uint16_t)(((int)(uint16_t)delta << 16) /
 					   (int)(uint16_t)span);
 		interpolation >>= 8;
 	}
 
-	angle = (int16_t)(-1 - remaining_steps);
+	int16_t angle = (int16_t)(-1 - remaining_steps);
 	angle = (int16_t)((uint16_t)angle << 8);
 	angle = (int16_t)(angle + interpolation);
 	angle = (int16_t)((uint16_t)angle >> 2);
@@ -439,18 +421,14 @@ int16_t trig2_arcsin(int16_t sin_q15)
 // FUNCTION: XVT 0x46A5F0
 unsigned int trig2_sinewordmult(int16_t value, int16_t angle)
 {
-	uint16_t sine;
-	uint16_t sign_difference;
-	uint32_t product;
-
 	/* sine first holds value's sign bit (0x8000 or 0); it takes the table sine below. */
-	sine = (uint16_t)value & 0x8000u;
+	uint16_t sine = (uint16_t)value & 0x8000u;
 	if (sine != 0) {
 		value = (int16_t)-value;
 	}
-	sign_difference = sine ^ ((uint16_t)angle & 0x8000u);
+	uint16_t sign_difference = sine ^ ((uint16_t)angle & 0x8000u);
 	sine = g_sin_table[((uint16_t)angle >> 6) & 0x1FFu];
-	product = (uint32_t)sine * (uint16_t)value + 0x8000u;
+	uint32_t product = (uint32_t)sine * (uint16_t)value + 0x8000u;
 	if (sign_difference != 0) {
 		product = 0u - product;
 	}
@@ -466,18 +444,15 @@ unsigned int trig2_sinewordmult(int16_t value, int16_t angle)
 // FUNCTION: XVT 0x46A650
 int trig2_sinedwordmult(int value, uint16_t angle)
 {
-	int16_t sign;
-	uint16_t table_value;
-	uint32_t low_product;
-
-	sign = 0;
+	int16_t sign = 0;
 	if (value < 0) {
 		sign = 0x8000u;
 		value = (int)(0u - (uint32_t)value);
 	}
 	sign ^= (uint16_t)angle;
-	table_value = g_sin_table[(((uint16_t)angle >> 5) & 0x3FEu) >> 1];
-	low_product =
+	uint16_t table_value =
+		g_sin_table[(((uint16_t)angle >> 5) & 0x3FEu) >> 1];
+	uint32_t low_product =
 		((table_value * (uint32_t)(uint16_t)value) + 0x8000u) >> 16;
 	value = (int)((uint32_t)value >> 16);
 	value = (int)((uint32_t)value * table_value + low_product);
@@ -501,19 +476,15 @@ int16_t trig2_getsignedcos(int16_t angle_q16)
 // FUNCTION: XVT 0x46A700
 unsigned int trig2_cosinewordmult(uint16_t value, int16_t angle)
 {
-	uint16_t cosine;
-	uint16_t sign_difference;
-	uint32_t product;
-
 	/* cosine first holds value's sign bit (0x8000 or 0); it takes the table cosine below. */
-	cosine = value & 0x8000u;
+	uint16_t cosine = value & 0x8000u;
 	if (cosine != 0) {
 		value = (uint16_t)(0u - value);
 	}
 	angle = (int16_t)(angle + 0x4000);
-	sign_difference = cosine ^ ((uint16_t)angle & 0x8000u);
+	uint16_t sign_difference = cosine ^ ((uint16_t)angle & 0x8000u);
 	cosine = g_sin_table[((uint16_t)angle >> 6) & 0x1FFu];
-	product = (uint32_t)cosine * value + 0x8000u;
+	uint32_t product = (uint32_t)cosine * value + 0x8000u;
 	if (sign_difference != 0) {
 		product = 0u - product;
 	}
@@ -526,32 +497,25 @@ unsigned int trig2_cosinewordmult(uint16_t value, int16_t angle)
 // FUNCTION: XVT 0x46A760
 int trig2_cosinedwordmult(int value, uint16_t angle)
 {
-	uint16_t sign;
-	uint16_t shifted_angle;
-	uint16_t table_value;
-	uint32_t low_product;
-	uint32_t magnitude;
-	int result;
-
-	sign = 0;
-	magnitude = (uint32_t)value;
+	uint16_t sign = 0;
+	uint32_t magnitude = (uint32_t)value;
 	if (value < 0) {
 		sign = (int16_t)0x8000u;
 		magnitude = 0u - magnitude;
 	}
-	shifted_angle = (uint16_t)angle;
+	uint16_t shifted_angle = (uint16_t)angle;
 	shifted_angle += 0x4000u;
 	sign ^= (int16_t)shifted_angle;
 	shifted_angle >>= 5;
 	sign &= (int16_t)0x8000u;
 	shifted_angle &= 0x3FEu;
 	shifted_angle >>= 1;
-	table_value = g_sin_table[shifted_angle];
-	low_product =
+	uint16_t table_value = g_sin_table[shifted_angle];
+	uint32_t low_product =
 		((table_value * (uint32_t)(uint16_t)magnitude) + 0x8000u) >> 16;
 	magnitude >>= 16;
 	magnitude *= table_value;
-	result = (int)(magnitude + low_product);
+	int result = (int)(magnitude + low_product);
 	if (sign != 0) {
 		return -result;
 	}
@@ -597,19 +561,14 @@ void trig2_movexyz(uint16_t distance, int16_t yaw, uint16_t pitch)
 // FUNCTION: XVT 0x46A8D0
 void trig2_ctop(int dx, int dy, int dz)
 {
-	int magnitude_x;
-	int magnitude_y;
-	int magnitude_z;
-	int16_t angle;
-
-	magnitude_x = dx;
+	int magnitude_x = dx;
 	if (magnitude_x < 0) {
 		magnitude_x = -magnitude_x;
 		trig2_signx = 1;
 	} else {
 		trig2_signx = 0;
 	}
-	magnitude_y = dy;
+	int magnitude_y = dy;
 	trig2_xoffset = magnitude_x;
 	if (magnitude_y < 0) {
 		magnitude_y = -magnitude_y;
@@ -617,7 +576,7 @@ void trig2_ctop(int dx, int dy, int dz)
 	} else {
 		trig2_signy = 0;
 	}
-	magnitude_z = dz;
+	int magnitude_z = dz;
 	trig2_yoffset = magnitude_y;
 	if (magnitude_z < 0) {
 		magnitude_z = -magnitude_z;
@@ -628,7 +587,7 @@ void trig2_ctop(int dx, int dy, int dz)
 	trig2_zoffset = magnitude_z;
 
 	trig2_calcangleplanedistance(magnitude_x, magnitude_y);
-	angle = trig2_angleplane;
+	int16_t angle = trig2_angleplane;
 	trig2_xyangle = angle;
 	if (trig2_signy != 0) {
 		angle = (int16_t)-trig2_angleplane;
@@ -656,17 +615,14 @@ void trig2_ctop(int dx, int dy, int dz)
 // FUNCTION: XVT 0x46A9E0
 void trig2_ctop2dim(int dx, int dy)
 {
-	int magnitude_x;
-	int magnitude_y;
-
-	magnitude_x = dx;
+	int magnitude_x = dx;
 	if (magnitude_x < 0) {
 		magnitude_x = -magnitude_x;
 		trig2_signx = 1;
 	} else {
 		trig2_signx = 0;
 	}
-	magnitude_y = dy;
+	int magnitude_y = dy;
 	if (magnitude_y < 0) {
 		magnitude_y = -magnitude_y;
 		trig2_signy = 1;
@@ -695,21 +651,16 @@ int trig2_calcangleplanedistance(int magnitude_a, int magnitude_b)
 {
 	int16_t angle;
 	int16_t ratio_index;
-	uint32_t scale;
-	uint32_t divisor;
-	uint32_t high_product;
-	uint32_t low_product;
-	uint16_t rounded_low_product;
 
 	trig2_calcarctan_core(magnitude_a, magnitude_b, &angle, &ratio_index);
 	trig2_angleplane = angle;
-	scale = g_hypot_excess_q16_table[(uint16_t)ratio_index];
-	divisor = (uint32_t)trig2_larger_leg;
-	high_product = (divisor >> 16) * scale;
-	low_product = (divisor & 0xFFFFu) * scale;
+	uint32_t scale = g_hypot_excess_q16_table[(uint16_t)ratio_index];
+	uint32_t divisor = (uint32_t)trig2_larger_leg;
+	uint32_t high_product = (divisor >> 16) * scale;
+	uint32_t low_product = (divisor & 0xFFFFu) * scale;
 	low_product += 0x8000u;
 	low_product >>= 16;
-	rounded_low_product = (uint16_t)low_product;
+	uint16_t rounded_low_product = (uint16_t)low_product;
 	trig2_polardistance =
 		(int)(divisor + high_product + rounded_low_product);
 	return trig2_polardistance;
@@ -727,17 +678,9 @@ int trig2_calcangleplanedistance(int magnitude_a, int magnitude_b)
 int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *out_angle,
 			      int16_t *out_ratio_index)
 {
-	uint32_t numerator;
-	uint32_t fraction;
-	uint32_t divisor;
-	uint16_t table_delta;
-	uint32_t interpolation;
-	uint32_t swap;
-	int16_t result;
-
-	numerator = (uint32_t)opposite;
-	divisor = (uint32_t)adjacent;
-	fraction = 0;
+	uint32_t numerator = (uint32_t)opposite;
+	uint32_t divisor = (uint32_t)adjacent;
+	uint32_t fraction = 0;
 	trig2_legs_swapped = 0;
 	if (numerator == divisor) {
 		numerator = 256;
@@ -745,7 +688,7 @@ int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *out_angle,
 	} else {
 		if ((int32_t)numerator >= (int32_t)divisor) {
 			trig2_legs_swapped = 1;
-			swap = numerator;
+			uint32_t swap = numerator;
 			numerator = divisor;
 			divisor = swap;
 		}
@@ -776,13 +719,14 @@ int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *out_angle,
 
 	*out_ratio_index = (int16_t)numerator;
 	*out_angle = g_arctantable[(uint16_t)numerator + 1];
-	table_delta = (uint16_t)(*out_angle -
-				 g_arctantable[(uint16_t)*out_ratio_index]);
-	*out_angle = (int16_t)table_delta;
-	interpolation = ((fraction & 0xFF00u) * table_delta) >> 16;
-	*out_angle = (int16_t)interpolation;
-	result = (int16_t)(interpolation +
+	uint16_t table_delta =
+		(uint16_t)(*out_angle -
 			   g_arctantable[(uint16_t)*out_ratio_index]);
+	*out_angle = (int16_t)table_delta;
+	uint32_t interpolation = ((fraction & 0xFF00u) * table_delta) >> 16;
+	*out_angle = (int16_t)interpolation;
+	int16_t result = (int16_t)(interpolation +
+				   g_arctantable[(uint16_t)*out_ratio_index]);
 	*out_angle = result;
 	if (trig2_legs_swapped != 0) {
 		result = (int16_t)-result;
@@ -801,25 +745,22 @@ int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *out_angle,
 // FUNCTION: XVT 0x46ABF0
 int16_t trig2_arctan(int y, int x)
 {
-	int magnitude_y;
-	int magnitude_x;
-	int16_t ratio_index;
-	int16_t angle;
-
-	magnitude_y = y;
+	int magnitude_y = y;
 	if (magnitude_y < 0) {
 		magnitude_y = -magnitude_y;
 		trig2_signy = 1;
 	} else {
 		trig2_signy = 0;
 	}
-	magnitude_x = x;
+	int magnitude_x = x;
 	if (magnitude_x < 0) {
 		magnitude_x = -magnitude_x;
 		trig2_signx = 1;
 	} else {
 		trig2_signx = 0;
 	}
+	int16_t ratio_index;
+	int16_t angle;
 	trig2_calcarctan_core(magnitude_x, magnitude_y, &angle, &ratio_index);
 	if (trig2_signy != 0) {
 		angle = (int16_t)-angle;

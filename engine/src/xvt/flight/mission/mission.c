@@ -456,8 +456,6 @@ void mission_update_logic(void)
 		PLACE_ORDINAL_MESSAGE_BASE = 294,
 	};
 
-	uint16_t message_index;
-
 	if (g_flight_mission_state.proving_grounds_mode_active != 0) {
 		return;
 	}
@@ -465,12 +463,8 @@ void mission_update_logic(void)
 	if (g_flight_global_countdown_timers.mission_goal_evaluation_timer ==
 		    0 ||
 	    g_flight_mission_state.mission_end_pending != 0) {
-		unsigned int mission_elapsed_seconds;
-		uint16_t flight_group_index;
-		uint16_t team_index;
-		int player_index;
-
 		g_flight_mission_state.connected_player_count = 0;
+		int player_index;
 		for (player_index = 0; player_index < PLAYER_COUNT;
 		     ++player_index) {
 			if (g_players[player_index].participation_state != 0) {
@@ -485,19 +479,19 @@ void mission_update_logic(void)
 				.max_connected_player_count_this_mission =
 				g_flight_mission_state.connected_player_count;
 		}
-		mission_elapsed_seconds = mission_clock_to_seconds(
+		unsigned int mission_elapsed_seconds = mission_clock_to_seconds(
 			g_mission_elapsed_clock.hours,
 			g_mission_elapsed_clock.minutes,
 			g_mission_elapsed_clock.seconds);
 
+		uint16_t flight_group_index;
+		uint16_t team_index;
 		for (flight_group_index = 0;
 		     flight_group_index <
 		     (int16_t)g_mission_header.num_flight_groups;
 		     ++flight_group_index) {
-			uint16_t goal_index;
-
-			for (goal_index = 0; goal_index < FG_GOAL_COUNT;
-			     ++goal_index) {
+			for (uint16_t goal_index = 0;
+			     goal_index < FG_GOAL_COUNT; ++goal_index) {
 				if (g_mission_fg_stats[flight_group_index]
 						    .arrival_enabled == 0 &&
 				    g_mission_flight_groups[flight_group_index]
@@ -522,8 +516,6 @@ void mission_update_logic(void)
 							    .enabled_teams
 								    [team_index] !=
 						    0) {
-							int16_t result;
-
 							if (g_mission_fg_stats[flight_group_index]
 								    .goal_state
 									    [FG_GOAL_COUNT *
@@ -550,7 +542,7 @@ void mission_update_logic(void)
 									0;
 								continue;
 							}
-							result = mission_evaluate_condition(
+							int16_t result = mission_evaluate_condition(
 								g_mission_flight_groups[flight_group_index]
 									.fg
 									.goals[goal_index]
@@ -632,14 +624,10 @@ void mission_update_logic(void)
 		}
 
 		for (team_index = 0; team_index < TEAM_COUNT; ++team_index) {
-			uint16_t goal_kind;
-
-			for (goal_kind = 0; goal_kind < GLOBAL_GOAL_COUNT;
-			     ++goal_kind) {
-				int16_t saw_success = 0;
+			for (uint16_t goal_kind = 0;
+			     goal_kind < GLOBAL_GOAL_COUNT; ++goal_kind) {
 				uint16_t aggregate_state =
 					goal_kind != GOAL_PREVENT;
-				uint16_t global_state;
 				uint8_t condition1 =
 					g_mission_global_goals
 						[team_index][goal_kind]
@@ -664,9 +652,8 @@ void mission_update_logic(void)
 							.trigger_pairs[1]
 							.triggers[1]
 							.condition;
-				uint16_t trigger_index;
 
-				for (trigger_index = 0;
+				for (uint16_t trigger_index = 0;
 				     trigger_index < GLOBAL_TRIGGER_COUNT;
 				     ++trigger_index) {
 					g_flight_mission_state.runtime
@@ -680,6 +667,8 @@ void mission_update_logic(void)
 							[goal_kind]
 							[trigger_index] = 0;
 				}
+				int16_t saw_success = 0;
+				uint16_t global_state;
 				if ((condition1 == MISSION_COND_NEVER ||
 				     condition1 == MISSION_COND_ALWAYS_TRUE) &&
 				    (condition2 == MISSION_COND_NEVER ||
@@ -690,14 +679,8 @@ void mission_update_logic(void)
 				     condition4 == MISSION_COND_ALWAYS_TRUE)) {
 					global_state = 0;
 				} else {
-					int pair1_team = TEAM_COUNT;
-					int pair2_team;
-					int16_t pair1_result;
-					int16_t pair2_result;
-					uint16_t trigger1_result;
-					uint16_t trigger2_result;
-
 					saw_success = 1;
+					int pair1_team = TEAM_COUNT;
 					if (condition2 ==
 						    MISSION_COND_NO_CONDITION &&
 					    g_mission_global_goals
@@ -718,7 +701,7 @@ void mission_update_logic(void)
 										[1]
 									.variable;
 					}
-					trigger1_result = (uint16_t)mission_evaluate_condition(
+					uint16_t trigger1_result = (uint16_t)mission_evaluate_condition(
 						condition1,
 						g_mission_global_goals
 							[team_index][goal_kind]
@@ -749,6 +732,7 @@ void mission_update_logic(void)
 							[1][team_index]
 							[goal_kind][0] =
 						g_mission_condition_total_count;
+					uint16_t trigger2_result;
 					if (condition2 !=
 					    MISSION_COND_NO_CONDITION) {
 						trigger2_result = (uint16_t)mission_evaluate_condition(
@@ -792,6 +776,7 @@ void mission_update_logic(void)
 					} else {
 						trigger2_result = 0;
 					}
+					int16_t pair1_result;
 					if (condition2 ==
 					    MISSION_COND_NO_CONDITION) {
 						pair1_result =
@@ -832,7 +817,7 @@ void mission_update_logic(void)
 									   : GOAL_STATE_PENDING);
 					}
 
-					pair2_team = TEAM_COUNT;
+					int pair2_team = TEAM_COUNT;
 					if (condition4 ==
 						    MISSION_COND_NO_CONDITION &&
 					    g_mission_global_goals
@@ -927,6 +912,7 @@ void mission_update_logic(void)
 					} else {
 						trigger2_result = 0;
 					}
+					int16_t pair2_result;
 					if (condition4 ==
 					    MISSION_COND_NO_CONDITION) {
 						pair1_result =
@@ -1053,9 +1039,7 @@ void mission_update_logic(void)
 				     (int16_t)
 					     g_mission_header.num_flight_groups;
 				     ++flight_group_index) {
-					uint16_t goal_index;
-
-					for (goal_index = 0;
+					for (uint16_t goal_index = 0;
 					     goal_index < FG_GOAL_COUNT;
 					     ++goal_index) {
 						if (g_mission_flight_groups[flight_group_index]
@@ -1149,8 +1133,6 @@ void mission_update_logic(void)
 					    old_state != GOAL_STATE_SUCCESS &&
 					    g_mission_header.goals_unimportant ==
 						    0) {
-						int completed_team_count = 0;
-
 						g_flight_mission_state.runtime
 							.team_goal_status
 								[team_index]
@@ -1159,6 +1141,8 @@ void mission_update_logic(void)
 								aggregate_state;
 						if (aggregate_state ==
 						    GOAL_STATE_SUCCESS) {
+							int completed_team_count =
+								0;
 							/* player_index is reused here as a team index over team_goal_status. */
 							for (player_index = 0;
 							     player_index <
@@ -1181,15 +1165,12 @@ void mission_update_logic(void)
 								if (g_mission_header
 									    .mission_type ==
 								    MISSION_TYPE_COMBAT) {
-									int is_hostile_team;
-									int other_team;
-
-									for (other_team =
+									for (int other_team =
 										     0;
 									     other_team <
 									     TEAM_COUNT;
 									     ++other_team) {
-										is_hostile_team =
+										int is_hostile_team =
 											team_index !=
 												other_team &&
 											g_mission_teams[other_team]
@@ -1271,8 +1252,6 @@ void mission_update_logic(void)
 										    [player_index]
 											    .team ==
 									    team_index) {
-										uint8_t announce_victory;
-
 										g_players[player_index]
 											.mission_stats
 											.primary_goal_finish_place =
@@ -1280,7 +1259,7 @@ void mission_update_logic(void)
 										g_msg_sender_iff =
 											g_players[player_index]
 												.iff;
-										announce_victory =
+										uint8_t announce_victory =
 											1;
 										if (g_mission_header.mission_type ==
 											    MISSION_TYPE_COMBAT &&
@@ -1324,9 +1303,7 @@ void mission_update_logic(void)
 											}
 											if (player_index ==
 											    g_local_player) {
-												uint16_t
-													team_message_index;
-												for (team_message_index =
+												for (uint16_t team_message_index =
 													     0;
 												     team_message_index <
 												     TEAM_MESSAGE_COUNT;
@@ -1440,8 +1417,6 @@ void mission_update_logic(void)
 										    g_local_player) {
 										uint8_t announce_failure =
 											1;
-										uint16_t
-											team_message_index;
 
 										if (g_mission_header.mission_type ==
 											    MISSION_TYPE_COMBAT &&
@@ -1462,7 +1437,7 @@ void mission_update_logic(void)
 											msg_emit_in_flight_message(
 												IFMSG_206_MISSION_OBJECTIVES_CANNOT_BE_FINISHED_ABORT_MISSION,
 												player_index);
-											for (team_message_index =
+											for (uint16_t team_message_index =
 												     0;
 											     team_message_index <
 											     TEAM_MESSAGE_COUNT;
@@ -1547,9 +1522,7 @@ void mission_update_logic(void)
 										    team_index &&
 									    player_index ==
 										    g_local_player) {
-										uint16_t
-											team_message_index;
-										for (team_message_index =
+										for (uint16_t team_message_index =
 											     0;
 										     team_message_index <
 										     TEAM_MESSAGE_COUNT;
@@ -1625,16 +1598,13 @@ void mission_update_logic(void)
 									    GOAL_STATE_SUCCESS &&
 								    player_index ==
 									    g_local_player) {
-									uint16_t
-										team_message_index;
-
 									g_msg_sender_iff =
 										g_players[player_index]
 											.iff;
 									msg_emit_in_flight_message(
 										IFMSG_206_MISSION_OBJECTIVES_CANNOT_BE_FINISHED_ABORT_MISSION,
 										player_index);
-									for (team_message_index =
+									for (uint16_t team_message_index =
 										     0;
 									     team_message_index <
 									     TEAM_MESSAGE_COUNT;
@@ -1708,7 +1678,7 @@ void mission_update_logic(void)
 		return;
 	}
 
-	for (message_index = 0;
+	for (uint16_t message_index = 0;
 	     message_index < (int16_t)g_mission_header.num_messages;
 	     ++message_index) {
 		if (g_flight_mission_state.message_triggered[message_index] ==
@@ -1802,22 +1772,19 @@ int mission_evaluate_trigger_pair(
 {
 	enum { MISSION_TEAM_COUNT = 10 };
 
-	int team_or_variable;
-	int trigger1_result;
-	int trigger2_result;
-
-	team_or_variable = MISSION_TEAM_COUNT;
+	int team_or_variable = MISSION_TEAM_COUNT;
 	if (trigger_pair->triggers[1].condition == MISSION_COND_NO_CONDITION &&
 	    trigger_pair->triggers[1].variable_type == GOAL_TARGET_TEAM) {
 		team_or_variable = trigger_pair->triggers[1].variable;
 	}
 
-	trigger1_result = (uint16_t)mission_evaluate_condition(
+	int trigger1_result = (uint16_t)mission_evaluate_condition(
 		trigger_pair->triggers[0].condition,
 		trigger_pair->triggers[0].variable_type,
 		trigger_pair->triggers[0].variable,
 		(uint8_t)trigger_pair->triggers[0].amount,
 		include_departed_as_destroyed, (uint16_t)team_or_variable);
+	int trigger2_result;
 	if (trigger_pair->triggers[1].condition != MISSION_COND_NO_CONDITION) {
 		trigger2_result = (uint16_t)mission_evaluate_condition(
 			trigger_pair->triggers[1].condition,
@@ -1868,36 +1835,26 @@ int16_t mission_evaluate_condition(uint16_t condition_type,
 		MISSION_PLAYER_COUNT = 8,
 	};
 
-	uint16_t met;
-	uint16_t met_special_cargo;
-	uint16_t failed;
-	uint16_t failed_special_cargo;
-	uint16_t total;
-	uint16_t total_special_cargo;
-	uint16_t arrived_total;
-	int16_t status;
-	uint16_t flight_group_idx;
-
 	g_mission_condition_current_count = 0;
 	g_mission_condition_total_count = 0;
+	int16_t status;
+	uint16_t flight_group_idx;
 	if (g_mission_condition_uses_count_by_condition[condition_type] != 0) {
 		if (variable_type == GOAL_TARGET_NONE) {
 			return 2;
 		}
 
-		total = 0;
-		total_special_cargo = 0;
-		arrived_total = 0;
-		met = 0;
-		met_special_cargo = 0;
-		failed = 0;
-		failed_special_cargo = 0;
+		uint16_t total = 0;
+		uint16_t total_special_cargo = 0;
+		uint16_t arrived_total = 0;
+		uint16_t met = 0;
+		uint16_t met_special_cargo = 0;
+		uint16_t failed = 0;
+		uint16_t failed_special_cargo = 0;
 		for (flight_group_idx = 0;
 		     flight_group_idx <
 		     (int16_t)g_mission_header.num_flight_groups;
 		     ++flight_group_idx) {
-			uint16_t special_cargo_arrived;
-
 			if (g_mission_flight_groups[flight_group_idx]
 					    .fg.craft_type ==
 				    CRAFT_SPECIES_UNKNOWN ||
@@ -1918,7 +1875,7 @@ int16_t mission_evaluate_condition(uint16_t condition_type,
 				g_mission_fg_stats[flight_group_idx]
 					.special_cargo_outcome
 						[FLIGHT_GROUP_OUTCOME_TOTAL];
-			special_cargo_arrived =
+			uint16_t special_cargo_arrived =
 				g_mission_fg_stats[flight_group_idx]
 					.special_cargo_outcome
 						[FLIGHT_GROUP_OUTCOME_ARRIVED];
@@ -2144,27 +2101,22 @@ int16_t mission_evaluate_condition(uint16_t condition_type,
 			case MISSION_COND_SHIELDS_BELOW_25:
 			case MISSION_COND_HULL_DAMAGE_ABOVE_25:
 			case MISSION_COND_HULL_DAMAGE_ABOVE_75: {
-				int object_idx;
-
-				for (object_idx =
+				for (int object_idx =
 					     g_active_region_object_slot_start;
 				     object_idx <
 				     g_active_region_craft_object_slot_end;
 				     ++object_idx) {
-					struct object_record *object;
-					struct craft_data *craft;
-					int max_shield;
-					int16_t matches_condition;
-
-					object = &g_object_table[object_idx];
+					struct object_record *object =
+						&g_object_table[object_idx];
 					if (object->object_type == 0 ||
 					    object->flight_group_idx !=
 						    flight_group_idx) {
 						continue;
 					}
-					craft = object->mobj->p_craft;
-					matches_condition = 0;
-					max_shield =
+					struct craft_data *craft =
+						object->mobj->p_craft;
+					int16_t matches_condition = 0;
+					int max_shield =
 						2 *
 						g_model_defs[craft->model_index]
 							.shield_strength;
@@ -2217,16 +2169,11 @@ int16_t mission_evaluate_condition(uint16_t condition_type,
 						}
 					} else if (condition_type ==
 						   MISSION_COND_NO_WARHEADS) {
-						const struct model_def
-							*model_def;
-						uint16_t launcher_idx;
-						uint16_t warhead_count;
-
-						model_def =
+						const struct model_def *model_def =
 							&g_model_defs
 								[craft->model_index];
-						warhead_count = 0;
-						for (launcher_idx = 0;
+						uint16_t warhead_count = 0;
+						for (uint16_t launcher_idx = 0;
 						     launcher_idx <
 						     craft->warhead_launcher_count;
 						     ++launcher_idx) {
@@ -2452,9 +2399,7 @@ int16_t mission_evaluate_condition(uint16_t condition_type,
 							.team_special_cargo_uncaptured_lost
 								[team_filter];
 				} else {
-					uint16_t team_idx;
-
-					for (team_idx = 0;
+					for (uint16_t team_idx = 0;
 					     team_idx < MISSION_TEAM_COUNT;
 					     ++team_idx) {
 						met += g_mission_fg_stats[flight_group_idx]
@@ -2737,21 +2682,18 @@ int16_t mission_evaluate_condition(uint16_t condition_type,
 
 	case MISSION_COND_PLAYER_CONNECTED:
 	case MISSION_COND_PLAYER_DISCONNECTED: {
-		uint16_t connected_by_iff[MISSION_IFF_COUNT];
-		uint16_t connected_by_team[MISSION_TEAM_COUNT];
-		uint16_t player_craft_by_iff[MISSION_IFF_COUNT];
-		uint16_t player_craft_by_team[MISSION_TEAM_COUNT];
-		uint16_t player_idx;
-		uint16_t total_players;
-		uint16_t current_players;
-
 		status = 2;
 
+		uint16_t connected_by_team[MISSION_TEAM_COUNT];
+		uint16_t player_craft_by_team[MISSION_TEAM_COUNT];
+		uint16_t player_idx;
 		for (player_idx = 0; player_idx < MISSION_TEAM_COUNT;
 		     ++player_idx) {
 			connected_by_team[player_idx] = 0;
 			player_craft_by_team[player_idx] = 0;
 		}
+		uint16_t connected_by_iff[MISSION_IFF_COUNT];
+		uint16_t player_craft_by_iff[MISSION_IFF_COUNT];
 		for (player_idx = 0; player_idx < MISSION_IFF_COUNT;
 		     ++player_idx) {
 			connected_by_iff[player_idx] = 0;
@@ -2789,9 +2731,7 @@ int16_t mission_evaluate_condition(uint16_t condition_type,
 				     (int16_t)
 					     g_mission_header.num_flight_groups;
 				     ++flight_group_idx) {
-					uint8_t player_number;
-
-					player_number =
+					uint8_t player_number =
 						g_mission_flight_groups
 							[flight_group_idx]
 								.fg
@@ -2810,9 +2750,7 @@ int16_t mission_evaluate_condition(uint16_t condition_type,
 				     (int16_t)
 					     g_mission_header.num_flight_groups;
 				     ++flight_group_idx) {
-					uint8_t player_number;
-
-					player_number =
+					uint8_t player_number =
 						g_mission_flight_groups
 							[flight_group_idx]
 								.fg
@@ -2829,8 +2767,8 @@ int16_t mission_evaluate_condition(uint16_t condition_type,
 			break;
 		}
 
-		total_players = 0;
-		current_players = 0;
+		uint16_t total_players = 0;
+		uint16_t current_players = 0;
 		if (variable_type == GOAL_TARGET_TEAM) {
 			total_players = player_craft_by_team[variable];
 			if (condition_type == MISSION_COND_PLAYER_CONNECTED) {
@@ -2921,14 +2859,10 @@ int16_t mission_flight_group_matches_trigger_variable(uint16_t flight_group_idx,
 						      int16_t variable_type,
 						      uint16_t variable)
 {
-	uint8_t object_type;
-	uint16_t trigger_variable_type;
-	int16_t result;
-
-	result = 0;
-	object_type = g_craft_type_to_object_type
+	int16_t result = 0;
+	uint8_t object_type = g_craft_type_to_object_type
 		[g_mission_flight_groups[flight_group_idx].fg.craft_type];
-	trigger_variable_type = (uint16_t)variable_type;
+	uint16_t trigger_variable_type = (uint16_t)variable_type;
 	switch (trigger_variable_type) {
 	case 0:
 		return result;
@@ -3586,8 +3520,7 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 	}
 
 	{
-		uint16_t index;
-		for (index = 0; index < 10; ++index) {
+		for (uint16_t index = 0; index < 10; ++index) {
 			if (craft->identified_order_by_team[index] == 0) {
 				++g_mission_fg_stats[flight_group_idx]
 					  .team_uninspected_lost[index];
@@ -3613,7 +3546,6 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 		}
 	}
 	if (craft->captured_by_flight_group == 0) {
-		uint16_t index;
 		++g_mission_fg_stats[flight_group_idx]
 			  .outcome_count[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED];
 		if (g_mission_flight_groups[flight_group_idx]
@@ -3622,7 +3554,7 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 				.special_cargo_outcome
 					[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED] = 1;
 		}
-		for (index = 0; index < 10; ++index) {
+		for (uint16_t index = 0; index < 10; ++index) {
 			if (g_mission_flight_groups[flight_group_idx].fg.team !=
 			    index) {
 				++g_mission_fg_stats[flight_group_idx]
@@ -3635,8 +3567,7 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 	}
 	{
 		int16_t has_attacked_team = 0;
-		uint16_t index;
-		for (index = 0; index < 10; ++index) {
+		for (uint16_t index = 0; index < 10; ++index) {
 			if (craft->attacked_by_team[index] == 1) {
 				has_attacked_team = 1;
 			}
@@ -3675,9 +3606,8 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 	}
 
 	if (outcome_id == FLIGHT_GROUP_OUTCOME_DESTROYED) {
-		uint16_t index;
-		for (index = 0; g_mission_header.num_flight_groups > index;
-		     ++index) {
+		for (uint16_t index = 0;
+		     g_mission_header.num_flight_groups > index; ++index) {
 			if (flight_group_idx != index) {
 				if (g_mission_flight_groups[index]
 						    .fg.arrival_method != 0 &&
@@ -3754,9 +3684,8 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 		}
 	}
 	if (outcome_id == FLIGHT_GROUP_OUTCOME_LEFT_REGION) {
-		uint16_t index;
-		for (index = 0; g_mission_header.num_flight_groups > index;
-		     ++index) {
+		for (uint16_t index = 0;
+		     g_mission_header.num_flight_groups > index; ++index) {
 			if (flight_group_idx != index) {
 				if (g_mission_flight_groups[index]
 						    .fg.departure_method != 0 &&
@@ -3806,8 +3735,7 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 		}
 	}
 	{
-		int slot_index;
-		for (slot_index = g_active_region_object_slot_start;
+		for (int slot_index = g_active_region_object_slot_start;
 		     g_active_region_craft_object_slot_end > slot_index;
 		     ++slot_index) {
 			if (g_object_table[slot_index].object_type != 0) {
@@ -3823,11 +3751,9 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 		}
 	}
 	{
-		int slot_index;
-		for (slot_index = 0; slot_index < 8; ++slot_index) {
+		for (int slot_index = 0; slot_index < 8; ++slot_index) {
 			if (g_players[slot_index].participation_state != 0) {
-				int preset_index;
-				for (preset_index = 0; preset_index < 4;
+				for (int preset_index = 0; preset_index < 4;
 				     ++preset_index) {
 					if (g_players[slot_index]
 						    .target_preset_slot
@@ -3855,16 +3781,12 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 // FUNCTION: XVT 0x434440
 int16_t mission_close_unavailable_flight_group_accounting(int flight_group_idx)
 {
-	int16_t unavailable_count;
-	int16_t unavailable_special_cargo_count;
-	int16_t result;
-
-	unavailable_count =
+	int16_t unavailable_count =
 		g_mission_fg_stats[flight_group_idx]
 			.outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] -
 		g_mission_fg_stats[flight_group_idx]
 			.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED];
-	unavailable_special_cargo_count =
+	int16_t unavailable_special_cargo_count =
 		g_mission_fg_stats[flight_group_idx]
 			.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_TOTAL] -
 		g_mission_fg_stats[flight_group_idx]
@@ -3872,8 +3794,8 @@ int16_t mission_close_unavailable_flight_group_accounting(int flight_group_idx)
 	g_mission_fg_stats[flight_group_idx]
 		.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED] +=
 		unavailable_count;
-	result = g_mission_fg_stats[flight_group_idx]
-			 .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED];
+	int16_t result = g_mission_fg_stats[flight_group_idx]
+				 .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED];
 	g_mission_fg_stats[flight_group_idx]
 		.outcome_count[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP] +=
 		unavailable_count;
@@ -3942,24 +3864,13 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 {
 	enum { PLAYER_COUNT = 8, TEAM_COUNT = 10 };
 
-	struct object_record *victim;
-	struct craft_data *craft;
-	int victim_rating;
-	int victim_owner_idx;
-	int award_rating;
-	int attacker_rating_weight;
-	int victim_flight_group_index;
-	int special_cargo;
+	int special_cargo = 0;
 	int player_contribution_by_team[TEAM_COUNT];
-	int player_index;
-	int team_index;
-
-	special_cargo = 0;
 	memset(player_contribution_by_team, 0,
 	       sizeof(player_contribution_by_team));
-	victim_owner_idx = -1;
-	craft = NULL;
-	victim = &g_object_table[victim_obj_idx];
+	int victim_owner_idx = -1;
+	struct craft_data *craft = NULL;
+	struct object_record *victim = &g_object_table[victim_obj_idx];
 	if (victim->mobj != NULL) {
 		craft = victim->mobj->p_craft;
 	}
@@ -3986,7 +3897,7 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 		return;
 	}
 
-	victim_flight_group_index =
+	int victim_flight_group_index =
 		g_object_table[victim_obj_idx].flight_group_idx;
 	if (g_mission_flight_groups[victim_flight_group_index]
 		    .fg.special_cargo_craft == craft->craft_ordinal) {
@@ -4000,6 +3911,7 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 				.player_owner_idx,
 		       sizeof(victim_owner_idx));
 	}
+	int victim_rating;
 	if (victim_owner_idx != -1) {
 		victim_rating = g_players[victim_owner_idx].pilot_rating;
 	} else {
@@ -4009,16 +3921,16 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 				.fg.group_ai;
 	}
 
-	for (player_index = 0; player_index < PLAYER_COUNT; ++player_index) {
-		int contribution_tier;
-		uint16_t damage_share_q16;
-
+	int award_rating;
+	for (int player_index = 0; player_index < PLAYER_COUNT;
+	     ++player_index) {
 		if (g_players[player_index].participation_state == 0) {
 			continue;
 		}
-		damage_share_q16 = (uint16_t)math2_longratio_q16(
+		uint16_t damage_share_q16 = (uint16_t)math2_longratio_q16(
 			craft->damage_stats.damage_from_player[player_index],
 			craft->damage_stats.damage_received_total);
+		int contribution_tier;
 		if (damage_share_q16 >= 0xAAAAu) {
 			contribution_tier = 3;
 		} else if (damage_share_q16 >= 0x5999u) {
@@ -4044,16 +3956,12 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 								     ->flight_group_idx]
 								    .fg.team] ==
 				    0) {
-					int minimum_rating_award;
-					int victim_rating_weight;
-					int rating_points;
-					uint8_t plan_id;
-					const char *plan_name;
-
-					plan_id = craft->ai_controller
-							  .current_plan_id;
-					plan_name = g_plan_table[plan_id].name;
-					minimum_rating_award =
+					uint8_t plan_id =
+						craft->ai_controller
+							.current_plan_id;
+					const char *plan_name =
+						g_plan_table[plan_id].name;
+					int minimum_rating_award =
 						(strcmp(plan_name, "nullpln") ==
 							 0 ||
 						 strcmp(plan_name,
@@ -4081,7 +3989,7 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 							 0) &&
 						victim_owner_idx == -1;
 
-					victim_rating_weight =
+					int victim_rating_weight =
 						g_model_defs
 							[get_model_index_from_type(
 								 damaged_victim
@@ -4090,7 +3998,7 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 					if (victim_rating_weight == 0) {
 						minimum_rating_award = 1;
 					}
-					attacker_rating_weight =
+					int attacker_rating_weight =
 						g_model_defs
 							[get_model_index_from_type(
 								 g_craft_type_to_object_type
@@ -4117,6 +4025,7 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 							award_rating -
 							g_players[player_index]
 								.pilot_rating;
+						int rating_points;
 						if (minimum_rating_award == 0 &&
 						    rating_factor >= -4) {
 							rating_factor += 4;
@@ -4252,25 +4161,23 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 		}
 	}
 
-	for (team_index = 0; team_index < TEAM_COUNT; ++team_index) {
-		int flight_group_index;
-		int *damage_from_flight_group;
-		struct mission_flight_group *flight_group;
+	for (int team_index = 0; team_index < TEAM_COUNT; ++team_index) {
+		int flight_group_index = 0;
 		unsigned int team_damage = 0;
 		unsigned int largest_damage = 0;
 		int largest_flight_group = 0;
-		flight_group_index = 0;
 		if ((int16_t)g_mission_header.num_flight_groups > 0) {
 			int flight_group_count =
 				(int16_t)g_mission_header.num_flight_groups;
-			damage_from_flight_group =
+			int *damage_from_flight_group =
 				&craft->damage_stats
 					 .damage_from_flight_group_amount[0];
-			flight_group = &g_mission_flight_groups[0];
+			struct mission_flight_group *flight_group =
+				&g_mission_flight_groups[0];
 			do {
 				if (flight_group->fg.team == team_index) {
-					unsigned int damage;
-					damage = *damage_from_flight_group;
+					unsigned int damage =
+						*damage_from_flight_group;
 					team_damage += damage;
 					if (largest_damage < damage) {
 						largest_damage = damage;
@@ -4307,9 +4214,8 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 			if ((contribution_tier == 2 ||
 			     contribution_tier == 3) &&
 			    player_contribution_by_team[team_index] < 2) {
-				int remaining_credit;
 				contribution_tier -= 2;
-				remaining_credit =
+				int remaining_credit =
 					(contribution_tier != 0 ? 2 : 1) -
 					player_contribution_by_team[team_index];
 				if (remaining_credit == 2) {
@@ -4356,15 +4262,11 @@ void mission_credit_player_kill_contribution(
 	uint16_t victim_obj_idx, int special_cargo_flag, int contribution_tier,
 	int player_idx, int victim_owner_idx, int victim_rating)
 {
-	uint16_t flight_group_idx;
-	uint16_t tactical_voice_probability;
-	int goal_score_reduction_level;
-	int goal_index;
-
-	flight_group_idx = g_object_table[victim_obj_idx].flight_group_idx;
-	tactical_voice_probability = 0;
-	goal_score_reduction_level = 1;
-	for (goal_index = 0; goal_index < 8; goal_index++) {
+	uint16_t flight_group_idx =
+		g_object_table[victim_obj_idx].flight_group_idx;
+	uint16_t tactical_voice_probability = 0;
+	int goal_score_reduction_level = 1;
+	for (int goal_index = 0; goal_index < 8; goal_index++) {
 		if (g_mission_flight_groups[flight_group_idx]
 				    .fg.goals[goal_index]
 				    .goal_kind == 0 &&
@@ -4517,15 +4419,13 @@ void mission_credit_team_kill_contribution(uint16_t victim_obj_idx,
 					   int special_cargo_flag,
 					   int contribution_tier, int team_idx)
 {
-	int goal_score_reduction_level;
-	uint16_t flight_group_idx;
-	int score;
-
-	goal_score_reduction_level = 1;
-	flight_group_idx = g_object_table[victim_obj_idx].flight_group_idx;
+	int goal_score_reduction_level = 1;
+	uint16_t flight_group_idx =
+		g_object_table[victim_obj_idx].flight_group_idx;
 	if (g_mission_teams[team_idx].allies
 		    [g_mission_flight_groups[flight_group_idx].fg.team] == 0) {
-		score = mission_compute_kill_score_for_object(victim_obj_idx);
+		int score =
+			mission_compute_kill_score_for_object(victim_obj_idx);
 		switch (contribution_tier) {
 		case 1:
 			++g_flight_mission_state.runtime
@@ -4577,12 +4477,8 @@ void mission_credit_team_kill_contribution(uint16_t victim_obj_idx,
 // FUNCTION: XVT 0x435070
 void mission_record_projectile_hit_stats(uint16_t projectile_obj_idx)
 {
-	int owner_obj_idx;
-	struct craft_data *owner_craft;
-	int owner_player_idx;
-	uint16_t player_projectile_slot_end;
-
-	owner_obj_idx = g_object_table[projectile_obj_idx].mobj->source_obj_idx;
+	int owner_obj_idx =
+		g_object_table[projectile_obj_idx].mobj->source_obj_idx;
 	if (g_active_region_craft_object_slot_end <= owner_obj_idx) {
 		return;
 	}
@@ -4591,12 +4487,14 @@ void mission_record_projectile_hit_stats(uint16_t projectile_obj_idx)
 		return;
 	}
 
-	player_projectile_slot_end =
+	uint16_t player_projectile_slot_end =
 		(uint16_t)(g_projectile_object_slot_start + 128);
-	owner_player_idx = g_mission_flight_groups[g_object_table[owner_obj_idx]
-							   .flight_group_idx]
-				   .player_owner_idx;
-	owner_craft = g_object_table[owner_obj_idx].mobj->p_craft;
+	int owner_player_idx =
+		g_mission_flight_groups[g_object_table[owner_obj_idx]
+						.flight_group_idx]
+			.player_owner_idx;
+	struct craft_data *owner_craft =
+		g_object_table[owner_obj_idx].mobj->p_craft;
 
 	switch (g_object_table[projectile_obj_idx].object_type) {
 	case PROJECTILE_OBJECT_TYPE_REBEL_LASER:
@@ -4630,10 +4528,8 @@ void mission_record_projectile_hit_stats(uint16_t projectile_obj_idx)
 	case WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE:
 	case WARHEAD_OBJECT_TYPE_ION_PULSE:
 	case WARHEAD_OBJECT_TYPE_LASER_3: {
-		int flight_group_idx;
-
 		++owner_craft->weapon_stats.warhead_hits_scored;
-		flight_group_idx =
+		int flight_group_idx =
 			g_object_table[owner_obj_idx].flight_group_idx;
 		if (player_projectile_slot_end > projectile_obj_idx &&
 		    owner_player_idx != -1) {
@@ -4683,25 +4579,17 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 		PLAYER_DAMAGE_THRESHOLD = 0x8000
 	};
 
-	unsigned int player_idx;
-	int ai_skill_idx;
-	int point_penalty;
-	struct object_record *object;
-	int team_idx;
-	int owner_player_idx;
-	struct craft_data *craft;
-	int credited_player_idx;
-
-	credited_player_idx = -1;
-	point_penalty = mission_compute_craft_point_value(obj_idx) / 2;
-	object = &g_object_table[obj_idx];
-	team_idx = g_mission_flight_groups[object->flight_group_idx].fg.team;
+	int credited_player_idx = -1;
+	int point_penalty = mission_compute_craft_point_value(obj_idx) / 2;
+	struct object_record *object = &g_object_table[obj_idx];
+	int team_idx =
+		g_mission_flight_groups[object->flight_group_idx].fg.team;
 	g_flight_mission_state.runtime
 		.team_scores[TEAM_SCORE_MISSION][team_idx] -= point_penalty;
 	++g_flight_mission_state.runtime.team_kill_stats
 		  [3]
 		  [g_mission_flight_groups[object->flight_group_idx].fg.team];
-	owner_player_idx = object->player_owner_idx;
+	int owner_player_idx = object->player_owner_idx;
 	if (owner_player_idx == -1) {
 		owner_player_idx =
 			g_mission_flight_groups[object->flight_group_idx]
@@ -4712,12 +4600,13 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 		}
 	}
 
-	craft = object->mobj->p_craft;
+	struct craft_data *craft = object->mobj->p_craft;
 	g_players[owner_player_idx].mission_stats.mission_score -=
 		point_penalty;
+	unsigned int player_idx;
+	int ai_skill_idx;
 	if (allow_pending_damage_credit != 0) {
 		uint32_t remaining_durability;
-		uint32_t pending_damage;
 
 		if ((uint32_t)craft->hull_damage < (uint32_t)craft->hull_max) {
 			remaining_durability = (uint32_t)(craft->hull_max -
@@ -4734,7 +4623,7 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 				(uint16_t)craft->shield_energy[1];
 		}
 		remaining_durability >>= 1;
-		pending_damage = 0;
+		uint32_t pending_damage = 0;
 		for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
 			pending_damage +=
 				(uint32_t)craft->damage_stats
@@ -4757,36 +4646,30 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 			    .damage_received_by_player_owned_craft,
 		    (uint32_t)craft->damage_stats.damage_received_total) >=
 	    PLAYER_DAMAGE_THRESHOLD) {
-		uint32_t player_damage;
-		uint32_t ai_damage;
-		uint32_t collision_damage;
-		uint32_t mine_damage;
-		uint32_t starship_damage;
-		uint32_t total_classified_damage;
-
 		++g_players[owner_player_idx]
 			  .per_mission_kills.total_craft_losses;
-		player_damage = 0;
+		uint32_t player_damage = 0;
 		for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
 			player_damage +=
 				(uint32_t)craft->damage_stats
 					.damage_from_player[player_idx];
 		}
-		ai_damage = 0;
+		uint32_t ai_damage = 0;
 		for (ai_skill_idx = 0; ai_skill_idx < AI_SKILL_COUNT;
 		     ++ai_skill_idx) {
 			ai_damage +=
 				(uint32_t)craft->damage_stats
 					.damage_from_ai_skill[ai_skill_idx];
 		}
-		collision_damage =
+		uint32_t collision_damage =
 			(uint32_t)craft->damage_stats.damage_from_collision;
-		starship_damage =
+		uint32_t starship_damage =
 			(uint32_t)craft->damage_stats.damage_from_starship;
-		mine_damage = (uint32_t)craft->damage_stats.damage_from_mine;
-		total_classified_damage = player_damage | ai_damage |
-					  collision_damage | starship_damage |
-					  mine_damage;
+		uint32_t mine_damage =
+			(uint32_t)craft->damage_stats.damage_from_mine;
+		uint32_t total_classified_damage =
+			player_damage | ai_damage | collision_damage |
+			starship_damage | mine_damage;
 		if (total_classified_damage != 0) {
 			if (collision_damage >= mine_damage &&
 			    collision_damage >= starship_damage &&
@@ -4812,12 +4695,9 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 				   player_damage >= collision_damage &&
 				   player_damage >= mine_damage &&
 				   player_damage >= ai_damage) {
-				uint32_t max_player_damage;
+				uint32_t max_player_damage = 0;
+				int top_player_rating = -1;
 				int top_player_idx;
-				int top_player_rating;
-
-				max_player_damage = 0;
-				top_player_rating = -1;
 				for (player_idx = 0; player_idx < PLAYER_COUNT;
 				     ++player_idx) {
 					if ((uint32_t)craft->damage_stats
@@ -4839,9 +4719,7 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 					credited_player_idx = top_player_idx;
 				}
 			} else {
-				uint32_t max_ai_damage;
-
-				max_ai_damage = 0;
+				uint32_t max_ai_damage = 0;
 				for (ai_skill_idx = 0;
 				     ai_skill_idx < AI_SKILL_COUNT;
 				     ++ai_skill_idx) {
@@ -4874,17 +4752,12 @@ void mission_record_player_craft_loss_attribution(int attacker_flight_group_idx,
 						  int victim_obj_idx,
 						  int contribution_tier)
 {
-	struct object_record *victim;
-	int victim_player_idx;
-	int attacker_player_idx;
-	unsigned int damage_share_q16;
-
 	if (contribution_tier != 2 && contribution_tier != 3) {
 		return;
 	}
 
-	victim = &g_object_table[victim_obj_idx];
-	victim_player_idx = victim->player_owner_idx;
+	struct object_record *victim = &g_object_table[victim_obj_idx];
+	int victim_player_idx = victim->player_owner_idx;
 	if (victim_player_idx == -1) {
 		victim_player_idx =
 			g_mission_flight_groups[victim->flight_group_idx]
@@ -4894,7 +4767,7 @@ void mission_record_player_craft_loss_attribution(int attacker_flight_group_idx,
 		}
 	}
 
-	damage_share_q16 = math2_longratio_q16(
+	unsigned int damage_share_q16 = math2_longratio_q16(
 		(unsigned int)victim->mobj->p_craft->damage_stats
 			.damage_received_by_player_owned_craft,
 		(unsigned int)victim->mobj->p_craft->damage_stats
@@ -4903,12 +4776,12 @@ void mission_record_player_craft_loss_attribution(int attacker_flight_group_idx,
 		return;
 	}
 
-	attacker_player_idx = g_mission_flight_groups[attacker_flight_group_idx]
-				      .player_owner_idx;
+	int attacker_player_idx =
+		g_mission_flight_groups[attacker_flight_group_idx]
+			.player_owner_idx;
 	if (attacker_player_idx != -1) {
-		unsigned int pilot_rating;
-
-		pilot_rating = g_players[attacker_player_idx].pilot_rating;
+		unsigned int pilot_rating =
+			g_players[attacker_player_idx].pilot_rating;
 		if (contribution_tier == 3) {
 			++g_players[victim_player_idx]
 				  .per_mission_kills
@@ -4918,10 +4791,9 @@ void mission_record_player_craft_loss_attribution(int attacker_flight_group_idx,
 	}
 
 	{
-		unsigned int group_ai;
-
-		group_ai = g_mission_flight_groups[attacker_flight_group_idx]
-				   .fg.group_ai;
+		unsigned int group_ai =
+			g_mission_flight_groups[attacker_flight_group_idx]
+				.fg.group_ai;
 		if (contribution_tier == 3) {
 			++g_players[victim_player_idx]
 				  .per_mission_kills
@@ -4947,23 +4819,14 @@ int mission_apply_flight_group_goal_score(int16_t event_condition,
 					  uint16_t goal_score_reduction_level,
 					  int special_cargo_flag, int team_idx)
 {
-	unsigned int mission_time_seconds;
-	int goal_index;
-	int score_total;
-	unsigned int time_limit_seconds;
-	struct flight_group_goal *goal;
-	int score;
-	int score_tenth;
-	int score_adjustment;
-	unsigned int flight_group_number;
-
-	mission_time_seconds = mission_clock_to_seconds(
+	unsigned int mission_time_seconds = mission_clock_to_seconds(
 		g_mission_elapsed_clock.hours, g_mission_elapsed_clock.minutes,
 		g_mission_elapsed_clock.seconds);
-	score_total = 0;
-	flight_group_number = flight_group_idx;
-	goal = g_mission_flight_groups[flight_group_idx].fg.goals;
-	goal_index = 0;
+	int score_total = 0;
+	unsigned int flight_group_number = flight_group_idx;
+	struct flight_group_goal *goal =
+		g_mission_flight_groups[flight_group_idx].fg.goals;
+	int goal_index = 0;
 	do {
 		if ((goal->goal_kind == 2 &&
 		     goal->event_condition == (uint16_t)event_condition &&
@@ -4978,17 +4841,18 @@ int mission_apply_flight_group_goal_score(int16_t event_condition,
 				     .fg.goals[goal_index]
 				     .enabled_teams[team_idx] != 0 &&
 		     special_cargo_flag == 1)) {
-			time_limit_seconds = 5 * goal->time_limit5s;
+			unsigned int time_limit_seconds =
+				5 * goal->time_limit5s;
 			if (time_limit_seconds == 0 ||
 			    mission_time_seconds <= time_limit_seconds) {
-				score = 250 * goal->points;
-				score_tenth = score / 10;
+				int score = 250 * goal->points;
+				int score_tenth = score / 10;
 				if (goal_score_reduction_level > 10) {
 					goal_score_reduction_level = 9;
 				}
 				if (goal_score_reduction_level > 1) {
 					if (score > 0) {
-						score_adjustment = 1;
+						int score_adjustment = 1;
 						score_adjustment -=
 							goal_score_reduction_level;
 						score_adjustment *= score_tenth;
@@ -5044,30 +4908,27 @@ void mission_apply_team_goal_score_all_enabled_teams(int16_t event_condition,
 						     int special_cargo_flag)
 {
 	int score;
-	int remaining_goals;
-	struct flight_group_goal *goal;
-	unsigned int elapsed_seconds;
-	unsigned int time_limit_seconds;
-	int team_index;
 
-	goal = g_mission_flight_groups[flight_group_idx].fg.goals;
-	remaining_goals = 8;
+	struct flight_group_goal *goal =
+		g_mission_flight_groups[flight_group_idx].fg.goals;
+	int remaining_goals = 8;
 	do {
 		if (goal->goal_kind == 2 &&
 		    goal->event_condition == (uint16_t)event_condition &&
 		    (goal->amount == 18 ||
 		     (goal->amount == 19 && special_cargo_flag == 1))) {
-			elapsed_seconds = mission_clock_to_seconds(
+			unsigned int elapsed_seconds = mission_clock_to_seconds(
 				g_mission_elapsed_clock.hours,
 				g_mission_elapsed_clock.minutes,
 				g_mission_elapsed_clock.seconds);
-			time_limit_seconds = 5 * goal->time_limit5s;
+			unsigned int time_limit_seconds =
+				5 * goal->time_limit5s;
 			if (time_limit_seconds == 0 ||
 			    elapsed_seconds <= time_limit_seconds) {
 				score = goal->points;
 			}
 			score *= 250;
-			team_index = 0;
+			int team_index = 0;
 			do {
 				if (goal->enabled_teams[team_index] != 0) {
 					g_flight_mission_state.runtime
@@ -5091,28 +4952,23 @@ void mission_apply_team_goal_score_for_team(int16_t event_condition,
 					    int special_cargo_flag,
 					    uint8_t team_idx)
 {
-	int remaining_goals;
-	uint8_t *enabled_team;
+	struct flight_group_goal *goal =
+		g_mission_flight_groups[flight_group_idx].fg.goals;
+	int team_index = team_idx;
+	uint8_t *enabled_team = &goal->enabled_teams[team_index];
+	int remaining_goals = 8;
 	int score;
-	struct flight_group_goal *goal;
-	unsigned int elapsed_seconds;
-	unsigned int time_limit_seconds;
-	int team_index;
-
-	goal = g_mission_flight_groups[flight_group_idx].fg.goals;
-	team_index = team_idx;
-	enabled_team = &goal->enabled_teams[team_index];
-	remaining_goals = 8;
 	do {
 		if (goal->goal_kind == 2 &&
 		    goal->event_condition == (uint16_t)event_condition &&
 		    (goal->amount == 18 ||
 		     (goal->amount == 19 && special_cargo_flag == 1))) {
-			elapsed_seconds = mission_clock_to_seconds(
+			unsigned int elapsed_seconds = mission_clock_to_seconds(
 				g_mission_elapsed_clock.hours,
 				g_mission_elapsed_clock.minutes,
 				g_mission_elapsed_clock.seconds);
-			time_limit_seconds = 5 * goal->time_limit5s;
+			unsigned int time_limit_seconds =
+				5 * goal->time_limit5s;
 			if (time_limit_seconds == 0 ||
 			    elapsed_seconds <= time_limit_seconds) {
 				score = goal->points;
@@ -5143,10 +4999,7 @@ int mission_clock_to_seconds(uint8_t hours, uint8_t minutes, uint8_t seconds)
 // FUNCTION: XVT 0x435A40
 int mission_compute_kill_score_for_object(int victim_obj_idx)
 {
-	unsigned int object_type;
-	int kill_score;
-
-	object_type = g_craft_type_to_object_type
+	unsigned int object_type = g_craft_type_to_object_type
 		[g_mission_flight_groups[g_object_table[victim_obj_idx]
 						 .flight_group_idx]
 			 .fg.craft_type];
@@ -5154,6 +5007,7 @@ int mission_compute_kill_score_for_object(int victim_obj_idx)
 	    CRAFT_FAMILY_SPACE_CRAFT) {
 		return mission_compute_craft_point_value(victim_obj_idx);
 	}
+	int kill_score;
 	if ((object_type >= 0x46 && object_type <= 0x4A) ||
 	    (object_type >= 0x50 && object_type <= 0x54)) {
 		kill_score = 500;
@@ -5177,37 +5031,29 @@ int mission_compute_kill_score_for_object(int victim_obj_idx)
 // FUNCTION: XVT 0x435AD0
 int mission_compute_craft_point_value(int obj_idx)
 {
-	struct craft_data *craft;
-	unsigned int model_index;
-	unsigned int point_value;
-	unsigned int launcher_index;
-	unsigned int beam_type;
-	unsigned int countermeasure_type;
-
-	craft = g_object_table[obj_idx].mobj->p_craft;
-	model_index =
+	struct craft_data *craft = g_object_table[obj_idx].mobj->p_craft;
+	unsigned int model_index =
 		get_model_index_from_type(g_object_table[obj_idx].object_type);
-	point_value = 40 * g_model_defs[model_index].craft_point_value;
+	unsigned int point_value =
+		40 * g_model_defs[model_index].craft_point_value;
 	if (g_object_table[obj_idx].object_type ==
 	    CRAFT_SPECIES_SUPER_STAR_DESTROYER) {
 		point_value *= 2;
 	}
 
-	for (launcher_index = 0; launcher_index < craft->warhead_launcher_count;
-	     ++launcher_index) {
-		unsigned int first_slot;
-		unsigned int last_slot;
-		unsigned int warhead_type;
-		unsigned int weapon_count;
-
-		first_slot =
+	for (unsigned int launcher_index = 0;
+	     launcher_index < craft->warhead_launcher_count; ++launcher_index) {
+		unsigned int first_slot =
 			g_model_defs[model_index]
 				.warhead_launcher_first_slot[launcher_index];
-		weapon_count = craft->weapon_slots[first_slot].ammo_count;
-		last_slot = g_model_defs[model_index]
-				    .warhead_launcher_last_slot[launcher_index];
+		unsigned int weapon_count =
+			craft->weapon_slots[first_slot].ammo_count;
+		unsigned int last_slot =
+			g_model_defs[model_index]
+				.warhead_launcher_last_slot[launcher_index];
 		weapon_count += craft->weapon_slots[last_slot].ammo_count;
-		warhead_type = craft->warhead_slot_type_ids[launcher_index];
+		unsigned int warhead_type =
+			craft->warhead_slot_type_ids[launcher_index];
 #ifdef XVT_MODERN
 		if (warhead_type >= PROJECTILE_OBJECT_TYPE_FIRST &&
 		    warhead_type < PROJECTILE_OBJECT_TYPE_FIRST +
@@ -5226,8 +5072,8 @@ int mission_compute_craft_point_value(int obj_idx)
 #endif
 	}
 
-	countermeasure_type = (uint8_t)craft->cm_type_id;
-	beam_type = (uint8_t)craft->beam_type_id;
+	unsigned int countermeasure_type = (uint8_t)craft->cm_type_id;
+	unsigned int beam_type = (uint8_t)craft->beam_type_id;
 #ifdef XVT_MODERN
 	if (countermeasure_type >=
 	    sizeof(g_countermeasure_type_point_value) /
@@ -5335,16 +5181,6 @@ uint16_t mission_init(const char *file_name)
 		BACKDROP_STATUS_FRAME_OFFSET = 85,
 	};
 
-	int team_player_fg_counts[TEAM_COUNT];
-	int team_owned_flight_group[TEAM_COUNT];
-	int team_player_owner_counts[TEAM_COUNT];
-	uint16_t flight_group_idx;
-	/* slot is this function's shared loop counter: by loop it holds an object slot, a genus, a player, an
-	 * object type, a message, a team, a mission point reference or a flight group index. */
-	uint16_t slot;
-	int team_idx;
-	int player_owned_team_count;
-
 	flight_surface_unlock();
 	g_craft_data_pool_capacity = CRAFT_SLOT_COUNT;
 	g_debris_object_slots_total = DEBRIS_SLOT_COUNT;
@@ -5423,6 +5259,9 @@ uint16_t mission_init(const char *file_name)
 		0);
 	fe_disk_io_lock_global_buffers();
 
+	/* slot is this function's shared loop counter: by loop it holds an object slot, a genus, a player, an
+	 * object type, a message, a team, a mission point reference or a flight group index. */
+	uint16_t slot;
 	for (slot = 0; slot < MOBILE_OBJECT_SLOT_COUNT; ++slot) {
 		g_mobile_object_link_indices[slot].warhead_guidance_idx = -1;
 		g_mobile_object_link_indices[slot].craft_data_idx = -1;
@@ -5540,12 +5379,17 @@ uint16_t mission_init(const char *file_name)
 		return 0;
 	}
 
+	uint16_t flight_group_idx;
 	for (flight_group_idx = 0;
 	     flight_group_idx < (int16_t)g_mission_header.num_flight_groups;
 	     ++flight_group_idx) {
 		g_mission_flight_groups[flight_group_idx].player_owner_idx = -1;
 	}
 
+	int team_player_fg_counts[TEAM_COUNT];
+	int team_owned_flight_group[TEAM_COUNT];
+	int team_idx;
+	int player_owned_team_count;
 	if (g_flight_conf_no_pilot == 0) {
 		int selected_craft_type = 0;
 		int selected_warhead = 0;
@@ -5582,8 +5426,6 @@ uint16_t mission_init(const char *file_name)
 							.direct_play_id);
 
 				if (player_slot < PLAYER_COUNT) {
-					int craft_type;
-
 					g_mission_flight_groups
 						[assigned_flight_group]
 							.player_owner_idx =
@@ -5672,7 +5514,7 @@ uint16_t mission_init(const char *file_name)
 					    g_pilot_data.network_players[slot]
 							    .beam_option <
 						    OPTIONAL_BEAM_COUNT) {
-						craft_type =
+						int craft_type =
 							g_mission_flight_groups
 								[assigned_flight_group]
 									.fg
@@ -5724,6 +5566,7 @@ uint16_t mission_init(const char *file_name)
 			}
 		}
 
+		int team_player_owner_counts[TEAM_COUNT];
 		for (slot = 0; slot < TEAM_COUNT; ++slot) {
 			team_player_owner_counts[slot] = 0;
 		}
@@ -6236,7 +6079,6 @@ uint16_t mission_init(const char *file_name)
 					    .fg.optional_craft_category ==
 				    RANDOM_OPTIONAL_CRAFT_CATEGORY) {
 				unsigned int option_count = 1;
-				unsigned int selected_option;
 				unsigned int option_idx;
 
 				for (option_idx = 0;
@@ -6250,7 +6092,7 @@ uint16_t mission_init(const char *file_name)
 						++option_count;
 					}
 				}
-				selected_option =
+				unsigned int selected_option =
 					game_rand_range((uint16_t)option_count);
 				if (option_count > 1 && selected_option != 0) {
 					unsigned int ordinal = 1;
@@ -6392,7 +6234,6 @@ uint16_t mission_init(const char *file_name)
 
 	if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
 		int ai_boost_team;
-		int boost_count;
 
 		if (g_pilot_data.mission_sequence_active == 1 &&
 		    g_pilot_data.melee_tournament_sequence_state
@@ -6401,17 +6242,12 @@ uint16_t mission_init(const char *file_name)
 				g_pilot_data.melee_tournament_sequence_state
 					.ai_boost_first_team;
 		} else {
-			int teams_without_owners = 0;
-			int selected_ordinal;
-			int ordinal;
-			int flight_group;
-
 			/* Below, team_owned_flight_group is reused as a per-team count of player-owned flight groups. */
 			memset(team_owned_flight_group, 0,
 			       sizeof(team_owned_flight_group));
 			memset(team_player_fg_counts, 0,
 			       sizeof(team_player_fg_counts));
-			for (flight_group = 0;
+			for (int flight_group = 0;
 			     flight_group < g_mission_header.num_flight_groups;
 			     ++flight_group) {
 				if (g_mission_flight_groups[flight_group]
@@ -6429,15 +6265,16 @@ uint16_t mission_init(const char *file_name)
 								 .fg.team];
 				}
 			}
+			int teams_without_owners = 0;
 			for (team_idx = 0; team_idx < TEAM_COUNT; ++team_idx) {
 				if (team_player_fg_counts[team_idx] != 0 &&
 				    team_owned_flight_group[team_idx] == 0) {
 					++teams_without_owners;
 				}
 			}
-			selected_ordinal =
+			int selected_ordinal =
 				game_rand_range((uint16_t)teams_without_owners);
-			ordinal = -1;
+			int ordinal = -1;
 			for (ai_boost_team = 0; ai_boost_team < TEAM_COUNT;
 			     ++ai_boost_team) {
 				if (team_player_fg_counts[ai_boost_team] != 0 &&
@@ -6455,6 +6292,7 @@ uint16_t mission_init(const char *file_name)
 					.ai_boost_first_team = ai_boost_team;
 			}
 		}
+		int boost_count;
 		if (g_flight_mission_state.difficulty == GAME_DIFFICULTY_EASY) {
 			boost_count = 3;
 		} else if (g_flight_mission_state.difficulty ==
@@ -6464,9 +6302,7 @@ uint16_t mission_init(const char *file_name)
 			boost_count = 1;
 		}
 		while (boost_count-- != 0) {
-			int flight_group;
-
-			for (flight_group = 0;
+			for (int flight_group = 0;
 			     flight_group < g_mission_header.num_flight_groups;
 			     ++flight_group) {
 				if (g_mission_flight_groups[flight_group]
@@ -6633,9 +6469,6 @@ uint16_t mission_init(const char *file_name)
 	for (flight_group_idx = 0;
 	     flight_group_idx < (int16_t)g_mission_header.num_flight_groups;
 	     ++flight_group_idx) {
-		uint8_t object_type;
-		uint16_t mission_point_ref;
-
 		if (g_mission_flight_groups[flight_group_idx]
 			    .player_owner_idx != -1) {
 			if (g_mission_flight_groups[flight_group_idx]
@@ -6670,7 +6503,7 @@ uint16_t mission_init(const char *file_name)
 					UNLIMITED_PLAYER_WAVES;
 			}
 		}
-		object_type = g_craft_type_to_object_type
+		uint8_t object_type = g_craft_type_to_object_type
 			[g_mission_flight_groups[flight_group_idx]
 				 .fg.craft_type];
 		g_object_type_table[object_type].asset_flags |=
@@ -6691,10 +6524,9 @@ uint16_t mission_init(const char *file_name)
 				g_mission_flight_groups[flight_group_idx]
 					.fg.number_of_craft);
 		}
-		mission_point_ref = MISSION_POINT_REF_BASE;
+		uint16_t mission_point_ref = MISSION_POINT_REF_BASE;
 		if (g_flight_mission_state.random_variation_enabled != 0) {
 			unsigned int option_count = 1;
-			int selected_option;
 
 			for (slot = MISSION_POINT_REF_BASE + 1;
 			     slot <= MISSION_POINT_REF_BASE +
@@ -6708,7 +6540,7 @@ uint16_t mission_init(const char *file_name)
 					++option_count;
 				}
 			}
-			selected_option =
+			int selected_option =
 				game_rand_range((uint16_t)option_count);
 			if (option_count > 1 && selected_option != 0) {
 				int ordinal = 1;
@@ -6813,7 +6645,6 @@ uint16_t mission_init(const char *file_name)
 	{
 		uint16_t saved_random_state =
 			(uint16_t)g_game_rand_feedback_state;
-		uint16_t backdrop_direction_starts[BACKDROP_DIRECTION_COUNT];
 
 		g_game_rand_feedback_state =
 			(int16_t)(g_mission_header.backdrop -
@@ -6823,6 +6654,7 @@ uint16_t mission_init(const char *file_name)
 			(uint16_t)g_game_rand_feedback_state;
 		g_game_rand_feedback_state = (int16_t)saved_random_state;
 
+		uint16_t backdrop_direction_starts[BACKDROP_DIRECTION_COUNT];
 		backdrop_direction_starts[0] = 0;
 		backdrop_direction_starts[1] = g_backdrop_positive_y_count;
 		backdrop_direction_starts[2] = g_backdrop_negative_y_count +
@@ -6852,9 +6684,6 @@ uint16_t mission_init(const char *file_name)
 				     MODEL_FLAG_BACKDROP) != 0) {
 					uint16_t source_backdrop_type =
 						backdrop_type;
-					uint8_t packed_y;
-					uint16_t side;
-					uint16_t record_index;
 
 					if (backdrop_type ==
 					    BACKDROP_SOURCE_MODEL_TYPE) {
@@ -6937,21 +6766,23 @@ uint16_t mission_init(const char *file_name)
 					g_object_type_table[backdrop_type]
 						.asset_flags |=
 						MODEL_ASSET_REQUIRED;
-					side = g_mission_flight_groups
-						       [current_flight_group]
-							       .fg
-							       .mission_point_z
-								       [0];
+					uint16_t side =
+						g_mission_flight_groups
+							[current_flight_group]
+								.fg
+								.mission_point_z
+									[0];
 					if (side >
 					    (unsigned int)
 						    BACKDROP_DIRECTION_MAX) {
 						side = BACKDROP_DIRECTION_MAX;
 					}
-					record_index = backdrop_direction_starts
-						[side]++;
+					uint16_t record_index =
+						backdrop_direction_starts
+							[side]++;
 					g_backdrop_model_types[record_index] =
 						(uint8_t)backdrop_type;
-					packed_y = (uint8_t)(-(
+					uint8_t packed_y = (uint8_t)(-(
 						g_mission_flight_groups
 							[current_flight_group]
 								.fg
@@ -7069,22 +6900,12 @@ void mission_init_flight_runtime_state(void)
 		GOAL_STATE_BATCH_SIZE = 8,
 	};
 
-	int message_index;
-	int team_index;
-	int player_index;
-
 	flight_surface_unlock();
 	g_initial_spawn_bind_player_craft_slots = 1;
 	g_next_object_signature = 1;
 	for (g_current_flight_group_idx = 0;
 	     g_current_flight_group_idx < g_mission_header.num_flight_groups;
 	     ++g_current_flight_group_idx) {
-		int16_t first_pair_state;
-		int16_t second_pair_state;
-		uint8_t arrival_state;
-		uint8_t condition1;
-		uint8_t condition2;
-
 		g_mission_fg_stats[g_current_flight_group_idx].arrival_enabled =
 			g_mission_difficulty_arrival_masks
 				[g_flight_mission_state.difficulty] &
@@ -7097,16 +6918,18 @@ void mission_init_flight_runtime_state(void)
 			continue;
 		}
 
-		first_pair_state = CONDITION_STATE_PENDING;
-		second_pair_state = CONDITION_STATE_PENDING;
-		condition1 = g_mission_flight_groups[g_current_flight_group_idx]
-				     .fg.arrival_triggers[0]
-				     .triggers[0]
-				     .condition;
-		condition2 = g_mission_flight_groups[g_current_flight_group_idx]
-				     .fg.arrival_triggers[0]
-				     .triggers[1]
-				     .condition;
+		int16_t first_pair_state = CONDITION_STATE_PENDING;
+		int16_t second_pair_state = CONDITION_STATE_PENDING;
+		uint8_t condition1 =
+			g_mission_flight_groups[g_current_flight_group_idx]
+				.fg.arrival_triggers[0]
+				.triggers[0]
+				.condition;
+		uint8_t condition2 =
+			g_mission_flight_groups[g_current_flight_group_idx]
+				.fg.arrival_triggers[0]
+				.triggers[1]
+				.condition;
 		if ((condition1 == MISSION_COND_PLAYER_CONNECTED ||
 		     condition2 == MISSION_COND_PLAYER_CONNECTED ||
 		     condition1 == MISSION_COND_PLAYER_DISCONNECTED ||
@@ -7114,10 +6937,7 @@ void mission_init_flight_runtime_state(void)
 		    g_mission_flight_groups[g_current_flight_group_idx]
 				    .fg.arrival_triggers[0]
 				    .trigger1_or_trigger2 == 0) {
-			uint16_t result1;
-			uint16_t result2;
-
-			result1 = (uint16_t)mission_evaluate_condition(
+			uint16_t result1 = (uint16_t)mission_evaluate_condition(
 				condition1,
 				g_mission_flight_groups
 					[g_current_flight_group_idx]
@@ -7135,7 +6955,7 @@ void mission_init_flight_runtime_state(void)
 						.triggers[0]
 						.amount,
 				0, ANY_TEAM);
-			result2 = (uint16_t)mission_evaluate_condition(
+			uint16_t result2 = (uint16_t)mission_evaluate_condition(
 				condition2,
 				g_mission_flight_groups
 					[g_current_flight_group_idx]
@@ -7180,10 +7000,7 @@ void mission_init_flight_runtime_state(void)
 		    g_mission_flight_groups[g_current_flight_group_idx]
 				    .fg.arrival_triggers[1]
 				    .trigger1_or_trigger2 == 0) {
-			uint16_t result1;
-			uint16_t result2;
-
-			result1 = (uint16_t)mission_evaluate_condition(
+			uint16_t result1 = (uint16_t)mission_evaluate_condition(
 				condition1,
 				g_mission_flight_groups
 					[g_current_flight_group_idx]
@@ -7201,7 +7018,7 @@ void mission_init_flight_runtime_state(void)
 						.triggers[0]
 						.amount,
 				0, ANY_TEAM);
-			result2 = (uint16_t)mission_evaluate_condition(
+			uint16_t result2 = (uint16_t)mission_evaluate_condition(
 				condition2,
 				g_mission_flight_groups
 					[g_current_flight_group_idx]
@@ -7231,6 +7048,7 @@ void mission_init_flight_runtime_state(void)
 			}
 		}
 
+		uint8_t arrival_state;
 		if (g_mission_flight_groups[g_current_flight_group_idx]
 			    .fg.arrivals12_or_arrivals34 == 1) {
 			if ((((uint8_t)first_pair_state |
@@ -7265,13 +7083,10 @@ void mission_init_flight_runtime_state(void)
 		}
 	}
 
+	int team_index;
 	for (g_current_flight_group_idx = 0;
 	     g_current_flight_group_idx < g_mission_header.num_flight_groups;
 	     ++g_current_flight_group_idx) {
-		int16_t number_of_craft;
-		int outcome_index;
-		int goal_state_index;
-
 		g_mission_fg_stats[g_current_flight_group_idx].has_arrived = 0;
 		g_mission_fg_stats[g_current_flight_group_idx]
 			.arrival_delay_pending = 0;
@@ -7281,7 +7096,7 @@ void mission_init_flight_runtime_state(void)
 			.spawned_craft_count = 0;
 		g_mission_fg_stats[g_current_flight_group_idx]
 			.arrival_delay_timer = 0;
-		number_of_craft =
+		int16_t number_of_craft =
 			g_mission_flight_groups[g_current_flight_group_idx]
 				.fg.number_of_craft;
 		if (g_object_type_table
@@ -7332,7 +7147,7 @@ void mission_init_flight_runtime_state(void)
 				.special_cargo_outcome
 					[FLIGHT_GROUP_OUTCOME_TOTAL] = 0;
 		}
-		for (outcome_index = FLIGHT_GROUP_OUTCOME_ARRIVED;
+		for (int outcome_index = FLIGHT_GROUP_OUTCOME_ARRIVED;
 		     outcome_index < FLIGHT_GROUP_OUTCOME_COUNT;
 		     ++outcome_index) {
 			g_mission_fg_stats[g_current_flight_group_idx]
@@ -7369,7 +7184,7 @@ void mission_init_flight_runtime_state(void)
 			g_mission_fg_stats[g_current_flight_group_idx]
 				.team_event_extra[3][team_index] = 0;
 		}
-		for (goal_state_index = 0;
+		for (int goal_state_index = 0;
 		     goal_state_index < FLIGHT_GROUP_GOAL_STATE_COUNT;
 		     goal_state_index += GOAL_STATE_BATCH_SIZE) {
 			g_mission_fg_stats[g_current_flight_group_idx]
@@ -7449,9 +7264,6 @@ void mission_init_flight_runtime_state(void)
 	}
 
 	for (team_index = 0; team_index < TEAM_COUNT; ++team_index) {
-		int goal_index;
-		int team_flight_group_index;
-
 		g_flight_mission_state.runtime
 			.team_reinforcements_called[team_index] = 0;
 		g_flight_mission_state.runtime
@@ -7460,17 +7272,15 @@ void mission_init_flight_runtime_state(void)
 			.team_scores[TEAM_SCORE_MISSION][team_index] = 0;
 		g_flight_mission_state.runtime
 			.team_mission_completion_time_seconds[team_index] = 0;
-		for (goal_index = 0; goal_index < TEAM_GOAL_COUNT;
+		for (int goal_index = 0; goal_index < TEAM_GOAL_COUNT;
 		     ++goal_index) {
-			int trigger_index;
-
 			g_flight_mission_state.runtime
 				.team_global_goal_state[team_index]
 						       [goal_index] =
 				CONDITION_STATE_PENDING;
 			g_flight_mission_state.runtime
 				.team_goal_status[team_index][goal_index] = 0;
-			for (trigger_index = 0;
+			for (int trigger_index = 0;
 			     trigger_index < GLOBAL_GOAL_TRIGGER_COUNT;
 			     ++trigger_index) {
 				g_flight_mission_state.runtime
@@ -7491,7 +7301,7 @@ void mission_init_flight_runtime_state(void)
 			0;
 		g_flight_mission_state.runtime.team_kill_stats[3][team_index] =
 			0;
-		for (team_flight_group_index = 0;
+		for (int team_flight_group_index = 0;
 		     team_flight_group_index < MISSION_FLIGHT_GROUP_COUNT;
 		     ++team_flight_group_index) {
 			g_flight_mission_state.runtime
@@ -7510,32 +7320,23 @@ void mission_init_flight_runtime_state(void)
 	g_current_flight_group_idx = 0;
 	for (; g_current_flight_group_idx < g_mission_header.num_flight_groups;
 	     ++g_current_flight_group_idx) {
-		int role_offset;
-		uint8_t flight_group_team;
-
-		flight_group_team =
+		uint8_t flight_group_team =
 			g_mission_flight_groups[g_current_flight_group_idx]
 				.fg.team;
-		for (role_offset = 0;
+		for (int role_offset = 0;
 		     role_offset <
 		     (int)sizeof(
 			     g_mission_flight_groups[g_current_flight_group_idx]
 				     .fg.craft_role);
 		     role_offset += 4) {
-			uint8_t team_selector;
-			int designation_code;
-			uint8_t selector;
-			char role1;
-			char role2;
-			char role3;
-
-			selector = g_mission_flight_groups
-					   [g_current_flight_group_idx]
-						   .fg.craft_role[role_offset];
+			uint8_t selector =
+				g_mission_flight_groups
+					[g_current_flight_group_idx]
+						.fg.craft_role[role_offset];
 			if (selector == '\0') {
 				break;
 			}
-			team_selector = UINT8_MAX;
+			uint8_t team_selector = UINT8_MAX;
 			if (selector == 'A') {
 				team_selector = 10;
 			} else if (selector == 'O') {
@@ -7551,16 +7352,19 @@ void mission_init_flight_runtime_state(void)
 				continue;
 			}
 
-			role1 = g_mission_flight_groups
+			char role1 =
+				g_mission_flight_groups
 					[g_current_flight_group_idx]
 						.fg.craft_role[role_offset + 1];
-			role2 = g_mission_flight_groups
+			char role2 =
+				g_mission_flight_groups
 					[g_current_flight_group_idx]
 						.fg.craft_role[role_offset + 2];
-			role3 = g_mission_flight_groups
+			char role3 =
+				g_mission_flight_groups
 					[g_current_flight_group_idx]
 						.fg.craft_role[role_offset + 3];
-			designation_code = 0;
+			int designation_code = 0;
 			if (role1 == 'C' && role2 == 'O' && role3 == 'M') {
 				designation_code = 1;
 			} else if (role1 == 'B' && role2 == 'A' &&
@@ -7631,9 +7435,8 @@ void mission_init_flight_runtime_state(void)
 		}
 	}
 
+	int player_index;
 	for (player_index = 0; player_index < PLAYER_COUNT; ++player_index) {
-		int preset_index;
-
 		g_players[player_index].awaiting_new_craft = 0;
 		g_players[player_index].target_box_enabled = 1;
 		g_players[player_index].current_target_object_idx = -1;
@@ -7641,7 +7444,7 @@ void mission_init_flight_runtime_state(void)
 		g_players[player_index].selected_target_component = -1;
 		g_players[player_index].targeting_state = -1;
 		g_players[player_index].engine_wash_source_obj_idx = -1;
-		for (preset_index = 0;
+		for (int preset_index = 0;
 		     preset_index <
 		     (int)(sizeof(g_players[player_index].target_preset_slot) /
 			   sizeof(g_players[player_index]
@@ -7718,7 +7521,7 @@ void mission_init_flight_runtime_state(void)
 	g_input_timestamp += (int)time_consume_elapsed_ticks();
 	g_ready_message_queue_count = 0;
 	g_input_timestamp = 0;
-	for (message_index = 0; message_index < MISSION_MESSAGE_COUNT;
+	for (int message_index = 0; message_index < MISSION_MESSAGE_COUNT;
 	     ++message_index) {
 		g_flight_mission_state.message_triggered[message_index] = 0;
 		g_flight_mission_state.message_delay_countdown[message_index] =
@@ -7745,10 +7548,9 @@ int16_t mission_start_flight_group_arrival(uint16_t craft_ordinal)
 	enum { STATIC_MODEL_FLAG = 0x80 };
 
 	uint16_t flight_group_index = g_current_flight_group_idx;
-	uint8_t object_type;
 
 	g_mission_fg_stats[flight_group_index].has_arrived = 1;
-	object_type = g_craft_type_to_object_type
+	uint8_t object_type = g_craft_type_to_object_type
 		[g_mission_flight_groups[flight_group_index].fg.craft_type];
 	if ((g_object_type_table[object_type].behavior_flags &
 	     STATIC_MODEL_FLAG) == 0) {
@@ -7885,10 +7687,8 @@ void mission_update_flight_group_arrivals(void)
 								[flight_group_idx]
 									.fg
 									.arrival_delay_seconds;
-						uint16_t random_delay_seconds;
-						uint16_t random_delay;
 
-						random_delay_seconds =
+						uint16_t random_delay_seconds =
 							60 *
 							g_mission_flight_groups
 								[flight_group_idx]
@@ -7901,6 +7701,7 @@ void mission_update_flight_group_arrivals(void)
 								[flight_group_idx]
 									.fg
 									.arrival_rand_delay_seconds;
+						uint16_t random_delay;
 						if (g_flight_mission_state
 							    .random_variation_enabled !=
 						    0) {
@@ -8011,11 +7812,9 @@ void mission_update_flight_group_arrivals(void)
 						}
 					}
 				} else {
-					unsigned int static_object_end;
-
 					object_index = (unsigned int)
 						g_region_main_object_slot_end;
-					static_object_end =
+					unsigned int static_object_end =
 						object_index +
 						(unsigned int)
 							g_region_static_object_slot_count;
@@ -8043,8 +7842,6 @@ void mission_update_flight_group_arrivals(void)
 					    g_flight_mission_state
 							    .player_flight_group_wave_mode !=
 						    CRAFT_WAVES_UNLIMITED) {
-						uint8_t stop_condition;
-
 						if ((g_mission_flight_groups[g_current_flight_group_idx]
 								     .fg
 								     .departure_trigger
@@ -8069,7 +7866,7 @@ void mission_update_flight_group_arrivals(void)
 							stop_arriving = 1;
 						}
 
-						stop_condition =
+						uint8_t stop_condition =
 							g_mission_flight_groups
 								[g_current_flight_group_idx]
 									.fg
@@ -8276,17 +8073,14 @@ void mission_process_flight_group_wave_completion(uint16_t flight_group_idx)
 		STOP_ARRIVING_MISSION_FAILED = 3,
 	};
 
-	int stop_arriving;
-	unsigned int object_index;
-	char wave_complete;
-
 	if (g_mission_fg_stats[flight_group_idx].waves_remaining == 0 ||
 	    g_mission_fg_stats[flight_group_idx]
 			    .outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] == 0) {
 		return;
 	}
 
-	wave_complete = 1;
+	char wave_complete = 1;
+	unsigned int object_index;
 	for (object_index = (unsigned int)g_active_region_object_slot_start;
 	     object_index < (unsigned int)g_active_region_craft_object_slot_end;
 	     ++object_index) {
@@ -8331,12 +8125,10 @@ void mission_process_flight_group_wave_completion(uint16_t flight_group_idx)
 	}
 
 	{
-		stop_arriving = 0;
+		int stop_arriving = 0;
 
 		if (g_flight_mission_state.player_flight_group_wave_mode !=
 		    CRAFT_WAVES_UNLIMITED) {
-			uint8_t stop_condition;
-
 			if ((g_mission_flight_groups[flight_group_idx]
 					     .fg.departure_trigger.triggers[0]
 					     .condition != 0 ||
@@ -8350,7 +8142,7 @@ void mission_process_flight_group_wave_completion(uint16_t flight_group_idx)
 			     1) != 0) {
 				stop_arriving = 1;
 			}
-			stop_condition =
+			uint8_t stop_condition =
 				g_mission_flight_groups[flight_group_idx]
 					.fg.stop_arriving_when;
 			if (stop_condition == STOP_ARRIVING_CRAFT_DEPARTED &&
@@ -8465,7 +8257,6 @@ void mission_process_flight_group_wave_completion(uint16_t flight_group_idx)
 	g_current_flight_group_idx = flight_group_idx;
 	{
 		unsigned int free_object_slot_count = 0;
-		unsigned int number_of_craft;
 
 		for (object_index =
 			     (unsigned int)g_active_region_object_slot_start;
@@ -8477,8 +8268,9 @@ void mission_process_flight_group_wave_completion(uint16_t flight_group_idx)
 			}
 		}
 
-		number_of_craft = g_mission_flight_groups[flight_group_idx]
-					  .fg.number_of_craft;
+		unsigned int number_of_craft =
+			g_mission_flight_groups[flight_group_idx]
+				.fg.number_of_craft;
 		if (free_object_slot_count < number_of_craft) {
 			unsigned int slots_to_free =
 				number_of_craft - free_object_slot_count;
@@ -8561,11 +8353,7 @@ void mission_spawn_current_flight_group_wave(void)
 		STATIC_MODEL_FLAG = 0x80,
 	};
 
-	uint8_t object_type;
-	uint8_t *waves_remaining;
-	uint8_t remaining_wave_count;
-
-	object_type = g_craft_type_to_object_type
+	uint8_t object_type = g_craft_type_to_object_type
 		[g_mission_flight_groups[g_current_flight_group_idx]
 			 .fg.craft_type];
 	if ((g_object_type_table[object_type].behavior_flags &
@@ -8575,9 +8363,9 @@ void mission_spawn_current_flight_group_wave(void)
 		mission_spawn_flight_group_static_objects(UINT16_MAX);
 	}
 
-	waves_remaining =
+	uint8_t *waves_remaining =
 		&g_mission_fg_stats[g_current_flight_group_idx].waves_remaining;
-	remaining_wave_count = *waves_remaining;
+	uint8_t remaining_wave_count = *waves_remaining;
 	if (remaining_wave_count != 0) {
 		if (g_mission_flight_groups[g_current_flight_group_idx]
 			    .fg.player_number != 0) {
@@ -8598,16 +8386,12 @@ void mission_spawn_current_flight_group_wave(void)
 // FUNCTION: XVT 0x4560F0
 int mission_has_capacity_for_current_flight_group_wave(void)
 {
-	unsigned int free_slot_count;
-	unsigned int object_index;
-	uint16_t object_type;
-
-	object_type = g_craft_type_to_object_type
+	uint16_t object_type = g_craft_type_to_object_type
 		[g_mission_flight_groups[g_current_flight_group_idx]
 			 .fg.craft_type];
 	if ((g_object_type_table[object_type].behavior_flags & 0x80) == 0) {
-		free_slot_count = 0;
-		for (object_index =
+		unsigned int free_slot_count = 0;
+		for (unsigned int object_index =
 			     (unsigned int)g_active_region_object_slot_start;
 		     object_index <
 		     (unsigned int)g_active_region_craft_object_slot_end;
@@ -8666,12 +8450,7 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 		MISSION_VERSION_14 = 14,
 	};
 
-	uint8_t mission_started;
-	uint8_t player_flight_groups_by_team[TEAM_COUNT];
-	int spawned_craft_count;
-	int16_t spawn_pitch;
-
-	mission_started = g_mission_elapsed_clock.minutes;
+	uint8_t mission_started = g_mission_elapsed_clock.minutes;
 	mission_started |= g_mission_elapsed_clock.seconds;
 	mission_started |= g_mission_elapsed_clock.hours;
 	g_spawn_out_of_hyperspace_flag = 0;
@@ -8682,14 +8461,14 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 	    mission_started != 0 &&
 	    g_flight_mission_state.proving_grounds_mode_active == 0 &&
 	    craft_ordinal == UINT16_MAX) {
-		uint16_t object_index;
 		uint16_t mothership_object_index = 0;
 		int16_t found_mothership = 0;
 		int16_t arrival_mothership =
 			g_mission_flight_groups[g_current_flight_group_idx]
 				.fg.arrival_mothership;
 
-		for (object_index = (uint16_t)g_active_region_object_slot_start;
+		for (uint16_t object_index =
+			     (uint16_t)g_active_region_object_slot_start;
 		     (int)object_index < g_active_region_craft_object_slot_end;
 		     ++object_index) {
 			if (g_object_table[object_index].object_type == 0) {
@@ -8710,11 +8489,9 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 		}
 
 		{
-			uint16_t model_index;
-
 			g_cur_craft = g_object_table[mothership_object_index]
 					      .mobj->p_craft;
-			model_index = g_cur_craft->model_index;
+			uint16_t model_index = g_cur_craft->model_index;
 			pai_rotate_local_vector_to_world_scratch(
 				&g_object_table[mothership_object_index],
 				g_model_defs[model_index]
@@ -8776,10 +8553,11 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 				if (g_mission_flight_groups
 					    [g_current_flight_group_idx]
 						    .fg.player_number != 0) {
-					uint8_t flight_group_index;
-
+					uint8_t player_flight_groups_by_team
+						[TEAM_COUNT];
 					memset(player_flight_groups_by_team, 0,
 					       sizeof(player_flight_groups_by_team));
+					uint8_t flight_group_index;
 					for (flight_group_index = 0;
 					     flight_group_index <
 					     (int16_t)g_mission_header
@@ -8807,10 +8585,8 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 								[g_current_flight_group_idx]
 									.fg
 									.number_of_craft;
-						int8_t player_number_offset;
-						uint8_t target_player_number;
 
-						player_number_offset =
+						int8_t player_number_offset =
 							(g_mission_flight_groups
 								 [g_current_flight_group_idx]
 									 .fg
@@ -8820,7 +8596,7 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 									  QUICK_START_FORMATION_CENTER
 								: -QUICK_START_FORMATION_CENTER -
 									  wave_index;
-						target_player_number =
+						uint8_t target_player_number =
 							(uint8_t)((QUICK_START_FORMATION_CENTER *
 									   player_number_offset +
 								   g_mission_flight_groups
@@ -8899,6 +8675,7 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 			}
 		}
 
+		int16_t spawn_pitch;
 		if (g_mission_flight_groups[g_current_flight_group_idx]
 			    .fg.mission_point_enabled[4] != 0) {
 			mission_resolve_object_or_mission_point_world_loc(
@@ -8945,6 +8722,7 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 				.fg.formation_spacing;
 	}
 
+	int spawned_craft_count;
 	{
 		uint8_t team =
 			g_mission_flight_groups[g_current_flight_group_idx]
@@ -8952,21 +8730,21 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 		uint8_t status1 =
 			g_mission_flight_groups[g_current_flight_group_idx]
 				.fg.status1;
-		uint8_t status2;
-		uint8_t group_ai;
 
 		g_spawn_iff =
 			g_mission_flight_groups[g_current_flight_group_idx]
 				.fg.iff;
-		status2 = g_mission_flight_groups[g_current_flight_group_idx]
-				  .fg.status2;
+		uint8_t status2 =
+			g_mission_flight_groups[g_current_flight_group_idx]
+				.fg.status2;
 		g_spawn_team_id = team;
 		g_spawn_status1 = status1;
 		spawned_craft_count = 0;
 		g_spawn_status2 = status2;
 		g_spawn_object_kind = CRAFT_OBJECT_KIND_ACTIVE;
-		group_ai = g_mission_flight_groups[g_current_flight_group_idx]
-				   .fg.group_ai;
+		uint8_t group_ai =
+			g_mission_flight_groups[g_current_flight_group_idx]
+				.fg.group_ai;
 		g_spawn_genus_id =
 			g_object_type_table
 				[g_craft_type_to_object_type
@@ -9097,41 +8875,16 @@ uint16_t mission_init_flight_group_object_slot(void)
 		PLATFORM_BEAM_DISABLED_STRIDE = 12,
 	};
 
-	uint16_t object_index;
-	uint16_t object_slot_end;
-	uint16_t object_slot_start;
-	int bound_player_idx;
-	object_type_id object_type;
-	uint16_t model_index;
-	uint16_t formation_type;
-	uint16_t craft_ordinal;
-	int16_t formation_spacing;
-	int16_t spacing_scale;
-	int16_t bound_size_x;
-	int16_t bound_size_z;
-	int16_t bound_size_y;
-	int16_t side;
-	int16_t up;
-	int16_t forward;
-	int16_t formation_divisor;
-	uint8_t has_player_owner;
-	uint8_t player_craft_bound;
-	uint8_t engine_glow_count;
-	int16_t full_throttle;
-	int player_owner_idx;
-	int max_bounds_extent;
-	int ai_skill_level;
-	uint16_t index;
-	int slot;
-
-	bound_player_idx = 0;
-	object_type = g_craft_type_to_object_type
+	int bound_player_idx = 0;
+	object_type_id object_type = g_craft_type_to_object_type
 		[g_mission_flight_groups[g_current_flight_group_idx]
 			 .fg.craft_type];
 	g_spawn_object_type = (uint8_t)object_type;
-	object_slot_start =
+	uint16_t object_slot_start =
 		g_object_slot_range_by_genus[g_spawn_genus_id].start;
-	object_slot_end = g_object_slot_range_by_genus[g_spawn_genus_id].end;
+	uint16_t object_slot_end =
+		g_object_slot_range_by_genus[g_spawn_genus_id].end;
+	uint16_t object_index;
 	for (object_index = object_slot_start; object_index < object_slot_end;
 	     ++object_index) {
 		if (g_object_table[object_index].object_type == 0) {
@@ -9143,8 +8896,10 @@ uint16_t mission_init_flight_group_object_slot(void)
 	}
 
 	collide_reset_object_proximity_for_slot(object_index);
-	player_owner_idx = g_mission_flight_groups[g_current_flight_group_idx]
-				   .player_owner_idx;
+	int player_owner_idx =
+		g_mission_flight_groups[g_current_flight_group_idx]
+			.player_owner_idx;
+	uint8_t player_craft_bound;
 	if (player_owner_idx != -1 &&
 	    g_mission_flight_groups[g_current_flight_group_idx]
 			    .fg.player_craft == g_spawn_craft_ordinal &&
@@ -9160,8 +8915,9 @@ uint16_t mission_init_flight_group_object_slot(void)
 		player_craft_bound = 0;
 		g_object_table[object_index].player_owner_idx = -1;
 	}
-	has_player_owner = g_mission_flight_groups[g_current_flight_group_idx]
-				   .player_owner_idx != -1;
+	uint8_t has_player_owner =
+		g_mission_flight_groups[g_current_flight_group_idx]
+			.player_owner_idx != -1;
 	g_object_table[object_index].mobj->p_craft =
 		&g_craft_data_pool_base[object_index - object_slot_start];
 	g_cur_craft = &g_craft_data_pool_base[object_index - object_slot_start];
@@ -9171,7 +8927,8 @@ uint16_t mission_init_flight_group_object_slot(void)
 	g_object_table[object_index].object_type = (uint8_t)object_type;
 	g_object_table[object_index].object_signature =
 		g_next_object_signature++;
-	max_bounds_extent = g_object_type_table[object_type].max_bounds_extent;
+	int max_bounds_extent =
+		g_object_type_table[object_type].max_bounds_extent;
 	if (object_type == SPECIAL_BOUNDS_OBJECT_TYPE) {
 		max_bounds_extent *= 8;
 	}
@@ -9180,7 +8937,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 	}
 	g_object_table[object_index].mobj->damage_amount = max_bounds_extent;
 	g_cur_craft->model_index = get_model_index_from_type(object_type);
-	model_index = g_cur_craft->model_index;
+	uint16_t model_index = g_cur_craft->model_index;
 	g_object_table[object_index].mobj->iff = g_spawn_iff;
 	g_spawned_object_iff = g_object_table[object_index].mobj->iff;
 	g_object_table[object_index].mobj->team = g_spawn_team_id;
@@ -9202,10 +8959,10 @@ uint16_t mission_init_flight_group_object_slot(void)
 		g_spawn_leader_obj_idx = (uint8_t)object_index;
 	}
 	g_cur_craft->ai_flight.formation_type = g_spawn_formation;
-	formation_type = g_cur_craft->ai_flight.formation_type;
+	uint16_t formation_type = g_cur_craft->ai_flight.formation_type;
 	g_cur_craft->craft_ordinal = (uint8_t)g_spawn_craft_ordinal;
-	craft_ordinal = g_cur_craft->craft_ordinal;
-	formation_spacing = g_spawn_formation_spacing;
+	uint16_t craft_ordinal = g_cur_craft->craft_ordinal;
+	int16_t formation_spacing = g_spawn_formation_spacing;
 	if (g_spawn_from_mothership_flag != 0) {
 		formation_spacing = 0;
 	}
@@ -9232,17 +8989,17 @@ uint16_t mission_init_flight_group_object_slot(void)
 						 .fg.global_unit];
 	}
 
-	bound_size_x = g_model_defs[model_index].bound_size_x;
-	bound_size_z = g_model_defs[model_index].bound_size_z;
-	bound_size_y = g_model_defs[model_index].bound_size_y;
-	spacing_scale = formation_spacing + 1;
-	forward = bound_size_y;
+	int16_t bound_size_x = g_model_defs[model_index].bound_size_x;
+	int16_t bound_size_z = g_model_defs[model_index].bound_size_z;
+	int16_t bound_size_y = g_model_defs[model_index].bound_size_y;
+	int16_t spacing_scale = formation_spacing + 1;
+	int16_t forward = bound_size_y;
 	forward *= spacing_scale;
 	forward *= g_form_pos_y[formation_type][craft_ordinal];
-	up = bound_size_z;
+	int16_t up = bound_size_z;
 	up *= spacing_scale;
 	up *= g_form_pos_z[formation_type][craft_ordinal];
-	side = bound_size_x;
+	int16_t side = bound_size_x;
 	side *= spacing_scale;
 	side *= g_form_pos_x[formation_type][craft_ordinal];
 	if (spacing_scale == 1) {
@@ -9253,7 +9010,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 		forward += g_form_pos_y[formation_type][craft_ordinal] *
 			   (bound_size_y / 4);
 	}
-	formation_divisor = g_formation_divisor[formation_type];
+	int16_t formation_divisor = g_formation_divisor[formation_type];
 	if (formation_divisor != 1) {
 		side /= formation_divisor;
 		forward /= formation_divisor;
@@ -9291,6 +9048,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 	g_object_table[object_index].mobj->prev_world_z =
 		g_object_table[object_index].world_z;
 
+	uint16_t index;
 	{
 		const char *cargo =
 			g_mission_flight_groups[g_current_flight_group_idx]
@@ -9335,15 +9093,12 @@ uint16_t mission_init_flight_group_object_slot(void)
 	g_cur_craft->ai_flight.turn_rate = g_model_defs[model_index].yaw_rate;
 	g_cur_craft->ai_flight.max_speed_cache =
 		g_model_defs[model_index].max_speed;
-	ai_skill_level = g_spawn_group_ai;
+	int ai_skill_level = g_spawn_group_ai;
 	g_cur_craft->ai_skill = g_ai_skill_value_q16_by_level[ai_skill_level];
 	g_cur_craft->cannon_group_count = 0;
 	{
 		uint16_t laser_slot_count = 0;
 		for (index = 0; index < LASER_GROUP_COUNT; ++index) {
-			uint16_t weapon_slot;
-			uint16_t first_slot;
-			uint16_t last_slot;
 			g_cur_craft->laser_state.projectile_type_id[index] =
 				g_model_defs[model_index]
 					.laser_group_weapon_type[index];
@@ -9363,18 +9118,20 @@ uint16_t mission_init_flight_group_object_slot(void)
 			laser_slot_count +=
 				g_model_defs[model_index]
 					.laser_group_slot_count[index];
-			first_slot = g_model_defs[model_index]
-					     .laser_group_first_slot[index];
-			last_slot = g_model_defs[model_index]
-					    .laser_group_last_slot[index];
+			uint16_t first_slot =
+				g_model_defs[model_index]
+					.laser_group_first_slot[index];
+			uint16_t last_slot =
+				g_model_defs[model_index]
+					.laser_group_last_slot[index];
 			if (g_model_defs[model_index]
 				    .laser_group_mount_type[index] != 2) {
 				++g_cur_craft->cannon_group_count;
 				g_cur_craft->laser_state.next_slot[index] =
 					(uint8_t)first_slot;
 			}
-			for (weapon_slot = first_slot; weapon_slot <= last_slot;
-			     ++weapon_slot) {
+			for (uint16_t weapon_slot = first_slot;
+			     weapon_slot <= last_slot; ++weapon_slot) {
 				if (g_model_defs[model_index]
 					    .laser_group_mount_type[index] !=
 				    2) {
@@ -9404,8 +9161,6 @@ uint16_t mission_init_flight_group_object_slot(void)
 
 	g_cur_craft->warhead_launcher_count = 0;
 	for (index = 0; index < WARHEAD_LAUNCHER_COUNT; ++index) {
-		uint16_t weapon_slot;
-		uint16_t last_slot;
 		if (index == 0 ||
 		    get_model_index_from_type(
 			    SPECIAL_WARHEAD_MODEL_OBJECT_TYPE) == model_index) {
@@ -9430,15 +9185,15 @@ uint16_t mission_init_flight_group_object_slot(void)
 			continue;
 		}
 		++g_cur_craft->warhead_launcher_count;
-		last_slot = g_model_defs[model_index]
-				    .warhead_launcher_last_slot[index];
-		for (weapon_slot = g_model_defs[model_index]
-					   .warhead_launcher_first_slot[index];
+		uint16_t last_slot = g_model_defs[model_index]
+					     .warhead_launcher_last_slot[index];
+		for (uint16_t weapon_slot =
+			     g_model_defs[model_index]
+				     .warhead_launcher_first_slot[index];
 		     weapon_slot <= last_slot; ++weapon_slot) {
 			uint16_t warhead = g_mission_flight_groups
 						   [g_current_flight_group_idx]
 							   .fg.warhead;
-			uint8_t ammo_count;
 			g_cur_craft->weapon_slots[weapon_slot]
 				.projectile_type_id =
 				g_cur_craft->warhead_slot_type_ids[index];
@@ -9452,7 +9207,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 				    model_index) {
 				warhead = SPECIAL_WARHEAD_INDEX;
 			}
-			ammo_count = (uint8_t)math2_fraction(
+			uint8_t ammo_count = (uint8_t)math2_fraction(
 				g_model_defs[model_index]
 					.warhead_launcher_capacity[index],
 				g_warhead_ammo_fraction_q16[warhead]);
@@ -9599,6 +9354,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 	g_cur_craft->damage_stats.damage_from_collision = 0;
 	g_cur_craft->damage_stats.damage_from_starship = 0;
 	g_cur_craft->damage_stats.damage_from_mine = 0;
+	int slot;
 	for (slot = 0; slot < PLAYER_COUNT; ++slot) {
 		g_cur_craft->damage_stats.damage_from_player[slot] = 0;
 	}
@@ -9824,6 +9580,8 @@ uint16_t mission_init_flight_group_object_slot(void)
 		}
 	}
 
+	uint8_t engine_glow_count;
+	int16_t full_throttle;
 	{
 		int order = g_mission_flight_groups[g_current_flight_group_idx]
 				    .fg.orders[0]
@@ -9832,8 +9590,6 @@ uint16_t mission_init_flight_group_object_slot(void)
 			[g_order_leader_builtin_plan_name_index[order]];
 		uint8_t follower_plan = g_builtin_plan_id_by_name_index
 			[g_order_follower_builtin_plan_name_index[order]];
-		struct pai_plan_record *plan;
-		uint16_t throttle_speed;
 		g_cur_craft->ai_controller.running_plan_id =
 			(uint8_t)leader_plan;
 		g_cur_craft->ai_controller.current_plan_id =
@@ -9848,7 +9604,8 @@ uint16_t mission_init_flight_group_object_slot(void)
 			follower_plan = (uint8_t)leader_plan;
 		}
 		g_cur_craft->ai_controller.running_plan_id = follower_plan;
-		plan = &g_plan_table[leader_plan];
+		struct pai_plan_record *plan = &g_plan_table[leader_plan];
+		uint16_t throttle_speed;
 		if ((strcmp(plan->name, "nullpln") == 0 ||
 		     strcmp(plan->name, "stationaryldrpln") == 0 ||
 		     strcmp(plan->name, "stationaryflwpln") == 0 ||
@@ -9979,7 +9736,24 @@ uint16_t mission_init_flight_group_object_slot(void)
 // FUNCTION: XVT 0x4587C0
 void mission_spawn_flight_group_static_objects(uint16_t craft_ordinal)
 {
-	int genus_id;
+	if (g_mission_fg_stats[g_current_flight_group_idx]
+		    .outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] == 0) {
+		return;
+	}
+
+	uint8_t object_type = g_craft_type_to_object_type
+		[g_mission_flight_groups[g_current_flight_group_idx]
+			 .fg.craft_type];
+	if ((g_object_type_table[object_type].behavior_flags & 0x80u) == 0) {
+		return;
+	}
+
+	int genus_id = g_object_type_table
+			       [g_craft_type_to_object_type
+					[g_mission_flight_groups
+						 [g_current_flight_group_idx]
+							 .fg.craft_type]]
+				       .genus_id;
 	int x_step;
 	int y_step;
 	int z_row_step;
@@ -9987,40 +9761,15 @@ void mission_spawn_flight_group_static_objects(uint16_t craft_ordinal)
 	uint8_t number_of_craft;
 	int grid_extent;
 	uint32_t spawn_index;
-	uint8_t object_type;
-	int column;
 	int ordinal;
 	int base_x;
 	int base_y;
 	int base_z;
-	int x;
-	int z;
 	uint16_t saved_random_state;
 	int spawn_x;
 	int spawn_y;
 	int spawn_z;
 	int object_index;
-	int static_object_end;
-	struct object_record *object;
-
-	if (g_mission_fg_stats[g_current_flight_group_idx]
-		    .outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] == 0) {
-		return;
-	}
-
-	object_type = g_craft_type_to_object_type
-		[g_mission_flight_groups[g_current_flight_group_idx]
-			 .fg.craft_type];
-	if ((g_object_type_table[object_type].behavior_flags & 0x80u) == 0) {
-		return;
-	}
-
-	genus_id = g_object_type_table
-			   [g_craft_type_to_object_type
-				    [g_mission_flight_groups
-					     [g_current_flight_group_idx]
-						     .fg.craft_type]]
-				   .genus_id;
 	switch (genus_id) {
 	case CRAFT_GENUS_MINE:
 		x_step = 0;
@@ -10074,13 +9823,13 @@ void mission_spawn_flight_group_static_objects(uint16_t craft_ordinal)
 		spawn_index = 0;
 		if (number_of_craft != 0) {
 			do {
-				column = 0;
+				int column = 0;
 				if (g_mission_flight_groups
 					    [g_current_flight_group_idx]
 						    .fg.number_of_craft != 0) {
-					x = base_x;
-					z = base_z +
-					    (int)spawn_index * z_row_step;
+					int x = base_x;
+					int z = base_z +
+						(int)spawn_index * z_row_step;
 					do {
 						if ((craft_ordinal ==
 							     UINT16_MAX ||
@@ -10165,12 +9914,13 @@ void mission_spawn_flight_group_static_objects(uint16_t craft_ordinal)
 				spawn_x = (game_rand() & 0x1FF) + base_x - 256;
 				spawn_y = (game_rand() & 0x1FF) + base_y - 256;
 				spawn_z = (game_rand() & 0x1FF) + base_z - 256;
-				static_object_end =
+				int static_object_end =
 					g_region_static_object_slot_count;
 				object_index = g_region_main_object_slot_end;
 				static_object_end += object_index;
 				if (object_index < static_object_end) {
-					object = &g_object_table[object_index];
+					struct object_record *object =
+						&g_object_table[object_index];
 					do {
 						if (object->object_type != 0 &&
 						    object->world_x ==
@@ -10223,9 +9973,7 @@ void mission_spawn_flight_group_static_objects(uint16_t craft_ordinal)
 uint16_t mission_spawn_prepared_object(uint16_t flight_group_idx,
 				       int16_t genus_id, uint8_t object_type)
 {
-	uint16_t object_index;
-
-	object_index = object_find_free_mission_slot();
+	uint16_t object_index = object_find_free_mission_slot();
 	if (object_index != UINT16_MAX) {
 		g_object_table[object_index].world_x =
 			g_prepared_spawn_mission_x;
@@ -10275,10 +10023,7 @@ uint16_t mission_spawn_prepared_object(uint16_t flight_group_idx,
 void mission_resolve_object_or_mission_point_world_loc(
 	unsigned int obj_or_mission_point_ref, int flight_group_idx)
 {
-	unsigned int current_mission_point_ref;
-	int mission_point_idx;
-
-	current_mission_point_ref = obj_or_mission_point_ref;
+	unsigned int current_mission_point_ref = obj_or_mission_point_ref;
 	if (obj_or_mission_point_ref < 0x8000u) {
 		g_world_loc_x =
 			g_object_table[obj_or_mission_point_ref].world_x;
@@ -10294,7 +10039,7 @@ void mission_resolve_object_or_mission_point_world_loc(
 						    .current_mission_point_ref;
 	}
 
-	mission_point_idx = (int)(current_mission_point_ref - 0x8000u);
+	int mission_point_idx = (int)(current_mission_point_ref - 0x8000u);
 	g_world_loc_x = g_mission_flight_groups[flight_group_idx]
 				.fg.mission_point_x[mission_point_idx] *
 			256;
@@ -10322,14 +10067,11 @@ void mission_resolve_formation_slot_world_loc(uint16_t flight_group_idx,
 					      uint16_t formation_slot_idx,
 					      uint16_t basis_obj_idx)
 {
-	uint16_t object_type;
-	uint16_t model_index;
-	int16_t max_z;
-
-	object_type = g_mission_flight_groups[flight_group_idx].fg.craft_type;
+	uint16_t object_type =
+		g_mission_flight_groups[flight_group_idx].fg.craft_type;
 	object_type = g_craft_type_to_object_type[object_type];
-	model_index = g_object_type_table[object_type].model_index;
-	max_z = (int16_t)model_bounds_get_max_z(object_type);
+	uint16_t model_index = g_object_type_table[object_type].model_index;
+	int16_t max_z = (int16_t)model_bounds_get_max_z(object_type);
 
 	mission_resolve_object_or_mission_point_world_loc(0x8000,
 							  flight_group_idx);
@@ -10348,22 +10090,10 @@ void mission_resolve_formation_slot_world_loc(uint16_t flight_group_idx,
 					.fg.mission_point_z[0] *
 				256;
 		} else if (g_object_type_table[object_type].genus_id == 8) {
-			int16_t y_step;
-			int16_t z_row_step;
-			int16_t x_step;
-			int16_t z_column_step;
-			int16_t craft_count_minus_one;
-			int16_t base_x;
-			int16_t base_y;
-			int16_t base_z;
-			int16_t column;
-			int16_t row;
-			uint16_t slot;
-
-			x_step = 0;
-			y_step = 0;
-			z_row_step = 0;
-			z_column_step = 0;
+			int16_t x_step = 0;
+			int16_t y_step = 0;
+			int16_t z_row_step = 0;
+			int16_t z_column_step = 0;
 			switch (g_mission_flight_groups[flight_group_idx]
 					.fg.status1 &
 				3) {
@@ -10381,35 +10111,37 @@ void mission_resolve_formation_slot_world_loc(uint16_t flight_group_idx,
 				break;
 			}
 
-			craft_count_minus_one =
+			int16_t craft_count_minus_one =
 				(int16_t)(g_mission_flight_groups
 						  [flight_group_idx]
 							  .fg.number_of_craft -
 					  1);
-			base_x = (int16_t)(g_mission_flight_groups
-						   [flight_group_idx]
-							   .fg
-							   .mission_point_x[0] -
-					   x_step * craft_count_minus_one / 2);
-			base_y = (int16_t)-(
+			int16_t base_x =
+				(int16_t)(g_mission_flight_groups
+						  [flight_group_idx]
+							  .fg
+							  .mission_point_x[0] -
+					  x_step * craft_count_minus_one / 2);
+			int16_t base_y = (int16_t)-(
 				g_mission_flight_groups[flight_group_idx]
 					.fg.mission_point_y[0] +
 				y_step * craft_count_minus_one / 2);
-			base_z = (int16_t)(g_mission_flight_groups
-						   [flight_group_idx]
-							   .fg
-							   .mission_point_z[0] -
-					   z_row_step * craft_count_minus_one /
-						   2 -
-					   z_column_step *
-						   craft_count_minus_one / 2);
+			int16_t base_z =
+				(int16_t)(g_mission_flight_groups
+						  [flight_group_idx]
+							  .fg
+							  .mission_point_z[0] -
+					  z_row_step * craft_count_minus_one /
+						  2 -
+					  z_column_step *
+						  craft_count_minus_one / 2);
 
-			row = 0;
-			slot = 0;
+			int16_t row = 0;
+			uint16_t slot = 0;
 			if (g_mission_flight_groups[flight_group_idx]
 				    .fg.number_of_craft != 0) {
 				do {
-					column = 0;
+					int16_t column = 0;
 					if (g_mission_flight_groups
 						    [flight_group_idx]
 							    .fg
@@ -10455,34 +10187,24 @@ void mission_resolve_formation_slot_world_loc(uint16_t flight_group_idx,
 			}
 		}
 	} else {
-		int16_t bound_x;
-		int16_t bound_z;
-		int16_t bound_y;
-		int16_t spacing_scale;
-		uint16_t formation_index;
-		int16_t up;
-		int16_t forward;
-		int16_t side;
-		int rotated_x;
-		int rotated_y;
-		int rotated_z;
-
-		bound_x = g_model_defs[model_index].bound_size_x;
-		bound_z = g_model_defs[model_index].bound_size_z;
-		bound_y = g_model_defs[model_index].bound_size_y;
-		spacing_scale = g_mission_flight_groups[flight_group_idx]
-					.fg.formation_spacing +
-				1;
-		formation_index = formation_slot_idx +
-				  6 * g_mission_flight_groups[flight_group_idx]
-						  .fg.formation;
-		forward = spacing_scale;
+		int16_t bound_x = g_model_defs[model_index].bound_size_x;
+		int16_t bound_z = g_model_defs[model_index].bound_size_z;
+		int16_t bound_y = g_model_defs[model_index].bound_size_y;
+		int16_t spacing_scale =
+			g_mission_flight_groups[flight_group_idx]
+				.fg.formation_spacing +
+			1;
+		uint16_t formation_index =
+			formation_slot_idx +
+			6 * g_mission_flight_groups[flight_group_idx]
+					.fg.formation;
+		int16_t forward = spacing_scale;
 		forward *= ((const int16_t *)g_form_pos_y)[formation_index];
 		forward *= bound_y;
-		up = spacing_scale;
+		int16_t up = spacing_scale;
 		up *= ((const int16_t *)g_form_pos_z)[formation_index];
 		up *= bound_z;
-		side = spacing_scale;
+		int16_t side = spacing_scale;
 		side *= ((const int16_t *)g_form_pos_x)[formation_index];
 		side *= bound_x;
 
@@ -10496,6 +10218,9 @@ void mission_resolve_formation_slot_world_loc(uint16_t flight_group_idx,
 					    g_form_pos_y)[formation_index] *
 				   (bound_y / 4);
 		}
+		int rotated_x;
+		int rotated_y;
+		int rotated_z;
 		if (basis_obj_idx == UINT16_MAX) {
 			rotated_y = 0;
 			rotated_z = 0;
@@ -10574,26 +10299,11 @@ int mission_load_file(const char *file_name)
 		CRAFT_ROLE_SIZE = 16,
 	};
 
-	xvt_file *stream;
-	int16_t record_count;
-	int16_t flight_group_count;
-	int16_t message_count;
-	int16_t goal_count;
-	int16_t index;
-	int16_t string_length;
-	int16_t flight_group_idx;
-	char string_buffer[160];
-	struct mission_header mission_header;
-	int16_t message_idx;
-	int16_t outer_idx;
-	int16_t slot_idx;
-	int16_t trigger_idx;
-
 	if (!fe_disk_io_open_global_stream(file_name, "rb", 1, 0)) {
 		return 0;
 	}
 
-	stream = g_stream;
+	xvt_file *stream = g_stream;
 	fe_disk_io_read_with_retry_prompt(&g_mission_file_version,
 					  sizeof(g_mission_file_version), 1,
 					  g_stream);
@@ -10605,6 +10315,11 @@ int mission_load_file(const char *file_name)
 		}
 	}
 
+	int16_t index;
+	int16_t string_length;
+	int16_t flight_group_idx;
+	int16_t message_idx;
+	int16_t outer_idx;
 	if (g_mission_file_version == MISSION_VERSION_XVT_14 ||
 	    g_mission_file_version == MISSION_VERSION_XVT_12 ||
 	    g_mission_file_version == MISSION_VERSION_XVT_13) {
@@ -10646,6 +10361,7 @@ int mission_load_file(const char *file_name)
 			g_mission_header.mission_type =
 				g_xvt_v10_mission_header.mission_type;
 		} else {
+			struct mission_header mission_header;
 			fe_disk_io_read_with_retry_prompt(
 				&mission_header, sizeof(mission_header), 1,
 				stream);
@@ -10723,6 +10439,7 @@ int mission_load_file(const char *file_name)
 				sizeof(g_mission_messages[0]), 1, stream);
 		}
 
+		int16_t record_count;
 		for (outer_idx = 0; outer_idx < TEAM_COUNT; ++outer_idx) {
 			fe_disk_io_read_with_retry_prompt(
 				&record_count, sizeof(record_count), 1, stream);
@@ -10742,6 +10459,7 @@ int mission_load_file(const char *file_name)
 			}
 		}
 
+		int16_t slot_idx;
 		for (index = 0; index < PLAYER_COUNT; ++index) {
 			FILE_RAW_SEEK(stream, BRIEFING_SKIP_SIZE, SEEK_CUR);
 			for (slot_idx = BRIEFING_TEAM_FLAG_COUNT; slot_idx != 0;
@@ -10770,6 +10488,7 @@ int mission_load_file(const char *file_name)
 			}
 		}
 
+		char string_buffer[160];
 		for (outer_idx = 0;
 		     outer_idx < (int16_t)g_mission_header.num_flight_groups;
 		     ++outer_idx) {
@@ -10777,13 +10496,13 @@ int mission_load_file(const char *file_name)
 				for (slot_idx = 0;
 				     slot_idx < OVERRIDE_STRING_COUNT;
 				     ++slot_idx) {
-					uint16_t handle;
 					fe_disk_io_read_with_retry_prompt(
 						string_buffer,
 						OVERRIDE_STRING_SIZE, 1,
 						stream);
 					string_length =
 						(int16_t)strlen(string_buffer);
+					uint16_t handle;
 					if (string_length > 0) {
 						handle =
 							memory_alloc_handle_zeroed(
@@ -10813,19 +10532,19 @@ int mission_load_file(const char *file_name)
 		}
 		for (outer_idx = 0; outer_idx < TEAM_COUNT; ++outer_idx) {
 			for (index = 0; index < GLOBAL_GOAL_COUNT; ++index) {
-				for (trigger_idx = 0;
+				for (int16_t trigger_idx = 0;
 				     trigger_idx < GLOBAL_GOAL_TRIGGER_COUNT;
 				     ++trigger_idx) {
 					for (slot_idx = 0;
 					     slot_idx < OVERRIDE_STRING_COUNT;
 					     ++slot_idx) {
-						uint16_t handle;
 						fe_disk_io_read_with_retry_prompt(
 							string_buffer,
 							OVERRIDE_STRING_SIZE, 1,
 							stream);
 						string_length = (int16_t)strlen(
 							string_buffer);
+						uint16_t handle;
 						if (string_length > 0) {
 							handle = memory_alloc_handle_zeroed(
 								string_length +
@@ -10854,11 +10573,14 @@ int mission_load_file(const char *file_name)
 			}
 		}
 	} else {
+		int16_t flight_group_count;
 		fe_disk_io_read_with_retry_prompt(&flight_group_count,
 						  sizeof(flight_group_count), 1,
 						  stream);
+		int16_t message_count;
 		fe_disk_io_read_with_retry_prompt(
 			&message_count, sizeof(message_count), 1, stream);
+		int16_t goal_count;
 		fe_disk_io_read_with_retry_prompt(
 			&goal_count, sizeof(goal_count), 1, stream);
 		g_mission_header.num_flight_groups = flight_group_count;
@@ -11337,9 +11059,8 @@ int mission_load_file(const char *file_name)
 		}
 
 		{
-			int16_t legacy_goal_idx;
-			for (legacy_goal_idx = 0; legacy_goal_idx < goal_count;
-			     ++legacy_goal_idx) {
+			for (int16_t legacy_goal_idx = 0;
+			     legacy_goal_idx < goal_count; ++legacy_goal_idx) {
 				fe_disk_io_read_with_retry_prompt(
 					&g_tie_mission_goal,
 					sizeof(g_tie_mission_goal), 1, stream);
@@ -11409,9 +11130,7 @@ int mission_load_file(const char *file_name)
 
 		FILE_RAW_SEEK(stream, BRIEFING_SKIP_SIZE, SEEK_CUR);
 		{
-			int16_t first_string_count;
-			int16_t second_string_count;
-			for (first_string_count = BRIEFING_STRING_COUNT;
+			for (int16_t first_string_count = BRIEFING_STRING_COUNT;
 			     first_string_count != 0; --first_string_count) {
 				fe_disk_io_read_with_retry_prompt(
 					&string_length, sizeof(string_length),
@@ -11421,7 +11140,8 @@ int mission_load_file(const char *file_name)
 						      SEEK_CUR);
 				}
 			}
-			for (second_string_count = BRIEFING_STRING_COUNT;
+			for (int16_t second_string_count =
+				     BRIEFING_STRING_COUNT;
 			     second_string_count != 0; --second_string_count) {
 				fe_disk_io_read_with_retry_prompt(
 					&string_length, sizeof(string_length),
@@ -11441,11 +11161,10 @@ int mission_load_file(const char *file_name)
 		if (g_mission_flight_groups[flight_group_idx]
 			    .fg.craft_role[0] != '\0') {
 			do {
-				char role_character;
 				if (index >= CRAFT_ROLE_SIZE) {
 					break;
 				}
-				role_character =
+				char role_character =
 					g_mission_flight_groups
 						[flight_group_idx]
 							.fg.craft_role[index];
@@ -11550,12 +11269,11 @@ int mission_load_file(const char *file_name)
 int mission_sync_pilot_network_players_to_session_slots(void)
 {
 	int session_player_count;
-	int session_player_index;
 	int pilot_player_index;
-	struct session_player_info *session_players;
 
-	session_players = net_session_get_player_roster(&session_player_count);
-	for (session_player_index = 0;
+	struct session_player_info *session_players =
+		net_session_get_player_roster(&session_player_count);
+	for (int session_player_index = 0;
 	     session_player_index < session_player_count;
 	     ++session_player_index) {
 		for (pilot_player_index = 0; pilot_player_index < 8;
@@ -11589,21 +11307,13 @@ int mission_sync_pilot_network_players_to_session_slots(void)
 // FUNCTION: XVT 0x45C2D0
 void mission_free_override_string_handles(void)
 {
-	int flight_group_idx;
-	int fg_goal_idx;
-	int slot_idx;
-	int team_idx;
-	int goal_idx;
-	int condition_idx;
-	int text_idx;
 	unsigned int handle;
-	uint16_t goal_handle;
 
-	for (flight_group_idx = 0;
+	for (int flight_group_idx = 0;
 	     flight_group_idx < (int16_t)g_mission_header.num_flight_groups;
 	     ++flight_group_idx) {
-		for (fg_goal_idx = 0; fg_goal_idx < 8; ++fg_goal_idx) {
-			for (slot_idx = 0; slot_idx < 3; ++slot_idx) {
+		for (int fg_goal_idx = 0; fg_goal_idx < 8; ++fg_goal_idx) {
+			for (int slot_idx = 0; slot_idx < 3; ++slot_idx) {
 				handle = g_mission_fg_override_string_handles
 					[flight_group_idx][fg_goal_idx]
 					[slot_idx];
@@ -11614,12 +11324,13 @@ void mission_free_override_string_handles(void)
 		}
 	}
 
-	for (team_idx = 0; team_idx < 10; ++team_idx) {
-		for (goal_idx = 0; goal_idx < 7; ++goal_idx) {
-			for (condition_idx = 0; condition_idx < 4;
+	for (int team_idx = 0; team_idx < 10; ++team_idx) {
+		for (int goal_idx = 0; goal_idx < 7; ++goal_idx) {
+			for (int condition_idx = 0; condition_idx < 4;
 			     ++condition_idx) {
-				for (text_idx = 0; text_idx < 3; ++text_idx) {
-					goal_handle =
+				for (int text_idx = 0; text_idx < 3;
+				     ++text_idx) {
+					uint16_t goal_handle =
 						g_global_goal_override_string_handles
 							[team_idx][goal_idx]
 							[condition_idx]

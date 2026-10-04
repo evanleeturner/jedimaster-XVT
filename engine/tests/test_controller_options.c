@@ -286,8 +286,8 @@ static void check_effective_axis_invert(void)
 static void check_profile_equal(void)
 {
 	struct xvt_controller_profile left;
-	struct xvt_controller_profile right;
 	gamepad_profile(&left);
+	struct xvt_controller_profile right;
 	gamepad_profile(&right);
 	XVT_ASSERT_TRUE(xvt_controller_options_profile_equal(&left, &right));
 

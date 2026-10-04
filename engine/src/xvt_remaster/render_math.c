@@ -282,14 +282,14 @@ void xvt_render_math_object_matrix(const struct xvt_snap_object *object,
 				   const int32_t origin[3], float out[16])
 {
 	float cur[3][3];
-	float basis[9];
-	float local[3];
 	if (object->has_mobile && !object->orient_dirty) {
 		fl_curmat_from_cached(object->cached_rows_q15, cur);
 	} else {
 		fl_curmat_from_euler(object, cur);
 	}
+	float basis[9];
 	fl_object_world(cur, basis);
+	float local[3];
 	AeronWorld_LocalI32(origin, object->world_pos, local);
 	fl_model_matrix(basis, local, out);
 }

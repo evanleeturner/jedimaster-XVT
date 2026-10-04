@@ -44,8 +44,6 @@ int frontend_mission_load_for_briefing(void)
 // FUNCTION: XVT 0x4F69B0
 void frontend_mission_init_for_briefing(void)
 {
-	int16_t index;
-
 	g_briefing_playback_active = 1;
 	g_briefing_selected_mission_point14_flight_group_idx = 0;
 	g_briefing_map_center.x = 0;
@@ -66,6 +64,7 @@ void frontend_mission_init_for_briefing(void)
 	briefing_script_init_default_script();
 	briefing_script_reset_state();
 
+	int16_t index;
 	for (index = 0; index < 32; ++index) {
 		g_briefing_map_label_texts[index] = malloc(40);
 	}
@@ -117,23 +116,6 @@ void frontend_mission_load_current_with_briefing(void)
 		BRIEFING_TEXT_CAPACITY = 320,
 	};
 
-	uint8_t team_uses_briefing;
-	uint16_t indexed_record;
-	uint16_t text_length;
-	int load_briefing_text;
-	int briefing_index;
-	char file_name[MISSION_FILE_PATH_CAPACITY];
-	struct frontend_briefing_script briefing_script;
-	xvt_file *stream;
-	int flight_group_index;
-	int message_index;
-	unsigned int team_index;
-	int global_goal_index;
-	int label_index;
-	int text_index;
-	char *briefing_text;
-	struct global_goal *team_goals;
-
 	mission_setup_load_mission_list(g_pilot_data.mission_directory_id);
 	if (g_mission_list != NULL) {
 		g_selected_mission_list_index = 0;
@@ -147,10 +129,11 @@ void frontend_mission_load_current_with_briefing(void)
 		}
 	}
 
+	char file_name[MISSION_FILE_PATH_CAPACITY];
 	sprintf(file_name, "%s\\%s",
 		g_mission_directory_names[g_pilot_data.mission_directory_id],
 		g_mission_list[g_selected_mission_list_index].file_name);
-	stream = file_open(file_name, g_file_mode_read_binary);
+	xvt_file *stream = file_open(file_name, g_file_mode_read_binary);
 	if (stream == NULL) {
 		return;
 	}
@@ -168,7 +151,7 @@ void frontend_mission_load_current_with_briefing(void)
 	file_read_word(stream, &g_frontend_mission.message_count);
 	file_read_bytes(stream, &g_frontend_mission.header,
 			sizeof(g_frontend_mission.header));
-	for (flight_group_index = 0;
+	for (int flight_group_index = 0;
 	     flight_group_index <
 	     (int16_t)g_frontend_mission.flight_group_count;
 	     ++flight_group_index) {
@@ -179,9 +162,10 @@ void frontend_mission_load_current_with_briefing(void)
 				       .flight_groups[flight_group_index]));
 	}
 
+	uint16_t indexed_record;
 	/* indexed_record holds the 16-bit word read ahead of each record: the message's slot here, then each
 	 * team's goal count, then whether a team record follows. */
-	for (message_index = 0;
+	for (int message_index = 0;
 	     message_index < (int16_t)g_frontend_mission.message_count;
 	     ++message_index) {
 		file_read_word(stream, &indexed_record);
@@ -191,10 +175,12 @@ void frontend_mission_load_current_with_briefing(void)
 			sizeof(g_frontend_mission.messages[0]));
 	}
 
+	unsigned int team_index;
 	for (team_index = 0; team_index < TEAM_COUNT; ++team_index) {
-		team_goals = g_frontend_mission.global_goals[team_index];
+		struct global_goal *team_goals =
+			g_frontend_mission.global_goals[team_index];
 		file_read_word(stream, &indexed_record);
-		for (global_goal_index = 0;
+		for (int global_goal_index = 0;
 		     global_goal_index < (int16_t)indexed_record;
 		     ++global_goal_index) {
 			file_read_bytes(stream, &team_goals[global_goal_index],
@@ -211,9 +197,13 @@ void frontend_mission_load_current_with_briefing(void)
 		}
 	}
 
-	for (briefing_index = 0; briefing_index < BRIEFING_COUNT;
+	uint8_t team_uses_briefing;
+	uint16_t text_length;
+	struct frontend_briefing_script briefing_script;
+	char *briefing_text;
+	for (int briefing_index = 0; briefing_index < BRIEFING_COUNT;
 	     ++briefing_index) {
-		load_briefing_text = 0;
+		int load_briefing_text = 0;
 		file_read_bytes(stream, &briefing_script,
 				sizeof(briefing_script));
 		for (team_index = 0; team_index < TEAM_COUNT; ++team_index) {
@@ -226,7 +216,7 @@ void frontend_mission_load_current_with_briefing(void)
 			}
 		}
 
-		for (label_index = 0; label_index < BRIEFING_LABEL_COUNT;
+		for (int label_index = 0; label_index < BRIEFING_LABEL_COUNT;
 		     ++label_index) {
 			briefing_text = g_briefing_map_label_texts[label_index];
 			if (load_briefing_text != 0) {
@@ -248,7 +238,7 @@ void frontend_mission_load_current_with_briefing(void)
 			}
 		}
 
-		for (text_index = 0; text_index < BRIEFING_TEXT_COUNT;
+		for (int text_index = 0; text_index < BRIEFING_TEXT_COUNT;
 		     ++text_index) {
 			briefing_text = g_briefing_text_blocks[text_index];
 			if (load_briefing_text != 0) {
@@ -282,17 +272,8 @@ void frontend_mission_load_current_with_briefing(void)
 void frontend_mission_load_file(const char *file_name,
 				struct frontend_mission *out_mission)
 {
-	xvt_file *stream;
-	int flight_group_index;
-	struct xvt_flight_group *flight_group;
-	int message_index;
-	int global_goal_index;
+	xvt_file *stream = file_open(file_name, "rb");
 	struct global_goal *team_goal;
-	struct global_goal *global_goal;
-	int team_index;
-	uint16_t indexed_record;
-
-	stream = file_open(file_name, "rb");
 	if (stream != NULL) {
 		memset(out_mission, 0, sizeof(*out_mission));
 		file_read_word(stream, &out_mission->format_version);
@@ -305,11 +286,12 @@ void frontend_mission_load_file(const char *file_name,
 
 		file_read_word(stream, &out_mission->flight_group_count);
 		file_read_word(stream, &out_mission->message_count);
-		flight_group_index = 0;
+		int flight_group_index = 0;
 		file_read_bytes(stream, &out_mission->header,
 				sizeof(out_mission->header));
 		if ((int16_t)out_mission->flight_group_count > 0) {
-			flight_group = out_mission->flight_groups;
+			struct xvt_flight_group *flight_group =
+				out_mission->flight_groups;
 			do {
 				++flight_group_index;
 				file_read_bytes(stream, flight_group,
@@ -319,9 +301,10 @@ void frontend_mission_load_file(const char *file_name,
 				 flight_group_index);
 		}
 
+		uint16_t indexed_record;
 		/* indexed_record holds the 16-bit word read ahead of each record: the message's slot here, then
 		 * each team's goal count, then whether a team record follows. */
-		for (message_index = 0;
+		for (int message_index = 0;
 		     message_index < (int16_t)out_mission->message_count;
 		     ++message_index) {
 			file_read_word(stream, &indexed_record);
@@ -331,10 +314,11 @@ void frontend_mission_load_file(const char *file_name,
 				sizeof(out_mission->messages[0]));
 		}
 
-		team_index = 10;
-		global_goal = &out_mission->global_goals[0][0];
+		int team_index = 10;
+		struct global_goal *global_goal =
+			&out_mission->global_goals[0][0];
 		do {
-			global_goal_index = 0;
+			int global_goal_index = 0;
 			file_read_word(stream, &indexed_record);
 			if ((int16_t)indexed_record > 0) {
 				team_goal = global_goal;
@@ -371,14 +355,6 @@ void frontend_mission_load_file(const char *file_name,
 // FUNCTION: XVT 0x4F70F0
 void frontend_mission_load_current(void)
 {
-	char file_name[256];
-	xvt_file *stream;
-	int flight_group_index;
-	int message_index;
-	int team_index;
-	int global_goal_index;
-	uint16_t indexed_record;
-
 	mission_setup_load_mission_list(g_pilot_data.mission_directory_id);
 	if (g_mission_list != NULL) {
 		g_selected_mission_list_index = 0;
@@ -399,10 +375,11 @@ void frontend_mission_load_current(void)
 	}
 #endif
 
+	char file_name[256];
 	sprintf(file_name, "%s\\%s",
 		g_mission_directory_names[g_pilot_data.mission_directory_id],
 		g_mission_list[g_selected_mission_list_index].file_name);
-	stream = file_open(file_name, g_file_mode_read_binary);
+	xvt_file *stream = file_open(file_name, g_file_mode_read_binary);
 	if (stream == NULL) {
 		return;
 	}
@@ -420,7 +397,7 @@ void frontend_mission_load_current(void)
 	file_read_word(stream, &g_frontend_mission.message_count);
 	file_read_bytes(stream, &g_frontend_mission.header,
 			sizeof(g_frontend_mission.header));
-	for (flight_group_index = 0;
+	for (int flight_group_index = 0;
 	     flight_group_index <
 	     (int16_t)g_frontend_mission.flight_group_count;
 	     ++flight_group_index) {
@@ -431,9 +408,10 @@ void frontend_mission_load_current(void)
 				       .flight_groups[flight_group_index]));
 	}
 
+	uint16_t indexed_record;
 	/* indexed_record holds the 16-bit word read ahead of each record: the message's slot here, then each
 	 * team's goal count, then whether a team record follows. */
-	for (message_index = 0;
+	for (int message_index = 0;
 	     message_index < (int16_t)g_frontend_mission.message_count;
 	     ++message_index) {
 		file_read_word(stream, &indexed_record);
@@ -443,9 +421,10 @@ void frontend_mission_load_current(void)
 			sizeof(g_frontend_mission.messages[0]));
 	}
 
+	int team_index;
 	for (team_index = 0; team_index < 10; ++team_index) {
 		file_read_word(stream, &indexed_record);
-		for (global_goal_index = 0;
+		for (int global_goal_index = 0;
 		     global_goal_index < (int16_t)indexed_record;
 		     ++global_goal_index) {
 			file_read_bytes(
@@ -496,7 +475,6 @@ void frontend_mission_load_current(void)
 void frontend_mission_init_player_state(void)
 {
 	int roster_index;
-	int player_count;
 
 	if (g_frontend_mission_session_mode ==
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
@@ -537,7 +515,7 @@ void frontend_mission_init_player_state(void)
 	memset(&g_pilot_data.last_mission_stats, 0,
 	       sizeof(g_pilot_data.last_mission_stats));
 	memset(g_pilot_data.teams, 0, sizeof(g_pilot_data.teams));
-	player_count = 0;
+	int player_count = 0;
 
 	if (g_pilot_data.mission_directory_id == MISSION_DIRECTORY_MELEES &&
 	    g_pilot_data.mission_sequence_active == 1 &&
@@ -553,11 +531,6 @@ void frontend_mission_init_player_state(void)
 
 	for (roster_index = 0; roster_index < 8; roster_index++) {
 		if (g_mp_roster[roster_index].player_id != 0) {
-			int player_id;
-			int team_index;
-			int assignment_slot;
-			int flight_group_index;
-
 			player_count++;
 			memcpy(g_pilot_data.network_players[roster_index]
 				       .friendly_name,
@@ -580,7 +553,7 @@ void frontend_mission_init_player_state(void)
 				g_mp_roster[roster_index]
 					.countermeasure_option_index -
 				1;
-			player_id = g_mp_roster[roster_index].player_id;
+			int player_id = g_mp_roster[roster_index].player_id;
 			g_pilot_data.network_players[roster_index]
 				.direct_play_id = player_id;
 			g_pilot_data.network_players[roster_index].rating =
@@ -598,15 +571,16 @@ void frontend_mission_init_player_state(void)
 				.total_losses = 0;
 			g_pilot_data.network_players[roster_index].has_left = 0;
 
-			for (team_index = 0; team_index < 10; team_index++) {
-				for (assignment_slot = 0; assignment_slot < 8;
-				     assignment_slot++) {
+			for (int team_index = 0; team_index < 10;
+			     team_index++) {
+				for (int assignment_slot = 0;
+				     assignment_slot < 8; assignment_slot++) {
 					if (g_mission_setup_player_assignments
 						    .team_player_ids
 							    [team_index]
 							    [assignment_slot] ==
 					    player_id) {
-						flight_group_index =
+						int flight_group_index =
 							g_mission_setup_player_flight_group_indices
 								[team_index *
 									 8 +
@@ -693,8 +667,7 @@ void frontend_mission_init_player_state(void)
 		     g_frontend_mission_session_mode ==
 			     FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
 		    (int16_t)g_frontend_mission.flight_group_count > 0) {
-			int flight_group_index;
-			for (flight_group_index = 0;
+			for (int flight_group_index = 0;
 			     flight_group_index <
 			     (int16_t)g_frontend_mission.flight_group_count;
 			     flight_group_index++) {

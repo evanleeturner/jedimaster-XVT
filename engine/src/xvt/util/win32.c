@@ -56,7 +56,6 @@ int win32_create_process_from_command_line(char *command_line)
 	return 0;
 #else
 	struct win32_startup_info startup_info;
-	struct win32_process_information process_information;
 
 	memset(&startup_info, 0, sizeof(startup_info));
 	startup_info.cb = sizeof(startup_info);
@@ -66,6 +65,7 @@ int win32_create_process_from_command_line(char *command_line)
 	startup_info.desktop = NULL;
 	startup_info.flags = 0;
 
+	struct win32_process_information process_information;
 	return CreateProcessA(NULL, command_line, NULL, NULL, 0, 0, NULL, NULL,
 			      &startup_info, &process_information);
 #endif

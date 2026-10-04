@@ -411,11 +411,6 @@ IDirectDraw *renderer_get_direct_draw(void) { return g_flight_direct_draw; }
 // FUNCTION: XVT 0x408170
 void renderer_init_d3d_device(void)
 {
-	struct std3d_device_caps device_caps;
-	DDSURFACEDESC z_buffer_desc;
-	HRESULT result;
-	unsigned int device_index;
-
 	g_render_texture_cache_cursor = -1;
 	std3d_init_render_target_desc((unsigned int)g_display_mode_width,
 				      (unsigned int)g_display_mode_height,
@@ -424,12 +419,13 @@ void renderer_init_d3d_device(void)
 	std3d_set_color_overlay_params(0.0f, 0.0f, 0.0f, 0);
 	std3d_startup();
 
+	struct std3d_device_caps device_caps;
 	memset(&device_caps, 0, sizeof(device_caps));
 	device_caps.b_hardware = 1;
 	device_caps.b_texture_perspective = 1;
 	device_caps.b_has_z_buffer = 1;
 	device_caps.color_model_flags = 2;
-	device_index = std3d_select_best_device(&device_caps);
+	unsigned int device_index = std3d_select_best_device(&device_caps);
 	memcpy(&device_caps, &g_std3d_devices[device_index].caps,
 	       sizeof(device_caps));
 
@@ -437,13 +433,15 @@ void renderer_init_d3d_device(void)
 	    device_caps.b_texture_perspective != 0 &&
 	    device_caps.b_hardware != 0) {
 		std3d_create_device(device_index, 1);
+		DDSURFACEDESC z_buffer_desc;
 		memset(&z_buffer_desc, 0, sizeof(z_buffer_desc));
 		z_buffer_desc.dwSize = sizeof(z_buffer_desc);
 		z_buffer_desc.dwFlags = DDSD_CAPS;
 		z_buffer_desc.ddsCaps.dwCaps = DDSCAPS_ZBUFFER;
-		result = g_flight_back_buffer->lpVtbl->GetAttachedSurface(
-			g_flight_back_buffer, &z_buffer_desc.ddsCaps,
-			&g_std3dz_buffer_surface);
+		HRESULT result =
+			g_flight_back_buffer->lpVtbl->GetAttachedSurface(
+				g_flight_back_buffer, &z_buffer_desc.ddsCaps,
+				&g_std3dz_buffer_surface);
 		if (result != 0) {
 			debug_printf("ERROR(%x)! Failed to get HW Zbuffer\n",
 				     result);

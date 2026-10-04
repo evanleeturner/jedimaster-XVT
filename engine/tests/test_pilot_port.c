@@ -88,8 +88,8 @@ static void check_presence_unknown(void)
 	 * prove the file absent, so 0, and the file stays. */
 	xvt_test_write_text(g_user, "Case.PLT", "x");
 	char other[XVT_TEST_PATH_CAPACITY];
-	struct stat info;
 	xvt_test_join(other, g_user, "case.plt");
+	struct stat info;
 	if (stat(other, &info) != 0) {
 		XVT_ASSERT_INT_EQ(pilot_remove_file_modern("case.plt"), 0);
 		XVT_ASSERT_INT_EQ(xvt_test_kind(g_user, "Case.PLT"), 1);

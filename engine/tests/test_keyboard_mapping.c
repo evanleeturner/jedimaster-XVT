@@ -223,18 +223,18 @@ static void check_source_valid(void)
 
 static void check_format_source(void)
 {
-	char text[96];
-	char expected[96];
 	const char *name = AeronKey_Name((AeronKey)k_t);
 #if defined(__APPLE__)
 	const char *gui = "Command+";
 #else
 	const char *gui = "Super+";
 #endif
+	char text[96];
 	xvt_keyboard_mapping_format_source(
 		text, sizeof text,
 		chord(k_t, AERON_KEY_MOD_CTRL | AERON_KEY_MOD_ALT |
 				   AERON_KEY_MOD_SHIFT | AERON_KEY_MOD_GUI));
+	char expected[96];
 	snprintf(expected, sizeof expected, "Ctrl+Alt+Shift+%s%s", gui, name);
 	XVT_ASSERT_INT_EQ(strcmp(text, expected), 0);
 

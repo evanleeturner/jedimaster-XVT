@@ -204,16 +204,13 @@ void fsfx_unload_all_effects_thunk(void) { sound_unload_all_effects(); }
 // FUNCTION: XVT 0x42DE80
 void fsfx_reset_flight_sfx_state(void)
 {
-	unsigned int object_index;
-	unsigned int voice_offset;
-
 	memset(g_fsfx_loaded_by_slot, 0, sizeof(g_fsfx_loaded_by_slot));
-	for (voice_offset = 0;
+	for (unsigned int voice_offset = 0;
 	     voice_offset < sizeof(g_fsfx_voice_line_play_counts);
 	     voice_offset += 97) {
 		memset(&g_fsfx_voice_line_play_counts[voice_offset], 0, 97);
 	}
-	for (object_index = 0;
+	for (unsigned int object_index = 0;
 	     object_index < (unsigned int)g_active_region_craft_object_slot_end;
 	     ++object_index) {
 		g_fsfx_tac_officer_last_speak_seconds_by_obj[object_index] = 0;
@@ -235,17 +232,14 @@ void fsfx_reset_flight_sfx_state(void)
 // FUNCTION: XVT 0x42DED0
 int fsfx_load_sfx_list(const char *file_name_buffer, uint16_t first_sound_id)
 {
-	xvt_file *stream;
-	char buffer[256];
-	char *line_end;
-	uint16_t loaded_count = 0;
-
 	if (fe_disk_io_open_global_stream(file_name_buffer, "rb", 0, 0) == 0) {
 		return 0;
 	}
-	stream = (xvt_file *)g_stream;
+	xvt_file *stream = (xvt_file *)g_stream;
+	char buffer[256];
+	uint16_t loaded_count = 0;
 	while (FILE_GETS(buffer, sizeof(buffer), stream) != NULL) {
-		line_end = buffer;
+		char *line_end = buffer;
 		while (*line_end != '\0' && *line_end != '\r' &&
 		       *line_end != '\n') {
 			++line_end;
@@ -473,14 +467,6 @@ void fsfx_stop_hyperspace_exit_sounds(int player_idx)
 // FUNCTION: XVT 0x42E4D0
 int fsfx_play_sound(unsigned int sound_id, int emitter_obj_idx, int player_idx)
 {
-	int object_index;
-	int object_type;
-	int priority;
-	int pan;
-	struct object_record *source_object;
-	struct mobile_object *source_mobile_object;
-	int volume;
-
 	if (g_flight_sfx_side_effect_gate != 0) {
 		if (g_flight_sim_side_effects_suppressed == 0) {
 			return 0;
@@ -519,11 +505,11 @@ int fsfx_play_sound(unsigned int sound_id, int emitter_obj_idx, int player_idx)
 
 	if (sound_id >= FLIGHT_SOUND_R2_HAPPY &&
 	    sound_id <= FLIGHT_SOUND_R2_HIT) {
-		object_index = g_players[player_idx].object_index;
+		int object_index = g_players[player_idx].object_index;
 		if (object_index == -1) {
 			return 0;
 		}
-		object_type = g_object_table[object_index].object_type;
+		int object_type = g_object_table[object_index].object_type;
 		if (object_type != 1 && object_type != 2) {
 			return 0;
 		}
@@ -537,10 +523,10 @@ int fsfx_play_sound(unsigned int sound_id, int emitter_obj_idx, int player_idx)
 			FLIGHT_SOUND_HYPERSPACE_ENTER_NON_IMPERIAL);
 	}
 
-	volume = fsfx_compute_source_volume(emitter_obj_idx, sound_id);
+	int volume = fsfx_compute_source_volume(emitter_obj_idx, sound_id);
 	if (volume != 0) {
-		pan = fsfx_compute_source_pan(emitter_obj_idx, &volume);
-		priority = 124;
+		int pan = fsfx_compute_source_pan(emitter_obj_idx, &volume);
+		int priority = 124;
 		if ((unsigned int)volume < 125) {
 			priority = volume;
 		}
@@ -552,8 +538,10 @@ int fsfx_play_sound(unsigned int sound_id, int emitter_obj_idx, int player_idx)
 					   ? 127
 					   : 125;
 		} else {
-			source_object = &g_object_table[emitter_obj_idx];
-			source_mobile_object = source_object->mobj;
+			struct object_record *source_object =
+				&g_object_table[emitter_obj_idx];
+			struct mobile_object *source_mobile_object =
+				source_object->mobj;
 			if (source_mobile_object != NULL &&
 			    g_object_table[source_mobile_object->source_obj_idx]
 					    .player_owner_idx ==
@@ -583,8 +571,6 @@ int fsfx_play_sound(unsigned int sound_id, int emitter_obj_idx, int player_idx)
 // FUNCTION: XVT 0x42E720
 int fsfx_triggerweaponsfx(unsigned int projectile_object_index, int player_idx)
 {
-	int result;
-
 	if (player_idx != g_local_player) {
 		return 0;
 	}
@@ -600,7 +586,7 @@ int fsfx_triggerweaponsfx(unsigned int projectile_object_index, int player_idx)
 
 	/* result first holds the projectile's object type, from which the sound ids below are computed;
 	 * a played sound replaces it with fsfx_play_sound's return, and an unlisted type returns the type. */
-	result = g_object_table[projectile_object_index].object_type;
+	int result = g_object_table[projectile_object_index].object_type;
 	switch (g_object_table[projectile_object_index].object_type) {
 	case 0x89:
 	case 0x8a:
@@ -654,22 +640,8 @@ int fsfx_triggerweaponsfx(unsigned int projectile_object_index, int player_idx)
 unsigned int fsfx_compute_source_volume(int emitter_obj_idx,
 					unsigned int sound_id)
 {
-	unsigned int volume_scale;
-	unsigned int falloff_distance;
-	unsigned int base_volume;
-	unsigned int distance;
-	unsigned int scaled_distance;
-	unsigned int quarter_volume;
-	unsigned int distance_span;
-	unsigned int volume_range;
-	unsigned int volume;
-	struct player_data *listener;
-	int delta_x;
-	int delta_y;
-	int world_z;
-
 	if (emitter_obj_idx == -1) {
-		volume_scale = g_game_config.sfx_interior_volume;
+		unsigned int volume_scale = g_game_config.sfx_interior_volume;
 		if (volume_scale >= 10) {
 			volume_scale = 127;
 		} else {
@@ -679,6 +651,8 @@ unsigned int fsfx_compute_source_volume(int emitter_obj_idx,
 		       127;
 	}
 
+	unsigned int falloff_distance;
+	unsigned int base_volume;
 	if (sound_id >= 95) {
 		falloff_distance = 8192;
 		base_volume = 112;
@@ -687,6 +661,10 @@ unsigned int fsfx_compute_source_volume(int emitter_obj_idx,
 			g_fsfx_falloff_distance_by_sfx_slot[sound_id];
 		base_volume = g_fsfx_base_volume_by_sfx_slot[sound_id];
 	}
+	struct player_data *listener;
+	int delta_x;
+	int delta_y;
+	int world_z;
 	if (g_object_table[emitter_obj_idx].mobj != NULL) {
 		listener = &g_players[g_local_player];
 		delta_x = g_object_table[emitter_obj_idx].mobj->prev_world_x -
@@ -702,10 +680,10 @@ unsigned int fsfx_compute_source_volume(int emitter_obj_idx,
 		delta_y = g_world_loc_y - listener->view_state.camera_world_y;
 		world_z = g_world_loc_z;
 	}
-	distance = collide_roughdistance3d(
+	unsigned int distance = collide_roughdistance3d(
 		delta_x, delta_y,
 		world_z - listener->view_state.camera_world_z);
-	scaled_distance = distance >> 2;
+	unsigned int scaled_distance = distance >> 2;
 	if (scaled_distance >= falloff_distance) {
 		return 0;
 	}
@@ -717,12 +695,13 @@ unsigned int fsfx_compute_source_volume(int emitter_obj_idx,
 		return base_volume >> 2;
 	}
 
-	quarter_volume = base_volume >> 2;
-	distance_span = falloff_distance - distance;
-	volume_range = base_volume - quarter_volume;
-	volume = quarter_volume +
-		 distance_span * volume_range /
-			 (falloff_distance - (falloff_distance >> 5));
+	unsigned int quarter_volume = base_volume >> 2;
+	unsigned int distance_span = falloff_distance - distance;
+	unsigned int volume_range = base_volume - quarter_volume;
+	unsigned int volume =
+		quarter_volume +
+		distance_span * volume_range /
+			(falloff_distance - (falloff_distance >> 5));
 	if (g_game_config.sfx_exterior_volume != 10) {
 		volume = volume * g_game_config.sfx_exterior_volume / 10;
 	}
@@ -748,19 +727,15 @@ unsigned int fsfx_compute_source_volume(int emitter_obj_idx,
 // FUNCTION: XVT 0x42E9A0
 int fsfx_compute_source_pan(int emitter_obj_idx, int *volume)
 {
-	struct mobile_object *source_mobile_object;
-	int dx;
-	int dy;
-	int dz;
-	int16_t side_offset;
-	int16_t forward_offset;
-	int16_t pan_angle;
-
 	if (emitter_obj_idx == -1) {
 		return 64;
 	}
 
-	source_mobile_object = g_object_table[emitter_obj_idx].mobj;
+	struct mobile_object *source_mobile_object =
+		g_object_table[emitter_obj_idx].mobj;
+	int dx;
+	int dy;
+	int dz;
 	if (source_mobile_object != NULL) {
 		dx = source_mobile_object->prev_world_x -
 		     g_players[g_local_player].view_state.camera_world_x;
@@ -779,28 +754,23 @@ int fsfx_compute_source_pan(int emitter_obj_idx, int *volume)
 		     g_players[g_local_player].view_state.camera_world_y;
 	}
 
-	side_offset = (int16_t)math_dot3q15_wrapped(
+	int16_t side_offset = (int16_t)math_dot3q15_wrapped(
 		(int16_t)dx, (int16_t)dy, (int16_t)dz, g_cam_mat_r0_x,
 		g_cam_mat_r0_y, g_cam_mat_r0_z);
-	forward_offset = (int16_t)math_dot3q15_wrapped(
+	int16_t forward_offset = (int16_t)math_dot3q15_wrapped(
 		(int16_t)dx, (int16_t)dy, (int16_t)dz, g_cam_mat_r2_x,
 		g_cam_mat_r2_y, g_cam_mat_r2_z);
-	pan_angle = trig2_arctan(side_offset, forward_offset);
+	int16_t pan_angle = trig2_arctan(side_offset, forward_offset);
 
 	if (pan_angle >= 0x4000 || pan_angle <= -0x4000) {
-		int16_t vertical_angle;
-		int16_t rear_angle;
-		int16_t rear_scale;
-		int16_t reduction;
-
 		/* From here side_offset holds the offset along the camera's up axis, for the vertical angle. */
 		side_offset = (int16_t)math_dot3q15_wrapped(
 			(int16_t)dx, (int16_t)dy, (int16_t)dz, g_cam_mat_r1_x,
 			g_cam_mat_r1_y, g_cam_mat_r1_z);
-		vertical_angle =
+		int16_t vertical_angle =
 			(int16_t)(0x8000 -
 				  trig2_arctan(side_offset, forward_offset));
-		rear_angle = (int16_t)(0x8000 - pan_angle);
+		int16_t rear_angle = (int16_t)(0x8000 - pan_angle);
 		pan_angle = (int16_t)(0x8000 - pan_angle);
 		if (vertical_angle < 0) {
 			vertical_angle = (int16_t)-vertical_angle;
@@ -809,8 +779,8 @@ int fsfx_compute_source_pan(int emitter_obj_idx, int *volume)
 			rear_angle = (int16_t)-pan_angle;
 		}
 
-		rear_scale = (int16_t)(0x4000 - rear_angle);
-		reduction = (int16_t)(0x4000 - vertical_angle);
+		int16_t rear_scale = (int16_t)(0x4000 - rear_angle);
+		int16_t reduction = (int16_t)(0x4000 - vertical_angle);
 		rear_scale >>= 8;
 		reduction >>= 8;
 		reduction = (int16_t)(reduction * rear_scale);
@@ -838,9 +808,6 @@ int fsfx_compute_source_pan(int emitter_obj_idx, int *volume)
 // FUNCTION: XVT 0x42EC80
 int fsfx_update_targeting_tone(unsigned int tone_state)
 {
-	int volume;
-	int interior_volume;
-
 	if (g_flight_conf_sfx_enabled == 0) {
 		return 0;
 	}
@@ -851,8 +818,8 @@ int fsfx_update_targeting_tone(unsigned int tone_state)
 		return 0;
 	}
 
-	interior_volume = g_game_config.sfx_interior_volume;
-	volume = 127;
+	int interior_volume = g_game_config.sfx_interior_volume;
+	int volume = 127;
 	if (interior_volume < 10) {
 		volume = 13 * interior_volume;
 	}
@@ -901,13 +868,6 @@ int fsfx_update_targeting_tone(unsigned int tone_state)
 // FUNCTION: XVT 0x42EDC0
 void fsfx_update_beam_system_loop(int active, int player_idx)
 {
-	struct craft_data *craft;
-	beam_type beam_type;
-	int paired_sound_id;
-	int sound_id;
-	int volume;
-	int stop_sound_id;
-
 	if (g_flight_sim_side_effects_suppressed != 0) {
 		return;
 	}
@@ -924,11 +884,14 @@ void fsfx_update_beam_system_loop(int active, int player_idx)
 		return;
 	}
 
-	craft = g_object_table[g_players[g_local_player].object_index]
+	struct craft_data *craft =
+		g_object_table[g_players[g_local_player].object_index]
 			.mobj->p_craft;
 	if (active != 0 && (craft->working_subsystems &
 			    CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) != 0) {
-		beam_type = craft->beam_type_id;
+		beam_type beam_type = craft->beam_type_id;
+		int sound_id;
+		int volume;
 		if (beam_type == BEAM_TYPE_TRACTOR) {
 			if (sound_get_param(52, 256) != 0) {
 				return;
@@ -957,6 +920,7 @@ void fsfx_update_beam_system_loop(int active, int player_idx)
 			return;
 		}
 
+		int paired_sound_id;
 		if (g_local_beam_target_obj_idx == UINT16_MAX) {
 			paired_sound_id = sound_id + 1;
 			if (sound_get_param(paired_sound_id, 256) != 0) {
@@ -986,7 +950,7 @@ void fsfx_update_beam_system_loop(int active, int player_idx)
 		return;
 	}
 
-	for (stop_sound_id = 52; stop_sound_id <= 61; ++stop_sound_id) {
+	for (int stop_sound_id = 52; stop_sound_id <= 61; ++stop_sound_id) {
 		if (sound_get_param(stop_sound_id, 256) != 0) {
 			sound_stop_oldest_instance_by_id(stop_sound_id);
 		}
@@ -1002,10 +966,6 @@ void fsfx_update_beam_system_loop(int active, int player_idx)
 // FUNCTION: XVT 0x42F030
 void fsfx_update_incoming_missile_warning(int warning_state)
 {
-	int sound_id;
-	int volume;
-	int interior_volume;
-
 	if (g_flight_conf_sfx_enabled &&
 	    g_game_config.sfx_interior_enabled != 0 &&
 	    g_game_config.sfx_interior_volume != 0) {
@@ -1019,11 +979,12 @@ void fsfx_update_incoming_missile_warning(int warning_state)
 			return;
 		}
 
-		interior_volume = g_game_config.sfx_interior_volume;
-		volume = 127;
+		int interior_volume = g_game_config.sfx_interior_volume;
+		int volume = 127;
 		if (interior_volume < 10) {
 			volume = 13 * interior_volume;
 		}
+		int sound_id;
 		if (warning_state == 1) {
 			sound_id = 40;
 			volume /= 3;
@@ -1049,12 +1010,6 @@ void fsfx_update_incoming_missile_warning(int warning_state)
 // FUNCTION: XVT 0x42F110
 void fsfx_update_chaff_loop(void)
 {
-	int player_object_index;
-	struct object_record *player_object;
-	struct craft_data *craft;
-	int volume;
-	int interior_volume;
-
 	if (g_flight_sim_side_effects_suppressed != 0) {
 		return;
 	}
@@ -1068,7 +1023,7 @@ void fsfx_update_chaff_loop(void)
 		return;
 	}
 
-	player_object_index = g_players[g_local_player].object_index;
+	int player_object_index = g_players[g_local_player].object_index;
 	if (player_object_index == -1) {
 		if (sound_get_param(19, 256) != 0) {
 			sound_stop_oldest_instance_by_id(19);
@@ -1076,8 +1031,9 @@ void fsfx_update_chaff_loop(void)
 		return;
 	}
 
-	player_object = &g_object_table[player_object_index];
-	craft = player_object->mobj->p_craft;
+	struct object_record *player_object =
+		&g_object_table[player_object_index];
+	struct craft_data *craft = player_object->mobj->p_craft;
 	if (craft->cm_type_id != COUNTERMEASURE_TYPE_CHAFF) {
 		return;
 	}
@@ -1089,7 +1045,8 @@ void fsfx_update_chaff_loop(void)
 		return;
 	}
 
-	interior_volume = g_game_config.sfx_interior_volume;
+	int interior_volume = g_game_config.sfx_interior_volume;
+	int volume;
 	if (interior_volume >= 10) {
 		volume = 127;
 	} else {
@@ -1126,15 +1083,6 @@ void fsfx_update_chaff_loop(void)
 // FUNCTION: XVT 0x42F270
 void fsfx_update_player_engine_loop(void)
 {
-	int engine_sound_id;
-	int object_index;
-	int base_frequency;
-	uint8_t object_type;
-	struct craft_data *craft;
-	uint16_t config_volume;
-	int frequency;
-	int volume;
-
 	if (g_flight_sim_side_effects_suppressed != 0 ||
 	    g_flight_conf_sfx_enabled == 0 ||
 	    g_game_config.sfx_engine_enabled == 0 ||
@@ -1142,8 +1090,10 @@ void fsfx_update_player_engine_loop(void)
 		return;
 	}
 
-	engine_sound_id = -1;
-	object_index = g_players[g_local_player].object_index;
+	int engine_sound_id = -1;
+	int object_index = g_players[g_local_player].object_index;
+	int base_frequency;
+	uint8_t object_type;
 	if (object_index != -1) {
 		object_type = g_object_table[object_index].object_type;
 		switch (object_type) {
@@ -1182,23 +1132,26 @@ void fsfx_update_player_engine_loop(void)
 	if (engine_sound_id != -1) {
 		g_player_engine_loop_object_type = object_type;
 		if (g_players[g_local_player].awaiting_new_craft != 1) {
-			craft = g_object_table[object_index].mobj->p_craft;
+			struct craft_data *craft =
+				g_object_table[object_index].mobj->p_craft;
 			if ((craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_ENGINES) != 0) {
-				config_volume = g_game_config.sfx_engine_volume;
+				uint16_t config_volume =
+					g_game_config.sfx_engine_volume;
 				if (config_volume >= 10) {
 					config_volume = 127;
 				} else {
 					config_volume *= 13;
 				}
-				frequency = 55 * (math2_ratio_q16(
-							  craft->throttle_speed,
-							  0xffff) /
-						  655) +
-					    base_frequency;
+				int frequency =
+					55 * (math2_ratio_q16(
+						      craft->throttle_speed,
+						      0xffff) /
+					      655) +
+					base_frequency;
 				config_volume = (uint16_t)math2_fraction(
 					config_volume, craft->throttle_speed);
-				volume = config_volume >> 1;
+				int volume = config_volume >> 1;
 				if (sound_get_param(engine_sound_id, 256) ==
 				    0) {
 					sound_set_param(engine_sound_id, 1911,
@@ -1280,11 +1233,6 @@ void fsfx_update_player_engine_loop(void)
 // FUNCTION: XVT 0x42F5D0
 void fsfx_update_beam_effect_loops(void)
 {
-	int volume;
-	int interior_volume;
-	int object_index;
-	struct craft_data *craft;
-
 	if (g_flight_sim_side_effects_suppressed != 0) {
 		return;
 	}
@@ -1298,13 +1246,13 @@ void fsfx_update_beam_effect_loops(void)
 		return;
 	}
 
-	interior_volume = g_game_config.sfx_interior_volume;
-	volume = 127;
+	int interior_volume = g_game_config.sfx_interior_volume;
+	int volume = 127;
 	if (interior_volume < 10) {
 		volume = 13 * interior_volume;
 	}
 
-	object_index = g_players[g_local_player].object_index;
+	int object_index = g_players[g_local_player].object_index;
 	if (object_index == -1) {
 		if (sound_get_param(63, 256) != 0) {
 			sound_stop_oldest_instance_by_id(63);
@@ -1321,7 +1269,7 @@ void fsfx_update_beam_effect_loops(void)
 		return;
 	}
 
-	craft = g_object_table[object_index].mobj->p_craft;
+	struct craft_data *craft = g_object_table[object_index].mobj->p_craft;
 	if (craft->beam_effect_accum[1] != 0) {
 		if (sound_get_param(63, 256) == 0) {
 			sound_queue_effect(g_fsfx_sfx_name_table[63], 1, 1, 125,
@@ -1379,20 +1327,7 @@ void fsfx_update_beam_effect_loops(void)
 // FUNCTION: XVT 0x42F810
 void fsfx_update_flight_sfx(void)
 {
-	int player_object_index;
-	int wash_sound_id;
-	int wash_volume;
-	int object_index;
-	struct object_record *object;
-	struct mobile_object *mobile_object;
-	struct craft_data *craft;
-	uint16_t flyby_sound_id;
-	uint8_t object_type;
-	int current_distance;
-	int previous_distance;
-	int flyby_distance;
-
-	player_object_index = g_players[g_local_player].object_index;
+	int player_object_index = g_players[g_local_player].object_index;
 	if (player_object_index == -1) {
 		return;
 	}
@@ -1407,11 +1342,13 @@ void fsfx_update_flight_sfx(void)
 		return;
 	}
 
+	uint8_t object_type;
 	if (g_players[g_local_player].engine_wash_source_obj_idx != -1) {
 		object_type =
 			g_object_table[(uint16_t)g_players[g_local_player]
 					       .engine_wash_source_obj_idx]
 				.object_type;
+		int wash_sound_id;
 		if (object_type == 51 || object_type == 52 ||
 		    object_type == 53) {
 			wash_sound_id = 78;
@@ -1421,9 +1358,9 @@ void fsfx_update_flight_sfx(void)
 				wash_sound_id = 78;
 			}
 		}
-		wash_volume = 4 * g_game_config.sfx_exterior_volume *
-			      g_players[g_local_player].engine_wash_strength /
-			      10;
+		int wash_volume =
+			4 * g_game_config.sfx_exterior_volume *
+			g_players[g_local_player].engine_wash_strength / 10;
 		if (wash_volume > 127) {
 			wash_volume = 127;
 		}
@@ -1445,7 +1382,11 @@ void fsfx_update_flight_sfx(void)
 		}
 	}
 
-	object_index = 0;
+	int object_index = 0;
+	struct object_record *object;
+	struct mobile_object *mobile_object;
+	struct craft_data *craft;
+	uint16_t flyby_sound_id;
 	if (g_active_region_craft_object_slot_end > 0) {
 		do {
 			if (object_index != player_object_index) {
@@ -1513,7 +1454,7 @@ void fsfx_update_flight_sfx(void)
 						}
 						if (flyby_sound_id !=
 						    UINT16_MAX) {
-							current_distance = collide_roughdistance3d(
+							int current_distance = collide_roughdistance3d(
 								object->world_x -
 									g_object_table[player_object_index]
 										.world_x,
@@ -1523,7 +1464,7 @@ void fsfx_update_flight_sfx(void)
 								object->world_z -
 									g_object_table[player_object_index]
 										.world_z);
-							previous_distance = collide_roughdistance3d(
+							int previous_distance = collide_roughdistance3d(
 								g_object_table[object_index]
 										.mobj
 										->prev_world_x -
@@ -1542,7 +1483,7 @@ void fsfx_update_flight_sfx(void)
 									g_object_table[player_object_index]
 										.mobj
 										->prev_world_z);
-							flyby_distance =
+							int flyby_distance =
 								g_object_type_table
 									[object_type]
 										.max_bounds_extent +
@@ -1602,20 +1543,6 @@ int fsfx_speak_wingman_event(int player_idx, int speaker_obj_idx,
 			     int voice_category, int response_index,
 			     int target_obj_idx, uint16_t probability)
 {
-	int speaker_voice_list_slot;
-	int player_obj_idx;
-	int candidates[6];
-	unsigned int craft_index_in_group;
-	int selected_response;
-	int candidate_count;
-	int base_offset;
-	unsigned int candidate_index;
-	unsigned int alternate_index;
-	struct craft_data *craft;
-	int craft_ordinal;
-	int target_craft_ordinal;
-	uint16_t object_signature;
-
 	if (g_game_config.voice_pilot_level == 0) {
 		return 0;
 	}
@@ -1625,7 +1552,7 @@ int fsfx_speak_wingman_event(int player_idx, int speaker_obj_idx,
 	if (g_local_player != player_idx) {
 		return 0;
 	}
-	player_obj_idx = g_players[player_idx].object_index;
+	int player_obj_idx = g_players[player_idx].object_index;
 	if (player_obj_idx == -1) {
 		return 0;
 	}
@@ -1639,8 +1566,10 @@ int fsfx_speak_wingman_event(int player_idx, int speaker_obj_idx,
 	}
 
 	if (speaker_obj_idx == -1) {
-		candidate_count = 0;
-		candidate_index = g_active_region_object_slot_start;
+		int candidate_count = 0;
+		unsigned int candidate_index =
+			g_active_region_object_slot_start;
+		int candidates[6];
 		if ((unsigned int)g_active_region_craft_object_slot_end >
 		    candidate_index) {
 			do {
@@ -1673,7 +1602,7 @@ int fsfx_speak_wingman_event(int player_idx, int speaker_obj_idx,
 		candidate_index = fsfx_random_index(candidate_count);
 		speaker_obj_idx = candidates[candidate_index];
 		if (target_obj_idx == speaker_obj_idx) {
-			alternate_index = candidate_index + 1;
+			unsigned int alternate_index = candidate_index + 1;
 			if (alternate_index >= (unsigned int)candidate_count) {
 				alternate_index = 0;
 			}
@@ -1692,14 +1621,16 @@ int fsfx_speak_wingman_event(int player_idx, int speaker_obj_idx,
 		}
 	}
 
-	craft = g_object_table[speaker_obj_idx].mobj->p_craft;
-	craft_ordinal = craft->craft_ordinal;
-	craft_index_in_group = craft->craft_index_in_group;
+	struct craft_data *craft =
+		g_object_table[speaker_obj_idx].mobj->p_craft;
+	int craft_ordinal = craft->craft_ordinal;
+	unsigned int craft_index_in_group = craft->craft_index_in_group;
 	if (craft_index_in_group > 6) {
 		craft_index_in_group = 0;
 	}
-	speaker_voice_list_slot = 97 * craft_ordinal + 114;
-	target_craft_ordinal = 0;
+	int speaker_voice_list_slot = 97 * craft_ordinal + 114;
+	int target_craft_ordinal = 0;
+	uint16_t object_signature;
 	if (target_obj_idx == -1 ||
 	    g_active_region_craft_object_slot_end <= target_obj_idx) {
 		object_signature = UINT16_MAX;
@@ -1709,9 +1640,9 @@ int fsfx_speak_wingman_event(int player_idx, int speaker_obj_idx,
 		target_craft_ordinal = g_object_table[target_obj_idx]
 					       .mobj->p_craft->craft_ordinal;
 	}
-	base_offset = g_fsfx_voice_category_base_offset[voice_category];
+	int base_offset = g_fsfx_voice_category_base_offset[voice_category];
 
-	selected_response = response_index;
+	int selected_response = response_index;
 	if (selected_response == -1) {
 		switch (voice_category) {
 		case 3:
@@ -1890,11 +1821,6 @@ int fsfx_speak_wingman_event(int player_idx, int speaker_obj_idx,
 int fsfx_speak_tactical_officer_event(int voice_category, int message_id,
 				      int obj_idx, uint16_t probability)
 {
-	int designation_message_id;
-	int elapsed_seconds;
-	int last_speak_seconds;
-	int16_t object_signature;
-
 	if (g_game_config.voice_tactical_officer_level == 0) {
 		return 0;
 	}
@@ -1905,7 +1831,8 @@ int fsfx_speak_tactical_officer_event(int voice_category, int message_id,
 		return 0;
 	}
 
-	object_signature = -1;
+	int16_t object_signature = -1;
+	int designation_message_id;
 	if (voice_category == TACTICAL_VOICE_STATUS) {
 		if (obj_idx == -1 ||
 		    obj_idx >= g_active_region_craft_object_slot_end) {
@@ -1924,13 +1851,13 @@ int fsfx_speak_tactical_officer_event(int voice_category, int message_id,
 			return 0;
 		}
 		object_signature = g_object_table[obj_idx].object_signature;
-		elapsed_seconds = mission_clock_to_seconds(
+		int elapsed_seconds = mission_clock_to_seconds(
 			g_mission_elapsed_clock.hours,
 			g_mission_elapsed_clock.minutes,
 			g_mission_elapsed_clock.seconds);
 		if (message_id != TACTICAL_MSG_DESTROYED &&
 		    message_id != TACTICAL_MSG_DISABLED) {
-			last_speak_seconds =
+			int last_speak_seconds =
 				g_fsfx_tac_officer_last_speak_seconds_by_obj
 					[obj_idx];
 			if (last_speak_seconds != 0 &&
@@ -1986,15 +1913,14 @@ int fsfx_speak_tactical_officer_event(int voice_category, int message_id,
 int fsfx_queue_commander_voice_category(int voice_category,
 					int object_signature)
 {
-	int base_offset;
-	uint8_t variant_count;
-	uint16_t variant_index;
-
 	(void)object_signature;
 	if (g_game_config.voice_commander_enabled == 0) {
 		return 0;
 	}
-	base_offset = g_commander_voice_sfx_offset_by_category[voice_category];
+	int base_offset =
+		g_commander_voice_sfx_offset_by_category[voice_category];
+	uint8_t variant_count;
+	uint16_t variant_index;
 	switch (voice_category) {
 	case 0:
 		variant_count = g_commander_voice_variant_count_by_category
@@ -2051,25 +1977,18 @@ int fsfx_queue_commander_voice_category(int voice_category,
 // FUNCTION: XVT 0x430540
 int fsfx_select_available_voice_variant(int voice_category, int craft_ordinal)
 {
-	int base_offset;
-	int variant_count;
-	int variant_index;
-	uint8_t repeat_threshold;
-	int remaining_variants;
-	int craft_list_offset;
-
-	variant_count = g_fsfx_voice_category_variant_count[voice_category];
-	base_offset = g_fsfx_voice_category_base_offset[voice_category];
-	variant_index = fsfx_random_index(variant_count);
-	repeat_threshold =
+	int variant_count = g_fsfx_voice_category_variant_count[voice_category];
+	int base_offset = g_fsfx_voice_category_base_offset[voice_category];
+	int variant_index = fsfx_random_index(variant_count);
+	uint8_t repeat_threshold =
 		g_fsfx_voice_category_repeat_threshold[voice_category];
 	if (repeat_threshold != 0) {
-		craft_list_offset = craft_ordinal * 97;
+		int craft_list_offset = craft_ordinal * 97;
 		if (g_fsfx_voice_line_play_counts[craft_list_offset +
 						  variant_index +
 						  base_offset] >=
 		    repeat_threshold) {
-			remaining_variants = variant_count;
+			int remaining_variants = variant_count;
 			while (remaining_variants-- != 0) {
 				++variant_index;
 				if (variant_index >= variant_count) {
@@ -2094,11 +2013,8 @@ int fsfx_select_available_voice_variant(int voice_category, int craft_ordinal)
 // FUNCTION: XVT 0x4305D0
 uint16_t fsfx_random_index(uint16_t count)
 {
-	uint16_t random_value;
-	uint16_t quotient;
-
-	random_value = game_rand2();
-	quotient = random_value / count;
+	uint16_t random_value = game_rand2();
+	uint16_t quotient = random_value / count;
 	if (quotient == 0) {
 		return 0;
 	}
@@ -2121,9 +2037,6 @@ int fsfx_is_voice_queue_empty(void) { return g_fsfx_voice_queue_count == 0; }
 int fsfx_queue_voice_sfx(int sfx_slot, char speaker_type, char voice_category,
 			 char chain_flag, uint16_t object_signature)
 {
-	int queue_index;
-	uint8_t queue_count;
-
 	if (g_flight_sim_side_effects_suppressed != 0) {
 		return 0;
 	}
@@ -2136,7 +2049,7 @@ int fsfx_queue_voice_sfx(int sfx_slot, char speaker_type, char voice_category,
 	if (g_game_config.voice_volume == 0) {
 		return 0;
 	}
-	queue_count = g_fsfx_voice_queue_count;
+	uint8_t queue_count = g_fsfx_voice_queue_count;
 	if (queue_count == 128) {
 		return 0;
 	}
@@ -2151,7 +2064,7 @@ int fsfx_queue_voice_sfx(int sfx_slot, char speaker_type, char voice_category,
 		return 0;
 	}
 
-	queue_index = g_fsfx_voice_queue_count;
+	int queue_index = g_fsfx_voice_queue_count;
 	g_fsfx_voice_queue_object_signature[queue_index] = object_signature;
 	g_fsfx_voice_queue_sfx_slot[queue_index] = sfx_slot;
 	g_fsfx_voice_queue_speaker_type[queue_index] = speaker_type;
@@ -2174,11 +2087,6 @@ int fsfx_queue_voice_sfx(int sfx_slot, char speaker_type, char voice_category,
 // FUNCTION: XVT 0x430700
 void fsfx_update_voice_queue(void)
 {
-	unsigned int queue_index;
-	int sfx_slot;
-	uint8_t queue_count;
-	int volume;
-
 	if (g_fsfx_loaded == 0) {
 		return;
 	}
@@ -2188,14 +2096,14 @@ void fsfx_update_voice_queue(void)
 		return;
 	}
 
-	queue_index = 0;
-	queue_count = g_fsfx_voice_queue_count;
+	unsigned int queue_index = 0;
+	uint8_t queue_count = g_fsfx_voice_queue_count;
 	g_fsfx_current_voice_sfx_slot = 0;
 	if (queue_count == 0) {
 		return;
 	}
 
-	sfx_slot = g_fsfx_voice_queue_sfx_slot[0];
+	int sfx_slot = g_fsfx_voice_queue_sfx_slot[0];
 	g_fsfx_current_voice_speaker_type = g_fsfx_voice_queue_speaker_type[0];
 	--queue_count;
 	g_fsfx_current_voice_category = g_fsfx_voice_queue_category[0];
@@ -2222,7 +2130,7 @@ void fsfx_update_voice_queue(void)
 	    g_game_config.voice_volume == 0) {
 		return;
 	}
-	volume = 127;
+	int volume = 127;
 	if (g_game_config.voice_volume < 10) {
 		volume = 13 * g_game_config.voice_volume;
 	}
@@ -2243,12 +2151,7 @@ void fsfx_update_voice_queue(void)
 // FUNCTION: XVT 0x430830
 void fsfx_prune_stale_voice_queue_entries(void)
 {
-	unsigned int queue_index;
-	int referenced_object_found;
-	unsigned int object_index;
-	unsigned int object_slot_end;
-
-	queue_index = 0;
+	unsigned int queue_index = 0;
 	if (g_fsfx_voice_queue_count == 0) {
 		return;
 	}
@@ -2264,9 +2167,10 @@ void fsfx_prune_stale_voice_queue_entries(void)
 			continue;
 		}
 
-		object_index = g_active_region_object_slot_start;
-		object_slot_end = g_active_region_craft_object_slot_end;
-		referenced_object_found = 0;
+		unsigned int object_index = g_active_region_object_slot_start;
+		unsigned int object_slot_end =
+			g_active_region_craft_object_slot_end;
+		int referenced_object_found = 0;
 		if (object_index < object_slot_end) {
 			do {
 				if (g_object_table[object_index]
@@ -2309,20 +2213,10 @@ void fsfx_prune_stale_voice_queue_entries(void)
 // FUNCTION: XVT 0x430930
 void fsfx_remove_voice_queue_entry_chain(unsigned int queue_index)
 {
-	int removed_count;
-	int *destination_sfx_slot;
-	uint8_t chain_flag;
-	unsigned int scan_index;
-	unsigned int source_index;
-	int *source_sfx_slot;
-	uint16_t *destination_signature;
-	uint16_t *source_signature;
-	unsigned int destination_index;
-
-	removed_count = 1;
-	destination_index = queue_index;
-	chain_flag = g_fsfx_voice_queue_chain_flag[queue_index + 1];
-	scan_index = queue_index + 1;
+	int removed_count = 1;
+	unsigned int destination_index = queue_index;
+	uint8_t chain_flag = g_fsfx_voice_queue_chain_flag[queue_index + 1];
+	unsigned int scan_index = queue_index + 1;
 	if (chain_flag != 0) {
 		while (scan_index < g_fsfx_voice_queue_count) {
 			chain_flag =
@@ -2343,12 +2237,13 @@ void fsfx_remove_voice_queue_entry_chain(unsigned int queue_index)
 		return;
 	}
 
-	source_index = queue_index + removed_count;
-	destination_signature =
+	unsigned int source_index = queue_index + removed_count;
+	uint16_t *destination_signature =
 		&g_fsfx_voice_queue_object_signature[queue_index];
-	source_signature = &g_fsfx_voice_queue_object_signature[source_index];
-	source_sfx_slot = &g_fsfx_voice_queue_sfx_slot[source_index];
-	destination_sfx_slot = &g_fsfx_voice_queue_sfx_slot[queue_index];
+	uint16_t *source_signature =
+		&g_fsfx_voice_queue_object_signature[source_index];
+	int *source_sfx_slot = &g_fsfx_voice_queue_sfx_slot[source_index];
+	int *destination_sfx_slot = &g_fsfx_voice_queue_sfx_slot[queue_index];
 	while (1) {
 		*destination_sfx_slot++ = *source_sfx_slot++;
 		g_fsfx_voice_queue_speaker_type[destination_index] =

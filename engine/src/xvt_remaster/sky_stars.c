@@ -225,9 +225,9 @@ int xvt_remaster_sky_stars_prepare(
 	const float *view_proj = AeronScene_JitteredViewProj(scene);
 	int render_w;
 	int render_h;
+	AeronScene_RenderDims(scene, &render_w, &render_h);
 	int output_w;
 	int output_h;
-	AeronScene_RenderDims(scene, &render_w, &render_h);
 	AeronScene_RtDims(scene, &output_w, &output_h);
 	if (!view_proj || render_w <= 0 || render_h <= 0 || output_w <= 0 ||
 	    output_h <= 0) {

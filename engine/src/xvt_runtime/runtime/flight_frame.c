@@ -95,16 +95,16 @@ void xvt_flight_frame_begin(void)
 
 static int xvt_flight_frame_target(void)
 {
-	int frame_adjustment;
-	int frame_target_timestamp;
 	if (xvt_flight_timing_is_unlocked()) {
 		return g_input_timestamp;
 	}
+	int frame_target_timestamp;
 	if (g_flight_last_step_target_timestamp == 0) {
 		frame_target_timestamp = g_input_timestamp;
 	} else {
 		frame_target_timestamp = g_flight_last_step_target_timestamp +
 					 g_predicted_frame_delta;
+		int frame_adjustment;
 		if ((unsigned int)frame_target_timestamp >=
 		    (unsigned int)g_input_timestamp) {
 			if ((unsigned int)frame_target_timestamp >
@@ -183,10 +183,8 @@ static void xvt_flight_frame_invalidate_remote_transforms(void)
  * beyond the clock lead the host allows. */
 static void xvt_flight_frame_update_lag_indicator(void)
 {
-	int lag_ticks;
-
-	lag_ticks = g_input_timestamp - g_flight_net_clock_lead_ticks -
-		    g_server_tick_time;
+	int lag_ticks = g_input_timestamp - g_flight_net_clock_lead_ticks -
+			g_server_tick_time;
 	if (lag_ticks < LAG_LEVEL_1_TICKS) {
 		g_lag_indicator = 0;
 	} else if (lag_ticks < LAG_LEVEL_2_TICKS) {
@@ -206,11 +204,8 @@ static void xvt_flight_frame_update_packet_drop_indicator(void)
 	if (g_flight_prev_host_packet_drop_count == 0) {
 		g_packet_drop_indicator = 0;
 	} else {
-		int host_dplay_id;
-		int host_drop_count;
-
-		host_dplay_id = net_session_get_host_dplay_id();
-		host_drop_count =
+		int host_dplay_id = net_session_get_host_dplay_id();
+		int host_drop_count =
 			net_reliable_get_peer_packet_drop_count_by_dpid(
 				host_dplay_id);
 		g_flight_packet_drop_score +=
@@ -240,9 +235,6 @@ static void xvt_flight_frame_update_packet_drop_indicator(void)
  * bucket's share in percent. */
 static void xvt_flight_frame_format_update_histogram(void)
 {
-	unsigned int histogram_total;
-	int histogram_index;
-
 	sprintf(g_mission_debug_buffer,
 		"Raw  0:%2d  1:%2d  2:%2d  3:%2d  4:%2d  5:%2d  6:%2d  7:%2d  8:%2d   9:%2d\n",
 		g_flight_update_duration_histogram[0],
@@ -268,9 +260,9 @@ static void xvt_flight_frame_format_update_histogram(void)
 		g_flight_update_duration_histogram[18],
 		g_flight_update_duration_histogram[19]);
 
-	histogram_total = 0;
-	for (histogram_index = 0; histogram_index < UPDATE_HISTOGRAM_BUCKETS;
-	     ++histogram_index) {
+	unsigned int histogram_total = 0;
+	for (int histogram_index = 0;
+	     histogram_index < UPDATE_HISTOGRAM_BUCKETS; ++histogram_index) {
 		histogram_total +=
 			g_flight_update_duration_histogram[histogram_index];
 	}
@@ -324,18 +316,13 @@ static void xvt_flight_frame_format_update_histogram(void)
 
 static void xvt_flight_frame_render(void)
 {
-	int update_ticks;
-	int render_ticks;
-	int loop_ticks;
-	int render_start_timestamp;
-	char overlay_line[180];
 	g_input_timestamp += time_consume_elapsed_ticks();
-	update_ticks = g_input_timestamp - g_frame.frame_start_timestamp;
+	int update_ticks = g_input_timestamp - g_frame.frame_start_timestamp;
 	g_input_timestamp += time_consume_elapsed_ticks();
 	xvt_flight_frame_update_lag_indicator();
 	xvt_flight_frame_update_packet_drop_indicator();
 
-	render_start_timestamp = g_input_timestamp;
+	int render_start_timestamp = g_input_timestamp;
 	xvt_render_capture_complete_network_world();
 	flight_sync_apply_remote_player_render_smoothing();
 	xvt_flight_frame_invalidate_remote_transforms();
@@ -348,8 +335,8 @@ static void xvt_flight_frame_render(void)
 	flight_sync_capture_samples_and_restore_poses();
 	xvt_flight_frame_invalidate_remote_transforms();
 	g_input_timestamp += time_consume_elapsed_ticks();
-	render_ticks = g_input_timestamp - render_start_timestamp;
-	loop_ticks = g_input_timestamp - g_frame.loop_start_timestamp;
+	int render_ticks = g_input_timestamp - render_start_timestamp;
+	int loop_ticks = g_input_timestamp - g_frame.loop_start_timestamp;
 	if (loop_ticks == 0) {
 		loop_ticks = 1;
 	}
@@ -358,10 +345,6 @@ static void xvt_flight_frame_render(void)
 		g_flight_tick_overlay_sample_count = 0;
 		g_flight_tick_overlay_window_ticks = 0;
 	} else {
-		int ai_projectile_count;
-		int player_projectile_count;
-		int object_index;
-
 		/* The overlay's sampling window is 944 ticks, the second lag level's value, not a lag level. */
 		if (g_flight_tick_overlay_window_ticks > LAG_LEVEL_2_TICKS) {
 			g_flight_tick_overlay_sample_count = 0;
@@ -370,6 +353,7 @@ static void xvt_flight_frame_render(void)
 		g_flight_tick_overlay_last_loop_ticks = loop_ticks;
 		g_flight_tick_overlay_window_ticks += loop_ticks;
 		++g_flight_tick_overlay_sample_count;
+		char overlay_line[180];
 		/* The original formats this tick-counter line too and never shows it; nothing reads overlay_line. */
 		sprintf(overlay_line,
 			"R:%-2d U:%-2d N:%-2d O:%-2d T:%-2d FR:%-2d NOW:%-7dL:%-7dS:%-7dW:%-3dD:%-3dA%d\n",
@@ -391,9 +375,9 @@ static void xvt_flight_frame_render(void)
 		}
 		xvt_flight_frame_format_update_histogram();
 
-		ai_projectile_count = 0;
-		player_projectile_count = 0;
-		for (object_index = g_projectile_object_slot_start;
+		int ai_projectile_count = 0;
+		int player_projectile_count = 0;
+		for (int object_index = g_projectile_object_slot_start;
 		     object_index < g_projectile_object_slot_end;
 		     ++object_index) {
 			if (g_object_table[object_index].object_type != 0) {
@@ -416,13 +400,12 @@ static void xvt_flight_frame_render(void)
 
 static void xvt_flight_frame_adjust_clock(void)
 {
-	int clock_adjustment;
 	int cap = g_predicted_frame_delta >> FRAME_ADJUST_DIVISOR_SHIFT;
 	if (cap < 1) {
 		cap = 1;
 	}
-	char fell_behind_log_line[180];
 	g_input_timestamp += time_consume_elapsed_ticks();
+	int clock_adjustment;
 	if ((unsigned int)(g_server_tick_time +
 			   g_flight_net_clock_lead_ticks) >=
 	    (unsigned int)g_input_timestamp) {
@@ -459,6 +442,7 @@ static void xvt_flight_frame_adjust_clock(void)
 	}
 
 	if (g_server_tick_time > g_input_timestamp) {
+		char fell_behind_log_line[180];
 		/* Formatted as in the original, never printed: the event logged is network.fell_behind below. */
 		sprintf(fell_behind_log_line,
 			"Fell Behind! tickcounter:%-7d serverticks:%-7d adjustment:%-4d\n",
@@ -539,9 +523,9 @@ static void xvt_flight_frame_checksum(void)
 		};
 
 		char sums[REGIONS * 9 + 1];
-		char lengths[REGIONS * 9 + 1];
 		xvt_log_format_hex_list(sums, sizeof sums, g_world_checksum,
 					REGIONS);
+		char lengths[REGIONS * 9 + 1];
 		xvt_log_format_hex_list(lengths, sizeof lengths,
 					g_world_checksum_region_lengths,
 					REGIONS);

@@ -495,10 +495,10 @@ static void check_record_recovery(void)
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	xvt_player_timing_begin_world();
 	move_object(0, 50);
-	int32_t position[3] = {1, 2, 3};
 
 	/* Outside a reference step nothing is written. */
 	step(1);
+	int32_t position[3] = {1, 2, 3};
 	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 0);
 	expect_position(position, 1, 2, 3);
 
@@ -542,9 +542,9 @@ static void check_begin_world(void)
 	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_YAW), 0);
 	XVT_ASSERT_INT_EQ(probe(2, XVT_PLAYER_YAW), 0);
 
+	step(XVT_REFERENCE_TICKS);
 	/* Without a recovery position, the object's previous-step position is written. */
 	int32_t position[3];
-	step(XVT_REFERENCE_TICKS);
 	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(2, position), 1);
 	expect_position(position, -7 - MAIN_SLOTS, -8 - MAIN_SLOTS,
 			-9 - MAIN_SLOTS);
@@ -592,8 +592,8 @@ static void check_recover(void)
 
 	/* The recovery position is where the object was at Recover. */
 	move_object(0, 5);
-	int32_t position[3];
 	step(XVT_REFERENCE_TICKS);
+	int32_t position[3];
 	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
 	expect_position(position, 40, 0, 0);
 }
@@ -642,8 +642,8 @@ static void check_encode_decode(void)
 {
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	const struct xvt_player_timing_wire good = good_record();
-	struct xvt_player_timing_wire out;
 	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&good, 1), 1);
+	struct xvt_player_timing_wire out;
 	xvt_player_timing_encode(0, &out);
 	XVT_ASSERT_TRUE(records_equal(&out, &good));
 
@@ -679,14 +679,14 @@ static void check_recovery_not_shared(void)
 	xvt_player_timing_begin_world();
 	seed(0, XVT_PLAYER_YAW);
 	struct xvt_player_timing_wire before;
-	struct xvt_player_timing_wire after;
 	xvt_player_timing_encode(0, &before);
 
 	/* The record does not carry the recovery position: moving it leaves the record as it was. */
 	move_object(0, 30);
-	int32_t position[3];
 	step(XVT_REFERENCE_TICKS);
+	int32_t position[3];
 	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
+	struct xvt_player_timing_wire after;
 	xvt_player_timing_encode(0, &after);
 	XVT_ASSERT_TRUE(records_equal(&before, &after));
 
@@ -704,10 +704,9 @@ static void check_encode_empty(void)
 	const struct xvt_player_timing_wire good = good_record();
 	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&good, 1), 1);
 	struct xvt_player_timing_wire out;
-	struct xvt_player_timing_wire empty;
 
 	xvt_player_timing_encode(XVT_FLIGHT_PLAYERS, &out);
-	empty = empty_record(XVT_FLIGHT_PLAYERS);
+	struct xvt_player_timing_wire empty = empty_record(XVT_FLIGHT_PLAYERS);
 	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 
 	/* Player 5 has no object. */
@@ -736,9 +735,9 @@ static void check_encode_empty(void)
 static void expect_refused(const struct xvt_player_timing_wire *record)
 {
 	struct xvt_player_timing_wire before;
-	struct xvt_player_timing_wire after;
 	xvt_player_timing_encode(0, &before);
 	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(record, 1), 0);
+	struct xvt_player_timing_wire after;
 	xvt_player_timing_encode(0, &after);
 	XVT_ASSERT_TRUE(records_equal(&before, &after));
 }
@@ -749,9 +748,8 @@ static void check_decode_refusals(void)
 	xvt_player_timing_begin_controls(0);
 	seed(0, XVT_PLAYER_YAW);
 	const struct xvt_player_timing_wire good = good_record();
-	struct xvt_player_timing_wire bad;
 
-	bad = good;
+	struct xvt_player_timing_wire bad = good;
 	bad.player = XVT_FLIGHT_PLAYERS;
 	expect_refused(&bad);
 	bad = good;
@@ -819,8 +817,8 @@ static void check_reset_shared(void)
 	xvt_player_timing_begin_controls(0);
 	seed(0, XVT_PLAYER_YAW);
 	move_object(0, 60);
-	int32_t position[3];
 	step(XVT_REFERENCE_TICKS);
+	int32_t position[3];
 	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
 
 	/* The shared state, the entry's object included, is gone: the record is empty. */

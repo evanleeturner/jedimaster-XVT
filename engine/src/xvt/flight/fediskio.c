@@ -260,37 +260,20 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 		WAVE_REPLACEMENT_SCORE_FACTOR = 80,
 	};
 
-	uint8_t active_team_fg_count[TEAM_COUNT];
-	int connected_human_count;
-	unsigned int active_team_count;
-	unsigned int player_idx;
-	unsigned int network_idx;
-	unsigned int fg_idx;
-	unsigned int team_idx;
-	unsigned int rating_idx;
-	unsigned int ai_rating_idx;
-	unsigned int award_threshold_idx;
-	int award;
-	int placement;
-	int stat_type;
-	int local_player_team;
-	int score;
-	int margin;
-	int team0_player_fg_count;
-	int team1_player_fg_count;
-	int promotion_threshold;
-
 	(void)unused1;
 	(void)unused2;
 
-	connected_human_count = 0;
+	int connected_human_count = 0;
+	unsigned int player_idx;
 	for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
 		if (g_players[player_idx].network.direct_play_id != 0) {
 			++connected_human_count;
 		}
 	}
 
+	uint8_t active_team_fg_count[TEAM_COUNT];
 	memset(active_team_fg_count, 0, sizeof(active_team_fg_count));
+	unsigned int fg_idx;
 	for (fg_idx = 0;
 	     fg_idx < (unsigned int)g_mission_header.num_flight_groups;
 	     ++fg_idx) {
@@ -300,7 +283,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						       .fg.team];
 		}
 	}
-	active_team_count = 0;
+	unsigned int active_team_count = 0;
+	unsigned int team_idx;
 	for (team_idx = 0; team_idx < TEAM_COUNT; ++team_idx) {
 		if (active_team_fg_count[team_idx] != 0) {
 			++active_team_count;
@@ -308,6 +292,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 	}
 
 	if (g_mission_header.mission_type != MISSION_TYPE_SIMULATOR_1) {
+		int stat_type;
 		if (g_mission_header.mission_type == MISSION_TYPE_TRAINING ||
 		    g_mission_header.mission_type == MISSION_TYPE_SIMULATOR_2) {
 			stat_type = MISSION_STAT_TRAINING;
@@ -316,8 +301,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			stat_type = MISSION_STAT_MELEE;
 		} else {
 			stat_type = MISSION_STAT_COMBAT;
-			team1_player_fg_count = 0;
-			team0_player_fg_count = 0;
+			int team1_player_fg_count = 0;
+			int team0_player_fg_count = 0;
 			for (fg_idx = 0;
 			     fg_idx <
 			     (unsigned int)g_mission_header.num_flight_groups;
@@ -404,25 +389,22 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			}
 		}
 
+		unsigned int network_idx;
 		for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
 			if (g_players[player_idx].network.direct_play_id == 0) {
 				continue;
 			}
 			for (network_idx = 0; network_idx < PLAYER_COUNT;
 			     ++network_idx) {
-				unsigned int player_fg_idx;
-				unsigned int object_type;
-				unsigned int model_index;
-				int remaining_craft_count;
-
 				if (g_pilot_data.network_players[network_idx]
 					    .direct_play_id !=
 				    g_players[player_idx]
 					    .network.direct_play_id) {
 					continue;
 				}
-				player_fg_idx = g_players[network_idx]
-							.bound_flight_group_idx;
+				unsigned int player_fg_idx =
+					g_players[network_idx]
+						.bound_flight_group_idx;
 				if (g_flight_mission_state.runtime.team_goal_status
 						    [g_players[network_idx]
 							     .team]
@@ -436,15 +418,18 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					    UNLIMITED_WAVE_COUNT) {
 					continue;
 				}
-				remaining_craft_count =
+				int remaining_craft_count =
 					g_mission_flight_groups[player_fg_idx]
 						.fg.number_of_craft *
 					g_mission_fg_stats[player_fg_idx]
 						.waves_remaining;
-				object_type = g_craft_type_to_object_type
-					[g_mission_flight_groups[player_fg_idx]
-						 .fg.craft_type];
-				model_index =
+				unsigned int object_type =
+					g_craft_type_to_object_type
+						[g_mission_flight_groups
+							 [player_fg_idx]
+								 .fg
+								 .craft_type];
+				unsigned int model_index =
 					get_model_index_from_type(object_type);
 				g_players[network_idx]
 					.mission_stats.mission_score +=
@@ -457,8 +442,10 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 
 		memset(&g_pilot_data.last_mission_stats, 0,
 		       sizeof(g_pilot_data.last_mission_stats));
-		local_player_team = (uint16_t)g_players[g_local_player].team;
-		score = g_players[g_local_player].mission_stats.mission_score +
+		int local_player_team =
+			(uint16_t)g_players[g_local_player].team;
+		int score =
+			g_players[g_local_player].mission_stats.mission_score +
 			g_flight_mission_state.runtime
 				.team_scores[TEAM_SCORE_BONUS]
 					    [local_player_team];
@@ -490,15 +477,13 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 		for (fg_idx = 0;
 		     fg_idx < (unsigned int)g_mission_header.num_flight_groups;
 		     ++fg_idx) {
-			unsigned int object_type;
-			uint16_t kills;
-
-			object_type = g_craft_type_to_object_type
+			unsigned int object_type = g_craft_type_to_object_type
 				[g_mission_flight_groups[fg_idx].fg.craft_type];
 			if (object_type >= OBJECT_TYPE_STAT_COUNT) {
 				continue;
 			}
-			kills = g_players[g_local_player]
+			uint16_t kills =
+				g_players[g_local_player]
 					.per_mission_kills
 					.kills_full_on_flight_group[fg_idx];
 			g_pilot_data
@@ -571,14 +556,12 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			.total_friendlies_killed_per_mt[0] +=
 			g_players[g_local_player]
 				.per_mission_kills.friendlies_killed;
-		for (rating_idx = 0; rating_idx < PLAYER_RATING_COUNT;
-		     ++rating_idx) {
-			uint16_t value;
-
-			value = g_players[g_local_player]
-					.per_mission_kills
-					.kills_full_on_player_rating
-						[rating_idx];
+		for (unsigned int rating_idx = 0;
+		     rating_idx < PLAYER_RATING_COUNT; ++rating_idx) {
+			uint16_t value = g_players[g_local_player]
+						 .per_mission_kills
+						 .kills_full_on_player_rating
+							 [rating_idx];
 			g_pilot_data
 				.faction_statistics[g_pilot_data
 							    .current_faction_id]
@@ -639,11 +622,10 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 							       [rating_idx] +=
 				value;
 		}
-		for (ai_rating_idx = 0; ai_rating_idx < AI_RATING_COUNT;
-		     ++ai_rating_idx) {
-			uint16_t value;
-
-			value = g_players[g_local_player]
+		for (unsigned int ai_rating_idx = 0;
+		     ai_rating_idx < AI_RATING_COUNT; ++ai_rating_idx) {
+			uint16_t value =
+				g_players[g_local_player]
 					.per_mission_kills
 					.kills_full_on_ai_rating[ai_rating_idx];
 			g_pilot_data
@@ -820,10 +802,9 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				.mission_stats.worse_rating_promo_points);
 
 		g_pilot_data.promotion_delta = PILOT_PROMOTION_NONE;
+		int promotion_threshold;
 		if (stat_type == MISSION_STAT_TRAINING) {
-			int maximum_training_rating;
-
-			maximum_training_rating =
+			int maximum_training_rating =
 				g_mission_header.mission_type ==
 						MISSION_TYPE_SIMULATOR_2
 					? PILOT_RATING_JEDI_MASTER
@@ -1079,9 +1060,6 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 		for (fg_idx = 0;
 		     fg_idx < (unsigned int)g_mission_header.num_flight_groups;
 		     ++fg_idx) {
-			int group_ai;
-			int flight_group_rating;
-
 			g_pilot_data.kills_full_on_flight_group[fg_idx] =
 				g_players[g_local_player]
 					.per_mission_kills
@@ -1103,9 +1081,9 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			    (g_pilot_data.mission_sequence_active != 1 ||
 			     g_pilot_data.melee_tournament_sequence_state
 					     .current_mission_index == 0)) {
-				group_ai = g_mission_flight_groups[fg_idx]
-						   .fg.group_ai;
-				flight_group_rating =
+				int group_ai = g_mission_flight_groups[fg_idx]
+						       .fg.group_ai;
+				int flight_group_rating =
 					g_flight_group_rating_base_by_ai_level
 						[group_ai];
 				if (group_ai != 0) {
@@ -1117,9 +1095,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 		}
 
 		for (team_idx = 0; team_idx < PLAYER_COUNT; ++team_idx) {
-			struct pilot_team *team;
-
-			team = &g_pilot_data.teams[team_idx];
+			struct pilot_team *team = &g_pilot_data.teams[team_idx];
 			team->is_mission_completed =
 				g_flight_mission_state.runtime.team_goal_status
 						[team_idx][TEAM_GOAL_PRIMARY] ==
@@ -1231,6 +1207,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			}
 		}
 
+		unsigned int award_threshold_idx;
 		for (award_threshold_idx = 0;
 		     award_threshold_idx <
 		     sizeof(g_pilot_data.faction_statistics[0].mission_awards) /
@@ -1242,7 +1219,9 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 							    .current_faction_id]
 				.mission_awards[award_threshold_idx] = 0;
 		}
-		award = 0;
+		int award = 0;
+		int placement;
+		int margin;
 		if (stat_type == MISSION_STAT_TRAINING) {
 			if (g_flight_mission_state.runtime.team_goal_status
 					    [(uint16_t)g_players[g_local_player]
@@ -1300,12 +1279,9 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					.mission_awards[2] = award;
 			}
 		} else if (stat_type == MISSION_STAT_MELEE) {
-			int player_team_score;
-			int better_team_count;
-
-			better_team_count = 0;
+			int better_team_count = 0;
 			margin = 0;
-			player_team_score =
+			int player_team_score =
 				g_flight_mission_state.runtime
 					.team_scores[TEAM_SCORE_BONUS]
 						    [local_player_team] +
@@ -1313,14 +1289,11 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					.team_scores[TEAM_SCORE_MISSION]
 						    [local_player_team];
 			for (team_idx = 0; team_idx < TEAM_COUNT; ++team_idx) {
-				int has_opponent;
-				int opponent_score;
-
 				if (team_idx ==
 				    (unsigned int)local_player_team) {
 					continue;
 				}
-				has_opponent = 0;
+				int has_opponent = 0;
 				for (fg_idx = 0;
 				     fg_idx < (unsigned int)g_mission_header
 						      .num_flight_groups;
@@ -1344,7 +1317,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				if (!has_opponent) {
 					continue;
 				}
-				opponent_score =
+				int opponent_score =
 					g_flight_mission_state.runtime
 						.team_scores[TEAM_SCORE_BONUS]
 							    [team_idx] +
@@ -1562,9 +1535,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			switch (stat_type) {
 			case MISSION_STAT_TRAINING: {
 				unsigned int old_award;
-				int mission_id;
 
-				mission_id =
+				int mission_id =
 					g_pilot_data.mission_description_ids
 						[MISSION_DIRECTORY_TRAINING_EXERCISES];
 				if (g_pilot_data.mission_sequence_active == 1) {
@@ -1944,10 +1916,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				break;
 			}
 			case MISSION_STAT_MELEE: {
-				unsigned int old_award;
-				int mission_id;
-
-				mission_id =
+				int mission_id =
 					g_pilot_data.mission_description_ids
 						[MISSION_DIRECTORY_MELEES];
 				++g_pilot_data
@@ -2073,7 +2042,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						.best_margin = margin;
 				}
 				if (award != 0) {
-					old_award =
+					unsigned int old_award =
 						(unsigned int)g_pilot_data
 							.faction_statistics
 								[g_pilot_data
@@ -2147,10 +2116,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				break;
 			}
 			case MISSION_STAT_COMBAT: {
-				unsigned int old_award;
-				int mission_id;
-
-				mission_id =
+				int mission_id =
 					g_pilot_data.mission_description_ids
 						[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS];
 				++g_pilot_data
@@ -2248,7 +2214,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					}
 				}
 				if (award != 0) {
-					old_award =
+					unsigned int old_award =
 						(unsigned int)g_pilot_data
 							.faction_statistics
 								[g_pilot_data
@@ -2326,9 +2292,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			switch (stat_type) {
 			case MISSION_STAT_TRAINING: {
 				unsigned int old_award;
-				int mission_id;
 
-				mission_id =
+				int mission_id =
 					g_pilot_data.mission_description_ids
 						[MISSION_DIRECTORY_TRAINING_EXERCISES];
 				if (g_pilot_data.mission_sequence_active == 1) {
@@ -2731,10 +2696,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				break;
 			}
 			case MISSION_STAT_MELEE: {
-				unsigned int old_award;
-				int mission_id;
-
-				mission_id =
+				int mission_id =
 					g_pilot_data.mission_description_ids
 						[MISSION_DIRECTORY_MELEES];
 				++g_pilot_data
@@ -2882,7 +2844,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						.best_margin = margin;
 				}
 				if (award != 0) {
-					old_award =
+					unsigned int old_award =
 						(unsigned int)g_pilot_data
 							.faction_statistics
 								[g_pilot_data
@@ -2965,10 +2927,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				break;
 			}
 			case MISSION_STAT_COMBAT: {
-				unsigned int old_award;
-				int mission_id;
-
-				mission_id =
+				int mission_id =
 					g_pilot_data.mission_description_ids
 						[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS];
 				++g_pilot_data
@@ -3066,7 +3025,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					}
 				}
 				if (award != 0) {
-					old_award =
+					unsigned int old_award =
 						(unsigned int)g_pilot_data
 							.faction_statistics
 								[g_pilot_data
@@ -3153,10 +3112,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 
 		if (g_pilot_data.mission_sequence_active == 1 &&
 		    stat_type == MISSION_STAT_TRAINING) {
-			int campaign_id;
-
-			campaign_id = g_pilot_data.mission_description_ids
-					      [MISSION_DIRECTORY_CAMPAIGNS];
+			int campaign_id = g_pilot_data.mission_description_ids
+						  [MISSION_DIRECTORY_CAMPAIGNS];
 			g_pilot_data.campaign_sequence_state
 				.last_mission_completed =
 				g_pilot_data.teams[g_pilot_data.team]
@@ -3352,20 +3309,13 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 
 		if (g_pilot_data.mission_sequence_active == 1 &&
 		    stat_type == MISSION_STAT_MELEE) {
-			int overall_placement;
-			int tournament_award;
-			int better_team_count;
-			int tournament_id;
-			int overall_margin;
-			int local_team_total_score;
-			unsigned int participating_team_count;
-			int team_mission_score;
-
-			tournament_id = g_pilot_data.mission_description_ids
-						[MISSION_DIRECTORY_TOURNAMENTS];
-			participating_team_count =
+			int tournament_id =
+				g_pilot_data.mission_description_ids
+					[MISSION_DIRECTORY_TOURNAMENTS];
+			unsigned int participating_team_count =
 				g_pilot_data.melee_tournament_sequence_state
 					.participating_team_count;
+			int team_mission_score;
 #ifdef XVT_MODERN
 			/* Inactive standings keep the previous team's score; the first one would read an uninitialized
 			 * local. */
@@ -3373,7 +3323,6 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 #endif
 			for (team_idx = 0; team_idx < TEAM_COUNT; ++team_idx) {
 				unsigned int mission_placement;
-				unsigned int better_mission_team_count;
 
 				if (g_pilot_data.melee_tournament_sequence_state
 					    .team_standings[team_idx]
@@ -3388,7 +3337,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 							.team_scores
 								[TEAM_SCORE_MISSION]
 								[team_idx];
-					better_mission_team_count = 0;
+					unsigned int better_mission_team_count =
+						0;
 					/* The network player index is reused here as the other team compared with team_idx. */
 					for (network_idx = 0;
 					     network_idx < TEAM_COUNT;
@@ -3438,9 +3388,9 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				}
 			}
 
-			better_team_count = 0;
-			overall_margin = 0;
-			local_team_total_score =
+			int better_team_count = 0;
+			int overall_margin = 0;
+			int local_team_total_score =
 				g_pilot_data.melee_tournament_sequence_state
 					.team_standings[(uint16_t)g_players
 								[g_local_player]
@@ -3479,8 +3429,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					}
 				}
 			}
-			overall_placement = better_team_count + 1;
-			tournament_award = 0;
+			int overall_placement = better_team_count + 1;
+			int tournament_award = 0;
 			if (local_team_total_score > 5000 &&
 			    overall_placement < 4) {
 				tournament_award = g_placement_award_levels
@@ -3540,8 +3490,6 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 
 			if (g_pilot_data.melee_tournament_sequence_state
 				    .human_player_count == 1) {
-				unsigned int old_award;
-
 				if (g_pilot_data.melee_tournament_sequence_state
 					    .current_mission_index == 0) {
 					++g_pilot_data
@@ -3652,7 +3600,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 							overall_margin;
 					}
 					if (tournament_award != 0) {
-						old_award =
+						unsigned int old_award =
 							(unsigned int)g_pilot_data
 								.faction_statistics
 									[g_pilot_data
@@ -3737,8 +3685,6 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					}
 				}
 			} else {
-				unsigned int old_award;
-
 				if (g_pilot_data.melee_tournament_sequence_state
 					    .current_mission_index == 0) {
 					++g_pilot_data
@@ -3849,7 +3795,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 							overall_margin;
 					}
 					if (tournament_award != 0) {
-						old_award =
+						unsigned int old_award =
 							(unsigned int)g_pilot_data
 								.faction_statistics
 									[g_pilot_data
@@ -3939,18 +3885,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 
 		if (g_pilot_data.mission_sequence_active == 1 &&
 		    stat_type == MISSION_STAT_COMBAT) {
-			battle_mission_result mission_result;
-			unsigned int result_idx;
-			unsigned int battle_award;
-			int battle_id;
-			int imperial_victories;
-			int rebel_victories;
-			int overall_winner;
-			int victory_margin;
-			int player_result;
-
-			battle_id = g_pilot_data.mission_description_ids
-					    [MISSION_DIRECTORY_BATTLES];
+			int battle_id = g_pilot_data.mission_description_ids
+						[MISSION_DIRECTORY_BATTLES];
 			for (team_idx = 0; team_idx < TEAM_COUNT; ++team_idx) {
 				if (g_flight_mission_state.runtime
 						    .team_goal_status
@@ -3965,6 +3901,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					break;
 				}
 			}
+			battle_mission_result mission_result;
 			if (team_idx == TEAM_COUNT) {
 				mission_result = BATTLE_MISSION_RESULT_DRAW;
 			} else if (team_idx == 0) {
@@ -3976,13 +3913,13 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			} else {
 				mission_result = BATTLE_MISSION_RESULT_DRAW;
 			}
-			imperial_victories = 0;
-			rebel_victories = 0;
+			int imperial_victories = 0;
+			int rebel_victories = 0;
 			g_pilot_data.battle_sequence_state.mission_results
 				[g_pilot_data.battle_sequence_state
 					 .current_mission_index] =
 				mission_result;
-			for (result_idx = 0;
+			for (unsigned int result_idx = 0;
 			     result_idx <= g_pilot_data.battle_sequence_state
 						   .current_mission_index;
 			     ++result_idx) {
@@ -3997,6 +3934,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					++rebel_victories;
 				}
 			}
+			int overall_winner;
+			int victory_margin;
 			if (imperial_victories ==
 			    g_pilot_data.battle_sequence_state
 				    .victories_needed) {
@@ -4013,7 +3952,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				overall_winner = 2;
 				victory_margin = 0;
 			}
-			player_result = 0;
+			int player_result = 0;
 			if (overall_winner != 2) {
 				if ((overall_winner == 0 &&
 				     g_players[g_local_player].team == 0) ||
@@ -4024,7 +3963,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					player_result = 2;
 				}
 			}
-			battle_award = 0;
+			unsigned int battle_award = 0;
 			if (player_result != 0) {
 				if (player_result == 2 && victory_margin >= 2) {
 					battle_award = FAILED_AWARD;
@@ -4035,13 +3974,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						.mission_awards[3] =
 						FAILED_AWARD;
 				} else if (player_result == 1) {
-					int allied_players;
-					int enemy_players;
-					int player_balance;
-					int award_performance;
-
-					enemy_players = 0;
-					allied_players = 0;
+					int enemy_players = 0;
+					int allied_players = 0;
 					for (player_idx = 0;
 					     player_idx < PLAYER_COUNT;
 					     ++player_idx) {
@@ -4059,7 +3993,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 							}
 						}
 					}
-					player_balance =
+					int player_balance =
 						enemy_players - allied_players;
 					if (player_balance > 0) {
 						player_balance *= 2;
@@ -4071,7 +4005,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						    GAME_DIFFICULTY_HARD) {
 						victory_margin *= 2;
 					}
-					award_performance =
+					int award_performance =
 						victory_margin + player_balance;
 					if (award_performance >= 5) {
 						battle_award = 1;
@@ -4184,9 +4118,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						victory_margin;
 				}
 				if (battle_award != 0) {
-					unsigned int old_award;
-
-					old_award =
+					unsigned int old_award =
 						(unsigned int)g_pilot_data
 							.faction_statistics
 								[g_pilot_data
@@ -4336,9 +4268,7 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						victory_margin;
 				}
 				if (battle_award != 0) {
-					unsigned int old_award;
-
-					old_award =
+					unsigned int old_award =
 						(unsigned int)g_pilot_data
 							.faction_statistics
 								[g_pilot_data
@@ -4419,28 +4349,22 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 // FUNCTION: XVT 0x49C3C0
 uint16_t fe_disk_io_read_all_bytes_or_fatal(const char *file_name, void *dst)
 {
-	xvt_file *stream;
-	uint8_t *output;
-	uint16_t total_bytes;
-	uint16_t bytes_read;
-	uint16_t byte_index;
-	uint8_t buffer[512];
-
 	fe_disk_io_open_global_stream(file_name, "rb", 1, 0);
-	stream = g_stream;
+	xvt_file *stream = g_stream;
 	if (stream == NULL) {
 		fe_disk_io_fatal_error(FILE_ERROR_STR_FILE_MISSING);
 #ifdef XVT_MODERN
 		return 0;
 #endif
 	}
-	total_bytes = 0;
-	output = dst;
-	bytes_read = 512;
+	uint16_t total_bytes = 0;
+	uint8_t *output = dst;
+	uint16_t bytes_read = 512;
+	uint8_t buffer[512];
 	while (bytes_read == 512) {
 		bytes_read =
 			(uint16_t)FILE_RAW_READ(buffer, 1, bytes_read, stream);
-		byte_index = 0;
+		uint16_t byte_index = 0;
 		while (byte_index < bytes_read) {
 			*output = buffer[byte_index];
 			++output;
@@ -4480,19 +4404,7 @@ void fe_disk_io_init_global_buffers(void)
 		BASE_FLIGHT_SFX_FIRST_SOUND_ID = 4,
 	};
 
-	int16_t allocation_failed;
-	const char *loading_message;
-	const char *unsupported_resolution_message;
-	const char *fallback_resolution_message;
-	const char *pixel_format_message;
-	int requested_render_target_width;
-	int requested_bytes_per_pixel;
-	int active_bytes_per_pixel;
-	int requested_hardware3d;
-	int active_hardware3d;
-	char sound_list_path[40];
-
-	allocation_failed = 0;
+	int16_t allocation_failed = 0;
 	g_object_table_handle = 0;
 	g_mobile_object_pool_handle = 0;
 	g_flight_font_small_sw = NULL;
@@ -4651,6 +4563,7 @@ void fe_disk_io_init_global_buffers(void)
 	flight_text_set_cursor(0, (g_screen_height >> 1) -
 					  3 * g_flight_font_line_height);
 
+	const char *loading_message;
 	switch (g_pilot_data.mission_directory_id) {
 	case MISSION_DIRECTORY_TRAINING_EXERCISES:
 		if (g_pilot_data.mission_sequence_active == 1) {
@@ -4680,11 +4593,12 @@ void fe_disk_io_init_global_buffers(void)
 #endif
 	flight_text_draw_string_centered(loading_message);
 
-	requested_render_target_width = g_render_target_width;
+	int requested_render_target_width = g_render_target_width;
 	if (requested_render_target_width != g_display_mode_width) {
 		g_flight_text_color_index = FLIGHT_TEXT_WARNING_COLOR;
 		flight_text_set_cursor(0, (g_screen_height >>
 					   1) + 3 * g_flight_font_line_height);
+		const char *unsupported_resolution_message;
 		switch (g_render_target_width) {
 		case 320:
 			unsupported_resolution_message = g_str_disk_io_messages
@@ -4708,6 +4622,7 @@ void fe_disk_io_init_global_buffers(void)
 		flight_text_set_cursor(
 			0, (g_screen_height >> 1) +
 				   4 * g_flight_font_line_height + 1);
+		const char *fallback_resolution_message;
 		switch (g_display_mode_width) {
 		case 320:
 			fallback_resolution_message = g_str_disk_io_messages
@@ -4729,12 +4644,13 @@ void fe_disk_io_init_global_buffers(void)
 		flight_text_draw_string_centered(fallback_resolution_message);
 	}
 
-	requested_bytes_per_pixel = g_requested_flight_bytes_per_pixel;
-	active_bytes_per_pixel = g_flight_bytes_per_pixel;
+	int requested_bytes_per_pixel = g_requested_flight_bytes_per_pixel;
+	int active_bytes_per_pixel = g_flight_bytes_per_pixel;
 	if (requested_bytes_per_pixel != active_bytes_per_pixel) {
 		g_flight_text_color_index = FLIGHT_TEXT_WARNING_COLOR;
 		flight_text_set_cursor(0, (g_screen_height >>
 					   1) + 6 * g_flight_font_line_height);
+		const char *pixel_format_message;
 		if (g_flight_bytes_per_pixel == 2) {
 			pixel_format_message =
 				g_str_disk_io_messages[DISK_IO_STR_USING_16BPP];
@@ -4744,8 +4660,8 @@ void fe_disk_io_init_global_buffers(void)
 		}
 		flight_text_draw_string_centered(pixel_format_message);
 	}
-	requested_hardware3d = g_requested_flight_hardware3d;
-	active_hardware3d = g_use_hardware3d;
+	int requested_hardware3d = g_requested_flight_hardware3d;
+	int active_hardware3d = g_use_hardware3d;
 	if (requested_hardware3d != active_hardware3d) {
 		g_flight_text_color_index = FLIGHT_TEXT_WARNING_COLOR;
 		flight_text_set_cursor(0, (g_screen_height >>
@@ -4770,6 +4686,7 @@ void fe_disk_io_init_global_buffers(void)
 	if (g_flight_conf_sfx_enabled != 0) {
 		flight_surface_unlock();
 		fsfx_reset_flight_sfx_state();
+		char sound_list_path[40];
 		strcpy(sound_list_path, "wave\\");
 		strcat(sound_list_path, "SFXBLAST.LST");
 		fsfx_load_sfx_list(sound_list_path,
@@ -4785,15 +4702,13 @@ void fe_disk_io_init_global_buffers(void)
 // FUNCTION: XVT 0x49CBA0
 void fe_disk_io_unlock_global_buffers(void)
 {
-	uint16_t craft_data_pool_handle;
-
 	if (g_object_table_handle != 0) {
 		memory_handle_block_done_stub(g_object_table_handle);
 	}
 	if (g_mobile_object_pool_handle != 0) {
 		memory_handle_block_done_stub(g_mobile_object_pool_handle);
 	}
-	craft_data_pool_handle = g_craft_data_pool_handle;
+	uint16_t craft_data_pool_handle = g_craft_data_pool_handle;
 	if (g_mobile_object_char_data_handle != 0) {
 		memory_handle_block_done_stub(g_craft_data_pool_handle);
 		craft_data_pool_handle = g_craft_data_pool_handle;
@@ -4883,11 +4798,6 @@ void fe_disk_io_lock_global_buffers(void)
 // FUNCTION: XVT 0x49CDF0
 void fe_disk_io_free_flight_resources(void)
 {
-	int cockpit_resource_index;
-	int model_type;
-	int previous_model_type;
-	uint16_t texture_handle;
-
 #ifdef XVT_MODERN
 	xvt_render_assets_clear_mission();
 #endif
@@ -5005,7 +4915,7 @@ void fe_disk_io_free_flight_resources(void)
 	g_message_log_handle = 0;
 #endif
 
-	for (cockpit_resource_index = 0; cockpit_resource_index < 28;
+	for (int cockpit_resource_index = 0; cockpit_resource_index < 28;
 	     ++cockpit_resource_index) {
 		if (g_hud_cockpit_resources[cockpit_resource_index]
 			    .memory_handle != 0) {
@@ -5017,8 +4927,10 @@ void fe_disk_io_free_flight_resources(void)
 		}
 	}
 
+	int model_type;
+	int previous_model_type;
 	for (model_type = 0; model_type < 201; ++model_type) {
-		texture_handle =
+		uint16_t texture_handle =
 			g_object_type_table[model_type].resource_handle;
 		if (texture_handle != 0) {
 			for (previous_model_type = 0;
@@ -5067,20 +4979,6 @@ void fe_disk_io_load_resources(void)
 	};
 
 	uint16_t model_type;
-	uint16_t spec_list_index;
-	uint16_t list_entry_index;
-	uint16_t resource_handle;
-	uint8_t resource_asset_flags;
-	xvt_file *list_stream;
-	uint8_t resource_needed;
-	int line_end_index;
-	unsigned int resource_data_size;
-	int spec_list_group;
-	unsigned int palette_entry_count;
-	unsigned int *texture_data;
-	xvt_file *texture_stream;
-	char list_path[60];
-	char resource_name[256];
 
 	for (model_type = 0;
 	     model_type < sizeof(g_loaded_models) / sizeof(g_loaded_models[0]);
@@ -5092,12 +4990,18 @@ void fe_disk_io_load_resources(void)
 	g_scene_edge_flags_capacity = 0;
 	g_vertex_remap_capacity = 0;
 
-	for (spec_list_index = 0;
+	uint16_t resource_handle;
+	int line_end_index;
+	unsigned int resource_data_size;
+	unsigned int palette_entry_count;
+	char list_path[60];
+	char resource_name[256];
+	for (uint16_t spec_list_index = 0;
 	     spec_list_index <
 	     sizeof(g_spec_list_prefixes) / sizeof(g_spec_list_prefixes[0]);
 	     ++spec_list_index) {
 		strcpy(list_path, "ivfiles\\");
-		spec_list_group = spec_list_index;
+		int spec_list_group = spec_list_index;
 		strcat(list_path, g_spec_list_prefixes[spec_list_index]);
 		if (g_flight_resolution_mode == FLIGHT_RESOLUTION_640X480) {
 			strcat(list_path, "640");
@@ -5109,8 +5013,8 @@ void fe_disk_io_load_resources(void)
 		}
 		strcat(list_path, ".LST");
 		fe_disk_io_open_global_stream(list_path, "rb", 1, 0);
-		list_stream = (xvt_file *)g_stream;
-		list_entry_index = 0;
+		xvt_file *list_stream = (xvt_file *)g_stream;
+		uint16_t list_entry_index = 0;
 
 		while (FILE_GETS(resource_name, sizeof(resource_name),
 				 list_stream) != NULL) {
@@ -5134,8 +5038,8 @@ void fe_disk_io_load_resources(void)
 			}
 
 			++list_entry_index;
-			resource_needed = 0;
-			resource_asset_flags = 0;
+			uint8_t resource_needed = 0;
+			uint8_t resource_asset_flags = 0;
 			for (model_type = 0;
 			     model_type <
 			     sizeof(g_object_type_table) /
@@ -5180,7 +5084,7 @@ void fe_disk_io_load_resources(void)
 				    MODEL_ASSET_TEX_LEVEL) != 0) {
 				fe_disk_io_open_global_stream(resource_name,
 							      "rb", 1, 0);
-				texture_stream = (xvt_file *)g_stream;
+				xvt_file *texture_stream = (xvt_file *)g_stream;
 				fe_disk_io_read_with_retry_prompt(
 					&resource_data_size,
 					sizeof(resource_data_size), 1,
@@ -5204,7 +5108,7 @@ void fe_disk_io_load_resources(void)
 					return;
 #endif
 				}
-				texture_data =
+				unsigned int *texture_data =
 					(unsigned int *)memory_get_handle_block(
 						resource_handle);
 				texture_data[0] = resource_data_size;
@@ -5308,26 +5212,19 @@ unsigned int fe_disk_io_init_resources(void)
 		PALETTE_BYTE_COUNT = sizeof(g_sw_palette),
 	};
 
-	unsigned int background_color_index;
-
 	g_generate_mission_palette &= g_palette_generation_enabled;
 	if (g_flight_bytes_per_pixel == 1) {
-		unsigned int extension_offset;
-		uint8_t saved_extension0;
-		uint8_t saved_extension1;
-		uint8_t saved_extension2;
-		char fallback_file_name[FALLBACK_FILE_NAME_CAPACITY];
-
 		g_active_rgb565_to_palette_index_lut =
 			g_rgb565_to_palette_index_lut;
-		extension_offset = strlen(g_current_mission_file);
-		saved_extension0 =
+		unsigned int extension_offset = strlen(g_current_mission_file);
+		uint8_t saved_extension0 =
 			g_current_mission_file[extension_offset -
 					       MISSION_EXTENSION_LENGTH];
-		saved_extension1 =
+		uint8_t saved_extension1 =
 			g_current_mission_file[extension_offset -
 					       MISSION_EXTENSION_LENGTH + 1];
-		saved_extension2 = g_current_mission_file[extension_offset - 1];
+		uint8_t saved_extension2 =
+			g_current_mission_file[extension_offset - 1];
 		extension_offset -= MISSION_EXTENSION_LENGTH;
 		g_current_mission_file[extension_offset] = 'i';
 		g_current_mission_file[extension_offset + 1] = 'n';
@@ -5335,6 +5232,7 @@ unsigned int fe_disk_io_init_resources(void)
 
 		if (fe_disk_io_open_global_stream(g_current_mission_file, "rb",
 						  0, 0) == 0) {
+			char fallback_file_name[FALLBACK_FILE_NAME_CAPACITY];
 			strcpy(fallback_file_name, "newpal.inv");
 			if (fe_disk_io_open_global_stream(fallback_file_name,
 							  "rb", 0, 0) == 0) {
@@ -5379,30 +5277,23 @@ unsigned int fe_disk_io_init_resources(void)
 	g_loading_model = 0;
 	model_mesh_build_object_type_mesh_cache();
 
+	unsigned int background_color_index;
 	{
-		struct rgb_triplet target_rgb;
-
 		if (g_generate_mission_palette != 0 &&
 		    g_flight_bytes_per_pixel == 1) {
-			unsigned int extension_offset;
-			int palette_offset;
-			uint8_t saved_extension0;
-			uint8_t saved_extension1;
-			uint8_t saved_extension2;
-			uint8_t temporary_component;
-
 			image_quantizer_export_palette6_bit_and_destroy(
 				GENERATED_PALETTE_COLOR_COUNT,
 				QUANTIZER_TREE_DEPTH,
 				(uint8_t *)&g_sw_palette
 					[GENERATED_PALETTE_START]);
-			extension_offset = strlen(g_current_mission_file);
-			saved_extension0 = g_current_mission_file
+			unsigned int extension_offset =
+				strlen(g_current_mission_file);
+			uint8_t saved_extension0 = g_current_mission_file
 				[extension_offset - MISSION_EXTENSION_LENGTH];
-			saved_extension1 = g_current_mission_file
+			uint8_t saved_extension1 = g_current_mission_file
 				[extension_offset - MISSION_EXTENSION_LENGTH +
 				 1];
-			saved_extension2 =
+			uint8_t saved_extension2 =
 				g_current_mission_file[extension_offset - 1];
 			extension_offset -= MISSION_EXTENSION_LENGTH;
 			g_current_mission_file[extension_offset] = 'p';
@@ -5446,10 +5337,10 @@ unsigned int fe_disk_io_init_resources(void)
 			fe_disk_io_read_all_bytes_or_fatal(
 				g_flight_palette_resource_file_name,
 				g_flight_aux_buffer);
-			for (palette_offset = 0;
+			for (int palette_offset = 0;
 			     palette_offset < PALETTE_BYTE_COUNT / 2;
 			     palette_offset += sizeof(struct rgb_triplet)) {
-				temporary_component =
+				uint8_t temporary_component =
 					g_flight_aux_buffer[palette_offset] >>
 					2;
 				g_flight_aux_buffer[palette_offset] =
@@ -5496,6 +5387,7 @@ unsigned int fe_disk_io_init_resources(void)
 				PALETTE_COLOR_COUNT);
 		}
 
+		struct rgb_triplet target_rgb;
 		target_rgb.r = 0;
 		target_rgb.g = 0;
 		target_rgb.b = 2;
@@ -5523,23 +5415,6 @@ unsigned int fe_disk_io_init_resources(void)
 void fe_disk_io_build_model_def(uint8_t model_def_index,
 				object_type_id object_type)
 {
-	unsigned int size_x;
-	unsigned int size_y;
-	unsigned int size_z;
-	uint16_t bound_shift;
-	uint16_t mesh_index;
-	uint16_t hardpoint_index;
-	uint8_t weapon_slot_count;
-	uint8_t slot_start;
-	int out_y;
-	int out_z;
-	mesh_component_type mesh_type;
-	int hardpoint_count;
-	int out_x;
-	int hardpoint_type;
-	int current_mesh_index;
-	int mesh_count;
-
 	g_object_type_table[(uint8_t)object_type].max_bounds_extent =
 		model_bounds_get_max_extent((uint8_t)object_type);
 	g_object_type_table[(uint8_t)object_type].half_bounds_extent =
@@ -5549,10 +5424,10 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 		return;
 	}
 
-	size_x = model_bounds_get_size_x((uint8_t)object_type);
-	size_y = model_bounds_get_size_y((uint8_t)object_type);
-	size_z = model_bounds_get_size_z((uint8_t)object_type);
-	bound_shift = 0;
+	unsigned int size_x = model_bounds_get_size_x((uint8_t)object_type);
+	unsigned int size_y = model_bounds_get_size_y((uint8_t)object_type);
+	unsigned int size_z = model_bounds_get_size_z((uint8_t)object_type);
+	uint16_t bound_shift = 0;
 	while (size_x > 0x280 || size_y > 0x280 || size_z > 0x280) {
 		size_x >>= 1;
 		size_y >>= 1;
@@ -5576,8 +5451,17 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 			(int16_t)model_bounds_get_max_z((uint8_t)object_type);
 	}
 
-	mesh_count =
+	int mesh_count =
 		model_mesh_get_object_type_mesh_count((uint8_t)object_type);
+	uint16_t mesh_index;
+	uint16_t hardpoint_index;
+	int out_y;
+	int out_z;
+	mesh_component_type mesh_type;
+	int hardpoint_count;
+	int out_x;
+	int hardpoint_type;
+	int current_mesh_index;
 	{
 		for (mesh_index = 0; mesh_index < mesh_count; ++mesh_index) {
 			current_mesh_index = mesh_index;
@@ -5592,9 +5476,7 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 			for (hardpoint_index = 0;
 			     hardpoint_index < hardpoint_count;
 			     ++hardpoint_index) {
-				int16_t handled;
-
-				handled = 0;
+				int16_t handled = 0;
 				model_mesh_get_hardpoint(
 					(uint8_t)object_type,
 					current_mesh_index, hardpoint_index,
@@ -5776,11 +5658,12 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 	}
 
 	/* Rebuild laser hardpoint slots in mesh order, preserving paired turret hardpoints. */
-	weapon_slot_count = 0;
+	uint8_t weapon_slot_count = 0;
 	{
 		uint16_t group_index;
 		uint8_t wanted_hardpoint_type;
 
+		uint8_t slot_start;
 		for (group_index = 0; group_index < 2; ++group_index) {
 			slot_start = (uint8_t)weapon_slot_count;
 
@@ -5802,14 +5685,12 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 			current_mesh_index = wanted_hardpoint_type;
 			for (mesh_index = 0; mesh_index < mesh_count;
 			     ++mesh_index) {
-				uint16_t alternate_slot;
-
 				hardpoint_count = model_mesh_count_hardpoints(
 					(uint8_t)object_type, mesh_index);
 				if (hardpoint_count == 0) {
 					continue;
 				}
-				alternate_slot = 0xFF;
+				uint16_t alternate_slot = 0xFF;
 				mesh_type =
 					model_mesh_get_object_type_mesh_type(
 						(uint8_t)object_type,
@@ -5991,49 +5872,27 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 // FUNCTION: XVT 0x49E060
 char fe_disk_io_show_retry_fail_prompt(void)
 {
-	int16_t saved_cursor_x;
-	int16_t saved_cursor_y;
-	int16_t saved_clip_left;
-	int16_t saved_clip_top;
-	int16_t saved_clip_right;
-	int16_t saved_clip_bottom;
-	int16_t saved_word_wrap;
-	int16_t saved_unused_state;
-	int16_t saved_clear_line_bg;
-	uint8_t saved_text_color;
-	uint8_t saved_bg_color;
-	uint8_t saved_shadow_color;
-	uint8_t saved_shadow_enabled;
-	uint8_t saved_font_tier;
-	char next_key;
-	int line_height;
-	uint8_t *saved_pixels;
-	int saved_lock_count;
-	int remaining_locks;
-	int current_lock_count;
-	char str[256];
-
-	saved_cursor_x = g_flight_cursor_x;
-	saved_cursor_y = g_flight_cursor_y;
-	saved_clip_left = g_flight_clip_left;
-	saved_clip_top = g_flight_clip_top;
-	saved_clip_right = g_flight_clip_right;
-	saved_clip_bottom = g_flight_clip_bottom;
-	saved_word_wrap = g_flight_word_wrap_enabled;
-	saved_unused_state = g_flight_text_unused_state;
-	saved_text_color = g_flight_text_color_index;
-	saved_clear_line_bg = g_flight_clear_line_bg_enabled;
-	saved_bg_color = g_flight_text_bg_color;
-	saved_shadow_color = g_flight_text_shadow_color;
-	saved_shadow_enabled = g_flight_text_shadow_enabled;
-	saved_font_tier = g_flight_font_tier;
+	int16_t saved_cursor_x = g_flight_cursor_x;
+	int16_t saved_cursor_y = g_flight_cursor_y;
+	int16_t saved_clip_left = g_flight_clip_left;
+	int16_t saved_clip_top = g_flight_clip_top;
+	int16_t saved_clip_right = g_flight_clip_right;
+	int16_t saved_clip_bottom = g_flight_clip_bottom;
+	int16_t saved_word_wrap = g_flight_word_wrap_enabled;
+	int16_t saved_unused_state = g_flight_text_unused_state;
+	uint8_t saved_text_color = g_flight_text_color_index;
+	int16_t saved_clear_line_bg = g_flight_clear_line_bg_enabled;
+	uint8_t saved_bg_color = g_flight_text_bg_color;
+	uint8_t saved_shadow_color = g_flight_text_shadow_color;
+	uint8_t saved_shadow_enabled = g_flight_text_shadow_enabled;
+	uint8_t saved_font_tier = g_flight_font_tier;
 
 	flight_surface_lock();
 	flight_text_set_font_tier(1);
-	line_height = 4 * g_flight_font_line_height;
-	saved_pixels = g_flight_scratch_screen_buffer +
-		       g_screen_width * g_flight_bytes_per_pixel *
-			       (g_screen_height - line_height - 1);
+	int line_height = 4 * g_flight_font_line_height;
+	uint8_t *saved_pixels = g_flight_scratch_screen_buffer +
+				g_screen_width * g_flight_bytes_per_pixel *
+					(g_screen_height - line_height - 1);
 	g_flight_save_screen_rect_fn(saved_pixels, 0,
 				     ((unsigned int)g_screen_height >> 1) -
 					     2 * g_flight_font_line_height,
@@ -6062,6 +5921,7 @@ char fe_disk_io_show_retry_fail_prompt(void)
 	g_flight_text_shadow_enabled = 0;
 	flight_text_set_cursor(0, ((unsigned int)g_screen_height >> 1) -
 					  g_flight_font_line_height - 2);
+	char str[256];
 	strcpy(str, g_file_name);
 	strcat(str, ": ");
 	strcat(str, g_str_disk_io_messages[DISK_IO_STR_RES_320_NOT_SUPPORTED]);
@@ -6070,15 +5930,15 @@ char fe_disk_io_show_retry_fail_prompt(void)
 	flight_text_draw_string_centered(
 		g_str_disk_io_messages[DISK_IO_STR_RES_512_NOT_SUPPORTED]);
 
-	saved_lock_count = flight_surface_get_lock_count();
-	remaining_locks = saved_lock_count;
+	int saved_lock_count = flight_surface_get_lock_count();
+	int remaining_locks = saved_lock_count;
 	while (remaining_locks > 0) {
 		flight_surface_unlock();
 		--remaining_locks;
 	}
 	flight_display_blit_render_surface();
 	flight_display_flip();
-	next_key = flight_input_get_next_key();
+	char next_key = flight_input_get_next_key();
 	while (saved_lock_count > 0) {
 		flight_surface_lock();
 		--saved_lock_count;
@@ -6105,7 +5965,7 @@ char fe_disk_io_show_retry_fail_prompt(void)
 	g_flight_text_shadow_enabled = saved_shadow_enabled;
 	flight_surface_unlock();
 
-	current_lock_count = flight_surface_get_lock_count();
+	int current_lock_count = flight_surface_get_lock_count();
 	remaining_locks = current_lock_count;
 	while (remaining_locks > 0) {
 		flight_surface_unlock();
@@ -6126,44 +5986,23 @@ char fe_disk_io_show_retry_fail_prompt(void)
 // FUNCTION: XVT 0x49E420
 int fe_disk_io_show_fatal_error_message_and_wait_key(const char *message)
 {
-	int16_t saved_cursor_x;
-	int16_t saved_cursor_y;
-	int16_t saved_clip_left;
-	int16_t saved_clip_top;
-	int16_t saved_clip_right;
-	int16_t saved_clip_bottom;
-	int16_t saved_word_wrap;
-	int16_t saved_unused_state;
-	int16_t saved_clear_line_bg;
-	uint8_t saved_text_color;
-	uint8_t saved_bg_color;
-	uint8_t saved_shadow_color;
-	uint8_t saved_shadow_enabled;
-	uint8_t saved_font_tier;
-	int saved_lock_count;
+	int16_t saved_cursor_x = g_flight_cursor_x;
+	int16_t saved_cursor_y = g_flight_cursor_y;
+	int16_t saved_clip_left = g_flight_clip_left;
+	int16_t saved_clip_top = g_flight_clip_top;
+	int16_t saved_clip_right = g_flight_clip_right;
+	int16_t saved_clip_bottom = g_flight_clip_bottom;
+	int16_t saved_word_wrap = g_flight_word_wrap_enabled;
+	int16_t saved_unused_state = g_flight_text_unused_state;
+	uint8_t saved_text_color = g_flight_text_color_index;
+	int16_t saved_clear_line_bg = g_flight_clear_line_bg_enabled;
+	uint8_t saved_bg_color = g_flight_text_bg_color;
+	uint8_t saved_shadow_color = g_flight_text_shadow_color;
+	uint8_t saved_shadow_enabled = g_flight_text_shadow_enabled;
+	uint8_t saved_font_tier = g_flight_font_tier;
+
+	int saved_lock_count = flight_surface_get_lock_count();
 	int remaining_locks;
-	uint8_t saved_display_surfaces_active;
-	int8_t next_key;
-	int current_lock_count;
-	int line_height;
-	char str[256];
-
-	saved_cursor_x = g_flight_cursor_x;
-	saved_cursor_y = g_flight_cursor_y;
-	saved_clip_left = g_flight_clip_left;
-	saved_clip_top = g_flight_clip_top;
-	saved_clip_right = g_flight_clip_right;
-	saved_clip_bottom = g_flight_clip_bottom;
-	saved_word_wrap = g_flight_word_wrap_enabled;
-	saved_unused_state = g_flight_text_unused_state;
-	saved_text_color = g_flight_text_color_index;
-	saved_clear_line_bg = g_flight_clear_line_bg_enabled;
-	saved_bg_color = g_flight_text_bg_color;
-	saved_shadow_color = g_flight_text_shadow_color;
-	saved_shadow_enabled = g_flight_text_shadow_enabled;
-	saved_font_tier = g_flight_font_tier;
-
-	saved_lock_count = flight_surface_get_lock_count();
 	if (saved_lock_count > 0) {
 		remaining_locks = saved_lock_count;
 		do {
@@ -6172,7 +6011,8 @@ int fe_disk_io_show_fatal_error_message_and_wait_key(const char *message)
 		} while (remaining_locks != 0);
 	}
 
-	saved_display_surfaces_active = g_flight_display_surfaces_active;
+	uint8_t saved_display_surfaces_active =
+		g_flight_display_surfaces_active;
 	g_flight_display_surfaces_active = 1;
 	flight_surface_lock();
 	flight_text_set_font_tier(1);
@@ -6190,11 +6030,12 @@ int fe_disk_io_show_fatal_error_message_and_wait_key(const char *message)
 		(g_screen_height >> 1) + 2 * g_flight_font_line_height - 1);
 	g_flight_text_bg_color = 0;
 	g_flight_fill_clip_rect_fn();
-	line_height = g_flight_font_line_height;
+	int line_height = g_flight_font_line_height;
 	g_flight_text_color_index = 0xF9;
 	g_flight_text_shadow_color = 0;
 	g_flight_text_shadow_enabled = 0;
 	flight_text_set_cursor(0, (g_screen_height >> 1) - line_height - 2);
+	char str[256];
 	strcpy(str, message);
 	flight_text_draw_string_centered(str);
 	flight_text_set_cursor(0, (g_screen_height >> 1) + 2);
@@ -6203,7 +6044,7 @@ int fe_disk_io_show_fatal_error_message_and_wait_key(const char *message)
 	flight_surface_unlock();
 	flight_display_blit_render_surface();
 	flight_display_flip();
-	next_key = flight_input_get_next_key();
+	int8_t next_key = flight_input_get_next_key();
 
 	g_flight_display_surfaces_active = saved_display_surfaces_active;
 	if (saved_lock_count > 0) {
@@ -6228,7 +6069,7 @@ int fe_disk_io_show_fatal_error_message_and_wait_key(const char *message)
 	g_flight_text_shadow_color = saved_shadow_color;
 	g_flight_text_shadow_enabled = saved_shadow_enabled;
 
-	current_lock_count = flight_surface_get_lock_count();
+	int current_lock_count = flight_surface_get_lock_count();
 	if (current_lock_count > 0) {
 		remaining_locks = current_lock_count;
 		do {
@@ -6272,12 +6113,9 @@ int fe_disk_io_open_global_stream(const char *file_name, const char *mode,
 	return g_stream != NULL;
 #else
 
-	int attempts_remaining;
-	char key;
-
 	strcpy(g_file_name, file_name);
 	while (1) {
-		attempts_remaining = 4;
+		int attempts_remaining = 4;
 		if (location_mode != 2) {
 			while (attempts_remaining-- != 0) {
 				g_stream = FILE_RAW_OPEN(file_name, mode);
@@ -6326,7 +6164,7 @@ int fe_disk_io_open_global_stream(const char *file_name, const char *mode,
 			break;
 		}
 		while (1) {
-			key = fe_disk_io_show_retry_fail_prompt();
+			char key = fe_disk_io_show_retry_fail_prompt();
 			if (key == 'R' || key == 'r') {
 				break;
 			}
@@ -6359,9 +6197,7 @@ int16_t fe_disk_io_close_global_stream(int16_t remove_file_on_error)
 	return (int16_t)failed;
 #else
 
-	int16_t close_error;
-
-	close_error = 0;
+	int16_t close_error = 0;
 	if ((((struct msvc42_file_prefix *)g_stream)->flags & 0x20) != 0 ||
 	    FILE_RAW_CLOSE((xvt_file *)g_stream) == EOF) {
 		close_error = 1;
@@ -6385,8 +6221,7 @@ size_t fe_disk_io_read_with_retry_prompt(void *dst, size_t elem_size,
 					 size_t elem_count, xvt_file *stream)
 {
 #ifdef XVT_MODERN
-	size_t count;
-	count = FILE_RAW_READ(dst, elem_size, elem_count, stream);
+	size_t count = FILE_RAW_READ(dst, elem_size, elem_count, stream);
 	g_file_read_abort_flag = count != elem_count;
 	if (g_file_read_abort_flag) {
 		xvt_storage_fatal("Incomplete required file read", 1);
@@ -6394,18 +6229,12 @@ size_t fe_disk_io_read_with_retry_prompt(void *dst, size_t elem_size,
 	return count;
 #else
 
-	size_t requested_count;
-	size_t read_count;
-	uint8_t *output;
-	int retries_remaining;
-	char key;
-
-	requested_count = elem_count;
-	output = dst;
-	retries_remaining = 15;
+	size_t requested_count = elem_count;
+	uint8_t *output = dst;
+	int retries_remaining = 15;
 	while (1) {
 		--retries_remaining;
-		read_count =
+		size_t read_count =
 			FILE_RAW_READ(output, elem_size, elem_count, stream);
 		output += elem_size * read_count;
 		elem_count -= read_count;
@@ -6414,7 +6243,7 @@ size_t fe_disk_io_read_with_retry_prompt(void *dst, size_t elem_size,
 		}
 		if (retries_remaining == 0) {
 			while (elem_count != 0) {
-				key = fe_disk_io_show_retry_fail_prompt();
+				char key = fe_disk_io_show_retry_fail_prompt();
 				if (key == 'R' || key == 'r') {
 					break;
 				}
@@ -6449,18 +6278,16 @@ void fe_disk_io_fatal_error(file_error_string_id error_code)
 #else
 
 	char message[128];
-	const char *error_message;
-	uint16_t i;
-	uint16_t j;
 
 	if ((uint16_t)error_code < 4) {
 		if (g_flight_font_small_sw == NULL) {
 			message[0] = 0;
 		} else {
-			error_message =
+			const char *error_message =
 				g_str_file_error_messages[(uint16_t)error_code];
 			fe_disk_io_show_fatal_error_message_and_wait_key(
 				error_message);
+			uint16_t i;
 			for (i = 0; i < sizeof(message); ++i) {
 				message[i] = error_message[i];
 				if (message[i] == 0) {
@@ -6468,7 +6295,7 @@ void fe_disk_io_fatal_error(file_error_string_id error_code)
 				}
 			}
 			if (error_code == FILE_ERROR_STR_FILE_MISSING) {
-				j = 0;
+				uint16_t j = 0;
 				for (; i < sizeof(message); ++i) {
 					message[i] = g_file_name[j++];
 					if (message[i] == 0) {

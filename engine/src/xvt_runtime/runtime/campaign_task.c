@@ -45,17 +45,16 @@ static struct {
 
 int xvt_campaign_task_wait_packet(int packet_type, int **packet)
 {
-	DPID sender;
-	uint32_t size;
-	int count;
 	uint32_t now = xvt_time_get_elapsed_ms();
 	*packet = NULL;
 	if (!g_campaign.packet_type) {
 		g_campaign.packet_type = packet_type;
 		g_campaign.wait_start = now;
 	}
+	DPID sender;
+	uint32_t size;
 	/* Ingress is serviced by the frontend host tick; consume a finite packet slice. */
-	for (count = 0; count < 32; ++count) {
+	for (int count = 0; count < 32; ++count) {
 		int *candidate = net_get_next_app_packet(&sender, &size);
 		if (candidate && size >= 2 * sizeof(int) &&
 		    candidate[0] == packet_type) {
@@ -97,7 +96,6 @@ static int xvt_campaign_task_finish(int result)
 
 int xvt_campaign_task_enter_teams(void)
 {
-	int result;
 	if (g_campaign.phase == XVT_CAMPAIGN_IDLE) {
 		g_frontend_chat_team_only = 0;
 		g_mission_setup_show_description_panel = 0;
@@ -128,6 +126,7 @@ int xvt_campaign_task_enter_teams(void)
 		}
 		g_campaign.phase = XVT_CAMPAIGN_SEQUENCE;
 	}
+	int result;
 	if (g_campaign.phase == XVT_CAMPAIGN_SEQUENCE) {
 		result = g_campaign.is_campaign
 				 ? mission_setup_try_continue_campaign()
@@ -172,7 +171,6 @@ int xvt_campaign_task_enter_teams(void)
 
 int xvt_campaign_task_enter_debrief(void)
 {
-	int result;
 	if (g_campaign.phase == XVT_CAMPAIGN_IDLE) {
 		frontend_cursor_show();
 		keyboard_flush_char_buffer();
@@ -186,6 +184,7 @@ int xvt_campaign_task_enter_debrief(void)
 			g_campaign.phase = XVT_CAMPAIGN_DEBRIEF_MOVIE;
 		}
 	}
+	int result;
 	if (g_campaign.phase == XVT_CAMPAIGN_DEBRIEF_MOVIE) {
 		result = cutscene_play_for_current_mission_phase(1);
 		if (result == XVT_MOVIE_PENDING) {

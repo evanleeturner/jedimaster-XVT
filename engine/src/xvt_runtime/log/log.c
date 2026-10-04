@@ -57,14 +57,13 @@ int xvt_log_split_message(const char *message, const char **event,
 			  size_t *event_length, const char **fields)
 {
 	static const char prefix[] = XVT_LOG_CATEGORY ": ";
-	const size_t prefix_length = sizeof(prefix) - 1;
-	const char *colon;
 	*event = NULL;
 	*event_length = 0;
 	*fields = message ? message : "";
 	if (!message) {
 		return 0;
 	}
+	const size_t prefix_length = sizeof(prefix) - 1;
 	if (!strncmp(message, prefix, prefix_length)) {
 		const char *start = message + prefix_length;
 		const char *end = start;
@@ -79,7 +78,7 @@ int xvt_log_split_message(const char *message, const char **event,
 		*fields = *end ? end + 1 : end;
 		return 1;
 	}
-	colon = strstr(message, ": ");
+	const char *colon = strstr(message, ": ");
 	if (!colon || colon == message ||
 	    memchr(message, ' ', (size_t)(colon - message))) {
 		return 0;
@@ -106,10 +105,6 @@ size_t xvt_log_format_line(char *out, size_t capacity, uint32_t ms_of_day,
 			   char level, const char *event, size_t event_length,
 			   const char *fields)
 {
-	char stamp[16];
-	size_t used = 0;
-	size_t limit;
-	uint32_t ms;
 	if (capacity == 0) {
 		return 0;
 	}
@@ -118,11 +113,13 @@ size_t xvt_log_format_line(char *out, size_t capacity, uint32_t ms_of_day,
 		return 0;
 	}
 	/* Two bytes stay reserved for the newline and the terminator. */
-	limit = capacity - 2;
-	ms = ms_of_day % 86400000u;
+	size_t limit = capacity - 2;
+	uint32_t ms = ms_of_day % 86400000u;
+	char stamp[16];
 	snprintf(stamp, sizeof(stamp), "%02u:%02u:%02u.%03u",
 		 (unsigned)(ms / 3600000u), (unsigned)(ms / 60000u % 60u),
 		 (unsigned)(ms / 1000u % 60u), (unsigned)(ms % 1000u));
+	size_t used = 0;
 	xvt_log_append(out, limit, &used, stamp, strlen(stamp));
 	xvt_log_append(out, limit, &used, " ", 1);
 	xvt_log_append(out, limit, &used, &level, 1);
@@ -152,8 +149,6 @@ static int xvt_log_is_path_break(char c)
 size_t xvt_log_shorten_home(char *out, size_t capacity, const char *text,
 			    const char *home, size_t home_length)
 {
-	size_t used = 0;
-	size_t i = 0;
 	if (capacity == 0) {
 		return 0;
 	}
@@ -163,6 +158,8 @@ size_t xvt_log_shorten_home(char *out, size_t capacity, const char *text,
 	if (home_length < 2) {
 		home = NULL;
 	}
+	size_t used = 0;
+	size_t i = 0;
 	while (text[i] && used + 1 < capacity) {
 		/* strncmp returns 0 only when the text holds all home_length bytes, so the byte after them exists. */
 		if (home && (i == 0 || xvt_log_is_path_start(text[i - 1])) &&
@@ -181,10 +178,10 @@ size_t xvt_log_shorten_home(char *out, size_t capacity, const char *text,
 size_t xvt_log_format_hex_list(char *out, size_t capacity,
 			       const unsigned *values, size_t count)
 {
-	size_t used = 0;
 	if (capacity == 0) {
 		return 0;
 	}
+	size_t used = 0;
 	for (size_t i = 0; i < count; ++i) {
 		char word[16];
 		int length = snprintf(word, sizeof(word), "%s%08x",

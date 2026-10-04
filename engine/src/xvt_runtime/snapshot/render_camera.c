@@ -111,8 +111,8 @@ void xvt_render_camera_save_viewport(void) { g_saved_viewport = g_camera; }
 
 void xvt_render_camera_restore_viewport(void)
 {
-	int32_t source[9];
 	g_camera = g_saved_viewport;
+	int32_t source[9];
 	copy_source(source);
 	if (memcmp(source, g_camera.source, sizeof source)) {
 		g_camera.valid = 0;

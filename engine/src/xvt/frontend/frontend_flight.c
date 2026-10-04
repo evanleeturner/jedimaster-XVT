@@ -70,11 +70,8 @@ char g_frontend_flight_command_line[256] = {0};
 // FUNCTION: XVT 0x4FB350
 int flight_loading_update_ready_screen(int frame_counter)
 {
-	struct RECT rect;
-	int ready_player_count;
-
 	if (frame_counter == 0) {
-		ready_player_count = 1;
+		int ready_player_count = 1;
 		frontend_cursor_hide();
 		g_unused_flight_loading_ready_screen_flag = 1;
 		g_mission_setup_is_host = net_is_host();
@@ -98,6 +95,7 @@ int flight_loading_update_ready_screen(int frame_counter)
 		frontend_text_stop_text_fade();
 	}
 
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 0, 0, 639, 479);
 	frontend_text_draw_centered(
 		15, frontend_string_get(FRONTSTR_205_PREPARE_FOR_LAUNCH), &rect,
@@ -170,11 +168,7 @@ int frontend_flight_launch_session(int frame_counter)
 		PILOT_RATING_STRING_BASE = 122,
 	};
 
-	int launch_succeeded;
-	unsigned int mission_index;
-	int music_volume;
-
-	launch_succeeded = 0;
+	int launch_succeeded = 0;
 	if (frame_counter == 0) {
 		config_write();
 		pilot_save(0);
@@ -235,6 +229,7 @@ int frontend_flight_launch_session(int frame_counter)
 			return 0;
 		}
 
+		int music_volume;
 		if (g_game_config.datapad_music_enabled != 0 &&
 		    cd_audio_is_playback_complete() == 0) {
 			music_volume = MUSIC_VOLUME_MAX *
@@ -251,7 +246,7 @@ int frontend_flight_launch_session(int frame_counter)
 		mission_setup_load_mission_list(
 			g_pilot_data.mission_directory_id);
 		if (g_mission_list != NULL) {
-			mission_index = 0;
+			unsigned int mission_index = 0;
 			for (mission_index = 0; mission_index < g_mission_count;
 			     ++mission_index) {
 				if (g_mission_list[mission_index].mission_idx ==

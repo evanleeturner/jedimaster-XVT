@@ -79,13 +79,13 @@ static void xvt_port_commit_snapshot(int movie_presented)
 
 int xvt_port_init(void)
 {
-	int width;
-	int height;
 	if (g_xvt_initialized) {
 		return 1;
 	}
 	g_xvt_exit_code = 0;
 	g_quitting = 0;
+	int width;
+	int height;
 	if (!Aeron_GetLogicalSize(&width, &height) ||
 	    width != XVT_CLASSIC_WIDTH || height != XVT_CLASSIC_HEIGHT) {
 		XVT_LOG_ERROR("port.host_invalid");
@@ -118,7 +118,6 @@ int xvt_port_is_initialized(void) { return g_xvt_initialized; }
 
 void xvt_port_paused_frame(void)
 {
-	int movie_active;
 	if (!g_xvt_initialized) {
 		return;
 	}
@@ -131,7 +130,7 @@ void xvt_port_paused_frame(void)
 	g_xvt_rebase_clock = 1;
 	AeronCompat_Update(1);
 	xvt_input_update(1);
-	movie_active = xvt_movie_task_is_active();
+	int movie_active = xvt_movie_task_is_active();
 	if (movie_active) {
 		xvt_movie_task_paused_frame();
 	}
@@ -141,13 +140,11 @@ void xvt_port_paused_frame(void)
 
 void xvt_port_update(int32_t delta_us)
 {
-	const AeronInputSnapshot *input;
-	int movie_active;
 	if (xvt_port_service_quit()) {
 		return;
 	}
 	xvt_render_snapshot_begin_frame();
-	input = Aeron_InputSnapshot();
+	const AeronInputSnapshot *input = Aeron_InputSnapshot();
 	xvt_input_update_mouse_capture(input);
 	AeronDplay_Update();
 	if (g_quitting) {
@@ -189,7 +186,7 @@ void xvt_port_update(int32_t delta_us)
 	} else {
 		xvt_frontend_task_service_frame_systems();
 	}
-	movie_active = xvt_movie_task_is_active();
+	int movie_active = xvt_movie_task_is_active();
 	if (movie_active) {
 		xvt_movie_task_update();
 	} else if (xvt_flight_task_is_active()) {
@@ -237,19 +234,18 @@ int xvt_port_get_exit_code(void)
 
 uint64_t xvt_port_next_wake_delay_us(void)
 {
-	uint64_t task;
-	uint64_t delay;
 	if (g_quitting) {
 		return AeronDplay_NextWakeDelayUs();
 	}
 	if (g_xvt_paused) {
 		return UINT64_MAX;
 	}
-	task = xvt_movie_task_is_active() ? xvt_movie_task_next_wake_delay_us()
-	       : xvt_flight_task_is_active()
-		       ? xvt_flight_task_next_wake_delay_us()
-		       : xvt_frontend_task_next_wake_delay_us();
-	delay = xvt_cd_task_next_wake_delay_us();
+	uint64_t task = xvt_movie_task_is_active()
+				? xvt_movie_task_next_wake_delay_us()
+			: xvt_flight_task_is_active()
+				? xvt_flight_task_next_wake_delay_us()
+				: xvt_frontend_task_next_wake_delay_us();
+	uint64_t delay = xvt_cd_task_next_wake_delay_us();
 	if (delay < task) {
 		task = delay;
 	}

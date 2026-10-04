@@ -87,16 +87,13 @@ uint16_t
 damage_queue_craft_billboards_for_object_type(unsigned int object_index,
 					      int object_type)
 {
-	uint16_t billboard_angle;
 	uint16_t have_billboard_angle;
-	uint16_t saved_render_object_ref;
-	uint16_t mesh_index;
 
 #ifdef XVT_MODERN
 	have_billboard_angle = 0;
 #endif
 	g_billboard_object_or_type_index = (uint16_t)object_index;
-	saved_render_object_ref = g_render_object_ref;
+	uint16_t saved_render_object_ref = g_render_object_ref;
 	g_billboard_target_selection_state = 0;
 	if ((uint16_t)object_index == g_local_beam_target_obj_idx) {
 		g_billboard_target_selection_state = 1;
@@ -113,15 +110,13 @@ damage_queue_craft_billboards_for_object_type(unsigned int object_index,
 				object_type);
 	}
 
-	mesh_index = 0;
+	uint16_t mesh_index = 0;
 	if (g_damage_billboard_mesh_count > 0) {
-		billboard_angle = have_billboard_angle;
+		uint16_t billboard_angle = have_billboard_angle;
 		do {
-			int mesh_type;
-			int mesh_type_index;
-
 			g_billboard_model_node_switch_index = mesh_index;
-			mesh_type_index = mesh_index;
+			int mesh_type_index = mesh_index;
+			int mesh_type;
 			if (object_type < 73) {
 				if (mesh_type_index < 0) {
 					mesh_type = MESH_COMPONENT_00_DEFAULT;
@@ -158,9 +153,7 @@ damage_queue_craft_billboards_for_object_type(unsigned int object_index,
 			if (object_index <
 			    (unsigned int)
 				    g_active_region_craft_object_slot_end) {
-				int16_t component_state;
-
-				component_state = 0;
+				int16_t component_state = 0;
 				if (g_object_table[object_index].mobj != 0 &&
 				    g_object_table[object_index]
 						    .mobj->p_craft != 0) {
@@ -179,10 +172,7 @@ damage_queue_craft_billboards_for_object_type(unsigned int object_index,
 			    object_index <
 				    (unsigned int)
 					    g_active_region_craft_object_slot_end) {
-				int16_t frame;
-				uint16_t frame_index;
-
-				frame_index = 0;
+				uint16_t frame_index = 0;
 				if (g_object_table[object_index].mobj != 0 &&
 				    g_object_table[object_index]
 						    .mobj->p_craft != 0) {
@@ -192,20 +182,16 @@ damage_queue_craft_billboards_for_object_type(unsigned int object_index,
 							->component_state
 								[g_damage_billboard_mesh_count];
 				}
-				frame = g_fuselage_damage_texture_frame_sequence
-					[frame_index];
+				int16_t frame =
+					g_fuselage_damage_texture_frame_sequence
+						[frame_index];
 				if ((uint16_t)frame >= 0x8000 &&
 				    (uint16_t)frame < 0xFF00) {
-					int screen_x;
-
 					if (have_billboard_angle == 0) {
-						int matrix_x;
-						int matrix_y;
-						int abs_r0z;
-						int abs_r1z;
-
-						abs_r0z = g_obj_view_mat_r0_z;
-						abs_r1z = g_obj_view_mat_r1_z;
+						int abs_r0z =
+							g_obj_view_mat_r0_z;
+						int abs_r1z =
+							g_obj_view_mat_r1_z;
 						if (abs_r0z < 0) {
 							abs_r0z =
 								(int)(0u -
@@ -218,6 +204,8 @@ damage_queue_craft_billboards_for_object_type(unsigned int object_index,
 								      (uint32_t)
 									      abs_r1z);
 						}
+						int matrix_x;
+						int matrix_y;
 						if (abs_r1z > abs_r0z) {
 							matrix_x =
 								g_obj_view_mat_r0_x;
@@ -250,26 +238,23 @@ damage_queue_craft_billboards_for_object_type(unsigned int object_index,
 							   g_object_table
 								   [object_index]
 									   .roll);
-					screen_x = transfm2_project_screen_x(
-						g_view_space_x,
-						g_view_space_depth);
+					int screen_x =
+						transfm2_project_screen_x(
+							g_view_space_x,
+							g_view_space_depth);
 					if ((screen_x & (int)0xFFFF0000) <= 0 &&
 					    (screen_x & (int)0xFFFF0000) >=
 						    -65536) {
-						int screen_y;
-
-						screen_y = transfm2_project_screen_y(
-							g_view_space_y,
-							g_view_space_depth);
+						int screen_y =
+							transfm2_project_screen_y(
+								g_view_space_y,
+								g_view_space_depth);
 						if ((screen_y &
 						     (int)0xFFFF0000) <= 0 &&
 						    (screen_y &
 						     (int)0xFFFF0000) >=
 							    -65536) {
-							uint16_t
-								viewport_half_height;
-
-							viewport_half_height =
+							uint16_t viewport_half_height =
 								g_flight_vp_height >>
 								1;
 							screen_y -=
@@ -319,24 +304,12 @@ int16_t damage_display_mfd_page(void)
 	const int default_width = 320;
 	const int default_height = 200;
 	const int hud_state_index = HUD_MFD_DAMAGE_ELEMENT;
-	uint16_t system_ids[CRAFT_SUBSYSTEM_COUNT];
-	struct craft_data *craft;
-	int object_index;
-	/* display_slot has two jobs. In the loops that read system_display_slot_by_system it counts systems, which
-	 * fills system_ids with the system shown in each display slot; in the loops that read system_ids it counts
-	 * display slots. */
-	int16_t display_slot;
-	int16_t damaged_system_count;
-	int16_t all_systems_ok;
+	int object_index = g_players[g_local_player].object_index;
 	int16_t source_left;
 	int16_t source_top;
 	int16_t source_right;
 	int16_t source_bottom;
-	uint16_t line_height;
-	uint16_t row_top;
-	int16_t row_bottom;
 	int pitch_bytes;
-	object_index = g_players[g_local_player].object_index;
 	if (object_index == -1) {
 		if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
 					      hud_state_index] !=
@@ -371,19 +344,24 @@ int16_t damage_display_mfd_page(void)
 		}
 		return 0;
 	}
-	craft = g_object_table[object_index].mobj->p_craft;
+	struct craft_data *craft = g_object_table[object_index].mobj->p_craft;
 	if (craft == NULL) {
 		return 0;
 	}
 
+	uint16_t system_ids[CRAFT_SUBSYSTEM_COUNT];
+	/* display_slot has two jobs. In the loops that read system_display_slot_by_system it counts systems, which
+	 * fills system_ids with the system shown in each display slot; in the loops that read system_ids it counts
+	 * display slots. */
+	int16_t display_slot;
 	for (display_slot = 0; display_slot < CRAFT_SUBSYSTEM_COUNT;
 	     ++display_slot) {
 		system_ids[craft->system_display_slot_by_system[display_slot]] =
 			(int16_t)display_slot;
 	}
 	display_slot = 0;
-	all_systems_ok = 1;
-	damaged_system_count = 0;
+	int16_t all_systems_ok = 1;
+	int16_t damaged_system_count = 0;
 	for (; display_slot < CRAFT_SUBSYSTEM_COUNT; ++display_slot) {
 		uint16_t system_id = system_ids[display_slot];
 		if (craft->system_health[system_id] == 0 &&
@@ -412,8 +390,8 @@ int16_t damage_display_mfd_page(void)
 				     g_mfd_damage_blit_source_x,
 				     g_mfd_damage_blit_source_y);
 #endif
-	row_top = source_top;
-	line_height = g_flight_font_line_height + 1;
+	uint16_t row_top = source_top;
+	uint16_t line_height = g_flight_font_line_height + 1;
 	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
 				      hud_state_index] !=
 	    g_mfd_page_states[MFD_PAGE_DAMAGE]) {
@@ -470,7 +448,8 @@ int16_t damage_display_mfd_page(void)
 	}
 	{
 		row_top += line_height;
-		row_bottom = row_top + line_height * damaged_system_count + 2;
+		int16_t row_bottom =
+			row_top + line_height * damaged_system_count + 2;
 		if (damaged_system_count !=
 		    g_damage_mfd_damaged_system_count_cached) {
 			flight_text_set_clip_rect(
@@ -675,17 +654,11 @@ int16_t damage_find_adjacent_damaged_system(int16_t current_system_idx,
 					    int16_t direction_step)
 {
 	uint8_t system_by_display_slot[CRAFT_SUBSYSTEM_COUNT];
-	int system_idx;
-	struct craft_data *craft;
-	int16_t previous_damaged_system;
-	int display_slot;
-	int16_t result;
-	unsigned int promoted_current_system;
-	uint16_t display_system;
 
-	craft = g_object_table[g_players[g_local_player].object_index]
+	struct craft_data *craft =
+		g_object_table[g_players[g_local_player].object_index]
 			.mobj->p_craft;
-	system_idx = 0;
+	int system_idx = 0;
 	do {
 		system_by_display_slot
 			[craft->system_display_slot_by_system[system_idx]] =
@@ -693,14 +666,14 @@ int16_t damage_find_adjacent_damaged_system(int16_t current_system_idx,
 		++system_idx;
 	} while (system_idx < CRAFT_SUBSYSTEM_COUNT);
 
-	previous_damaged_system = -1;
-	display_slot = 0;
-	result = current_system_idx;
+	int16_t previous_damaged_system = -1;
+	int display_slot = 0;
+	int16_t result = current_system_idx;
 	for (;;) {
-		display_system = system_by_display_slot[display_slot];
+		uint16_t display_system = system_by_display_slot[display_slot];
 		system_idx = display_system;
 		if (craft->system_health[system_idx] == 0) {
-			promoted_current_system = (uint16_t)result;
+			unsigned int promoted_current_system = (uint16_t)result;
 			if (promoted_current_system ==
 			    (unsigned int)system_idx) {
 				break;
@@ -767,23 +740,11 @@ int16_t damage_find_adjacent_damaged_system(int16_t current_system_idx,
 void damage_draw_mfd_system_status_row(damage_system_id system_id, int16_t y,
 				       int16_t value_x)
 {
-	struct mobile_object *mobile_object;
-	struct craft_data *craft;
-	uint16_t subsystem_flag;
-	uint16_t health;
-	uint16_t repair_seconds;
-	uint8_t repair_minutes;
-	uint8_t remaining_seconds;
-	uint8_t minute_tens;
-	uint8_t second_tens;
-	uint16_t health_value;
-	int16_t health_tens;
-	char status_text[8];
-
-	mobile_object =
+	struct mobile_object *mobile_object =
 		g_object_table[g_players[g_local_player].object_index].mobj;
-	subsystem_flag = g_subsystem_id_to_flag[(uint16_t)system_id];
-	craft = mobile_object->p_craft;
+	uint16_t subsystem_flag = g_subsystem_id_to_flag[(uint16_t)system_id];
+	struct craft_data *craft = mobile_object->p_craft;
+	char status_text[8];
 	if ((craft->system_flags & subsystem_flag) == 0) {
 		flight_text_set_color(0x41);
 		status_text[0] = 'N';
@@ -791,20 +752,20 @@ void damage_draw_mfd_system_status_row(damage_system_id system_id, int16_t y,
 		status_text[2] = 'A';
 		status_text[3] = '\0';
 	} else {
-		health = craft->system_health[(uint16_t)system_id];
+		uint16_t health = craft->system_health[(uint16_t)system_id];
 		if (health == 0) {
 			flight_text_set_color(0x4A);
-			repair_seconds = craft->system_repair_seconds[(
+			uint16_t repair_seconds = craft->system_repair_seconds[(
 				uint16_t)system_id];
-			repair_minutes = repair_seconds / 60;
-			remaining_seconds =
+			uint8_t repair_minutes = repair_seconds / 60;
+			uint8_t remaining_seconds =
 				repair_seconds - 60 * repair_minutes;
-			minute_tens = repair_minutes / 10;
+			uint8_t minute_tens = repair_minutes / 10;
 			status_text[0] = minute_tens + '0';
 			status_text[2] = ':';
 			status_text[1] =
 				repair_minutes - 10 * minute_tens + '0';
-			second_tens = remaining_seconds / 10;
+			uint8_t second_tens = remaining_seconds / 10;
 			status_text[3] = second_tens + '0';
 			status_text[4] =
 				remaining_seconds - 10 * second_tens + '0';
@@ -818,10 +779,10 @@ void damage_draw_mfd_system_status_row(damage_system_id system_id, int16_t y,
 			status_text[4] = '\0';
 		} else {
 			flight_text_set_color(0x4E);
-			health_tens =
+			int16_t health_tens =
 				craft->system_health[(uint16_t)system_id] / 10;
 			status_text[0] = health_tens + '0';
-			health_value =
+			uint16_t health_value =
 				craft->system_health[(uint16_t)system_id];
 			status_text[2] = '%';
 			status_text[1] = health_value - 10 * health_tens + '0';

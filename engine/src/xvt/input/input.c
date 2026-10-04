@@ -24,12 +24,10 @@ int g_joystick_backend_initialized = 0;
 // FUNCTION: XVT 0x4ACA90
 int input_initialize_joystick_backend(void)
 {
-	int active;
-
 	if (g_joystick_detection_cached == 0) {
 		g_joystick_backend_initialized =
 			joystick_initialize_backend_stub();
-		active = input_probe_active_joystick_devices();
+		int active = input_probe_active_joystick_devices();
 		g_joystick_detection_cached = 1;
 		g_joystick_active = active;
 	}
@@ -43,12 +41,10 @@ int input_initialize_joystick_backend(void)
 // FUNCTION: XVT 0x4ACAC0
 int input_detect_active_joystick(void)
 {
-	int active;
-
 	if (g_joystick_detection_cached == 0) {
 		g_joystick_backend_initialized =
 			joystick_initialize_backend_stub();
-		active = input_probe_active_joystick_devices();
+		int active = input_probe_active_joystick_devices();
 		g_joystick_detection_cached = 1;
 		g_joystick_active = active;
 	}

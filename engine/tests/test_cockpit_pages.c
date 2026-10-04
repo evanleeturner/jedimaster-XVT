@@ -195,8 +195,8 @@ static void check_clear(void)
 
 	xvt_cockpit_pages_clear(PAGE);
 	uint64_t after = generation();
-	const struct xvt_cockpit_page *page = &g_state.pages[PAGE];
 	XVT_ASSERT_TRUE(after > before);
+	const struct xvt_cockpit_page *page = &g_state.pages[PAGE];
 	XVT_ASSERT_INT_EQ(page->glyph_count, 0);
 	XVT_ASSERT_INT_EQ(page->row_count, 0);
 	XVT_ASSERT_INT_EQ(page->background_argb, 0);

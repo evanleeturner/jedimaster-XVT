@@ -48,27 +48,23 @@ int g_flight_alert_box_saved_bytes = 0;
 // FUNCTION: XVT 0x448DA0
 void flight_alert_save_box_background(void)
 {
-	int box_x;
-	int box_y;
-	int box_width;
-	int box_height;
-	int pixel_count;
-
 	flight_text_set_font_tier(0);
-	box_width =
+	int box_width =
 		(unsigned int)(g_surface_width - g_flight_viewport_inset_x) >>
 		1;
-	box_height = 5 * g_flight_font_line_height;
-	box_x = ((unsigned int)(g_flight_viewport_inset_x + g_surface_width) >>
+	int box_height = 5 * g_flight_font_line_height;
+	int box_x =
+		((unsigned int)(g_flight_viewport_inset_x + g_surface_width) >>
 		 1) -
 		box_width / 2 - 1;
-	box_y = ((unsigned int)(g_flight_alert_box_vertical_offset +
-				g_surface_height) >>
-		 1) -
-		box_height / 2 - 1;
+	int box_y = ((unsigned int)(g_flight_alert_box_vertical_offset +
+				    g_surface_height) >>
+		     1) -
+		    box_height / 2 - 1;
 	box_width += 2;
 	box_height += 2;
 
+	int pixel_count;
 	if (g_flight_alert_box_saved_pixels == 0) {
 		pixel_count = box_width * box_height;
 		g_flight_alert_box_saved_pixels =
@@ -123,25 +119,17 @@ void flight_alert_save_box_background(void)
 // FUNCTION: XVT 0x448ED0
 void flight_alert_restore_box_background(void)
 {
-	int box_x;
-	int box_y;
-	int box_width;
-	int box_height;
-	int viewport_inset_x;
-	int surface_width;
-	flight_screen_rect_fn restore_screen_rect;
-
 	flight_text_set_font_tier(0);
-	surface_width = g_surface_width;
-	viewport_inset_x = g_flight_viewport_inset_x;
-	box_width = (unsigned int)(surface_width - viewport_inset_x) >> 1;
-	box_height = 5 * g_flight_font_line_height;
-	box_x = ((unsigned int)(viewport_inset_x + surface_width) >> 1) -
-		box_width / 2 - 1;
-	box_y = ((unsigned int)(g_flight_alert_box_vertical_offset +
-				g_surface_height) >>
-		 1) -
-		box_height / 2 - 1;
+	int surface_width = g_surface_width;
+	int viewport_inset_x = g_flight_viewport_inset_x;
+	int box_width = (unsigned int)(surface_width - viewport_inset_x) >> 1;
+	int box_height = 5 * g_flight_font_line_height;
+	int box_x = ((unsigned int)(viewport_inset_x + surface_width) >> 1) -
+		    box_width / 2 - 1;
+	int box_y = ((unsigned int)(g_flight_alert_box_vertical_offset +
+				    g_surface_height) >>
+		     1) -
+		    box_height / 2 - 1;
 	box_width += 2;
 	box_height += 2;
 	if (g_flight_alert_box_saved_pixels != 0) {
@@ -152,7 +140,8 @@ void flight_alert_restore_box_background(void)
 		flight_display_flip();
 		g_flight_draw_to_hud_layer = 0;
 		flight_surface_lock();
-		restore_screen_rect = g_flight_restore_screen_rect_fn;
+		flight_screen_rect_fn restore_screen_rect =
+			g_flight_restore_screen_rect_fn;
 		restore_screen_rect(g_flight_alert_box_saved_pixels,
 				    (uint16_t)box_x, (uint16_t)box_y,
 				    (uint16_t)box_width, (uint16_t)box_height);
@@ -183,30 +172,25 @@ void flight_alert_restore_box_background(void)
 // FUNCTION: XVT 0x448F90
 void flight_alert_draw_box(int text_row, const char *text, uint8_t bg_color)
 {
-	int box_x;
-	int box_y;
-	int box_width;
-	int box_height;
-	unsigned int background_color;
-
 	flight_text_set_font_tier(0);
-	box_width =
+	int box_width =
 		(unsigned int)(g_surface_width - g_flight_viewport_inset_x) >>
 		1;
-	box_x = ((unsigned int)(g_flight_viewport_inset_x + g_surface_width) >>
+	int box_x =
+		((unsigned int)(g_flight_viewport_inset_x + g_surface_width) >>
 		 1) -
 		box_width / 2;
-	box_height = 5 * g_flight_font_line_height;
-	box_y = ((unsigned int)(g_flight_alert_box_vertical_offset +
-				g_surface_height) >>
-		 1) -
-		box_height / 2;
+	int box_height = 5 * g_flight_font_line_height;
+	int box_y = ((unsigned int)(g_flight_alert_box_vertical_offset +
+				    g_surface_height) >>
+		     1) -
+		    box_height / 2;
 	if (g_flight_alert_box_saved_pixels == 0) {
 		return;
 	}
 
 	flight_text_set_color('/');
-	background_color = bg_color;
+	unsigned int background_color = bg_color;
 	flight_text_set_background_color(background_color + 2);
 	g_flight_text_shadow_enabled = 1;
 	flight_text_set_shadow_color(',');

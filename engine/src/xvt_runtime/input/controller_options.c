@@ -304,11 +304,11 @@ bool xvt_controller_options_add_new_gamepads(
 	const struct xvt_controller_profile *defaults,
 	const AeronInputSnapshot *input, char *error, size_t capacity)
 {
-	const AeronControllerSnapshot *sorted[AERON_CONTROLLER_MAX];
-	int count = 0;
 	if (!input) {
 		return true;
 	}
+	const AeronControllerSnapshot *sorted[AERON_CONTROLLER_MAX];
+	int count = 0;
 	for (int slot = 0; slot < AERON_CONTROLLER_MAX; ++slot) {
 		const AeronControllerSnapshot *d = &input->controllers[slot];
 		if (!d->connected || d->kind != AERON_CONTROLLER_KIND_GAMEPAD) {

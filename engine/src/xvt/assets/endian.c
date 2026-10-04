@@ -11,13 +11,9 @@ uint16_t endian_swap16(uint16_t value)
 // FUNCTION: XVT 0x4CC900
 unsigned int endian_swap32(unsigned int value)
 {
-	unsigned int high_byte;
-	unsigned int middle_byte;
-	unsigned int result;
-
-	result = ((value << 16) | (value & 0xff00u)) << 8;
-	middle_byte = (value & 0xff0000u) >> 8;
-	high_byte = value >> 24;
+	unsigned int result = ((value << 16) | (value & 0xff00u)) << 8;
+	unsigned int middle_byte = (value & 0xff0000u) >> 8;
+	unsigned int high_byte = value >> 24;
 	result |= middle_byte;
 	result |= high_byte;
 	return result;

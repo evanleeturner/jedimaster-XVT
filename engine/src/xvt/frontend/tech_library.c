@@ -127,11 +127,6 @@ int tech_library_update(int frame_counter)
 		DONE_BUTTON_HELD_SLOT = 8,
 	};
 
-	struct RECT rect;
-	int animation_frame;
-	int button_pressed;
-	int selected_craft_type;
-
 	if (frame_counter == 0) {
 		frontend_cursor_set_pos(DEFAULT_CURSOR_X, DEFAULT_CURSOR_Y);
 		g_tech_library_selected_ship_list_idx = 0;
@@ -161,7 +156,7 @@ int tech_library_update(int frame_counter)
 		model_preview_set_light_direction(g_tech_library_light_x,
 						  g_tech_library_light_y,
 						  g_tech_library_light_z);
-		selected_craft_type =
+		int selected_craft_type =
 			g_ship_list[g_tech_library_selected_ship_list_idx]
 				.craft_type;
 		if (selected_craft_type == CRAFT_SPECIES_TIE_INTERCEPTOR ||
@@ -183,6 +178,7 @@ int tech_library_update(int frame_counter)
 		frontend_text_start_text_fade_in(20);
 	}
 
+	struct RECT rect;
 	frontend_draw_rect_assign(
 		&rect, TECH_LIBRARY_VIEWPORT_LEFT, TECH_LIBRARY_VIEWPORT_TOP,
 		TECH_LIBRARY_VIEWPORT_RIGHT, TECH_LIBRARY_VIEWPORT_BOTTOM);
@@ -211,7 +207,7 @@ int tech_library_update(int frame_counter)
 		frontend_text_draw_centered(BUTTON_FONT_SIZE,
 					    g_frontend_scratch_buffer, &rect,
 					    g_color_yellow);
-		animation_frame =
+		int animation_frame =
 			frame_counter % PILOT_BANNER_ANIMATION_PERIOD_FRAMES;
 		animation_frame >>= 1;
 		sprintf(g_frontend_scratch_buffer, "rebtiny%d",
@@ -244,7 +240,7 @@ int tech_library_update(int frame_counter)
 		frontend_button_set_overlay_text(
 			frontend_string_get(FRONTSTR_206_DONE));
 	}
-	button_pressed = frontend_button_handle_sprite_button(
+	int button_pressed = frontend_button_handle_sprite_button(
 		&rect, "leaveup", "leavedown",
 		frontend_string_get(FRONTSTR_206_DONE), BUTTON_FONT_SIZE, 0,
 		DONE_BUTTON_HELD_SLOT, "buttonsound");
@@ -304,7 +300,11 @@ int tech_library_update_model_controls(void)
 
 	int mouse_y;
 	int mouse_x;
+
+	frontend_cursor_get_pos(&mouse_x, &mouse_y);
 	struct RECT rect;
+	frontend_draw_rect_assign(&rect, 22, 114, 42, 138);
+	frontend_cursor_get_pos(&mouse_x, &mouse_y);
 	frontend_navigation_slot_state slot_states[NAVIGATION_SLOT_COUNT] = {
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
 		FRONTEND_NAVIGATION_SLOT_ACTIVE,
@@ -316,11 +316,6 @@ int tech_library_update_model_controls(void)
 		FRONTEND_NAVIGATION_SLOT_INACTIVE,
 	};
 	int slot_index;
-	int selected_craft_type;
-
-	frontend_cursor_get_pos(&mouse_x, &mouse_y);
-	frontend_draw_rect_assign(&rect, 22, 114, 42, 138);
-	frontend_cursor_get_pos(&mouse_x, &mouse_y);
 	for (slot_index = 0; slot_index < TOP_BUTTON_COUNT; ++slot_index) {
 		if (slot_states[slot_index] !=
 			    FRONTEND_NAVIGATION_SLOT_INACTIVE &&
@@ -420,6 +415,7 @@ int tech_library_update_model_controls(void)
 	}
 
 	frontend_draw_rect_assign(&rect, 22, 334, 42, 358);
+	int selected_craft_type;
 	if (frontend_button_handle_sprite_button(
 		    &rect, "review7u", "review7d",
 		    frontend_string_get(FRONTSTR_296_PREVIOUS_CRAFT),
@@ -497,13 +493,9 @@ int tech_library_update_model_controls(void)
 int tech_library_draw_craft_spec_panel(void)
 {
 	struct RECT rect;
-	struct RECT description_rect;
-	int craft_spec_index;
-	int text_lines;
-	const char *label;
 
 	frontend_draw_rect_assign(&rect, 88, 111, 332, 125);
-	craft_spec_index = g_tech_library_craft_stats.craft_type - 1;
+	int craft_spec_index = g_tech_library_craft_stats.craft_type - 1;
 	if (craft_spec_index < 0) {
 		craft_spec_index = 0;
 	}
@@ -513,7 +505,7 @@ int tech_library_draw_craft_spec_panel(void)
 					   0, 1, 0xFFFF);
 
 	frontend_draw_rect_offset_xy(&rect, 0, 30);
-	label = frontend_string_get(
+	const char *label = frontend_string_get(
 		(frontend_string_id)(FRONTSTR_496_STARFIGHTER +
 				     g_tech_library_craft_stats.genus_id));
 	sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 4,
@@ -540,10 +532,11 @@ int tech_library_draw_craft_spec_panel(void)
 		12, frontend_string_get(FRONTSTR_486_SPECIAL_CHARACTERISTICS),
 		&rect, 0, 1, g_color_yellow);
 	frontend_draw_rect_offset_xy(&rect, 0, 15);
+	struct RECT description_rect;
 	frontend_draw_rect_copy(&description_rect, &rect);
 	description_rect.bottom = description_rect.top + 120;
 	description_rect.left += 20;
-	text_lines = frontend_text_draw_wrapped(
+	int text_lines = frontend_text_draw_wrapped(
 		12,
 		g_tech_library_spec_text_table[craft_spec_index].description,
 		&description_rect, 0xFFFF, 3, 0);
@@ -666,12 +659,7 @@ int tech_library_draw_craft_spec_panel(void)
 // FUNCTION: XVT 0x4EA8C0
 int tech_library_load_spec_text_table(void)
 {
-	xvt_file *stream;
-	int field_index;
-	int entry_index;
-	size_t length;
-
-	stream = file_open("specdesc.txt", "r");
+	xvt_file *stream = file_open("specdesc.txt", "r");
 	if (stream == NULL) {
 		return 0;
 	}
@@ -697,7 +685,9 @@ int tech_library_load_spec_text_table(void)
 	memset(g_tech_library_spec_text_table, 0,
 	       sizeof(*g_tech_library_spec_text_table) * 93u);
 #endif
-	for (entry_index = 0; entry_index < 93; ++entry_index) {
+	int field_index;
+	size_t length;
+	for (int entry_index = 0; entry_index < 93; ++entry_index) {
 		field_index = 0;
 		while (field_index < 5) {
 			do {

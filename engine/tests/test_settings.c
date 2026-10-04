@@ -57,8 +57,8 @@ static AeronConfigFile *with_string(const char *path, const char *value)
 static AeronConfigFile *without(const char *path)
 {
 	AeronConfigFile *document = shipped();
-	AeronConfigError detail;
 	XVT_ASSERT_TRUE(AeronConfigFile_Has(document, path));
+	AeronConfigError detail;
 	XVT_ASSERT_TRUE(AeronConfigFile_Remove(document, path, &detail));
 	return document;
 }
@@ -269,11 +269,11 @@ static void check_subsections(void)
 static void check_failure_leaves_output(void)
 {
 	begin();
-	char error[1024] = "";
 	memset(&g_out, 0x5A, sizeof g_out);
 	static struct xvt_settings before;
 	memcpy(&before, &g_out, sizeof before);
 	AeronConfigFile *document = with_int("render.msaa_samples", 3);
+	char error[1024] = "";
 	XVT_ASSERT_INT_EQ(xvt_settings_parse(document, &g_scene, &g_out, error,
 					     sizeof error),
 			  0);
@@ -287,16 +287,16 @@ static void check_node_error(void)
 {
 	begin();
 	AeronConfigFile *document = fixture_yaml("top:\n  inner: 5\n");
-	char error[512];
-	char expected[512];
 	/* A node that exists: its file, line and column. fixture_yaml writes the first document as
 	 * temp/document1.yaml, in the TEMP root. */
 	const AeronConfigNode *node =
 		AeronConfigFile_GetNode(document, "top.inner");
 	XVT_ASSERT_TRUE(node != NULL);
+	char expected[512];
 	snprintf(expected, sizeof expected,
 		 "TEMP/document1.yaml:%d:%d: top.inner: bad value",
 		 AeronConfigNode_Line(node), AeronConfigNode_Column(node));
+	char error[512];
 	XVT_ASSERT_INT_EQ(xvt_settings_node_error(document, "top.inner",
 						  "bad value", error,
 						  sizeof error),

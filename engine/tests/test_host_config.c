@@ -202,8 +202,8 @@ static void check_init_aeron(void)
 static void check_resolve_resource_root(void)
 {
 	struct xvt_launch_options options;
-	char out[64];
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--resource-root=abcd"), 1);
+	char out[64];
 	XVT_ASSERT_INT_EQ(xvt_host_config_resolve_resource_root(&options, out,
 								sizeof out),
 			  1);

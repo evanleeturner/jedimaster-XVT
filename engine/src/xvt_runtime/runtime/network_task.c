@@ -44,13 +44,10 @@ static struct {
 static int xvt_network_task_find_mission_file_and_title(
 	const AeronDplayDirectoryMission *mission, char *path, size_t capacity)
 {
-	char list[256];
-	char line[256];
-	char filename[256];
-	char title[256];
 	if (!mission->present || mission->directory >= 6) {
 		return 0;
 	}
+	char list[256];
 	snprintf(list, sizeof(list), "%s/mission.lst",
 		 g_mission_directory_names[mission->directory]);
 	xvt_file *file = file_open(list, "r");
@@ -58,6 +55,9 @@ static int xvt_network_task_find_mission_file_and_title(
 		return 0;
 	}
 	int found = 0;
+	char line[256];
+	char filename[256];
+	char title[256];
 	while (FILE_GETS(line, sizeof(line), file)) {
 		if (!line[0] || line[0] == '[' || line[0] == '\n' ||
 		    line[0] == '\r' || (line[0] == '/' && line[1] == '/')) {
@@ -114,8 +114,8 @@ static void xvt_network_task_load_preview(void)
 	if (!room) {
 		return;
 	}
-	char path[512];
 	strcpy(g_browser.preview.text, "Description unavailable");
+	char path[512];
 	if (!xvt_network_task_find_mission_file_and_title(
 		    &room->metadata.mission, path, sizeof(path))) {
 		return;
@@ -130,8 +130,8 @@ static void xvt_network_task_load_preview(void)
 	    directory == MISSION_DIRECTORY_BATTLES ||
 	    directory == MISSION_DIRECTORY_CAMPAIGNS) {
 		char line[256];
-		char *end;
 		if (FILE_GETS(line, sizeof(line), file)) {
+			char *end;
 			long lines_to_skip = strtol(line, &end, 10);
 			if (end != line && lines_to_skip >= 0 &&
 			    lines_to_skip <= 65536) {

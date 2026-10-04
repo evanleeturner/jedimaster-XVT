@@ -239,10 +239,6 @@ static void xvt_mouse_flight_update_stick(float sensitivity)
 
 int xvt_mouse_flight_sample(void)
 {
-	uint64_t now;
-	uint64_t interval_us;
-	float sensitivity;
-
 	if (!xvt_input_mouse_flight_allowed()) {
 		xvt_mouse_flight_reset();
 		return 0;
@@ -252,8 +248,8 @@ int xvt_mouse_flight_sample(void)
 		return 0;
 	}
 
-	now = Aeron_NowUs();
-	interval_us = now - g_mouse_flight.drain_time_us;
+	uint64_t now = Aeron_NowUs();
+	uint64_t interval_us = now - g_mouse_flight.drain_time_us;
 	/* Discard transition motion on first sampling or after a stall, preserving
 	 * the held stick deflection. */
 	if (g_mouse_flight.drain_time_us == 0 ||
@@ -271,7 +267,7 @@ int xvt_mouse_flight_sample(void)
 	}
 	g_mouse_flight.drain_time_us = now;
 
-	sensitivity =
+	float sensitivity =
 		k_mouse_flight_sensitivity_scale[g_mouse_flight.options
 							 .mouse_sensitivity -
 						 XVT_MOUSE_SENSITIVITY_MIN];

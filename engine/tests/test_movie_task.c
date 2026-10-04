@@ -31,8 +31,8 @@ static void fresh(void)
 /* Binds storage to a fresh asset folder holding an empty movies/<name>.smk. */
 static void movies(const char *name)
 {
-	char path[XVT_TEST_PATH_CAPACITY];
 	xvt_test_open_assets(&g_assets);
+	char path[XVT_TEST_PATH_CAPACITY];
 	snprintf(path, sizeof path, "movies/%s.smk", name);
 	xvt_test_add_asset(&g_assets, path);
 }
@@ -57,9 +57,9 @@ static void tick_until_complete(void)
 static void check_idle(void)
 {
 	fresh();
-	int result = 77;
 	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
 	XVT_ASSERT_INT_EQ(xvt_movie_task_continues_without_focus(), 0);
+	int result = 77;
 	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
 	XVT_ASSERT_INT_EQ(result, 77);
 	XVT_ASSERT_INT_EQ(xvt_movie_task_next_wake_delay_us(), 10000);
@@ -103,9 +103,9 @@ static void check_lifecycle(void)
 	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 1);
 	XVT_ASSERT_INT_EQ(xvt_movie_task_continues_without_focus(), 0);
 
+	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), 2);
 	/* One movie at a time; no result while it plays. */
 	int result = 77;
-	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), 2);
 	XVT_ASSERT_INT_EQ(xvt_movie_task_take_result(&result), 0);
 
 	/* The frontend state Begin saved is changed while the movie plays. */

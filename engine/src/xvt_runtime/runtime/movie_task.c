@@ -80,9 +80,6 @@ void xvt_movie_task_reap_finished(void)
 
 int xvt_movie_task_begin(const char *name, int synchronize)
 {
-	AeronVideoOpenDesc desc = {0};
-	char relative[XVT_PATH_CAPACITY];
-	int found;
 	if (!name || !*name || g_movie.active || g_movie.complete ||
 	    g_movie.player) {
 		return 2;
@@ -91,9 +88,10 @@ int xvt_movie_task_begin(const char *name, int synchronize)
 	    (int)sizeof(g_movie.name)) {
 		return 2;
 	}
+	char relative[XVT_PATH_CAPACITY];
 	snprintf(relative, sizeof(relative), "movies/%s.smk", g_movie.name);
-	found = xvt_storage_resolve_asset(relative, g_movie.path,
-					  sizeof(g_movie.path));
+	int found = xvt_storage_resolve_asset(relative, g_movie.path,
+					      sizeof(g_movie.path));
 	if (found != 1 && synchronize &&
 	    g_frontend_mission_session_mode !=
 		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
@@ -110,6 +108,7 @@ int xvt_movie_task_begin(const char *name, int synchronize)
 	if (!g_movie.overlay) {
 		return 2;
 	}
+	AeronVideoOpenDesc desc = {0};
 	desc.vfs = xvt_storage_vfs();
 	desc.root = AERON_VFS_ROOT_ASSET;
 	desc.path = g_movie.path;
@@ -152,12 +151,6 @@ int xvt_movie_task_begin(const char *name, int synchronize)
 
 static void xvt_movie_task_submit_subtitles(uint64_t frame, int margin_height)
 {
-	AeronPixelLayerDesc layer = {0};
-	struct RECT clip;
-	struct RECT rect;
-	uint8_t *saved_pixels;
-	int saved_pitch;
-	int line;
 	int waiting = g_movie.synchronize && g_movie_playback_completion_state;
 	if ((!g_movie_subtitle_file && !g_movie.synchronize) ||
 	    margin_height <= 0) {
@@ -174,15 +167,16 @@ static void xvt_movie_task_submit_subtitles(uint64_t frame, int margin_height)
 		}
 	}
 	memset(g_movie.overlay, 0, 640 * 480 * sizeof(uint16_t));
-	saved_pixels = g_draw_surface_ptr;
-	saved_pitch = g_front_state.draw_surface_pitch;
+	uint8_t *saved_pixels = g_draw_surface_ptr;
+	int saved_pitch = g_front_state.draw_surface_pitch;
+	struct RECT clip;
 	frontend_display_get_screen_clip_rect(&clip);
-	rect = (struct RECT){0, 0, 639, 479};
+	struct RECT rect = (struct RECT){0, 0, 639, 479};
 	frontend_display_set_screen_clip_rect640x480(&rect);
 	g_draw_surface_ptr = (uint8_t *)g_movie.overlay;
 	g_front_state.draw_surface_pitch = 640 * sizeof(uint16_t);
 	rect.top = 480 - margin_height;
-	for (line = 0; !waiting && line < 3; ++line) {
+	for (int line = 0; !waiting && line < 3; ++line) {
 		rect.bottom = rect.top + margin_height / 3;
 		frontend_text_draw_centered(12, g_movie.lines[line], &rect,
 					    0xffff);
@@ -194,6 +188,7 @@ static void xvt_movie_task_submit_subtitles(uint64_t frame, int margin_height)
 	g_draw_surface_ptr = saved_pixels;
 	g_front_state.draw_surface_pitch = saved_pitch;
 	frontend_display_set_screen_clip_rect640x480(&clip);
+	AeronPixelLayerDesc layer = {0};
 	layer.frame.pixels = g_movie.overlay;
 	layer.frame.width = 640;
 	layer.frame.height = 480;
@@ -216,16 +211,13 @@ static void xvt_movie_task_submit_subtitles(uint64_t frame, int margin_height)
 
 static void xvt_movie_task_submit(void)
 {
-	AeronVideoPresentDesc desc = {0};
 	AeronVideoInfo info;
-	int width;
-	int height;
 	if (!Aeron_VideoGetInfo(g_movie.player, &info) || info.width <= 0 ||
 	    info.height <= 0) {
 		return;
 	}
-	width = info.width;
-	height = info.height;
+	int width = info.width;
+	int height = info.height;
 	/* Original Smacker playback centers the native frame in the 640x480 display. */
 	if (width > 640 || height > 480) {
 		g_movie.result = 3;
@@ -233,6 +225,7 @@ static void xvt_movie_task_submit(void)
 		g_movie.complete = 1;
 		return;
 	}
+	AeronVideoPresentDesc desc = {0};
 	desc.bounds = xvt_presentation_from_classic((AeronRectI){
 		(640 - width) / 2, (480 - height) / 2, width, height});
 	desc.scale_mode = AERON_VIDEO_SCALE_CONTAIN;
@@ -262,9 +255,6 @@ void xvt_movie_task_stop(void)
 
 void xvt_movie_task_update(void)
 {
-	AeronVideoState state;
-	int key;
-	int synchronized = 0;
 	if (!g_movie.active) {
 		return;
 	}
@@ -273,7 +263,8 @@ void xvt_movie_task_update(void)
 		g_movie.paused = 0;
 	}
 	Aeron_VideoUpdate(g_movie.player);
-	key = (unsigned char)keyboard_dequeue_char();
+	int key = (unsigned char)keyboard_dequeue_char();
+	int synchronized = 0;
 	if (g_movie.synchronize) {
 		uint32_t playing = 1;
 		if (key) {
@@ -295,7 +286,7 @@ void xvt_movie_task_update(void)
 	}
 	g_front_state.mouse_left_click_latch = 0;
 	g_front_state.mouse_right_click_latch = 0;
-	state = Aeron_VideoGetState(g_movie.player);
+	AeronVideoState state = Aeron_VideoGetState(g_movie.player);
 	if (state == AERON_VIDEO_ERROR) {
 		if (g_movie.result != 2) {
 			XVT_LOG_ERROR("movie.failed path=\"%s\" error=\"%s\"",

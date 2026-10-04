@@ -50,17 +50,14 @@ static struct xvt_orientation_angles
 xvt_orientation_from_radians(float pitch, float yaw, float roll)
 {
 	struct xvt_orientation_angles result;
-	int16_t yaw_binary_angle;
-	int16_t pitch_binary_angle;
-	int16_t roll_binary_angle;
 
-	yaw_binary_angle =
+	int16_t yaw_binary_angle =
 		xvt_orientation_round_angle(xvt_orientation_wrap_radians(-yaw) *
 					    XVT_ORIENTATION_RAD_TO_BAM);
-	pitch_binary_angle = xvt_orientation_round_angle(
+	int16_t pitch_binary_angle = xvt_orientation_round_angle(
 		xvt_orientation_wrap_radians(-XVT_ORIENTATION_HALF_PI - pitch) *
 		XVT_ORIENTATION_RAD_TO_BAM);
-	roll_binary_angle = xvt_orientation_round_angle(
+	int16_t roll_binary_angle = xvt_orientation_round_angle(
 		xvt_orientation_wrap_radians(-roll) *
 		XVT_ORIENTATION_RAD_TO_BAM);
 
@@ -79,28 +76,18 @@ xvt_orientation_from_radians(float pitch, float yaw, float roll)
 static void xvt_orientation_rotate_local(float matrix[3][3], int axis_column,
 					 float angle)
 {
-	float axis_x;
-	float axis_y;
-	float axis_z;
-	float cosine;
-	float sine;
-	float one_minus_cosine;
-	float rotation[3][3];
-	float rotated[3][3];
-	int column;
-	int row;
-
 	if (angle == 0.0f) {
 		return;
 	}
 
-	axis_x = matrix[axis_column][0];
-	axis_y = matrix[axis_column][1];
-	axis_z = matrix[axis_column][2];
-	cosine = cosf(angle);
-	sine = sinf(angle);
-	one_minus_cosine = 1.0f - cosine;
+	float axis_x = matrix[axis_column][0];
+	float axis_y = matrix[axis_column][1];
+	float axis_z = matrix[axis_column][2];
+	float cosine = cosf(angle);
+	float sine = sinf(angle);
+	float one_minus_cosine = 1.0f - cosine;
 
+	float rotation[3][3];
 	rotation[0][0] = cosine + axis_x * axis_x * one_minus_cosine;
 	rotation[0][1] = axis_x * axis_y * one_minus_cosine - axis_z * sine;
 	rotation[0][2] = axis_x * axis_z * one_minus_cosine + axis_y * sine;
@@ -111,8 +98,9 @@ static void xvt_orientation_rotate_local(float matrix[3][3], int axis_column,
 	rotation[2][1] = axis_z * axis_y * one_minus_cosine + axis_x * sine;
 	rotation[2][2] = cosine + axis_z * axis_z * one_minus_cosine;
 
-	for (column = 0; column < 3; ++column) {
-		for (row = 0; row < 3; ++row) {
+	float rotated[3][3];
+	for (int column = 0; column < 3; ++column) {
+		for (int row = 0; row < 3; ++row) {
 			rotated[column][row] =
 				rotation[row][0] * matrix[column][0] +
 				rotation[row][1] * matrix[column][1] +
@@ -210,17 +198,16 @@ xvt_orientation_apply_pitch_yaw(struct xvt_orientation_angles current,
 		return xvt_orientation_apply_pitch_yaw_fixed(
 			current, pitch_delta_q16, neg_yaw_delta_q16);
 	}
-	float matrix[3][3] = {
-		{1.0f, 0.0f, 0.0f},
-		{0.0f, 1.0f, 0.0f},
-		{0.0f, 0.0f, 1.0f},
-	};
-	float quaternion[4];
 	float pitch;
 	float yaw;
 	float roll;
 
 	xvt_orientation_to_radians(current, &pitch, &yaw, &roll);
+	float matrix[3][3] = {
+		{1.0f, 0.0f, 0.0f},
+		{0.0f, 1.0f, 0.0f},
+		{0.0f, 0.0f, 1.0f},
+	};
 	xvt_orientation_rotate_local(matrix, 1, yaw);
 	xvt_orientation_rotate_local(matrix, 0, pitch);
 	xvt_orientation_rotate_local(matrix, 2, roll);
@@ -231,6 +218,7 @@ xvt_orientation_apply_pitch_yaw(struct xvt_orientation_angles current,
 	xvt_orientation_rotate_local(
 		matrix, 0, (float)pitch_delta_q16 * XVT_ORIENTATION_BAM_TO_RAD);
 
+	float quaternion[4];
 	xvt_orientation_matrix_to_quaternion(matrix, quaternion);
 	xvt_orientation_quaternion_to_euler(quaternion, &pitch, &yaw, &roll);
 	return xvt_orientation_from_radians(pitch, yaw, roll);

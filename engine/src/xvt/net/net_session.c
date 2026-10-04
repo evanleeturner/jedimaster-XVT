@@ -121,10 +121,6 @@ int net_session_init_game_session(const char *formal_name,
 				  int num_human_players, int in_progress_launch,
 				  const char *connection_address)
 {
-	DPCAPS direct_play_caps;
-	char dial_number[32] = "Dial a New Number.";
-	int player_index;
-	int success;
 #ifndef XVT_MODERN
 	int out_payload_size;
 	int out_dpid;
@@ -134,6 +130,7 @@ int net_session_init_game_session(const char *formal_name,
 	int *roster_entry;
 #endif
 
+	char dial_number[32] = "Dial a New Number.";
 	(void)dial_number;
 	(void)mp_game_name;
 	(void)connection_address;
@@ -151,7 +148,7 @@ int net_session_init_game_session(const char *formal_name,
 	g_net_session.group_payload[0] = NET_PACKET_NOP;
 	g_net_session.group_payload_length = 1;
 	g_net_session.reliable_use_fixed_resend_timeouts = 0;
-	for (player_index = 0; player_index < 40; ++player_index) {
+	for (int player_index = 0; player_index < 40; ++player_index) {
 		g_net_session.reliable_peer_slots[player_index]
 			.last_delivered_seq_default = 127;
 		g_net_session.reliable_peer_slots[player_index]
@@ -185,8 +182,9 @@ int net_session_init_game_session(const char *formal_name,
 	g_net_session.reliable_peer_slot_count = 0;
 	/* The 1 stored in success here also serves below as the player count, the host flag, a DirectPlay id and
 	 * an active flag. */
-	success = 1;
+	int success = 1;
 
+	DPCAPS direct_play_caps;
 	if (num_human_players == success && is_host == success) {
 		/* The single-player path reuses the persisted DirectPlay snapshot. */
 		net_session_import_runtime_state(
@@ -387,9 +385,6 @@ int AERON_DXAPI net_session_enum_players_callback(DPID dplay_id,
 						  const DPNAME *name_info,
 						  uint32_t flags, void *context)
 {
-	char *name_end;
-	int *player_value;
-
 	(void)flags;
 	(void)context;
 
@@ -406,13 +401,14 @@ int AERON_DXAPI net_session_enum_players_callback(DPID dplay_id,
 		strncpy(g_net_session.players[g_net_session.player_count]
 				.player_name,
 			name_info->lpszShortNameA, 16);
-		name_end = &g_net_session.players[g_net_session.player_count]
-				    .long_name[15];
+		char *name_end =
+			&g_net_session.players[g_net_session.player_count]
+				 .long_name[15];
 		*name_end = '\0';
 		name_end = &g_net_session.players[g_net_session.player_count]
 				    .player_name[15];
 		*name_end = '\0';
-		player_value =
+		int *player_value =
 			&g_net_session.players[g_net_session.player_count]
 				 .direct_play_id;
 		*player_value = dplay_id;
@@ -460,31 +456,19 @@ enum {
 void net_session_pump_incoming_packets(void)
 {
 	static int receive_suppress_count;
-	DPID from_id;
-	DPID to_id;
 	struct {
 		uint16_t header;    /* Type, sequence and channel bits */
 		uint8_t data[1022]; /* The rest; a system message fills both */
 	} wire_packet;
-	unsigned int response_packet[2];
-	uint32_t wire_size;
-	uint8_t *packet_data;
-	uint32_t packet_size;
-	unsigned int packet_type;
-	int sequence;
-	int group_channel;
-	int broadcast_channel;
-	int has_length;
-	unsigned int peer_slot;
-	int duplicate;
-	int previous_sequence;
-	uint8_t *piggyback;
-	uint32_t piggyback_size;
-	unsigned int piggyback_type;
 	if (g_net_session.dplay_interface == NULL) {
 		return;
 	}
 	g_net_session.receive_pump_state = 0;
+	DPID from_id;
+	DPID to_id;
+	unsigned int response_packet[2];
+	unsigned int peer_slot;
+	int duplicate;
 	for (;;) {
 		if ((int)g_net_recv_queue_count >= RECEIVE_QUEUE_LIMIT) {
 			net_session_debug_trace(
@@ -492,7 +476,7 @@ void net_session_pump_incoming_packets(void)
 			net_reliable_keep_only_host_received_packets();
 			return;
 		}
-		wire_size = sizeof(wire_packet);
+		uint32_t wire_size = sizeof(wire_packet);
 		if (g_net_session.dplay_interface->lpVtbl->Receive(
 			    g_net_session.dplay_interface, &from_id, &to_id, 1,
 			    &wire_packet, &wire_size) != 0) {
@@ -531,14 +515,14 @@ void net_session_pump_incoming_packets(void)
 		    (DPID)g_net_session.local_player_info.direct_play_id) {
 			continue;
 		}
-		packet_type = wire_packet.header & 0x7F;
-		group_channel = (wire_packet.header & 0x80) != 0;
-		broadcast_channel = (wire_packet.header & 0x8000) == 0;
-		sequence = (wire_packet.header >> 8) & 0x7F;
-		packet_data = wire_packet.data;
-		packet_size = wire_size - sizeof(wire_packet.header);
-		has_length = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
-			     packet_type > NET_PACKET_RESYNC_CHUNK;
+		unsigned int packet_type = wire_packet.header & 0x7F;
+		int group_channel = (wire_packet.header & 0x80) != 0;
+		int broadcast_channel = (wire_packet.header & 0x8000) == 0;
+		int sequence = (wire_packet.header >> 8) & 0x7F;
+		uint8_t *packet_data = wire_packet.data;
+		uint32_t packet_size = wire_size - sizeof(wire_packet.header);
+		int has_length = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
+				 packet_type > NET_PACKET_RESYNC_CHUNK;
 		if (has_length && !(broadcast_channel && group_channel) &&
 		    net_session_get_fixed_payload_size(packet_type) == 0 &&
 		    packet_size >= sizeof(uint16_t)) {
@@ -562,12 +546,10 @@ void net_session_pump_incoming_packets(void)
 		}
 		if (packet_type == NET_PACKET_WORLD_NACK) {
 			if (packet_size >= 2 * sizeof(int)) {
-				unsigned int search_count;
-				unsigned int world_cursor;
 				int timestamp;
-				int requested_sequence;
 				memcpy(&timestamp, packet_data,
 				       sizeof(timestamp));
+				int requested_sequence;
 				memcpy(&requested_sequence,
 				       packet_data + sizeof(timestamp),
 				       sizeof(requested_sequence));
@@ -583,8 +565,9 @@ void net_session_pump_incoming_packets(void)
 							  [peer_slot]
 						  .packet_drop_count;
 				}
-				world_cursor = (unsigned int)
+				unsigned int world_cursor = (unsigned int)
 					g_net_session_sent_world_message_write_index;
+				unsigned int search_count;
 				for (search_count = 0;
 				     search_count < WORLD_HISTORY_CAPACITY;
 				     ++search_count) {
@@ -632,11 +615,9 @@ void net_session_pump_incoming_packets(void)
 		if (packet_type == NET_PACKET_NACK) {
 			if (packet_size >= 2 * sizeof(int)) {
 				int requested_sequence;
-				int requested_class;
-				unsigned int search_count;
-				unsigned int history_cursor;
 				memcpy(&requested_sequence, packet_data,
 				       sizeof(requested_sequence));
+				int requested_class;
 				memcpy(&requested_class,
 				       packet_data + sizeof(requested_sequence),
 				       sizeof(requested_class));
@@ -652,8 +633,9 @@ void net_session_pump_incoming_packets(void)
 							  [peer_slot]
 						  .packet_drop_count;
 				}
-				history_cursor = (unsigned int)
+				unsigned int history_cursor = (unsigned int)
 					g_net_session_sent_history_write_index;
+				unsigned int search_count;
 				for (search_count = 0;
 				     search_count < HISTORY_CAPACITY;
 				     ++search_count) {
@@ -710,17 +692,14 @@ void net_session_pump_incoming_packets(void)
 		}
 		if (packet_type == NET_PACKET_KEEPALIVE) {
 			if (packet_size >= 3 * sizeof(int)) {
-				unsigned int search_count;
-				unsigned int history_cursor;
-				uint8_t packet_class;
 				int expected_broadcast;
-				int expected_group;
-				int expected_directed;
 				memcpy(&expected_broadcast, packet_data,
 				       sizeof(expected_broadcast));
+				int expected_group;
 				memcpy(&expected_group,
 				       packet_data + sizeof(expected_broadcast),
 				       sizeof(expected_group));
+				int expected_directed;
 				memcpy(&expected_directed,
 				       packet_data +
 					       2 * sizeof(expected_broadcast),
@@ -744,9 +723,9 @@ void net_session_pump_incoming_packets(void)
 					    expected_directed) {
 					expected_directed = SEQUENCE_NONE;
 				}
-				history_cursor = (unsigned int)
+				unsigned int history_cursor = (unsigned int)
 					g_net_session_sent_history_write_index;
-				for (search_count = 0;
+				for (unsigned int search_count = 0;
 				     search_count < HISTORY_CAPACITY &&
 				     (expected_broadcast != SEQUENCE_NONE ||
 				      expected_group != SEQUENCE_NONE ||
@@ -756,7 +735,7 @@ void net_session_pump_incoming_packets(void)
 						    [history_cursor]
 							    .payload_size !=
 					    0) {
-						packet_class =
+						uint8_t packet_class =
 							g_net_session_sent_history
 								[history_cursor]
 									.packet_class;
@@ -831,13 +810,12 @@ void net_session_pump_incoming_packets(void)
 		}
 		peer_slot = net_reliable_find_or_create_peer_slot(from_id);
 		if (broadcast_channel && group_channel) {
-			uint8_t channel_marker;
-			const uint8_t *app_payload;
-			uint32_t app_payload_size;
-			channel_marker = packet_size != 0 ? packet_data[0] : 0;
-			app_payload = packet_size != 0 ? packet_data + 1
-						       : packet_data;
-			app_payload_size =
+			uint8_t channel_marker =
+				packet_size != 0 ? packet_data[0] : 0;
+			const uint8_t *app_payload = packet_size != 0
+							     ? packet_data + 1
+							     : packet_data;
+			uint32_t app_payload_size =
 				packet_size != 0 ? packet_size - 1 : 0;
 			if (has_length &&
 			    net_session_get_fixed_payload_size(packet_type) ==
@@ -932,8 +910,9 @@ void net_session_pump_incoming_packets(void)
 		}
 		peer_slot = net_reliable_find_or_create_peer_slot(from_id);
 		if (has_length) {
-			previous_sequence = sequence == 0 ? SEQUENCE_MODULUS - 1
-							  : sequence - 1;
+			int previous_sequence = sequence == 0
+							? SEQUENCE_MODULUS - 1
+							: sequence - 1;
 			duplicate = net_reliable_check_and_record_recv_sequence(
 				from_id, previous_sequence, broadcast_channel,
 				group_channel);
@@ -947,14 +926,15 @@ void net_session_pump_incoming_packets(void)
 							  [peer_slot]
 						  .packet_drop_count;
 				}
-				piggyback = packet_data + packet_size;
-				piggyback_size =
+				uint8_t *piggyback = packet_data + packet_size;
+				uint32_t piggyback_size =
 					wire_size -
 					(unsigned int)(piggyback -
 						       (uint8_t *)&wire_packet
 							       .header);
 				if (piggyback_size > 0) {
-					piggyback_type = piggyback[0];
+					unsigned int piggyback_type =
+						piggyback[0];
 					if (piggyback_type != NET_PACKET_NOP) {
 						if (piggyback_size - 1 >
 						    MAX_PAYLOAD_SIZE) {
@@ -1089,12 +1069,9 @@ void net_session_pump_incoming_packets(void)
 int net_session_broadcast_packet_to_players(unsigned int *payload,
 					    int payload_size)
 {
-	int result;
-	int player_index;
-
-	result = g_net_session.player_count;
+	int result = g_net_session.player_count;
 	if (result > 0) {
-		for (player_index = 0;
+		for (int player_index = 0;
 		     player_index < g_net_session.player_count;
 		     ++player_index) {
 			result = g_net_session.players[player_index]
@@ -1135,24 +1112,16 @@ int net_session_broadcast_packet_to_players(unsigned int *payload,
 int net_session_send_packet(int direct_play_id, unsigned int *payload,
 			    signed int payload_size)
 {
-	unsigned int packet_type;
-	int append_pending;
-	uint16_t packet_header;
-	int send_result;
-	struct net_session_compact_encoded_packet encoded_packet;
-	uint8_t *encoded_payload;
-	int encoded_header_size;
-	int encoded_size;
-	uint8_t packet_type_byte[4];
-
-	send_result = 0;
+	int send_result = 0;
 	if (payload_size < 4) {
 		return 0;
 	}
 
-	packet_type = *payload;
+	unsigned int packet_type = *payload;
+	uint8_t packet_type_byte[4];
 	packet_type_byte[0] = packet_type & 0x7F;
-	packet_header = packet_type_byte[0];
+	uint16_t packet_header = packet_type_byte[0];
+	int append_pending;
 	if (packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
 	    packet_type >= NET_PACKET_RESYNC_CHUNK + 1) {
 		append_pending = 1;
@@ -1160,6 +1129,10 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 		append_pending = 0;
 	}
 
+	struct net_session_compact_encoded_packet encoded_packet;
+	uint8_t *encoded_payload;
+	int encoded_header_size;
+	int encoded_size;
 	if (packet_type == NET_PACKET_REMOTE_INPUT &&
 	    g_game_config.internet_play == 1) {
 		packet_header |= (g_net_session.group_seq_counter & 0x7F) << 8;
@@ -1274,8 +1247,7 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 			net_reliable_find_or_create_peer_slot(direct_play_id);
 		if (g_net_session.reliable_peer_slot_count > peer_slot &&
 		    peer_slot < 40) {
-			int send_sequence;
-			send_sequence =
+			int send_sequence =
 				g_net_session.reliable_peer_slots[peer_slot]
 					.send_seq;
 			packet_header |= (send_sequence++ & 0x7F) << 8;
@@ -1322,12 +1294,11 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 	     g_game_config.internet_play != 1) &&
 	    g_net_session.local_player_info.direct_play_id != direct_play_id) {
 		if (packet_type == NET_PACKET_WORLD_MESSAGE) {
-			struct net_queued_packet *queued_packet;
 			memcpy(g_net_session_sent_world_message_history
 				       [g_net_session_sent_world_message_write_index]
 					       .payload,
 			       payload, payload_size);
-			queued_packet =
+			struct net_queued_packet *queued_packet =
 				&g_net_session_sent_world_message_history
 					[g_net_session_sent_world_message_write_index];
 			queued_packet->direct_play_id = direct_play_id;
@@ -1347,12 +1318,12 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 		}
 
 		{
-			int history_index;
 			memcpy(g_net_session_sent_history
 				       [g_net_session_sent_history_write_index]
 					       .payload,
 			       payload, payload_size);
-			history_index = g_net_session_sent_history_write_index;
+			int history_index =
+				g_net_session_sent_history_write_index;
 			g_net_session_sent_history[history_index]
 				.direct_play_id = direct_play_id;
 			g_net_session_sent_history[history_index].payload_size =
@@ -1390,14 +1361,11 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 			net_reliable_keep_only_host_received_packets();
 		}
 		if ((int)g_net_recv_queue_count < 1024) {
-			unsigned int queue_index;
-			unsigned int peer_slot;
-			int peer_slot_available;
 			memcpy(g_net_session_recv_queue
 				       [g_net_recv_queue_write_index]
 					       .payload,
 			       payload, payload_size);
-			queue_index =
+			unsigned int queue_index =
 				(unsigned int)g_net_recv_queue_write_index;
 			g_net_session_recv_queue[queue_index].direct_play_id =
 				(DPID)g_net_session.local_player_info
@@ -1409,8 +1377,11 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 				0;
 			g_net_session_recv_queue[queue_index].is_resent_copy =
 				0;
-			peer_slot = net_reliable_find_or_create_peer_slot(
-				g_net_session.local_player_info.direct_play_id);
+			unsigned int peer_slot =
+				net_reliable_find_or_create_peer_slot(
+					g_net_session.local_player_info
+						.direct_play_id);
+			int peer_slot_available;
 			if (packet_type == NET_PACKET_REMOTE_INPUT &&
 			    g_game_config.internet_play == 1) {
 				peer_slot_available =
@@ -1527,36 +1498,26 @@ int net_session_send_sequenced_game_packet(int dest_dplay_id,
 					   const unsigned int *packet,
 					   unsigned int packet_size)
 {
-	int append_terminator;
-	HRESULT send_result;
-	struct net_session_sequenced_encoded_packet encoded_packet;
-	unsigned int packet_type;
-	uint16_t packet_flags;
-	uint8_t *encoded_payload;
-	int encoded_size;
-	unsigned int packet_data_size;
-	unsigned int queue_index;
-	unsigned int queue_count;
-	int fixed_payload_size;
-
-	send_result = 0;
+	HRESULT send_result = 0;
 	if (g_net_session.dplay_interface == NULL) {
 		return 1;
 	}
 
-	packet_type = *packet;
-	packet_flags = (uint8_t)packet_type & 0x7F;
-	append_terminator = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
-			    packet_type >= NET_PACKET_RESYNC_CHUNK + 1;
+	unsigned int packet_type = *packet;
+	uint16_t packet_flags = (uint8_t)packet_type & 0x7F;
+	int append_terminator = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
+				packet_type >= NET_PACKET_RESYNC_CHUNK + 1;
 	packet_flags |= (uint16_t)(sequence & 0x7F) << 8;
 	packet_flags |= 0x80;
 	packet_flags &= 0x7FFF;
+	struct net_session_sequenced_encoded_packet encoded_packet;
 	encoded_packet.packet_type_header = (int16_t)packet_flags;
 	encoded_packet.packet_class = packet_class;
-	encoded_payload = (uint8_t *)&encoded_packet.payload_size;
-	encoded_size = 3;
+	uint8_t *encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+	int encoded_size = 3;
+	unsigned int packet_data_size;
 	if (append_terminator) {
-		fixed_payload_size =
+		int fixed_payload_size =
 			net_session_get_fixed_payload_size((int)packet_type);
 		packet_data_size = packet_size;
 		if (fixed_payload_size == 0) {
@@ -1593,14 +1554,14 @@ int net_session_send_sequenced_game_packet(int dest_dplay_id,
 				       [g_net_recv_queue_write_index]
 					       .payload,
 			       packet, packet_data_size);
-			queue_index =
+			unsigned int queue_index =
 				(unsigned int)g_net_recv_queue_write_index;
 			g_net_session_recv_queue[queue_index].direct_play_id =
 				(DPID)g_net_session.local_player_info
 					.direct_play_id;
 			g_net_session_recv_queue[queue_index].payload_size =
 				packet_data_size;
-			queue_count = g_net_recv_queue_count;
+			unsigned int queue_count = g_net_recv_queue_count;
 			g_net_session_recv_queue[queue_index].packet_class =
 				packet_class;
 			++queue_count;
@@ -1673,11 +1634,9 @@ int net_session_is_local_host(void) { return g_net_session.local_is_host; }
 int *net_session_receive_game_packet(int *out_sender_dpid,
 				     int *out_payload_size)
 {
-	int *packet;
-
 	for (;;) {
-		packet = (int *)net_session_receive_packet(out_sender_dpid,
-							   out_payload_size);
+		int *packet = (int *)net_session_receive_packet(
+			out_sender_dpid, out_payload_size);
 		if (packet == NULL || *out_sender_dpid != 0) {
 			return packet;
 		}
@@ -3130,25 +3089,15 @@ int net_session_send_compact_game_packet(int direct_play_id,
 					 unsigned int *payload,
 					 int payload_size, ...)
 {
-	int append_terminator;
-	HRESULT send_result;
-	struct net_session_compact_encoded_packet encoded_packet;
-	unsigned int packet_type;
-	uint16_t packet_flags;
-	int delivery_mode;
-	uint8_t *encoded_payload;
-	int encoded_size;
-	int packet_data_size;
-	int fixed_payload_size;
-
-	send_result = 0;
+	HRESULT send_result = 0;
 	if (g_net_session.dplay_interface == NULL) {
 		return 1;
 	}
-	packet_type = *payload;
-	packet_flags = (uint8_t)packet_type & 0x7F;
-	append_terminator = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
-			    packet_type >= NET_PACKET_RESYNC_CHUNK + 1;
+	unsigned int packet_type = *payload;
+	uint16_t packet_flags = (uint8_t)packet_type & 0x7F;
+	int append_terminator = packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
+				packet_type >= NET_PACKET_RESYNC_CHUNK + 1;
+	int delivery_mode;
 	if (packet_type == NET_PACKET_REMOTE_INPUT &&
 	    g_game_config.internet_play == 1) {
 		delivery_mode = 2;
@@ -3166,11 +3115,13 @@ int net_session_send_compact_game_packet(int direct_play_id,
 	} else if (delivery_mode == 1) {
 		packet_flags |= 0x8000;
 	}
+	struct net_session_compact_encoded_packet encoded_packet;
 	encoded_packet.packet_type_header = (int16_t)packet_flags;
-	encoded_payload = (uint8_t *)&encoded_packet.payload_size;
-	encoded_size = 2;
+	uint8_t *encoded_payload = (uint8_t *)&encoded_packet.payload_size;
+	int encoded_size = 2;
+	int packet_data_size;
 	if (append_terminator) {
-		fixed_payload_size =
+		int fixed_payload_size =
 			net_session_get_fixed_payload_size((int)packet_type);
 		packet_data_size = payload_size;
 		if (fixed_payload_size == 0) {
@@ -3209,20 +3160,15 @@ int net_session_send_compact_game_packet(int direct_play_id,
 int *net_session_wait_for_game_packet(int *out_dpid, int *out_payload_size,
 				      int timeout_seconds)
 {
-	uint32_t start_time;
-	uint32_t timeout_milliseconds;
+	uint32_t timeout_milliseconds = (uint32_t)(timeout_seconds * 1000);
+	uint32_t start_time = timeGetTime();
 	int sender_dpid;
 	int payload_size;
-	int copied_payload_size;
-	int *packet;
-
-	timeout_milliseconds = (uint32_t)(timeout_seconds * 1000);
-	start_time = timeGetTime();
 	while (timeGetTime() - start_time <= timeout_milliseconds) {
-		packet = net_session_receive_game_packet(&sender_dpid,
-							 &payload_size);
+		int *packet = net_session_receive_game_packet(&sender_dpid,
+							      &payload_size);
 		if (packet != NULL) {
-			copied_payload_size = payload_size;
+			int copied_payload_size = payload_size;
 			*out_dpid = sender_dpid;
 			*out_payload_size = copied_payload_size;
 			return packet;
@@ -3261,10 +3207,8 @@ int net_session_get_player_dplay_id(int player_index)
 // FUNCTION: XVT 0x46F690
 int net_session_get_dplay_id_by_active_player_index(int active_player_index)
 {
-	int active_index;
+	int active_index = 0;
 	unsigned int player_slot;
-
-	active_index = 0;
 	for (player_slot = 0; player_slot < 8; player_slot++) {
 		if (g_net_session.players[player_slot].active_flag != 0) {
 			if (active_index == active_player_index) {
@@ -3286,11 +3230,8 @@ int net_session_get_dplay_id_by_active_player_index(int active_player_index)
 // FUNCTION: XVT 0x46F6D0
 int net_session_find_active_player_index_by_dpid(int dpid)
 {
-	int active_player_index;
-	int player_slot;
-
-	active_player_index = 0;
-	for (player_slot = 0; player_slot < 8; player_slot++) {
+	int active_player_index = 0;
+	for (int player_slot = 0; player_slot < 8; player_slot++) {
 		if (g_net_session.players[player_slot].active_flag != 0) {
 			if (g_net_session.players[player_slot].direct_play_id ==
 			    dpid) {
@@ -3321,13 +3262,11 @@ int net_session_get_local_dplay_id(void)
 // FUNCTION: XVT 0x46F720
 char *net_session_get_player_name(int player_slot)
 {
-	int roster_index;
-
 	if (g_net_session.player_count == 1) {
 		return g_net_session.local_player_info.player_name;
 	}
 
-	roster_index = 0;
+	int roster_index = 0;
 	if (g_net_session.player_count > roster_index) {
 		do {
 			if (net_session_find_player_slot_by_dpid(
@@ -3403,10 +3342,9 @@ void net_session_set_player_count(int player_count)
 void net_session_add_player_to_roster_slot(
 	int player_slot, const struct session_player_info *player_info)
 {
-	struct session_player_info *roster_slot;
-
 	g_net_session.players[player_slot] = *player_info;
-	roster_slot = &g_net_session.players[player_slot];
+	struct session_player_info *roster_slot =
+		&g_net_session.players[player_slot];
 	roster_slot->active_flag = 1;
 	g_net_session.player_count++;
 }
@@ -3420,17 +3358,15 @@ void net_session_add_player_to_roster_slot(
 // FUNCTION: XVT 0x46F840
 int net_session_broadcast_player_roster(int to_player_id)
 {
-	int out_dpid;
-	int out_payload_size;
-	int *packet;
-	int player_index;
-
 	g_net_session_scratch_packet.packet_type = NET_PACKET_ROSTER_COUNT;
 	g_net_session_scratch_packet.payload_dwords[0] =
 		g_net_session.player_count;
 	net_session_send_packet(
 		to_player_id, (unsigned int *)&g_net_session_scratch_packet, 8);
 
+	int out_dpid;
+	int out_payload_size;
+	int *packet;
 	if (to_player_id == 0) {
 		do {
 			packet = net_session_wait_for_game_packet(
@@ -3441,7 +3377,7 @@ int net_session_broadcast_player_roster(int to_player_id)
 		} while (*packet != NET_PACKET_ROSTER_COUNT);
 	}
 
-	for (player_index = 0; player_index < g_net_session.player_count;
+	for (int player_index = 0; player_index < g_net_session.player_count;
 	     ++player_index) {
 		g_net_session_scratch_packet.packet_type =
 			NET_PACKET_ROSTER_ENTRY;
@@ -3501,9 +3437,8 @@ int net_session_add_player_to_group(
 int net_session_count_active_players(void)
 {
 	int active_player_count = 0;
-	int player_index;
 
-	for (player_index = 0; player_index < 8; ++player_index) {
+	for (int player_index = 0; player_index < 8; ++player_index) {
 		if (g_net_session.players[player_index].active_flag == 1) {
 			++active_player_count;
 		}
@@ -3527,9 +3462,7 @@ int net_session_remove_player_from_group(int player_dplay_id)
 // FUNCTION: XVT 0x46FA70
 int net_session_select_first_active_player_as_host(void)
 {
-	int player_index;
-
-	player_index = 0;
+	int player_index = 0;
 	while (g_net_session.players[player_index].active_flag == 0) {
 		player_index++;
 		if (player_index >= 8) {
@@ -3568,31 +3501,25 @@ int net_session_get_fixed_payload_size(int packet_type)
 // FUNCTION: XVT 0x46FAE0
 int net_session_send_reliable_keepalives(void)
 {
-	struct session_player_info *player;
-	struct session_player_info *player_roster;
-	unsigned int player_index;
-	unsigned int peer_slot;
-	unsigned int reliable_peer_index;
-	uint32_t current_time;
-	unsigned int next_sequence;
+	unsigned int player_index = 0;
 	int player_count;
-
-	player_index = 0;
-	player_roster = net_session_get_player_roster(&player_count);
+	struct session_player_info *player_roster =
+		net_session_get_player_roster(&player_count);
 	if (player_count != 0) {
-		player = player_roster;
+		struct session_player_info *player = player_roster;
 		do {
-			current_time = timeGetTime();
+			uint32_t current_time = timeGetTime();
 			if (g_net_session.local_player_info.direct_play_id !=
 			    player->direct_play_id) {
-				peer_slot =
+				unsigned int peer_slot =
 					net_reliable_find_or_create_peer_slot(
 						player->direct_play_id);
 				if (peer_slot <
 					    g_net_session
 						    .reliable_peer_slot_count &&
 				    peer_slot < 8) {
-					reliable_peer_index = peer_slot;
+					unsigned int reliable_peer_index =
+						peer_slot;
 					if (current_time -
 						    g_net_session
 							    .reliable_peer_slots
@@ -3609,7 +3536,7 @@ int net_session_send_reliable_keepalives(void)
 						g_net_session_scratch_packet
 							.packet_type =
 							NET_PACKET_KEEPALIVE;
-						next_sequence =
+						unsigned int next_sequence =
 							g_net_session
 								.reliable_peer_slots
 									[reliable_peer_index]

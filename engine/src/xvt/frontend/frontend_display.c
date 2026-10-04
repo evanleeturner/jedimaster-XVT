@@ -311,10 +311,6 @@ int g_game_main_skip_intro_relaunch_gate;
 int game_main(void *hInstance, const void *hPrevInstance, char *lpCmdLine,
 	      int nShowCmd)
 {
-	frontend_screen_update_fn update_function;
-	frontend_screen_exit_fn exit_function;
-	int (*init_function)(void);
-
 	g_cmd_line = lpCmdLine;
 	if (strstr(lpCmdLine, "nofrontflip") != NULL) {
 		g_no_page_flip = 1;
@@ -345,6 +341,9 @@ int game_main(void *hInstance, const void *hPrevInstance, char *lpCmdLine,
 	if (win32_check_single_instance() != 0) {
 		exit(0);
 	}
+	frontend_screen_update_fn update_function;
+	frontend_screen_exit_fn exit_function;
+	int (*init_function)(void);
 	if (g_opt_skip_intro != 0 || g_opt_is_host != 0 ||
 	    g_opt_is_client != 0) {
 		update_function = concourse_update;
@@ -381,9 +380,7 @@ int game_main(void *hInstance, const void *hPrevInstance, char *lpCmdLine,
 // FUNCTION: XVT 0x4D37E0
 HRESULT frontend_display_restore_lost_surfaces(void)
 {
-	HRESULT result;
-
-	result = g_front_state.primary_surface->lpVtbl->Restore(
+	HRESULT result = g_front_state.primary_surface->lpVtbl->Restore(
 		g_front_state.primary_surface);
 	if (result == 0) {
 		if (g_opt_no_fullscreen != 0 || g_no_page_flip != 0) {
@@ -409,16 +406,14 @@ HRESULT frontend_display_restore_lost_surfaces(void)
 // FUNCTION: XVT 0x4D3820
 void frontend_display_shutdown(int b_destroy_window)
 {
-	int screen_index;
-
 	if (g_shutdown_complete != 0) {
 		return;
 	}
 	g_shutdown_complete = 1;
 	frontend_sound_shutdown_direct_sound();
 	frontend_text_free_all_fonts();
-	for (screen_index = 0; screen_index < g_front_state.screen_stack_top;
-	     screen_index++) {
+	for (int screen_index = 0;
+	     screen_index < g_front_state.screen_stack_top; screen_index++) {
 		if (g_front_state.screen_states[screen_index]
 			    .saved_image.pixels != NULL) {
 			free(g_front_state.screen_states[screen_index]
@@ -707,13 +702,13 @@ int32_t AERON_DXAPI frontend_display_wnd_proc(void *hWnd, unsigned int Msg,
 // FUNCTION: XVT 0x4D3DA0
 int frontend_display_report_direct_draw_init_failure(void *hWnd, int stage)
 {
-	char message[256];
 #ifdef XVT_MODERN
+	(void)hWnd;
 	AeronMessageBoxButton button = {1, "OK", 1, 1};
 	AeronMessageBoxOptions options;
-	(void)hWnd;
 #endif
 
+	char message[256];
 	sprintf(message, "DirectDraw Init FAILED at %d", stage);
 #ifdef XVT_MODERN
 	options.kind = AERON_MESSAGE_BOX_ERROR;
@@ -736,14 +731,13 @@ int frontend_display_report_direct_draw_init_failure(void *hWnd, int stage)
 // FUNCTION: XVT 0x4D3DF0
 int frontend_display_show_game_message_box(const char *text)
 {
-	int was_back_buffer_locked;
 #ifdef XVT_MODERN
 	AeronMessageBoxButton button = {1, "OK", 1, 1};
 	AeronMessageBoxOptions options = {AERON_MESSAGE_BOX_WARNING,
 					  g_window_name, text, &button, 1};
 #endif
 
-	was_back_buffer_locked = g_front_state.back_buffer_locked;
+	int was_back_buffer_locked = g_front_state.back_buffer_locked;
 	frontend_display_unlock_back_buffer();
 	if (g_front_state.direct_draw != NULL) {
 		g_front_state.direct_draw->lpVtbl->FlipToGDISurface(
@@ -802,16 +796,11 @@ uint32_t frontend_display_run_main_loop(void *hInstance,
 		JOYSTICK_UPDATE_INTERVAL_MS = 100,
 		WINDOW_CLOSE_MESSAGE = 0x10,
 	};
-	struct frontend_display_win32_message message;
-	uint32_t frame_start;
-	uint32_t joystick_update;
-	int update_result;
-	int frame_ready;
 
 	(void)hPrevInstance;
 	(void)lpCmdLine;
-	update_result = SCREEN_CONTINUE;
-	frame_ready = 0;
+	int update_result = SCREEN_CONTINUE;
+	int frame_ready = 0;
 	if (frontend_display_init_main_window(hInstance, nShowCmd) == 0) {
 		return 0;
 	}
@@ -821,8 +810,8 @@ uint32_t frontend_display_run_main_loop(void *hInstance,
 		return 0;
 	}
 
-	frame_start = GetTickCount();
-	joystick_update = frame_start;
+	uint32_t frame_start = GetTickCount();
+	uint32_t joystick_update = frame_start;
 	g_front_state.text_color_codes[0] = 0xFFFF;
 	g_front_state.text_color_codes[1] =
 		frontend_display_pack_rgb(0x40, 0xC4, 0x40);
@@ -835,12 +824,11 @@ uint32_t frontend_display_run_main_loop(void *hInstance,
 	g_front_state.text_color_codes[5] =
 		frontend_display_pack_rgb(0x80, 0x80, 0xFF);
 
+	struct frontend_display_win32_message message;
 	for (;;) {
 		if (g_front_state.app_active != 0) {
 			if (frame_ready != 0 &&
 			    update_result == SCREEN_CONTINUE) {
-				frontend_screen_exit_fn exit_fn;
-
 				frame_ready = 0;
 				g_front_state.net_ready_player_left_this_frame =
 					0;
@@ -861,7 +849,7 @@ uint32_t frontend_display_run_main_loop(void *hInstance,
 						g_front_state.key_state);
 					g_draw_surface_ptr =
 						frontend_display_lock_back_buffer();
-					exit_fn =
+					frontend_screen_exit_fn exit_fn =
 						g_front_state
 							.screen_states
 								[g_front_state
@@ -983,9 +971,7 @@ uint32_t frontend_display_run_main_loop(void *hInstance,
 				continue;
 			}
 			if (update_result == SCREEN_CONTINUE) {
-				uint32_t now;
-
-				now = GetTickCount();
+				uint32_t now = GetTickCount();
 				if ((int32_t)(now - frame_start) >=
 				    g_front_state.frame_interval_ms) {
 					frame_ready = 1;
@@ -1038,13 +1024,9 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 #ifndef XVT_MODERN
 	struct WNDCLASSA window_class;
 #endif
-	DDSURFACEDESC surface_desc;
-	DDSCAPS attached_surface_caps;
-	const DxGuid *driver_guid;
-	void *window_handle;
-	HRESULT result;
 	(void)nShowCmd;
 
+	void *window_handle;
 #ifdef XVT_MODERN
 	/* The host shell owns the window, so the port keeps the handle it published. */
 	(void)hInstance;
@@ -1073,7 +1055,7 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 	SetFocus(window_handle);
 #endif
 
-	driver_guid = frontend_display_load_driver_guid();
+	const DxGuid *driver_guid = frontend_display_load_driver_guid();
 #ifdef XVT_MODERN
 	if (DirectDrawCreate_Compat(driver_guid, &g_front_state.direct_draw,
 				    NULL) != 0) {
@@ -1096,7 +1078,7 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 		}
 	}
 
-	result = g_front_state.direct_draw->lpVtbl->SetCooperativeLevel(
+	HRESULT result = g_front_state.direct_draw->lpVtbl->SetCooperativeLevel(
 		g_front_state.direct_draw, window_handle,
 		DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWMODEX);
 	if (result != 0) {
@@ -1110,6 +1092,7 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 			window_handle, 2);
 	}
 
+	DDSURFACEDESC surface_desc;
 	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
 		memset(&surface_desc, 0, sizeof(surface_desc));
 		surface_desc.dwSize = sizeof(surface_desc);
@@ -1136,6 +1119,7 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 		(surface_desc.ddpfPixelFormat.dwGBitMask & 0x400) == 0;
 
 	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
+		DDSCAPS attached_surface_caps;
 		attached_surface_caps.dwCaps = DDSCAPS_BACKBUFFER;
 		result = g_front_state.primary_surface->lpVtbl
 				 ->GetAttachedSurface(
@@ -1278,9 +1262,6 @@ uint32_t frontend_display_init(void *hInstance, const void *hPrevInstance,
 			       frontend_screen_exit_fn screen_exit_fn,
 			       int (*mode_init_fn)(void), int fps, int bpp)
 {
-	int frame_rate;
-	int zero_value;
-
 	memset(&g_front_state, 0, sizeof(g_front_state));
 	g_front_state.frontend_display_wnd_proc_mode = 0;
 	g_shutdown_complete = 0;
@@ -1309,7 +1290,7 @@ uint32_t frontend_display_init(void *hInstance, const void *hPrevInstance,
 	g_front_state.clip_max_y = 479;
 	g_front_state.clear_back_buffer_after_present = 1;
 	g_front_state.display_bpp = bpp;
-	zero_value = 0;
+	int zero_value = 0;
 	g_front_state.pixel_format555 = zero_value;
 	g_front_state.clip_min_x = zero_value;
 	g_front_state.clip_min_y = zero_value;
@@ -1317,7 +1298,7 @@ uint32_t frontend_display_init(void *hInstance, const void *hPrevInstance,
 	g_front_state.char_read_idx = zero_value;
 	g_front_state.resource_count = zero_value;
 	g_front_state.cd_audio_saved_aux_volume = -1;
-	frame_rate = fps;
+	int frame_rate = fps;
 	if (frame_rate <= zero_value) {
 		frame_rate = 1;
 	}
@@ -1346,8 +1327,6 @@ uint8_t *frontend_display_lock_back_buffer(void)
 		FRONTEND_DDERR_SURFACEISOBSCURED = -2005532232,
 	};
 
-	HRESULT lock_result;
-
 	if (g_front_state.direct_draw == NULL) {
 		return NULL;
 	}
@@ -1365,6 +1344,7 @@ uint8_t *frontend_display_lock_back_buffer(void)
 
 	g_front_state.back_buffer_desc.dwSize =
 		sizeof(g_front_state.back_buffer_desc);
+	HRESULT lock_result;
 	do {
 		do {
 			lock_result =
@@ -1416,11 +1396,6 @@ void frontend_display_unlock_back_buffer(void)
 // FUNCTION: XVT 0x4D49A0
 void frontend_display_present_frame(void)
 {
-	int vertical_blank_status;
-	struct RECT source_rect;
-	DDSURFACEDESC surface_desc;
-	HRESULT result;
-
 	if (g_front_state.direct_draw == NULL) {
 		return;
 	}
@@ -1429,12 +1404,15 @@ void frontend_display_present_frame(void)
 		frontend_display_unlock_back_buffer();
 	}
 
+	struct RECT source_rect;
 	source_rect.right = 640;
 	source_rect.bottom = 480;
 	source_rect.left = 0;
 	source_rect.top = 0;
 
+	HRESULT result;
 	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
+		int vertical_blank_status;
 		do {
 			result = g_front_state.direct_draw->lpVtbl
 					 ->GetVerticalBlankStatus(
@@ -1498,6 +1476,7 @@ void frontend_display_present_frame(void)
 				0;
 			if (g_front_state.offscreen_backup_buffer != NULL &&
 			    g_front_state.offscreen_surface != NULL) {
+				DDSURFACEDESC surface_desc;
 				memset(&surface_desc, 0, sizeof(surface_desc));
 				surface_desc.dwSize = sizeof(surface_desc);
 				for (;;) {
@@ -1608,24 +1587,21 @@ void frontend_display_set_surface_clear_color(uint32_t color)
 // FUNCTION: XVT 0x4D4C10
 void frontend_display_clear_back_buffer(void)
 {
-	struct RECT rect;
-	DDBLTFX effects;
-	int was_locked;
-	HRESULT result;
-
 	if (g_front_state.direct_draw == NULL ||
 	    g_front_state.back_buffer_surface == NULL) {
 		return;
 	}
 
-	was_locked = g_front_state.back_buffer_locked;
+	int was_locked = g_front_state.back_buffer_locked;
 	frontend_display_unlock_back_buffer();
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 0, 0, 640, 480);
+	DDBLTFX effects;
 	memset(&effects, 0, sizeof(effects));
 	effects.dwSize = sizeof(effects);
 	effects.dwFillColor = g_front_state.surface_clear_color;
 	for (;;) {
-		result = g_front_state.back_buffer_surface->lpVtbl->Blt(
+		HRESULT result = g_front_state.back_buffer_surface->lpVtbl->Blt(
 			g_front_state.back_buffer_surface, &rect, NULL, NULL,
 			DDBLT_COLORFILL, &effects);
 		if (result == DX_DD_OK) {
@@ -1731,9 +1707,6 @@ int frontend_display_set_frame_rate(int fps)
 // FUNCTION: XVT 0x4D4E20
 int frontend_display_lock_offscreen_surface(void)
 {
-	DDSURFACEDESC surface_desc;
-	HRESULT result;
-
 	if (g_front_state.direct_draw == NULL) {
 		return 0;
 	}
@@ -1741,10 +1714,11 @@ int frontend_display_lock_offscreen_surface(void)
 		return 0;
 	}
 
+	DDSURFACEDESC surface_desc;
 	memset(&surface_desc, 0, sizeof(surface_desc));
 	surface_desc.dwSize = sizeof(surface_desc);
 	for (;;) {
-		result = g_front_state.offscreen_surface->lpVtbl->Lock(
+		HRESULT result = g_front_state.offscreen_surface->lpVtbl->Lock(
 			g_front_state.offscreen_surface, NULL, &surface_desc, 0,
 			NULL);
 		if (result == DX_DD_OK) {
@@ -1842,24 +1816,21 @@ int frontend_display_disable_offscreen_restore(void)
 // FUNCTION: XVT 0x4D4F80
 void frontend_display_clear_offscreen_surface(void)
 {
-	struct RECT rect;
-	DDBLTFX effects;
-	int was_locked;
-	HRESULT result;
-
 	if (g_front_state.direct_draw == NULL ||
 	    g_front_state.offscreen_surface == NULL) {
 		return;
 	}
 
-	was_locked = g_front_state.back_buffer_locked;
+	int was_locked = g_front_state.back_buffer_locked;
 	frontend_display_unlock_back_buffer();
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 0, 0, 640, 480);
+	DDBLTFX effects;
 	memset(&effects, 0, sizeof(effects));
 	effects.dwSize = sizeof(effects);
 	effects.dwFillColor = g_front_state.surface_clear_color;
 	for (;;) {
-		result = g_front_state.offscreen_surface->lpVtbl->Blt(
+		HRESULT result = g_front_state.offscreen_surface->lpVtbl->Blt(
 			g_front_state.offscreen_surface, &rect, NULL, NULL,
 			DDBLT_COLORFILL, &effects);
 		if (result == DX_DD_OK) {
@@ -1929,9 +1900,6 @@ uint32_t frontend_display_init_preserving_network_session(
 	frontend_screen_exit_fn screen_exit_fn, int (*mode_init_fn)(void),
 	int fps, int bpp)
 {
-	int frame_rate;
-	int zero_value;
-
 	(void)hPrevInstance;
 	(void)lpCmdLine;
 	(void)nShowCmd;
@@ -1962,14 +1930,14 @@ uint32_t frontend_display_init_preserving_network_session(
 	g_front_state.clip_max_y = 479;
 	g_front_state.clear_back_buffer_after_present = 1;
 	g_front_state.display_bpp = bpp;
-	zero_value = 0;
+	int zero_value = 0;
 	g_front_state.pixel_format555 = zero_value;
 	g_front_state.clip_min_x = zero_value;
 	g_front_state.clip_min_y = zero_value;
 	g_front_state.char_write_idx = zero_value;
 	g_front_state.char_read_idx = zero_value;
 	g_front_state.resource_count = zero_value;
-	frame_rate = fps;
+	int frame_rate = fps;
 	if (frame_rate <= g_front_state.resource_count) {
 		frame_rate = 1;
 	}
@@ -1994,26 +1962,17 @@ uint32_t frontend_display_init_preserving_network_session(
 // FUNCTION: XVT 0x4D51E0
 void frontend_display_reset_global_state_preserving_network_session(void)
 {
-	IDirectPlay2A *net_direct_play;
-	GUID net_app_guid;
-	GUID net_joined_session_guid;
-	DPID net_host_player_id;
-	DPID net_group_dplay_id;
-	int net_is_host;
+	IDirectPlay2A *net_direct_play = g_front_state.net_direct_play;
+	GUID net_app_guid = g_front_state.net_app_guid;
+	GUID net_joined_session_guid = g_front_state.net_joined_session_guid;
+	DPID net_host_player_id = g_front_state.net_host_player_id;
+	DPID net_group_dplay_id = g_front_state.net_group_dplay_id;
+	int net_is_host = g_front_state.net_is_host;
 	char net_session_name[32];
-	struct net_player_info net_runtime_local_player;
-	int player_index;
-	DPID candidate_host_player_id;
-
-	net_direct_play = g_front_state.net_direct_play;
-	net_app_guid = g_front_state.net_app_guid;
-	net_joined_session_guid = g_front_state.net_joined_session_guid;
-	net_host_player_id = g_front_state.net_host_player_id;
-	net_group_dplay_id = g_front_state.net_group_dplay_id;
-	net_is_host = g_front_state.net_is_host;
 	memcpy(net_session_name, g_front_state.net_session_name,
 	       sizeof(net_session_name));
-	net_runtime_local_player = g_front_state.net_runtime_local_player;
+	struct net_player_info net_runtime_local_player =
+		g_front_state.net_runtime_local_player;
 
 	memset(&g_front_state, 0, sizeof(g_front_state));
 
@@ -2032,6 +1991,7 @@ void frontend_display_reset_global_state_preserving_network_session(void)
 
 	if (g_front_state.net_direct_play != NULL) {
 		net_refresh_player_roster();
+		int player_index;
 		for (player_index = 0; player_index < 32; ++player_index) {
 			if (g_front_state.net_players[player_index].player_id ==
 			    g_front_state.net_host_player_id) {
@@ -2039,7 +1999,7 @@ void frontend_display_reset_global_state_preserving_network_session(void)
 			}
 		}
 		if (player_index == 32) {
-			candidate_host_player_id =
+			DPID candidate_host_player_id =
 				g_front_state.net_players[player_index]
 					.player_id;
 			for (player_index = 0; player_index < 32;
@@ -2074,11 +2034,9 @@ void frontend_display_reset_global_state_preserving_network_session(void)
 int frontend_display_capture_screenshot(void)
 {
 	char file_name[64];
-	int sequence;
-	xvt_file *stream;
-	int result;
 
-	sequence = 0;
+	int sequence = 0;
+	xvt_file *stream;
 	for (;;) {
 		sprintf(file_name, "frontscreen%d.bmp", sequence);
 #ifdef XVT_MODERN
@@ -2099,7 +2057,7 @@ int frontend_display_capture_screenshot(void)
 	}
 
 	g_draw_surface_ptr = frontend_display_lock_back_buffer();
-	result = front_image_save_bmp_file(
+	int result = front_image_save_bmp_file(
 		file_name, g_draw_surface_ptr, 640, 480,
 		g_front_state.back_buffer_pitch, g_front_state.display_bpp,
 		g_front_state.pixel_format555, g_front_state.display_palette);
@@ -2139,17 +2097,12 @@ int frontend_display_run_frame(void)
 		JOYSTICK_UPDATE_INTERVAL_MS = 100,
 	};
 	struct frontend_display_win32_message message;
-	uint32_t frame_start;
-	uint32_t joystick_update;
-	int frame_ready;
 
-	frame_start = GetTickCount();
-	joystick_update = frame_start;
-	frame_ready = 0;
+	uint32_t frame_start = GetTickCount();
+	uint32_t joystick_update = frame_start;
+	int frame_ready = 0;
 	for (;;) {
 		if (g_front_state.app_active != 0) {
-			uint32_t now;
-
 			if (frame_ready != 0) {
 				break;
 			}
@@ -2161,7 +2114,7 @@ int frontend_display_run_frame(void)
 				DispatchMessageA(&message);
 				continue;
 			}
-			now = GetTickCount();
+			uint32_t now = GetTickCount();
 			if ((int32_t)(now - frame_start) >=
 			    g_front_state.frame_interval_ms) {
 				frame_ready = 1;
@@ -2191,14 +2144,13 @@ int frontend_display_run_frame(void)
 	net_pump_incoming_packets();
 	if (g_front_state.screen_states[g_front_state.screen_stack_top]
 		    .update_fn != NULL) {
-		frontend_screen_exit_fn exit_fn;
-		int update_result;
 		GetKeyboardState(g_front_state.key_state);
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
-		exit_fn = g_front_state
-				  .screen_states[g_front_state.screen_stack_top]
-				  .exit_fn;
-		update_result =
+		frontend_screen_exit_fn exit_fn =
+			g_front_state
+				.screen_states[g_front_state.screen_stack_top]
+				.exit_fn;
+		int update_result =
 			g_front_state
 				.screen_states[g_front_state.screen_stack_top]
 				.update_fn(g_front_state.frame_counter);
@@ -2303,12 +2255,8 @@ int frontend_display_release_surfaces_for_flight(void)
 // FUNCTION: XVT 0x4D5760
 int frontend_display_reinit_surfaces(void)
 {
-	DDSURFACEDESC surface_desc;
-	DDSCAPS attached_surface_caps;
-	void *window_handle;
+	void *window_handle = g_front_state.hWnd;
 	HRESULT result;
-
-	window_handle = g_front_state.hWnd;
 	if (g_opt_no_fullscreen != 0) {
 		result = g_front_state.direct_draw->lpVtbl->SetCooperativeLevel(
 			g_front_state.direct_draw, window_handle, DDSCL_NORMAL);
@@ -2333,6 +2281,7 @@ int frontend_display_reinit_surfaces(void)
 		}
 	}
 
+	DDSURFACEDESC surface_desc;
 	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
 		memset(&surface_desc, 0, sizeof(surface_desc));
 		surface_desc.dwSize = sizeof(surface_desc);
@@ -2370,6 +2319,7 @@ int frontend_display_reinit_surfaces(void)
 			g_front_state.direct_draw, &surface_desc,
 			&g_front_state.back_buffer_surface, NULL);
 	} else {
+		DDSCAPS attached_surface_caps;
 		attached_surface_caps.dwCaps = DDSCAPS_BACKBUFFER;
 		result = g_front_state.primary_surface->lpVtbl
 				 ->GetAttachedSurface(
@@ -2513,14 +2463,11 @@ void frontend_display_flip_direct_draw_to_gdi_surface(void)
 // FUNCTION: XVT 0x4D5C20
 const DxGuid *frontend_display_load_driver_guid(void)
 {
-	xvt_file *stream;
-	int read_succeeded;
-
-	stream = file_open("video.cfg", "rb");
+	xvt_file *stream = file_open("video.cfg", "rb");
 	if (stream == NULL) {
 		return NULL;
 	}
-	read_succeeded =
+	int read_succeeded =
 		file_read_bytes(stream, &g_configured_direct_draw_driver_guid,
 				sizeof(g_configured_direct_draw_driver_guid));
 	file_close(stream);
@@ -2545,28 +2492,24 @@ int frontend_display_draw_gdi_text_on_desktop(const struct RECT *unused,
 	(void)overlay_text;
 	return 0;
 #else
-	void *dc;
-	void *font;
-	void *previous_object;
-	struct RECT rect;
-
 	(void)unused;
 	if (g_front_state.secondary_direct_draw_active == 0) {
 		return 0;
 	}
-	dc = CreateDCA("DISPLAY", NULL, NULL, NULL);
+	void *dc = CreateDCA("DISPLAY", NULL, NULL, NULL);
 	if (dc == NULL) {
 		return 0;
 	}
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 0, 0, GetSystemMetrics(0),
 				  GetSystemMetrics(1));
-	font = CreateFontA(-12, 0, 0, 0, 400, 0, 0, 0, 0, 4, 0, 3, 0x12,
-			   "times new roman");
+	void *font = CreateFontA(-12, 0, 0, 0, 400, 0, 0, 0, 0, 4, 0, 3, 0x12,
+				 "times new roman");
 	if (font == NULL) {
 		DeleteDC(dc);
 		return 0;
 	}
-	previous_object = SelectObject(dc, font);
+	void *previous_object = SelectObject(dc, font);
 	SetMapMode(dc, 1);
 	SetTextCharacterExtra(dc, 0);
 	SetTextColor(dc, 0xFFFFFF);
@@ -2596,21 +2539,19 @@ int frontend_display_clear_desktop_gdi(const struct RECT *unused)
 	(void)unused;
 	return 0;
 #else
-	void *dc;
-	struct RECT rect;
-
 	(void)unused;
 
 	if (g_front_state.secondary_direct_draw_active == 0) {
 		return 0;
 	}
 
-	dc = CreateDCA("DISPLAY", NULL, NULL, NULL);
+	void *dc = CreateDCA("DISPLAY", NULL, NULL, NULL);
 	if (dc == NULL) {
 		return 0;
 	}
 
 	SelectObject(dc, GetStockObject(4));
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 0, 0, GetSystemMetrics(0),
 				  GetSystemMetrics(1));
 	Rectangle(dc, rect.left, rect.top, rect.right, rect.bottom);
@@ -2651,35 +2592,29 @@ void frontend_display_set_palette(void)
 // FUNCTION: XVT 0x4D6E30
 int frontend_display_pack_rgb(uint8_t r, uint8_t g, uint8_t b)
 {
-	int index;
 	unsigned int best_distance;
 	int best_index;
-	struct frontend_palette_entry *entry;
 
 	switch (g_front_state.display_bpp) {
 	case 8:
 		best_distance = 0x7FFFFFFFu;
 		best_index = 1;
-		for (index = 1; index < 256; ++index) {
-			int red_delta;
-			int green_delta;
-			int blue_delta;
-			unsigned int distance;
-
-			entry = &g_front_state.display_palette[index];
-			red_delta = (int)entry->red - r;
+		for (int index = 1; index < 256; ++index) {
+			struct frontend_palette_entry *entry =
+				&g_front_state.display_palette[index];
+			int red_delta = (int)entry->red - r;
 			if (red_delta < 0) {
 				red_delta = -red_delta;
 			}
-			green_delta = (int)entry->green - g;
+			int green_delta = (int)entry->green - g;
 			if (green_delta < 0) {
 				green_delta = -green_delta;
 			}
-			blue_delta = (int)entry->blue - b;
+			int blue_delta = (int)entry->blue - b;
 			if (blue_delta < 0) {
 				blue_delta = -blue_delta;
 			}
-			distance = g_color_dist_lut[blue_delta];
+			unsigned int distance = g_color_dist_lut[blue_delta];
 			distance += g_color_dist_lut[red_delta];
 			distance += g_color_dist_lut[green_delta];
 			if (distance == 0) {
@@ -2723,19 +2658,14 @@ int frontend_display_pack_rgb(uint8_t r, uint8_t g, uint8_t b)
 // FUNCTION: XVT 0x4DC9B0
 int frontend_display_save_back_buffer(void)
 {
-	int was_back_buffer_locked;
-	uint8_t *source;
-	uint8_t *destination;
-	int row;
-
 #ifdef XVT_MODERN
 	xvt_render_frontend_suppress(1);
 #endif
-	was_back_buffer_locked = g_front_state.back_buffer_locked;
-	source = frontend_display_lock_back_buffer();
+	int was_back_buffer_locked = g_front_state.back_buffer_locked;
+	uint8_t *source = frontend_display_lock_back_buffer();
 	frontend_display_lock_offscreen_surface();
-	destination = g_draw_surface_ptr;
-	for (row = 480; row != 0; --row) {
+	uint8_t *destination = g_draw_surface_ptr;
+	for (int row = 480; row != 0; --row) {
 		memcpy(destination, source,
 		       (size_t)(80 * (g_front_state.display_bpp & 0xFFFFFFF8)));
 		destination += g_front_state.offscreen_surface_pitch;
@@ -2762,19 +2692,14 @@ int frontend_display_save_back_buffer(void)
 // FUNCTION: XVT 0x4DCA20
 int frontend_display_restore_back_buffer(void)
 {
-	int was_back_buffer_locked;
-	uint8_t *destination;
-	uint8_t *source;
-	int row;
-
 #ifdef XVT_MODERN
 	xvt_render_frontend_suppress(1);
 #endif
-	was_back_buffer_locked = g_front_state.back_buffer_locked;
-	destination = frontend_display_lock_back_buffer();
+	int was_back_buffer_locked = g_front_state.back_buffer_locked;
+	uint8_t *destination = frontend_display_lock_back_buffer();
 	frontend_display_lock_offscreen_surface();
-	source = g_draw_surface_ptr;
-	for (row = 480; row != 0; --row) {
+	uint8_t *source = g_draw_surface_ptr;
+	for (int row = 480; row != 0; --row) {
 		memcpy(destination, source,
 		       (size_t)(80 * (g_front_state.display_bpp & 0xFFFFFFF8)));
 		source += g_front_state.offscreen_surface_pitch;
@@ -2808,16 +2733,10 @@ int frontend_display_restore_back_buffer(void)
 IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 						  const char *lp_name)
 {
-	IDirectDrawPalette *palette;
-	struct frontend_display_bmp_file_header file_header;
-	struct frontend_display_bmp_info_header info_header;
 	struct frontend_palette_entry entries[256];
-	struct frontend_palette_entry *entry;
-	int index;
-	int color_count;
 
-	entry = entries;
-	index = 0;
+	struct frontend_palette_entry *entry = entries;
+	int index = 0;
 	do {
 		entry->red = (uint8_t)(255 * ((index & 0xE0) >> 5) / 7);
 		entry->green = (uint8_t)(255 * ((index & 0x1C) >> 2) / 7);
@@ -2827,21 +2746,18 @@ IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 		++index;
 	} while (entry < entries + 256);
 
+	struct frontend_display_bmp_file_header file_header;
+	struct frontend_display_bmp_info_header info_header;
+	int color_count;
 	if (lp_name != NULL) {
 #ifndef XVT_MODERN
-		void *resource_info;
-
-		resource_info = FindResourceA(NULL, lp_name, 2);
+		void *resource_info = FindResourceA(NULL, lp_name, 2);
 		if (resource_info != NULL) {
-			uint8_t *resource_data;
-			uint8_t *source_entry;
-			uint8_t color;
-			uint16_t bits_per_pixel;
-
-			resource_data =
+			uint8_t *resource_data =
 				LockResource(LoadResource(NULL, resource_info));
-			source_entry =
+			uint8_t *source_entry =
 				resource_data + *(uint32_t *)resource_data;
+			uint16_t bits_per_pixel;
 			if (resource_data != NULL &&
 			    *(uint32_t *)resource_data >=
 				    sizeof(struct
@@ -2858,7 +2774,7 @@ IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 			if (color_count > 0) {
 				entry = entries;
 				do {
-					color = source_entry[2];
+					uint8_t color = source_entry[2];
 					entry->red = color;
 					color = source_entry[1];
 					entry->green = color;
@@ -2871,9 +2787,7 @@ IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 				} while (color_count != 0);
 			}
 		} else {
-			int file;
-
-			file = _lopen(lp_name, 0);
+			int file = _lopen(lp_name, 0);
 			if (file != -1) {
 				_lread(file, &file_header, sizeof(file_header));
 				_lread(file, &info_header, sizeof(info_header));
@@ -2897,9 +2811,7 @@ IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 					color_count = 0;
 				}
 				for (index = 0; index < color_count; ++index) {
-					uint8_t red;
-
-					red = entries[index].red;
+					uint8_t red = entries[index].red;
 					entries[index].red =
 						entries[index].blue;
 					entries[index].blue = red;
@@ -2907,9 +2819,7 @@ IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 			}
 		}
 #else
-		xvt_file *stream;
-
-		stream = file_open(lp_name, "rb");
+		xvt_file *stream = file_open(lp_name, "rb");
 		if (stream != NULL) {
 			file_read_bytes(stream, &file_header,
 					sizeof(file_header));
@@ -2933,9 +2843,7 @@ IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 				color_count = 0;
 			}
 			for (index = 0; index < color_count; ++index) {
-				uint8_t red;
-
-				red = entries[index].red;
+				uint8_t red = entries[index].red;
 				entries[index].red = entries[index].blue;
 				entries[index].blue = red;
 			}
@@ -2943,6 +2851,7 @@ IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 #endif
 	}
 
+	IDirectDrawPalette *palette;
 #ifdef XVT_MODERN
 	palette = NULL;
 #endif
@@ -2973,24 +2882,10 @@ frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,
 						    uint32_t color)
 {
 #ifdef XVT_MODERN
-	uint32_t surface_pixel;
-	uint32_t red;
-	uint32_t green;
-	uint32_t blue;
-	uint32_t red_mask;
-	uint32_t green_mask;
-	uint32_t blue_mask;
-	uint32_t red_shift;
-	uint32_t green_shift;
-	uint32_t blue_shift;
-	uint32_t red_max;
-	uint32_t green_max;
-	uint32_t blue_max;
-	HRESULT lock_result;
+	uint32_t surface_pixel = UINT32_MAX;
 	DDSURFACEDESC surface_desc;
-
-	surface_pixel = UINT32_MAX;
 	surface_desc.dwSize = sizeof(surface_desc);
+	HRESULT lock_result;
 	do {
 		lock_result = surface->lpVtbl->Lock(surface, NULL,
 						    &surface_desc, 0, NULL);
@@ -3001,15 +2896,15 @@ frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,
 	if (color == UINT32_MAX) {
 		surface_pixel = *(uint32_t *)surface_desc.lpSurface;
 	} else {
-		red = color & 0xFF;
-		green = (color >> 8) & 0xFF;
-		blue = (color >> 16) & 0xFF;
-		red_mask = surface_desc.ddpfPixelFormat.dwRBitMask;
-		green_mask = surface_desc.ddpfPixelFormat.dwGBitMask;
-		blue_mask = surface_desc.ddpfPixelFormat.dwBBitMask;
-		red_shift = 0;
-		green_shift = 0;
-		blue_shift = 0;
+		uint32_t red = color & 0xFF;
+		uint32_t green = (color >> 8) & 0xFF;
+		uint32_t blue = (color >> 16) & 0xFF;
+		uint32_t red_mask = surface_desc.ddpfPixelFormat.dwRBitMask;
+		uint32_t green_mask = surface_desc.ddpfPixelFormat.dwGBitMask;
+		uint32_t blue_mask = surface_desc.ddpfPixelFormat.dwBBitMask;
+		uint32_t red_shift = 0;
+		uint32_t green_shift = 0;
+		uint32_t blue_shift = 0;
 		while (red_mask != 0 && ((red_mask >> red_shift) & 1) == 0) {
 			++red_shift;
 		}
@@ -3020,9 +2915,9 @@ frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,
 		while (blue_mask != 0 && ((blue_mask >> blue_shift) & 1) == 0) {
 			++blue_shift;
 		}
-		red_max = red_mask >> red_shift;
-		green_max = green_mask >> green_shift;
-		blue_max = blue_mask >> blue_shift;
+		uint32_t red_max = red_mask >> red_shift;
+		uint32_t green_max = green_mask >> green_shift;
+		uint32_t blue_max = blue_mask >> blue_shift;
 		surface_pixel =
 			(((red * red_max / 255) << red_shift) & red_mask) |
 			(((green * green_max / 255) << green_shift) &
@@ -3036,13 +2931,10 @@ frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,
 	surface->lpVtbl->Unlock(surface, NULL);
 	return surface_pixel;
 #else
-	uint32_t surface_pixel;
+	uint32_t surface_pixel = UINT32_MAX;
 	uint32_t original_color;
-	HRESULT lock_result;
 	void *dc;
 	DDSURFACEDESC surface_desc;
-
-	surface_pixel = UINT32_MAX;
 	if (color != UINT32_MAX &&
 	    ((frontend_display_surface_get_dc_func)surface->lpVtbl->GetDC)(
 		    surface, &dc) == 0) {
@@ -3054,6 +2946,7 @@ frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,
 		original_color = surface_desc.dwSize;
 	}
 	surface_desc.dwSize = sizeof(surface_desc);
+	HRESULT lock_result;
 	do {
 		lock_result = surface->lpVtbl->Lock(surface, NULL,
 						    &surface_desc, 0, NULL);

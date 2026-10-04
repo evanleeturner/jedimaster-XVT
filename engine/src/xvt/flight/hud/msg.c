@@ -99,15 +99,9 @@ const char *g_str_in_flight_messages[417] = {0};
 void msg_write_message_log_file(void)
 {
 	char file_name[16];
-	int log_index;
-	xvt_file *stream;
-	int message_index;
-	int record_offset;
-	struct hud_in_flight_message_record *record;
-	int prefix;
-	char *text;
 
-	log_index = 0;
+	int log_index = 0;
+	xvt_file *stream;
 	do {
 		sprintf(file_name, "msglog%ld.txt", (long)log_index);
 #ifdef XVT_MODERN
@@ -130,18 +124,18 @@ void msg_write_message_log_file(void)
 		++log_index;
 	} while (log_index < 100);
 
-	message_index = 0;
+	int message_index = 0;
 	if (stream != NULL) {
 		if (g_message_log_write_index > (uint16_t)message_index) {
-			record_offset = 0;
+			int record_offset = 0;
 			do {
-				record =
+				struct hud_in_flight_message_record *record =
 					(struct hud_in_flight_message_record
 						 *)((uint8_t *)
 							    g_message_log_records +
 						    record_offset);
-				prefix = record->text[0];
-				text = record->text;
+				int prefix = record->text[0];
+				char *text = record->text;
 				if (prefix < 9) {
 					++text;
 					if (prefix == 1 && *text >= '0' &&
@@ -190,27 +184,12 @@ void msg_write_message_log_file(void)
 // FUNCTION: XVT 0x450650
 void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 {
-	struct hud_in_flight_message_record message;
-	const uint8_t *template_cursor;
-	const char *argument_text;
-	uint16_t text_length;
-	uint16_t argument_index;
-	uint16_t argument_value;
-	uint16_t digit_count;
-	uint16_t divisor;
-	uint16_t digit_value;
-	uint16_t output_char;
-	uint16_t remainder;
-	uint8_t pane_type;
-	uint16_t normalized_pane_type;
-	uint8_t new_queue_count;
-	int digit_started;
-
 	if (g_flight_sim_side_effects_suppressed != 0 ||
 	    player_idx != g_local_player) {
 		return;
 	}
 
+	struct hud_in_flight_message_record message;
 	message.state_or_message_id = (uint16_t)message_id;
 	if (g_flight_mission_state.mission_time_limit_minutes != 0) {
 		message.clock_subsecond_ticks =
@@ -235,10 +214,11 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 		message.voice_sfx_id = 0;
 	}
 
-	text_length = 0;
-	argument_index = 0;
-	template_cursor = (const uint8_t *)g_str_in_flight_messages[message_id];
-	pane_type = *template_cursor;
+	uint16_t text_length = 0;
+	uint16_t argument_index = 0;
+	const uint8_t *template_cursor =
+		(const uint8_t *)g_str_in_flight_messages[message_id];
+	uint8_t pane_type = *template_cursor;
 #ifdef XVT_MODERN
 	if (message_id == IFMSG_001_MISSION_PAUSED_PRESS_ANY_KEY_TO_CONTINUE) {
 		message.text[text_length++] = (char)pane_type;
@@ -247,10 +227,13 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 				 *)"Mission paused. Press your pause key or button to continue.";
 	}
 #endif
+	const char *argument_text;
+	uint16_t output_char;
 	while (*template_cursor != '\0' && text_length < sizeof(message.text)) {
 		if (*template_cursor == '*') {
 			++template_cursor;
-			argument_value = g_msg_arg_table[argument_index++];
+			uint16_t argument_value =
+				g_msg_arg_table[argument_index++];
 			if (argument_value < 0x8000) {
 				argument_text = g_str_in_flight_messages
 					[argument_value];
@@ -263,15 +246,16 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 				message.text[text_length++] = *argument_text++;
 			}
 		} else if (*template_cursor == '&') {
-			digit_count = template_cursor[1];
+			uint16_t digit_count = template_cursor[1];
 			template_cursor += 2;
-			digit_started = 0;
-			remainder = g_msg_arg_table[argument_index++];
+			int digit_started = 0;
+			uint16_t remainder = g_msg_arg_table[argument_index++];
 			while (digit_count != 0 &&
 			       text_length < sizeof(message.text)) {
-				divisor = g_flight_text_decimal_divisors
-					[digit_count];
-				digit_value = remainder / divisor;
+				uint16_t divisor =
+					g_flight_text_decimal_divisors
+						[digit_count];
+				uint16_t digit_value = remainder / divisor;
 				remainder %= divisor;
 				if (digit_started != 0 || digit_count <= 1 ||
 				    digit_value != 0) {
@@ -300,7 +284,7 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 	}
 
 	message.pane_type = pane_type < 9 ? pane_type : 6;
-	normalized_pane_type = message.pane_type;
+	uint16_t normalized_pane_type = message.pane_type;
 	if (g_replay_view_mode == 0 &&
 	    (normalized_pane_type == 2 || normalized_pane_type == 1)) {
 		++g_message_log_total_count;
@@ -342,6 +326,7 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 		return;
 	}
 
+	uint8_t new_queue_count;
 	switch (g_ready_message_pane_queue[0].pane_type) {
 	case 1:
 		if (normalized_pane_type != 2 && normalized_pane_type != 1) {
@@ -423,26 +408,19 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 // FUNCTION: XVT 0x451940
 void msg_reportfgcreation(uint16_t flight_group_index, uint16_t model_index)
 {
-	int flight_group_idx;
-	uint16_t object_index;
-	struct object_record *object;
-	struct craft_data *craft;
-	struct object_record *local_player_object;
-	uint16_t range_km;
-	uint8_t iff;
-	uint16_t number_of_craft;
-	int distance_hundredths;
-
-	flight_group_idx = flight_group_index;
+	int flight_group_idx = flight_group_index;
 	if (g_mission_flight_groups[flight_group_idx].fg.arrival_method == 0) {
 		mission_resolve_object_or_mission_point_world_loc(
 			0x8000, flight_group_index);
 	} else {
-		object_index = (uint16_t)g_active_region_object_slot_start;
+		uint16_t object_index =
+			(uint16_t)g_active_region_object_slot_start;
 		while (object_index < g_active_region_craft_object_slot_end) {
-			object = &g_object_table[object_index];
+			struct object_record *object =
+				&g_object_table[object_index];
 			if (object->object_type != 0) {
-				craft = object->mobj->p_craft;
+				struct craft_data *craft =
+					object->mobj->p_craft;
 				if (object->flight_group_idx ==
 					    flight_group_index &&
 				    craft->leader_obj_idx == UINT8_MAX) {
@@ -457,7 +435,7 @@ void msg_reportfgcreation(uint16_t flight_group_index, uint16_t model_index)
 	}
 
 	if (g_players[g_local_player].map_camera_state == 0) {
-		local_player_object =
+		struct object_record *local_player_object =
 			&g_object_table[g_players[g_local_player].object_index];
 		trig2_ctop(g_world_loc_x - local_player_object->world_x,
 			   g_world_loc_y - local_player_object->world_y,
@@ -471,13 +449,13 @@ void msg_reportfgcreation(uint16_t flight_group_index, uint16_t model_index)
 						   .view_state.camera_world_z);
 	}
 	trig2_polardistance *= 161;
-	distance_hundredths = (trig2_polardistance >> 16) & 0xFFFF;
-	range_km = (uint16_t)((distance_hundredths + 50) / 100);
+	int distance_hundredths = (trig2_polardistance >> 16) & 0xFFFF;
+	uint16_t range_km = (uint16_t)((distance_hundredths + 50) / 100);
 	if (range_km == 0) {
 		range_km = 1;
 	}
-	iff = g_mission_flight_groups[flight_group_idx].fg.iff;
-	number_of_craft =
+	uint8_t iff = g_mission_flight_groups[flight_group_idx].fg.iff;
+	uint16_t number_of_craft =
 		g_mission_flight_groups[flight_group_idx].fg.number_of_craft;
 	g_msg_arg_table[0] = number_of_craft;
 	g_msg_sender_iff = iff;
@@ -530,17 +508,14 @@ void msg_add_message_ptr(uint16_t slot, const void *value)
 void msg_emit_craft_message(uint16_t obj_idx, const struct craft_data *craft,
 			    int16_t msg_template_id)
 {
-	struct object_record *object;
-	int flight_group_idx;
-	uint16_t craft_number;
-
-	object = &g_object_table[obj_idx];
-	flight_group_idx = object->flight_group_idx;
+	struct object_record *object = &g_object_table[obj_idx];
+	int flight_group_idx = object->flight_group_idx;
 	g_msg_sender_iff = (uint8_t)object->mobj->iff;
 	msg_add_message_ptr(0, &g_model_defs[craft->model_index]);
 	msg_add_message_ptr(1, &g_mission_flight_groups[flight_group_idx]);
-	craft_number = (uint16_t)hud_mission_fg_get_craft_number_if_shown(
-		flight_group_idx, craft);
+	uint16_t craft_number =
+		(uint16_t)hud_mission_fg_get_craft_number_if_shown(
+			flight_group_idx, craft);
 	if (craft_number != 0) {
 		g_msg_arg_table[2] = craft_number;
 		g_msg_arg_table[3] = (uint16_t)msg_template_id;
@@ -566,10 +541,7 @@ void msg_radio_message(uint16_t sender_obj_idx, uint8_t *sender_craft,
 		       uint16_t command_id, uint16_t response_index,
 		       int16_t multiple_recipients)
 {
-	int flight_group_idx;
-	uint16_t craft_number;
-
-	flight_group_idx = g_object_table[sender_obj_idx].flight_group_idx;
+	int flight_group_idx = g_object_table[sender_obj_idx].flight_group_idx;
 	g_msg_sender_iff = g_mission_flight_groups[flight_group_idx].fg.iff;
 	if (g_players[g_local_player].iff != g_msg_sender_iff ||
 	    g_mission_flight_groups[flight_group_idx].fg.team !=
@@ -587,7 +559,7 @@ void msg_radio_message(uint16_t sender_obj_idx, uint8_t *sender_craft,
 		msg_add_message_ptr(0, &g_model_defs[sender_craft[4]]);
 		msg_add_message_ptr(1,
 				    &g_mission_flight_groups[flight_group_idx]);
-		craft_number =
+		uint16_t craft_number =
 			(uint16_t)hud_mission_fg_get_craft_number_if_shown(
 				flight_group_idx,
 				(struct craft_data *)sender_craft);
@@ -614,15 +586,13 @@ void msg_radio_message(uint16_t sender_obj_idx, uint8_t *sender_craft,
 void msg_reportmessage(uint16_t obj_idx, const struct craft_data *craft,
 		       int16_t msg_template_id)
 {
-	int flight_group_idx;
-	uint16_t craft_number;
-
-	flight_group_idx = g_object_table[obj_idx].flight_group_idx;
+	int flight_group_idx = g_object_table[obj_idx].flight_group_idx;
 	g_msg_sender_iff = g_mission_flight_groups[flight_group_idx].fg.iff;
 	msg_add_message_ptr(0, &g_model_defs[craft->model_index]);
 	msg_add_message_ptr(1, &g_mission_flight_groups[flight_group_idx]);
-	craft_number = (uint16_t)hud_mission_fg_get_craft_number_if_shown(
-		flight_group_idx, craft);
+	uint16_t craft_number =
+		(uint16_t)hud_mission_fg_get_craft_number_if_shown(
+			flight_group_idx, craft);
 	if (craft_number != 0) {
 		g_msg_arg_table[2] = craft_number;
 		g_msg_arg_table[3] = (uint16_t)msg_template_id;
@@ -665,35 +635,24 @@ int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
 				 int emit_hud_message,
 				 int return_actionable_only)
 {
-	int flight_group_idx;
-	int team;
-	struct craft_data *craft;
-	int inspect_flag;
-	int disable_flag;
-	int capture_flag;
-	int boarded_flag;
-	int destroy_flag;
-	int special_cargo_relevant;
-	int actionable;
-	int designation;
-	unsigned int goal_index;
-
 	g_msg_arg_table[3] = IFMSG_331_BLANK;
-	actionable = 0;
+	int actionable = 0;
 	if ((int)g_projectile_object_slot_start <= target_obj_idx &&
 	    (int)g_projectile_object_slot_end > target_obj_idx) {
 		return 0;
 	}
+	struct craft_data *craft;
 	if (g_active_region_craft_object_slot_end > target_obj_idx) {
 		craft = g_object_table[target_obj_idx].mobj->p_craft;
 	} else {
 		craft = NULL;
 	}
-	flight_group_idx = g_object_table[target_obj_idx].flight_group_idx;
-	team = g_mission_flight_groups[flight_group_idx].fg.team;
-	designation = g_flight_mission_state.runtime.team_fg_designation_code
-			      [(uint16_t)g_players[player_idx].team]
-			      [flight_group_idx];
+	int flight_group_idx = g_object_table[target_obj_idx].flight_group_idx;
+	int team = g_mission_flight_groups[flight_group_idx].fg.team;
+	int designation =
+		g_flight_mission_state.runtime.team_fg_designation_code
+			[(uint16_t)g_players[player_idx].team]
+			[flight_group_idx];
 	if (designation == 0) {
 		if (craft == NULL) {
 			if (g_object_table[target_obj_idx].genus_id ==
@@ -773,17 +732,16 @@ int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
 		g_msg_arg_table[2] = IFMSG_331_BLANK;
 	}
 
-	inspect_flag = 0;
-	destroy_flag = 0;
-	disable_flag = 0;
-	capture_flag = 0;
-	boarded_flag = 0;
-	special_cargo_relevant = 0;
-	for (goal_index = 0; goal_index < 8; ++goal_index) {
+	int inspect_flag = 0;
+	int destroy_flag = 0;
+	int disable_flag = 0;
+	int capture_flag = 0;
+	int boarded_flag = 0;
+	int special_cargo_relevant = 0;
+	for (unsigned int goal_index = 0; goal_index < 8; ++goal_index) {
 		struct flight_group_goal *goal =
 			&g_mission_flight_groups[flight_group_idx]
 				 .fg.goals[goal_index];
-		int event_condition;
 		int player_team = (uint16_t)g_players[player_idx].team;
 		if (goal->enabled_teams[player_team] == 0 ||
 		    goal->goal_kind != 0 ||
@@ -801,7 +759,7 @@ int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
 			}
 			special_cargo_relevant = 1;
 		}
-		event_condition = goal->event_condition;
+		int event_condition = goal->event_condition;
 		if (event_condition == 2) {
 			destroy_flag = 1;
 		} else if (event_condition != 3) {
@@ -818,12 +776,10 @@ int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
 		}
 	}
 	{
-		unsigned int pair_offset;
-		for (pair_offset = 0;
+		for (unsigned int pair_offset = 0;
 		     pair_offset < 2 * sizeof(struct mission_trigger_pair);
 		     pair_offset += sizeof(struct mission_trigger_pair)) {
-			unsigned int trigger_offset;
-			for (trigger_offset = 0;
+			for (unsigned int trigger_offset = 0;
 			     trigger_offset <
 			     2 * sizeof(struct mission_trigger);
 			     trigger_offset += sizeof(struct mission_trigger)) {
@@ -963,26 +919,17 @@ int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
 void msg_format_object_name(uint16_t obj_idx, uint16_t name_mode,
 			    char *out_name)
 {
-	int16_t name_part_count;
-	int object_index;
-	struct object_record *object;
-	struct mobile_object *mobile_object;
-	uint16_t object_type;
-	struct craft_data *craft;
-	uint16_t flight_group_idx;
-	struct mission_flight_group *flight_group;
-	uint16_t craft_number;
-
-	name_part_count = 0;
+	int16_t name_part_count = 0;
 	*out_name = '\0';
-	object_index = obj_idx;
-	object = &g_object_table[object_index];
-	mobile_object = object->mobj;
+	int object_index = obj_idx;
+	struct object_record *object = &g_object_table[object_index];
+	struct mobile_object *mobile_object = object->mobj;
+	struct mission_flight_group *flight_group;
 	if (mobile_object != NULL) {
-		object_type = object->object_type;
+		uint16_t object_type = object->object_type;
 		if (mobile_object->family == 0) {
-			craft = mobile_object->p_craft;
-			flight_group_idx = object->flight_group_idx;
+			struct craft_data *craft = mobile_object->p_craft;
+			uint16_t flight_group_idx = object->flight_group_idx;
 			if (name_mode == 1) {
 				msg_append_string(
 					g_model_defs[craft->model_index]
@@ -1008,7 +955,7 @@ void msg_format_object_name(uint16_t obj_idx, uint16_t name_mode,
 						  out_name);
 			}
 
-			craft_number = (uint16_t)
+			uint16_t craft_number = (uint16_t)
 				hud_mission_fg_get_craft_number_if_shown(
 					flight_group_idx, craft);
 			if (craft_number != 0) {
@@ -1095,9 +1042,7 @@ void msg_append_char(char ch, char *destination)
 // FUNCTION: XVT 0x452880
 void msg_emit_local_player_craft_message(in_flight_message_id message_id)
 {
-	int object_index;
-
-	object_index = (int)g_players[g_local_player].object_index;
+	int object_index = (int)g_players[g_local_player].object_index;
 	g_msg_sender_iff = (uint8_t)g_object_table[object_index].mobj->iff;
 	msg_add_message_ptr(0,
 			    &g_model_defs[g_object_table[object_index]

@@ -61,8 +61,6 @@ static int xvt_application_frame_loop(void)
 {
 	while (!xvt_port_service_quit()) {
 		int32_t delta_us = Aeron_BeginFrame();
-		uint64_t wake_delay_us;
-		uint64_t task_delay_us;
 		if (xvt_port_service_quit()) {
 			break;
 		}
@@ -90,8 +88,9 @@ static int xvt_application_frame_loop(void)
 			Aeron_RequestFatalRendererError("frame presentation");
 			break;
 		}
-		wake_delay_us = xvt_application_presentation_interval_us();
-		task_delay_us = xvt_port_next_wake_delay_us();
+		uint64_t wake_delay_us =
+			xvt_application_presentation_interval_us();
+		uint64_t task_delay_us = xvt_port_next_wake_delay_us();
 		if (task_delay_us < wake_delay_us) {
 			wake_delay_us = task_delay_us;
 		}
@@ -102,7 +101,6 @@ static int xvt_application_frame_loop(void)
 
 int xvt_application_run(const struct xvt_launch_options *options)
 {
-	AeronConfig config;
 	struct xvt_app_ui ui = {0};
 	int exit_code = 1;
 	char error[1024] = {0};
@@ -133,6 +131,7 @@ int xvt_application_run(const struct xvt_launch_options *options)
 		AeronVfs_Destroy(vfs);
 		return success ? 0 : 1;
 	}
+	AeronConfig config;
 	xvt_host_config_fill_aeron_config(options, &config);
 	XVT_LOG_INFO("app.start version=\"%s\"", OPENXVT_VERSION);
 	if (!Aeron_Init(&config)) {

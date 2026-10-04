@@ -100,8 +100,6 @@ uint16_t g_proving_grounds_current_checkpoint_obj_idx = 0;
 // FUNCTION: XVT 0x42B290
 void proving_grounds_record_local_player_pose_history(void)
 {
-	uint16_t history_index;
-	struct object_record *object;
 #ifdef XVT_MODERN
 	int32_t reference_position[3];
 	if (xvt_flight_timing_is_unlocked() &&
@@ -111,7 +109,7 @@ void proving_grounds_record_local_player_pose_history(void)
 	}
 #endif
 
-	history_index = 2;
+	uint16_t history_index = 2;
 	do {
 		g_proving_grounds_local_player_world_x_history[history_index +
 							       1] =
@@ -137,7 +135,8 @@ void proving_grounds_record_local_player_pose_history(void)
 				[history_index];
 	} while (history_index-- != 0);
 
-	object = &g_object_table[g_players[g_local_player].object_index];
+	struct object_record *object =
+		&g_object_table[g_players[g_local_player].object_index];
 
 #ifdef XVT_MODERN
 	g_proving_grounds_local_player_world_x_history[0] =
@@ -189,15 +188,6 @@ void proving_grounds_draw_course_object(uint16_t object_index)
 		PROVING_GROUNDS_SELECTED_NODE_STATE = 1,
 	};
 
-	uint16_t mesh_index;
-	uint16_t selected_node_index;
-	uint16_t saved_render_object_ref;
-	int object_type;
-	int mesh_count;
-	int mesh_type_index;
-	mesh_component_type mesh_type;
-	uint8_t saved_node_switch_index;
-
 	if (object_index == g_proving_grounds_current_checkpoint_obj_idx ||
 	    (int)g_proving_grounds_current_checkpoint_obj_idx -
 			    (int)object_index ==
@@ -214,16 +204,18 @@ void proving_grounds_draw_course_object(uint16_t object_index)
 	}
 
 	g_billboard_model_node_switch_index = 0;
-	object_type = g_object_table[object_index].object_type;
+	int object_type = g_object_table[object_index].object_type;
+	int mesh_count;
 	if (object_type < (int)(sizeof(g_object_type_mesh_cache) /
 				sizeof(g_object_type_mesh_cache[0]))) {
 		mesh_count = g_object_type_mesh_cache[object_type].mesh_count;
 	} else {
 		mesh_count = model_mesh_get_object_type_mesh_count(object_type);
 	}
-	for (mesh_index = 0; mesh_index < mesh_count; ++mesh_index) {
+	mesh_component_type mesh_type;
+	for (uint16_t mesh_index = 0; mesh_index < mesh_count; ++mesh_index) {
 		++g_billboard_model_node_switch_index;
-		mesh_type_index = mesh_index;
+		int mesh_type_index = mesh_index;
 		object_type = g_object_table[object_index].object_type;
 		if (object_type < (int)(sizeof(g_object_type_mesh_cache) /
 					sizeof(g_object_type_mesh_cache[0]))) {
@@ -238,14 +230,14 @@ void proving_grounds_draw_course_object(uint16_t object_index)
 		}
 	}
 
-	selected_node_index = g_billboard_model_node_switch_index - 1;
-	saved_render_object_ref = g_render_object_ref;
+	uint16_t selected_node_index = g_billboard_model_node_switch_index - 1;
+	uint16_t saved_render_object_ref = g_render_object_ref;
 	g_billboard_model_node_switch_index = selected_node_index;
 	if (object_index < g_proving_grounds_current_checkpoint_obj_idx) {
 		g_billboard_target_selection_state = 1;
 		g_render_object_ref = g_billboard_object_or_type_index;
 	}
-	saved_node_switch_index =
+	uint8_t saved_node_switch_index =
 		g_object_table[object_index].mobj->node_switch_index;
 	g_object_table[object_index].mobj->node_switch_index =
 		PROVING_GROUNDS_SELECTED_NODE_STATE;
@@ -267,34 +259,19 @@ void proving_grounds_draw_course_object(uint16_t object_index)
 // FUNCTION: XVT 0x42B550
 void proving_grounds_init_course_objects(void)
 {
-	uint16_t object_types[13];
-	uint16_t rolls[13];
-	uint16_t yaws[13];
-	uint16_t pitches[13];
-	uint16_t object_index;
-	uint16_t component_index;
-	uint16_t beam_index;
-	uint16_t object_type;
-	int16_t local_x;
-	int16_t local_y;
-	int16_t size_y;
-	int16_t local_z;
-	int offset_x;
-	int offset_y;
-	int offset_z;
-	int delta_x;
-	int delta_y;
-	int delta_z;
-
 	g_flight_mission_state.proving_grounds_targets_destroyed = 0;
 	g_flight_mission_state.proving_grounds_score = 0;
-	offset_x = 0;
-	offset_y = 0;
-	offset_z = 0;
+	int offset_x = 0;
+	int offset_y = 0;
+	int offset_z = 0;
 
+	uint16_t object_types[13];
 	object_types[1] = 98;
+	uint16_t pitches[13];
 	pitches[1] = 0x4000;
+	uint16_t yaws[13];
 	yaws[1] = 0;
+	uint16_t rolls[13];
 	rolls[1] = 0;
 	object_types[2] = 99;
 	pitches[2] = 0x4000;
@@ -336,14 +313,19 @@ void proving_grounds_init_course_objects(void)
 	pitches[11] = 0x4000;
 	yaws[11] = 0x4000;
 	rolls[11] = 0;
-	object_index = 1;
+	uint16_t object_index = 1;
 	object_types[12] = 99;
 	pitches[12] = 0x4000;
 	yaws[12] = 0x4000;
 	rolls[12] = 0x4000;
 
+	uint16_t component_index;
+	int16_t local_y;
+	int16_t size_y;
+	int16_t local_z;
+	int delta_x;
 	do {
-		object_type = object_types[object_index];
+		uint16_t object_type = object_types[object_index];
 		g_object_table[object_index].object_type = (uint8_t)object_type;
 		g_object_table[object_index].object_signature = 1;
 		g_object_table[object_index].mobj->family = 6;
@@ -386,7 +368,7 @@ void proving_grounds_init_course_objects(void)
 		g_cur_craft->not_disabled_accounting_suppress = 0;
 		g_cur_craft->captured_by_flight_group = 0;
 		g_cur_craft->s_foil_state = 0;
-		for (beam_index = 0; beam_index < 5; ++beam_index) {
+		for (uint16_t beam_index = 0; beam_index < 5; ++beam_index) {
 			g_cur_craft->beam_effect_accum[beam_index] = 0;
 		}
 		g_cur_craft->system_flags = CRAFT_SUBSYSTEM_FLAG_SHIELDS;
@@ -404,7 +386,7 @@ void proving_grounds_init_course_objects(void)
 		fview_calcrotateorient(g_object_table[object_index].roll, 0,
 				       &g_object_table[object_index]);
 
-		local_x = (int16_t)-model_bounds_get_max_y(object_type);
+		int16_t local_x = (int16_t)-model_bounds_get_max_y(object_type);
 		if (object_type == 98) {
 			local_y = 0;
 			size_y = (int16_t)model_bounds_get_size_y(object_type);
@@ -420,8 +402,8 @@ void proving_grounds_init_course_objects(void)
 		}
 
 		delta_x = math_mul_q15(0, g_fview_side_x_q15);
-		delta_y = math_mul_q15(0, g_fview_side_y_q15);
-		delta_z = math_mul_q15(0, g_fview_side_z_q15);
+		int delta_y = math_mul_q15(0, g_fview_side_y_q15);
+		int delta_z = math_mul_q15(0, g_fview_side_z_q15);
 		delta_x += math_mul_q15(local_x, g_fview_forward_x_q15);
 		delta_y += math_mul_q15(local_x, g_fview_forward_y_q15);
 		delta_z += math_mul_q15(local_x, g_fview_forward_z_q15);
@@ -482,19 +464,11 @@ void proving_grounds_start_level(uint16_t level)
 		ANTENNA_HP_PER_LEVEL = 24,
 	};
 
-	uint8_t countdown_seconds;
-	uint16_t object_index;
-	uint16_t mesh_index;
-	int model_node_index;
-	int object_type;
-	int mesh_type_index;
-	int mesh_count;
-	mesh_component_type mesh_type;
-
 	g_proving_grounds_current_checkpoint_obj_idx = FIRST_CHECKPOINT_OBJECT;
 	g_flight_mission_state.proving_grounds_checkpoints_passed = 0;
 	g_flight_mission_state.proving_grounds_checkpoints_remaining =
 		CHECKPOINT_COUNT;
+	uint8_t countdown_seconds;
 	if (level > LONG_TIMER_LAST_LEVEL) {
 		g_mission_countdown_clock.minutes = 0;
 		countdown_seconds = SECONDS_PER_SHORT_LEVEL *
@@ -506,7 +480,12 @@ void proving_grounds_start_level(uint16_t level)
 	}
 	g_mission_countdown_clock.seconds = countdown_seconds;
 
-	for (object_index = 0;
+	int model_node_index;
+	int object_type;
+	int mesh_type_index;
+	int mesh_count;
+	mesh_component_type mesh_type;
+	for (uint16_t object_index = 0;
 	     object_index < (int)g_active_region_craft_object_slot_end;
 	     ++object_index) {
 		if (g_object_table[object_index].object_type == 0 ||
@@ -527,7 +506,8 @@ void proving_grounds_start_level(uint16_t level)
 		}
 
 		model_node_index = 0;
-		for (mesh_index = 0; mesh_index < mesh_count; ++mesh_index) {
+		for (uint16_t mesh_index = 0; mesh_index < mesh_count;
+		     ++mesh_index) {
 			++model_node_index;
 			mesh_type_index = mesh_index;
 			object_type = g_object_table[object_index].object_type;
@@ -666,27 +646,16 @@ void proving_grounds_update_course(void)
 		FRAME_DELAY_TICKS = 4,
 	};
 
-	uint16_t anim_index;
-	uint16_t anim_period;
-	int16_t anim_timer;
-	int16_t anim_step_count;
 	int16_t obstacle_anim_steps[OBSTACLE_ANIM_COUNT];
-	uint16_t object_index;
-	int object_type;
-	int mesh_count;
-	int model_node_index;
-	int mesh_index;
-	int mesh_type_index;
-	mesh_component_type mesh_type;
-	uint16_t next_checkpoint_object;
 
-	for (anim_index = 0; anim_index < OBSTACLE_ANIM_COUNT; ++anim_index) {
-		anim_timer =
+	for (uint16_t anim_index = 0; anim_index < OBSTACLE_ANIM_COUNT;
+	     ++anim_index) {
+		int16_t anim_timer =
 			g_proving_grounds_obstacle_anim_timers[anim_index] -
 			g_elapsed_ticks;
 		g_proving_grounds_obstacle_anim_timers[anim_index] = anim_timer;
 		if (anim_timer < 0) {
-			anim_period =
+			uint16_t anim_period =
 				g_proving_grounds_obstacle_anim_period_ticks_by_level
 					[g_flight_mission_state
 						 .proving_grounds_level];
@@ -697,7 +666,8 @@ void proving_grounds_update_course(void)
 							 .proving_grounds_level -
 						 1];
 			}
-			anim_step_count = 1 - anim_timer / (int)anim_period;
+			int16_t anim_step_count =
+				1 - anim_timer / (int)anim_period;
 			obstacle_anim_steps[anim_index] = anim_step_count;
 			g_proving_grounds_obstacle_anim_timers[anim_index] =
 				anim_timer + anim_step_count * anim_period;
@@ -712,7 +682,12 @@ void proving_grounds_update_course(void)
 		++g_proving_grounds_course_anim_frame;
 	}
 
-	for (object_index = COURSE_OBJECT_FIRST;
+	int object_type;
+	int mesh_count;
+	int model_node_index;
+	int mesh_type_index;
+	mesh_component_type mesh_type;
+	for (uint16_t object_index = COURSE_OBJECT_FIRST;
 	     object_index < COURSE_OBJECT_END; ++object_index) {
 		g_cur_craft = g_object_table[object_index].mobj->p_craft;
 		if (g_proving_grounds_course_anim_frame ==
@@ -738,7 +713,8 @@ void proving_grounds_update_course(void)
 		}
 
 		model_node_index = 0;
-		for (mesh_index = 0; mesh_index < mesh_count; ++mesh_index) {
+		for (int mesh_index = 0; mesh_index < mesh_count;
+		     ++mesh_index) {
 			++model_node_index;
 			mesh_type_index = mesh_index;
 			object_type = g_object_table[object_index].object_type;
@@ -788,7 +764,7 @@ void proving_grounds_update_course(void)
 		}
 	}
 
-	next_checkpoint_object = COURSE_OBJECT_FIRST;
+	uint16_t next_checkpoint_object = COURSE_OBJECT_FIRST;
 	if (g_proving_grounds_current_checkpoint_obj_idx !=
 	    LAST_CHECKPOINT_OBJECT) {
 		next_checkpoint_object =
@@ -857,25 +833,9 @@ void proving_grounds_update_course(void)
 // FUNCTION: XVT 0x42C410
 int proving_grounds_has_player_crossed_checkpoint(uint16_t checkpoint_obj_idx)
 {
-	uint16_t checkpoint_index;
-	uint16_t model_type;
+	uint16_t checkpoint_index = checkpoint_obj_idx;
+	uint16_t model_type = g_object_table[checkpoint_index].object_type;
 	int16_t checkpoint_offset;
-	struct object_record *checkpoint;
-	struct object_record *player_object;
-	int checkpoint_x;
-	int checkpoint_y;
-	int checkpoint_z;
-	int current_delta_x;
-	int current_delta_y;
-	int current_delta_z;
-	int previous_delta_x;
-	int previous_delta_y;
-	int previous_delta_z;
-	int16_t current_side;
-	int16_t previous_side;
-
-	checkpoint_index = checkpoint_obj_idx;
-	model_type = g_object_table[checkpoint_index].object_type;
 	if (model_type == 98) {
 		checkpoint_offset =
 			(int16_t)-model_bounds_get_max_y(model_type);
@@ -889,22 +849,23 @@ int proving_grounds_has_player_crossed_checkpoint(uint16_t checkpoint_obj_idx)
 		checkpoint_offset = (int16_t)(checkpoint_offset + 32);
 	}
 
-	checkpoint = &g_object_table[checkpoint_index];
-	checkpoint_x =
+	struct object_record *checkpoint = &g_object_table[checkpoint_index];
+	int checkpoint_x =
 		math_mul_q15(checkpoint_offset, checkpoint->mobj->cached_fwd_x);
-	checkpoint_y =
+	int checkpoint_y =
 		math_mul_q15(checkpoint_offset, checkpoint->mobj->cached_fwd_y);
-	checkpoint_z =
+	int checkpoint_z =
 		math_mul_q15(checkpoint_offset, checkpoint->mobj->cached_fwd_z);
 
 	checkpoint_x = checkpoint->world_x + 2 * checkpoint_x;
 	checkpoint_y = checkpoint->world_y + 2 * checkpoint_y;
 	checkpoint_z = checkpoint->world_z + 2 * checkpoint_z;
 
-	player_object = &g_object_table[g_players[g_local_player].object_index];
-	current_delta_x = player_object->world_x - checkpoint_x;
-	current_delta_y = player_object->world_y - checkpoint_y;
-	current_delta_z = player_object->world_z - checkpoint_z;
+	struct object_record *player_object =
+		&g_object_table[g_players[g_local_player].object_index];
+	int current_delta_x = player_object->world_x - checkpoint_x;
+	int current_delta_y = player_object->world_y - checkpoint_y;
+	int current_delta_z = player_object->world_z - checkpoint_z;
 	if (current_delta_x > 0x4000) {
 		return 0;
 	}
@@ -924,9 +885,9 @@ int proving_grounds_has_player_crossed_checkpoint(uint16_t checkpoint_obj_idx)
 		return 0;
 	}
 
-	previous_delta_x = player_object->mobj->prev_world_x - checkpoint_x;
-	previous_delta_y = player_object->mobj->prev_world_y - checkpoint_y;
-	previous_delta_z = player_object->mobj->prev_world_z - checkpoint_z;
+	int previous_delta_x = player_object->mobj->prev_world_x - checkpoint_x;
+	int previous_delta_y = player_object->mobj->prev_world_y - checkpoint_y;
+	int previous_delta_z = player_object->mobj->prev_world_z - checkpoint_z;
 	if (previous_delta_x > 0x4000) {
 		return 0;
 	}
@@ -946,11 +907,11 @@ int proving_grounds_has_player_crossed_checkpoint(uint16_t checkpoint_obj_idx)
 		return 0;
 	}
 
-	current_side = (int16_t)math_dot3q15_wrapped(
+	int16_t current_side = (int16_t)math_dot3q15_wrapped(
 		(int16_t)current_delta_x, (int16_t)current_delta_y,
 		(int16_t)current_delta_z, checkpoint->mobj->cached_fwd_x,
 		checkpoint->mobj->cached_fwd_y, checkpoint->mobj->cached_fwd_z);
-	previous_side = (int16_t)math_dot3q15_wrapped(
+	int16_t previous_side = (int16_t)math_dot3q15_wrapped(
 		(int16_t)previous_delta_x, (int16_t)previous_delta_y,
 		(int16_t)previous_delta_z, checkpoint->mobj->cached_fwd_x,
 		checkpoint->mobj->cached_fwd_y, checkpoint->mobj->cached_fwd_z);
@@ -970,7 +931,6 @@ void proving_grounds_draw_status_panel(int16_t x, int16_t y)
 	int16_t column_width;
 	int16_t panel_y;
 	int16_t panel_anchor_x;
-	int16_t panel_x;
 	int panel_width;
 	int level_label_x_offset;
 	int level_value_x_offset;
@@ -1018,6 +978,7 @@ void proving_grounds_draw_status_panel(int16_t x, int16_t y)
 		break;
 	}
 
+	int16_t panel_x;
 	switch (g_object_table[g_players[g_local_player].object_index]
 			.mobj->p_craft->model_index) {
 	case 7:
@@ -1185,22 +1146,17 @@ void proving_grounds_draw_status_panel(int16_t x, int16_t y)
 void proving_grounds_draw_score_decimal(int score, unsigned int width,
 					unsigned int min_digits)
 {
-	int16_t saw_digit;
-	unsigned int remaining_width;
-	int divisor;
-	int digit;
-	uint16_t draw_char;
-
-	saw_digit = 0;
-	remaining_width = width;
+	int16_t saw_digit = 0;
+	unsigned int remaining_width = width;
 	if (remaining_width == 0) {
 		return;
 	}
 
+	uint16_t draw_char;
 	do {
-		divisor = g_proving_grounds_score_decimal_divisors
+		int divisor = g_proving_grounds_score_decimal_divisors
 			[remaining_width];
-		digit = score / divisor;
+		int digit = score / divisor;
 		score -= divisor * (uint16_t)digit;
 		if (saw_digit != 0 || min_digits >= remaining_width ||
 		    (uint16_t)digit != 0) {

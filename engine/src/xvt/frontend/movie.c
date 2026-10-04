@@ -306,23 +306,21 @@ struct movie_multiplayer_sync_player g_movie_multiplayer_sync_players[8] = {
 // FUNCTION: XVT 0x4EECB0
 HRESULT movie_blit_rect_to_display(int x, int y, int width, int height)
 {
-	IDirectDrawSurface *back_buffer;
-	DDSCAPS caps;
 	struct RECT source_rect;
-	uint32_t destination_x;
-	uint32_t destination_y;
-	HRESULT result;
 
 	source_rect.left = x;
-	destination_x =
+	uint32_t destination_x =
 		g_movie_client_offset_x + g_movie_client_screen_origin.x + x;
 	source_rect.top = y;
-	destination_y =
+	uint32_t destination_y =
 		g_movie_client_screen_origin.y + g_movie_client_offset_y + y;
 	source_rect.right = x + width;
 	source_rect.bottom = y + height;
+	HRESULT result;
 	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
+		DDSCAPS caps;
 		caps.dwCaps = DDSCAPS_BACKBUFFER;
+		IDirectDrawSurface *back_buffer;
 		result = g_movie_playback_params->primary_surface->lpVtbl
 				 ->GetAttachedSurface(g_movie_playback_params
 							      ->primary_surface,
@@ -425,13 +423,9 @@ HRESULT movie_blit_rect_to_display(int x, int y, int width, int height)
 // FUNCTION: XVT 0x4EEE70
 HRESULT movie_update_direct_draw_palette(void)
 {
-	struct movie_palette_entry *entry;
-	uint8_t *smack_color;
-	unsigned int index;
-
-	entry = &g_movie_palette_entries[10];
-	smack_color = (uint8_t *)g_movie_smack_handle + 0x8A;
-	for (index = 10; index < 246; ++index) {
+	struct movie_palette_entry *entry = &g_movie_palette_entries[10];
+	uint8_t *smack_color = (uint8_t *)g_movie_smack_handle + 0x8A;
+	for (unsigned int index = 10; index < 246; ++index) {
 		entry->red = *smack_color++;
 		entry->green = *smack_color++;
 		entry->blue = *smack_color++;
@@ -460,14 +454,8 @@ HRESULT movie_update_direct_draw_palette(void)
 int32_t AERON_DXAPI movie_window_proc(void *hWnd, unsigned int message,
 				      void *wParam, void *lParam)
 {
-	int use_default;
-	int handled_result;
-	struct movie_window_pos *window_pos;
-	uint16_t origin_x;
-	uint16_t aligned_x;
-
-	use_default = 1;
-	handled_result = 0;
+	int use_default = 1;
+	int handled_result = 0;
 	if (g_movie_playback_params != NULL &&
 	    g_movie_playback_params->input_callback != NULL) {
 		use_default = g_movie_playback_params->input_callback(
@@ -476,6 +464,7 @@ int32_t AERON_DXAPI movie_window_proc(void *hWnd, unsigned int message,
 			&handled_result);
 	}
 
+	struct movie_window_pos *window_pos;
 	switch (message) {
 	case 0x02:
 		frontend_display_set_wnd_proc_mode(
@@ -490,9 +479,11 @@ int32_t AERON_DXAPI movie_window_proc(void *hWnd, unsigned int message,
 	case 0x46:
 		window_pos = lParam;
 		if ((window_pos->flags & 2) == 0) {
-			origin_x = (uint16_t)g_movie_client_screen_origin.x;
-			aligned_x = (uint16_t)((origin_x + window_pos->x + 1) &
-					       0xFFFC);
+			uint16_t origin_x =
+				(uint16_t)g_movie_client_screen_origin.x;
+			uint16_t aligned_x =
+				(uint16_t)((origin_x + window_pos->x + 1) &
+					   0xFFFC);
 			aligned_x = (uint16_t)(aligned_x - origin_x);
 			window_pos->x = aligned_x;
 			g_movie_client_offset_x = aligned_x;
@@ -547,7 +538,6 @@ int32_t AERON_DXAPI movie_window_proc(void *hWnd, unsigned int message,
 // FUNCTION: XVT 0x4EF040
 int movie_handle_paint(void *hWnd)
 {
-	struct RECT update_rect;
 #ifndef XVT_MODERN
 	uint8_t paint[64];
 #endif
@@ -560,6 +550,7 @@ int movie_handle_paint(void *hWnd)
 	(void)hWnd;
 	result = 0;
 #endif
+	struct RECT update_rect;
 	if (g_movie_frame_available != 0 && g_movie_smack_handle != NULL &&
 	    g_movie_playback_params != NULL) {
 		if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
@@ -621,10 +612,6 @@ int movie_run_smacker_playback(const struct movie_playback_params *params)
 		MOVIE_EXTENSION_LENGTH = 3,
 		MOVIE_EXTENSION_LAST_INDEX = 2,
 	};
-	struct movie_win32_message message;
-	char file_name[MOVIE_PATH_CAPACITY];
-	char *subtitle_extension;
-	movie_progress_callback progress_callback;
 
 	g_movie_playback_params = params;
 	movie_initialize_system_palette(params->window);
@@ -637,6 +624,7 @@ int movie_run_smacker_playback(const struct movie_playback_params *params)
 	frontend_display_clear_back_buffer();
 	SmackSoundUseDirectSound(g_movie_playback_params->direct_sound);
 
+	char file_name[MOVIE_PATH_CAPACITY];
 	strcpy(file_name, "movies\\");
 	strcat(file_name, g_movie_playback_params->movie_name);
 	strcat(file_name, ".smk");
@@ -655,7 +643,7 @@ int movie_run_smacker_playback(const struct movie_playback_params *params)
 		}
 	}
 
-	subtitle_extension =
+	char *subtitle_extension =
 		file_name + strlen(file_name) - MOVIE_EXTENSION_LENGTH;
 	subtitle_extension[MOVIE_EXTENSION_LAST_INDEX] = 't';
 	subtitle_extension[0] = 't';
@@ -684,6 +672,7 @@ int movie_run_smacker_playback(const struct movie_playback_params *params)
 	frontend_display_set_wnd_proc_mode(MOVIE_WINDOW_MODE);
 	g_movie_playback_completion_state = 0;
 	g_movie_skip_requested = 0;
+	struct movie_win32_message message;
 	while (frontend_display_get_wnd_proc_mode() == MOVIE_WINDOW_MODE) {
 		net_pump_incoming_packets();
 		if (PeekMessageA(&message, NULL, 0, 0, REMOVE_MESSAGE) != 0) {
@@ -694,7 +683,7 @@ int movie_run_smacker_playback(const struct movie_playback_params *params)
 				movie_decode_and_present_frame();
 			}
 		} else {
-			progress_callback =
+			movie_progress_callback progress_callback =
 				g_movie_playback_params->progress_callback;
 			if (progress_callback != NULL) {
 				if (progress_callback(
@@ -740,11 +729,10 @@ int movie_run_smacker_playback(const struct movie_playback_params *params)
 int movie_get_smack_buffer_format(void)
 {
 	struct movie_pixel_format pixel_format;
-	IDirectDrawSurface *surface;
 
 	pixel_format.size = sizeof(pixel_format);
 	pixel_format.flags = 0x40;
-	surface = g_movie_playback_params->primary_surface;
+	IDirectDrawSurface *surface = g_movie_playback_params->primary_surface;
 	((movie_get_pixel_format_fn)surface->lpVtbl->GetPixelFormat)(
 		surface, &pixel_format);
 
@@ -771,16 +759,14 @@ int movie_get_smack_buffer_format(void)
 // FUNCTION: XVT 0x4EF590
 int movie_initialize_system_palette(void *hWnd)
 {
-	int index;
 #ifndef XVT_MODERN
-	void *dc;
-
-	dc = GetDC(hWnd);
+	void *dc = GetDC(hWnd);
 	GetSystemPaletteEntries(dc, 0, 256, g_movie_palette_entries);
 #else
 	(void)hWnd;
 #endif
 
+	int index;
 	for (index = 0; index < 10; ++index) {
 		g_movie_palette_entries[index].flags = 0;
 	}
@@ -813,28 +799,21 @@ int movie_initialize_system_palette(void *hWnd)
 void movie_decode_and_present_frame(void)
 {
 #ifndef XVT_MODERN
-	DDSURFACEDESC surface_desc;
-	struct movie_dirty_rect *merged_rects;
-	unsigned int merged_count;
-	unsigned int current_count;
-	unsigned int dirty_index;
-	void *focus_window;
-	int result;
-
-	focus_window = GetFocus();
+	void *focus_window = GetFocus();
 	if (g_movie_playback_params->window != focus_window) {
 		return;
 	}
 	if (g_movie_smack_handle->palette_changed != 0) {
 		movie_update_direct_draw_palette();
 	}
+	DDSURFACEDESC surface_desc;
 	surface_desc.dwSize = sizeof(surface_desc);
 	while (g_movie_playback_params->decode_surface->lpVtbl->Lock(
 		       g_movie_playback_params->decode_surface, NULL,
 		       &surface_desc, 1, NULL) == DX_DDERR_SURFACELOST) {
-		result = g_movie_playback_params->decode_surface->lpVtbl
-				 ->Restore(g_movie_playback_params
-						   ->decode_surface);
+		int result = g_movie_playback_params->decode_surface->lpVtbl
+				     ->Restore(g_movie_playback_params
+						       ->decode_surface);
 		if (result != 0) {
 			return;
 		}
@@ -857,9 +836,9 @@ void movie_decode_and_present_frame(void)
 			g_movie_previous_wnd_proc_mode);
 	}
 	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
-		current_count = 0;
+		unsigned int current_count = 0;
 		if (SmackToBufferRect(g_movie_smack_handle, 0) != 0) {
-			dirty_index = 0;
+			unsigned int dirty_index = 0;
 			do {
 				if (g_movie_smack_handle->dirty_width != 0) {
 					g_movie_current_dirty_rects[dirty_index]
@@ -885,6 +864,8 @@ void movie_decode_and_present_frame(void)
 			} while (SmackToBufferRect(g_movie_smack_handle, 0) !=
 				 0);
 		}
+		struct movie_dirty_rect *merged_rects;
+		unsigned int merged_count;
 		movie_merge_dirty_rect_lists(g_movie_current_dirty_rects,
 					     current_count,
 					     g_movie_previous_dirty_rects,
@@ -943,17 +924,6 @@ void movie_merge_dirty_rect_lists(struct movie_dirty_rect *current_rects,
 				  struct movie_dirty_rect **merged_rects,
 				  unsigned int *merged_count)
 {
-	struct movie_dirty_rect candidate;
-	struct movie_dirty_rect best_union;
-	struct movie_dirty_rect rect_union;
-	struct movie_dirty_rect intersection;
-	struct movie_dirty_rect *best_rect;
-	struct movie_dirty_rect *output;
-	unsigned int remaining;
-	unsigned int output_count;
-	unsigned int index;
-	unsigned int restore_index;
-
 	if (current_count == 0) {
 		*merged_rects = previous_rects;
 		*merged_count = previous_count;
@@ -966,38 +936,36 @@ void movie_merge_dirty_rect_lists(struct movie_dirty_rect *current_rects,
 	}
 
 	*merged_rects = g_movie_merged_dirty_rects;
-	output_count = 0;
-	candidate = current_rects[0];
-	remaining = current_count + previous_count - 1;
+	unsigned int output_count = 0;
+	struct movie_dirty_rect candidate = current_rects[0];
+	unsigned int remaining = current_count + previous_count - 1;
 	current_rects[0].width = -current_rects[0].width;
+	struct movie_dirty_rect best_union;
+	struct movie_dirty_rect rect_union;
+	struct movie_dirty_rect intersection;
+	struct movie_dirty_rect *best_rect;
 	if (remaining != 0) {
-		output = g_movie_merged_dirty_rects;
+		struct movie_dirty_rect *output = g_movie_merged_dirty_rects;
 		do {
-			unsigned int best_cost;
+			unsigned int best_cost = 0x1000000;
+			int candidate_area = candidate.width * candidate.height;
 			unsigned int best_union_area;
-			unsigned int index;
-			unsigned int previous_index;
-			int candidate_area;
-
-			best_cost = 0x1000000;
-			candidate_area = candidate.width * candidate.height;
-			for (index = 0; index < current_count; ++index) {
-				unsigned int cost;
-				int union_area;
-
+			for (unsigned int index = 0; index < current_count;
+			     ++index) {
 				if (current_rects[index].width <= 0) {
 					continue;
 				}
 				movie_compute_rect_union_and_intersection(
 					&current_rects[index], &candidate,
 					&rect_union, &intersection);
-				union_area =
+				int union_area =
 					rect_union.width * rect_union.height;
-				cost = intersection.width *
-					       intersection.height -
-				       current_rects[index].height *
-					       current_rects[index].width -
-				       candidate_area + union_area;
+				unsigned int cost =
+					intersection.width *
+						intersection.height -
+					current_rects[index].height *
+						current_rects[index].width -
+					candidate_area + union_area;
 				if (cost < best_cost) {
 					best_cost = cost;
 					best_union_area = union_area;
@@ -1009,26 +977,24 @@ void movie_merge_dirty_rect_lists(struct movie_dirty_rect *current_rects,
 				}
 			}
 
-			for (previous_index = 0;
+			for (unsigned int previous_index = 0;
 			     previous_index < previous_count;
 			     ++previous_index) {
-				unsigned int cost;
-				int union_area;
-
 				if (previous_rects[previous_index].width <= 0) {
 					continue;
 				}
 				movie_compute_rect_union_and_intersection(
 					&previous_rects[previous_index],
 					&candidate, &rect_union, &intersection);
-				union_area =
+				int union_area =
 					rect_union.width * rect_union.height;
-				cost = intersection.width *
-					       intersection.height -
-				       previous_rects[previous_index].height *
-					       previous_rects[previous_index]
-						       .width -
-				       candidate_area + union_area;
+				unsigned int cost =
+					intersection.width *
+						intersection.height -
+					previous_rects[previous_index].height *
+						previous_rects[previous_index]
+							.width -
+					candidate_area + union_area;
 				if (cost < best_cost) {
 					best_cost = cost;
 					best_union_area = union_area;
@@ -1059,10 +1025,10 @@ void movie_merge_dirty_rect_lists(struct movie_dirty_rect *current_rects,
 
 	g_movie_merged_dirty_rects[output_count] = candidate;
 	*merged_count = output_count + 1;
-	for (index = 0; index < current_count; ++index) {
+	for (unsigned int index = 0; index < current_count; ++index) {
 		current_rects[index].width = abs(current_rects[index].width);
 	}
-	for (restore_index = 0; restore_index < previous_count;
+	for (unsigned int restore_index = 0; restore_index < previous_count;
 	     ++restore_index) {
 		previous_rects[restore_index].width =
 			abs(previous_rects[restore_index].width);
@@ -1080,11 +1046,6 @@ int movie_compute_rect_union_and_intersection(
 	struct movie_dirty_rect *union_rect,
 	struct movie_dirty_rect *intersection_rect)
 {
-	int x;
-	int width;
-	int y;
-	int height;
-
 	if (b->x < a->x) {
 		union_rect->width = a->width - b->x + a->x;
 		union_rect->x = b->x;
@@ -1107,15 +1068,15 @@ int movie_compute_rect_union_and_intersection(
 		union_rect->y = a->y;
 		union_rect->height = a->height;
 	}
-	width = b->width;
-	x = b->x;
+	int width = b->width;
+	int x = b->x;
 	if (a->x + a->width < x + width) {
 		union_rect->width = width - union_rect->x + x;
 	} else {
 		intersection_rect->width = width - intersection_rect->x + x;
 	}
-	y = b->y;
-	height = b->height;
+	int y = b->y;
+	int height = b->height;
 	if (a->y + a->height < y + height) {
 		union_rect->height = y - union_rect->y + height;
 	} else {
@@ -1161,16 +1122,15 @@ int movie_play(const char *name, int synchronize_multiplayer)
 		MOVIE_STATUS_NOT_FOUND = 2,
 	};
 
-	struct movie_playback_params playback_params;
-	char movie_path[MOVIE_PATH_CAPACITY];
 	char movie_name[MOVIE_NAME_CAPACITY];
-	xvt_file *probe_stream;
 
 	strcpy(movie_name, name);
+	char movie_path[MOVIE_PATH_CAPACITY];
 	strcpy(movie_path, "movies\\");
 	strcat(movie_path, movie_name);
 	strcat(movie_path, ".smk");
-	probe_stream = FILE_RAW_OPEN(movie_path, g_file_mode_read_binary);
+	xvt_file *probe_stream =
+		FILE_RAW_OPEN(movie_path, g_file_mode_read_binary);
 	if (synchronize_multiplayer != 0 &&
 	    g_frontend_mission_session_mode !=
 		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
@@ -1225,6 +1185,7 @@ int movie_play(const char *name, int synchronize_multiplayer)
 		FILE_RAW_CLOSE(probe_stream);
 	}
 
+	struct movie_playback_params playback_params;
 	playback_params.movie_name = movie_name;
 	playback_params.primary_surface = g_front_state.primary_surface;
 	playback_params.display_width = MOVIE_DISPLAY_WIDTH;
@@ -1327,12 +1288,11 @@ int movie_multiplayer_input_callback(int window, unsigned int event_code,
 		MOVIE_EVENT_MIDDLE_BUTTON_UP = 0x208,
 	};
 
-	int stop_playback = 0;
-	int packet[2];
-
 	(void)window;
 	(void)lParam;
 	(void)callback_context;
+	int stop_playback = 0;
+	int packet[2];
 	switch (event_code) {
 	case MOVIE_PAINT_EVENT:
 		frontend_display_clear_back_buffer();
@@ -1401,19 +1361,7 @@ int movie_multiplayer_input_callback(int window, unsigned int event_code,
 // FUNCTION: XVT 0x4F02F0
 void movie_draw_multiplayer_sync_status(void)
 {
-	struct RECT rect;
-	const char *status_strings[2];
-	char text[100];
-	unsigned int player_index;
-	unsigned int display_width;
-	unsigned int horizontal_margin;
-	unsigned int cell_width;
-	unsigned int ready_player_count;
-	unsigned int roster_index;
-	int color;
-	int local_player_waiting;
-
-	player_index = 0;
+	unsigned int player_index = 0;
 	while (player_index < 8) {
 		if (net_get_local_player_id() ==
 		    g_movie_multiplayer_sync_players[player_index].player_id) {
@@ -1421,6 +1369,7 @@ void movie_draw_multiplayer_sync_status(void)
 		}
 		++player_index;
 	}
+	int local_player_waiting;
 	if (player_index < 8) {
 		local_player_waiting =
 			g_movie_multiplayer_sync_players[player_index]
@@ -1433,19 +1382,22 @@ void movie_draw_multiplayer_sync_status(void)
 		return;
 	}
 
+	struct RECT rect;
 	rect.left = 0;
 	rect.top = 0;
 	rect.right = g_movie_playback_params->display_width - 1;
 	rect.bottom = g_movie_y - 1;
+	const char *status_strings[2];
 	status_strings[0] = frontend_string_get(FRONTSTR_804_WATCHING);
 	status_strings[1] = frontend_string_get(FRONTSTR_805_WAITING);
-	color = frontend_display_pack_rgb(0xFF, 0xFF, 0xFF);
-	display_width = g_movie_playback_params->display_width;
-	horizontal_margin = display_width / 20;
-	cell_width = (display_width - 2 * horizontal_margin) >> 2;
-	ready_player_count = net_count_ready_players();
+	int color = frontend_display_pack_rgb(0xFF, 0xFF, 0xFF);
+	unsigned int display_width = g_movie_playback_params->display_width;
+	unsigned int horizontal_margin = display_width / 20;
+	unsigned int cell_width = (display_width - 2 * horizontal_margin) >> 2;
+	unsigned int ready_player_count = net_count_ready_players();
 	g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	frontend_draw_rect(&rect, 0, 0, frontend_display_pack_rgb(0, 0, 0), -1);
+	char text[100];
 	for (player_index = 0; player_index < 8; ++player_index) {
 		if (g_movie_multiplayer_sync_players[player_index].player_id !=
 		    0) {
@@ -1456,7 +1408,7 @@ void movie_draw_multiplayer_sync_status(void)
 			rect.right = rect.left;
 			rect.right += cell_width;
 			rect.bottom = rect.top + ((unsigned int)g_movie_y >> 1);
-			roster_index = 0;
+			unsigned int roster_index = 0;
 			if (ready_player_count != 0) {
 				for (;;) {
 					if (g_mp_roster[roster_index]
@@ -1510,12 +1462,11 @@ void movie_update_multiplayer_sync_timeout(void)
 		RGB_CHANNEL_MAX = 0xFF
 	};
 
-	unsigned int timeout_ms;
+	unsigned int timeout_ms =
+		net_is_host() != 0 ? HOST_TIMEOUT_MS : CLIENT_TIMEOUT_MS;
 	struct RECT rect;
-	int packet[2];
-
-	timeout_ms = net_is_host() != 0 ? HOST_TIMEOUT_MS : CLIENT_TIMEOUT_MS;
 	if (g_movie_multiplayer_sync_deadline_ms == 0) {
+		int packet[2];
 		packet[0] = NET_PACKET_MOVIE_SYNC;
 		packet[1] = 0;
 		net_send_packet_and_flush(0, packet, sizeof(packet));
@@ -1554,10 +1505,7 @@ void movie_update_multiplayer_sync_timeout(void)
 	}
 
 	{
-		unsigned int deadline_ms;
-		const char *message;
-
-		deadline_ms = g_movie_multiplayer_sync_deadline_ms;
+		unsigned int deadline_ms = g_movie_multiplayer_sync_deadline_ms;
 		if (deadline_ms - GetTickCount() <= timeout_ms) {
 			return;
 		}
@@ -1570,6 +1518,7 @@ void movie_update_multiplayer_sync_timeout(void)
 		rect.bottom = g_movie_playback_params->display_height - 1;
 		frontend_draw_rect(&rect, 0, 0,
 				   frontend_display_pack_rgb(0, 0, 0), -1);
+		const char *message;
 		if (net_is_host() != 0) {
 			message = frontend_string_get(
 				FRONTSTR_807_STILL_WAITING_FOR_OTHERS_HIT_C_TO_CONTINUE_THE_GAME);
@@ -1620,11 +1569,9 @@ int movie_multiplayer_sync_callback(int current_frame)
 	enum { MAX_MULTIPLAYER_PLAYERS = 8 };
 
 	unsigned int player_index;
-	unsigned int ready_player_count;
-	int watching_player_count;
 
 	if (current_frame == 0) {
-		ready_player_count = net_count_ready_players();
+		unsigned int ready_player_count = net_count_ready_players();
 		for (player_index = 0; player_index < MAX_MULTIPLAYER_PLAYERS;
 		     ++player_index) {
 			if (player_index < ready_player_count) {
@@ -1642,7 +1589,7 @@ int movie_multiplayer_sync_callback(int current_frame)
 	}
 
 	frontend_net_process_network_packets();
-	watching_player_count = 0;
+	int watching_player_count = 0;
 	for (player_index = 0; player_index < MAX_MULTIPLAYER_PLAYERS;
 	     ++player_index) {
 		if (g_movie_multiplayer_sync_players[player_index].player_id !=
@@ -1672,13 +1619,12 @@ int movie_multiplayer_sync_callback(int current_frame)
 // FUNCTION: XVT 0x4F0900
 unsigned int movie_read_subtitle_cue(char *line1, char *line2, char *line3)
 {
-	unsigned int frame_number;
-	int scan_result;
-
 	if (g_movie_subtitle_file == NULL) {
 		return 0;
 	}
-	scan_result = FILE_SCANF(g_movie_subtitle_file, "%u\n", &frame_number);
+	unsigned int frame_number;
+	int scan_result =
+		FILE_SCANF(g_movie_subtitle_file, "%u\n", &frame_number);
 	if (scan_result == 0 || scan_result == EOF) {
 		line1[0] = '\0';
 		return UINT16_MAX;
@@ -1731,10 +1677,6 @@ unsigned int movie_read_subtitle_cue(char *line1, char *line2, char *line3)
 // FUNCTION: XVT 0x4F0A50
 void movie_draw_subtitles(unsigned int frame_number)
 {
-	struct RECT rect;
-	unsigned int line_height;
-	int text_color;
-
 	if (g_movie_subtitle_file != NULL) {
 		if (frame_number == 0) {
 			g_movie_next_subtitle_frame = 0;
@@ -1750,11 +1692,12 @@ void movie_draw_subtitles(unsigned int frame_number)
 		if (g_movie_active_subtitle_frame == frame_number ||
 		    g_movie_active_subtitle_frame - frame_number ==
 			    (unsigned int)-1) {
-			text_color =
+			int text_color =
 				frontend_display_pack_rgb(0xFF, 0xFF, 0xFF);
-			line_height = g_movie_bottom_margin / 3;
+			unsigned int line_height = g_movie_bottom_margin / 3;
 			g_draw_surface_ptr =
 				frontend_display_lock_back_buffer();
+			struct RECT rect;
 			rect.left = 0;
 			rect.top = g_movie_playback_params->display_height -
 				   g_movie_bottom_margin;

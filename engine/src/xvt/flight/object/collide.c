@@ -220,12 +220,8 @@ int g_collision_hit_offset_z = 0;
 void collide_populate_mobile_object_proximity_candidates(
 	struct mobile_object_proximity_list *list, uint16_t owner_obj_idx)
 {
-	struct object_record *owner_object;
-	struct mobile_object *owner_mobile_object;
+	struct object_record *owner_object = &g_object_table[owner_obj_idx];
 	uint16_t candidate_obj_idx;
-	uint16_t source_obj_idx;
-
-	owner_object = &g_object_table[owner_obj_idx];
 	if (owner_object->player_owner_idx != -1) {
 		if (owner_object->mobj->p_craft->working_subsystems != 0) {
 			for (candidate_obj_idx = (uint16_t)
@@ -267,8 +263,8 @@ void collide_populate_mobile_object_proximity_candidates(
 		return;
 	}
 
-	owner_mobile_object = owner_object->mobj;
-	source_obj_idx = owner_mobile_object->source_obj_idx;
+	struct mobile_object *owner_mobile_object = owner_object->mobj;
+	uint16_t source_obj_idx = owner_mobile_object->source_obj_idx;
 	switch (owner_object->genus_id) {
 	case CRAFT_GENUS_STARFIGHTER:
 	case CRAFT_GENUS_TRANSPORT:
@@ -351,12 +347,11 @@ void collide_populate_mobile_object_proximity_candidates(
 			     (uint16_t)g_active_region_object_slot_start;
 		     candidate_obj_idx < g_active_region_craft_object_slot_end;
 		     ++candidate_obj_idx) {
-			struct object_record *candidate_object;
-
 			if (candidate_obj_idx == owner_obj_idx) {
 				continue;
 			}
-			candidate_object = &g_object_table[candidate_obj_idx];
+			struct object_record *candidate_object =
+				&g_object_table[candidate_obj_idx];
 			if (candidate_object->object_type == 0) {
 				continue;
 			}
@@ -416,7 +411,6 @@ void collide_populate_mobile_object_proximity_candidates(
 		     ++candidate_obj_idx) {
 			struct object_record *candidate_object =
 				&g_object_table[candidate_obj_idx];
-			int target_is_player_owned;
 
 			if (candidate_object->object_type == 0) {
 				continue;
@@ -450,7 +444,7 @@ void collide_populate_mobile_object_proximity_candidates(
 				continue;
 			}
 
-			target_is_player_owned =
+			int target_is_player_owned =
 				g_active_region_craft_object_slot_end >
 					target_obj_idx &&
 				g_active_region_object_slot_start <=
@@ -562,24 +556,17 @@ void collide_collisions(void)
 		EXPLOSION_OBJECT_TYPE_ION = 132,
 	};
 
-	uint16_t owner_obj_idx;
-
-	for (owner_obj_idx = (uint16_t)g_active_region_object_slot_start;
+	for (uint16_t owner_obj_idx =
+		     (uint16_t)g_active_region_object_slot_start;
 	     owner_obj_idx < g_projectile_object_slot_end; ++owner_obj_idx) {
-		struct mobile_object_proximity_list *list;
-		int player_idx;
-		uint16_t candidate_slot;
-
 		if (g_object_table[owner_obj_idx].object_type == 0 ||
 		    g_object_table[owner_obj_idx].genus_id ==
 			    CRAFT_GENUS_EXPLOSION) {
 			continue;
 		}
 
-		player_idx = g_object_table[owner_obj_idx].player_owner_idx;
+		int player_idx = g_object_table[owner_obj_idx].player_owner_idx;
 		if (player_idx != -1) {
-			uint16_t target_obj_idx;
-
 			if (g_players[player_idx].hyperspace_phase == 2) {
 				continue;
 			}
@@ -589,27 +576,24 @@ void collide_collisions(void)
 			    && xvt_flight_timing_reference_due()
 #endif
 			) {
-				uint16_t source_obj_idx;
-
 				g_players[player_idx]
 					.engine_wash_source_obj_idx = -1;
 				g_players[player_idx].engine_wash_strength = 0;
 				g_players[player_idx]
 					.next_engine_wash_check_time =
 					g_game_time + ENGINE_WASH_UPDATE_TICKS;
-				for (source_obj_idx = (uint16_t)
+				for (uint16_t source_obj_idx = (uint16_t)
 					     g_active_region_object_slot_start;
 				     source_obj_idx <
 				     g_active_region_craft_object_slot_end;
 				     ++source_obj_idx) {
 					struct object_record *source_object =
 						&g_object_table[source_obj_idx];
-					struct craft_data *source_craft;
 
 					if (source_object->object_type == 0) {
 						continue;
 					}
-					source_craft =
+					struct craft_data *source_craft =
 						source_object->mobj->p_craft;
 					if (source_craft != NULL &&
 					    source_craft->working_subsystems !=
@@ -641,8 +625,9 @@ void collide_collisions(void)
 				g_object_table[owner_obj_idx]
 					.mobj->prev_world_z;
 
-			target_obj_idx = (uint16_t)g_players[player_idx]
-						 .current_target_object_idx;
+			uint16_t target_obj_idx =
+				(uint16_t)g_players[player_idx]
+					.current_target_object_idx;
 			if (target_obj_idx >=
 				    g_active_region_object_slot_start &&
 			    target_obj_idx <
@@ -653,9 +638,6 @@ void collide_collisions(void)
 				if (target_object->object_type != 0 &&
 				    target_object->genus_id !=
 					    CRAFT_GENUS_EXPLOSION) {
-					struct craft_data *target_craft;
-					int max_bounds_extent;
-
 					g_collision_sweep_end_x =
 						target_object->world_x;
 					g_collision_sweep_end_y =
@@ -678,7 +660,7 @@ void collide_collisions(void)
 							g_collision_sweep_end_y,
 						g_collision_probe_world_z -
 							g_collision_sweep_end_z);
-					target_craft =
+					struct craft_data *target_craft =
 						target_object->mobj->p_craft;
 					if (target_craft->object_kind !=
 						    CRAFT_OBJECT_KIND_BREAKING_UP &&
@@ -689,7 +671,7 @@ void collide_collisions(void)
 								     .mobj
 								     ->team] ==
 						    0) {
-						max_bounds_extent =
+						int max_bounds_extent =
 							g_object_type_table
 								[target_object
 									 ->object_type]
@@ -711,15 +693,10 @@ void collide_collisions(void)
 							uint8_t flight_group_idx =
 								target_object
 									->flight_group_idx;
-							int special_cargo_flag =
-								0;
-							int goal_message_required =
-								0;
-							int player_scored;
-							uint16_t team_index;
-							int goal_index;
 
-							for (team_index = 0;
+							for (uint16_t
+								     team_index =
+									     0;
 							     team_index <
 							     TEAM_COUNT;
 							     ++team_index) {
@@ -752,6 +729,8 @@ void collide_collisions(void)
 							++g_mission_fg_stats[flight_group_idx]
 								  .team_inspected
 									  [player_team];
+							int special_cargo_flag =
+								0;
 							if (g_mission_flight_groups
 								    [flight_group_idx]
 									    .fg
@@ -771,7 +750,7 @@ void collide_collisions(void)
 									  .team_special_cargo_inspected
 										  [player_team];
 							}
-							player_scored = mission_apply_flight_group_goal_score(
+							int player_scored = mission_apply_flight_group_goal_score(
 								MISSION_COND_INSPECTED,
 								flight_group_idx,
 								player_idx,
@@ -787,7 +766,9 @@ void collide_collisions(void)
 									1,
 								special_cargo_flag,
 								player_team);
-							for (goal_index = 0;
+							int goal_message_required =
+								0;
+							for (int goal_index = 0;
 							     goal_index <
 							     MISSION_GOAL_COUNT;
 							     ++goal_index) {
@@ -874,10 +855,8 @@ void collide_collisions(void)
 
 			if (g_object_table[owner_obj_idx].mobj->seconds_alive >=
 			    MIN_DOCK_PROMPT_SECONDS) {
-				uint16_t mothership_pass;
-
-				for (mothership_pass = 0; mothership_pass < 2;
-				     ++mothership_pass) {
+				for (uint16_t mothership_pass = 0;
+				     mothership_pass < 2; ++mothership_pass) {
 					uint8_t mothership_flight_group = 0;
 					int has_mothership = 0;
 					struct xvt_flight_group *owner_flight_group =
@@ -905,20 +884,15 @@ void collide_collisions(void)
 						has_mothership = 1;
 					}
 					if (has_mothership != 0) {
-						uint16_t mothership_obj_idx;
-
-						for (mothership_obj_idx = (uint16_t)
-							     g_active_region_object_slot_start;
+						for (uint16_t mothership_obj_idx =
+							     (uint16_t)
+								     g_active_region_object_slot_start;
 						     mothership_obj_idx <
 						     g_active_region_craft_object_slot_end;
 						     ++mothership_obj_idx) {
 							struct object_record *mothership =
 								&g_object_table
 									[mothership_obj_idx];
-							struct craft_data *
-								mothership_craft;
-							unsigned int
-								prompt_range;
 
 							if (mothership->object_type ==
 								    0 ||
@@ -946,7 +920,7 @@ void collide_collisions(void)
 							g_collision_sweep_start_z =
 								mothership->mobj
 									->prev_world_z;
-							mothership_craft =
+							struct craft_data *mothership_craft =
 								mothership->mobj
 									->p_craft;
 							if (mothership_craft
@@ -977,7 +951,7 @@ void collide_collisions(void)
 								g_rotated_y;
 							g_collision_sweep_end_z +=
 								g_rotated_z;
-							prompt_range =
+							unsigned int prompt_range =
 								HANGAR_RANGE;
 							if (mothership->genus_id ==
 								    CRAFT_GENUS_STARSHIP &&
@@ -1029,7 +1003,8 @@ void collide_collisions(void)
 		if (g_object_table[owner_obj_idx].mobj == NULL) {
 			continue;
 		}
-		list = &g_object_table[owner_obj_idx].mobj->proximity_list;
+		struct mobile_object_proximity_list *list =
+			&g_object_table[owner_obj_idx].mobj->proximity_list;
 		list->rebuild_ticks -= g_elapsed_ticks;
 		if (list->rebuild_ticks <= 0) {
 			list->rebuild_ticks = 0x7FFF;
@@ -1037,7 +1012,7 @@ void collide_collisions(void)
 				list, owner_obj_idx);
 		}
 
-		for (candidate_slot = 0; candidate_slot < list->count;
+		for (uint16_t candidate_slot = 0; candidate_slot < list->count;
 		     ++candidate_slot) {
 			uint16_t candidate_obj_idx =
 				list->obj_idx[candidate_slot];
@@ -1118,7 +1093,6 @@ void collide_collisions(void)
 						g_object_table
 							[candidate_obj_idx]
 								.mobj->p_craft;
-					int16_t hit_mesh_index;
 
 					if (strcmp(g_plan_table
 							   [candidate_craft
@@ -1161,7 +1135,7 @@ void collide_collisions(void)
 							[candidate_obj_idx]
 								.mobj
 								->prev_world_z;
-					hit_mesh_index =
+					int16_t hit_mesh_index =
 						collide_test_swept_pair_collision(
 							owner_obj_idx,
 							candidate_obj_idx);
@@ -1254,27 +1228,11 @@ void collide_collisions(void)
 							if (g_object_table[candidate_obj_idx]
 								    .genus_id <=
 							    CRAFT_GENUS_UTILITY_VEHICLE) {
-								int16_t angle_difference;
-								uint16_t
-									candidate_speed;
-								int16_t relative_speed;
-								int delta_x;
-								int delta_y;
-								int delta_z;
-								int distance_squared;
-								int impulse_x;
-								int impulse_y;
-								int16_t adjusted_move_x;
-								int16_t adjusted_move_y;
-								int16_t roll_impulse;
-								uint16_t
-									saved_yaw;
-
 								owner_craft
 									->ai_flight
 									.impact_obj_idx =
 									candidate_obj_idx;
-								angle_difference =
+								int16_t angle_difference =
 									g_object_table[candidate_obj_idx]
 										.yaw -
 									g_object_table[owner_obj_idx]
@@ -1295,10 +1253,11 @@ void collide_collisions(void)
 										ANGLE_HALF_TURN -
 										angle_difference;
 								}
-								candidate_speed =
+								uint16_t candidate_speed =
 									g_object_table[candidate_obj_idx]
 										.mobj
 										->speed;
+								int16_t relative_speed;
 								if ((uint16_t)
 									    angle_difference <
 								    ANGLE_QUARTER_TURN) {
@@ -1323,23 +1282,23 @@ void collide_collisions(void)
 									relative_speed =
 										-relative_speed;
 								}
-								delta_x =
+								int delta_x =
 									g_object_table[owner_obj_idx]
 										.world_x -
 									g_object_table[candidate_obj_idx]
 										.world_x;
-								delta_y =
+								int delta_y =
 									g_object_table[owner_obj_idx]
 										.world_y -
 									g_object_table[candidate_obj_idx]
 										.world_y;
-								delta_z =
+								int delta_z =
 									g_object_table[owner_obj_idx]
 										.world_z -
 									g_object_table[candidate_obj_idx]
 										.world_z;
 								/* Preserve 32-bit wrapping before signed comparisons and division. */
-								distance_squared =
+								int distance_squared =
 									(int32_t)((uint32_t)delta_x *
 											  (uint32_t)
 												  delta_x +
@@ -1349,6 +1308,8 @@ void collide_collisions(void)
 										  (uint32_t)delta_z *
 											  (uint32_t)
 												  delta_z);
+								int impulse_x;
+								int impulse_y;
 								if (distance_squared <=
 								    SMALL_DISTANCE_SQUARED) {
 									impulse_x =
@@ -1390,7 +1351,7 @@ void collide_collisions(void)
 										&g_object_table
 											[owner_obj_idx]);
 								}
-								adjusted_move_x =
+								int16_t adjusted_move_x =
 									g_object_table[owner_obj_idx]
 										.mobj
 										->move_x +
@@ -1407,7 +1368,7 @@ void collide_collisions(void)
 											.mobj
 											->move_x;
 								}
-								adjusted_move_y =
+								int16_t adjusted_move_y =
 									g_object_table[owner_obj_idx]
 										.mobj
 										->move_y +
@@ -1424,7 +1385,7 @@ void collide_collisions(void)
 											.mobj
 											->move_y;
 								}
-								saved_yaw =
+								uint16_t saved_yaw =
 									g_object_table[owner_obj_idx]
 										.yaw;
 								g_object_table[owner_obj_idx]
@@ -1438,7 +1399,7 @@ void collide_collisions(void)
 									->pitch =
 									g_object_table[candidate_obj_idx]
 										.pitch;
-								roll_impulse =
+								int16_t roll_impulse =
 									BOUNCE_DIRECTION_SCALE *
 									relative_speed;
 								if ((uint16_t)
@@ -1624,8 +1585,6 @@ void collide_collisions(void)
 							    g_object_table[candidate_obj_idx]
 									    .genus_id ==
 								    CRAFT_GENUS_PLATFORM) {
-								int dot_product;
-
 								collide_damagecraft(
 									candidate_obj_idx,
 									hit_mesh_index,
@@ -1649,7 +1608,7 @@ void collide_collisions(void)
 										&g_object_table
 											[owner_obj_idx]);
 								}
-								dot_product = math_dot3q15_wrapped(
+								int dot_product = math_dot3q15_wrapped(
 									(int16_t)(g_collision_sweep_end_x -
 										  g_collision_sweep_start_x),
 									(int16_t)(g_collision_sweep_end_y -
@@ -1767,7 +1726,6 @@ void collide_collisions(void)
 					struct craft_data *owner_craft =
 						g_object_table[owner_obj_idx]
 							.mobj->p_craft;
-					struct craft_data *candidate_craft;
 					uint8_t maneuver_mode =
 						owner_craft->ai_controller
 							.maneuver_mode;
@@ -1792,7 +1750,7 @@ void collide_collisions(void)
 							candidate_obj_idx);
 						continue;
 					}
-					candidate_craft =
+					struct craft_data *candidate_craft =
 						g_object_table
 							[candidate_obj_idx]
 								.mobj->p_craft;
@@ -1991,8 +1949,6 @@ void collide_collisions(void)
 							.mobj->prev_world_z;
 					if (g_object_table[candidate_obj_idx]
 						    .mobj != NULL) {
-						int16_t hit_mesh_index;
-
 						g_collision_sweep_end_x =
 							g_object_table
 								[candidate_obj_idx]
@@ -2017,7 +1973,7 @@ void collide_collisions(void)
 							g_object_table[candidate_obj_idx]
 								.mobj
 								->prev_world_z;
-						hit_mesh_index =
+						int16_t hit_mesh_index =
 							collide_test_swept_pair_collision(
 								owner_obj_idx,
 								candidate_obj_idx);
@@ -2143,18 +2099,7 @@ void collide_insert_mobile_object_proximity_candidate(
 	struct mobile_object_proximity_list *list, uint16_t owner_obj_idx,
 	uint16_t candidate_obj_idx)
 {
-	int clearance;
-	int candidate_speed;
-	int combined_speed;
-	int contact_ticks;
-	int index;
-	uint8_t count;
-	int move_index;
-	int displaced_score;
-	int *score;
-	uint16_t *object_index;
-
-	clearance = collide_roughdistance3d(
+	int clearance = collide_roughdistance3d(
 		g_object_table[owner_obj_idx].world_x -
 			g_object_table[candidate_obj_idx].world_x,
 		g_object_table[owner_obj_idx].world_y -
@@ -2167,27 +2112,31 @@ void collide_insert_mobile_object_proximity_candidate(
 	clearance -= g_object_type_table[g_object_table[candidate_obj_idx]
 						 .object_type]
 			     .max_bounds_extent;
+	int contact_ticks;
 	if (clearance < 0) {
 		contact_ticks = 0;
 	} else {
-		candidate_speed = collide_get_mobile_object_proximity_speed_q12(
-			candidate_obj_idx);
+		int candidate_speed =
+			collide_get_mobile_object_proximity_speed_q12(
+				candidate_obj_idx);
 		clearance >>= 8;
-		combined_speed = (candidate_speed +
-				  collide_get_mobile_object_proximity_speed_q12(
-					  owner_obj_idx)) >>
-				 8;
+		int combined_speed =
+			(candidate_speed +
+			 collide_get_mobile_object_proximity_speed_q12(
+				 owner_obj_idx)) >>
+			8;
 		if (combined_speed == 0) {
 			return;
 		}
 		contact_ticks = 13275 * clearance / combined_speed;
 	}
 
-	index = 0;
-	count = list->count;
+	int index = 0;
+	uint8_t count = list->count;
+	int move_index;
 	if (count != 0) {
-		score = list->contact_ticks;
-		object_index = list->obj_idx;
+		int *score = list->contact_ticks;
+		uint16_t *object_index = list->obj_idx;
 		for (;;) {
 			if (*object_index == candidate_obj_idx) {
 				list->contact_ticks[index] = contact_ticks;
@@ -2258,7 +2207,7 @@ void collide_insert_mobile_object_proximity_candidate(
 
 	move_index = count;
 	if (count == 16) {
-		displaced_score = list->contact_ticks[count - 1];
+		int displaced_score = list->contact_ticks[count - 1];
 		if (list->rebuild_ticks > displaced_score) {
 			list->rebuild_ticks = displaced_score;
 		}
@@ -2285,15 +2234,13 @@ void collide_insert_mobile_object_proximity_candidate(
 // FUNCTION: XVT 0x41BA60
 int collide_get_mobile_object_proximity_speed_q12(uint16_t obj_idx)
 {
-	struct mobile_object *mobile_object;
-	int speed;
-	uint16_t current_speed;
-
-	mobile_object = g_object_table[obj_idx].mobj;
+	struct mobile_object *mobile_object = g_object_table[obj_idx].mobj;
 	if (mobile_object == NULL) {
 		return 0;
 	}
 
+	int speed;
+	uint16_t current_speed;
 	switch (mobile_object->family) {
 	case 0:
 		speed = g_model_defs[get_model_index_from_type(
@@ -2328,25 +2275,20 @@ int collide_get_mobile_object_proximity_speed_q12(uint16_t obj_idx)
 // FUNCTION: XVT 0x41BB00
 void collide_reset_object_proximity_for_slot(uint16_t obj_idx)
 {
-	struct mobile_object *mobile_object;
-	int owner_obj_idx;
-	int object_index;
-	struct object_record *object;
-
-	mobile_object = g_object_table[obj_idx].mobj;
+	struct mobile_object *mobile_object = g_object_table[obj_idx].mobj;
 	if (mobile_object != NULL) {
 		mobile_object->proximity_list.rebuild_ticks = 0;
 		g_object_table[obj_idx].mobj->proximity_list.count = 0;
 		return;
 	}
 
-	owner_obj_idx = g_active_region_object_slot_start;
+	int owner_obj_idx = g_active_region_object_slot_start;
 	if (g_active_region_craft_object_slot_end <= owner_obj_idx) {
 		return;
 	}
-	object_index = g_active_region_object_slot_start;
+	int object_index = g_active_region_object_slot_start;
 	do {
-		object = &g_object_table[object_index];
+		struct object_record *object = &g_object_table[object_index];
 		if (object->object_type != 0 &&
 		    object->player_owner_idx != -1) {
 			mobile_object = object->mobj;
@@ -2367,21 +2309,17 @@ void collide_reset_object_proximity_for_slot(uint16_t obj_idx)
 // FUNCTION: XVT 0x41BBA0
 void collide_reset_neighbor_proximity_lists(uint16_t object_index)
 {
-	struct mobile_object *mobile_object;
-	int count;
-	int proximity_index;
-
-	mobile_object = g_object_table[object_index].mobj;
+	struct mobile_object *mobile_object = g_object_table[object_index].mobj;
 	if (mobile_object == NULL) {
 		return;
 	}
 
-	count = mobile_object->proximity_list.count;
+	int count = mobile_object->proximity_list.count;
 	if (count <= 0) {
 		return;
 	}
 
-	proximity_index = 0;
+	int proximity_index = 0;
 	do {
 		collide_reset_object_proximity_for_slot(
 			g_object_table[object_index]
@@ -2397,9 +2335,7 @@ void collide_reset_neighbor_proximity_lists(uint16_t object_index)
 void collide_remove_mobile_object_proximity_candidate(
 	struct mobile_object_proximity_list *list, uint16_t candidate_obj_idx)
 {
-	int index;
-
-	index = 0;
+	int index = 0;
 	if (list->count != 0) {
 		do {
 			if (list->obj_idx[index] == candidate_obj_idx) {
@@ -2441,22 +2377,6 @@ void collide_remove_mobile_object_proximity_candidate(
 void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 				       uint16_t other_obj_idx)
 {
-	struct craft_data *craft;
-	int16_t speed;
-	int16_t angle;
-	int impulse_x;
-	int impulse_y;
-	int delta_x;
-	int delta_y;
-	int delta_z;
-	int distance_squared;
-	uint16_t saved_yaw;
-	int16_t force_x;
-	int16_t force_y;
-	int16_t force_z;
-	int16_t move_x;
-	int16_t move_y;
-
 	if (g_object_table[craft_obj_idx].genus_id != CRAFT_GENUS_STARFIGHTER &&
 	    g_object_table[craft_obj_idx].genus_id != CRAFT_GENUS_TRANSPORT &&
 	    g_object_table[craft_obj_idx].genus_id !=
@@ -2464,11 +2384,11 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 		return;
 	}
 
-	craft = g_object_table[craft_obj_idx].mobj->p_craft;
+	struct craft_data *craft = g_object_table[craft_obj_idx].mobj->p_craft;
 	craft->ai_flight.impact_obj_idx = other_obj_idx;
-	speed = (int16_t)g_object_table[craft_obj_idx].mobj->speed;
-	angle = (int16_t)(g_object_table[other_obj_idx].yaw -
-			  g_object_table[craft_obj_idx].yaw);
+	int16_t speed = (int16_t)g_object_table[craft_obj_idx].mobj->speed;
+	int16_t angle = (int16_t)(g_object_table[other_obj_idx].yaw -
+				  g_object_table[craft_obj_idx].yaw);
 	if ((uint16_t)angle >= 0x8000) {
 		angle = (int16_t)-angle;
 	}
@@ -2494,6 +2414,11 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 		speed = (int16_t)-speed;
 	}
 
+	int impulse_x;
+	int impulse_y;
+	int delta_x;
+	int delta_y;
+	int delta_z;
 	if (g_object_table[craft_obj_idx].mobj != NULL &&
 	    g_object_table[other_obj_idx].mobj != NULL) {
 		delta_x = g_object_table[craft_obj_idx].mobj->prev_world_x -
@@ -2515,9 +2440,12 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 			  g_object_table[other_obj_idx].world_z;
 	}
 	/* Preserve 32-bit wrapping before signed comparisons and division. */
-	distance_squared = (int32_t)((uint32_t)delta_z * (uint32_t)delta_z +
-				     (uint32_t)impulse_y * (uint32_t)impulse_y +
-				     (uint32_t)delta_x * (uint32_t)delta_x);
+	int distance_squared =
+		(int32_t)((uint32_t)delta_z * (uint32_t)delta_z +
+			  (uint32_t)impulse_y * (uint32_t)impulse_y +
+			  (uint32_t)delta_x * (uint32_t)delta_x);
+	int16_t force_x;
+	int16_t force_y;
 	if (distance_squared > 50) {
 		/* From here impulse_x and impulse_y hold the offsets times 1000 times speed, before the division by
 		 * distance_squared; the other craft's bounce below multiplies them by 1000 and speed again. */
@@ -2527,6 +2455,7 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 		impulse_y = (int32_t)(1000u * (uint32_t)speed *
 				      (uint32_t)impulse_y);
 		force_y = (int16_t)(impulse_y / distance_squared);
+		int16_t force_z;
 		force_z = (int16_t)((int32_t)(1000u * (uint32_t)speed *
 					      (uint32_t)delta_z) /
 				    distance_squared);
@@ -2540,17 +2469,17 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 				     g_object_table[craft_obj_idx].yaw,
 				     &g_object_table[craft_obj_idx]);
 	}
-	move_x = g_object_table[craft_obj_idx].mobj->move_x;
+	int16_t move_x = g_object_table[craft_obj_idx].mobj->move_x;
 	force_x = (int16_t)(force_x + move_x);
 	if (((force_x ^ move_x) & 0x8000) != 0) {
 		force_x = move_x;
 	}
-	move_y = g_object_table[craft_obj_idx].mobj->move_y;
+	int16_t move_y = g_object_table[craft_obj_idx].mobj->move_y;
 	force_y = (int16_t)(force_y + move_y);
 	if (((force_y ^ move_y) & 0x8000) != 0) {
 		force_y = move_y;
 	}
-	saved_yaw = g_object_table[craft_obj_idx].yaw;
+	uint16_t saved_yaw = g_object_table[craft_obj_idx].yaw;
 	g_object_table[craft_obj_idx].yaw = trig2_arctan(force_x, force_y);
 
 	if (other_obj_idx >= g_projectile_object_slot_start &&
@@ -2568,11 +2497,10 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 	if (g_active_region_craft_object_slot_end > other_obj_idx) {
 		struct craft_data *other_craft =
 			g_object_table[other_obj_idx].mobj->p_craft;
-		int16_t roll_impulse;
 
 		g_object_table[other_obj_idx].pitch = trig2_w_arccos(force_x);
 		other_craft->pitch = g_object_table[other_obj_idx].pitch;
-		roll_impulse = (int16_t)(speed * 100);
+		int16_t roll_impulse = (int16_t)(speed * 100);
 		if ((uint16_t)roll_impulse >= 0x8000) {
 			roll_impulse = 0x7FFF;
 		}
@@ -2589,9 +2517,6 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 	}
 
 	if (g_active_region_craft_object_slot_end > other_obj_idx) {
-		int16_t bounce_x;
-		int16_t bounce_y;
-
 		g_object_table[other_obj_idx]
 			.mobj->p_craft->ai_flight.impact_obj_idx =
 			craft_obj_idx;
@@ -2599,6 +2524,8 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 			(int32_t)((uint32_t)delta_z * (uint32_t)delta_z +
 				  (uint32_t)delta_y * (uint32_t)delta_y +
 				  (uint32_t)delta_x * (uint32_t)delta_x);
+		int16_t bounce_x;
+		int16_t bounce_y;
 		if (distance_squared > 50) {
 			bounce_x = (int16_t)((int32_t)(1000u * (uint32_t)speed *
 						       (uint32_t)impulse_x) /
@@ -2688,22 +2615,7 @@ int16_t collide_test_swept_pair_collision(uint16_t source_obj_idx,
 {
 	enum { COLLISION_MARGIN = 0x20000, LARGE_MODEL_EXTENT = 1095 };
 
-	int max_distance;
-	int dx;
-	int dy;
-	int dz;
-	unsigned int target_distance;
-	int source_distance;
-	int use_detailed_collision = 1;
-	int sweep_distance;
-	struct object_record *target;
-	struct object_record *source;
-	unsigned int target_object_type;
-	int source_object_type;
-	uint8_t source_genus;
-	int max_extent;
-
-	max_distance =
+	int max_distance =
 		g_object_type_table[g_object_table[target_obj_idx].object_type]
 			.max_bounds_extent +
 		COLLISION_MARGIN;
@@ -2711,7 +2623,7 @@ int16_t collide_test_swept_pair_collision(uint16_t source_obj_idx,
 		g_object_type_table[g_object_table[source_obj_idx].object_type]
 			.max_bounds_extent;
 	g_approx_dist = max_distance;
-	dx = g_collision_probe_world_x - g_collision_sweep_end_x;
+	int dx = g_collision_probe_world_x - g_collision_sweep_end_x;
 
 	if (dx < 0) {
 		dx = -dx;
@@ -2719,21 +2631,21 @@ int16_t collide_test_swept_pair_collision(uint16_t source_obj_idx,
 	if (dx > max_distance) {
 		return 0;
 	}
-	dy = g_collision_probe_world_y - g_collision_sweep_end_y;
+	int dy = g_collision_probe_world_y - g_collision_sweep_end_y;
 	if (dy < 0) {
 		dy = -dy;
 	}
 	if (dy > max_distance) {
 		return 0;
 	}
-	dz = g_collision_probe_world_z - g_collision_sweep_end_z;
+	int dz = g_collision_probe_world_z - g_collision_sweep_end_z;
 	if (dz < 0) {
 		dz = -dz;
 	}
 	if (dz > max_distance) {
 		return 0;
 	}
-	target_distance = collide_roughdistance3du(
+	unsigned int target_distance = collide_roughdistance3du(
 		(unsigned int)dx, (unsigned int)dy, (unsigned int)dz);
 	g_approx_dist = target_distance;
 	if ((int)target_distance > max_distance) {
@@ -2752,9 +2664,10 @@ int16_t collide_test_swept_pair_collision(uint16_t source_obj_idx,
 	if (dz < 0) {
 		dz = -dz;
 	}
-	source_distance = dx + dy + dz;
+	int source_distance = dx + dy + dz;
 
-	sweep_distance = g_collision_sweep_end_x - g_collision_sweep_start_x;
+	int sweep_distance =
+		g_collision_sweep_end_x - g_collision_sweep_start_x;
 	if (sweep_distance < 0) {
 		sweep_distance = -sweep_distance;
 	}
@@ -2770,9 +2683,11 @@ int16_t collide_test_swept_pair_collision(uint16_t source_obj_idx,
 	}
 	dz += sweep_distance;
 
-	target = &g_object_table[target_obj_idx];
-	target_object_type = target->object_type;
-	max_extent = g_object_type_table[target_object_type].max_bounds_extent;
+	struct object_record *target = &g_object_table[target_obj_idx];
+	unsigned int target_object_type = target->object_type;
+	int max_extent =
+		g_object_type_table[target_object_type].max_bounds_extent;
+	int use_detailed_collision = 1;
 	if (target->genus_id == CRAFT_GENUS_OTHER_PROJECTILE ||
 	    target->genus_id == CRAFT_GENUS_PLAYER_PROJECTILE) {
 		if (target->object_type !=
@@ -2780,8 +2695,8 @@ int16_t collide_test_swept_pair_collision(uint16_t source_obj_idx,
 			max_extent >>= 1;
 		}
 	} else if (target->genus_id == CRAFT_GENUS_STARFIGHTER) {
-		source = &g_object_table[source_obj_idx];
-		source_genus = source->genus_id;
+		struct object_record *source = &g_object_table[source_obj_idx];
+		uint8_t source_genus = source->genus_id;
 		if (source_genus == CRAFT_GENUS_OTHER_PROJECTILE ||
 		    source_genus == CRAFT_GENUS_PLAYER_PROJECTILE) {
 			if (target->mobj->p_craft->shield_energy[0] +
@@ -2795,7 +2710,7 @@ int16_t collide_test_swept_pair_collision(uint16_t source_obj_idx,
 			if (g_internet_play_enabled != 0 &&
 			    target->player_owner_idx != -1 &&
 			    source_genus == CRAFT_GENUS_PLAYER_PROJECTILE) {
-				source_object_type = source->object_type;
+				int source_object_type = source->object_type;
 				if (g_projectile_type_data.warhead_class
 					    [source_object_type -
 					     PROJECTILE_OBJECT_TYPE_FIRST] ==
@@ -2860,42 +2775,22 @@ int16_t collide_test_swept_pair_collision(uint16_t source_obj_idx,
 // FUNCTION: XVT 0x41C570
 int16_t collide_checkboxcollision(int radius)
 {
-	int slope;
-	uint16_t scale_q15;
-	int t_enter;
 	int t_exit;
-	int t_candidate;
-	int end_rel;
-	int sweep_delta_x;
-	int sweep_delta_y;
-	int sweep_delta_z;
-	int probe_delta_x;
-	int probe_delta_y;
-	int probe_delta_z;
-	int start_rel_x;
-	int start_rel_y;
-	int start_rel_z;
-	int delta_x;
-	int delta_y;
-	int delta_z;
-	int x_far_numerator;
-	int y_far_numerator;
-	int y_near_numerator;
-	int z_far_numerator;
-	int z_near_numerator;
 
-	probe_delta_x =
+	int probe_delta_x =
 		g_collision_probe_world_x - g_collision_segment_start_world_x;
-	probe_delta_y =
+	int probe_delta_y =
 		g_collision_probe_world_y - g_collision_segment_start_world_y;
-	probe_delta_z =
+	int probe_delta_z =
 		g_collision_probe_world_z - g_collision_segment_start_world_z;
-	sweep_delta_x = g_collision_sweep_end_x - g_collision_sweep_start_x;
-	sweep_delta_y = g_collision_sweep_end_y - g_collision_sweep_start_y;
-	sweep_delta_z = g_collision_sweep_end_z - g_collision_sweep_start_z;
+	int sweep_delta_x = g_collision_sweep_end_x - g_collision_sweep_start_x;
+	int sweep_delta_y = g_collision_sweep_end_y - g_collision_sweep_start_y;
+	int sweep_delta_z = g_collision_sweep_end_z - g_collision_sweep_start_z;
 
-	start_rel_x =
+	int start_rel_x =
 		g_collision_sweep_start_x - g_collision_segment_start_world_x;
+	int delta_x;
+	int x_far_numerator;
 	if (start_rel_x > radius) {
 		x_far_numerator = radius - start_rel_x;
 		delta_x = sweep_delta_x - probe_delta_x;
@@ -2922,8 +2817,11 @@ int16_t collide_checkboxcollision(int radius)
 		delta_x = 0;
 	}
 
-	start_rel_y =
+	int start_rel_y =
 		g_collision_sweep_start_y - g_collision_segment_start_world_y;
+	int delta_y;
+	int y_far_numerator;
+	int y_near_numerator;
 	if (start_rel_y > radius) {
 		y_far_numerator = radius - start_rel_y;
 		delta_y = sweep_delta_y - probe_delta_y;
@@ -2950,8 +2848,11 @@ int16_t collide_checkboxcollision(int radius)
 		y_near_numerator = -(start_rel_y + radius);
 	}
 
-	start_rel_z =
+	int start_rel_z =
 		g_collision_sweep_start_z - g_collision_segment_start_world_z;
+	int delta_z;
+	int z_far_numerator;
+	int z_near_numerator;
 	if (start_rel_z > radius) {
 		z_far_numerator = radius - start_rel_z;
 		delta_z = sweep_delta_z - probe_delta_z;
@@ -2985,6 +2886,10 @@ int16_t collide_checkboxcollision(int radius)
 	z_far_numerator = (int32_t)((uint32_t)z_far_numerator << 8);
 	z_near_numerator = (int32_t)((uint32_t)z_near_numerator << 8);
 
+	int slope;
+	int t_enter;
+	int t_candidate;
+	int end_rel;
 	/* Until here t_exit held the X near-face numerator, the twin of y_near_numerator and z_near_numerator; from
 	 * here it holds the exit time along the sweep, in 256ths of the segment like t_enter. */
 	if (delta_x == 0) {
@@ -3116,7 +3021,7 @@ int16_t collide_checkboxcollision(int radius)
 		return 0;
 	}
 
-	scale_q15 = (uint16_t)((uint16_t)t_enter << 7);
+	uint16_t scale_q15 = (uint16_t)((uint16_t)t_enter << 7);
 	g_collision_hit_offset_x = math_mul_q15((int)scale_q15, probe_delta_x);
 	g_collision_hit_offset_y = math_mul_q15((int)scale_q15, probe_delta_y);
 	g_collision_hit_offset_z = math_mul_q15((int)scale_q15, probe_delta_z);
@@ -3150,22 +3055,6 @@ int collide_would_shot_hit_target(uint16_t source_obj_idx,
 	};
 
 	struct collision_target_range_scratch saved_collision;
-	struct object_record *source_object;
-	struct craft_data *source_craft;
-	struct mobile_object *source_mobile_object;
-	model_index source_model_index;
-	uint16_t projectile_type;
-	uint16_t projectile_speed;
-	int lifetime_ticks;
-	int projectile_distance;
-	struct object_record *target_object;
-	int result;
-	int source_move_x;
-	int source_move_y;
-	int source_move_z;
-	int target_move_x;
-	int target_move_y;
-	int target_move_z;
 
 	saved_collision.segment_start_world_x =
 		g_collision_segment_start_world_x;
@@ -3186,20 +3075,20 @@ int collide_would_shot_hit_target(uint16_t source_obj_idx,
 	saved_collision.hit_offset_y = g_collision_hit_offset_y;
 	saved_collision.hit_offset_z = g_collision_hit_offset_z;
 
-	source_object = &g_object_table[source_obj_idx];
-	source_craft = source_object->mobj->p_craft;
-	source_model_index = source_craft->model_index;
-	projectile_type =
+	struct object_record *source_object = &g_object_table[source_obj_idx];
+	struct craft_data *source_craft = source_object->mobj->p_craft;
+	model_index source_model_index = source_craft->model_index;
+	uint16_t projectile_type =
 		g_model_defs[source_model_index].laser_group_weapon_type
 			[g_players[g_local_player].selected_weapon_bank];
 	if (source_craft->weapon_slots[hardpoint_index].laser_charge >=
 	    CHARGED_PROJECTILE_THRESHOLD) {
 		++projectile_type;
 	}
-	projectile_speed =
+	uint16_t projectile_speed =
 		g_projectile_type_data
 			.speed[projectile_type - PROJECTILE_OBJECT_TYPE_FIRST];
-	lifetime_ticks =
+	int lifetime_ticks =
 		SIMULATION_TICKS_PER_SECOND *
 		g_projectile_type_data
 			.lifetime_seconds[projectile_type -
@@ -3233,8 +3122,8 @@ int collide_would_shot_hit_target(uint16_t source_obj_idx,
 	g_collision_segment_start_world_y += g_rotated_y;
 	g_collision_segment_start_world_z += g_rotated_z;
 
-	source_mobile_object = source_object->mobj;
-	projectile_distance =
+	struct mobile_object *source_mobile_object = source_object->mobj;
+	int projectile_distance =
 		lifetime_ticks *
 		((PROJECTILE_SPEED_SCALE *
 			  (projectile_speed + source_mobile_object->speed) +
@@ -3245,24 +3134,24 @@ int collide_would_shot_hit_target(uint16_t source_obj_idx,
 		fview_calcrotatemove(source_object->pitch, source_object->yaw,
 				     source_object);
 	}
-	source_move_x = source_object->mobj->move_x;
+	int source_move_x = source_object->mobj->move_x;
 	source_move_x = math_mul_q15(source_move_x, projectile_distance);
 	g_collision_probe_world_x =
 		g_collision_segment_start_world_x + source_move_x;
-	source_move_y = source_object->mobj->move_y;
+	int source_move_y = source_object->mobj->move_y;
 	source_move_y = math_mul_q15(source_move_y, projectile_distance);
 	g_collision_probe_world_y =
 		g_collision_segment_start_world_y + source_move_y;
-	source_move_z = source_object->mobj->move_z;
+	int source_move_z = source_object->mobj->move_z;
 	source_move_z = math_mul_q15(source_move_z, projectile_distance);
 	g_collision_probe_world_z =
 		g_collision_segment_start_world_z + source_move_z;
 
-	target_object = &g_object_table[target_obj_idx];
+	struct object_record *target_object = &g_object_table[target_obj_idx];
+	int result;
 	if (target_object->mobj != NULL) {
 		struct mobile_object **target_mobile_object_link =
 			&target_object->mobj;
-		int target_travel_distance;
 
 		g_collision_sweep_start_x = target_object->world_x;
 		g_collision_sweep_start_y = target_object->world_y;
@@ -3286,7 +3175,7 @@ int collide_would_shot_hit_target(uint16_t source_obj_idx,
 			g_collision_sweep_start_z += g_rotated_z;
 		}
 
-		target_travel_distance =
+		int target_travel_distance =
 			lifetime_ticks *
 			((PROJECTILE_SPEED_SCALE *
 				  (*target_mobile_object_link)->speed +
@@ -3297,17 +3186,17 @@ int collide_would_shot_hit_target(uint16_t source_obj_idx,
 			fview_calcrotatemove(target_object->pitch,
 					     target_object->yaw, target_object);
 		}
-		target_move_x = (*target_mobile_object_link)->move_x;
+		int target_move_x = (*target_mobile_object_link)->move_x;
 		target_move_x =
 			math_mul_q15(target_move_x, target_travel_distance);
 		g_collision_sweep_end_x =
 			g_collision_sweep_start_x + target_move_x;
-		target_move_y = (*target_mobile_object_link)->move_y;
+		int target_move_y = (*target_mobile_object_link)->move_y;
 		target_move_y =
 			math_mul_q15(target_move_y, target_travel_distance);
 		g_collision_sweep_end_y =
 			g_collision_sweep_start_y + target_move_y;
-		target_move_z = (*target_mobile_object_link)->move_z;
+		int target_move_z = (*target_mobile_object_link)->move_z;
 		target_move_z =
 			math_mul_q15(target_move_z, target_travel_distance);
 		g_collision_sweep_end_z =
@@ -3357,16 +3246,14 @@ uint16_t collide_craftstarshipcollision(uint16_t source_obj_idx,
 	struct object_record *source = &g_object_table[source_obj_idx];
 	int16_t lookahead_frames =
 		(int16_t)(g_sim_steps_per_second * lookahead_seconds);
-	uint16_t movement_step;
-	uint16_t object_index;
-	struct mobile_object_proximity_list *proximity_list;
 
 	g_collision_segment_start_world_x = source->world_x;
 	g_collision_segment_start_world_y = source->world_y;
 	g_collision_segment_start_world_z = source->world_z;
-	movement_step = (uint16_t)(g_elapsed_ticks *
-				   ((4660 * source->mobj->speed + 128) >> 8) /
-				   SIMULATION_TICKS_PER_SECOND);
+	uint16_t movement_step =
+		(uint16_t)(g_elapsed_ticks *
+			   ((4660 * source->mobj->speed + 128) >> 8) /
+			   SIMULATION_TICKS_PER_SECOND);
 	if (source->mobj->move_vector_dirty != 0) {
 		fview_calcrotatemove(source->pitch, source->yaw, source);
 	}
@@ -3382,6 +3269,7 @@ uint16_t collide_craftstarshipcollision(uint16_t source_obj_idx,
 		g_collision_segment_start_world_z +
 		math_mul_q15(source->mobj->move_z, (int)movement_step) *
 			lookahead_frames;
+	uint16_t object_index;
 	for (object_index = (uint16_t)g_active_region_object_slot_start;
 	     object_index < g_active_region_craft_object_slot_end;
 	     ++object_index) {
@@ -3391,12 +3279,10 @@ uint16_t collide_craftstarshipcollision(uint16_t source_obj_idx,
 		    (candidate->genus_id == CRAFT_GENUS_STARSHIP ||
 		     candidate->genus_id == CRAFT_GENUS_PLATFORM ||
 		     candidate->genus_id == CRAFT_GENUS_FREIGHTER)) {
-			uint16_t candidate_step;
-
 			g_collision_sweep_start_x = candidate->world_x;
 			g_collision_sweep_start_y = candidate->world_y;
 			g_collision_sweep_start_z = candidate->world_z;
-			candidate_step = (uint16_t)math2_mphconvert(
+			uint16_t candidate_step = (uint16_t)math2_mphconvert(
 				candidate->mobj->speed, g_sim_steps_per_second);
 			if (candidate->mobj->move_vector_dirty != 0) {
 				fview_calcrotatemove(candidate->pitch,
@@ -3423,7 +3309,8 @@ uint16_t collide_craftstarshipcollision(uint16_t source_obj_idx,
 			}
 		}
 	}
-	proximity_list = &g_object_table[source_obj_idx].mobj->proximity_list;
+	struct mobile_object_proximity_list *proximity_list =
+		&g_object_table[source_obj_idx].mobj->proximity_list;
 	for (object_index = 0; object_index < proximity_list->count;
 	     ++object_index) {
 		uint16_t candidate_index =
@@ -3495,20 +3382,13 @@ void collide_laserhitcraft(uint16_t projectile_obj_idx, uint16_t craft_obj_idx,
 		g_mission_flight_groups[g_object_table[source_obj_idx]
 						.flight_group_idx]
 			.fg.team;
-	struct craft_data *craft;
-	int8_t *attacked_by_team;
-	int16_t forward_dot;
-	uint16_t forward_positive;
-	uint16_t hit_side;
-	int8_t hit_registered;
-	uint8_t projectile_object_type;
 
 	if (source_obj_idx == craft_obj_idx) {
 		return;
 	}
 
-	craft = g_object_table[craft_obj_idx].mobj->p_craft;
-	attacked_by_team = &craft->attacked_by_team[attacker_team];
+	struct craft_data *craft = g_object_table[craft_obj_idx].mobj->p_craft;
+	int8_t *attacked_by_team = &craft->attacked_by_team[attacker_team];
 	if (*attacked_by_team == 0) {
 		*attacked_by_team |= 1;
 		++g_mission_fg_stats[g_object_table[craft_obj_idx]
@@ -3734,7 +3614,7 @@ void collide_laserhitcraft(uint16_t projectile_obj_idx, uint16_t craft_obj_idx,
 		fview_calcrotateorient(g_object_table[craft_obj_idx].roll, 0,
 				       &g_object_table[craft_obj_idx]);
 	}
-	forward_dot = (int16_t)math_dot3q15_wrapped(
+	int16_t forward_dot = (int16_t)math_dot3q15_wrapped(
 		g_object_table[craft_obj_idx].mobj->cached_fwd_x,
 		g_object_table[craft_obj_idx].mobj->cached_fwd_y,
 		g_object_table[craft_obj_idx].mobj->cached_fwd_z,
@@ -3744,8 +3624,8 @@ void collide_laserhitcraft(uint16_t projectile_obj_idx, uint16_t craft_obj_idx,
 			  g_collision_segment_start_world_y),
 		(int16_t)(g_collision_probe_world_z -
 			  g_collision_segment_start_world_z));
-	forward_positive = forward_dot >= 0;
-	hit_side = 0;
+	uint16_t forward_positive = forward_dot >= 0;
+	uint16_t hit_side = 0;
 	if (g_object_table[craft_obj_idx].player_owner_idx != -1) {
 		hit_side = forward_dot >= 0;
 	}
@@ -3759,7 +3639,9 @@ void collide_laserhitcraft(uint16_t projectile_obj_idx, uint16_t craft_obj_idx,
 						  projectile_obj_idx);
 	}
 
-	projectile_object_type = g_object_table[projectile_obj_idx].object_type;
+	uint8_t projectile_object_type =
+		g_object_table[projectile_obj_idx].object_type;
+	int8_t hit_registered;
 	if (projectile_object_type != WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE) {
 		int chaff_intercepted = 0;
 
@@ -3786,9 +3668,7 @@ void collide_laserhitcraft(uint16_t projectile_obj_idx, uint16_t craft_obj_idx,
 			(uint16_t)craft->weapon_fire_inhibit_timer;
 
 		if (g_object_table[craft_obj_idx].player_owner_idx != -1) {
-			uint16_t weapon_slot_index;
-
-			for (weapon_slot_index = 0;
+			for (uint16_t weapon_slot_index = 0;
 			     weapon_slot_index < craft->laser_slot_count;
 			     ++weapon_slot_index) {
 				craft->weapon_slots[weapon_slot_index]
@@ -3971,22 +3851,9 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 		WINGMAN_KILL_ORDER_PROBABILITY = 0xA000,
 	};
 
-	int synthetic_starship_damage;
-	uint8_t result;
-	uint16_t saved_rand_state;
-	uint16_t damage_object_type;
-	uint8_t cockpit_status_dirty;
-	int *shield_energy;
-	uint8_t source_family;
-	struct ai_controller *ai_controller;
-	struct craft_data *craft;
-	unsigned int damage_amount;
-	int damage;
-	uint16_t attacker_source_obj_idx;
-
-	cockpit_status_dirty = 0;
-	synthetic_starship_damage = 0;
-	result = 1;
+	uint8_t cockpit_status_dirty = 0;
+	int synthetic_starship_damage = 0;
+	uint8_t result = 1;
 	if (g_flight_sim_side_effects_suppressed != 0) {
 		return 1;
 	}
@@ -4014,11 +3881,13 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 		}
 	}
 
-	craft = g_object_table[victim_obj_idx].mobj->p_craft;
-	saved_rand_state = (uint16_t)g_game_rand_feedback_state;
-	ai_controller = &craft->ai_controller;
+	struct craft_data *craft = g_object_table[victim_obj_idx].mobj->p_craft;
+	uint16_t saved_rand_state = (uint16_t)g_game_rand_feedback_state;
+	struct ai_controller *ai_controller = &craft->ai_controller;
 	g_game_rand_feedback_state = ai_controller->saved_rand_seed;
 
+	uint16_t damage_object_type;
+	unsigned int damage_amount;
 	if (source_obj_idx == SYNTHETIC_STARSHIP_SOURCE) {
 		synthetic_starship_damage = 1;
 		source_obj_idx = UINT16_MAX;
@@ -4042,11 +3911,9 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 							.mobj->damage_amount;
 			}
 		} else {
-			unsigned int max_bounds_extent;
-
 			damage_object_type =
 				g_object_table[source_obj_idx].object_type;
-			max_bounds_extent =
+			unsigned int max_bounds_extent =
 				(unsigned int)
 					g_object_type_table[damage_object_type]
 						.max_bounds_extent;
@@ -4073,14 +3940,14 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 		damage_amount /= FREIGHTER_DAMAGE_SCALE;
 	}
 
-	damage = (int)damage_amount;
-	attacker_source_obj_idx = UINT16_MAX;
+	int damage = (int)damage_amount;
+	uint16_t attacker_source_obj_idx = UINT16_MAX;
 	craft->damage_stats.damage_received_total += damage_amount;
 	if (source_obj_idx != attacker_source_obj_idx &&
 	    g_object_table[source_obj_idx].mobj != NULL) {
+		uint8_t source_family =
+			g_object_table[source_obj_idx].mobj->family;
 		int source_player_idx;
-
-		source_family = g_object_table[source_obj_idx].mobj->family;
 		if (source_family == 0) {
 			attacker_source_obj_idx = source_obj_idx;
 			source_player_idx =
@@ -4183,12 +4050,10 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 		damage = 0;
 	}
 
-	shield_energy = &craft->shield_energy[hit_side_or_damage_amount];
+	int *shield_energy = &craft->shield_energy[hit_side_or_damage_amount];
 	if (damage < *shield_energy) {
 		*shield_energy = *shield_energy - (int)damage;
 		if (g_object_table[victim_obj_idx].player_owner_idx != -1) {
-			int other_shield_energy;
-
 			g_player_flight_transient_timers
 				[g_object_table[victim_obj_idx]
 					 .player_owner_idx]
@@ -4196,7 +4061,7 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 				SHIELD_HIT_FLASH_TICKS;
 			g_last_shield_damage_side =
 				(uint8_t)hit_side_or_damage_amount;
-			other_shield_energy = craft->shield_energy[(
+			int other_shield_energy = craft->shield_energy[(
 				uint16_t)(hit_side_or_damage_amount ^ 1)];
 			if (*shield_energy < other_shield_energy) {
 				int redistributed_energy =
@@ -4230,8 +4095,6 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 		damage -= *shield_energy;
 		*shield_energy = 0;
 		if (g_object_table[victim_obj_idx].player_owner_idx != -1) {
-			int other_shield_energy;
-
 			if (hit_side_or_damage_amount == 0 &&
 			    synthetic_starship_damage == 0 &&
 			    (uint16_t)game_rand() < 0x1000u) {
@@ -4239,7 +4102,7 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						g_object_table[victim_obj_idx]
 							.player_owner_idx);
 			}
-			other_shield_energy = craft->shield_energy[(
+			int other_shield_energy = craft->shield_energy[(
 				uint16_t)(hit_side_or_damage_amount ^ 1)];
 			if (other_shield_energy != 0) {
 				craft->shield_energy[(
@@ -4259,8 +4122,6 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 				    PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER ||
 			    damage_object_type ==
 				    PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER_2) {
-				int16_t system_strength_remaining;
-
 				if ((uint16_t)craft->subsystem_damage <
 				    SYSTEM_DAMAGE_LIMIT) {
 					if (damage_object_type ==
@@ -4276,7 +4137,7 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						craft->subsystem_damage += 4;
 					}
 				}
-				system_strength_remaining =
+				int16_t system_strength_remaining =
 					(int16_t)(g_model_defs[craft->model_index]
 							  .system_strength -
 						  craft->subsystem_damage);
@@ -4334,9 +4195,8 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					    g_object_table[victim_obj_idx]
 							    .player_owner_idx !=
 						    -1) {
-						uint16_t subsystem_index;
-
-						for (subsystem_index = 0;
+						for (uint16_t subsystem_index =
+							     0;
 						     subsystem_index <
 						     CRAFT_SUBSYSTEM_COUNT;
 						     ++subsystem_index) {
@@ -4495,8 +4355,6 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 							g_local_player);
 				}
 			} else {
-				unsigned int hull_damage_before;
-
 				if (hit_mesh_index != -1 &&
 				    model_mesh_is_object_type_mesh_damageable(
 					    g_object_table[victim_obj_idx]
@@ -4508,7 +4366,8 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						(unsigned int)damage,
 						attacker_source_obj_idx);
 				}
-				hull_damage_before = craft->hull_damage;
+				unsigned int hull_damage_before =
+					craft->hull_damage;
 				craft->hull_damage = hull_damage_before +
 						     (unsigned int)damage;
 				if (g_game_config.voice_tactical_officer_level ==
@@ -4568,13 +4427,12 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					if ((uint16_t)game_rand() < 0x4000u) {
 						uint16_t subsystem_index =
 							game_rand() & 7;
-						uint16_t subsystem_flag;
 
 						subsystem_index +=
 							game_rand() & 1;
 						subsystem_index +=
 							game_rand() & 1;
-						subsystem_flag =
+						uint16_t subsystem_flag =
 							g_subsystem_id_to_flag
 								[subsystem_index];
 
@@ -4720,9 +4578,6 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 	    (craft->object_kind == CRAFT_OBJECT_KIND_ACTIVE ||
 	     craft->object_kind == CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE) &&
 	    craft->hull_damage >= craft->hull_max) {
-		int destruction_source_player_idx;
-		uint16_t object_index;
-
 		if (source_obj_idx != UINT16_MAX &&
 		    g_object_table[source_obj_idx].mobj != NULL) {
 			uint16_t destruction_source_obj_idx;
@@ -4737,7 +4592,7 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 			mission_credit_destruction_damage_contributors(
 				destruction_source_obj_idx, victim_obj_idx);
 		}
-		destruction_source_player_idx =
+		int destruction_source_player_idx =
 			mission_record_player_craft_loss(victim_obj_idx, 0);
 		if (g_object_table[victim_obj_idx].player_owner_idx != -1) {
 			player_save_craft_settings(
@@ -4766,6 +4621,7 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 			(uint16_t)g_object_table[victim_obj_idx]
 				.flight_group_idx,
 			FLIGHT_GROUP_OUTCOME_DESTROYED);
+		uint16_t object_index;
 		for (object_index = g_active_region_object_slot_start;
 		     object_index < g_active_region_craft_object_slot_end;
 		     ++object_index) {
@@ -4932,11 +4788,7 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					craft->object_kind =
 						CRAFT_OBJECT_KIND_EXPLODING;
 				} else {
-					uint16_t detached_yaw_offset;
 					uint16_t mesh_count;
-					uint16_t mesh_index;
-					int16_t side;
-					int16_t detached_roll_rate;
 
 					if (victim_object_type <
 					    OBJECT_TYPE_MESH_CACHE_COUNT) {
@@ -4949,12 +4801,13 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 							model_mesh_get_object_type_mesh_count(
 								victim_object_type);
 					}
-					detached_yaw_offset = 0;
-					detached_roll_rate = 0;
-					side = 0;
+					uint16_t detached_yaw_offset = 0;
+					int16_t detached_roll_rate = 0;
+					int16_t side = 0;
 					if (mesh_count > 1) {
 						side = (int16_t)(game_rand() &
 								 1);
+						uint16_t mesh_index;
 						for (mesh_index = 0;
 						     (uint16_t)mesh_index <
 						     mesh_count;
@@ -5007,13 +4860,11 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 										mesh_index);
 							if (detached_component_obj_idx !=
 							    UINT16_MAX) {
-								int16_t wing_yaw_offset;
-
 								detached_roll_rate =
 									(int16_t)((game_rand() &
 										   0x3FFF) +
 										  0x4000);
-								wing_yaw_offset =
+								int16_t wing_yaw_offset =
 									(int16_t)((game_rand() &
 										   0x7FF) +
 										  2048);
@@ -5212,19 +5063,15 @@ unsigned int collide_roughdistance3du(unsigned int abs_dx, unsigned int abs_dy,
 // FUNCTION: XVT 0x41F410
 int collide_roughdistance3d(int dx, int dy, int dz)
 {
-	int abs_dx;
-	int abs_dy;
-	int abs_dz;
-
-	abs_dx = dx;
+	int abs_dx = dx;
 	if (abs_dx < 0) {
 		abs_dx = (int)(0u - (unsigned int)abs_dx);
 	}
-	abs_dy = dy;
+	int abs_dy = dy;
 	if (abs_dy < 0) {
 		abs_dy = (int)(0u - (unsigned int)abs_dy);
 	}
-	abs_dz = dz;
+	int abs_dz = dz;
 	if (abs_dz < 0) {
 		abs_dz = (int)(0u - (unsigned int)abs_dz);
 	}
@@ -5257,44 +5104,11 @@ unsigned int collide_test_segment_against_legacy_packed_opt_node(
 	const uint8_t *node_data, int start_x, int start_y, int start_z,
 	int end_x, int end_y, int end_z, int stop_on_first_hit)
 {
-	const int16_t *node_bounds;
-	int bound;
-	const uint8_t *packed_vertex_data;
-	const int16_t *face_record;
-	const uint8_t *vertex;
-	const uint8_t *component;
-	unsigned int face_record_count;
-	unsigned int face_index;
-	unsigned int nearest_hit_fraction_q15;
-	unsigned int face_vertex_count;
-	int plane_signs;
-	unsigned int vertex_record_count;
-	int vertex_index;
-	int normal_x;
-	int normal_y;
-	int normal_z;
-	int point_x;
-	int point_y;
-	int point_z;
-	int delta_start_x;
-	int delta_start_y;
-	int delta_start_z;
-	int delta_end_x;
-	int delta_end_y;
-	int delta_end_z;
-	int start_plane_distance;
-	int end_plane_distance;
-	int hit_fraction_q15;
-	int projected_point_u;
-	int projected_point_v;
-	int projection_axis_u;
-	int projection_axis_v;
-	int point_inside_face;
-
-	vertex_record_count = node_data[2];
-	face_record_count = node_data[4];
-	node_bounds = (const int16_t *)(node_data + face_record_count + 5);
-	bound = node_bounds[0];
+	unsigned int vertex_record_count = node_data[2];
+	unsigned int face_record_count = node_data[4];
+	const int16_t *node_bounds =
+		(const int16_t *)(node_data + face_record_count + 5);
+	int bound = node_bounds[0];
 	if (start_x < node_bounds[0] && bound > end_x) {
 		return 0;
 	}
@@ -5319,61 +5133,68 @@ unsigned int collide_test_segment_against_legacy_packed_opt_node(
 		return 0;
 	}
 
-	packed_vertex_data = (const uint8_t *)(node_bounds + 6);
-	face_record = (const int16_t *)(packed_vertex_data +
-					12 * vertex_record_count);
-	nearest_hit_fraction_q15 = 0x7FFFFFFF;
-	for (face_index = 0; face_record_count > face_index; face_index++) {
-		const uint8_t *face_indices;
-
-		normal_x = face_record[0];
-		normal_y = face_record[1];
-		normal_z = face_record[2];
-		face_indices = (const uint8_t *)face_record + face_record[3];
+	const uint8_t *packed_vertex_data = (const uint8_t *)(node_bounds + 6);
+	const int16_t *face_record =
+		(const int16_t *)(packed_vertex_data +
+				  12 * vertex_record_count);
+	unsigned int nearest_hit_fraction_q15 = 0x7FFFFFFF;
+	int hit_fraction_q15;
+	int projected_point_u;
+	int projected_point_v;
+	int projection_axis_u;
+	int projection_axis_v;
+	int point_inside_face;
+	for (unsigned int face_index = 0; face_record_count > face_index;
+	     face_index++) {
+		int normal_x = face_record[0];
+		int normal_y = face_record[1];
+		int normal_z = face_record[2];
+		const uint8_t *face_indices =
+			(const uint8_t *)face_record + face_record[3];
 		face_record += 4;
-		face_vertex_count = face_indices[0] & 0x3F;
+		unsigned int face_vertex_count = face_indices[0] & 0x3F;
 		if (face_vertex_count == 2) {
 			continue;
 		}
 		++face_indices;
 
-		vertex_index = face_indices[0];
-		vertex = packed_vertex_data + 6 * vertex_index;
-		component = vertex;
+		int vertex_index = face_indices[0];
+		const uint8_t *vertex = packed_vertex_data + 6 * vertex_index;
+		const uint8_t *component = vertex;
 		while ((*(const uint16_t *)component & 0xFF00) == 0x7F00) {
 			component -= 3 * (*(const uint16_t *)component & 0xFE);
 		}
-		point_x = *(const int16_t *)component;
-		delta_start_x = start_x - point_x;
-		delta_end_x = end_x - point_x;
+		int point_x = *(const int16_t *)component;
+		int delta_start_x = start_x - point_x;
+		int delta_end_x = end_x - point_x;
 		component = vertex + 2;
 		while ((*(const uint16_t *)component & 0xFF00) == 0x7F00) {
 			component -= 3 * (*(const uint16_t *)component & 0xFE);
 		}
-		point_y = *(const int16_t *)component;
-		delta_start_y = start_y - point_y;
-		delta_end_y = end_y - point_y;
+		int point_y = *(const int16_t *)component;
+		int delta_start_y = start_y - point_y;
+		int delta_end_y = end_y - point_y;
 		component = vertex + 4;
 		while ((*(const uint16_t *)component & 0xFF00) == 0x7F00) {
 			component -= 3 * (*(const uint16_t *)component & 0xFE);
 		}
-		point_z = *(const int16_t *)component;
-		delta_start_z = start_z - point_z;
-		delta_end_z = end_z - point_z;
+		int point_z = *(const int16_t *)component;
+		int delta_start_z = start_z - point_z;
+		int delta_end_z = end_z - point_z;
 
-		start_plane_distance = math_dot3q15(
+		int start_plane_distance = math_dot3q15(
 			normal_x, normal_y, normal_z, delta_start_x,
 			delta_start_y, delta_start_z);
 		if (start_plane_distance > -10 && start_plane_distance < 10) {
 			start_plane_distance = 0;
 		}
-		end_plane_distance =
+		int end_plane_distance =
 			math_dot3q15(normal_x, normal_y, normal_z, delta_end_x,
 				     delta_end_y, delta_end_z);
 		if (end_plane_distance > -10 && end_plane_distance < 10) {
 			end_plane_distance = 0;
 		}
-		plane_signs = start_plane_distance ^ end_plane_distance;
+		int plane_signs = start_plane_distance ^ end_plane_distance;
 		if (start_plane_distance == 0 || end_plane_distance == 0) {
 			plane_signs = -1;
 		}
@@ -5438,12 +5259,6 @@ unsigned int collide_test_segment_against_legacy_packed_opt_node(
 		}
 
 		{
-			int previous_u;
-			int previous_v;
-			int current_u;
-			int current_v;
-			int first_edge_is_nonpositive;
-
 			vertex_index = face_indices[0];
 			component = packed_vertex_data + 6 * vertex_index +
 				    2 * projection_axis_u;
@@ -5452,7 +5267,7 @@ unsigned int collide_test_segment_against_legacy_packed_opt_node(
 				component -= 3 * (*(const uint16_t *)component &
 						  0xFE);
 			}
-			previous_u = *(const int16_t *)component;
+			int previous_u = *(const int16_t *)component;
 			component = packed_vertex_data + 6 * vertex_index +
 				    2 * projection_axis_v;
 			while ((*(const uint16_t *)component & 0xFF00) ==
@@ -5460,7 +5275,7 @@ unsigned int collide_test_segment_against_legacy_packed_opt_node(
 				component -= 3 * (*(const uint16_t *)component &
 						  0xFE);
 			}
-			previous_v = *(const int16_t *)component;
+			int previous_v = *(const int16_t *)component;
 			vertex_index = face_indices[2];
 			component = packed_vertex_data + 6 * vertex_index +
 				    2 * projection_axis_u;
@@ -5469,7 +5284,7 @@ unsigned int collide_test_segment_against_legacy_packed_opt_node(
 				component -= 3 * (*(const uint16_t *)component &
 						  0xFE);
 			}
-			current_u = *(const int16_t *)component;
+			int current_u = *(const int16_t *)component;
 			component = packed_vertex_data + 6 * vertex_index +
 				    2 * projection_axis_v;
 			while ((*(const uint16_t *)component & 0xFF00) ==
@@ -5477,9 +5292,9 @@ unsigned int collide_test_segment_against_legacy_packed_opt_node(
 				component -= 3 * (*(const uint16_t *)component &
 						  0xFE);
 			}
-			current_v = *(const int16_t *)component;
+			int current_v = *(const int16_t *)component;
 
-			first_edge_is_nonpositive =
+			int first_edge_is_nonpositive =
 				collide_is_legacy_projected_edge_cross_nonpositive(
 					projected_point_u - previous_u,
 					current_v - previous_v,
@@ -5554,32 +5369,24 @@ unsigned int collide_test_segment_against_legacy_packed_opt_node(
 unsigned int collide_compute_craft_damage_amount(uint16_t victim_obj_idx,
 						 uint16_t source_obj_idx)
 {
-	struct mobile_object *mobile_object;
-	int projectile_type;
-	unsigned int loaded_warhead_count;
+	struct mobile_object *mobile_object =
+		g_object_table[source_obj_idx].mobj;
+	unsigned int damage_amount = mobile_object->damage_amount;
 	unsigned int launcher_damage;
-	int weapon_slot_index;
-	unsigned int launcher_index;
-	int model_index;
-	unsigned int damage_amount;
-	struct craft_data *craft;
-
-	mobile_object = g_object_table[source_obj_idx].mobj;
-	damage_amount = mobile_object->damage_amount;
 	if (g_mission_file_version == 14) {
 		if (g_object_table[victim_obj_idx].genus_id == 4 ||
 		    g_object_table[victim_obj_idx].genus_id == 5) {
-			craft = mobile_object->p_craft;
-			model_index = get_model_index_from_type(
+			struct craft_data *craft = mobile_object->p_craft;
+			int model_index = get_model_index_from_type(
 				g_object_table[source_obj_idx].object_type);
-			for (launcher_index = 0;
+			for (unsigned int launcher_index = 0;
 			     launcher_index < craft->warhead_launcher_count;
 			     ++launcher_index) {
-				weapon_slot_index =
+				int weapon_slot_index =
 					g_model_defs[model_index]
 						.warhead_launcher_first_slot
 							[launcher_index];
-				loaded_warhead_count =
+				unsigned int loaded_warhead_count =
 					craft->weapon_slots[weapon_slot_index]
 						.ammo_count;
 				weapon_slot_index =
@@ -5589,8 +5396,9 @@ unsigned int collide_compute_craft_damage_amount(uint16_t victim_obj_idx,
 				loaded_warhead_count +=
 					craft->weapon_slots[weapon_slot_index]
 						.ammo_count;
-				projectile_type = craft->warhead_slot_type_ids
-							  [launcher_index];
+				int projectile_type =
+					craft->warhead_slot_type_ids
+						[launcher_index];
 				if (g_object_table[source_obj_idx].genus_id ==
 					    4 &&
 				    g_object_table[source_obj_idx]
@@ -5660,43 +5468,26 @@ int collide_check_swept_model_collision(uint16_t source_obj_idx,
 	};
 
 	struct object_record *target = &g_object_table[target_obj_idx];
-	int world_x;
-	int world_y;
-	int world_z;
-	int end_x;
-	int start_x;
-	int end_y;
-	int start_y;
-	int start_y_copy;
-	int end_z;
-	int start_z;
+
+	if (target->mobj != NULL) {
+		g_cur_craft = target->mobj->p_craft;
+	}
+	int world_x = target->world_x;
+	int end_x = g_collision_probe_world_x - world_x;
+	int start_x = g_collision_segment_start_world_x - world_x;
+	int world_y = target->world_y;
+	int end_y = g_collision_probe_world_y - world_y;
+	int start_y = g_collision_segment_start_world_y - world_y;
+	int start_y_copy = start_y;
+	int world_z = target->world_z;
+	int end_z = g_collision_probe_world_z - world_z;
+	int start_z = g_collision_segment_start_world_z - world_z;
 	int side_start;
 	int fwd_start;
 	int up_start;
 	int side_end;
 	int fwd_end;
 	int up_end;
-	uint16_t model_handle;
-	struct optimized_poly_object *model;
-	unsigned int root_index;
-	struct opt_node *root;
-	struct mesh_descriptor *descriptor;
-	int descriptor_index;
-	unsigned int descriptor_type;
-
-	if (target->mobj != NULL) {
-		g_cur_craft = target->mobj->p_craft;
-	}
-	world_x = target->world_x;
-	end_x = g_collision_probe_world_x - world_x;
-	start_x = g_collision_segment_start_world_x - world_x;
-	world_y = target->world_y;
-	end_y = g_collision_probe_world_y - world_y;
-	start_y = g_collision_segment_start_world_y - world_y;
-	start_y_copy = start_y;
-	world_z = target->world_z;
-	end_z = g_collision_probe_world_z - world_z;
-	start_z = g_collision_segment_start_world_z - world_z;
 	{
 		if (target->mobj != NULL) {
 			if (target->mobj->orient_matrix_dirty != 0) {
@@ -5776,9 +5567,10 @@ int collide_check_swept_model_collision(uint16_t source_obj_idx,
 		return 0;
 	}
 #endif
-	model_handle = g_loaded_models[target->object_type];
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		model_handle);
+	uint16_t model_handle = g_loaded_models[target->object_type];
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			model_handle);
 	if (model == NULL) {
 		return 0;
 	}
@@ -5787,10 +5579,11 @@ int collide_check_swept_model_collision(uint16_t source_obj_idx,
 	}
 	g_collide_sweep_current_mesh_ordinal = 0;
 	g_collide_current_mesh_verts_node = NULL;
-	for (root_index = 0; root_index < (unsigned int)model->root_node_count;
-	     ++root_index) {
+	struct mesh_descriptor *descriptor;
+	for (unsigned int root_index = 0;
+	     root_index < (unsigned int)model->root_node_count; ++root_index) {
 		g_collide_current_mesh_rotation_angle = 0.0f;
-		root = model->root_nodes[root_index];
+		struct opt_node *root = model->root_nodes[root_index];
 		if (root->node_type == OPT_TEXTURE) {
 			continue;
 		}
@@ -5854,8 +5647,9 @@ int collide_check_swept_model_collision(uint16_t source_obj_idx,
 					0.024543673f;
 			}
 		}
-		descriptor_index = g_collide_sweep_current_mesh_ordinal - 1;
-		descriptor_type = g_object_table[target_obj_idx].object_type;
+		int descriptor_index = g_collide_sweep_current_mesh_ordinal - 1;
+		unsigned int descriptor_type =
+			g_object_table[target_obj_idx].object_type;
 		if (descriptor_type < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (descriptor_index < 0) {
 				descriptor = NULL;
@@ -5944,11 +5738,9 @@ int collide_test_sweep_against_opt_node(struct optimized_poly_object *object,
 	int face_index;
 	float hit_fraction;
 	float projected_point[3];
-	const struct collide_opt_rotation_scale *rotation_scale;
 	uint32_t rotation_angle_bits;
 	float axis_angle[4];
 	float rotation_matrix[16];
-	int child_index;
 
 	for (;;) {
 		if (node == NULL) {
@@ -6098,9 +5890,11 @@ int collide_test_sweep_against_opt_node(struct optimized_poly_object *object,
 			       &g_collide_current_mesh_rotation_angle,
 			       sizeof(rotation_angle_bits));
 			if ((rotation_angle_bits & 0x7FFFFFFFu) != 0) {
-				rotation_scale =
-					(const struct collide_opt_rotation_scale
-						 *)node->payload;
+				const struct collide_opt_rotation_scale
+					*rotation_scale =
+						(const struct
+						 collide_opt_rotation_scale *)
+							node->payload;
 				g_collide_sweep_walker_start.x -=
 					rotation_scale->origin.x;
 				g_collide_sweep_walker_start.y -=
@@ -6164,7 +5958,7 @@ int collide_test_sweep_against_opt_node(struct optimized_poly_object *object,
 		if (node->child_count <= 0) {
 			return 0;
 		}
-		for (child_index = 0; child_index < node->child_count;
+		for (int child_index = 0; child_index < node->child_count;
 		     ++child_index) {
 			if (collide_test_sweep_against_opt_node(
 				    object, node->p_children[child_index]) !=
@@ -6189,15 +5983,14 @@ int collide_intersect_segment_with_face_plane(const float *face_normal,
 					      const float *segment_end,
 					      float *out_t)
 {
-	float start_distance;
-	float end_distance;
-
-	start_distance = (segment_start[2] - face_vertex[2]) * face_normal[2] +
-			 ((segment_start[1] - face_vertex[1]) * face_normal[1] +
-			  (segment_start[0] - face_vertex[0]) * face_normal[0]);
-	end_distance = (segment_end[2] - face_vertex[2]) * face_normal[2] +
-		       ((segment_end[1] - face_vertex[1]) * face_normal[1] +
-			(segment_end[0] - face_vertex[0]) * face_normal[0]);
+	float start_distance =
+		(segment_start[2] - face_vertex[2]) * face_normal[2] +
+		((segment_start[1] - face_vertex[1]) * face_normal[1] +
+		 (segment_start[0] - face_vertex[0]) * face_normal[0]);
+	float end_distance =
+		(segment_end[2] - face_vertex[2]) * face_normal[2] +
+		((segment_end[1] - face_vertex[1]) * face_normal[1] +
+		 (segment_end[0] - face_vertex[0]) * face_normal[0]);
 
 	if (start_distance < 10.0f && start_distance > -10.0f) {
 		start_distance = 0.0f;
@@ -6243,28 +6036,12 @@ int collide_point_in_face_polygon(const float *face_normal,
 				  const int32_t *face_vertex_indices,
 				  float *projected_point)
 {
-	float abs_x;
-	float abs_y;
-	float abs_z;
 #ifdef XVT_MODERN
 	uint32_t sign_bits;
 #endif
-	int axis_u;
-	int axis_v;
-	int vertex_base;
-	const float *vertex0u;
-	const float *vertex0v;
-	float vertex_u;
-	float vertex_v;
-	float previous_u;
-	float previous_v;
-	float edge_cross;
-	int first_edge_negative;
-	int vertex_index;
-
-	abs_x = face_normal[0];
-	abs_y = face_normal[1];
-	abs_z = face_normal[2];
+	float abs_x = face_normal[0];
+	float abs_y = face_normal[1];
+	float abs_z = face_normal[2];
 #ifdef XVT_MODERN
 	memcpy(&sign_bits, &abs_x, sizeof(sign_bits));
 	if (sign_bits > 0x80000000u) {
@@ -6290,6 +6067,8 @@ int collide_point_in_face_polygon(const float *face_normal,
 		abs_z = -abs_z;
 	}
 
+	int axis_u;
+	int axis_v;
 	if (abs_z >= abs_y && abs_z >= abs_x) {
 		axis_u = 0;
 		axis_v = 1;
@@ -6304,13 +6083,16 @@ int collide_point_in_face_polygon(const float *face_normal,
 		axis_v = 2;
 	}
 
-	vertex0u = &vertex_coords[axis_u + 3 * face_vertex_indices[0]];
-	vertex0v = &vertex_coords[axis_v + 3 * face_vertex_indices[0]];
-	previous_u = *vertex0u;
-	previous_v = *vertex0v;
-	vertex_base = 3 * face_vertex_indices[1];
-	vertex_u = vertex_coords[axis_u + vertex_base];
-	vertex_v = vertex_coords[axis_v + vertex_base];
+	const float *vertex0u =
+		&vertex_coords[axis_u + 3 * face_vertex_indices[0]];
+	const float *vertex0v =
+		&vertex_coords[axis_v + 3 * face_vertex_indices[0]];
+	float previous_u = *vertex0u;
+	float previous_v = *vertex0v;
+	int vertex_base = 3 * face_vertex_indices[1];
+	float vertex_u = vertex_coords[axis_u + vertex_base];
+	float vertex_v = vertex_coords[axis_v + vertex_base];
+	int first_edge_negative;
 	if ((projected_point[1] - previous_u) * (vertex_v - previous_v) -
 		    (projected_point[2] - previous_v) *
 			    (vertex_u - previous_u) <
@@ -6325,7 +6107,7 @@ int collide_point_in_face_polygon(const float *face_normal,
 	vertex_base = 3 * face_vertex_indices[2];
 	vertex_u = vertex_coords[axis_u + vertex_base];
 	vertex_v = vertex_coords[axis_v + vertex_base];
-	edge_cross =
+	float edge_cross =
 		(projected_point[1] - previous_u) * (vertex_v - previous_v) -
 		(projected_point[2] - previous_v) * (vertex_u - previous_u);
 	if (edge_cross < g_collide_zero_float && !first_edge_negative) {
@@ -6341,7 +6123,7 @@ int collide_point_in_face_polygon(const float *face_normal,
 		return 0;
 	}
 
-	vertex_index = face_vertex_indices[3];
+	int vertex_index = face_vertex_indices[3];
 	if (vertex_index != -1) {
 		previous_u = vertex_u;
 		previous_v = vertex_v;
@@ -6410,15 +6192,6 @@ void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx)
 	};
 
 	struct object_record *source = &g_object_table[source_obj_idx];
-	int side_extent;
-	int up_extent;
-	int mesh_index;
-	int depth_into_wash;
-	uint8_t source_object_type;
-	int local_up;
-	int mesh_count;
-	int local_side;
-	int local_forward;
 	int source_bounds_extent =
 		g_object_type_table[source->object_type].max_bounds_extent;
 	int victim_object_index = victim_obj_idx;
@@ -6428,7 +6201,6 @@ void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx)
 		g_object_table[victim_object_index].world_y - source->world_y;
 	int delta_z =
 		g_object_table[victim_object_index].world_z - source->world_z;
-	unsigned int object_type;
 
 	if (ENGINE_WASH_RANGE_SCALE * source_bounds_extent <
 	    collide_roughdistance3d(delta_x, delta_y, delta_z)) {
@@ -6443,20 +6215,21 @@ void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx)
 		fview_calcrotateorient(source->roll, 0, source);
 	}
 
-	local_side = math_dot3q15(
+	int local_side = math_dot3q15(
 		source->mobj->cached_side_x, source->mobj->cached_side_y,
 		source->mobj->cached_side_z, delta_x, delta_y, delta_z);
-	local_forward = -math_dot3q15(
+	int local_forward = -math_dot3q15(
 		source->mobj->cached_fwd_x, source->mobj->cached_fwd_y,
 		source->mobj->cached_fwd_z, delta_x, delta_y, delta_z);
 	if (local_forward < -source_bounds_extent) {
 		return;
 	}
-	local_up = math_dot3q15(
+	int local_up = math_dot3q15(
 		source->mobj->cached_up_x, source->mobj->cached_up_y,
 		source->mobj->cached_up_z, delta_x, delta_y, delta_z);
 
-	object_type = source->object_type;
+	unsigned int object_type = source->object_type;
+	int mesh_count;
 	if (object_type < OBJECT_TYPE_MESH_CACHE_COUNT) {
 		mesh_count = g_object_type_mesh_cache[object_type].mesh_count;
 	} else {
@@ -6464,16 +6237,10 @@ void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx)
 			model_mesh_get_object_type_mesh_count((int)object_type);
 	}
 
-	for (mesh_index = 0; mesh_count > mesh_index; ++mesh_index) {
+	int depth_into_wash;
+	for (int mesh_index = 0; mesh_count > mesh_index; ++mesh_index) {
 		struct mesh_descriptor *descriptor;
 		unsigned int descriptor_object_type = source->object_type;
-		int engine_mesh_extent;
-		int wash_length;
-		int side_offset;
-		int up_offset;
-		int wash_damage;
-		struct object_record *victim;
-		int player_owner_idx;
 
 		if (descriptor_object_type < OBJECT_TYPE_MESH_CACHE_COUNT) {
 			if (mesh_index < 0) {
@@ -6506,15 +6273,15 @@ void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx)
 			continue;
 		}
 
-		engine_mesh_extent =
+		int engine_mesh_extent =
 			(int)(descriptor->box_max.y - descriptor->box_min.y);
-		source_object_type = source->object_type;
+		uint8_t source_object_type = source->object_type;
 		if (source_object_type == SUPER_STAR_DESTROYER_OBJECT_TYPE) {
 			engine_mesh_extent >>= 6;
 		}
-		side_extent =
+		int side_extent =
 			(int)(descriptor->box_max.x - descriptor->box_min.x);
-		up_extent =
+		int up_extent =
 			(int)(descriptor->box_max.z - descriptor->box_min.z);
 		if (source_object_type == SUPER_STAR_DESTROYER_OBJECT_TYPE &&
 		    local_up > descriptor->box_max.z) {
@@ -6532,7 +6299,7 @@ void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx)
 		if (engine_mesh_extent < up_extent) {
 			engine_mesh_extent = up_extent;
 		}
-		wash_length = ENGINE_WASH_LENGTH_SCALE * engine_mesh_extent;
+		int wash_length = ENGINE_WASH_LENGTH_SCALE * engine_mesh_extent;
 		if (wash_length > 2 * source_bounds_extent) {
 			wash_length = 2 * source_bounds_extent;
 		}
@@ -6548,8 +6315,8 @@ void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx)
 			continue;
 		}
 
-		side_offset = local_side - (int)descriptor->center.x;
-		up_offset = local_up - (int)descriptor->center.z;
+		int side_offset = local_side - (int)descriptor->center.x;
+		int up_offset = local_up - (int)descriptor->center.z;
 		side_extent += side_extent >> 1;
 		side_extent += depth_into_wash * side_extent / wash_length;
 		up_extent += up_extent >> 1;
@@ -6564,7 +6331,7 @@ void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx)
 			continue;
 		}
 
-		wash_damage =
+		int wash_damage =
 			(wash_length >> 8) *
 			(ENGINE_WASH_PERCENT_SCALE *
 			 (wash_length - depth_into_wash) / wash_length *
@@ -6581,8 +6348,9 @@ void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx)
 			wash_damage = ENGINE_WASH_MAX_DAMAGE;
 		}
 
-		victim = &g_object_table[victim_object_index];
-		player_owner_idx = victim->player_owner_idx;
+		struct object_record *victim =
+			&g_object_table[victim_object_index];
+		int player_owner_idx = victim->player_owner_idx;
 		if (player_owner_idx != -1 &&
 		    g_players[player_owner_idx].engine_wash_strength <
 			    wash_damage) {
@@ -6627,7 +6395,6 @@ void collide_apply_hostile_proximity_weapon_disruption(int owner_obj_idx,
 	int delta_y = g_object_table[owner_obj_idx].world_y - hostile->world_y;
 	int delta_z = g_object_table[owner_obj_idx].world_z - hostile->world_z;
 	int rough_distance = collide_roughdistance3d(delta_x, delta_y, delta_z);
-	struct mobile_object *owner_mobj;
 
 	if (2 * hostile_bounds_extent < rough_distance) {
 		return;
@@ -6642,43 +6409,35 @@ void collide_apply_hostile_proximity_weapon_disruption(int owner_obj_idx,
 			return;
 		}
 	} else {
-		int local_side;
-		int local_fwd;
-		int local_up;
-		struct craft_data *hostile_craft;
-		uint8_t model_index;
-		int inside_side;
-		int inside_up;
-		int inside_fwd;
-
 		if (hostile->mobj->orient_matrix_dirty != 0) {
 			fview_calcrotatemove(hostile->pitch, hostile->yaw,
 					     hostile);
 			fview_calcrotateorient(hostile->roll, 0, hostile);
 		}
 
-		local_side = math_dot3q15(hostile->mobj->cached_side_x,
-					  hostile->mobj->cached_side_y,
-					  hostile->mobj->cached_side_z, delta_x,
-					  delta_y, delta_z);
-		local_fwd = math_dot3q15(hostile->mobj->cached_fwd_x,
-					 hostile->mobj->cached_fwd_y,
-					 hostile->mobj->cached_fwd_z, delta_x,
-					 delta_y, delta_z);
-		local_up = math_dot3q15(
+		int local_side = math_dot3q15(hostile->mobj->cached_side_x,
+					      hostile->mobj->cached_side_y,
+					      hostile->mobj->cached_side_z,
+					      delta_x, delta_y, delta_z);
+		int local_fwd = math_dot3q15(hostile->mobj->cached_fwd_x,
+					     hostile->mobj->cached_fwd_y,
+					     hostile->mobj->cached_fwd_z,
+					     delta_x, delta_y, delta_z);
+		int local_up = math_dot3q15(
 			hostile->mobj->cached_up_x, hostile->mobj->cached_up_y,
 			hostile->mobj->cached_up_z, delta_x, delta_y, delta_z);
 
-		hostile_craft = hostile->mobj->p_craft;
+		struct craft_data *hostile_craft = hostile->mobj->p_craft;
 		if (hostile_craft == NULL) {
 			return;
 		}
 
-		model_index = hostile_craft->model_index;
-		inside_side =
+		uint8_t model_index = hostile_craft->model_index;
+		int inside_side =
 			g_model_defs[model_index].hangar_points.inside.side;
-		inside_up = g_model_defs[model_index].hangar_points.inside.up;
-		inside_fwd =
+		int inside_up =
+			g_model_defs[model_index].hangar_points.inside.up;
+		int inside_fwd =
 			g_model_defs[model_index].hangar_points.inside.forward;
 
 		if ((hostile->object_type ==
@@ -6715,7 +6474,6 @@ void collide_apply_hostile_proximity_weapon_disruption(int owner_obj_idx,
 						    local_up - inside_up)) {
 				int object_type = hostile->object_type;
 				int mesh_count;
-				int mesh_index;
 
 				/* Here and below, CRAFT_SPECIES_SAT_4 (73) stands for the size of g_object_type_mesh_cache. */
 				if (object_type < CRAFT_SPECIES_SAT_4) {
@@ -6729,7 +6487,7 @@ void collide_apply_hostile_proximity_weapon_disruption(int owner_obj_idx,
 							object_type);
 				}
 
-				mesh_index = 0;
+				int mesh_index = 0;
 				if (mesh_count <= mesh_index) {
 					return;
 				}
@@ -6806,7 +6564,7 @@ void collide_apply_hostile_proximity_weapon_disruption(int owner_obj_idx,
 		}
 	}
 
-	owner_mobj = g_object_table[owner_obj_idx].mobj;
+	struct mobile_object *owner_mobj = g_object_table[owner_obj_idx].mobj;
 	if (owner_mobj != NULL) {
 		struct craft_data *owner_craft = owner_mobj->p_craft;
 		if (owner_craft != NULL) {

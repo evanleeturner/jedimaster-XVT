@@ -409,11 +409,11 @@ static void check_parse(void)
 static void check_parse_refusals(void)
 {
 	fixture_begin();
-	const char *pad = "\"00000000000000000000000000000001\"";
-	char text[512];
 	/* The list is required, and must be a list. */
 	XVT_ASSERT_TRUE(!parse_text("input:\n  mouse_flight: true\n"));
 	XVT_ASSERT_TRUE(!parse_text("input:\n  controllers: {}\n"));
+	const char *pad = "\"00000000000000000000000000000001\"";
+	char text[512];
 	/* Only the five fields; guid and name are required, the layout is gamepad or joystick. */
 	snprintf(
 		text, sizeof text,
@@ -629,8 +629,8 @@ static void check_set_controller(void)
 	fixture_begin();
 	static struct xvt_controller_options options;
 	static struct xvt_controller_options expected;
-	char error[512];
 	two_models(&options);
+	char error[512];
 	/* Needs loaded settings. */
 	XVT_ASSERT_TRUE(
 		!xvt_config_set_controller(&options, error, sizeof error));

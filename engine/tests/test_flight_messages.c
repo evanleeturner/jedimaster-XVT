@@ -104,7 +104,6 @@ static void check_input_round_trip(void)
 					flight_messages_input(
 						0x41, (int8_t)axis, mods,
 						throttles[t]);
-				struct flight_input_frame_record out;
 				struct xvt_flight_input_wire record;
 				xvt_flight_wire_encode_input(&record, 1000,
 							     &in);
@@ -114,8 +113,9 @@ static void check_input_round_trip(void)
 				XVT_ASSERT_INT_EQ(record.axes[2] & 1,
 						  throttles[t] >= 0);
 
-				int tick = 0;
+				struct flight_input_frame_record out;
 				memset(&out, 0xAB, sizeof out);
+				int tick = 0;
 				XVT_ASSERT_INT_EQ(xvt_flight_wire_decode_input(
 							  &record, &tick, &out),
 						  1);
@@ -148,16 +148,14 @@ static void check_decode_input_refusals(void)
 {
 	struct flight_input_frame_record in =
 		flight_messages_input(7, 10, 2, 500);
-	struct flight_input_frame_record out;
 	struct flight_input_frame_record untouched;
-	struct xvt_flight_input_wire record;
-	int tick;
 	memset(&untouched, 0xAB, sizeof untouched);
 
+	struct xvt_flight_input_wire record;
 	/* An odd tick: refused, the tick still stored, the input untouched. */
 	xvt_flight_wire_encode_input(&record, 3, &in);
-	tick = 0;
-	out = untouched;
+	int tick = 0;
+	struct flight_input_frame_record out = untouched;
 	XVT_ASSERT_INT_EQ(xvt_flight_wire_decode_input(&record, &tick, &out),
 			  0);
 	XVT_ASSERT_INT_EQ(tick, 3);
@@ -393,11 +391,10 @@ static void check_assembly_old(void)
 static void check_assembly_refusals(void)
 {
 	make_message(&g_message, TARGET, 0x03, 4);
-	size_t size;
 
 	/* Malformed: another cookie, a size that does not match the records, another opcode. */
 	xvt_flight_messages_reset();
-	size = flight_messages_part(&g_message, 0);
+	size_t size = flight_messages_part(&g_message, 0);
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_receive_part(
 				  g_part, size, COOKIE + 1, 0, &g_out),
 			  -1);
@@ -788,8 +785,8 @@ static void check_prepare_recovery_full(void)
 {
 	/* With the replay queue full, recovery fails and the pending messages stay pending. */
 	xvt_flight_messages_reset();
-	unsigned replayed = 0;
 	make_message(&g_other, 400, 0x01, 1);
+	unsigned replayed = 0;
 	while (xvt_flight_messages_enqueue(&g_other, XVT_QUEUE_REPLAY)) {
 		XVT_ASSERT_TRUE(++replayed < 1000000);
 	}

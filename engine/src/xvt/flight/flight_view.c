@@ -90,23 +90,10 @@ static uint16_t g_flight_render_scratch_word = 0;
 HRESULT flight_view_composite_masked_software_surface(void)
 {
 	DDSURFACEDESC surface_desc;
-	HRESULT lock_result;
-	uint16_t *back_buffer_pixels;
-	uint16_t *offscreen_pixels;
-	uint16_t *destination;
-	uint16_t *source;
-	uint8_t *mask_cursor;
-	int back_buffer_pitch;
-	int offscreen_pitch;
-	int8_t run_type;
-	int run_length;
-	int decoded_width;
-	int copy_width;
-	int viewport_row;
-	unsigned int row;
 
 	memset(&surface_desc, 0, sizeof(surface_desc));
 	surface_desc.dwSize = sizeof(surface_desc);
+	HRESULT lock_result;
 	for (;;) {
 		lock_result = g_flight_back_buffer->lpVtbl->Lock(
 			g_flight_back_buffer, NULL, &surface_desc, 0, NULL);
@@ -117,9 +104,9 @@ HRESULT flight_view_composite_masked_software_surface(void)
 			return lock_result;
 		}
 	}
-	destination = surface_desc.lpSurface;
-	back_buffer_pixels = destination;
-	back_buffer_pitch = surface_desc.lPitch;
+	uint16_t *destination = surface_desc.lpSurface;
+	uint16_t *back_buffer_pixels = destination;
+	int back_buffer_pitch = surface_desc.lPitch;
 
 	memset(&surface_desc, 0, sizeof(surface_desc));
 	surface_desc.dwSize = sizeof(surface_desc);
@@ -134,9 +121,9 @@ HRESULT flight_view_composite_masked_software_surface(void)
 			return lock_result;
 		}
 	}
-	source = surface_desc.lpSurface;
-	offscreen_pixels = source;
-	offscreen_pitch = surface_desc.lPitch;
+	uint16_t *source = surface_desc.lpSurface;
+	uint16_t *offscreen_pixels = source;
+	int offscreen_pitch = surface_desc.lPitch;
 
 	destination =
 		(uint16_t *)((uint8_t *)destination +
@@ -151,6 +138,8 @@ HRESULT flight_view_composite_masked_software_surface(void)
 						     g_surface_height) >>
 				      1));
 
+	int copy_width;
+	unsigned int row;
 	for (row = 0; row < (unsigned int)g_flight_vp_y; ++row) {
 		if ((g_surface_width & 1) != 0) {
 			*destination = *source;
@@ -169,8 +158,10 @@ HRESULT flight_view_composite_masked_software_surface(void)
 					   back_buffer_pitch);
 	}
 
-	mask_cursor = &g_flight_aux_buffer[g_viewport_span_mask_offset];
-	for (viewport_row = 0; viewport_row < g_flight_vp_height;
+	uint8_t *mask_cursor =
+		&g_flight_aux_buffer[g_viewport_span_mask_offset];
+	int run_length;
+	for (int viewport_row = 0; viewport_row < g_flight_vp_height;
 	     ++viewport_row) {
 		if (g_flight_vp_x != 0) {
 			if ((g_flight_vp_x & 1) != 0) {
@@ -192,8 +183,8 @@ HRESULT flight_view_composite_masked_software_surface(void)
 						   g_flight_bytes_per_pixel *
 							   g_flight_vp_x);
 		}
-		decoded_width = 0;
-		run_type = (int8_t)*mask_cursor++;
+		int decoded_width = 0;
+		int8_t run_type = (int8_t)*mask_cursor++;
 		while (decoded_width < g_flight_vp_width) {
 			run_length = *mask_cursor++;
 			if (run_length == 0) {
@@ -306,23 +297,6 @@ HRESULT flight_view_composite_masked_software_surface(void)
 int16_t flight_view_rotate_view_by_input(int pitch_step, int yaw_or_roll_step,
 					 int player_idx)
 {
-	int16_t pitch;
-	int16_t yaw;
-	int16_t pitch_cos;
-	int16_t pitch_sin;
-	int16_t yaw_cos;
-	int16_t yaw_sin;
-	int16_t pitch_cos_yaw_cos;
-	int16_t pitch_cos_yaw_sin;
-	int16_t pitch_sin_yaw_cos;
-	int16_t pitch_sin_yaw_sin;
-	int negative_yaw_sin;
-	int negative_pitch_sin;
-	int16_t rotated_x;
-	int16_t rotated_y;
-	int16_t rotated_z;
-	int16_t result;
-
 	fview_build_camera_orient(g_players[player_idx].view_state.view_roll,
 				  g_players[player_idx].view_state.view_pitch,
 				  g_players[player_idx].view_state.view_yaw, 0,
@@ -343,28 +317,28 @@ int16_t flight_view_rotate_view_by_input(int pitch_step, int yaw_or_roll_step,
 				    g_cur_mat_r1_z, (int16_t)yaw_or_roll_step);
 	}
 
-	pitch = trig2_w_arccos((int16_t)-g_cur_mat_r2_z);
-	yaw = (int16_t)-trig2_arctan(g_cur_mat_r2_x, -g_cur_mat_r2_y);
+	int16_t pitch = trig2_w_arccos((int16_t)-g_cur_mat_r2_z);
+	int16_t yaw = (int16_t)-trig2_arctan(g_cur_mat_r2_x, -g_cur_mat_r2_y);
 	g_players[player_idx].view_state.view_yaw = yaw;
 	g_players[player_idx].view_state.view_pitch = pitch;
-	yaw_cos = trig2_getsignedcos(yaw);
-	yaw_sin = trig2_getsignedsin(yaw);
-	pitch_cos = trig2_getsignedcos(pitch);
-	pitch_sin = trig2_getsignedsin(pitch);
-	pitch_cos_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_cos);
-	pitch_sin_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_sin);
-	pitch_cos_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_cos);
-	pitch_sin_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_sin);
-	negative_yaw_sin = (int16_t)-yaw_sin;
-	negative_pitch_sin = (int16_t)-pitch_sin;
+	int16_t yaw_cos = trig2_getsignedcos(yaw);
+	int16_t yaw_sin = trig2_getsignedsin(yaw);
+	int16_t pitch_cos = trig2_getsignedcos(pitch);
+	int16_t pitch_sin = trig2_getsignedsin(pitch);
+	int16_t pitch_cos_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_cos);
+	int16_t pitch_sin_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_sin);
+	int16_t pitch_cos_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_cos);
+	int16_t pitch_sin_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_sin);
+	int negative_yaw_sin = (int16_t)-yaw_sin;
+	int negative_pitch_sin = (int16_t)-pitch_sin;
 
-	rotated_x = (int16_t)math_dot3q15_wrapped(
+	int16_t rotated_x = (int16_t)math_dot3q15_wrapped(
 		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z, yaw_cos,
 		negative_yaw_sin, 0);
-	rotated_y = (int16_t)math_dot3q15_wrapped(
+	int16_t rotated_y = (int16_t)math_dot3q15_wrapped(
 		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
 		pitch_cos_yaw_sin, pitch_cos_yaw_cos, negative_pitch_sin);
-	rotated_z = (int16_t)math_dot3q15_wrapped(
+	int16_t rotated_z = (int16_t)math_dot3q15_wrapped(
 		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
 		pitch_sin_yaw_sin, pitch_sin_yaw_cos, pitch_cos);
 	g_cur_mat_r0_x = rotated_x;
@@ -397,7 +371,7 @@ int16_t flight_view_rotate_view_by_input(int pitch_step, int yaw_or_roll_step,
 	g_cur_mat_r2_y = rotated_y;
 	g_cur_mat_r2_z = rotated_z;
 
-	result = (int16_t)-trig2_arctan(g_cur_mat_r0_y, g_cur_mat_r0_x);
+	int16_t result = (int16_t)-trig2_arctan(g_cur_mat_r0_y, g_cur_mat_r0_x);
 	g_players[player_idx].view_state.view_roll = result;
 	if ((g_flight_key_mods & 0xE) == 2) {
 		result = (int16_t)(result + yaw_or_roll_step);
@@ -439,24 +413,21 @@ void flight_view_update_player_camera(int player_idx)
 		CAMERA_PITCH_LEVEL = 0x4000,
 	};
 
-	uint16_t camera_focus_obj_idx;
-
 	if (g_players[player_idx].map_camera_state != 0) {
 		flight_map_update_camera(player_idx);
 	} else {
-		camera_focus_obj_idx =
+		uint16_t camera_focus_obj_idx =
 			g_players[player_idx].view_state.camera_focus_obj_idx;
 		if (camera_focus_obj_idx == UINT16_MAX) {
-			struct object_record *player_object;
-
 #ifdef XVT_MODERN
 			/* Mission time-limit expiry marks empty slots connected; they have no craft to orbit. */
 			if (g_players[player_idx].object_index == -1) {
 				return;
 			}
 #endif
-			player_object = &g_object_table[g_players[player_idx]
-								.object_index];
+			struct object_record *player_object =
+				&g_object_table[g_players[player_idx]
+							.object_index];
 
 			trig2_ctop(player_object->world_x -
 					   g_players[player_idx]
@@ -491,11 +462,6 @@ void flight_view_update_player_camera(int player_idx)
 			    g_players[player_idx]
 					    .view_state.player_input_blocked !=
 				    0)) {
-			int extent_shift;
-			int camera_offset_x;
-			int camera_offset_y;
-			int camera_offset_z;
-
 			g_players[player_idx].view_state.view_roll =
 				g_object_table[camera_focus_obj_idx].roll;
 			g_players[player_idx].view_state.view_pitch =
@@ -543,7 +509,7 @@ void flight_view_update_player_camera(int player_idx)
 						.view_state.camera_distance,
 					g_cam_mat_r2_z);
 
-			extent_shift = 0;
+			int extent_shift = 0;
 			g_current_object_bounds_extent =
 				g_object_type_table
 					[g_object_table
@@ -558,11 +524,11 @@ void flight_view_update_player_camera(int player_idx)
 				g_current_object_bounds_extent >>= 1;
 			}
 
-			camera_offset_x = math_mul_q15(
+			int camera_offset_x = math_mul_q15(
 				g_current_object_bounds_extent, g_cam_mat_r2_x);
-			camera_offset_y = math_mul_q15(
+			int camera_offset_y = math_mul_q15(
 				g_current_object_bounds_extent, g_cam_mat_r2_y);
-			camera_offset_z = math_mul_q15(
+			int camera_offset_z = math_mul_q15(
 				g_current_object_bounds_extent, g_cam_mat_r2_z);
 			if (extent_shift != 0) {
 				camera_offset_x <<= extent_shift;
@@ -647,11 +613,7 @@ void flight_view_update_player_camera(int player_idx)
 				UINT16_MAX;
 		}
 		if (g_players[player_idx].object_index != -1) {
-			int16_t hyperspace_camera_roll;
-			int camera_drop_ticks;
-			int camera_y;
-
-			hyperspace_camera_roll = 0;
+			int16_t hyperspace_camera_roll = 0;
 			if (g_players[player_idx]
 				    .hyperspace_runtime.phase_elapsed_ticks >=
 			    HYPERSPACE_CAMERA_ROLL_START_TICKS) {
@@ -665,7 +627,7 @@ void flight_view_update_player_camera(int player_idx)
 			fview_build_camera_orient(hyperspace_camera_roll,
 						  CAMERA_PITCH_LEVEL, 0, 0, 0,
 						  0, NULL);
-			camera_y =
+			int camera_y =
 				g_object_table[g_players[player_idx]
 						       .object_index]
 					.world_y -
@@ -676,10 +638,11 @@ void flight_view_update_player_camera(int player_idx)
 						.max_bounds_extent;
 			g_players[player_idx].view_state.camera_world_y =
 				camera_y;
-			camera_drop_ticks = (int)g_players[player_idx]
-						    .hyperspace_runtime
-						    .phase_elapsed_ticks -
-					    HYPERSPACE_EXTERNAL_CAMERA_TICKS;
+			int camera_drop_ticks =
+				(int)g_players[player_idx]
+					.hyperspace_runtime
+					.phase_elapsed_ticks -
+				HYPERSPACE_EXTERNAL_CAMERA_TICKS;
 			if (camera_drop_ticks > SIMULATION_TICKS_PER_SECOND) {
 				camera_drop_ticks = SIMULATION_TICKS_PER_SECOND;
 			}
@@ -726,7 +689,6 @@ void flight_view_render(void)
 		NO_BILINEAR_OBJECT_TYPE = 36,
 	};
 
-	int16_t main_object_index;
 #ifdef XVT_MODERN
 	xvt_render_capture_capture_view();
 #endif
@@ -793,12 +755,9 @@ void flight_view_render(void)
 	}
 
 	render_list_reset();
-	main_object_index = 0;
+	int16_t main_object_index = 0;
 	if (g_region_main_object_slot_end > 0) {
 		do {
-			struct object_record *object;
-			uint16_t object_type;
-
 			if (main_object_index == g_local_transient_slot_start &&
 			    (g_debris_enabled == 0 ||
 			     g_flight_mission_state
@@ -820,8 +779,9 @@ void flight_view_render(void)
 					    .view_state
 					    .external_camera_active != 0 ||
 			    g_replay_view_mode != 0) {
-				object = &g_object_table[main_object_index];
-				object_type = object->object_type;
+				struct object_record *object =
+					&g_object_table[main_object_index];
+				uint16_t object_type = object->object_type;
 				if (object_type != 0) {
 					g_current_object_bounds_extent =
 						g_object_type_table[object_type]
@@ -886,9 +846,7 @@ void flight_view_render(void)
 	}
 
 	{
-		int16_t static_object_index;
-
-		for (static_object_index =
+		for (int16_t static_object_index =
 			     (int16_t)g_region_main_object_slot_end;
 		     static_object_index <
 		     g_region_static_object_slot_count +
@@ -896,17 +854,15 @@ void flight_view_render(void)
 		     ++static_object_index) {
 			struct object_record *object =
 				&g_object_table[static_object_index];
-			int genus_id;
-			uint16_t object_type;
 
-			object_type = object->object_type;
+			uint16_t object_type = object->object_type;
 			if (object_type == 0) {
 				continue;
 			}
 			g_current_object_bounds_extent =
 				g_object_type_table[object_type]
 					.max_bounds_extent;
-			genus_id = object->genus_id;
+			int genus_id = object->genus_id;
 			if (genus_id >= CRAFT_GENUS_MINE &&
 			    genus_id <= CRAFT_GENUS_SMALL_DEBRIS &&
 			    flight_view_cull_world_sphere_to_viewport(
@@ -921,13 +877,13 @@ void flight_view_render(void)
 
 	render_list_sort_depth_ascending();
 	{
-		struct render_object_list_entry *render_entry;
 		int16_t render_object_index;
 		int object_table_index;
 		uint16_t genus_id;
 
-		for (render_entry = g_render_list_head; render_entry != NULL;
-		     render_entry = render_entry->next) {
+		for (struct render_object_list_entry *render_entry =
+			     g_render_list_head;
+		     render_entry != NULL; render_entry = render_entry->next) {
 			render_object_index = (int16_t)render_entry->object_idx;
 			object_table_index = render_object_index;
 			genus_id = g_object_table[object_table_index].genus_id;
@@ -941,8 +897,6 @@ void flight_view_render(void)
 				case CRAFT_GENUS_STARSHIP:
 				case CRAFT_GENUS_PLATFORM:
 				case CRAFT_GENUS_OBSTACLE: {
-					int saved_bilinear_enabled;
-
 					g_cur_craft =
 						g_object_table
 							[object_table_index]
@@ -953,6 +907,7 @@ void flight_view_render(void)
 						g_transform_light_direction_to_object_space =
 							0;
 					}
+					int saved_bilinear_enabled;
 					if (g_object_table[object_table_index]
 						    .object_type ==
 					    NO_BILINEAR_OBJECT_TYPE) {
@@ -1131,16 +1086,14 @@ void flight_view_render(void)
 // FUNCTION: XVT 0x44FE40
 int flight_view_compute_object_view_position(uint16_t object_idx)
 {
-	struct object_record *object;
-	int camera_world_x;
-	int camera_world_y;
-	int camera_world_z;
-
-	object = &g_object_table[object_idx];
-	camera_world_x = g_players[g_local_player].view_state.camera_world_x;
-	camera_world_y = g_players[g_local_player].view_state.camera_world_y;
+	struct object_record *object = &g_object_table[object_idx];
+	int camera_world_x =
+		g_players[g_local_player].view_state.camera_world_x;
+	int camera_world_y =
+		g_players[g_local_player].view_state.camera_world_y;
 	g_cam_rel_world_x = object->world_x - camera_world_x;
-	camera_world_z = g_players[g_local_player].view_state.camera_world_z;
+	int camera_world_z =
+		g_players[g_local_player].view_state.camera_world_z;
 	g_cam_rel_world_y = object->world_y - camera_world_y;
 	g_cam_rel_world_z = object->world_z - camera_world_z;
 	g_view_space_x = transfm2_cam_mat_dot_row0(
@@ -1163,11 +1116,6 @@ int flight_view_compute_object_view_position(uint16_t object_idx)
 int flight_view_project_and_test_sphere_visible(int object_idx,
 						unsigned int sphere_radius)
 {
-	int depth_with_radius;
-	int transformed_x;
-	int transformed_y;
-	int absolute_y;
-
 	g_cam_rel_world_x = g_object_table[object_idx].world_x -
 			    g_players[g_local_player].view_state.camera_world_x;
 	g_cam_rel_world_y = g_object_table[object_idx].world_y -
@@ -1176,7 +1124,7 @@ int flight_view_project_and_test_sphere_visible(int object_idx,
 			    g_players[g_local_player].view_state.camera_world_z;
 	g_view_space_depth = transfm2_cam_mat_dot_row2(
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
-	depth_with_radius = g_view_space_depth + sphere_radius;
+	int depth_with_radius = g_view_space_depth + sphere_radius;
 	if (depth_with_radius < 0) {
 		return 0;
 	}
@@ -1184,7 +1132,7 @@ int flight_view_project_and_test_sphere_visible(int object_idx,
 		return 0;
 	}
 
-	transformed_x = transfm2_cam_mat_dot_row0(
+	int transformed_x = transfm2_cam_mat_dot_row0(
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
 	g_view_space_x = transformed_x;
 	if (transformed_x < 0) {
@@ -1200,9 +1148,9 @@ int flight_view_project_and_test_sphere_visible(int object_idx,
 		return 0;
 	}
 
-	transformed_y = transfm2_cam_mat_dot_row1(
+	int transformed_y = transfm2_cam_mat_dot_row1(
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
-	absolute_y = transformed_y;
+	int absolute_y = transformed_y;
 	g_view_space_y = transformed_y;
 	if (absolute_y < 0) {
 #ifdef XVT_MODERN
@@ -1222,22 +1170,17 @@ int flight_view_project_and_test_sphere_visible(int object_idx,
 int flight_view_cull_world_sphere_to_viewport(int world_x, int world_y,
 					      int world_z, int sphere_radius)
 {
-	int camera_world_y;
-	int camera_world_z;
-	int depth_with_radius;
-	int transformed_x;
-	int transformed_y;
-	int absolute_y;
-
-	camera_world_y = g_players[g_local_player].view_state.camera_world_y;
+	int camera_world_y =
+		g_players[g_local_player].view_state.camera_world_y;
 	g_cam_rel_world_x =
 		world_x - g_players[g_local_player].view_state.camera_world_x;
-	camera_world_z = g_players[g_local_player].view_state.camera_world_z;
+	int camera_world_z =
+		g_players[g_local_player].view_state.camera_world_z;
 	g_cam_rel_world_y = world_y - camera_world_y;
 	g_cam_rel_world_z = world_z - camera_world_z;
 	g_view_space_depth = transfm2_cam_mat_dot_row2(
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
-	depth_with_radius = g_view_space_depth + sphere_radius;
+	int depth_with_radius = g_view_space_depth + sphere_radius;
 	if (depth_with_radius < 0) {
 		return 0;
 	}
@@ -1245,7 +1188,7 @@ int flight_view_cull_world_sphere_to_viewport(int world_x, int world_y,
 		return 0;
 	}
 
-	transformed_x = transfm2_cam_mat_dot_row0(
+	int transformed_x = transfm2_cam_mat_dot_row0(
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
 	g_view_space_x = transformed_x;
 	if (transformed_x < 0) {
@@ -1260,10 +1203,10 @@ int flight_view_cull_world_sphere_to_viewport(int world_x, int world_y,
 		return 0;
 	}
 
-	transformed_y = transfm2_cam_mat_dot_row1(
+	int transformed_y = transfm2_cam_mat_dot_row1(
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
 	g_view_space_y = transformed_y;
-	absolute_y = transformed_y;
+	int absolute_y = transformed_y;
 	if (absolute_y < 0) {
 #ifdef XVT_MODERN
 		absolute_y = absolute_y == INT32_MIN ? INT32_MAX : -absolute_y;
@@ -1283,11 +1226,11 @@ int flight_view_cull_world_sphere_to_viewport(int world_x, int world_y,
 // FUNCTION: XVT 0x450110
 void flight_view_render_startup_frame(void)
 {
-	int player_index;
 #ifdef XVT_MODERN
 	xvt_render_capture_begin_classic_frame();
 #endif
 
+	int player_index;
 	for (player_index = 0;
 	     player_index < (int)(sizeof(g_players) / sizeof(g_players[0]));
 	     ++player_index) {
@@ -1332,12 +1275,11 @@ void flight_view_render_startup_frame(void)
 // FUNCTION: XVT 0x4501C0
 void flight_view_render_frame(void)
 {
-	int player_index;
 #ifdef XVT_MODERN
 	xvt_render_capture_begin_classic_frame();
 #endif
 
-	for (player_index = 0;
+	for (int player_index = 0;
 	     player_index < (int)(sizeof(g_players) / sizeof(g_players[0]));
 	     ++player_index) {
 		if (g_players[player_index].participation_state != 0 &&

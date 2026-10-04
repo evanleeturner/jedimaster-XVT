@@ -159,14 +159,9 @@ int16_t goals_outputgoal(uint16_t target_id, uint16_t condition,
 			 const char *condition_text_override,
 			 int percent_complete, int goal_title_index)
 {
-	int16_t consumed_height;
-	uint16_t amount_text_variant;
-	char time_text[32];
-	char percent_text[76];
-
-	amount_text_variant =
+	uint16_t amount_text_variant =
 		g_goal_amount_text_variant_by_op[(uint16_t)amount_op];
-	consumed_height = (int16_t)(g_flight_font_line_height + 2);
+	int16_t consumed_height = (int16_t)(g_flight_font_line_height + 2);
 	/* From here goal_status holds a row offset into the condition text tables (47 rows per status block),
 	 * passed below as the condition row base. */
 	goal_status =
@@ -335,6 +330,7 @@ int16_t goals_outputgoal(uint16_t target_id, uint16_t condition,
 			uint16_t seconds =
 				(uint16_t)(time_seconds - minutes * 60);
 
+			char time_text[32];
 			if (seconds < 10) {
 				sprintf(time_text, " (%s %ld:0%ld)",
 					g_str_goal_conjunctions
@@ -573,6 +569,7 @@ int16_t goals_outputgoal(uint16_t target_id, uint16_t condition,
 	}
 
 	if (percent_complete >= 0) {
+		char percent_text[76];
 		sprintf(percent_text, " (%ld%%)", (long)percent_complete);
 		if (goal_title_index == 0 || goal_title_index == 2) {
 			flight_text_set_color(0x4A);
@@ -607,18 +604,14 @@ int16_t goals_draw_condition_text(unsigned int craft_species,
 				  uint16_t amount_text_variant,
 				  int16_t condition_row_base)
 {
-	const char *text;
-	int16_t wrap_height;
-	model_index model_index;
-
-	text = NULL;
-	wrap_height = 0;
+	const char *text = NULL;
+	int16_t wrap_height = 0;
 	if (g_goal_condition_text_variant_count[condition] == 1) {
 		amount_text_variant = 0;
 	}
 
 	condition = (uint16_t)(condition + condition_row_base);
-	model_index = get_model_index_from_type(craft_species);
+	model_index model_index = get_model_index_from_type(craft_species);
 	if (model_index != MODEL_INDEX_NONE) {
 		switch (g_craft_gender[model_index]) {
 		case CRAFT_GENDER_MASCULINE:
@@ -663,14 +656,12 @@ int16_t goals_draw_object_type_name(uint16_t craft_species,
 				    int16_t use_plural_name,
 				    int16_t use_short_name)
 {
-	model_index model_index;
-	int16_t wrap_height;
 	const char *display_name;
 
 #ifdef XVT_MODERN
 	display_name = "";
 #endif
-	model_index = get_model_index_from_type(craft_species);
+	model_index model_index = get_model_index_from_type(craft_species);
 	if (model_index != MODEL_INDEX_NONE) {
 		if (use_plural_name != 0) {
 			display_name = g_str_species_names_plural[model_index];
@@ -685,7 +676,8 @@ int16_t goals_draw_object_type_name(uint16_t craft_species,
 			[craft_species - CRAFT_SPECIES_COMM_SAT_1];
 	}
 
-	wrap_height = flight_text_get_wrap_height_for_string(display_name);
+	int16_t wrap_height =
+		flight_text_get_wrap_height_for_string(display_name);
 	flight_text_draw_string(display_name);
 	return wrap_height;
 }

@@ -52,11 +52,6 @@ static void xvt_video_page_draw_controls(AeronUiContext *ui)
 	}
 	static const float paper_white_values[] = {
 		0.0f, 100.0f, 150.0f, 200.0f, 250.0f, 300.0f, 400.0f};
-	const char *paper_white_labels[] = {"Auto",	"100 nits", "150 nits",
-					    "200 nits", "250 nits", "300 nits",
-					    "400 nits", NULL};
-	char custom_white[32];
-	int white_count = 7;
 	int paper_white_index = 0;
 	if (options.paper_white_nits > 0) {
 		paper_white_index = 1;
@@ -77,7 +72,12 @@ static void xvt_video_page_draw_controls(AeronUiContext *ui)
 			}
 		}
 	}
+	const char *paper_white_labels[] = {"Auto",	"100 nits", "150 nits",
+					    "200 nits", "250 nits", "300 nits",
+					    "400 nits", NULL};
+	int white_count = 7;
 	if (options.paper_white_nits != paper_white_values[paper_white_index]) {
+		char custom_white[32];
 		snprintf(custom_white, sizeof custom_white, "%.1f nits",
 			 options.paper_white_nits);
 		paper_white_labels[7] = custom_white;
@@ -113,11 +113,11 @@ static void xvt_video_page_draw_controls(AeronUiContext *ui)
 	}
 	static const int shadow_atlas_values[] = {4096, 8192};
 	const char *shadow_quality_labels[] = {"Standard", "High", NULL};
-	char custom_shadow[48];
 	int shadow_count = 2;
 	int shadow_quality = options.shadow_atlas_size >= 8192 ? 1 : 0;
 	if (!options.shadows_enabled || (options.shadow_atlas_size != 4096 &&
 					 options.shadow_atlas_size != 8192)) {
+		char custom_shadow[48];
 		snprintf(custom_shadow, sizeof custom_shadow,
 			 options.shadows_enabled ? "%d (configured)"
 						 : "Off (configured)",

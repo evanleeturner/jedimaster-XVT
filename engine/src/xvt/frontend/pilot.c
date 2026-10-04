@@ -46,13 +46,11 @@ static const char *const g_random_pilot_names[40] = {
 // FUNCTION: XVT 0x4BF260
 int pilot_delete_current(void)
 {
-	uint8_t xvt_pilot_record[0x3DF3A];
-	struct frontend_file_list_node *node;
 	int selected_index;
 
 	if (g_pilot_list_display_names != NULL &&
 	    g_pilot_data.name[0] != '\0' && g_pilot_file_list != NULL) {
-		node = g_pilot_file_list->head;
+		struct frontend_file_list_node *node = g_pilot_file_list->head;
 		selected_index = 0;
 		if (g_pilot_list_display_names != NULL) {
 			while (g_pilot_file_list->count > selected_index) {
@@ -101,6 +99,7 @@ int pilot_delete_current(void)
 	}
 
 	memset(&g_pilot_data, 0, sizeof(g_pilot_data));
+	uint8_t xvt_pilot_record[0x3DF3A];
 	memset(xvt_pilot_record, 0, sizeof(xvt_pilot_record));
 	selected_index = 0;
 	pilot_record_rebuild_pilot_list(&selected_index);
@@ -123,14 +122,12 @@ int pilot_delete_current(void)
 // FUNCTION: XVT 0x4BF3A0
 int pilot_create_new(const char *pilot_name)
 {
-	char pilot_path[32];
-	xvt_file *probe_stream;
 #ifndef XVT_MODERN
 	xvt_file *stream;
 #endif
-	int file_index;
-
-	file_index = 0;
+	int file_index = 0;
+	char pilot_path[32];
+	xvt_file *probe_stream;
 	for (;;) {
 		sprintf(pilot_path, "%s%d.pl2", pilot_name, file_index);
 #ifdef XVT_MODERN
@@ -256,17 +253,16 @@ int pilot_create_new(const char *pilot_name)
 // FUNCTION: XVT 0x4BF650
 int pilot_save(int use_temporary_file)
 {
-	char pilot_path[30];
-	struct frontend_file_list *file_list;
-	struct frontend_file_list_node *node;
-	xvt_file *stream;
-	int file_index;
-
 	if (g_pilot_data.name[0] == '\0') {
 		return 0;
 	}
 
+	char pilot_path[30];
 	memset(pilot_path, 0, sizeof(pilot_path));
+	struct frontend_file_list *file_list;
+	struct frontend_file_list_node *node;
+	xvt_file *stream;
+	int file_index;
 	if (use_temporary_file == 0) {
 		file_list = frontend_file_list_build_sorted("*.pl2");
 		if (file_list != NULL) {
@@ -396,14 +392,9 @@ int pilot_save(int use_temporary_file)
 // FUNCTION: XVT 0x4BF8C0
 int pilot_find_and_load_by_name(const char *pilot_name)
 {
-	struct frontend_file_list *file_list;
-	struct frontend_file_list_node *node;
-	xvt_file *stream;
-	int file_index;
-	int was_loaded;
-
 	file_change_to_base_game_install_path();
-	file_list = frontend_file_list_build_sorted("*.plt");
+	struct frontend_file_list *file_list =
+		frontend_file_list_build_sorted("*.plt");
 	file_change_to_install_path();
 	if (file_list == NULL) {
 		return 0;
@@ -417,11 +408,12 @@ int pilot_find_and_load_by_name(const char *pilot_name)
 		return 0;
 	}
 
-	node = file_list->head;
-	file_index = 0;
-	was_loaded = 0;
+	struct frontend_file_list_node *node = file_list->head;
+	int file_index = 0;
+	int was_loaded = 0;
 	while (file_index < file_list->count) {
-		stream = file_open(node->path, g_file_mode_read_binary);
+		xvt_file *stream =
+			file_open(node->path, g_file_mode_read_binary);
 		if (stream != NULL) {
 			file_read_bytes(stream, g_frontend_scratch_buffer,
 					sizeof(g_pilot_data.name));
@@ -458,10 +450,6 @@ int pilot_find_and_load_by_name(const char *pilot_name)
 // FUNCTION: XVT 0x4C9C50
 int pilot_parse_command_line(const char *cmd_line)
 {
-	int command_index;
-	int command_length;
-	int has_network_address;
-
 	struct parsed_command_line {
 		int has_pilot_name; /* 1 once an option gave a pilot name. */
 		/* Name from the last name option, at most 12 characters. */
@@ -474,17 +462,15 @@ int pilot_parse_command_line(const char *cmd_line)
 		RANDOM_PILOT_NAME_COUNT = 40,
 	};
 
-	command_index = 0;
-	command_length = strlen(cmd_line);
-	has_network_address = 0;
+	int command_index = 0;
+	int command_length = strlen(cmd_line);
+	int has_network_address = 0;
 	parsed.has_pilot_name = 0;
 	if (command_length > 0) {
 		do {
 			if (cmd_line[command_index] == '"') {
-				int parameter_index;
-
 				++command_index;
-				parameter_index = 0;
+				int parameter_index = 0;
 				while (cmd_line[command_index] != '"') {
 					if (command_index >= command_length) {
 						break;
@@ -587,16 +573,12 @@ int pilot_parse_command_line(const char *cmd_line)
 // FUNCTION: XVT 0x4CB0C0
 int pilot_load_from_path(const char *base_pilot_path)
 {
-	char expansion_pilot_path[128];
-	xvt_file *expansion_stream;
-	xvt_file *xvt_stream;
-	int has_expansion_record;
-
-	has_expansion_record = 0;
+	int has_expansion_record = 0;
 	memset(&g_pilot_data, 0, sizeof(g_pilot_data));
+	char expansion_pilot_path[128];
 	strcpy(expansion_pilot_path, base_pilot_path);
 	expansion_pilot_path[strlen(expansion_pilot_path) - 1] = '2';
-	expansion_stream =
+	xvt_file *expansion_stream =
 		file_open(expansion_pilot_path, g_file_mode_read_binary);
 	if (expansion_stream != NULL) {
 		has_expansion_record = 1;
@@ -615,7 +597,8 @@ int pilot_load_from_path(const char *base_pilot_path)
 	}
 
 	file_change_to_base_game_install_path();
-	xvt_stream = file_open(base_pilot_path, g_file_mode_read_binary);
+	xvt_file *xvt_stream =
+		file_open(base_pilot_path, g_file_mode_read_binary);
 	file_change_to_install_path();
 	if (xvt_stream != NULL) {
 		if (has_expansion_record == 0) {
@@ -864,12 +847,6 @@ typedef char xvt_size_pilot_xvt_record
 // FUNCTION: XVT 0x4C9F80
 int pilot_load_xvt_record(xvt_file *stream)
 {
-	struct pilot_xvt_faction *source_faction;
-	struct pilot_faction *destination_faction;
-	int main_mission_type;
-	int mission_type;
-	int faction_id;
-
 	/* g_pilot_data's entries for the seven craft the record must not
 	 * overwrite, saved before each per-craft table is copied and put
 	 * back after. */
@@ -883,8 +860,6 @@ int pilot_load_xvt_record(xvt_file *stream)
 		int gun_emplacement;	  /* Entry 78. */
 	} preserved_craft_stats;
 
-	struct pilot_xvt_record record;
-
 	enum {
 		MISSION_TYPE_COUNT = 3,
 		FACTION_COUNT = 4,
@@ -897,6 +872,7 @@ int pilot_load_xvt_record(xvt_file *stream)
 		GUN_EMPLACEMENT_CRAFT_INDEX = 78
 	};
 
+	struct pilot_xvt_record record;
 #ifdef XVT_MODERN
 	if (!file_read_bytes(stream, &record, sizeof(record))) {
 		return 0;
@@ -946,7 +922,7 @@ int pilot_load_xvt_record(xvt_file *stream)
 	memcpy(g_pilot_data.main_stats.total_friendlies_killed_per_mt,
 	       record.main_stats.total_friendlies_killed_per_mt,
 	       sizeof(record.main_stats.total_friendlies_killed_per_mt));
-	for (main_mission_type = 0; main_mission_type < MISSION_TYPE_COUNT;
+	for (int main_mission_type = 0; main_mission_type < MISSION_TYPE_COUNT;
 	     ++main_mission_type) {
 		preserved_craft_stats.b_wing =
 			g_pilot_data.main_stats
@@ -1226,6 +1202,7 @@ int pilot_load_xvt_record(xvt_file *stream)
 	       record.last_mission_stats.total_friendlies_killed_per_mt,
 	       sizeof(record.last_mission_stats
 			      .total_friendlies_killed_per_mt));
+	int mission_type;
 	for (mission_type = 0; mission_type < MISSION_TYPE_COUNT;
 	     ++mission_type) {
 		preserved_craft_stats.b_wing =
@@ -1478,10 +1455,11 @@ int pilot_load_xvt_record(xvt_file *stream)
 	memcpy(g_pilot_data.teams, record.teams, sizeof(record.teams));
 	g_pilot_data.current_faction_id = record.current_faction_id;
 
-	for (faction_id = 0; faction_id < FACTION_COUNT; ++faction_id) {
-		destination_faction =
+	for (int faction_id = 0; faction_id < FACTION_COUNT; ++faction_id) {
+		struct pilot_faction *destination_faction =
 			&g_pilot_data.faction_statistics[faction_id];
-		source_faction = &record.faction_statistics[faction_id];
+		struct pilot_xvt_faction *source_faction =
+			&record.faction_statistics[faction_id];
 		destination_faction->total_missions_played_count =
 			source_faction->total_missions_played_count;
 		memcpy(destination_faction->melee_plaques,
@@ -1851,13 +1829,10 @@ int pilot_load_xvt_record(xvt_file *stream)
 int pilot_write_xvt_record(const char *file_name, xvt_file *stream)
 {
 	struct pilot_xvt_record record;
-	xvt_file *input_stream;
-	int mission_type;
-	int faction_id;
 
 	memset(&record, 0, sizeof(record));
 	file_change_to_base_game_install_path();
-	input_stream = file_open(file_name, g_file_mode_read_binary);
+	xvt_file *input_stream = file_open(file_name, g_file_mode_read_binary);
 	if (input_stream != NULL) {
 #ifdef XVT_MODERN
 		if (!file_read_bytes(input_stream, &record, sizeof(record))) {
@@ -1915,6 +1890,7 @@ int pilot_write_xvt_record(const char *file_name, xvt_file *stream)
 	       record.main_stats.total_friendlies_killed_per_mt,
 	       sizeof(record.main_stats.total_friendlies_killed_per_mt));
 
+	int mission_type;
 	for (mission_type = 0; mission_type < 3; ++mission_type) {
 		memcpy(record.main_stats.kills_per_craft_per_mt[mission_type],
 		       g_pilot_data.main_stats
@@ -2205,7 +2181,7 @@ int pilot_write_xvt_record(const char *file_name, xvt_file *stream)
 	memcpy(record.teams, g_pilot_data.teams, sizeof(record.teams));
 	record.current_faction_id = g_pilot_data.current_faction_id;
 
-	for (faction_id = 0; faction_id < 4; ++faction_id) {
+	for (int faction_id = 0; faction_id < 4; ++faction_id) {
 		struct pilot_xvt_faction *destination =
 			&record.faction_statistics[faction_id];
 		struct pilot_faction *source =

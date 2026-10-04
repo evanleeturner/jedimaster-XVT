@@ -86,11 +86,8 @@ int music_cd_initialize(void)
 
 	g_music_cd_saved_aux_volume = -1;
 	{
-		unsigned int device_index;
-		unsigned int device_count;
-
-		device_index = 0;
-		device_count = auxGetNumDevs();
+		unsigned int device_index = 0;
+		unsigned int device_count = auxGetNumDevs();
 		if (device_count > 0) {
 			do {
 				memset(&parameters.device_caps, 0,
@@ -136,11 +133,6 @@ int music_cd_initialize(void)
 	}
 
 	{
-		MMRESULT result;
-		uint32_t device_id;
-		uint32_t track_count;
-		unsigned int track_number;
-
 		parameters.status_parameters.dwItem =
 			MCI_STATUS_NUMBER_OF_TRACKS;
 		if (mciSendCommandA(g_music_cd_mci_device_id, MCI_STATUS,
@@ -155,15 +147,16 @@ int music_cd_initialize(void)
 
 		g_music_cd_track_count =
 			(uint32_t)parameters.status_parameters.dwReturn;
-		track_number = 1;
+		unsigned int track_number = 1;
 		if (g_music_cd_track_count >= track_number) {
-			device_id = g_music_cd_mci_device_id;
+			uint32_t device_id = g_music_cd_mci_device_id;
+			uint32_t track_count;
 			do {
 				parameters.status_parameters.dwItem =
 					MCI_STATUS_LENGTH;
 				parameters.status_parameters.dwTrack =
 					track_number;
-				result = mciSendCommandA(
+				MMRESULT result = mciSendCommandA(
 					device_id, MCI_STATUS,
 					MCI_STATUS_ITEM | MCI_TRACK,
 					&parameters.status_parameters);
@@ -201,14 +194,10 @@ int music_cd_play_track_from_time(int track_number, int start_minute,
 		uint32_t to;	/* End, the track's length, the same way. */
 	} parameters;
 
-	uint32_t device_id;
-	uint32_t to_time;
-	unsigned int track_end_msf;
-
 	if ((int)g_music_cd_track_count < track_number || track_number <= 0) {
 		return 0;
 	}
-	device_id = g_music_cd_mci_device_id;
+	uint32_t device_id = g_music_cd_mci_device_id;
 	if (device_id == 0) {
 		return 0;
 	}
@@ -216,12 +205,13 @@ int music_cd_play_track_from_time(int track_number, int start_minute,
 	memset(&parameters, 0, sizeof(parameters));
 	parameters.from =
 		MCI_MAKE_TMSF(track_number, start_minute, start_second, 0);
-	track_end_msf = g_music_cd_track_cache
-				.track_length_msf_by_track[track_number - 1];
+	unsigned int track_end_msf =
+		g_music_cd_track_cache
+			.track_length_msf_by_track[track_number - 1];
 	parameters.callback = g_flight_main_window_handle;
-	to_time = MCI_MAKE_TMSF(track_number, MCI_MSF_MINUTE(track_end_msf),
-				MCI_MSF_SECOND(track_end_msf),
-				MCI_MSF_FRAME(track_end_msf));
+	uint32_t to_time = MCI_MAKE_TMSF(
+		track_number, MCI_MSF_MINUTE(track_end_msf),
+		MCI_MSF_SECOND(track_end_msf), MCI_MSF_FRAME(track_end_msf));
 	parameters.to = to_time;
 	if (mciSendCommandA(device_id, MCI_PLAY, MCI_NOTIFY | MCI_FROM | MCI_TO,
 			    &parameters) != MMSYSERR_NOERROR) {
@@ -238,14 +228,13 @@ int music_cd_play_track_from_time(int track_number, int start_minute,
 // FUNCTION: XVT 0x4A51B0
 int music_cd_stop_track(void)
 {
-	MCI_GENERIC_PARMS parameters;
-
 	if (g_music_cd_mci_device_id == 0) {
 		return 0;
 	}
 	if (g_music_cd_current_track == 0) {
 		return 0;
 	}
+	MCI_GENERIC_PARMS parameters;
 	mciSendCommandA(g_music_cd_mci_device_id, MCI_STOP, 0, &parameters);
 	g_music_cd_current_track = 0;
 	g_music_cd_playback_complete = 0;
@@ -263,17 +252,12 @@ int music_cd_stop_track(void)
 // FUNCTION: XVT 0x4A5210
 int music_cd_close_device(void)
 {
-	MCI_GENERIC_PARMS parameters;
-	AUXCAPSA device_caps;
-	int device_count;
-	int device_index;
-	uint32_t stereo_volume;
-
 	if (g_music_cd_mci_device_id == 0) {
 		return 0;
 	}
 
 	if (g_music_cd_current_track != 0) {
+		MCI_GENERIC_PARMS parameters;
 		mciSendCommandA(g_music_cd_mci_device_id, MCI_STOP, 0,
 				&parameters);
 		g_music_cd_current_track = 0;
@@ -286,10 +270,12 @@ int music_cd_close_device(void)
 	g_music_cd_current_track = 0;
 	g_music_cd_playback_complete = 0;
 
-	device_index = 0;
-	device_count = (int)auxGetNumDevs();
+	int device_index = 0;
+	int device_count = (int)auxGetNumDevs();
+	AUXCAPSA device_caps;
 	if (g_music_cd_saved_aux_volume != -1) {
-		stereo_volume = (uint32_t)g_music_cd_saved_aux_volume * 65537;
+		uint32_t stereo_volume =
+			(uint32_t)g_music_cd_saved_aux_volume * 65537;
 		if (device_count > 0) {
 			do {
 				memset(&device_caps, 0, sizeof(device_caps));
@@ -345,8 +331,6 @@ int music_cd_mark_playback_complete(void)
 // FUNCTION: XVT 0x4A5340
 int music_cd_get_track_length_ms(int track_number)
 {
-	unsigned int track_end_msf;
-
 	if (g_music_cd_mci_device_id == 0) {
 		return 0;
 	}
@@ -354,8 +338,9 @@ int music_cd_get_track_length_ms(int track_number)
 		return 0;
 	}
 
-	track_end_msf = g_music_cd_track_cache
-				.track_length_msf_by_track[track_number - 1];
+	unsigned int track_end_msf =
+		g_music_cd_track_cache
+			.track_length_msf_by_track[track_number - 1];
 	return MCI_MSF_FRAME(track_end_msf) * 1000 / 75 +
 	       1000 * (MCI_MSF_SECOND(track_end_msf) +
 		       60 * MCI_MSF_MINUTE(track_end_msf));
@@ -379,18 +364,14 @@ int music_cd_set_aux_volume(unsigned int volume0_to65535)
 int music_cd_fade_aux_volume(unsigned int from_volume, unsigned int to_volume,
 			     int fade_duration_ms)
 {
-	int fade_up;
-	unsigned int step_delay_ms;
-	uint32_t previous_time_ms;
-	int current_time_ms;
-	unsigned int next_volume;
-
 	if (g_music_cd_mci_device_id == 0) {
 		return 0;
 	}
 	if (to_volume == from_volume) {
 		return 1;
 	}
+	int fade_up;
+	unsigned int step_delay_ms;
 	if (to_volume < from_volume) {
 		fade_up = 0;
 		step_delay_ms =
@@ -401,12 +382,12 @@ int music_cd_fade_aux_volume(unsigned int from_volume, unsigned int to_volume,
 			(fade_duration_ms << 8) / (to_volume - from_volume);
 	}
 
-	previous_time_ms = timeGetTime();
+	uint32_t previous_time_ms = timeGetTime();
 	while (1) {
-		current_time_ms = timeGetTime();
+		int current_time_ms = timeGetTime();
 		if ((int)(previous_time_ms + step_delay_ms) < current_time_ms) {
 			if (fade_up != 0) {
-				next_volume = from_volume + 256;
+				unsigned int next_volume = from_volume + 256;
 				if (next_volume > 65535) {
 					from_volume = 65535;
 				} else {

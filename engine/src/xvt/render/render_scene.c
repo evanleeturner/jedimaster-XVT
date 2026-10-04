@@ -459,57 +459,39 @@ uint8_t *g_active_rgb565_to_palette_index_lut = NULL;
 void render_scene_project_mesh_vertices(struct scene_mesh *mesh)
 {
 	struct scene_face *face = &g_vis_face_list[mesh->face_base_index];
-	struct proj_vertex *output;
-	int vertex_index;
-	int face_index;
 
 	mesh->vert_base_index = g_proj_vert_count;
-	output = &g_proj_vert_list[mesh->vert_base_index];
+	struct proj_vertex *output = &g_proj_vert_list[mesh->vert_base_index];
 	mesh->proj_vert_cursor = 0;
-	for (vertex_index = 0; vertex_index < mesh->vertex_count;
+	for (int vertex_index = 0; vertex_index < mesh->vertex_count;
 	     ++vertex_index) {
 		g_vertex_remap[vertex_index] = -1;
 	}
-	for (face_index = 0; face_index < mesh->vis_face_count;
+	for (int face_index = 0; face_index < mesh->vis_face_count;
 	     ++face, ++face_index) {
-		struct opt_vector transformed;
-		const struct face_record *geometry;
-		float total_w;
-		float c00;
-		float c01;
-		float c02;
-		float c10;
-		float c11;
-		float c12;
-		float c20;
-		float c21;
-		float c22;
-		float inverse;
-		float scaled;
-		float area;
-		int corner_index;
-
 		render_scene_transform_face_texture_gradients(
 			face, &mesh->p_face_texturing[face->face_index],
 			&mesh->view_pos_x);
-		geometry = &mesh->p_face_geom[face->face_index];
+		const struct face_record *geometry =
+			&mesh->p_face_geom[face->face_index];
 		face->max_scaled_inverse_depth = 0.0f;
-		total_w = 0.0f;
+		float total_w = 0.0f;
 		face->min_scaled_inverse_depth =
 			(float)(unsigned int)g_proj_scale_int;
-		for (corner_index = 0; corner_index < 4; ++corner_index) {
+		struct opt_vector transformed;
+		for (int corner_index = 0; corner_index < 4; ++corner_index) {
 			const int model_vertex_index =
 				geometry->vertex_idx[corner_index];
 			const int uv_index = geometry->uv_idx[corner_index];
 			const int normal_index =
 				geometry->normal_idx[corner_index];
-			int remapped_vertex;
-			float vertex_scaled_inverse_depth;
 
 			if (model_vertex_index == -1) {
 				break;
 			}
-			remapped_vertex = g_vertex_remap[model_vertex_index];
+			int remapped_vertex =
+				g_vertex_remap[model_vertex_index];
+			float vertex_scaled_inverse_depth;
 			if (remapped_vertex == -1) {
 				g_vertex_remap[model_vertex_index] =
 					mesh->proj_vert_cursor;
@@ -621,32 +603,32 @@ void render_scene_project_mesh_vertices(struct scene_mesh *mesh)
 				transformed.z -
 				mesh->p_uvs[uv_index].v * face->gradients[5] -
 				mesh->p_uvs[uv_index].u * face->gradients[2];
-			c00 = face->gradients[8] * face->gradients[4] -
-			      face->gradients[5] * face->gradients[7];
-			c01 = face->gradients[5] * face->gradients[6] -
-			      face->gradients[8] * face->gradients[3];
-			c02 = face->gradients[7] * face->gradients[3] -
-			      face->gradients[4] * face->gradients[6];
-			c10 = face->gradients[2] * face->gradients[7] -
-			      face->gradients[8] * face->gradients[1];
-			c11 = face->gradients[8] * face->gradients[0] -
-			      face->gradients[2] * face->gradients[6];
-			c12 = face->gradients[6] * face->gradients[1] -
-			      face->gradients[7] * face->gradients[0];
-			c20 = face->gradients[5] * face->gradients[1] -
-			      face->gradients[2] * face->gradients[4];
-			c21 = face->gradients[2] * face->gradients[3] -
-			      face->gradients[5] * face->gradients[0];
-			c22 = face->gradients[4] * face->gradients[0] -
-			      face->gradients[1] * face->gradients[3];
+			float c00 = face->gradients[8] * face->gradients[4] -
+				    face->gradients[5] * face->gradients[7];
+			float c01 = face->gradients[5] * face->gradients[6] -
+				    face->gradients[8] * face->gradients[3];
+			float c02 = face->gradients[7] * face->gradients[3] -
+				    face->gradients[4] * face->gradients[6];
+			float c10 = face->gradients[2] * face->gradients[7] -
+				    face->gradients[8] * face->gradients[1];
+			float c11 = face->gradients[8] * face->gradients[0] -
+				    face->gradients[2] * face->gradients[6];
+			float c12 = face->gradients[6] * face->gradients[1] -
+				    face->gradients[7] * face->gradients[0];
+			float c20 = face->gradients[5] * face->gradients[1] -
+				    face->gradients[2] * face->gradients[4];
+			float c21 = face->gradients[2] * face->gradients[3] -
+				    face->gradients[5] * face->gradients[0];
+			float c22 = face->gradients[4] * face->gradients[0] -
+				    face->gradients[1] * face->gradients[3];
 			if (c20 == 0.0f && c21 == 0.0f && c22 == 0.0f) {
 				c22 = 1.0f;
 			}
-			inverse = g_render_unit_float /
-				  (c20 * face->gradients[6] +
-				   c21 * face->gradients[7] +
-				   c22 * face->gradients[8]);
-			scaled = inverse * g_inv_proj_scale;
+			float inverse = g_render_unit_float /
+					(c20 * face->gradients[6] +
+					 c21 * face->gradients[7] +
+					 c22 * face->gradients[8]);
+			float scaled = inverse * g_inv_proj_scale;
 			face->gradients[0] = scaled * c00;
 			face->gradients[1] = scaled * c01;
 			face->gradients[2] = inverse * c02;
@@ -674,8 +656,8 @@ void render_scene_project_mesh_vertices(struct scene_mesh *mesh)
 				(float)(g_proj_offset_y +
 					(g_flight_vp_height >> 1)) *
 				face->gradients[7];
-			area = face->gradients[0] * face->gradients[4] -
-			       face->gradients[3] * face->gradients[1];
+			float area = face->gradients[0] * face->gradients[4] -
+				     face->gradients[3] * face->gradients[1];
 			if (area < g_render_projection_zero_float) {
 				area = -area;
 			}
@@ -683,7 +665,6 @@ void render_scene_project_mesh_vertices(struct scene_mesh *mesh)
 				const struct opt_texture_data *material =
 					(const struct opt_texture_data *)
 						mesh->p_material;
-				float mean_view_depth;
 
 				/* total_w, the sum of the corners' scaled inverse depths, becomes the corner count over
 				 * that sum: the reciprocal of their mean. */
@@ -695,7 +676,7 @@ void render_scene_project_mesh_vertices(struct scene_mesh *mesh)
 					total_w = g_render_quad_corner_count /
 						  total_w;
 				}
-				mean_view_depth =
+				float mean_view_depth =
 					(float)(unsigned int)g_proj_scale_int *
 					total_w;
 				face->texels_per_pixel_q8 =
@@ -718,48 +699,40 @@ void render_scene_project_mesh_vertices(struct scene_mesh *mesh)
 // FUNCTION: XVT 0x408BC0
 void render_scene_project_distant_mesh_vertices(struct scene_mesh *mesh)
 {
-	float projection_scale;
-	struct scene_face *face;
-	int vertex_base_index;
-	struct proj_vertex *output;
-	int vertex_index;
-	int face_index;
-
-	projection_scale = (float)((double)(unsigned int)g_proj_scale_int /
-				   mesh->view_pos_z * g_render_distant_depth);
-	face = &g_vis_face_list[mesh->face_base_index];
-	vertex_base_index = g_proj_vert_count;
+	float projection_scale =
+		(float)((double)(unsigned int)g_proj_scale_int /
+			mesh->view_pos_z * g_render_distant_depth);
+	struct scene_face *face = &g_vis_face_list[mesh->face_base_index];
+	int vertex_base_index = g_proj_vert_count;
 	mesh->vert_base_index = vertex_base_index;
-	output = &g_proj_vert_list[vertex_base_index];
+	struct proj_vertex *output = &g_proj_vert_list[vertex_base_index];
 	mesh->proj_vert_cursor = 0;
-	for (vertex_index = 0; mesh->vertex_count > vertex_index;
+	for (int vertex_index = 0; mesh->vertex_count > vertex_index;
 	     ++vertex_index) {
 		g_vertex_remap[vertex_index] = -1;
 	}
-	for (face_index = 0; mesh->vis_face_count > face_index;
+	for (int face_index = 0; mesh->vis_face_count > face_index;
 	     ++face, ++face_index) {
 		const struct face_record *geometry =
 			&mesh->p_face_geom[face->face_index];
-		int corner_index;
 
 		face->max_scaled_inverse_depth = 0.0f;
 		face->min_scaled_inverse_depth = (float)g_proj_scale_int;
-		for (corner_index = 0; corner_index < 4; ++corner_index) {
+		for (int corner_index = 0; corner_index < 4; ++corner_index) {
 			const int model_vertex_index =
 				geometry->vertex_idx[corner_index];
 			const int uv_index = geometry->uv_idx[corner_index];
 			const int normal_index =
 				geometry->normal_idx[corner_index];
-			float vertex_scaled_inverse_depth;
 
 			if (model_vertex_index == -1) {
 				break;
 			}
+			float vertex_scaled_inverse_depth;
 			if (g_vertex_remap[model_vertex_index] == -1) {
-				struct opt_vector transformed;
-
 				g_vertex_remap[model_vertex_index] =
 					mesh->proj_vert_cursor++;
+				struct opt_vector transformed;
 				transformed.x =
 					mesh->p_model_verts[model_vertex_index]
 						.x;
@@ -841,25 +814,6 @@ void render_scene_project_distant_mesh_vertices(struct scene_mesh *mesh)
 // FUNCTION: XVT 0x408E70
 void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 {
-	struct render_clip_vertex *vertices;
-	int *emitted_vertex_by_projection;
-	int *clip_output;
-	struct scene_face *face;
-	const uint8_t *previous_texels;
-	struct std3d_tex_cache_node *opaque_texture;
-	struct std3d_tex_cache_node *color_key_texture;
-	int face_index;
-	int vertex_index;
-	int clip_index;
-	int previous_vertex_index;
-	int current_vertex_index;
-	int texture_width;
-	int texture_height;
-	int texel_offset;
-	int texels_per_pixel_q8;
-	int triangle_corner;
-	int color_key_vertex_base;
-
 	enum {
 		TRIANGLE_FIRST_NEW_CORNER = 2,
 		MIP_LEVEL_REDUCTION_SHIFT = 2,
@@ -880,47 +834,47 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 	}
 #endif
 
-	vertex_index = mesh->vert_base_index;
-	previous_texels = NULL;
-	vertices = (struct render_clip_vertex *)&g_proj_vert_list[vertex_index];
+	int vertex_index = mesh->vert_base_index;
+	const uint8_t *previous_texels = NULL;
+	struct render_clip_vertex *vertices =
+		(struct render_clip_vertex *)&g_proj_vert_list[vertex_index];
 	g_clip_input_proj_vert_end_index =
 		vertex_index + mesh->proj_vert_cursor;
 	g_clip_vert_cursor = g_clip_input_proj_vert_end_index;
-	face = &g_vis_face_list[mesh->face_base_index];
-	emitted_vertex_by_projection = (int *)g_scene_edge_list;
+	struct scene_face *face = &g_vis_face_list[mesh->face_base_index];
+	int *emitted_vertex_by_projection = (int *)g_scene_edge_list;
 	for (vertex_index = 0; vertex_index < g_clip_input_proj_vert_end_index;
 	     ++vertex_index) {
 		emitted_vertex_by_projection[vertex_index] = -1;
 	}
+	struct std3d_tex_cache_node *opaque_texture;
+	struct std3d_tex_cache_node *color_key_texture;
 #ifdef XVT_MODERN
 	opaque_texture = NULL;
 	color_key_texture = NULL;
 #endif
 
-	face_index = 0;
+	int face_index = 0;
 	if (mesh->vis_face_count <= 0) {
 		return;
 	}
+	int clip_index;
+	int previous_vertex_index;
+	int current_vertex_index;
+	int triangle_corner;
 	do {
-		struct scene_face *current_face;
-		const struct face_record *geometry;
-		int corner_count;
-
-		current_face = face++;
-		geometry = &mesh->p_face_geom[current_face->face_index];
-		corner_count = geometry->edge_idx[3] == -1 ? 3 : 4;
+		struct scene_face *current_face = face++;
+		const struct face_record *geometry =
+			&mesh->p_face_geom[current_face->face_index];
+		int corner_count = geometry->edge_idx[3] == -1 ? 3 : 4;
 		g_clip_count_a = corner_count;
 		if (g_p_std3d_cur_device->caps.b_square_only_texture != 0) {
-			const struct opt_texture_data *material;
-			float uv_scale;
-			int scaled_width;
-			int scaled_height;
-
-			material = (const struct opt_texture_data *)
-					   mesh->p_material;
-			uv_scale = 1.0f;
-			scaled_width = material->width;
-			scaled_height = material->height;
+			const struct opt_texture_data *material =
+				(const struct opt_texture_data *)
+					mesh->p_material;
+			float uv_scale = 1.0f;
+			int scaled_width = material->width;
+			int scaled_height = material->height;
 			if (scaled_height < scaled_width) {
 				while (scaled_height < scaled_width) {
 					uv_scale *=
@@ -936,27 +890,24 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 				}
 				scaled_width = material->width;
 			}
-			clip_output = g_clip_idx_a;
+			int *clip_output = g_clip_idx_a;
 			for (vertex_index = 0; vertex_index < corner_count;
 			     ++vertex_index) {
-				struct opt_tex_coord uv;
-				struct render_clip_vertex *source;
-				struct render_clip_vertex *duplicate;
-				int projected_vertex_index;
-
-				uv = mesh->p_uvs
-					     [geometry->uv_idx[vertex_index]];
+				struct opt_tex_coord uv =
+					mesh->p_uvs[geometry->uv_idx
+							    [vertex_index]];
 				if (scaled_height < scaled_width) {
 					uv.v *= uv_scale;
 				} else if (scaled_height > scaled_width) {
 					uv.u *= uv_scale;
 				}
-				projected_vertex_index = g_vertex_remap
+				int projected_vertex_index = g_vertex_remap
 					[geometry->vertex_idx[vertex_index]];
 				*clip_output = projected_vertex_index;
-				source = &vertices[projected_vertex_index];
+				struct render_clip_vertex *source =
+					&vertices[projected_vertex_index];
 				if (source->u != uv.u || source->v != uv.v) {
-					duplicate =
+					struct render_clip_vertex *duplicate =
 						&vertices[g_clip_vert_cursor];
 					duplicate->x = source->x;
 					duplicate->y = source->y;
@@ -973,20 +924,17 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 		} else {
 			for (vertex_index = 0; vertex_index < corner_count;
 			     ++vertex_index) {
-				const struct opt_tex_coord *uv;
-				struct render_clip_vertex *source;
-				struct render_clip_vertex *duplicate;
-				int projected_vertex_index;
-
-				projected_vertex_index = g_vertex_remap
+				int projected_vertex_index = g_vertex_remap
 					[geometry->vertex_idx[vertex_index]];
 				g_clip_idx_a[vertex_index] =
 					projected_vertex_index;
-				uv = &mesh->p_uvs
-					      [geometry->uv_idx[vertex_index]];
-				source = &vertices[projected_vertex_index];
+				const struct opt_tex_coord *uv =
+					&mesh->p_uvs[geometry->uv_idx
+							     [vertex_index]];
+				struct render_clip_vertex *source =
+					&vertices[projected_vertex_index];
 				if (source->u != uv->u || source->v != uv->v) {
-					duplicate =
+					struct render_clip_vertex *duplicate =
 						&vertices[g_clip_vert_cursor];
 					duplicate->x = source->x;
 					duplicate->y = source->y;
@@ -1091,9 +1039,8 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 
 		for (clip_index = 0; clip_index < g_clip_count_a;
 		     ++clip_index) {
-			int emitted_vertex_index;
-
 			current_vertex_index = g_clip_idx_a[clip_index];
+			int emitted_vertex_index;
 			if (current_vertex_index <
 			    g_clip_input_proj_vert_end_index) {
 				if (emitted_vertex_by_projection
@@ -1118,17 +1065,15 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 		}
 
 		if (g_clip_count_a > TRIANGLE_FIRST_NEW_CORNER) {
-			const struct opt_texture_data *material;
-			const uint8_t *texels;
-
-			material = (const struct opt_texture_data *)
-					   mesh->p_material;
-			texture_width = material->width;
-			texture_height = material->height;
-			texel_offset = 0;
+			const struct opt_texture_data *material =
+				(const struct opt_texture_data *)
+					mesh->p_material;
+			int texture_width = material->width;
+			int texture_height = material->height;
+			int texel_offset = 0;
 			if (texture_width * texture_height ==
 			    material->texture_size) {
-				texels_per_pixel_q8 =
+				int texels_per_pixel_q8 =
 					(int)((float)current_face
 						      ->texels_per_pixel_q8 *
 					      g_mip_lod_scale);
@@ -1145,13 +1090,13 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 					texture_height >>= 1;
 				}
 			}
-			texels = (const uint8_t *)mesh->p_texels + texel_offset;
+			const uint8_t *texels =
+				(const uint8_t *)mesh->p_texels + texel_offset;
 			if (texels != previous_texels) {
-				uint16_t *opaque_palette;
-
 				previous_texels = texels;
-				opaque_palette = mesh->p_color_key_palette +
-						 OPAQUE_PALETTE_OFFSET;
+				uint16_t *opaque_palette =
+					mesh->p_color_key_palette +
+					OPAQUE_PALETTE_OFFSET;
 				opaque_texture =
 					render_texture_get_or_create_opaque(
 						texture_width, texture_height,
@@ -1160,9 +1105,8 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 				if (opaque_palette
 					    [PALETTE_TRANSPARENT_INDEX_SLOT] !=
 				    0) {
-					uint8_t genus_id;
-
-					genus_id = mesh->p_object->genus_id;
+					uint8_t genus_id =
+						mesh->p_object->genus_id;
 					if (genus_id ==
 						    CRAFT_GENUS_PLAYER_PROJECTILE ||
 					    genus_id ==
@@ -1204,7 +1148,7 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 						       vertex_index]
 					.color = UINT32_MAX;
 			}
-			color_key_vertex_base = g_d3d_vertex_count;
+			int color_key_vertex_base = g_d3d_vertex_count;
 			triangle_corner = TRIANGLE_FIRST_NEW_CORNER;
 			g_d3d_vertex_count += g_clip_count_a;
 			if (g_clip_count_a > triangle_corner) {
@@ -1287,11 +1231,8 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 // FUNCTION: XVT 0x40B010
 void render_scene_draw_mesh_hardware(const struct scene_mesh *mesh)
 {
-	struct scene_mesh *queued_mesh;
-	int previous_visible_face_count;
-
 	g_proj_vert_count = 0;
-	previous_visible_face_count = g_vis_face_count;
+	int previous_visible_face_count = g_vis_face_count;
 	g_scene_edge_cursor = 0;
 	if (g_mesh_queue_index == g_mesh_queue_max ||
 	    g_vis_face_count + mesh->face_count > g_scene_face_max ||
@@ -1301,7 +1242,7 @@ void render_scene_draw_mesh_hardware(const struct scene_mesh *mesh)
 	}
 	memcpy(&g_mesh_queue[g_mesh_queue_index], mesh,
 	       sizeof(struct scene_mesh));
-	queued_mesh = &g_mesh_queue[g_mesh_queue_index];
+	struct scene_mesh *queued_mesh = &g_mesh_queue[g_mesh_queue_index];
 	render_scene_cull_mesh_faces_from_view(queued_mesh);
 	if (queued_mesh->vis_face_count == 0) {
 		return;
@@ -1343,12 +1284,8 @@ void render_scene_draw_mesh_hardware(const struct scene_mesh *mesh)
 // FUNCTION: XVT 0x40B180
 void render_scene_init_hardware_frame(void)
 {
-	unsigned int span_bytes;
-	int viewport_origin_x;
-	int viewport_origin_y;
-
-	viewport_origin_x = g_display_mode_width - g_surface_width;
-	viewport_origin_y = g_display_mode_height - g_surface_height;
+	int viewport_origin_x = g_display_mode_width - g_surface_width;
+	int viewport_origin_y = g_display_mode_height - g_surface_height;
 	viewport_origin_x =
 		g_flight_vp_x + ((unsigned int)viewport_origin_x >> 1);
 	viewport_origin_y =
@@ -1360,7 +1297,8 @@ void render_scene_init_hardware_frame(void)
 	g_d3d_vertex_alpha_state_reset_slot = 0;
 	g_cap_vertex_alpha = 1;
 
-	span_bytes = sizeof(struct scene_span) * g_scene_span_data_capacity;
+	unsigned int span_bytes =
+		sizeof(struct scene_span) * g_scene_span_data_capacity;
 	g_max_batch_verts = span_bytes >> 7;
 	g_max_batch_tris = span_bytes / sizeof(struct std3d_render_tri) >> 2;
 	if (g_p_std3d_cur_device->caps.max_vertex_count <
@@ -1436,31 +1374,21 @@ int render_scene_emit_flight_vertex(int vertex_index,
 				    const struct render_clip_vertex *vertices,
 				    const struct scene_face *face)
 {
-	const struct render_clip_vertex *source;
-	uint32_t z_bits;
-	float x;
-	float y;
-	float scaled_inverse_depth;
-	float light_intensity;
-	float u;
-	float v;
-	float depth;
-	int intensity;
-	uint32_t color;
-
 	(void)face;
-	source = &vertices[vertex_index];
-	light_intensity = source->light_intensity;
-	x = source->x;
-	y = source->y;
-	scaled_inverse_depth = source->scaled_inverse_depth;
-	u = source->u;
-	v = source->v;
+	const struct render_clip_vertex *source = &vertices[vertex_index];
+	float light_intensity = source->light_intensity;
+	float x = source->x;
+	float y = source->y;
+	float scaled_inverse_depth = source->scaled_inverse_depth;
+	float u = source->u;
+	float v = source->v;
+	uint32_t z_bits;
 	memcpy(&z_bits, &scaled_inverse_depth, sizeof(z_bits));
 	if (z_bits > 0x80000000u) {
 		scaled_inverse_depth = (float)(unsigned int)g_proj_scale_int;
 	}
-	depth = 1.0f / ((float)(unsigned int)g_proj_scale_int /
+	float depth =
+		1.0f / ((float)(unsigned int)g_proj_scale_int /
 				scaled_inverse_depth * g_inv_depth_proj_scale +
 			1.0f);
 	if (g_std3dz_compare_cap == 2) {
@@ -1474,10 +1402,11 @@ int render_scene_emit_flight_vertex(int vertex_index,
 	g_flight_vertex_buffer[g_d3d_vertex_count].rhw = scaled_inverse_depth;
 	g_flight_vertex_buffer[g_d3d_vertex_count].tu = u;
 	g_flight_vertex_buffer[g_d3d_vertex_count].tv = v;
-	intensity = (int)(light_intensity * 320.0f) + 48;
+	int intensity = (int)(light_intensity * 320.0f) + 48;
 	if (intensity > 255) {
 		intensity = 255;
 	}
+	uint32_t color;
 	if (g_cap_vertex_alpha != 0) {
 		color = 65793 * intensity - 0x2000000;
 	} else {
@@ -1504,18 +1433,8 @@ void nullsub_2(void) {}
 // FUNCTION: XVT 0x40B530
 void std3d_fill_z_buffer_from_viewport_mask(void)
 {
-	DDSURFACEDESC surface_desc;
-	HRESULT lock_result;
 	uint8_t foreground_byte;
 	uint8_t background_byte;
-	uint8_t *locked_surface;
-	uint8_t *destination_row;
-	uint8_t *destination;
-	uint8_t *mask_cursor;
-	int run_length;
-	int8_t run_type;
-	unsigned int decoded_width;
-	unsigned int row;
 
 	if (g_std3dz_compare_cap == 16) {
 		foreground_byte = 0xFF;
@@ -1525,10 +1444,11 @@ void std3d_fill_z_buffer_from_viewport_mask(void)
 		background_byte = 0xFF;
 	}
 
+	DDSURFACEDESC surface_desc;
 	memset(&surface_desc, 0, sizeof(surface_desc));
 	surface_desc.dwSize = sizeof(surface_desc);
 	while (1) {
-		lock_result = g_std3dz_buffer_surface->lpVtbl->Lock(
+		HRESULT lock_result = g_std3dz_buffer_surface->lpVtbl->Lock(
 			g_std3dz_buffer_surface, NULL, &surface_desc, 0, NULL);
 		if (lock_result == 0) {
 			break;
@@ -1541,8 +1461,8 @@ void std3d_fill_z_buffer_from_viewport_mask(void)
 		}
 	}
 
-	destination_row = surface_desc.lpSurface;
-	locked_surface = surface_desc.lpSurface;
+	uint8_t *destination_row = surface_desc.lpSurface;
+	uint8_t *locked_surface = surface_desc.lpSurface;
 	memset(&surface_desc, 0, sizeof(surface_desc));
 	surface_desc.dwSize = sizeof(surface_desc);
 	g_std3dz_buffer_surface->lpVtbl->GetSurfaceDesc(g_std3dz_buffer_surface,
@@ -1553,14 +1473,15 @@ void std3d_fill_z_buffer_from_viewport_mask(void)
 		((unsigned int)(g_display_mode_height - g_surface_height) / 2 +
 		 g_flight_vp_y) *
 		surface_desc.lPitch;
-	mask_cursor = g_flight_aux_buffer + g_viewport_span_mask_offset;
+	uint8_t *mask_cursor =
+		g_flight_aux_buffer + g_viewport_span_mask_offset;
 
-	for (row = 0; row < g_flight_vp_height; ++row) {
-		destination = destination_row;
-		run_type = (int8_t)*mask_cursor++;
-		decoded_width = 0;
+	for (unsigned int row = 0; row < g_flight_vp_height; ++row) {
+		uint8_t *destination = destination_row;
+		int8_t run_type = (int8_t)*mask_cursor++;
+		unsigned int decoded_width = 0;
 		while (decoded_width < g_flight_vp_width) {
-			run_length = *mask_cursor++;
+			int run_length = *mask_cursor++;
 			if (run_length == 0) {
 				run_length = *mask_cursor++;
 				if (run_length == 0) {
@@ -1641,27 +1562,20 @@ void render_scene_compute_vertex_lighting(const struct scene_mesh *mesh,
 					  const struct opt_vector *pos,
 					  const struct opt_vector *eye_pos)
 {
-	struct opt_vector light_position;
-	int genus_id;
-	int light_index;
-
-	genus_id = mesh->p_object->genus_id;
+	int genus_id = mesh->p_object->genus_id;
 	if (genus_id == CRAFT_GENUS_OTHER_PROJECTILE ||
 	    genus_id == CRAFT_GENUS_PLAYER_PROJECTILE) {
 		out_vert->light_intensity = 1.0f;
 		return;
 	}
+	struct opt_vector light_position;
 	if (g_dir_lighting_enabled != 0) {
-		float light_direction_y;
-		float light_direction_z;
-		float light_direction_x;
-
-		light_direction_y = (float)g_object_light_direction_y *
-				    g_render_light_direction_unit_scale;
-		light_direction_z = (float)g_object_light_direction_z *
-				    g_render_light_direction_unit_scale;
-		light_direction_x = (float)g_object_light_direction_x *
-				    g_render_light_direction_unit_scale;
+		float light_direction_y = (float)g_object_light_direction_y *
+					  g_render_light_direction_unit_scale;
+		float light_direction_z = (float)g_object_light_direction_z *
+					  g_render_light_direction_unit_scale;
+		float light_direction_x = (float)g_object_light_direction_x *
+					  g_render_light_direction_unit_scale;
 		out_vert->light_intensity =
 			(light_direction_z * normal->z +
 			 (light_direction_x * normal->x +
@@ -1685,7 +1599,7 @@ void render_scene_compute_vertex_lighting(const struct scene_mesh *mesh,
 		out_vert->light_intensity = 0.40000001f;
 	}
 
-	for (light_index = 0; g_object_point_light_count > light_index;
+	for (int light_index = 0; g_object_point_light_count > light_index;
 	     ++light_index) {
 		const struct object_point_light *light =
 			&g_object_point_lights[light_index];
@@ -1696,10 +1610,6 @@ void render_scene_compute_vertex_lighting(const struct scene_mesh *mesh,
 		float component_x;
 		float component_y;
 		float component_z;
-		float distance;
-		float diffuse;
-		float specular;
-		float contribution;
 
 		{
 			component_x = (float)light->x;
@@ -1734,6 +1644,7 @@ void render_scene_compute_vertex_lighting(const struct scene_mesh *mesh,
 		if (dz < 0.0f) {
 			component_z = -dz;
 		}
+		float distance;
 		if (component_x >= component_y && component_x >= component_z) {
 			distance = component_x +
 				   (component_y + component_z) *
@@ -1757,20 +1668,16 @@ void render_scene_compute_vertex_lighting(const struct scene_mesh *mesh,
 			 * becomes 0.5 over the distance and the facing term is dropped. */
 			light_dot = (float)(distance * g_render_half_double);
 		}
-		diffuse = light_dot / (distance * distance);
+		float diffuse = light_dot / (distance * distance);
+		float specular;
 		if (g_specular_enabled != 0) {
-			float half_x;
-			float half_y;
-			float half_z;
-			float half_dot;
-			float cosine;
-
-			half_x = eye_pos->x - pos->x + dx;
-			half_y = eye_pos->y - pos->y + dy;
-			half_z = eye_pos->z - pos->z + dz;
-			half_dot = (normal->z * half_z +
-				    (normal->y * half_y + normal->x * half_x)) *
-				   g_render_half_float;
+			float half_x = eye_pos->x - pos->x + dx;
+			float half_y = eye_pos->y - pos->y + dy;
+			float half_z = eye_pos->z - pos->z + dz;
+			float half_dot =
+				(normal->z * half_z +
+				 (normal->y * half_y + normal->x * half_x)) *
+				g_render_half_float;
 			component_x = half_x;
 			component_y = half_y;
 			component_z = half_z;
@@ -1804,7 +1711,7 @@ void render_scene_compute_vertex_lighting(const struct scene_mesh *mesh,
 					(component_x + component_y) *
 						g_render_specular_approx_other_components_scale;
 			}
-			cosine = half_dot / distance;
+			float cosine = half_dot / distance;
 			if (cosine >= g_render_half_float) {
 				specular = cosine * cosine * cosine;
 				specular *= specular;
@@ -1817,7 +1724,7 @@ void render_scene_compute_vertex_lighting(const struct scene_mesh *mesh,
 		} else {
 			specular = 0.0f;
 		}
-		contribution = diffuse + specular;
+		float contribution = diffuse + specular;
 		if (contribution > g_render_zero_float) {
 			out_vert->light_intensity +=
 				(float)light->intensity * contribution;
@@ -1884,10 +1791,9 @@ void render_scene_transform_project_legacy_distant_point(
 	const float view_pos_and_orient[12])
 {
 	float view_point[3];
-	float distant_project_scale;
 
-	distant_project_scale = (float)g_proj_scale_int /
-				view_pos_and_orient[2] * (float)100000.0;
+	float distant_project_scale = (float)g_proj_scale_int /
+				      view_pos_and_orient[2] * (float)100000.0;
 	view_point[0] = point[0];
 	view_point[1] = point[1];
 	view_point[2] = point[2];
@@ -1914,12 +1820,6 @@ void render_scene_transform_project_legacy_distant_point(
 // FUNCTION: XVT 0x470140
 void render_scene_cull_mesh_faces_from_view(struct scene_mesh *mesh)
 {
-	struct opt_vector *face_normal;
-	struct face_record *face_record;
-	struct scene_face *out_face;
-	float *model_verts;
-	int face_index;
-
 	mesh->face_base_index = g_vis_face_count;
 	g_mesh_eye_pos.x = mesh->eye_model_space_x;
 	g_mesh_eye_pos.y = mesh->eye_model_space_y;
@@ -1935,18 +1835,16 @@ void render_scene_cull_mesh_faces_from_view(struct scene_mesh *mesh)
 		g_mesh_eye_pos.z += mesh->eye_model_space_z;
 	}
 
-	face_normal = mesh->p_face_normals;
-	face_record = mesh->p_face_geom;
-	model_verts = &mesh->p_model_verts->x;
-	out_face = &g_vis_face_list[g_vis_face_count];
-	face_index = 0;
+	struct opt_vector *face_normal = mesh->p_face_normals;
+	struct face_record *face_record = mesh->p_face_geom;
+	float *model_verts = &mesh->p_model_verts->x;
+	struct scene_face *out_face = &g_vis_face_list[g_vis_face_count];
+	int face_index = 0;
 	if (mesh->face_count > 0) {
 		do {
 			float view_vec[3];
-			int light_sample_offset;
-			int vertex_index;
 
-			vertex_index =
+			int vertex_index =
 				3 * face_record[face_index].vertex_idx[0];
 			view_vec[0] =
 				g_mesh_eye_pos.x - model_verts[vertex_index];
@@ -1958,7 +1856,7 @@ void render_scene_cull_mesh_faces_from_view(struct scene_mesh *mesh)
 			    g_sw3d_zero_float) {
 				out_face->face_index = face_index;
 				out_face->p_mesh = mesh;
-				light_sample_offset =
+				int light_sample_offset =
 					g_light_sample_slot_stride;
 				light_sample_offset *=
 					g_light_sample_slot_index;
@@ -1991,8 +1889,6 @@ void render_scene_cull_mesh_faces_from_view(struct scene_mesh *mesh)
 // FUNCTION: XVT 0x471E00
 void render_scene_draw_scene_mesh(const struct scene_mesh *mesh)
 {
-	struct scene_mesh *queued_mesh;
-
 	if (g_use_hardware3d != 0) {
 		render_scene_draw_mesh_hardware(mesh);
 		return;
@@ -2005,7 +1901,8 @@ void render_scene_draw_scene_mesh(const struct scene_mesh *mesh)
 	    mesh->edge_count <= g_scene_edge_max) {
 		memcpy(&g_mesh_queue[g_mesh_queue_index], mesh,
 		       sizeof(struct scene_mesh));
-		queued_mesh = &g_mesh_queue[g_mesh_queue_index];
+		struct scene_mesh *queued_mesh =
+			&g_mesh_queue[g_mesh_queue_index];
 		render_scene_cull_mesh_faces_from_view(queued_mesh);
 		if (queued_mesh->vis_face_count != 0) {
 			if (g_b_backdrop_mesh_mode != 0) {
@@ -2029,19 +1926,17 @@ void render_scene_apply_bwing_bridge_rotation(
 	const struct object_record *obj, struct scene_mesh *mesh,
 	int bridge_mesh_index)
 {
-	int bridge_rotation_byte;
-	float axis_angle[4];
-	float rotation_matrix[16];
-
 	(void)unused_model;
 
-	bridge_rotation_byte =
+	int bridge_rotation_byte =
 		obj->mobj->p_craft->mesh_rotation[bridge_mesh_index];
+	float axis_angle[4];
 	axis_angle[3] =
 		bridge_rotation_byte * g_mesh_rotation_byte_to_radians_scale;
 	axis_angle[0] = 0.0f;
 	axis_angle[2] = 0.0f;
 	axis_angle[1] = -1.0f;
+	float rotation_matrix[16];
 	math3d_build_axis_angle_matrix(rotation_matrix, axis_angle);
 	math3d_mul_matrix3x3(mesh->view_to_model_orient, rotation_matrix);
 	math3d_rotate_vec3(&mesh->eye_model_space_x, rotation_matrix);
@@ -2063,36 +1958,20 @@ void render_scene_apply_bwing_bridge_rotation(
 // FUNCTION: XVT 0x472400
 void render_scene_draw_object_model(struct object_record *obj)
 {
-	uint16_t model_handle;
-	struct optimized_poly_object *model;
-	int restore_mesh;
-	float object_view_r0x;
-	float object_view_r0y;
-	float object_view_r0z;
-	float object_view_r1x;
-	float object_view_r1y;
-	float object_view_r1z;
-	struct opt_node *node;
-	float object_view_r2x;
-	float object_view_r2y;
-	float object_view_r2z;
-	struct scene_mesh mesh;
-	struct scene_mesh saved_mesh;
-	int mesh_ordinal;
-	int root_index;
-
-	model_handle = g_loaded_models[obj->object_type];
+	uint16_t model_handle = g_loaded_models[obj->object_type];
 	if (obj->mobj != NULL) {
 		g_node_switch_index = obj->mobj->node_switch_index;
 	} else {
 		g_node_switch_index = 0;
 	}
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		model_handle);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			model_handle);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
+	struct scene_mesh mesh;
 	memset(&mesh, 0, sizeof(mesh));
 	mesh.p_object = obj;
 	mesh.view_pos_x =
@@ -2124,30 +2003,30 @@ void render_scene_draw_object_model(struct object_record *obj)
 		(float)g_cam_mat_r2_z * g_render_matrix_q15_to_float_scale;
 	math3d_rotate_vec3(&mesh.view_pos_x, mesh.view_orient);
 
-	object_view_r0x =
+	float object_view_r0x =
 		(float)g_obj_view_mat_r0_x * g_render_matrix_q15_to_float_scale;
-	object_view_r0y =
+	float object_view_r0y =
 		(float)g_obj_view_mat_r0_y * g_render_matrix_q15_to_float_scale;
 	mesh.view_orient[0] = object_view_r0x;
 	mesh.view_orient[1] = object_view_r0y;
-	object_view_r0z =
+	float object_view_r0z =
 		(float)g_obj_view_mat_r0_z * g_render_matrix_q15_to_float_scale;
 	mesh.view_orient[2] = object_view_r0z;
-	object_view_r1x =
+	float object_view_r1x =
 		(float)g_obj_view_mat_r1_x * g_render_matrix_q15_to_float_scale;
-	object_view_r1y =
+	float object_view_r1y =
 		(float)g_obj_view_mat_r1_y * g_render_matrix_q15_to_float_scale;
-	object_view_r1z =
+	float object_view_r1z =
 		(float)g_obj_view_mat_r1_z * g_render_matrix_q15_to_float_scale;
 	mesh.view_orient[3] = object_view_r1x;
 	mesh.view_orient[4] = object_view_r1y;
 	mesh.view_orient[5] = object_view_r1z;
-	object_view_r2x =
+	float object_view_r2x =
 		(float)g_obj_view_mat_r2_x * g_render_matrix_q15_to_float_scale;
 	mesh.view_orient[6] = object_view_r2x;
-	object_view_r2y =
+	float object_view_r2y =
 		(float)g_obj_view_mat_r2_y * g_render_matrix_q15_to_float_scale;
-	object_view_r2z =
+	float object_view_r2z =
 		(float)g_obj_view_mat_r2_z * g_render_matrix_q15_to_float_scale;
 	mesh.eye_model_space_x = -mesh.view_pos_x;
 	mesh.eye_model_space_y = -mesh.view_pos_y;
@@ -2185,28 +2064,26 @@ void render_scene_draw_object_model(struct object_record *obj)
 	g_cur_mesh_tex_coords = NULL;
 	g_cur_vert_normals = NULL;
 	g_model_node_walk_unused_scratch2 = NULL;
-	restore_mesh = 0;
+	int restore_mesh = 0;
 	g_cur_texture_desc = g_default_white_texture_desc_ptr;
-	root_index = 0;
+	int root_index = 0;
 	g_cur_mesh_materials = NULL;
 	g_cur_vertex_count = 0;
-	mesh_ordinal = 0;
+	int mesh_ordinal = 0;
 
+	struct scene_mesh saved_mesh;
 	for (; root_index < model->root_node_count; ++root_index) {
 		mesh.rot_angle = 0.0f;
-		node = model->root_nodes[root_index];
+		struct opt_node *node = model->root_nodes[root_index];
 		if (node->node_type != OPT_TEXTURE) {
-			struct craft_data *craft;
-			int rotation_byte;
-
 			++mesh_ordinal;
 			if (obj->mobj != NULL && obj->mobj->p_craft != NULL) {
-				craft = obj->mobj->p_craft;
+				struct craft_data *craft = obj->mobj->p_craft;
 				if (craft->component_state[mesh_ordinal - 1] !=
 				    0) {
 					continue;
 				}
-				rotation_byte =
+				int rotation_byte =
 					craft->mesh_rotation[mesh_ordinal - 1];
 				if (obj->object_type == B_WING_OBJECT_TYPE) {
 					if (g_bwing_bridge_mesh_index_cache ==
@@ -2251,22 +2128,7 @@ void render_scene_draw_object_model(struct object_record *obj)
 void render_scene_draw_selected_root_node(struct object_record *obj,
 					  int root_node_index)
 {
-	int object_type;
-	uint16_t model_handle;
-	struct optimized_poly_object *model;
-	float object_view_r0x;
-	float object_view_r0y;
-	float object_view_r0z;
-	float object_view_r1x;
-	float object_view_r1y;
-	float object_view_r1z;
-	float object_view_r2x;
-	float object_view_r2y;
-	float object_view_r2z;
-	struct scene_mesh mesh;
-	int root_index;
-
-	object_type = obj->object_type;
+	int object_type = obj->object_type;
 	if (object_type == COMPONENT_OBJECT_TYPE && obj->mobj != NULL) {
 		object_type = obj->mobj->source_object_type;
 	}
@@ -2276,13 +2138,15 @@ void render_scene_draw_selected_root_node(struct object_record *obj,
 		g_node_switch_index = 0;
 	}
 
-	model_handle = g_loaded_models[object_type];
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		model_handle);
+	uint16_t model_handle = g_loaded_models[object_type];
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			model_handle);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
 
+	struct scene_mesh mesh;
 	memset(&mesh, 0, sizeof(mesh));
 	mesh.p_object = obj;
 	mesh.view_pos_x =
@@ -2314,30 +2178,30 @@ void render_scene_draw_selected_root_node(struct object_record *obj,
 		(float)g_cam_mat_r2_z * g_render_matrix_q15_to_float_scale;
 	math3d_rotate_vec3(&mesh.view_pos_x, mesh.view_orient);
 
-	object_view_r0x =
+	float object_view_r0x =
 		(float)g_obj_view_mat_r0_x * g_render_matrix_q15_to_float_scale;
-	object_view_r0y =
+	float object_view_r0y =
 		(float)g_obj_view_mat_r0_y * g_render_matrix_q15_to_float_scale;
 	mesh.view_orient[0] = object_view_r0x;
 	mesh.view_orient[1] = object_view_r0y;
-	object_view_r0z =
+	float object_view_r0z =
 		(float)g_obj_view_mat_r0_z * g_render_matrix_q15_to_float_scale;
 	mesh.view_orient[2] = object_view_r0z;
-	object_view_r1x =
+	float object_view_r1x =
 		(float)g_obj_view_mat_r1_x * g_render_matrix_q15_to_float_scale;
-	object_view_r1y =
+	float object_view_r1y =
 		(float)g_obj_view_mat_r1_y * g_render_matrix_q15_to_float_scale;
-	object_view_r1z =
+	float object_view_r1z =
 		(float)g_obj_view_mat_r1_z * g_render_matrix_q15_to_float_scale;
 	mesh.view_orient[3] = object_view_r1x;
 	mesh.view_orient[4] = object_view_r1y;
 	mesh.view_orient[5] = object_view_r1z;
-	object_view_r2x =
+	float object_view_r2x =
 		(float)g_obj_view_mat_r2_x * g_render_matrix_q15_to_float_scale;
 	mesh.view_orient[6] = object_view_r2x;
-	object_view_r2y =
+	float object_view_r2y =
 		(float)g_obj_view_mat_r2_y * g_render_matrix_q15_to_float_scale;
-	object_view_r2z =
+	float object_view_r2z =
 		(float)g_obj_view_mat_r2_z * g_render_matrix_q15_to_float_scale;
 	mesh.eye_model_space_x = -mesh.view_pos_x;
 	mesh.eye_model_space_y = -mesh.view_pos_y;
@@ -2379,7 +2243,7 @@ void render_scene_draw_selected_root_node(struct object_record *obj,
 	g_cur_mesh_materials = NULL;
 	g_cur_vertex_count = 0;
 
-	for (root_index = 0; root_index < model->root_node_count;
+	for (int root_index = 0; root_index < model->root_node_count;
 	     ++root_index) {
 		struct opt_node *root_node = model->root_nodes[root_index];
 
@@ -2425,19 +2289,11 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 		int node_switch_selection;
 	} selection;
 
-	struct opt_node *current_node;
-	void *node_data;
-	int lod_child_selection;
-	float axis_angle[4];
-	float rotation_matrix[16];
-	struct scene_mesh child_mesh;
-	int child_index;
-
-	current_node = node;
+	struct opt_node *current_node = node;
 	if (current_node == NULL) {
 		return;
 	}
-	lod_child_selection = 0;
+	int lod_child_selection = 0;
 	selection.node_switch_selection = 0;
 	while (current_node->node_type == OPT_NODEREF) {
 		if (g_cache_resolved_opt_node_refs != 0) {
@@ -2446,9 +2302,7 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 				xvt_opt_resolve_cached(model, current_node);
 #else
 
-			char **reference_name;
-
-			reference_name = (char **)&current_node->payload;
+			char **reference_name = (char **)&current_node->payload;
 			if (**reference_name == '\0') {
 				current_node =
 					(struct opt_node *)current_node->p_name;
@@ -2470,41 +2324,33 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 		}
 	}
 
-	node_data = current_node->payload;
+	void *node_data = current_node->payload;
 	if (node_data != NULL) {
-		struct opt_vector *parameters;
-
-		parameters = (struct opt_vector *)node_data;
+		struct opt_vector *parameters = (struct opt_vector *)node_data;
 		switch (current_node->node_type) {
 		case OPT_FACEDATA:
 		case OPT_FACEDATA_QUAD_MESH:
 		case OPT_FACEDATA_FACE_SET:
 		case OPT_FACEDATA_TRIANGLE_STRIP_SET: {
-			struct opt_packed_face_data *face_data;
-			struct face_record *face_geometry;
-			struct opt_vector *face_normals;
-			struct face_texture_gradients *face_texturing;
-			struct opt_vector *generated_normals;
-
-			face_data = (struct opt_packed_face_data *)node_data;
+			struct opt_packed_face_data *face_data =
+				(struct opt_packed_face_data *)node_data;
 			mesh->face_count = current_node->payload_count;
 			mesh->edge_count = face_data->edge_count;
-			face_geometry =
+			struct face_record *face_geometry =
 				(struct face_record *)face_data->records;
 			mesh->p_face_geom = face_geometry;
-			face_normals = (struct opt_vector *)&face_geometry
-				[current_node->payload_count];
+			struct opt_vector *face_normals =
+				(struct opt_vector *)&face_geometry
+					[current_node->payload_count];
 			mesh->p_face_normals = face_normals;
-			face_texturing =
+			struct face_texture_gradients *face_texturing =
 				(struct face_texture_gradients *)&face_normals
 					[current_node->payload_count];
 			mesh->p_face_texturing = face_texturing;
-			generated_normals =
+			struct opt_vector *generated_normals =
 				&face_texturing[current_node->payload_count]
 					 .u_axis;
 			if (mesh->p_material == NULL) {
-				int palette_offset;
-
 				mesh->p_material = g_cur_texture_desc;
 				mesh->p_texels = mesh->p_material;
 				mesh->p_texels =
@@ -2513,7 +2359,7 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 				if (g_cur_texture_desc->inline_palette_count !=
 				    0) {
 					mesh->p_palette = mesh->p_texels;
-					palette_offset =
+					int palette_offset =
 						((struct opt_texture_data *)
 							 mesh->p_material)
 							->width *
@@ -2599,14 +2445,9 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 				(const float *)node_data);
 			break;
 		case OPT_SCALE: {
-			float *scale_x;
-			float *scale_y;
-			float *scale_z;
-			float inverse_scale;
-
-			scale_x = &parameters->x;
-			scale_y = &parameters->y;
-			scale_z = &parameters->z;
+			float *scale_x = &parameters->x;
+			float *scale_y = &parameters->y;
+			float *scale_z = &parameters->z;
 			mesh->view_orient[0] = mesh->view_orient[0] * *scale_x;
 			mesh->view_orient[1] = mesh->view_orient[1] * *scale_y;
 			mesh->view_orient[2] = mesh->view_orient[2] * *scale_z;
@@ -2620,7 +2461,7 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 			mesh->view_pos_y = mesh->view_pos_y * *scale_y;
 			mesh->view_pos_z = mesh->view_pos_z * *scale_z;
 
-			inverse_scale = 1.0f / *scale_x;
+			float inverse_scale = 1.0f / *scale_x;
 			mesh->view_to_model_orient[0] =
 				mesh->view_to_model_orient[0] * inverse_scale;
 			mesh->view_to_model_orient[1] =
@@ -2677,8 +2518,6 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 				((int *)node_data)[2];
 			break;
 		case OPT_TEXTURE: {
-			int palette_offset;
-
 			mesh->p_texture_name = current_node->p_name;
 			mesh->p_material = current_node->payload;
 			g_cur_texture_desc =
@@ -2688,12 +2527,13 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 					 sizeof(struct opt_texture_data);
 			if (g_cur_texture_desc->inline_palette_count != 0) {
 				mesh->p_palette = mesh->p_texels;
-				palette_offset = ((struct opt_texture_data *)
-							  mesh->p_material)
-							 ->width *
-						 ((struct opt_texture_data *)
-							  mesh->p_material)
-							 ->height;
+				int palette_offset =
+					((struct opt_texture_data *)
+						 mesh->p_material)
+						->width *
+					((struct opt_texture_data *)
+						 mesh->p_material)
+						->height;
 				if (((struct opt_texture_data *)
 					     mesh->p_material)
 					    ->texture_size == palette_offset) {
@@ -2749,15 +2589,10 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 			break;
 		case OPT_ROTSCALE:
 			if (mesh->rot_angle != 0.0f) {
-				struct opt_vector *pivot;
-				struct opt_vector *axis;
-				float *pivot_y;
-				float *pivot_z;
-
-				pivot = parameters;
-				axis = pivot + 1;
-				pivot_y = &pivot->y;
-				pivot_z = &pivot->z;
+				struct opt_vector *pivot = parameters;
+				struct opt_vector *axis = pivot + 1;
+				float *pivot_y = &pivot->y;
+				float *pivot_z = &pivot->z;
 				mesh->eye_model_space_x -= pivot->x;
 				mesh->eye_model_space_y -= *pivot_y;
 				mesh->eye_model_space_z -= *pivot_z;
@@ -2767,6 +2602,7 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 					&pivot->x, mesh->view_orient);
 				mesh->view_pos_z += math3d_rotate_vec3z(
 					&pivot->x, mesh->view_orient);
+				float axis_angle[4];
 				axis_angle[0] =
 					axis->x * g_opt_axis_q15_to_float_scale;
 				axis_angle[1] =
@@ -2774,6 +2610,7 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 				axis_angle[2] =
 					axis->z * g_opt_axis_q15_to_float_scale;
 				axis_angle[3] = mesh->rot_angle;
+				float rotation_matrix[16];
 				math3d_build_axis_angle_matrix(rotation_matrix,
 							       axis_angle);
 				math3d_mul_matrix3x3(mesh->view_to_model_orient,
@@ -2826,8 +2663,6 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 			}
 			break;
 		case OPT_TEXTURE: {
-			int palette_offset;
-
 			mesh->p_texture_name = current_node->p_name;
 			mesh->p_material = current_node->payload;
 			g_cur_texture_desc =
@@ -2837,12 +2672,13 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 					 sizeof(struct opt_texture_data);
 			if (g_cur_texture_desc->inline_palette_count != 0) {
 				mesh->p_palette = mesh->p_texels;
-				palette_offset = ((struct opt_texture_data *)
-							  mesh->p_material)
-							 ->width *
-						 ((struct opt_texture_data *)
-							  mesh->p_material)
-							 ->height;
+				int palette_offset =
+					((struct opt_texture_data *)
+						 mesh->p_material)
+						->width *
+					((struct opt_texture_data *)
+						 mesh->p_material)
+						->height;
 				if (((struct opt_texture_data *)
 					     mesh->p_material)
 					    ->texture_size == palette_offset) {
@@ -2899,15 +2735,15 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 				mesh);
 		}
 	} else {
-		child_mesh = *mesh;
+		struct scene_mesh child_mesh = *mesh;
 		g_cur_mesh_vertices = NULL;
 		g_cur_mesh_tex_coords = NULL;
 		g_cur_vert_normals = NULL;
 		g_model_node_walk_unused_scratch2 = NULL;
 		g_cur_mesh_materials = NULL;
 		g_cur_vertex_count = 0;
-		for (child_index = 0; child_index < current_node->child_count;
-		     ++child_index) {
+		for (int child_index = 0;
+		     child_index < current_node->child_count; ++child_index) {
 			++g_cur_layer_id;
 			render_scene_draw_model_node(
 				model, current_node->p_children[child_index],
@@ -2940,21 +2776,18 @@ int render_scene_is_segment_occluded_by_object_model(
 	struct object_record *object, const struct opt_vector *segment_start,
 	const struct opt_vector *segment_end)
 {
-	uint16_t model_handle;
-	struct optimized_poly_object *model;
-	struct scene_mesh mesh;
-	int root_index;
-
 	if (!g_vertex_light_occlusion_enabled) {
 		return 0;
 	}
-	model_handle = g_loaded_models[object->object_type];
+	uint16_t model_handle = g_loaded_models[object->object_type];
 	memory_handle_block_done_stub(model_handle);
-	model = (struct optimized_poly_object *)memory_get_handle_block(
-		model_handle);
+	struct optimized_poly_object *model =
+		(struct optimized_poly_object *)memory_get_handle_block(
+			model_handle);
 	if (model->self_marker != model) {
 		opt_model_adjust_optimized_poly_object_pointers(model);
 	}
+	struct scene_mesh mesh;
 	memset(&mesh, 0, sizeof(mesh));
 	mesh.p_object = object;
 	mesh.view_orient[0] = 1.0f;
@@ -2981,7 +2814,7 @@ int render_scene_is_segment_occluded_by_object_model(
 	g_model_node_walk_unused_scratch2 = NULL;
 	g_cur_mesh_materials = NULL;
 	g_cur_vertex_count = 0;
-	for (root_index = 0; root_index < model->root_node_count;
+	for (int root_index = 0; root_index < model->root_node_count;
 	     ++root_index) {
 		if (render_scene_test_segment_against_model_node(
 			    model, model->root_nodes[root_index], &mesh,
@@ -3006,10 +2839,6 @@ int render_scene_test_segment_against_model_node(
 	struct scene_mesh *mesh, const struct opt_vector *segment_start,
 	const struct opt_vector *segment_end)
 {
-	struct opt_vector *node_payload;
-	int child_index;
-	struct scene_mesh child_mesh;
-
 	if (node == NULL) {
 		return 0;
 	}
@@ -3020,7 +2849,7 @@ int render_scene_test_segment_against_model_node(
 			return 0;
 		}
 	}
-	node_payload = (struct opt_vector *)node->payload;
+	struct opt_vector *node_payload = (struct opt_vector *)node->payload;
 	if (node_payload != NULL) {
 		switch (node->node_type) {
 		case OPT_FACEDATA:
@@ -3029,29 +2858,26 @@ int render_scene_test_segment_against_model_node(
 		case OPT_FACEDATA_TRIANGLE_STRIP_SET: {
 			struct opt_packed_face_data *face_data =
 				(struct opt_packed_face_data *)node_payload;
-			struct face_record *face_geometry;
-			int hit;
-			struct opt_vector *face_normals;
-			struct face_texture_gradients *texturing;
-			struct opt_vector *generated_normals;
-			struct opt_vector **vertex_normals;
 
 			mesh->face_count = node->payload_count;
 			mesh->edge_count = face_data->edge_count;
 			node_payload = (struct opt_vector *)face_data->records;
-			face_geometry = (struct face_record *)node_payload;
+			struct face_record *face_geometry =
+				(struct face_record *)node_payload;
 			mesh->p_face_geom = face_geometry;
-			face_normals =
+			struct opt_vector *face_normals =
 				(struct opt_vector
 					 *)&face_geometry[node->payload_count];
 			mesh->p_face_normals = face_normals;
-			texturing =
+			struct face_texture_gradients *texturing =
 				(struct face_texture_gradients
 					 *)&face_normals[node->payload_count];
 			mesh->p_face_texturing = texturing;
-			generated_normals =
+			struct opt_vector *generated_normals =
 				&texturing[node->payload_count].u_axis;
-			vertex_normals = &mesh->p_vert_normals;
+			struct opt_vector **vertex_normals =
+				&mesh->p_vert_normals;
+			int hit;
 			if (*vertex_normals == NULL) {
 				mesh->p_vert_normals = generated_normals;
 				hit = render_scene_test_segment_against_mesh_faces(
@@ -3115,7 +2941,6 @@ int render_scene_test_segment_against_model_node(
 			float *scale_y = &node_payload->y;
 			float *scale_z = &node_payload->z;
 			float *orientation = mesh->view_to_model_orient;
-			float inverse_scale;
 
 			mesh->view_orient[0] *= *scale_x;
 			mesh->view_orient[1] *= *scale_y;
@@ -3129,7 +2954,7 @@ int render_scene_test_segment_against_model_node(
 			mesh->view_pos_x *= *scale_x;
 			mesh->view_pos_y *= *scale_y;
 			mesh->view_pos_z *= *scale_z;
-			inverse_scale = 1.0f / *scale_x;
+			float inverse_scale = 1.0f / *scale_x;
 			mesh->view_to_model_orient[0] =
 				orientation[0] * inverse_scale;
 			mesh->view_to_model_orient[1] =
@@ -3162,14 +2987,14 @@ int render_scene_test_segment_against_model_node(
 	}
 
 	if (node->child_count != 0) {
-		child_mesh = *mesh;
+		struct scene_mesh child_mesh = *mesh;
 		g_cur_mesh_vertices = NULL;
 		g_cur_mesh_tex_coords = NULL;
 		g_cur_vert_normals = NULL;
 		g_model_node_walk_unused_scratch2 = NULL;
 		g_cur_mesh_materials = NULL;
 		g_cur_vertex_count = 0;
-		child_index = 0;
+		int child_index = 0;
 		if (node->child_count > 0) {
 			do {
 				if (render_scene_test_segment_against_model_node(
@@ -3206,35 +3031,22 @@ int render_scene_test_segment_against_mesh_faces(
 	const struct opt_vector *normals = mesh->p_face_normals;
 	const float *coordinates = &mesh->p_model_verts[0].x;
 	struct opt_vector start;
-	struct opt_vector end;
-	int face_index;
 
 	start.x = segment_start->x;
 	start.y = segment_start->y;
 	start.z = segment_start->z;
+	struct opt_vector end;
 	end.x = segment_end->x;
 	end.y = segment_end->y;
 	end.z = segment_end->z;
 
-	for (face_index = 0; face_index < mesh->face_count;
+	for (int face_index = 0; face_index < mesh->face_count;
 	     ++face_index, ++faces) {
 		int base0 = faces->vertex_idx[0] * 3;
 		int base1 = faces->vertex_idx[1] * 3;
 		int base2 = faces->vertex_idx[2] * 3;
 		int base3 = faces->vertex_idx[3] * 3;
 		const struct opt_vector *normal = normals++;
-		float distance_start;
-		float distance_end;
-		int v_index0;
-		int v_index1;
-		int v_index2;
-		int v_index3;
-		float hit_u;
-		float hit_v;
-		float cross0;
-		float cross1;
-		float cross2;
-		float cross3;
 
 		if (coordinates[base0] <= start.x &&
 		    coordinates[base0] <= end.x) {
@@ -3305,13 +3117,14 @@ int render_scene_test_segment_against_mesh_faces(
 			continue;
 		}
 
-		distance_start =
+		float distance_start =
 			(start.x - coordinates[base0 - 2]) * normal->x +
 			normal->z * (start.z - coordinates[base0]) +
 			normal->y * (start.y - coordinates[base0 - 1]);
-		distance_end = (end.x - coordinates[base0 - 2]) * normal->x +
-			       normal->z * (end.z - coordinates[base0]) +
-			       normal->y * (end.y - coordinates[base0 - 1]);
+		float distance_end =
+			(end.x - coordinates[base0 - 2]) * normal->x +
+			normal->z * (end.z - coordinates[base0]) +
+			normal->y * (end.y - coordinates[base0 - 1]);
 		if (distance_start >= 0.0f) {
 			if (distance_start < 40.0f || distance_end >= 0.0f) {
 				continue;
@@ -3323,6 +3136,12 @@ int render_scene_test_segment_against_mesh_faces(
 		/* distance_start becomes the factor used below to place the hit point between start and end. */
 		distance_start = (-distance_start) / distance_end;
 
+		int v_index0;
+		int v_index1;
+		int v_index2;
+		int v_index3;
+		float hit_u;
+		float hit_v;
 		if (normal->x < normal->z && normal->y < normal->z) {
 			hit_u = (end.x - start.x) * distance_start + start.x;
 			hit_v = (end.y - start.y) * distance_start + start.y;
@@ -3358,12 +3177,12 @@ int render_scene_test_segment_against_mesh_faces(
 			v_index3 = base3 + 1;
 		}
 
-		cross0 =
+		float cross0 =
 			(hit_u - coordinates[base0]) * (coordinates[v_index1] -
 							coordinates[v_index0]) -
 			(coordinates[base1] - coordinates[base0]) *
 				(hit_v - coordinates[v_index0]);
-		cross1 =
+		float cross1 =
 			(hit_u - coordinates[base1]) * (coordinates[v_index2] -
 							coordinates[v_index1]) -
 			(coordinates[base2] - coordinates[base1]) *
@@ -3375,6 +3194,7 @@ int render_scene_test_segment_against_mesh_faces(
 		} else if (cross1 < 0.0f) {
 			continue;
 		}
+		float cross2;
 		if (base3 < 0) {
 			cross2 = (hit_u - coordinates[base2]) *
 					 (coordinates[v_index0] -
@@ -3401,11 +3221,12 @@ int render_scene_test_segment_against_mesh_faces(
 			} else if (cross2 < 0.0f) {
 				continue;
 			}
-			cross3 = (hit_u - coordinates[base3]) *
-					 (coordinates[v_index0] -
-					  coordinates[v_index3]) -
-				 (coordinates[base0] - coordinates[base3]) *
-					 (hit_v - coordinates[v_index3]);
+			float cross3 =
+				(hit_u - coordinates[base3]) *
+					(coordinates[v_index0] -
+					 coordinates[v_index3]) -
+				(coordinates[base0] - coordinates[base3]) *
+					(hit_v - coordinates[v_index3]);
 			if (cross0 < 0.0f) {
 				if (cross3 >= 0.0f) {
 					continue;
@@ -3432,9 +3253,6 @@ int render_scene_test_segment_against_mesh_faces(
 // FUNCTION: XVT 0x485CD0
 void render_scene_allocate_buffers(void)
 {
-	void *code_address[1];
-	void *code_address_value;
-	int edge_max;
 #ifndef XVT_MODERN
 	int saved_edge_max;
 #endif
@@ -3467,7 +3285,7 @@ void render_scene_allocate_buffers(void)
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
-	edge_max = 2 * g_scene_edge_flags_capacity;
+	int edge_max = 2 * g_scene_edge_flags_capacity;
 #ifdef XVT_MODERN
 	g_scene_edge_max = edge_max;
 	g_scene_edge_list_handle = memory_alloc_handle(
@@ -3527,8 +3345,9 @@ void render_scene_allocate_buffers(void)
 	}
 
 	/* The original inline assembly captured the address of the following code label. */
-	code_address_value =
+	void *code_address_value =
 		(uint8_t *)(void *)render_scene_allocate_buffers + 0x217;
+	void *code_address[1];
 	memcpy(code_address, &code_address_value, sizeof(code_address_value));
 	memory_set_region_execute_read_write(code_address[0], 0x80000);
 }
@@ -3547,13 +3366,6 @@ void render_scene_allocate_buffers(void)
 // FUNCTION: XVT 0x485F00
 void render_scene_initialize(int reset_scene_state)
 {
-	uint8_t *mask;
-	int8_t run_type;
-	struct scene_span *previous_span;
-	unsigned int scan_x;
-	unsigned int scan_y;
-	int scanline;
-
 #ifndef XVT_MODERN
 	g_sw3d_initialize_scene_saved_fpu_control = _control87(0, 0);
 	_control87(0, 0x30000);
@@ -3588,22 +3400,22 @@ void render_scene_initialize(int reset_scene_state)
 		g_vis_face_count = 0;
 		g_light_sample_slot_index = 0;
 		g_mesh_queue_index = 0;
-		mask = &g_flight_aux_buffer[g_viewport_span_mask_offset];
-		scan_y = 0;
+		uint8_t *mask =
+			&g_flight_aux_buffer[g_viewport_span_mask_offset];
+		unsigned int scan_y = 0;
 		g_p_scene_span_data_end =
 			&g_scene_span_data_base[g_scene_span_data_capacity - 1];
 		if (g_flight_vp_height != 0) {
-			scanline = 0;
+			int scanline = 0;
 			do {
-				scan_x = 0;
+				unsigned int scan_x = 0;
 				g_scanline_span_heads[scanline] = NULL;
-				run_type = (int8_t)*mask++;
-				previous_span = g_scanline_span_heads[scanline];
+				int8_t run_type = (int8_t)*mask++;
+				struct scene_span *previous_span =
+					g_scanline_span_heads[scanline];
 				if (g_flight_vp_width != 0) {
 					do {
-						int run_length;
-
-						run_length = *mask++;
+						int run_length = *mask++;
 						if (run_length == 0) {
 							run_length = *mask++;
 							if (run_length == 0) {

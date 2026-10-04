@@ -29,16 +29,14 @@ int xvt_network_browser_draw_list(void)
 	const AeronDplayDirectorySnapshot *snapshot =
 		xvt_network_task_snapshot();
 	int *scroll = xvt_network_task_scroll_offset();
-	int mouse_x;
-	int mouse_y;
-	int clicked = -1;
 	struct RECT rect = {88, 94, 416, 109};
-	struct RECT column;
 	frontend_text_draw_aligned_in_rect(
 		12,
 		frontend_string_get(
 			FRONTSTR_016_GAME_NAME_PLAYERS_NEEDED_LAST_QUERY),
 		&rect, 0, 1, 0xffff);
+	int mouse_x;
+	int mouse_y;
 	frontend_cursor_get_pos(&mouse_x, &mouse_y);
 	if (snapshot->room_count > 6) {
 		frontend_draw_rect_assign(&rect, 421, 114, 430, 204);
@@ -56,6 +54,7 @@ int xvt_network_browser_draw_list(void)
 		*scroll = 0;
 	}
 	frontend_draw_rect_assign(&rect, 88, 114, 419, 128);
+	int clicked = -1;
 	for (int i = *scroll;
 	     i < *scroll + 6 && (unsigned)i < snapshot->room_count; ++i) {
 		const AeronDplayDirectoryRoom *room = &snapshot->rooms[i];
@@ -76,7 +75,7 @@ int xvt_network_browser_draw_list(void)
 		char name[32];
 		xvt_network_metadata_from_utf8(name, sizeof(name),
 					       room->metadata.name);
-		column = rect;
+		struct RECT column = rect;
 		column.right = 279;
 		struct RECT clip;
 		frontend_display_get_screen_clip_rect(&clip);
@@ -117,7 +116,6 @@ int xvt_network_browser_draw_list(void)
 int xvt_network_browser_draw_roster(void)
 {
 	struct RECT rect = {88, 218, 430, 233};
-	struct RECT clip;
 	frontend_text_draw_aligned_in_rect(
 		12, frontend_string_get(FRONTSTR_201_PLAYERS_IN_GAME), &rect, 0,
 		1, 0xffff);
@@ -126,12 +124,13 @@ int xvt_network_browser_draw_roster(void)
 		return 1;
 	}
 	frontend_draw_rect_assign(&rect, 88, 238, 258, 252);
+	struct RECT clip;
 	for (unsigned i = 0; i < room->metadata.players; ++i) {
-		char name[32];
 		unsigned rating = room->metadata.roster[i].rating;
 		if (rating > PILOT_RATING_JEDI_MASTER) {
 			rating = PILOT_RATING_TARGET_DRONE;
 		}
+		char name[32];
 		xvt_network_metadata_from_utf8(name, sizeof(name),
 					       room->metadata.roster[i].name);
 		frontend_display_get_screen_clip_rect(&clip);
@@ -155,7 +154,6 @@ int xvt_network_browser_draw_roster(void)
 int xvt_network_browser_draw_mission(void)
 {
 	struct xvt_network_preview *preview = xvt_network_task_preview();
-	struct RECT rect = {88, 309, 430, 324};
 	const char *label = frontend_string_get(FRONTSTR_187_MISSION);
 	if (preview->title[0]) {
 		snprintf(g_frontend_scratch_buffer,
@@ -163,6 +161,7 @@ int xvt_network_browser_draw_mission(void)
 			 preview->title);
 		label = g_frontend_scratch_buffer;
 	}
+	struct RECT rect = {88, 309, 430, 324};
 	frontend_text_draw_aligned_in_rect(12, label, &rect, 0, 1, 0xffff);
 	if (!xvt_network_task_selected_room()) {
 		return 1;
@@ -194,7 +193,6 @@ static int xvt_network_browser_after_error(int result, int context)
 
 int xvt_network_browser_screen(int frame_counter)
 {
-	struct RECT rect;
 	if (!frame_counter) {
 		frontend_cursor_set_pos(415, 121);
 		g_frontend_skip_screen_entry_setup = 0;
@@ -230,6 +228,7 @@ int xvt_network_browser_screen(int frame_counter)
 		xvt_network_metadata_from_utf8(name, sizeof(name),
 					       selected->metadata.name);
 	}
+	struct RECT rect;
 	frontend_draw_rect_assign(&rect, 158, 52, 491, 68);
 	frontend_text_draw_centered(12, name, &rect, 0xffff);
 	int clicked = frontend_net_draw_join_game_list(frame_counter);

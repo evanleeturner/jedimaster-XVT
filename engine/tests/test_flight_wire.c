@@ -63,21 +63,21 @@ static void check_little_endian(void)
 static void check_round_trips(void)
 {
 	const uint16_t values16[] = {0, 1, 0x00FF, 0xFF00, 0x8000, UINT16_MAX};
-	const uint32_t values32[] = {0, 1, 0x80000000u, 0x12345678u,
-				     UINT32_MAX};
-	const uint64_t values64[] = {0, 1, UINT64_C(0x8000000000000000),
-				     UINT64_C(0x0123456789ABCDEF), UINT64_MAX};
 	xvt_wire_u16 b16;
-	xvt_wire_u32 b32;
-	xvt_wire_u64 b64;
 	for (size_t i = 0; i < sizeof values16 / sizeof values16[0]; ++i) {
 		xvt_wire_set16(b16, values16[i]);
 		XVT_ASSERT_INT_EQ(xvt_wire_get16(b16), values16[i]);
 	}
+	const uint32_t values32[] = {0, 1, 0x80000000u, 0x12345678u,
+				     UINT32_MAX};
+	xvt_wire_u32 b32;
 	for (size_t i = 0; i < sizeof values32 / sizeof values32[0]; ++i) {
 		xvt_wire_set32(b32, values32[i]);
 		XVT_ASSERT_INT_EQ(xvt_wire_get32(b32), values32[i]);
 	}
+	const uint64_t values64[] = {0, 1, UINT64_C(0x8000000000000000),
+				     UINT64_C(0x0123456789ABCDEF), UINT64_MAX};
+	xvt_wire_u64 b64;
 	for (size_t i = 0; i < sizeof values64 / sizeof values64[0]; ++i) {
 		xvt_wire_set64(b64, values64[i]);
 		XVT_ASSERT_TRUE(xvt_wire_get64(b64) == values64[i]);

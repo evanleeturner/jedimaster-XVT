@@ -15,21 +15,19 @@ enum {
 static void xvt_flight_network_answer_clock_probe(int sender_dpid,
 						  const int *packet)
 {
-	int adjustment;
-	int target_lead;
-
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_CLOCK_PROBE_REPLY;
 	g_flight_net_scratch_packet.payload_dwords[0] = packet[1];
 
 	xvt_flight_network_send_packet(
 		sender_dpid, (unsigned int *)&g_flight_net_scratch_packet,
 		PACKET_CLOCK_PROBE_REPLY_SIZE);
-	target_lead = packet[2];
+	int target_lead = packet[2];
 	if (g_internet_play_enabled == 0 ||
 	    g_flight_net_small_session_player_threshold >
 		    g_active_flight_player_count) {
 		target_lead >>= 1;
 	}
+	int adjustment;
 	if (g_flight_net_clock_lead_ticks < target_lead) {
 		adjustment = (target_lead - g_flight_net_clock_lead_ticks) >> 1;
 		if (adjustment == 0) {
@@ -52,15 +50,13 @@ static void xvt_flight_network_apply_clock_probe_reply(const int *packet)
 {
 	if (net_session_is_local_host() == 0 &&
 	    packet[1] == g_flight_net_clock_probe_timestamp) {
-		int adjustment;
-		int target_lead;
-
-		target_lead = g_flight_net_clock_adjust_accum_ticks;
+		int target_lead = g_flight_net_clock_adjust_accum_ticks;
 		target_lead += g_input_timestamp;
 		target_lead -= packet[1];
 		target_lead += CLOCK_PROBE_BIAS_TICKS;
 
 		if (target_lead < CLOCK_PROBE_LIMIT_TICKS) {
+			int adjustment;
 			if (g_flight_net_clock_lead_ticks < target_lead) {
 				adjustment = (target_lead -
 					      g_flight_net_clock_lead_ticks) >>
@@ -106,10 +102,8 @@ static int xvt_flight_network_control(int sender_dpid, int *packet)
 		g_players[g_local_player].participation_state = 0;
 		return 1;
 	case NET_PACKET_RESYNC_CHUNK_ACK: {
-		unsigned int chunk_index;
-
 		g_flight_net_world_state_ack_received_flag = 1;
-		chunk_index = (unsigned int)packet[1];
+		unsigned int chunk_index = (unsigned int)packet[1];
 		if (chunk_index < WORLD_STATE_CHUNK_COUNT) {
 			g_flight_net_world_state_chunk_acked[chunk_index] = 1;
 		}

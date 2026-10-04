@@ -116,9 +116,6 @@ static int xvt_opt_reserve_texture(struct xvt_opt_decode *decode,
 {
 	const uint8_t *raw =
 		xvt_opt_bytes_at(decode, entry->payload_address, 24);
-	int64_t pixels;
-	int64_t bytes;
-	int64_t palette_bytes;
 	if (!raw) {
 		return 0;
 	}
@@ -128,9 +125,9 @@ static int xvt_opt_reserve_texture(struct xvt_opt_decode *decode,
 	int32_t width = (int32_t)xvt_opt_read_u32(raw + 16);
 	int32_t height = (int32_t)xvt_opt_read_u32(raw + 20);
 	entry->palette_address = xvt_opt_read_u32(raw);
-	pixels = (int64_t)width * height;
-	bytes = texture_size == pixels ? data_size : pixels;
-	palette_bytes =
+	int64_t pixels = (int64_t)width * height;
+	int64_t bytes = texture_size == pixels ? data_size : pixels;
+	int64_t palette_bytes =
 		palette_type ? (int64_t)palette_type * 768
 		: entry->palette_address == entry->payload_address + 24 + bytes
 			? 12288
@@ -493,11 +490,11 @@ uint16_t xvt_opt_read(AeronFile *file, const char *label, int *version,
 		      unsigned int *native_size)
 {
 	struct xvt_opt_decode decode = {0};
-	uint8_t header[8];
 	uint16_t handle = 0;
 	if (!file) {
 		return 0;
 	}
+	uint8_t header[8];
 	if (!AeronVfs_Read(file, header, 4, NULL)) {
 		goto done;
 	}

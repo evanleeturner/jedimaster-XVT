@@ -12,8 +12,8 @@
 static bool xvt_controller_config_config_error(char *error, size_t capacity,
 					       const char *format, ...)
 {
-	va_list arguments;
 	if (error && capacity) {
+		va_list arguments;
 		va_start(arguments, format);
 		vsnprintf(error, capacity, format, arguments);
 		va_end(arguments);
@@ -61,7 +61,6 @@ static bool xvt_controller_config_read_float(const AeronConfigFile *document,
 					     char *error, size_t capacity)
 {
 	const AeronConfigNode *node = AeronConfigFile_GetNode(document, path);
-	double value;
 	if (!node) {
 		return xvt_controller_config_config_error(
 			error, capacity, "missing required setting '%s'", path);
@@ -71,7 +70,7 @@ static bool xvt_controller_config_read_float(const AeronConfigFile *document,
 		return xvt_controller_config_config_error(
 			error, capacity, "setting '%s' must be numeric", path);
 	}
-	value = AeronConfigNode_Float(node, NAN);
+	double value = AeronConfigNode_Float(node, NAN);
 	if (!isfinite(value) || value < minimum || value > maximum) {
 		return xvt_controller_config_config_error(
 			error, capacity, "setting '%s' is outside [%g, %g]",
@@ -88,11 +87,10 @@ static bool xvt_controller_config_read_string(const AeronConfigFile *document,
 {
 	const AeronConfigNode *node = xvt_controller_config_required_node(
 		document, path, AERON_CONFIG_STRING, error, error_capacity);
-	const char *value;
 	if (!node) {
 		return false;
 	}
-	value = AeronConfigNode_String(node, "");
+	const char *value = AeronConfigNode_String(node, "");
 	if (strlen(value) >= out_capacity) {
 		return xvt_controller_config_config_error(
 			error, error_capacity, "setting '%s' is too long",
@@ -107,16 +105,14 @@ static bool xvt_controller_config_parse_axis_mapping(
 	struct xvt_controller_profile *profile, char *error, size_t capacity)
 {
 	static const char *const names[] = {"yaw", "pitch", "roll", "throttle"};
-	size_t index;
-	for (index = 0; index < XVT_INPUT_AXIS_COUNT; ++index) {
+	for (size_t index = 0; index < XVT_INPUT_AXIS_COUNT; ++index) {
 		char path[128];
-		const AeronConfigNode *node;
 		struct xvt_input_axis_binding *binding =
 			&profile->mapping.axes[index];
-		int source;
 		snprintf(path, sizeof path, "%s.axes.%s", profile_path,
 			 names[index]);
-		node = AeronConfigFile_GetNode(document, path);
+		const AeronConfigNode *node =
+			AeronConfigFile_GetNode(document, path);
 		if (!node) {
 			continue;
 		}
@@ -128,6 +124,7 @@ static bool xvt_controller_config_parse_axis_mapping(
 		snprintf(path, sizeof path, "%s.axes.%s.source", profile_path,
 			 names[index]);
 		node = AeronConfigFile_GetNode(document, path);
+		int source;
 		if (gamepad) {
 			const char *name = AeronConfigNode_String(node, NULL);
 			if (!name) {
@@ -210,13 +207,12 @@ static bool xvt_controller_config_parse_raw_button_source(
 	bool gamepad, AeronControllerDigitalSource *out, char *error,
 	size_t capacity)
 {
-	int64_t index;
 	if (gamepad || AeronConfigNode_MapCount(node) != 1 ||
 	    AeronConfigNode_Type(button) != AERON_CONFIG_INT) {
 		return xvt_controller_config_config_error(
 			error, capacity, "malformed raw button source");
 	}
-	index = AeronConfigNode_Int(button, -1);
+	int64_t index = AeronConfigNode_Int(button, -1);
 	if (index < 0 || index >= AERON_CONTROLLER_BUTTON_MAX) {
 		return xvt_controller_config_config_error(
 			error, capacity, "raw button index is out of range");
@@ -235,22 +231,19 @@ static bool xvt_controller_config_parse_axis_source(
 	bool gamepad, AeronControllerDigitalSource *out, char *error,
 	size_t capacity)
 {
-	const char *direction_name;
-	int64_t index;
 	if (!direction || (AeronConfigNode_MapCount(node) != 2 &&
 			   AeronConfigNode_MapCount(node) != 3)) {
 		return xvt_controller_config_config_error(
 			error, capacity, "malformed digital axis source");
 	}
 	if (gamepad) {
-		AeronGamepadAxis gamepad_axis;
 		const char *name = AeronConfigNode_String(axis, NULL);
 		if (!name) {
 			return xvt_controller_config_config_error(
 				error, capacity,
 				"gamepad axis source must be named");
 		}
-		gamepad_axis = Aeron_GamepadAxisFromName(name);
+		AeronGamepadAxis gamepad_axis = Aeron_GamepadAxisFromName(name);
 		if (gamepad_axis >= AERON_GAMEPAD_AXIS_COUNT) {
 			return xvt_controller_config_config_error(
 				error, capacity, "unknown gamepad axis '%s'",
@@ -258,7 +251,7 @@ static bool xvt_controller_config_parse_axis_source(
 		}
 		out->index = (uint8_t)gamepad_axis;
 	} else {
-		index = AeronConfigNode_Int(axis, -1);
+		int64_t index = AeronConfigNode_Int(axis, -1);
 		if (AeronConfigNode_Type(axis) != AERON_CONFIG_INT ||
 		    index < 0 || index >= AERON_CONTROLLER_AXIS_MAX) {
 			return xvt_controller_config_config_error(
@@ -267,7 +260,7 @@ static bool xvt_controller_config_parse_axis_source(
 		}
 		out->index = (uint8_t)index;
 	}
-	direction_name = AeronConfigNode_String(direction, NULL);
+	const char *direction_name = AeronConfigNode_String(direction, NULL);
 	if (direction_name && strcmp(direction_name, "positive") == 0) {
 		out->kind = AERON_CONTROLLER_DIGITAL_AXIS_POSITIVE;
 	} else if (direction_name && strcmp(direction_name, "negative") == 0) {
@@ -297,19 +290,17 @@ static bool xvt_controller_config_parse_hat_source(
 	const AeronConfigNode *direction, bool gamepad,
 	AeronControllerDigitalSource *out, char *error, size_t capacity)
 {
-	const char *direction_name;
-	int64_t index;
 	if (gamepad || !direction || AeronConfigNode_MapCount(node) != 2 ||
 	    AeronConfigNode_Type(hat) != AERON_CONFIG_INT) {
 		return xvt_controller_config_config_error(
 			error, capacity, "malformed raw hat source");
 	}
-	index = AeronConfigNode_Int(hat, -1);
+	int64_t index = AeronConfigNode_Int(hat, -1);
 	if (index < 0 || index >= AERON_CONTROLLER_HAT_MAX) {
 		return xvt_controller_config_config_error(
 			error, capacity, "raw hat index is out of range");
 	}
-	direction_name = AeronConfigNode_String(direction, NULL);
+	const char *direction_name = AeronConfigNode_String(direction, NULL);
 	if (direction_name && strcmp(direction_name, "up") == 0) {
 		out->hat_direction = AERON_CONTROLLER_HAT_UP;
 	} else if (direction_name && strcmp(direction_name, "right") == 0) {
@@ -388,8 +379,7 @@ xvt_controller_config_add_binding(struct xvt_input_action_binding *bindings,
 				  const AeronControllerDigitalSource *source,
 				  char *error, size_t capacity)
 {
-	size_t index;
-	for (index = 0; index < *count; ++index) {
+	for (size_t index = 0; index < *count; ++index) {
 		if (xvt_controller_config_same_source(&bindings[index].source,
 						      source)) {
 			if (bindings[index].action == action) {
@@ -495,8 +485,8 @@ bool xvt_controller_config_read_profile(const AeronConfigFile *document,
 			return false;
 		}
 	}
-	char sub[192];
 	xvt_controller_options_clear_profile(profile, kind);
+	char sub[192];
 	snprintf(sub, sizeof sub, "%s.axes", path);
 	if (!xvt_controller_config_check_known_keys(
 		    AeronConfigFile_GetNode(document, sub), axis_names, 4,
@@ -568,8 +558,8 @@ bool xvt_controller_config_parse(const AeronConfigFile *document,
 		}
 		struct xvt_controller_model *m = &options->models[i];
 		char path[128];
-		char field[160];
 		snprintf(path, sizeof path, "input.controllers[%zu]", i);
+		char field[160];
 		snprintf(field, sizeof field, "%s.guid", path);
 		if (!xvt_controller_config_read_string(document, field, m->guid,
 						       sizeof m->guid, error,
@@ -817,11 +807,11 @@ bool xvt_controller_config_write(AeronConfigFile *document,
 bool xvt_config_set_controller(const struct xvt_controller_options *options,
 			       char *error, size_t capacity)
 {
-	AeronConfigFile *candidate = NULL;
-	AeronConfigError detail;
 	if (!xvt_controller_options_validate(options, error, capacity)) {
 		return false;
 	}
+	AeronConfigFile *candidate = NULL;
+	AeronConfigError detail;
 	if (!AeronConfigFile_Clone(xvt_config_user_document(), &candidate,
 				   &detail)) {
 		return xvt_settings_file_error(&detail, error, capacity);

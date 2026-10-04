@@ -31,11 +31,11 @@ static struct state g_state;
 
 static void snapshot(void)
 {
-	AeronConfigError detail;
 	memset(&g_state, 0, sizeof g_state);
 	g_state.generation = xvt_config_generation();
 	g_state.user = fixture_user_copy();
 	if (xvt_config_resolved_document()) {
+		AeronConfigError detail;
 		XVT_ASSERT_TRUE(
 			AeronConfigFile_Clone(xvt_config_resolved_document(),
 					      &g_state.resolved, &detail));
@@ -93,8 +93,8 @@ static void accept(AeronConfigFile *candidate)
 static void two_bindings(struct xvt_keyboard_bindings *bindings)
 {
 	AeronKey a;
-	AeronKey b;
 	XVT_ASSERT_TRUE(AeronKey_FromName("A", &a));
+	AeronKey b;
 	XVT_ASSERT_TRUE(AeronKey_FromName("B", &b));
 	memset(bindings, 0, sizeof *bindings);
 	bindings->bindings[0] = (struct xvt_keyboard_binding){
@@ -107,7 +107,6 @@ static void two_bindings(struct xvt_keyboard_bindings *bindings)
 static void check_before_load(void)
 {
 	fixture_begin();
-	char error[1024];
 	static struct xvt_keyboard_bindings bindings;
 	two_bindings(&bindings);
 	static struct game_config game;
@@ -122,6 +121,7 @@ static void check_before_load(void)
 	XVT_ASSERT_TRUE(xvt_config_settings() == NULL);
 	XVT_ASSERT_TRUE(xvt_config_default_settings() == NULL);
 	XVT_ASSERT_INT_EQ(xvt_config_can_reset_to_defaults(), 0);
+	char error[1024];
 	/* Replace and every update need the shipped defaults; the setters are not enabled. */
 	XVT_ASSERT_INT_EQ(xvt_config_reset_to_defaults(error, sizeof error), 0);
 	AeronConfigFile *candidate = fixture_yaml("version: 3\n");
@@ -178,6 +178,7 @@ static void check_load_without_user_file(void)
 
 static void check_load_upgrades_old_user_file(void)
 {
+	fixture_begin();
 	/* Before version 3: controller settings and joystick buttons are dropped and the controller list
 	 * starts empty; a user gamepad_defaults is dropped; version 2's keyboard bindings stay. */
 	const char *version2 =
@@ -192,7 +193,6 @@ static void check_load_upgrades_old_user_file(void)
 		"    fire_weapon: \"Z\"\n"
 		"game:\n"
 		"  joybutton1: 5\n";
-	fixture_begin();
 	fixture_write_text("user/config.yaml", version2);
 	fixture_load();
 	const AeronConfigFile *user = xvt_config_user_document();
@@ -327,9 +327,9 @@ static void check_update_user_refusals(void)
 	fixture_load();
 	for (size_t i = 0; i < sizeof candidates / sizeof candidates[0]; ++i) {
 		AeronConfigFile *candidate = fixture_yaml(candidates[i]);
-		char error[1024] = "";
 		fixture_case(candidates[i]);
 		snapshot();
+		char error[1024] = "";
 		XVT_ASSERT_INT_EQ(xvt_config_update_user(candidate, 1, error,
 							 sizeof error),
 				  0);
@@ -348,7 +348,6 @@ static void check_update_user_accepts(void)
 	fixture_load();
 	const bool skip = xvt_config_default_settings()->skip_intro != 0;
 	char text[256];
-	char error[1024] = "";
 
 	/* A version-1 candidate is upgraded: its keyboard bindings and gamepad defaults are dropped, the
 	 * controller list starts empty, and the version becomes 3. */
@@ -359,6 +358,7 @@ static void check_update_user_accepts(void)
 		skip ? "false" : "true");
 	uint64_t generation = xvt_config_generation();
 	AeronConfigFile *candidate = fixture_yaml(text);
+	char error[1024] = "";
 	XVT_ASSERT_INT_EQ(
 		xvt_config_update_user(candidate, 0, error, sizeof error), 1);
 	AeronConfigFile_Destroy(candidate);
@@ -441,10 +441,10 @@ static void check_keyboard_setters(void)
 {
 	fixture_begin();
 	fixture_load();
-	char error[1024];
 	static struct xvt_keyboard_bindings bindings;
 	two_bindings(&bindings);
 
+	char error[1024];
 	/* The stored bindings replace the shipped ones; memory only. */
 	XVT_ASSERT_TRUE(
 		xvt_config_set_keyboard(&bindings, error, sizeof error));
@@ -620,7 +620,6 @@ static void check_shutdown_keeps_generation(void)
 {
 	fixture_begin();
 	fixture_load();
-	char error[1024];
 	uint64_t generation = xvt_config_generation();
 	xvt_config_shutdown();
 	XVT_ASSERT_INT_EQ(xvt_config_generation(), generation);
@@ -629,6 +628,7 @@ static void check_shutdown_keeps_generation(void)
 	XVT_ASSERT_TRUE(xvt_config_resolved_document() == NULL);
 	XVT_ASSERT_TRUE(xvt_config_default_settings() == NULL);
 	XVT_ASSERT_INT_EQ(xvt_config_can_reset_to_defaults(), 0);
+	char error[1024];
 	XVT_ASSERT_TRUE(!xvt_config_set_skip_intro(true, error, sizeof error));
 	XVT_ASSERT_INT_EQ(xvt_config_save(error, sizeof error), 0);
 	/* The next load works and counts on from where the generation was. */
@@ -641,9 +641,9 @@ static void check_shutdown_keeps_generation(void)
 static int import_text(const char *name, const char *text)
 {
 	char relative[128];
-	char error[1024] = "";
 	snprintf(relative, sizeof relative, "asset/%s", name);
 	fixture_write_text(relative, text);
+	char error[1024] = "";
 	return xvt_config_import(name, error, sizeof error);
 }
 

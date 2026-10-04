@@ -175,10 +175,10 @@ static void check_copy_state(void)
 	/* The unused rest of each store keeps its old contents. */
 	const unsigned char *row = (const unsigned char *)&to->rows[2];
 	const unsigned char *glyph = (const unsigned char *)&to->glyphs[3];
-	const unsigned char *overlay =
-		(const unsigned char *)&destination.overlay_content.glyphs[2];
 	XVT_ASSERT_INT_EQ(row[0], 0xCD);
 	XVT_ASSERT_INT_EQ(glyph[0], 0xCD);
+	const unsigned char *overlay =
+		(const unsigned char *)&destination.overlay_content.glyphs[2];
 	XVT_ASSERT_INT_EQ(overlay[0], 0xCD);
 	XVT_ASSERT_INT_EQ(
 		((const unsigned char *)&to

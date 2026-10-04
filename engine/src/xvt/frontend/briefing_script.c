@@ -109,8 +109,6 @@ int16_t briefing_script_init_default_script(void)
 // FUNCTION: XVT 0x4F7380
 int16_t briefing_script_reset_state(void)
 {
-	int16_t index;
-
 	g_briefing_map_center.x = 0;
 	g_briefing_map_center.y = 0;
 	g_briefing_map_target_center.x = 0;
@@ -119,6 +117,7 @@ int16_t briefing_script_reset_state(void)
 	g_briefing_map_scale.y = 32;
 	g_briefing_map_target_scale.x = 32;
 	g_briefing_map_target_scale.y = 32;
+	int16_t index;
 	for (index = 0; index < 2; ++index) {
 		g_briefing_text_slot_active[index] = 0;
 	}
@@ -166,20 +165,11 @@ int16_t briefing_script_advance_until_time(int16_t target_time,
 // FUNCTION: XVT 0x4F7480
 int16_t briefing_script_advance_to_next_visible_line(void)
 {
-	int16_t text_slot_active;
-	int16_t visible_text_frames;
-	int16_t opcode;
-	int16_t slot_index;
-	int16_t start_time;
-	int16_t done;
-	int16_t target_time;
-	int16_t target_opcode;
-
-	start_time = g_briefing_script.current_frame;
-	text_slot_active = 0;
-	visible_text_frames = 0;
-	opcode = 0;
-	done = 0;
+	int16_t start_time = g_briefing_script.current_frame;
+	int16_t text_slot_active = 0;
+	int16_t visible_text_frames = 0;
+	int16_t opcode = 0;
+	int16_t done = 0;
 	briefing_script_reset_state();
 	do {
 		if (opcode == 34) {
@@ -192,7 +182,7 @@ int16_t briefing_script_advance_to_next_visible_line(void)
 			visible_text_frames = 0;
 			text_slot_active = 0;
 		}
-		for (slot_index = 0; slot_index < 2; ++slot_index) {
+		for (int16_t slot_index = 0; slot_index < 2; ++slot_index) {
 			if (g_briefing_text_slot_active[slot_index] != 0) {
 				text_slot_active = 1;
 			}
@@ -209,6 +199,8 @@ int16_t briefing_script_advance_to_next_visible_line(void)
 		}
 	} while (done == 0);
 
+	int16_t target_time;
+	int16_t target_opcode;
 	if (g_briefing_script_pause_marker_reached != 0 ||
 	    visible_text_frames == 1) {
 		target_time = g_briefing_script.current_frame;
@@ -253,20 +245,9 @@ int16_t briefing_script_advance_to_next_visible_line(void)
 // FUNCTION: XVT 0x4F7590
 int16_t briefing_script_advance_frame(int16_t apply_instantly)
 {
-	int16_t cursor_word_index;
-	int16_t saved_cursor_word_index;
-	int16_t event_time;
-	int16_t opcode;
-	int16_t args[8];
-	int16_t argument_count;
-	int16_t argument_index;
-	int16_t slot_index;
-	int16_t iff;
-	char label_text[40];
-
-	cursor_word_index = g_briefing_script.cursor_word_index;
-	saved_cursor_word_index = cursor_word_index;
-	event_time = g_briefing_script.words[cursor_word_index];
+	int16_t cursor_word_index = g_briefing_script.cursor_word_index;
+	int16_t saved_cursor_word_index = cursor_word_index;
+	int16_t event_time = g_briefing_script.words[cursor_word_index];
 	g_briefing_text_slots_changed = 0;
 	g_briefing_map_fg_markers_changed = 0;
 	g_briefing_map_labels_changed = 0;
@@ -274,6 +255,11 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 	g_briefing_map_scale_dirty = 0;
 	g_briefing_script_pause_marker_reached = 0;
 
+	int16_t opcode;
+	int16_t args[8];
+	int16_t argument_count;
+	int16_t slot_index;
+	char label_text[40];
 	if (event_time <= g_briefing_script.current_frame) {
 		do {
 			saved_cursor_word_index = cursor_word_index;
@@ -282,7 +268,7 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 			opcode = g_briefing_script.words[cursor_word_index++];
 			argument_count =
 				g_briefing_script_opcode_arg_counts[opcode];
-			for (argument_index = 0;
+			for (int16_t argument_index = 0;
 			     argument_index < argument_count;
 			     ++argument_index) {
 				args[argument_index] =
@@ -367,10 +353,11 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 				case 15:
 				case 16:
 					if (apply_instantly == 0) {
-						iff = g_frontend_mission
-							      .flight_groups
-								      [args[0]]
-							      .iff;
+						int16_t iff =
+							g_frontend_mission
+								.flight_groups
+									[args[0]]
+								.iff;
 						if (iff > 2) {
 							iff = 2;
 						}

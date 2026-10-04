@@ -39,9 +39,6 @@ static char g_command[sizeof(g_frontend_flight_command_line)];
 
 int xvt_launch_task_queue(void)
 {
-	unsigned int index;
-	int length;
-	int volume;
 	if (g_phase != XVT_LAUNCH_IDLE) {
 		return 0;
 	}
@@ -65,6 +62,7 @@ int xvt_launch_task_queue(void)
 		return 1;
 	}
 	mission_setup_load_mission_list(g_pilot_data.mission_directory_id);
+	unsigned int index;
 	for (index = 0; g_mission_list && index < g_mission_count; ++index) {
 		if (g_mission_list[index].mission_idx ==
 		    g_pilot_data.mission_description_ids
@@ -80,7 +78,7 @@ int xvt_launch_task_queue(void)
 			1);
 		return 1;
 	}
-	length = snprintf(
+	int length = snprintf(
 		g_command, sizeof(g_command),
 		"~%s\\%s~ ~%s~ ~%s~ %u ~%s~ 0 %u %s",
 		g_mission_directory_names[g_pilot_data.mission_directory_id],
@@ -104,7 +102,7 @@ int xvt_launch_task_queue(void)
 	frontend_cursor_hide();
 	if (g_game_config.datapad_music_enabled &&
 	    !cd_audio_is_playback_complete()) {
-		volume = 65535 * g_game_config.music_volume / 9;
+		int volume = 65535 * g_game_config.music_volume / 9;
 		xvt_cd_task_begin_fade(volume, volume / 8, 1000);
 	}
 	g_phase = XVT_LAUNCH_FADE;

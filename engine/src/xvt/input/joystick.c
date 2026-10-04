@@ -69,13 +69,10 @@ int g_joy_device_index = 0;
 void joystick_poll_scaled_axes(int device_index, int *p_axis_x, int *p_axis_y,
 			       int *p_axis_z, int *p_buttons)
 {
-	JOYINFOEX joystick_info;
-	JOYCAPSA joystick_caps;
-	int abs_delta;
-
 	device_index = device_index != 0;
 	if (g_joystick_calibration_initialized[device_index] == 0) {
 		g_joystick_calibration_initialized[device_index] = 1;
+		JOYCAPSA joystick_caps;
 		memset(&joystick_caps, 0, sizeof(joystick_caps));
 		if (joyGetDevCapsA(joystick_get_device_id(0), &joystick_caps,
 				   sizeof(joystick_caps)) == JOYERR_NOERROR) {
@@ -171,6 +168,7 @@ void joystick_poll_scaled_axes(int device_index, int *p_axis_x, int *p_axis_y,
 	}
 
 	*p_buttons = 0;
+	JOYINFOEX joystick_info;
 	memset(&joystick_info, 0, sizeof(joystick_info));
 	joystick_info.dwSize = sizeof(joystick_info);
 	joystick_info.dwFlags = JOY_RETURNX | JOY_RETURNY | JOY_RETURNZ |
@@ -178,7 +176,7 @@ void joystick_poll_scaled_axes(int device_index, int *p_axis_x, int *p_axis_y,
 				JOY_RETURNCENTERED;
 	if (joyGetPosEx(g_joy_device_id[device_index], &joystick_info) ==
 	    JOYERR_NOERROR) {
-		abs_delta = (int)joystick_info.dwXpos - g_joy_axis_center_x;
+		int abs_delta = (int)joystick_info.dwXpos - g_joy_axis_center_x;
 		if (abs_delta < 0) {
 			abs_delta = -abs_delta;
 		}
@@ -246,8 +244,6 @@ int16_t joystick_initialize_backend_stub(void) { return 1; }
 int joystick_poll_scaled_axes_if_active(int *p_axis_x, int *p_axis_y,
 					int *p_axis_z, const int *p_axis_r)
 {
-	int buttons;
-
 	(void)p_axis_r;
 
 	if (g_joystick_active == 0) {
@@ -257,6 +253,7 @@ int joystick_poll_scaled_axes_if_active(int *p_axis_x, int *p_axis_y,
 		return 0;
 	}
 
+	int buttons;
 	joystick_poll_scaled_axes(g_joy_device_index, p_axis_x, p_axis_y,
 				  p_axis_z, &buttons);
 	return buttons;

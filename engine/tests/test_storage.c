@@ -55,12 +55,12 @@ static void fresh_roots(void)
 /* Returns 1 when the file that Open gives path in mode holds exactly text. */
 static int opens_text(const char *path, const char *mode, const char *text)
 {
-	char buffer[64];
-	size_t got = 0;
 	AeronFile *file = xvt_storage_open(path, mode);
 	if (!file) {
 		return 0;
 	}
+	char buffer[64];
+	size_t got = 0;
 	AeronVfs_Read(file, buffer, sizeof buffer, &got);
 	AeronVfs_Close(file);
 	return got == strlen(text) && memcmp(buffer, text, got) == 0;
@@ -160,8 +160,8 @@ static void check_probe(void)
 	/* A name the parent lists in other letter case: where the file system tells case apart, the exact
 	 * lookup misses it and the answer is -1; where it does not, the lookup finds the file. */
 	char other[XVT_TEST_PATH_CAPACITY];
-	struct stat info;
 	xvt_test_join(other, g_user, "pilots/ace.plt");
+	struct stat info;
 	int case_blind = stat(other, &info) == 0;
 	XVT_ASSERT_INT_EQ(
 		xvt_storage_probe(AERON_VFS_ROOT_USER, "pilots/ace.plt"),
@@ -172,13 +172,13 @@ static void check_probe(void)
 static void check_resolve_asset(void)
 {
 	fresh_roots();
-	char resolved[XVT_PATH_CAPACITY];
 	xvt_test_make_subfolder(g_asset, "BalanceOfPower");
 	xvt_test_write_text(g_asset, "BalanceOfPower/both.dat", "bop");
 	xvt_test_write_text(g_asset, "both.dat", "plain");
 	xvt_test_write_text(g_asset, "plain.dat", "plain");
 	xvt_test_write_text(g_user, "user.dat", "user");
 
+	char resolved[XVT_PATH_CAPACITY];
 	XVT_ASSERT_INT_EQ(xvt_storage_resolve_asset("both.dat", resolved,
 						    sizeof resolved),
 			  1);
@@ -570,9 +570,9 @@ static void check_last_path(void)
 	AeronVfs_Close(file);
 	XVT_ASSERT_INT_EQ(strcmp(xvt_storage_last_path(), "x/y.dat"), 0);
 	XVT_ASSERT_INT_EQ(xvt_storage_last_root(), AERON_VFS_ROOT_TEMP);
-	char resolved[XVT_PATH_CAPACITY];
 	xvt_test_make_subfolder(g_asset, "BalanceOfPower");
 	xvt_test_write_text(g_asset, "BalanceOfPower/r.dat", "r");
+	char resolved[XVT_PATH_CAPACITY];
 	XVT_ASSERT_INT_EQ(
 		xvt_storage_resolve_asset("r.dat", resolved, sizeof resolved),
 		1);
