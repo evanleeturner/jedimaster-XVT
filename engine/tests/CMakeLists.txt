@@ -189,6 +189,11 @@ if(NOT MSVC)
     target_link_libraries(test_log_file PRIVATE Threads::Threads)
     add_test(NAME log_file COMMAND test_log_file)
 endif()
+# The filter on libjuice's own log: its fixed reasons for a failing link pass, a message carrying a
+# credential, SDP or an address never does.
+xvt_add_test_program(test_dplay_ice_log test_dplay_ice_log.c)
+target_include_directories(test_dplay_ice_log PRIVATE "${PROJECT_SOURCE_DIR}/aeron/src")
+add_test(NAME dplay_ice_log COMMAND test_dplay_ice_log)
 # The crash note crashes child processes on purpose, so its test is the one program built without the
 # sanitizers: AddressSanitizer would catch each crash itself and end the child its own way.
 add_executable(test_crash_note test_crash_note.c "${PROJECT_SOURCE_DIR}/src/xvt_app/crash_note.c"

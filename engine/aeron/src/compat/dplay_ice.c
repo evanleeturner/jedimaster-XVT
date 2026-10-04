@@ -1,6 +1,7 @@
 #include "dplay_ice.h"
 #include "dplay_directory_internal.h"
 #include "dplay_directory_json.h"
+#include "dplay_ice_log.h"
 #include "dplay_internal.h"
 #include <juice/juice.h>
 
@@ -53,6 +54,16 @@ static void IceEvent(IceLink* link, int event) {
 		link->events[(link->event_read + link->event_count++) % ICE_EVENTS] = event;
 	Aeron_MutexUnlock(link->mutex);
 	DpWake();
+}
+
+/* Passes libjuice's reasons for a failing link to the log (DpIce_LogText). libjuice
+ * calls it on its own threads, one call at a time under its log lock; SDL runs the
+ * log output function under its own lock. */
+static void IceLog(juice_log_level_t level, const char* message) {
+	const char* text = DpIce_LogText(message);
+	if (text)
+		Aeron_LogMessage(level >= JUICE_LOG_LEVEL_WARN ? AERON_LOG_WARN : AERON_LOG_INFO,
+						 "compat.dplay.juice", "%s", text);
 }
 
 static void IceState(juice_agent_t* agent, juice_state_t state, void* user) {
@@ -138,8 +149,10 @@ static IceLink* IceCreate(const DpDirectorySignal* signal, int host) {
 	config.cb_candidate        = IceCandidate;
 	config.cb_recv             = IceReceive;
 	config.user_ptr            = link;
-	/* Aeron reports failures without libjuice's diagnostic SDP/credentials. */
-	juice_set_log_level(JUICE_LOG_LEVEL_NONE);
+	/* libjuice's diagnostics carry SDP and credentials: IceLog passes on only its
+	 * fixed failure reasons (dplay_ice_log.h). */
+	juice_set_log_handler(IceLog);
+	juice_set_log_level(JUICE_LOG_LEVEL_INFO);
 	link->agent   = juice_create(&config);
 	g_links[slot] = link;
 	if (!link->agent) {
