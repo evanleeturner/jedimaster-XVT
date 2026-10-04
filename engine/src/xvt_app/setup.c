@@ -60,8 +60,7 @@ static int xvt_setup_probe_installation(AeronVfs *vfs, const char *path,
 				   AERON_VFS_READ, &file)) {
 			snprintf(
 				error, capacity,
-				"Could not read '%s' in '%s'. Choose the main XvT folder containing BalanceOfPower, sfx "
-				"and ivfiles.",
+				"Could not read '%s' in '%s'. Choose the main XvT folder containing BalanceOfPower, sfx and ivfiles.",
 				exact[i], path);
 			return 0;
 		}
@@ -81,8 +80,7 @@ static int xvt_setup_probe_installation(AeronVfs *vfs, const char *path,
 						  sizeof resolved))) {
 			snprintf(
 				error, capacity,
-				"Required game file '%s' is missing or could not be read in '%s' or its BalanceOfPower "
-				"folder. Choose a complete installation, including missions and voices.",
+				"Required game file '%s' is missing or could not be read in '%s' or its BalanceOfPower folder. Choose a complete installation, including missions and voices.",
 				assets[i], path);
 			return 0;
 		}
@@ -279,8 +277,7 @@ done:
 		}
 		snprintf(
 			error, capacity,
-			"Could not import pilot '%s': check its record and companion, or use --pilot-name <unused "
-			"basename> to resolve a USER filename collision.",
+			"Could not import pilot '%s': check its record and companion, or use --pilot-name <unused basename> to resolve a USER filename collision.",
 			path);
 	}
 	free(data[0]);
@@ -346,8 +343,7 @@ xvt_setup_result xvt_setup_run(const struct xvt_launch_options *options,
 			if (!selected[0]) {
 				snprintf(
 					error, capacity,
-					"No installation configured. Use --game-data <XvT root> --save-config, or launch "
-					"the setup window.");
+					"No installation configured. Use --game-data <XvT root> --save-config, or launch the setup window.");
 			}
 			return XVT_SETUP_ERROR;
 		}

@@ -120,9 +120,7 @@ void xvt_keyboard_settings_draw(struct xvt_keyboard_settings *settings,
 {
 	AeronUi_Help(
 		ui,
-		"Flight and map controls share the original commands. Changing a binding changes both "
-		"uses shown in its name. Chat typing and navigation use the standard keys. Escape opens "
-		"settings; Tab switches renderers.");
+		"Flight and map controls share the original commands. Changing a binding changes both uses shown in its name. Chat typing and navigation use the standard keys. Escape opens settings; Tab switches renderers.");
 	xvt_bindings_editor_category_selector(&settings->editor, ui);
 	AeronKeyChord source;
 	if (xvt_keyboard_settings_capture_chord(settings, ui, "Find Binding...",

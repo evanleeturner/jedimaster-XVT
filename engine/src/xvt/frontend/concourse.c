@@ -252,9 +252,12 @@ int concourse_update(int frame_counter)
 					    2, g_frontend_scratch_buffer) ==
 				    0) {
 					frontend_display_show_game_message_box(
-						"ERROR:  Joystick not detected!\n\nThe game will not "
-						"work properly\nwithout a joystick "
-						"attached.\n\nPress ENTER to exit.");
+						"ERROR:  Joystick not detected!\n"
+						"\n"
+						"The game will not work properly\n"
+						"without a joystick attached.\n"
+						"\n"
+						"Press ENTER to exit.");
 				} else {
 					frontend_display_show_game_message_box(
 						g_frontend_scratch_buffer);
@@ -492,10 +495,13 @@ int concourse_update(int frame_counter)
 					    3, g_frontend_scratch_buffer) ==
 				    0) {
 					frontend_display_show_game_message_box(
-						"ERROR:  Not Host CD!\n\nYou cannot host an internet game with the Client CD.\nYou "
-						"must insert the Host CD into your CD-ROM drive\nto host an internet game.\n\nPress "
-						"ENTER "
-						"to exit.");
+						"ERROR:  Not Host CD!\n"
+						"\n"
+						"You cannot host an internet game with the Client CD.\n"
+						"You must insert the Host CD into your CD-ROM drive\n"
+						"to host an internet game.\n"
+						"\n"
+						"Press ENTER to exit.");
 				} else {
 					frontend_display_show_game_message_box(
 						g_frontend_scratch_buffer);

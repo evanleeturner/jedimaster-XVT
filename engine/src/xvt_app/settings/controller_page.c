@@ -469,8 +469,7 @@ static void xvt_controller_settings_controller_warning(
 		char text[256];
 		snprintf(
 			text, sizeof text,
-			"%d configured controls are unavailable; this controller also exposes more controls than "
-			"the game supports.",
+			"%d configured controls are unavailable; this controller also exposes more controls than the game supports.",
 			missing);
 		AeronUi_Error(ui, text);
 	} else if (missing) {
@@ -1082,8 +1081,7 @@ void xvt_controller_settings_draw(struct xvt_controller_settings *settings,
 		xvt_controller_settings_reset_device_edit_state(settings, ui);
 		AeronUi_Error(
 			ui,
-			"Saved bindings use a different device type. Restore Controller Defaults to "
-			"configure this device.");
+			"Saved bindings use a different device type. Restore Controller Defaults to configure this device.");
 	} else {
 		xvt_controller_settings_controller_warning(settings, ui,
 							   controller);

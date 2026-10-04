@@ -179,8 +179,8 @@ static void check_read_ending(void)
 	/* A crash after the stop line, while the program exits, is still a crash. */
 	check_ending(
 		HEADER
-		"21:22:36.000 I app.stop exit=0\n21:22:36.001 C app.crash_signal signal=\"SIGSEGV\" code=1 "
-		"addr=0x8\n",
+		"21:22:36.000 I app.stop exit=0\n"
+		"21:22:36.001 C app.crash_signal signal=\"SIGSEGV\" code=1 addr=0x8\n",
 		XVT_LOG_FILE_ENDING_CRASHED, "app.crash_signal");
 
 	/* In a log several runs appended to, only the newest run counts. */

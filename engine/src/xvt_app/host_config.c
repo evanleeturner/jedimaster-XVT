@@ -80,8 +80,7 @@ int xvt_launch_options_parse(int argc, char *argv[],
 	    (options->setup &&
 	     (options->check_installation || options->game_data))) {
 		fprintf(stderr,
-			"OpenXvT: --pilot-name requires --import-pilot; --setup cannot be combined with "
-			"--game-data or --check-installation.\n");
+			"OpenXvT: --pilot-name requires --import-pilot; --setup cannot be combined with --game-data or --check-installation.\n");
 		return 0;
 	}
 	return 1;

@@ -58,8 +58,7 @@ static void check_options_off(void)
 	g_flight_in_progress_launch = 0;
 	g_flight_conf_new_net = 0;
 	g_flight_conf_no_launcher = 0;
-	prepare("mission ~traincourse nopilot nodinput nosfx nomusic novoice notickcounter nomipmaps inprogress "
-		"newnet nolauncher nofullscreen nopageflip~");
+	prepare("mission ~traincourse nopilot nodinput nosfx nomusic novoice notickcounter nomipmaps inprogress newnet nolauncher nofullscreen nopageflip~");
 	XVT_ASSERT_INT_EQ(g_flight_conf_train_course, 1);
 	XVT_ASSERT_INT_EQ(g_flight_conf_no_pilot, 1);
 	XVT_ASSERT_INT_EQ(g_flight_in_progress_launch, 1);

@@ -325,8 +325,7 @@ static void group(const struct dump_mission *mission, unsigned index)
 	pair(mission, &fg->departure_trigger);
 	printf(" delay=%u:%02u abort=%u\n", fg->departure_delay_minutes,
 	       fg->departure_delay_seconds, fg->abort_trigger);
-	printf("  motherships: arrival=%u method=%u departure=%u method=%u alternate=%u used=%u captured=%u "
-	       "method=%u\n",
+	printf("  motherships: arrival=%u method=%u departure=%u method=%u alternate=%u used=%u captured=%u method=%u\n",
 	       fg->arrival_mothership, fg->arrival_method,
 	       fg->departure_mothership, fg->departure_method,
 	       fg->alternate_mothership, fg->alternate_mothership_used,
@@ -540,8 +539,7 @@ static int dump(FILE *fp)
 	printf("XvT/BoP version=%u flightGroups=%u messages=%u missionType=%d goalsUnimportant=%u\n",
 	       version, mission.group_count, message_count,
 	       mission.header.mission_type, mission.header.goals_unimportant);
-	printf("Indices are zero-based. Order targets are predicates; fallback is tried if primary finds no "
-	       "target.\n");
+	printf("Indices are zero-based. Order targets are predicates; fallback is tried if primary finds no target.\n");
 	for (unsigned i = 0; i < mission.group_count; ++i) {
 		group(&mission, i);
 	}

@@ -385,8 +385,13 @@ int net_start_network_session(int app_guid_data1, int app_guid_data2,
 				     NULL) != 0) {
 			if (error_text_load_line(6, error_message) == 0) {
 				frontend_display_show_game_message_box(
-					"WARNING:  Connection failure!\n\nMake sure your Windows 95 network\nsettings are "
-					"properly configured\nfor this type of network game.\n\nPress Enter to continue.");
+					"WARNING:  Connection failure!\n"
+					"\n"
+					"Make sure your Windows 95 network\n"
+					"settings are properly configured\n"
+					"for this type of network game.\n"
+					"\n"
+					"Press Enter to continue.");
 			} else {
 				frontend_display_show_game_message_box(
 					error_message);
@@ -484,8 +489,13 @@ int net_start_network_session(int app_guid_data1, int app_guid_data2,
 				     NULL) != 0) {
 			if (error_text_load_line(6, error_message) == 0) {
 				frontend_display_show_game_message_box(
-					"WARNING:  Connection failure!\n\nMake sure your Windows 95 network\nsettings are "
-					"properly configured\nfor this type of network game.\n\nPress Enter to continue.");
+					"WARNING:  Connection failure!\n"
+					"\n"
+					"Make sure your Windows 95 network\n"
+					"settings are properly configured\n"
+					"for this type of network game.\n"
+					"\n"
+					"Press Enter to continue.");
 			} else {
 				frontend_display_show_game_message_box(
 					error_message);
@@ -2965,9 +2975,13 @@ int net_enumerate_app_sessions(unsigned int app_guid0, unsigned int app_guid1,
 			char error_message[256];
 			if (error_text_load_line(6, error_message) == 0) {
 				frontend_display_show_game_message_box(
-					"WARNING:  Connection failure!\n\nMake sure your Windows 95 network\nsettings are "
-					"properly "
-					"configured\nfor this type of network game.\n\nPress Enter to continue.");
+					"WARNING:  Connection failure!\n"
+					"\n"
+					"Make sure your Windows 95 network\n"
+					"settings are properly configured\n"
+					"for this type of network game.\n"
+					"\n"
+					"Press Enter to continue.");
 			} else {
 				frontend_display_show_game_message_box(
 					error_message);
