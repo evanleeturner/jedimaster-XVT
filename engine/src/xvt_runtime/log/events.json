@@ -463,6 +463,21 @@
       "fields": ["action", "result"],
       "text": "The mission screens' {action} dialog was answered with {result} (1 yes or OK, 0 no)"
     },
+    "mission.goal_craft_unnamed": {
+      "level": "D",
+      "fields": ["craft"],
+      "text": "The goals page had no name for craft type {craft} and drew an empty one"
+    },
+    "mission.goal_escape_text_missing": {
+      "level": "E",
+      "fields": ["target"],
+      "text": "The goals page had no text for the escape goal on target {target}; drawing it stopped the game"
+    },
+    "mission.goal_text_missing": {
+      "level": "E",
+      "fields": ["row", "column", "craft", "gender"],
+      "text": "The goals page had no condition text at row {row}, column {column}, for craft type {craft} (name gender {gender}); drawing it stopped the game"
+    },
     "models.alpha_palette": {
       "level": "D",
       "fields": ["palette", "cleared"],

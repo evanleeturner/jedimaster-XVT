@@ -5,6 +5,7 @@
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Text color of each goals-page section, as the color letter
  * flight_text_set_color takes: 'J', 'N', 'F' and 'R' (0x4A, 0x4E, 0x46, 0x52)
@@ -554,6 +555,11 @@ int16_t goals_outputgoal(uint16_t target_id, uint16_t condition,
 					  flight_text_get_wrap_height_for_string(
 						  g_str_goal_escape[target_id -
 								    1]));
+			if (g_str_goal_escape[target_id - 1] == NULL) {
+				XVT_LOG_ERROR(
+					"mission.goal_escape_text_missing target=%d",
+					(int)target_id);
+			}
 			flight_text_draw_string(
 				g_str_goal_escape[target_id - 1]);
 			break;
@@ -628,6 +634,13 @@ int16_t goals_draw_condition_text(unsigned int craft_species,
 						       [amount_text_variant];
 			break;
 		}
+		if (text == NULL) {
+			XVT_LOG_ERROR(
+				"mission.goal_text_missing row=%d column=%d craft=%u gender=%d",
+				(int)condition, (int)amount_text_variant,
+				craft_species,
+				(int)g_craft_gender[model_index]);
+		}
 
 		wrap_height = flight_text_get_wrap_height_for_string(text);
 		flight_text_draw_string(text);
@@ -638,6 +651,12 @@ int16_t goals_draw_condition_text(unsigned int craft_species,
 	    (uint16_t)craft_species <= CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
 		text = g_str_goal_cond_masculine[condition]
 						[amount_text_variant];
+		if (text == NULL) {
+			XVT_LOG_ERROR(
+				"mission.goal_text_missing row=%d column=%d craft=%u gender=%d",
+				(int)condition, (int)amount_text_variant,
+				craft_species, (int)CRAFT_GENDER_MASCULINE);
+		}
 		wrap_height = flight_text_get_wrap_height_for_string(text);
 		flight_text_draw_string(text);
 	}
@@ -675,6 +694,9 @@ int16_t goals_draw_object_type_name(uint16_t craft_species,
 		   craft_species <= CRAFT_SPECIES_NAV_BUOY_TYPE_2) {
 		display_name = g_str_sat_mine_probe_buoy_pilot_names
 			[craft_species - CRAFT_SPECIES_COMM_SAT_1];
+	} else {
+		XVT_LOG_DEBUG("mission.goal_craft_unnamed craft=%u",
+			      (unsigned)craft_species);
 	}
 
 	int16_t wrap_height =
