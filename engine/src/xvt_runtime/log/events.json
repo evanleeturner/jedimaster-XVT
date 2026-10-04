@@ -48,6 +48,41 @@
       "fields": ["exit"],
       "text": "The program stops with exit code {exit}; written at every level, as a run's last line"
     },
+    "battle.bonus_scored": {
+      "level": "I",
+      "fields": ["team", "goal", "fg", "by", "score", "tick"],
+      "text": "Team {team} scored {score} points (negative for a penalty) from bonus goal {goal} of flight group {fg}, for player {by} (-1 for the team itself), at tick {tick}"
+    },
+    "battle.friendly_kill": {
+      "level": "I",
+      "fields": ["by", "victim", "owner", "fg", "craft", "share", "penalty", "tick"],
+      "text": "Player {by} destroyed craft {victim} of its own side (flight group {fg}, craft type {craft}, flown by player {owner}, -1 for a computer pilot), a {share} kill that cost {penalty} points, at tick {tick}"
+    },
+    "battle.goal_failed": {
+      "level": "I",
+      "fields": ["team", "kind", "tick"],
+      "text": "Team {team} failed its {kind} goals at tick {tick}"
+    },
+    "battle.goal_met": {
+      "level": "I",
+      "fields": ["team", "kind", "rank", "tick"],
+      "text": "Team {team} met its {kind} goals at tick {tick}, ranked {rank} among the teams that did"
+    },
+    "battle.kill": {
+      "level": "I",
+      "fields": ["by", "victim", "owner", "fg", "craft", "share", "tick"],
+      "text": "Player {by} was credited with a {share} kill of craft {victim} of flight group {fg}, craft type {craft}, flown by player {owner} (-1 for a computer pilot), at tick {tick}"
+    },
+    "battle.loss": {
+      "level": "I",
+      "fields": ["who", "cause", "by", "eject", "tick"],
+      "text": "Player {who} lost a craft, most of its damage from: {cause}; the player who did the most damage was {by} (-1 when not a player); ejected {eject}; at tick {tick}"
+    },
+    "battle.warhead_hit": {
+      "level": "I",
+      "fields": ["by", "warhead", "own", "score", "tick"],
+      "text": "A warhead of type {warhead} fired for player {by} hit, worth {score} points; fired by the player's own craft: {own} (else a craft of the player's flight group); at tick {tick}"
+    },
     "campaign.packet_timeout": {
       "level": "W",
       "fields": ["type"],
@@ -373,6 +408,91 @@
       "fields": [],
       "text": "A flight launch is queued"
     },
+    "mission.ai_team_craft": {
+      "level": "D",
+      "fields": ["team", "fg", "groups"],
+      "text": "Computer-flown team {team} took the craft of flight group {fg} for its flight groups meant for players; {fg} equal to the {groups} flight groups means none was copied"
+    },
+    "mission.ai_team_craft_replaced": {
+      "level": "D",
+      "fields": ["team", "craft"],
+      "text": "In a later tournament mission, computer-flown team {team}'s flight groups meant for players were given craft type {craft}"
+    },
+    "mission.ai_team_source_missing": {
+      "level": "W",
+      "fields": ["team", "teams"],
+      "text": "No team with players was found to lend its craft to computer-flown team {team} ({teams} teams had players); that team kept its own craft"
+    },
+    "mission.arrival_countdown": {
+      "level": "D",
+      "fields": ["fg", "left", "predicted"],
+      "text": "Flight group {fg}'s arrival delay counted down to {left} seconds ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "mission.arrival_masked": {
+      "level": "D",
+      "fields": ["fg", "difficulty", "setting"],
+      "text": "Flight group {fg} will not arrive in this flight: its arrival setting {setting} leaves out difficulty {difficulty}"
+    },
+    "mission.arrival_scheduled": {
+      "level": "D",
+      "fields": ["fg", "first", "second", "either", "slot", "delay", "fixed", "random", "range", "varied", "tick", "predicted"],
+      "text": "Flight group {fg}'s arrival triggers held at tick {tick} (first pair {first}, second pair {second}, either pair enough {either}; owner player slot {slot}, -1 for none): it was set to arrive in {delay} seconds, {fixed} fixed plus {random} from a random range of {range} (drawn when random variation {varied} was 1, else half the range) ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "mission.arrival_trigger_failed": {
+      "level": "D",
+      "fields": ["fg", "first", "second"],
+      "text": "Flight group {fg} will not arrive in this flight: its arrival triggers on a player joining or leaving had already failed (pair states {first} and {second}; 1 met, 2 failed, 4 open)"
+    },
+    "mission.arrivals_stop_reason": {
+      "level": "D",
+      "fields": ["fg", "team", "departed", "primary", "prevent", "counted", "predicted"],
+      "text": "Flight group {fg} of team {team} stopped arriving with {departed} of its craft departed, the team's primary goal status {primary} and prevent goal status {prevent} (1 complete, 2 failed); the craft that never arrived were counted as {counted} ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "mission.backdrop_placed": {
+      "level": "D",
+      "fields": ["fg", "model", "side", "record"],
+      "text": "Backdrop flight group {fg} became backdrop record {record}: model type {model} on side {side}"
+    },
+    "mission.backdrop_side_clamped": {
+      "level": "W",
+      "fields": ["fg", "side"],
+      "text": "Backdrop flight group {fg} named side {side}, past the last of the six sides; it was placed on side 5"
+    },
+    "mission.backdrop_table_full": {
+      "level": "W",
+      "fields": ["fg", "record"],
+      "text": "Backdrop flight group {fg} was given backdrop record {record}, past the 64 the backdrop table holds"
+    },
+    "mission.backdrop_types_full": {
+      "level": "W",
+      "fields": ["fg", "model"],
+      "text": "Both spare backdrop model types were taken, so backdrop flight group {fg} wrote its picture into model type {model}"
+    },
+    "mission.backdrops_generated": {
+      "level": "D",
+      "fields": ["backdrop", "seed", "defaults"],
+      "text": "The default backdrop was laid out from the mission's backdrop seed {backdrop}: {defaults} backdrop records, asteroid seed {seed}"
+    },
+    "mission.bonus_late": {
+      "level": "D",
+      "fields": ["fg", "goal", "team", "slot", "seconds", "limit", "predicted"],
+      "text": "Bonus goal {goal} of flight group {fg} paid nothing to team {team} (player slot {slot}): {seconds} s had passed, beyond its {limit} s limit; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.bonus_paid": {
+      "level": "D",
+      "fields": ["fg", "goal", "team", "slot", "condition", "points", "level", "score", "total", "seconds", "predicted"],
+      "text": "Bonus goal {goal} of flight group {fg} paid {score} points ({points} goal points, reduction level {level}) for event {condition} to team {team}, to the player in slot {slot} (-1 for the team's score), at {seconds} s; that score is now {total}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.bonus_score_stale": {
+      "level": "W",
+      "fields": ["fg", "goal", "seconds", "limit"],
+      "text": "Bonus goal {goal} of flight group {fg} was past its {limit} s limit at {seconds} s, yet the score left from an earlier goal, or never set, was paid"
+    },
+    "mission.bonus_scored": {
+      "level": "D",
+      "fields": ["team", "points", "score", "tick"],
+      "text": "Team {team} met its bonus goals: {points} points went to its bonus score, now {score}, at tick {tick}"
+    },
     "mission.briefing_launch": {
       "level": "I",
       "fields": ["players", "local", "faction", "mode"],
@@ -458,10 +578,110 @@
       "fields": ["file", "version"],
       "text": "The mission file {file} has format {version}, not 12, 13 or 14; the mission was left empty"
     },
+    "mission.combat_balance": {
+      "level": "D",
+      "fields": ["balance", "humans"],
+      "text": "Combat balance mode {balance} adjusted the computer pilots' skill for a combat engagement with {humans} human players"
+    },
+    "mission.craft_by_team": {
+      "level": "D",
+      "fields": ["teams"],
+      "text": "In this melee each flight group meant for a player and left without one took the craft of its own team's player group; {teams} teams had players"
+    },
+    "mission.craft_lost": {
+      "level": "D",
+      "fields": ["object", "fg", "team", "penalty", "team_score", "losses", "predicted"],
+      "text": "Object {object} of flight group {fg} was lost: team {team} lost {penalty} points, mission score now {team_score}, and has lost {losses} craft; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.craft_outcome": {
+      "level": "D",
+      "fields": ["object", "fg", "outcome", "slot", "ordinal", "special", "count", "captured", "departing", "aborted", "predicted"],
+      "text": "Object {object}, craft {ordinal} of flight group {fg}, left the mission with outcome {outcome}, now counted for {count} craft of the group; player slot {slot} (-1 for none), special cargo {special}, capture mark {captured} (0 when not captured), departing {departing}, aborted {aborted}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.craft_shared": {
+      "level": "D",
+      "fields": ["fg", "selection"],
+      "text": "Every flight group meant for a player took flight group {fg}'s craft, count, waves, beam and countermeasures (craft selection mode {selection})"
+    },
+    "mission.craft_spawned": {
+      "level": "D",
+      "fields": ["fg", "ordinal", "object", "type", "genus", "signature", "number", "leader", "slot", "x", "y", "z", "yaw", "pitch", "hull", "front", "rear", "lasers", "warheads", "beam", "cm", "cm_count", "systems", "leader_plan", "plan", "throttle", "speed", "ai", "ai_seed", "predicted"],
+      "text": "Craft {ordinal} of flight group {fg} was created in object slot {object}: type {type}, class {genus}, identity stamp {signature}, number {number} in its group, leader slot {leader}, player slot {slot} (-1 for none), at {x} {y} {z} heading {yaw} pitch {pitch}; hull {hull}, shields {front} front and {rear} rear, {lasers} laser slots, {warheads} warhead launchers, beam {beam}, countermeasure type {cm} with {cm_count}, systems {systems} (hex), plans {leader_plan} and {plan}, throttle {throttle}, speed {speed}, AI level {ai}, AI random seed {ai_seed} ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "mission.craft_value": {
+      "level": "D",
+      "fields": ["object", "type", "value", "base", "launchers", "countermeasure", "beam", "predicted"],
+      "text": "Object {object} of object type {type} was worth {value} points: {base} for its model, plus the warheads loaded in {launchers} launchers, countermeasure type {countermeasure} and beam type {beam}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.craft_value_type_unknown": {
+      "level": "W",
+      "fields": ["object", "kind", "type"],
+      "text": "Object {object} named {kind} type {type}, which has no point value; it was counted as none"
+    },
+    "mission.craft_warheads": {
+      "level": "D",
+      "fields": ["object", "launcher", "type", "first_slot", "last_slot", "ammo", "predicted"],
+      "text": "Warhead launcher {launcher} of the craft in object slot {object} was loaded with warhead type {type} in weapon slots {first_slot} to {last_slot}, {ammo} in each ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "mission.debris_field": {
+      "level": "D",
+      "fields": ["fg", "count", "x", "y", "z", "seed", "rand", "predicted"],
+      "text": "Flight group {fg} scattered {count} pieces of debris within 256 mission units of {x} {y} {z}; the debris seed moved on to {seed} and the game's random number state was put back to {rand} ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "mission.dependents_moved": {
+      "level": "D",
+      "fields": ["fg", "mothership", "kind", "to", "moved", "total", "predicted"],
+      "text": "{moved} craft of flight group {fg} that were to leave through flight group {mothership}, their {kind} mothership, were moved to the {to} count, now {total}; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "mission.dialog_answered": {
       "level": "I",
       "fields": ["action", "result"],
       "text": "The mission screens' {action} dialog was answered with {result} (1 yes or OK, 0 no)"
+    },
+    "mission.difficulty_applied": {
+      "level": "D",
+      "fields": ["difficulty", "team"],
+      "text": "Difficulty {difficulty} moved every flight group's pilot skill up or down, judged from team {team}'s side"
+    },
+    "mission.dropoff_group_invalid": {
+      "level": "W",
+      "fields": ["fg", "order", "group", "groups"],
+      "text": "A craft of flight group {fg} was destroyed while its drop-off order {order} named flight group number {group}, which is not one of the mission's {groups} groups; the accounting that followed wrote outside the group table"
+    },
+    "mission.fg_goal_decided": {
+      "level": "I",
+      "fields": ["fg", "goal", "team", "kind", "state", "points", "limit", "seconds", "tick"],
+      "text": "Goal {goal} of flight group {fg}, one of team {team}'s {kind} goals, was decided at tick {tick}, {seconds} seconds into the mission (time limit {limit} seconds, 0 for none): {state}, where met_per_craft is a bonus goal whose points are paid craft by craft; {points} points went to the team's bonus score"
+    },
+    "mission.fg_goal_text_lost": {
+      "level": "W",
+      "fields": ["fg", "goal", "text", "bytes"],
+      "text": "Memory for text {text} of flight group {fg}'s goal {goal} ({bytes} bytes) could not be reserved; the text was dropped"
+    },
+    "mission.file_counts_over": {
+      "level": "W",
+      "fields": ["file", "groups", "messages"],
+      "text": "The mission file {file} lists {groups} flight groups and {messages} messages, more than the 48 and 64 there is room for; the read went on past the tables"
+    },
+    "mission.file_header": {
+      "level": "D",
+      "fields": ["version", "type", "groups", "messages", "backdrop", "minutes"],
+      "text": "The mission file's header was read: format {version}, mission type {type}, {groups} flight groups, {messages} messages, backdrop {backdrop}, time limit {minutes} minutes"
+    },
+    "mission.friendly_kill_penalty": {
+      "level": "D",
+      "fields": ["slot", "object", "tier", "score", "total", "promotion", "friendlies", "predicted"],
+      "text": "The player in slot {slot} destroyed object {object} of its own side at credit tier {tier}: {score} points and 500 promotion points were taken (mission score {total}, promotion points {promotion}), friendly kills {friendlies}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.global_goal_state": {
+      "level": "D",
+      "fields": ["team", "kind", "was", "now", "met", "total", "points", "score", "tick"],
+      "text": "Team {team}'s {kind} global goal went from state {was} to {now} (1 met, 2 failed, 4 undecided) at tick {tick}; its first condition counted {met} of {total} craft; {points} points went to the team's bonus score, now {score}"
+    },
+    "mission.goal_count_invalid": {
+      "level": "W",
+      "fields": ["team", "count"],
+      "text": "The mission file gave team {team} {count} goals, outside 0 to 7; the read went on with that count"
     },
     "mission.goal_craft_unnamed": {
       "level": "D",
@@ -473,10 +693,355 @@
       "fields": ["target"],
       "text": "The goals page had no text for the escape goal on target {target}; drawing it stopped the game"
     },
+    "mission.goal_failed": {
+      "level": "I",
+      "fields": ["team", "kind", "tick"],
+      "text": "Team {team}'s {kind} goals failed at tick {tick}"
+    },
+    "mission.goal_met": {
+      "level": "I",
+      "fields": ["team", "kind", "rank", "was", "tick"],
+      "text": "Team {team}'s {kind} goals were met at tick {tick}, the team ranked {rank} to meet them; they had been {was}. Prevent goals are met when what the team had to prevent happens"
+    },
     "mission.goal_text_missing": {
       "level": "E",
       "fields": ["row", "column", "craft", "gender"],
       "text": "The goals page had no condition text at row {row}, column {column}, for craft type {craft} (name gender {gender}); drawing it stopped the game"
+    },
+    "mission.goal_triggers_filled": {
+      "level": "D",
+      "fields": ["team", "goal", "slots"],
+      "text": "Team {team}'s goal {goal} had {slots} unused trigger slots set to always true, joined by AND"
+    },
+    "mission.group_arrival_cancelled": {
+      "level": "I",
+      "fields": ["fg", "count", "special", "arrived"],
+      "text": "Flight group {fg} could no longer arrive, because the craft that was to bring it was lost: its {count} craft still to come ({special} of them special cargo) were counted as lost with it, and {arrived} craft now count as arrived"
+    },
+    "mission.group_arrivals_stopped": {
+      "level": "I",
+      "fields": ["fg", "rule", "count", "special", "tick"],
+      "text": "Flight group {fg} stopped sending waves at tick {tick}, by its departure trigger or its stop rule {rule} (0 none, 1 a craft of it departed, 2 its team's primary goal complete, 3 that goal failed or the prevent goal complete); its {count} craft that never arrived, {special} of them special cargo, were counted as gone"
+    },
+    "mission.group_arrived": {
+      "level": "I",
+      "fields": ["fg", "craft", "kind", "ordinal", "waves", "arrived", "total", "start", "tick"],
+      "text": "Flight group {fg} arrived at tick {tick}, during mission setup {start} (when 1, before the flight's clock began): craft type {craft} ({kind}), craft {ordinal} alone or the whole wave when -1; {arrived} of its {total} craft had arrived, with {waves} more waves to come"
+    },
+    "mission.group_prepared": {
+      "level": "D",
+      "fields": ["fg", "team", "owner", "craft", "count", "waves", "ai", "start", "player_craft", "special", "only_human"],
+      "text": "Flight group {fg} was prepared: team {team}, owner slot {owner} (-1 for none), {count} of craft type {craft}, {waves} more waves, pilot skill {ai}, start point {start}, player craft {player_craft}, special cargo craft {special}, arrives only for a human {only_human}"
+    },
+    "mission.group_reset": {
+      "level": "D",
+      "fields": ["fg", "total", "cargo", "enabled", "arrived"],
+      "text": "Flight group {fg} was readied for the flight: {total} craft over all its waves, {cargo} special cargo craft, may arrive {enabled}, arrived at the start {arrived}"
+    },
+    "mission.group_role": {
+      "level": "D",
+      "fields": ["fg", "selector", "code"],
+      "text": "Flight group {fg} got role code {code} for team selector {selector} (0 to 9 one team, 10 all teams, 11 its own team, 12 its allies, 13 its enemies)"
+    },
+    "mission.hit_counted": {
+      "level": "D",
+      "fields": ["projectile", "source", "type", "kind", "slot", "hits", "player_hits", "predicted"],
+      "text": "Projectile {projectile} (type {type}) from object {source} scored a {kind} hit: the firing craft has {hits} such hits, and its group's player in slot {slot} (-1 for none) has {player_hits} (0 when the hit was not counted for a player); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.hit_uncounted": {
+      "level": "D",
+      "fields": ["projectile", "source", "type", "reason", "predicted"],
+      "text": "A hit by projectile {projectile} (type {type}) from object {source} was not counted: {reason}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.kill_attributed": {
+      "level": "D",
+      "fields": ["slot", "team", "credit", "team_credit", "predicted"],
+      "text": "The player in slot {slot} took {credit} kill credit (2 full, 1 shared) for team {team}, whose players now held {team_credit}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.kill_counted": {
+      "level": "D",
+      "fields": ["slot", "object", "fg", "owner", "rating", "share", "kills", "predicted"],
+      "text": "The player in slot {slot} was credited with a {share} kill of object {object} of flight group {fg} (its player in slot {owner}, -1 for a computer pilot; victim rating {rating}); {kills} such kills on that group so far; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.kill_credit_direct": {
+      "level": "D",
+      "fields": ["object", "source", "slot", "team", "record", "predicted"],
+      "text": "Object {object} was destroyed with no damage on record (it has a craft record: {record}), so the whole credit went to source object {source}, its player in slot {slot} (-1 for none) and its team {team}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.kill_credit_group": {
+      "level": "D",
+      "fields": ["team", "fg", "object", "share", "owner", "kills", "predicted"],
+      "text": "Team {team}'s players had not taken its whole credit for object {object}, so its flight group {fg} was credited with a {share} kill; the victim's player in slot {owner} (-1 for none) has lost {kills} craft to that group this way (0 when there is none); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.kill_damage": {
+      "level": "D",
+      "fields": ["object", "source", "fg", "owner", "rating", "special", "total", "flown", "predicted"],
+      "text": "Object {object} of flight group {fg} was destroyed (source object {source}) with {total} damage on record, {flown} of it taken while a player flew it; its owner was the player in slot {owner} (-1 for a computer pilot), rating {rating}, special cargo {special}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.kill_score_withheld": {
+      "level": "D",
+      "fields": ["slot", "object", "tier", "score", "predicted"],
+      "text": "The {score} kill points of the player in slot {slot} for object {object} (credit tier {tier}) were withheld, because a bonus goal on the victim's flight group scored below zero; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.kill_scored": {
+      "level": "D",
+      "fields": ["slot", "object", "tier", "score", "total", "difficulty", "predicted"],
+      "text": "The player in slot {slot} scored {score} points for object {object} at credit tier {tier} and difficulty {difficulty}; mission score {total}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.kill_share": {
+      "level": "D",
+      "fields": ["slot", "object", "share", "tier", "damage", "predicted"],
+      "text": "The player in slot {slot} did {damage} damage to object {object}, a share of {share} in 65536, which earned credit tier {tier} (3 full, 2 shared, 1 assist); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.kill_value": {
+      "level": "D",
+      "fields": ["object", "type", "value", "melee", "predicted"],
+      "text": "Destroying object {object}, of object type {type} and not a space craft, was worth {value} points (tripled in a melee mission: {melee}); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.load_failed": {
+      "level": "E",
+      "fields": ["file", "version", "reason"],
+      "text": "The mission file {file} did not load ({reason}, format word {version}); the mission was not set up, and the flight went on without it"
+    },
+    "mission.loss_attributed": {
+      "level": "D",
+      "fields": ["slot", "fg", "by", "kind", "rating", "count", "predicted"],
+      "text": "The player in slot {slot} lost a craft in full to flight group {fg}, flown by {kind} {by} (-1 for a computer pilot) of rating {rating}; {count} such losses at that rating; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.loss_classified": {
+      "level": "D",
+      "fields": ["slot", "object", "losses", "from_player", "from_ai", "from_collision", "from_starship", "from_mine", "collisions", "starships", "mines", "by", "predicted"],
+      "text": "The player in slot {slot} lost object {object}, loss {losses}: damage from players {from_player}, computer pilots {from_ai}, collisions {from_collision}, starships {from_starship}, mines {from_mine}; losses by collision {collisions}, by starship {starships}, by mine {mines}; the player who did the most damage {by} (-1 for none); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.loss_not_counted": {
+      "level": "D",
+      "fields": ["slot", "object", "flown", "total", "predicted"],
+      "text": "Object {object} of the player in slot {slot} was not counted as the player's loss: only {flown} of its {total} damage was taken while a player flew it; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.melee_boost": {
+      "level": "D",
+      "fields": ["team", "boosts"],
+      "text": "In this melee, one computer flight group in each of {boosts} teams, starting with team {team}, had its pilot skill raised one step"
+    },
+    "mission.melee_boost_team_missing": {
+      "level": "W",
+      "fields": ["team", "teams"],
+      "text": "No computer-flown team was found for the melee skill boost ({teams} teams had no player); team {team}, the first team's count of player groups, was used instead"
+    },
+    "mission.message_delay": {
+      "level": "D",
+      "fields": ["message", "left", "recipient", "tick"],
+      "text": "Mission message {message} counted down its delay, {left} times 5 seconds left, at tick {tick}; the local player's team receives it: {recipient}"
+    },
+    "mission.message_index_invalid": {
+      "level": "W",
+      "fields": ["order", "message"],
+      "text": "Message {order} of the mission file named slot {message}, outside the 64 message slots; it was read into that slot anyway"
+    },
+    "mission.message_triggered": {
+      "level": "D",
+      "fields": ["message", "pair1", "pair2", "delay", "recipient", "tick"],
+      "text": "Mission message {message} was triggered at tick {tick} (its trigger pairs gave {pair1} and {pair2}; bit 1 means met); it waits {delay} times 5 seconds; the local player's team receives it: {recipient}"
+    },
+    "mission.mine_grid": {
+      "level": "D",
+      "fields": ["fg", "size", "plane", "x", "y", "z", "yaw", "pitch", "roll", "ordinal", "predicted"],
+      "text": "Flight group {fg} laid out a mine grid {size} mines on a side in plane {plane} (0 across x and y, 1 y and z, 2 x and z, 3 all at one spot), its first mine at {x} {y} {z} in mission units, turned {yaw} {pitch} {roll}; mine {ordinal} alone, or all when -1 ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "mission.mine_rating_awarded": {
+      "level": "D",
+      "fields": ["slot", "total", "predicted"],
+      "text": "The player in slot {slot} earned 4 promotion points on its worse total for destroying a mine; worse total {total}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.mine_slot_outside_grid": {
+      "level": "W",
+      "fields": ["fg", "cell", "size"],
+      "text": "Cell {cell} of flight group {fg}'s mine grid, {size} mines on a side, was outside the grid; the group's current mission point was used instead"
+    },
+    "mission.mothership_missing": {
+      "level": "D",
+      "fields": ["fg", "mothership", "tick"],
+      "text": "Flight group {fg} could not arrive from its mothership, flight group {mothership}, at tick {tick}: no lead craft of that group was present, so no craft were created"
+    },
+    "mission.object_table_full": {
+      "level": "W",
+      "fields": ["fg", "ordinal", "genus", "first_slot", "end_slot", "arrived", "tick"],
+      "text": "Craft {ordinal} of flight group {fg} was not created at tick {tick}: every object slot for object class {genus}, {first_slot} up to {end_slot}, was taken; the wave stopped there with {arrived} of the group's craft arrived"
+    },
+    "mission.pending_damage": {
+      "level": "D",
+      "fields": ["object", "pending", "remaining", "credited", "predicted"],
+      "text": "Object {object} was given up with {pending} damage dealt against {remaining}, half its remaining hull and shields; the kill was shared out: {credited}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.player_bound": {
+      "level": "D",
+      "fields": ["slot", "entry", "player", "fg", "team", "iff", "craft", "count", "warhead", "beam", "countermeasures"],
+      "text": "Pilot record entry {entry}, player {player}, took slot {slot} and flight group {fg} on team {team} (IFF {iff}), flying {count} of craft type {craft} with warhead {warhead}, beam {beam} and countermeasures {countermeasures}"
+    },
+    "mission.player_craft_lost": {
+      "level": "D",
+      "fields": ["slot", "object", "own", "penalty", "score", "predicted"],
+      "text": "The player in slot {slot} lost {penalty} points for object {object} (the player's own craft: {own}; else a craft of the player's flight group); mission score {score}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.player_number_bound": {
+      "level": "D",
+      "fields": ["slot", "fg", "team", "iff"],
+      "text": "Without a pilot record, player slot {slot} took flight group {fg} by its player number (team {team}, IFF {iff})"
+    },
+    "mission.player_peak": {
+      "level": "D",
+      "fields": ["players", "tick"],
+      "text": "The most players connected at once in this mission rose to {players}, at tick {tick}"
+    },
+    "mission.player_slot_missing": {
+      "level": "W",
+      "fields": ["entry", "player"],
+      "text": "Pilot record entry {entry}, player {player}, was not in the session's player list; its flight group was left without its player"
+    },
+    "mission.player_teams": {
+      "level": "D",
+      "fields": ["teams", "ai"],
+      "text": "Players owned flight groups on {teams} teams; computer opponents on: {ai}"
+    },
+    "mission.point_out_of_range": {
+      "level": "W",
+      "fields": ["fg", "ref", "current", "point"],
+      "text": "A position was read from mission point {point} of flight group {fg} (asked as {ref}, resolved to {current}), outside the group's 22 points; the position came from outside the group's record"
+    },
+    "mission.pools_alloc_failed": {
+      "level": "E",
+      "fields": ["objects", "mobiles", "chars", "crafts", "warheads"],
+      "text": "Memory for the flight's object tables could not be reserved; 0 marks each table left without: objects {objects}, moving objects {mobiles}, character data {chars}, craft data {crafts}, warhead guidance {warheads}"
+    },
+    "mission.prepared": {
+      "level": "I",
+      "fields": ["version", "type", "groups", "messages", "difficulty", "minutes"],
+      "text": "The mission was set up for flight: file format {version}, mission type {type}, {groups} flight groups, {messages} messages, difficulty {difficulty}, time limit {minutes} minutes (0 for none)"
+    },
+    "mission.prevent_told": {
+      "level": "D",
+      "fields": ["slot", "team", "abort"],
+      "text": "The local player, in slot {slot} on team {team}, learned that something the team had to prevent happened; told to abort the mission: {abort} (0: told the other side gained a draw)"
+    },
+    "mission.primary_rank": {
+      "level": "D",
+      "fields": ["slot", "team", "rank", "victory", "local"],
+      "text": "The player in slot {slot}, on team {team}, was given rank {rank} for the primary goals; victory message {victory} (0: a draw message instead); local player {local}"
+    },
+    "mission.primary_scored": {
+      "level": "D",
+      "fields": ["team", "hostile", "points", "seconds", "score", "tick"],
+      "text": "Team {team} met its primary goals {seconds} seconds into the mission, when {hostile} hostile teams had already met theirs; {points} points went to its bonus score, now {score}, at tick {tick}"
+    },
+    "mission.random_craft": {
+      "level": "D",
+      "fields": ["fg", "option", "craft", "count", "waves"],
+      "text": "Random variation gave computer flight group {fg} its optional craft {option}: {count} of craft type {craft}, {waves} more waves"
+    },
+    "mission.rating_awarded": {
+      "level": "D",
+      "fields": ["slot", "kind", "points", "total", "award", "factor", "weight", "attacker", "minimum", "predicted"],
+      "text": "The player in slot {slot} earned {points} promotion points on its {kind} total, now {total}, from victim rating {award}, rating factor {factor}, victim weight {weight} and own craft weight {attacker}; minimum award applied {minimum}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.runtime_ready": {
+      "level": "I",
+      "fields": ["objects"],
+      "text": "The mission's scores, goals and clocks were reset for the flight, and the flight groups that start in space arrived: {objects} objects created"
+    },
+    "mission.session_player_bound": {
+      "level": "D",
+      "fields": ["entry", "player"],
+      "text": "Session player {player} matched pilot record entry {entry}, and its player slot took the player's id"
+    },
+    "mission.session_player_unmatched": {
+      "level": "W",
+      "fields": ["player", "players"],
+      "text": "Session player {player} had no entry in the pilot record's network players ({players} in the session); its player slot got no id"
+    },
+    "mission.static_placed": {
+      "level": "D",
+      "fields": ["fg", "object", "genus", "type", "x", "y", "z", "yaw", "pitch", "roll", "signature", "countdown", "arrived", "predicted"],
+      "text": "A static object of flight group {fg} was placed in object slot {object}: class {genus}, type {type}, at {x} {y} {z} heading {yaw} pitch {pitch} roll {roll}, identity stamp {signature}, mine fire countdown {countdown}; {arrived} of the group's objects had arrived ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "mission.static_table_full": {
+      "level": "W",
+      "fields": ["fg", "genus", "type", "arrived", "tick"],
+      "text": "A static object of flight group {fg} (class {genus}, type {type}) was not placed at tick {tick}: every static object slot was taken; {arrived} of the group's objects had arrived"
+    },
+    "mission.team_bonus_paid": {
+      "level": "D",
+      "fields": ["team", "fg", "goal", "condition", "score", "total", "late", "predicted"],
+      "text": "Bonus goal {goal} of flight group {fg} paid team {team} {score} bonus points for event {condition}; team bonus score {total}; past its time limit {late}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.team_friendly_kill": {
+      "level": "D",
+      "fields": ["team", "object", "tier", "total", "predicted"],
+      "text": "Team {team} destroyed object {object} of an allied side at credit tier {tier}; the kill's points were taken from its mission score, now {total}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.team_goal_text_lost": {
+      "level": "W",
+      "fields": ["team", "goal", "trigger", "text", "bytes"],
+      "text": "Memory for text {text} of team {team}'s goal {goal}, trigger {trigger} ({bytes} bytes) could not be reserved; the text was dropped"
+    },
+    "mission.team_goals_read": {
+      "level": "D",
+      "fields": ["team", "count"],
+      "text": "The mission file gave team {team} {count} goals"
+    },
+    "mission.team_kill_counted": {
+      "level": "D",
+      "fields": ["team", "object", "fg", "share", "kills", "predicted"],
+      "text": "Team {team} was credited with a {share} kill of object {object} of flight group {fg}; {kills} such kills so far; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.team_kill_score_withheld": {
+      "level": "D",
+      "fields": ["team", "object", "tier", "score", "predicted"],
+      "text": "Team {team}'s {score} kill points for object {object} (credit tier {tier}) were withheld, because a bonus goal on the victim's flight group scored below zero; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.team_kill_scored": {
+      "level": "D",
+      "fields": ["team", "object", "tier", "score", "total", "predicted"],
+      "text": "Team {team} scored {score} points for object {object} at credit tier {tier}; team mission score {total}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.team_kill_share": {
+      "level": "D",
+      "fields": ["team", "object", "share", "tier", "damage", "fg", "predicted"],
+      "text": "Team {team} did {damage} damage to object {object}, a share of {share} in 65536, earning credit tier {tier}; its most damaging flight group was {fg}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.tie_header": {
+      "level": "D",
+      "fields": ["groups", "messages", "goals"],
+      "text": "An older TIE Fighter format mission was read: {groups} flight groups, {messages} messages, {goals} goals, all for team 0"
+    },
+    "mission.warhead_hit_counted": {
+      "level": "D",
+      "fields": ["projectile", "source", "type", "slot", "hits", "player_hits", "value", "team", "team_score", "predicted"],
+      "text": "Warhead {projectile} (type {type}) from object {source} hit, worth {value} points: the firing craft has {hits} warhead hits, its group's player in slot {slot} (-1 for none) has {player_hits} (0 when not counted for a player), and team {team}'s mission score is now {team_score}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "mission.wave_arrived": {
+      "level": "I",
+      "fields": ["fg", "craft", "kind", "waves", "arrived", "total", "tick"],
+      "text": "A new wave of flight group {fg} arrived at tick {tick}: craft type {craft} ({kind}); {arrived} of its {total} craft had arrived, with {waves} more waves to come"
+    },
+    "mission.wave_held": {
+      "level": "D",
+      "fields": ["fg", "team", "primary", "prevent", "predicted"],
+      "text": "Flight group {fg}'s wave was gone but no new wave was sent: team {team}'s goals were already decided (primary goal status {primary}, prevent goal status {prevent}; 1 complete, 2 failed) ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "mission.wave_no_room": {
+      "level": "D",
+      "fields": ["fg", "needed", "free", "tick"],
+      "text": "Flight group {fg} could not bring in {needed} craft at tick {tick}: only {free} craft slots were free; the arrival or wave waited and was tried again a second later"
+    },
+    "mission.wave_prepared": {
+      "level": "D",
+      "fields": ["fg", "ordinal", "started", "mothership", "hyperspace", "x", "y", "z", "yaw", "pitch", "formation", "spacing", "iff", "team", "status1", "status2", "genus", "ai", "predicted"],
+      "text": "Flight group {fg} prepared craft {ordinal} (-1 for the whole wave) with the mission clock started {started}: the first craft's place {x} {y} {z}, heading {yaw}, pitch {pitch}, formation {formation} spacing {spacing}, from a mothership {mothership}, out of hyperspace {hyperspace}; side {iff}, team {team}, statuses {status1} and {status2}, object class {genus}, AI level {ai} ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "mission.wave_room_made": {
+      "level": "D",
+      "fields": ["fg", "needed", "free", "freed", "missing", "predicted"],
+      "text": "To make room for flight group {fg}'s next wave of {needed} craft, with {free} craft slots free, {freed} explosions and wrecks without a player were cleared; {missing} slots were still missing ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "models.alpha_palette": {
       "level": "D",

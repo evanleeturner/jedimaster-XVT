@@ -36,6 +36,7 @@
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Text that sprintf fills with debug lines: rating and promotion points,
  * team score and place, update-time histograms. Nothing reads it. 5
@@ -480,6 +481,13 @@ void mission_update_logic(void)
 			g_flight_mission_state
 				.max_connected_player_count_this_mission =
 				g_flight_mission_state.connected_player_count;
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_DEBUG(
+					"mission.player_peak players=%d tick=%d",
+					(int)g_flight_mission_state
+						.max_connected_player_count_this_mission,
+					g_game_time);
+			}
 		}
 		unsigned int mission_elapsed_seconds = mission_clock_to_seconds(
 			g_mission_elapsed_clock.hours,
@@ -612,6 +620,53 @@ void mission_update_logic(void)
 										 team_index +
 									 goal_index] =
 								(uint8_t)result;
+							if (result !=
+								    GOAL_STATE_PENDING &&
+							    g_flight_sim_side_effects_suppressed ==
+								    0) {
+								XVT_LOG_INFO(
+									"mission.fg_goal_decided fg=%d goal=%d team=%d kind=\"%s\" state=\"%s\" points=%d limit=%u seconds=%u tick=%d",
+									(int)flight_group_index,
+									(int)goal_index,
+									(int)team_index,
+									g_mission_flight_groups[flight_group_index]
+												.fg
+												.goals[goal_index]
+												.goal_kind ==
+											GOAL_PRIMARY
+										? "primary"
+									: g_mission_flight_groups[flight_group_index]
+												.fg
+												.goals[goal_index]
+												.goal_kind ==
+											GOAL_PREVENT
+										? "prevent"
+									: g_mission_flight_groups[flight_group_index]
+												.fg
+												.goals[goal_index]
+												.goal_kind ==
+											GOAL_BONUS
+										? "bonus"
+										: "other",
+									result == GOAL_STATE_FAILURE
+										? "failed"
+									: result == GOAL_STATE_SUCCESS
+										? "met"
+										: "met_per_craft",
+									result == GOAL_STATE_SUCCESS
+										? FLIGHT_GROUP_GOAL_SCORE_SCALE *
+											  g_mission_flight_groups[flight_group_index]
+												  .fg
+												  .goals[goal_index]
+												  .points
+										: 0,
+									5u * g_mission_flight_groups[flight_group_index]
+											.fg
+											.goals[goal_index]
+											.time_limit5s,
+									mission_elapsed_seconds,
+									g_game_time);
+							}
 						} else {
 							g_mission_fg_stats[flight_group_index]
 								.goal_state
@@ -1031,6 +1086,50 @@ void mission_update_logic(void)
 									.raw_points;
 					}
 				}
+				if (g_flight_mission_state.runtime
+						    .team_global_goal_state
+							    [team_index]
+							    [goal_kind] !=
+					    global_state &&
+				    global_state != 0 &&
+				    g_flight_sim_side_effects_suppressed == 0) {
+					XVT_LOG_DEBUG(
+						"mission.global_goal_state team=%d kind=\"%s\" was=%d now=%d met=%d total=%d points=%d score=%d tick=%d",
+						(int)team_index,
+						goal_kind == GOAL_PRIMARY
+							? "primary"
+						: goal_kind == GOAL_PREVENT
+							? "prevent"
+							: "bonus",
+						(int)g_flight_mission_state
+							.runtime
+							.team_global_goal_state
+								[team_index]
+								[goal_kind],
+						(int)global_state,
+						(int)g_flight_mission_state
+							.runtime
+							.global_goal_trigger_counts
+								[0][team_index]
+								[goal_kind][0],
+						(int)g_flight_mission_state
+							.runtime
+							.global_goal_trigger_counts
+								[1][team_index]
+								[goal_kind][0],
+						global_state == GOAL_STATE_SUCCESS
+							? GLOBAL_GOAL_SCORE_SCALE *
+								  g_mission_global_goals
+									  [team_index]
+									  [goal_kind]
+										  .raw_points
+							: 0,
+						g_flight_mission_state.runtime
+							.team_scores
+								[TEAM_SCORE_BONUS]
+								[team_index],
+						g_game_time);
+				}
 				g_flight_mission_state.runtime
 					.team_global_goal_state[team_index]
 							       [goal_kind] =
@@ -1142,6 +1241,29 @@ void mission_update_logic(void)
 							(uint8_t)
 								aggregate_state;
 						if (aggregate_state ==
+							    GOAL_STATE_FAILURE &&
+						    g_flight_sim_side_effects_suppressed ==
+							    0) {
+							XVT_LOG_INFO(
+								"mission.goal_failed team=%d kind=\"%s\" tick=%d",
+								(int)team_index,
+								goal_kind == GOAL_PRIMARY
+									? "primary"
+								: goal_kind == GOAL_PREVENT
+									? "prevent"
+									: "bonus",
+								g_game_time);
+							XVT_LOG_INFO(
+								"battle.goal_failed team=%d kind=\"%s\" tick=%d",
+								(int)team_index,
+								goal_kind == GOAL_PRIMARY
+									? "primary"
+								: goal_kind == GOAL_PREVENT
+									? "prevent"
+									: "bonus",
+								g_game_time);
+						}
+						if (aggregate_state ==
 						    GOAL_STATE_SUCCESS) {
 							int completed_team_count =
 								0;
@@ -1161,6 +1283,44 @@ void mission_update_logic(void)
 								    GOAL_STATE_SUCCESS) {
 									++completed_team_count;
 								}
+							}
+							if (g_flight_sim_side_effects_suppressed ==
+							    0) {
+								XVT_LOG_INFO(
+									"mission.goal_met team=%d kind=\"%s\" rank=%d was=\"%s\" tick=%d",
+									(int)team_index,
+									goal_kind == GOAL_PRIMARY
+										? "primary"
+									: goal_kind == GOAL_PREVENT
+										? "prevent"
+										: "bonus",
+									completed_team_count,
+									old_state == GOAL_STATE_FAILURE
+										? "failed"
+										: "open",
+									g_game_time);
+							}
+							if (goal_kind !=
+								    GOAL_PREVENT &&
+							    g_flight_sim_side_effects_suppressed ==
+								    0) {
+								XVT_LOG_INFO(
+									"battle.goal_met team=%d kind=\"%s\" rank=%d tick=%d",
+									(int)team_index,
+									goal_kind == GOAL_PRIMARY
+										? "primary"
+										: "bonus",
+									completed_team_count,
+									g_game_time);
+							}
+							if (goal_kind ==
+								    GOAL_PREVENT &&
+							    g_flight_sim_side_effects_suppressed ==
+								    0) {
+								XVT_LOG_INFO(
+									"battle.goal_failed team=%d kind=\"prevent\" tick=%d",
+									(int)team_index,
+									g_game_time);
 							}
 							if (goal_kind ==
 							    GOAL_PRIMARY) {
@@ -1210,6 +1370,24 @@ void mission_update_logic(void)
 									.runtime
 									.global_primary_goal_status =
 									GOAL_STATE_SUCCESS;
+								if (g_flight_sim_side_effects_suppressed ==
+								    0) {
+									XVT_LOG_DEBUG(
+										"mission.primary_scored team=%d hostile=%d points=%d seconds=%u score=%d tick=%d",
+										(int)team_index,
+										hostile_completed_teams,
+										hostile_completed_teams ==
+												0
+											? PRIMARY_GOAL_SCORE
+											: 0,
+										mission_elapsed_seconds,
+										g_flight_mission_state
+											.runtime
+											.team_scores
+												[TEAM_SCORE_BONUS]
+												[team_index],
+										g_game_time);
+								}
 							} else if (goal_kind ==
 								   GOAL_BONUS) {
 								g_flight_mission_state
@@ -1222,6 +1400,19 @@ void mission_update_logic(void)
 										[TEAM_SCORE_BONUS]
 										[team_index] +=
 									BONUS_GOAL_SCORE;
+								if (g_flight_sim_side_effects_suppressed ==
+								    0) {
+									XVT_LOG_DEBUG(
+										"mission.bonus_scored team=%d points=%d score=%d tick=%d",
+										(int)team_index,
+										BONUS_GOAL_SCORE,
+										g_flight_mission_state
+											.runtime
+											.team_scores
+												[TEAM_SCORE_BONUS]
+												[team_index],
+										g_game_time);
+								}
 							}
 							if (goal_kind ==
 							    GOAL_PRIMARY) {
@@ -1289,6 +1480,17 @@ void mission_update_logic(void)
 											    GOAL_STATE_SUCCESS) {
 											announce_victory =
 												0;
+										}
+										if (g_flight_sim_side_effects_suppressed ==
+										    0) {
+											XVT_LOG_DEBUG(
+												"mission.primary_rank slot=%d team=%d rank=%d victory=%d local=%d",
+												player_index,
+												(int)team_index,
+												completed_team_count,
+												(int)announce_victory,
+												player_index ==
+													g_local_player);
 										}
 										if (announce_victory !=
 										    0) {
@@ -1433,6 +1635,14 @@ void mission_update_logic(void)
 											    GOAL_STATE_SUCCESS) {
 											announce_failure =
 												0;
+										}
+										if (g_flight_sim_side_effects_suppressed ==
+										    0) {
+											XVT_LOG_DEBUG(
+												"mission.prevent_told slot=%d team=%d abort=%d",
+												player_index,
+												(int)team_index,
+												(int)announce_failure);
 										}
 										if (announce_failure !=
 										    0) {
@@ -1713,6 +1923,20 @@ void mission_update_logic(void)
 			g_flight_mission_state
 				.message_delay_countdown[message_index] =
 				g_mission_messages[message_index].delay5s;
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_DEBUG(
+					"mission.message_triggered message=%d pair1=%d pair2=%d delay=%d recipient=%d tick=%d",
+					(int)message_index, (int)trigger_pair1,
+					(int)trigger_pair2,
+					(int)g_mission_messages[message_index]
+						.delay5s,
+					g_mission_messages[message_index].sent_to_team
+							[(uint16_t)g_players
+								 [g_local_player]
+									 .team] !=
+						0,
+					g_game_time);
+			}
 			if (g_mission_messages[message_index].delay5s != 0 ||
 			    g_mission_messages[message_index].sent_to_team
 					    [(uint16_t)g_players[g_local_player]
@@ -1738,6 +1962,20 @@ void mission_update_logic(void)
 			}
 			--g_flight_mission_state
 				  .message_delay_countdown[message_index];
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_DEBUG(
+					"mission.message_delay message=%d left=%d recipient=%d tick=%d",
+					(int)message_index,
+					(int)g_flight_mission_state
+						.message_delay_countdown
+							[message_index],
+					g_mission_messages[message_index].sent_to_team
+							[(uint16_t)g_players
+								 [g_local_player]
+									 .team] !=
+						0,
+					g_game_time);
+			}
 			if (g_flight_mission_state.message_delay_countdown
 					    [message_index] != 0 ||
 			    g_mission_messages[message_index].sent_to_team
@@ -3461,6 +3699,20 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 		g_mission_fg_stats[flight_group_idx]
 			.special_cargo_outcome[outcome_id] = 1;
 	}
+	XVT_LOG_DEBUG(
+		"mission.craft_outcome object=%d fg=%d outcome=%d slot=%d ordinal=%d special=%d count=%u captured=%d departing=%d aborted=%d predicted=%d",
+		(int)obj_idx, (int)flight_group_idx, (int)outcome_id,
+		g_object_table[obj_idx].player_owner_idx,
+		(int)craft->craft_ordinal,
+		craft->craft_ordinal ==
+			g_mission_flight_groups[flight_group_idx]
+				.fg.special_cargo_craft,
+		(unsigned)g_mission_fg_stats[flight_group_idx]
+			.outcome_count[outcome_id],
+		(int)craft->captured_by_flight_group,
+		(int)craft->ai_flight.depart_timer_flag,
+		(int)craft->ai_flight.mission_aborted_flag,
+		g_flight_sim_side_effects_suppressed);
 
 	if (outcome_id == FLIGHT_GROUP_OUTCOME_DESTROYED) {
 		if (craft->captured_by_flight_group != 0) {
@@ -3631,6 +3883,17 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 						[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP] +=
 						g_mission_fg_stats[index].outcome_count
 							[FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT];
+					XVT_LOG_DEBUG(
+						"mission.dependents_moved fg=%d mothership=%d kind=\"primary\" to=\"lost_with_mothership\" moved=%u total=%u predicted=%d",
+						(int)index,
+						(int)flight_group_idx,
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT],
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP],
+						g_flight_sim_side_effects_suppressed);
 					g_mission_fg_stats[index].outcome_count
 						[FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT] =
 						0;
@@ -3646,6 +3909,17 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 						[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP] +=
 						g_mission_fg_stats[index].outcome_count
 							[FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT];
+					XVT_LOG_DEBUG(
+						"mission.dependents_moved fg=%d mothership=%d kind=\"alternate\" to=\"lost_with_mothership\" moved=%u total=%u predicted=%d",
+						(int)index,
+						(int)flight_group_idx,
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT],
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP],
+						g_flight_sim_side_effects_suppressed);
 					g_mission_fg_stats[index].outcome_count
 						[FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT] =
 						0;
@@ -3662,6 +3936,17 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 						[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP] +=
 						g_mission_fg_stats[index].outcome_count
 							[FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT];
+					XVT_LOG_DEBUG(
+						"mission.dependents_moved fg=%d mothership=%d kind=\"captured\" to=\"lost_with_mothership\" moved=%u total=%u predicted=%d",
+						(int)index,
+						(int)flight_group_idx,
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT],
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP],
+						g_flight_sim_side_effects_suppressed);
 					g_mission_fg_stats[index].outcome_count
 						[FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT] =
 						0;
@@ -3680,6 +3965,20 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 								     [order->order]]]
 							   .name,
 					   "dropoffldr1pln") == 0) {
+					if (g_flight_sim_side_effects_suppressed ==
+						    0 &&
+					    (order->variable2 == 0 ||
+					     order->variable2 >
+						     g_mission_header
+							     .num_flight_groups)) {
+						XVT_LOG_WARN(
+							"mission.dropoff_group_invalid fg=%d order=%d group=%d groups=%d",
+							(int)flight_group_idx,
+							4 - orders_remaining,
+							(int)order->variable2,
+							(int)g_mission_header
+								.num_flight_groups);
+					}
 					mission_close_unavailable_flight_group_accounting(
 						(uint16_t)(order->variable2 -
 							   1));
@@ -3701,6 +4000,17 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 						[FLIGHT_GROUP_OUTCOME_LEFT_REGION] +=
 						g_mission_fg_stats[index].outcome_count
 							[FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT];
+					XVT_LOG_DEBUG(
+						"mission.dependents_moved fg=%d mothership=%d kind=\"primary\" to=\"left_region\" moved=%u total=%u predicted=%d",
+						(int)index,
+						(int)flight_group_idx,
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT],
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_LEFT_REGION],
+						g_flight_sim_side_effects_suppressed);
 					g_mission_fg_stats[index].outcome_count
 						[FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT] =
 						0;
@@ -3716,6 +4026,17 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 						[FLIGHT_GROUP_OUTCOME_LEFT_REGION] +=
 						g_mission_fg_stats[index].outcome_count
 							[FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT];
+					XVT_LOG_DEBUG(
+						"mission.dependents_moved fg=%d mothership=%d kind=\"alternate\" to=\"left_region\" moved=%u total=%u predicted=%d",
+						(int)index,
+						(int)flight_group_idx,
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT],
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_LEFT_REGION],
+						g_flight_sim_side_effects_suppressed);
 					g_mission_fg_stats[index].outcome_count
 						[FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT] =
 						0;
@@ -3732,6 +4053,17 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 						[FLIGHT_GROUP_OUTCOME_LEFT_REGION] +=
 						g_mission_fg_stats[index].outcome_count
 							[FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT];
+					XVT_LOG_DEBUG(
+						"mission.dependents_moved fg=%d mothership=%d kind=\"captured\" to=\"left_region\" moved=%u total=%u predicted=%d",
+						(int)index,
+						(int)flight_group_idx,
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT],
+						(unsigned)g_mission_fg_stats[index]
+							.outcome_count
+								[FLIGHT_GROUP_OUTCOME_LEFT_REGION],
+						g_flight_sim_side_effects_suppressed);
 					g_mission_fg_stats[index].outcome_count
 						[FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT] =
 						0;
@@ -3839,6 +4171,12 @@ int16_t mission_close_unavailable_flight_group_accounting(int flight_group_idx)
 		unavailable_special_cargo_count;
 	g_mission_fg_stats[flight_group_idx].has_arrived = 1;
 	g_mission_fg_stats[flight_group_idx].waves_remaining = 0;
+	if (g_flight_sim_side_effects_suppressed == 0) {
+		XVT_LOG_INFO(
+			"mission.group_arrival_cancelled fg=%d count=%d special=%d arrived=%d",
+			flight_group_idx, (int)unavailable_count,
+			(int)unavailable_special_cargo_count, (int)result);
+	}
 	return result;
 }
 
@@ -3880,6 +4218,15 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 		craft = victim->mobj->p_craft;
 	}
 	if (craft == NULL || craft->damage_stats.damage_received_total == 0) {
+		XVT_LOG_DEBUG(
+			"mission.kill_credit_direct object=%d source=%d slot=%d team=%d record=%d predicted=%d",
+			(int)victim_obj_idx, (int)source_obj_idx,
+			g_object_table[source_obj_idx].player_owner_idx,
+			(int)g_mission_flight_groups
+				[g_object_table[source_obj_idx]
+					 .flight_group_idx]
+					.fg.team,
+			craft != NULL, g_flight_sim_side_effects_suppressed);
 		if (g_object_table[source_obj_idx].player_owner_idx != -1) {
 			mission_credit_player_kill_contribution(
 				victim_obj_idx, 0, 3,
@@ -3892,6 +4239,13 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 							 .player_owner_idx];
 				owner_player->mission_stats
 					.worse_rating_promo_points += 4;
+				XVT_LOG_DEBUG(
+					"mission.mine_rating_awarded slot=%d total=%d predicted=%d",
+					g_object_table[source_obj_idx]
+						.player_owner_idx,
+					owner_player->mission_stats
+						.worse_rating_promo_points,
+					g_flight_sim_side_effects_suppressed);
 			}
 		}
 		mission_credit_team_kill_contribution(
@@ -3925,6 +4279,13 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 							.flight_group_idx]
 				.fg.group_ai;
 	}
+	XVT_LOG_DEBUG(
+		"mission.kill_damage object=%d source=%d fg=%d owner=%d rating=%d special=%d total=%d flown=%d predicted=%d",
+		(int)victim_obj_idx, (int)source_obj_idx,
+		victim_flight_group_index, victim_owner_idx, victim_rating,
+		special_cargo, craft->damage_stats.damage_received_total,
+		craft->damage_stats.damage_received_by_player_owned_craft,
+		g_flight_sim_side_effects_suppressed);
 
 	int award_rating;
 	for (int player_index = 0; player_index < PLAYER_COUNT;
@@ -3946,6 +4307,13 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 			contribution_tier = 0;
 		}
 		if (contribution_tier != 0) {
+			XVT_LOG_DEBUG(
+				"mission.kill_share slot=%d object=%d share=%u tier=%d damage=%d predicted=%d",
+				player_index, (int)victim_obj_idx,
+				(unsigned)damage_share_q16, contribution_tier,
+				craft->damage_stats
+					.damage_from_player[player_index],
+				g_flight_sim_side_effects_suppressed);
 			mission_credit_player_kill_contribution(
 				victim_obj_idx, special_cargo,
 				contribution_tier, player_index,
@@ -4067,6 +4435,19 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 								.mission_stats
 								.rating_promo_points +=
 								rating_points;
+							XVT_LOG_DEBUG(
+								"mission.rating_awarded slot=%d kind=\"better\" points=%d total=%d award=%d factor=%d weight=%d attacker=%d minimum=%d predicted=%d",
+								player_index,
+								rating_points,
+								g_players[player_index]
+									.mission_stats
+									.rating_promo_points,
+								award_rating,
+								rating_factor,
+								victim_rating_weight,
+								attacker_rating_weight,
+								minimum_rating_award,
+								g_flight_sim_side_effects_suppressed);
 #ifdef XVT_MODERN
 							sprintf(g_flight_text_scratch_buffer,
 								"Rating points awarded: %d to player: %d Better total: %d\n",
@@ -4122,6 +4503,19 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 								.mission_stats
 								.worse_rating_promo_points +=
 								rating_points;
+							XVT_LOG_DEBUG(
+								"mission.rating_awarded slot=%d kind=\"worse\" points=%d total=%d award=%d factor=%d weight=%d attacker=%d minimum=%d predicted=%d",
+								player_index,
+								rating_points,
+								g_players[player_index]
+									.mission_stats
+									.worse_rating_promo_points,
+								award_rating,
+								rating_factor,
+								victim_rating_weight,
+								attacker_rating_weight,
+								minimum_rating_award,
+								g_flight_sim_side_effects_suppressed);
 #ifdef XVT_MODERN
 							sprintf(g_flight_text_scratch_buffer,
 								"Rating points awarded: %d to player: %d Worse total: %d\n",
@@ -4160,6 +4554,18 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 								 [player_index]
 									 .team] +=
 							attribution_credit;
+						XVT_LOG_DEBUG(
+							"mission.kill_attributed slot=%d team=%d credit=%d team_credit=%d predicted=%d",
+							player_index,
+							(int)g_players
+								[player_index]
+									.team,
+							attribution_credit,
+							player_contribution_by_team
+								[(uint16_t)g_players
+									 [player_index]
+										 .team],
+							g_flight_sim_side_effects_suppressed);
 					}
 				}
 			}
@@ -4212,6 +4618,13 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 				contribution_tier = 0;
 			}
 			if (contribution_tier != 0) {
+				XVT_LOG_DEBUG(
+					"mission.team_kill_share team=%d object=%d share=%u tier=%d damage=%u fg=%d predicted=%d",
+					team_index, (int)victim_obj_idx,
+					(unsigned)damage_share_q16,
+					contribution_tier, team_damage,
+					largest_flight_group,
+					g_flight_sim_side_effects_suppressed);
 				mission_credit_team_kill_contribution(
 					victim_obj_idx, special_cargo,
 					contribution_tier, team_index);
@@ -4233,6 +4646,19 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 							  .kills_full_from_flight_group
 								  [largest_flight_group];
 					}
+					XVT_LOG_DEBUG(
+						"mission.kill_credit_group team=%d fg=%d object=%d share=\"full\" owner=%d kills=%u predicted=%d",
+						team_index,
+						largest_flight_group,
+						(int)victim_obj_idx,
+						victim_owner_idx,
+						victim_owner_idx != -1
+							? (unsigned)g_players[victim_owner_idx]
+								  .per_mission_kills
+								  .kills_full_from_flight_group
+									  [largest_flight_group]
+							: 0u,
+						g_flight_sim_side_effects_suppressed);
 				} else if (remaining_credit == 1) {
 					mission_record_player_craft_loss_attribution(
 						largest_flight_group,
@@ -4243,6 +4669,19 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 							  .kills_shared_from_flight_group
 								  [largest_flight_group];
 					}
+					XVT_LOG_DEBUG(
+						"mission.kill_credit_group team=%d fg=%d object=%d share=\"shared\" owner=%d kills=%u predicted=%d",
+						team_index,
+						largest_flight_group,
+						(int)victim_obj_idx,
+						victim_owner_idx,
+						victim_owner_idx != -1
+							? (unsigned)g_players[victim_owner_idx]
+								  .per_mission_kills
+								  .kills_shared_from_flight_group
+									  [largest_flight_group]
+							: 0u,
+						g_flight_sim_side_effects_suppressed);
 				}
 			}
 		}
@@ -4317,6 +4756,26 @@ void mission_credit_player_kill_contribution(
 			}
 			goal_score_reduction_level = 10;
 			score /= 10;
+			XVT_LOG_DEBUG(
+				"mission.kill_counted slot=%d object=%d fg=%d owner=%d rating=%d share=\"assist\" kills=%u predicted=%d",
+				player_idx, (int)victim_obj_idx,
+				(int)flight_group_idx, victim_owner_idx,
+				victim_rating,
+				(unsigned)g_players[player_idx]
+					.per_mission_kills
+					.kills_assist_on_flight_group
+						[flight_group_idx],
+				g_flight_sim_side_effects_suppressed);
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_INFO(
+					"battle.kill by=%d victim=%d owner=%d fg=%d craft=%d share=\"assist\" tick=%d",
+					player_idx, (int)victim_obj_idx,
+					victim_owner_idx, (int)flight_group_idx,
+					(int)g_mission_flight_groups
+						[flight_group_idx]
+							.fg.craft_type,
+					g_game_time);
+			}
 			break;
 		case 2:
 			g_players[player_idx]
@@ -4342,6 +4801,26 @@ void mission_credit_player_kill_contribution(
 			}
 			goal_score_reduction_level = 6;
 			score /= 2;
+			XVT_LOG_DEBUG(
+				"mission.kill_counted slot=%d object=%d fg=%d owner=%d rating=%d share=\"shared\" kills=%u predicted=%d",
+				player_idx, (int)victim_obj_idx,
+				(int)flight_group_idx, victim_owner_idx,
+				victim_rating,
+				(unsigned)g_players[player_idx]
+					.per_mission_kills
+					.kills_shared_on_flight_group
+						[flight_group_idx],
+				g_flight_sim_side_effects_suppressed);
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_INFO(
+					"battle.kill by=%d victim=%d owner=%d fg=%d craft=%d share=\"shared\" tick=%d",
+					player_idx, (int)victim_obj_idx,
+					victim_owner_idx, (int)flight_group_idx,
+					(int)g_mission_flight_groups
+						[flight_group_idx]
+							.fg.craft_type,
+					g_game_time);
+			}
 			break;
 		case 3:
 			g_players[player_idx]
@@ -4365,6 +4844,26 @@ void mission_credit_player_kill_contribution(
 						[victim_rating]++;
 			}
 			goal_score_reduction_level = 1;
+			XVT_LOG_DEBUG(
+				"mission.kill_counted slot=%d object=%d fg=%d owner=%d rating=%d share=\"full\" kills=%u predicted=%d",
+				player_idx, (int)victim_obj_idx,
+				(int)flight_group_idx, victim_owner_idx,
+				victim_rating,
+				(unsigned)g_players[player_idx]
+					.per_mission_kills
+					.kills_full_on_flight_group
+						[flight_group_idx],
+				g_flight_sim_side_effects_suppressed);
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_INFO(
+					"battle.kill by=%d victim=%d owner=%d fg=%d craft=%d share=\"full\" tick=%d",
+					player_idx, (int)victim_obj_idx,
+					victim_owner_idx, (int)flight_group_idx,
+					(int)g_mission_flight_groups
+						[flight_group_idx]
+							.fg.craft_type,
+					g_game_time);
+			}
 			break;
 		default:
 			break;
@@ -4381,6 +4880,20 @@ void mission_credit_player_kill_contribution(
 			    (uint16_t)g_players[player_idx].team) >= 0) {
 			g_players[player_idx].mission_stats.mission_score +=
 				score;
+			XVT_LOG_DEBUG(
+				"mission.kill_scored slot=%d object=%d tier=%d score=%d total=%d difficulty=%d predicted=%d",
+				player_idx, (int)victim_obj_idx,
+				contribution_tier, score,
+				g_players[player_idx]
+					.mission_stats.mission_score,
+				(int)g_flight_mission_state.difficulty,
+				g_flight_sim_side_effects_suppressed);
+		} else {
+			XVT_LOG_DEBUG(
+				"mission.kill_score_withheld slot=%d object=%d tier=%d score=%d predicted=%d",
+				player_idx, (int)victim_obj_idx,
+				contribution_tier, score,
+				g_flight_sim_side_effects_suppressed);
 		}
 		if (contribution_tier == 3 && g_local_player == player_idx) {
 			fsfx_speak_wingman_event(g_local_player, -1, 21, -1, -1,
@@ -4392,6 +4905,25 @@ void mission_credit_player_kill_contribution(
 		g_players[player_idx].mission_stats.mission_score -= score;
 		g_players[player_idx].per_mission_kills.friendlies_killed++;
 		g_players[player_idx].mission_stats.rating_promo_points -= 500;
+		XVT_LOG_DEBUG(
+			"mission.friendly_kill_penalty slot=%d object=%d tier=%d score=%d total=%d promotion=%d friendlies=%u predicted=%d",
+			player_idx, (int)victim_obj_idx, contribution_tier,
+			score,
+			g_players[player_idx].mission_stats.mission_score,
+			g_players[player_idx].mission_stats.rating_promo_points,
+			(unsigned)g_players[player_idx]
+				.per_mission_kills.friendlies_killed,
+			g_flight_sim_side_effects_suppressed);
+		if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_INFO(
+				"battle.friendly_kill by=%d victim=%d owner=%d fg=%d craft=%d share=\"%s\" penalty=%d tick=%d",
+				player_idx, (int)victim_obj_idx,
+				victim_owner_idx, (int)flight_group_idx,
+				(int)g_mission_flight_groups[flight_group_idx]
+					.fg.craft_type,
+				contribution_tier == 3 ? "full" : "shared",
+				score, g_game_time);
+		}
 		g_msg_sender_iff = g_players[player_idx].iff;
 		msg_emit_in_flight_message(
 			IFMSG_281_YOU_HAVE_DESTROYED_A_CRAFT_ON_YOUR_OWN_SIDE,
@@ -4437,17 +4969,38 @@ void mission_credit_team_kill_contribution(uint16_t victim_obj_idx,
 				  .team_kill_stats[2][team_idx];
 			goal_score_reduction_level = 10;
 			score /= 10;
+			XVT_LOG_DEBUG(
+				"mission.team_kill_counted team=%d object=%d fg=%d share=\"assist\" kills=%u predicted=%d",
+				team_idx, (int)victim_obj_idx,
+				(int)flight_group_idx,
+				(unsigned)g_flight_mission_state.runtime
+					.team_kill_stats[2][team_idx],
+				g_flight_sim_side_effects_suppressed);
 			break;
 		case 2:
 			++g_flight_mission_state.runtime
 				  .team_kill_stats[1][team_idx];
 			goal_score_reduction_level = 6;
 			score /= 2;
+			XVT_LOG_DEBUG(
+				"mission.team_kill_counted team=%d object=%d fg=%d share=\"shared\" kills=%u predicted=%d",
+				team_idx, (int)victim_obj_idx,
+				(int)flight_group_idx,
+				(unsigned)g_flight_mission_state.runtime
+					.team_kill_stats[1][team_idx],
+				g_flight_sim_side_effects_suppressed);
 			break;
 		case 3:
 			++g_flight_mission_state.runtime
 				  .team_kill_stats[0][team_idx];
 			goal_score_reduction_level = 1;
+			XVT_LOG_DEBUG(
+				"mission.team_kill_counted team=%d object=%d fg=%d share=\"full\" kills=%u predicted=%d",
+				team_idx, (int)victim_obj_idx,
+				(int)flight_group_idx,
+				(unsigned)g_flight_mission_state.runtime
+					.team_kill_stats[0][team_idx],
+				g_flight_sim_side_effects_suppressed);
 			break;
 		}
 		if (g_flight_mission_state.difficulty == 2) {
@@ -4461,11 +5014,31 @@ void mission_credit_team_kill_contribution(uint16_t victim_obj_idx,
 			g_flight_mission_state.runtime
 				.team_scores[TEAM_SCORE_MISSION][team_idx] +=
 				score;
+			XVT_LOG_DEBUG(
+				"mission.team_kill_scored team=%d object=%d tier=%d score=%d total=%d predicted=%d",
+				team_idx, (int)victim_obj_idx,
+				contribution_tier, score,
+				g_flight_mission_state.runtime
+					.team_scores[TEAM_SCORE_MISSION]
+						    [team_idx],
+				g_flight_sim_side_effects_suppressed);
+		} else {
+			XVT_LOG_DEBUG(
+				"mission.team_kill_score_withheld team=%d object=%d tier=%d score=%d predicted=%d",
+				team_idx, (int)victim_obj_idx,
+				contribution_tier, score,
+				g_flight_sim_side_effects_suppressed);
 		}
 	} else if (contribution_tier == 2 || contribution_tier == 3) {
 		g_flight_mission_state.runtime
 			.team_scores[TEAM_SCORE_MISSION][team_idx] -=
 			mission_compute_kill_score_for_object(victim_obj_idx);
+		XVT_LOG_DEBUG(
+			"mission.team_friendly_kill team=%d object=%d tier=%d total=%d predicted=%d",
+			team_idx, (int)victim_obj_idx, contribution_tier,
+			g_flight_mission_state.runtime
+				.team_scores[TEAM_SCORE_MISSION][team_idx],
+			g_flight_sim_side_effects_suppressed);
 	}
 }
 
@@ -4485,10 +5058,20 @@ void mission_record_projectile_hit_stats(uint16_t projectile_obj_idx)
 	int owner_obj_idx =
 		g_object_table[projectile_obj_idx].mobj->source_obj_idx;
 	if (g_active_region_craft_object_slot_end <= owner_obj_idx) {
+		XVT_LOG_DEBUG(
+			"mission.hit_uncounted projectile=%d source=%d type=%d reason=\"not_craft\" predicted=%d",
+			(int)projectile_obj_idx, owner_obj_idx,
+			(int)g_object_table[projectile_obj_idx].object_type,
+			g_flight_sim_side_effects_suppressed);
 		return;
 	}
 
 	if (g_object_table[owner_obj_idx].object_type == 0) {
+		XVT_LOG_DEBUG(
+			"mission.hit_uncounted projectile=%d source=%d type=%d reason=\"gone\" predicted=%d",
+			(int)projectile_obj_idx, owner_obj_idx,
+			(int)g_object_table[projectile_obj_idx].object_type,
+			g_flight_sim_side_effects_suppressed);
 		return;
 	}
 
@@ -4512,6 +5095,18 @@ void mission_record_projectile_hit_stats(uint16_t projectile_obj_idx)
 			++g_players[owner_player_idx]
 				  .mission_stats.laser_hits_scored;
 		}
+		XVT_LOG_DEBUG(
+			"mission.hit_counted projectile=%d source=%d type=%d kind=\"laser\" slot=%d hits=%u player_hits=%u predicted=%d",
+			(int)projectile_obj_idx, owner_obj_idx,
+			(int)g_object_table[projectile_obj_idx].object_type,
+			owner_player_idx,
+			(unsigned)owner_craft->weapon_stats.laser_hits_scored,
+			(player_projectile_slot_end > projectile_obj_idx &&
+			 owner_player_idx != -1)
+				? (unsigned)g_players[owner_player_idx]
+					  .mission_stats.laser_hits_scored
+				: 0u,
+			g_flight_sim_side_effects_suppressed);
 		break;
 
 	case PROJECTILE_OBJECT_TYPE_ION_LASER:
@@ -4522,6 +5117,18 @@ void mission_record_projectile_hit_stats(uint16_t projectile_obj_idx)
 			++g_players[owner_player_idx]
 				  .mission_stats.ion_hits_scored;
 		}
+		XVT_LOG_DEBUG(
+			"mission.hit_counted projectile=%d source=%d type=%d kind=\"ion\" slot=%d hits=%u player_hits=%u predicted=%d",
+			(int)projectile_obj_idx, owner_obj_idx,
+			(int)g_object_table[projectile_obj_idx].object_type,
+			owner_player_idx,
+			(unsigned)owner_craft->weapon_stats.ion_hits_scored,
+			(player_projectile_slot_end > projectile_obj_idx &&
+			 owner_player_idx != -1)
+				? (unsigned)g_players[owner_player_idx]
+					  .mission_stats.ion_hits_scored
+				: 0u,
+			g_flight_sim_side_effects_suppressed);
 		break;
 
 	case WARHEAD_OBJECT_TYPE_PROTON_TORPEDO:
@@ -4546,6 +5153,22 @@ void mission_record_projectile_hit_stats(uint16_t projectile_obj_idx)
 					[g_object_table[projectile_obj_idx]
 						 .object_type -
 					 PROJECTILE_OBJECT_TYPE_FIRST];
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_INFO(
+					"battle.warhead_hit by=%d warhead=%d own=%d score=%u tick=%d",
+					owner_player_idx,
+					(int)g_object_table[projectile_obj_idx]
+						.object_type,
+					g_players[owner_player_idx]
+							.object_index ==
+						owner_obj_idx,
+					(unsigned)g_projectile_type_data.warhead_point_value
+						[g_object_table
+							 [projectile_obj_idx]
+								 .object_type -
+						 PROJECTILE_OBJECT_TYPE_FIRST],
+					g_game_time);
+			}
 		}
 		g_flight_mission_state.runtime.team_scores
 			[TEAM_SCORE_MISSION]
@@ -4554,10 +5177,36 @@ void mission_record_projectile_hit_stats(uint16_t projectile_obj_idx)
 				[g_object_table[projectile_obj_idx]
 					 .object_type -
 				 PROJECTILE_OBJECT_TYPE_FIRST];
+		XVT_LOG_DEBUG(
+			"mission.warhead_hit_counted projectile=%d source=%d type=%d slot=%d hits=%u player_hits=%u value=%u team=%d team_score=%d predicted=%d",
+			(int)projectile_obj_idx, owner_obj_idx,
+			(int)g_object_table[projectile_obj_idx].object_type,
+			owner_player_idx,
+			(unsigned)owner_craft->weapon_stats.warhead_hits_scored,
+			(player_projectile_slot_end > projectile_obj_idx &&
+			 owner_player_idx != -1)
+				? (unsigned)g_players[owner_player_idx]
+					  .per_mission_kills.warhead_hits
+				: 0u,
+			(unsigned)g_projectile_type_data.warhead_point_value
+				[g_object_table[projectile_obj_idx]
+					 .object_type -
+				 PROJECTILE_OBJECT_TYPE_FIRST],
+			(int)g_mission_flight_groups[flight_group_idx].fg.team,
+			g_flight_mission_state.runtime.team_scores
+				[TEAM_SCORE_MISSION]
+				[g_mission_flight_groups[flight_group_idx]
+					 .fg.team],
+			g_flight_sim_side_effects_suppressed);
 		break;
 	}
 
 	default:
+		XVT_LOG_DEBUG(
+			"mission.hit_uncounted projectile=%d source=%d type=%d reason=\"type\" predicted=%d",
+			(int)projectile_obj_idx, owner_obj_idx,
+			(int)g_object_table[projectile_obj_idx].object_type,
+			g_flight_sim_side_effects_suppressed);
 		break;
 	}
 }
@@ -4594,6 +5243,15 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 	++g_flight_mission_state.runtime.team_kill_stats
 		  [3]
 		  [g_mission_flight_groups[object->flight_group_idx].fg.team];
+	XVT_LOG_DEBUG(
+		"mission.craft_lost object=%d fg=%d team=%d penalty=%d team_score=%d losses=%u predicted=%d",
+		(int)obj_idx, (int)object->flight_group_idx, team_idx,
+		point_penalty,
+		g_flight_mission_state.runtime
+			.team_scores[TEAM_SCORE_MISSION][team_idx],
+		(unsigned)g_flight_mission_state.runtime
+			.team_kill_stats[3][team_idx],
+		g_flight_sim_side_effects_suppressed);
 	int owner_player_idx = object->player_owner_idx;
 	if (owner_player_idx == -1) {
 		owner_player_idx =
@@ -4608,6 +5266,12 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 	struct craft_data *craft = object->mobj->p_craft;
 	g_players[owner_player_idx].mission_stats.mission_score -=
 		point_penalty;
+	XVT_LOG_DEBUG(
+		"mission.player_craft_lost slot=%d object=%d own=%d penalty=%d score=%d predicted=%d",
+		owner_player_idx, (int)obj_idx, object->player_owner_idx != -1,
+		point_penalty,
+		g_players[owner_player_idx].mission_stats.mission_score,
+		g_flight_sim_side_effects_suppressed);
 	unsigned int player_idx;
 	int ai_skill_idx;
 	if (allow_pending_damage_credit != 0) {
@@ -4644,6 +5308,12 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 			mission_credit_destruction_damage_contributors(obj_idx,
 								       obj_idx);
 		}
+		XVT_LOG_DEBUG(
+			"mission.pending_damage object=%d pending=%u remaining=%u credited=%d predicted=%d",
+			(int)obj_idx, (unsigned)pending_damage,
+			(unsigned)remaining_durability,
+			pending_damage > remaining_durability,
+			g_flight_sim_side_effects_suppressed);
 	}
 
 	if ((uint16_t)math2_longratio_q16(
@@ -4683,6 +5353,15 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 				++g_players[owner_player_idx]
 					  .per_mission_kills
 					  .losses_by_collisions;
+				if (g_flight_sim_side_effects_suppressed == 0) {
+					XVT_LOG_INFO(
+						"battle.loss who=%d cause=\"collision\" by=%d eject=%d tick=%d",
+						owner_player_idx,
+						credited_player_idx,
+						allow_pending_damage_credit !=
+							0,
+						g_game_time);
+				}
 			} else if (starship_damage >= mine_damage &&
 				   starship_damage >= collision_damage &&
 				   starship_damage >= player_damage &&
@@ -4690,12 +5369,30 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 				++g_players[owner_player_idx]
 					  .per_mission_kills
 					  .losses_by_starships;
+				if (g_flight_sim_side_effects_suppressed == 0) {
+					XVT_LOG_INFO(
+						"battle.loss who=%d cause=\"starship\" by=%d eject=%d tick=%d",
+						owner_player_idx,
+						credited_player_idx,
+						allow_pending_damage_credit !=
+							0,
+						g_game_time);
+				}
 			} else if (mine_damage >= starship_damage &&
 				   mine_damage >= collision_damage &&
 				   mine_damage >= player_damage &&
 				   mine_damage >= ai_damage) {
 				++g_players[owner_player_idx]
 					  .per_mission_kills.losses_by_mines;
+				if (g_flight_sim_side_effects_suppressed == 0) {
+					XVT_LOG_INFO(
+						"battle.loss who=%d cause=\"mine\" by=%d eject=%d tick=%d",
+						owner_player_idx,
+						credited_player_idx,
+						allow_pending_damage_credit !=
+							0,
+						g_game_time);
+				}
 			} else if (player_damage >= starship_damage &&
 				   player_damage >= collision_damage &&
 				   player_damage >= mine_damage &&
@@ -4723,6 +5420,15 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 				if (top_player_rating != -1) {
 					credited_player_idx = top_player_idx;
 				}
+				if (g_flight_sim_side_effects_suppressed == 0) {
+					XVT_LOG_INFO(
+						"battle.loss who=%d cause=\"player\" by=%d eject=%d tick=%d",
+						owner_player_idx,
+						credited_player_idx,
+						allow_pending_damage_credit !=
+							0,
+						g_game_time);
+				}
 			} else {
 				uint32_t max_ai_damage = 0;
 				for (ai_skill_idx = 0;
@@ -4739,8 +5445,46 @@ int mission_record_player_craft_loss(unsigned int obj_idx,
 									[ai_skill_idx];
 					}
 				}
+				if (g_flight_sim_side_effects_suppressed == 0) {
+					XVT_LOG_INFO(
+						"battle.loss who=%d cause=\"computer\" by=%d eject=%d tick=%d",
+						owner_player_idx,
+						credited_player_idx,
+						allow_pending_damage_credit !=
+							0,
+						g_game_time);
+				}
 			}
+		} else if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_INFO(
+				"battle.loss who=%d cause=\"unknown\" by=%d eject=%d tick=%d",
+				owner_player_idx, credited_player_idx,
+				allow_pending_damage_credit != 0, g_game_time);
 		}
+		XVT_LOG_DEBUG(
+			"mission.loss_classified slot=%d object=%d losses=%u from_player=%u from_ai=%u from_collision=%u from_starship=%u from_mine=%u collisions=%u starships=%u mines=%u by=%d predicted=%d",
+			owner_player_idx, (int)obj_idx,
+			(unsigned)g_players[owner_player_idx]
+				.per_mission_kills.total_craft_losses,
+			(unsigned)player_damage, (unsigned)ai_damage,
+			(unsigned)collision_damage, (unsigned)starship_damage,
+			(unsigned)mine_damage,
+			(unsigned)g_players[owner_player_idx]
+				.per_mission_kills.losses_by_collisions,
+			(unsigned)g_players[owner_player_idx]
+				.per_mission_kills.losses_by_starships,
+			(unsigned)g_players[owner_player_idx]
+				.per_mission_kills.losses_by_mines,
+			credited_player_idx,
+			g_flight_sim_side_effects_suppressed);
+	} else {
+		XVT_LOG_DEBUG(
+			"mission.loss_not_counted slot=%d object=%d flown=%d total=%d predicted=%d",
+			owner_player_idx, (int)obj_idx,
+			craft->damage_stats
+				.damage_received_by_player_owned_craft,
+			craft->damage_stats.damage_received_total,
+			g_flight_sim_side_effects_suppressed);
 	}
 	return credited_player_idx;
 }
@@ -4791,6 +5535,14 @@ void mission_record_player_craft_loss_attribution(int attacker_flight_group_idx,
 			++g_players[victim_player_idx]
 				  .per_mission_kills
 				  .killed_by_player_rating[pilot_rating];
+			XVT_LOG_DEBUG(
+				"mission.loss_attributed slot=%d fg=%d by=%d kind=\"player\" rating=%u count=%u predicted=%d",
+				victim_player_idx, attacker_flight_group_idx,
+				attacker_player_idx, pilot_rating,
+				(unsigned)g_players[victim_player_idx]
+					.per_mission_kills
+					.killed_by_player_rating[pilot_rating],
+				g_flight_sim_side_effects_suppressed);
 		}
 		return;
 	}
@@ -4803,6 +5555,14 @@ void mission_record_player_craft_loss_attribution(int attacker_flight_group_idx,
 			++g_players[victim_player_idx]
 				  .per_mission_kills
 				  .killed_by_ai_rating[group_ai];
+			XVT_LOG_DEBUG(
+				"mission.loss_attributed slot=%d fg=%d by=%d kind=\"computer\" rating=%u count=%u predicted=%d",
+				victim_player_idx, attacker_flight_group_idx,
+				-1, group_ai,
+				(unsigned)g_players[victim_player_idx]
+					.per_mission_kills
+					.killed_by_ai_rating[group_ai],
+				g_flight_sim_side_effects_suppressed);
 		}
 	}
 }
@@ -4879,6 +5639,38 @@ int mission_apply_flight_group_goal_score(int16_t event_condition,
 							    [team_idx] += score;
 				}
 				score_total += score;
+				XVT_LOG_DEBUG(
+					"mission.bonus_paid fg=%d goal=%d team=%d slot=%d condition=%d points=%d level=%u score=%d total=%d seconds=%u predicted=%d",
+					(int)flight_group_idx, goal_index,
+					team_idx, player_idx,
+					(int)event_condition, (int)goal->points,
+					(unsigned)goal_score_reduction_level,
+					score,
+					player_idx != -1
+						? g_players[player_idx]
+							  .mission_stats
+							  .mission_score
+						: g_flight_mission_state.runtime
+							  .team_scores
+								  [TEAM_SCORE_MISSION]
+								  [team_idx],
+					mission_time_seconds,
+					g_flight_sim_side_effects_suppressed);
+				if (g_flight_sim_side_effects_suppressed == 0) {
+					XVT_LOG_INFO(
+						"battle.bonus_scored team=%d goal=%d fg=%d by=%d score=%d tick=%d",
+						team_idx, goal_index,
+						(int)flight_group_idx,
+						player_idx, score, g_game_time);
+				}
+			} else {
+				XVT_LOG_DEBUG(
+					"mission.bonus_late fg=%d goal=%d team=%d slot=%d seconds=%u limit=%u predicted=%d",
+					(int)flight_group_idx, goal_index,
+					team_idx, player_idx,
+					mission_time_seconds,
+					time_limit_seconds,
+					g_flight_sim_side_effects_suppressed);
 			}
 		}
 		++goal;
@@ -4931,6 +5723,12 @@ void mission_apply_team_goal_score_all_enabled_teams(int16_t event_condition,
 			if (time_limit_seconds == 0 ||
 			    elapsed_seconds <= time_limit_seconds) {
 				score = goal->points;
+			} else if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_WARN(
+					"mission.bonus_score_stale fg=%d goal=%d seconds=%u limit=%u",
+					(int)flight_group_idx,
+					8 - remaining_goals, elapsed_seconds,
+					time_limit_seconds);
 			}
 			score *= 250;
 			int team_index = 0;
@@ -4939,6 +5737,28 @@ void mission_apply_team_goal_score_all_enabled_teams(int16_t event_condition,
 					g_flight_mission_state.runtime
 						.team_scores[0][team_index] +=
 						score;
+					XVT_LOG_DEBUG(
+						"mission.team_bonus_paid team=%d fg=%d goal=%d condition=%d score=%d total=%d late=%d predicted=%d",
+						team_index,
+						(int)flight_group_idx,
+						8 - remaining_goals,
+						(int)event_condition, score,
+						g_flight_mission_state.runtime
+							.team_scores
+								[0][team_index],
+						time_limit_seconds != 0 &&
+							elapsed_seconds >
+								time_limit_seconds,
+						g_flight_sim_side_effects_suppressed);
+					if (g_flight_sim_side_effects_suppressed ==
+					    0) {
+						XVT_LOG_INFO(
+							"battle.bonus_scored team=%d goal=%d fg=%d by=%d score=%d tick=%d",
+							team_index,
+							8 - remaining_goals,
+							(int)flight_group_idx,
+							-1, score, g_game_time);
+					}
 				}
 				++team_index;
 			} while (team_index < 10);
@@ -4977,11 +5797,35 @@ void mission_apply_team_goal_score_for_team(int16_t event_condition,
 			if (time_limit_seconds == 0 ||
 			    elapsed_seconds <= time_limit_seconds) {
 				score = goal->points;
+			} else if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_WARN(
+					"mission.bonus_score_stale fg=%d goal=%d seconds=%u limit=%u",
+					(int)flight_group_idx,
+					8 - remaining_goals, elapsed_seconds,
+					time_limit_seconds);
 			}
 			score *= 250;
 			if (*enabled_team != 0) {
 				g_flight_mission_state.runtime
 					.team_scores[0][team_index] += score;
+				XVT_LOG_DEBUG(
+					"mission.team_bonus_paid team=%d fg=%d goal=%d condition=%d score=%d total=%d late=%d predicted=%d",
+					team_index, (int)flight_group_idx,
+					8 - remaining_goals,
+					(int)event_condition, score,
+					g_flight_mission_state.runtime
+						.team_scores[0][team_index],
+					time_limit_seconds != 0 &&
+						elapsed_seconds >
+							time_limit_seconds,
+					g_flight_sim_side_effects_suppressed);
+				if (g_flight_sim_side_effects_suppressed == 0) {
+					XVT_LOG_INFO(
+						"battle.bonus_scored team=%d goal=%d fg=%d by=%d score=%d tick=%d",
+						team_index, 8 - remaining_goals,
+						(int)flight_group_idx, -1,
+						score, g_game_time);
+				}
 			}
 		}
 		enabled_team += sizeof(*goal);
@@ -5022,6 +5866,11 @@ int mission_compute_kill_score_for_object(int victim_obj_idx)
 	if (g_mission_header.mission_type == MISSION_TYPE_MELEE) {
 		kill_score *= 3;
 	}
+	XVT_LOG_DEBUG(
+		"mission.kill_value object=%d type=%u value=%d melee=%d predicted=%d",
+		victim_obj_idx, object_type, kill_score,
+		g_mission_header.mission_type == MISSION_TYPE_MELEE,
+		g_flight_sim_side_effects_suppressed);
 	return kill_score;
 }
 
@@ -5068,6 +5917,10 @@ int mission_compute_craft_point_value(int obj_idx)
 					[warhead_type -
 					 PROJECTILE_OBJECT_TYPE_FIRST] *
 				weapon_count;
+		} else if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_WARN(
+				"mission.craft_value_type_unknown object=%d kind=\"warhead\" type=%u",
+				obj_idx, warhead_type);
 		}
 #else
 		point_value +=
@@ -5083,15 +5936,31 @@ int mission_compute_craft_point_value(int obj_idx)
 	if (countermeasure_type >=
 	    sizeof(g_countermeasure_type_point_value) /
 		    sizeof(g_countermeasure_type_point_value[0])) {
+		if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_WARN(
+				"mission.craft_value_type_unknown object=%d kind=\"countermeasure\" type=%u",
+				obj_idx, countermeasure_type);
+		}
 		countermeasure_type = 0;
 	}
 	if (beam_type >= sizeof(g_beam_type_point_value) /
 				 sizeof(g_beam_type_point_value[0])) {
+		if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_WARN(
+				"mission.craft_value_type_unknown object=%d kind=\"beam\" type=%u",
+				obj_idx, beam_type);
+		}
 		beam_type = 0;
 	}
 #endif
 	point_value += g_countermeasure_type_point_value[countermeasure_type];
 	point_value += g_beam_type_point_value[beam_type];
+	XVT_LOG_DEBUG(
+		"mission.craft_value object=%d type=%d value=%u base=%u launchers=%d countermeasure=%u beam=%u predicted=%d",
+		obj_idx, (int)g_object_table[obj_idx].object_type, point_value,
+		40u * g_model_defs[model_index].craft_point_value,
+		(int)craft->warhead_launcher_count, countermeasure_type,
+		beam_type, g_flight_sim_side_effects_suppressed);
 	return point_value;
 }
 
@@ -5262,6 +6131,18 @@ uint16_t mission_init(const char *file_name)
 		sizeof(struct warhead_guidance_state) *
 			(size_t)(g_projectile_object_slots_total + 1),
 		0);
+	if (g_object_table_handle == 0 || g_mobile_object_pool_handle == 0 ||
+	    g_mobile_object_char_data_handle == 0 ||
+	    g_craft_data_pool_handle == 0 ||
+	    g_warhead_guidance_pool_handle == 0) {
+		XVT_LOG_ERROR(
+			"mission.pools_alloc_failed objects=%u mobiles=%u chars=%u crafts=%u warheads=%u",
+			(unsigned)g_object_table_handle,
+			(unsigned)g_mobile_object_pool_handle,
+			(unsigned)g_mobile_object_char_data_handle,
+			(unsigned)g_craft_data_pool_handle,
+			(unsigned)g_warhead_guidance_pool_handle);
+	}
 	fe_disk_io_lock_global_buffers();
 
 	/* slot is this function's shared loop counter: by loop it holds an
@@ -5382,6 +6263,15 @@ uint16_t mission_init(const char *file_name)
 	g_flight_mission_state.proving_grounds_time_bonus = 0;
 
 	if (mission_load_file(file_name) == 0) {
+		XVT_LOG_ERROR(
+			"mission.load_failed file=\"%s\" version=%u reason=\"%s\"",
+			file_name, (unsigned)g_mission_file_version,
+			(g_mission_file_version == 12 ||
+			 g_mission_file_version == 13 ||
+			 g_mission_file_version == 14 ||
+			 g_mission_file_version == 0xFFFF)
+				? "read_error"
+				: "unknown_version");
 		return 0;
 	}
 
@@ -5568,6 +6458,43 @@ uint16_t mission_init(const char *file_name)
 											 [slot]
 										 .countermeasure_option];
 					}
+					XVT_LOG_DEBUG(
+						"mission.player_bound slot=%u entry=%d player=%u fg=%d team=%d iff=%d craft=%d count=%d warhead=%d beam=%d countermeasures=%d",
+						player_slot, (int)slot,
+						(unsigned)g_pilot_data
+							.network_players[slot]
+							.direct_play_id,
+						(int)assigned_flight_group,
+						(int)g_mission_flight_groups
+							[assigned_flight_group]
+								.fg.team,
+						(int)g_mission_flight_groups
+							[assigned_flight_group]
+								.fg.iff,
+						(int)g_mission_flight_groups
+							[assigned_flight_group]
+								.fg.craft_type,
+						(int)g_mission_flight_groups
+							[assigned_flight_group]
+								.fg
+								.number_of_craft,
+						(int)g_mission_flight_groups
+							[assigned_flight_group]
+								.fg.warhead,
+						(int)g_mission_flight_groups
+							[assigned_flight_group]
+								.fg.beam,
+						(int)g_mission_flight_groups
+							[assigned_flight_group]
+								.fg
+								.countermeasures);
+				} else {
+					XVT_LOG_WARN(
+						"mission.player_slot_missing entry=%d player=%u",
+						(int)slot,
+						(unsigned)g_pilot_data
+							.network_players[slot]
+							.direct_play_id);
 				}
 			}
 		}
@@ -5597,6 +6524,9 @@ uint16_t mission_init(const char *file_name)
 		    player_owned_team_count == 1) {
 			g_flight_mission_state.ai_opponents_enabled = 1;
 		}
+		XVT_LOG_DEBUG("mission.player_teams teams=%d ai=%d",
+			      player_owned_team_count,
+			      (int)g_flight_mission_state.ai_opponents_enabled);
 
 		if (g_game_config.craft_selection ==
 			    CRAFT_SELECTION_HOST_ONLY ||
@@ -5629,6 +6559,9 @@ uint16_t mission_init(const char *file_name)
 					break;
 				}
 			}
+			XVT_LOG_DEBUG("mission.craft_shared fg=%d selection=%d",
+				      (int)source_flight_group,
+				      (int)g_game_config.craft_selection);
 			for (flight_group_idx = 0;
 			     flight_group_idx <
 			     (int16_t)g_mission_header.num_flight_groups;
@@ -5728,6 +6661,8 @@ uint16_t mission_init(const char *file_name)
 					++player_owned_team_count;
 				}
 			}
+			XVT_LOG_DEBUG("mission.craft_by_team teams=%d",
+				      player_owned_team_count);
 			for (flight_group_idx = 0;
 			     flight_group_idx <
 			     (int16_t)g_mission_header.num_flight_groups;
@@ -5870,6 +6805,10 @@ uint16_t mission_init(const char *file_name)
 										[g_mission_flight_groups[target_fg]
 											 .fg
 											 .craft_type];
+									XVT_LOG_DEBUG(
+										"mission.ai_team_craft_replaced team=%d craft=%d",
+										(int)slot,
+										(int)replacement);
 
 									for (flight_group_idx =
 										     0;
@@ -5930,6 +6869,10 @@ uint16_t mission_init(const char *file_name)
 #ifdef XVT_MODERN
 							if (candidate_team ==
 							    TEAM_COUNT) {
+								XVT_LOG_WARN(
+									"mission.ai_team_source_missing team=%d teams=%d",
+									(int)slot,
+									player_owned_team_count);
 								continue;
 							}
 #endif
@@ -5974,6 +6917,12 @@ uint16_t mission_init(const char *file_name)
 							source_fg = (uint16_t)team_owned_flight_group
 								[source_team];
 						}
+						XVT_LOG_DEBUG(
+							"mission.ai_team_craft team=%d fg=%d groups=%d",
+							(int)slot,
+							(int)source_fg,
+							(int)g_mission_header
+								.num_flight_groups);
 
 						if (source_fg !=
 						    g_mission_header
@@ -6070,6 +7019,15 @@ uint16_t mission_init(const char *file_name)
 					g_mission_flight_groups
 						[flight_group_idx]
 							.fg.team;
+				XVT_LOG_DEBUG(
+					"mission.player_number_bound slot=%d fg=%d team=%d iff=%d",
+					player_idx, (int)flight_group_idx,
+					(int)g_mission_flight_groups
+						[flight_group_idx]
+							.fg.team,
+					(int)g_mission_flight_groups
+						[flight_group_idx]
+							.fg.iff);
 			} else {
 				g_mission_flight_groups[flight_group_idx]
 					.player_owner_idx = -1;
@@ -6148,6 +7106,22 @@ uint16_t mission_init(const char *file_name)
 								.fg
 								.number_of_optional_craft_waves
 									[option_idx];
+						XVT_LOG_DEBUG(
+							"mission.random_craft fg=%d option=%u craft=%d count=%d waves=%d",
+							(int)flight_group_idx,
+							option_idx,
+							(int)g_mission_flight_groups
+								[flight_group_idx]
+									.fg
+									.craft_type,
+							(int)g_mission_flight_groups
+								[flight_group_idx]
+									.fg
+									.number_of_craft,
+							(int)g_mission_flight_groups
+								[flight_group_idx]
+									.fg
+									.number_of_waves);
 					}
 				}
 			}
@@ -6158,6 +7132,9 @@ uint16_t mission_init(const char *file_name)
 	    (g_mission_header.mission_type != MISSION_TYPE_COMBAT ||
 	     g_pilot_data.num_human_players_last_mission < 2)) {
 		int player_team = (uint16_t)g_players[0].team;
+		XVT_LOG_DEBUG(
+			"mission.difficulty_applied difficulty=%d team=%d",
+			(int)g_flight_mission_state.difficulty, player_team);
 
 		for (flight_group_idx = 0;
 		     flight_group_idx <
@@ -6296,6 +7273,9 @@ uint16_t mission_init(const char *file_name)
 			}
 			if (ai_boost_team == TEAM_COUNT) {
 				ai_boost_team = team_player_fg_counts[0];
+				XVT_LOG_WARN(
+					"mission.melee_boost_team_missing team=%d teams=%d",
+					ai_boost_team, teams_without_owners);
 			}
 			if (g_pilot_data.mission_sequence_active == 1) {
 				g_pilot_data.melee_tournament_sequence_state
@@ -6311,6 +7291,8 @@ uint16_t mission_init(const char *file_name)
 		} else {
 			boost_count = 1;
 		}
+		XVT_LOG_DEBUG("mission.melee_boost team=%d boosts=%d",
+			      ai_boost_team, boost_count);
 		while (boost_count-- != 0) {
 			for (int flight_group = 0;
 			     flight_group < g_mission_header.num_flight_groups;
@@ -6335,6 +7317,9 @@ uint16_t mission_init(const char *file_name)
 
 	if (g_mission_header.mission_type == MISSION_TYPE_COMBAT &&
 	    g_pilot_data.num_human_players_last_mission >= 2) {
+		XVT_LOG_DEBUG("mission.combat_balance balance=%d humans=%u",
+			      (int)g_game_config.combat_balance,
+			      g_pilot_data.num_human_players_last_mission);
 		if (g_game_config.combat_balance ==
 		    COMBAT_BALANCE_AUTOBALANCE) {
 			if (player_owned_team_count == 1) {
@@ -6650,6 +7635,27 @@ uint16_t mission_init(const char *file_name)
 				}
 			}
 		}
+		XVT_LOG_DEBUG(
+			"mission.group_prepared fg=%d team=%d owner=%d craft=%d count=%d waves=%d ai=%d start=%u player_craft=%d special=%d only_human=%d",
+			(int)flight_group_idx,
+			(int)g_mission_flight_groups[flight_group_idx].fg.team,
+			g_mission_flight_groups[flight_group_idx]
+				.player_owner_idx,
+			(int)g_mission_flight_groups[flight_group_idx]
+				.fg.craft_type,
+			(int)g_mission_flight_groups[flight_group_idx]
+				.fg.number_of_craft,
+			(int)g_mission_flight_groups[flight_group_idx]
+				.fg.number_of_waves,
+			(int)g_mission_flight_groups[flight_group_idx]
+				.fg.group_ai,
+			(unsigned)mission_point_ref,
+			(int)g_mission_flight_groups[flight_group_idx]
+				.fg.player_craft,
+			(int)g_mission_flight_groups[flight_group_idx]
+				.fg.special_cargo_craft,
+			(int)g_mission_flight_groups[flight_group_idx]
+				.fg.arrive_only_if_human);
 	}
 
 	{
@@ -6675,6 +7681,12 @@ uint16_t mission_init(const char *file_name)
 					       backdrop_direction_starts[3];
 		backdrop_direction_starts[5] = g_backdrop_positive_z_count +
 					       backdrop_direction_starts[4];
+		XVT_LOG_DEBUG(
+			"mission.backdrops_generated backdrop=%u seed=%u defaults=%d",
+			(unsigned)g_mission_header.backdrop,
+			(unsigned)g_asteroid_field_rand_seed,
+			backdrop_direction_starts[5] +
+				g_backdrop_negative_z_count);
 
 		for (g_current_flight_group_idx = 0;
 		     g_current_flight_group_idx <
@@ -6707,6 +7719,14 @@ uint16_t mission_init(const char *file_name)
 							MODEL_ASSET_REQUIRED) !=
 							       0) {
 							++backdrop_type;
+						}
+						if (backdrop_type ==
+						    BACKDROP_MODEL_TYPE_LIMIT) {
+							XVT_LOG_WARN(
+								"mission.backdrop_types_full fg=%d model=%u",
+								current_flight_group,
+								(unsigned)
+									backdrop_type);
 						}
 						if (g_flight_bytes_per_pixel ==
 							    PALETTED_BYTES_PER_PIXEL &&
@@ -6785,11 +7805,21 @@ uint16_t mission_init(const char *file_name)
 					if (side >
 					    (unsigned int)
 						    BACKDROP_DIRECTION_MAX) {
+						XVT_LOG_WARN(
+							"mission.backdrop_side_clamped fg=%d side=%u",
+							current_flight_group,
+							(unsigned)side);
 						side = BACKDROP_DIRECTION_MAX;
 					}
 					uint16_t record_index =
 						backdrop_direction_starts
 							[side]++;
+					if (record_index >= 64) {
+						XVT_LOG_WARN(
+							"mission.backdrop_table_full fg=%d record=%u",
+							current_flight_group,
+							(unsigned)record_index);
+					}
 					g_backdrop_model_types[record_index] =
 						(uint8_t)backdrop_type;
 					uint8_t packed_y = (uint8_t)(-(
@@ -6807,6 +7837,12 @@ uint16_t mission_init(const char *file_name)
 								    .mission_point_x
 									    [0]) &
 							   0xF));
+					XVT_LOG_DEBUG(
+						"mission.backdrop_placed fg=%d model=%u side=%u record=%u",
+						current_flight_group,
+						(unsigned)backdrop_type,
+						(unsigned)side,
+						(unsigned)record_index);
 				}
 			}
 		}
@@ -6856,6 +7892,14 @@ uint16_t mission_init(const char *file_name)
 			(uint8_t)(10 -
 				  g_flight_mission_state.proving_grounds_level);
 	}
+	XVT_LOG_INFO(
+		"mission.prepared version=%u type=%d groups=%d messages=%d difficulty=%d minutes=%d",
+		(unsigned)g_mission_file_version,
+		(int)g_mission_header.mission_type,
+		(int)g_mission_header.num_flight_groups,
+		(int)g_mission_header.num_messages,
+		(int)g_flight_mission_state.difficulty,
+		(int)g_mission_countdown_clock.minutes);
 	flight_surface_lock();
 	return 1;
 }
@@ -6925,6 +7969,13 @@ void mission_init_flight_runtime_state(void)
 						 .fg.arrival_difficulty];
 		if (g_mission_fg_stats[g_current_flight_group_idx]
 			    .arrival_enabled == 0) {
+			XVT_LOG_DEBUG(
+				"mission.arrival_masked fg=%d difficulty=%d setting=%d",
+				(int)g_current_flight_group_idx,
+				(int)g_flight_mission_state.difficulty,
+				(int)g_mission_flight_groups
+					[g_current_flight_group_idx]
+						.fg.arrival_difficulty);
 			continue;
 		}
 
@@ -7088,6 +8139,10 @@ void mission_init_flight_runtime_state(void)
 			}
 		}
 		if ((arrival_state & CONDITION_STATE_FAILED) != 0) {
+			XVT_LOG_DEBUG(
+				"mission.arrival_trigger_failed fg=%d first=%d second=%d",
+				(int)g_current_flight_group_idx,
+				(int)first_pair_state, (int)second_pair_state);
 			g_mission_fg_stats[g_current_flight_group_idx]
 				.arrival_enabled = 0;
 		}
@@ -7271,6 +8326,18 @@ void mission_init_flight_runtime_state(void)
 					1;
 			}
 		}
+		XVT_LOG_DEBUG(
+			"mission.group_reset fg=%d total=%u cargo=%u enabled=%u arrived=%u",
+			(int)g_current_flight_group_idx,
+			(unsigned)g_mission_fg_stats[g_current_flight_group_idx]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL],
+			(unsigned)g_mission_fg_stats[g_current_flight_group_idx]
+				.special_cargo_outcome
+					[FLIGHT_GROUP_OUTCOME_TOTAL],
+			(unsigned)g_mission_fg_stats[g_current_flight_group_idx]
+				.arrival_enabled,
+			(unsigned)g_mission_fg_stats[g_current_flight_group_idx]
+				.has_arrived);
 	}
 
 	for (team_index = 0; team_index < TEAM_COUNT; ++team_index) {
@@ -7442,6 +8509,10 @@ void mission_init_flight_runtime_state(void)
 					}
 				}
 			}
+			XVT_LOG_DEBUG(
+				"mission.group_role fg=%d selector=%d code=%d",
+				(int)g_current_flight_group_idx,
+				(int)team_selector, designation_code);
 		}
 	}
 
@@ -7543,6 +8614,8 @@ void mission_init_flight_runtime_state(void)
 	g_flight_mission_state.runtime.global_primary_goal_status = 0;
 	g_flight_mission_state.runtime.global_bonus_goal_status = 0;
 	g_initial_spawn_bind_player_craft_slots = 0;
+	XVT_LOG_INFO("mission.runtime_ready objects=%d",
+		     g_next_object_signature - 1);
 	flight_surface_lock();
 }
 
@@ -7568,6 +8641,26 @@ int16_t mission_start_flight_group_arrival(uint16_t craft_ordinal)
 			g_mission_flight_groups[flight_group_index]
 				.fg.number_of_waves;
 		mission_spawn_flight_group_wave_craft(craft_ordinal);
+		if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_INFO(
+				"mission.group_arrived fg=%d craft=%d kind=\"craft\" ordinal=%d waves=%d arrived=%d total=%d start=%d tick=%d",
+				(int)flight_group_index,
+				(int)g_mission_flight_groups[flight_group_index]
+					.fg.craft_type,
+				craft_ordinal == UINT16_MAX
+					? -1
+					: (int)craft_ordinal,
+				(int)g_mission_fg_stats[flight_group_index]
+					.waves_remaining,
+				(int)g_mission_fg_stats[flight_group_index]
+					.outcome_count
+						[FLIGHT_GROUP_OUTCOME_ARRIVED],
+				(int)g_mission_fg_stats[flight_group_index]
+					.outcome_count
+						[FLIGHT_GROUP_OUTCOME_TOTAL],
+				(int)g_initial_spawn_bind_player_craft_slots,
+				g_game_time);
+		}
 		return 1;
 	}
 
@@ -7579,6 +8672,22 @@ int16_t mission_start_flight_group_arrival(uint16_t craft_ordinal)
 		g_mission_fg_stats[flight_group_index].waves_remaining = 0;
 	}
 	mission_spawn_flight_group_static_objects(craft_ordinal);
+	if (g_flight_sim_side_effects_suppressed == 0) {
+		XVT_LOG_INFO(
+			"mission.group_arrived fg=%d craft=%d kind=\"static\" ordinal=%d waves=%d arrived=%d total=%d start=%d tick=%d",
+			(int)flight_group_index,
+			(int)g_mission_flight_groups[flight_group_index]
+				.fg.craft_type,
+			craft_ordinal == UINT16_MAX ? -1 : (int)craft_ordinal,
+			(int)g_mission_fg_stats[flight_group_index]
+				.waves_remaining,
+			(int)g_mission_fg_stats[flight_group_index]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			(int)g_mission_fg_stats[flight_group_index]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL],
+			(int)g_initial_spawn_bind_player_craft_slots,
+			g_game_time);
+	}
 	return 1;
 }
 
@@ -7730,6 +8839,26 @@ void mission_update_flight_group_arrivals(void)
 							[g_current_flight_group_idx]
 								.arrival_delay_pending =
 							1;
+						XVT_LOG_DEBUG(
+							"mission.arrival_scheduled fg=%d first=%d second=%d either=%d slot=%d delay=%d fixed=%d random=%d range=%d varied=%d tick=%d predicted=%d",
+							(int)flight_group_idx,
+							(int)first_trigger_result,
+							(int)second_trigger_result,
+							(int)g_mission_flight_groups
+								[flight_group_idx]
+									.fg
+									.arrivals12_or_arrivals34,
+							g_mission_flight_groups
+								[flight_group_idx]
+									.player_owner_idx,
+							(int)*arrival_delay_timer,
+							(int)fixed_delay_seconds,
+							(int)random_delay,
+							(int)random_delay_seconds,
+							(int)g_flight_mission_state
+								.random_variation_enabled,
+							g_game_time,
+							g_flight_sim_side_effects_suppressed);
 					}
 				}
 				continue;
@@ -8017,6 +9146,56 @@ void mission_update_flight_group_arrivals(void)
 									[FLIGHT_GROUP_OUTCOME_LEFT_REGION] +=
 								unavailable_craft_count;
 						}
+						if (g_flight_sim_side_effects_suppressed ==
+						    0) {
+							XVT_LOG_INFO(
+								"mission.group_arrivals_stopped fg=%d rule=%d count=%d special=%d tick=%d",
+								(int)g_current_flight_group_idx,
+								(int)g_mission_flight_groups
+									[g_current_flight_group_idx]
+										.fg
+										.stop_arriving_when,
+								(int)unavailable_craft_count,
+								(int)unavailable_special_cargo_count,
+								g_game_time);
+						}
+						XVT_LOG_DEBUG(
+							"mission.arrivals_stop_reason fg=%d team=%d departed=%d primary=%d prevent=%d counted=\"%s\" predicted=%d",
+							(int)g_current_flight_group_idx,
+							(int)g_mission_flight_groups
+								[g_current_flight_group_idx]
+									.fg
+									.team,
+							(int)g_mission_fg_stats[g_current_flight_group_idx]
+								.outcome_count
+									[FLIGHT_GROUP_OUTCOME_DEPARTED],
+							(int)g_flight_mission_state
+								.runtime
+								.team_goal_status
+									[g_mission_flight_groups
+										 [g_current_flight_group_idx]
+											 .fg
+											 .team]
+									[0],
+							(int)g_flight_mission_state
+								.runtime
+								.team_goal_status
+									[g_mission_flight_groups
+										 [g_current_flight_group_idx]
+											 .fg
+											 .team]
+									[1],
+							(g_mission_flight_groups[g_current_flight_group_idx]
+									 .fg
+									 .departure_method !=
+								 0 ||
+							 g_mission_flight_groups[g_current_flight_group_idx]
+									 .fg
+									 .alternate_mothership_used !=
+								 0)
+								? "mothership_dependent"
+								: "left_region",
+							g_flight_sim_side_effects_suppressed);
 					} else if (
 						mission_has_capacity_for_current_flight_group_wave() !=
 						0) {
@@ -8053,6 +9232,13 @@ void mission_update_flight_group_arrivals(void)
 					--g_mission_fg_stats
 						  [g_current_flight_group_idx]
 							  .arrival_delay_timer;
+					XVT_LOG_DEBUG(
+						"mission.arrival_countdown fg=%d left=%d predicted=%d",
+						(int)g_current_flight_group_idx,
+						(int)g_mission_fg_stats
+							[g_current_flight_group_idx]
+								.arrival_delay_timer,
+						g_flight_sim_side_effects_suppressed);
 				}
 			}
 		}
@@ -8115,6 +9301,17 @@ void mission_process_flight_group_wave_completion(uint16_t flight_group_idx)
 	    g_flight_mission_state.runtime.team_goal_status
 			    [g_mission_flight_groups[flight_group_idx].fg.team]
 			    [1] == GOAL_STATUS_COMPLETE) {
+		XVT_LOG_DEBUG(
+			"mission.wave_held fg=%d team=%d primary=%d prevent=%d predicted=%d",
+			(int)flight_group_idx,
+			(int)g_mission_flight_groups[flight_group_idx].fg.team,
+			(int)g_flight_mission_state.runtime.team_goal_status
+				[g_mission_flight_groups[flight_group_idx]
+					 .fg.team][0],
+			(int)g_flight_mission_state.runtime.team_goal_status
+				[g_mission_flight_groups[flight_group_idx]
+					 .fg.team][1],
+			g_flight_sim_side_effects_suppressed);
 		return;
 	}
 	if (g_flight_mission_state.runtime.team_goal_status
@@ -8123,6 +9320,17 @@ void mission_process_flight_group_wave_completion(uint16_t flight_group_idx)
 	    g_flight_mission_state.runtime.team_goal_status
 			    [g_mission_flight_groups[flight_group_idx].fg.team]
 			    [1] == GOAL_STATUS_FAILED) {
+		XVT_LOG_DEBUG(
+			"mission.wave_held fg=%d team=%d primary=%d prevent=%d predicted=%d",
+			(int)flight_group_idx,
+			(int)g_mission_flight_groups[flight_group_idx].fg.team,
+			(int)g_flight_mission_state.runtime.team_goal_status
+				[g_mission_flight_groups[flight_group_idx]
+					 .fg.team][0],
+			(int)g_flight_mission_state.runtime.team_goal_status
+				[g_mission_flight_groups[flight_group_idx]
+					 .fg.team][1],
+			g_flight_sim_side_effects_suppressed);
 		return;
 	}
 	if (g_flight_mission_state.runtime.team_goal_status
@@ -8131,6 +9339,17 @@ void mission_process_flight_group_wave_completion(uint16_t flight_group_idx)
 	    g_flight_mission_state.runtime.team_goal_status
 			    [g_mission_flight_groups[flight_group_idx].fg.team]
 			    [1] == GOAL_STATUS_COMPLETE) {
+		XVT_LOG_DEBUG(
+			"mission.wave_held fg=%d team=%d primary=%d prevent=%d predicted=%d",
+			(int)flight_group_idx,
+			(int)g_mission_flight_groups[flight_group_idx].fg.team,
+			(int)g_flight_mission_state.runtime.team_goal_status
+				[g_mission_flight_groups[flight_group_idx]
+					 .fg.team][0],
+			(int)g_flight_mission_state.runtime.team_goal_status
+				[g_mission_flight_groups[flight_group_idx]
+					 .fg.team][1],
+			g_flight_sim_side_effects_suppressed);
 		return;
 	}
 
@@ -8260,6 +9479,44 @@ void mission_process_flight_group_wave_completion(uint16_t flight_group_idx)
 					[FLIGHT_GROUP_OUTCOME_LEFT_REGION] +=
 					unavailable_craft_count;
 			}
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_INFO(
+					"mission.group_arrivals_stopped fg=%d rule=%d count=%d special=%d tick=%d",
+					(int)flight_group_idx,
+					(int)g_mission_flight_groups
+						[flight_group_idx]
+							.fg.stop_arriving_when,
+					(int)unavailable_craft_count,
+					(int)unavailable_special_cargo_count,
+					g_game_time);
+			}
+			XVT_LOG_DEBUG(
+				"mission.arrivals_stop_reason fg=%d team=%d departed=%d primary=%d prevent=%d counted=\"%s\" predicted=%d",
+				(int)flight_group_idx,
+				(int)g_mission_flight_groups[flight_group_idx]
+					.fg.team,
+				(int)g_mission_fg_stats[flight_group_idx]
+					.outcome_count
+						[FLIGHT_GROUP_OUTCOME_DEPARTED],
+				(int)g_flight_mission_state.runtime
+					.team_goal_status
+						[g_mission_flight_groups
+							 [flight_group_idx]
+								 .fg.team][0],
+				(int)g_flight_mission_state.runtime
+					.team_goal_status
+						[g_mission_flight_groups
+							 [flight_group_idx]
+								 .fg.team][1],
+				(g_mission_flight_groups[flight_group_idx]
+						 .fg.departure_method != 0 ||
+				 g_mission_flight_groups[flight_group_idx]
+						 .fg
+						 .alternate_mothership_used !=
+					 0)
+					? "mothership_dependent"
+					: "left_region",
+				g_flight_sim_side_effects_suppressed);
 			return;
 		}
 	}
@@ -8345,6 +9602,14 @@ void mission_process_flight_group_wave_completion(uint16_t flight_group_idx)
 					}
 				}
 			}
+			XVT_LOG_DEBUG(
+				"mission.wave_room_made fg=%d needed=%u free=%u freed=%u missing=%u predicted=%d",
+				(int)flight_group_idx, number_of_craft,
+				free_object_slot_count,
+				number_of_craft - free_object_slot_count -
+					slots_to_free,
+				slots_to_free,
+				g_flight_sim_side_effects_suppressed);
 		}
 	}
 
@@ -8388,6 +9653,23 @@ void mission_spawn_current_flight_group_wave(void)
 			*waves_remaining = remaining_wave_count - 1;
 		}
 	}
+	if (g_flight_sim_side_effects_suppressed == 0) {
+		XVT_LOG_INFO(
+			"mission.wave_arrived fg=%d craft=%d kind=\"%s\" waves=%d arrived=%d total=%d tick=%d",
+			(int)g_current_flight_group_idx,
+			(int)g_mission_flight_groups[g_current_flight_group_idx]
+				.fg.craft_type,
+			(g_object_type_table[object_type].behavior_flags &
+			 STATIC_MODEL_FLAG) == 0
+				? "craft"
+				: "static",
+			(int)*waves_remaining,
+			(int)g_mission_fg_stats[g_current_flight_group_idx]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			(int)g_mission_fg_stats[g_current_flight_group_idx]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL],
+			g_game_time);
+	}
 }
 
 /* Tells whether flight group g_current_flight_group_idx's next round fits: returns
@@ -8409,6 +9691,19 @@ int mission_has_capacity_for_current_flight_group_wave(void)
 			if (g_object_table[object_index].object_type == 0) {
 				++free_slot_count;
 			}
+		}
+		if (g_flight_sim_side_effects_suppressed == 0 &&
+		    (free_slot_count <
+		     (unsigned int)
+			     g_mission_flight_groups[g_current_flight_group_idx]
+				     .fg.number_of_craft)) {
+			XVT_LOG_DEBUG(
+				"mission.wave_no_room fg=%d needed=%d free=%u tick=%d",
+				(int)g_current_flight_group_idx,
+				(int)g_mission_flight_groups
+					[g_current_flight_group_idx]
+						.fg.number_of_craft,
+				free_slot_count, g_game_time);
 		}
 
 		return free_slot_count >=
@@ -8495,6 +9790,12 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 			}
 		}
 		if (found_mothership == 0) {
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_DEBUG(
+					"mission.mothership_missing fg=%d mothership=%d tick=%d",
+					(int)g_current_flight_group_idx,
+					(int)arrival_mothership, g_game_time);
+			}
 			return 0;
 		}
 
@@ -8763,6 +10064,19 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 							  .fg.craft_type]]
 					.genus_id;
 		g_spawn_group_ai = group_ai;
+		XVT_LOG_DEBUG(
+			"mission.wave_prepared fg=%d ordinal=%d started=%d mothership=%d hyperspace=%d x=%d y=%d z=%d yaw=%u pitch=%u formation=%d spacing=%d iff=%d team=%d status1=%d status2=%d genus=%d ai=%d predicted=%d",
+			(int)g_current_flight_group_idx,
+			craft_ordinal == UINT16_MAX ? -1 : (int)craft_ordinal,
+			mission_started != 0, (int)g_spawn_from_mothership_flag,
+			(int)g_spawn_out_of_hyperspace_flag, g_spawn_world_x,
+			g_spawn_world_y, g_spawn_world_z, (unsigned)g_spawn_yaw,
+			(unsigned)g_spawn_pitch, (int)g_spawn_formation,
+			(int)g_spawn_formation_spacing, (int)g_spawn_iff,
+			(int)g_spawn_team_id, (int)g_spawn_status1,
+			(int)g_spawn_status2, (int)g_spawn_genus_id,
+			(int)g_spawn_group_ai,
+			g_flight_sim_side_effects_suppressed);
 	}
 
 	if (craft_ordinal == UINT16_MAX) {
@@ -8902,6 +10216,19 @@ uint16_t mission_init_flight_group_object_slot(void)
 		}
 	}
 	if (object_index >= object_slot_end) {
+		if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_WARN(
+				"mission.object_table_full fg=%d ordinal=%d genus=%d first_slot=%u end_slot=%u arrived=%d tick=%d",
+				(int)g_current_flight_group_idx,
+				(int)g_spawn_craft_ordinal,
+				(int)g_spawn_genus_id,
+				(unsigned)object_slot_start,
+				(unsigned)object_slot_end,
+				(int)g_mission_fg_stats[g_current_flight_group_idx]
+					.outcome_count
+						[FLIGHT_GROUP_OUTCOME_ARRIVED],
+				g_game_time);
+		}
 		return UINT16_MAX;
 	}
 
@@ -9241,6 +10568,15 @@ uint16_t mission_init_flight_group_object_slot(void)
 			g_cur_craft->weapon_slots[weapon_slot].ammo_count =
 				ammo_count;
 		}
+		XVT_LOG_DEBUG(
+			"mission.craft_warheads object=%u launcher=%u type=%d first_slot=%d last_slot=%u ammo=%d predicted=%d",
+			(unsigned)object_index, (unsigned)index,
+			(int)g_cur_craft->warhead_slot_type_ids[index],
+			(int)g_model_defs[model_index]
+				.warhead_launcher_first_slot[index],
+			(unsigned)last_slot,
+			(int)g_cur_craft->weapon_slots[last_slot].ammo_count,
+			g_flight_sim_side_effects_suppressed);
 	}
 	g_cur_craft->warhead_lock_ticks = 0;
 	if (g_cur_craft->warhead_launcher_count == 0) {
@@ -9727,6 +11063,34 @@ uint16_t mission_init_flight_group_object_slot(void)
 		     LEGACY_GENUS_OBJECT_TYPE_END)) {
 		g_object_table[object_index].genus_id = CRAFT_GENUS_TRANSPORT;
 	}
+	XVT_LOG_DEBUG(
+		"mission.craft_spawned fg=%d ordinal=%d object=%u type=%u genus=%d signature=%u number=%d leader=%d slot=%d x=%d y=%d z=%d yaw=%u pitch=%u hull=%u front=%d rear=%d lasers=%d warheads=%d beam=%d cm=%d cm_count=%d systems=%04x leader_plan=%d plan=%d throttle=%u speed=%u ai=%d ai_seed=%d predicted=%d",
+		(int)g_current_flight_group_idx,
+		(int)g_cur_craft->craft_ordinal, (unsigned)object_index,
+		(unsigned)object_type,
+		(int)g_object_table[object_index].genus_id,
+		(unsigned)g_object_table[object_index].object_signature,
+		g_cur_craft->craft_index_in_group,
+		(int)g_cur_craft->leader_obj_idx,
+		g_object_table[object_index].player_owner_idx,
+		g_object_table[object_index].world_x,
+		g_object_table[object_index].world_y,
+		g_object_table[object_index].world_z,
+		(unsigned)g_object_table[object_index].yaw,
+		(unsigned)g_object_table[object_index].pitch,
+		g_cur_craft->hull_max, g_cur_craft->shield_energy[0],
+		g_cur_craft->shield_energy[1],
+		(int)g_cur_craft->laser_slot_count,
+		(int)g_cur_craft->warhead_launcher_count,
+		(int)g_cur_craft->beam_type_id, (int)g_cur_craft->cm_type_id,
+		(int)g_cur_craft->cm_ammo_count,
+		(unsigned)g_cur_craft->system_flags,
+		(int)g_cur_craft->ai_controller.current_plan_id,
+		(int)g_cur_craft->ai_controller.running_plan_id,
+		(unsigned)g_cur_craft->throttle_speed,
+		(unsigned)g_object_table[object_index].mobj->speed,
+		ai_skill_level, (int)g_cur_craft->ai_controller.saved_rand_seed,
+		g_flight_sim_side_effects_suppressed);
 	return object_index;
 }
 
@@ -9828,6 +11192,19 @@ void mission_spawn_flight_group_static_objects(uint16_t craft_ordinal)
 		g_prepared_spawn_roll_byte =
 			g_mission_flight_groups[g_current_flight_group_idx]
 				.fg.roll;
+		XVT_LOG_DEBUG(
+			"mission.mine_grid fg=%d size=%d plane=%u x=%d y=%d z=%d yaw=%u pitch=%u roll=%u ordinal=%d predicted=%d",
+			(int)g_current_flight_group_idx, (int)number_of_craft,
+			(unsigned)(g_mission_flight_groups
+					   [g_current_flight_group_idx]
+						   .fg.status1 &
+				   3u),
+			base_x, base_y, base_z,
+			(unsigned)g_prepared_spawn_yaw_byte,
+			(unsigned)g_prepared_spawn_pitch_byte,
+			(unsigned)g_prepared_spawn_roll_byte,
+			craft_ordinal == UINT16_MAX ? -1 : (int)craft_ordinal,
+			g_flight_sim_side_effects_suppressed);
 
 		ordinal = 0;
 		spawn_index = 0;
@@ -9964,6 +11341,15 @@ void mission_spawn_flight_group_static_objects(uint16_t craft_ordinal)
 		g_asteroid_field_rand_seed =
 			(uint16_t)g_game_rand_feedback_state;
 		g_game_rand_feedback_state = (int16_t)saved_random_state;
+		XVT_LOG_DEBUG(
+			"mission.debris_field fg=%d count=%d x=%d y=%d z=%d seed=%u rand=%u predicted=%d",
+			(int)g_current_flight_group_idx,
+			(int)g_mission_flight_groups[g_current_flight_group_idx]
+				.fg.number_of_craft,
+			base_x, base_y, base_z,
+			(unsigned)g_asteroid_field_rand_seed,
+			(unsigned)saved_random_state,
+			g_flight_sim_side_effects_suppressed);
 		break;
 
 	default:
@@ -10020,6 +11406,28 @@ uint16_t mission_spawn_prepared_object(uint16_t flight_group_idx,
 		}
 		++g_mission_fg_stats[flight_group_idx]
 			  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED];
+		XVT_LOG_DEBUG(
+			"mission.static_placed fg=%d object=%u genus=%d type=%d x=%d y=%d z=%d yaw=%u pitch=%u roll=%u signature=%u countdown=%d arrived=%d predicted=%d",
+			(int)flight_group_idx, (unsigned)object_index,
+			(int)genus_id, (int)object_type,
+			g_object_table[object_index].world_x,
+			g_object_table[object_index].world_y,
+			g_object_table[object_index].world_z,
+			(unsigned)g_object_table[object_index].yaw,
+			(unsigned)g_object_table[object_index].pitch,
+			(unsigned)g_object_table[object_index].roll,
+			(unsigned)g_object_table[object_index].object_signature,
+			(int)g_object_table[object_index].type_specific_byte[1],
+			(int)g_mission_fg_stats[flight_group_idx]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			g_flight_sim_side_effects_suppressed);
+	} else if (g_flight_sim_side_effects_suppressed == 0) {
+		XVT_LOG_WARN(
+			"mission.static_table_full fg=%d genus=%d type=%d arrived=%d tick=%d",
+			(int)flight_group_idx, (int)genus_id, (int)object_type,
+			(int)g_mission_fg_stats[flight_group_idx]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			g_game_time);
 	}
 	return object_index;
 }
@@ -10050,6 +11458,13 @@ void mission_resolve_object_or_mission_point_world_loc(
 	}
 
 	int mission_point_idx = (int)(current_mission_point_ref - 0x8000u);
+	if (g_flight_sim_side_effects_suppressed == 0 &&
+	    (mission_point_idx < 0 || mission_point_idx >= 22)) {
+		XVT_LOG_WARN(
+			"mission.point_out_of_range fg=%d ref=%u current=%u point=%d",
+			flight_group_idx, obj_or_mission_point_ref,
+			current_mission_point_ref, mission_point_idx);
+	}
 	g_world_loc_x = g_mission_flight_groups[flight_group_idx]
 				.fg.mission_point_x[mission_point_idx] *
 			256;
@@ -10194,6 +11609,15 @@ void mission_resolve_formation_slot_world_loc(uint16_t flight_group_idx,
 					 (int)g_mission_flight_groups
 						 [flight_group_idx]
 							 .fg.number_of_craft);
+			}
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_WARN(
+					"mission.mine_slot_outside_grid fg=%d cell=%u size=%d",
+					(int)flight_group_idx,
+					(unsigned)formation_slot_idx,
+					(int)g_mission_flight_groups
+						[flight_group_idx]
+							.fg.number_of_craft);
 			}
 		}
 	} else {
@@ -10378,6 +11802,22 @@ int mission_load_file(const char *file_name)
 			memset(&g_mission_header, 0, sizeof(g_mission_header));
 			g_mission_header = mission_header;
 		}
+		XVT_LOG_DEBUG(
+			"mission.file_header version=%u type=%d groups=%d messages=%d backdrop=%u minutes=%u",
+			(unsigned)g_mission_file_version,
+			(int)g_mission_header.mission_type,
+			(int)g_mission_header.num_flight_groups,
+			(int)g_mission_header.num_messages,
+			(unsigned)g_mission_header.backdrop,
+			(unsigned)g_mission_header.time_limit_minutes);
+		if (g_mission_header.num_flight_groups > 48 ||
+		    g_mission_header.num_messages > MISSION_MESSAGE_COUNT) {
+			XVT_LOG_WARN(
+				"mission.file_counts_over file=\"%s\" groups=%d messages=%d",
+				file_name,
+				(int)g_mission_header.num_flight_groups,
+				(int)g_mission_header.num_messages);
+		}
 
 		for (flight_group_idx = 0;
 		     flight_group_idx <
@@ -10444,6 +11884,11 @@ int mission_load_file(const char *file_name)
 				fe_disk_io_read_with_retry_prompt(
 					&index, sizeof(index), 1, stream);
 			}
+			if (index < 0 || index >= MISSION_MESSAGE_COUNT) {
+				XVT_LOG_WARN(
+					"mission.message_index_invalid order=%d message=%d",
+					(int)message_idx, (int)index);
+			}
 			fe_disk_io_read_with_retry_prompt(
 				&g_mission_messages[index],
 				sizeof(g_mission_messages[0]), 1, stream);
@@ -10453,6 +11898,14 @@ int mission_load_file(const char *file_name)
 		for (outer_idx = 0; outer_idx < TEAM_COUNT; ++outer_idx) {
 			fe_disk_io_read_with_retry_prompt(
 				&record_count, sizeof(record_count), 1, stream);
+			XVT_LOG_DEBUG(
+				"mission.team_goals_read team=%d count=%d",
+				(int)outer_idx, (int)record_count);
+			if (record_count < 0 || record_count > 7) {
+				XVT_LOG_WARN(
+					"mission.goal_count_invalid team=%d count=%d",
+					(int)outer_idx, (int)record_count);
+			}
 			fe_disk_io_read_with_retry_prompt(
 				g_mission_global_goals[outer_idx],
 				sizeof(g_mission_global_goals[0][0]),
@@ -10528,6 +11981,14 @@ int mission_load_file(const char *file_name)
 							       string_length);
 							string[string_length] =
 								'\0';
+						} else {
+							XVT_LOG_WARN(
+								"mission.fg_goal_text_lost fg=%d goal=%d text=%d bytes=%d",
+								(int)outer_idx,
+								(int)index,
+								(int)slot_idx,
+								string_length +
+									1);
 						}
 						memory_handle_block_done_stub(
 							handle);
@@ -10568,6 +12029,15 @@ int mission_load_file(const char *file_name)
 								       string_length);
 								string[string_length] =
 									'\0';
+							} else {
+								XVT_LOG_WARN(
+									"mission.team_goal_text_lost team=%d goal=%d trigger=%d text=%d bytes=%d",
+									(int)outer_idx,
+									(int)index,
+									(int)trigger_idx,
+									(int)slot_idx,
+									string_length +
+										1);
 							}
 							memory_handle_block_done_stub(
 								handle);
@@ -10593,6 +12063,18 @@ int mission_load_file(const char *file_name)
 		int16_t goal_count;
 		fe_disk_io_read_with_retry_prompt(
 			&goal_count, sizeof(goal_count), 1, stream);
+		if (flight_group_count > 48 ||
+		    message_count > MISSION_MESSAGE_COUNT) {
+			XVT_LOG_WARN(
+				"mission.file_counts_over file=\"%s\" groups=%d messages=%d",
+				file_name, (int)flight_group_count,
+				(int)message_count);
+		}
+		if (goal_count < 0 || goal_count > 7) {
+			XVT_LOG_WARN(
+				"mission.goal_count_invalid team=0 count=%d",
+				(int)goal_count);
+		}
 		g_mission_header.num_flight_groups = flight_group_count;
 		g_mission_header.num_messages = message_count;
 		fe_disk_io_read_with_retry_prompt(&g_tie_mission_header,
@@ -10632,6 +12114,10 @@ int mission_load_file(const char *file_name)
 		       g_tie_mission_header.neutral_name[0]);
 		strcpy(g_mission_header.iff_names[3],
 		       g_tie_mission_header.neutral_name[0]);
+		XVT_LOG_DEBUG(
+			"mission.tie_header groups=%d messages=%d goals=%d",
+			(int)flight_group_count, (int)message_count,
+			(int)goal_count);
 
 		for (flight_group_idx = 0;
 		     flight_group_idx < flight_group_count;
@@ -11235,6 +12721,9 @@ int mission_load_file(const char *file_name)
 						.trigger1_or_trigger2 = 0;
 					goal->trigger_pair1_or_trigger_pair2 =
 						0;
+					XVT_LOG_DEBUG(
+						"mission.goal_triggers_filled team=%d goal=%d slots=3",
+						(int)outer_idx, (int)index);
 					continue;
 				}
 				if (condition2 != MISSION_COND_NEVER &&
@@ -11252,6 +12741,9 @@ int mission_load_file(const char *file_name)
 						.trigger1_or_trigger2 = 0;
 					goal->trigger_pair1_or_trigger_pair2 =
 						0;
+					XVT_LOG_DEBUG(
+						"mission.goal_triggers_filled team=%d goal=%d slots=2",
+						(int)outer_idx, (int)index);
 					continue;
 				}
 			}
@@ -11262,6 +12754,9 @@ int mission_load_file(const char *file_name)
 				goal->trigger_pairs[1].triggers[1].condition =
 					MISSION_COND_ALWAYS_TRUE;
 				goal->trigger_pairs[1].trigger1_or_trigger2 = 0;
+				XVT_LOG_DEBUG(
+					"mission.goal_triggers_filled team=%d goal=%d slots=1",
+					(int)outer_idx, (int)index);
 			}
 		}
 	}
@@ -11299,12 +12794,23 @@ int mission_sync_pilot_network_players_to_session_slots(void)
 		}
 
 		if (pilot_player_index < 8) {
+			XVT_LOG_DEBUG(
+				"mission.session_player_bound entry=%d player=%u",
+				pilot_player_index,
+				(unsigned)session_players[session_player_index]
+					.direct_play_id);
 			g_players[net_session_find_player_slot_by_dpid(
 					  session_players[session_player_index]
 						  .direct_play_id)]
 				.network.direct_play_id =
 				session_players[session_player_index]
 					.direct_play_id;
+		} else {
+			XVT_LOG_WARN(
+				"mission.session_player_unmatched player=%u players=%d",
+				(unsigned)session_players[session_player_index]
+					.direct_play_id,
+				session_player_count);
 		}
 	}
 
