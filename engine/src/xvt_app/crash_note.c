@@ -220,10 +220,10 @@ void xvt_crash_note_writef(const char *format, ...)
 
 #ifdef _WIN32
 
-static LPTOP_LEVEL_EXCEPTION_FILTER g_crashNotePreviousFilter;
+static LPTOP_LEVEL_EXCEPTION_FILTER g_crash_note_previous_filter;
 
 /* Writes one frame line for a code address: the module holding it and the offset into that module. */
-static void XvtCrashNote_WriteFrame(int n, uintptr_t address)
+static void xvt_crash_note_write_frame(int n, uintptr_t address)
 {
 	HMODULE module = NULL;
 	char name[128] = "?";
@@ -263,7 +263,7 @@ static void xvt_crash_note_write_frames(const CONTEXT *start)
 	for (int n = 0; n < XVT_CRASH_NOTE_FRAMES && context.Rip; ++n) {
 		DWORD64 image_base = 0;
 		PRUNTIME_FUNCTION function;
-		XvtCrashNote_WriteFrame(n, (uintptr_t)context.Rip);
+		xvt_crash_note_write_frame(n, (uintptr_t)context.Rip);
 		function =
 			RtlLookupFunctionEntry(context.Rip, &image_base, NULL);
 		if (function) {
@@ -283,7 +283,7 @@ static void xvt_crash_note_write_frames(const CONTEXT *start)
 #endif
 }
 
-static LONG WINAPI XvtCrashNote_OnException(EXCEPTION_POINTERS *info)
+static LONG WINAPI xvt_crash_note_on_exception(EXCEPTION_POINTERS *info)
 {
 	if (!g_crash_note_written) {
 		const EXCEPTION_RECORD *record = info->ExceptionRecord;
@@ -301,12 +301,12 @@ static LONG WINAPI XvtCrashNote_OnException(EXCEPTION_POINTERS *info)
 			      address);
 		xvt_crash_note_write_frames(info->ContextRecord);
 	}
-	return g_crashNotePreviousFilter ? g_crashNotePreviousFilter(info)
-					 : EXCEPTION_CONTINUE_SEARCH;
+	return g_crash_note_previous_filter ? g_crash_note_previous_filter(info)
+					    : EXCEPTION_CONTINUE_SEARCH;
 }
 
 /* abort() raises SIGABRT; the C runtime resets the action before calling this and ends the program after. */
-static void XvtCrashNote_OnAbort(int signal)
+static void xvt_crash_note_on_abort(int signal)
 {
 	(void)signal;
 	if (!g_crash_note_written) {
@@ -329,9 +329,9 @@ void xvt_crash_note_install(xvt_log_file_handle file)
 	}
 	g_crash_note_installed = 1;
 	SetThreadStackGuarantee(&spare);
-	g_crashNotePreviousFilter =
-		SetUnhandledExceptionFilter(XvtCrashNote_OnException);
-	signal(SIGABRT, XvtCrashNote_OnAbort);
+	g_crash_note_previous_filter =
+		SetUnhandledExceptionFilter(xvt_crash_note_on_exception);
+	signal(SIGABRT, xvt_crash_note_on_abort);
 }
 
 #else

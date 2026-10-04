@@ -26,9 +26,10 @@ struct field {
 	const char *name;
 };
 
-#define FIELD(RecordType, LiveType, member)                                    \
-	{offsetof(RecordType, member), sizeof(((RecordType *)0)->member),      \
-	 offsetof(LiveType, member), sizeof(((LiveType *)0)->member), #member}
+#define FIELD(record_type, live_type, member)                                  \
+	{offsetof(record_type, member), sizeof(((record_type *)0)->member),    \
+	 offsetof(live_type, member), sizeof(((live_type *)0)->member),        \
+	 #member}
 #define OBJECT_FIELD(member)                                                   \
 	FIELD(struct xvt_snapshot_object_record, struct object_record, member)
 #define MOBILE_FIELD(member)                                                   \

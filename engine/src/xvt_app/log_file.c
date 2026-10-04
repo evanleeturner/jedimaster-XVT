@@ -197,7 +197,7 @@ xvt_log_file_ending xvt_log_file_read_ending(const char *tail, size_t length,
 
 #ifdef _WIN32
 
-static void XvtLogFile_SystemError(char *error, size_t error_capacity)
+static void xvt_log_file_system_error(char *error, size_t error_capacity)
 {
 	if (error && error_capacity) {
 		snprintf(error, error_capacity, "Windows error %lu",
@@ -213,7 +213,7 @@ xvt_log_file_handle xvt_log_file_open(const char *path, char *error,
 	wchar_t *wide;
 	HANDLE file;
 	if (length <= 0) {
-		XvtLogFile_SystemError(error, error_capacity);
+		xvt_log_file_system_error(error, error_capacity);
 		return XVT_LOG_FILE_NONE;
 	}
 	wide = (wchar_t *)malloc((size_t)length * sizeof(wchar_t));
@@ -231,7 +231,7 @@ xvt_log_file_handle xvt_log_file_open(const char *path, char *error,
 				   FILE_SHARE_DELETE,
 			   NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (file == INVALID_HANDLE_VALUE) {
-		XvtLogFile_SystemError(error, error_capacity);
+		xvt_log_file_system_error(error, error_capacity);
 	}
 	free(wide);
 	return file == INVALID_HANDLE_VALUE ? XVT_LOG_FILE_NONE
