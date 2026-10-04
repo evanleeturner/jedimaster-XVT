@@ -1,12 +1,15 @@
-/* Checks the modal dialog task (xvt_runtime/runtime/dialog_task.h) against the promises in its header:
- * Begin's refusals, the parent state a dialog saves and its end restores, Escape after the first frame,
- * an update that ends the dialog, the held result and who may take it, the confirm and pilot-name entry
- * points, the continuation, and Shutdown. The dialogs run as pushed screens on a frontend display with no
- * window (test_frontend_display.h); the test's own update function stands in for a dialog where the game's
- * dialog would need its images and fonts. Every case starts from a cleared frontend with a placeholder
- * parent screen at frame 5, no dialog and no result.
+/* Checks the modal dialog task (xvt_runtime/runtime/dialog_task.h) against the
+ * promises in its header: Begin's refusals, the parent state a dialog saves and
+ * its end restores, Escape after the first frame, an update that ends the
+ * dialog, the held result and who may take it, the confirm and pilot-name entry
+ * points, the continuation, and Shutdown. The dialogs run as pushed screens on
+ * a frontend display with no window (test_frontend_display.h); the test's own
+ * update function stands in for a dialog where the game's dialog would need its
+ * images and fonts. Every case starts from a cleared frontend with a
+ * placeholder parent screen at frame 5, no dialog and no result.
  *
- * Not checked here: the warning sound, and the program ending when the dialog screen cannot be pushed. */
+ * Not checked here: the warning sound, and the program ending when the dialog
+ * screen cannot be pushed. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -131,8 +134,9 @@ static void check_begin_saves_and_end_restores(void)
 	XVT_ASSERT_INT_EQ(xvt_dialog_is_text_prompt(), 0);
 	XVT_ASSERT_INT_EQ(xvt_dialog_has_result(), 0);
 
-	/* The dialog's frames change what the parent saved. The display has no offscreen surface, so
-	 * offscreen restore must be off while frames run. */
+	/* The dialog's frames change what the parent saved. The display has no
+	 * offscreen surface, so offscreen restore must be off while frames
+	 * run. */
 	g_front_state.offscreen_restore_enabled = 0;
 	g_front_state.cursor_visible = 0;
 	g_front_state.mouse_x = 5;

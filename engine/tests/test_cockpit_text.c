@@ -1,12 +1,15 @@
-/* Checks the named cockpit text fields (xvt_runtime/snapshot/cockpit_text.h) against the promises in its
- * header: the inline color map, recording a field from the live flight text state and when its generation
- * rises, clearing fields, which fields CopyFields hides, a field copied to a new place, and capturing one
- * glyph against the clip rectangle. The test sets the flight text globals and the palette itself; every
- * case starts from cleared fields and the same text state.
+/* Checks the named cockpit text fields (xvt_runtime/snapshot/cockpit_text.h)
+ * against the promises in its header: the inline color map, recording a field
+ * from the live flight text state and when its generation rises, clearing
+ * fields, which fields CopyFields hides, a field copied to a new place, and
+ * capturing one glyph against the clip rectangle. The test sets the flight text
+ * globals and the palette itself; every case starts from cleared fields and the
+ * same text state.
  *
- * Not checked here: color keying in RecordField (the header does not say when the live state is keyed),
- * and how CopyFields treats a field owned by a covered target panel or a shield outside text mode, which
- * the header leaves open. */
+ * Not checked here: color keying in RecordField (the header does not say when
+ * the live state is keyed), and how CopyFields treats a field owned by a
+ * covered target panel or a shield outside text mode, which the header leaves
+ * open. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -32,8 +35,8 @@ static void palette(void)
 	}
 }
 
-/* Clip (10, 20) to (210, 120), cursor (30, 40), font tier 1, shadow on, wrap on; the framebuffer is not
- * the offscreen buffer. Every field is cleared. */
+/* Clip (10, 20) to (210, 120), cursor (30, 40), font tier 1, shadow on, wrap
+ * on; the framebuffer is not the offscreen buffer. Every field is cleared. */
 static void cockpit_text_start(void)
 {
 	palette();
@@ -292,7 +295,8 @@ static void check_reset_fields(void)
 	XVT_ASSERT_INT_EQ(field->caption.text[0], 0);
 }
 
-/* A state that shows every field's owner: readouts, target panel, course, map, shields and warning. */
+/* A state that shows every field's owner: readouts, target panel, course, map,
+ * shields and warning. */
 static void show_every_owner(struct xvt_cockpit_state *state)
 {
 	memset(state, 0, sizeof *state);

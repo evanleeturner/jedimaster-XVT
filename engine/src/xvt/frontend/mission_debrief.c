@@ -518,7 +518,8 @@ int mission_debrief_update(int frame_counter)
 		}
 		memset(g_mp_roster_ready_flags, 0,
 		       sizeof(g_mp_roster_ready_flags));
-		/* Only element 0 of this array is summed and drawn; element 3, cleared here, is not read anywhere. */
+		/* Only element 0 of this array is summed and drawn; element 3,
+		 * cleared here, is not read anywhere. */
 		g_debrief_assists_total[3] = 0;
 		g_debrief_session_cancel_or_teams_ready_received = 0;
 		g_debrief_stats_page_needs_rebuild = 1;
@@ -829,8 +830,9 @@ int mission_debrief_update(int frame_counter)
 					.last_mission_completed);
 		}
 		mission_debrief_mark_network_players_ready();
-		/* Only here does local_network_player_index hold the local player's slot; the other loops in this
-		 * function use it to walk all eight network players. */
+		/* Only here does local_network_player_index hold the local
+		 * player's slot; the other loops in this function use it to
+		 * walk all eight network players. */
 		local_network_player_index = 0;
 		if (g_frontend_mission_session_mode !=
 		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
@@ -3521,9 +3523,11 @@ int mission_debrief_draw_mission_overview_page(int frame_counter)
 		int killed_by_row_y = killed_header_y + ROW_HEIGHT;
 		for (kill_index = 0; kill_index < PLAYER_COUNT; ++kill_index) {
 
-			/* Like the Killed list, this walks the list sorted by kills made, as the original does.
-			 * g_debrief_kills_from_combatant_ids, sorted by kills taken, is built in mission_debrief_prepare
-			 * but never read. */
+			/* Like the Killed list, this walks the list sorted by
+			 * kills made, as the original does.
+			 * g_debrief_kills_from_combatant_ids, sorted by kills
+			 * taken, is built in mission_debrief_prepare but never
+			 * read. */
 			combatant_id =
 				g_debrief_kills_on_combatant_ids[kill_index];
 			if (combatant_id == -1) {
@@ -4059,7 +4063,8 @@ int mission_debrief_draw_player_statistics_page(void)
 		++row;
 	}
 
-	/* g_debrief_craft_kill_row_has_data is reused here to record whether the Award label has been drawn. */
+	/* g_debrief_craft_kill_row_has_data is reused here to record whether
+	 * the Award label has been drawn. */
 	g_debrief_craft_kill_row_has_data = 0;
 	for (award_index = 0; award_index < AWARD_COUNT; ++award_index) {
 		if (g_pilot_data
@@ -4989,8 +4994,12 @@ int mission_debrief_draw_tournament_summary_page(int frame_counter)
 						}
 					}
 					if (player_index != PLAYER_COUNT) {
-						/* The rating shown is that of the network player whose slot number equals the
-						 * leading team's id, as in the original; the winner's name comes from player_index. */
+						/* The rating shown is that of
+						 * the network player whose slot
+						 * number equals the leading
+						 * team's id, as in the
+						 * original; the winner's name
+						 * comes from player_index. */
 						int leading_team_id =
 							g_debrief_standings_team_ids
 								[0];
@@ -5320,8 +5329,8 @@ int mission_debrief_draw_tournament_summary_page(int frame_counter)
 		if (g_debrief_standings_team_ids[standing_index] == -1) {
 			break;
 		}
-		/* g_debrief_team_in_standings is filled by team id but read here by standing position, as in the
-		 * original. */
+		/* g_debrief_team_in_standings is filled by team id but read
+		 * here by standing position, as in the original. */
 		if (g_debrief_team_in_standings[standing_index] != 0) {
 			if (g_pilot_data.melee_tournament_sequence_state
 				    .team_standings[g_debrief_standings_team_ids
@@ -5764,7 +5773,8 @@ int mission_debrief_draw_tournament_summary_page(int frame_counter)
 				}
 			}
 
-			/* g_debrief_team_has_player is filled by team id but read here by standing position, as in the
+			/* g_debrief_team_has_player is filled by team id but
+			 * read here by standing position, as in the
 			 * original. */
 			if (g_debrief_team_has_player[standing_index] != 0 &&
 			    g_debrief_rank_by_pilot == 0) {
@@ -5994,8 +6004,9 @@ int mission_debrief_prepare(void)
 	int active_team_count = 0;
 	int human_player_count = 0;
 	g_debrief_local_team_rank_index = active_team_count;
-	/* team_index walks three kinds of slot in this function: network players (network_players), flight
-	 * groups (flight_groups, ranked as team_index + 8), and teams. */
+	/* team_index walks three kinds of slot in this function: network
+	 * players (network_players), flight groups (flight_groups, ranked as
+	 * team_index + 8), and teams. */
 	unsigned int team_index;
 	for (team_index = 0; team_index < 8; ++team_index) {
 		if (g_pilot_data.network_players[team_index].direct_play_id !=
@@ -6113,8 +6124,8 @@ int mission_debrief_prepare(void)
 		(void)inserted;
 	}
 	for (sort_index = 0; sort_index < 10; ++sort_index) {
-		/* g_debrief_team_has_player is filled by team id but read here by sorted position, as in the
-		 * original. */
+		/* g_debrief_team_has_player is filled by team id but read here
+		 * by sorted position, as in the original. */
 		if (g_debrief_team_has_player[sort_index] != 0 &&
 		    g_debrief_sorted_team_ids[sort_index] ==
 			    g_pilot_data.team) {

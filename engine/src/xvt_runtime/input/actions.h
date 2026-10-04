@@ -3,9 +3,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-/* Every action a key, controller or mouse can be bound to. Each has a settings-file name, a label for
- * the player, a category, and the original game's flight key code (FLIGHT_KEY_*), which the input mappings
- * use to drive the game. */
+/* Every action a key, controller or mouse can be bound to. Each has a
+ * settings-file name, a label for the player, a category, and the original
+ * game's flight key code (FLIGHT_KEY_*), which the input mappings use to drive
+ * the game. */
 typedef enum xvt_input_action {
 	XVT_INPUT_ACTION_NONE,
 	XVT_INPUT_ACTION_FIRE_WEAPON,

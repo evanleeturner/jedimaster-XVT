@@ -96,10 +96,11 @@ static void draw_hud_after_upscale(AeronCommandBuffer *cmd,
 			      AeronScene_SceneRt((AeronScene3D *)user));
 }
 
-/* Records the flight view for one frame (or the map, in map mode): sky and lighting, then for each
- * eligible object its mesh, engine glows, previous pose for motion blur and its hull or shadow caster,
- * then effects and the HUD pass. It stays one function because each object's steps read and change
- * the same instance, pose and frame flags. */
+/* Records the flight view for one frame (or the map, in map mode): sky and
+ * lighting, then for each eligible object its mesh, engine glows, previous pose
+ * for motion blur and its hull or shadow caster, then effects and the HUD pass.
+ * It stays one function because each object's steps read and change the same
+ * instance, pose and frame flags. */
 int xvt_remaster_flight_render(AeronCommandBuffer *cmd,
 			       const struct xvt_render_snapshot *s,
 			       const struct xvt_render_snapshot *p)

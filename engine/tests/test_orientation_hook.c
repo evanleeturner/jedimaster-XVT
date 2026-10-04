@@ -1,11 +1,14 @@
-/* Checks the float orientation turn, xvt_orientation_apply_pitch_yaw (xvt_runtime/hooks/orientation_hook.h),
- * against the promises in its header: in a NETWORK_125 session it returns exactly what the integer path
- * returns; otherwise its result agrees with the integer path within rounding, a call with zero deltas
- * keeps the orientation, a turn and its inverse cancel, yaw is applied before pitch, and a whole turn on
- * a delta changes nothing beyond rounding. The header does not say which angle values mean level or
- * straight up, so the checks are relationships that hold whatever the convention. Starting orientations
- * are ones this function returned, and every orientation compared stays well away from straight up and
- * down, where the header allows the angles to differ. */
+/* Checks the float orientation turn, xvt_orientation_apply_pitch_yaw
+ * (xvt_runtime/hooks/orientation_hook.h), against the promises in its header:
+ * in a NETWORK_125 session it returns exactly what the integer path returns;
+ * otherwise its result agrees with the integer path within rounding, a call
+ * with zero deltas keeps the orientation, a turn and its inverse cancel, yaw is
+ * applied before pitch, and a whole turn on a delta changes nothing beyond
+ * rounding. The header does not say which angle values mean level or straight
+ * up, so the checks are relationships that hold whatever the convention.
+ * Starting orientations are ones this function returned, and every orientation
+ * compared stays well away from straight up and down, where the header allows
+ * the angles to differ. */
 #include <stdint.h>
 #include <stdio.h>
 
@@ -13,10 +16,11 @@
 #include "xvt_runtime/hooks/orientation_hook.h"
 #include "xvt_runtime/timing/flight_timing.h"
 
-/* Each call rounds every angle to a whole unit, 1/65536 of a turn, and works in single-precision radians,
- * so the header allows drift; a few chained calls measured within 4 units of each other. 8 units (0.044
- * degrees) leaves room for that, while a turn about the wrong axis, in the wrong order or the wrong way is
- * off by hundreds of units. */
+/* Each call rounds every angle to a whole unit, 1/65536 of a turn, and works in
+ * single-precision radians, so the header allows drift; a few chained calls
+ * measured within 4 units of each other. 8 units (0.044 degrees) leaves room
+ * for that, while a turn about the wrong axis, in the wrong order or the wrong
+ * way is off by hundreds of units. */
 enum { ROUNDING_UNITS = 8 };
 
 static int gap(uint16_t a, uint16_t b)
@@ -131,8 +135,9 @@ static void check_zero_deltas_keep_orientation(void)
 		EXPECT_SAME_ORIENTATION(
 			apply_float(orientation_hook_start(s), 0, 0),
 			orientation_hook_start(s));
-		/* Any other form may be rewritten, but it is the same orientation: the same turn of either gives
-		 * the same result. */
+		/* Any other form may be rewritten, but it is the same
+		 * orientation: the same turn of either gives the same
+		 * result. */
 		struct xvt_orientation_angles rewritten =
 			apply_float(k_seeds[s], 0, 0);
 		EXPECT_SAME_ORIENTATION(

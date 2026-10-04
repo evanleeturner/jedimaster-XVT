@@ -222,9 +222,9 @@ static int xvt_opt_resolve_palettes(struct xvt_opt_decode *decode)
 	return valid;
 }
 
-/* Writes to *size the size of the payload a node of entry's type carries, which can be 0, and returns 1.
- * Returns 0 for a type with no payload layout here, or for a reference whose name is not a string inside
- * the file. */
+/* Writes to *size the size of the payload a node of entry's type carries, which
+ * can be 0, and returns 1. Returns 0 for a type with no payload layout here, or
+ * for a reference whose name is not a string inside the file. */
 static int xvt_opt_payload_size(struct xvt_opt_decode *decode,
 				const struct xvt_opt_entry *entry, int vertices,
 				int has_normals, size_t *size)

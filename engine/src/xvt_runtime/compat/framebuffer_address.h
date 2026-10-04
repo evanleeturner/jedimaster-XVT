@@ -17,7 +17,8 @@ static __inline int xvt_framebuffer_address_is_legacy_base(const uint8_t *base)
 	return 0;
 }
 
-/* offset bytes past base. The original arm clears the lowest bit of base first; this one does not. */
+/* offset bytes past base. The original arm clears the lowest bit of base first;
+ * this one does not. */
 static __inline xvt_framebuffer_address
 xvt_framebuffer_address_from_base(uint8_t *base, unsigned int offset)
 {

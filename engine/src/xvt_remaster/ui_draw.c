@@ -87,7 +87,8 @@ void xvt_ui_glyph(AeronDrawList2D *list, const struct xvt_snap_glyph *g,
 			rgba, AERON_BLIT2D_BLEND_NONE, &clip);
 	}
 	if (g->shadow_enabled) {
-		/* XvT shifts the previous foreground row right one bit; it does not read the stored shadow plane. */
+		/* XvT shifts the previous foreground row right one bit; it does
+		 * not read the stored shadow plane. */
 		AeronRectI shadow_clip = clip;
 		int bottom = (int)ceilf(
 			y + font->glyphs[g->character - font->atlas.first_char]

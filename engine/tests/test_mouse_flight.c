@@ -1,10 +1,12 @@
-/* Checks mouse flight (xvt_runtime/input/mouse_flight.h) against the promises in its header that hold
- * outside a flight: with mouse flight not allowed, nothing samples, queues or marks the HUD, and the
- * centered stick reads 0 through any mix of NULL pointers.
+/* Checks mouse flight (xvt_runtime/input/mouse_flight.h) against the promises
+ * in its header that hold outside a flight: with mouse flight not allowed,
+ * nothing samples, queues or marks the HUD, and the centered stick reads 0
+ * through any mix of NULL pointers.
  *
- * Not checked here: the virtual stick itself (gain, sensitivity, the right-button tap and roll lock, the
- * button keys) runs only while mouse flight is allowed, which needs loaded settings and a running flight,
- * and while the pointer is in relative mode, which needs a window. */
+ * Not checked here: the virtual stick itself (gain, sensitivity, the
+ * right-button tap and roll lock, the button keys) runs only while mouse flight
+ * is allowed, which needs loaded settings and a running flight, and while the
+ * pointer is in relative mode, which needs a window. */
 #include <string.h>
 
 #include "aeron/aeron.h"
@@ -17,7 +19,8 @@ static AeronInputSnapshot *mouse_flight_host(void)
 	return (AeronInputSnapshot *)Aeron_InputSnapshot();
 }
 
-/* Mouse flight switched on in the module's options, with the host showing motion and every button. */
+/* Mouse flight switched on in the module's options, with the host showing
+ * motion and every button. */
 static void mouse_flight_start(void)
 {
 	xvt_input_reset_capture();

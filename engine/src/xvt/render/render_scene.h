@@ -136,9 +136,10 @@ struct scene_mesh {
 	/* View-to-model rotation, the inverse of view_orient. */
 	float view_to_model_orient[9];
 	/* Nothing reads it. */
-	int base_color_and_materials
-		[4]; ///< Elements 0-2 come from the OPT_BASE_COLOR payload; element 3 receives
-	///< g_cur_mesh_materials from OPT_MATERIAL_BINDING for selectors outside 5-8.
+	/* Elements 0-2 come from the OPT_BASE_COLOR payload; element 3 receives
+	 * g_cur_mesh_materials from OPT_MATERIAL_BINDING for selectors outside
+	 * 5-8. */
+	int base_color_and_materials[4];
 	int vertex_count;		  /* Vertices in p_model_verts. */
 	struct opt_vector *p_model_verts; /* Vertex positions in model space. */
 	struct opt_tex_coord
@@ -147,16 +148,18 @@ struct scene_mesh {
 	 * data. */
 	struct opt_vector *p_vert_normals;
 	/* Nothing reads it. */
-	int per_vertex_materials; ///< Receives g_cur_mesh_materials when OPT_MATERIAL_BINDING payload_count is 7 or 8;
-				  ///< no downstream consumer is identified.
-	int face_count;		  /* Faces in p_face_geom. */
-	int edge_count;		  /* Edges the faces share. */
+	/* Receives g_cur_mesh_materials when OPT_MATERIAL_BINDING payload_count
+	 * is 7 or 8; no downstream consumer is identified. */
+	int per_vertex_materials;
+	int face_count;			   /* Faces in p_face_geom. */
+	int edge_count;			   /* Edges the faces share. */
 	struct opt_vector *p_face_normals; /* One normal per face. */
 	struct face_texture_gradients
 		*p_face_texturing; /* Texture axes per face. */
 	/* Nothing reads it. */
-	int per_face_materials; ///< Receives g_cur_mesh_materials when OPT_MATERIAL_BINDING payload_count is 5 or 6;
-	///< no downstream consumer is identified.
+	/* Receives g_cur_mesh_materials when OPT_MATERIAL_BINDING payload_count
+	 * is 5 or 6; no downstream consumer is identified. */
+	int per_face_materials;
 	/* Corner, uv, normal and edge indices per face. */
 	struct face_record *p_face_geom;
 	/* Name of the texture node; render_scene_draw_mesh_faces sets its first

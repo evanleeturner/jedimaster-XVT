@@ -1,7 +1,9 @@
-/* Checks the saved controller settings (xvt_runtime/input/controller_options.h) against the promises in
- * its header: what a valid profile and a valid model list are and each refusal, equality, clearing a
- * profile, finding and adding models, and adding connected gamepads with a default profile. Every case
- * builds its own settings and controller snapshot; nothing is read from disk. */
+/* Checks the saved controller settings (xvt_runtime/input/controller_options.h)
+ * against the promises in its header: what a valid profile and a valid model
+ * list are and each refusal, equality, clearing a profile, finding and adding
+ * models, and adding connected gamepads with a default profile. Every case
+ * builds its own settings and controller snapshot; nothing is read from
+ * disk. */
 #include <stdlib.h>
 #include <string.h>
 
@@ -429,7 +431,8 @@ static void check_validate(void)
 		2.0f;
 	XVT_ASSERT_TRUE(!options_valid(&g_options));
 
-	/* A flight axis is driven by one model only; different axes on different models are fine. */
+	/* A flight axis is driven by one model only; different axes on
+	 * different models are fine. */
 	models(2, guids);
 	g_options.models[0].profile.mapping.axes[XVT_INPUT_AXIS_YAW].source =
 		AERON_GAMEPAD_AXIS_LEFTX;
@@ -515,8 +518,9 @@ static void check_initialize_gamepads(void)
 	defaults.mapping.axes[XVT_INPUT_AXIS_ROLL].source =
 		AERON_GAMEPAD_AXIS_RIGHTX;
 
-	/* Two new gamepads, connected out of GUID order; a joystick and a disconnected gamepad are skipped,
-	 * and a gamepad that already has a model gains no second one. */
+	/* Two new gamepads, connected out of GUID order; a joystick and a
+	 * disconnected gamepad are skipped, and a gamepad that already has a
+	 * model gains no second one. */
 	memset(&g_input, 0, sizeof g_input);
 	connect(0, k_guid_c, AERON_CONTROLLER_KIND_GAMEPAD, 1);
 	connect(1, k_guid_d, AERON_CONTROLLER_KIND_JOYSTICK, 2);
@@ -549,8 +553,9 @@ static void check_initialize_gamepads(void)
 		}
 	}
 
-	/* The first new model leaves yaw unbound, since the joystick drives it, and keeps the rest; the
-	 * second finds every default axis driven already. */
+	/* The first new model leaves yaw unbound, since the joystick drives it,
+	 * and keeps the rest; the second finds every default axis driven
+	 * already. */
 	const struct xvt_input_axis_binding *first =
 		g_options.models[1].profile.mapping.axes;
 	XVT_ASSERT_INT_EQ(first[XVT_INPUT_AXIS_YAW].source, -1);

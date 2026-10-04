@@ -1,8 +1,10 @@
-/* Checks the room advertisement and its text conversion (xvt_runtime/runtime/network_metadata.h) against
- * the promises in its header: Windows-1252 to UTF-8 and back, the room built from the session (name,
- * password flag, slots, mission, the ready roster and when the room is joinable), and the flight roster
- * that keeps only players still active. The test sets the session, pilot and mission setup globals
- * itself; every case starts from a cleared session. */
+/* Checks the room advertisement and its text conversion
+ * (xvt_runtime/runtime/network_metadata.h) against the promises in its header:
+ * Windows-1252 to UTF-8 and back, the room built from the session (name,
+ * password flag, slots, mission, the ready roster and when the room is
+ * joinable), and the flight roster that keeps only players still active. The
+ * test sets the session, pilot and mission setup globals itself; every case
+ * starts from a cleared session. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -85,15 +87,16 @@ static void check_from_utf8(void)
 				       "\xe2\x82\xac\xc3\xa9\xc2\xa0");
 	XVT_ASSERT_INT_EQ(strcmp(out, "\x80\xe9\xa0"), 0);
 
-	/* A character 1252 cannot hold, a control character (C0, DEL, C1), a surrogate, a code point past
-	 * U+10FFFF: one '?' each. */
+	/* A character 1252 cannot hold, a control character (C0, DEL, C1), a
+	 * surrogate, a code point past U+10FFFF: one '?' each. */
 	xvt_network_metadata_from_utf8(
 		out, sizeof out,
 		"\xc4\x80|\x01|\x7f|\xc2\x80|\xed\xa0\x80|\xf4\x90\x80\x80");
 	XVT_ASSERT_INT_EQ(strcmp(out, "?|?|?|?|?|?"), 0);
 
-	/* Overlong forms of two, three and four bytes: '?' each, the 2-byte one through its invalid lead
-	 * byte 0xC0, which with its continuation byte gives one '?' per byte. */
+	/* Overlong forms of two, three and four bytes: '?' each, the 2-byte one
+	 * through its invalid lead byte 0xC0, which with its continuation byte
+	 * gives one '?' per byte. */
 	xvt_network_metadata_from_utf8(
 		out, sizeof out, "\xe0\x80\x80|\xf0\x80\x80\x80|\xc0\x80");
 	XVT_ASSERT_INT_EQ(strcmp(out, "?|?|??"), 0);
@@ -233,7 +236,8 @@ static void check_build_authoritative_roster(void)
 	g_mp_roster[3].player_id = 999;
 	xvt_network_metadata_build(&g_meta, 1);
 
-	/* The mission roster's order, ready players only; a roster id with no session player is skipped. */
+	/* The mission roster's order, ready players only; a roster id with no
+	 * session player is skipped. */
 	XVT_ASSERT_INT_EQ(g_meta.room.players, 2);
 	XVT_ASSERT_INT_EQ(g_meta.players[0], 103);
 	XVT_ASSERT_INT_EQ(g_meta.players[1], 101);

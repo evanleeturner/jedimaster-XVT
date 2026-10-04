@@ -1,7 +1,9 @@
-/* Checks the render snapshot's slots and ticks (xvt_runtime/snapshot/render_snapshot.h, with Writer and
- * NextOrder from render_capture.h) against the promises in their headers. The capture, frontend and asset
- * modules it drives are the real ones; capture stays inactive except where a check starts a mission. Each
- * check starts from a shut-down snapshot that it initializes again. No game data is read. */
+/* Checks the render snapshot's slots and ticks
+ * (xvt_runtime/snapshot/render_snapshot.h, with Writer and NextOrder from
+ * render_capture.h) against the promises in their headers. The capture,
+ * frontend and asset modules it drives are the real ones; capture stays
+ * inactive except where a check starts a mission. Each check starts from a
+ * shut-down snapshot that it initializes again. No game data is read. */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,8 +68,8 @@ static void check_first_publication(void)
 	XVT_ASSERT_TRUE(xvt_render_snapshot_previous() == writer);
 }
 
-/* A commit publishes the writer as current, the old current becomes previous, and the next writer is the
- * slot that is neither. */
+/* A commit publishes the writer as current, the old current becomes previous,
+ * and the next writer is the slot that is neither. */
 static void check_rotation(void)
 {
 	fresh();
@@ -117,7 +119,8 @@ static void check_commit_stamps(void)
 	XVT_ASSERT_INT_EQ(run_frame(0)->snapshot_serial, index + 2);
 }
 
-/* Commit runs the asset export into the writer: the built-in cursor that Init registers is listed. */
+/* Commit runs the asset export into the writer: the built-in cursor that Init
+ * registers is listed. */
 static void check_commit_exports_assets(void)
 {
 	fresh();
@@ -130,9 +133,10 @@ static void check_commit_exports_assets(void)
 	XVT_ASSERT_TRUE(cursor);
 }
 
-/* BeginFrame zeroes the record counts and the flight, camera, map, hyperspace and cursor flags of the slot
- * it opens; other fields keep what the slot last held. Capture is active here so that Commit leaves the
- * flight view the tick wrote. */
+/* BeginFrame zeroes the record counts and the flight, camera, map, hyperspace
+ * and cursor flags of the slot it opens; other fields keep what the slot last
+ * held. Capture is active here so that Commit leaves the flight view the tick
+ * wrote. */
 static void check_begin_frame_clears_counts(void)
 {
 	fresh();
@@ -190,7 +194,8 @@ static void check_begin_frame_clears_counts(void)
 	xvt_render_capture_end_mission();
 }
 
-/* BeginFrame does nothing while a frame is open: what the frame wrote stays, and the draw order goes on. */
+/* BeginFrame does nothing while a frame is open: what the frame wrote stays,
+ * and the draw order goes on. */
 static void check_begin_frame_idempotent(void)
 {
 	fresh();
@@ -261,8 +266,8 @@ static void check_second_init(void)
 	XVT_ASSERT_INT_EQ(first->game_time_ticks, 77);
 }
 
-/* Shutdown makes the views NULL without clearing the slots, and stops ticks until the next Init, which
- * clears every slot. */
+/* Shutdown makes the views NULL without clearing the slots, and stops ticks
+ * until the next Init, which clears every slot. */
 static void check_shutdown(void)
 {
 	fresh();

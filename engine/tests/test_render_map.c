@@ -1,12 +1,14 @@
-/* Checks the flight map capture (xvt_runtime/snapshot/render_map.h) against the promises in its header, on
- * a world this file builds itself: no game data is read. Each check starts from eight object slots (six
- * main, two static, the explosion slots ending at 4), one flight group, and local player 0 with the map
- * open, no camera focus and no target. No map icons are loaded.
+/* Checks the flight map capture (xvt_runtime/snapshot/render_map.h) against the
+ * promises in its header, on a world this file builds itself: no game data is
+ * read. Each check starts from eight object slots (six main, two static, the
+ * explosion slots ending at 4), one flight group, and local player 0 with the
+ * map open, no camera focus and no target. No map icons are loaded.
  *
- * Not checked: the order endpoint, since the header does not say when a target's order "resolves", and
- * the label space running out, which XVT_SNAP_OBJECTS objects cannot reach: a label is at most a 20-byte
- * flight-group name, a space, three digits and a terminator, and 1664 of those fill 41600 of the 65535
- * bytes. */
+ * Not checked: the order endpoint, since the header does not say when a
+ * target's order "resolves", and the label space running out, which
+ * XVT_SNAP_OBJECTS objects cannot reach: a label is at most a 20-byte
+ * flight-group name, a space, three digits and a terminator, and 1664 of those
+ * fill 41600 of the 65535 bytes. */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -105,8 +107,9 @@ static void check_static_genera(void)
 	}
 }
 
-/* Other objects are kept below g_explosion_object_slot_end for genus up to platform, a projectile, small
- * debris or an explosion; at or past it, never. */
+/* Other objects are kept below g_explosion_object_slot_end for genus up to
+ * platform, a projectile, small debris or an explosion; at or past it,
+ * never. */
 static void check_other_genera(void)
 {
 	fresh_world();
@@ -151,8 +154,9 @@ map_object(struct xvt_snap_object object)
 	return &g_map->objects[0];
 }
 
-/* The range from the camera focus: 0 at the focus's own position, never smaller farther away, and capped
- * at 9999. Without a valid focus slot there is no range. */
+/* The range from the camera focus: 0 at the focus's own position, never smaller
+ * farther away, and capped at 9999. Without a valid focus slot there is no
+ * range. */
 static void check_range(void)
 {
 	fresh_world();

@@ -302,8 +302,10 @@ void render_clip_clip_poly_bottom(int prev_vert_index, int cur_vert_index,
 				current_scaled_inverse_depth -
 				previous_scaled_inverse_depth;
 
-			/* From here previous_y and current_y hold each vertex's distance from the bottom edge; whichever
-			 * is divided by deltaY below then holds the fraction along the edge where it is clipped. */
+			/* From here previous_y and current_y hold each vertex's
+			 * distance from the bottom edge; whichever is divided
+			 * by deltaY below then holds the fraction along the
+			 * edge where it is clipped. */
 			previous_y = previous_y - boundary;
 			current_y = boundary - current_y;
 			if (current_y > previous_y) {
@@ -406,8 +408,10 @@ void render_clip_clip_poly_bottom(int prev_vert_index, int cur_vert_index,
 		float delta_v = current_v - previous_v;
 		float delta_z = current_z - previous_z;
 
-		/* From here previous_y and current_y hold each vertex's distance from the bottom edge; whichever is
-		 * divided by deltaY below then holds the fraction along the edge where it is clipped. */
+		/* From here previous_y and current_y hold each vertex's
+		 * distance from the bottom edge; whichever is divided by deltaY
+		 * below then holds the fraction along the edge where it is
+		 * clipped. */
 		current_y = current_y - boundary;
 		previous_y = boundary - previous_y;
 		if (current_y > previous_y) {
@@ -520,8 +524,10 @@ int render_clip_clip_poly_left(int prev_vert_index, int cur_vert_index,
 				current_scaled_inverse_depth -
 				previous_scaled_inverse_depth;
 
-			/* From here previous_x and current_x hold each vertex's distance from the left edge; whichever
-			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
+			/* From here previous_x and current_x hold each vertex's
+			 * distance from the left edge; whichever is divided by
+			 * deltaX below then holds the fraction along the edge
+			 * where it is clipped. */
 			previous_x = -previous_x;
 			struct render_clip_vertex *destination;
 			if (previous_x < current_x) {
@@ -623,8 +629,10 @@ int render_clip_clip_poly_left(int prev_vert_index, int cur_vert_index,
 			float delta_v = current_v - previous_v;
 			float delta_z = current_z - previous_z;
 
-			/* From here previous_x and current_x hold each vertex's distance from the left edge; whichever
-			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
+			/* From here previous_x and current_x hold each vertex's
+			 * distance from the left edge; whichever is divided by
+			 * deltaX below then holds the fraction along the edge
+			 * where it is clipped. */
 			current_x = -current_x;
 			struct render_clip_vertex *destination;
 			if (current_x > previous_x) {
@@ -750,8 +758,10 @@ void render_clip_clip_poly_right(int prev_vert_index, int cur_vert_index,
 				current_scaled_inverse_depth -
 				previous_scaled_inverse_depth;
 
-			/* From here previous_x and current_x hold each vertex's distance from the right edge; whichever
-			 * is divided by deltaX below then holds the fraction along the edge where it is clipped. */
+			/* From here previous_x and current_x hold each vertex's
+			 * distance from the right edge; whichever is divided by
+			 * deltaX below then holds the fraction along the edge
+			 * where it is clipped. */
 			previous_x = previous_x - boundary;
 			current_x = boundary - current_x;
 			if (current_x > previous_x) {
@@ -854,8 +864,10 @@ void render_clip_clip_poly_right(int prev_vert_index, int cur_vert_index,
 		float delta_v = current_v - previous_v;
 		float delta_z = current_z - previous_z;
 
-		/* From here previous_x and current_x hold each vertex's distance from the right edge; whichever is
-		 * divided by deltaX below then holds the fraction along the edge where it is clipped. */
+		/* From here previous_x and current_x hold each vertex's
+		 * distance from the right edge; whichever is divided by deltaX
+		 * below then holds the fraction along the edge where it is
+		 * clipped. */
 		previous_x = boundary - previous_x;
 		current_x = current_x - boundary;
 		if (current_x > previous_x) {
@@ -955,13 +967,15 @@ void render_clip_clip_poly_near(int prev_vert_index, int cur_vert_index,
 		float current_x =
 			(current->x - (float)(g_flight_vp_width >> 1)) *
 			current_depth;
-		/* From here current_x is the edge's x difference (current vertex minus previous). */
+		/* From here current_x is the edge's x difference (current
+		 * vertex minus previous). */
 		current_x = current_x * g_inv_proj_scale - previous_x;
 		float current_y =
 			(current->y -
 			 (float)(g_proj_offset_y + (g_flight_vp_height >> 1))) *
 			current_depth;
-		/* From here current_y is the edge's y difference (current vertex minus previous). */
+		/* From here current_y is the edge's y difference (current
+		 * vertex minus previous). */
 		current_y = current_y * g_inv_proj_scale - previous_y;
 		float delta_u = current->u - previous_u;
 		float delta_v = current->v - previous_v;
@@ -998,13 +1012,15 @@ void render_clip_clip_poly_near(int prev_vert_index, int cur_vert_index,
 		float previous_x =
 			(previous->x - (float)(g_flight_vp_width >> 1)) *
 			previous_depth;
-		/* From here previous_x is the edge's x difference (current vertex minus previous). */
+		/* From here previous_x is the edge's x difference (current
+		 * vertex minus previous). */
 		previous_x = current_x - previous_x * g_inv_proj_scale;
 		float previous_y =
 			(previous->y -
 			 (float)(g_proj_offset_y + (g_flight_vp_height >> 1))) *
 			previous_depth;
-		/* From here previous_y is the edge's y difference (current vertex minus previous). */
+		/* From here previous_y is the edge's y difference (current
+		 * vertex minus previous). */
 		previous_y = current_y - previous_y * g_inv_proj_scale;
 		float delta_u = current_u - previous->u;
 		float delta_v = current_v - previous->v;

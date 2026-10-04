@@ -683,7 +683,8 @@ int net_start_network_session(int app_guid_data1, int app_guid_data2,
 
 			g_front_state.net_reliable_peer_slot_count =
 				(uint32_t)received_packet[2];
-			/* From here result holds the host's time stamp in ms, echoed back below in the keepalive ack. */
+			/* From here result holds the host's time stamp in ms,
+			 * echoed back below in the keepalive ack. */
 			result = received_packet[3];
 			const uint8_t *peer_sequence_records =
 				(const uint8_t *)received_packet +
@@ -1411,8 +1412,10 @@ void net_pump_incoming_packets(void)
 			int broadcast_channel =
 				(wire_packet.header & 0x8000) == 0;
 			int sequence = (wire_packet.header >> 8) & 0x7F;
-			/* Outside the resync types (60-63) every packet carries a piggyback trailer after its payload,
-			 * and a type with no fixed size also starts with a length word; has_length stands for both. */
+			/* Outside the resync types (60-63) every packet carries
+			 * a piggyback trailer after its payload, and a type
+			 * with no fixed size also starts with a length word;
+			 * has_length stands for both. */
 			int has_length =
 				packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
 				packet_type >= NET_PACKET_RESYNC_CHUNK + 1;
@@ -1446,8 +1449,10 @@ void net_pump_incoming_packets(void)
 						[peer_index]
 					.last_heard_ms = GetTickCount();
 				uint32_t echoed_send_ms = (uint32_t)payload[0];
-				/* Until the average is computed below, average_latency_ms holds the current time less
-				 * LATENCY_SEND_BIAS_MS, the clock the echoed send time is measured against. */
+				/* Until the average is computed below,
+				 * average_latency_ms holds the current time
+				 * less LATENCY_SEND_BIAS_MS, the clock the
+				 * echoed send time is measured against. */
 				uint32_t average_latency_ms =
 					GetTickCount() - LATENCY_SEND_BIAS_MS;
 				uint32_t latency_ms;
@@ -2245,7 +2250,8 @@ void net_pump_incoming_packets(void)
 				}
 			}
 
-			/* peer_index is reused here as a flag: 1 when the sequence is stale or out of range (skipped). */
+			/* peer_index is reused here as a flag: 1 when the
+			 * sequence is stale or out of range (skipped). */
 			peer_index = net_check_and_record_incoming_sequence(
 				(int)from_id, sequence, broadcast_channel,
 				group_channel);
@@ -3662,8 +3668,9 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 				   [NET_RELIABLE_CHANNEL_COUNT];
 	memset(last_seen_sequences, 0, sizeof(last_seen_sequences));
 	int channel_index;
-	/* channel_index first walks the peer slots; the test below compares the slot count it is left at with
-	 * peer_index to spot a new slot. Only later does it hold a channel. */
+	/* channel_index first walks the peer slots; the test below compares the
+	 * slot count it is left at with peer_index to spot a new slot. Only
+	 * later does it hold a channel. */
 	for (channel_index = 0;
 	     channel_index < (int)g_front_state.net_reliable_peer_slot_count;
 	     ++channel_index) {
@@ -4106,7 +4113,9 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 						} else {
 							uint32_t now =
 								GetTickCount();
-							/* queued_packet_index is reused here as the NACK retry limit. */
+							/* queued_packet_index
+							 * is reused here as the
+							 * NACK retry limit. */
 							if (g_front_state
 								    .net_reliable_retry_long_timeout_mode ==
 							    1) {
@@ -5688,7 +5697,8 @@ unsigned int net_find_or_create_peer_slot(int direct_play_id)
 	return slot;
 }
 
-/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a reliable peer slot for it. */
+/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a
+ * reliable peer slot for it. */
 /* Returns a player's loss rate in hundredths of a percent, at most 10,000:
  * drops plus twice the retries, per 10,000 packets. The host adds its own
  * peer slot counts for the player to the player's g_net_player_connection_stats
@@ -5983,7 +5993,8 @@ int net_drop_silent_peers(void)
 	return 1;
 }
 
-/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a reliable peer slot for it. */
+/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a
+ * reliable peer slot for it. */
 /* Returns the player's delivered-packet count: its lobby peer slot's plus its
  * g_net_player_connection_stats entry's. */
 // FUNCTION: XVT 0x4D28F0
@@ -6011,7 +6022,8 @@ int net_get_player_packet_count(int player_id)
 	return packet_count;
 }
 
-/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a reliable peer slot for it. */
+/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a
+ * reliable peer slot for it. */
 /* Returns the player's drop count: its lobby peer slot's plus its
  * g_net_player_connection_stats entry's. */
 // FUNCTION: XVT 0x4D2950
@@ -6040,7 +6052,8 @@ int net_get_player_packet_drop_count(int player_id)
 	return packet_drop_count;
 }
 
-/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a reliable peer slot for it. */
+/* Uses net_find_or_create_peer_slot, so asking about an unknown player adds a
+ * reliable peer slot for it. */
 /* Returns the player's retry count: its lobby peer slot's plus its
  * g_net_player_connection_stats entry's. */
 // FUNCTION: XVT 0x4D29C0

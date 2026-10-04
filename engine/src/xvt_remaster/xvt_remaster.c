@@ -61,9 +61,10 @@ void xvt_remaster_begin_frame(const struct AeronInputSnapshot *input)
 	xvt_remaster_view_begin_frame(input);
 }
 
-/* Runs the remaster renderer for one frame: uploads assets until they are ready, prepares the flight
- * view and the cockpit, records and submits the presentation, then presents. It stays one function
- * because each step decides from flags the earlier steps set (assets ready, world needed, frontend
+/* Runs the remaster renderer for one frame: uploads assets until they are
+ * ready, prepares the flight view and the cockpit, records and submits the
+ * presentation, then presents. It stays one function because each step decides
+ * from flags the earlier steps set (assets ready, world needed, frontend
  * replay, HUD dirty, direct). */
 void xvt_remaster_frame(int32_t delta_us)
 {
@@ -152,12 +153,14 @@ void xvt_remaster_frame(int32_t delta_us)
 			xvt_remaster_ship_commit_sync_batch();
 			xvt_remaster_assets_commit_textures();
 			assets_ready = result == XVT_ASSET_SYNC_COMPLETE;
-			/* Frontend previews must be available before their once-only ordered replay.
-			 * Submit the existing bounded upload batches before consuming that stream. */
+			/* Frontend previews must be available before their
+			 * once-only ordered replay. Submit the existing bounded
+			 * upload batches before consuming that stream. */
 		} while (!assets_ready && snapshot->preview_count);
 	}
 	int resources_ready = assets_ready;
-	/* From here assets_ready also requires the flight world: it means the flight view may be prepared. */
+	/* From here assets_ready also requires the flight world: it means the
+	 * flight view may be prepared. */
 	assets_ready = assets_ready && world_needed;
 	if (assets_ready &&
 	    !xvt_remaster_flight_prepare(

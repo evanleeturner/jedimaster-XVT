@@ -216,8 +216,9 @@ extern int16_t g_flight_sw_rot_sprite_clip_max_x;
 extern struct flight_sw_rot_sprite_coeff_state *g_flight_sw_rot_sprite_coeffs;
 extern int g_flight_sw_rot_sprite_span_run_countdown;
 
-/* sprite_payload describes the same 44-byte image header as tex_level_image_header, under different field
- * names; some code reads one image through both. */
+/* sprite_payload describes the same 44-byte image header as
+ * tex_level_image_header, under different field names; some code reads one
+ * image through both. */
 struct sprite_payload {
 	uint32_t payload_size; /* Never read or written through this name. */
 	/* Never read or written through this name; tex_level_image_header calls

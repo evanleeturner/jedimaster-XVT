@@ -1,15 +1,19 @@
-/* Checks the timing extension of a network125 world checkpoint (xvt_runtime/runtime/flight_checkpoint.h)
- * against the promises in its header: the membership masks and the abort flags SetMask raises, an extension
- * appended after world bytes and read back, what Read refuses, what Restore puts
- * back, and the per-player paired motion. No game data is read: the test builds a world of five object slots,
- * slots 0 to 3 in the main region and slot 4 in the static region, with slot 2 the local transient range, so
- * slots 0, 1, 3 and 4 are shared. Player 0 flies slot 0, whose craft can carry another object, and player 1
- * flies slot 1. Each check starts from that world in a fresh network125 timing session at game time TICK,
- * with the integration and reference motion tables made for it and a flight begun with players 0 and 1.
+/* Checks the timing extension of a network125 world checkpoint
+ * (xvt_runtime/runtime/flight_checkpoint.h) against the promises in its header:
+ * the membership masks and the abort flags SetMask raises, an extension
+ * appended after world bytes and read back, what Read refuses, what Restore
+ * puts back, and the per-player paired motion. No game data is read: the test
+ * builds a world of five object slots, slots 0 to 3 in the main region and slot
+ * 4 in the static region, with slot 2 the local transient range, so slots 0, 1,
+ * 3 and 4 are shared. Player 0 flies slot 0, whose craft can carry another
+ * object, and player 1 flies slot 1. Each check starts from that world in a
+ * fresh network125 timing session at game time TICK, with the integration and
+ * reference motion tables made for it and a flight begun with players 0 and 1.
  *
- * Most checks watch one integration channel through xvt_flight_integration_rate (flight_integration.h): Seed
- * leaves a carried remainder of 3/4 on a slot, and Probe adds 1/4 more, so Probe returns 1 exactly when that
- * remainder is there. */
+ * Most checks watch one integration channel through xvt_flight_integration_rate
+ * (flight_integration.h): Seed leaves a carried remainder of 3/4 on a slot, and
+ * Probe adds 1/4 more, so Probe returns 1 exactly when that remainder is
+ * there. */
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -142,8 +146,8 @@ static void set_footer(uint8_t *image, size_t size,
 	memcpy(image + size - sizeof *footer, footer, sizeof *footer);
 }
 
-/* After a change inside the extension, writes its CRC-32C into the footer again, so that Read judges the
- * change itself and not the CRC. */
+/* After a change inside the extension, writes its CRC-32C into the footer
+ * again, so that Read judges the change itself and not the CRC. */
 static void reseal(uint8_t *image, size_t size)
 {
 	struct xvt_state_footer footer = flight_checkpoint_footer(image, size);
@@ -167,7 +171,8 @@ static void check_begin_and_masks(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_checkpoint_initial_mask(), 0x07);
 	XVT_ASSERT_INT_EQ(xvt_flight_checkpoint_confirmed_mask(), 0x07);
 
-	/* Dropping an initial player raises its abort flag; every other player's flag is cleared. */
+	/* Dropping an initial player raises its abort flag; every other
+	 * player's flag is cleared. */
 	g_player_abort_flags[6] = 1;
 	xvt_flight_checkpoint_apply_confirmed_mask(0x05);
 	XVT_ASSERT_INT_EQ(xvt_flight_checkpoint_confirmed_mask(), 0x05);
@@ -330,8 +335,9 @@ static void check_read_refusals(void)
 	g_local_debris_slot_end = LOCAL_SLOT + 1;
 	XVT_ASSERT_INT_EQ(read_image(g_image, size), 1);
 
-	/* Every record must decode: a reference record with an unknown flag, a player record whose valid
-	 * byte is neither 0 nor 1 (reference_motion.h and player_timing.h say which records are well formed). */
+	/* Every record must decode: a reference record with an unknown flag, a
+	 * player record whose valid byte is neither 0 nor 1 (reference_motion.h
+	 * and player_timing.h say which records are well formed). */
 	g_image[reference +
 		offsetof(struct xvt_reference_motion_wire, flags)] |= 0x80;
 	reseal(g_image, size);
@@ -372,8 +378,8 @@ static void check_restore(void)
 	struct xvt_flight_checkpoint_view view;
 	XVT_ASSERT_INT_EQ(xvt_flight_checkpoint_read(g_image, size, &view), 1);
 
-	/* Move on: spend slot 0's remainder, seed one on slot 3, confirm both players again, and let time
-	 * pass. */
+	/* Move on: spend slot 0's remainder, seed one on slot 3, confirm both
+	 * players again, and let time pass. */
 	XVT_ASSERT_INT_EQ(probe(0), 1);
 	seed(3);
 	xvt_flight_checkpoint_apply_confirmed_mask(0x03);
@@ -410,8 +416,8 @@ static void check_save_player(void)
 	/* Only player 0's record changed. */
 	XVT_ASSERT_INT_EQ(paired(1).validity, 0);
 
-	/* The record stays invalid when the player's object is not a live shared slot: a local slot, an
-	 * empty slot, or none. */
+	/* The record stays invalid when the player's object is not a live
+	 * shared slot: a local slot, an empty slot, or none. */
 	g_players[0].object_index = LOCAL_SLOT;
 	xvt_flight_checkpoint_save_player(0, TICK);
 	XVT_ASSERT_INT_EQ(paired(0).validity, 0);
@@ -455,7 +461,8 @@ static void check_restore_player(void)
 	g_players[0].lockstep_timestamp = TICK + XVT_NETWORK_STEP_TICKS;
 	xvt_flight_checkpoint_restore_player(0);
 	XVT_ASSERT_INT_EQ(probe(0), 0);
-	/* ...and the record invalidated: at the right tick again it no longer restores, it resets. */
+	/* ...and the record invalidated: at the right tick again it no longer
+	 * restores, it resets. */
 	XVT_ASSERT_INT_EQ(paired(0).validity, 0);
 	g_players[0].lockstep_timestamp = TICK;
 	seed(0);
@@ -516,8 +523,8 @@ static void check_network125_only(void)
 	seed(0);
 	xvt_flight_checkpoint_save_player(0, TICK);
 
-	/* Outside network125, SavePlayer leaves the record as it was and RestorePlayer does nothing, not even
-	 * on a mismatch. */
+	/* Outside network125, SavePlayer leaves the record as it was and
+	 * RestorePlayer does nothing, not even on a mismatch. */
 	xvt_flight_timing_begin_session(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	xvt_flight_checkpoint_save_player(0, TICK + 8);
 	xvt_flight_checkpoint_save_player(1, TICK);

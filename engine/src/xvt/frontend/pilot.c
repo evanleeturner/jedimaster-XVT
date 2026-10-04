@@ -499,7 +499,9 @@ int pilot_parse_command_line(const char *cmd_line)
 						 1] = '\0';
 					has_network_address = 1;
 				} else {
-					/* The original parser accepts every non-address option using the x= form. */
+					/* The original parser accepts every
+					 * non-address option using the x=
+					 * form. */
 					parsed.parameter[0] =
 						parsed.parameter[1] == '=';
 					if (parsed.parameter[0] != 0) {

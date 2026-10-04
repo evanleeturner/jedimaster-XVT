@@ -86,8 +86,9 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 		OBJECT_TYPE_NONE = 0,
 		WEAPON_BANK_COUNT = 2,
 		LASER_LINK_DEFAULT = 1,
-		/* WARHEAD_LINK_DEFAULT sets bit 0 again right after this mask, so 0x81 keeps only the side-select
-		 * bit, as the 0x80 mask of the same name does later in this file. */
+		/* WARHEAD_LINK_DEFAULT sets bit 0 again right after this mask,
+		 * so 0x81 keeps only the side-select bit, as the 0x80 mask of
+		 * the same name does later in this file. */
 		WARHEAD_KEEP_SIDE_SELECT_MASK = 0x81,
 		WARHEAD_SAVED_STATE_PRESERVE_MASK = 0x80,
 		WARHEAD_LINK_DEFAULT = 1,
@@ -2369,7 +2370,8 @@ uint16_t player_pick_target_in_sight(int player_idx)
 	return best_target;
 }
 
-/* Besides picking the next target, this leaves g_cur_craft pointing at the last craft it examined. */
+/* Besides picking the next target, this leaves g_cur_craft pointing at the last
+ * craft it examined. */
 /* Steps from current_obj_idx by direction through the main and static slots,
  * wrapping, and returns the first targetable object (type behavior_flags bit 0)
  * other than the player's craft. Objects with mobile data are skipped when
@@ -2434,7 +2436,8 @@ uint16_t player_cycle_target_any_iff(uint16_t current_obj_idx,
 	return current_obj_idx;
 }
 
-/* Besides picking the next target, this leaves g_cur_craft pointing at the last craft it examined. */
+/* Besides picking the next target, this leaves g_cur_craft pointing at the last
+ * craft it examined. */
 /* Steps like player_cycle_target_any_iff, with filters. target_flags bit 2 skips
  * projectile slots, bit 1 skips slots from g_projectile_object_slot_end up, bit 0
  * skips mines. iff_filter 1 keeps the player's team, 2 objects not hostile to
@@ -2491,7 +2494,9 @@ uint16_t player_cycle_target(uint16_t current_obj_idx, int16_t direction,
 								  .fg.team
 						: object->mobj->team;
 
-				/* Cases 2 and 3 overwrite the object's team with a 0/1 flag: 1 when hostile to the player. */
+				/* Cases 2 and 3 overwrite the object's team
+				 * with a 0/1 flag: 1 when hostile to the
+				 * player. */
 				switch (iff_filter) {
 				case 1:
 					if ((uint16_t)g_players[player_idx]
@@ -2924,7 +2929,8 @@ int16_t player_apply_pitch_yaw_steps(int16_t pitch_angle_q16,
 #endif
 }
 
-/* Besides answering, this leaves g_cur_craft pointing at the targeted craft when no player flies it. */
+/* Besides answering, this leaves g_cur_craft pointing at the targeted craft
+ * when no player flies it. */
 /* Tells whether the player may order their current target by radio. Returns 0
  * when there is none, it lies past the craft slots, a player flies it, or it is
  * not active or has no working subsystem; 1 when it belongs to the player's

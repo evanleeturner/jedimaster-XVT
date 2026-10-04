@@ -1,14 +1,18 @@
-/* Checks the join-game screen (xvt_runtime/runtime/network_browser.h) against the promises in its header
- * that hold without a multiplayer directory or the game's art: with an empty room list the list draw
- * clicks nothing and keeps the scroll offset in range, the roster and mission draws return 1, the first
- * frame's setup clears its flags, opens the browser and shows the unconfigured-directory dialog, and on
- * later frames Leave returns to the concourse, Leave and Join stay hidden behind a dialog, and Join is
- * offered only when the network task allows a join. The frontend runs on a display with no window
- * (test_frontend_display.h) with no fonts or images loaded, so nothing visible is drawn. Every case starts
- * from a cleared frontend, no dialog, no settings and an idle network task.
+/* Checks the join-game screen (xvt_runtime/runtime/network_browser.h) against
+ * the promises in its header that hold without a multiplayer directory or the
+ * game's art: with an empty room list the list draw clicks nothing and keeps
+ * the scroll offset in range, the roster and mission draws return 1, the first
+ * frame's setup clears its flags, opens the browser and shows the
+ * unconfigured-directory dialog, and on later frames Leave returns to the
+ * concourse, Leave and Join stay hidden behind a dialog, and Join is offered
+ * only when the network task allows a join. The frontend runs on a display with
+ * no window (test_frontend_display.h) with no fonts or images loaded, so
+ * nothing visible is drawn. Every case starts from a cleared frontend, no
+ * dialog, no settings and an idle network task.
  *
- * Not checked here: rows, colors, the roster and the preview of real rooms, which need a multiplayer
- * directory, and the shared frontend controls, which act through the game's own dialogs. */
+ * Not checked here: rows, colors, the roster and the preview of real rooms,
+ * which need a multiplayer directory, and the shared frontend controls, which
+ * act through the game's own dialogs. */
 #include <string.h>
 
 #include "test_assert.h"

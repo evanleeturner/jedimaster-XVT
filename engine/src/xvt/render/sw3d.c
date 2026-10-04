@@ -427,7 +427,8 @@ void sw3d_project_mesh_vertices(struct scene_mesh *mesh)
 					(const struct opt_texture_data *)
 						mesh->p_material;
 
-				/* total_w, the sum of the corners' w values, becomes the corner count over that sum: the
+				/* total_w, the sum of the corners' w values,
+				 * becomes the corner count over that sum: the
 				 * reciprocal of their mean. */
 				if (geometry->vertex_idx[3] == -1) {
 					total_w = g_sw3d_triangle_corner_count /
@@ -1946,7 +1947,9 @@ void sw3d_insert_span(float x_left, float x_right, int scan_y,
 				if (current_left_width < 0) {
 					current_left_width = 0;
 				}
-				/* Here current_left_width holds an x coordinate, the new span's new end, not a width. */
+				/* Here current_left_width holds an x
+				 * coordinate, the new span's new end, not a
+				 * width. */
 				current_left_width += start_x;
 				if (current_left_width > end_x) {
 					current_left_width = end_x;

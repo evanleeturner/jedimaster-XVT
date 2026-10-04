@@ -1,11 +1,14 @@
-/* Checks the network session (xvt_runtime/runtime/network_session.h) against the promises in its header,
- * as far as they hold without a peer or a directory: the player-name split, the refusals of Configure and
- * of the Begin calls, the status a setup reports, the lost mark, a close and its completion, Reset and
- * Shutdown. No setup is ticked past its first phase, so no DirectPlay session or directory request is ever
- * made. Every case starts from Shutdown with no settings loaded.
+/* Checks the network session (xvt_runtime/runtime/network_session.h) against
+ * the promises in its header, as far as they hold without a peer or a
+ * directory: the player-name split, the refusals of Configure and of the Begin
+ * calls, the status a setup reports, the lost mark, a close and its completion,
+ * Reset and Shutdown. No setup is ticked past its first phase, so no DirectPlay
+ * session or directory request is ever made. Every case starts from Shutdown
+ * with no settings loaded.
  *
- * Not checked here: the setup phases past the close, admission, registration, the listing Service keeps
- * and the flight marks; they need a DirectPlay peer and a multiplayer directory. */
+ * Not checked here: the setup phases past the close, admission, registration,
+ * the listing Service keeps and the flight marks; they need a DirectPlay peer
+ * and a multiplayer directory. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -167,7 +170,8 @@ static void check_begin_while_under_way(void)
 			  XVT_NETWORK_PENDING);
 	XVT_ASSERT_INT_EQ(state(), XVT_NETWORK_SESSION_PENDING);
 
-	/* Another Begin while setup is under way returns -1 and does nothing: bad arguments do not fail it. */
+	/* Another Begin while setup is under way returns -1 and does nothing:
+	 * bad arguments do not fail it. */
 	XVT_ASSERT_INT_EQ(xvt_network_session_begin_host(NULL, NULL, NULL, 0),
 			  XVT_NETWORK_PENDING);
 	XVT_ASSERT_INT_EQ(xvt_network_session_begin_join(NULL, NULL, NULL),

@@ -403,8 +403,10 @@ struct craft_data {
 };
 
 struct craft_tech_stats {
-	int craft_type; ///< craft_species selected by the Tech Library. specdesc.txt uses craft_type-1;
-	///< build_craft_tech_stats also uses this value directly as the parallel object/model slot.
+	/* craft_species selected by the Tech Library. specdesc.txt uses
+	 * craft_type-1; build_craft_tech_stats also uses this value directly as
+	 * the parallel object/model slot. */
+	int craft_type;
 	craft_genus
 		genus_id; ///< craft_genus copied from g_object_type_table[craft_type].
 	/* Speed rating: the model's max_speed times 4/9, rounded. */

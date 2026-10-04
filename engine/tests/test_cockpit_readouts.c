@@ -1,12 +1,15 @@
-/* Checks the cockpit's numeric readouts and target panel (xvt_runtime/snapshot/cockpit_readouts.h) against
- * the promises in its header: what a recorded number holds, the 16-bit rule and its exceptions, which
- * numbers CopyState shows, the course panel, the target panel across a change of target or mode, its
- * cover, armament and order fields, and the launcher counts. The test builds its own world (an object
- * table with two main slots and one static slot, the local player in seat 0) and sets the flight text
+/* Checks the cockpit's numeric readouts and target panel
+ * (xvt_runtime/snapshot/cockpit_readouts.h) against the promises in its header:
+ * what a recorded number holds, the 16-bit rule and its exceptions, which
+ * numbers CopyState shows, the course panel, the target panel across a change
+ * of target or mode, its cover, armament and order fields, and the launcher
+ * counts. The test builds its own world (an object table with two main slots
+ * and one static slot, the local player in seat 0) and sets the flight text
  * globals and the palette itself; every case starts from Reset and that world.
  *
- * Not checked here: which HUD element bindings RecordCachedNumber maps to which readout, since the header
- * names the readouts but not their binding numbers; only an out-of-range binding is checked. */
+ * Not checked here: which HUD element bindings RecordCachedNumber maps to which
+ * readout, since the header names the readouts but not their binding numbers;
+ * only an out-of-range binding is checked. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -29,8 +32,9 @@ static struct object_record g_test_objects[3];
 static struct xvt_cockpit_state g_state;
 static uint8_t g_framebuffer[16];
 
-/* Slots 0 and 1 are main slots and slot 2 is a static one; the local player in seat 0 targets nothing.
- * The text cursor is at (30, 40) inside the clip (10, 20) to (210, 120). */
+/* Slots 0 and 1 are main slots and slot 2 is a static one; the local player in
+ * seat 0 targets nothing. The text cursor is at (30, 40) inside the clip
+ * (10, 20) to (210, 120). */
 static void cockpit_readouts_start(void)
 {
 	for (unsigned index = 0; index < 256; ++index) {
@@ -69,7 +73,8 @@ static void cockpit_readouts_start(void)
 	xvt_cockpit_readouts_reset();
 }
 
-/* A state whose instruments all show, as xvt_cockpit_instruments_build leaves it in the forward view. */
+/* A state whose instruments all show, as xvt_cockpit_instruments_build leaves
+ * it in the forward view. */
 static struct xvt_cockpit_state *shown(void)
 {
 	memset(&g_state, 0, sizeof g_state);
@@ -378,7 +383,8 @@ static void check_target_change_clears(void)
 		       "TIE"),
 		0);
 
-	/* A new target clears the target, its numbers and its text fields, but not the other numbers. */
+	/* A new target clears the target, its numbers and its text fields, but
+	 * not the other numbers. */
 	cockpit_readouts_target(TARGET_B);
 	xvt_cockpit_readouts_begin_target(1);
 	record(XVT_COCKPIT_NUMBER_TARGET_SHIELDS, 6);
@@ -432,8 +438,9 @@ static void check_reset_targets_no_object(void)
 	XVT_ASSERT_INT_EQ(state->target.type, 0);
 	struct xvt_snap_object_id none = state->target.object;
 
-	/* A player with no target starts the panel on the same no-object target Reset left: no change, so a
-	 * target number recorded before it survives. */
+	/* A player with no target starts the panel on the same no-object target
+	 * Reset left: no change, so a target number recorded before it
+	 * survives. */
 	record(XVT_COCKPIT_NUMBER_TARGET_HULL, 3);
 	xvt_cockpit_readouts_begin_target(0);
 	state = shown();
@@ -509,7 +516,8 @@ static void check_launchers(void)
 	xvt_cockpit_readouts_copy_launcher(&number, 1);
 	XVT_ASSERT_INT_EQ(number.visible, 0);
 
-	/* Launchers from 4 up are ignored: the copy leaves number alone and the clear touches nothing. */
+	/* Launchers from 4 up are ignored: the copy leaves number alone and the
+	 * clear touches nothing. */
 	memset(&number, 0x5A, sizeof number);
 	struct xvt_cockpit_number before;
 	memcpy(&before, &number, sizeof before);

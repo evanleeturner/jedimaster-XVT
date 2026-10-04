@@ -608,7 +608,8 @@ int frontend_sound_get_primary_volume(void)
 		return 0;
 	}
 
-	/* Convert the DirectSound attenuation back to the game's volume scale, where 127 is full volume. */
+	/* Convert the DirectSound attenuation back to the game's volume scale,
+	 * where 127 is full volume. */
 	direct_sound_volume = 127 * direct_sound_volume / 2000 + 127;
 	if (was_back_buffer_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
@@ -727,7 +728,8 @@ int frontend_sound_get_newest_voice_volume_by_name(const char *name)
 			    &direct_sound_volume) != 0) {
 		return 0;
 	}
-	/* Convert the DirectSound attenuation back to the game's volume scale, where 127 is full volume. */
+	/* Convert the DirectSound attenuation back to the game's volume scale,
+	 * where 127 is full volume. */
 	direct_sound_volume = 127 * direct_sound_volume / 2000 + 127;
 	if (was_back_buffer_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();

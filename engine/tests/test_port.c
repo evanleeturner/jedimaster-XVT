@@ -1,13 +1,16 @@
-/* Checks the game runtime's host interface (xvt_runtime/runtime/port.h) against the promises in its header
- * that hold without a window: Init's refusal of a logical size other than 640x480 and the exit code it
- * sets, the port before Init (not initialized, quitting, a Update that does nothing, a Shutdown that only
- * lifts the classic rendering suppression), the settings request latch, and when the network requires
- * progress. Aeron runs without a window here; the test sets its logical size. Every case starts with the
- * port shut down and the frontend cleared.
+/* Checks the game runtime's host interface (xvt_runtime/runtime/port.h) against
+ * the promises in its header that hold without a window: Init's refusal of a
+ * logical size other than 640x480 and the exit code it sets, the port before
+ * Init (not initialized, quitting, a Update that does nothing, a Shutdown that
+ * only lifts the classic rendering suppression), the settings request latch,
+ * and when the network requires progress. Aeron runs without a window here; the
+ * test sets its logical size. Every case starts with the port shut down and the
+ * frontend cleared.
  *
- * Not checked here: a successful Init and everything that runs after it (Update's frames, pausing, quitting,
- * the wake delay and Shutdown after Init), which start the frontend with its main window, the config and
- * the game's files. */
+ * Not checked here: a successful Init and everything that runs after it
+ * (Update's frames, pausing, quitting, the wake delay and Shutdown after Init),
+ * which start the frontend with its main window, the config and the game's
+ * files. */
 #include <string.h>
 
 #include "aeron/aeron.h"

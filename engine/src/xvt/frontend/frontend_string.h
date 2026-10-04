@@ -39,8 +39,9 @@ enum {
 	FRONTSTR_018_JOIN = 0x12,
 	FRONTSTR_019_CANCEL = 0x13,
 	FRONTSTR_020_ACCESSING_IMPERIAL_NETWORK = 0x14,
-	FRONTSTR_021_UNKNOWN =
-		0x15, ///< Base of the 101-entry fronttxt craft long-name block; add craft_species to select a name.
+	/* Base of the 101-entry fronttxt craft long-name block; add
+	 * craft_species to select a name. */
+	FRONTSTR_021_UNKNOWN = 0x15,
 	FRONTSTR_022_X_WING = 0x16,
 	FRONTSTR_023_Y_WING = 0x17,
 	FRONTSTR_024_A_WING = 0x18,

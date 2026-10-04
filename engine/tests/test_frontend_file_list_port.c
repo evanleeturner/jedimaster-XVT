@@ -1,9 +1,11 @@
 #define _POSIX_C_SOURCE 200809L
 /* Checks the modern file listing behind frontend_file_list_build_sorted
- * (xvt_runtime/compat/frontend_file_list_port.h) against the promises in its header. Each case starts
- * from a fresh temporary folder holding empty asset and user folders, which an Aeron VFS bound to storage
- * uses as the ASSET and USER roots; the test writes every file the listing sees. The list is released
- * with frontend_file_list_free from the recovered frontend code, as the header says. */
+ * (xvt_runtime/compat/frontend_file_list_port.h) against the promises in its
+ * header. Each case starts from a fresh temporary folder holding empty asset
+ * and user folders, which an Aeron VFS bound to storage uses as the ASSET and
+ * USER roots; the test writes every file the listing sees. The list is released
+ * with frontend_file_list_free from the recovered frontend code, as the header
+ * says. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -76,8 +78,9 @@ static void check_sorted_files(void)
 	xvt_test_make_subfolder(g_asset, "pilots");
 	xvt_test_write_text(g_asset, "pilots/asset.plt", "x");
 
-	/* Files in USER only, never the folder, matched in any letter case, each path the wildcard's folder
-	 * part plus the name, in strcmp order: capitals sort before small letters. */
+	/* Files in USER only, never the folder, matched in any letter case,
+	 * each path the wildcard's folder part plus the name, in strcmp order:
+	 * capitals sort before small letters. */
 	static const char *const expected[] = {
 		"pilots/Ace.PLT", "pilots/Carl.plt", "pilots/bob.plt",
 		"pilots/dave.plt"};

@@ -1011,8 +1011,10 @@ void laser_weaponsfire(void)
 			continue;
 		}
 
-		/* slotIndex counts cannon groups in the first loop below (the laser_state arrays, passed to
-		 * laser_firelasersystem as its group), weapon slots in the turret loop, then warhead launchers. */
+		/* slotIndex counts cannon groups in the first loop below (the
+		 * laser_state arrays, passed to laser_firelasersystem as its
+		 * group), weapon slots in the turret loop, then warhead
+		 * launchers. */
 		uint16_t slot_index;
 		if (g_cur_craft->beam_effect_accum[2] == 0
 #ifdef XVT_MODERN
@@ -1430,9 +1432,11 @@ void laser_firelasersystem(int object_index, int laser_system_index)
 					    .projectile_type_id != 0 &&
 			    g_cur_craft->weapon_slots[current_slot]
 					    .laser_charge > 0) {
-				/* From here first_slot holds the projectile type to fire: the group's weapon type, one higher
-				 * when the slot's charge is 64 or more. The ion check after the loop reads it; if no slot
-				 * fired it still holds the first slot. */
+				/* From here first_slot holds the projectile
+				 * type to fire: the group's weapon type, one
+				 * higher when the slot's charge is 64 or more.
+				 * The ion check after the loop reads it; if no
+				 * slot fired it still holds the first slot. */
 				first_slot =
 					g_model_defs[model_index]
 						.laser_group_weapon_type
@@ -1510,7 +1514,10 @@ void laser_firelasersystem(int object_index, int laser_system_index)
 								0;
 						}
 						{
-							/* From here projectile_index indexes g_projectile_guidance_states. */
+							/* From here
+							 * projectile_index
+							 * indexes
+							 * g_projectile_guidance_states. */
 							projectile_index -=
 								g_projectile_object_slot_start;
 							if (owner_player_idx !=
@@ -1769,8 +1776,9 @@ int laser_firemissile(int object_index, int weapon_slot_index,
 					  .ammo_count;
 			}
 
-			/* From here projectile_index indexes g_projectile_guidance_states, and that index is what this
-			 * function returns. */
+			/* From here projectile_index indexes
+			 * g_projectile_guidance_states, and that index is what
+			 * this function returns. */
 			projectile_index -= g_projectile_object_slot_start;
 			if (launcher_index < 2) {
 				g_projectile_guidance_states[projectile_index]

@@ -1,12 +1,14 @@
 /* Checks the flight loading steps in flight_loading.c against their promises in
- * xvt_runtime/runtime/flight_internal.h, for the two that need no game files or display: Reset and
- * MissionSetup. No game data is read: the test sets the globals they touch itself, with the flight drawing
- * to its own staging buffer rather than the frontend's surface.
+ * xvt_runtime/runtime/flight_internal.h, for the two that need no game files or
+ * display: Reset and MissionSetup. No game data is read: the test sets the
+ * globals they touch itself, with the flight drawing to its own staging buffer
+ * rather than the frontend's surface.
  *
- * Not checked here: Globals loads the AI plans from the retail game files, Palette loads the flight palette
- * and the mission's .pal file from them and configures the display, and Runtime initializes the mission
- * runtime of a loaded mission and starts the music CD; they need the retail game files and a running
- * flight's display. */
+ * Not checked here: Globals loads the AI plans from the retail game files,
+ * Palette loads the flight palette and the mission's .pal file from them and
+ * configures the display, and Runtime initializes the mission runtime of a
+ * loaded mission and starts the music CD; they need the retail game files and a
+ * running flight's display. */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +25,8 @@ static void surface(void)
 
 static void check_reset(void)
 {
-	/* Handles and pool pointers are forgotten, not freed: the test frees the memory itself afterwards. */
+	/* Handles and pool pointers are forgotten, not freed: the test frees
+	 * the memory itself afterwards. */
 	void *objects = malloc(64);
 	void *mobiles = malloc(64);
 	void *char_data = malloc(64);
@@ -110,8 +113,8 @@ static void check_resets(void)
 
 static void check_noise_table(void)
 {
-	/* The noise table is refilled from rand(): the same seed gives the same table whatever it held before,
-	 * and another seed another table. */
+	/* The noise table is refilled from rand(): the same seed gives the same
+	 * table whatever it held before, and another seed another table. */
 	static uint8_t first[sizeof g_flight_noise_table];
 	surface();
 	srand(7);

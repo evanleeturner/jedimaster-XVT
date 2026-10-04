@@ -63,9 +63,10 @@ struct hud_cockpit_resource_descriptor {
 struct hud_element_layout {
 	uint16_t x; /* Left edge in pixels. */
 	uint16_t y; /* Top edge in pixels. */
-	/* Widget-specific .INT payload: the first panel sprite of a sprite widget, the digit count of a number
-	 * widget, the target inset's width, or the warning line's background color. Label widgets skip a 0
-	 * and use their short text at 4 or less. */
+	/* Widget-specific .INT payload: the first panel sprite of a sprite
+	 * widget, the digit count of a number widget, the target inset's width,
+	 * or the warning line's background color. Label widgets skip a 0 and
+	 * use their short text at 4 or less. */
 	uint16_t selector; /* 0 hides labels; layout 396's set at run time. */
 	/* Sprite widgets: the blit's transparent color. Text widgets: the text
 	 * or background color. Laser charge bars run right to left when it is
@@ -77,7 +78,9 @@ struct hud_element_layout {
 	uint16_t clip_width;
 	/* In layout 127, a counter of the critical warning's steps at run
 	 * time. */
-	int16_t clip_height_or_foreground_color; ///< Widget-specific .INT payload: clip height or foreground text color.
+	/* Widget-specific .INT payload: clip height or foreground text
+	 * color. */
+	int16_t clip_height_or_foreground_color;
 };
 
 struct hud_cockpit_resource {

@@ -1,12 +1,15 @@
-/* Checks multiplayer movie sync (xvt_runtime/runtime/movie_sync.h) against the promises in its header: the
- * players Begin lists and what it clears, ReportFinished marking the local player and setting the host's and
- * the client's deadline once, and Update's answer and the moment it marks the deadline passed. The test sets
- * the network roster and players itself; there is no DirectPlay session, so the packets sent go nowhere and
- * no packet arrives. The host clock, which answers GetTickCount, moves only when the test advances it. Every
- * case starts from a cleared frontend, an empty roster and the clock at 0.
+/* Checks multiplayer movie sync (xvt_runtime/runtime/movie_sync.h) against the
+ * promises in its header: the players Begin lists and what it clears,
+ * ReportFinished marking the local player and setting the host's and the
+ * client's deadline once, and Update's answer and the moment it marks the
+ * deadline passed. The test sets the network roster and players itself; there
+ * is no DirectPlay session, so the packets sent go nowhere and no packet
+ * arrives. The host clock, which answers GetTickCount, moves only when the test
+ * advances it. Every case starts from a cleared frontend, an empty roster and
+ * the clock at 0.
  *
- * Not checked here: remote players marked waiting or dropped by their packets, which need a DirectPlay
- * peer, and Draw, which needs the game's fonts. */
+ * Not checked here: remote players marked waiting or dropped by their packets,
+ * which need a DirectPlay peer, and Draw, which needs the game's fonts. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -26,7 +29,8 @@ static void fresh(void)
 	xvt_time_reset();
 }
 
-/* Makes count players ready in the session, the first one local, listed in the same order in the roster. */
+/* Makes count players ready in the session, the first one local, listed in the
+ * same order in the roster. */
 static void players(int count)
 {
 	for (int i = 0; i < count; ++i) {

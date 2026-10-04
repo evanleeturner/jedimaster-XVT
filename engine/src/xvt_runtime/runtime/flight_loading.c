@@ -58,9 +58,10 @@ void xvt_flight_loading_reset(void)
 	g_projectile_guidance_states = NULL;
 }
 
-/* Copies this flight's game rules from the settings into the mission state. Multiplayer combat
- * engagements always fly at medium difficulty; only multiplayer takes the time limits and the AI
- * choice from the settings; a combat engagement inside a mission sequence has no random variation. */
+/* Copies this flight's game rules from the settings into the mission state.
+ * Multiplayer combat engagements always fly at medium difficulty; only
+ * multiplayer takes the time limits and the AI choice from the settings; a
+ * combat engagement inside a mission sequence has no random variation. */
 static void xvt_flight_loading_mission_rules(void)
 {
 	if ((unsigned int)g_pilot_data.num_human_players_last_mission > 1 &&

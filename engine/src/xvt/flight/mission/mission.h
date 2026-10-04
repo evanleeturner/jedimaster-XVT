@@ -272,9 +272,9 @@ extern int g_world_loc_z;
 
 struct team {
 	char name[16]; /* Team name, shown on the scoreboard. */
-	uint8_t reserved10
-		[8]; ///< Mission-file reserved bytes; loaded with the 0x1E5-byte team record and
-	///< otherwise unreferenced.
+	/* Mission-file reserved bytes; loaded with the 0x1E5-byte team record
+	 * and otherwise unreferenced. */
+	uint8_t reserved10[8];
 	/* Per team, nonzero when allied; mission_load_file marks each team
 	 * allied with itself. */
 	uint8_t allies[10];
@@ -311,8 +311,9 @@ enum {
 struct mission_header {
 	int16_t num_flight_groups; /* Flight groups in g_mission_flight_groups. */
 	uint16_t num_messages;	   /* Messages in g_mission_messages. */
-	/* Nothing in this build reads time_limit_min or time_limit_sec; the mission countdown comes from
-	 * time_limit_minutes. A TIE-format mission stores its header's backdrop byte in time_limit_min. */
+	/* Nothing in this build reads time_limit_min or time_limit_sec; the
+	 * mission countdown comes from time_limit_minutes. A TIE-format mission
+	 * stores its header's backdrop byte in time_limit_min. */
 	uint8_t time_limit_min;
 	uint8_t time_limit_sec;
 	uint8_t win_type; /* Loaded; nothing reads it. */
@@ -323,11 +324,15 @@ struct mission_header {
 	uint8_t variables[8];	     /* Loaded; nothing reads it. */
 	/* Names of IFF 2 to 5; goals_outputgoal skips a '1' at the start. */
 	char iff_names[4][20];
-	mission_type
-		mission_type; ///< One-byte mission mode; XVT uses the shared legacy values through SKIRMISH (0..4).
-	uint8_t goals_unimportant; ///< Nonzero suppresses normal mission-goal importance/failure handling.
-	uint8_t time_limit_minutes; ///< Mission countdown duration in whole minutes; zero disables the
-	///< header-supplied limit.
+	/* One-byte mission mode; XVT uses the shared legacy values through
+	 * SKIRMISH (0..4). */
+	mission_type mission_type;
+	/* Nonzero suppresses normal mission-goal importance/failure
+	 * handling. */
+	uint8_t goals_unimportant;
+	/* Mission countdown duration in whole minutes; zero disables the
+	 * header-supplied limit. */
+	uint8_t time_limit_minutes;
 	uint8_t reserved[61]; /* Loaded with the record; nothing reads it. */
 };
 
@@ -358,16 +363,18 @@ extern struct mission_clock g_mission_countdown_clock;
 struct mission_message {
 	char message
 		[64]; ///< Message text passed directly to the in-flight message queue.
-	uint8_t sent_to_team
-		[10]; ///< Nonzero entry allows the corresponding player IFF/team to receive the message.
+	/* Nonzero entry allows the corresponding player IFF/team to receive the
+	 * message. */
+	uint8_t sent_to_team[10];
 	struct mission_trigger_pair trigger_pairs
 		[2]; ///< Two trigger pairs evaluated before the message becomes active.
-	char voice
-		[16]; ///< Voice resource name stored by the mission file format; not consumed by XVT's runtime
-		      ///< message path.
+	/* Voice resource name stored by the mission file format; not consumed
+	 * by XVT's runtime message path. */
+	char voice[16];
 	uint8_t delay5s; ///< Raw per-message delay copied to the runtime countdown.
-	uint8_t trigger_pair1_or_trigger_pair2; ///< Value 1 combines the trigger-pair results with OR; other values
-						///< use AND.
+	/* Value 1 combines the trigger-pair results with OR; other values use
+	 * AND. */
+	uint8_t trigger_pair1_or_trigger_pair2;
 };
 
 #pragma pack(pop)
@@ -490,7 +497,8 @@ struct mission_fg_runtime_stats {
 	uint8_t team_uncaptured_lost[10];
 	/* Per team, the special cargo craft ended uncaptured. */
 	uint8_t team_special_cargo_uncaptured_lost[10];
-	/* mission_init_flight_runtime_state zeroes this with the counts above; nothing in this build reads it. */
+	/* mission_init_flight_runtime_state zeroes this with the counts above;
+	 * nothing in this build reads it. */
 	uint8_t team_event_extra[4][10];
 	/* Per team, eight goal states (index 8 times team plus goal): 4
 	 * pending, 1 met, 2 failed, 8 a met per-craft bonus goal, 0 none. */
@@ -672,7 +680,8 @@ struct e_mission_goal {
 	/* First 16 bytes copied to name, the 17th to version. */
 	uint8_t editor_name[17];
 	uint8_t or_joined; /* Copied to trigger_pairs[0].trigger1_or_trigger2. */
-	/* The TIE-format loader copies _pad[0] into global_goal.raw_delay; nothing reads _pad[1]. */
+	/* The TIE-format loader copies _pad[0] into global_goal.raw_delay;
+	 * nothing reads _pad[1]. */
 	uint8_t pad[2];
 };
 

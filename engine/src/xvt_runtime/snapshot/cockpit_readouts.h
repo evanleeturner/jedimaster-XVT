@@ -46,12 +46,14 @@ void xvt_cockpit_readouts_copy_launcher(struct xvt_cockpit_number *number,
 					unsigned launcher);
 /* Shows the proving-grounds course panel at these bounds for this update. */
 void xvt_cockpit_readouts_record_course(int x, int y, int width, int height);
-/* Copies the course, readouts, countermeasures, launcher and laser counts and the target panel
- * into state, replacing state->target. A number stays visible only when it was recorded and
- * state already shows its instrument; course numbers follow the course. The target shows only
- * when updated since BeginUpdate and instruments are visible. Its values need the panel
- * uncovered; range and systems show only outside command mode, order range and time only in it. Reads the
- * visibility flags xvt_cockpit_instruments_build sets, so it runs after Build. */
+/* Copies the course, readouts, countermeasures, launcher and laser counts and
+ * the target panel into state, replacing state->target. A number stays visible
+ * only when it was recorded and state already shows its instrument; course
+ * numbers follow the course. The target shows only when updated since
+ * BeginUpdate and instruments are visible. Its values need the panel uncovered;
+ * range and systems show only outside command mode, order range and time only
+ * in it. Reads the visibility flags xvt_cockpit_instruments_build sets, so it
+ * runs after Build. */
 void xvt_cockpit_readouts_copy_state(struct xvt_cockpit_state *state);
 #ifdef __cplusplus
 }

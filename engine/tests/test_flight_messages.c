@@ -1,7 +1,8 @@
-/* Checks the network125 wire messages (xvt_runtime/runtime/flight_messages.h) against the promises in its
- * header: one input record and an input batch encoded and read back, the parts of a world message and how
- * the receiver assembles them, and the pending and replay queues. Every check starts from Reset; the module
- * reads no game globals, and the messages are built here. */
+/* Checks the network125 wire messages (xvt_runtime/runtime/flight_messages.h)
+ * against the promises in its header: one input record and an input batch
+ * encoded and read back, the parts of a world message and how the receiver
+ * assembles them, and the pending and replay queues. Every check starts from
+ * Reset; the module reads no game globals, and the messages are built here. */
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -39,8 +40,9 @@ flight_messages_input(uint8_t key, int8_t axis, uint8_t mods, int throttle)
 	return input;
 }
 
-/* A world message for target with count records, ordered by player then rising tick: the players are the
- * set bits of mask, taken in turn, each with ticks 2, 4, 6 ... up to the target. */
+/* A world message for target with count records, ordered by player then rising
+ * tick: the players are the set bits of mask, taken in turn, each with ticks 2,
+ * 4, 6 ... up to the target. */
 static void make_message(struct xvt_flight_message *message, unsigned target,
 			 uint8_t mask, unsigned count)
 {
@@ -109,7 +111,8 @@ static void check_input_round_trip(void)
 							     &in);
 				XVT_ASSERT_INT_EQ(xvt_wire_get32(record.tick),
 						  1000);
-				/* The throttle-present flag rides in bit 0 of the third axis byte. */
+				/* The throttle-present flag rides in bit 0 of
+				 * the third axis byte. */
 				XVT_ASSERT_INT_EQ(record.axes[2] & 1,
 						  throttles[t] >= 0);
 
@@ -124,7 +127,8 @@ static void check_input_round_trip(void)
 				XVT_ASSERT_INT_EQ(out.key_mods, in.key_mods);
 				XVT_ASSERT_INT_EQ(out.flags, in.flags);
 				XVT_ASSERT_INT_EQ(out.throttle, in.throttle);
-				/* Even axes come back exactly (flight_controls.h: axes come back even). */
+				/* Even axes come back exactly
+				 * (flight_controls.h: axes come back even). */
 				XVT_ASSERT_INT_EQ(out.axis_x, in.axis_x);
 				XVT_ASSERT_INT_EQ(out.axis_y, in.axis_y);
 				if (in.axis_r % 2 == 0) {
@@ -219,7 +223,8 @@ static void check_batch(void)
 		XVT_ASSERT_INT_EQ(xvt_flight_messages_validate_batch(
 					  g_bytes, size, COOKIE),
 				  1);
-		/* The size must match the count exactly, and the cookie must be the one it was written for. */
+		/* The size must match the count exactly, and the cookie must be
+		 * the one it was written for. */
 		XVT_ASSERT_INT_EQ(xvt_flight_messages_validate_batch(
 					  g_bytes, size - 1, COOKIE),
 				  0);
@@ -287,7 +292,8 @@ static void check_encode_part(void)
 	unsigned parts = xvt_flight_messages_part_count(g_message.count);
 	XVT_ASSERT_INT_EQ(parts, 2);
 
-	/* Refused: a zero cookie, a part past the last, a message over XVT_WORLD_RECORDS records. */
+	/* Refused: a zero cookie, a part past the last, a message over
+	 * XVT_WORLD_RECORDS records. */
 	XVT_ASSERT_INT_EQ(
 		xvt_flight_messages_encode_part(g_part, &g_message, 0, 0), 0);
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_encode_part(g_part, &g_message,
@@ -343,8 +349,8 @@ static void check_assembly(void)
 		}
 	}
 
-	/* The message is remembered as the last assembled: an exact resend of any of its parts is old, a
-	 * different one is invalid. */
+	/* The message is remembered as the last assembled: an exact resend of
+	 * any of its parts is old, a different one is invalid. */
 	size_t size = flight_messages_part(&g_message, 1);
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_receive_part(g_part, size, COOKIE,
 							   0, &g_out),
@@ -436,8 +442,8 @@ static void check_assembly_refusals(void)
 
 static void check_assembly_conflicts(void)
 {
-	/* While a message is being assembled, a part of another message is invalid, and a resend of a held
-	 * part that differs is invalid. */
+	/* While a message is being assembled, a part of another message is
+	 * invalid, and a resend of a held part that differs is invalid. */
 	xvt_flight_messages_reset();
 	make_message(&g_message, TARGET, 0x01, XVT_WORLD_PART_RECORDS + 1);
 	size_t size = flight_messages_part(&g_message, 0);
@@ -465,7 +471,8 @@ static void check_assembly_conflicts(void)
 
 static void check_unordered_message_stays(void)
 {
-	/* A complete message whose records are not ordered by player then rising tick is invalid... */
+	/* A complete message whose records are not ordered by player then
+	 * rising tick is invalid... */
 	xvt_flight_messages_reset();
 	make_message(&g_message, TARGET, 0x03, 4);
 	struct xvt_flight_world_input_wire first = g_message.records[0];
@@ -476,8 +483,8 @@ static void check_unordered_message_stays(void)
 							   0, &g_out),
 			  -1);
 
-	/* ...and stays assembled: the next message is a part of another message, until the assembly is
-	 * discarded. */
+	/* ...and stays assembled: the next message is a part of another
+	 * message, until the assembly is discarded. */
 	make_message(&g_other, TARGET + XVT_WORLD_MESSAGE_TICKS, 0x01, 2);
 	size = flight_messages_part(&g_other, 0);
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_receive_part(g_part, size, COOKIE,
@@ -510,7 +517,8 @@ static void check_discard_assembly(void)
 							   0, &g_out),
 			  0);
 
-	/* A tick before the target leaves the partial message alone: the other part completes it. */
+	/* A tick before the target leaves the partial message alone: the other
+	 * part completes it. */
 	xvt_flight_messages_discard_assembly_through(TARGET -
 						     XVT_NETWORK_STEP_TICKS);
 	size = flight_messages_part(&g_message, 1);
@@ -534,7 +542,8 @@ static void check_discard_assembly(void)
 							   0, &g_out),
 			  1);
 
-	/* Reset forgets the last assembled message: its parts are new again and assemble once more. */
+	/* Reset forgets the last assembled message: its parts are new again and
+	 * assemble once more. */
 	xvt_flight_messages_reset();
 	size = flight_messages_part(&g_message, 1);
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_receive_part(g_part, size, COOKIE,
@@ -612,8 +621,9 @@ static void check_queue_basics(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_count(XVT_QUEUE_REPLAY), 0);
 }
 
-/* Fills queue with messages of size bytes, checking before each push that HasRoom predicts it, until a
- * push is refused; returns how many went in. The bytes of message i all hold i + 1, cut to 8 bits. */
+/* Fills queue with messages of size bytes, checking before each push that
+ * HasRoom predicts it, until a push is refused; returns how many went in. The
+ * bytes of message i all hold i + 1, cut to 8 bits. */
 static unsigned fill(xvt_flight_queue queue, uint8_t *buffer, size_t size,
 		     unsigned first)
 {
@@ -648,9 +658,10 @@ static void check_queue_limits(void)
 		xvt_flight_messages_clear(queue);
 	}
 
-	/* And a byte limit: large messages run out of bytes while a one-byte message still has room. The
-	 * queue's bytes then hold fewer than count + 1 of them, so one message of that many bytes never fits,
-	 * even in the emptied queue. */
+	/* And a byte limit: large messages run out of bytes while a one-byte
+	 * message still has room. The queue's bytes then hold fewer than count
+	 * + 1 of them, so one message of that many bytes never fits, even in
+	 * the emptied queue. */
 	for (int q = 0; q < XVT_QUEUE_COUNT; ++q) {
 		xvt_flight_queue queue = (xvt_flight_queue)q;
 		size_t size = (q == XVT_QUEUE_PENDING ? XVT_PENDING_BYTES
@@ -674,8 +685,9 @@ static void check_queue_limits(void)
 
 static void check_queue_wraps(void)
 {
-	/* Fill a queue with large messages, drop the oldest two, and refill: the new messages wrap past the
-	 * end of the ring and still come back whole, in order. */
+	/* Fill a queue with large messages, drop the oldest two, and refill:
+	 * the new messages wrap past the end of the ring and still come back
+	 * whole, in order. */
 	enum { SIZE = XVT_PENDING_BYTES / 7 + 3 };
 
 	static uint8_t buffer[SIZE];
@@ -765,7 +777,8 @@ static void check_prepare_recovery(void)
 							   0, &g_out),
 			  0);
 
-	/* Everything targeting 16 or earlier goes; what is left pending moves, in order, after the replay. */
+	/* Everything targeting 16 or earlier goes; what is left pending moves,
+	 * in order, after the replay. */
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_prepare_recovery(16), 1);
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_count(XVT_QUEUE_PENDING), 0);
 	unsigned targets[8];

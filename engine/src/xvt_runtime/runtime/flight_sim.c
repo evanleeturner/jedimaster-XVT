@@ -56,16 +56,18 @@ int xvt_flight_sim_resume(void)
 }
 
 /* Runs one player's update for this tick, in order:
- * 1. unless the update is resuming after a pause: return at once if the mission is ending; repair a
- *    camera focus whose object is gone; read the input; for the local player, act on a function key
- *    (Alt-P pauses, leaves the update pending and returns 0);
- * 2. stop when the dormant-region flag is set; for a player awaiting a new craft, rebind or retire a
- *    destroyed craft, then stop;
- * 3. outside hyperspace, fire while the fire modifier is held, and pick a target when the target
- *    modifier is tapped;
- * 4. process the player's actions or chat input, update flight controls and camera, and apply a
- *    recorded throttle unless the player changed craft during the tick.
- * It stays one function: each part is short and runs in this order on the same player record. */
+ * 1. unless the update is resuming after a pause: return at once if the mission
+ *    is ending; repair a camera focus whose object is gone; read the input; for
+ *    the local player, act on a function key (Alt-P pauses, leaves the update
+ *    pending and returns 0);
+ * 2. stop when the dormant-region flag is set; for a player awaiting a new
+ *    craft, rebind or retire a destroyed craft, then stop;
+ * 3. outside hyperspace, fire while the fire modifier is held, and pick a
+ *    target when the target modifier is tapped;
+ * 4. process the player's actions or chat input, update flight controls and
+ *    camera, and apply a recorded throttle unless the player changed craft
+ *    during the tick. It stays one function: each part is short and runs in
+ *    this order on the same player record. */
 int xvt_flight_sim_update_player_step(int player_idx)
 {
 	enum {
@@ -219,7 +221,9 @@ int xvt_flight_sim_update_player_step(int player_idx)
 						fsfx_play_sound(
 							FLIGHT_SOUND_SMALL_CLICK,
 							-1, player_idx);
-						/* Publish the pause text over the retained HD flight view. */
+						/* Publish the pause text over
+						 * the retained HD flight
+						 * view. */
 						xvt_render_capture_begin_overlay();
 						msg_emit_in_flight_message(
 							IFMSG_001_MISSION_PAUSED_PRESS_ANY_KEY_TO_CONTINUE,
@@ -385,7 +389,8 @@ int xvt_flight_sim_update_player_step(int player_idx)
 	if (g_players[player_idx].participation_state != 0) {
 		player_update_flight_controls_and_camera(player_idx);
 	}
-	/* Recorded throttle wins over same-tick key/modifier adjustments, never across a craft transition. */
+	/* Recorded throttle wins over same-tick key/modifier adjustments, never
+	 * across a craft transition. */
 	if (throttle_eligible &&
 	    throttle_object == g_players[player_idx].object_index &&
 	    throttle_signature ==
@@ -1029,7 +1034,8 @@ void xvt_flight_history_recover(void)
 		for (int i = 0; i < g_input_frame_count[player]; ++i) {
 			const struct input_frame *frame =
 				&g_input_history[player][i];
-			/* Host records will reconstruct peer input; preserve only future local samples. */
+			/* Host records will reconstruct peer input; preserve
+			 * only future local samples. */
 			if (player != (unsigned)g_local_player ||
 			    !g_players[player].participation_state ||
 			    frame->timestamp <= g_game_time ||

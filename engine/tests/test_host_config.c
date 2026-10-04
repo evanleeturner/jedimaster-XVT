@@ -1,6 +1,7 @@
-/* Checks the command line parser and the host's Aeron configuration (xvt_app/host_config.h) against the
- * promises in its header. The module holds no state; each case builds its own argument list. Refused
- * command lines print a message on stderr, which this test does not read. */
+/* Checks the command line parser and the host's Aeron configuration
+ * (xvt_app/host_config.h) against the promises in its header. The module holds
+ * no state; each case builds its own argument list. Refused command lines print
+ * a message on stderr, which this test does not read. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -14,7 +15,8 @@
 
 static char **g_argv;
 
-/* Parses the NULL-terminated argv, keeping it in g_argv so a check can compare the borrowed pointers. */
+/* Parses the NULL-terminated argv, keeping it in g_argv so a check can compare
+ * the borrowed pointers. */
 static int parse(struct xvt_launch_options *options, char **argv)
 {
 	int argc = 0;
@@ -176,7 +178,8 @@ static void check_init_aeron(void)
 	XVT_ASSERT_INT_EQ(config.presentation_mode,
 			  AERON_PRESENTATION_ASPECT_FIT);
 
-	/* An opaque black clear color, switched on. Each channel is 0 or 1, which a float holds exactly. */
+	/* An opaque black clear color, switched on. Each channel is 0 or 1,
+	 * which a float holds exactly. */
 	XVT_ASSERT_TRUE(config.clear_color_enabled != 0);
 	XVT_ASSERT_CLOSE(config.clear_color_rgba[0], 0.0, 0.0,
 			 "black has no red; 0 is exact");

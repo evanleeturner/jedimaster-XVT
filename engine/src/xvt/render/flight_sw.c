@@ -135,8 +135,9 @@ static uint16_t g_flight_sw_tangent91_pct[140] = {
 	53999, 54668, 55345, 56030, 56723, 57424, 58134, 58852, 59578, 60314,
 	61059, 61813, 62577, 63351, 64135, 64929, 65535, 0,	0,     0,
 };
-/* Only the first 8 entries of g_flight_sw_tangent100_pct are 100% values; from entry 8 on it repeats
- * g_flight_sw_tangent91_pct, as the original data does. */
+/* Only the first 8 entries of g_flight_sw_tangent100_pct are 100% values; from
+ * entry 8 on it repeats g_flight_sw_tangent91_pct, as the original data
+ * does. */
 /* Entries 0 to 7 are tan(i * pi / 512) * 65536, rounded. Read by
  * flight_sw_lookup_scaled_tangent for any percentage but 91 and 110. */
 // GLOBAL: XVT 0x51C130
@@ -803,8 +804,10 @@ void flight_sw_blit_sprite_rle_impl8bpp(uint8_t *rle_data, int x, int y,
 			} else {
 				if (token > 0xFB) {
 					if (token == 0xFC) {
-						/* In this two-color dither run, run_length holds the second color, written to every
-						 * other pixel. */
+						/* In this two-color dither run,
+						 * run_length holds the second
+						 * color, written to every other
+						 * pixel. */
 						color = source[0];
 						if (is_faded != 0) {
 							if (fade_amount > 0) {
@@ -4159,8 +4162,8 @@ int flight_sw_init_rot_sprite_octant2(void)
 			}
 		}
 	}
-	/* min_point_index is an edge point index only during the search above; here it holds the clip minimum
-	 * x: 0, -1, or the found point's x. */
+	/* min_point_index is an edge point index only during the search above;
+	 * here it holds the clip minimum x: 0, -1, or the found point's x. */
 	g_flight_sw_rot_sprite_clip_min_x = min_point_index;
 
 	if (g_flight_sw_rot_sprite_secondary_edge_y < 0) {
@@ -4198,8 +4201,9 @@ int flight_sw_init_rot_sprite_octant2(void)
 			max_point_index = -1;
 		}
 	}
-	/* max_point_index is an edge point index only during the search above; here it holds the clip maximum
-	 * x: scan_count - 1, -1, or the found point's x. */
+	/* max_point_index is an edge point index only during the search above;
+	 * here it holds the clip maximum x: scan_count - 1, -1, or the found
+	 * point's x. */
 	g_flight_sw_rot_sprite_clip_max_x = max_point_index;
 	g_flight_sw_rot_sprite_span_base_x =
 		viewport_right_delta + span_base_offset;
@@ -5788,8 +5792,10 @@ void flight_sw_blit_sprite_rle_impl16bpp(uint8_t *rle_data, int16_t x,
 			} else {
 				if (token > 0xFB) {
 					if (token == 0xFC) {
-						/* In this two-color dither run, run_length holds the second color's palette index,
-						 * drawn on every other pixel. */
+						/* In this two-color dither run,
+						 * run_length holds the second
+						 * color's palette index, drawn
+						 * on every other pixel. */
 						color = source[0];
 						if (is_faded != 0) {
 							if (fade_amount > 0) {

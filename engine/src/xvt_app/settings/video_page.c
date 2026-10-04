@@ -7,9 +7,10 @@
 #include "xvt_app/settings/video_options.h"
 #include "xvt_remaster/hud_assets.h"
 
-/* Draws the whole video page against one copy of the settings: every control edits that copy and marks
- * it changed, and the copy is sent once at the end, only if something changed. The sections stay in one
- * function so that cycle reads top to bottom instead of passing through a helper per section. */
+/* Draws the whole video page against one copy of the settings: every control
+ * edits that copy and marks it changed, and the copy is sent once at the end,
+ * only if something changed. The sections stay in one function so that cycle
+ * reads top to bottom instead of passing through a helper per section. */
 static void xvt_video_page_draw_controls(AeronUiContext *ui)
 {
 	struct xvt_video_settings options;

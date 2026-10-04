@@ -147,8 +147,8 @@ void xvt_cockpit_readouts_begin_target(int cmd)
 			memset(&g_numbers[id], 0, sizeof g_numbers[id]);
 		}
 		if (cmd) {
-			/* Recapture the target shield and hull readouts even when the new target has the same
-			 * percentages. */
+			/* Recapture the target shield and hull readouts even
+			 * when the new target has the same percentages. */
 			g_hud_element_state_cache[102] = -2;
 			g_hud_element_state_cache[103] = -2;
 		}

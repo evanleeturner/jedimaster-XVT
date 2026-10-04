@@ -387,7 +387,8 @@ int16_t trig2_arcsin(int16_t sin_q15)
 
 	int table_offset = table_index;
 	--remaining_steps;
-	/* From here table_index holds a table value, the interpolation base below target, not an index. */
+	/* From here table_index holds a table value, the interpolation base
+	 * below target, not an index. */
 	table_index = 0;
 	uint16_t span = 0;
 	if (table_offset >= 2) {

@@ -1,11 +1,14 @@
 #define _POSIX_C_SOURCE 200809L
-/* Checks the stand-ins for the C library's FILE calls (xvt_runtime/storage/file_io.h) against the promises
- * in their header. Each case writes the bytes it reads to a file in a fresh temporary folder and opens it
- * through an Aeron VFS whose user root is that folder; no game data is read.
+/* Checks the stand-ins for the C library's FILE calls
+ * (xvt_runtime/storage/file_io.h) against the promises in their header. Each
+ * case writes the bytes it reads to a file in a fresh temporary folder and
+ * opens it through an Aeron VFS whose user root is that folder; no game data is
+ * read.
  *
- * Not run here: the calls that end the program through xvt_storage_fatal (a Read or Write size that
- * overflows, a scan conversion other than %s, %d and %u, a scan width over seven digits), because that
- * path shows a message box. */
+ * Not run here: the calls that end the program through xvt_storage_fatal (a
+ * Read or Write size that overflows, a scan conversion other than %s, %d and
+ * %u, a scan width over seven digits), because that path shows a message
+ * box. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,7 +51,8 @@ static void check_read(void)
 	XVT_ASSERT_INT_EQ(xvt_file_read(buffer, 0, 3, file), 0);
 	XVT_ASSERT_INT_EQ(xvt_file_read(buffer, 4, 0, file), 0);
 
-	/* Ten bytes hold two whole 4-byte elements and part of a third, which is consumed but not counted. */
+	/* Ten bytes hold two whole 4-byte elements and part of a third, which
+	 * is consumed but not counted. */
 	XVT_ASSERT_INT_EQ(xvt_file_read(buffer, 4, 3, file), 2);
 	XVT_ASSERT_INT_EQ(memcmp(buffer, "0123456789", 10), 0);
 	XVT_ASSERT_INT_EQ(xvt_file_getc(file), EOF);
@@ -101,7 +105,8 @@ static void check_getc_putc(void)
 	XVT_ASSERT_INT_EQ(written[2], 'A');
 	free(written);
 
-	/* A handle open only for writing gives EOF to Getc; one open only for reading gives EOF to Putc. */
+	/* A handle open only for writing gives EOF to Getc; one open only for
+	 * reading gives EOF to Putc. */
 	file = open_empty_for_writing();
 	XVT_ASSERT_INT_EQ(xvt_file_getc(file), EOF);
 	xvt_file_close(file);
@@ -123,8 +128,8 @@ static void check_gets(void)
 	XVT_ASSERT_TRUE(xvt_file_gets(line, sizeof line, file) == NULL);
 	XVT_ASSERT_INT_EQ(xvt_file_close(file), 0);
 
-	/* At most capacity - 1 bytes per call. A CR and its LF become one newline only when one call reads
-	 * both. */
+	/* At most capacity - 1 bytes per call. A CR and its LF become one
+	 * newline only when one call reads both. */
 	file = open_text("abc\r\n\r\nz");
 	XVT_ASSERT_TRUE(xvt_file_gets(line, 3, file) == line);
 	XVT_ASSERT_INT_EQ(strcmp(line, "ab"), 0);
@@ -188,7 +193,8 @@ static void check_scanf_conversions(void)
 	XVT_ASSERT_INT_EQ(value, 7);
 	xvt_file_close(file);
 
-	/* A number ends where its digits do; the rest of the token stays unread for the next conversion. */
+	/* A number ends where its digits do; the rest of the token stays unread
+	 * for the next conversion. */
 	file = open_text("12abc");
 	XVT_ASSERT_INT_EQ(xvt_file_scanf(file, "%d%s", &number, word), 2);
 	XVT_ASSERT_INT_EQ(number, 12);
@@ -237,7 +243,8 @@ static void check_scanf_literals_and_ends(void)
 	int number = 0;
 	int second = 0;
 
-	/* A literal must match the next byte; whitespace in the format skips any whitespace first. */
+	/* A literal must match the next byte; whitespace in the format skips
+	 * any whitespace first. */
 	AeronFile *file = open_text("1 ,2");
 	XVT_ASSERT_INT_EQ(xvt_file_scanf(file, "%d,%d", &number, &second), 1);
 	xvt_file_close(file);

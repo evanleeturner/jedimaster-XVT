@@ -11,8 +11,9 @@
 extern "C" {
 #endif
 
-/* Mission/frontend craft-type (species) identifier. Convert through g_craft_type_to_object_type before indexing
- * g_object_type_table; this is distinct from model_index. */
+/* Mission/frontend craft-type (species) identifier. Convert through
+ * g_craft_type_to_object_type before indexing g_object_type_table; this is
+ * distinct from model_index. */
 /* Stored as uint8_t in the binary (IDB enum craft_species). */
 typedef uint8_t craft_species;
 
@@ -107,12 +108,12 @@ enum {
 	CRAFT_SPECIES_PLANET = 0x57,
 	CRAFT_SPECIES_OBSTACLE = 0x58,
 	CRAFT_SPECIES_COMPONENT = 0x59,
-	CRAFT_SPECIES_SHIP_YARD =
-		0x5A, ///< Species 90: SHIPYARD.OPT and specdesc.txt record 90; fronttxt.txt
-		      ///< reverses the two yard labels.
-	CRAFT_SPECIES_REPAIR_YARD =
-		0x5B, ///< Species 91: REPAIRYD.OPT and specdesc.txt record 91; fronttxt.txt
-		      ///< reverses the two yard labels.
+	/* Species 90: SHIPYARD.OPT and specdesc.txt record 90; fronttxt.txt
+	 * reverses the two yard labels. */
+	CRAFT_SPECIES_SHIP_YARD = 0x5A,
+	/* Species 91: REPAIRYD.OPT and specdesc.txt record 91; fronttxt.txt
+	 * reverses the two yard labels. */
+	CRAFT_SPECIES_REPAIR_YARD = 0x5B,
 	CRAFT_SPECIES_MODIFIED_STRIKE_CRUISER = 0x5C,
 	CRAFT_SPECIES_UNUSED_93 = 0x5D,
 	CRAFT_SPECIES_UNUSED_94 = 0x5E,
@@ -124,8 +125,9 @@ enum {
 	CRAFT_SPECIES_UNUSED_100 = 0x64,
 };
 
-/* Byte family ID stored in object_type_info. Values 0..2 have localized goal labels; 3..6 are internal families
- * displayed as placeholders by the goal text table. */
+/* Byte family ID stored in object_type_info. Values 0..2 have localized goal
+ * labels; 3..6 are internal families displayed as placeholders by the goal text
+ * table. */
 /* Stored as int8_t in the binary (IDB enum craft_family). */
 typedef int8_t craft_family;
 
@@ -155,7 +157,9 @@ struct object_type_info {
 	craft_family
 		family_id; ///< Object family classification; values are craft_family.
 	/* Mission triggers and much of the flight code compare it. */
-	uint8_t genus_id; ///< Byte storage of craft_genus for this ObjectTypeId; distinct from mission craft_species.
+	/* Byte storage of craft_genus for this ObjectTypeId; distinct from
+	 * mission craft_species. */
+	uint8_t genus_id;
 	/* Largest box size of the type's model: fe_disk_io_build_model_def sets it
 	 * from model_bounds_get_max_extent for each loaded OPT model, and other
 	 * types keep the table's value. Much of the flight code uses it as the
@@ -182,8 +186,9 @@ struct object_type_info {
 	 * instead of mission_spawn_current_flight_group_wave. */
 	uint8_t behavior_flags;
 	/* get_model_index_from_type returns it. */
-	uint8_t model_index; ///< Byte storage of optional model_index into g_model_defs[73]; 0xFF means
-	///< MODEL_INDEX_NONE.
+	/* Byte storage of optional model_index into g_model_defs[73]; 0xFF
+	 * means MODEL_INDEX_NONE. */
+	uint8_t model_index;
 	/* Spec list the type's resource is listed in: fe_disk_io_load_resources
 	 * reads list g_spec_list_prefixes[texture_group] for the flight
 	 * resolution. */
@@ -216,8 +221,9 @@ extern uint8_t g_object_type113_palette[16];
 extern struct object_type_info g_object_type_table[201];
 extern uint8_t g_craft_type_to_object_type[96];
 
-/* Index into g_model_defs[73] (the strings.txt 'strings for specs' name/specification table); MODEL_INDEX_NONE
- * means the object type has no model_def. */
+/* Index into g_model_defs[73] (the strings.txt 'strings for specs'
+ * name/specification table); MODEL_INDEX_NONE means the object type has no
+ * model_def. */
 /* Stored as uint16_t in the binary (IDB enum model_index). */
 typedef uint16_t model_index;
 

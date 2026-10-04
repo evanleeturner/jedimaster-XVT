@@ -295,11 +295,13 @@ void briefing_map_animate_view_state(void)
 	if (center_difference < axis_difference) {
 		center_difference = axis_difference;
 	}
-	/* axis_difference now holds the center distance in screen pixels (map units over map units per pixel),
-	 * which picks the faster center step below. */
+	/* axis_difference now holds the center distance in screen pixels (map
+	 * units over map units per pixel), which picks the faster center step
+	 * below. */
 	axis_difference = center_difference / (int16_t)scale_divisor;
-	/* From here scale_divisor is the step for moving the map center: twice the map units per pixel, and
-	 * twice that again when the center is 16 or more screen pixels away. */
+	/* From here scale_divisor is the step for moving the map center: twice
+	 * the map units per pixel, and twice that again when the center is 16
+	 * or more screen pixels away. */
 	scale_divisor *= 2;
 	if (axis_difference >= 16) {
 		scale_divisor *= 2;

@@ -322,7 +322,8 @@ static void hyper_emit_streak(struct hyper_streak_vertex *out,
 	float model[16];
 	xvt_render_math_object_matrix(&synthetic, (const int32_t[3]){0, 0, 0},
 				      model);
-	/* The shared model matrix expects meter-space geometry; streak seeds retain XWA model units. */
+	/* The shared model matrix expects meter-space geometry; streak seeds
+	 * retain XWA model units. */
 	const float model_units_to_meters = AERON_OPT_METERS_PER_UNIT;
 	const float half = (float)streak->half_width * model_units_to_meters;
 	extent *= model_units_to_meters;

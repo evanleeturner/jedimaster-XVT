@@ -1,6 +1,8 @@
-/* Checks the input action table (xvt_runtime/input/actions.h) against the promises in its header: every
- * action has a settings name that leads back to it, a label and a category; names match exactly; and each
- * lookup gives its stated fallback for an action or category out of range. The table has no state. */
+/* Checks the input action table (xvt_runtime/input/actions.h) against the
+ * promises in its header: every action has a settings name that leads back to
+ * it, a label and a category; names match exactly; and each lookup gives its
+ * stated fallback for an action or category out of range. The table has no
+ * state. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -29,8 +31,8 @@ static void check_names_match_exactly(void)
 	XVT_ASSERT_INT_EQ(xvt_input_actions_from_name("no_such_action"),
 			  XVT_INPUT_ACTION_NONE);
 
-	/* A name that differs from fire_weapon's by case, by a missing last letter or by a trailing space does
-	 * not find fire_weapon. */
+	/* A name that differs from fire_weapon's by case, by a missing last
+	 * letter or by a trailing space does not find fire_weapon. */
 	const char *name =
 		xvt_input_actions_to_name(XVT_INPUT_ACTION_FIRE_WEAPON);
 	char changed[64];

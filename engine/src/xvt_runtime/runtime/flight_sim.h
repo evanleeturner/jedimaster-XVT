@@ -4,10 +4,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* The flight simulation step and the per-player input history it replays. StepToTime advances in
- * sub-steps of at most xvt_flight_timing_maximum_step_ticks ticks; each replays the connected players'
- * due input, then runs AI, weapons, collisions, movement, mission logic, HUD and sound. A step can
- * suspend when a player's update pauses the game; the next call resumes it. */
+/* The flight simulation step and the per-player input history it replays.
+ * StepToTime advances in sub-steps of at most
+ * xvt_flight_timing_maximum_step_ticks ticks; each replays the connected
+ * players' due input, then runs AI, weapons, collisions, movement, mission
+ * logic, HUD and sound. A step can suspend when a player's update pauses the
+ * game; the next call resumes it. */
 
 typedef enum xvt_input_insert_status {
 	XVT_INPUT_INSERTED,
@@ -44,11 +46,12 @@ typedef enum xvt_flight_step_result {
 	XVT_STEP_TERMINAL
 } xvt_flight_step_result;
 
-/* Steps the game time to target_game_time, which must not be behind it: the difference is taken as a
- * 16-bit unsigned tick count, so a past target runs a full-length step forward. Returns COMPLETE
- * once there, TERMINAL when the mission ends with side effects on, and PENDING when a player's
- * update paused; call again to resume, and target_game_time is ignored until the step finishes. A
- * target equal to the game time only replays input due now. */
+/* Steps the game time to target_game_time, which must not be behind it: the
+ * difference is taken as a 16-bit unsigned tick count, so a past target runs a
+ * full-length step forward. Returns COMPLETE once there, TERMINAL when the
+ * mission ends with side effects on, and PENDING when a player's update paused;
+ * call again to resume, and target_game_time is ignored until the step
+ * finishes. A target equal to the game time only replays input due now. */
 xvt_flight_step_result xvt_flight_sim_step_to_time(int target_game_time);
 /* After a world restore: drops each player's predicted frames and frames at or before the player's
  * lockstep tick, and every frame of a disconnected player. */
@@ -56,12 +59,14 @@ void xvt_flight_history_restore_checkpoint(void);
 /* For state recovery: resets the prediction fallback and keeps only the connected local
  * player's non-predicted frames after the current game time. */
 void xvt_flight_history_recover(void);
-/* Replays each connected player's history frames due by target_game_time: brings the player's craft
- * from its last lockstep save to the frame's tick, saves it, and runs UpdatePlayerStep with the frame's
- * input. With side effects suppressed, frames at or before the starting game time replay without
- * keys, modifiers or throttle; with them on (network125 confirmation), only authoritative frames
- * replay, each confirming the prediction fallback. Unapplied frames at or before a player's lockstep
- * tick are dropped, except while network125 predicts. Returns 0 when UpdatePlayerStep paused, resuming
+/* Replays each connected player's history frames due by target_game_time:
+ * brings the player's craft from its last lockstep save to the frame's tick,
+ * saves it, and runs UpdatePlayerStep with the frame's input. With side effects
+ * suppressed, frames at or before the starting game time replay without keys,
+ * modifiers or throttle; with them on (network125 confirmation), only
+ * authoritative frames replay, each confirming the prediction fallback.
+ * Unapplied frames at or before a player's lockstep tick are dropped, except
+ * while network125 predicts. Returns 0 when UpdatePlayerStep paused, resuming
  * at that frame on the next call; otherwise 1. */
 int xvt_flight_sim_advance(int target_game_time);
 /* One player's input step: with side effects on, repairs a camera or map aim left on a destroyed

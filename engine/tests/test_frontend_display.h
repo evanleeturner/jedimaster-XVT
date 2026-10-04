@@ -1,11 +1,13 @@
-/* A frontend display with no window, for tests that run frontend frames: a DirectDraw device from Aeron's
- * compatibility layer with a 640x480, 16-bit back buffer in memory and a primary surface to present to. The
- * recovered frontend can then lock, draw into, clear and present its back buffer. No offscreen surface is
- * made, so the frontend's offscreen restore must stay off while frames run, and no fonts or images are
- * loaded, so text and sprites draw nothing.
+/* A frontend display with no window, for tests that run frontend frames: a
+ * DirectDraw device from Aeron's compatibility layer with a 640x480, 16-bit
+ * back buffer in memory and a primary surface to present to. The recovered
+ * frontend can then lock, draw into, clear and present its back buffer. No
+ * offscreen surface is made, so the frontend's offscreen restore must stay off
+ * while frames run, and no fonts or images are loaded, so text and sprites draw
+ * nothing.
  *
- * Open after clearing g_front_state; Close releases the surfaces and the device and drops what Aeron kept of
- * the last presented frame. */
+ * Open after clearing g_front_state; Close releases the surfaces and the device
+ * and drops what Aeron kept of the last presented frame. */
 #ifndef XVT_TESTS_TEST_FRONTEND_DISPLAY_H
 #define XVT_TESTS_TEST_FRONTEND_DISPLAY_H
 
@@ -18,7 +20,8 @@
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
 
-/* Creates one surface of the device with the given caps; size flags are set for an offscreen surface. */
+/* Creates one surface of the device with the given caps; size flags are set for
+ * an offscreen surface. */
 static inline IDirectDrawSurface *
 xvt_test_create_surface(IDirectDraw *device, unsigned caps, int sized)
 {
@@ -37,8 +40,9 @@ xvt_test_create_surface(IDirectDraw *device, unsigned caps, int sized)
 	return surface;
 }
 
-/* Gives the frontend its display: the device, the back buffer and its pitch, the primary surface, 16 bits
- * per pixel, and presenting by copy rather than by page flip. */
+/* Gives the frontend its display: the device, the back buffer and its pitch,
+ * the primary surface, 16 bits per pixel, and presenting by copy rather than by
+ * page flip. */
 static inline void xvt_test_open_display(void)
 {
 	IDirectDraw *device = NULL;

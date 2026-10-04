@@ -1,6 +1,8 @@
-/* Checks the network flight protocol's byte helpers (xvt_runtime/runtime/flight_wire.h) against the promises
- * in its header: which ticks are usable on the network, little-endian reads and writes of each width, the
- * all-zero test, and the CRC-32C. The module keeps no state and reads no game globals. */
+/* Checks the network flight protocol's byte helpers
+ * (xvt_runtime/runtime/flight_wire.h) against the promises in its header: which
+ * ticks are usable on the network, little-endian reads and writes of each
+ * width, the all-zero test, and the CRC-32C. The module keeps no state and
+ * reads no game globals. */
 #include <stdint.h>
 #include <string.h>
 
@@ -20,7 +22,8 @@ static void check_valid_tick(void)
 		xvt_flight_wire_valid_tick(XVT_NETWORK_STEP_TICKS + 1), 0);
 	XVT_ASSERT_INT_EQ(xvt_flight_wire_valid_tick(1), 0);
 
-	/* The top of the range: INT32_MAX - 1 is on the step and allowed; the next step up is not. */
+	/* The top of the range: INT32_MAX - 1 is on the step and allowed; the
+	 * next step up is not. */
 	uint32_t top = INT32_MAX - 1u;
 	XVT_ASSERT_INT_EQ(top % XVT_NETWORK_STEP_TICKS, 0);
 	XVT_ASSERT_INT_EQ(xvt_flight_wire_valid_tick(top), 1);
@@ -112,7 +115,8 @@ static void check_crc32c(void)
 	uint8_t bytes[32];
 	XVT_ASSERT_INT_EQ(xvt_flight_wire_crc32c(bytes, 0), 0);
 
-	/* The CRC-32C test vectors of RFC 3720, appendix B.4: 32 bytes of zeros, of ones, and counting up. */
+	/* The CRC-32C test vectors of RFC 3720, appendix B.4: 32 bytes of
+	 * zeros, of ones, and counting up. */
 	memset(bytes, 0, sizeof bytes);
 	XVT_ASSERT_INT_EQ(xvt_flight_wire_crc32c(bytes, sizeof bytes),
 			  0x8A9136AAu);

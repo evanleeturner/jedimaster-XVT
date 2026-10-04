@@ -1,11 +1,14 @@
-/* Checks the host-to-game input bridge (xvt_runtime/input/input_bridge.h) against the promises in its
- * header: how the keyboard route is picked and what a new route does, the frontend's key states, typed
- * keys and Windows-1252 text, the frontend mouse, what a suppressed frame clears, keyboard reacquisition,
- * and Init and Shutdown. The test plays the host by writing each frame into Aeron's input snapshot, and
- * reads the frontend's state where the original game reads it. No flight runs and no settings are loaded.
+/* Checks the host-to-game input bridge (xvt_runtime/input/input_bridge.h)
+ * against the promises in its header: how the keyboard route is picked and what
+ * a new route does, the frontend's key states, typed keys and Windows-1252
+ * text, the frontend mouse, what a suppressed frame clears, keyboard
+ * reacquisition, and Init and Shutdown. The test plays the host by writing each
+ * frame into Aeron's input snapshot, and reads the frontend's state where the
+ * original game reads it. No flight runs and no settings are loaded.
  *
- * Not checked here: the GAMEPLAY route needs a loaded flight; RendererShortcutAllowed's true side needs a
- * committed render snapshot; the frontend joystick needs Init, which needs loaded settings. */
+ * Not checked here: the GAMEPLAY route needs a loaded flight;
+ * RendererShortcutAllowed's true side needs a committed render snapshot; the
+ * frontend joystick needs Init, which needs loaded settings. */
 #include <string.h>
 
 #include "aeron/aeron.h"
@@ -213,8 +216,9 @@ static void check_typed_control_keys(void)
 static void check_text_windows1252(void)
 {
 	input_bridge_start();
-	/* a, e acute (U+00E9), the euro sign (U+20AC, 0x80 in Windows-1252), a four-byte emoji, A with
-	 * macron (U+0100, not in Windows-1252), then z. */
+	/* a, e acute (U+00E9), the euro sign (U+20AC, 0x80 in Windows-1252), a
+	 * four-byte emoji, A with macron (U+0100, not in Windows-1252), then
+	 * z. */
 	set_text("a\xC3\xA9\xE2\x82\xAC\xF0\x9F\x98\x80\xC4\x80z");
 	xvt_input_update(0);
 	unsigned char typed[16];
@@ -291,8 +295,8 @@ static void check_frontend_mouse(void)
 	XVT_ASSERT_INT_EQ(y, 70);
 }
 
-/* Held A, typed text, and pending clicks in the frontend. An empty frame first settles the route, since a
- * new route blocks keys already held. */
+/* Held A, typed text, and pending clicks in the frontend. An empty frame first
+ * settles the route, since a new route blocks keys already held. */
 static void fill_frontend(void)
 {
 	xvt_input_update(0);

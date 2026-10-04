@@ -1,13 +1,16 @@
-/* Checks the integer orientation turn, xvt_orientation_apply_pitch_yaw_fixed (xvt_runtime/hooks/
- * orientation_hook.h), against the promises in its header. The header does not say which angle values
- * mean level or straight up, so most checks are relationships that hold whatever the convention: a turn
- * and its inverse, two turns about one axis and their sum, yaw applied before pitch, a whole turn added
- * to a delta, and agreement with the float path, ApplyPitchYaw, which the header promises "within
- * rounding". Starting orientations are ones this function returned, and every orientation compared
- * stays well away from straight up and down, where the header allows the angles to differ.
+/* Checks the integer orientation turn, xvt_orientation_apply_pitch_yaw_fixed
+ * (xvt_runtime/hooks/ orientation_hook.h), against the promises in its header.
+ * The header does not say which angle values mean level or straight up, so most
+ * checks are relationships that hold whatever the convention: a turn and its
+ * inverse, two turns about one axis and their sum, yaw applied before pitch, a
+ * whole turn added to a delta, and agreement with the float path,
+ * ApplyPitchYaw, which the header promises "within rounding". Starting
+ * orientations are ones this function returned, and every orientation compared
+ * stays well away from straight up and down, where the header allows the angles
+ * to differ.
  *
- * The float path runs outside a NETWORK_125 session; the flight timing session is ended first so it
- * reads as native. */
+ * The float path runs outside a NETWORK_125 session; the flight timing session
+ * is ended first so it reads as native. */
 #include <stdint.h>
 #include <stdio.h>
 
@@ -15,10 +18,11 @@
 #include "xvt_runtime/hooks/orientation_hook.h"
 #include "xvt_runtime/timing/flight_timing.h"
 
-/* Each call rounds every angle to a whole unit, 1/65536 of a turn, and the float path works in
- * single-precision radians; a few chained calls measured within 4 units of each other. 8 units (0.044
- * degrees) leaves room for that, while a turn about the wrong axis, in the wrong order or the wrong way is
- * off by hundreds of units. */
+/* Each call rounds every angle to a whole unit, 1/65536 of a turn, and the
+ * float path works in single-precision radians; a few chained calls measured
+ * within 4 units of each other. 8 units (0.044 degrees) leaves room for that,
+ * while a turn about the wrong axis, in the wrong order or the wrong way is off
+ * by hundreds of units. */
 enum { ROUNDING_UNITS = 8 };
 
 static int gap(uint16_t a, uint16_t b)

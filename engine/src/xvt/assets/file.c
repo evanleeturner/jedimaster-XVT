@@ -327,8 +327,10 @@ char file_get_install_drive_letter(void)
 // FUNCTION: XVT 0x4CCBB0
 const char *file_get_install_path(void) { return g_front_state.install_path; }
 
-/* The original's CD drive search is not reconstructed: this ignores relative_cd_file_path and always
- * returns '.', which file_detect_game_and_cd_paths, outside XVT_MODERN, stores as the CD drive letter. */
+/* The original's CD drive search is not reconstructed: this ignores
+ * relative_cd_file_path and always returns '.', which
+ * file_detect_game_and_cd_paths, outside XVT_MODERN, stores as the CD drive
+ * letter. */
 /* Only the original build calls this. */
 // FUNCTION: XVT 0x4CCBC0
 int file_find_cd_drive_letter(const char *relative_cd_file_path)

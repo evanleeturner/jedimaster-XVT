@@ -1,9 +1,11 @@
-/* Checks the controller mapping (xvt_runtime/input/controller_mapping.h) against the promises in its
- * header: installing options, reading axes with deadzone and inversion, when it suspends and resumes,
- * arming and releasing bindings, choosing the controller for axes, the throttle lever and its generation,
- * and the menu's buttons and direction. Every case builds its own options and input snapshots, plays the
- * host one frame at a time, and starts from a fresh Init. No flight runs, so no action queues a flight
- * key; held buttons and axes need no flight. */
+/* Checks the controller mapping (xvt_runtime/input/controller_mapping.h)
+ * against the promises in its header: installing options, reading axes with
+ * deadzone and inversion, when it suspends and resumes, arming and releasing
+ * bindings, choosing the controller for axes, the throttle lever and its
+ * generation, and the menu's buttons and direction. Every case builds its own
+ * options and input snapshots, plays the host one frame at a time, and starts
+ * from a fresh Init. No flight runs, so no action queues a flight key; held
+ * buttons and axes need no flight. */
 #include <string.h>
 
 #include "aeron/input.h"
@@ -38,8 +40,9 @@ static struct xvt_input_action_binding button(uint8_t index,
 	return binding;
 }
 
-/* The gamepad model: yaw and pitch on the left stick with a 0.25 deadzone, roll unbound, the throttle on
- * the right trigger; fire, the target/roll modifier and next target on three buttons. */
+/* The gamepad model: yaw and pitch on the left stick with a 0.25 deadzone, roll
+ * unbound, the throttle on the right trigger; fire, the target/roll modifier
+ * and next target on three buttons. */
 static void gamepad_model(struct xvt_controller_model *model)
 {
 	memset(model, 0, sizeof *model);
@@ -189,8 +192,8 @@ static void check_axes(void)
 	int yaw = xvt_controller_mapping_axis(XVT_INPUT_AXIS_YAW);
 	XVT_ASSERT_TRUE(yaw > 0 && yaw <= 127);
 
-	/* The same stick value gives pitch the opposite sign: a gamepad's Y points down. The menu sees only
-	 * the configured inversion. */
+	/* The same stick value gives pitch the opposite sign: a gamepad's Y
+	 * points down. The menu sees only the configured inversion. */
 	XVT_ASSERT_INT_EQ(xvt_controller_mapping_axis(XVT_INPUT_AXIS_PITCH),
 			  -yaw);
 	XVT_ASSERT_INT_EQ(xvt_controller_mapping_menu_axis(XVT_INPUT_AXIS_YAW),
@@ -222,7 +225,8 @@ static void check_axes(void)
 	XVT_ASSERT_INT_EQ(xvt_controller_mapping_axis(XVT_INPUT_AXIS_YAW), 0);
 	XVT_ASSERT_INT_EQ(xvt_controller_mapping_axis(XVT_INPUT_AXIS_PITCH), 0);
 
-	/* Configured inversion flips yaw for flight and menu alike, and cancels the gamepad's pitch flip. */
+	/* Configured inversion flips yaw for flight and menu alike, and cancels
+	 * the gamepad's pitch flip. */
 	struct xvt_controller_options inverted = g_options;
 	inverted.models[0].profile.mapping.axes[XVT_INPUT_AXIS_YAW].invert =
 		true;
@@ -399,8 +403,9 @@ static void check_suspend_drops_state(void)
 	XVT_ASSERT_INT_EQ(xvt_controller_mapping_menu_axis(XVT_INPUT_AXIS_YAW),
 			  0);
 
-	/* The next Update resumes; the dropped controller state means the still-held button waits for a
-	 * release, as for a controller that just appeared. */
+	/* The next Update resumes; the dropped controller state means the
+	 * still-held button waits for a release, as for a controller that just
+	 * appeared. */
 	frame();
 	XVT_ASSERT_INT_EQ(xvt_controller_mapping_axis(XVT_INPUT_AXIS_YAW), yaw);
 	XVT_ASSERT_INT_EQ(xvt_controller_mapping_modifiers(), 0);

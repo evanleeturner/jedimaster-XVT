@@ -1,12 +1,15 @@
-/* Checks the flight-view capture (xvt_runtime/snapshot/render_capture.h) against the promises in its
- * header. The render snapshot runs as the game runs it (its Init starts the capture, each frame's BeginFrame
- * and Commit call into it), and the recovered game's object table, memory handle, local player, viewport
- * and game time are set here; no game data is read. Each check starts from four object slots (three main,
- * one static; slot 1 empty), a 320x200 viewport on a 640x480 screen, and game time 100.
+/* Checks the flight-view capture (xvt_runtime/snapshot/render_capture.h)
+ * against the promises in its header. The render snapshot runs as the game runs
+ * it (its Init starts the capture, each frame's BeginFrame and Commit call into
+ * it), and the recovered game's object table, memory handle, local player,
+ * viewport and game time are set here; no game data is read. Each check starts
+ * from four object slots (three main, one static; slot 1 empty), a 320x200
+ * viewport on a 640x480 screen, and game time 100.
  *
- * Not checked: Crt and CrtMarker, whose preview reaches a snapshot only through the cockpit's sealed
- * composition, which needs a captured cockpit and a refreshed instrument state; and a preview made valid
- * by a registered model, which needs a model file resolved through storage. */
+ * Not checked: Crt and CrtMarker, whose preview reaches a snapshot only through
+ * the cockpit's sealed composition, which needs a captured cockpit and a
+ * refreshed instrument state; and a preview made valid by a registered model,
+ * which needs a model file resolved through storage. */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -130,8 +133,9 @@ static void check_inactive(void)
 	XVT_ASSERT_INT_EQ(xvt_render_capture_last_view_tick(), -1);
 }
 
-/* A sealed view presented by a successful flip reaches the writer: each occupied slot, a valid camera,
- * and a raised flight frame serial; its game time becomes the last view tick. */
+/* A sealed view presented by a successful flip reaches the writer: each
+ * occupied slot, a valid camera, and a raised flight frame serial; its game
+ * time becomes the last view tick. */
 static void check_published_view(void)
 {
 	fresh_mission();
@@ -173,8 +177,9 @@ static int publishes(void)
 	return writer()->flight_valid;
 }
 
-/* The view is left invalid when the table is missing or stale, a slot range is negative, the local player
- * index is out of range, or a viewport or screen size is 0. */
+/* The view is left invalid when the table is missing or stale, a slot range is
+ * negative, the local player index is out of range, or a viewport or screen
+ * size is 0. */
 static void check_refused_views(void)
 {
 	fresh_mission();
@@ -228,8 +233,9 @@ static void check_draw_scope(void)
 	XVT_ASSERT_INT_EQ(xvt_render_draw_scope_current(), XVT_SCOPE_MAP);
 }
 
-/* Objects past XVT_SNAP_OBJECTS and model types with an unsupported frame sequence or palette count as
- * dropped records in the writer when the view is presented. */
+/* Objects past XVT_SNAP_OBJECTS and model types with an unsupported frame
+ * sequence or palette count as dropped records in the writer when the view is
+ * presented. */
 static void check_dropped_records(void)
 {
 	fresh_mission();
@@ -250,7 +256,8 @@ static void check_dropped_records(void)
 	XVT_ASSERT_INT_EQ(writer()->dropped_records, baseline + 36);
 	next_tick();
 
-	/* Two model types with neither a frame sequence nor a palette get ones the capture does not know. */
+	/* Two model types with neither a frame sequence nor a palette get ones
+	 * the capture does not know. */
 	unsigned plain[2];
 	unsigned found = 0;
 	for (unsigned t = 0; t < XVT_SNAP_TYPES && found < 2; ++t) {
@@ -315,8 +322,8 @@ static void check_discarded_views(void)
 	XVT_ASSERT_INT_EQ(writer()->flight_valid, 0);
 }
 
-/* A presented view carries the HUD's target boxes into the writer; BeginClassicFrame begins a new HUD
- * frame, which clears them. */
+/* A presented view carries the HUD's target boxes into the writer;
+ * BeginClassicFrame begins a new HUD frame, which clears them. */
 static void check_hud_boxes(void)
 {
 	fresh_mission();
@@ -363,8 +370,9 @@ static void check_hyperspace(void)
 	XVT_ASSERT_INT_EQ(writer()->hyperspace.count, 0);
 }
 
-/* With no view published in a tick, Commit carries the previous snapshot's view forward when it has the
- * same mission and world generation; otherwise the snapshot has no flight view. */
+/* With no view published in a tick, Commit carries the previous snapshot's view
+ * forward when it has the same mission and world generation; otherwise the
+ * snapshot has no flight view. */
 static void check_carry_forward(void)
 {
 	fresh_mission();
@@ -398,9 +406,10 @@ static void check_carry_forward(void)
 	XVT_ASSERT_INT_EQ(ended->camera.valid, 0);
 }
 
-/* The mission generation rises on BeginMission; the world generation on every world change and on a view
- * whose game time went backward. WorldChanged forgets the last view time and clears the writer's flight
- * and camera validity. */
+/* The mission generation rises on BeginMission; the world generation on every
+ * world change and on a view whose game time went backward. WorldChanged
+ * forgets the last view time and clears the writer's flight and camera
+ * validity. */
 static void check_generations(void)
 {
 	fresh_mission();
@@ -519,7 +528,8 @@ static void check_network_skips_local_slots(void)
 	xvt_flight_timing_end_session();
 }
 
-/* Init does not reset the network pose history: a pose recorded before it still flags a correction. */
+/* Init does not reset the network pose history: a pose recorded before it still
+ * flags a correction. */
 static void check_init_keeps_pose_history(void)
 {
 	fresh_mission();
@@ -537,8 +547,8 @@ static void check_init_keeps_pose_history(void)
 	xvt_flight_timing_end_session();
 }
 
-/* Inside an overlay, a successful flip without a sealed view presents the flight scene; outside one it
- * does nothing. End never drops below zero. */
+/* Inside an overlay, a successful flip without a sealed view presents the
+ * flight scene; outside one it does nothing. End never drops below zero. */
 static void check_overlay(void)
 {
 	fresh_mission();
@@ -563,7 +573,8 @@ static void check_overlay(void)
 	xvt_render_capture_presented(1);
 	XVT_ASSERT_INT_EQ(next_tick()->presentation_serial, serial);
 
-	/* Ends past zero leave it at zero: one Begin and one End later the flip is outside again. */
+	/* Ends past zero leave it at zero: one Begin and one End later the flip
+	 * is outside again. */
 	xvt_render_capture_end_overlay();
 	xvt_render_capture_end_overlay();
 	xvt_render_capture_begin_overlay();
@@ -576,9 +587,9 @@ static void check_overlay(void)
 	XVT_ASSERT_INT_EQ(next_tick()->presentation_serial, serial);
 }
 
-/* FrontendPreview appends straight to the writer with a 640x480 camera; it is valid only when its handle
- * has an asset id. An empty rectangle or a bad local player index adds nothing; a full list counts a
- * dropped record. */
+/* FrontendPreview appends straight to the writer with a 640x480 camera; it is
+ * valid only when its handle has an asset id. An empty rectangle or a bad local
+ * player index adds nothing; a full list counts a dropped record. */
 static void check_frontend_preview(void)
 {
 	fresh();

@@ -649,7 +649,8 @@ void xvt_frontend_shutdown(void)
 void xvt_frontend_release_for_flight(void)
 {
 	for (unsigned id = 0; id < TARGETS; ++id) {
-		/* Saved screen-stack images outlive the classic surfaces and must survive a later pop. */
+		/* Saved screen-stack images outlive the classic surfaces and
+		 * must survive a later pop. */
 		if (id == XVT_TARGET_FRONT_PRESENTED || is_saved_target(id)) {
 			continue;
 		}

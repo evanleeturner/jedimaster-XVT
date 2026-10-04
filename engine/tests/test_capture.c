@@ -1,12 +1,15 @@
-/* Checks keyboard and mouse ownership (xvt_runtime/input/capture.h) against the promises in its header:
- * what capturing clears, which keys and buttons stay blocked across a handover and when they unblock,
- * when mouse motion counts, Tab hiding, and the keyboard flushes. The test plays the host: it writes each
- * frame into Aeron's input snapshot, the one the module reads, and sets the game's input globals itself.
- * A key the game cannot see shows as suppressed in Aeron's compatibility layer, which is what the game
- * reads keys through. Every case starts from ResetCapture and an empty frame with focus.
+/* Checks keyboard and mouse ownership (xvt_runtime/input/capture.h) against the
+ * promises in its header: what capturing clears, which keys and buttons stay
+ * blocked across a handover and when they unblock, when mouse motion counts,
+ * Tab hiding, and the keyboard flushes. The test plays the host: it writes each
+ * frame into Aeron's input snapshot, the one the module reads, and sets the
+ * game's input globals itself. A key the game cannot see shows as suppressed in
+ * Aeron's compatibility layer, which is what the game reads keys through. Every
+ * case starts from ResetCapture and an empty frame with focus.
  *
- * Not checked here: UpdateMouseCapture and the true side of MouseFlightAllowed need loaded settings and a
- * running flight, and relative mouse mode needs a window; DirectInput's buffer drain needs its device. */
+ * Not checked here: UpdateMouseCapture and the true side of MouseFlightAllowed
+ * need loaded settings and a running flight, and relative mouse mode needs a
+ * window; DirectInput's buffer drain needs its device. */
 #include <string.h>
 
 #include "aeron/aeron.h"
@@ -178,7 +181,8 @@ static void check_capture_clears_game_input(void)
 static void check_handover_blocks_held_input(void)
 {
 	capture_start();
-	/* While captured the host owns the keyboard and mouse: the game sees no key and no button. */
+	/* While captured the host owns the keyboard and mouse: the game sees no
+	 * key and no button. */
 	xvt_input_begin_capture_frame(capture_host(), true);
 	for (int key = 1; key < AERON_KEY_COUNT; ++key) {
 		if (AeronKey_Name((AeronKey)key)[0] != '\0') {
@@ -227,7 +231,8 @@ static void check_handover_blocks_held_input(void)
 
 static void check_capture_blocks_held_input(void)
 {
-	/* D and the right button, held through capture and its release, stay blocked from the game. */
+	/* D and the right button, held through capture and its release, stay
+	 * blocked from the game. */
 	capture_start();
 	capture_host()->key_down[k_d] = 1;
 	capture_host()->mouse.buttons = AERON_MOUSE_BUTTON_RIGHT;

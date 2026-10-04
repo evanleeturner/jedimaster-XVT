@@ -1,18 +1,24 @@
-/* Checks network125 flight networking (xvt_runtime/runtime/flight_network.h) against the promises in its
- * header, for every part that holds without a network peer: the mission cookie and its counter, the
- * single-player paths of Options, Start and the roster exchange and the exchange's timeout, the recovery
- * request, PlayerAbort's result, the packet budget, AdmitInput's refusals, InsertWorld, what Receive
- * consumes and where it puts it, DecodeControl, NextWakeDelayUs, ShouldSend, and SendWorld on a host flying
- * alone. No game data is read: the test sets the player records, the input histories, the network session's
- * ids and the flight network globals itself, and drives the host clock. Player 0 is the local player; the
- * roster gives player n the network id 100 + n, and the host's id is 500. Every check starts from that
- * world with no mission cookie, empty queues and histories, and the host clock at one second.
+/* Checks network125 flight networking (xvt_runtime/runtime/flight_network.h)
+ * against the promises in its header, for every part that holds without a
+ * network peer: the mission cookie and its counter, the single-player paths of
+ * Options, Start and the roster exchange and the exchange's timeout, the
+ * recovery request, PlayerAbort's result, the packet budget, AdmitInput's
+ * refusals, InsertWorld, what Receive consumes and where it puts it,
+ * DecodeControl, NextWakeDelayUs, ShouldSend, and SendWorld on a host flying
+ * alone. No game data is read: the test sets the player records, the input
+ * histories, the network session's ids and the flight network globals itself,
+ * and drives the host clock. Player 0 is the local player; the roster gives
+ * player n the network id 100 + n, and the host's id is 500. Every check starts
+ * from that world with no mission cookie, empty queues and histories, and the
+ * host clock at one second.
  *
- * Nothing here sends a packet: without a network session the game's send path loops packets back into its
- * own receive queue. So these need a second machine and are not checked: the multiplayer exchanges of
- * Session, Options and Start, FlushInput and FlushWorld to remote players, peer timeouts in SendWorld, and
- * that a player PlayerAbort excludes leaves later world messages. ProcessPackets is in flight_packets.c.
- * AdmitInput's staging needs the recorded controls, which need loaded settings and the game's DirectInput
+ * Nothing here sends a packet: without a network session the game's send path
+ * loops packets back into its own receive queue. So these need a second machine
+ * and are not checked: the multiplayer exchanges of Session, Options and Start,
+ * FlushInput and FlushWorld to remote players, peer timeouts in SendWorld, and
+ * that a player PlayerAbort excludes leaves later world messages.
+ * ProcessPackets is in flight_packets.c. AdmitInput's staging needs the
+ * recorded controls, which need loaded settings and the game's DirectInput
  * keyboard device, so only its refusals before sampling are checked. */
 #include <stdint.h>
 #include <stdio.h>
@@ -153,8 +159,8 @@ static void check_cookie(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_network_cookie(), 0);
 	uint32_t third = agree_cookie();
 	XVT_ASSERT_TRUE(third != first && third != second);
-	/* CloseSession forgets both: the counter starts over, so the cookie after it is the one after the
-	 * earlier CloseSession. */
+	/* CloseSession forgets both: the counter starts over, so the cookie
+	 * after it is the one after the earlier CloseSession. */
 	xvt_flight_network_clear_cookies();
 	XVT_ASSERT_INT_EQ(xvt_flight_network_cookie(), 0);
 	XVT_ASSERT_INT_EQ(agree_cookie(), first);
@@ -197,7 +203,8 @@ static void check_start_alone(void)
 
 static void check_session(void)
 {
-	/* A host expecting no players is done at once; a client joining a flight in progress too. */
+	/* A host expecting no players is done at once; a client joining a
+	 * flight in progress too. */
 	flight_network_world(1);
 	XVT_ASSERT_INT_EQ(xvt_flight_network_begin_roster_exchange(0, 0),
 			  XVT_FLIGHT_NETWORK_PENDING);
@@ -260,8 +267,8 @@ static void check_player_abort(void)
 static void check_packet_budget(void)
 {
 	flight_network_world(1);
-	/* A fresh iteration has a budget; it runs out, and starting the same iteration again does not refill
-	 * it. */
+	/* A fresh iteration has a budget; it runs out, and starting the same
+	 * iteration again does not refill it. */
 	unsigned budget = 0;
 	while (xvt_flight_network_take_packet_budget()) {
 		XVT_ASSERT_TRUE(++budget < 100000);
@@ -416,7 +423,8 @@ static size_t batch(uint32_t cookie, const int *ticks, unsigned count)
 
 static void check_receive_batch(void)
 {
-	/* From a connected remote player: its predicted frames are replaced by the records, as real input. */
+	/* From a connected remote player: its predicted frames are replaced by
+	 * the records, as real input. */
 	flight_network_world(0);
 	uint32_t cookie = agree_cookie();
 	g_players[1].participation_state = 1;
@@ -557,7 +565,8 @@ static void check_decode_control(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_network_decode_control(g_packet, &size),
 			  0);
 
-	/* The mission start, a control packet of the start handshake, with no cookie agreed: refused. */
+	/* The mission start, a control packet of the start handshake, with no
+	 * cookie agreed: refused. */
 	xvt_wire_set32(g_packet, NET_PACKET_FLIGHT_MISSION_START);
 	xvt_wire_set32(g_packet + 4, 1);
 	size = 8;
@@ -580,8 +589,9 @@ static void check_decode_control(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_network_decode_control(g_packet, &size),
 			  0);
 
-	/* A flight data packet carries its cookie in its own header (flight_messages.h) and passes as it
-	 * is, since Receive takes what DecodeControl passes. */
+	/* A flight data packet carries its cookie in its own header
+	 * (flight_messages.h) and passes as it is, since Receive takes what
+	 * DecodeControl passes. */
 	struct xvt_flight_input_wire record;
 	struct flight_input_frame_record input = controls(4);
 	xvt_flight_wire_encode_input(&record, 4, &input);
@@ -595,8 +605,9 @@ static void check_decode_control(void)
 
 static void check_next_wake_delay(void)
 {
-	/* Nothing pending, outgoing or staged: one world message interval. The host clock sits on a whole
-	 * millisecond with the frame-delta clock reset, so no part of an interval has passed. */
+	/* Nothing pending, outgoing or staged: one world message interval. The
+	 * host clock sits on a whole millisecond with the frame-delta clock
+	 * reset, so no part of an interval has passed. */
 	flight_network_world(1);
 	uint64_t interval =
 		(uint64_t)XVT_WORLD_MESSAGE_TICKS * XVT_FLIGHT_TICK_US;
@@ -612,8 +623,8 @@ static void check_next_wake_delay(void)
 
 enum { PRIME = 1000 };
 
-/* A host whose next world message is due: the schedule was started at PRIME and every connected player
- * has applied input past the next message's tick. */
+/* A host whose next world message is due: the schedule was started at PRIME and
+ * every connected player has applied input past the next message's tick. */
 static void send_ready(void)
 {
 	flight_network_world(1);
@@ -639,8 +650,9 @@ static void check_should_send(void)
 	g_flight_net_clock_adjust_accum_ticks = XVT_WORLD_MESSAGE_TICKS;
 	XVT_ASSERT_INT_EQ(xvt_flight_network_take_world_send_turn(PRIME), 1);
 
-	/* A connected player with no applied input blocks it, as does applied input that does not pass the
-	 * next message's tick; a player not connected does not. */
+	/* A connected player with no applied input blocks it, as does applied
+	 * input that does not pass the next message's tick; a player not
+	 * connected does not. */
 	send_ready();
 	g_players[2].participation_state = 1;
 	XVT_ASSERT_INT_EQ(xvt_flight_network_take_world_send_turn(
@@ -675,8 +687,9 @@ static void check_should_send(void)
 
 	send_ready();
 	xvt_flight_network_request_recovery();
-	/* Refused while recovery is needed, a resync state request is pending, the pending queue has no room
-	 * or start acknowledgements are pending. */
+	/* Refused while recovery is needed, a resync state request is pending,
+	 * the pending queue has no room or start acknowledgements are
+	 * pending. */
 	int due = PRIME + XVT_WORLD_MESSAGE_TICKS;
 	XVT_ASSERT_INT_EQ(xvt_flight_network_take_world_send_turn(due), 0);
 	xvt_flight_network_clear_recovery_request();
@@ -722,8 +735,8 @@ static int take_pending(void)
 
 static void check_send_world(void)
 {
-	/* A host flying alone: the message carries the applied input up to its tick, is queued pending, and
-	 * that input is marked unapplied. */
+	/* A host flying alone: the message carries the applied input up to its
+	 * tick, is queued pending, and that input is marked unapplied. */
 	flight_network_world(1);
 	g_flight_net_last_sent_world_message_timestamp = 16;
 	add_frame(0, 18, XVT_INPUT_REAL, 1);
@@ -801,7 +814,8 @@ static void check_send_world_refusals(void)
 
 static void check_checksum_flag(void)
 {
-	/* Messages are flagged for a checksum every XVT_WORLD_CHECKSUM_TICKS, to within one message. */
+	/* Messages are flagged for a checksum every XVT_WORLD_CHECKSUM_TICKS,
+	 * to within one message. */
 	flight_network_world(1);
 	int flagged[8];
 	int count = 0;

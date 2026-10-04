@@ -1,11 +1,13 @@
-/* A fresh folder for a test that reads or writes files, and the few file operations such a test needs to
- * set up its files and inspect the result without going through the code under test.
+/* A fresh folder for a test that reads or writes files, and the few file
+ * operations such a test needs to set up its files and inspect the result
+ * without going through the code under test.
  *
- * The folder is made under TMPDIR, or /tmp when that is unset, with a unique name, and removed with
- * everything in it when the test is done. Nothing is written anywhere else.
+ * The folder is made under TMPDIR, or /tmp when that is unset, with a unique
+ * name, and removed with everything in it when the test is done. Nothing is
+ * written anywhere else.
  *
- * POSIX only: a test that includes this header defines _POSIX_C_SOURCE as 200809L before its first
- * include, and is registered under if(NOT MSVC). */
+ * POSIX only: a test that includes this header defines _POSIX_C_SOURCE as
+ * 200809L before its first include, and is registered under if(NOT MSVC). */
 #ifndef XVT_TESTS_TEST_TEMP_FOLDER_H
 #define XVT_TESTS_TEST_TEMP_FOLDER_H
 
@@ -29,7 +31,8 @@ static inline void xvt_test_join(char *out, const char *folder,
 	XVT_ASSERT_TRUE(length > 0 && length < XVT_TEST_PATH_CAPACITY);
 }
 
-/* Creates a new, empty folder and writes its path into out, which holds XVT_TEST_PATH_CAPACITY bytes. */
+/* Creates a new, empty folder and writes its path into out, which holds
+ * XVT_TEST_PATH_CAPACITY bytes. */
 static inline void xvt_test_make_folder(char *out)
 {
 	const char *parent = getenv("TMPDIR");
@@ -106,8 +109,9 @@ static inline int xvt_test_kind(const char *folder, const char *name)
 	return S_ISDIR(info.st_mode) ? 2 : 1;
 }
 
-/* Reads the whole of folder/name into a buffer the caller frees, with a terminator after the last byte
- * so a text file can be read as a string. Writes the byte count to size when size is not NULL. */
+/* Reads the whole of folder/name into a buffer the caller frees, with a
+ * terminator after the last byte so a text file can be read as a string. Writes
+ * the byte count to size when size is not NULL. */
 static inline char *xvt_test_read_file(const char *folder, const char *name,
 				       size_t *size)
 {

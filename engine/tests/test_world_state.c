@@ -1,6 +1,7 @@
-/* Checks the world-state image (xvt_runtime/snapshot/world_state.h) against the promises in its header,
- * on worlds this file builds itself: no game data is read. Each case starts from an empty world (no
- * object slots, no flight groups, the offline timing profile) and sets only what it needs. */
+/* Checks the world-state image (xvt_runtime/snapshot/world_state.h) against the
+ * promises in its header, on worlds this file builds itself: no game data is
+ * read. Each case starts from an empty world (no object slots, no flight
+ * groups, the offline timing profile) and sets only what it needs. */
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -35,7 +36,8 @@ static void size_image(void)
 	XVT_ASSERT_TRUE(g_image != NULL);
 }
 
-/* Clears the counts and tables the image depends on, then sizes a fresh image buffer for that world. */
+/* Clears the counts and tables the image depends on, then sizes a fresh image
+ * buffer for that world. */
 static void empty_world(void)
 {
 	g_region_main_object_slot_end = 0;
@@ -56,8 +58,9 @@ static void empty_world(void)
 	size_image();
 }
 
-/* Slot 0 is a flying object with a craft, a character record and warhead guidance; slot 1 is empty but
- * owns the second mobile record; slot 2 is a static object. Player 0 sits in slot 0. */
+/* Slot 0 is a flying object with a craft, a character record and warhead
+ * guidance; slot 1 is empty but owns the second mobile record; slot 2 is a
+ * static object. Player 0 sits in slot 0. */
 static void rich_world(void)
 {
 	empty_world();
@@ -309,7 +312,8 @@ static void check_checksum_skips_links(void)
 		xvt_snapshot_checksum_image(g_image, written, before, lengths),
 		1);
 
-	/* The mobile record's cached motion is not summed: changing it leaves every sum as it was. */
+	/* The mobile record's cached motion is not summed: changing it leaves
+	 * every sum as it was. */
 	int16_t fwd = 1234;
 	memcpy(g_image + k_slot0_mobile +
 		       offsetof(struct xvt_snapshot_mobile_object,
@@ -321,7 +325,8 @@ static void check_checksum_skips_links(void)
 		1);
 	XVT_ASSERT_INT_EQ(memcmp(sums, before, sizeof sums), 0);
 
-	/* The object's signature is summed: one more in its low byte is one more in the first region. */
+	/* The object's signature is summed: one more in its low byte is one
+	 * more in the first region. */
 	size_t signature =
 		k_slot0_object +
 		offsetof(struct xvt_snapshot_object_record, object_signature);
@@ -339,7 +344,8 @@ static void check_presence_map(void)
 	XVT_ASSERT_TRUE(xvt_snapshot_encode(g_image, g_capacity) > 0);
 	uint8_t map[16];
 	memset(map, 0xEE, sizeof map);
-	/* A slot count, then slot 0's five components, a run of one empty slot, and slot 2's object alone. */
+	/* A slot count, then slot 0's five components, a run of one empty slot,
+	 * and slot 2's object alone. */
 	XVT_ASSERT_INT_EQ(xvt_snapshot_build_presence_map(map, g_image),
 			  (int)sizeof(int) + 3);
 	int count;
@@ -368,9 +374,9 @@ static void check_live_checksum(void)
 	XVT_ASSERT_TRUE(xvt_snapshot_live_checksum() != base);
 }
 
-/* The big world: 8 main slots holding flying objects, the first `crafts` of them with a craft record, then
- * `statics` static slots, so the object section is longer than one checksum region; and `flight_groups`
- * flight groups. */
+/* The big world: 8 main slots holding flying objects, the first `crafts` of
+ * them with a craft record, then `statics` static slots, so the object section
+ * is longer than one checksum region; and `flight_groups` flight groups. */
 static struct object_record g_big_objects[24];
 static struct mobile_object g_big_mobiles[8];
 static struct craft_data g_big_craft[8];
@@ -408,11 +414,12 @@ static void big_world(int flight_groups, int crafts, int statics)
 	size_image();
 }
 
-/* Region sums and lengths of three big worlds, recorded from the code at fork commit 03e9d80. They pin
- * where today's regions close: inside the object section, after the flight-group tables, after the fixed
- * trailer tables, and (in the third world, whose 3,400-byte region shows it) right after the two short
- * tables that follow the 3,376-byte one. A change to the image layout or to the region rule must update
- * them. */
+/* Region sums and lengths of three big worlds, recorded from the code at fork
+ * commit 03e9d80. They pin where today's regions close: inside the object
+ * section, after the flight-group tables, after the fixed trailer tables, and
+ * (in the third world, whose 3,400-byte region shows it) right after the two
+ * short tables that follow the 3,376-byte one. A change to the image layout or
+ * to the region rule must update them. */
 static const unsigned k_big4_sums[16] = {0x000001ef, 0x0000024c, 0x000056ee,
 					 0x0004427c, 0x00000015, 0x00001c34};
 static const unsigned k_big4_lengths[16] = {4005, 4005,	 4096,
@@ -447,7 +454,8 @@ static void check_checksum_regions_in_big_worlds(void)
 		XVT_ASSERT_INT_EQ(xvt_snapshot_checksum_image(g_image, written,
 							      sums, lengths),
 				  1);
-		/* More than one region closes, and the regions tile the world part from its start. */
+		/* More than one region closes, and the regions tile the world
+		 * part from its start. */
 		size_t covered = 0;
 		int used = 0;
 		for (int i = 0; i < 16; ++i) {
@@ -482,8 +490,9 @@ static void check_validate_refuses_other_ranges(void)
 	XVT_ASSERT_INT_EQ(xvt_snapshot_validate(g_image, written), 1);
 }
 
-/* Gives every value the live checksum mixes in without walking a pool a distinct nonzero value (seed 1),
- * or zero (seed 0), so a dropped, repeated or reordered field changes the result. */
+/* Gives every value the live checksum mixes in without walking a pool a
+ * distinct nonzero value (seed 1), or zero (seed 0), so a dropped, repeated or
+ * reordered field changes the result. */
 static void set_mixed_only_values(int seed)
 {
 	int v = seed ? 0x31 : 0;
@@ -508,9 +517,10 @@ static void set_mixed_only_values(int seed)
 	g_mission_file_version = (uint16_t)(v + 18);
 }
 
-/* The live checksum of the rich world with 3 flight groups and player 0 connected, recorded from the
- * code at fork commit 03e9d80, with set_mixed_only_values(1). Every pool loop, both flight-group loops and
- * the player loop run. */
+/* The live checksum of the rich world with 3 flight groups and player 0
+ * connected, recorded from the code at fork commit 03e9d80, with
+ * set_mixed_only_values(1). Every pool loop, both flight-group loops and the
+ * player loop run. */
 static const unsigned k_rich_live_checksum = 0xdb657f64u;
 
 static void check_live_checksum_of_rich_world(void)
@@ -525,7 +535,8 @@ static void check_live_checksum_of_rich_world(void)
 	}
 	g_players[0].participation_state = 1;
 	g_next_object_signature = 9;
-	/* Every pool record carries a nonzero field, so dropping any pool's loop changes the result. */
+	/* Every pool record carries a nonzero field, so dropping any pool's
+	 * loop changes the result. */
 	g_test_craft[0].craft_index_in_group = 3;
 	g_test_char_data[0].skill_value = 4;
 	g_test_guidance[0].cruise_speed = 5;
@@ -549,8 +560,8 @@ static void check_live_checksum_of_rich_world(void)
 	g_mission_header.num_flight_groups = 0;
 }
 
-/* Block sizes in an image, and the rich world's layout: slot 0 holds all five blocks, slot 1 is empty,
- * slot 2 holds an object alone. */
+/* Block sizes in an image, and the rich world's layout: slot 0 holds all five
+ * blocks, slot 1 is empty, slot 2 holds an object alone. */
 #define OBJ_SIZE sizeof(struct xvt_snapshot_object_record)
 #define MOB_SIZE sizeof(struct xvt_snapshot_mobile_object)
 #define CRAFT_SIZE sizeof(struct xvt_snapshot_craft_data)
@@ -569,8 +580,8 @@ static void map3(uint8_t map[7], int count, uint8_t slot0, uint8_t slot1,
 	map[6] = slot2;
 }
 
-/* Copies the first `written` bytes of g_image into the duplicate buffer, with room to grow, applies map,
- * and returns the new size. */
+/* Copies the first `written` bytes of g_image into the duplicate buffer, with
+ * room to grow, applies map, and returns the new size. */
 static size_t apply(const uint8_t *map, size_t written)
 {
 	free(g_dup);
@@ -614,7 +625,8 @@ static void check_apply_presence_map_keeps_matching_image(void)
 	XVT_ASSERT_INT_EQ(apply(map, written), written);
 	XVT_ASSERT_INT_EQ(memcmp(g_dup, g_image, written), 0);
 
-	/* With slot 0 emptied too, the map packs slots 0 and 1 as one run of two before slot 2's object. */
+	/* With slot 0 emptied too, the map packs slots 0 and 1 as one run of
+	 * two before slot 2's object. */
 	g_test_objects[0].object_type = 0;
 	g_players[0].object_index = -1;
 	size_image();
@@ -645,8 +657,9 @@ static void check_apply_presence_map_removes_blocks(void)
 	XVT_ASSERT_TRUE(
 		removed(written, craft + CRAFT_SIZE + GUIDE_SIZE, CHAR_SIZE));
 
-	/* Removing an object or mobile record leaves the blocks nested under it. The walk then reads the
-	 * next slot inside those blocks, so these maps cover slot 0 alone. */
+	/* Removing an object or mobile record leaves the blocks nested under
+	 * it. The walk then reads the next slot inside those blocks, so these
+	 * maps cover slot 0 alone. */
 	map3(map, 1, 0x01, 0, 0x00);
 	apply(map, written);
 	XVT_ASSERT_TRUE(removed(written, k_slot0_mobile, MOB_SIZE));
@@ -676,8 +689,9 @@ static void check_apply_presence_map_inserts_zeroed_blocks(void)
 	XVT_ASSERT_TRUE(
 		inserted(written, slot1, CRAFT_SIZE + GUIDE_SIZE + CHAR_SIZE));
 
-	/* Inserting a record adds that record alone: slot 2 gains a mobile record, slot 1 an object record
-	 * (after its type byte, which stays 0). */
+	/* Inserting a record adds that record alone: slot 2 gains a mobile
+	 * record, slot 1 an object record (after its type byte, which stays
+	 * 0). */
 	map3(map, 3, 0x03, 0, 0x03);
 	apply(map, written);
 	XVT_ASSERT_TRUE(inserted(written, slot1 + 1 + 1 + OBJ_SIZE, MOB_SIZE));

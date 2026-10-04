@@ -1,14 +1,17 @@
-/* Checks the flight task (xvt_runtime/runtime/flight_task.h) against the promises in its header, for the
- * parts that run without the recovered game's files or a display: Begin and its refusals, the state queries,
- * NextWakeDelayUs while preparing and during a resync, Shutdown, and the way a lost network session takes
- * the task through cleanup and the music fade to done. No game data is read: the test sets the globals it
- * reads itself. Every check starts from a task Shutdown left idle, a fresh network session, no resync, and
- * no music CD open.
+/* Checks the flight task (xvt_runtime/runtime/flight_task.h) against the
+ * promises in its header, for the parts that run without the recovered game's
+ * files or a display: Begin and its refusals, the state queries,
+ * NextWakeDelayUs while preparing and during a resync, Shutdown, and the way a
+ * lost network session takes the task through cleanup and the music fade to
+ * done. No game data is read: the test sets the globals it reads itself. Every
+ * check starts from a task Shutdown left idle, a fresh network session, no
+ * resync, and no music CD open.
  *
- * Not checked here: the phases from entry to the frame loop load the config, open the game session and
- * the display, and load the mission, its models and sounds from the retail game files; the cleanup steps
- * that follow a started world (committing results, restoring the resolution, saving the pilot, the CD fade)
- * need that world. */
+ * Not checked here: the phases from entry to the frame loop load the config,
+ * open the game session and the display, and load the mission, its models and
+ * sounds from the retail game files; the cleanup steps that follow a started
+ * world (committing results, restoring the resolution, saving the pilot, the CD
+ * fade) need that world. */
 #include <stdint.h>
 #include <string.h>
 
@@ -98,7 +101,8 @@ static void check_begin(void)
 
 static void check_begin_resets_simulation(void)
 {
-	/* Begin resets the flight simulation, which forgets the prediction fallback (flight_sim.h). */
+	/* Begin resets the flight simulation, which forgets the prediction
+	 * fallback (flight_sim.h). */
 	flight_task_world();
 	g_players[1].participation_state = 1;
 	struct flight_input_frame_record input;
@@ -128,7 +132,8 @@ static void check_continues_without_focus(void)
 
 static void check_wake_during_resync(void)
 {
-	/* While a resync is active the task wakes when the resync does. The apply phase is a running send. */
+	/* While a resync is active the task wakes when the resync does. The
+	 * apply phase is a running send. */
 	flight_task_world();
 	XVT_ASSERT_INT_EQ(xvt_flight_task_begin("mission"), 1);
 	g_net_session.local_is_host = 1;
@@ -141,8 +146,8 @@ static void check_wake_during_resync(void)
 
 static void check_shutdown(void)
 {
-	/* An active flight is released: the task is idle with a result of 0, the resync and the flight
-	 * network state are reset. */
+	/* An active flight is released: the task is idle with a result of 0,
+	 * the resync and the flight network state are reset. */
 	flight_task_world();
 	XVT_ASSERT_INT_EQ(xvt_flight_task_begin("mission"), 1);
 	g_net_session.local_is_host = 1;
@@ -172,8 +177,8 @@ static void check_lost_session(void)
 {
 	flight_task_world();
 	XVT_ASSERT_INT_EQ(xvt_flight_task_begin("mission"), 1);
-	/* State the release tears down: a timing session with its integration table, world buffers, a
-	 * queued world message. */
+	/* State the release tears down: a timing session with its integration
+	 * table, world buffers, a queued world message. */
 	xvt_flight_timing_begin_session(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	XVT_ASSERT_INT_EQ(xvt_flight_integration_init(2), 1);
 	g_test_objects[0].object_type = 1;
@@ -185,8 +190,9 @@ static void check_lost_session(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_push(XVT_QUEUE_PENDING, "p", 1),
 			  1);
 
-	/* A lost session sends the task to cleanup with a result of 0: the mission is released in that tick,
-	 * and with no CD fade the next tick finishes the task. */
+	/* A lost session sends the task to cleanup with a result of 0: the
+	 * mission is released in that tick, and with no CD fade the next tick
+	 * finishes the task. */
 	xvt_network_session_host_lost();
 	xvt_flight_task_update();
 	XVT_ASSERT_INT_EQ(xvt_flight_task_get_result(), 0);
@@ -196,7 +202,8 @@ static void check_lost_session(void)
 	XVT_ASSERT_TRUE(g_world_state_buffer == NULL);
 	XVT_ASSERT_TRUE(g_world_state_dup_buffer == NULL);
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_count(XVT_QUEUE_PENDING), 0);
-	/* Without the integration table, Rate returns the plain truncated result (flight_integration.h). */
+	/* Without the integration table, Rate returns the plain truncated
+	 * result (flight_integration.h). */
 	XVT_ASSERT_INT_EQ(
 		xvt_flight_integration_rate(0, XVT_INTEGRATE_PUSH_X, 1, 1, 4),
 		0);

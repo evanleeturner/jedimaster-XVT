@@ -60,11 +60,12 @@ int xvt_network_task_can_join(void);
  * the selection. */
 void xvt_network_task_toggle_selection(int index);
 /* Called under the frontend draw lock in place of the suspended screen update. */
-/* With no attempt: when the network session has failed, shows the failure dialog, sets result to
- * 0 and returns 1; otherwise returns 0. During an attempt, sets result to 0 and returns 1: Escape,
- * or the cancel button of the connecting screen drawn otherwise, cancels; otherwise the session is
- * ticked, and when it finishes, a failure shows the failure dialog, a join opens the await-admission
- * screen, and a host opens mission setup. */
+/* With no attempt: when the network session has failed, shows the failure
+ * dialog, sets result to 0 and returns 1; otherwise returns 0. During an
+ * attempt, sets result to 0 and returns 1: Escape, or the cancel button of the
+ * connecting screen drawn otherwise, cancels; otherwise the session is ticked,
+ * and when it finishes, a failure shows the failure dialog, a join opens the
+ * await-admission screen, and a host opens mission setup. */
 int xvt_network_task_resume(int *result);
 /* Cancels the attempt and returns to the host or join screen by the attempt's action; call only
  * during an attempt, since an idle task reads as a host. */

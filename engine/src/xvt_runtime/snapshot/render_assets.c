@@ -290,7 +290,8 @@ int xvt_render_assets_copy_frontend_colors(
 		const struct source *source = &g_sources[i];
 		if (source->image.id == id &&
 		    source->image.kind == XVT_IMAGE_BMP) {
-			/* Retired sources remain readable until their exported frame is consumed. */
+			/* Retired sources remain readable until their exported
+			 * frame is consumed. */
 			*colors = source->frontend_colors;
 			return 1;
 		}

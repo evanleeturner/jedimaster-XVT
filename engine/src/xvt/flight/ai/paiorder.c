@@ -1203,7 +1203,8 @@ int16_t paiorder_abortmissionorder(void)
 		break;
 
 	case 5:
-		/* The launcher counter is reused here as a team index over the ten attacked_by_team entries. */
+		/* The launcher counter is reused here as a team index over the
+		 * ten attacked_by_team entries. */
 		for (launcher_index = 0; launcher_index < 10;
 		     ++launcher_index) {
 			if (g_cur_craft->attacked_by_team[launcher_index] !=

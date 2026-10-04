@@ -1,10 +1,12 @@
-/* Checks the settings documents (xvt_runtime/config/config.h) against the promises in the header: loading
- * the shipped defaults and the player's overrides, updating and saving them, the setters, and the game
- * options with their legacy text import. The shipped defaults are copied from the source tree; every user
- * file and legacy file is written here. Each check starts from a fresh fixture folder (config_fixture.h).
+/* Checks the settings documents (xvt_runtime/config/config.h) against the
+ * promises in the header: loading the shipped defaults and the player's
+ * overrides, updating and saving them, the setters, and the game options with
+ * their legacy text import. The shipped defaults are copied from the source
+ * tree; every user file and legacy file is written here. Each check starts from
+ * a fresh fixture folder (config_fixture.h).
  *
- * Run as "test_config known-failure <check>" for a check that shows the code breaking its header; see
- * main. */
+ * Run as "test_config known-failure <check>" for a check that shows the code
+ * breaking its header; see main. */
 #define _XOPEN_SOURCE 700
 
 #include <stdio.h>
@@ -18,7 +20,8 @@
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/input/keyboard_mapping.h"
 
-/* What a refused call must leave as it was: the generation, both documents and the typed settings. */
+/* What a refused call must leave as it was: the generation, both documents and
+ * the typed settings. */
 struct state {
 	uint64_t generation;
 	AeronConfigFile *user;
@@ -76,7 +79,8 @@ static AeronConfigFile *user_with_int(const char *path, int64_t value)
 	return candidate;
 }
 
-/* Hands candidate to xvt_config_update_user without saving, expects it accepted, then destroys it. */
+/* Hands candidate to xvt_config_update_user without saving, expects it
+ * accepted, then destroys it. */
 static void accept(AeronConfigFile *candidate)
 {
 	char error[1024] = "";
@@ -179,8 +183,9 @@ static void check_load_without_user_file(void)
 static void check_load_upgrades_old_user_file(void)
 {
 	fixture_begin();
-	/* Before version 3: controller settings and joystick buttons are dropped and the controller list
-	 * starts empty; a user gamepad_defaults is dropped; version 2's keyboard bindings stay. */
+	/* Before version 3: controller settings and joystick buttons are
+	 * dropped and the controller list starts empty; a user gamepad_defaults
+	 * is dropped; version 2's keyboard bindings stay. */
 	const char *version2 =
 		"version: 2\n"
 		"startup:\n"
@@ -236,8 +241,9 @@ static void check_load_upgrades_old_user_file(void)
 	fixture_end();
 }
 
-/* Loads with text as USER/config.yaml (or a folder there when text is NULL) and expects the load refused,
- * the error naming the file, the defaults still loaded, and the file untouched; then Replace works. */
+/* Loads with text as USER/config.yaml (or a folder there when text is NULL) and
+ * expects the load refused, the error naming the file, the defaults still
+ * loaded, and the file untouched; then Replace works. */
 static void expect_user_file_refused(const char *text)
 {
 	fixture_begin();
@@ -271,8 +277,9 @@ static void expect_user_file_refused(const char *text)
 
 static void check_load_refuses_bad_user_file(void)
 {
-	/* Cannot be accepted: an unsupported version, a game option out of range, a document that is not a
-	 * map. Cannot be read: broken YAML. Cannot be inspected: a folder where the file should be. */
+	/* Cannot be accepted: an unsupported version, a game option out of
+	 * range, a document that is not a map. Cannot be read: broken YAML.
+	 * Cannot be inspected: a folder where the file should be. */
 	expect_user_file_refused("version: 9\n");
 	expect_user_file_refused("version: 3\ngame:\n  difficulty: -1\n");
 	expect_user_file_refused("- 1\n- 2\n");
@@ -349,8 +356,9 @@ static void check_update_user_accepts(void)
 	const bool skip = xvt_config_default_settings()->skip_intro != 0;
 	char text[256];
 
-	/* A version-1 candidate is upgraded: its keyboard bindings and gamepad defaults are dropped, the
-	 * controller list starts empty, and the version becomes 3. */
+	/* A version-1 candidate is upgraded: its keyboard bindings and gamepad
+	 * defaults are dropped, the controller list starts empty, and the
+	 * version becomes 3. */
 	snprintf(
 		text, sizeof text,
 		"version: 1\nstartup:\n  skip_intro: %s\ninput:\n  keyboard:\n    fire_weapon: \"Z\"\n"
@@ -532,7 +540,8 @@ static void check_apply(void)
 	XVT_ASSERT_INT_EQ(game.difficulty, GAME_DIFFICULTY_HARD);
 	XVT_ASSERT_INT_EQ(game.random_seed, 4000000000u);
 	XVT_ASSERT_INT_EQ(strcmp(game.last_pilot_name, "Wedge"), 0);
-	/* A window size larger than its screen resolution is limited to it; a smaller one is kept. */
+	/* A window size larger than its screen resolution is limited to it; a
+	 * smaller one is kept. */
 	XVT_ASSERT_INT_EQ(game.screen_res[0], 1);
 	XVT_ASSERT_INT_EQ(game.window_size[0], 1);
 	XVT_ASSERT_INT_EQ(game.screen_res[1], 2);
@@ -581,7 +590,8 @@ static void check_write(void)
 	XVT_ASSERT_INT_EQ(again.difficulty, difficulty);
 	XVT_ASSERT_INT_EQ(strcmp(again.password, "rogue"), 0);
 
-	/* An unterminated string or an option out of range is refused, and nothing changes, on disk either. */
+	/* An unterminated string or an option out of range is refused, and
+	 * nothing changes, on disk either. */
 	char *saved = fixture_read_text("user/config.yaml");
 	bad = again;
 	memset(bad.password, 'x', sizeof bad.password);
@@ -651,7 +661,8 @@ static void check_import(void)
 {
 	fixture_begin();
 	fixture_load();
-	/* Original option names are read and other lines ignored, a YAML path among them; then it saves. */
+	/* Original option names are read and other lines ignored, a YAML path
+	 * among them; then it saves. */
 	XVT_ASSERT_INT_EQ(import_text("legacy.txt", "difficulty 2\n"
 						    "password rogue\n"
 						    "not_an_option 5\n"
@@ -675,8 +686,8 @@ static void check_import(void)
 						 "game.difficulty", -1),
 			  2);
 
-	/* From a file named config.cfg, joystick buttons 124 to 229 move up by 4; from another name they do
-	 * not. */
+	/* From a file named config.cfg, joystick buttons 124 to 229 move up by
+	 * 4; from another name they do not. */
 	const char *buttons =
 		"joybutton1 124\njoybutton2 229\njoybutton3 123\njoybutton4 230\n";
 	XVT_ASSERT_INT_EQ(import_text("config.cfg", buttons), 1);
@@ -728,7 +739,8 @@ static void check_import_refusals(void)
 		XVT_ASSERT_TRUE(!fixture_exists("user/config.yaml"));
 		fixture_case(NULL);
 	}
-	/* A line of 511 characters is refused; one of 510 is read (and ignored, naming no option). */
+	/* A line of 511 characters is refused; one of 510 is read (and ignored,
+	 * naming no option). */
 	char *line = long_line(511, "\ndifficulty 2\n");
 	snapshot();
 	XVT_ASSERT_INT_EQ(import_text("legacy.txt", line), 0);
@@ -749,9 +761,10 @@ static void check_import_refusals(void)
 	fixture_end();
 }
 
-/* Known failure. The header refuses a line longer than 510 characters. A line of exactly 510 characters
- * that ends in CR LF, as a DOS text file's lines do, is refused as well: the read that fills the 512-byte
- * line buffer stops after the CR, so the line looks 511 characters long with no newline. */
+/* Known failure. The header refuses a line longer than 510 characters. A line
+ * of exactly 510 characters that ends in CR LF, as a DOS text file's lines do,
+ * is refused as well: the read that fills the 512-byte line buffer stops after
+ * the CR, so the line looks 511 characters long with no newline. */
 static void check_import_cr_lf_line_of510(void)
 {
 	fixture_begin();
@@ -765,8 +778,9 @@ static void check_import_cr_lf_line_of510(void)
 	fixture_end();
 }
 
-/* With no arguments, runs every check that holds. "known-failure <name>" runs only that check, which shows
- * the code breaking its header; a name not listed here returns 0. */
+/* With no arguments, runs every check that holds. "known-failure <name>" runs
+ * only that check, which shows the code breaking its header; a name not listed
+ * here returns 0. */
 int main(int argc, char **argv)
 {
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {

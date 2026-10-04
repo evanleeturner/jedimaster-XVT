@@ -112,8 +112,10 @@ unsigned int tex_level_convert24_bpp_palettes_to16_bpp(unsigned int *tex_level)
 	return result;
 }
 
-/* While a mission palette is being collected (g_generate_mission_palette), this also hands each 24-bit image
- * to image_quantizer_classify_encoded_tex_level_image, which counts its colors into the palette being built. */
+/* While a mission palette is being collected (g_generate_mission_palette), this
+ * also hands each 24-bit image to
+ * image_quantizer_classify_encoded_tex_level_image, which counts its colors
+ * into the palette being built. */
 /* Builds the 8-bit palettes of a loaded texture block in the space after its
  * data, at header->dataSize: each color of a 24-bit palette, read as in
  * tex_level_convert24_bpp_palettes_to16_bpp, becomes the index of the nearest

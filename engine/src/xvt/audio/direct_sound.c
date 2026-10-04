@@ -42,8 +42,8 @@ direct_sound_load_wave_buffer(IDirectSound *direct_sound, const char *file_name,
 		    0, file_name, &desc.lpwfxFormat, &sample_data,
 		    &desc.dwBufferBytes)) {
 		desc.dwSize = sizeof(desc);
-		/* 194 is DSBCAPS_STATIC | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME; 234 adds DSBCAPS_LOCSOFTWARE and
-		 * DSBCAPS_CTRLFREQUENCY. */
+		/* 194 is DSBCAPS_STATIC | DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME;
+		 * 234 adds DSBCAPS_LOCSOFTWARE and DSBCAPS_CTRLFREQUENCY. */
 		desc.dwFlags = 194;
 		if (omit_software_and_frequency_caps == 0) {
 			desc.dwFlags = 234;

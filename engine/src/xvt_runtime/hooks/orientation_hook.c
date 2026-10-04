@@ -10,8 +10,9 @@
 
 #define XVT_ORIENTATION_PI 3.14159265358979323846f
 #define XVT_ORIENTATION_HALF_PI (XVT_ORIENTATION_PI * 0.5f)
-/* These two take 32767 units to a half turn, not the 32768 of the header's 65536-to-a-turn binary angle,
- * which the fixed-point path and the 0x8000 half-turn offsets below use. */
+/* These two take 32767 units to a half turn, not the 32768 of the header's
+ * 65536-to-a-turn binary angle, which the fixed-point path and the 0x8000
+ * half-turn offsets below use. */
 #define XVT_ORIENTATION_BAM_TO_RAD (XVT_ORIENTATION_PI / 32767.0f)
 #define XVT_ORIENTATION_RAD_TO_BAM (32767.0f / XVT_ORIENTATION_PI)
 #define XVT_ORIENTATION_GIMBAL_EPSILON 1.0e-5f
@@ -163,8 +164,9 @@ static void xvt_orientation_quaternion_to_euler(const float quaternion[4],
 	float xx = x * x;
 	float yy = y * y;
 	float zz = z * z;
-	/* These mRC are 1-based elements of the row-vector rotation matrix, as DirectXMath's _RC; the
-	 * 0-based mRC of MatrixToQuaternion name other elements. */
+	/* These mRC are 1-based elements of the row-vector rotation matrix, as
+	 * DirectXMath's _RC; the 0-based mRC of MatrixToQuaternion name other
+	 * elements. */
 	float m31 = 2.0f * x * z + 2.0f * y * w;
 	float m32 = 2.0f * y * z - 2.0f * x * w;
 	float m33 = 1.0f - 2.0f * xx - 2.0f * yy;

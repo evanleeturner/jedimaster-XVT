@@ -13,9 +13,9 @@ extern "C" {
 struct bitmap_font {
 	/* Each glyph's rows, encoded by front_image_encode_glyph_row, end to end;
 	 * a font built through GDI starts at glyph 1. */
-	uint8_t *
-		p_glyph_bits; ///< Runtime pointer to the compressed glyph-byte blob; serialized in the .ABP header
-	///< as the blob byte count.
+	/* Runtime pointer to the compressed glyph-byte blob; serialized in the
+	 * .ABP header as the blob byte count. */
+	uint8_t *p_glyph_bits;
 	unsigned int glyph_bit_offset
 		[256]; ///< Per-character byte offsets into p_glyph_bits.
 	/* Each character's height in pixels. Entry 0 is the font's height that
@@ -30,15 +30,18 @@ struct bitmap_font {
 	unsigned int point_size;
 	/* 1 while the slot holds a font; the free functions compare it with 1,
 	 * and a loaded file sets it from its own header. */
-	uint8_t in_use; ///< Font-slot occupancy flag; scanned when allocating and cleared when freeing.
+	/* Font-slot occupancy flag; scanned when allocating and cleared when
+	 * freeing. */
+	uint8_t in_use;
 	/* Pixels added after each glyph's width: 0 in a font built through GDI,
 	 * else what the file holds. */
 	uint8_t char_spacing;
 	/* frontend_text_load_font sets it to 1 and a loaded file sets it from its
 	 * header. No code reads the field itself;
 	 * frontend_text_save_font_atlas_file copies it with the header. */
-	uint8_t field_60a; ///< Set to 1 for generated fonts and persisted in the 1547-byte .ABP header; no
-	///< runtime consumer is identified.
+	/* Set to 1 for generated fonts and persisted in the 1547-byte .ABP
+	 * header; no runtime consumer is identified. */
+	uint8_t field_60a;
 };
 
 typedef uint16_t text_fade_color_cache[65536];

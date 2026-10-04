@@ -57,8 +57,9 @@ static __inline int math_dot3q15(int left_x, int left_y, int left_z,
 #endif
 }
 
-/* Unlike math_dot3q15, the products and their sum are 32-bit and may wrap; the sum is then clamped to
- * [-0x3FFF0000, 0x3FFFFFFF] before the shift, so the result stays within -32766..32767. */
+/* Unlike math_dot3q15, the products and their sum are 32-bit and may wrap; the
+ * sum is then clamped to [-0x3FFF0000, 0x3FFFFFFF] before the shift, so the
+ * result stays within -32766..32767. */
 static __inline int math_dot3q15_wrapped(int left_x, int left_y, int left_z,
 					 int right_x, int right_y, int right_z)
 {
@@ -99,7 +100,8 @@ static __inline int math_dot3q15_wrapped(int left_x, int left_y, int left_z,
 #endif
 }
 
-/* Two-term form of math_dot3q15_wrapped: 32-bit products and sum, clamped the same way before the shift. */
+/* Two-term form of math_dot3q15_wrapped: 32-bit products and sum, clamped the
+ * same way before the shift. */
 static __inline int math_dot2q15_wrapped(int left_x, int left_y, int right_x,
 					 int right_y)
 {

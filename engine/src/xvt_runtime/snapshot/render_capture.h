@@ -48,13 +48,15 @@ void xvt_render_capture_check_network_correction(void);
  * current game time. The candidate becomes authoritative when a view of that time is
  * presented. */
 void xvt_render_capture_complete_network_world(void);
-/* Fills the pending view from the live world: camera, lighting, sky, hyperspace, each occupied
- * slot up to the object table's capacity, the map and the model types. Objects past
- * XVT_SNAP_OBJECTS and model types with an unsupported frame sequence or palette are counted
- * as dropped. The view is valid when the viewport and screen sizes are nonzero. It is left
- * invalid and empty when capture is inactive, no frame is open, the object table is missing or
- * stale, a slot range is negative, or the local player index is out of range. Also sets the draw scope to
- * world, or to map when the map is active. */
+/* Fills the pending view from the live world: camera, lighting, sky,
+ * hyperspace, each occupied slot up to the object table's capacity, the map and
+ * the model types. Objects past XVT_SNAP_OBJECTS and model types with an
+ * unsupported frame sequence or palette are counted as dropped. The view is
+ * valid when the viewport and screen sizes are nonzero. It is left invalid and
+ * empty when capture is inactive, no frame is open, the object table is missing
+ * or stale, a slot range is negative, or the local player index is out of
+ * range. Also sets the draw scope to world, or to map when the map is
+ * active. */
 void xvt_render_capture_capture_view(void);
 /* Begins the cockpit and HUD frames and invalidates the pending CRT preview. */
 void xvt_render_capture_begin_classic_frame(void);
@@ -67,11 +69,12 @@ void xvt_render_capture_frontend_preview(uint16_t handle,
 					 const float orientation[9],
 					 float scale, uint16_t node_switch,
 					 int x, int y, int width, int height);
-/* Captures the targeting CRT preview of the local player's current target into the pending
- * view. Does nothing, leaving the old preview, when capture is inactive, the object table is
- * missing, the rectangle is empty, or the local player index is bad. Leaves it cleared and invalid when the
- * target slot is empty or its type is out of range. masked is ignored: the mask always follows the HUD
- * instrument set. */
+/* Captures the targeting CRT preview of the local player's current target into
+ * the pending view. Does nothing, leaving the old preview, when capture is
+ * inactive, the object table is missing, the rectangle is empty, or the local
+ * player index is bad. Leaves it cleared and invalid when the target slot is
+ * empty or its type is out of range. masked is ignored: the mask always follows
+ * the HUD instrument set. */
 void xvt_render_capture_crt(int x, int y, int width, int height, int masked);
 /* Sets the CRT component marker at this offset from the CRT camera position. Does not check
  * that a CRT preview was captured. */

@@ -68,9 +68,10 @@ struct ai_controller {
 	 * when the order starts or changes; plans and orders test it by
 	 * name. */
 	uint8_t current_plan_id;
-	/* The mission point the craft is flying to; waypoints are points 4 to 11. The drop-off order reuses
-	 * it: it starts at 0 when the craft reaches the destination group, names the formation slot of the
-	 * next craft to deliver, and counts the deliveries made. */
+	/* The mission point the craft is flying to; waypoints are points 4
+	 * to 11. The drop-off order reuses it: it starts at 0 when the craft
+	 * reaches the destination group, names the formation slot of the next
+	 * craft to deliver, and counts the deliveries made. */
 	uint8_t waypoint_index; /* 4 at spawn; past 11 it wraps to 4. */
 	/* Plan the craft ran when a player's radio command put it on
 	 * craftwaitforgopln or starshipwaitforgopln; the commands that release

@@ -1,9 +1,11 @@
-/* A temporary asset folder bound to storage, for tests of code that looks game files up by name. The test
- * places empty files at the names it wants found; they stand in for the game's files only as names, never
- * as contents. The folder is made with test_temp_folder.h and removed with everything in it on Close.
+/* A temporary asset folder bound to storage, for tests of code that looks game
+ * files up by name. The test places empty files at the names it wants found;
+ * they stand in for the game's files only as names, never as contents. The
+ * folder is made with test_temp_folder.h and removed with everything in it on
+ * Close.
  *
- * POSIX only, as test_temp_folder.h: define _POSIX_C_SOURCE as 200809L before the first include and
- * register the test under if(NOT MSVC). */
+ * POSIX only, as test_temp_folder.h: define _POSIX_C_SOURCE as 200809L before
+ * the first include and register the test under if(NOT MSVC). */
 #ifndef XVT_TESTS_TEST_ASSET_FOLDER_H
 #define XVT_TESTS_TEST_ASSET_FOLDER_H
 
@@ -43,8 +45,8 @@ static inline void xvt_test_open_assets(struct xvt_test_assets *assets)
 	xvt_storage_bind(assets->vfs);
 }
 
-/* Places an empty file at path, relative to the asset folder and written with '/', making the folders on
- * the way that are missing. */
+/* Places an empty file at path, relative to the asset folder and written with
+ * '/', making the folders on the way that are missing. */
 static inline void xvt_test_add_asset(struct xvt_test_assets *assets,
 				      const char *path)
 {

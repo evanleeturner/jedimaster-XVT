@@ -1193,8 +1193,9 @@ void config_load(void)
 	g_game_config.mission_time_limit = UINT8_MAX;
 	g_game_config.server_update_rate = 8;
 
-	/* config_index counted the single-player and multiplayer settings sets above; from here it is a
-	 * joystick button index, here and in the legacy button conversion at the end. */
+	/* config_index counted the single-player and multiplayer settings sets
+	 * above; from here it is a joystick button index, here and in the
+	 * legacy button conversion at the end. */
 	int button_count = joystick_get_button_count(0);
 	for (config_index = 0; config_index < button_count && config_index < 16;
 	     ++config_index) {

@@ -1014,7 +1014,8 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 	return damage_amount;
 }
 
-/* Besides spawning the effects, this points g_cur_craft at the object's craft and leaves it there. */
+/* Besides spawning the effects, this points g_cur_craft at the object's craft
+ * and leaves it there. */
 /* Spawns explosions on a craft's main hull meshes (the first 16 found; mesh 0
  * when none). Unless forced, returns at once unless a game_rand value read as 16
  * bits is below 0x1FFF. Past that point it points g_cur_craft at the craft and
@@ -1148,8 +1149,9 @@ int craft_spawn_explosion_object_at_mesh(const struct object_record *obj_record,
 		local_y = model_mesh_get_center_y(object_type, mesh_index);
 		local_z = model_mesh_get_center_z(object_type, mesh_index);
 	} else {
-		/* From here use_random_vertex holds the chosen vertex index, not the flag. The explosion type below
-		 * tests that index, so choosing vertex 0 gives the mesh-center type. */
+		/* From here use_random_vertex holds the chosen vertex index,
+		 * not the flag. The explosion type below tests that index, so
+		 * choosing vertex 0 gives the mesh-center type. */
 		use_random_vertex =
 			(uint16_t)game_rand() %
 			model_mesh_get_vertex_count(object_type, mesh_index);

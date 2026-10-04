@@ -59,8 +59,9 @@ int16_t g_model_preview_up_axis_angle;
  * first load. The modern xvt_frontend_task_shutdown sets it back to NULL. */
 // GLOBAL: XVT 0x520EC4
 struct optimized_poly_object *g_model_preview_model_data = NULL;
-/* Nothing sets this flag, and model_preview_load_model clears it through model_preview_free_resources before
- * testing it, so every load resets the preview object, view and light. */
+/* Nothing sets this flag, and model_preview_load_model clears it through
+ * model_preview_free_resources before testing it, so every load resets the
+ * preview object, view and light. */
 /* Only model_preview_free_resources writes it, and it writes 0. */
 // GLOBAL: XVT 0x520EC8
 int g_model_preview_skip_scene_reset = 0;
@@ -405,7 +406,8 @@ int model_preview_load_model(const char *model_file_name)
 		opt_model_adjust_optimized_poly_object_pointers(
 			g_model_preview_model_data);
 	}
-	/* The second argument is an axis, not a slot: MODEL_PREVIEW_SLOT passes 0, the largest extent. */
+	/* The second argument is an axis, not a slot: MODEL_PREVIEW_SLOT passes
+	 * 0, the largest extent. */
 	g_model_preview_bounds_extent = model_preview_compute_opt_bounds_extent(
 		g_model_preview_model_data, MODEL_PREVIEW_SLOT);
 	g_model_preview_scale = g_model_preview_target_bounds_extent /

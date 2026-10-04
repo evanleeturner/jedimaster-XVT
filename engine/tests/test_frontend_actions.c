@@ -1,6 +1,7 @@
-/* Checks the pending frontend action (xvt_runtime/runtime/frontend_actions.h) against the promises in its
- * header: one action at a time, recorded only on a press with nothing pending, held by its owner until
- * that owner finishes it, and cleared for anyone by Reset. The module keeps its own state; every case
+/* Checks the pending frontend action (xvt_runtime/runtime/frontend_actions.h)
+ * against the promises in its header: one action at a time, recorded only on a
+ * press with nothing pending, held by its owner until that owner finishes it,
+ * and cleared for anyone by Reset. The module keeps its own state; every case
  * starts from Reset. */
 #include "test_assert.h"
 #include "xvt_runtime/runtime/frontend_actions.h"

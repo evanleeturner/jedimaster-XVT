@@ -1,7 +1,8 @@
-/* Checks the typed settings parser and its error formatters (xvt_runtime/config/settings.h) against the
- * promises in the header. Most documents are a copy of the shipped defaults (resources/config.yaml) with one
- * value changed; a few small ones are written here. Each check starts from a fresh fixture folder
- * (config_fixture.h); no settings are loaded. */
+/* Checks the typed settings parser and its error formatters
+ * (xvt_runtime/config/settings.h) against the promises in the header. Most
+ * documents are a copy of the shipped defaults (resources/config.yaml) with one
+ * value changed; a few small ones are written here. Each check starts from a
+ * fresh fixture folder (config_fixture.h); no settings are loaded. */
 #define _XOPEN_SOURCE 700
 
 #include <stdio.h>
@@ -229,8 +230,9 @@ static void check_display(void)
 static void check_scene_overlay(void)
 {
 	begin();
-	/* The render block is laid over the scene defaults the caller passes: a value the document leaves
-	 * out comes from them, one it sets replaces theirs. */
+	/* The render block is laid over the scene defaults the caller passes: a
+	 * value the document leaves out comes from them, one it sets replaces
+	 * theirs. */
 	g_scene.ssao.ssao_intensity = 0.5f;
 	g_scene.ssao.ssao_quality = 2;
 	XVT_ASSERT_INT_EQ(parse_and_destroy(shipped()), 1);

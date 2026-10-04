@@ -1273,8 +1273,9 @@ int opt_model_parse_inventor_ascii_node(xvt_file *stream, char *node_storage,
 	}
 
 	int item_count;
-	/* Besides holding each parsed integer, integer_value counts the floats of a matrix or rotation item
-	 * and indexes an enum's name table while a name is looked up. */
+	/* Besides holding each parsed integer, integer_value counts the floats
+	 * of a matrix or rotation item and indexes an enum's name table while a
+	 * name is looked up. */
 	int integer_value;
 	float float_value;
 	float component0;
@@ -1746,7 +1747,8 @@ int opt_model_parse_inventor_ascii_node(xvt_file *stream, char *node_storage,
 						printf("READ NODE ERROR!\n");
 						return total_size;
 					}
-					/* Here character holds the parsed truth value, 1 or 0, not a character. */
+					/* Here character holds the parsed truth
+					 * value, 1 or 0, not a character. */
 					if (_strcmpi(
 						    g_opt_model_load_scratch_buffer,
 						    "true") == 0 ||

@@ -162,8 +162,9 @@ int16_t goals_outputgoal(uint16_t target_id, uint16_t condition,
 	uint16_t amount_text_variant =
 		g_goal_amount_text_variant_by_op[(uint16_t)amount_op];
 	int16_t consumed_height = (int16_t)(g_flight_font_line_height + 2);
-	/* From here goal_status holds a row offset into the condition text tables (47 rows per status block),
-	 * passed below as the condition row base. */
+	/* From here goal_status holds a row offset into the condition text
+	 * tables (47 rows per status block), passed below as the condition row
+	 * base. */
 	goal_status =
 		(uint16_t)(47 * g_goal_status_condition_row_block[goal_status]);
 

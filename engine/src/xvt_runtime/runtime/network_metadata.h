@@ -18,12 +18,14 @@ struct xvt_network_metadata {
 /* The room advertisement for the multiplayer directory, and conversion between the game's
  * Windows-1252 text and the directory's UTF-8. players[i] is the player id of roster entry i. */
 
-/* Fills out from the current session: its name ("Internet game." when empty), the password flag,
- * 8 player slots, and the pilot's mission when one is selected. The roster lists players marked
- * ready, once each, at most 8, from the authoritative mission roster when set and the session
- * roster otherwise; each entry takes its name from the player's playerName ("No name" when
- * empty) and its rating from the first byte of long_name minus 1 (0 stays 0). The room is joinable when
- * accepting, the roster is not authoritative, and a slot is free. */
+/* Fills out from the current session: its name ("Internet game." when empty),
+ * the password flag, 8 player slots, and the pilot's mission when one is
+ * selected. The roster lists players marked ready, once each, at most 8, from
+ * the authoritative mission roster when set and the session roster otherwise;
+ * each entry takes its name from the player's playerName ("No name" when empty)
+ * and its rating from the first byte of long_name minus 1 (0 stays 0). The room
+ * is joinable when accepting, the roster is not authoritative, and a slot is
+ * free. */
 void xvt_network_metadata_build(struct xvt_network_metadata *out,
 				int accepting);
 /* Keeps, in order, only the roster players still active in the network session, and clears the

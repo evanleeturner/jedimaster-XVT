@@ -540,9 +540,10 @@ void collide_collisions(void)
 		SMALL_DISTANCE_SQUARED = 50,
 		BOUNCE_DIRECTION_SCALE = 100,
 		BOUNCE_IMPULSE_SCALE = 1000,
-		/* Besides a half turn, 0x8000 is used in this function as the 16-bit sign bit: a game_rand() coin
-		 * flip, a sign-change test on move components, the int16 bound of a roll impulse, and the sign of a
-		 * dot product. */
+		/* Besides a half turn, 0x8000 is used in this function as the
+		 * 16-bit sign bit: a game_rand() coin flip, a sign-change test
+		 * on move components, the int16 bound of a roll impulse, and
+		 * the sign of a dot product. */
 		ANGLE_HALF_TURN = 0x8000,
 		ANGLE_QUARTER_TURN = 0x4000,
 		MAX_ROLL_IMPULSE = 0x7FFF,
@@ -1297,7 +1298,13 @@ void collide_collisions(void)
 										.world_z -
 									g_object_table[candidate_obj_idx]
 										.world_z;
-								/* Preserve 32-bit wrapping before signed comparisons and division. */
+								/* Preserve
+								 * 32-bit
+								 * wrapping
+								 * before signed
+								 * comparisons
+								 * and
+								 * division. */
 								int distance_squared =
 									(int32_t)((uint32_t)delta_x *
 											  (uint32_t)
@@ -1317,9 +1324,27 @@ void collide_collisions(void)
 									impulse_y =
 										BOUNCE_DIRECTION_SCALE;
 								} else {
-									/* From here deltaX and deltaY hold the offsets times BOUNCE_IMPULSE_SCALE
-									 * times relative_speed; the candidate's bounce below multiplies them by
-									 * both again. */
+									/* From
+									 * here
+									 * deltaX
+									 * and
+									 * deltaY
+									 * hold
+									 * the
+									 * offsets
+									 * times
+									 * BOUNCE_IMPULSE_SCALE
+									 * times
+									 * relative_speed;
+									 * the
+									 * candidate's
+									 * bounce
+									 * below
+									 * multiplies
+									 * them
+									 * by
+									 * both
+									 * again. */
 									delta_x =
 										(int32_t)((uint32_t)
 												  delta_x *
@@ -2447,8 +2472,10 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 	int16_t force_x;
 	int16_t force_y;
 	if (distance_squared > 50) {
-		/* From here impulse_x and impulse_y hold the offsets times 1000 times speed, before the division by
-		 * distance_squared; the other craft's bounce below multiplies them by 1000 and speed again. */
+		/* From here impulse_x and impulse_y hold the offsets times 1000
+		 * times speed, before the division by distance_squared; the
+		 * other craft's bounce below multiplies them by 1000 and speed
+		 * again. */
 		impulse_x = (int32_t)(1000u * (uint32_t)speed *
 				      (uint32_t)impulse_x);
 		force_x = (int16_t)(impulse_x / distance_squared);
@@ -2557,8 +2584,9 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 		craft->pitch = g_object_table[craft_obj_idx].pitch;
 	}
 
-	/* From here speed holds this craft's roll impulse: the closing speed times 100, capped at 0x7FFF and
-	 * negated when the new yaw is above the saved one, as roll_impulse is for the other craft above. */
+	/* From here speed holds this craft's roll impulse: the closing speed
+	 * times 100, capped at 0x7FFF and negated when the new yaw is above the
+	 * saved one, as roll_impulse is for the other craft above. */
 	speed = (int16_t)(speed * 100);
 	if ((uint16_t)speed >= 0x8000) {
 		speed = 0x7FFF;
@@ -2890,8 +2918,9 @@ int16_t collide_checkboxcollision(int radius)
 	int t_enter;
 	int t_candidate;
 	int end_rel;
-	/* Until here t_exit held the X near-face numerator, the twin of y_near_numerator and z_near_numerator; from
-	 * here it holds the exit time along the sweep, in 256ths of the segment like t_enter. */
+	/* Until here t_exit held the X near-face numerator, the twin of
+	 * y_near_numerator and z_near_numerator; from here it holds the exit
+	 * time along the sweep, in 256ths of the segment like t_enter. */
 	if (delta_x == 0) {
 		slope = sweep_delta_x - probe_delta_x;
 		end_rel = g_collision_sweep_end_x - g_collision_probe_world_x;
@@ -4222,9 +4251,14 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					{
 						int enemy_craft = 0;
 
-						/* enemy_craft is still 0 here: the test checks for no working subsystems and the two
-						 * stores clear the shields. Only after the team check below does it say whether the
-						 * victim is hostile to the local player's team. */
+						/* enemy_craft is still 0 here:
+						 * the test checks for no
+						 * working subsystems and the
+						 * two stores clear the shields.
+						 * Only after the team check
+						 * below does it say whether the
+						 * victim is hostile to the
+						 * local player's team. */
 						if (craft->working_subsystems ==
 						    enemy_craft) {
 							craft->subsystem_damage =
@@ -4949,7 +4983,9 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 							(int16_t)
 								breakup_roll_rate;
 					}
-					/* Parent recoil uses half the unsigned wing deflection, opposite its direction. */
+					/* Parent recoil uses half the unsigned
+					 * wing deflection, opposite its
+					 * direction. */
 					if (detached_yaw_offset != 0) {
 						detached_yaw_offset =
 							(int16_t)((uint16_t)
@@ -5456,8 +5492,9 @@ int collide_is_legacy_projected_edge_cross_nonpositive(int point_delta_u,
  * (not below 0). Returns 0 when the model will not lock, and in the modern
  * build for an object type whose asset_flags bit 0 is clear. Writes the
  * g_collideSweep* and g_collideCurrent* globals. */
-/* Besides the test, this sets g_cur_craft to the target's craft when the target has one and does not restore
- * it; nothing in this function or the functions it calls reads g_cur_craft. */
+/* Besides the test, this sets g_cur_craft to the target's craft when the target
+ * has one and does not restore it; nothing in this function or the functions it
+ * calls reads g_cur_craft. */
 // FUNCTION: XVT 0x4A5490
 int collide_check_swept_model_collision(uint16_t source_obj_idx,
 					uint16_t target_obj_idx)
@@ -5722,9 +5759,10 @@ int collide_check_swept_model_collision(uint16_t source_obj_idx,
  * sweep crosses, inside the face, nearer than the best so far (and, under
  * g_collide_sweep_reject_near_start_hits, at least 0.1 along) becomes the best
  * hit. Returns 0 at the end of a branch or on a missing node. */
-/* Walks the model tree under node for the sweep segment. Hits are reported only through
- * g_collide_sweep_hit_mesh_ordinal and g_collide_sweep_hit_fraction. The return value is not a hit: it is 1 when the
- * segment misses a mesh's bounding box, and that 1 passes up through every parent to stop the walk. */
+/* Walks the model tree under node for the sweep segment. Hits are reported only
+ * through g_collide_sweep_hit_mesh_ordinal and g_collide_sweep_hit_fraction.
+ * The return value is not a hit: it is 1 when the segment misses a mesh's
+ * bounding box, and that 1 passes up through every parent to stop the walk. */
 // FUNCTION: XVT 0x4A6080
 int collide_test_sweep_against_opt_node(struct optimized_poly_object *object,
 					struct opt_node *node)
@@ -6475,7 +6513,9 @@ void collide_apply_hostile_proximity_weapon_disruption(int owner_obj_idx,
 				int object_type = hostile->object_type;
 				int mesh_count;
 
-				/* Here and below, CRAFT_SPECIES_SAT_4 (73) stands for the size of g_object_type_mesh_cache. */
+				/* Here and below, CRAFT_SPECIES_SAT_4 (73)
+				 * stands for the size of
+				 * g_object_type_mesh_cache. */
 				if (object_type < CRAFT_SPECIES_SAT_4) {
 					mesh_count =
 						g_object_type_mesh_cache

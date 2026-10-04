@@ -248,7 +248,8 @@ int xvt_remaster_assets_prepare_frontend_image(
 				       image->kind == XVT_IMAGE_BUILTIN_CURSOR
 			       ? UINT16_MAX
 			       : 0;
-	/* Frontend pixel art uses nearest sampling without mip levels that mix sprite-sheet regions. */
+	/* Frontend pixel art uses nearest sampling without mip levels that mix
+	 * sprite-sheet regions. */
 	if (!xvt_original2d_build_atlas(&image->decoded, cmd, palette, key,
 					UINT16_MAX, 0, image->path,
 					&variant->atlas)) {

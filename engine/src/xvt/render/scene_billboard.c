@@ -101,7 +101,9 @@ void scene_billboard_draw_or_queue_object(int object_index)
 	}
 	if (frame < BILLBOARD_MODEL_FRAME_LIMIT) {
 		if (source_object_type == COMPONENT_OBJECT_TYPE) {
-			/* From here source_object_type holds mobj->source_object_type, not the object's own type. */
+			/* From here source_object_type holds
+			 * mobj->source_object_type, not the object's own
+			 * type. */
 			source_object_type = object->mobj->source_object_type;
 		}
 		g_billboard_model_node_switch_index = frame;
@@ -325,8 +327,9 @@ int scene_billboard_compute_projected_size(int depth_z,
 		depth_z = -depth_z;
 	}
 	depth_z >>= 8;
-	/* From here depth_z holds the model's extent over that depth, a scale, and then that scale times
-	 * base_screen_size over 256: the projected size returned. */
+	/* From here depth_z holds the model's extent over that depth, a scale,
+	 * and then that scale times base_screen_size over 256: the projected
+	 * size returned. */
 	if (depth_z != 0) {
 		depth_z = model_max_extent / depth_z;
 	}

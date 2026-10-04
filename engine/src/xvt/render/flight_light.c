@@ -149,8 +149,9 @@ float flight_light_compute_software_face_sample_intensity(
 	float distance;
 	float reciprocal;
 	if (g_specular_enabled != 0) {
-		/* vector is reused here for the direction from the sample point to the eye, normalized by an
-		 * estimated length, for the specular half vector. */
+		/* vector is reused here for the direction from the sample point
+		 * to the eye, normalized by an estimated length, for the
+		 * specular half vector. */
 		vector.x = -sample_x;
 		component_x = vector.x;
 		vector.y = -sample_y;

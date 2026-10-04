@@ -7,9 +7,10 @@
 extern "C" {
 #endif
 
-/* One modal frontend dialog at a time, run without blocking. Begin records the parent screen's
- * state, Update runs the dialog as a pushed screen, and ending it restores the parent. The result is
- * held until taken, by the caller or by a registered continuation. */
+/* One modal frontend dialog at a time, run without blocking. Begin records the
+ * parent screen's state, Update runs the dialog as a pushed screen, and ending
+ * it restores the parent. The result is held until taken, by the caller or by a
+ * registered continuation. */
 
 enum { XVT_DIALOG_PENDING = -1 };
 

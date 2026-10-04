@@ -1,14 +1,17 @@
-/* Checks the cockpit overlay text (xvt_runtime/snapshot/cockpit_messages.h) against the promises in its
- * header: which pane a message goes to, placing a pane, when a pane's generation rises, the glyph limits,
- * clearing and the two resets; the alert's lines, modes and generation; the progress bar; the loading
- * text, its priority over the other captures and its fatal limit; and how Export packs everything into
- * the overlay store and when it sets the screen size. The test sets the flight text globals, the three
- * live message records, the pane timers and the palette itself; every case starts from Reset with the
- * loading text cleared.
+/* Checks the cockpit overlay text (xvt_runtime/snapshot/cockpit_messages.h)
+ * against the promises in its header: which pane a message goes to, placing a
+ * pane, when a pane's generation rises, the glyph limits, clearing and the two
+ * resets; the alert's lines, modes and generation; the progress bar; the
+ * loading text, its priority over the other captures and its fatal limit; and
+ * how Export packs everything into the overlay store and when it sets the
+ * screen size. The test sets the flight text globals, the three live message
+ * records, the pane timers and the palette itself; every case starts from Reset
+ * with the loading text cleared.
  *
- * The full-loading-text check requests a fatal error, which latches for the whole process, so it runs
- * last. Not checked here: which rows an alert line from the second on fills, since the header does not
- * say how its five rows match its three lines, and the border color's value. */
+ * The full-loading-text check requests a fatal error, which latches for the
+ * whole process, so it runs last. Not checked here: which rows an alert line
+ * from the second on fills, since the header does not say how its five rows
+ * match its three lines, and the border color's value. */
 #include <string.h>
 
 #include "aeron/aeron.h"
@@ -21,8 +24,9 @@
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/render_hud.h"
 
-/* The fatal-error request opens SDL's message box, and SDL keeps a small allocation from it when no video
- * device is running, as in a test. The leak checker is told to ignore what that one call allocates. */
+/* The fatal-error request opens SDL's message box, and SDL keeps a small
+ * allocation from it when no video device is running, as in a test. The leak
+ * checker is told to ignore what that one call allocates. */
 #if defined(__SANITIZE_ADDRESS__)
 #define XVT_TEST_LEAK_CHECKER 1
 #elif defined(__has_feature)
@@ -40,8 +44,8 @@ enum { READY_ID = 11, SYSTEM_ID = 22, GROUP_ID = 33 };
 
 static struct xvt_cockpit_state g_state;
 
-/* The clip runs from (50, 60) to (450, 300), so its corner, a message's origin, is (50, 60); the cursor
- * starts at (70, 80). The screen is 640 by 480. */
+/* The clip runs from (50, 60) to (450, 300), so its corner, a message's origin,
+ * is (50, 60); the cursor starts at (70, 80). The screen is 640 by 480. */
 static void cockpit_messages_start(void)
 {
 	for (unsigned index = 0; index < 256; ++index) {
@@ -185,7 +189,8 @@ static void check_latch_places_pane(void)
 	XVT_ASSERT_INT_EQ(pane->age_seconds, 9);
 	XVT_ASSERT_INT_EQ(pane->revealed_characters, 5);
 	XVT_ASSERT_INT_EQ(pane->glyph_count, 2);
-	/* A glyph captured relative to the origin (50, 60) moves by the origin minus the source point. */
+	/* A glyph captured relative to the origin (50, 60) moves by the origin
+	 * minus the source point. */
 	const struct xvt_cockpit_glyph *glyph =
 		&state->overlay_content.glyphs[pane->first_glyph];
 	XVT_ASSERT_INT_EQ(glyph->character, 'A');
@@ -339,7 +344,8 @@ static void check_resets(void)
 		exported()->messages.panes[XVT_COCKPIT_MESSAGE_READY].visible,
 		0);
 
-	/* Reset clears the placed panes, the alert and the progress bar, but the loading text survives. */
+	/* Reset clears the placed panes, the alert and the progress bar, but
+	 * the loading text survives. */
 	cockpit_messages_start();
 	cockpit_messages_message(0, 'A', 1);
 	latch(XVT_COCKPIT_MESSAGE_READY);
@@ -656,7 +662,8 @@ static void check_shared_counter(void)
 	uint64_t alert = exported()->alert.generation;
 	xvt_cockpit_messages_record_progress(1, 0, 0, 10, 2, 5);
 	uint64_t progress = exported()->loading.generation;
-	/* Drawn in turn from one counter: each later part's generation is above the earlier ones. */
+	/* Drawn in turn from one counter: each later part's generation is above
+	 * the earlier ones. */
 	XVT_ASSERT_TRUE(alert > message);
 	XVT_ASSERT_TRUE(progress > alert);
 }

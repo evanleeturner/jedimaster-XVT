@@ -133,12 +133,14 @@ struct xvt_settings {
 };
 
 /* Layers game/user render overrides over the required Aeron scene defaults. */
-/* Parses document into *out: every field in the settings table, each of its type and in range (a float
- * may be written as an integer); the choices flight.update_rate, video.window_mode,
- * render.temporal_upscaling.mode and skybox.mode; presentation.sdr_gamma (auto, srgb, 2.2 or 2.4) and
- * paper_white_nits (auto or a positive number); the render block laid over scene_defaults; then the
- * keyboard, controllers, gamepad defaults and mouse. msaa_samples must be 1, 2, 4 or 8, and the cube
- * sky mode needs a path. skybox.mode "procedural" is accepted and read as stars. Returns 1; or 0 with
+/* Parses document into *out: every field in the settings table, each of its
+ * type and in range (a float may be written as an integer); the choices
+ * flight.update_rate, video.window_mode, render.temporal_upscaling.mode and
+ * skybox.mode; presentation.sdr_gamma (auto, srgb, 2.2 or 2.4) and
+ * paper_white_nits (auto or a positive number); the render block laid over
+ * scene_defaults; then the keyboard, controllers, gamepad defaults and mouse.
+ * msaa_samples must be 1, 2, 4 or 8, and the cube sky mode needs a path.
+ * skybox.mode "procedural" is accepted and read as stars. Returns 1; or 0 with
  * *out unchanged and the first problem in error. */
 int xvt_settings_parse(const AeronConfigFile *document,
 		       const struct xvt_scene_settings *scene_defaults,

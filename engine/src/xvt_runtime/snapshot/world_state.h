@@ -37,13 +37,15 @@
  * being large enough. */
 size_t xvt_snapshot_encode(uint8_t *image, size_t capacity);
 
-/* Returns 1 when image has the layout of an image this world would write, else 0: image is
- * not NULL, size is at most CalculateSize(), every block fits, the object and mobile records' pool links are
- * aligned and in range, player slots are in range, each record's type equals its type byte, the flight-group
- * count, pool sizes, world-state debris slot count and slot ranges equal the live ones, and the length is
- * exact. In the network profile it also checks the footer, the timing extension's CRC, and that its records
- * agree with the image's slots. Does not check any other value; the craft record's object links are not
- * checked. Writes nothing. */
+/* Returns 1 when image has the layout of an image this world would write, else
+ * 0: image is not NULL, size is at most CalculateSize(), every block fits, the
+ * object and mobile records' pool links are aligned and in range, player slots
+ * are in range, each record's type equals its type byte, the flight-group
+ * count, pool sizes, world-state debris slot count and slot ranges equal the
+ * live ones, and the length is exact. In the network profile it also checks the
+ * footer, the timing extension's CRC, and that its records agree with the
+ * image's slots. Does not check any other value; the craft record's object
+ * links are not checked. Writes nothing. */
 int xvt_snapshot_validate(const uint8_t *image, size_t size);
 
 /* Validates as xvt_snapshot_validate, then overwrites the live world from image.

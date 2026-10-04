@@ -86,8 +86,9 @@ struct model_def {
 	 * system_damage_hull_threshold, both only for a craft with shields. */
 	uint8_t reaction_threshold;
 	/* Nothing reads or writes it by name. */
-	uint8_t model_class_flag; ///< Static 0/1 model-class discriminator; exact runtime behavior is not yet
-	///< identified.
+	/* Static 0/1 model-class discriminator; exact runtime behavior is not
+	 * yet identified. */
+	uint8_t model_class_flag;
 	/* Hull strength: copied into the craft's hull_max at spawn;
 	 * build_craft_tech_stats rates it divided by 105. */
 	int hull_strength;
@@ -183,21 +184,23 @@ struct model_def {
 	/* Up offset of that type 31 hardpoint. */
 	int16_t primary_hardpoint_z;
 	/* Read by paiman_boardmaneuver and object_update_lifetime_and_movement. */
-	int16_t dock_forward; ///< Shared local-forward coordinate from OPT docking hardpoints 27-30.
+	/* Shared local-forward coordinate from OPT docking hardpoints 27-30. */
+	int16_t dock_forward;
 	/* fe_disk_io_build_model_def sets both from the model's largest z when the
 	 * table's first is 0, before the hardpoints. */
-	int16_t dock_from_up
-		[2]; ///< Local-up coordinates from OPT DockFromSmall (index 0) and DockFromBig (index
-	///< 1); defaults to the model maximum up bound.
+	/* Local-up coordinates from OPT DockFromSmall (index 0) and DockFromBig
+	 * (index 1); defaults to the model maximum up bound. */
+	int16_t dock_from_up[2];
 	/* fe_disk_io_build_model_def sets both from the model's smallest z when the
 	 * table's first is 0, before the hardpoints. */
-	int16_t dock_to_up
-		[2]; ///< Local-up coordinates from OPT DockToSmall (index 0) and DockToBig (index 1);
-	///< defaults to the model minimum up bound.
+	/* Local-up coordinates from OPT DockToSmall (index 0) and DockToBig
+	 * (index 1); defaults to the model minimum up bound. */
+	int16_t dock_to_up[2];
 	/* Read by the hangar orders, mission_spawn_flight_group_wave_craft and the
 	 * collision code. */
-	struct model_hangar_points
-		hangar_points; ///< Local-space hangar path points from OPT hardpoints 25 (inside) and 26 (outside).
+	/* Local-space hangar path points from OPT hardpoints 25 (inside) and 26
+	 * (outside). */
+	struct model_hangar_points hangar_points;
 	/* Times fe_disk_io_build_model_def halved the bound sizes to bring each to
 	 * 0x280 or under; readers shift the sizes left by it. */
 	uint16_t bound_size_shift;
@@ -278,9 +281,9 @@ struct opt_node {
 	struct opt_node **p_children;
 	/* Items in the payload for a list node; faces for a face node; the
 	 * binding for a binding node; records for an imported Inventor node. */
-	xvt_opt_value
-		payload_count; ///< Node-type-dependent scalar/count; OPT_NODEREF may store a relocated opt_node
-	///< pointer value.
+	/* Node-type-dependent scalar/count; OPT_NODEREF may store a relocated
+	 * opt_node pointer value. */
+	xvt_opt_value payload_count;
 	/* For an OPT_NODEREF, the referenced name; for an imported Inventor
 	 * node, its inventor_field_record array. */
 	void *payload; ///< Relocated pointer to node-type-dependent payload data.
@@ -293,9 +296,10 @@ struct optimized_poly_object {
 	void *self_marker;
 	/* The modern decoder sets it from the 2 bytes at its place in the
 	 * file's body. */
-	uint16_t
-		reserved; ///< Import packing stores the temporary packed-block handle here; the final returned
-	///< block preserves the now-stale value. No runtime consumer is identified.
+	/* Import packing stores the temporary packed-block handle here; the
+	 * final returned block preserves the now-stale value. No runtime
+	 * consumer is identified. */
+	uint16_t reserved;
 	int root_node_count;	      /* Entries in root_nodes. */
 	struct opt_node **root_nodes; /* The top-level nodes. */
 };

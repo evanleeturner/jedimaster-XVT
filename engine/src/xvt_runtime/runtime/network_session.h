@@ -8,11 +8,13 @@
 extern "C" {
 #endif
 
-/* The DirectPlay session behind hosting and joining, set up without blocking: Update advances through
- * closing the previous session, configuring the directory (online), creating DirectPlay, preparing
- * the join through the directory, opening, creating the local player, the host's group, the
- * roster, then registration with the directory (online host) or the handshake and the host's
- * admission (join). Service keeps the host's directory listing current. */
+/* The DirectPlay session behind hosting and joining, set up without blocking:
+ * Update advances through closing the previous session, configuring the
+ * directory (online), creating DirectPlay, preparing the join through the
+ * directory, opening, creating the local player, the host's group, the roster,
+ * then registration with the directory (online host) or the handshake and the
+ * host's admission (join). Service keeps the host's directory listing
+ * current. */
 
 enum { XVT_NETWORK_PENDING = -1 };
 
@@ -58,9 +60,10 @@ void xvt_network_session_cancel(void);
 /* Shuts down the DirectPlay session. */
 void xvt_network_session_leave(void);
 /* Called by the recovered close path; it never recursively closes DirectPlay. */
-/* Forgets the flight mission cookie and its counter, stops the directory listing, cancels a join (deferred
- * until the close completes when the session was opened), clears the flight and lost state and returns to
- * idle with a close pending. */
+/* Forgets the flight mission cookie and its counter, stops the directory
+ * listing, cancels a join (deferred until the close completes when the session
+ * was opened), clears the flight and lost state and returns to idle with a
+ * close pending. */
 void xvt_network_session_on_close(void);
 /* During admission, accepts the host's admission of the local player before the join deadline
  * and while not lost: finishes the join and returns 1 with the session established; otherwise 0. */

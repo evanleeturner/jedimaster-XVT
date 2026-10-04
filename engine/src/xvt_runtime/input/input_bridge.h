@@ -25,10 +25,12 @@ xvt_keyboard_route xvt_input_reconcile_keyboard(void);
  * suppressed, resets flight controls, and makes the controllers the game's joystick. Does nothing
  * before settings load. */
 void xvt_input_init(void);
-/* A frontend frame: routes the keyboard, samples controllers and the joystick, then, unless suppress
- * or the route blocks, fills the frontend's key states (Windows virtual keys), typed Backspace, Tab,
- * Enter and Escape and text (characters outside Windows-1252 are dropped; a full 1024-byte ring drops
- * the oldest), and the mouse inside the classic view. Otherwise clears those and the mouse clicks. */
+/* A frontend frame: routes the keyboard, samples controllers and the joystick,
+ * then, unless suppress or the route blocks, fills the frontend's key states
+ * (Windows virtual keys), typed Backspace, Tab, Enter and Escape and text
+ * (characters outside Windows-1252 are dropped; a full 1024-byte ring drops the
+ * oldest), and the mouse inside the classic view. Otherwise clears those and
+ * the mouse clicks. */
 void xvt_input_update(int suppress);
 /* A flight frame: routes the keyboard and samples controllers and the joystick, suppressing the
  * joystick also without focus or while captured; drops typed characters. */

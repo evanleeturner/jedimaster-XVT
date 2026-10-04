@@ -1,12 +1,14 @@
-/* Checks the per-player step remainders (xvt_runtime/timing/player_timing.h) against the promises in its
- * header, on a world this file builds itself: six live objects with mobile records, slots 0 to 3 in the
- * main region and slot 4 in the static region; player 0 (the local player) flies slot 0, whose craft has
- * working flight controls, and player 1 flies slot 1. No game data is read. Each case starts from that
- * world, cleared player timing and a new flight timing session.
+/* Checks the per-player step remainders (xvt_runtime/timing/player_timing.h)
+ * against the promises in its header, on a world this file builds itself: six
+ * live objects with mobile records, slots 0 to 3 in the main region and slot 4
+ * in the static region; player 0 (the local player) flies slot 0, whose craft
+ * has working flight controls, and player 1 flies slot 1. No game data is read.
+ * Each case starts from that world, cleared player timing and a new flight
+ * timing session.
  *
- * Most checks watch one channel's carried remainder through Scale itself: Seed clears a channel and
- * leaves a carry of 3/4 on it, and Probe adds 1/4 more, so Probe returns 1 exactly when the carry
- * survived. */
+ * Most checks watch one channel's carried remainder through Scale itself: Seed
+ * clears a channel and leaves a carry of 3/4 on it, and Probe adds 1/4 more, so
+ * Probe returns 1 exactly when the carry survived. */
 #include <limits.h>
 #include <stdint.h>
 #include <string.h>
@@ -220,8 +222,8 @@ static void check_reset_controls(void)
 	XVT_ASSERT_INT_EQ(probe(0, XVT_PLAYER_CAMERA_YAW), 1);
 }
 
-/* Seeds player 0's yaw, pitch, roll and slew channels, calls BeginControls, and checks whether the carry
- * survived on each. */
+/* Seeds player 0's yaw, pitch, roll and slew channels, calls BeginControls, and
+ * checks whether the carry survived on each. */
 static void expect_controls_keep(int kept)
 {
 	static const unsigned flight[] = {XVT_PLAYER_YAW, XVT_PLAYER_PITCH,
@@ -340,7 +342,8 @@ static void check_slew(void)
 		xvt_player_timing_slew(0, XVT_PLAYER_CAMERA_YAW, 1000),
 		2 * 4 * (1000 / 29));
 
-	/* One tick at a time it is carried: eight one-tick steps move what one eight-tick step does. */
+	/* One tick at a time it is carried: eight one-tick steps move what one
+	 * eight-tick step does. */
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsed_ticks = 1;
 	int sum = 0;
@@ -349,8 +352,9 @@ static void check_slew(void)
 	}
 	XVT_ASSERT_INT_EQ(sum, 4 * (100 / 29));
 
-	/* A step that would reach the difference returns all of it and drops the carry: 3 ticks of 4 per 8
-	 * leave 4/8 carried; 64 more ticks would pass 10; afterwards 4/8 alone makes nothing. */
+	/* A step that would reach the difference returns all of it and drops
+	 * the carry: 3 ticks of 4 per 8 leave 4/8 carried; 64 more ticks would
+	 * pass 10; afterwards 4/8 alone makes nothing. */
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	g_elapsed_ticks = 3;
 	XVT_ASSERT_INT_EQ(xvt_player_timing_slew(0, XVT_PLAYER_SLEW_YAW, 10),
@@ -362,9 +366,10 @@ static void check_slew(void)
 		xvt_player_timing_scale(0, XVT_PLAYER_SLEW_YAW, 4, 1, 8), 0);
 }
 
-/* Known failure slew_int_min: the header promises a step for any difference, and INT_MIN's magnitude
- * is 2^31, so with 8 ticks the step is -4 * (2^31 / 29). The code takes abs(INT_MIN), which is undefined
- * behavior, and the sanitizer stops the program there. */
+/* Known failure slew_int_min: the header promises a step for any difference,
+ * and INT_MIN's magnitude is 2^31, so with 8 ticks the step is -4 * (2^31 /
+ * 29). The code takes abs(INT_MIN), which is undefined behavior, and the
+ * sanitizer stops the program there. */
 static void check_slew_most_negative(void)
 {
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
@@ -416,7 +421,8 @@ static void check_lock_half_unlocked(void)
 			  0);
 }
 
-/* Starts a fresh unlocked world in which player 0's lock timing carries an odd tick out of this step. */
+/* Starts a fresh unlocked world in which player 0's lock timing carries an odd
+ * tick out of this step. */
 static void odd_tick_carried(void)
 {
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
@@ -502,7 +508,8 @@ static void check_record_recovery(void)
 	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 0);
 	expect_position(position, 1, 2, 3);
 
-	/* In one: the position BeginWorld recorded, then the object's position now; once per step. */
+	/* In one: the position BeginWorld recorded, then the object's position
+	 * now; once per step. */
 	step(XVT_REFERENCE_TICKS);
 	XVT_ASSERT_INT_EQ(xvt_player_timing_record_recovery(0, position), 1);
 	expect_position(position, 0, 0, 0);
@@ -681,7 +688,8 @@ static void check_recovery_not_shared(void)
 	struct xvt_player_timing_wire before;
 	xvt_player_timing_encode(0, &before);
 
-	/* The record does not carry the recovery position: moving it leaves the record as it was. */
+	/* The record does not carry the recovery position: moving it leaves the
+	 * record as it was. */
 	move_object(0, 30);
 	step(XVT_REFERENCE_TICKS);
 	int32_t position[3];
@@ -714,7 +722,8 @@ static void check_encode_empty(void)
 	empty = empty_record(5);
 	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 
-	/* Player 0's entry belongs to another object, its object is dead, it is outside the main region. */
+	/* Player 0's entry belongs to another object, its object is dead, it is
+	 * outside the main region. */
 	empty = empty_record(0);
 	g_test_objects[0].object_signature = 0x999;
 	xvt_player_timing_encode(0, &out);
@@ -838,7 +847,8 @@ static void check_reset_shared(void)
 
 int main(int argc, char **argv)
 {
-	/* "known-failure <check>" runs one check the code is known to fail; an unknown name runs nothing. */
+	/* "known-failure <check>" runs one check the code is known to fail; an
+	 * unknown name runs nothing. */
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
 		if (strcmp(argv[2], "slew_int_min") == 0) {
 			check_slew_most_negative();

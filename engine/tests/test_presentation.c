@@ -1,10 +1,12 @@
-/* Checks the logical frame (xvt_runtime/runtime/presentation.h) against the promises in its header: the
- * frame width that follows the window's aspect, the centered classic rectangle and moves into it, the
- * mouse mapping through the largest centered 4:3 area, and the lifting of the classic flight rendering
- * suppression. Aeron runs without a window; the test builds its own input snapshots. Every case starts
- * from Init.
+/* Checks the logical frame (xvt_runtime/runtime/presentation.h) against the
+ * promises in its header: the frame width that follows the window's aspect, the
+ * centered classic rectangle and moves into it, the mouse mapping through the
+ * largest centered 4:3 area, and the lifting of the classic flight rendering
+ * suppression. Aeron runs without a window; the test builds its own input
+ * snapshots. Every case starts from Init.
  *
- * Not checked here: WarpClassic and EndFrame, whose effect is on a real window and the DirectX 5 frame. */
+ * Not checked here: WarpClassic and EndFrame, whose effect is on a real window
+ * and the DirectX 5 frame. */
 #include <string.h>
 
 #include "aeron/aeron.h"
@@ -41,7 +43,8 @@ static void check_sync_to_window(void)
 	xvt_presentation_sync_to_window(1920, 1080);
 	check_rect(xvt_presentation_logical_rect(), 0, 0, 852, 480);
 
-	/* 480 * 877 / 600 is 701.6: rounding gives 702, which is already even; cutting would give 700. */
+	/* 480 * 877 / 600 is 701.6: rounding gives 702, which is already even;
+	 * cutting would give 700. */
 	xvt_presentation_sync_to_window(877, 600);
 	XVT_ASSERT_INT_EQ(xvt_presentation_logical_rect().width, 702);
 
@@ -51,7 +54,8 @@ static void check_sync_to_window(void)
 	xvt_presentation_sync_to_window(600, 800);
 	XVT_ASSERT_INT_EQ(xvt_presentation_logical_rect().width, 640);
 
-	/* 32:9 is the widest frame: 1706.7 rounds to 1707, made even; anything wider is clamped there. */
+	/* 32:9 is the widest frame: 1706.7 rounds to 1707, made even; anything
+	 * wider is clamped there. */
 	xvt_presentation_sync_to_window(3840, 1080);
 	XVT_ASSERT_INT_EQ(xvt_presentation_logical_rect().width, 1706);
 	xvt_presentation_sync_to_window(10000, 1000);
@@ -87,7 +91,8 @@ static void check_classic_rect(void)
 	check_rect(xvt_presentation_classic_rect(), (852 - 640) / 2, 0, 640,
 		   480);
 
-	/* FromClassic moves a rectangle by the classic rectangle's offset and changes nothing else. */
+	/* FromClassic moves a rectangle by the classic rectangle's offset and
+	 * changes nothing else. */
 	AeronRectI moved =
 		xvt_presentation_from_classic((AeronRectI){10, 20, 30, 40});
 	check_rect(moved, 10 + (852 - 640) / 2, 20, 30, 40);
@@ -117,13 +122,15 @@ static void check_mouse_to_classic(void)
 
 	int x = -1;
 	int y = -1;
-	/* 1280x720: the 4:3 area is 960x720, starting 160 points in. Its center is the classic center. */
+	/* 1280x720: the 4:3 area is 960x720, starting 160 points in. Its center
+	 * is the classic center. */
 	XVT_ASSERT_INT_EQ(xvt_presentation_mouse_to_classic(
 				  window(1280, 720, 160 + 480, 360, 1), &x, &y),
 			  1);
 	XVT_ASSERT_INT_EQ(x, 320);
 	XVT_ASSERT_INT_EQ(y, 240);
-	/* The area's corners: the top left is classic 0, 0; one point short of the right edge is inside. */
+	/* The area's corners: the top left is classic 0, 0; one point short of
+	 * the right edge is inside. */
 	XVT_ASSERT_INT_EQ(xvt_presentation_mouse_to_classic(
 				  window(1280, 720, 160, 0, 1), &x, &y),
 			  1);

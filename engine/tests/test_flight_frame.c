@@ -1,14 +1,18 @@
-/* Checks the flight frame loop (xvt_runtime/runtime/flight_frame.h) against the promises in its header, for
- * the parts that hold without a running flight: DelayForTicks on the host and frame-delta clocks, what Begin
- * and ResetReplay clear, ReplayBuffered with an empty queue, an old message and a gap, NextWakeDelayUs in
- * the native and network125 profiles, and a native Update before a step's worth of input time has passed. No
- * game data is read: the test drives the host clock and sets the clocks and globals it reads itself. Every
- * check starts with the host clock on a whole millisecond, the frame-delta clock reset, an empty world
- * message queue and no recovery request.
+/* Checks the flight frame loop (xvt_runtime/runtime/flight_frame.h) against the
+ * promises in its header, for the parts that hold without a running flight:
+ * DelayForTicks on the host and frame-delta clocks, what Begin and ResetReplay
+ * clear, ReplayBuffered with an empty queue, an old message and a gap,
+ * NextWakeDelayUs in the native and network125 profiles, and a native Update
+ * before a step's worth of input time has passed. No game data is read: the
+ * test drives the host clock and sets the clocks and globals it reads itself.
+ * Every check starts with the host clock on a whole millisecond, the
+ * frame-delta clock reset, an empty world message queue and no recovery
+ * request.
  *
- * Not checked here: confirming a message (it restores the saved world and steps the recovered game's
- * simulation), and Update past that first wait (it runs the simulation, renders a frame, and on the network
- * reads and sends packets); they need a running flight of the recovered game. */
+ * Not checked here: confirming a message (it restores the saved world and steps
+ * the recovered game's simulation), and Update past that first wait (it runs
+ * the simulation, renders a frame, and on the network reads and sends packets);
+ * they need a running flight of the recovered game. */
 #include <stdint.h>
 #include <string.h>
 
@@ -72,7 +76,8 @@ static void check_delay_for_ticks(void)
 	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(1000) ==
 			1000ull * TICK_US);
 
-	/* After a tick of the frame-delta clock, time passes on the host clock and the delay shrinks by it. */
+	/* After a tick of the frame-delta clock, time passes on the host clock
+	 * and the delay shrinks by it. */
 	XVT_ASSERT_INT_EQ(time_consume_elapsed_ticks(), 0);
 	xvt_time_advance_host_clock(10 * MS_US);
 	XVT_ASSERT_TRUE(xvt_flight_time_delay_for_ticks(3) ==
@@ -143,7 +148,8 @@ static void check_replay_buffered(void)
 
 static void check_reset_replay(void)
 {
-	/* ResetReplay resets the flight simulation, which forgets the prediction fallback (flight_sim.h). */
+	/* ResetReplay resets the flight simulation, which forgets the
+	 * prediction fallback (flight_sim.h). */
 	clocks(XVT_FLIGHT_TIMING_NETWORK_125);
 	g_players[1].participation_state = 1;
 	struct flight_input_frame_record input;
@@ -201,8 +207,8 @@ static void check_next_wake_network(void)
 	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() == 0);
 	xvt_flight_messages_clear(XVT_QUEUE_PENDING);
 
-	/* Prediction stops XVT_PREDICTION_LEAD_TICKS past the last confirmed tick, however far ahead the input
-	 * clock is: there is no work then. */
+	/* Prediction stops XVT_PREDICTION_LEAD_TICKS past the last confirmed
+	 * tick, however far ahead the input clock is: there is no work then. */
 	g_input_timestamp = 100 + 10 * XVT_PREDICTION_LEAD_TICKS;
 	g_game_time = 100 + XVT_PREDICTION_LEAD_TICKS;
 	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() != 0);
@@ -215,7 +221,8 @@ static void check_next_wake_network(void)
 
 static void check_native_tick_waits(void)
 {
-	/* Before a step's worth of input time has passed, a native Update only moves the input clock on. */
+	/* Before a step's worth of input time has passed, a native Update only
+	 * moves the input clock on. */
 	clocks(XVT_FLIGHT_TIMING_NATIVE);
 	g_game_time = 100;
 	g_input_timestamp = 100;

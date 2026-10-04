@@ -105,8 +105,9 @@ void xvt_flight_loading_globals(void);
  * the mission's .pal file into colors 64 through 255, or marks the mission palette for generation
  * when there is none. */
 void xvt_flight_loading_palette(void);
-/* Sets the proving grounds craft and level (craft 2, level 4 for traincourse, else none), resets
- * the flight input, refills the noise table from rand(), and resets the message log and MFD pages. */
+/* Sets the proving grounds craft and level (craft 2, level 4 for traincourse,
+ * else none), resets the flight input, refills the noise table from rand(), and
+ * resets the message log and MFD pages. */
 void xvt_flight_loading_mission_setup(void);
 /* Initializes the mission runtime state; when music is on and the music CD starts, plays the flight
  * track from one of 4 random start points. In the proving grounds, starts the level, crediting the

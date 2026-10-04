@@ -98,8 +98,9 @@ enum {
 		0x13, ///< strings.txt line 1225: \03Concussion missile launcher set to [single fire
 	IFMSG_020_ADV_PROTON_TORPEDO_LAUNCHER_SET_TO_SINGLE_FIRE =
 		0x14, ///< strings.txt line 1226: \03Adv proton torpedo launcher set to [single fire
-	IFMSG_021_ADV_CONCUSSION_MISSILE_LAUNCHER_SET_TO_SINGLE_FIRE =
-		0x15, ///< strings.txt line 1227: \03Adv concussion missile launcher set to [single fire
+	/* strings.txt line 1227: \03Adv concussion missile launcher set to
+	 * [single fire */
+	IFMSG_021_ADV_CONCUSSION_MISSILE_LAUNCHER_SET_TO_SINGLE_FIRE = 0x15,
 	IFMSG_022_SPACE_BOMB_LAUNCHER_SET_TO_SINGLE_FIRE =
 		0x16, ///< strings.txt line 1228: \03Space bomb launcher set to [single fire
 	IFMSG_023_HEAVY_ROCKET_LAUNCHER_SET_TO_SINGLE_FIRE =
@@ -118,8 +119,9 @@ enum {
 		0x1D, ///< strings.txt line 1236: \03Concussion missile launcher set to [dual fire
 	IFMSG_030_ADV_PROTON_TORPEDO_LAUNCHER_SET_TO_DUAL_FIRE =
 		0x1E, ///< strings.txt line 1237: \03Adv proton torpedo launcher set to [dual fire
-	IFMSG_031_ADV_CONCUSSION_MISSILE_LAUNCHER_SET_TO_DUAL_FIRE =
-		0x1F, ///< strings.txt line 1238: \03Adv concussion missile launcher set to [dual fire
+	/* strings.txt line 1238: \03Adv concussion missile launcher set to
+	 * [dual fire */
+	IFMSG_031_ADV_CONCUSSION_MISSILE_LAUNCHER_SET_TO_DUAL_FIRE = 0x1F,
 	IFMSG_032_SPACE_BOMB_LAUNCHER_SET_TO_DUAL_FIRE =
 		0x20, ///< strings.txt line 1239: \03Space bomb launcher set to [dual fire
 	IFMSG_033_HEAVY_ROCKET_LAUNCHER_SET_TO_DUAL_FIRE =
@@ -200,8 +202,9 @@ enum {
 		0x46, ///< strings.txt line 1281: \03Shields set [fully aft
 	IFMSG_071_CANNON_RECHARGE_FULLY_REDIRECTED_TO_ENGINES =
 		0x47, ///< strings.txt line 1283: \03Cannon recharge [fully] redirected to engines
-	IFMSG_072_CANNON_RECHARGE_PARTIALLY_REDIRECTED_TO_ENGINES =
-		0x48, ///< strings.txt line 1284: \03Cannon recharge [partially] redirected to engines
+	/* strings.txt line 1284: \03Cannon recharge [partially] redirected to
+	 * engines */
+	IFMSG_072_CANNON_RECHARGE_PARTIALLY_REDIRECTED_TO_ENGINES = 0x48,
 	IFMSG_073_CANNON_RECHARGE_AT_MAINTENANCE_LEVEL =
 		0x49, ///< strings.txt line 1285: \03Cannon recharge at [maintenance] level
 	IFMSG_074_CANNON_RECHARGE_AT_INCREASED_RATE =
@@ -210,8 +213,9 @@ enum {
 		0x4B, ///< strings.txt line 1287: \03Cannon recharge at [maximum] rate
 	IFMSG_076_SHIELD_RECHARGE_FULLY_REDIRECTED_TO_ENGINES =
 		0x4C, ///< strings.txt line 1288: \03Shield recharge [fully] redirected to engines
-	IFMSG_077_SHIELD_RECHARGE_PARTIALLY_REDIRECTED_TO_ENGINES =
-		0x4D, ///< strings.txt line 1289: \03Shield recharge [partially] redirected to engines
+	/* strings.txt line 1289: \03Shield recharge [partially] redirected to
+	 * engines */
+	IFMSG_077_SHIELD_RECHARGE_PARTIALLY_REDIRECTED_TO_ENGINES = 0x4D,
 	IFMSG_078_SHIELD_RECHARGE_AT_MAINTENANCE_LEVEL =
 		0x4E, ///< strings.txt line 1290: \03Shield recharge at [maintenance] level
 	IFMSG_079_SHIELD_RECHARGE_AT_INCREASED_RATE =
@@ -265,14 +269,16 @@ enum {
 		0x6B, ///< strings.txt line 1324: \03Hyperspace jump aborted
 	IFMSG_108_ENTERING_HYPERSPACE =
 		0x6C, ///< strings.txt line 1325: \03Entering hyperspace
-	IFMSG_109_INTERDICTOR_PREVENTS_HYPERDRIVE_UNIT_FROM_FUNCTIONING =
-		0x6D, ///< strings.txt line 1326: \03Interdictor prevents hyperdrive unit from functioning!
+	/* strings.txt line 1326: \03Interdictor prevents hyperdrive unit from
+	 * functioning! */
+	IFMSG_109_INTERDICTOR_PREVENTS_HYPERDRIVE_UNIT_FROM_FUNCTIONING = 0x6D,
 	IFMSG_110_NO_HYPERDRIVE_RETURN_TO_ARG =
 		0x6E, ///< strings.txt line 1327: \03No hyperdrive.  Return to [*]
 	IFMSG_111_NO_HYPERDRIVE_RETURN_TO_ARG_OR_TO_ARG =
 		0x6F, ///< strings.txt line 1328: \03No hyperdrive.  Return to [*] or to [*]
-	IFMSG_112_OBJECT_DETECTED_IN_JUMP_PATH_HYPERSPACE_JUMP_ABORTED =
-		0x70, ///< strings.txt line 1329: \03Object detected in jump path, hyperspace jump aborted
+	/* strings.txt line 1329: \03Object detected in jump path, hyperspace
+	 * jump aborted */
+	IFMSG_112_OBJECT_DETECTED_IN_JUMP_PATH_HYPERSPACE_JUMP_ABORTED = 0x70,
 	IFMSG_113_ARG_IS_INITIATING_HYPERJUMP =
 		0x71, ///< strings.txt line 1330: \02[*] is initiating hyperjump
 	IFMSG_114_NEW_CRAFT_ALERT_ARG_ARG_AT_ARG_KM =
@@ -283,9 +289,10 @@ enum {
 		0x74, ///< strings.txt line 1335: \04Missile Warning! [Key to target?
 	IFMSG_117_MISSILE_WAS_TARGETED =
 		0x75, ///< strings.txt line 1336: \04Missile was targeted
+	/* strings.txt line 1337: \04An enemy craft is attempting missile lock,
+	 * [should it be targeted? */
 	IFMSG_118_AN_ENEMY_CRAFT_IS_ATTEMPTING_MISSILE_LOCK_SHOULD_IT_BE_TARGETED =
-		0x76, ///< strings.txt line 1337: \04An enemy craft is attempting missile lock, [should it be
-		      ///< targeted?
+		0x76,
 	IFMSG_119_THROTTLE_SET_TO_NO_POWER =
 		0x77, ///< strings.txt line 1339: \03Throttle set to [no] power
 	IFMSG_120_THROTTLE_SET_TO_1_3_POWER =
@@ -310,10 +317,13 @@ enum {
 		0x81, ///< strings.txt line 1351: \03S-Foils have reached [closed] position
 	IFMSG_130_CANNONS_CANNOT_FIRE_WITH_S_FOILS_CLOSED =
 		0x82, ///< strings.txt line 1352: \03Cannons cannot fire with S-Foils closed
+	/* strings.txt line 1354: \03Transferring partial power from shields to
+	 * [cannon system */
 	IFMSG_131_TRANSFERRING_PARTIAL_POWER_FROM_SHIELDS_TO_CANNON_SYSTEM =
-		0x83, ///< strings.txt line 1354: \03Transferring partial power from shields to [cannon system
-	IFMSG_132_TRANSFERRING_PARTIAL_POWER_FROM_CANNONS_TO_SHIELDS =
-		0x84, ///< strings.txt line 1355: \03Transferring partial power from cannons to [shields
+		0x83,
+	/* strings.txt line 1355: \03Transferring partial power from cannons to
+	 * [shields */
+	IFMSG_132_TRANSFERRING_PARTIAL_POWER_FROM_CANNONS_TO_SHIELDS = 0x84,
 	IFMSG_133_CRAFT_EVENT_WITH_NUMBER =
 		0x85, ///< strings.txt line 1357: \02[* * &\02] *
 	IFMSG_134_CRAFT_EVENT_WITHOUT_NUMBER =
@@ -425,17 +435,20 @@ enum {
 	IFMSG_191_KAMIKAZE_ATTACK =
 		0xBF,		    ///< strings.txt line 1420: Kamikaze attack
 	IFMSG_192_ORBITTING = 0xC0, ///< strings.txt line 1421: Orbitting
-	IFMSG_193_EXCELLENT_JOB_PRIMARY_MISSION_OBJECTIVES_COMPLETED =
-		0xC1, ///< strings.txt line 1423: \02Excellent job!  Primary mission objectives completed
-	IFMSG_194_SUPERB_WORK_SECONDARY_MISSION_OBJECTIVES_COMPLETED =
-		0xC2, ///< strings.txt line 1424: \02Superb work! Secondary mission objectives completed
-	IFMSG_195_SUPERLATIVE_JOB_BONUS_MISSION_OBJECTIVES_COMPLETED =
-		0xC3, ///< strings.txt line 1425: \02Superlative job! Bonus mission objectives completed
+	/* strings.txt line 1423: \02Excellent job! Primary mission objectives
+	 * completed */
+	IFMSG_193_EXCELLENT_JOB_PRIMARY_MISSION_OBJECTIVES_COMPLETED = 0xC1,
+	/* strings.txt line 1424: \02Superb work! Secondary mission objectives
+	 * completed */
+	IFMSG_194_SUPERB_WORK_SECONDARY_MISSION_OBJECTIVES_COMPLETED = 0xC2,
+	/* strings.txt line 1425: \02Superlative job! Bonus mission objectives
+	 * completed */
+	IFMSG_195_SUPERLATIVE_JOB_BONUS_MISSION_OBJECTIVES_COMPLETED = 0xC3,
 	IFMSG_196_CODE_02_ARGUMENT = 0xC4, ///< strings.txt line 1426: \02*
 	IFMSG_197_ARG_10000_POINTS_AWARDED_FOR_PREVIOUS_LEVELS =
 		0xC5, ///< strings.txt line 1427: &\0010000 points awarded for previous levels
-	IFMSG_198_CONGRATULATIONS_LEVEL_COMPLETED_TIME_LEFT_BONUS =
-		0xC6, ///< strings.txt line 1428: \03Congratulations! Level Completed.  Time Left:       Bonus:
+	/* strings.txt line 1428: \03Congratulations! Level Completed.  Time Left:       Bonus: */
+	IFMSG_198_CONGRATULATIONS_LEVEL_COMPLETED_TIME_LEFT_BONUS = 0xC6,
 	IFMSG_199_BONUS_POINTS_AWARDED_ARG =
 		0xC7, ///< strings.txt line 1429: \03Bonus points awarded: [&\05]
 	IFMSG_200_PENALTY_POINTS_DEDUCTED_ARG =
@@ -450,35 +463,48 @@ enum {
 		0xCC, ///< strings.txt line 1434: \10Mission time limit imposed: [*] minute left
 	IFMSG_205_MISSION_TIME_LIMIT_IMPOSED_ARG_MINUTES_LEFT =
 		0xCD, ///< strings.txt line 1435: \10Mission time limit imposed: [*] minutes left
-	IFMSG_206_MISSION_OBJECTIVES_CANNOT_BE_FINISHED_ABORT_MISSION =
-		0xCE, ///< strings.txt line 1436: \02Mission objectives cannot be finished, abort mission!
+	/* strings.txt line 1436: \02Mission objectives cannot be finished,
+	 * abort mission! */
+	IFMSG_206_MISSION_OBJECTIVES_CANNOT_BE_FINISHED_ABORT_MISSION = 0xCE,
 	IFMSG_207_CODE_01_ARGUMENT = 0xCF, ///< strings.txt line 1437: \01*
+	/* strings.txt line 1438: \02Good work. Our forces have bounced back to
+	 * pull out a draw */
 	IFMSG_208_GOOD_WORK_OUR_FORCES_HAVE_BOUNCED_BACK_TO_PULL_OUT_A_DRAW =
-		0xD0, ///< strings.txt line 1438: \02Good work. Our forces have bounced back to pull out a draw
+		0xD0,
+	/* strings.txt line 1439: \02Good work. The Alliance has rallied to gain
+	 * a draw from this mission */
 	IFMSG_209_GOOD_WORK_THE_ALLIANCE_HAS_RALLIED_TO_GAIN_A_DRAW_FROM_THIS_MISSION =
-		0xD1, ///< strings.txt line 1439: \02Good work. The Alliance has rallied to gain a draw from this
-		      ///< mission
-	IFMSG_210_WE_HAVE_LOST_OUR_VICTORY_THE_REBELS_HAVE_GAINED_A_DRAW =
-		0xD2, ///< strings.txt line 1440: \02We have lost our victory.  The Rebels have gained a draw
-	IFMSG_211_WE_HAVE_LOST_OUR_VICTORY_THE_EMPIRE_HAS_GAINED_A_DRAW =
-		0xD3, ///< strings.txt line 1441: \02We have lost our victory.  The Empire has gained a draw
+		0xD1,
+	/* strings.txt line 1440: \02We have lost our victory. The Rebels have
+	 * gained a draw */
+	IFMSG_210_WE_HAVE_LOST_OUR_VICTORY_THE_REBELS_HAVE_GAINED_A_DRAW = 0xD2,
+	/* strings.txt line 1441: \02We have lost our victory. The Empire has
+	 * gained a draw */
+	IFMSG_211_WE_HAVE_LOST_OUR_VICTORY_THE_EMPIRE_HAS_GAINED_A_DRAW = 0xD3,
 	IFMSG_212_YOU_HAVE_EJECTED_SAFELY =
 		0xD4, ///< strings.txt line 1443: \03You have ejected safely
 	IFMSG_213_YOU_HAVE_DIED =
 		0xD5, ///< strings.txt line 1444: \03You have died
-	IFMSG_214_HIT_SPACE_TO_ACTIVATE_TRACTOR_BEAM_AND_ENTER_HANGAR =
-		0xD6, ///< strings.txt line 1445: \04Hit [Space] to activate tractor beam and enter hangar
+	/* strings.txt line 1445: \04Hit [Space] to activate tractor beam and
+	 * enter hangar */
+	IFMSG_214_HIT_SPACE_TO_ACTIVATE_TRACTOR_BEAM_AND_ENTER_HANGAR = 0xD6,
 	IFMSG_215_PRESS_SPACE_TO_END_MISSION =
 		0xD7, ///< strings.txt line 1446: \04Press [Space] to end mission
+	/* strings.txt line 1447: \04Leaving now is [2000] point penalty! Press
+	 * [Space] to quit anyway */
 	IFMSG_216_LEAVING_NOW_IS_2000_POINT_PENALTY_PRESS_SPACE_TO_QUIT_ANYWAY =
-		0xD8, ///< strings.txt line 1447: \04Leaving now is [2000] point penalty! Press [Space] to quit anyway
+		0xD8,
+	/* strings.txt line 1448: \04Leaving game early, score incomplete! Press
+	 * [Space] to quit anyway */
 	IFMSG_217_LEAVING_GAME_EARLY_SCORE_INCOMPLETE_PRESS_SPACE_TO_QUIT_ANYWAY =
-		0xD9, ///< strings.txt line 1448: \04Leaving game early, score incomplete! Press [Space] to quit
-		      ///< anyway
-	IFMSG_218_WARNING_PRESSING_SPACE_WILL_DISCONNECT_FROM_THE_HOST =
-		0xDA, ///< strings.txt line 1449: \04WARNING! Pressing [Space] will disconnect from the host!
+		0xD9,
+	/* strings.txt line 1449: \04WARNING! Pressing [Space] will disconnect
+	 * from the host! */
+	IFMSG_218_WARNING_PRESSING_SPACE_WILL_DISCONNECT_FROM_THE_HOST = 0xDA,
+	/* strings.txt line 1450: \04WARNING! You are the host! Pressing [Space]
+	 * will abort this game! */
 	IFMSG_219_WARNING_YOU_ARE_THE_HOST_PRESSING_SPACE_WILL_ABORT_THIS_GAME =
-		0xDB, ///< strings.txt line 1450: \04WARNING! You are the host! Pressing [Space] will abort this game!
+		0xDB,
 	IFMSG_220_COLLISION_WITH_ANOTHER_CRAFT_HAS_OCCURRED =
 		0xDC, ///< strings.txt line 1451: \03Collision with another craft has occurred!
 	IFMSG_221_YOU_RE_TAKING_DAMAGE_FROM_ENGINE_WASH =
@@ -489,8 +515,9 @@ enum {
 		0xDF, ///< strings.txt line 1455: \03No craft targeted
 	IFMSG_224_THREAT_DISPLAY_TARGET_NO_LONGER_AVAILABLE =
 		0xE0, ///< strings.txt line 1456: \03Threat display target no longer available
-	IFMSG_225_AUTO_LOCATING_OF_PLAYERS_NOT_ENABLED_FOR_THIS_MISSION =
-		0xE1, ///< strings.txt line 1457: \03Auto-locating of players not enabled for this mission
+	/* strings.txt line 1457: \03Auto-locating of players not enabled for
+	 * this mission */
+	IFMSG_225_AUTO_LOCATING_OF_PLAYERS_NOT_ENABLED_FOR_THIS_MISSION = 0xE1,
 	IFMSG_226_YOUR_CRAFT_DOES_NOT_HAVE_A_SHIELD_SYSTEM =
 		0xE2, ///< strings.txt line 1459: \03Your craft does not have a [shield] system
 	IFMSG_227_YOUR_CRAFT_DOES_NOT_HAVE_A_BEAM_SYSTEM =
@@ -511,8 +538,9 @@ enum {
 		0xEA, ///< strings.txt line 1469: \02[*] has docked with [*]
 	IFMSG_235_ARG_ARG_ENTERING_AREA_AT_ARG_KM =
 		0xEB, ///< strings.txt line 1470: \02[* *] entering area at [&\02] km
-	IFMSG_236_ARG_ARG_S_FROM_FG_ARG_ENTERING_AREA_AT_ARG_KM =
-		0xEC, ///< strings.txt line 1471: \02[&\01 *s] from FG [*] entering area at [&\02] km
+	/* strings.txt line 1471: \02[&\01 *s] from FG [*] entering area at
+	 * [&\02] km */
+	IFMSG_236_ARG_ARG_S_FROM_FG_ARG_ENTERING_AREA_AT_ARG_KM = 0xEC,
 	IFMSG_237_TRACTOR_BEAM_SYSTEM_ACTIVATED =
 		0xED, ///< strings.txt line 1473: \03[Tractor beam] system activated
 	IFMSG_238_JAMMING_BEAM_SYSTEM_ACTIVATED =
@@ -543,12 +571,15 @@ enum {
 		0xFA, ///< strings.txt line 1488: \03[Jamming beam] system activated.  Select target
 	IFMSG_251_DECOY_BEAM_SYSTEM_ACTIVATED_SELECT_TARGET =
 		0xFB, ///< strings.txt line 1489: \03[Decoy beam] system activated.  Select target
-	IFMSG_252_ENERGY_TRANSFER_BEAM_SYSTEM_ACTIVATED_SELECT_TARGET =
-		0xFC, ///< strings.txt line 1490: \03[Energy transfer beam] system activated.  Select target
-	IFMSG_253_FUTURE1_BEAM_SYSTEM_ACTIVATED_SELECT_TARGET =
-		0xFD, ///< strings.txt line 1491: \03[-future1- beam] system activated.  Select target
-	IFMSG_254_FUTURE2_BEAM_SYSTEM_ACTIVATED_SELECT_TARGET =
-		0xFE, ///< strings.txt line 1492: \03[-future2- beam] system activated.  Select target
+	/* strings.txt line 1490: \03[Energy transfer beam] system activated.
+	 * Select target */
+	IFMSG_252_ENERGY_TRANSFER_BEAM_SYSTEM_ACTIVATED_SELECT_TARGET = 0xFC,
+	/* strings.txt line 1491: \03[-future1- beam] system activated. Select
+	 * target */
+	IFMSG_253_FUTURE1_BEAM_SYSTEM_ACTIVATED_SELECT_TARGET = 0xFD,
+	/* strings.txt line 1492: \03[-future2- beam] system activated. Select
+	 * target */
+	IFMSG_254_FUTURE2_BEAM_SYSTEM_ACTIVATED_SELECT_TARGET = 0xFE,
 	IFMSG_255_NO_ENERGY_FOR_BEAM_TO_ACTIVATE =
 		0xFF, ///< strings.txt line 1494: \03No energy for beam to activate
 	IFMSG_256_BEAM_DISRUPTED_BY_TARGET_S_COUNTERMEASURES =
@@ -557,10 +588,13 @@ enum {
 		0x101, ///< strings.txt line 1496: \03Target acquisition blocked by decoy beam
 	IFMSG_258_RESUPPLIES_ARE_ON_THE_WAY =
 		0x102, ///< strings.txt line 1498: resupplies are on the way
-	IFMSG_259_FLY_CLOSE_TO_RELOAD_CRAFT_AND_SET_YOUR_THROTTLE_TO_0 =
-		0x103, ///< strings.txt line 1499: \02Fly close to reload craft and set your throttle to 0
+	/* strings.txt line 1499: \02Fly close to reload craft and set your
+	 * throttle to 0 */
+	IFMSG_259_FLY_CLOSE_TO_RELOAD_CRAFT_AND_SET_YOUR_THROTTLE_TO_0 = 0x103,
+	/* strings.txt line 1500: \02Set your throttle to 0 so reload craft can
+	 * dock with you! */
 	IFMSG_260_SET_YOUR_THROTTLE_TO_0_SO_RELOAD_CRAFT_CAN_DOCK_WITH_YOU =
-		0x104, ///< strings.txt line 1500: \02Set your throttle to 0 so reload craft can dock with you!
+		0x104,
 	IFMSG_261_ABORTING_RELOAD_OPERATION =
 		0x105, ///< strings.txt line 1501: \02Aborting reload operation
 	IFMSG_262_TIME_ACCELERATED_TO_ARG_X_NORMAL_TIME =
@@ -579,28 +613,36 @@ enum {
 		0x10C, ///< strings.txt line 1512: \07Resuming, throttle set to [full] power
 	IFMSG_269_MESSAGE_ACKNOWLEDGED_FLIGHT_GROUP_ARG_ARG =
 		0x10D, ///< strings.txt line 1515: \02Message acknowledged: [Flight Group *] *
-	IFMSG_270_FROM_ARG_ATTACK_MY_TARGET_HIT_SPACE_TO_TARGET =
-		0x10E, ///< strings.txt line 1516: \04From [*].  Attack my target!  Hit [Space] to target
-	IFMSG_271_FROM_ARG_IGNORE_MY_TARGET_HIT_SPACE_TO_IGNORE =
-		0x10F, ///< strings.txt line 1519: \04From [*].  Ignore my target!  Hit [Space] to ignore
+	/* strings.txt line 1516: \04From [*]. Attack my target! Hit [Space] to
+	 * target */
+	IFMSG_270_FROM_ARG_ATTACK_MY_TARGET_HIT_SPACE_TO_TARGET = 0x10E,
+	/* strings.txt line 1519: \04From [*]. Ignore my target! Hit [Space] to
+	 * ignore */
+	IFMSG_271_FROM_ARG_IGNORE_MY_TARGET_HIT_SPACE_TO_IGNORE = 0x10F,
 	IFMSG_272_FROM_ARG_HEAD_HOME_HIT_SPACE_TO_COMPLY =
 		0x110, ///< strings.txt line 1520: \04From [*].  Head home!  Hit [Space] to comply
-	IFMSG_273_FROM_ARG_WAIT_FOR_ORDERS_HIT_SPACE_TO_WAIT_FOR_ORDERS =
-		0x111, ///< strings.txt line 1521: \04From [*].  Wait for orders!  Hit [Space] to wait for orders
-	IFMSG_274_FROM_ARG_GO_AHEAD_HIT_SPACE_TO_PROCEED_WITH_MISSION =
-		0x112, ///< strings.txt line 1522: \04From [*].  Go ahead!  Hit [Space] to proceed with mission
-	IFMSG_275_FROM_ARG_EVADE_HIT_SPACE_TO_TARGET_ATTACKER =
-		0x113, ///< strings.txt line 1523: \04From [*].  Evade!  Hit [Space] to target attacker
+	/* strings.txt line 1521: \04From [*]. Wait for orders! Hit [Space] to
+	 * wait for orders */
+	IFMSG_273_FROM_ARG_WAIT_FOR_ORDERS_HIT_SPACE_TO_WAIT_FOR_ORDERS = 0x111,
+	/* strings.txt line 1522: \04From [*]. Go ahead! Hit [Space] to proceed
+	 * with mission */
+	IFMSG_274_FROM_ARG_GO_AHEAD_HIT_SPACE_TO_PROCEED_WITH_MISSION = 0x112,
+	/* strings.txt line 1523: \04From [*]. Evade! Hit [Space] to target
+	 * attacker */
+	IFMSG_275_FROM_ARG_EVADE_HIT_SPACE_TO_TARGET_ATTACKER = 0x113,
 	IFMSG_276_FROM_ARG_REPORT_IN =
 		0x114, ///< strings.txt line 1524: \07From [*].  Report in!
-	IFMSG_277_FROM_ARG_COVER_ME_HIT_SPACE_TO_TARGET_ATTACKER =
-		0x115, ///< strings.txt line 1526: \04From [*].  Cover me!  Hit [Space] to target attacker
+	/* strings.txt line 1526: \04From [*]. Cover me! Hit [Space] to target
+	 * attacker */
+	IFMSG_277_FROM_ARG_COVER_ME_HIT_SPACE_TO_TARGET_ATTACKER = 0x115,
 	IFMSG_278_FROM_ARG_COVER_ME_HIT_SPACE_TO_TARGET_ME =
 		0x116, ///< strings.txt line 1527: \04From [*].  Cover me!  Hit [Space] to target me
 	IFMSG_279_MATCHING_SPEED_WITH_TARGET =
 		0x117, ///< strings.txt line 1528: \03Matching speed with target
+	/* strings.txt line 1529: \03Trying to match speed with target, throttle
+	 * set to full */
 	IFMSG_280_TRYING_TO_MATCH_SPEED_WITH_TARGET_THROTTLE_SET_TO_FULL =
-		0x118, ///< strings.txt line 1529: \03Trying to match speed with target, throttle set to full
+		0x118,
 	IFMSG_281_YOU_HAVE_DESTROYED_A_CRAFT_ON_YOUR_OWN_SIDE =
 		0x119, ///< strings.txt line 1530: \02You have destroyed a craft on your own side
 	IFMSG_282_MISSILE_DESTROYED =
@@ -615,16 +657,21 @@ enum {
 		0x11E, ///< strings.txt line 1536: \03Engine overdrive boosters cannot be engaged
 	IFMSG_287_BRIGHTNESS_SET_TO_LEVEL_ARG =
 		0x11F, ///< strings.txt line 1538: \06Brightness set to level [&\01]
-	IFMSG_288_GO_TO_CONFIG_SCREEN_TO_SET_BRIGHTNESS_IN_16_BIT_COLOR =
-		0x120, ///< strings.txt line 1539: \06Go to config screen to set brightness in 16 bit color
+	/* strings.txt line 1539: \06Go to config screen to set brightness in 16
+	 * bit color */
+	IFMSG_288_GO_TO_CONFIG_SCREEN_TO_SET_BRIGHTNESS_IN_16_BIT_COLOR = 0x120,
 	IFMSG_289_YOU_ARE_NOW_PILOTING_ARG_ARG_ARG =
 		0x121, ///< strings.txt line 1541: \03You are now piloting [* * &\02]
-	IFMSG_290_PREVIOUS_CRAFT_DESTROYED_NOW_PILOTING_ARG_ARG_ARG =
-		0x122, ///< strings.txt line 1542: \03Previous craft destroyed, now piloting [* * &\02]
-	IFMSG_291_PREVIOUS_CRAFT_HYPERSPACED_NOW_PILOTING_ARG_ARG_ARG =
-		0x123, ///< strings.txt line 1543: \03Previous craft hyperspaced, now piloting [* * &\02]
+	/* strings.txt line 1542: \03Previous craft destroyed, now piloting [* *
+	 * &\02] */
+	IFMSG_290_PREVIOUS_CRAFT_DESTROYED_NOW_PILOTING_ARG_ARG_ARG = 0x122,
+	/* strings.txt line 1543: \03Previous craft hyperspaced, now piloting
+	 * [* * &\02] */
+	IFMSG_291_PREVIOUS_CRAFT_HYPERSPACED_NOW_PILOTING_ARG_ARG_ARG = 0x123,
+	/* strings.txt line 1544: \03Previous craft entered hangar, now piloting
+	 * [* * &\02] */
 	IFMSG_292_PREVIOUS_CRAFT_ENTERED_HANGAR_NOW_PILOTING_ARG_ARG_ARG =
-		0x124, ///< strings.txt line 1544: \03Previous craft entered hangar, now piloting [* * &\02]
+		0x124,
 	IFMSG_293_NO_OTHER_CRAFT_TO_PILOT =
 		0x125, ///< strings.txt line 1545: \03No other craft to pilot
 	IFMSG_294_CRAFT_JUMPING_NOT_ENABLED_FOR_THIS_MISSION =
@@ -643,8 +690,9 @@ enum {
 		0x131, ///< strings.txt line 1558: \01You are the [*] to complete your mission goals
 	IFMSG_306_ARG_IS_THE_ARG_TO_COMPLETE_HIS_MISSION_GOALS =
 		0x132, ///< strings.txt line 1559: \01[*] is the [*] to complete his mission goals
-	IFMSG_307_TEAM_ARG_IS_THE_ARG_TO_COMPLETE_THEIR_MISSION_GOALS =
-		0x133, ///< strings.txt line 1560: \01Team [*] is the [*] to complete their mission goals
+	/* strings.txt line 1560: \01Team [*] is the [*] to complete their
+	 * mission goals */
+	IFMSG_307_TEAM_ARG_IS_THE_ARG_TO_COMPLETE_THEIR_MISSION_GOALS = 0x133,
 	IFMSG_308_YOU_ARE_THE_ARG_TO_INSPECT_THIS_CRAFT =
 		0x134, ///< strings.txt line 1561: \01You are the [*] to inspect this craft
 	IFMSG_309_TARGET_DESCRIPTION =
@@ -774,16 +822,19 @@ enum {
 		0x17C, ///< strings.txt line 1640: \02* has quit the mission
 	IFMSG_381_ARG_HAS_NO_MORE_CRAFT_AND_IS_OUT_OF_THE_MISSION =
 		0x17D, ///< strings.txt line 1641: \02* has no more craft and is out of the mission
-	IFMSG_382_THERE_ARE_ARG_PLAYERS_LEFT_INCLUDING_YOURSELF =
-		0x17E, ///< strings.txt line 1642: \02There are &\01 players left (including yourself)
+	/* strings.txt line 1642: \02There are &\01 players left (including
+	 * yourself) */
+	IFMSG_382_THERE_ARE_ARG_PLAYERS_LEFT_INCLUDING_YOURSELF = 0x17E,
 	IFMSG_383_YOU_ARE_THE_ONLY_PLAYER_LEFT =
 		0x17F, ///< strings.txt line 1643: \02You are the only player left!
-	IFMSG_384_YOU_MUST_WAIT_UNTIL_THE_OTHER_PLAYERS_ARE_FINISHED =
-		0x180, ///< strings.txt line 1644: \02You must wait until the other players are finished
+	/* strings.txt line 1644: \02You must wait until the other players are
+	 * finished */
+	IFMSG_384_YOU_MUST_WAIT_UNTIL_THE_OTHER_PLAYERS_ARE_FINISHED = 0x180,
 	IFMSG_385_ARG_ARG_WITHDRAWING_FROM_COMBAT_AREA =
 		0x181, ///< strings.txt line 1646: \02[* *]: withdrawing from combat area
-	IFMSG_386_FLIGHT_GROUP_ARG_ARG_WITHDRAWING_FROM_COMBAT_AREA =
-		0x182, ///< strings.txt line 1647: \02[Flight group * *]: withdrawing from combat area
+	/* strings.txt line 1647: \02[Flight group * *]: withdrawing from combat
+	 * area */
+	IFMSG_386_FLIGHT_GROUP_ARG_ARG_WITHDRAWING_FROM_COMBAT_AREA = 0x182,
 	IFMSG_387_WINGMAN_ARG_ARG_ABORTING_MISSION_ARG =
 		0x183, ///< strings.txt line 1649: \02Wingman [* &\02] aborting mission: *
 	IFMSG_388_SHIELDS_AT_50 =
@@ -802,8 +853,9 @@ enum {
 		0x18D, ///< strings.txt line 1660: \03All Systems Operational
 	IFMSG_398_YOU_WERE_KILLED_BY_ARG =
 		0x18E, ///< strings.txt line 1661: \10You were killed by [*]
-	IFMSG_399_YOU_WERE_KILLED_BY_ARG_MOST_DAMAGE_WAS_DONE_BY_ARG =
-		0x18F, ///< strings.txt line 1662: \10You were killed by [*], most damage was done by [*]
+	/* strings.txt line 1662: \10You were killed by [*], most damage was
+	 * done by [*] */
+	IFMSG_399_YOU_WERE_KILLED_BY_ARG_MOST_DAMAGE_WAS_DONE_BY_ARG = 0x18F,
 	IFMSG_400_SYSTEM_MESSAGE_DISPLAYING_TURNED_OFF =
 		0x190, ///< strings.txt line 1665: \03System message displaying turned [OFF]
 	IFMSG_401_SYSTEM_MESSAGE_DISPLAYING_TURNED_ON =

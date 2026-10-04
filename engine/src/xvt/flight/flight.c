@@ -2072,7 +2072,8 @@ size_t flight_calculate_world_state_buffer_size(void)
 #ifdef XVT_MODERN
 	return xvt_snapshot_calculate_size();
 #else
-	/* The fixed trailer contains 24 dwords, three words, and one byte around the fixed arrays. */
+	/* The fixed trailer contains 24 dwords, three words, and one byte
+	 * around the fixed arrays. */
 	int size = (int)(2 * sizeof(struct mission_clock) +
 			 sizeof(struct mission_header) +
 			 sizeof(struct flight_mission_state) +
@@ -2930,7 +2931,8 @@ void flight_step_sim_to_time(int target_game_time)
 		g_sim_steps_per_second =
 			(uint16_t)(SIMULATION_TICKS_PER_SECOND /
 				   (int)(uint16_t)g_elapsed_ticks);
-		/* MINIMUM_SIM_STEP_TICKS is reused below as a rate: at least one step per second. */
+		/* MINIMUM_SIM_STEP_TICKS is reused below as a rate: at least
+		 * one step per second. */
 		if (g_sim_steps_per_second == 0) {
 			g_sim_steps_per_second = MINIMUM_SIM_STEP_TICKS;
 		}
@@ -3518,8 +3520,8 @@ void flight_main_loop(int unused)
 	uint8_t resource_scratch[FLIGHT_RESOURCE_SCRATCH_BYTES];
 	fe_disk_io_read_all_bytes_or_fatal(g_flight_palette_resource_file_name,
 					   resource_scratch);
-	/* Inside this loop MISSION_EXTENSION_FIRST, _SECOND and _THIRD are reused as the red, green and blue
-	 * offsets in a palette triplet. */
+	/* Inside this loop MISSION_EXTENSION_FIRST, _SECOND and _THIRD are
+	 * reused as the red, green and blue offsets in a palette triplet. */
 	for (int16_t palette_byte_offset = 0;
 	     palette_byte_offset < PALETTE_HALF_BYTES;
 	     palette_byte_offset += sizeof(struct rgb_triplet)) {

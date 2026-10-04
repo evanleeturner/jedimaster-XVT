@@ -20,14 +20,16 @@ int xvt_port_init(void);
 void xvt_port_set_skip_intro(int skip_intro);
 /* 1 between a successful Init and Shutdown. */
 int xvt_port_is_initialized(void);
-/* Runs one host frame. Does nothing once ServiceQuit returns 1; while quitting, only updates DirectPlay
- * and services the network session. Runs a paused frame instead when the settings menu is open,
- * or the window lacks focus and no movie or campaign wait continues without it, unless the network
- * requires progress. The first frame after Init, a pause, or a flight's start or end does not
- * advance the host clock by delta_us. */
+/* Runs one host frame. Does nothing once ServiceQuit returns 1; while quitting,
+ * only updates DirectPlay and services the network session. Runs a paused frame
+ * instead when the settings menu is open, or the window lacks focus and no
+ * movie or campaign wait continues without it, unless the network requires
+ * progress. The first frame after Init, a pause, or a flight's start or end
+ * does not advance the host clock by delta_us. */
 void xvt_port_update(int32_t delta_us);
-/* Marks the port paused (pausing audio on the first such frame), discards input, keeps a movie
- * paused, presents and commits the snapshot; the next Update resumes without advancing the clock. */
+/* Marks the port paused (pausing audio on the first such frame), discards
+ * input, keeps a movie paused, presents and commits the snapshot; the next
+ * Update resumes without advancing the clock. */
 void xvt_port_paused_frame(void);
 /* Records whether the settings menu is open; an open menu pauses Update unless the network requires
  * progress. */

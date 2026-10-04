@@ -58,8 +58,9 @@ struct pilot_data_selection {
 	int total_score;     /* Never read or written by name. */
 	int local_player_id; /* Never read or written by name. */
 	/* Never read or written by name. */
-	int launch_session_marker; ///< Persisted marker set to 1 when launch/debrief session state is captured; no
-	///< XVT reader is identified.
+	/* Persisted marker set to 1 when launch/debrief session state is
+	 * captured; no XVT reader is identified. */
+	int launch_session_marker;
 	int is_host; /* Never read or written by name. */
 	/* Never read or written by name. */
 	unsigned int num_human_players_last_mission;

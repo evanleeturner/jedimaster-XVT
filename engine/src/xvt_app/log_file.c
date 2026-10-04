@@ -109,7 +109,8 @@ static int xvt_log_file_has_stamp(const char *line, size_t length)
 	return 1;
 }
 
-/* Returns 1 when the length bytes at line are a run's first header line, "= <program> run <id> fmt ...". */
+/* Returns 1 when the length bytes at line are a run's first header line, "=
+ * <program> run <id> fmt ...". */
 static int xvt_log_file_is_run_header(const char *line, size_t length)
 {
 	if (length < 2 || line[0] != '=' || line[1] != ' ') {
@@ -225,7 +226,8 @@ xvt_log_file_handle xvt_log_file_open(const char *path, char *error,
 	}
 	MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, path, -1, wide,
 			    length);
-	/* FILE_APPEND_DATA without FILE_WRITE_DATA makes every write land at the current end of the file. */
+	/* FILE_APPEND_DATA without FILE_WRITE_DATA makes every write land at
+	 * the current end of the file. */
 	file = CreateFileW(wide, FILE_APPEND_DATA,
 			   FILE_SHARE_READ | FILE_SHARE_WRITE |
 				   FILE_SHARE_DELETE,

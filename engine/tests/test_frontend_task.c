@@ -1,19 +1,24 @@
-/* Checks the frontend's frame loop (xvt_runtime/runtime/frontend_task.h) against the promises in its
- * header that hold without the game's window and files: run_frame's update, frame counter, exit callback
- * and pending screen push, a dialog continuation run in place of the update, and the frame held for an
- * opened dialog or the network task; Update's pacing, the dialog that updates alone, a quit result, and when
- * a frame is presented; the wake delay; the joystick polling interval and the CD task tick of
- * ServiceFrameSystems; and Shutdown before Init. The frontend runs on a display with no window
- * (test_frontend_display.h); presented frames are counted through Aeron's classic frame serial, which rises
- * once for each frame the frontend presents. The test's own screens stand in for the game's. Init is never
- * called, so the startup frame does not run. Every case starts from a cleared frontend with a 40 ms frame
- * interval and no dialog, network task or CD fade, the clock running on from the case before; the case
- * that quits runs last, since nothing but Init clears the quit.
+/* Checks the frontend's frame loop (xvt_runtime/runtime/frontend_task.h)
+ * against the promises in its header that hold without the game's window and
+ * files: run_frame's update, frame counter, exit callback and pending screen
+ * push, a dialog continuation run in place of the update, and the frame held
+ * for an opened dialog or the network task; Update's pacing, the dialog that
+ * updates alone, a quit result, and when a frame is presented; the wake delay;
+ * the joystick polling interval and the CD task tick of ServiceFrameSystems;
+ * and Shutdown before Init. The frontend runs on a display with no window
+ * (test_frontend_display.h); presented frames are counted through Aeron's
+ * classic frame serial, which rises once for each frame the frontend presents.
+ * The test's own screens stand in for the game's. Init is never called, so the
+ * startup frame does not run. Every case starts from a cleared frontend with a
+ * 40 ms frame interval and no dialog, network task or CD fade, the clock
+ * running on from the case before; the case that quits runs last, since nothing
+ * but Init clears the quit.
  *
- * Not checked here: Init and Shutdown after it, which need the main window, the game's files and the
- * config; the launch task's turn in Update, which needs a queued launch; the hold for a pending campaign
- * prefix, which takes the same path as the network task's hold checked here; drawing the cursor; and the
- * end of the program when the back buffer cannot be locked. */
+ * Not checked here: Init and Shutdown after it, which need the main window, the
+ * game's files and the config; the launch task's turn in Update, which needs a
+ * queued launch; the hold for a pending campaign prefix, which takes the same
+ * path as the network task's hold checked here; drawing the cursor; and the end
+ * of the program when the back buffer cannot be locked. */
 #include <stdint.h>
 #include <string.h>
 
@@ -61,8 +66,8 @@ static int dialog_screen(int frame)
 	return 0;
 }
 
-/* The top screen's update: counts its calls, and on request switches screens, queues a screen push or
- * opens a dialog before returning g_screen_return. */
+/* The top screen's update: counts its calls, and on request switches screens,
+ * queues a screen push or opens a dialog before returning g_screen_return. */
 static int screen(int frame)
 {
 	static const struct RECT whole = {0, 0, 639, 479};
@@ -118,8 +123,8 @@ static void fresh(void)
 
 static void advance_ms(int ms) { xvt_time_advance_host_clock(ms * 1000); }
 
-/* The clock runs on across cases, and so does the frame deadline: move past any deadline an earlier case
- * left, so the next Update runs a frame. */
+/* The clock runs on across cases, and so does the frame deadline: move past any
+ * deadline an earlier case left, so the next Update runs a frame. */
 static void frame_due(void) { advance_ms(1000); }
 
 static void check_run_frame_without_update(void)
@@ -263,7 +268,8 @@ static void check_tick_runs_only_the_dialog(void)
 	XVT_ASSERT_INT_EQ(g_screen_calls, 0);
 	XVT_ASSERT_INT_EQ(xvt_dialog_is_active(), 1);
 
-	/* The tick that ends the dialog keeps its last presented frame: nothing new is presented. */
+	/* The tick that ends the dialog keeps its last presented frame: nothing
+	 * new is presented. */
 	g_front_state.char_ring_buffer[g_front_state.char_write_idx++] = 27;
 	advance_ms(FRAME_MS);
 	uint64_t serial = AeronDx5_GetClassicFlightFrameSerial();

@@ -179,9 +179,11 @@ int frontend_flight_launch_session(int frame_counter)
 				break;
 			}
 			cd_audio_initialize();
-			/* launch_succeeded first holds the answer to this dialog (nonzero means try again). It holds
-			 * the flight's result only once the mission list loads, so with no mission list a retry answer
-			 * is later read as a successful launch. */
+			/* launch_succeeded first holds the answer to this
+			 * dialog (nonzero means try again). It holds the
+			 * flight's result only once the mission list loads, so
+			 * with no mission list a retry answer is later read as
+			 * a successful launch. */
 			launch_succeeded = frontend_dialog_show_confirm_dialog(
 				frontend_string_get(
 					FRONTSTR_706_FAILED_TO_DETECT_RETAIL_XVT_CD),

@@ -584,8 +584,9 @@ int fsfx_triggerweaponsfx(unsigned int projectile_object_index, int player_idx)
 		return 0;
 	}
 
-	/* result first holds the projectile's object type, from which the sound ids below are computed;
-	 * a played sound replaces it with fsfx_play_sound's return, and an unlisted type returns the type. */
+	/* result first holds the projectile's object type, from which the sound
+	 * ids below are computed; a played sound replaces it with
+	 * fsfx_play_sound's return, and an unlisted type returns the type. */
 	int result = g_object_table[projectile_object_index].object_type;
 	switch (g_object_table[projectile_object_index].object_type) {
 	case 0x89:
@@ -763,7 +764,8 @@ int fsfx_compute_source_pan(int emitter_obj_idx, int *volume)
 	int16_t pan_angle = trig2_arctan(side_offset, forward_offset);
 
 	if (pan_angle >= 0x4000 || pan_angle <= -0x4000) {
-		/* From here side_offset holds the offset along the camera's up axis, for the vertical angle. */
+		/* From here side_offset holds the offset along the camera's up
+		 * axis, for the vertical angle. */
 		side_offset = (int16_t)math_dot3q15_wrapped(
 			(int16_t)dx, (int16_t)dy, (int16_t)dz, g_cam_mat_r1_x,
 			g_cam_mat_r1_y, g_cam_mat_r1_z);
@@ -2229,7 +2231,8 @@ void fsfx_remove_voice_queue_entry_chain(unsigned int queue_index)
 		}
 	}
 
-	/* From here chain_flag holds the shrunken queue count, which also ends the copy loop below. */
+	/* From here chain_flag holds the shrunken queue count, which also ends
+	 * the copy loop below. */
 	chain_flag = g_fsfx_voice_queue_count;
 	chain_flag -= (uint8_t)removed_count;
 	g_fsfx_voice_queue_count = chain_flag;

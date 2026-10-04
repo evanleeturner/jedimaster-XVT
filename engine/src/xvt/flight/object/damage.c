@@ -350,9 +350,10 @@ int16_t damage_display_mfd_page(void)
 	}
 
 	uint16_t system_ids[CRAFT_SUBSYSTEM_COUNT];
-	/* display_slot has two jobs. In the loops that read system_display_slot_by_system it counts systems, which
-	 * fills system_ids with the system shown in each display slot; in the loops that read system_ids it counts
-	 * display slots. */
+	/* display_slot has two jobs. In the loops that read
+	 * system_display_slot_by_system it counts systems, which fills
+	 * system_ids with the system shown in each display slot; in the loops
+	 * that read system_ids it counts display slots. */
 	int16_t display_slot;
 	for (display_slot = 0; display_slot < CRAFT_SUBSYSTEM_COUNT;
 	     ++display_slot) {

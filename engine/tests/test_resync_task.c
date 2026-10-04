@@ -1,16 +1,21 @@
-/* Checks network125 state recovery (xvt_runtime/runtime/resync_task.h) against the promises in its header,
- * for the parts that hold without a peer: the idle state after Reset, deferred checksum reports and state
- * requests, RequestState on a client, on a host and outside network125, the packets ReceivePacket leaves to
- * the flight control handler, and the apply phase BeginApply starts. No game data is read: the test sets the
- * network session's ids, the clocks and the flight globals itself. Every check starts from Reset, with an
- * empty network roster, the host clock on a whole millisecond and the frame-delta clock reset.
+/* Checks network125 state recovery (xvt_runtime/runtime/resync_task.h) against
+ * the promises in its header, for the parts that hold without a peer: the idle
+ * state after Reset, deferred checksum reports and state requests, RequestState
+ * on a client, on a host and outside network125, the packets ReceivePacket
+ * leaves to the flight control handler, and the apply phase BeginApply starts.
+ * No game data is read: the test sets the network session's ids, the clocks and
+ * the flight globals itself. Every check starts from Reset, with an empty
+ * network roster, the host clock on a whole millisecond and the frame-delta
+ * clock reset.
  *
- * With no network session the game's send path loops a packet back into its own receive queue, which no
- * check reads; RequestState on a client and BeginApply send one packet each that way.
+ * With no network session the game's send path loops a packet back into its own
+ * receive queue, which no check reads; RequestState on a client and BeginApply
+ * send one packet each that way.
  *
- * Not checked here: a send (BeginSend, the chunks, WaitAcks) and a receive (the request, chunks, apply and
- * replay) need a peer on a second machine, and both draw the waiting box on the flight's display surface,
- * which needs a window; Update past the idle state reads packets from that peer. */
+ * Not checked here: a send (BeginSend, the chunks, WaitAcks) and a receive (the
+ * request, chunks, apply and replay) need a peer on a second machine, and both
+ * draw the waiting box on the flight's display surface, which needs a window;
+ * Update past the idle state reads packets from that peer. */
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -135,7 +140,8 @@ static void check_request_state_host(void)
 
 static void check_request_state_client(void)
 {
-	/* A client's request is out: input is held, and the next wake is the peer-timeout deadline. */
+	/* A client's request is out: input is held, and the next wake is the
+	 * peer-timeout deadline. */
 	resync_task_world(0, XVT_FLIGHT_TIMING_NETWORK_125);
 	xvt_resync_service_recovery();
 	XVT_ASSERT_INT_EQ(xvt_resync_holds_input(), 1);
@@ -175,7 +181,8 @@ static void check_receive_packet_leaves_others(void)
 	xvt_wire_set32(bytes, NET_PACKET_ACK);
 	XVT_ASSERT_INT_EQ(xvt_resync_receive_packet(HOST_DPID, bytes, 4), 0);
 
-	/* On the host with no send running, a peer's state request is left to the flight control handler. */
+	/* On the host with no send running, a peer's state request is left to
+	 * the flight control handler. */
 	resync_task_world(1, XVT_FLIGHT_TIMING_NETWORK_125);
 	xvt_wire_set32(bytes, NET_PACKET_WORLD_CHECKSUM);
 	xvt_wire_set32(bytes + offsetof(struct xvt_flight_checksum_report_wire,
@@ -189,8 +196,8 @@ static void check_receive_packet_leaves_others(void)
 
 static void check_begin_apply(void)
 {
-	/* The host waits in the apply phase: a transfer runs, the next wake is the retry interval, and the
-	 * host holds no input. */
+	/* The host waits in the apply phase: a transfer runs, the next wake is
+	 * the retry interval, and the host holds no input. */
 	resync_task_world(1, XVT_FLIGHT_TIMING_NETWORK_125);
 	xvt_resync_begin_apply(PEER_DPID, 4096);
 	XVT_ASSERT_INT_EQ(xvt_resync_is_active(), 1);

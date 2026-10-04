@@ -1,11 +1,14 @@
-/* Checks OPT model relocation and the cached node-reference lookup (xvt_opt_relocate, xvt_opt_relocate_node
- * and xvt_opt_resolve_cached in xvt_runtime/assets/opt_native.h) against the promises in that header. The
- * model is one block this test builds in memory: no file and no game model is read. A copy of the block
- * at another address is the model moved; after relocation every internal pointer must sit at the same
- * offset into its block as in the original.
+/* Checks OPT model relocation and the cached node-reference lookup
+ * (xvt_opt_relocate, xvt_opt_relocate_node and xvt_opt_resolve_cached in
+ * xvt_runtime/assets/opt_native.h) against the promises in that header. The
+ * model is one block this test builds in memory: no file and no game model is
+ * read. A copy of the block at another address is the model moved; after
+ * relocation every internal pointer must sit at the same offset into its block
+ * as in the original.
  *
- * Not run here: a graph more than 256 levels deep and running out of memory, which end the program
- * through xvt_storage_fatal; that path shows a message box. */
+ * Not run here: a graph more than 256 levels deep and running out of memory,
+ * which end the program through xvt_storage_fatal; that path shows a message
+ * box. */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,9 +16,10 @@
 #include "test_assert.h"
 #include "xvt_runtime/assets/opt_native.h"
 
-/* The model block. Root 0 is the Hull group, with a texture whose palette type is 0, the Wing group and a
- * vertex node as children. Root 1 is the Wing group too, so it is reached from two parents. The Wing
- * group holds a texture whose palette type is 1 and a reference node naming "Hull". */
+/* The model block. Root 0 is the Hull group, with a texture whose palette type
+ * is 0, the Wing group and a vertex node as children. Root 1 is the Wing group
+ * too, so it is reached from two parents. The Wing group holds a texture whose
+ * palette type is 1 and a reference node naming "Hull". */
 struct block {
 	struct optimized_poly_object model;
 	struct opt_node *roots[2];
@@ -33,7 +37,8 @@ struct block {
 	uint8_t payload[24];
 };
 
-/* Fills block as described above, with every pointer into block itself and the reference resolved. */
+/* Fills block as described above, with every pointer into block itself and the
+ * reference resolved. */
 static void build(struct block *block)
 {
 	memset(block, 0, sizeof *block);

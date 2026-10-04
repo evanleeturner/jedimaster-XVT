@@ -374,7 +374,8 @@ void xvt_flight_task_update(void)
 		XVT_LOG_INFO("flight.phase from=%d to=%d", previous,
 			     g_flight.phase);
 	}
-	/* A lost session's cleanup ran inside this tick and is reported above; this is every other way in. */
+	/* A lost session's cleanup ran inside this tick and is reported above;
+	 * this is every other way in. */
 	if (g_flight.phase == XVT_FLIGHT_CLEANUP &&
 	    previous != XVT_FLIGHT_CLEANUP) {
 		XVT_LOG_INFO("flight.end result=%d reason=\"%s\"",

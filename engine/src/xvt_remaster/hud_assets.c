@@ -574,7 +574,8 @@ int xvt_hud_assets_prepare_resources(
 			}
 			g_pending->parts.requests[index] = set->requests[part];
 			palettes[index] = set->palette;
-			/* Until the binding is copied in below, atlas_frame holds the index into the group's parts. */
+			/* Until the binding is copied in below, atlas_frame
+			 * holds the index into the group's parts. */
 			set->bindings[part].atlas_frame = (uint16_t)index;
 			++g_pending->parts.part_count;
 		}

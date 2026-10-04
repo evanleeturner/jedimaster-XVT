@@ -612,7 +612,8 @@ int sound_get_primary_buffer_volume(void)
 						      &volume_millibels) != 0) {
 		return 0;
 	}
-	/* From here volume_millibels holds the game's volume scale: 127 at full volume, 0 at -20 dB. */
+	/* From here volume_millibels holds the game's volume scale: 127 at full
+	 * volume, 0 at -20 dB. */
 	volume_millibels = 127 * volume_millibels / 2000 + 127;
 	return volume_millibels;
 }
@@ -664,7 +665,8 @@ int sound_set_latest_instance_volume(const char *name, int volume)
 		clamped_volume = 0;
 	}
 
-	/* From here clamped_volume holds the DirectSound attenuation, in hundredths of a decibel (-2000 to 0). */
+	/* From here clamped_volume holds the DirectSound attenuation, in
+	 * hundredths of a decibel (-2000 to 0). */
 	clamped_volume = 400 * (5 * clamped_volume - 635) / 127;
 	return g_active_sound_instances[newest_index].buffer->lpVtbl->SetVolume(
 		       g_active_sound_instances[newest_index].buffer,
@@ -712,7 +714,8 @@ int sound_get_latest_instance_volume(const char *name)
 		    &volume_millibels) != 0) {
 		return 0;
 	}
-	/* From here volume_millibels holds the game's volume scale: 127 at full volume, 0 at -20 dB. */
+	/* From here volume_millibels holds the game's volume scale: 127 at full
+	 * volume, 0 at -20 dB. */
 	volume_millibels = 127 * volume_millibels / 2000 + 127;
 	return volume_millibels;
 }
@@ -765,7 +768,8 @@ int sound_set_latest_instance_pan(const char *name, int pan)
 		clamped_pan = 0;
 	}
 
-	/* From here clamped_pan holds the DirectSound pan, in hundredths of a decibel (0 is center). */
+	/* From here clamped_pan holds the DirectSound pan, in hundredths of a
+	 * decibel (0 is center). */
 	clamped_pan = 400 * (5 * clamped_pan - 315) / 63;
 	return g_active_sound_instances[newest_index].buffer->lpVtbl->SetPan(
 		       g_active_sound_instances[newest_index].buffer,
@@ -812,7 +816,8 @@ int sound_get_latest_instance_pan(const char *name)
 		    &pan_millibels) != 0) {
 		return 0;
 	}
-	/* From here pan_millibels holds the game's pan: 0 full left, 63 centered, 126 full right. */
+	/* From here pan_millibels holds the game's pan: 0 full left, 63
+	 * centered, 126 full right. */
 	pan_millibels = 63 * pan_millibels / 10000 + 63;
 	return pan_millibels;
 }
@@ -1064,8 +1069,9 @@ int sound_find_effect_by_name(const struct sound_effect_def *records,
 	}
 }
 
-/* param_code selects what to set: 0x500 the effect's priority, 0x600 the latest instance's volume,
- * 0x700 its pan and 0x777 its frequency. Any other code, or a sound id outside 4..837, returns 0. */
+/* param_code selects what to set: 0x500 the effect's priority, 0x600 the latest
+ * instance's volume, 0x700 its pan and 0x777 its frequency. Any other code, or
+ * a sound id outside 4..837, returns 0. */
 /* Returns what the chosen function returns. The name comes from
  * g_fsfx_sfx_name_table[flight_sound_id]. Its callers pass only codes 0x600 (1536)
  * and 0x777 (1911). */

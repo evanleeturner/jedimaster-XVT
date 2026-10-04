@@ -1069,7 +1069,8 @@ void flight_net_process_incoming_packets(void)
 	};
 
 	struct {
-		/* Two jobs: a remote-input record's timestamp code byte, or the frames left in an input batch. */
+		/* Two jobs: a remote-input record's timestamp code byte, or the
+		 * frames left in an input batch. */
 		int decode_value;
 		int server_send_elapsed; /* Ticks spent sending world messages */
 		int world_frame_elapsed; /* Ticks spent applying world messages */
@@ -1780,8 +1781,9 @@ int32_t flight_net_sample_local_input(void)
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_REMOTE_INPUT;
 	g_input_timestamp += time_consume_elapsed_ticks();
 
-	/* Until the packet bytes are laid out, packet_length holds the 7-bit timestamp code: the low bits of
-	 * g_input_timestamp, or 127 when a full timestamp is sent. */
+	/* Until the packet bytes are laid out, packet_length holds the 7-bit
+	 * timestamp code: the low bits of g_input_timestamp, or 127 when a full
+	 * timestamp is sent. */
 	int packet_length = g_input_timestamp - g_last_sent_input_timestamp;
 	if (packet_length >= 127 || packet_length < 0 ||
 	    g_last_sent_input_timestamp == 0) {
@@ -2432,7 +2434,8 @@ int flight_net_send_world_state_resync_to_player(int direct_play_id,
 	};
 
 	int result = 1;
-	/* Holds in turn: ticks consumed on entry, presence map byte size, segment checksum count. */
+	/* Holds in turn: ticks consumed on entry, presence map byte size,
+	 * segment checksum count. */
 	int build_result = time_consume_elapsed_ticks();
 	int still_loading_elapsed = 0;
 	g_input_timestamp += build_result;
@@ -2847,7 +2850,8 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 	flight_apply_world_state_object_presence_map((const uint8_t *)packet +
 						     2 * sizeof(int));
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_RESYNC_CHECKSUMS;
-	/* Before any packet is received, this holds the byte size of the outgoing checksum payload. */
+	/* Before any packet is received, this holds the byte size of the
+	 * outgoing checksum payload. */
 	int received_payload_size =
 		(int)(sizeof(int) *
 		      flight_build_world_state_resync_segment_checksums(
@@ -2860,7 +2864,8 @@ void flight_net_handle_world_state_resync_packet(const int *packet)
 				received_payload_size + sizeof(int));
 
 	struct flight_input_frame_record input;
-	/* Two jobs: the low 7-bit timestamp code of an input record, or the frames left in an input batch. */
+	/* Two jobs: the low 7-bit timestamp code of an input record, or the
+	 * frames left in an input batch. */
 	int decode_value;
 	int sender_dpid;
 	int received_matching_packet;

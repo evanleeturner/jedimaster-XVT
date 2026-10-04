@@ -1,9 +1,11 @@
-/* Checks the log header: the level gate evaluates no argument when a line is off; DEBUG switches on at
- * run time in a build that defines NDEBUG, as a release build does (this file refuses to compile
- * without it); level names parse in any letter case; Aeron's "category: text" shape splits into event
- * and fields; a line formats exactly as the grammar says, cut cleanly when it does not fit; the home
- * folder in a path is written as ~ only where it is a whole folder at the start of a path; and a table
- * prints as whole hex words. Aeron's log funnel is replaced by a stub that records what it was handed. */
+/* Checks the log header: the level gate evaluates no argument when a line is
+ * off; DEBUG switches on at run time in a build that defines NDEBUG, as a
+ * release build does (this file refuses to compile without it); level names
+ * parse in any letter case; Aeron's "category: text" shape splits into event
+ * and fields; a line formats exactly as the grammar says, cut cleanly when it
+ * does not fit; the home folder in a path is written as ~ only where it is a
+ * whole folder at the start of a path; and a table prints as whole hex words.
+ * Aeron's log funnel is replaced by a stub that records what it was handed. */
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>

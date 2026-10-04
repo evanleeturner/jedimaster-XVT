@@ -45,7 +45,8 @@ xvt_keyboard_route xvt_input_reconcile_keyboard(void)
 		route = XVT_KEYBOARD_GAMEPLAY;
 	}
 	if (route != g_keyboard_route) {
-		/* Commands and text never cross a routing transition. Held keys must be released. */
+		/* Commands and text never cross a routing transition. Held keys
+		 * must be released. */
 		xvt_input_flush_keyboard();
 		g_keyboard_route = route;
 	}

@@ -73,7 +73,8 @@ int xvt_campaign_task_wait_packet(int packet_type, int **packet)
 				return 1;
 			}
 		}
-		/* Preserve the original expected-packet-before-timeout ordering and strict limit. */
+		/* Preserve the original expected-packet-before-timeout ordering
+		 * and strict limit. */
 		if ((uint32_t)(now - g_campaign.wait_start) > 30000) {
 			g_campaign.packet_type = NET_PACKET_NONE;
 			XVT_LOG_WARN("campaign.packet_timeout type=%d",

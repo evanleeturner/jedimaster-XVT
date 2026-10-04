@@ -1,9 +1,12 @@
-/* Checks the network host and join dialogs (xvt_runtime/runtime/network_dialogs.h) against the promises in
- * its header: the access tails, the return to the host or join screen and what it clears, the connecting
- * screen's cancel button, the failure dialog with its return after dismissal or at once, and the admission
- * check. The frontend runs on a display with no window (test_frontend_display.h); its fonts and images are
- * not loaded, so the screens draw nothing visible, and the dialogs are dismissed with Escape. Every case
- * starts from a cleared frontend with a placeholder screen, no dialog and no network session.
+/* Checks the network host and join dialogs
+ * (xvt_runtime/runtime/network_dialogs.h) against the promises in its header:
+ * the access tails, the return to the host or join screen and what it clears,
+ * the connecting screen's cancel button, the failure dialog with its return
+ * after dismissal or at once, and the admission check. The frontend runs on a
+ * display with no window (test_frontend_display.h); its fonts and images are
+ * not loaded, so the screens draw nothing visible, and the dialogs are
+ * dismissed with Escape. Every case starts from a cleared frontend with a
+ * placeholder screen, no dialog and no network session.
  *
  * Not checked here: the text each error shows, beyond there being one. */
 #include <stdlib.h>
@@ -160,7 +163,8 @@ static void check_failed_waits_for_dismissal(void)
 		XVT_ASSERT_TRUE(g_front_dialog_line1_or_edit[0] != 0);
 		XVT_ASSERT_TRUE(top_screen() == placeholder);
 
-		/* Once dismissed, the frontend resumes the dialog's continuation, which returns to the screen. */
+		/* Once dismissed, the frontend resumes the dialog's
+		 * continuation, which returns to the screen. */
 		dismiss_dialog();
 		int frame_result = -1;
 		XVT_ASSERT_INT_EQ(xvt_dialog_resume_continuation(&frame_result),
@@ -190,7 +194,8 @@ static void check_failed_every_error_has_a_message(void)
 static void check_failed_returns_at_once(void)
 {
 	fresh();
-	/* An untaken result from an earlier dialog: the failure's Confirm takes it and does not wait. */
+	/* An untaken result from an earlier dialog: the failure's Confirm takes
+	 * it and does not wait. */
 	XVT_ASSERT_INT_EQ(
 		xvt_dialog_confirm("earlier", NULL, NULL, NULL, NULL, 0),
 		XVT_DIALOG_PENDING);

@@ -24,8 +24,9 @@ enum {
 	GOAL_AMT_ALL_NON_SPECIAL = 0x7,
 	GOAL_AMT_ALL_EXCEPT_PLAYER = 0x8,
 	GOAL_AMT_PLAYER_FG = 0x9,
-	/* The _OF_SUBSET amounts measure against the craft counted as arrived so far instead of the flight
-	 * groups' totals, and they never report failure. */
+	/* The _OF_SUBSET amounts measure against the craft counted as arrived
+	 * so far instead of the flight groups' totals, and they never report
+	 * failure. */
 	GOAL_AMT_100_OF_SUBSET = 0xA,
 	GOAL_AMT_75_OF_SUBSET = 0xB,
 	GOAL_AMT_50_OF_SUBSET = 0xC,
@@ -90,8 +91,9 @@ struct mission_trigger {
 	/* The flight group, species, team or other value variable_type
 	 * selects. */
 	uint8_t variable;
-	mission_goal_amount
-		amount; ///< Encoded goal amount threshold (100%, 75%, 50%, 25%, subset and special-cargo variants).
+	/* Encoded goal amount threshold (100%, 75%, 50%, 25%, subset and
+	 * special-cargo variants). */
+	mission_goal_amount amount;
 };
 
 #pragma pack(pop)
@@ -124,8 +126,9 @@ struct flight_group_goal {
 	/* Per team, nonzero when the goal applies to it. */
 	uint8_t enabled_teams[10];
 	uint8_t time_limit5s; /* Time limit in 5-second units; 0 for none. */
-	uint8_t active_sequence; ///< Sequential-goal selector in the mission format; XVT loads it but has no
-	///< direct runtime read.
+	/* Sequential-goal selector in the mission format; XVT loads it but has
+	 * no direct runtime read. */
+	uint8_t active_sequence;
 	uint8_t reserved[62]; ///< Reserved mission-file storage.
 };
 
@@ -141,9 +144,12 @@ struct global_goal {
 		[2]; ///< Two trigger pairs evaluated to determine the goal state.
 	char name[16]; ///< Mission-file goal name.
 	uint8_t version; ///< Mission-file goal format version; not consumed by XVT runtime logic.
-	uint8_t trigger_pair1_or_trigger_pair2; ///< Value 1 combines the trigger-pair results with OR; other values
-	///< use AND.
-	uint8_t raw_delay; ///< Mission-file goal delay metadata; loaded but not consumed by XVT runtime logic.
+	/* Value 1 combines the trigger-pair results with OR; other values use
+	 * AND. */
+	uint8_t trigger_pair1_or_trigger_pair2;
+	/* Mission-file goal delay metadata; loaded but not consumed by XVT
+	 * runtime logic. */
+	uint8_t raw_delay;
 	int8_t raw_points; ///< Signed score unit; XVT awards 250 times this value.
 };
 

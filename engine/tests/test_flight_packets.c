@@ -1,13 +1,17 @@
-/* Checks xvt_flight_network_process_packets, the packet loop in flight_packets.c, against its promises in
- * xvt_runtime/runtime/flight_network.h, for the cases that need no peer: without a mission cookie or a
- * connected local player nothing is read; with both and no packet waiting, a client stops reading and a host
- * sends world messages while ShouldSend allows; and the input clock then advances by the frame time read
- * meanwhile. No game data is read: the test sets the player records, the network session's ids and the
- * flight network globals itself, and drives the host clock. Every check starts with player 0 the connected
- * local player, the frame-delta clock started, and then two ticks (8 ms) of frame time waiting to be read.
+/* Checks xvt_flight_network_process_packets, the packet loop in
+ * flight_packets.c, against its promises in
+ * xvt_runtime/runtime/flight_network.h, for the cases that need no peer:
+ * without a mission cookie or a connected local player nothing is read; with
+ * both and no packet waiting, a client stops reading and a host sends world
+ * messages while ShouldSend allows; and the input clock then advances by the
+ * frame time read meanwhile. No game data is read: the test sets the player
+ * records, the network session's ids and the flight network globals itself, and
+ * drives the host clock. Every check starts with player 0 the connected local
+ * player, the frame-delta clock started, and then two ticks (8 ms) of frame
+ * time waiting to be read.
  *
- * Not checked here: reading, checking and dispatching packets, and the flight control handler's answers,
- * need packets from a peer on a second machine. */
+ * Not checked here: reading, checking and dispatching packets, and the flight
+ * control handler's answers, need packets from a peer on a second machine. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -98,7 +102,8 @@ static void check_nothing_without_local_player(void)
 
 static void check_client_stops(void)
 {
-	/* No packet waits: a client stops reading, and the input clock takes the frame time read meanwhile. */
+	/* No packet waits: a client stops reading, and the input clock takes
+	 * the frame time read meanwhile. */
 	flight_packets_world(0, 1);
 	xvt_flight_network_process_packets();
 	XVT_ASSERT_INT_EQ(g_input_timestamp, INPUT + WAITING_TICKS);
@@ -116,8 +121,8 @@ static void check_host_sends_while_allowed(void)
 	XVT_ASSERT_INT_EQ(g_input_timestamp, INPUT + WAITING_TICKS);
 	XVT_ASSERT_INT_EQ(xvt_flight_messages_count(XVT_QUEUE_PENDING), 0);
 
-	/* A host far behind on world messages sends them, queued pending for its own confirmation, until
-	 * ShouldSend refuses. */
+	/* A host far behind on world messages sends them, queued pending for
+	 * its own confirmation, until ShouldSend refuses. */
 	flight_packets_world(1, 1);
 	XVT_ASSERT_INT_EQ(xvt_flight_network_take_world_send_turn(INPUT - 100),
 			  0);

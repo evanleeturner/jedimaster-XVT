@@ -1829,8 +1829,9 @@ void paiman_initoutofhyperspacemaneuver(void)
 	g_pai_context.controller->has_live_target = 0;
 	pai_update_aim_point_from_order_target();
 	g_pai_context.controller->maneuver_timer = 2596;
-	/* While the craft arrives from hyperspace, the first slot of the docked-target signature list keeps its
-	 * think interval; the arrival maneuver puts it back when it ends. */
+	/* While the craft arrives from hyperspace, the first slot of the
+	 * docked-target signature list keeps its think interval; the arrival
+	 * maneuver puts it back when it ends. */
 	g_cur_craft->ai_flight.docked_target_signatures[0] =
 		(uint16_t)g_pai_context.controller->think_interval;
 	g_pai_context.controller->think_interval = 59;

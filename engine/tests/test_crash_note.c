@@ -1,11 +1,14 @@
-/* Checks the crash note (xvt_app/crash_note.h) against the promises in its header: the line formatter, and
- * real crashes. Each crash case runs in a child process that installs the note, crashes on purpose, and
- * dies; the parent checks how the child ended (the same signal or exception code as without the note)
- * and what it wrote: one first line saying what happened, then frame lines, one of them in this program.
- * The program is built without the sanitizers, which catch these crashes themselves (tests/CMakeLists.txt).
+/* Checks the crash note (xvt_app/crash_note.h) against the promises in its
+ * header: the line formatter, and real crashes. Each crash case runs in a child
+ * process that installs the note, crashes on purpose, and dies; the parent
+ * checks how the child ended (the same signal or exception code as without the
+ * note) and what it wrote: one first line saying what happened, then frame
+ * lines, one of them in this program. The program is built without the
+ * sanitizers, which catch these crashes themselves (tests/CMakeLists.txt).
  *
- * Linux and macOS: fork, crash, waitpid. Windows: the program starts itself again with "child <case>
- * <log path>" and reads the exit code, as no fork exists there. */
+ * Linux and macOS: fork, crash, waitpid. Windows: the program starts itself
+ * again with "child <case> <log path>" and reads the exit code, as no fork
+ * exists there. */
 #if defined(__linux__)
 #define _GNU_SOURCE
 #elif defined(__APPLE__)
@@ -34,18 +37,21 @@
 #define PROGRAM_NAME "test_crash_note"
 #endif
 
-/* Where frame 0 is the faulting instruction itself (crash_note.h), a fault in Crash puts frame 0 inside
- * Crash; elsewhere the handler's frames come first and frame 0 is not checked. */
+/* Where frame 0 is the faulting instruction itself (crash_note.h), a fault in
+ * Crash puts frame 0 inside Crash; elsewhere the handler's frames come first
+ * and frame 0 is not checked. */
 #if (defined(__linux__) && (defined(__x86_64__) || defined(__aarch64__))) ||   \
 	(defined(_WIN32) && (defined(_M_X64) || defined(__x86_64__)))
 #define FAULT_IN_CRASH 1
 #else
 #define FAULT_IN_CRASH 0
 #endif
-/* Bytes from Crash's start that hold its faulting instructions: the function is a few comparisons long. */
+/* Bytes from Crash's start that hold its faulting instructions: the function is
+ * a few comparisons long. */
 #define CRASH_CODE_SPAN 512
 
-/* Formats through xvt_crash_note_format_line with a variable argument list, as the note's writer does. */
+/* Formats through xvt_crash_note_format_line with a variable argument list, as
+ * the note's writer does. */
 static size_t format(char *out, size_t capacity, uint32_t ms,
 		     const char *format, ...)
 {
@@ -115,7 +121,8 @@ static void crash(const char *name)
 	} else if (!strcmp(name, "abort")) {
 		abort();
 	} else if (!strcmp(name, "divide")) {
-		/* Both operands unknown to the compiler: it turns 1 / x into a compare with no division in it. */
+		/* Both operands unknown to the compiler: it turns 1 / x into a
+		 * compare with no division in it. */
 		volatile int numerator = 7;
 		volatile int zero = 0;
 		volatile int quotient = numerator / zero;
@@ -168,9 +175,10 @@ static char *read_all(const char *path)
 	return text;
 }
 
-/* Checks a crashed child's log: the first line starts with first, every later line is a frame line with
- * n counting up from 0, at least two frames, one frame in this program, and, when in_crash is nonzero,
- * frame 0 inside Crash. */
+/* Checks a crashed child's log: the first line starts with first, every later
+ * line is a frame line with n counting up from 0, at least two frames, one
+ * frame in this program, and, when in_crash is nonzero, frame 0 inside
+ * Crash. */
 static void check_note(const char *path, const char *first, int in_crash)
 {
 	char *text = read_all(path);
@@ -287,8 +295,9 @@ static void on_previous(int signal)
 	_exit(42);
 }
 
-/* Forks a child that crashes as name says, with its log at path and, when previous_signal is nonzero, a
- * handler of its own for that signal installed before the note; returns the child's wait status. */
+/* Forks a child that crashes as name says, with its log at path and, when
+ * previous_signal is nonzero, a handler of its own for that signal installed
+ * before the note; returns the child's wait status. */
 static int run_case(const char *name, const char *path, int previous_signal)
 {
 	unlink(path);
@@ -309,8 +318,8 @@ static int run_case(const char *name, const char *path, int previous_signal)
 	return status;
 }
 
-/* Checks the child died of signal and wrote a note that starts with first, frame 0 inside Crash when in_crash
- * is nonzero. */
+/* Checks the child died of signal and wrote a note that starts with first,
+ * frame 0 inside Crash when in_crash is nonzero. */
 static void check_died(int status, int signal, const char *path,
 		       const char *first, int in_crash)
 {
@@ -331,7 +340,8 @@ static void check_crashes(void)
 	snprintf(path, sizeof path, "%s/openxvt-crash-%ld.log",
 		 folder && folder[0] ? folder : "/tmp", (long)getpid());
 
-	/* A fault: the faulting address, then the frames; the program still dies of the same signal. */
+	/* A fault: the faulting address, then the frames; the program still
+	 * dies of the same signal. */
 	check_died(run_case("segv", path, 0), SIGSEGV, path,
 		   "C app.crash_signal signal=\"SIGSEGV\" code=1 addr=0x0",
 		   FAULT_IN_CRASH);
@@ -341,8 +351,9 @@ static void check_crashes(void)
 		   "C app.crash_signal signal=\"SIGFPE\" code=1 addr=0x",
 		   FAULT_IN_CRASH);
 #endif
-	/* Sent signals do not repeat by themselves; the note sends them again. They carry no address: addr is 0,
-	 * not the sender's ids that share its place. */
+	/* Sent signals do not repeat by themselves; the note sends them again.
+	 * They carry no address: addr is 0, not the sender's ids that share its
+	 * place. */
 	check_died(run_case("abort", path, 0), SIGABRT, path,
 		   "C app.crash_signal signal=\"SIGABRT\"", 0);
 	check_died(run_case("kill", path, 0), SIGSEGV, path,

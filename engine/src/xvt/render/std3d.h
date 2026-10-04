@@ -172,8 +172,9 @@ struct std3d_raster_info {
 	/* Nothing reads it; that copy puts pitch_pixels here. */
 	unsigned int unused10;
 	/* Palette, RGB or RGBA. */
-	std_color_mode
-		color_mode; ///< Start of the flattened ColorInfo copied verbatim from std3d_tex_fmt.
+	/* Start of the flattened ColorInfo copied verbatim from
+	 * std3d_tex_fmt. */
+	std_color_mode color_mode;
 	unsigned int bpp;	 /* Bits per pixel. */
 	int red_bpp;		 /* Red bits; unread here. */
 	int green_bpp;		 /* Green bits; unread here. */
@@ -198,8 +199,9 @@ struct std3dv_buffer {
 	 * first and unlocked when the last is undone. */
 	int lock_count;
 	/* Never read or written by name. */
-	int in_video_memory; ///< Nonzero when the DirectDraw-backed record resides in video memory; zero for
-	///< malloc-backed buffers.
+	/* Nonzero when the DirectDraw-backed record resides in video memory;
+	 * zero for malloc-backed buffers. */
+	int in_video_memory;
 	struct std3d_raster_info raster; /* Size, row pitch and pixel format. */
 	int unused58;			 /* Never read or written. */
 	/* The pixels: memory from std3d_alloc_v_buffer or the caller, or a
@@ -211,9 +213,10 @@ struct std3dv_buffer {
 	/* The surface when storage_type is 1; std3d_free_v_buffer releases it. */
 	IDirectDrawSurface *dd_surface;
 	/* Never read or written by name. */
-	uint8_t reserved68
-		[112]; ///< Reserved in ordinary software buffers. In the static z-buffer overlay, this
-	///< tail is unused04 at +0x68 followed by DDSURFACEDESC at +0x6C.
+	/* Reserved in ordinary software buffers. In the static z-buffer
+	 * overlay, this tail is unused04 at +0x68 followed by DDSURFACEDESC at
+	 * +0x6C. */
+	uint8_t reserved68[112];
 };
 
 /* One texture format the device offers, from std3d_enum_texture_formats. */

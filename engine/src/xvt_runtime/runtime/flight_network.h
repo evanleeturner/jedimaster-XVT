@@ -18,11 +18,13 @@ extern "C" {
  * applied input authoritative. The host is the side whose net_session_is_local_host() is
  * nonzero. */
 
-/* With a mission cookie and the local player connected, reads packets up to the per-iteration
- * budget: drops those that fail DecodeControl or come from an unknown sender, and hands the rest
- * to Receive, the resync task or the flight control handler, which can end the read. When no
- * packet waits, the host sends a world message if TakeWorldSendTurn allows, else reading stops. Unless the
- * control handler ended it, the input clock then advances by the frame time read meanwhile. */
+/* With a mission cookie and the local player connected, reads packets up to the
+ * per-iteration budget: drops those that fail DecodeControl or come from an
+ * unknown sender, and hands the rest to Receive, the resync task or the flight
+ * control handler, which can end the read. When no packet waits, the host sends
+ * a world message if TakeWorldSendTurn allows, else reading stops. Unless the
+ * control handler ended it, the input clock then advances by the frame time
+ * read meanwhile. */
 void xvt_flight_network_process_packets(void);
 /* Host pacing for SendWorld: 1 once a message interval of clock-adjusted input time has passed and
  * every connected player's latest applied input lies beyond the next message's tick (a player with
@@ -50,9 +52,10 @@ int xvt_flight_network_take_packet_budget(void);
 /* Starts a mission: empties the message queues and the staged input and outgoing world message. */
 void xvt_flight_network_reset_mission(void);
 /* Sends staged input in batches of up to XVT_INPUT_BATCH_RECORDS, at most
- * XVT_INPUT_BATCHES_PER_ITERATION per iteration, once XVT_INPUT_BATCH_TICKS have passed since the
- * last flush or a batch is full. Each goes to every connected remote player, or with async on,
- * to the host and, in a session smaller than the small-session threshold, every connected player. */
+ * XVT_INPUT_BATCHES_PER_ITERATION per iteration, once XVT_INPUT_BATCH_TICKS
+ * have passed since the last flush or a batch is full. Each goes to every
+ * connected remote player, or with async on, to the host and, in a session
+ * smaller than the small-session threshold, every connected player. */
 void xvt_flight_network_flush_input(int now);
 /* Records the local player's controls for tick as real input and stages them for sending. The
  * controls are sampled once per iteration; key, flags and throttle go only to the first tick
@@ -117,12 +120,14 @@ int xvt_flight_network_exchange_roster(void);
  * returns 1. Returns -1 while pending, 1 once every active player's taunts arrived, and 0 after 60
  * seconds without a packet (30 during taunts). */
 int xvt_flight_network_exchange_options(void);
-/* The mission start handshake. A single player resets the clocks and returns 1. Otherwise each
- * player tells the host it has loaded; the host, once all have, broadcasts the start. On the start
- * every player acknowledges and resets the clocks with a lead allowance of 130 ticks with async on,
- * 30 otherwise; the host then waits for the acknowledgements until its input clock reaches 100,
- * sets its lead allowance to the input clock reached, and raises both to 35 when lower. Returns -1 while
- * pending, 1 when started, and 0 after 60 seconds without a packet. */
+/* The mission start handshake. A single player resets the clocks and returns 1.
+ * Otherwise each player tells the host it has loaded; the host, once all have,
+ * broadcasts the start. On the start every player acknowledges and resets the
+ * clocks with a lead allowance of 130 ticks with async on, 30 otherwise; the
+ * host then waits for the acknowledgements until its input clock reaches 100,
+ * sets its lead allowance to the input clock reached, and raises both to 35
+ * when lower. Returns -1 while pending, 1 when started, and 0 after 60 seconds
+ * without a packet. */
 int xvt_flight_network_wait_for_mission_start(void);
 /* Ends any exchange in progress and forgets the mission cookie, keeping the counter. */
 void xvt_flight_network_reset(void);

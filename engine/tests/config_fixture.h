@@ -1,10 +1,13 @@
-/* Shared setup for the tests of src/xvt_runtime/config/. Each check works in a fresh temporary folder that
- * holds the four VFS roots: resource/ with a copy of the shipped defaults (resources/config.yaml and
- * aeron/config/scene3d_defaults.yaml from the source tree), and empty user/, asset/ and temp/ folders. The
- * storage module is bound to the same VFS, since the settings code probes and opens files through it.
- * Nothing outside the folder is written, and the folder is removed when the check ends or the program
- * exits. The folder calls are POSIX: a test that includes this header defines _XOPEN_SOURCE 700 before
- * its first include, and CMake builds it only where MSVC is not the compiler. */
+/* Shared setup for the tests of src/xvt_runtime/config/. Each check works in a
+ * fresh temporary folder that holds the four VFS roots: resource/ with a copy
+ * of the shipped defaults (resources/config.yaml and
+ * aeron/config/scene3d_defaults.yaml from the source tree), and empty user/,
+ * asset/ and temp/ folders. The storage module is bound to the same VFS, since
+ * the settings code probes and opens files through it. Nothing outside the
+ * folder is written, and the folder is removed when the check ends or the
+ * program exits. The folder calls are POSIX: a test that includes this header
+ * defines _XOPEN_SOURCE 700 before its first include, and CMake builds it only
+ * where MSVC is not the compiler. */
 #ifndef XVT_TESTS_CONFIG_FIXTURE_H
 #define XVT_TESTS_CONFIG_FIXTURE_H
 
@@ -30,7 +33,8 @@ static AeronVfs *g_fixture_vfs;
 static int g_fixture_documents;
 static const char *g_fixture_case;
 
-/* Names the input a check is working on, so that a failed check prints it; NULL once that input passed. */
+/* Names the input a check is working on, so that a failed check prints it; NULL
+ * once that input passed. */
 static inline void fixture_case(const char *text) { g_fixture_case = text; }
 
 /* Writes the host path of relative, a path inside the fixture folder, into path. */
@@ -69,7 +73,8 @@ static inline char *fixture_read_host_file(const char *path)
 	return text;
 }
 
-/* The file at relative inside the fixture folder as a string to free(), or NULL when there is none. */
+/* The file at relative inside the fixture folder as a string to free(), or NULL
+ * when there is none. */
 static inline char *fixture_read_text(const char *relative)
 {
 	char path[1024];
@@ -160,8 +165,9 @@ static inline void fixture_at_exit(void)
 	fixture_end();
 }
 
-/* Starts a check from nothing: ends any earlier one, makes a fresh folder with the shipped defaults in
- * resource/, and binds a VFS over it. No settings are loaded. */
+/* Starts a check from nothing: ends any earlier one, makes a fresh folder with
+ * the shipped defaults in resource/, and binds a VFS over it. No settings are
+ * loaded. */
 static inline void fixture_begin(void)
 {
 	static int registered;
@@ -222,8 +228,9 @@ static inline void fixture_load(void)
 	XVT_ASSERT_INT_EQ(loaded, 1);
 }
 
-/* Parses text as a YAML document, through a new file temp/documentN.yaml in the TEMP root, N counting from 1
- * in each fresh folder; the check stops when it does not parse. */
+/* Parses text as a YAML document, through a new file temp/documentN.yaml in the
+ * TEMP root, N counting from 1 in each fresh folder; the check stops when it
+ * does not parse. */
 static inline AeronConfigFile *fixture_yaml(const char *text)
 {
 	char name[64];

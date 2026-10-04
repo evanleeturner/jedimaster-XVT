@@ -1,13 +1,16 @@
 #define _POSIX_C_SOURCE 200809L
-/* Checks the render asset registry (xvt_runtime/snapshot/render_assets.h, and RegisterCockpit from
- * render_cockpit_assets.h) against the promises in its headers, for the calls render_assets.c defines.
- * Paths resolve through storage, so the test binds an Aeron VFS to a fresh temporary folder and writes the
- * asset files it registers there; no game file is read. Most checks start the registry with Init alone;
- * the check of when a freed source leaves the exports runs the render snapshot as the game does.
+/* Checks the render asset registry (xvt_runtime/snapshot/render_assets.h, and
+ * RegisterCockpit from render_cockpit_assets.h) against the promises in its
+ * headers, for the calls render_assets.c defines. Paths resolve through
+ * storage, so the test binds an Aeron VFS to a fresh temporary folder and
+ * writes the asset files it registers there; no game file is read. Most checks
+ * start the registry with Init alone; the check of when a freed source leaves
+ * the exports runs the render snapshot as the game does.
  *
- * Not run here: an unresolvable path and a full registry or export list, which request a fatal renderer
- * error and show a message box. Not checkable: that Shutdown keeps the type bindings, since Export does
- * nothing until Init, and Init clears them. */
+ * Not run here: an unresolvable path and a full registry or export list, which
+ * request a fatal renderer error and show a message box. Not checkable: that
+ * Shutdown keeps the type bindings, since Export does nothing until Init, and
+ * Init clears them. */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -139,7 +142,8 @@ static void check_before_init(void)
 	xvt_render_assets_begin_frame();
 }
 
-/* Init restarts ids and generations at 1 and registers the built-in default cursor, the first id. */
+/* Init restarts ids and generations at 1 and registers the built-in default
+ * cursor, the first id. */
 static void check_init(void)
 {
 	fresh();
@@ -167,8 +171,8 @@ static void check_init(void)
 	XVT_ASSERT_INT_EQ(xvt_render_assets_handle_id(4), 0);
 }
 
-/* The same file with the same parameters keeps its id; anything else under the same key retires the old
- * source and gets a new id. */
+/* The same file with the same parameters keeps its id; anything else under the
+ * same key retires the old source and gets a new id. */
 static void check_register_rule(void)
 {
 	fresh();
@@ -225,7 +229,8 @@ static void check_register_rule(void)
 			  0);
 }
 
-/* Resolved paths compare in any letter case: two names for one file in different case are one source. */
+/* Resolved paths compare in any letter case: two names for one file in
+ * different case are one source. */
 static void check_path_case(void)
 {
 	fresh();
@@ -321,8 +326,8 @@ static void check_generations(void)
 	XVT_ASSERT_TRUE(g_snapshot->image_asset_generation > image);
 }
 
-/* Bound model types take their asset ids at export without a valid flight view; a texture entry names
- * the first model type bound to it. */
+/* Bound model types take their asset ids at export without a valid flight view;
+ * a texture entry names the first model type bound to it. */
 static void check_bindings(void)
 {
 	fresh();
@@ -358,8 +363,9 @@ static void check_bindings(void)
 	XVT_ASSERT_INT_EQ(texture_entry(skin)->model_type, 12);
 }
 
-/* FreeHandle retires every source carrying the handle, owner-keyed ones included, and drops the type
- * bindings to them; retired sources are still exported. It does nothing for 0 or above 65535. */
+/* FreeHandle retires every source carrying the handle, owner-keyed ones
+ * included, and drops the type bindings to them; retired sources are still
+ * exported. It does nothing for 0 or above 65535. */
 static void check_free_handle(void)
 {
 	fresh();
@@ -500,9 +506,10 @@ static void check_export_palette(void)
 	xvt_render_assets_export(NULL);
 }
 
-/* A freed source stays exported until the renderer has consumed the last export and neither the current
- * nor the previous snapshot uses it. The render snapshot runs here as the game runs it: its Init starts
- * the registry, each frame's BeginFrame runs the registry's, and each Commit exports. */
+/* A freed source stays exported until the renderer has consumed the last export
+ * and neither the current nor the previous snapshot uses it. The render
+ * snapshot runs here as the game runs it: its Init starts the registry, each
+ * frame's BeginFrame runs the registry's, and each Commit exports. */
 static void check_retired_lifetime(void)
 {
 	xvt_render_assets_shutdown();

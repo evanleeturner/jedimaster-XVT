@@ -1701,7 +1701,8 @@ int frontend_net_refresh_session_list(void)
 		int replacement_guid_key = frontend_net_make_session_guid_key(
 			enumerated_sessions[enumerated_index].session_guid);
 		if (replacement_guid_key != 0) {
-			/* existing_index is reused here as the slot where the new session is appended. */
+			/* existing_index is reused here as the slot where the
+			 * new session is appended. */
 			existing_index =
 				(unsigned int)g_frontend_net_session_count;
 			strcpy(g_frontend_net_session_list[existing_index]
@@ -3150,7 +3151,8 @@ int frontend_net_process_network_packets(void)
 			} else {
 				chat_offset = 0;
 				do {
-					/* packet_size is reused here as the size of each outgoing chat chunk. */
+					/* packet_size is reused here as the
+					 * size of each outgoing chat chunk. */
 					packet_size = CHAT_SYNC_CHUNK_SIZE;
 					if (remaining_bytes <
 					    (int)packet_size) {

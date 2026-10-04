@@ -231,8 +231,9 @@ void static_apply_static_hit(uint16_t source_obj_idx, int victim_obj_idx)
 		}
 	}
 
-	/* From here source_obj_idx is the impact effect: a craft source gets a newly allocated explosion slot in
-	 * its place, while a projectile source is turned into the effect itself. */
+	/* From here source_obj_idx is the impact effect: a craft source gets a
+	 * newly allocated explosion slot in its place, while a projectile
+	 * source is turned into the effect itself. */
 	if (source_obj_idx < g_active_region_craft_object_slot_end) {
 		source_obj_idx =
 			object_alloc_slot_for_genus(CRAFT_GENUS_EXPLOSION);

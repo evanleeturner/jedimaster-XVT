@@ -4,18 +4,21 @@
 extern "C" {
 #endif
 /* The join-game screen over the multiplayer directory: the modern bodies of
- * frontend_net_join_game_screen and of its list, roster and mission-briefing draws. Rooms, selection,
- * scroll offset and mission preview are held by the network task. */
+ * frontend_net_join_game_screen and of its list, roster and mission-briefing
+ * draws. Rooms, selection, scroll offset and mission preview are held by the
+ * network task. */
 
-/* Frontend screen update; frame_counter is the screen's frame counter. When it is 0, sets up: clears
- * the screen-entry setup skip, the connection-type-editable flag and the game-session-in-progress
- * flag, draws the static background and opens the directory browser; an unconfigured directory
- * shows a confirm dialog and returns 0.
- * Otherwise, each frame draws the selected room's name, the list (a clicked row becomes the
- * selection), the roster, the briefing, a status line, the pilot line when a pilot is loaded and
- * the sidebars. Returns 1 when the shared frontend controls act, otherwise 0; with a dialog open,
- * Leave and Join are not drawn. Leave returns to the concourse; Join, drawn only when the network
- * task allows it, begins a connect. */
+/* Frontend screen update; frame_counter is the screen's frame counter. When it
+ * is 0, sets up: clears the screen-entry setup skip, the
+ * connection-type-editable flag and the game-session-in-progress flag, draws
+ * the static background and opens the directory browser; an unconfigured
+ * directory shows a confirm dialog and returns 0. Otherwise, each frame draws
+ * the selected room's name, the list (a clicked row becomes the selection), the
+ * roster, the briefing, a status line, the pilot line when a pilot is loaded
+ * and the sidebars. Returns 1 when the shared frontend controls act, otherwise
+ * 0; with a dialog open, Leave and Join are not drawn. Leave returns to the
+ * concourse; Join, drawn only when the network task allows it, begins a
+ * connect. */
 int xvt_network_browser_screen(int frame_counter);
 /* Draws the rooms six rows at a time under a heading, with a scrollbar past six rooms, and keeps
  * the task's scroll offset within range. Row color: gray when incompatible, red when not

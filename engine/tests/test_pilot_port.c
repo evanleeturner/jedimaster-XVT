@@ -1,11 +1,13 @@
 #define _POSIX_C_SOURCE 200809L
-/* Checks the modern pilot-file delete (xvt_runtime/compat/pilot_port.h) against the promises in its
- * header, for .plt and .pl2 names, the two extensions the header says Probe and Remove place alike. Each
- * case starts from a fresh temporary folder whose user folder an Aeron VFS bound to storage uses as the
+/* Checks the modern pilot-file delete (xvt_runtime/compat/pilot_port.h) against
+ * the promises in its header, for .plt and .pl2 names, the two extensions the
+ * header says Probe and Remove place alike. Each case starts from a fresh
+ * temporary folder whose user folder an Aeron VFS bound to storage uses as the
  * USER root; the test writes every file it deletes.
  *
- * Not run here: a removal that fails on a file that is there. On a POSIX system that takes a folder the
- * test cannot write to, and the test may run as a user whom permissions do not stop. */
+ * Not run here: a removal that fails on a file that is there. On a POSIX system
+ * that takes a folder the test cannot write to, and the test may run as a user
+ * whom permissions do not stop. */
 #include <sys/stat.h>
 
 #include "test_assert.h"
@@ -71,7 +73,8 @@ static void check_proven_absent(void)
 static void check_presence_unknown(void)
 {
 	fresh_roots();
-	/* A rejected name, and a name that is a folder, are not known to be gone: 0, and the folder stays. */
+	/* A rejected name, and a name that is a folder, are not known to be
+	 * gone: 0, and the folder stays. */
 	XVT_ASSERT_INT_EQ(pilot_remove_file_modern("../ace.plt"), 0);
 	xvt_test_make_subfolder(g_user, "dir.plt");
 	XVT_ASSERT_INT_EQ(pilot_remove_file_modern("dir.plt"), 0);
@@ -84,8 +87,9 @@ static void check_presence_unknown(void)
 	xvt_storage_bind(g_vfs);
 	XVT_ASSERT_INT_EQ(xvt_test_kind(g_user, "kept.plt"), 1);
 
-	/* A name listed only in other letter case, where the file system tells case apart: Probe cannot
-	 * prove the file absent, so 0, and the file stays. */
+	/* A name listed only in other letter case, where the file system tells
+	 * case apart: Probe cannot prove the file absent, so 0, and the file
+	 * stays. */
 	xvt_test_write_text(g_user, "Case.PLT", "x");
 	char other[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(other, g_user, "case.plt");

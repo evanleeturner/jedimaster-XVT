@@ -14,10 +14,12 @@
 /* Bytes read from the end of the previous run's log to judge how it ended. */
 #define XVT_LOG_SINK_TAIL_CAPACITY 16384
 
-/* The home folder with no trailing separator, found once at install; empty when SDL cannot name it. */
+/* The home folder with no trailing separator, found once at install; empty when
+ * SDL cannot name it. */
 static char g_log_sink_home[XVT_LOG_SINK_PATH_CAPACITY];
 static size_t g_log_sink_home_length;
-/* The run's log file; XVT_LOG_FILE_NONE when none could be opened, and lines then reach stderr only. */
+/* The run's log file; XVT_LOG_FILE_NONE when none could be opened, and lines
+ * then reach stderr only. */
 static xvt_log_file_handle g_log_sink_file = XVT_LOG_FILE_NONE;
 static int g_log_sink_installed;
 
@@ -68,7 +70,8 @@ static uint32_t xvt_log_sink_ms_of_day(void)
 	       (uint32_t)(stamp.nanosecond / 1000000);
 }
 
-/* Records the home folder for xvt_log_shorten_home; a folder too long for the buffer is left unrecorded. */
+/* Records the home folder for xvt_log_shorten_home; a folder too long for the
+ * buffer is left unrecorded. */
 static void xvt_log_sink_find_home(void)
 {
 	const char *home = SDL_GetUserFolder(SDL_FOLDER_HOME);
@@ -126,8 +129,9 @@ static uint32_t xvt_log_sink_run_id(SDL_Time start)
 	return (uint32_t)((uint64_t)start & 0xffffffffu);
 }
 
-/* Writes a header line snprintf formatted into line, length being snprintf's result, to stderr and the log
- * file. A line cut by the buffer keeps its newline as its last byte. */
+/* Writes a header line snprintf formatted into line, length being snprintf's
+ * result, to stderr and the log file. A line cut by the buffer keeps its
+ * newline as its last byte. */
 static void xvt_log_sink_emit_header_line(char *line, size_t capacity,
 					  int length)
 {
@@ -176,9 +180,10 @@ static void xvt_log_sink_write_header(const struct xvt_launch_options *options,
 	SDL_free(cwd);
 }
 
-/* Writes the default logs folder into out, the preferences folder's "logs" folder with a trailing
- * separator, and creates it. Returns 0, with the reason in error, when SDL names no preferences folder,
- * the path does not fit or the folder cannot be made. */
+/* Writes the default logs folder into out, the preferences folder's "logs"
+ * folder with a trailing separator, and creates it. Returns 0, with the reason
+ * in error, when SDL names no preferences folder, the path does not fit or the
+ * folder cannot be made. */
 static int xvt_log_sink_default_folder(const struct xvt_launch_options *options,
 				       char *out, size_t capacity, char *error,
 				       size_t error_capacity)
@@ -192,7 +197,8 @@ static int xvt_log_sink_default_folder(const struct xvt_launch_options *options,
 		return 0;
 	}
 	size_t length = strlen(preferences);
-	/* SDL ends the preferences path with the system's separator; the logs folder uses the same one. */
+	/* SDL ends the preferences path with the system's separator; the logs
+	 * folder uses the same one. */
 	char separator = length ? preferences[length - 1] : '/';
 	int written = snprintf(out, capacity, "%slogs", preferences);
 	SDL_free(preferences);
@@ -211,9 +217,10 @@ static int xvt_log_sink_default_folder(const struct xvt_launch_options *options,
 	return 1;
 }
 
-/* Removes the oldest run logs in folder (a path ending in a separator) so that XVT_LOG_FILE_KEEP remain once
- * this run's file is made, and writes the path of the newest one into newest ("" when there is none). Only
- * names of the run-log shape are touched; a file that cannot be removed is left in place. */
+/* Removes the oldest run logs in folder (a path ending in a separator) so that
+ * XVT_LOG_FILE_KEEP remain once this run's file is made, and writes the path of
+ * the newest one into newest ("" when there is none). Only names of the run-log
+ * shape are touched; a file that cannot be removed is left in place. */
 static void xvt_log_sink_prune(const char *folder, char *newest,
 			       size_t capacity)
 {
@@ -247,11 +254,13 @@ static void xvt_log_sink_prune(const char *folder, char *newest,
 	SDL_free(names);
 }
 
-/* Writes the run's log file path into out: the --log-file option, else the OPENXVT_LOG_FILE environment
- * variable when it is nonempty, else a new run name (log_file.h) in the default logs folder, after pruning
- * that folder. Writes the previous run's log into previous: the chosen file itself when it was named, the
- * newest run log in the folder otherwise, "" when there is none. Returns 1, or 0 with the reason in error
- * and whatever path is known in out. previous holds capacity bytes, as out does. */
+/* Writes the run's log file path into out: the --log-file option, else the
+ * OPENXVT_LOG_FILE environment variable when it is nonempty, else a new run
+ * name (log_file.h) in the default logs folder, after pruning that folder.
+ * Writes the previous run's log into previous: the chosen file itself when it
+ * was named, the newest run log in the folder otherwise, "" when there is none.
+ * Returns 1, or 0 with the reason in error and whatever path is known in out.
+ * previous holds capacity bytes, as out does. */
 static int xvt_log_sink_choose_file(const struct xvt_launch_options *options,
 				    SDL_Time start, char *out, char *previous,
 				    size_t capacity, char *error,
@@ -293,8 +302,9 @@ static int xvt_log_sink_choose_file(const struct xvt_launch_options *options,
 	return 1;
 }
 
-/* Reads up to the last capacity - 1 bytes of the file at path into out, terminated. Returns the bytes read:
- * 0 when the file is missing, empty or unreadable. */
+/* Reads up to the last capacity - 1 bytes of the file at path into out,
+ * terminated. Returns the bytes read: 0 when the file is missing, empty or
+ * unreadable. */
 static size_t xvt_log_sink_read_tail(const char *path, char *out,
 				     size_t capacity)
 {
@@ -317,8 +327,8 @@ static size_t xvt_log_sink_read_tail(const char *path, char *out,
 	return read;
 }
 
-/* Judges how the run that wrote the log at path ended (log_file.h), writing its last event into last. No
- * log, or an empty one, is NONE. */
+/* Judges how the run that wrote the log at path ended (log_file.h), writing its
+ * last event into last. No log, or an empty one, is NONE. */
 static xvt_log_file_ending
 xvt_log_sink_judge_previous(const char *path, char *last, size_t capacity)
 {
@@ -352,7 +362,8 @@ int xvt_log_sink_install(const struct xvt_launch_options *options)
 		xvt_log_sink_choose_file(options, start, path, previous,
 					 sizeof(path), error, sizeof(error));
 	char last[64];
-	/* The previous run's log is read before this run opens a file, which may be the same file. */
+	/* The previous run's log is read before this run opens a file, which
+	 * may be the same file. */
 	xvt_log_file_ending previous_ending =
 		xvt_log_sink_judge_previous(previous, last, sizeof(last));
 	SDL_SetLogPriorities(xvt_log_sink_priority(level));
@@ -386,7 +397,8 @@ void xvt_log_sink_finish(int exit_code)
 	if (!g_log_sink_installed) {
 		return;
 	}
-	/* The stop line is written at every level, so a log without one is a run that did not end this way. */
+	/* The stop line is written at every level, so a log without one is a
+	 * run that did not end this way. */
 	if (!xvt_log_enabled(AERON_LOG_INFO)) {
 		xvt_log_set_level(AERON_LOG_INFO);
 		SDL_SetLogPriorities(SDL_LOG_PRIORITY_INFO);

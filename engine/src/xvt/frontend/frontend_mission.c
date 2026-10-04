@@ -163,8 +163,9 @@ void frontend_mission_load_current_with_briefing(void)
 	}
 
 	uint16_t indexed_record;
-	/* indexed_record holds the 16-bit word read ahead of each record: the message's slot here, then each
-	 * team's goal count, then whether a team record follows. */
+	/* indexed_record holds the 16-bit word read ahead of each record: the
+	 * message's slot here, then each team's goal count, then whether a team
+	 * record follows. */
 	for (int message_index = 0;
 	     message_index < (int16_t)g_frontend_mission.message_count;
 	     ++message_index) {
@@ -302,8 +303,9 @@ void frontend_mission_load_file(const char *file_name,
 		}
 
 		uint16_t indexed_record;
-		/* indexed_record holds the 16-bit word read ahead of each record: the message's slot here, then
-		 * each team's goal count, then whether a team record follows. */
+		/* indexed_record holds the 16-bit word read ahead of each
+		 * record: the message's slot here, then each team's goal count,
+		 * then whether a team record follows. */
 		for (int message_index = 0;
 		     message_index < (int16_t)out_mission->message_count;
 		     ++message_index) {
@@ -409,8 +411,9 @@ void frontend_mission_load_current(void)
 	}
 
 	uint16_t indexed_record;
-	/* indexed_record holds the 16-bit word read ahead of each record: the message's slot here, then each
-	 * team's goal count, then whether a team record follows. */
+	/* indexed_record holds the 16-bit word read ahead of each record: the
+	 * message's slot here, then each team's goal count, then whether a team
+	 * record follows. */
 	for (int message_index = 0;
 	     message_index < (int16_t)g_frontend_mission.message_count;
 	     ++message_index) {

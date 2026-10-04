@@ -196,9 +196,10 @@ static void xvt_flight_frame_update_lag_indicator(void)
 	}
 }
 
-/* Sets the packet drop indicator (0 to 3). A drop score would rise with each new host packet drop and
- * fall by one per frame, but only once a previous host drop count is recorded, and only that branch
- * records one; Begin clears the count, so the indicator stays 0, as in the original. */
+/* Sets the packet drop indicator (0 to 3). A drop score would rise with each
+ * new host packet drop and fall by one per frame, but only once a previous host
+ * drop count is recorded, and only that branch records one; Begin clears the
+ * count, so the indicator stays 0, as in the original. */
 static void xvt_flight_frame_update_packet_drop_indicator(void)
 {
 	if (g_flight_prev_host_packet_drop_count == 0) {
@@ -345,7 +346,8 @@ static void xvt_flight_frame_render(void)
 		g_flight_tick_overlay_sample_count = 0;
 		g_flight_tick_overlay_window_ticks = 0;
 	} else {
-		/* The overlay's sampling window is 944 ticks, the second lag level's value, not a lag level. */
+		/* The overlay's sampling window is 944 ticks, the second lag
+		 * level's value, not a lag level. */
 		if (g_flight_tick_overlay_window_ticks > LAG_LEVEL_2_TICKS) {
 			g_flight_tick_overlay_sample_count = 0;
 			g_flight_tick_overlay_window_ticks = 0;
@@ -354,7 +356,8 @@ static void xvt_flight_frame_render(void)
 		g_flight_tick_overlay_window_ticks += loop_ticks;
 		++g_flight_tick_overlay_sample_count;
 		char overlay_line[180];
-		/* The original formats this tick-counter line too and never shows it; nothing reads overlay_line. */
+		/* The original formats this tick-counter line too and never
+		 * shows it; nothing reads overlay_line. */
 		sprintf(overlay_line,
 			"R:%-2d U:%-2d N:%-2d O:%-2d T:%-2d FR:%-2d NOW:%-7dL:%-7dS:%-7dW:%-3dD:%-3dA%d\n",
 			render_ticks, update_ticks, 0,
@@ -443,7 +446,8 @@ static void xvt_flight_frame_adjust_clock(void)
 
 	if (g_server_tick_time > g_input_timestamp) {
 		char fell_behind_log_line[180];
-		/* Formatted as in the original, never printed: the event logged is network.fell_behind below. */
+		/* Formatted as in the original, never printed: the event logged
+		 * is network.fell_behind below. */
 		sprintf(fell_behind_log_line,
 			"Fell Behind! tickcounter:%-7d serverticks:%-7d adjustment:%-4d\n",
 			g_input_timestamp, g_server_tick_time,

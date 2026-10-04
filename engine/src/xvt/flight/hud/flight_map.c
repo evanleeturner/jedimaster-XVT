@@ -1083,8 +1083,9 @@ void flight_map_draw_object_icon_at_view_pos(int object_idx, int view_x,
 	screen_y += g_flight_clip_top;
 	int frame_idx;
 	int icon_width;
-	/* In each branch below, objectType picks the frame and is then reused as the icon height beside
-	 * icon_width; the last branch leaves the object type in it. */
+	/* In each branch below, objectType picks the frame and is then reused
+	 * as the icon height beside icon_width; the last branch leaves the
+	 * object type in it. */
 	if (g_flight_icon_resource_path ==
 	    g_flight_icons640x480_resource_path) {
 		frame_idx = 19;
@@ -1485,8 +1486,8 @@ int flight_map_pick_object_nearest_screen_center(int player_idx)
 	int best_score = (g_screen_height * g_screen_height +
 			  g_screen_width * g_screen_width) >>
 			 3;
-	/* object_idx and object_slot always hold the same slot: each loop starts both at the same value and steps
-	 * both once per pass. */
+	/* object_idx and object_slot always hold the same slot: each loop
+	 * starts both at the same value and steps both once per pass. */
 	int object_idx = 0;
 	int best_object = UINT16_MAX;
 	int object_slot;

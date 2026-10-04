@@ -666,7 +666,8 @@ void render_scene_project_mesh_vertices(struct scene_mesh *mesh)
 					(const struct opt_texture_data *)
 						mesh->p_material;
 
-				/* total_w, the sum of the corners' scaled inverse depths, becomes the corner count over
+				/* total_w, the sum of the corners' scaled
+				 * inverse depths, becomes the corner count over
 				 * that sum: the reciprocal of their mean. */
 				if (geometry->vertex_idx[3] == -1) {
 					total_w =
@@ -1664,8 +1665,9 @@ void render_scene_compute_vertex_lighting(const struct scene_mesh *mesh,
 			    g_render_point_light_facing_threshold) {
 				continue;
 			}
-			/* With 3D hardware light_dot is replaced by half the distance, so the diffuse term below
-			 * becomes 0.5 over the distance and the facing term is dropped. */
+			/* With 3D hardware light_dot is replaced by half the
+			 * distance, so the diffuse term below becomes 0.5 over
+			 * the distance and the facing term is dropped. */
 			light_dot = (float)(distance * g_render_half_double);
 		}
 		float diffuse = light_dot / (distance * distance);
@@ -3133,7 +3135,8 @@ int render_scene_test_segment_against_mesh_faces(
 			continue;
 		}
 
-		/* distance_start becomes the factor used below to place the hit point between start and end. */
+		/* distance_start becomes the factor used below to place the hit
+		 * point between start and end. */
 		distance_start = (-distance_start) / distance_end;
 
 		int v_index0;

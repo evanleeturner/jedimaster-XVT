@@ -7,8 +7,8 @@
 extern "C" {
 #endif
 
-/* Four-byte classification enum in general/frontend structures. object_type_info stores the same values in a
- * packed one-byte field. */
+/* Four-byte classification enum in general/frontend structures.
+ * object_type_info stores the same values in a packed one-byte field. */
 /* Stored as uint32_t in the binary (IDB enum craft_genus). */
 typedef uint32_t craft_genus;
 

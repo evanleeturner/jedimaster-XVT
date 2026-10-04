@@ -1,9 +1,11 @@
-/* Checks flight timing (xvt_runtime/timing/flight_timing.h) against the promises in its header: what
- * each profile reports, when reference logic is due, the step clock EnterReference installs and
- * RestoreClock puts back, the animation update serials, and the state a network restore rebuilds. The
- * step globals it reads (g_elapsed_ticks, g_sim_steps_per_second, g_game_time, g_net_update_interval_ticks and the
- * crew mesh timer) are set by each case; every case starts a fresh session. The dropped-period count is not
- * readable through the header, so it is not checked. */
+/* Checks flight timing (xvt_runtime/timing/flight_timing.h) against the
+ * promises in its header: what each profile reports, when reference logic is
+ * due, the step clock EnterReference installs and RestoreClock puts back, the
+ * animation update serials, and the state a network restore rebuilds. The step
+ * globals it reads (g_elapsed_ticks, g_sim_steps_per_second, g_game_time,
+ * g_net_update_interval_ticks and the crew mesh timer) are set by each case;
+ * every case starts a fresh session. The dropped-period count is not readable
+ * through the header, so it is not checked. */
 #include <stdint.h>
 
 #include "test_assert.h"
@@ -108,8 +110,8 @@ static void check_unlocked_reference_steps(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 0);
 	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_elapsed(), 0);
 
-	/* Steps of 3 ticks: over 40 steps, 120 ticks cross 15 boundaries, one reference step each, since no
-	 * step is long enough to cross two. */
+	/* Steps of 3 ticks: over 40 steps, 120 ticks cross 15 boundaries, one
+	 * reference step each, since no step is long enough to cross two. */
 	begin(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	int due = 0;
 	for (int i = 0; i < 40; ++i) {
@@ -235,7 +237,8 @@ static void check_restore_network_tick(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_timing_advance_serial(),
 			  1000 / XVT_NETWORK_STEP_TICKS);
 
-	/* The reference phase becomes tick % XVT_REFERENCE_TICKS: from tick 1002 the boundary is 6 ticks on. */
+	/* The reference phase becomes tick % XVT_REFERENCE_TICKS: from tick
+	 * 1002 the boundary is 6 ticks on. */
 	const int tick = 1000 + XVT_NETWORK_STEP_TICKS;
 	const int to_boundary =
 		XVT_REFERENCE_TICKS - tick % XVT_REFERENCE_TICKS;
@@ -250,7 +253,8 @@ static void check_restore_network_tick(void)
 	xvt_flight_timing_restore_network_tick(2000);
 	XVT_ASSERT_INT_EQ(xvt_flight_timing_reference_due(), 0);
 
-	/* Refused: a negative tick, a tick that is not a multiple of the network step, any other profile. */
+	/* Refused: a negative tick, a tick that is not a multiple of the
+	 * network step, any other profile. */
 	begin(XVT_FLIGHT_TIMING_NETWORK_125);
 	xvt_flight_timing_begin_advance(2);
 	xvt_flight_timing_restore_network_tick(-XVT_NETWORK_STEP_TICKS);
@@ -271,8 +275,9 @@ static void check_restore_network_tick(void)
 
 static void check_restored_animation(void)
 {
-	/* The rebuilt animation update uses AnimationEvent's network formula, and is all zero when its time is
-	 * not positive. The pairs cover early ticks, where it is not, and later ones, where it is. */
+	/* The rebuilt animation update uses AnimationEvent's network formula,
+	 * and is all zero when its time is not positive. The pairs cover early
+	 * ticks, where it is not, and later ones, where it is. */
 	static const int ticks[] = {0, 2, 8, 30, 64, 1000, 123456};
 	static const uint16_t timers[] = {0, 1, 28, 29, 200};
 	for (unsigned i = 0; i < sizeof ticks / sizeof ticks[0]; ++i) {

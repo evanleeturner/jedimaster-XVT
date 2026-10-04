@@ -1,17 +1,21 @@
 /* XvT/BoP versions 12-14, using the layouts consumed by mission_load_file.
  * Standalone: cc -std=c99 -Isrc -Iaeron/include tools/mission_dump.c -o mission_dump
  * All multibyte disk fields are decoded explicitly; no runtime initialization is needed. */
-/* Reads one mission file and prints its contents as text: the version line, then each flight group (name,
- * craft, waves, IFF, team, AI, roles and cargo, arrival and departure triggers with their delays,
- * motherships, the four orders with primary and fallback targets, the skip-to-order trigger, the eight
- * goals and the enabled waypoints), each message, each team's global goals, each team's name, allies and
- * end-of-mission messages, the nonempty briefing labels and texts, and the nonempty goal text overrides;
- * it ends by printing the offset consumed. Names for variables, conditions, amounts and orders come from
- * the tables below; a value outside a table prints as "Unknown". Strings print quoted with C escapes.
- * Refuses, with a message on stderr, a version other than 12 to 14, more than 48 flight groups or 64
- * messages, a repeated or out-of-range message index, a team with more than 7 global goals, and any short
- * read. Exit status: 0 on success; 1 for a refused file or a failed open, read, close or flush; 2 for the
- * wrong argument count. */
+/* Reads one mission file and prints its contents as text: the version line,
+ * then each flight group (name, craft, waves, IFF, team, AI, roles and cargo,
+ * arrival and departure triggers with their delays, motherships, the four
+ * orders with primary and fallback targets, the skip-to-order trigger, the
+ * eight goals and the enabled waypoints), each message, each team's global
+ * goals, each team's name, allies and end-of-mission messages, the nonempty
+ * briefing labels and texts, and the nonempty goal text overrides; it ends by
+ * printing the offset consumed. Names for variables, conditions, amounts and
+ * orders come from the tables below; a value outside a table prints as
+ * "Unknown". Strings print quoted with C escapes. Refuses, with a message on
+ * stderr, a version other than 12 to 14, more than 48 flight groups or 64
+ * messages, a repeated or out-of-range message index, a team with more than 7
+ * global goals, and any short read. Exit status: 0 on success; 1 for a refused
+ * file or a failed open, read, close or flush; 2 for the wrong argument
+ * count. */
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -190,7 +194,8 @@ static int read_word(FILE *fp, unsigned *value)
 	return 1;
 }
 
-/* Quote fixed-length disk strings without reading beyond the field or emitting terminal controls. */
+/* Quote fixed-length disk strings without reading beyond the field or emitting
+ * terminal controls. */
 static void quote(const char *value, size_t size)
 {
 	putchar('"');

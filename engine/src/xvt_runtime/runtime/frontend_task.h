@@ -23,13 +23,15 @@ int xvt_frontend_task_init(int skip_intro);
  * unless a movie, dialog result, continuation, campaign prefix or network task is holding the last
  * presented one, or the credits screen is fading out. */
 void xvt_frontend_task_update(void);
-/* Runs one frame of the top screen; returns 0 when it has no update callback. A waiting network
- * task or dialog continuation is resumed in place of the update. While a campaign prefix is pending
- * or the network task is active, or when the update opened a dialog, returns 0 with the frame
- * counter unchanged, so the screen repeats that frame. Otherwise runs the exit callback captured
- * before the update when the callbacks changed or the result is 1, pushes any pending screen,
- * draws the visible cursor, advances the frame counter and returns the update's result. A back buffer
- * that cannot be locked ends the program. */
+/* Runs one frame of the top screen; returns 0 when it has no update callback. A
+ * waiting network task or dialog continuation is resumed in place of the
+ * update. While a campaign prefix is pending or the network task is active, or
+ * when the update opened a dialog, returns 0 with the frame counter unchanged,
+ * so the screen repeats that frame. Otherwise runs the exit callback captured
+ * before the update when the callbacks changed or the result is 1, pushes any
+ * pending screen, draws the visible cursor, advances the frame counter and
+ * returns the update's result. A back buffer that cannot be locked ends the
+ * program. */
 int xvt_frontend_task_run_frame(void);
 /* Per host frame outside flight: polls both joysticks at most every 100 ms, pumps network packets
  * unless the network task is active, and updates the CD task. */

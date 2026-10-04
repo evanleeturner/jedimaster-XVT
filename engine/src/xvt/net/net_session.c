@@ -180,8 +180,8 @@ int net_session_init_game_session(const char *formal_name,
 	       sizeof(g_net_session_sent_world_message_history));
 	g_net_recv_queue_count = 0;
 	g_net_session.reliable_peer_slot_count = 0;
-	/* The 1 stored in success here also serves below as the player count, the host flag, a DirectPlay id and
-	 * an active flag. */
+	/* The 1 stored in success here also serves below as the player count,
+	 * the host flag, a DirectPlay id and an active flag. */
 	int success = 1;
 
 	DPCAPS direct_play_caps;
@@ -1890,7 +1890,8 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 						break;
 					}
 				}
-				/* Below, player_index indexes reliable peer slots, to drop the departed player's slot. */
+				/* Below, player_index indexes reliable peer
+				 * slots, to drop the departed player's slot. */
 				player_index = 0;
 				if ((int)g_net_session
 					    .reliable_peer_slot_count <=
@@ -2004,7 +2005,8 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 		g_net_session.player_count = 0;
 		net_session_enumerate_players();
 		result = net_session_remove_player_from_group(packet[2]);
-		/* Below, player_index indexes reliable peer slots, to drop the departed player's slot. */
+		/* Below, player_index indexes reliable peer slots, to drop the
+		 * departed player's slot. */
 		player_index = 0;
 		if ((int)g_net_session.reliable_peer_slot_count <=
 		    player_index) {

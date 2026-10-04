@@ -166,7 +166,8 @@ int xvt_remaster_flight_prepare(const struct xvt_render_snapshot *s,
 			if (reset) {
 				continue;
 			}
-			/* Capture order is ascending slot, so matching needs a single linear walk. */
+			/* Capture order is ascending slot, so matching needs a
+			 * single linear walk. */
 			while (previous_index < p->object_count &&
 			       p->objects[previous_index].id.slot <
 				       object->id.slot) {

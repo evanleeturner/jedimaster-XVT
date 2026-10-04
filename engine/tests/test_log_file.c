@@ -1,7 +1,8 @@
-/* Checks the run log file module (xvt_app/log_file.h) against the promises in its header: the run name's
- * shape, which old files a folder keeps, how a log's end shows the way its run ended, and the append-only
- * handle every line goes through, including two threads writing at once. The file checks run in a temporary
- * folder; nothing is written elsewhere. */
+/* Checks the run log file module (xvt_app/log_file.h) against the promises in
+ * its header: the run name's shape, which old files a folder keeps, how a log's
+ * end shows the way its run ended, and the append-only handle every line goes
+ * through, including two threads writing at once. The file checks run in a
+ * temporary folder; nothing is written elsewhere. */
 #define _POSIX_C_SOURCE 200809L
 
 #include <pthread.h>
@@ -132,7 +133,8 @@ static void check_select_expired(void)
 		XVT_ASSERT_INT_EQ(xvt_log_file_is_run_name(names[i]), 0);
 	}
 
-	/* keep - 1 run names already there: nothing goes; keep of them: one goes. keep 0 counts as 1. */
+	/* keep - 1 run names already there: nothing goes; keep of them: one
+	 * goes. keep 0 counts as 1. */
 	XVT_ASSERT_INT_EQ(xvt_log_file_select_expired(names, 9, 10), 0);
 	XVT_ASSERT_INT_EQ(xvt_log_file_select_expired(names, 10, 10), 1);
 	XVT_ASSERT_INT_EQ(xvt_log_file_select_expired(names, 12, 1), 12);
@@ -193,13 +195,15 @@ static void check_read_ending(void)
 		"21:30:00.000 I app.stop exit=0\n",
 		XVT_LOG_FILE_ENDING_STOPPED, "app.stop");
 
-	/* A tail that starts part way through a line: the cut line has no stamp and does not count. */
+	/* A tail that starts part way through a line: the cut line has no stamp
+	 * and does not count. */
 	check_ending("7.000 I app.stop exit=0\n21:22:38.000 I app.ready\n",
 		     XVT_LOG_FILE_ENDING_CUT, "app.ready");
 	check_ending("ield=1\n21:22:39.000 I app.stop exit=1\n",
 		     XVT_LOG_FILE_ENDING_STOPPED, "app.stop");
 
-	/* A header alone, nothing at all, a last line with no newline, and an event that only starts alike. */
+	/* A header alone, nothing at all, a last line with no newline, and an
+	 * event that only starts alike. */
 	check_ending(HEADER, XVT_LOG_FILE_ENDING_CUT, "");
 	check_ending("", XVT_LOG_FILE_ENDING_NONE, "");
 	check_ending(

@@ -1,14 +1,17 @@
 #define _POSIX_C_SOURCE 200809L
-/* Checks the movie task (xvt_runtime/runtime/movie_task.h) against the promises in its header, as far as
- * they hold without a playable movie: Begin's refusals, one movie at a time, a movie that fails during
- * playback completing with result 2, the result held until the player is reaped and then taken once, the
- * frontend state Begin saves and the reap restores, Stop, the network session's fallback to Flyby1a, and
- * Shutdown. The movies are empty files in a temporary asset folder; Aeron's decoder accepts the file and
- * then reports it unreadable from its worker thread, which the test waits for. Every case starts from
- * Shutdown, a cleared frontend and a single-player session.
+/* Checks the movie task (xvt_runtime/runtime/movie_task.h) against the promises
+ * in its header, as far as they hold without a playable movie: Begin's
+ * refusals, one movie at a time, a movie that fails during playback completing
+ * with result 2, the result held until the player is reaped and then taken
+ * once, the frontend state Begin saves and the reap restores, Stop, the network
+ * session's fallback to Flyby1a, and Shutdown. The movies are empty files in a
+ * temporary asset folder; Aeron's decoder accepts the file and then reports it
+ * unreadable from its worker thread, which the test waits for. Every case
+ * starts from Shutdown, a cleared frontend and a single-player session.
  *
- * Not checked here: decoding, drawing, subtitles, skipping with a key, the multiplayer wait and the frame
- * delay of a real movie; they need a Smacker file from the game and a window. */
+ * Not checked here: decoding, drawing, subtitles, skipping with a key, the
+ * multiplayer wait and the frame delay of a real movie; they need a Smacker
+ * file from the game and a window. */
 #include <string.h>
 #include <time.h>
 
@@ -136,8 +139,9 @@ static void check_stop(void)
 	movies("intro");
 	XVT_ASSERT_INT_EQ(xvt_movie_task_begin("intro", 0), XVT_MOVIE_PENDING);
 	xvt_movie_task_stop();
-	/* A stopped movie counts as finished and completes on its next tick. Its result is 0, unless the
-	 * decoder has already reported the empty file, which makes it 2. */
+	/* A stopped movie counts as finished and completes on its next tick.
+	 * Its result is 0, unless the decoder has already reported the empty
+	 * file, which makes it 2. */
 	xvt_movie_task_update();
 	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
 	xvt_movie_task_reap_finished();

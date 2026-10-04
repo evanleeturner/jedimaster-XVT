@@ -137,7 +137,8 @@ static void xvt_network_session_establish(void)
 
 void xvt_network_session_on_close(void)
 {
-	/* Every shutdown calls this, with or without a session; only a session under way is reported. */
+	/* Every shutdown calls this, with or without a session; only a session
+	 * under way is reported. */
 	if (g_session.phase != SESSION_IDLE &&
 	    g_session.phase != SESSION_FAILED) {
 		XVT_LOG_INFO("network.session_closed phase=%d",
@@ -246,9 +247,10 @@ int xvt_network_session_begin_join(const char *rating_text,
 					 room);
 }
 
-/* Clears the reliable-transport counters, peer slots, send history and connection stats, the player lists
- * and the roster; copies in this session's application GUID, host flag and names; then creates the
- * DirectPlay interface. Returns 0 without a TCP/IP provider or when the interface cannot be made. */
+/* Clears the reliable-transport counters, peer slots, send history and
+ * connection stats, the player lists and the roster; copies in this session's
+ * application GUID, host flag and names; then creates the DirectPlay interface.
+ * Returns 0 without a TCP/IP provider or when the interface cannot be made. */
 static int xvt_network_session_factory(void)
 {
 	const GUID *provider =

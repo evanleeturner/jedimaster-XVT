@@ -1,10 +1,12 @@
-/* The color quantizer: it sorts an image's colors into a color tree, reduces the tree to a target
- * count, and maps each pixel to its nearest palette entry. Its data follows early ImageMagick's
- * image (magick/image.h): image_quantizer_pixel_run is ImageMagick's RunlengthPacket (red, green,
- * blue, length, index); image_quantizer_legacy_image_record follows its Image struct (two 2,048-byte
- * name buffers, then class, matte, compression, columns, rows); and color_class holds its ClassType,
- * 1 for direct color and 2 for a palette image. Names in this file say what the game does with a
- * value, so some differ from ImageMagick's. */
+/* The color quantizer: it sorts an image's colors into a color tree, reduces
+ * the tree to a target count, and maps each pixel to its nearest palette entry.
+ * Its data follows early ImageMagick's image (magick/image.h):
+ * image_quantizer_pixel_run is ImageMagick's RunlengthPacket (red, green, blue,
+ * length, index); image_quantizer_legacy_image_record follows its Image struct
+ * (two 2,048-byte name buffers, then class, matte, compression, columns, rows);
+ * and color_class holds its ClassType, 1 for direct color and 2 for a palette
+ * image. Names in this file say what the game does with a value, so some differ
+ * from ImageMagick's. */
 
 #include "xvt/render/image_quantizer.h"
 
@@ -41,8 +43,9 @@ struct image_quantizer_image_layout {
 	uint32_t compression_type;
 	uint32_t width;	 /* Width in pixels. */
 	uint32_t height; /* Height in pixels. */
-	/* Not all reserved: the palette pointer at offset 0x104C and the palette color count at 0x1054 sit in
-	 * these bytes, and this file reads and writes them by raw offset. */
+	/* Not all reserved: the palette pointer at offset 0x104C and the
+	 * palette color count at 0x1054 sit in these bytes, and this file reads
+	 * and writes them by raw offset. */
 	uint8_t reserved1038[0x4E]; /* Record bytes 0x1038 to 0x1085. */
 	struct image_quantizer_pixel_run
 		*pixels; /* The pixel runs, from malloc. */
@@ -1633,7 +1636,8 @@ void image_quantizer_classify_encoded_tex_level_image(
 							[packing_mode];
 					run_length_minus_one &= command;
 				}
-				/* From here paletteIndex is a byte offset into palette_rgba, four bytes per entry. */
+				/* From here paletteIndex is a byte offset into
+				 * palette_rgba, four bytes per entry. */
 				palette_index *= 4;
 				do {
 					sample->red =

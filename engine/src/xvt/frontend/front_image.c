@@ -1036,8 +1036,10 @@ void front_image_blit_rle8(const struct image_resource *image, int dest_x,
 
 		for (;;) {
 			token = row_start[token_offset++];
-			/* Until started is set, destination_offset counts the source pixels skipped toward src_left;
-			 * when the row reaches src_left it is reset to 0 and from then on it is the destination column. */
+			/* Until started is set, destination_offset counts the
+			 * source pixels skipped toward src_left; when the row
+			 * reaches src_left it is reset to 0 and from then on it
+			 * is the destination column. */
 			if (!started) {
 				if (token == 0x80) {
 					break;
@@ -1268,8 +1270,10 @@ void front_image_blit_rle16(const struct image_resource *image, int dest_x,
 
 		for (;;) {
 			token = row_start[token_offset++];
-			/* Until started is set, destination_offset counts the source pixels skipped toward src_left;
-			 * when the row reaches src_left it is reset to 0 and from then on it is the destination column. */
+			/* Until started is set, destination_offset counts the
+			 * source pixels skipped toward src_left; when the row
+			 * reaches src_left it is reset to 0 and from then on it
+			 * is the destination column. */
 			if (!started) {
 				if (token == 0x80) {
 					break;
@@ -1650,8 +1654,10 @@ void front_image_blit_rle8_opaque(const struct image_resource *image,
 
 		for (;;) {
 			token = row_start[token_offset++];
-			/* Until started is set, destination_offset counts the source pixels skipped toward src_left;
-			 * when the row reaches src_left it is reset to 0 and from then on it is the destination column. */
+			/* Until started is set, destination_offset counts the
+			 * source pixels skipped toward src_left; when the row
+			 * reaches src_left it is reset to 0 and from then on it
+			 * is the destination column. */
 			if (!started) {
 				if (token == 0x80) {
 					break;
@@ -1915,8 +1921,10 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 
 		for (;;) {
 			token = row_start[token_offset++];
-			/* Until started is set, destination_offset counts the source pixels skipped toward src_left;
-			 * when the row reaches src_left it is reset to 0 and from then on it is the destination column. */
+			/* Until started is set, destination_offset counts the
+			 * source pixels skipped toward src_left; when the row
+			 * reaches src_left it is reset to 0 and from then on it
+			 * is the destination column. */
 			if (started == 0) {
 				if (token == 0x80) {
 					break;
@@ -2329,9 +2337,10 @@ void front_image_blit_glyph_rle_8bpp(const struct image_resource *glyph,
 #endif
 		for (;;) {
 			token = row[token_offset++];
-			/* Until started is set, destination_offset counts the source pixels skipped toward
-			 * clip_left_skip; when the row reaches clip_left_skip it is reset to 0 and from then on it is the
-			 * destination column. */
+			/* Until started is set, destination_offset counts the
+			 * source pixels skipped toward clip_left_skip; when the
+			 * row reaches clip_left_skip it is reset to 0 and from
+			 * then on it is the destination column. */
 			if (started == 0) {
 				if (token == 0x80) {
 					break;
@@ -2554,9 +2563,11 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 #endif
 			for (;;) {
 				token = row[token_offset++];
-				/* Until started is set, destination_offset counts the source pixels skipped toward
-				 * clip_left_skip; when the row reaches clip_left_skip it is reset to 0 and from then on it is
-				 * the destination column. */
+				/* Until started is set, destination_offset
+				 * counts the source pixels skipped toward
+				 * clip_left_skip; when the row reaches
+				 * clip_left_skip it is reset to 0 and from then
+				 * on it is the destination column. */
 				if (started == 0) {
 					if (token == 0x80) {
 						break;
@@ -3771,8 +3782,8 @@ unsigned int front_image_get_faded_glyph_color16(unsigned int color16)
 
 	unsigned int blue = color;
 	unsigned int green;
-	/* From here color holds only the red channel: masked and shifted down, faded, then shifted back into
-	 * place for packing. */
+	/* From here color holds only the red channel: masked and shifted down,
+	 * faded, then shifted back into place for packing. */
 	if (g_front_state.pixel_format555 != 0) {
 		blue &= 0x1F;
 		green = color;

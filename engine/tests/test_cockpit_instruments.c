@@ -1,13 +1,17 @@
-/* Checks the cockpit instruments (xvt_runtime/snapshot/cockpit_instruments.h) against the promises in its
- * header: Build clearing its parts and leaving them cleared without a craft, which parts it builds in which
- * view and with instruments shown or hidden, the recorded threats, laser locks and radar blips (their
- * scope, count rule, ignored indices, the target marker and positions relative to the scope's anchor),
- * CompleteRadar's coverage, and BeginUpdate forgetting the recorded values for the local player only. The
- * test builds its own world (one craft in main slot 1, flown by the local player in seat 0) and sets the
- * HUD layout and model entries it reads; every case starts from that world and BeginUpdate.
+/* Checks the cockpit instruments (xvt_runtime/snapshot/cockpit_instruments.h)
+ * against the promises in its header: Build clearing its parts and leaving them
+ * cleared without a craft, which parts it builds in which view and with
+ * instruments shown or hidden, the recorded threats, laser locks and radar
+ * blips (their scope, count rule, ignored indices, the target marker and
+ * positions relative to the scope's anchor), CompleteRadar's coverage, and
+ * BeginUpdate forgetting the recorded values for the local player only. The
+ * test builds its own world (one craft in main slot 1, flown by the local
+ * player in seat 0) and sets the HUD layout and model entries it reads; every
+ * case starts from that world and BeginUpdate.
  *
- * Not checked here: the values Build derives for shields, beam, power gauges, launchers, warheads, laser
- * charge and the compact instruments, which the header does not describe beyond their source. */
+ * Not checked here: the values Build derives for shields, beam, power gauges,
+ * launchers, warheads, laser charge and the compact instruments, which the
+ * header does not describe beyond their source. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -31,8 +35,9 @@ static struct xvt_cockpit_state g_state;
 static struct hud_radar_blip_point g_fore_drawn[48];
 static struct hud_radar_blip_point g_aft_drawn[48];
 
-/* The local player flies a TIE Interceptor in main slot 1 with four lasers, every HUD feature installed
- * and only the two radars active. Each laser and both radar scopes have a place in the cockpit layout. */
+/* The local player flies a TIE Interceptor in main slot 1 with four lasers,
+ * every HUD feature installed and only the two radars active. Each laser and
+ * both radar scopes have a place in the cockpit layout. */
 static void cockpit_instruments_start(void)
 {
 	memset(g_test_objects, 0, sizeof g_test_objects);
@@ -123,7 +128,8 @@ static int no_threats(const struct xvt_cockpit_systems *systems)
 	return all_zero(systems->threats, sizeof systems->threats);
 }
 
-/* Builds over a state whose five parts hold junk, and reports whether all five came back cleared. */
+/* Builds over a state whose five parts hold junk, and reports whether all five
+ * came back cleared. */
 static int build_clears(void)
 {
 	struct xvt_cockpit_state *state = view(HUD_VIEW_FORWARD, 1, 0);
@@ -203,7 +209,8 @@ static void check_feature_covers(void)
 	XVT_ASSERT_INT_EQ(all_zero(shown, sizeof shown), 0);
 
 	struct xvt_cockpit_indicator hidden[13];
-	/* In the forward view they are built whether or not instruments show, map open or closed. */
+	/* In the forward view they are built whether or not instruments show,
+	 * map open or closed. */
 	memcpy(hidden, built(HUD_VIEW_FORWARD, 0, 0)->systems.feature_covers,
 	       sizeof hidden);
 	XVT_ASSERT_INT_EQ(memcmp(hidden, shown, sizeof shown), 0);
@@ -332,7 +339,8 @@ static void check_record_radar(void)
 	XVT_ASSERT_INT_EQ(radar->count[aft], 0);
 	struct xvt_snap_radar_blip first = radar->blips[fore][2];
 
-	/* Positions are relative to the scope's anchor: moving the point moves the blip by as much. */
+	/* Positions are relative to the scope's anchor: moving the point moves
+	 * the blip by as much. */
 	xvt_cockpit_instruments_record_radar(0, 1, 2, 255, 363, 5);
 	radar = &forward()->radar;
 	XVT_ASSERT_INT_EQ(radar->blips[fore][2].x, first.x + 5);
@@ -444,7 +452,8 @@ static void check_begin_update(void)
 	xvt_cockpit_readouts_copy_state(&readouts);
 	XVT_ASSERT_INT_EQ(readouts.target.visible, 1);
 
-	/* The local player's update forgets the locks, threats and radar, and begins a readouts update. */
+	/* The local player's update forgets the locks, threats and radar, and
+	 * begins a readouts update. */
 	xvt_cockpit_instruments_begin_update(LOCAL);
 	state = forward();
 	for (unsigned threat = 0; threat < 4; ++threat) {

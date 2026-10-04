@@ -377,8 +377,9 @@ void frontend_draw_rect_outline(const struct RECT *rect, int dx, int dy,
 		draw_bottom = 0;
 	}
 
-	/* bottom starts as the clipped bottom edge; each case below turns it into the number of interior rows
-	 * and counts it down while drawing the side edges. */
+	/* bottom starts as the clipped bottom edge; each case below turns it
+	 * into the number of interior rows and counts it down while drawing the
+	 * side edges. */
 	int bottom = clipped_rect.bottom;
 	int width = clipped_rect.right - clipped_rect.left + 1;
 	int draw_surface_pitch = g_front_state.draw_surface_pitch;

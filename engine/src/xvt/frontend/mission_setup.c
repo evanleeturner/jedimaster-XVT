@@ -1446,9 +1446,11 @@ int mission_setup_update(int frame_counter)
 				*(int *)&g_frontend_net_packet_scratch
 					 .payload[4] =
 					g_pilot_data.mission_directory_id;
-				/* mission_count first carries the selected mission's description id (payload word 0); below
-				 * it carries the sequence length, which for combat engagements is the number of victories
-				 * needed. */
+				/* mission_count first carries the selected
+				 * mission's description id (payload word 0);
+				 * below it carries the sequence length, which
+				 * for combat engagements is the number of
+				 * victories needed. */
 				int mission_count =
 					g_pilot_data.mission_description_ids
 						[g_pilot_data
@@ -4337,8 +4339,8 @@ int mission_setup_draw_player_roster(int frame_counter)
 				average_latency / 125 + 1);
 			front_image_draw_sprite(g_frontend_scratch_buffer,
 						rect.right - 33, rect.top + 2);
-			/* drop_rate here is the number of the drop%d sprite: the dropped-packet percent plus one, at
-			 * most 6. */
+			/* drop_rate here is the number of the drop%d sprite:
+			 * the dropped-packet percent plus one, at most 6. */
 			drop_rate = net_get_packet_drop_rate_basis_points(
 					    *player_id) /
 					    100 +
@@ -4491,7 +4493,8 @@ int mission_setup_broadcast_lobby_selection(void)
 		packet_words[12] = roster_capacity;
 		packet_words[13] = roster_capacity;
 		player_roster = net_get_player_roster(&roster_count);
-		/* Before sending, clear each roster entry with no ready player in the network roster. */
+		/* Before sending, clear each roster entry with no ready player
+		 * in the network roster. */
 		for (roster_index = 0; roster_index < roster_capacity;
 		     ++roster_index) {
 			struct mp_roster_entry *roster_entry =
@@ -4622,8 +4625,9 @@ int mission_setup_send_lobby_state(int to_player_id)
 		packet_words[12] = roster_capacity;
 		packet_words[13] = roster_capacity;
 		player_roster = net_get_player_roster(&roster_count);
-		/* Before sending, refresh each roster entry's pilot rating from the network roster, and clear
-		 * entries with no ready player there. */
+		/* Before sending, refresh each roster entry's pilot rating from
+		 * the network roster, and clear entries with no ready player
+		 * there. */
 		for (roster_index = 0; roster_index < roster_capacity;
 		     ++roster_index) {
 			struct mp_roster_entry *roster_entry =
@@ -5088,8 +5092,9 @@ int mission_setup_draw_mission_list(int frame_counter)
 	int cursor_x;
 	int cursor_y;
 	frontend_cursor_get_pos(&cursor_x, &cursor_y);
-	/* display_row first holds the number of rows the list box shows, to size the box; from the list loop on
-	 * it is the running row index, headers included. */
+	/* display_row first holds the number of rows the list box shows, to
+	 * size the box; from the list loop on it is the running row index,
+	 * headers included. */
 	int display_row = VISIBLE_ROW_COUNT;
 	if (g_mission_setup_mission_list_row_count <= VISIBLE_ROW_COUNT) {
 		display_row = g_mission_setup_mission_list_row_count;
@@ -5944,8 +5949,8 @@ int mission_setup_select_first_sequence_mission(void)
 	g_pilot_data.saved_mission_description_id =
 		g_pilot_data.mission_description_ids
 			[g_pilot_data.mission_directory_id];
-	/* descriptor_path is reused here for the first mission's file name, lowercased to match the mission
-	 * list. */
+	/* descriptor_path is reused here for the first mission's file name,
+	 * lowercased to match the mission list. */
 	strcpy(descriptor_path, g_frontend_scratch_buffer);
 	for (unsigned int character_index = 0;
 	     character_index < strlen(descriptor_path); ++character_index) {
@@ -8307,8 +8312,10 @@ int mission_setup_update_craft_loadout(void)
 			can_change_loadout = g_game_config.difficulty ==
 					     GAME_DIFFICULTY_EASY_CHEAT;
 		} else {
-			/* selected_option_index holds the craft selection setting here; from the loadout buttons on it
-			 * holds the countermeasure, beam or warhead option being cycled. */
+			/* selected_option_index holds the craft selection
+			 * setting here; from the loadout buttons on it holds
+			 * the countermeasure, beam or warhead option being
+			 * cycled. */
 			selected_option_index = g_game_config.craft_selection;
 			if (selected_option_index != CRAFT_SELECTION_OFF) {
 				if (selected_option_index ==
@@ -8507,7 +8514,8 @@ int mission_setup_update_craft_loadout(void)
 						g_mission_setup_preset_craft_option_count -
 						1;
 				}
-				/* craft_type holds the flight group's preset craft category here (1 to 3), not a craft
+				/* craft_type holds the flight group's preset
+				 * craft category here (1 to 3), not a craft
 				 * species. */
 				craft_type =
 					g_frontend_mission
@@ -8722,7 +8730,8 @@ int mission_setup_update_craft_loadout(void)
 				    selected_preset_craft_option_index) {
 					selected_preset_craft_option_index = 0;
 				}
-				/* craft_type holds the flight group's preset craft category here (1 to 3), not a craft
+				/* craft_type holds the flight group's preset
+				 * craft category here (1 to 3), not a craft
 				 * species. */
 				craft_type =
 					g_frontend_mission
@@ -9478,7 +9487,8 @@ int mission_setup_get_craft_type(int player_roster_index)
 
 	if (player_roster_index == -1) {
 		if (g_mission_setup_preset_craft_option_count != 0) {
-			/* result holds the selected preset craft option here, an index into g_preset_craft_types. */
+			/* result holds the selected preset craft option here,
+			 * an index into g_preset_craft_types. */
 			result =
 				g_mission_setup_selected_preset_craft_option_index;
 			if (result == 0) {
@@ -9572,8 +9582,9 @@ void ship_list_load(void)
 		return;
 	}
 
-	/* ship_list_index and ship_count always hold the same value: both start at 0 here and step together for
-	 * each .opt entry kept from the list. */
+	/* ship_list_index and ship_count always hold the same value: both start
+	 * at 0 here and step together for each .opt entry kept from the
+	 * list. */
 	int ship_list_index = 0;
 	int ship_count = 0;
 	xvt_file *stream = file_open("frontres\\frntspec.lst", "r");
@@ -9952,8 +9963,10 @@ int mission_setup_prune_disconnected_players(void)
 			} while (player_count > roster_index);
 		}
 		if (player_count != roster_index && g_team_count > 0) {
-			/* The loop above stops early only when this assigned slot is empty, so the id taken here is
-			 * always 0, and the pass below shifts each team's players down over its empty slots. */
+			/* The loop above stops early only when this assigned
+			 * slot is empty, so the id taken here is always 0, and
+			 * the pass below shifts each team's players down over
+			 * its empty slots. */
 			int empty_player_id =
 				g_mission_setup_player_assignments
 					.assigned_player_ids
@@ -10180,8 +10193,8 @@ int mission_setup_select_next_sequence_mission(void)
 	g_pilot_data.saved_mission_description_id =
 		g_pilot_data.mission_description_ids
 			[g_pilot_data.mission_directory_id];
-	/* descriptor_path is reused here for the chosen mission's file name, lowercased to match the mission
-	 * list. */
+	/* descriptor_path is reused here for the chosen mission's file name,
+	 * lowercased to match the mission list. */
 	strcpy(descriptor_path, g_frontend_scratch_buffer);
 	for (int character_index = 0;
 	     character_index < (int)strlen(descriptor_path);
@@ -10890,8 +10903,8 @@ int mission_setup_team_assignment_update(int frame_counter)
 		front_image_draw_sprite_translucent("teamoverlay", 0, 0);
 		frontend_draw_rect_assign(&rect, 88, 207, 256, 221);
 		for (team_index = 0; team_index < g_team_count; ++team_index) {
-			/* MAX_PLAYERS stands for team counts here: with 7 or 8 teams, teams 4 and up move to a second
-			 * column. */
+			/* MAX_PLAYERS stands for team counts here: with 7 or 8
+			 * teams, teams 4 and up move to a second column. */
 			if ((g_team_count == MAX_PLAYERS ||
 			     g_team_count == MAX_PLAYERS - 1) &&
 			    team_index == 4) {
@@ -11480,8 +11493,9 @@ int mission_setup_team_assignment_update(int frame_counter)
 	if (frontend_mouse_is_gate_owner(DRAG_INPUT_GATE)) {
 		if (frontend_mouse_get_left_click_for(DRAG_INPUT_GATE) == 0 &&
 		    frontend_mouse_get_right_click_for(DRAG_INPUT_GATE) == 0) {
-			/* ready_player_count holds the number of roster slots to search here (1, or all eight), not a
-			 * count of ready players. */
+			/* ready_player_count holds the number of roster slots
+			 * to search here (1, or all eight), not a count of
+			 * ready players. */
 			ready_player_count =
 				g_frontend_mission_session_mode ==
 						FRONTEND_MISSION_SESSION_SINGLEPLAYER
@@ -13689,8 +13703,8 @@ int mission_setup_flight_assignment_update(int frame_counter)
 			}
 			front_image_draw_sprite_translucent("mapassignoverlay",
 							    0, 0);
-			/* cursor_x and cursor_y hold each flight group slot overlay's screen position here, not the
-			 * mouse. */
+			/* cursor_x and cursor_y hold each flight group slot
+			 * overlay's screen position here, not the mouse. */
 			cursor_x = 230;
 			cursor_y = 284;
 			for (flight_group_index = 0;
@@ -13733,8 +13747,8 @@ int mission_setup_flight_assignment_update(int frame_counter)
 			rect.top = rect.bottom - 27;
 			frontend_draw_fill_rect_translucent(&rect, 0, 0,
 							    g_color_blue);
-			/* cursor_x and cursor_y hold each flight group slot overlay's screen position here, not the
-			 * mouse. */
+			/* cursor_x and cursor_y hold each flight group slot
+			 * overlay's screen position here, not the mouse. */
 			cursor_x = 230;
 			cursor_y = 352;
 			int drawn_slot_count = 0;
@@ -15030,8 +15044,14 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 							*(int *)g_frontend_net_packet_scratch
 								 .payload =
 								player_id;
-							/* playerId now holds the local player's id, sent as the player making the
-							 * reservation; the dragged player's id is read back from the roster below. */
+							/* playerId now holds
+							 * the local player's
+							 * id, sent as the
+							 * player making the
+							 * reservation; the
+							 * dragged player's id
+							 * is read back from the
+							 * roster below. */
 							player_id =
 								net_get_local_player_id();
 							*(int *)(g_frontend_net_packet_scratch
@@ -15047,7 +15067,10 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 									.player_id;
 							frontend_mouse_set_input_gate(
 								INPUT_GATE);
-							/* reserved_index walks this team's player slots here, not the reserved list. */
+							/* reserved_index walks
+							 * this team's player
+							 * slots here, not the
+							 * reserved list. */
 							for (reserved_index = 0;
 							     reserved_index <
 							     g_team_player_flight_group_count
@@ -15387,8 +15410,15 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 								*(int *)g_frontend_net_packet_scratch
 									 .payload =
 									player_id;
-								/* roster_index is reused here for the local player's id, sent as the player
-								 * making the reservation. */
+								/* roster_index
+								 * is reused
+								 * here for the
+								 * local
+								 * player's id,
+								 * sent as the
+								 * player making
+								 * the
+								 * reservation. */
 								roster_index =
 									net_get_local_player_id();
 								*(int *)(g_frontend_net_packet_scratch
@@ -15403,7 +15433,12 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 									player_id;
 								frontend_mouse_set_input_gate(
 									INPUT_GATE);
-								/* reserved_index walks this team's player slots here, not the reserved
+								/* reserved_index
+								 * walks this
+								 * team's player
+								 * slots here,
+								 * not the
+								 * reserved
 								 * list. */
 								for (reserved_index =
 									     0;
@@ -15620,8 +15655,10 @@ void mission_setup_prune_flight_assignments(void)
 				unsigned int team_byte_offset = 0;
 				int teams_remaining = g_team_count;
 				do {
-					/* roster_index counts the player slots within a team here, alongside player_byte_offset,
-					 * not roster entries. */
+					/* roster_index counts the player slots
+					 * within a team here, alongside
+					 * player_byte_offset, not roster
+					 * entries. */
 					roster_index = 0;
 					int player_byte_offset =
 						team_byte_offset;

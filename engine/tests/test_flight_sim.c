@@ -1,13 +1,16 @@
-/* Checks the per-player input history of the flight simulation (xvt_runtime/runtime/flight_sim.h) against the
- * promises in its header: Insert and InsertReal, what a world restore and a state recovery keep, and what
- * Reset clears. No game data is read: the test sets the histories, the player records and the network
- * session's local player id itself. Player 0 is the local player; players 1 and 2 are connected remote
- * players; the others are not connected. Every check starts from empty histories on a client.
+/* Checks the per-player input history of the flight simulation
+ * (xvt_runtime/runtime/flight_sim.h) against the promises in its header: Insert
+ * and InsertReal, what a world restore and a state recovery keep, and what
+ * Reset clears. No game data is read: the test sets the histories, the player
+ * records and the network session's local player id itself. Player 0 is the
+ * local player; players 1 and 2 are connected remote players; the others are
+ * not connected. Every check starts from empty histories on a client.
  *
- * Not checked here: StepToTime, Advance and UpdateEntity step the recovered game's simulation (AI, weapons,
- * collisions, movement, mission logic, HUD and sound) and need a running flight of the recovered game. A
- * pause starts only inside UpdateEntity on the local Alt-P key, so Resume is checked only while not
- * paused. */
+ * Not checked here: StepToTime, Advance and UpdateEntity step the recovered
+ * game's simulation (AI, weapons, collisions, movement, mission logic, HUD and
+ * sound) and need a running flight of the recovered game. A pause starts only
+ * inside UpdateEntity on the local Alt-P key, so Resume is checked only while
+ * not paused. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -89,7 +92,8 @@ static void check_reset_and_pause(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_sim_is_paused(), 0);
 	XVT_ASSERT_INT_EQ(xvt_flight_sim_resume(), 1);
 
-	/* Reset clears the prediction fallback (flight_prediction.h): confirmed controls are forgotten. */
+	/* Reset clears the prediction fallback (flight_prediction.h): confirmed
+	 * controls are forgotten. */
 	struct flight_input_frame_record input = controls(20);
 	xvt_flight_prediction_confirm(1, 2, &input);
 	XVT_ASSERT_INT_EQ(xvt_flight_prediction_queue(8), 1);
@@ -150,7 +154,8 @@ static void check_insert(void)
 	struct flight_input_frame_record input = controls(10);
 	struct input_frame *out = NULL;
 
-	/* A new frame is real and unapplied, out points at it, and the history stays in tick order. */
+	/* A new frame is real and unapplied, out points at it, and the history
+	 * stays in tick order. */
 	XVT_ASSERT_INT_EQ(xvt_flight_history_insert(1, 10, &input, &out),
 			  XVT_INPUT_INSERTED);
 	XVT_ASSERT_TRUE(out == &g_input_history[1][0]);
@@ -181,7 +186,8 @@ static void check_insert(void)
 	XVT_ASSERT_INT_EQ(g_input_history[1][1].input_source, XVT_INPUT_REAL);
 	XVT_ASSERT_TRUE(same_input(&g_input_history[1][1].input, &input));
 
-	/* An authoritative frame, or an applied one, at the tick is a duplicate and stays as it was. */
+	/* An authoritative frame, or an applied one, at the tick is a duplicate
+	 * and stays as it was. */
 	g_input_history[1][1].input_source = XVT_INPUT_AUTHORITATIVE;
 	XVT_ASSERT_INT_EQ(xvt_flight_history_insert(1, 8, &other, &out),
 			  XVT_INPUT_DUPLICATE);
@@ -363,7 +369,8 @@ static void check_recover(void)
 	XVT_ASSERT_INT_EQ(g_input_history[0][0].input.axis_x, 4);
 	XVT_ASSERT_INT_EQ(g_input_frame_count[1], 0);
 	XVT_ASSERT_INT_EQ(g_input_frame_count[2], 0);
-	/* The prediction fallback is reset: player 1 gets no prediction from the confirmed controls. */
+	/* The prediction fallback is reset: player 1 gets no prediction from
+	 * the confirmed controls. */
 	XVT_ASSERT_INT_EQ(xvt_flight_prediction_queue(40), 1);
 	XVT_ASSERT_INT_EQ(g_input_frame_count[1], 0);
 

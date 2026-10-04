@@ -1704,8 +1704,8 @@ void std3d_clamp_texture_dimensions(int src_width, int src_height,
 
 	unsigned int height;
 	if ((uint32_t)src_height >= 1) {
-		/* The height is clamped by the width limit, as in the original; g_std3d_max_texture_height is never
-		 * read. */
+		/* The height is clamped by the width limit, as in the original;
+		 * g_std3d_max_texture_height is never read. */
 		height = (uint32_t)g_std3d_max_texture_width;
 		if (height >= (uint32_t)src_height) {
 			height = (uint32_t)src_height;
@@ -1827,7 +1827,8 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 		unsigned int destination_y = 0;
 		while (vertical_copies != 0) {
 			unsigned int destination_x = 0;
-			/* From here targetWidth counts down the copies left in this row, not a width. */
+			/* From here targetWidth counts down the copies left in
+			 * this row, not a width. */
 			for (target_width = horizontal_copies;
 			     target_width != 0; --target_width) {
 				std3d_blit_v_buffer(temporary_buffer, source,
@@ -3180,8 +3181,9 @@ int AERON_DXAPI std3d_enum_texture_formats(DDSURFACEDESC *surface_desc,
 		struct std3d_tex_fmt *format =
 			&g_std3d_texture_formats[g_std3d_num_texture_formats];
 		memcpy(&format->ddsd, surface_desc, sizeof(format->ddsd));
-		/* Each of these four first counts its mask's trailing zeros (the channel's position), then is reset
-		 * to count the mask's set bits (the channel's width, stored as its BPP). */
+		/* Each of these four first counts its mask's trailing zeros
+		 * (the channel's position), then is reset to count the mask's
+		 * set bits (the channel's width, stored as its BPP). */
 		int red_shift;
 		int green_shift;
 		int blue_shift;

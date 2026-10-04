@@ -1,14 +1,17 @@
 #define _POSIX_C_SOURCE 200809L
-/* Checks the cockpit asset bindings (xvt_runtime/snapshot/render_cockpit_assets.h, and the cockpit, panel,
- * icon and font calls of render_assets.h that render_cockpit_assets.c defines) against the promises in
- * their headers. Files register through the asset registry, whose paths resolve through storage, so the
- * test binds an Aeron VFS to a fresh temporary folder holding the files it names. The recovered game's
- * HUD layout, cockpit resources, fonts and handles are set here; no game data is read. Each check starts
- * the registry again, which resets the cockpit bindings.
+/* Checks the cockpit asset bindings
+ * (xvt_runtime/snapshot/render_cockpit_assets.h, and the cockpit, panel, icon
+ * and font calls of render_assets.h that render_cockpit_assets.c defines)
+ * against the promises in their headers. Files register through the asset
+ * registry, whose paths resolve through storage, so the test binds an Aeron VFS
+ * to a fresh temporary folder holding the files it names. The recovered game's
+ * HUD layout, cockpit resources, fonts and handles are set here; no game data
+ * is read. Each check starts the registry again, which resets the cockpit
+ * bindings.
  *
- * Not checkable: the layout generation, which CaptureDefinition always copies as 0 and nothing else
- * reads. Not run here: more than XVT_SNAP_MAP_ICON_FRAMES icons, which requests a fatal error that shows
- * a message box. */
+ * Not checkable: the layout generation, which CaptureDefinition always copies
+ * as 0 and nothing else reads. Not run here: more than XVT_SNAP_MAP_ICON_FRAMES
+ * icons, which requests a fatal error that shows a message box. */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -69,8 +72,9 @@ static void remove_roots(void)
 	xvt_test_remove_tree(g_folder);
 }
 
-/* A live HUD layout with a different value in every field, cockpit resources without handles, fonts and
- * handles for each, the 640x480 resolution, and a fresh registry. */
+/* A live HUD layout with a different value in every field, cockpit resources
+ * without handles, fonts and handles for each, the 640x480 resolution, and a
+ * fresh registry. */
 static void fresh(void)
 {
 	for (unsigned i = 0; i < HUD_INSTRUMENT_COUNT; ++i) {
@@ -155,9 +159,9 @@ static void check_elements(const struct xvt_cockpit_definition *d)
 	}
 }
 
-/* CaptureCockpit copies the descriptors, panel sprite info and span masks 0 and 1, and marks the layout
- * valid; CaptureDefinition then gives the live element values. Both captures raise the resource
- * generation. */
+/* CaptureCockpit copies the descriptors, panel sprite info and span masks 0 and
+ * 1, and marks the layout valid; CaptureDefinition then gives the live element
+ * values. Both captures raise the resource generation. */
 static void check_capture_cockpit(void)
 {
 	fresh();
@@ -197,8 +201,8 @@ static void check_capture_cockpit(void)
 				  0);
 	}
 
-	/* The auxiliary capture takes span mask 2 instead, and leaves the descriptors, panel info and masks 0
-	 * and 1 as they were. */
+	/* The auxiliary capture takes span mask 2 instead, and leaves the
+	 * descriptors, panel info and masks 0 and 1 as they were. */
 	struct xvt_cockpit_definition before = *d;
 	for (unsigned i = 0; i < 28; ++i) {
 		g_hud_cockpit_resource_descriptors[i].resource_ref ^= 1;
@@ -231,8 +235,9 @@ static void check_capture_cockpit(void)
 			  0);
 }
 
-/* The copy has layout generation 0 and element 127's warning timer zeroed, so equal content compares
- * equal; a valid layout takes the live element values first; the beam and shield tables are copied. */
+/* The copy has layout generation 0 and element 127's warning timer zeroed, so
+ * equal content compares equal; a valid layout takes the live element values
+ * first; the beam and shield tables are copied. */
 static void check_definition_copy(void)
 {
 	fresh();
@@ -285,8 +290,9 @@ static void check_reset(void)
 	XVT_ASSERT_INT_EQ(xvt_render_assets_map_icon_frame(0, NULL), 0);
 }
 
-/* RegisterPanel binds slot first + i to frame skip + i, and sets the layout's panel asset when first is
- * 0; a count of 0 or a range that leaves the 265 slots does nothing. */
+/* RegisterPanel binds slot first + i to frame skip + i, and sets the layout's
+ * panel asset when first is 0; a count of 0 or a range that leaves the 265
+ * slots does nothing. */
 static void check_register_panel(void)
 {
 	fresh();
@@ -324,9 +330,9 @@ static void check_register_panel(void)
 	}
 }
 
-/* RegisterLfd registers the resource's file with its viewport and binds it to the resource's descriptor;
- * a resource without a handle registers under the flight log buffer's handle; entries that are no
- * resource's do nothing. */
+/* RegisterLfd registers the resource's file with its viewport and binds it to
+ * the resource's descriptor; a resource without a handle registers under the
+ * flight log buffer's handle; entries that are no resource's do nothing. */
 static void check_register_lfd(void)
 {
 	fresh();
@@ -353,7 +359,8 @@ static void check_register_lfd(void)
 	XVT_ASSERT_INT_EQ(entry->cockpit_viewport.width, 304);
 	XVT_ASSERT_INT_EQ(entry->cockpit_viewport.height, 204);
 
-	/* Resource 6 has no handle: freeing the flight log buffer's handle retires it, and drops its binding. */
+	/* Resource 6 has no handle: freeing the flight log buffer's handle
+	 * retires it, and drops its binding. */
 	xvt_render_assets_register_lfd("cockpit2.lfd",
 				       g_hud_cockpit_resources[6].entries);
 	uint64_t unhandled =
@@ -382,9 +389,9 @@ static void check_register_lfd(void)
 	free(before);
 }
 
-/* RegisterIcons binds icon i to frame i below count; icons past count keep a binding to another icon
- * file; a count of 0 does nothing. MapIconFrame gives 0 and frame 0 for an unbound or out-of-range
- * index. */
+/* RegisterIcons binds icon i to frame i below count; icons past count keep a
+ * binding to another icon file; a count of 0 does nothing. MapIconFrame gives 0
+ * and frame 0 for an unbound or out-of-range index. */
 static void check_register_icons(void)
 {
 	fresh();
@@ -422,8 +429,8 @@ static void check_register_icons(void)
 	XVT_ASSERT_INT_EQ(xvt_render_assets_map_icon_frame(0, NULL), b);
 }
 
-/* Forget drops every panel, icon and LFD binding to id, and the layout's panel asset; dropping a panel or
- * LFD binding raises the resource generation. */
+/* Forget drops every panel, icon and LFD binding to id, and the layout's panel
+ * asset; dropping a panel or LFD binding raises the resource generation. */
 static void check_forget(void)
 {
 	fresh();
@@ -459,8 +466,8 @@ static void check_forget(void)
 	XVT_ASSERT_TRUE(d->resource_generation > generation);
 }
 
-/* RegisterFlightFonts registers the micro and small fonts, and the medium one except at 320x240; the
- * fonts the definition names are registered ones. */
+/* RegisterFlightFonts registers the micro and small fonts, and the medium one
+ * except at 320x240; the fonts the definition names are registered ones. */
 static void check_flight_fonts(void)
 {
 	fresh();

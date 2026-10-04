@@ -231,7 +231,8 @@ void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
 	max_u = (float)source_width;
 	max_v = (float)source_height;
 
-	/* Until the clip loops below, vertex_index counts the doubling steps of these two loops, not vertices. */
+	/* Until the clip loops below, vertex_index counts the doubling steps of
+	 * these two loops, not vertices. */
 	power_of_two_width = 1;
 	vertex_index = 0;
 	do {

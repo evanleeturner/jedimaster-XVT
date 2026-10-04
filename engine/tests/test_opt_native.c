@@ -1,16 +1,19 @@
 #define _POSIX_C_SOURCE 200809L
-/* Checks the OPT model loader (xvt_runtime/assets/opt_native.h: Read, Load and the two alignment helpers)
- * against the promises in its header, on model files this test writes itself into a fresh temporary
- * folder; no game model is read.
+/* Checks the OPT model loader (xvt_runtime/assets/opt_native.h: Read, Load and
+ * the two alignment helpers) against the promises in its header, on model files
+ * this test writes itself into a fresh temporary folder; no game model is read.
  *
- * A file is a version marker, then for versions 1 and 2 the body size, then the body. The body records the
- * base its 32-bit links count from, a reserved word, the number of roots and the address of the root
- * table; after those 14 bytes come 24-byte node records (name, type, child count, child table, a
- * parameter, payload), child tables, names and payloads. Read closes the file in every case: a handle it
- * left open would show as a leak when the sanitizers check the heap at exit.
+ * A file is a version marker, then for versions 1 and 2 the body size, then the
+ * body. The body records the base its 32-bit links count from, a reserved word,
+ * the number of roots and the address of the root table; after those 14 bytes
+ * come 24-byte node records (name, type, child count, child table, a parameter,
+ * payload), child tables, names and payloads. Read closes the file in every
+ * case: a handle it left open would show as a leak when the sanitizers check
+ * the heap at exit.
  *
- * Not run here: the 128 MiB body limit (it takes a file that large), more than 65536 nodes (a graph that
- * large takes too long to load under the sanitizers), and a close that fails. */
+ * Not run here: the 128 MiB body limit (it takes a file that large), more than
+ * 65536 nodes (a graph that large takes too long to load under the sanitizers),
+ * and a close that fails. */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,7 +36,8 @@ struct body {
 	uint32_t capacity;
 };
 
-/* Appends size bytes of data, or of zeros when data is NULL, and returns the address of the first. */
+/* Appends size bytes of data, or of zeros when data is NULL, and returns the
+ * address of the first. */
 static uint32_t append(struct body *body, const void *data, uint32_t size)
 {
 	if (body->size + size > body->capacity) {
@@ -62,8 +66,8 @@ static void put(const struct body *body, uint32_t address, uint32_t value)
 /* The address one past the body's last byte. */
 static uint32_t end(const struct body *body) { return BASE + body->size; }
 
-/* Empties the body and writes its header with roots links, all 0, in a table right after it. Returns the
- * table's address. */
+/* Empties the body and writes its header with roots links, all 0, in a table
+ * right after it. Returns the table's address. */
 static uint32_t begin(struct body *body, uint32_t roots)
 {
 	body->size = 0;
@@ -75,7 +79,8 @@ static uint32_t begin(struct body *body, uint32_t roots)
 	return table;
 }
 
-/* Appends a node record and returns its address. The fields are at offsets 0, 4, 8, 12, 16 and 20. */
+/* Appends a node record and returns its address. The fields are at offsets 0,
+ * 4, 8, 12, 16 and 20. */
 static uint32_t opt_native_node(struct body *body, uint32_t name, int32_t type,
 				int32_t count, uint32_t children, int32_t param,
 				uint32_t payload)
@@ -135,7 +140,8 @@ static uint16_t read_file(const char *name, int *version, unsigned *native_size)
 	return xvt_opt_read(file, name, version, native_size);
 }
 
-/* Writes the body as a version 1 file and returns whether Read accepts it; frees what Read returned. */
+/* Writes the body as a version 1 file and returns whether Read accepts it;
+ * frees what Read returned. */
 static int accepts(const struct body *body)
 {
 	write_model("case.opt", 1, body);
@@ -185,7 +191,8 @@ static void check_null_file(void)
 
 static void check_versions(void)
 {
-	/* A 14-byte body, the smallest allowed, has room for no root table: a model with no roots. */
+	/* A 14-byte body, the smallest allowed, has room for no root table: a
+	 * model with no roots. */
 	struct body body = {0};
 	begin(&body, 0);
 	for (int expected = 0; expected <= 2; ++expected) {
@@ -227,7 +234,8 @@ static void check_body_size(void)
 	struct body body = {0};
 	begin(&body, 0);
 
-	/* 13 bytes is too short, though it fills the file. The version is set once the marker is read. */
+	/* 13 bytes is too short, though it fills the file. The version is set
+	 * once the marker is read. */
 	write_raw("case.opt", -2, 1, 13, &body, 13);
 	int version = -9;
 	unsigned native_size = 12345;
@@ -258,7 +266,8 @@ static void check_rebuild(void)
 	uint32_t payload = append(&body, vertices, sizeof vertices);
 	uint32_t verts =
 		opt_native_node(&body, 0, OPT_MESHVERTS, 0, 0, 2, payload);
-	/* A reference node with a nonzero parameter: Read clears the resolved-node cache it holds. */
+	/* A reference node with a nonzero parameter: Read clears the
+	 * resolved-node cache it holds. */
 	uint32_t ref = opt_native_node(&body, 0, OPT_NODEREF, 0, 0, 5,
 				       text(&body, "Hull"));
 	uint32_t children = append(&body, NULL, 8);
@@ -278,7 +287,8 @@ static void check_rebuild(void)
 	XVT_ASSERT_TRUE(model->self_marker == model);
 	XVT_ASSERT_INT_EQ(model->root_node_count, 1);
 
-	/* Every pointer is native and inside the model's block; names point into the copy at its end. */
+	/* Every pointer is native and inside the model's block; names point
+	 * into the copy at its end. */
 	struct opt_node *root = model->root_nodes[0];
 	XVT_ASSERT_TRUE(inside(model, native_size, root));
 	XVT_ASSERT_INT_EQ(root->node_type, OPT_GROUP);
@@ -333,8 +343,8 @@ static void check_payload_past_end(void)
 	free(body.bytes);
 }
 
-/* Appends size payload bytes, none of them 0, then 16 filler bytes the payload must not take in, and returns
- * the payload's address. */
+/* Appends size payload bytes, none of them 0, then 16 filler bytes the payload
+ * must not take in, and returns the payload's address. */
 static uint32_t opt_native_payload(struct body *body, uint32_t size)
 {
 	uint32_t payload = append(body, NULL, size + 16);
@@ -345,9 +355,10 @@ static uint32_t opt_native_payload(struct body *body, uint32_t size)
 	return payload;
 }
 
-/* Reads the body as a file of the given version and checks the payload of its last root, the last node
- * read: its size bytes are copied from payload in the file, and only zeroed padding follows them before the
- * copy of the body, which comes last in the block. */
+/* Reads the body as a file of the given version and checks the payload of its
+ * last root, the last node read: its size bytes are copied from payload in the
+ * file, and only zeroed padding follows them before the copy of the body, which
+ * comes last in the block. */
 static void check_last_payload(const struct body *body, int version,
 			       uint32_t payload, uint32_t size)
 {
@@ -399,8 +410,9 @@ static void check_payload_sizes(void)
 		check_last_payload(&body, 1, payload, payloads[i].size);
 	}
 
-	/* Face data of 2 faces after a list of 5 vertices: a 4-byte count, then 84 bytes a face in version 0
-	 * files and 100 in later ones, then 12 bytes a vertex unless a list of normals was read before it. */
+	/* Face data of 2 faces after a list of 5 vertices: a 4-byte count, then
+	 * 84 bytes a face in version 0 files and 100 in later ones, then 12
+	 * bytes a vertex unless a list of normals was read before it. */
 	static const int32_t face_types[] = {
 		OPT_FACEDATA, OPT_FACEDATA_QUAD_MESH, OPT_FACEDATA_FACE_SET,
 		OPT_FACEDATA_TRIANGLE_STRIP_SET};

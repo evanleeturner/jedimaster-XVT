@@ -27,14 +27,18 @@ struct frontend_mission_header {
 	uint8_t variables[8];  /* Loaded; nothing in the frontend reads it. */
 	char iff_names[4][20]; /* Loaded; nothing in the frontend reads it. */
 	/* Loaded; nothing in the frontend reads it. */
-	mission_type
-		mission_type; ///< One-byte mission mode; XVT uses the shared legacy values through SKIRMISH (0..4).
+	/* One-byte mission mode; XVT uses the shared legacy values through
+	 * SKIRMISH (0..4). */
+	mission_type mission_type;
 	/* The debriefing's player statistics add mission result rows only
 	 * while this is 0. */
-	uint8_t goals_unimportant; ///< Nonzero suppresses normal mission-goal importance/failure handling.
+	/* Nonzero suppresses normal mission-goal importance/failure
+	 * handling. */
+	uint8_t goals_unimportant;
 	/* Loaded; nothing in the frontend reads it. */
-	uint8_t time_limit_minutes; ///< Mission countdown duration in whole minutes; zero disables the
-	///< header-supplied limit.
+	/* Mission countdown duration in whole minutes; zero disables the
+	 * header-supplied limit. */
+	uint8_t time_limit_minutes;
 	uint8_t reserved[61]; /* Loaded; nothing reads it. */
 };
 

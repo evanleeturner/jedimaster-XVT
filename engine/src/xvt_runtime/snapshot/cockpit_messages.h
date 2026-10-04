@@ -42,9 +42,10 @@ void xvt_cockpit_messages_record_glyph(unsigned character, unsigned advance,
 				       unsigned height, int narrow);
 /* Clears the alert, its generation included, and abandons an open alert line. */
 void xvt_cockpit_messages_begin_alert(void);
-/* Opens a capture of alert line max(mode - 1, 0), building on the active alert or on an empty
- * one, and sets the alert's placement to the rectangle. It clears that line and those after it; mode 1 also
- * sets the border color. Modes outside 0 to 3 are ignored. */
+/* Opens a capture of alert line max(mode - 1, 0), building on the active alert
+ * or on an empty one, and sets the alert's placement to the rectangle. It
+ * clears that line and those after it; mode 1 also sets the border color. Modes
+ * outside 0 to 3 are ignored. */
 void xvt_cockpit_messages_begin_alert_line(int mode, int x, int y, int width,
 					   int height);
 /* Closes the alert line: fills the rows from it down with the text background color and commits

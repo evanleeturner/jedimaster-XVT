@@ -240,7 +240,8 @@ int xvt_original2d_load(const struct xvt_snap_image_asset *source,
 	int ok = 0;
 	switch (source->kind) {
 	case XVT_IMAGE_BMP:
-		/* Frontend preparation supplies the asset's captured LUT or its explicit tint variant. */
+		/* Frontend preparation supplies the asset's captured LUT or its
+		 * explicit tint variant. */
 		out->external_palette = 1;
 		out->images.frames = calloc(1, sizeof *out->images.frames);
 		if (out->images.frames) {

@@ -1,10 +1,11 @@
-/* Checks the controller settings (xvt_runtime/config/controller_config.h) and xvt_config_set_controller
- * against the promises in their headers: the readers and the writer on documents and options this file
- * builds itself, and SetController on settings loaded from a copy of the shipped defaults. Each check starts
- * from a fresh fixture folder (config_fixture.h).
+/* Checks the controller settings (xvt_runtime/config/controller_config.h) and
+ * xvt_config_set_controller against the promises in their headers: the readers
+ * and the writer on documents and options this file builds itself, and
+ * SetController on settings loaded from a copy of the shipped defaults. Each
+ * check starts from a fresh fixture folder (config_fixture.h).
  *
- * Run as "test_controller_config known-failure <check>" for a check that shows the code breaking its
- * header; see main. */
+ * Run as "test_controller_config known-failure <check>" for a check that shows
+ * the code breaking its header; see main. */
 #define _XOPEN_SOURCE 700
 
 #include <stdio.h>
@@ -55,8 +56,9 @@ source(AeronControllerDigitalSourceKind kind, int index, int hat,
 					      .threshold = threshold};
 }
 
-/* 1 when profile binds source to action. Axis thresholds must match too; the thresholds used here are
- * binary fractions, which survive the trip through float exactly. */
+/* 1 when profile binds source to action. Axis thresholds must match too; the
+ * thresholds used here are binary fractions, which survive the trip through
+ * float exactly. */
 static int binds(const struct xvt_controller_profile *profile,
 		 xvt_input_action action, AeronControllerDigitalSource source)
 {
@@ -119,7 +121,8 @@ static void check_gamepad_profile(void)
 			 cleared.mapping.axes[XVT_INPUT_AXIS_PITCH].deadzone, 0,
 			 "a cleared deadzone is exactly zero");
 
-	/* A source repeated for the same action counts once; an axis source's threshold defaults to 0.5. */
+	/* A source repeated for the same action counts once; an axis source's
+	 * threshold defaults to 0.5. */
 	XVT_ASSERT_INT_EQ(g_profile.binding_count, 4);
 	XVT_ASSERT_TRUE(binds(&g_profile, XVT_INPUT_ACTION_FIRE_WEAPON,
 			      source(AERON_CONTROLLER_DIGITAL_BUTTON,
@@ -160,7 +163,8 @@ static void check_joystick_profile(void)
 			 "0.5 is exact in binary");
 	XVT_ASSERT_INT_EQ(axes[XVT_INPUT_AXIS_PITCH].source, 15);
 	XVT_ASSERT_TRUE(axes[XVT_INPUT_AXIS_PITCH].invert);
-	/* The throttle, left out, keeps its cleared value: a joystick's throttle starts inverted. */
+	/* The throttle, left out, keeps its cleared value: a joystick's
+	 * throttle starts inverted. */
 	static struct xvt_controller_profile cleared;
 	xvt_controller_options_clear_profile(&cleared,
 					     AERON_CONTROLLER_KIND_JOYSTICK);
@@ -232,7 +236,8 @@ static void check_profile_refusals(void)
 	XVT_ASSERT_TRUE(!read_profile_text("pad: 5\n", "pad",
 					   AERON_CONTROLLER_KIND_GAMEPAD));
 
-	/* Axes: known names and fields only, invert and deadzone present, deadzone 0 to 1, throttle's 0. */
+	/* Axes: known names and fields only, invert and deadzone present,
+	 * deadzone 0 to 1, throttle's 0. */
 	XVT_ASSERT_TRUE(!pad_with_axes(
 		"    strafe: {source: leftx, invert: false, deadzone: 0}\n"));
 	XVT_ASSERT_TRUE(!pad_with_axes(
@@ -251,7 +256,8 @@ static void check_profile_refusals(void)
 		"    throttle: {source: righty, invert: false, deadzone: 0}\n"));
 	XVT_ASSERT_TRUE(!pad_with_axes(
 		"    throttle: {source: righty, invert: false, deadzone: 0.25}\n"));
-	/* Axis sources: a gamepad axis name; on a joystick an index within its axes; never shared. */
+	/* Axis sources: a gamepad axis name; on a joystick an index within its
+	 * axes; never shared. */
 	XVT_ASSERT_TRUE(!pad_with_axes(
 		"    yaw: {source: middlex, invert: false, deadzone: 0}\n"));
 	XVT_ASSERT_TRUE(!pad_with_axes(
@@ -264,7 +270,8 @@ static void check_profile_refusals(void)
 		"stick:\n  axes:\n    yaw: {source: 16, invert: false, deadzone: 0}\n",
 		"stick", AERON_CONTROLLER_KIND_JOYSTICK));
 
-	/* Buttons: known actions; a button name only on a gamepad; {button} and hats only on a joystick. */
+	/* Buttons: known actions; a button name only on a gamepad; {button} and
+	 * hats only on a joystick. */
 	XVT_ASSERT_TRUE(!pad_with_buttons("    fly_backwards: south\n"));
 	XVT_ASSERT_TRUE(!pad_with_buttons("    fire_weapon: purple\n"));
 	XVT_ASSERT_TRUE(!pad_with_buttons("    fire_weapon: {button: 1}\n"));
@@ -311,9 +318,9 @@ static void check_profile_refusals(void)
 	fixture_end();
 }
 
-/* Known failure. The header says unknown fields fail. An axis source with a misspelt threshold field,
- * {axis, direction, threshhold}, is accepted: the misspelt field is ignored and the default threshold of
- * 0.5 is used. */
+/* Known failure. The header says unknown fields fail. An axis source with a
+ * misspelt threshold field, {axis, direction, threshhold}, is accepted: the
+ * misspelt field is ignored and the default threshold of 0.5 is used. */
 static void check_axis_source_unknown_field(void)
 {
 	fixture_begin();
@@ -457,8 +464,9 @@ static void check_parse_refusals(void)
 	fixture_end();
 }
 
-/* Two valid models: a gamepad whose bindings list fire_weapon, then target_next, then fire_weapon again,
- * and a joystick with a hat, a button and an axis source. Button and hat thresholds are 0.5, the default. */
+/* Two valid models: a gamepad whose bindings list fire_weapon, then
+ * target_next, then fire_weapon again, and a joystick with a hat, a button and
+ * an axis source. Button and hat thresholds are 0.5, the default. */
 static void two_models(struct xvt_controller_options *options)
 {
 	memset(options, 0, sizeof *options);
@@ -596,7 +604,8 @@ static void check_write(void)
 		}
 	}
 
-	/* The order is fixed: the same bindings listed in another order are written the same way. */
+	/* The order is fixed: the same bindings listed in another order are
+	 * written the same way. */
 	reordered = options;
 	struct xvt_controller_profile *profile = &reordered.models[0].profile;
 	struct xvt_input_action_binding first = profile->bindings[0];
@@ -667,8 +676,9 @@ static void check_set_controller(void)
 	fixture_end();
 }
 
-/* With no arguments, runs every check that holds. "known-failure <name>" runs only that check, which shows
- * the code breaking its header; a name not listed here returns 0. */
+/* With no arguments, runs every check that holds. "known-failure <name>" runs
+ * only that check, which shows the code breaking its header; a name not listed
+ * here returns 0. */
 int main(int argc, char **argv)
 {
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {

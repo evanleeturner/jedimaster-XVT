@@ -110,8 +110,9 @@ uint16_t g_credits_text_colors[2][32] = {0};
 // GLOBAL: XVT 0x52D0C8
 int g_credits_exit_pending = 0;
 
-/* Besides loading the credits images, font and sound list, this sets the display options for the screen,
- * hides the cursor and starts CD track 4 playing on a loop. */
+/* Besides loading the credits images, font and sound list, this sets the
+ * display options for the screen, hides the cursor and starts CD track 4
+ * playing on a loop. */
 /* Also loads font size 15, turns on refilling the back buffer from the
  * offscreen surface after each present, sets the CD aux volume to 0x8000 and
  * plays track 4 from its start. Returns 0 on every path and checks no load or

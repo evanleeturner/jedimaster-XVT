@@ -46,8 +46,9 @@ IDirectDrawSurface *g_flight_primary_surface;
  * g_flight_software_framebuffer. */
 // GLOBAL: XVT 0x66E710
 uint8_t g_flight_hud_staging_buffer[640 * 480 * 2];
-/* Element 0 is the primary surface pitch in bytes. Element 1, which nothing reads, is 2 when the driver
- * can color key with a destination key but not a source key, else 1. */
+/* Element 0 is the primary surface pitch in bytes. Element 1, which nothing
+ * reads, is 2 when the driver can color key with a destination key but not a
+ * source key, else 1. */
 // GLOBAL: XVT 0x803B70
 int g_flight_primary_pitch[2];
 /* The surface the 3D view is drawn on and the next flip shows: the primary
@@ -900,8 +901,10 @@ HRESULT flight_display_flip(void)
 #endif
 			}
 
-			/* From here flip_result holds the result of returning to the normal cooperative level, not of a
-			 * flip; on this path the function returns it and drops the retried flip's result. */
+			/* From here flip_result holds the result of returning
+			 * to the normal cooperative level, not of a flip; on
+			 * this path the function returns it and drops the
+			 * retried flip's result. */
 			flip_result =
 				g_flight_direct_draw->lpVtbl
 					->SetCooperativeLevel(

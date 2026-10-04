@@ -168,8 +168,9 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 
 	int text_width = frontend_text_measure_width(text, font_size);
 	int rect_width = rect->right - rect->left;
-	/* From here mouse_x holds the text's horizontal scroll: 0, or the negative shift that keeps the end of
-	 * text wider than the field in view. */
+	/* From here mouse_x holds the text's horizontal scroll: 0, or the
+	 * negative shift that keeps the end of text wider than the field in
+	 * view. */
 	mouse_x = 0;
 	if (rect_width + 1 < text_width) {
 		mouse_x = rect_width;

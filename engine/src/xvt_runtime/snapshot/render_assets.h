@@ -80,8 +80,9 @@ void xvt_render_assets_register_frontend_image(
  * Init, for id 0 or NULL colors, or when id is not a registered BMP. */
 int xvt_render_assets_copy_frontend_colors(
 	uint64_t id, struct xvt_frontend_image_colors *colors);
-/* Registers a non-model source (image, font, cursor, panel, icon) keyed by owner, or by handle when owner is
- * NULL, and returns its id. Returns 0 before Init, when owner and handle are both 0, or on failure. */
+/* Registers a non-model source (image, font, cursor, panel, icon) keyed by
+ * owner, or by handle when owner is NULL, and returns its id. Returns 0 before
+ * Init, when owner and handle are both 0, or on failure. */
 uint64_t xvt_render_assets_register_image(const void *owner, uint16_t handle,
 					  const char *path,
 					  xvt_snap_image_kind kind,
@@ -94,13 +95,15 @@ uint64_t xvt_render_assets_register_image(const void *owner, uint16_t handle,
  * and span mask 2 instead. Marks the layout valid and raises the layout and resource
  * generations. */
 void xvt_render_assets_capture_cockpit(int auxiliary);
-/* Registers the cockpit LFD file whose entry table is entries, with its resource's viewport,
- * and binds it to that resource's descriptor. A resource without a handle registers under the
- * flight scratch screen buffer's handle. Does nothing when entries is not one of the 28 resources. */
+/* Registers the cockpit LFD file whose entry table is entries, with its
+ * resource's viewport, and binds it to that resource's descriptor. A resource
+ * without a handle registers under the flight scratch screen buffer's handle.
+ * Does nothing when entries is not one of the 28 resources. */
 void xvt_render_assets_register_lfd(const char *path, uint8_t **entries);
-/* Registers the panel sprite file for panel slots first to first + count - 1 of 265, binding
- * slot first + i to frame skip + i; when first is 0 it also sets the layout's panel asset. Does nothing
- * when count is 0 or the range leaves the 265 slots. */
+/* Registers the panel sprite file for panel slots first to first + count - 1 of
+ * 265, binding slot first + i to frame skip + i; when first is 0 it also sets
+ * the layout's panel asset. Does nothing when count is 0 or the range leaves
+ * the 265 slots. */
 void xvt_render_assets_register_panel(const char *path, uint16_t first_sprite,
 				      uint16_t count, uint16_t skip);
 /* Registers the map icon file and binds icon i to frame i for i below count; icons past count

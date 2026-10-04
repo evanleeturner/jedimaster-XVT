@@ -1,9 +1,12 @@
-/* Checks input prediction for remote players (xvt_runtime/runtime/flight_prediction.h) against the promises
- * in its header: which players get a predicted frame, where its controls come from, what the copy keeps,
- * what it leaves alone, and the refusals. No game data is read: the test sets the per-player input histories
- * and the player records itself. Player 0 is the local player; players 1 to 3 are connected remote players,
- * each bound to an object of its own; the others are not connected. Every check starts from empty
- * histories, no confirmed controls and no recovery request. */
+/* Checks input prediction for remote players
+ * (xvt_runtime/runtime/flight_prediction.h) against the promises in its header:
+ * which players get a predicted frame, where its controls come from, what the
+ * copy keeps, what it leaves alone, and the refusals. No game data is read: the
+ * test sets the per-player input histories and the player records itself.
+ * Player 0 is the local player; players 1 to 3 are connected remote players,
+ * each bound to an object of its own; the others are not connected. Every check
+ * starts from empty histories, no confirmed controls and no recovery
+ * request. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -72,7 +75,8 @@ static const struct input_frame *frame_at(unsigned player, int tick)
 	return NULL;
 }
 
-/* Checks that player has a predicted, unapplied frame at tick holding source's axes and roll bit only. */
+/* Checks that player has a predicted, unapplied frame at tick holding source's
+ * axes and roll bit only. */
 static void assert_predicted(unsigned player, int tick, int8_t axis)
 {
 	const struct input_frame *frame = frame_at(player, tick);
@@ -108,7 +112,8 @@ static void check_which_players(void)
 		add_frame(player, 2, XVT_INPUT_REAL, 1, (int8_t)(10 * player));
 	}
 	XVT_ASSERT_INT_EQ(xvt_flight_prediction_queue(TICK), 1);
-	/* The connected remote players are predicted; the local player and the unconnected ones are not. */
+	/* The connected remote players are predicted; the local player and the
+	 * unconnected ones are not. */
 	for (unsigned player = 1; player < 4; ++player) {
 		XVT_ASSERT_INT_EQ(g_input_frame_count[player], 2);
 		assert_predicted(player, TICK, (int8_t)(10 * player));
@@ -130,8 +135,9 @@ static void check_which_players(void)
 
 static void check_source_is_newest_before_tick(void)
 {
-	/* Real at 2, predicted at 4, authoritative at 6, real after the tick: the authoritative frame is the
-	 * newest non-predicted frame before the tick. */
+	/* Real at 2, predicted at 4, authoritative at 6, real after the tick:
+	 * the authoritative frame is the newest non-predicted frame before the
+	 * tick. */
 	flight_prediction_world();
 	add_frame(1, 2, XVT_INPUT_REAL, 1, 10);
 	add_frame(1, 4, XVT_INPUT_PREDICTED, 0, 50);
@@ -219,7 +225,8 @@ static void check_confirmed_controls(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_prediction_queue(TICK), 1);
 	assert_predicted(1, TICK, 10);
 
-	/* Used only while the player stays bound to the same object: another slot, or another signature. */
+	/* Used only while the player stays bound to the same object: another
+	 * slot, or another signature. */
 	flight_prediction_world();
 	xvt_flight_prediction_confirm(1, 2, &confirmed);
 	g_players[1].object_index = 7;
@@ -252,7 +259,8 @@ static void check_confirmed_controls(void)
 
 static void check_corrupt_history(void)
 {
-	/* Player 2's count is corrupt: recovery is requested and 0 returned; player 1's prediction stays. */
+	/* Player 2's count is corrupt: recovery is requested and 0 returned;
+	 * player 1's prediction stays. */
 	flight_prediction_world();
 	add_frame(1, 2, XVT_INPUT_REAL, 1, 10);
 	add_frame(2, 2, XVT_INPUT_REAL, 1, 10);

@@ -1,10 +1,12 @@
-/* Checks the render camera shadow (xvt_runtime/snapshot/render_camera.h) against the promises in its header.
- * The live Q15 camera rows are the recovered game's globals, which this file sets itself, or fills by
- * calling the recovered fview_build_camera_orient, which builds them and then calls xvt_render_camera_build as
- * the game does. No game data is read.
+/* Checks the render camera shadow (xvt_runtime/snapshot/render_camera.h)
+ * against the promises in its header. The live Q15 camera rows are the
+ * recovered game's globals, which this file sets itself, or fills by calling
+ * the recovered fview_build_camera_orient, which builds them and then calls
+ * xvt_render_camera_build as the game does. No game data is read.
  *
- * The double-precision basis is compared with the Q15 rows by the angle between matching rows: a mirror of
- * the same camera points each row the same way, within the Q15 rounding. */
+ * The double-precision basis is compared with the Q15 rows by the angle between
+ * matching rows: a mirror of the same camera points each row the same way,
+ * within the Q15 rounding. */
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -30,7 +32,8 @@ static const struct angles k_views[] = {
 	{0x7000, -0x1C00, 0x4A00, -0x0900, -0x0200, 0x0300},
 };
 
-/* Three made-up Q15 tags. None is a rotation, so the scaled tag can never be mistaken for a basis. */
+/* Three made-up Q15 tags. None is a rotation, so the scaled tag can never be
+ * mistaken for a basis. */
 static const int32_t k_tag1[9] = {1000, 2000, 3000, 4000, 5000,
 				  6000, 7000, 8000, 9000};
 static const int32_t k_tag2[9] = {-100, 200,  -300, 400, -500,
@@ -97,8 +100,8 @@ static int same_rows(const float a[9], const float b[9])
 	return 1;
 }
 
-/* After the recovered game builds a camera, the rows are a double-precision mirror of its Q15 rows: each
- * row points where the matching Q15 row points. */
+/* After the recovered game builds a camera, the rows are a double-precision
+ * mirror of its Q15 rows: each row points where the matching Q15 row points. */
 static void check_mirrors_game_camera(void)
 {
 	for (size_t v = 0; v < sizeof k_views / sizeof k_views[0]; ++v) {
@@ -120,18 +123,20 @@ static void check_mirrors_game_camera(void)
 				fixed += (double)q[r + c] * q[r + c];
 			}
 			XVT_ASSERT_TRUE(precise > 0 && fixed > 0);
-			/* Q15 rounding turns a row by a few 1e-4 radians at most, which moves the cosine by under 1e-7
-			 * (2.2e-8 at worst over these views); a wrong axis or sign, or an angle off by half a degree,
-			 * moves it by more than 1e-5. */
+			/* Q15 rounding turns a row by a few 1e-4 radians at
+			 * most, which moves the cosine by under 1e-7 (2.2e-8 at
+			 * worst over these views); a wrong axis or sign, or an
+			 * angle off by half a degree, moves it by more than
+			 * 1e-5. */
 			XVT_ASSERT_CLOSE(dot / sqrt(precise * fixed), 1.0, 1e-5,
 					 "the Q15 rounding of one camera row");
 		}
 	}
 }
 
-/* The basis comes from the angles alone; the Q15 rows only tag it. While the live rows equal the tag the
- * basis is written; once they differ, the live rows scaled by 1/32768 are; when they match again, the basis
- * is back. */
+/* The basis comes from the angles alone; the Q15 rows only tag it. While the
+ * live rows equal the tag the basis is written; once they differ, the live rows
+ * scaled by 1/32768 are; when they match again, the basis is back. */
 static void check_tag_chooses_source(void)
 {
 	const struct angles *view = &k_views[2];

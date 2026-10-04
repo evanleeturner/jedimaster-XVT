@@ -1,6 +1,7 @@
-/* Checks the mouse settings (xvt_runtime/config/mouse_config.h) against the promises in its header: the
- * parser on documents this file writes itself, and xvt_config_set_mouse on settings loaded from a copy of the
- * shipped defaults. Each check starts from a fresh fixture folder (config_fixture.h). */
+/* Checks the mouse settings (xvt_runtime/config/mouse_config.h) against the
+ * promises in its header: the parser on documents this file writes itself, and
+ * xvt_config_set_mouse on settings loaded from a copy of the shipped defaults.
+ * Each check starts from a fresh fixture folder (config_fixture.h). */
 #define _XOPEN_SOURCE 700
 
 #include <string.h>
@@ -96,7 +97,8 @@ static void check_set_mouse(void)
 		xvt_config_default_settings()->mouse;
 	uint64_t generation = xvt_config_generation();
 
-	/* Two options differ from the shipped default and are stored; the third equals it and is not. */
+	/* Two options differ from the shipped default and are stored; the third
+	 * equals it and is not. */
 	options = defaults;
 	options.mouse_flight_enabled = !defaults.mouse_flight_enabled;
 	options.mouse_sensitivity =

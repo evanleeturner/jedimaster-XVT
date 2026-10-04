@@ -424,8 +424,8 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 		/* selected_index holds the clicked pilot row plus one here, or 0. */
 		selected_index = pilot_record_draw_pilot_list(
 			&rect, g_pilot_list_scroll_offset);
-		/* accepted holds a name comparison in this block: nonzero means the clicked pilot is not the
-		 * current one. */
+		/* accepted holds a name comparison in this block: nonzero means
+		 * the clicked pilot is not the current one. */
 		if (selected_index != 0) {
 #ifdef XVT_MODERN
 			accepted = strncasecmp(
@@ -531,8 +531,9 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 #ifdef XVT_MODERN
 	}
 #endif
-	/* selected_index says here whether the name entry was finished; it is then reused to say whether the
-	 * name matched an existing pilot, which only the modern build sets. */
+	/* selected_index says here whether the name entry was finished; it is
+	 * then reused to say whether the name matched an existing pilot, which
+	 * only the modern build sets. */
 	if (selected_index != 0 && g_pilot_record_name_input[0] != '\0') {
 		selected_index = 0;
 		g_pilot_record_pages_need_rebuild = 1;
@@ -541,7 +542,8 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 			node = g_pilot_file_list->head;
 			if (g_pilot_list_display_names != NULL &&
 			    g_pilot_file_list->count > 0) {
-				/* accepted holds a name comparison in this loop: 0 means the typed name matches this
+				/* accepted holds a name comparison in this
+				 * loop: 0 means the typed name matches this
 				 * pilot. */
 				for (; pilot_index < g_pilot_file_list->count;
 				     ++pilot_index) {
@@ -2563,8 +2565,8 @@ int pilot_record_draw_mission_achievements_page(void)
 		     list_index <
 		     g_pilot_record_singleplayer_training_mission_count;
 		     ++list_index) {
-			/* award_id is a character position in these trim loops: each mission description is cut at its
-			 * last '('. */
+			/* award_id is a character position in these trim loops:
+			 * each mission description is cut at its last '('. */
 			award_id =
 				(int)strlen(
 					g_pilot_record_singleplayer_training_mission_list
@@ -3996,7 +3998,9 @@ int pilot_record_draw_mission_achievements_page(void)
 				     child_list_index <
 				     g_pilot_record_singleplayer_training_mission_count;
 				     ++child_list_index) {
-					/* award_id holds a mission id here, used to index the pilot's campaign mission records. */
+					/* award_id holds a mission id here,
+					 * used to index the pilot's campaign
+					 * mission records. */
 					award_id =
 						g_pilot_record_singleplayer_training_mission_list
 							[child_list_index]
@@ -5458,7 +5462,10 @@ int pilot_record_draw_mission_achievements_page(void)
 							    row &&
 						    row - g_pilot_achievements_scroll_offset <
 							    MISSION_ACHIEVEMENT_VISIBLE_ROWS) {
-							/* This statement turns award_id from the mission id into that mission's award
+							/* This statement turns
+							 * award_id from the
+							 * mission id into that
+							 * mission's award
 							 * level. */
 							award_id =
 								g_pilot_data
@@ -7485,9 +7492,10 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 			sprite_name_byte_offset += 32;
 		}
 
-		/* From here record_count_or_index counts the single-player sprite names read, so in the original
-		 * build the record loop stops at 15 records instead of the file's count; the modern build keeps
-		 * the count in record_capacity. */
+		/* From here record_count_or_index counts the single-player
+		 * sprite names read, so in the original build the record loop
+		 * stops at 15 records instead of the file's count; the modern
+		 * build keeps the count in record_capacity. */
 		record_count_or_index = 0;
 		sprite_name_byte_offset = 0;
 		while (sprite_name_byte_offset < 15 * 32) {

@@ -77,12 +77,14 @@ struct mp_roster_entry {
 	 * frontend_net_process_network_packets from a player's CRAFT_LOADOUT or
 	 * copied from the host's roster packets, and in a solo game from the
 	 * local choice by the briefing. */
-	int craft_type_override; ///< Nonzero exact craft type; zero selects the assigned flight group's base or
-	///< optional craft.
+	/* Nonzero exact craft type; zero selects the assigned flight group's
+	 * base or optional craft. */
+	int craft_type_override;
 	/* The chosen flight group craft option minus 1, so -1 for the group's
 	 * own craft; set as craft_type_override is. */
-	int craft_option_index; ///< Optional craft index; values above 9 fall back to the assigned flight group's
-	///< base craft.
+	/* Optional craft index; values above 9 fall back to the assigned flight
+	 * group's base craft. */
+	int craft_option_index;
 	/* A value n above 0 is the flight group's optional warhead n - 1; set
 	 * as craft_type_override is. */
 	int warhead_option_index; ///< Warhead loadout option index; zero uses the mission default.
@@ -91,7 +93,9 @@ struct mp_roster_entry {
 	int beam_option_index; ///< Beam loadout option index; zero uses the mission default.
 	/* A value n above 0 is the flight group's optional countermeasure
 	 * n - 1; set as craft_type_override is. */
-	int countermeasure_option_index; ///< Countermeasure loadout option index; zero uses the mission default.
+	/* Countermeasure loadout option index; zero uses the mission
+	 * default. */
+	int countermeasure_option_index;
 };
 
 #pragma pack(pop)
@@ -115,7 +119,9 @@ struct ship_list_entry {
 	char model_file_name[64];
 	/* Set by ship_list_load; the tech library and the briefing's craft
 	 * screen read it. */
-	int craft_type; ///< craft_species value read from FRONTRES/frntspec.lst; stored as int by fscanf.
+	/* craft_species value read from FRONTRES/frntspec.lst; stored as int by
+	 * fscanf. */
+	int craft_type;
 };
 
 typedef enum mission_setup_active_panel {
@@ -206,9 +212,11 @@ struct battle_sequence_state {
 	 * complete and its prevent goals not, REBEL_VICTORY when team 1 is,
 	 * else DRAW. */
 	battle_mission_result mission_results[10];
-	/* The mission flown at each step of the sequence: its position in the sequence descriptor's mission
-	 * list, which the repeat checks compare against. The multiplayer battle choice stores the mission id
-	 * instead, and starting a combat engagement sequence stores a mission list index in the first slot. */
+	/* The mission flown at each step of the sequence: its position in the
+	 * sequence descriptor's mission list, which the repeat checks compare
+	 * against. The multiplayer battle choice stores the mission id instead,
+	 * and starting a combat engagement sequence stores a mission list index
+	 * in the first slot. */
 	/* Written by mission_setup_update's mission start,
 	 * mission_setup_select_first_sequence_mission,
 	 * mission_setup_select_next_sequence_mission, and the battle choice screen
@@ -229,7 +237,9 @@ struct battle_sequence_state {
 
 struct campaign_sequence_state {
 	/* Nothing reads or writes it by name. */
-	int32_t unused00; ///< Unresolved campaign-sequence field; cleared and persisted with the full state.
+	/* Unresolved campaign-sequence field; cleared and persisted with the
+	 * full state. */
+	int32_t unused00;
 	/* Raised by 1 by the debriefing and when a saved campaign continues;
 	 * mission_setup_select_next_sequence_mission lowers it by 1 when
 	 * last_mission_completed is 0, so that mission is flown again. */
@@ -239,7 +249,8 @@ struct campaign_sequence_state {
 	int32_t mission_count; ///< Mission count read from the selected campaign descriptor.
 	/* Copied by fediskio.c from the pilot's team's is_mission_completed after
 	 * each campaign mission. */
-	int32_t last_mission_completed; ///< Whether the just-finished campaign mission completed successfully.
+	/* Whether the just-finished campaign mission completed successfully. */
+	int32_t last_mission_completed;
 	/* Counted by frontend_mission_init_player_state for each mission. */
 	int32_t human_player_count; ///< Human players participating in the campaign mission.
 	/* fediskio.c sets it to the mission score after a completed first

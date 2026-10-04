@@ -882,7 +882,8 @@ void movie_decode_and_present_frame(void)
 		}
 		g_movie_playback_params->primary_surface->lpVtbl->Flip(
 			g_movie_playback_params->primary_surface, NULL, 1);
-		/* merged_rects is reused as the temporary for swapping the previous and current dirty lists. */
+		/* merged_rects is reused as the temporary for swapping the
+		 * previous and current dirty lists. */
 		merged_rects = g_movie_previous_dirty_rects;
 		g_movie_previous_dirty_rects = g_movie_current_dirty_rects;
 		g_movie_current_dirty_rects = merged_rects;

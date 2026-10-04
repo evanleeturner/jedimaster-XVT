@@ -928,8 +928,9 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 			continue;
 		}
 
-		/* Until the reset that starts the count, this local is a 0/1 flag: 1 when the craft can be boarded
-		 * now (parked, a platform, disabled, stopped, or waiting to be boarded). */
+		/* Until the reset that starts the count, this local is a 0/1
+		 * flag: 1 when the craft can be boarded now (parked, a
+		 * platform, disabled, stopped, or waiting to be boarded). */
 		int16_t craft_reserved_count = 0;
 		struct object_record *object = &g_object_table[object_idx];
 		struct craft_data *craft =
@@ -1689,8 +1690,9 @@ int pai_compile_plans_from_text(const char *base_name)
 	fe_disk_io_open_global_stream(file_name, "wb", 0, 1);
 	stream = (xvt_file *)g_stream;
 	if (stream != NULL) {
-		/* From here the same local holds the byte size of each section of the .plo file; each size is written
-		 * just before its section. */
+		/* From here the same local holds the byte size of each section
+		 * of the .plo file; each size is written just before its
+		 * section. */
 		plan_index = (int)sizeof(g_plan_table);
 		FILE_RAW_WRITE(&plan_index, sizeof(plan_index), 1, stream);
 		FILE_RAW_WRITE(g_plan_table, (size_t)plan_index, 1, stream);

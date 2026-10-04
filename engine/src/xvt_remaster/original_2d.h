@@ -9,9 +9,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* Decoded original 2D resources (PNL panels, LFD cockpit panels, BMP frontend images, ACT textures, ABP
- * and bitmap fonts, the built-in cursor) as indexed frames with the palette and masks that go with
- * them, and the builders that turn them into atlases, font atlases and map-icon atlases. */
+/* Decoded original 2D resources (PNL panels, LFD cockpit panels, BMP frontend
+ * images, ACT textures, ABP and bitmap fonts, the built-in cursor) as indexed
+ * frames with the palette and masks that go with them, and the builders that
+ * turn them into atlases, font atlases and map-icon atlases. */
 
 /* images: the indexed frames, each with coverage and its own palette. font: a decoded font.
  * external_palette: indices outside the LFD range take the caller's palette. cockpit_mask: the LFD
@@ -46,18 +47,20 @@ int xvt_original2d_load_act(const char *path, struct xvt_original2d *out,
 			    char *error, size_t capacity);
 /* Frees everything and zeroes it; NULL is accepted. */
 void xvt_original2d_free(struct xvt_original2d *source);
-/* Packs every frame into an sRGB atlas: a covered pixel whose index is neither key takes its frame's
- * palette color, or palette's when the source has an external palette and the index is outside its
- * range, with its coverage as alpha; premultiplied alpha mode when every coverage is 255, straight
+/* Packs every frame into an sRGB atlas: a covered pixel whose index is neither
+ * key takes its frame's palette color, or palette's when the source has an
+ * external palette and the index is outside its range, with its coverage as
+ * alpha; premultiplied alpha mode when every coverage is 255, straight
  * otherwise. Returns 0 for no frames or an allocation or build failure. */
 int xvt_original2d_build_atlas(const struct xvt_original2d *source,
 			       AeronCommandBuffer *cmd,
 			       const uint32_t palette[256], uint16_t key,
 			       uint16_t key_alt, int generate_mips,
 			       const char *label, AeronRuntimeAtlas *out);
-/* Builds the font's foreground or shadow plane as a font atlas upscaled 4x nearest, with a solid strip
- * for text backgrounds (white_uv), the classic glyph metrics kept in out->glyphs. Returns 1 doing
- * nothing when the plane is absent; 0 when a dimension or glyph metric would overflow 16 bits after
+/* Builds the font's foreground or shadow plane as a font atlas upscaled 4x
+ * nearest, with a solid strip for text backgrounds (white_uv), the classic
+ * glyph metrics kept in out->glyphs. Returns 1 doing nothing when the plane is
+ * absent; 0 when a dimension or glyph metric would overflow 16 bits after
  * scaling, or an allocation or build fails. */
 int xvt_original2d_build_font(const AeronDecodedFont *source,
 			      AeronCommandBuffer *cmd, int shadow,

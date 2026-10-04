@@ -4854,8 +4854,9 @@ void hud_draw_laser_cannon_indicators(void)
 			}
 		}
 
-		/* lock_state first holds this cannon's fire-ready state, drawn on the ready indicator; after that draw
-		 * it becomes the target lock state. */
+		/* lock_state first holds this cannon's fire-ready state, drawn
+		 * on the ready indicator; after that draw it becomes the target
+		 * lock state. */
 		uint16_t lock_state = 0;
 		uint16_t ready_state;
 		if (charge > 0 && (craft->working_subsystems &
@@ -10113,7 +10114,8 @@ void hud_update_flight_message_panes(void)
 	}
 }
 
-/* Also zeroes the system pane's timer, so the next hud_update_flight_message_panes clears any system message. */
+/* Also zeroes the system pane's timer, so the next
+ * hud_update_flight_message_panes clears any system message. */
 /* Empties g_ready_message_pane_queue and its count without clearing the drawn
  * pane. */
 // FUNCTION: XVT 0x451560

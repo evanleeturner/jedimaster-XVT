@@ -4,46 +4,53 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* The flight scene's per-frame setup and its output path: temporal and motion-blur settings, bloom, and
- * tonemapping into a retained presentation target with black bars outside the content rectangle, or
- * straight into the swapchain in direct mode; also the standalone HUD target used while loading. Static
- * state: one source, one target. */
+/* The flight scene's per-frame setup and its output path: temporal and
+ * motion-blur settings, bloom, and tonemapping into a retained presentation
+ * target with black bars outside the content rectangle, or straight into the
+ * swapchain in direct mode; also the standalone HUD target used while loading.
+ * Static state: one source, one target. */
 
 /* Sets scene's post settings from the SSAO settings and, with motion, the motion-blur settings at
  * shutter; motion 0 turns blur off. */
 void xvt_flight_pipeline_post(AeronScene3D *scene, float shutter, int motion);
-/* Starts scene for the prepared frame: temporal mode and sharpness with the host frame delta (16.67 ms
- * on the first call) and history reset on reset; the frame's camera; the mesh sampler; post with a
- * shutter of the motion_blur shutter times 32 ms over the frame's velocity span, 0 on reset, with no
- * span, or when paused or not regenerating motion unless pause_keep_blur; and the motion context (the
- * previous view-projection when regenerating, the current one when not, none on reset). Returns 0 when
- * the scene's Begin or the sampler fails. */
+/* Starts scene for the prepared frame: temporal mode and sharpness with the
+ * host frame delta (16.67 ms on the first call) and history reset on reset; the
+ * frame's camera; the mesh sampler; post with a shutter of the motion_blur
+ * shutter times 32 ms over the frame's velocity span, 0 on reset, with no span,
+ * or when paused or not regenerating motion unless pause_keep_blur; and the
+ * motion context (the previous view-projection when regenerating, the current
+ * one when not, none on reset). Returns 0 when the scene's Begin or the sampler
+ * fails. */
 int xvt_flight_pipeline_begin(AeronScene3D *scene,
 			      const struct xvt_render_snapshot *snapshot,
 			      const struct xvt_prepared_flight *frame,
 			      int reset);
 /* Renders scene and resolves its color with bloom on. Returns 0 on failure. */
 int xvt_flight_pipeline_finish(AeronCommandBuffer *cmd, AeronScene3D *scene);
-/* Makes color, width x height, the frame's source: ensures the present chain, sampler, bloom and target
- * (remade on a size change, dropping any source), prepares the black bars from the prepared frame's
- * content rectangle, applies bloom at the bloom_intensity setting when enabled and positive, then
- * either leaves the source for direct presentation when SetDirect enabled it or retains it. Returns 0
- * on failure. */
+/* Makes color, width x height, the frame's source: ensures the present chain,
+ * sampler, bloom and target (remade on a size change, dropping any source),
+ * prepares the black bars from the prepared frame's content rectangle, applies
+ * bloom at the bloom_intensity setting when enabled and positive, then either
+ * leaves the source for direct presentation when SetDirect enabled it or
+ * retains it. Returns 0 on failure. */
 int xvt_flight_pipeline_resolve(AeronCommandBuffer *cmd, AeronTexture *color,
 				int width, int height, int bloom);
 /* The presentation target's texture once a source exists, else NULL. */
 AeronTexture *xvt_flight_pipeline_output(void);
 /* Releases everything and forgets the source and the direct state. */
 void xvt_flight_pipeline_shutdown(void);
-/* Turns direct presentation off, then on again when enabled and the swapchain can be rendered to at
- * width x height, creating the direct tonemap chain for the swapchain's format (a failure requests a
- * fatal renderer error). Returns the resulting state. */
+/* Turns direct presentation off, then on again when enabled and the swapchain
+ * can be rendered to at width x height, creating the direct tonemap chain for
+ * the swapchain's format (a failure requests a fatal renderer error). Returns
+ * the resulting state. */
 int xvt_flight_pipeline_set_direct(int enabled, int width, int height);
-/* Tonemaps the source with its bloom into the presentation target and masks the bars, once per source.
- * Returns 1 when there is no source or it is already retained, 0 when the pass cannot begin. */
+/* Tonemaps the source with its bloom into the presentation target and masks the
+ * bars, once per source. Returns 1 when there is no source or it is already
+ * retained, 0 when the pass cannot begin. */
 int xvt_flight_pipeline_retain(AeronCommandBuffer *cmd);
-/* Submits the swapchain layer that tonemaps the source with its bars straight into the swapchain at the
- * source's size. Returns 0 without direct mode or a source. */
+/* Submits the swapchain layer that tonemaps the source with its bars straight
+ * into the swapchain at the source's size. Returns 0 without direct mode or a
+ * source. */
 int xvt_flight_pipeline_submit_direct(void);
 /* Whether a source is resolved, not yet retained and not for direct presentation. */
 int xvt_flight_pipeline_needs_retain(void);

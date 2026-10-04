@@ -1,11 +1,14 @@
-/* Checks local flight input (xvt_runtime/input/flight_controls.h) against the promises in its header:
- * packing recorded axes, which player may use the throttle lever and what applying a recorded lever
- * does, the roll step's limits, and what Reset, Recover and a blocked read clear. The test builds its own
- * world (an object table with one craft) and sets the game's input globals and Aeron's input snapshot
- * itself; every case starts from that world with the local player eligible and the window focused.
+/* Checks local flight input (xvt_runtime/input/flight_controls.h) against the
+ * promises in its header: packing recorded axes, which player may use the
+ * throttle lever and what applying a recorded lever does, the roll step's
+ * limits, and what Reset, Recover and a blocked read clear. The test builds its
+ * own world (an object table with one craft) and sets the game's input globals
+ * and Aeron's input snapshot itself; every case starts from that world with the
+ * local player eligible and the window focused.
  *
- * Not checked here: ReadLocal on an open keyboard route and SampleRecorded need loaded settings and the
- * game's DirectInput keyboard device, and a lever position is only sent during a running flight. */
+ * Not checked here: ReadLocal on an open keyboard route and SampleRecorded need
+ * loaded settings and the game's DirectInput keyboard device, and a lever
+ * position is only sent during a running flight. */
 #include <stdlib.h>
 #include <string.h>
 
@@ -34,7 +37,8 @@ static AeronInputSnapshot *flight_controls_host(void)
 	return (AeronInputSnapshot *)Aeron_InputSnapshot();
 }
 
-/* Player PLAYER flies the craft in main slot SLOT, bound to it by signature; nothing is in the way. */
+/* Player PLAYER flies the craft in main slot SLOT, bound to it by signature;
+ * nothing is in the way. */
 static void flight_controls_world(void)
 {
 	memset(g_test_objects, 0, sizeof g_test_objects);
@@ -80,8 +84,9 @@ static void set_game_input(void)
 	g_flight_mouse_delta_y = -4;
 }
 
-/* A gamepad model with yaw on the left stick and fire on the west button, and that gamepad connected in
- * Aeron's snapshot with the stick pushed and fire held after a first frame with it released. */
+/* A gamepad model with yaw on the left stick and fire on the west button, and
+ * that gamepad connected in Aeron's snapshot with the stick pushed and fire
+ * held after a first frame with it released. */
 static void controller_firing(void)
 {
 	static struct xvt_controller_options options;
@@ -145,7 +150,8 @@ static void check_encode_decode(void)
 			const int8_t back[3] = {out.axis_x, out.axis_y,
 						out.axis_r};
 			for (int i = 0; i < 3; ++i) {
-				/* Axes come back even: an even axis exactly, an odd one off by one. */
+				/* Axes come back even: an even axis exactly, an
+				 * odd one off by one. */
 				XVT_ASSERT_INT_EQ(back[i] % 2, 0);
 				XVT_ASSERT_TRUE(abs(back[i] - sent[i]) <= 1);
 				if (sent[i] % 2 == 0) {
@@ -184,7 +190,8 @@ static void check_throttle_eligible(void)
 	g_players[PLAYER].chat_recipient_mode = FLIGHT_CHAT_RECIPIENT_TEAM;
 	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
 
-	/* Their bound, live craft: another signature, an empty slot or no craft record will not do. */
+	/* Their bound, live craft: another signature, an empty slot or no craft
+	 * record will not do. */
 	flight_controls_world();
 	g_players[PLAYER].bound_object_signature = SIGNATURE + 1;
 	XVT_ASSERT_TRUE(!xvt_flight_controls_throttle_eligible(PLAYER));
@@ -254,8 +261,9 @@ static void check_sample_throttle_sends_nothing(void)
 
 static void check_roll_step(void)
 {
-	/* Steps from one tick to one second of ticks, and rates up to twice the unit rate: full deflection
-	 * then fits the 16-bit result. These relationships hold for each. */
+	/* Steps from one tick to one second of ticks, and rates up to twice the
+	 * unit rate: full deflection then fits the 16-bit result. These
+	 * relationships hold for each. */
 	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_unlocked(), 0);
 	static const uint16_t k_ticks[] = {1, 4, 59,
 					   SIMULATION_TICKS_PER_SECOND};
@@ -295,7 +303,8 @@ static void check_roll_step(void)
 				g_xvt_control_roll = (int16_t)roll;
 				int plain = xvt_flight_controls_roll_step(
 					0, rate, 0);
-				/* The step follows the axis's direction and never passes full deflection. */
+				/* The step follows the axis's direction and
+				 * never passes full deflection. */
 				XVT_ASSERT_TRUE(roll > 0 ? plain >= 0
 							 : plain <= 0);
 				for (size_t m = 0;
@@ -308,7 +317,8 @@ static void check_roll_step(void)
 							k_modifiers[m]);
 					XVT_ASSERT_TRUE(step >= -full &&
 							step <= full);
-					/* modifier_step adds on, while the sum stays inside the limit. */
+					/* modifier_step adds on, while the sum
+					 * stays inside the limit. */
 					if (plain + k_modifiers[m] >= -full &&
 					    plain + k_modifiers[m] <= full) {
 						XVT_ASSERT_INT_EQ(
@@ -332,8 +342,9 @@ static void check_reset(void)
 
 static void check_blocked_read_clears(void)
 {
-	/* Without focus the keyboard route blocks: the read returns 0 and clears the game's input, even with
-	 * a controller pushing yaw and holding fire. */
+	/* Without focus the keyboard route blocks: the read returns 0 and
+	 * clears the game's input, even with a controller pushing yaw and
+	 * holding fire. */
 	flight_controls_world();
 	controller_firing();
 	set_game_input();
@@ -383,10 +394,12 @@ static void check_recover(void)
 
 	xvt_flight_controls_recover();
 	XVT_ASSERT_INT_EQ(g_action_key, 0);
-	/* The keyboard is flushed: the queued key is gone and the held key is blocked from the game. */
+	/* The keyboard is flushed: the queued key is gone and the held key is
+	 * blocked from the game. */
 	XVT_ASSERT_INT_EQ(xvt_keyboard_mapping_read_key(), 0);
 	XVT_ASSERT_INT_EQ(AeronCompat_IsKeySuppressed(AERON_KEY_A + 1), 1);
-	/* Controller commands are released: fire is no longer held, and stays so while the button is. */
+	/* Controller commands are released: fire is no longer held, and stays
+	 * so while the button is. */
 	XVT_ASSERT_INT_EQ(xvt_controller_mapping_modifiers(), 0);
 	++flight_controls_host()->frame_id;
 	xvt_controller_mapping_update(flight_controls_host());
@@ -395,10 +408,11 @@ static void check_recover(void)
 	xvt_keyboard_mapping_suspend();
 }
 
-/* Known failure: the header gives roll_rate no upper limit, but above about 0x7866 full deflection no longer
- * fits the 16-bit step, and the limit itself wraps negative. At 0x8000 a left roll comes back as a right
- * roll. The step is the roll axis scaled by positive factors and limited to full deflection, so it must
- * keep the axis's sign. */
+/* Known failure: the header gives roll_rate no upper limit, but above about
+ * 0x7866 full deflection no longer fits the 16-bit step, and the limit itself
+ * wraps negative. At 0x8000 a left roll comes back as a right roll. The step is
+ * the roll axis scaled by positive factors and limited to full deflection, so
+ * it must keep the axis's sign. */
 static void known_failure_roll_step_fast_rate(void)
 {
 	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_unlocked(), 0);
@@ -409,7 +423,8 @@ static void known_failure_roll_step_fast_rate(void)
 	XVT_ASSERT_TRUE(step <= 0);
 }
 
-/* Runs every check, or with "known-failure <name>" only that known failure; an unknown name passes. */
+/* Runs every check, or with "known-failure <name>" only that known failure; an
+ * unknown name passes. */
 int main(int argc, char **argv)
 {
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {

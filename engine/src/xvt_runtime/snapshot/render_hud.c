@@ -21,7 +21,8 @@ unsigned xvt_render_draw_scope_current(void) { return g_scope; }
 
 uint32_t xvt_render_draw_color(unsigned index)
 {
-	/* HD colors use the unadjusted DAC palette, independent of classic brightness and pixel format. */
+	/* HD colors use the unadjusted DAC palette, independent of classic
+	 * brightness and pixel format. */
 	index &= 255;
 	unsigned r = g_sw_palette[index].r & 63;
 	unsigned g = g_sw_palette[index].g & 63;

@@ -37,8 +37,9 @@ struct movie_playback_params {
 	/* DirectSound object handed to Smacker for the sound. */
 	IDirectSound *direct_sound;
 	/* Never read or written by name. */
-	void *unused1c; ///< Unused playback-parameter slot; the sole caller leaves it uninitialized and all movie
-			///< consumers skip offset 0x1C.
+	/* Unused playback-parameter slot; the sole caller leaves it
+	 * uninitialized and all movie consumers skip offset 0x1C. */
+	void *unused1c;
 	/* The game window: blits land in its client area, and decoding waits
 	 * while another window has focus. */
 	void *window;

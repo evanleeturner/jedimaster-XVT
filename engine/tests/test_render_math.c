@@ -1,11 +1,13 @@
-/* Checks the remaster's render math (xvt_remaster/render_math.h) against the promises in its header, on
- * camera records, objects and snapshots this file builds itself; no game data is read.
+/* Checks the remaster's render math (xvt_remaster/render_math.h) against the
+ * promises in its header, on camera records, objects and snapshots this file
+ * builds itself; no game data is read.
  *
- * The header does not say which camera row is the view axis, so the projection checks find it the way
- * the header defines depth: depth is the distance along the view axis, so its change over a step along
- * each world axis gives that axis. Floating-point results compare within a relative tolerance: each is a
- * handful of single-precision operations, about 6e-8 relative error apiece, so 1e-5 is loose for correct
- * code and tight for a wrong formula. */
+ * The header does not say which camera row is the view axis, so the projection
+ * checks find it the way the header defines depth: depth is the distance along
+ * the view axis, so its change over a step along each world axis gives that
+ * axis. Floating-point results compare within a relative tolerance: each is a
+ * handful of single-precision operations, about 6e-8 relative error apiece, so
+ * 1e-5 is loose for correct code and tight for a wrong formula. */
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -148,7 +150,8 @@ static void check_layout_points(void)
 	}
 }
 
-/* Calls BuildView on a view filled with a marker and checks it is refused with the view untouched. */
+/* Calls BuildView on a view filled with a marker and checks it is refused with
+ * the view untouched. */
 static void expect_refused_untouched(const struct xvt_snap_camera *camera,
 				     const int32_t *origin, int width,
 				     int height)
@@ -257,7 +260,8 @@ static void check_build_view_fields(void)
 	XVT_ASSERT_CLOSE(view.classic_pixel_scale, 600.0 / 200.0, k_tol,
 			 WHY_FLOAT);
 
-	/* Half the viewport height over the focal length 2^8; the horizontal angle from width:height. */
+	/* Half the viewport height over the focal length 2^8; the horizontal
+	 * angle from width:height. */
 	XVT_ASSERT_CLOSE(tan(view.camera.v_half_rad), 100.0 / 256.0, k_tol,
 			 WHY_FLOAT);
 	XVT_ASSERT_CLOSE(tan(view.camera.h_half_rad),
@@ -295,7 +299,8 @@ static void check_build_view_rows(void)
 {
 	struct xvt_snap_camera clean = clean_camera();
 	struct xvt_snap_camera messy = clean_camera();
-	/* The first row scaled, the second leaning toward the first and scaled, the third anything. */
+	/* The first row scaled, the second leaning toward the first and scaled,
+	 * the third anything. */
 	messy.rows[1] = 3.0f;
 	messy.rows[3] = 0.0f;
 	messy.rows[4] = 0.5f;
@@ -356,14 +361,16 @@ static void check_project_world(void)
 		1);
 	double axis[3];
 	view_axis(&view, camera.world_pos, axis);
-	/* Depth is a distance: its gradient is a unit vector. These rows put it along a world axis. */
+	/* Depth is a distance: its gradient is a unit vector. These rows put it
+	 * along a world axis. */
 	XVT_ASSERT_CLOSE(
 		sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]),
 		1.0, k_tol, WHY_FLOAT);
 	XVT_ASSERT_CLOSE(fabs(axis[0]) + fabs(axis[1]) + fabs(axis[2]), 1.0,
 			 k_tol, WHY_FLOAT);
 
-	/* Every point on the view axis in front of the camera lands on the same pixel, at its distance. */
+	/* Every point on the view axis in front of the camera lands on the same
+	 * pixel, at its distance. */
 	int32_t point[3];
 	along(camera.world_pos, axis, 100, point);
 	float x0;
@@ -433,8 +440,9 @@ static void check_project_world(void)
 
 static void check_integer_origin(void)
 {
-	/* Far from 0 a float cannot hold a world coordinate to the unit, but positions are measured from
-	 * the integer origin first: one unit along the view axis is a depth of one. */
+	/* Far from 0 a float cannot hold a world coordinate to the unit, but
+	 * positions are measured from the integer origin first: one unit along
+	 * the view axis is a depth of one. */
 	struct xvt_snap_camera camera = clean_camera();
 	camera.world_pos[0] = 2000000000;
 	camera.world_pos[1] = -2000000000;
@@ -486,8 +494,9 @@ static void check_build_main_view(void)
 	XVT_ASSERT_CLOSE(tan(view.camera.v_half_rad), 400.0 / (2 * 256.0 * 2),
 			 k_tol, WHY_FLOAT);
 
-	/* The window has the screen's shape, so the fitted frame is the window: the view axis lands on the
-	 * viewport origin plus its center (plus the offset on y), scaled. */
+	/* The window has the screen's shape, so the fitted frame is the window:
+	 * the view axis lands on the viewport origin plus its center (plus the
+	 * offset on y), scaled. */
 	double axis[3];
 	view_axis(&view, camera.world_pos, axis);
 	int32_t point[3];
@@ -571,8 +580,9 @@ static void check_object_matrix(void)
 	xvt_render_math_object_matrix(&object, origin, other);
 	XVT_ASSERT_INT_EQ(memcmp(m, other, sizeof m), 0);
 
-	/* A mobile record with a clean orientation: the cached Q15 rows count and the angles do not. Rows of
-	 * a Q15 orthonormal basis give a rotation scaled by AERON_OPT_UNITS_PER_METER * 32767 / 32768. */
+	/* A mobile record with a clean orientation: the cached Q15 rows count
+	 * and the angles do not. Rows of a Q15 orthonormal basis give a
+	 * rotation scaled by AERON_OPT_UNITS_PER_METER * 32767 / 32768. */
 	object.orient_dirty = 0;
 	static const int16_t basis[9] = {0,	 32767,	 0, 0, 0,
 					 -32767, -32767, 0, 0};
@@ -685,8 +695,9 @@ static const struct field k_object_fields[] = {
 	{offsetof(struct xvt_render_snapshot, member),                         \
 	 sizeof(((struct xvt_render_snapshot *)0)->member), 0, #member}
 
-/* Every snapshot field PoseChanged does not compare. view_time_ticks and flight_unlocked count only while
- * the component animation reports movement, which it does not here. */
+/* Every snapshot field PoseChanged does not compare. view_time_ticks and
+ * flight_unlocked count only while the component animation reports movement,
+ * which it does not here. */
 static const struct field k_other_fields[] = {
 	SNAPSHOT_FIELD(snapshot_serial),
 	SNAPSHOT_FIELD(flight_frame_serial),
@@ -794,7 +805,8 @@ static void check_pose_changed(void)
 			  1);
 	g_current->object_count = 2;
 
-	/* Each field of each object in the count: compared, or one of the fields the header leaves out. */
+	/* Each field of each object in the count: compared, or one of the
+	 * fields the header leaves out. */
 	for (unsigned o = 0; o < 2; ++o) {
 		const size_t base =
 			offsetof(struct xvt_render_snapshot, objects) +
@@ -818,7 +830,8 @@ static void check_pose_changed(void)
 	}
 }
 
-/* Makes the component animation report movement: a craft whose component turns between two frames. */
+/* Makes the component animation report movement: a craft whose component turns
+ * between two frames. */
 static void animation_moves(void)
 {
 	xvt_component_animation_reset();

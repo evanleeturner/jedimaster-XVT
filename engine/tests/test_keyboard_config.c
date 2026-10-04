@@ -1,5 +1,6 @@
-/* Checks the keyboard bindings in the settings document (xvt_runtime/config/keyboard_config.h) against the
- * promises in its header, on documents this file writes itself. Each check starts from a fresh fixture
+/* Checks the keyboard bindings in the settings document
+ * (xvt_runtime/config/keyboard_config.h) against the promises in its header, on
+ * documents this file writes itself. Each check starts from a fresh fixture
  * folder (config_fixture.h); no settings are loaded. */
 #define _XOPEN_SOURCE 700
 
@@ -30,7 +31,8 @@ bound_action(const struct xvt_keyboard_bindings *profile, AeronKeyChord source)
 				 : profile->bindings[index].action;
 }
 
-/* Reads text's input.keyboard into *profile and returns what the reader returned; error is cleared first. */
+/* Reads text's input.keyboard into *profile and returns what the reader
+ * returned; error is cleared first. */
 static bool read_text(const char *text, struct xvt_keyboard_bindings *profile,
 		      char *error, size_t capacity)
 {
@@ -124,7 +126,8 @@ static void check_read_forms(void)
 static void check_read_refusals(void)
 {
 	fixture_begin();
-	/* An action that cannot take a key: one that does not exist, and one that is not keyboard-bindable. */
+	/* An action that cannot take a key: one that does not exist, and one
+	 * that is not keyboard-bindable. */
 	expect_refused("input:\n  keyboard:\n    fly_backwards: \"A\"\n");
 	XVT_ASSERT_TRUE(!xvt_input_actions_keyboard_bindable(
 		XVT_INPUT_ACTION_CHAT_SEND));
@@ -142,14 +145,16 @@ static void check_read_refusals(void)
 		"input:\n  keyboard:\n    fire_weapon: [{key: \"A\", modifiers: [shift, shift]}]\n");
 	/* A value that is neither a key name nor a list of sources. */
 	expect_refused("input:\n  keyboard:\n    fire_weapon: 5\n");
-	/* Reserved sources: Escape, Tab alone, and M with Ctrl and Alt; Tab with Shift is not reserved. */
+	/* Reserved sources: Escape, Tab alone, and M with Ctrl and Alt; Tab
+	 * with Shift is not reserved. */
 	expect_refused("input:\n  keyboard:\n    fire_weapon: \"Escape\"\n");
 	expect_refused("input:\n  keyboard:\n    fire_weapon: \"Tab\"\n");
 	expect_accepted(
 		"input:\n  keyboard:\n    fire_weapon: [{key: \"Tab\", modifiers: [shift]}]\n");
 	expect_refused(
 		"input:\n  keyboard:\n    fire_weapon: [{key: \"M\", modifiers: [ctrl, alt]}]\n");
-	/* An unsupported source: a modifier key with a modifier. The modifier key alone is a valid source. */
+	/* An unsupported source: a modifier key with a modifier. The modifier
+	 * key alone is a valid source. */
 	expect_refused(
 		"input:\n  keyboard:\n    fire_weapon: [{key: \"Left Shift\", modifiers: [ctrl]}]\n");
 	expect_accepted(
@@ -178,8 +183,8 @@ static void check_read_keeps_earlier_bindings(void)
 	fixture_end();
 }
 
-/* A document binding count distinct chords to fire_weapon: each letter with each set of modifiers, leaving
- * out M with Ctrl and Alt, which is reserved. */
+/* A document binding count distinct chords to fire_weapon: each letter with
+ * each set of modifiers, leaving out M with Ctrl and Alt, which is reserved. */
 static char *many_bindings(int count)
 {
 	static const char *const modifiers[16] = {"",
@@ -231,7 +236,8 @@ static void check_read_capacity(void)
 	XVT_ASSERT_INT_EQ(profile.count, XVT_KEYBOARD_BINDING_CAP);
 	free(text);
 
-	/* One more is refused, and the profile keeps the bindings read before the one that did not fit. */
+	/* One more is refused, and the profile keeps the bindings read before
+	 * the one that did not fit. */
 	text = many_bindings(XVT_KEYBOARD_BINDING_CAP + 1);
 	XVT_ASSERT_TRUE(!read_text(text, &profile, error, sizeof error));
 	XVT_ASSERT_TRUE(error[0] != 0);
@@ -365,8 +371,9 @@ static void check_resolve(void)
 						    error, sizeof error));
 	XVT_ASSERT_TRUE(fixture_same_document(user, user_before));
 
-	/* fire_weapon and cycle_weapon_group lose their defaults because the user lists them; toggle_beam
-	 * loses C because the user bound it; target_next keeps D. */
+	/* fire_weapon and cycle_weapon_group lose their defaults because the
+	 * user lists them; toggle_beam loses C because the user bound it;
+	 * target_next keeps D. */
 	XVT_ASSERT_TRUE(xvt_keyboard_config_read(merged, &effective, error,
 						 sizeof error));
 	XVT_ASSERT_INT_EQ(effective.count, 2);

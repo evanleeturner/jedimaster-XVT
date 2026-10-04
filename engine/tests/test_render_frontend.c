@@ -1,11 +1,13 @@
-/* Checks the frontend draw capture (xvt_runtime/snapshot/render_frontend.h) against the promises in its
- * header. The render snapshot is started and its ticks opened as the game does, and the recovered
- * frontend's state (g_front_state: pixel format, palette, clip, fonts, saved screens, cursor) is set here;
- * no game data is read. Test images and fonts are registered with the asset registry under the built-in
- * cursor kind, which needs no file.
+/* Checks the frontend draw capture (xvt_runtime/snapshot/render_frontend.h)
+ * against the promises in its header. The render snapshot is started and its
+ * ticks opened as the game does, and the recovered frontend's state
+ * (g_front_state: pixel format, palette, clip, fonts, saved screens, cursor) is
+ * set here; no game data is read. Test images and fonts are registered with the
+ * asset registry under the built-in cursor kind, which needs no file.
  *
- * Not checked: the faded glyph color, since the header does not say what a running fade is, and the modal
- * dialog and loading scenes of Present, which need a dialog or a flight load in progress. */
+ * Not checked: the faded glyph color, since the header does not say what a
+ * running fade is, and the modal dialog and loading scenes of Present, which
+ * need a dialog or a flight load in progress. */
 #include <stdint.h>
 #include <string.h>
 
@@ -24,8 +26,8 @@ static uint8_t g_pixels[64];
 static uint8_t g_glyph_bits[256 * 4];
 static struct front_image_resource_record g_prepared_resource_generation[1];
 
-/* A fresh snapshot with its first tick open, a 16-bit 565 frontend clipped to (5, 6)-(600, 400), and one
- * registered 32 x 16 image. */
+/* A fresh snapshot with its first tick open, a 16-bit 565 frontend clipped to
+ * (5, 6)-(600, 400), and one registered 32 x 16 image. */
 static void fresh(void)
 {
 	xvt_render_snapshot_shutdown();
@@ -360,7 +362,8 @@ static void check_named_cursor(void)
 	XVT_ASSERT_INT_EQ(writer()->cursor.y, 200);
 }
 
-/* While the cursor is being drawn, an image goes whole to the cursor sprite, not to the sprite list. */
+/* While the cursor is being drawn, an image goes whole to the cursor sprite,
+ * not to the sprite list. */
 static void check_image_while_drawing_cursor(void)
 {
 	fresh();
@@ -386,8 +389,8 @@ static void check_image_while_drawing_cursor(void)
 	XVT_ASSERT_INT_EQ(writer()->sprite_count, 2);
 }
 
-/* Copy or Clear aimed at the back buffer hides the cursor, unless capture is suppressed; aimed elsewhere,
- * it does not. */
+/* Copy or Clear aimed at the back buffer hides the cursor, unless capture is
+ * suppressed; aimed elsewhere, it does not. */
 static void check_back_buffer_hides_cursor(void)
 {
 	fresh();
@@ -430,8 +433,8 @@ static void check_cursor_refusals(void)
 	XVT_ASSERT_TRUE(!present_shows_cursor());
 }
 
-/* With the sprite list full and the cursor visible, Present counts a dropped record and records neither
- * the cursor nor the present event. */
+/* With the sprite list full and the cursor visible, Present counts a dropped
+ * record and records neither the cursor nor the present event. */
 static void check_present_with_sprites_full(void)
 {
 	fresh();
@@ -643,7 +646,8 @@ static void check_glyph(void)
 	XVT_ASSERT_INT_EQ(glyph->draw.target, XVT_TARGET_FRONT_BACKUP);
 	XVT_ASSERT_INT_EQ(writer()->dropped_records, 0);
 
-	/* A glyph found in no slot counts as dropped: wrong pixels, wrong size, or a slot not in use. */
+	/* A glyph found in no slot counts as dropped: wrong pixels, wrong size,
+	 * or a slot not in use. */
 	struct image_resource stray = {
 		.width = 3, .height = 9, .pixels = g_pixels};
 	xvt_render_frontend_glyph(&stray, 0, 0, 0, 0);

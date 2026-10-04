@@ -958,8 +958,10 @@ void flight_text_draw_narrow_glyph(uint8_t ch)
 			int pixels_remaining = pixel_count;
 			if (pixels_remaining != 0) {
 #ifdef XVT_MODERN
-				/* The original looks up negative rows even when top clipping leaves
-				 * no pixels. Keep row/shadow progression outside this drawing block. */
+				/* The original looks up negative rows even when
+				 * top clipping leaves no pixels. Keep
+				 * row/shadow progression outside this drawing
+				 * block. */
 				pixel_offset = flight_sw_get_line_offset(line) +
 					       2 * draw_x;
 				destination = &((
@@ -1127,8 +1129,10 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 			int pixels_remaining = pixel_count;
 			if (pixels_remaining != 0) {
 #ifdef XVT_MODERN
-				/* The original looks up negative rows even when top clipping leaves
-				 * no pixels. Keep row/shadow progression outside this drawing block. */
+				/* The original looks up negative rows even when
+				 * top clipping leaves no pixels. Keep
+				 * row/shadow progression outside this drawing
+				 * block. */
 				pixel_offset = flight_sw_get_line_offset(line) +
 					       2 * draw_x;
 				destination = &((

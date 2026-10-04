@@ -406,8 +406,8 @@ struct player_flight_transient_timers {
 	uint16_t target_description_refresh_timer;
 	/* Ticks before the craft list page redraws, REFRESH_TICKS when set. */
 	uint16_t mfd_craft_list_refresh_timer;
-	uint16_t
-		mission_goals_refresh_timer; ///< Two-second countdown; expiry forces a mission-goals MFD redraw.
+	/* Two-second countdown; expiry forces a mission-goals MFD redraw. */
+	uint16_t mission_goals_refresh_timer;
 };
 
 extern struct player_flight_transient_timers

@@ -1,11 +1,13 @@
 #define _POSIX_C_SOURCE 200809L
-/* Runs the mission dump tool (tools/mission_dump.c) on mission files this test writes itself, from the
- * layouts in xvt/flight/mission/mission.h, and checks the exit status and output its comment promises: no
- * game mission is read. The tool is built for this test as its own program, MISSION_DUMP_TOOL, with the
- * sanitizers on, and runs with its output in a fresh temporary folder. A sanitizer report in the tool
- * exits with status 86, which no check expects.
+/* Runs the mission dump tool (tools/mission_dump.c) on mission files this test
+ * writes itself, from the layouts in xvt/flight/mission/mission.h, and checks
+ * the exit status and output its comment promises: no game mission is read. The
+ * tool is built for this test as its own program, MISSION_DUMP_TOOL, with the
+ * sanitizers on, and runs with its output in a fresh temporary folder. A
+ * sanitizer report in the tool exits with status 86, which no check expects.
  *
- * Not run here: a close that fails, which a test cannot provoke on an ordinary file. */
+ * Not run here: a close that fails, which a test cannot provoke on an ordinary
+ * file. */
 #include <fcntl.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -53,8 +55,8 @@ static void put_word(struct bytes *bytes, unsigned value)
 	put(bytes, word, sizeof word);
 }
 
-/* Copies text into a fixed field of size bytes, which the caller has zeroed; no terminator when it fills
- * the field. */
+/* Copies text into a fixed field of size bytes, which the caller has zeroed; no
+ * terminator when it fills the field. */
 static void set_text(char *field, size_t size, const char *text)
 {
 	if (text) {
@@ -176,7 +178,8 @@ static void build(const struct mission *mission, struct bytes *out)
 		}
 	}
 
-	/* Eight briefings: an 820-byte script, then 32 labels and 32 texts, each a length and its bytes. */
+	/* Eight briefings: an 820-byte script, then 32 labels and 32 texts,
+	 * each a length and its bytes. */
 	for (unsigned briefing = 0; briefing < 8; ++briefing) {
 		put(out, NULL, 820);
 		for (unsigned j = 0; j < 64; ++j) {
@@ -190,7 +193,8 @@ static void build(const struct mission *mission, struct bytes *out)
 		}
 	}
 
-	/* Goal text overrides: 8 goals per flight group, then 28 slots per team, 3 states of 64 bytes each. */
+	/* Goal text overrides: 8 goals per flight group, then 28 slots per
+	 * team, 3 states of 64 bytes each. */
 	for (unsigned i = 0; i < mission->groups + 10; ++i) {
 		unsigned slots = i < mission->groups ? 8 : 28;
 		for (unsigned j = 0; j < slots * 3; ++j) {
@@ -211,8 +215,9 @@ struct run {
 	char *err;
 };
 
-/* Runs the tool with count arguments, its stdout and stderr in files in the folder, or its stdout on
- * /dev/full when to_full is set. Returns its exit status (-1 when it did not exit) and what it wrote. */
+/* Runs the tool with count arguments, its stdout and stderr in files in the
+ * folder, or its stdout on /dev/full when to_full is set. Returns its exit
+ * status (-1 when it did not exit) and what it wrote. */
 static struct run run_tool(int count, const char *const *args, int to_full)
 {
 	char out_path[XVT_TEST_PATH_CAPACITY];
@@ -277,8 +282,9 @@ static struct run dump(const struct mission *mission)
 	return run;
 }
 
-/* Runs the tool on the mission and returns its exit status. A status of 1 with nothing on stderr comes
- * back as -2, so a refusal without a message fails a check that expects 1. */
+/* Runs the tool on the mission and returns its exit status. A status of 1 with
+ * nothing on stderr comes back as -2, so a refusal without a message fails a
+ * check that expects 1. */
 static int outcome(const struct mission *mission)
 {
 	struct run run = dump(mission);
@@ -436,7 +442,8 @@ static void check_unknown_names(void)
 
 static void check_quoting(void)
 {
-	/* A quote, a backslash and a newline print as C escapes; an escape character never prints raw. */
+	/* A quote, a backslash and a newline print as C escapes; an escape
+	 * character never prints raw. */
 	struct mission mission = plain();
 	mission.group_name = "A\"B\\C\n\x1b";
 	struct run run = dump(&mission);
@@ -486,7 +493,8 @@ static void check_consumed_offset(void)
 
 static void check_flush_failure(void)
 {
-	/* Output that cannot be written fails the run, where the system has a device that refuses writes. */
+	/* Output that cannot be written fails the run, where the system has a
+	 * device that refuses writes. */
 	if (access("/dev/full", W_OK) != 0) {
 		return;
 	}

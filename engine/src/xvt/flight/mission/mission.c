@@ -371,8 +371,10 @@ static const uint8_t g_mission_difficulty_arrival_masks[8] = {1, 2, 4, 0,
  * are its only writers. */
 // GLOBAL: XVT 0x9D77BC
 uint16_t g_target_proximity_blink_bit = 0;
-/* Only mission_init_flight_runtime_state writes this, always 1, and its readers act only on a value above 1
- * (with g_dormant_flight_region_session_early_return_flag set), so in this build their early return never runs. */
+/* Only mission_init_flight_runtime_state writes this, always 1, and its readers
+ * act only on a value above 1 (with
+ * g_dormant_flight_region_session_early_return_flag set), so in this build
+ * their early return never runs. */
 // GLOBAL: XVT 0x523440
 uint8_t g_flight_runtime_state_initialized = 1;
 /* Set to 15 by mission_init_flight_runtime_state, its only writer. Nothing
@@ -1143,7 +1145,10 @@ void mission_update_logic(void)
 						    GOAL_STATE_SUCCESS) {
 							int completed_team_count =
 								0;
-							/* player_index is reused here as a team index over team_goal_status. */
+							/* player_index is
+							 * reused here as a team
+							 * index over
+							 * team_goal_status. */
 							for (player_index = 0;
 							     player_index <
 							     TEAM_COUNT;
@@ -5259,8 +5264,9 @@ uint16_t mission_init(const char *file_name)
 		0);
 	fe_disk_io_lock_global_buffers();
 
-	/* slot is this function's shared loop counter: by loop it holds an object slot, a genus, a player, an
-	 * object type, a message, a team, a mission point reference or a flight group index. */
+	/* slot is this function's shared loop counter: by loop it holds an
+	 * object slot, a genus, a player, an object type, a message, a team, a
+	 * mission point reference or a flight group index. */
 	uint16_t slot;
 	for (slot = 0; slot < MOBILE_OBJECT_SLOT_COUNT; ++slot) {
 		g_mobile_object_link_indices[slot].warhead_guidance_idx = -1;
@@ -5604,8 +5610,10 @@ uint16_t mission_init(const char *file_name)
 		     g_pilot_data.mission_sequence_active == 1)) {
 			uint16_t source_flight_group;
 
-			/* This loop first uses source_flight_group as a network player index, then stores the first
-			 * connected player's flight group in it; if no player is connected it ends as PLAYER_COUNT. */
+			/* This loop first uses source_flight_group as a network
+			 * player index, then stores the first connected
+			 * player's flight group in it; if no player is
+			 * connected it ends as PLAYER_COUNT. */
 			for (source_flight_group = 0;
 			     source_flight_group < PLAYER_COUNT;
 			     ++source_flight_group) {
@@ -5783,7 +5791,8 @@ uint16_t mission_init(const char *file_name)
 				}
 			}
 			if (g_flight_mission_state.ai_opponents_enabled == 1) {
-				/* Here slot is a team index, compared with fg.team and used to index team_standings. */
+				/* Here slot is a team index, compared with
+				 * fg.team and used to index team_standings. */
 				for (slot = 0; slot < TEAM_COUNT; ++slot) {
 					if (team_player_fg_counts[slot] != 0 &&
 					    team_player_owner_counts[slot] ==
@@ -6242,7 +6251,8 @@ uint16_t mission_init(const char *file_name)
 				g_pilot_data.melee_tournament_sequence_state
 					.ai_boost_first_team;
 		} else {
-			/* Below, team_owned_flight_group is reused as a per-team count of player-owned flight groups. */
+			/* Below, team_owned_flight_group is reused as a
+			 * per-team count of player-owned flight groups. */
 			memset(team_owned_flight_group, 0,
 			       sizeof(team_owned_flight_group));
 			memset(team_player_fg_counts, 0,

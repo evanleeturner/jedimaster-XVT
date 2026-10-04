@@ -89,8 +89,9 @@ int xvt_log_split_message(const char *message, const char **event,
 	return 1;
 }
 
-/* Appends up to length bytes of text to out, never past limit, with line-breaking characters written as
- * spaces. Advances *used by what was written. */
+/* Appends up to length bytes of text to out, never past limit, with
+ * line-breaking characters written as spaces. Advances *used by what was
+ * written. */
 static void xvt_log_append(char *out, size_t limit, size_t *used,
 			   const char *text, size_t length)
 {
@@ -161,7 +162,8 @@ size_t xvt_log_shorten_home(char *out, size_t capacity, const char *text,
 	size_t used = 0;
 	size_t i = 0;
 	while (text[i] && used + 1 < capacity) {
-		/* strncmp returns 0 only when the text holds all home_length bytes, so the byte after them exists. */
+		/* strncmp returns 0 only when the text holds all home_length
+		 * bytes, so the byte after them exists. */
 		if (home && (i == 0 || xvt_log_is_path_start(text[i - 1])) &&
 		    !strncmp(text + i, home, home_length) &&
 		    xvt_log_is_path_break(text[i + home_length])) {

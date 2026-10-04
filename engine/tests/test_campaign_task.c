@@ -1,15 +1,19 @@
 #define _POSIX_C_SOURCE 200809L
-/* Checks the campaign task (xvt_runtime/runtime/campaign_task.h) against the promises in its header: the
- * team-assignment prefix's immediate returns, a network client waiting for the host's continuation and
- * then, past the wait, clearing the remote battle state and leaving the game when no cutscene plays; the
- * debrief prefix's cursor, keyboard, briefing text, cutscenes and network leave; the packet wait's limit
- * and its pending flag; and Reset. The installation check passes on empty files at the names it looks for,
- * in a temporary asset folder; the host clock moves only when the test advances it. Every case starts from
- * Reset, a cleared frontend and pilot, no network session, the clock at 0, and an installed game.
+/* Checks the campaign task (xvt_runtime/runtime/campaign_task.h) against the
+ * promises in its header: the team-assignment prefix's immediate returns, a
+ * network client waiting for the host's continuation and then, past the wait,
+ * clearing the remote battle state and leaving the game when no cutscene plays;
+ * the debrief prefix's cursor, keyboard, briefing text, cutscenes and network
+ * leave; the packet wait's limit and its pending flag; and Reset. The
+ * installation check passes on empty files at the names it looks for, in a
+ * temporary asset folder; the host clock moves only when the test advances it.
+ * Every case starts from Reset, a cleared frontend and pilot, no network
+ * session, the clock at 0, and an installed game.
  *
- * Not checked here: a continuation packet actually arriving, the single-player and host continuations
- * (they read the game's mission lists), the end of the program on a missing installation, and the renaming
- * of a promoted player, which needs a DirectPlay session. */
+ * Not checked here: a continuation packet actually arriving, the single-player
+ * and host continuations (they read the game's mission lists), the end of the
+ * program on a missing installation, and the renaming of a promoted player,
+ * which needs a DirectPlay session. */
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -139,7 +143,8 @@ static void check_reset_forgets_wait(void)
 	advance_ms(20000);
 	xvt_campaign_task_reset();
 	XVT_ASSERT_INT_EQ(xvt_campaign_task_continues_without_focus(), 0);
-	/* A wait after Reset starts its own 30 s: 20 s on, the old limit is past but the new one is not. */
+	/* A wait after Reset starts its own 30 s: 20 s on, the old limit is
+	 * past but the new one is not. */
 	XVT_ASSERT_INT_EQ(xvt_campaign_task_wait_packet(
 				  NET_PACKET_CAMPAIGN_CONTINUATION, &packet),
 			  XVT_CAMPAIGN_PENDING);
@@ -158,7 +163,8 @@ static void check_teams_return_at_once(void)
 	XVT_ASSERT_INT_EQ(xvt_campaign_task_enter_teams(), 1);
 	XVT_ASSERT_INT_EQ(xvt_campaign_task_is_pending(), 0);
 
-	/* A sequence, but the entry movie is skipped, or the debrief chose to enter the current mission. */
+	/* A sequence, but the entry movie is skipped, or the debrief chose to
+	 * enter the current mission. */
 	fresh(FRONTEND_MISSION_SESSION_NET_CLIENT);
 	g_pilot_data.mission_sequence_active = 1;
 	g_frontend_skip_screen_entry_setup = 1;
@@ -196,8 +202,9 @@ static void check_teams_campaign_client(void)
 			  XVT_CAMPAIGN_PENDING);
 	XVT_ASSERT_TRUE(top_screen() == placeholder);
 
-	/* None comes: the continuation returns 0 and the remote battle state is cleared. With no cutscene
-	 * table the cutscene result is 0, so the client leaves: session shut down, join screen, 0. */
+	/* None comes: the continuation returns 0 and the remote battle state is
+	 * cleared. With no cutscene table the cutscene result is 0, so the
+	 * client leaves: session shut down, join screen, 0. */
 	advance_ms(30000);
 	XVT_ASSERT_INT_EQ(xvt_campaign_task_enter_teams(), 0);
 	check_remote_battle_cleared();
@@ -219,7 +226,8 @@ static void check_teams_battle_client(void)
 			  XVT_CAMPAIGN_PENDING);
 	XVT_ASSERT_INT_EQ(xvt_campaign_task_is_pending(), 1);
 
-	/* A battle plays no cutscenes: once the wait gives up, the state is cleared and the prefix is done. */
+	/* A battle plays no cutscenes: once the wait gives up, the state is
+	 * cleared and the prefix is done. */
 	advance_ms(30001);
 	XVT_ASSERT_INT_EQ(xvt_campaign_task_enter_teams(), 1);
 	check_remote_battle_cleared();
@@ -266,7 +274,8 @@ static void check_debrief_outside_training(void)
 
 static void check_debrief_training_sequence(void)
 {
-	/* An active training sequence gets its briefing text, whether or not the mission was completed. */
+	/* An active training sequence gets its briefing text, whether or not
+	 * the mission was completed. */
 	for (int completed = 0; completed < 2; ++completed) {
 		fresh(FRONTEND_MISSION_SESSION_SINGLEPLAYER);
 		g_pilot_data.mission_directory_id =
@@ -282,8 +291,9 @@ static void check_debrief_training_sequence(void)
 
 static void check_debrief_network_leaves(void)
 {
-	/* A completed training mission in a network session with no cutscene table: the cutscene result is
-	 * 0, so the player leaves for the concourse. */
+	/* A completed training mission in a network session with no cutscene
+	 * table: the cutscene result is 0, so the player leaves for the
+	 * concourse. */
 	fresh(FRONTEND_MISSION_SESSION_NET_HOST);
 	g_pilot_data.mission_directory_id =
 		MISSION_DIRECTORY_TRAINING_EXERCISES;

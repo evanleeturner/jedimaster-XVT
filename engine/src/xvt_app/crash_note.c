@@ -1,4 +1,5 @@
-/* The build is strict C99: signal handling, dladdr and clock_gettime need the system's own extensions. */
+/* The build is strict C99: signal handling, dladdr and clock_gettime need the
+ * system's own extensions. */
 #if defined(__linux__)
 #define _GNU_SOURCE
 #elif defined(__APPLE__)
@@ -25,7 +26,8 @@
 #endif
 #endif
 
-/* Bytes of the stack the signal handler runs on, and the stack Windows keeps back for the filter. */
+/* Bytes of the stack the signal handler runs on, and the stack Windows keeps
+ * back for the filter. */
 #define XVT_CRASH_NOTE_STACK 65536
 #define XVT_CRASH_NOTE_LINE 512
 
@@ -219,7 +221,8 @@ void xvt_crash_note_writef(const char *format, ...)
 
 static LPTOP_LEVEL_EXCEPTION_FILTER g_crash_note_previous_filter;
 
-/* Writes one frame line for a code address: the module holding it and the offset into that module. */
+/* Writes one frame line for a code address: the module holding it and the
+ * offset into that module. */
 static void xvt_crash_note_write_frame(int n, uintptr_t address)
 {
 	HMODULE module = NULL;
@@ -251,8 +254,9 @@ static void xvt_crash_note_write_frame(int n, uintptr_t address)
 		      name, (unsigned long long)offset);
 }
 
-/* Writes the frames of the stack context belongs to, the faulting instruction first, by the unwind data
- * x86-64 code carries; other processors get no frame lines. */
+/* Writes the frames of the stack context belongs to, the faulting instruction
+ * first, by the unwind data x86-64 code carries; other processors get no frame
+ * lines. */
 static void xvt_crash_note_write_frames(const CONTEXT *start)
 {
 #if defined(_M_X64) || defined(__x86_64__)
@@ -270,7 +274,8 @@ static void xvt_crash_note_write_frames(const CONTEXT *start)
 					 context.Rip, function, &context,
 					 &handler_data, &establisher, NULL);
 		} else {
-			/* A function with no unwind data is a leaf: its return address is on top of the stack. */
+			/* A function with no unwind data is a leaf: its return
+			 * address is on top of the stack. */
 			context.Rip = *(DWORD64 *)context.Rsp;
 			context.Rsp += 8;
 		}
@@ -302,7 +307,8 @@ static LONG WINAPI xvt_crash_note_on_exception(EXCEPTION_POINTERS *info)
 					    : EXCEPTION_CONTINUE_SEARCH;
 }
 
-/* abort() raises SIGABRT; the C runtime resets the action before calling this and ends the program after. */
+/* abort() raises SIGABRT; the C runtime resets the action before calling this
+ * and ends the program after. */
 static void xvt_crash_note_on_abort(int signal)
 {
 	(void)signal;
@@ -369,8 +375,9 @@ static const char *xvt_crash_note_signal_name(int signal)
 	}
 }
 
-/* Returns 1 when kill, raise or abort sent the signal, 0 when the processor raised it for an instruction,
- * which then runs again when the handler returns. */
+/* Returns 1 when kill, raise or abort sent the signal, 0 when the processor
+ * raised it for an instruction, which then runs again when the handler
+ * returns. */
 static int xvt_crash_note_was_sent(const siginfo_t *info)
 {
 	if (!info) {
@@ -380,8 +387,8 @@ static int xvt_crash_note_was_sent(const siginfo_t *info)
 	       info->si_code <= 0;
 }
 
-/* The address of the instruction the signal interrupted, read from the handler's context; 0 where this
- * file does not know the context's layout. */
+/* The address of the instruction the signal interrupted, read from the
+ * handler's context; 0 where this file does not know the context's layout. */
 static uintptr_t xvt_crash_note_interrupted_at(const void *context)
 {
 #if defined(__linux__) && defined(__x86_64__)
@@ -398,8 +405,8 @@ static uintptr_t xvt_crash_note_interrupted_at(const void *context)
 #endif
 }
 
-/* Writes the stack's frames from the interrupted instruction at, when the stack holds it; otherwise from
- * the handler's own frames. */
+/* Writes the stack's frames from the interrupted instruction at, when the stack
+ * holds it; otherwise from the handler's own frames. */
 static void xvt_crash_note_write_frames(uintptr_t at)
 {
 	void *frames[XVT_CRASH_NOTE_FRAMES + 8];
@@ -434,7 +441,8 @@ static void xvt_crash_note_on_signal(int signal, siginfo_t *info, void *context)
 	}
 	if (!g_crash_note_written) {
 		g_crash_note_written = 1;
-		/* A sent signal carries the sender's process and user ids where a fault carries its address. */
+		/* A sent signal carries the sender's process and user ids where
+		 * a fault carries its address. */
 		XVT_LOG_CRASH(
 			"app.crash_signal signal=\"%s\" code=%d addr=%#llx",
 			xvt_crash_note_signal_name(signal),
@@ -445,7 +453,8 @@ static void xvt_crash_note_on_signal(int signal, siginfo_t *info, void *context)
 		xvt_crash_note_write_frames(
 			xvt_crash_note_interrupted_at(context));
 	}
-	/* A signal the program ignored before must still end it, or a fault would repeat forever. */
+	/* A signal the program ignored before must still end it, or a fault
+	 * would repeat forever. */
 	if (g_crash_note_previous[slot].sa_handler == SIG_IGN &&
 	    !(g_crash_note_previous[slot].sa_flags & SA_SIGINFO)) {
 		g_crash_note_previous[slot].sa_handler = SIG_DFL;
@@ -466,7 +475,8 @@ void xvt_crash_note_install(xvt_log_file_handle file)
 	}
 	g_crash_note_installed = 1;
 	void *warm[1];
-	/* The first backtrace call may load the unwinder and allocate; do it now, not in the handler. */
+	/* The first backtrace call may load the unwinder and allocate; do it
+	 * now, not in the handler. */
 	backtrace(warm, 1);
 	stack_t stack;
 	memset(&stack, 0, sizeof(stack));

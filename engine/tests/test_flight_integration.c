@@ -1,9 +1,12 @@
-/* Checks the per-object step remainders (xvt_runtime/timing/flight_integration.h) against the promises in
- * its header, on an object table this file builds itself: six live objects, each with a mobile record,
- * and no game data. Each case starts from that table and a fresh remainder table.
+/* Checks the per-object step remainders
+ * (xvt_runtime/timing/flight_integration.h) against the promises in its header,
+ * on an object table this file builds itself: six live objects, each with a
+ * mobile record, and no game data. Each case starts from that table and a fresh
+ * remainder table.
  *
- * Most checks watch one channel's carried remainder through Rate itself: Seed leaves a carry of 3/4 on a
- * channel, and Probe adds 1/4 more, so Probe returns 1 exactly when the carry survived. */
+ * Most checks watch one channel's carried remainder through Rate itself: Seed
+ * leaves a carry of 3/4 on a channel, and Probe adds 1/4 more, so Probe returns
+ * 1 exactly when the carry survived. */
 #include <limits.h>
 #include <stdint.h>
 #include <string.h>
@@ -18,8 +21,8 @@
 #include "xvt_runtime/timing/flight_integration.h"
 #include "xvt_runtime/timing/reference_motion.h"
 
-/* An allocation that cannot be met must come back as NULL, so Init's refusal can be seen; by default
- * AddressSanitizer stops the program instead. */
+/* An allocation that cannot be met must come back as NULL, so Init's refusal
+ * can be seen; by default AddressSanitizer stops the program instead. */
 const char *__asan_default_options(void)
 {
 	return "allocator_may_return_null=1";
@@ -32,8 +35,9 @@ static struct mobile_object g_test_mobiles[SLOTS];
 static struct craft_data g_test_craft;
 static struct warhead_guidance_state g_test_guidance;
 
-/* Six live objects (type 1, signature 0x100 + slot) at the world origin, each with a still mobile
- * record; one simulation tick per step; no local slots; empty remainder and reference motion tables. */
+/* Six live objects (type 1, signature 0x100 + slot) at the world origin, each
+ * with a still mobile record; one simulation tick per step; no local slots;
+ * empty remainder and reference motion tables. */
 static void fresh_world(void)
 {
 	memset(g_test_objects, 0, sizeof g_test_objects);
@@ -130,7 +134,8 @@ static void check_rate_carry(void)
 	XVT_ASSERT_INT_EQ(
 		xvt_flight_integration_rate(1, XVT_INTEGRATE_TURN, 7, 1, 4), 1);
 
-	/* Ten short steps add up to what one step of ten ticks gives: nothing is lost to truncation. */
+	/* Ten short steps add up to what one step of ten ticks gives: nothing
+	 * is lost to truncation. */
 	fresh_world();
 	int sum = 0;
 	int negative = 0;
@@ -149,7 +154,8 @@ static void check_rate_carry(void)
 static void check_rate_sign_change(void)
 {
 	fresh_world();
-	/* A carry of 3/4 is dropped when the rate turns negative: -1/4 then -3/4 make exactly -1. */
+	/* A carry of 3/4 is dropped when the rate turns negative: -1/4 then
+	 * -3/4 make exactly -1. */
 	XVT_ASSERT_INT_EQ(
 		xvt_flight_integration_rate(0, XVT_INTEGRATE_ROLL, 3, 1, 4), 0);
 	XVT_ASSERT_INT_EQ(
@@ -221,7 +227,8 @@ static void check_entry_follows_object(void)
 static void check_spin_channels(void)
 {
 	fresh_world();
-	/* While the roll impulse rate is 0, the spin channels carry nothing; other channels still do. */
+	/* While the roll impulse rate is 0, the spin channels carry nothing;
+	 * other channels still do. */
 	g_test_mobiles[0].roll_impulse_rate = 0;
 	seed(0, XVT_INTEGRATE_SPIN_DECAY);
 	XVT_ASSERT_INT_EQ(probe(0, XVT_INTEGRATE_SPIN_DECAY), 0);
@@ -333,7 +340,8 @@ static void check_steer(void)
 						       100, 0x8000, 0xFFFF, 1));
 	XVT_ASSERT_INT_EQ(sum, 100);
 
-	/* A new direction drops the carry: 235/236 of a unit carried, then 1/236 the other way is 0. */
+	/* A new direction drops the carry: 235/236 of a unit carried, then
+	 * 1/236 the other way is 0. */
 	fresh_world();
 	for (int i = 0; i < SIMULATION_TICKS_PER_SECOND - 1; ++i) {
 		XVT_ASSERT_INT_EQ(
@@ -384,8 +392,9 @@ static void set_motion(unsigned slot, uint16_t speed, int16_t x, int16_t y,
 
 static void check_move(void)
 {
-	/* Speed 256 scales to (4660 * 256 + 128) >> 8 = 4660; over 236 * 32768, an axis of 32767 moves 4660 *
-	 * 32767 / 7733248 = 19.74 per tick and an axis of 1000 moves 0.60. */
+	/* Speed 256 scales to (4660 * 256 + 128) >> 8 = 4660; over 236 * 32768,
+	 * an axis of 32767 moves 4660 * 32767 / 7733248 = 19.74 per tick and an
+	 * axis of 1000 moves 0.60. */
 	fresh_world();
 	xvt_flight_integration_shutdown();
 	set_motion(0, 256, 32767, 1000, 0);
@@ -399,7 +408,8 @@ static void check_move(void)
 	XVT_ASSERT_INT_EQ(trig2_xmovedist, 197);
 	XVT_ASSERT_INT_EQ(trig2_ymovedist, 6);
 
-	/* With the table, ten one-tick steps add up to one ten-tick step, on every axis and either sign. */
+	/* With the table, ten one-tick steps add up to one ten-tick step, on
+	 * every axis and either sign. */
 	fresh_world();
 	set_motion(0, 300, 1000, -1000, 32767);
 	set_motion(1, 300, 1000, -1000, 32767);
@@ -465,7 +475,8 @@ static void check_push(void)
 	XVT_ASSERT_INT_EQ(small_negative, 0);
 	XVT_ASSERT_INT_EQ(out_small_negative, -5);
 
-	/* Emptying the accumulator drops the axis's carry: 300/236 leaves 64/236 behind until then. */
+	/* Emptying the accumulator drops the axis's carry: 300/236 leaves
+	 * 64/236 behind until then. */
 	fresh_world();
 	g_elapsed_ticks = 300;
 	int last = 1;

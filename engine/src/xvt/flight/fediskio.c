@@ -3317,8 +3317,8 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					.participating_team_count;
 			int team_mission_score;
 #ifdef XVT_MODERN
-			/* Inactive standings keep the previous team's score; the first one would read an uninitialized
-			 * local. */
+			/* Inactive standings keep the previous team's score;
+			 * the first one would read an uninitialized local. */
 			team_mission_score = 0;
 #endif
 			for (team_idx = 0; team_idx < TEAM_COUNT; ++team_idx) {
@@ -3339,7 +3339,9 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 								[team_idx];
 					unsigned int better_mission_team_count =
 						0;
-					/* The network player index is reused here as the other team compared with team_idx. */
+					/* The network player index is reused
+					 * here as the other team compared with
+					 * team_idx. */
 					for (network_idx = 0;
 					     network_idx < TEAM_COUNT;
 					     ++network_idx) {
@@ -5243,7 +5245,8 @@ unsigned int fe_disk_io_init_resources(void)
 				if (fe_disk_io_open_global_stream(
 					    g_current_mission_file, "wb", 0,
 					    1) != 0) {
-					/* Writes the whole 65,536-byte RGB565 lookup table as 256 x 256 bytes. */
+					/* Writes the whole 65,536-byte RGB565
+					 * lookup table as 256 x 256 bytes. */
 					FILE_RAW_WRITE(
 						g_active_rgb565_to_palette_index_lut,
 						PALETTE_COLOR_COUNT,
@@ -5320,7 +5323,8 @@ unsigned int fe_disk_io_init_resources(void)
 			g_current_mission_file[extension_offset + 2] = 'v';
 			if (fe_disk_io_open_global_stream(
 				    g_current_mission_file, "wb", 0, 1) != 0) {
-				/* Writes the whole 65,536-byte RGB565 lookup table as 256 x 256 bytes. */
+				/* Writes the whole 65,536-byte RGB565 lookup
+				 * table as 256 x 256 bytes. */
 				FILE_RAW_WRITE(
 					g_active_rgb565_to_palette_index_lut,
 					PALETTE_COLOR_COUNT,
@@ -5681,7 +5685,8 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 						  .laser_group_weapon_type
 							  [group_index] +
 					  120);
-			/* current_mesh_index is reused here as the hardpoint type to match, not a mesh index. */
+			/* current_mesh_index is reused here as the hardpoint
+			 * type to match, not a mesh index. */
 			current_mesh_index = wanted_hardpoint_type;
 			for (mesh_index = 0; mesh_index < mesh_count;
 			     ++mesh_index) {
@@ -5792,7 +5797,8 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 						  .warhead_launcher_type
 							  [group_index] +
 					  120);
-			/* current_mesh_index is reused here as the hardpoint type to match, not a mesh index. */
+			/* current_mesh_index is reused here as the hardpoint
+			 * type to match, not a mesh index. */
 			current_mesh_index = wanted_hardpoint_type;
 			for (mesh_index = 0; mesh_index < mesh_count;
 			     ++mesh_index) {

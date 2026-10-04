@@ -1,14 +1,18 @@
-/* Checks the mission screens' dialog tails (xvt_runtime/runtime/mission_dialogs.h) against the promises in
- * its header: which screen each action opens, which actions ignore the dialog's result and which run only
- * on a nonzero one, the session shutdowns, the flags and roster the solo debrief abort clears, and that
- * every call turns the overlay text off and returns 0. The test sets the frontend globals itself; every
- * case starts with a placeholder screen on the stack, overlay text on, and no network session.
+/* Checks the mission screens' dialog tails
+ * (xvt_runtime/runtime/mission_dialogs.h) against the promises in its header:
+ * which screen each action opens, which actions ignore the dialog's result and
+ * which run only on a nonzero one, the session shutdowns, the flags and roster
+ * the solo debrief abort clears, and that every call turns the overlay text off
+ * and returns 0. The test sets the frontend globals itself; every case starts
+ * with a placeholder screen on the stack, overlay text on, and no network
+ * session.
  *
- * A session shutdown is seen through the network session: net_shutdown_direct_play_session reports every
- * shutdown to it, and it then reads as pending until the close completes.
+ * A session shutdown is seen through the network session:
+ * net_shutdown_direct_play_session reports every shutdown to it, and it then
+ * reads as pending until the close completes.
  *
- * Not checked here: the packets HOST_RESTART, DEBRIEF_HOST_ABORT and the leave actions send, which need a
- * DirectPlay session. */
+ * Not checked here: the packets HOST_RESTART, DEBRIEF_HOST_ABORT and the leave
+ * actions send, which need a DirectPlay session. */
 #include <string.h>
 
 #include "test_assert.h"

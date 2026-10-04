@@ -107,7 +107,8 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 		}
 		draw_state.gate_id = control_id + 1000;
 
-		/* Draw and update the ordinary scrollbar while no thumb drag owns the input gate. */
+		/* Draw and update the ordinary scrollbar while no thumb drag
+		 * owns the input gate. */
 		if (!frontend_mouse_is_gate_owner(draw_state.gate_id)) {
 			if (frontend_mouse_get_left_click() ||
 			    frontend_mouse_get_right_click()) {

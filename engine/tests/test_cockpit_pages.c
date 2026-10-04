@@ -1,12 +1,15 @@
-/* Checks the cockpit MFD pages (xvt_runtime/snapshot/cockpit_pages.h) against the promises in its header:
- * a page captured section by section, latched and exported into the page store; which pages Export writes;
- * when generations rise; Clear; the failures that invalidate the state (a nested section, too many rows,
- * too many glyphs, a full store) and BeginFrame clearing them; background, border and scroll records;
- * out-of-range arguments; and what the two resets drop. The test sets the flight text globals and the
- * palette itself; every case starts from Reset, BeginFrame and the same text state.
+/* Checks the cockpit MFD pages (xvt_runtime/snapshot/cockpit_pages.h) against
+ * the promises in its header: a page captured section by section, latched and
+ * exported into the page store; which pages Export writes; when generations
+ * rise; Clear; the failures that invalidate the state (a nested section, too
+ * many rows, too many glyphs, a full store) and BeginFrame clearing them;
+ * background, border and scroll records; out-of-range arguments; and what the
+ * two resets drop. The test sets the flight text globals and the palette
+ * itself; every case starts from Reset, BeginFrame and the same text state.
  *
- * Not checked here: a failed allocation, which a test cannot cause, and how RecordMode's value appears in
- * the exported page, which the header does not say; only that a new mode raises the page's generation. */
+ * Not checked here: a failed allocation, which a test cannot cause, and how
+ * RecordMode's value appears in the exported page, which the header does not
+ * say; only that a new mode raises the page's generation. */
 #include <string.h>
 
 #include "test_assert.h"
@@ -217,7 +220,8 @@ static void check_nested_section_fails(void)
 	xvt_cockpit_pages_end_section();
 	xvt_cockpit_pages_end_section();
 
-	/* Latching a page with a failed section invalidates this frame's export, and writes nothing. */
+	/* Latching a page with a failed section invalidates this frame's
+	 * export, and writes nothing. */
 	xvt_cockpit_pages_begin_frame();
 	xvt_cockpit_pages_latch(PAGE);
 	const struct xvt_cockpit_state *state = exported(PAGE, -1);
@@ -349,7 +353,8 @@ static void check_out_of_range_ignored(void)
 	xvt_cockpit_pages_record_mode(MFD_PAGE_COUNT, 1);
 	xvt_cockpit_pages_latch(MFD_PAGE_COUNT);
 
-	/* Out-of-range sections open nothing, so the next section opens without a nesting failure. */
+	/* Out-of-range sections open nothing, so the next section opens without
+	 * a nesting failure. */
 	xvt_cockpit_pages_begin_section(MFD_PAGE_COUNT,
 					XVT_COCKPIT_PAGE_HEADER);
 	xvt_cockpit_pages_begin_section(PAGE, XVT_COCKPIT_PAGE_SECTION_COUNT);
@@ -390,7 +395,8 @@ static void check_ignored_glyphs_and_rows(void)
 
 static void check_resets(void)
 {
-	/* Reset abandons an open capture: nothing more is captured and a new section opens cleanly. */
+	/* Reset abandons an open capture: nothing more is captured and a new
+	 * section opens cleanly. */
 	cockpit_pages_start();
 	xvt_cockpit_pages_begin_section(PAGE, XVT_COCKPIT_PAGE_HEADER);
 	xvt_cockpit_pages_reset();

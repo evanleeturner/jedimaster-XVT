@@ -411,7 +411,8 @@ size_t xvt_snapshot_calculate_size(void)
 		return 0;
 	}
 
-	/* The fixed trailer contains 24 dwords, three words, and one byte around the fixed arrays. */
+	/* The fixed trailer contains 24 dwords, three words, and one byte
+	 * around the fixed arrays. */
 	size_t size =
 		(int)(2 * sizeof(struct mission_clock) +
 		      sizeof(struct mission_header) +
@@ -721,8 +722,9 @@ struct xvt_snapshot_world_ranges {
 	int32_t static_count;
 };
 
-/* Returns 1 when the 20 dwords at image_ranges (pool sizes, the world-state debris slot count and the
- * slot-range bounds) equal this flight's live values, else 0. */
+/* Returns 1 when the 20 dwords at image_ranges (pool sizes, the world-state
+ * debris slot count and the slot-range bounds) equal this flight's live values,
+ * else 0. */
 static int xvt_snapshot_ranges_match_live(const uint8_t *image_ranges)
 {
 	struct xvt_snapshot_world_ranges ranges;

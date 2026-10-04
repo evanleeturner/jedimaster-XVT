@@ -7,9 +7,10 @@
 extern "C" {
 #endif
 
-/* The runtime's clock. It starts at 0 and moves only through AdvanceHostClock, which the port calls
- * from its frame. The game's calls to the Windows timeGetTime and GetTickCount are answered from it;
- * both are defined in host_clock.c. */
+/* The runtime's clock. It starts at 0 and moves only through AdvanceHostClock,
+ * which the port calls from its frame. The game's calls to the Windows
+ * timeGetTime and GetTickCount are answered from it; both are defined in
+ * host_clock.c. */
 
 /* Sets the clock to 0. */
 void xvt_time_reset(void);

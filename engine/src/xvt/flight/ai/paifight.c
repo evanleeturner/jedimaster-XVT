@@ -936,9 +936,9 @@ int16_t paifight_target_has_attack_capacity(uint16_t target_obj_idx,
 	return attacker_count < attacker_limit;
 }
 
-/* Besides answering, this sets g_pai_context's require_undisabled_target and target_search_flags for the
- * search, and for an escort-leader order (capescortersldr1pln) makes the nearest escort leader the AI's
- * target. */
+/* Besides answering, this sets g_pai_context's require_undisabled_target and
+ * target_search_flags for the search, and for an escort-leader order
+ * (capescortersldr1pln) makes the nearest escort leader the AI's target. */
 /* Returns 1 when the search for the order slot's leader plan finds a target,
  * else 0: the nearest order target for capfreeldr1pln, disableldr1pln and
  * kamikaze1pln, the nearest escort leader for capescortersldr1pln, else the
@@ -979,9 +979,9 @@ int16_t paifight_search_order_slot_target(uint16_t order_slot)
 	return target_object != -1;
 }
 
-/* Besides answering, this sets g_pai_context's require_undisabled_target and target_search_flags for the
- * search, and for an escort-leader order (capescortersldr1pln) makes the nearest escort leader the AI's
- * target. */
+/* Besides answering, this sets g_pai_context's require_undisabled_target and
+ * target_search_flags for the search, and for an escort-leader order
+ * (capescortersldr1pln) makes the nearest escort leader the AI's target. */
 /* Returns 1 when the order slot still has a target, else 0: for a
  * capescortersldr1pln leader plan, an escort leader found (made the target),
  * else at least one target counted by

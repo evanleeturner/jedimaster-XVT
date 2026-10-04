@@ -1,15 +1,18 @@
 #define _POSIX_C_SOURCE 200809L
-/* Checks the cutscene task (xvt_runtime/runtime/cutscene_task.h) against the promises in its header: when
- * a run starts, which table entries match, a pending movie returning -1, a movie's nonzero result ending
- * the run and skipping the rest, CD audio suspended for a movie and asked to resume after it, no run left
- * after a final return, and Reset. The test builds its own cutscene table and pilot state; the movies are
- * empty files in a temporary asset folder, which Aeron's decoder reports unreadable from its own thread
- * (result 2), or are missing (result 2 at once). Every case starts from Reset, no movie, a cleared
- * frontend with a CD track playing, and a training mission sequence whose mission index is 11 and whose
- * description id is 22.
+/* Checks the cutscene task (xvt_runtime/runtime/cutscene_task.h) against the
+ * promises in its header: when a run starts, which table entries match, a
+ * pending movie returning -1, a movie's nonzero result ending the run and
+ * skipping the rest, CD audio suspended for a movie and asked to resume after
+ * it, no run left after a final return, and Reset. The test builds its own
+ * cutscene table and pilot state; the movies are empty files in a temporary
+ * asset folder, which Aeron's decoder reports unreadable from its own thread
+ * (result 2), or are missing (result 2 at once). Every case starts from Reset,
+ * no movie, a cleared frontend with a CD track playing, and a training mission
+ * sequence whose mission index is 11 and whose description id is 22.
  *
- * Not checked here: moving on to the next match after a movie that played to its end, which needs a
- * Smacker movie from the game, and the display restore, which needs a window. */
+ * Not checked here: moving on to the next match after a movie that played to
+ * its end, which needs a Smacker movie from the game, and the display restore,
+ * which needs a window. */
 #include <string.h>
 #include <time.h>
 
@@ -39,8 +42,9 @@ static void entry(int index, const char *movie, int mission, int phase,
 	g_table[index].campaign_mission_id = description;
 }
 
-/* The table: "first" and "fourth" match phase 0, "second" matches phase 1, the others never match the
- * pilot's mission. Placeholders exist for the movies named in present. */
+/* The table: "first" and "fourth" match phase 0, "second" matches phase 1, the
+ * others never match the pilot's mission. Placeholders exist for the movies
+ * named in present. */
 static void fresh(const char *present_a, const char *present_b)
 {
 	xvt_cutscene_task_reset();
@@ -122,7 +126,8 @@ static void check_no_match(void)
 
 static void check_missing_movie_ends_run(void)
 {
-	/* "first" is missing, "fourth" is there: the failure of the first ends the run before the other. */
+	/* "first" is missing, "fourth" is there: the failure of the first ends
+	 * the run before the other. */
 	fresh("fourth", NULL);
 	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(0), 0);
 	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 0);
@@ -165,8 +170,9 @@ static void check_reset(void)
 	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_suspend_state,
 			  CD_AUDIO_SUSPENDED);
 
-	/* The next Play starts over: it does not wait for that movie, but tries "first" again, which the
-	 * movie task refuses while a movie is active. */
+	/* The next Play starts over: it does not wait for that movie, but tries
+	 * "first" again, which the movie task refuses while a movie is
+	 * active. */
 	XVT_ASSERT_INT_EQ(xvt_cutscene_task_play(0), 0);
 	XVT_ASSERT_INT_EQ(xvt_movie_task_is_active(), 1);
 	finish_movie();

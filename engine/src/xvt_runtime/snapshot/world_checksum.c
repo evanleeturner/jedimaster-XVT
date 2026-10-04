@@ -202,7 +202,8 @@ void xvt_snapshot_checksum_prefix(const uint8_t *image, size_t prefix,
 
 	checksum += xvt_snapshot_sum_bytes(&cursor, 4);
 	checksum += *cursor++;
-	/* The 20 range dwords: 4 pool sizes, the world-state debris slot count and 15 slot-range bounds. */
+	/* The 20 range dwords: 4 pool sizes, the world-state debris slot count
+	 * and 15 slot-range bounds. */
 	checksum += xvt_snapshot_sum_bytes(&cursor, 20 * 4);
 	checksum += xvt_snapshot_sum_bytes(&cursor, 21760);
 	checksum += xvt_snapshot_sum_bytes(&cursor, 4);

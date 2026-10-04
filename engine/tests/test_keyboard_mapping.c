@@ -1,8 +1,9 @@
-/* Checks the keyboard mapping (xvt_runtime/input/keyboard_mapping.h) against the promises in its header:
- * which chords are reserved shortcuts and when they trigger, which sources are valid and how they are
- * labelled, the binding list helpers, and how key events become queued flight keys and held buttons.
- * Every case installs its own bindings and starts from a suspended mapping. No device is opened: key
- * events and snapshots are built by the test. */
+/* Checks the keyboard mapping (xvt_runtime/input/keyboard_mapping.h) against
+ * the promises in its header: which chords are reserved shortcuts and when they
+ * trigger, which sources are valid and how they are labelled, the binding list
+ * helpers, and how key events become queued flight keys and held buttons. Every
+ * case installs its own bindings and starts from a suspended mapping. No device
+ * is opened: key events and snapshots are built by the test. */
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -358,7 +359,8 @@ static void check_pause_and_escape(void)
 	XVT_ASSERT_INT_EQ(xvt_keyboard_mapping_read_key(), 0);
 	release(k_p, AERON_KEY_MOD_ALT);
 
-	/* The Escape action asks the port for settings on the press, not on repeats, and queues nothing. */
+	/* The Escape action asks the port for settings on the press, not on
+	 * repeats, and queues nothing. */
 	press(k_q, 0);
 	XVT_ASSERT_INT_EQ(xvt_port_consume_settings_request(), 1);
 	repeat(k_q, 0);
@@ -512,8 +514,9 @@ static void check_overflow_restarts(void)
 	press(k_t, 0);
 	press(k_b, AERON_KEY_MOD_CTRL);
 
-	/* After overflowed events the mapping restarts as Enable would: the queue empties and keys down in
-	 * the snapshot are ignored until released. */
+	/* After overflowed events the mapping restarts as Enable would: the
+	 * queue empties and keys down in the snapshot are ignored until
+	 * released. */
 	g_input.key_events_overflow = 1;
 	g_input.key_down[k_b] = 1;
 	xvt_keyboard_mapping_begin_frame(&g_input);

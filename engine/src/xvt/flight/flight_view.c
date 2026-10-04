@@ -420,7 +420,8 @@ void flight_view_update_player_camera(int player_idx)
 			g_players[player_idx].view_state.camera_focus_obj_idx;
 		if (camera_focus_obj_idx == UINT16_MAX) {
 #ifdef XVT_MODERN
-			/* Mission time-limit expiry marks empty slots connected; they have no craft to orbit. */
+			/* Mission time-limit expiry marks empty slots
+			 * connected; they have no craft to orbit. */
 			if (g_players[player_idx].object_index == -1) {
 				return;
 			}

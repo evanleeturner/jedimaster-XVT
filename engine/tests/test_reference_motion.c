@@ -1,7 +1,9 @@
-/* Checks the reference-boundary positions (xvt_runtime/timing/reference_motion.h) against the promises in
- * its header, on an object table this file builds itself: slots 0, 2, 3 and 4 hold live objects and slot
- * 1 is empty; no game data is read. Each case starts from that table at game time 100, a fresh table of
- * samples taken by Init, and a new flight timing session. */
+/* Checks the reference-boundary positions
+ * (xvt_runtime/timing/reference_motion.h) against the promises in its header,
+ * on an object table this file builds itself: slots 0, 2, 3 and 4 hold live
+ * objects and slot 1 is empty; no game data is read. Each case starts from that
+ * table at game time 100, a fresh table of samples taken by Init, and a new
+ * flight timing session. */
 #include <stdint.h>
 #include <string.h>
 
@@ -13,8 +15,8 @@
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
 
-/* An allocation that cannot be met must come back as NULL, so Init's refusal can be seen; by default
- * AddressSanitizer stops the program instead. */
+/* An allocation that cannot be met must come back as NULL, so Init's refusal
+ * can be seen; by default AddressSanitizer stops the program instead. */
 const char *__asan_default_options(void)
 {
 	return "allocator_may_return_null=1";
@@ -82,7 +84,8 @@ static void check_init_samples(void)
 
 static void check_displacement_scale(void)
 {
-	/* The change times 8 over the ticks between: twice the period halves it, half the period doubles it. */
+	/* The change times 8 over the ticks between: twice the period halves
+	 * it, half the period doubles it. */
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	move(0, 40, 80, -120);
 	g_game_time = 116;
@@ -147,8 +150,9 @@ static void check_committed(void)
 
 static void check_commit_boundary(void)
 {
-	/* In a reference step, the boundary takes a new sample at game time: later movement is measured from
-	 * it, so 8 more over 8 more ticks is a displacement of 8, not (16 + 8) * 8 / 16. */
+	/* In a reference step, the boundary takes a new sample at game time:
+	 * later movement is measured from it, so 8 more over 8 more ticks is a
+	 * displacement of 8, not (16 + 8) * 8 / 16. */
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	xvt_flight_timing_begin_advance(XVT_REFERENCE_TICKS);
 	move(0, 16, 0, 0);
@@ -171,7 +175,8 @@ static void check_commit_boundary(void)
 	g_game_time = 1000;
 	expect_displacement(0, 8, 0, 0);
 
-	/* Outside a reference step it does nothing: the movement is still measured from Init's sample. */
+	/* Outside a reference step it does nothing: the movement is still
+	 * measured from Init's sample. */
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	xvt_flight_timing_begin_advance(1);
 	move(0, 16, 0, 0);
@@ -232,8 +237,9 @@ static void check_encode_decode(void)
 	XVT_ASSERT_INT_EQ(record.type, 1);
 	XVT_ASSERT_INT_EQ(xvt_wire_get16(record.slot), 0);
 
-	/* Installed into a fresh table sampled later, the record brings the old sample and committed time
-	 * back: the same displacement, and the same record out. */
+	/* Installed into a fresh table sampled later, the record brings the old
+	 * sample and committed time back: the same displacement, and the same
+	 * record out. */
 	g_game_time = 300;
 	XVT_ASSERT_INT_EQ(xvt_reference_motion_init(SLOTS), 1);
 	expect_displacement(0, 0, 0, 0);
@@ -248,8 +254,8 @@ static void check_encode_decode(void)
 	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(&record, 0), 1);
 	expect_displacement(0, 0, 0, 0);
 
-	/* Not checked against the object: accepted, encoded as another object's entry, and cleared by the
-	 * next read. */
+	/* Not checked against the object: accepted, encoded as another object's
+	 * entry, and cleared by the next read. */
 	struct xvt_reference_motion_wire other = record;
 	xvt_wire_set16(other.signature, 0x777);
 	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(&other, 1), 1);

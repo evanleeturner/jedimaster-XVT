@@ -55,10 +55,11 @@ void xvt_cockpit_seal(const struct xvt_snap_preview *crt);
 void xvt_cockpit_presented(int standalone_overlay);
 /* Copies the last presented frame into destination. */
 void xvt_cockpit_export(struct xvt_cockpit_state *destination);
-/* Fills destination with the cockpit definition, screen size, features and palettes, including
- * each loaded view's 64-color palette. Leaves it cleared and invalid while working is invalid or
- * the cockpit resources are not loaded; when panel 0 has no asset, the definition is captured and the
- * rest left cleared and invalid. */
+/* Fills destination with the cockpit definition, screen size, features and
+ * palettes, including each loaded view's 64-color palette. Leaves it cleared
+ * and invalid while working is invalid or the cockpit resources are not loaded;
+ * when panel 0 has no asset, the definition is captured and the rest left
+ * cleared and invalid. */
 void xvt_cockpit_export_resources(struct xvt_cockpit_resources *destination);
 /* Records the resource generation the renderer has prepared. */
 void xvt_cockpit_resources_prepared(uint64_t generation);

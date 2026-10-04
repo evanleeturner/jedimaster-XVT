@@ -27,7 +27,8 @@ int xvt_flight_task_is_complete(void);
 /* 1 once world start succeeded, unless the network session was lost before cleanup; otherwise
  * 0. */
 int xvt_flight_task_get_result(void);
-/* 1 while active with more than one flight player; xvt_port_network_requires_progress reports it. */
+/* 1 while active with more than one flight player;
+ * xvt_port_network_requires_progress reports it. */
 int xvt_flight_task_continues_without_focus(void);
 /* Microseconds until the task next needs an update: the resync's delay while a resync is active or
  * holds input, the frame loop's during frames, one tick while waiting for the first time delta,

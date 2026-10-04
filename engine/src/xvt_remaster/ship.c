@@ -38,7 +38,8 @@ int xvt_remaster_ship_select(const struct xvt_render_snapshot *s,
 			if (frame >= XVT_SNAP_TEXTURE_FRAME_BIT) {
 				return 0;
 			}
-			/* The mobile debris path selects a component; statics draw the whole model. */
+			/* The mobile debris path selects a component; statics
+			 * draw the whole model. */
 			if (o->slot_class != XVT_SLOT_STATIC) {
 				out->component = frame;
 			}

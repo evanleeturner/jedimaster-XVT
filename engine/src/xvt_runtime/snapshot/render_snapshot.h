@@ -157,9 +157,10 @@ struct xvt_render_snapshot {
 void xvt_render_snapshot_init(void);
 void xvt_render_snapshot_shutdown(void);
 /* BeginFrame is idempotent while a frame is open (including paused-frame routing). */
-/* It opens a frame on the writer slot: begins the asset and capture frames, stamps the snapshot serial
- * and scene kind, and zeroes the record counts and the flight, camera, map, hyperspace and
- * cursor flags. Other fields keep what the slot last held. */
+/* It opens a frame on the writer slot: begins the asset and capture frames,
+ * stamps the snapshot serial and scene kind, and zeroes the record counts and
+ * the flight, camera, map, hyperspace and cursor flags. Other fields keep what
+ * the slot last held. */
 void xvt_render_snapshot_begin_frame(void);
 /* Sets the scene kind for this and later frames; it persists until changed. */
 void xvt_render_snapshot_set_scene_kind(xvt_scene_kind kind);

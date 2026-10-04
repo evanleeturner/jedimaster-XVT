@@ -1,7 +1,9 @@
-/* Checks the HUD target boxes, the draw scope and the palette colors (xvt_runtime/snapshot/render_hud.h)
- * against the promises in its header. The render snapshot (render_snapshot.h) is started and its ticks
- * opened as the game does, so target boxes have a writer to count drops in. The recovered game's palette,
- * object table and world position globals are set here; no game data is read. */
+/* Checks the HUD target boxes, the draw scope and the palette colors
+ * (xvt_runtime/snapshot/render_hud.h) against the promises in its header. The
+ * render snapshot (render_snapshot.h) is started and its ticks opened as the
+ * game does, so target boxes have a writer to count drops in. The recovered
+ * game's palette, object table and world position globals are set here; no game
+ * data is read. */
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,7 +19,8 @@
 static struct object_record g_test_objects[3];
 static struct xvt_render_snapshot *g_out;
 
-/* Two main slots and one static slot, slot 1 empty; a fresh HUD in the cockpit scope; an open tick. */
+/* Two main slots and one static slot, slot 1 empty; a fresh HUD in the cockpit
+ * scope; an open tick. */
 static void fresh_tick(void)
 {
 	memset(g_test_objects, 0, sizeof g_test_objects);
@@ -161,8 +164,9 @@ static void check_color(void)
 	XVT_ASSERT_INT_EQ(channel(color, 16), 0xFF);
 	XVT_ASSERT_INT_EQ(channel(color, 8), 0x00);
 
-	/* Widened to 8 bits: every 6-bit level keeps its value in the top six bits, full scale is 255, and
-	 * each channel is read from its own palette byte. */
+	/* Widened to 8 bits: every 6-bit level keeps its value in the top six
+	 * bits, full scale is 255, and each channel is read from its own
+	 * palette byte. */
 	for (unsigned level = 0; level < 64; ++level) {
 		g_sw_palette[9] = (struct rgb_triplet){
 			(uint8_t)level, (uint8_t)(63 - level), (uint8_t)level};

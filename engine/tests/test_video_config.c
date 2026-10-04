@@ -1,7 +1,8 @@
-/* Checks the video page's settings record (xvt_runtime/config/video_config.h) against the promises in its
- * header: Read, Equals, Validate and ApplyTo on records this file builds, and SetVideo and RestoreVideo on
- * settings loaded from a copy of the shipped defaults. Each check starts from a fresh fixture folder
- * (config_fixture.h). */
+/* Checks the video page's settings record (xvt_runtime/config/video_config.h)
+ * against the promises in its header: Read, Equals, Validate and ApplyTo on
+ * records this file builds, and SetVideo and RestoreVideo on settings loaded
+ * from a copy of the shipped defaults. Each check starts from a fresh fixture
+ * folder (config_fixture.h). */
 #define _XOPEN_SOURCE 700
 
 #include <math.h>
@@ -12,7 +13,8 @@
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/config/video_config.h"
 
-/* A record with a distinctive value in every field, for the copying checks; it is never validated. */
+/* A record with a distinctive value in every field, for the copying checks; it
+ * is never validated. */
 static struct xvt_video_settings distinct(void)
 {
 	struct xvt_video_settings v;
@@ -33,8 +35,9 @@ static struct xvt_video_settings distinct(void)
 	return v;
 }
 
-/* The shipped defaults' video fields with temporal upscaling off, so any MSAA count is allowed: the record
- * the video page starts from, which it must be able to check and store. */
+/* The shipped defaults' video fields with temporal upscaling off, so any MSAA
+ * count is allowed: the record the video page starts from, which it must be
+ * able to check and store. */
 static struct xvt_video_settings shipped_record(void)
 {
 	static struct xvt_settings settings;
@@ -52,8 +55,9 @@ static struct xvt_video_settings shipped_record(void)
 	return v;
 }
 
-/* base with every field changed whose choices a header lists: the four flags, the gamma, the luminance,
- * the temporal mode and MSAA (1 under temporal upscaling). The other fields keep base's values. */
+/* base with every field changed whose choices a header lists: the four flags,
+ * the gamma, the luminance, the temporal mode and MSAA (1 under temporal
+ * upscaling). The other fields keep base's values. */
 static struct xvt_video_settings
 changed_from(const struct xvt_video_settings *base)
 {
@@ -170,7 +174,8 @@ static void check_equals(void)
 	}
 }
 
-/* Expects v refused with the header's message; what names the bad field, printed if the check fails. */
+/* Expects v refused with the header's message; what names the bad field,
+ * printed if the check fails. */
 static void expect_invalid(const struct xvt_video_settings *v, const char *what)
 {
 	char error[64];
@@ -275,8 +280,8 @@ static void check_apply_to(void)
 	XVT_ASSERT_CLOSE(render.bloom_intensity, 0.5f, 0,
 			 "an untouched float is exact");
 
-	/* Applying a record and reading it back, with fullscreen kept outside the render settings, gives the
-	 * record again. */
+	/* Applying a record and reading it back, with fullscreen kept outside
+	 * the render settings, gives the record again. */
 	static struct xvt_settings settings;
 	memset(&settings, 0, sizeof settings);
 	settings.fullscreen = v.fullscreen;
@@ -299,8 +304,9 @@ static void check_set_and_restore(void)
 	struct xvt_video_settings defaults;
 	xvt_video_settings_read(xvt_config_default_settings(), &defaults);
 
-	/* Every field is written, even one equal to the shipped value: the settings.h paths of the window
-	 * mode, the presentation choices, the temporal mode and MSAA all appear in the user overrides. */
+	/* Every field is written, even one equal to the shipped value: the
+	 * settings.h paths of the window mode, the presentation choices, the
+	 * temporal mode and MSAA all appear in the user overrides. */
 	uint64_t generation = xvt_config_generation();
 	XVT_ASSERT_TRUE(xvt_config_set_video(&defaults, error, sizeof error));
 	XVT_ASSERT_TRUE(xvt_config_generation() > generation);

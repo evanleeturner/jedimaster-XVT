@@ -1,10 +1,13 @@
 #define _POSIX_C_SOURCE 200809L
-/* Checks where the game's files are placed and found (xvt_runtime/storage/storage.h) against the promises
- * in its header. Each case starts from a fresh temporary folder holding three empty folders, asset, user
- * and temp, which an Aeron VFS bound to storage uses as the ASSET, USER and TEMP roots. The test writes
- * every file it reads there, and inspects the folders directly to see where storage put a file.
+/* Checks where the game's files are placed and found
+ * (xvt_runtime/storage/storage.h) against the promises in its header. Each case
+ * starts from a fresh temporary folder holding three empty folders, asset, user
+ * and temp, which an Aeron VFS bound to storage uses as the ASSET, USER and
+ * TEMP roots. The test writes every file it reads there, and inspects the
+ * folders directly to see where storage put a file.
  *
- * Not run here: xvt_storage_fatal, which shows a message box before it exits. */
+ * Not run here: xvt_storage_fatal, which shows a message box before it
+ * exits. */
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -105,7 +108,8 @@ static void check_normalize(void)
 	XVT_ASSERT_INT_EQ(strcmp(out, "a/b/c/d"), 0);
 	XVT_ASSERT_INT_EQ(xvt_storage_normalize("./x", out, sizeof out), 1);
 	XVT_ASSERT_INT_EQ(strcmp(out, "x"), 0);
-	/* A part that only contains two dots is refused; a longer name that contains them is not. */
+	/* A part that only contains two dots is refused; a longer name that
+	 * contains them is not. */
 	XVT_ASSERT_INT_EQ(xvt_storage_normalize("a..b/..c", out, sizeof out),
 			  1);
 	XVT_ASSERT_INT_EQ(strcmp(out, "a..b/..c"), 0);
@@ -157,8 +161,9 @@ static void check_probe(void)
 	XVT_ASSERT_INT_EQ(xvt_storage_probe(AERON_VFS_ROOT_USER, "flat.txt/x"),
 			  -1);
 
-	/* A name the parent lists in other letter case: where the file system tells case apart, the exact
-	 * lookup misses it and the answer is -1; where it does not, the lookup finds the file. */
+	/* A name the parent lists in other letter case: where the file system
+	 * tells case apart, the exact lookup misses it and the answer is -1;
+	 * where it does not, the lookup finds the file. */
 	char other[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(other, g_user, "pilots/ace.plt");
 	struct stat info;
@@ -222,7 +227,8 @@ static void check_open_temp(void)
 static void check_open_cache(void)
 {
 	fresh_roots();
-	/* Every cache extension, in any letter case, writes to USER under cache/, which is created. */
+	/* Every cache extension, in any letter case, writes to USER under
+	 * cache/, which is created. */
 	static const char *const names[] = {"a.pal", "b.act", "c.inv",
 					    "d.bin", "e.plo", "F.PAL"};
 	for (size_t i = 0; i < sizeof names / sizeof names[0]; ++i) {
@@ -276,7 +282,8 @@ static void check_open_asset(void)
 	XVT_ASSERT_TRUE(opens_text("p.dat", "r", "plain"));
 	XVT_ASSERT_TRUE(xvt_storage_open("u.dat", "rb") == NULL);
 
-	/* Refusals: no mode, a mode that does not start with r, w or a, a rejected path, a missing file. */
+	/* Refusals: no mode, a mode that does not start with r, w or a, a
+	 * rejected path, a missing file. */
 	XVT_ASSERT_TRUE(xvt_storage_open("p.dat", NULL) == NULL);
 	XVT_ASSERT_TRUE(xvt_storage_open("p.dat", "x") == NULL);
 	XVT_ASSERT_TRUE(xvt_storage_open("p.dat", "") == NULL);
@@ -512,7 +519,8 @@ static void check_global_stream(void)
 	XVT_ASSERT_INT_EQ(xvt_storage_close_global_stream(file, 1), 0);
 	XVT_ASSERT_TRUE(xvt_test_file_is(g_user, "clean.sav", "ok"));
 
-	/* A stream with its error flag set returns 1; with remove_on_error its USER or TEMP file goes. */
+	/* A stream with its error flag set returns 1; with remove_on_error its
+	 * USER or TEMP file goes. */
 	file = open_global("bad.sav", "wb");
 	fail_read(file);
 	XVT_ASSERT_INT_EQ(xvt_storage_close_global_stream(file, 1), 1);

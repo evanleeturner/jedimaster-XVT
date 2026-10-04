@@ -333,8 +333,9 @@ mesh_component_type model_mesh_get_object_type_mesh_type(int object_type,
 	struct mesh_descriptor *descriptor =
 		model_mesh_find_descriptor_node_recursive(
 			root_nodes[mesh_index], model);
-	/* From here mesh_index holds the result, no longer a root node index: the descriptor's mesh type,
-	 * or MESH_COMPONENT_00_DEFAULT without a descriptor. */
+	/* From here mesh_index holds the result, no longer a root node index:
+	 * the descriptor's mesh type, or MESH_COMPONENT_00_DEFAULT without a
+	 * descriptor. */
 	if (descriptor != NULL) {
 		mesh_index = descriptor->mesh_type;
 	} else {
@@ -909,8 +910,8 @@ int model_mesh_get_target_id(int object_type, int mesh_index)
 	struct mesh_descriptor *descriptor =
 		model_mesh_find_descriptor_node_recursive(
 			root_nodes[mesh_index], model);
-	/* From here mesh_index holds the result, no longer a root node index: the descriptor's target id,
-	 * or 0 without a descriptor. */
+	/* From here mesh_index holds the result, no longer a root node index:
+	 * the descriptor's target id, or 0 without a descriptor. */
 	if (descriptor != NULL) {
 		mesh_index = descriptor->target_id;
 	} else {
@@ -1136,8 +1137,9 @@ int model_mesh_is_object_type_mesh_damageable(int object_type, int mesh_index)
 	struct mesh_descriptor *descriptor =
 		model_mesh_find_descriptor_node_recursive(
 			root_nodes[mesh_index], model);
-	/* From here mesh_index holds the result, no longer a root node index: bit 1 (value 2) of the
-	 * descriptor's component flags, or 0 without a descriptor. */
+	/* From here mesh_index holds the result, no longer a root node index:
+	 * bit 1 (value 2) of the descriptor's component flags, or 0 without a
+	 * descriptor. */
 	if (descriptor != NULL) {
 		mesh_index = descriptor->component_flags & 2;
 	} else {
@@ -1181,8 +1183,9 @@ int model_mesh_has_explosion_type_bit0(int object_type, int mesh_index)
 	struct mesh_descriptor *descriptor =
 		model_mesh_find_descriptor_node_recursive(
 			root_nodes[mesh_index], model);
-	/* From here mesh_index holds the result, no longer a root node index: bit 0 of the descriptor's
-	 * component flags, or 0 without a descriptor. */
+	/* From here mesh_index holds the result, no longer a root node index:
+	 * bit 0 of the descriptor's component flags, or 0 without a
+	 * descriptor. */
 	if (descriptor != NULL) {
 		mesh_index = descriptor->component_flags & 1;
 	} else {
@@ -1823,8 +1826,9 @@ int model_mesh_find_bridge_index(struct optimized_poly_object *model)
 	return -1;
 }
 
-/* Fills g_object_type_mesh_cache for all 73 object types. The pointer returned is one past the end of
- * the array, not a cache entry; it must not be dereferenced. */
+/* Fills g_object_type_mesh_cache for all 73 object types. The pointer returned
+ * is one past the end of the array, not a cache entry; it must not be
+ * dereferenced. */
 /* Each entry gets model_mesh_get_object_type_mesh_count and, per mesh, its type and
  * descriptor. fe_disk_io_init_resources calls this after
  * fe_disk_io_load_resources. */

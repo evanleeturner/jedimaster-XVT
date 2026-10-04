@@ -1,14 +1,18 @@
-/* Checks the cockpit capture (xvt_runtime/snapshot/cockpit_capture.h) against the promises in its header:
- * CopyState's partial store copy; Reset; refreshing working for the local player only and its validity
- * following the cockpit layout; composition, sealing and publication across frames; the standalone overlay;
- * which parts' generations rise; placing pages, the message log, launchers and message panes; keeping the
- * presented frame; the refusals of ExportResources; and when loading assets count as ready. The test builds
- * its own cockpit: it sets the HUD layout, the MFD page states and sizes, the message records and the
- * palette, makes the cockpit layout valid by capturing those live values, and plays the host's frame
- * order. The other cockpit modules are the library's own. Every case starts from that world and Reset.
+/* Checks the cockpit capture (xvt_runtime/snapshot/cockpit_capture.h) against
+ * the promises in its header: CopyState's partial store copy; Reset; refreshing
+ * working for the local player only and its validity following the cockpit
+ * layout; composition, sealing and publication across frames; the standalone
+ * overlay; which parts' generations rise; placing pages, the message log,
+ * launchers and message panes; keeping the presented frame; the refusals of
+ * ExportResources; and when loading assets count as ready. The test builds its
+ * own cockpit: it sets the HUD layout, the MFD page states and sizes, the
+ * message records and the palette, makes the cockpit layout valid by capturing
+ * those live values, and plays the host's frame order. The other cockpit
+ * modules are the library's own. Every case starts from that world and Reset.
  *
- * Not checked here: ExportResources filling its output, which needs a cockpit panel image registered from
- * a file the game ships, and the mouse stick marker, which needs mouse flight running. */
+ * Not checked here: ExportResources filling its output, which needs a cockpit
+ * panel image registered from a file the game ships, and the mouse stick
+ * marker, which needs mouse flight running. */
 #include <stddef.h>
 #include <string.h>
 
@@ -46,8 +50,9 @@ static void palette(void)
 	}
 }
 
-/* The local player in seat 0 has no craft and looks forward with the map closed. The goals, damage and
- * command pages have sizes; the message log pane is 100 by 50. The cockpit layout is valid. */
+/* The local player in seat 0 has no craft and looks forward with the map
+ * closed. The goals, damage and command pages have sizes; the message log pane
+ * is 100 by 50. The cockpit layout is valid. */
 static void cockpit_capture_world(void)
 {
 	palette();
@@ -128,7 +133,8 @@ static const struct xvt_cockpit_state *presented(void)
 	return &g_out;
 }
 
-/* The host's frame up to the composition: begin, refresh the local player, select the composition. */
+/* The host's frame up to the composition: begin, refresh the local player,
+ * select the composition. */
 static void compose(void)
 {
 	xvt_cockpit_begin_frame();
@@ -270,8 +276,9 @@ static void check_working_follows_layout(void)
 	XVT_ASSERT_INT_EQ(state->valid, 1);
 	XVT_ASSERT_INT_EQ(state->view.screen_width, 640);
 
-	/* Once the layout is gone again, a refresh leaves working invalid, so LatchComposition copies nothing:
-	 * the frame sealed next still holds the old view, not the new screen width. */
+	/* Once the layout is gone again, a refresh leaves working invalid, so
+	 * LatchComposition copies nothing: the frame sealed next still holds
+	 * the old view, not the new screen width. */
 	xvt_render_cockpit_reset();
 	g_screen_width = 800;
 	compose();
@@ -419,7 +426,8 @@ static void check_latch_pages(void)
 	g_mfd_page_states[MFD_PAGE_MAP_HELP] = MFD_PAGE_STATE_OPEN;
 	g_mfd_page_states[MFD_PAGE_MESSAGE_LOG] = MFD_PAGE_STATE_OPEN;
 
-	/* Off the map: open pages are placed except the command page; closed ones and the log are not. */
+	/* Off the map: open pages are placed except the command page; closed
+	 * ones and the log are not. */
 	xvt_cockpit_latch_pages();
 	xvt_cockpit_presented(1);
 	const struct xvt_cockpit_page *pages = presented()->pages;
@@ -537,7 +545,8 @@ static void check_latch_message(void)
 	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_NETWORK_LAG, "3",
 				      XVT_COCKPIT_ALIGN_LEFT);
 
-	/* The ready pane is latched while the log is closed, and moves the ping and lag fields with it. */
+	/* The ready pane is latched while the log is closed, and moves the ping
+	 * and lag fields with it. */
 	xvt_cockpit_latch_message(XVT_COCKPIT_MESSAGE_READY, 40, 55, 300, 400,
 				  120, 30);
 	xvt_cockpit_presented(1);
@@ -651,15 +660,17 @@ static void check_export_resources_refusals(void)
 	xvt_cockpit_export_resources(&resources);
 	XVT_ASSERT_INT_EQ(all_zero(&resources, sizeof resources), 1);
 
-	/* Loaded, but panel 0 has no asset: invalid. That it is also cleared is a known failure below. */
+	/* Loaded, but panel 0 has no asset: invalid. That it is also cleared is
+	 * a known failure below. */
 	g_hud_cockpit_resources_loaded = 1;
 	memset(&resources, 0xAB, sizeof resources);
 	xvt_cockpit_export_resources(&resources);
 	XVT_ASSERT_INT_EQ(resources.valid, 0);
 }
 
-/* Known failure: with panel 0 unbound the output is left invalid but not cleared. ExportResources captures
- * the cockpit definition into it before it looks at panel 0, and returns with that definition in place. */
+/* Known failure: with panel 0 unbound the output is left invalid but not
+ * cleared. ExportResources captures the cockpit definition into it before it
+ * looks at panel 0, and returns with that definition in place. */
 static void check_export_resources_cleared_without_panel(void)
 {
 	static struct xvt_cockpit_resources resources;
@@ -673,7 +684,8 @@ static void check_export_resources_cleared_without_panel(void)
 
 int main(int argc, char **argv)
 {
-	/* "known-failure <check>" runs one check the code is known to fail; an unknown name runs nothing. */
+	/* "known-failure <check>" runs one check the code is known to fail; an
+	 * unknown name runs nothing. */
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
 		if (strcmp(argv[2], "export_resources_without_panel") == 0) {
 			check_export_resources_cleared_without_panel();

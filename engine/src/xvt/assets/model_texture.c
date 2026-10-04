@@ -337,7 +337,8 @@ size_t model_texture_load_rgb_or_tex_file(uint8_t *dst, const char *file_name)
 					      stream);
 				FILE_RAW_CLOSE(stream);
 
-				/* The three colour planes are converted to palette indices in place. */
+				/* The three colour planes are converted to
+				 * palette indices in place. */
 				int palette_size = 1;
 				uint8_t local_palette[256 * 3];
 				local_palette[0] = source_pixel[0] >> 3;

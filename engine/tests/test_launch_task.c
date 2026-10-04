@@ -1,12 +1,15 @@
-/* Checks the frontend-to-flight hand-off (xvt_runtime/runtime/launch_task.h) against the promises in its
- * header that hold while no launch is queued: the idle phase reports no launch, BeginPendingLaunch refuses,
- * Complete and Update do nothing, and Shutdown leaves the task idle. The test sets the frontend state it
- * watches; every case starts from Shutdown and a cleared frontend with a placeholder screen at frame 4.
+/* Checks the frontend-to-flight hand-off (xvt_runtime/runtime/launch_task.h)
+ * against the promises in its header that hold while no launch is queued: the
+ * idle phase reports no launch, BeginPendingLaunch refuses, Complete and Update
+ * do nothing, and Shutdown leaves the task idle. The test sets the frontend
+ * state it watches; every case starts from Shutdown and a cleared frontend with
+ * a placeholder screen at frame 4.
  *
- * Not checked here: Queue and every phase after it. Queue writes the settings file and the pilot file,
- * checks the installation and reads the game's mission list for the selected mission before it builds the
- * flight command, and completing a flight that ran restores the frontend's window surfaces; a test would
- * need the game's mission files, a loaded configuration and a window. */
+ * Not checked here: Queue and every phase after it. Queue writes the settings
+ * file and the pilot file, checks the installation and reads the game's mission
+ * list for the selected mission before it builds the flight command, and
+ * completing a flight that ran restores the frontend's window surfaces; a test
+ * would need the game's mission files, a loaded configuration and a window. */
 #include <string.h>
 
 #include "test_assert.h"

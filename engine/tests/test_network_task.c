@@ -1,13 +1,17 @@
-/* Checks the frontend side of multiplayer (xvt_runtime/runtime/network_task.h) against the promises in its
- * header, as far as they hold with no multiplayer directory: the room compatibility check, the browser's
- * state with an empty snapshot (no selection, no preview, a clamped scroll), a refresh that records the
- * directory's error, when the browser counts as visible, which attempts Begin starts or ignores, and what
- * Resume and Cancel do with an attempt or a failed session. The frontend runs on a display with no window
- * (test_frontend_display.h). Every case starts from Shutdown, a cleared frontend and no settings loaded,
- * so the directory is never configured and no request leaves the machine.
+/* Checks the frontend side of multiplayer (xvt_runtime/runtime/network_task.h)
+ * against the promises in its header, as far as they hold with no multiplayer
+ * directory: the room compatibility check, the browser's state with an empty
+ * snapshot (no selection, no preview, a clamped scroll), a refresh that records
+ * the directory's error, when the browser counts as visible, which attempts
+ * Begin starts or ignores, and what Resume and Cancel do with an attempt or a
+ * failed session. The frontend runs on a display with no window
+ * (test_frontend_display.h). Every case starts from Shutdown, a cleared
+ * frontend and no settings loaded, so the directory is never configured and no
+ * request leaves the machine.
  *
- * Not checked here: a snapshot with rooms, selection kept across refreshes, the mission preview, and a
- * join or host attempt past its first step; they need a multiplayer directory and a DirectPlay peer. */
+ * Not checked here: a snapshot with rooms, selection kept across refreshes, the
+ * mission preview, and a join or host attempt past its first step; they need a
+ * multiplayer directory and a DirectPlay peer. */
 #include <stdio.h>
 #include <string.h>
 
@@ -123,7 +127,8 @@ static void check_open_browser(void)
 	fresh();
 	g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_SINGLEPLAYER;
 	xvt_network_task_open_browser();
-	/* Client mode, a refresh started (and refused for want of a directory), any session left. */
+	/* Client mode, a refresh started (and refused for want of a directory),
+	 * any session left. */
 	XVT_ASSERT_INT_EQ(g_frontend_mission_session_mode,
 			  FRONTEND_MISSION_SESSION_NET_CLIENT);
 	XVT_ASSERT_INT_EQ(xvt_network_task_browser_error(),
@@ -208,7 +213,8 @@ static void check_resume_during_attempt(void)
 	fresh();
 	xvt_network_task_begin(XVT_NETWORK_HOST);
 	int result = 77;
-	/* The session is ticked; it is still closing the previous session, so the attempt goes on. */
+	/* The session is ticked; it is still closing the previous session, so
+	 * the attempt goes on. */
 	XVT_ASSERT_INT_EQ(xvt_network_task_resume(&result), 1);
 	XVT_ASSERT_INT_EQ(result, 0);
 	XVT_ASSERT_INT_EQ(xvt_network_task_is_active(), 1);

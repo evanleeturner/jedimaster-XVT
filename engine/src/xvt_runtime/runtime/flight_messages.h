@@ -27,8 +27,8 @@ struct xvt_flight_message {
 	struct xvt_flight_world_input_wire records[XVT_WORLD_RECORDS];
 };
 
-/* Pushes message, stored with only its count records, onto queue; returns 0 when the queue is out of
- * messages or bytes. */
+/* Pushes message, stored with only its count records, onto queue; returns 0
+ * when the queue is out of messages or bytes. */
 int xvt_flight_messages_enqueue(const struct xvt_flight_message *message,
 				xvt_flight_queue queue);
 

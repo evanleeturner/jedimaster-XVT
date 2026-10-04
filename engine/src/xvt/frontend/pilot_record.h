@@ -325,7 +325,9 @@ struct pilot_battle {
 	/* fe_disk_io_commit_flight_results counts it up when it commits a flight
 	 * whose current_mission_index is 10, also when it counted a victory or
 	 * defeat for that flight; nothing reads it by name. */
-	int draw_count; ///< Battles reaching the sequence mission limit without either side winning.
+	/* Battles reaching the sequence mission limit without either side
+	 * winning. */
+	int draw_count;
 	/* Highest cumulative battle score (battle_sequence_state.cumulative_score)
 	 * after a flight. */
 	int best_score;
@@ -370,7 +372,9 @@ struct pilot_multiplayer_battle {
 	/* fe_disk_io_commit_flight_results counts it up when it commits a flight
 	 * whose current_mission_index is 10, also when it counted a victory or
 	 * defeat for that flight; nothing reads it by name. */
-	int draw_count; ///< Battles reaching the sequence mission limit without either side winning.
+	/* Battles reaching the sequence mission limit without either side
+	 * winning. */
+	int draw_count;
 	/* Highest cumulative battle score (battle_sequence_state.cumulative_score)
 	 * after a flight. */
 	int best_score;
@@ -564,8 +568,9 @@ struct pilot_faction {
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
 	uint8_t unused24[32];
-	int mission_sequence_active; ///< Persisted active-sequence flag mirrored to
-				     ///< pilot_data.mission_sequence_active.
+	/* Persisted active-sequence flag mirrored to
+	 * pilot_data.mission_sequence_active. */
+	int mission_sequence_active;
 	/* pilot_data.saved_mission_description_id for this faction, saved and
 	 * restored like team. */
 	int saved_mission_description_id;
@@ -584,11 +589,13 @@ struct pilot_faction {
 	int total_score; ///< Overall score for this faction.
 	struct pilot_stats
 		stats; ///< Accumulated combat statistics for this faction.
-	/* pilot_load_xvt_record and pilot_write_xvt_record copy the base-game record's history blocks from and to
-	 * 4 bytes before each array below: the first block from here, each later one from the last field of the
-	 * array before it. So in that record each history entry starts with the 4 bytes this layout gives to
-	 * the end of the entry before it, and mp_battles[24].field24 is not copied. No code reads these words
-	 * by name. */
+	/* pilot_load_xvt_record and pilot_write_xvt_record copy the base-game
+	 * record's history blocks from and to 4 bytes before each array below:
+	 * the first block from here, each later one from the last field of the
+	 * array before it. So in that record each history entry starts with the
+	 * 4 bytes this layout gives to the end of the entry before it, and
+	 * mp_battles[24].field24 is not copied. No code reads these words by
+	 * name. */
 	uint8_t field1558[4];
 	struct pilot_mission sp_training_missions
 		[100]; ///< Single-player training history (100 records).
@@ -616,9 +623,9 @@ struct pilot_faction {
 		[25]; ///< Multiplayer campaign history (25 records).
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
-	uint8_t unused_f0e4
-		[24]; ///< Unresolved bytes between multiplayer campaign history and the CD movie-check
-	///< counter.
+	/* Unresolved bytes between multiplayer campaign history and the CD
+	 * movie-check counter. */
+	uint8_t unused_f0e4[24];
 	/* Only entry 0's is used, by concourse_update in the original build
 	 * when movie checks are not skipped and the game is neither host nor
 	 * client: at 0 it asks for the game CD until the movie files are found
@@ -626,16 +633,16 @@ struct pilot_faction {
 	 * CONCOURSE_CD_MOVIE_CHECK_LIMIT (5). */
 	uint32_t
 		cd_movie_check_counter; ///< Concourse CD movie-check retry counter.
-	struct pilot_campaign_mission sp_campaign_missions
-		[99]; ///< Single-player campaign mission history indexed by
-		      ///< one-based mission ID 1-99.
+	/* Single-player campaign mission history indexed by one-based mission
+	 * ID 1-99. */
+	struct pilot_campaign_mission sp_campaign_missions[99];
 	/* No code reads or writes it by name; it is saved with the pilot
 	 * file. */
 	uint8_t unused_fd60
 		[32]; ///< Unresolved bytes preceding multiplayer campaign mission history.
-	struct pilot_campaign_mission mp_campaign_missions
-		[99]; ///< Multiplayer campaign mission history indexed by
-		      ///< one-based mission ID 1-99.
+	/* Multiplayer campaign mission history indexed by one-based mission ID
+	 * 1-99. */
+	struct pilot_campaign_mission mp_campaign_missions[99];
 };
 
 #pragma pack(pop)
@@ -677,9 +684,9 @@ struct pilot_data {
 	 * a next or replayed mission starts; only pilot_write_xvt_record reads
 	 * it, into the base-game record. */
 	int session_mode;
-	uint8_t xvt_record_payload
-		[672]; ///< Opaque 672-byte payload round-tripped by the XvT-compatible
-	///< pilot-record reader and writer.
+	/* Opaque 672-byte payload round-tripped by the XvT-compatible
+	 * pilot-record reader and writer. */
+	uint8_t xvt_record_payload[672];
 	/* Team the pilot flies for in the mission being set up. Many functions
 	 * write it, chiefly mission_setup_team_assignment_update and the other
 	 * mission setup screens; selecting a pilot or a faction restores it
@@ -691,9 +698,9 @@ struct pilot_data {
 	 * Many functions write it, chiefly the MissionSetup screens and
 	 * sequence functions. */
 	mission_directory_id mission_directory_id;
-	int32_t mission_description_ids
-		[6]; ///< Selected mission or sequence descriptor ID for each of the six
-		     ///< mission_directory_id values.
+	/* Selected mission or sequence descriptor ID for each of the six
+	 * mission_directory_id values. */
+	int32_t mission_description_ids[6];
 	/* Name of the network game. The host screen edits it (an empty one
 	 * becomes the pilot's name plus FRONTSTR_470_S_GAME);
 	 * frontend_net_join_game_screen copies the joined session's and
@@ -735,8 +742,9 @@ struct pilot_data {
 	 * a flight's only while this is under half the rating's threshold, and
 	 * sets 0 on a promotion or demotion. */
 	int current_rating_worse_promo_points;
-	pilot_promotion_delta
-		promotion_delta; ///< Persisted signed rank change: -1 demotion, 0 unchanged, +1 promotion.
+	/* Persisted signed rank change: -1 demotion, 0 unchanged, +1
+	 * promotion. */
+	pilot_promotion_delta promotion_delta;
 	/* Progress to the next rating after the last mission: 100 *
 	 * current_rating_promo_points / the rating's threshold, at most 100, or
 	 * for negative points 100 * points / 2000, at least -100; 0 after a
@@ -811,8 +819,8 @@ struct pilot_data {
 	 * it for a melee outside a sequence or on a tournament's first
 	 * mission. */
 	int flight_group_rating[48];
-	struct pilot_stats
-		last_mission_stats; ///< Statistics of the most recent mission, shown on the debriefing.
+	/* Statistics of the most recent mission, shown on the debriefing. */
+	struct pilot_stats last_mission_stats;
 	struct pilot_network_player
 		network_players[8];  ///< Persisted network-player results (8).
 	struct pilot_team teams[10]; ///< Persisted team results (10).
@@ -830,12 +838,12 @@ struct pilot_data {
 		[25]; ///< Saved single-player battle continuation slots indexed by battle ID.
 	struct battle_continuation mp_battle_continuations
 		[25]; ///< Saved multiplayer battle continuation slots indexed by battle ID.
-	struct campaign_continuation sp_campaign_continuations
-		[25]; ///< Saved single-player campaign continuation slots
-		      ///< indexed by campaign ID.
-	struct campaign_continuation mp_campaign_continuations
-		[25]; ///< Saved multiplayer campaign continuation slots;
-		      ///< client state uses the ID+12 partition.
+	/* Saved single-player campaign continuation slots indexed by campaign
+	 * ID. */
+	struct campaign_continuation sp_campaign_continuations[25];
+	/* Saved multiplayer campaign continuation slots; client state uses the
+	 * ID+12 partition. */
+	struct campaign_continuation mp_campaign_continuations[25];
 };
 
 #pragma pack(pop)

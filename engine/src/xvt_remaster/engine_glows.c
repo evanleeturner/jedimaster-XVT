@@ -96,9 +96,10 @@ static float engine_glows_scale(const struct xvt_snap_object *o, int32_t ticks)
 				   engine_glows_power(o));
 }
 
-/* Turns each engine glow of one mesh into a camera-facing quad by the classic renderer's steps, in its
- * order: articulate, move to view space, cull, build the corners, push them along the look axis, color
- * and submit. Every step reads the same view-space center and axes, so helpers would each take most of
+/* Turns each engine glow of one mesh into a camera-facing quad by the classic
+ * renderer's steps, in its order: articulate, move to view space, cull, build
+ * the corners, push them along the look axis, color and submit. Every step
+ * reads the same view-space center and axes, so helpers would each take most of
  * that frame as arguments and scatter one calculation across the file. */
 static void submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 		   const float transform[16], float model_scale,

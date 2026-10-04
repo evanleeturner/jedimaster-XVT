@@ -1,13 +1,16 @@
 /* Checks the flight entry steps in flight_entry.c against their promises in
- * xvt_runtime/runtime/flight_internal.h, for the parts that need no game session or display: Prepare's
- * refusals, the launch options it reads, the config it loads and the way it splits the command, and that
- * Cleanup hands rendering back to the frontend. Prepare loads the config, so each check that calls it with a
- * command works in a fresh temporary folder holding the shipped defaults, with the settings loaded from it
- * (config_fixture.h); the commands have fewer than 7 arguments, so Prepare returns 0 before it would open
- * the game session. No game data is read.
+ * xvt_runtime/runtime/flight_internal.h, for the parts that need no game
+ * session or display: Prepare's refusals, the launch options it reads, the
+ * config it loads and the way it splits the command, and that Cleanup hands
+ * rendering back to the frontend. Prepare loads the config, so each check that
+ * calls it with a command works in a fresh temporary folder holding the shipped
+ * defaults, with the settings loaded from it (config_fixture.h); the commands
+ * have fewer than 7 arguments, so Prepare returns 0 before it would open the
+ * game session. No game data is read.
  *
- * Not checked here: a command of 7 arguments opens the game session, and CreateDevices opens the flight
- * display, DirectInput and the sound engine; they need the network session's peer and a window. */
+ * Not checked here: a command of 7 arguments opens the game session, and
+ * CreateDevices opens the flight display, DirectInput and the sound engine;
+ * they need the network session's peer and a window. */
 #define _XOPEN_SOURCE 700
 #include <string.h>
 
@@ -77,7 +80,8 @@ static void check_options_off(void)
 
 static void check_options_on(void)
 {
-	/* The plain forms of the [no] options turn them on; plain options that are absent are off. */
+	/* The plain forms of the [no] options turn them on; plain options that
+	 * are absent are off. */
 	fixture_begin();
 	fixture_load();
 	set_all_options(0);
@@ -107,7 +111,8 @@ static void check_options_on(void)
 
 static void check_options_anywhere(void)
 {
-	/* An option is found as a substring anywhere: inside a file name, and run together with another. */
+	/* An option is found as a substring anywhere: inside a file name, and
+	 * run together with another. */
 	fixture_begin();
 	fixture_load();
 	set_all_options(1);
@@ -137,7 +142,8 @@ static void check_split(void)
 
 static void check_loads_config(void)
 {
-	/* Prepare loads the config: the game config is what the config load makes of the settings. */
+	/* Prepare loads the config: the game config is what the config load
+	 * makes of the settings. */
 	static struct game_config loaded;
 	fixture_begin();
 	fixture_load();

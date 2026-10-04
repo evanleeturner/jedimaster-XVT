@@ -831,7 +831,8 @@ void object_update_lifetime_and_movement(void)
 
 			if (
 #ifdef XVT_MODERN
-				/* Expiry can convert the object after genus_id was cached for movement. */
+				/* Expiry can convert the object after genus_id
+				 * was cached for movement. */
 				(object->genus_id ==
 					 CRAFT_GENUS_PLAYER_PROJECTILE ||
 				 object->genus_id ==
@@ -1714,8 +1715,10 @@ void object_relink_mobile_object_pointers(void)
 					.p_craft =
 					&g_craft_data_pool_base
 						[link_indices->craft_data_idx];
-				/* Nothing in this build sets craft_data_idx, so this branch never runs. The table it reads
-				 * holds the object type each slot was spawned with, not an object index. */
+				/* Nothing in this build sets craft_data_idx, so
+				 * this branch never runs. The table it reads
+				 * holds the object type each slot was spawned
+				 * with, not an object index. */
 				int linked_object_index =
 					g_spawn_object_type_by_object_slot
 						[link_indices->craft_data_idx];

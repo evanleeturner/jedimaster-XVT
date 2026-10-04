@@ -1,11 +1,13 @@
-/* Checks the packed world records (xvt_runtime/snapshot/records.h) against the promises in its header, on
- * live structs, records and pools this file fills itself: no game data is read.
+/* Checks the packed world records (xvt_runtime/snapshot/records.h) against the
+ * promises in its header, on live structs, records and pools this file fills
+ * itself: no game data is read.
  *
- * Live structs and records are filled with a byte pattern that changes from one offset to the next, so a
- * field copied to or from the wrong place shows up. Every pointer in a live struct, and every link in a
- * record, is set to none or into one of this file's pools before it is translated. The field lists below
- * are the record fields the header declares, with the nested packed records spelled out member by member;
- * the links have checks of their own. */
+ * Live structs and records are filled with a byte pattern that changes from one
+ * offset to the next, so a field copied to or from the wrong place shows up.
+ * Every pointer in a live struct, and every link in a record, is set to none or
+ * into one of this file's pools before it is translated. The field lists below
+ * are the record fields the header declares, with the nested packed records
+ * spelled out member by member; the links have checks of their own. */
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -441,8 +443,8 @@ static void use_test_pools(void)
 	g_projectile_guidance_states = g_test_guidance;
 }
 
-/* Fills size bytes from a seeded generator: neighbouring bytes differ in all but rare cases, and two seeds
- * give unrelated patterns. */
+/* Fills size bytes from a seeded generator: neighbouring bytes differ in all
+ * but rare cases, and two seeds give unrelated patterns. */
 static void fill(void *data, size_t size, uint32_t seed)
 {
 	uint8_t *bytes = data;
@@ -473,8 +475,8 @@ static void check_fields(const struct field *fields, size_t count,
 	}
 }
 
-/* One record type: its two sizes, its Encode/Decode pair, how to clear its links on either side, and
- * its listed fields. */
+/* One record type: its two sizes, its Encode/Decode pair, how to clear its
+ * links on either side, and its listed fields. */
 struct record_kind {
 	const char *name;
 	size_t record_size;
@@ -684,8 +686,9 @@ static void check_decode_writes_fields(void)
 	}
 }
 
-/* A record decoded into a live struct and encoded again gives the same bytes, whatever the live struct
- * held before: native padding never reaches the record. */
+/* A record decoded into a live struct and encoded again gives the same bytes,
+ * whatever the live struct held before: native padding never reaches the
+ * record. */
 static void check_round_trip(void)
 {
 	use_test_pools();
@@ -743,8 +746,8 @@ static void check_object_link(void)
 	XVT_ASSERT_TRUE(live.mobj == NULL);
 }
 
-/* A mobile record links its guidance, craft and character records the same way, each by its offset in
- * its own pool's record array. */
+/* A mobile record links its guidance, craft and character records the same way,
+ * each by its offset in its own pool's record array. */
 static void check_mobile_links(void)
 {
 	use_test_pools();
@@ -790,8 +793,8 @@ static void check_mobile_links(void)
 	XVT_ASSERT_TRUE(live.p_char_data == NULL);
 }
 
-/* A craft record links 16 turret objects and one AI object in the object table, by their offsets in the
- * object record array. */
+/* A craft record links 16 turret objects and one AI object in the object table,
+ * by their offsets in the object record array. */
 static void check_craft_links(void)
 {
 	use_test_pools();
@@ -832,8 +835,8 @@ static void check_craft_links(void)
 	free(record);
 }
 
-/* Decode does not range-check a link: one just past the pool gives the pointer just past the pool's last
- * entry, not none and not a clamped entry. */
+/* Decode does not range-check a link: one just past the pool gives the pointer
+ * just past the pool's last entry, not none and not a clamped entry. */
 static void check_links_not_range_checked(void)
 {
 	use_test_pools();

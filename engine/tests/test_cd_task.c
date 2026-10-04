@@ -1,12 +1,15 @@
-/* Checks the CD audio timing (xvt_runtime/runtime/cd_task.h) against the promises in its header: when a
- * fade starts, the size and spacing of its steps, the steps applied together when several are due, the
- * overshoot and clamping of the last step, Cancel, and outside flight the resume delay and the end of a
- * track. The host clock moves only when the test advances it. The volume a step sets is read back from
- * the CD audio state, where cd_audio_set_aux_volume records the level it sets. Every case starts from a
- * cleared frontend state, the music CD device marked open, no flight, no fade and the clock at 0.
+/* Checks the CD audio timing (xvt_runtime/runtime/cd_task.h) against the
+ * promises in its header: when a fade starts, the size and spacing of its
+ * steps, the steps applied together when several are due, the overshoot and
+ * clamping of the last step, Cancel, and outside flight the resume delay and
+ * the end of a track. The host clock moves only when the test advances it. The
+ * volume a step sets is read back from the CD audio state, where
+ * cd_audio_set_aux_volume records the level it sets. Every case starts from a
+ * cleared frontend state, the music CD device marked open, no flight, no fade
+ * and the clock at 0.
  *
- * Not checked here: replaying a looping track, and anything during a flight; both need a CD device or a
- * running flight. */
+ * Not checked here: replaying a looping track, and anything during a flight;
+ * both need a CD device or a running flight. */
 #include <stdint.h>
 #include <string.h>
 
@@ -223,7 +226,8 @@ static void check_track_end(void)
 	xvt_cd_task_update();
 	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_playback_complete, 0);
 
-	/* Past the end of a track that does not loop, playback is marked complete; nothing more is due. */
+	/* Past the end of a track that does not loop, playback is marked
+	 * complete; nothing more is due. */
 	advance_ms(1);
 	xvt_cd_task_update();
 	XVT_ASSERT_INT_EQ(g_front_state.cd_audio_playback_complete, 1);
@@ -236,7 +240,8 @@ static void check_soonest_wake(void)
 	XVT_ASSERT_INT_EQ(xvt_cd_task_begin_fade(0, 2560, 1000), 1);
 	g_front_state.cd_audio_current_track = 1;
 	g_front_state.cd_audio_track_end_ms = 49;
-	/* The track end, 49 ms out and woken 1 ms late, comes before the first fade step at 101 ms. */
+	/* The track end, 49 ms out and woken 1 ms late, comes before the first
+	 * fade step at 101 ms. */
 	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 50000);
 	g_front_state.cd_audio_track_end_ms = 200;
 	XVT_ASSERT_INT_EQ(xvt_cd_task_next_wake_delay_us(), 101000);
