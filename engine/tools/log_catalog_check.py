@@ -22,7 +22,8 @@ any arm counts:
 
 XVT_LOG_DEBUG, XVT_LOG_INFO, XVT_LOG_WARN and XVT_LOG_ERROR write levels D,
 I, W and E; XVT_LOG_CRASH, the crash note's macro, writes level C. The log
-header, its source file and the crash note's header are not scanned: they
+header, its source file, the both-builds header (the macros' empty stand-ins
+for the original build) and the crash note's header are not scanned: they
 define the macros. The crash note's source file is scanned, since it holds
 the XVT_LOG_CRASH call sites, but may name xvt_crash_note_writef: it defines it.
 One finding per line, "FAIL <kind> <file>:<line> <detail>", then a summary.
@@ -42,6 +43,7 @@ from pathlib import Path
 CATALOG = Path("src/xvt_runtime/log/events.json")
 LOG_HEADER = Path("src/xvt_runtime/log/log.h")
 LOG_SOURCE = Path("src/xvt_runtime/log/log.c")
+BOTH_BUILDS_HEADER = Path("src/xvt_runtime/log/log_both_builds.h")
 CRASH_HEADER = Path("src/xvt_app/crash_note.h")
 CRASH_SOURCE = Path("src/xvt_app/crash_note.c")
 SCANNED = ("src/xvt", "src/xvt_runtime", "src/xvt_remaster", "src/xvt_app")
@@ -186,7 +188,12 @@ def scan_file(path: Path, root: Path) -> tuple[list[Site], list[Finding]]:
     relative = path.relative_to(root).as_posix()
     sites: list[Site] = []
     findings: list[Finding] = []
-    if path.relative_to(root) in (LOG_HEADER, LOG_SOURCE, CRASH_HEADER):
+    if path.relative_to(root) in (
+        LOG_HEADER,
+        LOG_SOURCE,
+        BOTH_BUILDS_HEADER,
+        CRASH_HEADER,
+    ):
         return sites, findings
     for match in MACRO_CALL.finditer(mask):
         where = f"{relative}:{line_of(code, match.start())}"
