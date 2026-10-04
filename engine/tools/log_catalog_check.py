@@ -2,8 +2,10 @@
 """Check that the log catalog and the log call sites agree.
 
 Reads src/xvt_runtime/log/events.json and every .c and .h file under
-src/xvt_runtime, src/xvt_remaster and src/xvt_app, then reports each place
-where the two disagree:
+src/xvt, src/xvt_runtime, src/xvt_remaster and src/xvt_app, then reports
+each place where the two disagree. In src/xvt, the 1997 game's code, the
+calls sit in the modern build's arms; the text is read whole, so a call in
+any arm counts:
 
   uncataloged  a call site names an event the catalog does not hold
   orphan       a catalog entry no call site uses
@@ -42,7 +44,7 @@ LOG_HEADER = Path("src/xvt_runtime/log/log.h")
 LOG_SOURCE = Path("src/xvt_runtime/log/log.c")
 CRASH_HEADER = Path("src/xvt_app/crash_note.h")
 CRASH_SOURCE = Path("src/xvt_app/crash_note.c")
-SCANNED = ("src/xvt_runtime", "src/xvt_remaster", "src/xvt_app")
+SCANNED = ("src/xvt", "src/xvt_runtime", "src/xvt_remaster", "src/xvt_app")
 
 LEVEL_LETTERS = {"DEBUG": "D", "INFO": "I", "WARN": "W", "ERROR": "E", "CRASH": "C"}
 
