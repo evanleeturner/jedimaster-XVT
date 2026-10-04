@@ -10,3 +10,8 @@
 # Break each long message at its own line ends (string pieces only; the
 # joined strings and every other token are unchanged)
 8a459cb10ad37da959ff8ee5079e2233cac633b4
+
+# Wrap comments that ran past 100 columns (line breaks inside comments,
+# and the whitespace a moved note left; every comment keeps its words and
+# every code token is unchanged)
+df96ce4ecfbe40b28a73788e5fdcb1954851126c
