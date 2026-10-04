@@ -164,8 +164,12 @@ static void IceApplyEvents(IceLink* link) {
 	int      events[ICE_EVENTS];
 	unsigned count;
 	Aeron_MutexLock(link->mutex);
-	if (link->overflow)
+	if (link->overflow) {
+		if (!link->failed)
+			Aeron_LogWarn("compat.dplay.ice", "link %llu: its event queue overflowed",
+						  (unsigned long long)link->id);
 		link->failed = 1;
+	}
 	count = link->event_count;
 	for (unsigned i = 0; i < count; ++i)
 		events[i] = link->events[(link->event_read + i) % ICE_EVENTS];
@@ -173,6 +177,10 @@ static void IceApplyEvents(IceLink* link) {
 	link->event_count = 0;
 	Aeron_MutexUnlock(link->mutex);
 	for (unsigned i = 0; i < count; ++i) {
+		Aeron_LogInfo("compat.dplay.ice", "link %llu: %s", (unsigned long long)link->id,
+					  events[i] == ICE_GATHER_DONE   ? "candidates gathered"
+					  : events[i] == ICE_RELAY_READY ? "relay ready"
+													 : juice_state_to_string((juice_state_t)events[i]));
 		if (events[i] == ICE_GATHER_DONE)
 			link->gathered = 1;
 		else if (events[i] == ICE_RELAY_READY)
@@ -282,10 +290,20 @@ void DpIce_Update(void) {
 		IceLink* link = g_links[i];
 		if (!link)
 			continue;
-		if (!link->admitted && Aeron_NowUs() >= link->deadline)
+		if (!link->admitted && Aeron_NowUs() >= link->deadline) {
+			if (!link->failed)
+				Aeron_LogWarn("compat.dplay.ice", "link %llu: its setup deadline passed before admission",
+							  (unsigned long long)link->id);
 			link->failed = 1;
+		}
 		/* SDP exchange is sufficient to outlive signaling; admission preserves
 		 * the link beyond its setup deadline. Cancellation is explicit. */
+		if (!link->retiring && !link->seen && !link->owned &&
+			!(link->host && link->published && link->remote))
+			Aeron_LogWarn(
+				"compat.dplay.ice",
+				"link %llu retired: the directory no longer lists it (host %d, admitted %d, connected %d)",
+				(unsigned long long)link->id, link->host, link->admitted, link->connected);
 		if (!link->seen && !link->owned && !(link->host && link->published && link->remote))
 			link->retiring = 1;
 		if (link->failed && !link->reported) {

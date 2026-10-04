@@ -318,8 +318,10 @@ void DpHandleControl(DpLink link, unsigned kind, uint32_t request, DPID from, DP
 			if (DpLocalControl(DP_DESTROY_PLAYER, from, 0, NULL, NULL) == DPERR_BUSY)
 				return;
 			DpSend(link, DP_RESULT, request, g_dp.local_id, from, &reply, sizeof(reply));
-		} else if (from == g_dp.host_id)
+		} else if (from == g_dp.host_id) {
+			Aeron_LogWarn("compat.dplay", "the host left the session");
 			DpLoseSession();
+		}
 	} else if (kind == DP_OPEN || kind == DP_ACCEPT) {
 		DpHandleOpen(link, kind, request, from, to, data, size);
 	}
@@ -381,6 +383,8 @@ void DpServiceControl(void) {
 	DpOperation* op = &g_dp.operation;
 	if (DpOperationWaiting()) {
 		if (now - op->start >= DP_OPERATION_TIMEOUT_MS) {
+			Aeron_LogWarn("compat.dplay", "request %u (kind %u) to the host went unanswered for %llu ms",
+						  (unsigned)op->request, (unsigned)op->kind, (unsigned long long)(now - op->start));
 			DpLoseSession();
 		} else if (op->result == DPERR_PENDING && now >= op->next_send) {
 			DpSend(g_dp.host_link, op->kind == DP_OPEN ? DP_OPEN : DP_CONTROL, op->request, g_dp.local_id,

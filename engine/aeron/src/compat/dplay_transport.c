@@ -306,6 +306,8 @@ void AeronDplay_Update(void) {
 				continue;
 			DpSend(peer->link, DP_KEEPALIVE, 0, g_dp.local_id, peer->id, NULL, 0);
 			if (now - peer->last_seen >= DP_PEER_TIMEOUT_MS) {
+				Aeron_LogWarn("compat.dplay", "player %u silent for %llu ms", (unsigned)peer->id,
+							  (unsigned long long)(now - peer->last_seen));
 				if (!g_dp.host)
 					DpLoseSession();
 				else
