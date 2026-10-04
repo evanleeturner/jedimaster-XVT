@@ -6,3 +6,7 @@
 
 # Reformat the C sources: K&R braces, 8-column tabs, braces on every body
 9db2590aae45a78b6ac668b869da9bfbff7d2aad
+
+# Break each long message at its own line ends (string pieces only; the
+# joined strings and every other token are unchanged)
+8a459cb10ad37da959ff8ee5079e2233cac633b4
