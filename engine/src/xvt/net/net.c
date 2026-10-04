@@ -18,6 +18,7 @@
 #include "xvt/net/net_session.h"
 #include "xvt/util/time.h"
 #include "xvt/util/win32.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifndef XVT_MODERN
 __declspec(dllimport) int __stdcall
@@ -901,6 +902,14 @@ int net_shutdown_direct_play_session_ex(int suppress_restart,
 	frontend_display_unlock_back_buffer();
 #ifdef XVT_MODERN
 	xvt_network_session_on_close();
+	XVT_LOG_DEBUG(
+		"network.lobby_closing open=%d player=%u group=%u queued=%d peers=%u quit=%d handshake=%d",
+		g_front_state.net_direct_play != NULL,
+		(unsigned)g_front_state.net_runtime_local_player.player_id,
+		(unsigned)g_front_state.net_group_dplay_id,
+		g_front_state.net_runtime_recv_queue_count,
+		(unsigned)g_front_state.net_reliable_peer_slot_count,
+		suppress_restart, wait_for_handshake_acks);
 #endif
 	if (g_front_state.net_direct_play != NULL) {
 #ifndef XVT_MODERN
@@ -1033,6 +1042,7 @@ int net_shutdown_direct_play_session_ex(int suppress_restart,
 int net_refresh_player_roster(void)
 {
 	if (g_front_state.net_direct_play == NULL) {
+		XVT_LOG_DEBUG("network.lobby_roster_skipped");
 		return 0;
 	}
 	int was_back_buffer_locked = g_front_state.back_buffer_locked;
@@ -1060,6 +1070,8 @@ int net_refresh_player_roster(void)
 			}
 		}
 	}
+	XVT_LOG_DEBUG("network.lobby_roster players=%d",
+		      g_front_state.net_player_count);
 	if (was_back_buffer_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
@@ -1080,6 +1092,8 @@ int AERON_DXAPI net_enum_players_callback(DPID player_id, uint32_t player_type,
 	(void)context;
 
 	if (g_front_state.net_player_count >= 32) {
+		XVT_LOG_WARN("network.lobby_roster_full players=%d",
+			     g_front_state.net_player_count);
 		return 0;
 	}
 	if (player_type == 0) {
@@ -1102,6 +1116,11 @@ int AERON_DXAPI net_enum_players_callback(DPID player_id, uint32_t player_type,
 		.long_name[15] = '\0';
 	g_front_state.net_players[g_front_state.net_player_count]
 		.player_name[15] = '\0';
+	XVT_LOG_DEBUG(
+		"network.lobby_player_listed index=%d player=%u name=\"%s\"",
+		g_front_state.net_player_count, (unsigned)player_id,
+		g_front_state.net_players[g_front_state.net_player_count]
+			.player_name);
 	g_front_state.net_players[g_front_state.net_player_count].player_id =
 		player_id;
 	g_front_state.net_players[g_front_state.net_player_count++].ready_flag =
@@ -1145,6 +1164,8 @@ int net_create_direct_play_player(const char *long_player_info,
 	HRESULT result = g_front_state.net_direct_play->lpVtbl->CreatePlayer(
 		g_front_state.net_direct_play, &player, &name, NULL, NULL, 0,
 		0);
+	XVT_LOG_DEBUG("network.lobby_player_created result=%#x player=%u",
+		      (unsigned)result, (unsigned)player);
 	return result == DPERR_PENDING ? XVT_NETWORK_PENDING
 	       : result == 0	       ? (int)player
 				       : 0;
@@ -1284,6 +1305,8 @@ net_get_direct_play_service_provider_guid(network_transport_type network_type)
 		result = &g_net_direct_play_service_provider_guid_scratch;
 		break;
 	default:
+		XVT_LOG_ERROR("network.transport_unknown transport=%d",
+			      (int)network_type);
 		result = NULL;
 		break;
 	}
@@ -1348,6 +1371,10 @@ void net_pump_incoming_packets(void)
 		for (;;) {
 			if (g_front_state.net_runtime_recv_queue_count >=
 			    QUEUE_LIMIT) {
+				XVT_LOG_WARN(
+					"network.lobby_receive_queue_full queued=%d",
+					g_front_state
+						.net_runtime_recv_queue_count);
 				if (back_buffer_locked != 0) {
 					g_draw_surface_ptr =
 						frontend_display_lock_back_buffer();
@@ -1365,6 +1392,9 @@ void net_pump_incoming_packets(void)
 				return;
 			}
 			if (from_id == 0) {
+				XVT_LOG_DEBUG(
+					"network.lobby_system_received bytes=%u",
+					(unsigned)wire_size);
 				if (wire_size > SYSTEM_PACKET_SIZE_LIMIT) {
 					wire_size = SYSTEM_PACKET_SIZE_LIMIT;
 				}
@@ -1403,6 +1433,9 @@ void net_pump_incoming_packets(void)
 			}
 			if (to_id !=
 			    g_front_state.net_runtime_local_player.player_id) {
+				XVT_LOG_DEBUG(
+					"network.lobby_packet_not_local from=%u to=%u",
+					(unsigned)from_id, (unsigned)to_id);
 				continue;
 			}
 
@@ -1437,6 +1470,9 @@ void net_pump_incoming_packets(void)
 				net_send_packet_and_flush(
 					(int)from_id, packet_words,
 					sizeof(packet_words[0]));
+				XVT_LOG_DEBUG(
+					"network.lobby_ping_answered from=%u",
+					(unsigned)from_id);
 				continue;
 			}
 
@@ -1605,8 +1641,17 @@ void net_pump_incoming_packets(void)
 							[stats_index]
 								.latency_sample_count =
 							1;
+					} else {
+						XVT_LOG_WARN(
+							"network.lobby_link_stats_full player=%u figure=\"all\"",
+							(unsigned)from_id);
 					}
 				}
+				XVT_LOG_DEBUG(
+					"network.lobby_keepalive_ack from=%u latency=%u entry=%u packets=%d drops=%d retries=%d",
+					(unsigned)from_id, (unsigned)latency_ms,
+					stats_index, payload[1], payload[2],
+					payload[3]);
 				continue;
 			}
 
@@ -1680,6 +1725,16 @@ void net_pump_incoming_packets(void)
 							sizeof(packet_words
 								       [0]));
 					}
+					XVT_LOG_DEBUG(
+						"network.lobby_world_nack from=%u tick=%d found=%d",
+						(unsigned)from_id,
+						missing_world_tick,
+						search_count <
+							SENT_WORLD_MESSAGE_HISTORY_CAPACITY);
+				} else {
+					XVT_LOG_WARN(
+						"network.lobby_world_nack_ignored from=%u tick=%d",
+						(unsigned)from_id, payload[0]);
 				}
 				continue;
 			}
@@ -1769,6 +1824,12 @@ void net_pump_incoming_packets(void)
 						packet_words,
 						sizeof(packet_words[0]));
 				}
+				XVT_LOG_DEBUG(
+					"network.lobby_nack from=%u seq=%d channel=%d found=%d",
+					(unsigned)from_id,
+					expected_broadcast_sequence,
+					control_value1,
+					search_count < HISTORY_CAPACITY);
 				continue;
 			}
 
@@ -1928,6 +1989,24 @@ void net_pump_incoming_packets(void)
 						search_index = 0;
 					}
 				} while (--search_count != 0);
+				XVT_LOG_DEBUG(
+					"network.lobby_keepalive from=%u host=%d",
+					(unsigned)from_id,
+					g_front_state.net_host_player_id ==
+						from_id);
+				if (control_value0 !=
+					    SEQUENCE_NOTHING_TO_RESEND ||
+				    expected_group_sequence !=
+					    SEQUENCE_NOTHING_TO_RESEND ||
+				    expected_direct_sequence !=
+					    SEQUENCE_NOTHING_TO_RESEND) {
+					XVT_LOG_WARN(
+						"network.lobby_resend_unavailable from=%u broadcast=%d group=%d direct=%d",
+						(unsigned)from_id,
+						control_value0,
+						expected_group_sequence,
+						expected_direct_sequence);
+				}
 				/* Keepalives are unsequenced control packets. */
 				continue;
 			}
@@ -2108,6 +2187,13 @@ void net_pump_incoming_packets(void)
 						[g_front_state
 							 .net_runtime_recv_queue_write_index]
 					.sequence_byte = (uint8_t)sequence;
+				XVT_LOG_DEBUG(
+					"network.lobby_resent_received from=%u type=%u channel=%d seq=%d bytes=%u",
+					(unsigned)from_id, packet_type,
+					broadcast_channel != 0 ? 0
+					: group_channel != 0   ? 2
+							       : 1,
+					sequence, (unsigned)payload_size);
 				++g_front_state
 					  .net_runtime_recv_queue_write_index;
 				++g_front_state.net_runtime_recv_queue_count;
@@ -2144,6 +2230,14 @@ void net_pump_incoming_packets(void)
 						payload_size;
 					int previous_packet_type =
 						*piggyback_payload++;
+					XVT_LOG_DEBUG(
+						"network.lobby_packet_missed from=%u seq=%d channel=%d trailer=%u",
+						(unsigned)from_id,
+						previous_sequence,
+						broadcast_channel != 0 ? 0
+						: group_channel != 0   ? 2
+								       : 1,
+						(unsigned)previous_packet_type);
 					if (previous_packet_type !=
 					    NET_PACKET_NOP) {
 						unsigned int piggyback_size =
@@ -2256,6 +2350,13 @@ void net_pump_incoming_packets(void)
 				(int)from_id, sequence, broadcast_channel,
 				group_channel);
 			if (peer_index != 0) {
+				XVT_LOG_DEBUG(
+					"network.lobby_packet_repeat from=%u type=%u seq=%d channel=%d",
+					(unsigned)from_id, packet_type,
+					sequence,
+					broadcast_channel != 0 ? 0
+					: group_channel != 0   ? 2
+							       : 1);
 				continue;
 			}
 			payload = (int *)wire_packet.data;
@@ -2345,6 +2446,14 @@ void net_pump_incoming_packets(void)
 				.sequence_byte = (uint8_t)sequence;
 			++g_front_state.net_runtime_recv_queue_write_index;
 			++g_front_state.net_runtime_recv_queue_count;
+			XVT_LOG_DEBUG(
+				"network.lobby_packet_received from=%u type=%u seq=%d channel=%d bytes=%u queued=%d",
+				(unsigned)from_id, packet_type, sequence,
+				broadcast_channel != 0 ? 0
+				: group_channel != 0   ? 2
+						       : 1,
+				(unsigned)payload_size,
+				g_front_state.net_runtime_recv_queue_count);
 			if (g_front_state.net_runtime_recv_queue_write_index >=
 			    QUEUE_CAPACITY) {
 				g_front_state
@@ -2642,6 +2751,14 @@ int net_send_packet_internal(int to_player_id, const void *packet,
 			g_front_state.net_runtime_sent_history_write_index = 0;
 		}
 	}
+	XVT_LOG_DEBUG(
+		"network.lobby_packet_sent to=%u type=%u channel=%d seq=%d bytes=%u queued=%d",
+		(unsigned)to_player_id, packet_type,
+		to_player_id == 0					 ? 0
+		: g_front_state.net_group_dplay_id == (DPID)to_player_id ? 2
+									 : 1,
+		(encoded_packet.packet_type_header & 0x7F00) >> 8, encoded_size,
+		g_front_state.net_runtime_recv_queue_count);
 
 	if ((g_front_state.net_runtime_local_player.player_id ==
 		     (DPID)to_player_id ||
@@ -2740,6 +2857,14 @@ int net_send_packet_internal(int to_player_id, const void *packet,
 		if (g_front_state.net_runtime_recv_queue_write_index >= 1024) {
 			g_front_state.net_runtime_recv_queue_write_index = 0;
 		}
+	} else if (g_front_state.net_runtime_local_player.player_id ==
+			   (DPID)to_player_id ||
+		   to_player_id == 0 || g_front_state.net_direct_play == NULL ||
+		   g_front_state.net_group_dplay_id == (DPID)to_player_id) {
+		XVT_LOG_WARN(
+			"network.lobby_local_copy_dropped to=%u type=%u queued=%d",
+			(unsigned)to_player_id, packet_type,
+			g_front_state.net_runtime_recv_queue_count);
 	}
 
 	if (g_front_state.net_direct_play == NULL) {
@@ -2757,6 +2882,10 @@ int net_send_packet_internal(int to_player_id, const void *packet,
 	if (send_result != 0) {
 		char error_text[80];
 		sprintf(error_text, "Send Returned: %-8x\n", send_result);
+		XVT_LOG_WARN(
+			"network.lobby_send_failed to=%u type=%u result=%#x",
+			(unsigned)to_player_id, packet_type,
+			(unsigned)send_result);
 	}
 	return send_result == 0;
 }
@@ -2821,6 +2950,15 @@ int net_send_direct_play_packet(int dest_player_id, const void *packet,
 			g_front_state.net_runtime_local_player.player_id,
 			dest_player_id, 0, &encoded_packet.packet_type_header,
 			encoded_size);
+	}
+	XVT_LOG_DEBUG("network.lobby_control_sent to=%u type=%u bytes=%d",
+		      (unsigned)dest_player_id, (unsigned)packet_type,
+		      encoded_size);
+	if (send_result != 0) {
+		XVT_LOG_WARN(
+			"network.lobby_control_send_failed to=%u type=%u result=%#x",
+			(unsigned)dest_player_id, (unsigned)packet_type,
+			(unsigned)send_result);
 	}
 	return send_result == 0;
 }
@@ -2941,8 +3079,17 @@ int net_send_sequenced_direct_play_packet(int dest_player_id, int packet_class,
 				g_front_state
 					.net_runtime_recv_queue_write_index = 0;
 			}
+		} else {
+			XVT_LOG_WARN(
+				"network.lobby_local_copy_dropped to=%u type=%u queued=%d",
+				(unsigned)dest_player_id, packet_type,
+				g_front_state.net_runtime_recv_queue_count);
 		}
 	}
+	XVT_LOG_DEBUG(
+		"network.lobby_packet_resent to=%u type=%u channel=%d seq=%d bytes=%u result=%#x",
+		(unsigned)dest_player_id, packet_type, packet_class,
+		sequence_id, encoded_size, (unsigned)send_result);
 	return send_result == 0;
 }
 
@@ -3134,6 +3281,8 @@ int net_poll_for_packet_type_or_backlog(int packet_type)
 	frontend_display_unlock_back_buffer();
 	net_pump_incoming_packets();
 	if (g_front_state.net_runtime_recv_queue_count > BACKLOG_THRESHOLD) {
+		XVT_LOG_WARN("network.lobby_backlog queued=%d",
+			     g_front_state.net_runtime_recv_queue_count);
 		if (back_buffer_locked != 0) {
 			g_draw_surface_ptr =
 				frontend_display_lock_back_buffer();
@@ -3147,6 +3296,9 @@ int net_poll_for_packet_type_or_backlog(int packet_type)
 				    .direct_play_id != 0 &&
 		    *(int *)g_front_state.net_runtime_recv_queue[queue_index]
 				    .payload == packet_type) {
+			XVT_LOG_DEBUG(
+				"network.lobby_poll_found type=%d system=%d",
+				packet_type, 0);
 			if (back_buffer_locked != 0) {
 				g_draw_surface_ptr =
 					frontend_display_lock_back_buffer();
@@ -3184,6 +3336,8 @@ int net_poll_for_player_created_or_backlog(void)
 	frontend_display_unlock_back_buffer();
 	net_pump_incoming_packets();
 	if (g_front_state.net_runtime_recv_queue_count > BACKLOG_THRESHOLD) {
+		XVT_LOG_WARN("network.lobby_backlog queued=%d",
+			     g_front_state.net_runtime_recv_queue_count);
 		if (back_buffer_locked != 0) {
 			g_draw_surface_ptr =
 				frontend_display_lock_back_buffer();
@@ -3197,6 +3351,9 @@ int net_poll_for_player_created_or_backlog(void)
 				    .direct_play_id == 0 &&
 		    *(int *)g_front_state.net_runtime_recv_queue[queue_index]
 				    .payload == DPSYS_CREATEPLAYERORGROUP) {
+			XVT_LOG_DEBUG(
+				"network.lobby_poll_found type=%d system=%d",
+				(int)DPSYS_CREATEPLAYERORGROUP, 1);
 			if (back_buffer_locked != 0) {
 				g_draw_surface_ptr =
 					frontend_display_lock_back_buffer();
@@ -3264,6 +3421,10 @@ void net_handle_direct_play_system_message(int packet_type,
 	};
 
 	const int *packet_words = (const int *)packet_data;
+	XVT_LOG_DEBUG(
+		"network.lobby_system_handled type=%d kind=%d player=%u host=%d",
+		packet_type, packet_words[1], (unsigned)packet_words[2],
+		g_front_state.net_is_host);
 
 	switch (packet_type) {
 	case DPSYS_CREATEPLAYERORGROUP: {
@@ -3344,6 +3505,12 @@ void net_handle_direct_play_system_message(int packet_type,
 							       sizeof(status_packet
 									      .records[0]) +
 						       3 * sizeof(int)));
+				XVT_LOG_INFO(
+					"network.lobby_player_joined player=%u players=%d peers=%u",
+					(unsigned)packet_words[2],
+					g_front_state.net_player_count,
+					(unsigned)g_front_state
+						.net_reliable_peer_slot_count);
 			}
 		} else {
 			g_front_state.net_player_count = 1;
@@ -3521,6 +3688,13 @@ void net_handle_direct_play_system_message(int packet_type,
 						break;
 					}
 				}
+				XVT_LOG_INFO(
+					"network.lobby_player_left player=%u ready=%d peers=%u",
+					(unsigned)packet_words[2],
+					g_front_state
+						.net_ready_player_left_this_frame,
+					(unsigned)g_front_state
+						.net_reliable_peer_slot_count);
 			}
 		} else if (packet_words[1] == DPPLAYERTYPE_PLAYER &&
 			   (DPID)packet_words[2] ==
@@ -3532,6 +3706,9 @@ void net_handle_direct_play_system_message(int packet_type,
 					.player_id,
 				&host_cancelled_packet,
 				sizeof(host_cancelled_packet));
+			XVT_LOG_DEBUG(
+				"network.lobby_host_cancel_queued host=%u",
+				(unsigned)packet_words[2]);
 		}
 		g_front_state.net_player_count = 1;
 		net_refresh_player_roster();
@@ -3570,6 +3747,12 @@ void net_handle_direct_play_system_message(int packet_type,
 								   .net_players
 									   [player_index]
 								   .long_name))) {
+						XVT_LOG_WARN(
+							"network.lobby_rename_rejected player=%u",
+							(unsigned)g_front_state
+								.net_players
+									[player_index]
+								.player_id);
 						continue;
 					}
 #else
@@ -3600,6 +3783,16 @@ void net_handle_direct_play_system_message(int packet_type,
 					g_front_state.net_players[player_index].long_name
 						[PLAYER_NAME_TRUNCATION_INDEX] =
 						'\0';
+					XVT_LOG_DEBUG(
+						"network.lobby_player_renamed player=%u name=\"%s\"",
+						(unsigned)g_front_state
+							.net_players
+								[player_index]
+							.player_id,
+						g_front_state
+							.net_players
+								[player_index]
+							.player_name);
 				}
 			}
 		}
@@ -3813,6 +4006,21 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 										received_sequence;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"network.lobby_flight_packet_dropped player=%u channel=%u seq=%d type=%d resent=%u",
+						(unsigned)g_front_state
+							.net_runtime_recv_queue
+								[scan_index]
+							.direct_play_id,
+						(unsigned)g_front_state
+							.net_runtime_recv_queue
+								[scan_index]
+							.packet_class,
+						received_sequence, packet_type,
+						(unsigned)g_front_state
+							.net_runtime_recv_queue
+								[scan_index]
+							.is_resent_copy);
 					if (net_remove_incoming_packet_at_index(
 						    (unsigned int)scan_index) ==
 					    0) {
@@ -3826,6 +4034,17 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 				}
 				if (reorder_allowances[peer_index] <
 				    processed_packet_counts[peer_index]) {
+					XVT_LOG_DEBUG(
+						"network.lobby_peer_deferred player=%u seen=%u allowance=%u",
+						(unsigned)g_front_state
+							.net_runtime_recv_queue
+								[scan_index]
+							.direct_play_id,
+						(unsigned)
+							processed_packet_counts
+								[peer_index],
+						(unsigned)reorder_allowances
+							[peer_index]);
 					if (++scan_index >=
 					    NET_RECV_QUEUE_CAPACITY) {
 						scan_index = 0;
@@ -3933,6 +4152,24 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 						g_front_state
 							.net_runtime_recv_scratch_packet
 							.payload_size;
+					XVT_LOG_DEBUG(
+						"network.lobby_delivered player=%u peer=%u channel=%u seq=%u type=%d bytes=%u queued=%d path=\"in_order\"",
+						(unsigned)g_front_state
+							.net_runtime_recv_scratch_packet
+							.direct_play_id,
+						peer_index,
+						(unsigned)g_front_state
+							.net_runtime_recv_scratch_packet
+							.packet_class,
+						(unsigned)g_front_state
+							.net_runtime_recv_scratch_packet
+							.sequence_byte,
+						packet_type,
+						(unsigned)g_front_state
+							.net_runtime_recv_scratch_packet
+							.payload_size,
+						g_front_state
+							.net_runtime_recv_queue_count);
 					return g_front_state
 						.net_runtime_recv_scratch_packet
 						.payload;
@@ -4065,6 +4302,27 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 								}
 								net_remove_incoming_packet_at_index(
 									queued_packet_index);
+								XVT_LOG_DEBUG(
+									"network.lobby_delivered player=%u peer=%u channel=%u seq=%u type=%d bytes=%u queued=%d path=\"gap_filled\"",
+									(unsigned)g_front_state
+										.net_runtime_recv_scratch_packet
+										.direct_play_id,
+									peer_index,
+									(unsigned)g_front_state
+										.net_runtime_recv_scratch_packet
+										.packet_class,
+									(unsigned)g_front_state
+										.net_runtime_recv_scratch_packet
+										.sequence_byte,
+									*(const int
+										  *)g_front_state
+										 .net_runtime_recv_scratch_packet
+										 .payload,
+									(unsigned)g_front_state
+										.net_runtime_recv_scratch_packet
+										.payload_size,
+									g_front_state
+										.net_runtime_recv_queue_count);
 								return g_front_state
 									.net_runtime_recv_scratch_packet
 									.payload;
@@ -4109,6 +4367,23 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 									sizeof(retry_packet
 										       [0]),
 								1);
+							XVT_LOG_DEBUG(
+								"network.lobby_nack_sent player=%u channel=%u seq=%d retries=%u gaps=%d",
+								(unsigned)g_front_state
+									.net_runtime_recv_queue
+										[scan_index]
+									.direct_play_id,
+								(unsigned)retry_packet
+									[2],
+								sequence_cursor,
+								(unsigned)g_front_state
+									.net_runtime_recv_queue
+										[scan_index]
+									.nack_retry_count,
+								g_front_state
+									.net_runtime_reliable_peer_slots
+										[peer_index]
+									.packet_retry_count);
 							sent_retry_request = 1;
 						} else {
 							uint32_t now =
@@ -4163,9 +4438,41 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 											sizeof(retry_packet
 												       [0]),
 										1);
+									XVT_LOG_DEBUG(
+										"network.lobby_nack_sent player=%u channel=%u seq=%d retries=%u gaps=%d",
+										(unsigned)g_front_state
+											.net_runtime_recv_queue
+												[scan_index]
+											.direct_play_id,
+										(unsigned)retry_packet
+											[2],
+										sequence_cursor,
+										(unsigned)g_front_state
+											.net_runtime_recv_queue
+												[scan_index]
+											.nack_retry_count,
+										g_front_state
+											.net_runtime_reliable_peer_slots
+												[peer_index]
+											.packet_retry_count);
 									sent_retry_request =
 										1;
 								} else {
+									XVT_LOG_WARN(
+										"network.lobby_nack_gave_up player=%u channel=%u first=%d retries=%u",
+										(unsigned)g_front_state
+											.net_runtime_recv_queue
+												[scan_index]
+											.direct_play_id,
+										(unsigned)g_front_state
+											.net_runtime_recv_queue
+												[scan_index]
+											.packet_class,
+										first_missing_sequence,
+										(unsigned)g_front_state
+											.net_runtime_recv_queue
+												[scan_index]
+											.nack_retry_count);
 									sequence_cursor =
 										first_missing_sequence;
 									g_front_state
@@ -4235,6 +4542,27 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 												g_front_state
 													.net_runtime_recv_scratch_packet
 													.payload_size;
+											XVT_LOG_DEBUG(
+												"network.lobby_delivered player=%u peer=%u channel=%u seq=%u type=%d bytes=%u queued=%d path=\"past_gap\"",
+												(unsigned)g_front_state
+													.net_runtime_recv_scratch_packet
+													.direct_play_id,
+												peer_index,
+												(unsigned)g_front_state
+													.net_runtime_recv_scratch_packet
+													.packet_class,
+												(unsigned)g_front_state
+													.net_runtime_recv_scratch_packet
+													.sequence_byte,
+												*(const int
+													  *)g_front_state
+													 .net_runtime_recv_scratch_packet
+													 .payload,
+												(unsigned)g_front_state
+													.net_runtime_recv_scratch_packet
+													.payload_size,
+												g_front_state
+													.net_runtime_recv_queue_count);
 											return g_front_state
 												.net_runtime_recv_scratch_packet
 												.payload;
@@ -4292,6 +4620,24 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 												g_front_state
 													.net_runtime_recv_scratch_packet
 													.payload_size;
+											XVT_LOG_DEBUG(
+												"network.lobby_delivered player=%u peer=%u channel=%u seq=%u type=%d bytes=%u queued=%d path=\"past_gap\"",
+												(unsigned)g_front_state
+													.net_runtime_recv_scratch_packet
+													.direct_play_id,
+												peer_index,
+												(unsigned)g_front_state
+													.net_runtime_recv_scratch_packet
+													.packet_class,
+												(unsigned)g_front_state
+													.net_runtime_recv_scratch_packet
+													.sequence_byte,
+												packet_type,
+												(unsigned)g_front_state
+													.net_runtime_recv_scratch_packet
+													.payload_size,
+												g_front_state
+													.net_runtime_recv_queue_count);
 											return g_front_state
 												.net_runtime_recv_scratch_packet
 												.payload;
@@ -4339,6 +4685,18 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 					if (g_front_state
 						    .net_runtime_recv_queue_read_index ==
 					    scan_index) {
+						XVT_LOG_DEBUG(
+							"network.lobby_packet_dropped player=%u channel=%u seq=%d expected=%d reason=\"resent_early\"",
+							(unsigned)g_front_state
+								.net_runtime_recv_queue
+									[scan_index]
+								.direct_play_id,
+							(unsigned)g_front_state
+								.net_runtime_recv_queue
+									[scan_index]
+								.packet_class,
+							received_sequence,
+							expected_sequence);
 						if (net_remove_incoming_packet_at_index(
 							    (unsigned int)
 								    scan_index) ==
@@ -4348,6 +4706,21 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 					}
 				}
 			} else {
+				XVT_LOG_DEBUG(
+					"network.lobby_packet_dropped player=%u channel=%u seq=%d expected=%d reason=\"%s\"",
+					(unsigned)g_front_state
+						.net_runtime_recv_queue
+							[scan_index]
+						.direct_play_id,
+					(unsigned)g_front_state
+						.net_runtime_recv_queue
+							[scan_index]
+						.packet_class,
+					received_sequence, expected_sequence,
+					g_front_state.net_reliable_peer_slot_count >
+							peer_index
+						? "stale"
+						: "no_peer");
 				if (net_remove_incoming_packet_at_index(
 					    (unsigned int)scan_index) == 0) {
 					continue;
@@ -4362,8 +4735,13 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 
 	if (g_front_state.net_runtime_recv_queue_count <
 	    NET_RECV_QUEUE_PRESSURE_THRESHOLD) {
+		XVT_LOG_DEBUG(
+			"network.lobby_receive_waiting queued=%d pass=\"normal\"",
+			g_front_state.net_runtime_recv_queue_count);
 		return NULL;
 	}
+	XVT_LOG_WARN("network.lobby_queue_pressure queued=%d",
+		     g_front_state.net_runtime_recv_queue_count);
 	scan_index = g_front_state.net_runtime_recv_queue_read_index;
 	remaining_packet_count = g_front_state.net_runtime_recv_queue_count;
 	for (; remaining_packet_count > 0; --remaining_packet_count) {
@@ -4431,6 +4809,21 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 			     (sequence_delta < 0 ||
 			      sequence_delta >=
 				      NET_RELIABLE_POSITIVE_WINDOW))) {
+				XVT_LOG_DEBUG(
+					"network.lobby_packet_dropped player=%u channel=%u seq=%d expected=%d reason=\"%s\"",
+					(unsigned)g_front_state
+						.net_runtime_recv_queue
+							[scan_index]
+						.direct_play_id,
+					(unsigned)g_front_state
+						.net_runtime_recv_queue
+							[scan_index]
+						.packet_class,
+					received_sequence, expected_sequence,
+					peer_index >= g_front_state
+								.net_reliable_peer_slot_count
+						? "no_peer"
+						: "stale");
 				if (net_remove_incoming_packet_at_index(
 					    (unsigned int)scan_index) == 0) {
 					continue;
@@ -4480,6 +4873,26 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 					g_front_state
 						.net_runtime_recv_scratch_packet
 						.payload_size;
+				XVT_LOG_DEBUG(
+					"network.lobby_delivered player=%u peer=%u channel=%u seq=%u type=%d bytes=%u queued=%d path=\"queue_full\"",
+					(unsigned)g_front_state
+						.net_runtime_recv_scratch_packet
+						.direct_play_id,
+					peer_index,
+					(unsigned)g_front_state
+						.net_runtime_recv_scratch_packet
+						.packet_class,
+					(unsigned)g_front_state
+						.net_runtime_recv_scratch_packet
+						.sequence_byte,
+					*(const int *)g_front_state
+						 .net_runtime_recv_scratch_packet
+						 .payload,
+					(unsigned)g_front_state
+						.net_runtime_recv_scratch_packet
+						.payload_size,
+					g_front_state
+						.net_runtime_recv_queue_count);
 				return g_front_state
 					.net_runtime_recv_scratch_packet
 					.payload;
@@ -4489,6 +4902,9 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 			scan_index = 0;
 		}
 	}
+	XVT_LOG_DEBUG(
+		"network.lobby_receive_waiting queued=%d pass=\"pressure\"",
+		g_front_state.net_runtime_recv_queue_count);
 	return NULL;
 }
 
@@ -4568,6 +4984,12 @@ void net_mark_player_ready_no_lock(int player_id)
 	}
 	if (player_index != g_front_state.net_player_count) {
 		g_front_state.net_players[player_index].ready_flag = 1;
+		XVT_LOG_DEBUG("network.lobby_roster_ready player=%u ready=1",
+			      (unsigned)player_id);
+	} else {
+		XVT_LOG_WARN(
+			"network.lobby_roster_ready_refused player=%u reason=\"not_in_roster\"",
+			(unsigned)player_id);
 	}
 }
 
@@ -4586,6 +5008,8 @@ void net_clear_player_ready_flag(int player_id)
 	}
 	if (player_index != 32) {
 		g_front_state.net_players[player_index].ready_flag = 0;
+		XVT_LOG_DEBUG("network.lobby_roster_ready player=%u ready=0",
+			      (unsigned)player_id);
 	}
 }
 
@@ -4635,6 +5059,9 @@ struct net_player_info *net_find_player(int player_id)
 int net_set_player_ready(int player_id)
 {
 	if (g_front_state.net_direct_play == NULL) {
+		XVT_LOG_WARN(
+			"network.lobby_roster_ready_refused player=%u reason=\"no_session\"",
+			(unsigned)player_id);
 		return 0;
 	}
 
@@ -4651,6 +5078,9 @@ int net_set_player_ready(int player_id)
 		} while (player_index < g_front_state.net_player_count);
 	}
 	if (player_index == g_front_state.net_player_count) {
+		XVT_LOG_WARN(
+			"network.lobby_roster_ready_refused player=%u reason=\"not_in_roster\"",
+			(unsigned)player_id);
 		if (was_back_buffer_locked != 0) {
 			g_draw_surface_ptr =
 				frontend_display_lock_back_buffer();
@@ -4659,6 +5089,8 @@ int net_set_player_ready(int player_id)
 	}
 
 	g_front_state.net_players[player_index].ready_flag = 1;
+	XVT_LOG_DEBUG("network.lobby_roster_ready player=%u ready=1",
+		      (unsigned)player_id);
 	if (was_back_buffer_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
@@ -4702,6 +5134,7 @@ void net_clear_player_ready_flags(void)
 	for (int player_index = 0; player_index < 32; ++player_index) {
 		g_front_state.net_players[player_index].ready_flag = 0;
 	}
+	XVT_LOG_DEBUG("network.lobby_roster_ready_cleared");
 }
 
 #ifndef XVT_MODERN
@@ -4981,6 +5414,18 @@ int net_session_import_runtime_state(
 	}
 	*sent_history_write_index_out =
 		g_front_state.net_runtime_sent_history_write_index;
+	XVT_LOG_INFO("network.lobby_handoff queued=%d peers=%u",
+		     g_front_state.net_runtime_recv_queue_count,
+		     (unsigned)g_front_state.net_reliable_peer_slot_count);
+	XVT_LOG_DEBUG(
+		"network.lobby_handoff_state read=%d write=%d broadcast_seq=%d group_seq=%d history=%d host=%u group=%u",
+		g_front_state.net_runtime_recv_queue_read_index,
+		g_front_state.net_runtime_recv_queue_write_index,
+		g_front_state.net_runtime_broadcast_seq_counter,
+		g_front_state.net_runtime_group_seq_counter,
+		g_front_state.net_runtime_sent_history_write_index,
+		(unsigned)g_front_state.net_host_player_id,
+		(unsigned)g_front_state.net_group_dplay_id);
 	return 1;
 }
 
@@ -5084,6 +5529,17 @@ int net_session_export_runtime_state(
 		sent_world_message_history;
 	g_front_state.net_flight_sent_world_message_write_index =
 		*sent_world_message_write_index;
+	XVT_LOG_INFO("network.lobby_handback queued=%d peers=%u",
+		     g_front_state.net_runtime_recv_queue_count,
+		     (unsigned)g_front_state.net_reliable_peer_slot_count);
+	XVT_LOG_DEBUG(
+		"network.lobby_handback_state read=%d write=%d broadcast_seq=%d group_seq=%d history=%d world_history=%d",
+		g_front_state.net_runtime_recv_queue_read_index,
+		g_front_state.net_runtime_recv_queue_write_index,
+		g_front_state.net_runtime_broadcast_seq_counter,
+		g_front_state.net_runtime_group_seq_counter,
+		g_front_state.net_runtime_sent_history_write_index,
+		g_front_state.net_flight_sent_world_message_write_index);
 	return 1;
 }
 
@@ -5119,6 +5575,10 @@ int net_compact_reliable_peer_slots_for_roster(void)
 			if (player_index >= player_count &&
 			    slot->direct_play_id !=
 				    g_front_state.net_group_dplay_id) {
+				XVT_LOG_DEBUG(
+					"network.lobby_peer_freed player=%u peer=%d",
+					(unsigned)slot->direct_play_id,
+					slot_index);
 				slot->direct_play_id = 0;
 				slot->last_delivered_seq_default = 127;
 				slot->last_delivered_seq_channel_a = 127;
@@ -5169,6 +5629,12 @@ int net_compact_reliable_peer_slots_for_roster(void)
 						       &g_front_state.net_runtime_reliable_peer_slots
 								[next_slot_index],
 						       sizeof(*slot));
+						XVT_LOG_DEBUG(
+							"network.lobby_peer_moved player=%u previous=%d peer=%d",
+							(unsigned)slot
+								->direct_play_id,
+							next_slot_index,
+							slot_index);
 						g_front_state
 							.net_runtime_reliable_peer_slots
 								[next_slot_index]
@@ -5252,6 +5718,8 @@ int net_compact_reliable_peer_slots_for_roster(void)
 			++g_front_state.net_reliable_peer_slot_count;
 		}
 	}
+	XVT_LOG_DEBUG("network.lobby_peers_compacted peers=%u",
+		      (unsigned)g_front_state.net_reliable_peer_slot_count);
 	return 1;
 }
 
@@ -5334,6 +5802,14 @@ int net_send_sequence_keepalives(void)
 									[peer_index]
 								.direct_play_id,
 							packet, 20, 0);
+						XVT_LOG_DEBUG(
+							"network.lobby_keepalive_sent player=%u peer=%u broadcast=%d group=%d single=%d",
+							(unsigned)g_front_state
+								.net_runtime_reliable_peer_slots
+									[peer_index]
+								.direct_play_id,
+							peer_index, packet[1],
+							packet[2], packet[3]);
 					}
 				}
 			}
@@ -5360,6 +5836,10 @@ int net_check_and_record_incoming_sequence(int player_id, int sequence_id,
 	if (previous_peer_slot_count !=
 		    g_front_state.net_reliable_peer_slot_count ||
 	    peer_index >= 40) {
+		XVT_LOG_DEBUG(
+			"network.lobby_sequence_unrecorded player=%u seq=%d reason=\"%s\"",
+			(unsigned)player_id, sequence_id,
+			peer_index >= 40 ? "no_slot" : "new_peer");
 		return 0;
 	}
 
@@ -5527,6 +6007,9 @@ int net_remove_incoming_packet_at_index(unsigned int queue_index)
 	} else {
 		--g_front_state.net_runtime_recv_queue_write_index;
 	}
+	XVT_LOG_DEBUG("network.lobby_queue_shifted index=%u queued=%d write=%d",
+		      queue_index, g_front_state.net_runtime_recv_queue_count,
+		      g_front_state.net_runtime_recv_queue_write_index);
 	return 0;
 }
 
@@ -5565,6 +6048,9 @@ int net_set_player_latency_ms(int player_id, int latency_ms)
 	       g_net_player_connection_stats[player_index].player_id != 0) {
 		player_index++;
 		if (player_index >= 40) {
+			XVT_LOG_WARN(
+				"network.lobby_link_stats_full player=%u figure=\"latency\"",
+				(unsigned)player_id);
 			return 1;
 		}
 	}
@@ -5575,6 +6061,9 @@ int net_set_player_latency_ms(int player_id, int latency_ms)
 		stats->player_id = player_id;
 		stats->latency_sample_count = 1;
 		stats->latency_total_ms = latency_ms;
+		XVT_LOG_DEBUG(
+			"network.lobby_link_latency_stored player=%u latency=%d entry=%d",
+			(unsigned)player_id, latency_ms, player_index);
 		return stats->latency_sample_count;
 	}
 }
@@ -5592,6 +6081,9 @@ int net_set_player_name_with_lock_guard(unsigned int player_id,
 	int was_back_buffer_locked = g_front_state.back_buffer_locked;
 	frontend_display_unlock_back_buffer();
 	if (g_front_state.net_direct_play == NULL) {
+		XVT_LOG_WARN(
+			"network.lobby_rename_refused player=%u reason=\"no_session\"",
+			player_id);
 		return 0;
 	}
 
@@ -5602,6 +6094,10 @@ int net_set_player_name_with_lock_guard(unsigned int player_id,
 	player_name.dwSize = sizeof(player_name);
 	HRESULT result = g_front_state.net_direct_play->lpVtbl->SetPlayerName(
 		g_front_state.net_direct_play, player_id, &player_name, 0);
+	XVT_LOG_DEBUG(
+		"network.lobby_rename_requested player=%u pilot=\"%s\" long_byte=%u result=%#x",
+		player_id, short_name, (unsigned)(unsigned char)long_name[0],
+		(unsigned)result);
 
 	if (was_back_buffer_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
@@ -5611,6 +6107,10 @@ int net_set_player_name_with_lock_guard(unsigned int player_id,
 		return XVT_NETWORK_PENDING;
 	}
 #endif
+	if (result != 0) {
+		XVT_LOG_WARN("network.lobby_rename_failed player=%u result=%#x",
+			     player_id, (unsigned)result);
+	}
 	return result == 0;
 }
 
@@ -5693,6 +6193,13 @@ unsigned int net_find_or_create_peer_slot(int direct_play_id)
 		char message[256];
 		sprintf(message, "SAdding new net sequence %u\n",
 			direct_play_id);
+		XVT_LOG_DEBUG(
+			"network.lobby_peer_added player=%u peer=%u peers=%u",
+			(unsigned)direct_play_id, slot,
+			(unsigned)g_front_state.net_reliable_peer_slot_count);
+	} else {
+		XVT_LOG_WARN("network.lobby_peer_table_full player=%u",
+			     (unsigned)direct_play_id);
 	}
 	return slot;
 }
@@ -5833,11 +6340,28 @@ int net_drop_silent_peers(void)
 			    PEER_SILENCE_TIMEOUT_MS) {
 				continue;
 			}
+			XVT_LOG_WARN(
+				"network.lobby_player_silent player=%u ms=%u",
+				(unsigned)g_front_state
+					.net_players[player_index]
+					.player_id,
+				(unsigned)(now_ms -
+					   g_front_state
+						   .net_runtime_reliable_peer_slots
+							   [peer_index]
+						   .last_heard_ms));
 			g_front_state
 				.net_runtime_reliable_peer_slots[peer_index]
 				.last_heard_ms = GetTickCount();
 			if (g_front_state.net_runtime_recv_queue_count >=
 			    RECV_QUEUE_CAPACITY) {
+				XVT_LOG_WARN(
+					"network.lobby_drop_deferred player=%u queued=%d kind=\"player_left\"",
+					(unsigned)g_front_state
+						.net_players[player_index]
+						.player_id,
+					g_front_state
+						.net_runtime_recv_queue_count);
 				continue;
 			}
 			packet[0] = NET_PACKET_PLAYER_KICKED;
@@ -5906,6 +6430,13 @@ int net_drop_silent_peers(void)
 				g_front_state
 					.net_runtime_recv_queue_write_index = 0;
 			}
+			XVT_LOG_DEBUG(
+				"network.lobby_departure_queued player=%u seq=%u queued=%d kind=\"player_left\"",
+				(unsigned)g_front_state
+					.net_players[player_index]
+					.player_id,
+				sequence,
+				g_front_state.net_runtime_recv_queue_count);
 		}
 	} else {
 		unsigned int peer_index = net_find_or_create_peer_slot(
@@ -5920,6 +6451,14 @@ int net_drop_silent_peers(void)
 				    .net_runtime_reliable_peer_slots[peer_index]
 				    .last_heard_ms >
 		    PEER_SILENCE_TIMEOUT_MS) {
+			XVT_LOG_WARN(
+				"network.lobby_host_silent player=%u ms=%u",
+				(unsigned)g_front_state.net_host_player_id,
+				(unsigned)(now_ms -
+					   g_front_state
+						   .net_runtime_reliable_peer_slots
+							   [peer_index]
+						   .last_heard_ms));
 			g_front_state
 				.net_runtime_reliable_peer_slots[peer_index]
 				.last_heard_ms = GetTickCount();
@@ -5987,6 +6526,20 @@ int net_drop_silent_peers(void)
 						.net_runtime_recv_queue_write_index =
 						0;
 				}
+				XVT_LOG_DEBUG(
+					"network.lobby_departure_queued player=%u seq=%u queued=%d kind=\"host_cancelled\"",
+					(unsigned)g_front_state
+						.net_host_player_id,
+					sequence,
+					g_front_state
+						.net_runtime_recv_queue_count);
+			} else {
+				XVT_LOG_WARN(
+					"network.lobby_drop_deferred player=%u queued=%d kind=\"host_cancelled\"",
+					(unsigned)g_front_state
+						.net_host_player_id,
+					g_front_state
+						.net_runtime_recv_queue_count);
 			}
 		}
 	}
@@ -6119,6 +6672,9 @@ int net_set_player_packet_count(int player_id, int packet_count)
 			}
 			++player_index;
 			if (player_index >= 40) {
+				XVT_LOG_WARN(
+					"network.lobby_link_stats_full player=%u figure=\"packets\"",
+					(unsigned)player_id);
 				return 1;
 			}
 		} while (1);
@@ -6165,6 +6721,9 @@ int net_set_player_packet_drop_count(int player_id, int packet_drop_count)
 			}
 			++player_index;
 			if (player_index >= 40) {
+				XVT_LOG_WARN(
+					"network.lobby_link_stats_full player=%u figure=\"drops\"",
+					(unsigned)player_id);
 				return 1;
 			}
 		} while (1);
@@ -6212,6 +6771,9 @@ int net_set_player_packet_retry_count(int player_id, int packet_retry_count)
 			}
 			++player_index;
 			if (player_index >= 40) {
+				XVT_LOG_WARN(
+					"network.lobby_link_stats_full player=%u figure=\"retries\"",
+					(unsigned)player_id);
 				return 1;
 			}
 		} while (1);

@@ -548,6 +548,336 @@
       "fields": ["from", "broadcast", "group", "direct"],
       "text": "Player {from} asked for packets no longer kept, so they were not sent again: {broadcast} to all players, {group} to the group, {direct} to it alone (128 means none missing)"
     },
+    "network.lobby_backlog": {
+      "level": "W",
+      "fields": ["queued"],
+      "text": "More than 512 lobby packets were waiting ({queued}); the open screen was told to close so they could be read"
+    },
+    "network.lobby_closing": {
+      "level": "D",
+      "fields": ["open", "player", "group", "queued", "peers", "quit", "handshake"],
+      "text": "The lobby connection was shut down (open: {open}): local player {player} and group {group} were destroyed, {queued} waiting packets and {peers} connection entries were cleared; quit {quit}, wait for shutdown answers {handshake}"
+    },
+    "network.lobby_control_send_failed": {
+      "level": "W",
+      "fields": ["to", "type", "result"],
+      "text": "Sending a packet of type {type} to player {to} outside the sequence scheme failed with code {result}; nothing keeps it for a resend"
+    },
+    "network.lobby_control_sent": {
+      "level": "D",
+      "fields": ["to", "type", "bytes"],
+      "text": "A packet of type {type} went to player {to} outside the sequence scheme, {bytes} bytes"
+    },
+    "network.lobby_delivered": {
+      "level": "D",
+      "fields": ["player", "peer", "channel", "seq", "type", "bytes", "queued", "path"],
+      "text": "A lobby packet of type {type} and {bytes} bytes from player {player} (connection entry {peer}), sequence {seq} on channel {channel}, was delivered to the game ({path}); {queued} packets stayed queued"
+    },
+    "network.lobby_departure_queued": {
+      "level": "D",
+      "fields": ["player", "seq", "queued", "kind"],
+      "text": "A {kind} notice was queued as if from player {player}, as its sequence {seq}; {queued} packets were queued"
+    },
+    "network.lobby_drop_deferred": {
+      "level": "W",
+      "fields": ["player", "queued", "kind"],
+      "text": "The {kind} notice for silent player {player} was not queued because the receive queue was full ({queued} queued); the check came back after another 45 s"
+    },
+    "network.lobby_flight_packet_dropped": {
+      "level": "D",
+      "fields": ["player", "channel", "seq", "type", "resent"],
+      "text": "A flight packet of type {type} from player {player}, sequence {seq} on channel {channel} (resent copy {resent}), reached the lobby receive queue and was dropped; unless it was a resent copy, its sequence counted as delivered"
+    },
+    "network.lobby_handback": {
+      "level": "I",
+      "fields": ["queued", "peers"],
+      "text": "The flight session's network state was copied back into the lobby as the flight shut down: {queued} queued packets and {peers} peers"
+    },
+    "network.lobby_handback_state": {
+      "level": "D",
+      "fields": ["read", "write", "broadcast_seq", "group_seq", "history", "world_history"],
+      "text": "The flight state copied back into the lobby: receive queue read index {read}, write index {write}, broadcast sequence {broadcast_seq}, group sequence {group_seq}, sent history index {history}, world message history index {world_history}"
+    },
+    "network.lobby_handoff": {
+      "level": "I",
+      "fields": ["queued", "peers"],
+      "text": "The lobby's network state was copied into the flight session as the flight started: {queued} queued packets and {peers} peers"
+    },
+    "network.lobby_handoff_state": {
+      "level": "D",
+      "fields": ["read", "write", "broadcast_seq", "group_seq", "history", "host", "group"],
+      "text": "The lobby state copied into the flight: receive queue read index {read}, write index {write}, broadcast sequence {broadcast_seq}, group sequence {group_seq}, sent history index {history}, host {host}, group {group}"
+    },
+    "network.lobby_host_cancel_queued": {
+      "level": "D",
+      "fields": ["host"],
+      "text": "The host, player {host}, left; a host-cancelled packet was queued for the local player"
+    },
+    "network.lobby_host_silent": {
+      "level": "W",
+      "fields": ["player", "ms"],
+      "text": "The host, player {player}, had sent the lobby nothing for {ms} ms; the game moved to cancel it"
+    },
+    "network.lobby_keepalive": {
+      "level": "D",
+      "fields": ["from", "host"],
+      "text": "A keepalive from player {from} (the host: {host}) was answered with the packets it lacked"
+    },
+    "network.lobby_keepalive_ack": {
+      "level": "D",
+      "fields": ["from", "latency", "entry", "packets", "drops", "retries"],
+      "text": "A keepalive answer from player {from} measured {latency} ms; link-figure entry {entry} (40 when the table had no room) took its counts: {packets} packets, {drops} losses, {retries} resend requests"
+    },
+    "network.lobby_keepalive_sent": {
+      "level": "D",
+      "fields": ["player", "peer", "broadcast", "group", "single"],
+      "text": "Player {player} (lobby connection entry {peer}) had been quiet over 3 s; a keepalive told it the next sequences this player expected: broadcast {broadcast}, group {group}, direct {single}"
+    },
+    "network.lobby_link_latency_stored": {
+      "level": "D",
+      "fields": ["player", "latency", "entry"],
+      "text": "Player {player}'s latency, {latency} ms, was stored in link-stats entry {entry} as its only sample"
+    },
+    "network.lobby_link_stats_full": {
+      "level": "W",
+      "fields": ["player", "figure"],
+      "text": "Player {player}'s {figure} figure was not stored: all 40 link-stats entries belonged to other players"
+    },
+    "network.lobby_local_copy_dropped": {
+      "level": "W",
+      "fields": ["to", "type", "queued"],
+      "text": "The local copy of a packet of type {type} sent to player {to} was dropped: the receive queue was full at {queued} packets"
+    },
+    "network.lobby_nack": {
+      "level": "D",
+      "fields": ["from", "seq", "channel", "found"],
+      "text": "Player {from} asked again for packet {seq} on channel {channel} (0 all players, 1 one player, 2 the group); it was found in the sent history: {found} (when not, an empty packet took its place)"
+    },
+    "network.lobby_nack_gave_up": {
+      "level": "W",
+      "fields": ["player", "channel", "first", "retries"],
+      "text": "The gap starting at sequence {first} in player {player}'s lobby packets on channel {channel} was given up after {retries} resend requests; delivery moved past it"
+    },
+    "network.lobby_nack_sent": {
+      "level": "D",
+      "fields": ["player", "channel", "seq", "retries", "gaps"],
+      "text": "Sequence {seq} was missing from player {player}'s lobby packets on channel {channel} and was asked for again; {retries} earlier requests for this gap, {gaps} gaps counted against this player"
+    },
+    "network.lobby_packet_dropped": {
+      "level": "D",
+      "fields": ["player", "channel", "seq", "expected", "reason"],
+      "text": "A lobby packet from player {player}, sequence {seq} on channel {channel}, was dropped ({reason}); the sequence expected next was {expected}"
+    },
+    "network.lobby_packet_missed": {
+      "level": "D",
+      "fields": ["from", "seq", "channel", "trailer"],
+      "text": "Packet {seq} from player {from} on channel {channel} (0 all players, 1 one player, 2 the group) was missed; the copy riding behind the next packet had type {trailer} and was queued in its place unless empty"
+    },
+    "network.lobby_packet_not_local": {
+      "level": "D",
+      "fields": ["from", "to"],
+      "text": "A lobby packet from player {from} addressed to player {to}, not the local player, was dropped"
+    },
+    "network.lobby_packet_received": {
+      "level": "D",
+      "fields": ["from", "type", "seq", "channel", "bytes", "queued"],
+      "text": "Packet {seq} of type {type} from player {from} on channel {channel} (0 all players, 1 one player, 2 the group), {bytes} bytes, was queued; {queued} packets were waiting"
+    },
+    "network.lobby_packet_repeat": {
+      "level": "D",
+      "fields": ["from", "type", "seq", "channel"],
+      "text": "Packet {seq} of type {type} from player {from} on channel {channel} (0 all players, 1 one player, 2 the group) had already arrived or was stale, and was dropped"
+    },
+    "network.lobby_packet_resent": {
+      "level": "D",
+      "fields": ["to", "type", "channel", "seq", "bytes", "result"],
+      "text": "Packet {seq} of type {type} was sent again to player {to} on channel {channel} (0 all players, 1 one player, 2 the group), {bytes} bytes; sending returned code {result}"
+    },
+    "network.lobby_packet_sent": {
+      "level": "D",
+      "fields": ["to", "type", "channel", "seq", "bytes", "queued"],
+      "text": "Packet {seq} of type {type} was prepared for player {to} on channel {channel} (0 all players, 1 one player, 2 the group), {bytes} bytes; {queued} packets were waiting in the local receive queue"
+    },
+    "network.lobby_peer_added": {
+      "level": "D",
+      "fields": ["player", "peer", "peers"],
+      "text": "Player {player} got lobby connection entry {peer}, its sequences starting fresh; {peers} entries were in use"
+    },
+    "network.lobby_peer_deferred": {
+      "level": "D",
+      "fields": ["player", "seen", "allowance"],
+      "text": "The lobby receive pass stopped looking at packets from player {player}: {seen} were seen against an allowance of {allowance}; the rest waited for the next pass"
+    },
+    "network.lobby_peer_freed": {
+      "level": "D",
+      "fields": ["player", "peer"],
+      "text": "Player {player} lost lobby connection entry {peer}: it was in neither the roster nor the group"
+    },
+    "network.lobby_peer_moved": {
+      "level": "D",
+      "fields": ["player", "previous", "peer"],
+      "text": "Player {player} moved from lobby connection entry {previous} down to entry {peer}, closing a gap in the table"
+    },
+    "network.lobby_peer_table_full": {
+      "level": "W",
+      "fields": ["player"],
+      "text": "No lobby connection entry could be had for player {player}: all 40 were in use"
+    },
+    "network.lobby_peers_compacted": {
+      "level": "D",
+      "fields": ["peers"],
+      "text": "The lobby's connection table was compacted for the roster; {peers} connection entries stayed in use"
+    },
+    "network.lobby_ping_answered": {
+      "level": "D",
+      "fields": ["from"],
+      "text": "A ping from player {from} was answered"
+    },
+    "network.lobby_player_created": {
+      "level": "D",
+      "fields": ["result", "player"],
+      "text": "Asking the session to create the local player returned code {result}, player id {player} (0 until it succeeds)"
+    },
+    "network.lobby_player_joined": {
+      "level": "I",
+      "fields": ["player", "players", "peers"],
+      "text": "Player {player} entered the session; the host refreshed the roster to {players} players and sent the newcomer the state of {peers} connection entries"
+    },
+    "network.lobby_player_left": {
+      "level": "I",
+      "fields": ["player", "ready", "peers"],
+      "text": "Player {player} left the session; the host cleared its ready mark (a ready player left this frame: {ready}), its link figures and its peer slot, {peers} slots remaining"
+    },
+    "network.lobby_player_listed": {
+      "level": "D",
+      "fields": ["index", "player", "name"],
+      "text": "Player {player}, named {name}, was listed in lobby roster entry {index}"
+    },
+    "network.lobby_player_renamed": {
+      "level": "D",
+      "fields": ["player", "name"],
+      "text": "Player {player} was renamed {name}"
+    },
+    "network.lobby_player_silent": {
+      "level": "W",
+      "fields": ["player", "ms"],
+      "text": "Ready player {player} had sent the lobby nothing for {ms} ms; the host moved to drop them"
+    },
+    "network.lobby_poll_found": {
+      "level": "D",
+      "fields": ["type", "system"],
+      "text": "A waiting lobby packet of type {type} (a DirectPlay system message: {system}) was found; the open screen closed"
+    },
+    "network.lobby_queue_pressure": {
+      "level": "W",
+      "fields": ["queued"],
+      "text": "The lobby receive queue held {queued} packets, at its limit; a second pass dropped stale packets and looked for a packet already asked for again to deliver past its gap"
+    },
+    "network.lobby_queue_shifted": {
+      "level": "D",
+      "fields": ["index", "queued", "write"],
+      "text": "Entry {index} was taken from the middle of the lobby receive queue and the later entries moved down; {queued} stayed queued and the next free entry became {write}"
+    },
+    "network.lobby_receive_queue_full": {
+      "level": "W",
+      "fields": ["queued"],
+      "text": "The lobby receive queue was full at {queued} packets; receiving stopped until the next pump"
+    },
+    "network.lobby_receive_waiting": {
+      "level": "D",
+      "fields": ["queued", "pass"],
+      "text": "No lobby packet was ready to deliver after the {pass} pass; {queued} packets stayed queued"
+    },
+    "network.lobby_rename_failed": {
+      "level": "W",
+      "fields": ["player", "result"],
+      "text": "DirectPlay refused to rename player {player}: it answered {result}"
+    },
+    "network.lobby_rename_refused": {
+      "level": "W",
+      "fields": ["player", "reason"],
+      "text": "Player {player}'s names could not be set ({reason})"
+    },
+    "network.lobby_rename_rejected": {
+      "level": "W",
+      "fields": ["player"],
+      "text": "A rename message for player {player} was malformed and was skipped"
+    },
+    "network.lobby_rename_requested": {
+      "level": "D",
+      "fields": ["player", "pilot", "long_byte", "result"],
+      "text": "DirectPlay was asked to name player {player} {pilot}, with {long_byte} (the rating plus one) as the long name's first byte; it answered {result}"
+    },
+    "network.lobby_resend_unavailable": {
+      "level": "W",
+      "fields": ["from", "broadcast", "group", "direct"],
+      "text": "Player {from} lacked packets the sent history no longer held, so they were not sent again; sequences by channel, 128 for none: all players {broadcast}, group {group}, one player {direct}"
+    },
+    "network.lobby_resent_received": {
+      "level": "D",
+      "fields": ["from", "type", "channel", "seq", "bytes"],
+      "text": "A resent packet {seq} of type {type} from player {from} on channel {channel} (0 all players, 1 one player, 2 the group), {bytes} bytes, was queued to fill a gap"
+    },
+    "network.lobby_roster": {
+      "level": "D",
+      "fields": ["players"],
+      "text": "The lobby roster was rebuilt from the session's players, ready marks carried over: {players} listed"
+    },
+    "network.lobby_roster_full": {
+      "level": "W",
+      "fields": ["players"],
+      "text": "The lobby roster was full at {players} players; the remaining session players were left out"
+    },
+    "network.lobby_roster_ready": {
+      "level": "D",
+      "fields": ["player", "ready"],
+      "text": "Player {player}'s lobby roster ready flag, which marks a player admitted to the game, was set to {ready}"
+    },
+    "network.lobby_roster_ready_cleared": {
+      "level": "D",
+      "fields": [],
+      "text": "Every lobby roster entry's ready flag, which marks a player admitted to the game, was cleared"
+    },
+    "network.lobby_roster_ready_refused": {
+      "level": "W",
+      "fields": ["player", "reason"],
+      "text": "Player {player} could not be marked ready in the lobby roster ({reason})"
+    },
+    "network.lobby_roster_skipped": {
+      "level": "D",
+      "fields": [],
+      "text": "The lobby roster was not rebuilt: no session connection was open"
+    },
+    "network.lobby_send_failed": {
+      "level": "W",
+      "fields": ["to", "type", "result"],
+      "text": "Sending a packet of type {type} to player {to} failed with code {result}; it stayed in the sent history for a resend"
+    },
+    "network.lobby_sequence_unrecorded": {
+      "level": "D",
+      "fields": ["player", "seq", "reason"],
+      "text": "Sequence {seq} from player {player} was let through without being recorded ({reason})"
+    },
+    "network.lobby_system_handled": {
+      "level": "D",
+      "fields": ["type", "kind", "player", "host"],
+      "text": "The lobby acted on DirectPlay system message {type} about id {player} of kind {kind} (1 a player, 0 a group); this side is the host: {host}"
+    },
+    "network.lobby_system_received": {
+      "level": "D",
+      "fields": ["bytes"],
+      "text": "A DirectPlay system message of {bytes} bytes arrived for the lobby and was queued, cut to 512 bytes"
+    },
+    "network.lobby_world_nack": {
+      "level": "D",
+      "fields": ["from", "tick", "found"],
+      "text": "Player {from} asked again for the world message of tick {tick}; it was found in the history: {found} (when not, an empty packet took its place)"
+    },
+    "network.lobby_world_nack_ignored": {
+      "level": "W",
+      "fields": ["from", "tick"],
+      "text": "Player {from} asked again for the world message of tick {tick}, but no flight's world messages were kept; the request was ignored"
+    },
     "network.nack_gave_up": {
       "level": "W",
       "fields": ["retries", "peer", "channel", "missing", "limit"],
@@ -782,6 +1112,11 @@
       "level": "D",
       "fields": ["opcode", "host"],
       "text": "DirectPlay system message {opcode} was handled; this player hosts: {host}"
+    },
+    "network.transport_unknown": {
+      "level": "E",
+      "fields": ["transport"],
+      "text": "No network service provider was known for transport {transport}; the connection could not be made"
     },
     "network.world_received": {
       "level": "D",
