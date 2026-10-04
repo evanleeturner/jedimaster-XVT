@@ -182,6 +182,7 @@ struct net_session_enum_entry {
 
 extern struct net_player_connection_stats g_net_player_connection_stats[40];
 extern GUID g_net_matched_session_instance_guid;
+/* drift-ok: camelcase -- DirectPlay's interface id */
 extern const GUID IID_IDirectPlay2A;
 extern network_transport_type g_net_active_transport_type;
 #ifndef XVT_MODERN

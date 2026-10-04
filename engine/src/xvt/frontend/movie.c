@@ -63,11 +63,12 @@ struct movie_window_pos {
 
 /* Windows' message record, filled and passed on by the original build's
  * playback loop. */
+/* drift-ok: camelcase -- wParam, lParam: Windows' MSG */
 struct movie_win32_message {
 	void *window;	  /* Never read or written by name. */
 	uint32_t message; /* Never read or written by name. */
-	uint32_t w_param; /* Never read or written by name. */
-	int32_t l_param;  /* Never read or written by name. */
+	uint32_t wParam;  /* Never read or written by name. */
+	int32_t lParam;	  /* Never read or written by name. */
 	uint32_t time;	  /* Never read or written by name. */
 	int32_t point_x;  /* Never read or written by name. */
 	int32_t point_y;  /* Never read or written by name. */
@@ -126,23 +127,23 @@ __declspec(dllimport) int __stdcall
 SmackToBufferRect(struct movie_smack_handle *handle, int rect_index);
 __declspec(dllimport) int __stdcall
 SmackNextFrame(struct movie_smack_handle *handle);
-__declspec(dllimport) void *__stdcall GetDC(void *h_wnd);
+__declspec(dllimport) void *__stdcall GetDC(void *hWnd);
 __declspec(dllimport) unsigned int __stdcall
 GetSystemPaletteEntries(void *hdc, unsigned int start_index,
 			unsigned int entry_count,
 			struct movie_palette_entry *entries);
-__declspec(dllimport) int __stdcall ReleaseDC(void *h_wnd, void *hdc);
-__declspec(dllimport) void *__stdcall BeginPaint(void *h_wnd, void *paint);
-__declspec(dllimport) int __stdcall EndPaint(void *h_wnd, const void *paint);
-__declspec(dllimport) int __stdcall GetUpdateRect(void *h_wnd,
-						  struct RECT *rect, int erase);
+__declspec(dllimport) int __stdcall ReleaseDC(void *hWnd, void *hdc);
+__declspec(dllimport) void *__stdcall BeginPaint(void *hWnd, void *paint);
+__declspec(dllimport) int __stdcall EndPaint(void *hWnd, const void *paint);
+__declspec(dllimport) int __stdcall GetUpdateRect(void *hWnd, struct RECT *rect,
+						  int erase);
 __declspec(dllimport) void __stdcall PostQuitMessage(int exit_code);
 __declspec(dllimport) int32_t __stdcall
-DefWindowProcA(void *h_wnd, unsigned int message, void *w_param, void *l_param);
-__declspec(dllimport) int __stdcall ClientToScreen(void *h_wnd,
+DefWindowProcA(void *hWnd, unsigned int message, void *wParam, void *lParam);
+__declspec(dllimport) int __stdcall ClientToScreen(void *hWnd,
 						   struct POINT *point);
 __declspec(dllimport) int __stdcall
-PeekMessageA(struct movie_win32_message *message, void *h_wnd,
+PeekMessageA(struct movie_win32_message *message, void *hWnd,
 	     unsigned int filter_min, unsigned int filter_max,
 	     unsigned int remove_message);
 __declspec(dllimport) int __stdcall
@@ -456,8 +457,8 @@ HRESULT movie_update_direct_draw_palette(void)
  * frontend_display_wnd_proc, is the window procedure only that build
  * registers. */
 // FUNCTION: XVT 0x4EEEC0
-int32_t AERON_DXAPI movie_window_proc(void *h_wnd, unsigned int message,
-				      void *w_param, void *l_param)
+int32_t AERON_DXAPI movie_window_proc(void *hWnd, unsigned int message,
+				      void *wParam, void *lParam)
 {
 	int use_default;
 	int handled_result;
@@ -470,7 +471,7 @@ int32_t AERON_DXAPI movie_window_proc(void *h_wnd, unsigned int message,
 	if (g_movie_playback_params != NULL &&
 	    g_movie_playback_params->input_callback != NULL) {
 		use_default = g_movie_playback_params->input_callback(
-			h_wnd, message, w_param, l_param,
+			hWnd, message, wParam, lParam,
 			g_movie_playback_params->input_callback_context,
 			&handled_result);
 	}
@@ -487,7 +488,7 @@ int32_t AERON_DXAPI movie_window_proc(void *h_wnd, unsigned int message,
 #endif
 		return 0;
 	case 0x46:
-		window_pos = l_param;
+		window_pos = lParam;
 		if ((window_pos->flags & 2) == 0) {
 			origin_x = (uint16_t)g_movie_client_screen_origin.x;
 			aligned_x = (uint16_t)((origin_x + window_pos->x + 1) &
@@ -517,12 +518,12 @@ int32_t AERON_DXAPI movie_window_proc(void *h_wnd, unsigned int message,
 	}
 	switch (message) {
 	case 0x0F:
-		movie_handle_paint(h_wnd);
+		movie_handle_paint(hWnd);
 		return 0;
 	case 0x14:
 		return 1;
 	case 0x311:
-		if (w_param == h_wnd) {
+		if (wParam == hWnd) {
 			return 0;
 		}
 		break;
@@ -530,7 +531,7 @@ int32_t AERON_DXAPI movie_window_proc(void *h_wnd, unsigned int message,
 		break;
 	}
 #ifndef XVT_MODERN
-	return DefWindowProcA(h_wnd, (uint16_t)message, w_param, l_param);
+	return DefWindowProcA(hWnd, (uint16_t)message, wParam, lParam);
 #else
 	return 0;
 #endif
@@ -544,7 +545,7 @@ int32_t AERON_DXAPI movie_window_proc(void *h_wnd, unsigned int message,
  * modern build. Only the original build reaches it, through
  * movie_window_proc. */
 // FUNCTION: XVT 0x4EF040
-int movie_handle_paint(void *h_wnd)
+int movie_handle_paint(void *hWnd)
 {
 	struct RECT update_rect;
 #ifndef XVT_MODERN
@@ -553,10 +554,10 @@ int movie_handle_paint(void *h_wnd)
 	int result;
 
 #ifndef XVT_MODERN
-	BeginPaint(h_wnd, paint);
-	result = EndPaint(h_wnd, paint);
+	BeginPaint(hWnd, paint);
+	result = EndPaint(hWnd, paint);
 #else
-	(void)h_wnd;
+	(void)hWnd;
 	result = 0;
 #endif
 	if (g_movie_frame_available != 0 && g_movie_smack_handle != NULL &&
@@ -570,7 +571,7 @@ int movie_handle_paint(void *h_wnd)
 				       NULL, 1);
 		}
 #ifndef XVT_MODERN
-		GetUpdateRect(h_wnd, &update_rect, 0);
+		GetUpdateRect(hWnd, &update_rect, 0);
 #else
 		update_rect.left = 0;
 		update_rect.top = 0;
@@ -768,16 +769,16 @@ int movie_get_smack_buffer_format(void)
  * 245 flags 0x4. Returns ReleaseDC's result, or 1 in the modern build. Only the
  * original build reaches it. */
 // FUNCTION: XVT 0x4EF590
-int movie_initialize_system_palette(void *h_wnd)
+int movie_initialize_system_palette(void *hWnd)
 {
 	int index;
 #ifndef XVT_MODERN
 	void *dc;
 
-	dc = GetDC(h_wnd);
+	dc = GetDC(hWnd);
 	GetSystemPaletteEntries(dc, 0, 256, g_movie_palette_entries);
 #else
-	(void)h_wnd;
+	(void)hWnd;
 #endif
 
 	for (index = 0; index < 10; ++index) {
@@ -793,7 +794,7 @@ int movie_initialize_system_palette(void *h_wnd)
 #ifdef XVT_MODERN
 	return 1;
 #else
-	return ReleaseDC(h_wnd, dc);
+	return ReleaseDC(hWnd, dc);
 #endif
 }
 
@@ -1237,7 +1238,7 @@ int movie_play(const char *name, int synchronize_multiplayer)
 	}
 	playback_params.palette = g_front_state.dd_palette;
 	playback_params.direct_sound = g_front_state.frontend_direct_sound;
-	playback_params.window = g_front_state.h_wnd;
+	playback_params.window = g_front_state.hWnd;
 	if (synchronize_multiplayer != 0 &&
 	    g_frontend_mission_session_mode !=
 		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
@@ -1262,12 +1263,12 @@ int movie_play(const char *name, int synchronize_multiplayer)
  * Other messages return 1. Only the original build uses it. */
 // FUNCTION: XVT 0x4F0070
 int movie_singleplayer_input_callback(int window, unsigned int event_code,
-				      int key_code, int l_param,
+				      int key_code, int lParam,
 				      int callback_context,
 				      uint32_t *handled_result)
 {
 	(void)window;
-	(void)l_param;
+	(void)lParam;
 	(void)callback_context;
 
 	switch (event_code) {
@@ -1314,7 +1315,7 @@ int movie_singleplayer_input_callback(int window, unsigned int event_code,
  * characters and clicks. */
 // FUNCTION: XVT 0x4F0140
 int movie_multiplayer_input_callback(int window, unsigned int event_code,
-				     int key_code, int l_param,
+				     int key_code, int lParam,
 				     int callback_context,
 				     uint32_t *playback_flag)
 {
@@ -1330,7 +1331,7 @@ int movie_multiplayer_input_callback(int window, unsigned int event_code,
 	int packet[2];
 
 	(void)window;
-	(void)l_param;
+	(void)lParam;
 	(void)callback_context;
 	switch (event_code) {
 	case MOVIE_PAINT_EVENT:

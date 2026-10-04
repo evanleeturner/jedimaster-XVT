@@ -20,6 +20,7 @@ static AeronLogLevel g_last_level;
 static char g_last_category[64];
 static char g_last_message[256];
 
+/* drift-ok: camelcase -- Aeron's function, replaced to catch lines */
 void Aeron_LogMessageV(AeronLogLevel level, const char *category,
 		       const char *fmt, va_list args)
 {

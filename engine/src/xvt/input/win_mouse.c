@@ -8,14 +8,15 @@
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/runtime/presentation.h"
 #else
+/* drift-ok: camelcase -- wParam, lParam: Windows' MSG */
 struct win_mouse_win32_message {
 	/* Target window, as MSG.hwnd; nothing reads it by name. */
 	void *window;
 	uint32_t message; /* Message number; nothing reads it by name. */
 	/* First message parameter; nothing reads it by name. */
-	uint32_t w_param;
+	uint32_t wParam;
 	/* Second message parameter; nothing reads it by name. */
-	int32_t l_param;
+	int32_t lParam;
 	/* Time the message was posted; nothing reads it by name. */
 	uint32_t time;
 	/* Cursor X when it was posted; nothing reads it by name. */
@@ -25,11 +26,11 @@ struct win_mouse_win32_message {
 };
 
 __declspec(dllimport) int __stdcall
-PeekMessageA(struct win_mouse_win32_message *message, void *h_wnd,
+PeekMessageA(struct win_mouse_win32_message *message, void *hWnd,
 	     unsigned int filter_min, unsigned int filter_max,
 	     unsigned int remove_message);
 __declspec(dllimport) int __stdcall
-GetMessageA(struct win_mouse_win32_message *message, void *h_wnd,
+GetMessageA(struct win_mouse_win32_message *message, void *hWnd,
 	    unsigned int filter_min, unsigned int filter_max);
 __declspec(dllimport) int __stdcall
 TranslateMessage(const struct win_mouse_win32_message *message);

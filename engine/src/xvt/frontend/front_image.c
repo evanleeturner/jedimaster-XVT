@@ -2921,29 +2921,28 @@ int front_image_load_bmp_file(const char *file_name,
 	memset(palette, 0, sizeof(palette));
 	if (stream != NULL) {
 		file_read_bytes(stream, &file_header, sizeof(file_header));
-		if (file_header.bf_type == 0x4D42) {
+		if (file_header.bfType == 0x4D42) {
 			int row_padding;
 
 			file_read_bytes(stream, &info_header,
 					sizeof(info_header));
-			row_padding = info_header.bi_width % 4;
+			row_padding = info_header.biWidth % 4;
 			if (row_padding != 0) {
 				row_padding = 4 - row_padding;
 			}
 			pixels = malloc(row_padding +
-					info_header.bi_height *
-						info_header.bi_width);
+					info_header.biHeight *
+						info_header.biWidth);
 			if (pixels != NULL) {
 				memset(pixels, 0,
 				       row_padding +
-					       info_header.bi_height *
-						       info_header.bi_width);
-				if (info_header.bi_planes == 1) {
+					       info_header.biHeight *
+						       info_header.biWidth);
+				if (info_header.biPlanes == 1) {
 					unsigned int bits_per_pixel;
 					int display_bpp;
 
-					bits_per_pixel =
-						info_header.bi_bit_count;
+					bits_per_pixel = info_header.biBitCount;
 					switch (bits_per_pixel) {
 					case 4:
 						front_image_read_bmp_palette(
@@ -3056,12 +3055,12 @@ int front_image_load_bmp_file(const char *file_name,
 	{
 		int image_height;
 
-		image_height = info_header.bi_height;
-		image->width = info_header.bi_width;
+		image_height = info_header.biHeight;
+		image->width = info_header.biWidth;
 		image->height = image_height;
 		image->pixels = pixels;
 		image->is_compressed = 0;
-		image->pixel_data_bytes = image->height * info_header.bi_width;
+		image->pixel_data_bytes = image->height * info_header.biWidth;
 		if (compress_rle == 1) {
 			front_image_compress_rle(image);
 		}
@@ -3088,25 +3087,25 @@ int front_image_decode_bmp4bpp(xvt_file *stream, void *dst_pixels,
 	size_t data_size;
 	uint8_t *data;
 
-	data_size = file_header->bf_size - file_header->bf_off_bits;
+	data_size = file_header->bfSize - file_header->bfOffBits;
 	data = malloc(data_size);
 	if (data == NULL) {
 		return 0;
 	}
 
-	if (info_header->bi_compression == 0) {
+	if (info_header->biCompression == 0) {
 		int src_offset;
 		int16_t row;
 
 		src_offset = 0;
 		file_read_bytes(stream, data, data_size);
-		for (row = 0; row < info_header->bi_height; ++row) {
+		for (row = 0; row < info_header->biHeight; ++row) {
 			int16_t column;
 			int dst_row_offset;
 
-			dst_row_offset = info_header->bi_width *
-					 (info_header->bi_height - row - 1);
-			for (column = 0; column < info_header->bi_width;
+			dst_row_offset = info_header->biWidth *
+					 (info_header->biHeight - row - 1);
+			for (column = 0; column < info_header->biWidth;
 			     ++column) {
 				if ((column & 1) != 0) {
 					((uint8_t *)dst_pixels)[dst_row_offset +
@@ -3120,14 +3119,14 @@ int front_image_decode_bmp4bpp(xvt_file *stream, void *dst_pixels,
 				}
 			}
 
-			if ((info_header->bi_width & 1) != 0) {
+			if ((info_header->biWidth & 1) != 0) {
 				++src_offset;
 			}
-			if ((info_header->bi_width & 6) != 0) {
+			if ((info_header->biWidth & 6) != 0) {
 				src_offset +=
-					(int16_t)(4 - ((info_header->bi_width >>
-							1) &
-						       3));
+					(int16_t)(4 -
+						  ((info_header->biWidth >> 1) &
+						   3));
 			}
 		}
 	}
@@ -3155,31 +3154,30 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 
 	(void)file_header;
 
-	row_padding = info_header->bi_width % 4;
+	row_padding = info_header->biWidth % 4;
 	if (row_padding != 0) {
 		row_padding = 4 - row_padding;
 	}
 
 	data = NULL;
-	if (info_header->bi_compression != 0) {
-		data = malloc(info_header->bi_size_image);
+	if (info_header->biCompression != 0) {
+		data = malloc(info_header->biSizeImage);
 		if (data == NULL) {
 			return 0;
 		}
 	}
 
-	switch (info_header->bi_compression) {
+	switch (info_header->biCompression) {
 	case 0: {
 		int16_t row;
 
-		for (row = 0; row < info_header->bi_height; ++row) {
-			file_read_bytes(
-				stream,
-				(uint8_t *)dst_pixels +
-					info_header->bi_width *
-						(info_header->bi_height - row -
-						 1),
-				info_header->bi_width);
+		for (row = 0; row < info_header->biHeight; ++row) {
+			file_read_bytes(stream,
+					(uint8_t *)dst_pixels +
+						info_header->biWidth *
+							(info_header->biHeight -
+							 row - 1),
+					info_header->biWidth);
 			file_read_bytes(stream, padding_buffer, row_padding);
 		}
 		break;
@@ -3188,11 +3186,11 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 		int row_start_offset;
 		int16_t decode_complete;
 
-		file_read_bytes(stream, data, info_header->bi_size_image);
+		file_read_bytes(stream, data, info_header->biSizeImage);
 		source_offset = 0;
 		decode_complete = 0;
 		destination_offset =
-			info_header->bi_width * (info_header->bi_height - 1);
+			info_header->biWidth * (info_header->biHeight - 1);
 		row_start_offset = destination_offset;
 		do {
 			uint8_t run_length;
@@ -3207,7 +3205,7 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 				switch (escape_code) {
 				case 0:
 					row_start_offset -=
-						info_header->bi_width;
+						info_header->biWidth;
 					destination_offset = row_start_offset;
 					break;
 				case 1:
@@ -3225,7 +3223,7 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 					column_offset = destination_offset -
 							row_start_offset;
 					row_start_offset -=
-						delta_y * info_header->bi_width;
+						delta_y * info_header->biWidth;
 					destination_offset = delta_x +
 							     row_start_offset +
 							     column_offset;
@@ -3288,8 +3286,8 @@ void front_image_remap_palette(uint8_t *pixels, const uint8_t *src_palette,
 	int height;
 	int i;
 
-	width = info_header->bi_width;
-	height = info_header->bi_height;
+	width = info_header->biWidth;
+	height = info_header->biHeight;
 	for (i = 0; i < 256; ++i) {
 		g_palette_remap_cache[i] = 0x100;
 	}

@@ -141,7 +141,7 @@ struct frontend_global_state {
 	/* 1 when DirectDraw runs on the driver frontend_display_load_driver_guid
 	 * named, 0 on the default one. */
 	uint8_t secondary_direct_draw_active;
-	void *h_wnd; /* The game window. */
+	void *hWnd; /* The game window. */
 	/* Which window procedure frontend_display_wnd_proc forwards to: 0
 	 * frontend, 1 flight, 2 movie. */
 	int frontend_display_wnd_proc_mode;

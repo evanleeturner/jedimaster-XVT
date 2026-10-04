@@ -58,8 +58,8 @@ IDirectDrawSurface *dd_util_load_bitmap_surface(IDirectDraw *direct_draw,
 	}
 	GetObjectA(bitmap, sizeof(bitmap_info), &bitmap_info);
 	memset(&surface_desc, 0, sizeof(surface_desc));
-	surface_desc.dwWidth = bitmap_info.bm_width;
-	surface_desc.dwHeight = bitmap_info.bm_height;
+	surface_desc.dwWidth = bitmap_info.bmWidth;
+	surface_desc.dwHeight = bitmap_info.bmHeight;
 	surface_desc.dwSize = sizeof(surface_desc);
 	surface_desc.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
 	surface_desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;

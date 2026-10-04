@@ -73,28 +73,27 @@
 #ifndef XVT_MODERN
 /* The Windows message record PeekMessageA fills in flight_pump_window_messages,
  * in the original build. */
+/* drift-ok: camelcase -- wParam, lParam: Windows' MSG */
 struct flight_win32_message {
 	void *window; /* Window the message is for; not read by name. */
 	/* Message number; flight_pump_window_messages tests it. */
 	uint32_t message;
-	uint32_t w_param; /* First message argument; not read by name. */
-	int32_t l_param;  /* Second message argument; not read by name. */
-	uint32_t time;	  /* Time the message was posted; not read by name. */
-	int32_t point_x;  /* Cursor X when posted; not read by name. */
-	int32_t point_y;  /* Cursor Y when posted; not read by name. */
+	uint32_t wParam; /* First message argument; not read by name. */
+	int32_t lParam;	 /* Second message argument; not read by name. */
+	uint32_t time;	 /* Time the message was posted; not read by name. */
+	int32_t point_x; /* Cursor X when posted; not read by name. */
+	int32_t point_y; /* Cursor Y when posted; not read by name. */
 };
 
-__declspec(dllimport) int __stdcall UpdateWindow(void *h_wnd);
-__declspec(dllimport) void *__stdcall SetFocus(void *h_wnd);
-__declspec(dllimport) int32_t __stdcall DefWindowProcA(void *h_wnd,
-						       unsigned int msg,
-						       uint32_t w_param,
-						       int32_t l_param);
+__declspec(dllimport) int __stdcall UpdateWindow(void *hWnd);
+__declspec(dllimport) void *__stdcall SetFocus(void *hWnd);
+__declspec(dllimport) int32_t __stdcall
+DefWindowProcA(void *hWnd, unsigned int Msg, uint32_t wParam, int32_t lParam);
 __declspec(dllimport) void *__stdcall GetForegroundWindow(void);
-__declspec(dllimport) int __stdcall SetForegroundWindow(void *h_wnd);
+__declspec(dllimport) int __stdcall SetForegroundWindow(void *hWnd);
 __declspec(dllimport) int __stdcall ShowCursor(int show);
 __declspec(dllimport) int __stdcall
-PeekMessageA(struct flight_win32_message *message, void *h_wnd,
+PeekMessageA(struct flight_win32_message *message, void *hWnd,
 	     unsigned int filter_min, unsigned int filter_max,
 	     unsigned int remove_message);
 __declspec(dllimport) int __stdcall
@@ -9491,14 +9490,13 @@ char flight_apply_graphics_detail_preset(uint16_t preset)
 /* A placeholder: the original WinMain is not rebuilt, and this returns 0. Only
  * the original build has it, and no engine code calls it. */
 // FUNCTION: XVT 0x4A9B80
-int win_main(void *h_instance, void *h_prev_instance, char *lp_cmd_line,
-	     int n_show_cmd)
+int WinMain(void *hInstance, void *hPrevInstance, char *lpCmdLine, int nShowCmd)
 {
 	/* Original WinMain; the modern port never calls it (host shell owns the loop). */
-	(void)h_instance;
-	(void)h_prev_instance;
-	(void)lp_cmd_line;
-	(void)n_show_cmd;
+	(void)hInstance;
+	(void)hPrevInstance;
+	(void)lpCmdLine;
+	(void)nShowCmd;
 
 	/* TODO: Reimplement WinMain @ 0x4A9B80. */
 	return 0;
@@ -10099,20 +10097,20 @@ int32_t flight_pump_window_messages(void)
  * the original build passes message 0x0F to DefWindowProcA and returns its
  * result. Returns 0 otherwise. */
 // FUNCTION: XVT 0x4AA7B0
-int32_t flight_wnd_proc(void *h_wnd, unsigned int msg, uint32_t w_param,
-			int32_t l_param)
+int32_t flight_wnd_proc(void *hWnd, unsigned int Msg, uint32_t wParam,
+			int32_t lParam)
 {
-	if (msg == 0x311) {
+	if (Msg == 0x311) {
 		flight_palette_reset_if8_bit();
 	}
 #ifndef XVT_MODERN
-	if (msg == 0x0f) {
-		return DefWindowProcA(h_wnd, msg, w_param, l_param);
+	if (Msg == 0x0f) {
+		return DefWindowProcA(hWnd, Msg, wParam, lParam);
 	}
 #else
-	(void)h_wnd;
-	(void)w_param;
-	(void)l_param;
+	(void)hWnd;
+	(void)wParam;
+	(void)lParam;
 #endif
 	return 0;
 }

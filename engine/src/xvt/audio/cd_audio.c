@@ -37,7 +37,7 @@ int cd_audio_initialize(void)
 #ifdef XVT_MODERN
 	if (!xvt_port_is_initialized()) {
 #else
-	if (g_front_state.h_wnd == NULL) {
+	if (g_front_state.hWnd == NULL) {
 #endif
 		return 0;
 	}
@@ -159,7 +159,7 @@ int cd_audio_play_track_from_time(int track_number, uint16_t start_minute,
 		(((unsigned int)(uint8_t)((uint16_t)track_end_msf >> 8) |
 		  ((unsigned int)(uint8_t)(track_end_msf >> 16) << 8))
 		 << 16);
-	parameters.callback = g_front_state.h_wnd;
+	parameters.callback = g_front_state.hWnd;
 	if (mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_PLAY,
 			    MCI_NOTIFY | MCI_FROM | MCI_TO,
 			    &parameters) != MMSYSERR_NOERROR) {

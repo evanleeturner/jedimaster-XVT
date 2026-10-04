@@ -37,24 +37,23 @@ extern void *g_cursor_save_buffer;
 extern int g_game_main_skip_intro_relaunch_gate;
 extern const unsigned int g_color_dist_lut[256];
 
-int game_main(void *h_instance, void *h_prev_instance, char *lp_cmd_line,
-	      int n_show_cmd);
+int game_main(void *hInstance, void *hPrevInstance, char *lpCmdLine,
+	      int nShowCmd);
 HRESULT frontend_display_restore_lost_surfaces(void);
 void frontend_display_shutdown(int b_destroy_window);
-int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
-						   unsigned int msg,
-						   uint32_t w_param,
-						   int32_t l_param);
-int32_t AERON_DXAPI frontend_display_wnd_proc(void *h_wnd, unsigned int msg,
-					      uint32_t w_param,
-					      int32_t l_param);
-int frontend_display_report_direct_draw_init_failure(void *h_wnd, int stage);
+int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *hWnd, unsigned int Msg,
+						   uint32_t wParam,
+						   int32_t lParam);
+int32_t AERON_DXAPI frontend_display_wnd_proc(void *hWnd, unsigned int Msg,
+					      uint32_t wParam, int32_t lParam);
+int frontend_display_report_direct_draw_init_failure(void *hWnd, int stage);
 int frontend_display_show_game_message_box(const char *text);
-uint32_t frontend_display_run_main_loop(void *h_instance, void *h_prev_instance,
-					char *lp_cmd_line, int n_show_cmd);
-int frontend_display_init_main_window(void *h_instance, int n_show_cmd);
-uint32_t frontend_display_init(void *h_instance, void *h_prev_instance,
-			       char *lp_cmd_line, int n_show_cmd,
+uint32_t frontend_display_run_main_loop(void *hInstance, void *hPrevInstance,
+					char *lpCmdLine, int nShowCmd);
+/* drift-ok: camelcase -- WinMain's argument names */
+int frontend_display_init_main_window(void *hInstance, int nShowCmd);
+uint32_t frontend_display_init(void *hInstance, void *hPrevInstance,
+			       char *lpCmdLine, int nShowCmd,
 			       frontend_screen_update_fn screen_update_fn,
 			       frontend_screen_exit_fn screen_exit_fn,
 			       int (*mode_init_fn)(void), int fps, int bpp);
@@ -78,8 +77,8 @@ int frontend_display_get_pixel_format555(void);
 int frontend_display_get_frontend_or_flight_draw_pitch(void);
 int frontend_display_get_bytes_per_pixel(void);
 uint32_t frontend_display_init_preserving_network_session(
-	void *h_instance, void *h_prev_instance, char *lp_cmd_line,
-	int n_show_cmd, frontend_screen_update_fn screen_update_fn,
+	void *hInstance, void *hPrevInstance, char *lpCmdLine, int nShowCmd,
+	frontend_screen_update_fn screen_update_fn,
 	frontend_screen_exit_fn screen_exit_fn, int (*mode_init_fn)(void),
 	int fps, int bpp);
 void frontend_display_reset_global_state_preserving_network_session(void);

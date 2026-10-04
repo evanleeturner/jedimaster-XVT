@@ -31,10 +31,10 @@ __declspec(dllimport) int __stdcall
 ExtTextOutA(void *dc, int x, int y, unsigned int options,
 	    const struct RECT *rect, const char *text, unsigned int count,
 	    const int *dx);
-__declspec(dllimport) void *__stdcall GetDC(void *h_wnd);
+__declspec(dllimport) void *__stdcall GetDC(void *hWnd);
 __declspec(dllimport) int __stdcall
 GetTextExtentPoint32A(void *dc, const char *text, int count, struct SIZE *size);
-__declspec(dllimport) int __stdcall ReleaseDC(void *h_wnd, void *dc);
+__declspec(dllimport) int __stdcall ReleaseDC(void *hWnd, void *dc);
 __declspec(dllimport) void *__stdcall SelectObject(void *dc, void *object);
 __declspec(dllimport) uint32_t __stdcall SetBkColor(void *dc, uint32_t color);
 __declspec(dllimport) int __stdcall SetBkMode(void *dc, int mode);

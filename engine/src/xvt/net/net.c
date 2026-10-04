@@ -915,9 +915,9 @@ int net_shutdown_direct_play_session_ex(int suppress_restart,
 					frontend_save_persistent_state();
 					frontend_display_shutdown(0);
 					cd_audio_close_device();
-					if (g_front_state.h_wnd != NULL) {
+					if (g_front_state.hWnd != NULL) {
 						SetWindowTextA(
-							g_front_state.h_wnd,
+							g_front_state.hWnd,
 							"XvT - Exiting");
 					}
 					win32_create_process_from_command_line(

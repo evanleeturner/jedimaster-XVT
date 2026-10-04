@@ -25,7 +25,7 @@ __declspec(dllimport) int __cdecl wsprintfA(char *buffer, const char *format,
 					    ...);
 __declspec(dllimport) void __stdcall
 OutputDebugStringA(const char *output_string);
-__declspec(dllimport) int __stdcall MessageBoxA(void *h_wnd, const char *text,
+__declspec(dllimport) int __stdcall MessageBoxA(void *hWnd, const char *text,
 						const char *caption,
 						unsigned int type);
 int __cdecl inp(unsigned short port);
@@ -224,13 +224,14 @@ int flight_display_post_primary_surface_create_or_restore_stub(void)
 
 /* The start of the driver capability block flight_display_init asks DirectDraw
  * for with GetCaps. */
+/* drift-ok: camelcase -- the start of DirectDraw's DDCAPS */
 struct flight_display_driver_caps {
-	uint32_t dw_size; /* Size of this block, set before GetCaps. */
+	uint32_t dwSize; /* Size of this block, set before GetCaps. */
 	/* Capability bits; flight_display_init tests 0x400000. */
-	uint32_t dw_caps;
-	uint32_t dw_caps2; /* Filled by GetCaps; nothing reads it. */
+	uint32_t dwCaps;
+	uint32_t dwCaps2; /* Filled by GetCaps; nothing reads it. */
 	/* Color key bits; flight_display_init tests 0x1 and 0x200. */
-	uint32_t dw_c_key_caps;
+	uint32_t dwCKeyCaps;
 	uint32_t reserved[87]; /* The rest of the driver's block, unread. */
 };
 
@@ -470,12 +471,12 @@ int flight_display_init(void)
 
 	g_flight_primary_pitch[1] = 1;
 	memset(&driver_caps, 0, sizeof(driver_caps));
-	driver_caps.dw_size = sizeof(driver_caps);
+	driver_caps.dwSize = sizeof(driver_caps);
 	result = g_flight_direct_draw->lpVtbl->GetCaps(g_flight_direct_draw,
 						       &driver_caps, NULL);
-	if (result == DX_DD_OK && (driver_caps.dw_caps & 0x400000) != 0 &&
-	    (driver_caps.dw_c_key_caps & 1) != 0 &&
-	    (driver_caps.dw_c_key_caps & 0x200) == 0) {
+	if (result == DX_DD_OK && (driver_caps.dwCaps & 0x400000) != 0 &&
+	    (driver_caps.dwCKeyCaps & 1) != 0 &&
+	    (driver_caps.dwCKeyCaps & 0x200) == 0) {
 		g_flight_primary_pitch[1] = 2;
 	}
 

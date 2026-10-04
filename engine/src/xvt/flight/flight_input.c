@@ -15,22 +15,23 @@
 #ifndef XVT_MODERN
 /* The Windows message record PeekMessageA and GetMessageA fill in the original
  * build's key reading. */
+/* drift-ok: camelcase -- wParam, lParam: Windows' MSG */
 struct flight_input_win32_message {
 	void *window;	  /* Window the message is for; not read by name. */
 	uint32_t message; /* Message number; not read by name. */
-	uint32_t w_param; /* First message argument; not read by name. */
-	int32_t l_param;  /* Second message argument; not read by name. */
+	uint32_t wParam;  /* First message argument; not read by name. */
+	int32_t lParam;	  /* Second message argument; not read by name. */
 	uint32_t time;	  /* Time the message was posted; not read by name. */
 	int32_t point_x;  /* Cursor X when posted; not read by name. */
 	int32_t point_y;  /* Cursor Y when posted; not read by name. */
 };
 
 __declspec(dllimport) int __stdcall
-PeekMessageA(struct flight_input_win32_message *message, void *h_wnd,
+PeekMessageA(struct flight_input_win32_message *message, void *hWnd,
 	     unsigned int filter_min, unsigned int filter_max,
 	     unsigned int remove_message);
 __declspec(dllimport) int __stdcall
-GetMessageA(struct flight_input_win32_message *message, void *h_wnd,
+GetMessageA(struct flight_input_win32_message *message, void *hWnd,
 	    unsigned int filter_min, unsigned int filter_max);
 __declspec(dllimport) int __stdcall
 TranslateMessage(const struct flight_input_win32_message *message);

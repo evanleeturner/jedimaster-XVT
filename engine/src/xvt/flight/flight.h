@@ -298,14 +298,16 @@ void flight_update_player_step(int player_idx);
 void flight_process_player_actions(int player_idx);
 char flight_apply_graphics_detail_preset(uint16_t preset);
 #ifndef XVT_MODERN
-int win_main(void *h_instance, void *h_prev_instance, char *lp_cmd_line,
-	     int n_show_cmd);
+/* drift-ok: camelcase -- Windows' entry point */
+int WinMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
+	    int nShowCmd);
 #endif
 int flight_main(char *mission_cmd_line);
 int flight_update_and_focus_main_window(void);
 int32_t flight_pump_window_messages(void);
-int32_t flight_wnd_proc(void *h_wnd, unsigned int msg, uint32_t w_param,
-			int32_t l_param);
+/* drift-ok: camelcase -- a Windows window procedure */
+int32_t flight_wnd_proc(void *hWnd, unsigned int Msg, uint32_t wParam,
+			int32_t lParam);
 void flight_update_craft_steering_and_speed(void);
 void flight_slew_object_speed_toward_target(unsigned int object_idx,
 					    int target_speed, int allow_decel,

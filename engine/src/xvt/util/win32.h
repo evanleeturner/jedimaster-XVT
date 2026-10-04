@@ -27,46 +27,48 @@ struct SIZE {
 	int32_t cy; /* Height. */
 };
 
+/* drift-ok: camelcase -- a copy of Windows' BITMAP */
 struct BITMAP {
-	int32_t bm_type;	/* Bitmap type; nothing reads it. */
-	int32_t bm_width;	/* Width in pixels. */
-	int32_t bm_height;	/* Height in pixels. */
-	int32_t bm_width_bytes; /* Bytes per row; nothing reads it. */
-	uint16_t bm_planes;	/* Color planes; nothing reads it. */
-	uint16_t bm_bits_pixel; /* Bits per pixel; nothing reads it. */
-	void *bm_bits;		/* The pixels; nothing reads it. */
+	int32_t bmType;	      /* Bitmap type; nothing reads it. */
+	int32_t bmWidth;      /* Width in pixels. */
+	int32_t bmHeight;     /* Height in pixels. */
+	int32_t bmWidthBytes; /* Bytes per row; nothing reads it. */
+	uint16_t bmPlanes;    /* Color planes; nothing reads it. */
+	uint16_t bmBitsPixel; /* Bits per pixel; nothing reads it. */
+	void *bmBits;	      /* The pixels; nothing reads it. */
 };
 
 #pragma pack(push, 1)
 
+/* drift-ok: camelcase -- a copy of Windows' BITMAPFILEHEADER */
 struct BITMAPFILEHEADER {
 	/* 0x4D42 ("BM") in a bitmap file; the loader checks it. */
-	uint16_t bf_type;
-	uint32_t bf_size;      /* File size in bytes. */
-	uint16_t bf_reserved1; /* Reserved; nothing reads it. */
-	uint16_t bf_reserved2; /* Reserved; nothing reads it. */
-	uint32_t bf_off_bits;  /* Offset in the file of the pixels. */
+	uint16_t bfType;
+	uint32_t bfSize;      /* File size in bytes. */
+	uint16_t bfReserved1; /* Reserved; nothing reads it. */
+	uint16_t bfReserved2; /* Reserved; nothing reads it. */
+	uint32_t bfOffBits;   /* Offset in the file of the pixels. */
 };
 
+/* drift-ok: camelcase -- a copy of Windows' BITMAPINFOHEADER */
 struct BITMAPINFOHEADER {
-	uint32_t bi_size; /* Bytes in this header; nothing reads it. */
-	int32_t bi_width; /* Width in pixels. */
+	uint32_t biSize; /* Bytes in this header; nothing reads it. */
+	int32_t biWidth; /* Width in pixels. */
 	/* Height in pixels; the decoders take the rows as stored bottom up. */
-	int32_t bi_height;
+	int32_t biHeight;
 	/* Color planes; front_image_load_bmp_file decodes only 1. */
-	uint16_t bi_planes;
+	uint16_t biPlanes;
 	/* Bits per pixel; front_image_load_bmp_file decodes 4 and 8. */
-	uint16_t bi_bit_count;
+	uint16_t biBitCount;
 	/* 0 for plain rows, 1 for run-length rows; only
 	 * front_image_decode_bmp8bpp decodes 1. */
-	uint32_t bi_compression;
+	uint32_t biCompression;
 	/* Bytes of pixels; read only for a run-length image. */
-	uint32_t bi_size_image;
-	int32_t bi_x_pels_per_meter; /* Horizontal resolution; nothing reads it. */
-	int32_t bi_y_pels_per_meter; /* Vertical resolution; nothing reads it. */
-	uint32_t bi_clr_used; /* Palette colors used; nothing reads it. */
-	uint32_t
-		bi_clr_important; /* Palette colors needed; nothing reads it. */
+	uint32_t biSizeImage;
+	int32_t biXPelsPerMeter; /* Horizontal resolution; nothing reads it. */
+	int32_t biYPelsPerMeter; /* Vertical resolution; nothing reads it. */
+	uint32_t biClrUsed;	 /* Palette colors used; nothing reads it. */
+	uint32_t biClrImportant; /* Palette colors needed; nothing reads it. */
 };
 
 #pragma pack(pop)

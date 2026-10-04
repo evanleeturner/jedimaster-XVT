@@ -12,8 +12,8 @@
 extern "C" {
 #endif
 
-typedef int (*movie_input_callback)(void *h_wnd, unsigned int message,
-				    void *w_param, void *l_param, void *context,
+typedef int (*movie_input_callback)(void *hWnd, unsigned int message,
+				    void *wParam, void *lParam, void *context,
 				    int *handled_result);
 
 typedef int (*movie_progress_callback)(unsigned int current_frame,
@@ -82,12 +82,12 @@ extern xvt_file *g_movie_subtitle_file;
 
 HRESULT movie_blit_rect_to_display(int x, int y, int width, int height);
 HRESULT movie_update_direct_draw_palette(void);
-int32_t AERON_DXAPI movie_window_proc(void *h_wnd, unsigned int message,
-				      void *w_param, void *l_param);
-int movie_handle_paint(void *h_wnd);
+int32_t AERON_DXAPI movie_window_proc(void *hWnd, unsigned int message,
+				      void *wParam, void *lParam);
+int movie_handle_paint(void *hWnd);
 int movie_run_smacker_playback(const struct movie_playback_params *params);
 int movie_get_smack_buffer_format(void);
-int movie_initialize_system_palette(void *h_wnd);
+int movie_initialize_system_palette(void *hWnd);
 void movie_decode_and_present_frame(void);
 void movie_merge_dirty_rect_lists(struct movie_dirty_rect *current_rects,
 				  unsigned int current_count,
@@ -105,11 +105,11 @@ extern int g_movie_playback_completion_state;
 extern unsigned int g_movie_multiplayer_sync_deadline_ms;
 extern int g_movie_previous_wnd_proc_mode;
 int movie_singleplayer_input_callback(int window, unsigned int event_code,
-				      int key_code, int l_param,
+				      int key_code, int lParam,
 				      int callback_context,
 				      uint32_t *handled_result);
 int movie_multiplayer_input_callback(int window, unsigned int event_code,
-				     int key_code, int l_param,
+				     int key_code, int lParam,
 				     int callback_context,
 				     uint32_t *playback_flag);
 void movie_draw_multiplayer_sync_status(void);

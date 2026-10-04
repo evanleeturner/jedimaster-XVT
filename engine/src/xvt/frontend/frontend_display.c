@@ -35,30 +35,32 @@
 #include "aeron/dialog.h"
 #include "xvt/util/time.h"
 #else
+/* drift-ok: camelcase -- a copy of Windows' WNDCLASSA */
 struct WNDCLASSA {
 	unsigned int style; /* Class style bits; set to 8, CS_DBLCLKS. */
 	/* The window procedure, frontend_display_wnd_proc. */
-	int32_t(AERON_DXAPI *lpfn_wnd_proc)(void *h_wnd, unsigned int msg,
-					    uint32_t w_param, int32_t l_param);
-	int cb_cls_extra;     /* Extra bytes per class; set to 0. */
-	int cb_wnd_extra;     /* Extra bytes per window; set to 0. */
-	void *h_instance;     /* The module that owns the class. */
-	void *h_icon;	      /* Icon resource 101 of that module. */
-	void *h_cursor;	      /* The system arrow cursor, 0x7F00 (IDC_ARROW). */
-	void *hbr_background; /* Stock object 4, the black brush. */
-	const char *lpsz_menu_name;  /* No menu; set to NULL. */
-	const char *lpsz_class_name; /* The class name, g_window_name. */
+	int32_t(AERON_DXAPI *lpfnWndProc)(void *hWnd, unsigned int Msg,
+					  uint32_t wParam, int32_t lParam);
+	int cbClsExtra;	     /* Extra bytes per class; set to 0. */
+	int cbWndExtra;	     /* Extra bytes per window; set to 0. */
+	void *hInstance;     /* The module that owns the class. */
+	void *hIcon;	     /* Icon resource 101 of that module. */
+	void *hCursor;	     /* The system arrow cursor, 0x7F00 (IDC_ARROW). */
+	void *hbrBackground; /* Stock object 4, the black brush. */
+	const char *lpszMenuName;  /* No menu; set to NULL. */
+	const char *lpszClassName; /* The class name, g_window_name. */
 };
 
 /* The system's window message record, filled by GetMessageA and
  * PeekMessageA. */
+/* drift-ok: camelcase -- wParam, lParam: Windows' MSG */
 struct frontend_display_win32_message {
 	void *window;	  /* The target window; no code here reads it. */
 	uint32_t message; /* The message number; no code here reads it. */
 	/* The first parameter; for the quit message, the exit code the two
 	 * frame loops return. */
-	uint32_t w_param;
-	int32_t l_param; /* The second parameter; no code here reads it. */
+	uint32_t wParam;
+	int32_t lParam;	 /* The second parameter; no code here reads it. */
 	uint32_t time;	 /* When it was posted; no code here reads it. */
 	int32_t point_x; /* Cursor x when posted; no code here reads it. */
 	int32_t point_y; /* Cursor y when posted; no code here reads it. */
@@ -68,17 +70,17 @@ uint32_t GetTickCount(void);
 __declspec(dllimport) int __stdcall
 TranslateMessage(const struct frontend_display_win32_message *message);
 __declspec(dllimport) int __stdcall
-GetMessageA(struct frontend_display_win32_message *message, void *h_wnd,
+GetMessageA(struct frontend_display_win32_message *message, void *hWnd,
 	    unsigned int filter_min, unsigned int filter_max);
 __declspec(dllimport) int32_t __stdcall
 DispatchMessageA(const struct frontend_display_win32_message *message);
 __declspec(dllimport) int __stdcall
-PeekMessageA(struct frontend_display_win32_message *message, void *h_wnd,
+PeekMessageA(struct frontend_display_win32_message *message, void *hWnd,
 	     unsigned int filter_min, unsigned int filter_max,
 	     unsigned int remove_message);
-__declspec(dllimport) void *__stdcall LoadIconA(void *h_instance,
+__declspec(dllimport) void *__stdcall LoadIconA(void *hInstance,
 						uintptr_t icon_name);
-__declspec(dllimport) void *__stdcall LoadCursorA(void *h_instance,
+__declspec(dllimport) void *__stdcall LoadCursorA(void *hInstance,
 						  uintptr_t cursor_name);
 __declspec(dllimport) uint16_t __stdcall
 RegisterClassA(const struct WNDCLASSA *window_class);
@@ -87,16 +89,16 @@ CreateWindowExA(uint32_t ex_style, const char *class_name,
 		const char *window_name, uint32_t style, int x, int y,
 		int width, int height, void *parent, void *menu, void *instance,
 		void *param);
-__declspec(dllimport) int __stdcall UpdateWindow(void *h_wnd);
-__declspec(dllimport) void *__stdcall SetFocus(void *h_wnd);
+__declspec(dllimport) int __stdcall UpdateWindow(void *hWnd);
+__declspec(dllimport) void *__stdcall SetFocus(void *hWnd);
 __declspec(dllimport) int __stdcall GetKeyboardState(uint8_t *key_state);
 __declspec(dllimport) void *__stdcall FindWindowA(const char *class_name,
 						  const char *window_name);
-__declspec(dllimport) int __stdcall MessageBoxA(void *h_wnd, const char *text,
+__declspec(dllimport) int __stdcall MessageBoxA(void *hWnd, const char *text,
 						const char *caption,
 						unsigned int type);
-__declspec(dllimport) int __stdcall ShowWindowAsync(void *h_wnd,
-						    int n_cmd_show);
+/* drift-ok: camelcase -- Windows' parameter names */
+__declspec(dllimport) int __stdcall ShowWindowAsync(void *hWnd, int nCmdShow);
 __declspec(dllimport) void *__stdcall CreateDCA(const char *driver,
 						const char *device,
 						const char *port,
@@ -126,21 +128,19 @@ __declspec(dllimport) int __stdcall DeleteObject(void *object);
 __declspec(dllimport) uint32_t __stdcall GetPixel(void *dc, int x, int y);
 __declspec(dllimport) uint32_t __stdcall SetPixel(void *dc, int x, int y,
 						  uint32_t color);
-__declspec(dllimport) int __stdcall DestroyWindow(void *h_wnd);
+__declspec(dllimport) int __stdcall DestroyWindow(void *hWnd);
 __declspec(dllimport) int __stdcall ShowCursor(int show);
 __declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
-__declspec(dllimport) void *__stdcall SetCapture(void *h_wnd);
+__declspec(dllimport) void *__stdcall SetCapture(void *hWnd);
 __declspec(dllimport) int __stdcall ReleaseCapture(void);
 __declspec(dllimport) void *__stdcall SetCursor(void *cursor);
-__declspec(dllimport) int __stdcall PostMessageA(void *h_wnd,
-						 unsigned int message,
-						 uint32_t w_param,
-						 int32_t l_param);
+__declspec(dllimport) int __stdcall
+PostMessageA(void *hWnd, unsigned int message, uint32_t wParam, int32_t lParam);
 __declspec(dllimport) void __stdcall PostQuitMessage(int exit_code);
-__declspec(dllimport) int32_t __stdcall DefWindowProcA(void *h_wnd,
+__declspec(dllimport) int32_t __stdcall DefWindowProcA(void *hWnd,
 						       unsigned int message,
-						       uint32_t w_param,
-						       int32_t l_param);
+						       uint32_t wParam,
+						       int32_t lParam);
 __declspec(dllimport) void *__stdcall
 FindResourceA(void *module, const char *name, uintptr_t type);
 __declspec(dllimport) void *__stdcall LoadResource(void *module,
@@ -308,36 +308,36 @@ int g_game_main_skip_intro_relaunch_gate;
  * g_campaign_award_sprites, saves the pilot, and returns 1 when
  * g_game_main_skip_intro_relaunch_gate is still 0, else 0. */
 // FUNCTION: XVT 0x4D3600
-int game_main(void *h_instance, void *h_prev_instance, char *lp_cmd_line,
-	      int n_show_cmd)
+int game_main(void *hInstance, void *hPrevInstance, char *lpCmdLine,
+	      int nShowCmd)
 {
 	frontend_screen_update_fn update_function;
 	frontend_screen_exit_fn exit_function;
 	int (*init_function)(void);
 
-	g_cmd_line = lp_cmd_line;
-	if (strstr(lp_cmd_line, "nofrontflip") != NULL) {
+	g_cmd_line = lpCmdLine;
+	if (strstr(lpCmdLine, "nofrontflip") != NULL) {
 		g_no_page_flip = 1;
 	} else {
 		g_no_page_flip = 0;
 	}
-	if (strstr(lp_cmd_line, "nopageflip") != NULL ||
-	    strstr(lp_cmd_line, "nofullscreen") != NULL) {
+	if (strstr(lpCmdLine, "nopageflip") != NULL ||
+	    strstr(lpCmdLine, "nofullscreen") != NULL) {
 		g_opt_no_fullscreen = 1;
 	} else {
 		g_opt_no_fullscreen = 0;
 	}
-	if (strstr(lp_cmd_line, "skipintro") != NULL) {
+	if (strstr(lpCmdLine, "skipintro") != NULL) {
 		g_opt_skip_intro = 1;
 	} else {
 		g_opt_skip_intro = 0;
 	}
-	if (strstr(lp_cmd_line, "ishost") != NULL) {
+	if (strstr(lpCmdLine, "ishost") != NULL) {
 		g_opt_is_host = 1;
 	} else {
 		g_opt_is_host = 0;
 	}
-	if (strstr(lp_cmd_line, "isclient") != NULL) {
+	if (strstr(lpCmdLine, "isclient") != NULL) {
 		g_opt_is_client = 1;
 	} else {
 		g_opt_is_client = 0;
@@ -356,9 +356,9 @@ int game_main(void *h_instance, void *h_prev_instance, char *lp_cmd_line,
 		exit_function = frontend_bootstrap_exit_intro_and_load_credits;
 		init_function = frontend_bootstrap_init_mode;
 	}
-	frontend_display_init(h_instance, h_prev_instance, lp_cmd_line,
-			      n_show_cmd, update_function, exit_function,
-			      init_function, 24, 16);
+	frontend_display_init(hInstance, hPrevInstance, lpCmdLine, nShowCmd,
+			      update_function, exit_function, init_function, 24,
+			      16);
 	free(g_cursor_save_buffer);
 	g_cursor_save_buffer = NULL;
 	free(g_frontend_chat_log_buffer);
@@ -476,12 +476,12 @@ void frontend_display_shutdown(int b_destroy_window)
 		g_front_state.direct_draw->lpVtbl->Release(
 			g_front_state.direct_draw);
 		g_front_state.direct_draw = NULL;
-		if (g_front_state.h_wnd != NULL && b_destroy_window != 0) {
+		if (g_front_state.hWnd != NULL && b_destroy_window != 0) {
 #ifdef XVT_MODERN
-			g_front_state.h_wnd = NULL;
+			g_front_state.hWnd = NULL;
 #else
-			DestroyWindow(g_front_state.h_wnd);
-			g_front_state.h_wnd = NULL;
+			DestroyWindow(g_front_state.hWnd);
+			g_front_state.hWnd = NULL;
 #endif
 		}
 	}
@@ -512,14 +512,13 @@ void frontend_display_shutdown(int b_destroy_window)
  * instead of posting messages and return 0 instead of calling
  * DefWindowProcA. */
 // FUNCTION: XVT 0x4D3A00
-int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
-						   unsigned int msg,
-						   uint32_t w_param,
-						   int32_t l_param)
+int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *hWnd, unsigned int Msg,
+						   uint32_t wParam,
+						   int32_t lParam)
 {
 	int cursor_clamped;
 
-	switch (msg) {
+	switch (Msg) {
 	case 0x02:
 		frontend_display_shutdown(1);
 #ifdef XVT_MODERN
@@ -530,12 +529,12 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
 		return 0;
 
 	case 0x1C:
-		g_front_state.app_active = (int)w_param;
-		if (w_param != 0) {
+		g_front_state.app_active = (int)wParam;
+		if (wParam != 0) {
 			cd_audio_request_resume_playback();
 #ifndef XVT_MODERN
-			if (g_front_state.h_wnd != NULL) {
-				SetCapture(g_front_state.h_wnd);
+			if (g_front_state.hWnd != NULL) {
+				SetCapture(g_front_state.hWnd);
 			}
 #endif
 			g_front_state.restore_offscreen_overlay_after_activate =
@@ -558,11 +557,11 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
 		return 1;
 
 	case 0x100:
-		if (w_param == 27 && g_front_state.escape_close_enabled != 0) {
+		if (wParam == 27 && g_front_state.escape_close_enabled != 0) {
 #ifdef XVT_MODERN
 			Aeron_RequestQuit();
 #else
-			PostMessageA(h_wnd, 0x10, 0, 0);
+			PostMessageA(hWnd, 0x10, 0, 0);
 #endif
 		}
 		break;
@@ -582,7 +581,7 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
 			g_front_state.char_read_idx = 0;
 		}
 		g_front_state.char_ring_buffer[g_front_state.char_write_idx] =
-			(char)w_param;
+			(char)wParam;
 		if (g_front_state.char_write_idx == 1023) {
 			g_front_state.char_write_idx = 0;
 		} else {
@@ -591,23 +590,23 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
 		break;
 
 	case 0x105:
-		if (w_param == 79) {
+		if (wParam == 79) {
 			frontend_display_capture_screenshot();
 			return 0;
 		}
-		if (w_param == 115) {
+		if (wParam == 115) {
 			return 0;
 		}
 		/* fall through */
 	case 0x104:
-		if (w_param == 115) {
+		if (wParam == 115) {
 			return 0;
 		}
 		break;
 
 	case 0x200:
-		g_front_state.mouse_x = (uint16_t)l_param;
-		g_front_state.mouse_y = (uint16_t)((uint32_t)l_param >> 16);
+		g_front_state.mouse_x = (uint16_t)lParam;
+		g_front_state.mouse_y = (uint16_t)((uint32_t)lParam >> 16);
 		cursor_clamped = 0;
 		if (g_front_state.mouse_x > 640) {
 			cursor_clamped = 1;
@@ -630,7 +629,7 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
 
 	case 0x201:
 		g_front_state.mouse_left_down = 1;
-		if ((w_param & 2) != 0) {
+		if ((wParam & 2) != 0) {
 			g_front_state.mouse_right_down = 1;
 		}
 		break;
@@ -638,7 +637,7 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
 	case 0x202:
 		g_front_state.mouse_left_down = 0;
 		g_front_state.mouse_left_click_latch = 1;
-		if ((w_param & 2) != 0) {
+		if ((wParam & 2) != 0) {
 			g_front_state.mouse_right_down = 0;
 			g_front_state.mouse_right_click_latch = 1;
 		}
@@ -646,7 +645,7 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
 
 	case 0x204:
 		g_front_state.mouse_right_down = 1;
-		if ((w_param & 1) != 0) {
+		if ((wParam & 1) != 0) {
 			g_front_state.mouse_left_down = 1;
 		}
 		break;
@@ -654,7 +653,7 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
 	case 0x205:
 		g_front_state.mouse_right_down = 0;
 		g_front_state.mouse_right_click_latch = 1;
-		if ((w_param & 1) != 0) {
+		if ((wParam & 1) != 0) {
 			g_front_state.mouse_left_down = 0;
 			g_front_state.mouse_left_click_latch = 1;
 		}
@@ -662,11 +661,11 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
 	}
 
 #ifdef XVT_MODERN
-	(void)h_wnd;
-	(void)l_param;
+	(void)hWnd;
+	(void)lParam;
 	return 0;
 #else
-	return DefWindowProcA(h_wnd, msg, w_param, l_param);
+	return DefWindowProcA(hWnd, Msg, wParam, lParam);
 #endif
 }
 
@@ -676,26 +675,26 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *h_wnd,
  * movie_window_proc, any other mode DefWindowProcA, or 0 in the modern build.
  * Returns the handler's result. */
 // FUNCTION: XVT 0x4D3D20
-int32_t AERON_DXAPI frontend_display_wnd_proc(void *h_wnd, unsigned int msg,
-					      uint32_t w_param, int32_t l_param)
+int32_t AERON_DXAPI frontend_display_wnd_proc(void *hWnd, unsigned int Msg,
+					      uint32_t wParam, int32_t lParam)
 {
 	switch (frontend_display_get_wnd_proc_mode()) {
 	case 0:
-		return frontend_display_main_wnd_proc(h_wnd, msg, w_param,
-						      l_param);
+		return frontend_display_main_wnd_proc(hWnd, Msg, wParam,
+						      lParam);
 	case 1:
-		return flight_wnd_proc(h_wnd, msg, w_param, l_param);
+		return flight_wnd_proc(hWnd, Msg, wParam, lParam);
 	case 2:
 		return movie_window_proc(
-			h_wnd, msg,
-			xvt_port_win_message_param_as_pointer(w_param),
+			hWnd, Msg,
+			xvt_port_win_message_param_as_pointer(wParam),
 			xvt_port_win_message_param_as_pointer(
-				(uint32_t)l_param));
+				(uint32_t)lParam));
 	default:
 #ifdef XVT_MODERN
 		return 0;
 #else
-		return DefWindowProcA(h_wnd, msg, w_param, l_param);
+		return DefWindowProcA(hWnd, Msg, wParam, lParam);
 #endif
 	}
 }
@@ -706,13 +705,13 @@ int32_t AERON_DXAPI frontend_display_wnd_proc(void *h_wnd, unsigned int msg,
  * pass the failing step, 0 to 6. The modern build shows an error box through
  * Aeron. */
 // FUNCTION: XVT 0x4D3DA0
-int frontend_display_report_direct_draw_init_failure(void *h_wnd, int stage)
+int frontend_display_report_direct_draw_init_failure(void *hWnd, int stage)
 {
 	char message[256];
 #ifdef XVT_MODERN
 	AeronMessageBoxButton button = {1, "OK", 1, 1};
 	AeronMessageBoxOptions options;
-	(void)h_wnd;
+	(void)hWnd;
 #endif
 
 	sprintf(message, "DirectDraw Init FAILED at %d", stage);
@@ -724,7 +723,7 @@ int frontend_display_report_direct_draw_init_failure(void *h_wnd, int stage)
 	options.button_count = 1;
 	Aeron_ShowMessageBox(&options, NULL);
 #else
-	MessageBoxA(h_wnd, message, g_window_name, 0);
+	MessageBoxA(hWnd, message, g_window_name, 0);
 #endif
 	frontend_display_shutdown(1);
 	return 0;
@@ -754,7 +753,7 @@ int frontend_display_show_game_message_box(const char *text)
 #ifdef XVT_MODERN
 	Aeron_ShowMessageBox(&options, NULL);
 #else
-	MessageBoxA(g_front_state.h_wnd, text, g_window_name, 0x30);
+	MessageBoxA(g_front_state.hWnd, text, g_window_name, 0x30);
 #endif
 
 	if (was_back_buffer_locked != 0) {
@@ -786,14 +785,14 @@ int frontend_display_show_game_message_box(const char *text)
  * active or not, and the loop returns the quit message's exit code. The modern
  * build returns 0 at once. */
 // FUNCTION: XVT 0x4D3E40
-uint32_t frontend_display_run_main_loop(void *h_instance, void *h_prev_instance,
-					char *lp_cmd_line, int n_show_cmd)
+uint32_t frontend_display_run_main_loop(void *hInstance, void *hPrevInstance,
+					char *lpCmdLine, int nShowCmd)
 {
 #ifdef XVT_MODERN
-	(void)h_instance;
-	(void)h_prev_instance;
-	(void)lp_cmd_line;
-	(void)n_show_cmd;
+	(void)hInstance;
+	(void)hPrevInstance;
+	(void)lpCmdLine;
+	(void)nShowCmd;
 	return 0;
 #else
 	enum {
@@ -808,11 +807,11 @@ uint32_t frontend_display_run_main_loop(void *h_instance, void *h_prev_instance,
 	int update_result;
 	int frame_ready;
 
-	(void)h_prev_instance;
-	(void)lp_cmd_line;
+	(void)hPrevInstance;
+	(void)lpCmdLine;
 	update_result = SCREEN_CONTINUE;
 	frame_ready = 0;
-	if (frontend_display_init_main_window(h_instance, n_show_cmd) == 0) {
+	if (frontend_display_init_main_window(hInstance, nShowCmd) == 0) {
 		return 0;
 	}
 	if (g_front_state.mode_init_fn != NULL &&
@@ -932,7 +931,7 @@ uint32_t frontend_display_run_main_loop(void *h_instance, void *h_prev_instance,
 						}
 						cd_audio_close_device();
 						PostMessageA(
-							g_front_state.h_wnd,
+							g_front_state.hWnd,
 							WINDOW_CLOSE_MESSAGE, 0,
 							0);
 					}
@@ -976,7 +975,7 @@ uint32_t frontend_display_run_main_loop(void *h_instance, void *h_prev_instance,
 
 			if (PeekMessageA(&message, NULL, 0, 0, 0) != 0) {
 				if (GetMessageA(&message, NULL, 0, 0) == 0) {
-					return message.w_param;
+					return message.wParam;
 				}
 				TranslateMessage(&message);
 				DispatchMessageA(&message);
@@ -1003,7 +1002,7 @@ uint32_t frontend_display_run_main_loop(void *h_instance, void *h_prev_instance,
 
 		else if (PeekMessageA(&message, NULL, 0, 0, 0) != 0) {
 			if (GetMessageA(&message, NULL, 0, 0) == 0) {
-				return message.w_param;
+				return message.wParam;
 			}
 			TranslateMessage(&message);
 			DispatchMessageA(&message);
@@ -1033,7 +1032,7 @@ uint32_t frontend_display_run_main_loop(void *h_instance, void *h_prev_instance,
  * g_front_state.offscreen_backup_buffer, 480 rows of the offscreen pitch,
  * returning 1 even when that allocation fails. */
 // FUNCTION: XVT 0x4D41E0
-int frontend_display_init_main_window(void *h_instance, int n_show_cmd)
+int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 {
 #ifndef XVT_MODERN
 	struct WNDCLASSA window_class;
@@ -1043,32 +1042,32 @@ int frontend_display_init_main_window(void *h_instance, int n_show_cmd)
 	const DxGuid *driver_guid;
 	void *window_handle;
 	HRESULT result;
-	(void)n_show_cmd;
+	(void)nShowCmd;
 
 #ifdef XVT_MODERN
 	/* The host shell owns the window, so the port keeps the handle it published. */
-	(void)h_instance;
-	window_handle = g_front_state.h_wnd;
+	(void)hInstance;
+	window_handle = g_front_state.hWnd;
 #else
 	window_class.style = 8; /* CS_DBLCLKS */
-	window_class.lpfn_wnd_proc = frontend_display_wnd_proc;
-	window_class.cb_cls_extra = 0;
-	window_class.cb_wnd_extra = 0;
-	window_class.h_instance = h_instance;
-	window_class.h_icon = LoadIconA(h_instance, 101);
-	window_class.h_cursor = LoadCursorA(NULL, 0x7F00); /* IDC_ARROW */
-	window_class.hbr_background = GetStockObject(4);   /* BLACK_BRUSH */
-	window_class.lpsz_menu_name = NULL;
-	window_class.lpsz_class_name = g_window_name;
+	window_class.lpfnWndProc = frontend_display_wnd_proc;
+	window_class.cbClsExtra = 0;
+	window_class.cbWndExtra = 0;
+	window_class.hInstance = hInstance;
+	window_class.hIcon = LoadIconA(hInstance, 101);
+	window_class.hCursor = LoadCursorA(NULL, 0x7F00); /* IDC_ARROW */
+	window_class.hbrBackground = GetStockObject(4);	  /* BLACK_BRUSH */
+	window_class.lpszMenuName = NULL;
+	window_class.lpszClassName = g_window_name;
 	RegisterClassA(&window_class);
 	window_handle =
 		CreateWindowExA(0, g_window_name, g_window_name, 0x90000000, 0,
 				0, GetSystemMetrics(0), GetSystemMetrics(1),
-				NULL, NULL, h_instance, NULL);
+				NULL, NULL, hInstance, NULL);
 	if (window_handle == NULL) {
 		return 0;
 	}
-	g_front_state.h_wnd = window_handle;
+	g_front_state.hWnd = window_handle;
 	UpdateWindow(window_handle);
 	SetFocus(window_handle);
 #endif
@@ -1242,7 +1241,7 @@ int frontend_display_init_main_window(void *h_instance, int n_show_cmd)
 #else
 	SetCursorPos(0, 0);
 #endif
-	if (frontend_sound_init_direct_sound(g_front_state.h_wnd) == 0) {
+	if (frontend_sound_init_direct_sound(g_front_state.hWnd) == 0) {
 		frontend_display_show_game_message_box("Sound not available.");
 	}
 #ifdef XVT_MODERN
@@ -1271,8 +1270,8 @@ int frontend_display_init_main_window(void *h_instance, int n_show_cmd)
  * functions, mode_init_fn and Esc-to-close, and returns
  * frontend_display_run_main_loop's result. */
 // FUNCTION: XVT 0x4D4770
-uint32_t frontend_display_init(void *h_instance, void *h_prev_instance,
-			       char *lp_cmd_line, int n_show_cmd,
+uint32_t frontend_display_init(void *hInstance, void *hPrevInstance,
+			       char *lpCmdLine, int nShowCmd,
 			       frontend_screen_update_fn screen_update_fn,
 			       frontend_screen_exit_fn screen_exit_fn,
 			       int (*mode_init_fn)(void), int fps, int bpp)
@@ -1325,8 +1324,8 @@ uint32_t frontend_display_init(void *h_instance, void *h_prev_instance,
 	g_front_state.screen_states[0].exit_fn = screen_exit_fn;
 	g_front_state.mode_init_fn = mode_init_fn;
 	g_front_state.escape_close_enabled = 1;
-	return frontend_display_run_main_loop(h_instance, h_prev_instance,
-					      lp_cmd_line, n_show_cmd);
+	return frontend_display_run_main_loop(hInstance, hPrevInstance,
+					      lpCmdLine, nShowCmd);
 }
 
 /* Locks the back buffer and returns its pixels, setting
@@ -1923,17 +1922,17 @@ int frontend_display_get_bytes_per_pixel(void)
  * cd_audio_saved_aux_volume to -1. */
 // FUNCTION: XVT 0x4D5090
 uint32_t frontend_display_init_preserving_network_session(
-	void *h_instance, void *h_prev_instance, char *lp_cmd_line,
-	int n_show_cmd, frontend_screen_update_fn screen_update_fn,
+	void *hInstance, void *hPrevInstance, char *lpCmdLine, int nShowCmd,
+	frontend_screen_update_fn screen_update_fn,
 	frontend_screen_exit_fn screen_exit_fn, int (*mode_init_fn)(void),
 	int fps, int bpp)
 {
 	int frame_rate;
 	int zero_value;
 
-	(void)h_prev_instance;
-	(void)lp_cmd_line;
-	(void)n_show_cmd;
+	(void)hPrevInstance;
+	(void)lpCmdLine;
+	(void)nShowCmd;
 
 	frontend_display_reset_global_state_preserving_network_session();
 	srand(GetTickCount());
@@ -1977,8 +1976,8 @@ uint32_t frontend_display_init_preserving_network_session(
 	g_front_state.screen_states[0].exit_fn = screen_exit_fn;
 	g_front_state.mode_init_fn = mode_init_fn;
 	g_front_state.escape_close_enabled = 1;
-	return frontend_display_run_main_loop(h_instance, h_prev_instance,
-					      lp_cmd_line, n_show_cmd);
+	return frontend_display_run_main_loop(hInstance, hPrevInstance,
+					      lpCmdLine, nShowCmd);
 }
 
 /* Only frontend_display_init_preserving_network_session calls this, and nothing
@@ -2244,7 +2243,7 @@ int frontend_display_run_frame(void)
 // FUNCTION: XVT 0x4D5690
 void *frontend_display_get_main_window_handle(void)
 {
-	return g_front_state.h_wnd;
+	return g_front_state.hWnd;
 }
 
 /* Returns g_front_state.direct_draw, which flight's display code also uses. */
@@ -2307,7 +2306,7 @@ int frontend_display_reinit_surfaces(void)
 	void *window_handle;
 	HRESULT result;
 
-	window_handle = g_front_state.h_wnd;
+	window_handle = g_front_state.hWnd;
 	if (g_opt_no_fullscreen != 0) {
 		result = g_front_state.direct_draw->lpVtbl->SetCooperativeLevel(
 			g_front_state.direct_draw, window_handle, DDSCL_NORMAL);
@@ -2446,7 +2445,7 @@ int frontend_display_reinit_surfaces(void)
 	frontend_display_clear_offscreen_surface();
 	frontend_display_clear_back_buffer();
 	frontend_display_present_frame();
-	if (frontend_sound_init_direct_sound(g_front_state.h_wnd) == 0) {
+	if (frontend_sound_init_direct_sound(g_front_state.hWnd) == 0) {
 		frontend_display_show_game_message_box("Sound not available.");
 	}
 	g_draw_surface_ptr = frontend_display_lock_back_buffer();

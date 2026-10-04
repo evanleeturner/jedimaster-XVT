@@ -7,14 +7,16 @@
 
 struct std3d_unknown;
 
+/* drift-ok: camelcase -- COM's IUnknown method table */
 struct std3d_unknown_vtbl {
-	void *query_interface;
-	void *add_ref;
-	uint32_t(AERON_DXAPI *release)(struct std3d_unknown *self);
+	void *QueryInterface;
+	void *AddRef;
+	uint32_t(AERON_DXAPI *Release)(struct std3d_unknown *self);
 };
 
+/* drift-ok: camelcase -- a COM object: its table pointer */
 struct std3d_unknown {
-	const struct std3d_unknown_vtbl *lp_vtbl;
+	const struct std3d_unknown_vtbl *lpVtbl;
 };
 
 /* Render options in the bits of std3d_render_state_flags, plus 0x1
@@ -1036,7 +1038,7 @@ void std3d_close(void)
 	}
 
 	if (g_d3d_viewport_material != NULL) {
-		g_d3d_viewport_material->lp_vtbl->release(
+		g_d3d_viewport_material->lpVtbl->Release(
 			g_d3d_viewport_material);
 		g_d3d_viewport_material = NULL;
 	}
@@ -3120,7 +3122,7 @@ int std3d_create_z_buffer(int width, int height)
 	}
 
 	z_buffer_bit_depth =
-		g_p_std3d_cur_device->d3d_desc.dw_device_z_buffer_bit_depth;
+		g_p_std3d_cur_device->d3d_desc.dwDeviceZBufferBitDepth;
 	if ((z_buffer_bit_depth & 0x100) != 0) {
 		g_p_std3dz_buffer_state->desc.dwZBufferBitDepth = 32;
 	} else if ((z_buffer_bit_depth & 0x400) != 0) {
@@ -3215,45 +3217,43 @@ HRESULT AERON_DXAPI std3d_enum_devices_callback(DxGuid *guid,
 		}
 
 		device->caps.color_model_flags = 0;
-		if ((device->d3d_desc.dcm_color_model & 2) != 0) {
+		if ((device->d3d_desc.dcmColorModel & 2) != 0) {
 			device->caps.color_model_flags = 2;
 		}
-		if ((device->d3d_desc.dcm_color_model & 1) != 0) {
+		if ((device->d3d_desc.dcmColorModel & 1) != 0) {
 			device->caps.color_model_flags |= 1;
 		}
 		device->caps.b_texture_perspective =
-			device->d3d_desc.dpc_tri_caps.dwTextureCaps & 1;
+			device->d3d_desc.dpcTriCaps.dwTextureCaps & 1;
 		device->caps.b_has_z_buffer =
-			device->d3d_desc.dw_device_z_buffer_bit_depth != 0;
+			device->d3d_desc.dwDeviceZBufferBitDepth != 0;
 		device->caps.b_square_only_texture =
-			(device->d3d_desc.dpc_tri_caps.dwTextureCaps & 0x20) !=
-			0;
+			(device->d3d_desc.dpcTriCaps.dwTextureCaps & 0x20) != 0;
 		device->caps.b_alpha_texture =
-			(device->d3d_desc.dpc_tri_caps.dwTextureCaps & 4) != 0;
-		shade_caps = device->d3d_desc.dpc_tri_caps.dwShadeCaps;
+			(device->d3d_desc.dpcTriCaps.dwTextureCaps & 4) != 0;
+		shade_caps = device->d3d_desc.dpcTriCaps.dwShadeCaps;
 		device->caps.b_stippled_shade = (shade_caps & 0x1000) == 0 &&
 						(shade_caps & 0x2000) != 0;
 		device->caps.b_alpha_blend =
-			((device->d3d_desc.dpc_tri_caps.dwTextureBlendCaps &
-			  8) != 0 &&
-			 (device->d3d_desc.dpc_tri_caps.dwShadeCaps & 0x4000) !=
+			((device->d3d_desc.dpcTriCaps.dwTextureBlendCaps & 8) !=
+				 0 &&
+			 (device->d3d_desc.dpcTriCaps.dwShadeCaps & 0x4000) !=
 				 0) ||
 			device->caps.b_stippled_shade != 0;
 		device->caps.b_color_key_texture =
-			(device->d3d_desc.dpc_tri_caps.dwTextureCaps & 8) != 0;
+			(device->d3d_desc.dpcTriCaps.dwTextureCaps & 8) != 0;
 		device->caps.render_bit_depth_mask =
 			std3d_pack_render_bit_depths(
-				device->d3d_desc.dw_device_render_bit_depth);
+				device->d3d_desc.dwDeviceRenderBitDepth);
 		device->caps.z_cmp_caps_mask = std3d_mask_z_cmp_caps(
-			device->d3d_desc.dpc_tri_caps.dwZCmpCaps);
+			device->d3d_desc.dpcTriCaps.dwZCmpCaps);
 		device->caps.min_texture_width = 1;
 		device->caps.min_texture_height = 1;
 		device->caps.max_texture_width = 256;
 		device->caps.max_texture_height = 256;
-		device->caps.max_buffer_size =
-			device->d3d_desc.dw_max_buffer_size;
+		device->caps.max_buffer_size = device->d3d_desc.dwMaxBufferSize;
 		device->caps.max_vertex_count =
-			device->d3d_desc.dw_max_vertex_count;
+			device->d3d_desc.dwMaxVertexCount;
 
 		debug_printf("Found |%s|%s|%s|%s| D3D Device\n",
 			     device->caps.b_hardware != 0 ? "HW" : "SW",

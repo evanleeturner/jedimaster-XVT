@@ -6,7 +6,7 @@
 #include "aeron/dialog.h"
 #include "xvt_runtime/input/input_bridge.h"
 #else
-__declspec(dllimport) int __stdcall MessageBoxA(void *h_wnd, const char *text,
+__declspec(dllimport) int __stdcall MessageBoxA(void *hWnd, const char *text,
 						const char *caption,
 						unsigned int type);
 #endif

@@ -20,6 +20,8 @@ uint32_t xvt_time_get_elapsed_ms(void)
 	return (uint32_t)(g_xvt_elapsed_us / 1000u);
 }
 
+/* drift-ok: camelcase -- Windows' name; the 1997 code calls it */
 uint32_t timeGetTime(void) { return xvt_time_get_elapsed_ms(); }
 
+/* drift-ok: camelcase -- Windows' name; the 1997 code calls it */
 uint32_t GetTickCount(void) { return xvt_time_get_elapsed_ms(); }

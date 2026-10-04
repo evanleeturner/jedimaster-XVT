@@ -108,32 +108,32 @@ struct std3d_device_caps {
 /* A Direct3D device description, copied whole by std3d_enum_devices_callback:
  * the hardware one when it has a color model, else the software one. The
  * fields marked unread are only copied. */
+/* drift-ok: camelcase -- a copy of Direct3D's D3DDEVICEDESC */
 struct std3d_device_desc {
-	unsigned int dw_size;	       /* Unread. */
-	unsigned int dw_flags;	       /* Unread. */
-	unsigned int dcm_color_model;  /* Color models: 0x1 mono, 0x2 RGB. */
-	unsigned int dw_dev_caps;      /* Unread. */
-	uint8_t dtc_transform_caps[8]; /* Unread. */
-	int b_clipping;		       /* Unread. */
-	uint8_t dlc_lighting_caps[16]; /* Unread. */
-	D3DPRIMCAPS dpc_line_caps;     /* Unread. */
+	unsigned int dwSize;	     /* Unread. */
+	unsigned int dwFlags;	     /* Unread. */
+	unsigned int dcmColorModel;  /* Color models: 0x1 mono, 0x2 RGB. */
+	unsigned int dwDevCaps;	     /* Unread. */
+	uint8_t dtcTransformCaps[8]; /* Unread. */
+	int bClipping;		     /* Unread. */
+	uint8_t dlcLightingCaps[16]; /* Unread. */
+	D3DPRIMCAPS dpcLineCaps;     /* Unread. */
 	/* Triangle caps: texture, shade, texture blend and z compare bits. */
-	D3DPRIMCAPS dpc_tri_caps;
-	unsigned int dw_device_render_bit_depth; /* Render bit depth flags. */
+	D3DPRIMCAPS dpcTriCaps;
+	unsigned int dwDeviceRenderBitDepth; /* Render bit depth flags. */
 	/* Z-buffer bit depth flags; std3d_create_z_buffer takes 32, 16 or 8 bits
 	 * from the 0x100, 0x400 and 0x800 bits, in that order. */
-	unsigned int dw_device_z_buffer_bit_depth;
-	unsigned int dw_max_buffer_size; /* Largest execute buffer in bytes. */
-	unsigned int
-		dw_max_vertex_count; /* Most vertices per execute buffer. */
-	unsigned int dw_min_texture_width;  /* Unread. */
-	unsigned int dw_min_texture_height; /* Unread. */
-	unsigned int dw_max_texture_width;  /* Unread. */
-	unsigned int dw_max_texture_height; /* Unread. */
-	unsigned int dw_min_stipple_width;  /* Unread. */
-	unsigned int dw_max_stipple_width;  /* Unread. */
-	unsigned int dw_min_stipple_height; /* Unread. */
-	unsigned int dw_max_stipple_height; /* Unread. */
+	unsigned int dwDeviceZBufferBitDepth;
+	unsigned int dwMaxBufferSize;	 /* Largest execute buffer in bytes. */
+	unsigned int dwMaxVertexCount;	 /* Most vertices per execute buffer. */
+	unsigned int dwMinTextureWidth;	 /* Unread. */
+	unsigned int dwMinTextureHeight; /* Unread. */
+	unsigned int dwMaxTextureWidth;	 /* Unread. */
+	unsigned int dwMaxTextureHeight; /* Unread. */
+	unsigned int dwMinStippleWidth;	 /* Unread. */
+	unsigned int dwMaxStippleWidth;	 /* Unread. */
+	unsigned int dwMinStippleHeight; /* Unread. */
+	unsigned int dwMaxStippleHeight; /* Unread. */
 };
 
 /* One Direct3D device found by std3d_startup, in g_std3d_devices. */
