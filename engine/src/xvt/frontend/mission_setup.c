@@ -43,6 +43,7 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifdef XVT_MODERN
 #include <strings.h>
@@ -515,6 +516,15 @@ int mission_setup_exit(int frame_counter)
 			.saved_mission_description_id =
 			g_pilot_data.saved_mission_description_id;
 	}
+	XVT_LOG_DEBUG(
+		"mission.setup_closed record=%d directory=%d mission=%d sequence=%d",
+		g_mission_setup_use_combat_sim_pilot_state
+			? 2
+			: g_pilot_data.current_faction_id,
+		(int)g_pilot_data.mission_directory_id,
+		(int)g_pilot_data.mission_description_ids
+			[g_pilot_data.mission_directory_id],
+		g_pilot_data.mission_sequence_active);
 	frontend_reset_scrollable_controls();
 	frontend_mouse_clear_input_gate();
 	return 0;
@@ -716,6 +726,10 @@ int mission_setup_update(int frame_counter)
 				g_pilot_data.mission_directory_id =
 					MISSION_DIRECTORY_CAMPAIGNS;
 			}
+			XVT_LOG_DEBUG(
+				"mission.setup_sequence_restored directory=%d mission=%d",
+				(int)g_pilot_data.mission_directory_id,
+				(int)g_pilot_data.saved_mission_description_id);
 		}
 		g_pilot_data.mission_sequence_active = 0;
 		frontend_mission_load_current();
@@ -871,6 +885,29 @@ int mission_setup_update(int frame_counter)
 		}
 		mission_setup_draw_background();
 		frontend_text_start_text_fade_in(20);
+		XVT_LOG_INFO(
+			"mission.setup_opened directory=%d mission=%d missions=%u mode=%d",
+			(int)g_pilot_data.mission_directory_id,
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			g_mission_count, (int)g_frontend_mission_session_mode);
+		XVT_LOG_DEBUG(
+			"mission.setup_options difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"opened\"",
+			(int)g_game_config.difficulty,
+			(int)g_game_config.random_setup,
+			(int)g_game_config.battle_length_index,
+			(int)g_game_config.craft_waves,
+			(int)g_game_config.craft_selection,
+			(int)g_game_config.mission_time_limit,
+			(int)g_game_config.last_team_time_limit_minutes,
+			(int)g_game_config.collisions,
+			(int)g_game_config.craft_jumping,
+			(int)g_game_config.require_password,
+			(int)g_game_config.in_progress_join,
+			(int)g_game_config.locate_players,
+			(int)g_game_config.ai_opponents,
+			(int)g_game_config.combat_balance,
+			(int)g_game_config.continue_battle_or_campaign);
 	}
 
 	if (g_frontend_mission_session_mode !=
@@ -889,11 +926,26 @@ int mission_setup_update(int frame_counter)
 
 		int packet_type = frontend_net_process_network_packets();
 		if (packet_type == NET_PACKET_STATE) {
+			if (g_frontend_net_received_mission_directory_id < 0 ||
+			    g_frontend_net_received_mission_directory_id >
+				    MISSION_DIRECTORY_CAMPAIGNS) {
+				XVT_LOG_WARN(
+					"mission.setup_host_directory_invalid directory=%d",
+					g_frontend_net_received_mission_directory_id);
+			}
 			if (g_pilot_data.mission_directory_id !=
 				    g_frontend_net_received_mission_directory_id ||
 			    g_pilot_data.mission_description_ids
 					    [g_frontend_net_received_mission_directory_id] !=
 				    g_frontend_net_received_mission_description_id) {
+				XVT_LOG_DEBUG(
+					"mission.setup_host_choice directory=%d mission=%d previous=%d previous_mission=%d",
+					g_frontend_net_received_mission_directory_id,
+					g_frontend_net_received_mission_description_id,
+					(int)g_pilot_data.mission_directory_id,
+					(int)g_pilot_data.mission_description_ids
+						[g_pilot_data
+							 .mission_directory_id]);
 				g_game_config.continue_battle_or_campaign =
 					SEQUENCE_CONTINUE;
 			}
@@ -968,7 +1020,26 @@ int mission_setup_update(int frame_counter)
 						CRAFT_SELECTION_ON;
 				}
 			}
+			XVT_LOG_DEBUG(
+				"mission.setup_options difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"host_state\"",
+				(int)g_game_config.difficulty,
+				(int)g_game_config.random_setup,
+				(int)g_game_config.battle_length_index,
+				(int)g_game_config.craft_waves,
+				(int)g_game_config.craft_selection,
+				(int)g_game_config.mission_time_limit,
+				(int)g_game_config.last_team_time_limit_minutes,
+				(int)g_game_config.collisions,
+				(int)g_game_config.craft_jumping,
+				(int)g_game_config.require_password,
+				(int)g_game_config.in_progress_join,
+				(int)g_game_config.locate_players,
+				(int)g_game_config.ai_opponents,
+				(int)g_game_config.combat_balance,
+				(int)g_game_config.continue_battle_or_campaign);
 		} else if (packet_type == NET_PACKET_HOST_CANCELLED) {
+			XVT_LOG_INFO(
+				"mission.setup_left reason=\"host_cancelled\"");
 			net_shutdown_direct_play_session();
 			if (net_is_host() == 0) {
 				frontend_dialog_show_confirm_dialog(
@@ -1058,8 +1129,37 @@ int mission_setup_update(int frame_counter)
 							[g_selected_mission_list_index]
 								.mission_idx;
 				}
+				XVT_LOG_DEBUG(
+					"mission.setup_battle_first_mission index=%d mission=%d",
+					g_pilot_data.battle_sequence_state
+						.mission_list_indices[0],
+					g_pilot_data.battle_sequence_state
+						.current_mission_id);
 			}
 			g_mission_setup_roster_authoritative = 1;
+			XVT_LOG_INFO(
+				"mission.setup_confirmed directory=%d mission=%d sequence=%d by=\"host\"",
+				(int)g_pilot_data.mission_directory_id,
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				g_pilot_data.mission_sequence_active);
+			XVT_LOG_DEBUG(
+				"mission.setup_options difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"host_start\"",
+				(int)g_game_config.difficulty,
+				(int)g_game_config.random_setup,
+				(int)g_game_config.battle_length_index,
+				(int)g_game_config.craft_waves,
+				(int)g_game_config.craft_selection,
+				(int)g_game_config.mission_time_limit,
+				(int)g_game_config.last_team_time_limit_minutes,
+				(int)g_game_config.collisions,
+				(int)g_game_config.craft_jumping,
+				(int)g_game_config.require_password,
+				(int)g_game_config.in_progress_join,
+				(int)g_game_config.locate_players,
+				(int)g_game_config.ai_opponents,
+				(int)g_game_config.combat_balance,
+				(int)g_game_config.continue_battle_or_campaign);
 			frontend_screen_set_callbacks(
 				mission_setup_team_assignment_update,
 
@@ -1072,6 +1172,7 @@ int mission_setup_update(int frame_counter)
 			);
 			return 0;
 		} else if (packet_type == NET_PACKET_PLAYER_KICKED) {
+			XVT_LOG_INFO("mission.setup_left reason=\"booted\"");
 			g_frontend_skip_screen_entry_setup = 1;
 			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_PLAYER_LEFT;
@@ -1110,6 +1211,13 @@ int mission_setup_update(int frame_counter)
 				    g_frontend_net_packet_sender_player_id) {
 					g_mp_roster[player_index].pilot_rating =
 						g_frontend_net_packet_arg0;
+					XVT_LOG_DEBUG(
+						"mission.setup_rating_updated index=%d player=%u rating=%d",
+						player_index,
+						(unsigned)
+							g_frontend_net_packet_sender_player_id,
+						(int)g_mp_roster[player_index]
+							.pilot_rating);
 					break;
 				}
 			}
@@ -1228,6 +1336,29 @@ int mission_setup_update(int frame_counter)
 				return 0;
 			}
 			g_frontend_quick_start_launch_flag = 1;
+			XVT_LOG_INFO(
+				"mission.setup_confirmed directory=%d mission=%d sequence=%d by=\"quick_start\"",
+				(int)g_pilot_data.mission_directory_id,
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				g_pilot_data.mission_sequence_active);
+			XVT_LOG_DEBUG(
+				"mission.setup_options difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"quick_start\"",
+				(int)g_game_config.difficulty,
+				(int)g_game_config.random_setup,
+				(int)g_game_config.battle_length_index,
+				(int)g_game_config.craft_waves,
+				(int)g_game_config.craft_selection,
+				(int)g_game_config.mission_time_limit,
+				(int)g_game_config.last_team_time_limit_minutes,
+				(int)g_game_config.collisions,
+				(int)g_game_config.craft_jumping,
+				(int)g_game_config.require_password,
+				(int)g_game_config.in_progress_join,
+				(int)g_game_config.locate_players,
+				(int)g_game_config.ai_opponents,
+				(int)g_game_config.combat_balance,
+				(int)g_game_config.continue_battle_or_campaign);
 			frontend_screen_set_callbacks(
 				mission_setup_team_assignment_update,
 
@@ -1270,6 +1401,8 @@ int mission_setup_update(int frame_counter)
 #endif
 			}
 			if (button_pressed != 0) {
+				XVT_LOG_INFO(
+					"mission.setup_left reason=\"host_left\"");
 				g_frontend_skip_screen_entry_setup = 1;
 				g_frontend_net_packet_scratch.packet_type =
 					NET_PACKET_HOST_CANCELLED;
@@ -1359,12 +1492,38 @@ int mission_setup_update(int frame_counter)
 			    g_pilot_data.mission_directory_id ==
 				    MISSION_DIRECTORY_CAMPAIGNS) {
 				g_game_config.random_seed = GetTickCount();
+				XVT_LOG_DEBUG(
+					"mission.setup_seed_chosen seed=%u",
+					g_game_config.random_seed);
 				if (mission_setup_select_first_sequence_mission() ==
 				    0) {
 					frontend_button_disable_overlay_text();
 					return 0;
 				}
 			}
+			XVT_LOG_INFO(
+				"mission.setup_confirmed directory=%d mission=%d sequence=%d by=\"begin\"",
+				(int)g_pilot_data.mission_directory_id,
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				g_pilot_data.mission_sequence_active);
+			XVT_LOG_DEBUG(
+				"mission.setup_options difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"begin\"",
+				(int)g_game_config.difficulty,
+				(int)g_game_config.random_setup,
+				(int)g_game_config.battle_length_index,
+				(int)g_game_config.craft_waves,
+				(int)g_game_config.craft_selection,
+				(int)g_game_config.mission_time_limit,
+				(int)g_game_config.last_team_time_limit_minutes,
+				(int)g_game_config.collisions,
+				(int)g_game_config.craft_jumping,
+				(int)g_game_config.require_password,
+				(int)g_game_config.in_progress_join,
+				(int)g_game_config.locate_players,
+				(int)g_game_config.ai_opponents,
+				(int)g_game_config.combat_balance,
+				(int)g_game_config.continue_battle_or_campaign);
 			frontend_screen_set_callbacks(
 				mission_setup_team_assignment_update,
 
@@ -1397,6 +1556,13 @@ int mission_setup_update(int frame_counter)
 				if (g_mission_list
 					    [g_selected_mission_list_index]
 						    .file_name[0] == '1') {
+					XVT_LOG_WARN(
+						"mission.setup_begin_refused reason=\"single_player\" limit=%d",
+						(int)(uint8_t)g_mission_list
+								[g_selected_mission_list_index]
+									.file_name
+										[0] -
+							'0');
 					frontend_dialog_show_confirm_dialog(
 						frontend_string_get(
 							FRONTSTR_637_YOU_HAVE_SELECTED_A_SINGLE_PLAYER_MISSION),
@@ -1411,6 +1577,13 @@ int mission_setup_update(int frame_counter)
 						XVT_MISSION_NOTICE);
 #endif
 				} else {
+					XVT_LOG_WARN(
+						"mission.setup_begin_refused reason=\"too_many_players\" limit=%d",
+						(int)(uint8_t)g_mission_list
+								[g_selected_mission_list_index]
+									.file_name
+										[0] -
+							'0');
 					sprintf(g_frontend_scratch_buffer,
 						frontend_string_get(
 							FRONTSTR_532_THIS_MISSION_ONLY_SUPPORTS_PERCENT_D_PLAYERS),
@@ -1487,6 +1660,32 @@ int mission_setup_update(int frame_counter)
 				net_send_packet_and_flush(
 					0, &g_frontend_net_packet_scratch,
 					PACKET_SIZE_MISSION_START);
+				XVT_LOG_INFO(
+					"mission.setup_confirmed directory=%d mission=%d sequence=%d by=\"host_begin\"",
+					(int)g_pilot_data.mission_directory_id,
+					(int)g_pilot_data.mission_description_ids
+						[g_pilot_data
+							 .mission_directory_id],
+					g_pilot_data.mission_sequence_active);
+				XVT_LOG_DEBUG(
+					"mission.setup_options difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"host_begin\"",
+					(int)g_game_config.difficulty,
+					(int)g_game_config.random_setup,
+					(int)g_game_config.battle_length_index,
+					(int)g_game_config.craft_waves,
+					(int)g_game_config.craft_selection,
+					(int)g_game_config.mission_time_limit,
+					(int)g_game_config
+						.last_team_time_limit_minutes,
+					(int)g_game_config.collisions,
+					(int)g_game_config.craft_jumping,
+					(int)g_game_config.require_password,
+					(int)g_game_config.in_progress_join,
+					(int)g_game_config.locate_players,
+					(int)g_game_config.ai_opponents,
+					(int)g_game_config.combat_balance,
+					(int)g_game_config
+						.continue_battle_or_campaign);
 			}
 		}
 	}
@@ -1534,6 +1733,12 @@ int mission_setup_update(int frame_counter)
 			    BUTTON_FONT_SIZE, 0, HOVER_BOOT_PLAYER,
 			    "buttonsound") != 0 &&
 		    g_mission_setup_selected_player_roster_index != -1) {
+			XVT_LOG_INFO(
+				"mission.setup_player_booted player=%u index=%d",
+				(unsigned)g_mp_roster
+					[g_mission_setup_selected_player_roster_index]
+						.player_id,
+				g_mission_setup_selected_player_roster_index);
 			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_PLAYER_KICKED;
 			net_send_packet_and_flush(
@@ -1964,6 +2169,13 @@ int mission_setup_draw_mission_type_controls(void)
 							.random_setup;
 				}
 			}
+			XVT_LOG_DEBUG(
+				"mission.setup_faction_chosen faction=%d directory=%d mission=%d index=%d",
+				g_pilot_data.current_faction_id,
+				(int)g_pilot_data.mission_directory_id,
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				g_selected_mission_list_index);
 		}
 	} else {
 		if (navigation_slot_states
@@ -1981,6 +2193,9 @@ int mission_setup_draw_mission_type_controls(void)
 					changed = 1;
 					g_mission_setup_active_panel =
 						MISSION_SETUP_PANEL_SETTINGS;
+					XVT_LOG_DEBUG(
+						"mission.setup_panel_chosen panel=%d",
+						(int)g_mission_setup_active_panel);
 				}
 			} else {
 				frontend_button_draw_sprite_and_tooltip(
@@ -2004,6 +2219,9 @@ int mission_setup_draw_mission_type_controls(void)
 					    "jewelsound") != 0) {
 					g_mission_setup_active_panel =
 						MISSION_SETUP_PANEL_PLAYERS;
+					XVT_LOG_DEBUG(
+						"mission.setup_panel_chosen panel=%d",
+						(int)g_mission_setup_active_panel);
 					changed = 1;
 				}
 			} else {
@@ -2063,6 +2281,15 @@ int mission_setup_draw_mission_type_controls(void)
 					    g_mission_list[g_selected_mission_list_index]
 							    .is_unavailable !=
 						    0) {
+						XVT_LOG_DEBUG(
+							"mission.setup_mission_unavailable directory=%d mission=%d missing=%d",
+							(int)g_pilot_data
+								.mission_directory_id,
+							(int)g_pilot_data.mission_description_ids
+								[g_pilot_data
+									 .mission_directory_id],
+							g_selected_mission_list_index ==
+								(int)g_mission_count);
 						for (index = 0;
 						     index <
 						     (int)g_mission_count;
@@ -2147,6 +2374,14 @@ int mission_setup_draw_mission_type_controls(void)
 								.random_setup;
 					}
 				}
+				XVT_LOG_DEBUG(
+					"mission.setup_type_chosen directory=%d mission=%d index=%d missions=%u",
+					(int)g_pilot_data.mission_directory_id,
+					(int)g_pilot_data.mission_description_ids
+						[g_pilot_data
+							 .mission_directory_id],
+					g_selected_mission_list_index,
+					g_mission_count);
 			}
 		} else {
 			frontend_button_draw_sprite_and_tooltip(
@@ -2271,6 +2506,14 @@ int mission_setup_draw_mission_type_controls(void)
 									.random_setup;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"previous\"",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index);
 				}
 				if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -2387,6 +2630,14 @@ int mission_setup_draw_mission_type_controls(void)
 									.random_setup;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"next\"",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index);
 				}
 				if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -2452,6 +2703,14 @@ int mission_setup_draw_mission_type_controls(void)
 							if (g_mission_list[g_selected_mission_list_index]
 								    .is_unavailable !=
 							    0) {
+								XVT_LOG_DEBUG(
+									"mission.setup_mission_unavailable directory=%d mission=%d missing=0",
+									(int)g_pilot_data
+										.mission_directory_id,
+									(int)g_pilot_data
+										.mission_description_ids
+											[g_pilot_data
+												 .mission_directory_id]);
 								for (index = 0;
 								     index <
 								     (int)g_mission_count;
@@ -2521,6 +2780,14 @@ int mission_setup_draw_mission_type_controls(void)
 								.random_setup;
 					}
 				}
+				XVT_LOG_DEBUG(
+					"mission.setup_type_chosen directory=%d mission=%d index=%d missions=%u",
+					(int)g_pilot_data.mission_directory_id,
+					(int)g_pilot_data.mission_description_ids
+						[g_pilot_data
+							 .mission_directory_id],
+					g_selected_mission_list_index,
+					g_mission_count);
 			}
 		} else {
 			frontend_button_draw_sprite_and_tooltip(
@@ -2633,6 +2900,14 @@ int mission_setup_draw_mission_type_controls(void)
 									.random_setup;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"previous\"",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index);
 				}
 				if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -2737,6 +3012,14 @@ int mission_setup_draw_mission_type_controls(void)
 									.random_setup;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"next\"",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index);
 				}
 				if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -2810,6 +3093,14 @@ int mission_setup_draw_mission_type_controls(void)
 							if (g_mission_list[g_selected_mission_list_index]
 								    .is_unavailable !=
 							    0) {
+								XVT_LOG_DEBUG(
+									"mission.setup_mission_unavailable directory=%d mission=%d missing=0",
+									(int)g_pilot_data
+										.mission_directory_id,
+									(int)g_pilot_data
+										.mission_description_ids
+											[g_pilot_data
+												 .mission_directory_id]);
 								for (index = 0;
 								     index <
 								     (int)g_mission_count;
@@ -2837,6 +3128,14 @@ int mission_setup_draw_mission_type_controls(void)
 						}
 					}
 				}
+				XVT_LOG_DEBUG(
+					"mission.setup_type_chosen directory=%d mission=%d index=%d missions=%u",
+					(int)g_pilot_data.mission_directory_id,
+					(int)g_pilot_data.mission_description_ids
+						[g_pilot_data
+							 .mission_directory_id],
+					g_selected_mission_list_index,
+					g_mission_count);
 			}
 		} else {
 			frontend_button_draw_sprite_and_tooltip(
@@ -2906,6 +3205,14 @@ int mission_setup_draw_mission_type_controls(void)
 							++g_selected_mission_list_index;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"previous\"",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index);
 				}
 				if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -2966,6 +3273,14 @@ int mission_setup_draw_mission_type_controls(void)
 							++g_selected_mission_list_index;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"next\"",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index);
 				}
 				if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -3035,6 +3350,14 @@ int mission_setup_draw_mission_type_controls(void)
 								if (g_mission_list[g_selected_mission_list_index]
 									    .is_unavailable !=
 								    0) {
+									XVT_LOG_DEBUG(
+										"mission.setup_mission_unavailable directory=%d mission=%d missing=0",
+										(int)g_pilot_data
+											.mission_directory_id,
+										(int)g_pilot_data
+											.mission_description_ids
+												[g_pilot_data
+													 .mission_directory_id]);
 									for (index = 0;
 									     index <
 									     (int)g_mission_count;
@@ -3062,6 +3385,15 @@ int mission_setup_draw_mission_type_controls(void)
 							}
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_type_chosen directory=%d mission=%d index=%d missions=%u",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index,
+						g_mission_count);
 				}
 			} else {
 				frontend_button_draw_sprite_and_tooltip(
@@ -3135,6 +3467,14 @@ int mission_setup_draw_mission_type_controls(void)
 								++g_selected_mission_list_index;
 							}
 						}
+						XVT_LOG_DEBUG(
+							"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"previous\"",
+							(int)g_pilot_data
+								.mission_directory_id,
+							(int)g_pilot_data.mission_description_ids
+								[g_pilot_data
+									 .mission_directory_id],
+							g_selected_mission_list_index);
 					}
 					if (g_frontend_mission_session_mode !=
 						    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -3200,6 +3540,14 @@ int mission_setup_draw_mission_type_controls(void)
 								++g_selected_mission_list_index;
 							}
 						}
+						XVT_LOG_DEBUG(
+							"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"next\"",
+							(int)g_pilot_data
+								.mission_directory_id,
+							(int)g_pilot_data.mission_description_ids
+								[g_pilot_data
+									 .mission_directory_id],
+							g_selected_mission_list_index);
 					}
 					if (g_frontend_mission_session_mode !=
 						    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -3263,6 +3611,14 @@ int mission_setup_draw_mission_type_controls(void)
 							if (g_mission_list[g_selected_mission_list_index]
 								    .is_unavailable !=
 							    0) {
+								XVT_LOG_DEBUG(
+									"mission.setup_mission_unavailable directory=%d mission=%d missing=0",
+									(int)g_pilot_data
+										.mission_directory_id,
+									(int)g_pilot_data
+										.mission_description_ids
+											[g_pilot_data
+												 .mission_directory_id]);
 								for (index = 0;
 								     index <
 								     (int)g_mission_count;
@@ -3290,6 +3646,14 @@ int mission_setup_draw_mission_type_controls(void)
 						}
 					}
 				}
+				XVT_LOG_DEBUG(
+					"mission.setup_type_chosen directory=%d mission=%d index=%d missions=%u",
+					(int)g_pilot_data.mission_directory_id,
+					(int)g_pilot_data.mission_description_ids
+						[g_pilot_data
+							 .mission_directory_id],
+					g_selected_mission_list_index,
+					g_mission_count);
 			}
 		} else {
 			frontend_button_draw_sprite_and_tooltip(
@@ -3358,6 +3722,14 @@ int mission_setup_draw_mission_type_controls(void)
 							++g_selected_mission_list_index;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"previous\"",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index);
 				}
 				if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -3418,6 +3790,14 @@ int mission_setup_draw_mission_type_controls(void)
 							++g_selected_mission_list_index;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"next\"",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index);
 				}
 				if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -3476,6 +3856,14 @@ int mission_setup_draw_mission_type_controls(void)
 							if (g_mission_list[g_selected_mission_list_index]
 								    .is_unavailable !=
 							    0) {
+								XVT_LOG_DEBUG(
+									"mission.setup_mission_unavailable directory=%d mission=%d missing=0",
+									(int)g_pilot_data
+										.mission_directory_id,
+									(int)g_pilot_data
+										.mission_description_ids
+											[g_pilot_data
+												 .mission_directory_id]);
 								for (index = 0;
 								     index <
 								     (int)g_mission_count;
@@ -3503,6 +3891,14 @@ int mission_setup_draw_mission_type_controls(void)
 						}
 					}
 				}
+				XVT_LOG_DEBUG(
+					"mission.setup_type_chosen directory=%d mission=%d index=%d missions=%u",
+					(int)g_pilot_data.mission_directory_id,
+					(int)g_pilot_data.mission_description_ids
+						[g_pilot_data
+							 .mission_directory_id],
+					g_selected_mission_list_index,
+					g_mission_count);
 			}
 		} else {
 			frontend_button_draw_sprite_and_tooltip(
@@ -3585,6 +3981,13 @@ int mission_setup_draw_mission_type_controls(void)
 						    .iff !=
 					    previous_player_iff) {
 						changed = 1;
+						XVT_LOG_DEBUG(
+							"mission.setup_training_side_changed iff=%d previous=%d",
+							(int)g_frontend_mission
+								.flight_groups
+									[player_flight_group_index]
+								.iff,
+							previous_player_iff);
 					}
 					mission_setup_update_team_counts();
 					mission_setup_load_mission_desc_text(
@@ -3603,6 +4006,14 @@ int mission_setup_draw_mission_type_controls(void)
 							++g_selected_mission_list_index;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"previous\"",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index);
 				}
 				if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -3677,6 +4088,13 @@ int mission_setup_draw_mission_type_controls(void)
 						    .iff !=
 					    previous_player_iff) {
 						changed = 1;
+						XVT_LOG_DEBUG(
+							"mission.setup_training_side_changed iff=%d previous=%d",
+							(int)g_frontend_mission
+								.flight_groups
+									[player_flight_group_index]
+								.iff,
+							previous_player_iff);
 					}
 					mission_setup_update_team_counts();
 					mission_setup_load_mission_desc_text(
@@ -3695,6 +4113,14 @@ int mission_setup_draw_mission_type_controls(void)
 							++g_selected_mission_list_index;
 						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"next\"",
+						(int)g_pilot_data
+							.mission_directory_id,
+						(int)g_pilot_data.mission_description_ids
+							[g_pilot_data
+								 .mission_directory_id],
+						g_selected_mission_list_index);
 				}
 				if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -3708,6 +4134,23 @@ int mission_setup_draw_mission_type_controls(void)
 	if (changed != 0) {
 		front_image_free_resource_by_name("background");
 		mission_setup_draw_background();
+		XVT_LOG_DEBUG(
+			"mission.setup_options difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"type_controls\"",
+			(int)g_game_config.difficulty,
+			(int)g_game_config.random_setup,
+			(int)g_game_config.battle_length_index,
+			(int)g_game_config.craft_waves,
+			(int)g_game_config.craft_selection,
+			(int)g_game_config.mission_time_limit,
+			(int)g_game_config.last_team_time_limit_minutes,
+			(int)g_game_config.collisions,
+			(int)g_game_config.craft_jumping,
+			(int)g_game_config.require_password,
+			(int)g_game_config.in_progress_join,
+			(int)g_game_config.locate_players,
+			(int)g_game_config.ai_opponents,
+			(int)g_game_config.combat_balance,
+			(int)g_game_config.continue_battle_or_campaign);
 	}
 	return changed;
 }
@@ -3774,6 +4217,9 @@ void mission_setup_load_mission_list(int mission_directory_id)
 					[mission_directory_id]);
 			break;
 		default:
+			XVT_LOG_WARN(
+				"mission.setup_list_directory_unknown directory=%d",
+				mission_directory_id);
 			break;
 		}
 	}
@@ -3801,15 +4247,21 @@ void mission_setup_load_mission_list(int mission_directory_id)
 	}
 
 #endif
+	XVT_LOG_DEBUG("mission.setup_list_file directory=%d file=\"%s\"",
+		      mission_directory_id, g_frontend_scratch_buffer);
 	g_mission_count = mission_setup_count_mission_list_entries(stream);
 	file_seek(stream, 0, 0);
 	if (g_mission_count == 0) {
+		XVT_LOG_WARN("mission.setup_list_empty directory=%d",
+			     mission_directory_id);
 		file_close(stream);
 		return;
 	}
 	g_mission_list = (struct mission_list_entry *)malloc(
 		sizeof(*g_mission_list) * g_mission_count);
 	if (g_mission_list == NULL) {
+		XVT_LOG_ERROR("mission.setup_list_alloc_failed missions=%u",
+			      g_mission_count);
 		file_close(stream);
 		return;
 	}
@@ -3824,6 +4276,9 @@ void mission_setup_load_mission_list(int mission_directory_id)
 				if (FILE_GETS(g_frontend_scratch_buffer,
 					      MISSION_LINE_CAPACITY,
 					      stream) == NULL) {
+					XVT_LOG_WARN(
+						"mission.setup_list_truncated entries=%u expected=%u",
+						entry_index, g_mission_count);
 					g_mission_count = entry_index;
 					file_close(stream);
 					return;
@@ -3852,6 +4307,9 @@ void mission_setup_load_mission_list(int mission_directory_id)
 			atoi(g_frontend_scratch_buffer);
 		if (FILE_GETS(g_frontend_scratch_buffer, MISSION_LINE_CAPACITY,
 			      stream) == NULL) {
+			XVT_LOG_WARN(
+				"mission.setup_list_truncated entries=%u expected=%u",
+				entry_index, g_mission_count);
 			g_mission_count = entry_index;
 			file_close(stream);
 			return;
@@ -3929,6 +4387,9 @@ void mission_setup_load_mission_list(int mission_directory_id)
 
 		if (FILE_GETS(g_frontend_scratch_buffer, MISSION_LINE_CAPACITY,
 			      stream) == NULL) {
+			XVT_LOG_WARN(
+				"mission.setup_list_truncated entries=%u expected=%u",
+				entry_index, g_mission_count);
 			g_mission_count = entry_index;
 			file_close(stream);
 			return;
@@ -3940,8 +4401,15 @@ void mission_setup_load_mission_list(int mission_directory_id)
 		}
 		strcpy(g_mission_list[entry_index].description,
 		       g_frontend_scratch_buffer);
+		XVT_LOG_DEBUG(
+			"mission.setup_list_entry index=%u mission=%d unavailable=%d file=\"%s\"",
+			entry_index, g_mission_list[entry_index].mission_idx,
+			g_mission_list[entry_index].is_unavailable,
+			g_mission_list[entry_index].file_name);
 	}
 	file_close(stream);
+	XVT_LOG_DEBUG("mission.setup_list_loaded directory=%d missions=%u",
+		      mission_directory_id, g_mission_count);
 }
 
 /* Fills the 4096-byte out_text4096 with the description of the selected mission
@@ -3972,6 +4440,11 @@ void mission_setup_load_mission_desc_text(char *out_text4096)
 		++mission_list_index;
 	}
 	if (mission_list_index >= g_mission_count) {
+		XVT_LOG_WARN(
+			"mission.setup_text_unlisted directory=%d mission=%d",
+			(int)g_pilot_data.mission_directory_id,
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id]);
 		return;
 	}
 
@@ -3980,6 +4453,8 @@ void mission_setup_load_mission_desc_text(char *out_text4096)
 		g_mission_list[mission_list_index].file_name);
 	xvt_file *stream = file_open(g_frontend_scratch_buffer, "rb");
 	if (stream == NULL) {
+		XVT_LOG_WARN("mission.setup_text_open_failed file=\"%s\"",
+			     g_frontend_scratch_buffer);
 		return;
 	}
 
@@ -4025,6 +4500,8 @@ void mission_setup_load_mission_desc_text(char *out_text4096)
 			}
 		}
 		out_text4096[output_length] = '\0';
+		XVT_LOG_DEBUG("mission.setup_text_read version=0 bytes=%d",
+			      output_length);
 	} else {
 		uint16_t mission_version;
 		file_read_word(stream, &mission_version);
@@ -4036,7 +4513,16 @@ void mission_setup_load_mission_desc_text(char *out_text4096)
 			file_seek(stream, -1024, SEEK_END);
 			file_read_bytes(stream, out_text4096, 1024);
 			out_text4096[1023] = '\0';
+		} else {
+			XVT_LOG_WARN(
+				"mission.setup_text_version_unknown version=%d",
+				(int)mission_version);
 		}
+		XVT_LOG_DEBUG("mission.setup_text_read version=%d bytes=%d",
+			      (int)mission_version,
+			      (mission_version == 14 || mission_version == 13)
+				      ? 4096
+				      : (mission_version == 12 ? 1024 : 0));
 	}
 	file_close(stream);
 }
@@ -4377,6 +4863,11 @@ int mission_setup_draw_player_roster(int frame_counter)
 					g_mission_setup_selected_player_roster_index =
 						roster_index;
 				}
+				XVT_LOG_DEBUG(
+					"mission.setup_player_selected index=%d player=%u",
+					g_mission_setup_selected_player_roster_index,
+					(unsigned)g_mp_roster[roster_index]
+						.player_id);
 			}
 		}
 		if (displayed_count == 4) {
@@ -4516,6 +5007,13 @@ int mission_setup_broadcast_lobby_selection(void)
 				} while (player_roster_index < roster_count);
 			}
 			if (player_roster_index == roster_count) {
+				if (roster_entry->player_id != 0) {
+					XVT_LOG_DEBUG(
+						"mission.setup_roster_entry_dropped index=%d player=%u",
+						roster_index,
+						(unsigned)roster_entry
+							->player_id);
+				}
 				roster_entry->player_id = 0;
 			}
 		}
@@ -4652,6 +5150,13 @@ int mission_setup_send_lobby_state(int to_player_id)
 				}
 			}
 			if (player_roster_index == roster_count) {
+				if (roster_entry->player_id != 0) {
+					XVT_LOG_DEBUG(
+						"mission.setup_roster_entry_dropped index=%d player=%u",
+						roster_index,
+						(unsigned)roster_entry
+							->player_id);
+				}
 				roster_entry->player_id = 0;
 			}
 		}
@@ -4853,6 +5358,11 @@ int mission_setup_send_lobby_state(int to_player_id)
 			}
 			packet_words[4] = rebel_victories;
 			packet_words[5] = imperial_victories;
+			XVT_LOG_DEBUG(
+				"mission.setup_battle_progress active=%d choice=%d last=%d rebel=%d imperial=%d",
+				packet_words[1], packet_words[2],
+				packet_words[3], rebel_victories,
+				imperial_victories);
 			net_send_packet_and_flush(
 				to_player_id, &g_frontend_net_packet_scratch,
 				6 * sizeof(packet_words[0]));
@@ -4964,6 +5474,8 @@ int mission_setup_draw_mission_list(int frame_counter)
 	};
 
 	if (g_mission_list == NULL) {
+		XVT_LOG_WARN("mission.setup_list_missing missions=%u",
+			     g_mission_count);
 		keyboard_flush_char_buffer();
 		frontend_screen_pop_state();
 	}
@@ -5003,16 +5515,35 @@ int mission_setup_draw_mission_list(int frame_counter)
 		    VISIBLE_ROW_COUNT + 1) {
 			g_mission_setup_mission_list_scroll_offset = 0;
 		}
+		XVT_LOG_DEBUG(
+			"mission.setup_list_opened rows=%d offset=%d missions=%u",
+			g_mission_setup_mission_list_row_count,
+			g_mission_setup_mission_list_scroll_offset,
+			g_mission_count);
 	}
 
 	if (g_frontend_mission_session_mode !=
 		    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
 	    frontend_net_process_network_packets() == NET_PACKET_STATE) {
+		if (g_frontend_net_received_mission_directory_id < 0 ||
+		    g_frontend_net_received_mission_directory_id >
+			    MISSION_DIRECTORY_CAMPAIGNS) {
+			XVT_LOG_WARN(
+				"mission.setup_host_directory_invalid directory=%d",
+				g_frontend_net_received_mission_directory_id);
+		}
 		if (g_pilot_data.mission_directory_id !=
 			    g_frontend_net_received_mission_directory_id ||
 		    g_pilot_data.mission_description_ids
 				    [g_frontend_net_received_mission_directory_id] !=
 			    g_frontend_net_received_mission_description_id) {
+			XVT_LOG_DEBUG(
+				"mission.setup_host_choice directory=%d mission=%d previous=%d previous_mission=%d",
+				g_frontend_net_received_mission_directory_id,
+				g_frontend_net_received_mission_description_id,
+				(int)g_pilot_data.mission_directory_id,
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id]);
 			g_game_config.continue_battle_or_campaign =
 				SEQUENCE_CONTINUE;
 		}
@@ -5073,6 +5604,23 @@ int mission_setup_draw_mission_list(int frame_counter)
 		    MISSION_DIRECTORY_CAMPAIGNS) {
 			g_game_config.random_setup = 0;
 		}
+		XVT_LOG_DEBUG(
+			"mission.setup_options difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"list_host_state\"",
+			(int)g_game_config.difficulty,
+			(int)g_game_config.random_setup,
+			(int)g_game_config.battle_length_index,
+			(int)g_game_config.craft_waves,
+			(int)g_game_config.craft_selection,
+			(int)g_game_config.mission_time_limit,
+			(int)g_game_config.last_team_time_limit_minutes,
+			(int)g_game_config.collisions,
+			(int)g_game_config.craft_jumping,
+			(int)g_game_config.require_password,
+			(int)g_game_config.in_progress_join,
+			(int)g_game_config.locate_players,
+			(int)g_game_config.ai_opponents,
+			(int)g_game_config.combat_balance,
+			(int)g_game_config.continue_battle_or_campaign);
 	}
 
 	memset(last_section_name, 0, sizeof(last_section_name));
@@ -5322,11 +5870,25 @@ int mission_setup_draw_mission_list(int frame_counter)
 								g_mission_text);
 							g_frontend_first_visible_line =
 								0;
+							XVT_LOG_DEBUG(
+								"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"list\"",
+								(int)g_pilot_data
+									.mission_directory_id,
+								(int)g_pilot_data
+									.mission_description_ids
+										[g_pilot_data
+											 .mission_directory_id],
+								g_selected_mission_list_index);
 							if (g_frontend_mission_session_mode !=
 							    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 								mission_setup_send_lobby_state(
 									0);
 							}
+						} else {
+							XVT_LOG_DEBUG(
+								"mission.setup_list_pick_refused mission=%d",
+								g_mission_list[mission_list_index]
+									.mission_idx);
 						}
 					} else {
 						g_pilot_data.mission_description_ids
@@ -5418,6 +5980,14 @@ int mission_setup_draw_mission_list(int frame_counter)
 							g_mission_text);
 						g_frontend_first_visible_line =
 							0;
+						XVT_LOG_DEBUG(
+							"mission.setup_mission_chosen directory=%d mission=%d index=%d by=\"list\"",
+							(int)g_pilot_data
+								.mission_directory_id,
+							(int)g_pilot_data.mission_description_ids
+								[g_pilot_data
+									 .mission_directory_id],
+							g_selected_mission_list_index);
 					}
 
 					keyboard_flush_char_buffer();
@@ -5884,16 +6454,30 @@ int mission_setup_select_first_sequence_mission(void)
 			}
 		}
 	}
+	if (descriptor_mission_index >= g_mission_count) {
+		XVT_LOG_WARN(
+			"mission.setup_sequence_unlisted mission=%d directory=%d missions=%u",
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			(int)g_pilot_data.mission_directory_id,
+			g_mission_count);
+	}
 	char descriptor_path[SEQUENCE_DESCRIPTOR_PATH_CAPACITY];
 	sprintf(descriptor_path, "%s\\%s",
 		g_mission_directory_names[g_pilot_data.mission_directory_id],
 		g_mission_list[descriptor_mission_index].file_name);
 	xvt_file *stream = file_open(descriptor_path, "r");
 	if (stream == NULL) {
+		XVT_LOG_ERROR(
+			"mission.setup_sequence_failed reason=\"open\" file=\"%s\"",
+			descriptor_path);
 		return 0;
 	}
 	if (FILE_GETS(g_frontend_scratch_buffer,
 		      SEQUENCE_DESCRIPTOR_LINE_CAPACITY, stream) == NULL) {
+		XVT_LOG_ERROR(
+			"mission.setup_sequence_failed reason=\"empty\" file=\"%s\"",
+			descriptor_path);
 		file_close(stream);
 		return 0;
 	}
@@ -5916,12 +6500,21 @@ int mission_setup_select_first_sequence_mission(void)
 			g_game_config.battle_length_index + 2;
 		first_mission_ordinal = 0;
 		if (0 != g_game_config.random_setup) {
+			if (mission_count <= 0) {
+				XVT_LOG_ERROR(
+					"mission.setup_sequence_count_invalid count=%d",
+					mission_count);
+			}
 			first_mission_ordinal = rand() % mission_count;
 		}
 		g_pilot_data.battle_sequence_state
 			.mission_ordinals[FIRST_SEQUENCE_MISSION_INDEX] =
 			first_mission_ordinal;
 	}
+	XVT_LOG_DEBUG(
+		"mission.setup_sequence_read directory=%d count=%d ordinal=%d random=%d",
+		(int)g_pilot_data.mission_directory_id, mission_count,
+		first_mission_ordinal, (int)g_game_config.random_setup);
 
 	int lines_to_read = first_mission_ordinal + 1;
 	do {
@@ -5936,6 +6529,9 @@ int mission_setup_select_first_sequence_mission(void)
 	} while (lines_to_read != 0);
 	file_close(stream);
 	if (g_frontend_scratch_buffer[0] == '\0') {
+		XVT_LOG_ERROR(
+			"mission.setup_sequence_failed reason=\"mission_line_empty\" file=\"%s\"",
+			descriptor_path);
 		return 0;
 	}
 
@@ -5985,6 +6581,12 @@ int mission_setup_select_first_sequence_mission(void)
 			}
 		}
 	}
+	if (mission_list_index >= g_mission_count) {
+		XVT_LOG_WARN(
+			"mission.setup_sequence_mission_unlisted directory=%d file=\"%s\"",
+			(int)g_pilot_data.mission_directory_id,
+			descriptor_path);
+	}
 
 	if (g_mission_list != NULL) {
 		g_selected_mission_list_index = 0;
@@ -6003,6 +6605,12 @@ int mission_setup_select_first_sequence_mission(void)
 			++g_selected_mission_list_index;
 		}
 	}
+	XVT_LOG_INFO(
+		"mission.setup_sequence_started directory=%d mission=%d index=%d file=\"%s\"",
+		(int)g_pilot_data.mission_directory_id,
+		(int)g_pilot_data.mission_description_ids
+			[g_pilot_data.mission_directory_id],
+		g_selected_mission_list_index, descriptor_path);
 	return 1;
 }
 
@@ -6858,6 +7466,9 @@ int mission_setup_draw_game_settings(void)
 		    g_pilot_data.mission_directory_id !=
 			    MISSION_DIRECTORY_TOURNAMENTS) {
 			g_game_config.craft_selection = CRAFT_SELECTION_OFF;
+			XVT_LOG_DEBUG(
+				"mission.setup_selection_cleared directory=%d",
+				(int)g_pilot_data.mission_directory_id);
 		}
 		++row;
 		y += SETTINGS_ROW_HEIGHT;
@@ -6995,6 +7606,25 @@ int mission_setup_draw_game_settings(void)
 	if (row == SETTINGS_ROWS_PER_COLUMN) {
 		x = SETTINGS_RIGHT_X;
 		y = SETTINGS_TOP_Y;
+	}
+	if (settings_changed != 0) {
+		XVT_LOG_DEBUG(
+			"mission.setup_options difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"settings\"",
+			(int)g_game_config.difficulty,
+			(int)g_game_config.random_setup,
+			(int)g_game_config.battle_length_index,
+			(int)g_game_config.craft_waves,
+			(int)g_game_config.craft_selection,
+			(int)g_game_config.mission_time_limit,
+			(int)g_game_config.last_team_time_limit_minutes,
+			(int)g_game_config.collisions,
+			(int)g_game_config.craft_jumping,
+			(int)g_game_config.require_password,
+			(int)g_game_config.in_progress_join,
+			(int)g_game_config.locate_players,
+			(int)g_game_config.ai_opponents,
+			(int)g_game_config.combat_balance,
+			(int)g_game_config.continue_battle_or_campaign);
 	}
 
 	if (g_frontend_mission_session_mode !=
@@ -7260,11 +7890,26 @@ int mission_setup_use_rebel_background(void)
 							 .flight_group_count >
 						 flight_group_index);
 				}
+				XVT_LOG_DEBUG(
+					"mission.setup_campaign_side file=\"%s\" iff=%d",
+					file_path,
+					(int)mission
+						.flight_groups
+							[flight_group_index]
+						.iff);
 
 				return mission.flight_groups[flight_group_index]
 					       .iff == 0;
 			}
+		} else {
+			XVT_LOG_WARN(
+				"mission.setup_campaign_side_fallback reason=\"short\" file=\"%s\"",
+				file_path);
 		}
+	} else {
+		XVT_LOG_WARN(
+			"mission.setup_campaign_side_fallback reason=\"open\" file=\"%s\"",
+			file_path);
 	}
 
 	return 1;
@@ -7320,6 +7965,10 @@ void mission_setup_draw_craft_loadout(void)
 	}
 	model_preview_set_object_euler_degrees(110.0f, -135.0f, 20.0f);
 	int craft_type = mission_setup_get_craft_type(-1);
+	if (craft_type < 0 || craft_type > 16) {
+		XVT_LOG_WARN("mission.setup_preview_craft_unknown craft=%d",
+			     craft_type);
+	}
 	if (g_pilot_data.mission_directory_id == MISSION_DIRECTORY_MELEES ||
 	    g_pilot_data.mission_directory_id ==
 		    MISSION_DIRECTORY_TOURNAMENTS) {
@@ -7368,6 +8017,10 @@ void mission_setup_draw_craft_loadout(void)
 		    g_mp_roster[roster_index].player_id) {
 			break;
 		}
+	}
+	if (roster_index >=
+	    (int)(sizeof(g_mp_roster) / sizeof(g_mp_roster[0]))) {
+		XVT_LOG_WARN("mission.setup_local_player_unlisted");
 	}
 
 	int draw_beam;
@@ -8419,6 +9072,10 @@ int mission_setup_update_craft_loadout(void)
 				selected_option_index;
 		}
 		loadout_changed = 1;
+		XVT_LOG_DEBUG(
+			"mission.setup_loadout_chosen kind=\"countermeasure\" option=%d choices=%d",
+			g_mission_setup_selected_countermeasure_option_index,
+			g_mission_setup_countermeasure_option_count);
 	}
 
 	frontend_draw_rect_offset_xy(&rect, 0, -BUTTON_SPACING);
@@ -8449,6 +9106,10 @@ int mission_setup_update_craft_loadout(void)
 				selected_option_index;
 		}
 		loadout_changed = 1;
+		XVT_LOG_DEBUG(
+			"mission.setup_loadout_chosen kind=\"beam\" option=%d choices=%d",
+			g_mission_setup_selected_beam_option_index,
+			g_mission_setup_beam_option_count);
 	}
 
 	frontend_draw_rect_offset_xy(&rect, 0, -BUTTON_SPACING);
@@ -8482,6 +9143,10 @@ int mission_setup_update_craft_loadout(void)
 				selected_option_index;
 		}
 		loadout_changed = 1;
+		XVT_LOG_DEBUG(
+			"mission.setup_loadout_chosen kind=\"warhead\" option=%d choices=%d",
+			g_mission_setup_selected_warhead_option_index,
+			g_mission_setup_warhead_option_count);
 	}
 
 	frontend_draw_rect_offset_xy(&rect, 0, -BUTTON_SPACING);
@@ -8623,6 +9288,11 @@ int mission_setup_update_craft_loadout(void)
 						PILOT_FACTION_REBEL) {
 						reject_craft_choice = 1;
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_craft_faction_check craft=%d faction=%d reject=%d",
+						craft_type,
+						g_pilot_data.current_faction_id,
+						reject_craft_choice);
 				}
 			}
 			g_mission_setup_selected_preset_craft_option_index =
@@ -8701,6 +9371,14 @@ int mission_setup_update_craft_loadout(void)
 					frontend_display_unlock_offscreen_surface(
 						1);
 				}
+				XVT_LOG_DEBUG(
+					"mission.setup_craft_chosen craft=%d fg=%d preset=%d option=%d count=%d waves=%d",
+					craft_type,
+					g_mission_setup_selected_flight_group_index,
+					g_mission_setup_selected_preset_craft_option_index,
+					g_mission_setup_selected_flight_group_craft_option_index,
+					g_mission_setup_selected_craft_count,
+					g_mission_setup_selected_wave_count_minus_one);
 				break;
 			}
 		}
@@ -8844,6 +9522,11 @@ int mission_setup_update_craft_loadout(void)
 						PILOT_FACTION_REBEL) {
 						reject_craft_choice = 1;
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_craft_faction_check craft=%d faction=%d reject=%d",
+						craft_type,
+						g_pilot_data.current_faction_id,
+						reject_craft_choice);
 				}
 			}
 			g_mission_setup_selected_preset_craft_option_index =
@@ -8916,6 +9599,13 @@ int mission_setup_update_craft_loadout(void)
 			front_image_draw_sprite_translucent("regoverlay", 0, 0);
 			frontend_display_unlock_offscreen_surface(1);
 		}
+		XVT_LOG_DEBUG(
+			"mission.setup_craft_chosen craft=%d fg=%d preset=%d option=%d count=%d waves=%d",
+			craft_type, g_mission_setup_selected_flight_group_index,
+			g_mission_setup_selected_preset_craft_option_index,
+			g_mission_setup_selected_flight_group_craft_option_index,
+			g_mission_setup_selected_craft_count,
+			g_mission_setup_selected_wave_count_minus_one);
 	}
 
 	selected_preset_craft_option_index =
@@ -9016,6 +9706,10 @@ void mission_setup_init_craft_loadout(void)
 
 	g_mission_setup_selected_flight_group_index =
 		selected_flight_group_index;
+	if (selected_flight_group_index < 0) {
+		XVT_LOG_WARN("mission.setup_flight_group_missing fg=%d team=%d",
+			     selected_flight_group_index, g_pilot_data.team);
+	}
 	g_mission_setup_selected_flight_group_craft_option_index = 0;
 	g_mission_setup_selected_preset_craft_option_index = 0;
 	g_mission_setup_selected_warhead_option_index = 0;
@@ -9120,6 +9814,19 @@ void mission_setup_init_craft_loadout(void)
 				option_count + 1;
 		}
 	}
+	XVT_LOG_DEBUG(
+		"mission.setup_loadout_ready fg=%d category=%d presets=%d options=%d warheads=%d beams=%d countermeasures=%d count=%d waves=%d",
+		selected_flight_group_index,
+		(int)g_frontend_mission
+			.flight_groups[selected_flight_group_index]
+			.optional_craft_category,
+		g_mission_setup_preset_craft_option_count,
+		g_mission_setup_flight_group_craft_option_count,
+		g_mission_setup_warhead_option_count,
+		g_mission_setup_beam_option_count,
+		g_mission_setup_countermeasure_option_count,
+		g_mission_setup_selected_craft_count,
+		g_mission_setup_selected_wave_count_minus_one);
 
 	int preset_craft_option_index;
 	if (g_pilot_data.mission_sequence_active == 1 &&
@@ -9143,6 +9850,9 @@ void mission_setup_init_craft_loadout(void)
 		if (counterpart_craft_type == 0) {
 			return;
 		}
+		XVT_LOG_DEBUG(
+			"mission.setup_craft_counterpart craft=%d counterpart=%d",
+			craft_type, counterpart_craft_type);
 
 		int craft_type_mismatch;
 		do {
@@ -9579,6 +10289,8 @@ void ship_list_load(void)
 	g_ship_list =
 		(struct ship_list_entry *)malloc(sizeof(*g_ship_list) * 100);
 	if (g_ship_list == NULL) {
+		XVT_LOG_ERROR(
+			"mission.setup_ship_list_failed reason=\"memory\"");
 		return;
 	}
 
@@ -9589,6 +10301,7 @@ void ship_list_load(void)
 	int ship_count = 0;
 	xvt_file *stream = file_open("frontres\\frntspec.lst", "r");
 	if (stream == NULL) {
+		XVT_LOG_ERROR("mission.setup_ship_list_failed reason=\"open\"");
 		return;
 	}
 
@@ -9625,6 +10338,10 @@ void ship_list_load(void)
 			[sizeof(g_ship_list[ship_list_index].model_file_name) -
 			 1] = '\0';
 		g_ship_list[ship_list_index].craft_type = craft_type;
+		XVT_LOG_DEBUG(
+			"mission.setup_ship_listed index=%d craft=%d file=\"%s\"",
+			ship_list_index, craft_type,
+			g_ship_list[ship_list_index].model_file_name);
 		if (craft_type < 17) {
 			g_ship_type_to_ship_list_index[craft_type] = ship_count;
 		}
@@ -9633,6 +10350,7 @@ void ship_list_load(void)
 	}
 	file_close(stream);
 	g_ship_count = ship_count;
+	XVT_LOG_DEBUG("mission.setup_ship_list_loaded ships=%d", g_ship_count);
 }
 
 /* Exit callback of the mission_setup_enter_next_mission screen: frees
@@ -9699,6 +10417,12 @@ int mission_setup_enter_next_mission(int frame_counter)
 			++g_selected_mission_list_index;
 		}
 	}
+	XVT_LOG_DEBUG(
+		"mission.setup_sequence_resumed directory=%d saved=%d listed=%d missions=%u index=%d",
+		(int)g_pilot_data.mission_directory_id,
+		g_pilot_data.saved_mission_description_id,
+		g_mission_list != NULL, g_mission_count,
+		g_selected_mission_list_index);
 
 	for (int player_index = 0; player_index < NETWORK_PLAYER_COUNT;
 	     ++player_index) {
@@ -9878,6 +10602,18 @@ int mission_setup_prune_disconnected_players(void)
 				} while (player_count > roster_index);
 			}
 			if (player_count == roster_index) {
+				if (g_mission_setup_player_assignments
+					    .team_player_ids
+						    [team_index]
+						    [team_player_index] != 0) {
+					XVT_LOG_DEBUG(
+						"mission.setup_team_slot_cleared player=%u team=%d place=%d",
+						(unsigned)g_mission_setup_player_assignments
+							.team_player_ids
+								[team_index]
+								[team_player_index],
+						team_index, team_player_index);
+				}
 				g_mission_setup_player_assignments
 					.team_player_ids[team_index]
 							[team_player_index] = 0;
@@ -9903,9 +10639,27 @@ int mission_setup_prune_disconnected_players(void)
 			} while (player_count > roster_index);
 		}
 		if (roster_index == 8) {
+			XVT_LOG_DEBUG(
+				"mission.setup_assignment_cleared player=%u index=%d roster=%u",
+				(unsigned)g_mission_setup_player_assignments
+					.assigned_player_ids
+						[active_player_index],
+				active_player_index,
+				(unsigned)g_mp_roster[active_player_index]
+					.player_id);
 			g_mission_setup_player_assignments
 				.assigned_player_ids[active_player_index] = 0;
 			g_mp_roster[active_player_index].player_id = 0;
+		} else if (player_count == roster_index &&
+			   g_mission_setup_player_assignments
+					   .assigned_player_ids
+						   [active_player_index] != 0) {
+			XVT_LOG_WARN(
+				"mission.setup_departed_kept player=%u index=%d players=%d",
+				(unsigned)g_mission_setup_player_assignments
+					.assigned_player_ids
+						[active_player_index],
+				active_player_index, player_count);
 		}
 	}
 
@@ -9928,6 +10682,16 @@ int mission_setup_prune_disconnected_players(void)
 			} while (player_count > roster_index);
 		}
 		if (player_count == roster_index) {
+			if (g_pilot_data.network_players[pilot_player_index]
+				    .direct_play_id != 0) {
+				XVT_LOG_DEBUG(
+					"mission.setup_pilot_entry_cleared player=%u index=%d",
+					(unsigned)g_pilot_data
+						.network_players
+							[pilot_player_index]
+						.direct_play_id,
+					pilot_player_index);
+			}
 			g_pilot_data.network_players[pilot_player_index]
 				.direct_play_id = 0;
 		}
@@ -9938,8 +10702,14 @@ int mission_setup_prune_disconnected_players(void)
 		if (g_pilot_data.network_players[pilot_player_index]
 			    .direct_play_id == net_get_local_player_id()) {
 			g_local_pilot_network_player_index = pilot_player_index;
+			XVT_LOG_DEBUG("mission.setup_local_pilot index=%d",
+				      g_local_pilot_network_player_index);
 			break;
 		}
+	}
+	if (pilot_player_index == 8) {
+		XVT_LOG_WARN("mission.setup_local_pilot_missing index=%d",
+			     g_local_pilot_network_player_index);
 	}
 
 	if (g_frontend_mission_session_mode ==
@@ -9963,6 +10733,10 @@ int mission_setup_prune_disconnected_players(void)
 			} while (player_count > roster_index);
 		}
 		if (player_count != roster_index && g_team_count > 0) {
+			XVT_LOG_DEBUG(
+				"mission.setup_teams_compacted index=%d players=%d teams=%d",
+				active_player_index, player_count,
+				g_team_count);
 			/* The loop above stops early only when this assigned
 			 * slot is empty, so the id taken here is always 0, and
 			 * the pass below shifts each team's players down over
@@ -10017,6 +10791,8 @@ int mission_setup_prune_disconnected_players(void)
 			}
 		}
 	}
+	XVT_LOG_DEBUG("mission.setup_departed_pruned players=%d local=%d",
+		      player_count, g_local_pilot_network_player_index);
 	return 1;
 }
 
@@ -10035,6 +10811,12 @@ int mp_roster_compact_active_entries(void)
 					memset(&g_mp_roster[active_index], 0,
 					       sizeof(g_mp_roster
 							      [active_index]));
+					XVT_LOG_DEBUG(
+						"mission.setup_roster_entry_moved player=%u previous=%u index=%u",
+						(unsigned)
+							g_mp_roster[empty_index]
+								.player_id,
+						active_index, empty_index);
 					break;
 				}
 			}
@@ -10086,16 +10868,30 @@ int mission_setup_select_next_sequence_mission(void)
 			       [g_pilot_data.mission_directory_id]) {
 		++descriptor_mission_index;
 	}
+	if (descriptor_mission_index >= g_mission_count) {
+		XVT_LOG_WARN(
+			"mission.setup_sequence_unlisted mission=%d directory=%d missions=%u",
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			(int)g_pilot_data.mission_directory_id,
+			g_mission_count);
+	}
 	char descriptor_path[SEQUENCE_DESCRIPTOR_PATH_CAPACITY];
 	sprintf(descriptor_path, "%s\\%s",
 		g_mission_directory_names[g_pilot_data.mission_directory_id],
 		g_mission_list[descriptor_mission_index].file_name);
 	xvt_file *stream = file_open(descriptor_path, "r");
 	if (stream == NULL) {
+		XVT_LOG_ERROR(
+			"mission.setup_sequence_file_failed file=\"%s\" reason=\"open\"",
+			descriptor_path);
 		return 0;
 	}
 	if (FILE_GETS(g_frontend_scratch_buffer,
 		      SEQUENCE_DESCRIPTOR_LINE_CAPACITY, stream) == NULL) {
+		XVT_LOG_ERROR(
+			"mission.setup_sequence_file_failed file=\"%s\" reason=\"empty\"",
+			descriptor_path);
 		file_close(stream);
 		return 0;
 	}
@@ -10113,6 +10909,10 @@ int mission_setup_select_next_sequence_mission(void)
 			    .last_mission_completed == 0) {
 			--g_pilot_data.campaign_sequence_state
 				  .current_mission_index;
+			XVT_LOG_DEBUG(
+				"mission.setup_sequence_replay kind=\"campaign\" index=%d",
+				(int)g_pilot_data.campaign_sequence_state
+					.current_mission_index);
 		}
 		current_mission_ordinal = g_pilot_data.campaign_sequence_state
 						  .current_mission_index;
@@ -10123,6 +10923,10 @@ int mission_setup_select_next_sequence_mission(void)
 					     1] == BATTLE_MISSION_RESULT_DRAW) {
 			--g_pilot_data.battle_sequence_state
 				  .current_mission_index;
+			XVT_LOG_DEBUG(
+				"mission.setup_sequence_replay kind=\"battle\" index=%d",
+				(int)g_pilot_data.battle_sequence_state
+					.current_mission_index);
 			current_mission_ordinal =
 				g_pilot_data.battle_sequence_state
 					.mission_ordinals
@@ -10151,6 +10955,11 @@ int mission_setup_select_next_sequence_mission(void)
 						break;
 					}
 				}
+				if (duplicate_mission != 0) {
+					XVT_LOG_DEBUG(
+						"mission.setup_sequence_draw_repeat ordinal=%d",
+						current_mission_ordinal);
+				}
 			} while (duplicate_mission != 0);
 		} else {
 			current_mission_ordinal =
@@ -10162,6 +10971,10 @@ int mission_setup_select_next_sequence_mission(void)
 						  .current_mission_index] =
 			current_mission_ordinal;
 	}
+	XVT_LOG_DEBUG(
+		"mission.setup_sequence_ordinal directory=%d ordinal=%d count=%u random=%d seed=%u",
+		(int)g_pilot_data.mission_directory_id, current_mission_ordinal,
+		mission_count, (int)g_game_config.random_setup, random_seed);
 
 	if (current_mission_ordinal >= 0) {
 		int lines_to_read = current_mission_ordinal + 1;
@@ -10177,9 +10990,16 @@ int mission_setup_select_next_sequence_mission(void)
 			}
 			--lines_to_read;
 		} while (lines_to_read != 0);
+	} else {
+		XVT_LOG_WARN(
+			"mission.setup_sequence_ordinal_negative ordinal=%d file=\"%s\"",
+			current_mission_ordinal, descriptor_path);
 	}
 	file_close(stream);
 	if (g_frontend_scratch_buffer[0] == '\0') {
+		XVT_LOG_ERROR(
+			"mission.setup_sequence_file_failed file=\"%s\" reason=\"blank_line\"",
+			descriptor_path);
 		return 0;
 	}
 
@@ -10222,6 +11042,12 @@ int mission_setup_select_next_sequence_mission(void)
 		}
 		++mission_list_index;
 	}
+	if (mission_list_index == (int)g_mission_count) {
+		XVT_LOG_WARN(
+			"mission.setup_sequence_mission_unknown file=\"%s\" directory=%d",
+			descriptor_path,
+			(int)g_pilot_data.mission_directory_id);
+	}
 
 	if (g_mission_list != NULL) {
 		g_selected_mission_list_index = 0;
@@ -10244,6 +11070,12 @@ int mission_setup_select_next_sequence_mission(void)
 	}
 	frontend_mission_load_current();
 	mission_setup_update_team_counts();
+	XVT_LOG_INFO(
+		"mission.setup_sequence_mission file=\"%s\" directory=%d mission=%d teams=%d",
+		descriptor_path, (int)g_pilot_data.mission_directory_id,
+		(int)g_pilot_data.mission_description_ids
+			[g_pilot_data.mission_directory_id],
+		g_team_count);
 	return 1;
 }
 
@@ -10304,6 +11136,18 @@ int mission_setup_enter_current_mission(int frame_counter)
 	g_frontend_net_packet_scratch.packet_type = NET_PACKET_PILOT_RATING;
 	net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
 				  2 * sizeof(int));
+	XVT_LOG_INFO(
+		"mission.setup_replay directory=%d mission=%d solo=%d next=\"%s\"",
+		(int)g_pilot_data.mission_directory_id,
+		(int)g_pilot_data.mission_description_ids
+			[g_pilot_data.mission_directory_id],
+		g_frontend_mission_session_mode ==
+			FRONTEND_MISSION_SESSION_SINGLEPLAYER,
+		g_pilot_data.mission_directory_id ==
+					MISSION_DIRECTORY_TRAINING_EXERCISES &&
+				g_pilot_data.mission_sequence_active == 1
+			? "teams"
+			: "flights");
 	if (g_frontend_mission_session_mode ==
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		g_mission_setup_is_host = 1;
@@ -10556,6 +11400,11 @@ int mission_setup_team_assignment_update(int frame_counter)
 #endif
 		if (g_mission_setup_debrief_transition !=
 		    MISSION_SETUP_DEBRIEF_TRANSITION_NONE) {
+			XVT_LOG_INFO(
+				"mission.setup_team_assigned team=%d teams=%d captain=%u reason=\"kept\"",
+				g_pilot_data.team, g_team_count,
+				(unsigned)g_mission_setup_player_assignments
+					.team_player_ids[g_pilot_data.team][0]);
 			g_mission_setup_debrief_transition =
 				MISSION_SETUP_DEBRIEF_TRANSITION_NONE;
 			g_mission_setup_team_assignment_skipped = 1;
@@ -10605,6 +11454,13 @@ int mission_setup_team_assignment_update(int frame_counter)
 		} else {
 			mission_setup_prune_team_assignments();
 		}
+		XVT_LOG_DEBUG(
+			"mission.setup_teams_opened directory=%d mission=%d index=%d teams=%d kept=%d",
+			(int)g_pilot_data.mission_directory_id,
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			g_selected_mission_list_index, g_team_count,
+			g_frontend_skip_screen_entry_setup);
 
 		int assigned_player_count;
 		if (g_team_count == 1) {
@@ -10615,6 +11471,8 @@ int mission_setup_team_assignment_update(int frame_counter)
 			}
 			if (ready_player_count == 1) {
 				if (g_frontend_skip_screen_entry_setup == 1) {
+					XVT_LOG_DEBUG(
+						"mission.setup_went_back screen=\"teams\" next=\"setup\"");
 					frontend_screen_set_callbacks(
 						mission_setup_update,
 						(frontend_screen_exit_fn)
@@ -10629,6 +11487,15 @@ int mission_setup_team_assignment_update(int frame_counter)
 					.assigned_player_ids[0] =
 					g_mp_roster[0].player_id;
 				g_pilot_data.team = 0;
+				XVT_LOG_INFO(
+					"mission.setup_team_assigned team=%d teams=%d captain=%u reason=\"one_player\"",
+					g_pilot_data.team, g_team_count,
+					(unsigned)
+						g_mission_setup_player_assignments
+							.team_player_ids
+								[g_pilot_data
+									 .team]
+								[0]);
 				frontend_screen_set_callbacks(
 					mission_setup_flight_assignment_update,
 					mission_setup_free_screen_resources);
@@ -10662,9 +11529,25 @@ int mission_setup_team_assignment_update(int frame_counter)
 									[slot_index] =
 								g_mp_roster[assigned_player_count]
 									.player_id;
+							XVT_LOG_DEBUG(
+								"mission.setup_player_placed player=%u team=%d place=%d replaced=0",
+								(unsigned)g_mp_roster
+									[assigned_player_count]
+										.player_id,
+								team_index,
+								slot_index);
 							++assigned_player_count;
 							break;
 						}
+					}
+					if (slot_index >=
+					    g_team_player_flight_group_count
+						    [team_index]) {
+						XVT_LOG_DEBUG(
+							"mission.setup_team_full team=%d players=%d placed=%d",
+							team_index,
+							ready_player_count,
+							assigned_player_count);
 					}
 					if (++team_index >= g_team_count) {
 						team_index = 0;
@@ -10732,6 +11615,15 @@ int mission_setup_team_assignment_update(int frame_counter)
 								mission_setup_flight_assignment_update,
 								mission_setup_free_screen_resources);
 						}
+						XVT_LOG_INFO(
+							"mission.setup_team_assigned team=%d teams=%d captain=%u reason=\"solo_side\"",
+							g_pilot_data.team,
+							g_team_count,
+							(unsigned)g_mission_setup_player_assignments
+								.team_player_ids
+									[g_pilot_data
+										 .team]
+									[0]);
 						g_mission_setup_team_assignment_skipped =
 							1;
 						g_frontend_skip_screen_entry_setup =
@@ -10741,6 +11633,8 @@ int mission_setup_team_assignment_update(int frame_counter)
 				} else if (
 					g_mission_setup_team_assignment_skipped !=
 					0) {
+					XVT_LOG_DEBUG(
+						"mission.setup_went_back screen=\"teams\" next=\"setup\"");
 					frontend_screen_set_callbacks(
 						mission_setup_update,
 						(frontend_screen_exit_fn)
@@ -10781,9 +11675,25 @@ int mission_setup_team_assignment_update(int frame_counter)
 										[slot_index] =
 									g_mp_roster[assigned_player_count]
 										.player_id;
+								XVT_LOG_DEBUG(
+									"mission.setup_player_placed player=%u team=%d place=%d replaced=0",
+									(unsigned)g_mp_roster
+										[assigned_player_count]
+											.player_id,
+									team_index,
+									slot_index);
 								++assigned_player_count;
 								break;
 							}
+						}
+						if (slot_index >=
+						    g_team_player_flight_group_count
+							    [team_index]) {
+							XVT_LOG_DEBUG(
+								"mission.setup_team_full team=%d players=%d placed=%d",
+								team_index,
+								ready_player_count,
+								assigned_player_count);
 						}
 						if (++team_index >=
 						    g_team_count) {
@@ -10805,6 +11715,9 @@ int mission_setup_team_assignment_update(int frame_counter)
 					    .team_player_ids[team_index][0] ==
 				    1) {
 					g_pilot_data.team = team_index;
+					XVT_LOG_DEBUG(
+						"mission.setup_pilot_team team=%d",
+						g_pilot_data.team);
 					break;
 				}
 			}
@@ -10847,6 +11760,15 @@ int mission_setup_team_assignment_update(int frame_counter)
 					mission_setup_flight_assignment_update,
 					mission_setup_free_screen_resources);
 				g_mission_setup_team_assignment_skipped = 1;
+				XVT_LOG_INFO(
+					"mission.setup_team_assigned team=%d teams=%d captain=%u reason=\"melee\"",
+					g_pilot_data.team, g_team_count,
+					(unsigned)
+						g_mission_setup_player_assignments
+							.team_player_ids
+								[g_pilot_data
+									 .team]
+								[0]);
 				return 0;
 			}
 		}
@@ -10857,6 +11779,11 @@ int mission_setup_team_assignment_update(int frame_counter)
 				mission_setup_flight_assignment_update,
 				mission_setup_free_screen_resources);
 			g_mission_setup_team_assignment_skipped = 1;
+			XVT_LOG_INFO(
+				"mission.setup_team_assigned team=%d teams=%d captain=%u reason=\"quick_start\"",
+				g_pilot_data.team, g_team_count,
+				(unsigned)g_mission_setup_player_assignments
+					.team_player_ids[g_pilot_data.team][0]);
 			g_frontend_skip_screen_entry_setup = 0;
 			return 0;
 		}
@@ -10882,6 +11809,11 @@ int mission_setup_team_assignment_update(int frame_counter)
 				mission_setup_flight_assignment_update,
 				mission_setup_free_screen_resources);
 			g_mission_setup_team_assignment_skipped = 1;
+			XVT_LOG_INFO(
+				"mission.setup_team_assigned team=%d teams=%d captain=%u reason=\"training\"",
+				g_pilot_data.team, g_team_count,
+				(unsigned)g_mission_setup_player_assignments
+					.team_player_ids[g_pilot_data.team][0]);
 			g_frontend_skip_screen_entry_setup = 0;
 			return 0;
 		}
@@ -11014,6 +11946,8 @@ int mission_setup_team_assignment_update(int frame_counter)
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		int packet_type = frontend_net_process_network_packets();
 		if (packet_type == NET_PACKET_HOST_CANCELLED) {
+			XVT_LOG_INFO(
+				"mission.setup_cancelled screen=\"teams\"");
 			if (net_is_host() == 0) {
 				frontend_dialog_show_confirm_dialog(
 					frontend_string_get(
@@ -11055,6 +11989,11 @@ int mission_setup_team_assignment_update(int frame_counter)
 					}
 				}
 			}
+			XVT_LOG_INFO(
+				"mission.setup_team_assigned team=%d teams=%d captain=%u reason=\"host\"",
+				g_pilot_data.team, g_team_count,
+				(unsigned)g_mission_setup_player_assignments
+					.team_player_ids[g_pilot_data.team][0]);
 			if (g_pilot_data.mission_directory_id ==
 				    MISSION_DIRECTORY_COMBAT_ENGAGEMENTS &&
 			    g_pilot_data.mission_sequence_active == 1 &&
@@ -11099,6 +12038,7 @@ int mission_setup_team_assignment_update(int frame_counter)
 				mission_setup_free_screen_resources);
 			return 0;
 		} else if (packet_type == NET_PACKET_RETURN_TO_SETUP) {
+			XVT_LOG_INFO("mission.setup_returned screen=\"teams\"");
 			g_frontend_skip_screen_entry_setup = 1;
 			frontend_screen_set_callbacks(
 				mission_setup_update,
@@ -11122,6 +12062,10 @@ int mission_setup_team_assignment_update(int frame_counter)
 			}
 			g_mission_setup_reserved_player_ids[MAX_PLAYERS - 1] =
 				0;
+			XVT_LOG_DEBUG(
+				"mission.setup_reservation player=%u held=0 reserved=%d screen=\"teams\"",
+				(unsigned)g_frontend_net_packet_arg0,
+				g_mission_setup_reserved_player_count);
 		} else if (packet_type == NET_PACKET_TEAM_RESERVATION) {
 			for (slot_index = 0;
 			     slot_index < g_mission_setup_reserved_player_count;
@@ -11137,9 +12081,18 @@ int mission_setup_team_assignment_update(int frame_counter)
 				g_mission_setup_reserved_player_ids
 					[g_mission_setup_reserved_player_count++] =
 						g_frontend_net_packet_arg0;
+				XVT_LOG_DEBUG(
+					"mission.setup_reservation player=%u held=1 reserved=%d screen=\"teams\"",
+					(unsigned)g_frontend_net_packet_arg0,
+					g_mission_setup_reserved_player_count);
 			}
 		} else if (packet_type == NET_PACKET_TEAM_ASSIGNMENTS ||
 			   packet_type == NET_PACKET_CLEAR_TEAM_ASSIGNMENTS) {
+			XVT_LOG_DEBUG(
+				"mission.setup_drag_reset type=%d reserved=%d player=%u",
+				packet_type,
+				g_mission_setup_reserved_player_count,
+				(unsigned)g_mission_setup_dragged_player_id);
 			g_mission_setup_reserved_player_count = 0;
 			memset(g_mission_setup_reserved_player_ids, 0,
 			       sizeof(g_mission_setup_reserved_player_ids));
@@ -11331,6 +12284,8 @@ int mission_setup_team_assignment_update(int frame_counter)
 					frontend_string_get(
 						FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
+				XVT_LOG_DEBUG(
+					"mission.setup_confirm_asked screen=\"teams\" action=\"end_campaign\"");
 				return xvt_dialog_continue_with(
 					xvt_mission_dialogs_resume,
 					XVT_MISSION_TEAM_PREVIOUS);
@@ -11351,6 +12306,8 @@ int mission_setup_team_assignment_update(int frame_counter)
 					mission_setup_update,
 					(frontend_screen_exit_fn)
 						mission_setup_exit);
+				XVT_LOG_DEBUG(
+					"mission.setup_went_back screen=\"teams\" next=\"setup\"");
 			}
 		}
 	} else {
@@ -11371,6 +12328,8 @@ int mission_setup_team_assignment_update(int frame_counter)
 					FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
 				frontend_string_get(FRONTSTR_523_OKAY),
 				frontend_string_get(FRONTSTR_019_CANCEL));
+			XVT_LOG_DEBUG(
+				"mission.setup_confirm_asked screen=\"teams\" action=\"leave\"");
 			return xvt_dialog_continue_with(
 				xvt_mission_dialogs_resume,
 				XVT_MISSION_TEAM_CLIENT_LEAVE);
@@ -11433,6 +12392,15 @@ int mission_setup_team_assignment_update(int frame_counter)
 						}
 					}
 				}
+				XVT_LOG_INFO(
+					"mission.setup_team_assigned team=%d teams=%d captain=%u reason=\"solo_next\"",
+					g_pilot_data.team, g_team_count,
+					(unsigned)
+						g_mission_setup_player_assignments
+							.team_player_ids
+								[g_pilot_data
+									 .team]
+								[0]);
 				if (g_pilot_data.mission_directory_id ==
 					    MISSION_DIRECTORY_COMBAT_ENGAGEMENTS &&
 				    g_pilot_data.mission_sequence_active == 1 &&
@@ -11538,6 +12506,9 @@ int mission_setup_team_assignment_update(int frame_counter)
 			}
 			return 0;
 		}
+		XVT_LOG_DEBUG(
+			"mission.setup_drag_cancelled player=%u screen=\"teams\"",
+			(unsigned)g_mission_setup_dragged_player_id);
 		if (g_frontend_mission_session_mode !=
 		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 			*(int *)g_frontend_net_packet_scratch.payload =
@@ -11682,6 +12653,11 @@ int mission_setup_draw_unassigned_players(int frame_counter)
 							player_id;
 						frontend_mouse_set_input_gate(
 							2);
+						XVT_LOG_DEBUG(
+							"mission.setup_drag_started player=%u screen=\"teams\" source=\"unassigned\" reserved=%d",
+							(unsigned)
+								g_mission_setup_dragged_player_id,
+							g_mission_setup_reserved_player_count);
 					} else {
 						for (index = 0;
 						     index <
@@ -11802,6 +12778,11 @@ int mission_setup_draw_unassigned_players(int frame_counter)
 									}
 								}
 							}
+							XVT_LOG_DEBUG(
+								"mission.setup_drag_started player=%u screen=\"teams\" source=\"unassigned\" reserved=%d",
+								(unsigned)
+									g_mission_setup_dragged_player_id,
+								g_mission_setup_reserved_player_count);
 						}
 					}
 				}
@@ -11835,6 +12816,17 @@ void mission_setup_update_team_counts(void)
 	     flight_group_index;
 	     ++flight_group_index) {
 		if (g_frontend_mission.flight_groups[flight_group_index]
+				    .player_number != 0 &&
+		    g_frontend_mission.flight_groups[flight_group_index].team >=
+			    10) {
+			XVT_LOG_WARN(
+				"mission.setup_team_out_of_range fg=%d team=%d",
+				flight_group_index,
+				(int)g_frontend_mission
+					.flight_groups[flight_group_index]
+					.team);
+		}
+		if (g_frontend_mission.flight_groups[flight_group_index]
 			    .player_number != 0) {
 			++g_team_player_flight_group_count
 				[g_frontend_mission
@@ -11851,6 +12843,18 @@ void mission_setup_update_team_counts(void)
 		}
 		g_team_count = active_team_count;
 	}
+	XVT_LOG_DEBUG(
+		"mission.setup_team_counts teams=%d slots=\"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\"",
+		g_team_count, g_team_player_flight_group_count[0],
+		g_team_player_flight_group_count[1],
+		g_team_player_flight_group_count[2],
+		g_team_player_flight_group_count[3],
+		g_team_player_flight_group_count[4],
+		g_team_player_flight_group_count[5],
+		g_team_player_flight_group_count[6],
+		g_team_player_flight_group_count[7],
+		g_team_player_flight_group_count[8],
+		g_team_player_flight_group_count[9]);
 }
 
 /* Draws the team slots of the team assignment screen and handles drops and
@@ -12020,7 +13024,19 @@ void mission_setup_draw_team_assignments(int frame_counter)
 								break;
 							}
 						}
+						if (active_index == 8) {
+							XVT_LOG_WARN(
+								"mission.setup_assignment_list_full player=%u",
+								(unsigned)
+									g_mission_setup_dragged_player_id);
+						}
 					}
+					XVT_LOG_DEBUG(
+						"mission.setup_player_placed player=%u team=%d place=%d replaced=%u",
+						(unsigned)
+							g_mission_setup_dragged_player_id,
+						team_index, target_slot,
+						(unsigned)replaced_player_id);
 					if (g_game_config.sfx_datapad_enabled !=
 					    0) {
 						frontend_sound_play_ui_sound(
@@ -12246,6 +13262,11 @@ void mission_setup_draw_team_assignments(int frame_counter)
 											}
 										}
 									}
+									XVT_LOG_DEBUG(
+										"mission.setup_drag_started player=%u screen=\"teams\" source=\"team\" reserved=%d",
+										(unsigned)
+											g_mission_setup_dragged_player_id,
+										g_mission_setup_reserved_player_count);
 								}
 							} else {
 								g_mission_setup_dragged_player_id =
@@ -12289,6 +13310,11 @@ void mission_setup_draw_team_assignments(int frame_counter)
 										break;
 									}
 								}
+								XVT_LOG_DEBUG(
+									"mission.setup_drag_started player=%u screen=\"teams\" source=\"team\" reserved=%d",
+									(unsigned)
+										g_mission_setup_dragged_player_id,
+									g_mission_setup_reserved_player_count);
 							}
 						}
 					}
@@ -12377,6 +13403,10 @@ void mission_setup_prune_team_assignments(void)
 					--teams_remaining;
 				} while (teams_remaining != 0);
 			}
+			XVT_LOG_DEBUG(
+				"mission.setup_assignment_pruned player=%u index=%d flights=0",
+				(unsigned)*active_player_id_ptr,
+				active_player_index);
 			*active_player_id_ptr = 0;
 		}
 		++active_player_index;
@@ -12543,6 +13573,8 @@ int mission_setup_update_team_controls(void)
 					   FRONTSTR_798_MISSION_DESCRIPTION),
 				   12, 0, 12, "jewelsound") != 0) {
 			g_mission_setup_show_description_panel = 1;
+			XVT_LOG_DEBUG(
+				"mission.setup_view screen=\"teams\" panel=\"description\"");
 			g_frontend_first_visible_line = 0;
 			front_image_register_resource_default(
 				"frontres\\soloteam.bmp", "background");
@@ -12579,6 +13611,8 @@ int mission_setup_update_team_controls(void)
 					    FRONTSTR_797_ASSIGN_TEAMS),
 				    12, 0, 11, "jewelsound") != 0) {
 				g_mission_setup_show_description_panel = 0;
+				XVT_LOG_DEBUG(
+					"mission.setup_view screen=\"teams\" panel=\"teams\"");
 				front_image_register_resource_default(
 					"frontres\\soloteam.bmp", "background");
 				frontend_display_lock_offscreen_surface();
@@ -12669,6 +13703,8 @@ int mission_setup_randomize_team_assignments(void)
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		ready_player_count = net_count_ready_players();
 	}
+	XVT_LOG_DEBUG("mission.setup_teams_auto players=%d teams=%d",
+		      ready_player_count, g_team_count);
 	int roster_index;
 	int team;
 	while (ready_player_count > 0) {
@@ -12700,6 +13736,10 @@ int mission_setup_randomize_team_assignments(void)
 				g_mission_setup_player_assignments
 					.assigned_player_ids[roster_index] =
 					player_id;
+				XVT_LOG_DEBUG(
+					"mission.setup_player_placed player=%u team=%d place=%d replaced=0",
+					(unsigned)player_id, team,
+					assignment_slot);
 				break;
 			}
 			++team_assignment;
@@ -12742,6 +13782,7 @@ int mission_setup_clear_team_assignments(void)
 	       sizeof(g_mission_setup_player_assignments.team_player_ids));
 	memset(g_mission_setup_player_assignments.assigned_player_ids, 0,
 	       sizeof(g_mission_setup_player_assignments.assigned_player_ids));
+	XVT_LOG_DEBUG("mission.setup_teams_cleared");
 	if (g_frontend_mission_session_mode !=
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		g_frontend_net_packet_scratch.packet_type =
@@ -12768,6 +13809,25 @@ int mission_setup_broadcast_team_assignments(void)
 		0, &g_frontend_net_packet_scratch,
 		sizeof(g_mission_setup_player_assignments.team_player_ids) +
 			sizeof(g_frontend_net_packet_scratch.packet_type));
+	XVT_LOG_DEBUG(
+		"mission.setup_teams_sent teams=%d assigned=\"%u,%u,%u,%u,%u,%u,%u,%u\"",
+		g_team_count,
+		(unsigned)g_mission_setup_player_assignments
+			.assigned_player_ids[0],
+		(unsigned)g_mission_setup_player_assignments
+			.assigned_player_ids[1],
+		(unsigned)g_mission_setup_player_assignments
+			.assigned_player_ids[2],
+		(unsigned)g_mission_setup_player_assignments
+			.assigned_player_ids[3],
+		(unsigned)g_mission_setup_player_assignments
+			.assigned_player_ids[4],
+		(unsigned)g_mission_setup_player_assignments
+			.assigned_player_ids[5],
+		(unsigned)g_mission_setup_player_assignments
+			.assigned_player_ids[6],
+		(unsigned)g_mission_setup_player_assignments
+			.assigned_player_ids[7]);
 	return 1;
 }
 
@@ -12827,6 +13887,16 @@ int mission_setup_try_continue_battle(void)
 						 g_selected_mission_list_index);
 			}
 		}
+		if (g_mission_list == NULL ||
+		    (unsigned int)g_selected_mission_list_index >=
+			    g_mission_count) {
+			XVT_LOG_WARN(
+				"mission.setup_sequence_unlisted mission=%d directory=%d missions=%u",
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				(int)g_pilot_data.mission_directory_id,
+				g_mission_count);
+		}
 		if (g_game_config.continue_battle_or_campaign !=
 			    SEQUENCE_RESTART &&
 		    g_pilot_data.sp_battle_continuations
@@ -12842,6 +13912,14 @@ int mission_setup_try_continue_battle(void)
 					.sp_battle_continuations[mission_index]
 					.sequence_state,
 			       sizeof(g_pilot_data.battle_sequence_state));
+			XVT_LOG_INFO(
+				"mission.setup_sequence_continued kind=\"battle\" mission=%d index=%d score=%d role=\"solo\"",
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				(int)g_pilot_data.battle_sequence_state
+					.current_mission_index,
+				g_pilot_data.battle_sequence_state
+					.cumulative_score);
 			g_pilot_data.launch_session_marker = 1;
 			++g_pilot_data.battle_sequence_state
 				  .current_mission_index;
@@ -12854,6 +13932,13 @@ int mission_setup_try_continue_battle(void)
 					.mission_idx;
 		g_pilot_data.sp_battle_continuations[mission_index].is_active =
 			0;
+		XVT_LOG_INFO(
+			"mission.setup_sequence_fresh kind=\"battle\" mission=%d role=\"solo\" reason=\"%s\"",
+			mission_index,
+			g_game_config.continue_battle_or_campaign ==
+					SEQUENCE_RESTART
+				? "restart_chosen"
+				: "none_saved");
 		return 0;
 	}
 
@@ -12883,6 +13968,16 @@ int mission_setup_try_continue_battle(void)
 						 g_selected_mission_list_index);
 			}
 		}
+		if (g_mission_list == NULL ||
+		    (unsigned int)g_selected_mission_list_index >=
+			    g_mission_count) {
+			XVT_LOG_WARN(
+				"mission.setup_sequence_unlisted mission=%d directory=%d missions=%u",
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				(int)g_pilot_data.mission_directory_id,
+				g_mission_count);
+		}
 		if (g_game_config.continue_battle_or_campaign ==
 			    SEQUENCE_RESTART ||
 		    g_pilot_data.mp_battle_continuations
@@ -12904,6 +13999,13 @@ int mission_setup_try_continue_battle(void)
 				sizeof(g_frontend_net_packet_scratch
 					       .packet_type) +
 					sizeof(int));
+			XVT_LOG_INFO(
+				"mission.setup_sequence_fresh kind=\"battle\" mission=%d role=\"host\" reason=\"%s\"",
+				mission_index,
+				g_game_config.continue_battle_or_campaign ==
+						SEQUENCE_RESTART
+					? "restart_chosen"
+					: "none_saved");
 			return 0;
 		}
 
@@ -12942,6 +14044,13 @@ int mission_setup_try_continue_battle(void)
 							 .mission_idx]
 				.sequence_state,
 		       sizeof(g_pilot_data.battle_sequence_state));
+		XVT_LOG_INFO(
+			"mission.setup_sequence_continued kind=\"battle\" mission=%d index=%d score=%d role=\"host\"",
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			(int)g_pilot_data.battle_sequence_state
+				.current_mission_index,
+			g_pilot_data.battle_sequence_state.cumulative_score);
 	} else {
 #ifdef XVT_MODERN
 		int wait_result = xvt_campaign_task_wait_packet(
@@ -12951,6 +14060,9 @@ int mission_setup_try_continue_battle(void)
 		}
 		if (wait_result == 0) {
 			--g_pilot_data.mission_directory_id;
+			XVT_LOG_DEBUG(
+				"mission.setup_continuation_lost kind=\"battle\" directory=%d",
+				(int)g_pilot_data.mission_directory_id);
 			return 0;
 		}
 #else
@@ -12994,6 +14106,16 @@ int mission_setup_try_continue_battle(void)
 						 g_selected_mission_list_index);
 			}
 		}
+		if (g_mission_list == NULL ||
+		    (unsigned int)g_selected_mission_list_index >=
+			    g_mission_count) {
+			XVT_LOG_WARN(
+				"mission.setup_sequence_unlisted mission=%d directory=%d missions=%u",
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				(int)g_pilot_data.mission_directory_id,
+				g_mission_count);
+		}
 		if (received_packet[1] == 0) {
 			--g_pilot_data.mission_directory_id;
 			mission_index =
@@ -13001,6 +14123,9 @@ int mission_setup_try_continue_battle(void)
 					.mission_idx;
 			g_pilot_data.mp_battle_continuations[mission_index]
 				.is_active = 0;
+			XVT_LOG_INFO(
+				"mission.setup_sequence_fresh kind=\"battle\" mission=%d role=\"client\" reason=\"host_fresh\"",
+				mission_index);
 			return 0;
 		}
 
@@ -13028,6 +14153,18 @@ int mission_setup_try_continue_battle(void)
 		} else {
 			g_pilot_data.battle_sequence_state.cumulative_score = 0;
 		}
+		XVT_LOG_INFO(
+			"mission.setup_sequence_continued kind=\"battle\" mission=%d index=%d score=%d role=\"client\"",
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			(int)g_pilot_data.battle_sequence_state
+				.current_mission_index,
+			g_pilot_data.battle_sequence_state.cumulative_score);
+		XVT_LOG_DEBUG(
+			"mission.setup_continuation_received kind=\"battle\" seed=%u saved=%u score=%d",
+			(unsigned)received_packet[2],
+			(unsigned)continuation_seed,
+			g_pilot_data.battle_sequence_state.cumulative_score);
 	}
 
 	g_pilot_data.launch_session_marker = 1;
@@ -13094,6 +14231,16 @@ int mission_setup_try_continue_campaign(void)
 						 g_selected_mission_list_index);
 			}
 		}
+		if (g_mission_list == NULL ||
+		    (unsigned int)g_selected_mission_list_index >=
+			    g_mission_count) {
+			XVT_LOG_WARN(
+				"mission.setup_sequence_unlisted mission=%d directory=%d missions=%u",
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				(int)g_pilot_data.mission_directory_id,
+				g_mission_count);
+		}
 		if (g_game_config.continue_battle_or_campaign !=
 			    SEQUENCE_RESTART &&
 		    g_pilot_data.sp_campaign_continuations
@@ -13110,6 +14257,14 @@ int mission_setup_try_continue_campaign(void)
 						[mission_index]
 					.sequence_state,
 			       sizeof(g_pilot_data.campaign_sequence_state));
+			XVT_LOG_INFO(
+				"mission.setup_sequence_continued kind=\"campaign\" mission=%d index=%d score=%d role=\"solo\"",
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				(int)g_pilot_data.campaign_sequence_state
+					.current_mission_index,
+				(int)g_pilot_data.campaign_sequence_state
+					.cumulative_score);
 			g_pilot_data.launch_session_marker = 1;
 			++g_pilot_data.campaign_sequence_state
 				  .current_mission_index;
@@ -13123,6 +14278,13 @@ int mission_setup_try_continue_campaign(void)
 					.mission_idx;
 		g_pilot_data.sp_campaign_continuations[mission_index]
 			.is_active = 0;
+		XVT_LOG_INFO(
+			"mission.setup_sequence_fresh kind=\"campaign\" mission=%d role=\"solo\" reason=\"%s\"",
+			mission_index,
+			g_game_config.continue_battle_or_campaign ==
+					SEQUENCE_RESTART
+				? "restart_chosen"
+				: "none_saved");
 		return 0;
 	}
 
@@ -13151,6 +14313,16 @@ int mission_setup_try_continue_campaign(void)
 						 g_selected_mission_list_index);
 			}
 		}
+		if (g_mission_list == NULL ||
+		    (unsigned int)g_selected_mission_list_index >=
+			    g_mission_count) {
+			XVT_LOG_WARN(
+				"mission.setup_sequence_unlisted mission=%d directory=%d missions=%u",
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				(int)g_pilot_data.mission_directory_id,
+				g_mission_count);
+		}
 		if (g_game_config.continue_battle_or_campaign ==
 			    SEQUENCE_RESTART ||
 		    g_pilot_data.mp_campaign_continuations
@@ -13173,6 +14345,13 @@ int mission_setup_try_continue_campaign(void)
 				sizeof(g_frontend_net_packet_scratch
 					       .packet_type) +
 					sizeof(int));
+			XVT_LOG_INFO(
+				"mission.setup_sequence_fresh kind=\"campaign\" mission=%d role=\"host\" reason=\"%s\"",
+				mission_index,
+				g_game_config.continue_battle_or_campaign ==
+						SEQUENCE_RESTART
+					? "restart_chosen"
+					: "none_saved");
 			return 0;
 		}
 
@@ -13211,6 +14390,14 @@ int mission_setup_try_continue_campaign(void)
 							 .mission_idx]
 				.sequence_state,
 		       sizeof(g_pilot_data.campaign_sequence_state));
+		XVT_LOG_INFO(
+			"mission.setup_sequence_continued kind=\"campaign\" mission=%d index=%d score=%d role=\"host\"",
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			(int)g_pilot_data.campaign_sequence_state
+				.current_mission_index,
+			(int)g_pilot_data.campaign_sequence_state
+				.cumulative_score);
 	} else {
 #ifdef XVT_MODERN
 		int wait_result = xvt_campaign_task_wait_packet(
@@ -13221,6 +14408,9 @@ int mission_setup_try_continue_campaign(void)
 		if (wait_result == 0) {
 			g_pilot_data.mission_directory_id =
 				MISSION_DIRECTORY_TRAINING_EXERCISES;
+			XVT_LOG_DEBUG(
+				"mission.setup_continuation_lost kind=\"campaign\" directory=%d",
+				(int)g_pilot_data.mission_directory_id);
 			return 0;
 		}
 #else
@@ -13264,6 +14454,16 @@ int mission_setup_try_continue_campaign(void)
 						 g_selected_mission_list_index);
 			}
 		}
+		if (g_mission_list == NULL ||
+		    (unsigned int)g_selected_mission_list_index >=
+			    g_mission_count) {
+			XVT_LOG_WARN(
+				"mission.setup_sequence_unlisted mission=%d directory=%d missions=%u",
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				(int)g_pilot_data.mission_directory_id,
+				g_mission_count);
+		}
 		if (received_packet[1] == 0) {
 			g_pilot_data.mission_directory_id =
 				MISSION_DIRECTORY_TRAINING_EXERCISES;
@@ -13273,6 +14473,10 @@ int mission_setup_try_continue_campaign(void)
 				CAMPAIGN_CLIENT_CONTINUATION_OFFSET;
 			g_pilot_data.mp_campaign_continuations[mission_index]
 				.is_active = 0;
+			XVT_LOG_INFO(
+				"mission.setup_sequence_fresh kind=\"campaign\" mission=%d role=\"client\" reason=\"host_fresh\"",
+				mission_index -
+					CAMPAIGN_CLIENT_CONTINUATION_OFFSET);
 			return 0;
 		}
 
@@ -13304,6 +14508,20 @@ int mission_setup_try_continue_campaign(void)
 			g_pilot_data.campaign_sequence_state.cumulative_score =
 				0;
 		}
+		XVT_LOG_INFO(
+			"mission.setup_sequence_continued kind=\"campaign\" mission=%d index=%d score=%d role=\"client\"",
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			(int)g_pilot_data.campaign_sequence_state
+				.current_mission_index,
+			(int)g_pilot_data.campaign_sequence_state
+				.cumulative_score);
+		XVT_LOG_DEBUG(
+			"mission.setup_continuation_received kind=\"campaign\" seed=%u saved=%u score=%d",
+			(unsigned)received_packet[2],
+			(unsigned)continuation_seed,
+			(int)g_pilot_data.campaign_sequence_state
+				.cumulative_score);
 	}
 
 	g_pilot_data.launch_session_marker = 1;
@@ -13609,6 +14827,25 @@ int mission_setup_flight_assignment_update(int frame_counter)
 				}
 			}
 		}
+		XVT_LOG_DEBUG(
+			"mission.setup_flights_prefilled team=%d kept=%d fgs=\"%d,%d,%d,%d,%d,%d,%d,%d\"",
+			g_pilot_data.team, g_frontend_skip_screen_entry_setup,
+			g_mission_setup_player_flight_group_indices
+				[g_pilot_data.team * 8 + 0],
+			g_mission_setup_player_flight_group_indices
+				[g_pilot_data.team * 8 + 1],
+			g_mission_setup_player_flight_group_indices
+				[g_pilot_data.team * 8 + 2],
+			g_mission_setup_player_flight_group_indices
+				[g_pilot_data.team * 8 + 3],
+			g_mission_setup_player_flight_group_indices
+				[g_pilot_data.team * 8 + 4],
+			g_mission_setup_player_flight_group_indices
+				[g_pilot_data.team * 8 + 5],
+			g_mission_setup_player_flight_group_indices
+				[g_pilot_data.team * 8 + 6],
+			g_mission_setup_player_flight_group_indices
+				[g_pilot_data.team * 8 + 7]);
 		g_frontend_skip_screen_entry_setup = 1;
 
 		if (g_pilot_data.mission_directory_id ==
@@ -13624,6 +14861,25 @@ int mission_setup_flight_assignment_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_briefing_craft_selection_update,
 					mission_briefing_craft_selection_exit);
+				XVT_LOG_INFO(
+					"mission.setup_flights_assigned team=%d fgs=\"%d,%d,%d,%d,%d,%d,%d,%d\" reason=\"melee\"",
+					g_pilot_data.team,
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 0],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 1],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 2],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 3],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 4],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 5],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 6],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 7]);
 				return 0;
 			}
 		}
@@ -13631,6 +14887,25 @@ int mission_setup_flight_assignment_update(int frame_counter)
 			frontend_screen_set_callbacks(
 				mission_briefing_craft_selection_update,
 				mission_briefing_craft_selection_exit);
+			XVT_LOG_INFO(
+				"mission.setup_flights_assigned team=%d fgs=\"%d,%d,%d,%d,%d,%d,%d,%d\" reason=\"quick_start\"",
+				g_pilot_data.team,
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 0],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 1],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 2],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 3],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 4],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 5],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 6],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 7]);
 			return 0;
 		}
 
@@ -13812,6 +15087,8 @@ int mission_setup_flight_assignment_update(int frame_counter)
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		int packet_type = frontend_net_process_network_packets();
 		if (packet_type == NET_PACKET_HOST_CANCELLED) {
+			XVT_LOG_INFO(
+				"mission.setup_cancelled screen=\"flights\"");
 			net_shutdown_direct_play_session();
 			if (net_is_host() == 0) {
 				frontend_dialog_show_confirm_dialog(
@@ -13839,11 +15116,32 @@ int mission_setup_flight_assignment_update(int frame_counter)
 			mission_setup_prune_flight_assignments();
 		} else if (packet_type == NET_PACKET_FLIGHT_ASSIGNMENTS_READY) {
 			mission_setup_fill_flight_assignments();
+			XVT_LOG_INFO(
+				"mission.setup_flights_assigned team=%d fgs=\"%d,%d,%d,%d,%d,%d,%d,%d\" reason=\"captain\"",
+				g_pilot_data.team,
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 0],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 1],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 2],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 3],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 4],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 5],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 6],
+				g_mission_setup_player_flight_group_indices
+					[g_pilot_data.team * 8 + 7]);
 			frontend_screen_set_callbacks(
 				mission_briefing_craft_selection_update,
 				mission_briefing_craft_selection_exit);
 			return 0;
 		} else if (packet_type == NET_PACKET_RETURN_TO_SETUP) {
+			XVT_LOG_INFO(
+				"mission.setup_returned screen=\"flights\"");
 			g_frontend_skip_screen_entry_setup = 1;
 			frontend_screen_set_callbacks(
 				mission_setup_update,
@@ -13874,6 +15172,10 @@ int mission_setup_flight_assignment_update(int frame_counter)
 			}
 			g_mission_setup_reserved_player_ids[MAX_PLAYERS - 1] =
 				0;
+			XVT_LOG_DEBUG(
+				"mission.setup_reservation player=%u held=0 reserved=%d screen=\"flights\"",
+				(unsigned)g_frontend_net_packet_arg0,
+				g_mission_setup_reserved_player_count);
 		} else if (packet_type == NET_PACKET_FLIGHT_RESERVATION) {
 			for (slot_index = 0;
 			     slot_index < g_mission_setup_reserved_player_count;
@@ -13889,6 +15191,10 @@ int mission_setup_flight_assignment_update(int frame_counter)
 				g_mission_setup_reserved_player_ids
 					[g_mission_setup_reserved_player_count++] =
 						g_frontend_net_packet_arg0;
+				XVT_LOG_DEBUG(
+					"mission.setup_reservation player=%u held=1 reserved=%d screen=\"flights\"",
+					(unsigned)g_frontend_net_packet_arg0,
+					g_mission_setup_reserved_player_count);
 			}
 		} else if (packet_type == NET_PACKET_PILOT_RATING) {
 			for (roster_index = 0; roster_index < MAX_PLAYERS;
@@ -13897,6 +15203,13 @@ int mission_setup_flight_assignment_update(int frame_counter)
 				    g_frontend_net_packet_sender_player_id) {
 					g_mp_roster[roster_index].pilot_rating =
 						g_frontend_net_packet_arg0;
+					XVT_LOG_DEBUG(
+						"mission.setup_rating_received player=%u rating=%d index=%d",
+						(unsigned)
+							g_frontend_net_packet_sender_player_id,
+						(int)g_mp_roster[roster_index]
+							.pilot_rating,
+						roster_index);
 					break;
 				}
 			}
@@ -14100,6 +15413,9 @@ int mission_setup_flight_assignment_update(int frame_counter)
 					    .team_player_ids[g_pilot_data.team]
 							    [0]) {
 				g_mission_setup_launch_signal_sent = 1;
+				XVT_LOG_INFO(
+					"mission.setup_flights_timed_out team=%d",
+					g_pilot_data.team);
 				for (slot_index = 0; slot_index < MAX_PLAYERS;
 				     ++slot_index) {
 					if (g_mission_setup_player_assignments
@@ -14165,6 +15481,8 @@ int mission_setup_flight_assignment_update(int frame_counter)
 						frontend_string_get(
 							FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
+					XVT_LOG_DEBUG(
+						"mission.setup_confirm_asked screen=\"flights\" action=\"end_tournament\"");
 					return xvt_dialog_continue_with(
 						xvt_mission_dialogs_resume,
 						XVT_MISSION_SOLO_BACK_TO_TEAMS);
@@ -14184,6 +15502,8 @@ int mission_setup_flight_assignment_update(int frame_counter)
 						frontend_string_get(
 							FRONTSTR_019_CANCEL));
 #ifdef XVT_MODERN
+					XVT_LOG_DEBUG(
+						"mission.setup_confirm_asked screen=\"flights\" action=\"end_battle\"");
 					return xvt_dialog_continue_with(
 						xvt_mission_dialogs_resume,
 						XVT_MISSION_SOLO_BACK_TO_TEAMS);
@@ -14202,6 +15522,8 @@ int mission_setup_flight_assignment_update(int frame_counter)
 						frontend_mission_list_free_screen_resources_and_clear_input_gate
 #endif
 				);
+				XVT_LOG_DEBUG(
+					"mission.setup_went_back screen=\"flights\" next=\"teams\"");
 			}
 		}
 	} else if (net_is_host() != 0) {
@@ -14223,6 +15545,8 @@ int mission_setup_flight_assignment_update(int frame_counter)
 					FRONTSTR_754_TO_SELECT_MISSION),
 				frontend_string_get(FRONTSTR_523_OKAY),
 				frontend_string_get(FRONTSTR_019_CANCEL));
+			XVT_LOG_DEBUG(
+				"mission.setup_confirm_asked screen=\"flights\" action=\"restart\"");
 			return xvt_dialog_continue_with(
 				xvt_mission_dialogs_resume,
 				XVT_MISSION_HOST_RESTART);
@@ -14268,6 +15592,8 @@ int mission_setup_flight_assignment_update(int frame_counter)
 					FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
 				frontend_string_get(FRONTSTR_523_OKAY),
 				frontend_string_get(FRONTSTR_019_CANCEL));
+			XVT_LOG_DEBUG(
+				"mission.setup_confirm_asked screen=\"flights\" action=\"leave\"");
 			return xvt_dialog_continue_with(
 				xvt_mission_dialogs_resume,
 				XVT_MISSION_CLIENT_LEAVE);
@@ -14314,6 +15640,25 @@ int mission_setup_flight_assignment_update(int frame_counter)
 				    frontend_string_get(
 					    FRONTSTR_667_GO_TO_CRAFT_SELECTION),
 				    12, 0, 7, "flysound") != 0) {
+				XVT_LOG_INFO(
+					"mission.setup_flights_assigned team=%d fgs=\"%d,%d,%d,%d,%d,%d,%d,%d\" reason=\"solo\"",
+					g_pilot_data.team,
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 0],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 1],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 2],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 3],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 4],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 5],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 6],
+					g_mission_setup_player_flight_group_indices
+						[g_pilot_data.team * 8 + 7]);
 				frontend_screen_set_callbacks(
 					mission_briefing_craft_selection_update,
 					mission_briefing_craft_selection_exit);
@@ -14367,6 +15712,9 @@ int mission_setup_flight_assignment_update(int frame_counter)
 	if (frontend_mouse_is_gate_owner(DRAG_INPUT_GATE)) {
 		if (frontend_mouse_get_left_click_for(DRAG_INPUT_GATE) != 0 ||
 		    frontend_mouse_get_left_click_for(DRAG_INPUT_GATE) != 0) {
+			XVT_LOG_DEBUG(
+				"mission.setup_drag_cancelled player=%u screen=\"flights\"",
+				(unsigned)g_mission_setup_dragged_player_id);
 			if (g_frontend_mission_session_mode !=
 			    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 				*(int *)g_frontend_net_packet_scratch.payload =
@@ -14630,6 +15978,8 @@ int mission_setup_draw_assignment_controls(void)
 				   ASSIGN_PLAYERS_OR_CLEAR_LIST_HELD_SLOT,
 				   "jewelsound") != 0) {
 			g_mission_setup_use_expanded_assignment_layout = 1;
+			XVT_LOG_DEBUG(
+				"mission.setup_view screen=\"flights\" panel=\"players\"");
 			g_frontend_first_visible_line = 0;
 			frontend_display_lock_offscreen_surface();
 			front_image_draw_sprite_opaque("background", 0, 0);
@@ -14684,6 +16034,8 @@ int mission_setup_draw_assignment_controls(void)
 				    "jewelsound") != 0) {
 				g_mission_setup_use_expanded_assignment_layout =
 					0;
+				XVT_LOG_DEBUG(
+					"mission.setup_view screen=\"flights\" panel=\"map\"");
 				frontend_display_lock_offscreen_surface();
 				front_image_draw_sprite_opaque("background", 0,
 							       0);
@@ -14752,6 +16104,8 @@ int mission_setup_draw_assignment_controls(void)
 			g_briefing_last_narrated_text_block_idx = 0;
 			g_briefing_text_page_number = 0;
 			briefing_script_reset_state();
+			XVT_LOG_DEBUG(
+				"mission.setup_briefing_control action=\"rewind\"");
 		}
 		frontend_draw_rect_offset_xy(&rect, 0, REWIND_TO_STOP_OFFSET);
 		if (g_briefing_playback_active == 0) {
@@ -14767,6 +16121,8 @@ int mission_setup_draw_assignment_controls(void)
 				    STOP_OR_CLEAR_LIST_HELD_SLOT,
 				    "jewelsound") != 0) {
 				g_briefing_playback_active = 0;
+				XVT_LOG_DEBUG(
+					"mission.setup_briefing_control action=\"stop\"");
 			}
 		}
 		frontend_draw_rect_offset_xy(&rect, 0, -BUTTON_ROW_OFFSET);
@@ -14785,6 +16141,8 @@ int mission_setup_draw_assignment_controls(void)
 						UI_SOUND_PAN_CENTER);
 				}
 				briefing_script_advance_to_next_visible_line();
+				XVT_LOG_DEBUG(
+					"mission.setup_briefing_control action=\"forward\"");
 				if (g_briefing_text_slot_block_idx[1] ==
 				    g_briefing_last_narrated_text_block_idx) {
 					g_briefing_last_narrated_text_block_idx =
@@ -14804,6 +16162,8 @@ int mission_setup_draw_assignment_controls(void)
 				   PLAY_OR_AUTO_ASSIGN_HELD_SLOT,
 				   "jewelsound") != 0) {
 			g_briefing_playback_active = 1;
+			XVT_LOG_DEBUG(
+				"mission.setup_briefing_control action=\"play\"");
 		}
 	} else if (captain_controls != 0 &&
 		   slot_states[NAV_SLOT_EXPANDED_AUTO_ASSIGN] !=
@@ -15021,6 +16381,11 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 							player_id;
 						frontend_mouse_set_input_gate(
 							INPUT_GATE);
+						XVT_LOG_DEBUG(
+							"mission.setup_drag_started player=%u screen=\"flights\" source=\"unassigned\" reserved=%d",
+							(unsigned)
+								g_mission_setup_dragged_player_id,
+							g_mission_setup_reserved_player_count);
 					} else {
 						for (reserved_index = 0;
 						     reserved_index <
@@ -15111,6 +16476,11 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 										5 * sizeof(int));
 								}
 							}
+							XVT_LOG_DEBUG(
+								"mission.setup_drag_started player=%u screen=\"flights\" source=\"unassigned\" reserved=%d",
+								(unsigned)
+									g_mission_setup_dragged_player_id,
+								g_mission_setup_reserved_player_count);
 						}
 					}
 				}
@@ -15312,6 +16682,14 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 								0,
 								&g_frontend_net_packet_scratch,
 								2 * sizeof(int));
+							XVT_LOG_DEBUG(
+								"mission.setup_flight_placed player=%u team=%d place=%d fg=%d replaced=-1",
+								(unsigned)
+									g_mission_setup_dragged_player_id,
+								g_pilot_data
+									.team,
+								dragged_team_player_index,
+								flight_group_index);
 						} else {
 							if (g_game_config
 								    .sfx_datapad_enabled !=
@@ -15352,6 +16730,14 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 									 dragged_team_player_index] =
 										flight_group_index;
 							}
+							XVT_LOG_DEBUG(
+								"mission.setup_flight_placed player=%u team=%d place=%d fg=%d replaced=-1",
+								(unsigned)
+									g_mission_setup_dragged_player_id,
+								g_pilot_data
+									.team,
+								dragged_team_player_index,
+								flight_group_index);
 						}
 						g_mission_setup_dragged_player_id =
 							0;
@@ -15386,6 +16772,11 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 									 PLAYER_SLOTS_PER_TEAM +
 								 assigned_team_player_index] =
 									-1;
+							XVT_LOG_DEBUG(
+								"mission.setup_drag_started player=%u screen=\"flights\" source=\"pilot\" reserved=%d",
+								(unsigned)
+									g_mission_setup_dragged_player_id,
+								g_mission_setup_reserved_player_count);
 						} else {
 							int reserved_index;
 							for (reserved_index = 0;
@@ -15481,6 +16872,11 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 											5 * sizeof(int));
 									}
 								}
+								XVT_LOG_DEBUG(
+									"mission.setup_drag_started player=%u screen=\"flights\" source=\"pilot\" reserved=%d",
+									(unsigned)
+										g_mission_setup_dragged_player_id,
+									g_mission_setup_reserved_player_count);
 							}
 						}
 					}
@@ -15555,6 +16951,14 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 							0,
 							&g_frontend_net_packet_scratch,
 							2 * sizeof(int));
+						XVT_LOG_DEBUG(
+							"mission.setup_flight_placed player=%u team=%d place=%d fg=%d replaced=%d",
+							(unsigned)
+								g_mission_setup_dragged_player_id,
+							g_pilot_data.team,
+							dragged_team_player_index,
+							flight_group_index,
+							assigned_team_player_index);
 					} else {
 						if (g_game_config
 							    .sfx_datapad_enabled !=
@@ -15602,6 +17006,14 @@ int mission_setup_draw_flight_assignments(int frame_counter)
 								 dragged_team_player_index] =
 									flight_group_index;
 						}
+						XVT_LOG_DEBUG(
+							"mission.setup_flight_placed player=%u team=%d place=%d fg=%d replaced=%d",
+							(unsigned)
+								g_mission_setup_dragged_player_id,
+							g_pilot_data.team,
+							dragged_team_player_index,
+							flight_group_index,
+							assigned_team_player_index);
 					}
 					g_mission_setup_dragged_player_id = 0;
 					frontend_mouse_clear_input_gate();
@@ -15717,6 +17129,10 @@ void mission_setup_prune_flight_assignments(void)
 					--teams_remaining;
 				} while (teams_remaining != 0);
 			}
+			XVT_LOG_DEBUG(
+				"mission.setup_assignment_pruned player=%u index=%d flights=1",
+				(unsigned)removed_player_id,
+				active_player_index);
 			*active_player_id_ptr = 0;
 		}
 		++active_player_index;
@@ -15777,6 +17193,11 @@ int mission_setup_randomize_flight_assignments(void)
 	int team = g_pilot_data.team;
 	if (g_mission_setup_player_assignments.team_player_ids[team][0] != 0) {
 		do {
+			if (assigned_players >= PLAYER_SLOTS_PER_TEAM) {
+				XVT_LOG_WARN(
+					"mission.setup_flight_random_overrun team=%d place=%d",
+					team, assigned_players);
+			}
 			int selection =
 				rand() % FLIGHT_GROUP_SELECTION_COUNT + 1;
 			g_mission_setup_player_flight_group_indices
@@ -15832,6 +17253,15 @@ int mission_setup_randomize_flight_assignments(void)
 			} while (g_mission_setup_player_flight_group_indices
 					 [team * PLAYER_SLOTS_PER_TEAM +
 					  assigned_players] == -1);
+			XVT_LOG_DEBUG(
+				"mission.setup_flight_placed player=%u team=%d place=%d fg=%d replaced=-1",
+				(unsigned)g_mission_setup_player_assignments
+					.team_player_ids[team]
+							[assigned_players],
+				team, assigned_players,
+				g_mission_setup_player_flight_group_indices
+					[team * PLAYER_SLOTS_PER_TEAM +
+					 assigned_players]);
 			++assigned_players;
 		} while (g_mission_setup_player_assignments
 				 .team_player_ids[team][assigned_players] != 0);
@@ -15876,6 +17306,8 @@ int mission_setup_clear_flight_assignments(void)
 		g_mission_setup_player_flight_group_indices
 			[current_assignment] = -1;
 	} while (assignment_index < 8);
+	XVT_LOG_DEBUG("mission.setup_flights_cleared team=%d",
+		      g_pilot_data.team);
 	if (g_frontend_mission_session_mode !=
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		memcpy(g_frontend_net_packet_scratch.payload,
@@ -15967,6 +17399,16 @@ int mission_setup_fill_flight_assignments(void)
 								       .packet_type) +
 								PACKET_VALUE_COUNT *
 									sizeof(int));
+						XVT_LOG_DEBUG(
+							"mission.setup_flight_placed player=%u team=%d place=%d fg=%d replaced=-1",
+							(unsigned)g_mission_setup_player_assignments
+								.team_player_ids
+									[g_pilot_data
+										 .team]
+									[player_index],
+							g_pilot_data.team,
+							player_index,
+							flight_group_index);
 						break;
 					}
 				}
@@ -16300,12 +17742,28 @@ int mission_setup_battle_choice_update(int frame_counter)
 		g_mission_text = malloc(BRIEFING_TEXT_CAPACITY);
 		mission_setup_load_mission_desc_text(g_mission_text);
 		mission_setup_battle_choice_build_list();
+		XVT_LOG_DEBUG(
+			"mission.setup_battle_choice_opened index=%d result=%d team=%d missions=%d",
+			(int)g_pilot_data.battle_sequence_state
+				.current_mission_index,
+			g_pilot_data.battle_sequence_state
+						.current_mission_index > 0
+				? (int)g_pilot_data.battle_sequence_state
+					  .mission_results
+						  [g_pilot_data
+							   .battle_sequence_state
+							   .current_mission_index -
+						   1]
+				: -1,
+			g_pilot_data.team, g_battle_mission_list_count);
 	}
 
 	if (g_frontend_mission_session_mode !=
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		int packet_type = frontend_net_process_network_packets();
 		if (packet_type == NET_PACKET_HOST_CANCELLED) {
+			XVT_LOG_INFO(
+				"mission.setup_cancelled screen=\"battle_choice\"");
 			net_shutdown_direct_play_session();
 			if (net_is_host() == 0) {
 				frontend_dialog_show_confirm_dialog(
@@ -16359,12 +17817,27 @@ int mission_setup_battle_choice_update(int frame_counter)
 					}
 				}
 			}
+			XVT_LOG_INFO(
+				"mission.setup_battle_mission_chosen mission=%d index=%d",
+				g_pilot_data.battle_sequence_state
+					.current_mission_id,
+				(int)g_pilot_data.battle_sequence_state
+					.current_mission_index);
+			if (g_mission_list == NULL ||
+			    (unsigned int)g_selected_mission_list_index >=
+				    g_mission_count) {
+				XVT_LOG_WARN(
+					"mission.setup_battle_mission_unlisted mission=%d",
+					g_frontend_net_packet_arg0);
+			}
 			frontend_mission_load_current();
 			frontend_screen_set_callbacks(
 				mission_setup_flight_assignment_update,
 				mission_setup_free_screen_resources);
 			return 0;
 		} else if (packet_type == NET_PACKET_RETURN_TO_SETUP) {
+			XVT_LOG_INFO(
+				"mission.setup_returned screen=\"battle_choice\"");
 			g_frontend_skip_screen_entry_setup = 1;
 			frontend_screen_set_callbacks(
 				mission_setup_update,
@@ -16383,6 +17856,13 @@ int mission_setup_battle_choice_update(int frame_counter)
 				    g_frontend_net_packet_sender_player_id) {
 					g_mp_roster[roster_index].pilot_rating =
 						g_frontend_net_packet_arg0;
+					XVT_LOG_DEBUG(
+						"mission.setup_rating_received player=%u rating=%d index=%d",
+						(unsigned)
+							g_frontend_net_packet_sender_player_id,
+						(int)g_mp_roster[roster_index]
+							.pilot_rating,
+						roster_index);
 					break;
 				}
 			}
@@ -16519,6 +17999,11 @@ int mission_setup_battle_choice_update(int frame_counter)
 				g_battle_choice_remaining_ms = 0;
 				if (g_battle_choice_timeout_handled == 0) {
 					g_battle_choice_timeout_handled = 1;
+					XVT_LOG_INFO(
+						"mission.setup_battle_choice_timed_out index=%d",
+						(int)g_pilot_data
+							.battle_sequence_state
+							.current_mission_index);
 					if (g_pilot_data.battle_sequence_state.mission_results
 							    [g_pilot_data
 								     .battle_sequence_state
@@ -16543,6 +18028,10 @@ int mission_setup_battle_choice_update(int frame_counter)
 							net_get_host_player_id(),
 							&g_frontend_net_packet_scratch,
 							BASIC_PACKET_SIZE);
+						XVT_LOG_DEBUG(
+							"mission.setup_battle_choice_sent mission=%d reason=\"timeout\"",
+							g_pilot_data.mission_description_ids
+								[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS]);
 					}
 				}
 				return 0;
@@ -16635,6 +18124,8 @@ int mission_setup_battle_choice_update(int frame_counter)
 					FRONTSTR_683_TERMINATE_THIS_BATTLE),
 				frontend_string_get(FRONTSTR_523_OKAY),
 				frontend_string_get(FRONTSTR_019_CANCEL));
+			XVT_LOG_DEBUG(
+				"mission.setup_confirm_asked screen=\"battle_choice\" action=\"end_battle\"");
 			return xvt_dialog_continue_with(
 				xvt_mission_dialogs_resume,
 				XVT_MISSION_SOLO_BACK_TO_SETUP);
@@ -16680,6 +18171,8 @@ int mission_setup_battle_choice_update(int frame_counter)
 					FRONTSTR_754_TO_SELECT_MISSION),
 				frontend_string_get(FRONTSTR_523_OKAY),
 				frontend_string_get(FRONTSTR_019_CANCEL));
+			XVT_LOG_DEBUG(
+				"mission.setup_confirm_asked screen=\"battle_choice\" action=\"restart\"");
 			return xvt_dialog_continue_with(
 				xvt_mission_dialogs_resume,
 				XVT_MISSION_HOST_RESTART);
@@ -16724,6 +18217,8 @@ int mission_setup_battle_choice_update(int frame_counter)
 					FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
 				frontend_string_get(FRONTSTR_523_OKAY),
 				frontend_string_get(FRONTSTR_019_CANCEL));
+			XVT_LOG_DEBUG(
+				"mission.setup_confirm_asked screen=\"battle_choice\" action=\"leave\"");
 			return xvt_dialog_continue_with(
 				xvt_mission_dialogs_resume,
 				XVT_MISSION_CLIENT_LEAVE);
@@ -16767,6 +18262,12 @@ int mission_setup_battle_choice_update(int frame_counter)
 			    &rect, "nextup", "nextdown",
 			    frontend_string_get(FRONTSTR_475_GO_TO_BRIEFING),
 			    12, 0, 7, "flysound") != 0) {
+			XVT_LOG_INFO(
+				"mission.setup_battle_mission_chosen mission=%d index=%d",
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				(int)g_pilot_data.battle_sequence_state
+					.current_mission_index);
 			frontend_screen_set_callbacks(
 				mission_setup_flight_assignment_update,
 				mission_setup_free_screen_resources);
@@ -16796,6 +18297,10 @@ int mission_setup_battle_choice_update(int frame_counter)
 				net_get_host_player_id(),
 				&g_frontend_net_packet_scratch,
 				BASIC_PACKET_SIZE);
+			XVT_LOG_DEBUG(
+				"mission.setup_battle_choice_sent mission=%d reason=\"next\"",
+				g_pilot_data.mission_description_ids
+					[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS]);
 		}
 	}
 
@@ -16985,6 +18490,13 @@ int mission_setup_battle_choice_build_list(void)
 			       [MISSION_DIRECTORY_BATTLES]) {
 		++selected_mission_index;
 	}
+	if (selected_mission_index >= g_mission_count) {
+		XVT_LOG_WARN(
+			"mission.setup_sequence_unlisted mission=%d directory=%d missions=%u",
+			(int)g_pilot_data.mission_description_ids
+				[MISSION_DIRECTORY_BATTLES],
+			(int)MISSION_DIRECTORY_BATTLES, g_mission_count);
+	}
 	char battle_descriptor_path[BATTLE_DESCRIPTOR_PATH_CAPACITY];
 	sprintf(battle_descriptor_path, "%s\\%s",
 		g_mission_directory_names[MISSION_DIRECTORY_BATTLES],
@@ -16997,10 +18509,16 @@ int mission_setup_battle_choice_build_list(void)
 
 	xvt_file *stream = file_open(battle_descriptor_path, "r");
 	if (stream == NULL) {
+		XVT_LOG_ERROR(
+			"mission.setup_sequence_file_failed file=\"%s\" reason=\"open\"",
+			battle_descriptor_path);
 		return 0;
 	}
 	if (FILE_GETS(g_frontend_scratch_buffer,
 		      BATTLE_DESCRIPTOR_LINE_CAPACITY, stream) == NULL) {
+		XVT_LOG_ERROR(
+			"mission.setup_sequence_file_failed file=\"%s\" reason=\"empty\"",
+			battle_descriptor_path);
 		file_close(stream);
 		return 0;
 	}
@@ -17009,6 +18527,10 @@ int mission_setup_battle_choice_build_list(void)
 	g_battle_mission_list_count = parsed_mission_count;
 	g_battle_mission_list = (struct mission_list_entry *)malloc(
 		sizeof(*g_battle_mission_list) * parsed_mission_count);
+	if (g_battle_mission_list == NULL && parsed_mission_count > 0) {
+		XVT_LOG_ERROR("mission.setup_battle_list_alloc_failed count=%d",
+			      parsed_mission_count);
+	}
 	int battle_mission_index = 0;
 	int previous_mission_index;
 	int mission_was_used;
@@ -17016,6 +18538,10 @@ int mission_setup_battle_choice_build_list(void)
 		if (FILE_GETS(g_frontend_scratch_buffer,
 			      BATTLE_DESCRIPTOR_LINE_CAPACITY,
 			      stream) == NULL) {
+			XVT_LOG_WARN(
+				"mission.setup_sequence_file_short file=\"%s\" read=%d count=%d",
+				battle_descriptor_path, battle_mission_index,
+				parsed_mission_count);
 			g_battle_mission_list_count = battle_mission_index;
 			file_close(stream);
 			return 0;
@@ -17071,12 +18597,28 @@ int mission_setup_battle_choice_build_list(void)
 						[battle_mission_index]
 							.is_unavailable = 1;
 				}
+				XVT_LOG_DEBUG(
+					"mission.setup_battle_entry index=%d mission=%d used=%d",
+					battle_mission_index,
+					g_battle_mission_list
+						[battle_mission_index]
+							.mission_idx,
+					mission_was_used);
 				break;
 			}
 			++source_mission_index;
 		}
+		if (source_mission_index == g_mission_count) {
+			XVT_LOG_WARN(
+				"mission.setup_battle_entry_unlisted index=%d file=\"%s\"",
+				battle_mission_index,
+				g_frontend_scratch_buffer);
+		}
 		++battle_mission_index;
 	}
+	XVT_LOG_DEBUG("mission.setup_battle_list_built count=%d battle=\"%s\"",
+		      g_battle_mission_list_count,
+		      g_mission_sequence_description);
 	return 1;
 }
 
@@ -17119,6 +18661,7 @@ int mission_setup_battle_choice_draw_list(int frame_counter)
 	};
 
 	if (g_battle_mission_list == NULL) {
+		XVT_LOG_WARN("mission.setup_battle_list_missing");
 		keyboard_flush_char_buffer();
 		frontend_screen_pop_state();
 	}
@@ -17156,6 +18699,10 @@ int mission_setup_battle_choice_draw_list(int frame_counter)
 		if (g_battle_choice_row_count < VISIBLE_ROW_COUNT + 1) {
 			g_battle_choice_scroll_offset = 0;
 		}
+		XVT_LOG_DEBUG(
+			"mission.setup_battle_list_opened rows=%d offset=%d",
+			g_battle_choice_row_count,
+			g_battle_choice_scroll_offset);
 	}
 
 	if (g_frontend_mission_session_mode !=
@@ -17183,6 +18730,12 @@ int mission_setup_battle_choice_draw_list(int frame_counter)
 			}
 		}
 		g_frontend_first_visible_line = 0;
+		XVT_LOG_DEBUG(
+			"mission.setup_mission_followed directory=%d mission=%d index=%d",
+			(int)g_pilot_data.mission_directory_id,
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			g_selected_mission_list_index);
 	}
 
 	memset(last_section_name, 0, sizeof(last_section_name));
@@ -17328,6 +18881,16 @@ int mission_setup_battle_choice_draw_list(int frame_counter)
 									break;
 								}
 							}
+							if ((unsigned int)
+								    g_selected_mission_list_index >=
+							    g_mission_count) {
+								XVT_LOG_WARN(
+									"mission.setup_battle_mission_unlisted mission=%d",
+									(int)g_pilot_data
+										.mission_description_ids
+											[g_pilot_data
+												 .mission_directory_id]);
+							}
 							frontend_mission_load_current();
 							mission_setup_update_team_counts();
 							mission_setup_load_mission_desc_text(
@@ -17339,6 +18902,25 @@ int mission_setup_battle_choice_draw_list(int frame_counter)
 								mission_setup_send_lobby_state(
 									0);
 							}
+							XVT_LOG_DEBUG(
+								"mission.setup_battle_mission_picked mission=%d ordinal=%d entry=%d",
+								(int)g_pilot_data
+									.mission_description_ids
+										[g_pilot_data
+											 .mission_directory_id],
+								g_pilot_data
+									.battle_sequence_state
+									.mission_ordinals
+										[g_pilot_data
+											 .battle_sequence_state
+											 .current_mission_index],
+								g_selected_mission_list_index);
+						} else {
+							XVT_LOG_DEBUG(
+								"mission.setup_battle_choice_refused mission=%d",
+								g_battle_mission_list
+									[battle_mission_index]
+										.mission_idx);
 						}
 					} else {
 						g_pilot_data.mission_description_ids
@@ -17375,12 +18957,34 @@ int mission_setup_battle_choice_draw_list(int frame_counter)
 								break;
 							}
 						}
+						if ((unsigned int)
+							    g_selected_mission_list_index >=
+						    g_mission_count) {
+							XVT_LOG_WARN(
+								"mission.setup_battle_mission_unlisted mission=%d",
+								(int)g_pilot_data
+									.mission_description_ids
+										[g_pilot_data
+											 .mission_directory_id]);
+						}
 						frontend_mission_load_current();
 						mission_setup_update_team_counts();
 						mission_setup_load_mission_desc_text(
 							g_mission_text);
 						g_frontend_first_visible_line =
 							0;
+						XVT_LOG_DEBUG(
+							"mission.setup_battle_mission_picked mission=%d ordinal=%d entry=%d",
+							(int)g_pilot_data.mission_description_ids
+								[g_pilot_data
+									 .mission_directory_id],
+							g_pilot_data
+								.battle_sequence_state
+								.mission_ordinals
+									[g_pilot_data
+										 .battle_sequence_state
+										 .current_mission_index],
+							g_selected_mission_list_index);
 					}
 					keyboard_flush_char_buffer();
 					frontend_screen_pop_state();

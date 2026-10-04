@@ -958,6 +958,616 @@
       "fields": ["player", "players"],
       "text": "Session player {player} had no entry in the pilot record's network players ({players} in the session); its player slot got no id"
     },
+    "mission.setup_assignment_cleared": {
+      "level": "D",
+      "fields": ["player", "index", "roster"],
+      "text": "Assignment entry {index}, player {player} (0: empty), matched no ready member of the lobby roster and was cleared, along with roster entry {index}, which held player {roster}"
+    },
+    "mission.setup_assignment_list_full": {
+      "level": "W",
+      "fields": ["player"],
+      "text": "Player {player} was dropped on a team but found no free assignment entry, so it holds none"
+    },
+    "mission.setup_assignment_pruned": {
+      "level": "D",
+      "fields": ["player", "index", "flights"],
+      "text": "Assignment entry {index}, player {player} (0: an empty entry, which closes gaps), matched no roster player and was taken out of every team, later places moving up; flight group choices moved with them: {flights}"
+    },
+    "mission.setup_battle_choice_opened": {
+      "level": "D",
+      "fields": ["index", "result", "team", "missions"],
+      "text": "The battle choice screen opened at sequence mission {index}: the previous mission's result was {result} (0 Imperial win, 1 Rebel win, 2 draw, -1 none) and this pilot's team is {team}; the battle offers {missions} missions"
+    },
+    "mission.setup_battle_choice_refused": {
+      "level": "D",
+      "fields": ["mission"],
+      "text": "Mission {mission} is for one player and was not taken in a network game"
+    },
+    "mission.setup_battle_choice_sent": {
+      "level": "D",
+      "fields": ["mission", "reason"],
+      "text": "The losing team's captain submitted mission {mission} to the host ({reason}), in a packet too short to carry it"
+    },
+    "mission.setup_battle_choice_timed_out": {
+      "level": "I",
+      "fields": ["index"],
+      "text": "The time to choose the battle's next mission ran out at sequence mission {index}"
+    },
+    "mission.setup_battle_entry": {
+      "level": "D",
+      "fields": ["index", "mission", "used"],
+      "text": "Battle list entry {index} is mission {mission}; already flown in this battle: {used}"
+    },
+    "mission.setup_battle_entry_unlisted": {
+      "level": "W",
+      "fields": ["index", "file"],
+      "text": "Battle list entry {index} names mission file {file}, which the mission list does not hold; the entry was left unset"
+    },
+    "mission.setup_battle_first_mission": {
+      "level": "D",
+      "fields": ["index", "mission"],
+      "text": "A combat engagement sequence recorded its first mission: list entry {index}, mission {mission}"
+    },
+    "mission.setup_battle_list_alloc_failed": {
+      "level": "E",
+      "fields": ["count"],
+      "text": "No memory was given for the battle's list of {count} missions"
+    },
+    "mission.setup_battle_list_built": {
+      "level": "D",
+      "fields": ["count", "battle"],
+      "text": "The list of the battle {battle} was built with {count} missions"
+    },
+    "mission.setup_battle_list_missing": {
+      "level": "W",
+      "fields": [],
+      "text": "The battle's mission list was not built, so its drop-down list closed at once"
+    },
+    "mission.setup_battle_list_opened": {
+      "level": "D",
+      "fields": ["rows", "offset"],
+      "text": "The battle's mission list opened with {rows} rows, scrolled to row {offset}"
+    },
+    "mission.setup_battle_mission_chosen": {
+      "level": "I",
+      "fields": ["mission", "index"],
+      "text": "Mission {mission} was chosen as the battle's sequence mission {index}"
+    },
+    "mission.setup_battle_mission_picked": {
+      "level": "D",
+      "fields": ["mission", "ordinal", "entry"],
+      "text": "Mission {mission} was picked from the battle's list (list entry {entry}); {ordinal} was stored as its sequence position"
+    },
+    "mission.setup_battle_mission_unlisted": {
+      "level": "W",
+      "fields": ["mission"],
+      "text": "Chosen mission {mission} is not in the loaded list, so its list position was not stored"
+    },
+    "mission.setup_battle_progress": {
+      "level": "D",
+      "fields": ["active", "choice", "last", "rebel", "imperial"],
+      "text": "The host counted the selected battle's saved progress: continuing {active}, choice {choice}, last mission {last}, Rebel victories {rebel}, Imperial victories {imperial}"
+    },
+    "mission.setup_begin_refused": {
+      "level": "W",
+      "fields": ["reason", "limit"],
+      "text": "The host's Begin was refused ({reason}): the mission allows {limit} players, fewer than are ready"
+    },
+    "mission.setup_briefing_control": {
+      "level": "D",
+      "fields": ["action"],
+      "text": "The briefing map's {action} button was pressed on the flight assignment screen"
+    },
+    "mission.setup_campaign_side": {
+      "level": "D",
+      "fields": ["file", "iff"],
+      "text": "The network campaign's background side came from its first mission {file}: IFF {iff} (0 Rebel)"
+    },
+    "mission.setup_campaign_side_fallback": {
+      "level": "W",
+      "fields": ["reason", "file"],
+      "text": "The campaign file {file} could not name its first mission ({reason}), so the Rebel background was used"
+    },
+    "mission.setup_cancelled": {
+      "level": "I",
+      "fields": ["screen"],
+      "text": "The host cancelled the game during the {screen} screen; this player goes back to the join screen"
+    },
+    "mission.setup_closed": {
+      "level": "D",
+      "fields": ["record", "directory", "mission", "sequence"],
+      "text": "The mission setup screen closed and saved the pilot's mission choices into faction record {record} (2 the network game record): mission type {directory}, mission {mission}, sequence active {sequence}"
+    },
+    "mission.setup_confirm_asked": {
+      "level": "D",
+      "fields": ["screen", "action"],
+      "text": "The {screen} screen asked the player to confirm: {action}"
+    },
+    "mission.setup_confirmed": {
+      "level": "I",
+      "fields": ["directory", "mission", "sequence", "by"],
+      "text": "Setup moved on to team assignment ({by}): mission type {directory}, mission {mission}, sequence active {sequence}"
+    },
+    "mission.setup_continuation_lost": {
+      "level": "D",
+      "fields": ["kind", "directory"],
+      "text": "No {kind} continuation answer came from the host in time, so none was taken; the mission type was left at {directory}"
+    },
+    "mission.setup_continuation_received": {
+      "level": "D",
+      "fields": ["kind", "seed", "saved", "score"],
+      "text": "The host's {kind} state arrived with seed {seed}; this player's saved seed was {saved}, so its score became {score}"
+    },
+    "mission.setup_craft_chosen": {
+      "level": "D",
+      "fields": ["craft", "fg", "preset", "option", "count", "waves"],
+      "text": "This player chose craft {craft} for flight group {fg}: preset {preset}, craft option {option}, {count} craft, {waves} extra waves"
+    },
+    "mission.setup_craft_counterpart": {
+      "level": "D",
+      "fields": ["craft", "counterpart"],
+      "text": "Craft {craft} did not suit the pilot's faction in this melee or tournament sequence, so the choices were stepped to its counterpart {counterpart}"
+    },
+    "mission.setup_craft_faction_check": {
+      "level": "D",
+      "fields": ["craft", "faction", "reject"],
+      "text": "Craft {craft} was checked against faction {faction} (0 Rebel, 1 Imperial): rejected {reject}"
+    },
+    "mission.setup_departed_kept": {
+      "level": "W",
+      "fields": ["player", "index", "players"],
+      "text": "Player {player} in assignment entry {index} is no ready member of the lobby roster but kept its entry: an entry is cleared only when the lobby roster holds exactly 8 players, and it held {players}"
+    },
+    "mission.setup_departed_pruned": {
+      "level": "D",
+      "fields": ["players", "local"],
+      "text": "Players who left were taken out of the mission's assignments; {players} ready players remain and the local player holds pilot result entry {local}"
+    },
+    "mission.setup_drag_cancelled": {
+      "level": "D",
+      "fields": ["player", "screen"],
+      "text": "A click away from the places ended the drag of player {player} on the {screen} screen"
+    },
+    "mission.setup_drag_reset": {
+      "level": "D",
+      "fields": ["type", "reserved", "player"],
+      "text": "Packet type {type} replaced or cleared the team assignments: {reserved} reservations were dropped and the drag of player {player} (0: none) ended"
+    },
+    "mission.setup_drag_started": {
+      "level": "D",
+      "fields": ["player", "screen", "source", "reserved"],
+      "text": "A drag of player {player} started from the {source} list on the {screen} screen; {reserved} players were reserved"
+    },
+    "mission.setup_faction_chosen": {
+      "level": "D",
+      "fields": ["faction", "directory", "mission", "index"],
+      "text": "The solo pilot switched to faction {faction} (0 Rebel, 1 Imperial), on mission type {directory}, mission {mission}, list entry {index}"
+    },
+    "mission.setup_flight_group_missing": {
+      "level": "W",
+      "fields": ["fg", "team"],
+      "text": "This player had no flight group on team {team} (flight group {fg}); the 1997 code reads that entry anyway"
+    },
+    "mission.setup_flight_placed": {
+      "level": "D",
+      "fields": ["player", "team", "place", "fg", "replaced"],
+      "text": "Player {player} of team {team}, at place {place}, was given flight group {fg}; the pilot at place {replaced} lost it (-1: none)"
+    },
+    "mission.setup_flight_random_overrun": {
+      "level": "W",
+      "fields": ["team", "place"],
+      "text": "Auto Assign went past team {team}'s 8 places, into the next team's row at place {place}"
+    },
+    "mission.setup_flights_assigned": {
+      "level": "I",
+      "fields": ["team", "fgs", "reason"],
+      "text": "Team {team}'s flight groups were set ({reason}): {fgs}"
+    },
+    "mission.setup_flights_cleared": {
+      "level": "D",
+      "fields": ["team"],
+      "text": "Clear List emptied team {team}'s flight group choices"
+    },
+    "mission.setup_flights_prefilled": {
+      "level": "D",
+      "fields": ["team", "kept", "fgs"],
+      "text": "The flight assignment screen gave each placed player still without one a flight group of its team, in mission order (earlier choices kept: {kept}); team {team}'s choices became {fgs}"
+    },
+    "mission.setup_flights_timed_out": {
+      "level": "I",
+      "fields": ["team"],
+      "text": "The flight assignment time ran out; the captain of team {team} sent its players on to craft selection"
+    },
+    "mission.setup_host_choice": {
+      "level": "D",
+      "fields": ["directory", "mission", "previous", "previous_mission"],
+      "text": "The host's choice changed this player's mission to type {directory}, mission {mission} (it was type {previous}, mission {previous_mission})"
+    },
+    "mission.setup_host_directory_invalid": {
+      "level": "W",
+      "fields": ["directory"],
+      "text": "The host's lobby state named mission type {directory}, outside 0 to 5; the 1997 code uses it as an array index unchecked"
+    },
+    "mission.setup_left": {
+      "level": "I",
+      "fields": ["reason"],
+      "text": "This player left the mission setup screen ({reason}) and shut its network session down"
+    },
+    "mission.setup_list_alloc_failed": {
+      "level": "E",
+      "fields": ["missions"],
+      "text": "Memory for {missions} mission list entries could not be allocated; the list was left missing while the count stayed"
+    },
+    "mission.setup_list_directory_unknown": {
+      "level": "W",
+      "fields": ["directory"],
+      "text": "A mission list was asked for mission type {directory}, outside 0 to 5; the 1997 code opens whatever name the scratch buffer held"
+    },
+    "mission.setup_list_empty": {
+      "level": "W",
+      "fields": ["directory"],
+      "text": "The mission list of mission type {directory} held no complete entry, so the list was left empty"
+    },
+    "mission.setup_list_entry": {
+      "level": "D",
+      "fields": ["index", "mission", "unavailable", "file"],
+      "text": "Mission list entry {index} was read: mission {mission}, file {file}, unavailable {unavailable}"
+    },
+    "mission.setup_list_file": {
+      "level": "D",
+      "fields": ["directory", "file"],
+      "text": "The mission list {file} opened for mission type {directory}"
+    },
+    "mission.setup_list_loaded": {
+      "level": "D",
+      "fields": ["directory", "missions"],
+      "text": "The mission list of mission type {directory} loaded with {missions} entries"
+    },
+    "mission.setup_list_missing": {
+      "level": "W",
+      "fields": ["missions"],
+      "text": "The mission list screen found no mission list (count {missions}) and closed itself"
+    },
+    "mission.setup_list_opened": {
+      "level": "D",
+      "fields": ["rows", "offset", "missions"],
+      "text": "The mission list opened with {rows} rows for {missions} missions, scrolled to row {offset}"
+    },
+    "mission.setup_list_pick_refused": {
+      "level": "D",
+      "fields": ["mission"],
+      "text": "Mission {mission} picked from the list was refused: a single-player mission in a network game"
+    },
+    "mission.setup_list_truncated": {
+      "level": "W",
+      "fields": ["entries", "expected"],
+      "text": "The mission list ended after {entries} of the {expected} entries it was counted to hold; the entries read were kept"
+    },
+    "mission.setup_loadout_chosen": {
+      "level": "D",
+      "fields": ["kind", "option", "choices"],
+      "text": "The {kind} choice became option {option} of {choices} (0 the flight group's own)"
+    },
+    "mission.setup_loadout_ready": {
+      "level": "D",
+      "fields": ["fg", "category", "presets", "options", "warheads", "beams", "countermeasures", "count", "waves"],
+      "text": "The craft screen was set up for flight group {fg}: craft category {category}, {presets} preset and {options} flight group craft choices, {warheads} warhead, {beams} beam and {countermeasures} countermeasure choices, {count} craft, {waves} extra waves"
+    },
+    "mission.setup_local_pilot": {
+      "level": "D",
+      "fields": ["index"],
+      "text": "The local player holds pilot result entry {index}"
+    },
+    "mission.setup_local_pilot_missing": {
+      "level": "W",
+      "fields": ["index"],
+      "text": "No pilot result entry holds the local player's id; the local player's entry stays {index}, as before"
+    },
+    "mission.setup_local_player_unlisted": {
+      "level": "W",
+      "fields": [],
+      "text": "This player was not in the roster; the 1997 code reads the ready flag past the table's end"
+    },
+    "mission.setup_mission_chosen": {
+      "level": "D",
+      "fields": ["directory", "mission", "index", "by"],
+      "text": "Mission {mission} of type {directory} was chosen ({by}), list entry {index}"
+    },
+    "mission.setup_mission_followed": {
+      "level": "D",
+      "fields": ["directory", "mission", "index"],
+      "text": "While the battle's list was open, a lobby state brought mission {mission} of mission type {directory}, which was loaded (list entry {index})"
+    },
+    "mission.setup_mission_unavailable": {
+      "level": "D",
+      "fields": ["directory", "mission", "missing"],
+      "text": "The stored mission {mission} of mission type {directory} was unavailable (missing from the list: {missing}), so the first available mission was selected"
+    },
+    "mission.setup_opened": {
+      "level": "I",
+      "fields": ["directory", "mission", "missions", "mode"],
+      "text": "The mission setup screen opened on mission type {directory} and mission {mission}, with {missions} missions in the list (session mode {mode}: 2 solo, 3 network client, 4 network host)"
+    },
+    "mission.setup_options": {
+      "level": "D",
+      "fields": ["difficulty", "random", "length", "waves", "selection", "time_limit", "team_limit", "collisions", "jumping", "password", "join", "locate", "ai", "balance", "continue", "site"],
+      "text": "The game settings at {site} were: difficulty {difficulty}, random setup {random}, battle length {length}, craft waves {waves}, craft selection {selection}, mission time limit {time_limit} (255 the default), last team time limit {team_limit} minutes, collisions {collisions}, craft jumping {jumping}, password required {password}, joining in progress {join}, locate players {locate}, computer opponents {ai}, combat balance {balance}, continue choice {continue}"
+    },
+    "mission.setup_panel_chosen": {
+      "level": "D",
+      "fields": ["panel"],
+      "text": "The mission setup screen showed panel {panel} (0 the players, 1 the settings)"
+    },
+    "mission.setup_pilot_entry_cleared": {
+      "level": "D",
+      "fields": ["player", "index"],
+      "text": "Pilot result entry {index}, player {player}, no longer a ready member of the lobby roster, lost its player id"
+    },
+    "mission.setup_pilot_team": {
+      "level": "D",
+      "fields": ["team"],
+      "text": "The solo pilot's team became {team} as the team screen opened"
+    },
+    "mission.setup_player_booted": {
+      "level": "I",
+      "fields": ["player", "index"],
+      "text": "The host removed player {player} (roster place {index}) from the game"
+    },
+    "mission.setup_player_placed": {
+      "level": "D",
+      "fields": ["player", "team", "place", "replaced"],
+      "text": "Player {player} was placed on team {team} at place {place}, replacing player {replaced} (0: the place was empty)"
+    },
+    "mission.setup_player_selected": {
+      "level": "D",
+      "fields": ["index", "player"],
+      "text": "The host clicked player {player}; the selected roster place became {index} (-1 none)"
+    },
+    "mission.setup_preview_craft_unknown": {
+      "level": "W",
+      "fields": ["craft"],
+      "text": "The craft preview was asked for craft type {craft}, past the 17 placed types; the 1997 code reads past the position table"
+    },
+    "mission.setup_rating_received": {
+      "level": "D",
+      "fields": ["player", "rating", "index"],
+      "text": "Player {player}'s pilot rating {rating} was stored in roster entry {index}"
+    },
+    "mission.setup_rating_updated": {
+      "level": "D",
+      "fields": ["index", "player", "rating"],
+      "text": "Roster place {index} (player {player}) took pilot rating {rating}"
+    },
+    "mission.setup_replay": {
+      "level": "I",
+      "fields": ["directory", "mission", "solo", "next"],
+      "text": "The current mission is flown again: mission {mission} of mission type {directory}, solo game {solo}; the players' results were reset and setup goes on to the {next} screen"
+    },
+    "mission.setup_reservation": {
+      "level": "D",
+      "fields": ["player", "held", "reserved", "screen"],
+      "text": "Player {player}'s reservation on the {screen} screen became {held}; {reserved} players were then reserved"
+    },
+    "mission.setup_returned": {
+      "level": "I",
+      "fields": ["screen"],
+      "text": "The host sent every player from the {screen} screen back to mission setup"
+    },
+    "mission.setup_roster_entry_dropped": {
+      "level": "D",
+      "fields": ["index", "player"],
+      "text": "Roster place {index} was cleared: player {player} was no longer a ready player in the session"
+    },
+    "mission.setup_roster_entry_moved": {
+      "level": "D",
+      "fields": ["player", "previous", "index"],
+      "text": "Roster entry {previous}, player {player}, moved up to empty entry {index}"
+    },
+    "mission.setup_seed_chosen": {
+      "level": "D",
+      "fields": ["seed"],
+      "text": "Begin chose the random seed {seed} for the tournament, battle or campaign"
+    },
+    "mission.setup_selection_cleared": {
+      "level": "D",
+      "fields": ["directory"],
+      "text": "Craft selection by the host only was turned off, since mission type {directory} is neither a melee nor a tournament"
+    },
+    "mission.setup_sequence_continued": {
+      "level": "I",
+      "fields": ["kind", "mission", "index", "score", "role"],
+      "text": "A saved {kind} was continued ({role}): {kind} {mission}, saved at sequence mission {index} with a score of {score}; the next mission follows it"
+    },
+    "mission.setup_sequence_count_invalid": {
+      "level": "E",
+      "fields": ["count"],
+      "text": "The battle file gave {count} missions for a random first mission; the 1997 code divides by it, or reads lines without end"
+    },
+    "mission.setup_sequence_draw_repeat": {
+      "level": "D",
+      "fields": ["ordinal"],
+      "text": "Random draw {ordinal} was already flown in this battle, so another was drawn"
+    },
+    "mission.setup_sequence_failed": {
+      "level": "E",
+      "fields": ["reason", "file"],
+      "text": "The tournament, battle or campaign {file} could not start ({reason}); setup stayed on the mission setup screen"
+    },
+    "mission.setup_sequence_file_failed": {
+      "level": "E",
+      "fields": ["file", "reason"],
+      "text": "The sequence file {file} could not be used ({reason}), so no next mission was chosen from it"
+    },
+    "mission.setup_sequence_file_short": {
+      "level": "W",
+      "fields": ["file", "read", "count"],
+      "text": "The sequence file {file} ended after {read} of its {count} missions; the list was cut to those read"
+    },
+    "mission.setup_sequence_fresh": {
+      "level": "I",
+      "fields": ["kind", "mission", "role", "reason"],
+      "text": "The {kind} {mission} starts from its first mission ({role}, {reason})"
+    },
+    "mission.setup_sequence_mission": {
+      "level": "I",
+      "fields": ["file", "directory", "mission", "teams"],
+      "text": "The sequence's next mission was chosen: {file}, mission {mission} of mission type {directory}, with {teams} teams"
+    },
+    "mission.setup_sequence_mission_unknown": {
+      "level": "W",
+      "fields": ["file", "directory"],
+      "text": "The sequence names mission file {file}, which the list of mission type {directory} does not hold; the selected mission stays as it was"
+    },
+    "mission.setup_sequence_mission_unlisted": {
+      "level": "W",
+      "fields": ["directory", "file"],
+      "text": "The sequence's first mission {file} was not in the list of mission type {directory}, so the selection kept the mission it had"
+    },
+    "mission.setup_sequence_ordinal": {
+      "level": "D",
+      "fields": ["directory", "ordinal", "count", "random", "seed"],
+      "text": "The sequence file of mission type {directory} lists {count} missions; position {ordinal} was taken (random setup {random}, seed {seed})"
+    },
+    "mission.setup_sequence_ordinal_negative": {
+      "level": "W",
+      "fields": ["ordinal", "file"],
+      "text": "Sequence position {ordinal} is below 0, so the count line of {file} was taken as the mission's name"
+    },
+    "mission.setup_sequence_read": {
+      "level": "D",
+      "fields": ["directory", "count", "ordinal", "random"],
+      "text": "The sequence file of mission type {directory} gave {count} missions; the first to fly is number {ordinal} (random setup {random})"
+    },
+    "mission.setup_sequence_replay": {
+      "level": "D",
+      "fields": ["kind", "index"],
+      "text": "The {kind}'s last mission is flown again (not completed, or a draw): the sequence went back to mission {index}"
+    },
+    "mission.setup_sequence_restored": {
+      "level": "D",
+      "fields": ["directory", "mission"],
+      "text": "A tournament, battle or campaign was still marked active: the mission type it plays from took back mission {mission}, and the mission type moved to {directory}"
+    },
+    "mission.setup_sequence_resumed": {
+      "level": "D",
+      "fields": ["directory", "saved", "listed", "missions", "index"],
+      "text": "Going on to the sequence's next mission, the mission type went back to the sequence's own, {directory}, with its selected mission set back to {saved}; its list loaded {listed} with {missions} missions, entry {index} selected"
+    },
+    "mission.setup_sequence_started": {
+      "level": "I",
+      "fields": ["directory", "mission", "index", "file"],
+      "text": "A tournament, battle or campaign started at its first mission {file}: mission {mission} of type {directory}, list entry {index}"
+    },
+    "mission.setup_sequence_unlisted": {
+      "level": "W",
+      "fields": ["mission", "directory", "missions"],
+      "text": "Mission {mission} of mission type {directory} is not among the {missions} missions of the loaded list; the entry past the list's end is read instead"
+    },
+    "mission.setup_ship_list_failed": {
+      "level": "E",
+      "fields": ["reason"],
+      "text": "The craft model list did not load ({reason})"
+    },
+    "mission.setup_ship_list_loaded": {
+      "level": "D",
+      "fields": ["ships"],
+      "text": "The craft model list loaded with {ships} models"
+    },
+    "mission.setup_ship_listed": {
+      "level": "D",
+      "fields": ["index", "craft", "file"],
+      "text": "Craft model {file} was listed as entry {index} for craft type {craft}"
+    },
+    "mission.setup_team_assigned": {
+      "level": "I",
+      "fields": ["team", "teams", "captain", "reason"],
+      "text": "The pilot's team was set ({reason}): team {team} of {teams}, whose captain is player {captain}"
+    },
+    "mission.setup_team_counts": {
+      "level": "D",
+      "fields": ["teams", "slots"],
+      "text": "The loaded mission's player flight groups were counted by team ({slots}), so {teams} teams have places"
+    },
+    "mission.setup_team_full": {
+      "level": "D",
+      "fields": ["team", "players", "placed"],
+      "text": "Team {team} had no free place in this round of dealing {players} ready players ({placed} placed so far)"
+    },
+    "mission.setup_team_out_of_range": {
+      "level": "W",
+      "fields": ["fg", "team"],
+      "text": "Player flight group {fg} names team {team}, past the 10 teams; its count lands outside the team table"
+    },
+    "mission.setup_team_slot_cleared": {
+      "level": "D",
+      "fields": ["player", "team", "place"],
+      "text": "Player {player}, no longer a ready member of the lobby roster, was taken out of team {team} at place {place}"
+    },
+    "mission.setup_teams_auto": {
+      "level": "D",
+      "fields": ["players", "teams"],
+      "text": "Auto Assign cleared the teams and placed {players} ready players at random among {teams} teams"
+    },
+    "mission.setup_teams_cleared": {
+      "level": "D",
+      "fields": [],
+      "text": "Clear List emptied every team"
+    },
+    "mission.setup_teams_compacted": {
+      "level": "D",
+      "fields": ["index", "players", "teams"],
+      "text": "Assignment entry {index} was empty, so each of the {teams} teams had its players moved up over its empty places, their flight group choices with them ({players} ready players)"
+    },
+    "mission.setup_teams_opened": {
+      "level": "D",
+      "fields": ["directory", "mission", "index", "teams", "kept"],
+      "text": "The team screen loaded mission {mission} of mission type {directory} (list entry {index}) with {teams} teams; earlier assignments kept: {kept}"
+    },
+    "mission.setup_teams_sent": {
+      "level": "D",
+      "fields": ["teams", "assigned"],
+      "text": "The host sent every player the final assignments of {teams} teams; the assigned players were {assigned}"
+    },
+    "mission.setup_text_open_failed": {
+      "level": "W",
+      "fields": ["file"],
+      "text": "The mission file {file} did not open, so its description was left empty"
+    },
+    "mission.setup_text_read": {
+      "level": "D",
+      "fields": ["version", "bytes"],
+      "text": "The mission description was read: {bytes} bytes (format version {version}; 0 for a tournament, battle or campaign file)"
+    },
+    "mission.setup_text_unlisted": {
+      "level": "W",
+      "fields": ["directory", "mission"],
+      "text": "Mission {mission} of mission type {directory} was not in the mission list, so its description was left empty"
+    },
+    "mission.setup_text_version_unknown": {
+      "level": "W",
+      "fields": ["version"],
+      "text": "The mission file had format version {version}, which this reader does not know, so its description was left empty"
+    },
+    "mission.setup_training_side_changed": {
+      "level": "D",
+      "fields": ["iff", "previous"],
+      "text": "Stepping through the training missions moved the first player flight group from IFF {previous} to IFF {iff}"
+    },
+    "mission.setup_type_chosen": {
+      "level": "D",
+      "fields": ["directory", "mission", "index", "missions"],
+      "text": "The mission type changed to {directory}, with mission {mission} selected, list entry {index} of {missions}"
+    },
+    "mission.setup_view": {
+      "level": "D",
+      "fields": ["screen", "panel"],
+      "text": "The {screen} screen switched to its {panel} panel"
+    },
+    "mission.setup_went_back": {
+      "level": "D",
+      "fields": ["screen", "next"],
+      "text": "The {screen} screen went back to the {next} screen"
+    },
     "mission.static_placed": {
       "level": "D",
       "fields": ["fg", "object", "genus", "type", "x", "y", "z", "yaw", "pitch", "roll", "signature", "countdown", "arrived", "predicted"],
