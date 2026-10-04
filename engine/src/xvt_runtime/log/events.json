@@ -373,6 +373,91 @@
       "fields": [],
       "text": "A flight launch is queued"
     },
+    "mission.briefing_launch": {
+      "level": "I",
+      "fields": ["players", "local", "faction", "mode"],
+      "text": "The mission was launched from the briefing with {players} players: the local player at roster entry {local}, faction {faction}, session mode {mode}"
+    },
+    "mission.briefing_launch_dropped": {
+      "level": "D",
+      "fields": ["entry", "player"],
+      "text": "Roster entry {entry}, player {player}, was cleared at launch: the session no longer lists the player"
+    },
+    "mission.briefing_launch_faction_invalid": {
+      "level": "W",
+      "fields": ["faction"],
+      "text": "The local player's faction {faction}, taken from its flight group's IFF, is not one of the pilot record's four faction records; the record was written out of bounds"
+    },
+    "mission.briefing_launch_player": {
+      "level": "D",
+      "fields": ["entry", "player", "fg", "craft", "option", "warhead", "beam", "countermeasures", "rating", "local", "name"],
+      "text": "Roster entry {entry}, player {player} ({name}), went to the pilot record for flight group {fg}: craft {craft}, craft option {option}, warhead option {warhead}, beam option {beam}, countermeasure option {countermeasures}, rating {rating}, local player {local}"
+    },
+    "mission.briefing_launch_teams": {
+      "level": "D",
+      "fields": ["teams", "humans"],
+      "text": "The first mission of a melee tournament set its standings: {teams} teams taking part, {humans} human players"
+    },
+    "mission.briefing_load_alloc_failed": {
+      "level": "W",
+      "fields": ["kind", "index", "bytes"],
+      "text": "Memory for briefing {kind} buffer {index} ({bytes} bytes) could not be reserved; the buffer was left empty"
+    },
+    "mission.briefing_load_chosen": {
+      "level": "D",
+      "fields": ["briefing", "team"],
+      "text": "Briefing {briefing} in the mission file is marked for team {team}, the pilot's team, and was kept; a later one marked the same replaces it"
+    },
+    "mission.briefing_load_counts_over": {
+      "level": "W",
+      "fields": ["file", "groups", "messages"],
+      "text": "The mission file {file} lists {groups} flight groups and {messages} messages, more than the 48 and 64 there is room for; the read went on past the tables"
+    },
+    "mission.briefing_load_done": {
+      "level": "I",
+      "fields": ["file", "team", "briefing", "type", "groups", "messages"],
+      "text": "The briefing loaded mission file {file} for team {team}: briefing {briefing}, mission type {type}, {groups} flight groups, {messages} messages"
+    },
+    "mission.briefing_load_goal_count_invalid": {
+      "level": "W",
+      "fields": ["team", "count"],
+      "text": "The mission file gave team {team} {count} goals, over the 7 there is room for; the read went on into the next team's goals"
+    },
+    "mission.briefing_load_message_index_invalid": {
+      "level": "W",
+      "fields": ["order", "message"],
+      "text": "Message {order} of the mission file named slot {message}, outside the 64 message slots; it was read into that slot anyway"
+    },
+    "mission.briefing_load_open_failed": {
+      "level": "E",
+      "fields": ["file"],
+      "text": "The mission file {file} did not open; the mission was not loaded"
+    },
+    "mission.briefing_load_past_list": {
+      "level": "W",
+      "fields": ["directory", "mission", "listed", "count"],
+      "text": "The mission list of directory {directory} did not hold the pilot's mission {mission} (list loaded {listed}, {count} entries); the briefing read a file name past the list's end"
+    },
+    "mission.briefing_load_read": {
+      "level": "D",
+      "fields": ["file", "version", "type", "groups", "messages"],
+      "text": "Mission file {file} was read for the setup screens: format {version}, mission type {type}, {groups} flight groups, {messages} messages"
+    },
+    "mission.briefing_load_text_too_long": {
+      "level": "W",
+      "fields": ["kind", "index", "bytes", "limit"],
+      "text": "Briefing {kind} {index} is {bytes} bytes, over the {limit} its buffer holds; it was read past the buffer's end"
+    },
+    "mission.briefing_load_unlisted": {
+      "level": "W",
+      "fields": ["directory", "mission", "listed", "count"],
+      "text": "The mission list of directory {directory} did not hold the pilot's mission {mission} (list loaded {listed}, {count} entries); no mission was loaded, and the screen picks an available one"
+    },
+    "mission.briefing_load_version_rejected": {
+      "level": "E",
+      "fields": ["file", "version"],
+      "text": "The mission file {file} has format {version}, not 12, 13 or 14; the mission was left empty"
+    },
     "mission.dialog_answered": {
       "level": "I",
       "fields": ["action", "result"],

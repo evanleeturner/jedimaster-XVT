@@ -12,6 +12,7 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/net.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The mission the frontend's setup, briefing and debriefing screens show, as
  * frontend_mission_load_current and frontend_mission_load_current_with_briefing
@@ -67,12 +68,27 @@ void frontend_mission_init_for_briefing(void)
 	int16_t index;
 	for (index = 0; index < 32; ++index) {
 		g_briefing_map_label_texts[index] = malloc(40);
+		if (g_briefing_map_label_texts[index] == NULL) {
+			XVT_LOG_WARN(
+				"mission.briefing_load_alloc_failed kind=\"label\" index=%d bytes=40",
+				(int)index);
+		}
 	}
 	for (index = 0; index < 32; ++index) {
 		g_briefing_text_blocks[index] = malloc(320);
+		if (g_briefing_text_blocks[index] == NULL) {
+			XVT_LOG_WARN(
+				"mission.briefing_load_alloc_failed kind=\"text\" index=%d bytes=320",
+				(int)index);
+		}
 	}
 	for (index = 0; index < 20; ++index) {
 		g_briefing_unused_buffers[index] = malloc(1024);
+		if (g_briefing_unused_buffers[index] == NULL) {
+			XVT_LOG_WARN(
+				"mission.briefing_load_alloc_failed kind=\"spare\" index=%d bytes=1024",
+				(int)index);
+		}
 	}
 	for (index = 0; index < 2; ++index) {
 		g_briefing_text_slot_active[index] = 0;
@@ -128,6 +144,15 @@ void frontend_mission_load_current_with_briefing(void)
 			++g_selected_mission_list_index;
 		}
 	}
+	if (g_mission_list == NULL ||
+	    (unsigned int)g_selected_mission_list_index >= g_mission_count) {
+		XVT_LOG_WARN(
+			"mission.briefing_load_past_list directory=%d mission=%d listed=%d count=%u",
+			(int)g_pilot_data.mission_directory_id,
+			g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			g_mission_list != NULL, g_mission_count);
+	}
 
 	char file_name[MISSION_FILE_PATH_CAPACITY];
 	sprintf(file_name, "%s\\%s",
@@ -135,6 +160,8 @@ void frontend_mission_load_current_with_briefing(void)
 		g_mission_list[g_selected_mission_list_index].file_name);
 	xvt_file *stream = file_open(file_name, g_file_mode_read_binary);
 	if (stream == NULL) {
+		XVT_LOG_ERROR("mission.briefing_load_open_failed file=\"%s\"",
+			      file_name);
 		return;
 	}
 
@@ -143,6 +170,9 @@ void frontend_mission_load_current_with_briefing(void)
 	if (g_frontend_mission.format_version != 14 &&
 	    g_frontend_mission.format_version != 13 &&
 	    g_frontend_mission.format_version != 12) {
+		XVT_LOG_ERROR(
+			"mission.briefing_load_version_rejected file=\"%s\" version=%u",
+			file_name, (unsigned)g_frontend_mission.format_version);
 		file_close(stream);
 		return;
 	}
@@ -151,6 +181,14 @@ void frontend_mission_load_current_with_briefing(void)
 	file_read_word(stream, &g_frontend_mission.message_count);
 	file_read_bytes(stream, &g_frontend_mission.header,
 			sizeof(g_frontend_mission.header));
+	if ((int16_t)g_frontend_mission.flight_group_count > 48 ||
+	    (int16_t)g_frontend_mission.message_count > 64) {
+		XVT_LOG_WARN(
+			"mission.briefing_load_counts_over file=\"%s\" groups=%d messages=%d",
+			file_name,
+			(int)(int16_t)g_frontend_mission.flight_group_count,
+			(int)(int16_t)g_frontend_mission.message_count);
+	}
 	for (int flight_group_index = 0;
 	     flight_group_index <
 	     (int16_t)g_frontend_mission.flight_group_count;
@@ -170,6 +208,12 @@ void frontend_mission_load_current_with_briefing(void)
 	     message_index < (int16_t)g_frontend_mission.message_count;
 	     ++message_index) {
 		file_read_word(stream, &indexed_record);
+		if ((int16_t)indexed_record < 0 ||
+		    (int16_t)indexed_record >= 64) {
+			XVT_LOG_WARN(
+				"mission.briefing_load_message_index_invalid order=%d message=%d",
+				message_index, (int)(int16_t)indexed_record);
+		}
 		file_read_bytes(
 			stream,
 			&g_frontend_mission.messages[(int16_t)indexed_record],
@@ -181,6 +225,11 @@ void frontend_mission_load_current_with_briefing(void)
 		struct global_goal *team_goals =
 			g_frontend_mission.global_goals[team_index];
 		file_read_word(stream, &indexed_record);
+		if ((int16_t)indexed_record > 7) {
+			XVT_LOG_WARN(
+				"mission.briefing_load_goal_count_invalid team=%d count=%d",
+				(int)team_index, (int)(int16_t)indexed_record);
+		}
 		for (int global_goal_index = 0;
 		     global_goal_index < (int16_t)indexed_record;
 		     ++global_goal_index) {
@@ -214,6 +263,9 @@ void frontend_mission_load_current_with_briefing(void)
 				g_briefing_script = briefing_script;
 				load_briefing_text = 1;
 				g_active_briefing_index = briefing_index;
+				XVT_LOG_DEBUG(
+					"mission.briefing_load_chosen briefing=%d team=%d",
+					briefing_index, (int)team_index);
 			}
 		}
 
@@ -225,6 +277,13 @@ void frontend_mission_load_current_with_briefing(void)
 				       BRIEFING_LABEL_CAPACITY);
 			}
 			file_read_word(stream, &text_length);
+			if (load_briefing_text != 0 &&
+			    text_length >= BRIEFING_LABEL_CAPACITY) {
+				XVT_LOG_WARN(
+					"mission.briefing_load_text_too_long kind=\"label\" index=%d bytes=%u limit=%d",
+					label_index, (unsigned)text_length,
+					BRIEFING_LABEL_CAPACITY - 1);
+			}
 			if (text_length != 0) {
 				if (load_briefing_text != 0) {
 					file_read_bytes(stream, briefing_text,
@@ -247,6 +306,13 @@ void frontend_mission_load_current_with_briefing(void)
 				       BRIEFING_TEXT_CAPACITY);
 			}
 			file_read_word(stream, &text_length);
+			if (load_briefing_text != 0 &&
+			    text_length >= BRIEFING_TEXT_CAPACITY) {
+				XVT_LOG_WARN(
+					"mission.briefing_load_text_too_long kind=\"text\" index=%d bytes=%u limit=%d",
+					text_index, (unsigned)text_length,
+					BRIEFING_TEXT_CAPACITY - 1);
+			}
 			if (text_length != 0) {
 				if (load_briefing_text != 0) {
 					file_read_bytes(stream, briefing_text,
@@ -262,6 +328,12 @@ void frontend_mission_load_current_with_briefing(void)
 		}
 	}
 	file_close(stream);
+	XVT_LOG_INFO(
+		"mission.briefing_load_done file=\"%s\" team=%d briefing=%d type=%d groups=%d messages=%d",
+		file_name, g_pilot_data.team, g_active_briefing_index,
+		(int)g_frontend_mission.header.mission_type,
+		(int)(int16_t)g_frontend_mission.flight_group_count,
+		(int)(int16_t)g_frontend_mission.message_count);
 }
 
 /* Loads a mission file into *out_mission the way
@@ -281,6 +353,10 @@ void frontend_mission_load_file(const char *file_name,
 		if (out_mission->format_version != 14 &&
 		    out_mission->format_version != 13 &&
 		    out_mission->format_version != 12) {
+			XVT_LOG_ERROR(
+				"mission.briefing_load_version_rejected file=\"%s\" version=%u",
+				file_name,
+				(unsigned)out_mission->format_version);
 			file_close(stream);
 			return;
 		}
@@ -290,6 +366,14 @@ void frontend_mission_load_file(const char *file_name,
 		int flight_group_index = 0;
 		file_read_bytes(stream, &out_mission->header,
 				sizeof(out_mission->header));
+		if ((int16_t)out_mission->flight_group_count > 48 ||
+		    (int16_t)out_mission->message_count > 64) {
+			XVT_LOG_WARN(
+				"mission.briefing_load_counts_over file=\"%s\" groups=%d messages=%d",
+				file_name,
+				(int)(int16_t)out_mission->flight_group_count,
+				(int)(int16_t)out_mission->message_count);
+		}
 		if ((int16_t)out_mission->flight_group_count > 0) {
 			struct xvt_flight_group *flight_group =
 				out_mission->flight_groups;
@@ -310,6 +394,13 @@ void frontend_mission_load_file(const char *file_name,
 		     message_index < (int16_t)out_mission->message_count;
 		     ++message_index) {
 			file_read_word(stream, &indexed_record);
+			if ((int16_t)indexed_record < 0 ||
+			    (int16_t)indexed_record >= 64) {
+				XVT_LOG_WARN(
+					"mission.briefing_load_message_index_invalid order=%d message=%d",
+					message_index,
+					(int)(int16_t)indexed_record);
+			}
 			file_read_bytes(
 				stream,
 				&out_mission->messages[(int16_t)indexed_record],
@@ -322,6 +413,12 @@ void frontend_mission_load_file(const char *file_name,
 		do {
 			int global_goal_index = 0;
 			file_read_word(stream, &indexed_record);
+			if ((int16_t)indexed_record > 7) {
+				XVT_LOG_WARN(
+					"mission.briefing_load_goal_count_invalid team=%d count=%d",
+					10 - team_index,
+					(int)(int16_t)indexed_record);
+			}
 			if ((int16_t)indexed_record > 0) {
 				team_goal = global_goal;
 				do {
@@ -344,8 +441,17 @@ void frontend_mission_load_file(const char *file_name,
 					sizeof(out_mission->teams[team_index]));
 			}
 		}
+		XVT_LOG_DEBUG(
+			"mission.briefing_load_read file=\"%s\" version=%u type=%d groups=%d messages=%d",
+			file_name, (unsigned)out_mission->format_version,
+			(int)out_mission->header.mission_type,
+			(int)(int16_t)out_mission->flight_group_count,
+			(int)(int16_t)out_mission->message_count);
 
 		file_close(stream);
+	} else {
+		XVT_LOG_ERROR("mission.briefing_load_open_failed file=\"%s\"",
+			      file_name);
 	}
 }
 
@@ -373,6 +479,12 @@ void frontend_mission_load_current(void)
 	/* The caller selects an available entry when the saved selection is absent. */
 	if (g_mission_list == NULL ||
 	    (unsigned int)g_selected_mission_list_index >= g_mission_count) {
+		XVT_LOG_WARN(
+			"mission.briefing_load_unlisted directory=%d mission=%d listed=%d count=%u",
+			(int)g_pilot_data.mission_directory_id,
+			g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			g_mission_list != NULL, g_mission_count);
 		return;
 	}
 #endif
@@ -383,6 +495,8 @@ void frontend_mission_load_current(void)
 		g_mission_list[g_selected_mission_list_index].file_name);
 	xvt_file *stream = file_open(file_name, g_file_mode_read_binary);
 	if (stream == NULL) {
+		XVT_LOG_ERROR("mission.briefing_load_open_failed file=\"%s\"",
+			      file_name);
 		return;
 	}
 
@@ -391,6 +505,9 @@ void frontend_mission_load_current(void)
 	if (g_frontend_mission.format_version != 14 &&
 	    g_frontend_mission.format_version != 13 &&
 	    g_frontend_mission.format_version != 12) {
+		XVT_LOG_ERROR(
+			"mission.briefing_load_version_rejected file=\"%s\" version=%u",
+			file_name, (unsigned)g_frontend_mission.format_version);
 		file_close(stream);
 		return;
 	}
@@ -399,6 +516,14 @@ void frontend_mission_load_current(void)
 	file_read_word(stream, &g_frontend_mission.message_count);
 	file_read_bytes(stream, &g_frontend_mission.header,
 			sizeof(g_frontend_mission.header));
+	if ((int16_t)g_frontend_mission.flight_group_count > 48 ||
+	    (int16_t)g_frontend_mission.message_count > 64) {
+		XVT_LOG_WARN(
+			"mission.briefing_load_counts_over file=\"%s\" groups=%d messages=%d",
+			file_name,
+			(int)(int16_t)g_frontend_mission.flight_group_count,
+			(int)(int16_t)g_frontend_mission.message_count);
+	}
 	for (int flight_group_index = 0;
 	     flight_group_index <
 	     (int16_t)g_frontend_mission.flight_group_count;
@@ -418,6 +543,12 @@ void frontend_mission_load_current(void)
 	     message_index < (int16_t)g_frontend_mission.message_count;
 	     ++message_index) {
 		file_read_word(stream, &indexed_record);
+		if ((int16_t)indexed_record < 0 ||
+		    (int16_t)indexed_record >= 64) {
+			XVT_LOG_WARN(
+				"mission.briefing_load_message_index_invalid order=%d message=%d",
+				message_index, (int)(int16_t)indexed_record);
+		}
 		file_read_bytes(
 			stream,
 			&g_frontend_mission.messages[(int16_t)indexed_record],
@@ -427,6 +558,11 @@ void frontend_mission_load_current(void)
 	int team_index;
 	for (team_index = 0; team_index < 10; ++team_index) {
 		file_read_word(stream, &indexed_record);
+		if ((int16_t)indexed_record > 7) {
+			XVT_LOG_WARN(
+				"mission.briefing_load_goal_count_invalid team=%d count=%d",
+				team_index, (int)(int16_t)indexed_record);
+		}
 		for (int global_goal_index = 0;
 		     global_goal_index < (int16_t)indexed_record;
 		     ++global_goal_index) {
@@ -447,6 +583,12 @@ void frontend_mission_load_current(void)
 				sizeof(g_frontend_mission.teams[team_index]));
 		}
 	}
+	XVT_LOG_DEBUG(
+		"mission.briefing_load_read file=\"%s\" version=%u type=%d groups=%d messages=%d",
+		file_name, (unsigned)g_frontend_mission.format_version,
+		(int)g_frontend_mission.header.mission_type,
+		(int)(int16_t)g_frontend_mission.flight_group_count,
+		(int)(int16_t)g_frontend_mission.message_count);
 	file_close(stream);
 }
 
@@ -491,6 +633,11 @@ void frontend_mission_init_player_state(void)
 			    net_find_player(
 				    g_mp_roster[roster_index].player_id) ==
 				    NULL) {
+				XVT_LOG_DEBUG(
+					"mission.briefing_launch_dropped entry=%d player=%u",
+					roster_index,
+					(unsigned)g_mp_roster[roster_index]
+						.player_id);
 				memset(&g_mp_roster[roster_index], 0,
 				       sizeof(g_mp_roster[roster_index]));
 			}
@@ -623,6 +770,27 @@ void frontend_mission_init_player_state(void)
 				g_local_pilot_network_player_index =
 					roster_index;
 			}
+			XVT_LOG_DEBUG(
+				"mission.briefing_launch_player entry=%d player=%u fg=%d craft=%d option=%d warhead=%d beam=%d countermeasures=%d rating=%d local=%d name=\"%s\"",
+				roster_index, (unsigned)player_id,
+				g_pilot_data.network_players[roster_index]
+					.flight_group_id,
+				g_pilot_data.network_players[roster_index]
+					.craft_id,
+				g_pilot_data.network_players[roster_index]
+					.craft_option,
+				g_pilot_data.network_players[roster_index]
+					.warhead_option,
+				g_pilot_data.network_players[roster_index]
+					.beam_option,
+				g_pilot_data.network_players[roster_index]
+					.countermeasure_option,
+				g_pilot_data.network_players[roster_index]
+					.rating,
+				g_local_pilot_network_player_index ==
+					roster_index,
+				g_pilot_data.network_players[roster_index]
+					.friendly_name);
 		}
 	}
 
@@ -728,6 +896,12 @@ void frontend_mission_init_player_state(void)
 			g_pilot_data.melee_tournament_sequence_state
 				.participating_team_count = participating_teams;
 		}
+		XVT_LOG_DEBUG(
+			"mission.briefing_launch_teams teams=%d humans=%u",
+			g_pilot_data.melee_tournament_sequence_state
+				.participating_team_count,
+			g_pilot_data.melee_tournament_sequence_state
+				.human_player_count);
 	}
 
 	if (g_pilot_data.mission_directory_id == MISSION_DIRECTORY_MELEES ||
@@ -798,6 +972,12 @@ void frontend_mission_init_player_state(void)
 		g_pilot_data.faction_statistics[0].mission_sequence_active = 0;
 		g_pilot_data.faction_statistics[1].mission_sequence_active = 0;
 	} else {
+		if (g_pilot_data.current_faction_id < 0 ||
+		    g_pilot_data.current_faction_id > 3) {
+			XVT_LOG_WARN(
+				"mission.briefing_launch_faction_invalid faction=%d",
+				g_pilot_data.current_faction_id);
+		}
 		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
 			.team = g_pilot_data.team;
 		g_pilot_data.faction_statistics[g_pilot_data.current_faction_id]
@@ -844,5 +1024,10 @@ void frontend_mission_init_player_state(void)
 			.saved_mission_description_id =
 			g_pilot_data.saved_mission_description_id;
 	}
+	XVT_LOG_INFO(
+		"mission.briefing_launch players=%d local=%d faction=%d mode=%d",
+		player_count, g_local_pilot_network_player_index,
+		g_pilot_data.current_faction_id,
+		(int)g_frontend_mission_session_mode);
 	net_compact_reliable_peer_slots_for_roster();
 }
