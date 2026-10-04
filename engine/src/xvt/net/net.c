@@ -2882,10 +2882,12 @@ int net_send_packet_internal(int to_player_id, const void *packet,
 	if (send_result != 0) {
 		char error_text[80];
 		sprintf(error_text, "Send Returned: %-8x\n", send_result);
-		XVT_LOG_WARN(
-			"network.lobby_send_failed to=%u type=%u result=%#x",
-			(unsigned)to_player_id, packet_type,
-			(unsigned)send_result);
+		if (send_result != DPERR_INVALIDPLAYER) {
+			XVT_LOG_WARN(
+				"network.lobby_send_failed to=%u type=%u result=%#x",
+				(unsigned)to_player_id, packet_type,
+				(unsigned)send_result);
+		}
 	}
 	return send_result == 0;
 }
@@ -2954,7 +2956,7 @@ int net_send_direct_play_packet(int dest_player_id, const void *packet,
 	XVT_LOG_DEBUG("network.lobby_control_sent to=%u type=%u bytes=%d",
 		      (unsigned)dest_player_id, (unsigned)packet_type,
 		      encoded_size);
-	if (send_result != 0) {
+	if (send_result != 0 && send_result != DPERR_INVALIDPLAYER) {
 		XVT_LOG_WARN(
 			"network.lobby_control_send_failed to=%u type=%u result=%#x",
 			(unsigned)dest_player_id, (unsigned)packet_type,

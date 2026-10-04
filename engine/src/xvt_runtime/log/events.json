@@ -761,7 +761,7 @@
     "network.lobby_control_send_failed": {
       "level": "W",
       "fields": ["to", "type", "result"],
-      "text": "Sending a packet of type {type} to player {to} outside the sequence scheme failed with code {result}; nothing keeps it for a resend"
+      "text": "Sending a packet of type {type} to player {to} outside the sequence scheme failed with code {result}; nothing keeps it for a resend (a send to a player who has already left is not reported)"
     },
     "network.lobby_control_sent": {
       "level": "D",
@@ -1051,7 +1051,7 @@
     "network.lobby_send_failed": {
       "level": "W",
       "fields": ["to", "type", "result"],
-      "text": "Sending a packet of type {type} to player {to} failed with code {result}; it stayed in the sent history for a resend"
+      "text": "Sending a packet of type {type} to player {to} failed with code {result}; it stayed in the sent history for a resend (a send to a player who has already left is not reported)"
     },
     "network.lobby_sequence_unrecorded": {
       "level": "D",
@@ -1411,7 +1411,7 @@
     "network.send_failed": {
       "level": "W",
       "fields": ["kind", "to", "type", "sequence", "bytes", "result"],
-      "text": "DirectPlay refused a {kind} packet to player {to}: type {type}, sequence {sequence}, {bytes} bytes, result {result}"
+      "text": "DirectPlay refused a {kind} packet to player {to}: type {type}, sequence {sequence}, {bytes} bytes, result {result} (a send to a player who has already left is not reported)"
     },
     "network.send_too_short": {
       "level": "E",

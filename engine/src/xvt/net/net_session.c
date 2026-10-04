@@ -1704,7 +1704,7 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 							       : 0,
 		((unsigned)encoded_packet.packet_type_header & 0x7F00u) >> 8,
 		encoded_size, (unsigned)send_result, g_net_recv_queue_count);
-	if (send_result != 0) {
+	if (send_result != 0 && send_result != DPERR_INVALIDPLAYER) {
 		XVT_LOG_WARN(
 			"network.send_failed kind=\"packet\" to=%u type=%u sequence=%u bytes=%d result=%#x",
 			(unsigned)direct_play_id, packet_type,
@@ -1784,7 +1784,7 @@ int net_session_send_sequenced_game_packet(int dest_dplay_id,
 			(unsigned)dest_dplay_id, (unsigned)packet_class,
 			(unsigned)sequence, packet_type, encoded_size,
 			(unsigned)send_result);
-		if (send_result != 0) {
+		if (send_result != 0 && send_result != DPERR_INVALIDPLAYER) {
 			XVT_LOG_WARN(
 				"network.send_failed kind=\"resend\" to=%u type=%u sequence=%u bytes=%d result=%#x",
 				(unsigned)dest_dplay_id, packet_type,
@@ -3688,7 +3688,7 @@ int net_session_send_compact_game_packet(int direct_play_id,
 	XVT_LOG_DEBUG("network.control_sent to=%u type=%u bytes=%d result=%#x",
 		      (unsigned)direct_play_id, packet_type, encoded_size,
 		      (unsigned)send_result);
-	if (send_result != 0) {
+	if (send_result != 0 && send_result != DPERR_INVALIDPLAYER) {
 		XVT_LOG_WARN(
 			"network.send_failed kind=\"control\" to=%u type=%u sequence=%u bytes=%d result=%#x",
 			(unsigned)direct_play_id, packet_type,
