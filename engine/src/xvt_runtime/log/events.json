@@ -448,15 +448,50 @@
       "fields": ["target", "confirmed"],
       "text": "A world message targets tick {target}, not one message after the confirmed tick {confirmed}; recovery is needed"
     },
+    "network.control_packet_short": {
+      "level": "W",
+      "fields": ["from", "type", "bytes"],
+      "text": "A resend request or keepalive from player {from} (type {type}) held only {bytes} bytes, too few for its fields; it was ignored"
+    },
+    "network.control_sent": {
+      "level": "D",
+      "fields": ["to", "type", "bytes", "result"],
+      "text": "A control packet of type {type} went to player {to}, {bytes} bytes on the wire; DirectPlay result {result}"
+    },
     "network.directory_retry": {
       "level": "W",
       "fields": [],
       "text": "The directory listing failed; hosting registers again"
     },
+    "network.dplay_caps": {
+      "level": "D",
+      "fields": ["buffer", "queue", "players", "timeout"],
+      "text": "DirectPlay reported its limits: packets of {buffer} bytes, a queue of {queue} packets, {players} players, a {timeout} ms timeout"
+    },
     "network.fell_behind": {
       "level": "D",
       "fields": ["input", "server", "adjust"],
       "text": "The input clock {input} fell behind the server tick {server}; it jumps {adjust} ticks"
+    },
+    "network.flight_session_end": {
+      "level": "I",
+      "fields": ["queued", "peers"],
+      "text": "The flight's network session ended and its state went back to the lobby: {queued} packets queued, {peers} delivery slots"
+    },
+    "network.flight_session_exported": {
+      "level": "D",
+      "fields": ["history", "world_history", "broadcast_seq", "group_seq", "read", "write"],
+      "text": "The flight session handed back sent-history position {history}, world-history position {world_history}, next sequence {broadcast_seq} to all players and {group_seq} to the group, queue read position {read} and write position {write}"
+    },
+    "network.flight_session_imported": {
+      "level": "D",
+      "fields": ["interface", "local", "peers", "queued", "read", "write", "history", "broadcast_seq", "group_seq"],
+      "text": "The flight session took the lobby's network state: DirectPlay present {interface}, local player id {local}, {peers} delivery slots, {queued} queued packets (read position {read}, write position {write}), sent-history position {history}, next sequence {broadcast_seq} to all players and {group_seq} to the group"
+    },
+    "network.flight_session_open": {
+      "level": "I",
+      "fields": ["mode", "host", "players", "in_progress"],
+      "text": "The flight's network session opened from the lobby's saved state in {mode} mode: host {host}, {players} players, joining a flight in progress {in_progress}"
     },
     "network.handshake": {
       "level": "D",
@@ -493,45 +528,215 @@
       "fields": [],
       "text": "The host refused the join; the frontend shows the reason"
     },
+    "network.keepalive_ack_ignored": {
+      "level": "D",
+      "fields": ["from"],
+      "text": "A keepalive answer from player {from} arrived during the flight and was ignored"
+    },
+    "network.keepalive_received": {
+      "level": "D",
+      "fields": ["from", "broadcast", "group", "direct"],
+      "text": "Player {from} had been waiting and asked for the next packets it lacked: {broadcast} to all players, {group} to the group, {direct} to it alone (128 means it lacked none)"
+    },
     "network.keepalive_sent": {
       "level": "D",
-      "fields": ["slot"],
-      "text": "Peer slot {slot} was quiet over 3 s; a keepalive asks it to resend what this player lacks"
+      "fields": ["peer", "broadcast", "group", "direct"],
+      "text": "Connection entry {peer} was quiet over 3 s; a keepalive asked it to send what came after the newest seen: {broadcast} to all players, {group} to the group, {direct} direct"
+    },
+    "network.keepalive_unanswered": {
+      "level": "W",
+      "fields": ["from", "broadcast", "group", "direct"],
+      "text": "Player {from} asked for packets no longer kept, so they were not sent again: {broadcast} to all players, {group} to the group, {direct} to it alone (128 means none missing)"
     },
     "network.nack_gave_up": {
       "level": "W",
-      "fields": ["retries"],
-      "text": "A missing packet is given up after {retries} resend requests; delivery moves past the gap"
+      "fields": ["retries", "peer", "channel", "missing", "limit"],
+      "text": "Missing packet {missing} from entry {peer} on channel {channel} was given up after {retries} resend requests (limit {limit}); delivery moved past the gap"
+    },
+    "network.nack_sent": {
+      "level": "D",
+      "fields": ["to", "peer", "channel", "missing", "kind", "tick", "attempt", "gaps"],
+      "text": "Player {to} (entry {peer}) was asked to send missing packet {missing} on channel {channel} again, as a {kind} request for world tick {tick} (-1 when not a world message), attempt {attempt}; {gaps} gaps asked for on that link"
     },
     "network.nack_timeout": {
       "level": "D",
-      "fields": ["retries"],
-      "text": "The wait for a missing packet ran out after {retries} resend requests"
+      "fields": ["retries", "peer", "channel", "missing", "waited", "timeout"],
+      "text": "The wait for missing packet {missing} from entry {peer} on channel {channel} ran out after {retries} resend requests: {waited} ms waited against {timeout} ms"
+    },
+    "network.own_packet_dropped": {
+      "level": "E",
+      "fields": ["site", "type", "queued"],
+      "text": "This player's own {site} packet of type {type} could not be queued for itself: the receive queue stayed full at {queued} packets, and the copy was lost"
+    },
+    "network.packet_delivered": {
+      "level": "D",
+      "fields": ["path", "from", "peer", "channel", "sequence", "type", "bytes", "delivered", "queued"],
+      "text": "A packet from player {from} was handed to the game by the {path} path: entry {peer}, channel {channel}, sequence {sequence}, type {type}, {bytes} bytes; {delivered} packets delivered from that player so far, {queued} still queued"
+    },
+    "network.packet_misaddressed": {
+      "level": "W",
+      "fields": ["from", "to"],
+      "text": "A packet from player {from} was addressed to player {to}, not this player; it was skipped"
+    },
+    "network.packet_received": {
+      "level": "D",
+      "fields": ["from", "type", "channel", "sequence", "bytes", "repeat", "queued"],
+      "text": "A packet from player {from} arrived: type {type}, channel {channel}, sequence {sequence}, {bytes} bytes; not newer than the last one seen: {repeat} (such a packet on the group channel was dropped); {queued} packets were queued before it"
+    },
+    "network.packet_resend_missing": {
+      "level": "W",
+      "fields": ["from", "channel", "sequence"],
+      "text": "Player {from} asked again for packet {sequence} on channel {channel}, which was no longer kept; an empty packet went in its place"
+    },
+    "network.packet_resent": {
+      "level": "D",
+      "fields": ["from", "channel", "sequence", "type", "bytes", "drops"],
+      "text": "Player {from} asked again for packet {sequence} on channel {channel}; it was sent again: type {type}, {bytes} bytes; {drops} losses were counted on that link (-1 when it had no slot)"
+    },
+    "network.packet_sent": {
+      "level": "D",
+      "fields": ["to", "type", "channel", "sequence", "bytes", "result", "queued"],
+      "text": "A packet went to player {to} (0 means all players): type {type}, channel {channel}, sequence {sequence}, {bytes} bytes on the wire; DirectPlay result {result}; {queued} packets queued here"
+    },
+    "network.packet_truncated": {
+      "level": "W",
+      "fields": ["from", "type", "part", "bytes"],
+      "text": "A {part} from player {from} with type {type} claimed {bytes} bytes, more than a queue entry holds; it was cut to fit"
+    },
+    "network.peer_slot_added": {
+      "level": "D",
+      "fields": ["player", "peer"],
+      "text": "A queued packet came from player {player}, who had no connection entry; entry {peer} was added"
+    },
+    "network.peer_slot_freed": {
+      "level": "D",
+      "fields": ["player", "peer", "delivered", "drops", "gaps", "left"],
+      "text": "Departed player {player}'s connection entry {peer} was freed after {delivered} packets delivered, {drops} losses and {gaps} gaps asked for; {left} entries remained"
+    },
+    "network.ping_answered": {
+      "level": "D",
+      "fields": ["from"],
+      "text": "A ping from player {from} was answered"
+    },
+    "network.player_added": {
+      "level": "D",
+      "fields": ["slot", "player", "name", "long_name"],
+      "text": "Player {player} took roster slot {slot} as {name} ({long_name})"
+    },
+    "network.player_destroyed": {
+      "level": "I",
+      "fields": ["player", "slot", "active", "result"],
+      "text": "DirectPlay reported player {player} gone; the host took roster slot {slot} out of the group (result {result}) and marked it inactive; it had been active: {active}"
+    },
+    "network.player_joined_flight": {
+      "level": "I",
+      "fields": ["player", "peers", "seconds"],
+      "text": "Player {player} joined the flight in progress; the host sent it the delivery state of {peers} peers and the mission clock at {seconds} s"
     },
     "network.player_left": {
       "level": "I",
       "fields": ["slot", "local"],
       "text": "The player in slot {slot} left the flight; local player {local}"
     },
+    "network.player_name_missing": {
+      "level": "D",
+      "fields": ["slot", "players"],
+      "text": "No roster entry matched slot {slot} among {players} entries; no name was returned"
+    },
+    "network.player_renamed": {
+      "level": "D",
+      "fields": ["player", "slot", "name", "long_name"],
+      "text": "Player {player} in roster slot {slot} was renamed {name} ({long_name})"
+    },
     "network.player_silent": {
       "level": "W",
       "fields": ["slot", "ticks"],
       "text": "The player in slot {slot} sent nothing for {ticks} ticks; the host drops them"
     },
+    "network.player_skipped": {
+      "level": "D",
+      "fields": ["player", "reason"],
+      "text": "DirectPlay listed entry {player}, which was skipped: {reason}"
+    },
+    "network.player_slot_missing": {
+      "level": "D",
+      "fields": ["player"],
+      "text": "No roster slot held player {player}; slot 8 was returned"
+    },
+    "network.players_enumerated": {
+      "level": "D",
+      "fields": ["players"],
+      "text": "DirectPlay listed its players; the roster held {players} entries afterwards"
+    },
+    "network.previous_missing": {
+      "level": "D",
+      "fields": ["from", "channel", "sequence", "recovered", "drops"],
+      "text": "A packet from player {from} on channel {channel} showed that the packet before it, sequence {sequence}, had not arrived; recovered from the copy it carried: {recovered}; {drops} losses were counted on that link (-1 when it had no slot)"
+    },
     "network.queue_full_gap_skipped": {
       "level": "W",
-      "fields": [],
-      "text": "The receive queue is full with nothing in order to deliver; a packet already asked for again is delivered past its gap"
+      "fields": ["from", "peer", "channel", "sequence", "expected", "retries", "queued"],
+      "text": "The receive queue was full with nothing in order to deliver; packet {sequence} from player {from} (entry {peer}, channel {channel}), whose gap had {retries} resend requests, was delivered past the expected {expected}; {queued} packets queued"
+    },
+    "network.receive_drained": {
+      "level": "D",
+      "fields": ["queued"],
+      "text": "DirectPlay handed over no more packets for now; {queued} packets were queued"
     },
     "network.receive_queue_full": {
       "level": "W",
       "fields": ["queued"],
       "text": "The receive queue is full at {queued} packets; only packets from the host are kept, and receiving stops until the next pump"
     },
+    "network.receive_queue_purged": {
+      "level": "W",
+      "fields": ["site", "kept"],
+      "text": "The receive queue was full when this player queued its own {site} packet for itself; only the {kept} packets from the host and DirectPlay were kept"
+    },
+    "network.receive_stalled": {
+      "level": "D",
+      "fields": ["queued"],
+      "text": "The receive queue held {queued} packets and none could be handed to the game, not even one past a gap"
+    },
     "network.recovery_needed": {
       "level": "W",
       "fields": [],
       "text": "Flight history or message capacity or continuity was exceeded; state recovery is needed"
+    },
+    "network.rename_rejected": {
+      "level": "W",
+      "fields": ["player", "slot"],
+      "text": "A name change for player {player} in roster slot {slot} was refused because its names were malformed; the old names were kept"
+    },
+    "network.resend_sent": {
+      "level": "D",
+      "fields": ["to", "channel", "sequence", "type", "bytes", "result"],
+      "text": "A packet went again to player {to}: channel {channel}, sequence {sequence}, type {type}, {bytes} bytes on the wire; DirectPlay result {result}"
+    },
+    "network.resent_copy_discarded": {
+      "level": "W",
+      "fields": ["from", "peer", "channel", "sequence", "expected"],
+      "text": "A resent packet from player {from} (entry {peer}) on channel {channel}, sequence {sequence}, was first in the queue but not the expected {expected}; it was discarded"
+    },
+    "network.resent_copy_received": {
+      "level": "D",
+      "fields": ["from", "type", "channel", "sequence", "bytes", "queued"],
+      "text": "A resent packet from player {from} was queued: type {type}, channel {channel}, sequence {sequence}, {bytes} bytes; {queued} packets queued"
+    },
+    "network.roster_full": {
+      "level": "W",
+      "fields": ["player"],
+      "text": "DirectPlay listed player {player} after all 8 roster places were filled; the listing stopped and the player was left out"
+    },
+    "network.send_failed": {
+      "level": "W",
+      "fields": ["kind", "to", "type", "sequence", "bytes", "result"],
+      "text": "DirectPlay refused a {kind} packet to player {to}: type {type}, sequence {sequence}, {bytes} bytes, result {result}"
+    },
+    "network.send_too_short": {
+      "level": "E",
+      "fields": ["bytes"],
+      "text": "A packet of {bytes} bytes, too short to hold its type, was refused and not sent"
     },
     "network.session_begin": {
       "level": "I",
@@ -550,8 +755,8 @@
     },
     "network.session_init": {
       "level": "D",
-      "fields": [],
-      "text": "Session setup starts in the 1997 code; the session state is cleared"
+      "fields": ["host", "players", "in_progress", "transport"],
+      "text": "Session setup started in the 1997 code for host {host}, {players} players, joining in progress {in_progress}, transport {transport}; the session state was cleared"
     },
     "network.session_names": {
       "level": "D",
@@ -563,10 +768,20 @@
       "fields": ["role", "online"],
       "text": "The network session is established as {role}; online {online}"
     },
+    "network.stale_dropped": {
+      "level": "D",
+      "fields": ["from", "peer", "channel", "sequence", "expected"],
+      "text": "A queued packet from player {from} on channel {channel}, sequence {sequence}, was dropped: it was up to 28 behind the expected {expected}, or the player had no connection entry (entry {peer}; 40 means none)"
+    },
     "network.system_message": {
       "level": "D",
       "fields": ["bytes"],
       "text": "A DirectPlay system message of {bytes} bytes arrived and is queued"
+    },
+    "network.system_message_handled": {
+      "level": "D",
+      "fields": ["opcode", "host"],
+      "text": "DirectPlay system message {opcode} was handled; this player hosts: {host}"
     },
     "network.world_received": {
       "level": "D",
@@ -577,6 +792,16 @@
       "level": "D",
       "fields": ["reason"],
       "text": "A world message was refused ({reason}); recovery is needed"
+    },
+    "network.world_resend_missing": {
+      "level": "W",
+      "fields": ["from", "tick", "sequence"],
+      "text": "Player {from} asked again for the world message of tick {tick}, which was no longer kept; an empty packet with sequence {sequence} went in its place"
+    },
+    "network.world_resent": {
+      "level": "D",
+      "fields": ["from", "tick", "sequence", "bytes", "drops"],
+      "text": "Player {from} asked again for the world message of tick {tick}; it was sent again with sequence {sequence}, {bytes} bytes; {drops} losses were counted on that link (-1 when it had no slot)"
     },
     "network.world_sent": {
       "level": "D",

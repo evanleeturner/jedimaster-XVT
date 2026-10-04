@@ -1,7 +1,6 @@
 #include "xvt/net/net_session.h"
 #ifdef XVT_MODERN
 #include "xvt/net/frontend_net.h"
-#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/network_session.h"
 #endif
@@ -14,6 +13,7 @@
 #include "xvt/frontend/config.h"
 #include "xvt/net/net_reliable.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #pragma pack(push, 1)
 
@@ -136,7 +136,10 @@ int net_session_init_game_session(const char *formal_name,
 	(void)mp_game_name;
 	(void)connection_address;
 #ifdef XVT_MODERN
-	XVT_LOG_DEBUG("network.session_init");
+	XVT_LOG_DEBUG(
+		"network.session_init host=%d players=%d in_progress=%d transport=%d",
+		is_host, num_human_players, in_progress_launch,
+		(int)network_type);
 #else
 	net_session_debug_trace("Init network");
 #endif
@@ -214,6 +217,17 @@ int net_session_init_game_session(const char *formal_name,
 			&g_net_session.group_piggyback_empty,
 			g_net_session_sent_history,
 			&g_net_session_sent_history_write_index);
+		XVT_LOG_DEBUG(
+			"network.flight_session_imported interface=%d local=%u peers=%u queued=%u read=%d write=%d history=%d broadcast_seq=%u group_seq=%u",
+			g_net_session.dplay_interface != NULL,
+			(unsigned)
+				g_net_session.local_player_info.direct_play_id,
+			g_net_session.reliable_peer_slot_count,
+			g_net_recv_queue_count, g_net_recv_queue_read_index,
+			g_net_recv_queue_write_index,
+			g_net_session_sent_history_write_index,
+			(unsigned)g_net_session.broadcast_seq_counter,
+			(unsigned)g_net_session.group_seq_counter);
 		if (g_net_session.dplay_interface == NULL) {
 			g_net_session.local_player_info.direct_play_id =
 				success;
@@ -232,6 +246,10 @@ int net_session_init_game_session(const char *formal_name,
 		g_net_session.players[0] = g_net_session.local_player_info;
 		g_net_session.local_is_host = is_host;
 		g_net_session.player_count = success;
+		XVT_LOG_INFO(
+			"network.flight_session_open mode=\"solo\" host=%d players=%d in_progress=%d",
+			is_host, g_net_session.player_count,
+			in_progress_launch);
 		return success;
 	}
 
@@ -255,10 +273,25 @@ int net_session_init_game_session(const char *formal_name,
 		&g_net_session.group_piggyback_empty,
 		g_net_session_sent_history,
 		&g_net_session_sent_history_write_index);
+	XVT_LOG_DEBUG(
+		"network.flight_session_imported interface=%d local=%u peers=%u queued=%u read=%d write=%d history=%d broadcast_seq=%u group_seq=%u",
+		g_net_session.dplay_interface != NULL,
+		(unsigned)g_net_session.local_player_info.direct_play_id,
+		g_net_session.reliable_peer_slot_count, g_net_recv_queue_count,
+		g_net_recv_queue_read_index, g_net_recv_queue_write_index,
+		g_net_session_sent_history_write_index,
+		(unsigned)g_net_session.broadcast_seq_counter,
+		(unsigned)g_net_session.group_seq_counter);
 	memset(&direct_play_caps, 0, sizeof(direct_play_caps));
 	direct_play_caps.dwSize = sizeof(direct_play_caps);
 	g_net_session.dplay_interface->lpVtbl->GetCaps(
 		g_net_session.dplay_interface, &direct_play_caps, 0);
+	XVT_LOG_DEBUG(
+		"network.dplay_caps buffer=%u queue=%u players=%u timeout=%u",
+		(unsigned)direct_play_caps.dwMaxBufferSize,
+		(unsigned)direct_play_caps.dwMaxQueueSize,
+		(unsigned)direct_play_caps.dwMaxPlayers,
+		(unsigned)direct_play_caps.dwTimeout);
 	g_net_session.player_count = 0;
 	g_net_session.local_is_host = is_host;
 	net_session_enumerate_players();
@@ -277,6 +310,9 @@ int net_session_init_game_session(const char *formal_name,
 				4);
 
 #ifdef XVT_MODERN
+	XVT_LOG_INFO(
+		"network.flight_session_open mode=\"multi\" host=%d players=%d in_progress=%d",
+		is_host, num_human_players, in_progress_launch);
 	return xvt_flight_network_begin_roster_exchange(num_human_players,
 							in_progress_launch);
 #else
@@ -364,6 +400,16 @@ int net_session_shutdown(void)
 		&g_net_session_sent_history_write_index,
 		g_net_session_sent_world_message_history,
 		&g_net_session_sent_world_message_write_index);
+	XVT_LOG_INFO("network.flight_session_end queued=%u peers=%u",
+		     g_net_recv_queue_count,
+		     g_net_session.reliable_peer_slot_count);
+	XVT_LOG_DEBUG(
+		"network.flight_session_exported history=%d world_history=%d broadcast_seq=%u group_seq=%u read=%d write=%d",
+		g_net_session_sent_history_write_index,
+		g_net_session_sent_world_message_write_index,
+		(unsigned)g_net_session.broadcast_seq_counter,
+		(unsigned)g_net_session.group_seq_counter,
+		g_net_recv_queue_read_index, g_net_recv_queue_write_index);
 	return 1;
 }
 
@@ -376,6 +422,8 @@ int net_session_enumerate_players(void)
 	g_net_session.dplay_interface->lpVtbl->EnumPlayers(
 		g_net_session.dplay_interface, 0,
 		net_session_enum_players_callback, 0, 0);
+	XVT_LOG_DEBUG("network.players_enumerated players=%d",
+		      g_net_session.player_count);
 	return 1;
 }
 
@@ -394,9 +442,14 @@ int AERON_DXAPI net_session_enum_players_callback(DPID dplay_id,
 	(void)context;
 
 	if (player_type == 0) {
+		XVT_LOG_DEBUG(
+			"network.player_skipped player=%u reason=\"not_player\"",
+			(unsigned)dplay_id);
 		return 1;
 	}
 	if (g_net_session.player_count >= 8) {
+		XVT_LOG_WARN("network.roster_full player=%u",
+			     (unsigned)dplay_id);
 		return 0;
 	}
 	if (pilot_data_has_network_player_dpid(dplay_id) != 0) {
@@ -421,7 +474,18 @@ int AERON_DXAPI net_session_enum_players_callback(DPID dplay_id,
 			&g_net_session.players[g_net_session.player_count]
 				 .active_flag;
 		*player_value = 1;
+		XVT_LOG_DEBUG(
+			"network.player_added slot=%d player=%u name=\"%s\" long_name=\"%s\"",
+			g_net_session.player_count, (unsigned)dplay_id,
+			g_net_session.players[g_net_session.player_count]
+				.player_name,
+			g_net_session.players[g_net_session.player_count]
+				.long_name);
 		g_net_session.player_count++;
+	} else {
+		XVT_LOG_DEBUG(
+			"network.player_skipped player=%u reason=\"not_in_mission\"",
+			(unsigned)dplay_id);
 	}
 	return 1;
 }
@@ -490,6 +554,8 @@ void net_session_pump_incoming_packets(void)
 		if (g_net_session.dplay_interface->lpVtbl->Receive(
 			    g_net_session.dplay_interface, &from_id, &to_id, 1,
 			    &wire_packet, &wire_size) != 0) {
+			XVT_LOG_DEBUG("network.receive_drained queued=%u",
+				      g_net_recv_queue_count);
 			return;
 		}
 		if (from_id == 0) {
@@ -501,6 +567,11 @@ void net_session_pump_incoming_packets(void)
 #endif
 			if (wire_size >
 			    sizeof(g_net_session_recv_queue[0].payload)) {
+				XVT_LOG_WARN(
+					"network.packet_truncated from=%u type=%u part=\"system\" bytes=%u",
+					(unsigned)from_id,
+					(unsigned)wire_packet.header,
+					(unsigned)wire_size);
 				wire_size = sizeof(
 					g_net_session_recv_queue[0].payload);
 			}
@@ -528,6 +599,9 @@ void net_session_pump_incoming_packets(void)
 		}
 		if (to_id !=
 		    (DPID)g_net_session.local_player_info.direct_play_id) {
+			XVT_LOG_WARN(
+				"network.packet_misaddressed from=%u to=%u",
+				(unsigned)from_id, (unsigned)to_id);
 			continue;
 		}
 		unsigned int packet_type = wire_packet.header & 0x7F;
@@ -548,15 +622,23 @@ void net_session_pump_incoming_packets(void)
 			packet_size = encoded_size;
 		}
 		if (packet_size > MAX_PAYLOAD_SIZE) {
+			XVT_LOG_WARN(
+				"network.packet_truncated from=%u type=%u part=\"body\" bytes=%u",
+				(unsigned)from_id, packet_type,
+				(unsigned)packet_size);
 			packet_size = MAX_PAYLOAD_SIZE;
 		}
 		if (packet_type == NET_PACKET_PING) {
 			response_packet[0] = NET_PACKET_PONG;
 			net_session_send_packet(from_id, response_packet,
 						sizeof(uint32_t));
+			XVT_LOG_DEBUG("network.ping_answered from=%u",
+				      (unsigned)from_id);
 			continue;
 		}
 		if (packet_type == NET_PACKET_KEEPALIVE_ACK) {
+			XVT_LOG_DEBUG("network.keepalive_ack_ignored from=%u",
+				      (unsigned)from_id);
 			continue;
 		}
 		if (packet_type == NET_PACKET_WORLD_NACK) {
@@ -616,6 +698,21 @@ void net_session_pump_incoming_packets(void)
 						g_net_session_sent_world_message_history
 							[world_cursor]
 								.payload_size);
+					XVT_LOG_DEBUG(
+						"network.world_resent from=%u tick=%d sequence=%u bytes=%u drops=%d",
+						(unsigned)from_id, timestamp,
+						(unsigned)g_net_session_sent_world_message_history
+							[world_cursor]
+								.sequence_byte,
+						(unsigned)g_net_session_sent_world_message_history
+							[world_cursor]
+								.payload_size,
+						peer_slot < 40
+							? g_net_session
+								  .reliable_peer_slots
+									  [peer_slot]
+								  .packet_drop_count
+							: -1);
 				} else {
 					response_packet[0] = NET_PACKET_NOP;
 					net_session_send_sequenced_game_packet(
@@ -623,7 +720,16 @@ void net_session_pump_incoming_packets(void)
 						(uint8_t)requested_sequence,
 						response_packet,
 						sizeof(uint32_t));
+					XVT_LOG_WARN(
+						"network.world_resend_missing from=%u tick=%d sequence=%d",
+						(unsigned)from_id, timestamp,
+						requested_sequence);
 				}
+			} else {
+				XVT_LOG_WARN(
+					"network.control_packet_short from=%u type=%u bytes=%u",
+					(unsigned)from_id, packet_type,
+					(unsigned)packet_size);
 			}
 			continue;
 		}
@@ -693,6 +799,23 @@ void net_session_pump_incoming_packets(void)
 						g_net_session_sent_history
 							[history_cursor]
 								.payload_size);
+					XVT_LOG_DEBUG(
+						"network.packet_resent from=%u channel=%d sequence=%d type=%u bytes=%u drops=%d",
+						(unsigned)from_id,
+						requested_class,
+						requested_sequence,
+						(unsigned)g_net_session_sent_history
+							[history_cursor]
+								.payload[0],
+						(unsigned)g_net_session_sent_history
+							[history_cursor]
+								.payload_size,
+						peer_slot < 40
+							? g_net_session
+								  .reliable_peer_slots
+									  [peer_slot]
+								  .packet_drop_count
+							: -1);
 				} else {
 					response_packet[0] = NET_PACKET_NOP;
 					net_session_send_sequenced_game_packet(
@@ -701,7 +824,17 @@ void net_session_pump_incoming_packets(void)
 						(uint8_t)requested_sequence,
 						response_packet,
 						sizeof(uint32_t));
+					XVT_LOG_WARN(
+						"network.packet_resend_missing from=%u channel=%d sequence=%d",
+						(unsigned)from_id,
+						requested_class,
+						requested_sequence);
 				}
+			} else {
+				XVT_LOG_WARN(
+					"network.control_packet_short from=%u type=%u bytes=%u",
+					(unsigned)from_id, packet_type,
+					(unsigned)packet_size);
 			}
 			continue;
 		}
@@ -738,6 +871,10 @@ void net_session_pump_incoming_packets(void)
 					    expected_directed) {
 					expected_directed = SEQUENCE_NONE;
 				}
+				XVT_LOG_DEBUG(
+					"network.keepalive_received from=%u broadcast=%d group=%d direct=%d",
+					(unsigned)from_id, expected_broadcast,
+					expected_group, expected_directed);
 				unsigned int history_cursor = (unsigned int)
 					g_net_session_sent_history_write_index;
 				for (unsigned int search_count = 0;
@@ -820,6 +957,21 @@ void net_session_pump_incoming_packets(void)
 						history_cursor = 0;
 					}
 				}
+				if (expected_broadcast != SEQUENCE_NONE ||
+				    expected_group != SEQUENCE_NONE ||
+				    expected_directed != SEQUENCE_NONE) {
+					XVT_LOG_WARN(
+						"network.keepalive_unanswered from=%u broadcast=%d group=%d direct=%d",
+						(unsigned)from_id,
+						expected_broadcast,
+						expected_group,
+						expected_directed);
+				}
+			} else {
+				XVT_LOG_WARN(
+					"network.control_packet_short from=%u type=%u bytes=%u",
+					(unsigned)from_id, packet_type,
+					(unsigned)packet_size);
 			}
 			continue;
 		}
@@ -843,6 +995,10 @@ void net_session_pump_incoming_packets(void)
 				app_payload_size = encoded_size;
 			}
 			if (app_payload_size > MAX_PAYLOAD_SIZE) {
+				XVT_LOG_WARN(
+					"network.packet_truncated from=%u type=%u part=\"copy\" bytes=%u",
+					(unsigned)from_id, packet_type,
+					(unsigned)app_payload_size);
 				app_payload_size = MAX_PAYLOAD_SIZE;
 			}
 			memcpy(g_net_session_recv_queue
@@ -921,6 +1077,14 @@ void net_session_pump_incoming_packets(void)
 			    RECEIVE_QUEUE_CAPACITY) {
 				g_net_recv_queue_write_index = 0;
 			}
+			XVT_LOG_DEBUG(
+				"network.resent_copy_received from=%u type=%u channel=%d sequence=%d bytes=%u queued=%u",
+				(unsigned)from_id, packet_type,
+				channel_marker == 0   ? 0
+				: channel_marker == 2 ? 2
+						      : 1,
+				sequence, (unsigned)app_payload_size,
+				g_net_recv_queue_count);
 			continue;
 		}
 		peer_slot = net_reliable_find_or_create_peer_slot(from_id);
@@ -947,12 +1111,34 @@ void net_session_pump_incoming_packets(void)
 					(unsigned int)(piggyback -
 						       (uint8_t *)&wire_packet
 							       .header);
+				XVT_LOG_DEBUG(
+					"network.previous_missing from=%u channel=%d sequence=%d recovered=%d drops=%d",
+					(unsigned)from_id,
+					broadcast_channel ? 0
+					: group_channel	  ? 2
+							  : 1,
+					previous_sequence,
+					piggyback_size > 0 &&
+						piggyback[0] != NET_PACKET_NOP,
+					peer_slot < 40
+						? g_net_session
+							  .reliable_peer_slots
+								  [peer_slot]
+							  .packet_drop_count
+						: -1);
 				if (piggyback_size > 0) {
 					unsigned int piggyback_type =
 						piggyback[0];
 					if (piggyback_type != NET_PACKET_NOP) {
 						if (piggyback_size - 1 >
 						    MAX_PAYLOAD_SIZE) {
+							XVT_LOG_WARN(
+								"network.packet_truncated from=%u type=%u part=\"trailer\" bytes=%u",
+								(unsigned)
+									from_id,
+								piggyback_type,
+								(unsigned)(piggyback_size -
+									   1));
 							piggyback_size =
 								MAX_PAYLOAD_SIZE +
 								1;
@@ -1024,6 +1210,14 @@ void net_session_pump_incoming_packets(void)
 		}
 		duplicate = net_reliable_check_and_record_recv_sequence(
 			from_id, sequence, broadcast_channel, group_channel);
+		XVT_LOG_DEBUG(
+			"network.packet_received from=%u type=%u channel=%d sequence=%d bytes=%u repeat=%d queued=%u",
+			(unsigned)from_id, packet_type,
+			broadcast_channel ? 0
+			: group_channel	  ? 2
+					  : 1,
+			sequence, (unsigned)packet_size, duplicate,
+			g_net_recv_queue_count);
 		if (!group_channel || !duplicate) {
 			memcpy(g_net_session_recv_queue
 				       [g_net_recv_queue_write_index]
@@ -1129,6 +1323,7 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 {
 	int send_result = 0;
 	if (payload_size < 4) {
+		XVT_LOG_ERROR("network.send_too_short bytes=%d", payload_size);
 		return 0;
 	}
 
@@ -1374,6 +1569,9 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 	    direct_play_id == g_net_session.group_dplay_id) {
 		if ((int)g_net_recv_queue_count >= 1024) {
 			net_reliable_keep_only_host_received_packets();
+			XVT_LOG_WARN(
+				"network.receive_queue_purged site=\"send\" kept=%u",
+				g_net_recv_queue_count);
 		}
 		if ((int)g_net_recv_queue_count < 1024) {
 			memcpy(g_net_session_recv_queue
@@ -1481,6 +1679,10 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 			if (g_net_recv_queue_write_index >= 1024) {
 				g_net_recv_queue_write_index = 0;
 			}
+		} else {
+			XVT_LOG_ERROR(
+				"network.own_packet_dropped site=\"send\" type=%u queued=%u",
+				packet_type, g_net_recv_queue_count);
 		}
 	}
 
@@ -1493,6 +1695,23 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 			(DPID)g_net_session.local_player_info.direct_play_id,
 			(DPID)direct_play_id, 0,
 			&encoded_packet.packet_type_header, encoded_size);
+	}
+	XVT_LOG_DEBUG(
+		"network.packet_sent to=%u type=%u channel=%d sequence=%u bytes=%d result=%#x queued=%u",
+		(unsigned)direct_play_id, packet_type,
+		(encoded_packet.packet_type_header & 0x80)     ? 2
+		: (encoded_packet.packet_type_header & 0x8000) ? 1
+							       : 0,
+		((unsigned)encoded_packet.packet_type_header & 0x7F00u) >> 8,
+		encoded_size, (unsigned)send_result, g_net_recv_queue_count);
+	if (send_result != 0) {
+		XVT_LOG_WARN(
+			"network.send_failed kind=\"packet\" to=%u type=%u sequence=%u bytes=%d result=%#x",
+			(unsigned)direct_play_id, packet_type,
+			((unsigned)encoded_packet.packet_type_header &
+			 0x7F00u) >>
+				8,
+			encoded_size, (unsigned)send_result);
 	}
 	return send_result == 0;
 }
@@ -1560,9 +1779,24 @@ int net_session_send_sequenced_game_packet(int dest_dplay_id,
 			(DPID)dest_dplay_id, 0,
 			&encoded_packet.packet_type_header,
 			(uint32_t)encoded_size);
+		XVT_LOG_DEBUG(
+			"network.resend_sent to=%u channel=%u sequence=%u type=%u bytes=%d result=%#x",
+			(unsigned)dest_dplay_id, (unsigned)packet_class,
+			(unsigned)sequence, packet_type, encoded_size,
+			(unsigned)send_result);
+		if (send_result != 0) {
+			XVT_LOG_WARN(
+				"network.send_failed kind=\"resend\" to=%u type=%u sequence=%u bytes=%d result=%#x",
+				(unsigned)dest_dplay_id, packet_type,
+				(unsigned)sequence, encoded_size,
+				(unsigned)send_result);
+		}
 	} else {
 		if ((int)g_net_recv_queue_count >= 1024) {
 			net_reliable_keep_only_host_received_packets();
+			XVT_LOG_WARN(
+				"network.receive_queue_purged site=\"resend\" kept=%u",
+				g_net_recv_queue_count);
 		}
 		if ((int)g_net_recv_queue_count < 1024) {
 			memcpy(g_net_session_recv_queue
@@ -1592,6 +1826,10 @@ int net_session_send_sequenced_game_packet(int dest_dplay_id,
 			if (g_net_recv_queue_write_index >= 1024) {
 				g_net_recv_queue_write_index = 0;
 			}
+		} else {
+			XVT_LOG_ERROR(
+				"network.own_packet_dropped site=\"resend\" type=%u queued=%u",
+				packet_type, g_net_recv_queue_count);
 		}
 	}
 
@@ -1696,6 +1934,8 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 	uint8_t handshake_active;
 	struct net_reliable_peer_slot *peer;
 	uint8_t *encoded_peer;
+	XVT_LOG_DEBUG("network.system_message_handled opcode=%d host=%d",
+		      packet_opcode, g_net_session.local_is_host);
 
 	switch (packet_opcode) {
 	case DPSYS_CREATEPLAYERORGROUP:
@@ -1773,6 +2013,12 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 #endif
 				g_net_session_scratch_packet.payload_dwords[2] =
 					0;
+				XVT_LOG_INFO(
+					"network.player_joined_flight player=%u peers=%u seconds=%d",
+					(unsigned)packet[2],
+					g_net_session.reliable_peer_slot_count,
+					g_net_session_scratch_packet
+						.payload_dwords[0]);
 				return net_session_send_packet(
 					packet[2],
 					(unsigned int
@@ -1899,6 +2145,14 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 						result =
 							net_session_remove_player_from_group(
 								packet[2]);
+						XVT_LOG_INFO(
+							"network.player_destroyed player=%u slot=%d active=%d result=%#x",
+							(unsigned)packet[2],
+							player_index,
+							g_net_session
+								.players[player_index]
+								.active_flag,
+							(unsigned)result);
 						g_net_session
 							.players[player_index]
 							.active_flag = 0;
@@ -1920,6 +2174,24 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 							    [player_index]
 						    .direct_play_id ==
 					    (DPID)packet[2]) {
+						XVT_LOG_DEBUG(
+							"network.peer_slot_freed player=%u peer=%d delivered=%d drops=%d gaps=%d left=%u",
+							(unsigned)packet[2],
+							player_index,
+							g_net_session
+								.reliable_peer_slots
+									[player_index]
+								.packet_count,
+							g_net_session
+								.reliable_peer_slots
+									[player_index]
+								.packet_drop_count,
+							g_net_session
+								.reliable_peer_slots
+									[player_index]
+								.packet_retry_count,
+							g_net_session.reliable_peer_slot_count -
+								1);
 						--g_net_session
 							  .reliable_peer_slot_count;
 						memcpy(&g_net_session.reliable_peer_slots
@@ -2149,6 +2421,12 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 						    sizeof(g_net_session
 								   .players[player_index]
 								   .long_name))) {
+						XVT_LOG_WARN(
+							"network.rename_rejected player=%u slot=%d",
+							(unsigned)g_net_session
+								.players[player_index]
+								.direct_play_id,
+							player_index);
 						return 0;
 					}
 #else
@@ -2174,6 +2452,18 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 						.player_name[12] = '\0';
 					g_net_session.players[player_index]
 						.long_name[12] = '\0';
+					XVT_LOG_DEBUG(
+						"network.player_renamed player=%u slot=%d name=\"%s\" long_name=\"%s\"",
+						(unsigned)g_net_session
+							.players[player_index]
+							.direct_play_id,
+						player_index,
+						g_net_session
+							.players[player_index]
+							.player_name,
+						g_net_session
+							.players[player_index]
+							.long_name);
 					return 0;
 				}
 			}
@@ -2324,6 +2614,9 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 			net_reliable_find_or_create_peer_slot(direct_play_id);
 		if (old_peer_count != g_net_session.reliable_peer_slot_count &&
 		    peer_index < 40) {
+			XVT_LOG_DEBUG(
+				"network.peer_slot_added player=%u peer=%u",
+				(unsigned)direct_play_id, peer_index);
 			last_sequences[peer_index][0] = 127;
 			last_sequences[peer_index][1] = 127;
 			last_sequences[peer_index][2] = 127;
@@ -2409,6 +2702,13 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 		delta = sequence - expected_sequence;
 		if (peer_index >= g_net_session.reliable_peer_slot_count ||
 		    (delta >= -28 && (delta < 0 || delta >= 100))) {
+			XVT_LOG_DEBUG(
+				"network.stale_dropped from=%u peer=%u channel=%d sequence=%d expected=%d",
+				(unsigned)direct_play_id, peer_index,
+				channels.want_channel_a	  ? 0
+				: channels.want_channel_b ? 2
+							  : 1,
+				sequence, expected_sequence);
 			if (net_reliable_remove_queued_packet(queue_index) !=
 			    0) {
 				++queue_index;
@@ -2450,6 +2750,22 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 						   .direct_play_id;
 			*out_payload_size =
 				g_net_session.recv_scratch_packet.payload_size;
+			XVT_LOG_DEBUG(
+				"network.packet_delivered path=\"in_order\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
+				(unsigned)g_net_session.recv_scratch_packet
+					.direct_play_id,
+				peer_index,
+				(unsigned)g_net_session.recv_scratch_packet
+					.packet_class,
+				(unsigned)g_net_session.recv_scratch_packet
+					.sequence_byte,
+				(unsigned)g_net_session.recv_scratch_packet
+					.payload[0],
+				(unsigned)g_net_session.recv_scratch_packet
+					.payload_size,
+				g_net_session.reliable_peer_slots[peer_index]
+					.packet_count,
+				g_net_recv_queue_count);
 			return g_net_session.recv_scratch_packet.payload;
 		}
 
@@ -2478,6 +2794,22 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 						   .direct_play_id;
 			*out_payload_size =
 				g_net_session.recv_scratch_packet.payload_size;
+			XVT_LOG_DEBUG(
+				"network.packet_delivered path=\"internet_input\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
+				(unsigned)g_net_session.recv_scratch_packet
+					.direct_play_id,
+				peer_index,
+				(unsigned)g_net_session.recv_scratch_packet
+					.packet_class,
+				(unsigned)g_net_session.recv_scratch_packet
+					.sequence_byte,
+				(unsigned)g_net_session.recv_scratch_packet
+					.payload[0],
+				(unsigned)g_net_session.recv_scratch_packet
+					.payload_size,
+				g_net_session.reliable_peer_slots[peer_index]
+					.packet_count,
+				g_net_recv_queue_count);
 			return g_net_session.recv_scratch_packet.payload;
 		}
 
@@ -2576,6 +2908,29 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 							g_net_session
 								.recv_scratch_packet
 								.payload_size;
+						XVT_LOG_DEBUG(
+							"network.packet_delivered path=\"gap_filled\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
+							(unsigned)g_net_session
+								.recv_scratch_packet
+								.direct_play_id,
+							peer_index,
+							(unsigned)g_net_session
+								.recv_scratch_packet
+								.packet_class,
+							(unsigned)g_net_session
+								.recv_scratch_packet
+								.sequence_byte,
+							(unsigned)g_net_session
+								.recv_scratch_packet
+								.payload[0],
+							(unsigned)g_net_session
+								.recv_scratch_packet
+								.payload_size,
+							g_net_session
+								.reliable_peer_slots
+									[peer_index]
+								.packet_count,
+							g_net_recv_queue_count);
 						if (sequence_distance <= 1) {
 							g_net_session_recv_queue
 								[queue_index]
@@ -2668,6 +3023,29 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 							  .reliable_peer_slots
 								  [peer_index]
 							  .packet_retry_count;
+						XVT_LOG_DEBUG(
+							"network.nack_sent to=%u peer=%u channel=%d missing=%d kind=\"%s\" tick=%d attempt=%d gaps=%d",
+							(unsigned)packet
+								->direct_play_id,
+							peer_index,
+							retry_channel,
+							remote_sequence,
+							retry_packet.packet_type ==
+									NET_PACKET_WORLD_NACK
+								? "world"
+								: "packet",
+							retry_packet.packet_type ==
+									NET_PACKET_WORLD_NACK
+								? retry_packet.payload_dwords
+									  [0]
+								: -1,
+							(int)g_net_session_recv_queue
+								[queue_index]
+									.nack_retry_count,
+							g_net_session
+								.reliable_peer_slots
+									[peer_index]
+								.packet_retry_count);
 						sent_retry = 1;
 					} else {
 						int timeout_payload_type;
@@ -2701,10 +3079,22 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 						    timeout) {
 #ifdef XVT_MODERN
 							XVT_LOG_DEBUG(
-								"network.nack_timeout retries=%d",
+								"network.nack_timeout retries=%d peer=%u channel=%d missing=%d waited=%u timeout=%u",
 								g_net_session_recv_queue
 									[queue_index]
-										.nack_retry_count);
+										.nack_retry_count,
+								peer_index,
+								channels.want_channel_a
+									? 0
+								: channels.want_channel_b
+									? 2
+									: 1,
+								remote_sequence,
+								(unsigned)(now -
+									   (uint32_t)g_net_session_recv_queue
+										   [queue_index]
+											   .last_nack_ms),
+								timeout);
 #else
 							net_session_debug_trace(
 								"(RTO) ");
@@ -2715,10 +3105,18 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 							    retry_limit) {
 #ifdef XVT_MODERN
 								XVT_LOG_WARN(
-									"network.nack_gave_up retries=%d",
+									"network.nack_gave_up retries=%d peer=%u channel=%d missing=%d limit=%u",
 									g_net_session_recv_queue
 										[queue_index]
-											.nack_retry_count);
+											.nack_retry_count,
+									peer_index,
+									channels.want_channel_a
+										? 0
+									: channels.want_channel_b
+										? 2
+										: 1,
+									remote_sequence,
+									retry_limit);
 #else
 								net_session_debug_trace(
 									"(TMR) ");
@@ -2788,6 +3186,29 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 											g_net_session
 												.recv_scratch_packet
 												.payload_size;
+										XVT_LOG_DEBUG(
+											"network.packet_delivered path=\"gave_up\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
+											(unsigned)g_net_session
+												.recv_scratch_packet
+												.direct_play_id,
+											peer_index,
+											(unsigned)g_net_session
+												.recv_scratch_packet
+												.packet_class,
+											(unsigned)g_net_session
+												.recv_scratch_packet
+												.sequence_byte,
+											(unsigned)g_net_session
+												.recv_scratch_packet
+												.payload[0],
+											(unsigned)g_net_session
+												.recv_scratch_packet
+												.payload_size,
+											g_net_session
+												.reliable_peer_slots
+													[peer_index]
+												.packet_count,
+											g_net_recv_queue_count);
 										return g_net_session
 											.recv_scratch_packet
 											.payload;
@@ -2841,6 +3262,29 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 									g_net_session
 										.recv_scratch_packet
 										.payload_size;
+								XVT_LOG_DEBUG(
+									"network.packet_delivered path=\"gave_up\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
+									(unsigned)g_net_session
+										.recv_scratch_packet
+										.direct_play_id,
+									peer_index,
+									(unsigned)g_net_session
+										.recv_scratch_packet
+										.packet_class,
+									(unsigned)g_net_session
+										.recv_scratch_packet
+										.sequence_byte,
+									(unsigned)g_net_session
+										.recv_scratch_packet
+										.payload[0],
+									(unsigned)g_net_session
+										.recv_scratch_packet
+										.payload_size,
+									g_net_session
+										.reliable_peer_slots
+											[peer_index]
+										.packet_count,
+									g_net_recv_queue_count);
 								return g_net_session
 									.recv_scratch_packet
 									.payload;
@@ -2920,6 +3364,30 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 										1);
 								}
 								sent_retry = 1;
+								XVT_LOG_DEBUG(
+									"network.nack_sent to=%u peer=%u channel=%d missing=%d kind=\"%s\" tick=%d attempt=%d gaps=%d",
+									(unsigned)packet
+										->direct_play_id,
+									peer_index,
+									retry_channel,
+									remote_sequence,
+									retry_packet.packet_type ==
+											NET_PACKET_WORLD_NACK
+										? "world"
+										: "packet",
+									retry_packet.packet_type ==
+											NET_PACKET_WORLD_NACK
+										? retry_packet
+											  .payload_dwords
+												  [0]
+										: -1,
+									(int)g_net_session_recv_queue
+										[queue_index]
+											.nack_retry_count,
+									g_net_session
+										.reliable_peer_slots
+											[peer_index]
+										.packet_retry_count);
 							}
 						}
 					}
@@ -2945,6 +3413,13 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 			}
 		} else {
 			if (g_net_recv_queue_read_index == queue_index) {
+				XVT_LOG_WARN(
+					"network.resent_copy_discarded from=%u peer=%u channel=%d sequence=%d expected=%d",
+					(unsigned)direct_play_id, peer_index,
+					channels.want_channel_a	  ? 0
+					: channels.want_channel_b ? 2
+								  : 1,
+					sequence, expected_sequence);
 				if (net_reliable_remove_queued_packet(
 					    queue_index) == 0) {
 					--channels.remaining_queue_entries;
@@ -3037,6 +3512,16 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 						    .reliable_peer_slot_count ||
 				    (delta >= -27 &&
 				     (delta < 0 || delta >= 100))) {
+					XVT_LOG_DEBUG(
+						"network.stale_dropped from=%u peer=%u channel=%d sequence=%d expected=%d",
+						(unsigned)g_net_session_recv_queue
+							[full_queue_index]
+								.direct_play_id,
+						peer_index,
+						channels.want_channel_a	  ? 0
+						: channels.want_channel_b ? 2
+									  : 1,
+						sequence, expected_sequence);
 					if (net_reliable_remove_queued_packet(
 						    full_queue_index) == 0) {
 						--full_remaining;
@@ -3055,7 +3540,19 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 				} else {
 #ifdef XVT_MODERN
 					XVT_LOG_WARN(
-						"network.queue_full_gap_skipped");
+						"network.queue_full_gap_skipped from=%u peer=%u channel=%d sequence=%d expected=%d retries=%d queued=%u",
+						(unsigned)g_net_session_recv_queue
+							[full_queue_index]
+								.direct_play_id,
+						peer_index,
+						channels.want_channel_a	  ? 0
+						: channels.want_channel_b ? 2
+									  : 1,
+						sequence, expected_sequence,
+						(int)g_net_session_recv_queue
+							[full_queue_index]
+								.nack_retry_count,
+						g_net_recv_queue_count);
 #else
 					net_session_debug_trace("(NMR) ");
 #endif
@@ -3111,6 +3608,8 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 			--full_remaining;
 		}
 	}
+	XVT_LOG_DEBUG("network.receive_stalled queued=%u",
+		      g_net_recv_queue_count);
 	return NULL;
 }
 
@@ -3186,6 +3685,18 @@ int net_session_send_compact_game_packet(int direct_play_id,
 			&encoded_packet.packet_type_header,
 			(uint32_t)encoded_size);
 	}
+	XVT_LOG_DEBUG("network.control_sent to=%u type=%u bytes=%d result=%#x",
+		      (unsigned)direct_play_id, packet_type, encoded_size,
+		      (unsigned)send_result);
+	if (send_result != 0) {
+		XVT_LOG_WARN(
+			"network.send_failed kind=\"control\" to=%u type=%u sequence=%u bytes=%d result=%#x",
+			(unsigned)direct_play_id, packet_type,
+			((unsigned)encoded_packet.packet_type_header &
+			 0x7F00u) >>
+				8,
+			encoded_size, (unsigned)send_result);
+	}
 
 	return send_result == 0;
 }
@@ -3227,6 +3738,7 @@ int net_session_find_player_slot_by_dpid(int dpid)
 			return player_slot;
 		}
 	}
+	XVT_LOG_DEBUG("network.player_slot_missing player=%u", (unsigned)dpid);
 
 	return player_slot;
 }
@@ -3317,6 +3829,8 @@ char *net_session_get_player_name(int player_slot)
 		} while (roster_index < g_net_session.player_count);
 	}
 #ifdef XVT_MODERN
+	XVT_LOG_DEBUG("network.player_name_missing slot=%d players=%d",
+		      player_slot, g_net_session.player_count);
 	return NULL;
 #endif
 }
@@ -3571,8 +4085,20 @@ int net_session_send_reliable_keepalives(void)
 							current_time;
 #ifdef XVT_MODERN
 						XVT_LOG_DEBUG(
-							"network.keepalive_sent slot=%u",
-							peer_slot);
+							"network.keepalive_sent peer=%u broadcast=%d group=%d direct=%d",
+							peer_slot,
+							g_net_session
+								.reliable_peer_slots
+									[peer_slot]
+								.recv_seq_channel_a,
+							g_net_session
+								.reliable_peer_slots
+									[peer_slot]
+								.recv_seq_channel_b,
+							g_net_session
+								.reliable_peer_slots
+									[peer_slot]
+								.recv_seq_default);
 #else
 						net_session_debug_trace(
 							"(Sending RRA) ");
