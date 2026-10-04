@@ -1,8 +1,9 @@
 #ifndef XVT_FLIGHT_HUD_FLIGHT_ALERT_H
 #define XVT_FLIGHT_HUD_FLIGHT_ALERT_H
 
-#include "xvt/xvt_typedefs.h"
 #include <stdint.h>
+
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

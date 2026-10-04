@@ -1,4 +1,10 @@
 #include "xvt_app/setup.h"
+
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/config_file.h"
 #include "xvt/util/memory.h"
 #include "xvt_app/setup_ui.h"
@@ -6,10 +12,6 @@
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/storage/storage.h"
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 static char g_installation[XVT_PATH_CAPACITY];
 

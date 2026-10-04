@@ -1,4 +1,5 @@
 #include "xvt/input/keyboard.h"
+
 #include "xvt/frontend/frontend_state.h"
 
 /* Returns 1 when the 0x80 bit of g_front_state.key_state for the virtual-key code

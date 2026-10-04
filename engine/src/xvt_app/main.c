@@ -1,9 +1,9 @@
-#include "xvt_app/application.h"
-#include "xvt_app/log_sink.h"
-
 #include "aeron/main.h"
 
 #include <stdio.h>
+
+#include "xvt_app/application.h"
+#include "xvt_app/log_sink.h"
 
 int main(int argc, char *argv[])
 {

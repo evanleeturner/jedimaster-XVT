@@ -1,4 +1,5 @@
 #include "xvt_app/settings/mouse_page.h"
+
 #include "xvt_runtime/config/config.h"
 
 void xvt_mouse_page_draw(AeronUiContext *ui, const AeronInputSnapshot *input)

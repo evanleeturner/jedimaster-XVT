@@ -7,15 +7,15 @@
  *
  * Not checked here: replaying a looping track, and anything during a flight; both need a CD device or a
  * running flight. */
+#include <stdint.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/music_cd.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <stdint.h>
-#include <string.h>
 
 /* A volume no step can produce: steps move the level from its start in multiples of 256. */
 enum { UNSET = 12345 };

@@ -7,6 +7,8 @@
  * parent screen at frame 5, no dialog and no result.
  *
  * Not checked here: the warning sound, and the program ending when the dialog screen cannot be pushed. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "test_frontend_display.h"
 #include "xvt/frontend/config.h"
@@ -15,8 +17,6 @@
 #include "xvt/frontend/frontend_screen.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt_runtime/runtime/dialog_task.h"
-
-#include <string.h>
 
 enum { PARENT_FRAME = 5 };
 

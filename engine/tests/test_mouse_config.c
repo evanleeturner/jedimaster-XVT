@@ -3,12 +3,12 @@
  * shipped defaults. Each check starts from a fresh fixture folder (config_fixture.h). */
 #define _XOPEN_SOURCE 700
 
+#include <string.h>
+
 #include "config_fixture.h"
 #include "test_assert.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/config/mouse_config.h"
-
-#include <string.h>
 
 /* Parses text's mouse settings into *options and returns what the parser returned. */
 static bool parse_text(const char *text, struct xvt_mouse_options *options,

@@ -1,10 +1,10 @@
 #include "xvt_app/settings/controller_page.h"
 
-#include "aeron/aeron.h"
-#include "xvt_runtime/input/controller_mapping.h"
-
 #include <stdio.h>
 #include <string.h>
+
+#include "aeron/aeron.h"
+#include "xvt_runtime/input/controller_mapping.h"
 
 enum {
 	CONTROLLER_PAGE_AXES = 0,

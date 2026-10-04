@@ -9,6 +9,9 @@
  * Not checked here: confirming a message (it restores the saved world and steps the recovered game's
  * simulation), and Update past that first wait (it runs the simulation, renders a frame, and on the network
  * reads and sends packets); they need a running flight of the recovered game. */
+#include <stdint.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
@@ -24,9 +27,6 @@
 #include "xvt_runtime/runtime/flight_wire.h"
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <stdint.h>
-#include <string.h>
 
 enum { MS_US = 1000, TICK_US = 4 * MS_US };
 

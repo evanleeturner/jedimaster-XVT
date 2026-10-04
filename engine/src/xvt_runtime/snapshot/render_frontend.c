@@ -1,5 +1,8 @@
 #include "xvt_runtime/snapshot/render_frontend.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/frontend/front_image.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt_runtime/runtime/dialog_task.h"
@@ -7,8 +10,6 @@
 #include "xvt_runtime/runtime/presentation.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_capture.h"
-#include <stdlib.h>
-#include <string.h>
 
 static unsigned g_target, g_suppress;
 static uint64_t g_serial, g_generation;

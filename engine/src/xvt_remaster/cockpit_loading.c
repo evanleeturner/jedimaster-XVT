@@ -1,4 +1,7 @@
 #include "xvt_remaster/cockpit_loading.h"
+
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt_remaster/assets.h"
 #include "xvt_remaster/config.h"
@@ -7,7 +10,6 @@
 #include "xvt_remaster/hud_renderer.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_capture.h"
-#include <string.h>
 
 static uint64_t g_prepared_image_generation, g_prepared_resource_generation;
 static int g_width, g_height, g_samples;

@@ -8,6 +8,9 @@
  *
  * Not checked here: a snapshot with rooms, selection kept across refreshes, the mission preview, and a
  * join or host attempt past its first step; they need a multiplayer directory and a DirectPlay peer. */
+#include <stdio.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "test_assert.h"
 #include "test_frontend_display.h"
@@ -21,9 +24,6 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/network_task.h"
-
-#include <stdio.h>
-#include <string.h>
 
 static AeronDplayDirectoryRoom g_test_room;
 

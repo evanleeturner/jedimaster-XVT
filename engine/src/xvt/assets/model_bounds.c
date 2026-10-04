@@ -1,4 +1,5 @@
 #include "xvt/assets/model_bounds.h"
+
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/util/memory.h"

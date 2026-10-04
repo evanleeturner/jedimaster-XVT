@@ -1,4 +1,7 @@
 #include "xvt_runtime/snapshot/world_state.h"
+
+#include <string.h>
+
 #include "xvt/flight/flight.h"
 #include "xvt/flight/hud/hud.h"
 #include "xvt/flight/mission/mission.h"
@@ -9,7 +12,6 @@
 #include "xvt_runtime/snapshot/records.h"
 #include "xvt_runtime/snapshot/world_checksum.h"
 #include "xvt_runtime/timing/flight_timing.h"
-#include <string.h>
 
 /* These trailer records already have their original fixed-width layout. */
 typedef char xvt_snapshot_fg_size

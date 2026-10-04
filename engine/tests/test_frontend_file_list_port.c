@@ -4,13 +4,13 @@
  * from a fresh temporary folder holding empty asset and user folders, which an Aeron VFS bound to storage
  * uses as the ASSET and USER roots; the test writes every file the listing sees. The list is released
  * with frontend_file_list_free from the recovered frontend code, as the header says. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "test_temp_folder.h"
 #include "xvt/frontend/frontend_file_list.h"
 #include "xvt_runtime/compat/frontend_file_list_port.h"
 #include "xvt_runtime/storage/storage.h"
-
-#include <string.h>
 
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 static char g_asset[XVT_TEST_PATH_CAPACITY];

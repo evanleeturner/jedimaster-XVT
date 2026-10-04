@@ -1,7 +1,8 @@
 #ifndef XVT_MOUSE_CONFIG_H
 #define XVT_MOUSE_CONFIG_H
-#include "aeron/config_file.h"
 #include <stdbool.h>
+
+#include "aeron/config_file.h"
 
 enum { XVT_MOUSE_SENSITIVITY_MIN = 1, XVT_MOUSE_SENSITIVITY_MAX = 9 };
 

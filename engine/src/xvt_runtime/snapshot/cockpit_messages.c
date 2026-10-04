@@ -1,5 +1,7 @@
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/flight/player/player.h"
@@ -7,7 +9,6 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_text.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-#include <string.h>
 
 typedef char xvt_cockpit_overlay_capacity_check
 	[XVT_HUD_OVERLAY_GLYPHS ==

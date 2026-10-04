@@ -1,9 +1,10 @@
 #ifndef XVT_FLIGHT_FLIGHT_SURFACE_H
 #define XVT_FLIGHT_FLIGHT_SURFACE_H
 
+#include <stdint.h>
+
 #include "aeron/compat/ddraw.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

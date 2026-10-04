@@ -4,6 +4,9 @@
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 #endif
+#include <stdio.h>
+#include <string.h>
+
 #include "xvt/assets/model_texture.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_surface.h"
@@ -16,9 +19,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt/util/debug_console.h"
 #include "xvt/util/time.h"
-
-#include <stdio.h>
-#include <string.h>
 
 #ifndef XVT_MODERN
 __declspec(dllimport) int __cdecl wsprintfA(char *buffer, const char *format,

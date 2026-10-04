@@ -1,12 +1,12 @@
 #include "xvt/frontend/frontend_mission_list.h"
 
+#include <stdlib.h>
+
 #include "xvt/frontend/briefing_text.h"
 #include "xvt/frontend/front_image.h"
 #include "xvt/frontend/frontend.h"
 #include "xvt/frontend/frontend_mouse.h"
 #include "xvt/frontend/mission_setup.h"
-
-#include <stdlib.h>
 
 /* Exit function of the mission list screens: frees g_mission_list and
  * g_mission_text and sets them NULL, forgets the scrollable controls and frees

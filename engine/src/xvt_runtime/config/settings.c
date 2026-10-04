@@ -1,11 +1,12 @@
 #include "xvt_runtime/config/settings.h"
-#include "xvt_runtime/config/controller_config.h"
-#include "xvt_runtime/config/keyboard_config.h"
 
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "xvt_runtime/config/controller_config.h"
+#include "xvt_runtime/config/keyboard_config.h"
 
 typedef enum xvt_setting_type {
 	XVT_SETTING_BOOL,

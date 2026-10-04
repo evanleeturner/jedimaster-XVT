@@ -8,12 +8,12 @@
  *
  * The float path runs outside a NETWORK_125 session; the flight timing session is ended first so it
  * reads as native. */
+#include <stdint.h>
+#include <stdio.h>
+
 #include "test_assert.h"
 #include "xvt_runtime/hooks/orientation_hook.h"
 #include "xvt_runtime/timing/flight_timing.h"
-
-#include <stdint.h>
-#include <stdio.h>
 
 /* Each call rounds every angle to a whole unit, 1/65536 of a turn, and the float path works in
  * single-precision radians; a few chained calls measured within 4 units of each other. 8 units (0.044

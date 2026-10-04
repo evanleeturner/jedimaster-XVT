@@ -1,5 +1,7 @@
 #include "xvt_runtime/runtime/movie_sync.h"
 
+#include <stdio.h>
+
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_string.h"
@@ -9,8 +11,6 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
-
-#include <stdio.h>
 
 void xvt_movie_sync_begin(void)
 {

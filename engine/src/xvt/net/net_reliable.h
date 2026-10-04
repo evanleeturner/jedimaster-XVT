@@ -1,9 +1,10 @@
 #ifndef XVT_NET_NET_RELIABLE_H
 #define XVT_NET_NET_RELIABLE_H
 
+#include <stdint.h>
+
 #include "aeron/compat/dplay.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

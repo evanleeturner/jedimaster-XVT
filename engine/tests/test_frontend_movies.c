@@ -9,6 +9,9 @@
  *
  * Not checked here: the display clearing and the pilot record redraw, which need a window and the game's
  * images. */
+#include <string.h>
+#include <time.h>
+
 #include "test_assert.h"
 #include "test_asset_folder.h"
 #include "xvt/audio/cd_audio.h"
@@ -16,9 +19,6 @@
 #include "xvt/frontend/frontend_state.h"
 #include "xvt_runtime/runtime/frontend_movies.h"
 #include "xvt_runtime/runtime/movie_task.h"
-
-#include <string.h>
-#include <time.h>
 
 static struct xvt_test_assets g_assets;
 

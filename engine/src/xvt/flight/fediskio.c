@@ -4,6 +4,9 @@
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #endif
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
@@ -32,9 +35,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/tex_level.h"
 #include "xvt/util/memory.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 #ifndef XVT_MODERN
 struct msvc42_file_prefix {

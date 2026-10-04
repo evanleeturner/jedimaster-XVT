@@ -7,6 +7,8 @@
  *
  * Not checked here: a failed allocation, which a test cannot cause, and how RecordMode's value appears in
  * the exported page, which the header does not say; only that a new mode raises the page's generation. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/flight/hud/mfd.h"
@@ -14,8 +16,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt_runtime/snapshot/cockpit_pages.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-
-#include <string.h>
 
 enum { BYPASS = 9, FOREGROUND = 7, BACKGROUND = 4 };
 

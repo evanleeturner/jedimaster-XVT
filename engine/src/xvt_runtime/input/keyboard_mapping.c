@@ -1,11 +1,12 @@
 #include "xvt_runtime/input/keyboard_mapping.h"
 
-#include "aeron/aeron.h"
-#include "xvt_runtime/log/log.h"
-#include "xvt_runtime/runtime/port.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "aeron/aeron.h"
+#include "xvt_runtime/log/log.h"
+#include "xvt_runtime/runtime/port.h"
 
 struct keyboard_press {
 	xvt_input_action action;

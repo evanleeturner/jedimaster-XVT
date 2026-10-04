@@ -1,8 +1,10 @@
 #include "xvt_runtime/config/video_config.h"
-#include "xvt_runtime/config/config.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "xvt_runtime/config/config.h"
 
 void xvt_video_settings_read(const struct xvt_settings *settings,
 			     struct xvt_video_settings *out)

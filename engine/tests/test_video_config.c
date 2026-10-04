@@ -4,13 +4,13 @@
  * (config_fixture.h). */
 #define _XOPEN_SOURCE 700
 
+#include <math.h>
+#include <string.h>
+
 #include "config_fixture.h"
 #include "test_assert.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/config/video_config.h"
-
-#include <math.h>
-#include <string.h>
 
 /* A record with a distinctive value in every field, for the copying checks; it is never validated. */
 static struct xvt_video_settings distinct(void)

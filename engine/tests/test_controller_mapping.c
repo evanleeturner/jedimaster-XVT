@@ -4,13 +4,13 @@
  * and the menu's buttons and direction. Every case builds its own options and input snapshots, plays the
  * host one frame at a time, and starts from a fresh Init. No flight runs, so no action queues a flight
  * key; held buttons and axes need no flight. */
+#include <string.h>
+
 #include "aeron/input.h"
 #include "test_assert.h"
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/input/controller_mapping.h"
 #include "xvt_runtime/runtime/flight_task.h"
-
-#include <string.h>
 
 static const char k_gamepad_guid[] = "0123456789abcdef0123456789abcdea";
 static const char k_joystick_guid[] = "0123456789abcdef0123456789abcdeb";

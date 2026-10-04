@@ -1,4 +1,9 @@
 #include "xvt_remaster/original_2d.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/asset/abp_font.h"
 #include "aeron/asset/act.h"
@@ -6,9 +11,6 @@
 #include "aeron/asset/bmp.h"
 #include "aeron/asset/pnl.h"
 #include "xvt_runtime/snapshot/render_assets.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 void xvt_original2d_free(struct xvt_original2d *source)
 {

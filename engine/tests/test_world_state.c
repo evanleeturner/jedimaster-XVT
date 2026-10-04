@@ -1,6 +1,11 @@
 /* Checks the world-state image (xvt_runtime/snapshot/world_state.h) against the promises in its header,
  * on worlds this file builds itself: no game data is read. Each case starts from an empty world (no
  * object slots, no flight groups, the offline timing profile) and sets only what it needs. */
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
@@ -10,11 +15,6 @@
 #include "xvt/util/game_rand.h"
 #include "xvt_runtime/snapshot/records.h"
 #include "xvt_runtime/snapshot/world_state.h"
-
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 static uint8_t *g_image;
 static size_t g_capacity;

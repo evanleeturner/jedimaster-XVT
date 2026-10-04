@@ -1,11 +1,13 @@
 #include "xvt_remaster/hyperspace.h"
-#include "aeron/aeron.h"
-#include "aeron/asset/opt_model.h"
-#include "xvt_remaster/config.h"
+
 #include <math.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "aeron/aeron.h"
+#include "aeron/asset/opt_model.h"
+#include "xvt_remaster/config.h"
 
 struct hyper_streak_vertex {
 	float position[3];

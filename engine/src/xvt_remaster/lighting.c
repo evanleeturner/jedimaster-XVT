@@ -1,10 +1,12 @@
 #include "xvt_remaster/lighting.h"
+
+#include <math.h>
+#include <string.h>
+
 #include "aeron/scene/world.h"
 #include "xvt/flight/object/laser.h"
 #include "xvt_remaster/config.h"
 #include "xvt_remaster/hyperspace.h"
-#include <math.h>
-#include <string.h>
 
 /* FS b1 — mirrors cbuffer pbr_light_fs (scene_pbr_lighting.hlsli). */
 struct pbr_light_fs {

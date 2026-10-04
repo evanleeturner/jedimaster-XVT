@@ -1,11 +1,13 @@
 #include "xvt_remaster/effects.h"
+
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/asset/opt_model.h"
 #include "aeron/scene/world.h"
 #include "xvt_remaster/assets.h"
 #include "xvt_remaster/config.h"
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
 
 static const float k_tau = 6.2831853071795864769f;
 

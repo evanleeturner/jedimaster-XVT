@@ -7,15 +7,14 @@
 #ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_assets.h"
 #endif
-#include "xvt/frontend/frontend_state.h"
+#include <stdlib.h>
+#include <string.h>
 
 #include "xvt/assets/file.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
+#include "xvt/frontend/frontend_state.h"
 #include "xvt/frontend/frontend_text.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 #pragma pack(push, 1)
 

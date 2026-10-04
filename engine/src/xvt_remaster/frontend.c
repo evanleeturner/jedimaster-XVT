@@ -1,11 +1,13 @@
 #include "xvt_remaster/frontend.h"
+
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "xvt_remaster/preview.h"
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/input/input_bridge.h"
 #include "xvt_runtime/runtime/presentation.h"
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
 
 enum { TARGETS = XVT_TARGET_FRONT_SAVED_FIRST + XVT_TARGET_FRONT_SAVED_COUNT };
 

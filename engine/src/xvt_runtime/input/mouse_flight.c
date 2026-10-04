@@ -1,16 +1,16 @@
 #include "xvt_runtime/input/mouse_flight.h"
 
+#include <math.h>
+#include <stdint.h>
+
 #include "aeron/aeron.h"
 #include "aeron/input.h"
 #include "aeron/time.h"
-
 #include "xvt/flight/flight_input.h"
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/input/actions.h"
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/log/log.h"
-#include <math.h>
-#include <stdint.h>
 
 #define MOUSE_FLIGHT_MAX_SAMPLE_GAP_US 100000
 /* Virtual stick: axis units per pixel of mouse travel at the default

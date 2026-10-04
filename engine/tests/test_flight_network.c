@@ -14,6 +14,10 @@
  * that a player PlayerAbort excludes leaves later world messages. ProcessPackets is in flight_packets.c.
  * AdmitInput's staging needs the recorded controls, which need loaded settings and the game's DirectInput
  * keyboard device, so only its refusals before sampling are checked. */
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
@@ -35,10 +39,6 @@
 #include "xvt_runtime/runtime/flight_wire.h"
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 
 enum { HOST_DPID = 500, SECOND_US = 1000000 };
 

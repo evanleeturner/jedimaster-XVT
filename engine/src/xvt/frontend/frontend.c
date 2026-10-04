@@ -3,6 +3,10 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_actions.h"
 #endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/audio/cd_audio.h"
@@ -31,10 +35,6 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 enum {
 	FRONTEND_CHAT_LOG_CAPACITY = 1024,

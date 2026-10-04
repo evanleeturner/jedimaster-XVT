@@ -7,12 +7,12 @@
  * and the mission's .pal file from them and configures the display, and Runtime initializes the mission
  * runtime of a loaded mission and starts the music CD; they need the retail game files and a running
  * flight's display. */
-#include "test_assert.h"
-#include "xvt_runtime/runtime/flight_internal.h"
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "test_assert.h"
+#include "xvt_runtime/runtime/flight_internal.h"
 
 static void surface(void)
 {

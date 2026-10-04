@@ -1,9 +1,11 @@
 #include "xvt_remaster/config.h"
+
+#include <stdio.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/log/log.h"
-#include <stdio.h>
-#include <string.h>
 static struct xvt_render_settings g_effective, g_requested;
 static struct xvt_video_settings g_video;
 static uint64_t g_generation, g_document_generation;

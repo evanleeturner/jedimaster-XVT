@@ -6,12 +6,12 @@
  *
  * Not run here: a removal that fails on a file that is there. On a POSIX system that takes a folder the
  * test cannot write to, and the test may run as a user whom permissions do not stop. */
+#include <sys/stat.h>
+
 #include "test_assert.h"
 #include "test_temp_folder.h"
 #include "xvt_runtime/compat/pilot_port.h"
 #include "xvt_runtime/storage/storage.h"
-
-#include <sys/stat.h>
 
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 static char g_user[XVT_TEST_PATH_CAPACITY];

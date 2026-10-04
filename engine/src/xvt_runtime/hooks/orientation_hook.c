@@ -1,4 +1,5 @@
 #include "xvt_runtime/hooks/orientation_hook.h"
+
 #include "xvt_runtime/timing/flight_timing.h"
 
 /* Player rotation ported from OpenXWA's gimbal-lock hook. */

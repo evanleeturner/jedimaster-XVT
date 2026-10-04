@@ -1,13 +1,15 @@
 #include "xvt_remaster/sky.h"
+
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/scene/image_cache.h"
 #include "xvt_remaster/config.h"
 #include "xvt_remaster/effects.h"
 #include "xvt_remaster/hyperspace.h"
 #include "xvt_remaster/sky_stars.h"
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
 
 static struct xvt_remaster_sky_stars *g_stars;
 static AeronTexture *g_cube;

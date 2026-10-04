@@ -1,13 +1,14 @@
 #include "xvt_runtime/snapshot/cockpit_pages.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/render/renderer.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_text.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-#include <stdlib.h>
-#include <string.h>
 
 struct page_section {
 	struct xvt_cockpit_glyph *glyphs;

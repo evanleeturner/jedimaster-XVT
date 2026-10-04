@@ -10,6 +10,9 @@
  *
  * Not checked here: moving on to the next match after a movie that played to its end, which needs a
  * Smacker movie from the game, and the display restore, which needs a window. */
+#include <string.h>
+#include <time.h>
+
 #include "test_assert.h"
 #include "test_asset_folder.h"
 #include "xvt/audio/cd_audio.h"
@@ -20,9 +23,6 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt_runtime/runtime/cutscene_task.h"
 #include "xvt_runtime/runtime/movie_task.h"
-
-#include <string.h>
-#include <time.h>
 
 enum { MISSION_INDEX = 11, DESCRIPTION_ID = 22 };
 

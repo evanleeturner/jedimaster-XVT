@@ -1,7 +1,7 @@
 #include "xvt_runtime/runtime/frontend_task.h"
 
-#include "xvt_runtime/runtime/presentation.h"
-#include "xvt_runtime/snapshot/render_frontend.h"
+#include <stdlib.h>
+#include <string.h>
 
 #include "aeron/aeron.h"
 #include "aeron/compat/dsound.h"
@@ -37,11 +37,10 @@
 #include "xvt_runtime/runtime/launch_task.h"
 #include "xvt_runtime/runtime/movie_task.h"
 #include "xvt_runtime/runtime/network_task.h"
+#include "xvt_runtime/runtime/presentation.h"
+#include "xvt_runtime/snapshot/render_frontend.h"
 #include "xvt_runtime/storage/storage.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 static uint64_t g_next_frame_due_us;
 static uint64_t g_next_joystick_poll_due_us;

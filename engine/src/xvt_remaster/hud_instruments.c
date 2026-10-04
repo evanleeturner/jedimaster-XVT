@@ -1,6 +1,8 @@
 #include "xvt_remaster/hud_instruments.h"
-#include "xvt_remaster/ui_draw.h"
+
 #include <math.h>
+
+#include "xvt_remaster/ui_draw.h"
 
 static void draw_indicator(const struct xvt_hud_draw *draw,
 			   xvt_hud_sprite_role role,

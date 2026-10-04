@@ -1,4 +1,5 @@
 #include "xvt_remaster/hud_panes.h"
+
 #include "xvt_remaster/hud_text.h"
 
 static int draw_number_in_phase(const struct xvt_hud_draw *draw,

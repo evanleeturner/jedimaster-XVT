@@ -1,4 +1,9 @@
 #include "xvt_runtime/timing/player_timing.h"
+
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
@@ -7,9 +12,6 @@
 #include "xvt_runtime/runtime/flight_wire.h"
 #include "xvt_runtime/timing/flight_integration.h"
 #include "xvt_runtime/timing/flight_timing.h"
-#include <limits.h>
-#include <stdlib.h>
-#include <string.h>
 
 struct player_timing {
 	int64_t remainder[XVT_PLAYER_CHANNELS];

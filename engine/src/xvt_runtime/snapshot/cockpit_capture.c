@@ -1,5 +1,8 @@
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 
+#include <stddef.h>
+#include <string.h>
+
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_display.h"
 #include "xvt/flight/hud/flight_text.h"
@@ -14,8 +17,6 @@
 #include "xvt_runtime/snapshot/cockpit_text.h"
 #include "xvt_runtime/snapshot/render_cockpit_assets.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-#include <stddef.h>
-#include <string.h>
 
 /* All capture and publication runs on the host thread. Composition selects the
  * working content before the original can refresh it for another presentation. */

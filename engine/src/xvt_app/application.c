@@ -1,5 +1,7 @@
 #include "xvt_app/application.h"
 
+#include <stdio.h>
+
 #include "aeron/compat/host.h"
 #include "xvt_app/log_sink.h"
 #include "xvt_app/settings/settings.h"
@@ -14,7 +16,6 @@
 #include "xvt_runtime/runtime/port.h"
 #include "xvt_runtime/snapshot/render_snapshot.h"
 #include "xvt_runtime/storage/storage.h"
-#include <stdio.h>
 
 static uint64_t xvt_application_presentation_interval_us(void)
 {

@@ -9,15 +9,15 @@
  *
  * Not checked here: decoding, drawing, subtitles, skipping with a key, the multiplayer wait and the frame
  * delay of a real movie; they need a Smacker file from the game and a window. */
+#include <string.h>
+#include <time.h>
+
 #include "test_assert.h"
 #include "test_asset_folder.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_mission.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt_runtime/runtime/movie_task.h"
-
-#include <string.h>
-#include <time.h>
 
 static struct xvt_test_assets g_assets;
 

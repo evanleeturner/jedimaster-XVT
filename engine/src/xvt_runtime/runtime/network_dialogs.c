@@ -1,5 +1,7 @@
 #include "xvt_runtime/runtime/network_dialogs.h"
 
+#include <string.h>
+
 #include "xvt/frontend/briefing_text.h"
 #include "xvt/frontend/concourse.h"
 #include "xvt/frontend/config.h"
@@ -16,8 +18,6 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/network_session.h"
-
-#include <string.h>
 
 int xvt_network_dialogs_resume(int result, int action)
 {

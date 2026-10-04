@@ -1,7 +1,8 @@
 #ifndef XVT_RUNTIME_FILE_IO_H
 #define XVT_RUNTIME_FILE_IO_H
-#include "aeron/vfs.h"
 #include <stddef.h>
+
+#include "aeron/vfs.h"
 
 #ifdef __cplusplus
 extern "C" {

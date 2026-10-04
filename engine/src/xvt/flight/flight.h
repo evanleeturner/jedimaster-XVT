@@ -1,10 +1,11 @@
 #ifndef XVT_FLIGHT_FLIGHT_H
 #define XVT_FLIGHT_FLIGHT_H
 
-#include "xvt/flight/mission/mission.h"
-#include "xvt/xvt_typedefs.h"
 #include <stddef.h>
 #include <stdint.h>
+
+#include "xvt/flight/mission/mission.h"
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

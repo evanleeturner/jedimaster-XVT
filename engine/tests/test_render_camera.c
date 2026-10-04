@@ -5,14 +5,14 @@
  *
  * The double-precision basis is compared with the Q15 rows by the angle between matching rows: a mirror of
  * the same camera points each row the same way, within the Q15 rounding. */
+#include <math.h>
+#include <stddef.h>
+#include <stdint.h>
+
 #include "test_assert.h"
 #include "xvt/flight/fview.h"
 #include "xvt/flight/transfm2.h"
 #include "xvt_runtime/snapshot/render_camera.h"
-
-#include <math.h>
-#include <stddef.h>
-#include <stdint.h>
 
 struct angles {
 	int16_t roll, pitch, yaw, angle_d, aim_x, aim_y;

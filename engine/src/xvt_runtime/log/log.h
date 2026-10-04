@@ -1,10 +1,10 @@
 #ifndef XVT_RUNTIME_LOG_LOG_H
 #define XVT_RUNTIME_LOG_LOG_H
 
-#include "aeron/log.h"
-
 #include <stddef.h>
 #include <stdint.h>
+
+#include "aeron/log.h"
 
 #ifdef __cplusplus
 extern "C" {

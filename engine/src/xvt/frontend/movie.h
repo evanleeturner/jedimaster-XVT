@@ -1,12 +1,13 @@
 #ifndef XVT_FRONTEND_MOVIE_H
 #define XVT_FRONTEND_MOVIE_H
 
+#include <stdint.h>
+#include <stdio.h>
+
 #include "aeron/compat/ddraw.h"
 #include "aeron/compat/win_types.h"
 #include "xvt/assets/file.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
-#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,11 +1,13 @@
 #include "xvt/frontend/frontend_scrollbar.h"
+
+#include <string.h>
+
 #include "xvt/frontend/front_image.h"
 #include "xvt/frontend/frontend.h"
 #include "xvt/frontend/frontend_cursor.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_mouse.h"
 #include "xvt/input/keyboard.h"
-#include <string.h>
 
 /* Frames left before a held scrollbar arrow steps the value again; the step
  * comes on a frame that finds it 0. One shared by every scrollbar. Only

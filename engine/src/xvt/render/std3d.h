@@ -1,12 +1,13 @@
 #ifndef XVT_RENDER_STD3D_H
 #define XVT_RENDER_STD3D_H
 
+#include <stdint.h>
+
 #include "aeron/compat/d3d.h"
 #include "aeron/compat/ddraw.h"
 #include "xvt/render/color.h"
 #include "xvt/util/win32.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

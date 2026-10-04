@@ -1,6 +1,9 @@
 #include "xvt/flight/mission/mission.h"
-#include "xvt/assets/file.h"
 
+#include <stdio.h>
+#include <string.h>
+
+#include "xvt/assets/file.h"
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
@@ -33,8 +36,6 @@
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
-#include <stdio.h>
-#include <string.h>
 
 /* Text that sprintf fills with debug lines: rating and promotion points,
  * team score and place, update-time histograms. Nothing reads it. 5

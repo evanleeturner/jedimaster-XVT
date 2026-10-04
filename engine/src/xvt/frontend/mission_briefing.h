@@ -1,9 +1,10 @@
 #ifndef XVT_FRONTEND_MISSION_BRIEFING_H
 #define XVT_FRONTEND_MISSION_BRIEFING_H
 
+#include <stdint.h>
+
 #include "xvt/util/win32.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

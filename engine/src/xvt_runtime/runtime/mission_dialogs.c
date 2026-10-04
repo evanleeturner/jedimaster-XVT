@@ -1,5 +1,6 @@
 #include "xvt_runtime/runtime/mission_dialogs.h"
-#include "xvt_runtime/runtime/frontend_cleanup.h"
+
+#include <string.h>
 
 #include "xvt/frontend/concourse.h"
 #include "xvt/frontend/config.h"
@@ -10,8 +11,7 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
-
-#include <string.h>
+#include "xvt_runtime/runtime/frontend_cleanup.h"
 
 /* Sends a packet holding only its type to every player and flushes it at
  * once. */

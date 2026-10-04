@@ -1,8 +1,10 @@
 #include "xvt_remaster/flight.h"
+
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/flight/hud/hud.h"
 #include "xvt_remaster/config.h"
-#include <string.h>
 
 static struct xvt_prepared_flight g_frame;
 static uint64_t g_last_mission, g_last_world, g_last_opt, g_last_texture;

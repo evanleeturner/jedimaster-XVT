@@ -1,7 +1,8 @@
 #ifndef XVT_RUNTIME_INPUT_FLIGHT_CONTROLS_H
 #define XVT_RUNTIME_INPUT_FLIGHT_CONTROLS_H
-#include "xvt/flight/flight_input.h"
 #include <stdbool.h>
+
+#include "xvt/flight/flight_input.h"
 
 /* Local flight input for each game read: yaw, pitch and roll, held buttons and the action key, merged
  * from the controller mapping, the keyboard mapping and mouse flight into the game's input globals; the

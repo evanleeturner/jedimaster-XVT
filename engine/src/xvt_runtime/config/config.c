@@ -1,4 +1,11 @@
 #include "xvt_runtime/config/config.h"
+
+#include <ctype.h>
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/compat/dplay_directory.h"
 #include "xvt/net/net.h"
@@ -7,11 +14,6 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/storage/file_io.h"
 #include "xvt_runtime/storage/storage.h"
-#include <ctype.h>
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 struct xvt_config_field {
 	const char *legacy;

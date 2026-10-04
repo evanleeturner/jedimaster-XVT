@@ -4,6 +4,8 @@
 #include "xvt_runtime/assets/opt_native.h"
 #endif
 
+#include <string.h>
+
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/assets/model_texture.h"
@@ -28,7 +30,6 @@
 #include "xvt/render/sw3d.h"
 #include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
-#include <string.h>
 #ifndef XVT_MODERN
 #include <float.h>
 #endif

@@ -7,6 +7,8 @@
  *
  * Not checked here: remote players marked waiting or dropped by their packets, which need a DirectPlay
  * peer, and Draw, which needs the game's fonts. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/frontend/mission_setup.h"
@@ -14,8 +16,6 @@
 #include "xvt/net/net.h"
 #include "xvt_runtime/runtime/movie_sync.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <string.h>
 
 enum { LOCAL = 101 };
 

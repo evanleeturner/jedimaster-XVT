@@ -1,7 +1,9 @@
 #include "xvt_remaster/ship.h"
-#include "xvt_remaster/config.h"
+
 #include <math.h>
 #include <string.h>
+
+#include "xvt_remaster/config.h"
 
 int xvt_remaster_ship_select(const struct xvt_render_snapshot *s,
 			     const struct xvt_snap_object *o,

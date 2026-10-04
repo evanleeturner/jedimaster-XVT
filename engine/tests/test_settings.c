@@ -4,12 +4,12 @@
  * (config_fixture.h); no settings are loaded. */
 #define _XOPEN_SOURCE 700
 
+#include <stdio.h>
+#include <string.h>
+
 #include "config_fixture.h"
 #include "test_assert.h"
 #include "xvt_runtime/config/settings.h"
-
-#include <stdio.h>
-#include <string.h>
 
 static struct xvt_scene_settings g_scene;
 static struct xvt_settings g_out;

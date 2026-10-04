@@ -1,7 +1,7 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 
-#include "xvt_runtime/input/capture.h"
-#include "xvt_runtime/runtime/presentation.h"
+#include <stdio.h>
+#include <string.h>
 
 #include "aeron/aeron.h"
 #include "xvt/audio/frontend_sound.h"
@@ -12,12 +12,11 @@
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/input/keyboard.h"
+#include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/frontend_task.h"
+#include "xvt_runtime/runtime/presentation.h"
 #include "xvt_runtime/storage/storage.h"
-
-#include <stdio.h>
-#include <string.h>
 
 static struct {
 	frontend_screen_update_fn update;

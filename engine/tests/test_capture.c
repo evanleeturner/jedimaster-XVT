@@ -7,6 +7,8 @@
  *
  * Not checked here: UpdateMouseCapture and the true side of MouseFlightAllowed need loaded settings and a
  * running flight, and relative mouse mode needs a window; DirectInput's buffer drain needs its device. */
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/compat/host.h"
 #include "aeron/input.h"
@@ -19,8 +21,6 @@
 #include "xvt_runtime/input/controller_mapping.h"
 #include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/input/keyboard_mapping.h"
-
-#include <string.h>
 
 enum { ALL_BUTTONS = 0x1F };
 

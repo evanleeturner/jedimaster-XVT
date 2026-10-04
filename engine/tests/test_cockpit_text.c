@@ -7,6 +7,8 @@
  * Not checked here: color keying in RecordField (the header does not say when the live state is keyed),
  * and how CopyFields treats a field owned by a covered target panel or a shield outside text mode, which
  * the header leaves open. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/flight/hud/hud.h"
@@ -15,8 +17,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt_runtime/snapshot/cockpit_text.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-
-#include <string.h>
 
 enum { BYPASS = 9, FOREGROUND = 7, BACKGROUND = 4, SHADOW = 5 };
 

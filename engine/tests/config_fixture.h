@@ -8,18 +8,18 @@
 #ifndef XVT_TESTS_CONFIG_FIXTURE_H
 #define XVT_TESTS_CONFIG_FIXTURE_H
 
+#include <ftw.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+
 #include "aeron/config_file.h"
 #include "aeron/vfs.h"
 #include "test_assert.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/config/settings.h"
 #include "xvt_runtime/storage/storage.h"
-
-#include <ftw.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
 
 #ifndef XVT_TEST_SOURCE_DIR
 #error "XVT_TEST_SOURCE_DIR must name the source tree that holds the shipped defaults"

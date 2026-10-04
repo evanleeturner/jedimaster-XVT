@@ -1,7 +1,10 @@
 #include "xvt/flight/ai/paifight.h"
-#include "xvt/flight/ai/pai_targetability.h"
+
+#include <limits.h>
+#include <string.h>
 
 #include "xvt/assets/model_mesh.h"
+#include "xvt/flight/ai/pai_targetability.h"
 #include "xvt/flight/ai/paiorder.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
@@ -12,9 +15,6 @@
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
-
-#include <limits.h>
-#include <string.h>
 
 /* Flight group of the nearest object paifight_searchforclosestingroup found,
  * which only it writes; paifight_checkescortorder copies it into

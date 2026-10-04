@@ -1,8 +1,9 @@
 #ifndef XVT_RUNTIME_INPUT_CONTROLLER_OPTIONS_H
 #define XVT_RUNTIME_INPUT_CONTROLLER_OPTIONS_H
+#include <stddef.h>
+
 #include "aeron/input.h"
 #include "xvt_runtime/input/actions.h"
-#include <stddef.h>
 
 /* Saved controller settings: up to XVT_CONTROLLER_MODEL_CAP models, each a controller model by GUID
  * with its kind (gamepad or joystick), four flight axes and its digital bindings. An axis source of -1

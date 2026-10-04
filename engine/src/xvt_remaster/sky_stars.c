@@ -1,10 +1,12 @@
 /* XvT star axes with OpenTIE's TIE98 rounded, smoothly projected coverage. */
 #include "xvt_remaster/sky_stars.h"
-#include "aeron/aeron.h"
-#include "xvt_runtime/log/log.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "aeron/aeron.h"
+#include "xvt_runtime/log/log.h"
 
 enum { STAR_COUNT = 3072, STAR_GRID_SPAN = 32 };
 

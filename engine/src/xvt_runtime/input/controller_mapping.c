@@ -1,4 +1,9 @@
 #include "xvt_runtime/input/controller_mapping.h"
+
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "aeron/debug.h"
 #include "xvt/flight/flight_input.h"
 #include "xvt/flight/player/player.h"
@@ -7,9 +12,6 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/flight_task.h"
 #include "xvt_runtime/runtime/port.h"
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
 
 enum { KEY_QUEUE_CAPACITY = 256 };
 

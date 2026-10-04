@@ -8,6 +8,8 @@
  *
  * Not checked here: the values Build derives for shields, beam, power gauges, launchers, warheads, laser
  * charge and the compact instruments, which the header does not describe beyond their source. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
@@ -19,8 +21,6 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt_runtime/snapshot/cockpit_instruments.h"
 #include "xvt_runtime/snapshot/cockpit_readouts.h"
-
-#include <string.h>
 
 enum { LOCAL = 0, OTHER_PLAYER = 1, SLOT = 1, LASERS = 4 };
 

@@ -7,6 +7,10 @@
  * Not checked: Crt and CrtMarker, whose preview reaches a snapshot only through the cockpit's sealed
  * composition, which needs a captured cockpit and a refreshed instrument state; and a preview made valid
  * by a registered model, which needs a model file resolved through storage. */
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -18,10 +22,6 @@
 #include "xvt_runtime/snapshot/render_hud.h"
 #include "xvt_runtime/snapshot/render_snapshot.h"
 #include "xvt_runtime/timing/flight_timing.h"
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 enum { TABLE_HANDLE = 5 };
 

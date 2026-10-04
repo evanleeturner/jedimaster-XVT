@@ -1,15 +1,15 @@
 #include "xvt_remaster/opt_mesh.h"
 
-#include "aeron/aeron.h"
-#include "aeron/asset/opt_model.h"
-#include "aeron/config_file.h"
-#include "xvt_runtime/log/log.h"
-
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "aeron/aeron.h"
+#include "aeron/asset/opt_model.h"
+#include "aeron/config_file.h"
+#include "xvt_runtime/log/log.h"
 
 static const uint64_t k_runtime_opt_max_bytes = 64u * 1024u * 1024u;
 

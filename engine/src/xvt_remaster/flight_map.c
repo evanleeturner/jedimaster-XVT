@@ -1,4 +1,10 @@
 #include "xvt_remaster/flight_map.h"
+
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/asset/opt_model.h"
 #include "aeron/scene/world.h"
@@ -10,10 +16,6 @@
 #include "xvt_remaster/lighting.h"
 #include "xvt_remaster/ship.h"
 #include "xvt_remaster/ui_draw.h"
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 static AeronScene3D *g_scene;
 static AeronRenderTarget *g_composite;

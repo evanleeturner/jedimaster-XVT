@@ -1,11 +1,13 @@
 #include "xvt_remaster/hud_assets.h"
+
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt_remaster/assets.h"
 #include "xvt_remaster/config.h"
 #include "xvt_remaster/undither.h"
 #include "xvt_runtime/log/log.h"
-#include <stdlib.h>
-#include <string.h>
 
 struct cockpit_asset_group {
 	uint64_t generation;

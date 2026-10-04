@@ -6,12 +6,12 @@
  *
  * Not run here: a graph more than 256 levels deep and running out of memory, which end the program
  * through xvt_storage_fatal; that path shows a message box. */
-#include "test_assert.h"
-#include "xvt_runtime/assets/opt_native.h"
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "test_assert.h"
+#include "xvt_runtime/assets/opt_native.h"
 
 /* The model block. Root 0 is the Hull group, with a texture whose palette type is 0, the Wing group and a
  * vertex node as children. Root 1 is the Wing group too, so it is reached from two parents. The Wing

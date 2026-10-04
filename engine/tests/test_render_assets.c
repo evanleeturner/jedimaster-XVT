@@ -8,6 +8,10 @@
  * Not run here: an unresolvable path and a full registry or export list, which request a fatal renderer
  * error and show a message box. Not checkable: that Shutdown keeps the type bindings, since Export does
  * nothing until Init, and Init clears them. */
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "test_temp_folder.h"
 #include "xvt/frontend/front_image.h"
@@ -18,10 +22,6 @@
 #include "xvt_runtime/snapshot/render_hud.h"
 #include "xvt_runtime/snapshot/render_snapshot.h"
 #include "xvt_runtime/storage/storage.h"
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 static char g_asset[XVT_TEST_PATH_CAPACITY];

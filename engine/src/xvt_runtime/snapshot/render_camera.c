@@ -1,8 +1,9 @@
 #include "xvt_runtime/snapshot/render_camera.h"
 
-#include "xvt/flight/transfm2.h"
 #include <math.h>
 #include <string.h>
+
+#include "xvt/flight/transfm2.h"
 
 /* OpenXWA's render-only camera shadow. The source tag prevents a temporary
  * or independently written Q15 camera from borrowing another view's basis. */

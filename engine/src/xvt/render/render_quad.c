@@ -4,6 +4,8 @@
 #include "aeron/compat/host.h"
 #endif
 
+#include <string.h>
+
 #include "xvt/assets/object_type.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_view.h"
@@ -22,8 +24,6 @@
 #include "xvt/render/tex_level.h"
 #include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
-
-#include <string.h>
 
 /* Vertex color of an explosion billboard for each frame 0 to 31 of the
  * explosion (its type_specific_byte[0]): white with the alpha in the high byte,

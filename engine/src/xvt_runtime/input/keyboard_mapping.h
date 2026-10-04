@@ -1,9 +1,10 @@
 #ifndef XVT_KEYBOARD_MAPPING_H
 #define XVT_KEYBOARD_MAPPING_H
 
+#include <stddef.h>
+
 #include "aeron/input.h"
 #include "xvt_runtime/input/actions.h"
-#include <stddef.h>
 
 /* Turns key events into the original game's input. Each bound chord, a key plus modifiers, names an
  * action; a press queues the action's flight key code for ReadKey. Fire and the target/roll modifier

@@ -12,12 +12,12 @@
  * messages, a repeated or out-of-range message index, a team with more than 7 global goals, and any short
  * read. Exit status: 0 on success; 1 for a refused file or a failed open, read, close or flush; 2 for the
  * wrong argument count. */
-#include "xvt/flight/mission/mission.h"
-
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "xvt/flight/mission/mission.h"
 
 struct dump_mission {
 	struct mission_header header;

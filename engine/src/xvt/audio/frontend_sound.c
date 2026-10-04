@@ -1,4 +1,8 @@
 #include "xvt/audio/frontend_sound.h"
+
+#include <stdio.h>
+#include <string.h>
+
 #include "aeron/compat/dsound.h"
 #include "xvt/assets/file.h"
 #include "xvt/audio/direct_sound.h"
@@ -6,9 +10,6 @@
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
-
-#include <stdio.h>
-#include <string.h>
 
 struct frontend_sound_pcm_format {
 	uint16_t format_tag;		   /* Wave format, 1 for PCM. */

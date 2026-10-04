@@ -1,4 +1,5 @@
 #include "xvt/frontend/frontend_mouse.h"
+
 #include "xvt/frontend/frontend_state.h"
 
 /* Gives the mouse to one control, as a scrollbar thumb drag does: stores gate_id

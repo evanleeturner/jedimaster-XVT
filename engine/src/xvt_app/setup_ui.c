@@ -1,7 +1,8 @@
 #include "xvt_app/setup_ui.h"
 
-#include "xvt_runtime/config/config.h"
 #include <stdio.h>
+
+#include "xvt_runtime/config/config.h"
 
 typedef enum xvt_setup_frame_result {
 	XVT_SETUP_FRAME_PENDING,

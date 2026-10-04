@@ -9,6 +9,9 @@
  *
  * Not checked here: ExportResources filling its output, which needs a cockpit panel image registered from
  * a file the game ships, and the mouse stick marker, which needs mouse flight running. */
+#include <stddef.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/hud/flight_text.h"
@@ -27,9 +30,6 @@
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_cockpit_assets.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-
-#include <stddef.h>
-#include <string.h>
 
 enum { LOCAL = 0, BYPASS = 9, BACKGROUND = 4 };
 

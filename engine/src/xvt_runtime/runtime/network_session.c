@@ -1,4 +1,9 @@
 #include "xvt_runtime/runtime/network_session.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/frontend/frontend.h"
 #include "xvt/frontend/frontend_display.h"
@@ -12,9 +17,6 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/network_metadata.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 enum {
 	SESSION_IDLE,

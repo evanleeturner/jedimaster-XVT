@@ -1,9 +1,11 @@
 #include "xvt_remaster/render_math.h"
+
+#include <math.h>
+#include <string.h>
+
 #include "aeron/asset/opt_model.h"
 #include "aeron/scene/world.h"
 #include "xvt_remaster/component_animation.h"
-#include <math.h>
-#include <string.h>
 
 static float dot(const float *a, const float *b)
 {

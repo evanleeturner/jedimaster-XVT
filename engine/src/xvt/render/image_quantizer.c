@@ -8,13 +8,13 @@
 
 #include "xvt/render/image_quantizer.h"
 
-#include "xvt/flight/fediskio.h"
-#include "xvt/render/flight_sw.h"
-
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include "xvt/flight/fediskio.h"
+#include "xvt/render/flight_sw.h"
 
 #pragma pack(push, 1)
 

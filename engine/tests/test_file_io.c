@@ -6,13 +6,13 @@
  * Not run here: the calls that end the program through xvt_storage_fatal (a Read or Write size that
  * overflows, a scan conversion other than %s, %d and %u, a scan width over seven digits), because that
  * path shows a message box. */
-#include "test_assert.h"
-#include "test_temp_folder.h"
-#include "xvt_runtime/storage/file_io.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "test_assert.h"
+#include "test_temp_folder.h"
+#include "xvt_runtime/storage/file_io.h"
 
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 static AeronVfs *g_vfs;

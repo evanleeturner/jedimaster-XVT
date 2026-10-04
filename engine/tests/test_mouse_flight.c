@@ -5,12 +5,12 @@
  * Not checked here: the virtual stick itself (gain, sensitivity, the right-button tap and roll lock, the
  * button keys) runs only while mouse flight is allowed, which needs loaded settings and a running flight,
  * and while the pointer is in relative mode, which needs a window. */
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "test_assert.h"
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/input/mouse_flight.h"
-
-#include <string.h>
 
 static AeronInputSnapshot *mouse_flight_host(void)
 {

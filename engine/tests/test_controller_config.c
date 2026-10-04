@@ -7,15 +7,15 @@
  * header; see main. */
 #define _XOPEN_SOURCE 700
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "config_fixture.h"
 #include "test_assert.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/config/controller_config.h"
 #include "xvt_runtime/input/controller_options.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 static struct xvt_controller_profile g_profile;
 static struct xvt_controller_options g_options;

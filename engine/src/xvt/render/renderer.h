@@ -1,9 +1,10 @@
 #ifndef XVT_RENDER_RENDERER_H
 #define XVT_RENDER_RENDERER_H
 
+#include <stdint.h>
+
 #include "aeron/compat/ddraw.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

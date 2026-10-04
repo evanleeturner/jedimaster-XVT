@@ -1,9 +1,10 @@
-#include "aeron/asset/lfd.h"
-#include "aeron/asset/pnl.h"
-#include "xvt_remaster/original_2d.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "aeron/asset/lfd.h"
+#include "aeron/asset/pnl.h"
+#include "xvt_remaster/original_2d.h"
 
 int xvt_cockpit_assets_decode_lfd(const void *bytes, size_t size,
 				  struct xvt_original2d *out,

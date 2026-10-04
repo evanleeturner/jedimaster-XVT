@@ -1,8 +1,9 @@
 #ifndef XVT_RUNTIME_SNAPSHOT_RENDER_TYPES_H
 #define XVT_RUNTIME_SNAPSHOT_RENDER_TYPES_H
 
-#include "xvt/assets/object_genus.h"
 #include <stdint.h>
+
+#include "xvt/assets/object_genus.h"
 
 #ifdef __cplusplus
 extern "C" {

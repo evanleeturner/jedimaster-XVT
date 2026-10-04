@@ -1,8 +1,9 @@
 #ifndef XVT_MATH_MATH_H
 #define XVT_MATH_MATH_H
 
-#include "xvt/xvt_typedefs.h"
 #include <stdint.h>
+
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

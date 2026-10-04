@@ -6,6 +6,9 @@
  * starts from a cleared frontend with a placeholder screen, no dialog and no network session.
  *
  * Not checked here: the text each error shows, beyond there being one. */
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "test_frontend_display.h"
 #include "xvt/frontend/briefing_text.h"
@@ -19,9 +22,6 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/network_dialogs.h"
 #include "xvt_runtime/runtime/network_session.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 static int placeholder(int frame) { return frame; }
 

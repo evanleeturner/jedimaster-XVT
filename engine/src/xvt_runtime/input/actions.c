@@ -1,6 +1,8 @@
 #include "xvt_runtime/input/actions.h"
-#include "xvt/flight/flight_input.h"
+
 #include <string.h>
+
+#include "xvt/flight/flight_input.h"
 
 struct xvt_action_definition {
 	const char *name, *label;

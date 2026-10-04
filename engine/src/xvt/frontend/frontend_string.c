@@ -1,9 +1,10 @@
 #include "xvt/frontend/frontend_string.h"
-#include "xvt/assets/file.h"
-#include "xvt/frontend/frontend_state.h"
 
 #include <stdlib.h>
 #include <string.h>
+
+#include "xvt/assets/file.h"
+#include "xvt/frontend/frontend_state.h"
 
 /* Loads the frontend string table from the text file fileName, replacing the
  * one loaded before: each line that does not start with //, read up to 1,023

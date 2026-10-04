@@ -3,14 +3,14 @@
  * labelled, the binding list helpers, and how key events become queued flight keys and held buttons.
  * Every case installs its own bindings and starts from a suspended mapping. No device is opened: key
  * events and snapshots are built by the test. */
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "aeron/input.h"
 #include "test_assert.h"
 #include "xvt_runtime/input/keyboard_mapping.h"
 #include "xvt_runtime/runtime/port.h"
-
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 
 enum { KEY_M = AERON_KEY_A + ('m' - 'a') };
 

@@ -6,6 +6,9 @@
  *
  * Not checked here: ReadLocal on an open keyboard route and SampleRecorded need loaded settings and the
  * game's DirectInput keyboard device, and a lever position is only sent during a running flight. */
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/compat/host.h"
 #include "test_assert.h"
@@ -19,9 +22,6 @@
 #include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/input/keyboard_mapping.h"
 #include "xvt_runtime/timing/flight_timing.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 enum { PLAYER = 3, SLOT = 1, SIGNATURE = 0x0155 };
 

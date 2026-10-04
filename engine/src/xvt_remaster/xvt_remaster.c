@@ -1,10 +1,10 @@
 #include "xvt_remaster/xvt_remaster.h"
-#include "xvt_remaster/component_animation.h"
 
 #include "aeron/aeron.h"
 #include "aeron/compat/host.h"
 #include "xvt_remaster/assets.h"
 #include "xvt_remaster/cockpit_loading.h"
+#include "xvt_remaster/component_animation.h"
 #include "xvt_remaster/config.h"
 #include "xvt_remaster/flight.h"
 #include "xvt_remaster/flight_pipeline.h"

@@ -1,8 +1,9 @@
 #ifndef XVT_ASSETS_MODEL_PREVIEW_H
 #define XVT_ASSETS_MODEL_PREVIEW_H
 
-#include "xvt/xvt_typedefs.h"
 #include <stdint.h>
+
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

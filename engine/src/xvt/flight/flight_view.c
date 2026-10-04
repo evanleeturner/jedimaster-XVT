@@ -4,6 +4,9 @@
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 #endif
+#include <limits.h>
+#include <string.h>
+
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_display.h"
 #include "xvt/flight/flight_hyperspace.h"
@@ -32,8 +35,6 @@
 #include "xvt/render/std3d.h"
 #include "xvt/render/sw3d.h"
 #include "xvt/util/time.h"
-#include <limits.h>
-#include <string.h>
 
 /* World Z offset, from the camera, of the point being placed, before it is
  * turned into view space. Many functions write it, chiefly

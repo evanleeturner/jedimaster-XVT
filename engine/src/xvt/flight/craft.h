@@ -1,13 +1,14 @@
 #ifndef XVT_FLIGHT_CRAFT_H
 #define XVT_FLIGHT_CRAFT_H
 
+#include <stdint.h>
+
 #include "xvt/assets/object_type.h"
 #include "xvt/flight/ai/pai.h"
 #include "xvt/flight/object/damage.h"
 #include "xvt/flight/object/laser.h"
 #include "xvt/flight/object/object.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

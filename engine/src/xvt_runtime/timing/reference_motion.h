@@ -1,8 +1,9 @@
 #ifndef XVT_RUNTIME_REFERENCE_MOTION_H
 #define XVT_RUNTIME_REFERENCE_MOTION_H
-#include "xvt_runtime/timing/flight_state.h"
 #include <stddef.h>
 #include <stdint.h>
+
+#include "xvt_runtime/timing/flight_state.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

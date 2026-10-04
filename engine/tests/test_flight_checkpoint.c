@@ -10,6 +10,11 @@
  * Most checks watch one integration channel through xvt_flight_integration_rate (flight_integration.h): Seed
  * leaves a carried remainder of 3/4 on a slot, and Probe adds 1/4 more, so Probe returns 1 exactly when that
  * remainder is there. */
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
@@ -25,11 +30,6 @@
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/player_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
-
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 enum {
 	SLOTS = 5,

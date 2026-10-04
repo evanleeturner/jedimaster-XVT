@@ -1,11 +1,12 @@
 #include "xvt/frontend/briefing_script.h"
+
+#include <string.h>
+
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/briefing_map.h"
 #include "xvt/frontend/briefing_text.h"
 #include "xvt/frontend/config.h"
 #include "xvt/frontend/frontend_mission.h"
-
-#include <string.h>
 
 /* Argument words that follow each briefing script opcode, by opcode 0 to
  * 34. */

@@ -1,6 +1,8 @@
 #ifndef XVT_FRONTEND_FRONTEND_STATE_H
 #define XVT_FRONTEND_FRONTEND_STATE_H
 
+#include <stdint.h>
+
 #include "aeron/compat/mmsystem.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -10,7 +12,6 @@
 #include "xvt/frontend/frontend_text.h"
 #include "xvt/net/net.h"
 #include "xvt/net/net_reliable.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

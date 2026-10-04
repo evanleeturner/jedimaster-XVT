@@ -1,4 +1,5 @@
 #include "xvt_remaster/hud_text.h"
+
 #include <string.h>
 
 struct text_cursor {

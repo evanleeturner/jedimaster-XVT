@@ -1,11 +1,13 @@
 #include "xvt_remaster/assets.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt_remaster/opt_mesh.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_assets.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 struct image_variant {
 	AeronRuntimeAtlas atlas;

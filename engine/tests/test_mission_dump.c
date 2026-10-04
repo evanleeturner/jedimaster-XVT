@@ -6,10 +6,6 @@
  * exits with status 86, which no check expects.
  *
  * Not run here: a close that fails, which a test cannot provoke on an ordinary file. */
-#include "test_assert.h"
-#include "test_temp_folder.h"
-#include "xvt/flight/mission/mission.h"
-
 #include <fcntl.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -17,6 +13,10 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+#include "test_assert.h"
+#include "test_temp_folder.h"
+#include "xvt/flight/mission/mission.h"
 
 #ifndef MISSION_DUMP_TOOL
 #error "MISSION_DUMP_TOOL must name the mission dump program to run"

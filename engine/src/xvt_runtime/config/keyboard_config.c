@@ -1,10 +1,11 @@
 #include "xvt_runtime/config/keyboard_config.h"
 
-#include "aeron/aeron.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "aeron/aeron.h"
 
 static bool config_error(char *error, size_t capacity, const char *format, ...)
 {

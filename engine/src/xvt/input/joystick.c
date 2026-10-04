@@ -1,8 +1,9 @@
 #include "xvt/input/joystick.h"
-#include "aeron/compat/mmsystem.h"
-#include "xvt/frontend/frontend_joystick.h"
 
 #include <string.h>
+
+#include "aeron/compat/mmsystem.h"
+#include "xvt/frontend/frontend_joystick.h"
 
 /* Per joystick index, 0 and 1: 1 once joystick_poll_scaled_axes has calibrated
  * that index. Only that function writes it, and nothing sets it back to 0. */

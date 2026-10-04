@@ -6,6 +6,8 @@
  *
  * Not checked here: the GAMEPLAY route needs a loaded flight; RendererShortcutAllowed's true side needs a
  * committed render snapshot; the frontend joystick needs Init, which needs loaded settings. */
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/compat/host.h"
 #include "test_assert.h"
@@ -20,8 +22,6 @@
 #include "xvt_runtime/input/keyboard_mapping.h"
 #include "xvt_runtime/runtime/flight_task.h"
 #include "xvt_runtime/snapshot/render_snapshot.h"
-
-#include <string.h>
 
 /* Windows virtual-key codes. */
 enum {

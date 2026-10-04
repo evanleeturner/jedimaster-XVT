@@ -1,12 +1,12 @@
 /* Checks the network flight protocol's byte helpers (xvt_runtime/runtime/flight_wire.h) against the promises
  * in its header: which ticks are usable on the network, little-endian reads and writes of each width, the
  * all-zero test, and the CRC-32C. The module keeps no state and reads no game globals. */
+#include <stdint.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
 #include "xvt_runtime/runtime/flight_wire.h"
-
-#include <stdint.h>
-#include <string.h>
 
 static void check_valid_tick(void)
 {

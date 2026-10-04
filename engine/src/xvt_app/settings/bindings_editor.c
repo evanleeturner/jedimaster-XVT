@@ -1,4 +1,5 @@
 #include "xvt_app/settings/bindings_editor.h"
+
 #include <stdio.h>
 
 void xvt_bindings_editor_init(struct xvt_bindings_editor *editor)

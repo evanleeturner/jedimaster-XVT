@@ -1,6 +1,7 @@
+#include <stdlib.h>
+
 #include "xvt_runtime/assets/opt_native.h"
 #include "xvt_runtime/storage/storage.h"
-#include <stdlib.h>
 
 struct xvt_opt_relocation {
 	void **visited;

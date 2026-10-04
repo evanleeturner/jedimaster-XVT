@@ -4,10 +4,10 @@
  * folder; nothing is written elsewhere. */
 #define _POSIX_C_SOURCE 200809L
 
+#include <pthread.h>
+
 #include "test_temp_folder.h"
 #include "xvt_app/log_file.h"
-
-#include <pthread.h>
 
 #define THREAD_LINES 2000
 

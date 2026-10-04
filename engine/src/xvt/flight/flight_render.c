@@ -1,4 +1,5 @@
 #include "xvt/flight/flight_render.h"
+
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/flight_sw.h"

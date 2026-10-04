@@ -4,6 +4,9 @@
 #include "xvt_runtime/runtime/frontend_actions.h"
 #include "xvt_runtime/runtime/frontend_movies.h"
 #endif
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -26,9 +29,6 @@
 #include "xvt/frontend/mission_debrief.h"
 #include "xvt/frontend/movie.h"
 #include "xvt/input/keyboard.h"
-
-#include <stdlib.h>
-#include <string.h>
 #ifdef XVT_MODERN
 #include <strings.h>
 #endif

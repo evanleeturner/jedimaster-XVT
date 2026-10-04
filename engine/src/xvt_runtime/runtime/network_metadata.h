@@ -1,9 +1,10 @@
 #ifndef XVT_RUNTIME_NETWORK_METADATA_H
 #define XVT_RUNTIME_NETWORK_METADATA_H
 
+#include <stddef.h>
+
 #include "aeron/compat/dplay.h"
 #include "aeron/compat/dplay_directory.h"
-#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {

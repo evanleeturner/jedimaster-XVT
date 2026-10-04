@@ -1,9 +1,11 @@
 #include "xvt_remaster/hud_renderer.h"
+
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt_remaster/crt.h"
 #include "xvt_remaster/hud_instruments.h"
 #include "xvt_remaster/hud_panes.h"
-#include <string.h>
 
 struct hud_preparation_key {
 	uint64_t definition, palette, artwork, instruments, radar, text, crt;

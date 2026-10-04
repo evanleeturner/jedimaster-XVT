@@ -1,5 +1,9 @@
 #include "xvt_runtime/runtime/launch_task.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
@@ -22,10 +26,6 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 enum {
 	XVT_LAUNCH_IDLE,

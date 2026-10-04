@@ -1,10 +1,10 @@
 /* Checks the input action table (xvt_runtime/input/actions.h) against the promises in its header: every
  * action has a settings name that leads back to it, a label and a category; names match exactly; and each
  * lookup gives its stated fallback for an action or category out of range. The table has no state. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt_runtime/input/actions.h"
-
-#include <string.h>
 
 /* Values just outside each enum's range, on both sides. */
 static const int k_out_of_range[] = {XVT_INPUT_ACTION_COUNT,

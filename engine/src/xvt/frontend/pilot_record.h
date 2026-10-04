@@ -1,12 +1,13 @@
 #ifndef XVT_FRONTEND_PILOT_RECORD_H
 #define XVT_FRONTEND_PILOT_RECORD_H
 
+#include <stdint.h>
+
 #include "xvt/frontend/frontend_mission_list.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot.h"
 #include "xvt/util/win32.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

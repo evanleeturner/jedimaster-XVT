@@ -1,3 +1,5 @@
+#include "xvt_runtime/runtime/flight_task.h"
+
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_checkpoint.h"

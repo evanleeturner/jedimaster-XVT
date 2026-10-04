@@ -1,8 +1,11 @@
 #ifndef XVT_RUNTIME_FLIGHT_INTERNAL_H
 #define XVT_RUNTIME_FLIGHT_INTERNAL_H
 
-#include "xvt/flight/flight.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "aeron/aeron.h"
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/model_preview.h"
@@ -15,6 +18,7 @@
 #include "xvt/flight/ai/paifight.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
+#include "xvt/flight/flight.h"
 #include "xvt/flight/flight_display.h"
 #include "xvt/flight/flight_input.h"
 #include "xvt/flight/flight_loading.h"
@@ -59,12 +63,6 @@
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "aeron/aeron.h"
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/runtime/flight_frame.h"
 #include "xvt_runtime/runtime/flight_sim.h"

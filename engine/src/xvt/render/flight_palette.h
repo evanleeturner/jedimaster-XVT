@@ -1,9 +1,10 @@
 #ifndef XVT_RENDER_FLIGHT_PALETTE_H
 #define XVT_RENDER_FLIGHT_PALETTE_H
 
+#include <stdint.h>
+
 #include "xvt/render/color.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

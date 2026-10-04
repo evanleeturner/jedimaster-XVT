@@ -1,14 +1,15 @@
 #ifndef XVT_ASSETS_OPT_MODEL_H
 #define XVT_ASSETS_OPT_MODEL_H
 
-#include "xvt/assets/file.h"
-#include "xvt/xvt_typedefs.h"
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "xvt/assets/file.h"
+#include "xvt/xvt_typedefs.h"
 #ifdef XVT_MODERN
 #include <strings.h>
 #endif

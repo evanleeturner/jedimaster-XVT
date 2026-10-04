@@ -6,6 +6,12 @@
  * record, is set to none or into one of this file's pools before it is translated. The field lists below
  * are the record fields the header declares, with the nested packed records spelled out member by member;
  * the links have checks of their own. */
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
@@ -13,12 +19,6 @@
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/snapshot/records.h"
-
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 /* One listed field: where it sits and how big it is in the record and in the live struct. */
 struct field {

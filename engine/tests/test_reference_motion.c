@@ -2,6 +2,9 @@
  * its header, on an object table this file builds itself: slots 0, 2, 3 and 4 hold live objects and slot
  * 1 is empty; no game data is read. Each case starts from that table at game time 100, a fresh table of
  * samples taken by Init, and a new flight timing session. */
+#include <stdint.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/object/object.h"
@@ -9,9 +12,6 @@
 #include "xvt_runtime/runtime/flight_wire.h"
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
-
-#include <stdint.h>
-#include <string.h>
 
 /* An allocation that cannot be met must come back as NULL, so Init's refusal can be seen; by default
  * AddressSanitizer stops the program instead. */

@@ -1,7 +1,8 @@
 #ifndef XVT_RUNTIME_INPUT_CAPTURE_H
 #define XVT_RUNTIME_INPUT_CAPTURE_H
-#include "aeron/input.h"
 #include <stdbool.h>
+
+#include "aeron/input.h"
 /* Who owns the keyboard and mouse: the game, or the host while input is captured (the settings menu,
  * or a window without focus). A key or mouse button held when ownership changes is blocked from the
  * game until it is released, so no press crosses the handover. Also runs mouse capture for mouse

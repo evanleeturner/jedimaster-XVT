@@ -16,6 +16,10 @@ BreakStringLiterals: false
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  - {Regex: '^<', Priority: 2}
+  - {Regex: '.*', Priority: 3}
 SpaceBeforeParens: ControlStatementsExceptForEachMacros
 # Comments keep their words and line breaks; only their indentation moves.
 ReflowComments: IndentOnly

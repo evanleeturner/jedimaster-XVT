@@ -1,8 +1,9 @@
 #include "xvt_app/host_config.h"
-#include "xvt_app/window_icon.h"
 
 #include <stdio.h>
 #include <string.h>
+
+#include "xvt_app/window_icon.h"
 
 int xvt_launch_options_parse(int argc, char *argv[],
 			     struct xvt_launch_options *options)

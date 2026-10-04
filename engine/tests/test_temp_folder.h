@@ -9,14 +9,14 @@
 #ifndef XVT_TESTS_TEST_TEMP_FOLDER_H
 #define XVT_TESTS_TEST_TEMP_FOLDER_H
 
-#include "test_assert.h"
-
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include "test_assert.h"
 
 #define XVT_TEST_PATH_CAPACITY 4096
 

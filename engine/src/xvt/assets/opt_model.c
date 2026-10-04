@@ -829,6 +829,7 @@ char g_opt_model_load_scratch_buffer[257] = {0};
  * sets each name_long. */
 // GLOBAL: XVT 0x51C560
 struct model_def g_model_defs[73] = {
+/* drift-ok: include-midfile -- the table's rows, not a header */
 #include "xvt/assets/model_defs_data.inc"
 };
 /* The float 1.0; the software renderer and this file's normal builders read

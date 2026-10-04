@@ -1,10 +1,11 @@
 #ifndef XVT_ASSETS_STRING_TABLE_H
 #define XVT_ASSETS_STRING_TABLE_H
 
-#include "xvt/assets/file.h"
-#include "xvt/xvt_typedefs.h"
 #include <stdint.h>
 #include <stdio.h>
+
+#include "xvt/assets/file.h"
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,4 +1,9 @@
 #include "xvt_runtime/runtime/network_task.h"
+
+#include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/assets/file.h"
 #include "xvt/frontend/config.h"
@@ -15,9 +20,6 @@
 #include "xvt_runtime/runtime/network_dialogs.h"
 #include "xvt_runtime/runtime/network_metadata.h"
 #include "xvt_runtime/runtime/network_session.h"
-#include <ctype.h>
-#include <stdlib.h>
-#include <string.h>
 
 enum { BROWSER_REFRESH_US = 10000000, BROWSER_VISIBLE_ROWS = 6 };
 

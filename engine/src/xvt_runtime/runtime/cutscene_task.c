@@ -1,5 +1,7 @@
 #include "xvt_runtime/runtime/cutscene_task.h"
 
+#include <string.h>
+
 #include "xvt/audio/cd_audio.h"
 #include "xvt/frontend/cutscene.h"
 #include "xvt/frontend/frontend_display.h"
@@ -7,8 +9,6 @@
 #include "xvt/frontend/frontend_mission_list.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt_runtime/runtime/movie_task.h"
-
-#include <string.h>
 
 static struct {
 	unsigned int entry_index;

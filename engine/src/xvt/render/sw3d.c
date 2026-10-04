@@ -1,5 +1,7 @@
 #include "xvt/render/sw3d.h"
 
+#include <string.h>
+
 #include "xvt/flight/flight_surface.h"
 #include "xvt/math/math3d.h"
 #include "xvt/render/flight_light.h"
@@ -7,8 +9,6 @@
 #include "xvt/render/render_clip.h"
 #include "xvt/render/render_scene.h"
 #include "xvt/render/renderer.h"
-
-#include <string.h>
 
 struct software_light_sample {
 	/* Lighting block row it was worked out for:

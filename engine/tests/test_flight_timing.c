@@ -4,13 +4,13 @@
  * step globals it reads (g_elapsed_ticks, g_sim_steps_per_second, g_game_time, g_net_update_interval_ticks and the
  * crew mesh timer) are set by each case; every case starts a fresh session. The dropped-period count is not
  * readable through the header, so it is not checked. */
+#include <stdint.h>
+
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
 #include "xvt/net/flight_net.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
 #include "xvt_runtime/timing/flight_timing.h"
-
-#include <stdint.h>
 
 static void begin(xvt_flight_timing_profile profile)
 {

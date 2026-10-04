@@ -3,6 +3,8 @@
 #include "xvt_runtime/snapshot/render_camera.h"
 #endif
 
+#include <stdint.h>
+
 #include "xvt/assets/model_preview.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/object/object.h"
@@ -10,7 +12,6 @@
 #include "xvt/math/math.h"
 #include "xvt/math/trig2.h"
 #include "xvt/render/renderer.h"
-#include <stdint.h>
 
 /* Forward axis of the object last oriented, X term, Q15 (32,768 is 1.0);
  * the negated row 2 of the current object matrix (g_cur_mat_r2_x). The nine

@@ -1,12 +1,12 @@
 #include "xvt/audio/direct_sound.h"
 
-#include "xvt/assets/file.h"
-#include "xvt/audio/sound.h"
-#include "xvt/flight/fediskio.h"
-
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "xvt/assets/file.h"
+#include "xvt/audio/sound.h"
+#include "xvt/flight/fediskio.h"
 
 #ifndef XVT_MODERN
 __declspec(dllimport) void *__stdcall LocalAlloc(unsigned int flags,

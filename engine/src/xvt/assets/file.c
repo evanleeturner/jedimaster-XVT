@@ -1,4 +1,5 @@
 #include "xvt/assets/file.h"
+
 #include "xvt/audio/cd_audio.h"
 #include "xvt/frontend/frontend_state.h"
 #ifndef XVT_MODERN

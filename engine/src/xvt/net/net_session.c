@@ -5,14 +5,14 @@
 #include "xvt_runtime/runtime/network_session.h"
 #endif
 
+#include <string.h>
+
 #include "aeron/compat/dplay.h"
 #include "xvt/flight/flight_loading.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/frontend/config.h"
 #include "xvt/net/net_reliable.h"
 #include "xvt/util/time.h"
-
-#include <string.h>
 
 #pragma pack(push, 1)
 

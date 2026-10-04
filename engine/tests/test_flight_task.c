@@ -9,6 +9,9 @@
  * the display, and load the mission, its models and sounds from the retail game files; the cleanup steps
  * that follow a started world (committing results, restoring the resolution, saving the pilot, the CD fade)
  * need that world. */
+#include <stdint.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/audio/music_cd.h"
 #include "xvt/flight/flight.h"
@@ -26,9 +29,6 @@
 #include "xvt_runtime/timing/flight_integration.h"
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <stdint.h>
-#include <string.h>
 
 static struct object_record g_test_objects[2];
 static uint8_t g_test_world[16], g_test_world_copy[16];

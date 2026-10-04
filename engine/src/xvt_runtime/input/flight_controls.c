@@ -1,4 +1,7 @@
 #include "xvt_runtime/input/flight_controls.h"
+
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/debug.h"
 #include "xvt/flight/flight.h"
@@ -21,7 +24,6 @@
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/player_timing.h"
-#include <string.h>
 int16_t g_xvt_control_roll;
 
 static struct {

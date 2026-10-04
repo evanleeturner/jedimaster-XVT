@@ -1,11 +1,11 @@
 /* Checks the command line parser and the host's Aeron configuration (xvt_app/host_config.h) against the
  * promises in its header. The module holds no state; each case builds its own argument list. Refused
  * command lines print a message on stderr, which this test does not read. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt_app/host_config.h"
 #include "xvt_app/window_icon.h"
-
-#include <string.h>
 
 /* Parses the arguments after the program name. The argument array lives until the calling function
  * returns, so a later check can compare the pointers the parser kept with the strings in g_argv. */

@@ -7,6 +7,8 @@
 #include "xvt_runtime/timing/reference_motion.h"
 #endif
 
+#include <limits.h>
+
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/model_mesh_internal.h"
@@ -29,7 +31,6 @@
 #include "xvt/math/trig2.h"
 #include "xvt/render/renderer.h"
 #include "xvt/util/game_rand.h"
-#include <limits.h>
 
 /* The figures of every shot type, a constant table laid out as
  * projectile_type_data_tables; the last four types have zeros. */

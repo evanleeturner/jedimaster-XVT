@@ -8,6 +8,8 @@
  * Not checked here: a successful Init and everything that runs after it (Update's frames, pausing, quitting,
  * the wake delay and Shutdown after Init), which start the frontend with its main window, the config and
  * the game's files. */
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/compat/host.h"
 #include "test_assert.h"
@@ -18,8 +20,6 @@
 #include "xvt_runtime/runtime/network_task.h"
 #include "xvt_runtime/runtime/port.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <string.h>
 
 static int placeholder(int frame) { return frame; }
 

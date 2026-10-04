@@ -8,6 +8,8 @@
 #include "xvt_runtime/timing/flight_timing.h"
 #endif
 
+#include <string.h>
+
 #include "xvt/audio/sound.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -21,7 +23,6 @@
 #include "xvt/net/net_reliable.h"
 #include "xvt/net/net_session.h"
 #include "xvt/util/memory.h"
-#include <string.h>
 
 enum { INPUT_FRAME_PREDICTED = 2 };
 

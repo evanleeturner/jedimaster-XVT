@@ -3,6 +3,10 @@
 #include "xvt_runtime/runtime/cutscene_task.h"
 #endif
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/frontend/frontend.h"
@@ -11,9 +15,6 @@
 #include "xvt/frontend/frontend_mission_list.h"
 #include "xvt/frontend/movie.h"
 #include "xvt/frontend/pilot_record.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 /* Entries loaded in g_cutscene_table. cutscene_load_table sets it once it has
  * a table; game_main in the original build and xvt_frontend_task_shutdown in the

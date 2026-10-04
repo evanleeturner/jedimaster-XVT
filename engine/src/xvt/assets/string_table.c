@@ -1,6 +1,8 @@
 #include "xvt/assets/string_table.h"
-#include "xvt/assets/file.h"
 
+#include <string.h>
+
+#include "xvt/assets/file.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/hud/hud.h"
@@ -10,7 +12,6 @@
 #include "xvt/flight/object/damage.h"
 #include "xvt/flight/proving_grounds.h"
 #include "xvt/util/memory.h"
-#include <string.h>
 
 /* The four file error messages, indexed by file_error_string_id: the first four
  * lines of the block string_table_load_game_strings reads after the damage system

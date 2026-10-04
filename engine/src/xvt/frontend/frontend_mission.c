@@ -1,5 +1,8 @@
 #include "xvt/frontend/frontend_mission.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/frontend/briefing_map.h"
 #include "xvt/frontend/briefing_script.h"
@@ -9,8 +12,6 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/net.h"
-#include <stdlib.h>
-#include <string.h>
 
 /* The mission the frontend's setup, briefing and debriefing screens show, as
  * frontend_mission_load_current and frontend_mission_load_current_with_briefing

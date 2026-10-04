@@ -2,6 +2,10 @@
  * against the promises in its header. The render snapshot (render_snapshot.h) is started and its ticks
  * opened as the game does, so target boxes have a writer to count drops in. The recovered game's palette,
  * object table and world position globals are set here; no game data is read. */
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/flight/object/object.h"
@@ -9,10 +13,6 @@
 #include "xvt_runtime/snapshot/render_capture.h"
 #include "xvt_runtime/snapshot/render_hud.h"
 #include "xvt_runtime/snapshot/render_snapshot.h"
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 static struct object_record g_test_objects[3];
 static struct xvt_render_snapshot *g_out;

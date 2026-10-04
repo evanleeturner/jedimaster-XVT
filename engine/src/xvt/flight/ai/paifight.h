@@ -1,8 +1,9 @@
 #ifndef XVT_FLIGHT_AI_PAIFIGHT_H
 #define XVT_FLIGHT_AI_PAIFIGHT_H
 
-#include "xvt/xvt_typedefs.h"
 #include <stdint.h>
+
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

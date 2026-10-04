@@ -1,11 +1,12 @@
 #ifndef XVT_RUNTIME_FLIGHT_NETWORK_H
 #define XVT_RUNTIME_FLIGHT_NETWORK_H
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "xvt/flight/flight_input.h"
 #include "xvt_runtime/runtime/flight_messages.h"
 #include "xvt_runtime/timing/flight_timing.h"
-#include <stddef.h>
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

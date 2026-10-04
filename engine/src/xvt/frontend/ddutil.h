@@ -1,10 +1,11 @@
 #ifndef XVT_FRONTEND_DDUTIL_H
 #define XVT_FRONTEND_DDUTIL_H
 
+#include <stdint.h>
+
 #include "aeron/compat/ddraw.h"
 #include "aeron/compat/win_types.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

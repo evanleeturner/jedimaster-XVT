@@ -1,11 +1,12 @@
 #include "xvt_runtime/storage/storage.h"
 
-#include "aeron/log.h"
-#include "xvt_runtime/log/log.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "aeron/log.h"
+#include "xvt_runtime/log/log.h"
 
 static AeronVfs *g_vfs;
 static char g_last_path[XVT_PATH_CAPACITY];

@@ -9,6 +9,10 @@
 #include "xvt_runtime/snapshot/world_state.h"
 #endif
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/model_preview.h"
@@ -65,10 +69,6 @@
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #ifndef XVT_MODERN
 /* The Windows message record PeekMessageA fills in flight_pump_window_messages,

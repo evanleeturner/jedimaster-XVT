@@ -1,10 +1,6 @@
 #include "xvt_runtime/input/input_bridge.h"
-#include "xvt_runtime/input/capture.h"
-#include "xvt_runtime/input/controller_mapping.h"
-#include "xvt_runtime/input/flight_controls.h"
-#include "xvt_runtime/input/keyboard_mapping.h"
-#include "xvt_runtime/runtime/movie_task.h"
-#include "xvt_runtime/runtime/resync_task.h"
+
+#include <string.h>
 
 #include "aeron/aeron.h"
 #include "aeron/compat/host.h"
@@ -14,12 +10,16 @@
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/input/keyboard.h"
 #include "xvt_runtime/config/config.h"
+#include "xvt_runtime/input/capture.h"
+#include "xvt_runtime/input/controller_mapping.h"
+#include "xvt_runtime/input/flight_controls.h"
+#include "xvt_runtime/input/keyboard_mapping.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/flight_task.h"
+#include "xvt_runtime/runtime/movie_task.h"
 #include "xvt_runtime/runtime/presentation.h"
+#include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/snapshot/render_snapshot.h"
-
-#include <string.h>
 
 static AeronWinmmJoystickState g_joystick;
 static int g_connected;

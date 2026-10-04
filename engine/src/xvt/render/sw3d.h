@@ -1,9 +1,10 @@
 #ifndef XVT_RENDER_SW3D_H
 #define XVT_RENDER_SW3D_H
 
+#include <stdint.h>
+
 #include "xvt/assets/opt_model.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

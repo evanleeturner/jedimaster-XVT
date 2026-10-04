@@ -1,4 +1,7 @@
 #include "xvt_runtime/runtime/network_browser.h"
+
+#include <stdio.h>
+
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/concourse.h"
 #include "xvt/frontend/config.h"
@@ -20,7 +23,6 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/network_metadata.h"
 #include "xvt_runtime/runtime/network_task.h"
-#include <stdio.h>
 
 int xvt_network_browser_draw_list(void)
 {

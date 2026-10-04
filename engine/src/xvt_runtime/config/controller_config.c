@@ -1,11 +1,13 @@
 #include "xvt_runtime/config/controller_config.h"
-#include "xvt_runtime/config/config.h"
+
 #include <ctype.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "xvt_runtime/config/config.h"
 
 static bool xvt_controller_config_config_error(char *error, size_t capacity,
 					       const char *format, ...)

@@ -1,15 +1,16 @@
 #include "xvt/frontend/credits.h"
-#include "xvt/assets/file.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/front_image.h"
 #include "xvt/frontend/frontend_cursor.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_text.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 /* Per text buffer (0 and 1), the X position of the logo drawn with that
  * buffer's page. credits_parse_next_page sets it from the page header's seventh

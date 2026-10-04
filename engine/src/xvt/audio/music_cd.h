@@ -1,8 +1,9 @@
 #ifndef XVT_AUDIO_MUSIC_CD_H
 #define XVT_AUDIO_MUSIC_CD_H
 
-#include "xvt/xvt_typedefs.h"
 #include <stdint.h>
+
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

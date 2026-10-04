@@ -6,11 +6,11 @@
  *
  * Not checked here: the setup phases past the close, admission, registration, the listing Service keeps
  * and the flight marks; they need a DirectPlay peer and a multiplayer directory. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/net/net_reliable.h"
 #include "xvt_runtime/runtime/network_session.h"
-
-#include <string.h>
 
 static const GUID g_room = {1, 2, 3, {4, 5, 6, 7, 8, 9, 10, 11}};
 

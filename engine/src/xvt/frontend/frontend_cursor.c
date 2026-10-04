@@ -1,5 +1,7 @@
 #include "xvt/frontend/frontend_cursor.h"
 
+#include <string.h>
+
 #ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_frontend.h"
 #endif
@@ -15,8 +17,6 @@
 __declspec(dllimport) int __stdcall ShowCursor(int show);
 __declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
 #endif
-
-#include <string.h>
 
 /* The built-in cursor, a 10 by 10 arrow pointing up and left, one byte per
  * pixel, row by row: 0 is transparent, 1 the outline and 0xFF the fill.

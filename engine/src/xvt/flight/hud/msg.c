@@ -1,6 +1,10 @@
 #include "xvt/flight/hud/msg.h"
-#include "xvt/assets/file.h"
 
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "xvt/assets/file.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/craft.h"
@@ -12,10 +16,6 @@
 #include "xvt/flight/player/player.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/memory.h"
-
-#include <stddef.h>
-#include <stdio.h>
-#include <string.h>
 
 /* Index in g_message_log_records of the newest logged message, 0 to 299, or
  * 0xFFFF before the first. Flight start sets 0xFFFF: flight_main_loop in the

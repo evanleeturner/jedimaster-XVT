@@ -13,6 +13,10 @@
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 #endif
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
@@ -53,9 +57,6 @@
 #include "xvt/render/std3d.h"
 #include "xvt/render/sw3d.h"
 #include "xvt/util/memory.h"
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
 #ifndef XVT_MODERN
 int(_fileno)(xvt_file *stream);
 long _filelength(int file_descriptor);

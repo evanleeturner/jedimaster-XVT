@@ -12,16 +12,16 @@
 #define _DARWIN_C_SOURCE
 #endif
 
-#include "test_assert.h"
-#include "xvt_app/crash_note.h"
-#include "xvt_app/log_file.h"
-
 #include <limits.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "test_assert.h"
+#include "xvt_app/crash_note.h"
+#include "xvt_app/log_file.h"
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN

@@ -1,9 +1,11 @@
 #include "xvt_runtime/runtime/flight_prediction.h"
+
+#include <string.h>
+
 #include "xvt/flight/player/player.h"
 #include "xvt/net/flight_sync.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/flight_sim.h"
-#include <string.h>
 
 struct confirmed_controls {
 	struct flight_input_frame_record input;

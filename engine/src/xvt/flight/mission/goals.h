@@ -1,9 +1,10 @@
 #ifndef XVT_FLIGHT_MISSION_GOALS_H
 #define XVT_FLIGHT_MISSION_GOALS_H
 
+#include <stdint.h>
+
 #include "xvt/assets/object_type.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

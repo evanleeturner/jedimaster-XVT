@@ -10,6 +10,10 @@
  * Not checked here: a continuation packet actually arriving, the single-player and host continuations
  * (they read the game's mission lists), the end of the program on a missing installation, and the renaming
  * of a promoted player, which needs a DirectPlay session. */
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
 #include "test_assert.h"
 #include "test_asset_folder.h"
 #include "xvt/frontend/briefing_text.h"
@@ -27,10 +31,6 @@
 #include "xvt_runtime/runtime/movie_task.h"
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 
 static struct xvt_test_assets g_assets;
 static struct cutscene_entry g_table[1];

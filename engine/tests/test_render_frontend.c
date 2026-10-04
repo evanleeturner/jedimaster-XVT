@@ -6,6 +6,9 @@
  *
  * Not checked: the faded glyph color, since the header does not say what a running fade is, and the modal
  * dialog and loading scenes of Present, which need a dialog or a flight load in progress. */
+#include <stdint.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/frontend/front_image.h"
 #include "xvt/frontend/frontend_state.h"
@@ -14,9 +17,6 @@
 #include "xvt_runtime/snapshot/render_capture.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
 #include "xvt_runtime/snapshot/render_snapshot.h"
-
-#include <stdint.h>
-#include <string.h>
 
 static struct image_resource g_image;
 static struct image_resource g_cursor_image;

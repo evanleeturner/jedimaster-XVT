@@ -2,6 +2,9 @@
 #ifdef XVT_MODERN
 #include "xvt_runtime/runtime/dialog_task.h"
 #endif
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/flight/craft.h"
@@ -23,8 +26,6 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/input/keyboard.h"
 #include "xvt/net/net.h"
-#include <stdlib.h>
-#include <string.h>
 
 /* Heap table of 93 craft descriptions from specdesc.txt, by craft_species
  * value minus 1. tech_library_load_spec_text_table loads it on the craft

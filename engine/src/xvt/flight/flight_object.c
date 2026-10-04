@@ -4,6 +4,8 @@
 #include "xvt_runtime/timing/flight_timing.h"
 #endif
 
+#include <string.h>
+
 #include "xvt/assets/model_mesh.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai/pai.h"
@@ -19,8 +21,6 @@
 #include "xvt/math/math.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
-
-#include <string.h>
 
 /* Slot index flight_object_recycle_local_debris_near_player looks at next, from
  * g_local_transient_slot_start up to g_local_debris_slot_end, then back. Two

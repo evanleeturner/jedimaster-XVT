@@ -1,9 +1,10 @@
 #ifndef XVT_FLIGHT_AI_PAIMAN_H
 #define XVT_FLIGHT_AI_PAIMAN_H
 
+#include <stdint.h>
+
 #include "xvt/flight/ai/pai.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

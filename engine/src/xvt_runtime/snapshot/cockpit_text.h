@@ -1,8 +1,9 @@
 #ifndef XVT_RUNTIME_SNAPSHOT_COCKPIT_TEXT_H
 #define XVT_RUNTIME_SNAPSHOT_COCKPIT_TEXT_H
 
-#include "xvt_runtime/snapshot/cockpit_state.h"
 #include <stddef.h>
+
+#include "xvt_runtime/snapshot/cockpit_state.h"
 
 #ifdef __cplusplus
 extern "C" {

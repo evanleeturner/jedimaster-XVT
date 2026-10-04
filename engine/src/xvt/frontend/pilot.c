@@ -1,4 +1,5 @@
 #include "xvt/frontend/pilot.h"
+
 #include "xvt/assets/file.h"
 #include "xvt/frontend/concourse.h"
 #include "xvt/frontend/config.h"
@@ -13,8 +14,9 @@
 #include "xvt/util/time.h"
 
 #ifdef XVT_MODERN
-#include "xvt_runtime/compat/pilot_port.h"
 #include <strings.h>
+
+#include "xvt_runtime/compat/pilot_port.h"
 #endif
 
 #include <stdlib.h>

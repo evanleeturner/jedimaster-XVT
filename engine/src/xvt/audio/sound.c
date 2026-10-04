@@ -1,10 +1,10 @@
 #include "xvt/audio/sound.h"
 
+#include <string.h>
+
 #include "aeron/compat/dsound.h"
 #include "xvt/audio/direct_sound.h"
 #include "xvt/audio/fsfx.h"
-
-#include <string.h>
 
 /* The DirectSound object sound_init_sound_engine creates; NULL before that and
  * after sound_shutdown_sound_engine releases it. Most Sound_ functions return 0

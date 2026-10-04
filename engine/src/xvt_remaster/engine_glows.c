@@ -1,11 +1,13 @@
 #include "xvt_remaster/engine_glows.h"
+
+#include <math.h>
+#include <string.h>
+
 #include "aeron/asset/opt_model.h"
 #include "xvt/flight/craft.h"
 #include "xvt_remaster/config.h"
 #include "xvt_remaster/effects.h"
 #include "xvt_remaster/lighting.h"
-#include <math.h>
-#include <string.h>
 
 static AeronTexture *g_mask;
 

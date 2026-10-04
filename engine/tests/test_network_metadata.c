@@ -3,6 +3,8 @@
  * password flag, slots, mission, the ready roster and when the room is joinable), and the flight roster
  * that keeps only players still active. The test sets the session, pilot and mission setup globals
  * itself; every case starts from a cleared session. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/frontend/config.h"
 #include "xvt/frontend/frontend_state.h"
@@ -10,8 +12,6 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/net_session.h"
 #include "xvt_runtime/runtime/network_metadata.h"
-
-#include <string.h>
 
 static struct xvt_network_metadata g_meta;
 

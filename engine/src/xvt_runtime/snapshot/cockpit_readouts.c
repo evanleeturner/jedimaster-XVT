@@ -1,5 +1,7 @@
 #include "xvt_runtime/snapshot/cockpit_readouts.h"
 
+#include <string.h>
+
 #include "xvt/flight/flight.h"
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/flight/object/object.h"
@@ -8,7 +10,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt_runtime/snapshot/cockpit_text.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-#include <string.h>
 
 static struct xvt_cockpit_number g_numbers[XVT_COCKPIT_NUMBER_COUNT];
 static struct xvt_cockpit_target g_target;

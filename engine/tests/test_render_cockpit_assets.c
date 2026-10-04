@@ -9,6 +9,10 @@
  * Not checkable: the layout generation, which CaptureDefinition always copies as 0 and nothing else
  * reads. Not run here: more than XVT_SNAP_MAP_ICON_FRAMES icons, which requests a fatal error that shows
  * a message box. */
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "test_temp_folder.h"
 #include "xvt/flight/fediskio.h"
@@ -18,10 +22,6 @@
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_cockpit_assets.h"
 #include "xvt_runtime/storage/storage.h"
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 static AeronVfs *g_vfs;

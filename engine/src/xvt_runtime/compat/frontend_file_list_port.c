@@ -1,11 +1,11 @@
 #include "xvt_runtime/compat/frontend_file_list_port.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/vfs.h"
 #include "xvt/frontend/frontend_file_list.h"
 #include "xvt_runtime/storage/storage.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 struct frontend_file_list_build_state {
 	struct frontend_file_list *list;

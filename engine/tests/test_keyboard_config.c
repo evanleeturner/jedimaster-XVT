@@ -3,16 +3,16 @@
  * folder (config_fixture.h); no settings are loaded. */
 #define _XOPEN_SOURCE 700
 
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "config_fixture.h"
 #include "test_assert.h"
 #include "xvt_runtime/config/keyboard_config.h"
 #include "xvt_runtime/input/actions.h"
 #include "xvt_runtime/input/keyboard_mapping.h"
-
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 static AeronKeyChord chord(const char *name, uint8_t modifiers)
 {

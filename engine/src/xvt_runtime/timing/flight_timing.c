@@ -1,10 +1,12 @@
 #include "xvt_runtime/timing/flight_timing.h"
+
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/flight/flight.h"
 #include "xvt/net/flight_net.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
-#include <string.h>
 
 static struct {
 	xvt_flight_timing_profile profile;

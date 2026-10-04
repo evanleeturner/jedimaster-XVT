@@ -7,6 +7,9 @@
 #ifdef XVT_MODERN
 #include "xvt_runtime/input/flight_controls.h"
 #endif
+#include <limits.h>
+#include <string.h>
+
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
@@ -30,9 +33,6 @@
 #include "xvt/net/flight_net.h"
 #include "xvt/net/net_session.h"
 #include "xvt/render/renderer.h"
-
-#include <limits.h>
-#include <string.h>
 
 /* Per player, countdown timers for HUD panes and redraws, in ticks.
  * flight_update_timers counts each down by g_elapsed_ticks for participating

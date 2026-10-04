@@ -1,9 +1,9 @@
 #include "xvt/util/debug_console.h"
 
-#include "xvt/assets/file.h"
-
 #include <stdio.h>
 #include <string.h>
+
+#include "xvt/assets/file.h"
 
 /* The first of three switches debug_console_toggle_file_dump checks: it turns the
  * file dump on only when one of them is nonzero. Starts at 0, and nothing

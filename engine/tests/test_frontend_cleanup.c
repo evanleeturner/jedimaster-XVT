@@ -4,13 +4,13 @@
  * which is loaded here, so calling them twice is harmless. Every case starts from a cleared frontend.
  *
  * Not checked here: what the original functions themselves do, which is the recovered game's code. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/frontend/frontend_mission_list.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt_runtime/runtime/frontend_cleanup.h"
-
-#include <string.h>
 
 typedef int (*exit_callback)(int frame);
 typedef int (*original)(void);

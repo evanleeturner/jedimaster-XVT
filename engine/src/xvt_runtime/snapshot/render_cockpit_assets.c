@@ -1,4 +1,7 @@
 #include "xvt_runtime/snapshot/render_cockpit_assets.h"
+
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight_display.h"
@@ -8,7 +11,6 @@
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_assets.h"
-#include <string.h>
 
 static struct xvt_snap_cockpit_layout g_layout;
 static uint64_t g_layout_generation;

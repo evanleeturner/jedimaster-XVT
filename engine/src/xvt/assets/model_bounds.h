@@ -1,9 +1,10 @@
 #ifndef XVT_ASSETS_MODEL_BOUNDS_H
 #define XVT_ASSETS_MODEL_BOUNDS_H
 
+#include <stdint.h>
+
 #include "xvt/assets/opt_model.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

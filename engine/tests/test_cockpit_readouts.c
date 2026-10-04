@@ -7,6 +7,8 @@
  *
  * Not checked here: which HUD element bindings RecordCachedNumber maps to which readout, since the header
  * names the readouts but not their binding numbers; only an out-of-range binding is checked. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/hud/flight_text.h"
@@ -18,8 +20,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt_runtime/snapshot/cockpit_readouts.h"
 #include "xvt_runtime/snapshot/cockpit_text.h"
-
-#include <string.h>
 
 enum { BYPASS = 9, FOREGROUND = 7, BACKGROUND = 4, SHADOW = 5 };
 

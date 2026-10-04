@@ -2,6 +2,9 @@
 #ifdef XVT_MODERN
 #include "xvt_runtime/timing/flight_timing.h"
 #endif
+#include <stdio.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/audio/sound.h"
 #include "xvt/flight/craft.h"
@@ -19,8 +22,6 @@
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
-#include <stdio.h>
-#include <string.h>
 
 /* Falloff distance, in world units, of flight sound ids 0 to 95, one entry per
  * id; fsfx_compute_source_volume reads entries 0 to 94 (ids from 95 use 8192).

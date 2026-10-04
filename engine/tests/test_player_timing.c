@@ -7,6 +7,10 @@
  * Most checks watch one channel's carried remainder through Scale itself: Seed clears a channel and
  * leaves a carry of 3/4 on it, and Probe adds 1/4 more, so Probe returns 1 exactly when the carry
  * survived. */
+#include <limits.h>
+#include <stdint.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
@@ -19,10 +23,6 @@
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/player_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
-
-#include <limits.h>
-#include <stdint.h>
-#include <string.h>
 
 enum { SLOTS = 6, MAIN_SLOTS = 4 };
 

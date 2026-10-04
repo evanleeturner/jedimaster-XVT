@@ -5,12 +5,12 @@
  * from Init.
  *
  * Not checked here: WarpClassic and EndFrame, whose effect is on a real window and the DirectX 5 frame. */
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/compat/host.h"
 #include "test_assert.h"
 #include "xvt_runtime/runtime/presentation.h"
-
-#include <string.h>
 
 static AeronInputSnapshot g_input;
 

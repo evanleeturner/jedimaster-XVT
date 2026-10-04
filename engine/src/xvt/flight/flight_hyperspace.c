@@ -3,6 +3,8 @@
 #include "xvt_runtime/snapshot/render_capture.h"
 #endif
 
+#include <stdlib.h>
+
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/fview.h"
@@ -13,7 +15,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
 #include "xvt/util/memory.h"
-#include <stdlib.h>
 
 enum {
 	HYPERSPACE_TRANSITION_OBJECT_TYPE = 137,

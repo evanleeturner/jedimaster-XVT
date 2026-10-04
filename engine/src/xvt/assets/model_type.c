@@ -1,6 +1,6 @@
-#include "xvt/assets/object_type.h"
-
 #include <stddef.h>
+
+#include "xvt/assets/object_type.h"
 
 /* By OPT hardpoint type 0 to 31, how fe_disk_io_build_model_def groups a weapon
  * hardpoint: 1 into a laser group (types 1 to 6 and 9 to 11), 2 into a warhead

@@ -1,8 +1,9 @@
 #ifndef XVT_RENDER_SCENE_BILLBOARD_H
 #define XVT_RENDER_SCENE_BILLBOARD_H
 
-#include "xvt/xvt_typedefs.h"
 #include <stdint.h>
+
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

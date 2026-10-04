@@ -1,12 +1,12 @@
 #include "xvt_app/log_sink.h"
 
-#include "xvt_app/crash_note.h"
-#include "xvt_app/log_file.h"
-#include "xvt_runtime/log/log.h"
-
 #include <SDL3/SDL.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "xvt_app/crash_note.h"
+#include "xvt_app/log_file.h"
+#include "xvt_runtime/log/log.h"
 
 /* Aeron formats a message into 1,024 bytes; the line adds the stamp, the level and the category. */
 #define XVT_LOG_SINK_LINE_CAPACITY 1280

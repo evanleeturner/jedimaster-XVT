@@ -1,4 +1,5 @@
 #include "xvt_app/settings/video_options.h"
+
 #include "aeron/aeron.h"
 #include "xvt_runtime/config/config.h"
 

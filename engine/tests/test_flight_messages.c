@@ -2,17 +2,17 @@
  * header: one input record and an input batch encoded and read back, the parts of a world message and how
  * the receiver assembles them, and the pending and replay queues. Every check starts from Reset; the module
  * reads no game globals, and the messages are built here. */
+#include <stddef.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/flight_input.h"
 #include "xvt/net/net.h"
 #include "xvt_runtime/runtime/flight_messages.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
 #include "xvt_runtime/runtime/flight_wire.h"
-
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 enum { COOKIE = 0x5A17, TARGET = 256 };
 

@@ -1,8 +1,9 @@
 #ifndef XVT_RUNTIME_SNAPSHOT_RENDER_ASSETS_H
 #define XVT_RUNTIME_SNAPSHOT_RENDER_ASSETS_H
 
-#include "xvt_runtime/snapshot/render_snapshot.h"
 #include <stddef.h>
+
+#include "xvt_runtime/snapshot/render_snapshot.h"
 
 #ifdef __cplusplus
 extern "C" {

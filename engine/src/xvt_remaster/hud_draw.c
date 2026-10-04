@@ -1,6 +1,8 @@
 #include "xvt_remaster/hud_draw.h"
-#include "xvt_remaster/ui_draw.h"
+
 #include <math.h>
+
+#include "xvt_remaster/ui_draw.h"
 
 AeronDrawList2D *xvt_hud_draw_select_list(const struct xvt_hud_draw *draw,
 					  unsigned phase)

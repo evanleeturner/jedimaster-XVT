@@ -1,9 +1,10 @@
 #include "xvt/net/net_reliable.h"
 
-#include "xvt/net/net_session.h"
-#include "xvt/util/time.h"
 #include <stddef.h>
 #include <string.h>
+
+#include "xvt/net/net_session.h"
+#include "xvt/util/time.h"
 
 /* Index of the next free entry in g_net_session_recv_queue, 0 to 1023. Six
  * writers; chiefly net_session_pump_incoming_packets, which queues arrivals,

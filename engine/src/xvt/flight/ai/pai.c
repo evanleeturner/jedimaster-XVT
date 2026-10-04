@@ -1,4 +1,8 @@
 #include "xvt/flight/ai/pai.h"
+
+#include <limits.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/flight/ai/pai_targetability.h"
 #include "xvt/flight/ai/paifight.h"
@@ -12,9 +16,6 @@
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
-
-#include <limits.h>
-#include <string.h>
 
 /* The loaded AI plans; a plan id is an index into it. Each entry holds the
  * plan's name, whether the plan text defined it, and where its bytes start in

@@ -1,5 +1,7 @@
 #include "xvt_runtime/snapshot/cockpit_instruments.h"
 
+#include <string.h>
+
 #include "xvt/assets/model_mesh.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
@@ -14,7 +16,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt_runtime/snapshot/cockpit_readouts.h"
 #include "xvt_runtime/snapshot/cockpit_text.h"
-#include <string.h>
 
 static struct {
 	uint8_t laser_lock[XVT_HUD_WEAPON_SLOTS];

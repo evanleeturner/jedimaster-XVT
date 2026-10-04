@@ -2,6 +2,10 @@
 #ifdef XVT_MODERN
 #include "xvt_runtime/runtime/network_session.h"
 #endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/frontend.h"
@@ -14,10 +18,6 @@
 #include "xvt/net/net_session.h"
 #include "xvt/util/time.h"
 #include "xvt/util/win32.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #ifndef XVT_MODERN
 __declspec(dllimport) int __stdcall

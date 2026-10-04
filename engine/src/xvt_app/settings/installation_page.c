@@ -1,10 +1,12 @@
 #include "xvt_app/settings/installation_page.h"
+
+#include <stdio.h>
+#include <string.h>
+
 #include "aeron/scene/ui_file_picker.h"
 #include "xvt_app/settings/settings.h"
 #include "xvt_app/setup_ui.h"
 #include "xvt_runtime/config/config.h"
-#include <stdio.h>
-#include <string.h>
 static AeronUiFilePicker *g_picker;
 static char g_edited_path[XVT_PATH_CAPACITY], g_accepted[XVT_PATH_CAPACITY];
 

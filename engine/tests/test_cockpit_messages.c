@@ -9,6 +9,8 @@
  * The full-loading-text check requests a fatal error, which latches for the whole process, so it runs
  * last. Not checked here: which rows an alert line from the second on fills, since the header does not
  * say how its five rows match its three lines, and the border color's value. */
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "test_assert.h"
 #include "xvt/flight/hud/flight_text.h"
@@ -18,8 +20,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-
-#include <string.h>
 
 /* The fatal-error request opens SDL's message box, and SDL keeps a small allocation from it when no video
  * device is running, as in a test. The leak checker is told to ignore what that one call allocates. */

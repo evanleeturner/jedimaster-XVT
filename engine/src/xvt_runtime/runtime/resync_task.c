@@ -1,4 +1,7 @@
 #include "xvt_runtime/runtime/resync_task.h"
+
+#include <stdlib.h>
+
 #include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_checkpoint.h"
@@ -8,7 +11,6 @@
 #include "xvt_runtime/snapshot/render_capture.h"
 #include "xvt_runtime/snapshot/world_state.h"
 #include "xvt_runtime/timing/flight_timing.h"
-#include <stdlib.h>
 
 enum {
 	RESYNC_IDLE,

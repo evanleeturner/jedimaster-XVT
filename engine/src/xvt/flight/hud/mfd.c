@@ -4,6 +4,9 @@
 #include "xvt_runtime/snapshot/cockpit_pages.h"
 #endif
 
+#include <stdio.h>
+#include <string.h>
+
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
@@ -21,8 +24,6 @@
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
 #include "xvt/util/memory.h"
-#include <stdio.h>
-#include <string.h>
 
 /* The MFD page that has the keyboard focus, an mfd_page_id, MFD_PAGE_NONE when
  * none: the up and down keys scroll it and it gets the bright border. Many

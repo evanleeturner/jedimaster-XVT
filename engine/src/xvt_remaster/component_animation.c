@@ -1,4 +1,5 @@
 #include "xvt_remaster/component_animation.h"
+
 #include <string.h>
 
 struct component_pose {

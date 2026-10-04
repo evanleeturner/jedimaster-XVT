@@ -1,9 +1,10 @@
 #ifndef XVT_UTIL_WIN32_H
 #define XVT_UTIL_WIN32_H
 
+#include <stdint.h>
+
 #include "aeron/compat/win_types.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

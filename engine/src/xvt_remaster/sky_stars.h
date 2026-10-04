@@ -1,9 +1,9 @@
 #ifndef XVT_REMASTER_SKY_STARS_H
 #define XVT_REMASTER_SKY_STARS_H
 
-#include "aeron/scene/scene3d.h"
-
 #include <stdint.h>
+
+#include "aeron/scene/scene3d.h"
 
 #ifdef __cplusplus
 extern "C" {

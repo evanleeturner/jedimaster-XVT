@@ -1,4 +1,5 @@
 #include "xvt_remaster/view_mode.h"
+
 #include "aeron/compat/host.h"
 #include "aeron/scene/blend_ramp.h"
 #include "xvt_remaster/flight.h"

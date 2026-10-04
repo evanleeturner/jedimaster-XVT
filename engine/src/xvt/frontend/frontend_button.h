@@ -1,9 +1,10 @@
 #ifndef XVT_FRONTEND_FRONTEND_BUTTON_H
 #define XVT_FRONTEND_FRONTEND_BUTTON_H
 
+#include <stdint.h>
+
 #include "xvt/util/win32.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

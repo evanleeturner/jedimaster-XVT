@@ -2,11 +2,11 @@
  * its header: what a valid profile and a valid model list are and each refusal, equality, clearing a
  * profile, finding and adding models, and adding connected gamepads with a default profile. Every case
  * builds its own settings and controller snapshot; nothing is read from disk. */
-#include "test_assert.h"
-#include "xvt_runtime/input/controller_options.h"
-
 #include <stdlib.h>
 #include <string.h>
+
+#include "test_assert.h"
+#include "xvt_runtime/input/controller_options.h"
 
 /* Valid GUIDs: 32 lower-case hex digits, in increasing order. */
 static const char k_guid_a[] = "0123456789abcdef0123456789abcdea";

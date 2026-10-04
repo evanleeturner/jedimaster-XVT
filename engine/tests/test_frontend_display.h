@@ -9,14 +9,14 @@
 #ifndef XVT_TESTS_TEST_FRONTEND_DISPLAY_H
 #define XVT_TESTS_TEST_FRONTEND_DISPLAY_H
 
+#include <string.h>
+
 #include "aeron/compat/ddraw.h"
 #include "aeron/compat/host.h"
 #include "test_assert.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
-
-#include <string.h>
 
 /* Creates one surface of the device with the given caps; size flags are set for an offscreen surface. */
 static inline IDirectDrawSurface *

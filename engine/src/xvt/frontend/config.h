@@ -1,11 +1,12 @@
 #ifndef XVT_FRONTEND_CONFIG_H
 #define XVT_FRONTEND_CONFIG_H
 
+#include <stdint.h>
+
 #include "xvt/frontend/frontend_string.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/util/win32.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

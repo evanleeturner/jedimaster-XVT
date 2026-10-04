@@ -1,7 +1,8 @@
 #ifndef XVT_APP_INSTALLATION_PAGE_H
 #define XVT_APP_INSTALLATION_PAGE_H
-#include "aeron/scene/ui.h"
 #include <stdbool.h>
+
+#include "aeron/scene/ui.h"
 /* The Original Installation section of the Game page: an editable path field with Browse, a directory
  * picker, and the accepted path. An edited path is validated and stored as game_data when the menu
  * closes; the running game keeps the installation it mounted, so a change needs a restart. Static

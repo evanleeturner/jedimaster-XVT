@@ -5,13 +5,13 @@
  * every file it reads there, and inspects the folders directly to see where storage put a file.
  *
  * Not run here: xvt_storage_fatal, which shows a message box before it exits. */
-#include "test_assert.h"
-#include "test_temp_folder.h"
-#include "xvt_runtime/storage/storage.h"
-
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+
+#include "test_assert.h"
+#include "test_temp_folder.h"
+#include "xvt_runtime/storage/storage.h"
 
 static char g_folder[XVT_TEST_PATH_CAPACITY];
 static char g_asset[XVT_TEST_PATH_CAPACITY];

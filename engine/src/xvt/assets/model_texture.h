@@ -1,10 +1,11 @@
 #ifndef XVT_ASSETS_MODEL_TEXTURE_H
 #define XVT_ASSETS_MODEL_TEXTURE_H
 
-#include "xvt/assets/opt_model.h"
-#include "xvt/xvt_typedefs.h"
 #include <stddef.h>
 #include <stdint.h>
+
+#include "xvt/assets/opt_model.h"
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

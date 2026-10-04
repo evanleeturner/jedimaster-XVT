@@ -1,9 +1,8 @@
 #include "xvt_runtime/runtime/movie_task.h"
 
-#include "xvt_runtime/runtime/presentation.h"
-
-#include "xvt_runtime/runtime/movie_sync.h"
-#include "xvt_runtime/snapshot/render_frontend.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "aeron/aeron.h"
 #include "aeron/video.h"
@@ -16,11 +15,10 @@
 #include "xvt/frontend/movie.h"
 #include "xvt/input/keyboard.h"
 #include "xvt_runtime/log/log.h"
+#include "xvt_runtime/runtime/movie_sync.h"
+#include "xvt_runtime/runtime/presentation.h"
+#include "xvt_runtime/snapshot/render_frontend.h"
 #include "xvt_runtime/storage/storage.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 struct xvt_movie_task {
 	AeronVideoPlayer *player;

@@ -1,9 +1,10 @@
 #ifndef XVT_RUNTIME_FLIGHT_MESSAGES_H
 #define XVT_RUNTIME_FLIGHT_MESSAGES_H
-#include "xvt/flight/flight_input.h"
-#include "xvt_runtime/runtime/flight_wire.h"
 #include <stddef.h>
 #include <stdint.h>
+
+#include "xvt/flight/flight_input.h"
+#include "xvt_runtime/runtime/flight_wire.h"
 #ifdef __cplusplus
 extern "C" {
 #endif

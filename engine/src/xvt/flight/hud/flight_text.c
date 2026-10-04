@@ -4,12 +4,12 @@
 #include "xvt_runtime/snapshot/cockpit_pages.h"
 #endif
 
+#include <string.h>
+
 #include "xvt/flight/flight_surface.h"
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
-
-#include <string.h>
 
 /* Nonzero while flight text wraps at g_flight_clip_right: a glyph that does not
  * fit moves to the next line, and flight_text_draw_string breaks before a word

@@ -3,12 +3,12 @@
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/runtime/port.h"
 #endif
-#include "xvt/frontend/frontend_state.h"
+#include <string.h>
 
 #include "aeron/compat/mmsystem.h"
 #include "xvt/frontend/frontend_display.h"
+#include "xvt/frontend/frontend_state.h"
 #include "xvt/util/time.h"
-#include <string.h>
 
 /* Opens the CD audio device through MCI for the front end's music. Returns 0 at
  * once when the window is not up: g_front_state.hWnd NULL in the original build,

@@ -1,11 +1,12 @@
 #ifndef XVT_FRONTEND_FRONT_IMAGE_H
 #define XVT_FRONTEND_FRONT_IMAGE_H
 
+#include <stdint.h>
+#include <stdio.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/util/win32.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
-#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {

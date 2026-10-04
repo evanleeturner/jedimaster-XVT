@@ -1,4 +1,7 @@
 #include "xvt_runtime/snapshot/render_hud.h"
+
+#include <string.h>
+
 #include "xvt/flight/ai/pai.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_display.h"
@@ -7,7 +10,6 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/renderer.h"
 #include "xvt_runtime/snapshot/render_capture.h"
-#include <string.h>
 
 static struct xvt_snap_target_box g_boxes[XVT_SNAP_TARGET_BOXES];
 static unsigned g_box_count, g_scope = XVT_SCOPE_COCKPIT;

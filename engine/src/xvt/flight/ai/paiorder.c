@@ -1,4 +1,7 @@
 #include "xvt/flight/ai/paiorder.h"
+
+#include <string.h>
+
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai/pai.h"
@@ -17,7 +20,6 @@
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
-#include <string.h>
 
 /* Rough distance in world units, by skill tier 0 to 2, beyond which
  * paiorder_stillattackorder forgets an attacker that is not a warhead. Entry 3

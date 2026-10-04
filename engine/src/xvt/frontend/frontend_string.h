@@ -1,9 +1,10 @@
 #ifndef XVT_FRONTEND_FRONTEND_STRING_H
 #define XVT_FRONTEND_FRONTEND_STRING_H
 
+#include <stdint.h>
+
 #include "xvt/assets/object_type.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

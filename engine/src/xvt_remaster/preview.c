@@ -1,13 +1,15 @@
 #include "xvt_remaster/preview.h"
+
+#include <math.h>
+#include <stddef.h>
+#include <string.h>
+
 #include "aeron/asset/opt_model.h"
 #include "aeron/scene/present.h"
 #include "xvt_remaster/component_animation.h"
 #include "xvt_remaster/config.h"
 #include "xvt_remaster/effects.h"
 #include "xvt_remaster/flight_pipeline.h"
-#include <math.h>
-#include <stddef.h>
-#include <string.h>
 
 /* Frontend previews share a fixed scene; the independent CRT follows its displayed size. */
 enum {

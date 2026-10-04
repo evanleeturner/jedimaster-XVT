@@ -4,6 +4,8 @@
  * and the player records itself. Player 0 is the local player; players 1 to 3 are connected remote players,
  * each bound to an object of its own; the others are not connected. Every check starts from empty
  * histories, no confirmed controls and no recovery request. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/flight_input.h"
 #include "xvt/flight/player/player.h"
@@ -11,8 +13,6 @@
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/flight_prediction.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
-
-#include <string.h>
 
 enum { TICK = 40 };
 

@@ -1,7 +1,9 @@
 #include "xvt_remaster/ui_draw.h"
-#include "aeron/aeron.h"
+
 #include <math.h>
 #include <string.h>
+
+#include "aeron/aeron.h"
 
 static AeronShader *g_vs, *g_fs;
 static AeronGraphicsPipeline *g_copy;

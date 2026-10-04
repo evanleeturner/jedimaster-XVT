@@ -1,10 +1,11 @@
 #ifndef XVT_NET_NET_SESSION_H
 #define XVT_NET_NET_SESSION_H
 
+#include <stdint.h>
+
 #include "xvt/net/net.h"
 #include "xvt/net/net_reliable.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

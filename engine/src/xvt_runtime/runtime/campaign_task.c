@@ -1,5 +1,8 @@
 #include "xvt_runtime/runtime/campaign_task.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/assets/file.h"
 #include "xvt/frontend/briefing_text.h"
@@ -21,9 +24,6 @@
 #include "xvt_runtime/runtime/movie_task.h"
 #include "xvt_runtime/storage/storage.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <stdlib.h>
-#include <string.h>
 
 enum {
 	XVT_CAMPAIGN_IDLE,

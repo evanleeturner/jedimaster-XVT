@@ -1,4 +1,5 @@
 #include "xvt_runtime/config/mouse_config.h"
+
 #include "xvt_runtime/config/config.h"
 
 static const char *const paths[] = {"input.mouse_flight",

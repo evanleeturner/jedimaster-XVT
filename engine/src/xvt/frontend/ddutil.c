@@ -1,9 +1,9 @@
 #include "xvt/frontend/ddutil.h"
 
-#include "xvt/util/win32.h"
-
 #include <stddef.h>
 #include <string.h>
+
+#include "xvt/util/win32.h"
 
 typedef HRESULT(AERON_DXAPI *dd_util_surface_get_dc_func)(
 	IDirectDrawSurface *surface, void **dc);

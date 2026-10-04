@@ -1,9 +1,11 @@
 #include "xvt_app/settings/video_page.h"
+
+#include <stdio.h>
+
 #include "aeron/aeron.h"
 #include "xvt_app/settings/settings.h"
 #include "xvt_app/settings/video_options.h"
 #include "xvt_remaster/hud_assets.h"
-#include <stdio.h>
 
 /* Draws the whole video page against one copy of the settings: every control edits that copy and marks
  * it changed, and the copy is sent once at the end, only if something changed. The sections stay in one

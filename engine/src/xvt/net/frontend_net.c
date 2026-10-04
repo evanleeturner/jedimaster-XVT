@@ -7,6 +7,10 @@
 #include "xvt_runtime/runtime/network_task.h"
 #endif
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/briefing_text.h"
 #include "xvt/frontend/concourse.h"
@@ -30,10 +34,6 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 /* The game's DirectPlay application GUID as four words, used to list, join and
  * host sessions of this game (net_enumerate_app_sessions,

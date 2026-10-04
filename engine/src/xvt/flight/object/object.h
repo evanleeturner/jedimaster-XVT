@@ -1,9 +1,10 @@
 #ifndef XVT_FLIGHT_OBJECT_OBJECT_H
 #define XVT_FLIGHT_OBJECT_OBJECT_H
 
+#include <stdint.h>
+
 #include "xvt/flight/ai/pai.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -4,6 +4,10 @@
  *
  * Most checks watch one channel's carried remainder through Rate itself: Seed leaves a carry of 3/4 on a
  * channel, and Probe adds 1/4 more, so Probe returns 1 exactly when the carry survived. */
+#include <limits.h>
+#include <stdint.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
@@ -13,10 +17,6 @@
 #include "xvt_runtime/runtime/flight_wire.h"
 #include "xvt_runtime/timing/flight_integration.h"
 #include "xvt_runtime/timing/reference_motion.h"
-
-#include <limits.h>
-#include <stdint.h>
-#include <string.h>
 
 /* An allocation that cannot be met must come back as NULL, so Init's refusal can be seen; by default
  * AddressSanitizer stops the program instead. */

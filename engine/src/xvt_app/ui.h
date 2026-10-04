@@ -1,9 +1,10 @@
 #ifndef XVT_APP_UI_H
 #define XVT_APP_UI_H
+#include <stdbool.h>
+
 #include "aeron/aeron.h"
 #include "aeron/scene/font_atlas.h"
 #include "aeron/scene/ui.h"
-#include <stdbool.h>
 
 /* The application-owned UI: one Aeron UI context with one font atlas serving as both the regular and
  * the title font, in a dark theme with a red accent. */

@@ -1,9 +1,10 @@
 #ifndef XVT_NET_FRONTEND_NET_H
 #define XVT_NET_FRONTEND_NET_H
 
+#include <stdint.h>
+
 #include "xvt/net/net.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,10 +1,6 @@
 #include "xvt_runtime/snapshot/render_capture.h"
-#include "xvt_runtime/snapshot/cockpit_capture.h"
-#include "xvt_runtime/snapshot/cockpit_messages.h"
-#include "xvt_runtime/snapshot/render_camera.h"
-#include "xvt_runtime/timing/flight_timing.h"
 
-#include "xvt_runtime/runtime/presentation.h"
+#include <string.h>
 
 #include "aeron/aeron.h"
 #include "xvt/assets/model_preview.h"
@@ -23,11 +19,15 @@
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_task.h"
+#include "xvt_runtime/runtime/presentation.h"
+#include "xvt_runtime/snapshot/cockpit_capture.h"
+#include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/render_assets.h"
+#include "xvt_runtime/snapshot/render_camera.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
 #include "xvt_runtime/snapshot/render_hud.h"
 #include "xvt_runtime/snapshot/render_map.h"
-#include <string.h>
+#include "xvt_runtime/timing/flight_timing.h"
 
 /* One in-progress view; completed views live in the root snapshot slots.
  * Failed later flips cannot overwrite an earlier successful view in the tick. */

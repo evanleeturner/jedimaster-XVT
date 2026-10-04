@@ -1,10 +1,11 @@
 #ifndef XVT_ASSETS_OBJECT_TYPE_H
 #define XVT_ASSETS_OBJECT_TYPE_H
 
+#include <stdint.h>
+
 #include "xvt/assets/object_genus.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

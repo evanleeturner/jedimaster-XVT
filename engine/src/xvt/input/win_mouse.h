@@ -1,8 +1,9 @@
 #ifndef XVT_INPUT_WIN_MOUSE_H
 #define XVT_INPUT_WIN_MOUSE_H
 
-#include "xvt/xvt_typedefs.h"
 #include <stdint.h>
+
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

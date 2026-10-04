@@ -1,5 +1,4 @@
 #include "xvt/render/flight_light.h"
-#include "xvt/render/renderer.h"
 
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/ai/pai.h"
@@ -12,6 +11,7 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/render_clip.h"
 #include "xvt/render/render_scene.h"
+#include "xvt/render/renderer.h"
 
 /* Point lights in g_object_point_lights for the object being lit, 0 to 8.
  * flight_light_setup_object_lighting sets it;

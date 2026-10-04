@@ -1,12 +1,13 @@
 #ifndef XVT_NET_NET_H
 #define XVT_NET_NET_H
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "aeron/compat/dplay.h"
 #include "aeron/compat/win_types.h"
 #include "xvt/util/win32.h"
 #include "xvt/xvt_typedefs.h"
-#include <stddef.h>
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

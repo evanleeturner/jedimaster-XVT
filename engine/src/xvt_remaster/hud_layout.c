@@ -1,4 +1,5 @@
 #include "xvt_remaster/hud_layout.h"
+
 #include <math.h>
 #include <string.h>
 

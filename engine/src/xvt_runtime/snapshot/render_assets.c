@@ -1,4 +1,8 @@
 #include "xvt_runtime/snapshot/render_assets.h"
+
+#include <stdio.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/frontend/front_image.h"
 #include "xvt/frontend/frontend_cursor.h"
@@ -7,8 +11,6 @@
 #include "xvt_runtime/snapshot/render_cockpit_assets.h"
 #include "xvt_runtime/snapshot/render_hud.h"
 #include "xvt_runtime/storage/storage.h"
-#include <stdio.h>
-#include <string.h>
 
 enum {
 	SOURCE_OPT = 100,

@@ -1,4 +1,5 @@
 #include "xvt/input/mouse.h"
+
 #include "xvt/input/win_mouse.h"
 
 /* Polls the mouse through win_mouse_poll_position_and_buttons: stores the scaled

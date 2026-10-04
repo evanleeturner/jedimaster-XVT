@@ -8,6 +8,8 @@
  * collisions, movement, mission logic, HUD and sound) and need a running flight of the recovered game. A
  * pause starts only inside UpdateEntity on the local Alt-P key, so Resume is checked only while not
  * paused. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
@@ -17,8 +19,6 @@
 #include "xvt_runtime/runtime/flight_prediction.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
 #include "xvt_runtime/runtime/flight_sim.h"
-
-#include <string.h>
 
 static void flight_sim_world(void)
 {

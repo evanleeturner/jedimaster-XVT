@@ -5,6 +5,10 @@
 #include "xvt_runtime/runtime/frontend_movies.h"
 #include "xvt_runtime/runtime/network_task.h"
 #endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -27,9 +31,6 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 enum {
 	CONCOURSE_CHAT_LOG_BUFFER_SIZE = 0x400,

@@ -3,6 +3,7 @@
  * C adaptation: exhaustive palette search and coverage-aware averaging.
  * See licenses/undither.txt. */
 #include "xvt_remaster/undither.h"
+
 #include <stdlib.h>
 #include <string.h>
 

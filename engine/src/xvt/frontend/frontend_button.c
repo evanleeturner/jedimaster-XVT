@@ -1,5 +1,8 @@
 #include "xvt/frontend/frontend_button.h"
 
+#include <stdio.h>
+#include <string.h>
+
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/config.h"
 #include "xvt/frontend/front_image.h"
@@ -9,9 +12,6 @@
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_mouse.h"
 #include "xvt/frontend/frontend_text.h"
-
-#include <stdio.h>
-#include <string.h>
 
 /* 1 once frontend_button_draw_sprite_and_tooltip has computed
  * g_front_button_rect_gray_color. Only that function writes it, and nothing sets it

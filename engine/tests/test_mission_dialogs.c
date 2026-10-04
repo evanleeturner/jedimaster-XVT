@@ -9,6 +9,8 @@
  *
  * Not checked here: the packets HOST_RESTART, DEBRIEF_HOST_ABORT and the leave actions send, which need a
  * DirectPlay session. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/frontend/concourse.h"
 #include "xvt/frontend/frontend_button.h"
@@ -19,8 +21,6 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt_runtime/runtime/mission_dialogs.h"
 #include "xvt_runtime/runtime/network_session.h"
-
-#include <string.h>
 
 static int placeholder(int frame) { return frame; }
 

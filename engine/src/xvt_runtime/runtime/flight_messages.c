@@ -1,9 +1,10 @@
 #include "xvt_runtime/runtime/flight_messages.h"
-#include "xvt/net/flight_net.h"
 
-#include "xvt_runtime/input/flight_controls.h"
 #include <limits.h>
 #include <string.h>
+
+#include "xvt/net/flight_net.h"
+#include "xvt_runtime/input/flight_controls.h"
 
 void xvt_flight_wire_encode_input(struct xvt_flight_input_wire *record,
 				  int tick,

@@ -1,4 +1,7 @@
 #include "xvt_runtime/input/capture.h"
+
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "aeron/compat/dinput.h"
 #include "aeron/compat/host.h"
@@ -15,7 +18,6 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/flight_sim.h"
 #include "xvt_runtime/runtime/flight_task.h"
-#include <string.h>
 static bool g_captured, g_renderer_tab_suppressed;
 static uint8_t g_blocked_keys[AERON_KEY_COUNT];
 static uint32_t g_blocked_mouse;

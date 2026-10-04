@@ -1,5 +1,7 @@
 #include "xvt_runtime/snapshot/cockpit_text.h"
 
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/render/flight_sw.h"
@@ -7,7 +9,6 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-#include <string.h>
 
 static struct xvt_cockpit_text_field g_fields[XVT_COCKPIT_TEXT_FIELD_COUNT];
 

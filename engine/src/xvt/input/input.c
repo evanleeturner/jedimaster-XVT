@@ -1,4 +1,5 @@
 #include "xvt/input/input.h"
+
 #include "xvt/input/joystick.h"
 
 /* 1 once the joystick detection in input_detect_active_joystick or

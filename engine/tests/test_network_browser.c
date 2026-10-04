@@ -9,6 +9,8 @@
  *
  * Not checked here: rows, colors, the roster and the preview of real rooms, which need a multiplayer
  * directory, and the shared frontend controls, which act through the game's own dialogs. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "test_frontend_display.h"
 #include "xvt/frontend/concourse.h"
@@ -22,8 +24,6 @@
 #include "xvt_runtime/runtime/network_browser.h"
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/network_task.h"
-
-#include <string.h>
 
 /* The Leave and Join buttons, from the screen's layout. */
 enum { LEAVE_X = 120, LEAVE_Y = 460, JOIN_X = 40, JOIN_Y = 440 };

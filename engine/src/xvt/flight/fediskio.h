@@ -1,12 +1,13 @@
 #ifndef XVT_FLIGHT_FEDISKIO_H
 #define XVT_FLIGHT_FEDISKIO_H
 
-#include "xvt/assets/file.h"
-#include "xvt/assets/object_type.h"
-#include "xvt/xvt_typedefs.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+
+#include "xvt/assets/file.h"
+#include "xvt/assets/object_type.h"
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

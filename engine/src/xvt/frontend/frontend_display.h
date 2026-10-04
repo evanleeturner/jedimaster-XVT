@@ -1,12 +1,13 @@
 #ifndef XVT_FRONTEND_FRONTEND_DISPLAY_H
 #define XVT_FRONTEND_FRONTEND_DISPLAY_H
 
+#include <stdint.h>
+
 #include "aeron/compat/ddraw.h"
 #include "aeron/compat/win_types.h"
 #include "xvt/frontend/frontend_screen.h"
 #include "xvt/util/win32.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

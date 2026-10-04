@@ -1,5 +1,9 @@
 #include "xvt/frontend/frontend_display.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #ifdef XVT_MODERN
 #include "xvt_runtime/runtime/presentation.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
@@ -151,10 +155,6 @@ __declspec(dllimport) unsigned int __stdcall _lread(int file, void *buffer,
 						    unsigned int size);
 __declspec(dllimport) int __stdcall _lclose(int file);
 #endif
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 typedef HRESULT(AERON_DXAPI *frontend_display_surface_get_dc_func)(
 	IDirectDrawSurface *surface, void **dc);

@@ -8,6 +8,8 @@
  *
  * Not checked here: reading, checking and dispatching packets, and the flight control handler's answers,
  * need packets from a peer on a second machine. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_surface.h"
@@ -21,8 +23,6 @@
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <string.h>
 
 enum { INPUT = 1000, WAITING_TICKS = 2 };
 

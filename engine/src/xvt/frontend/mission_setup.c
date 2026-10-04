@@ -9,6 +9,11 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/mission_dialogs.h"
 #endif
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/audio/cd_audio.h"
@@ -38,10 +43,6 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #ifdef XVT_MODERN
 #include <strings.h>

@@ -1,4 +1,8 @@
 #include "xvt/frontend/frontend_joystick.h"
+
+#include <stdio.h>
+#include <string.h>
+
 #include "aeron/compat/mmsystem.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
@@ -6,8 +10,6 @@
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/frontend/frontend_text.h"
 #include "xvt/input/keyboard.h"
-#include <stdio.h>
-#include <string.h>
 
 /* The joystick slot the centering prompt is waiting on, 0 to 2; 2 ends it.
  * Written only by frontend_joystick_begin_centering_prompt, which sets it to 0 and

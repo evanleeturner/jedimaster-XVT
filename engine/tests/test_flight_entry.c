@@ -9,11 +9,11 @@
  * Not checked here: a command of 7 arguments opens the game session, and CreateDevices opens the flight
  * display, DirectInput and the sound engine; they need the network session's peer and a window. */
 #define _XOPEN_SOURCE 700
+#include <string.h>
+
 #include "config_fixture.h"
 #include "test_assert.h"
 #include "xvt_runtime/runtime/flight_internal.h"
-
-#include <string.h>
 
 static char g_command[512];
 

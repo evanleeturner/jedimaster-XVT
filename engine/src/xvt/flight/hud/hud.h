@@ -1,9 +1,10 @@
 #ifndef XVT_FLIGHT_HUD_HUD_H
 #define XVT_FLIGHT_HUD_HUD_H
 
+#include <stdint.h>
+
 #include "xvt/flight/hud/msg.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,10 +1,11 @@
+#include <stdio.h>
+#include <string.h>
+
 #include "aeron/aeron.h"
 #include "xvt_remaster/assets.h"
 #include "xvt_remaster/config.h"
 #include "xvt_remaster/opt_mesh.h"
 #include "xvt_runtime/log/log.h"
-#include <stdio.h>
-#include <string.h>
 
 struct mesh_entry {
 	char path[XVT_SNAP_PATH];

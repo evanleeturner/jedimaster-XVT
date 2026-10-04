@@ -1,4 +1,7 @@
 #include "xvt_runtime/runtime/flight_checkpoint.h"
+
+#include <string.h>
+
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/player/player.h"
@@ -9,7 +12,6 @@
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/player_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
-#include <string.h>
 
 static struct xvt_paired_motion_wire g_paired[XVT_FLIGHT_PLAYERS];
 static struct xvt_membership_wire g_membership;

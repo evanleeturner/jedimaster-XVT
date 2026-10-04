@@ -1,7 +1,9 @@
 #include "xvt_remaster/crt.h"
-#include "aeron/scene/image_cache.h"
+
 #include <stdlib.h>
 #include <string.h>
+
+#include "aeron/scene/image_cache.h"
 
 static AeronShader *g_vs, *g_fs;
 static AeronGraphicsPipeline *g_pipeline;

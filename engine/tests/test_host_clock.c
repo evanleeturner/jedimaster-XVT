@@ -1,11 +1,11 @@
 /* Checks the runtime clock (xvt_runtime/timing/host_clock.h) against the promises in its header: it
  * starts from 0 after Reset, moves only by positive deltas, reports whole milliseconds cut to 32 bits,
  * and answers the game's timeGetTime and GetTickCount from that value. Each case starts from Reset. */
+#include <stdint.h>
+
 #include "test_assert.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <stdint.h>
 
 static void check_reset(void)
 {

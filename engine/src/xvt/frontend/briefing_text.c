@@ -1,4 +1,5 @@
 #include "xvt/frontend/briefing_text.h"
+
 #include <stdlib.h>
 
 /* The active briefing's 32 map label strings: 40-byte heap buffers that

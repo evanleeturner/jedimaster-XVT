@@ -1,11 +1,11 @@
 #ifndef XVT_APP_CRASH_NOTE_H
 #define XVT_APP_CRASH_NOTE_H
 
-#include "xvt_app/log_file.h"
-
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+
+#include "xvt_app/log_file.h"
 
 #ifdef __cplusplus
 extern "C" {

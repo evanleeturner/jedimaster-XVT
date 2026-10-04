@@ -5,6 +5,8 @@
 #include "xvt_runtime/timing/reference_motion.h"
 #endif
 
+#include <string.h>
+
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"
@@ -23,7 +25,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
 #include "xvt/util/game_rand.h"
-#include <string.h>
 
 /* Per object type counted from WARHEAD_OBJECT_TYPE_PROTON_TORPEDO (143),
  * the first entry of the shot's row of 7 in the two homing tables below;

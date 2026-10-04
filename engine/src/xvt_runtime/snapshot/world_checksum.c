@@ -3,6 +3,9 @@
  * world that has drifted. world_state.c writes, reads and checks the image
  * these sums are taken over. */
 #include "xvt_runtime/snapshot/world_checksum.h"
+
+#include <string.h>
+
 #include "xvt/flight/flight.h"
 #include "xvt/flight/hud/hud.h"
 #include "xvt/flight/mission/mission.h"
@@ -13,7 +16,6 @@
 #include "xvt_runtime/snapshot/records.h"
 #include "xvt_runtime/snapshot/world_state.h"
 #include "xvt_runtime/timing/flight_timing.h"
-#include <string.h>
 
 static unsigned int xvt_snapshot_sum_bytes(uint8_t **cursor, int count)
 {

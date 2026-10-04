@@ -1,8 +1,9 @@
 #ifndef XVT_UTIL_DEBUG_CONSOLE_H
 #define XVT_UTIL_DEBUG_CONSOLE_H
 
-#include "xvt/xvt_typedefs.h"
 #include <stdint.h>
+
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

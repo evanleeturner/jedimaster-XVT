@@ -1,11 +1,13 @@
 #include "xvt_runtime/runtime/network_metadata.h"
+
+#include <string.h>
+
 #include "xvt/frontend/config.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/net.h"
 #include "xvt/net/net_session.h"
-#include <string.h>
 
 static const uint16_t g_windows1252[32] = {
 	0x20ac, 0,	0x201a, 0x0192, 0x201e, 0x2026, 0x2020, 0x2021,

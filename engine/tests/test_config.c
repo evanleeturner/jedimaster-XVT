@@ -7,16 +7,16 @@
  * main. */
 #define _XOPEN_SOURCE 700
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "config_fixture.h"
 #include "test_assert.h"
 #include "xvt/frontend/config.h"
 #include "xvt/net/net.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/input/keyboard_mapping.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 /* What a refused call must leave as it was: the generation, both documents and the typed settings. */
 struct state {

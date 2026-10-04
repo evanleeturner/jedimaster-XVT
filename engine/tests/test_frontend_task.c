@@ -14,6 +14,9 @@
  * config; the launch task's turn in Update, which needs a queued launch; the hold for a pending campaign
  * prefix, which takes the same path as the network task's hold checked here; drawing the cursor; and the
  * end of the program when the back buffer cannot be locked. */
+#include <stdint.h>
+#include <string.h>
+
 #include "aeron/compat/host.h"
 #include "test_assert.h"
 #include "test_frontend_display.h"
@@ -29,9 +32,6 @@
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/network_task.h"
 #include "xvt_runtime/timing/host_clock.h"
-
-#include <stdint.h>
-#include <string.h>
 
 enum { FRAME_MS = 40 };
 

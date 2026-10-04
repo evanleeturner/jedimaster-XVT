@@ -7,6 +7,10 @@
  * the label space running out, which XVT_SNAP_OBJECTS objects cannot reach: a label is at most a 20-byte
  * flight-group name, a space, three digits and a terminator, and 1664 of those fill 41600 of the 65535
  * bytes. */
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/assets/object_genus.h"
 #include "xvt/flight/craft.h"
@@ -15,10 +19,6 @@
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/snapshot/render_map.h"
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 enum { SLOTS = 8, MAIN_SLOTS = 6, EXPLOSION_SLOT_END = 4 };
 

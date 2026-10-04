@@ -1,11 +1,13 @@
 #include "xvt_runtime/timing/reference_motion.h"
+
+#include <limits.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "xvt/flight/flight.h"
 #include "xvt/flight/object/object.h"
 #include "xvt_runtime/runtime/flight_wire.h"
 #include "xvt_runtime/timing/flight_timing.h"
-#include <limits.h>
-#include <stdlib.h>
-#include <string.h>
 
 struct motion {
 	int32_t position[3], time, current_time;

@@ -2,13 +2,13 @@
  * NextOrder from render_capture.h) against the promises in their headers. The capture, frontend and asset
  * modules it drives are the real ones; capture stays inactive except where a check starts a mission. Each
  * check starts from a shut-down snapshot that it initializes again. No game data is read. */
-#include "test_assert.h"
-#include "xvt_runtime/snapshot/render_capture.h"
-#include "xvt_runtime/snapshot/render_snapshot.h"
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "test_assert.h"
+#include "xvt_runtime/snapshot/render_capture.h"
+#include "xvt_runtime/snapshot/render_snapshot.h"
 
 static void fresh(void)
 {

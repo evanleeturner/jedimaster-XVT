@@ -1,4 +1,8 @@
 #include "xvt_app/settings/settings.h"
+
+#include <stdio.h>
+#include <string.h>
+
 #include "xvt_app/settings/controller_page.h"
 #include "xvt_app/settings/installation_page.h"
 #include "xvt_app/settings/keyboard_page.h"
@@ -14,8 +18,6 @@
 #include "xvt_runtime/runtime/flight_task.h"
 #include "xvt_runtime/runtime/port.h"
 #include "xvt_runtime/timing/flight_timing.h"
-#include <stdio.h>
-#include <string.h>
 
 static struct {
 	AeronUiContext *ui;

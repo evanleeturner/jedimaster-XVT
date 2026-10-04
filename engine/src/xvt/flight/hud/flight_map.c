@@ -1,5 +1,7 @@
 #include "xvt/flight/hud/flight_map.h"
 
+#include <string.h>
+
 #include "xvt/assets/object_type.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
@@ -24,7 +26,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
 #include "xvt/render/sw3d.h"
-#include <string.h>
 
 /* Icon frame for each object type, 0 to 105, in the 640x480 icon set
  * (RESOURCE\icons640.ico); flight_map_draw_object_icon_at_view_pos uses frame 19

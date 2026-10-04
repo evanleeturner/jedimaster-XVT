@@ -1,4 +1,5 @@
 #include "xvt/flight/mission/goals.h"
+
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/hud/flight_text.h"

@@ -1,11 +1,12 @@
 #ifndef XVT_FLIGHT_AI_PAI_H
 #define XVT_FLIGHT_AI_PAI_H
 
+#include <stdint.h>
+#include <stdio.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/flight/ai/paiorder.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
-#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {

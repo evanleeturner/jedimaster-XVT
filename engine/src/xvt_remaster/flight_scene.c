@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <string.h>
+
 #include "aeron/asset/opt_model.h"
 #include "xvt_remaster/component_animation.h"
 #include "xvt_remaster/config.h"
@@ -10,8 +13,6 @@
 #include "xvt_remaster/lighting.h"
 #include "xvt_remaster/ship.h"
 #include "xvt_remaster/sky.h"
-#include <stdlib.h>
-#include <string.h>
 
 static AeronScene3D *g_scene;
 static AeronSceneMeshTable *g_tables;

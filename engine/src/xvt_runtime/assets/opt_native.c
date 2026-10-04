@@ -1,10 +1,12 @@
 #include "xvt_runtime/assets/opt_native.h"
-#include "xvt/util/memory.h"
-#include "xvt_runtime/log/log.h"
-#include "xvt_runtime/storage/storage.h"
+
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "xvt/util/memory.h"
+#include "xvt_runtime/log/log.h"
+#include "xvt_runtime/storage/storage.h"
 
 #define XVT_OPT_MAX_BYTES (128u * 1024u * 1024u)
 #define XVT_OPT_MAX_DEPTH 256

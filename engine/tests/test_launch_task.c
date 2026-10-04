@@ -7,12 +7,12 @@
  * checks the installation and reads the game's mission list for the selected mission before it builds the
  * flight command, and completing a flight that ran restores the frontend's window surfaces; a test would
  * need the game's mission files, a loaded configuration and a window. */
+#include <string.h>
+
 #include "test_assert.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt_runtime/runtime/launch_task.h"
 #include "xvt_runtime/runtime/network_session.h"
-
-#include <string.h>
 
 static int placeholder(int frame) { return frame; }
 

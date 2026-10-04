@@ -4,12 +4,12 @@
  * and fields; a line formats exactly as the grammar says, cut cleanly when it does not fit; the home
  * folder in a path is written as ~ only where it is a whole folder at the start of a path; and a table
  * prints as whole hex words. Aeron's log funnel is replaced by a stub that records what it was handed. */
-#include "test_assert.h"
-#include "xvt_runtime/log/log.h"
-
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "test_assert.h"
+#include "xvt_runtime/log/log.h"
 
 #if !defined(NDEBUG)
 #error "test_log must be compiled with NDEBUG defined, as a release build is"

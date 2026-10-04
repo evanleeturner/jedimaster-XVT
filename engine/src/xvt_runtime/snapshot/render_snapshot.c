@@ -1,11 +1,12 @@
 #include "xvt_runtime/snapshot/render_snapshot.h"
+
+#include <string.h>
+
+#include "aeron/aeron.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-
-#include "aeron/aeron.h"
-#include <string.h>
 
 static struct xvt_render_snapshot g_slots[3];
 static int g_initialized;

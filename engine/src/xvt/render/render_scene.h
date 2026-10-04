@@ -1,11 +1,12 @@
 #ifndef XVT_RENDER_RENDER_SCENE_H
 #define XVT_RENDER_RENDER_SCENE_H
 
+#include <stdint.h>
+
 #include "aeron/compat/d3d.h"
 #include "aeron/compat/ddraw.h"
 #include "aeron/compat/win_types.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

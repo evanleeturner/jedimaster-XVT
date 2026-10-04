@@ -4,8 +4,10 @@
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/resync_task.h"
 #endif
-#include "xvt/assets/file.h"
+#include <stdio.h>
+#include <string.h>
 
+#include "xvt/assets/file.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
@@ -19,8 +21,6 @@
 #include "xvt/net/net_session.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/util/time.h"
-#include <stdio.h>
-#include <string.h>
 
 /* DirectPlay id of the player the host is resending the world to, named in the
  * communication-failure alert; 0 means none, and the alert then names the host.

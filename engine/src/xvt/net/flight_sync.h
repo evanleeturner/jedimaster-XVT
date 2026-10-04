@@ -1,9 +1,10 @@
 #ifndef XVT_NET_FLIGHT_SYNC_H
 #define XVT_NET_FLIGHT_SYNC_H
 
+#include <stdint.h>
+
 #include "xvt/flight/flight_input.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {

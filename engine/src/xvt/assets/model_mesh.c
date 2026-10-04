@@ -3,7 +3,6 @@
 #include "xvt_runtime/assets/opt_native.h"
 #endif
 #include "xvt/assets/model_mesh_internal.h"
-
 #include "xvt/assets/object_type.h"
 #include "xvt/math/math.h"
 #include "xvt/math/trig2.h"

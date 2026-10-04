@@ -11,15 +11,15 @@
  *
  * Not run here: the 128 MiB body limit (it takes a file that large), more than 65536 nodes (a graph that
  * large takes too long to load under the sanitizers), and a close that fails. */
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "test_assert.h"
 #include "test_temp_folder.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/assets/opt_native.h"
 #include "xvt_runtime/storage/storage.h"
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
 
 /* The address the test's bodies count their links from. */
 #define BASE 0x00400000u

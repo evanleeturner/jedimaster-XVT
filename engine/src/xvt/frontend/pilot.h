@@ -1,11 +1,12 @@
 #ifndef XVT_FRONTEND_PILOT_H
 #define XVT_FRONTEND_PILOT_H
 
+#include <stdint.h>
+#include <stdio.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/frontend/frontend_mission_list.h"
 #include "xvt/xvt_typedefs.h"
-#include <stdint.h>
-#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {

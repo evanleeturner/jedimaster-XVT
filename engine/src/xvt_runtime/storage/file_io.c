@@ -1,5 +1,5 @@
 #include "xvt_runtime/storage/file_io.h"
-#include "xvt_runtime/storage/storage.h"
+
 #include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "xvt_runtime/storage/storage.h"
 
 size_t xvt_file_read(void *data, size_t size, size_t count, AeronFile *file)
 {

@@ -1,4 +1,9 @@
 #include "xvt_runtime/snapshot/render_map.h"
+
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
@@ -11,9 +16,6 @@
 #include "xvt/render/flight_sw.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
 
 static uint32_t planar_distance(uint32_t a, uint32_t b)
 {

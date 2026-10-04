@@ -6,17 +6,17 @@
  * each world axis gives that axis. Floating-point results compare within a relative tolerance: each is a
  * handful of single-precision operations, about 6e-8 relative error apiece, so 1e-5 is loose for correct
  * code and tight for a wrong formula. */
-#include "aeron/asset/opt_model.h"
-#include "aeron/scene/scene3d.h"
-#include "test_assert.h"
-#include "xvt_remaster/component_animation.h"
-#include "xvt_remaster/render_math.h"
-
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "aeron/asset/opt_model.h"
+#include "aeron/scene/scene3d.h"
+#include "test_assert.h"
+#include "xvt_remaster/component_animation.h"
+#include "xvt_remaster/render_math.h"
 
 #define WHY_FLOAT "a few single-precision operations"
 

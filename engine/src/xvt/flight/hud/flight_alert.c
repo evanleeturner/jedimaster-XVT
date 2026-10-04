@@ -5,14 +5,14 @@
 #include "xvt_runtime/snapshot/render_capture.h"
 #endif
 
+#include <stdlib.h>
+
 #include "xvt/flight/flight_display.h"
 #include "xvt/flight/flight_surface.h"
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
-
-#include <stdlib.h>
 
 /* Pixels added to g_surface_height before halving it to place the alert box's
  * vertical center. Nothing writes it, so it stays 0 and the box sits at the

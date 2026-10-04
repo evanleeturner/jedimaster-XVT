@@ -6,12 +6,12 @@
  * straight up, so the checks are relationships that hold whatever the convention. Starting orientations
  * are ones this function returned, and every orientation compared stays well away from straight up and
  * down, where the header allows the angles to differ. */
+#include <stdint.h>
+#include <stdio.h>
+
 #include "test_assert.h"
 #include "xvt_runtime/hooks/orientation_hook.h"
 #include "xvt_runtime/timing/flight_timing.h"
-
-#include <stdint.h>
-#include <stdio.h>
 
 /* Each call rounds every angle to a whole unit, 1/65536 of a turn, and works in single-precision radians,
  * so the header allows drift; a few chained calls measured within 4 units of each other. 8 units (0.044
