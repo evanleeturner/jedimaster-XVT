@@ -21,6 +21,7 @@
 #include "xvt/net/net_session.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* DirectPlay id of the player the host is resending the world to, named in the
  * communication-failure alert; 0 means none, and the alert then names the host.
@@ -879,6 +880,10 @@ int flight_net_send_clock_probe_to_host(void)
 	g_flight_net_clock_probe_timestamp =
 		input_timestamp + g_flight_net_clock_adjust_accum_ticks;
 	packet->payload_dwords[1] = g_flight_net_clock_lead_ticks;
+	XVT_LOG_DEBUG("network.clock_probe_sent tick=%d adjust=%d lead=%d",
+		      g_flight_net_clock_probe_timestamp,
+		      g_flight_net_clock_adjust_accum_ticks,
+		      (int)g_flight_net_clock_lead_ticks);
 	return
 #ifdef XVT_MODERN
 		xvt_flight_network_send_packet
@@ -896,6 +901,7 @@ int flight_net_send_clock_probe_to_host(void)
 int flight_net_broadcast_still_loading_pulse(void)
 {
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_STILL_LOADING;
+	XVT_LOG_DEBUG("network.loading_pulse_sent");
 	return
 #ifdef XVT_MODERN
 		xvt_flight_network_send_packet
@@ -913,6 +919,7 @@ int flight_net_broadcast_still_loading_pulse(void)
 int flight_net_broadcast_host_session_abort(void)
 {
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_SESSION_ABORT;
+	XVT_LOG_INFO("network.session_abort_sent tick=%d", g_server_tick_time);
 	return
 #ifdef XVT_MODERN
 		xvt_flight_network_broadcast
@@ -972,6 +979,8 @@ int flight_net_broadcast_player_abort(int player_slot)
 {
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_PLAYER_ABORT;
 	g_flight_net_scratch_packet.payload_dwords[0] = player_slot;
+	XVT_LOG_DEBUG("network.player_abort_sent slot=%d local=%d", player_slot,
+		      player_slot == g_local_player);
 	return
 #ifdef XVT_MODERN
 		xvt_flight_network_broadcast
@@ -999,9 +1008,13 @@ int flight_net_find_pilot_network_player_index(int player_idx)
 					 sizeof(struct pilot_network_player));
 		++network_player_idx;
 		if ((const uint8_t *)direct_play_id >= network_player_end) {
+			XVT_LOG_WARN("network.pilot_entry_missing slot=%d",
+				     player_idx);
 			return 0;
 		}
 	}
+	XVT_LOG_DEBUG("network.pilot_entry slot=%d entry=%d", player_idx,
+		      network_player_idx);
 	return network_player_idx;
 }
 
@@ -1768,6 +1781,19 @@ int32_t flight_net_sample_local_input(void)
 	if (inserted != NULL) {
 		inserted->awaiting_relay = 0;
 		inserted->input_source = 1;
+		XVT_LOG_DEBUG(
+			"network.input tick=%d key=%u flags=%u x=%d y=%d r=%d mods=%u throttle=%u",
+			g_input_timestamp, (unsigned)g_current_input_frame.key,
+			(unsigned)g_current_input_frame.flags,
+			(int)g_current_input_frame.axis_x,
+			(int)g_current_input_frame.axis_y,
+			(int)g_current_input_frame.axis_r,
+			(unsigned)g_current_input_frame.key_mods,
+			(unsigned)g_current_input_frame.throttle);
+	} else {
+		XVT_LOG_WARN("network.local_input_lost tick=%d frames=%d",
+			     g_input_timestamp,
+			     g_input_frame_count[g_local_player]);
 	}
 	return flight_pump_window_messages();
 #else
@@ -1935,6 +1961,9 @@ int32_t flight_net_sample_local_input(void)
 // FUNCTION: XVT 0x464C60
 void flight_net_reset_world_message_schedule(void)
 {
+	XVT_LOG_DEBUG("network.world_schedule_reset turn=%d last=%d",
+		      g_flight_net_world_message_turn_timestamp,
+		      g_flight_net_last_sent_world_message_timestamp);
 	g_unused_flight_net_mission_start_ack_init_flag = 1;
 	g_flight_net_world_message_turn_timestamp = 0;
 	g_flight_net_last_sent_world_message_timestamp = 0;
@@ -2245,6 +2274,10 @@ int flight_net_send_world_checksum_to_host(const int *world_checksum,
 #ifdef XVT_MODERN
 	g_flight_net_scratch_packet
 		.payload_dwords[checksum_dword_count * 2 + 1] = 0;
+	XVT_LOG_DEBUG(
+		"network.checksum_sent to=\"host\" tick=%d regions=%d bytes=%d",
+		g_server_tick_time, checksum_dword_count,
+		checksum_dword_count * 8 + 12);
 	return xvt_flight_network_send_packet(
 		net_session_get_host_dplay_id(),
 		(unsigned *)&g_flight_net_scratch_packet,
@@ -2275,6 +2308,10 @@ int flight_net_broadcast_world_checksum(const int *world_checksum,
 	memcpy(&g_flight_net_scratch_packet
 			.payload_dwords[checksum_dword_count + 1],
 	       region_lengths, (size_t)checksum_dword_count * sizeof(int));
+	XVT_LOG_DEBUG(
+		"network.checksum_sent to=\"all\" tick=%d regions=%d bytes=%d",
+		g_server_tick_time, checksum_dword_count,
+		checksum_dword_count * 8 + 8);
 	return
 #ifdef XVT_MODERN
 		xvt_flight_network_broadcast

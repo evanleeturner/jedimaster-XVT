@@ -523,10 +523,20 @@
       "fields": ["slot", "request", "reason"],
       "text": "A world checksum report was refused ({reason}): sender slot {slot}, request code {request}"
     },
+    "network.checksum_sent": {
+      "level": "D",
+      "fields": ["to", "tick", "regions", "bytes"],
+      "text": "This player sent its world checksum for tick {tick} to {to}: {regions} region sums and as many lengths, {bytes} bytes"
+    },
     "network.checksum_stale": {
       "level": "D",
       "fields": ["epoch", "expected"],
       "text": "A world checksum report for tick {epoch} was ignored; the current checksum tick was {expected}"
+    },
+    "network.clock_probe_sent": {
+      "level": "D",
+      "fields": ["tick", "adjust", "lead"],
+      "text": "A clock probe went to the host: input tick {tick} without clock corrections ({adjust} ticks of corrections so far) and this player's clock lead of {lead} ticks"
     },
     "network.confirm": {
       "level": "D",
@@ -727,6 +737,11 @@
       "level": "D",
       "fields": ["player", "index", "ready"],
       "text": "Player {player} announced it was leaving: roster place {index} of {ready} ready players (equal to the count when not listed); every player was told not to wait for it at movies"
+    },
+    "network.loading_pulse_sent": {
+      "level": "D",
+      "fields": [],
+      "text": "This player told every player it was still loading"
     },
     "network.loadout": {
       "level": "D",
@@ -1073,6 +1088,11 @@
       "fields": ["from", "tick"],
       "text": "Player {from} asked again for the world message of tick {tick}, but no flight's world messages were kept; the request was ignored"
     },
+    "network.local_input_lost": {
+      "level": "W",
+      "fields": ["tick", "frames"],
+      "text": "This player's input for tick {tick} was refused by the input history, which held {frames} inputs, and was lost"
+    },
     "network.mission_choice_relayed": {
       "level": "D",
       "fields": ["player", "choice"],
@@ -1173,10 +1193,25 @@
       "fields": ["player", "peers"],
       "text": "The connection table was full ({peers} entries); player {player} got no entry, and its packets use the spare entry past the end"
     },
+    "network.pilot_entry": {
+      "level": "D",
+      "fields": ["slot", "entry"],
+      "text": "The player in slot {slot} had entry {entry} in the pilot's record of network players"
+    },
+    "network.pilot_entry_missing": {
+      "level": "W",
+      "fields": ["slot"],
+      "text": "The player in slot {slot} had no entry in the pilot's record of network players; the first entry was used in its place"
+    },
     "network.ping_answered": {
       "level": "D",
       "fields": ["from"],
       "text": "A ping from player {from} was answered"
+    },
+    "network.player_abort_sent": {
+      "level": "D",
+      "fields": ["slot", "local"],
+      "text": "This player told every player that the player in slot {slot} was leaving the flight; local player {local}"
     },
     "network.player_added": {
       "level": "D",
@@ -1403,6 +1438,11 @@
       "fields": ["epoch"],
       "text": "This player's world checksum for tick {epoch} differed from the host's; world messages stayed buffered for a resync"
     },
+    "network.session_abort_sent": {
+      "level": "I",
+      "fields": ["tick"],
+      "text": "This player told every player, itself included, that the flight was over, at world tick {tick}"
+    },
     "network.session_begin": {
       "level": "I",
       "fields": ["role", "online"],
@@ -1522,6 +1562,11 @@
       "level": "D",
       "fields": ["from", "tick", "sequence", "bytes", "drops"],
       "text": "Player {from} asked again for the world message of tick {tick}; it was sent again with sequence {sequence}, {bytes} bytes; {drops} losses were counted on that link (-1 when it had no slot)"
+    },
+    "network.world_schedule_reset": {
+      "level": "D",
+      "fields": ["turn", "last"],
+      "text": "The world-message schedule restarted; the next send turn had counted from tick {turn} and the last world message had gone out for tick {last}"
     },
     "network.world_sent": {
       "level": "D",
