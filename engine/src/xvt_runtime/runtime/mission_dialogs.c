@@ -11,6 +11,7 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/frontend_cleanup.h"
 
 /* Sends a packet holding only its type to every player and flushes it at
@@ -42,6 +43,32 @@ static void xvt_mission_dialogs_return_to_join_screen(void)
 /* These tails execute in the suspended screen's callback slot, before its exit callback. */
 int xvt_mission_dialogs_resume(int result, int action)
 {
+	/* In xvt_mission_dialog_action order. */
+	static const char *const action_names[] = {
+		"notice",
+		"setup_cancelled",
+		"setup_booted",
+		"team_cancelled",
+		"assignment_cancelled",
+		"briefing_cancelled",
+		"setup_host_leave",
+		"client_leave",
+		"team_client_leave",
+		"team_previous",
+		"host_restart",
+		"solo_back_to_setup",
+		"solo_back_to_teams",
+		"debrief_client_leave",
+		"debrief_host_abort",
+		"debrief_solo_abort",
+		"debrief_solo_abort_clear_roster",
+	};
+	XVT_LOG_INFO("mission.dialog_answered action=\"%s\" result=%d",
+		     (unsigned int)action < sizeof(action_names) /
+						    sizeof(action_names[0])
+			     ? action_names[action]
+			     : "unknown",
+		     result);
 	switch ((xvt_mission_dialog_action)action) {
 	case XVT_MISSION_NOTICE:
 		break;

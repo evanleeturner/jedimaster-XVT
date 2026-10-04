@@ -373,6 +373,11 @@
       "fields": [],
       "text": "A flight launch is queued"
     },
+    "mission.dialog_answered": {
+      "level": "I",
+      "fields": ["action", "result"],
+      "text": "The mission screens' {action} dialog was answered with {result} (1 yes or OK, 0 no)"
+    },
     "models.alpha_palette": {
       "level": "D",
       "fields": ["palette", "cleared"],
