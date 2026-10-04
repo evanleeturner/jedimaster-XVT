@@ -404,7 +404,7 @@ void *image_quantizer_allocate_image(void)
 {
 	struct image_quantizer_legacy_image_record *image;
 
-	image = malloc(sizeof(struct image_quantizer_legacy_image_record));
+	image = malloc(sizeof(*image));
 	if (image == NULL) {
 		image_quantizer_fatal_allocation_error(
 			"Unable to allocate image", "Memory allocation failed");
@@ -559,10 +559,8 @@ void image_quantizer_compress_pixel_runs(unsigned int *image)
 		}
 	}
 
-	resized_runs =
-		realloc(image_layout->pixels,
-			image_layout->run_count *
-				sizeof(struct image_quantizer_pixel_run));
+	resized_runs = realloc(image_layout->pixels,
+			       image_layout->run_count * sizeof(*resized_runs));
 	color_class = image_layout->color_class;
 	image_layout->pixels = resized_runs;
 	height = image_layout->height;
@@ -645,8 +643,7 @@ int image_quantizer_expand_pixel_runs(uint32_t *image)
 		return 1;
 	}
 	resized_pixels = (struct image_quantizer_pixel_run *)realloc(
-		image_layout->pixels,
-		pixel_count * sizeof(struct image_quantizer_pixel_run));
+		image_layout->pixels, pixel_count * sizeof(*resized_pixels));
 	if (resized_pixels == NULL) {
 		return 0;
 	}
@@ -1282,7 +1279,7 @@ struct image_quantizer_node *image_quantizer_allocate_node(
 
 	if (g_image_quantizer_pool_nodes_remaining == 0) {
 		pool_block = (struct image_quantizer_node_pool_block *)malloc(
-			sizeof(struct image_quantizer_node_pool_block));
+			sizeof(*pool_block));
 		if (pool_block == NULL) {
 			return NULL;
 		}
@@ -1550,7 +1547,7 @@ void image_quantizer_export_palette6_bit_and_destroy(int color_count,
 	remaining_colors = color_count;
 	image_quantizer_reduce_color_tree(color_count);
 	g_image_quantizer_palette_entries =
-		malloc(sizeof(struct image_quantizer_palette_entry) *
+		malloc(sizeof(*g_image_quantizer_palette_entries) *
 		       g_image_quantizer_color_count);
 	if (g_image_quantizer_palette_entries == NULL) {
 		image_quantizer_fatal_allocation_error(
@@ -1615,8 +1612,7 @@ void image_quantizer_classify_indexed_rgb565_image(
 	image->width = width;
 	image->height = height;
 	image->run_count = height * image->width;
-	image->pixels = malloc(image->run_count *
-			       sizeof(struct image_quantizer_pixel_run));
+	image->pixels = malloc(image->run_count * sizeof(*image->pixels));
 	if (image->pixels == NULL) {
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
@@ -1684,8 +1680,7 @@ void image_quantizer_classify_encoded_tex_level_image(
 	image->width = width;
 	image->height = height;
 	image->run_count = height * image->width;
-	image->pixels = malloc(image->run_count *
-			       sizeof(struct image_quantizer_pixel_run));
+	image->pixels = malloc(image->run_count * sizeof(*image->pixels));
 	command_ptr = encoded_image + 16;
 	palette_base = 0;
 	sample = image->pixels;

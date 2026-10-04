@@ -683,10 +683,10 @@ int tech_library_load_spec_text_table(void)
 
 	g_tech_library_spec_text_table =
 		(struct tech_library_spec_text *)malloc(
-			sizeof(struct tech_library_spec_text) * 93u);
+			sizeof(*g_tech_library_spec_text_table) * 93u);
 #ifndef XVT_MODERN
 	memset(g_tech_library_spec_text_table, 0,
-	       sizeof(struct tech_library_spec_text) * 93u);
+	       sizeof(*g_tech_library_spec_text_table) * 93u);
 #endif
 	if (g_tech_library_spec_text_table == NULL) {
 		file_close(stream);
@@ -695,7 +695,7 @@ int tech_library_load_spec_text_table(void)
 
 #ifdef XVT_MODERN
 	memset(g_tech_library_spec_text_table, 0,
-	       sizeof(struct tech_library_spec_text) * 93u);
+	       sizeof(*g_tech_library_spec_text_table) * 93u);
 #endif
 	for (entry_index = 0; entry_index < 93; ++entry_index) {
 		field_index = 0;

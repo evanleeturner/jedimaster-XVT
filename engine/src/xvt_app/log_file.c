@@ -216,7 +216,7 @@ xvt_log_file_handle xvt_log_file_open(const char *path, char *error,
 		xvt_log_file_system_error(error, error_capacity);
 		return XVT_LOG_FILE_NONE;
 	}
-	wide = (wchar_t *)malloc((size_t)length * sizeof(wchar_t));
+	wide = (wchar_t *)malloc((size_t)length * sizeof(*wide));
 	if (!wide) {
 		if (error && error_capacity) {
 			snprintf(error, error_capacity, "out of memory");

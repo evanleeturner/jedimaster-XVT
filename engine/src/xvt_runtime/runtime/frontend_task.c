@@ -64,11 +64,11 @@ int xvt_frontend_task_init(int skip_intro)
 	g_no_page_flip = 1;
 	g_opt_no_fullscreen = 0;
 	g_front_state.frontend_sound_buffers =
-		calloc(128, sizeof(struct frontend_sound_buffer_record));
+		calloc(128, sizeof(*g_front_state.frontend_sound_buffers));
 	g_front_state.frontend_sound_voices =
-		calloc(12, sizeof(struct frontend_sound_voice));
+		calloc(12, sizeof(*g_front_state.frontend_sound_voices));
 	g_front_state.resource_table =
-		calloc(512, sizeof(struct front_image_resource_record));
+		calloc(512, sizeof(*g_front_state.resource_table));
 	if (!g_front_state.frontend_sound_buffers ||
 	    !g_front_state.frontend_sound_voices ||
 	    !g_front_state.resource_table) {

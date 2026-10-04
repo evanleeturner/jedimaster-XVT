@@ -106,7 +106,7 @@ int xvt_movie_task_begin(const char *name, int synchronize)
 		XVT_LOG_WARN("movie.open_failed name=\"%s\"", name);
 		return 2;
 	}
-	g_movie.overlay = calloc(640 * 480, sizeof(uint16_t));
+	g_movie.overlay = calloc(640 * 480, sizeof(*g_movie.overlay));
 	if (!g_movie.overlay) {
 		return 2;
 	}
