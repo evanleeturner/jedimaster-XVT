@@ -652,6 +652,10 @@ int xvt_flight_network_send_packet(int dpid, const unsigned *packet, int size)
 		return net_session_send_packet(dpid, (unsigned *)packet, size);
 	}
 	if (size > XVT_FLIGHT_PACKET_BYTES - (int)sizeof(xvt_wire_u32)) {
+		XVT_LOG_WARN(
+			"network.packet_too_large to=\"player\" packet=%u bytes=%d limit=%d",
+			packet[0], size,
+			XVT_FLIGHT_PACKET_BYTES - (int)sizeof(xvt_wire_u32));
 		return 0;
 	}
 	unsigned copy[XVT_FLIGHT_PACKET_BYTES / sizeof(unsigned)];
@@ -669,6 +673,10 @@ int xvt_flight_network_broadcast(const unsigned *packet, int size)
 			(unsigned *)packet, size);
 	}
 	if (size > XVT_FLIGHT_PACKET_BYTES - (int)sizeof(xvt_wire_u32)) {
+		XVT_LOG_WARN(
+			"network.packet_too_large to=\"all\" packet=%u bytes=%d limit=%d",
+			packet[0], size,
+			XVT_FLIGHT_PACKET_BYTES - (int)sizeof(xvt_wire_u32));
 		return 0;
 	}
 	unsigned copy[XVT_FLIGHT_PACKET_BYTES / sizeof(unsigned)];

@@ -1163,6 +1163,11 @@
       "fields": ["to", "type", "channel", "sequence", "bytes", "result", "queued"],
       "text": "A packet went to player {to} (0 means all players): type {type}, channel {channel}, sequence {sequence}, {bytes} bytes on the wire; DirectPlay result {result}; {queued} packets queued here"
     },
+    "network.packet_too_large": {
+      "level": "W",
+      "fields": ["to", "packet", "bytes", "limit"],
+      "text": "A packet of type {packet} addressed to {to}, {bytes} bytes, was not sent: it was over the {limit} bytes a packet may hold beside the mission cookie"
+    },
     "network.packet_truncated": {
       "level": "W",
       "fields": ["from", "type", "part", "bytes"],
