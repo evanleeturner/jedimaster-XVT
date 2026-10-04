@@ -34,6 +34,7 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The game's DirectPlay application GUID as four words, used to list, join and
  * host sessions of this game (net_enumerate_app_sessions,
@@ -824,6 +825,13 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 #ifdef XVT_MODERN
 	if (g_frontend_net_packet_sender_player_id !=
 	    net_get_host_player_id()) {
+		if (network_result != 0) {
+			XVT_LOG_DEBUG(
+				"network.non_host_packet_ignored type=%d player=%u",
+				network_result,
+				(unsigned)
+					g_frontend_net_packet_sender_player_id);
+		}
 		network_result = 0;
 	}
 #endif
@@ -844,6 +852,10 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 			NET_PACKET_FRONTEND_GAME_STARTED:
 		case NET_PACKET_ROSTER_LOCKED -
 			NET_PACKET_FRONTEND_GAME_STARTED:
+			XVT_LOG_DEBUG("network.refusal_received reason=\"%s\"",
+				      network_result == NET_PACKET_ROSTER_LOCKED
+					      ? "locked"
+					      : "started");
 			frontend_dialog_show_confirm_dialog(
 				frontend_string_get(
 					FRONTSTR_552_THIS_GAME_HAS_ALREADY_STARTED),
@@ -859,6 +871,8 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 #endif
 			break;
 		case NET_PACKET_GAME_FULL - NET_PACKET_FRONTEND_GAME_STARTED:
+			XVT_LOG_DEBUG(
+				"network.refusal_received reason=\"full\"");
 			frontend_dialog_show_confirm_dialog(
 				frontend_string_get(
 					FRONTSTR_543_THE_GAME_YOU_ARE_TRYING_TO_JOIN_IS_FULL),
@@ -875,6 +889,8 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 			break;
 		case NET_PACKET_HOST_CANCELLED -
 			NET_PACKET_FRONTEND_GAME_STARTED:
+			XVT_LOG_DEBUG(
+				"network.refusal_received reason=\"host_cancelled\"");
 			frontend_dialog_show_confirm_dialog(
 				frontend_string_get(
 					FRONTSTR_631_THE_CURRENT_GAME_HAS_BEEN),
@@ -891,6 +907,8 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 			break;
 		case NET_PACKET_VERSION_MISMATCH -
 			NET_PACKET_FRONTEND_GAME_STARTED:
+			XVT_LOG_DEBUG(
+				"network.refusal_received reason=\"version\"");
 			frontend_dialog_show_confirm_dialog(
 				frontend_string_get(
 					FRONTSTR_546_YOUR_VERSION_OF_THE_PROGRAM_DOES_NOT),
@@ -907,6 +925,8 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 			break;
 		case NET_PACKET_PASSWORD_REQUIRED -
 			NET_PACKET_FRONTEND_GAME_STARTED:
+			XVT_LOG_DEBUG(
+				"network.refusal_received reason=\"password\"");
 			frontend_dialog_show_confirm_dialog(
 				frontend_string_get(
 					FRONTSTR_549_THIS_GAME_REQUIRES_A_PASSWORD),
@@ -981,6 +1001,7 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 	frontend_button_disable_overlay_text();
 #ifdef XVT_MODERN
 	if (cancel_pressed != 0) {
+		XVT_LOG_DEBUG("network.join_cancelled");
 		xvt_network_session_cancel();
 #else
 	if (cancel_pressed != 0 || frame_counter == ACCESS_TIMEOUT_FRAME) {
@@ -1147,6 +1168,9 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 						63);
 				}
 				g_frontend_chat_team_only = 1;
+				XVT_LOG_DEBUG(
+					"network.chat_channel team_only=%d",
+					g_frontend_chat_team_only);
 			}
 			front_image_draw_sprite("tab1", 0, 0);
 			frontend_draw_rect_assign(&rect, 520, 95, 552, 105);
@@ -1171,6 +1195,9 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 						63);
 				}
 				g_frontend_chat_team_only = 0;
+				XVT_LOG_DEBUG(
+					"network.chat_channel team_only=%d",
+					g_frontend_chat_team_only);
 			}
 			front_image_draw_sprite("tab2", 0, 0);
 			frontend_draw_rect_assign(&rect, 556, 95, 588, 105);
@@ -1224,6 +1251,10 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 				++player_index;
 			}
 			if (player_index == 8) {
+				XVT_LOG_DEBUG(
+					"network.chat_sent to=\"everyone_no_team\" team=%d ready=%d",
+					g_pilot_data.team,
+					g_frontend_scratch_buffer[0] != 4);
 				net_send_packet_and_flush(
 					0, &g_frontend_net_packet_scratch,
 					strlen(g_frontend_scratch_buffer) + 4);
@@ -1244,11 +1275,19 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 								4);
 					}
 				}
+				XVT_LOG_DEBUG(
+					"network.chat_sent to=\"team\" team=%d ready=%d",
+					g_pilot_data.team,
+					g_frontend_scratch_buffer[0] != 4);
 			}
 		} else {
 			net_send_packet_and_flush(
 				0, &g_frontend_net_packet_scratch,
 				strlen(g_frontend_scratch_buffer) + 4);
+			XVT_LOG_DEBUG(
+				"network.chat_sent to=\"everyone\" team=%d ready=%d",
+				g_pilot_data.team,
+				g_frontend_scratch_buffer[0] != 4);
 		}
 		memset(g_frontend_chat_input_buffer, 0,
 		       sizeof(g_frontend_chat_input_buffer));
@@ -1592,6 +1631,7 @@ int frontend_net_draw_join_game_sidebars_and_query_all(void)
 						 QUERY_BUTTON_HELD_SLOT,
 						 "jewelsound") != 0) {
 #ifdef XVT_MODERN
+		XVT_LOG_DEBUG("network.refresh_requested");
 		xvt_network_task_refresh();
 #else
 		frontend_net_probe_all_sessions();
@@ -2127,6 +2167,8 @@ int frontend_net_host_game_screen(int frame_counter)
 		g_frontend_game_session_in_progress = 0;
 		strcpy(g_pilot_data.multiplayer_game_name,
 		       g_pilot_data.multiplayer_host_name);
+		XVT_LOG_DEBUG("network.host_screen_opened game=\"%.32s\"",
+			      g_pilot_data.multiplayer_game_name);
 		if (g_frontend_chat_log_buffer != NULL) {
 			memset(g_frontend_chat_log_buffer, 0, 1024);
 			g_frontend_chat_log_used_bytes = 0;
@@ -2165,6 +2207,9 @@ int frontend_net_host_game_screen(int frame_counter)
 			&rect, frontend_string_get(FRONTSTR_004_HOST_GAME), 15,
 			0xFFFF, HOST_BUTTON_HELD_SLOT, "buttonsound");
 		if (host_requested != 0) {
+			XVT_LOG_DEBUG(
+				"network.host_name_confirmed game=\"%.32s\"",
+				g_pilot_data.multiplayer_game_name);
 			if (g_pilot_data.multiplayer_game_name[0] == '\0') {
 				sprintf(g_pilot_data.multiplayer_game_name,
 					"%s%s", g_pilot_data.name,
@@ -2234,6 +2279,7 @@ int frontend_net_host_game_screen(int frame_counter)
 			    frontend_string_get(
 				    FRONTSTR_258_RETURN_TO_PILOT_RECORDS),
 			    12, 0, 8, "buttonsound") != 0) {
+			XVT_LOG_DEBUG("network.host_screen_left");
 			g_frontend_mission_session_mode =
 				FRONTEND_MISSION_SESSION_NONE;
 			frontend_screen_set_callbacks(concourse_update,
@@ -2424,6 +2470,7 @@ int frontend_net_process_network_packets(void)
 	packet = net_get_next_app_packet(&sender_player_id, &packet_size);
 	if (net_did_ready_player_leave_this_frame() != 0) {
 		mission_setup_send_lobby_state(0);
+		XVT_LOG_DEBUG("network.lobby_state_resent");
 	}
 	if (packet == NULL) {
 		return 0;
@@ -2439,6 +2486,11 @@ int frontend_net_process_network_packets(void)
 		g_frontend_net_probe_mission_elapsed_seconds = payload[0];
 		g_frontend_net_probe_version = payload[1];
 		g_frontend_net_probe_password_required = payload[2];
+		XVT_LOG_DEBUG(
+			"network.game_status seconds=%d version=%d password=%d",
+			g_frontend_net_probe_mission_elapsed_seconds,
+			g_frontend_net_probe_version,
+			g_frontend_net_probe_password_required);
 		break;
 
 	case NET_PACKET_PROBE_REQUEST:
@@ -2453,6 +2505,9 @@ int frontend_net_process_network_packets(void)
 		net_send_packet_and_flush(sender_player_id,
 					  &g_frontend_net_packet_scratch,
 					  4 * sizeof(int));
+		XVT_LOG_DEBUG("network.status_query player=%u password=%u",
+			      (unsigned)sender_player_id,
+			      (unsigned)g_game_config.require_password);
 		break;
 
 	case NET_PACKET_STATE:
@@ -2463,6 +2518,13 @@ int frontend_net_process_network_packets(void)
 		g_frontend_net_received_mission_description_id = payload[10];
 		g_frontend_net_probe_players_needed = payload[11] - payload[12];
 		ready_player_count = payload[12];
+		XVT_LOG_DEBUG(
+			"network.lobby_state game=\"%.32s\" directory=%d mission=%d players=%d needed=%d",
+			g_pilot_data.multiplayer_game_name,
+			g_frontend_net_received_mission_directory_id,
+			g_frontend_net_received_mission_description_id,
+			ready_player_count,
+			g_frontend_net_probe_players_needed);
 		packet_word_index = ROSTER_PACKET_FIRST_PLAYER_WORD;
 		memset(g_mp_roster, 0, sizeof(g_mp_roster));
 		for (roster_index = 0; roster_index < ready_player_count;
@@ -2506,30 +2568,50 @@ int frontend_net_process_network_packets(void)
 					packet_word_index += 2;
 				}
 			}
+			XVT_LOG_DEBUG(
+				"network.roster_entry index=%d player=%u rating=%d latency=%d name=\"%.14s\"",
+				roster_index,
+				(unsigned)g_mp_roster[roster_index].player_id,
+				(int)g_mp_roster[roster_index].pilot_rating,
+				payload[packet_word_index - 1],
+				g_mp_roster[roster_index].name);
 		}
 		break;
 
 	case NET_PACKET_JOIN_REQUEST:
 #ifdef XVT_MODERN
 		if (!net_is_host() || packet_size != 6 * sizeof(int)) {
+			XVT_LOG_WARN(
+				"network.join_request_dropped player=%u bytes=%u",
+				(unsigned)sender_player_id,
+				(unsigned)packet_size);
 			packet_type = NET_PACKET_NONE;
 			break;
 		}
 #endif
 		ready_player_count = net_count_ready_players();
 		if (g_mission_setup_roster_authoritative != 0) {
+			XVT_LOG_WARN(
+				"network.join_request_refused player=%u reason=\"locked\" version=%d",
+				(unsigned)sender_player_id, payload[0]);
 			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_ROSTER_LOCKED;
 			net_send_packet_and_flush(
 				sender_player_id,
 				&g_frontend_net_packet_scratch, sizeof(int));
 		} else if (ready_player_count >= MAX_PLAYERS) {
+			XVT_LOG_WARN(
+				"network.join_request_refused player=%u reason=\"full\" version=%d",
+				(unsigned)sender_player_id, payload[0]);
 			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_GAME_FULL;
 			net_send_packet_and_flush(
 				sender_player_id,
 				&g_frontend_net_packet_scratch, sizeof(int));
 		} else if (payload[0] != FRONTEND_NET_PROTOCOL_VERSION) {
+			XVT_LOG_WARN(
+				"network.join_request_refused player=%u reason=\"version\" version=%d",
+				(unsigned)sender_player_id, payload[0]);
 			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_VERSION_MISMATCH;
 			net_send_packet_and_flush(
@@ -2539,6 +2621,9 @@ int frontend_net_process_network_packets(void)
 			   strncmp(g_game_config.password,
 				   (const char *)&payload[1],
 				   sizeof(g_game_config.password)) != 0) {
+			XVT_LOG_WARN(
+				"network.join_request_refused player=%u reason=\"password\" version=%d",
+				(unsigned)sender_player_id, payload[0]);
 			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_PASSWORD_REQUIRED;
 			net_send_packet_and_flush(
@@ -2555,7 +2640,14 @@ int frontend_net_process_network_packets(void)
 				0, &g_frontend_net_packet_scratch,
 				2 * sizeof(int));
 			mission_setup_send_lobby_state(0);
+			XVT_LOG_INFO(
+				"network.player_admitted player=%u players=%d",
+				(unsigned)sender_player_id,
+				ready_player_count + 1);
 		} else {
+			XVT_LOG_WARN(
+				"network.join_request_refused player=%u reason=\"not_listed\" version=%d",
+				(unsigned)sender_player_id, payload[0]);
 			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_GAME_FULL;
 			net_send_packet_and_flush(
@@ -2582,6 +2674,10 @@ int frontend_net_process_network_packets(void)
 			     XVT_NETWORK_SESSION_ADMISSION &&
 		     !xvt_network_session_accept_admission(sender_player_id,
 							   (DPID)payload[0]))) {
+			XVT_LOG_WARN(
+				"network.admission_rejected player=%u bytes=%u",
+				(unsigned)sender_player_id,
+				(unsigned)packet_size);
 			packet_type = NET_PACKET_NONE;
 			break;
 		}
@@ -2596,6 +2692,8 @@ int frontend_net_process_network_packets(void)
 		}
 		if (roster_index >= MAX_PLAYERS &&
 		    net_get_local_player_id() != payload[0]) {
+			XVT_LOG_DEBUG("network.admission_ignored player=%u",
+				      (unsigned)payload[0]);
 			packet_type = NET_PACKET_NONE;
 			break;
 		}
@@ -2605,6 +2703,8 @@ int frontend_net_process_network_packets(void)
 				12 * g_game_config.sfx_datapad_volume, 63);
 		}
 		net_mark_player_ready_no_lock(payload[0]);
+		XVT_LOG_DEBUG("network.admission_received player=%u",
+			      (unsigned)payload[0]);
 		break;
 
 	case NET_PACKET_PLAYER_LEFT:
@@ -2639,6 +2739,10 @@ int frontend_net_process_network_packets(void)
 			sender_player_id;
 		net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
 					  3 * sizeof(int));
+		XVT_LOG_DEBUG(
+			"network.leave_notice player=%u index=%d ready=%d",
+			(unsigned)sender_player_id, roster_index,
+			ready_player_count);
 		break;
 
 	case NET_PACKET_TEAM_ASSIGNMENTS_READY:
@@ -2683,6 +2787,14 @@ int frontend_net_process_network_packets(void)
 				++g_selected_mission_list_index;
 			}
 		}
+		XVT_LOG_DEBUG(
+			"network.mission_start directory=%d mission=%d sequence=%d count=%d listed=%d missions=%u index=%d",
+			(int)g_pilot_data.mission_directory_id, payload[0],
+			g_pilot_data.mission_sequence_active,
+			g_pilot_data.mission_sequence_active == 1 ? payload[3]
+								  : 0,
+			g_mission_list != NULL, (unsigned)g_mission_count,
+			g_selected_mission_list_index);
 		break;
 
 	case NET_PACKET_NEXT_TOURNAMENT_MISSION:
@@ -2691,6 +2803,8 @@ int frontend_net_process_network_packets(void)
 	case NET_PACKET_NEXT_CAMPAIGN_MISSION:
 	case NET_PACKET_REPLAY_CAMPAIGN_MISSION:
 		g_game_config.random_seed = payload[0];
+		XVT_LOG_DEBUG("network.seed_received seed=%u",
+			      (unsigned)g_game_config.random_seed);
 		break;
 
 	case NET_PACKET_CHAT:
@@ -2721,10 +2835,22 @@ int frontend_net_process_network_packets(void)
 				[g_frontend_chat_log_used_bytes++] = '\n';
 			g_frontend_chat_log_buffer
 				[g_frontend_chat_log_used_bytes] = '\0';
+			XVT_LOG_DEBUG(
+				"network.chat_received player=%u bytes=%u used=%d",
+				(unsigned)sender_player_id,
+				(unsigned)packet_size,
+				g_frontend_chat_log_used_bytes);
+		} else {
+			XVT_LOG_WARN(
+				"network.chat_dropped player=%u kind=\"chat_line\"",
+				(unsigned)sender_player_id);
 		}
 		break;
 
 	case NET_PACKET_TEAM_ASSIGNMENT:
+		XVT_LOG_DEBUG(
+			"network.team_assignment player=%u team=%d place=%d",
+			(unsigned)payload[0], payload[1], payload[2]);
 		if (net_is_host() != 0) {
 			break;
 		}
@@ -2858,6 +2984,9 @@ int frontend_net_process_network_packets(void)
 		/* Continue with the shared flight-group assignment. */
 
 	case NET_PACKET_FLIGHT_ASSIGNMENT:
+		XVT_LOG_DEBUG(
+			"network.flight_assignment team=%d place=%d group=%d",
+			payload[0], payload[1], payload[2]);
 		g_mission_setup_player_flight_group_indices
 			[payload[0] * MAX_PLAYERS + payload[1]] = payload[2];
 		break;
@@ -2871,6 +3000,9 @@ int frontend_net_process_network_packets(void)
 				break;
 			}
 		}
+		XVT_LOG_DEBUG(
+			"network.ready_changed player=%u ready=1 index=%d",
+			(unsigned)sender_player_id, roster_index);
 		break;
 
 	case NET_PACKET_PLAYER_UNREADY:
@@ -2882,6 +3014,9 @@ int frontend_net_process_network_packets(void)
 				break;
 			}
 		}
+		XVT_LOG_DEBUG(
+			"network.ready_changed player=%u ready=0 index=%d",
+			(unsigned)sender_player_id, roster_index);
 		break;
 
 	case NET_PACKET_RETURN_TO_SETUP:
@@ -2917,6 +3052,8 @@ int frontend_net_process_network_packets(void)
 		       MAX_PLAYERS *
 			       sizeof(g_mission_setup_player_flight_group_indices
 					      [0]));
+		XVT_LOG_DEBUG("network.flight_groups_cleared team=%d",
+			      payload[0]);
 		break;
 
 	case NET_PACKET_FLIGHT_ASSIGNMENTS:
@@ -2926,15 +3063,25 @@ int frontend_net_process_network_packets(void)
 		       MAX_PLAYERS *
 			       sizeof(g_mission_setup_player_flight_group_indices
 					      [0]));
+		XVT_LOG_DEBUG(
+			"network.flight_groups team=%d groups=\"%d,%d,%d,%d,%d,%d,%d,%d\"",
+			payload[0], payload[1], payload[2], payload[3],
+			payload[4], payload[5], payload[6], payload[7],
+			payload[8]);
 		break;
 
 	case NET_PACKET_MISSION_CHOICE:
 		g_frontend_net_packet_arg0 = payload[0];
+		XVT_LOG_DEBUG(
+			"network.setup_value kind=\"mission_choice\" value=%d",
+			g_frontend_net_packet_arg0);
 		break;
 
 	case NET_PACKET_BRIEFING_COUNTDOWN:
 	case NET_PACKET_ASSIGNMENT_COUNTDOWN:
 		g_frontend_net_packet_arg0 = payload[0];
+		XVT_LOG_DEBUG("network.setup_value kind=\"countdown\" value=%d",
+			      g_frontend_net_packet_arg0);
 		break;
 
 	case NET_PACKET_RETURN_TO_MISSION_SELECTION:
@@ -2943,6 +3090,9 @@ int frontend_net_process_network_packets(void)
 	case NET_PACKET_RELEASE_TEAM_RESERVATION:
 	case NET_PACKET_RELEASE_FLIGHT_RESERVATION:
 		g_frontend_net_packet_arg0 = payload[0];
+		XVT_LOG_DEBUG(
+			"network.setup_value kind=\"released_reservation\" value=%d",
+			g_frontend_net_packet_arg0);
 		break;
 
 	case NET_PACKET_GAME_OPTIONS:
@@ -2975,10 +3125,29 @@ int frontend_net_process_network_packets(void)
 			g_game_config.continue_battle_or_campaign =
 				payload_bytes[68];
 		}
+		XVT_LOG_DEBUG(
+			"network.game_options applied=%d difficulty=%u collisions=%u jumping=%u random=%u length=%u join=%u craft=%u locate=%u waves=%u time_limit=%u team_limit=%u seed=%u internet=%u ai=%u rate=%u balance=%u continue=%u",
+			roster_index < MAX_PLAYERS, (unsigned)payload_bytes[0],
+			(unsigned)payload_bytes[4], (unsigned)payload_bytes[8],
+			(unsigned)payload_bytes[12],
+			(unsigned)payload_bytes[16],
+			(unsigned)payload_bytes[24],
+			(unsigned)payload_bytes[28],
+			(unsigned)payload_bytes[32],
+			(unsigned)payload_bytes[36],
+			(unsigned)payload_bytes[40],
+			(unsigned)payload_bytes[44], (unsigned)payload[12],
+			(unsigned)payload_bytes[52],
+			(unsigned)payload_bytes[56],
+			(unsigned)payload_bytes[60],
+			(unsigned)payload_bytes[64],
+			(unsigned)payload_bytes[68]);
 		break;
 
 	case NET_PACKET_REPLAY_MISSION:
 		g_game_config.random_seed = payload[0];
+		XVT_LOG_DEBUG("network.seed_received seed=%u",
+			      (unsigned)g_game_config.random_seed);
 		break;
 
 	case NET_PACKET_LAUNCH_ROSTER_AND_ASSIGNMENTS:
@@ -2995,6 +3164,15 @@ int frontend_net_process_network_packets(void)
 				payload[packet_word_index++];
 			g_mp_roster[roster_index].countermeasure_option_index =
 				payload[packet_word_index++];
+			XVT_LOG_DEBUG(
+				"network.loadout index=%d craft=%d option=%d warhead=%d beam=%d countermeasure=%d",
+				roster_index,
+				g_mp_roster[roster_index].craft_type_override,
+				g_mp_roster[roster_index].craft_option_index,
+				g_mp_roster[roster_index].warhead_option_index,
+				g_mp_roster[roster_index].beam_option_index,
+				g_mp_roster[roster_index]
+					.countermeasure_option_index);
 		}
 		for (assignment_index = 0;
 		     assignment_index < FLIGHT_GROUP_ASSIGNMENT_COUNT;
@@ -3020,6 +3198,15 @@ int frontend_net_process_network_packets(void)
 				payload[packet_word_index++];
 			g_mp_roster[roster_index].countermeasure_option_index =
 				payload[packet_word_index++];
+			XVT_LOG_DEBUG(
+				"network.loadout index=%d craft=%d option=%d warhead=%d beam=%d countermeasure=%d",
+				roster_index,
+				g_mp_roster[roster_index].craft_type_override,
+				g_mp_roster[roster_index].craft_option_index,
+				g_mp_roster[roster_index].warhead_option_index,
+				g_mp_roster[roster_index].beam_option_index,
+				g_mp_roster[roster_index]
+					.countermeasure_option_index);
 		}
 		/* Continue with the network statistics carried by this packet. */
 
@@ -3028,6 +3215,13 @@ int frontend_net_process_network_packets(void)
 		packet_word_index = 13;
 		while (stats_count > 0) {
 			if (net_is_host() == 0) {
+				XVT_LOG_DEBUG(
+					"network.player_stats player=%u latency=%d packets=%d drops=%d retries=%d",
+					(unsigned)payload[packet_word_index],
+					payload[packet_word_index + 2],
+					payload[packet_word_index + 3],
+					payload[packet_word_index + 4],
+					payload[packet_word_index + 5]);
 				net_set_player_latency_ms(
 					payload[packet_word_index],
 					payload[packet_word_index + 2]);
@@ -3047,6 +3241,11 @@ int frontend_net_process_network_packets(void)
 		break;
 
 	case NET_PACKET_CRAFT_LOADOUT:
+		XVT_LOG_DEBUG(
+			"network.craft_loadout player=%u category=%d craft=%d option=%d warhead=%d beam=%d countermeasure=%d waves=%d count=%d",
+			(unsigned)sender_player_id, payload[0], payload[1],
+			payload[2], payload[3], payload[4], payload[5],
+			payload[6], payload[7]);
 		for (roster_index = 0; roster_index < MAX_PLAYERS;
 		     ++roster_index) {
 			if ((DPID)g_mp_roster[roster_index].player_id !=
@@ -3111,12 +3310,18 @@ int frontend_net_process_network_packets(void)
 
 	case NET_PACKET_BRIEFING_ENTERED:
 		++g_frontend_briefing_entered_count;
+		XVT_LOG_DEBUG("network.briefing_entered player=%u count=%d",
+			      (unsigned)sender_player_id,
+			      g_frontend_briefing_entered_count);
 		break;
 
 	case NET_PACKET_TEAM_RESERVATION:
 	case NET_PACKET_FLIGHT_RESERVATION:
 		g_frontend_net_packet_arg0 = payload[0];
 		g_frontend_net_reserving_player_id = payload[1];
+		XVT_LOG_DEBUG("network.reservation index=%d player=%u",
+			      g_frontend_net_packet_arg0,
+			      (unsigned)g_frontend_net_reserving_player_id);
 		break;
 
 	case NET_PACKET_PLAYER_UNAVAILABLE:
@@ -3132,6 +3337,8 @@ int frontend_net_process_network_packets(void)
 			net_clear_player_ready_flag(sender_player_id);
 			mission_setup_send_lobby_state(0);
 		}
+		XVT_LOG_DEBUG("network.player_unavailable player=%u",
+			      (unsigned)sender_player_id);
 		packet_type = NET_PACKET_NONE;
 		break;
 
@@ -3176,12 +3383,24 @@ int frontend_net_process_network_packets(void)
 						packet_size + 2 * sizeof(int));
 				} while (remaining_bytes > 0);
 			}
+			XVT_LOG_DEBUG(
+				"network.chat_sync_sent player=%u bytes=%d chunks=%d",
+				(unsigned)sender_player_id,
+				g_frontend_chat_log_used_bytes, chunk_index);
+		} else {
+			XVT_LOG_WARN(
+				"network.chat_dropped player=%u kind=\"chat_log_request\"",
+				(unsigned)sender_player_id);
 		}
 		break;
 
 	case NET_PACKET_CHAT_SYNC_CHUNK:
 		chunk_index = payload[0];
 		packet_size -= 2 * sizeof(int);
+		if (g_frontend_chat_log_buffer == NULL) {
+			XVT_LOG_ERROR("network.chat_chunk_unheld index=%d",
+				      chunk_index);
+		}
 		if (chunk_index == 0) {
 			memset(g_frontend_chat_log_buffer, 0,
 			       CHAT_LOG_CAPACITY);
@@ -3199,12 +3418,18 @@ int frontend_net_process_network_packets(void)
 						   chunk_index],
 		       chat_chunk_bytes, packet_size);
 		g_frontend_chat_log_used_bytes += packet_size;
+		XVT_LOG_DEBUG("network.chat_chunk index=%d bytes=%u used=%d",
+			      chunk_index, (unsigned)packet_size,
+			      g_frontend_chat_log_used_bytes);
 		break;
 
 	case NET_PACKET_READY_ROSTER:
 		net_clear_player_ready_flags();
 		g_frontend_net_probe_players_needed = payload[0] - payload[1];
 		ready_player_count = payload[1];
+		XVT_LOG_DEBUG("network.ready_roster players=%d needed=%d",
+			      ready_player_count,
+			      g_frontend_net_probe_players_needed);
 		packet_word_index = ROSTER_PACKET_COMPACT_FIRST_PLAYER_WORD;
 		memset(g_mp_roster, 0, sizeof(g_mp_roster));
 		for (roster_index = 0; roster_index < ready_player_count;
@@ -3248,11 +3473,21 @@ int frontend_net_process_network_packets(void)
 					packet_word_index += 2;
 				}
 			}
+			XVT_LOG_DEBUG(
+				"network.roster_entry index=%d player=%u rating=%d latency=%d name=\"%.14s\"",
+				roster_index,
+				(unsigned)g_mp_roster[roster_index].player_id,
+				(int)g_mp_roster[roster_index].pilot_rating,
+				payload[packet_word_index - 1],
+				g_mp_roster[roster_index].name);
 		}
 		break;
 
 	case NET_PACKET_PILOT_RATING:
 		g_frontend_net_packet_arg0 = payload[0];
+		XVT_LOG_DEBUG(
+			"network.setup_value kind=\"pilot_rating\" value=%d",
+			g_frontend_net_packet_arg0);
 		break;
 
 	case NET_PACKET_BATTLE_PROGRESS:
@@ -3261,9 +3496,19 @@ int frontend_net_process_network_packets(void)
 		g_remote_battle_last_completed_mission_index = payload[2];
 		g_remote_battle_rebel_victory_count = payload[3];
 		g_remote_battle_imperial_victory_count = payload[4];
+		XVT_LOG_DEBUG(
+			"network.battle_progress active=%d choice=%d last=%d rebel=%d imperial=%d",
+			g_remote_battle_continuation_active,
+			g_remote_battle_sequence_continuation_choice,
+			g_remote_battle_last_completed_mission_index,
+			g_remote_battle_rebel_victory_count,
+			g_remote_battle_imperial_victory_count);
 		break;
 
 	case NET_PACKET_MOVIE_SYNC:
+		XVT_LOG_DEBUG("network.movie_sync player=%u op=%d target=%u",
+			      (unsigned)sender_player_id, payload[0],
+			      payload[0] == 2 ? (unsigned)payload[1] : 0u);
 		for (movie_player_index = 0; movie_player_index < MAX_PLAYERS;
 		     ++movie_player_index) {
 			switch (payload[0]) {
@@ -3306,9 +3551,13 @@ int frontend_net_process_network_packets(void)
 		*(int *)&g_frontend_net_packet_scratch.payload[0] = payload[0];
 		net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
 					  2 * sizeof(int));
+		XVT_LOG_DEBUG(
+			"network.mission_choice_relayed player=%u choice=%d",
+			(unsigned)sender_player_id, payload[0]);
 		break;
 
 	default:
+		XVT_LOG_DEBUG("network.packet_unknown type=%d", packet_type);
 		packet_type = NET_PACKET_NONE;
 		break;
 	}

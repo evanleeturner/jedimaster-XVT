@@ -413,6 +413,21 @@
       "fields": ["name", "result"],
       "text": "The movie {name} finished with result {result}"
     },
+    "network.admission_ignored": {
+      "level": "D",
+      "fields": ["player"],
+      "text": "A notice that player {player} was admitted was ignored, since this player was not yet in its own roster"
+    },
+    "network.admission_received": {
+      "level": "D",
+      "fields": ["player"],
+      "text": "The notice that player {player} was admitted arrived, and that player was marked ready"
+    },
+    "network.admission_rejected": {
+      "level": "W",
+      "fields": ["player", "bytes"],
+      "text": "A notice of admission of {bytes} bytes from player {player} was refused: too short, not from the host, or not the admission this player awaited"
+    },
     "network.batch_dropped": {
       "level": "D",
       "fields": ["slot", "reason"],
@@ -427,6 +442,51 @@
       "level": "D",
       "fields": ["records", "left"],
       "text": "An input batch of {records} records was sent; {left} records wait"
+    },
+    "network.battle_progress": {
+      "level": "D",
+      "fields": ["active", "choice", "last", "rebel", "imperial"],
+      "text": "The host's battle progress arrived: continuing {active}, choice {choice}, last mission {last}, Rebel victories {rebel}, Imperial victories {imperial}"
+    },
+    "network.briefing_entered": {
+      "level": "D",
+      "fields": ["player", "count"],
+      "text": "Player {player} entered the briefing; {count} players had entered"
+    },
+    "network.chat_channel": {
+      "level": "D",
+      "fields": ["team_only"],
+      "text": "The chat tab changed; team-only chat became {team_only}"
+    },
+    "network.chat_chunk": {
+      "level": "D",
+      "fields": ["index", "bytes", "used"],
+      "text": "Chat log chunk {index} of {bytes} bytes was stored; the log then held {used} bytes"
+    },
+    "network.chat_chunk_unheld": {
+      "level": "E",
+      "fields": ["index"],
+      "text": "Chat log chunk {index} arrived while no chat log existed; the 1997 code stores it anyway, which crashes"
+    },
+    "network.chat_dropped": {
+      "level": "W",
+      "fields": ["player", "kind"],
+      "text": "A {kind} from player {player} was dropped because the chat log did not exist"
+    },
+    "network.chat_received": {
+      "level": "D",
+      "fields": ["player", "bytes", "used"],
+      "text": "A chat line of {bytes} bytes from player {player} was added to the chat log, which then held {used} bytes (the oldest text goes past 1,022)"
+    },
+    "network.chat_sent": {
+      "level": "D",
+      "fields": ["to", "team", "ready"],
+      "text": "A chat line was sent to {to}; the sender's team was {team} and ready was {ready}"
+    },
+    "network.chat_sync_sent": {
+      "level": "D",
+      "fields": ["player", "bytes", "chunks"],
+      "text": "Player {player} asked for the chat log; {bytes} bytes went out in {chunks} numbered chunks (an empty log sends one empty chunk numbered 0)"
     },
     "network.checksum": {
       "level": "D",
@@ -458,6 +518,11 @@
       "fields": ["to", "type", "bytes", "result"],
       "text": "A control packet of type {type} went to player {to}, {bytes} bytes on the wire; DirectPlay result {result}"
     },
+    "network.craft_loadout": {
+      "level": "D",
+      "fields": ["player", "category", "craft", "option", "warhead", "beam", "countermeasure", "waves", "count"],
+      "text": "Player {player} chose a craft: preset category {category}, preset {craft}, craft option {option}, warhead {warhead}, beam {beam}, countermeasure {countermeasure}, waves {waves}, craft count {count}"
+    },
     "network.directory_retry": {
       "level": "W",
       "fields": [],
@@ -472,6 +537,21 @@
       "level": "D",
       "fields": ["input", "server", "adjust"],
       "text": "The input clock {input} fell behind the server tick {server}; it jumps {adjust} ticks"
+    },
+    "network.flight_assignment": {
+      "level": "D",
+      "fields": ["team", "place", "group"],
+      "text": "Team {team} place {place} was assigned flight group {group}"
+    },
+    "network.flight_groups": {
+      "level": "D",
+      "fields": ["team", "groups"],
+      "text": "Team {team}'s flight group choices arrived: {groups}"
+    },
+    "network.flight_groups_cleared": {
+      "level": "D",
+      "fields": ["team"],
+      "text": "Team {team}'s flight group choices were cleared"
     },
     "network.flight_session_end": {
       "level": "I",
@@ -493,6 +573,16 @@
       "fields": ["mode", "host", "players", "in_progress"],
       "text": "The flight's network session opened from the lobby's saved state in {mode} mode: host {host}, {players} players, joining a flight in progress {in_progress}"
     },
+    "network.game_options": {
+      "level": "D",
+      "fields": ["applied", "difficulty", "collisions", "jumping", "random", "length", "join", "craft", "locate", "waves", "time_limit", "team_limit", "seed", "internet", "ai", "rate", "balance", "continue"],
+      "text": "The host's game options arrived and were applied {applied}: difficulty {difficulty}, collisions {collisions}, craft jumping {jumping}, random setup {random}, battle length {length}, joining in progress {join}, craft selection {craft}, locate players {locate}, craft waves {waves}, mission time limit {time_limit}, last team time limit {team_limit} minutes, random seed {seed}, internet play {internet}, computer opponents {ai}, server update rate {rate}, combat balance {balance}, continue choice {continue}"
+    },
+    "network.game_status": {
+      "level": "D",
+      "fields": ["seconds", "version", "password"],
+      "text": "A game's answer to a status query, or its start notice, arrived: {seconds} mission seconds elapsed, protocol version {version}, password needed {password}"
+    },
     "network.handshake": {
       "level": "D",
       "fields": ["peers"],
@@ -502,6 +592,21 @@
       "level": "W",
       "fields": ["flight"],
       "text": "The host left the session; in flight {flight}"
+    },
+    "network.host_name_confirmed": {
+      "level": "D",
+      "fields": ["game"],
+      "text": "The player confirmed the game name {game}; an empty name was then replaced by the player's name and a suffix"
+    },
+    "network.host_screen_left": {
+      "level": "D",
+      "fields": [],
+      "text": "The player left the host screen for the concourse without hosting"
+    },
+    "network.host_screen_opened": {
+      "level": "D",
+      "fields": ["game"],
+      "text": "The host screen opened with {game} as the suggested game name"
     },
     "network.host_timeout": {
       "level": "W",
@@ -523,10 +628,25 @@
       "fields": ["slot", "tick", "result", "authoritative"],
       "text": "Input for slot {slot} at tick {tick} was refused ({result}; authoritative {authoritative}); recovery is needed"
     },
+    "network.join_cancelled": {
+      "level": "D",
+      "fields": [],
+      "text": "The player cancelled the wait for the host's answer to the join request"
+    },
     "network.join_rejected": {
       "level": "W",
       "fields": [],
       "text": "The host refused the join; the frontend shows the reason"
+    },
+    "network.join_request_dropped": {
+      "level": "W",
+      "fields": ["player", "bytes"],
+      "text": "A join request of {bytes} bytes from player {player} was dropped: it reached a player that is not the host, or its size was wrong"
+    },
+    "network.join_request_refused": {
+      "level": "W",
+      "fields": ["player", "reason", "version"],
+      "text": "The host refused a join request from player {player} ({reason}); the request named protocol version {version}"
     },
     "network.keepalive_ack_ignored": {
       "level": "D",
@@ -547,6 +667,16 @@
       "level": "W",
       "fields": ["from", "broadcast", "group", "direct"],
       "text": "Player {from} asked for packets no longer kept, so they were not sent again: {broadcast} to all players, {group} to the group, {direct} to it alone (128 means none missing)"
+    },
+    "network.leave_notice": {
+      "level": "D",
+      "fields": ["player", "index", "ready"],
+      "text": "Player {player} announced it was leaving: roster place {index} of {ready} ready players (equal to the count when not listed); every player was told not to wait for it at movies"
+    },
+    "network.loadout": {
+      "level": "D",
+      "fields": ["index", "craft", "option", "warhead", "beam", "countermeasure"],
+      "text": "Roster place {index} took craft {craft}, craft option {option}, warhead {warhead}, beam {beam} and countermeasure {countermeasure}"
     },
     "network.lobby_backlog": {
       "level": "W",
@@ -858,6 +988,16 @@
       "fields": ["player", "seq", "reason"],
       "text": "Sequence {seq} from player {player} was let through without being recorded ({reason})"
     },
+    "network.lobby_state": {
+      "level": "D",
+      "fields": ["game", "directory", "mission", "players", "needed"],
+      "text": "The host's lobby state arrived: game {game}, mission directory {directory}, mission {mission}, {players} players listed and {needed} more wanted"
+    },
+    "network.lobby_state_resent": {
+      "level": "D",
+      "fields": [],
+      "text": "A ready player left during this frame, so the lobby state was sent to every player again"
+    },
     "network.lobby_system_handled": {
       "level": "D",
       "fields": ["type", "kind", "player", "host"],
@@ -878,6 +1018,21 @@
       "fields": ["from", "tick"],
       "text": "Player {from} asked again for the world message of tick {tick}, but no flight's world messages were kept; the request was ignored"
     },
+    "network.mission_choice_relayed": {
+      "level": "D",
+      "fields": ["player", "choice"],
+      "text": "Player {player} chose mission {choice}, and the host passed the choice on to every player"
+    },
+    "network.mission_start": {
+      "level": "D",
+      "fields": ["directory", "mission", "sequence", "count", "listed", "missions", "index"],
+      "text": "The host started mission {mission} of directory {directory}: sequence {sequence}, sequence length {count}; the mission list loaded {listed} with {missions} missions, entry {index} selected"
+    },
+    "network.movie_sync": {
+      "level": "D",
+      "fields": ["player", "op", "target"],
+      "text": "A movie wait message from player {player} arrived: action {op} (0 that player waits, 1 all wait, 2 player {target} left)"
+    },
     "network.nack_gave_up": {
       "level": "W",
       "fields": ["retries", "peer", "channel", "missing", "limit"],
@@ -892,6 +1047,11 @@
       "level": "D",
       "fields": ["retries", "peer", "channel", "missing", "waited", "timeout"],
       "text": "The wait for missing packet {missing} from entry {peer} on channel {channel} ran out after {retries} resend requests: {waited} ms waited against {timeout} ms"
+    },
+    "network.non_host_packet_ignored": {
+      "level": "D",
+      "fields": ["type", "player"],
+      "text": "While waiting for the host's answer, a packet of type {type} from player {player}, who is not the host, was ignored"
     },
     "network.own_packet_dropped": {
       "level": "E",
@@ -933,6 +1093,11 @@
       "fields": ["from", "type", "part", "bytes"],
       "text": "A {part} from player {from} with type {type} claimed {bytes} bytes, more than a queue entry holds; it was cut to fit"
     },
+    "network.packet_unknown": {
+      "level": "D",
+      "fields": ["type"],
+      "text": "A lobby packet of unknown type {type} was ignored"
+    },
     "network.peer_slot_added": {
       "level": "D",
       "fields": ["player", "peer"],
@@ -952,6 +1117,11 @@
       "level": "D",
       "fields": ["slot", "player", "name", "long_name"],
       "text": "Player {player} took roster slot {slot} as {name} ({long_name})"
+    },
+    "network.player_admitted": {
+      "level": "I",
+      "fields": ["player", "players"],
+      "text": "The host admitted player {player}; {players} players were then in the game"
     },
     "network.player_destroyed": {
       "level": "I",
@@ -993,6 +1163,16 @@
       "fields": ["player"],
       "text": "No roster slot held player {player}; slot 8 was returned"
     },
+    "network.player_stats": {
+      "level": "D",
+      "fields": ["player", "latency", "packets", "drops", "retries"],
+      "text": "The host's figures for player {player} were stored: latency {latency} ms, {packets} packets, {drops} dropped, {retries} resent"
+    },
+    "network.player_unavailable": {
+      "level": "D",
+      "fields": ["player"],
+      "text": "Player {player} reported itself unavailable; a host then took it off the ready list and sent the lobby state again"
+    },
     "network.players_enumerated": {
       "level": "D",
       "fields": ["players"],
@@ -1007,6 +1187,16 @@
       "level": "W",
       "fields": ["from", "peer", "channel", "sequence", "expected", "retries", "queued"],
       "text": "The receive queue was full with nothing in order to deliver; packet {sequence} from player {from} (entry {peer}, channel {channel}), whose gap had {retries} resend requests, was delivered past the expected {expected}; {queued} packets queued"
+    },
+    "network.ready_changed": {
+      "level": "D",
+      "fields": ["player", "ready", "index"],
+      "text": "Player {player}'s ready flag became {ready} at roster place {index} (place 8: not in the roster)"
+    },
+    "network.ready_roster": {
+      "level": "D",
+      "fields": ["players", "needed"],
+      "text": "The host's ready roster arrived: {players} players listed and {needed} more wanted"
     },
     "network.receive_drained": {
       "level": "D",
@@ -1033,6 +1223,16 @@
       "fields": [],
       "text": "Flight history or message capacity or continuity was exceeded; state recovery is needed"
     },
+    "network.refresh_requested": {
+      "level": "D",
+      "fields": [],
+      "text": "The player asked for a fresh list of games"
+    },
+    "network.refusal_received": {
+      "level": "D",
+      "fields": ["reason"],
+      "text": "The host refused this player's join request: {reason}"
+    },
     "network.rename_rejected": {
       "level": "W",
       "fields": ["player", "slot"],
@@ -1053,10 +1253,25 @@
       "fields": ["from", "type", "channel", "sequence", "bytes", "queued"],
       "text": "A resent packet from player {from} was queued: type {type}, channel {channel}, sequence {sequence}, {bytes} bytes; {queued} packets queued"
     },
+    "network.reservation": {
+      "level": "D",
+      "fields": ["index", "player"],
+      "text": "Player {player} reserved team or flight group {index}"
+    },
+    "network.roster_entry": {
+      "level": "D",
+      "fields": ["index", "player", "rating", "latency", "name"],
+      "text": "Roster place {index} took player {player} named {name}, rating {rating}, latency {latency} ms"
+    },
     "network.roster_full": {
       "level": "W",
       "fields": ["player"],
       "text": "DirectPlay listed player {player} after all 8 roster places were filled; the listing stopped and the player was left out"
+    },
+    "network.seed_received": {
+      "level": "D",
+      "fields": ["seed"],
+      "text": "The host's random seed {seed} was stored"
     },
     "network.send_failed": {
       "level": "W",
@@ -1098,10 +1313,20 @@
       "fields": ["role", "online"],
       "text": "The network session is established as {role}; online {online}"
     },
+    "network.setup_value": {
+      "level": "D",
+      "fields": ["kind", "value"],
+      "text": "A mission setup packet carried the {kind} value {value}"
+    },
     "network.stale_dropped": {
       "level": "D",
       "fields": ["from", "peer", "channel", "sequence", "expected"],
       "text": "A queued packet from player {from} on channel {channel}, sequence {sequence}, was dropped: it was up to 28 behind the expected {expected}, or the player had no connection entry (entry {peer}; 40 means none)"
+    },
+    "network.status_query": {
+      "level": "D",
+      "fields": ["player", "password"],
+      "text": "Player {player} asked for this game's status; the host answered with the lobby state, its protocol version and password needed {password}"
     },
     "network.system_message": {
       "level": "D",
@@ -1112,6 +1337,11 @@
       "level": "D",
       "fields": ["opcode", "host"],
       "text": "DirectPlay system message {opcode} was handled; this player hosts: {host}"
+    },
+    "network.team_assignment": {
+      "level": "D",
+      "fields": ["player", "team", "place"],
+      "text": "Player {player} was placed on team {team} at place {place} (team 10 removes the placement; a host ignores this)"
     },
     "network.transport_unknown": {
       "level": "E",
