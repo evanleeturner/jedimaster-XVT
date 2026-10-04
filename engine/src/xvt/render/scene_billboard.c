@@ -347,11 +347,12 @@ int scene_billboard_compute_projected_size(int depth_z,
 					   uint16_t base_screen_size)
 {
 #ifdef XVT_MODERN
-	if (depth_z < 0 && depth_z != INT32_MIN)
+	if (depth_z < 0 && depth_z != INT32_MIN) {
 #else
-	if (depth_z < 0)
+	if (depth_z < 0) {
 #endif
 		depth_z = -depth_z;
+	}
 	depth_z >>= 8;
 	/* From here depth_z holds the model's extent over that depth, a scale, and then that scale times
 	 * base_screen_size over 256: the projected size returned. */

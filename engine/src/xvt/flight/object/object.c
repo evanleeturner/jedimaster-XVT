@@ -978,13 +978,20 @@ void object_update_lifetime_and_movement(void)
 									[profile_index],
 								g_elapsed_ticks,
 								236);
-						} else
-#endif
+						} else {
 							turn_step =
 								g_elapsed_ticks *
 								g_projectile_homing_turn_rate_by_profile
 									[profile_index] /
 								SIMULATION_TICKS_PER_SECOND;
+						}
+#else
+						turn_step =
+							g_elapsed_ticks *
+							g_projectile_homing_turn_rate_by_profile
+								[profile_index] /
+							SIMULATION_TICKS_PER_SECOND;
+#endif
 						if (yaw_delta < 0) {
 							absolute_delta =
 								(int16_t)(old_yaw -
@@ -1097,13 +1104,20 @@ void object_update_lifetime_and_movement(void)
 									[profile_index],
 								g_elapsed_ticks,
 								236);
-						} else
-#endif
+						} else {
 							turn_step =
 								g_elapsed_ticks *
 								g_projectile_homing_turn_rate_by_profile
 									[profile_index] /
 								SIMULATION_TICKS_PER_SECOND;
+						}
+#else
+						turn_step =
+							g_elapsed_ticks *
+							g_projectile_homing_turn_rate_by_profile
+								[profile_index] /
+							SIMULATION_TICKS_PER_SECOND;
+#endif
 						if (pitch_delta < 0) {
 							absolute_delta =
 								(int16_t)(old_pitch -

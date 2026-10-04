@@ -1077,15 +1077,16 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 	if (DirectDrawCreate_Compat(driver_guid, &g_front_state.direct_draw,
 				    NULL) != 0) {
 		if (DirectDrawCreate_Compat(NULL, &g_front_state.direct_draw,
-					    NULL) != 0)
+					    NULL) != 0) {
 #else
 	if (DirectDrawCreate(driver_guid, &g_front_state.direct_draw, NULL) !=
 	    0) {
 		if (DirectDrawCreate(NULL, &g_front_state.direct_draw, NULL) !=
-		    0)
+		    0) {
 #endif
 			return frontend_display_report_direct_draw_init_failure(
 				window_handle, 0);
+		}
 		g_front_state.secondary_direct_draw_active = 0;
 	} else {
 		g_front_state.secondary_direct_draw_active = 0;

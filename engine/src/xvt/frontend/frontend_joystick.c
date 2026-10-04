@@ -299,11 +299,12 @@ int joystick_get_first_pressed_button(int joy_slot)
 	int button_index;
 
 #ifdef XVT_MODERN
-	if ((unsigned int)joy_slot >= 2)
+	if ((unsigned int)joy_slot >= 2) {
 #else
-	if (joy_slot > 1)
+	if (joy_slot > 1) {
 #endif
 		return -1;
+	}
 	if (g_front_state.joystick_present[joy_slot] == 0) {
 		return -1;
 	}
@@ -326,11 +327,12 @@ int joystick_get_first_released_button(int joystick_slot)
 	int button_index;
 
 #ifdef XVT_MODERN
-	if ((unsigned int)joystick_slot >= 2)
+	if ((unsigned int)joystick_slot >= 2) {
 #else
-	if (joystick_slot > 1)
+	if (joystick_slot > 1) {
 #endif
 		return -1;
+	}
 	if (g_front_state.joystick_present[joystick_slot] == 0) {
 		return -1;
 	}
@@ -351,11 +353,12 @@ int joystick_get_first_released_button(int joystick_slot)
 int joystick_get_pov_direction(int joy_slot)
 {
 #ifdef XVT_MODERN
-	if ((unsigned int)joy_slot >= 2)
+	if ((unsigned int)joy_slot >= 2) {
 #else
-	if (joy_slot > 1)
+	if (joy_slot > 1) {
 #endif
 		return 0;
+	}
 	return g_front_state.joystick_pov_direction[joy_slot];
 }
 
@@ -365,11 +368,12 @@ int joystick_get_pov_direction(int joy_slot)
 int joystick_has_pov(int joy_slot)
 {
 #ifdef XVT_MODERN
-	if ((unsigned int)joy_slot >= 2)
+	if ((unsigned int)joy_slot >= 2) {
 #else
-	if (joy_slot > 1)
+	if (joy_slot > 1) {
 #endif
 		return 0;
+	}
 	return g_front_state.joystick_has_pov[joy_slot];
 }
 
@@ -379,11 +383,12 @@ int joystick_has_pov(int joy_slot)
 int joystick_get_button_count(int joy_slot)
 {
 #ifdef XVT_MODERN
-	if ((unsigned int)joy_slot >= 2)
+	if ((unsigned int)joy_slot >= 2) {
 #else
-	if (joy_slot > 1)
+	if (joy_slot > 1) {
 #endif
 		return 0;
+	}
 	return g_front_state.joystick_button_count[joy_slot];
 }
 
@@ -466,10 +471,11 @@ int frontend_joystick_update_centering_prompt(int frame_counter)
 unsigned int joystick_get_device_id(int joy_slot)
 {
 #ifdef XVT_MODERN
-	if ((unsigned int)joy_slot >= 2)
+	if ((unsigned int)joy_slot >= 2) {
 #else
-	if (joy_slot > 2)
+	if (joy_slot > 2) {
 #endif
 		return 0;
+	}
 	return g_front_state.joy_device_ids[joy_slot];
 }

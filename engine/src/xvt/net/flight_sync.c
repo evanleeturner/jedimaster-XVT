@@ -191,8 +191,9 @@ void flight_sync_discard_predicted_input_frames(int player_idx)
 		g_internet_play_enabled != 0 ||
 #endif
 		g_players[player_idx].participation_state == 0 ||
-		player_idx == g_local_player)
+		player_idx == g_local_player) {
 		return;
+	}
 
 	frame_index = 0;
 	frame = g_input_history[player_idx];

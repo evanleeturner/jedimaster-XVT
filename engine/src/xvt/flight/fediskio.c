@@ -4915,49 +4915,82 @@ void fe_disk_io_free_flight_resources(void)
 
 	fsfx_unload_all_effects_thunk();
 #ifdef XVT_MODERN
-	if (g_string_data_handle)
-#endif
+	if (g_string_data_handle) {
 		memory_free_handle(g_string_data_handle);
-#ifdef XVT_MODERN
-	if (g_render_object_list_handle)
+	}
+#else
+	memory_free_handle(g_string_data_handle);
 #endif
+#ifdef XVT_MODERN
+	if (g_render_object_list_handle) {
 		memory_free_handle(g_render_object_list_handle);
-#ifdef XVT_MODERN
-	if (g_flight_small_font_handle)
+	}
+#else
+	memory_free_handle(g_render_object_list_handle);
 #endif
+#ifdef XVT_MODERN
+	if (g_flight_small_font_handle) {
 		memory_free_handle(g_flight_small_font_handle);
-#ifdef XVT_MODERN
-	if (g_flight_micro_font_handle)
+	}
+#else
+	memory_free_handle(g_flight_small_font_handle);
 #endif
+#ifdef XVT_MODERN
+	if (g_flight_micro_font_handle) {
 		memory_free_handle(g_flight_micro_font_handle);
-#ifdef XVT_MODERN
-	if (g_flight_medium_font_handle)
+	}
+#else
+	memory_free_handle(g_flight_micro_font_handle);
 #endif
+#ifdef XVT_MODERN
+	if (g_flight_medium_font_handle) {
 		memory_free_handle(g_flight_medium_font_handle);
-#ifdef XVT_MODERN
-	if (g_flight_scratch_screen_buffer_handle)
+	}
+#else
+	memory_free_handle(g_flight_medium_font_handle);
 #endif
+#ifdef XVT_MODERN
+	if (g_flight_scratch_screen_buffer_handle) {
 		memory_free_handle(g_flight_scratch_screen_buffer_handle);
-#ifdef XVT_MODERN
-	if (g_flight_aux_buffer_handle)
+	}
+#else
+	memory_free_handle(g_flight_scratch_screen_buffer_handle);
 #endif
+#ifdef XVT_MODERN
+	if (g_flight_aux_buffer_handle) {
 		memory_free_handle(g_flight_aux_buffer_handle);
-#ifdef XVT_MODERN
-	if (g_flight_offscreen_buffer_handle)
+	}
+#else
+	memory_free_handle(g_flight_aux_buffer_handle);
 #endif
+#ifdef XVT_MODERN
+	if (g_flight_offscreen_buffer_handle) {
 		memory_free_handle(g_flight_offscreen_buffer_handle);
-#ifdef XVT_MODERN
-	if (g_hud_panel_sprite_data_handle)
+	}
+#else
+	memory_free_handle(g_flight_offscreen_buffer_handle);
 #endif
+#ifdef XVT_MODERN
+	if (g_hud_panel_sprite_data_handle) {
 		memory_free_handle(g_hud_panel_sprite_data_handle);
-#ifdef XVT_MODERN
-	if (g_flight_icon_frames_handle)
+	}
+#else
+	memory_free_handle(g_hud_panel_sprite_data_handle);
 #endif
+#ifdef XVT_MODERN
+	if (g_flight_icon_frames_handle) {
 		memory_free_handle(g_flight_icon_frames_handle);
-#ifdef XVT_MODERN
-	if (g_message_log_handle)
+	}
+#else
+	memory_free_handle(g_flight_icon_frames_handle);
 #endif
+#ifdef XVT_MODERN
+	if (g_message_log_handle) {
 		memory_free_handle(g_message_log_handle);
+	}
+#else
+	memory_free_handle(g_message_log_handle);
+#endif
 #ifdef XVT_MODERN
 	g_string_data_handle = 0;
 	g_render_object_list_handle = 0;

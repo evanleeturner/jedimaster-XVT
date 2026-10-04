@@ -1265,12 +1265,13 @@ int sw3d_setup_clipped_edge(struct scene_mesh *mesh, struct scene_edge *edge,
 #ifdef XVT_MODERN
 		memcpy(&coordinate_bits, &first->scaled_inverse_depth,
 		       sizeof(coordinate_bits));
-		if (coordinate_bits > 0x80000000u)
+		if (coordinate_bits > 0x80000000u) {
 #else
 		if (*(const uint32_t *)&first->scaled_inverse_depth >
-		    0x80000000u)
+		    0x80000000u) {
 #endif
 			return -1;
+		}
 		outside = second;
 		inside = first;
 	}

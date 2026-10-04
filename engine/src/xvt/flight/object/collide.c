@@ -6267,25 +6267,28 @@ int collide_point_in_face_polygon(const float *face_normal,
 	abs_z = face_normal[2];
 #ifdef XVT_MODERN
 	memcpy(&sign_bits, &abs_x, sizeof(sign_bits));
-	if (sign_bits > 0x80000000u)
+	if (sign_bits > 0x80000000u) {
 #else
-	if (*(const uint32_t *)&abs_x > 0x80000000u)
+	if (*(const uint32_t *)&abs_x > 0x80000000u) {
 #endif
 		abs_x = -abs_x;
+	}
 #ifdef XVT_MODERN
 	memcpy(&sign_bits, &abs_y, sizeof(sign_bits));
-	if (sign_bits > 0x80000000u)
+	if (sign_bits > 0x80000000u) {
 #else
-	if (*(const uint32_t *)&abs_y > 0x80000000u)
+	if (*(const uint32_t *)&abs_y > 0x80000000u) {
 #endif
 		abs_y = -abs_y;
+	}
 #ifdef XVT_MODERN
 	memcpy(&sign_bits, &abs_z, sizeof(sign_bits));
-	if (sign_bits > 0x80000000u)
+	if (sign_bits > 0x80000000u) {
 #else
-	if (*(const uint32_t *)&abs_z > 0x80000000u)
+	if (*(const uint32_t *)&abs_z > 0x80000000u) {
 #endif
 		abs_z = -abs_z;
+	}
 
 	if (abs_z >= abs_y && abs_z >= abs_x) {
 		axis_u = 0;
@@ -6330,12 +6333,13 @@ int collide_point_in_face_polygon(const float *face_normal,
 	}
 #ifdef XVT_MODERN
 	memcpy(&sign_bits, &edge_cross, sizeof(sign_bits));
-	if (sign_bits <= 0x80000000u && first_edge_negative)
+	if (sign_bits <= 0x80000000u && first_edge_negative) {
 #else
 	if (*(const uint32_t *)&edge_cross <= 0x80000000u &&
-	    first_edge_negative)
+	    first_edge_negative) {
 #endif
 		return 0;
+	}
 
 	vertex_index = face_vertex_indices[3];
 	if (vertex_index != -1) {
@@ -6353,12 +6357,13 @@ int collide_point_in_face_polygon(const float *face_normal,
 		}
 #ifdef XVT_MODERN
 		memcpy(&sign_bits, &edge_cross, sizeof(sign_bits));
-		if (sign_bits <= 0x80000000u && first_edge_negative)
+		if (sign_bits <= 0x80000000u && first_edge_negative) {
 #else
 		if (*(const uint32_t *)&edge_cross <= 0x80000000u &&
-		    first_edge_negative)
+		    first_edge_negative) {
 #endif
 			return 0;
+		}
 	}
 
 	edge_cross = (*vertex0v - vertex_v) * (projected_point[1] - vertex_u) -
@@ -6368,12 +6373,13 @@ int collide_point_in_face_polygon(const float *face_normal,
 	}
 #ifdef XVT_MODERN
 	memcpy(&sign_bits, &edge_cross, sizeof(sign_bits));
-	if (sign_bits <= 0x80000000u && first_edge_negative)
+	if (sign_bits <= 0x80000000u && first_edge_negative) {
 #else
 	if (*(const uint32_t *)&edge_cross <= 0x80000000u &&
-	    first_edge_negative)
+	    first_edge_negative) {
 #endif
 		return 0;
+	}
 	return 1;
 }
 

@@ -736,14 +736,14 @@ void flight_update_timers(void)
 			g_cur_craft =
 				g_object_table[object_index].mobj->p_craft;
 			controller = &g_cur_craft->ai_controller;
-			if (controller->think_timer != 0)
-
+			if (controller->think_timer != 0) {
 #ifdef XVT_MODERN
 				controller->think_timer -=
 					xvt_flight_timing_reference_elapsed();
 #else
 				controller->think_timer -= g_elapsed_ticks;
 #endif
+			}
 
 			if (controller->maneuver_timer != 0) {
 
@@ -824,8 +824,7 @@ void flight_update_timers(void)
 							 .mobj->p_char_data
 							 ->ai_controller;
 
-					if (controller->think_timer != 0)
-
+					if (controller->think_timer != 0) {
 #ifdef XVT_MODERN
 						controller->think_timer -=
 							xvt_flight_timing_reference_elapsed();
@@ -833,6 +832,7 @@ void flight_update_timers(void)
 						controller->think_timer -=
 							g_elapsed_ticks;
 #endif
+					}
 
 					if (controller->maneuver_timer != 0) {
 
@@ -1321,16 +1321,22 @@ void flight_free_world_state_buffers(void)
 
 	handle = g_world_state_handle;
 #ifdef XVT_MODERN
-	if (handle)
-#endif
+	if (handle) {
 		memory_free_handle((uint16_t)handle);
+	}
+#else
+	memory_free_handle((uint16_t)handle);
+#endif
 	g_world_state_handle = 0;
 	g_world_state_buffer = NULL;
 	handle = g_world_state_dup_handle;
 #ifdef XVT_MODERN
-	if (handle)
-#endif
+	if (handle) {
 		memory_free_handle((uint16_t)handle);
+	}
+#else
+	memory_free_handle((uint16_t)handle);
+#endif
 	g_world_state_dup_handle = 0;
 	g_world_state_dup_buffer = NULL;
 }

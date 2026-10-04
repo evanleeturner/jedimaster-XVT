@@ -605,14 +605,14 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 			    (uint32_t)g_proj_scale_half_int;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
-		    (uint32_t)projection_depth)
+		    (uint32_t)projection_depth) {
 #else
 		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projection_depth)
+		    (uint32_t)projection_depth) {
 #endif
 			quotient = (uint32_t)(numerator /
 					      (uint32_t)projection_depth);
-		else {
+		} else {
 			quotient = PROJECTION_SATURATION;
 		}
 		projected_x = -(int)quotient;
@@ -630,14 +630,14 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 			    (uint32_t)g_proj_scale_half_int;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
-		    (uint32_t)projection_depth)
+		    (uint32_t)projection_depth) {
 #else
 		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projection_depth)
+		    (uint32_t)projection_depth) {
 #endif
 			projected_x =
 				(int)(numerator / (uint32_t)projection_depth);
-		else {
+		} else {
 			projected_x = PROJECTION_SATURATION;
 		}
 	}
@@ -661,14 +661,14 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 			    (uint32_t)g_proj_scale_half_int;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
-		    (uint32_t)projection_depth)
+		    (uint32_t)projection_depth) {
 #else
 		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projection_depth)
+		    (uint32_t)projection_depth) {
 #endif
 			quotient = (uint32_t)(numerator /
 					      (uint32_t)projection_depth);
-		else {
+		} else {
 			quotient = PROJECTION_SATURATION;
 		}
 		projected_y = -(int)quotient;
@@ -686,14 +686,14 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 			    (uint32_t)g_proj_scale_half_int;
 #ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
-		    (uint32_t)projection_depth)
+		    (uint32_t)projection_depth) {
 #else
 		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projection_depth)
+		    (uint32_t)projection_depth) {
 #endif
 			projected_y =
 				(int)(numerator / (uint32_t)projection_depth);
-		else {
+		} else {
 			projected_y = PROJECTION_SATURATION;
 		}
 	}

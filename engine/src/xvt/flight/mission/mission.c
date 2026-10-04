@@ -3397,15 +3397,16 @@ int16_t mission_object_matches_trigger_variable(uint16_t object_idx,
 						    .bound_flight_group_idx]
 					    .fg.player_number -
 				    variable ==
-			    1)
+			    1) {
 #else
 		if (g_mission_flight_groups[g_players[object->player_owner_idx]
 						    .bound_flight_group_idx]
 				    .fg.player_number -
 			    variable ==
-		    1)
+		    1) {
 #endif
 			result = 1;
+		}
 		break;
 	case 14: {
 		uint16_t target_time = 5 * variable;

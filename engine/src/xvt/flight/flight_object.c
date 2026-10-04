@@ -97,8 +97,9 @@ void flight_object_update_special_behavior(void)
 #ifdef XVT_MODERN
 	    || !xvt_flight_timing_reference_due()
 #endif
-	)
+	) {
 		return;
+	}
 
 #ifdef XVT_MODERN
 	xvt_flight_timing_animation_event();

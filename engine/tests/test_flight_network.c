@@ -535,8 +535,8 @@ static void check_receive_world(void)
 	/* And so does a full queue. */
 	flight_network_world(0);
 	cookie = agree_cookie();
-	while (xvt_flight_messages_push(XVT_QUEUE_PENDING, "x", 1))
-		;
+	while (xvt_flight_messages_push(XVT_QUEUE_PENDING, "x", 1)) {
+	}
 	unsigned full = xvt_flight_messages_count(XVT_QUEUE_PENDING);
 	size = world_part(cookie, 8, 0x01);
 	XVT_ASSERT_INT_EQ(xvt_flight_network_receive(HOST_DPID, g_packet, size),
@@ -698,8 +698,8 @@ static void check_should_send(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_network_take_world_send_turn(due), 1);
 
 	send_ready();
-	while (xvt_flight_messages_push(XVT_QUEUE_PENDING, "x", 1))
-		;
+	while (xvt_flight_messages_push(XVT_QUEUE_PENDING, "x", 1)) {
+	}
 	XVT_ASSERT_INT_EQ(xvt_flight_network_take_world_send_turn(due), 0);
 	xvt_flight_messages_clear(XVT_QUEUE_PENDING);
 	XVT_ASSERT_INT_EQ(xvt_flight_network_take_world_send_turn(due), 1);
@@ -792,8 +792,8 @@ static void check_send_world_refusals(void)
 
 	/* A full pending queue requests recovery. */
 	flight_network_world(1);
-	while (xvt_flight_messages_push(XVT_QUEUE_PENDING, "x", 1))
-		;
+	while (xvt_flight_messages_push(XVT_QUEUE_PENDING, "x", 1)) {
+	}
 	unsigned full = xvt_flight_messages_count(XVT_QUEUE_PENDING);
 	xvt_flight_network_send_world();
 	XVT_ASSERT_INT_EQ(xvt_flight_network_needs_recovery(), 1);
