@@ -5,6 +5,7 @@
 
 #include "xvt/net/net_session.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Index of the next free entry in g_net_session_recv_queue, 0 to 1023. Six
  * writers; chiefly net_session_pump_incoming_packets, which queues arrivals,
@@ -64,6 +65,9 @@ int net_reliable_check_and_record_recv_sequence(int direct_play_id,
 		net_reliable_find_or_create_peer_slot(direct_play_id);
 	if (saved_slot_count != g_net_session.reliable_peer_slot_count ||
 	    slot >= 40) {
+		XVT_LOG_DEBUG(
+			"network.sequence_unchecked peer=%u seq=%d reason=\"%s\"",
+			slot, sequence, slot >= 40 ? "table_full" : "new_peer");
 		return 0;
 	}
 
@@ -81,6 +85,13 @@ int net_reliable_check_and_record_recv_sequence(int direct_play_id,
 
 	int delta = sequence - recv_sequence;
 	if (delta >= -64 && (delta <= 0 || delta >= 64)) {
+		XVT_LOG_DEBUG(
+			"network.sequence_seen peer=%u channel=\"%s\" seq=%d newest=%d fresh=%d",
+			slot,
+			channel_a   ? "broadcast"
+			: channel_b ? "group"
+				    : "one_player",
+			sequence, recv_sequence, 0);
 		return 1;
 	}
 
@@ -94,6 +105,13 @@ int net_reliable_check_and_record_recv_sequence(int direct_play_id,
 		g_net_session.reliable_peer_slots[slot].recv_seq_default =
 			sequence;
 	}
+	XVT_LOG_DEBUG(
+		"network.sequence_seen peer=%u channel=\"%s\" seq=%d newest=%d fresh=%d",
+		slot,
+		channel_a   ? "broadcast"
+		: channel_b ? "group"
+			    : "one_player",
+		sequence, recv_sequence, 1);
 	return 0;
 }
 
@@ -143,15 +161,27 @@ int net_reliable_find_queued_recv_packet(int unused_search_index,
 				if (channel_a != 0) {
 					if (is_class0 &&
 					    sequence_byte == remote_seq) {
+						XVT_LOG_DEBUG(
+							"network.resend_lookup peer=%d channel=\"%s\" seq=%d index=%d",
+							peer_slot, "broadcast",
+							remote_seq, index);
 						return index;
 					}
 				} else if (channel_b != 0) {
 					if (is_class2 &&
 					    sequence_byte == remote_seq) {
+						XVT_LOG_DEBUG(
+							"network.resend_lookup peer=%d channel=\"%s\" seq=%d index=%d",
+							peer_slot, "group",
+							remote_seq, index);
 						return index;
 					}
 				} else if (!is_class0 && !is_class2 &&
 					   sequence_byte == remote_seq) {
+					XVT_LOG_DEBUG(
+						"network.resend_lookup peer=%d channel=\"%s\" seq=%d index=%d",
+						peer_slot, "one_player",
+						remote_seq, index);
 					return index;
 				}
 			}
@@ -160,6 +190,13 @@ int net_reliable_find_queued_recv_packet(int unused_search_index,
 			index = 0;
 		}
 	}
+	XVT_LOG_DEBUG(
+		"network.resend_lookup peer=%d channel=\"%s\" seq=%d index=%d",
+		peer_slot,
+		channel_a != 0	 ? "broadcast"
+		: channel_b != 0 ? "group"
+				 : "one_player",
+		remote_seq, -1);
 	return -1;
 }
 
@@ -171,6 +208,17 @@ int net_reliable_find_queued_recv_packet(int unused_search_index,
 // FUNCTION: XVT 0x46FDF0
 int net_reliable_remove_queued_packet(unsigned int queue_index)
 {
+	XVT_LOG_DEBUG("network.queue_removed index=%u read=%d queued=%u",
+		      queue_index, g_net_recv_queue_read_index,
+		      g_net_recv_queue_count);
+	if (queue_index >= 1024u ||
+	    ((queue_index - (unsigned)g_net_recv_queue_read_index) & 1023u) >=
+		    g_net_recv_queue_count) {
+		XVT_LOG_WARN(
+			"network.queue_remove_unqueued index=%u read=%d queued=%u",
+			queue_index, g_net_recv_queue_read_index,
+			g_net_recv_queue_count);
+	}
 	if (g_net_recv_queue_read_index == (int)queue_index) {
 		++g_net_recv_queue_read_index;
 		--g_net_recv_queue_count;
@@ -264,6 +312,14 @@ unsigned int net_reliable_find_or_create_peer_slot(int direct_play_id)
 		unsigned int *peer_slot_count =
 			&g_net_session.reliable_peer_slot_count;
 		++*peer_slot_count;
+		XVT_LOG_DEBUG("network.peer_added peer=%u player=%u peers=%u",
+			      slot, (unsigned)direct_play_id,
+			      g_net_session.reliable_peer_slot_count);
+	}
+	if (slot >= 40) {
+		XVT_LOG_WARN("network.peer_table_full player=%u peers=%u",
+			     (unsigned)direct_play_id,
+			     g_net_session.reliable_peer_slot_count);
 	}
 
 	return slot;
@@ -318,6 +374,8 @@ int net_reliable_get_peer_packet_drop_count_by_dpid(int direct_play_id)
 		} while (slot < g_net_session.reliable_peer_slot_count);
 	}
 #ifdef XVT_MODERN
+	XVT_LOG_WARN("network.drop_count_unknown_peer peers=%u",
+		     g_net_session.reliable_peer_slot_count);
 	return -1;
 #endif
 }
@@ -381,6 +439,9 @@ int net_reliable_keep_only_host_received_packets(void)
 			++slot;
 		} while (g_net_session.reliable_peer_slot_count > slot);
 	}
+	XVT_LOG_DEBUG("network.queue_trimmed kept=%u write=%u peers=%u",
+		      kept_count, dst_index,
+		      g_net_session.reliable_peer_slot_count);
 
 	return 1;
 }

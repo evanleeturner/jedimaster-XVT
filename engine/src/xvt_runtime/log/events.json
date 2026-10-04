@@ -563,6 +563,11 @@
       "fields": ["buffer", "queue", "players", "timeout"],
       "text": "DirectPlay reported its limits: packets of {buffer} bytes, a queue of {queue} packets, {players} players, a {timeout} ms timeout"
     },
+    "network.drop_count_unknown_peer": {
+      "level": "W",
+      "fields": ["peers"],
+      "text": "A packet drop count was asked for a player with no connection entry among {peers}; -1 was returned"
+    },
     "network.fell_behind": {
       "level": "D",
       "fields": ["input", "server", "adjust"],
@@ -1148,6 +1153,11 @@
       "fields": ["type"],
       "text": "A lobby packet of unknown type {type} was ignored"
     },
+    "network.peer_added": {
+      "level": "D",
+      "fields": ["peer", "player", "peers"],
+      "text": "Connection entry {peer} was added for player {player}; {peers} entries were in use"
+    },
     "network.peer_slot_added": {
       "level": "D",
       "fields": ["player", "peer"],
@@ -1157,6 +1167,11 @@
       "level": "D",
       "fields": ["player", "peer", "delivered", "drops", "gaps", "left"],
       "text": "Departed player {player}'s connection entry {peer} was freed after {delivered} packets delivered, {drops} losses and {gaps} gaps asked for; {left} entries remained"
+    },
+    "network.peer_table_full": {
+      "level": "W",
+      "fields": ["player", "peers"],
+      "text": "The connection table was full ({peers} entries); player {player} got no entry, and its packets use the spare entry past the end"
     },
     "network.ping_answered": {
       "level": "D",
@@ -1243,6 +1258,21 @@
       "fields": ["from", "peer", "channel", "sequence", "expected", "retries", "queued"],
       "text": "The receive queue was full with nothing in order to deliver; packet {sequence} from player {from} (entry {peer}, channel {channel}), whose gap had {retries} resend requests, was delivered past the expected {expected}; {queued} packets queued"
     },
+    "network.queue_remove_unqueued": {
+      "level": "W",
+      "fields": ["index", "read", "queued"],
+      "text": "Receive queue entry {index} was taken out though it held no queued packet (oldest {read}, {queued} queued)"
+    },
+    "network.queue_removed": {
+      "level": "D",
+      "fields": ["index", "read", "queued"],
+      "text": "Receive queue entry {index} was taken out, with the oldest at {read} and {queued} packets queued"
+    },
+    "network.queue_trimmed": {
+      "level": "D",
+      "fields": ["kept", "write", "peers"],
+      "text": "The receive queue was cut to the {kept} packets from the host and the system, ending before entry {write}; the newest sequences of the other peers among {peers} slots counted as delivered"
+    },
     "network.ready_changed": {
       "level": "D",
       "fields": ["player", "ready", "index"],
@@ -1298,6 +1328,11 @@
       "fields": [],
       "text": "The world messages kept for replay were dropped"
     },
+    "network.resend_lookup": {
+      "level": "D",
+      "fields": ["peer", "channel", "seq", "index"],
+      "text": "The receive queue was searched for a resent copy of sequence {seq} from connection entry {peer} on the {channel} channel: entry {index} (-1 for none)"
+    },
     "network.resend_sent": {
       "level": "D",
       "fields": ["to", "channel", "sequence", "type", "bytes", "result"],
@@ -1342,6 +1377,16 @@
       "level": "E",
       "fields": ["bytes"],
       "text": "A packet of {bytes} bytes, too short to hold its type, was refused and not sent"
+    },
+    "network.sequence_seen": {
+      "level": "D",
+      "fields": ["peer", "channel", "seq", "newest", "fresh"],
+      "text": "Sequence {seq} arrived from connection entry {peer} on the {channel} channel, the newest before it {newest}; new: {fresh}"
+    },
+    "network.sequence_unchecked": {
+      "level": "D",
+      "fields": ["peer", "seq", "reason"],
+      "text": "Sequence {seq} from connection entry {peer} was taken as new without a check ({reason})"
     },
     "network.server_checksum": {
       "level": "D",
