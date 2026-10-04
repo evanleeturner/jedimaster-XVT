@@ -1,4 +1,7 @@
 #include "xvt/render/std3d.h"
+#ifdef XVT_MODERN
+#include "xvt_runtime/log/log.h"
+#endif
 
 #include <math.h>
 #include <stdlib.h>
@@ -89,27 +92,31 @@ static IDirectDraw *g_std3d_direct_draw = 0;
  * std3d_enum_texture_formats, which skips 4-bit palette formats. */
 // GLOBAL: XVT 0xA90C00
 static struct std3d_tex_fmt g_std3d_texture_formats[8] = {0};
-/* Message std3d_shutdown passes to debug_printf, whose calls print nothing. */
+#ifndef XVT_MODERN
+/* Message std3d_shutdown passes to debug_printf in the 1997 build; the modern
+ * build writes d3d.shutdown instead. */
 // GLOBAL: XVT 0x529168
 static const char g_std3d_shutdown_succeeded_message[] =
 	"Shutdown Succeeded.\n";
+#endif
 /* What std3d_lookup_error_string returns for a code the table lacks. */
 // GLOBAL: XVT 0x5293B0
 static const char g_std3d_unknown_error_message[] = "Unknown Error";
-/* Format passed to debug_printf, whose calls print nothing, when a scene does
- * not begin. */
+#ifndef XVT_MODERN
+/* The next three are formats the 1997 build passes to debug_printf; the modern
+ * build writes d3d.call_failed with the step instead. This one when a scene
+ * does not begin. */
 // GLOBAL: XVT 0x529470
 static const char g_std3d_begin_scene_error_format[] =
 	"Error %s beginning scene.\n";
-/* Format passed to debug_printf, whose calls print nothing, when a scene does
- * not end. */
+/* When a scene does not end. */
 // GLOBAL: XVT 0x52948C
 static const char g_std3d_end_scene_error_format[] = "Error %s ending scene.\n";
-/* Format passed to debug_printf, whose calls print nothing, when the execute
- * buffer does not lock. */
+/* When the execute buffer does not lock. */
 // GLOBAL: XVT 0x5294A4
 static const char g_std3d_lock_execute_buffer_error_format[] =
 	"Error %s locking D3D Execute buffer.\n";
+#endif
 /* Rows of a result code and its name, for the Direct3D and then the DirectDraw
  * codes, that std3d_lookup_error_string searches. */
 // GLOBAL: XVT 0x528CC0
@@ -511,44 +518,78 @@ int std3d_startup(void)
 {
 	g_std3d_direct_draw = renderer_get_direct_draw();
 	if (g_std3d_direct_draw == NULL) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR("d3d.failed reason=\"no_ddraw_device\"");
+#else
 		debug_printf("DDraw device not created yet!\n", 0, 0, 0, 0);
+#endif
 		return 0;
 	}
 
 	g_std3d_render_option_flags = 0x19b3;
 	g_std3dz_buffer_enabled = 1;
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.step step=\"create_interface\"");
+#else
 	debug_printf("Creating D3D interface object.\n", 0, 0, 0, 0);
+#endif
 	int result = g_std3d_direct_draw->lpVtbl->QueryInterface(
 		g_std3d_direct_draw, &CLSID_IDirect3D, (void **)&g_lp_d3d);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"create_interface\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s creating Direct3D interface object.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 		return 0;
 	}
 
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.step step=\"enumerate_devices\"");
+#else
 	debug_printf("Enumerating D3D devices.\n", 0, 0, 0, 0);
+#endif
 	g_std3d_num_devices = 0;
 	result = g_lp_d3d->lpVtbl->EnumDevices(
 		g_lp_d3d, std3d_enum_devices_callback, NULL);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"enumerate_devices\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s when enumerating D3D devices.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 		return 0;
 	}
 	if (g_std3d_num_devices == 0) {
 		return 0;
 	}
 
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.devices_found count=%u", g_std3d_num_devices);
+#else
 	debug_printf("%d D3D devices found.\n", g_std3d_num_devices,
 		     std3d_lookup_error_string(result,
 					       g_std3d_error_string_table, 121),
 		     0, 0);
+#endif
 	g_std3d_startup_done = 1;
+#ifdef XVT_MODERN
+	XVT_LOG_INFO("d3d.started devices=%u", g_std3d_num_devices);
+#else
 	debug_printf("Startup Succeeded.\n", 0, 0, 0, 0);
+#endif
 	return 1;
 }
 
@@ -601,7 +642,11 @@ void std3d_shutdown(void)
 		g_lp_d3d = NULL;
 #endif
 	}
+#ifdef XVT_MODERN
+	XVT_LOG_INFO("d3d.shutdown");
+#else
 	debug_printf(g_std3d_shutdown_succeeded_message, 0, 0, 0, 0);
+#endif
 	g_std3d_startup_done = 0;
 }
 
@@ -619,7 +664,11 @@ void std3d_shutdown(void)
 int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 {
 	if (g_std3d_device_open != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR("d3d.failed reason=\"already_open\"");
+#else
 		debug_printf("Error: Multiple Opens Attempted.\n", 0, 0, 0, 0);
+#endif
 		return 0;
 	}
 	if (g_std3d_num_devices <= device_idx) {
@@ -636,20 +685,33 @@ int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 		if (std3d_create_z_buffer(g_p_std3d_render_target->width,
 					  g_p_std3d_render_target->height) ==
 		    0) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR("d3d.failed reason=\"z_buffer\"");
+#else
 			debug_printf("Error creating Z buffer.\n", 0, 0, 0, 0);
+#endif
 			return 0;
 		}
 		g_std3dz_compare_cap = 16;
 		if ((g_p_std3d_cur_device->caps.z_cmp_caps_mask & 0x10) == 0) {
 			g_std3dz_compare_cap = 2;
 		}
+#ifdef XVT_MODERN
+		XVT_LOG_DEBUG("d3d.z_compare mode=\"%s\"",
+			      g_std3dz_compare_cap == 16 ? "greater" : "less");
+#else
 		debug_printf("Z compare: %s\n",
 			     g_std3dz_compare_cap == 16 ? "Greater" : "Less", 0,
 			     0, 0);
+#endif
 	}
 
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.device_creating device=%u", g_std3d_cur_device_idx);
+#else
 	debug_printf("Creating D3D device #%d.\n", g_std3d_cur_device_idx, 0, 0,
 		     0);
+#endif
 	HRESULT result = g_std3d_render_surface->lpVtbl->QueryInterface(
 		g_std3d_render_surface, &g_p_std3d_cur_device->guid,
 		(void **)&g_d3d_device);
@@ -657,8 +719,14 @@ int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 	if (result != 0) {
 		error_string = std3d_lookup_error_string(
 			result, g_std3d_error_string_table, 121);
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"create_device\" error=\"%s\"",
+			error_string);
+#else
 		debug_printf("Error %s creating Direct3D device.\n",
 			     error_string, 0, 0, 0);
+#endif
 		return 0;
 	}
 
@@ -668,31 +736,58 @@ int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 	if (result != 0) {
 		error_string = std3d_lookup_error_string(
 			result, g_std3d_error_string_table, 121);
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"enumerate_texture_formats\" error=\"%s\"",
+			error_string);
+#else
 		debug_printf(
 			"Error %s when enumerating D3D device texture formats.\n",
 			error_string, 0, 0, 0);
+#endif
 		return 0;
 	}
 	if (g_std3d_num_texture_formats == 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR("d3d.failed reason=\"no_texture_formats\"");
+#else
 		debug_printf("Error: no texture formats found.\n", 0, 0, 0, 0);
+#endif
 		return 0;
 	}
 
 	error_string =
 		std3d_lookup_error_string(0, g_std3d_error_string_table, 121);
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.texture_formats_found count=%d",
+		      g_std3d_num_texture_formats);
+#else
 	debug_printf("%d texture formats found.\n", g_std3d_num_texture_formats,
 		     error_string, 0);
+#endif
 	if (std3d_create_viewport(g_p_std3d_render_target->width,
 				  g_p_std3d_render_target->height) == 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR("d3d.failed reason=\"viewport\"");
+#else
 		debug_printf("Error creating viewport.\n", 0, 0, 0, 0);
+#endif
 		return 0;
 	}
 	if (std3d_set_initial_render_state() == 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR("d3d.failed reason=\"render_state\"");
+#else
 		debug_printf("Error initializing render state.\n", 0, 0, 0, 0);
+#endif
 		return 0;
 	}
 
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.step step=\"create_execute_buffer\"");
+#else
 	debug_printf("Creating Execute buffer.\n", 0, 0, 0, 0);
+#endif
 	unsigned int max_buffer_size =
 		g_p_std3d_cur_device->caps.max_buffer_size;
 	g_std3d_exec_buf_size = 0x10000;
@@ -712,18 +807,33 @@ int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 		max_vertex_count == 0
 			? 512
 			: (max_vertex_count < 512 ? max_vertex_count : 512);
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.execute_buffer bytes=%u", g_std3d_exec_buf_size);
+#else
 	debug_printf("Execute buffer size: %d.\n", g_std3d_exec_buf_size, 0, 0,
 		     0);
+#endif
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.execute_buffer_vertices max=%u",
+		      g_std3d_exec_buf_max_verts);
+#else
 	debug_printf("Max vertices: %d.\n", g_std3d_exec_buf_max_verts, 0, 0,
 		     0);
+#endif
 	result = g_d3d_device->lpVtbl->CreateExecuteBuffer(
 		g_d3d_device, &g_d3d_exec_buf_desc, &g_d3d_execute_buffer,
 		NULL);
 	if (result != 0) {
 		error_string = std3d_lookup_error_string(
 			result, g_std3d_error_string_table, 121);
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"create_execute_buffer\" error=\"%s\"",
+			error_string);
+#else
 		debug_printf("Error %s creating D3D Execute buffer.\n",
 			     error_string, 0, 0, 0);
+#endif
 	}
 
 	g_tex_cache_count = 0;
@@ -770,12 +880,26 @@ int std3d_create_device(unsigned int device_idx, int b_use_z_buffer)
 
 	std3d_query_texture_vid_mem(&g_p_std3d_cur_device->total_memory,
 				    &g_p_std3d_cur_device->available_memory);
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.texture_ram total=%u free=%u",
+		      g_p_std3d_cur_device->total_memory,
+		      g_p_std3d_cur_device->available_memory);
+#else
 	debug_printf("Texture Ram  Total: %d bytes  Free: %d bytes.\n",
 		     g_p_std3d_cur_device->total_memory,
 		     g_p_std3d_cur_device->available_memory, 0, 0);
+#endif
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.device_opened device=%u", g_std3d_cur_device_idx);
+#else
 	debug_printf("Device #%d opened successfully.\n",
 		     g_std3d_cur_device_idx, 0, 0, 0);
+#endif
+#ifdef XVT_MODERN
+	XVT_LOG_INFO("d3d.opened device=%u", g_std3d_cur_device_idx);
+#else
 	debug_printf("std3D opened.\n", 0, 0, 0, 0);
+#endif
 	g_std3d_device_open = 1;
 	return 1;
 }
@@ -958,8 +1082,15 @@ void std3d_lock_v_buffer(struct std3dv_buffer *vbuffer)
 			vbuffer->dd_surface, NULL, &surface_desc, DDLOCK_WAIT,
 			NULL);
 		if (result != 0) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.buffer_call_failed op=\"lock\" result=%#x buffer=%p surface=%p",
+				(unsigned int)result, (void *)vbuffer,
+				(void *)vbuffer->dd_surface);
+#else
 			debug_printf("Error %x locking buffer %x, surface %x\n",
 				     result, vbuffer, vbuffer->dd_surface);
+#endif
 			return;
 		}
 		vbuffer->pixels = surface_desc.lpSurface;
@@ -976,8 +1107,12 @@ void std3d_lock_v_buffer(struct std3dv_buffer *vbuffer)
 void std3d_unlock_v_buffer(struct std3dv_buffer *vbuffer)
 {
 	if ((unsigned int)vbuffer->lock_count < 1) {
+#ifdef XVT_MODERN
+		XVT_LOG_WARN("d3d.unlock_unlocked buffer=%p", (void *)vbuffer);
+#else
 		debug_printf("Unlock Warning: buffer %x, not locked\n",
 			     vbuffer);
+#endif
 		return;
 	}
 
@@ -985,9 +1120,16 @@ void std3d_unlock_v_buffer(struct std3dv_buffer *vbuffer)
 		HRESULT result = vbuffer->dd_surface->lpVtbl->Unlock(
 			vbuffer->dd_surface, vbuffer->pixels);
 		if (result != 0) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.buffer_call_failed op=\"unlock\" result=%#x buffer=%p surface=%p",
+				(unsigned int)result, (void *)vbuffer,
+				(void *)vbuffer->dd_surface);
+#else
 			debug_printf(
 				"Error %x unlocking buffer %x, surface %x\n",
 				result, vbuffer, vbuffer->dd_surface);
+#endif
 			return;
 		}
 	}
@@ -1003,7 +1145,11 @@ void std3d_unlock_v_buffer(struct std3dv_buffer *vbuffer)
 void std3d_close(void)
 {
 	if (!g_std3d_device_open) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR("d3d.failed reason=\"already_closed\"");
+#else
 		debug_printf("Error: Multiple Closes Attempted.\n", 0, 0, 0, 0);
+#endif
 		return;
 	}
 
@@ -1037,7 +1183,11 @@ void std3d_close(void)
 		g_d3d_device = NULL;
 	}
 
+#ifdef XVT_MODERN
+	XVT_LOG_INFO("d3d.closed");
+#else
 	debug_printf("std3D closed.\n", 0, 0, 0, 0);
+#endif
 	g_std3d_device_open = 0;
 }
 
@@ -1156,7 +1306,11 @@ void std3d_set_cap_flags(unsigned int cap_flags)
 	g_std3d_render_option_flags = cap_flags;
 	int result = std3d_set_initial_render_state();
 	if (result == 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR("d3d.failed reason=\"render_state\"");
+#else
 		debug_printf("Error initializing render state.\n", 0, 0, 0, 0);
+#endif
 	}
 }
 
@@ -1201,10 +1355,17 @@ void std3d_start_scene(void)
 {
 	int result = g_d3d_device->lpVtbl->BeginScene(g_d3d_device);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"begin_scene\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf(g_std3d_begin_scene_error_format,
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 	}
 }
 
@@ -1214,10 +1375,16 @@ void std3d_end_scene(void)
 {
 	int result = g_d3d_device->lpVtbl->EndScene(g_d3d_device);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR("d3d.call_failed step=\"end_scene\" error=\"%s\"",
+			      std3d_lookup_error_string(
+				      result, g_std3d_error_string_table, 121));
+#else
 		debug_printf(g_std3d_end_scene_error_format,
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 	}
 }
 
@@ -1235,10 +1402,17 @@ int std3d_lock_execute_buffer(void)
 	int result = g_d3d_execute_buffer->lpVtbl->Lock(g_d3d_execute_buffer,
 							&g_d3d_exec_buf_desc);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"lock_execute_buffer\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf(g_std3d_lock_execute_buffer_error_format,
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 		return 0;
 	}
 	g_d3d_exec_buf_base = (uint8_t *)g_d3d_exec_buf_desc.lpData;
@@ -1438,10 +1612,17 @@ int std3d_execute_buffer(void)
 
 	int result = g_d3d_execute_buffer->lpVtbl->Unlock(g_d3d_execute_buffer);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"unlock_execute_buffer\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s unlocking D3D Execute buffer.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 		return 0;
 	}
 
@@ -1459,10 +1640,17 @@ int std3d_execute_buffer(void)
 		g_d3d_device, g_d3d_execute_buffer, g_d3d_viewport,
 		D3DEXECUTE_UNCLIPPED);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"execute_buffer\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s executing buffer.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 		return 0;
 	}
 	return 1;
@@ -1850,23 +2038,45 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 		node->uses_alpha_format = 1;
 		if (translucent) {
 			surface_desc = g_p_fmt_rgba4444->ddsd;
+#ifdef XVT_MODERN
+			XVT_LOG_DEBUG(
+				"d3d.texture_format format=%d kind=\"rgba4444\"",
+				g_fmt_idx_rgba4444);
+#else
 			debug_printf("Using D3D texture format #%d.\n",
 				     g_fmt_idx_rgba4444, 0, 0, 0);
+#endif
 		} else {
 			surface_desc = g_p_fmt_rgba1555->ddsd;
+#ifdef XVT_MODERN
+			XVT_LOG_DEBUG(
+				"d3d.texture_format format=%d kind=\"rgba1555\"",
+				g_fmt_idx_rgba1555);
+#else
 			debug_printf("Using D3D texture format #%d.\n",
 				     g_fmt_idx_rgba1555, 0, 0, 0);
+#endif
 		}
 	} else if (translucent) {
 		node->uses_alpha_format = 1;
 		surface_desc = g_p_fmt_rgba4444->ddsd;
+#ifdef XVT_MODERN
+		XVT_LOG_DEBUG("d3d.texture_format format=%d kind=\"rgba4444\"",
+			      g_fmt_idx_rgba4444);
+#else
 		debug_printf("Using D3D texture format #%d.\n",
 			     g_fmt_idx_rgba4444, 0, 0, 0);
+#endif
 	} else {
 		node->uses_alpha_format = 0;
 		surface_desc = g_p_fmt_opaque_texture->ddsd;
+#ifdef XVT_MODERN
+		XVT_LOG_DEBUG("d3d.texture_format format=%d kind=\"opaque\"",
+			      g_fmt_idx_opaque_texture);
+#else
 		debug_printf("Using D3D texture format #%d.\n",
 			     g_fmt_idx_opaque_texture, 0, 0, 0);
+#endif
 	}
 	surface_desc.dwWidth = width;
 	surface_desc.dwHeight = height;
@@ -1883,12 +2093,20 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 			g_std3d_direct_draw, &surface_desc, &source_surface,
 			NULL);
 		if (result) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.call_failed step=\"create_source_surface\" error=\"%s\"",
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121));
+#else
 			debug_printf(
 				"Error %s when creating the DirectDraw source surface.\n",
 				std3d_lookup_error_string(
 					result, g_std3d_error_string_table,
 					121),
 				0, 0, 0);
+#endif
 			source_surface = NULL;
 			break;
 		}
@@ -1898,12 +2116,20 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 		result = source_surface->lpVtbl->Lock(
 			source_surface, NULL, &locked_desc, DDLOCK_WAIT, NULL);
 		if (result) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.call_failed step=\"lock_source_surface\" error=\"%s\"",
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121));
+#else
 			debug_printf(
 				"Error %s when locking the DDSurface source buffer.\n",
 				std3d_lookup_error_string(
 					result, g_std3d_error_string_table,
 					121),
 				0, 0, 0);
+#endif
 			break;
 		}
 
@@ -2034,12 +2260,20 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 
 		result = source_surface->lpVtbl->Unlock(source_surface, NULL);
 		if (result) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.call_failed step=\"unlock_source_surface\" error=\"%s\"",
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121));
+#else
 			debug_printf(
 				"Error %s when unlocking the DDSurface source buffer.\n",
 				std3d_lookup_error_string(
 					result, g_std3d_error_string_table,
 					121),
 				0, 0, 0);
+#endif
 			break;
 		}
 
@@ -2073,23 +2307,39 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 			source_surface, &CLSID_IDirect3DTexture,
 			(void **)&source_texture);
 		if (result) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.call_failed step=\"create_source_texture\" error=\"%s\"",
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121));
+#else
 			debug_printf(
 				"Error %s creating Direct3D source texture.\n",
 				std3d_lookup_error_string(
 					result, g_std3d_error_string_table,
 					121),
 				0, 0, 0);
+#endif
 			source_texture = NULL;
 			break;
 		}
 		result = source_surface->lpVtbl->GetSurfaceDesc(source_surface,
 								&surface_desc);
 		if (result) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.call_failed step=\"get_surface_description\" error=\"%s\"",
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121));
+#else
 			debug_printf("Error %s get surface description.\n",
 				     std3d_lookup_error_string(
 					     result, g_std3d_error_string_table,
 					     121),
 				     0, 0, 0);
+#endif
 #ifndef XVT_MODERN
 			source_texture = NULL;
 #endif
@@ -2107,6 +2357,14 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 			&destination_surface, NULL);
 		if (result) {
 			if (result != -2005532292) {
+#ifdef XVT_MODERN
+				XVT_LOG_ERROR(
+					"d3d.call_failed step=\"create_texture_surface\" error=\"%s\"",
+					std3d_lookup_error_string(
+						result,
+						g_std3d_error_string_table,
+						121));
+#else
 				debug_printf(
 					"Error %s creating texture surface.\n",
 					std3d_lookup_error_string(
@@ -2114,16 +2372,29 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 						g_std3d_error_string_table,
 						121),
 					0, 0, 0);
+#endif
 				break;
 			}
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.call_failed step=\"create_surface\" error=\"%s\"",
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121));
+#else
 			debug_printf("Error %s Creating surface.\n",
 				     std3d_lookup_error_string(
 					     result, g_std3d_error_string_table,
 					     121),
 				     0, 0, 0);
+#endif
+#ifdef XVT_MODERN
+			XVT_LOG_WARN("d3d.texture_purge");
+#else
 			debug_printf(
 				"Assuming texture ram overflow - PURGING.\n", 0,
 				0, 0, 0);
+#endif
 			{
 				int created = 0;
 				struct std3d_tex_cache_node *candidate =
@@ -2151,9 +2422,14 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 						candidate = candidate->p_next;
 					}
 					if (freed < texel_count) {
+#ifdef XVT_MODERN
+						XVT_LOG_WARN(
+							"d3d.scene_texture_overflow");
+#else
 						debug_printf(
 							"WARNING: Scene texture overflow occurred!!!.\n",
 							0, 0, 0, 0);
+#endif
 						destination_surface = NULL;
 						break;
 					}
@@ -2166,10 +2442,23 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 								NULL);
 					if (!result) {
 						created = 1;
+#ifdef XVT_MODERN
+						XVT_LOG_DEBUG(
+							"d3d.texture_purge_recovered");
+#else
 						debug_printf(
 							"Success adding new texture after purge.\n",
 							0, 0, 0, 0);
+#endif
 					} else if (result != -2005532292) {
+#ifdef XVT_MODERN
+						XVT_LOG_ERROR(
+							"d3d.call_failed step=\"create_texture_surface\" error=\"%s\"",
+							std3d_lookup_error_string(
+								result,
+								g_std3d_error_string_table,
+								121));
+#else
 						debug_printf(
 							"Error %s creating texture surface.\n",
 							std3d_lookup_error_string(
@@ -2177,6 +2466,7 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 								g_std3d_error_string_table,
 								121),
 							0, 0, 0);
+#endif
 						destination_surface = NULL;
 						break;
 					}
@@ -2191,34 +2481,58 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 			destination_surface, &CLSID_IDirect3DTexture,
 			(void **)&destination_texture);
 		if (result) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.call_failed step=\"create_dest_texture\" error=\"%s\"",
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121));
+#else
 			debug_printf(
 				"Error %s creating Direct3D dest texture.\n",
 				std3d_lookup_error_string(
 					result, g_std3d_error_string_table,
 					121),
 				0, 0, 0);
+#endif
 			destination_texture = NULL;
 			break;
 		}
 		result = destination_texture->lpVtbl->Load(destination_texture,
 							   source_texture);
 		if (result) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.call_failed step=\"load_dest_texture\" error=\"%s\"",
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121));
+#else
 			debug_printf(
 				"Error %s loading Direct3D dest texture from source.\n",
 				std3d_lookup_error_string(
 					result, g_std3d_error_string_table,
 					121),
 				0, 0, 0);
+#endif
 			break;
 		}
 		result = destination_texture->lpVtbl->GetHandle(
 			destination_texture, g_d3d_device, &texture_handle);
 		if (result) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.call_failed step=\"get_texture_handle\" error=\"%s\"",
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121));
+#else
 			debug_printf("Error %s when getting texture handle.\n",
 				     std3d_lookup_error_string(
 					     result, g_std3d_error_string_table,
 					     121),
 				     0, 0, 0);
+#endif
 			texture_handle = 0;
 		}
 
@@ -2261,8 +2575,12 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 	node->tex_handle = 0;
 	node->b_cached = 0;
 	node->cache_batch_tag = 0;
+#ifdef XVT_MODERN
+	XVT_LOG_ERROR("d3d.failed reason=\"texture_add\"");
+#else
 	debug_printf("Done error exit from std3D_AddToTextureCache.\n", 0, 0, 0,
 		     0);
+#endif
 	return 0;
 }
 
@@ -2420,11 +2738,19 @@ int std3d_clear_z_buffer(void)
 							   .surface);
 		}
 		if (result != DX_DD_OK) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR(
+				"d3d.call_failed step=\"clear_z_buffer\" error=\"%s\"",
+				std3d_lookup_error_string(
+					result, g_std3d_error_string_table,
+					121));
+#else
 			debug_printf("Error %s clearing zbuffer.\n",
 				     std3d_lookup_error_string(
 					     result, g_std3d_error_string_table,
 					     121),
 				     0, 0, 0);
+#endif
 			return 0;
 		}
 	}
@@ -2465,10 +2791,16 @@ int std3d_select_best_device(const struct std3d_device_caps *required_caps)
 						match_quality = 3;
 						if (device->caps.b_hardware ==
 						    required_caps->b_hardware) {
+#ifdef XVT_MODERN
+							XVT_LOG_DEBUG(
+								"d3d.device_chosen device=%d match=\"exact\"",
+								device_index);
+#else
 							debug_printf(
 								"Found a perfect device match #%d!\n",
 								device_index, 0,
 								0, 0);
+#endif
 							return device_index;
 						}
 					}
@@ -2482,8 +2814,13 @@ int std3d_select_best_device(const struct std3d_device_caps *required_caps)
 			++device_index;
 		} while (g_std3d_num_devices > (unsigned int)device_index);
 	}
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.device_chosen device=%d match=\"closest\"",
+		      best_device_index);
+#else
 	debug_printf("Settling for a closest match #%d..\n", best_device_index,
 		     0, 0, 0);
+#endif
 	return best_device_index;
 }
 
@@ -2518,9 +2855,15 @@ int std3d_find_closest_format(const struct color_info *match,
 						    match->green_bpp &&
 					    format->color_info.blue_bpp ==
 						    match->blue_bpp) {
+#ifdef XVT_MODERN
+						XVT_LOG_DEBUG(
+							"d3d.mode_chosen format=%d match=\"exact\"",
+							format_index);
+#else
 						debug_printf(
 							"Found a perfect mode match #%d!\n",
 							format_index, 0, 0, 0);
+#endif
 						return format_index;
 					}
 					break;
@@ -2537,16 +2880,28 @@ int std3d_find_closest_format(const struct color_info *match,
 						    match->blue_bpp &&
 					    format->color_info.alpha_bpp ==
 						    match->alpha_bpp) {
+#ifdef XVT_MODERN
+						XVT_LOG_DEBUG(
+							"d3d.mode_chosen format=%d match=\"exact\"",
+							format_index);
+#else
 						debug_printf(
 							"Found a perfect mode match #%d!\n",
 							format_index, 0, 0, 0);
+#endif
 						return format_index;
 					}
 					break;
 				default:
+#ifdef XVT_MODERN
+					XVT_LOG_DEBUG(
+						"d3d.mode_chosen format=%d match=\"exact\"",
+						format_index);
+#else
 					debug_printf(
 						"Found a perfect mode match #%d!\n",
 						format_index, 0, 0, 0);
+#endif
 					return format_index;
 				}
 			}
@@ -2557,8 +2912,13 @@ int std3d_find_closest_format(const struct color_info *match,
 		}
 		++format;
 	}
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.mode_chosen format=%d match=\"closest\"",
+		      best_format_index);
+#else
 	debug_printf("Settling for a closest match #%d..\n", best_format_index,
 		     0, 0, 0);
+#endif
 	return best_format_index;
 }
 
@@ -2741,17 +3101,31 @@ int std3d_set_initial_render_state(void)
 	int result = g_d3d_device->lpVtbl->CreateExecuteBuffer(
 		g_d3d_device, &descriptor, &execute_buffer, NULL);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"create_execute_buffer\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s creating D3D Execute buffer.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 	}
 	result = execute_buffer->lpVtbl->Lock(execute_buffer, &descriptor);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"lock_execute_buffer\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf(g_std3d_lock_execute_buffer_error_format,
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 	}
 
 	memset(descriptor.lpData, 0, 4096);
@@ -2850,10 +3224,18 @@ int std3d_set_initial_render_state(void)
 	++state;
 
 	if (g_std3dz_buffer_enabled != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_DEBUG("d3d.z_buffer_state state=\"on\"");
+#else
 		debug_printf("Enabling Z buffer render state.\n", 0, 0, 0, 0);
+#endif
 	} else {
 		z_enabled = 0;
+#ifdef XVT_MODERN
+		XVT_LOG_DEBUG("d3d.z_buffer_state state=\"off\"");
+#else
 		debug_printf("Disabling Z buffer render state.\n", 0, 0, 0, 0);
+#endif
 	}
 	state->dwState = D3DRENDERSTATE_ZENABLE;
 	state->dwArg = z_enabled;
@@ -2875,10 +3257,17 @@ int std3d_set_initial_render_state(void)
 	uint8_t *cursor = (uint8_t *)(instruction + 1);
 	result = execute_buffer->lpVtbl->Unlock(execute_buffer);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"unlock_execute_buffer\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s unlocking D3D Execute buffer.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 	}
 
 	D3DEXECUTEDATA execute_data;
@@ -2889,31 +3278,55 @@ int std3d_set_initial_render_state(void)
 	execute_buffer->lpVtbl->SetExecuteData(execute_buffer, &execute_data);
 	result = g_d3d_device->lpVtbl->BeginScene(g_d3d_device);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"begin_scene\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf(g_std3d_begin_scene_error_format,
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 	}
 	result = g_d3d_device->lpVtbl->Execute(g_d3d_device, execute_buffer,
 					       g_d3d_viewport,
 					       D3DEXECUTE_UNCLIPPED);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"execute_buffer\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s executing buffer.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 	}
 	result = g_d3d_device->lpVtbl->EndScene(g_d3d_device);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR("d3d.call_failed step=\"end_scene\" error=\"%s\"",
+			      std3d_lookup_error_string(
+				      result, g_std3d_error_string_table, 121));
+#else
 		debug_printf(g_std3d_end_scene_error_format,
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 	}
 	execute_buffer->lpVtbl->Release(execute_buffer);
 	g_d3d_state_flags =
 		(std3d_render_state_flags)g_std3d_render_option_flags;
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.render_state_set");
+#else
 	debug_printf("Initial render state set.\n", 0, 0, 0, 0);
+#endif
 	return 1;
 }
 
@@ -2926,20 +3339,34 @@ int std3d_create_viewport(int width, int height)
 	int result = g_lp_d3d->lpVtbl->CreateViewport(g_lp_d3d, &g_d3d_viewport,
 						      NULL);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"create_viewport\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s when creating D3D viewport.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 		return 0;
 	}
 	result =
 		g_d3d_device->lpVtbl->AddViewport(g_d3d_device, g_d3d_viewport);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"add_viewport\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf(
 			"Error %s when adding the D3D viewport to the device.\n",
 			std3d_lookup_error_string(
 				result, g_std3d_error_string_table, 121),
 			0, 0, 0);
+#endif
 		return 0;
 	}
 
@@ -2958,10 +3385,17 @@ int std3d_create_viewport(int width, int height)
 		(float)(unsigned int)height / (viewport.dvScaleY * 2.0f);
 	result = g_d3d_viewport->lpVtbl->SetViewport(g_d3d_viewport, &viewport);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"create_viewport\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s when creating D3D viewport.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 		return 0;
 	}
 
@@ -2971,7 +3405,11 @@ int std3d_create_viewport(int width, int height)
 	rect.width = width;
 	rect.height = height;
 	std3d_build_viewport_quad(&rect);
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.viewport_created");
+#else
 	debug_printf("Viewport created successfully.\n", 0, 0, 0, 0);
+#endif
 	return 1;
 }
 
@@ -3019,31 +3457,54 @@ int std3d_create_z_buffer(int width, int height)
 	} else if ((z_buffer_bit_depth & 0x800) != 0) {
 		g_p_std3dz_buffer_state->desc.dwZBufferBitDepth = 8;
 	} else {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR("d3d.failed reason=\"z_buffer_depth\"");
+#else
 		debug_printf("Error: unsupported zbuffer bit depth!\n", 0, 0, 0,
 			     0);
+#endif
 		return 0;
 	}
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.z_buffer_depth bits=%u",
+		      g_p_std3dz_buffer_state->desc.dwZBufferBitDepth);
+#else
 	debug_printf("ZBuffer depth: %d.\n",
 		     g_p_std3dz_buffer_state->desc.dwZBufferBitDepth, 0, 0, 0);
+#endif
 
 	HRESULT result = g_std3d_direct_draw->lpVtbl->CreateSurface(
 		g_std3d_direct_draw, &g_p_std3dz_buffer_state->desc,
 		&g_p_std3dz_buffer_state->surface, NULL);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"create_z_buffer_surface\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s when creating zBuffer DDraw surface.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 		return 0;
 	}
 
 	result = g_std3d_render_surface->lpVtbl->AddAttachedSurface(
 		g_std3d_render_surface, g_p_std3dz_buffer_state->surface);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"attach_z_buffer\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf("Error %s when attaching zbuffer to backbuffer.\n",
 			     std3d_lookup_error_string(
 				     result, g_std3d_error_string_table, 121),
 			     0, 0, 0);
+#endif
 		return 0;
 	}
 
@@ -3051,11 +3512,18 @@ int std3d_create_z_buffer(int width, int height)
 		g_p_std3dz_buffer_state->surface,
 		&g_p_std3dz_buffer_state->desc);
 	if (result != 0) {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"d3d.call_failed step=\"get_z_buffer_description\" error=\"%s\"",
+			std3d_lookup_error_string(
+				result, g_std3d_error_string_table, 121));
+#else
 		debug_printf(
 			"Error %s when getting zbuffer surface description.\n",
 			std3d_lookup_error_string(
 				result, g_std3d_error_string_table, 121),
 			0, 0, 0);
+#endif
 		return 0;
 	}
 
@@ -3063,11 +3531,21 @@ int std3d_create_z_buffer(int width, int height)
 	     DDSCAPS_VIDEOMEMORY) != 0) {
 		g_std3dz_buffer_target.b_video_memory = 1;
 	}
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.z_buffer_memory memory=\"%s\"",
+		      g_std3dz_buffer_target.b_video_memory != 0 ? "video"
+								 : "system");
+#else
 	debug_printf("ZBuffer in %s memory.\n",
 		     g_std3dz_buffer_target.b_video_memory != 0 ? "VIDEO"
 								: "SYSTEM",
 		     0, 0, 0);
+#endif
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("d3d.z_buffer_created");
+#else
 	debug_printf("ZBuffer created successfully.\n", 0, 0, 0, 0);
+#endif
 	return 1;
 }
 
@@ -3144,11 +3622,28 @@ HRESULT AERON_DXAPI std3d_enum_devices_callback(DxGuid *guid,
 		device->caps.max_vertex_count =
 			device->d3d_desc.dwMaxVertexCount;
 
+#ifdef XVT_MODERN
+		XVT_LOG_DEBUG(
+			"d3d.device_found hardware=%d mono=%d rgb=%d z_buffer=%d",
+			device->caps.b_hardware != 0,
+			(device->caps.color_model_flags & 1) != 0,
+			(device->caps.color_model_flags & 2) != 0,
+			device->caps.b_has_z_buffer != 0);
+#else
 		debug_printf("Found |%s|%s|%s|%s| D3D Device\n",
 			     device->caps.b_hardware != 0 ? "HW" : "SW",
 			     device->caps.color_model_flags & 1 ? "MONO" : "",
 			     device->caps.color_model_flags & 2 ? "RGB" : "",
 			     device->caps.b_has_z_buffer != 0 ? "Z" : "Non-Z");
+#endif
+#ifdef XVT_MODERN
+		XVT_LOG_DEBUG(
+			"d3d.device_caps alpha=%d stippled=%d color_key=%d depths=%#x",
+			device->caps.b_alpha_texture != 0,
+			device->caps.b_stippled_shade != 0,
+			device->caps.b_color_key_texture != 0,
+			device->caps.render_bit_depth_mask);
+#else
 		debug_printf("      |%s|%s|%s| %dbpp\n",
 			     device->caps.b_alpha_texture != 0 ? "Alpha"
 							       : "No Alpha",
@@ -3158,8 +3653,14 @@ HRESULT AERON_DXAPI std3d_enum_devices_callback(DxGuid *guid,
 				     ? "Colorkey"
 				     : "No Colorkey",
 			     device->caps.render_bit_depth_mask);
+#endif
+#ifdef XVT_MODERN
+		XVT_LOG_DEBUG("d3d.device_name name=\"%s\" description=\"%s\"",
+			      device->device_name, device->device_description);
+#else
 		debug_printf("Description: %s [%s]\n", device->device_name,
 			     device->device_description, 0, 0);
+#endif
 		++g_std3d_num_devices;
 		return 1;
 	}
@@ -3204,8 +3705,13 @@ int AERON_DXAPI std3d_enum_texture_formats(DDSURFACEDESC *surface_desc,
 			format->color_info.alpha_pos_shift = 0;
 			format->color_info.alpha_pos_shift_right = 0;
 			format->color_info.alpha_bpp = 0;
+#ifdef XVT_MODERN
+			XVT_LOG_DEBUG("d3d.palette_format bits=%u",
+				      format->color_info.bpp);
+#else
 			debug_printf("Found %dbpp palettized tex format.\n",
 				     format->color_info.bpp, 0, 0, 0);
+#endif
 		} else if ((surface_desc->ddpfPixelFormat.dwFlags & 8) != 0) {
 			return 1;
 		} else if ((surface_desc->ddpfPixelFormat.dwFlags &
@@ -3289,11 +3795,20 @@ int AERON_DXAPI std3d_enum_texture_formats(DDSURFACEDESC *surface_desc,
 				mask >>= 1;
 			}
 			format->color_info.alpha_bpp = alpha_shift;
+#ifdef XVT_MODERN
+			XVT_LOG_DEBUG(
+				"d3d.rgba_format red=%d green=%d blue=%d alpha=%d",
+				format->color_info.red_bpp,
+				format->color_info.green_bpp,
+				format->color_info.blue_bpp,
+				format->color_info.alpha_bpp);
+#else
 			debug_printf("Found RGBA tex format (%d:%d:%d:%d).\n",
 				     format->color_info.red_bpp,
 				     format->color_info.green_bpp,
 				     format->color_info.blue_bpp,
 				     format->color_info.alpha_bpp);
+#endif
 			++g_std3d_num_texture_formats;
 			return 1;
 		} else {
@@ -3360,10 +3875,17 @@ int AERON_DXAPI std3d_enum_texture_formats(DDSURFACEDESC *surface_desc,
 			format->color_info.alpha_pos_shift = 0;
 			format->color_info.alpha_pos_shift_right = 0;
 			format->color_info.alpha_bpp = 0;
+#ifdef XVT_MODERN
+			XVT_LOG_DEBUG("d3d.rgb_format red=%d green=%d blue=%d",
+				      format->color_info.red_bpp,
+				      format->color_info.green_bpp,
+				      format->color_info.blue_bpp);
+#else
 			debug_printf("Found RGB tex format (%d:%d:%d).\n",
 				     format->color_info.red_bpp,
 				     format->color_info.green_bpp,
 				     format->color_info.blue_bpp, 0);
+#endif
 		}
 
 		++g_std3d_num_texture_formats;

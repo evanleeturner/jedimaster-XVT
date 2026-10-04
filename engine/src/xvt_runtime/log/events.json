@@ -58,6 +58,181 @@
       "fields": ["key"],
       "text": "The user override of {key} is ignored; only the shipped value applies"
     },
+    "d3d.buffer_call_failed": {
+      "level": "E",
+      "fields": ["op", "result", "buffer", "surface"],
+      "text": "The {op} of buffer {buffer} (surface {surface}) failed with code {result}"
+    },
+    "d3d.call_failed": {
+      "level": "E",
+      "fields": ["step", "error"],
+      "text": "The Direct3D step {step} failed: {error}"
+    },
+    "d3d.closed": {
+      "level": "I",
+      "fields": [],
+      "text": "The 1997 Direct3D layer closed its device"
+    },
+    "d3d.device_caps": {
+      "level": "D",
+      "fields": ["alpha", "stippled", "color_key", "depths"],
+      "text": "The device's abilities: alpha textures {alpha}, stippled shading {stippled}, color-key textures {color_key}, render depths mask {depths}"
+    },
+    "d3d.device_chosen": {
+      "level": "D",
+      "fields": ["device", "match"],
+      "text": "Device {device} is chosen as the {match} match"
+    },
+    "d3d.device_creating": {
+      "level": "D",
+      "fields": ["device"],
+      "text": "Creating Direct3D device {device}"
+    },
+    "d3d.device_found": {
+      "level": "D",
+      "fields": ["hardware", "mono", "rgb", "z_buffer"],
+      "text": "A Direct3D device was found: hardware {hardware}, mono {mono}, RGB {rgb}, z-buffer {z_buffer}"
+    },
+    "d3d.device_name": {
+      "level": "D",
+      "fields": ["name", "description"],
+      "text": "The device is {name}: {description}"
+    },
+    "d3d.device_opened": {
+      "level": "D",
+      "fields": ["device"],
+      "text": "Direct3D device {device} opened"
+    },
+    "d3d.devices_found": {
+      "level": "D",
+      "fields": ["count"],
+      "text": "{count} Direct3D devices found"
+    },
+    "d3d.execute_buffer": {
+      "level": "D",
+      "fields": ["bytes"],
+      "text": "The execute buffer holds {bytes} bytes"
+    },
+    "d3d.execute_buffer_vertices": {
+      "level": "D",
+      "fields": ["max"],
+      "text": "The execute buffer takes at most {max} vertices"
+    },
+    "d3d.failed": {
+      "level": "E",
+      "fields": ["reason"],
+      "text": "A Direct3D operation failed: {reason}"
+    },
+    "d3d.mode_chosen": {
+      "level": "D",
+      "fields": ["format", "match"],
+      "text": "Format {format} is chosen as the {match} match"
+    },
+    "d3d.opened": {
+      "level": "I",
+      "fields": ["device"],
+      "text": "The 1997 Direct3D layer opened device {device}"
+    },
+    "d3d.palette_format": {
+      "level": "D",
+      "fields": ["bits"],
+      "text": "A {bits}-bit palettized texture format was found"
+    },
+    "d3d.render_state_set": {
+      "level": "D",
+      "fields": [],
+      "text": "The initial render state is set"
+    },
+    "d3d.rgb_format": {
+      "level": "D",
+      "fields": ["red", "green", "blue"],
+      "text": "An RGB texture format was found: {red}:{green}:{blue} bits"
+    },
+    "d3d.rgba_format": {
+      "level": "D",
+      "fields": ["red", "green", "blue", "alpha"],
+      "text": "An RGBA texture format was found: {red}:{green}:{blue}:{alpha} bits"
+    },
+    "d3d.scene_texture_overflow": {
+      "level": "W",
+      "fields": [],
+      "text": "One scene's textures overflowed texture memory"
+    },
+    "d3d.shutdown": {
+      "level": "I",
+      "fields": [],
+      "text": "The 1997 Direct3D layer shut down"
+    },
+    "d3d.started": {
+      "level": "I",
+      "fields": ["devices"],
+      "text": "The 1997 Direct3D layer started; {devices} devices found"
+    },
+    "d3d.step": {
+      "level": "D",
+      "fields": ["step"],
+      "text": "Direct3D setup step: {step}"
+    },
+    "d3d.texture_format": {
+      "level": "D",
+      "fields": ["format", "kind"],
+      "text": "Texture format {format} is used for {kind} textures"
+    },
+    "d3d.texture_formats_found": {
+      "level": "D",
+      "fields": ["count"],
+      "text": "{count} texture formats found on the device"
+    },
+    "d3d.texture_purge": {
+      "level": "W",
+      "fields": [],
+      "text": "Texture memory looks full; the texture cache is purged"
+    },
+    "d3d.texture_purge_recovered": {
+      "level": "D",
+      "fields": [],
+      "text": "A texture was added after the cache was purged"
+    },
+    "d3d.texture_ram": {
+      "level": "D",
+      "fields": ["total", "free"],
+      "text": "Texture memory: {total} bytes in all, {free} bytes free"
+    },
+    "d3d.unlock_unlocked": {
+      "level": "W",
+      "fields": ["buffer"],
+      "text": "Buffer {buffer} was unlocked while not locked"
+    },
+    "d3d.viewport_created": {
+      "level": "D",
+      "fields": [],
+      "text": "The viewport was created"
+    },
+    "d3d.z_buffer_created": {
+      "level": "D",
+      "fields": [],
+      "text": "The z-buffer was created"
+    },
+    "d3d.z_buffer_depth": {
+      "level": "D",
+      "fields": ["bits"],
+      "text": "The z-buffer has {bits} bits per pixel"
+    },
+    "d3d.z_buffer_memory": {
+      "level": "D",
+      "fields": ["memory"],
+      "text": "The z-buffer sits in {memory} memory"
+    },
+    "d3d.z_buffer_state": {
+      "level": "D",
+      "fields": ["state"],
+      "text": "The z-buffer render state is set {state}"
+    },
+    "d3d.z_compare": {
+      "level": "D",
+      "fields": ["mode"],
+      "text": "The z-buffer compares with the {mode} test"
+    },
     "dialog.closed": {
       "level": "I",
       "fields": ["result"],
