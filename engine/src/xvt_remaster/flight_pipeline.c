@@ -26,7 +26,8 @@ static int g_bars_visible;
 
 void xvt_flight_pipeline_forget_sources(void)
 {
-	g_color = g_bloom_texture = NULL;
+	g_color = NULL;
+	g_bloom_texture = NULL;
 }
 
 int xvt_flight_pipeline_set_direct(int enabled, int width, int height)
@@ -83,7 +84,8 @@ static int ensure(int width, int height)
 	}
 	AeronSceneBloom_Destroy(g_bloom);
 	Aeron_DestroyRenderTarget(g_target);
-	g_color = g_bloom_texture = NULL;
+	g_color = NULL;
+	g_bloom_texture = NULL;
 	g_retained = 0;
 	g_bloom = bloom;
 	g_target = target;
@@ -358,8 +360,10 @@ void xvt_flight_pipeline_shutdown(void)
 	AeronDrawList_Destroy(g_bars);
 	g_bars = NULL;
 	g_bars_visible = 0;
-	g_direct_wanted = g_retained = 0;
-	g_color = g_bloom_texture = NULL;
+	g_direct_wanted = 0;
+	g_retained = 0;
+	g_color = NULL;
+	g_bloom_texture = NULL;
 	AeronScenePresentChain_Destroy(g_direct);
 	g_direct = NULL;
 	AeronSceneBloom_Destroy(g_bloom);
@@ -371,5 +375,6 @@ void xvt_flight_pipeline_shutdown(void)
 	g_sampler = NULL;
 	g_target = NULL;
 	g_last_host_us = 0;
-	g_width = g_height = 0;
+	g_width = 0;
+	g_height = 0;
 }

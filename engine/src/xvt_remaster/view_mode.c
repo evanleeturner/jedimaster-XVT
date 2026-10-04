@@ -33,10 +33,14 @@ void xvt_remaster_view_init(void)
 {
 	Aeron_BlendRampInit(&g_blend);
 	g_blend.alpha = 0;
-	g_wait_classic = g_consumed_tab = g_world_ready = 0;
-	g_ready_flight_frame_serial = g_ready_mission_generation =
-		g_classic_serial = 0;
-	g_width = g_height = 0;
+	g_wait_classic = 0;
+	g_consumed_tab = 0;
+	g_world_ready = 0;
+	g_ready_flight_frame_serial = 0;
+	g_ready_mission_generation = 0;
+	g_classic_serial = 0;
+	g_width = 0;
+	g_height = 0;
 	g_display = DISPLAY_NONE;
 	xvt_input_suppress_renderer_tab(0);
 }
@@ -212,5 +216,7 @@ void xvt_remaster_view_shutdown(void)
 {
 	AeronDx5_SetClassicFlightRenderingSuppressed(0);
 	xvt_input_suppress_renderer_tab(0);
-	g_wait_classic = g_consumed_tab = g_world_ready = 0;
+	g_wait_classic = 0;
+	g_consumed_tab = 0;
+	g_world_ready = 0;
 }

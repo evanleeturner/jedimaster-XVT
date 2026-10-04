@@ -729,7 +729,8 @@ void sw3d_rasterize_mesh_faces(struct scene_mesh *mesh)
 
 	mesh->edge_base_index = scene_edge_cursor;
 	mesh->emitted_edge_count = 0;
-	first_edge = output_edge = &g_scene_edge_list[scene_edge_cursor];
+	output_edge = &g_scene_edge_list[scene_edge_cursor];
+	first_edge = output_edge;
 	if (edge_count > 0) {
 		for (edge_index = 0; edge_index < mesh->edge_count;
 		     ++edge_index) {

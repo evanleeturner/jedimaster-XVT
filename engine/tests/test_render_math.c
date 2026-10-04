@@ -393,7 +393,8 @@ static void check_project_world(void)
 		xvt_render_math_project_world(&view, point, &x, &y, NULL), 1);
 
 	/* Behind the camera, or at it: refused with depth written and x, y untouched. */
-	x = y = -12345.0f;
+	x = -12345.0f;
+	y = -12345.0f;
 	along(camera.world_pos, axis, -100, point);
 	XVT_ASSERT_INT_EQ(
 		xvt_render_math_project_world(&view, point, &x, &y, &depth), 0);
@@ -414,7 +415,9 @@ static void check_project_world(void)
 	XVT_ASSERT_TRUE(x < 0 || x > 640 || y < 0 || y > 400);
 
 	/* NULL view, world, x or y: refused, nothing written. */
-	x = y = depth = -1.0f;
+	x = -1.0f;
+	y = -1.0f;
+	depth = -1.0f;
 	XVT_ASSERT_INT_EQ(
 		xvt_render_math_project_world(NULL, point, &x, &y, &depth), 0);
 	XVT_ASSERT_INT_EQ(
@@ -845,7 +848,8 @@ static void check_pose_changed_view_time(void)
 	/* An unlocked flight whose view time moved while the animation reports movement. */
 	animation_moves();
 	same_snapshots();
-	g_current->flight_unlocked = g_previous->flight_unlocked = 1;
+	g_current->flight_unlocked = 1;
+	g_previous->flight_unlocked = 1;
 	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
 			  0);
 	g_current->view_time_ticks += 1;
@@ -853,10 +857,12 @@ static void check_pose_changed_view_time(void)
 			  1);
 
 	/* A locked flight, or no movement reported: the view time alone is no change. */
-	g_current->flight_unlocked = g_previous->flight_unlocked = 0;
+	g_current->flight_unlocked = 0;
+	g_previous->flight_unlocked = 0;
 	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
 			  0);
-	g_current->flight_unlocked = g_previous->flight_unlocked = 1;
+	g_current->flight_unlocked = 1;
+	g_previous->flight_unlocked = 1;
 	xvt_component_animation_reset();
 	XVT_ASSERT_INT_EQ(xvt_render_math_pose_changed(g_current, g_previous),
 			  0);

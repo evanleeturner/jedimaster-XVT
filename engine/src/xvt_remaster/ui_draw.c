@@ -260,6 +260,7 @@ void xvt_ui_shutdown(void)
 	Aeron_DestroyShader(g_fs);
 	Aeron_DestroySampler(g_nearest);
 	g_copy = NULL;
-	g_vs = g_fs = NULL;
+	g_vs = NULL;
+	g_fs = NULL;
 	g_nearest = NULL;
 }

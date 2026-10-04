@@ -144,7 +144,8 @@ static void check_mouse_to_classic(void)
 	XVT_ASSERT_INT_EQ(y, 240);
 
 	/* Inside the area but not inside the content: 0, with the coordinates written. */
-	x = y = -1;
+	x = -1;
+	y = -1;
 	XVT_ASSERT_INT_EQ(xvt_presentation_mouse_to_classic(
 				  window(1280, 720, 160 + 480, 360, 0), &x, &y),
 			  0);

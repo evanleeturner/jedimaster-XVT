@@ -331,7 +331,9 @@ void xvt_config_shutdown(void)
 	AeronConfigFile_Destroy(g_resolved);
 	AeronConfigFile_Destroy(g_user);
 	AeronConfigFile_Destroy(g_defaults);
-	g_defaults = g_user = g_resolved = NULL;
+	g_defaults = NULL;
+	g_user = NULL;
+	g_resolved = NULL;
 	g_config_vfs = NULL;
 	g_writable = 0;
 }
@@ -539,7 +541,8 @@ int xvt_config_update_user(const AeronConfigFile *candidate, int save,
 	AeronConfigFile_Destroy(g_resolved);
 	g_user = updated;
 	g_resolved = resolved;
-	updated = resolved = NULL;
+	updated = NULL;
+	resolved = NULL;
 	g_settings = settings;
 	g_writable = 1;
 	++g_generation;

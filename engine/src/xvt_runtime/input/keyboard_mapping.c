@@ -195,8 +195,10 @@ void xvt_keyboard_mapping_suspend(void)
 {
 	memset(g_keyboard.pressed, 0, sizeof g_keyboard.pressed);
 	memset(g_keyboard.holds, 0, sizeof g_keyboard.holds);
-	g_keyboard.read = g_keyboard.write = 0;
-	g_keyboard.pending = g_keyboard.observed = 0;
+	g_keyboard.read = 0;
+	g_keyboard.write = 0;
+	g_keyboard.pending = 0;
+	g_keyboard.observed = 0;
 	g_keyboard.enabled = false;
 }
 

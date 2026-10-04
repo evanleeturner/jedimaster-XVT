@@ -99,7 +99,8 @@ void xvt_cockpit_pages_reset(void)
 	memset(g_working, 0, sizeof g_working);
 	memset(g_pending, 0, sizeof g_pending);
 	memset(&g_building, 0, sizeof g_building);
-	g_capturing = g_capture_failed = 0;
+	g_capturing = 0;
+	g_capture_failed = 0;
 	g_pending_failed = 0;
 }
 
@@ -112,7 +113,8 @@ void xvt_cockpit_pages_reset_working(void)
 		}
 	}
 	memset(g_working, 0, sizeof g_working);
-	g_capturing = g_capture_failed = 0;
+	g_capturing = 0;
+	g_capture_failed = 0;
 }
 
 void xvt_cockpit_pages_begin_frame(void)
@@ -140,11 +142,12 @@ void xvt_cockpit_pages_clear(unsigned page)
 	struct page_content *content = &g_working[page];
 	for (unsigned section = 0; section < XVT_COCKPIT_PAGE_SECTION_COUNT;
 	     ++section) {
-		content->sections[section].glyph_count =
-			content->sections[section].row_count = 0;
+		content->sections[section].glyph_count = 0;
+		content->sections[section].row_count = 0;
 		content->sections[section].generation = ++g_generation;
 	}
-	content->background_argb = content->border_argb = 0;
+	content->background_argb = 0;
+	content->border_argb = 0;
 	content->failed_sections = 0;
 	content->generation = ++g_generation;
 }
@@ -164,7 +167,8 @@ void xvt_cockpit_pages_begin_section(unsigned page,
 	}
 	g_page = page;
 	g_section = section;
-	g_building.glyph_count = g_building.row_count = 0;
+	g_building.glyph_count = 0;
+	g_building.row_count = 0;
 	g_capture_failed = 0;
 	g_capturing = 1;
 	for (unsigned color = 0; color < 256; ++color) {
@@ -212,8 +216,8 @@ void xvt_cockpit_pages_end_section(void)
 		previous->row_count = g_building.row_count;
 		memcpy(previous->rows, g_building.rows,
 		       g_building.row_count * sizeof previous->rows[0]);
-		previous->generation = g_working[g_page].generation =
-			++g_generation;
+		g_working[g_page].generation = ++g_generation;
+		previous->generation = g_working[g_page].generation;
 		g_building.glyphs = old_glyphs;
 		g_building.capacity = old_capacity;
 	}
@@ -394,12 +398,14 @@ void xvt_cockpit_pages_export(struct xvt_cockpit_state *state)
 		return;
 	}
 	struct xvt_cockpit_page_store *store = &state->page_content;
-	store->row_count = store->glyph_count = 0;
+	store->row_count = 0;
+	store->glyph_count = 0;
 	for (unsigned id = 0; id < MFD_PAGE_COUNT; ++id) {
 		struct xvt_cockpit_page *page = &state->pages[id];
 		const struct page_content *content = &g_pending[id];
-		page->glyph_count = page->row_count = page->header_glyph_count =
-			0;
+		page->glyph_count = 0;
+		page->row_count = 0;
+		page->header_glyph_count = 0;
 		page->visible &= content->latched_this_frame != 0;
 		if (!page->visible) {
 			continue;

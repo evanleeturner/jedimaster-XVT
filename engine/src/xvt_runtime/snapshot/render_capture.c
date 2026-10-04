@@ -97,26 +97,37 @@ void xvt_render_capture_reset(void)
 	xvt_cockpit_reset();
 	xvt_cockpit_messages_clear_progress();
 	memset(&g_pending, 0, sizeof g_pending);
-	g_mission = g_world = g_serial = 0;
-	g_active = g_published = g_has_view_time = 0;
+	g_mission = 0;
+	g_world = 0;
+	g_serial = 0;
+	g_active = 0;
+	g_published = 0;
+	g_has_view_time = 0;
 	g_last_dropped = 0;
 	g_overlay_depth = 0;
 }
 
 void xvt_render_capture_begin_frame(void)
 {
-	g_pending.valid = g_pending.sealed = g_published = 0;
+	g_pending.valid = 0;
+	g_pending.sealed = 0;
+	g_published = 0;
 }
 
 static void invalidate_world_history(void)
 {
-	g_authoritative_tick = g_candidate_tick = -1;
+	g_authoritative_tick = -1;
+	g_candidate_tick = -1;
 	g_network_correction = 0;
 	++g_world;
-	g_pending.valid = g_pending.sealed = g_published = g_has_view_time = 0;
+	g_pending.valid = 0;
+	g_pending.sealed = 0;
+	g_published = 0;
+	g_has_view_time = 0;
 	struct xvt_render_snapshot *writer = xvt_render_snapshot_writer();
 	if (writer) {
-		writer->flight_valid = writer->camera.valid = 0;
+		writer->flight_valid = 0;
+		writer->camera.valid = 0;
 	}
 }
 
@@ -372,8 +383,10 @@ static void capture_types(void)
 void xvt_render_capture_capture_view(void)
 {
 	xvt_render_draw_scope(XVT_SCOPE_WORLD);
-	g_pending.valid = g_pending.sealed = 0;
-	g_pending.object_count = g_pending.dropped = 0;
+	g_pending.valid = 0;
+	g_pending.sealed = 0;
+	g_pending.object_count = 0;
+	g_pending.dropped = 0;
 	if (!g_active || !xvt_render_snapshot_writer() || !g_object_table ||
 	    !g_object_table_handle || (unsigned)g_local_player >= 8) {
 		return;
@@ -448,7 +461,8 @@ void xvt_render_capture_seal_view(void)
 
 void xvt_render_capture_end_presentation(void)
 {
-	g_pending.valid = g_pending.sealed = 0;
+	g_pending.valid = 0;
+	g_pending.sealed = 0;
 }
 
 void xvt_render_capture_presented(int succeeded)
@@ -520,7 +534,8 @@ void xvt_render_capture_commit(struct xvt_render_snapshot *out,
 	out->flight_frame_serial = g_serial;
 
 	if (!g_active) {
-		out->flight_valid = out->camera.valid = 0;
+		out->flight_valid = 0;
+		out->camera.valid = 0;
 		out->object_count = 0;
 		return;
 	}

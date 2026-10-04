@@ -49,7 +49,8 @@ static int empty_frame(AeronIndexedFrame *frame, uint16_t index)
 {
 	frame->indices = calloc(1, 1);
 	frame->coverage = calloc(1, 1);
-	frame->width = frame->height = 1;
+	frame->width = 1;
+	frame->height = 1;
 	frame->frame_index = index;
 	return frame->indices && frame->coverage;
 }
@@ -126,7 +127,8 @@ static int decode_cursor(struct xvt_original2d *out)
 	if (!frame->indices || !frame->coverage) {
 		return 0;
 	}
-	frame->width = frame->height = 10;
+	frame->width = 10;
+	frame->height = 10;
 	frame->palette_count = 2;
 	memset(frame->palette[0], 255, 4);
 	/* The classic 16-bit cursor uses 0x001F for mask value one. */

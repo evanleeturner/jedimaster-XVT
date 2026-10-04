@@ -51,7 +51,8 @@ static unsigned palette_weight(const uint8_t palette[256][4], unsigned count,
 			  : nearest >= distance		      ? 6
 			  : nearest * 3ull >= distance * 2ull ? 1
 							      : 0;
-	weights[a * count + b] = weights[b * count + a] = (uint8_t)weight;
+	weights[b * count + a] = (uint8_t)weight;
+	weights[a * count + b] = weights[b * count + a];
 	return weight;
 }
 

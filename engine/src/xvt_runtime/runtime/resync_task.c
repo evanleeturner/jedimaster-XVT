@@ -629,7 +629,8 @@ void xvt_resync_update(void)
 			if (replay != XVT_REPLAY_TERMINAL) {
 				xvt_resync_world_applied();
 			}
-			g_receive.request_sent = g_receive.restarts = 0;
+			g_receive.request_sent = 0;
+			g_receive.restarts = 0;
 			XVT_LOG_INFO("resync.done terminal=%d",
 				     replay == XVT_REPLAY_TERMINAL);
 		}
@@ -737,7 +738,8 @@ void xvt_resync_reset(void)
 	}
 	free(g_resync.pinned);
 	memset(&g_resync, 0, sizeof(g_resync));
-	g_checksum_read = g_checksum_count = 0;
+	g_checksum_read = 0;
+	g_checksum_count = 0;
 	memset(&g_receive, 0, sizeof g_receive);
 }
 
@@ -932,7 +934,8 @@ static int xvt_resync_full_apply(const uint8_t *bytes, unsigned size)
 	}
 	xvt_flight_history_recover();
 	memcpy(g_world_state_buffer, g_world_state_dup_buffer, g_receive.size);
-	g_world_state_size = g_world_state_dup_size = g_receive.size;
+	g_world_state_dup_size = g_receive.size;
+	g_world_state_size = g_world_state_dup_size;
 	g_server_tick_time = g_receive.tick;
 	g_flight_net_world_checksum_epoch = g_receive.epoch;
 	memcpy(g_world_checksum, checksums, sizeof checksums);

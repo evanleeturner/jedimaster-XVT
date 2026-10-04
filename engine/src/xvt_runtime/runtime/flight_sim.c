@@ -822,7 +822,8 @@ xvt_flight_step_result xvt_flight_sim_step_to_time(int target_game_time)
 					    (uint16_t)g_elapsed_ticks)) {
 			return XVT_STEP_PENDING;
 		}
-		g_sim.zero_step = g_sim.step_pending = 0;
+		g_sim.zero_step = 0;
+		g_sim.step_pending = 0;
 		return xvt_flight_sim_finished_advance();
 	}
 	for (;;) {
@@ -923,7 +924,8 @@ xvt_flight_step_result xvt_flight_sim_step_to_time(int target_game_time)
 	xvt_flight_timing_end_advance();
 	if (!xvt_flight_sim_advance(game_time + (uint16_t)g_elapsed_ticks)) {
 		g_sim.step_game_time = game_time;
-		g_sim.zero_step = g_sim.step_pending = 1;
+		g_sim.zero_step = 1;
+		g_sim.step_pending = 1;
 		return XVT_STEP_PENDING;
 	}
 	return xvt_flight_sim_finished_advance();
@@ -1028,7 +1030,8 @@ xvt_flight_history_insert_real(unsigned player, int tick,
 					player, tick);
 				return XVT_INPUT_CONFLICT;
 			}
-			old->input_source = old->awaiting_relay = 0;
+			old->input_source = 0;
+			old->awaiting_relay = 0;
 		}
 	}
 	return status;

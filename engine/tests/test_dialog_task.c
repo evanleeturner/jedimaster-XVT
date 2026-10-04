@@ -62,10 +62,13 @@ static void fresh(void)
 	g_game_config.sfx_datapad_enabled = 0;
 	frontend_button_disable_overlay_text();
 	g_dialog_result = 0;
-	g_update_frames = g_update_last_frame = g_update_ends =
-		g_update_result = 0;
-	g_continuation_calls = g_continuation_result = g_continuation_context =
-		0;
+	g_update_frames = 0;
+	g_update_last_frame = 0;
+	g_update_ends = 0;
+	g_update_result = 0;
+	g_continuation_calls = 0;
+	g_continuation_result = 0;
+	g_continuation_context = 0;
 }
 
 static void queue_keys(const char *keys)

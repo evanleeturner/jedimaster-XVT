@@ -36,7 +36,8 @@ void xvt_flight_checkpoint_begin(uint8_t mask)
 		g_paired[player].player = player;
 	}
 	memset(&g_membership, 0, sizeof g_membership);
-	g_membership.initial = g_membership.confirmed = mask;
+	g_membership.confirmed = mask;
+	g_membership.initial = g_membership.confirmed;
 }
 
 uint8_t xvt_flight_checkpoint_initial_mask(void)

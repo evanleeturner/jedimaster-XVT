@@ -300,10 +300,10 @@ void xvt_input_update(int suppress)
 	memset(g_front_state.key_state, 0, sizeof(g_front_state.key_state));
 	if (suppress) {
 		keyboard_flush_char_buffer();
-		g_front_state.mouse_left_down = g_front_state.mouse_right_down =
-			0;
-		g_front_state.mouse_left_click_latch =
-			g_front_state.mouse_right_click_latch = 0;
+		g_front_state.mouse_left_down = 0;
+		g_front_state.mouse_right_down = 0;
+		g_front_state.mouse_left_click_latch = 0;
+		g_front_state.mouse_right_click_latch = 0;
 		return;
 	}
 	for (key = 0; key < AERON_KEY_COUNT; ++key) {

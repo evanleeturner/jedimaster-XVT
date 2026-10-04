@@ -53,9 +53,11 @@ static void check_options_off(void)
 	fixture_begin();
 	fixture_load();
 	set_all_options(1);
-	g_flight_conf_train_course = g_flight_conf_no_pilot =
-		g_flight_in_progress_launch = 0;
-	g_flight_conf_new_net = g_flight_conf_no_launcher = 0;
+	g_flight_conf_train_course = 0;
+	g_flight_conf_no_pilot = 0;
+	g_flight_in_progress_launch = 0;
+	g_flight_conf_new_net = 0;
+	g_flight_conf_no_launcher = 0;
 	prepare("mission ~traincourse nopilot nodinput nosfx nomusic novoice notickcounter nomipmaps inprogress "
 		"newnet nolauncher nofullscreen nopageflip~");
 	XVT_ASSERT_INT_EQ(g_flight_conf_train_course, 1);
@@ -80,9 +82,11 @@ static void check_options_on(void)
 	fixture_begin();
 	fixture_load();
 	set_all_options(0);
-	g_flight_conf_train_course = g_flight_conf_no_pilot =
-		g_flight_in_progress_launch = 1;
-	g_flight_conf_new_net = g_flight_conf_no_launcher = 1;
+	g_flight_conf_train_course = 1;
+	g_flight_conf_no_pilot = 1;
+	g_flight_in_progress_launch = 1;
+	g_flight_conf_new_net = 1;
+	g_flight_conf_no_launcher = 1;
 	prepare("mission ~dinput sfx music voice tickcounter mipmaps~");
 	XVT_ASSERT_INT_EQ(g_flight_conf_direct_input, 1);
 	XVT_ASSERT_INT_EQ(g_flight_conf_sfx_enabled, 1);

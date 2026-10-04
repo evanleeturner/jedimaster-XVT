@@ -134,11 +134,17 @@ void win_mouse_poll_state(int *position_x, int *position_y, int *delta_x,
 	if (xvt_input_is_captured() || !input || !input->has_focus) {
 		*position_x = g_win_mouse_pos.x * g_win_mouse_scale_x;
 		*position_y = g_win_mouse_pos.y * g_win_mouse_scale_y;
-		*delta_x = *delta_y = 0;
-		button_down[0] = button_down[1] = button_down[2] = 0;
-		button_pressed[0] = button_pressed[1] = button_pressed[2] = 0;
-		button_released[0] = button_released[1] = button_released[2] =
-			0;
+		*delta_x = 0;
+		*delta_y = 0;
+		button_down[0] = 0;
+		button_down[1] = 0;
+		button_down[2] = 0;
+		button_pressed[0] = 0;
+		button_pressed[1] = 0;
+		button_pressed[2] = 0;
+		button_released[0] = 0;
+		button_released[1] = 0;
+		button_released[2] = 0;
 		return;
 	}
 	if (!xvt_presentation_mouse_to_classic(input, &point.x, &point.y)) {

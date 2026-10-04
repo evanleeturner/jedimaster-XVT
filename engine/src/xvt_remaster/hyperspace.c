@@ -345,8 +345,10 @@ static void hyper_emit_streak(struct hyper_streak_vertex *out,
 		};
 		hyper_widescreen_remap(p, camera_rows, x_scale);
 		memcpy(out[v].position, p, sizeof p);
-		out[v].color[0] = out[v].color[1] = out[v].color[2] =
-			out[v].color[3] = 1.0f;
+		out[v].color[0] = 1.0f;
+		out[v].color[1] = 1.0f;
+		out[v].color[2] = 1.0f;
+		out[v].color[3] = 1.0f;
 	}
 }
 

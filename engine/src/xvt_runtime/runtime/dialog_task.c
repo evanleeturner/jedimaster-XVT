@@ -104,8 +104,8 @@ static void xvt_dialog_end(void)
 		frontend_button_disable_overlay_text();
 	}
 	keyboard_flush_char_buffer();
-	g_front_state.mouse_left_click_latch =
-		g_front_state.mouse_right_click_latch = 0;
+	g_front_state.mouse_left_click_latch = 0;
+	g_front_state.mouse_right_click_latch = 0;
 	g_dialog.active = 0;
 	g_dialog.pushed = 0;
 	g_dialog.complete = 1;
@@ -133,8 +133,8 @@ void xvt_dialog_update(void)
 		g_front_state.screen_callbacks_dirty = 0;
 		g_dialog_result = 0;
 		keyboard_flush_char_buffer();
-		g_front_state.mouse_left_click_latch =
-			g_front_state.mouse_right_click_latch = 0;
+		g_front_state.mouse_left_click_latch = 0;
+		g_front_state.mouse_right_click_latch = 0;
 	}
 	if (g_front_state.frame_counter > 0 && keyboard_peek_char() == 27) {
 		g_dialog.result = 0;

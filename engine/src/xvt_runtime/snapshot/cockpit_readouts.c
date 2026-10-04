@@ -79,7 +79,8 @@ void xvt_cockpit_readouts_record_number(xvt_cockpit_number_id id,
 	    (uint16_t)value == UINT16_MAX) {
 		number->foreground = xvt_cockpit_text_resolve_color(
 			'@', g_flight_transparent_color_index);
-		number->shadow_enabled = number->shadow_color = 0;
+		number->shadow_enabled = 0;
+		number->shadow_color = 0;
 	}
 	number->clear_background = id == XVT_COCKPIT_NUMBER_COUNTERMEASURES ||
 				   id == XVT_COCKPIT_NUMBER_ORDER_MINUTES;

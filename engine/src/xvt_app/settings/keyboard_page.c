@@ -7,7 +7,8 @@ void xvt_keyboard_settings_open(struct xvt_keyboard_settings *settings,
 				const struct xvt_settings *config)
 {
 	memset(settings, 0, sizeof *settings);
-	settings->original = settings->draft = config->keyboard;
+	settings->draft = config->keyboard;
+	settings->original = settings->draft;
 	xvt_bindings_editor_init(&settings->editor);
 }
 
@@ -16,7 +17,8 @@ void xvt_keyboard_settings_cancel_capture(
 {
 	AeronUi_CancelKeyboardCapture(ui);
 	settings->editor.binding_modal_open = 0;
-	settings->conflict_open = settings->restore_open = 0;
+	settings->conflict_open = 0;
+	settings->restore_open = 0;
 }
 
 static void xvt_keyboard_settings_refresh_draft_state(
@@ -235,7 +237,8 @@ xvt_keyboard_settings_restore_modal(struct xvt_keyboard_settings *settings,
 	AeronUi_BeginColumns(ui, 2, NULL);
 	if (AeronUi_Button(ui, "Restore")) {
 		settings->draft = xvt_config_default_settings()->keyboard;
-		settings->restore_defaults = settings->dirty = true;
+		settings->restore_defaults = true;
+		settings->dirty = true;
 		settings->restore_open = 0;
 		settings->error[0] = 0;
 		xvt_bindings_editor_init(&settings->editor);
@@ -292,7 +295,9 @@ bool xvt_keyboard_settings_commit(struct xvt_keyboard_settings *settings,
 		return false;
 	}
 	xvt_keyboard_mapping_install(&xvt_config_settings()->keyboard);
-	settings->draft = settings->original = xvt_config_settings()->keyboard;
-	settings->restore_defaults = settings->dirty = false;
+	settings->original = xvt_config_settings()->keyboard;
+	settings->draft = settings->original;
+	settings->restore_defaults = false;
+	settings->dirty = false;
 	return true;
 }

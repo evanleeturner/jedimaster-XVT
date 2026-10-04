@@ -67,8 +67,11 @@ void xvt_render_assets_init(void)
 	memset(g_sources, 0, sizeof g_sources);
 	memset(g_bindings, 0, sizeof g_bindings);
 	g_next_id = 1;
-	g_opt_generation = g_texture_generation = g_image_generation = 1;
-	g_exported_snapshot_serial = g_consumed_snapshot_serial = UINT64_MAX;
+	g_opt_generation = 1;
+	g_texture_generation = 1;
+	g_image_generation = 1;
+	g_exported_snapshot_serial = UINT64_MAX;
+	g_consumed_snapshot_serial = UINT64_MAX;
 	g_initialized = 1;
 	xvt_render_cockpit_reset();
 	xvt_render_assets_register_image(g_default_cursor_bitmap, 0, "",
@@ -396,12 +399,13 @@ void xvt_render_assets_export(struct xvt_render_snapshot *snapshot)
 	if (!g_initialized || !snapshot) {
 		return;
 	}
-	snapshot->opt_asset_count = snapshot->texture_asset_count =
-		snapshot->image_asset_count = 0;
+	snapshot->opt_asset_count = 0;
+	snapshot->texture_asset_count = 0;
+	snapshot->image_asset_count = 0;
 	if (!snapshot->flight_valid) {
 		for (unsigned i = 0; i < XVT_SNAP_TYPES; ++i) {
-			snapshot->types[i].model_asset_id =
-				snapshot->types[i].texture_asset_id = 0;
+			snapshot->types[i].model_asset_id = 0;
+			snapshot->types[i].texture_asset_id = 0;
 		}
 	}
 	for (unsigned i = 0; i < SOURCE_CAPACITY; ++i) {

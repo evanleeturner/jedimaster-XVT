@@ -89,9 +89,10 @@ static void cockpit_capture_world(void)
 	g_mfd_damage_blit_height = 30;
 	g_mfd_map_blit_width = 70;
 	g_mfd_map_blit_height = 20;
-	g_mfd_mission_scoreboard_blit_width =
-		g_mfd_mission_scoreboard_blit_height = 10;
-	g_mfd_craft_list_blit_width = g_mfd_craft_list_blit_height = 10;
+	g_mfd_mission_scoreboard_blit_width = 10;
+	g_mfd_mission_scoreboard_blit_height = 10;
+	g_mfd_craft_list_blit_width = 10;
+	g_mfd_craft_list_blit_height = 10;
 	g_ready_message_pane_left = 10;
 	g_ready_message_pane_top = 20;
 	g_ready_message_pane_right = 110;

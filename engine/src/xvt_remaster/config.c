@@ -181,6 +181,8 @@ void xvt_remaster_config_shutdown(void)
 {
 	Aeron_DestroySampler(g_mesh_sampler);
 	g_mesh_sampler = NULL;
-	g_initialized = g_video_override = 0;
-	g_document_generation = g_generation = 0;
+	g_initialized = 0;
+	g_video_override = 0;
+	g_document_generation = 0;
+	g_generation = 0;
 }

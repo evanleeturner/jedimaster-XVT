@@ -298,20 +298,21 @@ static void show_every_owner(struct xvt_cockpit_state *state)
 	memset(state, 0, sizeof *state);
 	state->view.hud_state = HUD_VIEW_FORWARD;
 	state->view.map_active = 1;
-	state->readouts.clock_minutes.visible =
-		state->readouts.clock_seconds.visible = 1;
+	state->readouts.clock_minutes.visible = 1;
+	state->readouts.clock_seconds.visible = 1;
 	state->readouts.throttle.visible = 1;
 	state->target.visible = 1;
 	state->target.labels_visible = 1;
-	state->target.distance.visible =
-		state->target.distance_fraction.visible = 1;
-	state->target.shields.visible = state->target.hull.visible =
-		state->target.systems.visible = 1;
+	state->target.distance.visible = 1;
+	state->target.distance_fraction.visible = 1;
+	state->target.shields.visible = 1;
+	state->target.hull.visible = 1;
+	state->target.systems.visible = 1;
 	state->proving_grounds.visible = 1;
-	state->systems.shields[0].visible = state->systems.shields[1].visible =
-		1;
-	state->systems.shields[0].text_mode =
-		state->systems.shields[1].text_mode = 1;
+	state->systems.shields[0].visible = 1;
+	state->systems.shields[1].visible = 1;
+	state->systems.shields[0].text_mode = 1;
+	state->systems.shields[1].text_mode = 1;
 	state->systems.critical_warning.visible = 1;
 }
 
@@ -379,8 +380,8 @@ static void check_copy_fields_hides_with_owner(void)
 
 	XVT_ASSERT_INT_EQ(shown_in(&shown, XVT_COCKPIT_TEXT_SHIELD_FORE), 1);
 	hidden = shown;
-	hidden.systems.shields[0].visible = hidden.systems.shields[1].visible =
-		0;
+	hidden.systems.shields[0].visible = 0;
+	hidden.systems.shields[1].visible = 0;
 	XVT_ASSERT_INT_EQ(shown_in(&hidden, XVT_COCKPIT_TEXT_SHIELD_FORE), 0);
 
 	XVT_ASSERT_INT_EQ(shown_in(&shown, XVT_COCKPIT_TEXT_CRITICAL_WARNING),

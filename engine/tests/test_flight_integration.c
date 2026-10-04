@@ -362,7 +362,9 @@ static void check_steer(void)
 /* Runs Move on slot `steps` times and returns the summed movement on each axis. */
 static void move_sum(unsigned slot, int steps, int64_t sum[3])
 {
-	sum[0] = sum[1] = sum[2] = 0;
+	sum[0] = 0;
+	sum[1] = 0;
+	sum[2] = 0;
 	for (int i = 0; i < steps; ++i) {
 		xvt_flight_integration_move(slot);
 		sum[0] += trig2_xmovedist;

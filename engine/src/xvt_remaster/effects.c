@@ -72,7 +72,9 @@ void xvt_effects_set_frame(AeronSceneBillboardDesc *b,
 		{f->u0, f->v0}, {f->u1, f->v0}, {f->u1, f->v1}, {f->u0, f->v1}};
 	memcpy(b->uv, uv, sizeof uv);
 	for (int i = 0; i < 4; ++i) {
-		b->colors[i][0] = b->colors[i][1] = b->colors[i][2] = strength;
+		b->colors[i][2] = strength;
+		b->colors[i][1] = b->colors[i][2];
+		b->colors[i][0] = b->colors[i][1];
 		b->colors[i][3] = alpha;
 	}
 }

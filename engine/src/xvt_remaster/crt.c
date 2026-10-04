@@ -61,7 +61,8 @@ static int crt_resources(void)
 				    .address_u = AERON_ADDRESS_CLAMP_TO_EDGE,
 				    .address_v = AERON_ADDRESS_CLAMP_TO_EDGE};
 	g_color_sampler = Aeron_CreateSampler(&sampler);
-	sampler.min_filter = sampler.mag_filter = AERON_FILTER_NEAREST;
+	sampler.min_filter = AERON_FILTER_NEAREST;
+	sampler.mag_filter = AERON_FILTER_NEAREST;
 	g_mask_sampler = Aeron_CreateSampler(&sampler);
 	return g_pipeline && g_color_sampler && g_mask_sampler;
 }
@@ -177,8 +178,10 @@ int xvt_crt_prepare_view(const struct xvt_snap_preview *preview,
 	g_uniform[1] = 1 - 2 * (y + h) / height;
 	g_uniform[2] = 2 * w / width;
 	g_uniform[3] = 2 * h / height;
-	g_uniform[4] = g_uniform[5] = 0;
-	g_uniform[6] = g_uniform[7] = 1;
+	g_uniform[4] = 0;
+	g_uniform[5] = 0;
+	g_uniform[6] = 1;
+	g_uniform[7] = 1;
 	g_viewport = (AeronRectI){0, 0, width, height};
 	g_color = color;
 	return 1;
@@ -213,10 +216,12 @@ void xvt_crt_shutdown(void)
 	g_pipeline = NULL;
 	Aeron_DestroyShader(g_vs);
 	Aeron_DestroyShader(g_fs);
-	g_vs = g_fs = NULL;
+	g_vs = NULL;
+	g_fs = NULL;
 	Aeron_DestroySampler(g_color_sampler);
 	Aeron_DestroySampler(g_mask_sampler);
-	g_color_sampler = g_mask_sampler = NULL;
+	g_color_sampler = NULL;
+	g_mask_sampler = NULL;
 }
 
 int xvt_crt_prepare_resources(AeronCommandBuffer *cmd,

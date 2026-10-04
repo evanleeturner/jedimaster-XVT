@@ -107,9 +107,13 @@ static void fresh(void)
 	g_front_state.screen_states[0].update_fn = screen;
 	g_front_state.screen_states[0].exit_fn = frontend_task_exit;
 	g_front_state.frame_counter = 3;
-	g_screen_calls = g_screen_frame = g_screen_return = 0;
+	g_screen_calls = 0;
+	g_screen_frame = 0;
+	g_screen_return = 0;
 	g_screen_action = ACTION_NONE;
-	g_exit_calls = g_other_exit_calls = g_dialog_calls = 0;
+	g_exit_calls = 0;
+	g_other_exit_calls = 0;
+	g_dialog_calls = 0;
 }
 
 static void advance_ms(int ms) { xvt_time_advance_host_clock(ms * 1000); }

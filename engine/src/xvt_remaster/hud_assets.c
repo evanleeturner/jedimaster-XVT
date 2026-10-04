@@ -182,7 +182,8 @@ static int decode_part(const struct xvt_original2d *source,
 			: NULL;
 	if (!record || (record->size == 1 && record->data[0] == 0xff)) {
 		/* Original loaders allow empty trailing panel records. */
-		bitmap->width = bitmap->height = 1;
+		bitmap->width = 1;
+		bitmap->height = 1;
 		bitmap->indices = calloc(1, 1);
 		bitmap->coverage = calloc(1, 1);
 		return bitmap->indices && bitmap->coverage;

@@ -119,7 +119,8 @@ int direct_sound_load_file_and_find_audio_data(int unused,
 		file_seek(stream, 0, SEEK_END);
 		file_size = (size_t)file_tell(stream);
 		file_seek(stream, 0, SEEK_SET);
-		file_data = g_wave_file_data_buffer = malloc(file_size);
+		g_wave_file_data_buffer = malloc(file_size);
+		file_data = g_wave_file_data_buffer;
 		if (file_data != NULL) {
 			if (file_read_bytes(stream, file_data, file_size) &&
 			    direct_sound_find_format_and_data_chunks(

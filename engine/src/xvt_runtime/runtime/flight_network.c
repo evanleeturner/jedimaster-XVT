@@ -56,7 +56,8 @@ uint32_t xvt_flight_network_cookie(void) { return g_mission_cookie; }
 
 void xvt_flight_network_clear_cookies(void)
 {
-	g_cookie_counter = g_mission_cookie = 0;
+	g_cookie_counter = 0;
+	g_mission_cookie = 0;
 }
 
 static int xvt_flight_network_begin_agreement(void)
@@ -519,12 +520,14 @@ int xvt_flight_network_wait_for_mission_start(void)
 		memset(g_flight_net_peer_silence_ticks, 0,
 		       sizeof(g_flight_net_peer_silence_ticks));
 		g_flight_net_resync_player_dplay_id = 0;
-		g_flight_net_pending_ack_count =
-			g_flight_net_clock_adjust_accum_ticks = 0;
+		g_flight_net_pending_ack_count = 0;
+		g_flight_net_clock_adjust_accum_ticks = 0;
 		g_flight_net_host_timeout_elapsed_ticks = 0;
 		if (g_active_flight_player_count == 1) {
-			g_server_tick_time = g_game_time = 0;
-			g_input_timestamp = g_flight_net_clock_lead_ticks = 30;
+			g_server_tick_time = 0;
+			g_game_time = 0;
+			g_input_timestamp = 30;
+			g_flight_net_clock_lead_ticks = 30;
 			time_consume_elapsed_ticks();
 			return 1;
 		}
@@ -596,8 +599,9 @@ int xvt_flight_network_wait_for_mission_start(void)
 				net_session_get_host_dplay_id(),
 				(unsigned *)&g_flight_net_scratch_packet, 4);
 			time_consume_elapsed_ticks();
-			g_server_tick_time = g_game_time = g_input_timestamp =
-				0;
+			g_server_tick_time = 0;
+			g_game_time = 0;
+			g_input_timestamp = 0;
 			g_flight_net_clock_lead_ticks =
 				g_internet_play_enabled ? 130 : 30;
 			if (!net_session_is_local_host()) {
@@ -830,7 +834,9 @@ void xvt_flight_network_begin_iteration(void)
 	}
 	g_io.iteration_start_us = now_us;
 	g_io.sampled = 0;
-	g_io.batch_sends = g_io.part_sends = g_io.packets_received = 0;
+	g_io.batch_sends = 0;
+	g_io.part_sends = 0;
+	g_io.packets_received = 0;
 }
 
 void xvt_flight_network_reset_mission(void)

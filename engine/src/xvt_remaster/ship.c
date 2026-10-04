@@ -54,7 +54,9 @@ int xvt_remaster_ship_select(const struct xvt_render_snapshot *s,
 static void ship_mat3x4_identity(float out[3][4])
 {
 	memset(out, 0, 12 * sizeof(float));
-	out[0][0] = out[1][1] = out[2][2] = 1.0f;
+	out[0][0] = 1.0f;
+	out[1][1] = 1.0f;
+	out[2][2] = 1.0f;
 }
 
 static void ship_mat3x4_rotation_about_pivot(float out[3][4],

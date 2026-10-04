@@ -27,7 +27,9 @@ static int g_changed;
 void xvt_component_animation_reset(void)
 {
 	memset(g_poses, 0, sizeof g_poses);
-	g_mission = g_world = g_frame = 0;
+	g_mission = 0;
+	g_world = 0;
+	g_frame = 0;
 	g_changed = 0;
 }
 
@@ -78,7 +80,8 @@ void xvt_component_animation_prepare(const struct xvt_render_snapshot *s)
 			}
 			p->previous[j] = p->current[j];
 			if (discontinuity) {
-				p->from[j] = p->to[j] = o->mesh_rotation[j];
+				p->to[j] = o->mesh_rotation[j];
+				p->from[j] = p->to[j];
 			} else if (new_event) {
 				p->from[j] = p->to[j];
 				p->to[j] = o->mesh_rotation[j];
@@ -89,7 +92,8 @@ void xvt_component_animation_prepare(const struct xvt_render_snapshot *s)
 				p->previous[j] = p->current[j];
 			}
 			if (p->previous[j] != p->current[j]) {
-				object_changed = g_changed = 1;
+				object_changed = 1;
+				g_changed = 1;
 			}
 			p->hp[j] = o->component_hp[j];
 			p->state[j] = o->component_state[j];

@@ -198,8 +198,9 @@ void xvt_settings_menu_complete_close(void)
 	xvt_controller_settings_cancel_capture(&g_menu.controller, g_menu.ui);
 	xvt_installation_page_cancel_picker();
 	AeronUi_CancelControllerCapture(g_menu.ui);
-	g_menu.open = g_menu.close_requested = g_menu.capture_owns_frame =
-		false;
+	g_menu.open = false;
+	g_menu.close_requested = false;
+	g_menu.capture_owns_frame = false;
 	g_menu.exit_confirmation_open = 0;
 	xvt_port_set_settings_open(0);
 }

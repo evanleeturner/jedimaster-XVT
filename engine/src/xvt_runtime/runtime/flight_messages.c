@@ -320,7 +320,10 @@ void xvt_flight_messages_pop(xvt_flight_queue queue)
 void xvt_flight_messages_clear(xvt_flight_queue queue)
 {
 	struct message_queue *q = &g_queues[queue];
-	q->read = q->used = q->head = q->count = 0;
+	q->count = 0;
+	q->head = q->count;
+	q->used = q->head;
+	q->read = q->used;
 }
 
 void xvt_flight_messages_reset(void)

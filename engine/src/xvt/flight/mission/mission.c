@@ -3868,9 +3868,11 @@ int16_t mission_close_unavailable_flight_group_accounting(int flight_group_idx)
 			.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_TOTAL] -
 		g_mission_fg_stats[flight_group_idx]
 			.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_ARRIVED];
-	result = g_mission_fg_stats[flight_group_idx]
-			 .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED] +=
+	g_mission_fg_stats[flight_group_idx]
+		.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED] +=
 		unavailable_count;
+	result = g_mission_fg_stats[flight_group_idx]
+			 .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED];
 	g_mission_fg_stats[flight_group_idx]
 		.outcome_count[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP] +=
 		unavailable_count;

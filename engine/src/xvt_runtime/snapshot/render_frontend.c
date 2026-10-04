@@ -101,11 +101,13 @@ void xvt_render_frontend_init(void)
 {
 	g_target = XVT_TARGET_FRONT_BACK;
 	g_suppress = 0;
-	g_serial = g_generation = 0;
+	g_serial = 0;
+	g_generation = 0;
 	g_presented_scene = XVT_SCENE_NONE;
 	g_presented_target = XVT_TARGET_FRONT_BACK;
 	g_text_entry = 0;
-	g_cursor_drawing = g_cursor_visible = 0;
+	g_cursor_drawing = 0;
+	g_cursor_visible = 0;
 	g_surfaces_released = 0;
 	memset(g_font_glyphs, 0, sizeof g_font_glyphs);
 	memset(g_font_asset_ids, 0, sizeof g_font_asset_ids);
@@ -401,7 +403,8 @@ void xvt_render_frontend_reset(void)
 	xvt_presentation_require_classic();
 	g_surfaces_released = 0;
 	++g_generation;
-	g_cursor_visible = g_cursor_drawing = 0;
+	g_cursor_visible = 0;
+	g_cursor_drawing = 0;
 	event(XVT_SURFACE_RESET, XVT_TARGET_FRONT_BACK, 0xff000000u);
 	g_target = XVT_TARGET_FRONT_BACK;
 }

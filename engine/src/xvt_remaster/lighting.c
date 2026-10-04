@@ -312,9 +312,12 @@ void xvt_remaster_ship_set_environment(AeronScene3D *scene,
 				   eye_camera->rows[i * 3 + 2] * direction[2])
 				: direction[i];
 		env.sun_color[i] = light->directional_enabled ? 1 : 0;
-		env.amb_pos_x[i] = env.amb_neg_x[i] = env.amb_pos_y[i] =
-			env.amb_neg_y[i] = env.amb_pos_z[i] = env.amb_neg_z[i] =
-				settings->ambient[i];
+		env.amb_neg_z[i] = settings->ambient[i];
+		env.amb_pos_z[i] = env.amb_neg_z[i];
+		env.amb_neg_y[i] = env.amb_pos_z[i];
+		env.amb_pos_y[i] = env.amb_neg_y[i];
+		env.amb_neg_x[i] = env.amb_pos_y[i];
+		env.amb_pos_x[i] = env.amb_neg_x[i];
 	}
 	float length = sqrtf(env.directional_dir[0] * env.directional_dir[0] +
 			     env.directional_dir[1] * env.directional_dir[1] +
@@ -331,8 +334,9 @@ void xvt_remaster_ship_set_environment(AeronScene3D *scene,
 		memcpy(env.sun_color, hyper.color, sizeof hyper.color);
 		env.environment_params[0] =
 			config->hyperspace.mesh_ambient_strength;
-		env.environment_right[0] = env.environment_up[2] =
-			env.environment_forward[1] = 1;
+		env.environment_right[0] = 1;
+		env.environment_up[2] = 1;
+		env.environment_forward[1] = 1;
 		AeronScene_SetPbrEnvironmentMap(scene, hyper.texture,
 						hyper.sampler);
 	}

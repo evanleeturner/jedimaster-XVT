@@ -293,8 +293,8 @@ void xvt_movie_task_update(void)
 		   g_front_state.mouse_right_click_latch) {
 		xvt_movie_task_stop();
 	}
-	g_front_state.mouse_left_click_latch =
-		g_front_state.mouse_right_click_latch = 0;
+	g_front_state.mouse_left_click_latch = 0;
+	g_front_state.mouse_right_click_latch = 0;
 	state = Aeron_VideoGetState(g_movie.player);
 	if (state == AERON_VIDEO_ERROR) {
 		if (g_movie.result != 2) {

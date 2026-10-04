@@ -1151,7 +1151,8 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 	}
 
 	packet_type = *payload;
-	packet_header = packet_type_byte[0] = packet_type & 0x7F;
+	packet_type_byte[0] = packet_type & 0x7F;
+	packet_header = packet_type_byte[0];
 	if (packet_type < NET_PACKET_RESYNC_CHECKSUMS ||
 	    packet_type >= NET_PACKET_RESYNC_CHUNK + 1) {
 		append_pending = 1;

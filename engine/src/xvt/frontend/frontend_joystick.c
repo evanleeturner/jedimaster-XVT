@@ -186,8 +186,8 @@ void joystick_update_state(int joy_slot)
 		memset(g_front_state.joystick_button_released[joy_slot], 0,
 		       sizeof(g_front_state
 				      .joystick_button_released[joy_slot]));
-		g_front_state.joystick_axis_x[joy_slot] =
-			g_front_state.joystick_axis_y[joy_slot] = 0;
+		g_front_state.joystick_axis_x[joy_slot] = 0;
+		g_front_state.joystick_axis_y[joy_slot] = 0;
 		g_front_state.joystick_present[joy_slot] = 0;
 		return;
 	}

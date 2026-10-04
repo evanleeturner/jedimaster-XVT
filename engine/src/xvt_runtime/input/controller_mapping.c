@@ -274,8 +274,10 @@ void xvt_controller_mapping_suspend(void)
 	memset(g_controller.holds, 0, sizeof g_controller.holds);
 	memset(g_controller.axes, 0, sizeof g_controller.axes);
 	memset(g_controller.menu_axes, 0, sizeof g_controller.menu_axes);
-	g_controller.read = g_controller.write = 0;
-	g_controller.menu_buttons = g_controller.menu_hat = 0;
+	g_controller.read = 0;
+	g_controller.write = 0;
+	g_controller.menu_buttons = 0;
+	g_controller.menu_hat = 0;
 	g_controller.throttle_valid = false;
 	g_controller.suspended = true;
 	++g_controller.generation;
@@ -490,7 +492,8 @@ void xvt_controller_mapping_update(const AeronInputSnapshot *input)
 	g_controller.throttle_valid = false;
 	memset(g_controller.axes, 0, sizeof g_controller.axes);
 	memset(g_controller.menu_axes, 0, sizeof g_controller.menu_axes);
-	g_controller.menu_buttons = g_controller.menu_hat = 0;
+	g_controller.menu_buttons = 0;
+	g_controller.menu_hat = 0;
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
 		struct controller_instance *state = &g_controller.instances[i];
 		bool found = false;
@@ -631,7 +634,8 @@ uint16_t xvt_controller_mapping_read_key(void)
 
 void xvt_controller_mapping_drop_commands(void)
 {
-	g_controller.read = g_controller.write = 0;
+	g_controller.read = 0;
+	g_controller.write = 0;
 	memset(g_controller.holds, 0, sizeof g_controller.holds);
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
 		struct controller_instance *state = &g_controller.instances[i];

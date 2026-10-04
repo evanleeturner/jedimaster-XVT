@@ -564,7 +564,8 @@ void xvt_remaster_assets_shutdown(void)
 	for (unsigned i = 0; i < sizeof g_images / sizeof g_images[0]; ++i) {
 		release(&g_images[i]);
 	}
-	g_generations[0] = g_generations[1] = UINT64_MAX;
+	g_generations[0] = UINT64_MAX;
+	g_generations[1] = UINT64_MAX;
 	memset(g_batch_active, 0, sizeof g_batch_active);
 	xvt_remaster_ship_shutdown();
 	xvt_remaster_opt_mesh_shutdown();

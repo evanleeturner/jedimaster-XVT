@@ -226,13 +226,15 @@ void xvt_remaster_ship_commit_sync_batch(void)
 		XVT_LOG_DEBUG("remaster.mesh_assets generation=%llu unique=%u",
 			      (unsigned long long)g_generation, g_count);
 	}
-	g_batch_active = g_batch_completes = 0;
+	g_batch_active = 0;
+	g_batch_completes = 0;
 }
 
 void xvt_remaster_ship_abort(void)
 {
 	discard_pending();
-	g_batch_active = g_batch_completes = 0;
+	g_batch_active = 0;
+	g_batch_completes = 0;
 }
 
 void xvt_remaster_ship_shutdown(void)

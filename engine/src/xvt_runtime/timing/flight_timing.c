@@ -71,7 +71,11 @@ void xvt_flight_timing_begin_advance(uint16_t elapsed)
 	}
 }
 
-void xvt_flight_timing_end_advance(void) { g_timing.active = g_timing.due = 0; }
+void xvt_flight_timing_end_advance(void)
+{
+	g_timing.active = 0;
+	g_timing.due = 0;
+}
 
 int xvt_flight_timing_reference_due(void)
 {
@@ -148,7 +152,8 @@ void xvt_flight_timing_restore_network_tick(int tick)
 	}
 	g_timing.serial = (unsigned)tick / XVT_NETWORK_STEP_TICKS;
 	g_timing.phase = (unsigned)tick % XVT_REFERENCE_TICKS;
-	g_timing.active = g_timing.due = 0;
+	g_timing.active = 0;
+	g_timing.due = 0;
 	int timer =
 		g_flight_global_countdown_timers.special_behavior_update_timer;
 	int event = (tick - tick % XVT_REFERENCE_TICKS) -

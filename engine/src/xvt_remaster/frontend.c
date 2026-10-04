@@ -319,8 +319,8 @@ static int render_cursor(AeronCommandBuffer *cmd,
 	}
 	/* Own the pixels with the held presentation, independently of source asset lifetime. */
 	struct xvt_snap_sprite local = *cursor;
-	local.destination = local.draw.clip =
-		(struct xvt_snap_rect){0, 0, width, height};
+	local.draw.clip = (struct xvt_snap_rect){0, 0, width, height};
+	local.destination = local.draw.clip;
 	const float clear[4] = {0, 0, 0, 0};
 	AeronDrawList_Begin(g_list, g_cursor_target, width, height,
 			    AERON_DRAWLIST2D_CLEAR, clear);
@@ -635,7 +635,10 @@ void xvt_frontend_shutdown(void)
 	AeronDrawList_Destroy(g_list);
 	g_list = NULL;
 	g_replayed_snapshot_serial = UINT64_MAX;
-	g_width = g_height = g_presented = g_movie_presented = 0;
+	g_width = 0;
+	g_height = 0;
+	g_presented = 0;
+	g_movie_presented = 0;
 	g_release_presented = 0;
 	Aeron_DestroyRenderTarget(g_cursor_target);
 	g_cursor_target = NULL;
@@ -666,7 +669,8 @@ void xvt_frontend_release_presented(void)
 	}
 	Aeron_DestroyRenderTarget(g_targets[XVT_TARGET_FRONT_PRESENTED]);
 	g_targets[XVT_TARGET_FRONT_PRESENTED] = NULL;
-	g_presented = g_release_presented = 0;
+	g_presented = 0;
+	g_release_presented = 0;
 	Aeron_DestroyRenderTarget(g_cursor_target);
 	g_cursor_target = NULL;
 	g_cursor_visible = 0;

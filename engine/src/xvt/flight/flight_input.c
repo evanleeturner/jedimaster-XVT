@@ -578,7 +578,8 @@ uint16_t flight_input_read(int player_idx_or_sentinel)
 			g_replay_inputs[player_idx_or_sentinel].axis_r;
 		/* Recorded axes are the complete shared control sample. */
 		if (xvt_flight_timing_is_network125()) {
-			g_flight_mouse_delta_x = g_flight_mouse_delta_y = 0;
+			g_flight_mouse_delta_x = 0;
+			g_flight_mouse_delta_y = 0;
 			g_mouse_buttons = 0;
 		}
 #endif

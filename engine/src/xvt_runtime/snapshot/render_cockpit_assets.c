@@ -135,9 +135,10 @@ void xvt_render_cockpit_capture_definition(
 	       sizeof definition->shield_colors);
 	for (unsigned index = 0; index < 9; ++index) {
 		if (g_flight_resolution_mode == FLIGHT_RESOLUTION_640X480) {
+			definition->beam_offsets[index][1] =
+				(int16_t)(3 * (8 - index));
 			definition->beam_offsets[index][0] =
-				definition->beam_offsets[index][1] =
-					(int16_t)(3 * (8 - index));
+				definition->beam_offsets[index][1];
 		} else {
 			const struct hud_beam_segment_offset *offsets =
 				g_flight_resolution_mode ==
@@ -189,7 +190,8 @@ void xvt_render_assets_capture_cockpit(int auxiliary)
 			g_hud_panel_sprite_file_info.sprite_count;
 		g_layout.sprite_count_addend =
 			g_hud_panel_sprite_file_info.sprite_count_addend;
-		g_layout.mask_bytes[0] = g_layout.mask_bytes[1] = mask_size;
+		g_layout.mask_bytes[1] = mask_size;
+		g_layout.mask_bytes[0] = g_layout.mask_bytes[1];
 		memcpy(g_layout.masks[0], g_hud_cockpit_inset_span_mask,
 		       mask_size);
 		memcpy(g_layout.masks[1], g_hud_only_view_inset_span_mask,

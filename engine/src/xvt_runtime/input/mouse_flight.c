@@ -76,7 +76,8 @@ void xvt_mouse_flight_reset(void)
 	g_mouse_flight.target_tap = 0;
 	g_mouse_flight.drain_time_us = 0;
 	g_mouse_flight.active = 0;
-	g_mouse_flight.read_key = g_mouse_flight.write_key = 0;
+	g_mouse_flight.read_key = 0;
+	g_mouse_flight.write_key = 0;
 }
 
 static void xvt_mouse_flight_queue_key(uint16_t key)
@@ -96,7 +97,8 @@ uint16_t xvt_mouse_flight_read_key(void)
 	    (unsigned)g_local_player >= 8 ||
 	    g_players[g_local_player].chat_recipient_mode !=
 		    FLIGHT_CHAT_RECIPIENT_INACTIVE) {
-		g_mouse_flight.read_key = g_mouse_flight.write_key = 0;
+		g_mouse_flight.read_key = 0;
+		g_mouse_flight.write_key = 0;
 		return 0;
 	}
 	if (g_mouse_flight.read_key == g_mouse_flight.write_key) {
@@ -177,7 +179,8 @@ void xvt_mouse_flight_pump(void)
 				XVT_INPUT_ACTION_VIEW_TOGGLE_COCKPIT));
 		}
 	} else {
-		g_mouse_flight.read_key = g_mouse_flight.write_key = 0;
+		g_mouse_flight.read_key = 0;
+		g_mouse_flight.write_key = 0;
 	}
 	g_mouse_flight.target_tap = 0;
 }
@@ -311,8 +314,10 @@ int xvt_mouse_flight_get_hud_marker(int *deflection_x, int *deflection_y)
 
 void xvt_mouse_flight_discard_pending(void)
 {
-	g_mouse_flight.pending_x = g_mouse_flight.pending_y = 0.0f;
-	g_mouse_flight.read_key = g_mouse_flight.write_key = 0;
+	g_mouse_flight.pending_x = 0.0f;
+	g_mouse_flight.pending_y = 0.0f;
+	g_mouse_flight.read_key = 0;
+	g_mouse_flight.write_key = 0;
 	g_mouse_flight.target_tap = 0;
 	g_mouse_flight.drain_time_us = Aeron_NowUs();
 }

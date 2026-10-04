@@ -25,9 +25,11 @@ void xvt_video_options_configure(xvt_video_apply_fn apply)
 	if (g_video.defaults.fsr_mode != AERON_TEMPORAL_OFF) {
 		g_video.defaults.msaa_samples = 1;
 	}
-	g_video.accepted = g_video.persisted = g_video.requested;
+	g_video.persisted = g_video.requested;
+	g_video.accepted = g_video.persisted;
 	g_video.apply = apply;
-	g_video.pending = g_video.restore = false;
+	g_video.pending = false;
+	g_video.restore = false;
 	g_video.observed_fullscreen = Aeron_Fullscreen();
 }
 
@@ -61,8 +63,8 @@ bool xvt_video_options_apply_pending(char *error, size_t capacity)
 {
 	int fullscreen = Aeron_Fullscreen();
 	if (fullscreen != g_video.observed_fullscreen && !g_video.pending) {
-		g_video.accepted.fullscreen = g_video.requested.fullscreen =
-			fullscreen;
+		g_video.requested.fullscreen = fullscreen;
+		g_video.accepted.fullscreen = g_video.requested.fullscreen;
 	}
 	g_video.observed_fullscreen = fullscreen;
 	if (!g_video.pending) {

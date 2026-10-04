@@ -57,10 +57,12 @@ static void input_bridge_start(void)
 	xvt_controller_mapping_shutdown();
 	keyboard_flush_char_buffer();
 	memset(g_front_state.key_state, 0, sizeof g_front_state.key_state);
-	g_front_state.mouse_x = g_front_state.mouse_y = 0;
-	g_front_state.mouse_left_down = g_front_state.mouse_right_down = 0;
-	g_front_state.mouse_left_click_latch =
-		g_front_state.mouse_right_click_latch = 0;
+	g_front_state.mouse_x = 0;
+	g_front_state.mouse_y = 0;
+	g_front_state.mouse_left_down = 0;
+	g_front_state.mouse_right_down = 0;
+	g_front_state.mouse_left_click_latch = 0;
+	g_front_state.mouse_right_click_latch = 0;
 	new_frame();
 }
 
@@ -300,9 +302,10 @@ static void fill_frontend(void)
 	xvt_input_update(0);
 	XVT_ASSERT_TRUE(g_front_state.key_state['A'] & 0x80);
 	XVT_ASSERT_TRUE(keyboard_peek_char() == 'h');
-	g_front_state.mouse_left_down = g_front_state.mouse_right_down = 1;
-	g_front_state.mouse_left_click_latch =
-		g_front_state.mouse_right_click_latch = 1;
+	g_front_state.mouse_left_down = 1;
+	g_front_state.mouse_right_down = 1;
+	g_front_state.mouse_left_click_latch = 1;
+	g_front_state.mouse_right_click_latch = 1;
 }
 
 static void assert_frontend_cleared(void)

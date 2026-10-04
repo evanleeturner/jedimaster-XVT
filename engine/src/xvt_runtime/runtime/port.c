@@ -283,6 +283,7 @@ void xvt_port_shutdown(void)
 	g_xvt_initialized = 0;
 	g_xvt_paused = 0;
 	g_xvt_rebase_clock = 0;
-	g_settings_open = g_settings_requested = 0;
+	g_settings_open = 0;
+	g_settings_requested = 0;
 	XVT_LOG_INFO("port.stopped");
 }

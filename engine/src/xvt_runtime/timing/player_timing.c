@@ -284,10 +284,16 @@ void xvt_player_timing_reset_shared(void)
 			s->remainder[g_shared_channels[c]] = 0;
 			s->direction[g_shared_channels[c]] = 0;
 		}
-		s->slot = s->signature = s->lock_signature = s->lock_target =
-			s->lock_target_signature = s->lock_weapon = 0;
-		s->lock_mode = s->lock_odd_tick = s->control_mode =
-			s->control_valid = 0;
+		s->slot = 0;
+		s->signature = 0;
+		s->lock_signature = 0;
+		s->lock_target = 0;
+		s->lock_target_signature = 0;
+		s->lock_weapon = 0;
+		s->control_valid = 0;
+		s->control_mode = s->control_valid;
+		s->lock_odd_tick = s->control_mode;
+		s->lock_mode = s->lock_odd_tick;
 		s->lock_serial = 0;
 		s->camera_focus = 0;
 	}

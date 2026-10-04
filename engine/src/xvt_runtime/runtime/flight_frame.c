@@ -791,8 +791,8 @@ static int xvt_flight_frame_network_update(void)
 		return 0;
 	}
 	g_confirm.phase = XVT_CONFIRM_IDLE;
-	g_frame.frame_start_timestamp = g_frame.loop_start_timestamp =
-		g_input_timestamp;
+	g_frame.loop_start_timestamp = g_input_timestamp;
+	g_frame.frame_start_timestamp = g_frame.loop_start_timestamp;
 	xvt_flight_frame_render();
 	return 0;
 }

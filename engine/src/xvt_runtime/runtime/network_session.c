@@ -160,7 +160,9 @@ void xvt_network_session_on_close(void)
 		}
 	}
 	g_session.registered = 0;
-	g_session.flight = g_session.flight_ready = g_session.lost = 0;
+	g_session.flight = 0;
+	g_session.flight_ready = 0;
+	g_session.lost = 0;
 	g_session.closing = 1;
 	g_session.phase = SESSION_IDLE;
 }
@@ -262,8 +264,8 @@ static int xvt_network_session_factory(void)
 		return 0;
 	}
 	g_front_state.net_runtime_sent_history_write_index = 0;
-	g_front_state.net_runtime_broadcast_seq_counter =
-		g_front_state.net_runtime_group_seq_counter = 0;
+	g_front_state.net_runtime_broadcast_seq_counter = 0;
+	g_front_state.net_runtime_group_seq_counter = 0;
 	g_front_state.net_runtime_broadcast_pending_payload.piggyback_empty = 1;
 	g_front_state.net_runtime_broadcast_pending_payload.payload[0] =
 		NET_PACKET_NOP;
@@ -281,18 +283,21 @@ static int xvt_network_session_factory(void)
 	for (int i = 0; i < 40; ++i) {
 		struct net_reliable_peer_slot *peer =
 			&g_front_state.net_runtime_reliable_peer_slots[i];
-		peer->last_delivered_seq_default =
-			peer->last_delivered_seq_channel_a =
-				peer->last_delivered_seq_channel_b = 127;
-		peer->recv_seq_default = peer->recv_seq_channel_a =
-			peer->recv_seq_channel_b = 127;
+		peer->last_delivered_seq_default = 127;
+		peer->last_delivered_seq_channel_a = 127;
+		peer->last_delivered_seq_channel_b = 127;
+		peer->recv_seq_default = 127;
+		peer->recv_seq_channel_a = 127;
+		peer->recv_seq_channel_b = 127;
 		peer->send_seq = 0;
 		peer->direct_play_id = 0;
 		peer->last_piggyback_type = NET_PACKET_NOP;
 		peer->piggyback_length = 1;
-		peer->last_activity_ms = peer->last_heard_ms = 0;
-		peer->packet_count = peer->packet_drop_count =
-			peer->packet_retry_count = 0;
+		peer->last_activity_ms = 0;
+		peer->last_heard_ms = 0;
+		peer->packet_count = 0;
+		peer->packet_drop_count = 0;
+		peer->packet_retry_count = 0;
 	}
 	memset(g_front_state.net_runtime_sent_history, 0,
 	       sizeof(g_front_state.net_runtime_sent_history));
@@ -359,13 +364,13 @@ static int xvt_network_session_handshake(void)
 			peer->last_delivered_seq_channel_b = row[5];
 			peer->recv_seq_channel_a = row[6];
 			peer->recv_seq_channel_b = row[7];
-			peer->last_delivered_seq_default =
-				peer->recv_seq_default = 127;
+			peer->last_delivered_seq_default = 127;
+			peer->recv_seq_default = 127;
 			peer->send_seq = 0;
 			peer->last_piggyback_type = NET_PACKET_NOP;
 			peer->piggyback_length = 1;
-			peer->last_activity_ms = peer->last_heard_ms =
-				GetTickCount();
+			peer->last_heard_ms = GetTickCount();
+			peer->last_activity_ms = peer->last_heard_ms;
 			if (saved.direct_play_id &&
 			    peer->direct_play_id == saved.direct_play_id) {
 				peer->last_delivered_seq_default =
@@ -432,8 +437,8 @@ static void xvt_network_session_roster(void)
 {
 	g_front_state.net_player_count = 1;
 	net_refresh_player_roster();
-	g_front_state.net_runtime_recv_queue_read_index =
-		g_front_state.net_runtime_recv_queue_write_index = 0;
+	g_front_state.net_runtime_recv_queue_read_index = 0;
+	g_front_state.net_runtime_recv_queue_write_index = 0;
 	g_front_state.net_runtime_recv_queue_count = 0;
 	if (g_session.host) {
 		g_front_state.net_host_player_id =
@@ -528,8 +533,8 @@ int xvt_network_session_update(void)
 			return xvt_network_session_fail(
 				AERON_DPLAY_DIRECTORY_ERROR_CONNECTION_FAILED);
 		}
-		g_session.instance = g_front_state.net_joined_session_guid =
-			desc.guidInstance;
+		g_front_state.net_joined_session_guid = desc.guidInstance;
+		g_session.instance = g_front_state.net_joined_session_guid;
 		g_net_active_transport_type = NET_TRANSPORT_TCPIP;
 		g_session.phase = SESSION_PLAYER;
 		break;
@@ -639,7 +644,8 @@ void xvt_network_session_service(void)
 		if (g_session.cancel_join) {
 			AeronDplayDirectory_CancelJoin();
 		}
-		g_session.cancel_join = g_session.closing = 0;
+		g_session.cancel_join = 0;
+		g_session.closing = 0;
 	}
 	if (g_session.phase == SESSION_FAILED ||
 	    g_session.phase == SESSION_IDLE || g_session.closing) {
@@ -728,7 +734,8 @@ void xvt_network_session_end_flight(void)
 	if (!g_session.flight) {
 		return;
 	}
-	g_session.flight = g_session.flight_ready = 0;
+	g_session.flight = 0;
+	g_session.flight_ready = 0;
 	net_refresh_player_roster();
 }
 

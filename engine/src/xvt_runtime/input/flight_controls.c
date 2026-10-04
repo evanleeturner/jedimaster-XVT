@@ -144,9 +144,14 @@ void xvt_flight_controls_apply_throttle(
 uint16_t xvt_flight_controls_read_local(void)
 {
 	xvt_keyboard_route keyboard = xvt_input_reconcile_keyboard();
-	g_ctrl_axis_x = g_ctrl_axis_y = g_xvt_control_roll = 0;
-	g_key_mods = g_mouse_buttons = g_action_key = 0;
-	g_flight_mouse_delta_x = g_flight_mouse_delta_y = 0;
+	g_ctrl_axis_x = 0;
+	g_ctrl_axis_y = 0;
+	g_xvt_control_roll = 0;
+	g_key_mods = 0;
+	g_mouse_buttons = 0;
+	g_action_key = 0;
+	g_flight_mouse_delta_x = 0;
+	g_flight_mouse_delta_y = 0;
 	if (keyboard == XVT_KEYBOARD_BLOCKED) {
 		xvt_flight_controls_reset();
 		return 0;

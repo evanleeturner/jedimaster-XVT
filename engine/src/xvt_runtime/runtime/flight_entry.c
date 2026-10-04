@@ -148,8 +148,9 @@ int xvt_flight_entry_prepare(char *mission_cmd_line)
 	int command_line_offset;
 	int quoted_argument;
 
-	g_game_session_started = g_sound_engine_started =
-		g_flight_devices_created = 0;
+	g_game_session_started = 0;
+	g_sound_engine_started = 0;
+	g_flight_devices_created = 0;
 	model_preview_free_resources();
 	g_flight_render_to_frontend = 0;
 	if (mission_cmd_line == NULL) {

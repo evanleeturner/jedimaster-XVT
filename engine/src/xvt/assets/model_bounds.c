@@ -42,8 +42,12 @@ void model_bounds_ensure_cached(int object_type)
 	struct opt_vector min_bounds;
 	struct opt_vector max_bounds;
 
-	min_bounds.x = min_bounds.y = min_bounds.z = 1073741800.0f;
-	max_bounds.x = max_bounds.y = max_bounds.z = -1073741800.0f;
+	min_bounds.x = 1073741800.0f;
+	min_bounds.y = 1073741800.0f;
+	min_bounds.z = 1073741800.0f;
+	max_bounds.x = -1073741800.0f;
+	max_bounds.y = -1073741800.0f;
+	max_bounds.z = -1073741800.0f;
 	if ((g_object_type_table[object_type].asset_flags & 1) != 0) {
 		model = (struct optimized_poly_object *)memory_get_handle_block(
 			g_loaded_models[object_type]);

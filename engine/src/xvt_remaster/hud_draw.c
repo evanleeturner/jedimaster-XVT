@@ -140,7 +140,9 @@ static void append_atlas_sprite(const struct xvt_hud_draw *draw,
 		sprite.src_u1 = swap;
 	}
 	if (monochrome) {
-		sprite.tint[0] = sprite.tint[1] = sprite.tint[2] = 0;
+		sprite.tint[0] = 0;
+		sprite.tint[1] = 0;
+		sprite.tint[2] = 0;
 		xvt_ui_color(color, sprite.bias);
 		sprite.bias[3] = 0;
 	}

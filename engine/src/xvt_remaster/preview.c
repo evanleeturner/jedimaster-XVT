@@ -255,7 +255,8 @@ int xvt_remaster_preview_crt_needs_render(const struct xvt_render_snapshot *s,
 	memset(key->preview.component_marker_world, 0,
 	       sizeof key->preview.component_marker_world);
 	key->preview.component = 0;
-	key->preview.destination.x = key->preview.destination.y = 0;
+	key->preview.destination.x = 0;
+	key->preview.destination.y = 0;
 	key->effect_lighting = s->lighting;
 	memcpy(key->types, s->types, sizeof key->types);
 	memcpy(key->fuselage, s->fuselage_sequence, sizeof key->fuselage);
@@ -540,7 +541,9 @@ void xvt_remaster_preview_release_frontend(void)
 		g_targets[i] = NULL;
 		memset(&g_outputs[i], 0, sizeof g_outputs[i]);
 	}
-	g_scene_width = g_scene_height = g_samples = 0;
+	g_scene_width = 0;
+	g_scene_height = 0;
+	g_samples = 0;
 }
 
 void xvt_remaster_preview_shutdown(void)

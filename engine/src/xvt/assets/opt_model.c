@@ -3617,9 +3617,12 @@ unsigned int opt_model_convert_legacy_node_to_optimized(
 			g_opt_convert_vertex_node = vertex_node;
 
 			vectors = (struct opt_vector *)vertex_node->payload;
-			minimum.x = maximum.x = vectors->x;
-			minimum.y = maximum.y = vectors->y;
-			minimum.z = maximum.z = vectors->z;
+			maximum.x = vectors->x;
+			minimum.x = maximum.x;
+			maximum.y = vectors->y;
+			minimum.y = maximum.y;
+			maximum.z = vectors->z;
+			minimum.z = maximum.z;
 			remaining = vertex_node->payload_count;
 			if (remaining > 0) {
 				do {
@@ -3966,9 +3969,12 @@ unsigned int opt_model_convert_legacy_node_to_optimized(
 			g_opt_convert_vertex_node = vertex_node;
 
 			vectors = (struct opt_vector *)vertex_node->payload;
-			minimum.x = maximum.x = vectors->x;
-			minimum.y = maximum.y = vectors->y;
-			minimum.z = maximum.z = vectors->z;
+			maximum.x = vectors->x;
+			minimum.x = maximum.x;
+			maximum.y = vectors->y;
+			minimum.y = maximum.y;
+			maximum.z = vectors->z;
+			minimum.z = maximum.z;
 			remaining = vertex_node->payload_count;
 			if (remaining > 0) {
 				do {

@@ -71,8 +71,8 @@ static struct integration *xvt_flight_integration_sync_entry(unsigned slot)
 	}
 	if (o->mobj) {
 		if (!o->mobj->roll_impulse_rate) {
-			s->remainder[XVT_INTEGRATE_SPIN_DECAY] =
-				s->remainder[XVT_INTEGRATE_SPIN_ANGLE] = 0;
+			s->remainder[XVT_INTEGRATE_SPIN_DECAY] = 0;
+			s->remainder[XVT_INTEGRATE_SPIN_ANGLE] = 0;
 		}
 		if (o->mobj->p_craft) {
 			unsigned carried =

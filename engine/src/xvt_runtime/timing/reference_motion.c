@@ -97,7 +97,8 @@ void xvt_reference_motion_commit_boundary(void)
 		struct motion *m = entry(i);
 		const struct object_record *o = &g_object_table[i];
 		if (!o->object_type) {
-			m->valid = m->current_valid = 0;
+			m->valid = 0;
+			m->current_valid = 0;
 			continue;
 		}
 		m->position[0] = o->world_x;

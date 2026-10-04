@@ -139,7 +139,8 @@ static void grid(const struct xvt_render_snapshot *s,
 		int32_t a[3] = {-1048576, i * 65536, s->map.grid_z};
 		int32_t b[3] = {1048576, i * 65536, s->map.grid_z};
 		segment(view, a, b, s->flight_palette_argb[49]);
-		a[0] = b[0] = i * 65536;
+		b[0] = i * 65536;
+		a[0] = b[0];
 		a[1] = -1048576;
 		b[1] = 1048576;
 		segment(view, a, b, s->flight_palette_argb[49]);
@@ -415,5 +416,7 @@ void xvt_flight_map_shutdown(void)
 	g_composite = NULL;
 	g_list = NULL;
 	g_tables = NULL;
-	g_width = g_height = g_samples = 0;
+	g_width = 0;
+	g_height = 0;
+	g_samples = 0;
 }

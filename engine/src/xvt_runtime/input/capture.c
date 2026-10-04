@@ -41,7 +41,9 @@ void xvt_input_flush_raw_keyboard(void)
 			g_dinput_keyboard_device, sizeof(DIDEVICEOBJECTDATA),
 			NULL, &count, 0);
 	}
-	g_dinput_shift_down = g_dinput_ctrl_down = g_dinput_alt_down = 0;
+	g_dinput_shift_down = 0;
+	g_dinput_ctrl_down = 0;
+	g_dinput_alt_down = 0;
 	g_key_ready = 0;
 	g_last_key_code = 0;
 	keyboard_flush_char_buffer();
@@ -100,10 +102,12 @@ void xvt_input_set_captured(bool capture)
 	}
 	xvt_input_flush_keyboard();
 	g_action_key = 0;
-	g_ctrl_axis_x = g_ctrl_axis_y = 0;
+	g_ctrl_axis_x = 0;
+	g_ctrl_axis_y = 0;
 	g_key_mods = 0;
 	g_mouse_buttons = 0;
-	g_flight_mouse_delta_x = g_flight_mouse_delta_y = 0;
+	g_flight_mouse_delta_x = 0;
+	g_flight_mouse_delta_y = 0;
 	xvt_flight_controls_reset();
 	xvt_mouse_flight_reset();
 	if (capture) {
@@ -160,12 +164,15 @@ void xvt_input_suppress_renderer_tab(bool suppress)
 
 void xvt_input_reset_capture(void)
 {
-	g_captured = g_renderer_tab_suppressed = false;
+	g_captured = false;
+	g_renderer_tab_suppressed = false;
 	g_blocked_mouse = 0;
 	g_mouse_ignored_frame = UINT64_MAX;
 	memset(g_blocked_keys, 0, sizeof g_blocked_keys);
 	xvt_input_apply_key_suppression();
-	g_mouse_released = g_mouse_capture_failed = g_mouse_session = false;
+	g_mouse_released = false;
+	g_mouse_capture_failed = false;
+	g_mouse_session = false;
 	g_mouse_context = -1;
 	memset(&g_mouse_options, 0, sizeof g_mouse_options);
 	xvt_mouse_flight_reset();
@@ -199,7 +206,8 @@ void xvt_input_update_mouse_capture(const AeronInputSnapshot *input)
 		xvt_flight_task_is_active() && !xvt_flight_task_is_loading();
 	if (session != g_mouse_session) {
 		g_mouse_session = session;
-		g_mouse_released = g_mouse_capture_failed = false;
+		g_mouse_released = false;
+		g_mouse_capture_failed = false;
 		g_mouse_context = -1;
 		xvt_mouse_flight_reset();
 	}

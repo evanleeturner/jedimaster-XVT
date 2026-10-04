@@ -19,8 +19,11 @@ static int g_samples;
 
 void xvt_cockpit_loading_reset(void)
 {
-	g_prepared_image_generation = g_prepared_resource_generation = 0;
-	g_width = g_height = g_samples = 0;
+	g_prepared_image_generation = 0;
+	g_prepared_resource_generation = 0;
+	g_width = 0;
+	g_height = 0;
+	g_samples = 0;
 }
 
 static int prepare_map_icons(AeronCommandBuffer *cmd,

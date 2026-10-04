@@ -181,7 +181,8 @@ static void check_next_wake_network(void)
 {
 	/* Prediction work remains while the game time trails the input clock. */
 	clocks(XVT_FLIGHT_TIMING_NETWORK_125);
-	g_server_tick_time = g_game_time = 100;
+	g_server_tick_time = 100;
+	g_game_time = 100;
 	g_input_timestamp = 100 + 4 * XVT_NETWORK_STEP_TICKS;
 	XVT_ASSERT_TRUE(xvt_flight_frame_next_wake_delay_us() == 0);
 

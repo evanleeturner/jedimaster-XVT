@@ -2910,7 +2910,8 @@ int16_t player_apply_pitch_yaw_steps(int16_t pitch_angle_q16,
 		(g_flight_key_mods & 0xE) == 2 ? 0 : yaw_angle_q16);
 	/* BoP also retains the commanded pitch in craft_data. Publish a coherent
 	 * orientation immediately, as XWA does, before the per-object step gate. */
-	craft->pitch = object->pitch = updated.pitch;
+	object->pitch = updated.pitch;
+	craft->pitch = object->pitch;
 	object->yaw = updated.yaw;
 	object->roll = updated.roll;
 	return (int16_t)updated.roll;

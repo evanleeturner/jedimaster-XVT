@@ -214,7 +214,8 @@ static void check_scanf_conversions(void)
 	digits[511] = '7';
 	digits[512] = 0;
 	file = open_text(digits);
-	number = second = -1;
+	number = -1;
+	second = -1;
 	XVT_ASSERT_INT_EQ(xvt_file_scanf(file, "%d%d", &number, &second), 2);
 	XVT_ASSERT_INT_EQ(number, 0);
 	XVT_ASSERT_INT_EQ(second, 7);

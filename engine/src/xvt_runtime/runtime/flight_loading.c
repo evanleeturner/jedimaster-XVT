@@ -35,16 +35,22 @@ enum {
 
 void xvt_flight_loading_reset(void)
 {
-	g_object_table_handle = g_mobile_object_pool_handle =
-		g_mobile_object_char_data_handle = 0;
-	g_craft_data_pool_handle = g_warhead_guidance_pool_handle = 0;
-	g_string_data_handle = g_render_object_list_handle = 0;
-	g_flight_small_font_handle = g_flight_micro_font_handle =
-		g_flight_medium_font_handle = 0;
-	g_flight_scratch_screen_buffer_handle = g_flight_aux_buffer_handle =
-		g_flight_offscreen_buffer_handle = 0;
-	g_hud_panel_sprite_data_handle = g_flight_icon_frames_handle =
-		g_message_log_handle = 0;
+	g_object_table_handle = 0;
+	g_mobile_object_pool_handle = 0;
+	g_mobile_object_char_data_handle = 0;
+	g_craft_data_pool_handle = 0;
+	g_warhead_guidance_pool_handle = 0;
+	g_string_data_handle = 0;
+	g_render_object_list_handle = 0;
+	g_flight_small_font_handle = 0;
+	g_flight_micro_font_handle = 0;
+	g_flight_medium_font_handle = 0;
+	g_flight_scratch_screen_buffer_handle = 0;
+	g_flight_aux_buffer_handle = 0;
+	g_flight_offscreen_buffer_handle = 0;
+	g_hud_panel_sprite_data_handle = 0;
+	g_flight_icon_frames_handle = 0;
+	g_message_log_handle = 0;
 	g_object_table = NULL;
 	g_mobile_object_pool_base = NULL;
 	g_mobile_object_char_data_pool = NULL;

@@ -60,7 +60,8 @@ void xvt_cockpit_reset(void)
 	memset(&g_working, 0, sizeof g_working);
 	memset(&g_pending, 0, sizeof g_pending);
 	memset(&g_completed, 0, sizeof g_completed);
-	g_composition_selected = g_sealed = 0;
+	g_composition_selected = 0;
+	g_sealed = 0;
 }
 
 static void capture_view(struct xvt_cockpit_view *view)

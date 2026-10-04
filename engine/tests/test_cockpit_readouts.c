@@ -75,9 +75,10 @@ static struct xvt_cockpit_state *shown(void)
 	memset(&g_state, 0, sizeof g_state);
 	g_state.view.hud_state = HUD_VIEW_FORWARD;
 	g_state.view.instruments_visible = 1;
-	g_state.readouts.speed.visible = g_state.readouts.throttle.visible = 1;
-	g_state.readouts.clock_minutes.visible =
-		g_state.readouts.clock_seconds.visible = 1;
+	g_state.readouts.speed.visible = 1;
+	g_state.readouts.throttle.visible = 1;
+	g_state.readouts.clock_minutes.visible = 1;
+	g_state.readouts.clock_seconds.visible = 1;
 	g_state.systems.countermeasure_count.visible = 1;
 	for (unsigned slot = 0; slot < 4; ++slot) {
 		g_state.weapons.launchers[slot].count.visible = 1;
@@ -400,7 +401,8 @@ static void check_target_change_clears(void)
 static void check_command_change_resets_threat_cache(void)
 {
 	cockpit_readouts_start();
-	g_hud_element_state_cache[102] = g_hud_element_state_cache[103] = 55;
+	g_hud_element_state_cache[102] = 55;
+	g_hud_element_state_cache[103] = 55;
 	cockpit_readouts_target(TARGET_A);
 	/* A change outside command mode leaves the cache alone. */
 	xvt_cockpit_readouts_begin_target(0);
@@ -411,7 +413,8 @@ static void check_command_change_resets_threat_cache(void)
 	XVT_ASSERT_TRUE(g_hud_element_state_cache[102] != 55);
 	XVT_ASSERT_TRUE(g_hud_element_state_cache[103] != 55);
 	/* No change, no reset. */
-	g_hud_element_state_cache[102] = g_hud_element_state_cache[103] = 55;
+	g_hud_element_state_cache[102] = 55;
+	g_hud_element_state_cache[103] = 55;
 	xvt_cockpit_readouts_begin_target(1);
 	XVT_ASSERT_INT_EQ(g_hud_element_state_cache[102], 55);
 	XVT_ASSERT_INT_EQ(g_hud_element_state_cache[103], 55);

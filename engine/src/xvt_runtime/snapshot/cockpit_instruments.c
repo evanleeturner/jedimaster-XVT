@@ -319,11 +319,11 @@ static void build_feature_covers(struct xvt_cockpit_state *state,
 					1, 0, 0, XVT_COCKPIT_BEFORE_CRT};
 		}
 		if (!(craft->system_flags & CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM)) {
+			systems->unavailable_beam[1] =
+				(struct xvt_cockpit_indicator){
+					1, 0, 0, XVT_COCKPIT_BEFORE_CRT};
 			systems->unavailable_beam[0] =
-				systems->unavailable_beam[1] =
-					(struct xvt_cockpit_indicator){
-						1, 0, 0,
-						XVT_COCKPIT_BEFORE_CRT};
+				systems->unavailable_beam[1];
 		}
 	}
 }
@@ -333,12 +333,12 @@ static void build_basic_readouts(struct xvt_cockpit_state *state,
 {
 	if (craft->damage_stats.active_hud_feature_mask &
 	    XVT_COCKPIT_FEATURE_SPEED) {
-		state->readouts.speed.visible =
-			state->readouts.throttle.visible = 1;
+		state->readouts.speed.visible = 1;
+		state->readouts.throttle.visible = 1;
 	}
 	if (state->view.hud_state == HUD_VIEW_FORWARD) {
-		state->readouts.clock_minutes.visible =
-			state->readouts.clock_seconds.visible = 1;
+		state->readouts.clock_minutes.visible = 1;
+		state->readouts.clock_seconds.visible = 1;
 	}
 }
 
@@ -634,8 +634,8 @@ void xvt_cockpit_instruments_build(struct xvt_cockpit_state *state)
 				     XVT_COCKPIT_FEATURE_FORE_RADAR) &&
 				    (systems->active_hud_features &
 				     XVT_COCKPIT_FEATURE_AFT_RADAR);
-		state->radar.visible[0] = state->radar.visible[1] =
-			radar_visible;
+		state->radar.visible[1] = radar_visible;
+		state->radar.visible[0] = state->radar.visible[1];
 		for (unsigned index = 0; index < 4; ++index) {
 			systems->threats[index] =
 				(struct xvt_cockpit_indicator){

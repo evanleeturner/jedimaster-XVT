@@ -327,7 +327,9 @@ static void put_char(char c)
 static void set_raw_keyboard(void)
 {
 	keyboard_flush_char_buffer();
-	g_dinput_shift_down = g_dinput_ctrl_down = g_dinput_alt_down = 1;
+	g_dinput_shift_down = 1;
+	g_dinput_ctrl_down = 1;
+	g_dinput_alt_down = 1;
 	g_key_ready = 1;
 	g_last_key_code = 0x1E;
 	put_char('x');

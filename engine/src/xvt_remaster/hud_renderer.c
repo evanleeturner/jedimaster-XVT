@@ -33,7 +33,8 @@ static int g_ready;
 
 void xvt_hud_renderer_invalidate(void)
 {
-	g_prepared = g_ready = 0;
+	g_prepared = 0;
+	g_ready = 0;
 	memset(&g_layout, 0, sizeof g_layout);
 }
 
@@ -41,7 +42,8 @@ void xvt_hud_renderer_shutdown(void)
 {
 	AeronDrawList_Destroy(g_before);
 	AeronDrawList_Destroy(g_after);
-	g_before = g_after = NULL;
+	g_before = NULL;
+	g_after = NULL;
 	xvt_hud_assets_shutdown();
 	xvt_crt_shutdown();
 	xvt_hud_renderer_invalidate();
@@ -174,7 +176,8 @@ int xvt_hud_renderer_prepare(AeronCommandBuffer *cmd,
 		goto failed;
 	}
 	g_key = key;
-	g_prepared = g_ready = 1;
+	g_prepared = 1;
+	g_ready = 1;
 	return 1;
 failed:
 	g_prepared = 0;
