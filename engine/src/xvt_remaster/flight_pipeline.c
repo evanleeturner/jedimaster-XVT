@@ -11,13 +11,16 @@ static AeronSceneBloom *g_bloom;
 static AeronScenePresentChain *g_present;
 static AeronSampler *g_sampler;
 static AeronRenderTarget *g_target;
-static int g_width, g_height;
+static int g_width;
+static int g_height;
 static uint64_t g_last_host_us;
 static AeronScenePresentChain *g_direct;
 static AeronTextureFormat g_direct_format;
-static AeronTexture *g_color, *g_bloom_texture;
+static AeronTexture *g_color;
+static AeronTexture *g_bloom_texture;
 static float g_intensity;
-static int g_direct_wanted, g_retained;
+static int g_direct_wanted;
+static int g_retained;
 static AeronDrawList2D *g_bars;
 static int g_bars_visible;
 
@@ -160,7 +163,8 @@ int xvt_flight_pipeline_begin(AeronScene3D *scene,
 
 int xvt_flight_pipeline_prepare_scene_resources(AeronScene3D *scene, int flight)
 {
-	int width, height;
+	int width;
+	int height;
 	AeronScene_RtDims(scene, &width, &height);
 	const struct xvt_render_settings *settings =
 		xvt_remaster_config_effective();
@@ -183,7 +187,8 @@ int xvt_flight_pipeline_prepare_scene_resources(AeronScene3D *scene, int flight)
 
 int xvt_flight_pipeline_finish(AeronCommandBuffer *cmd, AeronScene3D *scene)
 {
-	int width, height;
+	int width;
+	int height;
 	AeronScene_RtDims(scene, &width, &height);
 	if (!ensure(width, height) || !AeronScene_Render(scene, cmd)) {
 		return 0;

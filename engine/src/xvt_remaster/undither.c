@@ -89,10 +89,9 @@ static void filter_pixel(const AeronIndexedFrame *image,
 			if (!image->coverage[pixel]) {
 				continue;
 			}
-			unsigned index = image->indices[pixel],
-				 weight =
-					 palette_weight(palette, count, weights,
-							center, index);
+			unsigned index = image->indices[pixel];
+			unsigned weight = palette_weight(
+				palette, count, weights, center, index);
 			total += weight;
 			for (unsigned channel = 0; channel < 3; ++channel) {
 				sum[channel] +=

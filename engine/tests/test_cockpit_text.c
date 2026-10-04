@@ -326,7 +326,8 @@ static int shown_in(const struct xvt_cockpit_state *prepared,
 static void check_copy_fields_hides_with_owner(void)
 {
 	cockpit_text_start();
-	static struct xvt_cockpit_state shown, hidden;
+	static struct xvt_cockpit_state shown;
+	static struct xvt_cockpit_state hidden;
 	for (unsigned id = 0; id < XVT_COCKPIT_TEXT_FIELD_COUNT; ++id) {
 		xvt_cockpit_text_record_field((xvt_cockpit_text_field_id)id,
 					      "text", XVT_COCKPIT_ALIGN_LEFT);
@@ -487,7 +488,8 @@ static void check_capture_glyph_outside_clip(void)
 	     ++index) {
 		g_flight_cursor_x = cursors[index][0];
 		g_flight_cursor_y = cursors[index][1];
-		struct xvt_cockpit_glyph glyph, before;
+		struct xvt_cockpit_glyph glyph;
+		struct xvt_cockpit_glyph before;
 		memset(&glyph, 0x5A, sizeof glyph);
 		memcpy(&before, &glyph, sizeof before);
 		XVT_ASSERT_INT_EQ(xvt_cockpit_text_capture_glyph(&glyph, 'Q', 8,

@@ -5,14 +5,18 @@
 
 #include "aeron/scene/image_cache.h"
 
-static AeronShader *g_vs, *g_fs;
+static AeronShader *g_vs;
+static AeronShader *g_fs;
 static AeronGraphicsPipeline *g_pipeline;
-static AeronSampler *g_color_sampler, *g_mask_sampler;
-static AeronTexture *g_mask, *g_color;
+static AeronSampler *g_color_sampler;
+static AeronSampler *g_mask_sampler;
+static AeronTexture *g_mask;
+static AeronTexture *g_color;
 
 static struct {
 	AeronTexture *texture;
-	int width, height;
+	int width;
+	int height;
 	unsigned size;
 	uint8_t bytes[480];
 } g_masks[3];
@@ -165,8 +169,10 @@ int xvt_crt_prepare_view(const struct xvt_snap_preview *preview,
 		return 0;
 	}
 	g_mask = g_masks[index].texture;
-	float x = r.x * scale + ox, y = r.y * scale + oy, w = r.width * scale,
-	      h = r.height * scale;
+	float x = r.x * scale + ox;
+	float y = r.y * scale + oy;
+	float w = r.width * scale;
+	float h = r.height * scale;
 	g_uniform[0] = 2 * x / width - 1;
 	g_uniform[1] = 1 - 2 * (y + h) / height;
 	g_uniform[2] = 2 * w / width;

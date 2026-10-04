@@ -41,27 +41,37 @@ static struct {
 	struct xvt_snap_object objects[XVT_SNAP_OBJECTS];
 	struct xvt_snap_type types[XVT_SNAP_TYPES];
 	int16_t fuselage[25];
-	uint32_t object_count, dropped;
+	uint32_t object_count;
+	uint32_t dropped;
 	int32_t time;
 	uint64_t component_event_serial;
 	int32_t component_event_time;
 	uint8_t flight_unlocked;
-	int valid, sealed;
+	int valid;
+	int sealed;
 } g_pending;
 
 struct xvt_authoritative_pose {
 	int32_t position[3];
-	uint16_t signature, yaw, pitch, roll;
-	uint8_t type, mesh_rotation[50];
+	uint16_t signature;
+	uint16_t yaw;
+	uint16_t pitch;
+	uint16_t roll;
+	uint8_t type;
+	uint8_t mesh_rotation[50];
 };
 
-static struct xvt_authoritative_pose g_authoritative_poses[XVT_SNAP_OBJECTS],
-	g_candidate_poses[XVT_SNAP_OBJECTS];
+static struct xvt_authoritative_pose g_authoritative_poses[XVT_SNAP_OBJECTS];
+static struct xvt_authoritative_pose g_candidate_poses[XVT_SNAP_OBJECTS];
 static int g_candidate_tick = -1;
-static int g_authoritative_tick = -1, g_network_correction;
+static int g_authoritative_tick = -1;
+static int g_network_correction;
 
-static uint64_t g_mission, g_world, g_serial;
-static int g_active, g_published;
+static uint64_t g_mission;
+static uint64_t g_world;
+static uint64_t g_serial;
+static int g_active;
+static int g_published;
 static int32_t g_last_view_time;
 static int g_has_view_time;
 static uint32_t g_last_dropped;

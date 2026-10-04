@@ -14,7 +14,8 @@ extern "C" {
 
 /* g_elapsed_ticks and g_sim_steps_per_second, as EnterReference saves them. */
 struct xvt_flight_clock {
-	uint16_t elapsed, steps_per_second;
+	uint16_t elapsed;
+	uint16_t steps_per_second;
 };
 
 typedef enum xvt_flight_timing_profile {

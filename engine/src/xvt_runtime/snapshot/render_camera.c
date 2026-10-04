@@ -13,7 +13,8 @@ struct render_camera {
 	int valid;
 };
 
-static struct render_camera g_camera, g_saved_viewport;
+static struct render_camera g_camera;
+static struct render_camera g_saved_viewport;
 
 static void copy_source(int32_t rows[9])
 {
@@ -30,7 +31,10 @@ static void rot_move(double m[9], int16_t pitch, int16_t yaw)
 	const double scale = 6.283185307179586 / 65536.0;
 	double a = (double)(uint16_t)(0xc000 - pitch) * scale;
 	double b = (double)(uint16_t)(int16_t)-yaw * scale;
-	double cb = cos(b), sb = sin(b), ca = cos(a), sa = sin(a);
+	double cb = cos(b);
+	double sb = sin(b);
+	double ca = cos(a);
+	double sa = sin(a);
 	m[0] = cb;
 	m[1] = sb;
 	m[2] = 0;
@@ -63,7 +67,9 @@ static void rotate_axes(double m[9], double ax, double ay, double az,
 	double r21 = -ax * s + omc * az * ay;
 	double r22 = c + omc * az * az;
 	for (int i = 0; i < 9; i += 3) {
-		double x = m[i], y = m[i + 1], z = m[i + 2];
+		double x = m[i];
+		double y = m[i + 1];
+		double z = m[i + 2];
 		m[i] = r20 * z + r10 * y + r00 * x;
 		m[i + 1] = r21 * z + r11 * y + r01 * x;
 		m[i + 2] = r22 * z + r12 * y + r02 * x;

@@ -38,7 +38,8 @@ int xvt_network_dialogs_resume(int result, int action)
 
 int xvt_network_dialogs_connecting(void)
 {
-	struct RECT message = {0, 0, 640, 480}, cancel = {85, 447, 176, 471};
+	struct RECT message = {0, 0, 640, 480};
+	struct RECT cancel = {85, 447, 176, 471};
 	front_image_draw_sprite_opaque("background", 0, 0);
 	frontend_text_draw_centered(
 		15, frontend_string_get(FRONTSTR_645_CONNECTING), &message,

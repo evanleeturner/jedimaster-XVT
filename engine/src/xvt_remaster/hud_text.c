@@ -5,8 +5,11 @@
 struct text_cursor {
 	struct xvt_cockpit_glyph glyph;
 	const struct xvt_font_atlas *font;
-	unsigned phase, line_height;
-	int lowercase, wrap, clear_line;
+	unsigned phase;
+	unsigned line_height;
+	int lowercase;
+	int wrap;
+	int clear_line;
 	uint32_t color_key;
 	int keyed;
 };
@@ -62,8 +65,8 @@ static void advance_line(const struct xvt_hud_draw *draw,
 {
 	if (cursor->clear_line) {
 		struct xvt_snap_rect bounds = cursor->glyph.clip;
-		int right = bounds.x + bounds.width,
-		    bottom = bounds.y + bounds.height;
+		int right = bounds.x + bounds.width;
+		int bottom = bounds.y + bounds.height;
 		int x = cursor->glyph.x > bounds.x ? cursor->glyph.x : bounds.x;
 		int y = cursor->glyph.y > bounds.y ? cursor->glyph.y : bounds.y;
 		int end_y = cursor->glyph.y + (int)cursor->line_height;

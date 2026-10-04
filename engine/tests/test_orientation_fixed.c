@@ -49,8 +49,8 @@ static void expect_same_orientation(struct xvt_orientation_angles actual,
 
 #define EXPECT_EQUAL_ANGLES(actual, expected)                                  \
 	do {                                                                   \
-		struct xvt_orientation_angles actual_ = (actual),              \
-					      expected_ = (expected);          \
+		struct xvt_orientation_angles actual_ = (actual);              \
+		struct xvt_orientation_angles expected_ = (expected);          \
 		XVT_ASSERT_INT_EQ(actual_.yaw, expected_.yaw);                 \
 		XVT_ASSERT_INT_EQ(actual_.pitch, expected_.pitch);             \
 		XVT_ASSERT_INT_EQ(actual_.roll, expected_.roll);               \
@@ -108,7 +108,8 @@ static void check_agrees_with_float(void)
 	XVT_ASSERT_INT_EQ(xvt_flight_timing_is_network125(), 0);
 	for (unsigned s = 0; s < SEED_COUNT; ++s) {
 		for (unsigned d = 0; d < DELTA_COUNT; ++d) {
-			int pitch = k_deltas[d][0], neg_yaw = k_deltas[d][1];
+			int pitch = k_deltas[d][0];
+			int neg_yaw = k_deltas[d][1];
 			EXPECT_SAME_ORIENTATION(
 				apply_fixed(k_seeds[s], pitch, neg_yaw),
 				xvt_orientation_apply_pitch_yaw(
@@ -129,7 +130,8 @@ static void check_inverse(void)
 		struct xvt_orientation_angles start =
 			orientation_fixed_start(s);
 		for (unsigned d = 0; d < DELTA_COUNT; ++d) {
-			int pitch = k_deltas[d][0], neg_yaw = k_deltas[d][1];
+			int pitch = k_deltas[d][0];
+			int neg_yaw = k_deltas[d][1];
 			EXPECT_SAME_ORIENTATION(
 				apply_fixed(apply_fixed(start, pitch, 0),
 					    -pitch, 0),
@@ -166,7 +168,8 @@ static void check_same_axis_adds(void)
 			apply_fixed(start, -0x0200, 0));
 
 		/* Four quarter turns about one axis are a whole turn. */
-		struct xvt_orientation_angles yawed = start, pitched = start;
+		struct xvt_orientation_angles yawed = start;
+		struct xvt_orientation_angles pitched = start;
 		for (int i = 0; i < 4; ++i) {
 			yawed = apply_fixed(yawed, 0, 0x4000);
 			pitched = apply_fixed(pitched, 0x4000, 0);
@@ -182,7 +185,8 @@ static void check_yaw_then_pitch(void)
 		struct xvt_orientation_angles start =
 			orientation_fixed_start(s);
 		for (unsigned d = 0; d < DELTA_COUNT; ++d) {
-			int pitch = k_deltas[d][0], neg_yaw = k_deltas[d][1];
+			int pitch = k_deltas[d][0];
+			int neg_yaw = k_deltas[d][1];
 			EXPECT_SAME_ORIENTATION(
 				apply_fixed(start, pitch, neg_yaw),
 				apply_fixed(apply_fixed(start, 0, neg_yaw),
@@ -198,7 +202,8 @@ static void check_delta_wrap(void)
 		struct xvt_orientation_angles start =
 			orientation_fixed_start(s);
 		for (unsigned d = 0; d < DELTA_COUNT; ++d) {
-			int pitch = k_deltas[d][0], neg_yaw = k_deltas[d][1];
+			int pitch = k_deltas[d][0];
+			int neg_yaw = k_deltas[d][1];
 			struct xvt_orientation_angles turned =
 				apply_fixed(start, pitch, neg_yaw);
 			EXPECT_SAME_ORIENTATION(apply_fixed(start,

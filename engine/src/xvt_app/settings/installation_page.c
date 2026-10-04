@@ -8,7 +8,8 @@
 #include "xvt_app/setup_ui.h"
 #include "xvt_runtime/config/config.h"
 static AeronUiFilePicker *g_picker;
-static char g_edited_path[XVT_PATH_CAPACITY], g_accepted[XVT_PATH_CAPACITY];
+static char g_edited_path[XVT_PATH_CAPACITY];
+static char g_accepted[XVT_PATH_CAPACITY];
 
 bool xvt_installation_page_init(char *error, size_t capacity)
 {
@@ -69,7 +70,8 @@ void xvt_installation_page_draw(AeronUiContext *ui,
 
 void xvt_installation_page_draw_picker(AeronUiContext *ui)
 {
-	char selected[XVT_PATH_CAPACITY], error[1024];
+	char selected[XVT_PATH_CAPACITY];
+	char error[1024];
 	AeronUiFilePickerResult result = AeronUiFilePicker_Draw(
 		g_picker, ui, selected, sizeof selected, error, sizeof error);
 	if (result == AERON_UI_FILE_PICKER_SELECTED) {

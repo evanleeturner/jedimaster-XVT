@@ -123,7 +123,8 @@ static void check_encode_decode(void)
 {
 	for (int axis = -128; axis <= 127; ++axis) {
 		for (int mods = 0; mods < 4; ++mods) {
-			struct flight_input_frame_record in, out;
+			struct flight_input_frame_record in;
+			struct flight_input_frame_record out;
 			memset(&in, 0, sizeof in);
 			in.axis_x = (int8_t)axis;
 			in.axis_y = (int8_t)(-1 - axis);

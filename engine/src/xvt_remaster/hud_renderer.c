@@ -8,19 +8,28 @@
 #include "xvt_remaster/hud_panes.h"
 
 struct hud_preparation_key {
-	uint64_t definition, palette, artwork, instruments, radar, text, crt;
+	uint64_t definition;
+	uint64_t palette;
+	uint64_t artwork;
+	uint64_t instruments;
+	uint64_t radar;
+	uint64_t text;
+	uint64_t crt;
 	struct xvt_render_view view;
 	unsigned marker_count;
 	struct xvt_snap_target_box markers[XVT_SNAP_TARGET_BOXES];
-	int width, height;
+	int width;
+	int height;
 	uint8_t crt_visible;
 };
 
-static AeronDrawList2D *g_before, *g_after;
+static AeronDrawList2D *g_before;
+static AeronDrawList2D *g_after;
 static struct xvt_hud_layout_cache g_layout;
 static struct hud_preparation_key g_key;
 static uint64_t g_world_generation;
-static int g_prepared, g_ready;
+static int g_prepared;
+static int g_ready;
 
 void xvt_hud_renderer_invalidate(void)
 {

@@ -11,18 +11,23 @@
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 
-static unsigned g_target, g_suppress;
-static uint64_t g_serial, g_generation;
+static unsigned g_target;
+static unsigned g_suppress;
+static uint64_t g_serial;
+static uint64_t g_generation;
 static xvt_scene_kind g_presented_scene;
 static unsigned g_presented_target;
 static int g_text_entry;
-static int g_cursor_drawing, g_cursor_visible;
+static int g_cursor_drawing;
+static int g_cursor_visible;
 static int g_surfaces_released;
 static struct xvt_snap_sprite g_cursor_sprite;
 
 struct frontend_glyph_identity {
 	uintptr_t pixels_address;
-	uint16_t character, width, height;
+	uint16_t character;
+	uint16_t width;
+	uint16_t height;
 };
 
 static struct frontend_glyph_identity g_font_glyphs[10][256];
@@ -63,7 +68,8 @@ static int find_font_glyph(unsigned slot, const struct image_resource *glyph)
 {
 	const struct frontend_glyph_identity *entries = g_font_glyphs[slot];
 	uintptr_t pixels_address = (uintptr_t)glyph->pixels;
-	unsigned first = 0, end = 256;
+	unsigned first = 0;
+	unsigned end = 256;
 	while (first < end) {
 		unsigned middle = first + (end - first) / 2;
 		if (entries[middle].pixels_address < pixels_address) {
@@ -130,7 +136,9 @@ static struct xvt_render_snapshot *writer(void)
 
 static uint32_t render_frontend_color(unsigned c)
 {
-	unsigned r, g, b;
+	unsigned r;
+	unsigned g;
+	unsigned b;
 	if (g_front_state.display_bpp == 8) {
 		const struct frontend_palette_entry *p =
 			&g_front_state.display_palette[c & 255];

@@ -18,24 +18,33 @@ enum { KEY_QUEUE_CAPACITY = 256 };
 struct controller_instance {
 	uint32_t id;
 	int model;
-	bool down[XVT_CONTROLLER_BINDING_CAP],
-		armed[XVT_CONTROLLER_BINDING_CAP],
-		dispatched[XVT_CONTROLLER_BINDING_CAP];
+	bool down[XVT_CONTROLLER_BINDING_CAP];
+	bool armed[XVT_CONTROLLER_BINDING_CAP];
+	bool dispatched[XVT_CONTROLLER_BINDING_CAP];
 	uint8_t menu_blocked;
 	bool primed;
 };
 
 static struct {
-	struct xvt_controller_options options, pending;
+	struct xvt_controller_options options;
+	struct xvt_controller_options pending;
 	struct controller_instance instances[AERON_CONTROLLER_MAX];
 	uint32_t analog_instance[XVT_CONTROLLER_MODEL_CAP];
-	bool has_pending_options, suspended, present, throttle_valid;
-	int axes[3], menu_axes[3];
-	uint16_t holds[XVT_INPUT_ACTION_COUNT], throttle;
-	uint8_t menu_buttons, menu_hat;
-	uint32_t throttle_instance, generation;
+	bool has_pending_options;
+	bool suspended;
+	bool present;
+	bool throttle_valid;
+	int axes[3];
+	int menu_axes[3];
+	uint16_t holds[XVT_INPUT_ACTION_COUNT];
+	uint16_t throttle;
+	uint8_t menu_buttons;
+	uint8_t menu_hat;
+	uint32_t throttle_instance;
+	uint32_t generation;
 	uint16_t queue[KEY_QUEUE_CAPACITY];
-	unsigned read, write;
+	unsigned read;
+	unsigned write;
 	uint64_t frame;
 } g_controller;
 

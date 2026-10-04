@@ -19,11 +19,14 @@
 
 static uint32_t planar_distance(uint32_t a, uint32_t b)
 {
-	uint32_t max = a > b ? a : b, min = a > b ? b : a, index = 0;
+	uint32_t max = a > b ? a : b;
+	uint32_t min = a > b ? b : a;
+	uint32_t index = 0;
 	if (max == min) {
 		index = 256;
 	} else if (max) {
-		uint32_t d = max, n = min;
+		uint32_t d = max;
+		uint32_t n = min;
 		if (!(d & 0xff000000u)) {
 			d <<= 8;
 			n <<= 8;
@@ -51,7 +54,8 @@ static int other_player_box(const struct player_data *p,
 	if (!c || o->player_owner_idx == -1) {
 		return 0;
 	}
-	unsigned player_team = (uint16_t)p->team, fg = o->flight_group_idx;
+	unsigned player_team = (uint16_t)p->team;
+	unsigned fg = o->flight_group_idx;
 	if (!g_flight_mission_state.locate_players_enabled &&
 	    player_team < 10 && !c->identified_order_by_team[player_team] &&
 	    fg < 48) {
@@ -178,8 +182,8 @@ static void icon(struct xvt_snap_map *map, struct xvt_snap_map_object *m,
 		 const uint8_t *frames, unsigned object_type, unsigned group)
 {
 	unsigned base_frame = object_type < 106 ? frames[object_type] : 19;
-	const uint8_t *widths = g_flight_icons640_width_by_frame,
-		      *heights = g_flight_icons640_height_by_frame;
+	const uint8_t *widths = g_flight_icons640_width_by_frame;
+	const uint8_t *heights = g_flight_icons640_height_by_frame;
 	if (frames == g_flight_map_icons320x240_frame_by_object_type) {
 		widths = g_flight_map_icons320x240_width_by_frame;
 		heights = g_flight_map_icons320x240_height_by_frame;
@@ -209,17 +213,14 @@ static void range(struct xvt_snap_map_object *m, const struct player_data *p,
 	if (focus < (unsigned)(g_region_main_object_slot_end +
 			       g_region_static_object_slot_count)) {
 		uint32_t dx = magnitude(
-				 (int32_t)((uint32_t)o->world_x -
-					   (uint32_t)g_object_table[focus]
-						   .world_x)),
-			 dy = magnitude(
-				 (int32_t)((uint32_t)o->world_y -
-					   (uint32_t)g_object_table[focus]
-						   .world_y)),
-			 dz = magnitude(
-				 (int32_t)((uint32_t)o->world_z -
-					   (uint32_t)g_object_table[focus]
-						   .world_z));
+			(int32_t)((uint32_t)o->world_x -
+				  (uint32_t)g_object_table[focus].world_x));
+		uint32_t dy = magnitude(
+			(int32_t)((uint32_t)o->world_y -
+				  (uint32_t)g_object_table[focus].world_y));
+		uint32_t dz = magnitude(
+			(int32_t)((uint32_t)o->world_z -
+				  (uint32_t)g_object_table[focus].world_z));
 		uint32_t range =
 			(planar_distance(planar_distance(dx, dy), dz) * 161) >>
 			16;
@@ -256,7 +257,8 @@ void xvt_render_map_capture(struct xvt_snap_map *map,
 	}
 	for (unsigned i = 0; i < count; ++i) {
 		const struct xvt_snap_object *snap = &objects[i];
-		unsigned slot = snap->id.slot, genus = snap->genus;
+		unsigned slot = snap->id.slot;
+		unsigned genus = snap->genus;
 		int box = genus <= CRAFT_GENUS_PLATFORM ||
 			  (snap->slot_class == XVT_SLOT_STATIC &&
 			   genus >= CRAFT_GENUS_MINE &&
@@ -298,14 +300,14 @@ void xvt_render_map_capture(struct xvt_snap_map *map,
 		m->move_x = snap->move_q15[0];
 		m->move_y = snap->move_q15[1];
 		if (snap->orient_dirty) {
-			int16_t b = (int16_t)(0u - snap->yaw),
-				a = (int16_t)(0xc000u - snap->pitch);
-			int16_t sn = (int16_t)(sin(b * 0.000095873722f) *
-					       32767),
-				cs = (int16_t)(cos(b * 0.000095873722f) *
-					       32767),
-				cp = (int16_t)(cos(a * 0.000095873722f) *
-					       32767);
+			int16_t b = (int16_t)(0u - snap->yaw);
+			int16_t a = (int16_t)(0xc000u - snap->pitch);
+			int16_t sn =
+				(int16_t)(sin(b * 0.000095873722f) * 32767);
+			int16_t cs =
+				(int16_t)(cos(b * 0.000095873722f) * 32767);
+			int16_t cp =
+				(int16_t)(cos(a * 0.000095873722f) * 32767);
 			m->move_x = (int16_t)-((-sn * (int)cp) >> 15);
 			m->move_y = (int16_t)-((cs * (int)cp) >> 15);
 		}

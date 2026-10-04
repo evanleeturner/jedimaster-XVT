@@ -20,10 +20,13 @@
 
 /* All capture and publication runs on the host thread. Composition selects the
  * working content before the original can refresh it for another presentation. */
-static struct xvt_cockpit_state g_working, g_pending, g_completed;
+static struct xvt_cockpit_state g_working;
+static struct xvt_cockpit_state g_pending;
+static struct xvt_cockpit_state g_completed;
 static uint64_t g_presentation_serial;
 static uint64_t g_prepared_resource_generation;
-static int g_composition_selected, g_sealed;
+static int g_composition_selected;
+static int g_sealed;
 
 void xvt_cockpit_copy_state(struct xvt_cockpit_state *destination,
 			    const struct xvt_cockpit_state *source)
@@ -106,7 +109,8 @@ void xvt_cockpit_refresh_instruments(int player)
 	capture_view(&g_working.view);
 	xvt_render_cockpit_capture_definition(&g_working.definition);
 	xvt_cockpit_instruments_build(&g_working);
-	int mouse_x = 0, mouse_y = 0;
+	int mouse_x = 0;
+	int mouse_y = 0;
 	g_working.mouse_stick_visible =
 		xvt_mouse_flight_get_hud_marker(&mouse_x, &mouse_y) &&
 		!g_working.view.map_active && !g_working.view.external_camera &&
@@ -147,7 +151,8 @@ void xvt_cockpit_latch_composition(void)
 static void select_page_placement(struct xvt_cockpit_page *page, unsigned index)
 {
 	unsigned binding = 0;
-	int width = 0, height = 0;
+	int width = 0;
+	int height = 0;
 	int map = g_players[g_local_player].map_camera_state != 0;
 	memset(page, 0, sizeof *page);
 	page->page_id = (uint16_t)index;
@@ -439,8 +444,9 @@ void xvt_cockpit_export_resources(struct xvt_cockpit_resources *out)
 			continue;
 		}
 		for (unsigned color = 0; color < 64; ++color) {
-			uint32_t r = rgb[color].r & 63, g = rgb[color].g & 63,
-				 b = rgb[color].b & 63;
+			uint32_t r = rgb[color].r & 63;
+			uint32_t g = rgb[color].g & 63;
+			uint32_t b = rgb[color].b & 63;
 			r = (r << 2) | (r >> 4);
 			g = (g << 2) | (g >> 4);
 			b = (b << 2) | (b >> 4);

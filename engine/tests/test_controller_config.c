@@ -518,7 +518,9 @@ static void two_models(struct xvt_controller_options *options)
 static void check_write(void)
 {
 	fixture_begin();
-	static struct xvt_controller_options options, reordered, parsed;
+	static struct xvt_controller_options options;
+	static struct xvt_controller_options reordered;
+	static struct xvt_controller_options parsed;
 	two_models(&options);
 	const char *start =
 		"input:\n  mouse_flight: true\n  controllers: [{guid: x}, {guid: y}, {guid: z}]\n";
@@ -625,7 +627,8 @@ static void check_write(void)
 static void check_set_controller(void)
 {
 	fixture_begin();
-	static struct xvt_controller_options options, expected;
+	static struct xvt_controller_options options;
+	static struct xvt_controller_options expected;
 	char error[512];
 	two_models(&options);
 	/* Needs loaded settings. */

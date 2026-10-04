@@ -28,7 +28,8 @@ static struct object_record g_test_objects[2];
 static struct mobile_object g_test_mobiles[2];
 static struct craft_data g_test_craft;
 static struct xvt_cockpit_state g_state;
-static struct hud_radar_blip_point g_fore_drawn[48], g_aft_drawn[48];
+static struct hud_radar_blip_point g_fore_drawn[48];
+static struct hud_radar_blip_point g_aft_drawn[48];
 
 /* The local player flies a TIE Interceptor in main slot 1 with four lasers, every HUD feature installed
  * and only the two radars active. Each laser and both radar scopes have a place in the cockpit layout. */
@@ -195,7 +196,8 @@ static void check_system_masks_whatever_visibility(void)
 static void check_feature_covers(void)
 {
 	cockpit_instruments_start();
-	struct xvt_cockpit_indicator shown[13], hidden[13];
+	struct xvt_cockpit_indicator shown[13];
+	struct xvt_cockpit_indicator hidden[13];
 	memcpy(shown, built(HUD_VIEW_FORWARD, 1, 0)->systems.feature_covers,
 	       sizeof shown);
 	/* Every feature is installed and most are inactive, so this cockpit has covers to show. */
@@ -323,7 +325,8 @@ static void check_record_radar(void)
 	cockpit_instruments_start();
 	xvt_cockpit_instruments_record_radar(0, 1, 2, 250, 360, 5);
 	const struct xvt_cockpit_radar *radar = &forward()->radar;
-	unsigned fore = fore_side(radar), aft = 1 - fore;
+	unsigned fore = fore_side(radar);
+	unsigned aft = 1 - fore;
 	/* The count becomes index + 1; the other scope is untouched. */
 	XVT_ASSERT_INT_EQ(radar->count[fore], 3);
 	XVT_ASSERT_INT_EQ(radar->count[aft], 0);
@@ -400,7 +403,8 @@ static void check_complete_radar(void)
 	/* At one byte per pixel, the low two color bits of each counted blip's drawn point. */
 	xvt_cockpit_instruments_complete_radar();
 	const struct xvt_cockpit_radar *radar = &forward()->radar;
-	unsigned fore = fore_side(radar), aft = 1 - fore;
+	unsigned fore = fore_side(radar);
+	unsigned aft = 1 - fore;
 	for (unsigned index = 0; index < 3; ++index) {
 		XVT_ASSERT_INT_EQ(radar->coverage[fore][index],
 				  g_fore_drawn[index].color & 3);

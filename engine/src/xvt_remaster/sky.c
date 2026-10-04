@@ -14,7 +14,8 @@
 static struct xvt_remaster_sky_stars *g_stars;
 static AeronTexture *g_cube;
 static char g_cube_path[XVT_SNAP_PATH];
-static int g_draw_hyperspace, g_draw_stars;
+static int g_draw_hyperspace;
+static int g_draw_stars;
 
 static void background(AeronCommandBuffer *cmd, AeronRenderPass *pass, int w,
 		       int h, void *user)
@@ -37,20 +38,22 @@ static void backdrops(AeronScene3D *scene, const struct xvt_render_snapshot *s,
 	unsigned record = 0;
 	static const unsigned axes[3][3] = {{1, 0, 2}, {0, 1, 2}, {2, 1, 0}};
 	/* BoP's atlas UV order starts at positive right/up. */
-	static const int sx[4] = {1, -1, -1, 1}, sy[4] = {1, 1, -1, -1};
-	float fx = ldexpf(1, cam->perspective_shift & 31),
-	      aspect = cam->aspect_y_q16 && cam->aspect_y_q16 != UINT16_MAX
+	static const int sx[4] = {1, -1, -1, 1};
+	static const int sy[4] = {1, 1, -1, -1};
+	float fx = ldexpf(1, cam->perspective_shift & 31);
+	float aspect = cam->aspect_y_q16 && cam->aspect_y_q16 != UINT16_MAX
 			       ? (float)cam->aspect_y_q16 / 65536.0f
 			       : 1;
 	for (unsigned face = 0; face < 6; ++face) {
-		unsigned main = axes[face / 2][0], low = axes[face / 2][1],
-			 high = axes[face / 2][2];
+		unsigned main = axes[face / 2][0];
+		unsigned low = axes[face / 2][1];
+		unsigned high = axes[face / 2][2];
 		float sign = face & 1 ? -1 : 1;
 		unsigned count = s->sky.direction_counts[face];
 		for (unsigned i = 0; i < count && record < XVT_SNAP_BACKDROPS;
 		     ++i, ++record) {
-			unsigned bits = s->sky.backdrop_directions[record],
-				 type = s->sky.backdrop_types[record];
+			unsigned bits = s->sky.backdrop_directions[record];
+			unsigned type = s->sky.backdrop_types[record];
 			struct xvt_effect_frame frame;
 			if (!xvt_effects_frame(s, type, 0, &frame)) {
 				continue;
@@ -91,8 +94,8 @@ static void backdrops(AeronScene3D *scene, const struct xvt_render_snapshot *s,
 				up[0] * dir[1] - up[1] * dir[0],
 			};
 			/* Classic pixel dimensions define fixed angular half-extents. */
-			float hw = frame.width * 0.5f / fx,
-			      hh = frame.height * 0.5f / (fx * aspect);
+			float hw = frame.width * 0.5f / fx;
+			float hh = frame.height * 0.5f / (fx * aspect);
 			AeronSceneBillboardDesc b = {
 				.stage = AERON_SCENE_BILLBOARD_STAGE_SKY};
 			/* The main view's origin is the camera; SKY forces far depth. */

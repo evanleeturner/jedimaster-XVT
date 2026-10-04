@@ -11,12 +11,16 @@
  * cockpit state drawn. layout: the compiled layout. assets: the selected artwork. scale, offset_x,
  * offset_y: the fit of the layout's source size into width x height. */
 struct xvt_hud_draw {
-	AeronDrawList2D *before, *after;
+	AeronDrawList2D *before;
+	AeronDrawList2D *after;
 	const struct xvt_cockpit_state *state;
 	const struct xvt_hud_layout *layout;
 	const struct xvt_hud_asset_set *assets;
-	float scale, offset_x, offset_y;
-	int width, height;
+	float scale;
+	float offset_x;
+	float offset_y;
+	int width;
+	int height;
 };
 
 /* The before list for phases up to XVT_COCKPIT_BEFORE_CRT, else the after list. */

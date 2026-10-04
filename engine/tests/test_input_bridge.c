@@ -258,7 +258,8 @@ static void check_frontend_mouse(void)
 	input_bridge_host()->mouse.raw_y = 50;
 	input_bridge_host()->mouse.inside_content = 1;
 	xvt_input_update(0);
-	int x = -1, y = -1;
+	int x = -1;
+	int y = -1;
 	xvt_input_frontend_cursor_position(&x, &y);
 	XVT_ASSERT_INT_EQ(x, 100);
 	XVT_ASSERT_INT_EQ(y, 50);

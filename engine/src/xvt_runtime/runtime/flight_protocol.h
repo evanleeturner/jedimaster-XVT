@@ -64,7 +64,8 @@ typedef uint8_t xvt_wire_u64[8];
 
 struct xvt_flight_input_wire {
 	xvt_wire_u32 tick;
-	uint8_t key, axes[3];
+	uint8_t key;
+	uint8_t axes[3];
 	xvt_wire_u16 throttle;
 };
 
@@ -74,47 +75,66 @@ struct xvt_flight_world_input_wire {
 };
 
 struct xvt_flight_batch_header {
-	xvt_wire_u32 opcode, cookie;
-	xvt_wire_u16 count, reserved;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 cookie;
+	xvt_wire_u16 count;
+	xvt_wire_u16 reserved;
 };
 
 struct xvt_flight_world_header {
-	xvt_wire_u32 opcode, target_flags, cookie;
-	uint8_t part_index, part_count, record_count, participant_mask;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 target_flags;
+	xvt_wire_u32 cookie;
+	uint8_t part_index;
+	uint8_t part_count;
+	uint8_t record_count;
+	uint8_t participant_mask;
 };
 
 struct xvt_flight_agreement_wire {
-	xvt_wire_u32 schema, profile, cookie;
+	xvt_wire_u32 schema;
+	xvt_wire_u32 profile;
+	xvt_wire_u32 cookie;
 };
 
 struct xvt_flight_options_wire {
-	xvt_wire_u32 opcode, resolution, rating, schema;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 resolution;
+	xvt_wire_u32 rating;
+	xvt_wire_u32 schema;
 };
 
 struct xvt_flight_roster_header {
-	xvt_wire_u32 opcode, new_net;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 new_net;
 };
 
 struct xvt_flight_roster_player_wire {
-	xvt_wire_u32 resolution, rating;
+	xvt_wire_u32 resolution;
+	xvt_wire_u32 rating;
 };
 
 struct xvt_flight_slot_wire {
-	xvt_wire_u32 opcode, player;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 player;
 };
 
 struct xvt_flight_epoch_wire {
-	xvt_wire_u32 opcode, epoch;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 epoch;
 };
 
 struct xvt_flight_clock_probe_wire {
-	xvt_wire_u32 opcode, timestamp, lead;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 timestamp;
+	xvt_wire_u32 lead;
 };
 
 struct xvt_flight_checksum_wire {
-	xvt_wire_u32 opcode, epoch;
-	xvt_wire_u32 checksums[XVT_WORLD_CHECKSUM_REGIONS],
-		lengths[XVT_WORLD_CHECKSUM_REGIONS];
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 epoch;
+	xvt_wire_u32 checksums[XVT_WORLD_CHECKSUM_REGIONS];
+	xvt_wire_u32 lengths[XVT_WORLD_CHECKSUM_REGIONS];
 };
 
 struct xvt_flight_checksum_report_wire {
@@ -123,23 +143,33 @@ struct xvt_flight_checksum_report_wire {
 };
 
 struct xvt_flight_resync_request_wire {
-	xvt_wire_u32 opcode, epoch, image_bytes, completed_tick;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 epoch;
+	xvt_wire_u32 image_bytes;
+	xvt_wire_u32 completed_tick;
 };
 
 struct xvt_flight_resync_apply_wire {
-	xvt_wire_u32 opcode, epoch, image_bytes, input_tick;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 epoch;
+	xvt_wire_u32 image_bytes;
+	xvt_wire_u32 input_tick;
 };
 
 struct xvt_flight_chunk_header {
-	xvt_wire_u32 opcode, epoch, index;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 epoch;
+	xvt_wire_u32 index;
 };
 
 struct xvt_flight_chunk_span {
-	xvt_wire_u32 offset, bytes;
+	xvt_wire_u32 offset;
+	xvt_wire_u32 bytes;
 };
 
 struct xvt_flight_chunk_ack_wire {
-	xvt_wire_u32 opcode, index;
+	xvt_wire_u32 opcode;
+	xvt_wire_u32 index;
 };
 
 typedef char xvt_flight_input_wire_layout

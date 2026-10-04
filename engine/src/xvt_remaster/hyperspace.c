@@ -37,15 +37,21 @@ struct hyper_environment_uniform {
 };
 
 struct xvt_hyperspace {
-	AeronShader *streak_vs, *streak_fs, *tunnel_vs, *tunnel_fs;
-	AeronGraphicsPipeline *streak_pipeline, *tunnel_pipeline;
+	AeronShader *streak_vs;
+	AeronShader *streak_fs;
+	AeronShader *tunnel_vs;
+	AeronShader *tunnel_fs;
+	AeronGraphicsPipeline *streak_pipeline;
+	AeronGraphicsPipeline *tunnel_pipeline;
 	AeronComputePipeline *environment_pipeline;
-	AeronTexture *environment_atlas, *environment_cube;
+	AeronTexture *environment_atlas;
+	AeronTexture *environment_cube;
 	AeronSampler *environment_sampler;
 	AeronScene3D *lighting_scene;
 	AeronSampleCount pipeline_samples;
 	AeronBuffer *streak_vb;
-	uint32_t streak_vb_capacity, streak_vertex_count;
+	uint32_t streak_vb_capacity;
+	uint32_t streak_vertex_count;
 	int draw_background;
 	float view_proj[16];
 	struct hyper_tunnel_uniform tunnel_uniform;
@@ -405,7 +411,8 @@ int xvt_hyperspace_prepare(AeronCommandBuffer *cmd,
 	if (!init()) {
 		return 0;
 	}
-	int width, height;
+	int width;
+	int height;
 	AeronScene_RenderDims(scene, &width, &height);
 	memcpy(h->view_proj, AeronScene_JitteredViewProj(scene),
 	       sizeof h->view_proj);
@@ -463,7 +470,8 @@ int xvt_hyperspace_prepare(AeronCommandBuffer *cmd,
 	if (!vertices) {
 		return 0;
 	}
-	float extent, offset;
+	float extent;
+	float offset;
 	if (ticks < 472) {
 		extent = (float)(ticks >> 2) * (ticks >> 2);
 		offset = (float)(ticks << 4);
@@ -472,8 +480,8 @@ int xvt_hyperspace_prepare(AeronCommandBuffer *cmd,
 		extent = 16000;
 		offset = 7552 + t * t;
 	}
-	float aspect = (float)width / height,
-	      x_scale = fmaxf(1, aspect / (4.0f / 3.0f));
+	float aspect = (float)width / height;
+	float x_scale = fmaxf(1, aspect / (4.0f / 3.0f));
 	for (unsigned i = 0; i < count; ++i) {
 		hyper_emit_streak(vertices + i * 6, &s->hyperspace.streaks[i],
 				  extent, offset, rows, x_scale);

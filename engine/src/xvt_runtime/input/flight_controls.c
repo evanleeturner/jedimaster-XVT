@@ -29,7 +29,8 @@ int16_t g_xvt_control_roll;
 static struct {
 	bool valid;
 	uint16_t position;
-	uint32_t generation, signature;
+	uint32_t generation;
+	uint32_t signature;
 	int object;
 } g_throttle_baseline;
 
@@ -162,7 +163,9 @@ uint16_t xvt_flight_controls_read_local(void)
 	}
 	if (xvt_config_settings()->mouse.mouse_flight_enabled) {
 		if (xvt_mouse_flight_sample()) {
-			int yaw, pitch, roll;
+			int yaw;
+			int pitch;
+			int roll;
 			xvt_mouse_flight_get_axes(&yaw, &pitch, &roll);
 			if (yaw) {
 				g_ctrl_axis_x = (int16_t)yaw;
@@ -285,8 +288,8 @@ void xvt_flight_controls_sample_recorded(
 	xvt_flight_controls_sample_throttle(input);
 	if (g_flight_mouse_enabled) {
 		int yaw = g_flight_mouse_delta_x * MOUSE_YAW_SCALE /
-			  YAW_AXIS_SCALE,
-		    pitch = g_flight_mouse_delta_y * MOUSE_PITCH_SCALE /
+			  YAW_AXIS_SCALE;
+		int pitch = g_flight_mouse_delta_y * MOUSE_PITCH_SCALE /
 			    PITCH_AXIS_SCALE;
 		if (yaw) {
 			input->axis_x = (int8_t)((yaw < INT8_MIN   ? INT8_MIN

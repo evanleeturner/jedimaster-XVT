@@ -29,8 +29,11 @@ int xvt_network_browser_draw_list(void)
 	const AeronDplayDirectorySnapshot *snapshot =
 		xvt_network_task_snapshot();
 	int *scroll = xvt_network_task_scroll_offset();
-	int mouse_x, mouse_y, clicked = -1;
-	struct RECT rect = {88, 94, 416, 109}, column;
+	int mouse_x;
+	int mouse_y;
+	int clicked = -1;
+	struct RECT rect = {88, 94, 416, 109};
+	struct RECT column;
 	frontend_text_draw_aligned_in_rect(
 		12,
 		frontend_string_get(
@@ -113,7 +116,8 @@ int xvt_network_browser_draw_list(void)
 
 int xvt_network_browser_draw_roster(void)
 {
-	struct RECT rect = {88, 218, 430, 233}, clip;
+	struct RECT rect = {88, 218, 430, 233};
+	struct RECT clip;
 	frontend_text_draw_aligned_in_rect(
 		12, frontend_string_get(FRONTSTR_201_PLAYERS_IN_GAME), &rect, 0,
 		1, 0xffff);

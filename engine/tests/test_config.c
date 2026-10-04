@@ -92,7 +92,8 @@ static void accept(AeronConfigFile *candidate)
 /* Two bindings that replace the whole keyboard when stored. */
 static void two_bindings(struct xvt_keyboard_bindings *bindings)
 {
-	AeronKey a, b;
+	AeronKey a;
+	AeronKey b;
 	XVT_ASSERT_TRUE(AeronKey_FromName("A", &a));
 	XVT_ASSERT_TRUE(AeronKey_FromName("B", &b));
 	memset(bindings, 0, sizeof *bindings);
@@ -109,7 +110,8 @@ static void check_before_load(void)
 	char error[1024];
 	static struct xvt_keyboard_bindings bindings;
 	two_bindings(&bindings);
-	static struct game_config game, before;
+	static struct game_config game;
+	static struct game_config before;
 	memset(&game, 0x77, sizeof game);
 	before = game;
 	fixture_write_text("asset/legacy.txt", "difficulty 2\n");
@@ -345,7 +347,8 @@ static void check_update_user_accepts(void)
 	fixture_begin();
 	fixture_load();
 	const bool skip = xvt_config_default_settings()->skip_intro != 0;
-	char text[256], error[1024] = "";
+	char text[256];
+	char error[1024] = "";
 
 	/* A version-1 candidate is upgraded: its keyboard bindings and gamepad defaults are dropped, the
 	 * controller list starts empty, and the version becomes 3. */
@@ -547,7 +550,9 @@ static void check_write(void)
 	fixture_begin();
 	fixture_load();
 	char error[1024];
-	static struct game_config game, again, bad;
+	static struct game_config game;
+	static struct game_config again;
+	static struct game_config bad;
 	XVT_ASSERT_INT_EQ(xvt_config_apply(&game, error, sizeof error), 1);
 	/* An override that equals the shipped value, to see Write remove it. */
 	accept(user_with_int("game.collisions", game.collisions));
@@ -635,7 +640,8 @@ static void check_shutdown_keeps_generation(void)
 /* Imports text as asset/<name>; returns what Import returned. */
 static int import_text(const char *name, const char *text)
 {
-	char relative[128], error[1024] = "";
+	char relative[128];
+	char error[1024] = "";
 	snprintf(relative, sizeof relative, "asset/%s", name);
 	fixture_write_text(relative, text);
 	return xvt_config_import(name, error, sizeof error);

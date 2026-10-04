@@ -43,7 +43,8 @@ struct xvt_remaster_sky_stars {
 };
 
 struct star_random_state {
-	uint16_t seed, value;
+	uint16_t seed;
+	uint16_t value;
 };
 
 /* game_rand's LFSR with private state, as in OpenTIE: renderer initialization
@@ -222,7 +223,10 @@ int xvt_remaster_sky_stars_prepare(
 		return 0;
 	}
 	const float *view_proj = AeronScene_JitteredViewProj(scene);
-	int render_w, render_h, output_w, output_h;
+	int render_w;
+	int render_h;
+	int output_w;
+	int output_h;
 	AeronScene_RenderDims(scene, &render_w, &render_h);
 	AeronScene_RtDims(scene, &output_w, &output_h);
 	if (!view_proj || render_w <= 0 || render_h <= 0 || output_w <= 0 ||

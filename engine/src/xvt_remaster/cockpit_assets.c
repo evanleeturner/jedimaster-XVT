@@ -25,7 +25,8 @@ int xvt_cockpit_assets_decode_lfd(const void *bytes, size_t size,
 	    pltt->data[1] < pltt->data[0]) {
 		goto failed;
 	}
-	unsigned first = pltt->data[0], count = pltt->data[1] - first + 1;
+	unsigned first = pltt->data[0];
+	unsigned count = pltt->data[1] - first + 1;
 	if (count * 3 > pltt->size - 2) {
 		goto failed;
 	}
@@ -129,8 +130,8 @@ int xvt_cockpit_assets_apply_mask(struct xvt_original2d *image,
 	    rect->height > frame->height - rect->y) {
 		return 0;
 	}
-	const uint8_t *p = image->cockpit_mask,
-		      *end = p + image->cockpit_mask_size;
+	const uint8_t *p = image->cockpit_mask;
+	const uint8_t *end = p + image->cockpit_mask_size;
 	for (int y = 0; y < rect->height; ++y) {
 		if (p == end) {
 			return 1;

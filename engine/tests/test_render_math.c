@@ -82,7 +82,8 @@ static void check_layout(void)
 		for (unsigned b = 0; b < 4; ++b) {
 			float args[4] = {640, 480, 1280, 1024};
 			args[which] = bad[b];
-			struct xvt_layout_transform before, after;
+			struct xvt_layout_transform before;
+			struct xvt_layout_transform after;
 			memset(&before, 0xA5, sizeof before);
 			after = before;
 			XVT_ASSERT_INT_EQ(xvt_render_math_layout(
@@ -101,7 +102,8 @@ static void check_layout_points(void)
 	struct xvt_layout_transform layout;
 	XVT_ASSERT_INT_EQ(xvt_render_math_layout(640, 480, 1600, 960, &layout),
 			  1);
-	float x, y;
+	float x;
+	float y;
 
 	/* Anchor 0 aligns the near edges, 1 the far edges, 0.5 the centers. */
 	xvt_render_math_layout_point(&layout, 0, 0, 0, 0, &x, &y);
@@ -115,7 +117,8 @@ static void check_layout_points(void)
 	XVT_ASSERT_CLOSE(y, 480, k_tol, WHY_FLOAT);
 
 	/* Scaled: two points map to points the scale times as far apart. */
-	float x2, y2;
+	float x2;
+	float y2;
 	xvt_render_math_layout_point(&layout, 0.5f, 1, 10, 20, &x, &y);
 	xvt_render_math_layout_point(&layout, 0.5f, 1, 110, 70, &x2, &y2);
 	XVT_ASSERT_CLOSE(x2 - x, 100 * layout.scale, k_tol, WHY_FLOAT);
@@ -127,7 +130,10 @@ static void check_layout_points(void)
 	XVT_ASSERT_INT_EQ(xvt_render_math_layout(320, 200, 1000, 1000, &layout),
 			  1);
 	for (unsigned i = 0; i < 4; ++i) {
-		float ax = anchors[i][0], ay = anchors[i][1], back_x, back_y;
+		float ax = anchors[i][0];
+		float ay = anchors[i][1];
+		float back_x;
+		float back_y;
 		xvt_render_math_layout_point(&layout, ax, ay, 123.5f, 77.25f,
 					     &x, &y);
 		xvt_render_math_layout_inverse(&layout, ax, ay, x, y, &back_x,
@@ -148,7 +154,8 @@ static void expect_refused_untouched(const struct xvt_snap_camera *camera,
 				     const int32_t *origin, int width,
 				     int height)
 {
-	struct xvt_render_view before, after;
+	struct xvt_render_view before;
+	struct xvt_render_view after;
 	memset(&before, 0xA5, sizeof before);
 	after = before;
 	XVT_ASSERT_INT_EQ(xvt_render_math_build_view(camera, origin, width,
@@ -165,7 +172,8 @@ static void expect_refused_untouched(const struct xvt_snap_camera *camera,
 /* Calls BuildView with a bad row and checks it is refused with the view zeroed. */
 static void expect_refused_zeroed(const struct xvt_snap_camera *camera)
 {
-	struct xvt_render_view view, zero;
+	struct xvt_render_view view;
+	struct xvt_render_view zero;
 	memset(&view, 0xA5, sizeof view);
 	memset(&zero, 0, sizeof zero);
 	XVT_ASSERT_INT_EQ(
@@ -287,7 +295,8 @@ static void check_build_view_fields(void)
 
 static void check_build_view_rows(void)
 {
-	struct xvt_snap_camera clean = clean_camera(), messy = clean_camera();
+	struct xvt_snap_camera clean = clean_camera();
+	struct xvt_snap_camera messy = clean_camera();
 	/* The first row scaled, the second leaning toward the first and scaled, the third anything. */
 	messy.rows[1] = 3.0f;
 	messy.rows[3] = 0.0f;
@@ -296,7 +305,8 @@ static void check_build_view_rows(void)
 	messy.rows[6] = 7.0f;
 	messy.rows[7] = -3.0f;
 	messy.rows[8] = 2.0f;
-	struct xvt_render_view a, b;
+	struct xvt_render_view a;
+	struct xvt_render_view b;
 	XVT_ASSERT_INT_EQ(
 		xvt_render_math_build_view(&clean, k_origin, 640, 400, &a), 1);
 	XVT_ASSERT_INT_EQ(
@@ -313,7 +323,9 @@ static float depth(const struct xvt_render_view *view, int32_t x, int32_t y,
 		   int32_t z)
 {
 	const int32_t world[3] = {x, y, z};
-	float px, py, depth = NAN;
+	float px;
+	float py;
+	float depth = NAN;
 	xvt_render_math_project_world(view, world, &px, &py, &depth);
 	return depth;
 }
@@ -355,7 +367,11 @@ static void check_project_world(void)
 
 	/* Every point on the view axis in front of the camera lands on the same pixel, at its distance. */
 	int32_t point[3];
-	float x0, y0, x, y, depth;
+	float x0;
+	float y0;
+	float x;
+	float y;
+	float depth;
 	along(camera.world_pos, axis, 100, point);
 	XVT_ASSERT_INT_EQ(
 		xvt_render_math_project_world(&view, point, &x0, &y0, &depth),
@@ -475,14 +491,16 @@ static void check_build_main_view(void)
 	view_axis(&view, camera.world_pos, axis);
 	int32_t point[3];
 	along(camera.world_pos, axis, 500, point);
-	float x, y;
+	float x;
+	float y;
 	XVT_ASSERT_INT_EQ(
 		xvt_render_math_project_world(&view, point, &x, &y, NULL), 1);
 	XVT_ASSERT_CLOSE(x, (16 + 144) * 2.0, k_tol, WHY_FLOAT);
 	XVT_ASSERT_CLOSE(y, (8 + 70 + 10) * 2.0, k_tol, WHY_FLOAT);
 
 	/* No screen size: refused, with BuildView's result left in out. */
-	struct xvt_render_view built, main_view;
+	struct xvt_render_view built;
+	struct xvt_render_view main_view;
 	camera.screen_height = 0;
 	XVT_ASSERT_INT_EQ(
 		xvt_render_math_build_view(&camera, k_origin, 640, 400, &built),
@@ -520,7 +538,8 @@ static void check_object_matrix(void)
 	object.pitch = 0x2345;
 	object.roll = 0x3456;
 	const int32_t origin[3] = {900, 2100, -3000};
-	float m[16], other[16];
+	float m[16];
+	float other[16];
 
 	/* Translation in elements 3, 7 and 11; an affine bottom row. */
 	xvt_render_math_object_matrix(&object, origin, m);
@@ -607,7 +626,8 @@ static int changed_with_byte_flipped(size_t offset)
 }
 
 struct field {
-	size_t offset, size;
+	size_t offset;
+	size_t size;
 	int compared;
 	const char *name;
 };

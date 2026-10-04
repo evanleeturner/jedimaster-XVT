@@ -577,7 +577,8 @@ static void check_throttle_sample(void)
 {
 	controller_mapping_start();
 	uint16_t position = 1;
-	uint32_t generation = 0, before = 0;
+	uint32_t generation = 0;
+	uint32_t before = 0;
 	AeronControllerSnapshot *pad = gamepad(0, 5);
 	pad->gamepad_axes[AERON_GAMEPAD_AXIS_RIGHT_TRIGGER] = 16000;
 	frame();

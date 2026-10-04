@@ -37,7 +37,8 @@ void xvt_hyperspace_shutdown(void);
 struct xvt_hyper_lighting {
 	AeronTexture *texture;
 	AeronSampler *sampler;
-	float direction[3], color[3];
+	float direction[3];
+	float color[3];
 };
 
 /* Only the scene prepared for this tunnel may consume its environment. */

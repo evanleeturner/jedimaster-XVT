@@ -44,7 +44,9 @@ enum {
 static struct object_record g_test_objects[SLOTS];
 static struct mobile_object g_test_mobiles[SLOTS];
 static struct craft_data g_test_craft;
-static uint8_t *g_image, *g_saved, *g_again;
+static uint8_t *g_image;
+static uint8_t *g_saved;
+static uint8_t *g_again;
 static size_t g_capacity;
 
 static void flight_checkpoint_world(void)
@@ -267,8 +269,8 @@ static void check_read_refusals(void)
 	size_t membership =
 		(size_t)(view.paired - g_saved) +
 		XVT_FLIGHT_PLAYERS * sizeof(struct xvt_paired_motion_wire);
-	struct xvt_state_footer good = flight_checkpoint_footer(g_saved, size),
-				footer;
+	struct xvt_state_footer good = flight_checkpoint_footer(g_saved, size);
+	struct xvt_state_footer footer;
 
 	XVT_ASSERT_INT_EQ(
 		read_image(g_image, sizeof(struct xvt_state_footer) - 1), 0);

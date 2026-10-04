@@ -31,7 +31,8 @@
 #include "xvt_runtime/timing/host_clock.h"
 
 static struct object_record g_test_objects[2];
-static uint8_t g_test_world[16], g_test_world_copy[16];
+static uint8_t g_test_world[16];
+static uint8_t g_test_world_copy[16];
 
 static void flight_task_world(void)
 {

@@ -30,48 +30,71 @@ enum {
 };
 
 struct xvt_state_header {
-	xvt_wire_u16 schema, reference_count, integration_count, player_count;
+	xvt_wire_u16 schema;
+	xvt_wire_u16 reference_count;
+	xvt_wire_u16 integration_count;
+	xvt_wire_u16 player_count;
 };
 
 struct xvt_state_footer {
 	xvt_wire_u32 magic;
-	xvt_wire_u16 schema, profile;
-	xvt_wire_u32 cookie, completed_tick, world_bytes, timing_bytes,
-		timing_crc;
+	xvt_wire_u16 schema;
+	xvt_wire_u16 profile;
+	xvt_wire_u32 cookie;
+	xvt_wire_u32 completed_tick;
+	xvt_wire_u32 world_bytes;
+	xvt_wire_u32 timing_bytes;
+	xvt_wire_u32 timing_crc;
 };
 
 struct xvt_reference_motion_wire {
-	xvt_wire_u16 slot, signature;
-	uint8_t type, flags;
+	xvt_wire_u16 slot;
+	xvt_wire_u16 signature;
+	uint8_t type;
+	uint8_t flags;
 	xvt_wire_u16 reserved;
-	xvt_wire_u32 position[XVT_STATE_POSITION_AXES], sample_tick,
-		current_tick;
+	xvt_wire_u32 position[XVT_STATE_POSITION_AXES];
+	xvt_wire_u32 sample_tick;
+	xvt_wire_u32 current_tick;
 };
 
 struct xvt_integration_wire {
-	xvt_wire_u16 slot, signature;
-	uint8_t type, family;
-	xvt_wire_u16 carried_slot, target_slot, target_signature;
-	xvt_wire_u64 position_remainder[XVT_STATE_POSITION_AXES],
-		remainder[XVT_STATE_INTEGRATION_CHANNELS];
+	xvt_wire_u16 slot;
+	xvt_wire_u16 signature;
+	uint8_t type;
+	uint8_t family;
+	xvt_wire_u16 carried_slot;
+	xvt_wire_u16 target_slot;
+	xvt_wire_u16 target_signature;
+	xvt_wire_u64 position_remainder[XVT_STATE_POSITION_AXES];
+	xvt_wire_u64 remainder[XVT_STATE_INTEGRATION_CHANNELS];
 	int8_t direction[XVT_STATE_INTEGRATION_CHANNELS];
 };
 
 struct xvt_player_timing_wire {
-	uint8_t player, valid;
-	xvt_wire_u16 slot, signature, reserved;
+	uint8_t player;
+	uint8_t valid;
+	xvt_wire_u16 slot;
+	xvt_wire_u16 signature;
+	xvt_wire_u16 reserved;
 	xvt_wire_u64 remainder[XVT_STATE_PLAYER_CHANNELS];
 	int8_t direction[XVT_STATE_PLAYER_CHANNELS];
-	uint8_t lock_mode, lock_odd_tick, control_valid;
+	uint8_t lock_mode;
+	uint8_t lock_odd_tick;
+	uint8_t control_valid;
 	xvt_wire_u32 control_mode;
-	xvt_wire_u16 lock_signature, lock_target, lock_target_signature,
-		lock_weapon;
+	xvt_wire_u16 lock_signature;
+	xvt_wire_u16 lock_target;
+	xvt_wire_u16 lock_target_signature;
+	xvt_wire_u16 lock_weapon;
 	xvt_wire_u64 lock_serial;
-	xvt_wire_u16 camera_focus, reserved_tail;
+	xvt_wire_u16 camera_focus;
+	xvt_wire_u16 reserved_tail;
 };
 
 struct xvt_object_identity_wire {
-	xvt_wire_u16 slot, signature;
+	xvt_wire_u16 slot;
+	xvt_wire_u16 signature;
 };
 
 struct xvt_object_motion_wire {
@@ -80,15 +103,19 @@ struct xvt_object_motion_wire {
 };
 
 struct xvt_paired_motion_wire {
-	uint8_t player, validity;
+	uint8_t player;
+	uint8_t validity;
 	xvt_wire_u16 reserved;
 	xvt_wire_u32 saved_tick;
-	struct xvt_object_identity_wire owner_id, carried_id;
-	struct xvt_object_motion_wire owner, carried;
+	struct xvt_object_identity_wire owner_id;
+	struct xvt_object_identity_wire carried_id;
+	struct xvt_object_motion_wire owner;
+	struct xvt_object_motion_wire carried;
 };
 
 struct xvt_membership_wire {
-	uint8_t initial, confirmed;
+	uint8_t initial;
+	uint8_t confirmed;
 	xvt_wire_u16 reserved;
 };
 

@@ -42,7 +42,8 @@
 
 enum { HOST_DPID = 500, SECOND_US = 1000000 };
 
-static struct xvt_flight_message g_message, g_out;
+static struct xvt_flight_message g_message;
+static struct xvt_flight_message g_out;
 static uint8_t g_packet[XVT_FLIGHT_PACKET_BYTES + 8];
 
 static int dpid(unsigned player) { return 100 + (int)player; }
@@ -804,7 +805,8 @@ static void check_checksum_flag(void)
 {
 	/* Messages are flagged for a checksum every XVT_WORLD_CHECKSUM_TICKS, to within one message. */
 	flight_network_world(1);
-	int flagged[8], count = 0;
+	int flagged[8];
+	int count = 0;
 	for (int i = 0;
 	     i < 3 * XVT_WORLD_CHECKSUM_TICKS / XVT_WORLD_MESSAGE_TICKS; ++i) {
 		xvt_time_advance_host_clock(1);

@@ -227,7 +227,8 @@ static void check_encode_decode(void)
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	xvt_reference_motion_committed(0, 104);
 	move(0, 8, 8, 8);
-	struct xvt_reference_motion_wire record, out;
+	struct xvt_reference_motion_wire record;
+	struct xvt_reference_motion_wire out;
 	xvt_reference_motion_encode(0, &record);
 	XVT_ASSERT_INT_EQ(record.type, 1);
 	XVT_ASSERT_INT_EQ(xvt_wire_get16(record.slot), 0);
@@ -261,7 +262,8 @@ static void check_encode_decode(void)
 static void check_encode_empty(void)
 {
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	struct xvt_reference_motion_wire out, empty;
+	struct xvt_reference_motion_wire out;
+	struct xvt_reference_motion_wire empty;
 
 	xvt_reference_motion_encode(1, &out);
 	empty = empty_record(1);
@@ -283,7 +285,8 @@ static void check_encode_empty(void)
 
 static void expect_refused(const struct xvt_reference_motion_wire *record)
 {
-	struct xvt_reference_motion_wire before, after;
+	struct xvt_reference_motion_wire before;
+	struct xvt_reference_motion_wire after;
 	xvt_reference_motion_encode(0, &before);
 	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(record, 1), 0);
 	xvt_reference_motion_encode(0, &after);
@@ -293,7 +296,8 @@ static void expect_refused(const struct xvt_reference_motion_wire *record)
 static void check_decode_refusals(void)
 {
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
-	struct xvt_reference_motion_wire good, bad;
+	struct xvt_reference_motion_wire good;
+	struct xvt_reference_motion_wire bad;
 	xvt_reference_motion_encode(0, &good);
 	xvt_wire_set32(good.sample_tick, 50);
 	good.flags = XVT_MOTION_VALID | XVT_MOTION_CURRENT_VALID;
@@ -364,7 +368,8 @@ static void check_no_table(void)
 	/* A failed allocation leaves no table: nothing is in range. */
 	XVT_ASSERT_INT_EQ(xvt_reference_motion_init(SIZE_MAX / 2), 0);
 	expect_displacement(0, 0, 0, 0);
-	struct xvt_reference_motion_wire out, empty = empty_record(0);
+	struct xvt_reference_motion_wire out;
+	struct xvt_reference_motion_wire empty = empty_record(0);
 	xvt_reference_motion_encode(0, &out);
 	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 	XVT_ASSERT_INT_EQ(xvt_reference_motion_decode(&empty, 0), 0);

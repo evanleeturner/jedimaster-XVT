@@ -13,12 +13,17 @@ struct mesh_entry {
 	int pending_new;
 };
 
-static struct mesh_entry g_meshes[XVT_SNAP_ASSETS], g_pending[XVT_SNAP_ASSETS];
+static struct mesh_entry g_meshes[XVT_SNAP_ASSETS];
+static struct mesh_entry g_pending[XVT_SNAP_ASSETS];
 static char g_desired[XVT_SNAP_ASSETS][XVT_SNAP_PATH];
-static unsigned g_count, g_pending_count;
-static uint64_t g_generation = UINT64_MAX, g_pending_generation = UINT64_MAX;
-static int g_batch_active, g_batch_completes;
-static struct xvt_model_settings g_policy, g_pending_policy;
+static unsigned g_count;
+static unsigned g_pending_count;
+static uint64_t g_generation = UINT64_MAX;
+static uint64_t g_pending_generation = UINT64_MAX;
+static int g_batch_active;
+static int g_batch_completes;
+static struct xvt_model_settings g_policy;
+static struct xvt_model_settings g_pending_policy;
 
 static int same_policy(const struct xvt_model_settings *a,
 		       const struct xvt_model_settings *b)

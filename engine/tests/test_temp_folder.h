@@ -115,7 +115,8 @@ static inline char *xvt_test_read_file(const char *folder, const char *name,
 	xvt_test_join(path, folder, name);
 	FILE *file = fopen(path, "rb");
 	XVT_ASSERT_TRUE(file != NULL);
-	size_t used = 0, capacity = 256;
+	size_t used = 0;
+	size_t capacity = 256;
 	char *data = malloc(capacity);
 	XVT_ASSERT_TRUE(data != NULL);
 	size_t got;

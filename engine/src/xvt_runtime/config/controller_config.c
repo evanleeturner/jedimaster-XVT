@@ -567,7 +567,8 @@ bool xvt_controller_config_parse(const AeronConfigFile *document,
 			return false;
 		}
 		struct xvt_controller_model *m = &options->models[i];
-		char path[128], field[160];
+		char path[128];
+		char field[160];
 		snprintf(path, sizeof path, "input.controllers[%zu]", i);
 		snprintf(field, sizeof field, "%s.guid", path);
 		if (!xvt_controller_config_read_string(document, field, m->guid,
@@ -677,14 +678,22 @@ static void xvt_controller_config_controller_source_yaml(
 
 struct model_yaml {
 	struct xvt_controller_yaml_scratch digital;
-	AeronConfigValue axis_fields[4][3], axes[4], axes_map, buttons;
-	AeronConfigMapValue axis_maps[4][3], axis_entries[4], fields[5];
-	AeronConfigValue guid, name, layout;
+	AeronConfigValue axis_fields[4][3];
+	AeronConfigValue axes[4];
+	AeronConfigValue axes_map;
+	AeronConfigValue buttons;
+	AeronConfigMapValue axis_maps[4][3];
+	AeronConfigMapValue axis_entries[4];
+	AeronConfigMapValue fields[5];
+	AeronConfigValue guid;
+	AeronConfigValue name;
+	AeronConfigValue layout;
 };
 
 static int binding_compare(const void *left, const void *right)
 {
-	const struct xvt_input_action_binding *a = left, *b = right;
+	const struct xvt_input_action_binding *a = left;
+	const struct xvt_input_action_binding *b = right;
 	if (a->action != b->action) {
 		return (int)a->action - (int)b->action;
 	}
@@ -748,7 +757,8 @@ static void model_value(const struct xvt_controller_model *model,
 	       model->profile.binding_count * sizeof bindings[0]);
 	qsort(bindings, model->profile.binding_count, sizeof bindings[0],
 	      binding_compare);
-	size_t actions = 0, slot = 0;
+	size_t actions = 0;
+	size_t slot = 0;
 	while (slot < model->profile.binding_count) {
 		size_t first = slot;
 		xvt_input_action action = bindings[slot].action;

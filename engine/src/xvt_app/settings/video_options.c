@@ -4,9 +4,13 @@
 #include "xvt_runtime/config/config.h"
 
 static struct {
-	struct xvt_video_settings defaults, requested, accepted, persisted;
+	struct xvt_video_settings defaults;
+	struct xvt_video_settings requested;
+	struct xvt_video_settings accepted;
+	struct xvt_video_settings persisted;
 	xvt_video_apply_fn apply;
-	bool pending, restore;
+	bool pending;
+	bool restore;
 	int observed_fullscreen;
 } g_video;
 

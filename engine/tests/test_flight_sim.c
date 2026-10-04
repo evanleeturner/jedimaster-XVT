@@ -104,7 +104,8 @@ static void check_reset_and_pause(void)
 static void check_insert_refusals(void)
 {
 	flight_sim_world();
-	struct flight_input_frame_record input = controls(10), bad;
+	struct flight_input_frame_record input = controls(10);
+	struct flight_input_frame_record bad;
 	static struct input_frame sentinel;
 	struct input_frame *out = &sentinel;
 
@@ -256,8 +257,8 @@ static void check_insert_real(void)
 
 static void check_authoritative_duplicate(void)
 {
-	struct flight_input_frame_record input = controls(10),
-					 other = controls(-30);
+	struct flight_input_frame_record input = controls(10);
+	struct flight_input_frame_record other = controls(-30);
 
 	/* An authoritative duplicate that matches turns the frame authoritative and unapplied. */
 	flight_sim_world();

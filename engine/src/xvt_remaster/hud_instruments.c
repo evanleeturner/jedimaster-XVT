@@ -126,7 +126,8 @@ void xvt_hud_instruments_draw_mouse_stick(const struct xvt_hud_draw *draw,
 	float y = camera->viewport.y +
 		  (1 - camera->proj_y_offset) * camera->viewport.height * .5f -
 		  draw->state->mouse_stick_y * range / 127.0f;
-	float size = 4 * draw->scale, color[4];
+	float size = 4 * draw->scale;
+	float color[4];
 	xvt_ui_color(draw->state->palette_argb[63], color);
 	AeronRectI clip = {0, 0, draw->width, draw->height};
 	AeronDrawList_AddFrame(draw->after, x - size / 2, y - size / 2, size,
@@ -244,7 +245,9 @@ void xvt_hud_instruments_draw_world_markers(
 	}
 	for (unsigned index = 0; index < count; ++index) {
 		const struct xvt_snap_target_box *marker = &markers[index];
-		float x, y, depth;
+		float x;
+		float y;
+		float depth;
 		if (marker->scope != XVT_SCOPE_COCKPIT ||
 		    !xvt_render_math_project_world(view, marker->world_pos, &x,
 						   &y, &depth) ||
@@ -260,15 +263,16 @@ void xvt_hud_instruments_draw_world_markers(
 					    draw->scale,
 				    marker->extent * focal / depth)) +
 			4 * draw->scale;
-		float corner = fmaxf(3 * draw->scale, size / 8), color[4];
+		float corner = fmaxf(3 * draw->scale, size / 8);
+		float color[4];
 		xvt_ui_color(
 			draw->state->palette_argb[marker->color_index & 255],
 			color);
 		AeronRectI clip = {0, 0, draw->width, draw->height};
 		for (unsigned side = 0; side < 2; ++side) {
 			for (unsigned end = 0; end < 2; ++end) {
-				float xx = x - size / 2 + side * size,
-				      yy = y - size / 2 + end * size;
+				float xx = x - size / 2 + side * size;
+				float yy = y - size / 2 + end * size;
 				AeronDrawList_AddLine(
 					draw->before, xx, yy,
 					xx + (side ? -corner : corner), yy,
@@ -288,7 +292,9 @@ void xvt_hud_instruments_draw_crt_marker(const struct xvt_hud_draw *draw)
 {
 	const struct xvt_snap_preview *crt = &draw->state->crt;
 	struct xvt_render_view view;
-	float x, y, depth;
+	float x;
+	float y;
+	float depth;
 	if (!crt->valid || !crt->component_marker_valid ||
 	    !xvt_render_math_build_view(&crt->camera, crt->camera.world_pos,
 					crt->destination.width,

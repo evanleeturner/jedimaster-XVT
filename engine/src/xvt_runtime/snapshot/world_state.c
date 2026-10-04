@@ -716,13 +716,26 @@ static int xvt_snapshot_is_pool_link(uint32_t value, size_t stride,
 }
 
 struct xvt_snapshot_world_ranges {
-	int32_t craft_capacity, character_count, projectile_count, debris_count,
-		debris_slot_count;
-	int32_t local_debris_slot_count, active_start, craft_end,
-		character_start, character_end;
-	int32_t projectile_start, projectile_end, debris_start, debris_end,
-		explosion_start, explosion_end;
-	int32_t local_start, local_end, main_end, static_count;
+	int32_t craft_capacity;
+	int32_t character_count;
+	int32_t projectile_count;
+	int32_t debris_count;
+	int32_t debris_slot_count;
+	int32_t local_debris_slot_count;
+	int32_t active_start;
+	int32_t craft_end;
+	int32_t character_start;
+	int32_t character_end;
+	int32_t projectile_start;
+	int32_t projectile_end;
+	int32_t debris_start;
+	int32_t debris_end;
+	int32_t explosion_start;
+	int32_t explosion_end;
+	int32_t local_start;
+	int32_t local_end;
+	int32_t main_end;
+	int32_t static_count;
 };
 
 /* Returns 1 when the 20 dwords at image_ranges (pool sizes, the world-state debris slot count and the

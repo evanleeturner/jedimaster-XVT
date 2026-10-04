@@ -342,7 +342,8 @@ static void xvt_controller_settings_device_selector(
 	const char *options[CAP];
 	const char *guids[CAP];
 	uint32_t ids[CAP];
-	int count = 0, selected = -1;
+	int count = 0;
+	int selected = -1;
 	for (int i = 0; i < AERON_CONTROLLER_MAX; ++i) {
 		const AeronControllerSnapshot *d = &input->controllers[i];
 		if (!d->connected) {

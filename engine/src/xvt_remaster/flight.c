@@ -7,11 +7,19 @@
 #include "xvt_remaster/config.h"
 
 static struct xvt_prepared_flight g_frame;
-static uint64_t g_last_mission, g_last_world, g_last_opt, g_last_texture;
-static int g_width, g_height;
+static uint64_t g_last_mission;
+static uint64_t g_last_world;
+static uint64_t g_last_opt;
+static uint64_t g_last_texture;
+static int g_width;
+static int g_height;
 static uint64_t g_pose_host_us;
-static uint64_t g_last_config, g_resize_since;
-static int g_requested_width, g_requested_height, g_last_hdr, g_last_paused;
+static uint64_t g_last_config;
+static uint64_t g_resize_since;
+static int g_requested_width;
+static int g_requested_height;
+static int g_last_hdr;
+static int g_last_paused;
 static float g_last_headroom;
 
 static int view_discontinuity(const struct xvt_snap_camera *a,

@@ -20,7 +20,8 @@ typedef char xvt_cockpit_overlay_capacity_check
 
 struct message_content {
 	struct xvt_cockpit_message state;
-	int16_t origin_x, origin_y;
+	int16_t origin_x;
+	int16_t origin_y;
 	struct xvt_cockpit_glyph glyphs[XVT_HUD_MESSAGE_GLYPHS];
 };
 
@@ -29,13 +30,17 @@ struct alert_content {
 	struct xvt_cockpit_glyph glyphs[3][XVT_HUD_ALERT_LINE_GLYPHS];
 };
 
-static struct message_content g_working_panes[XVT_COCKPIT_MESSAGE_COUNT],
-	g_pending[XVT_COCKPIT_MESSAGE_COUNT], g_message_build;
-static struct alert_content g_alert, g_alert_build;
+static struct message_content g_working_panes[XVT_COCKPIT_MESSAGE_COUNT];
+static struct message_content g_pending[XVT_COCKPIT_MESSAGE_COUNT];
+static struct message_content g_message_build;
+static struct alert_content g_alert;
+static struct alert_content g_alert_build;
 static struct xvt_cockpit_loading g_loading;
-static int g_message_capture_pane = -1, g_alert_capture_line = -1,
-	   g_capture_failed;
-static uint32_t g_message_palette[256], g_alert_palette[256];
+static int g_message_capture_pane = -1;
+static int g_alert_capture_line = -1;
+static int g_capture_failed;
+static uint32_t g_message_palette[256];
+static uint32_t g_alert_palette[256];
 static uint64_t g_generation;
 
 /* Loading text is emitted before mission initialization resets flight state. */
@@ -45,7 +50,8 @@ static struct {
 	struct xvt_snap_rect bounds;
 	uint64_t generation;
 	uint16_t count;
-	uint8_t capturing, visible;
+	uint8_t capturing;
+	uint8_t visible;
 } g_loading_text;
 
 static void capture_palette(uint32_t palette[256])
@@ -204,8 +210,8 @@ void xvt_cockpit_messages_latch(xvt_cockpit_message_id pane, int source_x,
 						     .system_message_pane_timer
 				   : g_player_flight_transient_timers[g_local_player]
 					     .flight_group_message_pane_timer);
-	int offset_x = source->origin_x - source_x,
-	    offset_y = source->origin_y - source_y;
+	int offset_x = source->origin_x - source_x;
+	int offset_y = source->origin_y - source_y;
 	for (unsigned index = 0; index < source->state.glyph_count; ++index) {
 		struct xvt_cockpit_glyph *glyph = &destination->glyphs[index];
 		*glyph = source->glyphs[index];

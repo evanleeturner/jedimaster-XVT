@@ -83,7 +83,8 @@ void xvt_remaster_frame(int32_t delta_us)
 		g_last_scene = snapshot->scene_kind;
 		XVT_LOG_DEBUG("remaster.scene kind=%u", g_last_scene);
 	}
-	int width = 0, height = 0;
+	int width = 0;
+	int height = 0;
 	if (!Aeron_GetPresentationPixelSize(&width, &height) || width <= 0 ||
 	    height <= 0) {
 		xvt_remaster_flight_invalidate();

@@ -27,8 +27,8 @@ static int ensure(AeronCommandBuffer *cmd)
 	uint8_t pixels[32 * 32 * 4];
 	for (int y = 0; y < 32; ++y) {
 		for (int x = 0; x < 32; ++x) {
-			float dx = ((float)x + .5f - 16) / 16,
-			      dy = ((float)y + .5f - 16) / 16;
+			float dx = ((float)x + .5f - 16) / 16;
+			float dy = ((float)y + .5f - 16) / 16;
 			float a = fmaxf(0, 1 - dx * dx - dy * dy);
 			uint8_t v = (uint8_t)(a * a * 255);
 			for (int c = 0; c < 4; ++c) {
@@ -144,7 +144,8 @@ static void submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 		float ax_up[3] = {g->up.x, g->up.y, g->up.z};
 		if (table && g->component_index < AERON_MAX_MESH_SLOTS) {
 			const float (*rw)[4] = table->rows[g->component_index];
-			float tp[3], tv[3];
+			float tp[3];
+			float tv[3];
 			for (int r = 0; r < 3; r++) {
 				tp[r] = rw[r][0] * p[0] + rw[r][1] * p[1] +
 					rw[r][2] * p[2] + rw[r][3];
@@ -173,7 +174,10 @@ static void submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 		/* Model -> instance space (transform is fl_model_matrix layout:
 		 * rows of the 3x4 are the space-axes' model components; scale k
 		 * rides the matrix — axes divide it back out). */
-		float sp[3], s_look[3], s_right[3], s_up[3];
+		float sp[3];
+		float s_look[3];
+		float s_right[3];
+		float s_up[3];
 		for (int r = 0; r < 3; r++) {
 			sp[r] = transform[r * 4 + 0] * p[0] +
 				transform[r * 4 + 1] * p[1] +
@@ -194,11 +198,14 @@ static void submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 		}
 
 		/* Space -> view (identity camera when crows/cam_pos are NULL). */
-		float c[3], look_v[3], right_v[3], up_v[3];
+		float c[3];
+		float look_v[3];
+		float right_v[3];
+		float up_v[3];
 		if (crows && cam_pos) {
-			const float d0 = sp[0] - cam_pos[0],
-				    d1 = sp[1] - cam_pos[1],
-				    d2 = sp[2] - cam_pos[2];
+			const float d0 = sp[0] - cam_pos[0];
+			const float d1 = sp[1] - cam_pos[1];
+			const float d2 = sp[2] - cam_pos[2];
 			for (int r = 0; r < 3; r++) {
 				c[r] = crows[r * 3 + 0] * d0 +
 				       crows[r * 3 + 1] * d1 +
@@ -269,7 +276,8 @@ static void submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 			const float dot_s = up_v[0] * c[0] + up_v[1] * c[1] +
 					    up_v[2] * c[2];
 			const float len = sqrtf(dot_f * dot_f + dot_s * dot_s);
-			float major[3], minor[3];
+			float major[3];
+			float minor[3];
 			if (len == 0.0f) {
 				memcpy(major, right_v, sizeof major);
 				memcpy(minor, up_v, sizeof minor);
@@ -317,7 +325,8 @@ static void submit(AeronScene3D *scene, const AeronSceneMesh *mesh,
 		}
 
 		/* Authored OPT colors are sRGB; the coverage mask and tint use PMA. */
-		float core[4], outer[4];
+		float core[4];
+		float outer[4];
 		core[3] = g->core_rgba[3];
 		outer[3] = g->outer_rgba[3];
 		for (int ch = 0; ch < 3; ch++) {
@@ -382,7 +391,9 @@ static void lights(AeronScene3D *scene, const AeronSceneMesh *mesh,
 		if (dx <= 2000 && dy <= 2000) {
 			continue;
 		}
-		float local[3], world[3], color[3];
+		float local[3];
+		float world[3];
+		float color[3];
 		for (int r = 0; r < 3; ++r) {
 			const float *row = table->rows[c][r];
 			local[r] = row[0] * g->position.x +

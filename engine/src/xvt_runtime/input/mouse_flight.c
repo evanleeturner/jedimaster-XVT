@@ -48,7 +48,8 @@ static struct {
 	int target_tap;
 	int active;
 	uint16_t keys[16];
-	unsigned read_key, write_key;
+	unsigned read_key;
+	unsigned write_key;
 } g_mouse_flight;
 
 /* Doubling steps (1/16x..16x): raw relative deltas vary by more than an

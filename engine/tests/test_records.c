@@ -22,7 +22,10 @@
 
 /* One listed field: where it sits and how big it is in the record and in the live struct. */
 struct field {
-	size_t record_offset, record_size, live_offset, live_size;
+	size_t record_offset;
+	size_t record_size;
+	size_t live_offset;
+	size_t live_size;
 	const char *name;
 };
 
@@ -474,7 +477,8 @@ static void check_fields(const struct field *fields, size_t count,
  * its listed fields. */
 struct record_kind {
 	const char *name;
-	size_t record_size, live_size;
+	size_t record_size;
+	size_t live_size;
 	void (*encode)(void *record, const void *live);
 	void (*decode)(void *live, const void *record);
 	void (*clear_live_links)(void *live);

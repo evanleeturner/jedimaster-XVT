@@ -28,9 +28,12 @@ struct source {
 
 static struct source g_sources[SOURCE_CAPACITY];
 static uint64_t g_bindings[XVT_SNAP_TYPES];
-static uint64_t g_next_id, g_opt_generation, g_texture_generation,
-	g_image_generation;
-static uint64_t g_exported_snapshot_serial, g_consumed_snapshot_serial;
+static uint64_t g_next_id;
+static uint64_t g_opt_generation;
+static uint64_t g_texture_generation;
+static uint64_t g_image_generation;
+static uint64_t g_exported_snapshot_serial;
+static uint64_t g_consumed_snapshot_serial;
 static int g_initialized;
 
 static void changed(uint32_t kind)

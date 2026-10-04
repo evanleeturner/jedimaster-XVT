@@ -24,14 +24,18 @@
 enum { BROWSER_REFRESH_US = 10000000, BROWSER_VISIBLE_ROWS = 6 };
 
 static struct {
-	int active, action;
+	int active;
+	int action;
 } g_network;
 
 static struct {
 	AeronDplayDirectorySnapshot snapshot;
 	GUID selected;
-	int selected_index, scroll, pending;
-	uint64_t refresh_at, updated_at;
+	int selected_index;
+	int scroll;
+	int pending;
+	uint64_t refresh_at;
+	uint64_t updated_at;
 	AeronDplayDirectoryError error;
 	struct xvt_network_preview preview;
 } g_browser = {.selected_index = -1};
@@ -40,7 +44,10 @@ static struct {
 static int xvt_network_task_find_mission_file_and_title(
 	const AeronDplayDirectoryMission *mission, char *path, size_t capacity)
 {
-	char list[256], line[256], filename[256], title[256];
+	char list[256];
+	char line[256];
+	char filename[256];
+	char title[256];
 	if (!mission->present || mission->directory >= 6) {
 		return 0;
 	}
@@ -122,7 +129,8 @@ static void xvt_network_task_load_preview(void)
 	if (directory == MISSION_DIRECTORY_TOURNAMENTS ||
 	    directory == MISSION_DIRECTORY_BATTLES ||
 	    directory == MISSION_DIRECTORY_CAMPAIGNS) {
-		char line[256], *end;
+		char line[256];
+		char *end;
 		if (FILE_GETS(line, sizeof(line), file)) {
 			long lines_to_skip = strtol(line, &end, 10);
 			if (end != line && lines_to_skip >= 0 &&

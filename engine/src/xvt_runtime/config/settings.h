@@ -20,18 +20,28 @@ extern "C" {
 
 struct xvt_model_settings {
 	float smooth_angle_degrees;
-	float opt_emissive_strength, opt_projectile_emissive_strength,
-		engine_emissive_strength;
+	float opt_emissive_strength;
+	float opt_projectile_emissive_strength;
+	float engine_emissive_strength;
 };
 
 struct xvt_point_light_settings {
-	int enabled, clustered, cluster_depth_slices, cluster_debug;
-	float scale, range_scale, min_distance, spec_weight, diffuse_wrap,
-		contrib_cap;
+	int enabled;
+	int clustered;
+	int cluster_depth_slices;
+	int cluster_debug;
+	float scale;
+	float range_scale;
+	float min_distance;
+	float spec_weight;
+	float diffuse_wrap;
+	float contrib_cap;
 };
 
 struct xvt_lighting_settings {
-	float intensity, spec_mul, wrap;
+	float intensity;
+	float spec_mul;
+	float wrap;
 	int spec_geom_adapt;
 	float ambient[3];
 };
@@ -39,28 +49,44 @@ struct xvt_lighting_settings {
 enum { XVT_SKY_STARS, XVT_SKY_CUBE };
 
 struct xvt_sky_settings {
-	int enabled, mode;
+	int enabled;
+	int mode;
 	char path[XVT_PATH_CAPACITY];
-	float exposure, star_brightness;
+	float exposure;
+	float star_brightness;
 };
 
 struct xvt_hyperspace_settings {
-	float travel_speed, rotation_speed, noise_scale, brightness,
-		highlight_strength;
-	float focal_length, twist, cap_radius, cap_falloff;
-	float mesh_ambient_strength, mesh_environment_roughness,
-		mesh_key_strength;
-	float dark_color[3], body_color[3], highlight_color[3], cap_color[3];
+	float travel_speed;
+	float rotation_speed;
+	float noise_scale;
+	float brightness;
+	float highlight_strength;
+	float focal_length;
+	float twist;
+	float cap_radius;
+	float cap_falloff;
+	float mesh_ambient_strength;
+	float mesh_environment_roughness;
+	float mesh_key_strength;
+	float dark_color[3];
+	float body_color[3];
+	float highlight_color[3];
+	float cap_color[3];
 };
 
 struct xvt_motion_blur_settings {
-	int quality, camera_blur, pause_keep_blur, velocity_viz,
-		fsr_direct_motion;
+	int quality;
+	int camera_blur;
+	int pause_keep_blur;
+	int velocity_viz;
+	int fsr_direct_motion;
 	float shutter;
 };
 
 struct xvt_presentation_settings {
-	int vsync_divisor, hdr_output;
+	int vsync_divisor;
+	int hdr_output;
 	/* Negative gamma follows the platform default; zero selects piecewise sRGB. */
 	float sdr_gamma;
 	/* Zero follows the OS reference white. */
@@ -88,7 +114,8 @@ struct xvt_render_settings {
 	struct xvt_lighting_settings lighting;
 	struct xvt_sky_settings sky;
 	struct xvt_hyperspace_settings hyperspace;
-	float bloom_intensity, explosion_emissive_strength;
+	float bloom_intensity;
+	float explosion_emissive_strength;
 };
 
 struct xvt_settings {

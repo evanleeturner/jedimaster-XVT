@@ -33,7 +33,8 @@ static void sin_cos(uint16_t angle, int64_t *sine, int64_t *cosine)
 		phase += INT64_C(1) << 31;
 		sign = -1;
 	}
-	int64_t x = 652032874, y = 0;
+	int64_t x = 652032874;
+	int64_t y = 0;
 	for (unsigned i = 0; i < 31; ++i) {
 		int direction = phase >= 0 ? 1 : -1;
 		int64_t divisor = INT64_C(1) << i;
@@ -73,7 +74,8 @@ static int64_t fixed_atan2(int64_t y, int64_t x)
 
 static uint64_t integer_sqrt(uint64_t value)
 {
-	uint64_t root = 0, bit = UINT64_C(1) << 62;
+	uint64_t root = 0;
+	uint64_t bit = UINT64_C(1) << 62;
 	while (bit > value) {
 		bit >>= 2;
 	}
@@ -91,7 +93,8 @@ static uint64_t integer_sqrt(uint64_t value)
 
 static int64_t round_q30(int64_t value)
 {
-	const int64_t half = INT64_C(1) << 29, unit = INT64_C(1) << 30;
+	const int64_t half = INT64_C(1) << 29;
+	const int64_t unit = INT64_C(1) << 30;
 	return value >= 0 ? (value + half) / unit : -((-value + half) / unit);
 }
 
@@ -106,11 +109,14 @@ static void rotate_local(int64_t matrix[3][3], unsigned axis, uint16_t angle)
 	if (!angle) {
 		return;
 	}
-	int64_t sine, cosine;
+	int64_t sine;
+	int64_t cosine;
 	sin_cos(angle, &sine, &cosine);
-	unsigned a = (axis + 1) % 3, b = (axis + 2) % 3;
+	unsigned a = (axis + 1) % 3;
+	unsigned b = (axis + 2) % 3;
 	for (unsigned row = 0; row < 3; ++row) {
-		int64_t x = matrix[a][row], y = matrix[b][row];
+		int64_t x = matrix[a][row];
+		int64_t y = matrix[b][row];
 		matrix[a][row] = round_q30(cosine * x + sine * y);
 		matrix[b][row] = round_q30(cosine * y - sine * x);
 	}
@@ -136,7 +142,9 @@ xvt_orientation_apply_pitch_yaw_fixed(struct xvt_orientation_angles current,
 	int64_t horizontal =
 		(int64_t)integer_sqrt((uint64_t)(matrix[2][2] * matrix[2][2]) +
 				      (uint64_t)(matrix[2][0] * matrix[2][0]));
-	int64_t pitch = fixed_atan2(-matrix[2][1], horizontal), yaw, roll;
+	int64_t pitch = fixed_atan2(-matrix[2][1], horizontal);
+	int64_t yaw;
+	int64_t roll;
 	if (horizontal > 10737) {
 		yaw = fixed_atan2(matrix[2][0], matrix[2][2]);
 		roll = fixed_atan2(matrix[0][1], matrix[1][1]);

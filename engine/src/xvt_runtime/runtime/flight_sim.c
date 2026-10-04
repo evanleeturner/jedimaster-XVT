@@ -12,11 +12,21 @@
 #include "xvt_runtime/timing/reference_motion.h"
 
 static struct {
-	int paused, player_step_pending, replay_pending, step_pending,
-		zero_step;
-	int target, advance_target, step_game_time, player, frame_index,
-		frame_iteration, frame_count;
-	int saved_elapsed, saved_sim_steps_per_second, saved_game_time;
+	int paused;
+	int player_step_pending;
+	int replay_pending;
+	int step_pending;
+	int zero_step;
+	int target;
+	int advance_target;
+	int step_game_time;
+	int player;
+	int frame_index;
+	int frame_iteration;
+	int frame_count;
+	int saved_elapsed;
+	int saved_sim_steps_per_second;
+	int saved_game_time;
 } g_sim;
 
 void xvt_flight_sim_reset(void)
@@ -949,7 +959,8 @@ xvt_flight_history_insert(unsigned player, int tick,
 	    (!(input->flags & XVT_INPUT_THROTTLE_PRESENT) && input->throttle)) {
 		return XVT_INPUT_INVALID;
 	}
-	int count = g_input_frame_count[player], index = 0;
+	int count = g_input_frame_count[player];
+	int index = 0;
 	if (count < 0 || count > XVT_INPUT_HISTORY_CAPACITY) {
 		return XVT_INPUT_INVALID;
 	}

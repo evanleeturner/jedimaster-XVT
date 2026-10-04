@@ -19,13 +19,18 @@ extern "C" {
 struct xvt_render_view {
 	AeronSceneCamera camera;
 	int32_t origin_world[3];
-	float view_proj[16], classic_pixel_scale;
+	float view_proj[16];
+	float classic_pixel_scale;
 };
 
 /* scale: the one uniform factor that fits source inside target, the smaller of the two size ratios. The
  * leftover space on the other axis is what LayoutPoint's anchors distribute. */
 struct xvt_layout_transform {
-	float scale, source_width, source_height, target_width, target_height;
+	float scale;
+	float source_width;
+	float source_height;
+	float target_width;
+	float target_height;
 };
 
 /* Fills out from a snapshot camera record: orientation from the record's three rows (the first normalized,

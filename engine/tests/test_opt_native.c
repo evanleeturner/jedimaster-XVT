@@ -151,7 +151,8 @@ static int accepts(const struct body *body)
 /* Returns 1 when pointer lies inside the size bytes that start at block. */
 static int inside(const void *block, unsigned size, const void *pointer)
 {
-	uintptr_t start = (uintptr_t)block, at = (uintptr_t)pointer;
+	uintptr_t start = (uintptr_t)block;
+	uintptr_t at = (uintptr_t)pointer;
 	return at >= start && at < start + size;
 }
 

@@ -21,7 +21,8 @@ static struct {
 	bool enabled;
 	uint16_t holds[2];
 	uint8_t queue[256];
-	unsigned read, write;
+	unsigned read;
+	unsigned write;
 	uint16_t pending;
 	uint16_t observed;
 } g_keyboard;

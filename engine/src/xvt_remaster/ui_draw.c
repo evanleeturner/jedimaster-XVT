@@ -5,7 +5,8 @@
 
 #include "aeron/aeron.h"
 
-static AeronShader *g_vs, *g_fs;
+static AeronShader *g_vs;
+static AeronShader *g_fs;
 static AeronGraphicsPipeline *g_copy;
 static AeronSampler *g_nearest;
 
@@ -72,7 +73,8 @@ void xvt_ui_glyph(AeronDrawList2D *list, const struct xvt_snap_glyph *g,
 	AeronRectI clip = ui_draw_clip(g->draw.clip, scale);
 	clip.x += (int)ox;
 	clip.y += (int)oy;
-	float x = g->x * scale + ox, y = g->y * scale + oy;
+	float x = g->x * scale + ox;
+	float y = g->y * scale + oy;
 	if (g->background_enabled) {
 		float rgba[4];
 		xvt_ui_color(g->background_argb, rgba);

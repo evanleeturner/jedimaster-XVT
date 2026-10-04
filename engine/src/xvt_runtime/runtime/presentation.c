@@ -53,7 +53,8 @@ int xvt_presentation_mouse_to_classic(const AeronInputSnapshot *in, int *x,
 		return 0;
 	}
 	/* Raw window coordinates avoid using last frame's logical width on resize. */
-	int w = in->window_width, h = in->window_height;
+	int w = in->window_width;
+	int h = in->window_height;
 	if ((int64_t)w * 480 > (int64_t)h * 640) {
 		w = h * 640 / 480;
 	} else {
@@ -62,8 +63,8 @@ int xvt_presentation_mouse_to_classic(const AeronInputSnapshot *in, int *x,
 	if (!w || !h) {
 		return 0;
 	}
-	int px = in->mouse.raw_x - (in->window_width - w) / 2,
-	    py = in->mouse.raw_y - (in->window_height - h) / 2;
+	int px = in->mouse.raw_x - (in->window_width - w) / 2;
+	int py = in->mouse.raw_y - (in->window_height - h) / 2;
 	*x = (int)((int64_t)px * 640 / w);
 	*y = (int)((int64_t)py * 480 / h);
 	return in->mouse.inside_content && px >= 0 && py >= 0 && px < w &&

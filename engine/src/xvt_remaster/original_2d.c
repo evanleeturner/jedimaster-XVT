@@ -406,7 +406,8 @@ int xvt_original2d_build_font(const AeronDecodedFont *source,
 		layout_glyphs[i] = (struct xvt_font_glyph){
 			glyph->width, glyph->height, glyph->advance};
 	}
-	int width, height;
+	int width;
+	int height;
 	expanded = Aeron_ImageUpscaleNearestRgba8(
 		rgba, source->width, source->height + 2,
 		ORIGINAL_FONT_EXPANSION, &width, &height);

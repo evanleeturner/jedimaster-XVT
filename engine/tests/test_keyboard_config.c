@@ -248,7 +248,8 @@ static void check_write_round_trip(void)
 						 "  keyboard:\n"
 						 "    fire_weapon: \"A\"\n"
 						 "    no_such_action: \"B\"\n");
-	static struct xvt_keyboard_bindings profile, read;
+	static struct xvt_keyboard_bindings profile;
+	static struct xvt_keyboard_bindings read;
 	memset(&profile, 0, sizeof profile);
 	profile.bindings[0] = (struct xvt_keyboard_binding){
 		chord("Z", 0), XVT_INPUT_ACTION_TARGET_NEXT};
@@ -339,7 +340,8 @@ static void check_write_refusals(void)
 static void check_resolve(void)
 {
 	fixture_begin();
-	static struct xvt_keyboard_bindings defaults, effective;
+	static struct xvt_keyboard_bindings defaults;
+	static struct xvt_keyboard_bindings effective;
 	memset(&defaults, 0, sizeof defaults);
 	defaults.bindings[0] = (struct xvt_keyboard_binding){
 		chord("A", 0), XVT_INPUT_ACTION_FIRE_WEAPON};

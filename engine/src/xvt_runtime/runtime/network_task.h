@@ -11,7 +11,8 @@ extern "C" {
 enum { XVT_NETWORK_HOST, XVT_NETWORK_AUTO_HOST, XVT_NETWORK_CONNECT };
 
 struct xvt_network_preview {
-	char title[256], text[4096];
+	char title[256];
+	char text[4096];
 	int scroll;
 };
 

@@ -16,7 +16,9 @@
 
 enum { COOKIE = 0x5A17, TARGET = 256 };
 
-static struct xvt_flight_message g_message, g_other, g_out;
+static struct xvt_flight_message g_message;
+static struct xvt_flight_message g_other;
+static struct xvt_flight_message g_out;
 static uint8_t g_part[XVT_FLIGHT_PACKET_BYTES];
 static uint8_t g_bytes[XVT_FLIGHT_PACKET_BYTES];
 
@@ -98,11 +100,11 @@ static void check_input_round_trip(void)
 	for (size_t t = 0; t < sizeof throttles / sizeof throttles[0]; ++t) {
 		for (int axis = -128; axis <= 126; axis += 2) {
 			for (uint8_t mods = 0; mods < 4; ++mods) {
-				struct flight_input_frame_record
-					in = flight_messages_input(
+				struct flight_input_frame_record in =
+					flight_messages_input(
 						0x41, (int8_t)axis, mods,
-						throttles[t]),
-					out;
+						throttles[t]);
+				struct flight_input_frame_record out;
 				struct xvt_flight_input_wire record;
 				xvt_flight_wire_encode_input(&record, 1000,
 							     &in);
@@ -144,9 +146,10 @@ static void check_input_round_trip(void)
 
 static void check_decode_input_refusals(void)
 {
-	struct flight_input_frame_record in = flight_messages_input(7, 10, 2,
-								    500),
-					 out, untouched;
+	struct flight_input_frame_record in =
+		flight_messages_input(7, 10, 2, 500);
+	struct flight_input_frame_record out;
+	struct flight_input_frame_record untouched;
 	struct xvt_flight_input_wire record;
 	int tick;
 	memset(&untouched, 0xAB, sizeof untouched);
@@ -678,7 +681,9 @@ static void check_queue_wraps(void)
 	 * end of the ring and still come back whole, in order. */
 	enum { SIZE = XVT_PENDING_BYTES / 7 + 3 };
 
-	static uint8_t buffer[SIZE], back[SIZE], expected[SIZE];
+	static uint8_t buffer[SIZE];
+	static uint8_t back[SIZE];
+	static uint8_t expected[SIZE];
 	xvt_flight_messages_reset();
 	unsigned count = fill(XVT_QUEUE_PENDING, buffer, SIZE, 0);
 	XVT_ASSERT_TRUE(count >= 3);

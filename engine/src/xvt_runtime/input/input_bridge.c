@@ -329,7 +329,8 @@ void xvt_input_update(int suppress)
 	g_front_state.key_state[0x12] =
 		g_front_state.key_state[0xa4] | g_front_state.key_state[0xa5];
 	xvt_input_text(input);
-	int x, y;
+	int x;
+	int y;
 	int inside = xvt_presentation_mouse_to_classic(input, &x, &y);
 	if (inside) {
 		g_front_state.mouse_x = x;

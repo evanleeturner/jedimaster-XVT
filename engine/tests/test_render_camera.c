@@ -15,7 +15,12 @@
 #include "xvt_runtime/snapshot/render_camera.h"
 
 struct angles {
-	int16_t roll, pitch, yaw, angle_d, aim_x, aim_y;
+	int16_t roll;
+	int16_t pitch;
+	int16_t yaw;
+	int16_t angle_d;
+	int16_t aim_x;
+	int16_t aim_y;
 };
 
 static const struct angles k_views[] = {
@@ -106,7 +111,9 @@ static void check_mirrors_game_camera(void)
 		get_live_rows(q);
 		xvt_render_camera_copy_rows(rows);
 		for (int r = 0; r < 9; r += 3) {
-			double dot = 0, precise = 0, fixed = 0;
+			double dot = 0;
+			double precise = 0;
+			double fixed = 0;
 			for (int c = 0; c < 3; ++c) {
 				dot += (double)rows[r + c] * q[r + c];
 				precise += (double)rows[r + c] * rows[r + c];
@@ -128,7 +135,9 @@ static void check_mirrors_game_camera(void)
 static void check_tag_chooses_source(void)
 {
 	const struct angles *view = &k_views[2];
-	float game[9], tagged[9], rows[9];
+	float game[9];
+	float tagged[9];
+	float rows[9];
 	fview_build_camera_orient(view->roll, view->pitch, view->yaw,
 				  view->angle_d, view->aim_x, view->aim_y,
 				  NULL);
@@ -156,7 +165,9 @@ static void check_tag_chooses_source(void)
  * match its tag. */
 static void check_restore_keeps_matching_basis(void)
 {
-	float first[9], second[9], rows[9];
+	float first[9];
+	float second[9];
+	float rows[9];
 	build_tagged(&k_views[1], k_tag1);
 	xvt_render_camera_copy_rows(first);
 	xvt_render_camera_save_viewport();
@@ -191,7 +202,8 @@ static void check_restore_drops_stale_basis(void)
 /* A second Save overwrites the first. */
 static void check_second_save_overwrites(void)
 {
-	float second[9], rows[9];
+	float second[9];
+	float rows[9];
 	build_tagged(&k_views[1], k_tag1);
 	xvt_render_camera_save_viewport();
 	build_tagged(&k_views[2], k_tag2);

@@ -13,7 +13,10 @@ enum { TARGETS = XVT_TARGET_FRONT_SAVED_FIRST + XVT_TARGET_FRONT_SAVED_COUNT };
 
 static AeronRenderTarget *g_targets[TARGETS];
 static AeronDrawList2D *g_list;
-static int g_width, g_height, g_presented, g_movie_presented;
+static int g_width;
+static int g_height;
+static int g_presented;
+static int g_movie_presented;
 static float g_scale;
 static int g_release_presented;
 static uint64_t g_replayed_snapshot_serial = UINT64_MAX;
@@ -37,8 +40,8 @@ static int is_frontend_target(unsigned id)
 
 static struct xvt_snap_rect scale_rect(struct xvt_snap_rect rect, float scale)
 {
-	int left = (int)roundf(rect.x * scale),
-	    top = (int)roundf(rect.y * scale);
+	int left = (int)roundf(rect.x * scale);
+	int top = (int)roundf(rect.y * scale);
 	return (struct xvt_snap_rect){
 		left, top, (int)roundf((rect.x + rect.width) * scale) - left,
 		(int)roundf((rect.y + rect.height) * scale) - top};
@@ -130,8 +133,8 @@ static int resize_targets(AeronCommandBuffer *cmd, int width, int height,
 		}
 		AeronTexture *source =
 			Aeron_RenderTargetGetTexture(g_targets[id]);
-		int source_width = Aeron_TextureGetWidth(source),
-		    source_height = Aeron_TextureGetHeight(source);
+		int source_width = Aeron_TextureGetWidth(source);
+		int source_height = Aeron_TextureGetHeight(source);
 		if (!xvt_ui_copy_frontend(
 			    cmd, replacements[id], source,
 			    &(struct xvt_snap_rect){0, 0, source_width,
@@ -163,7 +166,8 @@ static int prepare_targets(AeronCommandBuffer *cmd, int width, int height)
 		return 0;
 	}
 	float scale = fminf(width / 640.0f, height / 480.0f);
-	int w = (int)ceilf(640 * scale), h = (int)ceilf(480 * scale);
+	int w = (int)ceilf(640 * scale);
+	int h = (int)ceilf(480 * scale);
 	if ((w != g_width || h != g_height) &&
 	    !resize_targets(cmd, w, h, scale)) {
 		return 0;
@@ -227,8 +231,8 @@ static int draw_sprite(const struct xvt_snap_sprite *b, float scale)
 			const AeronRuntimeAtlasPage *p =
 				&a->pages[a->layout.pages[i]];
 			const AeronSpriteRect *r = &a->layout.frames[i];
-			float sx = r->w / a->layout.classic_w[i],
-			      sy = r->h / a->layout.classic_h[i];
+			float sx = r->w / a->layout.classic_w[i];
+			float sy = r->h / a->layout.classic_h[i];
 			AeronDrawList2DSprite d = {
 				.texture = p->texture,
 				.src_u0 = (r->x + b->source.x * sx) / p->width,
@@ -268,8 +272,8 @@ static void draw_preview(unsigned i)
 	if (!p) {
 		return;
 	}
-	struct xvt_snap_rect r = scale_rect(p->destination, g_scale),
-			     clip = scale_rect(p->draw.clip, g_scale);
+	struct xvt_snap_rect r = scale_rect(p->destination, g_scale);
+	struct xvt_snap_rect clip = scale_rect(p->draw.clip, g_scale);
 	AeronDrawList2DSprite d = {
 		.texture = p->texture,
 		.src_u1 = 1,
@@ -292,8 +296,8 @@ static int render_cursor(AeronCommandBuffer *cmd,
 	if (!cursor) {
 		return 1;
 	}
-	int width = cursor->destination.width,
-	    height = cursor->destination.height;
+	int width = cursor->destination.width;
+	int height = cursor->destination.height;
 	if (width <= 0 || height <= 0) {
 		return 0;
 	}
@@ -591,14 +595,16 @@ void xvt_frontend_present_cursor(float opacity)
 	    Aeron_RelativeMouseMode()) {
 		return;
 	}
-	int x = g_cursor.destination.x, y = g_cursor.destination.y;
+	int x = g_cursor.destination.x;
+	int y = g_cursor.destination.y;
 	/* Align with the baked classic cursor during the renderer crossfade. */
 	if (opacity >= 1) {
 		xvt_input_frontend_cursor_position(&x, &y);
 	}
 	AeronRectI classic = xvt_presentation_classic_rect();
 	struct xvt_snap_rect clip = g_cursor.draw.clip;
-	int left = clip.x > 0 ? clip.x : 0, top = clip.y > 0 ? clip.y : 0;
+	int left = clip.x > 0 ? clip.x : 0;
+	int top = clip.y > 0 ? clip.y : 0;
 	int right = clip.x + clip.width < 640 ? clip.x + clip.width : 640;
 	int bottom = clip.y + clip.height < 480 ? clip.y + clip.height : 480;
 	if (right <= left || bottom <= top) {

@@ -10,9 +10,15 @@
 
 static struct {
 	xvt_flight_timing_profile profile;
-	int unlocked, active, due, animation_time;
+	int unlocked;
+	int active;
+	int due;
+	int animation_time;
 	unsigned phase;
-	uint64_t serial, animation_serial, dropped, reported;
+	uint64_t serial;
+	uint64_t animation_serial;
+	uint64_t dropped;
+	uint64_t reported;
 } g_timing;
 
 void xvt_flight_timing_begin_session(xvt_flight_timing_profile profile)

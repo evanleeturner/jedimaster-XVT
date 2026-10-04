@@ -16,10 +16,14 @@
 #include "xvt_runtime/runtime/presentation.h"
 
 static AeronBlendRamp g_blend;
-static int g_wait_classic, g_consumed_tab, g_world_ready;
-static uint64_t g_classic_serial, g_ready_flight_frame_serial,
-	g_ready_mission_generation;
-static int g_width, g_height;
+static int g_wait_classic;
+static int g_consumed_tab;
+static int g_world_ready;
+static uint64_t g_classic_serial;
+static uint64_t g_ready_flight_frame_serial;
+static uint64_t g_ready_mission_generation;
+static int g_width;
+static int g_height;
 
 enum { DISPLAY_NONE, DISPLAY_FRONTEND, DISPLAY_FLIGHT, DISPLAY_LOADING };
 
@@ -79,7 +83,8 @@ void xvt_remaster_view_begin_frame(const AeronInputSnapshot *in)
 			     g_blend.target > 0 ? "modern" : "classic");
 	}
 	xvt_input_suppress_renderer_tab(g_consumed_tab);
-	int width = 0, height = 0;
+	int width = 0;
+	int height = 0;
 	Aeron_GetPresentationPixelSize(&width, &height);
 	int suppress = in && in->has_focus && g_blend.target > 0 &&
 		       g_blend.alpha >= 1 && !g_wait_classic &&

@@ -13,7 +13,9 @@ extern "C" {
  * original code. */
 
 struct xvt_orientation_angles {
-	uint16_t yaw, pitch, roll;
+	uint16_t yaw;
+	uint16_t pitch;
+	uint16_t roll;
 };
 
 /* Apply local pitch/yaw using OpenXWA's gimbal-lock-safe rotation path. */

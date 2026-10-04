@@ -33,7 +33,8 @@
 
 enum { LOCAL = 0, BYPASS = 9, BACKGROUND = 4 };
 
-static struct xvt_cockpit_state g_out, g_expected;
+static struct xvt_cockpit_state g_out;
+static struct xvt_cockpit_state g_expected;
 static struct xvt_snap_preview g_crt;
 static uint8_t g_framebuffer[16];
 
@@ -143,7 +144,8 @@ static const struct xvt_cockpit_state *seal_and_present(void)
 
 static void check_copy_state(void)
 {
-	static struct xvt_cockpit_state source, destination;
+	static struct xvt_cockpit_state source;
+	static struct xvt_cockpit_state destination;
 	memset(&source, 0x11, sizeof source);
 	memset(&destination, 0xCD, sizeof destination);
 	source.page_content.row_count = 2;

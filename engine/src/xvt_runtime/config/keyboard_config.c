@@ -188,7 +188,8 @@ bool xvt_keyboard_config_write(AeronConfigFile *document,
 	AeronConfigValue sources[XVT_KEYBOARD_BINDING_CAP];
 	AeronConfigValue actions[XVT_INPUT_ACTION_COUNT - 1];
 	AeronConfigMapValue entries[XVT_INPUT_ACTION_COUNT - 1];
-	size_t used = 0, entry_count = 0;
+	size_t used = 0;
+	size_t entry_count = 0;
 	for (int action = XVT_INPUT_ACTION_NONE + 1;
 	     action < XVT_INPUT_ACTION_COUNT; ++action) {
 		if (!xvt_input_actions_keyboard_bindable(

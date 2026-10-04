@@ -27,7 +27,8 @@ static char g_folder[XVT_TEST_PATH_CAPACITY];
 static char g_asset[XVT_TEST_PATH_CAPACITY];
 static AeronVfs *g_vfs;
 static struct xvt_render_snapshot *g_snapshot;
-static int g_owner_a, g_owner_b;
+static int g_owner_a;
+static int g_owner_b;
 
 /* A fresh folder whose asset root holds every file the checks register, bound to storage. */
 static void make_roots(void)
@@ -43,7 +44,8 @@ static void make_roots(void)
 	for (size_t i = 0; i < sizeof k_files / sizeof k_files[0]; ++i) {
 		xvt_test_write_text(g_asset, k_files[i], "x");
 	}
-	char user[XVT_TEST_PATH_CAPACITY], temp[XVT_TEST_PATH_CAPACITY];
+	char user[XVT_TEST_PATH_CAPACITY];
+	char temp[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(user, g_folder, "user");
 	xvt_test_join(temp, g_folder, "temp");
 	AeronVfsConfig config = {0};

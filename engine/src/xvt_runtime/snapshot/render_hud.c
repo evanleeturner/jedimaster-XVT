@@ -12,7 +12,8 @@
 #include "xvt_runtime/snapshot/render_capture.h"
 
 static struct xvt_snap_target_box g_boxes[XVT_SNAP_TARGET_BOXES];
-static unsigned g_box_count, g_scope = XVT_SCOPE_COCKPIT;
+static unsigned g_box_count;
+static unsigned g_scope = XVT_SCOPE_COCKPIT;
 
 void xvt_render_draw_scope(unsigned scope) { g_scope = scope; }
 
@@ -22,8 +23,9 @@ uint32_t xvt_render_draw_color(unsigned index)
 {
 	/* HD colors use the unadjusted DAC palette, independent of classic brightness and pixel format. */
 	index &= 255;
-	unsigned r = g_sw_palette[index].r & 63, g = g_sw_palette[index].g & 63,
-		 b = g_sw_palette[index].b & 63;
+	unsigned r = g_sw_palette[index].r & 63;
+	unsigned g = g_sw_palette[index].g & 63;
+	unsigned b = g_sw_palette[index].b & 63;
 	r = (r << 2) | (r >> 4);
 	g = (g << 2) | (g >> 4);
 	b = (b << 2) | (b >> 4);

@@ -18,7 +18,8 @@ struct cockpit_asset_group {
 	struct cockpit_asset_group *next;
 };
 
-static struct cockpit_asset_group *g_groups, *g_pending;
+static struct cockpit_asset_group *g_groups;
+static struct cockpit_asset_group *g_pending;
 static const struct xvt_hud_asset_set *g_current;
 static const struct xvt_hud_asset_set g_empty;
 
@@ -262,7 +263,8 @@ static int build_parts(AeronCommandBuffer *cmd, struct xvt_hud_asset_set *set,
 		free(frames);
 		return 0;
 	}
-	unsigned decoded_count = 0, frame_count = 0;
+	unsigned decoded_count = 0;
+	unsigned frame_count = 0;
 	int ok = 1;
 	for (unsigned index = 0; ok && index < set->part_count; ++index) {
 		const struct xvt_hud_part_request *request =

@@ -29,7 +29,10 @@ struct xvt_flight_checkpoint_view {
 	size_t prefix;
 	int tick;
 	unsigned object_count;
-	const uint8_t *reference, *integration, *players, *paired;
+	const uint8_t *reference;
+	const uint8_t *integration;
+	const uint8_t *players;
+	const uint8_t *paired;
 	struct xvt_membership_wire membership;
 };
 

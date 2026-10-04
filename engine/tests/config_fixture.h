@@ -192,7 +192,10 @@ static inline void fixture_begin(void)
 	fixture_copy_shipped("aeron/config/scene3d_defaults.yaml",
 			     "resource/aeron/scene3d_defaults.yaml");
 
-	char asset[1024], resource[1024], user[1024], temp[1024];
+	char asset[1024];
+	char resource[1024];
+	char user[1024];
+	char temp[1024];
 	fixture_path(asset, sizeof asset, "asset");
 	fixture_path(resource, sizeof resource, "resource");
 	fixture_path(user, sizeof user, "user");
@@ -223,7 +226,8 @@ static inline void fixture_load(void)
  * in each fresh folder; the check stops when it does not parse. */
 static inline AeronConfigFile *fixture_yaml(const char *text)
 {
-	char name[64], relative[80];
+	char name[64];
+	char relative[80];
 	AeronConfigFile *document = NULL;
 	AeronConfigError detail;
 	snprintf(name, sizeof name, "document%d.yaml", ++g_fixture_documents);
@@ -271,8 +275,10 @@ static inline int fixture_same_document(const AeronConfigFile *left,
 	if (!left || !right) {
 		return left == right;
 	}
-	char *a = NULL, *b = NULL;
-	size_t a_size = 0, b_size = 0;
+	char *a = NULL;
+	char *b = NULL;
+	size_t a_size = 0;
+	size_t b_size = 0;
 	AeronConfigError detail;
 	XVT_ASSERT_TRUE(
 		AeronConfigFile_SerializeYaml(left, &a, &a_size, &detail));

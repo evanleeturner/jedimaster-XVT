@@ -18,9 +18,16 @@ struct xvt_opt_entry {
 	uint32_t payload_address;
 	uint32_t palette_address;
 	uint32_t embedded_palette_address;
-	int32_t type, child_count, payload_count;
-	size_t node_offset, children_offset, texture_offset, payload_offset,
-		payload_size, payload_copy_size, palette_offset;
+	int32_t type;
+	int32_t child_count;
+	int32_t payload_count;
+	size_t node_offset;
+	size_t children_offset;
+	size_t texture_offset;
+	size_t payload_offset;
+	size_t payload_size;
+	size_t payload_copy_size;
+	size_t palette_offset;
 	int visiting;
 };
 
@@ -31,9 +38,12 @@ struct xvt_opt_palette {
 
 struct xvt_opt_decode {
 	uint8_t *bytes;
-	uint32_t size, base;
+	uint32_t size;
+	uint32_t base;
 	struct xvt_opt_entry *nodes;
-	size_t count, capacity, native_size;
+	size_t count;
+	size_t capacity;
+	size_t native_size;
 	int failed;
 	int version;
 };
@@ -106,7 +116,9 @@ static int xvt_opt_reserve_texture(struct xvt_opt_decode *decode,
 {
 	const uint8_t *raw =
 		xvt_opt_bytes_at(decode, entry->payload_address, 24);
-	int64_t pixels, bytes, palette_bytes;
+	int64_t pixels;
+	int64_t bytes;
+	int64_t palette_bytes;
 	if (!raw) {
 		return 0;
 	}
@@ -371,7 +383,8 @@ static int xvt_opt_visit(struct xvt_opt_decode *decode, uint32_t address,
 	if (count && !children) {
 		return 0;
 	}
-	int child_vertices = *vertices, child_has_normals = *has_normals;
+	int child_vertices = *vertices;
+	int child_has_normals = *has_normals;
 	for (int i = 0; i < count; ++i) {
 		if (!xvt_opt_visit(decode, xvt_opt_read_u32(children + i * 4),
 				   depth + 1, &child_vertices,
@@ -507,8 +520,8 @@ uint16_t xvt_opt_read(AeronFile *file, const char *label, int *version,
 	}
 	decode.base = xvt_opt_read_u32(decode.bytes);
 	decode.version = *version;
-	uint32_t roots = xvt_opt_read_u32(decode.bytes + 6),
-		 root_table_address = xvt_opt_read_u32(decode.bytes + 10);
+	uint32_t roots = xvt_opt_read_u32(decode.bytes + 6);
+	uint32_t root_table_address = xvt_opt_read_u32(decode.bytes + 10);
 	if (roots > 65536 || decode.base > UINT32_MAX - decode.size) {
 		goto done;
 	}
@@ -521,7 +534,8 @@ uint16_t xvt_opt_read(AeronFile *file, const char *label, int *version,
 	}
 	decode.native_size = sizeof(struct optimized_poly_object) +
 			     (size_t)roots * sizeof(struct opt_node *);
-	int vertices = 0, has_normals = 0;
+	int vertices = 0;
+	int has_normals = 0;
 	for (uint32_t i = 0; i < roots; ++i) {
 		if (!xvt_opt_visit(&decode, xvt_opt_read_u32(table + i * 4), 0,
 				   &vertices, &has_normals)) {

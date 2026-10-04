@@ -283,13 +283,22 @@ void render_clip_clip_poly_bottom(int prev_vert_index, int cur_vert_index,
 
 		{
 			int output;
-			float previous_x, current_x, previous_light_intensity,
-				current_light_intensity;
-			float previous_u, current_u, previous_v, current_v;
-			float previous_scaled_inverse_depth,
-				current_scaled_inverse_depth;
-			float delta_x, delta_y, delta_light_intensity, delta_u,
-				delta_v, delta_scaled_inverse_depth;
+			float previous_x;
+			float current_x;
+			float previous_light_intensity;
+			float current_light_intensity;
+			float previous_u;
+			float current_u;
+			float previous_v;
+			float current_v;
+			float previous_scaled_inverse_depth;
+			float current_scaled_inverse_depth;
+			float delta_x;
+			float delta_y;
+			float delta_light_intensity;
+			float delta_u;
+			float delta_v;
+			float delta_scaled_inverse_depth;
 
 			output = g_clip_vert_cursor++;
 			previous_x = previous->x;
@@ -401,10 +410,22 @@ void render_clip_clip_poly_bottom(int prev_vert_index, int cur_vert_index,
 		}
 	} else if (current_y > boundary) {
 		int output;
-		float previous_x, current_x, previous_rhw, current_rhw;
-		float previous_u, current_u, previous_v, current_v;
-		float previous_z, current_z;
-		float delta_x, delta_y, delta_rhw, delta_u, delta_v, delta_z;
+		float previous_x;
+		float current_x;
+		float previous_rhw;
+		float current_rhw;
+		float previous_u;
+		float current_u;
+		float previous_v;
+		float current_v;
+		float previous_z;
+		float current_z;
+		float delta_x;
+		float delta_y;
+		float delta_rhw;
+		float delta_u;
+		float delta_v;
+		float delta_z;
 
 		output = g_clip_vert_cursor++;
 		previous_rhw = previous->light_intensity;
@@ -519,13 +540,22 @@ int render_clip_clip_poly_left(int prev_vert_index, int cur_vert_index,
 
 		{
 			int output;
-			float current_y, previous_y, current_light_intensity,
-				previous_light_intensity;
-			float current_u, previous_u, current_v, previous_v;
-			float current_scaled_inverse_depth,
-				previous_scaled_inverse_depth, delta_x, delta_y,
-				delta_light_intensity;
-			float delta_u, delta_v, delta_scaled_inverse_depth;
+			float current_y;
+			float previous_y;
+			float current_light_intensity;
+			float previous_light_intensity;
+			float current_u;
+			float previous_u;
+			float current_v;
+			float previous_v;
+			float current_scaled_inverse_depth;
+			float previous_scaled_inverse_depth;
+			float delta_x;
+			float delta_y;
+			float delta_light_intensity;
+			float delta_u;
+			float delta_v;
+			float delta_scaled_inverse_depth;
 			struct render_clip_vertex *destination;
 			output = g_clip_vert_cursor++;
 			previous_y = previous->y;
@@ -641,11 +671,22 @@ int render_clip_clip_poly_left(int prev_vert_index, int cur_vert_index,
 	} else if (current_x < 0.0f) {
 		{
 			int output;
-			float current_y, previous_y, current_rhw, previous_rhw;
-			float current_u, previous_u, current_v, previous_v;
-			float current_z, previous_z, delta_x, delta_y,
-				delta_rhw;
-			float delta_u, delta_v, delta_z;
+			float current_y;
+			float previous_y;
+			float current_rhw;
+			float previous_rhw;
+			float current_u;
+			float previous_u;
+			float current_v;
+			float previous_v;
+			float current_z;
+			float previous_z;
+			float delta_x;
+			float delta_y;
+			float delta_rhw;
+			float delta_u;
+			float delta_v;
+			float delta_z;
 			struct render_clip_vertex *destination;
 			output = g_clip_vert_cursor++;
 			previous_y = previous->y;
@@ -773,13 +814,22 @@ void render_clip_clip_poly_right(int prev_vert_index, int cur_vert_index,
 
 		{
 			int output;
-			float previous_y, current_y, previous_light_intensity,
-				current_light_intensity;
-			float previous_u, current_u, previous_v, current_v;
-			float previous_scaled_inverse_depth,
-				current_scaled_inverse_depth;
-			float delta_x, delta_y, delta_light_intensity, delta_u,
-				delta_v, delta_scaled_inverse_depth;
+			float previous_y;
+			float current_y;
+			float previous_light_intensity;
+			float current_light_intensity;
+			float previous_u;
+			float current_u;
+			float previous_v;
+			float current_v;
+			float previous_scaled_inverse_depth;
+			float current_scaled_inverse_depth;
+			float delta_x;
+			float delta_y;
+			float delta_light_intensity;
+			float delta_u;
+			float delta_v;
+			float delta_scaled_inverse_depth;
 
 			output = g_clip_vert_cursor++;
 			previous_y = previous->y;
@@ -891,10 +941,22 @@ void render_clip_clip_poly_right(int prev_vert_index, int cur_vert_index,
 		}
 	} else if (current_x > boundary) {
 		int output;
-		float previous_y, current_y, previous_rhw, current_rhw;
-		float previous_u, current_u, previous_v, current_v;
-		float previous_z, current_z;
-		float delta_x, delta_y, delta_rhw, delta_u, delta_v, delta_z;
+		float previous_y;
+		float current_y;
+		float previous_rhw;
+		float current_rhw;
+		float previous_u;
+		float current_u;
+		float previous_v;
+		float current_v;
+		float previous_z;
+		float current_z;
+		float delta_x;
+		float delta_y;
+		float delta_rhw;
+		float delta_u;
+		float delta_v;
+		float delta_z;
 
 		output = g_clip_vert_cursor++;
 		previous_rhw = previous->light_intensity;

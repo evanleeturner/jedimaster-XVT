@@ -16,7 +16,10 @@
 
 static AeronScene3D *g_scene;
 static AeronSceneMeshTable *g_tables;
-static int g_width, g_height, g_samples, g_output_valid;
+static int g_width;
+static int g_height;
+static int g_samples;
+static int g_output_valid;
 
 static int ensure(int width, int height)
 {
@@ -159,10 +162,10 @@ int xvt_remaster_flight_render(AeronCommandBuffer *cmd,
 		int hidden_owner = object->id.slot == s->camera.focus.slot &&
 				   !s->camera.external &&
 				   !s->camera.replay_view;
-		AeronSceneMeshTable *table = &g_tables[i * 3],
-				    *previous_table = &g_tables[i * 3 + 1];
-		float visual[XVT_SNAP_COMPONENTS],
-			prior_visual[XVT_SNAP_COMPONENTS];
+		AeronSceneMeshTable *table = &g_tables[i * 3];
+		AeronSceneMeshTable *previous_table = &g_tables[i * 3 + 1];
+		float visual[XVT_SNAP_COMPONENTS];
+		float prior_visual[XVT_SNAP_COMPONENTS];
 		xvt_remaster_ship_build_mesh_table(
 			asset, object, selection.component,
 			xvt_component_animation_angles(s, object, asset,

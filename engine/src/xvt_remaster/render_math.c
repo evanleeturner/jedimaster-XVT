@@ -83,7 +83,9 @@ static void fl_transformaxes(float cur[3][3], const float axis[3],
 	const float c = cosf(a);
 	const float sn = sinf(a);
 	const float t = 1.0f - c;
-	const float x = axis[0], y = axis[1], z = axis[2];
+	const float x = axis[0];
+	const float y = axis[1];
+	const float z = axis[2];
 	/* m[i][j] laid out as fview_transformaxes computes m00..m22. */
 	const float m[3][3] = {
 		{c + t * x * x, sn * z + t * y * x, -sn * y + t * z * x},
@@ -91,7 +93,9 @@ static void fl_transformaxes(float cur[3][3], const float axis[3],
 		{sn * y + t * z * x, -sn * x + t * z * y, c + t * z * z},
 	};
 	for (int r = 0; r < 3; r++) {
-		const float ox = cur[r][0], oy = cur[r][1], oz = cur[r][2];
+		const float ox = cur[r][0];
+		const float oy = cur[r][1];
+		const float oz = cur[r][2];
 		/* new_x = m00 ox + m10 oy + m20 oz (the engine's application). */
 		cur[r][0] = m[0][0] * ox + m[1][0] * oy + m[2][0] * oz;
 		cur[r][1] = m[0][1] * ox + m[1][1] * oy + m[2][1] * oz;
@@ -109,8 +113,10 @@ static void fl_curmat_from_euler(const struct xvt_snap_object *f,
 		(float)(int16_t)(0xc000 - f->pitch) * FL_Q16_TO_RAD;
 	const float yaw_angle =
 		(float)(int16_t)(-(int16_t)f->yaw) * FL_Q16_TO_RAD;
-	const float c_b = cosf(yaw_angle), s_b = sinf(yaw_angle);
-	const float c_a = cosf(pitch_angle), s_a = sinf(pitch_angle);
+	const float c_b = cosf(yaw_angle);
+	const float s_b = sinf(yaw_angle);
+	const float c_a = cosf(pitch_angle);
+	const float s_a = sinf(pitch_angle);
 	cur[0][0] = c_b;
 	cur[0][1] = s_b;
 	cur[0][2] = 0.0f;
@@ -200,8 +206,8 @@ int xvt_render_math_build_view(const struct xvt_snap_camera *cam,
 	float aspect_y = !cam->aspect_y_q16 || cam->aspect_y_q16 == UINT16_MAX
 				 ? 1.0f
 				 : (float)cam->aspect_y_q16 / 65536.0f;
-	float half_w = cam->viewport.width * 0.5f,
-	      half_h = cam->viewport.height * 0.5f;
+	float half_w = cam->viewport.width * 0.5f;
+	float half_h = cam->viewport.height * 0.5f;
 	c->v_half_rad = atanf(half_h / (focal * aspect_y));
 	c->h_half_rad =
 		atanf(tanf(c->v_half_rad) * (float)width / (float)height);
@@ -275,7 +281,9 @@ int xvt_render_math_build_main_view(const struct xvt_snap_camera *cam,
 void xvt_render_math_object_matrix(const struct xvt_snap_object *object,
 				   const int32_t origin[3], float out[16])
 {
-	float cur[3][3], basis[9], local[3];
+	float cur[3][3];
+	float basis[9];
+	float local[3];
 	if (object->has_mobile && !object->orient_dirty) {
 		fl_curmat_from_cached(object->cached_rows_q15, cur);
 	} else {
@@ -305,8 +313,8 @@ int xvt_render_math_pose_changed(const struct xvt_render_snapshot *current,
 		return 1;
 	}
 	for (unsigned i = 0; i < current->object_count; ++i) {
-		const struct xvt_snap_object *a = &current->objects[i],
-					     *b = &previous->objects[i];
+		const struct xvt_snap_object *a = &current->objects[i];
+		const struct xvt_snap_object *b = &previous->objects[i];
 		if (a->id.slot != b->id.slot ||
 		    a->id.signature != b->id.signature ||
 		    a->object_type != b->object_type ||

@@ -54,7 +54,10 @@ void xvt_network_metadata_from_utf8(char *out, size_t capacity,
 		return;
 	}
 	while (*source && written + 1 < capacity) {
-		unsigned lead = *source++, cp = lead, extra = 0, minimum = 0;
+		unsigned lead = *source++;
+		unsigned cp = lead;
+		unsigned extra = 0;
+		unsigned minimum = 0;
 		if (lead >= 0xc2 && lead <= 0xdf) {
 			cp &= 31;
 			extra = 1;

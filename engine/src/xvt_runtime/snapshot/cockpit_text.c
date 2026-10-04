@@ -227,7 +227,8 @@ int xvt_cockpit_text_capture_glyph(struct xvt_cockpit_glyph *glyph,
 				   int origin_y, const uint32_t palette[256],
 				   int keyed)
 {
-	int x = g_flight_cursor_x, y = g_flight_cursor_y;
+	int x = g_flight_cursor_x;
+	int y = g_flight_cursor_y;
 	if (x >= g_flight_clip_right || y >= g_flight_clip_bottom ||
 	    x + (int)advance + 1 <= g_flight_clip_left ||
 	    y + (int)height + 1 <= g_flight_clip_top) {

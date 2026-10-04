@@ -287,7 +287,8 @@ static void check_node_error(void)
 {
 	begin();
 	AeronConfigFile *document = fixture_yaml("top:\n  inner: 5\n");
-	char error[512], expected[512];
+	char error[512];
+	char expected[512];
 	/* A node that exists: its file, line and column. fixture_yaml writes the first document as
 	 * temp/document1.yaml, in the TEMP root. */
 	const AeronConfigNode *node =

@@ -429,7 +429,9 @@ static const unsigned k_big12_lengths[16] = {5340, 5340, 20362, 25509, 11760};
 static void check_checksum_regions_in_big_worlds(void)
 {
 	static const struct {
-		int flight_groups, crafts, statics;
+		int flight_groups;
+		int crafts;
+		int statics;
 		const unsigned *sums;
 		const unsigned *lengths;
 	} cases[] = {{4, 8, 2, k_big4_sums, k_big4_lengths},

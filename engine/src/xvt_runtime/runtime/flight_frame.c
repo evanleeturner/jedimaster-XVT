@@ -30,8 +30,11 @@ enum {
 enum { XVT_FRAME_WAIT, XVT_FRAME_ADVANCE };
 
 static struct {
-	int phase, saved_input_timestamp, frame_target_timestamp;
-	int loop_start_timestamp, frame_start_timestamp;
+	int phase;
+	int saved_input_timestamp;
+	int frame_target_timestamp;
+	int loop_start_timestamp;
+	int frame_start_timestamp;
 } g_frame;
 
 typedef enum xvt_confirmation_phase {
@@ -45,8 +48,11 @@ typedef enum xvt_confirmation_phase {
 static struct {
 	struct xvt_flight_message message;
 	xvt_confirmation_phase phase;
-	int publish_floor, suspended, predicted_suspended;
-	uint64_t iteration_start_us, deadline;
+	int publish_floor;
+	int suspended;
+	int predicted_suspended;
+	uint64_t iteration_start_us;
+	uint64_t deadline;
 	unsigned steps;
 	int budget_initialized;
 } g_confirm;
@@ -89,7 +95,8 @@ void xvt_flight_frame_begin(void)
 
 static int xvt_flight_frame_target(void)
 {
-	int frame_adjustment, frame_target_timestamp;
+	int frame_adjustment;
+	int frame_target_timestamp;
 	if (xvt_flight_timing_is_unlocked()) {
 		return g_input_timestamp;
 	}
@@ -317,7 +324,10 @@ static void xvt_flight_frame_format_update_histogram(void)
 
 static void xvt_flight_frame_render(void)
 {
-	int update_ticks, render_ticks, loop_ticks, render_start_timestamp;
+	int update_ticks;
+	int render_ticks;
+	int loop_ticks;
+	int render_start_timestamp;
 	char overlay_line[180];
 	g_input_timestamp += time_consume_elapsed_ticks();
 	update_ticks = g_input_timestamp - g_frame.frame_start_timestamp;
@@ -528,7 +538,8 @@ static void xvt_flight_frame_checksum(void)
 				  sizeof(g_world_checksum[0])
 		};
 
-		char sums[REGIONS * 9 + 1], lengths[REGIONS * 9 + 1];
+		char sums[REGIONS * 9 + 1];
+		char lengths[REGIONS * 9 + 1];
 		xvt_log_format_hex_list(sums, sizeof sums, g_world_checksum,
 					REGIONS);
 		xvt_log_format_hex_list(lengths, sizeof lengths,

@@ -55,8 +55,8 @@ bool xvt_controller_options_equals(const struct xvt_controller_options *left,
 		return false;
 	}
 	for (size_t i = 0; i < left->count; ++i) {
-		const struct xvt_controller_model *a = &left->models[i],
-						  *b = &right->models[i];
+		const struct xvt_controller_model *a = &left->models[i];
+		const struct xvt_controller_model *b = &right->models[i];
 		if (strcmp(a->guid, b->guid) || strcmp(a->name, b->name) ||
 		    a->kind != b->kind ||
 		    !xvt_controller_options_profile_equal(&a->profile,

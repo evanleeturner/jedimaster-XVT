@@ -61,7 +61,9 @@ static void ship_mat3x4_rotation_about_pivot(float out[3][4],
 					     const float axis[3],
 					     const float pivot[3], float angle)
 {
-	float ax = axis[0], ay = axis[1], az = axis[2];
+	float ax = axis[0];
+	float ay = axis[1];
+	float az = axis[2];
 	const float len = sqrtf(ax * ax + ay * ay + az * az);
 	if (len < 1e-4f) {
 		ship_mat3x4_identity(out);
@@ -70,7 +72,9 @@ static void ship_mat3x4_rotation_about_pivot(float out[3][4],
 	ax /= len;
 	ay /= len;
 	az /= len;
-	const float c = cosf(angle), s = sinf(angle), omc = 1.0f - c;
+	const float c = cosf(angle);
+	const float s = sinf(angle);
+	const float omc = 1.0f - c;
 	out[0][0] = c + ax * ax * omc;
 	out[0][1] = ax * ay * omc - az * s;
 	out[0][2] = ax * az * omc + ay * s;
@@ -160,7 +164,8 @@ float xvt_remaster_ship_radius(const struct xvt_mesh_asset *asset,
 			       const AeronSceneMeshTable *table,
 			       const float m[16])
 {
-	float center[3], r2 = 0;
+	float center[3];
+	float r2 = 0;
 	for (int i = 0; i < 3; ++i) {
 		center[i] = (asset->mesh->bound_min[i] +
 			     asset->mesh->bound_max[i]) *
@@ -170,7 +175,8 @@ float xvt_remaster_ship_radius(const struct xvt_mesh_asset *asset,
 			     0.5f;
 		r2 += half * half;
 	}
-	float radius = 0, base_radius = sqrtf(r2);
+	float radius = 0;
+	float base_radius = sqrtf(r2);
 	for (unsigned i = 0;
 	     i < asset->component_count && i < AERON_MAX_MESH_SLOTS; ++i) {
 		if (!table->visibility_packed[i >> 2][i & 3]) {

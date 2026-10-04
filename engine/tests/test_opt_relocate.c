@@ -19,7 +19,12 @@
 struct block {
 	struct optimized_poly_object model;
 	struct opt_node *roots[2];
-	struct opt_node hull, texture0, wing, texture1, reference, vertices;
+	struct opt_node hull;
+	struct opt_node texture0;
+	struct opt_node wing;
+	struct opt_node texture1;
+	struct opt_node reference;
+	struct opt_node vertices;
 	struct opt_node *hull_children[3];
 	struct opt_node *wing_children[2];
 	struct opt_texture_data texture_data[2];

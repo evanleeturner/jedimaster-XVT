@@ -11,8 +11,11 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 
-static uint64_t g_prepared_image_generation, g_prepared_resource_generation;
-static int g_width, g_height, g_samples;
+static uint64_t g_prepared_image_generation;
+static uint64_t g_prepared_resource_generation;
+static int g_width;
+static int g_height;
+static int g_samples;
 
 void xvt_cockpit_loading_reset(void)
 {

@@ -51,35 +51,42 @@ struct xvt_hud_part_request {
 	struct xvt_cockpit_asset_binding source;
 	uint16_t key;
 	int16_t fade;
-	uint8_t color_mode, color;
+	uint8_t color_mode;
+	uint8_t color;
 };
 
 enum { XVT_HUD_PART_CAPACITY = 1024 };
 
 struct xvt_hud_sprite_binding {
-	int16_t x, y, step_x;
+	int16_t x;
+	int16_t y;
+	int16_t step_x;
 	/* Shields: level 0..10. Beam: segment*4+charge step. Covers: intact/damaged.
 	 * Other families use the original state as the part offset. */
-	uint16_t first_part, part_count;
+	uint16_t first_part;
+	uint16_t part_count;
 	uint8_t mirrored;
 };
 
 struct xvt_hud_anchor {
-	int16_t x, y;
+	int16_t x;
+	int16_t y;
 };
 
 /* The compiled layout: the view's source size, mirroring, viewport and projection offset; the base
  * artwork asset; the CRT rect, radar anchors and page and message placements; the sprite bindings and
  * the part requests they index; the definition's beam segment offsets. */
 struct xvt_hud_layout {
-	uint16_t source_width, source_height;
+	uint16_t source_width;
+	uint16_t source_height;
 	uint64_t base_asset_id;
 	uint8_t mirrored;
-	struct xvt_snap_rect viewport, crt;
+	struct xvt_snap_rect viewport;
+	struct xvt_snap_rect crt;
 	int16_t projection_offset_y;
 	struct xvt_hud_anchor radar[2];
-	struct xvt_snap_rect pages[MFD_PAGE_COUNT],
-		messages[XVT_COCKPIT_MESSAGE_COUNT];
+	struct xvt_snap_rect pages[MFD_PAGE_COUNT];
+	struct xvt_snap_rect messages[XVT_COCKPIT_MESSAGE_COUNT];
 	struct xvt_hud_sprite_binding sprites[XVT_HUD_SPRITE_ROLE_COUNT];
 	uint16_t part_count;
 	struct xvt_hud_part_request parts[XVT_HUD_PART_CAPACITY];

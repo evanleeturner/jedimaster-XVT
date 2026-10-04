@@ -14,7 +14,8 @@ extern "C" {
  * equal when no previous pose exists. previous_index: the matching object's index in the previous
  * snapshot (same slot, signature and type), or -1. zero_velocity: no previous pose, so no motion. */
 struct xvt_prepared_object {
-	float transform[16], previous_transform[16];
+	float transform[16];
+	float previous_transform[16];
 	int32_t previous_index;
 	uint8_t zero_velocity;
 };
@@ -28,16 +29,22 @@ struct xvt_prepared_object {
  * reset_history: motion history restarts. regenerate_motion: the poses advanced this frame.
  * render_needed: the frame must be drawn again. */
 struct xvt_prepared_flight {
-	struct xvt_render_view view, previous_view;
-	struct xvt_layout_transform cockpit_layout, frontend_layout;
+	struct xvt_render_view view;
+	struct xvt_render_view previous_view;
+	struct xvt_layout_transform cockpit_layout;
+	struct xvt_layout_transform frontend_layout;
 	AeronRectI content_rect;
 	struct xvt_prepared_object objects[XVT_SNAP_OBJECTS];
 	uint32_t object_count;
-	uint64_t snapshot_serial, flight_frame_serial;
+	uint64_t snapshot_serial;
+	uint64_t flight_frame_serial;
 	float delta_sim_seconds;
 	/* Host span between changed poses, matching XWA's held-velocity timing. */
 	uint64_t velocity_span_us;
-	int valid, reset_history, regenerate_motion, render_needed;
+	int valid;
+	int reset_history;
+	int regenerate_motion;
+	int render_needed;
 };
 
 /* Owns all matrices across snapshot rotation. When regenerate_motion is false,

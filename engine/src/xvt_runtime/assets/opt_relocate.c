@@ -5,7 +5,8 @@
 
 struct xvt_opt_relocation {
 	void **visited;
-	size_t count, capacity;
+	size_t count;
+	size_t capacity;
 	intptr_t delta;
 };
 

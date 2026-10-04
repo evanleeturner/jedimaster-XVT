@@ -10,9 +10,13 @@
 #include "xvt_runtime/timing/flight_timing.h"
 
 struct motion {
-	int32_t position[3], time, current_time;
+	int32_t position[3];
+	int32_t time;
+	int32_t current_time;
 	uint16_t signature;
-	uint8_t type, valid, current_valid;
+	uint8_t type;
+	uint8_t valid;
+	uint8_t current_valid;
 };
 
 static struct motion *g_motion;

@@ -12,7 +12,8 @@
 struct image_variant {
 	AeronRuntimeAtlas atlas;
 	uint32_t palette[256];
-	uint16_t key, key_alt;
+	uint16_t key;
+	uint16_t key_alt;
 	int committed;
 	uint8_t map_style;
 	uint8_t frontend_kind;
@@ -21,13 +22,16 @@ struct image_variant {
 };
 
 struct image_asset {
-	uint64_t id, seen_generation;
-	int is_texture, pending_new;
+	uint64_t id;
+	uint64_t seen_generation;
+	int is_texture;
+	int pending_new;
 	uint32_t kind;
 	uint8_t frontend_pixel_format_555;
 	char path[XVT_SNAP_PATH];
 	struct xvt_original2d decoded;
-	struct xvt_font_atlas foreground, shadow;
+	struct xvt_font_atlas foreground;
+	struct xvt_font_atlas shadow;
 	uint32_t default_palette[256];
 	struct image_variant *variants;
 };
@@ -37,7 +41,8 @@ static struct image_asset g_images[2 * (XVT_SNAP_ASSETS + XVT_SNAP_TYPES)];
 static uint64_t g_generations[2] = {UINT64_MAX, UINT64_MAX};
 static uint64_t g_batch_generation[2];
 static int g_batch_active[2];
-static uint32_t g_palette[256], g_pending_palette[256];
+static uint32_t g_palette[256];
+static uint32_t g_pending_palette[256];
 
 static int palettes_match(const struct xvt_original2d *image, const uint32_t *a,
 			  const uint32_t *b)

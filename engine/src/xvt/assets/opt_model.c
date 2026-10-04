@@ -7798,8 +7798,17 @@ void opt_model_build_face_normal_tangent_data(
 {
 	const struct opt_packed_face_record *records;
 	int face_index;
-	float edge_ax, edge_ay, edge_az, edge_bx, edge_by, edge_bz;
-	float du_a, dv_a, du_b, dv_b, determinant;
+	float edge_ax;
+	float edge_ay;
+	float edge_az;
+	float edge_bx;
+	float edge_by;
+	float edge_bz;
+	float du_a;
+	float dv_a;
+	float du_b;
+	float dv_b;
+	float determinant;
 	float normal_length_squared;
 
 	if (g_cur_mesh_vertices == NULL) {

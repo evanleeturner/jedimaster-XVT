@@ -132,7 +132,8 @@ static void check_rate_carry(void)
 
 	/* Ten short steps add up to what one step of ten ticks gives: nothing is lost to truncation. */
 	fresh_world();
-	int sum = 0, negative = 0;
+	int sum = 0;
+	int negative = 0;
 	for (int i = 0; i < 10; ++i) {
 		sum += xvt_flight_integration_rate(2, XVT_INTEGRATE_BANK, 7, 1,
 						   4);
@@ -428,7 +429,8 @@ static void check_push(void)
 	fresh_world();
 	g_elapsed_ticks = 1;
 	/* Clamped to the cap: 236 per second at one tick moves 1. Nothing is created or lost. */
-	int accum = 1000, output = 0;
+	int accum = 1000;
+	int output = 0;
 	xvt_flight_integration_push(0, 0, &accum, SIMULATION_TICKS_PER_SECOND,
 				    &output);
 	XVT_ASSERT_INT_EQ(output, 1);
@@ -440,7 +442,8 @@ static void check_push(void)
 	/* 50 ticks at 100 a second, carried: 5000 / 236 = 21. */
 	XVT_ASSERT_INT_EQ(output, 1 + 21);
 
-	int negative = -1000, out_negative = 0;
+	int negative = -1000;
+	int out_negative = 0;
 	xvt_flight_integration_push(1, 1, &negative,
 				    SIMULATION_TICKS_PER_SECOND, &out_negative);
 	XVT_ASSERT_INT_EQ(out_negative, -1);
@@ -448,11 +451,13 @@ static void check_push(void)
 
 	/* Never more than the accumulator holds. */
 	g_elapsed_ticks = 1000;
-	int small = 5, out_small = 7;
+	int small = 5;
+	int out_small = 7;
 	xvt_flight_integration_push(2, 2, &small, 10000, &out_small);
 	XVT_ASSERT_INT_EQ(small, 0);
 	XVT_ASSERT_INT_EQ(out_small, 12);
-	int small_negative = -5, out_small_negative = 0;
+	int small_negative = -5;
+	int out_small_negative = 0;
 	xvt_flight_integration_push(3, 0, &small_negative, 10000,
 				    &out_small_negative);
 	XVT_ASSERT_INT_EQ(small_negative, 0);
@@ -461,7 +466,8 @@ static void check_push(void)
 	/* Emptying the accumulator drops the axis's carry: 300/236 leaves 64/236 behind until then. */
 	fresh_world();
 	g_elapsed_ticks = 300;
-	int last = 1, out_last = 0;
+	int last = 1;
+	int out_last = 0;
 	xvt_flight_integration_push(4, 1, &last, 1, &out_last);
 	XVT_ASSERT_INT_EQ(last, 0);
 	struct xvt_integration_wire record;
@@ -508,7 +514,8 @@ static struct xvt_integration_wire good_record(void)
 static void check_encode_decode(void)
 {
 	fresh_world();
-	struct xvt_integration_wire record = good_record(), out;
+	struct xvt_integration_wire record = good_record();
+	struct xvt_integration_wire out;
 	XVT_ASSERT_INT_EQ(xvt_flight_integration_decode(&record, 1), 1);
 	xvt_flight_integration_encode(2, &out);
 	XVT_ASSERT_TRUE(records_equal(&out, &record));
@@ -536,7 +543,9 @@ static void check_encode_decode(void)
 static void check_encode_empty(void)
 {
 	fresh_world();
-	struct xvt_integration_wire record = good_record(), out, empty;
+	struct xvt_integration_wire record = good_record();
+	struct xvt_integration_wire out;
+	struct xvt_integration_wire empty;
 	XVT_ASSERT_INT_EQ(xvt_flight_integration_decode(&record, 1), 1);
 	memset(&empty, 0, sizeof empty);
 	xvt_wire_set16(empty.slot, 2);
@@ -571,7 +580,8 @@ static void check_encode_empty(void)
 /* Decodes record with apply and checks it is refused and slot 2's entry is as before. */
 static void expect_refused(const struct xvt_integration_wire *record)
 {
-	struct xvt_integration_wire before, after;
+	struct xvt_integration_wire before;
+	struct xvt_integration_wire after;
 	xvt_flight_integration_encode(2, &before);
 	XVT_ASSERT_INT_EQ(xvt_flight_integration_decode(record, 1), 0);
 	xvt_flight_integration_encode(2, &after);

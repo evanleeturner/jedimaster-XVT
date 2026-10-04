@@ -22,15 +22,25 @@ struct pbr_light_fs {
 	float ssao_direct;
 	float spec_geom_adapt;
 	float pad_tuning;
-	float camera_pos_world[3], pad0;
-	float directional_dir[3], pad1; /* surface -> light */
-	float sun_color[3], pad2;
-	float amb_pos_x[3], pad3;
-	float amb_neg_x[3], pad4;
-	float amb_pos_y[3], pad5;
-	float amb_neg_y[3], pad6;
-	float amb_pos_z[3], pad7;
-	float amb_neg_z[3], pad8;
+	float camera_pos_world[3];
+	float pad0;
+	/* surface -> light */
+	float directional_dir[3];
+	float pad1;
+	float sun_color[3];
+	float pad2;
+	float amb_pos_x[3];
+	float pad3;
+	float amb_neg_x[3];
+	float pad4;
+	float amb_pos_y[3];
+	float pad5;
+	float amb_neg_y[3];
+	float pad6;
+	float amb_pos_z[3];
+	float pad7;
+	float amb_neg_z[3];
+	float pad8;
 	/* Additional diffuse-only directionals (backdrop suns/planets;
 	 * the classic sums plain Lambert per light). */
 	float extra_dir[3][4];
@@ -232,8 +242,10 @@ int xvt_lighting_begin(AeronScene3D *scene, const struct xvt_render_snapshot *s)
 		if (o->slot_class == XVT_SLOT_STATIC) {
 			continue;
 		}
-		float intensity = 0, color[3] = {1, 1, 1}, minimum_range = 1024,
-		      position[3];
+		float intensity = 0;
+		float color[3] = {1, 1, 1};
+		float minimum_range = 1024;
+		float position[3];
 		if (o->genus == CRAFT_GENUS_EXPLOSION) {
 			intensity = explosion_intensity(o);
 			/* OpenTIE's sRGB explosion color (0.9, 0.5, 0.2), converted to linear. */
@@ -263,7 +275,8 @@ void xvt_remaster_ship_set_environment(AeronScene3D *scene,
 	struct pbr_light_fs env = {0};
 	const struct xvt_render_settings *config =
 		xvt_remaster_config_effective();
-	int width, height;
+	int width;
+	int height;
 	AeronScene_RenderDims(scene, &width, &height);
 	env.ssao_intensity = config->scene.ssao.ssao_quality
 				     ? config->scene.ssao.ssao_intensity

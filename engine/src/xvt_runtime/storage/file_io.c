@@ -78,7 +78,8 @@ int xvt_file_flush(AeronFile *file) { return AeronVfs_Flush(file) ? 0 : EOF; }
 
 int xvt_file_printf(AeronFile *file, const char *format, ...)
 {
-	va_list args, copy;
+	va_list args;
+	va_list copy;
 	char local[512];
 	char *text = local;
 	int length;
@@ -179,8 +180,11 @@ int xvt_file_scanf(AeronFile *file, const char *format, ...)
 				break;
 			}
 		} else if (conversion == 'd' || conversion == 'u') {
-			char token[512], spec[16];
-			int count = 0, consumed = 0, result;
+			char token[512];
+			char spec[16];
+			int count = 0;
+			int consumed = 0;
+			int result;
 			int64_t start = AeronVfs_Tell(file);
 			void *output = va_arg(args, void *);
 			if (!width || width >= (int)sizeof(token)) {

@@ -297,7 +297,8 @@ static void check_set_and_restore(void)
 	XVT_ASSERT_TRUE(!xvt_config_restore_video(error, sizeof error));
 
 	fixture_load();
-	struct xvt_video_settings defaults, now;
+	struct xvt_video_settings defaults;
+	struct xvt_video_settings now;
 	xvt_video_settings_read(xvt_config_default_settings(), &defaults);
 
 	/* Every field is written, even one equal to the shipped value: the settings.h paths of the window

@@ -251,7 +251,8 @@ static void check_dropped_records(void)
 	next_tick();
 
 	/* Two model types with neither a frame sequence nor a palette get ones the capture does not know. */
-	unsigned plain[2], found = 0;
+	unsigned plain[2];
+	unsigned found = 0;
 	for (unsigned t = 0; t < XVT_SNAP_TYPES && found < 2; ++t) {
 		if (!g_object_type_table[t].texture_frame_sequence &&
 		    !g_object_type_table[t].palette) {
@@ -335,8 +336,11 @@ static void check_hud_boxes(void)
 static void check_hyperspace(void)
 {
 	fresh_mission();
-	const int x[3] = {1, 2, 3}, y[3] = {-4, -5, -6}, z[3] = {70, 80, 90};
-	const int width[3] = {9, 8, 7}, roll[3] = {100, 200, 300};
+	const int x[3] = {1, 2, 3};
+	const int y[3] = {-4, -5, -6};
+	const int z[3] = {70, 80, 90};
+	const int width[3] = {9, 8, 7};
+	const int roll[3] = {100, 200, 300};
 	xvt_render_capture_capture_view();
 	xvt_render_capture_hyperspace(3, x, y, z, width, roll);
 	xvt_render_capture_seal_view();

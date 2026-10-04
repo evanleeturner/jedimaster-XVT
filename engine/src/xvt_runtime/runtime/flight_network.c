@@ -38,12 +38,19 @@ static struct {
 	unsigned acknowledged_mask;
 	unsigned taunts_seen;
 	struct xvt_flight_agreement_wire taunt_agreement[XVT_FLIGHT_PLAYERS];
-	int phase, answer_count, expected, roster_index, packet_type, alert,
-		blink;
-	uint64_t packet_deadline, status_time;
+	int phase;
+	int answer_count;
+	int expected;
+	int roster_index;
+	int packet_type;
+	int alert;
+	int blink;
+	uint64_t packet_deadline;
+	uint64_t status_time;
 } g_sync;
 
-static uint32_t g_cookie_counter, g_mission_cookie;
+static uint32_t g_cookie_counter;
+static uint32_t g_mission_cookie;
 
 uint32_t xvt_flight_network_cookie(void) { return g_mission_cookie; }
 
@@ -238,7 +245,8 @@ static void xvt_flight_network_send_roster_record(void)
 
 int xvt_flight_network_exchange_roster(void)
 {
-	int sender, size;
+	int sender;
+	int size;
 	int *packet;
 	if (g_sync.phase == SYNC_HOST_PLAYERS &&
 	    g_sync.answer_count >= g_sync.expected) {
@@ -407,7 +415,8 @@ static int xvt_flight_network_accept_roster(int sender, const void *packet,
 
 int xvt_flight_network_exchange_options(void)
 {
-	int sender, size;
+	int sender;
+	int size;
 	int *packet;
 	if (!g_sync.phase) {
 		if (net_session_is_local_host() &&
@@ -500,7 +509,8 @@ int xvt_flight_network_exchange_options(void)
 
 int xvt_flight_network_wait_for_mission_start(void)
 {
-	int sender, size;
+	int sender;
+	int size;
 	int *packet;
 	if (!g_sync.phase) {
 		flight_net_reset_world_message_schedule();
@@ -746,10 +756,16 @@ int xvt_flight_network_broadcast_wire(const void *packet, size_t size)
 
 static struct {
 	struct xvt_flight_message outgoing;
-	unsigned part, parts, batch_count, batch_sends, part_sends,
-		packets_received;
+	unsigned part;
+	unsigned parts;
+	unsigned batch_count;
+	unsigned batch_sends;
+	unsigned part_sends;
+	unsigned packets_received;
 	struct xvt_flight_input_wire batch[XVT_INPUT_STAGED_RECORDS];
-	int sampled, last_flush, recovery_requested;
+	int sampled;
+	int last_flush;
+	int recovery_requested;
 	unsigned departures;
 	uint64_t iteration_start_us;
 	struct flight_input_frame_record held;

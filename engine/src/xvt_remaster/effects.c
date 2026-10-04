@@ -45,14 +45,16 @@ int xvt_effects_frame(const struct xvt_render_snapshot *s, unsigned type,
 void xvt_effects_quad(const struct xvt_snap_camera *cam, const float center[3],
 		      float hw, float hh, float angle, float out[4][3])
 {
-	static const int sx[4] = {1, -1, -1, 1}, sy[4] = {1, 1, -1, -1};
-	float c = cosf(angle), sn = sinf(angle);
+	static const int sx[4] = {1, -1, -1, 1};
+	static const int sy[4] = {1, 1, -1, -1};
+	float c = cosf(angle);
+	float sn = sinf(angle);
 	float aspect = cam->aspect_y_q16 && cam->aspect_y_q16 != UINT16_MAX
 			       ? (float)cam->aspect_y_q16 / 65536.0f
 			       : 1;
 	for (int corner = 0; corner < 4; ++corner) {
-		float x = c * sx[corner] * hw + sn * sy[corner] * hh * aspect,
-		      y = c * sy[corner] * hh - sn * sx[corner] * hw / aspect;
+		float x = c * sx[corner] * hw + sn * sy[corner] * hh * aspect;
+		float y = c * sy[corner] * hh - sn * sx[corner] * hw / aspect;
 		for (int axis = 0; axis < 3; ++axis) {
 			out[corner][axis] = center[axis] + cam->rows[axis] * x +
 					    cam->rows[3 + axis] * y;
@@ -78,7 +80,8 @@ void xvt_effects_set_frame(AeronSceneBillboardDesc *b,
 static float angle(const struct xvt_snap_object *o,
 		   const struct xvt_snap_camera *cam)
 {
-	float m[16], r[2][3];
+	float m[16];
+	float r[2][3];
 	xvt_render_math_object_matrix(o, cam->world_pos, m);
 	for (int col = 0; col < 2; ++col) {
 		for (int row = 0; row < 3; ++row) {
@@ -124,7 +127,8 @@ static int corners(const struct xvt_render_snapshot *s,
 	    code >= XVT_SNAP_INVALID_TEXTURE_FRAME) {
 		return 0;
 	}
-	unsigned type = (code & 0x7fff) >> 7, index = code & 0x7f;
+	unsigned type = (code & 0x7fff) >> 7;
+	unsigned index = code & 0x7f;
 	if (!xvt_effects_frame(s, type, index, frame)) {
 		return 0;
 	}
@@ -141,12 +145,12 @@ static int corners(const struct xvt_render_snapshot *s,
 	if (size > 1024) {
 		size = 1024;
 	}
-	float fx = ldexpf(1, cam->perspective_shift & 31),
-	      aspect = cam->aspect_y_q16 && cam->aspect_y_q16 != UINT16_MAX
+	float fx = ldexpf(1, cam->perspective_shift & 31);
+	float aspect = cam->aspect_y_q16 && cam->aspect_y_q16 != UINT16_MAX
 			       ? (float)cam->aspect_y_q16 / 65536.0f
 			       : 1;
-	float hw = (float)((size * (unsigned)frame->width) >> 9) * depth / fx,
-	      hh = (float)((size * (unsigned)frame->height) >> 9) * depth /
+	float hw = (float)((size * (unsigned)frame->width) >> 9) * depth / fx;
+	float hh = (float)((size * (unsigned)frame->height) >> 9) * depth /
 		   (fx * aspect);
 	if (hw <= 0 || hh <= 0) {
 		return 0;
@@ -269,7 +273,8 @@ struct effect_order {
 
 static int effects_order(const void *left, const void *right)
 {
-	const struct effect_order *a = left, *b = right;
+	const struct effect_order *a = left;
+	const struct effect_order *b = right;
 	if (a->depth != b->depth) {
 		return a->depth > b->depth ? -1 : 1;
 	}
@@ -359,11 +364,12 @@ void xvt_effects_projectile_matrix(const struct xvt_snap_object *o,
 				   const int32_t origin[3], float out[16])
 {
 	struct xvt_snap_object aligned = *o;
-	float m[16], delta[3];
+	float m[16];
+	float delta[3];
 	xvt_render_math_object_matrix(o, origin, m);
 	AeronWorld_DeltaI32(camera, o->world_pos, delta);
-	float side = m[0] * delta[0] + m[4] * delta[1] + m[8] * delta[2],
-	      up = m[2] * delta[0] + m[6] * delta[1] + m[10] * delta[2];
+	float side = m[0] * delta[0] + m[4] * delta[1] + m[8] * delta[2];
+	float up = m[2] * delta[0] + m[6] * delta[1] + m[10] * delta[2];
 	aligned.roll =
 		(uint16_t)(o->roll +
 			   (int)(atan2f(up, side) * 65536.0f / k_tau) - 0x4000);

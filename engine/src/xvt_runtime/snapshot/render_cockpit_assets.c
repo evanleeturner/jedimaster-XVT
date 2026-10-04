@@ -21,8 +21,9 @@ struct cockpit_source_binding {
 	uint32_t frame;
 };
 
-static struct cockpit_source_binding g_panels[265],
-	g_icons[XVT_SNAP_MAP_ICON_FRAMES], g_lfd[28];
+static struct cockpit_source_binding g_panels[265];
+static struct cockpit_source_binding g_icons[XVT_SNAP_MAP_ICON_FRAMES];
+static struct cockpit_source_binding g_lfd[28];
 
 void xvt_render_cockpit_reset(void)
 {
@@ -108,7 +109,8 @@ void xvt_render_cockpit_capture_definition(
 	}
 	for (unsigned tier = 0; tier < XVT_HUD_FONT_TIERS; ++tier) {
 		const void *font = g_flight_font_micro_sw;
-		unsigned height = 5, half_height = 3;
+		unsigned height = 5;
+		unsigned half_height = 3;
 		if (g_flight_resolution_mode == FLIGHT_RESOLUTION_640X480) {
 			font = tier ? g_flight_font_medium_sw
 				    : g_flight_font_small_sw;

@@ -3,16 +3,25 @@
 #include <string.h>
 
 struct component_pose {
-	uint64_t frame, event, model, revision;
+	uint64_t frame;
+	uint64_t event;
+	uint64_t model;
+	uint64_t revision;
 	uint16_t signature;
-	uint8_t type, valid;
-	uint8_t from[XVT_SNAP_COMPONENTS], to[XVT_SNAP_COMPONENTS];
-	uint8_t hp[XVT_SNAP_COMPONENTS], state[XVT_SNAP_COMPONENTS];
-	float current[XVT_SNAP_COMPONENTS], previous[XVT_SNAP_COMPONENTS];
+	uint8_t type;
+	uint8_t valid;
+	uint8_t from[XVT_SNAP_COMPONENTS];
+	uint8_t to[XVT_SNAP_COMPONENTS];
+	uint8_t hp[XVT_SNAP_COMPONENTS];
+	uint8_t state[XVT_SNAP_COMPONENTS];
+	float current[XVT_SNAP_COMPONENTS];
+	float previous[XVT_SNAP_COMPONENTS];
 };
 
 static struct component_pose g_poses[XVT_SNAP_OBJECTS];
-static uint64_t g_mission, g_world, g_frame;
+static uint64_t g_mission;
+static uint64_t g_world;
+static uint64_t g_frame;
 static int g_changed;
 
 void xvt_component_animation_reset(void)

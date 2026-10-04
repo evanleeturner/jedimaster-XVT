@@ -13,10 +13,15 @@
 #include "xvt_runtime/timing/reference_motion.h"
 
 struct integration {
-	int64_t position_remainder[3], remainder[XVT_INTEGRATE_COUNT];
+	int64_t position_remainder[3];
+	int64_t remainder[XVT_INTEGRATE_COUNT];
 	int8_t direction[XVT_INTEGRATE_COUNT];
-	uint16_t signature, carried, target, target_signature;
-	uint8_t type, family;
+	uint16_t signature;
+	uint16_t carried;
+	uint16_t target;
+	uint16_t target_signature;
+	uint8_t type;
+	uint8_t family;
 };
 
 static struct integration *g_entries;
@@ -159,7 +164,8 @@ unsigned xvt_flight_integration_steer(unsigned slot, unsigned channel,
 		s->remainder[channel] = 0;
 		s->direction[channel] = direction;
 	}
-	uint64_t whole = product / divisor, remainder = product % divisor;
+	uint64_t whole = product / divisor;
+	uint64_t remainder = product % divisor;
 	if (s) {
 		remainder += (uint64_t)s->remainder[channel];
 		whole += remainder / divisor;

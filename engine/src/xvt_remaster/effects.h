@@ -14,8 +14,12 @@ extern "C" {
  * pixel size. */
 struct xvt_effect_frame {
 	AeronTexture *texture;
-	float u0, v0, u1, v1;
-	int width, height;
+	float u0;
+	float v0;
+	float u1;
+	float v1;
+	int width;
+	int height;
 };
 
 /* Finds frame id frame in object type type's texture atlas (the committed image of the type's texture

@@ -17,10 +17,16 @@ struct player_timing {
 	int64_t remainder[XVT_PLAYER_CHANNELS];
 	int8_t direction[XVT_PLAYER_CHANNELS];
 	int32_t recovery[3];
-	uint64_t recovery_serial, lock_serial;
-	uint16_t slot, signature, lock_signature, lock_target,
-		lock_target_signature, lock_weapon;
-	unsigned lock_mode, lock_odd_tick;
+	uint64_t recovery_serial;
+	uint64_t lock_serial;
+	uint16_t slot;
+	uint16_t signature;
+	uint16_t lock_signature;
+	uint16_t lock_target;
+	uint16_t lock_target_signature;
+	uint16_t lock_weapon;
+	unsigned lock_mode;
+	unsigned lock_odd_tick;
 	unsigned control_mode;
 	uint16_t camera_focus;
 	int control_valid;
@@ -327,7 +333,8 @@ void xvt_player_timing_encode(unsigned player,
 int xvt_player_timing_decode(const struct xvt_player_timing_wire *record,
 			     int apply)
 {
-	unsigned player = record->player, slot = xvt_wire_get16(record->slot);
+	unsigned player = record->player;
+	unsigned slot = xvt_wire_get16(record->slot);
 	if (player >= XVT_FLIGHT_PLAYERS || record->valid > 1 ||
 	    xvt_wire_get16(record->reserved) ||
 	    record->lock_mode > XVT_LOCK_HALF_TARGET_LOSS ||

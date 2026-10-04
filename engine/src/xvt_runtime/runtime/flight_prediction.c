@@ -9,7 +9,8 @@
 
 struct confirmed_controls {
 	struct flight_input_frame_record input;
-	int tick, slot;
+	int tick;
+	int slot;
 	unsigned signature;
 	int valid;
 };

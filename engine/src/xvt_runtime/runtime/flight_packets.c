@@ -192,7 +192,8 @@ void xvt_flight_network_process_packets(void)
 	int current_timestamp =
 		g_input_timestamp + (int)time_consume_elapsed_ticks();
 	while (xvt_flight_network_take_packet_budget()) {
-		int sender, size;
+		int sender;
+		int size;
 		int *packet = net_session_receive_game_packet(&sender, &size);
 		current_timestamp += (int)time_consume_elapsed_ticks();
 		if (!packet) {

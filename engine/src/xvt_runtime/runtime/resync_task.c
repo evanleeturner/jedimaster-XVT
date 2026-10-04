@@ -23,16 +23,31 @@ enum {
 };
 
 static struct {
-	int phase, peer_dpid, image_size, checksum_elapsed, apply_sent_tick,
-		pulse, retries, blink;
-	int offset, chunk_index, free_bytes, payload_offset;
-	int ack_count, ack_previous, ack_retries, ack_elapsed, final_batch,
-		owns_alert;
+	int phase;
+	int peer_dpid;
+	int image_size;
+	int checksum_elapsed;
+	int apply_sent_tick;
+	int pulse;
+	int retries;
+	int blink;
+	int offset;
+	int chunk_index;
+	int free_bytes;
+	int payload_offset;
+	int ack_count;
+	int ack_previous;
+	int ack_retries;
+	int ack_elapsed;
+	int final_batch;
+	int owns_alert;
 	uint8_t *world;
 	uint8_t *pinned;
-	unsigned checksums[XVT_WORLD_CHECKSUM_REGIONS],
-		lengths[XVT_WORLD_CHECKSUM_REGIONS], epoch;
-	int completed_tick, restart_requested;
+	unsigned checksums[XVT_WORLD_CHECKSUM_REGIONS];
+	unsigned lengths[XVT_WORLD_CHECKSUM_REGIONS];
+	unsigned epoch;
+	int completed_tick;
+	int restart_requested;
 } g_resync;
 
 static struct {
@@ -40,7 +55,8 @@ static struct {
 	struct xvt_flight_checksum_report_wire packet;
 } g_deferred_checksum_reports[XVT_DEFERRED_CHECKSUMS];
 
-static unsigned g_checksum_read, g_checksum_count;
+static unsigned g_checksum_read;
+static unsigned g_checksum_count;
 
 void xvt_resync_defer_checksum(int sender, const int *packet)
 {
@@ -122,9 +138,15 @@ static void xvt_resync_end_send(int success)
 }
 
 static struct {
-	unsigned checksums[XVT_WORLD_CHECKSUM_REGIONS],
-		lengths[XVT_WORLD_CHECKSUM_REGIONS], epoch;
-	int table_valid, size, tick, request_sent, restarts, restart_pending;
+	unsigned checksums[XVT_WORLD_CHECKSUM_REGIONS];
+	unsigned lengths[XVT_WORLD_CHECKSUM_REGIONS];
+	unsigned epoch;
+	int table_valid;
+	int size;
+	int tick;
+	int request_sent;
+	int restarts;
+	int restart_pending;
 	uint64_t deadline;
 } g_receive;
 
@@ -347,7 +369,8 @@ static void xvt_resync_build(void)
 
 int xvt_resync_wait_acks(int peer_dpid, int count)
 {
-	int ack = 0, saved = g_input_timestamp;
+	int ack = 0;
+	int saved = g_input_timestamp;
 	if (xvt_resync_take_escape_key()) {
 		g_resync.ack_elapsed = XVT_RESYNC_RETRY_TICKS;
 		ack = g_resync.ack_previous;
@@ -773,7 +796,8 @@ static int xvt_resync_full_request(const uint8_t *bytes, unsigned size)
 			      xvt_wire_get32(request.epoch), g_receive.epoch);
 		return 1;
 	}
-	size_t total = xvt_wire_get32(request.image_bytes), sum = 0;
+	size_t total = xvt_wire_get32(request.image_bytes);
+	size_t sum = 0;
 	unsigned tick = xvt_wire_get32(request.completed_tick);
 	for (unsigned region = 0; region < XVT_WORLD_CHECKSUM_REGIONS;
 	     ++region) {
@@ -843,8 +867,8 @@ static int xvt_resync_full_chunk(const uint8_t *bytes, unsigned size)
 			return 1;
 		}
 		memcpy(&span, bytes + offset, sizeof span);
-		size_t destination = xvt_wire_get32(span.offset),
-		       count = xvt_wire_get32(span.bytes);
+		size_t destination = xvt_wire_get32(span.offset);
+		size_t count = xvt_wire_get32(span.bytes);
 		if (!count || destination > (unsigned)g_receive.size ||
 		    count > (unsigned)g_receive.size - destination ||
 		    count > size - offset - sizeof span) {
@@ -859,8 +883,8 @@ static int xvt_resync_full_chunk(const uint8_t *bytes, unsigned size)
 	for (size_t cursor = sizeof header; cursor < offset;) {
 		struct xvt_flight_chunk_span span;
 		memcpy(&span, bytes + cursor, sizeof span);
-		size_t destination = xvt_wire_get32(span.offset),
-		       count = xvt_wire_get32(span.bytes);
+		size_t destination = xvt_wire_get32(span.offset);
+		size_t count = xvt_wire_get32(span.bytes);
 		memcpy(g_world_state_dup_buffer + destination,
 		       bytes + cursor + sizeof span, count);
 		cursor += sizeof span + count;
@@ -891,8 +915,8 @@ static int xvt_resync_full_apply(const uint8_t *bytes, unsigned size)
 		g_receive.restart_pending = 1;
 		return 1;
 	}
-	unsigned checksums[XVT_WORLD_CHECKSUM_REGIONS],
-		lengths[XVT_WORLD_CHECKSUM_REGIONS];
+	unsigned checksums[XVT_WORLD_CHECKSUM_REGIONS];
+	unsigned lengths[XVT_WORLD_CHECKSUM_REGIONS];
 	if (!xvt_snapshot_checksum_image(g_world_state_dup_buffer,
 					 g_receive.size, checksums, lengths) ||
 	    memcmp(checksums, g_receive.checksums, sizeof checksums) ||

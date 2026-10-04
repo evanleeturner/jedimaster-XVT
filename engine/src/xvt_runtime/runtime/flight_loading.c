@@ -101,8 +101,9 @@ static void xvt_flight_loading_mission_rules(void)
 
 void xvt_flight_loading_globals(void)
 {
-	int16_t abort_player_index, disconnect_player_index,
-		connect_player_index;
+	int16_t abort_player_index;
+	int16_t disconnect_player_index;
+	int16_t connect_player_index;
 	xvt_flight_loading_reset();
 	flight_pump_window_messages();
 	g_packet_drop_indicator = 0;
@@ -215,8 +216,10 @@ void xvt_flight_loading_globals(void)
 void xvt_flight_loading_palette(void)
 {
 	uint8_t resource_scratch[FLIGHT_RESOURCE_SCRATCH_BYTES];
-	int16_t palette_byte_offset, mission_extension_offset;
-	char saved_mission_extension_prefix[2], saved_mission_extension_third;
+	int16_t palette_byte_offset;
+	int16_t mission_extension_offset;
+	char saved_mission_extension_prefix[2];
+	char saved_mission_extension_third;
 	flight_surface_lock();
 	flight_display_configure_resolution_state();
 	flight_surface_unlock();

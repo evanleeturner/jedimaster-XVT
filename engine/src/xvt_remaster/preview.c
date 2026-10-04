@@ -18,34 +18,48 @@ enum {
 	PREVIEW_HEIGHT = 1536
 };
 
-static AeronScene3D *g_scene, *g_crt_scene;
+static AeronScene3D *g_scene;
+static AeronScene3D *g_crt_scene;
 
 static struct {
 	AeronScene3D *scene;
-	int width, height, samples;
+	int width;
+	int height;
+	int samples;
 } g_crt_views[3];
 
 static AeronRenderTarget *g_targets[PREVIEW_SLOTS];
 static struct xvt_preview_output g_outputs[PREVIEW_SLOTS];
 static AeronScenePresentChain *g_chain;
 static AeronSampler *g_sampler;
-static int g_scene_width, g_scene_height, g_samples;
+static int g_scene_width;
+static int g_scene_height;
+static int g_samples;
 static AeronSceneMeshTable g_table;
 
 struct crt_dependencies {
-	uint64_t world, mission, config, models, textures, component_pose;
+	uint64_t world;
+	uint64_t mission;
+	uint64_t config;
+	uint64_t models;
+	uint64_t textures;
+	uint64_t component_pose;
 	struct xvt_snap_preview preview;
 	struct xvt_snap_lighting effect_lighting;
 	struct xvt_snap_type types[XVT_SNAP_TYPES];
 	int16_t fuselage[25];
-	uint16_t craft_slot_end, checkpoint;
-	uint8_t debris, proving_grounds;
-	int width, height;
+	uint16_t craft_slot_end;
+	uint16_t checkpoint;
+	uint8_t debris;
+	uint8_t proving_grounds;
+	int width;
+	int height;
 	unsigned object_count;
 	struct xvt_snap_object objects[XVT_SNAP_OBJECTS];
 };
 
-static struct crt_dependencies g_crt_dependencies, g_crt_candidate;
+static struct crt_dependencies g_crt_dependencies;
+static struct crt_dependencies g_crt_candidate;
 static int g_crt_valid;
 
 static int ensure_scene(AeronScene3D **scene, int *old_width, int *old_height,
@@ -173,8 +187,8 @@ int xvt_remaster_preview_prepare_crt_resources(
 		if (!element->selector || !element->color_index) {
 			continue;
 		}
-		int w = (int)ceilf(element->selector * scale),
-		    h = (int)ceilf(element->color_index * scale);
+		int w = (int)ceilf(element->selector * scale);
+		int h = (int)ceilf(element->color_index * scale);
 		unsigned existing = 0;
 		for (; existing < count; ++existing) {
 			if (g_crt_views[existing].width == w &&

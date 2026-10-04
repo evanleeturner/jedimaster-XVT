@@ -205,8 +205,8 @@ static void build_power_state(struct xvt_cockpit_state *state,
 {
 	struct xvt_cockpit_systems *systems = &state->systems;
 	unsigned features = systems->active_hud_features;
-	unsigned laser = (uint8_t)craft->laser_recharge_level,
-		 shield = (uint8_t)craft->shield_recharge_level;
+	unsigned laser = (uint8_t)craft->laser_recharge_level;
+	unsigned shield = (uint8_t)craft->shield_recharge_level;
 	unsigned beam = (uint8_t)craft->beam_recharge_level;
 	unsigned engine = 8 - laser;
 	int has_shields =
@@ -390,7 +390,8 @@ static void build_laser_slots(struct xvt_cockpit_state *state,
 			base != HUD_COCKPIT_INSTRUMENT_BASE_INDEX &&
 			layout->selector;
 
-		unsigned ready = 0, selected = 0;
+		unsigned ready = 0;
+		unsigned selected = 0;
 		if (charge > 0 && cannons_working) {
 			if (player->selected_weapon_mode == 0 &&
 			    player->selected_weapon_bank == slot->bank) {

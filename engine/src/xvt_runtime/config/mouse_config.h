@@ -7,7 +7,9 @@
 enum { XVT_MOUSE_SENSITIVITY_MIN = 1, XVT_MOUSE_SENSITIVITY_MAX = 9 };
 
 struct xvt_mouse_options {
-	int mouse_flight_enabled, mouse_sensitivity, mouse_invert_y;
+	int mouse_flight_enabled;
+	int mouse_sensitivity;
+	int mouse_invert_y;
 };
 
 /* Reads the required input.mouse_flight and input.mouse_invert_y booleans and input.mouse_sensitivity,

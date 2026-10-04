@@ -187,13 +187,16 @@ int xvt_setup_resolve_installation(const char *path, char *resolved,
 static int xvt_setup_import_pilot(const char *path, const char *pilot_name,
 				  char *error, size_t capacity)
 {
-	char source[XVT_PATH_CAPACITY], source_pair[XVT_PATH_CAPACITY];
-	char target[64], target_pair[64];
+	char source[XVT_PATH_CAPACITY];
+	char source_pair[XVT_PATH_CAPACITY];
+	char target[64];
+	char target_pair[64];
 	uint8_t *data[2] = {NULL, NULL};
 	size_t sizes[2] = {0, 0};
 	const char *sources[2] = {source, source_pair};
 	const char *targets[2] = {target, target_pair};
-	int success = 0, written = 0;
+	int success = 0;
+	int written = 0;
 	if (!xvt_storage_normalize(path, source, sizeof(source))) {
 		goto done;
 	}

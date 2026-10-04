@@ -15,7 +15,9 @@ extern const uint8_t g_dinput_shift_key_code_table[256];
 extern const uint8_t g_dinput_ctrl_key_code_table[256];
 extern const uint8_t g_dinput_alt_key_code_table[256];
 extern struct IDirectInputDeviceA *g_dinput_keyboard_device;
-extern int g_dinput_shift_down, g_dinput_ctrl_down, g_dinput_alt_down;
+extern int g_dinput_shift_down;
+extern int g_dinput_ctrl_down;
+extern int g_dinput_alt_down;
 
 int dinput_init(void);
 int dinput_skip_to_pending_key_press(void);

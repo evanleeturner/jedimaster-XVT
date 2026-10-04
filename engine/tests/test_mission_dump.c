@@ -215,7 +215,8 @@ struct run {
  * /dev/full when to_full is set. Returns its exit status (-1 when it did not exit) and what it wrote. */
 static struct run run_tool(int count, const char *const *args, int to_full)
 {
-	char out_path[XVT_TEST_PATH_CAPACITY], err_path[XVT_TEST_PATH_CAPACITY];
+	char out_path[XVT_TEST_PATH_CAPACITY];
+	char err_path[XVT_TEST_PATH_CAPACITY];
 	xvt_test_join(out_path, g_folder, "stdout.txt");
 	xvt_test_join(err_path, g_folder, "stderr.txt");
 	fflush(stdout);
@@ -457,7 +458,8 @@ static void check_consumed_offset(void)
 	free_run(&run);
 
 	/* The last line gives how far the file was read: here, all of it. */
-	char decimal[32], hex[32];
+	char decimal[32];
+	char hex[32];
 	snprintf(decimal, sizeof decimal, "%zu", bytes.size);
 	snprintf(hex, sizeof hex, "%zx", bytes.size);
 	XVT_ASSERT_TRUE(strstr(last, decimal) != NULL ||

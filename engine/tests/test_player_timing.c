@@ -98,7 +98,8 @@ static void check_scale(void)
 			  1);
 
 	/* Ten short steps add up to one long one. */
-	int sum = 0, negative = 0;
+	int sum = 0;
+	int negative = 0;
 	for (int i = 0; i < 10; ++i) {
 		sum += xvt_player_timing_scale(0, XVT_PLAYER_ROLL, 7, 1, 4);
 		negative +=
@@ -677,7 +678,8 @@ static void check_recovery_not_shared(void)
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	xvt_player_timing_begin_world();
 	seed(0, XVT_PLAYER_YAW);
-	struct xvt_player_timing_wire before, after;
+	struct xvt_player_timing_wire before;
+	struct xvt_player_timing_wire after;
 	xvt_player_timing_encode(0, &before);
 
 	/* The record does not carry the recovery position: moving it leaves the record as it was. */
@@ -701,7 +703,8 @@ static void check_encode_empty(void)
 	fresh_world(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
 	const struct xvt_player_timing_wire good = good_record();
 	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(&good, 1), 1);
-	struct xvt_player_timing_wire out, empty;
+	struct xvt_player_timing_wire out;
+	struct xvt_player_timing_wire empty;
 
 	xvt_player_timing_encode(XVT_FLIGHT_PLAYERS, &out);
 	empty = empty_record(XVT_FLIGHT_PLAYERS);
@@ -732,7 +735,8 @@ static void check_encode_empty(void)
 
 static void expect_refused(const struct xvt_player_timing_wire *record)
 {
-	struct xvt_player_timing_wire before, after;
+	struct xvt_player_timing_wire before;
+	struct xvt_player_timing_wire after;
 	xvt_player_timing_encode(0, &before);
 	XVT_ASSERT_INT_EQ(xvt_player_timing_decode(record, 1), 0);
 	xvt_player_timing_encode(0, &after);
@@ -821,7 +825,8 @@ static void check_reset_shared(void)
 
 	/* The shared state, the entry's object included, is gone: the record is empty. */
 	xvt_player_timing_reset_shared();
-	struct xvt_player_timing_wire out, empty = empty_record(0);
+	struct xvt_player_timing_wire out;
+	struct xvt_player_timing_wire empty = empty_record(0);
 	xvt_player_timing_encode(0, &out);
 	XVT_ASSERT_TRUE(records_equal(&out, &empty));
 

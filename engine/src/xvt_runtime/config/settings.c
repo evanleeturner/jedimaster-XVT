@@ -19,7 +19,8 @@ struct xvt_setting_field {
 	const char *path;
 	size_t offset;
 	xvt_setting_type type;
-	double minimum, maximum;
+	double minimum;
+	double maximum;
 };
 
 #define SETTING_BOOL(path, member)                                             \

@@ -48,7 +48,8 @@ int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
 {
 	int16_t scale_shift;
 	int dx;
-	int16_t dy, dz;
+	int16_t dy;
+	int16_t dz;
 	struct object_record *target;
 	int object_type;
 	uint16_t mesh_index;

@@ -12,16 +12,23 @@
 
 struct page_section {
 	struct xvt_cockpit_glyph *glyphs;
-	unsigned glyph_count, capacity, row_count;
+	unsigned glyph_count;
+	unsigned capacity;
+	unsigned row_count;
 	uint64_t generation;
 	struct xvt_cockpit_page_row rows[XVT_HUD_ROWS_PER_SECTION];
 };
 
 struct page_content {
 	struct page_section sections[XVT_COCKPIT_PAGE_SECTION_COUNT];
-	struct xvt_snap_rect background_bounds, border_bounds;
-	uint32_t background_argb, border_argb;
-	int16_t origin_x, origin_y, first_visible_row, selected_row;
+	struct xvt_snap_rect background_bounds;
+	struct xvt_snap_rect border_bounds;
+	uint32_t background_argb;
+	uint32_t border_argb;
+	int16_t origin_x;
+	int16_t origin_y;
+	int16_t first_visible_row;
+	int16_t selected_row;
 	uint16_t total_rows;
 	uint16_t mode;
 	uint64_t generation;
@@ -29,10 +36,13 @@ struct page_content {
 	unsigned failed_sections;
 };
 
-static struct page_content g_working[MFD_PAGE_COUNT], g_pending[MFD_PAGE_COUNT];
+static struct page_content g_working[MFD_PAGE_COUNT];
+static struct page_content g_pending[MFD_PAGE_COUNT];
 static struct page_section g_building;
-static unsigned g_page, g_section;
-static int g_capturing, g_capture_failed;
+static unsigned g_page;
+static unsigned g_section;
+static int g_capturing;
+static int g_capture_failed;
 static int g_pending_failed;
 static uint32_t g_palette[256];
 static uint64_t g_generation;

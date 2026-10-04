@@ -43,7 +43,8 @@ static void check_nothing_while_not_allowed(void)
 	xvt_mouse_flight_pump();
 	XVT_ASSERT_INT_EQ(xvt_mouse_flight_sample(), 0);
 	XVT_ASSERT_INT_EQ(xvt_mouse_flight_read_key(), 0);
-	int yaw = 1, pitch = 1;
+	int yaw = 1;
+	int pitch = 1;
 	XVT_ASSERT_INT_EQ(xvt_mouse_flight_get_hud_marker(&yaw, &pitch), 0);
 	XVT_ASSERT_INT_EQ(xvt_mouse_flight_get_hud_marker(NULL, NULL), 0);
 }
@@ -56,7 +57,9 @@ static void check_centered_axes(void)
 	xvt_mouse_flight_reset();
 
 	/* Recentered: every axis reads 0, and any pointer may be NULL. */
-	int yaw = 9, pitch = 9, roll = 9;
+	int yaw = 9;
+	int pitch = 9;
+	int roll = 9;
 	xvt_mouse_flight_get_axes(&yaw, &pitch, &roll);
 	XVT_ASSERT_INT_EQ(yaw, 0);
 	XVT_ASSERT_INT_EQ(pitch, 0);

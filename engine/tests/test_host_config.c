@@ -216,7 +216,8 @@ static void check_resolve_resource_root(void)
 		xvt_host_config_resolve_resource_root(&options, out, 4), 0);
 
 	/* Without a nonempty root, the answer is Aeron's for the "resources" folder. */
-	char aeron[4096], resolved[4096];
+	char aeron[4096];
+	char resolved[4096];
 	int expected = Aeron_ApplicationPath("resources", aeron, sizeof aeron);
 	memset(resolved, 0, sizeof resolved);
 	XVT_ASSERT_INT_EQ(xvt_host_config_resolve_resource_root(

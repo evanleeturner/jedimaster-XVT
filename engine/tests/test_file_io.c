@@ -176,8 +176,10 @@ static void check_printf(void)
 
 static void check_scanf_conversions(void)
 {
-	char word[32], rest[32];
-	int number = 0, second = 0;
+	char word[32];
+	char rest[32];
+	int number = 0;
+	int second = 0;
 	unsigned value = 0;
 
 	AeronFile *file = open_text("  alpha -42\n 7 ");
@@ -231,7 +233,8 @@ static void check_scanf_conversions(void)
 
 static void check_scanf_literals_and_ends(void)
 {
-	int number = 0, second = 0;
+	int number = 0;
+	int second = 0;
 	char word[32];
 
 	/* A literal must match the next byte; whitespace in the format skips any whitespace first. */

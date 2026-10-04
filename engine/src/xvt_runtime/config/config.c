@@ -727,7 +727,8 @@ int xvt_config_write(const struct game_config *game, char *error,
 	for (size_t i = 0; i < sizeof(g_fields) / sizeof(g_fields[0]); ++i) {
 		const struct xvt_config_field *field = &g_fields[i];
 		const uint8_t *source = (const uint8_t *)game + field->offset;
-		int same, success;
+		int same;
+		int success;
 		if (field->string) {
 			if (!memchr(source, 0, field->size)) {
 				AeronConfigFile_Destroy(updated);
@@ -783,7 +784,8 @@ int xvt_config_import(const char *path, char *error, size_t capacity)
 	AeronFile *file;
 	AeronConfigFile *imported = NULL;
 	AeronConfigError detail;
-	int success = 1, recognized = 0;
+	int success = 1;
+	int recognized = 0;
 	const char *base = strrchr(path, '/');
 	int is_config_cfg = strcmp(base ? base + 1 : path, "config.cfg") == 0;
 	if (!g_writable) {

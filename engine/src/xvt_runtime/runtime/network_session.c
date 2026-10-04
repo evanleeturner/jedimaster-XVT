@@ -35,11 +35,23 @@ enum {
 };
 
 static struct {
-	int phase, host, online, opened, registered, closing, cancel_join,
-		flight, flight_ready, lost;
-	GUID app, instance;
-	char rating_text[16], player_name[16], name[32];
-	uint64_t deadline, next_retry_us;
+	int phase;
+	int host;
+	int online;
+	int opened;
+	int registered;
+	int closing;
+	int cancel_join;
+	int flight;
+	int flight_ready;
+	int lost;
+	GUID app;
+	GUID instance;
+	char rating_text[16];
+	char player_name[16];
+	char name[32];
+	uint64_t deadline;
+	uint64_t next_retry_us;
 	AeronDplayDirectoryError error;
 	struct xvt_network_metadata metadata;
 	AeronDplayRoomMetadata published;
@@ -56,7 +68,9 @@ int xvt_network_session_copy_player_names(
 	const char *short_end;
 	const char *long_start;
 	const char *long_end;
-	size_t short_size, long_size, remaining;
+	size_t short_size;
+	size_t long_size;
+	size_t remaining;
 	if (!message || !short_name || !long_name || !short_capacity ||
 	    !long_capacity) {
 		return 0;
@@ -176,7 +190,8 @@ static int xvt_network_session_start(const char *rating_text,
 	}
 	xvt_network_session_leave();
 	/* Preserve completion of a preceding close while preparing the next session. */
-	int closing = g_session.closing, cancel_join = g_session.cancel_join;
+	int closing = g_session.closing;
+	int cancel_join = g_session.cancel_join;
 	memset(&g_session, 0, sizeof(g_session));
 	g_session.closing = closing;
 	g_session.cancel_join = cancel_join;

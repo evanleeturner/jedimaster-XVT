@@ -5,7 +5,9 @@
 
 /* Layout stays in classic units regardless of atlas resolution or packing. */
 struct xvt_font_glyph {
-	uint16_t width, height, advance;
+	uint16_t width;
+	uint16_t height;
+	uint16_t advance;
 };
 
 struct xvt_font_atlas {

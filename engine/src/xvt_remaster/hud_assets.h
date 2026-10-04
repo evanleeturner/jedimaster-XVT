@@ -14,13 +14,15 @@
 /* atlas_frame: the part's frame in the parts atlas. monochrome, color: how xvt_hud_draw_part tints it. */
 struct xvt_hud_prepared_part {
 	uint16_t atlas_frame;
-	uint8_t monochrome, color;
+	uint8_t monochrome;
+	uint8_t color;
 };
 
 /* base, parts: the atlases. base_coverage: the base's covered rectangles. base_asset_id, palette,
  * requests: the identity Select matches against a state and layout. */
 struct xvt_hud_asset_set {
-	AeronRuntimeAtlas base, parts;
+	AeronRuntimeAtlas base;
+	AeronRuntimeAtlas parts;
 	AeronImageCoverage base_coverage;
 	uint64_t base_asset_id;
 	uint32_t palette[256];

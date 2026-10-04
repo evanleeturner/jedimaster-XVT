@@ -21,7 +21,8 @@ struct xvt_original2d {
 	AeronIndexedFrames images;
 	AeronDecodedFont font;
 	/* PNL uses the flight palette; LFD supplies a range within it. */
-	uint16_t palette_first, palette_count;
+	uint16_t palette_first;
+	uint16_t palette_count;
 	int external_palette;
 	uint8_t *cockpit_mask;
 	size_t cockpit_mask_size;

@@ -27,14 +27,17 @@ static char g_folder[XVT_TEST_PATH_CAPACITY];
 static AeronVfs *g_vfs;
 static struct xvt_cockpit_definition *g_definition;
 static struct xvt_render_snapshot *g_snapshot;
-static uint8_t g_micro_font[8], g_small_font[8], g_medium_font[8];
+static uint8_t g_micro_font[8];
+static uint8_t g_small_font[8];
+static uint8_t g_medium_font[8];
 static uint8_t *g_icons_a[5];
 static uint8_t *g_icons_b[3];
 
 static void make_roots(void)
 {
-	char asset[XVT_TEST_PATH_CAPACITY], user[XVT_TEST_PATH_CAPACITY],
-		temp[XVT_TEST_PATH_CAPACITY];
+	char asset[XVT_TEST_PATH_CAPACITY];
+	char user[XVT_TEST_PATH_CAPACITY];
+	char temp[XVT_TEST_PATH_CAPACITY];
 	xvt_test_make_folder(g_folder);
 	xvt_test_make_subfolder(g_folder, "asset");
 	xvt_test_make_subfolder(g_folder, "user");

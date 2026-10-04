@@ -288,7 +288,8 @@ AeronFile *xvt_storage_open(const char *path, const char *mode)
 
 int xvt_storage_remove(const char *path)
 {
-	char normalized[XVT_PATH_CAPACITY], resolved[XVT_PATH_CAPACITY];
+	char normalized[XVT_PATH_CAPACITY];
+	char resolved[XVT_PATH_CAPACITY];
 	AeronVfsRoot root;
 	if (!xvt_storage_normalize(path, normalized, sizeof(normalized))) {
 		return -1;
@@ -300,7 +301,8 @@ int xvt_storage_remove(const char *path)
 
 int xvt_storage_rename(const char *old_path, const char *new_path)
 {
-	char old_name[XVT_PATH_CAPACITY], new_name[XVT_PATH_CAPACITY];
+	char old_name[XVT_PATH_CAPACITY];
+	char new_name[XVT_PATH_CAPACITY];
 	if (!xvt_storage_normalize(old_path, old_name, sizeof(old_name)) ||
 	    !xvt_storage_normalize(new_path, new_name, sizeof(new_name))) {
 		return -1;
@@ -355,7 +357,8 @@ int xvt_storage_close_global_stream(AeronFile *stream, int remove_on_error)
 
 int xvt_storage_write_atomic(const char *path, const void *data, size_t size)
 {
-	char normalized[XVT_PATH_CAPACITY], resolved[XVT_PATH_CAPACITY];
+	char normalized[XVT_PATH_CAPACITY];
+	char resolved[XVT_PATH_CAPACITY];
 	if (!xvt_storage_normalize(path, normalized, sizeof(normalized))) {
 		return 0;
 	}

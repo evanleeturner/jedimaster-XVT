@@ -22,7 +22,10 @@
 static struct {
 	AeronUiContext *ui;
 	xvt_settings_page_fn pages[5];
-	bool open, close_requested, capture_owns_frame, ready;
+	bool open;
+	bool close_requested;
+	bool capture_owns_frame;
+	bool ready;
 	int page;
 	int exit_confirmation_open;
 	char error[1024];
@@ -31,7 +34,8 @@ static struct {
 
 	struct {
 		uint32_t instance;
-		bool down, armed;
+		bool down;
+		bool armed;
 	} start[AERON_CONTROLLER_MAX];
 } g_menu;
 

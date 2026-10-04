@@ -5,7 +5,8 @@
 #include "xvt/flight/flight_input.h"
 
 struct xvt_action_definition {
-	const char *name, *label;
+	const char *name;
+	const char *label;
 	xvt_input_action_category category;
 	uint16_t key;
 };

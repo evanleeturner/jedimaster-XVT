@@ -18,11 +18,14 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/flight_sim.h"
 #include "xvt_runtime/runtime/flight_task.h"
-static bool g_captured, g_renderer_tab_suppressed;
+static bool g_captured;
+static bool g_renderer_tab_suppressed;
 static uint8_t g_blocked_keys[AERON_KEY_COUNT];
 static uint32_t g_blocked_mouse;
 static uint64_t g_mouse_ignored_frame = UINT64_MAX;
-static bool g_mouse_released, g_mouse_capture_failed, g_mouse_session;
+static bool g_mouse_released;
+static bool g_mouse_capture_failed;
+static bool g_mouse_session;
 static int g_mouse_context = -1;
 static struct xvt_mouse_options g_mouse_options;
 

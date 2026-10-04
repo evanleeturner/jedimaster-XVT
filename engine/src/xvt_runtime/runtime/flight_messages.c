@@ -100,8 +100,8 @@ size_t xvt_flight_messages_encode_part(uint8_t *out,
 	if (message->count > XVT_WORLD_RECORDS || part >= parts || !cookie) {
 		return 0;
 	}
-	unsigned first = part * XVT_WORLD_PART_RECORDS,
-		 count = message->count - first;
+	unsigned first = part * XVT_WORLD_PART_RECORDS;
+	unsigned count = message->count - first;
 	if (count > XVT_WORLD_PART_RECORDS) {
 		count = XVT_WORLD_PART_RECORDS;
 	}
@@ -121,7 +121,9 @@ size_t xvt_flight_messages_encode_part(uint8_t *out,
 
 static struct {
 	struct xvt_flight_message message;
-	uint8_t seen[XVT_WORLD_PARTS], counts[XVT_WORLD_PARTS], parts;
+	uint8_t seen[XVT_WORLD_PARTS];
+	uint8_t counts[XVT_WORLD_PARTS];
+	uint8_t parts;
 	unsigned received;
 } g_parts;
 
@@ -136,10 +138,12 @@ int xvt_flight_messages_receive_part(const uint8_t *bytes, size_t size,
 		return -1;
 	}
 	memcpy(&header, bytes, sizeof header);
-	uint32_t flags = xvt_wire_get32(header.target_flags),
-		 tick = flags & INT32_MAX;
-	unsigned part = header.part_index, parts = header.part_count,
-		 count = header.record_count, mask = header.participant_mask;
+	uint32_t flags = xvt_wire_get32(header.target_flags);
+	uint32_t tick = flags & INT32_MAX;
+	unsigned part = header.part_index;
+	unsigned parts = header.part_count;
+	unsigned count = header.record_count;
+	unsigned mask = header.participant_mask;
 	if (xvt_wire_get32(header.opcode) != NET_PACKET_WORLD_MESSAGE ||
 	    !cookie || xvt_wire_get32(header.cookie) != cookie ||
 	    !xvt_flight_wire_valid_tick(tick) || !parts ||
@@ -242,12 +246,17 @@ int xvt_flight_messages_receive_part(const uint8_t *bytes, size_t size,
 
 struct message_queue {
 	uint8_t *bytes;
-	size_t capacity, read, used, lengths[XVT_REPLAY_MESSAGES];
-	unsigned head, count, limit;
+	size_t capacity;
+	size_t read;
+	size_t used;
+	size_t lengths[XVT_REPLAY_MESSAGES];
+	unsigned head;
+	unsigned count;
+	unsigned limit;
 };
 
-static uint8_t g_pending_bytes[XVT_PENDING_BYTES],
-	g_replay_bytes[XVT_REPLAY_BYTES];
+static uint8_t g_pending_bytes[XVT_PENDING_BYTES];
+static uint8_t g_replay_bytes[XVT_REPLAY_BYTES];
 static struct message_queue g_queues[XVT_QUEUE_COUNT] = {
 	{.bytes = g_pending_bytes,
 	 .capacity = sizeof g_pending_bytes,
@@ -263,8 +272,8 @@ int xvt_flight_messages_push(xvt_flight_queue queue, const void *bytes,
 	if (!size || q->count == q->limit || size > q->capacity - q->used) {
 		return 0;
 	}
-	size_t offset = (q->read + q->used) % q->capacity,
-	       first = q->capacity - offset;
+	size_t offset = (q->read + q->used) % q->capacity;
+	size_t first = q->capacity - offset;
 	if (first > size) {
 		first = size;
 	}
@@ -282,7 +291,8 @@ size_t xvt_flight_messages_peek(xvt_flight_queue queue, void *bytes,
 	if (!q->count) {
 		return 0;
 	}
-	size_t size = q->lengths[q->head], first = q->capacity - q->read;
+	size_t size = q->lengths[q->head];
+	size_t first = q->capacity - q->read;
 	if (size > capacity) {
 		return 0;
 	}

@@ -714,12 +714,24 @@ void player_update_flight_controls_and_camera(int player_idx)
 	int target_clearance;
 	int distance;
 	int movement;
-	int camera_scale_x, camera_scale_y, camera_scale_z;
-	int clearance_scale_x, clearance_scale_y, clearance_scale_z;
-	int reverse_scale_x, reverse_scale_y, reverse_scale_z;
-	int camera_movement_x, camera_movement_y, camera_movement_z;
-	int clearance_movement_x, clearance_movement_y, clearance_movement_z;
-	int reverse_movement_x, reverse_movement_y, reverse_movement_z;
+	int camera_scale_x;
+	int camera_scale_y;
+	int camera_scale_z;
+	int clearance_scale_x;
+	int clearance_scale_y;
+	int clearance_scale_z;
+	int reverse_scale_x;
+	int reverse_scale_y;
+	int reverse_scale_z;
+	int camera_movement_x;
+	int camera_movement_y;
+	int camera_movement_z;
+	int clearance_movement_x;
+	int clearance_movement_y;
+	int clearance_movement_z;
+	int reverse_movement_x;
+	int reverse_movement_y;
+	int reverse_movement_z;
 
 #ifdef XVT_MODERN
 	xvt_player_timing_begin_controls(player_idx);

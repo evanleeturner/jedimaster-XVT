@@ -28,7 +28,8 @@ static int g_xvt_rebase_clock;
 static int g_xvt_exit_code;
 static int g_skip_intro;
 static int g_quitting;
-static int g_settings_open, g_settings_requested;
+static int g_settings_open;
+static int g_settings_requested;
 
 void xvt_port_set_settings_open(int open) { g_settings_open = open != 0; }
 

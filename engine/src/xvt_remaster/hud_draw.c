@@ -166,8 +166,8 @@ void xvt_hud_draw_part(const struct xvt_hud_draw *draw,
 	const struct xvt_hud_prepared_part *part =
 		&draw->assets->bindings[binding->first_part + state];
 	const AeronRuntimeAtlas *atlas = &draw->assets->parts;
-	float width = atlas->layout.classic_w[part->atlas_frame],
-	      height = atlas->layout.classic_h[part->atlas_frame];
+	float width = atlas->layout.classic_w[part->atlas_frame];
+	float height = atlas->layout.classic_h[part->atlas_frame];
 	append_atlas_sprite(draw, atlas, part->atlas_frame,
 			    binding->x + offset_x -
 				    (binding->mirrored ? width - 1 : 0),
@@ -258,7 +258,8 @@ int xvt_hud_draw_glyph(const struct xvt_hud_draw *draw,
 		return 0;
 	}
 	unsigned glyph_index = glyph->character - font->atlas.first_char;
-	int x = glyph->x + origin_x, y = glyph->y + origin_y;
+	int x = glyph->x + origin_x;
+	int y = glyph->y + origin_y;
 	struct xvt_snap_rect bounds = glyph->clip;
 	bounds.x += origin_x;
 	bounds.y += origin_y;

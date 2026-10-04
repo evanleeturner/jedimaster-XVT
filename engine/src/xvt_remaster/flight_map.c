@@ -21,7 +21,9 @@ static AeronScene3D *g_scene;
 static AeronRenderTarget *g_composite;
 static AeronDrawList2D *g_list;
 static AeronSceneMeshTable *g_tables;
-static int g_width, g_height, g_samples;
+static int g_width;
+static int g_height;
+static int g_samples;
 
 struct map_order {
 	unsigned index;
@@ -32,7 +34,8 @@ static struct map_order g_order[XVT_SNAP_OBJECTS];
 
 static int compare(const void *a, const void *b)
 {
-	const struct map_order *x = a, *y = b;
+	const struct map_order *x = a;
+	const struct map_order *y = b;
 	return x->depth < y->depth   ? 1
 	       : x->depth > y->depth ? -1
 	       : x->index < y->index ? -1
@@ -95,7 +98,9 @@ int xvt_flight_map_prepare_resources(int width, int height)
 static void segment(const struct xvt_render_view *view, const int32_t a[3],
 		    const int32_t b[3], uint32_t color)
 {
-	float p[3], q[3], clip[2][4];
+	float p[3];
+	float q[3];
+	float clip[2][4];
 	AeronWorld_LocalI32(view->origin_world, a, p);
 	AeronWorld_LocalI32(view->origin_world, b, q);
 	for (int r = 0; r < 4; ++r) {
@@ -131,8 +136,8 @@ static void grid(const struct xvt_render_snapshot *s,
 		 const struct xvt_render_view *view)
 {
 	for (int i = -16; i <= 16; ++i) {
-		int32_t a[3] = {-1048576, i * 65536, s->map.grid_z},
-			b[3] = {1048576, i * 65536, s->map.grid_z};
+		int32_t a[3] = {-1048576, i * 65536, s->map.grid_z};
+		int32_t b[3] = {1048576, i * 65536, s->map.grid_z};
 		segment(view, a, b, s->flight_palette_argb[49]);
 		a[0] = b[0] = i * 65536;
 		a[1] = -1048576;
@@ -161,8 +166,8 @@ static void overlay(const struct xvt_render_snapshot *s,
 		float corner = fmaxf(3 * scale, size / 8);
 		for (int i = 0; i < 2; ++i) {
 			for (int j = 0; j < 2; ++j) {
-				float xx = x + (i ? size : -size) / 2,
-				      yy = y + (j ? size : -size) / 2;
+				float xx = x + (i ? size : -size) / 2;
+				float yy = y + (j ? size : -size) / 2;
 				AeronDrawList_AddLine(
 					g_list, xx, yy,
 					xx + (i ? -corner : corner), yy, scale,
@@ -250,7 +255,9 @@ static int objects(AeronCommandBuffer *cmd, const struct xvt_render_snapshot *s,
 		if ((o->world_pos[2] >= s->map.grid_z) != above) {
 			continue;
 		}
-		float x, y, z;
+		float x;
+		float y;
+		float z;
 		int projected = xvt_render_math_project_world(
 			view, o->world_pos, &x, &y, &z);
 		int icon = projected &&

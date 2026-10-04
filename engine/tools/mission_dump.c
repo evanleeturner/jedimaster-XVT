@@ -372,7 +372,10 @@ static void group(const struct dump_mission *mission, unsigned index)
 static int messages_and_goals(FILE *fp, const struct dump_mission *mission,
 			      unsigned message_count)
 {
-	unsigned i, j, count, index;
+	unsigned i;
+	unsigned j;
+	unsigned count;
+	unsigned index;
 	uint8_t seen[64] = {0};
 	for (i = 0; i < message_count; ++i) {
 		struct mission_message m;
@@ -457,8 +460,13 @@ static int messages_and_goals(FILE *fp, const struct dump_mission *mission,
 
 static int text_tail(FILE *fp, unsigned group_count)
 {
-	unsigned i, j, k, n, length;
-	char script[820], buffer[65536];
+	unsigned i;
+	unsigned j;
+	unsigned k;
+	unsigned n;
+	unsigned length;
+	char script[820];
+	char buffer[65536];
 	for (i = 0; i < 8; ++i) {
 		if (!read_exact(fp, script, sizeof(script))) {
 			return 0;
@@ -508,7 +516,9 @@ static int text_tail(FILE *fp, unsigned group_count)
 static int dump(FILE *fp)
 {
 	struct dump_mission mission;
-	unsigned version, message_count, i;
+	unsigned version;
+	unsigned message_count;
+	unsigned i;
 	if (!read_word(fp, &version)) {
 		return 0;
 	}

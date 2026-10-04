@@ -90,7 +90,8 @@ static struct xvt_snap_rect place_bounds(struct xvt_snap_rect bounds,
 {
 	bounds.x += placement.x;
 	bounds.y += placement.y;
-	int right = bounds.x + bounds.width, bottom = bounds.y + bounds.height;
+	int right = bounds.x + bounds.width;
+	int bottom = bounds.y + bounds.height;
 	if (right > placement.x + placement.width) {
 		right = placement.x + placement.width;
 	}

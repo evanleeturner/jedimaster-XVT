@@ -6,10 +6,13 @@
 #include "aeron/aeron.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/log/log.h"
-static struct xvt_render_settings g_effective, g_requested;
+static struct xvt_render_settings g_effective;
+static struct xvt_render_settings g_requested;
 static struct xvt_video_settings g_video;
-static uint64_t g_generation, g_document_generation;
-static int g_initialized, g_video_override;
+static uint64_t g_generation;
+static uint64_t g_document_generation;
+static int g_initialized;
+static int g_video_override;
 static AeronSampler *g_mesh_sampler;
 
 static void

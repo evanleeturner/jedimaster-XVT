@@ -16,7 +16,8 @@ struct xvt_preview_output {
 	struct xvt_snap_draw_header draw;
 	struct xvt_snap_rect destination;
 	uint8_t mask_index;
-	int width, height;
+	int width;
+	int height;
 };
 
 /* Render sequentially through one scene into owned per-slot presentation targets. */
