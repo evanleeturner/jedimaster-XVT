@@ -305,7 +305,9 @@ void AeronDplay_Update(void) {
 			if (!peer->id || peer->id == g_dp.local_id || (!g_dp.host && peer->id != g_dp.host_id))
 				continue;
 			DpSend(peer->link, DP_KEEPALIVE, 0, g_dp.local_id, peer->id, NULL, 0);
-			if (now - peer->last_seen >= DP_PEER_TIMEOUT_MS) {
+			/* now was read before this update's packets were handled, so a peer heard
+			 * since then has last_seen after now: it is not silent. */
+			if (peer->last_seen <= now && now - peer->last_seen >= DP_PEER_TIMEOUT_MS) {
 				Aeron_LogWarn("compat.dplay", "player %u silent for %llu ms", (unsigned)peer->id,
 							  (unsigned long long)(now - peer->last_seen));
 				if (!g_dp.host)
