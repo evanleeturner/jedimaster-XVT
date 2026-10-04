@@ -2,6 +2,7 @@
 
 #ifdef XVT_MODERN
 #include "aeron/compat/host.h"
+#include "xvt_runtime/log/log.h"
 #endif
 
 #include <string.h>
@@ -222,11 +223,19 @@ void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
 	source_height = (int32_t)image_header->height;
 	if (source_width > MAX_TEXTURE_DIMENSION) {
 		source_width = MAX_TEXTURE_DIMENSION;
+#ifdef XVT_MODERN
+		XVT_LOG_WARN("render.sprite_truncated axis=\"width\"");
+#else
 		debug_printf("TRUNCATING BITMAP TO 256 WIDE!!!\n");
+#endif
 	}
 	if (source_height > MAX_TEXTURE_DIMENSION) {
 		source_height = MAX_TEXTURE_DIMENSION;
+#ifdef XVT_MODERN
+		XVT_LOG_WARN("render.sprite_truncated axis=\"height\"");
+#else
 		debug_printf("TRUNCATING BITMAP TO 256 HIGH!!!\n");
+#endif
 	}
 	max_u = (float)source_width;
 	max_v = (float)source_height;

@@ -2,6 +2,7 @@
 #ifdef XVT_MODERN
 #include "aeron/compat/host.h"
 #include "xvt_runtime/assets/opt_native.h"
+#include "xvt_runtime/log/log.h"
 #endif
 
 #include <string.h>
@@ -1455,9 +1456,14 @@ void std3d_fill_z_buffer_from_viewport_mask(void)
 			break;
 		}
 		if (lock_result != DX_DDERR_WASSTILLDRAWING) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR("render.z_lock_failed result=%#x",
+				      (unsigned int)lock_result);
+#else
 			debug_printf(
 				"ERROR!(%x) failed to lock D3D z buffer!\n",
 				lock_result);
+#endif
 			return;
 		}
 	}

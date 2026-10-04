@@ -1,4 +1,7 @@
 #include "xvt/assets/model_texture.h"
+#ifdef XVT_MODERN
+#include "xvt_runtime/log/log.h"
+#endif
 
 #include <stdlib.h>
 #include <string.h>
@@ -105,10 +108,21 @@ void model_texture_filter_hardware_palette(uint16_t *palette)
 		} while (palette_index < 256);
 
 		if (cleared_count < 256) {
+#ifdef XVT_MODERN
+			XVT_LOG_DEBUG(
+				"models.alpha_palette palette=%p cleared=%d",
+				(void *)palette, cleared_count);
+#else
 			debug_printf("%x:AlphaTex!(%d)\n", palette,
 				     cleared_count);
+#endif
 		} else {
+#ifdef XVT_MODERN
+			XVT_LOG_DEBUG("models.opaque_palette palette=%p",
+				      (void *)palette);
+#else
 			debug_printf("%x:No Alpha\n", palette);
+#endif
 			cleared_count = 0;
 		}
 		palette[256] = (uint16_t)first_cleared_index;

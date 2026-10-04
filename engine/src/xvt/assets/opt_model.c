@@ -1,6 +1,7 @@
 #include "xvt/assets/opt_model.h"
 
 #ifdef XVT_MODERN
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #endif
 #include "xvt/assets/file.h"
@@ -5866,8 +5867,14 @@ unsigned int opt_model_build_runtime_node(const struct opt_node *src_node,
 				}
 				if (g_flight_bytes_per_pixel == 2) {
 					if (src_node->p_name != NULL) {
+#ifdef XVT_MODERN
+						XVT_LOG_DEBUG(
+							"models.node_palette node=\"%s\"",
+							src_node->p_name);
+#else
 						debug_printf("%s:",
 							     src_node->p_name);
+#endif
 					}
 					opt_model_prepare_texture_palette(
 						(uint16_t *)dst,
@@ -5920,9 +5927,15 @@ unsigned int opt_model_build_runtime_node(const struct opt_node *src_node,
 					}
 					if (g_flight_bytes_per_pixel == 2) {
 						if (src_node->p_name != NULL) {
+#ifdef XVT_MODERN
+							XVT_LOG_DEBUG(
+								"models.node_palette node=\"%s\"",
+								src_node->p_name);
+#else
 							debug_printf(
 								"%s:",
 								src_node->p_name);
+#endif
 						}
 						opt_model_prepare_texture_palette(
 							(uint16_t *)dst,

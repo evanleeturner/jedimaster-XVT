@@ -1,6 +1,7 @@
 #include "xvt/flight/flight_display.h"
 
 #ifdef XVT_MODERN
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 #endif
@@ -707,7 +708,7 @@ int flight_display_cleanup_and_report_error(int error_code)
 	snprintf(g_flight_display_debug_message,
 		 sizeof(g_flight_display_debug_message),
 		 "___CleanupAndExit  err = %d\n", error_code);
-	debug_printf("%s", g_flight_display_debug_message);
+	XVT_LOG_DEBUG("flight.display_cleanup error=%d", error_code);
 #endif
 	IDirectDrawSurface *surface = g_flight_primary_surface;
 	if (surface != NULL) {
@@ -731,7 +732,7 @@ int flight_display_cleanup_and_report_error(int error_code)
 #ifndef XVT_MODERN
 	MessageBoxA(NULL, "Game could not start", "ERROR", 0);
 #else
-	debug_printf("ERROR: Game could not start");
+	XVT_LOG_ERROR("flight.start_failed error=%d", error_code);
 #endif
 	return 0;
 }
@@ -868,8 +869,9 @@ HRESULT flight_display_flip(void)
 #ifndef XVT_MODERN
 				__debugbreak();
 #else
-				debug_printf("SetCooperativeLevel failed: %d",
-					     result);
+				XVT_LOG_ERROR(
+					"flight.cooperative_level_failed mode=\"fullscreen\" result=%d",
+					result);
 #endif
 			}
 
@@ -897,7 +899,8 @@ HRESULT flight_display_flip(void)
 #ifndef XVT_MODERN
 				__debugbreak();
 #else
-				debug_printf("Flip failed: %d", result);
+				XVT_LOG_ERROR("flight.flip_failed result=%d",
+					      result);
 #endif
 			}
 
@@ -915,8 +918,9 @@ HRESULT flight_display_flip(void)
 #ifndef XVT_MODERN
 				__debugbreak();
 #else
-				debug_printf("SetCooperativeLevel failed: %d",
-					     flip_result);
+				XVT_LOG_ERROR(
+					"flight.cooperative_level_failed mode=\"normal\" result=%d",
+					flip_result);
 #endif
 			}
 		}

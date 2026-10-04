@@ -88,10 +88,25 @@
       "fields": ["path"],
       "text": "Cannot write {path}"
     },
+    "flight.cooperative_level_failed": {
+      "level": "E",
+      "fields": ["mode", "result"],
+      "text": "Setting DirectDraw's {mode} cooperative level failed with code {result}"
+    },
+    "flight.display_cleanup": {
+      "level": "D",
+      "fields": ["error"],
+      "text": "Flight start failed with error {error}; the display surfaces are released"
+    },
     "flight.end": {
       "level": "I",
       "fields": ["result", "reason"],
       "text": "The flight ends ({reason}); result {result}, where 1 commits the mission results"
+    },
+    "flight.flip_failed": {
+      "level": "E",
+      "fields": ["result"],
+      "text": "Flipping the flight display failed with code {result}"
     },
     "flight.frames_end": {
       "level": "I",
@@ -122,6 +137,11 @@
       "level": "I",
       "fields": ["local", "players"],
       "text": "The frame loop starts with the local player in slot {local} of {players}"
+    },
+    "flight.start_failed": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "The flight could not start (error {error}); the 1997 game showed a message box here"
     },
     "flight.sync_ack": {
       "level": "D",
@@ -177,6 +197,21 @@
       "level": "I",
       "fields": [],
       "text": "A flight launch is queued"
+    },
+    "models.alpha_palette": {
+      "level": "D",
+      "fields": ["palette", "cleared"],
+      "text": "Texture palette {palette} marks {cleared} of its 256 colors see-through for the 3D card"
+    },
+    "models.node_palette": {
+      "level": "D",
+      "fields": ["node"],
+      "text": "On a 16-bit display the palette of model node {node} is copied"
+    },
+    "models.opaque_palette": {
+      "level": "D",
+      "fields": ["palette"],
+      "text": "All 256 colors of texture palette {palette} passed the see-through test; its count is reset to 0"
     },
     "models.opt_invalid": {
       "level": "E",
@@ -477,6 +512,41 @@
       "level": "I",
       "fields": [],
       "text": "The modern renderer shut down"
+    },
+    "render.bitmap_too_large": {
+      "level": "W",
+      "fields": ["width", "height"],
+      "text": "A {width}x{height} image is over the 65,536-pixel texture limit and gets no texture"
+    },
+    "render.hardware_unsupported": {
+      "level": "E",
+      "fields": ["z_buffer", "perspective", "hardware"],
+      "text": "The 3D device lacks an essential feature: z-buffer {z_buffer}, perspective-correct textures {perspective}, hardware {hardware}"
+    },
+    "render.sprite_truncated": {
+      "level": "W",
+      "fields": ["axis"],
+      "text": "A rotated sprite is cut to 256 pixels in {axis}"
+    },
+    "render.texture_add_failed": {
+      "level": "E",
+      "fields": ["kind", "width", "height"],
+      "text": "Adding a {width}x{height} {kind} texture to the Direct3D cache failed"
+    },
+    "render.texture_cache_full": {
+      "level": "E",
+      "fields": [],
+      "text": "The hardware texture cache has no free entry"
+    },
+    "render.z_buffer_missing": {
+      "level": "E",
+      "fields": ["result"],
+      "text": "No hardware z-buffer could be had; code {result}"
+    },
+    "render.z_lock_failed": {
+      "level": "E",
+      "fields": ["result"],
+      "text": "Locking the Direct3D z-buffer failed with code {result}"
     },
     "resync.batch_sent": {
       "level": "D",

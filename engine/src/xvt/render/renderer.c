@@ -1,4 +1,7 @@
 #include "xvt/render/renderer.h"
+#ifdef XVT_MODERN
+#include "xvt_runtime/log/log.h"
+#endif
 
 #include <string.h>
 
@@ -443,8 +446,13 @@ void renderer_init_d3d_device(void)
 				g_flight_back_buffer, &z_buffer_desc.ddsCaps,
 				&g_std3dz_buffer_surface);
 		if (result != 0) {
+#ifdef XVT_MODERN
+			XVT_LOG_ERROR("render.z_buffer_missing result=%#x",
+				      (unsigned int)result);
+#else
 			debug_printf("ERROR(%x)! Failed to get HW Zbuffer\n",
 				     result);
+#endif
 			std3d_close();
 			std3d_shutdown();
 			g_use_hardware3d = 0;
@@ -453,11 +461,19 @@ void renderer_init_d3d_device(void)
 		}
 		math_set_fpu_single_precision_mode();
 	} else {
+#ifdef XVT_MODERN
+		XVT_LOG_ERROR(
+			"render.hardware_unsupported z_buffer=%d perspective=%d hardware=%d",
+			device_caps.b_has_z_buffer,
+			device_caps.b_texture_perspective,
+			device_caps.b_hardware);
+#else
 		debug_printf(
 			"Essential Hardware Feature NOT Supported: Z:%d Tex:%d HW:%d\n",
 			device_caps.b_has_z_buffer,
 			device_caps.b_texture_perspective,
 			device_caps.b_hardware);
+#endif
 		std3d_shutdown();
 		g_use_hardware3d = 0;
 		math_set_fpu_single_precision_mode();
