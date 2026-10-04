@@ -1,6 +1,7 @@
 #include "xvt/net/net_session.h"
 #ifdef XVT_MODERN
 #include "xvt/net/frontend_net.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/network_session.h"
 #endif
@@ -134,7 +135,11 @@ int net_session_init_game_session(const char *formal_name,
 	(void)dial_number;
 	(void)mp_game_name;
 	(void)connection_address;
+#ifdef XVT_MODERN
+	XVT_LOG_DEBUG("network.session_init");
+#else
 	net_session_debug_trace("Init network");
+#endif
 	memset(&g_net_session, 0, sizeof(g_net_session));
 	g_net_session_flight_handshake_active = 1;
 	g_net_session_scratch_packet.trailing_state = 0;
@@ -471,8 +476,13 @@ void net_session_pump_incoming_packets(void)
 	int duplicate;
 	for (;;) {
 		if ((int)g_net_recv_queue_count >= RECEIVE_QUEUE_LIMIT) {
+#ifdef XVT_MODERN
+			XVT_LOG_WARN("network.receive_queue_full queued=%u",
+				     g_net_recv_queue_count);
+#else
 			net_session_debug_trace(
 				"Ran out of receive buffers!!!");
+#endif
 			net_reliable_keep_only_host_received_packets();
 			return;
 		}
@@ -483,7 +493,12 @@ void net_session_pump_incoming_packets(void)
 			return;
 		}
 		if (from_id == 0) {
+#ifdef XVT_MODERN
+			XVT_LOG_DEBUG("network.system_message bytes=%u",
+				      wire_size);
+#else
 			net_session_debug_trace("(RSM)");
+#endif
 			if (wire_size >
 			    sizeof(g_net_session_recv_queue[0].payload)) {
 				wire_size = sizeof(
@@ -2684,14 +2699,30 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 								    [queue_index]
 									    .last_nack_ms >
 						    timeout) {
+#ifdef XVT_MODERN
+							XVT_LOG_DEBUG(
+								"network.nack_timeout retries=%d",
+								g_net_session_recv_queue
+									[queue_index]
+										.nack_retry_count);
+#else
 							net_session_debug_trace(
 								"(RTO) ");
+#endif
 							if (g_net_session_recv_queue
 								    [queue_index]
 									    .nack_retry_count >
 							    retry_limit) {
+#ifdef XVT_MODERN
+								XVT_LOG_WARN(
+									"network.nack_gave_up retries=%d",
+									g_net_session_recv_queue
+										[queue_index]
+											.nack_retry_count);
+#else
 								net_session_debug_trace(
 									"(TMR) ");
+#endif
 								g_net_session
 									.reliable_peer_slots
 										[peer_index]
@@ -3022,7 +3053,12 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 					--full_remaining;
 					continue;
 				} else {
+#ifdef XVT_MODERN
+					XVT_LOG_WARN(
+						"network.queue_full_gap_skipped");
+#else
 					net_session_debug_trace("(NMR) ");
+#endif
 					if (channels.want_channel_a) {
 						g_net_session
 							.reliable_peer_slots
@@ -3533,8 +3569,14 @@ int net_session_send_reliable_keepalives(void)
 								[peer_slot]
 							.last_activity_ms =
 							current_time;
+#ifdef XVT_MODERN
+						XVT_LOG_DEBUG(
+							"network.keepalive_sent slot=%u",
+							peer_slot);
+#else
 						net_session_debug_trace(
 							"(Sending RRA) ");
+#endif
 						g_net_session_scratch_packet
 							.packet_type =
 							NET_PACKET_KEEPALIVE;

@@ -283,6 +283,21 @@
       "fields": [],
       "text": "The host refused the join; the frontend shows the reason"
     },
+    "network.keepalive_sent": {
+      "level": "D",
+      "fields": ["slot"],
+      "text": "Peer slot {slot} was quiet over 3 s; a keepalive asks it to resend what this player lacks"
+    },
+    "network.nack_gave_up": {
+      "level": "W",
+      "fields": ["retries"],
+      "text": "A missing packet is given up after {retries} resend requests; delivery moves past the gap"
+    },
+    "network.nack_timeout": {
+      "level": "D",
+      "fields": ["retries"],
+      "text": "The wait for a missing packet ran out after {retries} resend requests"
+    },
     "network.player_left": {
       "level": "I",
       "fields": ["slot", "local"],
@@ -292,6 +307,16 @@
       "level": "W",
       "fields": ["slot", "ticks"],
       "text": "The player in slot {slot} sent nothing for {ticks} ticks; the host drops them"
+    },
+    "network.queue_full_gap_skipped": {
+      "level": "W",
+      "fields": [],
+      "text": "The receive queue is full with nothing in order to deliver; a packet already asked for again is delivered past its gap"
+    },
+    "network.receive_queue_full": {
+      "level": "W",
+      "fields": ["queued"],
+      "text": "The receive queue is full at {queued} packets; only packets from the host are kept, and receiving stops until the next pump"
     },
     "network.recovery_needed": {
       "level": "W",
@@ -313,6 +338,11 @@
       "fields": ["phase", "error"],
       "text": "The network session failed in phase {phase} with error {error}"
     },
+    "network.session_init": {
+      "level": "D",
+      "fields": [],
+      "text": "Session setup starts in the 1997 code; the session state is cleared"
+    },
     "network.session_names": {
       "level": "D",
       "fields": ["pilot", "game", "rating"],
@@ -322,6 +352,11 @@
       "level": "I",
       "fields": ["role", "online"],
       "text": "The network session is established as {role}; online {online}"
+    },
+    "network.system_message": {
+      "level": "D",
+      "fields": ["bytes"],
+      "text": "A DirectPlay system message of {bytes} bytes arrived and is queued"
     },
     "network.world_received": {
       "level": "D",
