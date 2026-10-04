@@ -51,7 +51,7 @@ static uint32_t append(struct body *body, const void *data, uint32_t size)
 }
 
 /* Stores value little-endian at address, which must already be inside the body. */
-static void put(struct body *body, uint32_t address, uint32_t value)
+static void put(const struct body *body, uint32_t address, uint32_t value)
 {
 	uint8_t *at = body->bytes + (address - BASE);
 	for (int i = 0; i < 4; ++i) {

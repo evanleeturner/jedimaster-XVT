@@ -61,7 +61,7 @@ int g_fview_up_z_q15 = 0;
 void fview_build_camera_orient(int16_t view_roll, int16_t view_pitch,
 			       int16_t view_yaw, int16_t view_up_axis_angle,
 			       int16_t hud_aim_x, int16_t hud_aim_y,
-			       struct object_record *obj_record)
+			       const struct object_record *obj_record)
 {
 	/* Build the camera basis from the current orientation and HUD aim offsets. */
 	int axis_x;
@@ -110,7 +110,7 @@ void fview_build_camera_orient(int16_t view_roll, int16_t view_pitch,
 // FUNCTION: XVT 0x427A60
 int fview_set_object_transform(int16_t roll, int16_t pitch, int16_t yaw,
 			       int16_t up_axis_angle,
-			       struct object_record *obj_record)
+			       const struct object_record *obj_record)
 {
 	if (obj_record == NULL) {
 		fview_calcrotatemove(pitch, yaw, obj_record);
@@ -155,7 +155,7 @@ int fview_set_object_transform(int16_t roll, int16_t pitch, int16_t yaw,
  * move_vector_dirty. */
 // FUNCTION: XVT 0x427BD0
 void fview_calcrotatemove(int16_t pitch, int16_t yaw,
-			  struct object_record *obj_record)
+			  const struct object_record *obj_record)
 {
 	int16_t cos_neg_b;
 	int16_t cos_c000_minus_a;
@@ -195,7 +195,7 @@ void fview_calcrotatemove(int16_t pitch, int16_t yaw,
  * cached_up_z) and clears orient_matrix_dirty. */
 // FUNCTION: XVT 0x427D30
 void fview_calcrotateorient(int16_t roll, int16_t up_axis_angle,
-			    struct object_record *obj_record)
+			    const struct object_record *obj_record)
 {
 	fview_transformaxes(g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z,
 			    up_axis_angle);

@@ -21,9 +21,10 @@ void frontend_draw_rect_inset_xy(struct RECT *rect, int dx, int dy);
 int frontend_draw_rect_clip_to_bounds(struct RECT *rect);
 void frontend_draw_fill_rect_translucent(const struct RECT *src, int dx, int dy,
 					 unsigned int color);
-void frontend_draw_rect(struct RECT *rect, int dx, int dy, int color,
+void frontend_draw_rect(const struct RECT *rect, int dx, int dy, int color,
 			int filled);
-void frontend_draw_rect_outline(struct RECT *rect, int dx, int dy, int color);
+void frontend_draw_rect_outline(const struct RECT *rect, int dx, int dy,
+				int color);
 int frontend_draw_point_in_rect(const struct RECT *rect, int x, int y);
 void frontend_draw_line(int x0, int y0, int x1, int y1, int color);
 void frontend_draw_horizontal_line_clipped(int x0, int x1, int y, int color);

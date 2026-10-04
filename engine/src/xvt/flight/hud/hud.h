@@ -373,7 +373,7 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
 				      uint16_t first_sprite_index,
 				      int16_t sprite_count,
 				      uint16_t records_to_skip);
-int flight_icon_load_frames(char *file_name, uint8_t *data_buffer,
+int flight_icon_load_frames(const char *file_name, uint8_t *data_buffer,
 			    uint8_t **frame_pointers);
 
 #ifdef __cplusplus

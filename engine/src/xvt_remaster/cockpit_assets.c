@@ -117,7 +117,7 @@ static int mask_run(const uint8_t **cursor, const uint8_t *end,
 	return 511 + (uint8_t)(*(*cursor)++ + 1);
 }
 
-int xvt_cockpit_assets_apply_mask(struct xvt_original2d *image,
+int xvt_cockpit_assets_apply_mask(const struct xvt_original2d *image,
 				  const struct xvt_snap_rect *rect)
 {
 	if (!image->images.count || !image->cockpit_mask || !rect) {

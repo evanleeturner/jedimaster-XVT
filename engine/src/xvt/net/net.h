@@ -256,19 +256,21 @@ int net_session_import_runtime_state(
 	int *sent_history_write_index_out);
 int net_session_export_runtime_state(
 	void **dplay_interface, const void *app_guid, const void *session_guid,
-	int *group_id, int *host_player_id, const void *local_player_info,
+	const int *group_id, const int *host_player_id,
+	const void *local_player_info,
 	const struct net_queued_packet *recv_queue_entries,
-	int *recv_queue_read, int *recv_queue_count, int *recv_queue_write,
+	const int *recv_queue_read, const int *recv_queue_count,
+	const int *recv_queue_write,
 	const struct net_reliable_peer_slot *reliable_peer_slots,
-	int *reliable_peer_slot_count, int *broadcast_seq_counter,
-	const void *broadcast_payload, int *broadcast_payload_length,
-	int *broadcast_piggyback_empty, int *group_seq_counter,
-	const void *group_payload, int *group_payload_length,
-	int *group_piggyback_empty,
+	const int *reliable_peer_slot_count, const int *broadcast_seq_counter,
+	const void *broadcast_payload, const int *broadcast_payload_length,
+	const int *broadcast_piggyback_empty, const int *group_seq_counter,
+	const void *group_payload, const int *group_payload_length,
+	const int *group_piggyback_empty,
 	const struct net_queued_packet *sent_history,
-	int *sent_history_write_index,
+	const int *sent_history_write_index,
 	struct net_queued_packet *sent_world_message_history,
-	int *sent_world_message_write_index);
+	const int *sent_world_message_write_index);
 int net_compact_reliable_peer_slots_for_roster(void);
 int net_send_sequence_keepalives(void);
 int net_check_and_record_incoming_sequence(int player_id, int sequence_id,

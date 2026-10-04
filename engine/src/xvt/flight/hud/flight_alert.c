@@ -181,7 +181,7 @@ void flight_alert_restore_box_background(void)
  * without drawing when flight_alert_save_box_background has saved nothing. The
  * modern build also records the line for its renderer. */
 // FUNCTION: XVT 0x448F90
-void flight_alert_draw_box(int text_row, char *text, uint8_t bg_color)
+void flight_alert_draw_box(int text_row, const char *text, uint8_t bg_color)
 {
 	int box_x;
 	int box_y;

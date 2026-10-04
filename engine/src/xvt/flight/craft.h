@@ -445,7 +445,7 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 			   unsigned int damage_amount, uint16_t source_obj_idx);
 void craft_spawn_main_hull_explosion_effects(uint16_t object_idx,
 					     int16_t force_main_explosion);
-int craft_spawn_explosion_object_at_mesh(struct object_record *obj_record,
+int craft_spawn_explosion_object_at_mesh(const struct object_record *obj_record,
 					 uint16_t mesh_index, int effect_size,
 					 uint16_t use_random_vertex);
 

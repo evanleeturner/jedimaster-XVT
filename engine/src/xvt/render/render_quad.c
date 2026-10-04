@@ -52,7 +52,7 @@ const uint32_t g_explosion_billboard_color_by_frame[32] = {
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x401450
 void render_quad_draw_model_texture(
-	struct scene_billboard_queue_entry *quad_record)
+	const struct scene_billboard_queue_entry *quad_record)
 {
 	uint16_t frame;
 	uint16_t model_type;

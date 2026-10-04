@@ -91,7 +91,8 @@ void xvt_snapshot_checksum(int unused_arg0, int unused_arg1);
  * packed as one byte 0x80 | length (1 to 126). Returns the bytes written.
  * world_state must start at the image's first type byte; it is read, never written.
  * Does not validate the image or bound out_map: the worst case is 4 bytes plus one per slot. */
-int xvt_snapshot_build_presence_map(uint8_t *out_map, uint8_t *world_state);
+int xvt_snapshot_build_presence_map(uint8_t *out_map,
+				    const uint8_t *world_state);
 
 /* Reshapes g_world_state_dup_buffer in place so each slot's blocks match presence_map: a block
  * the map lacks is removed, a block the map has is inserted zero-filled. Updates

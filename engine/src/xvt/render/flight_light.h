@@ -23,7 +23,7 @@ void flight_light_reset_software_face_sample_cache(void);
 float flight_light_compute_software_face_sample_intensity(
 	struct scene_face *face, int screen_x, int screen_y,
 	float reciprocal_depth);
-void flight_light_setup_object_lighting(struct object_record *object);
+void flight_light_setup_object_lighting(const struct object_record *object);
 void flight_light_setup_object_lighting_by_index(unsigned int object_index);
 
 #ifdef __cplusplus

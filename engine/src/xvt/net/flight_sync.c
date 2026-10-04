@@ -215,7 +215,7 @@ void flight_sync_discard_predicted_input_frames(int player_idx)
  * row; does not check that it lies among the frames in use. */
 // FUNCTION: XVT 0x4186E0
 void flight_sync_remove_input_history_frame(int player_idx,
-					    struct input_frame *frame)
+					    const struct input_frame *frame)
 {
 	int frame_count;
 	int copy_index;

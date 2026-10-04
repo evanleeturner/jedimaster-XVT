@@ -15,7 +15,7 @@ extern int g_flight_alert_box_saved_bytes;
 
 void flight_alert_save_box_background(void);
 void flight_alert_restore_box_background(void);
-void flight_alert_draw_box(int text_row, char *text, uint8_t bg_color);
+void flight_alert_draw_box(int text_row, const char *text, uint8_t bg_color);
 
 #ifdef __cplusplus
 }

@@ -172,7 +172,7 @@ int net_session_is_local_host(void);
 int *net_session_receive_game_packet(int *out_sender_dpid,
 				     int *out_payload_size);
 int net_session_handle_direct_play_system_message(int packet_opcode,
-						  int *packet);
+						  const int *packet);
 void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size);
 int net_session_send_compact_game_packet(int direct_play_id,
 					 unsigned int *payload,

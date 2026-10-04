@@ -46,7 +46,7 @@ uint16_t xvt_opt_load(const char *path, int *version,
 /* Rounds size up to a multiple of sizeof(void*). */
 size_t xvt_opt_align_size(size_t size);
 /* Rounds pointer up to a multiple of sizeof(void*). */
-uint8_t *xvt_opt_align_pointer(uint8_t *pointer);
+uint8_t *xvt_opt_align_pointer(const uint8_t *pointer);
 #ifdef __cplusplus
 }
 #endif

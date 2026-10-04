@@ -2528,9 +2528,8 @@ int flight_compute_world_state_resync_segment_size(int world_state_size)
  * past the end gets 0. Does not check the room at out_checksums. Only the
  * original build calls this. */
 // FUNCTION: XVT 0x417900
-int flight_build_world_state_resync_segment_checksums(int *out_checksums,
-						      uint8_t *world_state,
-						      int world_state_size)
+int flight_build_world_state_resync_segment_checksums(
+	int *out_checksums, const uint8_t *world_state, int world_state_size)
 {
 	int remaining_size;
 	int segment_size;
@@ -2587,7 +2586,7 @@ enum flight_world_state_presence_flags {
  * this. */
 // FUNCTION: XVT 0x417960
 int flight_build_world_state_object_presence_map(uint8_t *out_map,
-						 uint8_t *world_state)
+						 const uint8_t *world_state)
 {
 #ifdef XVT_MODERN
 	return xvt_snapshot_build_presence_map(out_map, world_state);

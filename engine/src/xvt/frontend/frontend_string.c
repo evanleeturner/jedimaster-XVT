@@ -16,7 +16,7 @@
  * allocations fail or the final shrink returns NULL; a failed growth of the
  * offsets stops the reading with the table full. */
 // FUNCTION: XVT 0x4DD9D0
-void frontend_string_load_table(char *file_name)
+void frontend_string_load_table(const char *file_name)
 {
 	unsigned int total_data_size;
 	xvt_file *stream;

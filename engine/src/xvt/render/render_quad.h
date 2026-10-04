@@ -12,7 +12,7 @@ extern "C" {
 extern const uint32_t g_explosion_billboard_color_by_frame[32];
 
 void render_quad_draw_model_texture(
-	struct scene_billboard_queue_entry *quad_record);
+	const struct scene_billboard_queue_entry *quad_record);
 void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
 				     uint16_t screen_size,
 				     const void *texture_image);

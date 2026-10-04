@@ -1022,7 +1022,7 @@ void image_quantizer_classify_image_colors(unsigned int *image)
  * image_quantizer_assign_palette_colors calls it. */
 // FUNCTION: XVT 0x4444F0
 void image_quantizer_find_nearest_palette_entry_recursive(
-	struct image_quantizer_node *node)
+	const struct image_quantizer_node *node)
 {
 	unsigned int child_index;
 
@@ -1312,7 +1312,7 @@ struct image_quantizer_node *image_quantizer_allocate_node(
  * into its parent with image_quantizer_merge_node_into_parent, children first. */
 // FUNCTION: XVT 0x444E60
 void image_quantizer_collapse_deepest_level_recursive(
-	struct image_quantizer_node *node)
+	const struct image_quantizer_node *node)
 {
 	int child_index;
 
@@ -1336,7 +1336,7 @@ void image_quantizer_collapse_deepest_level_recursive(
  * stays in the pool. */
 // FUNCTION: XVT 0x444EB0
 unsigned int
-image_quantizer_merge_node_into_parent(struct image_quantizer_node *node)
+image_quantizer_merge_node_into_parent(const struct image_quantizer_node *node)
 {
 	struct image_quantizer_node *parent;
 	unsigned int pixel_count;
@@ -1384,7 +1384,7 @@ void image_quantizer_reduce_color_tree(unsigned int target_color_count)
  * g_image_quantizer_next_prune_threshold to its error when that is smaller. */
 // FUNCTION: XVT 0x444F90
 void image_quantizer_reduce_color_tree_pass_recursive(
-	struct image_quantizer_node *node)
+	const struct image_quantizer_node *node)
 {
 	unsigned int child_index;
 

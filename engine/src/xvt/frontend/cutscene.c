@@ -39,7 +39,7 @@ struct cutscene_entry *g_cutscene_table = NULL;
  * which it clears. The names are copied as fixed 128-, 32- and 128-byte
  * blocks, so a longer line leaves one without its terminator. */
 // FUNCTION: XVT 0x4DF250
-int cutscene_load_table(char *file_name)
+int cutscene_load_table(const char *file_name)
 {
 	xvt_file *stream;
 	unsigned int declared_count;

@@ -26,7 +26,7 @@ struct cutscene_entry {
 extern int g_cutscene_count;
 extern struct cutscene_entry *g_cutscene_table;
 
-int cutscene_load_table(char *file_name);
+int cutscene_load_table(const char *file_name);
 int cutscene_play_for_current_mission_phase(int phase);
 
 #ifdef __cplusplus

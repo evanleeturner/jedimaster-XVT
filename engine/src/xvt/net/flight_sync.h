@@ -19,7 +19,7 @@ void flight_sync_queue_predicted_remote_input_frames(int predicted_frame_delta);
 void flight_sync_discard_all_predicted_input_frames(void);
 void flight_sync_discard_predicted_input_frames(int player_idx);
 void flight_sync_remove_input_history_frame(int player_idx,
-					    struct input_frame *frame);
+					    const struct input_frame *frame);
 struct input_frame *
 flight_sync_insert_input_frame(int player_idx, int timestamp,
 			       const struct flight_input_frame_record *input);

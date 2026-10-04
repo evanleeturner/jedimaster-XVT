@@ -15,7 +15,7 @@ struct bitmap_font {
 	 * a font built through GDI starts at glyph 1. */
 	uint8_t *
 		p_glyph_bits; ///< Runtime pointer to the compressed glyph-byte blob; serialized in the .ABP header
-			      ///< as the blob byte count.
+	///< as the blob byte count.
 	unsigned int glyph_bit_offset
 		[256]; ///< Per-character byte offsets into p_glyph_bits.
 	/* Each character's height in pixels. Entry 0 is the font's height that
@@ -45,7 +45,7 @@ typedef uint16_t text_fade_color_cache[65536];
 
 extern int g_active_text_field_id;
 
-int frontend_text_handle_editable_field(struct RECT *rect, char *text,
+int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 					int max_chars, int field_id,
 					unsigned int font_size,
 					const char *ignored_chars);
@@ -54,9 +54,9 @@ void frontend_text_free_all_fonts(void);
 void frontend_text_free_font(unsigned int point_size);
 int frontend_text_draw(int font_size, const char *str, int x, int y, int color);
 int frontend_text_draw_centered(int font_size, const char *str,
-				struct RECT *rect, int color);
+				const struct RECT *rect, int color);
 int frontend_text_draw_aligned_in_rect(int font_size, const char *str,
-				       struct RECT *rect, int center_h,
+				       const struct RECT *rect, int center_h,
 				       int center_v, int color);
 int frontend_text_draw_line_array_in_rect(int font_size, const char **lines,
 					  int line_count,
@@ -65,18 +65,18 @@ int frontend_text_draw_line_array_in_rect(int font_size, const char **lines,
 					  int center_vertically,
 					  int line_spacing);
 int frontend_text_draw_wrapped(int font_size, const char *str,
-			       struct RECT *rect, int color, int line_spacing,
-			       int first_visible_line);
+			       const struct RECT *rect, int color,
+			       int line_spacing, int first_visible_line);
 int frontend_text_get_font_height(int font_size);
 int frontend_text_measure_width(const char *str, int font_size);
-void frontend_text_save_font_atlas_file(char *file_name, void **font,
+void frontend_text_save_font_atlas_file(const char *file_name, void **font,
 					unsigned int glyph_blob_size);
 int frontend_text_load_font_atlas_file(const char *file_name, int slot_index);
 int frontend_text_start_text_fade_in(int frames);
 int frontend_text_stop_text_fade(void);
 int frontend_text_suspend_text_fade(void);
 int frontend_text_resume_text_fade(void);
-void frontend_text_draw_formatted_wrapped_text(struct RECT *rect,
+void frontend_text_draw_formatted_wrapped_text(const struct RECT *rect,
 					       const uint8_t *text,
 					       int suppress_centered_headings);
 

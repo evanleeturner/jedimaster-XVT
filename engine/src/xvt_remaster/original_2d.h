@@ -79,7 +79,7 @@ int xvt_cockpit_assets_decode_lfd(const void *bytes, size_t size,
 /* Clears the frame's coverage inside viewport where the mask's runs are open (positive parity),
  * decoding the original's run format for the frame's width. Returns 0 for no frames or mask, a NULL
  * viewport, a viewport outside the frame, or a malformed run; 1 also when the mask ends early. */
-int xvt_cockpit_assets_apply_mask(struct xvt_original2d *image,
+int xvt_cockpit_assets_apply_mask(const struct xvt_original2d *image,
 				  const struct xvt_snap_rect *viewport);
 #ifdef __cplusplus
 }

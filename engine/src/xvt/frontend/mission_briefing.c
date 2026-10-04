@@ -1224,12 +1224,10 @@ int mission_briefing_broadcast_roster_and_assignments(void)
  * are ignored there, so the choice follows the cursor with or without a
  * button down. */
 // FUNCTION: XVT 0x4F68C0
-int16_t mission_briefing_handle_map_mouse_input(struct RECT *viewport_rect,
-						struct RECT *clip_rect,
-						int16_t suppress_input,
-						int left_down, int right_down,
-						int16_t mouse_x,
-						int16_t mouse_y)
+int16_t mission_briefing_handle_map_mouse_input(
+	const struct RECT *viewport_rect, const struct RECT *clip_rect,
+	int16_t suppress_input, int left_down, int right_down, int16_t mouse_x,
+	int16_t mouse_y)
 {
 	struct RECT inset_clip_rect;
 	struct RECT inset_viewport_rect;
@@ -1250,8 +1248,8 @@ int16_t mission_briefing_handle_map_mouse_input(struct RECT *viewport_rect,
  * briefing_map_draw_viewport_and_selection, on copies of the two rectangles, and
  * returns its result, which is always 1; highlight_phase is ignored there. */
 // FUNCTION: XVT 0x4F6970
-int16_t mission_briefing_draw_map_viewport(struct RECT *viewport_rect,
-					   struct RECT *clip_rect,
+int16_t mission_briefing_draw_map_viewport(const struct RECT *viewport_rect,
+					   const struct RECT *clip_rect,
 					   int16_t highlight_phase)
 {
 	struct RECT viewport_copy;

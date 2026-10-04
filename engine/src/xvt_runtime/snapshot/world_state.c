@@ -443,7 +443,8 @@ size_t xvt_snapshot_calculate_size(void)
 				       : 0);
 }
 
-int xvt_snapshot_build_presence_map(uint8_t *out_map, uint8_t *world_state)
+int xvt_snapshot_build_presence_map(uint8_t *out_map,
+				    const uint8_t *world_state)
 {
 	int empty_run_length;
 	uint8_t *map_start;

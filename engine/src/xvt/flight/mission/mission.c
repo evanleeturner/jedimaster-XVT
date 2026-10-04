@@ -5282,7 +5282,7 @@ int mission_get_elapsed_clock_seconds(void)
  * g_mobile_object_link_indices, g_object_slot_range_by_genus and g_sim_steps_per_second
  * (0). */
 // FUNCTION: XVT 0x452CE0
-uint16_t mission_init(char *file_name)
+uint16_t mission_init(const char *file_name)
 {
 	enum {
 		PLAYER_COUNT = 8,
@@ -10550,7 +10550,7 @@ void mission_resolve_formation_slot_world_loc(uint16_t flight_group_idx,
  * trigger slots into MISSION_COND_ALWAYS_TRUE joined by AND. Does not check
  * the counts and indexes it reads against the array sizes. */
 // FUNCTION: XVT 0x45AD80
-int mission_load_file(char *file_name)
+int mission_load_file(const char *file_name)
 {
 	enum {
 		MISSION_VERSION_LEGACY_TIE = UINT16_MAX,

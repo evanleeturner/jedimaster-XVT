@@ -119,7 +119,7 @@ extern char g_current_mission_file[128];
 int fsfx_clear_sfx_name_table(void);
 void fsfx_reset_flight_sfx_state(void);
 void fsfx_unload_all_effects_thunk(void);
-int fsfx_load_sfx_list(char *file_name_buffer, uint16_t first_sound_id);
+int fsfx_load_sfx_list(const char *file_name_buffer, uint16_t first_sound_id);
 void fsfx_load_mission_voice_sfx(void);
 void fsfx_stop_hyperspace_exit_sounds(int player_idx);
 int fsfx_play_sound(unsigned int sound_id, int emitter_obj_idx, int player_idx);

@@ -784,7 +784,7 @@ int mission_clock_to_seconds(uint8_t hours, uint8_t minutes, uint8_t seconds);
 int mission_compute_kill_score_for_object(int victim_obj_idx);
 int mission_compute_craft_point_value(int obj_idx);
 int mission_get_elapsed_clock_seconds(void);
-uint16_t mission_init(char *file_name);
+uint16_t mission_init(const char *file_name);
 void mission_init_flight_runtime_state(void);
 int16_t mission_start_flight_group_arrival(uint16_t craft_ordinal);
 void mission_update_flight_group_arrivals(void);
@@ -801,7 +801,7 @@ void mission_resolve_object_or_mission_point_world_loc(
 void mission_resolve_formation_slot_world_loc(uint16_t flight_group_idx,
 					      uint16_t formation_slot_idx,
 					      uint16_t basis_obj_idx);
-int mission_load_file(char *file_name);
+int mission_load_file(const char *file_name);
 int mission_sync_pilot_network_players_to_session_slots(void);
 void mission_free_override_string_handles(void);
 

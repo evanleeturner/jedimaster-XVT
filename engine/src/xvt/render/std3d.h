@@ -368,12 +368,12 @@ int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 			       int color_keyed, int translucent);
 void std3d_flush_texture_cache(void);
 void std3d_cache_list_append(struct std3d_tex_cache_node *node);
-void std3d_cache_list_remove(struct std3d_tex_cache_node *node);
+void std3d_cache_list_remove(const struct std3d_tex_cache_node *node);
 int std3d_query_texture_vid_mem(unsigned int *total_bytes,
 				unsigned int *free_bytes);
 void std3d_cache_texture_surface(struct std3d_tex_cache_node *node);
 int std3d_clear_z_buffer(void);
-int std3d_select_best_device(struct std3d_device_caps *required_caps);
+int std3d_select_best_device(const struct std3d_device_caps *required_caps);
 int std3d_find_closest_format(const struct color_info *match,
 			      struct std3d_tex_fmt *formats,
 			      unsigned int count);

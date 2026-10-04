@@ -244,7 +244,7 @@ int16_t joystick_initialize_backend_stub(void) { return 1; }
  * its one call, in flight_input_read; the modern build returns before it. */
 // FUNCTION: XVT 0x4ACB90
 int joystick_poll_scaled_axes_if_active(int *p_axis_x, int *p_axis_y,
-					int *p_axis_z, int *p_axis_r)
+					int *p_axis_z, const int *p_axis_r)
 {
 	int buttons;
 

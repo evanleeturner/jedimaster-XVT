@@ -99,7 +99,7 @@ static int g_text_field_length = 0;
  * build treats every byte from 32 but 127 as printable and records the field
  * for its renderer. */
 // FUNCTION: XVT 0x4DA380
-int frontend_text_handle_editable_field(struct RECT *rect, char *text,
+int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 					int max_chars, int field_id,
 					unsigned int font_size,
 					const char *ignored_chars)
@@ -638,7 +638,7 @@ int frontend_text_draw(int font_size, const char *str, int x, int y, int color)
  * frontend_text_draw would. */
 // FUNCTION: XVT 0x4DB640
 int frontend_text_draw_centered(int font_size, const char *str,
-				struct RECT *rect, int color)
+				const struct RECT *rect, int color)
 {
 	struct bitmap_font *font;
 	int current_color;
@@ -707,7 +707,7 @@ int frontend_text_draw_centered(int font_size, const char *str,
  * what frontend_text_draw would. */
 // FUNCTION: XVT 0x4DB7D0
 int frontend_text_draw_aligned_in_rect(int font_size, const char *str,
-				       struct RECT *rect, int center_h,
+				       const struct RECT *rect, int center_h,
 				       int center_v, int color)
 {
 	int current_color;
@@ -915,8 +915,8 @@ int frontend_text_draw_line_array_in_rect(int font_size, const char **lines,
  * outside 0 to 255 or that font is not loaded. */
 // FUNCTION: XVT 0x4DBBD0
 int frontend_text_draw_wrapped(int font_size, const char *str,
-			       struct RECT *rect, int color, int line_spacing,
-			       int first_visible_line)
+			       const struct RECT *rect, int color,
+			       int line_spacing, int first_visible_line)
 {
 	struct bitmap_font *font;
 	int x;
@@ -1114,7 +1114,7 @@ int frontend_text_measure_width(const char *str, int font_size)
  * not check the writes. The header copy assumes the 32-bit layout, with a
  * 4-byte pointer. */
 // FUNCTION: XVT 0x4DC020
-void frontend_text_save_font_atlas_file(char *file_name, void **font,
+void frontend_text_save_font_atlas_file(const char *file_name, void **font,
 					unsigned int glyph_blob_size)
 {
 	uint8_t disk_header[0x60B];
@@ -1257,7 +1257,7 @@ int frontend_text_resume_text_fade(void)
  * dropped, while with it nonzero the '$' is drawn as a glyph. Does not check
  * that a line fits its 320-byte buffer. */
 // FUNCTION: XVT 0x4F8620
-void frontend_text_draw_formatted_wrapped_text(struct RECT *rect,
+void frontend_text_draw_formatted_wrapped_text(const struct RECT *rect,
 					       const uint8_t *text,
 					       int suppress_centered_headings)
 {

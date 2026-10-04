@@ -308,7 +308,7 @@ int g_game_main_skip_intro_relaunch_gate;
  * g_campaign_award_sprites, saves the pilot, and returns 1 when
  * g_game_main_skip_intro_relaunch_gate is still 0, else 0. */
 // FUNCTION: XVT 0x4D3600
-int game_main(void *hInstance, void *hPrevInstance, char *lpCmdLine,
+int game_main(void *hInstance, const void *hPrevInstance, char *lpCmdLine,
 	      int nShowCmd)
 {
 	frontend_screen_update_fn update_function;
@@ -785,8 +785,9 @@ int frontend_display_show_game_message_box(const char *text)
  * active or not, and the loop returns the quit message's exit code. The modern
  * build returns 0 at once. */
 // FUNCTION: XVT 0x4D3E40
-uint32_t frontend_display_run_main_loop(void *hInstance, void *hPrevInstance,
-					char *lpCmdLine, int nShowCmd)
+uint32_t frontend_display_run_main_loop(void *hInstance,
+					const void *hPrevInstance,
+					const char *lpCmdLine, int nShowCmd)
 {
 #ifdef XVT_MODERN
 	(void)hInstance;
@@ -1271,8 +1272,8 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
  * functions, mode_init_fn and Esc-to-close, and returns
  * frontend_display_run_main_loop's result. */
 // FUNCTION: XVT 0x4D4770
-uint32_t frontend_display_init(void *hInstance, void *hPrevInstance,
-			       char *lpCmdLine, int nShowCmd,
+uint32_t frontend_display_init(void *hInstance, const void *hPrevInstance,
+			       const char *lpCmdLine, int nShowCmd,
 			       frontend_screen_update_fn screen_update_fn,
 			       frontend_screen_exit_fn screen_exit_fn,
 			       int (*mode_init_fn)(void), int fps, int bpp)
@@ -1923,8 +1924,8 @@ int frontend_display_get_bytes_per_pixel(void)
  * cd_audio_saved_aux_volume to -1. */
 // FUNCTION: XVT 0x4D5090
 uint32_t frontend_display_init_preserving_network_session(
-	void *hInstance, void *hPrevInstance, char *lpCmdLine, int nShowCmd,
-	frontend_screen_update_fn screen_update_fn,
+	void *hInstance, const void *hPrevInstance, const char *lpCmdLine,
+	int nShowCmd, frontend_screen_update_fn screen_update_fn,
 	frontend_screen_exit_fn screen_exit_fn, int (*mode_init_fn)(void),
 	int fps, int bpp)
 {

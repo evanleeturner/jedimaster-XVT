@@ -101,7 +101,7 @@ int model_mesh_get_object_type_mesh_count(int object_type);
 struct opt_node *model_mesh_find_first_mesh_verts_node(struct opt_node *node);
 struct opt_node *model_mesh_find_first_rot_scale_node(struct opt_node *node);
 struct mesh_descriptor *
-model_mesh_find_descriptor_node_recursive(struct opt_node *node,
+model_mesh_find_descriptor_node_recursive(const struct opt_node *node,
 					  struct optimized_poly_object *model);
 struct mesh_descriptor *model_mesh_get_descriptor(int object_type,
 						  int mesh_index);

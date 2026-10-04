@@ -11151,7 +11151,7 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
  * modern build a read error is fatal. A file ending in 0xFF yields an empty
  * last frame. Does not check the buffer's size or the pointer count. */
 // FUNCTION: XVT 0x49C330
-int flight_icon_load_frames(char *file_name, uint8_t *data_buffer,
+int flight_icon_load_frames(const char *file_name, uint8_t *data_buffer,
 			    uint8_t **frame_pointers)
 {
 	int16_t frame_count;

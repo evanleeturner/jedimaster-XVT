@@ -18,17 +18,17 @@ typedef enum frontend_navigation_slot_state {
 
 extern const char *g_button_overlay_text;
 
-int frontend_button_handle_text_button(struct RECT *rect, const char *text,
-				       int font_size, int unused_color,
-				       int held_state_slot,
+int frontend_button_handle_text_button(const struct RECT *rect,
+				       const char *text, int font_size,
+				       int unused_color, int held_state_slot,
 				       const char *click_sound_name);
 int frontend_button_handle_sprite_button(
 	struct RECT *rect, const char *normal_sprite,
 	const char *pressed_sprite, const char *tooltip_text, int font_size,
 	int unused_color, int held_state_slot, const char *press_sound_name);
-int frontend_button_draw_text_button_state(struct RECT *rect, const char *text,
-					   int font_size, int unused_color,
-					   char is_pressed);
+int frontend_button_draw_text_button_state(const struct RECT *rect,
+					   const char *text, int font_size,
+					   int unused_color, char is_pressed);
 void frontend_button_draw_sprite_and_tooltip(struct RECT *rect,
 					     const char *sprite_name,
 					     const char *tooltip_text,

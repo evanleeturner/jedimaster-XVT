@@ -442,13 +442,13 @@ struct opt_hardpoint {
 
 uint16_t opt_model_load_handle(const char *model_filename);
 #ifndef XVT_MODERN
-uint16_t opt_model_load_inventor_binary_to_handle(xvt_file *stream);
+uint16_t opt_model_load_inventor_binary_to_handle(const xvt_file *stream);
 uint16_t opt_model_load_inventor_ascii_to_handle(xvt_file *stream);
 int opt_model_parse_inventor_ascii_node(xvt_file *stream, char *node_storage,
 					struct opt_node **out_node);
 #endif
 void opt_model_translate_node_vertices_recursive(
-	struct opt_node *node, struct optimized_poly_object *model,
+	const struct opt_node *node, struct optimized_poly_object *model,
 	const float *translation);
 void opt_model_translate_vertices(struct optimized_poly_object *model,
 				  const float *translation);
@@ -465,7 +465,7 @@ uint16_t opt_model_load_file_to_handle(char *filename);
 unsigned int
 opt_model_convert_legacy_model_to_optimized(unsigned int source_size);
 void *opt_model_find_shared_texture_data_in_node_before_target(
-	const void *texture_data, struct opt_node *node,
+	const void *texture_data, const struct opt_node *node,
 	const struct opt_node *stop_node);
 void *
 opt_model_find_earlier_shared_texture_data(const void *texture_data,
@@ -476,11 +476,11 @@ unsigned int opt_model_convert_legacy_node_to_optimized(
 	struct optimized_poly_object *src_model,
 	struct optimized_poly_object *dst_model, struct scene_mesh *mesh_state);
 void opt_model_collect_unique_vertices(struct opt_node *dst_vertex_node,
-				       struct opt_node *src_node,
+				       const struct opt_node *src_node,
 				       struct optimized_poly_object *src_model,
 				       struct scene_mesh *mesh_state);
 void opt_model_collect_unique_tex_coords(
-	struct opt_node *dst_tex_coord_node, struct opt_node *src_node,
+	struct opt_node *dst_tex_coord_node, const struct opt_node *src_node,
 	struct optimized_poly_object *src_model, struct scene_mesh *mesh_state);
 void opt_model_collect_unique_vertex_normals(
 	struct opt_node *dst_normal_node, struct opt_node *src_node,
@@ -507,14 +507,14 @@ opt_model_find_corresponding_texture_node(struct opt_node *src_node,
 					  struct opt_node *dst_node,
 					  const uint16_t *source_palette);
 struct opt_node *opt_model_find_corresponding_texture_node_in_model(
-	struct optimized_poly_object *dst_model,
-	struct optimized_poly_object *src_model,
+	const struct optimized_poly_object *dst_model,
+	const struct optimized_poly_object *src_model,
 	const uint16_t *source_palette);
 #ifndef XVT_MODERN
 void opt_model_save_handle_to_file(const char *filename, uint16_t handle);
 #endif
 unsigned int
-opt_model_measure_node_and_raise_capacities(struct opt_node *node,
+opt_model_measure_node_and_raise_capacities(const struct opt_node *node,
 					    struct scene_mesh *parent_state);
 void opt_model_prepare_texture_palette(uint16_t *palette, int entry_count);
 unsigned int opt_model_build_runtime_node(const struct opt_node *src_node,
@@ -533,8 +533,8 @@ int opt_model_find_unique_edge_index(
 	const struct opt_packed_face_node *face_node, int vertex_index_a,
 	int vertex_index_b);
 float *opt_model_append_packed_face_derived_data(
-	struct opt_packed_face_node *face_node, uint8_t *dest,
-	void *conversion_state);
+	const struct opt_packed_face_node *face_node, uint8_t *dest,
+	const void *conversion_state);
 void opt_model_build_face_normal_tangent_data(
 	float *dest, const struct opt_packed_face_data *face_data,
 	int face_count, const void *conversion_state);

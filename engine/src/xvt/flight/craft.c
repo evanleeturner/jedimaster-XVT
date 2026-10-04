@@ -1180,7 +1180,7 @@ void craft_spawn_main_hull_explosion_effects(uint16_t object_idx,
  * Writes g_rotated_x, g_rotated_y and g_rotated_z. Does not check that the mesh
  * has a vertex. */
 // FUNCTION: XVT 0x4A76D0
-int craft_spawn_explosion_object_at_mesh(struct object_record *obj_record,
+int craft_spawn_explosion_object_at_mesh(const struct object_record *obj_record,
 					 uint16_t mesh_index, int effect_size,
 					 uint16_t use_random_vertex)
 {

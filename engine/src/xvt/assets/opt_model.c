@@ -1128,7 +1128,7 @@ uint16_t opt_model_load_handle(const char *model_filename)
 /* Returns 0: binary Inventor files are not read. Only the original build calls
  * this. */
 // FUNCTION: XVT 0x412030
-uint16_t opt_model_load_inventor_binary_to_handle(xvt_file *stream)
+uint16_t opt_model_load_inventor_binary_to_handle(const xvt_file *stream)
 {
 	(void)stream;
 
@@ -2633,7 +2633,7 @@ int opt_model_parse_inventor_ascii_node(xvt_file *stream, char *node_storage,
  * opt_model_translate_vertices calls this, and nothing calls that. */
 // FUNCTION: XVT 0x42ABA0
 void opt_model_translate_node_vertices_recursive(
-	struct opt_node *node, struct optimized_poly_object *model,
+	const struct opt_node *node, struct optimized_poly_object *model,
 	const float *translation)
 {
 	int vertex_count;
@@ -3188,7 +3188,7 @@ opt_model_convert_legacy_model_to_optimized(unsigned int source_size)
  * to its own children. */
 // FUNCTION: XVT 0x474830
 void *opt_model_find_shared_texture_data_in_node_before_target(
-	const void *texture_data, struct opt_node *node,
+	const void *texture_data, const struct opt_node *node,
 	const struct opt_node *stop_node)
 {
 	int texture_byte_count;
@@ -4112,7 +4112,7 @@ unsigned int opt_model_convert_legacy_node_to_optimized(
  * not resolve. Does not check the list's room; mesh_state is unused. */
 // FUNCTION: XVT 0x475740
 void opt_model_collect_unique_vertices(struct opt_node *dst_vertex_node,
-				       struct opt_node *src_node,
+				       const struct opt_node *src_node,
 				       struct optimized_poly_object *src_model,
 				       struct scene_mesh *mesh_state)
 {
@@ -4178,7 +4178,7 @@ void opt_model_collect_unique_vertices(struct opt_node *dst_vertex_node,
  * mesh_state is unused. */
 // FUNCTION: XVT 0x475850
 void opt_model_collect_unique_tex_coords(
-	struct opt_node *dst_tex_coord_node, struct opt_node *src_node,
+	struct opt_node *dst_tex_coord_node, const struct opt_node *src_node,
 	struct optimized_poly_object *src_model, struct scene_mesh *mesh_state)
 {
 	struct opt_node *destination_node;
@@ -5171,8 +5171,9 @@ opt_model_find_corresponding_texture_node(struct opt_node *src_node,
  * root count for both. */
 // FUNCTION: XVT 0x476670
 struct opt_node *opt_model_find_corresponding_texture_node_in_model(
-	struct optimized_poly_object *dst_model,
-	struct optimized_poly_object *src_model, const uint16_t *source_palette)
+	const struct optimized_poly_object *dst_model,
+	const struct optimized_poly_object *src_model,
+	const uint16_t *source_palette)
 {
 	int root_offset;
 	int root_index;
@@ -5280,7 +5281,7 @@ void opt_model_save_handle_to_file(const char *filename, uint16_t handle)
  * pointer. */
 // FUNCTION: XVT 0x476810
 unsigned int
-opt_model_measure_node_and_raise_capacities(struct opt_node *node,
+opt_model_measure_node_and_raise_capacities(const struct opt_node *node,
 					    struct scene_mesh *parent_state)
 {
 	unsigned int serialized_size;
@@ -7773,8 +7774,8 @@ int opt_model_find_unique_edge_index(
  * g_generated_vertex_normal_count. Only the original build calls this. */
 // FUNCTION: XVT 0x4794C0
 float *opt_model_append_packed_face_derived_data(
-	struct opt_packed_face_node *face_node, uint8_t *dest,
-	void *conversion_state)
+	const struct opt_packed_face_node *face_node, uint8_t *dest,
+	const void *conversion_state)
 {
 	dest += sizeof(struct opt_packed_face_record) * face_node->face_count;
 	opt_model_build_face_normal_tangent_data(

@@ -162,7 +162,7 @@ int16_t g_briefing_map_labels_changed = 0;
  * both axes. */
 // FUNCTION: XVT 0x4F7A30
 int16_t briefing_map_select_nearest_mission_point14_flight_group(
-	struct RECT *viewport_rect, int16_t mouse_x, int16_t mouse_y)
+	const struct RECT *viewport_rect, int16_t mouse_x, int16_t mouse_y)
 {
 	int distance_x;
 	int distance_y;
@@ -359,8 +359,8 @@ void briefing_map_update_script_playback_after_animation(void)
  * and returns 1. Ignores viewport_rect, clipRect and both button states. */
 // FUNCTION: XVT 0x4F7E00
 int16_t briefing_map_select_flight_group_at_cursor(
-	struct RECT *viewport_rect, struct RECT *clip_rect, int left_down,
-	int right_down, int16_t mouse_x, int16_t mouse_y)
+	const struct RECT *viewport_rect, const struct RECT *clip_rect,
+	int left_down, int right_down, int16_t mouse_x, int16_t mouse_y)
 {
 	struct RECT dst;
 
@@ -385,9 +385,10 @@ int16_t briefing_map_select_flight_group_at_cursor(
  * Leaves the screen clip on the map and returns 1. Ignores highlight_phase,
  * and works out a 12-pixel title strip that it never draws. */
 // FUNCTION: XVT 0x4F7E40
-int16_t briefing_map_draw_viewport_and_selection(struct RECT *viewport_rect,
-						 struct RECT *clip_rect,
-						 int16_t highlight_phase)
+int16_t
+briefing_map_draw_viewport_and_selection(const struct RECT *viewport_rect,
+					 const struct RECT *clip_rect,
+					 int16_t highlight_phase)
 {
 	struct RECT title_rect;
 	struct RECT narration_rect;
@@ -575,8 +576,8 @@ void briefing_map_draw_grid(const struct RECT *viewport_rect,
  * in font 10 at the icon's lower right. The point it projects for each marker
  * goes unused. */
 // FUNCTION: XVT 0x4F82A0
-void briefing_map_draw_overlays(struct RECT *viewport_rect,
-				struct RECT *clip_rect)
+void briefing_map_draw_overlays(const struct RECT *viewport_rect,
+				const struct RECT *clip_rect)
 {
 	int16_t projected_x;
 	int16_t projected_y;
@@ -834,8 +835,8 @@ void briefing_map_draw_revealed_label(const char *text,
  * outlined box 2 pixels outside the icon. Does nothing when the craft type is
  * negative; ignores clipRect. */
 // FUNCTION: XVT 0x4F8B30
-void briefing_map_draw_craft_icon_highlight(struct RECT *viewport_rect,
-					    struct RECT *clip_rect,
+void briefing_map_draw_craft_icon_highlight(const struct RECT *viewport_rect,
+					    const struct RECT *clip_rect,
 					    int flight_group_index,
 					    int highlight_phase)
 {

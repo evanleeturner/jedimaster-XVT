@@ -298,11 +298,11 @@ int flight_sw_load_sprite_palette_tables(struct sprite_payload *sprite);
 uint16_t flight_sw_lookup_scaled_tangent(uint16_t angle, int16_t scale_percent);
 void flight_sw_prepare_rotated_sprite_scale_state(
 	uint16_t screen_size,
-	struct flight_sw_rot_sprite_coeff_state *rotation_coeffs,
+	const struct flight_sw_rot_sprite_coeff_state *rotation_coeffs,
 	struct flight_sw_rot_sprite_scale_state *scale_state);
 void flight_sw_rotate_sprite_point(
-	uint16_t *rotation_coeffs,
-	struct flight_sw_rot_sprite_scale_state *scale_state);
+	const uint16_t *rotation_coeffs,
+	const struct flight_sw_rot_sprite_scale_state *scale_state);
 void flight_sw_build_sprite_rotation_coeffs(uint16_t rotation_angle,
 					    uint16_t *out_coeffs);
 void flight_sw_rasterize_prepared_rotated_sprite(uint8_t *sprite_data,

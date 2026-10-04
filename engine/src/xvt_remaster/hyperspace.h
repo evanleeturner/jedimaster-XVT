@@ -30,7 +30,7 @@ int xvt_hyperspace_prepare(AeronCommandBuffer *cmd,
  * (on failure marks cmd failed and draws nothing), sets the viewport to the whole target, draws the
  * tunnel as a full-screen triangle when prepared, then the streaks additively. user is unused. */
 void xvt_hyperspace_draw(AeronCommandBuffer *cmd, AeronRenderPass *pass,
-			 int width, int height, void *user);
+			 int width, int height, const void *user);
 /* Releases everything and forgets the frame's state. */
 void xvt_hyperspace_shutdown(void);
 
@@ -45,7 +45,7 @@ struct xvt_hyper_lighting {
 /* Returns 1 and fills out with the environment cube and its sampler, direction (0, 1, 0) and color =
  * cap_color * brightness * highlight_strength * mesh_key_strength from the hyperspace settings, when the
  * last Prepare built the tunnel for scene; else 0 with out untouched. */
-int xvt_hyperspace_lighting(AeronScene3D *scene,
+int xvt_hyperspace_lighting(const AeronScene3D *scene,
 			    struct xvt_hyper_lighting *out);
 #ifdef __cplusplus
 }

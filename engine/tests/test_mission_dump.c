@@ -250,7 +250,7 @@ static struct run run_tool(int count, const char *const *args, int to_full)
 	return run;
 }
 
-static void free_run(struct run *run)
+static void free_run(const struct run *run)
 {
 	free(run->out);
 	free(run->err);

@@ -270,11 +270,10 @@ void flight_restore_world_state(void);
 size_t flight_calculate_world_state_buffer_size(void);
 void flight_checksum_world_state(int unused_arg0, int unused_arg1);
 int flight_compute_world_state_resync_segment_size(int world_state_size);
-int flight_build_world_state_resync_segment_checksums(int *out_checksums,
-						      uint8_t *world_state,
-						      int world_state_size);
+int flight_build_world_state_resync_segment_checksums(
+	int *out_checksums, const uint8_t *world_state, int world_state_size);
 int flight_build_world_state_object_presence_map(uint8_t *out_map,
-						 uint8_t *world_state);
+						 const uint8_t *world_state);
 void flight_apply_world_state_object_presence_map(const uint8_t *presence_map);
 void flight_step_sim_to_time(int target_game_time);
 void flight_advance_one_step(int target_game_time);

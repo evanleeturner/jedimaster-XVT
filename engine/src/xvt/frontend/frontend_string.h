@@ -859,7 +859,7 @@ enum {
 	FRONTSTR_829_EMPTY_TRANSLATION_PLACEHOLDER = 0x33D,
 };
 
-void frontend_string_load_table(char *file_name);
+void frontend_string_load_table(const char *file_name);
 void frontend_string_unload_table(void);
 const char *frontend_string_get(frontend_string_id index);
 

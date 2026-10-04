@@ -251,7 +251,7 @@ void nullsub_2(void);
 void std3d_fill_z_buffer_from_viewport_mask(void);
 int render_scene_clear_frame_buffers(void);
 void std3d_detach_and_release_z_buffer_surface(void);
-void render_scene_compute_vertex_lighting(struct scene_mesh *mesh,
+void render_scene_compute_vertex_lighting(const struct scene_mesh *mesh,
 					  struct proj_vertex *out_vert,
 					  const struct opt_vector *normal,
 					  const struct opt_vector *pos,
@@ -267,10 +267,11 @@ void render_scene_transform_project_legacy_distant_point(
 	float out_projected[3], const float point[3],
 	const float view_pos_and_orient[12]);
 void render_scene_cull_mesh_faces_from_view(struct scene_mesh *mesh);
-void render_scene_draw_scene_mesh(struct scene_mesh *mesh);
+void render_scene_draw_scene_mesh(const struct scene_mesh *mesh);
 void render_scene_apply_bwing_bridge_rotation(
-	struct optimized_poly_object *unused_model, struct object_record *obj,
-	struct scene_mesh *mesh, int bridge_mesh_index);
+	const struct optimized_poly_object *unused_model,
+	const struct object_record *obj, struct scene_mesh *mesh,
+	int bridge_mesh_index);
 void render_scene_draw_object_model(struct object_record *obj);
 void render_scene_draw_selected_root_node(struct object_record *obj,
 					  int root_node_index);
@@ -283,7 +284,7 @@ int render_scene_is_segment_occluded_by_object_model(
 	struct object_record *object, const struct opt_vector *segment_start,
 	const struct opt_vector *segment_end);
 int render_scene_test_segment_against_model_node(
-	struct optimized_poly_object *model, struct opt_node *node,
+	struct optimized_poly_object *model, const struct opt_node *node,
 	struct scene_mesh *mesh, const struct opt_vector *segment_start,
 	const struct opt_vector *segment_end);
 int render_scene_test_segment_against_mesh_faces(

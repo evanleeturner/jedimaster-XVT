@@ -61,45 +61,50 @@ void front_image_free_all_resources(void);
 int front_image_resource_exists(const char *name);
 int front_image_get_resource_rect(const char *name, struct RECT *out_rect);
 int front_image_draw_sprite_translucent(const char *name, int x, int y);
-int front_image_blit_translucent(struct image_resource *image, int x, int y);
+int front_image_blit_translucent(const struct image_resource *image, int x,
+				 int y);
 int front_image_draw_sprite_rect_transparent(const char *name,
-					     struct RECT *src_rect, int dst_x,
-					     int dst_y);
-int front_image_blit_rect_transparent(struct image_resource *image,
-				      struct RECT *src_rect, int dst_x,
+					     const struct RECT *src_rect,
+					     int dst_x, int dst_y);
+int front_image_blit_rect_transparent(const struct image_resource *image,
+				      const struct RECT *src_rect, int dst_x,
 				      int dst_y);
-int front_image_draw_sprite_rect_tinted(const char *name, struct RECT *src_rect,
-					int dst_x, int dst_y,
-					unsigned int tint_color);
-int front_image_blit_rect_tinted(struct image_resource *image,
+int front_image_draw_sprite_rect_tinted(const char *name,
+					const struct RECT *src_rect, int dst_x,
+					int dst_y, unsigned int tint_color);
+int front_image_blit_rect_tinted(const struct image_resource *image,
 				 const struct RECT *src_rect, int dst_x,
 				 int dst_y, unsigned int tint_color);
 int front_image_draw_sprite(const char *name, int x, int y);
-int front_image_blit_transparent(struct image_resource *image, int x, int y);
-void front_image_blit_rle8(struct image_resource *image, int dest_x, int dest_y,
-			   int src_left, int src_top, int visible_width,
-			   int visible_height);
-void front_image_blit_rle16(struct image_resource *image, int dest_x,
+int front_image_blit_transparent(const struct image_resource *image, int x,
+				 int y);
+void front_image_blit_rle8(const struct image_resource *image, int dest_x,
+			   int dest_y, int src_left, int src_top,
+			   int visible_width, int visible_height);
+void front_image_blit_rle16(const struct image_resource *image, int dest_x,
 			    int dest_y, int src_left, int src_top,
 			    int visible_width, int visible_height);
 int front_image_draw_sprite_opaque(const char *name, int x, int y);
-int front_image_blit_opaque(struct image_resource *image, int x, int y);
-void front_image_blit_rle8_opaque(struct image_resource *image, int dest_x,
-				  int dest_y, int src_left, int src_top,
-				  int visible_width, int visible_height);
-void front_image_blit_rle16_opaque(struct image_resource *image, int dest_x,
-				   int dest_y, int src_left, int src_top,
-				   int visible_width, int visible_height);
-int front_image_draw_glyph(struct image_resource *glyph, int x, int y,
+int front_image_blit_opaque(const struct image_resource *image, int x, int y);
+void front_image_blit_rle8_opaque(const struct image_resource *image,
+				  int dest_x, int dest_y, int src_left,
+				  int src_top, int visible_width,
+				  int visible_height);
+void front_image_blit_rle16_opaque(const struct image_resource *image,
+				   int dest_x, int dest_y, int src_left,
+				   int src_top, int visible_width,
+				   int visible_height);
+int front_image_draw_glyph(const struct image_resource *glyph, int x, int y,
 			   unsigned int color, int apply_text_fade);
-void front_image_blit_glyph_rle_8bpp(struct image_resource *glyph, int dest_x,
-				     int dest_y, int clip_left_skip,
+void front_image_blit_glyph_rle_8bpp(const struct image_resource *glyph,
+				     int dest_x, int dest_y, int clip_left_skip,
 				     int clip_top_skip, int visible_width,
 				     int visible_rows, uint8_t color);
-void front_image_blit_glyph_rle_16bpp(struct image_resource *glyph, int dest_x,
-				      int dest_y, int clip_left_skip,
-				      int clip_top_skip, int visible_width,
-				      int visible_rows, unsigned int color);
+void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
+				      int dest_x, int dest_y,
+				      int clip_left_skip, int clip_top_skip,
+				      int visible_width, int visible_rows,
+				      unsigned int color);
 int front_image_load_bmp_file(const char *file_name,
 			      struct image_resource *image,
 			      int remap_to_display_palette, int compress_rle);
@@ -122,15 +127,15 @@ int front_image_find_resource_by_name(const char *name);
 int front_image_bsearch_resource(
 	const struct front_image_resource_record *table, int hi,
 	const char *key);
-int front_image_save_bmp_file(char *file_name, const void *pixels, int width,
-			      int height, int pitch, int bpp, int is555,
-			      const void *palette);
+int front_image_save_bmp_file(const char *file_name, const void *pixels,
+			      int width, int height, int pitch, int bpp,
+			      int is555, const void *palette);
 int front_image_load_bmp_palette_file(const char *file_name,
 				      uint8_t *dest_rgba);
 void front_image_read_bmp_palette(xvt_file *stream, uint8_t *dest, int count);
 unsigned int front_image_get_faded_glyph_color16(unsigned int color16);
-int front_image_load_resource_list(char *file_name);
-int front_image_unload_resource_list(char *file_name);
+int front_image_load_resource_list(const char *file_name);
+int front_image_unload_resource_list(const char *file_name);
 
 #ifdef __cplusplus
 }

@@ -247,7 +247,7 @@ struct opt_node *model_mesh_find_first_rot_scale_node(struct opt_node *node)
  * OPT_NODEREF links and ignores model. */
 // FUNCTION: XVT 0x4AE1A0
 struct mesh_descriptor *
-model_mesh_find_descriptor_node_recursive(struct opt_node *node,
+model_mesh_find_descriptor_node_recursive(const struct opt_node *node,
 					  struct optimized_poly_object *model)
 {
 	struct mesh_descriptor *descriptor;

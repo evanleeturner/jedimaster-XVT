@@ -842,12 +842,12 @@ void msg_emit_in_flight_message(in_flight_message_id message_id,
 				int player_idx);
 void msg_reportfgcreation(uint16_t flight_group_index, uint16_t model_index);
 void msg_add_message_ptr(uint16_t slot, const void *value);
-void msg_emit_craft_message(uint16_t obj_idx, struct craft_data *craft,
+void msg_emit_craft_message(uint16_t obj_idx, const struct craft_data *craft,
 			    int16_t msg_template_id);
 void msg_radio_message(uint16_t sender_obj_idx, uint8_t *sender_craft,
 		       uint16_t command_id, uint16_t response_index,
 		       int16_t multiple_recipients);
-void msg_reportmessage(uint16_t obj_idx, struct craft_data *craft,
+void msg_reportmessage(uint16_t obj_idx, const struct craft_data *craft,
 		       int16_t msg_template_id);
 int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
 				 int emit_hud_message,

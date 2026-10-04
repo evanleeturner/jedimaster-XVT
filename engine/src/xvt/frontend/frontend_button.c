@@ -72,9 +72,9 @@ static uint8_t g_button_held_state[256] = {0};
  * checking that the slot is under 256. unused_color is passed on and never
  * used. */
 // FUNCTION: XVT 0x4DA650
-int frontend_button_handle_text_button(struct RECT *rect, const char *text,
-				       int font_size, int unused_color,
-				       int held_state_slot,
+int frontend_button_handle_text_button(const struct RECT *rect,
+				       const char *text, int font_size,
+				       int unused_color, int held_state_slot,
 				       const char *click_sound_name)
 {
 	int cursor_x;
@@ -177,9 +177,9 @@ int frontend_button_handle_sprite_button(
  * color is g_front_button_light_color, else g_front_button_dark_color; the first call
  * computes both. Returns frontend_text_draw_centered's result. */
 // FUNCTION: XVT 0x4DA8E0
-int frontend_button_draw_text_button_state(struct RECT *rect, const char *text,
-					   int font_size, int unused_color,
-					   char is_pressed)
+int frontend_button_draw_text_button_state(const struct RECT *rect,
+					   const char *text, int font_size,
+					   int unused_color, char is_pressed)
 {
 	struct RECT inner_rect;
 	int text_color;

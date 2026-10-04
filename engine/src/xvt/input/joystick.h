@@ -41,7 +41,7 @@ void joystick_poll_scaled_axes(int device_index, int *p_axis_x, int *p_axis_y,
 			       int *p_axis_z, int *p_buttons);
 int16_t joystick_initialize_backend_stub(void);
 int joystick_poll_scaled_axes_if_active(int *p_axis_x, int *p_axis_y,
-					int *p_axis_z, int *p_axis_r);
+					int *p_axis_z, const int *p_axis_r);
 
 #ifdef __cplusplus
 }

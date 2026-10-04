@@ -498,7 +498,8 @@ int xvt_hyperspace_prepare(AeronCommandBuffer *cmd,
 }
 
 void xvt_hyperspace_draw(AeronCommandBuffer *command_buffer,
-			 AeronRenderPass *pass, int rt_w, int rt_h, void *user)
+			 AeronRenderPass *pass, int rt_w, int rt_h,
+			 const void *user)
 {
 	(void)user;
 	struct xvt_hyperspace *h = &g_hyper;
@@ -528,7 +529,8 @@ void xvt_hyperspace_draw(AeronCommandBuffer *command_buffer,
 	}
 }
 
-int xvt_hyperspace_lighting(AeronScene3D *scene, struct xvt_hyper_lighting *out)
+int xvt_hyperspace_lighting(const AeronScene3D *scene,
+			    struct xvt_hyper_lighting *out)
 {
 	const struct xvt_hyperspace *h = &g_hyper;
 	if (!h->draw_background || h->lighting_scene != scene) {

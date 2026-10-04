@@ -1702,7 +1702,7 @@ int *net_session_receive_game_packet(int *out_sender_dpid,
  * session init. Returns a value no caller uses. */
 // FUNCTION: XVT 0x46E080
 int net_session_handle_direct_play_system_message(int packet_opcode,
-						  int *packet)
+						  const int *packet)
 {
 	enum {
 		RELIABLE_SEQUENCE_SENTINEL = 127,

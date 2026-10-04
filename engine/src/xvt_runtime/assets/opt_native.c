@@ -53,7 +53,7 @@ size_t xvt_opt_align_size(size_t size)
 	return (size + sizeof(void *) - 1) & ~(sizeof(void *) - 1);
 }
 
-uint8_t *xvt_opt_align_pointer(uint8_t *pointer)
+uint8_t *xvt_opt_align_pointer(const uint8_t *pointer)
 {
 	return (uint8_t *)((uintptr_t)(pointer + sizeof(void *) - 1) &
 			   ~(uintptr_t)(sizeof(void *) - 1));
@@ -396,14 +396,15 @@ static int xvt_opt_visit(struct xvt_opt_decode *decode, uint32_t address,
 	return !decode->failed;
 }
 
-static void *xvt_opt_raw_pointer(struct xvt_opt_decode *decode,
+static void *xvt_opt_raw_pointer(const struct xvt_opt_decode *decode,
 				 uint8_t *raw_copy, uint32_t address)
 {
 	return address ? raw_copy + (address - decode->base) : NULL;
 }
 
-static struct opt_node *xvt_opt_node_pointer(struct xvt_opt_decode *decode,
-					     uint8_t *native, uint32_t address)
+static struct opt_node *
+xvt_opt_node_pointer(const struct xvt_opt_decode *decode, uint8_t *native,
+		     uint32_t address)
 {
 	int index = xvt_opt_index(decode, address);
 	return index < 0

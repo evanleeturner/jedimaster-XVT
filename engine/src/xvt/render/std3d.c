@@ -2403,7 +2403,7 @@ void std3d_cache_list_append(struct std3d_tex_cache_node *node)
  * texel_count back to available_memory. Does not check that node is on the
  * list. */
 // FUNCTION: XVT 0x4B3160
-void std3d_cache_list_remove(struct std3d_tex_cache_node *node)
+void std3d_cache_list_remove(const struct std3d_tex_cache_node *node)
 {
 	if (node == g_p_tex_cache_head) {
 		g_p_tex_cache_head = node->p_next;
@@ -2513,7 +2513,7 @@ int std3d_clear_z_buffer(void)
  * device that matches the most of those, in that order. Returns 0 when there is
  * no device. */
 // FUNCTION: XVT 0x4B3380
-int std3d_select_best_device(struct std3d_device_caps *required_caps)
+int std3d_select_best_device(const struct std3d_device_caps *required_caps)
 {
 	int best_match_quality;
 	struct std3d_device *device;

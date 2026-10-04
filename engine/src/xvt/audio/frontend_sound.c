@@ -1213,7 +1213,7 @@ int frontend_sound_load_list(const char *file_name)
  * sound with frontend_sound_unload_buffer_by_name. Returns as
  * frontend_sound_load_list does. Nothing calls this. */
 // FUNCTION: XVT 0x4DF7C0
-int frontend_sound_unload_list(char *file_name)
+int frontend_sound_unload_list(const char *file_name)
 {
 	xvt_file *stream;
 	int field_count;

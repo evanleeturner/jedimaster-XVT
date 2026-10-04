@@ -355,11 +355,11 @@ void pai_object_ref_direction_to_object_ref(unsigned int from_ref,
 					    unsigned int to_ref);
 void pai_object_ref_update_rough_distance(unsigned int from_ref,
 					  unsigned int to_ref);
-void pai_calcrotatedpoint(struct object_record *obj, int16_t side_arg,
+void pai_calcrotatedpoint(const struct object_record *obj, int16_t side_arg,
 			  int16_t up_arg, int16_t fwd_arg);
-void pai_rotate_local_vector_to_world_scratch(struct object_record *obj_record,
-					      int local_side, int local_up,
-					      int local_fwd);
+void pai_rotate_local_vector_to_world_scratch(
+	const struct object_record *obj_record, int local_side, int local_up,
+	int local_fwd);
 void pai_calc_angles_to_aim_point(void);
 int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 					 uint16_t target1,
@@ -382,7 +382,7 @@ int pai_find_maneuver_token_index(const char *token);
 int pai_find_order_token_index(const char *token);
 int pai_read_plan_text_token(char *token, xvt_file *stream);
 int pai_compile_plans_from_text(const char *base_name);
-int pai_loadplans(char *base_name);
+int pai_loadplans(const char *base_name);
 void pai_cache_builtin_plan_ids(void);
 uint8_t *pai_getplandataptrbyname(const char *plan_name);
 int pai_find_plan_id_by_name_or_zero(const char *plan_name);

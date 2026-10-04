@@ -872,7 +872,7 @@ void pai_object_ref_update_rough_distance(unsigned int from_ref,
  * and axes with fview_calcrotatemove and fview_calcrotateorient, which also set
  * the shared matrix globals those two write. */
 // FUNCTION: XVT 0x4035D0
-void pai_calcrotatedpoint(struct object_record *obj, int16_t side_arg,
+void pai_calcrotatedpoint(const struct object_record *obj, int16_t side_arg,
 			  int16_t up_arg, int16_t fwd_arg)
 {
 	int result;
@@ -897,9 +897,9 @@ void pai_calcrotatedpoint(struct object_record *obj, int16_t side_arg,
 
 /* Does the same as pai_calcrotatedpoint, with the vector passed as int. */
 // FUNCTION: XVT 0x4037B0
-void pai_rotate_local_vector_to_world_scratch(struct object_record *obj_record,
-					      int local_side, int local_up,
-					      int local_fwd)
+void pai_rotate_local_vector_to_world_scratch(
+	const struct object_record *obj_record, int local_side, int local_up,
+	int local_fwd)
 {
 	int result;
 
@@ -1803,7 +1803,7 @@ int pai_compile_plans_from_text(const char *base_name)
  * plan's bytes, sets g_plan_count to the number of named plans and returns 1.
  * Does not check either size against its array. */
 // FUNCTION: XVT 0x46B3D0
-int pai_loadplans(char *base_name)
+int pai_loadplans(const char *base_name)
 {
 	char file_name[256];
 	uint32_t buffer_size;

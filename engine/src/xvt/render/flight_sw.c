@@ -2979,7 +2979,7 @@ uint16_t flight_sw_lookup_scaled_tangent(uint16_t angle, int16_t scale_percent)
 // FUNCTION: XVT 0x4219D0
 void flight_sw_prepare_rotated_sprite_scale_state(
 	uint16_t screen_size,
-	struct flight_sw_rot_sprite_coeff_state *rotation_coeffs,
+	const struct flight_sw_rot_sprite_coeff_state *rotation_coeffs,
 	struct flight_sw_rot_sprite_scale_state *scale_state)
 {
 	uint16_t *aspect_scale_y;
@@ -3069,8 +3069,8 @@ void flight_sw_prepare_rotated_sprite_scale_state(
  * magnitudes in the input globals. */
 // FUNCTION: XVT 0x421AE0
 void flight_sw_rotate_sprite_point(
-	uint16_t *rotation_coeffs,
-	struct flight_sw_rot_sprite_scale_state *scale_state)
+	const uint16_t *rotation_coeffs,
+	const struct flight_sw_rot_sprite_scale_state *scale_state)
 {
 	int16_t original_corner_x;
 	int16_t original_corner_y;

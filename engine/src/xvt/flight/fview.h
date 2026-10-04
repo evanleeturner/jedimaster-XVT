@@ -12,14 +12,14 @@ extern "C" {
 void fview_build_camera_orient(int16_t view_roll, int16_t view_pitch,
 			       int16_t view_yaw, int16_t view_up_axis_angle,
 			       int16_t hud_aim_x, int16_t hud_aim_y,
-			       struct object_record *obj_record);
+			       const struct object_record *obj_record);
 int fview_set_object_transform(int16_t roll, int16_t pitch, int16_t yaw,
 			       int16_t up_axis_angle,
-			       struct object_record *obj_record);
+			       const struct object_record *obj_record);
 void fview_calcrotatemove(int16_t pitch, int16_t yaw,
-			  struct object_record *obj_record);
+			  const struct object_record *obj_record);
 void fview_calcrotateorient(int16_t roll, int16_t up_axis_angle,
-			    struct object_record *obj_record);
+			    const struct object_record *obj_record);
 int fview_compute_object_view_matrix(void);
 void fview_transformaxes(int axis_x_q15, int axis_y_q15, int axis_z_q15,
 			 int16_t angle_q16);

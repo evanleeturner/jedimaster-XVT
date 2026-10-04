@@ -69,7 +69,7 @@ int frontend_sound_binary_search_buffer_by_name(
 	const struct frontend_sound_buffer_record *records, int last_index,
 	const char *name);
 int frontend_sound_load_list(const char *file_name);
-int frontend_sound_unload_list(char *file_name);
+int frontend_sound_unload_list(const char *file_name);
 
 #ifdef __cplusplus
 }

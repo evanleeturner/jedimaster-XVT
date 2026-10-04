@@ -527,7 +527,7 @@ void msg_add_message_ptr(uint16_t slot, const void *value)
  * (message 133, else 134), followed by message msg_template_id's text. Sets
  * g_msg_sender_iff to the object's IFF and fills the message arguments. */
 // FUNCTION: XVT 0x451C20
-void msg_emit_craft_message(uint16_t obj_idx, struct craft_data *craft,
+void msg_emit_craft_message(uint16_t obj_idx, const struct craft_data *craft,
 			    int16_t msg_template_id)
 {
 	struct object_record *object;
@@ -611,7 +611,7 @@ void msg_radio_message(uint16_t sender_obj_idx, uint8_t *sender_craft,
 /* As msg_emit_craft_message, with messages 157 and 158, reporting in, and
  * g_msg_sender_iff set from the flight group's IFF instead of the object's. */
 // FUNCTION: XVT 0x451E70
-void msg_reportmessage(uint16_t obj_idx, struct craft_data *craft,
+void msg_reportmessage(uint16_t obj_idx, const struct craft_data *craft,
 		       int16_t msg_template_id)
 {
 	int flight_group_idx;

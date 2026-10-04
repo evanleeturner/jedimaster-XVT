@@ -36,7 +36,7 @@ xvt_controller_page_active_profile_const(
 }
 
 static const AeronControllerSnapshot *xvt_controller_page_selected_controller(
-	struct xvt_controller_settings *settings,
+	const struct xvt_controller_settings *settings,
 	const AeronInputSnapshot *input)
 {
 	if (!input) {

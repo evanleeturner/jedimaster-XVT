@@ -233,7 +233,7 @@ void fsfx_reset_flight_sfx_state(void)
  * does not open. Does not check that the ids stay under 838 or that a line fits
  * the 24-byte name. */
 // FUNCTION: XVT 0x42DED0
-int fsfx_load_sfx_list(char *file_name_buffer, uint16_t first_sound_id)
+int fsfx_load_sfx_list(const char *file_name_buffer, uint16_t first_sound_id)
 {
 	xvt_file *stream;
 	char buffer[256];

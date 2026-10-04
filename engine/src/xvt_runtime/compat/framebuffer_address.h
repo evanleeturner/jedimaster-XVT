@@ -11,7 +11,7 @@
 typedef uint8_t *xvt_framebuffer_address;
 
 /* Modern surfaces are always linear, so the banked VGA aperture never applies. */
-static __inline int xvt_framebuffer_address_is_legacy_base(uint8_t *base)
+static __inline int xvt_framebuffer_address_is_legacy_base(const uint8_t *base)
 {
 	(void)base;
 	return 0;
@@ -35,7 +35,7 @@ xvt_framebuffer_address_store16(xvt_framebuffer_address *address,
 #else
 typedef uint8_t *xvt_framebuffer_address;
 
-static __inline int xvt_framebuffer_address_is_legacy_base(uint8_t *base)
+static __inline int xvt_framebuffer_address_is_legacy_base(const uint8_t *base)
 {
 	return base == (uint8_t *)(uintptr_t)0xA0000;
 }

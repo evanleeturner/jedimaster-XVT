@@ -40,7 +40,7 @@ extern int16_t g_briefing_map_label_style[8];
 extern int16_t g_briefing_map_labels_changed;
 
 int16_t briefing_map_select_nearest_mission_point14_flight_group(
-	struct RECT *viewport_rect, int16_t mouse_x, int16_t mouse_y);
+	const struct RECT *viewport_rect, int16_t mouse_x, int16_t mouse_y);
 void briefing_map_project_point_to_viewport(const struct RECT *viewport_rect,
 					    int16_t map_x, int16_t map_y,
 					    int16_t *out_x, int16_t *out_y);
@@ -49,15 +49,16 @@ int16_t briefing_map_step_s16_toward_target(int16_t current, int16_t target,
 void briefing_map_animate_view_state(void);
 void briefing_map_update_script_playback_after_animation(void);
 int16_t briefing_map_select_flight_group_at_cursor(
-	struct RECT *viewport_rect, struct RECT *clip_rect, int left_down,
-	int right_down, int16_t mouse_x, int16_t mouse_y);
-int16_t briefing_map_draw_viewport_and_selection(struct RECT *viewport_rect,
-						 struct RECT *clip_rect,
-						 int16_t highlight_phase);
+	const struct RECT *viewport_rect, const struct RECT *clip_rect,
+	int left_down, int right_down, int16_t mouse_x, int16_t mouse_y);
+int16_t
+briefing_map_draw_viewport_and_selection(const struct RECT *viewport_rect,
+					 const struct RECT *clip_rect,
+					 int16_t highlight_phase);
 void briefing_map_draw_grid(const struct RECT *viewport_rect,
 			    const struct RECT *clip_rect);
-void briefing_map_draw_overlays(struct RECT *viewport_rect,
-				struct RECT *clip_rect);
+void briefing_map_draw_overlays(const struct RECT *viewport_rect,
+				const struct RECT *clip_rect);
 void briefing_map_draw_revealed_label_if_active(const char *text,
 						int16_t color_ramp_group,
 						int16_t x, int16_t y,
@@ -67,8 +68,8 @@ void briefing_map_draw_revealed_label(const char *text,
 				      int16_t color_ramp_group, int16_t x,
 				      int16_t y, int16_t reveal_count,
 				      int16_t shade_group);
-void briefing_map_draw_craft_icon_highlight(struct RECT *viewport_rect,
-					    struct RECT *clip_rect,
+void briefing_map_draw_craft_icon_highlight(const struct RECT *viewport_rect,
+					    const struct RECT *clip_rect,
 					    int flight_group_index,
 					    int highlight_phase);
 

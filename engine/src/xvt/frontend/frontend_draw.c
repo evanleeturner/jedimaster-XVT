@@ -270,7 +270,7 @@ void frontend_draw_fill_rect_translucent(const struct RECT *src, int dx, int dy,
  * 640, right < 0, top > 480 or bottom < 0. Writes through g_draw_surface_ptr. The
  * modern build also records the fill for its renderer. */
 // FUNCTION: XVT 0x4D67E0
-void frontend_draw_rect(struct RECT *rect, int dx, int dy, int color,
+void frontend_draw_rect(const struct RECT *rect, int dx, int dy, int color,
 			int filled)
 {
 	struct RECT clipped_rect;
@@ -362,7 +362,8 @@ void frontend_draw_rect(struct RECT *rect, int dx, int dy, int color,
  * through g_draw_surface_ptr. The modern build also records the unclipped outline
  * for its renderer. */
 // FUNCTION: XVT 0x4D6950
-void frontend_draw_rect_outline(struct RECT *rect, int dx, int dy, int color)
+void frontend_draw_rect_outline(const struct RECT *rect, int dx, int dy,
+				int color)
 {
 	int width;
 	int draw_surface_pitch;

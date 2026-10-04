@@ -343,7 +343,7 @@ float flight_light_compute_software_face_sample_intensity(
  * g_flight_brightness_scale_q8 - 256. Every intensity is then multiplied by 8.
  * Sets the count to 0 and stops when g_local_lights_enabled is 0. */
 // FUNCTION: XVT 0x44F880
-void flight_light_setup_object_lighting(struct object_record *object)
+void flight_light_setup_object_lighting(const struct object_record *object)
 {
 	int light_count;
 	int object_idx;

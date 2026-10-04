@@ -40,7 +40,7 @@ static int g_flight_devices_created;
 /* Sets the flight's start-up flags: flicker (off when a flicker.txt file exists), laser timing,
  * the async option and the launch switches. Each switch is found by substring anywhere in the
  * mission command line, so a pilot or game name containing a switch's word sets it too. */
-static void xvt_flight_entry_read_launch_switches(char *mission_cmd_line)
+static void xvt_flight_entry_read_launch_switches(const char *mission_cmd_line)
 {
 	xvt_file *flicker_file;
 	char *option_match;

@@ -258,7 +258,8 @@ int front_image_draw_sprite_translucent(const char *name, int x, int y)
  * the image is uncompressed. The modern build also records the draw for its
  * renderer. */
 // FUNCTION: XVT 0x4B4D90
-int front_image_blit_translucent(struct image_resource *image, int x, int y)
+int front_image_blit_translucent(const struct image_resource *image, int x,
+				 int y)
 {
 	int clip_offset_x;
 	int clip_offset_y;
@@ -511,8 +512,8 @@ int front_image_blit_translucent(struct image_resource *image, int x, int y)
  * name is not registered or the image is RLE-compressed. */
 // FUNCTION: XVT 0x4B50B0
 int front_image_draw_sprite_rect_transparent(const char *name,
-					     struct RECT *src_rect, int dst_x,
-					     int dst_y)
+					     const struct RECT *src_rect,
+					     int dst_x, int dst_y)
 {
 	int resource_index;
 	struct image_resource *image;
@@ -535,8 +536,8 @@ int front_image_draw_sprite_rect_transparent(const char *name,
  * image is NULL. Does not check that srcRect lies inside the image. The modern
  * build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5100
-int front_image_blit_rect_transparent(struct image_resource *image,
-				      struct RECT *src_rect, int dst_x,
+int front_image_blit_rect_transparent(const struct image_resource *image,
+				      const struct RECT *src_rect, int dst_x,
 				      int dst_y)
 {
 	int rows_remaining;
@@ -687,9 +688,9 @@ int front_image_blit_rect_transparent(struct image_resource *image,
  * front_image_blit_rect_tinted and returns its result; returns 0 when the name is
  * not registered or the image is RLE-compressed. */
 // FUNCTION: XVT 0x4B52C0
-int front_image_draw_sprite_rect_tinted(const char *name, struct RECT *src_rect,
-					int dst_x, int dst_y,
-					unsigned int tint_color)
+int front_image_draw_sprite_rect_tinted(const char *name,
+					const struct RECT *src_rect, int dst_x,
+					int dst_y, unsigned int tint_color)
 {
 	int resource_index;
 	struct image_resource *image;
@@ -715,7 +716,7 @@ int front_image_draw_sprite_rect_tinted(const char *name, struct RECT *src_rect,
  * frontend_draw_rect_clip_to_bounds, or 0 when image is NULL. The modern build also
  * records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5310
-int front_image_blit_rect_tinted(struct image_resource *image,
+int front_image_blit_rect_tinted(const struct image_resource *image,
 				 const struct RECT *src_rect, int dst_x,
 				 int dst_y, unsigned int tint_color)
 {
@@ -901,7 +902,8 @@ int front_image_draw_sprite(const char *name, int x, int y)
  * Returns the clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when image
  * is NULL. The modern build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B55B0
-int front_image_blit_transparent(struct image_resource *image, int x, int y)
+int front_image_blit_transparent(const struct image_resource *image, int x,
+				 int y)
 {
 	struct RECT clipped_rect;
 	struct RECT original_rect;
@@ -1019,9 +1021,9 @@ int front_image_blit_transparent(struct image_resource *image, int x, int y)
  * When visible_width is the image's width it draws whole rows and ignores
  * src_left. The caller has clipped; nothing is checked. */
 // FUNCTION: XVT 0x4B5770
-void front_image_blit_rle8(struct image_resource *image, int dest_x, int dest_y,
-			   int src_left, int src_top, int visible_width,
-			   int visible_height)
+void front_image_blit_rle8(const struct image_resource *image, int dest_x,
+			   int dest_y, int src_left, int src_top,
+			   int visible_width, int visible_height)
 {
 	const uint8_t *row;
 	const uint8_t *row_start;
@@ -1244,7 +1246,7 @@ void front_image_blit_rle8(struct image_resource *image, int dest_x, int dest_y,
 /* Does what front_image_blit_rle8 does at 16 bits per pixel, writing each pixel's
  * color_lut value. */
 // FUNCTION: XVT 0x4B5A80
-void front_image_blit_rle16(struct image_resource *image, int dest_x,
+void front_image_blit_rle16(const struct image_resource *image, int dest_x,
 			    int dest_y, int src_left, int src_top,
 			    int visible_width, int visible_height)
 {
@@ -1548,7 +1550,7 @@ int front_image_draw_sprite_opaque(const char *name, int x, int y)
  * clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when image is NULL. The
  * modern build also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5E20
-int front_image_blit_opaque(struct image_resource *image, int x, int y)
+int front_image_blit_opaque(const struct image_resource *image, int x, int y)
 {
 	int clip_result;
 	struct RECT clipped_rect;
@@ -1659,9 +1661,10 @@ int front_image_blit_opaque(struct image_resource *image, int x, int y)
 /* Does what front_image_blit_rle8 does, but fills the pixels of skip tokens with
  * index 0 instead of leaving them. */
 // FUNCTION: XVT 0x4B5FE0
-void front_image_blit_rle8_opaque(struct image_resource *image, int dest_x,
-				  int dest_y, int src_left, int src_top,
-				  int visible_width, int visible_height)
+void front_image_blit_rle8_opaque(const struct image_resource *image,
+				  int dest_x, int dest_y, int src_left,
+				  int src_top, int visible_width,
+				  int visible_height)
 {
 	const uint8_t *row;
 	const uint8_t *row_start;
@@ -1898,9 +1901,10 @@ void front_image_blit_rle8_opaque(struct image_resource *image, int dest_x,
 /* Does what front_image_blit_rle16 does, but fills the pixels of skip tokens with
  * color_lut[0] instead of leaving them. */
 // FUNCTION: XVT 0x4B6340
-void front_image_blit_rle16_opaque(struct image_resource *image, int dest_x,
-				   int dest_y, int src_left, int src_top,
-				   int visible_width, int visible_height)
+void front_image_blit_rle16_opaque(const struct image_resource *image,
+				   int dest_x, int dest_y, int src_left,
+				   int src_top, int visible_width,
+				   int visible_height)
 {
 	const uint8_t *row;
 	const uint8_t *row_start;
@@ -2216,7 +2220,7 @@ void front_image_blit_rle16_opaque(struct image_resource *image, int dest_x,
  * frontend_draw_rect_clip_to_bounds, or 0 when glyph is NULL. The modern build also
  * records the glyph for its renderer. */
 // FUNCTION: XVT 0x4B6780
-int front_image_draw_glyph(struct image_resource *glyph, int x, int y,
+int front_image_draw_glyph(const struct image_resource *glyph, int x, int y,
 			   unsigned int color, int apply_text_fade)
 {
 	int clip_result;
@@ -2379,8 +2383,8 @@ int front_image_draw_glyph(struct image_resource *glyph, int x, int y,
  * tokens left as they are. When visible_width is the glyph's width it draws
  * whole rows. */
 // FUNCTION: XVT 0x4B69B0
-void front_image_blit_glyph_rle_8bpp(struct image_resource *glyph, int dest_x,
-				     int dest_y, int clip_left_skip,
+void front_image_blit_glyph_rle_8bpp(const struct image_resource *glyph,
+				     int dest_x, int dest_y, int clip_left_skip,
 				     int clip_top_skip, int visible_width,
 				     int visible_rows, uint8_t color)
 {
@@ -2596,10 +2600,11 @@ void front_image_blit_glyph_rle_8bpp(struct image_resource *glyph, int dest_x,
 
 /* Does what front_image_blit_glyph_rle_8bpp does at 16 bits per pixel. */
 // FUNCTION: XVT 0x4B6CA0
-void front_image_blit_glyph_rle_16bpp(struct image_resource *glyph, int dest_x,
-				      int dest_y, int clip_left_skip,
-				      int clip_top_skip, int visible_width,
-				      int visible_rows, unsigned int color)
+void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
+				      int dest_x, int dest_y,
+				      int clip_left_skip, int clip_top_skip,
+				      int visible_width, int visible_rows,
+				      unsigned int color)
 {
 	const uint8_t *row;
 	uint8_t *destination;
@@ -3784,9 +3789,9 @@ int front_image_bsearch_resource(
  * 0 when bpp is 8 without a palette, the file does not open, or a write fails.
  * Other depths write the headers with no pixels. */
 // FUNCTION: XVT 0x4B7B10
-int front_image_save_bmp_file(char *file_name, const void *pixels, int width,
-			      int height, int pitch, int bpp, int is555,
-			      const void *palette)
+int front_image_save_bmp_file(const char *file_name, const void *pixels,
+			      int width, int height, int pitch, int bpp,
+			      int is555, const void *palette)
 {
 	int y;
 	int x;
@@ -4114,7 +4119,7 @@ unsigned int front_image_get_faded_glyph_color16(unsigned int color16)
  * fields; a failed registration is not reported. The original build reads the
  * names with no length limit into 256-byte buffers. */
 // FUNCTION: XVT 0x4DF880
-int front_image_load_resource_list(char *file_name)
+int front_image_load_resource_list(const char *file_name)
 {
 	int compress_rle;
 	char resource_file_name[256];
@@ -4159,7 +4164,7 @@ int front_image_load_resource_list(char *file_name)
  * file, or 0 when the file does not open or a line does not hold the three
  * fields. */
 // FUNCTION: XVT 0x4DF950
-int front_image_unload_resource_list(char *file_name)
+int front_image_unload_resource_list(const char *file_name)
 {
 	int ignored_flags;
 	char resource_file_name[256];
