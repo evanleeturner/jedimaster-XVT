@@ -23,6 +23,7 @@
 #include "xvt/net/net_reliable.h"
 #include "xvt/net/net_session.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 enum { INPUT_FRAME_PREDICTED = 2 };
 
@@ -197,6 +198,8 @@ void flight_sync_discard_predicted_input_frames(int player_idx)
 			++frame_index;
 		}
 	}
+	XVT_LOG_DEBUG("network.predictions_discarded slot=%d left=%d",
+		      player_idx, g_input_frame_count[player_idx]);
 }
 
 /* Removes the frame that frame points at from a player's input history,
@@ -211,8 +214,21 @@ void flight_sync_remove_input_history_frame(int player_idx,
 	if (frame_count != 0) {
 		struct input_frame *current = g_input_history[player_idx];
 		if (current <= frame) {
+			if (frame >= current + frame_count) {
+				XVT_LOG_WARN(
+					"network.history_remove_fault slot=%d count=%d reason=\"%s\"",
+					player_idx, frame_count, "past_end");
+			}
 			--frame_count;
 			g_input_frame_count[player_idx] = frame_count;
+			XVT_LOG_DEBUG(
+				"network.input_removed slot=%d tick=%d source=\"%s\" left=%d",
+				player_idx, frame->timestamp,
+				frame->input_source == 0 ? "host"
+				: frame->input_source == INPUT_FRAME_PREDICTED
+					? "predicted"
+					: "real",
+				frame_count);
 			int copy_index = 0;
 			while (copy_index < g_input_frame_count[player_idx]) {
 				if (current >= frame) {
@@ -221,7 +237,15 @@ void flight_sync_remove_input_history_frame(int player_idx,
 				++copy_index;
 				++current;
 			}
+		} else {
+			XVT_LOG_WARN(
+				"network.history_remove_fault slot=%d count=%d reason=\"%s\"",
+				player_idx, frame_count, "before_row");
 		}
+	} else {
+		XVT_LOG_WARN(
+			"network.history_remove_fault slot=%d count=%d reason=\"%s\"",
+			player_idx, frame_count, "empty");
 	}
 }
 
@@ -243,8 +267,20 @@ flight_sync_insert_input_frame(int player_idx, int timestamp,
 	struct input_frame *inserted;
 	xvt_input_insert_status status = xvt_flight_history_insert(
 		(unsigned)player_idx, timestamp, input, &inserted);
+	XVT_LOG_DEBUG("network.input_filed slot=%d tick=%d result=\"%s\"",
+		      player_idx, timestamp,
+		      status == XVT_INPUT_INSERTED    ? "inserted"
+		      : status == XVT_INPUT_DUPLICATE ? "duplicate"
+		      : status == XVT_INPUT_FULL      ? "full"
+		      : status == XVT_INPUT_INVALID   ? "invalid"
+						      : "conflict");
 	if (status == XVT_INPUT_FULL && xvt_flight_timing_is_network125()) {
 		xvt_flight_network_request_recovery();
+	} else if (status == XVT_INPUT_FULL || status == XVT_INPUT_INVALID) {
+		XVT_LOG_WARN(
+			"network.history_refused slot=%d tick=%d result=\"%s\"",
+			player_idx, timestamp,
+			status == XVT_INPUT_FULL ? "full" : "invalid");
 	}
 	return inserted;
 #else
@@ -303,6 +339,9 @@ struct input_frame *flight_sync_find_last_unrelayed_input_frame(int player_idx)
 		++frame;
 		--frame_count;
 	}
+	XVT_LOG_DEBUG("network.unrelayed_input slot=%d tick=%d frames=%d",
+		      player_idx, result ? result->timestamp : -1,
+		      g_input_frame_count[player_idx]);
 	return result;
 }
 
@@ -314,6 +353,7 @@ void flight_sync_reset_remote_player_render_smoothing(void)
 		g_remote_player_render_samples[player_index].valid = 0;
 		g_remote_player_saved_sim_poses[player_index].valid = 0;
 	}
+	XVT_LOG_DEBUG("network.smoothing_reset");
 }
 
 /* Runs after a frame is drawn. For each active remote player whose craft
@@ -437,6 +477,57 @@ void flight_sync_capture_samples_and_restore_poses(void)
 							[player_index]
 								.world_z;
 				}
+				XVT_LOG_DEBUG(
+					"network.smoothing_sample slot=%d x=%d y=%d z=%d roll=%u pitch=%u yaw=%u turn_roll=%d turn_pitch=%d turn_yaw=%d mx=%d my=%d mz=%d speed=%u time=%d restored=%d",
+					player_index,
+					g_remote_player_render_samples
+						[player_index]
+							.world_x,
+					g_remote_player_render_samples
+						[player_index]
+							.world_y,
+					g_remote_player_render_samples
+						[player_index]
+							.world_z,
+					(unsigned)(uint16_t)
+						g_remote_player_render_samples
+							[player_index]
+								.roll,
+					(unsigned)(uint16_t)
+						g_remote_player_render_samples
+							[player_index]
+								.pitch,
+					(unsigned)(uint16_t)
+						g_remote_player_render_samples
+							[player_index]
+								.yaw,
+					g_remote_player_render_samples
+						[player_index]
+							.roll_delta,
+					g_remote_player_render_samples
+						[player_index]
+							.pitch_delta,
+					g_remote_player_render_samples
+						[player_index]
+							.yaw_delta,
+					(int)g_remote_player_render_samples
+						[player_index]
+							.move_x,
+					(int)g_remote_player_render_samples
+						[player_index]
+							.move_y,
+					(int)g_remote_player_render_samples
+						[player_index]
+							.move_z,
+					(unsigned)g_remote_player_render_samples
+						[player_index]
+							.speed_magnitude,
+					(int)g_remote_player_render_samples
+						[player_index]
+							.sim_state_timestamp,
+					g_remote_player_saved_sim_poses
+						[player_index]
+							.valid);
 			}
 		}
 		++player_index;
@@ -481,6 +572,20 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 		    g_remote_player_render_samples[player_index]
 				    .object_signature !=
 			    g_players[player_index].bound_object_signature) {
+			if (player_index != g_local_player) {
+				XVT_LOG_DEBUG(
+					"network.smoothing_skipped slot=%d reason=\"%s\"",
+					player_index,
+					object->object_type == 0 ||
+							object->mobj == NULL
+						? "no_craft"
+					: g_remote_player_render_samples
+								[player_index]
+									.valid ==
+							0
+						? "no_sample"
+						: "other_craft");
+			}
 			continue;
 		}
 
@@ -508,6 +613,9 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 				   g_remote_player_render_samples[player_index]
 					   .sim_state_timestamp;
 		if (elapsed_time < 0) {
+			XVT_LOG_DEBUG(
+				"network.smoothing_held slot=%d elapsed=%d",
+				player_index, elapsed_time);
 			continue;
 		}
 
@@ -684,6 +792,16 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 				object->yaw = candidate_angle;
 			}
 		}
+		XVT_LOG_DEBUG(
+			"network.smoothing_applied slot=%d elapsed=%d reach=%d gap=%d share=%d x=%d y=%d z=%d sx=%d sy=%d sz=%d roll=%u pitch=%u yaw=%u max_turn=%d",
+			player_index, elapsed_time, prediction_distance,
+			rough_distance, position_blend, object->world_x,
+			object->world_y, object->world_z,
+			g_remote_player_saved_sim_poses[player_index].world_x,
+			g_remote_player_saved_sim_poses[player_index].world_y,
+			g_remote_player_saved_sim_poses[player_index].world_z,
+			(unsigned)object->roll, (unsigned)object->pitch,
+			(unsigned)object->yaw, max_angle_change);
 	}
 }
 
@@ -889,6 +1007,9 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 	    && packet[34] != XVT_CHECKSUM_REQUEST_STATE
 #endif
 	) {
+		XVT_LOG_DEBUG("network.checksum_stale epoch=%u expected=%u",
+			      (unsigned)packet[PACKET_EPOCH_INDEX],
+			      g_flight_net_world_checksum_epoch);
 		return;
 	}
 
@@ -897,13 +1018,22 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 	int checksum_mismatch = 0;
 #ifdef XVT_MODERN
 	if ((unsigned)sender_player_index >= 8) {
+		XVT_LOG_WARN(
+			"network.checksum_rejected slot=%d request=%d reason=\"%s\"",
+			sender_player_index, packet[34], "sender");
 		return;
 	}
 	if ((unsigned)packet[34] > 1) {
+		XVT_LOG_WARN(
+			"network.checksum_rejected slot=%d request=%d reason=\"%s\"",
+			sender_player_index, packet[34], "request");
 		return;
 	}
 	if (packet[34] == 1 && net_session_is_local_host() &&
 	    sender_player_index != g_local_player) {
+		XVT_LOG_DEBUG("network.state_requested slot=%d epoch=%u",
+			      sender_player_index,
+			      (unsigned)packet[PACKET_EPOCH_INDEX]);
 		xvt_resync_begin_send(sender_dpid, g_world_state_buffer,
 				      g_world_state_size);
 		return;
@@ -911,6 +1041,11 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 #endif
 	if (g_player_abort_flags[sender_player_index] != 0 ||
 	    g_players[sender_player_index].participation_state == 0) {
+		XVT_LOG_DEBUG("network.checksum_ignored slot=%d reason=\"%s\"",
+			      sender_player_index,
+			      g_player_abort_flags[sender_player_index] != 0
+				      ? "left"
+				      : "inactive");
 		return;
 	}
 
@@ -939,6 +1074,12 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 
 		if (checksum_mismatch != 0) {
 #ifdef XVT_MODERN
+			XVT_LOG_WARN(
+				"network.checksum_mismatch slot=%d epoch=%u bytes=%d peer_bytes=%d",
+				sender_player_index,
+				(unsigned)packet[PACKET_EPOCH_INDEX],
+				local_world_state_size,
+				remote_world_state_size);
 			xvt_resync_begin_send(sender_dpid,
 					      g_world_state_dup_buffer,
 					      g_world_state_dup_size);
@@ -956,6 +1097,11 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 	}
 
 	if (net_session_is_local_host() == 0) {
+		XVT_LOG_DEBUG(
+			"network.checksum_matched slot=%d epoch=%u own=%d",
+			sender_player_index,
+			(unsigned)packet[PACKET_EPOCH_INDEX],
+			sender_player_index == g_local_player);
 		return;
 	}
 
@@ -979,6 +1125,12 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 	if ((all_peer_status & PEER_STATUS_MATCHED) != 0) {
 		g_flight_net_buffer_world_messages_until_checksum = 0;
 	}
+	XVT_LOG_DEBUG(
+		"network.checksum_recorded slot=%d epoch=%u status=%d all=%d buffering=%d",
+		sender_player_index, (unsigned)packet[PACKET_EPOCH_INDEX],
+		g_flight_net_world_checksum_peer_status[sender_player_index],
+		all_peer_status,
+		g_flight_net_buffer_world_messages_until_checksum);
 }
 
 /* On a client, compares the 16 world checksum words the server sent for the
@@ -990,6 +1142,11 @@ void flight_sync_handle_server_checksum_packet(uint8_t *packet)
 {
 	if (net_session_is_local_host() != 0 ||
 	    ((uint32_t *)packet)[1] != g_flight_net_world_checksum_epoch) {
+		XVT_LOG_DEBUG(
+			"network.server_checksum_ignored epoch=%u expected=%u host=%d",
+			(unsigned)((const uint32_t *)packet)[1],
+			g_flight_net_world_checksum_epoch,
+			g_net_session.local_is_host != 0);
 		return;
 	}
 
@@ -1007,7 +1164,13 @@ void flight_sync_handle_server_checksum_packet(uint8_t *packet)
 	if (checksum_mismatch == 0) {
 		g_flight_net_buffer_world_messages_until_checksum = 0;
 		flight_sync_clear_buffered_world_messages();
+	} else {
+		XVT_LOG_WARN("network.server_checksum_mismatch epoch=%u",
+			     g_flight_net_world_checksum_epoch);
 	}
+	XVT_LOG_DEBUG("network.server_checksum epoch=%u match=%d buffering=%d",
+		      g_flight_net_world_checksum_epoch, checksum_mismatch == 0,
+		      g_flight_net_buffer_world_messages_until_checksum);
 }
 
 /* Copies size bytes of a resent world state to offset in
@@ -1147,6 +1310,7 @@ void flight_sync_clear_buffered_world_messages(void)
 {
 #ifdef XVT_MODERN
 	xvt_flight_messages_clear(XVT_QUEUE_REPLAY);
+	XVT_LOG_DEBUG("network.replay_cleared");
 #else
 	g_world_message_buffered_count = 0;
 	g_world_message_buffer_bytes_free = g_world_message_buffer_capacity;

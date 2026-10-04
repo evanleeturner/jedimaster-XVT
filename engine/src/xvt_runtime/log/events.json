@@ -493,10 +493,40 @@
       "fields": ["tick", "host", "sums", "lengths"],
       "text": "World checksum at tick {tick} (host {host}): region sums {sums}, region lengths {lengths}"
     },
+    "network.checksum_ignored": {
+      "level": "D",
+      "fields": ["slot", "reason"],
+      "text": "A world checksum report from slot {slot} was ignored ({reason})"
+    },
+    "network.checksum_matched": {
+      "level": "D",
+      "fields": ["slot", "epoch", "own"],
+      "text": "The world checksum report from slot {slot} for tick {epoch} matched this player's (own report: {own})"
+    },
+    "network.checksum_mismatch": {
+      "level": "W",
+      "fields": ["slot", "epoch", "bytes", "peer_bytes"],
+      "text": "The world checksum from slot {slot} for tick {epoch} differed from this player's (world sizes {bytes} here, {peer_bytes} there); this player's saved world was sent to it"
+    },
     "network.checksum_queue_full": {
       "level": "E",
       "fields": [],
       "text": "The checksum continuation queue is exhausted; the mission ends"
+    },
+    "network.checksum_recorded": {
+      "level": "D",
+      "fields": ["slot", "epoch", "status", "all", "buffering"],
+      "text": "The host recorded the checksum of slot {slot} for tick {epoch} as {status} (1 matched, 2 differed); combined status {all}, world-message buffering {buffering}"
+    },
+    "network.checksum_rejected": {
+      "level": "W",
+      "fields": ["slot", "request", "reason"],
+      "text": "A world checksum report was refused ({reason}): sender slot {slot}, request code {request}"
+    },
+    "network.checksum_stale": {
+      "level": "D",
+      "fields": ["epoch", "expected"],
+      "text": "A world checksum report for tick {epoch} was ignored; the current checksum tick was {expected}"
     },
     "network.confirm": {
       "level": "D",
@@ -588,6 +618,16 @@
       "fields": ["peers"],
       "text": "The host's sequence status named {peers} peers; the join request was sent"
     },
+    "network.history_refused": {
+      "level": "W",
+      "fields": ["slot", "tick", "result"],
+      "text": "The input history of slot {slot} refused the input at tick {tick}: {result}"
+    },
+    "network.history_remove_fault": {
+      "level": "W",
+      "fields": ["slot", "count", "reason"],
+      "text": "Removing an input from the history of slot {slot}, holding {count}, went wrong: {reason}"
+    },
     "network.host_lost": {
       "level": "W",
       "fields": ["flight"],
@@ -623,10 +663,20 @@
       "fields": ["player", "tick"],
       "text": "Conflicting authoritative input for player slot {player} at tick {tick}"
     },
+    "network.input_filed": {
+      "level": "D",
+      "fields": ["slot", "tick", "result"],
+      "text": "An input for slot {slot} at tick {tick} was offered to its history: {result}"
+    },
     "network.input_rejected": {
       "level": "D",
       "fields": ["slot", "tick", "result", "authoritative"],
       "text": "Input for slot {slot} at tick {tick} was refused ({result}; authoritative {authoritative}); recovery is needed"
+    },
+    "network.input_removed": {
+      "level": "D",
+      "fields": ["slot", "tick", "source", "left"],
+      "text": "The {source} input for slot {slot} at tick {tick} left its history; {left} inputs remained"
     },
     "network.join_cancelled": {
       "level": "D",
@@ -1178,6 +1228,11 @@
       "fields": ["players"],
       "text": "DirectPlay listed its players; the roster held {players} entries afterwards"
     },
+    "network.predictions_discarded": {
+      "level": "D",
+      "fields": ["slot", "left"],
+      "text": "Predicted inputs for slot {slot} were dropped from its history; {left} inputs remained"
+    },
     "network.previous_missing": {
       "level": "D",
       "fields": ["from", "channel", "sequence", "recovered", "drops"],
@@ -1238,6 +1293,11 @@
       "fields": ["player", "slot"],
       "text": "A name change for player {player} in roster slot {slot} was refused because its names were malformed; the old names were kept"
     },
+    "network.replay_cleared": {
+      "level": "D",
+      "fields": [],
+      "text": "The world messages kept for replay were dropped"
+    },
     "network.resend_sent": {
       "level": "D",
       "fields": ["to", "channel", "sequence", "type", "bytes", "result"],
@@ -1283,6 +1343,21 @@
       "fields": ["bytes"],
       "text": "A packet of {bytes} bytes, too short to hold its type, was refused and not sent"
     },
+    "network.server_checksum": {
+      "level": "D",
+      "fields": ["epoch", "match", "buffering"],
+      "text": "This player's world checksum for tick {epoch} was compared with the host's: match {match}, world-message buffering {buffering}"
+    },
+    "network.server_checksum_ignored": {
+      "level": "D",
+      "fields": ["epoch", "expected", "host"],
+      "text": "A checksum from the host for tick {epoch} was ignored (this player hosts: {host}; current checksum tick {expected})"
+    },
+    "network.server_checksum_mismatch": {
+      "level": "W",
+      "fields": ["epoch"],
+      "text": "This player's world checksum for tick {epoch} differed from the host's; world messages stayed buffered for a resync"
+    },
     "network.session_begin": {
       "level": "I",
       "fields": ["role", "online"],
@@ -1318,10 +1393,40 @@
       "fields": ["kind", "value"],
       "text": "A mission setup packet carried the {kind} value {value}"
     },
+    "network.smoothing_applied": {
+      "level": "D",
+      "fields": ["slot", "elapsed", "reach", "gap", "share", "x", "y", "z", "sx", "sy", "sz", "roll", "pitch", "yaw", "max_turn"],
+      "text": "The craft in slot {slot} was drawn smoothed {elapsed} ticks after its sample: reach {reach}, gap {gap}, moved {share}/32768 of the way toward the simulated position; drawn at {x} {y} {z} where the simulation had {sx} {sy} {sz}, angles {roll} {pitch} {yaw}, turn limit {max_turn}"
+    },
+    "network.smoothing_held": {
+      "level": "D",
+      "fields": ["slot", "elapsed"],
+      "text": "The craft in slot {slot} was drawn as simulated: its simulation time was {elapsed} ticks from its last sample"
+    },
+    "network.smoothing_reset": {
+      "level": "D",
+      "fields": [],
+      "text": "Remote craft smoothing was reset: every sample and saved pose was marked invalid"
+    },
+    "network.smoothing_sample": {
+      "level": "D",
+      "fields": ["slot", "x", "y", "z", "roll", "pitch", "yaw", "turn_roll", "turn_pitch", "turn_yaw", "mx", "my", "mz", "speed", "time", "restored"],
+      "text": "The craft in slot {slot} was sampled as drawn at {x} {y} {z}, angles {roll} {pitch} {yaw}, turning by {turn_roll} {turn_pitch} {turn_yaw}, moving along {mx} {my} {mz} at speed {speed}, simulation time {time}; its simulated pose was put back: {restored}"
+    },
+    "network.smoothing_skipped": {
+      "level": "D",
+      "fields": ["slot", "reason"],
+      "text": "The craft in slot {slot} was drawn as simulated, not smoothed: {reason}"
+    },
     "network.stale_dropped": {
       "level": "D",
       "fields": ["from", "peer", "channel", "sequence", "expected"],
       "text": "A queued packet from player {from} on channel {channel}, sequence {sequence}, was dropped: it was up to 28 behind the expected {expected}, or the player had no connection entry (entry {peer}; 40 means none)"
+    },
+    "network.state_requested": {
+      "level": "D",
+      "fields": ["slot", "epoch"],
+      "text": "Slot {slot} asked the host for its live world (report tick {epoch})"
     },
     "network.status_query": {
       "level": "D",
@@ -1347,6 +1452,11 @@
       "level": "E",
       "fields": ["transport"],
       "text": "No network service provider was known for transport {transport}; the connection could not be made"
+    },
+    "network.unrelayed_input": {
+      "level": "D",
+      "fields": ["slot", "tick", "frames"],
+      "text": "The newest input of slot {slot} still waiting to be passed on was at tick {tick} (-1 for none), among {frames} held"
     },
     "network.world_received": {
       "level": "D",
