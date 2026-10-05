@@ -1143,6 +1143,16 @@
       "fields": ["slot", "object", "predicted"],
       "text": "Player slot {slot} called off the hyperspace jump of craft object {object} while it was still starting; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "flight.hyperspace_effect_started": {
+      "level": "D",
+      "fields": ["slot", "iff", "count", "ticks"],
+      "text": "The hyperspace effect began on this screen for the local player, slot {slot}: the entry sound for side {iff} played (1 is the Imperial sound, any other side gets the other one) and new streaks were placed at random, {count} of them drawn each frame (1,024 with 3D hardware, 512 without); the jump was {ticks} ticks in (250 make a second)"
+    },
+    "flight.hyperspace_effect_stretched": {
+      "level": "D",
+      "fields": ["slot", "iff", "ticks"],
+      "text": "The hyperspace streaks on this screen reached full length for the local player, slot {slot}, and the exit sound for side {iff} played (1 is the Imperial sound), {ticks} ticks into the jump (the stretch starts at 472; the effect is drawn until 531)"
+    },
     "flight.hyperspace_stalled": {
       "level": "D",
       "fields": ["object", "fg", "predicted"],
@@ -1438,15 +1448,30 @@
       "fields": ["controller", "missing", "truncated"],
       "text": "Controller {controller} lacks {missing} configured controls (hardware list cut: {truncated})"
     },
+    "input.controls_reset": {
+      "level": "D",
+      "fields": [],
+      "text": "The flight controls were reset: the throttle reading and the held joystick buttons started over (at flight start, and whenever a game window such as the settings took or gave back the keyboard and mouse)"
+    },
     "input.discovery_failed": {
       "level": "W",
       "fields": ["error"],
       "text": "Adding newly connected controllers, or saving the updated controller list, failed: {error}"
     },
+    "input.flight_reset": {
+      "level": "D",
+      "fields": ["joystick", "detect"],
+      "text": "At flight start the flight input was reset: mouse steering off, mouse and stick buttons cleared; the game's original joystick check found a joystick: {joystick} (its answer was {detect}). This version steers through its own controller settings and does not use that check"
+    },
     "input.queue_full": {
       "level": "W",
       "fields": ["queue"],
       "text": "The {queue} command queue is full; the command is dropped"
+    },
+    "input.recorded_key": {
+      "level": "D",
+      "fields": ["slot", "key", "x", "y", "mods"],
+      "text": "Player slot {slot}'s recorded input carried action key {key}, with the stick at {x} for turning and {y} for climbing and button bits {mods} (1 fire, 2 target); the simulation step reads each player's input once a step, and the screen reads the local player's input again before each frame it draws"
     },
     "launch.command": {
       "level": "D",

@@ -11,6 +11,7 @@
 #include "xvt/input/joystick.h"
 #include "xvt/input/mouse.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifndef XVT_MODERN
 /* The Windows message record PeekMessageA and GetMessageA fill in the original
@@ -360,6 +361,9 @@ void flight_input_reset_runtime_state(void)
 	}
 	flight_input_reset_control_state();
 	g_flight_mouse_enabled = 0;
+	XVT_LOG_DEBUG("input.flight_reset joystick=%d detect=%u",
+		      (int)g_joystick_available,
+		      (unsigned)g_joystick_detect_result_word);
 }
 
 /* Sets g_ctrl_axis_x, g_ctrl_axis_y and g_key_mods to 0. Nothing calls this. */
@@ -381,6 +385,7 @@ void flight_input_reset_control_state(void)
 #endif
 	g_throttle_smoothed = -1;
 	g_held_joystick_buttons = 0;
+	XVT_LOG_DEBUG("input.controls_reset");
 }
 
 /* Reads one input and returns its action key (0 for none). With a negative
@@ -560,6 +565,13 @@ uint16_t flight_input_read(int player_idx_or_sentinel)
 		g_action_key = key;
 		g_key_mods =
 			g_replay_inputs[player_idx_or_sentinel].key_mods & 3;
+		if (key != 0) {
+			XVT_LOG_DEBUG(
+				"input.recorded_key slot=%d key=%u x=%d y=%d mods=%d",
+				player_idx_or_sentinel, (unsigned)key,
+				(int)g_ctrl_axis_x, (int)g_ctrl_axis_y,
+				(int)g_key_mods);
+		}
 		return key;
 	}
 }

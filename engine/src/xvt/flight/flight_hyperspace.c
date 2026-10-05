@@ -15,6 +15,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 enum {
 	HYPERSPACE_TRANSITION_OBJECT_TYPE = 137,
@@ -290,6 +291,12 @@ void flight_hyperspace_render_transition_effect(void)
 				HYPERSPACE_ROLL_OFFSET;
 		}
 		g_hyperspace_transition_effect_init_pending = 0;
+		XVT_LOG_DEBUG(
+			"flight.hyperspace_effect_started slot=%d iff=%d count=%d ticks=%u",
+			g_local_player, (int)g_players[g_local_player].iff,
+			streak_count,
+			(unsigned)g_players[g_local_player]
+				.hyperspace_runtime.phase_elapsed_ticks);
 	}
 
 #ifdef XVT_MODERN
@@ -355,6 +362,11 @@ void flight_hyperspace_render_transition_effect(void)
 				}
 				g_hyperspace_transition_effect_sound_pending =
 					0;
+				XVT_LOG_DEBUG(
+					"flight.hyperspace_effect_stretched slot=%d iff=%d ticks=%u",
+					g_local_player,
+					(int)g_players[g_local_player].iff,
+					(unsigned)phase_elapsed_ticks);
 			}
 			g_hyperspace_streak_quad_vertices[1].y =
 				fully_stretched_length;
