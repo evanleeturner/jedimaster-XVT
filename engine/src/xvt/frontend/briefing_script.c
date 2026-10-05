@@ -7,6 +7,7 @@
 #include "xvt/frontend/briefing_text.h"
 #include "xvt/frontend/config.h"
 #include "xvt/frontend/frontend_mission.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Argument words that follow each briefing script opcode, by opcode 0 to
  * 34. */
@@ -97,6 +98,8 @@ int16_t briefing_script_init_default_script(void)
 	g_briefing_script.current_frame = 0;
 	g_briefing_script.cursor_word_index = 0;
 	g_briefing_script.header_word08 = 0;
+	XVT_LOG_DEBUG("briefing.script_default frames=%d",
+		      (int)g_briefing_script.duration_frames);
 	return briefing_script_reset_state();
 }
 
@@ -109,6 +112,9 @@ int16_t briefing_script_init_default_script(void)
 // FUNCTION: XVT 0x4F7380
 int16_t briefing_script_reset_state(void)
 {
+	XVT_LOG_DEBUG("briefing.script_reset at=%d frames=%d",
+		      (int)g_briefing_script.current_frame,
+		      (int)g_briefing_script.duration_frames);
 	g_briefing_map_center.x = 0;
 	g_briefing_map_center.y = 0;
 	g_briefing_map_target_center.x = 0;
@@ -214,10 +220,20 @@ int16_t briefing_script_advance_to_next_visible_line(void)
 				.words[g_briefing_script.cursor_word_index + 1];
 	}
 	if (target_opcode == 34) {
+		XVT_LOG_DEBUG(
+			"briefing.script_ended by=\"forward\" at=%d frames=%d pages=%d",
+			(int)g_briefing_script.current_frame,
+			(int)g_briefing_script.duration_frames,
+			g_briefing_text_page_number);
 		g_briefing_last_narrated_text_block_idx = 0;
 		g_briefing_text_page_number = 0;
 		return briefing_script_reset_state();
 	}
+	XVT_LOG_DEBUG("briefing.forward_skipped from=%d to=%d reason=\"%s\"",
+		      (int)start_time, (int)target_time,
+		      g_briefing_script_pause_marker_reached != 0 ? "stop_point"
+		      : visible_text_frames == 1 ? "narration"
+						 : "next_entry");
 	return briefing_script_advance_until_time(target_time, 0);
 }
 
@@ -268,6 +284,15 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 			opcode = g_briefing_script.words[cursor_word_index++];
 			argument_count =
 				g_briefing_script_opcode_arg_counts[opcode];
+			if ((opcode < 0 || opcode > 34) &&
+			    event_time == g_briefing_script.current_frame) {
+				XVT_LOG_WARN(
+					"briefing.opcode_unknown opcode=%d word=%d count=%d at=%d",
+					(int)opcode,
+					(int)saved_cursor_word_index,
+					(int)argument_count,
+					(int)g_briefing_script.current_frame);
+			}
 			for (int16_t argument_index = 0;
 			     argument_index < argument_count;
 			     ++argument_index) {
@@ -281,6 +306,11 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 				case 1:
 					g_briefing_script_pause_marker_reached =
 						1;
+					XVT_LOG_DEBUG(
+						"briefing.stop_point at=%d instant=%d",
+						(int)g_briefing_script
+							.current_frame,
+						(int)apply_instantly);
 					break;
 				case 3:
 					for (slot_index = 0; slot_index < 2;
@@ -289,6 +319,11 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 							[slot_index] = 0;
 					}
 					g_briefing_text_slots_changed = 1;
+					XVT_LOG_DEBUG(
+						"briefing.overlay_cleared kind=\"text\" at=%d instant=%d",
+						(int)g_briefing_script
+							.current_frame,
+						(int)apply_instantly);
 					break;
 				case 4:
 				case 5:
@@ -297,6 +332,20 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 						[slot_index] = 1;
 					g_briefing_text_slot_block_idx
 						[slot_index] = args[0];
+					XVT_LOG_DEBUG(
+						"briefing.text_shown text_slot=%d block=%d at=%d instant=%d",
+						(int)slot_index, (int)args[0],
+						(int)g_briefing_script
+							.current_frame,
+						(int)apply_instantly);
+					if (slot_index == 1 &&
+					    (args[0] < 0 || args[0] >= 32)) {
+						XVT_LOG_WARN(
+							"briefing.text_block_invalid block=%d at=%d",
+							(int)args[0],
+							(int)g_briefing_script
+								.current_frame);
+					}
 					break;
 				case 6:
 					if (event_time == 0 ||
@@ -316,6 +365,12 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 							args[1];
 					}
 					g_briefing_map_center_dirty = 1;
+					XVT_LOG_DEBUG(
+						"briefing.map_target kind=\"center\" x=%d y=%d at=%d instant=%d",
+						(int)args[0], (int)args[1],
+						(int)g_briefing_script
+							.current_frame,
+						(int)apply_instantly);
 					break;
 				case 7:
 					if (event_time == 0 ||
@@ -335,6 +390,20 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 							args[1];
 					}
 					g_briefing_map_scale_dirty = 1;
+					XVT_LOG_DEBUG(
+						"briefing.map_target kind=\"zoom\" x=%d y=%d at=%d instant=%d",
+						(int)args[0], (int)args[1],
+						(int)g_briefing_script
+							.current_frame,
+						(int)apply_instantly);
+					if (args[0] <= 0 || args[1] <= 0) {
+						XVT_LOG_ERROR(
+							"briefing.zoom_invalid x=%d y=%d at=%d",
+							(int)args[0],
+							(int)args[1],
+							(int)g_briefing_script
+								.current_frame);
+					}
 					break;
 				case 8:
 					for (slot_index = 0; slot_index < 8;
@@ -343,6 +412,11 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 							[slot_index] = 0;
 					}
 					g_briefing_map_fg_markers_changed = 1;
+					XVT_LOG_DEBUG(
+						"briefing.overlay_cleared kind=\"markers\" at=%d instant=%d",
+						(int)g_briefing_script
+							.current_frame,
+						(int)apply_instantly);
 					break;
 				case 9:
 				case 10:
@@ -352,6 +426,19 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 				case 14:
 				case 15:
 				case 16:
+					if (args[0] < 0 ||
+					    args[0] >=
+						    (int16_t)g_frontend_mission
+							    .flight_group_count) {
+						XVT_LOG_WARN(
+							"briefing.marker_group_invalid marker=%d fg=%d groups=%d at=%d",
+							(int)(opcode - 9),
+							(int)args[0],
+							(int)(int16_t)g_frontend_mission
+								.flight_group_count,
+							(int)g_briefing_script
+								.current_frame);
+					}
 					if (apply_instantly == 0) {
 						int16_t iff =
 							g_frontend_mission
@@ -395,6 +482,21 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 								: 80;
 					g_briefing_map_fg_marker_flight_group_idx
 						[slot_index] = args[0];
+					XVT_LOG_DEBUG(
+						"briefing.marker_shown marker=%d fg=%d iff=%d sound=%d at=%d instant=%d",
+						(int)slot_index, (int)args[0],
+						apply_instantly == 0
+							? (int)g_frontend_mission
+								  .flight_groups
+									  [args[0]]
+								  .iff
+							: -1,
+						apply_instantly == 0 &&
+							g_game_config.sfx_datapad_enabled !=
+								0,
+						(int)g_briefing_script
+							.current_frame,
+						(int)apply_instantly);
 					break;
 				case 17:
 					for (slot_index = 0; slot_index < 8;
@@ -403,6 +505,11 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 							[slot_index] = 0;
 					}
 					g_briefing_map_labels_changed = 1;
+					XVT_LOG_DEBUG(
+						"briefing.overlay_cleared kind=\"labels\" at=%d instant=%d",
+						(int)g_briefing_script
+							.current_frame,
+						(int)apply_instantly);
 					break;
 				case 18:
 				case 19:
@@ -412,6 +519,22 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 				case 23:
 				case 24:
 				case 25:
+					if (args[0] < 0 || args[0] >= 32) {
+						XVT_LOG_WARN(
+							"briefing.label_string_invalid label=%d string=%d at=%d",
+							(int)(opcode - 18),
+							(int)args[0],
+							(int)g_briefing_script
+								.current_frame);
+					}
+					if (args[3] < 0 || args[3] > 4) {
+						XVT_LOG_WARN(
+							"briefing.label_color_invalid label=%d color=%d at=%d",
+							(int)(opcode - 18),
+							(int)args[3],
+							(int)g_briefing_script
+								.current_frame);
+					}
 					if (apply_instantly == 0) {
 						strcpy(label_text,
 						       g_briefing_map_label_texts
@@ -441,10 +564,42 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 						args[2];
 					g_briefing_map_label_style[slot_index] =
 						args[3];
+					XVT_LOG_DEBUG(
+						"briefing.label_shown label=%d string=%d x=%d y=%d color=%d sound=%d at=%d instant=%d",
+						(int)slot_index, (int)args[0],
+						(int)args[1], (int)args[2],
+						(int)args[3],
+						apply_instantly == 0 &&
+							g_briefing_map_label_texts
+									[args[0]]
+									[0] !=
+								'\0' &&
+							g_game_config.sfx_datapad_enabled !=
+								0,
+						(int)g_briefing_script
+							.current_frame,
+						(int)apply_instantly);
 					break;
 				default:
+					if (opcode == 34) {
+						XVT_LOG_WARN(
+							"briefing.script_end_early at=%d frames=%d word=%d",
+							(int)g_briefing_script
+								.current_frame,
+							(int)g_briefing_script
+								.duration_frames,
+							(int)saved_cursor_word_index);
+					}
 					break;
 				}
+			} else if (event_time <
+					   g_briefing_script.current_frame &&
+				   opcode != 0) {
+				XVT_LOG_WARN(
+					"briefing.entry_out_of_order timed=%d opcode=%d word=%d at=%d",
+					(int)event_time, (int)opcode,
+					(int)saved_cursor_word_index,
+					(int)g_briefing_script.current_frame);
 			}
 		} while (event_time <= g_briefing_script.current_frame);
 	}

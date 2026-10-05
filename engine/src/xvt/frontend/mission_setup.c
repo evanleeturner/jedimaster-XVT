@@ -16145,6 +16145,13 @@ int mission_setup_draw_assignment_controls(void)
 					"mission.setup_briefing_control action=\"forward\"");
 				if (g_briefing_text_slot_block_idx[1] ==
 				    g_briefing_last_narrated_text_block_idx) {
+					XVT_LOG_DEBUG(
+						"briefing.script_ended by=\"forward\" at=%d frames=%d pages=%d",
+						(int)g_briefing_script
+							.current_frame,
+						(int)g_briefing_script
+							.duration_frames,
+						g_briefing_text_page_number);
 					g_briefing_last_narrated_text_block_idx =
 						0;
 					g_briefing_text_page_number = 0;

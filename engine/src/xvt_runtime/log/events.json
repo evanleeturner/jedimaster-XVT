@@ -153,6 +153,36 @@
       "fields": ["fg", "craft", "markings", "skip", "index", "missions", "selection", "quick"],
       "text": "The craft selection screen was set up for flight group {fg}, craft type {craft} with markings {markings}; flight assignment skipped {skip} (a melee with one player flight group a team); mission list entry {index} of {missions}; craft selection mode {selection} (0 off, 1 on, 2 host only); quick start {quick}"
     },
+    "briefing.entry_out_of_order": {
+      "level": "W",
+      "fields": ["timed", "opcode", "word", "at"],
+      "text": "The briefing script's entry at word {word} (command {opcode}) is timed at frame {timed}, before frame {at} the script had reached, so it was skipped and never shown"
+    },
+    "briefing.forward_skipped": {
+      "level": "D",
+      "fields": ["from", "to", "reason"],
+      "text": "The Forward button moved the briefing from script frame {from} to frame {to}, stopping at {reason} (a stopping point, a new line of narration, or the next entry); the frames before it were replayed at once"
+    },
+    "briefing.group_nearest": {
+      "level": "D",
+      "fields": ["fg", "previous", "distance"],
+      "text": "The flight group nearest the mouse on the briefing map changed to {fg} (it was {previous}), {distance} pixels away on the farther axis; nothing in the game uses this choice"
+    },
+    "briefing.label_color_invalid": {
+      "level": "W",
+      "fields": ["label", "color", "at"],
+      "text": "The briefing script gave label {label} color {color} at script frame {at}, outside the 5 label colors; the map draws it in shades read from past the color table"
+    },
+    "briefing.label_shown": {
+      "level": "D",
+      "fields": ["label", "string", "x", "y", "color", "sound", "at", "instant"],
+      "text": "Label {label} of the briefing map showed label string {string} at map point {x}, {y} in color {color} (0 green, 1 red, 2 yellow, 3 blue, 4 purple) at script frame {at}; a text sound played: {sound}; replayed at once (starting over or skipping with Forward: no sounds, markers and labels shown in full): {instant}"
+    },
+    "briefing.label_string_invalid": {
+      "level": "W",
+      "fields": ["label", "string", "at"],
+      "text": "The briefing script gave label {label} string {string} at script frame {at}, outside the 32 label strings; the label's text is copied from a pointer past the string table, here and each frame it shows"
+    },
     "briefing.launch_received": {
       "level": "D",
       "fields": ["frame", "ms", "state", "entered"],
@@ -162,6 +192,41 @@
       "level": "D",
       "fields": ["by", "category", "preset", "option", "warhead", "beam", "countermeasure", "waves", "count"],
       "text": "This player sent every player its craft choice ({by}): preset category {category}, preset {preset}, craft option {option}, warhead {warhead}, beam {beam}, countermeasure {countermeasure}, {waves} extra waves, {count} craft"
+    },
+    "briefing.map_arrived": {
+      "level": "D",
+      "fields": ["kind", "x", "y", "at"],
+      "text": "The briefing map's {kind} (its center point, or its zoom in pixels per 256 map units) reached its target {x}, {y} as the script reached frame {at}"
+    },
+    "briefing.map_target": {
+      "level": "D",
+      "fields": ["kind", "x", "y", "at", "instant"],
+      "text": "The briefing script moved the map's {kind} target (its center point, or its zoom in pixels per 256 map units) to {x}, {y} at script frame {at}; set at once at frame 0 or when replayed at once, else the map glides there; replayed at once (starting over or skipping with Forward: no sounds, markers and labels shown in full): {instant}"
+    },
+    "briefing.marker_group_invalid": {
+      "level": "W",
+      "fields": ["marker", "fg", "groups", "at"],
+      "text": "The briefing script put marker {marker} on flight group {fg} at script frame {at}, but the mission has {groups} flight groups; the map reads that group's record anyway, each frame the marker shows"
+    },
+    "briefing.marker_shown": {
+      "level": "D",
+      "fields": ["marker", "fg", "iff", "sound", "at", "instant"],
+      "text": "Marker {marker} of the briefing map highlighted flight group {fg} (IFF {iff}; -1 when replayed at once, which does not read it) at script frame {at}; a target sound played: {sound}; replayed at once (starting over or skipping with Forward: no sounds, markers and labels shown in full): {instant}"
+    },
+    "briefing.opcode_unknown": {
+      "level": "W",
+      "fields": ["opcode", "word", "count", "at"],
+      "text": "The briefing script's entry at word {word} has command {opcode}, outside the 35 known; its argument count {count} was read from past the end of the count table (over 8 overruns the reader's buffer), at script frame {at}"
+    },
+    "briefing.overlay_cleared": {
+      "level": "D",
+      "fields": ["kind", "at", "instant"],
+      "text": "The briefing script cleared its {kind} (the narration, the flight group markers, or the labels) at script frame {at}; replayed at once (starting over or skipping with Forward: no sounds, markers and labels shown in full): {instant}"
+    },
+    "briefing.page_shown": {
+      "level": "D",
+      "fields": ["page", "block", "at"],
+      "text": "Narration page {page} (text block {block} of the briefing) was shown under the briefing map; the last script frame played was {at}"
     },
     "briefing.ready_sent": {
       "level": "I",
@@ -178,10 +243,55 @@
       "fields": ["by", "entered", "ms"],
       "text": "The host sent every player the launch, the roster's craft choices and the flight assignments ({by}); {entered} players had entered the craft selection screen and {ms} ms were left on the launch countdown"
     },
+    "briefing.script_default": {
+      "level": "D",
+      "fields": ["frames"],
+      "text": "The briefing map was given the default script, {frames} frames long with nothing but its end entry, until a mission's briefing replaces it"
+    },
+    "briefing.script_end_early": {
+      "level": "W",
+      "fields": ["at", "frames", "word"],
+      "text": "The briefing script's end entry, at word {word}, was reached at script frame {at}, before the script's length of {frames} frames; the reader went on past it into the words that follow"
+    },
+    "briefing.script_ended": {
+      "level": "D",
+      "fields": ["by", "at", "frames", "pages"],
+      "text": "The briefing reached its end ({by}: played through its length, or skipped there with the Forward button) at script frame {at} of {frames}, after {pages} pages of narration, and started over"
+    },
+    "briefing.script_entries_unplayed": {
+      "level": "D",
+      "fields": ["frames", "next_at", "opcode"],
+      "text": "The briefing's length of {frames} frames ended it before its entries timed from frame {next_at} on (the first is command {opcode}); those entries were never shown"
+    },
+    "briefing.script_reset": {
+      "level": "D",
+      "fields": ["at", "frames"],
+      "text": "The briefing went back to its start from script frame {at}; its script lasts {frames} frames"
+    },
+    "briefing.stop_point": {
+      "level": "D",
+      "fields": ["at", "instant"],
+      "text": "The briefing passed a stopping point for the Forward button at script frame {at}; replayed at once (starting over or skipping with Forward: no sounds, markers and labels shown in full): {instant}"
+    },
+    "briefing.text_block_invalid": {
+      "level": "W",
+      "fields": ["block", "at"],
+      "text": "The briefing script put text block {block} under the map at script frame {at}, outside the 32 blocks; each frame it shows, the map reads a text pointer from past the block table"
+    },
     "briefing.text_freed": {
       "level": "D",
       "fields": ["labels", "blocks", "spare"],
       "text": "The briefing's text buffers were freed: map labels {labels}, text blocks {blocks}, unused buffers {spare} (1 when the first of each set was held); the pointers were left as they were"
+    },
+    "briefing.text_shown": {
+      "level": "D",
+      "fields": ["text_slot", "block", "at", "instant"],
+      "text": "The briefing script showed text block {block} in text slot {text_slot} (0 the title, which the map does not draw; 1 the narration under the map) at script frame {at}; replayed at once (starting over or skipping with Forward: no sounds, markers and labels shown in full): {instant}"
+    },
+    "briefing.zoom_invalid": {
+      "level": "E",
+      "fields": ["x", "y", "at"],
+      "text": "The briefing script set the map zoom to {x} by {y} at script frame {at}; a zoom of 0 makes the map's grid drawing loop without end, and one from -256 to -129 across divides by zero, so the game hangs or crashes"
     },
     "campaign.packet_timeout": {
       "level": "W",

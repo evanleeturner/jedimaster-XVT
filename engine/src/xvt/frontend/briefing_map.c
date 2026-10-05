@@ -15,6 +15,7 @@
 #include "xvt/frontend/frontend_text.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Flight group nearest the mouse on the briefing map, by its mission point
  * 14: set by briefing_map_select_nearest_mission_point14_flight_group, and to 0 by
@@ -201,6 +202,14 @@ int16_t briefing_map_select_nearest_mission_point14_flight_group(
 	}
 
 	if (best_distance != 999) {
+		if (g_briefing_selected_mission_point14_flight_group_idx !=
+		    selected_flight_group_idx) {
+			XVT_LOG_DEBUG(
+				"briefing.group_nearest fg=%d previous=%d distance=%d",
+				(int)selected_flight_group_idx,
+				(int)g_briefing_selected_mission_point14_flight_group_idx,
+				(int)best_distance);
+		}
 		g_briefing_selected_mission_point14_flight_group_idx =
 			selected_flight_group_idx;
 		return 1;
@@ -281,6 +290,15 @@ void briefing_map_animate_view_state(void)
 	g_briefing_map_scale.y = briefing_map_step_s16_toward_target(
 		g_briefing_map_scale.y, g_briefing_map_target_scale.y,
 		scale_step);
+	if (maximum_difference != 0 &&
+	    g_briefing_map_scale.x == g_briefing_map_target_scale.x &&
+	    g_briefing_map_scale.y == g_briefing_map_target_scale.y) {
+		XVT_LOG_DEBUG(
+			"briefing.map_arrived kind=\"zoom\" x=%d y=%d at=%d",
+			(int)g_briefing_map_scale.x,
+			(int)g_briefing_map_scale.y,
+			(int)g_briefing_script.current_frame);
+	}
 
 	int16_t scale_divisor;
 	if (g_briefing_map_scale.x != 0) {
@@ -312,6 +330,15 @@ void briefing_map_animate_view_state(void)
 	g_briefing_map_center.y = briefing_map_step_s16_toward_target(
 		g_briefing_map_center.y, g_briefing_map_target_center.y,
 		scale_divisor);
+	if (center_difference != 0 &&
+	    g_briefing_map_center.x == g_briefing_map_target_center.x &&
+	    g_briefing_map_center.y == g_briefing_map_target_center.y) {
+		XVT_LOG_DEBUG(
+			"briefing.map_arrived kind=\"center\" x=%d y=%d at=%d",
+			(int)g_briefing_map_center.x,
+			(int)g_briefing_map_center.y,
+			(int)g_briefing_script.current_frame);
+	}
 
 	int16_t index = 0;
 	do {
@@ -337,6 +364,23 @@ void briefing_map_update_script_playback_after_animation(void)
 	    g_briefing_script.duration_frames) {
 		briefing_script_advance_frame(0);
 	} else {
+		XVT_LOG_DEBUG(
+			"briefing.script_ended by=\"played\" at=%d frames=%d pages=%d",
+			(int)g_briefing_script.current_frame,
+			(int)g_briefing_script.duration_frames,
+			g_briefing_text_page_number);
+		if (g_briefing_script
+			    .words[g_briefing_script.cursor_word_index + 1] !=
+		    34) {
+			XVT_LOG_DEBUG(
+				"briefing.script_entries_unplayed frames=%d next_at=%d opcode=%d",
+				(int)g_briefing_script.duration_frames,
+				(int)g_briefing_script.words
+					[g_briefing_script.cursor_word_index],
+				(int)g_briefing_script.words
+					[g_briefing_script.cursor_word_index +
+					 1]);
+		}
 		g_briefing_last_narrated_text_block_idx = 0;
 		g_briefing_text_page_number = 0;
 		briefing_script_reset_state();
@@ -402,6 +446,11 @@ briefing_map_draw_viewport_and_selection(const struct RECT *viewport_rect,
 			++g_briefing_text_page_number;
 			g_briefing_last_narrated_text_block_idx =
 				g_briefing_text_slot_block_idx[1];
+			XVT_LOG_DEBUG(
+				"briefing.page_shown page=%d block=%d at=%d",
+				g_briefing_text_page_number,
+				g_briefing_last_narrated_text_block_idx,
+				(int)g_briefing_script.current_frame - 1);
 		}
 	}
 
