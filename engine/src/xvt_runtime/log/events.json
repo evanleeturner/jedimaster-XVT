@@ -2033,6 +2033,11 @@
       "fields": ["held", "tick"],
       "text": "Saving the world state failed at tick {tick} (a buffer was held: {held}); a flight starting stops there, and a flight under way ends at its next restore"
     },
+    "frontend.alloc_failed": {
+      "level": "E",
+      "fields": ["what", "bytes"],
+      "text": "Memory for the {what} ({bytes} bytes) could not be allocated while the menus loaded; the game went on without it"
+    },
     "frontend.concourse_closed": {
       "level": "D",
       "fields": ["frame", "pilots"],
@@ -2053,6 +2058,16 @@
       "fields": ["faction"],
       "text": "The pilot's faction {faction} is not one of its 4 faction records; the concourse read the pilot's choices from past the records"
     },
+    "frontend.help_toggled": {
+      "level": "D",
+      "fields": ["help", "context"],
+      "text": "The help button switched the help text; it is now on: {help} (screen context {context})"
+    },
+    "frontend.host_cd_checked": {
+      "level": "D",
+      "fields": ["found"],
+      "text": "The host CD's first training mission was looked for among the installed files: found {found}; hosting a game needs it"
+    },
     "frontend.launch_requested": {
       "level": "D",
       "fields": ["directory", "mission", "mode", "players"],
@@ -2068,10 +2083,40 @@
       "fields": ["players", "host", "mode"],
       "text": "The \"Prepare for launch\" screen opened for {players} human players; this machine launches as host: {host} (session mode {mode})"
     },
+    "frontend.menus_loaded": {
+      "level": "I",
+      "fields": ["cutscenes", "has_pilot", "host_cd", "music", "music_failed"],
+      "text": "The menus loaded their fonts, images, sounds, strings, {cutscenes} cutscenes, the options and the last pilot (a pilot selected: {has_pilot}); the host CD was found: {host_cd}; menu music on: {music}, music could not start: {music_failed}"
+    },
+    "frontend.mode_chosen": {
+      "level": "I",
+      "fields": ["choice", "context", "previous_mode"],
+      "text": "The player picked {choice} on the top bar from screen context {context} (the session mode had been {previous_mode}); any network session was closed and the game moved to that screen"
+    },
     "frontend.music_warning_shown": {
       "level": "D",
       "fields": [],
       "text": "The concourse told the player the music could not be started"
+    },
+    "frontend.options_closed": {
+      "level": "D",
+      "fields": ["context", "mode"],
+      "text": "The options screen was closed with its top-bar button (screen context {context}, session mode {mode}); the options were written and the screen under it came back"
+    },
+    "frontend.options_sent": {
+      "level": "D",
+      "fields": ["difficulty", "collisions", "jumping", "random", "length", "password", "join", "craft", "locate", "waves", "time_limit", "team_limit", "seed", "internet", "ai", "rate", "balance", "continue"],
+      "text": "As host, closing the options screen sent the game options to the other players: difficulty {difficulty}, collisions {collisions}, craft jumping {jumping}, random setup {random}, battle length {length}, password required {password}, joining in progress {join}, craft selection {craft}, locate players {locate}, craft waves {waves}, mission time limit {time_limit}, last team time limit {team_limit} minutes, random seed {seed}, internet play {internet}, computer opponents {ai}, server update rate {rate}, combat balance {balance}, continue choice {continue}"
+    },
+    "frontend.pilot_required": {
+      "level": "D",
+      "fields": ["choice", "context"],
+      "text": "The player picked {choice} on the top bar from screen context {context} with no pilot selected; a dialog asked for one"
+    },
+    "frontend.quit_confirmed": {
+      "level": "I",
+      "fields": ["context", "mode", "session"],
+      "text": "The player confirmed quitting the game from screen context {context} (0 the concourse or a network screen, 1 mission setup, 4 the debriefing; session mode {mode}, a game in progress: {session}); the other players were told where needed, the options were written and the network session closed"
     },
     "frontend.ready": {
       "level": "I",
@@ -2098,6 +2143,11 @@
       "fields": ["left", "top", "right", "bottom"],
       "text": "A screen was not pushed: its area from ({left}, {top}) to ({right}, {bottom}), clamped to the screen, was empty"
     },
+    "frontend.screen_requested": {
+      "level": "D",
+      "fields": ["screen", "context"],
+      "text": "The {screen} screen was asked for from screen context {context} (0 the concourse or a network screen, 1 mission setup, 4 the debriefing); it opens over the current screen at the next frame"
+    },
     "frontend.screen_save_alloc_failed": {
       "level": "E",
       "fields": ["bytes", "depth"],
@@ -2112,6 +2162,11 @@
       "level": "D",
       "fields": ["depth", "frame", "pending"],
       "text": "The screen at stack level {depth} was given new update and exit functions after its frame {frame}; another switch was already waiting this frame: {pending} (the last one wins)"
+    },
+    "frontend.scroll_table_full": {
+      "level": "D",
+      "fields": ["control", "count"],
+      "text": "Scrollbar {control} was not added to the keyboard focus list: all {count} places were taken"
     },
     "hud.alert_closed": {
       "level": "D",

@@ -35,6 +35,7 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 enum {
 	FRONTEND_CHAT_LOG_CAPACITY = 1024,
@@ -212,6 +213,13 @@ int frontend_load_resources(void)
 	g_cursor_save_buffer =
 		malloc(FRONTEND_CURSOR_BYTES_PER_PIXEL *
 		       (cursor_rect.bottom + 1) * (cursor_rect.right + 1));
+	if (g_cursor_save_buffer == NULL) {
+		XVT_LOG_ERROR(
+			"frontend.alloc_failed what=\"cursor_background\" bytes=%d",
+			FRONTEND_CURSOR_BYTES_PER_PIXEL *
+				(cursor_rect.bottom + 1) *
+				(cursor_rect.right + 1));
+	}
 	frontend_cursor_set_image_from_resource_name("cursor",
 						     g_cursor_save_buffer);
 #ifdef XVT_MODERN
@@ -228,6 +236,10 @@ int frontend_load_resources(void)
 	if (g_frontend_chat_log_buffer != NULL) {
 		memset(g_frontend_chat_log_buffer, 0,
 		       FRONTEND_CHAT_LOG_CAPACITY);
+	} else {
+		XVT_LOG_ERROR(
+			"frontend.alloc_failed what=\"chat_log\" bytes=%d",
+			FRONTEND_CHAT_LOG_CAPACITY);
 	}
 
 	g_color_green2 = frontend_display_pack_rgb(0, 255, 0);
@@ -278,6 +290,11 @@ int frontend_load_resources(void)
 	} else {
 		cd_audio_stop_current_track();
 	}
+	XVT_LOG_INFO(
+		"frontend.menus_loaded cutscenes=%d has_pilot=%d host_cd=%d music=%d music_failed=%d",
+		g_cutscene_count, g_pilot_data.name[0] != '\0',
+		g_host_cd_available, (int)g_game_config.datapad_music_enabled,
+		g_cd_audio_warning_pending);
 	return 0;
 }
 
@@ -342,6 +359,8 @@ int frontend_handle_common_screen_controls(int screen_context)
 	}
 	if (action_triggered != 0) {
 		g_game_config.help_on ^= 1;
+		XVT_LOG_DEBUG("frontend.help_toggled help=%d context=%d",
+			      (int)g_game_config.help_on, screen_context);
 	}
 	if (g_game_config.help_on != 0) {
 		frontend_button_enable_overlay_text();
@@ -510,6 +529,11 @@ int frontend_handle_common_screen_controls(int screen_context)
 #endif
 			}
 			if (action_triggered != 0) {
+				XVT_LOG_INFO(
+					"frontend.quit_confirmed context=%d mode=%d session=%d",
+					screen_context,
+					(int)g_frontend_mission_session_mode,
+					g_frontend_game_session_in_progress);
 				switch (screen_context) {
 				default:
 					config_write();
@@ -611,6 +635,10 @@ int frontend_handle_common_screen_controls(int screen_context)
 		if (frontend_draw_point_in_rect(&rect, mouse_x, mouse_y) != 0 &&
 		    (frontend_mouse_get_left_click() != 0 ||
 		     frontend_mouse_get_right_click() != 0)) {
+			XVT_LOG_DEBUG(
+				"frontend.options_closed context=%d mode=%d",
+				screen_context,
+				(int)g_frontend_mission_session_mode);
 			if (g_game_config.sfx_datapad_enabled != 0) {
 				frontend_sound_play_ui_sound(
 					"buttonsound", 1, 0, UI_SOUND_PRIORITY,
@@ -682,6 +710,44 @@ int frontend_handle_common_screen_controls(int screen_context)
 					 .payload[68] =
 					(uint8_t)g_game_config
 						.continue_battle_or_campaign;
+				XVT_LOG_DEBUG(
+					"frontend.options_sent difficulty=%d collisions=%d jumping=%d random=%d length=%d password=%d join=%d craft=%d locate=%d waves=%d time_limit=%d team_limit=%d seed=%d internet=%d ai=%d rate=%d balance=%d continue=%d",
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[0],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[4],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[8],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[12],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[16],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[20],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[24],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[28],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[32],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[36],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[40],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[44],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[48],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[52],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[56],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[60],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[64],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[68]);
 				net_send_packet_and_flush(
 					0, &g_frontend_net_packet_scratch,
 					CONFIG_PACKET_SIZE);
@@ -697,6 +763,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 		    (screen_context >= 0 &&
 		     (screen_context <= SCREEN_CONTEXT_MISSION ||
 		      screen_context == SCREEN_CONTEXT_DEBRIEF))) {
+			XVT_LOG_DEBUG(
+				"frontend.screen_requested screen=\"options\" context=%d",
+				screen_context);
 			frontend_draw_rect_assign(&screen_rect, 0, 0, 640, 480);
 			frontend_screen_queue_push(
 				config_options_datapad_update, &screen_rect);
@@ -860,6 +929,10 @@ int frontend_handle_common_screen_controls(int screen_context)
 				}
 				if (action_triggered != 0) {
 					if (g_pilot_data.name[0] != '\0') {
+						XVT_LOG_INFO(
+							"frontend.mode_chosen choice=\"join\" context=%d previous_mode=%d",
+							screen_context,
+							(int)g_frontend_mission_session_mode);
 						g_mission_setup_is_host = 0;
 						g_mission_setup_roster_authoritative =
 							0;
@@ -881,6 +954,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 								frontend_mission_list_free_screen_resources);
 						}
 					} else {
+						XVT_LOG_DEBUG(
+							"frontend.pilot_required choice=\"join\" context=%d",
+							screen_context);
 						frontend_dialog_show_confirm_dialog(
 							frontend_string_get(
 								FRONTSTR_524_YOU_MUST_SELECT_A_PILOT_FROM),
@@ -1062,6 +1138,10 @@ int frontend_handle_common_screen_controls(int screen_context)
 					if (action_triggered != 0) {
 						if (g_pilot_data.name[0] !=
 						    '\0') {
+							XVT_LOG_INFO(
+								"frontend.mode_chosen choice=\"host\" context=%d previous_mode=%d",
+								screen_context,
+								(int)g_frontend_mission_session_mode);
 							if (screen_context !=
 							    SCREEN_CONTEXT_MISSION) {
 								net_shutdown_direct_play_session();
@@ -1080,6 +1160,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									frontend_net_host_game_exit);
 							}
 						} else {
+							XVT_LOG_DEBUG(
+								"frontend.pilot_required choice=\"host\" context=%d",
+								screen_context);
 							frontend_dialog_show_confirm_dialog(
 								frontend_string_get(
 									FRONTSTR_524_YOU_MUST_SELECT_A_PILOT_FROM),
@@ -1166,6 +1249,10 @@ int frontend_handle_common_screen_controls(int screen_context)
 					if (action_triggered != 0) {
 						if (g_pilot_data.name[0] !=
 						    '\0') {
+							XVT_LOG_INFO(
+								"frontend.mode_chosen choice=\"solo\" context=%d previous_mode=%d",
+								screen_context,
+								(int)g_frontend_mission_session_mode);
 							g_mission_setup_is_host =
 								0;
 							g_mission_setup_roster_authoritative =
@@ -1191,6 +1278,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									mission_setup_exit);
 							}
 						} else {
+							XVT_LOG_DEBUG(
+								"frontend.pilot_required choice=\"solo\" context=%d",
+								screen_context);
 							frontend_dialog_show_confirm_dialog(
 								frontend_string_get(
 									FRONTSTR_524_YOU_MUST_SELECT_A_PILOT_FROM),
@@ -1223,6 +1313,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 		if (frontend_draw_point_in_rect(&rect, mouse_x, mouse_y) != 0 &&
 		    (frontend_mouse_get_left_click() != 0 ||
 		     frontend_mouse_get_right_click() != 0)) {
+			XVT_LOG_DEBUG(
+				"tech.closed by=\"top_button\" from_briefing=%d",
+				g_mission_briefing_craft_selection_active);
 			if (g_game_config.sfx_datapad_enabled != 0) {
 				frontend_sound_play_ui_sound(
 					"buttonsound", 1, 0, UI_SOUND_PRIORITY,
@@ -1254,6 +1347,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 			   frontend_string_get(FRONTSTR_001_CRAFT_DATABASE),
 			   BUTTON_FONT_SIZE, 0, CRAFT_HELD_SLOT,
 			   "buttonsound") != 0) {
+		XVT_LOG_DEBUG(
+			"frontend.screen_requested screen=\"craft_database\" context=%d",
+			screen_context);
 		frontend_draw_rect_assign(&screen_rect, 0, 0, 640, 480);
 		frontend_screen_queue_push(tech_library_update, &screen_rect);
 	}
@@ -1382,6 +1478,10 @@ int frontend_handle_common_screen_controls(int screen_context)
 					}
 				}
 				if (action_triggered != 0) {
+					XVT_LOG_INFO(
+						"frontend.mode_chosen choice=\"pilots\" context=%d previous_mode=%d",
+						screen_context,
+						(int)g_frontend_mission_session_mode);
 					g_mission_setup_is_host = 0;
 					g_mission_setup_roster_authoritative =
 						0;
@@ -1524,6 +1624,7 @@ int frontend_check_host_cd_present(void)
 	g_host_cd_available =
 		xvt_storage_resolve_asset("train/1ta01bf.tie", path,
 					  sizeof(path)) == 1;
+	XVT_LOG_DEBUG("frontend.host_cd_checked found=%d", g_host_cd_available);
 	return g_host_cd_available;
 #else
 
@@ -1573,6 +1674,8 @@ int frontend_register_scrollable_control(int control_id)
 {
 	int count = g_scrollable_control_count;
 	if ((unsigned int)count >= 32u) {
+		XVT_LOG_DEBUG("frontend.scroll_table_full control=%d count=%d",
+			      control_id, count);
 		return 0;
 	}
 
