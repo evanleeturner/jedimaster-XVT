@@ -26,6 +26,7 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/input/keyboard.h"
 #include "xvt/net/net.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Heap table of 93 craft descriptions from specdesc.txt, by craft_species
  * value minus 1. tech_library_load_spec_text_table loads it on the craft
@@ -141,6 +142,10 @@ int tech_library_update(int frame_counter)
 			(float)DEFAULT_PREVIEW_YAW_DEGREES;
 		ship_list_load();
 		tech_library_load_spec_text_table();
+		if (g_ship_list == NULL || g_ship_count <= 0) {
+			XVT_LOG_ERROR("tech.ship_list_empty count=%d listed=%d",
+				      g_ship_count, g_ship_list != NULL);
+		}
 		if (g_mission_briefing_craft_selection_active != 0) {
 			model_preview_save_state();
 		}
@@ -150,7 +155,18 @@ int tech_library_update(int frame_counter)
 			g_ship_list[g_tech_library_selected_ship_list_idx]
 				.craft_type;
 		build_craft_tech_stats(&g_tech_library_craft_stats);
+		if (g_tech_library_craft_stats.craft_type > 93) {
+			XVT_LOG_WARN("tech.spec_index_over craft=%d index=%d",
+				     g_tech_library_craft_stats.craft_type,
+				     g_tech_library_selected_ship_list_idx);
+		}
 		model_preview_load_model(
+			g_ship_list[g_tech_library_selected_ship_list_idx]
+				.model_file_name);
+		XVT_LOG_DEBUG(
+			"tech.craft_shown by=\"open\" index=%d count=%d craft=%d model=\"%.63s\"",
+			g_tech_library_selected_ship_list_idx, g_ship_count,
+			g_tech_library_craft_stats.craft_type,
 			g_ship_list[g_tech_library_selected_ship_list_idx]
 				.model_file_name);
 		model_preview_set_light_direction(g_tech_library_light_x,
@@ -176,6 +192,10 @@ int tech_library_update(int frame_counter)
 		front_image_draw_sprite_translucent("configoverlay", 0, 0);
 		frontend_display_unlock_offscreen_surface(1);
 		frontend_text_start_text_fade_in(20);
+		XVT_LOG_INFO("tech.opened ships=%d from_briefing=%d spec=%d",
+			     g_ship_count,
+			     g_mission_briefing_craft_selection_active,
+			     g_tech_library_spec_text_table != NULL);
 	}
 
 	struct RECT rect;
@@ -251,6 +271,8 @@ int tech_library_update(int frame_counter)
 		button_pressed |= net_poll_for_player_created_or_backlog();
 	}
 	if (button_pressed != 0) {
+		XVT_LOG_DEBUG("tech.closed by=\"done\" from_briefing=%d",
+			      g_mission_briefing_craft_selection_active);
 		front_image_free_resource_by_name("backreview");
 		keyboard_flush_char_buffer();
 		frontend_screen_pop_state();
@@ -365,6 +387,14 @@ int tech_library_update_model_controls(void)
 				}
 			}
 		}
+		XVT_LOG_DEBUG("tech.light_changed x=%d y=%d z=%d",
+			      g_tech_library_light_x, g_tech_library_light_y,
+			      g_tech_library_light_z);
+		if (g_tech_library_light_x == 0 &&
+		    g_tech_library_light_y == 0 &&
+		    g_tech_library_light_z == 0) {
+			XVT_LOG_WARN("tech.light_zero");
+		}
 		model_preview_set_light_direction(g_tech_library_light_x,
 						  g_tech_library_light_y,
 						  g_tech_library_light_z);
@@ -432,7 +462,18 @@ int tech_library_update_model_controls(void)
 			g_ship_list[g_tech_library_selected_ship_list_idx]
 				.craft_type;
 		build_craft_tech_stats(&g_tech_library_craft_stats);
+		if (g_tech_library_craft_stats.craft_type > 93) {
+			XVT_LOG_WARN("tech.spec_index_over craft=%d index=%d",
+				     g_tech_library_craft_stats.craft_type,
+				     g_tech_library_selected_ship_list_idx);
+		}
 		model_preview_load_model(
+			g_ship_list[g_tech_library_selected_ship_list_idx]
+				.model_file_name);
+		XVT_LOG_DEBUG(
+			"tech.craft_shown by=\"previous\" index=%d count=%d craft=%d model=\"%.63s\"",
+			g_tech_library_selected_ship_list_idx, g_ship_count,
+			g_tech_library_craft_stats.craft_type,
 			g_ship_list[g_tech_library_selected_ship_list_idx]
 				.model_file_name);
 		selected_craft_type =
@@ -463,7 +504,18 @@ int tech_library_update_model_controls(void)
 			g_ship_list[g_tech_library_selected_ship_list_idx]
 				.craft_type;
 		build_craft_tech_stats(&g_tech_library_craft_stats);
+		if (g_tech_library_craft_stats.craft_type > 93) {
+			XVT_LOG_WARN("tech.spec_index_over craft=%d index=%d",
+				     g_tech_library_craft_stats.craft_type,
+				     g_tech_library_selected_ship_list_idx);
+		}
 		model_preview_load_model(
+			g_ship_list[g_tech_library_selected_ship_list_idx]
+				.model_file_name);
+		XVT_LOG_DEBUG(
+			"tech.craft_shown by=\"next\" index=%d count=%d craft=%d model=\"%.63s\"",
+			g_tech_library_selected_ship_list_idx, g_ship_count,
+			g_tech_library_craft_stats.craft_type,
 			g_ship_list[g_tech_library_selected_ship_list_idx]
 				.model_file_name);
 		selected_craft_type =
@@ -661,6 +713,7 @@ int tech_library_load_spec_text_table(void)
 {
 	xvt_file *stream = file_open("specdesc.txt", "r");
 	if (stream == NULL) {
+		XVT_LOG_ERROR("tech.spec_open_failed file=\"specdesc.txt\"");
 		return 0;
 	}
 
@@ -677,6 +730,10 @@ int tech_library_load_spec_text_table(void)
 	       sizeof(*g_tech_library_spec_text_table) * 93u);
 #endif
 	if (g_tech_library_spec_text_table == NULL) {
+		XVT_LOG_ERROR(
+			"tech.spec_alloc_failed bytes=%u",
+			(unsigned)(sizeof(*g_tech_library_spec_text_table) *
+				   93u));
 		file_close(stream);
 		return 0;
 	}
@@ -699,6 +756,15 @@ int tech_library_load_spec_text_table(void)
 				if (FILE_GETS(g_frontend_scratch_buffer, 1024,
 					      stream) == NULL) {
 #endif
+					XVT_LOG_DEBUG(
+						"tech.spec_loaded entries=%d",
+						entry_index);
+					if (field_index != 0) {
+						XVT_LOG_WARN(
+							"tech.spec_entry_cut entry=%d field=%d",
+							entry_index,
+							field_index);
+					}
 					file_close(stream);
 					return 1;
 				}
@@ -746,6 +812,7 @@ int tech_library_load_spec_text_table(void)
 			++field_index;
 		}
 	}
+	XVT_LOG_DEBUG("tech.spec_loaded entries=%d", 93);
 
 #ifdef XVT_MODERN
 	return file_close(stream);

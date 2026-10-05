@@ -5718,6 +5718,61 @@
       "fields": ["field", "limit"],
       "text": "Cockpit text field {field} exceeds {limit} bytes"
     },
+    "tech.closed": {
+      "level": "D",
+      "fields": ["by", "from_briefing"],
+      "text": "The craft database closed ({by}: its Done button, a network message, the host's new-player check, or the top-bar button); it was open over a briefing's craft screen: {from_briefing}"
+    },
+    "tech.craft_shown": {
+      "level": "D",
+      "fields": ["by", "index", "count", "craft", "model"],
+      "text": "The craft database showed list entry {index} of {count} ({by}): craft type {craft}, model {model}"
+    },
+    "tech.light_changed": {
+      "level": "D",
+      "fields": ["x", "y", "z"],
+      "text": "The craft database's light direction moved to ({x}, {y}, {z})"
+    },
+    "tech.light_zero": {
+      "level": "W",
+      "fields": [],
+      "text": "The craft database's light direction reached (0, 0, 0), which has no length; the model view divides by that length, so the model's lighting came out undefined"
+    },
+    "tech.opened": {
+      "level": "I",
+      "fields": ["ships", "from_briefing", "spec"],
+      "text": "The craft database opened with {ships} craft models listed; over a briefing's craft screen: {from_briefing}; craft descriptions loaded: {spec}"
+    },
+    "tech.ship_list_empty": {
+      "level": "E",
+      "fields": ["count", "listed"],
+      "text": "The craft database opened with no craft to show ({count} entries, a list allocated: {listed}); it then read the first entry of a missing or empty list"
+    },
+    "tech.spec_alloc_failed": {
+      "level": "E",
+      "fields": ["bytes"],
+      "text": "Memory for the 93 craft descriptions ({bytes} bytes) could not be allocated; the craft database's panel then reads a missing table"
+    },
+    "tech.spec_entry_cut": {
+      "level": "W",
+      "fields": ["entry", "field"],
+      "text": "The craft descriptions file ended inside entry {entry}, after {field} of its 5 lines; that craft's description is incomplete"
+    },
+    "tech.spec_index_over": {
+      "level": "W",
+      "fields": ["craft", "index"],
+      "text": "Craft type {craft} (list entry {index}) is past the 93 craft descriptions; the craft database's panel read past their table"
+    },
+    "tech.spec_loaded": {
+      "level": "D",
+      "fields": ["entries"],
+      "text": "The craft descriptions file was read: {entries} craft described (the table holds 93; the rest stayed empty)"
+    },
+    "tech.spec_open_failed": {
+      "level": "E",
+      "fields": ["file"],
+      "text": "The craft descriptions file {file} did not open; the craft database kept its old table, none on a first opening, and its panel then reads a missing table"
+    },
     "timing.alloc_failed": {
       "level": "W",
       "fields": ["outcome"],
