@@ -491,7 +491,7 @@
     "battle.killing_blow": {
       "level": "I",
       "fields": ["victim", "by", "attacker", "weapon", "type", "tick"],
-      "text": "Craft {victim} was destroyed by a {weapon} blow (object type {type}) from object {attacker}, flown by player {by} (-1 for a computer pilot or none), at tick {tick}"
+      "text": "Craft {victim} took its killing blow ({weapon}, object type {type}) from object {attacker}, flown by player {by} (-1 for a computer pilot or none), at tick {tick}; a craft boarded to be destroyed blows itself up when its countdown runs out"
     },
     "battle.loss": {
       "level": "I",
