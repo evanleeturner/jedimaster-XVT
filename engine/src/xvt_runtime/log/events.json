@@ -83,6 +83,106 @@
       "fields": ["by", "warhead", "own", "score", "tick"],
       "text": "A warhead of type {warhead} fired for player {by} hit, worth {score} points; fired by the player's own craft: {own} (else a craft of the player's flight group); at tick {tick}"
     },
+    "briefing.all_ready": {
+      "level": "D",
+      "fields": ["players"],
+      "text": "All {players} of the session's ready players had pressed Ready on the craft selection screen (counts compared, not which players)"
+    },
+    "briefing.countdown_expired": {
+      "level": "I",
+      "fields": ["ms", "mode"],
+      "text": "The launch countdown on the craft selection screen ran out ({ms} ms after its last step); session mode {mode}: 3 network client (waits for the host's launch), 4 network host (launches now)"
+    },
+    "briefing.countdown_lowered": {
+      "level": "D",
+      "fields": ["ms", "previous"],
+      "text": "The host's countdown packet lowered this player's launch countdown to {ms} ms (it was {previous} ms)"
+    },
+    "briefing.countdown_sent": {
+      "level": "D",
+      "fields": ["ms"],
+      "text": "The host sent every player its launch countdown, {ms} ms left"
+    },
+    "briefing.countdown_started": {
+      "level": "I",
+      "fields": ["entered", "ms"],
+      "text": "{entered} players had reached the craft selection screen, as many as the session's ready players, and the launch countdown started with {ms} ms left"
+    },
+    "briefing.craft_choices": {
+      "level": "D",
+      "fields": ["allowed", "craft_choice", "armaments"],
+      "text": "On opening, the craft selection screen let the player choose: configuration allowed {allowed} (0 in a training sequence below the easiest difficulty), a craft choice {craft_choice}, {armaments} kinds of armament"
+    },
+    "briefing.craft_closed": {
+      "level": "D",
+      "fields": ["list", "text", "ship_list"],
+      "text": "The craft selection screen closed and freed what it held: the mission list {list}, the mission text {text}, the ship list {ship_list} (1 held, 0 none)"
+    },
+    "briefing.craft_confirmed": {
+      "level": "I",
+      "fields": ["fg", "craft", "option"],
+      "text": "The player confirmed the craft for flight group {fg} and pressed Fly: preset craft {craft} (0 the flight group's own or optional craft), craft option {option} (-1 the flight group's own craft)"
+    },
+    "briefing.craft_left": {
+      "level": "I",
+      "fields": ["reason"],
+      "text": "The player left the craft selection screen ({reason})"
+    },
+    "briefing.craft_mission_unlisted": {
+      "level": "W",
+      "fields": ["directory", "mission", "listed", "count", "index"],
+      "text": "The mission list of directory {directory} did not hold the pilot's mission {mission} (list loaded {listed}, {count} entries); the craft selection screen's title read list entry {index}, past the list's end, on every frame"
+    },
+    "briefing.craft_opened": {
+      "level": "I",
+      "fields": ["fg", "craft", "faction", "mode"],
+      "text": "The craft selection screen opened for flight group {fg}, craft type {craft}, with faction {faction}'s background (0 Rebel, 1 Imperial); session mode {mode}: 2 solo, 3 network client, 4 network host"
+    },
+    "briefing.craft_preview": {
+      "level": "D",
+      "fields": ["craft"],
+      "text": "The host's craft choice reached this player, and the craft preview now shows craft type {craft}"
+    },
+    "briefing.craft_quick_start": {
+      "level": "D",
+      "fields": ["fg", "craft", "option"],
+      "text": "Quick start passed through the craft selection screen with the default craft for flight group {fg}: preset craft {craft} (0 the flight group's own or optional craft), craft option {option} (-1 the flight group's own craft)"
+    },
+    "briefing.craft_setup": {
+      "level": "D",
+      "fields": ["fg", "craft", "markings", "skip", "index", "missions", "selection", "quick"],
+      "text": "The craft selection screen was set up for flight group {fg}, craft type {craft} with markings {markings}; flight assignment skipped {skip} (a melee with one player flight group a team); mission list entry {index} of {missions}; craft selection mode {selection} (0 off, 1 on, 2 host only); quick start {quick}"
+    },
+    "briefing.launch_received": {
+      "level": "D",
+      "fields": ["frame", "ms", "state", "entered"],
+      "text": "The host's launch reached the craft selection screen on its frame {frame}, with {ms} ms left on the launch countdown (countdown state {state}: 0 waiting, 1 running, 2 run out) and {entered} players in the briefing; the screen moved on to the flight"
+    },
+    "briefing.loadout_sent": {
+      "level": "D",
+      "fields": ["by", "category", "preset", "option", "warhead", "beam", "countermeasure", "waves", "count"],
+      "text": "This player sent every player its craft choice ({by}): preset category {category}, preset {preset}, craft option {option}, warhead {warhead}, beam {beam}, countermeasure {countermeasure}, {waves} extra waves, {count} craft"
+    },
+    "briefing.ready_sent": {
+      "level": "I",
+      "fields": ["ready", "entry"],
+      "text": "This player told every player it was ready to fly ({ready}: 1 Ready, 0 Reconfigure), from roster entry {entry} (8: not in the roster)"
+    },
+    "briefing.reservations_full": {
+      "level": "W",
+      "fields": ["player", "reserved"],
+      "text": "Player {player}'s flight reservation arrived with {reserved} players already reserved, the table's limit; the 1997 code writes it past the table's end"
+    },
+    "briefing.roster_sent": {
+      "level": "D",
+      "fields": ["by", "entered", "ms"],
+      "text": "The host sent every player the launch, the roster's craft choices and the flight assignments ({by}); {entered} players had entered the craft selection screen and {ms} ms were left on the launch countdown"
+    },
+    "briefing.text_freed": {
+      "level": "D",
+      "fields": ["labels", "blocks", "spare"],
+      "text": "The briefing's text buffers were freed: map labels {labels}, text blocks {blocks}, unused buffers {spare} (1 when the first of each set was held); the pointers were left as they were"
+    },
     "campaign.packet_timeout": {
       "level": "W",
       "fields": ["type"],

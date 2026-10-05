@@ -35,6 +35,7 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* 1 while the craft selection screen of mission_briefing_craft_selection_update is
  * current: set on its first frame, set to 0 by
@@ -134,6 +135,9 @@ int mission_briefing_craft_selection_exit(int frame_counter)
 {
 	(void)frame_counter;
 
+	XVT_LOG_DEBUG("briefing.craft_closed list=%d text=%d ship_list=%d",
+		      g_mission_list != NULL, g_mission_text != NULL,
+		      g_ship_list != NULL);
 	if (g_mission_list != NULL) {
 		free(g_mission_list);
 		g_mission_list = NULL;
@@ -250,6 +254,17 @@ int mission_briefing_craft_selection_update(int frame_counter)
 						 g_selected_mission_list_index);
 			}
 		}
+		if (g_mission_list == NULL ||
+		    g_mission_count <=
+			    (unsigned int)g_selected_mission_list_index) {
+			XVT_LOG_WARN(
+				"briefing.craft_mission_unlisted directory=%d mission=%d listed=%d count=%u index=%d",
+				(int)g_pilot_data.mission_directory_id,
+				(int)g_pilot_data.mission_description_ids
+					[g_pilot_data.mission_directory_id],
+				g_mission_list != NULL, g_mission_count,
+				g_selected_mission_list_index);
+		}
 
 		mission_setup_init_craft_loadout();
 		ship_list_load();
@@ -264,6 +279,17 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				.markings);
 		model_preview_set_light_direction(-1, 0, 1);
 		model_preview_set_object_up_axis_angle_degrees(0.0f);
+		XVT_LOG_DEBUG(
+			"briefing.craft_setup fg=%d craft=%d markings=%d skip=%d index=%d missions=%u selection=%d quick=%d",
+			g_mission_setup_selected_flight_group_index, craft_type,
+			(int)g_frontend_mission
+				.flight_groups
+					[g_mission_setup_selected_flight_group_index]
+				.markings,
+			g_briefing_skip_player_assignment,
+			g_selected_mission_list_index, g_mission_count,
+			(int)g_game_config.craft_selection,
+			g_frontend_quick_start_launch_flag);
 
 		if (g_frontend_mission_session_mode ==
 			    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
@@ -286,6 +312,11 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				1;
 			g_mp_roster[0].countermeasure_option_index =
 				g_mission_setup_selected_countermeasure_option_index;
+			XVT_LOG_DEBUG(
+				"briefing.craft_quick_start fg=%d craft=%d option=%d",
+				g_mission_setup_selected_flight_group_index,
+				g_mp_roster[0].craft_type_override,
+				g_mp_roster[0].craft_option_index);
 			frontend_mission_init_player_state();
 			frontend_screen_set_callbacks(
 				flight_loading_update_ready_screen, NULL);
@@ -413,6 +444,19 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				net_send_packet_and_flush(
 					0, &g_frontend_net_packet_scratch,
 					9 * sizeof(int));
+				XVT_LOG_DEBUG(
+					"briefing.loadout_sent by=\"entry\" category=%d preset=%d option=%d warhead=%d beam=%d countermeasure=%d waves=%d count=%d",
+					(int)g_frontend_mission
+						.flight_groups
+							[g_mission_setup_selected_flight_group_index]
+						.optional_craft_category,
+					g_mission_setup_selected_preset_craft_option_index,
+					g_mission_setup_selected_flight_group_craft_option_index,
+					g_mission_setup_selected_warhead_option_index,
+					g_mission_setup_selected_beam_option_index,
+					g_mission_setup_selected_countermeasure_option_index,
+					g_mission_setup_selected_wave_count_minus_one,
+					g_mission_setup_selected_craft_count);
 			}
 			g_frontend_net_packet_scratch.packet_type =
 				NET_PACKET_BRIEFING_ENTERED;
@@ -424,6 +468,11 @@ int mission_briefing_craft_selection_update(int frame_counter)
 		g_mission_briefing_launch_countdown_ms = LAUNCH_COUNTDOWN_MS;
 		g_mission_briefing_now_ms = GetTickCount();
 		g_mission_briefing_last_update_ms = g_mission_briefing_now_ms;
+		XVT_LOG_INFO(
+			"briefing.craft_opened fg=%d craft=%d faction=%d mode=%d",
+			g_mission_setup_selected_flight_group_index, craft_type,
+			(int)g_mission_briefing_craft_screen_faction,
+			(int)g_frontend_mission_session_mode);
 	}
 
 	struct RECT rect;
@@ -472,6 +521,12 @@ int mission_briefing_craft_selection_update(int frame_counter)
 			++armament_selectable_count;
 		}
 	}
+	if (frame_counter == 0) {
+		XVT_LOG_DEBUG(
+			"briefing.craft_choices allowed=%d craft_choice=%d armaments=%d",
+			configuration_allowed, craft_selectable,
+			armament_selectable_count);
+	}
 
 	frontend_draw_rect_assign(&rect, 84, 90, 434, 108);
 	if (craft_selectable != 0 || armament_selectable_count != 0) {
@@ -501,6 +556,8 @@ int mission_briefing_craft_selection_update(int frame_counter)
 		int slot_index;
 		if (packet_type == NET_PACKET_HOST_CANCELLED) {
 			net_shutdown_direct_play_session();
+			XVT_LOG_INFO(
+				"mission.setup_cancelled screen=\"craft\"");
 			if (net_is_host() == 0) {
 				frontend_dialog_show_confirm_dialog(
 					frontend_string_get(
@@ -565,6 +622,19 @@ int mission_briefing_craft_selection_update(int frame_counter)
 			net_send_packet_and_flush(
 				0, &g_frontend_net_packet_scratch,
 				9 * sizeof(int));
+			XVT_LOG_DEBUG(
+				"briefing.loadout_sent by=\"state\" category=%d preset=%d option=%d warhead=%d beam=%d countermeasure=%d waves=%d count=%d",
+				(int)g_frontend_mission
+					.flight_groups
+						[g_mission_setup_selected_flight_group_index]
+					.optional_craft_category,
+				g_mission_setup_selected_preset_craft_option_index,
+				g_mission_setup_selected_flight_group_craft_option_index,
+				g_mission_setup_selected_warhead_option_index,
+				g_mission_setup_selected_beam_option_index,
+				g_mission_setup_selected_countermeasure_option_index,
+				g_mission_setup_selected_wave_count_minus_one,
+				g_mission_setup_selected_craft_count);
 		} else if (packet_type == NET_PACKET_BRIEFING_ENTERED) {
 			if (net_is_host() != 0 &&
 			    g_game_config.craft_selection ==
@@ -603,8 +673,22 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				net_send_packet_and_flush(
 					0, &g_frontend_net_packet_scratch,
 					9 * sizeof(int));
+				XVT_LOG_DEBUG(
+					"briefing.loadout_sent by=\"player_entered\" category=%d preset=%d option=%d warhead=%d beam=%d countermeasure=%d waves=%d count=%d",
+					(int)g_frontend_mission
+						.flight_groups
+							[g_mission_setup_selected_flight_group_index]
+						.optional_craft_category,
+					g_mission_setup_selected_preset_craft_option_index,
+					g_mission_setup_selected_flight_group_craft_option_index,
+					g_mission_setup_selected_warhead_option_index,
+					g_mission_setup_selected_beam_option_index,
+					g_mission_setup_selected_countermeasure_option_index,
+					g_mission_setup_selected_wave_count_minus_one,
+					g_mission_setup_selected_craft_count);
 			}
 		} else if (packet_type == NET_PACKET_RETURN_TO_SETUP) {
+			XVT_LOG_INFO("mission.setup_returned screen=\"craft\"");
 			g_frontend_skip_screen_entry_setup = 1;
 			frontend_screen_set_callbacks(
 				mission_setup_update,
@@ -612,6 +696,12 @@ int mission_briefing_craft_selection_update(int frame_counter)
 			return 0;
 		} else if (packet_type ==
 			   NET_PACKET_LAUNCH_ROSTER_AND_ASSIGNMENTS) {
+			XVT_LOG_DEBUG(
+				"briefing.launch_received frame=%d ms=%d state=%d entered=%d",
+				frame_counter,
+				g_mission_briefing_launch_countdown_ms,
+				(int)g_mission_briefing_launch_countdown_state,
+				g_frontend_briefing_entered_count);
 			frontend_mission_init_player_state();
 			frontend_screen_set_callbacks(
 				flight_loading_update_ready_screen, NULL);
@@ -627,11 +717,17 @@ int mission_briefing_craft_selection_update(int frame_counter)
 							 [craft_type]]
 							.model_file_name);
 				model_preview_set_light_direction(-1, 0, 1);
+				XVT_LOG_DEBUG("briefing.craft_preview craft=%d",
+					      craft_type);
 			}
 		} else if (packet_type == NET_PACKET_BRIEFING_COUNTDOWN) {
 			int packet_countdown_ms = g_frontend_net_packet_arg0;
 			if (packet_countdown_ms <
 			    g_mission_briefing_launch_countdown_ms) {
+				XVT_LOG_DEBUG(
+					"briefing.countdown_lowered ms=%d previous=%d",
+					packet_countdown_ms,
+					g_mission_briefing_launch_countdown_ms);
 				g_mission_briefing_launch_countdown_ms =
 					packet_countdown_ms;
 			}
@@ -654,6 +750,10 @@ int mission_briefing_craft_selection_update(int frame_counter)
 			}
 			g_mission_setup_reserved_player_ids[MAX_PLAYERS - 1] =
 				0;
+			XVT_LOG_DEBUG(
+				"mission.setup_reservation player=%u held=0 reserved=%d screen=\"craft\"",
+				(unsigned)g_frontend_net_packet_arg0,
+				g_mission_setup_reserved_player_count);
 		} else if (packet_type == NET_PACKET_FLIGHT_RESERVATION) {
 			for (slot_index = 0;
 			     g_mission_setup_reserved_player_count > slot_index;
@@ -666,9 +766,21 @@ int mission_briefing_craft_selection_update(int frame_counter)
 			}
 			if (slot_index ==
 			    g_mission_setup_reserved_player_count) {
+				if (g_mission_setup_reserved_player_count >=
+				    MAX_PLAYERS) {
+					XVT_LOG_WARN(
+						"briefing.reservations_full player=%u reserved=%d",
+						(unsigned)
+							g_frontend_net_packet_arg0,
+						g_mission_setup_reserved_player_count);
+				}
 				g_mission_setup_reserved_player_ids
 					[g_mission_setup_reserved_player_count++] =
 						g_frontend_net_packet_arg0;
+				XVT_LOG_DEBUG(
+					"mission.setup_reservation player=%u held=1 reserved=%d screen=\"craft\"",
+					(unsigned)g_frontend_net_packet_arg0,
+					g_mission_setup_reserved_player_count);
 			}
 		} else if (packet_type == NET_PACKET_PILOT_RATING) {
 			for (roster_index = 0; roster_index < MAX_PLAYERS;
@@ -677,6 +789,13 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				    g_frontend_net_packet_sender_player_id) {
 					g_mp_roster[roster_index].pilot_rating =
 						g_frontend_net_packet_arg0;
+					XVT_LOG_DEBUG(
+						"mission.setup_rating_received player=%u rating=%d index=%d",
+						(unsigned)
+							g_frontend_net_packet_sender_player_id,
+						(int)g_mp_roster[roster_index]
+							.pilot_rating,
+						roster_index);
 					break;
 				}
 			}
@@ -793,6 +912,10 @@ int mission_briefing_craft_selection_update(int frame_counter)
 					LAUNCH_COUNTDOWN_MS / 1000;
 				g_mission_briefing_launch_countdown_state =
 					MISSION_BRIEFING_COUNTDOWN_ACTIVE;
+				XVT_LOG_INFO(
+					"briefing.countdown_started entered=%d ms=%d",
+					g_frontend_briefing_entered_count,
+					g_mission_briefing_launch_countdown_ms);
 			} else {
 				frontend_format_seconds_to_clock_string(
 					g_mission_briefing_launch_countdown_ms /
@@ -833,6 +956,8 @@ int mission_briefing_craft_selection_update(int frame_counter)
 							FRONTSTR_523_OKAY),
 						frontend_string_get(
 							FRONTSTR_019_CANCEL));
+					XVT_LOG_DEBUG(
+						"mission.setup_confirm_asked screen=\"craft\" action=\"restart\"");
 #ifdef XVT_MODERN
 					return xvt_dialog_continue_with(
 						xvt_mission_dialogs_resume,
@@ -868,6 +993,8 @@ int mission_briefing_craft_selection_update(int frame_counter)
 						(frontend_screen_exit_fn)
 							mission_setup_exit);
 				} else {
+					XVT_LOG_INFO(
+						"briefing.craft_left reason=\"back_to_teams\"");
 					frontend_screen_set_callbacks(
 						mission_setup_team_assignment_update,
 
@@ -881,6 +1008,8 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				}
 				return 0;
 			}
+			XVT_LOG_INFO(
+				"briefing.craft_left reason=\"back_to_flights\"");
 			frontend_screen_set_callbacks(
 				mission_setup_flight_assignment_update,
 				mission_setup_free_screen_resources);
@@ -905,6 +1034,8 @@ int mission_briefing_craft_selection_update(int frame_counter)
 					FRONTSTR_754_TO_SELECT_MISSION),
 				frontend_string_get(FRONTSTR_523_OKAY),
 				frontend_string_get(FRONTSTR_019_CANCEL));
+			XVT_LOG_DEBUG(
+				"mission.setup_confirm_asked screen=\"craft\" action=\"restart\"");
 			return xvt_dialog_continue_with(
 				xvt_mission_dialogs_resume,
 				XVT_MISSION_HOST_RESTART);
@@ -950,6 +1081,8 @@ int mission_briefing_craft_selection_update(int frame_counter)
 					FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
 				frontend_string_get(FRONTSTR_523_OKAY),
 				frontend_string_get(FRONTSTR_019_CANCEL));
+			XVT_LOG_DEBUG(
+				"mission.setup_confirm_asked screen=\"craft\" action=\"leave\"");
 			return xvt_dialog_continue_with(
 				xvt_mission_dialogs_resume,
 				XVT_MISSION_CLIENT_LEAVE);
@@ -1014,6 +1147,11 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				1;
 			g_mp_roster[0].countermeasure_option_index =
 				g_mission_setup_selected_countermeasure_option_index;
+			XVT_LOG_INFO(
+				"briefing.craft_confirmed fg=%d craft=%d option=%d",
+				g_mission_setup_selected_flight_group_index,
+				g_mp_roster[0].craft_type_override,
+				g_mp_roster[0].craft_option_index);
 			frontend_mission_init_player_state();
 			frontend_screen_set_callbacks(
 				flight_loading_update_ready_screen, NULL);
@@ -1033,6 +1171,10 @@ int mission_briefing_craft_selection_update(int frame_counter)
 					    frontend_string_get(
 						    FRONTSTR_200_FLY),
 					    12, 0, 7, "flysound") != 0) {
+					XVT_LOG_DEBUG(
+						"briefing.roster_sent by=\"fly\" entered=%d ms=%d",
+						g_frontend_briefing_entered_count,
+						g_mission_briefing_launch_countdown_ms);
 					mission_briefing_broadcast_roster_and_assignments();
 				}
 			}
@@ -1063,6 +1205,9 @@ int mission_briefing_craft_selection_update(int frame_counter)
 						&g_frontend_net_packet_scratch,
 						sizeof(g_frontend_net_packet_scratch
 							       .packet_type));
+					XVT_LOG_INFO(
+						"briefing.ready_sent ready=0 entry=%d",
+						roster_index);
 				}
 			} else {
 				frontend_button_set_overlay_text(
@@ -1081,6 +1226,9 @@ int mission_briefing_craft_selection_update(int frame_counter)
 						&g_frontend_net_packet_scratch,
 						sizeof(g_frontend_net_packet_scratch
 							       .packet_type));
+					XVT_LOG_INFO(
+						"briefing.ready_sent ready=1 entry=%d",
+						roster_index);
 				}
 			}
 		}
@@ -1091,6 +1239,10 @@ int mission_briefing_craft_selection_update(int frame_counter)
 		    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
 	    net_is_host() != 0 &&
 	    mission_briefing_are_all_network_players_ready() != 0) {
+		XVT_LOG_DEBUG(
+			"briefing.roster_sent by=\"all_ready\" entered=%d ms=%d",
+			g_frontend_briefing_entered_count,
+			g_mission_briefing_launch_countdown_ms);
 		mission_briefing_broadcast_roster_and_assignments();
 	}
 	if (g_frontend_mission_session_mode !=
@@ -1113,12 +1265,21 @@ int mission_briefing_craft_selection_update(int frame_counter)
 			net_send_packet_and_flush(
 				0, &g_frontend_net_packet_scratch,
 				2 * sizeof(int));
+			XVT_LOG_DEBUG("briefing.countdown_sent ms=%d",
+				      g_mission_briefing_launch_countdown_ms);
 		}
 		if (g_mission_briefing_launch_countdown_ms < 0) {
+			XVT_LOG_INFO("briefing.countdown_expired ms=%d mode=%d",
+				     g_mission_briefing_launch_countdown_ms,
+				     (int)g_frontend_mission_session_mode);
 			g_mission_briefing_launch_countdown_ms = 0;
 			g_mission_briefing_launch_countdown_state =
 				MISSION_BRIEFING_COUNTDOWN_EXPIRED;
 			if (net_is_host() != 0) {
+				XVT_LOG_DEBUG(
+					"briefing.roster_sent by=\"countdown\" entered=%d ms=%d",
+					g_frontend_briefing_entered_count,
+					g_mission_briefing_launch_countdown_ms);
 				mission_briefing_broadcast_roster_and_assignments();
 			}
 			return 0;
@@ -1266,6 +1427,10 @@ int mission_briefing_are_all_network_players_ready(void)
 		if (g_mp_roster_ready_flags[ready_flag_index] != 0) {
 			++ready_flag_count;
 		}
+	}
+	if (ready_flag_count == ready_player_count) {
+		XVT_LOG_DEBUG("briefing.all_ready players=%d",
+			      ready_player_count);
 	}
 	ready_flag_count -= ready_player_count;
 	return ready_flag_count == 0;

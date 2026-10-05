@@ -2,6 +2,8 @@
 
 #include <stdlib.h>
 
+#include "xvt_runtime/log/log_both_builds.h"
+
 /* The active briefing's 32 map label strings: 40-byte heap buffers that
  * frontend_mission_init_for_briefing allocates and
  * frontend_mission_load_current_with_briefing fills from the mission file. Label
@@ -44,6 +46,10 @@ void briefing_text_free_allocated_buffers(void)
 {
 	int16_t index;
 
+	XVT_LOG_DEBUG("briefing.text_freed labels=%d blocks=%d spare=%d",
+		      g_briefing_map_label_texts[0] != NULL,
+		      g_briefing_text_blocks[0] != NULL,
+		      g_briefing_unused_buffers[0] != NULL);
 	for (index = 0; index < 32; ++index) {
 		if (g_briefing_map_label_texts[index] != NULL) {
 			free(g_briefing_map_label_texts[index]);
