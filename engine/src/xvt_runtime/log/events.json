@@ -361,7 +361,7 @@
     "combat.bridge_breached": {
       "level": "D",
       "fields": ["object", "component", "source", "type", "damage", "hull", "max", "predicted"],
-      "text": "With its shield generators gone and shields empty, the bridge (component {component}) of craft {object} took a hit from object {source} (object type {type}) rewritten to {damage}, which sets the hull damage, now {hull}, to its maximum {max}, or for object type 40 to 95 percent of it, even when that is lower; predicted step {predicted} (always 0 here)"
+      "text": "With its shield generators gone and shields empty, the bridge (component {component}) of craft {object} took a hit from object {source} (object type {type}) rewritten to {damage}, against hull damage {hull} of {max} before this hit: meant to bring the hull damage to its maximum, or for object type 40 to 95 percent of it; for type 40 already past that mark the hit only wears the bridge, or, past it by more than the bridge holds, wraps the hull damage back down to the mark; predicted step {predicted} (always 0 here)"
     },
     "combat.bridge_shielded": {
       "level": "D",
@@ -1111,7 +1111,7 @@
     "display.lock_failed": {
       "level": "E",
       "fields": ["surface", "result", "count"],
-      "text": "Locking the {surface} for drawing failed with code {result}; the lock count stayed at {count} and drawing went on through the last locked surface's pixel pointers"
+      "text": "Locking the {surface} for drawing failed with code {result}; the lock count was left raised at {count} (always 1 here: a lock is tried only when none is held), and drawing went on through the last locked surface's pixel pointers"
     },
     "display.mode_refused": {
       "level": "D",
@@ -1151,7 +1151,7 @@
     "display.setup_failed": {
       "level": "E",
       "fields": ["call", "result", "width", "height", "bpp"],
-      "text": "Setting up the flight display failed at {call} with code {result}, for a {width}x{height} display at {bpp} bits per pixel; the game then reported that the flight could not start"
+      "text": "Setting up the flight display failed at {call} with code {result}, for the {width}x{height} size asked for at {bpp} bits per pixel (for display_mode, the last depth tried, and the code is the last refusal); the game then reported that the flight could not start"
     },
     "display.started": {
       "level": "I",
@@ -1161,7 +1161,7 @@
     "display.surface_lost": {
       "level": "W",
       "fields": ["where", "restored"],
-      "text": "The screen surface was found lost during the {where} (flip, or overlay: the copy of the cockpit layer onto the frame); restoring it worked: {restored} (1 yes, 0 no); nothing was drawn again for this frame"
+      "text": "A display surface was found lost during the {where} (flip, or overlay: the copy of the cockpit layer onto the frame); restoring the screen surface worked: {restored} (1 yes, 0 no); nothing was drawn again for this frame"
     },
     "display.surfaces_restored": {
       "level": "W",
@@ -1296,12 +1296,12 @@
     "flight.hyperspace_effect_started": {
       "level": "D",
       "fields": ["slot", "iff", "count", "ticks"],
-      "text": "The hyperspace effect began on this screen for the local player, slot {slot}: the entry sound for side {iff} played (1 is the Imperial sound, any other side gets the other one) and new streaks were placed at random, {count} of them drawn each frame (1,024 with 3D hardware, 512 without); the jump was {ticks} ticks in (250 make a second)"
+      "text": "The hyperspace effect began on this screen for the local player, slot {slot}: the entry sound for side {iff} played (1 is the Imperial sound, any other side gets the other one) and new streaks were placed at random, {count} of them drawn each frame (1,024 with 3D hardware, 512 without); the jump's second stage was {ticks} ticks in (250 make a second)"
     },
     "flight.hyperspace_effect_stretched": {
       "level": "D",
       "fields": ["slot", "iff", "ticks"],
-      "text": "The hyperspace streaks on this screen reached full length for the local player, slot {slot}, and the exit sound for side {iff} played (1 is the Imperial sound), {ticks} ticks into the jump (the stretch starts at 472; the effect is drawn until 531)"
+      "text": "The hyperspace streaks on this screen reached full length for the local player, slot {slot}, and the exit sound for side {iff} played (1 is the Imperial sound), {ticks} ticks into the jump's second stage (the stretch starts at 472; the effect is drawn until 531)"
     },
     "flight.hyperspace_stalled": {
       "level": "D",
