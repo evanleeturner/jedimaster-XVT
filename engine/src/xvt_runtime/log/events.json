@@ -508,10 +508,15 @@
       "fields": ["faction"],
       "text": "The local player's faction {faction}, taken from its flight group's IFF, is not one of the pilot record's four faction records; the record was written out of bounds"
     },
+    "mission.briefing_launch_local": {
+      "level": "D",
+      "fields": ["entry", "player"],
+      "text": "Roster entry {entry}, player {player}, is this machine's own pilot"
+    },
     "mission.briefing_launch_player": {
       "level": "D",
-      "fields": ["entry", "player", "fg", "craft", "option", "warhead", "beam", "countermeasures", "rating", "local", "name"],
-      "text": "Roster entry {entry}, player {player} ({name}), went to the pilot record for flight group {fg}: craft {craft}, craft option {option}, warhead option {warhead}, beam option {beam}, countermeasure option {countermeasures}, rating {rating}, local player {local}"
+      "fields": ["entry", "player", "fg", "craft", "option", "warhead", "beam", "countermeasures", "rating", "name"],
+      "text": "Roster entry {entry}, player {player} ({name}), went to the pilot record for flight group {fg}: craft {craft}, craft option {option}, warhead option {warhead}, beam option {beam}, countermeasure option {countermeasures}, rating {rating}"
     },
     "mission.briefing_launch_teams": {
       "level": "D",
@@ -2670,8 +2675,8 @@
     },
     "network.reservation": {
       "level": "D",
-      "fields": ["index", "player"],
-      "text": "Player {player} reserved team or flight group {index}"
+      "fields": ["player", "holder"],
+      "text": "Player {holder} reserved player {player} while dragging them on the team or flight assignment screen"
     },
     "network.roster_entry": {
       "level": "D",

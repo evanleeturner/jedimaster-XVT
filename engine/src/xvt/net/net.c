@@ -4988,7 +4988,7 @@ void net_mark_player_ready_no_lock(int player_id)
 		g_front_state.net_players[player_index].ready_flag = 1;
 		XVT_LOG_DEBUG("network.lobby_roster_ready player=%u ready=1",
 			      (unsigned)player_id);
-	} else {
+	} else if (g_front_state.net_direct_play != NULL) {
 		XVT_LOG_WARN(
 			"network.lobby_roster_ready_refused player=%u reason=\"not_in_roster\"",
 			(unsigned)player_id);

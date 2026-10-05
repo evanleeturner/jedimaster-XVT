@@ -3319,8 +3319,8 @@ int frontend_net_process_network_packets(void)
 	case NET_PACKET_FLIGHT_RESERVATION:
 		g_frontend_net_packet_arg0 = payload[0];
 		g_frontend_net_reserving_player_id = payload[1];
-		XVT_LOG_DEBUG("network.reservation index=%d player=%u",
-			      g_frontend_net_packet_arg0,
+		XVT_LOG_DEBUG("network.reservation player=%u holder=%u",
+			      (unsigned)g_frontend_net_packet_arg0,
 			      (unsigned)g_frontend_net_reserving_player_id);
 		break;
 

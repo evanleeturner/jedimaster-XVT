@@ -769,9 +769,12 @@ void frontend_mission_init_player_state(void)
 			if (net_get_local_player_id() == player_id) {
 				g_local_pilot_network_player_index =
 					roster_index;
+				XVT_LOG_DEBUG(
+					"mission.briefing_launch_local entry=%d player=%u",
+					roster_index, (unsigned)player_id);
 			}
 			XVT_LOG_DEBUG(
-				"mission.briefing_launch_player entry=%d player=%u fg=%d craft=%d option=%d warhead=%d beam=%d countermeasures=%d rating=%d local=%d name=\"%s\"",
+				"mission.briefing_launch_player entry=%d player=%u fg=%d craft=%d option=%d warhead=%d beam=%d countermeasures=%d rating=%d name=\"%s\"",
 				roster_index, (unsigned)player_id,
 				g_pilot_data.network_players[roster_index]
 					.flight_group_id,
@@ -787,8 +790,6 @@ void frontend_mission_init_player_state(void)
 					.countermeasure_option,
 				g_pilot_data.network_players[roster_index]
 					.rating,
-				g_local_pilot_network_player_index ==
-					roster_index,
 				g_pilot_data.network_players[roster_index]
 					.friendly_name);
 		}
