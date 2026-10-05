@@ -9,6 +9,7 @@
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifdef XVT_MODERN
 #include "aeron/aeron.h"
@@ -53,10 +54,16 @@ int frontend_cursor_set_image_from_resource_name(const char *resource_name,
 {
 	int resource_index = front_image_find_resource_by_name(resource_name);
 	if (resource_index == -1) {
+		XVT_LOG_WARN(
+			"ui.cursor_image_refused image=\"%s\" compressed=%d",
+			resource_name != NULL ? resource_name : "", 0);
 		return 0;
 	}
 	if (g_front_state.resource_table[resource_index].image->is_compressed !=
 	    0) {
+		XVT_LOG_WARN(
+			"ui.cursor_image_refused image=\"%s\" compressed=%d",
+			resource_name, 1);
 		return 0;
 	}
 	struct RECT resource_rect;
@@ -69,6 +76,9 @@ int frontend_cursor_set_image_from_resource_name(const char *resource_name,
 	g_front_state.cursor_height =
 		resource_rect.bottom - resource_rect.top + 1;
 	strcpy(g_front_state.cursor_sprite_name, resource_name);
+	XVT_LOG_DEBUG("ui.cursor_image_set image=\"%s\" width=%d height=%d",
+		      resource_name, g_front_state.cursor_width,
+		      g_front_state.cursor_height);
 #ifdef XVT_MODERN
 	return 0;
 #endif
@@ -134,6 +144,11 @@ void frontend_cursor_draw(void)
 	uint8_t *save_buffer = g_front_state.cursor_save_buf;
 	int display_bpp = g_front_state.display_bpp;
 	g_draw_surface_ptr = back_buffer;
+	if (back_buffer == NULL) {
+		XVT_LOG_ERROR("ui.cursor_lock_failed x=%d y=%d bpp=%d",
+			      g_front_state.mouse_x, g_front_state.mouse_y,
+			      display_bpp);
+	}
 
 #ifdef XVT_MODERN
 	xvt_render_frontend_cursor(0);

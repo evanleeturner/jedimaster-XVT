@@ -5968,6 +5968,21 @@
       "fields": ["mode"],
       "text": "Flight timing runs the {mode} profile"
     },
+    "ui.cursor_image_refused": {
+      "level": "W",
+      "fields": ["image", "compressed"],
+      "text": "The menu pointer image {image} was not used (compressed {compressed}: 0 when no loaded image has that name, 1 when the image is run-length compressed, which the pointer cannot draw); the built-in arrow stayed"
+    },
+    "ui.cursor_image_set": {
+      "level": "D",
+      "fields": ["image", "width", "height"],
+      "text": "The menu pointer was set to the image {image}, {width} by {height} pixels"
+    },
+    "ui.cursor_lock_failed": {
+      "level": "E",
+      "fields": ["x", "y", "bpp"],
+      "text": "The screen could not be locked to draw the menu pointer at ({x}, {y}) at {bpp} bits per pixel; the 1997 code then copies pixels through the missing surface"
+    },
     "ui.sprite_button_clicked": {
       "level": "D",
       "fields": ["button", "sprite", "caption"],
