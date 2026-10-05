@@ -4353,6 +4353,26 @@
       "fields": [],
       "text": "The runtime shut down"
     },
+    "proving.checkpoint_crossed": {
+      "level": "D",
+      "fields": ["checkpoint", "passed", "remaining", "level", "minutes", "seconds", "predicted"],
+      "text": "The local player crossed proving grounds gate {checkpoint} on level {level} with {minutes}:{seconds} left: {passed} gates passed, {remaining} to go; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "proving.checkpoint_placed": {
+      "level": "D",
+      "fields": ["checkpoint", "type", "x", "y", "z", "roll", "pitch", "yaw"],
+      "text": "Proving grounds gate {checkpoint} (object type {type}) was placed at {x}, {y}, {z}, turned to roll {roll}, pitch {pitch} and heading {yaw}"
+    },
+    "proving.level_completed": {
+      "level": "I",
+      "fields": ["level", "left", "bonus", "score", "targets", "tick"],
+      "text": "Proving grounds level {level} was completed at tick {tick} with {left} seconds left on the clock, worth a bonus of {bonus} points, for a score of {score}, with {targets} targets destroyed so far"
+    },
+    "proving.level_started": {
+      "level": "I",
+      "fields": ["level", "minutes", "seconds", "score", "tick"],
+      "text": "Proving grounds level {level} started with {minutes}:{seconds} on the clock and a score of {score} so far, at tick {tick}"
+    },
     "proving.target_destroyed": {
       "level": "D",
       "fields": ["object", "component", "moving", "targets", "score", "minutes", "seconds", "predicted"],

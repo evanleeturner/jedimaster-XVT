@@ -26,6 +26,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Place values for proving_grounds_draw_score_decimal, indexed by the digit places
  * left to draw: entry n is 10 to the power n - 1; entry 0 is never read. Only
@@ -432,6 +433,15 @@ void proving_grounds_init_course_objects(void)
 			g_object_table[object_index].world_y;
 		g_object_table[object_index].mobj->prev_world_z =
 			g_object_table[object_index].world_z;
+		XVT_LOG_DEBUG(
+			"proving.checkpoint_placed checkpoint=%u type=%u x=%d y=%d z=%d roll=%u pitch=%u yaw=%u",
+			(unsigned)object_index, (unsigned)object_type,
+			g_object_table[object_index].world_x,
+			g_object_table[object_index].world_y,
+			g_object_table[object_index].world_z,
+			(unsigned)g_object_table[object_index].roll,
+			(unsigned)g_object_table[object_index].pitch,
+			(unsigned)g_object_table[object_index].yaw);
 	} while (++object_index < 13);
 }
 
@@ -611,6 +621,14 @@ void proving_grounds_start_level(uint16_t level)
 	if (g_replay_view_mode == 0) {
 		hud_init_hud(g_local_player);
 	}
+	if (g_flight_sim_side_effects_suppressed == 0) {
+		XVT_LOG_INFO(
+			"proving.level_started level=%d minutes=%d seconds=%d score=%u tick=%d",
+			(int)level, (int)g_mission_countdown_clock.minutes,
+			(int)g_mission_countdown_clock.seconds,
+			(unsigned)g_flight_mission_state.proving_grounds_score,
+			g_game_time);
+	}
 }
 
 /* Runs the course for one simulation step. Counts down the obstacle animation
@@ -776,6 +794,17 @@ void proving_grounds_update_course(void)
 			next_checkpoint_object;
 		++g_flight_mission_state.proving_grounds_checkpoints_passed;
 		--g_flight_mission_state.proving_grounds_checkpoints_remaining;
+		XVT_LOG_DEBUG(
+			"proving.checkpoint_crossed checkpoint=%u passed=%u remaining=%u level=%d minutes=%d seconds=%d predicted=%d",
+			(unsigned)next_checkpoint_object,
+			(unsigned)g_flight_mission_state
+				.proving_grounds_checkpoints_passed,
+			(unsigned)g_flight_mission_state
+				.proving_grounds_checkpoints_remaining,
+			(int)g_flight_mission_state.proving_grounds_level,
+			(int)g_mission_countdown_clock.minutes,
+			(int)g_mission_countdown_clock.seconds,
+			g_flight_sim_side_effects_suppressed);
 		if (next_checkpoint_object == COURSE_OBJECT_FIRST) {
 			msg_emit_in_flight_message(
 				IFMSG_198_CONGRATULATIONS_LEVEL_COMPLETED_TIME_LEFT_BONUS,
@@ -817,6 +846,22 @@ void proving_grounds_update_course(void)
 			msg_emit_in_flight_message(
 				IFMSG_199_BONUS_POINTS_AWARDED_ARG,
 				g_local_player);
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_INFO(
+					"proving.level_completed level=%d left=%u bonus=%u score=%u targets=%u tick=%d",
+					(int)g_flight_mission_state
+						.proving_grounds_level,
+					(unsigned)(g_flight_mission_state
+							   .proving_grounds_time_bonus /
+						   10),
+					(unsigned)g_flight_mission_state
+						.proving_grounds_time_bonus,
+					(unsigned)g_flight_mission_state
+						.proving_grounds_score,
+					(unsigned)g_flight_mission_state
+						.proving_grounds_targets_destroyed,
+					g_game_time);
+			}
 			++g_flight_mission_state.proving_grounds_level;
 			proving_grounds_start_level(
 				g_flight_mission_state.proving_grounds_level);
