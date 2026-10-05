@@ -5348,6 +5348,141 @@
       "fields": [],
       "text": "The game options were saved to the player's settings file, with the current pilot as the last pilot (at a flight launch, after a flight, when the configuration screen closes, and at quit)"
     },
+    "pilot.command_line": {
+      "level": "D",
+      "fields": ["length", "named", "address"],
+      "text": "The command line ({length} characters) was read: a pilot name given {named}, a network address given {address} (1 yes; neither text is logged); the modern build always passes an empty line"
+    },
+    "pilot.create_choices": {
+      "level": "D",
+      "fields": ["training", "combat"],
+      "text": "The new pilot's first mission choices were set: training exercise {training} (the pilot, then faction records 0, 1 and 2) and combat engagement {combat} (the pilot, then faction records 0 and 1); 0 where a list did not load"
+    },
+    "pilot.create_combat_short": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "The combat engagement list held only {count} missions, fewer than three; the new pilot's combat engagement choice was read from past the list's end"
+    },
+    "pilot.create_file": {
+      "level": "D",
+      "fields": ["number", "path"],
+      "text": "A new pilot takes file number {number}, {path}, the first such name not already used"
+    },
+    "pilot.created": {
+      "level": "I",
+      "fields": ["number"],
+      "text": "A new pilot was made in file number {number} at the Trainee rank and made the current pilot; the save that writes its files follows"
+    },
+    "pilot.defaults_set": {
+      "level": "D",
+      "fields": ["training"],
+      "text": "A pilot with no expansion file got a new pilot's Trainee rank and training exercise choices {training} (the pilot, then faction records 0, 1 and 2; 0 where a list did not load) before its base game record was read"
+    },
+    "pilot.delete_failed": {
+      "level": "E",
+      "fields": ["kind", "index"],
+      "text": "The pilot's {kind} file at roster entry {index} could not be removed, so the delete stopped and the pilot stayed loaded (record: nothing was removed; expansion: the base game record was already removed, so the pilot is half deleted); the roster then stops the game"
+    },
+    "pilot.delete_match": {
+      "level": "D",
+      "fields": ["index", "path"],
+      "text": "The pilot to delete was found at roster entry {index}, base game record file {path}; its expansion file is the same name ending in 2"
+    },
+    "pilot.delete_unlisted": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "The current pilot was not among the {count} listed pilot files, so no file was deleted; the pilot was still cleared from memory and the roster rebuilt"
+    },
+    "pilot.deleted": {
+      "level": "I",
+      "fields": ["index"],
+      "text": "The pilot at roster entry {index} was deleted: its base game record and expansion files were removed"
+    },
+    "pilot.expansion_unreadable": {
+      "level": "E",
+      "fields": ["bytes"],
+      "text": "The pilot's expansion file could not be read whole ({bytes} bytes expected), so the pilot data was cleared and the load failed"
+    },
+    "pilot.files_missing": {
+      "level": "E",
+      "fields": [],
+      "text": "Neither of the pilot's files could be opened, so no pilot was loaded"
+    },
+    "pilot.list_failed": {
+      "level": "W",
+      "fields": ["by", "kind"],
+      "text": "The saved pilots' {kind} files could not be listed ({by}): at startup no pilot was loaded, the roster then stops the game, and a save falls back to a new file name"
+    },
+    "pilot.load_files": {
+      "level": "D",
+      "fields": ["path", "expansion", "base"],
+      "text": "Loading pilot file {path}: expansion file read {expansion}, base game record opened {base} (1 yes)"
+    },
+    "pilot.loaded": {
+      "level": "I",
+      "fields": ["by", "index", "rating", "faction", "missions", "score"],
+      "text": "A saved pilot was loaded ({by}: startup is the last pilot restored when the game started, list a click on the roster, typed a name typed in the roster's field): roster entry {index}, rating {rating}, faction record {faction} (0 Rebel, 1 Imperial), {missions} missions flown, total score {score}"
+    },
+    "pilot.record_base": {
+      "level": "D",
+      "fields": ["found"],
+      "text": "Saving the base game record: the existing record file was found {found} (1: its bytes are kept where the pilot data has no field for them; 0: the save starts from an empty record)"
+    },
+    "pilot.record_loaded": {
+      "level": "D",
+      "fields": ["rating", "missions", "score", "faction", "promo", "percent", "rank_change"],
+      "text": "The pilot's base game record was read into the pilot data: rating {rating}, {missions} missions flown, total score {score}, faction record {faction}, {promo} promotion points at this rating, {percent} percent toward the next, last rank change {rank_change} (1 promoted, -1 demoted, 0 none)"
+    },
+    "pilot.record_missing": {
+      "level": "W",
+      "fields": [],
+      "text": "The pilot's base game record file could not be opened, so the pilot was loaded from its expansion file alone"
+    },
+    "pilot.record_out_of_range": {
+      "level": "W",
+      "fields": ["rating", "faction"],
+      "text": "The pilot's base game record holds rating {rating} (0 to 24 expected) or faction record {faction} (0 to 3 expected); the 1997 code uses both unchecked as table indexes on the pilot record pages and in the next flight's statistics"
+    },
+    "pilot.record_prepared": {
+      "level": "D",
+      "fields": ["rating", "missions", "score", "faction", "promo", "percent", "rank_change"],
+      "text": "The pilot's base game record was filled for writing: rating {rating}, {missions} missions flown, total score {score}, faction record {faction}, {promo} promotion points at this rating, {percent} percent toward the next, last rank change {rank_change} (1 promoted, -1 demoted, 0 none)"
+    },
+    "pilot.record_unreadable": {
+      "level": "E",
+      "fields": ["stage", "bytes"],
+      "text": "The pilot's base game record could not be read whole ({bytes} bytes expected) during a {stage}: on a load the load reported failure and kept what the expansion file gave; on a save the save stopped after the expansion file was written, so the two files now disagree and every later save stops the same way"
+    },
+    "pilot.restore_none": {
+      "level": "D",
+      "fields": [],
+      "text": "No last pilot was recorded in the options, so no pilot was loaded at start"
+    },
+    "pilot.restore_unlisted": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "The last pilot recorded in the options was not among the {count} listed pilot files, so no pilot was loaded at start"
+    },
+    "pilot.save_no_pilot": {
+      "level": "W",
+      "fields": [],
+      "text": "No pilot was loaded, so nothing was saved; a flight launch that asked for this save then closes the game"
+    },
+    "pilot.save_path": {
+      "level": "D",
+      "fields": ["path", "temporary"],
+      "text": "The pilot is saved to {path} (temporary file {temporary}: 1 only for the temporary save no caller asks for)"
+    },
+    "pilot.saved": {
+      "level": "I",
+      "fields": ["rating", "missions", "score", "faction"],
+      "text": "The pilot was saved: its expansion file written whole at rating {rating}, {missions} missions flown, total score {score}, faction record {faction}; its base game record is written next, and a failure there has its own error line"
+    },
+    "pilot.select_failed": {
+      "level": "W",
+      "fields": ["by", "index", "partial"],
+      "text": "The pilot at roster entry {index} did not load ({by}); the pilot data was left holding something {partial} (1: what the pilot's expansion file gave, though the load reported failure, so later saves of it can fail; 0: empty, no pilot loaded)"
+    },
     "player.awaiting_craft": {
       "level": "D",
       "fields": ["slot", "object", "source", "source_type", "by", "map", "predicted"],

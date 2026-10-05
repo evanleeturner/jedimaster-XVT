@@ -12,6 +12,7 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifdef XVT_MODERN
 #include <strings.h>
@@ -64,9 +65,15 @@ int pilot_delete_current(void)
 					     g_pilot_data.name) == 0) {
 #endif
 					file_change_to_base_game_install_path();
+					XVT_LOG_DEBUG(
+						"pilot.delete_match index=%d path=\"%s\"",
+						selected_index, node->path);
 #ifdef XVT_MODERN
 					if (!pilot_remove_file_modern(
 						    node->path)) {
+						XVT_LOG_ERROR(
+							"pilot.delete_failed kind=\"record\" index=%d",
+							selected_index);
 						return 0;
 					}
 #else
@@ -81,11 +88,16 @@ int pilot_delete_current(void)
 #ifdef XVT_MODERN
 					if (!pilot_remove_file_modern(
 						    g_frontend_scratch_buffer)) {
+						XVT_LOG_ERROR(
+							"pilot.delete_failed kind=\"expansion\" index=%d",
+							selected_index);
 						return 0;
 					}
 #else
 					FILE_REMOVE(g_frontend_scratch_buffer);
 #endif
+					XVT_LOG_INFO("pilot.deleted index=%d",
+						     selected_index);
 					break;
 				}
 				node = node->next;
@@ -94,6 +106,10 @@ int pilot_delete_current(void)
 					    [selected_index] == NULL) {
 					break;
 				}
+			}
+			if (selected_index >= g_pilot_file_list->count) {
+				XVT_LOG_WARN("pilot.delete_unlisted count=%d",
+					     g_pilot_file_list->count);
 			}
 		}
 	}
@@ -146,6 +162,8 @@ int pilot_create_new(const char *pilot_name)
 #endif
 		++file_index;
 	}
+	XVT_LOG_DEBUG("pilot.create_file number=%d path=\"%s\"", file_index,
+		      pilot_path);
 
 #ifndef XVT_MODERN
 	stream = file_open(pilot_path, "wb");
@@ -207,6 +225,10 @@ int pilot_create_new(const char *pilot_name)
 #endif
 
 	mission_setup_load_mission_list(MISSION_DIRECTORY_COMBAT_ENGAGEMENTS);
+	if (g_mission_list != NULL && g_mission_count < 3) {
+		XVT_LOG_WARN("pilot.create_combat_short count=%u",
+			     g_mission_count);
+	}
 	if (g_mission_list != NULL) {
 		g_pilot_data.mission_description_ids
 			[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS] =
@@ -228,10 +250,27 @@ int pilot_create_new(const char *pilot_name)
 		free(g_mission_list);
 		g_mission_list = NULL;
 	}
+	XVT_LOG_DEBUG(
+		"pilot.create_choices training=\"%d,%d,%d,%d\" combat=\"%d,%d,%d\"",
+		(int)g_pilot_data.mission_description_ids
+			[MISSION_DIRECTORY_TRAINING_EXERCISES],
+		g_pilot_data.faction_statistics[0].mission_description_ids
+			[MISSION_DIRECTORY_TRAINING_EXERCISES],
+		g_pilot_data.faction_statistics[1].mission_description_ids
+			[MISSION_DIRECTORY_TRAINING_EXERCISES],
+		g_pilot_data.faction_statistics[2].mission_description_ids
+			[MISSION_DIRECTORY_TRAINING_EXERCISES],
+		(int)g_pilot_data.mission_description_ids
+			[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS],
+		g_pilot_data.faction_statistics[0].mission_description_ids
+			[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS],
+		g_pilot_data.faction_statistics[1].mission_description_ids
+			[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS]);
 
 #ifndef XVT_MODERN
 	file_close(stream);
 #endif
+	XVT_LOG_INFO("pilot.created number=%d", file_index);
 #ifdef XVT_MODERN
 	return pilot_save(0);
 #else
@@ -254,6 +293,7 @@ int pilot_create_new(const char *pilot_name)
 int pilot_save(int use_temporary_file)
 {
 	if (g_pilot_data.name[0] == '\0') {
+		XVT_LOG_WARN("pilot.save_no_pilot");
 		return 0;
 	}
 
@@ -296,6 +336,9 @@ int pilot_save(int use_temporary_file)
 				++file_index;
 			}
 			frontend_file_list_free(file_list);
+		} else {
+			XVT_LOG_WARN(
+				"pilot.list_failed by=\"save\" kind=\"expansion\"");
 		}
 	} else {
 		strcpy(pilot_path, "__temp__.tmp");
@@ -336,6 +379,9 @@ int pilot_save(int use_temporary_file)
 				++file_index;
 			}
 			frontend_file_list_free(file_list);
+		} else {
+			XVT_LOG_WARN(
+				"pilot.list_failed by=\"save\" kind=\"record\"");
 		}
 
 		if (pilot_path[0] == '\0') {
@@ -349,6 +395,8 @@ int pilot_save(int use_temporary_file)
 			pilot_path[strlen(pilot_path) - 1] = '2';
 		}
 	}
+	XVT_LOG_DEBUG("pilot.save_path path=\"%s\" temporary=%d", pilot_path,
+		      use_temporary_file);
 
 #ifndef XVT_MODERN
 	stream = file_open(pilot_path, "wb");
@@ -367,6 +415,10 @@ int pilot_save(int use_temporary_file)
 #ifndef XVT_MODERN
 	file_close(stream);
 #endif
+	XVT_LOG_INFO("pilot.saved rating=%d missions=%d score=%d faction=%d",
+		     (int)g_pilot_data.rating,
+		     g_pilot_data.total_missions_played_count,
+		     g_pilot_data.total_score, g_pilot_data.current_faction_id);
 	if (pilot_path[0] == '\0') {
 #ifdef XVT_MODERN
 		snprintf(pilot_path, sizeof(pilot_path), "%s0.plt",
@@ -397,6 +449,8 @@ int pilot_find_and_load_by_name(const char *pilot_name)
 		frontend_file_list_build_sorted("*.plt");
 	file_change_to_install_path();
 	if (file_list == NULL) {
+		XVT_LOG_WARN(
+			"pilot.list_failed by=\"startup\" kind=\"record\"");
 		return 0;
 	}
 	if (pilot_name == NULL) {
@@ -404,6 +458,7 @@ int pilot_find_and_load_by_name(const char *pilot_name)
 		return 0;
 	}
 	if (pilot_name[0] == '\0') {
+		XVT_LOG_DEBUG("pilot.restore_none");
 		frontend_file_list_free(file_list);
 		return 0;
 	}
@@ -427,12 +482,29 @@ int pilot_find_and_load_by_name(const char *pilot_name)
 #endif
 				if (pilot_load_from_path(node->path) != 0) {
 					was_loaded = 1;
+					XVT_LOG_INFO(
+						"pilot.loaded by=\"startup\" index=%d rating=%d faction=%d missions=%d score=%d",
+						file_index,
+						(int)g_pilot_data.rating,
+						g_pilot_data.current_faction_id,
+						g_pilot_data
+							.total_missions_played_count,
+						g_pilot_data.total_score);
+				} else {
+					XVT_LOG_WARN(
+						"pilot.select_failed by=\"startup\" index=%d partial=%d",
+						file_index,
+						g_pilot_data.name[0] != '\0');
 				}
 				break;
 			}
 		}
 		node = node->next;
 		++file_index;
+	}
+	if (file_index >= file_list->count) {
+		XVT_LOG_WARN("pilot.restore_unlisted count=%d",
+			     file_list->count);
 	}
 
 	frontend_file_list_free(file_list);
@@ -522,6 +594,9 @@ int pilot_parse_command_line(const char *cmd_line)
 			++command_index;
 		} while (command_index < command_length);
 	}
+	XVT_LOG_DEBUG("pilot.command_line length=%d named=%d address=%d",
+		      command_length, parsed.has_pilot_name,
+		      has_network_address);
 
 	if (parsed.has_pilot_name != 0) {
 		if (g_game_config.last_pilot_name[0] == '\0') {
@@ -589,6 +664,8 @@ int pilot_load_from_path(const char *base_pilot_path)
 				     sizeof(g_pilot_data))) {
 			file_close(expansion_stream);
 			memset(&g_pilot_data, 0, sizeof(g_pilot_data));
+			XVT_LOG_ERROR("pilot.expansion_unreadable bytes=%u",
+				      (unsigned)sizeof(g_pilot_data));
 			return 0;
 		}
 #else
@@ -602,6 +679,9 @@ int pilot_load_from_path(const char *base_pilot_path)
 	xvt_file *xvt_stream =
 		file_open(base_pilot_path, g_file_mode_read_binary);
 	file_change_to_install_path();
+	XVT_LOG_DEBUG("pilot.load_files path=\"%s\" expansion=%d base=%d",
+		      base_pilot_path, has_expansion_record,
+		      xvt_stream != NULL);
 	if (xvt_stream != NULL) {
 		if (has_expansion_record == 0) {
 			g_pilot_data.rating = PILOT_RATING_TRAINEE;
@@ -645,6 +725,16 @@ int pilot_load_from_path(const char *base_pilot_path)
 			}
 			g_frontend_mission_session_mode =
 				FRONTEND_MISSION_SESSION_NONE;
+			XVT_LOG_DEBUG(
+				"pilot.defaults_set training=\"%d,%d,%d,%d\"",
+				(int)g_pilot_data.mission_description_ids
+					[MISSION_DIRECTORY_TRAINING_EXERCISES],
+				g_pilot_data.faction_statistics[0].mission_description_ids
+					[MISSION_DIRECTORY_TRAINING_EXERCISES],
+				g_pilot_data.faction_statistics[1].mission_description_ids
+					[MISSION_DIRECTORY_TRAINING_EXERCISES],
+				g_pilot_data.faction_statistics[2].mission_description_ids
+					[MISSION_DIRECTORY_TRAINING_EXERCISES]);
 		}
 
 #ifdef XVT_MODERN
@@ -664,7 +754,10 @@ int pilot_load_from_path(const char *base_pilot_path)
 			       g_pilot_data.multiplayer_game_name);
 		}
 	} else if (has_expansion_record == 0) {
+		XVT_LOG_ERROR("pilot.files_missing");
 		return 0;
+	} else {
+		XVT_LOG_WARN("pilot.record_missing");
 	}
 
 	return 1;
@@ -877,6 +970,8 @@ int pilot_load_xvt_record(xvt_file *stream)
 	struct pilot_xvt_record record;
 #ifdef XVT_MODERN
 	if (!file_read_bytes(stream, &record, sizeof(record))) {
+		XVT_LOG_ERROR("pilot.record_unreadable stage=\"load\" bytes=%u",
+			      (unsigned)sizeof(record));
 		return 0;
 	}
 #else
@@ -1814,6 +1909,22 @@ int pilot_load_xvt_record(xvt_file *stream)
 		       source_faction->mp_battle_data,
 		       sizeof(source_faction->mp_battle_data));
 	}
+	XVT_LOG_DEBUG(
+		"pilot.record_loaded rating=%d missions=%d score=%d faction=%d promo=%d percent=%d rank_change=%d",
+		(int)g_pilot_data.rating,
+		g_pilot_data.total_missions_played_count,
+		g_pilot_data.total_score, g_pilot_data.current_faction_id,
+		g_pilot_data.current_rating_promo_points,
+		g_pilot_data.next_promotion_percent,
+		(int)g_pilot_data.promotion_delta);
+	if ((unsigned)g_pilot_data.rating >
+		    (unsigned)PILOT_RATING_JEDI_MASTER ||
+	    (unsigned)g_pilot_data.current_faction_id >=
+		    (unsigned)FACTION_COUNT) {
+		XVT_LOG_WARN("pilot.record_out_of_range rating=%d faction=%d",
+			     (int)g_pilot_data.rating,
+			     g_pilot_data.current_faction_id);
+	}
 
 	return 1;
 }
@@ -1835,10 +1946,14 @@ int pilot_write_xvt_record(const char *file_name, xvt_file *stream)
 	memset(&record, 0, sizeof(record));
 	file_change_to_base_game_install_path();
 	xvt_file *input_stream = file_open(file_name, g_file_mode_read_binary);
+	XVT_LOG_DEBUG("pilot.record_base found=%d", input_stream != NULL);
 	if (input_stream != NULL) {
 #ifdef XVT_MODERN
 		if (!file_read_bytes(input_stream, &record, sizeof(record))) {
 			file_close(input_stream);
+			XVT_LOG_ERROR(
+				"pilot.record_unreadable stage=\"save\" bytes=%u",
+				(unsigned)sizeof(record));
 			return 0;
 		}
 #else
@@ -2385,6 +2500,12 @@ int pilot_write_xvt_record(const char *file_name, xvt_file *stream)
 		       &source->sp_battles[24].field20,
 		       sizeof(destination->mp_battle_data));
 	}
+	XVT_LOG_DEBUG(
+		"pilot.record_prepared rating=%d missions=%d score=%d faction=%d promo=%d percent=%d rank_change=%d",
+		(int)record.rating, record.total_missions_played_count,
+		record.total_score, record.current_faction_id,
+		record.current_rating_promo_points,
+		record.next_promotion_percent, (int)record.promotion_delta);
 
 #ifdef XVT_MODERN
 	(void)stream;
