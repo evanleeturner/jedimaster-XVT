@@ -13,6 +13,7 @@
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/input/keyboard.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Gives the screen on top of the stack new update and exit functions. Sets
  * g_front_state.frame_counter to -1 and g_front_state.screen_callbacks_dirty to 1:
@@ -23,6 +24,10 @@
 void frontend_screen_set_callbacks(frontend_screen_update_fn update_fn,
 				   frontend_screen_exit_fn exit_fn)
 {
+	XVT_LOG_DEBUG("frontend.screen_switched depth=%d frame=%d pending=%d",
+		      g_front_state.screen_stack_top,
+		      g_front_state.frame_counter,
+		      g_front_state.screen_callbacks_dirty);
 	struct frontend_screen_state *state =
 		&g_front_state.screen_states[g_front_state.screen_stack_top];
 	state->update_fn = update_fn;
@@ -120,6 +125,8 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 			       struct RECT *screen_rect)
 {
 	if (g_front_state.screen_stack_top >= FRONTEND_SCREEN_MAX_STACK - 1) {
+		XVT_LOG_WARN("frontend.screen_stack_full depth=%d",
+			     g_front_state.screen_stack_top);
 		return 0;
 	}
 
@@ -150,6 +157,11 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 		}
 		if (screen_rect->left > screen_rect->right ||
 		    screen_rect->bottom < screen_rect->top) {
+			XVT_LOG_WARN(
+				"frontend.screen_rect_empty left=%d top=%d right=%d bottom=%d",
+				(int)screen_rect->left, (int)screen_rect->top,
+				(int)screen_rect->right,
+				(int)screen_rect->bottom);
 			return 0;
 		}
 
@@ -166,6 +178,10 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 		case 8: {
 			pixels = (uint8_t *)malloc(width * height);
 			if (pixels == NULL) {
+				XVT_LOG_ERROR(
+					"frontend.screen_save_alloc_failed bytes=%d depth=%d",
+					width * height,
+					g_front_state.screen_stack_top);
 				return 0;
 			}
 
@@ -201,6 +217,10 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 		case 16: {
 			pixels = (uint8_t *)malloc(2 * width * height);
 			if (pixels == NULL) {
+				XVT_LOG_ERROR(
+					"frontend.screen_save_alloc_failed bytes=%d depth=%d",
+					2 * width * height,
+					g_front_state.screen_stack_top);
 				return 0;
 			}
 
@@ -284,6 +304,12 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 	g_front_state.screen_states[g_front_state.screen_stack_top].update_fn =
 		update_fn;
 	g_front_state.frame_counter = -1;
+	XVT_LOG_DEBUG(
+		"frontend.screen_pushed depth=%d width=%d height=%d bytes=%d",
+		g_front_state.screen_stack_top,
+		g_front_state.screen_states[slot].saved_image.width,
+		g_front_state.screen_states[slot].saved_image.height,
+		g_front_state.screen_states[slot].saved_image.pixel_data_bytes);
 	return 1;
 }
 
@@ -302,6 +328,7 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 void frontend_screen_pop_state(void)
 {
 	if (g_front_state.screen_stack_top == 0) {
+		XVT_LOG_WARN("frontend.screen_pop_empty");
 		return;
 	}
 
@@ -419,4 +446,9 @@ void frontend_screen_pop_state(void)
 	g_front_state.screen_stack_top = slot;
 	g_front_state.frame_counter =
 		g_front_state.screen_states[slot].saved_frame_counter;
+	XVT_LOG_DEBUG(
+		"frontend.screen_popped depth=%d restored=%d",
+		g_front_state.screen_stack_top,
+		g_front_state.screen_states[slot].saved_image.pixel_data_bytes >
+			0);
 }

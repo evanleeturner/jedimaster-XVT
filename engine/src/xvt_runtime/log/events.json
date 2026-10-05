@@ -2078,6 +2078,41 @@
       "fields": [],
       "text": "The frontend is initialized"
     },
+    "frontend.screen_pop_empty": {
+      "level": "W",
+      "fields": [],
+      "text": "A screen pop was asked for with no screen pushed (stack level 0); nothing was popped"
+    },
+    "frontend.screen_popped": {
+      "level": "D",
+      "fields": ["depth", "restored"],
+      "text": "The top screen was popped, back to stack level {depth}; the saved area under it was drawn back: {restored}"
+    },
+    "frontend.screen_pushed": {
+      "level": "D",
+      "fields": ["depth", "width", "height", "bytes"],
+      "text": "A screen was pushed over the current one, now at stack level {depth}; the {width}x{height} area under it was saved in {bytes} bytes (0 by 0 when nothing was saved)"
+    },
+    "frontend.screen_rect_empty": {
+      "level": "W",
+      "fields": ["left", "top", "right", "bottom"],
+      "text": "A screen was not pushed: its area from ({left}, {top}) to ({right}, {bottom}), clamped to the screen, was empty"
+    },
+    "frontend.screen_save_alloc_failed": {
+      "level": "E",
+      "fields": ["bytes", "depth"],
+      "text": "A screen was not pushed: {bytes} bytes to save the area under it at stack level {depth} could not be allocated"
+    },
+    "frontend.screen_stack_full": {
+      "level": "W",
+      "fields": ["depth"],
+      "text": "A screen was not pushed: the screen stack was full at level {depth}; the screen did not open"
+    },
+    "frontend.screen_switched": {
+      "level": "D",
+      "fields": ["depth", "frame", "pending"],
+      "text": "The screen at stack level {depth} was given new update and exit functions after its frame {frame}; another switch was already waiting this frame: {pending} (the last one wins)"
+    },
     "hud.alert_closed": {
       "level": "D",
       "fields": ["x", "y", "width", "height", "need", "bytes"],
