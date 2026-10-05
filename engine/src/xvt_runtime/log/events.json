@@ -5968,6 +5968,16 @@
       "fields": ["mode"],
       "text": "Flight timing runs the {mode} profile"
     },
+    "ui.sprite_button_clicked": {
+      "level": "D",
+      "fields": ["button", "sprite", "caption"],
+      "text": "A picture button (the screen's button number {button}, image {sprite}, tip {caption}; either text may be empty) was clicked and released with either mouse button"
+    },
+    "ui.text_button_clicked": {
+      "level": "D",
+      "fields": ["button", "right", "caption"],
+      "text": "A text button labeled {caption} (the screen's button number {button}) was clicked and released; right mouse button {right} (1 the right button, 0 the left)"
+    },
     "view.hyperspace_camera": {
       "level": "D",
       "fields": ["slot", "focus", "hud", "object", "ticks", "predicted"],

@@ -12,6 +12,7 @@
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_mouse.h"
 #include "xvt/frontend/frontend_text.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* 1 once frontend_button_draw_sprite_and_tooltip has computed
  * g_front_button_rect_gray_color. Only that function writes it, and nothing sets it
@@ -100,9 +101,15 @@ int frontend_button_handle_text_button(const struct RECT *rect,
 			g_button_held_state[held_state_slot] = 0;
 		}
 		if (frontend_mouse_get_left_click() != 0) {
+			XVT_LOG_DEBUG(
+				"ui.text_button_clicked button=%d right=%d caption=\"%s\"",
+				held_state_slot, 0, text != NULL ? text : "");
 			return 1;
 		}
 		if (frontend_mouse_get_right_click() != 0) {
+			XVT_LOG_DEBUG(
+				"ui.text_button_clicked button=%d right=%d caption=\"%s\"",
+				held_state_slot, 1, text != NULL ? text : "");
 			return 2;
 		}
 	} else {
@@ -136,6 +143,11 @@ int frontend_button_handle_sprite_button(
 	if (frontend_draw_point_in_rect(rect, cursor_x, cursor_y)) {
 		if (frontend_mouse_get_left_click() != 0 ||
 		    frontend_mouse_get_right_click() != 0) {
+			XVT_LOG_DEBUG(
+				"ui.sprite_button_clicked button=%d sprite=\"%s\" caption=\"%s\"",
+				held_state_slot,
+				normal_sprite != NULL ? normal_sprite : "",
+				tooltip_text != NULL ? tooltip_text : "");
 			frontend_button_use_pressed_overlay_style();
 			frontend_button_draw_sprite_and_tooltip(
 				rect, pressed_sprite, tooltip_text, font_size,
