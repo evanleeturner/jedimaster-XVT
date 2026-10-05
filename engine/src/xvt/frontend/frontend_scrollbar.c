@@ -8,6 +8,7 @@
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_mouse.h"
 #include "xvt/input/keyboard.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Frames left before a held scrollbar arrow steps the value again; the step
  * comes on a frame that finds it 0. One shared by every scrollbar. Only
@@ -104,6 +105,10 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 		if (keyboard_peek_char() == 9) {
 			keyboard_discard_char();
 			frontend_cycle_scrollable_focus();
+			XVT_LOG_DEBUG(
+				"ui.focus_cycled control=%d focused=%d controls=%d",
+				control_id, g_scrollable_control_ids[0],
+				g_scrollable_control_count);
 		}
 		draw_state.gate_id = control_id + 1000;
 
@@ -266,6 +271,9 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 			     frontend_mouse_get_right_down())) {
 				frontend_mouse_set_input_gate(
 					draw_state.gate_id);
+				XVT_LOG_DEBUG(
+					"ui.scroll_drag_started control=%d value=%d",
+					control_id, current_value);
 			}
 		} else {
 			g_scrollbar_repeat_countdown = 0;
@@ -276,6 +284,9 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 				    draw_state.gate_id)) {
 				frontend_mouse_clear_input_gate();
 				frontend_mouse_clear_clicks();
+				XVT_LOG_DEBUG(
+					"ui.scroll_drag_ended control=%d value=%d",
+					control_id, current_value);
 			}
 			frontend_draw_rect_copy(&draw_state.part_rect,
 						bar_rect);
@@ -324,6 +335,12 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 					&draw_state.part_rect, -2, -2);
 			}
 		}
+	}
+	if (value != current_value) {
+		XVT_LOG_DEBUG(
+			"ui.scrolled control=%d from=%d to=%d min=%d max=%d step=%d",
+			control_id, current_value, value, minimum,
+			maximum_exclusive, page_step);
 	}
 	return value;
 }

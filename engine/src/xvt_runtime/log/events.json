@@ -6028,6 +6028,26 @@
       "fields": ["x", "y", "bpp"],
       "text": "The screen could not be locked to draw the menu pointer at ({x}, {y}) at {bpp} bits per pixel; the 1997 code then copies pixels through the missing surface"
     },
+    "ui.focus_cycled": {
+      "level": "D",
+      "fields": ["control", "focused", "controls"],
+      "text": "Tab moved the keyboard focus on, taken by scroll bar {control}; scroll bar {focused} now has it, of {controls} on the screen"
+    },
+    "ui.scroll_drag_ended": {
+      "level": "D",
+      "fields": ["control", "value"],
+      "text": "The player let go of the slider of scroll bar {control} at {value} (this frame's last move follows); every control takes mouse clicks again"
+    },
+    "ui.scroll_drag_started": {
+      "level": "D",
+      "fields": ["control", "value"],
+      "text": "The player grabbed the slider of scroll bar {control} at {value}; until it is let go, only this scroll bar takes mouse clicks"
+    },
+    "ui.scrolled": {
+      "level": "D",
+      "fields": ["control", "from", "to", "min", "max", "step"],
+      "text": "Scroll bar {control} moved from {from} to {to} (values {min} up to {max} less one, a page is {step}) by a click, a held arrow, a key or a drag"
+    },
     "ui.sprite_button_clicked": {
       "level": "D",
       "fields": ["button", "sprite", "caption"],
