@@ -31,6 +31,7 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 enum {
 	CONCOURSE_CHAT_LOG_BUFFER_SIZE = 0x400,
@@ -143,6 +144,8 @@ int g_pilot_record_multiplayer_training_mission_count = 0;
 int concourse_exit(int frame_counter)
 {
 	(void)frame_counter;
+	XVT_LOG_DEBUG("frontend.concourse_closed frame=%d pilots=%d",
+		      frame_counter, g_pilot_file_list != NULL);
 
 	if (g_pilot_file_list != NULL) {
 		frontend_file_list_free(g_pilot_file_list);
@@ -440,6 +443,7 @@ int concourse_update(int frame_counter)
 				frontend_string_get(FRONTSTR_523_OKAY), NULL);
 #endif
 			g_cd_audio_warning_pending = 0;
+			XVT_LOG_DEBUG("frontend.music_warning_shown");
 		}
 		frontend_cursor_set_pos(CONCOURSE_CURSOR_START_X,
 					CONCOURSE_CURSOR_START_Y);
@@ -453,6 +457,12 @@ int concourse_update(int frame_counter)
 		g_frontend_quick_start_launch_flag = 0;
 		g_frontend_game_session_in_progress = 0;
 		if (g_opt_skip_intro != 0) {
+			if (g_pilot_data.current_faction_id < 0 ||
+			    g_pilot_data.current_faction_id > 3) {
+				XVT_LOG_WARN(
+					"frontend.faction_out_of_range faction=%d",
+					g_pilot_data.current_faction_id);
+			}
 			g_pilot_data.team =
 				g_pilot_data
 					.faction_statistics
@@ -483,6 +493,13 @@ int concourse_update(int frame_counter)
 						[g_pilot_data
 							 .current_faction_id]
 					.saved_mission_description_id;
+			XVT_LOG_DEBUG(
+				"frontend.concourse_faction_restored faction=%d team=%d directory=%d sequence=%d saved=%d",
+				g_pilot_data.current_faction_id,
+				g_pilot_data.team,
+				(int)g_pilot_data.mission_directory_id,
+				g_pilot_data.mission_sequence_active,
+				g_pilot_data.saved_mission_description_id);
 		}
 		g_pilot_record_pages_need_rebuild = 1;
 		g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_NONE;
@@ -598,6 +615,11 @@ int concourse_update(int frame_counter)
 						      "background1");
 		pilot_record_redraw_background();
 		frontend_text_start_text_fade_in(CONCOURSE_TEXT_FADE_FRAMES);
+		XVT_LOG_INFO(
+			"frontend.concourse_entered has_pilot=%d faction=%d rating=%d host_cd=%d",
+			g_pilot_data.name[0] != '\0',
+			g_pilot_data.current_faction_id,
+			(int)g_pilot_data.rating, g_host_cd_available);
 	}
 
 	pilot_record_update_pilot_selection_panel(frame_counter);

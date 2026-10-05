@@ -2033,6 +2033,26 @@
       "fields": ["held", "tick"],
       "text": "Saving the world state failed at tick {tick} (a buffer was held: {held}); a flight starting stops there, and a flight under way ends at its next restore"
     },
+    "frontend.concourse_closed": {
+      "level": "D",
+      "fields": ["frame", "pilots"],
+      "text": "The concourse closed at its frame {frame} and freed its pilot list (one was loaded: {pilots}), its record mission lists and its backgrounds"
+    },
+    "frontend.concourse_entered": {
+      "level": "I",
+      "fields": ["has_pilot", "faction", "rating", "host_cd"],
+      "text": "The concourse, the main screen with the pilot list, opened: a pilot selected {has_pilot}, faction {faction} (0 Rebel, 1 Imperial), rating {rating}; the host CD found {host_cd}"
+    },
+    "frontend.concourse_faction_restored": {
+      "level": "D",
+      "fields": ["faction", "team", "directory", "sequence", "saved"],
+      "text": "With the intro skipped, the concourse restored faction {faction}'s choices into the pilot: team {team}, mission type {directory}, sequence active {sequence}, saved mission {saved}"
+    },
+    "frontend.faction_out_of_range": {
+      "level": "W",
+      "fields": ["faction"],
+      "text": "The pilot's faction {faction} is not one of its 4 faction records; the concourse read the pilot's choices from past the records"
+    },
     "frontend.launch_requested": {
       "level": "D",
       "fields": ["directory", "mission", "mode", "players"],
@@ -2047,6 +2067,11 @@
       "level": "D",
       "fields": ["players", "host", "mode"],
       "text": "The \"Prepare for launch\" screen opened for {players} human players; this machine launches as host: {host} (session mode {mode})"
+    },
+    "frontend.music_warning_shown": {
+      "level": "D",
+      "fields": [],
+      "text": "The concourse told the player the music could not be started"
     },
     "frontend.ready": {
       "level": "I",
