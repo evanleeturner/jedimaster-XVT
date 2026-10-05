@@ -31,6 +31,7 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* GetTickCount, in milliseconds, when the "Prepare for launch" screen
  * opened; only flight_loading_update_ready_screen writes it. */
@@ -93,6 +94,11 @@ int flight_loading_update_ready_screen(int frame_counter)
 		front_image_draw_sprite("alloff", 0, 0);
 		frontend_display_unlock_offscreen_surface(1);
 		frontend_text_stop_text_fade();
+		XVT_LOG_DEBUG(
+			"frontend.launch_screen_opened players=%d host=%d mode=%d",
+			g_frontend_launch_human_player_count,
+			g_mission_setup_is_host,
+			(int)g_frontend_mission_session_mode);
 	}
 
 	struct RECT rect;
@@ -107,6 +113,11 @@ int flight_loading_update_ready_screen(int frame_counter)
 			mission_setup_send_lobby_state(0);
 			g_unused_flight_loading_ready_screen_flag = 1;
 			front_image_free_resource_by_name("background");
+			XVT_LOG_DEBUG(
+				"frontend.launch_screen_done by=\"host\" waited=%d host=%d",
+				g_flight_loading_ready_screen_now_ms -
+					g_flight_loading_ready_screen_start_ms,
+				g_mission_setup_is_host);
 			frontend_screen_set_callbacks(
 				frontend_flight_launch_session,
 				frontend_flight_no_op_exit);
@@ -118,6 +129,11 @@ int flight_loading_update_ready_screen(int frame_counter)
 	    g_flight_loading_ready_screen_now_ms) {
 		g_unused_flight_loading_ready_screen_flag = 1;
 		front_image_free_resource_by_name("background");
+		XVT_LOG_DEBUG(
+			"frontend.launch_screen_done by=\"timer\" waited=%d host=%d",
+			g_flight_loading_ready_screen_now_ms -
+				g_flight_loading_ready_screen_start_ms,
+			g_mission_setup_is_host);
 		frontend_screen_set_callbacks(frontend_flight_launch_session,
 					      frontend_flight_no_op_exit);
 		return 0;
@@ -155,6 +171,13 @@ int frontend_flight_launch_session(int frame_counter)
 {
 #ifdef XVT_MODERN
 	(void)frame_counter;
+	XVT_LOG_DEBUG(
+		"frontend.launch_requested directory=%d mission=%d mode=%d players=%d",
+		(int)g_pilot_data.mission_directory_id,
+		g_pilot_data.mission_description_ids
+			[g_pilot_data.mission_directory_id],
+		(int)g_frontend_mission_session_mode,
+		g_frontend_launch_human_player_count);
 	return xvt_launch_task_queue();
 #else
 	enum {

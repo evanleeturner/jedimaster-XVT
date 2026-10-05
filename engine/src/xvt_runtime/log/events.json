@@ -2033,6 +2033,21 @@
       "fields": ["held", "tick"],
       "text": "Saving the world state failed at tick {tick} (a buffer was held: {held}); a flight starting stops there, and a flight under way ends at its next restore"
     },
+    "frontend.launch_requested": {
+      "level": "D",
+      "fields": ["directory", "mission", "mode", "players"],
+      "text": "The launch screen handed the flight to the launch task: mission type {directory}, mission {mission}, session mode {mode}, {players} human players"
+    },
+    "frontend.launch_screen_done": {
+      "level": "D",
+      "fields": ["by", "waited", "host"],
+      "text": "The launch screen moved on to the flight ({by}: the host after sending the lobby state, or the timer) after {waited} ms; this machine is host: {host}"
+    },
+    "frontend.launch_screen_opened": {
+      "level": "D",
+      "fields": ["players", "host", "mode"],
+      "text": "The \"Prepare for launch\" screen opened for {players} human players; this machine launches as host: {host} (session mode {mode})"
+    },
     "frontend.ready": {
       "level": "I",
       "fields": [],
