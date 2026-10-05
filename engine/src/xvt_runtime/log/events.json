@@ -733,10 +733,20 @@
       "fields": ["path"],
       "text": "Cannot write {path}"
     },
+    "flight.clock_second": {
+      "level": "D",
+      "fields": ["elapsed", "left", "limit", "tick", "predicted"],
+      "text": "The mission clock counted a second at tick {tick}: {elapsed} seconds of mission time, {left} seconds left of a {limit}-minute limit (0 and 0 with no limit); predicted step {predicted} (1 in a step that is run again later)"
+    },
     "flight.cooperative_level_failed": {
       "level": "E",
       "fields": ["mode", "result"],
       "text": "Setting DirectDraw's {mode} cooperative level failed with code {result}"
+    },
+    "flight.detail_preset": {
+      "level": "D",
+      "fields": ["preset", "distance", "stars", "backdrops", "debris", "predicted"],
+      "text": "Graphics detail preset {preset} was applied: detail distance {distance}, star grid divisor {stars}, backdrops {backdrops}, debris {debris}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.display_cleanup": {
       "level": "D",
@@ -758,15 +768,35 @@
       "fields": ["reason", "tick"],
       "text": "The frame loop ended at game tick {tick}: {reason}"
     },
+    "flight.hyperspace_stalled": {
+      "level": "D",
+      "fields": ["object", "fg", "predicted"],
+      "text": "Craft {object} of flight group {fg} was entering hyperspace with no working systems; it slowed to a stop and became an ordinary craft again; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "flight.launch": {
       "level": "I",
       "fields": [],
       "text": "The flight launch started"
     },
+    "flight.maneuver": {
+      "level": "D",
+      "fields": ["object", "stage", "angle", "predicted"],
+      "text": "Computer-flown craft {object} reached a steering stage: {stage}, at angle {angle} (65,536 to a full turn); predicted step {predicted} (1 in a step that is run again later)"
+    },
     "flight.mission": {
       "level": "I",
       "fields": ["file"],
       "text": "The mission file {file} loads"
+    },
+    "flight.mission_ending": {
+      "level": "I",
+      "fields": ["reason", "slot", "tick"],
+      "text": "The mission was set to end at tick {tick}: {reason}; the player slot that decided it was {slot} (-1 when no single player did)"
+    },
+    "flight.music_track": {
+      "level": "D",
+      "fields": ["track", "reason", "ms", "predicted"],
+      "text": "Music track {track} started ({reason}) and runs {ms} ms; predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.options": {
       "level": "I",
@@ -777,6 +807,11 @@
       "level": "I",
       "fields": ["from", "to"],
       "text": "The flight task moved from phase {from} to phase {to}"
+    },
+    "flight.players_counted": {
+      "level": "D",
+      "fields": ["active", "states", "predicted"],
+      "text": "Players taking part were recounted: {active}; participation by slot {states} (0 not in the flight, 1 flying, 2 out of the mission); predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.start": {
       "level": "I",
@@ -798,10 +833,60 @@
       "fields": ["stage", "phase", "count", "expected"],
       "text": "The pre-flight {stage} wait ran out in phase {phase} with {count} of {expected} answers; the flight does not start"
     },
+    "flight.system_repaired": {
+      "level": "D",
+      "fields": ["slot", "object", "system", "working", "predicted"],
+      "text": "System {system} of craft {object}, flown from player slot {slot}, was repaired; its working systems are now {working} (hex); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.system_repairing": {
+      "level": "D",
+      "fields": ["slot", "object", "system", "left", "predicted"],
+      "text": "System {system} of craft {object}, flown from player slot {slot}, has {left} seconds of repair left; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.time_limit_reached": {
+      "level": "D",
+      "fields": ["minutes", "victory", "elapsed", "tick"],
+      "text": "The mission's time limit of {minutes} minutes ran out at tick {tick}, {elapsed} seconds of mission time in (the limit was the last-team countdown: {victory}); every player was marked out of the mission and the mission ends"
+    },
+    "flight.victory_countdown": {
+      "level": "I",
+      "fields": ["team", "minutes", "reason", "tick"],
+      "text": "The last-team countdown of {minutes} minutes started at tick {tick} for team {team} ({reason}: the only team left, or the team that met its primary goal); the mission ends when it runs out"
+    },
     "flight.world": {
       "level": "I",
       "fields": ["players", "mask", "slots", "bytes"],
       "text": "The flight world started: {players} players, slot mask {mask} (hex), {slots} object slots, {bytes} bytes of saved state"
+    },
+    "flight.world_alloc_failed": {
+      "level": "E",
+      "fields": ["buffer", "bytes"],
+      "text": "The flight's {buffer} world state buffer of {bytes} bytes could not be allocated; the program stops with a fatal error"
+    },
+    "flight.world_buffers": {
+      "level": "D",
+      "fields": ["bytes", "main", "copy"],
+      "text": "Two world state buffers of {bytes} bytes each were allocated, memory handles {main} and {copy}"
+    },
+    "flight.world_checksum_failed": {
+      "level": "E",
+      "fields": ["bytes", "tick"],
+      "text": "The world checksum of the saved state ({bytes} bytes) could not be taken at tick {tick}; the mission was set to end and the previous checksum stayed in place"
+    },
+    "flight.world_freed": {
+      "level": "I",
+      "fields": ["held", "bytes"],
+      "text": "The flight's world state buffers were freed, {held} of 2 held; the last saved state was {bytes} bytes"
+    },
+    "flight.world_restore_failed": {
+      "level": "E",
+      "fields": ["bytes", "confirmed", "tick"],
+      "text": "Restoring the saved world state ({bytes} bytes, saved at tick {confirmed}) left the mission ending at tick {tick}: the state did not decode, or it was saved while ending"
+    },
+    "flight.world_save_failed": {
+      "level": "E",
+      "fields": ["held", "tick"],
+      "text": "Saving the world state failed at tick {tick} (a buffer was held: {held}); a flight starting stops there, and a flight under way ends at its next restore"
     },
     "frontend.ready": {
       "level": "I",

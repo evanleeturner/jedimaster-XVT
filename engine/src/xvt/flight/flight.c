@@ -69,6 +69,7 @@
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifndef XVT_MODERN
 /* The Windows message record PeekMessageA fills in flight_pump_window_messages,
@@ -961,8 +962,34 @@ void flight_update_timers(void)
 				g_players[player_index].participation_state = 2;
 			}
 			g_flight_mission_state.mission_end_pending = 1;
+			XVT_LOG_INFO(
+				"flight.mission_ending reason=\"%s\" slot=%d tick=%d",
+				g_flight_mission_state
+						.team_victory_time_limit_started
+					? "victory_countdown"
+					: "time_limit",
+				-1, g_game_time);
+			XVT_LOG_DEBUG(
+				"flight.time_limit_reached minutes=%d victory=%d elapsed=%d tick=%d",
+				(int)g_flight_mission_state
+					.mission_time_limit_minutes,
+				(int)g_flight_mission_state
+					.team_victory_time_limit_started,
+				g_mission_elapsed_clock.hours * 3600 +
+					g_mission_elapsed_clock.minutes * 60 +
+					g_mission_elapsed_clock.seconds,
+				g_game_time);
 		}
 	}
+	XVT_LOG_DEBUG(
+		"flight.clock_second elapsed=%d left=%d limit=%d tick=%d predicted=%d",
+		g_mission_elapsed_clock.hours * 3600 +
+			g_mission_elapsed_clock.minutes * 60 +
+			g_mission_elapsed_clock.seconds,
+		g_mission_countdown_clock.minutes * 60 +
+			g_mission_countdown_clock.seconds,
+		(int)g_flight_mission_state.mission_time_limit_minutes,
+		g_game_time, g_flight_sim_side_effects_suppressed);
 
 	if (g_flight_mission_state.mission_time_limit_minutes != 0) {
 		if (g_mission_countdown_clock.minutes == 2 &&
@@ -1096,6 +1123,14 @@ void flight_update_timers(void)
 					.mission_time_limit_minutes =
 					g_flight_mission_state
 						.team_victory_time_limit_minutes;
+				if (g_flight_sim_side_effects_suppressed == 0) {
+					XVT_LOG_INFO(
+						"flight.victory_countdown team=%d minutes=%d reason=\"one_team\" tick=%d",
+						active_team,
+						(int)g_flight_mission_state
+							.team_victory_time_limit_minutes,
+						g_game_time);
+				}
 			}
 		}
 		if (g_flight_mission_state.team_victory_time_limit_started ==
@@ -1114,6 +1149,19 @@ void flight_update_timers(void)
 			g_flight_mission_state.mission_time_limit_minutes =
 				g_flight_mission_state
 					.team_victory_time_limit_minutes;
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_INFO(
+					"flight.victory_countdown team=%d minutes=%d reason=\"goal\" tick=%d",
+					g_flight_mission_state.runtime
+								.team_goal_status
+									[0]
+									[0] == 1
+						? 0
+						: 1,
+					(int)g_flight_mission_state
+						.team_victory_time_limit_minutes,
+					g_game_time);
+			}
 		}
 	}
 
@@ -1159,9 +1207,25 @@ void flight_update_timers(void)
 							msg_emit_in_flight_message(
 								IFMSG_086_ARG_SYSTEM_IS_ARG,
 								player_index);
+							XVT_LOG_DEBUG(
+								"flight.system_repaired slot=%d object=%d system=%d working=%04x predicted=%d",
+								player_index,
+								player->object_index,
+								index,
+								(unsigned)craft
+									->working_subsystems,
+								g_flight_sim_side_effects_suppressed);
 						} else {
 							--craft->system_repair_seconds
 								  [index];
+							XVT_LOG_DEBUG(
+								"flight.system_repairing slot=%d object=%d system=%d left=%d predicted=%d",
+								player_index,
+								player->object_index,
+								index,
+								(int)craft->system_repair_seconds
+									[index],
+								g_flight_sim_side_effects_suppressed);
 						}
 					}
 				}
@@ -1237,6 +1301,11 @@ void flight_update_dynamic_music_state(void)
 				music_cd_get_track_length_ms(track_number);
 			g_dynamic_music_outcome_latched = 1;
 			g_dynamic_music_state = track_number;
+			XVT_LOG_DEBUG(
+				"flight.music_track track=%d reason=\"outcome\" ms=%d predicted=%d",
+				(int)g_dynamic_music_state,
+				g_dynamic_music_track_remaining_ms,
+				g_flight_sim_side_effects_suppressed);
 		}
 	}
 
@@ -1253,6 +1322,11 @@ void flight_update_dynamic_music_state(void)
 		g_dynamic_music_track_remaining_ms =
 			music_cd_get_track_length_ms(2);
 		g_dynamic_music_state = 2;
+		XVT_LOG_DEBUG(
+			"flight.music_track track=%d reason=\"repeat\" ms=%d predicted=%d",
+			(int)g_dynamic_music_state,
+			g_dynamic_music_track_remaining_ms,
+			g_flight_sim_side_effects_suppressed);
 	}
 }
 
@@ -1281,6 +1355,9 @@ void flight_alloc_world_state_buffers(void)
 	size_t buffer_size = flight_calculate_world_state_buffer_size();
 	g_world_state_handle = memory_alloc_handle(buffer_size, 0);
 	if (g_world_state_handle == 0) {
+		XVT_LOG_ERROR(
+			"flight.world_alloc_failed buffer=\"main\" bytes=%u",
+			(unsigned)buffer_size);
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 #ifdef XVT_MODERN
 		return;
@@ -1290,6 +1367,9 @@ void flight_alloc_world_state_buffers(void)
 
 	g_world_state_dup_handle = memory_alloc_handle(buffer_size, 0);
 	if (g_world_state_dup_handle == 0) {
+		XVT_LOG_ERROR(
+			"flight.world_alloc_failed buffer=\"copy\" bytes=%u",
+			(unsigned)buffer_size);
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 #ifdef XVT_MODERN
 		return;
@@ -1297,6 +1377,9 @@ void flight_alloc_world_state_buffers(void)
 	}
 	g_world_state_dup_buffer =
 		memory_get_handle_block(g_world_state_dup_handle);
+	XVT_LOG_DEBUG("flight.world_buffers bytes=%u main=%u copy=%u",
+		      (unsigned)buffer_size, (unsigned)g_world_state_handle,
+		      (unsigned)g_world_state_dup_handle);
 }
 
 /* Frees both world state buffers (the modern build skips a handle of 0) and
@@ -1305,6 +1388,10 @@ void flight_alloc_world_state_buffers(void)
 // FUNCTION: XVT 0x4167A0
 void flight_free_world_state_buffers(void)
 {
+	XVT_LOG_INFO("flight.world_freed held=%d bytes=%u",
+		     (g_world_state_handle != 0) +
+			     (g_world_state_dup_handle != 0),
+		     g_world_state_size);
 	unsigned int handle = g_world_state_handle;
 #ifdef XVT_MODERN
 	if (handle) {
@@ -1345,6 +1432,10 @@ void flight_save_world_state(void)
 {
 #ifdef XVT_MODERN
 	xvt_snapshot_save();
+	if (g_world_state_size == 0) {
+		XVT_LOG_ERROR("flight.world_save_failed held=%d tick=%d",
+			      g_world_state_buffer != NULL, g_game_time);
+	}
 #else
 	uint8_t *cursor = g_world_state_buffer;
 	for (int object_index = 0;
@@ -1757,6 +1848,11 @@ void flight_restore_world_state(void)
 {
 #ifdef XVT_MODERN
 	xvt_snapshot_restore();
+	if (g_flight_mission_state.mission_end_pending != 0) {
+		XVT_LOG_ERROR(
+			"flight.world_restore_failed bytes=%u confirmed=%d tick=%d",
+			g_world_state_size, g_server_tick_time, g_game_time);
+	}
 #else
 	uint8_t *cursor = g_world_state_buffer;
 	for (int object_index = 0;
@@ -2114,6 +2210,10 @@ void flight_checksum_world_state(int unused_arg0, int unused_arg1)
 {
 #ifdef XVT_MODERN
 	xvt_snapshot_checksum(unused_arg0, unused_arg1);
+	if (g_flight_mission_state.mission_end_pending != 0) {
+		XVT_LOG_ERROR("flight.world_checksum_failed bytes=%u tick=%d",
+			      g_world_state_size, g_game_time);
+	}
 #else
 	(void)unused_arg0;
 	(void)unused_arg1;
@@ -4592,6 +4692,17 @@ int flight_update_active_player_count(void)
 		}
 		g_active_flight_player_count = active_player_count;
 	}
+	XVT_LOG_DEBUG(
+		"flight.players_counted active=%d states=\"%d%d%d%d%d%d%d%d\" predicted=%d",
+		active_player_count, (int)g_players[0].participation_state,
+		(int)g_players[1].participation_state,
+		(int)g_players[2].participation_state,
+		(int)g_players[3].participation_state,
+		(int)g_players[4].participation_state,
+		(int)g_players[5].participation_state,
+		(int)g_players[6].participation_state,
+		(int)g_players[7].participation_state,
+		g_flight_sim_side_effects_suppressed);
 
 	return active_player_count;
 }
@@ -4618,9 +4729,21 @@ int flight_recount_players_and_check_mission_end(void)
 	}
 
 	if (connected_count == 0) {
+		if (g_flight_mission_state.mission_end_pending == 0 &&
+		    g_game_time == g_server_tick_time) {
+			XVT_LOG_INFO(
+				"flight.mission_ending reason=\"nobody_flying\" slot=%d tick=%d",
+				-1, g_game_time);
+		}
 		g_flight_mission_state.mission_end_pending = 1;
 	}
 	if (g_players[g_local_player].participation_state == 0) {
+		if (g_flight_mission_state.mission_end_pending == 0 &&
+		    g_game_time == g_server_tick_time) {
+			XVT_LOG_INFO(
+				"flight.mission_ending reason=\"local_gone\" slot=%d tick=%d",
+				g_local_player, g_game_time);
+		}
 		g_flight_mission_state.mission_end_pending = 1;
 	}
 	return g_flight_mission_state.mission_end_pending;
@@ -9268,6 +9391,13 @@ char flight_apply_graphics_detail_preset(uint16_t preset)
 	g_debris_enabled =
 		(uint8_t)g_debris_enabled_by_graphics_detail_preset[preset];
 	g_transform_light_direction_to_object_space = 1;
+	XVT_LOG_DEBUG(
+		"flight.detail_preset preset=%u distance=%u stars=%u backdrops=%u debris=%u predicted=%d",
+		(unsigned)preset,
+		(unsigned)g_graphics_detail_distance_threshold,
+		(unsigned)g_star_grid_divisor, (unsigned)g_backdrops_enabled,
+		(unsigned)g_debris_enabled,
+		g_flight_sim_side_effects_suppressed);
 	return (char)g_debris_enabled;
 }
 
@@ -10067,6 +10197,13 @@ void flight_update_craft_steering_and_speed(void)
 									->target_roll;
 							g_cur_craft->ai_flight
 								.roll_state = 4;
+							XVT_LOG_DEBUG(
+								"flight.maneuver object=%d stage=\"roll_reached\" angle=%u predicted=%d",
+								object_idx,
+								(unsigned)g_object_table
+									[object_idx]
+										.roll,
+								g_flight_sim_side_effects_suppressed);
 						} else {
 							g_object_table
 								[object_idx]
@@ -10083,6 +10220,13 @@ void flight_update_craft_steering_and_speed(void)
 							controller->target_roll;
 						g_cur_craft->ai_flight
 							.roll_state = 4;
+						XVT_LOG_DEBUG(
+							"flight.maneuver object=%d stage=\"roll_reached\" angle=%u predicted=%d",
+							object_idx,
+							(unsigned)g_object_table
+								[object_idx]
+									.roll,
+							g_flight_sim_side_effects_suppressed);
 					}
 				} else if (controller->target_roll < 0x8000u) {
 					g_object_table[object_idx].roll +=
@@ -10161,6 +10305,12 @@ void flight_update_craft_steering_and_speed(void)
 							g_cur_craft->ai_flight
 								.pitch_state =
 								2;
+							XVT_LOG_DEBUG(
+								"flight.maneuver object=%d stage=\"looped\" angle=%u predicted=%d",
+								object_idx,
+								(unsigned)g_cur_craft
+									->pitch,
+								g_flight_sim_side_effects_suppressed);
 						}
 					} else {
 						g_cur_craft->pitch =
@@ -10168,6 +10318,12 @@ void flight_update_craft_steering_and_speed(void)
 								->target_z_angle;
 						g_cur_craft->ai_flight
 							.pitch_state = 3;
+						XVT_LOG_DEBUG(
+							"flight.maneuver object=%d stage=\"pitch_reached\" angle=%u predicted=%d",
+							object_idx,
+							(unsigned)g_cur_craft
+								->pitch,
+							g_flight_sim_side_effects_suppressed);
 					}
 				} else if (g_cur_craft->ai_flight.pitch_state ==
 					   2) {
@@ -10196,6 +10352,12 @@ void flight_update_craft_steering_and_speed(void)
 							g_cur_craft->ai_flight
 								.pitch_state =
 								1;
+							XVT_LOG_DEBUG(
+								"flight.maneuver object=%d stage=\"looped\" angle=%u predicted=%d",
+								object_idx,
+								(unsigned)g_cur_craft
+									->pitch,
+								g_flight_sim_side_effects_suppressed);
 						}
 					} else {
 						g_cur_craft->pitch =
@@ -10203,6 +10365,12 @@ void flight_update_craft_steering_and_speed(void)
 								->target_z_angle;
 						g_cur_craft->ai_flight
 							.pitch_state = 3;
+						XVT_LOG_DEBUG(
+							"flight.maneuver object=%d stage=\"pitch_reached\" angle=%u predicted=%d",
+							object_idx,
+							(unsigned)g_cur_craft
+								->pitch,
+							g_flight_sim_side_effects_suppressed);
 					}
 				}
 			}
@@ -10268,6 +10436,13 @@ void flight_update_craft_steering_and_speed(void)
 						turn_step = 0;
 						g_cur_craft->ai_flight
 							.turn_state = 3;
+						XVT_LOG_DEBUG(
+							"flight.maneuver object=%d stage=\"turn_reached\" angle=%u predicted=%d",
+							object_idx,
+							(unsigned)g_object_table
+								[object_idx]
+									.yaw,
+							g_flight_sim_side_effects_suppressed);
 					}
 					if (g_cur_craft->ai_flight.roll_state ==
 						    0 ||
@@ -10456,6 +10631,12 @@ void flight_update_craft_steering_and_speed(void)
 				    0) {
 					g_cur_craft->object_kind =
 						CRAFT_OBJECT_KIND_ACTIVE;
+					XVT_LOG_DEBUG(
+						"flight.hyperspace_stalled object=%d fg=%d predicted=%d",
+						object_idx,
+						(int)g_object_table[object_idx]
+							.flight_group_idx,
+						g_flight_sim_side_effects_suppressed);
 				}
 			}
 			break;
