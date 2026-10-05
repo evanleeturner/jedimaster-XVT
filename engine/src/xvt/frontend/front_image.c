@@ -15,6 +15,7 @@
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/frontend/frontend_text.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #pragma pack(push, 1)
 
@@ -74,23 +75,34 @@ int front_image_register_resource_default(const char *file_name,
 					  const char *name)
 {
 	if (*file_name == '\0') {
+		XVT_LOG_WARN("image.register_empty file=\"%s\" resource=\"%s\"",
+			     file_name, name);
 		return 0;
 	}
 	if (*name == '\0') {
+		XVT_LOG_WARN("image.register_empty file=\"%s\" resource=\"%s\"",
+			     file_name, name);
 		return 0;
 	}
 	if (front_image_find_resource_by_name(name) != -1) {
+		XVT_LOG_DEBUG("image.name_taken resource=\"%s\" file=\"%s\"",
+			      name, file_name);
 		return 0;
 	}
 
 	struct image_resource *image;
 	image = malloc(sizeof(*image));
 	if (image == NULL) {
+		XVT_LOG_ERROR("image.alloc_failed what=record bytes=%d",
+			      (int)sizeof(*image));
 		return 0;
 	}
 	memset(image, 0, sizeof(*image));
 	if (front_image_load_bmp_file(file_name, image, 1, 1) == 0) {
 		free(image);
+		XVT_LOG_DEBUG(
+			"image.not_registered resource=\"%s\" file=\"%s\"",
+			name, file_name);
 		return 0;
 	}
 
@@ -98,6 +110,11 @@ int front_image_register_resource_default(const char *file_name,
 	entry.image = image;
 	strncpy(entry.name, name, sizeof(entry.name));
 	front_image_insert_resource_sorted(&entry);
+	XVT_LOG_DEBUG(
+		"image.registered resource=\"%s\" file=\"%s\" width=%d height=%d compressed=%d bytes=%d remap=1 rle=1 count=%d",
+		name, file_name, image->width, image->height,
+		image->is_compressed, image->pixel_data_bytes,
+		g_front_state.resource_count);
 	return 1;
 }
 
@@ -109,9 +126,13 @@ int front_image_register_resource(const char *file_name, const char *name,
 				  int compress_rle)
 {
 	if (*file_name == '\0') {
+		XVT_LOG_WARN("image.register_empty file=\"%s\" resource=\"%s\"",
+			     file_name, name);
 		return 0;
 	}
 	if (*name == '\0') {
+		XVT_LOG_WARN("image.register_empty file=\"%s\" resource=\"%s\"",
+			     file_name, name);
 		return 0;
 	}
 	if (front_image_find_resource_by_name(name) != -1) {
@@ -121,6 +142,8 @@ int front_image_register_resource(const char *file_name, const char *name,
 	struct image_resource *image;
 	image = malloc(sizeof(*image));
 	if (image == NULL) {
+		XVT_LOG_ERROR("image.alloc_failed what=record bytes=%d",
+			      (int)sizeof(*image));
 		return 0;
 	}
 	memset(image, 0, sizeof(*image));
@@ -128,6 +151,9 @@ int front_image_register_resource(const char *file_name, const char *name,
 				      remap_to_display_palette,
 				      compress_rle) == 0) {
 		free(image);
+		XVT_LOG_DEBUG(
+			"image.not_registered resource=\"%s\" file=\"%s\"",
+			name, file_name);
 		return 0;
 	}
 
@@ -135,6 +161,12 @@ int front_image_register_resource(const char *file_name, const char *name,
 	entry.image = image;
 	strncpy(entry.name, name, sizeof(entry.name));
 	front_image_insert_resource_sorted(&entry);
+	XVT_LOG_DEBUG(
+		"image.registered resource=\"%s\" file=\"%s\" width=%d height=%d compressed=%d bytes=%d remap=%d rle=%d count=%d",
+		name, file_name, image->width, image->height,
+		image->is_compressed, image->pixel_data_bytes,
+		remap_to_display_palette, compress_rle,
+		g_front_state.resource_count);
 	return 1;
 }
 
@@ -148,6 +180,8 @@ void front_image_free_resource_by_name(const char *name)
 	if (resource_index == -1) {
 		return;
 	}
+	XVT_LOG_DEBUG("image.freed resource=\"%.64s\" index=%d count=%d", name,
+		      resource_index, g_front_state.resource_count);
 
 	if (g_front_state.resource_table[resource_index].image != NULL) {
 #ifdef XVT_MODERN
@@ -176,6 +210,7 @@ void front_image_free_all_resources(void)
 	if (g_front_state.resource_table == NULL) {
 		return;
 	}
+	XVT_LOG_DEBUG("image.all_freed count=%d", g_front_state.resource_count);
 
 	for (int resource_index = 511; resource_index >= 0; --resource_index) {
 		front_image_free_resource_by_name(
@@ -2776,6 +2811,15 @@ int front_image_load_bmp_file(const char *file_name,
 								stream, pixels,
 								&file_header,
 								&info_header);
+						if (result == 1 &&
+						    info_header.biCompression !=
+							    0) {
+							XVT_LOG_WARN(
+								"image.compression_unsupported file=\"%s\" bpp=4 compression=%u",
+								file_name,
+								(unsigned)info_header
+									.biCompression);
+						}
 						break;
 					case 8:
 						front_image_read_bmp_palette(
@@ -2785,7 +2829,27 @@ int front_image_load_bmp_file(const char *file_name,
 								stream, pixels,
 								&file_header,
 								&info_header);
+						if (result == 1 &&
+						    info_header.biCompression >
+							    1) {
+							XVT_LOG_WARN(
+								"image.compression_unsupported file=\"%s\" bpp=8 compression=%u",
+								file_name,
+								(unsigned)info_header
+									.biCompression);
+						}
 						break;
+					}
+					if (bits_per_pixel != 4 &&
+					    bits_per_pixel != 8) {
+						XVT_LOG_WARN(
+							"image.bmp_unsupported file=\"%s\" planes=%d bpp=%d compression=%u",
+							file_name,
+							(int)info_header
+								.biPlanes,
+							(int)bits_per_pixel,
+							(unsigned)info_header
+								.biCompression);
 					}
 
 					int display_bpp =
@@ -2861,10 +2925,29 @@ int front_image_load_bmp_file(const char *file_name,
 						break;
 					}
 					}
+				} else {
+					XVT_LOG_WARN(
+						"image.bmp_unsupported file=\"%s\" planes=%d bpp=%d compression=%u",
+						file_name,
+						(int)info_header.biPlanes,
+						(int)info_header.biBitCount,
+						(unsigned)info_header
+							.biCompression);
 				}
+			} else {
+				XVT_LOG_ERROR(
+					"image.alloc_failed what=pixels bytes=%d",
+					row_padding +
+						info_header.biHeight *
+							info_header.biWidth);
 			}
+		} else {
+			XVT_LOG_WARN("image.not_bmp file=\"%s\" magic=%#x",
+				     file_name, (unsigned)file_header.bfType);
 		}
 		file_close(stream);
+	} else {
+		XVT_LOG_WARN("image.open_failed file=\"%s\"", file_name);
 	}
 
 	if (result != 1) {
@@ -2907,6 +2990,8 @@ int front_image_decode_bmp4bpp(xvt_file *stream, void *dst_pixels,
 	size_t data_size = file_header->bfSize - file_header->bfOffBits;
 	uint8_t *data = malloc(data_size);
 	if (data == NULL) {
+		XVT_LOG_ERROR("image.alloc_failed what=file_data bytes=%d",
+			      (int)data_size);
 		return 0;
 	}
 
@@ -2968,6 +3053,9 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 	if (info_header->biCompression != 0) {
 		data = malloc(info_header->biSizeImage);
 		if (data == NULL) {
+			XVT_LOG_ERROR(
+				"image.alloc_failed what=file_data bytes=%d",
+				(int)info_header->biSizeImage);
 			return 0;
 		}
 	}
@@ -3050,6 +3138,11 @@ int front_image_decode_bmp8bpp(xvt_file *stream, void *dst_pixels,
 				}
 			}
 		} while (decode_complete == 0);
+		if (source_offset > (int)info_header->biSizeImage) {
+			XVT_LOG_ERROR("image.bmp_overrun read=%d size=%u",
+				      source_offset,
+				      (unsigned)info_header->biSizeImage);
+		}
 		break;
 	}
 	default:
@@ -3135,6 +3228,9 @@ int front_image_compress_rle(struct image_resource *image)
 	int source_size = image->width * image->height;
 	uint8_t *compressed_pixels = malloc(source_size);
 	if (compressed_pixels == NULL) {
+		XVT_LOG_ERROR(
+			"image.alloc_failed what=compressed_copy bytes=%d",
+			source_size);
 		image->is_compressed = 0;
 		return 0;
 	}
@@ -3284,6 +3380,8 @@ int front_image_compress_rle(struct image_resource *image)
 	}
 
 	if (image->width * image->height < compressed_size) {
+		XVT_LOG_DEBUG("image.rle_skipped width=%d height=%d row=%d",
+			      image->width, image->height, row);
 		return 0;
 	}
 
@@ -3294,6 +3392,10 @@ int front_image_compress_rle(struct image_resource *image)
 			free(compressed_pixels);
 			image->is_compressed = 0;
 			return 0;
+		}
+		if (resized_pixels == NULL) {
+			XVT_LOG_ERROR("image.rle_shrink_failed bytes=%d",
+				      compressed_size);
 		}
 		free(image->pixels);
 		image->pixels = resized_pixels;
@@ -3411,6 +3513,10 @@ int front_image_encode_glyph_row(struct front_image_rle_row_buffer *row_buffer,
 void front_image_insert_resource_sorted(
 	const struct front_image_resource_record *entry)
 {
+	if (g_front_state.resource_count >= 512) {
+		XVT_LOG_ERROR("image.table_full count=%d",
+			      g_front_state.resource_count);
+	}
 	int insert_index = 0;
 	while (g_front_state.resource_count > insert_index) {
 		if (strncmp(entry->name,
@@ -3531,11 +3637,17 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 {
 	const uint8_t *color_table = (const uint8_t *)palette;
 	if (bpp == 8 && color_table == NULL) {
+		XVT_LOG_ERROR(
+			"image.save_failed file=\"%s\" step=palette bpp=%d row=-1",
+			file_name, bpp);
 		return 0;
 	}
 
 	xvt_file *stream = file_open(file_name, "wb");
 	if (stream == NULL) {
+		XVT_LOG_ERROR(
+			"image.save_failed file=\"%s\" step=open bpp=%d row=-1",
+			file_name, bpp);
 		return 0;
 	}
 
@@ -3545,6 +3657,10 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 	int y;
 	int x;
 	int ok;
+	if (bpp != 8 && bpp != 16) {
+		XVT_LOG_WARN("image.save_depth_unsupported file=\"%s\" bpp=%d",
+			     file_name, bpp);
+	}
 	switch (bpp) {
 	case 8:
 		for (y = height - 1; y >= 0; y--) {
@@ -3555,18 +3671,27 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 				ok = file_write_byte(stream,
 						     color_table[4 * *row]);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
 				ok = file_write_byte(stream,
 						     color_table[4 * *row + 1]);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
 				ok = file_write_byte(stream,
 						     color_table[4 * *row + 2]);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
@@ -3579,16 +3704,25 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 			if ((x & 1) != 0) {
 				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
 				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
 				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
@@ -3620,16 +3754,25 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 
 				ok = file_write_byte(stream, 8 * value);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
 				ok = file_write_byte(stream, green);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
 				ok = file_write_byte(stream, 8 * red);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
@@ -3642,16 +3785,25 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 			if ((x & 1) != 0) {
 				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
 				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
 				ok = file_write_byte(stream, 0);
 				if (ok == 0) {
+					XVT_LOG_ERROR(
+						"image.save_failed file=\"%s\" step=pixels bpp=%d row=%d",
+						file_name, bpp, y);
 					file_close(stream);
 					return 0;
 				}
@@ -3688,16 +3840,25 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 
 	ok = file_write_bytes(stream, &file_header, sizeof(file_header));
 	if (ok == 0) {
+		XVT_LOG_ERROR(
+			"image.save_failed file=\"%s\" step=headers bpp=%d row=-1",
+			file_name, bpp);
 		file_close(stream);
 		return 0;
 	}
 	ok = file_write_bytes(stream, &info_header, sizeof(info_header));
 	if (ok == 0) {
+		XVT_LOG_ERROR(
+			"image.save_failed file=\"%s\" step=headers bpp=%d row=-1",
+			file_name, bpp);
 		file_close(stream);
 		return 0;
 	}
 
 	file_close(stream);
+	XVT_LOG_INFO(
+		"image.saved file=\"%s\" width=%d height=%d bpp=%d bytes=%d",
+		file_name, width, height, bpp, file_size);
 	return 1;
 }
 
@@ -3837,10 +3998,15 @@ int front_image_load_resource_list(const char *file_name)
 {
 	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
+		XVT_LOG_ERROR("image.list_missing list=\"%s\" action=load",
+			      file_name);
 		return 0;
 	}
 	char resource_file_name[256];
 	if (FILE_GETS(resource_file_name, 255, stream) == NULL) {
+		XVT_LOG_DEBUG(
+			"image.list_done list=\"%s\" action=load end=empty count=%d",
+			file_name, g_front_state.resource_count);
 		file_close(stream);
 		return 1;
 	}
@@ -3859,10 +4025,26 @@ int front_image_load_resource_list(const char *file_name)
 				   resource_name, &compress_rle);
 #endif
 		if (field_count == EOF) {
+			XVT_LOG_DEBUG(
+				"image.list_done list=\"%s\" action=load end=eof count=%d",
+				file_name, g_front_state.resource_count);
 			file_close(stream);
 			return 1;
 		}
 		if (field_count != 3) {
+			if (field_count == 1 && resource_file_name[0] == 0x1A &&
+			    resource_file_name[1] == '\0') {
+				XVT_LOG_DEBUG(
+					"image.list_done list=\"%s\" action=load end=mark count=%d",
+					file_name,
+					g_front_state.resource_count);
+			}
+			if (field_count != 1 || resource_file_name[0] != 0x1A ||
+			    resource_file_name[1] != '\0') {
+				XVT_LOG_WARN(
+					"image.list_line_bad list=\"%s\" action=load got=%d",
+					file_name, field_count);
+			}
 			file_close(stream);
 			return 0;
 		}
@@ -3880,10 +4062,15 @@ int front_image_unload_resource_list(const char *file_name)
 {
 	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
+		XVT_LOG_ERROR("image.list_missing list=\"%s\" action=unload",
+			      file_name);
 		return 0;
 	}
 	char resource_file_name[256];
 	if (FILE_GETS(resource_file_name, 255, stream) == NULL) {
+		XVT_LOG_DEBUG(
+			"image.list_done list=\"%s\" action=unload end=empty count=%d",
+			file_name, g_front_state.resource_count);
 		file_close(stream);
 		return 1;
 	}
@@ -3902,10 +4089,26 @@ int front_image_unload_resource_list(const char *file_name)
 				   resource_name, &ignored_flags);
 #endif
 		if (field_count == EOF) {
+			XVT_LOG_DEBUG(
+				"image.list_done list=\"%s\" action=unload end=eof count=%d",
+				file_name, g_front_state.resource_count);
 			file_close(stream);
 			return 1;
 		}
 		if (field_count != 3) {
+			if (field_count == 1 && resource_file_name[0] == 0x1A &&
+			    resource_file_name[1] == '\0') {
+				XVT_LOG_DEBUG(
+					"image.list_done list=\"%s\" action=unload end=mark count=%d",
+					file_name,
+					g_front_state.resource_count);
+			}
+			if (field_count != 1 || resource_file_name[0] != 0x1A ||
+			    resource_file_name[1] != '\0') {
+				XVT_LOG_WARN(
+					"image.list_line_bad list=\"%s\" action=unload got=%d",
+					file_name, field_count);
+			}
 			file_close(stream);
 			return 0;
 		}

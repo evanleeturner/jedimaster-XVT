@@ -2388,6 +2388,111 @@
       "fields": ["slot", "warning", "lock"],
       "text": "A warhead lock on the craft of this machine's player, slot {slot}, became complete, or a complete one ended: the incoming warhead warning now shows {warning} (2 for a complete lock; 1 or 0, blinking, while a lock builds, 0 with none left), from the longest lock of {lock} ticks (complete above 944)"
     },
+    "image.all_freed": {
+      "level": "D",
+      "fields": ["count"],
+      "text": "All registered images were freed, {count} of them"
+    },
+    "image.alloc_failed": {
+      "level": "E",
+      "fields": ["what", "bytes"],
+      "text": "Memory for an image's {what} ({bytes} bytes) could not be allocated; the image was not loaded (for compressed_copy, it stayed uncompressed)"
+    },
+    "image.bmp_overrun": {
+      "level": "E",
+      "fields": ["read", "size"],
+      "text": "Unpacking an image file's run-length pixel data read {read} bytes from a {size}-byte buffer: the data ran out before its end mark, so memory past the buffer was read and the image may be damaged"
+    },
+    "image.bmp_unsupported": {
+      "level": "W",
+      "fields": ["file", "planes", "bpp", "compression"],
+      "text": "The image file {file} has {planes} color planes at {bpp} bits per pixel (compression {compression}); the game reads only 1 plane at 4 or 8 bits, so it was not loaded"
+    },
+    "image.compression_unsupported": {
+      "level": "W",
+      "fields": ["file", "bpp", "compression"],
+      "text": "The image file {file} uses compression {compression} at {bpp} bits per pixel, which the game does not unpack, so the image was loaded blank"
+    },
+    "image.freed": {
+      "level": "D",
+      "fields": ["resource", "index", "count"],
+      "text": "The image {resource}, entry {index} of the {count} registered, was freed and taken out of the image table"
+    },
+    "image.list_done": {
+      "level": "D",
+      "fields": ["list", "action", "end", "count"],
+      "text": "The image list {list} was read for {action} up to its {end} (eof: the end of the file; empty: nothing after its first line; mark: a DOS end-of-file byte, which this build reads as a short last line); {count} images are now registered"
+    },
+    "image.list_line_bad": {
+      "level": "W",
+      "fields": ["list", "action", "got"],
+      "text": "A line of the image list {list} did not hold a file, a name and a flag ({got} of the 3 were read), so the {action} stopped there and the rest of the list was skipped"
+    },
+    "image.list_missing": {
+      "level": "E",
+      "fields": ["list", "action"],
+      "text": "The image list {list} could not be opened, so the {action} of its images did not happen"
+    },
+    "image.name_taken": {
+      "level": "D",
+      "fields": ["resource", "file"],
+      "text": "An image was already registered under the name {resource}, so {file} was not loaded and the image registered earlier stayed in use"
+    },
+    "image.not_bmp": {
+      "level": "W",
+      "fields": ["file", "magic"],
+      "text": "The image file {file} does not start like a bitmap file (its first two bytes read {magic}, where 0x4d42 was expected), so it was not loaded"
+    },
+    "image.not_registered": {
+      "level": "D",
+      "fields": ["resource", "file"],
+      "text": "The image {resource} was not registered because its file {file} did not load"
+    },
+    "image.open_failed": {
+      "level": "W",
+      "fields": ["file"],
+      "text": "The image file {file} could not be opened, so that image was not loaded"
+    },
+    "image.register_empty": {
+      "level": "W",
+      "fields": ["file", "resource"],
+      "text": "An image was not registered because its file name ({file}) or its name ({resource}) was empty"
+    },
+    "image.registered": {
+      "level": "D",
+      "fields": ["resource", "file", "width", "height", "compressed", "bytes", "remap", "rle", "count"],
+      "text": "The image {resource} was registered from {file}: {width}x{height} pixels, {bytes} bytes of pixel data, compressed {compressed} (1 yes, 0 no); asked to match the screen palette {remap} and to compress {rle}; {count} images are now registered"
+    },
+    "image.rle_shrink_failed": {
+      "level": "E",
+      "fields": ["bytes"],
+      "text": "Shrinking an image's compressed pixels to {bytes} bytes failed; the image was left marked compressed with no pixels, and drawing it next will fail"
+    },
+    "image.rle_skipped": {
+      "level": "D",
+      "fields": ["width", "height", "row"],
+      "text": "Compressing a {width}x{height} image was given up at row {row}: the compressed rows would have been larger than the plain pixels, so the image stayed uncompressed"
+    },
+    "image.save_depth_unsupported": {
+      "level": "W",
+      "fields": ["file", "bpp"],
+      "text": "The image file {file} was asked for at {bpp} bits per pixel, which the game cannot write, so the file got its headers and no pixels"
+    },
+    "image.save_failed": {
+      "level": "E",
+      "fields": ["file", "step", "bpp", "row"],
+      "text": "Saving the image file {file} failed at the {step} step at {bpp} bits per pixel (palette: an 8-bit image came with no palette; open; pixels, at row {row}; headers; the row is -1 when no row was being written); a partly written file may be left behind"
+    },
+    "image.saved": {
+      "level": "I",
+      "fields": ["file", "width", "height", "bpp", "bytes"],
+      "text": "A picture of the screen was saved as {file}: {width}x{height} pixels at {bpp} bits per pixel, {bytes} bytes"
+    },
+    "image.table_full": {
+      "level": "E",
+      "fields": ["count"],
+      "text": "The image table already held {count} images, all 512 places taken, and the new image was written past its end"
+    },
     "input.capture_failed": {
       "level": "E",
       "fields": ["device"],
