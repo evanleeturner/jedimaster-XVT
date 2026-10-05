@@ -2036,7 +2036,7 @@
     "hud.cockpit_lfd_read": {
       "level": "D",
       "fields": ["file", "entries", "bytes", "predicted"],
-      "text": "Cockpit picture file {file} was read: {entries} parts (the picture, its viewport mask and its palette), {bytes} bytes kept (2 fewer when the first part is a palette); predicted step {predicted} (1 in a step that is run again later)"
+      "text": "Cockpit picture file {file} was read: {entries} parts (the picture, its viewport mask and its palette), {bytes} bytes kept (2 fewer when the first part is a palette); predicted world {predicted} (1 when the world comes from steps that are run again later)"
     },
     "hud.cockpit_loaded": {
       "level": "I",
@@ -2051,7 +2051,7 @@
     "hud.digit_count_invalid": {
       "level": "E",
       "fields": ["count", "value"],
-      "text": "A number on the flight display, {value}, was to be drawn in {count} places, more than the 5 the digit table holds (6 or 7 divide by zero; more read past the table)"
+      "text": "A number on the flight display, {value}, was to be drawn in {count} places, more than the 5 the digit table holds (6 or more divide by zero; 8 or more first read past the table)"
     },
     "hud.lock_indicator": {
       "level": "D",
@@ -2081,7 +2081,7 @@
     "hud.panes_reset": {
       "level": "D",
       "fields": ["setup", "expire", "waiting", "ready_message", "system_message", "group_message", "predicted"],
-      "text": "The message panes were reset: their places were set up for the first time this flight: {setup}; the messages on screen were marked to be cleared on the next step: {expire} (not on the first reset); {waiting} waiting messages were dropped, and the ready pane's message {ready_message}, the system pane's {system_message} and the flight group pane's {group_message} were let go (65535 for an empty pane; the system and flight group panes hold 1 once a message is shown); predicted step {predicted} (1 in a step that is run again later)"
+      "text": "The message panes were reset: their places were set up for the first time this flight: {setup}; the messages on screen were marked to be cleared on the next step: {expire} (not on the first reset); {waiting} waiting messages were dropped, and the ready pane's message {ready_message}, the system pane's {system_message} and the flight group pane's {group_message} were let go (65535 for an empty pane; the system and flight group panes hold 1 once a message is shown); predicted world {predicted} (1 when the world comes from steps that are run again later)"
     },
     "hud.radar_full": {
       "level": "D",
@@ -2131,7 +2131,7 @@
     "hud.view_rebuilt": {
       "level": "D",
       "fields": ["slot", "view", "from", "image", "mirrored", "set", "width", "height", "offset", "active", "secondary", "saved_active", "saved_secondary", "states", "predicted"],
-      "text": "The cockpit of this machine's player, slot {slot}, was set up for view {view}, coming from view {from}: cockpit picture {image}, mirrored {mirrored}; instrument set {set} (0 the cockpit, 144 the HUD alone, 288 the craft list); a flight viewport of {width} by {height} pixels with the picture's center moved {offset} rows; MFD pages {active} and {secondary} shown (65535 for none), {saved_active} and {saved_secondary} kept for the way back to the cockpit; page states {states} (scoreboard, goals, message log, damage, hostile craft, friendly craft, map help, unused: 1 open, 0 closed, -2 closing, -1 reopened); predicted step {predicted} (1 in a step that is run again later)"
+      "text": "The cockpit of this machine's player, slot {slot}, was set up for view {view}, coming from view {from}: cockpit picture {image}, mirrored {mirrored}; instrument set {set} (0 the cockpit, 144 the HUD alone, 288 the craft list); a flight viewport of {width} by {height} pixels with the picture's center moved {offset} rows; MFD pages {active} and {secondary} shown (65535 for none), {saved_active} and {saved_secondary} kept for the way back to the cockpit; page states {states} (scoreboard, goals, message log, damage, hostile craft, friendly craft, map help, unused: 1 open, 0 closed, -2 closing, -1 reopened); predicted world {predicted} (1 when the world comes from steps that are run again later)"
     },
     "hud.view_refused": {
       "level": "D",
@@ -3581,7 +3581,7 @@
     "msg.template_invalid": {
       "level": "E",
       "fields": ["message", "what", "value"],
-      "text": "In-flight message {message}'s template from strings.txt asked for {what} {value}, past what the game's tables hold (argument: a fifth or later argument of 4; text: a message number past 416 or a name slot past 3; digits: a number of digits past 5, where 6 and 7 divide by zero); what it read there is not defined"
+      "text": "In-flight message {message}'s template from strings.txt asked for {what} {value}, past what the game's tables hold (argument: a fifth or later argument of 4; text: a message number past 416 or a name slot past 3; digits: a number of digits past 5, where 6 or more divide by zero and 8 or more first read past the table); what it read there is not defined"
     },
     "msg.text_cut": {
       "level": "W",
