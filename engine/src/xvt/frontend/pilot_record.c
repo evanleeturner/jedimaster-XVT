@@ -29,6 +29,7 @@
 #include "xvt/frontend/mission_debrief.h"
 #include "xvt/frontend/movie.h"
 #include "xvt/input/keyboard.h"
+#include "xvt_runtime/log/log_both_builds.h"
 #ifdef XVT_MODERN
 #include <strings.h>
 #endif
@@ -372,6 +373,7 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 			return 1;
 		}
 		xvt_frontend_action_finish(XVT_ACTION_OWNER_PILOT);
+		XVT_LOG_DEBUG("pilot.delete_answered accepted=%d", accepted);
 		if (accepted && !pilot_delete_current()) {
 			xvt_storage_fatal("Cannot delete the selected pilot",
 					  1);
@@ -389,6 +391,9 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 			return 1;
 		}
 		xvt_frontend_action_finish(XVT_ACTION_OWNER_PILOT);
+		XVT_LOG_DEBUG("pilot.name_answered result=%d entered=%d",
+			      selected_index,
+			      g_pilot_record_name_input[0] != '\0');
 	} else {
 #endif
 		frontend_draw_rect_assign(&rect, 451, 90, 605, 106);
@@ -438,6 +443,8 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 			g_pilot_list_display_names[selected_index - 1],
 			PILOT_NAME_COMPARE_LENGTH);
 #endif
+			XVT_LOG_DEBUG("pilot.list_clicked index=%d other=%d",
+				      selected_index - 1, accepted != 0);
 			if (accepted != 0) {
 				node = g_pilot_file_list->head;
 				pilot_index = selected_index - 1;
@@ -489,6 +496,19 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 								[g_pilot_data
 									 .current_faction_id]
 							.saved_mission_description_id;
+					XVT_LOG_INFO(
+						"pilot.loaded by=\"list\" index=%d rating=%d faction=%d missions=%d score=%d",
+						selected_index - 1,
+						(int)g_pilot_data.rating,
+						g_pilot_data.current_faction_id,
+						g_pilot_data
+							.total_missions_played_count,
+						g_pilot_data.total_score);
+				} else {
+					XVT_LOG_WARN(
+						"pilot.select_failed by=\"list\" index=%d partial=%d",
+						selected_index - 1,
+						g_pilot_data.name[0] != '\0');
 				}
 			}
 			memset(g_pilot_record_name_input, 0,
@@ -509,6 +529,7 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 			if (frame_counter == 0) {
 				xvt_frontend_action_trigger(
 					XVT_ACTION_OWNER_PILOT, 1, 1);
+				XVT_LOG_DEBUG("pilot.name_prompted");
 				frontend_dialog_prompt_for_pilot_name(
 					g_pilot_record_name_input);
 				return 1;
@@ -612,6 +633,24 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 										[g_pilot_data
 											 .current_faction_id]
 									.saved_mission_description_id;
+							XVT_LOG_INFO(
+								"pilot.loaded by=\"typed\" index=%d rating=%d faction=%d missions=%d score=%d",
+								pilot_index,
+								(int)g_pilot_data
+									.rating,
+								g_pilot_data
+									.current_faction_id,
+								g_pilot_data
+									.total_missions_played_count,
+								g_pilot_data
+									.total_score);
+						} else {
+							XVT_LOG_WARN(
+								"pilot.select_failed by=\"typed\" index=%d partial=%d",
+								pilot_index,
+								g_pilot_data.name
+										[0] !=
+									'\0');
 						}
 						break;
 					}
@@ -619,6 +658,12 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 				}
 			}
 		}
+		XVT_LOG_DEBUG("pilot.name_matched matched=%d index=%d count=%d",
+			      selected_index,
+			      g_pilot_file_list != NULL ? pilot_index : -1,
+			      g_pilot_file_list != NULL
+				      ? g_pilot_file_list->count
+				      : -1);
 		if (selected_index == 0) {
 			if (g_game_config.sfx_datapad_enabled != 0) {
 				frontend_sound_play_ui_sound(
@@ -661,6 +706,8 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 	if ((selected_index != 0 ||
 	     keyboard_is_key_down(PILOT_DELETE_VIRTUAL_KEY)) &&
 	    g_pilot_data.name[0] != '\0') {
+		XVT_LOG_DEBUG("pilot.delete_asked from_button=%d",
+			      selected_index != 0);
 #ifdef XVT_MODERN
 		xvt_frontend_action_trigger(XVT_ACTION_OWNER_PILOT, 2, 1);
 		frontend_dialog_show_confirm_dialog(
@@ -800,6 +847,7 @@ int pilot_record_rebuild_pilot_list(int *selected_index)
 	g_pilot_file_list = frontend_file_list_build_sorted("*.plt");
 	file_change_to_install_path();
 	if (g_pilot_file_list == NULL) {
+		XVT_LOG_WARN("pilot.list_failed by=\"roster\" kind=\"record\"");
 		return 0;
 	}
 
@@ -810,6 +858,8 @@ int pilot_record_rebuild_pilot_list(int *selected_index)
 			g_pilot_file_list->count);
 #ifdef XVT_MODERN
 		if (!g_pilot_list_display_names) {
+			XVT_LOG_ERROR("pilot.names_unallocated count=%d",
+				      g_pilot_file_list->count);
 			return 0;
 		}
 #endif
@@ -818,6 +868,8 @@ int pilot_record_rebuild_pilot_list(int *selected_index)
 			       g_pilot_file_list->count);
 	} else {
 		g_pilot_list_display_names = NULL;
+		XVT_LOG_DEBUG("pilot.list_rebuilt count=%d names=%d",
+			      g_pilot_file_list->count, 0);
 	}
 	if (g_pilot_list_display_names != NULL) {
 		int pilot_index = 0;
@@ -850,10 +902,16 @@ int pilot_record_rebuild_pilot_list(int *selected_index)
 					file_close(stream);
 					display_offset += 14;
 					++pilot_index;
+				} else {
+					XVT_LOG_WARN(
+						"pilot.list_file_unreadable read=%d",
+						pilot_index);
 				}
 				node = node->next;
 			} while (node != NULL);
 		}
+		XVT_LOG_DEBUG("pilot.list_rebuilt count=%d names=%d",
+			      g_pilot_file_list->count, pilot_index);
 		return 1;
 	}
 
@@ -1146,6 +1204,13 @@ int pilot_record_draw_pilot_statistics_page(void)
 							[mission_type][rating];
 			}
 		}
+		XVT_LOG_DEBUG(
+			"pilot.stats_counted faction=%d rows=%d craft=%d players=%d losses=%d",
+			g_pilot_data.current_faction_id,
+			g_pilot_record_page_row_count,
+			g_pilot_stats_has_craft_kills_by_type,
+			g_pilot_stats_has_player_kills_by_rating,
+			g_pilot_stats_has_losses_to_players_by_rank);
 	}
 
 	frontend_draw_rect_assign(&rect, 425, 107, 434, 433);
@@ -3111,6 +3176,22 @@ int pilot_record_draw_mission_achievements_page(void)
 				++g_pilot_record_page_row_count;
 			}
 		}
+		XVT_LOG_DEBUG(
+			"pilot.achievements_counted faction=%d rows=%d solo_histories=\"%d,%d,%d,%d,%d,%d\" network_histories=\"%d,%d,%d,%d,%d,%d\"",
+			g_pilot_data.current_faction_id,
+			g_pilot_record_page_row_count,
+			g_pilot_sp_training_history_count,
+			g_pilot_sp_melee_history_count,
+			g_pilot_sp_combat_history_count,
+			g_pilot_sp_tournament_history_count,
+			g_pilot_sp_battle_history_count,
+			g_pilot_sp_campaign_history_row_count,
+			g_pilot_mp_training_history_count,
+			g_pilot_mp_melee_history_count,
+			g_pilot_mp_combat_history_count,
+			g_pilot_mp_tournament_history_count,
+			g_pilot_mp_battle_history_count,
+			g_pilot_mp_campaign_history_row_count);
 	}
 
 	frontend_draw_rect_assign(&rect, MISSION_ACHIEVEMENT_SCROLL_LEFT,
@@ -6091,6 +6172,13 @@ int pilot_record_draw_cutscene_viewer_page(void)
 							.description) +
 				1;
 			search_index -= 2;
+			if (g_pilot_record_singleplayer_campaign_mission_list
+				    [campaign_index]
+					    .description[0] == '\0') {
+				XVT_LOG_WARN(
+					"pilot.campaign_title_empty page=\"cutscenes\" index=%d",
+					campaign_index);
+			}
 			if (search_index != 0) {
 				struct mission_list_entry *campaign_entry =
 					&g_pilot_record_singleplayer_campaign_mission_list
@@ -6206,6 +6294,11 @@ int pilot_record_draw_cutscene_viewer_page(void)
 			}
 		}
 		g_pilot_record_pages_need_rebuild = 0;
+		XVT_LOG_DEBUG(
+			"pilot.cutscenes_counted faction=%d campaigns=%d rows=%d cutscenes=%d",
+			g_pilot_data.current_faction_id,
+			g_pilot_record_singleplayer_campaign_mission_count,
+			g_cutscene_viewer_total_rows, g_cutscene_count);
 	}
 
 	frontend_draw_rect_assign(&text_rect, 425, 107, 434, 433);
@@ -6358,6 +6451,10 @@ int pilot_record_draw_cutscene_viewer_page(void)
 	}
 	frontend_display_set_screen_clip_rect640x480(&previous_clip_rect);
 	if (selected_cutscene != 0) {
+		XVT_LOG_DEBUG(
+			"pilot.cutscene_chosen cutscene=%d campaign=%d",
+			selected_cutscene - 1,
+			g_cutscene_table[selected_cutscene - 1].campaign_id);
 		cd_audio_suspend_playback();
 		frontend_display_disable_offscreen_restore();
 		frontend_display_unlock_back_buffer();
@@ -6483,6 +6580,13 @@ int pilot_record_draw_campaign_medals_page(void)
 								.description) +
 					1;
 				search_index -= 2;
+				if (g_pilot_record_singleplayer_campaign_mission_list
+					    [campaign_index]
+						    .description[0] == '\0') {
+					XVT_LOG_WARN(
+						"pilot.campaign_title_empty page=\"medals\" index=%d",
+						(int)campaign_index);
+				}
 				if (search_index != 0) {
 					struct mission_list_entry *campaign_entry =
 						&g_pilot_record_singleplayer_campaign_mission_list
@@ -6655,6 +6759,13 @@ int pilot_record_draw_campaign_medals_page(void)
 			} while (--remaining_campaign_count != 0);
 		}
 		g_pilot_record_pages_need_rebuild = 0;
+		XVT_LOG_DEBUG(
+			"pilot.medals_counted faction=%d campaigns=%d entries=%d solo_awards=%d network_awards=%d",
+			g_pilot_data.current_faction_id,
+			g_pilot_record_singleplayer_campaign_mission_count,
+			g_campaign_medal_entry_count,
+			g_campaign_singleplayer_award_count,
+			g_campaign_multiplayer_award_count);
 	}
 
 	frontend_draw_rect_assign(&rect, 425, 107, 434, 433);
@@ -7173,6 +7284,10 @@ int pilot_record_update_navigation_controls(void)
 		g_pilot_data.saved_mission_description_id =
 			g_pilot_data.faction_statistics[1]
 				.saved_mission_description_id;
+		XVT_LOG_INFO(
+			"pilot.faction_chosen faction=%d team=%d directory=%d",
+			g_pilot_data.current_faction_id, g_pilot_data.team,
+			(int)g_pilot_data.mission_directory_id);
 		pilot_record_redraw_background();
 	}
 
@@ -7199,6 +7314,11 @@ int pilot_record_update_navigation_controls(void)
 			g_pilot_data.saved_mission_description_id =
 				g_pilot_data.faction_statistics[0]
 					.saved_mission_description_id;
+			XVT_LOG_INFO(
+				"pilot.faction_chosen faction=%d team=%d directory=%d",
+				g_pilot_data.current_faction_id,
+				g_pilot_data.team,
+				(int)g_pilot_data.mission_directory_id);
 			pilot_record_redraw_background();
 		}
 	} else {
@@ -7219,6 +7339,7 @@ int pilot_record_update_navigation_controls(void)
 			   0, 18, "jewelsound")) {
 		g_pilot_record_pages_need_rebuild = 1;
 		g_pilot_record_page = 5;
+		XVT_LOG_DEBUG("pilot.page_chosen page=%d", g_pilot_record_page);
 		pilot_record_redraw_background();
 	}
 
@@ -7234,6 +7355,7 @@ int pilot_record_update_navigation_controls(void)
 			   12, 0, 15, "jewelsound")) {
 		g_pilot_record_pages_need_rebuild = 1;
 		g_pilot_record_page = 4;
+		XVT_LOG_DEBUG("pilot.page_chosen page=%d", g_pilot_record_page);
 		pilot_record_redraw_background();
 	}
 
@@ -7250,6 +7372,7 @@ int pilot_record_update_navigation_controls(void)
 			   12, 0, 14, "jewelsound")) {
 		g_pilot_record_pages_need_rebuild = 1;
 		g_pilot_record_page = 3;
+		XVT_LOG_DEBUG("pilot.page_chosen page=%d", g_pilot_record_page);
 		pilot_record_redraw_background();
 	}
 
@@ -7264,6 +7387,7 @@ int pilot_record_update_navigation_controls(void)
 			   0, 13, "jewelsound")) {
 		g_pilot_record_pages_need_rebuild = 1;
 		g_pilot_record_page = 2;
+		XVT_LOG_DEBUG("pilot.page_chosen page=%d", g_pilot_record_page);
 		pilot_record_redraw_background();
 	}
 
@@ -7278,6 +7402,7 @@ int pilot_record_update_navigation_controls(void)
 			   0, 12, "jewelsound")) {
 		g_pilot_record_pages_need_rebuild = 1;
 		g_pilot_record_page = 1;
+		XVT_LOG_DEBUG("pilot.page_chosen page=%d", g_pilot_record_page);
 		pilot_record_redraw_background();
 	}
 
@@ -7289,6 +7414,8 @@ int pilot_record_update_navigation_controls(void)
 			    12, 0, 11, "jewelsound")) {
 			g_pilot_record_pages_need_rebuild = 1;
 			g_pilot_record_page = 0;
+			XVT_LOG_DEBUG("pilot.page_chosen page=%d",
+				      g_pilot_record_page);
 			pilot_record_redraw_background();
 		}
 	} else {
@@ -7308,6 +7435,10 @@ int pilot_record_update_navigation_controls(void)
 // FUNCTION: XVT 0x4CAF60
 int pilot_record_redraw_background(void)
 {
+	if ((unsigned)g_pilot_data.current_faction_id > 1) {
+		XVT_LOG_WARN("pilot.faction_unexpected faction=%d",
+			     g_pilot_data.current_faction_id);
+	}
 	frontend_display_clear_offscreen_surface();
 	frontend_display_lock_offscreen_surface();
 	if (g_pilot_data.current_faction_id == 0) {
@@ -7379,9 +7510,12 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 	}
 	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
+		XVT_LOG_WARN("pilot.awards_table_missing file=\"%s\"",
+			     file_name);
 		return 0;
 	}
 	if (FILE_GETS(g_frontend_scratch_buffer, 255, stream) == NULL) {
+		XVT_LOG_WARN("pilot.awards_table_empty file=\"%s\"", file_name);
 		file_close(stream);
 		return 0;
 	}
@@ -7396,6 +7530,8 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 #ifdef XVT_MODERN
 		file_close(stream);
 #endif
+		XVT_LOG_ERROR("pilot.awards_table_unallocated count=%u",
+			      record_count_or_index);
 		return 0;
 	}
 	memset(g_campaign_award_sprites, 0,
@@ -7417,6 +7553,9 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 					 stream);
 			if (line == NULL) {
 				file_close(stream);
+				XVT_LOG_WARN(
+					"pilot.awards_table_short records=%u part=\"id\"",
+					g_campaign_award_sprite_count);
 				return 1;
 			}
 		} while (line[0] == '/' && line[1] == '/');
@@ -7437,6 +7576,9 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 					[g_campaign_award_sprite_count]
 						.campaign_id = 0;
 				file_close(stream);
+				XVT_LOG_WARN(
+					"pilot.awards_table_short records=%u part=\"main\"",
+					g_campaign_award_sprite_count);
 				return 1;
 			}
 		} while (line[0] == '/' && line[1] == '/');
@@ -7465,6 +7607,9 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 						[g_campaign_award_sprite_count]
 							.campaign_id = 0;
 					file_close(stream);
+					XVT_LOG_WARN(
+						"pilot.awards_table_short records=%u part=\"network\"",
+						g_campaign_award_sprite_count);
 					return 1;
 				}
 			} while (line[0] == '/' && line[1] == '/');
@@ -7507,6 +7652,9 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 						[g_campaign_award_sprite_count]
 							.campaign_id = 0;
 					file_close(stream);
+					XVT_LOG_WARN(
+						"pilot.awards_table_short records=%u part=\"solo\"",
+						g_campaign_award_sprite_count);
 					return 1;
 				}
 			} while (line[0] == '/' && line[1] == '/');
@@ -7536,6 +7684,8 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 		}
 		++g_campaign_award_sprite_count;
 	}
+	XVT_LOG_DEBUG("pilot.awards_table_loaded records=%u",
+		      g_campaign_award_sprite_count);
 
 	file_close(stream);
 	return 1;

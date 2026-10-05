@@ -5348,6 +5348,41 @@
       "fields": [],
       "text": "The game options were saved to the player's settings file, with the current pilot as the last pilot (at a flight launch, after a flight, when the configuration screen closes, and at quit)"
     },
+    "pilot.achievements_counted": {
+      "level": "D",
+      "fields": ["faction", "rows", "solo_histories", "network_histories"],
+      "text": "The mission achievements page was counted for faction record {faction}: {rows} rows; solo histories {solo_histories} and network histories {network_histories} (training, melee, combat, tournament, battle and campaign rows)"
+    },
+    "pilot.awards_table_empty": {
+      "level": "W",
+      "fields": ["file"],
+      "text": "The campaign medal table {file} was empty, so the campaign medals page shows only its title"
+    },
+    "pilot.awards_table_loaded": {
+      "level": "D",
+      "fields": ["records"],
+      "text": "The campaign medal table loaded with {records} records"
+    },
+    "pilot.awards_table_missing": {
+      "level": "W",
+      "fields": ["file"],
+      "text": "The campaign medal table {file} could not be opened, so the campaign medals page shows only its title"
+    },
+    "pilot.awards_table_short": {
+      "level": "W",
+      "fields": ["records", "part"],
+      "text": "The campaign medal table ended early after {records} complete records, while reading a record's {part} line (id, main medal, network awards or solo awards); a record cut short keeps campaign id 0 and is not counted"
+    },
+    "pilot.awards_table_unallocated": {
+      "level": "E",
+      "fields": ["count"],
+      "text": "No memory could be had for the campaign medal table's {count} records, so the campaign medals page shows only its title"
+    },
+    "pilot.campaign_title_empty": {
+      "level": "W",
+      "fields": ["page", "index"],
+      "text": "Campaign list entry {index} has an empty title; the {page} page's title cut then reads far outside the title (in a 64-bit build about 4 GB past it, which crashes)"
+    },
     "pilot.command_line": {
       "level": "D",
       "fields": ["length", "named", "address"],
@@ -5373,10 +5408,30 @@
       "fields": ["number"],
       "text": "A new pilot was made in file number {number} at the Trainee rank and made the current pilot; the save that writes its files follows"
     },
+    "pilot.cutscene_chosen": {
+      "level": "D",
+      "fields": ["cutscene", "campaign"],
+      "text": "Cutscene {cutscene} of campaign {campaign} was chosen on the cutscene page; its movie plays next"
+    },
+    "pilot.cutscenes_counted": {
+      "level": "D",
+      "fields": ["faction", "campaigns", "rows", "cutscenes"],
+      "text": "The cutscene page was counted for faction record {faction}: {campaigns} campaigns listed, {rows} rows from the {cutscenes} cutscenes known"
+    },
     "pilot.defaults_set": {
       "level": "D",
       "fields": ["training"],
       "text": "A pilot with no expansion file got a new pilot's Trainee rank and training exercise choices {training} (the pilot, then faction records 0, 1 and 2; 0 where a list did not load) before its base game record was read"
+    },
+    "pilot.delete_answered": {
+      "level": "D",
+      "fields": ["accepted"],
+      "text": "The question whether to delete the current pilot was answered: delete {accepted} (1 yes, 0 no)"
+    },
+    "pilot.delete_asked": {
+      "level": "D",
+      "fields": ["from_button"],
+      "text": "The roster asked whether to delete the current pilot, from the Delete Pilot button {from_button} (1) or the Delete key (0)"
     },
     "pilot.delete_failed": {
       "level": "E",
@@ -5403,15 +5458,40 @@
       "fields": ["bytes"],
       "text": "The pilot's expansion file could not be read whole ({bytes} bytes expected), so the pilot data was cleared and the load failed"
     },
+    "pilot.faction_chosen": {
+      "level": "I",
+      "fields": ["faction", "team", "directory"],
+      "text": "The pilot record switched to faction record {faction} (0 Rebel, 1 Imperial), restoring that faction's team {team} and mission type {directory}"
+    },
+    "pilot.faction_unexpected": {
+      "level": "W",
+      "fields": ["faction"],
+      "text": "The pilot's current faction record is {faction}, neither Rebel (0) nor Imperial (1), as after a flight in a flight group of a third side; the pilot record pages read that faction's record, and from 3 up the page buttons mark a slot past their eight"
+    },
     "pilot.files_missing": {
       "level": "E",
       "fields": [],
       "text": "Neither of the pilot's files could be opened, so no pilot was loaded"
     },
+    "pilot.list_clicked": {
+      "level": "D",
+      "fields": ["index", "other"],
+      "text": "Roster entry {index} was clicked; it was another pilot than the current one {other} (1: it is loaded next; 0: nothing is loaded)"
+    },
     "pilot.list_failed": {
       "level": "W",
       "fields": ["by", "kind"],
       "text": "The saved pilots' {kind} files could not be listed ({by}): at startup no pilot was loaded, the roster then stops the game, and a save falls back to a new file name"
+    },
+    "pilot.list_file_unreadable": {
+      "level": "W",
+      "fields": ["read"],
+      "text": "A listed pilot file could not be opened and was skipped after {read} names were read; the roster's later names no longer sit at their files' places, so a click, a typed name or a delete acts on another pilot's file"
+    },
+    "pilot.list_rebuilt": {
+      "level": "D",
+      "fields": ["count", "names"],
+      "text": "The roster was rebuilt from {count} listed pilot files, {names} names read"
     },
     "pilot.load_files": {
       "level": "D",
@@ -5422,6 +5502,36 @@
       "level": "I",
       "fields": ["by", "index", "rating", "faction", "missions", "score"],
       "text": "A saved pilot was loaded ({by}: startup is the last pilot restored when the game started, list a click on the roster, typed a name typed in the roster's field): roster entry {index}, rating {rating}, faction record {faction} (0 Rebel, 1 Imperial), {missions} missions flown, total score {score}"
+    },
+    "pilot.medals_counted": {
+      "level": "D",
+      "fields": ["faction", "campaigns", "entries", "solo_awards", "network_awards"],
+      "text": "The campaign medals page was counted for faction record {faction}: {campaigns} campaigns listed, {entries} of them shown with a medal record; {solo_awards} solo and {network_awards} network mission awards (those of the last such campaign)"
+    },
+    "pilot.name_answered": {
+      "level": "D",
+      "fields": ["result", "entered"],
+      "text": "The new pilot's name prompt closed with result {result} (1 a name accepted, 0 none); a name was entered {entered} (1 yes; the name itself is never logged)"
+    },
+    "pilot.name_matched": {
+      "level": "D",
+      "fields": ["matched", "index", "count"],
+      "text": "A typed pilot name was looked up among the {count} listed pilots (-1 with no list): matched {matched} (1 yes; the original build never sets it) at roster entry {index} (the count when none matched)"
+    },
+    "pilot.name_prompted": {
+      "level": "D",
+      "fields": [],
+      "text": "There were no saved pilots, so the roster asked for a new pilot's name"
+    },
+    "pilot.names_unallocated": {
+      "level": "E",
+      "fields": ["count"],
+      "text": "No memory could be had for the names of the {count} listed pilots, so the roster shows none and a delete removes no file"
+    },
+    "pilot.page_chosen": {
+      "level": "D",
+      "fields": ["page"],
+      "text": "The pilot record showed page {page} (0 statistics, 1 awards, 2 rating, 3 mission achievements, 4 campaign medals, 5 cutscenes)"
     },
     "pilot.record_base": {
       "level": "D",
@@ -5482,6 +5592,11 @@
       "level": "W",
       "fields": ["by", "index", "partial"],
       "text": "The pilot at roster entry {index} did not load ({by}); the pilot data was left holding something {partial} (1: what the pilot's expansion file gave, though the load reported failure, so later saves of it can fail; 0: empty, no pilot loaded)"
+    },
+    "pilot.stats_counted": {
+      "level": "D",
+      "fields": ["faction", "rows", "craft", "players", "losses"],
+      "text": "The pilot statistics page was counted for faction record {faction}: {rows} rows, with the sections for kills by craft type {craft}, kills of players by rank {players} and losses to players by rank {losses} (1 shown)"
     },
     "player.awaiting_craft": {
       "level": "D",
