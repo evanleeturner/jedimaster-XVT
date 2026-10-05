@@ -73,6 +73,11 @@
       "fields": ["by", "victim", "owner", "fg", "craft", "share", "tick"],
       "text": "Player {by} was credited with a {share} kill of craft {victim} of flight group {fg}, craft type {craft}, flown by player {owner} (-1 for a computer pilot), at tick {tick}"
     },
+    "battle.killing_blow": {
+      "level": "I",
+      "fields": ["victim", "by", "attacker", "weapon", "type", "tick"],
+      "text": "Craft {victim} was destroyed by a {weapon} blow (object type {type}) from object {attacker}, flown by player {by} (-1 for a computer pilot or none), at tick {tick}"
+    },
     "battle.loss": {
       "level": "I",
       "fields": ["who", "cause", "by", "eject", "tick"],
@@ -102,6 +107,11 @@
       "level": "I",
       "fields": ["by", "warhead", "own", "score", "tick"],
       "text": "A warhead of type {warhead} fired for player {by} hit, worth {score} points; fired by the player's own craft: {own} (else a craft of the player's flight group); at tick {tick}"
+    },
+    "battle.warhead_struck": {
+      "level": "I",
+      "fields": ["by", "warhead", "target", "fg", "craft", "owner", "tick"],
+      "text": "A warhead of type {warhead} fired for player {by} struck craft {target} of flight group {fg}, craft type {craft}, flown by player {owner} (-1 for a computer pilot), at tick {tick}"
     },
     "briefing.all_ready": {
       "level": "D",
@@ -317,6 +327,156 @@
       "level": "W",
       "fields": ["type"],
       "text": "Timed out waiting for continuation packet type {type}"
+    },
+    "combat.course_collision": {
+      "level": "D",
+      "fields": ["object", "other", "mesh", "x", "y", "z", "predicted"],
+      "text": "On the proving grounds course, craft {object} hit object {other} (mesh {mesh}) and was put back, stopped, where it was three moves earlier, at {x}, {y}, {z}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.craft_attacked": {
+      "level": "D",
+      "fields": ["object", "team", "fg", "count", "special", "predicted"],
+      "text": "Craft {object} of flight group {fg} was hit by team {team} for the first time; {count} craft of the group have now been attacked; special cargo {special}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.craft_bounced": {
+      "level": "D",
+      "fields": ["object", "other", "roll", "yaw", "pitch", "other_roll", "other_yaw", "other_pitch", "predicted"],
+      "text": "Craft {object} bounced off object {other}: it now spins at roll rate {roll} with heading {yaw} and pitch {pitch}, and the other at roll rate {other_roll} with heading {other_yaw} and pitch {other_pitch}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.craft_breakup": {
+      "level": "D",
+      "fields": ["object", "state", "lifetime", "roll", "predicted"],
+      "text": "Destroyed craft {object} went to state {state} (breaking up or exploding): it ends in {lifetime} ticks, spinning at roll rate {roll}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.craft_destroyed": {
+      "level": "D",
+      "fields": ["object", "fg", "craft", "slot", "hyperspace", "tick", "predicted"],
+      "text": "Craft {object} of flight group {fg}, craft type {craft}, flown by player {slot} (-1 for a computer pilot), was destroyed; it was entering hyperspace: {hyperspace}; at tick {tick}; predicted step {predicted} (always 0 here)"
+    },
+    "combat.craft_disabled": {
+      "level": "I",
+      "fields": ["object", "fg", "craft", "slot", "count", "tick"],
+      "text": "Craft {object} of flight group {fg}, craft type {craft}, flown by player {slot} (-1 for a computer pilot), was disabled; {count} craft of its group are now disabled; at tick {tick}"
+    },
+    "combat.damage_refused": {
+      "level": "D",
+      "fields": ["object", "source", "reason", "predicted"],
+      "text": "Craft {object} took no damage from object {source} (65534 engine wash, 65535 none): {reason}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.damage_taken": {
+      "level": "D",
+      "fields": ["object", "source", "attacker", "type", "amount", "mesh", "side", "through", "shield", "opposite", "wash", "predicted"],
+      "text": "Craft {object} took {amount} damage of object type {type} from object {source} (65535 for none or engine wash), fired or flown by object {attacker} (-1 for none), on mesh {mesh} (-1 for none), side {side}; {through} got past the shields; that shield now holds {shield} and the other {opposite}; engine wash {wash}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.effect_slots_full": {
+      "level": "W",
+      "fields": ["object"],
+      "text": "No explosion slot was free for the impact effect where a craft struck static object {object}; the hit went on without one"
+    },
+    "combat.engine_wash": {
+      "level": "D",
+      "fields": ["slot", "object", "source", "strength", "predicted"],
+      "text": "The player in slot {slot}, flying object {object}, was in the engine wash of object {source} at strength {strength}, the strongest so far this check; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.hud_damaged": {
+      "level": "D",
+      "fields": ["object", "lost", "active", "predicted"],
+      "text": "A hull hit on craft {object} knocked out display features {lost}; working features now {active} (bit masks); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.hull_hit": {
+      "level": "D",
+      "fields": ["object", "damage", "hull", "max", "predicted"],
+      "text": "Craft {object}'s hull took {damage}: hull damage now {hull} of {max}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.hull_test_skipped": {
+      "level": "D",
+      "fields": ["object", "type", "source", "reason", "predicted"],
+      "text": "The hull test of object {object} (type {type}) against object {source} was skipped: {reason}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.ion_hit": {
+      "level": "D",
+      "fields": ["object", "ion", "remaining", "systems", "predicted"],
+      "text": "An ion hit raised craft {object}'s system damage to {ion}, leaving {remaining} of its system strength; working systems now {systems} (a bit mask); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.mine_fired_back": {
+      "level": "D",
+      "fields": ["object", "target", "predicted"],
+      "text": "Mine {object} fired a warhead back at object {target} as it was destroyed; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.model_ref_missing": {
+      "level": "D",
+      "fields": ["mesh", "predicted"],
+      "text": "A model reference in mesh {mesh} of the model under test named no part, so the hull test of that branch stopped; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.object_destroyed": {
+      "level": "I",
+      "fields": ["object", "fg", "type", "attacker", "slot", "tick"],
+      "text": "Static object {object} of flight group {fg}, object type {type}, was destroyed by object {attacker}, flown by player {slot} (-1 for a computer pilot), at tick {tick}"
+    },
+    "combat.object_disabled": {
+      "level": "I",
+      "fields": ["object", "fg", "type", "attacker", "slot", "tick"],
+      "text": "Static object {object} of flight group {fg}, object type {type}, was disabled by an ion shot from object {attacker}, flown by player {slot} (-1 for a computer pilot), at tick {tick}"
+    },
+    "combat.object_hit": {
+      "level": "D",
+      "fields": ["object", "type", "genus", "fg", "source", "source_type", "predicted"],
+      "text": "Static object {object} (type {type}, class {genus}, flight group {fg}) was hit by object {source} of type {source_type}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.proximity_full": {
+      "level": "D",
+      "fields": ["object", "candidate", "dropped", "ticks", "rebuild", "predicted"],
+      "text": "The nearby-object list of object {object} was full (16) when object {candidate} came due in {ticks} ticks, so object {dropped} was left out; the list is rebuilt in {rebuild} ticks; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.proximity_neighbors_reset": {
+      "level": "D",
+      "fields": ["object", "count", "predicted"],
+      "text": "The {count} objects near object {object} were each made to rebuild their nearby-object lists; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.proximity_rebuilt": {
+      "level": "D",
+      "fields": ["object", "genus", "count", "rebuild", "predicted"],
+      "text": "The nearby-object list of object {object} (class {genus}) was rebuilt with {count} entries; it is rebuilt again in {rebuild} ticks unless a sooner contact asks; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.proximity_removed": {
+      "level": "D",
+      "fields": ["candidate", "index", "count", "predicted"],
+      "text": "Object {candidate} was taken off a nearby-object list at entry {index} of {count}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.proximity_reset": {
+      "level": "D",
+      "fields": ["object", "count", "predicted"],
+      "text": "The nearby-object list of object {object} was emptied of its {count} entries, to be rebuilt on the next pass; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.proximity_static_added": {
+      "level": "D",
+      "fields": ["object", "predicted"],
+      "text": "Static object {object} was put on the nearby-object list of every player's craft; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.shot_hit": {
+      "level": "D",
+      "fields": ["object", "shot", "type", "source", "mesh", "side", "sound", "attacks", "attacker", "hits", "systems", "inhibit", "predicted"],
+      "text": "Shot {shot} (type {type}) from object {source} hit craft {object} on mesh {mesh}, side {side} (1 the rear); the impact sound played here: {sound} (0 when the damage code played its own); this team's attack record on the craft {attacks}, last attacker {attacker} (-1 for none), {hits} hits this maneuver, working systems {systems}, weapons held for {inhibit} ticks; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.shots_collided": {
+      "level": "D",
+      "fields": ["shot", "type", "other", "other_type", "predicted"],
+      "text": "Shot {shot} (type {type}) met shot {other} (type {other_type}) and both exploded; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.system_failed": {
+      "level": "D",
+      "fields": ["object", "slot", "system", "systems", "cause", "predicted"],
+      "text": "System {system} of craft {object}, flown by player {slot} (-1 for none), was knocked out by a {cause} hit; working systems now {systems} (a bit mask); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.warhead_scattered": {
+      "level": "D",
+      "fields": ["object", "shot", "type", "slot", "chaff", "predicted"],
+      "text": "Warhead {shot} (type {type}) hit craft {object}, flown by player {slot} (-1 for a computer pilot), from behind and was scattered by its chaff ({chaff} seconds left): no damage; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.weapons_jammed": {
+      "level": "D",
+      "fields": ["object", "hostile", "type", "chaff", "predicted"],
+      "text": "Craft {object} was at the hangar of hostile object {hostile} (type {type}): its weapons were jammed and its chaff ({chaff} seconds left) ended; predicted step {predicted} (1 in a step that is run again later)"
     },
     "config.override_ignored": {
       "level": "W",
@@ -3622,6 +3782,21 @@
       "level": "D",
       "fields": ["tick", "mask", "records", "checksum"],
       "text": "The host sent the world message for tick {tick}: slot mask {mask} (hex), {records} input records, checksum flag {checksum}"
+    },
+    "player.craft_inspected": {
+      "level": "I",
+      "fields": ["slot", "object", "fg", "craft", "order", "special", "tick"],
+      "text": "The player in slot {slot} inspected craft {object} of flight group {fg}, craft type {craft}, the team numbered {order} to inspect it; it carried the special cargo: {special}; at tick {tick}"
+    },
+    "player.hangar_offered": {
+      "level": "D",
+      "fields": ["slot", "mothership", "fg", "pass", "range", "predicted"],
+      "text": "The player in slot {slot} came within hangar range {range} of craft {mothership} of flight group {fg} and was offered its hangar (mothership choice {pass}: 0 the departure mothership, 1 the alternate); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "player.inspection_counted": {
+      "level": "D",
+      "fields": ["slot", "object", "fg", "team", "order", "special", "count", "team_count", "total", "scored", "predicted"],
+      "text": "The player in slot {slot} inspected craft {object} of flight group {fg} for team {team}, the team numbered {order} to inspect it; it carried the special cargo: {special}; the group now counts {count} craft inspected, {team_count} of them by this team, and the player {total}; the inspection scored for the player: {scored}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "port.host_invalid": {
       "level": "E",

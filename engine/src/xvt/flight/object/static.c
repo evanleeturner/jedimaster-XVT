@@ -9,6 +9,7 @@
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt/util/game_rand.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Tests whether a moving object, swept from g_collisionSegmentStartWorld* to
  * g_collisionProbeWorld*, hits the static object in slot static_obj_idx (one
@@ -181,6 +182,14 @@ void static_apply_static_hit(uint16_t source_obj_idx, int victim_obj_idx)
 
 	uint16_t effect_type;
 	uint16_t victim_index = (uint16_t)victim_obj_idx;
+	XVT_LOG_DEBUG(
+		"combat.object_hit object=%d type=%d genus=%d fg=%d source=%d source_type=%d predicted=%d",
+		victim_obj_idx, (int)g_object_table[victim_index].object_type,
+		(int)g_object_table[victim_index].genus_id,
+		(int)g_object_table[victim_index].flight_group_idx,
+		(int)source_obj_idx,
+		(int)g_object_table[source_obj_idx].object_type,
+		g_flight_sim_side_effects_suppressed);
 
 	if (g_object_table[victim_index].genus_id ==
 	    CRAFT_GENUS_NORMAL_DEBRIS) {
@@ -197,6 +206,24 @@ void static_apply_static_hit(uint16_t source_obj_idx, int victim_obj_idx)
 					     .flight_group_idx]
 			  .outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED];
 		effect_type = EFFECT_TYPE_DEFAULT;
+		if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_INFO(
+				"combat.object_destroyed object=%d fg=%d type=%d attacker=%d slot=%d tick=%d",
+				victim_obj_idx,
+				(int)g_object_table[victim_index]
+					.flight_group_idx,
+				(int)g_object_table[victim_index].object_type,
+				(int)source_obj_idx,
+				g_object_table[source_obj_idx].player_owner_idx,
+				g_game_time);
+			XVT_LOG_INFO(
+				"battle.killing_blow victim=%d by=%d attacker=%d weapon=\"%s\" type=%d tick=%d",
+				victim_obj_idx,
+				g_object_table[source_obj_idx].player_owner_idx,
+				(int)source_obj_idx, "collision",
+				(int)g_object_table[source_obj_idx].object_type,
+				g_game_time);
+		}
 		g_object_table[victim_index].object_type = 0;
 		mission_credit_destruction_damage_contributors(source_obj_idx,
 							       victim_obj_idx);
@@ -209,6 +236,22 @@ void static_apply_static_hit(uint16_t source_obj_idx, int victim_obj_idx)
 			++g_mission_fg_stats[g_object_table[victim_index]
 						     .flight_group_idx]
 				  .outcome_count[FLIGHT_GROUP_OUTCOME_DISABLED];
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_INFO(
+					"combat.object_disabled object=%d fg=%d type=%d attacker=%d slot=%d tick=%d",
+					victim_obj_idx,
+					(int)g_object_table[victim_index]
+						.flight_group_idx,
+					(int)g_object_table[victim_index]
+						.object_type,
+					(int)g_object_table[source_obj_idx]
+						.mobj->source_obj_idx,
+					g_object_table
+						[g_object_table[source_obj_idx]
+							 .mobj->source_obj_idx]
+							.player_owner_idx,
+					g_game_time);
+			}
 			effect_type = EFFECT_TYPE_ION_IMPACT;
 		} else {
 			++g_mission_fg_stats[g_object_table[victim_index]
@@ -216,12 +259,53 @@ void static_apply_static_hit(uint16_t source_obj_idx, int victim_obj_idx)
 				  .outcome_count
 					  [FLIGHT_GROUP_OUTCOME_DESTROYED];
 			effect_type = EFFECT_TYPE_DEFAULT;
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_INFO(
+					"combat.object_destroyed object=%d fg=%d type=%d attacker=%d slot=%d tick=%d",
+					victim_obj_idx,
+					(int)g_object_table[victim_index]
+						.flight_group_idx,
+					(int)g_object_table[victim_index]
+						.object_type,
+					(int)g_object_table[source_obj_idx]
+						.mobj->source_obj_idx,
+					g_object_table
+						[g_object_table[source_obj_idx]
+							 .mobj->source_obj_idx]
+							.player_owner_idx,
+					g_game_time);
+				XVT_LOG_INFO(
+					"battle.killing_blow victim=%d by=%d attacker=%d weapon=\"%s\" type=%d tick=%d",
+					victim_obj_idx,
+					g_object_table
+						[g_object_table[source_obj_idx]
+							 .mobj->source_obj_idx]
+							.player_owner_idx,
+					(int)g_object_table[source_obj_idx]
+						.mobj->source_obj_idx,
+					g_projectile_type_data.warhead_class
+								[g_object_table[source_obj_idx]
+									 .object_type -
+								 PROJECTILE_OBJECT_TYPE_FIRST] !=
+							0
+						? "warhead"
+						: "cannon",
+					(int)g_object_table[source_obj_idx]
+						.object_type,
+					g_game_time);
+			}
 			if (g_object_table[victim_index].object_type ==
 			    CRAFT_SPECIES_MINE_TYPE_C) {
 				laser_createprojectilefromstatic(
 					victim_obj_idx,
 					g_object_table[source_obj_idx]
 						.mobj->source_obj_idx);
+				XVT_LOG_DEBUG(
+					"combat.mine_fired_back object=%d target=%d predicted=%d",
+					victim_obj_idx,
+					(int)g_object_table[source_obj_idx]
+						.mobj->source_obj_idx,
+					g_flight_sim_side_effects_suppressed);
 			}
 			g_object_table[victim_index].object_type = 0;
 			mission_credit_destruction_damage_contributors(
@@ -238,6 +322,11 @@ void static_apply_static_hit(uint16_t source_obj_idx, int victim_obj_idx)
 		source_obj_idx =
 			object_alloc_slot_for_genus(CRAFT_GENUS_EXPLOSION);
 		if (source_obj_idx == UINT16_MAX) {
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_WARN(
+					"combat.effect_slots_full object=%d",
+					victim_obj_idx);
+			}
 			return;
 		}
 		g_object_table[source_obj_idx].object_type =

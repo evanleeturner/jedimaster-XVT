@@ -32,6 +32,7 @@
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The payload of an OPT_ROTSCALE node as collide_test_sweep_against_opt_node
  * reads it. */
@@ -767,6 +768,42 @@ void collide_collisions(void)
 									1,
 								special_cargo_flag,
 								player_team);
+							XVT_LOG_DEBUG(
+								"player.inspection_counted slot=%d object=%d fg=%d team=%d order=%d special=%d count=%u team_count=%u total=%u scored=%d predicted=%d",
+								player_idx,
+								(int)target_obj_idx,
+								(int)flight_group_idx,
+								(int)player_team,
+								(int)inspection_order,
+								special_cargo_flag,
+								(unsigned)g_mission_fg_stats
+									[flight_group_idx]
+										.outcome_count
+											[FLIGHT_GROUP_OUTCOME_INSPECTED],
+								(unsigned)g_flight_mission_state
+									.runtime
+									.team_fg_inspected_captured_counts
+										[0]
+										[player_team]
+										[flight_group_idx],
+								(unsigned)g_players[player_idx]
+									.per_mission_kills
+									.num_craft_inspected,
+								player_scored,
+								g_flight_sim_side_effects_suppressed);
+							if (g_flight_sim_side_effects_suppressed ==
+							    0) {
+								XVT_LOG_INFO(
+									"player.craft_inspected slot=%d object=%d fg=%d craft=%d order=%d special=%d tick=%d",
+									player_idx,
+									(int)target_obj_idx,
+									(int)flight_group_idx,
+									(int)target_object
+										->object_type,
+									(int)inspection_order,
+									special_cargo_flag,
+									g_game_time);
+							}
 							int goal_message_required =
 								0;
 							for (int goal_index = 0;
@@ -994,6 +1031,14 @@ void collide_collisions(void)
 								g_players[player_idx]
 									.pending_action_timer =
 									ACTION_PROMPT_TICKS;
+								XVT_LOG_DEBUG(
+									"player.hangar_offered slot=%d mothership=%d fg=%d pass=%d range=%u predicted=%d",
+									player_idx,
+									(int)mothership_obj_idx,
+									(int)mothership_flight_group,
+									(int)mothership_pass,
+									prompt_range,
+									g_flight_sim_side_effects_suppressed);
 							}
 						}
 					}
@@ -1011,6 +1056,12 @@ void collide_collisions(void)
 			list->rebuild_ticks = 0x7FFF;
 			collide_populate_mobile_object_proximity_candidates(
 				list, owner_obj_idx);
+			XVT_LOG_DEBUG(
+				"combat.proximity_rebuilt object=%d genus=%d count=%d rebuild=%d predicted=%d",
+				(int)owner_obj_idx,
+				(int)g_object_table[owner_obj_idx].genus_id,
+				(int)list->count, list->rebuild_ticks,
+				g_flight_sim_side_effects_suppressed);
 		}
 
 		for (uint16_t candidate_slot = 0; candidate_slot < list->count;
@@ -1225,6 +1276,18 @@ void collide_collisions(void)
 								owner_obj_idx,
 								g_object_table[owner_obj_idx]
 									.player_owner_idx);
+							XVT_LOG_DEBUG(
+								"combat.course_collision object=%d other=%d mesh=%d x=%d y=%d z=%d predicted=%d",
+								(int)owner_obj_idx,
+								(int)candidate_obj_idx,
+								(int)hit_mesh_index,
+								g_object_table[owner_obj_idx]
+									.world_x,
+								g_object_table[owner_obj_idx]
+									.world_y,
+								g_object_table[owner_obj_idx]
+									.world_z,
+								g_flight_sim_side_effects_suppressed);
 						} else {
 							if (g_object_table[candidate_obj_idx]
 								    .genus_id <=
@@ -1583,6 +1646,29 @@ void collide_collisions(void)
 									0,
 									&g_object_table
 										[owner_obj_idx]);
+								XVT_LOG_DEBUG(
+									"combat.craft_bounced object=%d other=%d roll=%d yaw=%u pitch=%u other_roll=%d other_yaw=%u other_pitch=%u predicted=%d",
+									(int)owner_obj_idx,
+									(int)candidate_obj_idx,
+									(int)g_object_table[owner_obj_idx]
+										.mobj
+										->roll_impulse_rate,
+									(unsigned)g_object_table
+										[owner_obj_idx]
+											.yaw,
+									(unsigned)g_object_table
+										[owner_obj_idx]
+											.pitch,
+									(int)g_object_table[candidate_obj_idx]
+										.mobj
+										->roll_impulse_rate,
+									(unsigned)g_object_table
+										[candidate_obj_idx]
+											.yaw,
+									(unsigned)g_object_table
+										[candidate_obj_idx]
+											.pitch,
+									g_flight_sim_side_effects_suppressed);
 								msg_emit_in_flight_message(
 									IFMSG_220_COLLISION_WITH_ANOTHER_CRAFT_HAS_OCCURRED,
 									g_object_table[owner_obj_idx]
@@ -2005,6 +2091,17 @@ void collide_collisions(void)
 						if (hit_mesh_index != 0) {
 							if (candidate_obj_idx >=
 							    g_active_region_craft_object_slot_end) {
+								XVT_LOG_DEBUG(
+									"combat.shots_collided shot=%d type=%d other=%d other_type=%d predicted=%d",
+									(int)owner_obj_idx,
+									(int)g_object_table
+										[owner_obj_idx]
+											.object_type,
+									(int)candidate_obj_idx,
+									(int)g_object_table
+										[candidate_obj_idx]
+											.object_type,
+									g_flight_sim_side_effects_suppressed);
 								if (g_projectile_type_data
 									    .warhead_class
 										    [g_object_table[owner_obj_idx]
@@ -2063,6 +2160,45 @@ void collide_collisions(void)
 							} else {
 								mission_record_projectile_hit_stats(
 									owner_obj_idx);
+								if (g_flight_sim_side_effects_suppressed ==
+									    0 &&
+								    g_projectile_type_data
+										    .warhead_class
+											    [g_object_table[owner_obj_idx]
+												     .object_type -
+											     PROJECTILE_OBJECT_TYPE_FIRST] !=
+									    0 &&
+								    g_mission_flight_groups
+										    [g_object_table
+											     [g_object_table[owner_obj_idx]
+												      .mobj
+												      ->source_obj_idx]
+												     .flight_group_idx]
+											    .player_owner_idx !=
+									    -1) {
+									XVT_LOG_INFO(
+										"battle.warhead_struck by=%d warhead=%d target=%d fg=%d craft=%d owner=%d tick=%d",
+										g_mission_flight_groups
+											[g_object_table
+												 [g_object_table[owner_obj_idx]
+													  .mobj
+													  ->source_obj_idx]
+													 .flight_group_idx]
+												.player_owner_idx,
+										(int)g_object_table
+											[owner_obj_idx]
+												.object_type,
+										(int)candidate_obj_idx,
+										(int)g_object_table
+											[candidate_obj_idx]
+												.flight_group_idx,
+										(int)g_object_table
+											[candidate_obj_idx]
+												.object_type,
+										g_object_table[candidate_obj_idx]
+											.player_owner_idx,
+										g_game_time);
+								}
 								collide_laserhitcraft(
 									owner_obj_idx,
 									candidate_obj_idx,
@@ -2222,6 +2358,12 @@ void collide_insert_mobile_object_proximity_candidate(
 			if (list->rebuild_ticks > contact_ticks) {
 				list->rebuild_ticks = contact_ticks;
 			}
+			XVT_LOG_DEBUG(
+				"combat.proximity_full object=%d candidate=%d dropped=%d ticks=%d rebuild=%d predicted=%d",
+				(int)owner_obj_idx, (int)candidate_obj_idx,
+				(int)candidate_obj_idx, contact_ticks,
+				list->rebuild_ticks,
+				g_flight_sim_side_effects_suppressed);
 			return;
 		}
 		list->contact_ticks[index] = contact_ticks;
@@ -2239,6 +2381,12 @@ void collide_insert_mobile_object_proximity_candidate(
 		--count;
 		move_index = count;
 		list->count = count;
+		XVT_LOG_DEBUG(
+			"combat.proximity_full object=%d candidate=%d dropped=%d ticks=%d rebuild=%d predicted=%d",
+			(int)owner_obj_idx, (int)candidate_obj_idx,
+			(int)list->obj_idx[count], contact_ticks,
+			list->rebuild_ticks,
+			g_flight_sim_side_effects_suppressed);
 	}
 	while (move_index > index) {
 		list->contact_ticks[move_index] =
@@ -2303,11 +2451,17 @@ void collide_reset_object_proximity_for_slot(uint16_t obj_idx)
 	struct mobile_object *mobile_object = g_object_table[obj_idx].mobj;
 	if (mobile_object != NULL) {
 		mobile_object->proximity_list.rebuild_ticks = 0;
+		XVT_LOG_DEBUG(
+			"combat.proximity_reset object=%d count=%d predicted=%d",
+			(int)obj_idx, (int)mobile_object->proximity_list.count,
+			g_flight_sim_side_effects_suppressed);
 		g_object_table[obj_idx].mobj->proximity_list.count = 0;
 		return;
 	}
 
 	int owner_obj_idx = g_active_region_object_slot_start;
+	XVT_LOG_DEBUG("combat.proximity_static_added object=%d predicted=%d",
+		      (int)obj_idx, g_flight_sim_side_effects_suppressed);
 	if (g_active_region_craft_object_slot_end <= owner_obj_idx) {
 		return;
 	}
@@ -2343,6 +2497,9 @@ void collide_reset_neighbor_proximity_lists(uint16_t object_index)
 	if (count <= 0) {
 		return;
 	}
+	XVT_LOG_DEBUG(
+		"combat.proximity_neighbors_reset object=%d count=%d predicted=%d",
+		(int)object_index, count, g_flight_sim_side_effects_suppressed);
 
 	int proximity_index = 0;
 	do {
@@ -2372,6 +2529,10 @@ void collide_remove_mobile_object_proximity_candidate(
 	if (index == list->count) {
 		return;
 	}
+	XVT_LOG_DEBUG(
+		"combat.proximity_removed candidate=%d index=%d count=%d predicted=%d",
+		(int)candidate_obj_idx, index, (int)list->count,
+		g_flight_sim_side_effects_suppressed);
 	++index;
 	if (index < list->count) {
 		do {
@@ -2595,6 +2756,18 @@ void collide_apply_craft_impact_bounce(uint16_t craft_obj_idx,
 		speed = (int16_t)-speed;
 	}
 	g_object_table[craft_obj_idx].mobj->roll_impulse_rate = speed;
+	XVT_LOG_DEBUG(
+		"combat.craft_bounced object=%d other=%d roll=%d yaw=%u pitch=%u other_roll=%d other_yaw=%u other_pitch=%u predicted=%d",
+		(int)craft_obj_idx, (int)other_obj_idx, (int)speed,
+		(unsigned)g_object_table[craft_obj_idx].yaw,
+		(unsigned)g_object_table[craft_obj_idx].pitch,
+		g_object_table[other_obj_idx].mobj != NULL
+			? (int)g_object_table[other_obj_idx]
+				  .mobj->roll_impulse_rate
+			: 0,
+		(unsigned)g_object_table[other_obj_idx].yaw,
+		(unsigned)g_object_table[other_obj_idx].pitch,
+		g_flight_sim_side_effects_suppressed);
 	fview_calcrotatemove(g_object_table[craft_obj_idx].pitch,
 			     g_object_table[craft_obj_idx].yaw,
 			     &g_object_table[craft_obj_idx]);
@@ -3423,6 +3596,19 @@ void collide_laserhitcraft(uint16_t projectile_obj_idx, uint16_t craft_obj_idx,
 		++g_mission_fg_stats[g_object_table[craft_obj_idx]
 					     .flight_group_idx]
 			  .outcome_count[FLIGHT_GROUP_OUTCOME_ATTACKED];
+		XVT_LOG_DEBUG(
+			"combat.craft_attacked object=%d team=%d fg=%d count=%u special=%d predicted=%d",
+			(int)craft_obj_idx, (int)attacker_team,
+			(int)g_object_table[craft_obj_idx].flight_group_idx,
+			(unsigned)g_mission_fg_stats
+				[g_object_table[craft_obj_idx].flight_group_idx]
+					.outcome_count
+						[FLIGHT_GROUP_OUTCOME_ATTACKED],
+			g_mission_flight_groups[g_object_table[craft_obj_idx]
+							.flight_group_idx]
+					.fg.special_cargo_craft ==
+				craft->craft_ordinal,
+			g_flight_sim_side_effects_suppressed);
 		if (g_mission_flight_groups[g_object_table[craft_obj_idx]
 						    .flight_group_idx]
 			    .fg.special_cargo_craft == craft->craft_ordinal) {
@@ -3681,6 +3867,13 @@ void collide_laserhitcraft(uint16_t projectile_obj_idx, uint16_t craft_obj_idx,
 				     PROJECTILE_OBJECT_TYPE_FIRST] != 0 &&
 		    forward_positive) {
 			chaff_intercepted = 1;
+			XVT_LOG_DEBUG(
+				"combat.warhead_scattered object=%d shot=%d type=%d slot=%d chaff=%u predicted=%d",
+				(int)craft_obj_idx, (int)projectile_obj_idx,
+				(int)projectile_object_type,
+				g_object_table[craft_obj_idx].player_owner_idx,
+				(unsigned)craft->chaff_active_seconds,
+				g_flight_sim_side_effects_suppressed);
 			msg_emit_in_flight_message(
 				IFMSG_369_WARHEAD_SCATTERED_BY_CHAFF_NO_DAMAGE,
 				g_object_table[craft_obj_idx].player_owner_idx);
@@ -3708,6 +3901,15 @@ void collide_laserhitcraft(uint16_t projectile_obj_idx, uint16_t craft_obj_idx,
 				craft->working_subsystems &=
 					CRAFT_SUBSYSTEM_FLAG_CANNONS ^
 					CRAFT_SUBSYSTEM_FLAGS_ALL;
+				XVT_LOG_DEBUG(
+					"combat.system_failed object=%d slot=%d system=%u systems=%u cause=\"pulse\" predicted=%d",
+					(int)craft_obj_idx,
+					g_object_table[craft_obj_idx]
+						.player_owner_idx,
+					(unsigned)
+						DAMAGE_SYSTEM_03_CANNON_SYSTEM,
+					(unsigned)craft->working_subsystems,
+					g_flight_sim_side_effects_suppressed);
 				craft->system_health
 					[DAMAGE_SYSTEM_03_CANNON_SYSTEM] = 0;
 				craft->system_repair_seconds
@@ -3753,6 +3955,19 @@ void collide_laserhitcraft(uint16_t projectile_obj_idx, uint16_t craft_obj_idx,
 		}
 		hit_registered = 1;
 	}
+	XVT_LOG_DEBUG(
+		"combat.shot_hit object=%d shot=%d type=%d source=%d mesh=%d side=%u sound=%d attacks=%d attacker=%d hits=%d systems=%u inhibit=%d predicted=%d",
+		(int)craft_obj_idx, (int)projectile_obj_idx,
+		(int)projectile_object_type, (int)source_obj_idx,
+		(int)hit_mesh_index, (unsigned)hit_side, (int)hit_registered,
+		(int)(uint8_t)*attacked_by_team,
+		craft->last_attacker_obj_idx == UINT16_MAX
+			? -1
+			: (int)craft->last_attacker_obj_idx,
+		(int)craft->ai_flight.hits_this_maneuver,
+		(unsigned)craft->working_subsystems,
+		(int)craft->weapon_fire_inhibit_timer,
+		g_flight_sim_side_effects_suppressed);
 
 	g_object_table[projectile_obj_idx].world_x =
 		g_collision_segment_start_world_x + g_collision_hit_offset_x;
@@ -3893,6 +4108,10 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 	    g_mission_flight_groups[g_object_table[victim_obj_idx]
 					    .flight_group_idx]
 			    .fg.status2 == MISSION_STATUS_INVULNERABLE) {
+		XVT_LOG_DEBUG(
+			"combat.damage_refused object=%d source=%d reason=\"victim_protected\" predicted=%d",
+			(int)victim_obj_idx, (int)source_obj_idx,
+			g_flight_sim_side_effects_suppressed);
 		return 1;
 	}
 	if (g_active_region_object_slot_start <= source_obj_idx &&
@@ -3906,6 +4125,10 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 		    g_mission_flight_groups[source_flight_group_idx]
 				    .fg.status2 ==
 			    MISSION_STATUS_INVULNERABLE) {
+			XVT_LOG_DEBUG(
+				"combat.damage_refused object=%d source=%d reason=\"source_protected\" predicted=%d",
+				(int)victim_obj_idx, (int)source_obj_idx,
+				g_flight_sim_side_effects_suppressed);
 			return 1;
 		}
 	}
@@ -4106,6 +4329,19 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					SHIELD_DISTRIBUTION_EVEN;
 			}
 		}
+		XVT_LOG_DEBUG(
+			"combat.damage_taken object=%d source=%d attacker=%d type=%u amount=%u mesh=%d side=%u through=%d shield=%d opposite=%d wash=%d predicted=%d",
+			(int)victim_obj_idx, (int)source_obj_idx,
+			attacker_source_obj_idx == UINT16_MAX
+				? -1
+				: (int)attacker_source_obj_idx,
+			(unsigned)damage_object_type, damage_amount,
+			(int)hit_mesh_index,
+			(unsigned)hit_side_or_damage_amount, 0, *shield_energy,
+			craft->shield_energy[(
+				uint16_t)(hit_side_or_damage_amount ^ 1)],
+			synthetic_starship_damage,
+			g_flight_sim_side_effects_suppressed);
 		if (g_players[g_local_player].object_index != victim_obj_idx) {
 			fsfx_speak_wingman_event(
 				g_local_player, victim_obj_idx, 3, -1,
@@ -4143,6 +4379,20 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					SHIELD_DISTRIBUTION_EVEN;
 			}
 		}
+		XVT_LOG_DEBUG(
+			"combat.damage_taken object=%d source=%d attacker=%d type=%u amount=%u mesh=%d side=%u through=%d shield=%d opposite=%d wash=%d predicted=%d",
+			(int)victim_obj_idx, (int)source_obj_idx,
+			attacker_source_obj_idx == UINT16_MAX
+				? -1
+				: (int)attacker_source_obj_idx,
+			(unsigned)damage_object_type, damage_amount,
+			(int)hit_mesh_index,
+			(unsigned)hit_side_or_damage_amount, damage,
+			*shield_energy,
+			craft->shield_energy[(
+				uint16_t)(hit_side_or_damage_amount ^ 1)],
+			synthetic_starship_damage,
+			g_flight_sim_side_effects_suppressed);
 
 		if (damage != 0) {
 			if (damage_object_type ==
@@ -4367,6 +4617,20 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 								++g_mission_fg_stats[victim_flight_group_idx]
 									  .outcome_count
 										  [FLIGHT_GROUP_OUTCOME_DISABLED];
+								XVT_LOG_INFO(
+									"combat.craft_disabled object=%d fg=%d craft=%d slot=%d count=%u tick=%d",
+									(int)victim_obj_idx,
+									victim_flight_group_idx,
+									(int)g_object_table
+										[victim_obj_idx]
+											.object_type,
+									g_object_table[victim_obj_idx]
+										.player_owner_idx,
+									(unsigned)g_mission_fg_stats
+										[victim_flight_group_idx]
+											.outcome_count
+												[FLIGHT_GROUP_OUTCOME_DISABLED],
+									g_game_time);
 								if (g_mission_flight_groups
 									    [victim_flight_group_idx]
 										    .fg
@@ -4381,6 +4645,13 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						}
 					}
 				}
+				XVT_LOG_DEBUG(
+					"combat.ion_hit object=%d ion=%d remaining=%d systems=%u predicted=%d",
+					(int)victim_obj_idx,
+					(int)craft->subsystem_damage,
+					(int)system_strength_remaining,
+					(unsigned)craft->working_subsystems,
+					g_flight_sim_side_effects_suppressed);
 				if (g_object_table[victim_obj_idx]
 					    .player_owner_idx ==
 				    g_local_player) {
@@ -4404,6 +4675,11 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					craft->hull_damage;
 				craft->hull_damage = hull_damage_before +
 						     (unsigned int)damage;
+				XVT_LOG_DEBUG(
+					"combat.hull_hit object=%d damage=%d hull=%u max=%u predicted=%d",
+					(int)victim_obj_idx, damage,
+					craft->hull_damage, craft->hull_max,
+					g_flight_sim_side_effects_suppressed);
 				if (g_game_config.voice_tactical_officer_level ==
 					    2 &&
 				    g_object_table[victim_obj_idx].genus_id !=
@@ -4475,6 +4751,16 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 							craft->working_subsystems &=
 								subsystem_flag ^
 								CRAFT_SUBSYSTEM_FLAGS_ALL;
+							XVT_LOG_DEBUG(
+								"combat.system_failed object=%d slot=%d system=%u systems=%u cause=\"hull\" predicted=%d",
+								(int)victim_obj_idx,
+								g_object_table[victim_obj_idx]
+									.player_owner_idx,
+								(unsigned)
+									subsystem_index,
+								(unsigned)craft
+									->working_subsystems,
+								g_flight_sim_side_effects_suppressed);
 							g_msg_arg_table[0] = g_subsystem_message_arg_by_id
 								[subsystem_index];
 							g_msg_arg_table[1] = 87;
@@ -4584,6 +4870,13 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					craft->damage_stats
 						.active_hud_feature_mask &=
 						(uint16_t)~feature_mask;
+					XVT_LOG_DEBUG(
+						"combat.hud_damaged object=%d lost=%u active=%u predicted=%d",
+						(int)victim_obj_idx,
+						(unsigned)feature_mask,
+						(unsigned)craft->damage_stats
+							.active_hud_feature_mask,
+						g_flight_sim_side_effects_suppressed);
 				}
 				if (craft->object_kind ==
 					    CRAFT_OBJECT_KIND_ACTIVE &&
@@ -4612,6 +4905,39 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 	    (craft->object_kind == CRAFT_OBJECT_KIND_ACTIVE ||
 	     craft->object_kind == CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE) &&
 	    craft->hull_damage >= craft->hull_max) {
+		XVT_LOG_DEBUG(
+			"combat.craft_destroyed object=%d fg=%d craft=%d slot=%d hyperspace=%d tick=%d predicted=%d",
+			(int)victim_obj_idx,
+			(int)g_object_table[victim_obj_idx].flight_group_idx,
+			(int)g_object_table[victim_obj_idx].object_type,
+			g_object_table[victim_obj_idx].player_owner_idx,
+			craft->object_kind ==
+				CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE,
+			g_game_time, g_flight_sim_side_effects_suppressed);
+		XVT_LOG_INFO(
+			"battle.killing_blow victim=%d by=%d attacker=%d weapon=\"%s\" type=%d tick=%d",
+			(int)victim_obj_idx,
+			attacker_source_obj_idx == UINT16_MAX
+				? -1
+				: g_object_table[attacker_source_obj_idx]
+					  .player_owner_idx,
+			attacker_source_obj_idx == UINT16_MAX
+				? -1
+				: (int)attacker_source_obj_idx,
+			synthetic_starship_damage != 0		      ? "wash"
+			: source_obj_idx == UINT16_MAX		      ? "none"
+			: g_object_table[source_obj_idx].mobj == NULL ? "object"
+			: g_object_table[source_obj_idx].mobj->family == 0
+				? "collision"
+			: g_object_table[source_obj_idx].mobj->family != 1
+				? "other"
+			: g_projectile_type_data.warhead_class
+						[damage_object_type -
+						 PROJECTILE_OBJECT_TYPE_FIRST] !=
+					0
+				? "warhead"
+				: "cannon",
+			(int)damage_object_type, g_game_time);
 		if (source_obj_idx != UINT16_MAX &&
 		    g_object_table[source_obj_idx].mobj != NULL) {
 			uint16_t destruction_source_obj_idx;
@@ -4637,6 +4963,9 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 			if (g_object_table[victim_obj_idx].player_owner_idx ==
 			    g_local_player) {
 				g_flight_mission_state.mission_end_pending = 1;
+				XVT_LOG_INFO(
+					"flight.mission_ending reason=\"course_ended\" slot=%d tick=%d",
+					g_local_player, g_game_time);
 			}
 		} else if (g_object_table[victim_obj_idx].player_owner_idx !=
 			   -1) {
@@ -5038,6 +5367,14 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 				craft->object_kind =
 					CRAFT_OBJECT_KIND_EXPLODING;
 			}
+			XVT_LOG_DEBUG(
+				"combat.craft_breakup object=%d state=%d lifetime=%u roll=%d predicted=%d",
+				(int)victim_obj_idx, (int)craft->object_kind,
+				(unsigned)g_object_table[victim_obj_idx]
+					.mobj->lifetime_timer,
+				(int)g_object_table[victim_obj_idx]
+					.mobj->roll_impulse_rate,
+				g_flight_sim_side_effects_suppressed);
 		}
 	} else if ((craft->object_kind == CRAFT_OBJECT_KIND_ACTIVE ||
 		    craft->object_kind ==
@@ -5599,6 +5936,11 @@ int collide_check_swept_model_collision(uint16_t source_obj_idx,
 	/* Gunner obstruction checks can include ACT explosions left in craft slots.
 	 * Relocating their data as a native OPT corrupts the sprite frame table. */
 	if ((g_object_type_table[target->object_type].asset_flags & 1) == 0) {
+		XVT_LOG_DEBUG(
+			"combat.hull_test_skipped object=%d type=%d source=%d reason=\"sprite\" predicted=%d",
+			(int)target_obj_idx, (int)target->object_type,
+			(int)source_obj_idx,
+			g_flight_sim_side_effects_suppressed);
 		g_collide_sweep_current_mesh_ordinal = 0;
 		g_collide_current_mesh_verts_node = NULL;
 		return 0;
@@ -5609,6 +5951,11 @@ int collide_check_swept_model_collision(uint16_t source_obj_idx,
 		(struct optimized_poly_object *)memory_get_handle_block(
 			model_handle);
 	if (model == NULL) {
+		XVT_LOG_DEBUG(
+			"combat.hull_test_skipped object=%d type=%d source=%d reason=\"model_not_loaded\" predicted=%d",
+			(int)target_obj_idx, (int)target->object_type,
+			(int)source_obj_idx,
+			g_flight_sim_side_effects_suppressed);
 		return 0;
 	}
 	if (model->self_marker != model) {
@@ -5807,6 +6154,10 @@ int collide_test_sweep_against_opt_node(struct optimized_poly_object *object,
 					object, (const char *)node->payload);
 			}
 			if (node == NULL) {
+				XVT_LOG_DEBUG(
+					"combat.model_ref_missing mesh=%d predicted=%d",
+					g_collide_sweep_current_mesh_ordinal,
+					g_flight_sim_side_effects_suppressed);
 				return 0;
 			}
 		}
@@ -6396,6 +6747,11 @@ void collide_apply_engine_wash_damage(int victim_obj_idx, int source_obj_idx)
 				(uint16_t)source_obj_idx;
 			g_players[player_owner_idx].engine_wash_strength =
 				(uint16_t)wash_damage;
+			XVT_LOG_DEBUG(
+				"combat.engine_wash slot=%d object=%d source=%d strength=%d predicted=%d",
+				player_owner_idx, victim_obj_idx,
+				source_obj_idx, wash_damage,
+				g_flight_sim_side_effects_suppressed);
 		}
 		if (victim->mobj != NULL && victim->mobj->p_craft != NULL &&
 		    victim->mobj->p_craft->shield_energy[0] +
@@ -6609,6 +6965,12 @@ void collide_apply_hostile_proximity_weapon_disruption(int owner_obj_idx,
 		struct craft_data *owner_craft = owner_mobj->p_craft;
 		if (owner_craft != NULL) {
 			owner_craft->beam_effect_accum[2] = 163840;
+			XVT_LOG_DEBUG(
+				"combat.weapons_jammed object=%d hostile=%d type=%d chaff=%u predicted=%d",
+				owner_obj_idx, hostile_obj_idx,
+				(int)hostile->object_type,
+				(unsigned)owner_craft->chaff_active_seconds,
+				g_flight_sim_side_effects_suppressed);
 			owner_craft->chaff_active_seconds = 0;
 		}
 	}
