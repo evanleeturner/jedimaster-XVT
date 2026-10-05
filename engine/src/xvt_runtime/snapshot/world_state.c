@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "xvt/flight/ai/pai.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/hud/hud.h"
 #include "xvt/flight/mission/mission.h"
@@ -978,17 +979,25 @@ int xvt_snapshot_decode(const uint8_t *image, size_t size)
 	return 1;
 }
 
+/* The computer pilots' working state as it was at the last save. It is not in
+ * the image (no schema or checksum change), but a step that is rolled back can
+ * leave it changed, and a mine's decoy test reads what a step left there. */
+static struct pai_context s_saved_pai_context;
+
 void xvt_snapshot_save(void)
 {
 	g_world_state_size = (unsigned)xvt_snapshot_encode(
 		g_world_state_buffer, xvt_snapshot_calculate_size());
+	s_saved_pai_context = g_pai_context;
 }
 
 void xvt_snapshot_restore(void)
 {
 	if (!xvt_snapshot_decode(g_world_state_buffer, g_world_state_size)) {
 		g_flight_mission_state.mission_end_pending = 1;
+		return;
 	}
+	g_pai_context = s_saved_pai_context;
 }
 
 int xvt_snapshot_checksum_image(const uint8_t *image, size_t size,

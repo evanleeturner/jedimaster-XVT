@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "test_assert.h"
+#include "xvt/flight/ai/pai.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/mission/mission.h"
@@ -178,6 +179,37 @@ static void check_decode_refusal_leaves_world(void)
 	g_next_object_signature = 0x4321;
 	XVT_ASSERT_INT_EQ(xvt_snapshot_decode(g_image, written - 1), 0);
 	XVT_ASSERT_INT_EQ(g_next_object_signature, 0x4321);
+}
+
+/* The save keeps a copy of g_pai_context beside the image and the restore puts
+ * it back; a refused restore leaves it as it is. */
+static void check_save_restore_keeps_pai_context(void)
+{
+	empty_world();
+	uint8_t *saved_buffer = g_world_state_buffer;
+	g_world_state_buffer = g_image;
+	memset(&g_pai_context, 0, sizeof g_pai_context);
+	g_pai_context.object_index = 5;
+	g_pai_context.order_slot = 2;
+	g_pai_context.target_search_origin_x = -7;
+	xvt_snapshot_save();
+	XVT_ASSERT_TRUE(g_world_state_size > 0);
+
+	g_pai_context.object_index = 9;
+	g_pai_context.order_slot = 0;
+	g_pai_context.target_search_origin_x = 0;
+	xvt_snapshot_restore();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.mission_end_pending, 0);
+	XVT_ASSERT_INT_EQ(g_pai_context.object_index, 5);
+	XVT_ASSERT_INT_EQ(g_pai_context.order_slot, 2);
+	XVT_ASSERT_INT_EQ(g_pai_context.target_search_origin_x, -7);
+
+	g_pai_context.object_index = 9;
+	--g_world_state_size;
+	xvt_snapshot_restore();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.mission_end_pending, 1);
+	XVT_ASSERT_INT_EQ(g_pai_context.object_index, 9);
+	g_world_state_buffer = saved_buffer;
 }
 
 static void check_checksum_image(void)
@@ -707,6 +739,7 @@ int main(void)
 	check_validate();
 	check_decode_round_trip();
 	check_decode_refusal_leaves_world();
+	check_save_restore_keeps_pai_context();
 	check_checksum_image();
 	check_rich_round_trip();
 	check_empty_slot_keeps_pool_link();

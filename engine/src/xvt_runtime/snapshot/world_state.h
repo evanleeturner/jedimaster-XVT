@@ -68,11 +68,13 @@ int xvt_snapshot_checksum_image(const uint8_t *image, size_t size,
 				unsigned checksums[16], unsigned lengths[16]);
 
 /* Encodes the live world into g_world_state_buffer and sets g_world_state_size (0 on failure).
- * Assumes the buffer holds CalculateSize() bytes; does not check it. */
+ * Assumes the buffer holds CalculateSize() bytes; does not check it. Also keeps a copy of
+ * g_pai_context beside the image (not in it). */
 void xvt_snapshot_save(void);
 
-/* Decodes g_world_state_buffer (g_world_state_size bytes) into the live world. On failure the
- * world is untouched and g_flight_mission_state.mission_end_pending is set to 1. */
+/* Decodes g_world_state_buffer (g_world_state_size bytes) into the live world and puts back the
+ * g_pai_context copy the last save kept. On failure the world and g_pai_context are untouched
+ * and g_flight_mission_state.mission_end_pending is set to 1. */
 void xvt_snapshot_restore(void);
 
 /* Returns the image buffer size this world needs (plus the timing extension's maximum in the

@@ -1421,7 +1421,11 @@ uint16_t pai_get_effective_skill_value(struct craft_data *craft)
  * a leader the plan named by leader_plan_name_index and targets the given object,
  * else 0; returns 0 at once for object_idx -1. Sets up g_pai_context for the
  * object, and leaves g_pai_context.order_slot at the matching slot, else at the
- * last slot that gave that plan, else at the craft's current slot. */
+ * last slot that gave that plan, else at the craft's current slot.
+ * The modern build puts g_pai_context back as it found it before returning: the
+ * target description calls this for this machine's own player, so the context
+ * it left behind differed between the machines of a network game, and a mine's
+ * decoy test in a later step reads it. */
 // FUNCTION: XVT 0x404670
 int pai_setup_context_and_find_order_plan_on_target(int object_idx,
 						    int leader_plan_name_index,
@@ -1430,6 +1434,9 @@ int pai_setup_context_and_find_order_plan_on_target(int object_idx,
 	if (object_idx == -1) {
 		return 0;
 	}
+#ifdef XVT_MODERN
+	struct pai_context saved_context = g_pai_context;
+#endif
 	pai_setupcraftcontext(object_idx);
 	for (unsigned int order_slot = 0; order_slot < 3; ++order_slot) {
 		uint8_t order =
@@ -1442,10 +1449,16 @@ int pai_setup_context_and_find_order_plan_on_target(int object_idx,
 			g_pai_context.order_slot = (uint16_t)order_slot;
 			if (pai_current_order_targets_match_object(
 				    target_obj_idx) != 0) {
+#ifdef XVT_MODERN
+				g_pai_context = saved_context;
+#endif
 				return 1;
 			}
 		}
 	}
+#ifdef XVT_MODERN
+	g_pai_context = saved_context;
+#endif
 	return 0;
 }
 
