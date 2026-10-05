@@ -10,6 +10,7 @@
 #include "xvt/math/math.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Craft records in the pool at g_craft_data_pool_base, one for each craft object
  * slot. mission_init sets it to 32 (CRAFT_SLOT_COUNT) when a flight loads; a
@@ -100,6 +101,8 @@ int build_craft_tech_stats(struct craft_tech_stats *stats)
 	model_index model_index =
 		get_model_index_from_type((unsigned int)stats->craft_type);
 	if (model_index == MODEL_INDEX_NONE) {
+		XVT_LOG_WARN("craft.tech_stats_no_model craft=%d genus=%d",
+			     stats->craft_type, (int)stats->genus_id);
 		return 0;
 	}
 
@@ -197,6 +200,17 @@ int build_craft_tech_stats(struct craft_tech_stats *stats)
 	default:
 		break;
 	}
+	XVT_LOG_DEBUG(
+		"craft.tech_stats_built craft=%d genus=%d model=%u speed=%d accel=%d maneuver=%d shield=%d hull=%d lasers=%d ions=%d warheads=%d fixed=%d",
+		stats->craft_type, (int)stats->genus_id, (unsigned)model_index,
+		stats->speed_rating, stats->acceleration_rating,
+		stats->maneuver_rating, stats->shield_rating,
+		stats->hull_rating, stats->laser_count, stats->ion_count,
+		stats->warhead_rating,
+		stats->craft_type == CRAFT_SPECIES_TIE_ADVANCED ||
+			stats->craft_type == CRAFT_SPECIES_T_WING ||
+			stats->craft_type == CRAFT_SPECIES_Z_95_HEADHUNTER ||
+			stats->craft_type == CRAFT_SPECIES_R_41_STARCHASER);
 	return 1;
 }
 
@@ -217,6 +231,11 @@ void craft_clear_turret_object_links(struct craft_data *craft)
 void craft_free_linked_objects(struct craft_data *craft)
 {
 	if (craft->effective_ai_object_link != NULL) {
+		XVT_LOG_DEBUG(
+			"craft.link_freed craft=%d link=%d object=%d predicted=%d",
+			(int)(craft - g_craft_data_pool_base), -1,
+			(int)(craft->effective_ai_object_link - g_object_table),
+			g_flight_sim_side_effects_suppressed);
 		craft->effective_ai_object_link->object_type = 0;
 		craft->effective_ai_object_link = NULL;
 	}
@@ -225,6 +244,12 @@ void craft_free_linked_objects(struct craft_data *craft)
 	int remaining = 16;
 	do {
 		if (*object_link != NULL) {
+			XVT_LOG_DEBUG(
+				"craft.link_freed craft=%d link=%d object=%d predicted=%d",
+				(int)(craft - g_craft_data_pool_base),
+				16 - remaining,
+				(int)(*object_link - g_object_table),
+				g_flight_sim_side_effects_suppressed);
 			(*object_link)->object_type = 0;
 			*object_link = NULL;
 		}
@@ -316,6 +341,22 @@ void craft_detach_damageable_component(uint16_t object_index,
 					.type_specific_byte[1] = 2;
 				craft->component_state[mesh_index] = 4;
 				craft->component_state[mesh_count] = 2;
+				XVT_LOG_DEBUG(
+					"combat.component_flung object=%d source=%d component=%u roll=%d yaw=%u pitch=%u life=%u all=%d predicted=%d",
+					(int)fragment_object_index,
+					(int)object_index, mesh_index,
+					(int)roll_impulse,
+					(unsigned)g_object_table
+						[fragment_object_index]
+							.yaw,
+					(unsigned)g_object_table
+						[fragment_object_index]
+							.pitch,
+					(unsigned)g_object_table
+						[fragment_object_index]
+							.mobj->lifetime_timer,
+					(int)detach_all,
+					g_flight_sim_side_effects_suppressed);
 				if (detach_all == 0) {
 					break;
 				}
@@ -600,6 +641,13 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 			if (shield_generator_count != 0 ||
 			    g_cur_craft->shield_energy[0] != 0 ||
 			    g_cur_craft->shield_energy[1] != 0) {
+				XVT_LOG_DEBUG(
+					"combat.bridge_shielded object=%d component=%d generators=%d front=%d rear=%d predicted=%d",
+					(int)victim_obj_idx, mesh_index,
+					shield_generator_count,
+					g_cur_craft->shield_energy[0],
+					g_cur_craft->shield_energy[1],
+					g_flight_sim_side_effects_suppressed);
 				return damage_amount;
 			}
 			if (g_object_table[source_obj_idx].object_type == 40) {
@@ -624,6 +672,14 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 								[mesh_index] -
 						g_cur_craft->hull_damage;
 			}
+			XVT_LOG_DEBUG(
+				"combat.bridge_breached object=%d component=%d source=%d type=%d damage=%u hull=%u max=%u predicted=%d",
+				(int)victim_obj_idx, mesh_index,
+				(int)source_obj_idx,
+				(int)g_object_table[source_obj_idx].object_type,
+				damage_amount, g_cur_craft->hull_damage,
+				g_cur_craft->hull_max,
+				g_flight_sim_side_effects_suppressed);
 		}
 	}
 
@@ -721,6 +777,10 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					g_cur_craft->shield_energy[1] = 0;
 					g_cur_craft->shield_energy[0] =
 						g_cur_craft->shield_energy[1];
+					XVT_LOG_DEBUG(
+						"combat.shields_collapsed object=%d component=%d predicted=%d",
+						(int)victim_obj_idx, mesh_index,
+						g_flight_sim_side_effects_suppressed);
 				}
 			}
 		}
@@ -786,6 +846,14 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						g_players[player_index]
 							.selected_target_component !=
 						hit_mesh_index);
+					XVT_LOG_DEBUG(
+						"player.target_component_moved slot=%d object=%d from=%d to=%d predicted=%d",
+						player_index,
+						(int)victim_obj_idx,
+						(int)hit_mesh_index,
+						(int)g_players[player_index]
+							.selected_target_component,
+						g_flight_sim_side_effects_suppressed);
 				}
 			}
 
@@ -813,6 +881,18 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 						seconds - 60;
 					++g_mission_countdown_clock.minutes;
 				}
+				XVT_LOG_DEBUG(
+					"proving.target_destroyed object=%d component=%d moving=%d targets=%u score=%u minutes=%d seconds=%d predicted=%d",
+					(int)victim_obj_idx, mesh_index,
+					g_cur_craft->mesh_rotation
+							[mesh_index] != 0,
+					(unsigned)g_flight_mission_state
+						.proving_grounds_targets_destroyed,
+					(unsigned)g_flight_mission_state
+						.proving_grounds_score,
+					(int)g_mission_countdown_clock.minutes,
+					(int)g_mission_countdown_clock.seconds,
+					g_flight_sim_side_effects_suppressed);
 			}
 
 			{
@@ -936,6 +1016,19 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					g_object_table[explosion_obj_idx]
 						.mobj->effect_size =
 						(uint8_t)effect_size;
+					XVT_LOG_DEBUG(
+						"combat.component_blast object=%d source=%d component=%d size=%d predicted=%d",
+						(int)explosion_obj_idx,
+						(int)victim_idx, mesh_index,
+						(int)g_object_table
+							[explosion_obj_idx]
+								.mobj
+								->effect_size,
+						g_flight_sim_side_effects_suppressed);
+				} else {
+					XVT_LOG_WARN(
+						"combat.blast_slots_full object=%d component=%d",
+						(int)victim_idx, mesh_index);
 				}
 			}
 
@@ -1001,6 +1094,17 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 				}
 			}
 		}
+		XVT_LOG_DEBUG(
+			"combat.component_destroyed object=%d fg=%d craft=%d component=%d hp=%u rest=%u source=%d state=%d front=%d rear=%d predicted=%d",
+			(int)victim_obj_idx,
+			(int)g_object_table[victim_obj_idx].flight_group_idx,
+			(int)g_object_table[victim_obj_idx].object_type,
+			mesh_index, component_hp_as_damage / 16, damage_amount,
+			(int)source_obj_idx,
+			(int)g_cur_craft->component_state[mesh_index],
+			g_cur_craft->shield_energy[0],
+			g_cur_craft->shield_energy[1],
+			g_flight_sim_side_effects_suppressed);
 	} else {
 		int new_hp = (int)(16 * g_cur_craft->component_hp[mesh_index] -
 				   damage_amount) >>
@@ -1008,6 +1112,11 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 		if (new_hp == 0) {
 			new_hp = 1;
 		}
+		XVT_LOG_DEBUG(
+			"combat.component_hit object=%d component=%d damage=%u before=%d hp=%d predicted=%d",
+			(int)victim_obj_idx, mesh_index, damage_amount,
+			(int)g_cur_craft->component_hp[mesh_index], new_hp,
+			g_flight_sim_side_effects_suppressed);
 		damage_amount = 0;
 		g_cur_craft->component_hp[mesh_index] = (uint8_t)new_hp;
 	}
@@ -1168,6 +1277,11 @@ int craft_spawn_explosion_object_at_mesh(const struct object_record *obj_record,
 	{
 		uint16_t object_idx = object_alloc_slot_for_genus(13);
 		if (object_idx == UINT16_MAX) {
+			XVT_LOG_DEBUG(
+				"combat.hull_explosion_dropped source=%d component=%u predicted=%d",
+				(int)(obj_record - g_object_table),
+				(unsigned)mesh_index,
+				g_flight_sim_side_effects_suppressed);
 			return object_idx;
 		}
 		g_object_table[object_idx].world_x =

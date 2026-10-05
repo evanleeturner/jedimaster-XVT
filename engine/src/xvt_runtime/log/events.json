@@ -93,6 +93,11 @@
       "fields": ["who", "entry", "player", "fg", "team", "tick"],
       "text": "Player {who} joined the battle at its start (tick {tick}) as pilot record entry {entry}, player {player}, flying flight group {fg} for team {team}"
     },
+    "battle.player_jumped": {
+      "level": "I",
+      "fields": ["who", "fg", "award", "tick"],
+      "text": "Player {who} left the battle through hyperspace in a craft of flight group {fg}, earning {award} points, at tick {tick}"
+    },
     "battle.player_left": {
       "level": "I",
       "fields": ["who", "tick"],
@@ -348,6 +353,21 @@
       "fields": ["object", "slot", "beam", "cause", "predicted"],
       "text": "The beam of object {object} (player slot {slot}, -1 for none; beam type {beam}) shut off with its charge used up by {cause} (use: firing it; power: power taken from it); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "combat.blast_slots_full": {
+      "level": "W",
+      "fields": ["object", "component"],
+      "text": "No explosion slot was free for the blast of destroyed component {component} of craft {object}; the component was destroyed without one"
+    },
+    "combat.bridge_breached": {
+      "level": "D",
+      "fields": ["object", "component", "source", "type", "damage", "hull", "max", "predicted"],
+      "text": "With its shield generators gone and shields empty, the bridge (component {component}) of craft {object} took a hit from object {source} (object type {type}) rewritten to {damage}, which sets the hull damage, now {hull}, to its maximum {max}, or for object type 40 to 95 percent of it, even when that is lower; predicted step {predicted} (always 0 here)"
+    },
+    "combat.bridge_shielded": {
+      "level": "D",
+      "fields": ["object", "component", "generators", "front", "rear", "predicted"],
+      "text": "A hit on the bridge (component {component}) of craft {object} left the bridge whole while {generators} shield generators stood and the shields held {front} front and {rear} rear; the damage passed on unchanged; predicted step {predicted} (always 0 here)"
+    },
     "combat.cannons_fired": {
       "level": "D",
       "fields": ["slot", "object", "bank", "link", "shots", "type", "target", "cooldown", "fired", "predicted"],
@@ -357,6 +377,26 @@
       "level": "D",
       "fields": ["object", "slot", "cm", "predicted"],
       "text": "The chaff burst of object {object} (player slot {slot}, -1 for none; countermeasure type {cm}) ran out; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.component_blast": {
+      "level": "D",
+      "fields": ["object", "source", "component", "size", "predicted"],
+      "text": "Explosion {object} of size {size} went off at destroyed component {component} of craft {source}; predicted step {predicted} (always 0 here)"
+    },
+    "combat.component_destroyed": {
+      "level": "D",
+      "fields": ["object", "fg", "craft", "component", "hp", "rest", "source", "state", "front", "rear", "predicted"],
+      "text": "Component {component} of craft {object} (flight group {fg}, craft type {craft}) was destroyed by a hit from object {source}: its strength {hp} went to 0 and {rest} damage passed on; its state is now {state} (2 shown destroyed); shields {front} front and {rear} rear; predicted step {predicted} (always 0 here)"
+    },
+    "combat.component_flung": {
+      "level": "D",
+      "fields": ["object", "source", "component", "roll", "yaw", "pitch", "life", "all", "predicted"],
+      "text": "Debris object {object}, the piece knocked off component {component} of craft {source}, was set spinning at roll rate {roll} and turned to heading {yaw} and pitch {pitch}, to last {life} ticks; every intact piece was being knocked off: {all}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.component_hit": {
+      "level": "D",
+      "fields": ["object", "component", "damage", "before", "hp", "predicted"],
+      "text": "Component {component} of craft {object} took {damage} damage, its strength falling from {before} to {hp}; nothing passed on; predicted step {predicted} (always 0 here)"
     },
     "combat.countermeasure_fired": {
       "level": "D",
@@ -422,6 +462,11 @@
       "level": "D",
       "fields": ["object", "lost", "active", "predicted"],
       "text": "A hull hit on craft {object} knocked out display features {lost}; working features now {active} (bit masks); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.hull_explosion_dropped": {
+      "level": "D",
+      "fields": ["source", "component", "predicted"],
+      "text": "No explosion slot was free for an explosion on hull component {component} of craft {source}, so none was placed; predicted step {predicted} (1 in a step that is run again later)"
     },
     "combat.hull_hit": {
       "level": "D",
@@ -548,6 +593,11 @@
       "fields": ["object", "slot", "delta", "distribution", "recharge", "front", "rear", "max", "predicted"],
       "text": "Object {object} (player slot {slot}, -1 for none) had a shield change of {delta} applied at the once-a-second power step (distribution {distribution}, recharge level {recharge}); before it the shields held {front} front and {rear} rear, each capped at {max}; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "combat.shields_collapsed": {
+      "level": "D",
+      "fields": ["object", "component", "predicted"],
+      "text": "Craft {object} lost its last working shield generator (component {component}); under the easiest difficulty of the newer mission files that emptied both its shields; predicted step {predicted} (always 0 here)"
+    },
     "combat.shot_hit": {
       "level": "D",
       "fields": ["object", "shot", "type", "source", "mesh", "side", "sound", "attacks", "attacker", "hits", "systems", "inhibit", "predicted"],
@@ -612,6 +662,21 @@
       "level": "W",
       "fields": ["key"],
       "text": "The user override of {key} is ignored; only the shipped value applies"
+    },
+    "craft.link_freed": {
+      "level": "D",
+      "fields": ["craft", "link", "object", "predicted"],
+      "text": "Craft record {craft} freed object {object}, tied to it as link {link} (-1 the skill link, 0 to 15 a turret); no known code sets these links, so this line should not appear; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "craft.tech_stats_built": {
+      "level": "D",
+      "fields": ["craft", "genus", "model", "speed", "accel", "maneuver", "shield", "hull", "lasers", "ions", "warheads", "fixed"],
+      "text": "The Tech Library rated craft type {craft} (class {genus}, model {model}): speed {speed}, acceleration {accel}, maneuver {maneuver}, shield {shield}, hull {hull}, {lasers} lasers, {ions} ion cannons, warheads {warheads}; weapon figures fixed by craft type rather than read from the model: {fixed}"
+    },
+    "craft.tech_stats_no_model": {
+      "level": "W",
+      "fields": ["craft", "genus"],
+      "text": "The Tech Library asked for the ratings of craft type {craft} (class {genus}), which has no model; its ratings stayed at 0"
     },
     "d3d.buffer_call_failed": {
       "level": "E",
@@ -4033,6 +4098,11 @@
       "fields": ["object", "fg", "type", "genus", "slot", "predicted"],
       "text": "Object {object}, a craft of type {type} (class {genus}) in flight group {fg}, player slot {slot} (-1 for none), exploded as its time to live ran out; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "object.craft_slot_freed": {
+      "level": "D",
+      "fields": ["object", "genus", "fg", "predicted"],
+      "text": "Object {object} in a craft slot (class {genus}, flight group {fg}), in practice the explosion a destroyed craft became, reached the end of its animation and was removed, freeing the slot; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "object.fragment_spawned": {
       "level": "D",
       "fields": ["object", "source", "type", "life", "predicted"],
@@ -4042,6 +4112,11 @@
       "level": "D",
       "fields": ["slots"],
       "text": "The object table's first {slots} slots were linked to their moving-object records again"
+    },
+    "object.sfoils_settled": {
+      "level": "D",
+      "fields": ["object", "slot", "foils", "predicted"],
+      "text": "The S-foils of craft {object} (player slot {slot}, -1 for none) finished moving: state {foils} (2 closed, 0 open); predicted step {predicted} (1 in a step that is run again later)"
     },
     "object.slots_full": {
       "level": "D",
@@ -4112,6 +4187,26 @@
       "level": "D",
       "fields": ["slot", "mothership", "fg", "pass", "range", "predicted"],
       "text": "The player in slot {slot} came within hangar range {range} of craft {mothership} of flight group {fg} and was offered its hangar (mothership choice {pass}: 0 the departure mothership, 1 the alternate); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "player.hyperspace_aligned": {
+      "level": "D",
+      "fields": ["slot", "object", "speed", "predicted"],
+      "text": "The craft {object} of player slot {slot} finished turning onto the jump line and entered the second stage of the jump at speed {speed}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "player.hyperspace_blocked": {
+      "level": "D",
+      "fields": ["slot", "object", "blocker", "type", "ahead", "predicted"],
+      "text": "The hyperspace jump of player slot {slot} (craft {object}) was called off: object {blocker} (object type {type}) lay {ahead} units ahead in the jump path; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "player.hyperspace_cancelled": {
+      "level": "D",
+      "fields": ["slot", "object", "state", "phase", "predicted"],
+      "text": "The hyperspace jump of player slot {slot} (craft {object}) was dropped at stage {phase} because the craft was no longer active (state {state}); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "player.hyperspace_departed": {
+      "level": "I",
+      "fields": ["slot", "object", "fg", "craft", "award", "score", "tick"],
+      "text": "The craft {object} of player slot {slot} (craft type {craft}, flight group {fg}) left the battle through hyperspace at tick {tick}, earning {award} points; the player's mission score is now {score}"
     },
     "player.hyperspace_refused": {
       "level": "D",
@@ -4198,6 +4293,11 @@
       "fields": ["slot", "target", "component", "predicted"],
       "text": "Player slot {slot}'s new target, object {target}, was aimed at its component {component} (0 for an object outside the craft slots); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "player.target_component_moved": {
+      "level": "D",
+      "fields": ["slot", "object", "from", "to", "predicted"],
+      "text": "The component player slot {slot} was aiming at, component {from} of craft {object}, was destroyed, so the aim moved to component {to} (the same number when no other intact one could be aimed at); predicted step {predicted} (always 0 here)"
+    },
     "player.target_dropped": {
       "level": "D",
       "fields": ["slot", "target", "reason", "camera", "predicted"],
@@ -4252,6 +4352,11 @@
       "level": "I",
       "fields": [],
       "text": "The runtime shut down"
+    },
+    "proving.target_destroyed": {
+      "level": "D",
+      "fields": ["object", "component", "moving", "targets", "score", "minutes", "seconds", "predicted"],
+      "text": "On the proving grounds, component {component} of course object {object} was destroyed (a moving one, worth double: {moving}): {targets} targets so far, score {score}, and the clock gained 2 seconds, now {minutes}:{seconds}; predicted step {predicted} (always 0 here)"
     },
     "remaster.alpha_override": {
       "level": "D",

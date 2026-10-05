@@ -21,6 +21,7 @@
 #include "xvt/math/math.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Slot index flight_object_recycle_local_debris_near_player looks at next, from
  * g_local_transient_slot_start up to g_local_debris_slot_end, then back. Two
@@ -553,6 +554,14 @@ void flight_object_update_special_behavior(void)
 							g_cur_craft
 								->s_foil_state =
 								S_FOIL_TRANSITION_CLOSING;
+							XVT_LOG_DEBUG(
+								"object.sfoils_settled object=%d slot=%d foils=%d predicted=%d",
+								(int)object_index,
+								g_object_table[object_index]
+									.player_owner_idx,
+								(int)g_cur_craft
+									->s_foil_state,
+								g_flight_sim_side_effects_suppressed);
 							msg_emit_in_flight_message(
 								IFMSG_129_S_FOILS_HAVE_REACHED_CLOSED_POSITION,
 								g_object_table[object_index]
@@ -560,6 +569,14 @@ void flight_object_update_special_behavior(void)
 						}
 					} else if (s_foil_mesh_moved == 0) {
 						g_cur_craft->s_foil_state = 0;
+						XVT_LOG_DEBUG(
+							"object.sfoils_settled object=%d slot=%d foils=%d predicted=%d",
+							(int)object_index,
+							g_object_table[object_index]
+								.player_owner_idx,
+							(int)g_cur_craft
+								->s_foil_state,
+							g_flight_sim_side_effects_suppressed);
 						msg_emit_in_flight_message(
 							IFMSG_128_S_FOILS_HAVE_REACHED_OPEN_POSITION,
 							g_object_table[object_index]
@@ -653,6 +670,13 @@ void flight_object_advance_texture_frame_sequence(unsigned int object_idx)
 		g_object_table[object_idx].object_type = 0;
 		if ((unsigned int)g_active_region_craft_object_slot_end >
 		    object_idx) {
+			XVT_LOG_DEBUG(
+				"object.craft_slot_freed object=%d genus=%d fg=%d predicted=%d",
+				(int)object_idx,
+				(int)g_object_table[object_idx].genus_id,
+				(int)g_object_table[object_idx]
+					.flight_group_idx,
+				g_flight_sim_side_effects_suppressed);
 			struct mobile_object *mobile_object =
 				g_object_table[object_idx].mobj;
 			if (mobile_object->p_craft != NULL) {
@@ -708,6 +732,11 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 	struct object_record *player_object = &g_object_table[object_idx];
 	struct craft_data *craft = player_object->mobj->p_craft;
 	if (craft->object_kind != CRAFT_OBJECT_KIND_ACTIVE) {
+		XVT_LOG_DEBUG(
+			"player.hyperspace_cancelled slot=%d object=%d state=%d phase=%d predicted=%d",
+			player_idx, object_idx, (int)craft->object_kind,
+			(int)g_players[player_idx].hyperspace_phase,
+			g_flight_sim_side_effects_suppressed);
 		g_players[player_idx].hyperspace_phase = HYPERSPACE_PHASE_NONE;
 	}
 	uint16_t tick_delta = g_elapsed_ticks;
@@ -733,6 +762,12 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 				g_players[player_idx]
 					.hyperspace_runtime
 					.phase_elapsed_ticks = 0;
+				XVT_LOG_DEBUG(
+					"player.hyperspace_aligned slot=%d object=%d speed=%u predicted=%d",
+					player_idx, object_idx,
+					(unsigned)g_object_table[object_idx]
+						.mobj->speed,
+					g_flight_sim_side_effects_suppressed);
 			}
 		} else {
 			int16_t angle_step = (int16_t)(16 * g_elapsed_ticks);
@@ -850,6 +885,14 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 							    HYPERSPACE_CLEARANCE_DISTANCE) {
 							obstruction_detected =
 								1;
+							XVT_LOG_DEBUG(
+								"player.hyperspace_blocked slot=%d object=%d blocker=%d type=%d ahead=%d predicted=%d",
+								player_idx,
+								object_idx,
+								(int)candidate_idx,
+								candidate_object_type,
+								delta_y,
+								g_flight_sim_side_effects_suppressed);
 							break;
 						}
 					}
@@ -919,6 +962,14 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 								    HYPERSPACE_CLEARANCE_DISTANCE) {
 								obstruction_detected =
 									1;
+								XVT_LOG_DEBUG(
+									"player.hyperspace_blocked slot=%d object=%d blocker=%d type=%d ahead=%d predicted=%d",
+									player_idx,
+									object_idx,
+									(int)candidate_idx,
+									candidate_object_type,
+									delta_y,
+									g_flight_sim_side_effects_suppressed);
 								break;
 							}
 						}
@@ -1016,6 +1067,55 @@ void flight_object_update_player_hyperspace_transition(int player_idx)
 					MISSION_SCORE_POINT_SCALE *
 					g_model_defs[model_index]
 						.craft_point_value;
+			}
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_INFO(
+					"player.hyperspace_departed slot=%d object=%d fg=%d craft=%d award=%d score=%d tick=%d",
+					player_idx, object_idx,
+					flight_group_idx,
+					(int)g_object_table[object_idx]
+						.object_type,
+					g_mission_header.mission_type !=
+								MISSION_TYPE_MELEE &&
+							g_flight_mission_state
+									.player_flight_group_wave_mode ==
+								PLAYER_WAVE_MODE_PRESERVE &&
+							g_mission_flight_groups[flight_group_idx]
+									.fg
+									.number_of_waves !=
+								UNLIMITED_WAVES
+						? MISSION_SCORE_POINT_SCALE *
+							  g_model_defs
+								  [g_object_type_table
+									   [g_object_table[object_idx]
+										    .object_type]
+										   .model_index]
+									  .craft_point_value
+						: 0,
+					g_players[player_idx]
+						.mission_stats.mission_score,
+					g_game_time);
+				XVT_LOG_INFO(
+					"battle.player_jumped who=%d fg=%d award=%d tick=%d",
+					player_idx, flight_group_idx,
+					g_mission_header.mission_type !=
+								MISSION_TYPE_MELEE &&
+							g_flight_mission_state
+									.player_flight_group_wave_mode ==
+								PLAYER_WAVE_MODE_PRESERVE &&
+							g_mission_flight_groups[flight_group_idx]
+									.fg
+									.number_of_waves !=
+								UNLIMITED_WAVES
+						? MISSION_SCORE_POINT_SCALE *
+							  g_model_defs
+								  [g_object_type_table
+									   [g_object_table[object_idx]
+										    .object_type]
+										   .model_index]
+									  .craft_point_value
+						: 0,
+					g_game_time);
 			}
 			if (g_players[player_idx].object_index != -1) {
 				fsfx_update_beam_system_loop(0, player_idx);
