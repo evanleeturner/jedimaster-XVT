@@ -4797,6 +4797,26 @@
       "level": "I",
       "fields": ["mode"],
       "text": "Flight timing runs the {mode} profile"
+    },
+    "view.hyperspace_camera": {
+      "level": "D",
+      "fields": ["slot", "focus", "hud", "object", "ticks", "predicted"],
+      "text": "{ticks} ticks into player slot {slot}'s hyperspace exit, the camera left object {focus} for the outside hyperspace view, full screen (the view had been {hud}); the player's craft is object {object} (-1 for none); predicted world {predicted} (1 when the world shown comes from steps that are run again later)"
+    },
+    "view.overlay_lock_failed": {
+      "level": "E",
+      "fields": ["surface", "result"],
+      "text": "Locking the {surface} to lay the cockpit and HUD over the 3D frame failed with code {result}; the frame went on without them, and when the cockpit layer failed the back buffer was left locked"
+    },
+    "view.overlay_unlock_failed": {
+      "level": "E",
+      "fields": ["result"],
+      "text": "Unlocking the back buffer after the cockpit and HUD were laid over the 3D frame failed with code {result}; the modern renderer did not take this frame's cockpit picture"
+    },
+    "view.texture_cache_flushed": {
+      "level": "D",
+      "fields": ["hardware3d"],
+      "text": "The first scene drawn after the flight started or the view changed flushed the 3D card's texture cache (hardware 3D {hardware3d}; at 0 there is no cache and only the request was cleared)"
     }
   }
 }

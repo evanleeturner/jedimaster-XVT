@@ -35,6 +35,7 @@
 #include "xvt/render/std3d.h"
 #include "xvt/render/sw3d.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* World Z offset, from the camera, of the point being placed, before it is
  * turned into view space. Many functions write it, chiefly
@@ -101,6 +102,9 @@ HRESULT flight_view_composite_masked_software_surface(void)
 			break;
 		}
 		if (lock_result != DX_DDERR_WASSTILLDRAWING) {
+			XVT_LOG_ERROR(
+				"view.overlay_lock_failed surface=\"back_buffer\" result=%#x",
+				(unsigned)lock_result);
 			return lock_result;
 		}
 	}
@@ -118,6 +122,9 @@ HRESULT flight_view_composite_masked_software_surface(void)
 			break;
 		}
 		if (lock_result != DX_DDERR_WASSTILLDRAWING) {
+			XVT_LOG_ERROR(
+				"view.overlay_lock_failed surface=\"cockpit_layer\" result=%#x",
+				(unsigned)lock_result);
 			return lock_result;
 		}
 	}
@@ -277,6 +284,9 @@ HRESULT flight_view_composite_masked_software_surface(void)
 							   back_buffer_pixels);
 	if (lock_result == DX_DD_OK) {
 		xvt_cockpit_latch_composition();
+	} else {
+		XVT_LOG_ERROR("view.overlay_unlock_failed result=%#x",
+			      (unsigned)lock_result);
 	}
 	return lock_result;
 #else
@@ -606,6 +616,23 @@ void flight_view_update_player_camera(int player_idx)
 		    HYPERSPACE_EXTERNAL_CAMERA_TICKS) {
 		if ((unsigned int)g_players[player_idx]
 			    .view_state.camera_focus_obj_idx != UINT_MAX) {
+			if (g_players[player_idx]
+				    .view_state.camera_focus_obj_idx !=
+			    UINT16_MAX) {
+				XVT_LOG_DEBUG(
+					"view.hyperspace_camera slot=%d focus=%d hud=%d object=%d ticks=%u predicted=%d",
+					player_idx,
+					(int)g_players[player_idx]
+						.view_state
+						.camera_focus_obj_idx,
+					(int)g_players[player_idx]
+						.view_state.hud_state_live,
+					g_players[player_idx].object_index,
+					g_players[player_idx]
+						.hyperspace_runtime
+						.phase_elapsed_ticks,
+					g_flight_sim_side_effects_suppressed);
+			}
 			g_players[player_idx]
 				.view_state.external_camera_active = 1;
 			hud_set_hud_view_state(HUD_VIEW_FULL_SCREEN,
@@ -743,6 +770,8 @@ void flight_view_render(void)
 			std3d_flush_texture_cache();
 		}
 		g_flight_initial_texture_cache_flush_pending = 0;
+		XVT_LOG_DEBUG("view.texture_cache_flushed hardware3d=%d",
+			      g_use_hardware3d);
 	}
 	render_scene_initialize(1);
 	g_scene_billboard_queue_count = 0;
