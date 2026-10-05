@@ -57,6 +57,7 @@
 #include "xvt/render/std3d.h"
 #include "xvt/render/sw3d.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 #ifndef XVT_MODERN
 int(_fileno)(xvt_file *stream);
 long _filelength(int file_descriptor);
@@ -1305,11 +1306,23 @@ int hud_set_hud_view_state(int hud_view_state, int player_idx)
 	if (player_idx == local_player &&
 	    g_hud_cockpit_resource_descriptors[hud_view_state].resource_ref ==
 		    0) {
+		XVT_LOG_DEBUG(
+			"hud.view_refused slot=%d view=%d current=%d predicted=%d",
+			player_idx, hud_view_state,
+			(int)g_players[player_idx].view_state.hud_state_live,
+			g_flight_sim_side_effects_suppressed);
 		return 0;
 	}
 	if (g_players[player_idx].view_state.hud_state_live == hud_view_state) {
 		return 1;
 	}
+	XVT_LOG_DEBUG(
+		"hud.view_state_set slot=%d view=%d from=%d last=%d local=%d predicted=%d",
+		player_idx, hud_view_state,
+		(int)g_players[player_idx].view_state.hud_state_live,
+		(int)g_players[player_idx].view_state.hud_state_mirror,
+		player_idx == local_player,
+		g_flight_sim_side_effects_suppressed);
 
 	g_players[player_idx].view_state.hud_state_live =
 		(uint8_t)hud_view_state;
@@ -1495,6 +1508,16 @@ void hud_init_hud(int player_idx)
 		hud_render_hud(g_local_player);
 		hud_draw_static_cockpit_text(g_local_player);
 		hud_init_hud_end_stub(g_local_player);
+		XVT_LOG_DEBUG(
+			"hud.reset slot=%d view=%d set=%u map=%d list_width=%u list_height=%u lights=%d",
+			g_local_player,
+			(int)g_players[g_local_player]
+				.view_state.hud_state_live,
+			(unsigned)g_hud_instrument_set_base_index,
+			(int)g_players[g_local_player].map_camera_state,
+			(unsigned)g_mfd_craft_list_blit_width,
+			(unsigned)g_mfd_craft_list_blit_height,
+			g_flight_sim_side_effects_suppressed == 0);
 	}
 	g_hud_full_redraw_in_progress = 0;
 }
@@ -2460,6 +2483,14 @@ void hud_draw_radar_blips(void)
 			hud_add_blip_to_radar((int16_t)object_idx);
 		}
 	}
+	if ((g_radar_fore_blip_count == 47 &&
+	     g_radar_fore_prev_blip_count != 47) ||
+	    (g_radar_aft_blip_count == 47 &&
+	     g_radar_aft_prev_blip_count != 47)) {
+		XVT_LOG_DEBUG("hud.radar_full slot=%d fore=%u aft=%u",
+			      g_local_player, (unsigned)g_radar_fore_blip_count,
+			      (unsigned)g_radar_aft_blip_count);
+	}
 
 	if (g_radar_target_marker_background_saved != 0) {
 		g_flight_restore_radar_target_marker_fn();
@@ -2867,6 +2898,13 @@ void hud_update_targeting_computer_display(void)
 		g_hud_target_inset_mask_refresh_pending = 1;
 		g_hud_cached_target_object_idx =
 			(int16_t)current_target_object_index;
+		XVT_LOG_DEBUG(
+			"hud.target_shown slot=%d target=%d previous=%d map=%d",
+			g_local_player,
+			(int)g_players[g_local_player]
+				.current_target_object_idx,
+			(int)previous_target_object_index,
+			(int)map_camera_state);
 		g_hud_element_state_cache[g_hud_instrument_set_base_index +
 					  TARGET_PANEL_ELEMENT] = dirty_state;
 		g_hud_element_state_cache[TARGET_PANEL_ELEMENT] = dirty_state;
@@ -4664,6 +4702,20 @@ void hud_update_targeting_lock_indicator(void)
 			g_target_lock_active = 0;
 		}
 	}
+	if (indicator_state !=
+	    (uint16_t)
+		    g_hud_element_state_cache[g_hud_instrument_set_base_index +
+					      52]) {
+		XVT_LOG_DEBUG(
+			"hud.lock_indicator slot=%d state=%u from=%d mode=%d target=%d lock=%d",
+			g_local_player, (unsigned)indicator_state,
+			(int)g_hud_element_state_cache
+				[g_hud_instrument_set_base_index + 52],
+			(int)g_players[g_local_player].selected_weapon_mode,
+			(int)g_players[g_local_player]
+				.current_target_object_idx,
+			(int)g_players[g_local_player].missile_lock_state);
+	}
 
 	hud_draw_cached_sprite_element(g_hud_instrument_set_base_index + 52,
 				       indicator_state);
@@ -4842,6 +4894,17 @@ void hud_draw_laser_cannon_indicators(void)
 							segment < charged_segment_count
 								? charged_segment_state
 								: empty_segment_state;
+						if (g_hud_panel_sprite_data_by_index
+							    [selector +
+							     sprite_state] ==
+						    NULL) {
+							XVT_LOG_ERROR(
+								"hud.sprite_missing element=%d sprite=%u",
+								(int)(layout_index +
+								      LASER_CHARGE_ELEMENT_BASE),
+								(unsigned)(selector +
+									   sprite_state));
+						}
 
 						g_flight_blit_sprite_fn(
 							g_hud_panel_sprite_data_by_index
@@ -5701,6 +5764,20 @@ void hud_draw_beam_strength2d(void)
 		}
 
 		beam_strength -= 1000;
+		if (g_hud_panel_sprite_data_by_index
+			    [g_hud_element_layouts
+				     [g_hud_instrument_set_base_index + 51]
+					     .selector +
+			     segment_index] == NULL) {
+			XVT_LOG_ERROR(
+				"hud.sprite_missing element=%d sprite=%u",
+				(int)(g_hud_instrument_set_base_index + 51),
+				(unsigned)(g_hud_element_layouts
+						   [g_hud_instrument_set_base_index +
+						    51]
+							   .selector +
+					   segment_index));
+		}
 		g_flight_blit_sprite_faded_fn(
 			g_hud_panel_sprite_data_by_index
 				[g_hud_element_layouts
@@ -6038,6 +6115,12 @@ void hud_draw_cached_segmented_bar(uint16_t filled_count, uint16_t element_idx,
 
 	do {
 		uint16_t sprite_offset = segment_index < filled_count;
+		if (g_hud_panel_sprite_data_by_index[selector +
+						     sprite_offset] == NULL) {
+			XVT_LOG_ERROR("hud.sprite_missing element=%d sprite=%u",
+				      (int)element_idx,
+				      (unsigned)(selector + sprite_offset));
+		}
 		g_flight_blit_sprite_fn(
 			g_hud_panel_sprite_data_by_index[selector +
 							 sprite_offset],
@@ -6178,6 +6261,20 @@ void hud_update_threat_indicators(int hud_mode)
 			}
 		}
 	}
+	if ((uint16_t)g_hud_element_state_cache
+			    [g_hud_instrument_set_base_index + 90] !=
+		    attack_threat ||
+	    (uint16_t)g_hud_element_state_cache
+			    [g_hud_instrument_set_base_index + 91] !=
+		    laser_threat ||
+	    (uint16_t)g_hud_element_state_cache
+			    [g_hud_instrument_set_base_index + 92] !=
+		    beam_threat) {
+		XVT_LOG_DEBUG(
+			"hud.threat_changed slot=%d attack=%u laser=%u beam=%u",
+			g_local_player, (unsigned)attack_threat,
+			(unsigned)laser_threat, (unsigned)beam_threat);
+	}
 	hud_draw_cached_sprite_element(g_hud_instrument_set_base_index + 90,
 				       attack_threat);
 	hud_draw_cached_sprite_element(g_hud_instrument_set_base_index + 91,
@@ -6234,6 +6331,14 @@ void hud_update_threat_indicators(int hud_mode)
 				   1);
 	} else {
 		warning_state = 0;
+	}
+	if ((max_warhead_lock > 944) !=
+	    ((uint16_t)
+		     g_hud_element_state_cache[g_hud_instrument_set_base_index +
+					       93] == 2)) {
+		XVT_LOG_DEBUG("hud.warhead_warning slot=%d warning=%u lock=%d",
+			      g_local_player, (unsigned)warning_state,
+			      (int)max_warhead_lock);
 	}
 	hud_draw_cached_sprite_element(g_hud_instrument_set_base_index + 93,
 				       warning_state);
@@ -6295,6 +6400,13 @@ void hud_update_critical_hull_shield_warning(void)
 				    .clip_height_or_foreground_color >= 0x2F0) {
 				g_hud_element_layouts[127]
 					.clip_height_or_foreground_color = 1;
+			}
+			if (g_hud_element_layouts[127]
+				    .clip_height_or_foreground_color == 2) {
+				XVT_LOG_DEBUG(
+					"hud.critical_warning slot=%d shields=%u hull=%u max=%u",
+					g_local_player, shield_energy,
+					craft->hull_damage, craft->hull_max);
 			}
 		}
 	} else {
@@ -7776,6 +7888,17 @@ void hud_draw_cached_sprite_element(unsigned int element_idx,
 {
 	if ((uint16_t)g_hud_element_state_cache[element_idx] != state) {
 		g_hud_element_state_cache[element_idx] = (int16_t)state;
+		if (g_hud_panel_sprite_data_by_index
+			    [(uint16_t)g_hud_element_layouts[element_idx]
+				     .selector +
+			     state] == NULL) {
+			XVT_LOG_ERROR("hud.sprite_missing element=%d sprite=%u",
+				      (int)element_idx,
+				      (unsigned)((uint16_t)g_hud_element_layouts
+							 [element_idx]
+								 .selector +
+						 state));
+		}
 		g_flight_blit_sprite_fn(
 			g_hud_panel_sprite_data_by_index
 				[(uint16_t)g_hud_element_layouts[element_idx]
@@ -7799,6 +7922,15 @@ void hud_draw_cached_faded_sprite_element(uint16_t element_idx, int16_t state,
 {
 	if (g_hud_element_state_cache[element_idx] != state) {
 		g_hud_element_state_cache[element_idx] = state;
+		if (g_hud_panel_sprite_data_by_index
+			    [g_hud_element_layouts[element_idx].selector] ==
+		    NULL) {
+			XVT_LOG_ERROR(
+				"hud.sprite_missing element=%d sprite=%u",
+				(int)element_idx,
+				(unsigned)g_hud_element_layouts[element_idx]
+					.selector);
+		}
 		g_flight_blit_sprite_faded_fn(
 			g_hud_panel_sprite_data_by_index
 				[g_hud_element_layouts[element_idx].selector],
@@ -7898,6 +8030,12 @@ void hud_load_cockpit_resources(void)
 		g_object_table[g_players[g_local_player].object_index]
 			.object_type);
 	hud_load_cockpit_sprite_resources(model_index);
+	XVT_LOG_INFO(
+		"hud.cockpit_loaded slot=%d craft=%d model=%u cockpit=\"%s\"",
+		g_local_player,
+		(int)g_object_table[g_players[g_local_player].object_index]
+			.object_type,
+		(unsigned)model_index, cockpit_resource_name);
 }
 
 /* Reads base_path plus ".INT", named in g_hud_cockpit_resource_path, into the HUD
@@ -7940,6 +8078,16 @@ void hud_load_cockpit_interface_file(const char *base_path)
 			g_hud_only_view_inset_span_mask, 200, 1, stream);
 	}
 	fe_disk_io_close_global_stream(0);
+	XVT_LOG_DEBUG(
+		"hud.cockpit_layout_read panel=\"%s\" sprites=%d mask_bytes=%d",
+		g_hud_panel_sprite_file_info.base_name,
+		g_hud_panel_sprite_file_info.sprite_count +
+			g_hud_panel_sprite_file_info.sprite_count_addend,
+		g_flight_resolution_mode == FLIGHT_RESOLUTION_640X480 ||
+				g_flight_resolution_mode ==
+					FLIGHT_RESOLUTION_480X360
+			? 480
+			: 200);
 #ifdef XVT_MODERN
 	xvt_render_assets_capture_cockpit(0);
 #endif
@@ -8292,6 +8440,22 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 	g_flight_initial_texture_cache_flush_pending = 1;
 	flight_render_reset_palette(1);
 	g_flight_display_rebuild_pending = 0;
+	XVT_LOG_DEBUG(
+		"hud.view_rebuilt slot=%d view=%d from=%d image=%u mirrored=%d set=%u width=%u height=%u offset=%d active=%u secondary=%u saved_active=%u saved_secondary=%u states=\"%d,%d,%d,%d,%d,%d,%d,%d\" predicted=%d",
+		player_idx, hud_view_state,
+		(int)g_players[player_idx].view_state.hud_state_mirror,
+		resource_index, (int)mirror_horizontal,
+		(unsigned)g_hud_instrument_set_base_index,
+		(unsigned)g_flight_vp_width, (unsigned)g_flight_vp_height,
+		g_proj_offset_y, (unsigned)g_mfd_active_page,
+		(unsigned)g_mfd_secondary_page,
+		(unsigned)g_mfd_saved_active_page,
+		(unsigned)g_mfd_saved_secondary_page, (int)g_mfd_page_states[0],
+		(int)g_mfd_page_states[1], (int)g_mfd_page_states[2],
+		(int)g_mfd_page_states[3], (int)g_mfd_page_states[4],
+		(int)g_mfd_page_states[5], (int)g_mfd_page_states[6],
+		(int)g_mfd_page_states[7],
+		g_flight_sim_side_effects_suppressed);
 	if (resource_index == HUD_VIEW_RESOURCE_NAME) {
 		flight_text_set_font_tier(2);
 		unsigned int text_y = 0;
@@ -8380,6 +8544,11 @@ void hud_load_cockpit_lfd_entries(const char *lfd_name, uint8_t **out_entries,
 		++entry_index;
 	}
 	fe_disk_io_close_global_stream(0);
+	XVT_LOG_DEBUG(
+		"hud.cockpit_lfd_read file=\"%s\" entries=%u bytes=%ld predicted=%d",
+		lfd_name, entry_count,
+		(long)(g_hud_cockpit_resource_write_cursor - out_entries[0]),
+		g_flight_sim_side_effects_suppressed);
 #ifdef XVT_MODERN
 	xvt_render_assets_register_lfd(g_hud_cockpit_resource_path,
 				       out_entries);
@@ -8429,6 +8598,13 @@ void hud_load_cockpit_sprite_resources(unsigned int model_index)
 				uint16_t memory_handle =
 					memory_alloc_handle(file_size, 0);
 				if (memory_handle == 0) {
+					XVT_LOG_ERROR(
+						"hud.cockpit_image_alloc_failed view=%u file=\"%s\" bytes=%u",
+						(unsigned)resource_index,
+						g_hud_cockpit_resource_descriptors
+							[resource_index]
+								.lfd_name,
+						(unsigned)file_size);
 					fe_disk_io_fatal_error(
 						FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 				}
@@ -8455,6 +8631,14 @@ void hud_load_cockpit_sprite_resources(unsigned int model_index)
 								       .entries) /
 							sizeof(g_hud_cockpit_resources[resource_index]
 								       .entries[0]));
+					XVT_LOG_DEBUG(
+						"hud.cockpit_image_loaded view=%u file=\"%s\" bytes=%u handle=%u",
+						(unsigned)resource_index,
+						g_hud_cockpit_resource_descriptors
+							[resource_index]
+								.lfd_name,
+						(unsigned)file_size,
+						(unsigned)memory_handle);
 				}
 			}
 		}
@@ -9589,6 +9773,14 @@ void hud_point_camera(uint16_t target_idx, int16_t use_hud_layout_scale,
 void hud_reset_flight_message_panes(int force_expire_active_messages)
 {
 
+	XVT_LOG_DEBUG(
+		"hud.panes_reset setup=%d expire=%d waiting=%u ready_message=%u system_message=%u group_message=%u predicted=%d",
+		g_ready_message_pane_left == -1, force_expire_active_messages,
+		(unsigned)g_ready_message_queue_count,
+		(unsigned)g_ready_message_pane_queue[0].state_or_message_id,
+		(unsigned)g_system_message_pane.state_or_message_id,
+		(unsigned)g_flight_group_message_pane.state_or_message_id,
+		g_flight_sim_side_effects_suppressed);
 	if (g_ready_message_pane_left == -1) {
 		switch (g_flight_resolution_mode) {
 		case FLIGHT_RESOLUTION_320X240:
@@ -9691,6 +9883,13 @@ void hud_shift_ready_message_queue_for_replacement(void)
 {
 	if (g_ready_message_pane_queue[0].show_count < 2 &&
 	    g_ready_message_pane_queue[0].age_seconds == 0) {
+		XVT_LOG_DEBUG(
+			"hud.ready_message_deferred message=%u shown=%u waiting=%u predicted=%d",
+			(unsigned)g_ready_message_pane_queue[0]
+				.state_or_message_id,
+			(unsigned)g_ready_message_pane_queue[0].show_count,
+			(unsigned)g_ready_message_queue_count,
+			g_flight_sim_side_effects_suppressed);
 		uint8_t old_pending_count = g_ready_message_queue_count;
 		uint16_t destination_index = old_pending_count + 1;
 		if (destination_index != 0) {
@@ -9706,7 +9905,20 @@ void hud_shift_ready_message_queue_for_replacement(void)
 		g_ready_message_queue_count = new_pending_count;
 		if (new_pending_count >= 10) {
 			g_ready_message_queue_count = new_pending_count - 1;
+			XVT_LOG_WARN(
+				"hud.ready_queue_full message=%u waiting=%u",
+				(unsigned)g_ready_message_pane_queue[10]
+					.state_or_message_id,
+				(unsigned)g_ready_message_queue_count);
 		}
+	} else {
+		XVT_LOG_DEBUG(
+			"hud.ready_message_replaced message=%u shown=%u age=%u predicted=%d",
+			(unsigned)g_ready_message_pane_queue[0]
+				.state_or_message_id,
+			(unsigned)g_ready_message_pane_queue[0].show_count,
+			(unsigned)g_ready_message_pane_queue[0].age_seconds,
+			g_flight_sim_side_effects_suppressed);
 	}
 }
 
@@ -10001,10 +10213,30 @@ void hud_update_flight_message_panes(void)
 		      UINT16_MAX) ||
 	     g_flight_message_panes_force_expire != 0) &&
 	    g_mfd_page_states[MFD_PAGE_MESSAGE_LOG] == MFD_PAGE_STATE_CLOSED) {
+		XVT_LOG_DEBUG(
+			"hud.pane_expired pane=\"ready\" message=%u shown=%u age=%u forced=%d predicted=%d",
+			(unsigned)g_ready_message_pane_queue[0]
+				.state_or_message_id,
+			(unsigned)g_ready_message_pane_queue[0].show_count,
+			(unsigned)g_ready_message_pane_queue[0].age_seconds,
+			g_flight_message_panes_force_expire,
+			g_flight_sim_side_effects_suppressed);
 		if (g_ready_message_queue_count != 0) {
 			hud_advance_ready_message_queue();
 			hud_show_flight_message_pane(
 				g_ready_message_pane_queue[0].pane_type);
+			XVT_LOG_DEBUG(
+				"hud.message_advanced message=%u type=%d shown=%u waiting=%u ticks=%u predicted=%d",
+				(unsigned)g_ready_message_pane_queue[0]
+					.state_or_message_id,
+				(int)g_ready_message_pane_queue[0].pane_type,
+				(unsigned)g_ready_message_pane_queue[0]
+					.show_count,
+				(unsigned)g_ready_message_queue_count,
+				(unsigned)g_player_flight_transient_timers
+					[g_local_player]
+						.ready_message_pane_timer,
+				g_flight_sim_side_effects_suppressed);
 		} else {
 			flight_text_set_background_color(
 				g_flight_transparent_color_index);
@@ -10031,6 +10263,13 @@ void hud_update_flight_message_panes(void)
 			     .system_message_pane_timer == 0 &&
 	     g_system_message_pane.state_or_message_id != UINT16_MAX) ||
 	    g_flight_message_panes_force_expire != 0) {
+		XVT_LOG_DEBUG(
+			"hud.pane_expired pane=\"system\" message=%u shown=%u age=%u forced=%d predicted=%d",
+			(unsigned)g_system_message_pane.state_or_message_id,
+			(unsigned)g_system_message_pane.show_count,
+			(unsigned)g_system_message_pane.age_seconds,
+			g_flight_message_panes_force_expire,
+			g_flight_sim_side_effects_suppressed);
 		flight_text_set_background_color(
 			g_flight_transparent_color_index);
 		flight_sw_set_render_target(g_flight_offscreen_buffer,
@@ -10054,6 +10293,14 @@ void hud_update_flight_message_panes(void)
 			     .flight_group_message_pane_timer == 0 &&
 	     g_flight_group_message_pane.state_or_message_id != UINT16_MAX) ||
 	    g_flight_message_panes_force_expire != 0) {
+		XVT_LOG_DEBUG(
+			"hud.pane_expired pane=\"flight_group\" message=%u shown=%u age=%u forced=%d predicted=%d",
+			(unsigned)
+				g_flight_group_message_pane.state_or_message_id,
+			(unsigned)g_flight_group_message_pane.show_count,
+			(unsigned)g_flight_group_message_pane.age_seconds,
+			g_flight_message_panes_force_expire,
+			g_flight_sim_side_effects_suppressed);
 		flight_text_set_background_color(
 			g_flight_transparent_color_index);
 		flight_sw_set_render_target(g_flight_offscreen_buffer,
@@ -10105,6 +10352,17 @@ void hud_update_flight_message_panes(void)
 		for (int player_index = 0; player_index < 8; ++player_index) {
 			if (g_players[player_index].participation_state != 0 &&
 			    g_players[player_index].pending_action_timer == 0) {
+				if (g_players[player_index].pending_action_id !=
+				    0) {
+					XVT_LOG_DEBUG(
+						"flight.request_expired slot=%d request=%d param=%d predicted=%d",
+						player_index,
+						(int)g_players[player_index]
+							.pending_action_id,
+						(int)g_players[player_index]
+							.pending_action_param,
+						g_flight_sim_side_effects_suppressed);
+				}
 				g_players[player_index].pending_action_id = 0;
 			}
 		}
@@ -10121,6 +10379,11 @@ void hud_update_flight_message_panes(void)
 // FUNCTION: XVT 0x451560
 void hud_clear_ready_message_queue(void)
 {
+	XVT_LOG_DEBUG(
+		"hud.ready_queue_cleared slot=%d waiting=%u message=%u predicted=%d",
+		g_local_player, (unsigned)g_ready_message_queue_count,
+		(unsigned)g_ready_message_pane_queue[0].state_or_message_id,
+		g_flight_sim_side_effects_suppressed);
 	g_ready_message_queue_count = 0;
 	g_ready_message_pane_queue[0].state_or_message_id = UINT16_MAX;
 	g_player_flight_transient_timers[g_local_player]
@@ -10786,9 +11049,20 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
 			--remaining_sprites;
 			*g_hud_panel_sprite_data_write_cursor = 0xff;
 			++g_hud_panel_sprite_data_write_cursor;
+			if (remaining_sprites == 0 && byte_value != 0xff) {
+				XVT_LOG_WARN(
+					"hud.panel_sprites_short sprites=%d start=%u",
+					(int)sprite_count,
+					(unsigned)records_to_skip);
+			}
 		}
 		++record_index;
 	}
+	XVT_LOG_DEBUG(
+		"hud.panel_sprites_read first=%u sprites=%d start=%u records=%d",
+		(unsigned)(uint16_t)(first_sprite_index - sprite_count),
+		(int)sprite_count, (unsigned)records_to_skip,
+		(int)record_index);
 #ifdef XVT_MODERN
 	xvt_render_assets_register_panel(
 		file_name, (uint16_t)(first_sprite_index - sprite_count),

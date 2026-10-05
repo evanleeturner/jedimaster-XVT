@@ -1853,6 +1853,11 @@
       "fields": ["slot", "request", "by", "param", "target", "throttle", "predicted"],
       "text": "Player slot {slot} answered request {request} (1 attack my target or the incoming warhead, 4 ignore my target, 5 cover me, 6 head home, 7 wait, 8 go ahead, 9 evade) from player slot {by} (65,535 for the game's own warhead warning), about object {param} (requests 6 to 9 keep an earlier value): its target is now {target} (-1 for none; on requests 4 and 9 the old target stays when no craft is found) and its throttle {throttle} (65,535 is full power, -1 without a craft); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "flight.request_expired": {
+      "level": "D",
+      "fields": ["slot", "request", "param", "predicted"],
+      "text": "Player slot {slot}'s pending request {request} (1 the warning of a warhead fired at the craft; the others a request or order waiting for the player's answer), naming object {param}, ran out of time and was cleared; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "flight.request_posted": {
       "level": "D",
       "fields": ["slot", "request", "by", "param", "timer", "predicted"],
@@ -1997,6 +2002,131 @@
       "level": "I",
       "fields": [],
       "text": "The frontend is initialized"
+    },
+    "hud.cockpit_image_alloc_failed": {
+      "level": "E",
+      "fields": ["view", "file", "bytes"],
+      "text": "No memory could be had for the picture file {file} of cockpit view {view} ({bytes} bytes), so the game stopped with a fatal error"
+    },
+    "hud.cockpit_image_loaded": {
+      "level": "D",
+      "fields": ["view", "file", "bytes", "handle"],
+      "text": "Cockpit view {view}'s picture file {file}, {bytes} bytes, was loaded at flight start into memory block {handle}"
+    },
+    "hud.cockpit_layout_read": {
+      "level": "D",
+      "fields": ["panel", "sprites", "mask_bytes"],
+      "text": "The cockpit's layout file was read: 28 view descriptions, the cockpit and HUD-only instrument layouts, their inset masks of {mask_bytes} bytes each, and the name of its panel sprite file, {panel}, which gives {sprites} sprites"
+    },
+    "hud.cockpit_lfd_read": {
+      "level": "D",
+      "fields": ["file", "entries", "bytes", "predicted"],
+      "text": "Cockpit picture file {file} was read: {entries} parts (the picture, its viewport mask and its palette), {bytes} bytes kept (2 fewer when the first part is a palette); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "hud.cockpit_loaded": {
+      "level": "I",
+      "fields": ["slot", "craft", "model", "cockpit"],
+      "text": "The cockpit of this machine's player, slot {slot}, flying craft type {craft} (model {model}), was loaded for the flight: cockpit {cockpit}, its view and instrument layouts and the pictures its views start with"
+    },
+    "hud.critical_warning": {
+      "level": "D",
+      "fields": ["slot", "shields", "hull", "max"],
+      "text": "The critical damage warning lit for this machine's player, slot {slot}: {shields} shield units in all (under 100) and hull damage {hull} of {max} (in the last third); the warning sounds and the eject text cycles while it lasts. Written on its first lit frame after the cockpit view was set up and each time the eject text starts its cycle again (every 751 lit frames)"
+    },
+    "hud.lock_indicator": {
+      "level": "D",
+      "fields": ["slot", "state", "from", "mode", "target", "lock"],
+      "text": "The lock light and targeting tone of this machine's player, slot {slot}, changed to state {state} from {from} (-2 after the HUD was reset): with cannons selected (mode {mode} 0) 4 means a cannon due to fire would hit the target and 0 that none would; with warheads (mode 1) 1 means no target or no lock, 2 locking and 3 locked; target {target} (-1 for none), warhead lock {lock} (0 none, 1 locking, 2 locked)"
+    },
+    "hud.message_advanced": {
+      "level": "D",
+      "fields": ["message", "type", "shown", "waiting", "ticks", "predicted"],
+      "text": "The next waiting message, {message} (pane type {type}), took the ready pane and was shown ({shown} times so far), with {waiting} more still waiting; the pane keeps it {ticks} ticks (354 while others wait, 250 make a second); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "hud.pane_expired": {
+      "level": "D",
+      "fields": ["pane", "message", "shown", "age", "forced", "predicted"],
+      "text": "The {pane} pane's message {message} (1 for the system and flight group panes, which keep no number once shown), shown {shown} times and {age} seconds in the pane, ran out of time or was cleared after a view change (forced {forced}: above 0 for a view change); the ready pane then shows the next waiting message, if any, else the pane is emptied; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "hud.panel_sprites_read": {
+      "level": "D",
+      "fields": ["first", "sprites", "start", "records"],
+      "text": "The cockpit's panel sprites were read: {sprites} sprites into the sprite table from entry {first}, passing over the file's first {start} ({records} read in all)"
+    },
+    "hud.panel_sprites_short": {
+      "level": "W",
+      "fields": ["sprites", "start"],
+      "text": "The cockpit's panel sprite file ended before the end mark of the last of its {sprites} sprites (read after the file's first {start}); every sprite past the end of the file was left empty"
+    },
+    "hud.panes_reset": {
+      "level": "D",
+      "fields": ["setup", "expire", "waiting", "ready_message", "system_message", "group_message", "predicted"],
+      "text": "The message panes were reset: their places were set up for the first time this flight: {setup}; the messages on screen were marked to be cleared on the next step: {expire} (not on the first reset); {waiting} waiting messages were dropped, and the ready pane's message {ready_message}, the system pane's {system_message} and the flight group pane's {group_message} were let go (65535 for an empty pane; the system and flight group panes hold 1 once a message is shown); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "hud.radar_full": {
+      "level": "D",
+      "fields": ["slot", "fore", "aft"],
+      "text": "A radar of this machine's player, slot {slot}, reached its limit of 47 blips: {fore} blips ahead and {aft} behind; objects past the 47th on a radar were left off it (exactly 47 objects reads the same way)"
+    },
+    "hud.ready_message_deferred": {
+      "level": "D",
+      "fields": ["message", "shown", "waiting", "predicted"],
+      "text": "Ready message {message}, shown {shown} times and under a second old, was moved back to wait behind a newer message ({waiting} were waiting before it); predicted step {predicted} (always 0 here)"
+    },
+    "hud.ready_message_replaced": {
+      "level": "D",
+      "fields": ["message", "shown", "age", "predicted"],
+      "text": "Ready message {message}, shown {shown} times and {age} seconds in the pane (shown twice, or a second old or more), gave its place to a newer message without waiting; predicted step {predicted} (always 0 here)"
+    },
+    "hud.ready_queue_cleared": {
+      "level": "D",
+      "fields": ["slot", "waiting", "message", "predicted"],
+      "text": "The ready message queue of this machine's player, slot {slot}, was emptied as its craft was lost or began a jump to light speed: {waiting} waiting messages and the ready pane's message {message} (65535 for none) were let go (the text already drawn stays until the pane is next drawn), and the system pane was set to clear on the next step; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "hud.ready_queue_full": {
+      "level": "W",
+      "fields": ["message", "waiting"],
+      "text": "The ready message queue was full, so waiting message {message}, the last of {waiting} in line, was dropped to make room for a newer one"
+    },
+    "hud.reset": {
+      "level": "D",
+      "fields": ["slot", "view", "set", "map", "list_width", "list_height", "lights"],
+      "text": "The HUD of this machine's player, slot {slot}, was reset to be drawn again in full, in view {view} with instrument set {set} (0 the cockpit, 144 the HUD alone, 288 the craft list) and map state {map} (not 0 while the map is open); the craft list page area was {list_width} by {list_height} pixels; the craft system lights were redrawn too: {lights} (0 in a step that is run again later)"
+    },
+    "hud.sprite_missing": {
+      "level": "E",
+      "fields": ["element", "sprite"],
+      "text": "Cockpit panel sprite {sprite} for HUD element {element} was not loaded; the draw that followed read from no image, which crashes the game"
+    },
+    "hud.target_shown": {
+      "level": "D",
+      "fields": ["slot", "target", "previous", "map"],
+      "text": "The targeting computer of this machine's player, slot {slot}, began showing object {target} (-1 for none, shown as the cover panel) in place of {previous} (-1 none, or the HUD was reset or its system lights redrawn; -2 a redraw asked when the target camera closed; -3 a redraw asked after an inspection or a boarding; else the object shown before); map state {map} (not 0 while the map is open)"
+    },
+    "hud.threat_changed": {
+      "level": "D",
+      "fields": ["slot", "attack", "laser", "beam"],
+      "text": "The threat lights of this machine's player, slot {slot}, changed, or were drawn again after the cockpit view was set up: under attack {attack} (1 while a computer craft attacks it with linked lasers, or another player hit it in the last 5 seconds or aims lasers at it from close by), turret lasers aimed at it {laser}, beam on it {beam} (the beam's type, 0 for none)"
+    },
+    "hud.view_rebuilt": {
+      "level": "D",
+      "fields": ["slot", "view", "from", "image", "mirrored", "set", "width", "height", "offset", "active", "secondary", "saved_active", "saved_secondary", "states", "predicted"],
+      "text": "The cockpit of this machine's player, slot {slot}, was set up for view {view}, coming from view {from}: cockpit picture {image}, mirrored {mirrored}; instrument set {set} (0 the cockpit, 144 the HUD alone, 288 the craft list); a flight viewport of {width} by {height} pixels with the picture's center moved {offset} rows; MFD pages {active} and {secondary} shown (65535 for none), {saved_active} and {saved_secondary} kept for the way back to the cockpit; page states {states} (scoreboard, goals, message log, damage, hostile craft, friendly craft, map help, unused: 1 open, 0 closed, -2 closing, -1 reopened); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "hud.view_refused": {
+      "level": "D",
+      "fields": ["slot", "view", "current", "predicted"],
+      "text": "View {view} was refused for player slot {slot}, this machine's own player, because this machine's cockpit has no picture for it, so view {current} stayed (0 the forward cockpit, 1 to 16 its other look directions, 18 full screen, 19 the HUD alone, 20 the target camera, 21 the craft list); a machine drawing another player's view does not check this and sets it; predicted world {predicted} (1 when the world comes from steps that are run again later)"
+    },
+    "hud.view_state_set": {
+      "level": "D",
+      "fields": ["slot", "view", "from", "last", "local", "predicted"],
+      "text": "Player slot {slot} changed to view {view} from view {from} (0 the forward cockpit, 1 to 16 its other look directions, 18 full screen, 19 the HUD alone, 20 the target camera, 21 the craft list; 255 when the change was forced); the view set before that was {last}; this machine's own player: {local} (only then was the cockpit rebuilt and shown at once); predicted world {predicted} (1 when the world comes from steps that are run again later)"
+    },
+    "hud.warhead_warning": {
+      "level": "D",
+      "fields": ["slot", "warning", "lock"],
+      "text": "A warhead lock on the craft of this machine's player, slot {slot}, became complete, or a complete one ended: the incoming warhead warning now shows {warning} (2 for a complete lock; 1 or 0, blinking, while a lock builds, 0 with none left), from the longest lock of {lock} ticks (complete above 944)"
     },
     "input.capture_failed": {
       "level": "E",
