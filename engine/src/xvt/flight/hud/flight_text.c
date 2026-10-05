@@ -10,6 +10,7 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Nonzero while flight text wraps at g_flight_clip_right: a glyph that does not
  * fit moves to the next line, and flight_text_draw_string breaks before a word
@@ -794,6 +795,10 @@ void flight_text_draw_decimal_number(uint16_t value, unsigned int digit_count,
 		g_flight_text_shadow_enabled = saved_shadow;
 		g_flight_text_color_index = saved_color;
 		return;
+	}
+	if (digit_count > 5) {
+		XVT_LOG_ERROR("hud.digit_count_invalid count=%u value=%u",
+			      digit_count, (unsigned)value);
 	}
 
 	int16_t started = 0;

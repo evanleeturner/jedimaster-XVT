@@ -2048,6 +2048,11 @@
       "fields": ["slot", "shields", "hull", "max"],
       "text": "The critical damage warning lit for this machine's player, slot {slot}: {shields} shield units in all (under 100) and hull damage {hull} of {max} (in the last third); the warning sounds and the eject text cycles while it lasts. Written on its first lit frame after the cockpit view was set up and each time the eject text starts its cycle again (every 751 lit frames)"
     },
+    "hud.digit_count_invalid": {
+      "level": "E",
+      "fields": ["count", "value"],
+      "text": "A number on the flight display, {value}, was to be drawn in {count} places, more than the 5 the digit table holds (6 or 7 divide by zero; more read past the table)"
+    },
     "hud.lock_indicator": {
       "level": "D",
       "fields": ["slot", "state", "from", "mode", "target", "lock"],
@@ -2192,6 +2197,11 @@
       "level": "I",
       "fields": [],
       "text": "A flight launch is queued"
+    },
+    "map.object_picked": {
+      "level": "D",
+      "fields": ["slot", "object", "score", "map", "aim", "focus", "width", "height", "shift", "predicted"],
+      "text": "Player slot {slot} picked object {object} (-1 for none) nearest the middle of the map view, at a score of {score} (with none, the limit: an eighth of the screen width squared plus its height squared); map view {map}; the aim target {aim} and the camera's object {focus} (65,535 for none) scored worse on purpose; this machine draws {width}x{height} with a projection shift of {shift}, which the pick depends on; predicted step {predicted} (1 in a step that is run again later)"
     },
     "mfd.list_emptied": {
       "level": "D",

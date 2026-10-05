@@ -26,6 +26,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
 #include "xvt/render/sw3d.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Icon frame for each object type, 0 to 105, in the 640x480 icon set
  * (RESOURCE\icons640.ico); flight_map_draw_object_icon_at_view_pos uses frame 19
@@ -1590,5 +1591,13 @@ int flight_map_pick_object_nearest_screen_center(int player_idx)
 		}
 		++object_idx;
 	}
+	XVT_LOG_DEBUG(
+		"map.object_picked slot=%d object=%d score=%d map=%d aim=%d focus=%d width=%u height=%u shift=%d predicted=%d",
+		player_idx, best_object == UINT16_MAX ? -1 : best_object,
+		best_score, (int)g_players[player_idx].map_camera_state,
+		(int)g_players[player_idx].view_state.aim_target_idx,
+		(int)g_players[player_idx].view_state.camera_focus_obj_idx,
+		g_screen_width, g_screen_height, (int)g_perspective_shift,
+		g_flight_sim_side_effects_suppressed);
 	return best_object;
 }
