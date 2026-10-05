@@ -4,6 +4,7 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Does nothing. flight_render_install_callbacks makes it the transition hook
  * (g_flight_render_transition_hook) in every mode. */
@@ -62,6 +63,11 @@ void flight_render_configure_callbacks_for_resolution(
 	g_flight_viewport_mode = 1;
 	flight_render_install_callbacks(pixel_mode);
 	g_flight_graphics_detail_preset = initial_graphics_detail_preset;
+	XVT_LOG_DEBUG(
+		"display.drawing_mode mode=%#x pixel_mode=%d bpp=%d preset=%d",
+		(unsigned)g_flight_resolution_mode, (int)g_flight_pixel_mode,
+		8 * g_flight_bytes_per_pixel,
+		(int)g_flight_graphics_detail_preset);
 }
 
 /* Sets the 20 software drawing function pointers, g_flight_init_line_buffer_fn

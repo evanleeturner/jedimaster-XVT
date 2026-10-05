@@ -1023,6 +1023,91 @@
       "fields": [],
       "text": "A dialog opened"
     },
+    "display.clear_failed": {
+      "level": "W",
+      "fields": ["result"],
+      "text": "A display surface was not cleared to black (code {result}); it may still show old pixels"
+    },
+    "display.drawing_mode": {
+      "level": "D",
+      "fields": ["mode", "pixel_mode", "bpp", "preset"],
+      "text": "Software drawing was set up for resolution mode {mode}: pixel mode {pixel_mode} (0 for 8-bit 320x240, 1 for larger 8-bit, 2 for 16-bit) at {bpp} bits per pixel; graphics detail preset {preset}"
+    },
+    "display.exclusive_lost": {
+      "level": "W",
+      "fields": [],
+      "text": "A flip found the display out of exclusive full-screen mode; the game took exclusive mode back, flipped again and returned to the normal level"
+    },
+    "display.flip_timing": {
+      "level": "D",
+      "fields": ["rate"],
+      "text": "Flips were lined up with the display's refresh, at a refresh rate scale of {rate} (the display's frequency, or one measured over 100 refreshes)"
+    },
+    "display.lock_failed": {
+      "level": "E",
+      "fields": ["surface", "result", "count"],
+      "text": "Locking the {surface} for drawing failed with code {result}; the lock count stayed at {count} and drawing went on through the last locked surface's pixel pointers"
+    },
+    "display.mode_refused": {
+      "level": "D",
+      "fields": ["width", "height", "bpp", "result"],
+      "text": "The display refused the {width}x{height} mode at {bpp} bits per pixel (code {result}); other sizes and pixel depths were tried next"
+    },
+    "display.overlay_copy_failed": {
+      "level": "E",
+      "fields": ["result"],
+      "text": "Copying the cockpit and HUD layer onto the frame failed with code {result}; the frame went on without it"
+    },
+    "display.palette_missing": {
+      "level": "W",
+      "fields": [],
+      "text": "No palette could be made for the 8-bit full-screen display, so its colors stayed ones the flight did not choose"
+    },
+    "display.palette_set": {
+      "level": "D",
+      "fields": ["first", "count", "fullscreen", "palette", "predicted"],
+      "text": "{count} palette colors from entry {first} were sent to the display: full screen {fullscreen}, a DirectDraw palette present {palette} (at 0 the 1997 VGA path, which the modern build skips); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "display.present_failed": {
+      "level": "E",
+      "fields": ["step", "result"],
+      "text": "Copying the finished frame to the screen failed at the {step} with code {result}; the frame was not shown"
+    },
+    "display.resolution_set": {
+      "level": "D",
+      "fields": ["mode", "width", "height", "pitch", "scale", "shift", "page"],
+      "text": "Flight drawing was set up for resolution mode {mode}: {width}x{height} pixels, {pitch} bytes a row, projection scale {scale} (a shift of {shift}), screen banks of {page} bytes"
+    },
+    "display.resolution_unknown": {
+      "level": "W",
+      "fields": ["mode"],
+      "text": "Resolution mode {mode} is not one the flight knows, so drawing was set up for 320x240"
+    },
+    "display.setup_failed": {
+      "level": "E",
+      "fields": ["call", "result", "width", "height", "bpp"],
+      "text": "Setting up the flight display failed at {call} with code {result}, for a {width}x{height} display at {bpp} bits per pixel; the game then reported that the flight could not start"
+    },
+    "display.started": {
+      "level": "I",
+      "fields": ["fullscreen", "width", "height", "bpp", "format", "back_buffer", "hardware3d"],
+      "text": "The flight display started: full screen {fullscreen}, {width}x{height} at {bpp} bits per pixel (pixel format {format}: 8, 555 or 565), a back buffer to flip {back_buffer} (0 when frames are copied to the screen), hardware 3D {hardware3d}"
+    },
+    "display.surface_lost": {
+      "level": "W",
+      "fields": ["where", "restored"],
+      "text": "The screen surface was found lost during the {where} (flip, or overlay: the copy of the cockpit layer onto the frame); restoring it worked: {restored} (1 yes, 0 no); nothing was drawn again for this frame"
+    },
+    "display.surfaces_restored": {
+      "level": "W",
+      "fields": [],
+      "text": "The retried flip found the display's surfaces lost; the screen, back buffer and z-buffer were restored and the flip tried once more"
+    },
+    "display.unlock_unbalanced": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "Drawing was unlocked with no lock held (lock count {count}); the count was set back to 0"
+    },
     "files.fatal": {
       "level": "E",
       "fields": ["message", "path"],

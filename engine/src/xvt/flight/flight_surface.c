@@ -8,6 +8,7 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* 1 when flight draws through DirectDraw surfaces and flips pages; 0 when it
  * draws into memory and flight_display_flip copies g_flight_software_framebuffer
@@ -165,6 +166,10 @@ void flight_surface_lock(void)
 					}
 					if (lock_result !=
 					    DX_DDERR_WASSTILLDRAWING) {
+						XVT_LOG_ERROR(
+							"display.lock_failed surface=\"cockpit_layer\" result=%#x count=%d",
+							(unsigned)lock_result,
+							g_surface_lock_count);
 						return;
 					}
 				}
@@ -207,6 +212,10 @@ void flight_surface_lock(void)
 					}
 					if (lock_result !=
 					    DX_DDERR_WASSTILLDRAWING) {
+						XVT_LOG_ERROR(
+							"display.lock_failed surface=\"back_buffer\" result=%#x count=%d",
+							(unsigned)lock_result,
+							g_surface_lock_count);
 						return;
 					}
 				}
@@ -263,6 +272,10 @@ void flight_surface_lock(void)
 					break;
 				}
 				if (lock_result != DX_DDERR_WASSTILLDRAWING) {
+					XVT_LOG_ERROR(
+						"display.lock_failed surface=\"primary\" result=%#x count=%d",
+						(unsigned)lock_result,
+						g_surface_lock_count);
 					return;
 				}
 			}
@@ -328,6 +341,8 @@ void flight_surface_unlock(void)
 		return;
 	}
 	if (g_surface_lock_count < 1) {
+		XVT_LOG_WARN("display.unlock_unbalanced count=%d",
+			     g_surface_lock_count);
 		g_surface_lock_count = 0;
 		return;
 	}

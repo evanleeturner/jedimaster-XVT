@@ -20,6 +20,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/util/debug_console.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifndef XVT_MODERN
 __declspec(dllimport) int __cdecl wsprintfA(char *buffer, const char *format,
@@ -198,6 +199,8 @@ void flight_display_configure_resolution_state(void)
 		break;
 
 	default:
+		XVT_LOG_WARN("display.resolution_unknown mode=%#x",
+			     (unsigned)g_flight_resolution_mode);
 		g_vesa_page_size_bytes = 0x10000;
 		g_screen_width = 320;
 		g_screen_height = 240;
@@ -211,6 +214,11 @@ void flight_display_configure_resolution_state(void)
 		g_proj_aspect_y = 0;
 		break;
 	}
+	XVT_LOG_DEBUG(
+		"display.resolution_set mode=%#x width=%u height=%u pitch=%d scale=%u shift=%d page=%u",
+		(unsigned)g_flight_resolution_mode, g_screen_width,
+		g_screen_height, g_surface_pitch, (unsigned)g_proj_scale_int,
+		(int)g_perspective_shift, g_vesa_page_size_bytes);
 }
 
 /* Returns 1 and does nothing else. Its callers treat 0 as a failure (error 12
@@ -273,6 +281,11 @@ int flight_display_init(void)
 			g_flight_direct_draw, g_flight_main_window_handle,
 			DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWMODEX);
 		if (result != DX_DD_OK) {
+			XVT_LOG_ERROR(
+				"display.setup_failed call=\"exclusive_level\" result=%#x width=%d height=%d bpp=%d",
+				(unsigned)result, g_display_mode_width,
+				g_display_mode_height,
+				8 * g_flight_bytes_per_pixel);
 			return flight_display_cleanup_and_report_error(2);
 		}
 	} else {
@@ -280,6 +293,11 @@ int flight_display_init(void)
 			g_flight_direct_draw, g_flight_main_window_handle,
 			DDSCL_NORMAL);
 		if (result != DX_DD_OK) {
+			XVT_LOG_ERROR(
+				"display.setup_failed call=\"normal_level\" result=%#x width=%d height=%d bpp=%d",
+				(unsigned)result, g_display_mode_width,
+				g_display_mode_height,
+				8 * g_flight_bytes_per_pixel);
 			return flight_display_cleanup_and_report_error(2);
 		}
 	}
@@ -291,6 +309,10 @@ int flight_display_init(void)
 			g_flight_direct_draw, g_display_mode_width,
 			g_display_mode_height, 8 * g_flight_bytes_per_pixel);
 		if (result != DX_DD_OK) {
+			XVT_LOG_DEBUG(
+				"display.mode_refused width=%d height=%d bpp=%d result=%#x",
+				g_display_mode_width, g_display_mode_height,
+				8 * g_flight_bytes_per_pixel, (unsigned)result);
 			if (g_display_mode_width == 320) {
 				g_display_mode_width = 512;
 				g_display_mode_height = 384;
@@ -453,6 +475,11 @@ int flight_display_init(void)
 				}
 			}
 			if (result != DX_DD_OK) {
+				XVT_LOG_ERROR(
+					"display.setup_failed call=\"display_mode\" result=%#x width=%d height=%d bpp=%d",
+					(unsigned)result, g_display_mode_width,
+					g_display_mode_height,
+					8 * g_flight_bytes_per_pixel);
 				return flight_display_cleanup_and_report_error(
 					3);
 			}
@@ -498,6 +525,11 @@ int flight_display_init(void)
 			g_flight_direct_draw, &surface_desc,
 			&g_flight_primary_surface, NULL);
 		if (result != DX_DD_OK) {
+			XVT_LOG_ERROR(
+				"display.setup_failed call=\"primary\" result=%#x width=%d height=%d bpp=%d",
+				(unsigned)result, g_display_mode_width,
+				g_display_mode_height,
+				8 * g_flight_bytes_per_pixel);
 			return flight_display_cleanup_and_report_error(4);
 		}
 		g_pixel_format_code = 565;
@@ -534,6 +566,11 @@ int flight_display_init(void)
 						 &attached_caps,
 						 &g_flight_back_buffer);
 			if (result != DX_DD_OK) {
+				XVT_LOG_ERROR(
+					"display.setup_failed call=\"back_buffer\" result=%#x width=%d height=%d bpp=%d",
+					(unsigned)result, g_display_mode_width,
+					g_display_mode_height,
+					8 * g_flight_bytes_per_pixel);
 				return flight_display_cleanup_and_report_error(
 					5);
 			}
@@ -550,6 +587,11 @@ int flight_display_init(void)
 				g_flight_direct_draw, &surface_desc,
 				&g_flight_offscreen_surface, NULL);
 			if (result != DX_DD_OK) {
+				XVT_LOG_ERROR(
+					"display.setup_failed call=\"cockpit_layer\" result=%#x width=%d height=%d bpp=%d",
+					(unsigned)result, g_display_mode_width,
+					g_display_mode_height,
+					8 * g_flight_bytes_per_pixel);
 				return flight_display_cleanup_and_report_error(
 					6);
 			}
@@ -574,6 +616,11 @@ int flight_display_init(void)
 			g_flight_direct_draw, &surface_desc,
 			&g_flight_primary_surface, NULL);
 		if (result != DX_DD_OK) {
+			XVT_LOG_ERROR(
+				"display.setup_failed call=\"window_primary\" result=%#x width=%d height=%d bpp=%d",
+				(unsigned)result, g_display_mode_width,
+				g_display_mode_height,
+				8 * g_flight_bytes_per_pixel);
 			return flight_display_cleanup_and_report_error(4);
 		}
 		if (flight_display_post_primary_surface_create_or_restore_stub() ==
@@ -631,6 +678,8 @@ int flight_display_init(void)
 				g_flight_primary_surface->lpVtbl->SetPalette(
 					g_flight_primary_surface,
 					g_flight_palette);
+			} else {
+				XVT_LOG_WARN("display.palette_missing");
 			}
 		} else {
 			g_flight_palette = NULL;
@@ -639,6 +688,11 @@ int flight_display_init(void)
 	if (g_use_hardware3d != 0) {
 		renderer_init_d3d_device();
 	}
+	XVT_LOG_INFO(
+		"display.started fullscreen=%d width=%d height=%d bpp=%d format=%d back_buffer=%d hardware3d=%d",
+		g_flight_fullscreen, g_display_mode_width,
+		g_display_mode_height, 8 * g_flight_bytes_per_pixel,
+		g_pixel_format_code, g_flight_page_flip, g_use_hardware3d);
 	return 1;
 }
 
@@ -655,6 +709,11 @@ int flight_display_init(void)
 uint8_t flight_display_set_palette_entries(const uint8_t *rgb_data,
 					   int first_entry, int entry_count)
 {
+	XVT_LOG_DEBUG(
+		"display.palette_set first=%d count=%d fullscreen=%d palette=%d predicted=%d",
+		first_entry, entry_count, g_flight_fullscreen,
+		(int)(g_flight_palette != NULL),
+		g_flight_sim_side_effects_suppressed);
 	if (g_flight_fullscreen != 0) {
 		int count = entry_count;
 		if (g_flight_palette != NULL) {
@@ -825,6 +884,9 @@ HRESULT flight_display_flip(void)
 						(int)(timeGetTime() -
 						      g_flight_flicker_last_sync_time_ms);
 				}
+				XVT_LOG_DEBUG(
+					"display.flip_timing rate=%d",
+					g_flight_flicker_refresh_rate_scale);
 			} else {
 				int phase =
 					(int)(g_flight_flicker_refresh_rate_scale *
@@ -858,6 +920,7 @@ HRESULT flight_display_flip(void)
 		xvt_render_capture_presented(flip_result == DX_DD_OK);
 #endif
 		if (flip_result == DX_DDERR_NOEXCLUSIVEMODE) {
+			XVT_LOG_WARN("display.exclusive_lost");
 			result = g_flight_direct_draw->lpVtbl
 					 ->SetCooperativeLevel(
 						 g_flight_direct_draw,
@@ -881,6 +944,7 @@ HRESULT flight_display_flip(void)
 			xvt_render_capture_presented(result == DX_DD_OK);
 #endif
 			if (result == DX_DDERR_SURFACELOST) {
+				XVT_LOG_WARN("display.surfaces_restored");
 				g_flight_primary_surface->lpVtbl->Restore(
 					g_flight_primary_surface);
 				g_flight_back_buffer->lpVtbl->Restore(
@@ -928,6 +992,9 @@ HRESULT flight_display_flip(void)
 		result = flip_result;
 		if (flip_result == DX_DDERR_SURFACELOST) {
 			result = flight_display_restore_primary_surface();
+			XVT_LOG_WARN(
+				"display.surface_lost where=\"flip\" restored=%d",
+				(int)result);
 			if (result != DX_DD_OK) {
 				return flight_display_post_primary_surface_create_or_restore_stub();
 			}
@@ -943,6 +1010,9 @@ HRESULT flight_display_flip(void)
 				g_flight_direct_draw, &surface_desc,
 				&g_flight_primary_surface, NULL);
 			if (result != DX_DD_OK) {
+				XVT_LOG_ERROR(
+					"display.present_failed step=\"window_primary\" result=%#x",
+					(unsigned)result);
 				return flight_display_cleanup_and_report_error(
 					4);
 			}
@@ -968,6 +1038,9 @@ HRESULT flight_display_flip(void)
 				break;
 			}
 			if (result != DX_DDERR_WASSTILLDRAWING) {
+				XVT_LOG_ERROR(
+					"display.present_failed step=\"lock\" result=%#x",
+					(unsigned)result);
 				return result;
 			}
 		}
@@ -976,6 +1049,11 @@ HRESULT flight_display_flip(void)
 		       480 * flight_display_get_primary_surface_pitch());
 		result = g_flight_primary_surface->lpVtbl->Unlock(
 			g_flight_primary_surface, surface_desc.lpSurface);
+		if (result != DX_DD_OK) {
+			XVT_LOG_ERROR(
+				"display.present_failed step=\"unlock\" result=%#x",
+				(unsigned)result);
+		}
 #ifdef XVT_MODERN
 		xvt_render_capture_presented(result == DX_DD_OK);
 #endif
@@ -1042,6 +1120,9 @@ int flight_display_blit_render_surface(void)
 			if (blt_result == DX_DDERR_SURFACELOST) {
 				result =
 					flight_display_restore_primary_surface();
+				XVT_LOG_WARN(
+					"display.surface_lost where=\"overlay\" restored=%d",
+					(int)result);
 				if (result == 0) {
 					return result;
 				}
@@ -1057,6 +1138,9 @@ int flight_display_blit_render_surface(void)
 #ifdef XVT_MODERN
 	if (g_flight_page_flip == 0 || result == DX_DD_OK) {
 		xvt_cockpit_latch_composition();
+	} else {
+		XVT_LOG_ERROR("display.overlay_copy_failed result=%#x",
+			      (unsigned)result);
 	}
 #endif
 	return result;
@@ -1116,11 +1200,17 @@ void flight_display_clear_surface(IDirectDrawSurface *surface)
 		}
 		if (blt_result == DX_DDERR_SURFACELOST) {
 			if (flight_display_restore_primary_surface() == 0) {
+				XVT_LOG_WARN("display.clear_failed result=%#x",
+					     (unsigned)blt_result);
 				return;
 			}
 			flight_display_post_primary_surface_create_or_restore_stub();
 		}
 	} while (blt_result == DX_DDERR_WASSTILLDRAWING);
+	if (blt_result != DX_DD_OK) {
+		XVT_LOG_WARN("display.clear_failed result=%#x",
+			     (unsigned)blt_result);
+	}
 }
 
 /* Restores a lost g_flight_primary_surface; returns 1 on success, else 0. */
