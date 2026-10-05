@@ -1093,6 +1093,26 @@
       "fields": ["craft", "genus"],
       "text": "The Tech Library asked for the ratings of craft type {craft} (class {genus}), which has no model; its ratings stayed at 0"
     },
+    "credits.ended": {
+      "level": "I",
+      "fields": ["reason", "page", "frame", "key"],
+      "text": "The credits ended ({reason}: finished, the last page's time ran out; skipped, a click or the key {key} ended them, 27 Esc, 13 Enter, 32 Space, 0 a click) on page {page} at screen frame {frame}; the music faded out and the concourse followed"
+    },
+    "credits.missing": {
+      "level": "W",
+      "fields": [],
+      "text": "The credits file could not be opened, so the credits were skipped and the concourse opened"
+    },
+    "credits.page": {
+      "level": "D",
+      "fields": ["page", "buffer", "end", "fade", "logo", "more"],
+      "text": "Credits page {page} (from 0) was read into text buffer {buffer}: it shows until screen frame {end} and fades in over {fade} frames, with logo {logo} (0 none, 1 Totally Games, 2 LucasArts); more pages follow: {more}"
+    },
+    "credits.started": {
+      "level": "I",
+      "fields": [],
+      "text": "The credits began, after the opening movie"
+    },
     "cutscene.table_alloc_failed": {
       "level": "E",
       "fields": ["file", "count", "bytes"],
@@ -5202,6 +5222,131 @@
       "level": "D",
       "fields": ["object", "axis", "position", "predicted"],
       "text": "Object {object} crossed the edge of the world on the {axis} axis, reaching {position}, and was held at the edge; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "options.buttons": {
+      "level": "D",
+      "fields": ["b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "b10", "b11", "b12", "b13", "b14", "b15", "b16", "b17", "b18", "b19", "b20", "site"],
+      "text": "The joystick button actions at {site} (load: set from the settings in force; write: about to be saved) (action codes from the joystick action list, 0 for none): buttons 1 to 16 {b1}, {b2}, {b3}, {b4}, {b5}, {b6}, {b7}, {b8}, {b9}, {b10}, {b11}, {b12}, {b13}, {b14}, {b15}, {b16}; hat directions 1 to 4 {b17}, {b18}, {b19}, {b20}"
+    },
+    "options.choice_set": {
+      "level": "D",
+      "fields": ["widget", "page", "label", "x", "y", "value", "was"],
+      "text": "A click on configuration page {page} (0 network, 1 single-player video, 2 multiplayer video, 3 sound, 5 taunts) set the {widget} control at ({x}, {y}), whose choices are labeled from game text {label} on, to {value}; it was {was} (two: an on/off switch, three: a three-way choice, slider: a slider whose positions count from 0 at the left)"
+    },
+    "options.closed": {
+      "level": "I",
+      "fields": ["page", "mode", "by"],
+      "text": "The configuration screen closed on page {page} (0 network, 1 single-player video, 2 multiplayer video, 3 sound, 5 taunts) by {by} (done: its Done button, a network message that closed it, or a player joining while this machine hosts; config_button: the Config button at the top of the screen); the options were saved next and, when the session mode {mode} is 4 (network host), the game options were sent to every player"
+    },
+    "options.colors_set": {
+      "level": "D",
+      "fields": ["multi", "colors"],
+      "text": "Turning 3D hardware on for video set {multi} (0 single player, 1 multiplayer) set the colors choice to {colors} (1 for 16-bit color)"
+    },
+    "options.game": {
+      "level": "D",
+      "fields": ["difficulty", "random", "length", "waves", "selection", "time_limit", "team_limit", "collisions", "jumping", "password", "join", "locate", "ai", "balance", "continue", "site"],
+      "text": "The game settings at {site} (load: set from the settings in force; write: about to be saved) were: difficulty {difficulty}, random setup {random}, battle length {length}, craft waves {waves}, craft selection {selection}, mission time limit {time_limit} (255 the default), last team time limit {team_limit} minutes, collisions {collisions}, craft jumping {jumping}, password required {password}, joining in progress {join}, locate players {locate}, computer opponents {ai}, combat balance {balance}, continue choice {continue}"
+    },
+    "options.hardware_default": {
+      "level": "D",
+      "fields": ["hardware"],
+      "text": "Restoring the single-player video defaults set 3D hardware to {hardware}: 1 when the display had a second DirectDraw device (the 3D card) active, else 0"
+    },
+    "options.joystick_line_short": {
+      "level": "W",
+      "fields": ["entry", "part"],
+      "text": "Line {entry} (from 0) of the joystick action list ended right after its {part} (code: the action number; name: the action's name), so the rest of that action was copied from bytes past the line's end, left over from earlier lines"
+    },
+    "options.joystick_list": {
+      "level": "D",
+      "fields": ["count"],
+      "text": "The joystick action list was read: {count} actions"
+    },
+    "options.joystick_list_mark": {
+      "level": "D",
+      "fields": ["entry"],
+      "text": "Line {entry} (from 0) of the joystick action list began with the DOS end-of-file byte (0x1A), where the original game's reading stopped; this build read it as one more action, with code 0 and the rest copied from bytes left over from earlier lines"
+    },
+    "options.joystick_list_missing": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "The joystick action list file could not be opened; the list kept the {count} actions it had (0 the first time)"
+    },
+    "options.joystick_list_overflow": {
+      "level": "W",
+      "fields": ["count"],
+      "text": "The joystick action list held {count} actions, more than the 128 it has room for; the ones past 128 were written beyond the table"
+    },
+    "options.joystick_name_long": {
+      "level": "W",
+      "fields": ["entry", "chars"],
+      "text": "The name on line {entry} (from 0) of the joystick action list is {chars} characters long and overran its 19-character slot into the action's description"
+    },
+    "options.loaded": {
+      "level": "I",
+      "fields": [],
+      "text": "The game options were set from the settings in force, the shipped defaults with the player's saved changes (at start, when the menus load, and at each flight start)"
+    },
+    "options.menu_music": {
+      "level": "D",
+      "fields": ["on", "cd_volume", "reason"],
+      "text": "Menu music was turned {on} (1 on: CD track 7 started at CD volume {cd_volume} of 65,535; 0 off: the CD track stopped and the volume shown is 0) by {reason} (switched: the sound page's menu music switch; volume: the music volume slider while menu music played, so only the CD volume changed; defaults: Restore defaults on the sound page while menu music was off)"
+    },
+    "options.opened": {
+      "level": "I",
+      "fields": ["mode"],
+      "text": "The configuration screen opened, in session mode {mode} (0 none, 2 solo, 3 network client, 4 network host)"
+    },
+    "options.page_changed": {
+      "level": "D",
+      "fields": ["page", "from"],
+      "text": "The configuration screen switched from page {from} to page {page} (0 network, 1 single-player video, 2 multiplayer video, 3 sound, 5 taunts)"
+    },
+    "options.rate_rounded": {
+      "level": "W",
+      "fields": ["rate", "to"],
+      "text": "The server update rate {rate} is odd, and the network page offers only 4, 6 and 8: drawing the page as host or in a solo game changed it to {to}"
+    },
+    "options.restore_answered": {
+      "level": "I",
+      "fields": ["page", "result"],
+      "text": "The Restore defaults question on configuration page {page} (0 network, 1 single-player video, 2 multiplayer video, 3 sound, 5 taunts) was answered {result} (1 okay: that page's settings went back to their defaults; 0 cancel)"
+    },
+    "options.session": {
+      "level": "D",
+      "fields": ["type", "internet", "rate", "seed", "help", "password_set", "taunts", "last_pilot", "site"],
+      "text": "The session settings at {site} (load: set from the settings in force; write: about to be saved) were: network transport {type} (1 TCP/IP, the only one this version uses), internet play {internet}, server update rate {rate}, random seed {seed}, button help {help}, a game password set {password_set} (the password itself is never logged), {taunts} of the 4 taunts filled in (their text is never logged), and the last pilot's name {last_pilot}"
+    },
+    "options.settings_requested": {
+      "level": "D",
+      "fields": ["page"],
+      "text": "The configuration screen's joystick button asked for the OpenXvT settings window, from page {page} (0 network, 1 single-player video, 2 multiplayer video, 3 sound, 5 taunts); this version never shows the original joystick page"
+    },
+    "options.sound": {
+      "level": "D",
+      "fields": ["exterior", "interior", "engine", "menu_sounds", "pilot_msgs", "officer_msgs", "commander_msgs", "special_msgs", "music", "menu_volume", "exterior_volume", "interior_volume", "engine_volume", "voice_volume", "music_volume", "menu_music", "site"],
+      "text": "The sound settings at {site} (load: set from the settings in force; write: about to be saved) were: exterior sounds {exterior}, cockpit sounds {interior}, engine sound {engine}, menu sounds {menu_sounds}, pilot messages {pilot_msgs} and tactical officer messages {officer_msgs} (0 off, 1 some, 2 all), commander messages {commander_msgs}, special mission messages {special_msgs}, flight music {music}, menu music {menu_music}; volumes from 0 to 9: menu sounds {menu_volume}, exterior {exterior_volume}, cockpit {interior_volume}, engine {engine_volume}, voices {voice_volume}, music {music_volume}; switches are 1 on, 0 off"
+    },
+    "options.text_entered": {
+      "level": "D",
+      "fields": ["field", "index", "filled"],
+      "text": "Enter or Tab finished the {field} field {index} (taunts count 1 to 4, the password 0) on the configuration screen; the field holds text: {filled} (the text itself is never logged)"
+    },
+    "options.video": {
+      "level": "D",
+      "fields": ["multi", "backdrop", "stars", "debris", "lights", "specular", "diffuse", "dither", "textures", "mipmap", "detail", "res", "window", "colors", "brightness", "hardware", "bilinear", "site"],
+      "text": "The video settings of set {multi} (0 single player, 1 multiplayer) at {site} (load: set from the settings in force; write: about to be saved) were: space backdrops {backdrop}, star density {stars} (0 low to 2 high), space debris {debris}, local light sources {lights}, specular highlights {specular}, diffuse lighting {diffuse}, dithering {dither}, texture resolution {textures} (0 low to 2 high), mip-mapping {mipmap} and detail distance {detail} (slider positions 0 to 19), screen resolution {res} (0 320 by 240, 1 512 by 384, 2 640 by 480), view size {window} (0 320 by 240, 1 480 by 360, 2 640 by 480), colors {colors} (0 for 256, 1 for 16-bit), brightness {brightness} (0 to 7), 3D hardware {hardware}, bilinear filtering {bilinear}; switches are 1 on, 0 off"
+    },
+    "options.window_size_set": {
+      "level": "D",
+      "fields": ["multi", "window", "res", "reason"],
+      "text": "Video set {multi} (0 single player, 1 multiplayer): the flight view size became {window} (0 320 by 240, 1 480 by 360, 2 640 by 480) because of {reason} (resolution: screen resolution {res} was picked and the view size follows it; clamp: a view size larger than screen resolution {res} was picked and was lowered to it)"
+    },
+    "options.written": {
+      "level": "I",
+      "fields": [],
+      "text": "The game options were saved to the player's settings file, with the current pilot as the last pilot (at a flight launch, after a flight, when the configuration screen closes, and at quit)"
     },
     "player.awaiting_craft": {
       "level": "D",

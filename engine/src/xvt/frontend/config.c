@@ -35,6 +35,7 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The joystick action list read from joystick.txt: each entry's action code,
  * name and description. config_load_joystick_action_dictionary fills it when the
@@ -267,6 +268,8 @@ int config_options_datapad_update(int frame_counter)
 		front_image_draw_sprite_translucent("configoverlay", 0, 0);
 		frontend_display_unlock_offscreen_surface(1);
 		frontend_text_start_text_fade_in(20);
+		XVT_LOG_INFO("options.opened mode=%d",
+			     (int)g_frontend_mission_session_mode);
 	}
 
 	switch (g_config_current_page) {
@@ -361,6 +364,9 @@ int config_options_datapad_update(int frame_counter)
 		dismiss_requested |= net_poll_for_player_created_or_backlog();
 	}
 	if (dismiss_requested != 0) {
+		XVT_LOG_INFO("options.closed page=%d mode=%d by=\"done\"",
+			     g_config_current_page,
+			     (int)g_frontend_mission_session_mode);
 		config_write();
 		g_active_text_field_id = 0;
 		keyboard_flush_char_buffer();
@@ -475,6 +481,11 @@ void config_draw_screen_resolution_option_row(int is_multiplayer)
 	    previous_screen_resolution) {
 		g_game_config.window_size[is_multiplayer] =
 			g_game_config.screen_res[is_multiplayer];
+		XVT_LOG_DEBUG(
+			"options.window_size_set multi=%d window=%d res=%d reason=\"resolution\"",
+			is_multiplayer,
+			(int)g_game_config.window_size[is_multiplayer],
+			(int)g_game_config.screen_res[is_multiplayer]);
 	}
 }
 
@@ -497,6 +508,11 @@ void config_draw_window_size_option_row(int config_index)
 	    g_game_config.screen_res[config_index]) {
 		g_game_config.window_size[config_index] =
 			g_game_config.screen_res[config_index];
+		XVT_LOG_DEBUG(
+			"options.window_size_set multi=%d window=%d res=%d reason=\"clamp\"",
+			config_index,
+			(int)g_game_config.window_size[config_index],
+			(int)g_game_config.screen_res[config_index]);
 	}
 }
 
@@ -733,6 +749,9 @@ void config_draw_use3d_hardware_option_row(int config_index)
 		    previous_use3d_hardware &&
 	    g_game_config.use3d_hardware[config_index] != 0) {
 		g_game_config.color_depth_choice[config_index] = 1;
+		XVT_LOG_DEBUG(
+			"options.colors_set multi=%d colors=%d", config_index,
+			(int)g_game_config.color_depth_choice[config_index]);
 	}
 }
 
@@ -858,6 +877,14 @@ void config_draw_two_choice_option_impl(uint8_t *value, const struct RECT *rect,
 					12 * g_game_config.sfx_datapad_volume,
 					63);
 			}
+			if (*value != option_index) {
+				XVT_LOG_DEBUG(
+					"options.choice_set widget=\"two\" page=%d label=%d x=%d y=%d value=%d was=%d",
+					g_config_current_page,
+					(int)value_base_str_id, (int)rect->left,
+					(int)rect->top, option_index,
+					(int)*value);
+			}
 			*value = (uint8_t)option_index;
 		}
 		if (*value == option_index) {
@@ -928,6 +955,10 @@ void config_draw_three_choice_option(uint8_t *value, const struct RECT *rect,
 				"configsound", 1, 0, 255,
 				12 * g_game_config.sfx_datapad_volume, 63);
 		}
+		XVT_LOG_DEBUG(
+			"options.choice_set widget=\"three\" page=%d label=%d x=%d y=%d value=%d was=%d",
+			g_config_current_page, (int)value_base_str_id,
+			(int)rect->left, (int)rect->top, 0, (int)*value);
 		*value = 0;
 	}
 	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
@@ -953,6 +984,10 @@ void config_draw_three_choice_option(uint8_t *value, const struct RECT *rect,
 				"configsound", 1, 0, 255,
 				12 * g_game_config.sfx_datapad_volume, 63);
 		}
+		XVT_LOG_DEBUG(
+			"options.choice_set widget=\"three\" page=%d label=%d x=%d y=%d value=%d was=%d",
+			g_config_current_page, (int)value_base_str_id,
+			(int)rect->left, (int)rect->top, 1, (int)*value);
 		*value = 1;
 	}
 	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
@@ -975,6 +1010,10 @@ void config_draw_three_choice_option(uint8_t *value, const struct RECT *rect,
 				"configsound", 1, 0, 255,
 				12 * g_game_config.sfx_datapad_volume, 63);
 		}
+		XVT_LOG_DEBUG(
+			"options.choice_set widget=\"three\" page=%d label=%d x=%d y=%d value=%d was=%d",
+			g_config_current_page, (int)value_base_str_id,
+			(int)rect->left, (int)rect->top, 2, (int)*value);
 		*value = 2;
 	}
 	frontend_draw_rect_offset_xy(&option_rect, 0, 15);
@@ -1062,6 +1101,13 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 				"configsound", 1, 0, 255,
 				12 * g_game_config.sfx_datapad_volume, 63);
 		}
+		if (*value != value_count - 1) {
+			XVT_LOG_DEBUG(
+				"options.choice_set widget=\"slider\" page=%d label=%d x=%d y=%d value=%d was=%d",
+				g_config_current_page, (int)range_label_id,
+				(int)rect->left, (int)rect->top,
+				value_count - 1, (int)*value);
+		}
 		*value = (uint8_t)(value_count - 1);
 		frontend_draw_rect_offset_xy(rect, -2, 0);
 		return;
@@ -1075,6 +1121,13 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 			frontend_sound_play_ui_sound(
 				"configsound", 1, 0, 255,
 				12 * g_game_config.sfx_datapad_volume, 63);
+		}
+		if (*value != 0) {
+			XVT_LOG_DEBUG(
+				"options.choice_set widget=\"slider\" page=%d label=%d x=%d y=%d value=%d was=%d",
+				g_config_current_page, (int)range_label_id,
+				(int)rect->left, (int)rect->top, 0,
+				(int)*value);
 		}
 		*value = 0;
 		frontend_draw_rect_offset_xy(rect, -2, 0);
@@ -1103,6 +1156,13 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 		frontend_sound_play_ui_sound(
 			"configsound", 1, 0, 255,
 			12 * g_game_config.sfx_datapad_volume, 63);
+	}
+	if (*value != option_index + 1) {
+		XVT_LOG_DEBUG(
+			"options.choice_set widget=\"slider\" page=%d label=%d x=%d y=%d value=%d was=%d",
+			g_config_current_page, (int)range_label_id,
+			(int)rect->left, (int)rect->top, option_index + 1,
+			(int)*value);
 	}
 	*value = (uint8_t)(option_index + 1);
 	frontend_draw_rect_offset_xy(rect, -2, 0);
@@ -1248,6 +1308,111 @@ void config_load(void)
 		if (!xvt_config_apply(&g_game_config, error, sizeof(error))) {
 			xvt_storage_fatal(error, 1);
 		}
+		XVT_LOG_INFO("options.loaded");
+		XVT_LOG_DEBUG(
+			"options.video multi=%d backdrop=%d stars=%d debris=%d lights=%d specular=%d diffuse=%d dither=%d textures=%d mipmap=%d detail=%d res=%d window=%d colors=%d brightness=%d hardware=%d bilinear=%d site=\"load\"",
+			0, (int)g_game_config.backdrop[0],
+			(int)g_game_config.star_density[0],
+			(int)g_game_config.debris[0],
+			(int)g_game_config.local_lights[0],
+			(int)g_game_config.specular[0],
+			(int)g_game_config.diffuse[0],
+			(int)g_game_config.dither[0],
+			(int)g_game_config.texture_res[0],
+			(int)g_game_config.mipmap[0], (int)g_game_config.lod[0],
+			(int)g_game_config.screen_res[0],
+			(int)g_game_config.window_size[0],
+			(int)g_game_config.color_depth_choice[0],
+			(int)g_game_config.brightness[0],
+			(int)g_game_config.use3d_hardware[0],
+			(int)g_game_config.bilinear[0]);
+		XVT_LOG_DEBUG(
+			"options.video multi=%d backdrop=%d stars=%d debris=%d lights=%d specular=%d diffuse=%d dither=%d textures=%d mipmap=%d detail=%d res=%d window=%d colors=%d brightness=%d hardware=%d bilinear=%d site=\"load\"",
+			1, (int)g_game_config.backdrop[1],
+			(int)g_game_config.star_density[1],
+			(int)g_game_config.debris[1],
+			(int)g_game_config.local_lights[1],
+			(int)g_game_config.specular[1],
+			(int)g_game_config.diffuse[1],
+			(int)g_game_config.dither[1],
+			(int)g_game_config.texture_res[1],
+			(int)g_game_config.mipmap[1], (int)g_game_config.lod[1],
+			(int)g_game_config.screen_res[1],
+			(int)g_game_config.window_size[1],
+			(int)g_game_config.color_depth_choice[1],
+			(int)g_game_config.brightness[1],
+			(int)g_game_config.use3d_hardware[1],
+			(int)g_game_config.bilinear[1]);
+		XVT_LOG_DEBUG(
+			"options.sound exterior=%d interior=%d engine=%d menu_sounds=%d pilot_msgs=%d officer_msgs=%d commander_msgs=%d special_msgs=%d music=%d menu_volume=%d exterior_volume=%d interior_volume=%d engine_volume=%d voice_volume=%d music_volume=%d menu_music=%d site=\"load\"",
+			(int)g_game_config.sfx_exterior_enabled,
+			(int)g_game_config.sfx_interior_enabled,
+			(int)g_game_config.sfx_engine_enabled,
+			(int)g_game_config.sfx_datapad_enabled,
+			(int)g_game_config.voice_pilot_level,
+			(int)g_game_config.voice_tactical_officer_level,
+			(int)g_game_config.voice_commander_enabled,
+			(int)g_game_config.voice_special_enabled,
+			(int)g_game_config.music_enabled,
+			(int)g_game_config.sfx_datapad_volume,
+			(int)g_game_config.sfx_exterior_volume,
+			(int)g_game_config.sfx_interior_volume,
+			(int)g_game_config.sfx_engine_volume,
+			(int)g_game_config.voice_volume,
+			(int)g_game_config.music_volume,
+			(int)g_game_config.datapad_music_enabled);
+		XVT_LOG_DEBUG(
+			"options.game difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"load\"",
+			(int)g_game_config.difficulty,
+			(int)g_game_config.random_setup,
+			(int)g_game_config.battle_length_index,
+			(int)g_game_config.craft_waves,
+			(int)g_game_config.craft_selection,
+			(int)g_game_config.mission_time_limit,
+			(int)g_game_config.last_team_time_limit_minutes,
+			(int)g_game_config.collisions,
+			(int)g_game_config.craft_jumping,
+			(int)g_game_config.require_password,
+			(int)g_game_config.in_progress_join,
+			(int)g_game_config.locate_players,
+			(int)g_game_config.ai_opponents,
+			(int)g_game_config.combat_balance,
+			(int)g_game_config.continue_battle_or_campaign);
+		XVT_LOG_DEBUG(
+			"options.session type=%d internet=%d rate=%d seed=%u help=%d password_set=%d taunts=%d last_pilot=\"%s\" site=\"load\"",
+			(int)g_game_config.network_type,
+			(int)g_game_config.internet_play,
+			(int)g_game_config.server_update_rate,
+			(unsigned)g_game_config.random_seed,
+			(int)g_game_config.help_on,
+			(int)(g_game_config.password[0] != '\0'),
+			(g_game_config.taunts[0][0] != '\0') +
+				(g_game_config.taunts[1][0] != '\0') +
+				(g_game_config.taunts[2][0] != '\0') +
+				(g_game_config.taunts[3][0] != '\0'),
+			g_game_config.last_pilot_name);
+		XVT_LOG_DEBUG(
+			"options.buttons b1=%d b2=%d b3=%d b4=%d b5=%d b6=%d b7=%d b8=%d b9=%d b10=%d b11=%d b12=%d b13=%d b14=%d b15=%d b16=%d b17=%d b18=%d b19=%d b20=%d site=\"load\"",
+			(int)g_game_config.joy_buttons[0],
+			(int)g_game_config.joy_buttons[1],
+			(int)g_game_config.joy_buttons[2],
+			(int)g_game_config.joy_buttons[3],
+			(int)g_game_config.joy_buttons[4],
+			(int)g_game_config.joy_buttons[5],
+			(int)g_game_config.joy_buttons[6],
+			(int)g_game_config.joy_buttons[7],
+			(int)g_game_config.joy_buttons[8],
+			(int)g_game_config.joy_buttons[9],
+			(int)g_game_config.joy_buttons[10],
+			(int)g_game_config.joy_buttons[11],
+			(int)g_game_config.joy_buttons[12],
+			(int)g_game_config.joy_buttons[13],
+			(int)g_game_config.joy_buttons[14],
+			(int)g_game_config.joy_buttons[15],
+			(int)g_game_config.joy_buttons[16],
+			(int)g_game_config.joy_buttons[17],
+			(int)g_game_config.joy_buttons[18],
+			(int)g_game_config.joy_buttons[19]);
 	}
 	return;
 #else
@@ -1603,10 +1768,108 @@ void config_write(void)
 	snprintf(g_game_config.last_pilot_name,
 		 sizeof(g_game_config.last_pilot_name), "%s",
 		 g_pilot_data.name);
+	XVT_LOG_DEBUG(
+		"options.video multi=%d backdrop=%d stars=%d debris=%d lights=%d specular=%d diffuse=%d dither=%d textures=%d mipmap=%d detail=%d res=%d window=%d colors=%d brightness=%d hardware=%d bilinear=%d site=\"write\"",
+		0, (int)g_game_config.backdrop[0],
+		(int)g_game_config.star_density[0],
+		(int)g_game_config.debris[0],
+		(int)g_game_config.local_lights[0],
+		(int)g_game_config.specular[0], (int)g_game_config.diffuse[0],
+		(int)g_game_config.dither[0], (int)g_game_config.texture_res[0],
+		(int)g_game_config.mipmap[0], (int)g_game_config.lod[0],
+		(int)g_game_config.screen_res[0],
+		(int)g_game_config.window_size[0],
+		(int)g_game_config.color_depth_choice[0],
+		(int)g_game_config.brightness[0],
+		(int)g_game_config.use3d_hardware[0],
+		(int)g_game_config.bilinear[0]);
+	XVT_LOG_DEBUG(
+		"options.video multi=%d backdrop=%d stars=%d debris=%d lights=%d specular=%d diffuse=%d dither=%d textures=%d mipmap=%d detail=%d res=%d window=%d colors=%d brightness=%d hardware=%d bilinear=%d site=\"write\"",
+		1, (int)g_game_config.backdrop[1],
+		(int)g_game_config.star_density[1],
+		(int)g_game_config.debris[1],
+		(int)g_game_config.local_lights[1],
+		(int)g_game_config.specular[1], (int)g_game_config.diffuse[1],
+		(int)g_game_config.dither[1], (int)g_game_config.texture_res[1],
+		(int)g_game_config.mipmap[1], (int)g_game_config.lod[1],
+		(int)g_game_config.screen_res[1],
+		(int)g_game_config.window_size[1],
+		(int)g_game_config.color_depth_choice[1],
+		(int)g_game_config.brightness[1],
+		(int)g_game_config.use3d_hardware[1],
+		(int)g_game_config.bilinear[1]);
+	XVT_LOG_DEBUG(
+		"options.sound exterior=%d interior=%d engine=%d menu_sounds=%d pilot_msgs=%d officer_msgs=%d commander_msgs=%d special_msgs=%d music=%d menu_volume=%d exterior_volume=%d interior_volume=%d engine_volume=%d voice_volume=%d music_volume=%d menu_music=%d site=\"write\"",
+		(int)g_game_config.sfx_exterior_enabled,
+		(int)g_game_config.sfx_interior_enabled,
+		(int)g_game_config.sfx_engine_enabled,
+		(int)g_game_config.sfx_datapad_enabled,
+		(int)g_game_config.voice_pilot_level,
+		(int)g_game_config.voice_tactical_officer_level,
+		(int)g_game_config.voice_commander_enabled,
+		(int)g_game_config.voice_special_enabled,
+		(int)g_game_config.music_enabled,
+		(int)g_game_config.sfx_datapad_volume,
+		(int)g_game_config.sfx_exterior_volume,
+		(int)g_game_config.sfx_interior_volume,
+		(int)g_game_config.sfx_engine_volume,
+		(int)g_game_config.voice_volume,
+		(int)g_game_config.music_volume,
+		(int)g_game_config.datapad_music_enabled);
+	XVT_LOG_DEBUG(
+		"options.game difficulty=%d random=%d length=%d waves=%d selection=%d time_limit=%d team_limit=%d collisions=%d jumping=%d password=%d join=%d locate=%d ai=%d balance=%d continue=%d site=\"write\"",
+		(int)g_game_config.difficulty, (int)g_game_config.random_setup,
+		(int)g_game_config.battle_length_index,
+		(int)g_game_config.craft_waves,
+		(int)g_game_config.craft_selection,
+		(int)g_game_config.mission_time_limit,
+		(int)g_game_config.last_team_time_limit_minutes,
+		(int)g_game_config.collisions, (int)g_game_config.craft_jumping,
+		(int)g_game_config.require_password,
+		(int)g_game_config.in_progress_join,
+		(int)g_game_config.locate_players,
+		(int)g_game_config.ai_opponents,
+		(int)g_game_config.combat_balance,
+		(int)g_game_config.continue_battle_or_campaign);
+	XVT_LOG_DEBUG(
+		"options.session type=%d internet=%d rate=%d seed=%u help=%d password_set=%d taunts=%d last_pilot=\"%s\" site=\"write\"",
+		(int)g_game_config.network_type,
+		(int)g_game_config.internet_play,
+		(int)g_game_config.server_update_rate,
+		(unsigned)g_game_config.random_seed, (int)g_game_config.help_on,
+		(int)(g_game_config.password[0] != '\0'),
+		(g_game_config.taunts[0][0] != '\0') +
+			(g_game_config.taunts[1][0] != '\0') +
+			(g_game_config.taunts[2][0] != '\0') +
+			(g_game_config.taunts[3][0] != '\0'),
+		g_game_config.last_pilot_name);
+	XVT_LOG_DEBUG(
+		"options.buttons b1=%d b2=%d b3=%d b4=%d b5=%d b6=%d b7=%d b8=%d b9=%d b10=%d b11=%d b12=%d b13=%d b14=%d b15=%d b16=%d b17=%d b18=%d b19=%d b20=%d site=\"write\"",
+		(int)g_game_config.joy_buttons[0],
+		(int)g_game_config.joy_buttons[1],
+		(int)g_game_config.joy_buttons[2],
+		(int)g_game_config.joy_buttons[3],
+		(int)g_game_config.joy_buttons[4],
+		(int)g_game_config.joy_buttons[5],
+		(int)g_game_config.joy_buttons[6],
+		(int)g_game_config.joy_buttons[7],
+		(int)g_game_config.joy_buttons[8],
+		(int)g_game_config.joy_buttons[9],
+		(int)g_game_config.joy_buttons[10],
+		(int)g_game_config.joy_buttons[11],
+		(int)g_game_config.joy_buttons[12],
+		(int)g_game_config.joy_buttons[13],
+		(int)g_game_config.joy_buttons[14],
+		(int)g_game_config.joy_buttons[15],
+		(int)g_game_config.joy_buttons[16],
+		(int)g_game_config.joy_buttons[17],
+		(int)g_game_config.joy_buttons[18],
+		(int)g_game_config.joy_buttons[19]);
 	char error[512];
 	if (!xvt_config_write(&g_game_config, error, sizeof(error))) {
 		xvt_storage_fatal(error, 1);
 	}
+	XVT_LOG_INFO("options.written");
 #else
 
 	strncpy(g_game_config.last_pilot_name, g_pilot_data.name,
@@ -1909,6 +2172,9 @@ int config_update_navigation_and_restore_defaults(void)
 				return 0;
 			}
 			xvt_frontend_action_finish(XVT_ACTION_OWNER_CONFIG);
+			XVT_LOG_INFO(
+				"options.restore_answered page=%d result=%d",
+				g_config_current_page, result);
 			if (result) {
 #else
 		if (frontend_button_handle_sprite_button(
@@ -1972,6 +2238,10 @@ int config_update_navigation_and_restore_defaults(void)
 						CONFIG_DEFAULT_256_COLORS;
 					g_game_config.use3d_hardware[0] =
 						frontend_display_is_secondary_direct_draw_active();
+					XVT_LOG_DEBUG(
+						"options.hardware_default hardware=%d",
+						(int)g_game_config
+							.use3d_hardware[0]);
 					g_game_config.bilinear[0] =
 						CONFIG_DEFAULT_ENABLED;
 					break;
@@ -2053,6 +2323,11 @@ int config_update_navigation_and_restore_defaults(void)
 						cd_audio_play_track_from_time(
 							CONFIG_DEFAULT_DATAPAD_MUSIC_TRACK,
 							0, 0);
+						XVT_LOG_DEBUG(
+							"options.menu_music on=%d cd_volume=%d reason=\"defaults\"",
+							(int)g_game_config
+								.datapad_music_enabled,
+							(int)CONFIG_DEFAULT_DATAPAD_MUSIC_VOLUME);
 					}
 					break;
 				case CONFIG_PAGE_JOYSTICK:
@@ -2175,6 +2450,8 @@ int config_update_navigation_and_restore_defaults(void)
 			   "jewelsound") != 0) {
 		g_config_draw_static_control_background = 1;
 		g_config_current_page = CONFIG_PAGE_TAUNTS;
+		XVT_LOG_DEBUG("options.page_changed page=%d from=%d",
+			      g_config_current_page, current_page);
 		g_active_text_field_id = 0;
 		frontend_display_lock_offscreen_surface();
 		front_image_draw_sprite_opaque("backconfig", 0, 0);
@@ -2196,6 +2473,8 @@ int config_update_navigation_and_restore_defaults(void)
 		    CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_JOYSTICK_HELD_SLOT,
 		    "jewelsound")) {
 		xvt_port_request_settings();
+		XVT_LOG_DEBUG("options.settings_requested page=%d",
+			      g_config_current_page);
 	}
 #else
 	if (g_config_current_page == CONFIG_PAGE_JOYSTICK) {
@@ -2243,6 +2522,8 @@ int config_update_navigation_and_restore_defaults(void)
 			   "jewelsound") != 0) {
 		g_config_draw_static_control_background = 1;
 		g_config_current_page = CONFIG_PAGE_SOUND;
+		XVT_LOG_DEBUG("options.page_changed page=%d from=%d",
+			      g_config_current_page, current_page);
 		frontend_display_lock_offscreen_surface();
 		front_image_draw_sprite_opaque("backconfig", 0, 0);
 		front_image_draw_sprite("frame", 0, 0);
@@ -2271,6 +2552,8 @@ int config_update_navigation_and_restore_defaults(void)
 			"jewelsound") != 0) {
 		g_config_draw_static_control_background = 1;
 		g_config_current_page = CONFIG_PAGE_MULTIPLAYER_VIDEO;
+		XVT_LOG_DEBUG("options.page_changed page=%d from=%d",
+			      g_config_current_page, current_page);
 		frontend_display_lock_offscreen_surface();
 		front_image_draw_sprite_opaque("backconfig", 0, 0);
 		front_image_draw_sprite("frame", 0, 0);
@@ -2299,6 +2582,8 @@ int config_update_navigation_and_restore_defaults(void)
 			"jewelsound") != 0) {
 		g_config_draw_static_control_background = 1;
 		g_config_current_page = CONFIG_PAGE_SINGLEPLAYER_VIDEO;
+		XVT_LOG_DEBUG("options.page_changed page=%d from=%d",
+			      g_config_current_page, current_page);
 		frontend_display_lock_offscreen_surface();
 		front_image_draw_sprite_opaque("backconfig", 0, 0);
 		front_image_draw_sprite("frame", 0, 0);
@@ -2325,6 +2610,8 @@ int config_update_navigation_and_restore_defaults(void)
 			   "jewelsound") != 0) {
 		keyboard_flush_char_buffer();
 		g_config_current_page = CONFIG_PAGE_NETWORK;
+		XVT_LOG_DEBUG("options.page_changed page=%d from=%d",
+			      g_config_current_page, current_page);
 		g_active_text_field_id = 0;
 		g_config_draw_static_control_background = 1;
 		frontend_display_lock_offscreen_surface();
@@ -2638,6 +2925,9 @@ void config_network_options_screen(void)
 	if (frontend_text_handle_editable_field(&rect, g_game_config.password,
 						16, 2, FONT_LABEL, NULL) != 0) {
 		g_active_text_field_id = 0;
+		XVT_LOG_DEBUG(
+			"options.text_entered field=\"password\" index=%d filled=%d",
+			0, (int)(g_game_config.password[0] != '\0'));
 	}
 
 	frontend_draw_rect_offset_xy(&source_rect, 0, 35);
@@ -2695,6 +2985,11 @@ void config_network_options_screen(void)
 			(uint8_t)((g_game_config.server_update_rate >> 1) - 2);
 		config_draw_three_choice_option(&selected_option, &source_rect,
 						FRONTSTR_744_LOW);
+		if ((g_game_config.server_update_rate & 1) != 0) {
+			XVT_LOG_WARN("options.rate_rounded rate=%d to=%d",
+				     (int)g_game_config.server_update_rate,
+				     (int)(uint8_t)(2 * selected_option + 4));
+		}
 		g_game_config.server_update_rate =
 			(uint8_t)(2 * selected_option + 4);
 	}
@@ -2972,6 +3267,12 @@ void config_sound_options_screen(void)
 	config_draw_two_choice_option(&g_game_config.datapad_music_enabled,
 				      &rect, FRONTSTR_236_OFF);
 	if (g_game_config.datapad_music_enabled != previous_datapad_music) {
+		XVT_LOG_DEBUG(
+			"options.menu_music on=%d cd_volume=%d reason=\"switched\"",
+			(int)g_game_config.datapad_music_enabled,
+			g_game_config.datapad_music_enabled != 0
+				? 0xFFFF * g_game_config.music_volume / 9
+				: 0);
 		if (g_game_config.datapad_music_enabled != 0) {
 			cd_audio_set_aux_volume(0xFFFF *
 						g_game_config.music_volume / 9);
@@ -2993,6 +3294,10 @@ void config_sound_options_screen(void)
 				  FRONTSTR_403_VOLUME_LOW, 1);
 	if (g_game_config.music_volume != previous_volume &&
 	    g_game_config.datapad_music_enabled != 0) {
+		XVT_LOG_DEBUG(
+			"options.menu_music on=%d cd_volume=%d reason=\"volume\"",
+			(int)g_game_config.datapad_music_enabled,
+			0xFFFF * g_game_config.music_volume / 9);
 		cd_audio_set_aux_volume(0xFFFF * g_game_config.music_volume /
 					9);
 	}
@@ -3438,6 +3743,8 @@ int config_load_joystick_action_dictionary(void)
 {
 	xvt_file *stream = file_open("joystick.txt", "r");
 	if (stream == NULL) {
+		XVT_LOG_WARN("options.joystick_list_missing count=%d",
+			     g_joystick_entry_count);
 		return 0;
 	}
 	g_joystick_entry_count = 0;
@@ -3464,6 +3771,15 @@ int config_load_joystick_action_dictionary(void)
 			token[token_length++] = *cursor++;
 		}
 		token[token_length] = '\0';
+		if (*cursor == '\0' && g_frontend_scratch_buffer[0] != 0x1A) {
+			XVT_LOG_WARN(
+				"options.joystick_line_short entry=%d part=\"code\"",
+				g_joystick_entry_count);
+		}
+		if (*cursor == '\0' && g_frontend_scratch_buffer[0] == 0x1A) {
+			XVT_LOG_DEBUG("options.joystick_list_mark entry=%d",
+				      g_joystick_entry_count);
+		}
 		++cursor;
 		g_joystick_entries[g_joystick_entry_count].action_code =
 			atoi(token);
@@ -3478,11 +3794,26 @@ int config_load_joystick_action_dictionary(void)
 		}
 		token[token_length] = '\0';
 		int entry_index = g_joystick_entry_count;
+		if (*cursor == '\0') {
+			XVT_LOG_WARN(
+				"options.joystick_line_short entry=%d part=\"name\"",
+				entry_index);
+		}
+		if (token_length >= 20) {
+			XVT_LOG_WARN(
+				"options.joystick_name_long entry=%d chars=%d",
+				entry_index, token_length);
+		}
 		strcpy(g_joystick_entries[g_joystick_entry_count].name, token);
 		strcpy(g_joystick_entries[entry_index].description, cursor + 1);
 		++g_joystick_entry_count;
 	}
 	file_close(stream);
+	XVT_LOG_DEBUG("options.joystick_list count=%d", g_joystick_entry_count);
+	if (g_joystick_entry_count > 128) {
+		XVT_LOG_WARN("options.joystick_list_overflow count=%d",
+			     g_joystick_entry_count);
+	}
 	return 1;
 }
 
@@ -3667,6 +3998,9 @@ void config_draw_custom_taunts_page(void)
 			if (label_index >= 4) {
 				g_active_text_field_id = 0;
 			}
+			XVT_LOG_DEBUG(
+				"options.text_entered field=\"taunt\" index=%d filled=%d",
+				label_index, (int)((*taunt)[0] != '\0'));
 		}
 		text_y += 35;
 		++taunt;
@@ -3718,11 +4052,19 @@ int credits_update_screen(int frame_counter)
 					    &g_credits_has_more_pages,
 					    &g_credits_page_end_frame,
 					    &g_credits_text_fade_frames) == 0) {
+			XVT_LOG_WARN("credits.missing");
 			frontend_screen_set_callbacks(concourse_update,
 						      concourse_exit);
 			return 0;
 		}
 		frontend_text_start_text_fade_in(200);
+		XVT_LOG_INFO("credits.started");
+		XVT_LOG_DEBUG(
+			"credits.page page=%d buffer=%u end=%d fade=%d logo=%d more=%d",
+			g_credits_page_index, g_credits_buffer_idx,
+			g_credits_page_end_frame, g_credits_text_fade_frames,
+			g_credits_logo_id[g_credits_buffer_idx],
+			g_credits_has_more_pages);
 	}
 	if (g_credits_exit_pending != 0) {
 #ifdef XVT_MODERN
@@ -3835,11 +4177,21 @@ int credits_update_screen(int frame_counter)
 			frontend_text_start_text_fade_in(
 				g_credits_text_fade_frames);
 			++g_credits_page_index;
+			XVT_LOG_DEBUG(
+				"credits.page page=%d buffer=%u end=%d fade=%d logo=%d more=%d",
+				g_credits_page_index, g_credits_buffer_idx,
+				g_credits_page_end_frame,
+				g_credits_text_fade_frames,
+				g_credits_logo_id[g_credits_buffer_idx],
+				g_credits_has_more_pages);
 			if (g_credits_has_more_pages == 0) {
 				cd_audio_disable_loop_current_track();
 			}
 		}
 	} else if (g_credits_page_end_frame <= frame_counter) {
+		XVT_LOG_INFO(
+			"credits.ended reason=\"finished\" page=%d frame=%d key=%d",
+			g_credits_page_index, frame_counter, 0);
 		g_credits_exit_pending = 1;
 		frontend_display_clear_offscreen_surface();
 		cd_audio_fade_aux_volume(0x8000, 0x1000, 2000);
@@ -3849,6 +4201,9 @@ int credits_update_screen(int frame_counter)
 	if (frontend_mouse_get_left_click() != 0 ||
 	    frontend_mouse_get_right_click() != 0 || key == 27 || key == 13 ||
 	    key == 32) {
+		XVT_LOG_INFO(
+			"credits.ended reason=\"skipped\" page=%d frame=%d key=%d",
+			g_credits_page_index, frame_counter, key);
 		g_credits_exit_pending = 1;
 		frontend_display_clear_offscreen_surface();
 		frontend_display_clear_back_buffer();
