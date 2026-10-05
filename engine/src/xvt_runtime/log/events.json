@@ -121,7 +121,7 @@
     "ai.defense_fired": {
       "level": "D",
       "fields": ["object", "weapon_slot", "kind", "target", "component", "projectile", "homing", "ammo", "predicted"],
-      "text": "Computer-flown craft {object} fired defense warhead {projectile} from weapon slot {weapon_slot} at the {kind} in object {target}, aimed at its part {component}, with homing level {homing}; {ammo} rounds remain in the slot, which now waits 20 of the craft's decisions; predicted step {predicted} (1 in a step that is run again later)"
+      "text": "Computer-flown craft {object} fired defense warhead {projectile} from weapon slot {weapon_slot} at the {kind} in object {target} (craft, warhead, explosion or other), aimed at its part {component}, with homing level {homing}; {ammo} rounds remain in the slot, which now waits 20 of the craft's decisions; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.departure_counted": {
       "level": "D",
@@ -131,7 +131,7 @@
     "ai.departure_started": {
       "level": "D",
       "fields": ["object", "fg", "from", "count", "minutes", "seconds", "predicted"],
-      "text": "Computer-flown craft {object} of flight group {fg} began its departure at {minutes}:{seconds} on the mission clock ({from}: own when its group's departure time or condition came, leader when it took this from its leader); {count} craft of its group are now counted as not yet departed; it withdraws when its group's departure delay has passed; predicted step {predicted} (1 in a step that is run again later)"
+      "text": "Computer-flown craft {object} of flight group {fg} began its departure, with its departure clock at {minutes}:{seconds} ({from}: own when its group's departure time or condition came and it set that clock to the mission clock, leader when it took the departure from its leader, which leaves the clock as it was); {count} craft of its group are now counted as not yet departed; it withdraws when its group's departure delay has passed since that clock time; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.docking_counted": {
       "level": "D",
@@ -146,7 +146,7 @@
     "ai.dropoff_group_invalid": {
       "level": "D",
       "fields": ["object", "fg", "order", "group", "groups", "predicted"],
-      "text": "Drop-off order {order} (counted from 0) of computer-flown craft {object}, flight group {fg}, names destination group {group} (counted from 1, 0 for none), outside the mission's {groups} flight groups; the 1997 code went on and read a record past the end of the flight group table; predicted step {predicted} (1 in a step that is run again later)"
+      "text": "Drop-off order {order} (counted from 0) of computer-flown craft {object}, flight group {fg}, names group {group} to deliver (counted from 1, 0 for none), outside the mission's {groups} flight groups; the 1997 code went on and used that group's records (past the end of the tables for 0 or above 48); predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.dropoff_next": {
       "level": "D",
@@ -161,7 +161,7 @@
     "ai.entered_hangar": {
       "level": "I",
       "fields": ["object", "fg", "as", "led_by", "hangar", "outcome", "tick"],
-      "text": "Craft {object} of flight group {fg} flew into the hangar of object {hangar} and left the battle ({as}: own when its own order took it in, follower when it came in behind craft {led_by}, cargo when craft {led_by} carried it in); it was counted as outcome {outcome} (18 into the departure mothership, 19 into the alternate one, 20 into the mothership of the group that captured it); at tick {tick}"
+      "text": "Craft {object} of flight group {fg} flew into the hangar of object {hangar} and left the battle ({as}: own when its own order took it in, follower when it was taken in together with craft {led_by}, cargo when craft {led_by} carried it in); it was counted as outcome {outcome} (18 into the departure mothership, 19 into the alternate one, 20 into the mothership of the group that captured it); at tick {tick}"
     },
     "ai.escort_station_invalid": {
       "level": "D",
@@ -276,7 +276,7 @@
     "ai.order_moved": {
       "level": "D",
       "fields": ["object", "from", "to", "plan", "why", "predicted"],
-      "text": "Computer-flown craft {object} moved from order {from} to order {to} (counted from 0), whose plan for a leader is {plan} ({why}: next after finishing order {from}; skipped to the fourth order by a mission trigger; capture to a later capture order; back to an earlier order it can work on again; leader to follow its leader's order); predicted step {predicted} (1 in a step that is run again later)"
+      "text": "Computer-flown craft {object} moved from order {from} to order {to} (counted from 0), whose plan for a leader is {plan} ({why}: next after finishing order {from}; skipped to the fourth order by a mission trigger; capture to a later order picked by its test for capture plans; back to an earlier order it can work on again; leader to follow its leader's order); predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.orders_done": {
       "level": "D",

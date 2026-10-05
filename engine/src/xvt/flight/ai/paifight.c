@@ -2403,7 +2403,17 @@ int16_t paifight_missiledefenseorder(void)
 									*turret_target_index <
 											g_active_region_craft_object_slot_end
 										? "craft"
-										: "warhead",
+									: g_object_table[*turret_target_index]
+												.mobj
+												->family ==
+											1
+										? "warhead"
+									: g_object_table[*turret_target_index]
+												.mobj
+												->family ==
+											5
+										? "explosion"
+										: "other",
 									(int)*turret_target_index,
 									(int)g_pai_context
 										.controller

@@ -2701,8 +2701,10 @@ int16_t paiorder_stopgohomeorder(void)
 					[g_pai_context.craft_flight_group_index]
 						.outcome_count
 							[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED],
-				(int)g_mission_elapsed_clock.minutes,
-				(int)g_mission_elapsed_clock.seconds,
+				(int)g_cur_craft->ai_flight
+					.depart_clock_minutes,
+				(int)g_cur_craft->ai_flight
+					.depart_clock_seconds,
 				g_flight_sim_side_effects_suppressed);
 		}
 	}
@@ -3286,8 +3288,10 @@ int16_t paiorder_completefolloworder(void)
 					[g_pai_context.craft_flight_group_index]
 						.outcome_count
 							[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED],
-				(int)g_mission_elapsed_clock.minutes,
-				(int)g_mission_elapsed_clock.seconds,
+				(int)g_cur_craft->ai_flight
+					.depart_clock_minutes,
+				(int)g_cur_craft->ai_flight
+					.depart_clock_seconds,
 				g_flight_sim_side_effects_suppressed);
 		}
 	}
