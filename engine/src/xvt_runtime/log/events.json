@@ -1156,7 +1156,7 @@
     "flight.lasers_to_shields": {
       "level": "D",
       "fields": ["slot", "kind", "step", "left", "front", "rear", "limit", "mode", "predicted"],
-      "text": "Player slot {slot} moved {kind} of its laser charge to the shields in steps of {step} energy: {left} charge units were not moved; the shields now hold {front} front and {rear} rear against {limit} a bank, distribution {mode} (0 forward, 1 even, 2 aft); predicted step {predicted} (1 in a step that is run again later)"
+      "text": "Player slot {slot} moved {kind} of its laser charge to the shields in steps of {step} energy: {left} charge units were not moved; the shields now hold {front} front and {rear} rear against {limit} a bank, distribution {mode} (0 forward, 1 even, 2 aft); when {kind} is all, the 1997 code then adds one more transfer step to the shields even if the lasers were empty, with no limit check; predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.launch": {
       "level": "I",
@@ -1276,7 +1276,7 @@
     "flight.request_accepted": {
       "level": "D",
       "fields": ["slot", "request", "by", "param", "target", "throttle", "predicted"],
-      "text": "Player slot {slot} answered request {request} (1 attack my target or the incoming warhead, 4 ignore my target, 5 cover me, 6 head home, 7 wait, 8 go ahead, 9 evade) from player slot {by} (65,535 for the game's own warhead warning), about object {param} (requests 6 to 9 keep an earlier value): its target is now {target} (-1 for none) and its throttle {throttle} (65,535 is full power, -1 without a craft); predicted step {predicted} (1 in a step that is run again later)"
+      "text": "Player slot {slot} answered request {request} (1 attack my target or the incoming warhead, 4 ignore my target, 5 cover me, 6 head home, 7 wait, 8 go ahead, 9 evade) from player slot {by} (65,535 for the game's own warhead warning), about object {param} (requests 6 to 9 keep an earlier value): its target is now {target} (-1 for none; on requests 4 and 9 the old target stays when no craft is found) and its throttle {throttle} (65,535 is full power, -1 without a craft); predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.request_posted": {
       "level": "D",
@@ -1301,7 +1301,7 @@
     "flight.shields_to_lasers": {
       "level": "D",
       "fields": ["slot", "step", "room", "removed", "units", "front", "rear", "mode", "predicted"],
-      "text": "Player slot {slot} moved shield energy to the lasers: {removed} energy came off the shields, which now hold {front} front and {rear} rear (distribution {mode}: 0 forward, 1 even, 2 aft), to fill {units} laser charge units at {step} energy each; the lasers had room for {room} units; predicted step {predicted} (1 in a step that is run again later)"
+      "text": "Player slot {slot} moved shield energy to the lasers: {removed} energy came off the shields, which now hold {front} front and {rear} rear (distribution {mode}: 0 forward, 1 even, 2 aft), dealt round the laser slots as {units} charge units at {step} energy each; the lasers had room for {room} units, and units past that room or dealt to a full slot are lost; predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.speed_matched": {
       "level": "D",
@@ -4061,7 +4061,7 @@
     "player.release_plan_craft": {
       "level": "D",
       "fields": ["slot", "object", "same", "predicted"],
-      "text": "Player slot {slot}'s release of object {object} wrote the order slot and plan to the released craft itself: {same} (0: to another craft, the last one the computer pilots worked on); predicted step {predicted} (1 in a step that is run again later)"
+      "text": "Player slot {slot}'s release of object {object} wrote the order slot and plan to the released craft itself: {same} (0: to another craft, whichever one the game last worked on); predicted step {predicted} (1 in a step that is run again later)"
     },
     "player.roll_mode": {
       "level": "D",
@@ -4491,7 +4491,7 @@
     "results.wave_bonus": {
       "level": "D",
       "fields": ["slot", "entry", "fg", "remaining", "bonus", "score"],
-      "text": "Player slot {slot}, network entry {entry}, earned {bonus} points for the {remaining} craft its flight group {fg} still had to send, its team having met its primary goal; the 1997 code added them to player slot {entry}, whose mission score is now {score} (the same player when slot and entry match)"
+      "text": "For player slot {slot} (network entry {entry}), the 1997 code read player slot {entry}'s flight group {fg}, which still had {remaining} craft to send, and its team, which met its primary goal, and added {bonus} points to player slot {entry}, whose mission score is now {score} (the same player when slot and entry match)"
     },
     "resync.batch_sent": {
       "level": "D",
