@@ -14,6 +14,7 @@
 #include "xvt/frontend/frontend_text.h"
 #include "xvt/input/keyboard.h"
 #include "xvt/net/net.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The confirm dialog's OK label, shown only as the OK button's tooltip; empty
  * picks a layout without it (frontend_dialog_confirm_update_callback). Written as
@@ -198,10 +199,18 @@ int frontend_dialog_confirm_update_callback(int frame_counter)
 		frontend_display_unlock_offscreen_surface(
 			SAVE_OFFSCREEN_BACKUP);
 		frontend_text_start_text_fade_in(TEXT_FADE_FRAMES);
+		XVT_LOG_DEBUG(
+			"dialog.confirm_shown ok=%d cancel=%d line1=\"%s\" line2=\"%s\" line3=\"%s\"",
+			g_front_dialog_okay_label[0] != '\0',
+			g_front_dialog_cancel_label[0] != '\0',
+			g_front_dialog_line1_or_edit, g_front_dialog_line2,
+			g_front_dialog_line3);
 		return 0;
 	}
 
 	if (frontend_dialog_has_network_dismiss_packet() != 0) {
+		XVT_LOG_DEBUG("dialog.network_dismissed frame=%d",
+			      frame_counter);
 		g_dialog_result = 0;
 		finished = 1;
 	}
@@ -470,6 +479,10 @@ int frontend_dialog_create_pilot_name_callback(int frame_counter)
 	}
 
 	if (!accepted || g_front_dialog_line1_or_edit[0] == '\0') {
+		if (accepted) {
+			XVT_LOG_DEBUG("dialog.pilot_name_empty frame=%d",
+				      frame_counter);
+		}
 		return 0;
 	}
 	front_image_free_resource_by_name("backname");

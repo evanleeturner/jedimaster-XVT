@@ -1533,10 +1533,25 @@
       "fields": ["result"],
       "text": "The dialog closed with result {result}"
     },
+    "dialog.confirm_shown": {
+      "level": "D",
+      "fields": ["ok", "cancel", "line1", "line2", "line3"],
+      "text": "The confirm dialog showed {line1} / {line2} / {line3}, with an OK label {ok} and a Cancel label {cancel} (1 set; with neither, a lone OK button)"
+    },
+    "dialog.network_dismissed": {
+      "level": "D",
+      "fields": ["frame"],
+      "text": "A waiting network message closed the confirm dialog after {frame} menu frames, answered as Cancel (the network line before it names the message)"
+    },
     "dialog.opened": {
       "level": "I",
       "fields": [],
       "text": "A dialog opened"
+    },
+    "dialog.pilot_name_empty": {
+      "level": "D",
+      "fields": ["frame"],
+      "text": "Create Pilot was pressed (the button, Enter or Tab) with no name typed, {frame} menu frames into the prompt; the prompt stayed open"
     },
     "display.clear_failed": {
       "level": "W",
