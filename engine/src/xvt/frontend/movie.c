@@ -18,6 +18,7 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt/util/win32.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifdef XVT_MODERN
 #include "aeron/aeron.h"
@@ -1113,6 +1114,8 @@ int movie_play(const char *name, int synchronize_multiplayer)
 	if (xvt_movie_task_take_result(&result)) {
 		return result;
 	}
+	XVT_LOG_DEBUG("movie.requested name=\"%.127s\" sync=%d", name,
+		      synchronize_multiplayer);
 	return xvt_movie_task_begin(name, synchronize_multiplayer);
 #else
 	enum {
@@ -1317,6 +1320,7 @@ int movie_multiplayer_input_callback(int window, unsigned int event_code,
 				packet[1] = 1;
 				net_send_packet_and_flush(0, packet,
 							  sizeof(packet));
+				XVT_LOG_INFO("movie.sync_continued");
 			}
 			break;
 		case 'E':
@@ -1326,6 +1330,7 @@ int movie_multiplayer_input_callback(int window, unsigned int event_code,
 				g_movie_skip_requested = -1;
 				frontend_display_set_wnd_proc_mode(
 					g_movie_previous_wnd_proc_mode);
+				XVT_LOG_INFO("movie.sync_left");
 			}
 			break;
 		default:
@@ -1340,6 +1345,9 @@ int movie_multiplayer_input_callback(int window, unsigned int event_code,
 	default:
 		break;
 	}
+	XVT_LOG_DEBUG("movie.sync_input input_code=%u key=%d stop=%d state=%d",
+		      event_code, key_code, stop_playback,
+		      g_movie_playback_completion_state);
 	if (stop_playback == 1) {
 		packet[0] = NET_PACKET_MOVIE_SYNC;
 		packet[1] = 0;
@@ -1627,6 +1635,10 @@ unsigned int movie_read_subtitle_cue(char *line1, char *line2, char *line3)
 	int scan_result =
 		FILE_SCANF(g_movie_subtitle_file, "%u\n", &frame_number);
 	if (scan_result == 0 || scan_result == EOF) {
+		XVT_LOG_DEBUG("movie.subtitles_ended scanned=%d", scan_result);
+		if (scan_result == 0) {
+			XVT_LOG_WARN("movie.subtitle_cue_invalid");
+		}
 		line1[0] = '\0';
 		return UINT16_MAX;
 	}
@@ -1663,6 +1675,9 @@ unsigned int movie_read_subtitle_cue(char *line1, char *line2, char *line3)
 			line3[0] = '\0';
 		}
 	}
+	XVT_LOG_DEBUG("movie.subtitle_cue frame=%u lines=%d", frame_number,
+		      (line1[0] != '\0') + (line2[0] != '\0') +
+			      (line3[0] != '\0'));
 
 	return frame_number;
 }

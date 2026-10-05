@@ -3548,6 +3548,11 @@
       "fields": ["name"],
       "text": "Cannot open the movie {name}"
     },
+    "movie.requested": {
+      "level": "D",
+      "fields": ["name", "sync"],
+      "text": "The game asked for the movie {name} (to be watched with the other players: {sync}); the movie task starts it"
+    },
     "movie.start": {
       "level": "I",
       "fields": ["path"],
@@ -3557,6 +3562,36 @@
       "level": "I",
       "fields": ["name", "result"],
       "text": "The movie {name} finished with result {result}"
+    },
+    "movie.subtitle_cue": {
+      "level": "D",
+      "fields": ["frame", "lines"],
+      "text": "The next subtitle starts at movie frame {frame} with {lines} lines of text"
+    },
+    "movie.subtitle_cue_invalid": {
+      "level": "W",
+      "fields": [],
+      "text": "A subtitle record of the movie did not start with a frame number; the movie's remaining subtitles were dropped"
+    },
+    "movie.subtitles_ended": {
+      "level": "D",
+      "fields": ["scanned"],
+      "text": "The movie's subtitle file had no further cue (read result {scanned}: -1 the end of the file, 0 a record without a frame number); no more subtitles were shown"
+    },
+    "movie.sync_continued": {
+      "level": "I",
+      "fields": [],
+      "text": "At the timed-out wait after a shared movie, the host pressed C: every player was marked done and the game went on"
+    },
+    "movie.sync_input": {
+      "level": "D",
+      "fields": ["input_code", "key", "stop", "state"],
+      "text": "During a movie watched with the other players, input {input_code} arrived (258 a key, 514 a click) with key {key}; it asked to stop watching: {stop}; the wait state was {state} (0 playing, 1 waiting for the others, 2 the wait timed out)"
+    },
+    "movie.sync_left": {
+      "level": "I",
+      "fields": [],
+      "text": "At the timed-out wait after a shared movie, this player pressed E and left the game"
     },
     "msg.arrival_reported": {
       "level": "D",
