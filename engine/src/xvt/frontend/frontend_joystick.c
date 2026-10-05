@@ -10,6 +10,7 @@
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/frontend/frontend_text.h"
 #include "xvt/input/keyboard.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The joystick slot the centering prompt is waiting on, 0 to 2; 2 ends it.
  * Written only by frontend_joystick_begin_centering_prompt, which sets it to 0 and
@@ -36,6 +37,8 @@ int joystick_init_devices(void)
 {
 	int device_count = (int)joyGetNumDevs();
 	if (device_count == 0) {
+		XVT_LOG_INFO("joystick.detected joysticks=%d devices=%d", 0,
+			     device_count);
 		return 0;
 	}
 	int slot = 0;
@@ -88,6 +91,30 @@ int joystick_init_devices(void)
 					 joystick_info.dwYpos) /
 					255;
 #ifdef XVT_MODERN
+				if (g_front_state.joystick_x_negative_scale
+						    [slot] < 1 ||
+				    g_front_state.joystick_x_positive_scale
+						    [slot] < 1 ||
+				    g_front_state.joystick_y_negative_scale
+						    [slot] < 1 ||
+				    g_front_state.joystick_y_positive_scale
+						    [slot] < 1) {
+					XVT_LOG_WARN(
+						"joystick.scale_raised stick=%d x_neg=%d x_pos=%d y_neg=%d y_pos=%d",
+						slot,
+						g_front_state
+							.joystick_x_negative_scale
+								[slot],
+						g_front_state
+							.joystick_x_positive_scale
+								[slot],
+						g_front_state
+							.joystick_y_negative_scale
+								[slot],
+						g_front_state
+							.joystick_y_positive_scale
+								[slot]);
+				}
 				if (g_front_state
 					    .joystick_x_negative_scale[slot] <
 				    1) {
@@ -116,6 +143,31 @@ int joystick_init_devices(void)
 				g_front_state.joy_device_ids[slot] =
 					(unsigned int)device;
 				g_front_state.joystick_present[slot] = 1;
+				XVT_LOG_DEBUG(
+					"joystick.found stick=%d id=%d buttons=%d pov=%d x_min=%u x_max=%u y_min=%u y_max=%u x_center=%d y_center=%d x_neg=%d x_pos=%d y_neg=%d y_pos=%d",
+					slot, device,
+					(int)g_front_state
+						.joystick_button_count[slot],
+					(int)g_front_state
+						.joystick_has_pov[slot],
+					(unsigned)g_front_state
+						.joystick_x_min[slot],
+					(unsigned)g_front_state
+						.joystick_x_max[slot],
+					(unsigned)g_front_state
+						.joystick_y_min[slot],
+					(unsigned)g_front_state
+						.joystick_y_max[slot],
+					g_front_state.joystick_x_center[slot],
+					g_front_state.joystick_y_center[slot],
+					g_front_state.joystick_x_negative_scale
+						[slot],
+					g_front_state.joystick_x_positive_scale
+						[slot],
+					g_front_state.joystick_y_negative_scale
+						[slot],
+					g_front_state.joystick_y_positive_scale
+						[slot]);
 				++initialized_count;
 				++slot;
 				if (slot >= 2) {
@@ -124,6 +176,8 @@ int joystick_init_devices(void)
 			}
 		}
 	}
+	XVT_LOG_INFO("joystick.detected joysticks=%d devices=%d",
+		     initialized_count, device_count);
 	return initialized_count != 0;
 }
 
@@ -179,6 +233,8 @@ void joystick_update_state(int joy_slot)
 		g_front_state.joystick_axis_x[joy_slot] = 0;
 		g_front_state.joystick_axis_y[joy_slot] = 0;
 		g_front_state.joystick_present[joy_slot] = 0;
+		XVT_LOG_WARN("joystick.lost stick=%d id=%u", joy_slot,
+			     g_front_state.joy_device_ids[joy_slot]);
 		return;
 	}
 #else
@@ -226,6 +282,14 @@ void joystick_update_state(int joy_slot)
 			(joystick_info.dwButtons & button_mask) == 0 &&
 			g_front_state.joystick_button_held[joy_slot]
 							  [button_index] == 1;
+		if (((joystick_info.dwButtons & button_mask) != 0) !=
+		    (g_front_state.joystick_button_held[joy_slot]
+						       [button_index] != 0)) {
+			XVT_LOG_DEBUG(
+				"joystick.button stick=%d button=%d down=%d",
+				joy_slot, button_index,
+				(joystick_info.dwButtons & button_mask) != 0);
+		}
 		g_front_state.joystick_button_held[joy_slot][button_index] =
 			(joystick_info.dwButtons & button_mask) != 0;
 		button_mask <<= 1;
@@ -233,8 +297,24 @@ void joystick_update_state(int joy_slot)
 
 	if (g_front_state.joystick_has_pov[joy_slot] != 0) {
 		if (joystick_info.dwPOV == JOY_POVCENTERED) {
+			if (g_front_state.joystick_pov_direction[joy_slot] !=
+			    0) {
+				XVT_LOG_DEBUG(
+					"joystick.hat stick=%d position=%d",
+					joy_slot, 0);
+			}
 			g_front_state.joystick_pov_direction[joy_slot] = 0;
 		} else {
+			if ((int)g_front_state
+				    .joystick_pov_direction[joy_slot] !=
+			    (int)(uint8_t)(joystick_info.dwPOV / 0x2328u) + 1) {
+				XVT_LOG_DEBUG(
+					"joystick.hat stick=%d position=%d",
+					joy_slot,
+					(int)(uint8_t)(joystick_info.dwPOV /
+						       0x2328u) +
+						1);
+			}
 			g_front_state.joystick_pov_direction[joy_slot] =
 				(uint8_t)(joystick_info.dwPOV / 0x2328u) + 1;
 		}

@@ -2428,6 +2428,36 @@
       "fields": ["slot", "key", "x", "y", "mods"],
       "text": "Player slot {slot}'s recorded input carried action key {key}, with the stick at {x} for turning and {y} for climbing and button bits {mods} (1 fire, 2 target); the simulation step reads each player's input once a step, and the screen reads the local player's input again before each frame it draws"
     },
+    "joystick.button": {
+      "level": "D",
+      "fields": ["stick", "button", "down"],
+      "text": "Joystick {stick} button {button} went {down} (1 pressed, 0 released) at this read; the menus read both joysticks every 100 ms"
+    },
+    "joystick.detected": {
+      "level": "I",
+      "fields": ["joysticks", "devices"],
+      "text": "The menus looked for joysticks and set up {joysticks} of the {devices} the system reported (at start, and again whenever a controller connects or disconnects)"
+    },
+    "joystick.found": {
+      "level": "D",
+      "fields": ["stick", "id", "buttons", "pov", "x_min", "x_max", "y_min", "y_max", "x_center", "y_center", "x_neg", "x_pos", "y_neg", "y_pos"],
+      "text": "Joystick {stick} is system joystick {id}: {buttons} buttons, a hat {pov}; x runs {x_min} to {x_max} centered at {x_center}, y {y_min} to {y_max} centered at {y_center}; one step of the stick reading is {x_neg} and {x_pos} units left and right, {y_neg} and {y_pos} up and down"
+    },
+    "joystick.hat": {
+      "level": "D",
+      "fields": ["stick", "position"],
+      "text": "Joystick {stick}'s hat moved to position {position} (0 centered, 1 forward, 2 right, 3 back, 4 left)"
+    },
+    "joystick.lost": {
+      "level": "W",
+      "fields": ["stick", "id"],
+      "text": "Reading joystick {stick} (system joystick {id}) failed; its buttons and stick were cleared and the slot was marked empty until the next detection"
+    },
+    "joystick.scale_raised": {
+      "level": "W",
+      "fields": ["stick", "x_neg", "x_pos", "y_neg", "y_pos"],
+      "text": "Joystick {stick} was centered less than 255 steps from an end of an axis (scales {x_neg} and {x_pos} for left and right, {y_neg} and {y_pos} for up and down); each scale under 1 was raised to 1 so reading the stick cannot divide by zero"
+    },
     "launch.command": {
       "level": "D",
       "fields": ["command"],
