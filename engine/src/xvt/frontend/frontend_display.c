@@ -32,6 +32,7 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
 #include "xvt_runtime/compat/win_message_port.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifdef XVT_MODERN
 #include "aeron/aeron.h"
@@ -380,6 +381,7 @@ int game_main(void *hInstance, const void *hPrevInstance, char *lpCmdLine,
 // FUNCTION: XVT 0x4D37E0
 HRESULT frontend_display_restore_lost_surfaces(void)
 {
+	XVT_LOG_WARN("display.menu_surfaces_lost");
 	HRESULT result = g_front_state.primary_surface->lpVtbl->Restore(
 		g_front_state.primary_surface);
 	if (result == 0) {
@@ -410,6 +412,11 @@ void frontend_display_shutdown(int b_destroy_window)
 		return;
 	}
 	g_shutdown_complete = 1;
+	XVT_LOG_DEBUG(
+		"display.menu_shutdown screens=%d direct_draw=%d surfaces=%d destroy=%d",
+		g_front_state.screen_stack_top,
+		(int)(g_front_state.direct_draw != NULL),
+		(int)(g_front_state.primary_surface != NULL), b_destroy_window);
 	frontend_sound_shutdown_direct_sound();
 	frontend_text_free_all_fonts();
 	for (int screen_index = 0;
@@ -710,6 +717,7 @@ int frontend_display_report_direct_draw_init_failure(void *hWnd, int stage)
 
 	char message[256];
 	sprintf(message, "DirectDraw Init FAILED at %d", stage);
+	XVT_LOG_ERROR("display.menu_setup_failed stage=%d", stage);
 #ifdef XVT_MODERN
 	options.kind = AERON_MESSAGE_BOX_ERROR;
 	options.title = g_window_name;
@@ -1228,6 +1236,7 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 	SetCursorPos(0, 0);
 #endif
 	if (frontend_sound_init_direct_sound(g_front_state.hWnd) == 0) {
+		XVT_LOG_WARN("frontend.sound_unavailable site=\"start\"");
 		frontend_display_show_game_message_box("Sound not available.");
 	}
 #ifdef XVT_MODERN
@@ -1241,7 +1250,22 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 	if (g_front_state.offscreen_backup_buffer != NULL) {
 		memset(g_front_state.offscreen_backup_buffer, 0,
 		       480 * g_front_state.offscreen_surface_pitch);
+	} else {
+		XVT_LOG_WARN(
+			"display.menu_backup_alloc_failed site=\"start\" bytes=%d",
+			480 * g_front_state.offscreen_surface_pitch);
 	}
+	XVT_LOG_DEBUG(
+		"display.menu_started bpp=%d flip=%d format555=%d back_pitch=%d offscreen_pitch=%d palette=%d configured=%d secondary=%d frame_ms=%d",
+		g_front_state.display_bpp,
+		(int)(g_opt_no_fullscreen == 0 && g_no_page_flip == 0),
+		(int)g_front_state.pixel_format555,
+		g_front_state.back_buffer_pitch,
+		g_front_state.offscreen_surface_pitch,
+		(int)(g_front_state.dd_palette != NULL),
+		(int)(driver_guid != NULL),
+		(int)g_front_state.secondary_direct_draw_active,
+		g_front_state.frame_interval_ms);
 	return 1;
 }
 
@@ -1362,6 +1386,11 @@ uint8_t *frontend_display_lock_back_buffer(void)
 		 lock_result == FRONTEND_DDERR_SURFACEBUSY ||
 		 lock_result == FRONTEND_DDERR_SURFACEISOBSCURED);
 
+	if (lock_result != DX_DD_OK) {
+		XVT_LOG_ERROR(
+			"display.menu_lock_failed surface=\"back_buffer\" result=%#x",
+			(unsigned)lock_result);
+	}
 	g_front_state.back_buffer_locked = 1;
 	return (uint8_t *)g_front_state.back_buffer_desc.lpSurface;
 }
@@ -1455,9 +1484,15 @@ void frontend_display_present_frame(void)
 			if (result == DX_DDERR_SURFACELOST) {
 				if (frontend_display_restore_lost_surfaces() !=
 				    DX_DD_OK) {
+					XVT_LOG_ERROR(
+						"display.menu_present_failed result=%#x",
+						(unsigned)result);
 					return;
 				}
 			} else if (result != DX_DDERR_WASSTILLDRAWING) {
+				XVT_LOG_ERROR(
+					"display.menu_present_failed result=%#x",
+					(unsigned)result);
 				return;
 			}
 		}
@@ -1610,6 +1645,9 @@ void frontend_display_clear_back_buffer(void)
 		if (result == DX_DDERR_SURFACELOST) {
 			if (frontend_display_restore_lost_surfaces() !=
 			    DX_DD_OK) {
+				XVT_LOG_WARN(
+					"display.menu_clear_failed surface=\"back_buffer\" result=%#x",
+					(unsigned)result);
 				if (was_locked != 0) {
 					g_draw_surface_ptr =
 						frontend_display_lock_back_buffer();
@@ -1617,6 +1655,9 @@ void frontend_display_clear_back_buffer(void)
 				return;
 			}
 		} else if (result != DX_DDERR_WASSTILLDRAWING) {
+			XVT_LOG_WARN(
+				"display.menu_clear_failed surface=\"back_buffer\" result=%#x",
+				(unsigned)result);
 			if (was_locked != 0) {
 				g_draw_surface_ptr =
 					frontend_display_lock_back_buffer();
@@ -1728,6 +1769,9 @@ int frontend_display_lock_offscreen_surface(void)
 			g_front_state.offscreen_surface->lpVtbl->Restore(
 				g_front_state.offscreen_surface);
 		} else if (result != DX_DDERR_WASSTILLDRAWING) {
+			XVT_LOG_ERROR(
+				"display.menu_lock_failed surface=\"offscreen\" result=%#x",
+				(unsigned)result);
 			return 0;
 		}
 	}
@@ -1839,6 +1883,9 @@ void frontend_display_clear_offscreen_surface(void)
 		if (result == DX_DDERR_SURFACELOST) {
 			if (frontend_display_restore_lost_surfaces() !=
 			    DX_DD_OK) {
+				XVT_LOG_WARN(
+					"display.menu_clear_failed surface=\"offscreen\" result=%#x",
+					(unsigned)result);
 				if (was_locked != 0) {
 					g_draw_surface_ptr =
 						frontend_display_lock_back_buffer();
@@ -1846,6 +1893,9 @@ void frontend_display_clear_offscreen_surface(void)
 				return;
 			}
 		} else if (result != DX_DDERR_WASSTILLDRAWING) {
+			XVT_LOG_WARN(
+				"display.menu_clear_failed surface=\"offscreen\" result=%#x",
+				(unsigned)result);
 			if (was_locked != 0) {
 				g_draw_surface_ptr =
 					frontend_display_lock_back_buffer();
@@ -2215,6 +2265,13 @@ IDirectDraw *frontend_display_get_direct_draw(void)
 // FUNCTION: XVT 0x4D56B0
 int frontend_display_release_surfaces_for_flight(void)
 {
+	XVT_LOG_DEBUG(
+		"display.menu_surfaces_released screen_surface=%d palette=%d offscreen=%d back_buffer=%d",
+		(int)(g_front_state.primary_surface != NULL),
+		(int)(g_front_state.dd_palette != NULL),
+		(int)(g_front_state.offscreen_surface != NULL),
+		(int)((g_opt_no_fullscreen != 0 || g_no_page_flip != 0) &&
+		      g_front_state.back_buffer_surface != NULL));
 	frontend_display_unlock_back_buffer();
 	frontend_sound_unload_all_buffers();
 	frontend_sound_shutdown_direct_sound();
@@ -2398,6 +2455,8 @@ int frontend_display_reinit_surfaces(void)
 	frontend_display_clear_back_buffer();
 	frontend_display_present_frame();
 	if (frontend_sound_init_direct_sound(g_front_state.hWnd) == 0) {
+		XVT_LOG_WARN(
+			"frontend.sound_unavailable site=\"after_flight\"");
 		frontend_display_show_game_message_box("Sound not available.");
 	}
 	g_draw_surface_ptr = frontend_display_lock_back_buffer();
@@ -2407,8 +2466,20 @@ int frontend_display_reinit_surfaces(void)
 		if (g_front_state.offscreen_backup_buffer != NULL) {
 			memset(g_front_state.offscreen_backup_buffer, 0,
 			       480 * g_front_state.offscreen_surface_pitch);
+		} else {
+			XVT_LOG_WARN(
+				"display.menu_backup_alloc_failed site=\"after_flight\" bytes=%d",
+				480 * g_front_state.offscreen_surface_pitch);
 		}
 	}
+	XVT_LOG_DEBUG(
+		"display.menu_rebuilt bpp=%d flip=%d format555=%d back_pitch=%d offscreen_pitch=%d palette=%d",
+		g_front_state.display_bpp,
+		(int)(g_opt_no_fullscreen == 0 && g_no_page_flip == 0),
+		(int)g_front_state.pixel_format555,
+		g_front_state.back_buffer_pitch,
+		g_front_state.offscreen_surface_pitch,
+		(int)(g_front_state.dd_palette != NULL));
 	return 1;
 }
 
@@ -2471,6 +2542,9 @@ const DxGuid *frontend_display_load_driver_guid(void)
 		file_read_bytes(stream, &g_configured_direct_draw_driver_guid,
 				sizeof(g_configured_direct_draw_driver_guid));
 	file_close(stream);
+	if (read_succeeded == 0) {
+		XVT_LOG_WARN("display.menu_driver_file_short");
+	}
 	return read_succeeded != 0 ? &g_configured_direct_draw_driver_guid
 				   : NULL;
 }

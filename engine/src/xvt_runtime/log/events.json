@@ -1563,6 +1563,61 @@
       "fields": ["surface", "result", "count"],
       "text": "Locking the {surface} for drawing failed with code {result}; the lock count was left raised at {count} (always 1 here: a lock is tried only when none is held), and drawing went on through the last locked surface's pixel pointers"
     },
+    "display.menu_backup_alloc_failed": {
+      "level": "W",
+      "fields": ["site", "bytes"],
+      "text": "The {bytes}-byte copy of the menus' offscreen picture could not be allocated (at {site}: start, or after_flight); the menus went on without it, so that picture is neither saved nor put back"
+    },
+    "display.menu_clear_failed": {
+      "level": "W",
+      "fields": ["surface", "result"],
+      "text": "The menus' {surface} was not cleared (code {result}); it may still show old pixels"
+    },
+    "display.menu_driver_file_short": {
+      "level": "W",
+      "fields": [],
+      "text": "video.cfg opened but did not hold a whole display driver id; the menus used the default display driver"
+    },
+    "display.menu_lock_failed": {
+      "level": "E",
+      "fields": ["surface", "result"],
+      "text": "Locking the menus' {surface} for drawing failed with code {result}. The back buffer was then marked locked anyway and drawing went on through the pointer its last lock gave (when there was none, the game stops); after a failed offscreen lock, drawing stayed on the back buffer"
+    },
+    "display.menu_present_failed": {
+      "level": "E",
+      "fields": ["result"],
+      "text": "Copying the menu frame to the screen failed with code {result}; the frame was not shown, and the offscreen picture was not put back nor the back buffer cleared for the next frame"
+    },
+    "display.menu_rebuilt": {
+      "level": "D",
+      "fields": ["bpp", "flip", "format555", "back_pitch", "offscreen_pitch", "palette"],
+      "text": "After the flight the menu display was set up again at 640x480 and {bpp} bits per pixel: page flipping {flip} (0 when the back buffer is copied to the screen instead), 5-5-5 pixels {format555} (0 for 5-6-5; 1 also at 8 bits), rows of {back_pitch} bytes in the back buffer and {offscreen_pitch} in the offscreen surface, a palette made {palette}"
+    },
+    "display.menu_setup_failed": {
+      "level": "E",
+      "fields": ["stage"],
+      "text": "Setting up the menu display failed at step {stage} (0 creating DirectDraw, 1 the cooperative level, 2 the 640x480 display mode, 3 the screen surface, 4 the back buffer, 5 the offscreen surface, 6 loading the size-20 font); an error box said so and the menu display was shut down"
+    },
+    "display.menu_shutdown": {
+      "level": "D",
+      "fields": ["screens", "direct_draw", "surfaces", "destroy"],
+      "text": "The menu display shut down: the saved pictures under {screens} stacked screens were freed with the fonts, images, sound tables and menu text; DirectDraw was still open {direct_draw}, the menu surfaces were still there {surfaces} (0 after a flight took them and they were not rebuilt), and closing the window was asked {destroy} (this version only lets go of the window)"
+    },
+    "display.menu_started": {
+      "level": "D",
+      "fields": ["bpp", "flip", "format555", "back_pitch", "offscreen_pitch", "palette", "configured", "secondary", "frame_ms"],
+      "text": "The menu display was set up at 640x480 and {bpp} bits per pixel: page flipping {flip} (0 when the back buffer is copied to the screen instead), 5-5-5 pixels {format555} (0 for 5-6-5; 1 also at 8 bits), rows of {back_pitch} bytes in the back buffer and {offscreen_pitch} in the offscreen surface, a palette made {palette}; a display driver named in video.cfg {configured}, DirectDraw made on that driver {secondary}; one menu frame every {frame_ms} ms"
+    },
+    "display.menu_surfaces_lost": {
+      "level": "W",
+      "fields": [],
+      "text": "A menu drawing surface was found lost, so the screen surface was restored and, when that worked, the back buffer (or, with page flipping, the offscreen surface); a failure that followed is told on its own line"
+    },
+    "display.menu_surfaces_released": {
+      "level": "D",
+      "fields": ["screen_surface", "palette", "offscreen", "back_buffer"],
+      "text": "Before the flight the menus let go of their display surfaces: the screen surface {screen_surface}, the palette {palette}, the offscreen surface {offscreen} and the separate back buffer {back_buffer} (1 for each one there to release); DirectDraw and the window were kept"
+    },
     "display.mode_refused": {
       "level": "D",
       "fields": ["width", "height", "bpp", "result"],
@@ -2167,6 +2222,11 @@
       "level": "D",
       "fields": ["control", "count"],
       "text": "Scrollbar {control} was not added to the keyboard focus list: all {count} places were taken"
+    },
+    "frontend.sound_unavailable": {
+      "level": "W",
+      "fields": ["site"],
+      "text": "Sound could not be started for the menus (at {site}: start, or after_flight); the player was told sound is not available and the menus went on without it"
     },
     "hud.alert_closed": {
       "level": "D",
