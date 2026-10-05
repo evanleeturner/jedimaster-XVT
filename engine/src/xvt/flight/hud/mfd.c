@@ -24,6 +24,7 @@
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The MFD page that has the keyboard focus, an mfd_page_id, MFD_PAGE_NONE when
  * none: the up and down keys scroll it and it gets the bright border. Many
@@ -505,6 +506,10 @@ int16_t mfd_draw_mission_goals_page(void)
 				g_mfd_secondary_page =
 					mfd_find_secondary_open_page();
 			}
+			XVT_LOG_DEBUG(
+				"mfd.page_closed page=%d active=%d secondary=%d",
+				(int)MFD_PAGE_GOALS, (int)g_mfd_active_page,
+				(int)g_mfd_secondary_page);
 			flight_sw_set_render_target(NULL, SCREEN_WIDTH,
 						    SCREEN_HEIGHT, 0);
 			return 0;
@@ -544,6 +549,12 @@ int16_t mfd_draw_mission_goals_page(void)
 				if (scroll_top > 0) {
 					g_mfd_goals_redraw_needed = 1;
 					--scroll_top;
+					XVT_LOG_DEBUG(
+						"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+						(int)MFD_PAGE_GOALS,
+						(unsigned)g_current_action_key,
+						scroll_top,
+						g_mfd_goals_current_total_lines);
 				}
 				break;
 			case FLIGHT_KEY_DOWN:
@@ -552,6 +563,12 @@ int16_t mfd_draw_mission_goals_page(void)
 				    scroll_top) {
 					g_mfd_goals_redraw_needed = 1;
 					++scroll_top;
+					XVT_LOG_DEBUG(
+						"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+						(int)MFD_PAGE_GOALS,
+						(unsigned)g_current_action_key,
+						scroll_top,
+						g_mfd_goals_current_total_lines);
 				}
 				break;
 			}
@@ -1300,6 +1317,8 @@ int16_t mfd_draw_mission_goals_page(void)
 	if (g_players[g_local_player].map_camera_state == 0 &&
 	    g_mfd_active_page == MFD_PAGE_NONE) {
 		g_mfd_active_page = MFD_PAGE_GOALS;
+		XVT_LOG_DEBUG("mfd.page_activated page=%d secondary=%d",
+			      (int)MFD_PAGE_GOALS, (int)g_mfd_secondary_page);
 	}
 	if (g_mfd_active_page == MFD_PAGE_GOALS) {
 		flight_text_set_background_color(COLOR_ACTIVE_PAGE);
@@ -1608,6 +1627,11 @@ void mfd_draw_mission_scoreboard_page(void)
 				g_mfd_secondary_page =
 					mfd_find_secondary_open_page();
 			}
+			XVT_LOG_DEBUG(
+				"mfd.page_closed page=%d active=%d secondary=%d",
+				(int)MFD_PAGE_SCOREBOARD,
+				(int)g_mfd_active_page,
+				(int)g_mfd_secondary_page);
 			g_mfd_mission_scoreboard_last_width = 0;
 			g_mfd_mission_scoreboard_last_player_count = 0;
 			flight_sw_set_render_target(NULL, DEFAULT_SCREEN_WIDTH,
@@ -1662,6 +1686,9 @@ void mfd_draw_mission_scoreboard_page(void)
 	if (g_players[g_local_player].map_camera_state == 0 &&
 	    g_mfd_active_page == MFD_PAGE_NONE) {
 		g_mfd_active_page = MFD_PAGE_SCOREBOARD;
+		XVT_LOG_DEBUG("mfd.page_activated page=%d secondary=%d",
+			      (int)MFD_PAGE_SCOREBOARD,
+			      (int)g_mfd_secondary_page);
 	}
 	if (g_mfd_active_page == MFD_PAGE_SCOREBOARD) {
 		flight_text_set_background_color(COLOR_ACTIVE_PAGE);
@@ -1742,6 +1769,12 @@ void mfd_draw_mission_scoreboard_page(void)
 		case FLIGHT_KEY_UP:
 			if (g_mfd_mission_scoreboard_first_visible_row > 0) {
 				--g_mfd_mission_scoreboard_first_visible_row;
+				XVT_LOG_DEBUG(
+					"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+					(int)MFD_PAGE_SCOREBOARD,
+					(unsigned)g_current_action_key,
+					(int)g_mfd_mission_scoreboard_first_visible_row,
+					entry_count);
 			}
 			break;
 		case FLIGHT_KEY_DOWN:
@@ -1750,6 +1783,12 @@ void mfd_draw_mission_scoreboard_page(void)
 				if ((top - bottom_y) / line_step + team_count >=
 				    g_mfd_mission_scoreboard_first_visible_row) {
 					++g_mfd_mission_scoreboard_first_visible_row;
+					XVT_LOG_DEBUG(
+						"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+						(int)MFD_PAGE_SCOREBOARD,
+						(unsigned)g_current_action_key,
+						(int)g_mfd_mission_scoreboard_first_visible_row,
+						entry_count);
 				}
 			} else if (
 				g_active_flight_player_count >
@@ -1758,6 +1797,12 @@ void mfd_draw_mission_scoreboard_page(void)
 						(top - bottom_y) / line_step >=
 					g_mfd_mission_scoreboard_first_visible_row) {
 				++g_mfd_mission_scoreboard_first_visible_row;
+				XVT_LOG_DEBUG(
+					"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+					(int)MFD_PAGE_SCOREBOARD,
+					(unsigned)g_current_action_key,
+					(int)g_mfd_mission_scoreboard_first_visible_row,
+					entry_count);
 			}
 			break;
 		}
@@ -2176,6 +2221,10 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 				msg_emit_in_flight_message(
 					IFMSG_086_ARG_SYSTEM_IS_ARG,
 					g_local_player);
+				XVT_LOG_DEBUG(
+					"mfd.list_refused page=%d object=%d muted=%d",
+					(int)page_index, player_object_idx,
+					g_flight_sim_side_effects_suppressed);
 				break;
 			}
 		}
@@ -2317,6 +2366,9 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 			if (*page_state != MFD_PAGE_STATE_CLOSING) {
 				if (*page_state != MFD_PAGE_STATE_CLOSED) {
 					*page_state = MFD_PAGE_STATE_CLOSING;
+					XVT_LOG_DEBUG(
+						"mfd.list_emptied page=%d",
+						(int)page_index);
 				} else {
 					*page_state = MFD_PAGE_STATE_CLOSED;
 				}
@@ -2367,6 +2419,9 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 		if (g_players[local_player].map_camera_state == 0 &&
 		    g_mfd_active_page == MFD_PAGE_NONE) {
 			g_mfd_active_page = (int16_t)page_index;
+			XVT_LOG_DEBUG("mfd.page_activated page=%d secondary=%d",
+				      (int)page_index,
+				      (int)g_mfd_secondary_page);
 		}
 
 #ifdef XVT_MODERN
@@ -2424,6 +2479,10 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 					g_mfd_secondary_page =
 						mfd_find_secondary_open_page();
 				}
+				XVT_LOG_DEBUG(
+					"mfd.page_closed page=%d active=%d secondary=%d",
+					(int)page_index, (int)g_mfd_active_page,
+					(int)g_mfd_secondary_page);
 				flight_sw_set_render_target(
 					NULL, DEFAULT_SCREEN_WIDTH,
 					DEFAULT_SCREEN_HEIGHT, 0);
@@ -2670,6 +2729,13 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 					--g_mfd_craft_list_top_row_by_mode
 						[show_hostile_craft];
 					needs_redraw = 1;
+					XVT_LOG_DEBUG(
+						"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+						(int)page_index,
+						(unsigned)g_current_action_key,
+						(int)g_mfd_craft_list_top_row_by_mode
+							[show_hostile_craft],
+						(int)row_count);
 				}
 				break;
 			case FLIGHT_KEY_DOWN:
@@ -2681,6 +2747,13 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 					++g_mfd_craft_list_top_row_by_mode
 						[show_hostile_craft];
 					needs_redraw = 1;
+					XVT_LOG_DEBUG(
+						"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+						(int)page_index,
+						(unsigned)g_current_action_key,
+						(int)g_mfd_craft_list_top_row_by_mode
+							[show_hostile_craft],
+						(int)row_count);
 				}
 				break;
 			}
@@ -2699,6 +2772,13 @@ void mfd_draw_craft_list_page(uint16_t show_hostile_craft)
 				    [show_hostile_craft] != 0) {
 				--g_mfd_craft_list_top_row_by_mode
 					[show_hostile_craft];
+				XVT_LOG_DEBUG(
+					"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+					(int)page_index,
+					(unsigned)g_current_action_key,
+					(int)g_mfd_craft_list_top_row_by_mode
+						[show_hostile_craft],
+					(int)row_count);
 			}
 			last_visible_row =
 				(int16_t)(g_mfd_craft_list_top_row_by_mode
@@ -3255,6 +3335,9 @@ void mfd_draw_map_help_page(void)
 	uint16_t active_page = g_mfd_active_page;
 	if (active_page == MFD_PAGE_NONE) {
 		active_page = MFD_PAGE_MAP_HELP;
+		XVT_LOG_DEBUG("mfd.page_activated page=%d secondary=%d",
+			      (int)MFD_PAGE_MAP_HELP,
+			      (int)g_mfd_secondary_page);
 	}
 	g_mfd_active_page = active_page;
 	do {
@@ -3302,6 +3385,10 @@ void mfd_draw_map_help_page(void)
 				g_mfd_secondary_page =
 					mfd_find_secondary_open_page();
 			}
+			XVT_LOG_DEBUG(
+				"mfd.page_closed page=%d active=%d secondary=%d",
+				(int)MFD_PAGE_MAP_HELP, (int)g_mfd_active_page,
+				(int)g_mfd_secondary_page);
 			flight_sw_set_render_target(NULL, MFD_DEFAULT_WIDTH,
 						    MFD_DEFAULT_HEIGHT, 0);
 			return;
@@ -3531,6 +3618,16 @@ void mfd_toggle_page(uint16_t page)
 				g_mfd_secondary_page = previous_secondary_page;
 			}
 		}
+		XVT_LOG_DEBUG(
+			"mfd.page_toggled page=%d map=%d active=%d secondary=%d states=\"%d,%d,%d,%d,%d,%d,%d,%d\" predicted=%d",
+			(int)page,
+			(int)g_players[g_local_player].map_camera_state,
+			(int)g_mfd_active_page, (int)g_mfd_secondary_page,
+			(int)g_mfd_page_states[0], (int)g_mfd_page_states[1],
+			(int)g_mfd_page_states[2], (int)g_mfd_page_states[3],
+			(int)g_mfd_page_states[4], (int)g_mfd_page_states[5],
+			(int)g_mfd_page_states[6], (int)g_mfd_page_states[7],
+			g_flight_sim_side_effects_suppressed);
 		return;
 	}
 
@@ -3550,11 +3647,30 @@ void mfd_toggle_page(uint16_t page)
 	page_state = &g_mfd_page_states[page];
 	if (*page_state != MFD_PAGE_STATE_CLOSED) {
 		*page_state = MFD_PAGE_STATE_CLOSING;
+		XVT_LOG_DEBUG(
+			"mfd.page_toggled page=%d map=%d active=%d secondary=%d states=\"%d,%d,%d,%d,%d,%d,%d,%d\" predicted=%d",
+			(int)page,
+			(int)g_players[g_local_player].map_camera_state,
+			(int)g_mfd_active_page, (int)g_mfd_secondary_page,
+			(int)g_mfd_page_states[0], (int)g_mfd_page_states[1],
+			(int)g_mfd_page_states[2], (int)g_mfd_page_states[3],
+			(int)g_mfd_page_states[4], (int)g_mfd_page_states[5],
+			(int)g_mfd_page_states[6], (int)g_mfd_page_states[7],
+			g_flight_sim_side_effects_suppressed);
 		return;
 	}
 	*page_state = MFD_PAGE_STATE_OPEN;
 	g_mfd_secondary_page = g_mfd_active_page;
 	g_mfd_active_page = page;
+	XVT_LOG_DEBUG(
+		"mfd.page_toggled page=%d map=%d active=%d secondary=%d states=\"%d,%d,%d,%d,%d,%d,%d,%d\" predicted=%d",
+		(int)page, (int)g_players[g_local_player].map_camera_state,
+		(int)g_mfd_active_page, (int)g_mfd_secondary_page,
+		(int)g_mfd_page_states[0], (int)g_mfd_page_states[1],
+		(int)g_mfd_page_states[2], (int)g_mfd_page_states[3],
+		(int)g_mfd_page_states[4], (int)g_mfd_page_states[5],
+		(int)g_mfd_page_states[6], (int)g_mfd_page_states[7],
+		g_flight_sim_side_effects_suppressed);
 }
 
 /* Returns the first page, from MFD_PAGE_SCOREBOARD up, that is not closed
@@ -3628,6 +3744,11 @@ int16_t mfd_draw_message_log_page(void)
 				g_mfd_secondary_page =
 					mfd_find_secondary_open_page();
 			}
+			XVT_LOG_DEBUG(
+				"mfd.page_closed page=%d active=%d secondary=%d",
+				(int)MFD_PAGE_MESSAGE_LOG,
+				(int)g_mfd_active_page,
+				(int)g_mfd_secondary_page);
 			flight_sw_set_render_target(NULL, 320, 200, 0);
 			return cursor_y;
 		}
@@ -3671,6 +3792,14 @@ int16_t mfd_draw_message_log_page(void)
 			case 0xA6:
 				if (g_mfd_message_log_scroll_offset > 0) {
 					--g_mfd_message_log_scroll_offset;
+					XVT_LOG_DEBUG(
+						"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+						(int)MFD_PAGE_MESSAGE_LOG,
+						(unsigned)g_current_action_key,
+						(int)g_mfd_message_log_scroll_offset,
+						g_message_log_wrapped != 0
+							? 300
+							: (int)log_record_count);
 					g_mfd_message_log_redraw = 1;
 				}
 				break;
@@ -3682,12 +3811,28 @@ int16_t mfd_draw_message_log_page(void)
 					    max_display_offset >=
 				    g_mfd_message_log_scroll_offset) {
 					++g_mfd_message_log_scroll_offset;
+					XVT_LOG_DEBUG(
+						"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+						(int)MFD_PAGE_MESSAGE_LOG,
+						(unsigned)g_current_action_key,
+						(int)g_mfd_message_log_scroll_offset,
+						g_message_log_wrapped != 0
+							? 300
+							: (int)log_record_count);
 					g_mfd_message_log_redraw = 1;
 				}
 				break;
 			case 0xAC:
 				if (g_mfd_message_log_scroll_offset > 4) {
 					g_mfd_message_log_scroll_offset -= 4;
+					XVT_LOG_DEBUG(
+						"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+						(int)MFD_PAGE_MESSAGE_LOG,
+						(unsigned)g_current_action_key,
+						(int)g_mfd_message_log_scroll_offset,
+						g_message_log_wrapped != 0
+							? 300
+							: (int)log_record_count);
 					g_mfd_message_log_redraw = 1;
 				}
 				break;
@@ -3699,6 +3844,14 @@ int16_t mfd_draw_message_log_page(void)
 					    (top - bottom) / line_height - 4 >=
 				    g_mfd_message_log_scroll_offset) {
 					g_mfd_message_log_scroll_offset += 4;
+					XVT_LOG_DEBUG(
+						"mfd.page_scrolled page=%d key=%u top=%d total=%d",
+						(int)MFD_PAGE_MESSAGE_LOG,
+						(unsigned)g_current_action_key,
+						(int)g_mfd_message_log_scroll_offset,
+						g_message_log_wrapped != 0
+							? 300
+							: (int)log_record_count);
 					g_mfd_message_log_redraw = 1;
 				}
 				break;
@@ -3846,6 +3999,9 @@ int16_t mfd_draw_message_log_page(void)
 	if (g_players[g_local_player].map_camera_state == 0 &&
 	    g_mfd_active_page == MFD_PAGE_NONE) {
 		g_mfd_active_page = MFD_PAGE_MESSAGE_LOG;
+		XVT_LOG_DEBUG("mfd.page_activated page=%d secondary=%d",
+			      (int)MFD_PAGE_MESSAGE_LOG,
+			      (int)g_mfd_secondary_page);
 	}
 	if (g_mfd_active_page == MFD_PAGE_MESSAGE_LOG) {
 		flight_text_set_background_color(0x46);

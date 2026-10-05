@@ -2193,6 +2193,36 @@
       "fields": [],
       "text": "A flight launch is queued"
     },
+    "mfd.list_emptied": {
+      "level": "D",
+      "fields": ["page"],
+      "text": "Craft list page {page} (4 hostile, 5 friendly) closed itself because it had no craft left to list"
+    },
+    "mfd.list_refused": {
+      "level": "D",
+      "fields": ["page", "object", "muted"],
+      "text": "Craft list page {page} (4 hostile, 5 friendly) closed because the targeting computer of the local player's craft, object {object}, was out; the message telling the player so was held back: {muted} (1 when the screen was drawn right after a step that is run again later, which holds every message back)"
+    },
+    "mfd.page_activated": {
+      "level": "D",
+      "fields": ["page", "secondary"],
+      "text": "Cockpit display page {page} (0 scoreboard, 1 goals, 2 message log, 3 damage, 4 hostile craft list, 5 friendly craft list, 6 map help) took the scroll keys, since no page had them; the page next in line stayed {secondary} (65,535 for none)"
+    },
+    "mfd.page_closed": {
+      "level": "D",
+      "fields": ["page", "active", "secondary"],
+      "text": "Cockpit display page {page} (0 scoreboard, 1 goals, 2 message log, 3 damage, 4 hostile craft list, 5 friendly craft list, 6 map help) was cleared from the screen as it closed; the page that takes the scroll keys is now {active} and the page next in line {secondary} (65,535 for none)"
+    },
+    "mfd.page_scrolled": {
+      "level": "D",
+      "fields": ["page", "key", "top", "total"],
+      "text": "Action key {key}, read while the screen was drawn, scrolled cockpit display page {page} (0 scoreboard, 1 goals, 2 message log, 3 damage, 4 hostile craft list, 5 friendly craft list, 6 map help) to row {top} (0 at the top; on the message log 0 is the newest message) of {total} (lines on the goals page, teams or players on the scoreboard, craft on a craft list, messages held on the message log); key 0 when a craft list grew shorter and moved back by itself"
+    },
+    "mfd.page_toggled": {
+      "level": "D",
+      "fields": ["page", "map", "active", "secondary", "states", "predicted"],
+      "text": "The local player's key opened or closed cockpit display page {page} (0 scoreboard, 1 goals, 2 message log, 3 damage, 4 hostile craft list, 5 friendly craft list, 6 map help) on this machine, with map view state {map} (0 in the cockpit); the page that takes the scroll keys is now {active} and the page next in line {secondary} (65,535 for none); the eight page states are {states} (-2 closing, -1 reopened, 0 closed, 1 open; a closing page is cleared the next time it is drawn); predicted step {predicted} (always 0 here: page keys act only in steps that are not run again)"
+    },
     "mission.ai_team_craft": {
       "level": "D",
       "fields": ["team", "fg", "groups"],
