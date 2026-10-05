@@ -16,6 +16,7 @@
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The loaded AI plans; a plan id is an index into it. Each entry holds the
  * plan's name, whether the plan text defined it, and where its bytes start in
@@ -448,6 +449,16 @@ void pai_apply_running_plan_target_and_maneuver(unsigned int object_idx)
 	g_cur_craft->ai_flight.threat_obj_idx = UINT16_MAX;
 	controller->think_timer =
 		((object_idx & 7) * controller->think_interval) >> 3;
+	XVT_LOG_DEBUG(
+		"ai.plan_started object=%d fg=%d plan=%d target_code=%d target=%d x=%d y=%d z=%d maneuver=%d tier=%d timer=%d same=%d predicted=%d",
+		(int)object_idx, (int)g_pai_context.craft_flight_group_index,
+		(int)controller->running_plan_id, (int)target_token,
+		(int)controller->target_obj_idx, controller->aim_point_x,
+		controller->aim_point_y, controller->aim_point_z,
+		(int)controller->maneuver_mode, (int)g_pai_context.skill_tier,
+		controller->think_timer,
+		(int)(g_cur_craft == g_pai_context.craft),
+		g_flight_sim_side_effects_suppressed);
 }
 
 /* Runs the orders of the plan set up in g_pai_context. It calls each order's
@@ -484,6 +495,15 @@ void pai_process_plan(void)
 			return;
 		}
 	}
+	XVT_LOG_DEBUG(
+		"ai.plan_switched object=%d handler=%d from=%d named=%d variable=%d order=%d leader_plan=%d predicted=%d",
+		(int)g_pai_context.object_index, (int)order_id,
+		(int)controller->running_plan_id,
+		(int)*g_pai_context.plan_cursor,
+		(int)g_pai_context.variable_plan_id,
+		(int)controller->current_order_slot,
+		(int)controller->current_plan_id,
+		g_flight_sim_side_effects_suppressed);
 
 	if (strcmp(g_plan_table[*g_pai_context.plan_cursor].name,
 		   "variablepln") == 0) {
@@ -756,6 +776,10 @@ void pai_set_flight_group_formation(unsigned int flight_group_idx,
 			craft->ai_flight.separation = formation_spacing;
 		}
 	}
+	XVT_LOG_DEBUG(
+		"ai.formation_set fg=%d formation=%u spacing=%u predicted=%d",
+		(int)flight_group_idx, formation_type, formation_spacing,
+		g_flight_sim_side_effects_suppressed);
 }
 
 /* Works out the direction and distance from one object or mission point to
@@ -1234,6 +1258,27 @@ int16_t pai_is_plan_complete_for_order_slot(uint16_t plan_id,
 			result = 1;
 		}
 	} else if (strcmp(g_plan_table[plan_id].name, "dropoffldr1pln") == 0) {
+		if (g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+				    .fg.orders[order_slot]
+				    .variable2 == 0 ||
+		    g_mission_flight_groups[g_pai_context
+						    .craft_flight_group_index]
+				    .fg.orders[order_slot]
+				    .variable2 >
+			    g_mission_header.num_flight_groups) {
+			XVT_LOG_DEBUG(
+				"ai.dropoff_group_invalid object=%d fg=%d order=%d group=%d groups=%d predicted=%d",
+				(int)g_pai_context.object_index,
+				(int)g_pai_context.craft_flight_group_index,
+				(int)order_slot,
+				(int)g_mission_flight_groups
+					[g_pai_context.craft_flight_group_index]
+						.fg.orders[order_slot]
+						.variable2,
+				(int)g_mission_header.num_flight_groups,
+				g_flight_sim_side_effects_suppressed);
+		}
 		if ((unsigned int)g_mission_fg_stats
 			    [(uint16_t)(g_mission_flight_groups
 						[g_pai_context
@@ -1573,6 +1618,9 @@ int pai_compile_plans_from_text(const char *base_name)
 	fe_disk_io_open_global_stream(file_name, "r", 0, 0);
 	xvt_file *stream = (xvt_file *)g_stream;
 	if (stream == NULL) {
+		XVT_LOG_ERROR(
+			"ai.plans_compile_failed reason=\"open\" token=\"%s\" plans=%d",
+			file_name, g_plan_count);
 		return 0;
 	}
 
@@ -1591,12 +1639,18 @@ int pai_compile_plans_from_text(const char *base_name)
 		plan_index = pai_find_plan_table_index_by_name(token);
 		if (plan_index != 256) {
 			if (g_plan_table[plan_index].is_defined == 1) {
+				XVT_LOG_ERROR(
+					"ai.plans_compile_failed reason=\"duplicate\" token=\"%s\" plans=%d",
+					token, g_plan_count);
 				FILE_RAW_CLOSE(stream);
 				return 0;
 			}
 		} else {
 			plan_index = pai_find_free_plan_table_index();
 			if (plan_index == 256) {
+				XVT_LOG_ERROR(
+					"ai.plans_compile_failed reason=\"table_full\" token=\"%s\" plans=%d",
+					token, g_plan_count);
 				FILE_RAW_CLOSE(stream);
 				return 0;
 			}
@@ -1616,6 +1670,9 @@ int pai_compile_plans_from_text(const char *base_name)
 		}
 		int target_index = pai_find_target_token_index(token);
 		if (g_pai_target_token_defs[target_index].name[0] == '\0') {
+			XVT_LOG_ERROR(
+				"ai.plans_compile_failed reason=\"target\" token=\"%s\" plans=%d",
+				token, g_plan_count);
 			FILE_RAW_CLOSE(stream);
 			return 0;
 		}
@@ -1628,6 +1685,9 @@ int pai_compile_plans_from_text(const char *base_name)
 		}
 		int maneuver_index = pai_find_maneuver_token_index(token);
 		if (g_pai_maneuver_token_defs[maneuver_index].name[0] == '\0') {
+			XVT_LOG_ERROR(
+				"ai.plans_compile_failed reason=\"maneuver\" token=\"%s\" plans=%d",
+				token, g_plan_count);
 			FILE_RAW_CLOSE(stream);
 			return 0;
 		}
@@ -1642,6 +1702,9 @@ int pai_compile_plans_from_text(const char *base_name)
 			int order_index = pai_find_order_token_index(token);
 			if (g_pai_order_token_defs[order_index].name[0] ==
 			    '\0') {
+				XVT_LOG_ERROR(
+					"ai.plans_compile_failed reason=\"order\" token=\"%s\" plans=%d",
+					token, g_plan_count);
 				FILE_RAW_CLOSE(stream);
 				return 0;
 			}
@@ -1666,6 +1729,9 @@ int pai_compile_plans_from_text(const char *base_name)
 
 			int free_plan_id = pai_find_free_plan_table_index();
 			if (free_plan_id == 256) {
+				XVT_LOG_ERROR(
+					"ai.plans_compile_failed reason=\"table_full\" token=\"%s\" plans=%d",
+					token, g_plan_count);
 				FILE_RAW_CLOSE(stream);
 				return 0;
 			}
@@ -1681,6 +1747,9 @@ int pai_compile_plans_from_text(const char *base_name)
 	for (plan_index = 0; plan_index < 256; ++plan_index) {
 		if (g_plan_table[plan_index].name[0] != '\0' &&
 		    g_plan_table[plan_index].is_defined != 1) {
+			XVT_LOG_ERROR(
+				"ai.plans_compile_failed reason=\"undefined\" token=\"%s\" plans=%d",
+				g_plan_table[plan_index].name, g_plan_count);
 			return 0;
 		}
 	}
@@ -1690,6 +1759,10 @@ int pai_compile_plans_from_text(const char *base_name)
 	fe_disk_io_open_global_stream(file_name, "wb", 0, 1);
 	stream = (xvt_file *)g_stream;
 	if (stream != NULL) {
+		if (cursor - g_plan_order_data > 0xFFFF) {
+			XVT_LOG_WARN("ai.plans_truncated bytes=%d",
+				     (int)(cursor - g_plan_order_data));
+		}
 		/* From here the same local holds the byte size of each section
 		 * of the .plo file; each size is written just before its
 		 * section. */
@@ -1701,7 +1774,11 @@ int pai_compile_plans_from_text(const char *base_name)
 		FILE_RAW_WRITE(g_plan_order_data, (size_t)plan_index, 1,
 			       stream);
 		FILE_RAW_CLOSE(stream);
+	} else {
+		XVT_LOG_WARN("ai.plans_save_failed file=\"%s\"", file_name);
 	}
+	XVT_LOG_INFO("ai.plans_compiled plans=%d bytes=%d", g_plan_count,
+		     (int)(cursor - g_plan_order_data));
 
 	return 1;
 }
@@ -1726,23 +1803,46 @@ int pai_loadplans(const char *base_name)
 	fe_disk_io_open_global_stream(file_name, g_file_mode_read_binary, 0, 1);
 	xvt_file *stream = (xvt_file *)g_stream;
 	if (stream == NULL) {
+		XVT_LOG_WARN("ai.plans_fallback reason=\"open\" file=\"%s\"",
+			     file_name);
 		return pai_compile_plans_from_text(base_name);
 	}
 
 	uint32_t buffer_size;
 	if (FILE_RAW_READ(&buffer_size, sizeof(buffer_size), 1, stream) != 1) {
+		XVT_LOG_WARN(
+			"ai.plans_fallback reason=\"table_size\" file=\"%s\"",
+			file_name);
 		FILE_RAW_CLOSE(stream);
 		return pai_compile_plans_from_text(base_name);
 	}
+	if (buffer_size != sizeof(g_plan_table)) {
+		XVT_LOG_WARN(
+			"ai.plans_size_unexpected section=\"table\" bytes=%u expected=%u",
+			(unsigned)buffer_size, (unsigned)sizeof(g_plan_table));
+	}
 	if (FILE_RAW_READ(g_plan_table, buffer_size, 1, stream) != 1) {
+		XVT_LOG_WARN("ai.plans_fallback reason=\"table\" file=\"%s\"",
+			     file_name);
 		FILE_RAW_CLOSE(stream);
 		return pai_compile_plans_from_text(base_name);
 	}
 	if (FILE_RAW_READ(&buffer_size, sizeof(buffer_size), 1, stream) != 1) {
+		XVT_LOG_WARN(
+			"ai.plans_fallback reason=\"data_size\" file=\"%s\"",
+			file_name);
 		FILE_RAW_CLOSE(stream);
 		return pai_compile_plans_from_text(base_name);
 	}
+	if (buffer_size > sizeof(g_plan_order_data)) {
+		XVT_LOG_WARN(
+			"ai.plans_size_unexpected section=\"data\" bytes=%u expected=%u",
+			(unsigned)buffer_size,
+			(unsigned)sizeof(g_plan_order_data));
+	}
 	if (FILE_RAW_READ(g_plan_order_data, buffer_size, 1, stream) != 1) {
+		XVT_LOG_WARN("ai.plans_fallback reason=\"data\" file=\"%s\"",
+			     file_name);
 		FILE_RAW_CLOSE(stream);
 		return pai_compile_plans_from_text(base_name);
 	}
@@ -1756,10 +1856,17 @@ int pai_loadplans(const char *base_name)
 			g_plan_data_ptrs[plan_index] =
 				&g_plan_order_data[g_plan_table[plan_index]
 							   .data_offset];
+			XVT_LOG_DEBUG(
+				"ai.plan_listed plan=%d name=\"%s\" offset=%u defined=%d",
+				plan_index, g_plan_table[plan_index].name,
+				(unsigned)g_plan_table[plan_index].data_offset,
+				(int)g_plan_table[plan_index].is_defined);
 		}
 		g_plan_count = plan_count;
 		++plan_index;
 	} while (plan_index < 256);
+	XVT_LOG_INFO("ai.plans_loaded plans=%d bytes=%u", g_plan_count,
+		     (unsigned)buffer_size);
 
 	return 1;
 }
@@ -1779,6 +1886,13 @@ void pai_cache_builtin_plan_ids(void)
 			g_builtin_plan_id_by_name_index[plan_name_ordinal++] =
 				(uint8_t)pai_find_plan_table_index_by_name(
 					plan_name);
+			if (plan_name_ordinal > 1 &&
+			    g_builtin_plan_id_by_name_index[plan_name_ordinal -
+							    1] == 0) {
+				XVT_LOG_WARN(
+					"ai.builtin_plan_missing token=\"%s\" index=%d",
+					plan_name, plan_name_ordinal - 1);
+			}
 			plan_name = *plan_name_cursor;
 		} while (*plan_name != '\0');
 	}
@@ -1804,5 +1918,7 @@ int pai_find_plan_id_by_name_or_zero(const char *plan_name)
 			return plan_index;
 		}
 	}
+	XVT_LOG_DEBUG("ai.plan_missing token=\"%s\" predicted=%d", plan_name,
+		      g_flight_sim_side_effects_suppressed);
 	return 0;
 }

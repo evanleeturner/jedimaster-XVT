@@ -3,6 +3,76 @@
   "grammar": 1,
   "line": "HH:MM:SS.mmm L event key=value ...",
   "events": {
+    "ai.builtin_plan_missing": {
+      "level": "W",
+      "fields": ["token", "index"],
+      "text": "No loaded plan is named {token}, number {index} on the game's list of plans it asks for by number; asking for it gives plan 0"
+    },
+    "ai.dropoff_group_invalid": {
+      "level": "D",
+      "fields": ["object", "fg", "order", "group", "groups", "predicted"],
+      "text": "Drop-off order {order} (counted from 0) of computer-flown craft {object}, flight group {fg}, names destination group {group} (counted from 1, 0 for none), outside the mission's {groups} flight groups; the 1997 code went on and read a record past the end of the flight group table; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.formation_set": {
+      "level": "D",
+      "fields": ["fg", "formation", "spacing", "predicted"],
+      "text": "Flight group {fg} was given formation {formation} at spacing {spacing}, set on each of its craft as one of them came out of a hangar; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.plan_listed": {
+      "level": "D",
+      "fields": ["plan", "name", "offset", "defined"],
+      "text": "The computer pilots' plan file holds plan {plan}, named {name}, whose steps start at byte {offset} of the plan data (defined {defined}: 1 when the plan text gave its steps)"
+    },
+    "ai.plan_missing": {
+      "level": "D",
+      "fields": ["token", "predicted"],
+      "text": "No loaded plan is named {token}; the game used plan 0 in its place; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.plan_started": {
+      "level": "D",
+      "fields": ["object", "fg", "plan", "target_code", "target", "x", "y", "z", "maneuver", "tier", "timer", "same", "predicted"],
+      "text": "Craft {object} of flight group {fg} started plan {plan} at skill tier {tier} (0 to 2): the plan's target code {target_code} (255 keeps the target it had) left it aimed at object {target} (65,535 for none; 32,768 and up is a mission point, 32,768 plus its number) at {x} {y} {z}, flying maneuver {maneuver}, thinking next in {timer} ticks; the plan was written to the craft set up for it: {same} (1 yes, 0 another craft's); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.plan_switched": {
+      "level": "D",
+      "fields": ["object", "handler", "from", "named", "variable", "order", "leader_plan", "predicted"],
+      "text": "Computer-flown craft {object} left plan {from} when test {handler} of that plan was met (a plan's tests are numbered 1 to 47); the plan names plan {named} next, with plan {variable} standing in when that is the variable plan; the craft works on mission order slot {order} (0 for the first), whose leader plan is {leader_plan}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.plans_compile_failed": {
+      "level": "E",
+      "fields": ["reason", "token", "plans"],
+      "text": "Compiling the plan text stopped at {token} after {plans} plans ({reason}: open, the text file did not open and {token} is its name; duplicate, a plan was defined twice; table_full, no plan entry was free; target, maneuver or order, the word is not one the compiler knows; undefined, a plan was named but never defined); the loader's callers do not check, so the flight went on with what was compiled"
+    },
+    "ai.plans_compiled": {
+      "level": "I",
+      "fields": ["plans", "bytes"],
+      "text": "The computer pilots' {plans} plans were compiled from the plan text, {bytes} bytes of plan orders"
+    },
+    "ai.plans_fallback": {
+      "level": "W",
+      "fields": ["reason", "file"],
+      "text": "The saved plan file {file} could not be used ({reason}: open, the file did not open; table_size, table, data_size or data, that part of it could not be read), so the plans were compiled from the plan text instead"
+    },
+    "ai.plans_loaded": {
+      "level": "I",
+      "fields": ["plans", "bytes"],
+      "text": "The computer pilots' {plans} plans were loaded from the saved plan file, with {bytes} bytes of plan orders"
+    },
+    "ai.plans_save_failed": {
+      "level": "W",
+      "fields": ["file"],
+      "text": "The compiled plans could not be saved to {file}; the next flight compiles them again"
+    },
+    "ai.plans_size_unexpected": {
+      "level": "W",
+      "fields": ["section", "bytes", "expected"],
+      "text": "The saved plan file gave its {section} part as {bytes} bytes, where the game has room for {expected}; the part was then read as given, so a larger one wrote past that room"
+    },
+    "ai.plans_truncated": {
+      "level": "W",
+      "fields": ["bytes"],
+      "text": "The compiled plans fill {bytes} bytes, but the saved plan file keeps only the first 65,535, so a flight that loads that file gets cut-short plans"
+    },
     "app.crash_exception": {
       "level": "C",
       "fields": ["code", "addr"],
