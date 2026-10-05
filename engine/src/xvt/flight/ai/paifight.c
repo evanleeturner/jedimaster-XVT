@@ -15,6 +15,7 @@
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Flight group of the nearest object paifight_searchforclosestingroup found,
  * which only it writes; paifight_checkescortorder copies it into
@@ -89,10 +90,29 @@ int16_t paifight_scanfortargetorder(void)
 					g_object_table[candidate_target_idx]
 						.object_signature;
 				g_pai_context.controller->has_live_target = 1;
+				XVT_LOG_DEBUG(
+					"ai.target_picked object=%d target=%d reason=\"command\" leader=%d escort=%d plan=%d orderplan=%d order=%d predicted=%d",
+					(int)g_pai_context.object_index,
+					(int)g_pai_context.controller
+						->target_obj_idx,
+					(int)g_pai_context.leader_object_index,
+					(int)g_pai_context.controller
+						->escort_target_fg,
+					(int)g_pai_context.controller
+						->running_plan_id,
+					(int)g_pai_context.controller
+						->current_plan_id,
+					(int)g_pai_context.order_slot,
+					g_flight_sim_side_effects_suppressed);
 				return 1;
 			}
 			g_pai_context.controller->candidate_target_idx =
 				UINT16_MAX;
+			XVT_LOG_DEBUG(
+				"ai.command_target_dropped object=%d target=%d predicted=%d",
+				(int)g_pai_context.object_index,
+				(int)candidate_target_idx,
+				g_flight_sim_side_effects_suppressed);
 		}
 
 		struct pai_plan_record *plan =
@@ -128,6 +148,16 @@ int16_t paifight_scanfortargetorder(void)
 				g_object_table[(uint16_t)target_object]
 					.object_signature;
 			g_pai_context.controller->has_live_target = 1;
+			XVT_LOG_DEBUG(
+				"ai.target_picked object=%d target=%d reason=\"search\" leader=%d escort=%d plan=%d orderplan=%d order=%d predicted=%d",
+				(int)g_pai_context.object_index,
+				(int)g_pai_context.controller->target_obj_idx,
+				(int)g_pai_context.leader_object_index,
+				(int)g_pai_context.controller->escort_target_fg,
+				(int)g_pai_context.controller->running_plan_id,
+				(int)g_pai_context.controller->current_plan_id,
+				(int)g_pai_context.order_slot,
+				g_flight_sim_side_effects_suppressed);
 			return 1;
 		}
 	}
@@ -457,6 +487,13 @@ int16_t paifight_find_nearest_attack_order_target(int16_t target1_type,
 			}
 		}
 	}
+	if (best_object == UINT16_MAX) {
+		XVT_LOG_DEBUG(
+			"ai.targets_refused object=%d candidates=%d undisabled=%d predicted=%d",
+			(int)g_pai_context.object_index, candidate_count,
+			(int)g_pai_context.require_undisabled_target,
+			g_flight_sim_side_effects_suppressed);
+	}
 	return (int16_t)best_object;
 }
 
@@ -604,6 +641,19 @@ int16_t paifight_target_nearest_escort_leader(int16_t target1_type,
 	}
 
 	if (best_object_index != UINT16_MAX) {
+		if (g_pai_context.controller->target_obj_idx !=
+		    best_object_index) {
+			XVT_LOG_DEBUG(
+				"ai.target_picked object=%d target=%d reason=\"escort_leader\" leader=%d escort=%d plan=%d orderplan=%d order=%d predicted=%d",
+				(int)g_pai_context.object_index,
+				(int)best_object_index,
+				(int)g_pai_context.leader_object_index,
+				(int)g_pai_context.controller->escort_target_fg,
+				(int)g_pai_context.controller->running_plan_id,
+				(int)g_pai_context.controller->current_plan_id,
+				(int)g_pai_context.order_slot,
+				g_flight_sim_side_effects_suppressed);
+		}
 		g_pai_context.controller->target_obj_idx = best_object_index;
 		g_pai_context.controller->target_signature =
 			g_object_table[best_object_index].object_signature;
@@ -1205,10 +1255,29 @@ int16_t paifight_escorttargetorder(void)
 					g_object_table[candidate_target_idx]
 						.object_signature;
 				g_pai_context.controller->has_live_target = 1;
+				XVT_LOG_DEBUG(
+					"ai.target_picked object=%d target=%d reason=\"command\" leader=%d escort=%d plan=%d orderplan=%d order=%d predicted=%d",
+					(int)g_pai_context.object_index,
+					(int)g_pai_context.controller
+						->target_obj_idx,
+					(int)g_pai_context.leader_object_index,
+					(int)g_pai_context.controller
+						->escort_target_fg,
+					(int)g_pai_context.controller
+						->running_plan_id,
+					(int)g_pai_context.controller
+						->current_plan_id,
+					(int)g_pai_context.order_slot,
+					g_flight_sim_side_effects_suppressed);
 				return 1;
 			}
 			g_pai_context.controller->candidate_target_idx =
 				UINT16_MAX;
+			XVT_LOG_DEBUG(
+				"ai.command_target_dropped object=%d target=%d predicted=%d",
+				(int)g_pai_context.object_index,
+				(int)candidate_target_idx,
+				g_flight_sim_side_effects_suppressed);
 		}
 
 		uint16_t best_target_obj_idx = UINT16_MAX;
@@ -1264,6 +1333,16 @@ int16_t paifight_escorttargetorder(void)
 				g_object_table[best_target_obj_idx]
 					.object_signature;
 			g_pai_context.controller->has_live_target = 1;
+			XVT_LOG_DEBUG(
+				"ai.target_picked object=%d target=%d reason=\"escort_threat\" leader=%d escort=%d plan=%d orderplan=%d order=%d predicted=%d",
+				(int)g_pai_context.object_index,
+				(int)g_pai_context.controller->target_obj_idx,
+				(int)g_pai_context.leader_object_index,
+				(int)g_pai_context.controller->escort_target_fg,
+				(int)g_pai_context.controller->running_plan_id,
+				(int)g_pai_context.controller->current_plan_id,
+				(int)g_pai_context.order_slot,
+				g_flight_sim_side_effects_suppressed);
 			return 1;
 		}
 	}
@@ -1792,6 +1871,27 @@ int16_t paifight_fightershootorder(void)
 										++g_cur_craft
 											  ->ai_flight
 											  .warheads_fired_this_maneuver;
+										XVT_LOG_DEBUG(
+											"ai.warheads_fired object=%d launcher=%u target=%d component=%d lock=%d needed=%d fired=%d limit=%d flags=%d predicted=%d",
+											(int)g_pai_context
+												.object_index,
+											(unsigned)
+												launcher_index,
+											(int)target_index,
+											(int)g_pai_context
+												.controller
+												->target_component,
+											(int)g_cur_craft
+												->warhead_lock_ticks,
+											(int)lock_threshold,
+											(int)g_cur_craft
+												->ai_flight
+												.warheads_fired_this_maneuver,
+											(int)warheads_per_maneuver_limit,
+											(int)(uint8_t)g_cur_craft
+												->warhead_launcher_flags
+													[launcher_index],
+											g_flight_sim_side_effects_suppressed);
 										if (g_object_table[target_index]
 												    .genus_id ==
 											    CRAFT_GENUS_STARFIGHTER ||
@@ -2295,6 +2395,29 @@ int16_t paifight_missiledefenseorder(void)
 										[weapon_slot_index]
 									.missile_defense_cooldown =
 									20;
+								XVT_LOG_DEBUG(
+									"ai.defense_fired object=%d weapon_slot=%d kind=\"%s\" target=%d component=%d projectile=%d homing=%d ammo=%d predicted=%d",
+									(int)g_pai_context
+										.object_index,
+									(int)weapon_slot_index,
+									*turret_target_index <
+											g_active_region_craft_object_slot_end
+										? "craft"
+										: "warhead",
+									(int)*turret_target_index,
+									(int)g_pai_context
+										.controller
+										->target_component,
+									projectile_index +
+										g_projectile_object_slot_start,
+									(int)g_projectile_guidance_states
+										[projectile_index]
+											.homing_tier,
+									(int)g_cur_craft
+										->weapon_slots
+											[weapon_slot_index]
+										.ammo_count,
+									g_flight_sim_side_effects_suppressed);
 							}
 							g_pai_context
 								.controller
@@ -2654,6 +2777,19 @@ int16_t paifight_gunnerselfdefenseorder(void)
 							->retarget_cooldown_timer +=
 							RETARGET_COOLDOWN_TICKS;
 					}
+					XVT_LOG_DEBUG(
+						"ai.turret_targeted object=%d turret=%d target=%d reason=\"nearest_attacker\" timer=%d ion_fire=%d predicted=%d",
+						(int)g_pai_context.object_index,
+						(int)weapon_slot_index,
+						(int)turret_state
+							->target_obj_idx,
+						(int)turret_state
+							->retarget_cooldown_timer,
+						(int)g_cur_craft
+							->weapon_slots
+								[weapon_slot_index]
+							.ammo_count,
+						g_flight_sim_side_effects_suppressed);
 				}
 			}
 		}
@@ -2718,6 +2854,16 @@ int16_t paifight_gunnerselfdefenseorder(void)
 								--g_cur_craft
 									  ->cm_ammo_count;
 							}
+							XVT_LOG_DEBUG(
+								"ai.chaff_dropped object=%d threat=%d seconds=%d ammo=%d predicted=%d",
+								(int)g_pai_context
+									.object_index,
+								(int)threat_projectile_obj_idx,
+								(int)g_cur_craft
+									->chaff_active_seconds,
+								(int)g_cur_craft
+									->cm_ammo_count,
+								g_flight_sim_side_effects_suppressed);
 						}
 					} else if (g_cur_craft->cm_type_id ==
 						   COUNTERMEASURE_TYPE_FLARE) {
@@ -2987,6 +3133,18 @@ int16_t paifight_gunneroffenseorder(void)
 			if (target_object_index != -1) {
 				turret_state->retarget_cooldown_timer +=
 					SIMULATION_TICKS_PER_SECOND;
+				XVT_LOG_DEBUG(
+					"ai.turret_targeted object=%d turret=%d target=%d reason=\"protect\" timer=%d ion_fire=%d predicted=%d",
+					(int)g_pai_context.object_index,
+					(int)weapon_slot_index,
+					(int)turret_state->target_obj_idx,
+					(int)turret_state
+						->retarget_cooldown_timer,
+					(int)g_cur_craft
+						->weapon_slots
+							[weapon_slot_index]
+						.ammo_count,
+					g_flight_sim_side_effects_suppressed);
 			}
 			continue;
 		}
@@ -3039,6 +3197,16 @@ int16_t paifight_gunneroffenseorder(void)
 				g_cur_craft->weapon_slots[weapon_slot_index]
 					.ammo_count = 1;
 			}
+			XVT_LOG_DEBUG(
+				"ai.turret_targeted object=%d turret=%d target=%d reason=\"order_first\" timer=%d ion_fire=%d predicted=%d",
+				(int)g_pai_context.object_index,
+				(int)weapon_slot_index,
+				(int)turret_state->target_obj_idx,
+				(int)turret_state->retarget_cooldown_timer,
+				(int)g_cur_craft
+					->weapon_slots[weapon_slot_index]
+					.ammo_count,
+				g_flight_sim_side_effects_suppressed);
 		} else {
 			target_object_index = paifight_find_nearest_gunner_target_in_candidate_set(
 				g_mission_flight_groups
@@ -3092,6 +3260,18 @@ int16_t paifight_gunneroffenseorder(void)
 							[weapon_slot_index]
 						.ammo_count = 1;
 				}
+				XVT_LOG_DEBUG(
+					"ai.turret_targeted object=%d turret=%d target=%d reason=\"order_second\" timer=%d ion_fire=%d predicted=%d",
+					(int)g_pai_context.object_index,
+					(int)weapon_slot_index,
+					(int)turret_state->target_obj_idx,
+					(int)turret_state
+						->retarget_cooldown_timer,
+					(int)g_cur_craft
+						->weapon_slots
+							[weapon_slot_index]
+						.ammo_count,
+					g_flight_sim_side_effects_suppressed);
 			}
 		}
 	}
@@ -3334,6 +3514,14 @@ int16_t paifight_find_nearest_gunner_target_in_candidate_set(
 						    blocker_object_index,
 						    blocker_object_index) !=
 					    0) {
+						XVT_LOG_DEBUG(
+							"ai.turret_blocked object=%d target=%d blocker=%d range=%u predicted=%d",
+							(int)g_pai_context
+								.object_index,
+							(int)best_object_index,
+							(int)blocker_object_index,
+							best_range_score,
+							g_flight_sim_side_effects_suppressed);
 						best_object_index = UINT16_MAX;
 						break;
 					}
@@ -3446,6 +3634,21 @@ int16_t paifight_find_nearest_matching_target_from_origin(
 
 		valid_target = pai_is_object_targetable(object_index);
 		if (valid_target == 0) {
+			if (g_object_table[object_array_index].mobj != NULL &&
+			    g_object_table[object_array_index].mobj->p_craft !=
+				    NULL &&
+			    g_object_table[object_array_index]
+					    .mobj->p_craft->beam_type_id ==
+				    BEAM_TYPE_DECOY &&
+			    g_object_table[object_array_index]
+					    .mobj->p_craft->beam_active != 0) {
+				XVT_LOG_DEBUG(
+					"ai.mine_decoy_refused target=%d context=%d range=%u predicted=%d",
+					(int)object_index,
+					(int)g_pai_context.object_index,
+					(unsigned)g_last_rough_distance,
+					g_flight_sim_side_effects_suppressed);
+			}
 			continue;
 		}
 
@@ -3536,6 +3739,16 @@ int16_t paifight_find_nearest_matching_target_from_origin(
 	if (best_range_score > AI_TARGET_RANGE_MAX) {
 		best_object_index = UINT16_MAX;
 	}
+	if (best_object_index != UINT16_MAX) {
+		XVT_LOG_DEBUG(
+			"ai.mine_target_found target=%d range=%u context=%d undisabled=%d x=%d y=%d z=%d predicted=%d",
+			(int)best_object_index, best_range_score,
+			(int)g_pai_context.object_index,
+			(int)g_pai_context.require_undisabled_target,
+			g_paifight_search_origin_x, g_paifight_search_origin_y,
+			g_paifight_search_origin_z,
+			g_flight_sim_side_effects_suppressed);
+	}
 	return (int16_t)best_object_index;
 }
 
@@ -3607,6 +3820,20 @@ int16_t paifight_coverleaderorder(void)
 					g_object_table[last_attacker_obj_idx]
 						.object_signature;
 				g_pai_context.controller->has_live_target = 0;
+				XVT_LOG_DEBUG(
+					"ai.target_picked object=%d target=%d reason=\"leader_attacker\" leader=%d escort=%d plan=%d orderplan=%d order=%d predicted=%d",
+					(int)g_pai_context.object_index,
+					(int)g_pai_context.controller
+						->target_obj_idx,
+					(int)g_pai_context.leader_object_index,
+					(int)g_pai_context.controller
+						->escort_target_fg,
+					(int)g_pai_context.controller
+						->running_plan_id,
+					(int)g_pai_context.controller
+						->current_plan_id,
+					(int)g_pai_context.order_slot,
+					g_flight_sim_side_effects_suppressed);
 				return 1;
 			}
 		}
@@ -3668,6 +3895,15 @@ int16_t paifight_followleadatkorder(void)
 					candidate_target_idx);
 				if (g_last_rough_distance >
 				    PLAYER_LEADER_TARGET_RANGE) {
+					XVT_LOG_DEBUG(
+						"ai.command_target_far object=%d leader=%d slot=%d target=%d range=%d predicted=%d",
+						(int)g_pai_context.object_index,
+						(int)g_pai_context
+							.leader_object_index,
+						leader_player_owner,
+						(int)candidate_target_idx,
+						g_last_rough_distance,
+						g_flight_sim_side_effects_suppressed);
 					return 0;
 				}
 			}
@@ -3677,10 +3913,25 @@ int16_t paifight_followleadatkorder(void)
 				g_object_table[candidate_target_idx]
 					.object_signature;
 			g_pai_context.controller->has_live_target = 1;
+			XVT_LOG_DEBUG(
+				"ai.target_picked object=%d target=%d reason=\"command\" leader=%d escort=%d plan=%d orderplan=%d order=%d predicted=%d",
+				(int)g_pai_context.object_index,
+				(int)g_pai_context.controller->target_obj_idx,
+				(int)g_pai_context.leader_object_index,
+				(int)g_pai_context.controller->escort_target_fg,
+				(int)g_pai_context.controller->running_plan_id,
+				(int)g_pai_context.controller->current_plan_id,
+				(int)g_pai_context.order_slot,
+				g_flight_sim_side_effects_suppressed);
 			return 1;
 		}
 
 		g_pai_context.controller->candidate_target_idx = UINT16_MAX;
+		XVT_LOG_DEBUG(
+			"ai.command_target_dropped object=%d target=%d predicted=%d",
+			(int)g_pai_context.object_index,
+			(int)candidate_target_idx,
+			g_flight_sim_side_effects_suppressed);
 	}
 
 	uint16_t target_obj_idx = UINT16_MAX;
@@ -3800,6 +4051,27 @@ int16_t paifight_followleadatkorder(void)
 								.object_signature;
 						g_pai_context.controller
 							->has_live_target = 1;
+						XVT_LOG_DEBUG(
+							"ai.target_picked object=%d target=%d reason=\"leader_target\" leader=%d escort=%d plan=%d orderplan=%d order=%d predicted=%d",
+							(int)g_pai_context
+								.object_index,
+							(int)g_pai_context
+								.controller
+								->target_obj_idx,
+							(int)g_pai_context
+								.leader_object_index,
+							(int)g_pai_context
+								.controller
+								->escort_target_fg,
+							(int)g_pai_context
+								.controller
+								->running_plan_id,
+							(int)g_pai_context
+								.controller
+								->current_plan_id,
+							(int)g_pai_context
+								.order_slot,
+							g_flight_sim_side_effects_suppressed);
 						return 1;
 					}
 					if (pai_current_order_targets_match_object(
@@ -3813,6 +4085,27 @@ int16_t paifight_followleadatkorder(void)
 								.object_signature;
 						g_pai_context.controller
 							->has_live_target = 1;
+						XVT_LOG_DEBUG(
+							"ai.target_picked object=%d target=%d reason=\"leader_target\" leader=%d escort=%d plan=%d orderplan=%d order=%d predicted=%d",
+							(int)g_pai_context
+								.object_index,
+							(int)g_pai_context
+								.controller
+								->target_obj_idx,
+							(int)g_pai_context
+								.leader_object_index,
+							(int)g_pai_context
+								.controller
+								->escort_target_fg,
+							(int)g_pai_context
+								.controller
+								->running_plan_id,
+							(int)g_pai_context
+								.controller
+								->current_plan_id,
+							(int)g_pai_context
+								.order_slot,
+							g_flight_sim_side_effects_suppressed);
 						return 1;
 					}
 				}
@@ -3860,6 +4153,21 @@ int16_t paifight_followleadatkorder(void)
 								.object_signature;
 					g_pai_context.controller
 						->has_live_target = 1;
+					XVT_LOG_DEBUG(
+						"ai.target_picked object=%d target=%d reason=\"leader_target\" leader=%d escort=%d plan=%d orderplan=%d order=%d predicted=%d",
+						(int)g_pai_context.object_index,
+						(int)g_pai_context.controller
+							->target_obj_idx,
+						(int)g_pai_context
+							.leader_object_index,
+						(int)g_pai_context.controller
+							->escort_target_fg,
+						(int)g_pai_context.controller
+							->running_plan_id,
+						(int)g_pai_context.controller
+							->current_plan_id,
+						(int)g_pai_context.order_slot,
+						g_flight_sim_side_effects_suppressed);
 					return 1;
 				}
 				if ((int)++static_candidate_idx >=

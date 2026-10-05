@@ -43,15 +43,30 @@
       "fields": ["token", "index"],
       "text": "No loaded plan is named {token}, number {index} on the game's list of plans it asks for by number; asking for it gives plan 0"
     },
+    "ai.chaff_dropped": {
+      "level": "D",
+      "fields": ["object", "threat", "seconds", "ammo", "predicted"],
+      "text": "Computer-flown craft {object} dropped chaff against warhead {threat} coming at it: chaff cover for {seconds} seconds, {ammo} countermeasures left; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.command_target_dropped": {
       "level": "D",
       "fields": ["object", "target", "predicted"],
       "text": "Computer-flown craft {object} dropped object {target}, the target a player had named for it, because it could no longer be targeted (gone, breaking up, jumping to hyperspace, or covered by a decoy beam); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.command_target_far": {
+      "level": "D",
+      "fields": ["object", "leader", "slot", "target", "range", "predicted"],
+      "text": "Computer-flown craft {object}, whose leader is object {leader} flown by player slot {slot}, held off from object {target}, the target a player had named for it, because it lay {range} units away, beyond 327,680; it checks again at its next decision; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.command_target_taken": {
       "level": "D",
       "fields": ["object", "target", "previous", "predicted"],
       "text": "Computer-flown craft {object} took object {target}, named by a player's order, as its target in place of {previous} (65,535 for none, 32,768 and up for a mission point); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.defense_fired": {
+      "level": "D",
+      "fields": ["object", "weapon_slot", "kind", "target", "component", "projectile", "homing", "ammo", "predicted"],
+      "text": "Computer-flown craft {object} fired defense warhead {projectile} from weapon slot {weapon_slot} at the {kind} in object {target}, aimed at its part {component}, with homing level {homing}; {ammo} rounds remain in the slot, which now waits 20 of the craft's decisions; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.departure_started": {
       "level": "D",
@@ -102,6 +117,16 @@
       "level": "I",
       "fields": ["object", "fg", "leader", "tick"],
       "text": "Object {leader}, the craft that computer-flown craft {object} followed in flight group {fg}, could no longer lead, and craft {object} took over as the group's leader; at tick {tick}"
+    },
+    "ai.mine_decoy_refused": {
+      "level": "D",
+      "fields": ["target", "context", "range", "predicted"],
+      "text": "A target search measured from a point (a mine's search) refused object {target}, whose decoy beam was on; the decoy test measured from object {context}, the last craft the computer-pilot code worked on, and found {range} units (the distance is that test's only when the craft was not breaking up or jumping); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.mine_target_found": {
+      "level": "D",
+      "fields": ["target", "range", "context", "undisabled", "x", "y", "z", "predicted"],
+      "text": "The mine at {x} {y} {z} found object {target}, {range} units away, as the nearest target its orders name (targets had to be in working order: {undisabled}); its decoy test measured from object {context}, the last craft the computer-pilot code worked on; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.mission_aborted": {
       "level": "I",
@@ -218,10 +243,35 @@
       "fields": ["object", "target", "reason", "predicted"],
       "text": "Computer-flown craft {object} broke off from target {target} (65,535 for none): {reason} (player_avoid: a player told the wingmen to leave that target alone; not_targetable: the target is gone, leaving through hyperspace, breaking up, or hidden by a decoy beam; replaced: another object now holds the target's slot; disabled_done: on a disable order, every system of the target is out; decoy: the target is a player's craft with its decoy beam on, more than 16,384 units away; disabled_ignored: in a version 14 mission, the target is disabled and its orders do not name it; evade: a player told it to evade); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.target_picked": {
+      "level": "D",
+      "fields": ["object", "target", "reason", "leader", "escort", "plan", "orderplan", "order", "predicted"],
+      "text": "Computer-flown craft {object} took object {target} as its target, by {reason} (command: a target a player had named for it; search: the nearest target its order's search found; escort_leader: the nearest craft escorting a group its order names; escort_threat: the nearest craft attacking the group it escorts; leader_attacker: the craft that last hit its leader; leader_target: a craft of the group its leader is fighting); its leader is object {leader} and the group it escorts {escort} (255 for none), its plan {plan}, the plan of its current order {orderplan}, in order slot {order}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.targets_refused": {
+      "level": "D",
+      "fields": ["object", "candidates", "undisabled", "predicted"],
+      "text": "The target search of computer-flown craft {object} found {candidates} objects its order names but took none: each already had as many attackers as allowed, or was a craft with a decoy beam on more than 16,384 units away (targets had to be in working order: {undisabled}); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.turret_blocked": {
+      "level": "D",
+      "fields": ["object", "target", "blocker", "range", "predicted"],
+      "text": "A turret of computer-flown craft {object} gave up object {target}, {range} units away, because craft {blocker}, not an enemy, lay in its line of fire; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.turret_targeted": {
+      "level": "D",
+      "fields": ["object", "turret", "target", "reason", "timer", "ion_fire", "predicted"],
+      "text": "Computer-flown craft {object} turned the turret in weapon slot {turret} on object {target}, by {reason} (last_attacker: the craft that last hit it; nearest_attacker: the nearest craft attacking it; protect: the nearest craft attacking an object its order protects; order_first, order_second: the nearest object matching the first or second pair of its order's targets); the turret keeps it at least {timer} more ticks and fires ion shots: {ion_fire}; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.warhead_evaded": {
       "level": "D",
       "fields": ["object", "warhead", "type", "via", "maneuver", "cm", "ammo", "seconds", "predicted"],
       "text": "Computer-flown craft {object} found homing warhead {warhead} (object type {type}) closing on it and, through its {via} order, turned away with maneuver {maneuver} (1 turn inside, 24 turn away, 32 avoid the attacker); its countermeasures: type {cm} (0 none, 1 chaff, 2 flares), {ammo} left, chaff cover for {seconds} seconds (a flare it launched has its own line); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.warheads_fired": {
+      "level": "D",
+      "fields": ["object", "launcher", "target", "component", "lock", "needed", "fired", "limit", "flags", "predicted"],
+      "text": "Computer-flown craft {object} fired warhead launcher {launcher} at object {target}, aimed at its part {component}, once its lock reached {lock} ticks of the {needed} needed; it has fired {fired} times in this maneuver, of the {limit} allowed, with launcher setting {flags} (1 a single shot, 3 a pair at once, 129 a single shot from its second slot, which held more rounds); predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.withdraw_timing": {
       "level": "D",
