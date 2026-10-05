@@ -1093,6 +1093,41 @@
       "fields": ["craft", "genus"],
       "text": "The Tech Library asked for the ratings of craft type {craft} (class {genus}), which has no model; its ratings stayed at 0"
     },
+    "cutscene.table_alloc_failed": {
+      "level": "E",
+      "fields": ["file", "count", "bytes"],
+      "text": "Memory for the {count} cutscenes {file} declares ({bytes} bytes) could not be allocated; no cutscenes play, and the file was left open"
+    },
+    "cutscene.table_empty": {
+      "level": "W",
+      "fields": ["file"],
+      "text": "The cutscene list {file} was empty; no cutscenes play"
+    },
+    "cutscene.table_entry": {
+      "level": "D",
+      "fields": ["index", "movie", "campaign", "phase", "mission"],
+      "text": "Cutscene {index} is the movie {movie}, for campaign {campaign}, played {phase} (0 before the mission, 1 after its debriefing) of mission {mission}"
+    },
+    "cutscene.table_entry_invalid": {
+      "level": "W",
+      "fields": ["file", "entry"],
+      "text": "Cutscene {entry} of the list {file} lacked its three numbers; it and the rest of the list were left out"
+    },
+    "cutscene.table_loaded": {
+      "level": "D",
+      "fields": ["file", "read", "count"],
+      "text": "The cutscene list {file} was read whole: {read} of the {count} cutscenes it declares"
+    },
+    "cutscene.table_open_failed": {
+      "level": "W",
+      "fields": ["file"],
+      "text": "The cutscene list {file} did not open; no cutscenes play and the cutscene viewer stays empty"
+    },
+    "cutscene.table_short": {
+      "level": "W",
+      "fields": ["file", "part", "read", "count"],
+      "text": "The cutscene list {file} ended at an entry's {part} line after {read} of the {count} cutscenes it declares; the rest were left out"
+    },
     "d3d.buffer_call_failed": {
       "level": "E",
       "fields": ["op", "result", "buffer", "surface"],

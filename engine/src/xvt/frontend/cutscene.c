@@ -15,6 +15,7 @@
 #include "xvt/frontend/frontend_mission_list.h"
 #include "xvt/frontend/movie.h"
 #include "xvt/frontend/pilot_record.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Entries loaded in g_cutscene_table. cutscene_load_table sets it once it has
  * a table; game_main in the original build and xvt_frontend_task_shutdown in the
@@ -48,9 +49,12 @@ int cutscene_load_table(const char *file_name)
 
 	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
+		XVT_LOG_WARN("cutscene.table_open_failed file=\"%s\"",
+			     file_name);
 		return 0;
 	}
 	if (FILE_GETS(g_frontend_scratch_buffer, 255, stream) == NULL) {
+		XVT_LOG_WARN("cutscene.table_empty file=\"%s\"", file_name);
 		file_close(stream);
 		return 0;
 	}
@@ -60,6 +64,9 @@ int cutscene_load_table(const char *file_name)
 	size_t allocation_size = sizeof(struct cutscene_entry) * declared_count;
 	g_cutscene_table = (struct cutscene_entry *)malloc(allocation_size);
 	if (g_cutscene_table == NULL) {
+		XVT_LOG_ERROR(
+			"cutscene.table_alloc_failed file=\"%s\" count=%u bytes=%u",
+			file_name, declared_count, (unsigned)allocation_size);
 		return 0;
 	}
 	memset(g_cutscene_table, 0, allocation_size);
@@ -71,6 +78,10 @@ int cutscene_load_table(const char *file_name)
 			line = FILE_GETS(g_frontend_scratch_buffer, 255,
 					 stream);
 			if (line == NULL) {
+				XVT_LOG_WARN(
+					"cutscene.table_short file=\"%s\" part=\"name\" read=%d count=%u",
+					file_name, g_cutscene_count,
+					declared_count);
 				file_close(stream);
 				return 1;
 			}
@@ -89,6 +100,10 @@ int cutscene_load_table(const char *file_name)
 			line = FILE_GETS(g_frontend_scratch_buffer, 255,
 					 stream);
 			if (line == NULL) {
+				XVT_LOG_WARN(
+					"cutscene.table_short file=\"%s\" part=\"numbers\" read=%d count=%u",
+					file_name, g_cutscene_count,
+					declared_count);
 				g_cutscene_table[g_cutscene_count]
 					.movie_name[0] = '\0';
 				file_close(stream);
@@ -102,6 +117,9 @@ int cutscene_load_table(const char *file_name)
 				    .play_after_debriefing,
 			   &g_cutscene_table[g_cutscene_count]
 				    .campaign_mission_id) != 3) {
+			XVT_LOG_WARN(
+				"cutscene.table_entry_invalid file=\"%s\" entry=%d",
+				file_name, g_cutscene_count);
 			memset(&g_cutscene_table[g_cutscene_count], 0,
 			       sizeof(struct cutscene_entry));
 			file_close(stream);
@@ -112,6 +130,10 @@ int cutscene_load_table(const char *file_name)
 			line = FILE_GETS(g_frontend_scratch_buffer, 255,
 					 stream);
 			if (line == NULL) {
+				XVT_LOG_WARN(
+					"cutscene.table_short file=\"%s\" part=\"thumbnail\" read=%d count=%u",
+					file_name, g_cutscene_count,
+					declared_count);
 				file_close(stream);
 				return 1;
 			}
@@ -131,6 +153,10 @@ int cutscene_load_table(const char *file_name)
 			line = FILE_GETS(g_frontend_scratch_buffer, 255,
 					 stream);
 			if (line == NULL) {
+				XVT_LOG_WARN(
+					"cutscene.table_short file=\"%s\" part=\"description\" read=%d count=%u",
+					file_name, g_cutscene_count,
+					declared_count);
 				file_close(stream);
 				return 1;
 			}
@@ -145,7 +171,18 @@ int cutscene_load_table(const char *file_name)
 		       g_frontend_scratch_buffer,
 		       sizeof(g_cutscene_table[g_cutscene_count].description));
 		++g_cutscene_count;
+		XVT_LOG_DEBUG(
+			"cutscene.table_entry index=%d movie=\"%.127s\" campaign=%d phase=%d mission=%d",
+			g_cutscene_count - 1,
+			g_cutscene_table[g_cutscene_count - 1].movie_name,
+			g_cutscene_table[g_cutscene_count - 1].campaign_id,
+			g_cutscene_table[g_cutscene_count - 1]
+				.play_after_debriefing,
+			g_cutscene_table[g_cutscene_count - 1]
+				.campaign_mission_id);
 	}
+	XVT_LOG_DEBUG("cutscene.table_loaded file=\"%s\" read=%d count=%u",
+		      file_name, g_cutscene_count, declared_count);
 
 	file_close(stream);
 	return 1;
