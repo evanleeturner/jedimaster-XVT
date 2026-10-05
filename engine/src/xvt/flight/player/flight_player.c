@@ -4,6 +4,7 @@
 #include "xvt/flight/flight.h"
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Returns 1 when the local player's craft has an installed subsystem (its flag
  * set in system_flags) whose system_health is 0, else 0. Also returns 0 when the
@@ -61,6 +62,11 @@ void flight_player_increase_throttle_speed(int16_t step, int player_idx)
 		g_object_table[player->object_index]
 			.mobj->p_craft->throttle_speed = UINT16_MAX;
 	}
+	XVT_LOG_DEBUG(
+		"player.throttle_stepped slot=%d step=%d old=%u throttle=%u predicted=%d",
+		player_idx, (int)step, (unsigned)throttle_speed,
+		(unsigned)*throttle_speed_ptr,
+		g_flight_sim_side_effects_suppressed);
 }
 
 /* Takes step from the throttle_speed of the player's craft, holding at 0 when
@@ -79,4 +85,9 @@ void flight_player_decrease_throttle_speed(int16_t step, int player_idx)
 		g_object_table[player->object_index]
 			.mobj->p_craft->throttle_speed = 0;
 	}
+	XVT_LOG_DEBUG(
+		"player.throttle_stepped slot=%d step=%d old=%u throttle=%u predicted=%d",
+		player_idx, -(int)step, (unsigned)throttle_speed,
+		(unsigned)*throttle_speed_ptr,
+		g_flight_sim_side_effects_suppressed);
 }

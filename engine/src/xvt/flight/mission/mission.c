@@ -6488,6 +6488,16 @@ uint16_t mission_init(const char *file_name)
 							[assigned_flight_group]
 								.fg
 								.countermeasures);
+					XVT_LOG_INFO(
+						"battle.player_joined who=%u entry=%d player=%u fg=%d team=%d tick=0",
+						player_slot, (int)slot,
+						(unsigned)g_pilot_data
+							.network_players[slot]
+							.direct_play_id,
+						(int)assigned_flight_group,
+						(int)g_mission_flight_groups
+							[assigned_flight_group]
+								.fg.team);
 				} else {
 					XVT_LOG_WARN(
 						"mission.player_slot_missing entry=%d player=%u",

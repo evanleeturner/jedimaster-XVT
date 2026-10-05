@@ -33,6 +33,7 @@
 #include "xvt/net/flight_net.h"
 #include "xvt/net/net_session.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Per player, countdown timers for HUD panes and redraws, in ticks.
  * flight_update_timers counts each down by g_elapsed_ticks for participating
@@ -168,6 +169,11 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 			--objects_remaining;
 		}
 		if (objects_remaining == 0) {
+			XVT_LOG_DEBUG(
+				"player.craft_unavailable slot=%d previous=%d preferred=%d predicted=%d",
+				player_idx, (int)previous_object_idx,
+				preferred_object_signature,
+				g_flight_sim_side_effects_suppressed);
 			return 1;
 		}
 	}
@@ -374,6 +380,31 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 		fsfx_play_sound(FLIGHT_SOUND_BOMB_1, -1, player_idx);
 	}
 	flight_compute_live_world_state_checksum();
+	if (g_flight_sim_side_effects_suppressed == 0) {
+		XVT_LOG_INFO(
+			"player.craft_bound slot=%d object=%d fg=%d craft=%d kind=\"%s\" player=%u tick=%d",
+			player_idx, selected_object_idx,
+			(int)g_object_table[selected_object_idx]
+				.flight_group_idx,
+			(int)g_mission_flight_groups
+				[g_object_table[selected_object_idx]
+					 .flight_group_idx]
+					.fg.craft_type,
+			matched_preferred_signature != 0    ? "same"
+			: previous_object_idx != UINT32_MAX ? "next"
+							    : "replacement",
+			(unsigned)g_players[player_idx].network.direct_play_id,
+			g_game_time);
+	}
+	XVT_LOG_DEBUG(
+		"player.craft_bound_state slot=%d object=%d signature=%u throttle=%u distribution=%d front=%d rear=%d target=%d predicted=%d",
+		player_idx, selected_object_idx,
+		(unsigned)g_players[player_idx].bound_object_signature,
+		(unsigned)craft->throttle_speed,
+		(int)craft->shield_distrib_mode, craft->shield_energy[0],
+		craft->shield_energy[1],
+		(int)g_players[player_idx].current_target_object_idx,
+		g_flight_sim_side_effects_suppressed);
 	return 0;
 }
 
@@ -427,12 +458,19 @@ int player_unbind_from_current_craft(int player_index,
 			}
 		}
 		if (owned_craft_count <= MAX_OWNED_CRAFT_WITHOUT_REPLACEMENT) {
+			XVT_LOG_DEBUG(
+				"player.craft_kept slot=%d owned=%u predicted=%d",
+				player_index, (unsigned)owned_craft_count,
+				g_flight_sim_side_effects_suppressed);
 			return 0;
 		}
 	}
 
 	int object_idx = g_players[player_index].object_index;
 	if (object_idx == -1) {
+		XVT_LOG_DEBUG(
+			"player.craft_release_skipped slot=%d predicted=%d",
+			player_index, g_flight_sim_side_effects_suppressed);
 		return 0;
 	}
 
@@ -475,6 +513,10 @@ int player_unbind_from_current_craft(int player_index,
 	g_players[player_index].saved_key_mods = 0;
 	g_players[player_index].key_mods_hold_timer = 0;
 	g_players[player_index].engine_wash_source_obj_idx = -1;
+	XVT_LOG_DEBUG(
+		"player.release_plan_craft slot=%d object=%d same=%d predicted=%d",
+		player_index, object_idx, g_cur_craft == craft,
+		g_flight_sim_side_effects_suppressed);
 	g_cur_craft->ai_controller.current_order_slot = 0;
 
 	if (assign_ai_plan != 0) {
@@ -562,6 +604,12 @@ int player_unbind_from_current_craft(int player_index,
 		craft->ai_flight.climb_state = 0;
 		craft->ai_flight.dive_state = 0;
 	}
+	XVT_LOG_INFO(
+		"player.craft_released slot=%d object=%d fg=%d orders=%d plan=%d tick=%d",
+		player_index, object_idx,
+		(int)g_object_table[object_idx].flight_group_idx,
+		assign_ai_plan != 0, (int)craft->ai_controller.running_plan_id,
+		g_game_time);
 	return 1;
 }
 
@@ -592,6 +640,27 @@ void player_save_craft_settings(int player_index)
 		(uint8_t)(craft->warhead_launcher_flags[0] & 3);
 	g_players[player_index].saved_craft_settings.warhead_launcher_flags[1] =
 		(uint8_t)(craft->warhead_launcher_flags[1] & 3);
+	XVT_LOG_DEBUG(
+		"player.settings_saved slot=%d object=%d throttle=%u laser_level=%d shield_level=%d beam_level=%d distribution=%d links=\"%d,%d\" warheads=\"%d,%d\" predicted=%d",
+		player_index, g_players[player_index].object_index,
+		(unsigned)g_players[player_index]
+			.saved_craft_settings.throttle_speed,
+		(int)g_players[player_index]
+			.saved_craft_settings.laser_recharge_level,
+		(int)g_players[player_index]
+			.saved_craft_settings.shield_recharge_level,
+		(int)g_players[player_index].saved_craft_settings.beam_level,
+		(int)g_players[player_index]
+			.saved_craft_settings.shield_distrib_mode,
+		(int)g_players[player_index]
+			.saved_craft_settings.laser_link_mode[0],
+		(int)g_players[player_index]
+			.saved_craft_settings.laser_link_mode[1],
+		(int)g_players[player_index]
+			.saved_craft_settings.warhead_launcher_flags[0],
+		(int)g_players[player_index]
+			.saved_craft_settings.warhead_launcher_flags[1],
+		g_flight_sim_side_effects_suppressed);
 }
 
 /* Turns one player's stick input into craft rotation or camera movement, after
@@ -937,6 +1006,10 @@ void player_update_flight_controls_and_camera(int player_idx)
 			} else {
 				g_players[player_idx].smoothed_input_yaw = 0;
 				g_players[player_idx].smoothed_input_pitch = 0;
+				XVT_LOG_DEBUG(
+					"player.roll_mode slot=%d roll=%d predicted=%d",
+					player_idx, (int)key_mode,
+					g_flight_sim_side_effects_suppressed);
 #ifdef XVT_MODERN
 				xvt_player_timing_clear(player_idx,
 							XVT_PLAYER_SLEW_YAW);
@@ -1121,6 +1194,16 @@ void player_update_flight_controls_and_camera(int player_idx)
 						g_players[player_idx]
 							.view_state
 							.camera_distance;
+					XVT_LOG_DEBUG(
+						"player.map_overview slot=%d focus=%d height=%d predicted=%d",
+						player_idx,
+						(int)g_players[player_idx]
+							.view_state
+							.camera_focus_obj_idx,
+						g_players[player_idx]
+							.view_state
+							.camera_world_z,
+						g_flight_sim_side_effects_suppressed);
 				}
 				g_players[player_idx]
 					.view_state.camera_focus_obj_idx =
@@ -1818,6 +1901,11 @@ void flight_chat_handle_input(int player_idx)
 			player->msg_length = message_length;
 			player->msg_text[message_length] = '_';
 			player->msg_text[message_length + 1] = '\0';
+			XVT_LOG_DEBUG(
+				"player.chat_edited slot=%d edit=\"delete\" length=%d recipients=%d predicted=%d",
+				player_idx, (int)player->msg_length,
+				(int)player->chat_recipient_mode,
+				g_flight_sim_side_effects_suppressed);
 		}
 		msg_add_message_ptr(0, player->msg_text);
 		msg_emit_in_flight_message(
@@ -1835,6 +1923,11 @@ void flight_chat_handle_input(int player_idx)
 			player->chat_recipient_mode =
 				FLIGHT_CHAT_RECIPIENT_TEAM;
 		}
+		XVT_LOG_DEBUG(
+			"player.chat_edited slot=%d edit=\"recipients\" length=%d recipients=%d predicted=%d",
+			player_idx, (int)player->msg_length,
+			(int)player->chat_recipient_mode,
+			g_flight_sim_side_effects_suppressed);
 		msg_add_message_ptr(0, player->msg_text);
 		msg_emit_in_flight_message(
 			(in_flight_message_id)((uint8_t)player
@@ -1880,6 +1973,11 @@ void flight_chat_handle_input(int player_idx)
 				}
 			}
 		}
+		XVT_LOG_DEBUG(
+			"player.chat_sent slot=%d recipients=%d length=%d predicted=%d",
+			player_idx, (int)player->chat_recipient_mode,
+			(int)player->msg_length,
+			g_flight_sim_side_effects_suppressed);
 		player->chat_recipient_mode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
 		msg_emit_in_flight_message(IFMSG_378_MESSAGE_SENT, player_idx);
 		return;
@@ -1887,6 +1985,11 @@ void flight_chat_handle_input(int player_idx)
 	case 27:
 		player = &g_players[player_idx];
 		player->chat_recipient_mode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
+		XVT_LOG_DEBUG(
+			"player.chat_edited slot=%d edit=\"cancelled\" length=%d recipients=%d predicted=%d",
+			player_idx, (int)player->msg_length,
+			(int)player->chat_recipient_mode,
+			g_flight_sim_side_effects_suppressed);
 		msg_emit_in_flight_message(IFMSG_379_MESSAGE_ABORTED,
 					   player_idx);
 		return;
@@ -1933,6 +2036,11 @@ void flight_chat_handle_input(int player_idx)
 				}
 			}
 		}
+		XVT_LOG_DEBUG(
+			"player.taunt_sent slot=%d taunt=%d recipients=%d predicted=%d",
+			player_idx, (int)g_current_action_key - 155,
+			(int)player->chat_recipient_mode,
+			g_flight_sim_side_effects_suppressed);
 		player->chat_recipient_mode = FLIGHT_CHAT_RECIPIENT_INACTIVE;
 		msg_emit_in_flight_message(IFMSG_378_MESSAGE_SENT, player_idx);
 		return;
@@ -1947,6 +2055,11 @@ void flight_chat_handle_input(int player_idx)
 				player->msg_text[message_length + 1] = '_';
 				player->msg_text[message_length + 2] = '\0';
 				++player->msg_length;
+				XVT_LOG_DEBUG(
+					"player.chat_edited slot=%d edit=\"typed\" length=%d recipients=%d predicted=%d",
+					player_idx, (int)player->msg_length,
+					(int)player->chat_recipient_mode,
+					g_flight_sim_side_effects_suppressed);
 			}
 			msg_add_message_ptr(0, player->msg_text);
 			msg_emit_in_flight_message(
@@ -2219,11 +2332,24 @@ void player_transfer_shield_bank_energy(uint16_t dst_bank, uint16_t src_bank,
 					.mobj->p_craft
 					->shield_energy[src_bank] -=
 					transfer_capacity;
+				XVT_LOG_DEBUG(
+					"player.shield_moved slot=%d shield=%d moved=%d front=%d rear=%d predicted=%d",
+					player_idx, (int)dst_bank,
+					(int)transfer_capacity,
+					craft->shield_energy[0],
+					craft->shield_energy[1],
+					g_flight_sim_side_effects_suppressed);
 			} else {
 				*dst_shield_energy = dst_energy + src_energy;
 				g_object_table[player->object_index]
 					.mobj->p_craft
 					->shield_energy[src_bank] = 0;
+				XVT_LOG_DEBUG(
+					"player.shield_moved slot=%d shield=%d moved=%d front=%d rear=%d predicted=%d",
+					player_idx, (int)dst_bank, src_energy,
+					craft->shield_energy[0],
+					craft->shield_energy[1],
+					g_flight_sim_side_effects_suppressed);
 			}
 		}
 	}
@@ -2287,6 +2413,16 @@ void player_update_hud_view_for_camera_focus(int player_idx)
 				.view_state.external_camera_active = 1;
 		}
 	}
+	XVT_LOG_DEBUG(
+		"player.view_focus slot=%d focus=%d own=%d external=%d target_camera=%d view=%d predicted=%d",
+		player_idx,
+		(int)g_players[player_idx].view_state.camera_focus_obj_idx,
+		g_players[player_idx].view_state.camera_focus_obj_idx ==
+			g_players[player_idx].object_index,
+		(int)g_players[player_idx].view_state.external_camera_active,
+		(int)g_players[player_idx].view_state.target_camera_active,
+		(int)g_players[player_idx].view_state.hud_state_live,
+		g_flight_sim_side_effects_suppressed);
 }
 
 /* Returns the object the player is looking at, or UINT16_MAX: among targetable
@@ -2362,6 +2498,10 @@ uint16_t player_pick_target_in_sight(int player_idx)
 	}
 	if (g_players[player_idx].map_camera_state == 0 &&
 	    object_has_active_decoy_beam(best_target) == 1) {
+		XVT_LOG_DEBUG(
+			"player.pick_decoyed slot=%d target=%d predicted=%d",
+			player_idx, (int)best_target,
+			g_flight_sim_side_effects_suppressed);
 		best_target = UINT16_MAX;
 		msg_emit_in_flight_message(
 			IFMSG_257_TARGET_ACQUISITION_BLOCKED_BY_DECOY_BEAM,
@@ -2621,6 +2761,13 @@ void player_set_target(int new_target_obj_idx, int player_idx)
 			    (uint16_t)new_target_obj_idx) {
 			fsfx_play_sound(FLIGHT_SOUND_TARGET_SELECTED, -1,
 					player_idx);
+			XVT_LOG_DEBUG(
+				"player.target_changed slot=%d target=%d previous=%d map=%d predicted=%d",
+				player_idx, target_obj_idx,
+				(int)g_players[player_idx]
+					.current_target_object_idx,
+				g_players[player_idx].map_camera_state != 0,
+				g_flight_sim_side_effects_suppressed);
 			g_players[player_idx].current_target_object_idx =
 				(uint16_t)new_target_obj_idx;
 			g_players[player_idx].selected_target_component = 0;
@@ -2686,6 +2833,12 @@ void player_set_target(int new_target_obj_idx, int player_idx)
 							player_idx);
 				}
 			}
+			XVT_LOG_DEBUG(
+				"player.target_component slot=%d target=%d component=%d predicted=%d",
+				player_idx, target_obj_idx,
+				(int)g_players[player_idx]
+					.selected_target_component,
+				g_flight_sim_side_effects_suppressed);
 			if (g_players[player_idx]
 				    .view_state.target_camera_active != 0) {
 				g_players[player_idx]
@@ -2723,6 +2876,10 @@ void player_set_target(int new_target_obj_idx, int player_idx)
 			}
 		}
 	} else {
+		XVT_LOG_DEBUG(
+			"player.target_refused slot=%d target=%d predicted=%d",
+			player_idx, target_obj_idx,
+			g_flight_sim_side_effects_suppressed);
 		g_msg_arg_table[0] = IFMSG_096_TARGETING_COMPUTER;
 		g_msg_arg_table[1] = IFMSG_087_DAMAGED_AND_INOPERATIVE;
 		msg_emit_in_flight_message(IFMSG_086_ARG_SYSTEM_IS_ARG,
@@ -3023,6 +3180,11 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 					 .allies[target_team];
 		}
 		if (!target_is_hostile) {
+			XVT_LOG_DEBUG(
+				"player.order_ignored slot=%d command=%d target=%d predicted=%d",
+				player_idx, (int)command_id,
+				(int)target_obj_idx,
+				g_flight_sim_side_effects_suppressed);
 			return;
 		}
 	}
@@ -3091,6 +3253,11 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 				pai_setupcraftcontext(object_index);
 				pai_apply_running_plan_target_and_maneuver(
 					object_index);
+				XVT_LOG_DEBUG(
+					"player.wingman_released slot=%d object=%d plan=%d predicted=%d",
+					player_idx, (int)object_index,
+					(int)ai->running_plan_id,
+					g_flight_sim_side_effects_suppressed);
 			}
 			ai->candidate_target_idx = target_obj_idx;
 			if (craft->player_command_avoid_target_obj_idx ==
@@ -3108,6 +3275,13 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 		matching_wingmen++;
 		last_wingman = object_index;
 	}
+	XVT_LOG_DEBUG(
+		"player.order_passed slot=%d command=%d target=%d wingmen=%u last=%d predicted=%d",
+		player_idx, (int)command_id,
+		target_obj_idx == UINT16_MAX ? -1 : (int)target_obj_idx,
+		(unsigned)matching_wingmen,
+		last_wingman == UINT16_MAX ? -1 : (int)last_wingman,
+		g_flight_sim_side_effects_suppressed);
 	if (player_idx == g_local_player && last_wingman != UINT16_MAX) {
 		uint8_t *wingman_craft =
 			(uint8_t *)g_object_table[last_wingman].mobj->p_craft;
@@ -3309,6 +3483,18 @@ void player_start_post_destruction_state(int player_idx,
 		}
 	}
 	g_players[player_idx].awaiting_new_craft = 1;
+	XVT_LOG_DEBUG(
+		"player.awaiting_craft slot=%d object=%d source=%d source_type=%d by=%d map=%d predicted=%d",
+		player_idx, g_players[player_idx].object_index,
+		source_object_index >= UINT16_MAX ? -1
+						  : (int)source_object_index,
+		source_object_index <
+				(unsigned int)
+					g_active_region_craft_object_slot_end
+			? (int)g_object_table[source_object_index].object_type
+			: -1,
+		source_player_idx, g_players[player_idx].map_camera_state != 0,
+		g_flight_sim_side_effects_suppressed);
 }
 
 /* Copies a name for the object into text and makes it message argument slot. A
@@ -3411,6 +3597,12 @@ void player_end_flight_participation(int player_idx)
 			++active_player_count;
 		}
 	}
+	if (g_flight_sim_side_effects_suppressed == 0) {
+		XVT_LOG_INFO("player.out_of_mission slot=%d flying=%u tick=%d",
+			     player_idx, active_player_count, g_game_time);
+		XVT_LOG_INFO("battle.player_out who=%d flying=%u tick=%d",
+			     player_idx, active_player_count, g_game_time);
+	}
 	if (active_player_count != 0) {
 		g_players[player_idx].map_camera_state = UINT8_MAX;
 		hud_set_hud_view_state(HUD_VIEW_CRAFT_LIST, player_idx);
@@ -3453,6 +3645,11 @@ void player_end_flight_participation(int player_idx)
 		fsfx_update_beam_effect_loops();
 	} else {
 		g_flight_mission_state.mission_end_pending = 1;
+		if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_INFO(
+				"flight.mission_ending reason=\"last_player_out\" slot=%d tick=%d",
+				player_idx, g_game_time);
+		}
 	}
 }
 
@@ -3532,6 +3729,21 @@ void player_validate_current_targets(int player_idx)
 	}
 	if ((uint16_t)g_players[player_idx].current_target_object_idx ==
 	    UINT16_MAX) {
+		XVT_LOG_DEBUG(
+			"player.target_dropped slot=%d target=%d reason=\"%s\" camera=%d predicted=%d",
+			player_idx, (int)current_target_object_idx,
+			target_object->object_type == 0 ? "empty"
+			: target_object->genus_id == OBJECT_GENUS_EXPLOSION
+				? "explosion"
+			: (g_players[player_idx].map_camera_state == 0 &&
+			   (g_object_table[g_players[player_idx].object_index]
+				    .mobj->p_craft->working_subsystems &
+			    CRAFT_SUBSYSTEM_FLAG_TARGETING_COMPUTER) == 0)
+				? "computer"
+				: "decoy",
+			g_players[player_idx].view_state.hud_state_live ==
+				HUD_VIEW_TARGET_CAMERA,
+			g_flight_sim_side_effects_suppressed);
 		g_players[player_idx].target_cycle_start =
 			(int16_t)current_target_object_idx;
 		g_players[player_idx].targeting_state = 0;
@@ -3651,6 +3863,15 @@ void player_update_participation_state(void)
 					if (object->object_type == 0 ||
 					    player->bound_object_signature !=
 						    object->object_signature) {
+						XVT_LOG_DEBUG(
+							"player.craft_gone slot=%d object=%d fg=%d empty=%d predicted=%d",
+							(int)player_idx,
+							player->object_index,
+							(int)player
+								->bound_flight_group_idx,
+							object->object_type ==
+								0,
+							g_flight_sim_side_effects_suppressed);
 						mission_process_flight_group_wave_completion(
 							player->bound_flight_group_idx);
 						if (player_bind_to_available_craft(
@@ -3678,6 +3899,12 @@ void player_update_participation_state(void)
 					player->bound_flight_group_idx);
 				if (player_has_available_owned_craft(
 					    (int)player_idx) == 0) {
+					XVT_LOG_DEBUG(
+						"player.map_without_craft slot=%d fg=%d predicted=%d",
+						(int)player_idx,
+						(int)player
+							->bound_flight_group_idx,
+						g_flight_sim_side_effects_suppressed);
 					player_end_flight_participation(
 						(int)player_idx);
 					player_emit_remote_player_departed_messages(
@@ -3694,6 +3921,9 @@ void player_update_participation_state(void)
 		     ++player_idx) {
 			if (g_player_abort_flags[player_idx] != 0 &&
 			    g_players[player_idx].participation_state != 0) {
+				XVT_LOG_INFO(
+					"battle.player_left who=%d tick=%d",
+					(int)player_idx, g_game_time);
 				if (g_players[player_idx].object_index != -1) {
 					player_unbind_from_current_craft(
 						(int)player_idx, 0, 1);
@@ -3701,9 +3931,20 @@ void player_update_participation_state(void)
 				if (g_local_player == (int)player_idx) {
 					g_flight_mission_state
 						.mission_end_pending = 1;
+					XVT_LOG_INFO(
+						"flight.mission_ending reason=\"local_aborted\" slot=%d tick=%d",
+						(int)player_idx, g_game_time);
 				}
 				g_players[player_idx].participation_state = 0;
 				flight_update_active_player_count();
+				XVT_LOG_DEBUG(
+					"player.quit_flight slot=%d player=%u local=%d active=%d predicted=%d",
+					(int)player_idx,
+					(unsigned)g_players[player_idx]
+						.network.direct_play_id,
+					g_local_player == (int)player_idx,
+					g_active_flight_player_count,
+					g_flight_sim_side_effects_suppressed);
 				if (net_session_get_host_dplay_id() !=
 				    g_players[player_idx]
 					    .network.direct_play_id) {
@@ -3869,6 +4110,9 @@ void player_handle_hyperspace_command(struct craft_data *craft,
 				g_flight_mission_state.mission_end_pending = 1;
 				g_players[player_idx].participation_state =
 					PLAYER_OUT_OF_MISSION;
+				XVT_LOG_INFO(
+					"flight.mission_ending reason=\"proving_grounds_hyperspace\" slot=%d tick=%d",
+					(int)player_idx, g_game_time);
 			} else if ((craft->working_subsystems &
 				    CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0) {
 				int16_t interdictor_present = 0;
@@ -3897,6 +4141,10 @@ void player_handle_hyperspace_command(struct craft_data *craft,
 				}
 
 				if (interdictor_present != 0) {
+					XVT_LOG_DEBUG(
+						"player.hyperspace_refused slot=%d reason=\"interdictor\" predicted=%d",
+						(int)player_idx,
+						g_flight_sim_side_effects_suppressed);
 					msg_emit_in_flight_message(
 						IFMSG_109_INTERDICTOR_PREVENTS_HYPERDRIVE_UNIT_FROM_FUNCTIONING,
 						player_idx);
@@ -3953,6 +4201,16 @@ void player_handle_hyperspace_command(struct craft_data *craft,
 							FLIGHT_SOUND_S_FOIL, -1,
 							player_idx);
 					}
+					XVT_LOG_INFO(
+						"player.hyperspace_started slot=%d object=%d fg=%d tick=%d",
+						(int)player_idx,
+						g_players[player_idx]
+							.object_index,
+						(int)g_object_table
+							[g_players[player_idx]
+								 .object_index]
+								.flight_group_idx,
+						g_game_time);
 
 					if (g_local_player != (int)player_idx) {
 						msg_add_message_ptr(
@@ -3965,6 +4223,10 @@ void player_handle_hyperspace_command(struct craft_data *craft,
 					}
 				}
 			} else {
+				XVT_LOG_DEBUG(
+					"player.hyperspace_refused slot=%d reason=\"damaged\" predicted=%d",
+					(int)player_idx,
+					g_flight_sim_side_effects_suppressed);
 				g_msg_arg_table[0] =
 					HYPERDRIVE_SYSTEM_NAME_MESSAGE_ARG;
 				g_msg_arg_table[1] =
@@ -4028,6 +4290,16 @@ void player_handle_hyperspace_command(struct craft_data *craft,
 					}
 				}
 			}
+			XVT_LOG_DEBUG(
+				"player.hyperspace_unavailable slot=%d departure=%d alternate=%d predicted=%d",
+				(int)player_idx,
+				departure_mothership_obj_idx == UINT16_MAX
+					? -1
+					: (int)departure_mothership_obj_idx,
+				alternate_mothership_obj_idx == UINT16_MAX
+					? -1
+					: (int)alternate_mothership_obj_idx,
+				g_flight_sim_side_effects_suppressed);
 
 			if (departure_mothership_obj_idx != UINT16_MAX &&
 			    alternate_mothership_obj_idx != UINT16_MAX) {
