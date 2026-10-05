@@ -1105,7 +1105,7 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 			XVT_LOG_DEBUG(
 				"options.choice_set widget=\"slider\" page=%d label=%d x=%d y=%d value=%d was=%d",
 				g_config_current_page, (int)range_label_id,
-				(int)rect->left, (int)rect->top,
+				(int)rect->left - 2, (int)rect->top,
 				value_count - 1, (int)*value);
 		}
 		*value = (uint8_t)(value_count - 1);
@@ -1126,7 +1126,7 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 			XVT_LOG_DEBUG(
 				"options.choice_set widget=\"slider\" page=%d label=%d x=%d y=%d value=%d was=%d",
 				g_config_current_page, (int)range_label_id,
-				(int)rect->left, (int)rect->top, 0,
+				(int)rect->left - 2, (int)rect->top, 0,
 				(int)*value);
 		}
 		*value = 0;
@@ -1161,7 +1161,7 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 		XVT_LOG_DEBUG(
 			"options.choice_set widget=\"slider\" page=%d label=%d x=%d y=%d value=%d was=%d",
 			g_config_current_page, (int)range_label_id,
-			(int)rect->left, (int)rect->top, option_index + 1,
+			(int)rect->left - 2, (int)rect->top, option_index + 1,
 			(int)*value);
 	}
 	*value = (uint8_t)(option_index + 1);
