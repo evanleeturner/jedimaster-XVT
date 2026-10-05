@@ -78,10 +78,25 @@
       "fields": ["who", "cause", "by", "eject", "tick"],
       "text": "Player {who} lost a craft, most of its damage from: {cause}; the player who did the most damage was {by} (-1 when not a player); ejected {eject}; at tick {tick}"
     },
+    "battle.mission_ended": {
+      "level": "I",
+      "fields": ["type", "sequence", "humans", "teams", "local", "ended", "tick"],
+      "text": "The battle ended at tick {tick}: mission type {type} (part of a mission sequence {sequence}), {humans} human players, {teams} teams with players; the flight reached its end on this machine: {ended} (1 when the time ran out, every player was out, this machine's player left or the host ended the game; 0 when the flight stopped before that, as when the network session was lost); written by the machine of player slot {local}"
+    },
     "battle.player_quit": {
       "level": "I",
       "fields": ["who", "penalty", "tick"],
       "text": "Player {who} quit the mission, losing {penalty} points for leaving a melee early, at tick {tick}"
+    },
+    "battle.player_result": {
+      "level": "I",
+      "fields": ["slot", "entry", "player", "team", "fg", "score", "kills", "shared", "assists", "losses", "shots", "hits", "warheads", "warhead_hits", "has_left", "tick"],
+      "text": "Player {player} (slot {slot}, network entry {entry}), flying flight group {fg} for team {team}, ended the mission with {score} points, {kills} full kills, {shared} shared kills, {assists} assists and {losses} craft lost; {shots} laser and ion shots fired, {hits} of them hits; {warheads} warheads fired, {warhead_hits} hits; left before the end: {has_left}; at tick {tick}"
+    },
+    "battle.team_result": {
+      "level": "I",
+      "fields": ["team", "completed", "primary", "prevent", "score", "kills", "shared", "losses", "seconds", "tick"],
+      "text": "Team {team} ended the mission with its goals completed: {completed} (primary goal status {primary}, prevent goal status {prevent}: 0 open, 1 complete, 2 failed); {score} points, {kills} full and {shared} shared kills, {losses} craft lost, primary goal completed at {seconds} seconds (0 when it was not); at tick {tick}"
     },
     "battle.warhead_hit": {
       "level": "I",
@@ -3747,6 +3762,241 @@
       "level": "E",
       "fields": ["result"],
       "text": "Locking the Direct3D z-buffer failed with code {result}"
+    },
+    "resources.buffers_alloc_failed": {
+      "level": "D",
+      "fields": ["screen_bytes", "scratch", "aux", "offscreen", "panels", "icons", "messages", "render_list"],
+      "text": "A flight buffer could not be allocated (screen buffers of {screen_bytes} bytes; memory handles scratch {scratch}, spare {aux}, offscreen {offscreen}, cockpit panels {panels}, map icons {icons}, message log {messages}, render list {render_list}; 0 marks each that failed); the flight cannot start"
+    },
+    "resources.buffers_ready": {
+      "level": "D",
+      "fields": ["width", "height", "bpp", "mode", "directory", "icons", "sfx"],
+      "text": "The flight's fixed buffers and fonts were set up for a {width}x{height} screen at {bpp} bytes per pixel (resolution mode {mode}), the loading line drawn for mission type {directory}; {icons} map icon frames loaded; sound effects on: {sfx}"
+    },
+    "resources.color_lookup_built": {
+      "level": "D",
+      "fields": ["file"],
+      "text": "Neither {file} nor newpal.inv opened, so the 8-bit color lookup table was built from the palette"
+    },
+    "resources.color_lookup_not_saved": {
+      "level": "W",
+      "fields": ["file"],
+      "text": "The color lookup table just built could not be saved as {file}; the next flight of this mission builds it again"
+    },
+    "resources.display_fallback": {
+      "level": "W",
+      "fields": ["what", "asked", "used"],
+      "text": "The flight could not use the {what} asked for ({asked}) and runs with {used} instead; the loading screen warned the player"
+    },
+    "resources.fatal": {
+      "level": "E",
+      "fields": ["code"],
+      "text": "A required flight resource failed with error {code} (0 out of memory, 1 file missing, 2 strings file out of step, 3 the exit prompt's own text); the program exits"
+    },
+    "resources.file_close_failed": {
+      "level": "W",
+      "fields": ["stream", "path", "remove"],
+      "text": "Stream {stream} reported an error or failed to close; {path} is the file opened last (the one closed unless the caller kept an earlier stream); asked to delete the failed file: {remove}"
+    },
+    "resources.file_closed": {
+      "level": "D",
+      "fields": ["stream"],
+      "text": "Stream {stream} closed without error"
+    },
+    "resources.file_opened": {
+      "level": "D",
+      "fields": ["file", "path", "mode", "opened", "required", "stream"],
+      "text": "The file {file} was opened for {mode} at {path}: opened {opened}; required {required} (a required file that does not open ends the program); stream {stream}"
+    },
+    "resources.file_read": {
+      "level": "D",
+      "fields": ["file", "bytes"],
+      "text": "The file {file} was read whole into memory: {bytes} bytes (the count wraps past 65,535)"
+    },
+    "resources.flight_release": {
+      "level": "D",
+      "fields": ["objects", "mobiles", "chars", "crafts", "warheads", "strings"],
+      "text": "The flight's memory was being freed; memory handles before freeing: object table {objects}, moving objects {mobiles}, character data {chars}, craft data {crafts}, warhead guidance {warheads}, strings {strings} (0 for none)"
+    },
+    "resources.fonts_alloc_failed": {
+      "level": "D",
+      "fields": ["small", "micro", "medium"],
+      "text": "A flight font buffer could not be allocated (memory handles small {small}, micro {micro}, medium {medium}; 0 marks each that failed); the flight cannot start"
+    },
+    "resources.list_read": {
+      "level": "D",
+      "fields": ["list", "entries"],
+      "text": "The resource list {list} was read: {entries} entries named"
+    },
+    "resources.loaded": {
+      "level": "I",
+      "fields": ["bpp", "mode", "background", "proving"],
+      "text": "The flight's models, textures and colors were loaded at {bpp} bytes per pixel (resolution mode {mode}); background color index {background}; proving grounds {proving}"
+    },
+    "resources.model_built": {
+      "level": "D",
+      "fields": ["type", "def", "extent", "shift", "size_x", "size_y", "size_z", "slots", "laser1", "laser2", "laser1_slots", "laser2_slots", "warhead1", "warhead2", "warhead1_slots", "warhead2_slots"],
+      "text": "Model definition {def} was filled from object type {type}'s model: size {extent}, bounds {size_x} by {size_y} by {size_z} after {shift} halvings; {slots} weapon slots, laser groups of weapon {laser1} and {laser2} with {laser1_slots} and {laser2_slots} slots, warhead launchers of type {warhead1} and {warhead2} with {warhead1_slots} and {warhead2_slots} slots (0 for none)"
+    },
+    "resources.model_extent": {
+      "level": "D",
+      "fields": ["type", "extent"],
+      "text": "Object type {type} took its size {extent} from its model; it has no model definition to fill"
+    },
+    "resources.model_loaded": {
+      "level": "D",
+      "fields": ["file", "list", "index", "handle", "flags"],
+      "text": "Model {file} (resource list {list}, entry {index} counted from 0, object type flags {flags}) loaded as memory handle {handle}"
+    },
+    "resources.model_missing": {
+      "level": "W",
+      "fields": ["file", "list", "index"],
+      "text": "Model {file} (resource list {list}, entry {index} counted from 0) did not load; the 1997 code went on with no model (memory handle 0) for every object type that uses it"
+    },
+    "resources.read_short": {
+      "level": "E",
+      "fields": ["path", "size", "wanted", "got"],
+      "text": "A required read from {path} (the file opened last) came up short: {got} of {wanted} items of {size} bytes; the program exits"
+    },
+    "resources.resource_kind_unknown": {
+      "level": "W",
+      "fields": ["file", "list", "index", "flags"],
+      "text": "Resource {file} (resource list {list}, entry {index} counted from 0) is needed, but its object type flags {flags} mark neither a model nor a texture; the 1997 code gave its object types whatever memory handle the last resource left (none for the first)"
+    },
+    "resources.scene_buffers": {
+      "level": "D",
+      "fields": ["edges", "vertices"],
+      "text": "The render scene's buffers were sized for the largest loaded mesh: {edges} edges and {vertices} vertices"
+    },
+    "resources.strings_alloc_failed": {
+      "level": "D",
+      "fields": ["bytes"],
+      "text": "The {bytes}-byte buffer for the game's strings could not be allocated; the flight cannot start"
+    },
+    "resources.texture_loaded": {
+      "level": "D",
+      "fields": ["file", "list", "index", "handle", "bytes", "colors"],
+      "text": "Texture {file} (resource list {list}, entry {index} counted from 0) loaded as memory handle {handle}: {bytes} bytes and {colors} palette colors, converted to the flight's pixel depth"
+    },
+    "resources.type_bound": {
+      "level": "D",
+      "fields": ["type", "handle", "model"],
+      "text": "Object type {type} was given memory handle {handle} for its model or texture (model definition {model}, 255 for none)"
+    },
+    "resources.weapon_group_dropped": {
+      "level": "W",
+      "fields": ["type", "def", "kind", "group", "weapon"],
+      "text": "Object type {type}'s {kind} group {group} (weapon {weapon}) was dropped from model definition {def}: earlier groups had taken all 16 weapon slots"
+    },
+    "results.battle_index_invalid": {
+      "level": "W",
+      "fields": ["index", "entries"],
+      "text": "Battle step {index} lies past the {entries} mission results a battle keeps; the 1997 code went on to write this mission's result past them"
+    },
+    "results.battle_record": {
+      "level": "D",
+      "fields": ["record", "battle", "attempts", "victories", "defeats", "draws", "best", "best_margin", "award", "score"],
+      "text": "The pilot's {record}-player record of battle {battle} now holds {attempts} attempts, {victories} victories, {defeats} defeats and {draws} draws, best score {best}, best victory margin {best_margin} and award level {award} (1 best to 5, 6 failed, 0 none); the battle's score so far {score}"
+    },
+    "results.battle_step": {
+      "level": "D",
+      "fields": ["battle", "index", "result", "imperial", "rebel", "needed", "winner", "margin", "outcome", "award"],
+      "text": "Battle {battle}, step {index}: this mission's result {result} (0 Imperial victory, 1 Rebel victory, 2 draw); {imperial} Imperial and {rebel} Rebel victories so far, {needed} needed; overall winner {winner} (0 Imperial, 1 Rebel, 2 none yet), margin {margin}; for the pilot {outcome} (1 won, 2 lost, 0 neither), battle award {award} (1 best to 5, 6 failed, 0 none)"
+    },
+    "results.campaign_mission_invalid": {
+      "level": "W",
+      "fields": ["mission", "entries"],
+      "text": "Campaign mission {mission} has no place among the pilot record's {entries} campaign missions, which are numbered from 1; the 1997 code went on to write its results outside that table"
+    },
+    "results.campaign_mission_record": {
+      "level": "D",
+      "fields": ["record", "mission", "campaign", "flown", "completed", "eligible", "best", "time", "award"],
+      "text": "The pilot's {record}-player record of campaign mission {mission} (campaign {campaign}) now holds {flown} flights, completed {completed}, award eligible {eligible}, best score {best}, best time {time} seconds and award level {award} (1 best to 5, 6 failed, 0 none)"
+    },
+    "results.campaign_record": {
+      "level": "D",
+      "fields": ["record", "campaign", "index", "missions", "completed", "score", "attempts", "next", "best", "finished"],
+      "text": "Campaign {campaign} step {index} of {missions} was recorded in the pilot's {record}-player campaign record: mission completed {completed}, campaign score {score}; the record holds {attempts} attempts, next mission {next}, best score {best}, finished {finished}"
+    },
+    "results.committed": {
+      "level": "I",
+      "fields": ["type", "team", "completed", "score", "rating", "rank_change", "award", "humans"],
+      "text": "The flight's results were written into the pilot's record in memory (it reaches disk when the pilot is saved): mission type {type}, the pilot's team {team} completed the mission: {completed}, score {score}, rating now {rating} (rank change {rank_change}: 1 promoted, -1 demoted, 0 none), mission award level {award} (1 best to 5, 6 failed, 0 none; tournament and battle awards are worked out after it), {humans} human players"
+    },
+    "results.fg_rating": {
+      "level": "D",
+      "fields": ["fg", "ai", "rating"],
+      "text": "Flight group {fg} of the melee, with computer skill {ai}, was given pilot rating {rating} in the pilot's record"
+    },
+    "results.flight_counted": {
+      "level": "D",
+      "fields": ["type", "humans", "teams", "sequence", "local", "difficulty", "waves", "tick"],
+      "text": "The flight's results were about to be committed: mission type {type}, {humans} human players connected, {teams} teams with a player flight group that arrived, part of a mission sequence {sequence} (1 yes), this machine's player slot {local}, difficulty {difficulty} (0 easy, 1 medium, 2 hard), player craft supply {waves} (0 none, 1 default, 2 unlimited), at tick {tick}"
+    },
+    "results.goal_credited": {
+      "level": "D",
+      "fields": ["team", "other", "why", "primary", "prevent"],
+      "text": "Team {team}, flown by no player, was credited with its primary goal when the results were committed, because team {other} missed its own; rule {why} (sequence: a mission flown as part of a battle; solo: one human connected, which also marks team {other}'s prevent goal as come true); team {other}'s primary goal status is now {primary} and its prevent goal status {prevent} (0 open, 1 complete, 2 failed)"
+    },
+    "results.kills_by_player": {
+      "level": "D",
+      "fields": ["slot", "entry", "player", "kills", "shared", "by_kills", "by_shared"],
+      "text": "The pilot's record took the kills between this machine's pilot and player {player} (slot {slot}, network entry {entry}): {kills} full and {shared} shared kills of that player, {by_kills} full and {by_shared} shared kills by that player"
+    },
+    "results.melee_placed": {
+      "level": "D",
+      "fields": ["team_score", "rank", "margin", "award", "teams", "humans"],
+      "text": "The pilot's team placed {rank} in the melee with {team_score} points, its smallest lead over a team it beat {margin} (0 for none), for melee award {award} (1 best to 5, 6 failed, 0 none); {teams} teams with players, {humans} human players"
+    },
+    "results.mission_record": {
+      "level": "D",
+      "fields": ["kind", "mission", "flown", "completions", "failures", "best", "time", "best_rank", "best_margin", "award"],
+      "text": "The pilot's single-player {kind} record for mission {mission} now holds {flown} flights, {completions} completed and {failures} failed, best score {best}, best time {time} seconds, best place {best_rank}, best winning margin {best_margin} and award level {award} (1 best to 5, 6 failed, 0 none)"
+    },
+    "results.multi_mission_record": {
+      "level": "D",
+      "fields": ["kind", "mission", "flown", "completions", "failures", "best", "time", "best_rank", "best_margin", "award", "place1", "place2", "place3"],
+      "text": "The pilot's multiplayer {kind} record for mission {mission} now holds {flown} flights, {completions} completed and {failures} failed, {place1} first, {place2} second and {place3} third places, best score {best}, best time {time} seconds, best place {best_rank}, best winning margin {best_margin} and award level {award} (1 best to 5, 6 failed, 0 none)"
+    },
+    "results.not_recorded": {
+      "level": "I",
+      "fields": ["type"],
+      "text": "The flight's results were not recorded: mission type {type} keeps no pilot record"
+    },
+    "results.pilot_tallies": {
+      "level": "D",
+      "fields": ["score", "mission_score", "bonus", "kills", "friendly", "lasers", "laser_hits", "ions", "ion_hits", "warheads", "warhead_hits", "losses", "collisions", "starships", "mines", "inspected", "promo", "worse_promo"],
+      "text": "This machine's pilot's flight went into the career statistics: score {score} (mission score {mission_score} plus the team's bonus {bonus}); {kills} full kills of counted craft, {friendly} of its own side; lasers {lasers} fired and {laser_hits} hits, ion cannons {ions} fired and {ion_hits} hits, warheads {warheads} fired and {warhead_hits} hits; {losses} craft lost, {collisions} to collisions, {starships} to starships, {mines} to mines; {inspected} special craft inspected; promotion points {promo}, and {worse_promo} of the second kind (counted only while the career's own are under half the next rank's mark)"
+    },
+    "results.rating_updated": {
+      "level": "D",
+      "fields": ["rating", "rank_change", "promo", "worse_promo", "percent", "missions"],
+      "text": "The pilot's rating is now {rating} (rank change {rank_change}: 1 promoted, -1 demoted, 0 none), with {promo} promotion points at this rating, {worse_promo} of them of the second kind, {percent} percent of the way to the next rank, after {missions} missions flown"
+    },
+    "results.sequence_id_invalid": {
+      "level": "W",
+      "fields": ["kind", "id", "entries"],
+      "text": "The {kind} id {id} lies outside the pilot record's {entries} {kind} entries; the 1997 code went on to write this flight's {kind} progress past that table"
+    },
+    "results.standing_updated": {
+      "level": "D",
+      "fields": ["team", "active", "rank", "score", "total", "place1", "place2", "place3"],
+      "text": "Team {team}'s tournament standing was updated (taking part {active}): placed {rank} in this melee (0 when not taking part), {score} points added, now {total} points over the tournament with {place1} first, {place2} second and {place3} third places (a team not taking part adds the score last worked out for another team, 0 before any)"
+    },
+    "results.tournament_record": {
+      "level": "D",
+      "fields": ["record", "tournament", "attempts", "completions", "place1", "place2", "place3", "best", "best_rank", "best_margin", "award"],
+      "text": "The pilot's {record}-player record of tournament {tournament} now holds {attempts} attempts, {completions} completed, {place1} first, {place2} second and {place3} third places, best score {best}, best place {best_rank}, best margin {best_margin} and award level {award} (1 best to 5, 6 failed, 0 none)"
+    },
+    "results.tournament_step": {
+      "level": "D",
+      "fields": ["tournament", "index", "missions", "rank", "margin", "total", "award", "teams", "humans"],
+      "text": "Tournament {tournament}, step {index} of {missions}: the pilot's team stands {rank} overall with {total} points, its smallest lead over a team it leads {margin} (0 for none), for tournament award {award} (1 best to 5, 6 failed, 0 none); {teams} teams take part, {humans} human players"
+    },
+    "results.wave_bonus": {
+      "level": "D",
+      "fields": ["slot", "entry", "fg", "remaining", "bonus", "score"],
+      "text": "Player slot {slot}, network entry {entry}, earned {bonus} points for the {remaining} craft its flight group {fg} still had to send, its team having met its primary goal; the 1997 code added them to player slot {entry}, whose mission score is now {score} (the same player when slot and entry match)"
     },
     "resync.batch_sent": {
       "level": "D",

@@ -35,6 +35,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/tex_level.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifndef XVT_MODERN
 struct msvc42_file_prefix {
@@ -290,6 +291,13 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			++active_team_count;
 		}
 	}
+	XVT_LOG_DEBUG(
+		"results.flight_counted type=%d humans=%d teams=%u sequence=%d local=%d difficulty=%d waves=%d tick=%d",
+		(int)g_mission_header.mission_type, connected_human_count,
+		active_team_count, g_pilot_data.mission_sequence_active,
+		g_local_player, (int)g_flight_mission_state.difficulty,
+		(int)g_flight_mission_state.player_flight_group_wave_mode,
+		g_game_time);
 
 	if (g_mission_header.mission_type != MISSION_TYPE_SIMULATOR_1) {
 		int stat_type;
@@ -337,6 +345,18 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 								[1]
 								[TEAM_GOAL_PRIMARY] =
 							1;
+						XVT_LOG_DEBUG(
+							"results.goal_credited team=1 other=0 why=\"sequence\" primary=%d prevent=%d",
+							(int)g_flight_mission_state
+								.runtime
+								.team_goal_status
+									[0]
+									[TEAM_GOAL_PRIMARY],
+							(int)g_flight_mission_state
+								.runtime
+								.team_goal_status
+									[0]
+									[TEAM_GOAL_PREVENT]);
 					}
 				} else if (
 					team0_player_fg_count == 0 &&
@@ -352,6 +372,18 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						.team_goal_status
 							[0][TEAM_GOAL_PRIMARY] =
 						1;
+					XVT_LOG_DEBUG(
+						"results.goal_credited team=0 other=1 why=\"sequence\" primary=%d prevent=%d",
+						(int)g_flight_mission_state
+							.runtime
+							.team_goal_status
+								[1]
+								[TEAM_GOAL_PRIMARY],
+						(int)g_flight_mission_state
+							.runtime
+							.team_goal_status
+								[1]
+								[TEAM_GOAL_PREVENT]);
 				}
 			} else if (connected_human_count == 1) {
 				if (team1_player_fg_count == 0) {
@@ -370,6 +402,18 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 								[1]
 								[TEAM_GOAL_PRIMARY] =
 							1;
+						XVT_LOG_DEBUG(
+							"results.goal_credited team=1 other=0 why=\"solo\" primary=%d prevent=%d",
+							(int)g_flight_mission_state
+								.runtime
+								.team_goal_status
+									[0]
+									[TEAM_GOAL_PRIMARY],
+							(int)g_flight_mission_state
+								.runtime
+								.team_goal_status
+									[0]
+									[TEAM_GOAL_PREVENT]);
 					}
 				} else if (
 					team0_player_fg_count == 0 &&
@@ -385,6 +429,18 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						.team_goal_status
 							[0][TEAM_GOAL_PRIMARY] =
 						1;
+					XVT_LOG_DEBUG(
+						"results.goal_credited team=0 other=1 why=\"solo\" primary=%d prevent=%d",
+						(int)g_flight_mission_state
+							.runtime
+							.team_goal_status
+								[1]
+								[TEAM_GOAL_PRIMARY],
+						(int)g_flight_mission_state
+							.runtime
+							.team_goal_status
+								[1]
+								[TEAM_GOAL_PREVENT]);
 				}
 			}
 		}
@@ -437,6 +493,16 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					remaining_craft_count *
 					g_model_defs[model_index]
 						.craft_point_value;
+				XVT_LOG_DEBUG(
+					"results.wave_bonus slot=%u entry=%u fg=%u remaining=%d bonus=%d score=%d",
+					player_idx, network_idx, player_fg_idx,
+					remaining_craft_count,
+					WAVE_REPLACEMENT_SCORE_FACTOR *
+						remaining_craft_count *
+						g_model_defs[model_index]
+							.craft_point_value,
+					g_players[network_idx]
+						.mission_stats.mission_score);
 			}
 		}
 
@@ -800,6 +866,41 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				.mission_stats.rating_promo_points,
 			g_players[g_local_player]
 				.mission_stats.worse_rating_promo_points);
+		XVT_LOG_DEBUG(
+			"results.pilot_tallies score=%d mission_score=%d bonus=%d kills=%d friendly=%d lasers=%d laser_hits=%d ions=%d ion_hits=%d warheads=%d warhead_hits=%d losses=%d collisions=%d starships=%d mines=%d inspected=%d promo=%d worse_promo=%d",
+			score,
+			g_players[g_local_player].mission_stats.mission_score,
+			g_flight_mission_state.runtime
+				.team_scores[TEAM_SCORE_BONUS]
+					    [local_player_team],
+			g_pilot_data.last_mission_stats.total_kills_per_mt[0],
+			(int)g_players[g_local_player]
+				.per_mission_kills.friendlies_killed,
+			(int)g_players[g_local_player]
+				.mission_stats.laser_shots_fired,
+			(int)g_players[g_local_player]
+				.mission_stats.laser_hits_scored,
+			(int)g_players[g_local_player]
+				.mission_stats.ion_shots_fired,
+			(int)g_players[g_local_player]
+				.mission_stats.ion_hits_scored,
+			(int)g_players[g_local_player].warheads_fired,
+			(int)g_players[g_local_player]
+				.per_mission_kills.warhead_hits,
+			(int)g_players[g_local_player]
+				.per_mission_kills.total_craft_losses,
+			(int)g_players[g_local_player]
+				.per_mission_kills.losses_by_collisions,
+			(int)g_players[g_local_player]
+				.per_mission_kills.losses_by_starships,
+			(int)g_players[g_local_player]
+				.per_mission_kills.losses_by_mines,
+			(int)g_players[g_local_player]
+				.per_mission_kills.num_special_inspected,
+			g_players[g_local_player]
+				.mission_stats.rating_promo_points,
+			g_players[g_local_player]
+				.mission_stats.worse_rating_promo_points);
 
 		g_pilot_data.promotion_delta = PILOT_PROMOTION_NONE;
 		int promotion_threshold;
@@ -1018,6 +1119,14 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				}
 			}
 		}
+		XVT_LOG_DEBUG(
+			"results.rating_updated rating=%d rank_change=%d promo=%d worse_promo=%d percent=%d missions=%d",
+			(int)g_pilot_data.rating,
+			(int)g_pilot_data.promotion_delta,
+			g_pilot_data.current_rating_promo_points,
+			g_pilot_data.current_rating_worse_promo_points,
+			g_pilot_data.next_promotion_percent,
+			g_pilot_data.total_missions_played_count);
 
 		for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
 			if (g_players[player_idx].network.direct_play_id == 0) {
@@ -1053,6 +1162,23 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 							.per_mission_kills
 							.kills_shared_from_player
 								[player_idx];
+					XVT_LOG_DEBUG(
+						"results.kills_by_player slot=%u entry=%u player=%u kills=%d shared=%d by_kills=%d by_shared=%d",
+						player_idx, network_idx,
+						(unsigned)g_players[player_idx]
+							.network.direct_play_id,
+						g_pilot_data
+							.kills_full_on_player
+								[network_idx],
+						g_pilot_data
+							.kills_shared_on_player
+								[network_idx],
+						g_pilot_data
+							.kills_full_from_player
+								[network_idx],
+						g_pilot_data
+							.kills_shared_from_player
+								[network_idx]);
 					break;
 				}
 			}
@@ -1091,6 +1217,9 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				}
 				g_pilot_data.flight_group_rating[fg_idx] =
 					flight_group_rating;
+				XVT_LOG_DEBUG(
+					"results.fg_rating fg=%u ai=%d rating=%d",
+					fg_idx, group_ai, flight_group_rating);
 			}
 		}
 
@@ -1143,6 +1272,23 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 								.mission_score;
 					}
 				}
+			}
+			if (active_team_fg_count[team_idx] != 0 ||
+			    team->is_mission_completed != 0) {
+				XVT_LOG_INFO(
+					"battle.team_result team=%u completed=%d primary=%d prevent=%d score=%d kills=%d shared=%d losses=%d seconds=%d tick=%d",
+					team_idx, team->is_mission_completed,
+					(int)g_flight_mission_state.runtime
+						.team_goal_status
+							[team_idx]
+							[TEAM_GOAL_PRIMARY],
+					(int)g_flight_mission_state.runtime
+						.team_goal_status
+							[team_idx]
+							[TEAM_GOAL_PREVENT],
+					team->mission_score, team->kills,
+					team->kills_shared, team->losses,
+					team->mission_time, g_game_time);
 			}
 		}
 		for (player_idx = 0; player_idx < PLAYER_COUNT; ++player_idx) {
@@ -1202,6 +1348,58 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						g_players[player_idx]
 							.per_mission_kills
 							.total_craft_losses;
+					XVT_LOG_INFO(
+						"battle.player_result slot=%u entry=%u player=%u team=%d fg=%u score=%d kills=%d shared=%d assists=%d losses=%d shots=%d hits=%d warheads=%d warhead_hits=%d has_left=%d tick=%d",
+						player_idx, network_idx,
+						(unsigned)g_pilot_data
+							.network_players
+								[network_idx]
+							.direct_play_id,
+						(int)g_players[player_idx].team,
+						(unsigned)g_players[player_idx]
+							.bound_flight_group_idx,
+						g_pilot_data
+							.network_players
+								[network_idx]
+							.total_score,
+						g_pilot_data
+							.network_players
+								[network_idx]
+							.kills,
+						g_pilot_data
+							.network_players
+								[network_idx]
+							.kills_shared,
+						g_pilot_data
+							.network_players
+								[network_idx]
+							.kills_assist,
+						g_pilot_data
+							.network_players
+								[network_idx]
+							.total_losses,
+						g_players[player_idx]
+								.mission_stats
+								.laser_shots_fired +
+							g_players[player_idx]
+								.mission_stats
+								.ion_shots_fired,
+						g_players[player_idx]
+								.mission_stats
+								.laser_hits_scored +
+							g_players[player_idx]
+								.mission_stats
+								.ion_hits_scored,
+						(int)g_players[player_idx]
+							.warheads_fired,
+						(int)g_players[player_idx]
+							.per_mission_kills
+							.warhead_hits,
+						g_pilot_data
+							.network_players
+								[network_idx]
+							.has_left,
+						g_game_time);
 					break;
 				}
 			}
@@ -1441,6 +1639,10 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			sprintf(g_mission_debug_buffer,
 				"Player's team score: %d   Place: %d   Margin: %d   Award: %d\n",
 				player_team_score, placement, margin, award);
+			XVT_LOG_DEBUG(
+				"results.melee_placed team_score=%d rank=%d margin=%d award=%d teams=%u humans=%d",
+				player_team_score, placement, margin, award,
+				active_team_count, connected_human_count);
 		} else if (stat_type == MISSION_STAT_COMBAT) {
 			if (g_flight_mission_state.runtime.team_goal_status
 					    [local_player_team]
@@ -1529,6 +1731,27 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 							 .current_faction_id]
 					.mission_awards[2] = award;
 			}
+		}
+		if (stat_type == MISSION_STAT_TRAINING &&
+		    g_pilot_data.mission_sequence_active == 1 &&
+		    (unsigned int)(g_pilot_data.mission_description_ids
+					   [MISSION_DIRECTORY_TRAINING_EXERCISES] -
+				   1) >=
+			    sizeof(g_pilot_data.faction_statistics[0]
+					   .sp_campaign_missions) /
+				    sizeof(g_pilot_data.faction_statistics[0]
+						   .sp_campaign_missions[0])) {
+			XVT_LOG_WARN(
+				"results.campaign_mission_invalid mission=%d entries=%u",
+				(int)g_pilot_data.mission_description_ids
+					[MISSION_DIRECTORY_TRAINING_EXERCISES],
+				(unsigned)(sizeof(g_pilot_data
+							  .faction_statistics[0]
+							  .sp_campaign_missions) /
+					   sizeof(g_pilot_data
+							  .faction_statistics[0]
+							  .sp_campaign_missions
+								  [0])));
 		}
 
 		if (connected_human_count == 1) {
@@ -1731,6 +1954,58 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 									   1];
 						}
 					}
+					XVT_LOG_DEBUG(
+						"results.campaign_mission_record record=\"single\" mission=%d campaign=%d flown=%d completed=%d eligible=%d best=%u time=%d award=%d",
+						mission_id,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_campaign_missions
+								[mission_id - 1]
+							.campaign_id,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_campaign_missions
+								[mission_id - 1]
+							.number_times_flown,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_campaign_missions
+								[mission_id - 1]
+							.is_completed,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_campaign_missions
+								[mission_id - 1]
+							.award_eligible,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_campaign_missions
+								[mission_id - 1]
+							.best_score,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_campaign_missions
+								[mission_id - 1]
+							.best_time,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_campaign_missions
+								[mission_id - 1]
+							.award_level);
 				} else {
 					++g_pilot_data
 						  .faction_statistics
@@ -1912,6 +2187,65 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 									   1];
 						}
 					}
+					XVT_LOG_DEBUG(
+						"results.mission_record kind=\"training\" mission=%d flown=%d completions=%d failures=%d best=%d time=%d best_rank=%d best_margin=%u award=%d",
+						mission_id,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_training_missions
+								[mission_id]
+							.number_times_flown,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_training_missions
+								[mission_id]
+							.completed_count,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_training_missions
+								[mission_id]
+							.failed_count,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_training_missions
+								[mission_id]
+							.best_score,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_training_missions
+								[mission_id]
+							.best_time,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_training_missions
+								[mission_id]
+							.best_placement,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_training_missions
+								[mission_id]
+							.best_margin,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.sp_training_missions
+								[mission_id]
+							.award_level);
 				}
 				break;
 			}
@@ -2113,6 +2447,57 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 								   1];
 					}
 				}
+				XVT_LOG_DEBUG(
+					"results.mission_record kind=\"melee\" mission=%d flown=%d completions=%d failures=%d best=%d time=%d best_rank=%d best_margin=%u award=%d",
+					mission_id,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_melee_missions[mission_id]
+						.number_times_flown,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_melee_missions[mission_id]
+						.completed_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_melee_missions[mission_id]
+						.failed_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_melee_missions[mission_id]
+						.best_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_melee_missions[mission_id]
+						.best_time,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_melee_missions[mission_id]
+						.best_placement,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_melee_missions[mission_id]
+						.best_margin,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_melee_missions[mission_id]
+						.award_level);
 				break;
 			}
 			case MISSION_STAT_COMBAT: {
@@ -2285,6 +2670,57 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 								   1];
 					}
 				}
+				XVT_LOG_DEBUG(
+					"results.mission_record kind=\"combat\" mission=%d flown=%d completions=%d failures=%d best=%d time=%d best_rank=%d best_margin=%u award=%d",
+					mission_id,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_combat_missions[mission_id]
+						.number_times_flown,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_combat_missions[mission_id]
+						.completed_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_combat_missions[mission_id]
+						.failed_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_combat_missions[mission_id]
+						.best_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_combat_missions[mission_id]
+						.best_time,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_combat_missions[mission_id]
+						.best_placement,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_combat_missions[mission_id]
+						.best_margin,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_combat_missions[mission_id]
+						.award_level);
 				break;
 			}
 			}
@@ -2500,6 +2936,58 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 									   1];
 						}
 					}
+					XVT_LOG_DEBUG(
+						"results.campaign_mission_record record=\"multi\" mission=%d campaign=%d flown=%d completed=%d eligible=%d best=%u time=%d award=%d",
+						mission_id,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_campaign_missions
+								[mission_id - 1]
+							.campaign_id,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_campaign_missions
+								[mission_id - 1]
+							.number_times_flown,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_campaign_missions
+								[mission_id - 1]
+							.is_completed,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_campaign_missions
+								[mission_id - 1]
+							.award_eligible,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_campaign_missions
+								[mission_id - 1]
+							.best_score,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_campaign_missions
+								[mission_id - 1]
+							.best_time,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_campaign_missions
+								[mission_id - 1]
+							.award_level);
 				} else {
 					++g_pilot_data
 						  .faction_statistics
@@ -2692,6 +3180,86 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 									   1];
 						}
 					}
+					XVT_LOG_DEBUG(
+						"results.multi_mission_record kind=\"training\" mission=%d flown=%d completions=%d failures=%d best=%d time=%d best_rank=%d best_margin=%u award=%d place1=%d place2=%d place3=%d",
+						mission_id,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.number_times_flown,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.completed_count,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.failed_count,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.best_score,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.best_time,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.best_placement,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.best_margin,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.award_level,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.first_place_count,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.second_place_count,
+						g_pilot_data
+							.faction_statistics
+								[g_pilot_data
+									 .current_faction_id]
+							.mp_training_missions
+								[mission_id]
+							.third_place_count);
 				}
 				break;
 			}
@@ -2924,6 +3492,75 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 								   1];
 					}
 				}
+				XVT_LOG_DEBUG(
+					"results.multi_mission_record kind=\"melee\" mission=%d flown=%d completions=%d failures=%d best=%d time=%d best_rank=%d best_margin=%u award=%d place1=%d place2=%d place3=%d",
+					mission_id,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.number_times_flown,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.completed_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.failed_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.best_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.best_time,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.best_placement,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.best_margin,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.award_level,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.first_place_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.second_place_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_melee_missions[mission_id]
+						.third_place_count);
 				break;
 			}
 			case MISSION_STAT_COMBAT: {
@@ -3105,6 +3742,75 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 								   1];
 					}
 				}
+				XVT_LOG_DEBUG(
+					"results.multi_mission_record kind=\"combat\" mission=%d flown=%d completions=%d failures=%d best=%d time=%d best_rank=%d best_margin=%u award=%d place1=%d place2=%d place3=%d",
+					mission_id,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.number_times_flown,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.completed_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.failed_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.best_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.best_time,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.best_placement,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.best_margin,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.award_level,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.first_place_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.second_place_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_combat_missions[mission_id]
+						.third_place_count);
 				break;
 			}
 			}
@@ -3114,6 +3820,24 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 		    stat_type == MISSION_STAT_TRAINING) {
 			int campaign_id = g_pilot_data.mission_description_ids
 						  [MISSION_DIRECTORY_CAMPAIGNS];
+			if ((unsigned int)campaign_id >=
+			    sizeof(g_pilot_data.faction_statistics[0]
+					   .sp_campaigns) /
+				    sizeof(g_pilot_data.faction_statistics[0]
+						   .sp_campaigns[0])) {
+				XVT_LOG_WARN(
+					"results.sequence_id_invalid kind=\"campaign\" id=%d entries=%u",
+					campaign_id,
+					(unsigned)(sizeof(g_pilot_data
+								  .faction_statistics
+									  [0]
+								  .sp_campaigns) /
+						   sizeof(g_pilot_data
+								  .faction_statistics
+									  [0]
+								  .sp_campaigns
+									  [0])));
+			}
 			g_pilot_data.campaign_sequence_state
 				.last_mission_completed =
 				g_pilot_data.teams[g_pilot_data.team]
@@ -3218,6 +3942,45 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 							.cumulative_score +
 						g_pilot_data.mission_score;
 				}
+				XVT_LOG_DEBUG(
+					"results.campaign_record record=\"single\" campaign=%d index=%d missions=%d completed=%d score=%d attempts=%d next=%d best=%d finished=%d",
+					campaign_id,
+					(int)g_pilot_data
+						.campaign_sequence_state
+						.current_mission_index,
+					(int)g_pilot_data
+						.campaign_sequence_state
+						.mission_count,
+					(int)g_pilot_data
+						.campaign_sequence_state
+						.last_mission_completed,
+					(int)g_pilot_data
+						.campaign_sequence_state
+						.cumulative_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_campaigns[campaign_id]
+						.attempt_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_campaigns[campaign_id]
+						.next_mission_index,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_campaigns[campaign_id]
+						.best_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_campaigns[campaign_id]
+						.is_finished);
 			} else {
 				if (g_pilot_data.campaign_sequence_state
 					    .current_mission_index == 0) {
@@ -3304,6 +4067,45 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 							.cumulative_score +
 						g_pilot_data.mission_score;
 				}
+				XVT_LOG_DEBUG(
+					"results.campaign_record record=\"multi\" campaign=%d index=%d missions=%d completed=%d score=%d attempts=%d next=%d best=%d finished=%d",
+					campaign_id,
+					(int)g_pilot_data
+						.campaign_sequence_state
+						.current_mission_index,
+					(int)g_pilot_data
+						.campaign_sequence_state
+						.mission_count,
+					(int)g_pilot_data
+						.campaign_sequence_state
+						.last_mission_completed,
+					(int)g_pilot_data
+						.campaign_sequence_state
+						.cumulative_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_campaigns[campaign_id]
+						.attempt_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_campaigns[campaign_id]
+						.next_mission_index,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_campaigns[campaign_id]
+						.best_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_campaigns[campaign_id]
+						.is_finished);
 			}
 		}
 
@@ -3312,6 +4114,24 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 			int tournament_id =
 				g_pilot_data.mission_description_ids
 					[MISSION_DIRECTORY_TOURNAMENTS];
+			if ((unsigned int)tournament_id >=
+			    sizeof(g_pilot_data.faction_statistics[0]
+					   .sp_tournaments) /
+				    sizeof(g_pilot_data.faction_statistics[0]
+						   .sp_tournaments[0])) {
+				XVT_LOG_WARN(
+					"results.sequence_id_invalid kind=\"tournament\" id=%d entries=%u",
+					tournament_id,
+					(unsigned)(sizeof(g_pilot_data
+								  .faction_statistics
+									  [0]
+								  .sp_tournaments) /
+						   sizeof(g_pilot_data
+								  .faction_statistics
+									  [0]
+								  .sp_tournaments
+									  [0])));
+			}
 			unsigned int participating_team_count =
 				g_pilot_data.melee_tournament_sequence_state
 					.participating_team_count;
@@ -3388,6 +4208,31 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						  .team_standings[team_idx]
 						  .third_place_count;
 				}
+				XVT_LOG_DEBUG(
+					"results.standing_updated team=%u active=%d rank=%u score=%d total=%d place1=%d place2=%d place3=%d",
+					team_idx,
+					g_pilot_data.melee_tournament_sequence_state
+							.team_standings
+								[team_idx]
+							.ai_opponent_source_team_and_type_flag !=
+						-1,
+					mission_placement, team_mission_score,
+					g_pilot_data
+						.melee_tournament_sequence_state
+						.team_standings[team_idx]
+						.total_score,
+					g_pilot_data
+						.melee_tournament_sequence_state
+						.team_standings[team_idx]
+						.first_place_count,
+					g_pilot_data
+						.melee_tournament_sequence_state
+						.team_standings[team_idx]
+						.second_place_count,
+					g_pilot_data
+						.melee_tournament_sequence_state
+						.team_standings[team_idx]
+						.third_place_count);
 			}
 
 			int better_team_count = 0;
@@ -3489,6 +4334,18 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				    (unsigned int)overall_placement) {
 				tournament_award = FAILED_AWARD;
 			}
+			XVT_LOG_DEBUG(
+				"results.tournament_step tournament=%d index=%d missions=%d rank=%d margin=%d total=%d award=%d teams=%u humans=%u",
+				tournament_id,
+				g_pilot_data.melee_tournament_sequence_state
+					.current_mission_index,
+				g_pilot_data.melee_tournament_sequence_state
+					.mission_count,
+				overall_placement, overall_margin,
+				local_team_total_score, tournament_award,
+				participating_team_count,
+				g_pilot_data.melee_tournament_sequence_state
+					.human_player_count);
 
 			if (g_pilot_data.melee_tournament_sequence_state
 				    .human_player_count == 1) {
@@ -3686,6 +4543,63 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						}
 					}
 				}
+				XVT_LOG_DEBUG(
+					"results.tournament_record record=\"single\" tournament=%d attempts=%d completions=%d place1=%d place2=%d place3=%d best=%d best_rank=%d best_margin=%u award=%d",
+					tournament_id,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_tournaments[tournament_id]
+						.attempt_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_tournaments[tournament_id]
+						.completed_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_tournaments[tournament_id]
+						.first_place_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_tournaments[tournament_id]
+						.second_place_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_tournaments[tournament_id]
+						.third_place_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_tournaments[tournament_id]
+						.best_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_tournaments[tournament_id]
+						.best_placement,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_tournaments[tournament_id]
+						.best_margin,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_tournaments[tournament_id]
+						.award_level);
 			} else {
 				if (g_pilot_data.melee_tournament_sequence_state
 					    .current_mission_index == 0) {
@@ -3882,6 +4796,63 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						}
 					}
 				}
+				XVT_LOG_DEBUG(
+					"results.tournament_record record=\"multi\" tournament=%d attempts=%d completions=%d place1=%d place2=%d place3=%d best=%d best_rank=%d best_margin=%u award=%d",
+					tournament_id,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_tournaments[tournament_id]
+						.attempt_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_tournaments[tournament_id]
+						.completed_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_tournaments[tournament_id]
+						.first_place_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_tournaments[tournament_id]
+						.second_place_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_tournaments[tournament_id]
+						.third_place_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_tournaments[tournament_id]
+						.best_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_tournaments[tournament_id]
+						.best_placement,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_tournaments[tournament_id]
+						.best_margin,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_tournaments[tournament_id]
+						.award_level);
 			}
 		}
 
@@ -3889,6 +4860,43 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 		    stat_type == MISSION_STAT_COMBAT) {
 			int battle_id = g_pilot_data.mission_description_ids
 						[MISSION_DIRECTORY_BATTLES];
+			if ((unsigned int)battle_id >=
+			    sizeof(g_pilot_data.faction_statistics[0]
+					   .sp_battles) /
+				    sizeof(g_pilot_data.faction_statistics[0]
+						   .sp_battles[0])) {
+				XVT_LOG_WARN(
+					"results.sequence_id_invalid kind=\"battle\" id=%d entries=%u",
+					battle_id,
+					(unsigned)(sizeof(g_pilot_data
+								  .faction_statistics
+									  [0]
+								  .sp_battles) /
+						   sizeof(g_pilot_data
+								  .faction_statistics
+									  [0]
+								  .sp_battles
+									  [0])));
+			}
+			if (g_pilot_data.battle_sequence_state
+				    .current_mission_index >=
+			    sizeof(g_pilot_data.battle_sequence_state
+					   .mission_results) /
+				    sizeof(g_pilot_data.battle_sequence_state
+						   .mission_results[0])) {
+				XVT_LOG_WARN(
+					"results.battle_index_invalid index=%u entries=%u",
+					(unsigned)g_pilot_data
+						.battle_sequence_state
+						.current_mission_index,
+					(unsigned)(sizeof(g_pilot_data
+								  .battle_sequence_state
+								  .mission_results) /
+						   sizeof(g_pilot_data
+								  .battle_sequence_state
+								  .mission_results
+									  [0])));
+			}
 			for (team_idx = 0; team_idx < TEAM_COUNT; ++team_idx) {
 				if (g_flight_mission_state.runtime
 						    .team_goal_status
@@ -4028,6 +5036,17 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 						(int)battle_award;
 				}
 			}
+			XVT_LOG_DEBUG(
+				"results.battle_step battle=%d index=%u result=%d imperial=%d rebel=%d needed=%d winner=%d margin=%d outcome=%d award=%u",
+				battle_id,
+				(unsigned)g_pilot_data.battle_sequence_state
+					.current_mission_index,
+				(int)mission_result, imperial_victories,
+				rebel_victories,
+				g_pilot_data.battle_sequence_state
+					.victories_needed,
+				overall_winner, victory_margin, player_result,
+				battle_award);
 
 			if (g_pilot_data.battle_sequence_state
 				    .current_mission_index == 0) {
@@ -4190,6 +5209,53 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 								   1];
 					}
 				}
+				XVT_LOG_DEBUG(
+					"results.battle_record record=\"single\" battle=%d attempts=%d victories=%d defeats=%d draws=%d best=%d best_margin=%u award=%d score=%d",
+					battle_id,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_battles[battle_id]
+						.attempt_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_battles[battle_id]
+						.victory_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_battles[battle_id]
+						.defeat_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_battles[battle_id]
+						.draw_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_battles[battle_id]
+						.best_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_battles[battle_id]
+						.best_victory_margin,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.sp_battles[battle_id]
+						.award_level,
+					g_pilot_data.battle_sequence_state
+						.cumulative_score);
 			} else {
 				if (g_pilot_data.battle_sequence_state
 					    .current_mission_index == 0) {
@@ -4339,9 +5405,77 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 								   1];
 					}
 				}
+				XVT_LOG_DEBUG(
+					"results.battle_record record=\"multi\" battle=%d attempts=%d victories=%d defeats=%d draws=%d best=%d best_margin=%u award=%d score=%d",
+					battle_id,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_battles[battle_id]
+						.attempt_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_battles[battle_id]
+						.victory_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_battles[battle_id]
+						.defeat_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_battles[battle_id]
+						.draw_count,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_battles[battle_id]
+						.best_score,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_battles[battle_id]
+						.best_victory_margin,
+					g_pilot_data
+						.faction_statistics
+							[g_pilot_data
+								 .current_faction_id]
+						.mp_battles[battle_id]
+						.award_level,
+					g_pilot_data.battle_sequence_state
+						.cumulative_score);
 			}
 		}
+		XVT_LOG_INFO(
+			"results.committed type=%d team=%d completed=%d score=%d rating=%d rank_change=%d award=%d humans=%d",
+			(int)g_mission_header.mission_type, local_player_team,
+			g_flight_mission_state.runtime.team_goal_status
+						[local_player_team]
+						[TEAM_GOAL_PRIMARY] == 1 &&
+				g_flight_mission_state.runtime.team_goal_status
+						[local_player_team]
+						[TEAM_GOAL_PREVENT] != 1,
+			score, (int)g_pilot_data.rating,
+			(int)g_pilot_data.promotion_delta, award,
+			connected_human_count);
+	} else {
+		XVT_LOG_INFO("results.not_recorded type=%d",
+			     (int)g_mission_header.mission_type);
 	}
+	XVT_LOG_INFO(
+		"battle.mission_ended type=%d sequence=%d humans=%d teams=%u local=%d ended=%d tick=%d",
+		(int)g_mission_header.mission_type,
+		g_pilot_data.mission_sequence_active, connected_human_count,
+		active_team_count, g_local_player,
+		(int)g_flight_mission_state.mission_end_pending, g_game_time);
 	return 0;
 }
 
@@ -4375,6 +5509,8 @@ uint16_t fe_disk_io_read_all_bytes_or_fatal(const char *file_name, void *dst)
 		total_bytes += bytes_read;
 	}
 	fe_disk_io_close_global_stream(0);
+	XVT_LOG_DEBUG("resources.file_read file=\"%s\" bytes=%u", file_name,
+		      (unsigned)total_bytes);
 	return total_bytes;
 }
 
@@ -4415,6 +5551,8 @@ void fe_disk_io_init_global_buffers(void)
 	g_warhead_guidance_pool_handle = 0;
 	g_string_data_handle = memory_alloc_handle(STRING_DATA_BUFFER_BYTES, 0);
 	if (g_string_data_handle == 0) {
+		XVT_LOG_DEBUG("resources.strings_alloc_failed bytes=%d",
+			      (int)STRING_DATA_BUFFER_BYTES);
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 #ifdef XVT_MODERN
 		return;
@@ -4437,6 +5575,11 @@ void fe_disk_io_init_global_buffers(void)
 		allocation_failed = 1;
 	}
 	if (allocation_failed != 0) {
+		XVT_LOG_DEBUG(
+			"resources.fonts_alloc_failed small=%u micro=%u medium=%u",
+			(unsigned)g_flight_small_font_handle,
+			(unsigned)g_flight_micro_font_handle,
+			(unsigned)g_flight_medium_font_handle);
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 #ifdef XVT_MODERN
 		return;
@@ -4531,6 +5674,18 @@ void fe_disk_io_init_global_buffers(void)
 #endif
 	flight_text_set_font_tier(1);
 	if (allocation_failed != 0) {
+		XVT_LOG_DEBUG(
+			"resources.buffers_alloc_failed screen_bytes=%u scratch=%u aux=%u offscreen=%u panels=%u icons=%u messages=%u render_list=%u",
+			g_screen_height *
+				(unsigned int)g_flight_bytes_per_pixel *
+				g_screen_width,
+			(unsigned)g_flight_scratch_screen_buffer_handle,
+			(unsigned)g_flight_aux_buffer_handle,
+			(unsigned)g_flight_offscreen_buffer_handle,
+			(unsigned)g_hud_panel_sprite_data_handle,
+			(unsigned)g_flight_icon_frames_handle,
+			(unsigned)g_message_log_handle,
+			(unsigned)g_render_object_list_handle);
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 #ifdef XVT_MODERN
 		return;
@@ -4597,6 +5752,9 @@ void fe_disk_io_init_global_buffers(void)
 
 	int requested_render_target_width = g_render_target_width;
 	if (requested_render_target_width != g_display_mode_width) {
+		XVT_LOG_WARN(
+			"resources.display_fallback what=\"width\" asked=%d used=%d",
+			requested_render_target_width, g_display_mode_width);
 		g_flight_text_color_index = FLIGHT_TEXT_WARNING_COLOR;
 		flight_text_set_cursor(0, (g_screen_height >>
 					   1) + 3 * g_flight_font_line_height);
@@ -4649,6 +5807,9 @@ void fe_disk_io_init_global_buffers(void)
 	int requested_bytes_per_pixel = g_requested_flight_bytes_per_pixel;
 	int active_bytes_per_pixel = g_flight_bytes_per_pixel;
 	if (requested_bytes_per_pixel != active_bytes_per_pixel) {
+		XVT_LOG_WARN(
+			"resources.display_fallback what=\"color_depth\" asked=%d used=%d",
+			requested_bytes_per_pixel, active_bytes_per_pixel);
 		g_flight_text_color_index = FLIGHT_TEXT_WARNING_COLOR;
 		flight_text_set_cursor(0, (g_screen_height >>
 					   1) + 6 * g_flight_font_line_height);
@@ -4665,6 +5826,9 @@ void fe_disk_io_init_global_buffers(void)
 	int requested_hardware3d = g_requested_flight_hardware3d;
 	int active_hardware3d = g_use_hardware3d;
 	if (requested_hardware3d != active_hardware3d) {
+		XVT_LOG_WARN(
+			"resources.display_fallback what=\"hardware_3d\" asked=%d used=%d",
+			requested_hardware3d, active_hardware3d);
 		g_flight_text_color_index = FLIGHT_TEXT_WARNING_COLOR;
 		flight_text_set_cursor(0, (g_screen_height >>
 					   1) + 8 * g_flight_font_line_height);
@@ -4695,6 +5859,12 @@ void fe_disk_io_init_global_buffers(void)
 				   BASE_FLIGHT_SFX_FIRST_SOUND_ID);
 		flight_surface_lock();
 	}
+	XVT_LOG_DEBUG(
+		"resources.buffers_ready width=%u height=%u bpp=%d mode=%d directory=%d icons=%d sfx=%d",
+		g_screen_width, g_screen_height, g_flight_bytes_per_pixel,
+		g_flight_resolution_mode,
+		(int)g_pilot_data.mission_directory_id,
+		g_flight_icon_frame_count, (int)g_flight_conf_sfx_enabled);
 }
 
 /* Unlocks the set pool handles, then the strings, render list, font and screen
@@ -4800,6 +5970,14 @@ void fe_disk_io_lock_global_buffers(void)
 // FUNCTION: XVT 0x49CDF0
 void fe_disk_io_free_flight_resources(void)
 {
+	XVT_LOG_DEBUG(
+		"resources.flight_release objects=%u mobiles=%u chars=%u crafts=%u warheads=%u strings=%u",
+		(unsigned)g_object_table_handle,
+		(unsigned)g_mobile_object_pool_handle,
+		(unsigned)g_mobile_object_char_data_handle,
+		(unsigned)g_craft_data_pool_handle,
+		(unsigned)g_warhead_guidance_pool_handle,
+		(unsigned)g_string_data_handle);
 #ifdef XVT_MODERN
 	xvt_render_assets_clear_mission();
 #endif
@@ -5081,6 +6259,23 @@ void fe_disk_io_load_resources(void)
 			if ((resource_asset_flags & MODEL_ASSET_OPT) != 0) {
 				resource_handle =
 					opt_model_load_handle(resource_name);
+				if (resource_handle == 0) {
+					XVT_LOG_WARN(
+						"resources.model_missing file=\"%s\" list=%u index=%u",
+						resource_name,
+						(unsigned)spec_list_index,
+						(unsigned)(list_entry_index -
+							   1));
+				} else {
+					XVT_LOG_DEBUG(
+						"resources.model_loaded file=\"%s\" list=%u index=%u handle=%u flags=%u",
+						resource_name,
+						(unsigned)spec_list_index,
+						(unsigned)(list_entry_index -
+							   1),
+						(unsigned)resource_handle,
+						(unsigned)resource_asset_flags);
+				}
 				memory_get_handle_block(resource_handle);
 			} else if ((resource_asset_flags &
 				    MODEL_ASSET_TEX_LEVEL) != 0) {
@@ -5133,6 +6328,21 @@ void fe_disk_io_load_resources(void)
 					tex_level_convert24_bpp_palettes_to8_bpp(
 						texture_data);
 				}
+				XVT_LOG_DEBUG(
+					"resources.texture_loaded file=\"%s\" list=%u index=%u handle=%u bytes=%u colors=%u",
+					resource_name,
+					(unsigned)spec_list_index,
+					(unsigned)(list_entry_index - 1),
+					(unsigned)resource_handle,
+					resource_data_size,
+					palette_entry_count);
+			} else {
+				XVT_LOG_WARN(
+					"resources.resource_kind_unknown file=\"%s\" list=%u index=%u flags=%u",
+					resource_name,
+					(unsigned)spec_list_index,
+					(unsigned)(list_entry_index - 1),
+					(unsigned)resource_asset_flags);
 			}
 
 			for (model_type = 0;
@@ -5166,6 +6376,14 @@ void fe_disk_io_load_resources(void)
 							resource_handle;
 						g_loaded_models[model_type] =
 							resource_handle;
+						XVT_LOG_DEBUG(
+							"resources.type_bound type=%u handle=%u model=%u",
+							(unsigned)model_type,
+							(unsigned)
+								resource_handle,
+							(unsigned)g_object_type_table
+								[model_type]
+									.model_index);
 #ifdef XVT_MODERN
 						xvt_render_assets_bind_type(
 							model_type,
@@ -5187,9 +6405,13 @@ void fe_disk_io_load_resources(void)
 
 		g_stream = list_stream;
 		fe_disk_io_close_global_stream(0);
+		XVT_LOG_DEBUG("resources.list_read list=\"%s\" entries=%u",
+			      list_path, (unsigned)list_entry_index);
 	}
 
 	render_scene_allocate_buffers();
+	XVT_LOG_DEBUG("resources.scene_buffers edges=%d vertices=%d",
+		      g_scene_edge_flags_capacity, g_vertex_remap_capacity);
 	fe_disk_io_lock_global_buffers();
 }
 
@@ -5242,6 +6464,9 @@ unsigned int fe_disk_io_init_resources(void)
 					g_active_rgb565_to_palette_index_lut,
 					GENERATED_PALETTE_START,
 					PALETTE_COLOR_COUNT);
+				XVT_LOG_DEBUG(
+					"resources.color_lookup_built file=\"%s\"",
+					g_current_mission_file);
 				if (fe_disk_io_open_global_stream(
 					    g_current_mission_file, "wb", 0,
 					    1) != 0) {
@@ -5252,6 +6477,10 @@ unsigned int fe_disk_io_init_resources(void)
 						PALETTE_COLOR_COUNT,
 						PALETTE_COLOR_COUNT, g_stream);
 					fe_disk_io_close_global_stream(1);
+				} else {
+					XVT_LOG_WARN(
+						"resources.color_lookup_not_saved file=\"%s\"",
+						g_current_mission_file);
 				}
 			} else {
 				fe_disk_io_close_global_stream(0);
@@ -5401,6 +6630,10 @@ unsigned int fe_disk_io_init_resources(void)
 	}
 	g_flight_transparent_color_index = (uint8_t)background_color_index;
 	g_flight_background_color_index = (uint8_t)background_color_index;
+	XVT_LOG_INFO("resources.loaded bpp=%d mode=%d background=%u proving=%d",
+		     g_flight_bytes_per_pixel, g_flight_resolution_mode,
+		     background_color_index,
+		     (int)g_flight_mission_state.proving_grounds_mode_active);
 	return background_color_index;
 }
 
@@ -5425,6 +6658,10 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 		g_object_type_table[(uint8_t)object_type].max_bounds_extent >>
 		1;
 	if (model_def_index == 0xFF) {
+		XVT_LOG_DEBUG("resources.model_extent type=%u extent=%d",
+			      (unsigned)(uint8_t)object_type,
+			      g_object_type_table[(uint8_t)object_type]
+				      .max_bounds_extent);
 		return;
 	}
 
@@ -5672,6 +6909,18 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 			slot_start = (uint8_t)weapon_slot_count;
 
 			if (weapon_slot_count == 16) {
+				if (g_model_defs[model_def_index]
+					    .laser_group_weapon_type
+						    [group_index] != 0) {
+					XVT_LOG_WARN(
+						"resources.weapon_group_dropped type=%u def=%u kind=\"laser\" group=%u weapon=%u",
+						(unsigned)(uint8_t)object_type,
+						(unsigned)model_def_index,
+						(unsigned)group_index,
+						(unsigned)g_model_defs[model_def_index]
+							.laser_group_weapon_type
+								[group_index]);
+				}
 				g_model_defs[model_def_index]
 					.laser_group_weapon_type[group_index] =
 					0;
@@ -5788,6 +7037,18 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 			slot_start = (uint8_t)weapon_slot_count;
 
 			if (weapon_slot_count == 16) {
+				if (g_model_defs[model_def_index]
+					    .warhead_launcher_type
+						    [group_index] != 0) {
+					XVT_LOG_WARN(
+						"resources.weapon_group_dropped type=%u def=%u kind=\"warhead\" group=%u weapon=%u",
+						(unsigned)(uint8_t)object_type,
+						(unsigned)model_def_index,
+						(unsigned)group_index,
+						(unsigned)g_model_defs[model_def_index]
+							.warhead_launcher_type
+								[group_index]);
+				}
 				g_model_defs[model_def_index]
 					.warhead_launcher_type[group_index] = 0;
 				continue;
@@ -5867,6 +7128,31 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 			}
 		}
 	}
+	XVT_LOG_DEBUG(
+		"resources.model_built type=%u def=%u extent=%d shift=%u size_x=%d size_y=%d size_z=%d slots=%u laser1=%u laser2=%u laser1_slots=%u laser2_slots=%u warhead1=%u warhead2=%u warhead1_slots=%u warhead2_slots=%u",
+		(unsigned)(uint8_t)object_type, (unsigned)model_def_index,
+		g_object_type_table[(uint8_t)object_type].max_bounds_extent,
+		(unsigned)g_model_defs[model_def_index].bound_size_shift,
+		(int)g_model_defs[model_def_index].bound_size_x,
+		(int)g_model_defs[model_def_index].bound_size_y,
+		(int)g_model_defs[model_def_index].bound_size_z,
+		(unsigned)weapon_slot_count,
+		(unsigned)g_model_defs[model_def_index]
+			.laser_group_weapon_type[0],
+		(unsigned)g_model_defs[model_def_index]
+			.laser_group_weapon_type[1],
+		(unsigned)g_model_defs[model_def_index]
+			.laser_group_slot_count[0],
+		(unsigned)g_model_defs[model_def_index]
+			.laser_group_slot_count[1],
+		(unsigned)g_model_defs[model_def_index]
+			.warhead_launcher_type[0],
+		(unsigned)g_model_defs[model_def_index]
+			.warhead_launcher_type[1],
+		(unsigned)g_model_defs[model_def_index]
+			.warhead_launcher_slot_count[0],
+		(unsigned)g_model_defs[model_def_index]
+			.warhead_launcher_slot_count[1]);
 }
 
 #ifndef XVT_MODERN
@@ -6113,6 +7399,10 @@ int fe_disk_io_open_global_stream(const char *file_name, const char *mode,
 	xvt_storage_capture_global_stream();
 	snprintf(g_file_name, sizeof(g_file_name), "%s",
 		 xvt_storage_last_path());
+	XVT_LOG_DEBUG(
+		"resources.file_opened file=\"%s\" path=\"%s\" mode=\"%s\" opened=%d required=%d stream=%p",
+		file_name, g_file_name, mode, g_stream != NULL, prompt_on_fail,
+		(void *)g_stream);
 	if (!g_stream && prompt_on_fail) {
 		xvt_storage_fatal("Cannot open required file", 1);
 	}
@@ -6199,6 +7489,15 @@ int16_t fe_disk_io_close_global_stream(int16_t remove_file_on_error)
 #ifdef XVT_MODERN
 	int failed =
 		xvt_storage_close_global_stream(g_stream, remove_file_on_error);
+	if (failed != 0) {
+		XVT_LOG_WARN(
+			"resources.file_close_failed stream=%p path=\"%s\" remove=%d",
+			(void *)g_stream, g_file_name,
+			(int)remove_file_on_error);
+	} else {
+		XVT_LOG_DEBUG("resources.file_closed stream=%p",
+			      (void *)g_stream);
+	}
 	g_stream = NULL;
 	return (int16_t)failed;
 #else
@@ -6230,6 +7529,10 @@ size_t fe_disk_io_read_with_retry_prompt(void *dst, size_t elem_size,
 	size_t count = FILE_RAW_READ(dst, elem_size, elem_count, stream);
 	g_file_read_abort_flag = count != elem_count;
 	if (g_file_read_abort_flag) {
+		XVT_LOG_ERROR(
+			"resources.read_short path=\"%s\" size=%u wanted=%u got=%u",
+			g_file_name, (unsigned)elem_size, (unsigned)elem_count,
+			(unsigned)count);
 		xvt_storage_fatal("Incomplete required file read", 1);
 	}
 	return count;
@@ -6280,6 +7583,7 @@ void fe_disk_io_fatal_error(file_error_string_id error_code)
 {
 #ifdef XVT_MODERN
 	(void)error_code;
+	XVT_LOG_ERROR("resources.fatal code=%d", (int)error_code);
 	xvt_storage_fatal("Required resource could not be loaded", 1);
 #else
 
