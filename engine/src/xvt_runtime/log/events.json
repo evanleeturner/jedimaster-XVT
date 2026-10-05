@@ -478,6 +478,231 @@
       "fields": ["mode"],
       "text": "The z-buffer compares with the {mode} test"
     },
+    "debrief.ai_team_counted": {
+      "level": "D",
+      "fields": ["fg", "team", "teams"],
+      "text": "Player flight group {fg}, which no human flies, entered team {team} in the debriefing's standings as a team of computer pilots; {teams} teams now take part"
+    },
+    "debrief.battle_counted": {
+      "level": "D",
+      "fields": ["imperial", "rebel", "draws", "index", "needed"],
+      "text": "The battle's results through step {index} were counted: {imperial} Imperial victories, {rebel} Rebel victories and {draws} draws, where {needed} victories end the battle"
+    },
+    "debrief.campaign_finished": {
+      "level": "I",
+      "fields": ["mission", "faction"],
+      "text": "Campaign {mission} was marked finished in faction {faction}'s single-player records"
+    },
+    "debrief.closed": {
+      "level": "D",
+      "fields": ["list", "text"],
+      "text": "The debriefing screen closed: it let go of the mission list ({list}: 1 when one was held) and the campaign debriefing text ({text}: 1 when held), with its background picture and scroll controls"
+    },
+    "debrief.cursor_placed": {
+      "level": "D",
+      "fields": ["exit"],
+      "text": "The pointer was placed over the left button, or over the continue button when {exit} was 0 (a single player or the host in a tournament, battle or campaign that goes on)"
+    },
+    "debrief.disconnected": {
+      "level": "I",
+      "fields": [],
+      "text": "This player had been dropped from the network game during the mission; the debriefing shut its network session down and told the player"
+    },
+    "debrief.evaluation": {
+      "level": "D",
+      "fields": ["award", "result"],
+      "text": "The training mission's evaluation award level {award} (1 best to 5, 6 failed, 0 none) picked debriefing picture {result} (1 an award, 2 failed, 0 none)"
+    },
+    "debrief.fly_again": {
+      "level": "I",
+      "fields": ["kind", "by"],
+      "text": "The {kind} mission was to be flown again ({by}); the debriefing left for its setup, or with a single mission straight for flight loading with its last results cleared"
+    },
+    "debrief.host_aborted": {
+      "level": "I",
+      "fields": [],
+      "text": "The host had aborted the mission; the debriefing told this player it was still connected to the game session"
+    },
+    "debrief.host_asked": {
+      "level": "D",
+      "fields": ["request", "seed"],
+      "text": "The host sent every player the request {request}; it carried {seed}, which every machine takes as the next flight's random seed (0 when it carries none)"
+    },
+    "debrief.kill_list_full": {
+      "level": "D",
+      "fields": ["list", "fg", "combatant"],
+      "text": "The overview's {list} list already held 8 entries when flight group {fg} was placed in it, so combatant {combatant} (under 8 a network entry, else 8 plus a flight group) fell off its end"
+    },
+    "debrief.kill_order": {
+      "level": "D",
+      "fields": ["killed", "killed_by"],
+      "text": "The overview's kill lists were set: killed {killed} and killed by {killed_by} (under 8 a network entry, 8 and over 8 plus a flight group, -1 ends the list)"
+    },
+    "debrief.left": {
+      "level": "I",
+      "fields": ["to", "by"],
+      "text": "The debriefing closed, going to {to} ({by})"
+    },
+    "debrief.list_missing": {
+      "level": "E",
+      "fields": ["directory"],
+      "text": "The debriefing had no mission list for mission type {directory} (the list's loading said why); the 1997 code goes on to read the missing list for the mission's title and for a battle's or campaign's saved progress"
+    },
+    "debrief.local_pilot": {
+      "level": "D",
+      "fields": ["entry", "fg"],
+      "text": "The local player holds pilot result entry {entry} (8 when no entry holds it), flying flight group {fg} (-1 with no entry)"
+    },
+    "debrief.local_pilot_missing": {
+      "level": "W",
+      "fields": ["mode"],
+      "text": "No pilot result entry held the local player's id (session mode {mode}); the 1997 code went on to read the entry past the table for the player's flight group"
+    },
+    "debrief.local_place_missing": {
+      "level": "W",
+      "fields": ["team", "teams"],
+      "text": "The pilot's team {team} was not found in the debriefing's order of {teams} teams, so the player statistics page showed its place as first"
+    },
+    "debrief.melee_result": {
+      "level": "D",
+      "fields": ["tournament", "melee"],
+      "text": "The melee's debriefing picture was picked from tournament result {tournament} and melee result {melee} (1 an award, 2 failed, 0 none; at a tournament's end a team tied for the top score also counts 1)"
+    },
+    "debrief.mission_listed": {
+      "level": "D",
+      "fields": ["directory", "mission", "index", "missions"],
+      "text": "The debriefing looked for entry {mission} in the mission list of mission type {directory} and stopped at place {index} of {missions} (the place equals the count when the entry was not found)"
+    },
+    "debrief.next_mission": {
+      "level": "I",
+      "fields": ["kind", "index", "by", "players"],
+      "text": "The {kind} went on to its next mission, step {index} counted from 0 ({by}), with {players} human players recorded; the debriefing left for the next mission's setup"
+    },
+    "debrief.not_listed": {
+      "level": "W",
+      "fields": ["directory", "mission", "missions"],
+      "text": "Entry {mission} was not in the mission list of mission type {directory}, which holds {missions} entries; the 1997 code went on to read the place past the list's end for the mission's title and for a battle's or campaign's saved progress"
+    },
+    "debrief.opened": {
+      "level": "I",
+      "fields": ["directory", "mission", "sequence", "mode", "page", "disconnected"],
+      "text": "The debriefing opened for mission {mission} of mission type {directory} (sequence active {sequence}; session mode {mode}: 2 solo, 3 network client, 4 network host) on page {page} (0 overview, 1 player statistics, 2 the sequence's page); dropped from the network game {disconnected}"
+    },
+    "debrief.order": {
+      "level": "D",
+      "fields": ["team_order", "standings_order", "player_order", "standing_flags", "position", "by_pilot", "ai_opponents", "mode", "groups"],
+      "text": "The debriefing's order was set: teams {team_order}, tournament standings {standings_order}, network entries {player_order} (-1 ends each list), standings flags by team {standing_flags}; the pilot's team at position {position}; pilots ranked one by one {by_pilot}; computer opponents {ai_opponents}, session mode {mode}, {groups} flight groups"
+    },
+    "debrief.outcome": {
+      "level": "D",
+      "fields": ["team", "completed", "campaign", "awards", "promotion", "rating", "score"],
+      "text": "The debriefing showed the mission's outcome: the pilot's team {team}; mission complete for the first two teams {completed}; campaign mission complete {campaign} (-1 outside a campaign); award levels for melee, tournament, evaluation and battle {awards} (1 best to 5, 6 failed, 0 none); rank change {promotion} (1 promoted, -1 demoted) at rating {rating}; mission score {score}"
+    },
+    "debrief.outcome_text_no_buffer": {
+      "level": "E",
+      "fields": ["directory", "mission"],
+      "text": "The campaign's debriefing text for mission {mission} of mission type {directory} was not read: its 4096-byte buffer was never allocated, so the text page stayed blank"
+    },
+    "debrief.outcome_text_open_failed": {
+      "level": "E",
+      "fields": ["file"],
+      "text": "The mission file {file} did not open, so the campaign's debriefing text was left empty"
+    },
+    "debrief.outcome_text_read": {
+      "level": "D",
+      "fields": ["file", "win", "offset"],
+      "text": "The campaign's debriefing text was read from mission file {file}: 4096 bytes starting at {offset} from its end, the text for a completed mission: {win}"
+    },
+    "debrief.outcome_text_skipped": {
+      "level": "D",
+      "fields": ["file", "version"],
+      "text": "Mission file {file} has format {version}, not 14, so it holds no debriefing text and the campaign's text was left empty"
+    },
+    "debrief.outcome_text_unlisted": {
+      "level": "W",
+      "fields": ["directory", "mission", "missions"],
+      "text": "Mission {mission} of mission type {directory} was not among the {missions} missions of the loaded list, so the campaign's debriefing text was left empty"
+    },
+    "debrief.packet_ignored": {
+      "level": "D",
+      "fields": ["kind"],
+      "text": "The debriefing received a {kind} message and stayed open, acting on nothing (a session cancel or a team list only set a flag nothing reads; a return to setup skipped drawing that one frame)"
+    },
+    "debrief.page_changed": {
+      "level": "D",
+      "fields": ["page", "previous"],
+      "text": "The player turned the debriefing to page {page} (0 the mission overview, 1 the player statistics, 2 the campaign text or the tournament or battle summary) from page {previous}"
+    },
+    "debrief.page_kept": {
+      "level": "W",
+      "fields": ["directory", "page"],
+      "text": "The debriefing's mission type {directory} is none of the six types, so it kept page {page} from the last debriefing"
+    },
+    "debrief.pilot_result": {
+      "level": "I",
+      "fields": ["score", "rank_change", "rating", "faction", "plaque", "trophy", "evaluation", "medallion"],
+      "text": "The pilot scored {score} points; rank change {rank_change} (1 promoted, -1 demoted, 0 none), rating now {rating}; this mission's awards in faction record {faction}: melee plaque {plaque}, tournament trophy {trophy}, mission evaluation {evaluation}, battle medallion {medallion} (0 none, 1 the best, an evaluation of 6 a failed one)"
+    },
+    "debrief.player_counted": {
+      "level": "D",
+      "fields": ["entry", "player", "fg", "team", "rating", "score", "kills", "shared", "assists", "losses", "has_left", "teams", "humans"],
+      "text": "Network entry {entry}, player {player} (rating {rating}), flying flight group {fg} for team {team}, was counted for the debriefing: score {score}, {kills} full, {shared} shared and {assists} assisted kills, {losses} craft lost, left the flight {has_left}; {teams} teams with a human player and {humans} human players so far"
+    },
+    "debrief.player_readied": {
+      "level": "D",
+      "fields": ["entry", "player", "has_left"],
+      "text": "The debriefing asked the session roster to mark network entry {entry}, player {player}, ready; the player had left the flight: {has_left}"
+    },
+    "debrief.progress_ended": {
+      "level": "I",
+      "fields": ["kind", "mission", "index", "score", "role"],
+      "text": "The {kind} {mission} was over, so the pilot's record no longer offers to continue it ({role}): last step {index}, score {score}"
+    },
+    "debrief.progress_recorded": {
+      "level": "I",
+      "fields": ["kind", "mission", "index", "score", "role", "active", "seed"],
+      "text": "The {kind} {mission} was not over, so its progress was written into the pilot's record (it reaches disk at the pilot's next save) to continue later ({role}): step {index}, score {score}, marked to continue {active} (1 yes), random seed {seed}"
+    },
+    "debrief.ready_cleared": {
+      "level": "D",
+      "fields": ["player", "index"],
+      "text": "A ready message from player {player} reached the debriefing, which cleared that player's ready mark at roster place {index}"
+    },
+    "debrief.results": {
+      "level": "I",
+      "fields": ["directory", "teams", "humans", "top", "team", "completed", "score"],
+      "text": "The debriefing ranked {teams} teams with {humans} human players for mission type {directory}: team {top} came first; the pilot's team {team} completed the mission: {completed}, with {score} points"
+    },
+    "debrief.standing_counted": {
+      "level": "D",
+      "fields": ["team", "total", "place1", "place2", "place3", "ai_source"],
+      "text": "Team {team} went into the tournament standings with {total} points over the tournament and {place1} first, {place2} second and {place3} third places; the mark of the team its computer pilots copy was {ai_source} (0 when none)"
+    },
+    "debrief.stats_counted": {
+      "level": "D",
+      "fields": ["entry", "rows", "kills", "shared", "assists", "player_kills", "player_shared", "ai_kills", "ai_shared", "losses", "lost_to_players", "lost_to_ai", "by_type", "by_rank", "from_players"],
+      "text": "The player statistics page recounted itself for network entry {entry} (0 in a solo game): {rows} rows; {kills} full and {shared} shared kills and {assists} assists; kills of human pilots {player_kills} full and {player_shared} shared, of computer pilots {ai_kills} full and {ai_shared} shared; {losses} craft lost, {lost_to_players} to human and {lost_to_ai} to computer pilots; sections shown: kills by craft type {by_type}, kills by rank {by_rank}, losses to players {from_players}"
+    },
+    "debrief.stats_local_missing": {
+      "level": "D",
+      "fields": ["mode", "ids"],
+      "text": "The player statistics page found no entry for the local player among the mission's network players, whose player ids were {ids}, in session mode {mode}, and drew only its title"
+    },
+    "debrief.stats_scrolled": {
+      "level": "D",
+      "fields": ["row", "previous", "rows"],
+      "text": "The player scrolled the player statistics page to row {row} from row {previous}, of {rows} rows"
+    },
+    "debrief.team_result": {
+      "level": "D",
+      "fields": ["team", "completed", "score", "kills", "shared", "losses", "seconds", "ai_only", "in_standings"],
+      "text": "Team {team} went into the debriefing's team order: mission completed {completed}, score {score}, {kills} full and {shared} shared kills, {losses} craft lost, completion time {seconds} seconds; computer pilots only {ai_only}; in the tournament standings {in_standings}"
+    },
+    "debrief.text_alloc_failed": {
+      "level": "E",
+      "fields": ["bytes"],
+      "text": "The {bytes}-byte buffer for the campaign mission's debriefing text was missing because memory could not be allocated, so the debriefing's text page stayed empty"
+    },
     "dialog.closed": {
       "level": "I",
       "fields": ["result"],
