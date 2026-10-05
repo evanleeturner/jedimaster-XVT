@@ -3513,6 +3513,71 @@
       "fields": ["name", "result"],
       "text": "The movie {name} finished with result {result}"
     },
+    "msg.arrival_reported": {
+      "level": "D",
+      "fields": ["slot", "fg", "count", "range", "hostile", "map", "predicted"],
+      "text": "Flight group {fg}'s arrival was announced to this machine's player, slot {slot}: {count} craft at {range} km (at least 1), measured from the player's craft, or from the map camera while the map view was open (map view {map}, 0 when closed); the group is on another side: {hostile} (1 gives the new craft alert, 0 the entering area message); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "msg.designation_invalid": {
+      "level": "W",
+      "fields": ["slot", "target", "fg", "code", "tick"],
+      "text": "Player slot {slot}'s target, object {target} of flight group {fg}, has designation code {code} for its team, past the 24 the game knows, so its description was built from whatever lay past the table; at tick {tick}"
+    },
+    "msg.log_files_full": {
+      "level": "W",
+      "fields": [],
+      "text": "All one hundred message log files, msglog0.txt to msglog99.txt, already existed, so the message log was added to the end of msglog99.txt"
+    },
+    "msg.log_written": {
+      "level": "I",
+      "fields": ["file", "records"],
+      "text": "The message log was written to the end of msglog{file}.txt: {records} messages, oldest first, leaving out the newest one unless the log had just filled up (65,535 means it was written before any message was logged)"
+    },
+    "msg.message_blocked": {
+      "level": "W",
+      "fields": ["message", "held", "tick"],
+      "text": "In-flight message {message} was dropped: the message line showed message {held}, whose type 0 lets no message replace it or wait behind it; at tick {tick}"
+    },
+    "msg.message_built": {
+      "level": "D",
+      "fields": ["message", "type", "length", "sender", "voice", "clock", "logged", "index", "total", "wrapped", "predicted"],
+      "text": "In-flight message {message} was built for this machine's player: type {type}, {length} characters, sender side {sender}, voice {voice} (0 for none), mission clock {clock}; it entered the message log: {logged} (the log's newest record is now {index}, {total} messages logged since the flight started, the log has gone round its 300 records: {wrapped}); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "msg.message_dropped": {
+      "level": "D",
+      "fields": ["message", "type", "system", "busy", "predicted"],
+      "text": "System message {message} (type {type}) was not shown: system messages on {system}; the system message line held a warning that only a type 7 message replaces: {busy}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "msg.message_queued": {
+      "level": "I",
+      "fields": ["message", "type", "length", "args", "waiting", "tick"],
+      "text": "In-flight message {message} for this machine's player waited for the message line, number {waiting} in line: type {type}, {length} characters, argument values {args} (message numbers, counts, or 32,768 plus a slot for a name); at tick {tick}"
+    },
+    "msg.message_shown": {
+      "level": "I",
+      "fields": ["message", "type", "length", "args", "waiting", "tick"],
+      "text": "In-flight message {message} was shown to this machine's player: type {type} (3, 4 and 7 go to the system message line, 8 to the flight group line, the others to the message line), {length} characters, argument values {args} (message numbers, counts, or 32,768 plus a slot for a name); {waiting} messages were waiting for the message line; at tick {tick}"
+    },
+    "msg.queue_full": {
+      "level": "W",
+      "fields": ["message", "type", "length", "args", "tick"],
+      "text": "In-flight message {message} for this machine's player was lost: nine messages already waited for the message line (type {type}, {length} characters, argument values {args} (message numbers, counts, or 32,768 plus a slot for a name)); at tick {tick}"
+    },
+    "msg.target_described": {
+      "level": "D",
+      "fields": ["slot", "target", "relation", "designation", "phrase", "actionable", "predicted"],
+      "text": "The target description for player slot {slot}'s target, object {target}, was set: relation {relation}, designation {designation} and goal phrase {phrase} (message numbers; 331 is blank); the player can act on it: {actionable}; it shows again only once it changes and a 1,180-tick wait is over; predicted step {predicted} (1 in a step that is run again later: the message was not shown, but the wait and the phrase were still set)"
+    },
+    "msg.template_invalid": {
+      "level": "E",
+      "fields": ["message", "what", "value"],
+      "text": "In-flight message {message}'s template from strings.txt asked for {what} {value}, past what the game's tables hold (argument: a fifth or later argument of 4; text: a message number past 416 or a name slot past 3; digits: a number of digits past 5, where 6 and 7 divide by zero); what it read there is not defined"
+    },
+    "msg.text_cut": {
+      "level": "W",
+      "fields": ["message", "args", "tick"],
+      "text": "In-flight message {message} came out longer than 69 characters and was cut to 69 (argument values {args} (message numbers, counts, or 32,768 plus a slot for a name)); at tick {tick}"
+    },
     "network.admission_ignored": {
       "level": "D",
       "fields": ["player"],

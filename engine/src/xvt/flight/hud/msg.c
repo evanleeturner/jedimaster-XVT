@@ -16,6 +16,7 @@
 #include "xvt/flight/player/player.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Index in g_message_log_records of the newest logged message, 0 to 299, or
  * 0xFFFF before the first. Flight start sets 0xFFFF: flight_main_loop in the
@@ -115,6 +116,7 @@ void msg_write_message_log_file(void)
 			break;
 		}
 		if (log_index == 99) {
+			XVT_LOG_WARN("msg.log_files_full");
 			if (stream != NULL) {
 				FILE_RAW_CLOSE(stream);
 			}
@@ -153,6 +155,8 @@ void msg_write_message_log_file(void)
 				 message_index);
 		}
 		FILE_RAW_CLOSE(stream);
+		XVT_LOG_INFO("msg.log_written file=%d records=%d", log_index,
+			     message_index);
 	}
 }
 
@@ -232,6 +236,14 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 	while (*template_cursor != '\0' && text_length < sizeof(message.text)) {
 		if (*template_cursor == '*') {
 			++template_cursor;
+			if (argument_index >=
+			    sizeof(g_msg_arg_table) /
+				    sizeof(g_msg_arg_table[0])) {
+				XVT_LOG_ERROR(
+					"msg.template_invalid message=%d what=\"argument\" value=%u",
+					(int)message_id,
+					(unsigned)argument_index);
+			}
 			uint16_t argument_value =
 				g_msg_arg_table[argument_index++];
 			if (argument_value < 0x8000) {
@@ -241,6 +253,19 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 				argument_text = (const char *)
 					g_msg_ptrs[argument_value & 0x7FFF];
 			}
+			if (argument_value < 0x8000
+				    ? argument_value >=
+					      sizeof(g_str_in_flight_messages) /
+						      sizeof(g_str_in_flight_messages
+								     [0])
+				    : (argument_value & 0x7FFF) >=
+					      sizeof(g_msg_ptrs) /
+						      sizeof(g_msg_ptrs[0])) {
+				XVT_LOG_ERROR(
+					"msg.template_invalid message=%d what=\"text\" value=%u",
+					(int)message_id,
+					(unsigned)argument_value);
+			}
 			while (*argument_text != '\0' &&
 			       text_length < sizeof(message.text)) {
 				message.text[text_length++] = *argument_text++;
@@ -248,6 +273,26 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 		} else if (*template_cursor == '&') {
 			uint16_t digit_count = template_cursor[1];
 			template_cursor += 2;
+			if (argument_index >=
+				    sizeof(g_msg_arg_table) /
+					    sizeof(g_msg_arg_table[0]) ||
+			    digit_count > 5) {
+				XVT_LOG_ERROR(
+					"msg.template_invalid message=%d what=\"%s\" value=%u",
+					(int)message_id,
+					argument_index >=
+							sizeof(g_msg_arg_table) /
+								sizeof(g_msg_arg_table
+									       [0])
+						? "argument"
+						: "digits",
+					(unsigned)(argument_index >=
+								   sizeof(g_msg_arg_table) /
+									   sizeof(g_msg_arg_table
+											  [0])
+							   ? argument_index
+							   : digit_count));
+			}
 			int digit_started = 0;
 			uint16_t remainder = g_msg_arg_table[argument_index++];
 			while (digit_count != 0 &&
@@ -278,6 +323,12 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 		}
 	}
 	if (text_length >= sizeof(message.text)) {
+		XVT_LOG_WARN(
+			"msg.text_cut message=%d args=\"%u,%u,%u,%u\" tick=%d",
+			(int)message_id, (unsigned)g_msg_arg_table[0],
+			(unsigned)g_msg_arg_table[1],
+			(unsigned)g_msg_arg_table[2],
+			(unsigned)g_msg_arg_table[3], g_game_time);
 		message.text[sizeof(message.text) - 1] = '\0';
 	} else {
 		message.text[text_length] = '\0';
@@ -300,6 +351,22 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 		memory_handle_block_done_stub(g_message_log_handle);
 		g_message_log_records[g_message_log_write_index] = message;
 	}
+	XVT_LOG_DEBUG(
+		"msg.message_built message=%d type=%d length=%u sender=%u voice=%u clock=\"%u:%02u:%02u\" logged=%d index=%u total=%u wrapped=%u predicted=%d",
+		(int)message_id, (int)normalized_pane_type,
+		(unsigned)((text_length >= sizeof(message.text)
+				    ? sizeof(message.text) - 1
+				    : text_length) -
+			   (text_length != 0 && pane_type < 9 ? 1 : 0)),
+		(unsigned)message.sender_iff, (unsigned)message.voice_sfx_id,
+		(unsigned)message.clock_hour, (unsigned)message.clock_minute,
+		(unsigned)message.clock_second,
+		(int)(g_replay_view_mode == 0 &&
+		      (normalized_pane_type == 2 || normalized_pane_type == 1)),
+		(unsigned)g_message_log_write_index,
+		(unsigned)g_message_log_total_count,
+		(unsigned)g_message_log_wrapped,
+		g_flight_sim_side_effects_suppressed);
 
 	if (normalized_pane_type == 3 || normalized_pane_type == 4 ||
 	    normalized_pane_type == 7) {
@@ -312,17 +379,67 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 			g_system_message_pane = message;
 			hud_show_flight_message_pane(
 				(int16_t)normalized_pane_type);
+			XVT_LOG_INFO(
+				"msg.message_shown message=%d type=%d length=%u args=\"%u,%u,%u,%u\" waiting=%u tick=%d",
+				(int)message_id, (int)normalized_pane_type,
+				(unsigned)((text_length >= sizeof(message.text)
+						    ? sizeof(message.text) - 1
+						    : text_length) -
+					   (text_length != 0 && pane_type < 9
+						    ? 1
+						    : 0)),
+				(unsigned)g_msg_arg_table[0],
+				(unsigned)g_msg_arg_table[1],
+				(unsigned)g_msg_arg_table[2],
+				(unsigned)g_msg_arg_table[3],
+				(unsigned)g_ready_message_queue_count,
+				g_game_time);
+		} else {
+			XVT_LOG_DEBUG(
+				"msg.message_dropped message=%d type=%d system=%d busy=%d predicted=%d",
+				(int)message_id, (int)normalized_pane_type,
+				g_system_message_display_enabled,
+				(int)(g_system_message_pane
+						      .state_or_message_id !=
+					      UINT16_MAX &&
+				      g_system_message_pane.pane_type == 4 &&
+				      normalized_pane_type != 7),
+				g_flight_sim_side_effects_suppressed);
 		}
 		return;
 	}
 	if (normalized_pane_type == 8) {
 		g_flight_group_message_pane = message;
 		hud_show_flight_message_pane((int16_t)normalized_pane_type);
+		XVT_LOG_INFO(
+			"msg.message_shown message=%d type=%d length=%u args=\"%u,%u,%u,%u\" waiting=%u tick=%d",
+			(int)message_id, (int)normalized_pane_type,
+			(unsigned)((text_length >= sizeof(message.text)
+					    ? sizeof(message.text) - 1
+					    : text_length) -
+				   (text_length != 0 && pane_type < 9 ? 1 : 0)),
+			(unsigned)g_msg_arg_table[0],
+			(unsigned)g_msg_arg_table[1],
+			(unsigned)g_msg_arg_table[2],
+			(unsigned)g_msg_arg_table[3],
+			(unsigned)g_ready_message_queue_count, g_game_time);
 		return;
 	}
 	if (g_ready_message_pane_queue[0].state_or_message_id == UINT16_MAX) {
 		g_ready_message_pane_queue[0] = message;
 		hud_show_flight_message_pane((int16_t)normalized_pane_type);
+		XVT_LOG_INFO(
+			"msg.message_shown message=%d type=%d length=%u args=\"%u,%u,%u,%u\" waiting=%u tick=%d",
+			(int)message_id, (int)normalized_pane_type,
+			(unsigned)((text_length >= sizeof(message.text)
+					    ? sizeof(message.text) - 1
+					    : text_length) -
+				   (text_length != 0 && pane_type < 9 ? 1 : 0)),
+			(unsigned)g_msg_arg_table[0],
+			(unsigned)g_msg_arg_table[1],
+			(unsigned)g_msg_arg_table[2],
+			(unsigned)g_msg_arg_table[3],
+			(unsigned)g_ready_message_queue_count, g_game_time);
 		return;
 	}
 
@@ -334,6 +451,21 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 			g_ready_message_pane_queue[0] = message;
 			hud_show_flight_message_pane(
 				(int16_t)normalized_pane_type);
+			XVT_LOG_INFO(
+				"msg.message_shown message=%d type=%d length=%u args=\"%u,%u,%u,%u\" waiting=%u tick=%d",
+				(int)message_id, (int)normalized_pane_type,
+				(unsigned)((text_length >= sizeof(message.text)
+						    ? sizeof(message.text) - 1
+						    : text_length) -
+					   (text_length != 0 && pane_type < 9
+						    ? 1
+						    : 0)),
+				(unsigned)g_msg_arg_table[0],
+				(unsigned)g_msg_arg_table[1],
+				(unsigned)g_msg_arg_table[2],
+				(unsigned)g_msg_arg_table[3],
+				(unsigned)g_ready_message_queue_count,
+				g_game_time);
 			break;
 		}
 		g_ready_message_pane_queue[g_ready_message_queue_count + 1] =
@@ -342,6 +474,35 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 		g_ready_message_queue_count = new_queue_count;
 		if (new_queue_count >= 10) {
 			g_ready_message_queue_count = new_queue_count - 1;
+			XVT_LOG_WARN(
+				"msg.queue_full message=%d type=%d length=%u args=\"%u,%u,%u,%u\" tick=%d",
+				(int)message_id, (int)normalized_pane_type,
+				(unsigned)((text_length >= sizeof(message.text)
+						    ? sizeof(message.text) - 1
+						    : text_length) -
+					   (text_length != 0 && pane_type < 9
+						    ? 1
+						    : 0)),
+				(unsigned)g_msg_arg_table[0],
+				(unsigned)g_msg_arg_table[1],
+				(unsigned)g_msg_arg_table[2],
+				(unsigned)g_msg_arg_table[3], g_game_time);
+		} else {
+			XVT_LOG_INFO(
+				"msg.message_queued message=%d type=%d length=%u args=\"%u,%u,%u,%u\" waiting=%u tick=%d",
+				(int)message_id, (int)normalized_pane_type,
+				(unsigned)((text_length >= sizeof(message.text)
+						    ? sizeof(message.text) - 1
+						    : text_length) -
+					   (text_length != 0 && pane_type < 9
+						    ? 1
+						    : 0)),
+				(unsigned)g_msg_arg_table[0],
+				(unsigned)g_msg_arg_table[1],
+				(unsigned)g_msg_arg_table[2],
+				(unsigned)g_msg_arg_table[3],
+				(unsigned)g_ready_message_queue_count,
+				g_game_time);
 		}
 		break;
 
@@ -355,12 +516,65 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 			if (new_queue_count >= 10) {
 				g_ready_message_queue_count =
 					new_queue_count - 1;
+				XVT_LOG_WARN(
+					"msg.queue_full message=%d type=%d length=%u args=\"%u,%u,%u,%u\" tick=%d",
+					(int)message_id,
+					(int)normalized_pane_type,
+					(unsigned)((text_length >= sizeof(message.text)
+							    ? sizeof(message.text) -
+								      1
+							    : text_length) -
+						   (text_length != 0 &&
+								    pane_type <
+									    9
+							    ? 1
+							    : 0)),
+					(unsigned)g_msg_arg_table[0],
+					(unsigned)g_msg_arg_table[1],
+					(unsigned)g_msg_arg_table[2],
+					(unsigned)g_msg_arg_table[3],
+					g_game_time);
+			} else {
+				XVT_LOG_INFO(
+					"msg.message_queued message=%d type=%d length=%u args=\"%u,%u,%u,%u\" waiting=%u tick=%d",
+					(int)message_id,
+					(int)normalized_pane_type,
+					(unsigned)((text_length >= sizeof(message.text)
+							    ? sizeof(message.text) -
+								      1
+							    : text_length) -
+						   (text_length != 0 &&
+								    pane_type <
+									    9
+							    ? 1
+							    : 0)),
+					(unsigned)g_msg_arg_table[0],
+					(unsigned)g_msg_arg_table[1],
+					(unsigned)g_msg_arg_table[2],
+					(unsigned)g_msg_arg_table[3],
+					(unsigned)g_ready_message_queue_count,
+					g_game_time);
 			}
 		} else {
 			hud_shift_ready_message_queue_for_replacement();
 			g_ready_message_pane_queue[0] = message;
 			hud_show_flight_message_pane(
 				(int16_t)normalized_pane_type);
+			XVT_LOG_INFO(
+				"msg.message_shown message=%d type=%d length=%u args=\"%u,%u,%u,%u\" waiting=%u tick=%d",
+				(int)message_id, (int)normalized_pane_type,
+				(unsigned)((text_length >= sizeof(message.text)
+						    ? sizeof(message.text) - 1
+						    : text_length) -
+					   (text_length != 0 && pane_type < 9
+						    ? 1
+						    : 0)),
+				(unsigned)g_msg_arg_table[0],
+				(unsigned)g_msg_arg_table[1],
+				(unsigned)g_msg_arg_table[2],
+				(unsigned)g_msg_arg_table[3],
+				(unsigned)g_ready_message_queue_count,
+				g_game_time);
 		}
 		break;
 
@@ -370,6 +584,18 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 	case 8:
 		g_ready_message_pane_queue[0] = message;
 		hud_show_flight_message_pane((int16_t)normalized_pane_type);
+		XVT_LOG_INFO(
+			"msg.message_shown message=%d type=%d length=%u args=\"%u,%u,%u,%u\" waiting=%u tick=%d",
+			(int)message_id, (int)normalized_pane_type,
+			(unsigned)((text_length >= sizeof(message.text)
+					    ? sizeof(message.text) - 1
+					    : text_length) -
+				   (text_length != 0 && pane_type < 9 ? 1 : 0)),
+			(unsigned)g_msg_arg_table[0],
+			(unsigned)g_msg_arg_table[1],
+			(unsigned)g_msg_arg_table[2],
+			(unsigned)g_msg_arg_table[3],
+			(unsigned)g_ready_message_queue_count, g_game_time);
 		break;
 
 	case 4:
@@ -390,6 +616,11 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 		break;
 
 	default:
+		XVT_LOG_WARN("msg.message_blocked message=%d held=%u tick=%d",
+			     (int)message_id,
+			     (unsigned)g_ready_message_pane_queue[0]
+				     .state_or_message_id,
+			     g_game_time);
 		break;
 	}
 }
@@ -459,6 +690,13 @@ void msg_reportfgcreation(uint16_t flight_group_index, uint16_t model_index)
 		g_mission_flight_groups[flight_group_idx].fg.number_of_craft;
 	g_msg_arg_table[0] = number_of_craft;
 	g_msg_sender_iff = iff;
+	XVT_LOG_DEBUG(
+		"msg.arrival_reported slot=%d fg=%d count=%u range=%u hostile=%d map=%d predicted=%d",
+		g_local_player, flight_group_idx, (unsigned)number_of_craft,
+		(unsigned)range_km,
+		(int)((uint16_t)g_players[g_local_player].iff != iff),
+		(int)g_players[g_local_player].map_camera_state,
+		g_flight_sim_side_effects_suppressed);
 	if ((uint16_t)g_players[g_local_player].iff != iff) {
 		msg_add_message_ptr(1, g_model_defs[model_index].name_long);
 		g_msg_arg_table[2] = range_km;
@@ -893,11 +1131,27 @@ int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
 		}
 	}
 	if (emit_hud_message != 0 && player_idx == g_local_player) {
+		if (designation >=
+			    (int)sizeof(
+				    g_target_desc_designation_uses_relation_text) &&
+		    g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_WARN(
+				"msg.designation_invalid slot=%d target=%d fg=%d code=%d tick=%d",
+				player_idx, (int)target_obj_idx,
+				flight_group_idx, designation, g_game_time);
+		}
 		msg_emit_in_flight_message(IFMSG_309_TARGET_DESCRIPTION,
 					   player_idx);
 		g_player_flight_transient_timers[g_local_player]
 			.target_description_refresh_timer = 1180;
 		g_target_description_message_id = g_msg_arg_table[3];
+		XVT_LOG_DEBUG(
+			"msg.target_described slot=%d target=%d relation=%u designation=%u phrase=%u actionable=%d predicted=%d",
+			player_idx, (int)target_obj_idx,
+			(unsigned)g_msg_arg_table[1],
+			(unsigned)g_msg_arg_table[2],
+			(unsigned)g_msg_arg_table[3], actionable,
+			g_flight_sim_side_effects_suppressed);
 	}
 	if (return_actionable_only != 0) {
 		return actionable;
