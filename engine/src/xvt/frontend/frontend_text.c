@@ -18,6 +18,7 @@
 #include "xvt/frontend/frontend_mouse.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/input/keyboard.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifndef XVT_MODERN
 __declspec(dllimport) void *__stdcall
@@ -118,6 +119,8 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 	if (frontend_draw_point_in_rect(rect, mouse_x, mouse_y) &&
 	    (frontend_mouse_get_left_click() ||
 	     frontend_mouse_get_right_click())) {
+		XVT_LOG_DEBUG("text.field_selected field=%d previous=%d",
+			      field_id, g_active_text_field_id);
 		g_active_text_field_id = field_id;
 	}
 
@@ -154,6 +157,15 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 						(char)input_char;
 					++g_text_field_cursor_char_index;
 					text[g_text_field_length] = '\0';
+					XVT_LOG_DEBUG(
+						"text.field_edited field=%d edit=\"typed\" length=%d max=%d",
+						field_id, g_text_field_length,
+						max_chars);
+				} else {
+					XVT_LOG_DEBUG(
+						"text.field_edited field=%d edit=\"full\" length=%d max=%d",
+						field_id, g_text_field_length,
+						max_chars);
 				}
 			} else if (input_char == 13 || input_char == 9) {
 				completed = 1;
@@ -162,6 +174,10 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 				--g_text_field_length;
 				--g_text_field_cursor_char_index;
 				text[g_text_field_length] = '\0';
+				XVT_LOG_DEBUG(
+					"text.field_edited field=%d edit=\"erased\" length=%d max=%d",
+					field_id, g_text_field_length,
+					max_chars);
 			}
 		}
 	}
@@ -265,6 +281,7 @@ int frontend_text_load_font(int point_size)
 		}
 	}
 	if (font == NULL) {
+		XVT_LOG_WARN("text.font_slots_full points=%d", point_size);
 		return 0;
 	}
 
@@ -280,6 +297,7 @@ int frontend_text_load_font(int point_size)
 	}
 
 #ifdef XVT_MODERN
+	XVT_LOG_WARN("text.font_missing points=%d", point_size);
 	return 0;
 #else
 	font_handle = CreateFontA(-point_size, 0, 0, 0, 400, 0, 0, 0, 0, 4, 0,
@@ -1090,6 +1108,7 @@ int frontend_text_load_font_atlas_file(const char *file_name, int slot_index)
 	size_t glyph_blob_size;
 #ifdef XVT_MODERN
 	if (!file_read_bytes(stream, disk_header, sizeof(disk_header))) {
+		XVT_LOG_DEBUG("text.font_file_short file=\"%s\"", file_name);
 		file_close(stream);
 		return 0;
 	}
@@ -1114,13 +1133,24 @@ int frontend_text_load_font_atlas_file(const char *file_name, int slot_index)
 	void *glyph_bits = malloc(glyph_blob_size);
 	font->p_glyph_bits = glyph_bits;
 	if (glyph_bits == NULL) {
+		XVT_LOG_ERROR("text.font_alloc_failed file=\"%s\" bytes=%u",
+			      file_name, (unsigned)glyph_blob_size);
 		font->in_use = 0;
 		file_close(stream);
 		return 0;
 	}
 
 	file_read_bytes(stream, glyph_bits, glyph_blob_size);
+	if (font->point_size > 255) {
+		XVT_LOG_ERROR("text.font_points_invalid file=\"%s\" points=%u",
+			      file_name, font->point_size);
+	}
 	g_front_state.font_by_size[font->point_size] = font;
+	XVT_LOG_DEBUG(
+		"text.font_loaded file=\"%s\" points=%u font_slot=%d bytes=%u height=%d spacing=%d in_use=%d",
+		file_name, font->point_size, slot_index,
+		(unsigned)glyph_blob_size, (int)font->glyph_height[0],
+		(int)font->char_spacing, (int)font->in_use);
 	file_close(stream);
 #ifdef XVT_MODERN
 	xvt_render_assets_register_image(font, 0, file_name, XVT_IMAGE_ABP, 0,

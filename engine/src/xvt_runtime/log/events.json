@@ -5913,6 +5913,46 @@
       "fields": ["file"],
       "text": "The craft descriptions file {file} did not open; the craft database kept its old table, none on a first opening, and its panel then reads a missing table"
     },
+    "text.field_edited": {
+      "level": "D",
+      "fields": ["field", "edit", "length", "max"],
+      "text": "Edit field {field} changed ({edit}: typed added a character, erased removed the last one, full dropped a typed character because the field was full); it now holds {length} characters, room for {max} less one"
+    },
+    "text.field_selected": {
+      "level": "D",
+      "fields": ["field", "previous"],
+      "text": "Edit field {field} was clicked and became the field that takes typed keys (before: field {previous})"
+    },
+    "text.font_alloc_failed": {
+      "level": "E",
+      "fields": ["file", "bytes"],
+      "text": "Memory for the {bytes} bytes of glyphs in the font file {file} could not be allocated; the font was not loaded"
+    },
+    "text.font_file_short": {
+      "level": "D",
+      "fields": ["file"],
+      "text": "The font file {file} was shorter than its 1,547-byte header; it was not loaded"
+    },
+    "text.font_loaded": {
+      "level": "D",
+      "fields": ["file", "points", "font_slot", "bytes", "height", "spacing", "in_use"],
+      "text": "The font file {file} was loaded into font slot {font_slot} as size {points}: {bytes} bytes of glyphs, {height} pixels high, {spacing} pixels between glyphs, marked in use {in_use} by the file"
+    },
+    "text.font_missing": {
+      "level": "W",
+      "fields": ["points"],
+      "text": "The size-{points} font file did not load; text in that size is not drawn (without the size-20 font the menus do not start)"
+    },
+    "text.font_points_invalid": {
+      "level": "E",
+      "fields": ["file", "points"],
+      "text": "The font file {file} gives size {points}, past the table of 256 font sizes; the font was put in that table anyway, past its end, over other menu state"
+    },
+    "text.font_slots_full": {
+      "level": "W",
+      "fields": ["points"],
+      "text": "The size-{points} font was not loaded: all 10 font slots were taken, so text in that size is not drawn"
+    },
     "timing.alloc_failed": {
       "level": "W",
       "fields": ["outcome"],
