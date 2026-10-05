@@ -78,6 +78,11 @@
       "fields": ["who", "cause", "by", "eject", "tick"],
       "text": "Player {who} lost a craft, most of its damage from: {cause}; the player who did the most damage was {by} (-1 when not a player); ejected {eject}; at tick {tick}"
     },
+    "battle.player_quit": {
+      "level": "I",
+      "fields": ["who", "penalty", "tick"],
+      "text": "Player {who} quit the mission, losing {penalty} points for leaving a melee early, at tick {tick}"
+    },
     "battle.warhead_hit": {
       "level": "I",
       "fields": ["by", "warhead", "own", "score", "tick"],
@@ -733,15 +738,65 @@
       "fields": ["path"],
       "text": "Cannot write {path}"
     },
+    "flight.action_key": {
+      "level": "D",
+      "fields": ["slot", "key", "object", "map", "hyper", "request", "predicted"],
+      "text": "The simulation step applied action key {key} for player slot {slot}: craft object {object} (-1 for none), map view state {map} (0 in the cockpit), hyperspace phase {hyper} (0 when not jumping), open request {request} (0 for none); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.beam_switched": {
+      "level": "D",
+      "fields": ["slot", "on", "beam", "charge", "predicted"],
+      "text": "Player slot {slot} switched its beam of type {beam} (1 tractor, 2 jamming, 3 decoy, 4 energy transfer) on: {on}, with {charge} charge; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.chat_opened": {
+      "level": "D",
+      "fields": ["slot", "predicted"],
+      "text": "Player slot {slot} started typing a message to its team; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "flight.clock_second": {
       "level": "D",
       "fields": ["elapsed", "left", "limit", "tick", "predicted"],
       "text": "The mission clock counted a second at tick {tick}: {elapsed} seconds of mission time, {left} seconds left of a {limit}-minute limit (0 and 0 with no limit); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "flight.component_selected": {
+      "level": "D",
+      "fields": ["slot", "target", "component", "predicted"],
+      "text": "Player slot {slot} picked part {component} of target object {target} to aim at; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.confirm_asked": {
+      "level": "D",
+      "fields": ["slot", "request", "param", "timer", "predicted"],
+      "text": "Player slot {slot} was asked to confirm request {request} (2 leave, 3 call reinforcements) with Space within {timer} ticks; the request's object is {param} (-1 for none); predicted step {predicted} (1 in a step that is run again later)"
+    },
     "flight.cooperative_level_failed": {
       "level": "E",
       "fields": ["mode", "result"],
       "text": "Setting DirectDraw's {mode} cooperative level failed with code {result}"
+    },
+    "flight.countermeasure_used": {
+      "level": "D",
+      "fields": ["slot", "cm", "ammo", "seconds", "predicted"],
+      "text": "Player slot {slot} used countermeasure type {cm} (1 chaff; any other launches a flare): {ammo} left, chaff cover for {seconds} seconds; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.craft_aborted": {
+      "level": "D",
+      "fields": ["slot", "target", "fg", "aborted", "special", "predicted"],
+      "text": "Player slot {slot} sent the computer-flown craft in object {target} home, so it counts as having aborted its mission: flight group {fg} now has {aborted} aborted craft, its special cargo aborted {special}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.craft_jump_unbound": {
+      "level": "W",
+      "fields": ["slot", "previous"],
+      "text": "Player slot {slot} gave up craft object {previous} to jump to another craft, but no craft took the player, who was left without one"
+    },
+    "flight.craft_jumped": {
+      "level": "D",
+      "fields": ["slot", "previous", "object", "predicted"],
+      "text": "Player slot {slot} jumped from craft object {previous} to craft object {object} (-1 when no craft took the player); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.craft_ordered": {
+      "level": "D",
+      "fields": ["slot", "command", "target", "plan", "saved", "predicted"],
+      "text": "Player slot {slot} gave the {command} order to the computer-flown craft in object {target}: its plan is now {plan} and the plan it goes back to {saved}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.detail_preset": {
       "level": "D",
@@ -752,6 +807,16 @@
       "level": "D",
       "fields": ["error"],
       "text": "Flight start failed with error {error}; the display surfaces are released"
+    },
+    "flight.dock_bonus": {
+      "level": "D",
+      "fields": ["slot", "object", "score", "predicted"],
+      "text": "Player slot {slot} earned points for bringing craft object {object} home in a wave mission: its mission score is now {score}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.ejection_tumble": {
+      "level": "D",
+      "fields": ["slot", "object", "tumble", "predicted"],
+      "text": "The craft object {object} that player slot {slot} ejected from began to roll at {tumble}, a random rate halved until its model allows it, and to break up for 472 ticks; predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.end": {
       "level": "I",
@@ -768,10 +833,25 @@
       "fields": ["reason", "tick"],
       "text": "The frame loop ended at game tick {tick}: {reason}"
     },
+    "flight.hyperspace_aborted": {
+      "level": "D",
+      "fields": ["slot", "object", "predicted"],
+      "text": "Player slot {slot} called off the hyperspace jump of craft object {object} while it was still starting; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "flight.hyperspace_stalled": {
       "level": "D",
       "fields": ["object", "fg", "predicted"],
       "text": "Craft {object} of flight group {fg} was entering hyperspace with no working systems; it slowed to a stop and became an ordinary craft again; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.laser_link_set": {
+      "level": "D",
+      "fields": ["slot", "bank", "link", "predicted"],
+      "text": "Player slot {slot} set laser bank {bank} to fire mode {link} (1 single, 2 dual, 3 all linked); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.lasers_to_shields": {
+      "level": "D",
+      "fields": ["slot", "kind", "step", "left", "front", "rear", "limit", "mode", "predicted"],
+      "text": "Player slot {slot} moved {kind} of its laser charge to the shields in steps of {step} energy: {left} charge units were not moved; the shields now hold {front} front and {rear} rear against {limit} a bank, distribution {mode} (0 forward, 1 even, 2 aft); predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.launch": {
       "level": "I",
@@ -782,6 +862,21 @@
       "level": "D",
       "fields": ["object", "stage", "angle", "predicted"],
       "text": "Computer-flown craft {object} reached a steering stage: {stage}, at angle {angle} (65,536 to a full turn); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.map_entered": {
+      "level": "D",
+      "fields": ["slot", "target", "ai", "predicted"],
+      "text": "Player slot {slot} opened the map view and handed its craft to the computer pilot (with its flight group's orders: {ai}); target {target}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.map_left": {
+      "level": "D",
+      "fields": ["slot", "object", "map", "predicted"],
+      "text": "Player slot {slot} closed the map view to fly craft object {object} again; map state {map} (0 back in the cockpit; otherwise no craft was free and the map stayed open); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.map_view_set": {
+      "level": "D",
+      "fields": ["slot", "key", "map", "focus", "aim", "distance", "x", "y", "z", "predicted"],
+      "text": "Action key {key} moved the map view of player slot {slot}: map state {map}, camera on object {focus} and aimed at object {aim} (65,535 for none), {distance} away, at {x} {y} {z}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.mission": {
       "level": "I",
@@ -803,15 +898,110 @@
       "fields": ["players", "cookie"],
       "text": "Options and taunts are agreed for {players} players under mission cookie {cookie}"
     },
+    "flight.order_given": {
+      "level": "D",
+      "fields": ["slot", "command", "target", "predicted"],
+      "text": "Player slot {slot} gave its computer-flown wingmen the {command} order about object {target} (-1 when no craft was found); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.overdrive_switched": {
+      "level": "D",
+      "fields": ["slot", "on", "predicted"],
+      "text": "Player slot {slot} switched its engine overdrive: on {on} (it stays off when the lasers hold no charge); predicted step {predicted} (1 in a step that is run again later)"
+    },
     "flight.phase": {
       "level": "I",
       "fields": ["from", "to"],
       "text": "The flight task moved from phase {from} to phase {to}"
     },
+    "flight.player_departed": {
+      "level": "I",
+      "fields": ["slot", "player", "local", "host", "players", "tick"],
+      "text": "Player slot {slot} (player {player}), already out of the mission, left the game: this machine's player {local}, the host {host}; {players} players remain active; at tick {tick}"
+    },
+    "flight.player_docked": {
+      "level": "I",
+      "fields": ["slot", "object", "fg", "hangar", "next", "state", "tick"],
+      "text": "Player slot {slot} brought craft object {object} of flight group {fg} into the hangar of object {hangar}; it now flies craft object {next} (-1, or the same object, when no craft was left), taking part {state} (1 still flying, 2 out of the mission); at tick {tick}"
+    },
+    "flight.player_ejected": {
+      "level": "I",
+      "fields": ["slot", "object", "by", "tick"],
+      "text": "Player slot {slot} ejected from craft object {object}, which began to break up; the player who had done the craft the most damage was {by} (-1 when not a player); at tick {tick}"
+    },
+    "flight.player_quit": {
+      "level": "I",
+      "fields": ["slot", "player", "players", "penalty", "tick"],
+      "text": "Player slot {slot} (player {player}) quit the mission; {players} players were flying, this one included; it lost {penalty} points for leaving a melee early; at tick {tick}"
+    },
     "flight.players_counted": {
       "level": "D",
       "fields": ["active", "states", "predicted"],
       "text": "Players taking part were recounted: {active}; participation by slot {states} (0 not in the flight, 1 flying, 2 out of the mission); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.preset_recalled": {
+      "level": "D",
+      "fields": ["slot", "preset", "throttle", "laser_level", "shield_level", "beam_level", "predicted"],
+      "text": "Player slot {slot} took its throttle and power settings from preset {preset} (0 for the first): throttle {throttle} (65,535 is full power), recharge levels {laser_level} for the lasers, {shield_level} for the shields and {beam_level} for the beam; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.preset_saved": {
+      "level": "D",
+      "fields": ["slot", "preset", "throttle", "laser_level", "shield_level", "beam_level", "predicted"],
+      "text": "Player slot {slot} saved its throttle and power settings to preset {preset} (0 for the first): throttle {throttle} (65,535 is full power), recharge levels {laser_level} for the lasers, {shield_level} for the shields and {beam_level} for the beam; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.proving_grounds_key_dropped": {
+      "level": "D",
+      "fields": ["slot", "key", "predicted"],
+      "text": "In the proving grounds, action key {key} of player slot {slot} was dropped: the targeting keys do nothing there; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.quit_penalty": {
+      "level": "D",
+      "fields": ["slot", "team", "score", "team_score", "predicted"],
+      "text": "Player slot {slot} of team {team} paid 2,000 points for leaving a melee early: its mission score is now {score} and its team's {team_score}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.recharge_set": {
+      "level": "D",
+      "fields": ["slot", "system", "level", "predicted"],
+      "text": "Player slot {slot} set its {system} recharge to level {level} (0 sends all of that power to the engines, 4 is the most); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.reinforcements_called": {
+      "level": "I",
+      "fields": ["slot", "team", "score", "tick"],
+      "text": "Player slot {slot} called reinforcements for team {team}, at a cost of 5,000 bonus points (the team's bonus score is now {score}); at tick {tick}"
+    },
+    "flight.request_accepted": {
+      "level": "D",
+      "fields": ["slot", "request", "by", "param", "target", "throttle", "predicted"],
+      "text": "Player slot {slot} answered request {request} (1 attack my target or the incoming warhead, 4 ignore my target, 5 cover me, 6 head home, 7 wait, 8 go ahead, 9 evade) from player slot {by} (65,535 for the game's own warhead warning), about object {param} (requests 6 to 9 keep an earlier value): its target is now {target} (-1 for none) and its throttle {throttle} (65,535 is full power, -1 without a craft); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.request_posted": {
+      "level": "D",
+      "fields": ["slot", "request", "by", "param", "timer", "predicted"],
+      "text": "Player slot {slot} was given request {request} (1 attack my target, 4 ignore my target, 5 cover me, 6 head home, 7 wait, 8 go ahead, 9 evade) by player slot {by}, to answer with Space within {timer} ticks; the request's object is {param} (requests 6 to 9 do not set it and keep an earlier value); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.resupply_called": {
+      "level": "D",
+      "fields": ["slot", "target", "plan", "predicted"],
+      "text": "Player slot {slot} called the resupply craft in object {target}, on boarding plan {plan}, to its own craft; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.sfoils_switched": {
+      "level": "D",
+      "fields": ["slot", "foils", "predicted"],
+      "text": "Player slot {slot} moved its S-foils: state {foils} (2 set while closing or closed, 1 set while moving); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.shields_distributed": {
+      "level": "D",
+      "fields": ["slot", "mode", "front", "rear", "predicted"],
+      "text": "Player slot {slot} set its shield distribution to {mode} (0 forward, 1 even, 2 aft), leaving {front} front and {rear} rear; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.shields_to_lasers": {
+      "level": "D",
+      "fields": ["slot", "step", "room", "removed", "units", "front", "rear", "mode", "predicted"],
+      "text": "Player slot {slot} moved shield energy to the lasers: {removed} energy came off the shields, which now hold {front} front and {rear} rear (distribution {mode}: 0 forward, 1 even, 2 aft), to fill {units} laser charge units at {step} energy each; the lasers had room for {room} units; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.speed_matched": {
+      "level": "D",
+      "fields": ["slot", "target", "speed", "max_speed", "margin", "throttle", "predicted"],
+      "text": "Player slot {slot} matched the speed of target object {target}: the target flew at {speed} against this craft's top speed of {max_speed} after a power margin of {margin} recharge levels, so the throttle became {throttle} (65,535 is full power); predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.start": {
       "level": "I",
@@ -843,6 +1033,26 @@
       "fields": ["slot", "object", "system", "left", "predicted"],
       "text": "System {system} of craft {object}, flown from player slot {slot}, has {left} seconds of repair left; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "flight.target_cleared": {
+      "level": "D",
+      "fields": ["slot", "predicted"],
+      "text": "Player slot {slot} cleared its target; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.target_preset_saved": {
+      "level": "D",
+      "fields": ["slot", "preset", "target", "predicted"],
+      "text": "Player slot {slot} stored target object {target} in target preset {preset} (0 to 2); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.taunt_sent": {
+      "level": "D",
+      "fields": ["slot", "taunt", "predicted"],
+      "text": "Player slot {slot} sent taunt {taunt} (0 to 3) to every player in the flight; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.throttle_set": {
+      "level": "D",
+      "fields": ["slot", "key", "throttle", "predicted"],
+      "text": "Action key {key} set the throttle of player slot {slot} to {throttle} (65,535 is full power); predicted step {predicted} (1 in a step that is run again later)"
+    },
     "flight.time_limit_reached": {
       "level": "D",
       "fields": ["minutes", "victory", "elapsed", "tick"],
@@ -852,6 +1062,21 @@
       "level": "I",
       "fields": ["team", "minutes", "reason", "tick"],
       "text": "The last-team countdown of {minutes} minutes started at tick {tick} for team {team} ({reason}: the only team left, or the team that met its primary goal); the mission ends when it runs out"
+    },
+    "flight.view_set": {
+      "level": "D",
+      "fields": ["slot", "key", "hud", "focus", "external", "camera", "blocked", "aim_x", "aim_y", "predicted"],
+      "text": "Action key {key} changed the cockpit view of player slot {slot}: view state {hud}, camera on object {focus} (65,535 for none), outside camera {external}, target camera {camera}, flight input held {blocked}, look offsets {aim_x} and {aim_y}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.warhead_link_set": {
+      "level": "D",
+      "fields": ["slot", "bank", "flags", "predicted"],
+      "text": "Player slot {slot} switched warhead launcher {bank} between single and paired fire: flags {flags} (2 set for paired); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "flight.weapon_selected": {
+      "level": "D",
+      "fields": ["slot", "mode", "bank", "flags", "predicted"],
+      "text": "Player slot {slot} selected {mode} (0 lasers, 1 warheads), bank {bank}; the first warhead launcher's flags are {flags}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "flight.world": {
       "level": "I",
