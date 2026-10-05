@@ -18,6 +18,7 @@
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Names of the craft systems by damage_system_id, for the damage page;
  * string_table_load_game_strings points each entry at a line it read from
@@ -524,6 +525,13 @@ int16_t damage_display_mfd_page(void)
 				}
 				craft->system_display_slot_by_system
 					[g_damage_mfd_current_system_id] = 0;
+				if (selected_slot != 0) {
+					XVT_LOG_DEBUG(
+						"combat.repair_first slot=%d system=%d from=%d",
+						g_local_player,
+						(int)g_damage_mfd_current_system_id,
+						(int)selected_slot);
+				}
 				g_damage_mfd_selection_changed = 1;
 				break;
 			}
@@ -570,6 +578,14 @@ int16_t damage_display_mfd_page(void)
 			}
 			default:
 				break;
+			}
+			if (g_current_action_key == 0xA6 ||
+			    g_current_action_key == 0xA7) {
+				XVT_LOG_DEBUG(
+					"combat.repair_selected slot=%d direction=%d system=%d",
+					g_local_player,
+					g_current_action_key == 0xA6 ? -1 : 1,
+					(int)g_damage_mfd_current_system_id);
 			}
 		}
 		for (display_slot = 0; display_slot < CRAFT_SUBSYSTEM_COUNT;

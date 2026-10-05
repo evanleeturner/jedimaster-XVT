@@ -25,6 +25,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
 #include "xvt/util/game_rand.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Per object type counted from WARHEAD_OBJECT_TYPE_PROTON_TORPEDO (143),
  * the first entry of the shot's row of 7 in the two homing tables below;
@@ -374,6 +375,14 @@ void object_update_lifetime_and_movement(void)
 			if (new_lifetime == 0) {
 				switch (genus_id) {
 				case CRAFT_GENUS_STARFIGHTER:
+					XVT_LOG_DEBUG(
+						"object.craft_exploded object=%d fg=%d type=%d genus=%d slot=%d predicted=%d",
+						(int)object_index,
+						(int)object->flight_group_idx,
+						(int)object->object_type,
+						(int)genus_id,
+						object->player_owner_idx,
+						g_flight_sim_side_effects_suppressed);
 					craft_detach_damageable_component(
 						object_index, 1);
 					collide_convert_object_to_explosion(
@@ -392,6 +401,14 @@ void object_update_lifetime_and_movement(void)
 				case CRAFT_GENUS_FREIGHTER:
 				case CRAFT_GENUS_STARSHIP:
 				case CRAFT_GENUS_PLATFORM:
+					XVT_LOG_DEBUG(
+						"object.craft_exploded object=%d fg=%d type=%d genus=%d slot=%d predicted=%d",
+						(int)object_index,
+						(int)object->flight_group_idx,
+						(int)object->object_type,
+						(int)genus_id,
+						object->player_owner_idx,
+						g_flight_sim_side_effects_suppressed);
 					if (model_mesh_has_fuselage(
 						    object->object_type) == 0) {
 						craft_spawn_main_hull_explosion_effects(
@@ -425,6 +442,17 @@ void object_update_lifetime_and_movement(void)
 						    [object->object_type -
 						     PROJECTILE_OBJECT_TYPE_FIRST] !=
 					    0) {
+						XVT_LOG_DEBUG(
+							"combat.warhead_expired projectile=%d type=%d source=%d target=%d predicted=%d",
+							(int)object_index,
+							(int)object
+								->object_type,
+							(int)mobile_object
+								->source_obj_idx,
+							(int)(int16_t)mobile_object
+								->p_warhead_guidance
+								->target_obj_idx,
+							g_flight_sim_side_effects_suppressed);
 						collide_convert_object_to_explosion(
 							object_index,
 							EXPLOSION_OBJECT_TYPE_PROJECTILE);
@@ -853,6 +881,15 @@ void object_update_lifetime_and_movement(void)
 					    guidance->target_signature !=
 						    target_object
 							    ->object_signature) {
+						XVT_LOG_DEBUG(
+							"combat.warhead_target_lost projectile=%d type=%d source=%d target=%d predicted=%d",
+							(int)object_index,
+							(int)object
+								->object_type,
+							(int)mobile_object
+								->source_obj_idx,
+							target_object_index,
+							g_flight_sim_side_effects_suppressed);
 						collide_convert_object_to_explosion(
 							object_index,
 							EXPLOSION_OBJECT_TYPE_PROJECTILE);
@@ -1250,26 +1287,61 @@ int object_add_trig_move_delta_and_clamp_world_position(uint32_t *object_words)
 {
 	object_words[1] += (uint32_t)trig2_xmovedist;
 	if ((int32_t)object_words[1] < -0x01000000) {
+		XVT_LOG_DEBUG(
+			"object.world_edge object=%d axis=\"x\" position=%d predicted=%d",
+			(int)((struct object_record *)object_words -
+			      g_object_table),
+			(int)(int32_t)object_words[1],
+			g_flight_sim_side_effects_suppressed);
 		object_words[1] = (uint32_t)-0x01000000;
 	}
 	if ((int32_t)object_words[1] > 0x01000000) {
+		XVT_LOG_DEBUG(
+			"object.world_edge object=%d axis=\"x\" position=%d predicted=%d",
+			(int)((struct object_record *)object_words -
+			      g_object_table),
+			(int)(int32_t)object_words[1],
+			g_flight_sim_side_effects_suppressed);
 		object_words[1] = 0x01000000;
 	}
 
 	object_words[2] += (uint32_t)trig2_ymovedist;
 	if ((int32_t)object_words[2] < -0x01000000) {
+		XVT_LOG_DEBUG(
+			"object.world_edge object=%d axis=\"y\" position=%d predicted=%d",
+			(int)((struct object_record *)object_words -
+			      g_object_table),
+			(int)(int32_t)object_words[2],
+			g_flight_sim_side_effects_suppressed);
 		object_words[2] = (uint32_t)-0x01000000;
 	}
 	if ((int32_t)object_words[2] > 0x01000000) {
+		XVT_LOG_DEBUG(
+			"object.world_edge object=%d axis=\"y\" position=%d predicted=%d",
+			(int)((struct object_record *)object_words -
+			      g_object_table),
+			(int)(int32_t)object_words[2],
+			g_flight_sim_side_effects_suppressed);
 		object_words[2] = 0x01000000;
 	}
 
 	object_words[3] += (uint32_t)trig2_zmovedist;
 	if ((int32_t)object_words[3] < -0x01000000) {
+		XVT_LOG_DEBUG(
+			"object.world_edge object=%d axis=\"z\" position=%d predicted=%d",
+			(int)((struct object_record *)object_words -
+			      g_object_table),
+			(int)(int32_t)object_words[3],
+			g_flight_sim_side_effects_suppressed);
 		object_words[3] = (uint32_t)-0x01000000;
 	}
 	int32_t result = (int32_t)object_words[3];
 	if (result > 0x01000000) {
+		XVT_LOG_DEBUG(
+			"object.world_edge object=%d axis=\"z\" position=%d predicted=%d",
+			(int)((struct object_record *)object_words -
+			      g_object_table),
+			(int)result, g_flight_sim_side_effects_suppressed);
 		object_words[3] = 0x01000000;
 	}
 	return result;
@@ -1403,6 +1475,15 @@ uint16_t object_spawn_detached_component(uint16_t source_object_index,
 	g_object_table[object_offset_index].type_specific_byte[0] =
 		(uint8_t)(mesh_index * 2);
 	g_object_table[object_offset_index].type_specific_byte[1] = 0;
+	XVT_LOG_DEBUG(
+		"object.component_detached object=%d source=%d type=%d mesh=%d life=%u predicted=%d",
+		(int)object_index, (int)source_object_index,
+		(int)g_object_table[object_offset_index]
+			.mobj->source_object_type,
+		(int)mesh_index,
+		(unsigned)g_object_table[object_offset_index]
+			.mobj->lifetime_timer,
+		g_flight_sim_side_effects_suppressed);
 
 	return object_index;
 }
@@ -1459,6 +1540,13 @@ uint16_t object_spawn_effect_fragment(uint16_t source_obj_idx)
 	g_object_table[object_offset_index].mobj->lifetime_timer =
 		SIMULATION_TICKS_PER_SECOND * ((game_rand() & 3) + 1);
 	g_object_table[object_offset_index].type_specific_byte[0] = 0;
+	XVT_LOG_DEBUG(
+		"object.fragment_spawned object=%d source=%d type=%d life=%u predicted=%d",
+		(int)object_index, (int)source_obj_idx,
+		(int)g_object_table[object_offset_index].object_type,
+		(unsigned)g_object_table[object_offset_index]
+			.mobj->lifetime_timer,
+		g_flight_sim_side_effects_suppressed);
 
 	return object_index;
 }
@@ -1582,6 +1670,13 @@ uint16_t object_alloc_slot_for_genus(uint16_t genus_id)
 		return object_index;
 	}
 
+	if (genus_id != CRAFT_GENUS_EXPLOSION) {
+		XVT_LOG_DEBUG(
+			"object.slots_full genus=%d first_slot=%d end_slot=%d predicted=%d",
+			(int)genus_id,
+			(int)g_object_slot_range_by_genus[genus_id].start,
+			(int)end, g_flight_sim_side_effects_suppressed);
+	}
 	return UINT16_MAX;
 }
 
@@ -1739,6 +1834,8 @@ void object_relink_mobile_object_pointers(void)
 			++object_index;
 		} while (g_region_main_object_slot_end > object_index);
 	}
+	XVT_LOG_DEBUG("object.pointers_relinked slots=%d",
+		      g_region_main_object_slot_end);
 }
 
 /* Measures from the object in from_obj_idx to the center of mesh mesh_idx of

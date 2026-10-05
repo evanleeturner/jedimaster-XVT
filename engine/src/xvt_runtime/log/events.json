@@ -328,6 +328,26 @@
       "fields": ["type"],
       "text": "Timed out waiting for continuation packet type {type}"
     },
+    "combat.beam_depleted": {
+      "level": "D",
+      "fields": ["object", "slot", "beam", "cause", "predicted"],
+      "text": "The beam of object {object} (player slot {slot}, -1 for none; beam type {beam}) shut off with its charge used up by {cause} (use: firing it; power: power taken from it); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.cannons_fired": {
+      "level": "D",
+      "fields": ["slot", "object", "bank", "link", "shots", "type", "target", "cooldown", "fired", "predicted"],
+      "text": "The player in slot {slot} fired {shots} shots of type {type} from cannon bank {bank} (link mode {link}) of object {object}, with object {target} targeted (-1 for none); the bank now waits {cooldown} ticks, and the player has fired {fired} shots of that kind (laser or ion) this mission; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.chaff_ended": {
+      "level": "D",
+      "fields": ["object", "slot", "cm", "predicted"],
+      "text": "The chaff burst of object {object} (player slot {slot}, -1 for none; countermeasure type {cm}) ran out; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.countermeasure_fired": {
+      "level": "D",
+      "fields": ["projectile", "source", "slot", "type", "target", "life", "ammo", "predicted"],
+      "text": "Object {source} (player slot {slot}, -1 for none) launched countermeasure {projectile} of type {type}, homing on object {target} (-1 for none), with {life} ticks to live; {ammo} countermeasures remain; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "combat.course_collision": {
       "level": "D",
       "fields": ["object", "other", "mesh", "x", "y", "z", "predicted"],
@@ -378,6 +398,11 @@
       "fields": ["slot", "object", "source", "strength", "predicted"],
       "text": "The player in slot {slot}, flying object {object}, was in the engine wash of object {source} at strength {strength}, the strongest so far this check; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "combat.fire_mode_invalid": {
+      "level": "D",
+      "fields": ["object", "slot", "bank", "link", "predicted"],
+      "text": "Cannon bank {bank} of object {object} (player slot {slot}, -1 for none) was told to fire with link mode {link}, which is not 1, 2 or 3; nothing fired, where the 1997 game went on with unset cannon numbers; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "combat.hud_damaged": {
       "level": "D",
       "fields": ["object", "lost", "active", "predicted"],
@@ -398,10 +423,40 @@
       "fields": ["object", "ion", "remaining", "systems", "predicted"],
       "text": "An ion hit raised craft {object}'s system damage to {ion}, leaving {remaining} of its system strength; working systems now {systems} (a bit mask); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "combat.launcher_empty": {
+      "level": "D",
+      "fields": ["slot", "object", "launcher", "predicted"],
+      "text": "The player in slot {slot} emptied warhead launcher {launcher} of craft object {object} and went back to cannons; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.launcher_fired": {
+      "level": "D",
+      "fields": ["object", "launcher", "shots", "incomplete", "cooldown", "predicted"],
+      "text": "Warhead launcher {launcher} of object {object} was fired: {shots} warheads launched, and a slot that still held rounds failed to fire: {incomplete}; the launcher now waits {cooldown} ticks; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.lock_gained": {
+      "level": "D",
+      "fields": ["slot", "object", "target", "ticks", "needed", "predicted"],
+      "text": "The player in slot {slot} (craft object {object}) got a full warhead lock on object {target} after {ticks} ticks of aiming ({needed} needed); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.lock_lost": {
+      "level": "D",
+      "fields": ["slot", "object", "target", "reason", "predicted"],
+      "text": "The full warhead lock of the player in slot {slot} (craft object {object}) on object {target} (-1 for none) was lost: {reason}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.mine_fired": {
+      "level": "D",
+      "fields": ["projectile", "source", "mine", "type", "target", "predicted"],
+      "text": "Mine {source} (type {mine}) fired shot {projectile} of type {type} at object {target}; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "combat.mine_fired_back": {
       "level": "D",
       "fields": ["object", "target", "predicted"],
       "text": "Mine {object} fired a warhead back at object {target} as it was destroyed; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.missile_warning": {
+      "level": "D",
+      "fields": ["slot", "projectile", "predicted"],
+      "text": "The player in slot {slot} was warned of warhead {projectile} coming at their craft; predicted step {predicted} (1 in a step that is run again later)"
     },
     "combat.model_ref_missing": {
       "level": "D",
@@ -422,6 +477,11 @@
       "level": "D",
       "fields": ["object", "type", "genus", "fg", "source", "source_type", "predicted"],
       "text": "Static object {object} (type {type}, class {genus}, flight group {fg}) was hit by object {source} of type {source_type}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.overdrive_dropped": {
+      "level": "D",
+      "fields": ["object", "slot", "predicted"],
+      "text": "The engine overdrive of object {object} (player slot {slot}) switched off because no cannon held charge; predicted step {predicted} (1 in a step that is run again later)"
     },
     "combat.proximity_full": {
       "level": "D",
@@ -453,25 +513,80 @@
       "fields": ["object", "predicted"],
       "text": "Static object {object} was put on the nearby-object list of every player's craft; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "combat.repair_first": {
+      "level": "D",
+      "fields": ["slot", "system", "from"],
+      "text": "The player in slot {slot} moved damaged system {system} to the top of the repair order, from row {from}"
+    },
+    "combat.repair_selected": {
+      "level": "D",
+      "fields": ["slot", "direction", "system"],
+      "text": "The player in slot {slot} stepped the damage page's selection {direction} (-1 back, 1 forward), now on system {system}"
+    },
+    "combat.shield_from_lasers": {
+      "level": "D",
+      "fields": ["object", "steps", "limit", "front", "max", "predicted"],
+      "text": "The computer pilot of object {object} moved laser charge into its front shield over {steps} steps (at most {limit}); the front shield now holds {front} of {max}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.shield_recharged": {
+      "level": "D",
+      "fields": ["object", "slot", "delta", "distribution", "recharge", "front", "rear", "max", "predicted"],
+      "text": "Object {object} (player slot {slot}, -1 for none) had a shield change of {delta} applied at the once-a-second power step (distribution {distribution}, recharge level {recharge}); before it the shields held {front} front and {rear} rear, each capped at {max}; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "combat.shot_hit": {
       "level": "D",
       "fields": ["object", "shot", "type", "source", "mesh", "side", "sound", "attacks", "attacker", "hits", "systems", "inhibit", "predicted"],
       "text": "Shot {shot} (type {type}) from object {source} hit craft {object} on mesh {mesh}, side {side} (1 the rear); the impact sound played here: {sound} (0 when the damage code played its own); this team's attack record on the craft {attacks}, last attacker {attacker} (-1 for none), {hits} hits this maneuver, working systems {systems}, weapons held for {inhibit} ticks; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.shot_no_slot": {
+      "level": "W",
+      "fields": ["slot", "source", "type"],
+      "text": "Object {source} of the player in slot {slot} could not fire a shot of type {type}: the player's 12 shot slots and the 32 shared ones were all taken"
+    },
+    "combat.shot_slot_taken": {
+      "level": "W",
+      "fields": ["projectile", "old_type", "source", "team"],
+      "text": "Static object {source} fired its warhead into shot slot {projectile}, taking it over from a shot of type {old_type} of its own team {team}, as no shot slot was free"
     },
     "combat.shots_collided": {
       "level": "D",
       "fields": ["shot", "type", "other", "other_type", "predicted"],
       "text": "Shot {shot} (type {type}) met shot {other} (type {other_type}) and both exploded; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "combat.static_warhead_dropped": {
+      "level": "W",
+      "fields": ["source", "type", "target"],
+      "text": "Static object {source} could not fire its warhead of type {type} at object {target}: no shot slot was free or could be taken over"
+    },
+    "combat.static_warhead_fired": {
+      "level": "D",
+      "fields": ["projectile", "source", "type", "target", "homing", "predicted"],
+      "text": "Static object {source} fired warhead {projectile} of type {type} at object {target} (-1 for none), homing level {homing}; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "combat.system_failed": {
       "level": "D",
       "fields": ["object", "slot", "system", "systems", "cause", "predicted"],
       "text": "System {system} of craft {object}, flown by player {slot} (-1 for none), was knocked out by a {cause} hit; working systems now {systems} (a bit mask); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "combat.warhead_expired": {
+      "level": "D",
+      "fields": ["projectile", "type", "source", "target", "predicted"],
+      "text": "Warhead {projectile} of type {type}, fired by object {source} at object {target} (-1 for none), reached the end of its flight without a hit and exploded; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.warhead_fired": {
+      "level": "D",
+      "fields": ["projectile", "source", "slot", "type", "launcher", "weapon_slot", "target", "homing", "ammo", "cost", "score", "team_score", "predicted"],
+      "text": "Object {source} (player slot {slot}, -1 for a computer pilot) fired warhead {projectile} of type {type} from launcher {launcher}, weapon slot {weapon_slot}, aimed at object {target} (-1 for none) with homing level {homing}; {ammo} rounds remain in that slot; firing cost {cost} points, leaving the player's score at {score} (0 for a computer pilot) and the team's mission score at {team_score}; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "combat.warhead_scattered": {
       "level": "D",
       "fields": ["object", "shot", "type", "slot", "chaff", "predicted"],
       "text": "Warhead {shot} (type {type}) hit craft {object}, flown by player {slot} (-1 for a computer pilot), from behind and was scattered by its chaff ({chaff} seconds left): no damage; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "combat.warhead_target_lost": {
+      "level": "D",
+      "fields": ["projectile", "type", "source", "target", "predicted"],
+      "text": "Homing shot {projectile} of type {type}, fired by object {source}, exploded because its target, object {target}, was gone or its slot held another object; predicted step {predicted} (1 in a step that is run again later)"
     },
     "combat.weapons_jammed": {
       "level": "D",
@@ -3782,6 +3897,36 @@
       "level": "D",
       "fields": ["tick", "mask", "records", "checksum"],
       "text": "The host sent the world message for tick {tick}: slot mask {mask} (hex), {records} input records, checksum flag {checksum}"
+    },
+    "object.component_detached": {
+      "level": "D",
+      "fields": ["object", "source", "type", "mesh", "life", "predicted"],
+      "text": "A piece (mesh {mesh}) broke off object {source}, a craft of type {type}, as debris object {object}, to last {life} ticks; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "object.craft_exploded": {
+      "level": "D",
+      "fields": ["object", "fg", "type", "genus", "slot", "predicted"],
+      "text": "Object {object}, a craft of type {type} (class {genus}) in flight group {fg}, player slot {slot} (-1 for none), exploded as its time to live ran out; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "object.fragment_spawned": {
+      "level": "D",
+      "fields": ["object", "source", "type", "life", "predicted"],
+      "text": "Explosion fragment {object} of type {type} was thrown off object {source}, to last {life} ticks; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "object.pointers_relinked": {
+      "level": "D",
+      "fields": ["slots"],
+      "text": "The object table's first {slots} slots were linked to their moving-object records again"
+    },
+    "object.slots_full": {
+      "level": "D",
+      "fields": ["genus", "first_slot", "end_slot", "predicted"],
+      "text": "No free object slot was found for object class {genus} in slots {first_slot} up to {end_slot}; nothing was created; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "object.world_edge": {
+      "level": "D",
+      "fields": ["object", "axis", "position", "predicted"],
+      "text": "Object {object} crossed the edge of the world on the {axis} axis, reaching {position}, and was held at the edge; predicted step {predicted} (1 in a step that is run again later)"
     },
     "player.craft_inspected": {
       "level": "I",

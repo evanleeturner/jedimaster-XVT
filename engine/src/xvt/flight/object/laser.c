@@ -31,6 +31,7 @@
 #include "xvt/math/trig2.h"
 #include "xvt/render/renderer.h"
 #include "xvt/util/game_rand.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The figures of every shot type, a constant table laid out as
  * projectile_type_data_tables; the last four types have zeros. */
@@ -222,6 +223,20 @@ void laser_weaponsfire(void)
 						.ammo_count;
 				if (target_obj_idx == UINT16_MAX ||
 				    warhead_count == 0) {
+					if (g_players[player_idx]
+						    .missile_lock_state == 2) {
+						XVT_LOG_DEBUG(
+							"combat.lock_lost slot=%d object=%d target=%d reason=\"%s\" predicted=%d",
+							player_idx,
+							(int)object_idx,
+							(int)(int16_t)
+								target_obj_idx,
+							target_obj_idx ==
+									UINT16_MAX
+								? "no_target"
+								: "no_rounds",
+							g_flight_sim_side_effects_suppressed);
+					}
 					g_players[player_idx]
 						.missile_lock_state = 0;
 					g_cur_craft->warhead_lock_ticks = 0;
@@ -303,6 +318,23 @@ void laser_weaponsfire(void)
 									missile_boat_model_index
 								? MISSILE_BOAT_LOCK_TICKS
 								: DEFAULT_LOCK_TICKS;
+						if (g_players[player_idx]
+								    .missile_lock_state !=
+							    2 &&
+						    g_cur_craft->warhead_lock_ticks >=
+							    (int16_t)
+								    lock_threshold) {
+							XVT_LOG_DEBUG(
+								"combat.lock_gained slot=%d object=%d target=%d ticks=%d needed=%u predicted=%d",
+								player_idx,
+								(int)object_idx,
+								(int)target_obj_idx,
+								(int)g_cur_craft
+									->warhead_lock_ticks,
+								(unsigned)
+									lock_threshold,
+								g_flight_sim_side_effects_suppressed);
+						}
 						if (g_cur_craft
 							    ->warhead_lock_ticks >=
 						    (int16_t)lock_threshold) {
@@ -315,6 +347,16 @@ void laser_weaponsfire(void)
 								1;
 						}
 					} else {
+						if (g_players[player_idx]
+							    .missile_lock_state ==
+						    2) {
+							XVT_LOG_DEBUG(
+								"combat.lock_lost slot=%d object=%d target=%d reason=\"out_of_aim\" predicted=%d",
+								player_idx,
+								(int)object_idx,
+								(int)target_obj_idx,
+								g_flight_sim_side_effects_suppressed);
+						}
 						int16_t lock_ticks =
 							g_cur_craft
 								->warhead_lock_ticks;
@@ -383,6 +425,13 @@ void laser_weaponsfire(void)
 							g_cur_craft
 								->beam_output =
 								0;
+							XVT_LOG_DEBUG(
+								"combat.beam_depleted object=%d slot=%d beam=%d cause=\"use\" predicted=%d",
+								(int)object_idx,
+								player_idx,
+								(int)g_cur_craft
+									->beam_type_id,
+								g_flight_sim_side_effects_suppressed);
 							if (player_idx ==
 							    g_local_player) {
 								msg_emit_in_flight_message(
@@ -694,6 +743,21 @@ void laser_weaponsfire(void)
 								}
 								++transfer_count;
 							}
+							if (transfer_count !=
+							    0) {
+								XVT_LOG_DEBUG(
+									"combat.shield_from_lasers object=%d steps=%u limit=%u front=%d max=%d predicted=%d",
+									(int)object_idx,
+									(unsigned)
+										transfer_count,
+									(unsigned)
+										transfer_limit,
+									g_cur_craft
+										->shield_energy
+											[0],
+									max_shield,
+									g_flight_sim_side_effects_suppressed);
+							}
 						}
 					}
 
@@ -834,6 +898,41 @@ void laser_weaponsfire(void)
 							   ->shield_recharge_level -
 						   POWER_RECHARGE_MAINTENANCE));
 				if (shield_delta != 0) {
+					if ((shield_delta > 0 &&
+					     (g_cur_craft->shield_energy[0] <
+						      2 * g_model_defs[g_cur_craft
+									       ->model_index]
+								      .shield_strength ||
+					      g_cur_craft->shield_energy[1] <
+						      2 * g_model_defs[g_cur_craft
+									       ->model_index]
+								      .shield_strength)) ||
+					    (shield_delta < 0 &&
+					     (g_cur_craft->shield_energy[0] >
+						      0 ||
+					      g_cur_craft->shield_energy[1] >
+						      0))) {
+						XVT_LOG_DEBUG(
+							"combat.shield_recharged object=%d slot=%d delta=%d distribution=%d recharge=%d front=%d rear=%d max=%d predicted=%d",
+							(int)object_idx,
+							g_object_table[object_idx]
+								.player_owner_idx,
+							(int)shield_delta,
+							(int)g_cur_craft
+								->shield_distrib_mode,
+							(int)g_cur_craft
+								->shield_recharge_level,
+							g_cur_craft
+								->shield_energy
+									[0],
+							g_cur_craft
+								->shield_energy
+									[1],
+							2 * g_model_defs[g_cur_craft
+										 ->model_index]
+									.shield_strength,
+							g_flight_sim_side_effects_suppressed);
+					}
 					if (g_cur_craft->shield_distrib_mode ==
 					    SHIELD_DISTRIBUTION_FULLY_FORWARD) {
 						craft_adjust_current_shield_energy(
@@ -943,6 +1042,12 @@ void laser_weaponsfire(void)
 				if (any_laser_charge == 0) {
 					g_cur_craft->engine_overdrive_off =
 						ENGINE_OVERDRIVE_DISENGAGED;
+					XVT_LOG_DEBUG(
+						"combat.overdrive_dropped object=%d slot=%d predicted=%d",
+						(int)object_idx,
+						g_object_table[object_idx]
+							.player_owner_idx,
+						g_flight_sim_side_effects_suppressed);
 					msg_emit_in_flight_message(
 						IFMSG_285_ENGINE_OVERDRIVE_BOOSTERS_DISENGAGED,
 						g_local_player);
@@ -971,6 +1076,13 @@ void laser_weaponsfire(void)
 				    g_cur_craft->beam_active != 0) {
 					g_cur_craft->beam_active = 0;
 					g_cur_craft->beam_output = 0;
+					XVT_LOG_DEBUG(
+						"combat.beam_depleted object=%d slot=%d beam=%d cause=\"power\" predicted=%d",
+						(int)object_idx,
+						g_object_table[object_idx]
+							.player_owner_idx,
+						(int)g_cur_craft->beam_type_id,
+						g_flight_sim_side_effects_suppressed);
 					if (g_object_table[object_idx]
 						    .player_owner_idx ==
 					    g_local_player) {
@@ -985,6 +1097,15 @@ void laser_weaponsfire(void)
 
 			if (g_cur_craft->chaff_active_seconds != 0) {
 				--g_cur_craft->chaff_active_seconds;
+				if (g_cur_craft->chaff_active_seconds == 0) {
+					XVT_LOG_DEBUG(
+						"combat.chaff_ended object=%d slot=%d cm=%d predicted=%d",
+						(int)object_idx,
+						g_object_table[object_idx]
+							.player_owner_idx,
+						(int)g_cur_craft->cm_type_id,
+						g_flight_sim_side_effects_suppressed);
+				}
 				if (g_cur_craft->cm_type_id ==
 					    COUNTERMEASURE_TYPE_CHAFF &&
 				    g_cur_craft->chaff_active_seconds == 0 &&
@@ -1284,6 +1405,12 @@ void laser_fireplayerweapon(int player_idx)
 					    craft->weapon_slots[first_slot]
 						    .ammo_count ==
 				    0) {
+					XVT_LOG_DEBUG(
+						"combat.launcher_empty slot=%d object=%d launcher=%d predicted=%d",
+						player_idx, object_index,
+						(int)g_players[player_idx]
+							.selected_weapon_bank,
+						g_flight_sim_side_effects_suppressed);
 					g_players[player_idx]
 						.selected_weapon_mode = 0;
 					g_players[player_idx]
@@ -1420,6 +1547,12 @@ void laser_firelasersystem(int object_index, int laser_system_index)
 		break;
 	default:
 #ifdef XVT_MODERN
+		XVT_LOG_DEBUG(
+			"combat.fire_mode_invalid object=%d slot=%d bank=%d link=%d predicted=%d",
+			object_index, owner_player_idx, laser_system_index,
+			(int)g_cur_craft->laser_state
+				.link_mode[laser_system_index],
+			g_flight_sim_side_effects_suppressed);
 		return;
 #else
 		break;
@@ -1616,6 +1749,28 @@ void laser_firelasersystem(int object_index, int laser_system_index)
 		(int16_t)(47 * shots_fired + 2);
 	g_cur_craft->laser_state.next_fire_timestamp[laser_system_index] +=
 		47 * shots_fired + 2;
+	if (owner_player_idx != -1 && shots_fired != 0) {
+		XVT_LOG_DEBUG(
+			"combat.cannons_fired slot=%d object=%d bank=%d link=%d shots=%u type=%d target=%d cooldown=%d fired=%u predicted=%d",
+			owner_player_idx, object_index, laser_system_index,
+			(int)g_cur_craft->laser_state
+				.link_mode[laser_system_index],
+			(unsigned)shots_fired, (int)first_slot,
+			(int)g_players[owner_player_idx]
+				.current_target_object_idx,
+			(int)g_cur_craft->laser_state
+				.fire_cooldown_ticks[laser_system_index],
+			(unsigned)(first_slot == PROJECTILE_OBJECT_TYPE_ION_LASER ||
+						   first_slot ==
+							   PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER
+					   ? g_players[owner_player_idx]
+						     .mission_stats
+						     .ion_shots_fired
+					   : g_players[owner_player_idx]
+						     .mission_stats
+						     .laser_shots_fired),
+			g_flight_sim_side_effects_suppressed);
+	}
 }
 
 /* Fires launcher launcher_index of the craft in object_index through
@@ -1692,6 +1847,13 @@ void laser_firewarheadsystem(int object_index, unsigned int launcher_index)
 		}
 	}
 	g_cur_craft->warhead_launcher_cooldown_ticks[launcher_index] += 472;
+	XVT_LOG_DEBUG(
+		"combat.launcher_fired object=%d launcher=%u shots=%d incomplete=%d cooldown=%d predicted=%d",
+		object_index, (unsigned)launcher_index, (int)shots_fired,
+		(int)incomplete,
+		(int)g_cur_craft
+			->warhead_launcher_cooldown_ticks[launcher_index],
+		g_flight_sim_side_effects_suppressed);
 	if (g_object_table[object_index].player_owner_idx == g_local_player &&
 	    incomplete == 0) {
 		struct player_data *player = &g_players[g_local_player];
@@ -1875,6 +2037,37 @@ int laser_firemissile(int object_index, int weapon_slot_index,
 						(int8_t)0x80;
 				}
 			}
+			XVT_LOG_DEBUG(
+				"combat.warhead_fired projectile=%d source=%d slot=%d type=%d launcher=%u weapon_slot=%d target=%d homing=%d ammo=%d cost=%u score=%d team_score=%d predicted=%d",
+				projectile_index +
+					g_projectile_object_slot_start,
+				object_index, owner_player_idx,
+				projectile_type_id, (unsigned)launcher_index,
+				weapon_slot_index,
+				(int)(int16_t)g_projectile_guidance_states
+					[projectile_index]
+						.target_obj_idx,
+				(int)g_projectile_guidance_states
+					[projectile_index]
+						.homing_tier,
+				(int)g_cur_craft
+					->weapon_slots[weapon_slot_index]
+					.ammo_count,
+				(unsigned)g_projectile_type_data
+					.warhead_point_value
+						[projectile_type_id -
+						 PROJECTILE_OBJECT_TYPE_FIRST],
+				owner_player_idx != -1
+					? g_players[owner_player_idx]
+						  .mission_stats.mission_score
+					: 0,
+				g_flight_mission_state.runtime.team_scores
+					[TEAM_SCORE_MISSION]
+					[g_mission_flight_groups
+						 [g_object_table[object_index]
+							  .flight_group_idx]
+							 .fg.team],
+				g_flight_sim_side_effects_suppressed);
 		}
 	}
 	return projectile_index;
@@ -1951,6 +2144,15 @@ int laser_createprojectile(int source_object_index, int weapon_slot_index,
 				collide_reset_object_proximity_for_slot(
 					projectile_index);
 			} else {
+				if (g_flight_sim_side_effects_suppressed == 0) {
+					XVT_LOG_WARN(
+						"combat.shot_no_slot slot=%d source=%d type=%d",
+						g_object_table
+							[source_object_index]
+								.player_owner_idx,
+						source_object_index,
+						projectile_object_type);
+				}
 				return -1;
 			}
 		}
@@ -2175,8 +2377,24 @@ uint16_t laser_createprojectilefromstatic(uint16_t source_obj_idx,
 				break;
 			}
 		}
+		if (object_index != g_projectile_object_slot_end &&
+		    g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_WARN(
+				"combat.shot_slot_taken projectile=%d old_type=%d source=%d team=%d",
+				(int)object_index,
+				(int)g_object_table[object_index].object_type,
+				(int)source_obj_idx,
+				(int)g_mission_flight_groups[flight_group_idx]
+					.fg.team);
+		}
 	}
 	if (g_projectile_object_slot_end == object_index) {
+		if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_WARN(
+				"combat.static_warhead_dropped source=%d type=%d target=%d",
+				(int)source_obj_idx, (int)projectile_type,
+				(int)(int16_t)target_obj_idx);
+		}
 		return UINT16_MAX;
 	}
 
@@ -2229,6 +2447,12 @@ uint16_t laser_createprojectilefromstatic(uint16_t source_obj_idx,
 	g_projectile_guidance_states[guidance_index].source_player_idx = -1;
 	g_object_table[object_index].mobj->p_warhead_guidance =
 		&g_projectile_guidance_states[guidance_index];
+	XVT_LOG_DEBUG(
+		"combat.static_warhead_fired projectile=%d source=%d type=%d target=%d homing=%d predicted=%d",
+		(int)object_index, (int)source_obj_idx, (int)projectile_type,
+		(int)(int16_t)target_obj_idx,
+		(int)g_projectile_guidance_states[guidance_index].homing_tier,
+		g_flight_sim_side_effects_suppressed);
 	if (g_object_table[target_obj_idx].player_owner_idx != -1) {
 		laser_warnplayer(guidance_index);
 	}
@@ -2302,6 +2526,14 @@ int laser_createcountermeasureprojectile(unsigned int owner_obj_idx,
 			}
 		}
 		if (projectile_index >= range_end) {
+			if (g_flight_sim_side_effects_suppressed == 0) {
+				XVT_LOG_WARN(
+					"combat.shot_no_slot slot=%d source=%d type=%d",
+					g_object_table[owner_obj_idx]
+						.player_owner_idx,
+					(int)owner_obj_idx,
+					projectile_object_type);
+			}
 			return -1;
 		}
 	} else {
@@ -2616,6 +2848,18 @@ int laser_createcountermeasureprojectile(unsigned int owner_obj_idx,
 				projectile_index,
 				g_object_table[owner_obj_idx].player_owner_idx);
 		}
+		XVT_LOG_DEBUG(
+			"combat.countermeasure_fired projectile=%d source=%d slot=%d type=%d target=%d life=%u ammo=%d predicted=%d",
+			(int)projectile_index, (int)owner_obj_idx,
+			g_object_table[owner_obj_idx].player_owner_idx,
+			projectile_object_type,
+			(int)(int16_t)
+				g_projectile_guidance_states[guidance_index]
+					.target_obj_idx,
+			(unsigned)g_object_table[projectile_index]
+				.mobj->lifetime_timer,
+			(int)craft->cm_ammo_count,
+			g_flight_sim_side_effects_suppressed);
 		return projectile_index;
 	}
 	return -1;
@@ -2646,6 +2890,11 @@ void laser_warnplayer(uint16_t projectile_guidance_idx)
 	g_players[player_owner_idx].pending_action_param =
 		projectile_guidance_idx + g_projectile_object_slot_start;
 	g_players[player_owner_idx].pending_action_timer = 1416;
+	XVT_LOG_DEBUG(
+		"combat.missile_warning slot=%d projectile=%d predicted=%d",
+		player_owner_idx,
+		(int)projectile_guidance_idx + g_projectile_object_slot_start,
+		g_flight_sim_side_effects_suppressed);
 	if (player_owner_idx == g_local_player) {
 		msg_emit_in_flight_message(
 			IFMSG_116_MISSILE_WARNING_KEY_TO_TARGET,
@@ -3020,6 +3269,12 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 			-1;
 		g_object_table[projectile_obj_idx].mobj->p_warhead_guidance =
 			&g_projectile_guidance_states[guidance_index];
+		XVT_LOG_DEBUG(
+			"combat.mine_fired projectile=%d source=%d mine=%d type=%d target=%d predicted=%d",
+			(int)projectile_obj_idx, (int)mine_obj_idx,
+			(int)g_object_table[mine_obj_idx].object_type,
+			(int)projectile_object_type, (int)(int16_t)target_ref,
+			g_flight_sim_side_effects_suppressed);
 	}
 }
 
