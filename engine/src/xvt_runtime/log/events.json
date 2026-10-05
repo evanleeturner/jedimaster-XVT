@@ -8,10 +8,20 @@
       "fields": ["object", "working", "front", "rear", "hull", "hull_max", "special", "predicted"],
       "text": "Computer-flown craft {object} aborted with working systems {working} (hex; restored in full for a craft waiting to be boarded with no system damage), shields {front} front and {rear} rear, hull damage {hull} of {hull_max}; it is its group's special cargo craft: {special}; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.attack_abandoned": {
+      "level": "D",
+      "fields": ["object", "target", "threat", "hits", "max_hits", "yaw_gap", "pitch_gap", "maneuver", "predicted"],
+      "text": "Computer-flown craft {object} gave up its attack on object {target} after {hits} hits (it stands {max_hits}) to shake off starfighter {threat}, whose heading was {yaw_gap} and pitch {pitch_gap} off its own (65,536 to a full turn); it picked maneuver {maneuver}; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.attack_answered": {
       "level": "D",
       "fields": ["object", "attacker", "bearing", "distance", "speed", "attacker_speed", "draw", "maneuver", "predicted"],
       "text": "Computer-flown craft {object} answered attacker {attacker}, {distance} units away in bearing class {bearing} (0 ahead, 1 to the side, 2 behind), with its own top speed {speed} against the attacker's {attacker_speed} (900 for an attacker that is not a craft); with random draw {draw} it chose maneuver {maneuver} (1 turn inside, 3 Immelmann, 4 scissors, 9 head-on attack, 13 zoom, 14 dive, 15 split-S dive, 16 speed away, 32 avoid the attacker); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.attack_broke_off": {
+      "level": "D",
+      "fields": ["object", "target", "distance", "limit", "hits", "max_hits", "heading", "pitch", "timer", "predicted"],
+      "text": "Computer-flown craft {object} broke off its attack run on object {target} at {distance} units (it breaks off inside {limit}) with {hits} hits taken of the {max_hits} it stands: it turned for heading {heading} and pitch {pitch} (65,536 to a full turn) at full throttle for {timer} ticks; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.attacker_avoided": {
       "level": "D",
@@ -23,6 +33,16 @@
       "fields": ["object", "attacker", "why", "distance", "range", "predicted"],
       "text": "Computer-flown craft {object} stopped reacting to attacker {attacker}: {why} (warhead_done: the warhead is gone or no longer homes on it; out_of_range: the attacker was {distance} units away, past the {range} its skill keeps watch over; -1 where nothing was measured); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.board_approached": {
+      "level": "D",
+      "fields": ["object", "target", "plan", "predicted"],
+      "text": "Computer-flown craft {object} on plan {plan} reached its approach point by {target} (an object, or 32,768 plus a mission point), cut its throttle and began lining up to dock; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.board_asked_stop": {
+      "level": "D",
+      "fields": ["object", "target", "slot", "predicted"],
+      "text": "Computer-flown craft {object} reached the moving craft {target} of this machine's player, slot {slot}, and asked the player to set the throttle to 0 so it could dock; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.boarding_abandoned": {
       "level": "D",
       "fields": ["object", "target", "phase", "working", "predicted"],
@@ -33,6 +53,26 @@
       "fields": ["object", "order", "progress", "boarded", "needed", "state", "predicted"],
       "text": "Craft {object} counted a boarding toward its order {order} (counted from 0), now at {progress}; it has been boarded {boarded} times of the {needed} its order waits for (from then on its systems are given back); boarding state {state} (2 or 3 once a boarding craft finished); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.boarding_done": {
+      "level": "D",
+      "fields": ["object", "target", "plan", "state", "target_state", "captured", "target_plan", "carried", "identified", "progress", "docked", "docked_count", "boarded", "boarded_count", "predicted"],
+      "text": "Computer-flown craft {object} finished its work on object {target} under plan {plan}: its own boarding state {state}, the target's {target_state}, capture mark {captured} and plan {target_plan} (each -1 when the target has no craft record), carrying object {carried} (-1 for none), the target identified by this craft's team as number {identified} (0 for not yet, -1 for no record); its order's progress {progress}, {docked} docked targets on its list, its group's docked count {docked_count}, the target boarded {boarded} times and its group's boarded count {boarded_count}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.boarding_finished": {
+      "level": "I",
+      "fields": ["object", "fg", "target", "plan", "progress", "tick"],
+      "text": "Computer-flown craft {object} of flight group {fg} finished boarding object {target} on plan {plan} at tick {tick}; its order's progress is now {progress}"
+    },
+    "ai.boarding_separated": {
+      "level": "D",
+      "fields": ["object", "target", "predicted"],
+      "text": "Computer-flown craft {object} finished pulling away from object {target} after boarding and dropped it as its target; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.boarding_started": {
+      "level": "I",
+      "fields": ["object", "fg", "target", "target_fg", "plan", "timer", "tick"],
+      "text": "Computer-flown craft {object} of flight group {fg} docked with object {target} of flight group {target_fg} (-1 for a mission point) on plan {plan} at tick {tick}; the boarding takes {timer} ticks"
+    },
     "ai.boarding_target": {
       "level": "D",
       "fields": ["object", "target", "source", "predicted"],
@@ -42,6 +82,11 @@
       "level": "W",
       "fields": ["token", "index"],
       "text": "No loaded plan is named {token}, number {index} on the game's list of plans it asks for by number; asking for it gives plan 0"
+    },
+    "ai.cargo_departed": {
+      "level": "D",
+      "fields": ["object", "carried", "fg", "captured", "delivered", "undelivered", "predicted"],
+      "text": "Computer-flown craft {object} took the object it carried, {carried} of flight group {fg}, out of the battle with it: capture mark {captured} (0 when not captured); that group's counts 'taken by the destination' {delivered} and 'not taken by the destination' {undelivered}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.chaff_dropped": {
       "level": "D",
@@ -63,20 +108,50 @@
       "fields": ["object", "target", "previous", "predicted"],
       "text": "Computer-flown craft {object} took object {target}, named by a player's order, as its target in place of {previous} (65,535 for none, 32,768 and up for a mission point); predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.craft_captured": {
+      "level": "I",
+      "fields": ["object", "target", "team", "captured", "plan", "tick"],
+      "text": "Computer-flown craft {object} finished boarding object {target} to capture it, at tick {tick}: it now flies for team {team} with capture mark {captured} (0 when the boarding gave it back to its own side) and runs plan {plan}"
+    },
+    "ai.craft_changed_side": {
+      "level": "D",
+      "fields": ["object", "target", "fg", "from", "team", "iff", "captured", "captured_count", "team_count", "predicted"],
+      "text": "Object {target} of flight group {fg} went from team {from} to team {team}, side {iff}, of computer-flown craft {object}, its systems restored and its attacker forgotten: capture mark {captured} (0 when back with its own side), the group's captured count {captured_count} and team {team}'s captured count for the group {team_count}; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.defense_fired": {
       "level": "D",
       "fields": ["object", "weapon_slot", "kind", "target", "component", "projectile", "homing", "ammo", "predicted"],
       "text": "Computer-flown craft {object} fired defense warhead {projectile} from weapon slot {weapon_slot} at the {kind} in object {target}, aimed at its part {component}, with homing level {homing}; {ammo} rounds remain in the slot, which now waits 20 of the craft's decisions; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.departure_counted": {
+      "level": "D",
+      "fields": ["object", "fg", "departed", "incomplete", "home", "aborted", "departing", "skipped", "captured", "team_departed", "predicted"],
+      "text": "As computer-flown craft {object} of flight group {fg} left through hyperspace, its group had {departed} craft counted departed and {incomplete} departed with orders unfinished; the craft's marks: told to go home {home}, aborted {aborted}, departure under way {departing}, skipped to its fourth order {skipped}, capture mark {captured} (0 when not captured); its team's count of the group's captured craft that left is {team_departed}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.departure_started": {
       "level": "D",
       "fields": ["object", "fg", "from", "count", "minutes", "seconds", "predicted"],
       "text": "Computer-flown craft {object} of flight group {fg} began its departure at {minutes}:{seconds} on the mission clock ({from}: own when its group's departure time or condition came, leader when it took this from its leader); {count} craft of its group are now counted as not yet departed; it withdraws when its group's departure delay has passed; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.docking_counted": {
+      "level": "D",
+      "fields": ["object", "target", "failed", "completed", "predicted"],
+      "text": "As computer-flown craft {object} docked with {target}, its flight group's 'failed mission' count stood at {failed} and the target group's 'completed mission' count at {completed} (-1 when the target has no craft record); the game raises the first on a craft's first docking and the second on a craft's first boarding; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.dropoff_delivered": {
+      "level": "D",
+      "fields": ["object", "fg", "place", "basis", "predicted"],
+      "text": "Computer-flown craft {object} reached formation place {place} and brought in that craft of flight group {fg}, placed around the group's lead object {basis} (255 when the group had none); predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.dropoff_group_invalid": {
       "level": "D",
       "fields": ["object", "fg", "order", "group", "groups", "predicted"],
       "text": "Drop-off order {order} (counted from 0) of computer-flown craft {object}, flight group {fg}, names destination group {group} (counted from 1, 0 for none), outside the mission's {groups} flight groups; the 1997 code went on and read a record past the end of the flight group table; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.dropoff_next": {
+      "level": "D",
+      "fields": ["object", "place", "predicted"],
+      "text": "Computer-flown craft {object} finished waiting after a delivery and moved on to formation place {place}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.dropoff_reached": {
       "level": "D",
@@ -88,15 +163,45 @@
       "fields": ["object", "fg", "as", "led_by", "hangar", "outcome", "tick"],
       "text": "Craft {object} of flight group {fg} flew into the hangar of object {hangar} and left the battle ({as}: own when its own order took it in, follower when it came in behind craft {led_by}, cargo when craft {led_by} carried it in); it was counted as outcome {outcome} (18 into the departure mothership, 19 into the alternate one, 20 into the mothership of the group that captured it); at tick {tick}"
     },
+    "ai.escort_station_invalid": {
+      "level": "D",
+      "fields": ["object", "fg", "order", "station", "predicted"],
+      "text": "Computer-flown craft {object} of flight group {fg} has an escort order, in order slot {order}, naming station {station}, past the game's 28 escort stations; the 1997 code went on to read the station's offsets from past the end of its tables; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.formation_set": {
       "level": "D",
       "fields": ["fg", "formation", "spacing", "predicted"],
       "text": "Flight group {fg} was given formation {formation} at spacing {spacing}, set on each of its craft as one of them came out of a hangar; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.hangar_exited": {
+      "level": "D",
+      "fields": ["object", "fg", "formation", "spacing", "plan", "predicted"],
+      "text": "Computer-flown craft {object} of flight group {fg} finished leaving its hangar: the whole group took formation {formation} with spacing {spacing}, and plan {plan}, its first order's, was written into the shared hangar-exit plan for it to switch to; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.hangar_gone": {
       "level": "D",
       "fields": ["object", "fg", "predicted"],
       "text": "Computer-flown craft {object} of flight group {fg} was flying into its mothership's hangar, but no mothership was left; it slowed to speed 35 and went back to flying home; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.hud_features_restored": {
+      "level": "D",
+      "fields": ["object", "target", "slot", "mask", "predicted"],
+      "text": "Computer-flown craft {object} finished its transfer to craft {target} of this machine's player, slot {slot}, and that craft's cockpit displays were restored on this machine only: active display mask {mask} (hex); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.hyperspace_arrived": {
+      "level": "D",
+      "fields": ["object", "fg", "leader", "plan", "think", "speed", "predicted"],
+      "text": "Computer-flown craft {object} of flight group {fg} finished arriving from hyperspace (leader object {leader}, -1 for none): plan {plan}, its first order's, was written into the shared arrival plan for it to switch to, its think interval went back to {think} ticks and its speed was set to {speed}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.hyperspace_departed": {
+      "level": "I",
+      "fields": ["object", "fg", "craft", "captured", "carried", "tick"],
+      "text": "Computer-flown craft {object} of flight group {fg} (craft type {craft}) left the battle through hyperspace at tick {tick}; it left as a captured craft {captured}, carrying object {carried} (-1 for none)"
+    },
+    "ai.hyperspace_entering": {
+      "level": "D",
+      "fields": ["object", "fg", "distance", "plan", "predicted"],
+      "text": "Computer-flown craft {object} of flight group {fg}, on plan {plan}, came within {distance} units of its jump point and began entering hyperspace; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.jump_joined": {
       "level": "D",
@@ -117,6 +222,16 @@
       "level": "I",
       "fields": ["object", "fg", "leader", "tick"],
       "text": "Object {leader}, the craft that computer-flown craft {object} followed in flight group {fg}, could no longer lead, and craft {object} took over as the group's leader; at tick {tick}"
+    },
+    "ai.maneuver_invalid": {
+      "level": "W",
+      "fields": ["object", "maneuver", "plan"],
+      "text": "Computer-flown craft {object} on plan {plan} was given maneuver {maneuver}, past the 34 maneuvers the game has; the 1997 code went on to call a start function from past the end of its table"
+    },
+    "ai.maneuver_started": {
+      "level": "D",
+      "fields": ["object", "maneuver", "plan", "order", "target", "phase", "timer", "step_timer", "heading", "pitch", "roll", "throttle", "speed", "match", "predicted"],
+      "text": "Computer-flown craft {object} started maneuver {maneuver} on plan {plan}, order slot {order}, aimed at {target} (an object, 32,768 plus a mission point, or 65,535 for none): step {phase}, {timer} ticks to run and {step_timer} to its next sub-step, heading {heading}, pitch {pitch} and roll {roll} to turn to (65,536 to a full turn), throttle {throttle} of 65,535 and commanded speed {speed}; the craft record and the controller it set up belonged to one craft {match} (0 when they did not); predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.mine_decoy_refused": {
       "level": "D",
@@ -142,6 +257,11 @@
       "level": "D",
       "fields": ["object", "fg", "previous", "exit", "predicted"],
       "text": "Computer-flown craft {object} of flight group {fg}, flying home, found no mothership it may land in (none present, or only one in a player's flight group), so it flew to its group's exit point when it has one ({exit}: 1 it has), else to its current waypoint; its target had been {previous} (an object, 32,768 and up for a mission point, 65,535 for none); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.object_picked_up": {
+      "level": "D",
+      "fields": ["object", "target", "fg", "count", "predicted"],
+      "text": "Computer-flown craft {object} picked up object {target} of flight group {fg}, which left the battle; the group's captured count is now {count}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.obstacle_avoided": {
       "level": "D",
@@ -218,6 +338,11 @@
       "fields": ["bytes"],
       "text": "The compiled plans fill {bytes} bytes, but the saved plan file keeps only the first 65,535, so a flight that loads that file gets cut-short plans"
     },
+    "ai.reload_step": {
+      "level": "D",
+      "fields": ["object", "target", "slot", "reloaded", "timer", "predicted"],
+      "text": "Computer-flown craft {object}, docked with craft {target} of player slot {slot}, ran a reload and repair step: a warhead was added or a system repaired {reloaded}, {timer} ticks of docking left; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.self_destruct_set": {
       "level": "I",
       "fields": ["object", "fg", "ticks", "tick"],
@@ -248,6 +373,11 @@
       "fields": ["object", "target", "reason", "leader", "escort", "plan", "orderplan", "order", "predicted"],
       "text": "Computer-flown craft {object} took object {target} as its target, by {reason} (command: a target a player had named for it; search: the nearest target its order's search found; escort_leader: the nearest craft escorting a group its order names; escort_threat: the nearest craft attacking the group it escorts; leader_attacker: the craft that last hit its leader; leader_target: a craft of the group its leader is fighting); its leader is object {leader} and the group it escorts {escort} (255 for none), its plan {plan}, the plan of its current order {orderplan}, in order slot {order}; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.target_sabotaged": {
+      "level": "D",
+      "fields": ["object", "target", "plan", "life", "predicted"],
+      "text": "Computer-flown craft {object} finished boarding object {target} to destroy it: the target now runs plan {plan}, with {life} ticks left to live (0 when it had no lifetime running, which the boarding leaves alone); predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.targets_refused": {
       "level": "D",
       "fields": ["object", "candidates", "undisabled", "predicted"],
@@ -272,6 +402,11 @@
       "level": "D",
       "fields": ["object", "launcher", "target", "component", "lock", "needed", "fired", "limit", "flags", "predicted"],
       "text": "Computer-flown craft {object} fired warhead launcher {launcher} at object {target}, aimed at its part {component}, once its lock reached {lock} ticks of the {needed} needed; it has fired {fired} times in this maneuver, of the {limit} allowed, with launcher setting {flags} (1 a single shot, 3 a pair at once, 129 a single shot from its second slot, which held more rounds); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.waypoint_reached": {
+      "level": "D",
+      "fields": ["object", "plan", "waypoint", "progress", "predicted"],
+      "text": "Computer-flown craft {object} on order plan {plan} reached its waypoint and turned to mission point {waypoint} (points 4 to 11 are waypoints 1 to 8); its order's progress is {progress}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.withdraw_timing": {
       "level": "D",
