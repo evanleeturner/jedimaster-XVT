@@ -13,6 +13,7 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Pixels added to g_surface_height before halving it to place the alert box's
  * vertical center. Nothing writes it, so it stays 0 and the box sits at the
@@ -70,6 +71,9 @@ void flight_alert_save_box_background(void)
 		g_flight_alert_box_saved_pixels =
 			malloc(pixel_count * g_flight_bytes_per_pixel);
 		if (g_flight_alert_box_saved_pixels == 0) {
+			XVT_LOG_WARN("hud.alert_no_memory bytes=%d had=%d",
+				     pixel_count * g_flight_bytes_per_pixel,
+				     g_flight_alert_box_saved_bytes);
 			return;
 		}
 		g_flight_alert_box_saved_bytes =
@@ -82,6 +86,10 @@ void flight_alert_save_box_background(void)
 			g_flight_alert_box_saved_pixels =
 				malloc(pixel_count * g_flight_bytes_per_pixel);
 			if (g_flight_alert_box_saved_pixels == 0) {
+				XVT_LOG_WARN(
+					"hud.alert_no_memory bytes=%d had=%d",
+					pixel_count * g_flight_bytes_per_pixel,
+					g_flight_alert_box_saved_bytes);
 				return;
 			}
 			g_flight_alert_box_saved_bytes =
@@ -102,6 +110,9 @@ void flight_alert_save_box_background(void)
 	flight_surface_unlock();
 	g_flight_draw_to_hud_layer = 1;
 	flight_display_flip();
+	XVT_LOG_DEBUG("hud.alert_opened x=%d y=%d width=%d height=%d bytes=%d",
+		      box_x, box_y, box_width, box_height,
+		      g_flight_alert_box_saved_bytes);
 
 #ifdef XVT_MODERN
 	xvt_render_capture_end_overlay();
@@ -151,6 +162,11 @@ void flight_alert_restore_box_background(void)
 		flight_surface_unlock();
 		g_flight_draw_to_hud_layer = 1;
 		flight_display_flip();
+		XVT_LOG_DEBUG(
+			"hud.alert_closed x=%d y=%d width=%d height=%d need=%d bytes=%d",
+			box_x, box_y, box_width, box_height,
+			box_width * box_height * g_flight_bytes_per_pixel,
+			g_flight_alert_box_saved_bytes);
 #ifdef XVT_MODERN
 		xvt_render_capture_end_overlay();
 #endif

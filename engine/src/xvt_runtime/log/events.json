@@ -2003,6 +2003,21 @@
       "fields": [],
       "text": "The frontend is initialized"
     },
+    "hud.alert_closed": {
+      "level": "D",
+      "fields": ["x", "y", "width", "height", "need", "bytes"],
+      "text": "The network wait notice box was taken down: the {width}x{height} pixels of screen at {x},{y} ({need} bytes) were put back from the last copy saved, which holds {bytes} bytes (the copy is put back even when its box was already taken down)"
+    },
+    "hud.alert_no_memory": {
+      "level": "W",
+      "fields": ["bytes", "had"],
+      "text": "No memory could be had for a copy of the {bytes} bytes of screen under the notice box shown during network waits ({had} bytes were held before, 0 for the first box), so this box and its lines were not shown; the next box tries again"
+    },
+    "hud.alert_opened": {
+      "level": "D",
+      "fields": ["x", "y", "width", "height", "bytes"],
+      "text": "The notice box shown during network waits was opened: the {width}x{height} pixels of screen under it, from {x},{y}, were copied aside ({bytes} bytes held for the copy)"
+    },
     "hud.cockpit_image_alloc_failed": {
       "level": "E",
       "fields": ["view", "file", "bytes"],
