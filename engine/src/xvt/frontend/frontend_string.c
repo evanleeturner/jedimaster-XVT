@@ -5,6 +5,7 @@
 
 #include "xvt/assets/file.h"
 #include "xvt/frontend/frontend_state.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Loads the frontend string table from the text file fileName, replacing the
  * one loaded before: each line that does not start with //, read up to 1,023
@@ -21,6 +22,7 @@ void frontend_string_load_table(const char *file_name)
 	unsigned int total_data_size = 0;
 	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
+		XVT_LOG_WARN("strings.file_missing file=\"%s\"", file_name);
 		return;
 	}
 
@@ -28,6 +30,9 @@ void frontend_string_load_table(const char *file_name)
 	g_front_state.ui_string_offsets =
 		malloc(64 * sizeof(*g_front_state.ui_string_offsets));
 	if (g_front_state.ui_string_offsets == NULL) {
+		XVT_LOG_ERROR(
+			"strings.alloc_failed file=\"%s\" part=\"offsets\"",
+			file_name);
 		file_close(stream);
 		return;
 	}
@@ -35,6 +40,8 @@ void frontend_string_load_table(const char *file_name)
 	g_front_state.ui_string_capacity = 64;
 	g_front_state.ui_string_data = malloc(file_get_size(stream));
 	if (g_front_state.ui_string_data == NULL) {
+		XVT_LOG_ERROR("strings.alloc_failed file=\"%s\" part=\"text\"",
+			      file_name);
 		frontend_string_unload_table();
 		file_close(stream);
 		return;
@@ -72,6 +79,10 @@ void frontend_string_load_table(const char *file_name)
 					 64) * sizeof(*g_front_state
 							       .ui_string_offsets));
 				if (resized_offsets == NULL) {
+					XVT_LOG_WARN(
+						"strings.table_full file=\"%s\" count=%u",
+						file_name,
+						g_front_state.ui_string_count);
 					break;
 				}
 				g_front_state.ui_string_offsets =
@@ -86,6 +97,8 @@ void frontend_string_load_table(const char *file_name)
 	if (resized_data != NULL) {
 		g_front_state.ui_string_data = resized_data;
 	} else {
+		XVT_LOG_ERROR("strings.fit_failed file=\"%s\" bytes=%u",
+			      file_name, total_data_size);
 		free(g_front_state.ui_string_data);
 		free(g_front_state.ui_string_offsets);
 		g_front_state.ui_string_count = 0;
@@ -94,6 +107,10 @@ void frontend_string_load_table(const char *file_name)
 	}
 
 	file_close(stream);
+	XVT_LOG_DEBUG(
+		"strings.loaded file=\"%s\" count=%u capacity=%u bytes=%u",
+		file_name, g_front_state.ui_string_count,
+		g_front_state.ui_string_capacity, total_data_size);
 }
 
 /* Frees the frontend string table and sets g_front_state.ui_string_offsets and

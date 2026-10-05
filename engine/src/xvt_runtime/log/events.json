@@ -5833,6 +5833,31 @@
       "fields": ["field", "limit"],
       "text": "Cockpit text field {field} exceeds {limit} bytes"
     },
+    "strings.alloc_failed": {
+      "level": "E",
+      "fields": ["file", "part"],
+      "text": "Memory for the menu text from {file} could not be allocated (the {part}); the menu text was left empty, so every menu text reads No text."
+    },
+    "strings.file_missing": {
+      "level": "W",
+      "fields": ["file"],
+      "text": "The menu text file {file} did not open; the text loaded before was kept (at the first load there is none: every menu text then reads No text., and this version does not save the pilot and settings at exit)"
+    },
+    "strings.fit_failed": {
+      "level": "E",
+      "fields": ["file", "bytes"],
+      "text": "Fitting the menu text from {file} to its {bytes} bytes failed, so the menu text was emptied; at 0 bytes (a file with no text lines) the memory was then freed a second time"
+    },
+    "strings.loaded": {
+      "level": "D",
+      "fields": ["file", "count", "capacity", "bytes"],
+      "text": "The menu text file {file} was read: {count} entries (room for {capacity}), {bytes} bytes of text"
+    },
+    "strings.table_full": {
+      "level": "W",
+      "fields": ["file", "count"],
+      "text": "The entry table for the menu text from {file} could not grow past {count} entries; the rest of the file was not read, and later entries read No text."
+    },
     "tech.closed": {
       "level": "D",
       "fields": ["by", "from_briefing"],
