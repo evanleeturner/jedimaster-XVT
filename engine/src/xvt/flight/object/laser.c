@@ -92,35 +92,32 @@ const uint8_t g_platform_beam_disabled_component_ids[60] = {
 	0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0xFF, 0x15, 0x16, 0x17, 0x18, 0x1E, 0xFF,
 };
 
-/* Runs one step of the weapon systems of every craft and mine. A power
- * step comes when the weapon_power_update_timer of
- * g_flight_global_countdown_timers is 0, which resets it to
- * SIMULATION_TICKS_PER_SECOND (in the modern build only when
+/* Runs one step of the weapon systems of every craft and mine. A power step
+ * comes when the weapon_power_update_timer of g_flight_global_countdown_timers
+ * is 0, which resets it to SIMULATION_TICKS_PER_SECOND (only when
  * xvt_flight_timing_reference_due). First it clears beam_effect_accum of every
- * craft (family 0). Then, for a player's craft in warhead mode, it updates
- * the lock (missile_lock_state in g_players, warhead_lock_ticks): with no
- * target or no rounds the lock drops to 0; a target closer than 101,805
- * world units (244,332 for a freighter, starship or platform) and inside
- * the aim cone builds it, half as fast against active chaff; otherwise it
- * bleeds away; 354 ticks lock a missile boat, 708 any other craft. While a
- * player's beam is on it drains 125 charge every 59 ticks and acts on the
- * current target when that is in range and in the cone. For each hostile
- * starship, X/7 factory and repair yard it calls
- * collide_apply_hostile_proximity_weapon_disruption on the player's craft. For
- * an AI craft, on a power step, it sets the shield and laser recharge
- * levels, moves laser charge into the front shield of a starfighter whose
- * shield is below full, and on difficulty 2 lets a damaged starship
- * recharge shields by its live shield generators. On a power step every
- * craft then recharges shields, lasers and beam by its recharge levels,
- * drops engine overdrive when its lasers run dry, and counts down chaff.
- * Next, for each craft whose weapon_fire_inhibit_timer is 0: unless a
- * jamming beam holds it (beam_effect_accum[2]), it counts down cannon
- * cooldowns and fires AI bursts through laser_firelasersystem; it fires
- * each gunner slot that has a target (laser_fireturretslot); and it counts
- * down launcher cooldowns. Last it runs laser_update_mine_weapon_fire for each
- * mine in the static slots. The modern build steps AI cannon fire, turrets
- * and mines on the reference clock. Writes g_cur_craft and
- * g_local_beam_target_obj_idx. */
+ * craft (family 0). Then, for a player's craft in warhead mode, it updates the
+ * lock (missile_lock_state in g_players, warhead_lock_ticks): with no target or
+ * no rounds the lock drops to 0; a target closer than 101,805 world units
+ * (244,332 for a freighter, starship or platform) and inside the aim cone
+ * builds it, half as fast against active chaff; otherwise it bleeds away; 354
+ * ticks lock a missile boat, 708 any other craft. While a player's beam is on
+ * it drains 125 charge every 59 ticks and acts on the current target when that
+ * is in range and in the cone. For each hostile starship, X/7 factory and
+ * repair yard it calls collide_apply_hostile_proximity_weapon_disruption on the
+ * player's craft. For an AI craft, on a power step, it sets the shield and
+ * laser recharge levels, moves laser charge into the front shield of a
+ * starfighter whose shield is below full, and on difficulty 2 lets a damaged
+ * starship recharge shields by its live shield generators. On a power step
+ * every craft then recharges shields, lasers and beam by its recharge levels,
+ * drops engine overdrive when its lasers run dry, and counts down chaff. Next,
+ * for each craft whose weapon_fire_inhibit_timer is 0: unless a jamming beam
+ * holds it (beam_effect_accum[2]), it counts down cannon cooldowns and fires AI
+ * bursts through laser_firelasersystem; it fires each gunner slot that has a
+ * target (laser_fireturretslot); and it counts down launcher cooldowns. Last it
+ * runs laser_update_mine_weapon_fire for each mine in the static slots. It
+ * steps AI cannon fire, turrets and mines on the reference clock. Writes
+ * g_cur_craft and g_local_beam_target_obj_idx. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x404710
 void laser_weaponsfire(void)
@@ -1396,20 +1393,19 @@ void laser_fireplayerweapon(int player_idx)
 }
 
 /* Fires cannon group laser_system_index of the craft in object_index by its
- * link_mode: 1 the next slot alone, 2 every other slot from the next one
- * (half the group's slots), 3 every slot; the group's next_slot moves on.
- * Only slots with a weapon and charge above 0 fire. Each shot is
- * laser_createprojectile of the group's weapon type, one type higher when
- * the slot's charge is 64 or more, given the player's or the AI's current
- * target in its guidance record; unless the flight group's status is 21 it
- * costs the slot 3 charge on a player's TIE Fighter or TIE Bomber, 4 on
- * another player's craft and 1 on an AI craft. Adds the shots to the ion
- * or laser counts in weapon_stats (and the player's mission_stats), and 47
- * per shot plus 2 to the group's fire_cooldown_ticks and next_fire_timestamp.
- * With the S-foils closed nothing fires and the local player gets a
- * message. With any other link_mode the modern build returns at once; the
- * original build's text goes on with first_slot and last_slot unset. Writes
- * g_cur_craft. */
+ * link_mode: 1 the next slot alone, 2 every other slot from the next one (half
+ * the group's slots), 3 every slot; the group's next_slot moves on. Only slots
+ * with a weapon and charge above 0 fire. Each shot is laser_createprojectile of
+ * the group's weapon type, one type higher when the slot's charge is 64 or
+ * more, given the player's or the AI's current target in its guidance record;
+ * unless the flight group's status is 21 it costs the slot 3 charge on a
+ * player's TIE Fighter or TIE Bomber, 4 on another player's craft and 1 on an
+ * AI craft. Adds the shots to the ion or laser counts in weapon_stats (and the
+ * player's mission_stats), and 47 per shot plus 2 to the group's
+ * fire_cooldown_ticks and next_fire_timestamp. With the S-foils closed nothing
+ * fires and the local player gets a message. With any other link_mode it
+ * returns at once, where the 1997 game went on with first_slot and last_slot
+ * unset. Writes g_cur_craft. */
 // FUNCTION: XVT 0x405AC0
 void laser_firelasersystem(int object_index, int laser_system_index)
 {

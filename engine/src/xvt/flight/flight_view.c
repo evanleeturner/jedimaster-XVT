@@ -73,17 +73,17 @@ static uint16_t g_flight_post_scene_duration_ticks = 0;
 static uint16_t g_flight_render_scratch_word = 0;
 
 /* Lays the cockpit and HUD layer (g_flight_offscreen_surface) over the 3D frame
- * in g_flight_back_buffer, centered in the display mode: rows above and below the
- * viewport whole, and in the viewport's rows the parts left and right of it and
- * the runs the span mask marks for copying. The mask, at g_flight_aux_buffer plus
- * g_viewport_span_mask_offset, holds per viewport row a signed first byte, then
- * run lengths (a 0 byte means the next byte plus 255, or after two 0 bytes the
- * third plus 511); the runs alternate in sign from the first byte, and the
- * negative ones are copied. Returns the back buffer's unlock result, or a
- * lock's error other than still drawing, which leaves the back buffer locked
- * when the second lock fails. flight_view_render calls it with hardware 3D. The
- * modern build latches the composition (xvt_cockpit_latch_composition) after a
- * good unlock. */
+ * in g_flight_back_buffer, centered in the display mode: rows above and below
+ * the viewport whole, and in the viewport's rows the parts left and right of it
+ * and the runs the span mask marks for copying. The mask, at
+ * g_flight_aux_buffer plus g_viewport_span_mask_offset, holds per viewport row
+ * a signed first byte, then run lengths (a 0 byte means the next byte plus 255,
+ * or after two 0 bytes the third plus 511); the runs alternate in sign from the
+ * first byte, and the negative ones are copied. Returns the back buffer's
+ * unlock result, or a lock's error other than still drawing, which leaves the
+ * back buffer locked when the second lock fails. flight_view_render calls it
+ * with hardware 3D. It latches the composition (xvt_cockpit_latch_composition)
+ * after a good unlock. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x40B7B0
 HRESULT flight_view_composite_masked_software_surface(void)
@@ -385,24 +385,25 @@ int16_t flight_view_rotate_view_by_input(int pitch_step, int yaw_or_roll_step,
 
 /* Places a player's camera for this frame and builds the camera matrix
  * (fview_build_camera_orient), writing viewState's angles and camera_world_x to
- * camera_world_z. In the map view flight_map_update_camera does it. With no focus
- * object (camera_focus_obj_idx 0xFFFF) the camera stays where it is and looks at
- * the player's craft, roll 0; the modern build returns first when the player
- * has no craft. With the external camera on and no transition running, or a
- * transition running with input blocked, it takes the focus object's angles and
- * sits behind the focus object's position
- * (mission_resolve_object_or_mission_point_world_loc) along the view's forward axis
- * by camera_distance plus the object's bounds extent. During any other
- * transition hud_point_camera does it. Otherwise, the cockpit view, it takes the
- * focus object's angles and view_angle_d, caches the orientation in that object's
- * record, and sits at its position, plus the player's hardpoint offset when the
- * object is the player's own. Then, while the player's hyperspace_phase is 2,
- * from 531 ticks (0x213) on, it sets external_camera_active, the full-screen HUD
- * view (hud_set_hud_view_state) and a camera_focus_obj_idx of 0xFFFF on every call:
- * its test to skip that compares the 16-bit index with UINT_MAX and always
- * passes. For a player with a craft it then sets a level camera (pitch 0x4000)
- * that rolls 8 per tick past 590 ticks (0x24E), at the craft's Y less its
- * bounds extent, less the square of the ticks past 531, counted up to 236. */
+ * camera_world_z. In the map view flight_map_update_camera does it. With no
+ * focus object (camera_focus_obj_idx 0xFFFF) the camera stays where it is and
+ * looks at the player's craft, roll 0; it returns first when the player has no
+ * craft. With the external camera on and no transition running, or a transition
+ * running with input blocked, it takes the focus object's angles and sits
+ * behind the focus object's position
+ * (mission_resolve_object_or_mission_point_world_loc) along the view's forward
+ * axis by camera_distance plus the object's bounds extent. During any other
+ * transition hud_point_camera does it. Otherwise, the cockpit view, it takes
+ * the focus object's angles and view_angle_d, caches the orientation in that
+ * object's record, and sits at its position, plus the player's hardpoint offset
+ * when the object is the player's own. Then, while the player's
+ * hyperspace_phase is 2, from 531 ticks (0x213) on, it sets
+ * external_camera_active, the full-screen HUD view (hud_set_hud_view_state) and
+ * a camera_focus_obj_idx of 0xFFFF on every call: its test to skip that
+ * compares the 16-bit index with UINT_MAX and always passes. For a player with
+ * a craft it then sets a level camera (pitch 0x4000) that rolls 8 per tick past
+ * 590 ticks (0x24E), at the craft's Y less its bounds extent, less the square
+ * of the ticks past 531, counted up to 236. */
 // FUNCTION: XVT 0x44EB60
 void flight_view_update_player_camera(int player_idx)
 {
@@ -672,30 +673,31 @@ void flight_view_update_player_camera(int player_idx)
 	}
 }
 
-/* Draws the local player's view for this frame, with g_flight_draw_to_hud_layer 0,
- * leaving it 1. In the map view it draws the map (flight_map_render_view), and
- * while the local player's hyperspace_phase is 2, before 531 ticks, only the
- * streaks (flight_hyperspace_render_transition_effect); at hyperspace_phase 1 it
- * asks for new streaks first. Otherwise it flushes the texture cache when
- * g_flight_initial_texture_cache_flush_pending is set and queues the objects that
- * may be in view: craft, projectiles, small debris and explosions among the
- * main slots (flight_view_project_and_test_sphere_visible), passing over the slots
- * from g_local_transient_slot_start to g_local_debris_slot_end when debris is off, in
- * the proving grounds or in hyperspace, and over the camera's focus object in
- * the cockpit view outside replay view; and static objects of the mine to small
- * debris genera (flight_view_cull_world_sphere_to_viewport). It sorts them
- * (render_list_sort_depth_ascending) and draws each by genus: craft as models with
- * lighting and damage billboards, course obstacles by
- * proving_grounds_draw_course_object, object type 36 without bilinear filtering,
- * projectiles, debris and explosions as billboards, statics through
- * render_non_craft_scene_object. The backdrop and starfield are drawn first with
- * hardware 3D and after the objects in software, where the queued billboards
- * and the target boxes follow the faces (sw3d_draw_visible_faces_to_surface). Every
- * path then lays the cockpit layer over the frame with hardware 3D
- * (flight_view_composite_masked_software_surface), draws the target inset and blits
- * the HUD text panes and MFD pages. The full path also adds the elapsed ticks
- * to g_input_timestamp twice and sets g_flight_post_scene_duration_ticks. The modern
- * build first records the view for its renderer
+/* Draws the local player's view for this frame, with g_flight_draw_to_hud_layer
+ * 0, leaving it 1. In the map view it draws the map (flight_map_render_view),
+ * and while the local player's hyperspace_phase is 2, before 531 ticks, only
+ * the streaks (flight_hyperspace_render_transition_effect); at hyperspace_phase
+ * 1 it asks for new streaks first. Otherwise it flushes the texture cache when
+ * g_flight_initial_texture_cache_flush_pending is set and queues the objects
+ * that may be in view: craft, projectiles, small debris and explosions among
+ * the main slots (flight_view_project_and_test_sphere_visible), passing over
+ * the slots from g_local_transient_slot_start to g_local_debris_slot_end when
+ * debris is off, in the proving grounds or in hyperspace, and over the camera's
+ * focus object in the cockpit view outside replay view; and static objects of
+ * the mine to small debris genera (flight_view_cull_world_sphere_to_viewport).
+ * It sorts them (render_list_sort_depth_ascending) and draws each by genus:
+ * craft as models with lighting and damage billboards, course obstacles by
+ * proving_grounds_draw_course_object, object type 36 without bilinear
+ * filtering, projectiles, debris and explosions as billboards, statics through
+ * render_non_craft_scene_object. The backdrop and starfield are drawn first
+ * with hardware 3D and after the objects in software, where the queued
+ * billboards and the target boxes follow the faces
+ * (sw3d_draw_visible_faces_to_surface). Every path then lays the cockpit layer
+ * over the frame with hardware 3D
+ * (flight_view_composite_masked_software_surface), draws the target inset and
+ * blits the HUD text panes and MFD pages. The full path also adds the elapsed
+ * ticks to g_input_timestamp twice and sets g_flight_post_scene_duration_ticks.
+ * It first records the view for the renderer
  * (xvt_render_capture_capture_view). */
 // FUNCTION: XVT 0x44F140
 void flight_view_render(void)
@@ -1223,9 +1225,9 @@ int flight_view_cull_world_sphere_to_viewport(int world_x, int world_y,
 /* Draws the first frame of a flight: places every active player's camera (the
  * other players' first, then the local one's), draws the HUD into the cockpit
  * layer (hud_render_hud) and lays that over the frame
- * (flight_display_blit_render_surface), places the cameras again, draws the view
- * (flight_view_render), flips (flight_display_flip) and lays the cockpit layer
- * over the new frame. The modern build brackets it for its frame capture. */
+ * (flight_display_blit_render_surface), places the cameras again, draws the
+ * view (flight_view_render), flips (flight_display_flip) and lays the cockpit
+ * layer over the new frame. It brackets it for the frame capture. */
 // FUNCTION: XVT 0x450110
 void flight_view_render_startup_frame(void)
 {
@@ -1262,13 +1264,13 @@ void flight_view_render_startup_frame(void)
 }
 
 /* Draws one frame: places the cameras (other active players first, then the
- * local one), draws the view (flight_view_render), applies and latches the local
- * player's replay record (flight_input_read with the local player's index,
- * flight_input_latch_flight_controls), draws the HUD (hud_render_hud) and flips.
- * Then, with hardware 3D, it clears the frame buffers
- * (render_scene_clear_frame_buffers); in software it lays the cockpit layer over
- * the next frame (flight_display_blit_render_surface). The modern build brackets
- * it for its frame capture. */
+ * local one), draws the view (flight_view_render), applies and latches the
+ * local player's replay record (flight_input_read with the local player's
+ * index, flight_input_latch_flight_controls), draws the HUD (hud_render_hud)
+ * and flips. Then, with hardware 3D, it clears the frame buffers
+ * (render_scene_clear_frame_buffers); in software it lays the cockpit layer
+ * over the next frame (flight_display_blit_render_surface). It brackets it for
+ * the frame capture. */
 // FUNCTION: XVT 0x4501C0
 void flight_view_render_frame(void)
 {

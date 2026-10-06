@@ -18,12 +18,11 @@
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 
-/* The DirectDraw primary surface: the screen. flight_display_init creates it; in
- * a window it is created only while needed (flight_display_init reads its
+/* The DirectDraw primary surface: the screen. flight_display_init creates it;
+ * in a window it is created only while needed (flight_display_init reads its
  * format, flight_display_flip copies the frame) and released after.
- * flight_display_cleanup_and_report_error and the flight shutdown (flight_main in
- * the original build, xvt_flight_entry_cleanup in the modern one) release it and
- * set NULL. */
+ * flight_display_cleanup_and_report_error and the flight shutdown
+ * (xvt_flight_entry_cleanup) release it and set NULL. */
 // GLOBAL: XVT 0x66E700
 IDirectDrawSurface *g_flight_primary_surface;
 /* Without page flipping, the memory the cockpit and HUD layer is drawn in
@@ -39,8 +38,8 @@ uint8_t g_flight_hud_staging_buffer[640 * 480 * 2];
 int g_flight_primary_pitch[2];
 /* The surface the 3D view is drawn on and the next flip shows: the primary
  * surface's attached back buffer with page flipping, else the primary itself.
- * Set by flight_display_init in fullscreen only; xvt_flight_entry_cleanup releases
- * it and sets NULL in the modern build. */
+ * Set by flight_display_init in fullscreen only; xvt_flight_entry_cleanup
+ * releases it and sets NULL. */
 // GLOBAL: XVT 0x803F80
 IDirectDrawSurface *g_flight_back_buffer;
 /* Without page flipping, the frame the 3D view is drawn in; flight_display_flip
@@ -49,24 +48,22 @@ IDirectDrawSurface *g_flight_back_buffer;
 uint8_t g_flight_software_framebuffer[640 * 480 * 2];
 /* 1 for exclusive fullscreen with a display mode change, 0 for a window. Starts
  * at 1; the launch options "nofullscreen" and "fullscreen" set it, read by
- * flight_main in the original build and xvt_flight_entry_read_launch_switches in
- * the modern one. */
+ * xvt_flight_entry_read_launch_switches. */
 // GLOBAL: XVT 0x527EA8
 int g_flight_fullscreen = 1;
-/* 1 when flight_display_flip times its flips to the display's refresh. Starts at
- * 0; at flight start it becomes 0 when a file named flicker.txt can be opened,
- * else 1 (flight_main in the original build, xvt_flight_entry_read_launch_switches
- * in the modern one). */
+/* 1 when flight_display_flip times its flips to the display's refresh. Starts
+ * at 0; at flight start it becomes 0 when a file named flicker.txt can be
+ * opened, else 1 (xvt_flight_entry_read_launch_switches). */
 // GLOBAL: XVT 0x527EA4
 int g_flight_conf_flicker = 0;
-/* Display mode width copied before the flight's display is set up (flight_main
- * in the original build, xvt_flight_entry_configure_display_size in the modern
- * one); fe_disk_io_init_global_buffers reads it. Starts at 640. */
+/* Display mode width copied before the flight's display is set up
+ * (xvt_flight_entry_configure_display_size); fe_disk_io_init_global_buffers
+ * reads it. Starts at 640. */
 // GLOBAL: XVT 0x527EBC
 int g_render_target_width = 640;
-/* g_flight_bytes_per_pixel as it stood before flight_display_init, which may change
- * it; copied by flight_main in the original build and xvt_flight_entry_configure
- * in the modern one, and read by fe_disk_io_init_global_buffers. Starts at 1. */
+/* g_flight_bytes_per_pixel as it stood before flight_display_init, which may
+ * change it; copied by xvt_flight_entry_configure, and read by
+ * fe_disk_io_init_global_buffers. Starts at 1. */
 // GLOBAL: XVT 0x527EC0
 int g_requested_flight_bytes_per_pixel = 1;
 /* g_use_hardware3d as it stood before flight_display_init, which may clear it;
@@ -100,15 +97,15 @@ IDirectDrawPalette *g_flight_palette = NULL;
  * Nothing reads it. */
 // GLOBAL: XVT 0x66DDEC
 IDirectDrawSurface *g_flight_render_surface;
-/* Text flight_display_cleanup_and_report_error formats its error line into before
- * sending it to the debugger output; nothing else uses it. */
+/* Text flight_display_cleanup_and_report_error formats its error line into;
+ * nothing else uses it. */
 // GLOBAL: XVT 0x66E200
 static char g_flight_display_debug_message[1280] = {0};
-/* Bytes in one bank of the screen memory: the original build's software drawing
- * functions split an offset into bank and offset by it when they draw at the
- * software framebuffer base outside 320x240.
- * flight_display_configure_resolution_state sets it to 480 rows of the primary
- * pitch, or 0x10000 at 320x240 and in an unknown mode. Starts at 0xF000. */
+/* Bytes in one bank of the screen memory: flight_sw_fill_rect_or_border8bpp
+ * splits an offset into bank and offset by it when it draws at the software
+ * framebuffer base outside 320x240. flight_display_configure_resolution_state
+ * sets it to 480 rows of the primary pitch, or 0x10000 at 320x240 and in an
+ * unknown mode. Starts at 0xF000. */
 // GLOBAL: XVT 0x5233CC
 unsigned int g_vesa_page_size_bytes = 0xF000;
 /* Set to 1 by flight_display_configure_resolution_state; starts at 15. Nothing
@@ -730,12 +727,11 @@ uint8_t flight_display_set_palette_entries(const uint8_t *rgb_data,
 							entry_count);
 }
 
-/* Reports that flight could not start: sends a ___CleanupAndExit line with
- * errorCode to the debugger output (debug_printf in the modern build), releases
+/* Reports that flight could not start: formats a ___CleanupAndExit line with
+ * errorCode into g_flight_display_debug_message, releases
  * g_flight_primary_surface, g_flight_palette and, with page flipping,
  * g_flight_offscreen_surface, setting each to NULL, shuts the network session
- * down (net_session_shutdown), and shows "Game could not start" (a message box
- * in the original build, a debug_printf line in the modern one). Returns 0. */
+ * down (net_session_shutdown), and logs flight.start_failed. Returns 0. */
 // FUNCTION: XVT 0x4AB970
 int flight_display_cleanup_and_report_error(int error_code)
 {
@@ -780,20 +776,19 @@ int flight_display_get_primary_surface_pitch(void)
  * records the time in g_flight_flicker_last_sync_time_ms and sets
  * g_flight_flicker_refresh_rate_scale; later calls take the refresh rate scale
  * times the ms since that time, modulo 100,000, and when that lies within
- * g_flight_flicker_phase_window of either end and no blank is under way, wait for
- * the next blank and record its time. When the flip reports no exclusive mode
- * it takes exclusive mode, flips again (restoring the primary, back buffer and
- * z-buffer when lost) and returns to the normal cooperative level, returning
- * that last call's result; the original build stops in the debugger at each
- * failure there. When the flip reports a lost surface it restores the primary
- * (flight_display_restore_primary_surface) and returns 1 when that succeeded, 0
- * when it failed, without flipping again. Otherwise it returns the flip's
- * result. Without page flipping it copies 480 rows of the primary pitch from
- * g_flight_software_framebuffer to the primary surface, which in a window it
- * creates first and releases after, and returns the failing lock's error, the
- * unlock's or release's result, or, when the window's primary cannot be
- * created, flight_display_cleanup_and_report_error's 0. The modern build reports
- * each flip or copy to xvt_render_capture_presented. */
+ * g_flight_flicker_phase_window of either end and no blank is under way, wait
+ * for the next blank and record its time. When the flip reports no exclusive
+ * mode it takes exclusive mode, flips again (restoring the primary, back buffer
+ * and z-buffer when lost) and returns to the normal cooperative level,
+ * returning that last call's result. When the flip reports a lost surface it
+ * restores the primary (flight_display_restore_primary_surface) and returns 1
+ * when that succeeded, 0 when it failed, without flipping again. Otherwise it
+ * returns the flip's result. Without page flipping it copies 480 rows of the
+ * primary pitch from g_flight_software_framebuffer to the primary surface,
+ * which in a window it creates first and releases after, and returns the
+ * failing lock's error, the unlock's or release's result, or, when the window's
+ * primary cannot be created, flight_display_cleanup_and_report_error's 0. It
+ * reports each flip or copy to xvt_render_capture_presented. */
 // FUNCTION: XVT 0x4ABEE0
 HRESULT flight_display_flip(void)
 {
@@ -1027,8 +1022,8 @@ void nullsub_11(void) {}
  * result; after a lost surface it restores the primary and returns 1 when that
  * succeeded, 0 when it failed, without copying again. Without page flipping it
  * copies 480 rows of the primary pitch from g_flight_hud_staging_buffer into
- * g_flight_software_framebuffer and returns that pitch. The modern build then
- * calls xvt_cockpit_latch_composition, unless a page flipping copy failed. */
+ * g_flight_software_framebuffer and returns that pitch. It then calls
+ * xvt_cockpit_latch_composition, unless a page flipping copy failed. */
 // FUNCTION: XVT 0x4AC260
 int flight_display_blit_render_surface(void)
 {
@@ -1101,10 +1096,9 @@ void flight_display_apply_resolution_mode_backend_stub(int resolution_mode)
 	(void)resolution_mode;
 }
 
-/* Fills a DirectDraw surface with color 0, as flight_display_clear_back_buffer
- * does for the back buffer: it retries while DirectDraw is still drawing and
- * after a lost surface restores the primary surface, not the one given, and
- * stops without filling. */
+/* Fills a DirectDraw surface with color 0: it retries while DirectDraw is still
+ * drawing and after a lost surface restores the primary surface, not the one
+ * given, and stops without filling. */
 // FUNCTION: XVT 0x4AC400
 void flight_display_clear_surface(IDirectDrawSurface *surface)
 {
@@ -1179,11 +1173,7 @@ int flight_display_apply_resolution_mode_internal_stub(int resolution_mode,
 	return 1;
 }
 
-/* In the original build, writes entry_count RGB triplets to the VGA palette
- * registers from first_entry (port 0x3C8 for the index, 0x3C9 for the data)
- * after waiting for a vertical retrace to begin (bit 3 of port 0x3DA), and
- * returns the last blue value written, or 0 for no entries. The modern build
- * does nothing and returns 0. */
+/* Does nothing and returns 0. */
 // FUNCTION: XVT 0x4AC7E0
 uint8_t flight_display_write_vga_palette_entries(const uint8_t *rgb_entries,
 						 int16_t first_entry,

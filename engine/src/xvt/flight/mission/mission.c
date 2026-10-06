@@ -38,12 +38,10 @@
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
 
-/* Text that sprintf fills with debug lines: rating and promotion points,
- * team score and place, update-time histograms. Nothing reads it. 5
- * functions write it: fe_disk_io_commit_flight_results; in the original build
- * flight_run_mission_loop and mission_credit_destruction_damage_contributors; in
- * the modern build xvt_flight_frame_format_update_histogram and
- * xvt_flight_frame_render. */
+/* Text that sprintf fills with debug lines: rating and promotion points, team
+ * score and place, update-time histograms. Nothing reads it. 3 functions write
+ * it: fe_disk_io_commit_flight_results,
+ * xvt_flight_frame_format_update_histogram and xvt_flight_frame_render. */
 // GLOBAL: XVT 0xA00750
 char g_mission_debug_buffer[256] = {0};
 
@@ -178,24 +176,21 @@ static uint8_t g_spawn_formation = 0;
 // GLOBAL: XVT 0x556ECC
 uint8_t g_initial_spawn_bind_player_craft_slots = 0;
 /* Seed of the asteroid field's random draws. Flight start sets it to
- * ASTEROID_FIELD_RANDOM_SEED (flight_main_loop in the original build,
- * xvt_flight_loading_globals in the modern one); mission_init sets it to the
- * random state left after backdrop_generate_default_records;
+ * ASTEROID_FIELD_RANDOM_SEED (xvt_flight_loading_globals); mission_init sets it
+ * to the random state left after backdrop_generate_default_records;
  * mission_spawn_flight_group_static_objects draws debris from it and stores the
  * state it ends at. */
 // GLOBAL: XVT 0x9A73F0
 uint16_t g_asteroid_field_rand_seed = 0;
 /* Signature the next created object gets, then incremented; set to 1 by
- * mission_init_flight_runtime_state. 5 functions write it:
+ * mission_init_flight_runtime_state. 4 functions write it:
  * mission_init_flight_runtime_state, mission_init_flight_group_object_slot,
- * mission_spawn_prepared_object, flight_restore_world_state in the original build
- * and xvt_snapshot_decode_prefix in the modern one. */
+ * mission_spawn_prepared_object and xvt_snapshot_decode_prefix. */
 // GLOBAL: XVT 0x9A8D40
 uint16_t g_next_object_signature = 0;
 /* The loaded mission's header: counts of flight groups and messages, mission
- * type, IFF names, time limit and flags. 3 functions write it:
- * mission_load_file, flight_restore_world_state in the original build and
- * xvt_snapshot_decode_prefix in the modern one. */
+ * type, IFF names, time limit and flags. 2 functions write it:
+ * mission_load_file and xvt_snapshot_decode_prefix. */
 // GLOBAL: XVT 0x9A2000
 struct mission_header g_mission_header = {0};
 /* Per flight group, its runtime state: arrival, rounds, outcome counts by
@@ -252,14 +247,13 @@ uint16_t g_mission_fg_override_string_handles[48][8][3] = {0};
  * texts from the file, 0 for none; as g_mission_fg_override_string_handles. */
 // GLOBAL: XVT 0x9E8F60
 uint16_t g_global_goal_override_string_handles[10][7][4][3] = {0};
-/* A world position, in world units, left by the function that last
- * resolved one; callers read it right after. 9 functions write it:
+/* A world position, in world units, left by the function that last resolved
+ * one; callers read it right after. 8 functions write it:
  * mission_resolve_object_or_mission_point_world_loc,
- * mission_resolve_formation_slot_world_loc, mission_spawn_flight_group_wave_craft,
- * flight_object_update_special_behavior, flight_map_draw_grid,
- * flight_map_draw_object_overlay, targeting_test_aim_cone,
- * targeting_project_object_or_mission_point and
- * targeting_compute_projected_object_extent. */
+ * mission_resolve_formation_slot_world_loc,
+ * mission_spawn_flight_group_wave_craft, flight_object_update_special_behavior,
+ * flight_map_draw_grid, flight_map_draw_object_overlay, targeting_test_aim_cone
+ * and targeting_project_object_or_mission_point. */
 // GLOBAL: XVT 0xA07CDC
 int g_world_loc_x = 0;
 /* Y of the resolved world position; the same 9 functions write it as
@@ -270,11 +264,9 @@ int g_world_loc_y = 0;
  * g_world_loc_x. */
 // GLOBAL: XVT 0xA07CD4
 int g_world_loc_z = 0;
-/* Format version of the loaded mission file: 12, 13, 14, or 0xFFFF for the
- * TIE format. mission_load_file reads it from the file;
- * flight_restore_world_state in the original build and
- * xvt_snapshot_decode_prefix in the modern one restore it. Some AI, damage and
- * spawn rules apply only to version 14. */
+/* Format version of the loaded mission file: 12, 13, 14, or 0xFFFF for the TIE
+ * format. mission_load_file reads it from the file; xvt_snapshot_decode_prefix
+ * restores it. Some AI, damage and spawn rules apply only to version 14. */
 // GLOBAL: XVT 0xA08294
 uint16_t g_mission_file_version = 0;
 /* The header of a TIE-format mission, read and converted by
@@ -398,29 +390,29 @@ uint16_t mission_is_special_cargo_inspected(unsigned int flight_group_idx,
 }
 
 /* Runs the mission's goals and its scripted messages; does nothing in proving
- * grounds mode. The original build's flight_step_sim_to_time calls it every
- * simulation step; the modern build's xvt_flight_sim_step_to_time only on steps
- * where xvt_flight_timing_reference_due holds or a mission end is pending. When
- * g_flight_global_countdown_timers.mission_goal_evaluation_timer is 0 or a mission
- * end is pending, it recounts g_flight_mission_state.connected_player_count
- * (raising max_connected_player_count_this_mission), evaluates every pending flight
- * group goal per team into g_mission_fg_stats[].goal_state, adding 250 times the
- * goal's points to the team's bonus score on success (per-craft bonus goals
+ * grounds mode. xvt_flight_sim_step_to_time calls it only on steps where
+ * xvt_flight_timing_reference_due holds or a mission end is pending. When
+ * g_flight_global_countdown_timers.mission_goal_evaluation_timer is 0 or a
+ * mission end is pending, it recounts
+ * g_flight_mission_state.connected_player_count (raising
+ * max_connected_player_count_this_mission), evaluates every pending flight
+ * group goal per team into g_mission_fg_stats[].goal_state, adding 250 times
+ * the goal's points to the team's bonus score on success (per-craft bonus goals
  * excepted), evaluates each team's three global goals into
- * runtime.team_global_goal_state and runtime.global_goal_trigger_counts, adding 250
- * times raw_points on a first success, and merges both into
- * runtime.team_goal_status. On a new primary success it adds 10,000 points (in a
- * combat mission only when no hostile team finished first), stores the
+ * runtime.team_global_goal_state and runtime.global_goal_trigger_counts, adding
+ * 250 times raw_points on a first success, and merges both into
+ * runtime.team_goal_status. On a new primary success it adds 10,000 points (in
+ * a combat mission only when no hostile team finished first), stores the
  * completion time and each team player's finish place; on a new bonus success
  * it adds 2,500. Status changes send in-flight messages (on a primary success
  * to the team's players, and in melee and MISSION_TYPE_SIMULATOR_1 missions to
  * the others too; otherwise to the local player) and the team's end-of-mission
  * texts and voices to the local player. It then sets that timer to
- * SIMULATION_TICKS_PER_SECOND ticks. When mission_message_scan_timer is 0 or less
- * it tests each untriggered mission message's trigger pairs, counts down the
- * delays of triggered ones by one per scan, shows a message to the local player
- * when its delay is 0 and the player's team is a recipient, and sets the timer
- * to 1180 ticks. Also writes g_msg_sender_iff, g_msg_arg_table and
+ * SIMULATION_TICKS_PER_SECOND ticks. When mission_message_scan_timer is 0 or
+ * less it tests each untriggered mission message's trigger pairs, counts down
+ * the delays of triggered ones by one per scan, shows a message to the local
+ * player when its delay is 0 and the player's team is a recipient, and sets the
+ * timer to 1180 ticks. Also writes g_msg_sender_iff, g_msg_arg_table and
  * g_pending_hud_message_voice_sfx_id. */
 // FUNCTION: XVT 0x430A00
 void mission_update_logic(void)
@@ -3291,22 +3283,21 @@ int16_t mission_flight_group_matches_trigger_variable(uint16_t flight_group_idx,
 	return result;
 }
 
-/* Tells whether one object falls under a trigger's variable; returns 1 when
- * it does, else 0. The types match as in
+/* Tells whether one object falls under a trigger's variable; returns 1 when it
+ * does, else 0. The types match as in
  * mission_flight_group_matches_trigger_variable, through the object's flight
- * group, except that IFF and team come from the object's mobile record when
- * it has one. Type 7, for a mobile object only, tests its craft's state by
- * variable: captured (0), identified by another team (1), boarded (2),
- * docked (3), no working subsystems (4), attacked by another team (5), hull
- * damaged (6), special cargo or not (7, 8), owned by a player or not (9, 10),
- * most of the opposites (11 to 18; 15 and 17 never match), hull damage at
- * least a quarter, half or three quarters of hull_max (22 to 24) and no
- * warheads left (25). Type 13 matches when the owning player's bound flight
- * group has player number variable + 1; the original build indexes g_players
- * even when the object has no owner (-1), the modern build answers 0. Type 14
- * matches while the elapsed clock's minutes and seconds, ignoring hours, are
- * at or before variable times 5 seconds; type 22 matches an object not owned
- * by player variable. */
+ * group, except that IFF and team come from the object's mobile record when it
+ * has one. Type 7, for a mobile object only, tests its craft's state by
+ * variable: captured (0), identified by another team (1), boarded (2), docked
+ * (3), no working subsystems (4), attacked by another team (5), hull damaged
+ * (6), special cargo or not (7, 8), owned by a player or not (9, 10), most of
+ * the opposites (11 to 18; 15 and 17 never match), hull damage at least a
+ * quarter, half or three quarters of hull_max (22 to 24) and no warheads left
+ * (25). Type 13 matches when the owning player's bound flight group has player
+ * number variable + 1; an object with no owner (-1) answers 0; the 1997 game
+ * indexed g_players with it. Type 14 matches while the elapsed clock's minutes
+ * and seconds, ignoring hours, are at or before variable times 5 seconds; type
+ * 22 matches an object not owned by player variable. */
 // FUNCTION: XVT 0x433390
 int16_t mission_object_matches_trigger_variable(uint16_t object_idx,
 						uint16_t variable_type,
@@ -4174,25 +4165,24 @@ int16_t mission_close_unavailable_flight_group_accounting(int flight_group_idx)
 
 /* Shares out the credit for a destroyed craft. With no craft record or no
  * damage recorded, the source object's player, if any, gets a tier 3 kill
- * credit (and 4 worse-rating points when the victim's genus is 8), the
- * source's team a tier 3 team credit, and it returns. Otherwise each active
- * player's share of the damage sets a tier: 0xAAAA of 0x10000 (two thirds)
- * or more is 3, 0x5999 (about 35%) is 2, 0x0CCC (about 5%) is 1. A player
- * with a tier gets mission_credit_player_kill_contribution; against a team not
- * allied with theirs, also rating points, halved for tier 2 and a tenth for
- * tier 1: into rating_promo_points when the victim's rating is at most 4 below
- * theirs, else into worse_rating_promo_points (always there for a victim of
- * rating weight 0, or one with no player owner flying an idle, formation,
- * hangar, disabled or self-destruct plan); tiers 2 and 3 there also go to
- * mission_record_player_craft_loss_attribution. The victim counts as owned by its
- * group's player when player-owned craft did at least half its damage. Then
+ * credit (and 4 worse-rating points when the victim's genus is 8), the source's
+ * team a tier 3 team credit, and it returns. Otherwise each active player's
+ * share of the damage sets a tier: 0xAAAA of 0x10000 (two thirds) or more is 3,
+ * 0x5999 (about 35%) is 2, 0x0CCC (about 5%) is 1. A player with a tier gets
+ * mission_credit_player_kill_contribution; against a team not allied with
+ * theirs, also rating points, halved for tier 2 and a tenth for tier 1: into
+ * rating_promo_points when the victim's rating is at most 4 below theirs, else
+ * into worse_rating_promo_points (always there for a victim of rating weight 0,
+ * or one with no player owner flying an idle, formation, hangar, disabled or
+ * self-destruct plan); tiers 2 and 3 there also go to
+ * mission_record_player_craft_loss_attribution. The victim counts as owned by
+ * its group's player when player-owned craft did at least half its damage. Then
  * each team's share, from its flight groups, gets the same tiers and
  * mission_credit_team_kill_contribution; at tier 2 or 3, credit its players did
  * not take goes to the team's most damaging flight group through
  * mission_record_player_craft_loss_attribution and, for an owned victim, the
  * owner's per_mission_kills. Writes g_players[] mission_stats and
- * per_mission_kills, and each rating line into g_mission_debug_buffer
- * (g_flight_text_scratch_buffer in the modern build). */
+ * per_mission_kills, and each rating line into g_flight_text_scratch_buffer. */
 // FUNCTION: XVT 0x434500
 void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 						    uint16_t victim_obj_idx)
@@ -5848,12 +5838,12 @@ int mission_compute_kill_score_for_object(int victim_obj_idx)
 
 /* Returns a craft's point value: 40 times its model's craft_point_value
  * (doubled for CRAFT_SPECIES_SUPER_STAR_DESTROYER), plus each warhead
- * launcher's loaded warheads at their g_projectile_type_data.warhead_point_value,
- * plus g_countermeasure_type_point_value for its countermeasure type and
- * g_beam_type_point_value for its beam type. The original build does not check
- * these types against the tables; the modern build skips an unknown warhead
- * type and counts an unknown countermeasure or beam type as type 0. Does not
- * check that the object has a craft. */
+ * launcher's loaded warheads at their
+ * g_projectile_type_data.warhead_point_value, plus
+ * g_countermeasure_type_point_value for its countermeasure type and
+ * g_beam_type_point_value for its beam type. It skips an unknown warhead type
+ * and counts an unknown countermeasure or beam type as type 0. Does not check
+ * that the object has a craft. */
 // FUNCTION: XVT 0x435AD0
 int mission_compute_craft_point_value(int obj_idx)
 {

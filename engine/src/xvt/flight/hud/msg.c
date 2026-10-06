@@ -19,15 +19,15 @@
 #include "xvt_runtime/log/log.h"
 
 /* Index in g_message_log_records of the newest logged message, 0 to 299, or
- * 0xFFFF before the first. Flight start sets 0xFFFF: flight_main_loop in the
- * original build, xvt_flight_loading_mission_setup in the modern one. Only
- * msg_emit_in_flight_message advances it, back to 0 after 299. */
+ * 0xFFFF before the first. Flight start sets 0xFFFF:
+ * xvt_flight_loading_mission_setup. Only msg_emit_in_flight_message advances
+ * it, back to 0 after 299. */
 // GLOBAL: XVT 0x5235D0
 uint16_t g_message_log_write_index;
 /* Messages logged since flight start, not wrapped at 300; only
- * msg_emit_in_flight_message raises it. Flight start sets 0: flight_main_loop in
- * the original build, xvt_flight_loading_mission_setup in the modern one.
- * mfd_draw_message_log_page redraws when it changes. */
+ * msg_emit_in_flight_message raises it. Flight start sets 0:
+ * xvt_flight_loading_mission_setup. mfd_draw_message_log_page redraws when it
+ * changes. */
 // GLOBAL: XVT 0x5235D4
 uint16_t g_message_log_total_count;
 /* Set to 1 by msg_emit_in_flight_message, its only writer, when
@@ -85,16 +85,16 @@ uint16_t g_pending_hud_message_voice_sfx_id = 0;
 // GLOBAL: XVT 0x9A1840
 const char *g_str_in_flight_messages[417] = {0};
 
-/* Appends the message log to the first of msglog0.txt to msglog99.txt that
- * does not exist yet, or to msglog99.txt when all do; the modern build looks
- * in the player's files. Writes records 0 to g_message_log_write_index - 1 of
+/* Appends the message log to the first of msglog0.txt to msglog99.txt that does
+ * not exist yet, or to msglog99.txt when all do; it looks in the player's
+ * files. Writes records 0 to g_message_log_write_index - 1 of
  * g_message_log_records, one line each: the text without its pane type byte
  * (and, after type 1, a digit 0 to 3), a tab, and the mission clock as
- * hours:minutes:seconds. Called at a wrap it writes all 300; called
- * otherwise it leaves out the newest record, at g_message_log_write_index. Does
- * nothing when no file opens. Every existing file it opens to test, but
- * msglog99.txt, stays open. Does not check for the 0xFFFF index before the
- * first logged message, which makes it read 65,535 records. */
+ * hours:minutes:seconds. Called at a wrap it writes all 300; called otherwise
+ * it leaves out the newest record, at g_message_log_write_index. Does nothing
+ * when no file opens. Every existing file it opens to test, but msglog99.txt,
+ * stays open. Does not check for the 0xFFFF index before the first logged
+ * message, which makes it read 65,535 records. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x450550
 void msg_write_message_log_file(void)
@@ -158,28 +158,28 @@ void msg_write_message_log_file(void)
 
 /* Builds in-flight message messageId from its template and the arguments in
  * g_msg_arg_table, logs it, and hands it to a HUD pane. Does nothing when
- * g_flight_sim_side_effects_suppressed is set or player_idx is not g_local_player.
- * The record takes the mission clock (the countdown clock when the mission
- * has a time limit, else the elapsed clock), g_msg_sender_iff, and for
- * messages 196 and 207 g_pending_hud_message_voice_sfx_id. The template's first
- * byte is the pane type and, below 9, stays as the text's first character;
- * '*' inserts the next argument's text, and '&' with a count byte its value
- * in that many places, dropping zeros in front. Text past 69 characters is
- * cut. The modern build swaps in its own text for message 1, the pause
- * notice. A pane type of 9 or more becomes 6.
+ * g_flight_sim_side_effects_suppressed is set or player_idx is not
+ * g_local_player. The record takes the mission clock (the countdown clock when
+ * the mission has a time limit, else the elapsed clock), g_msg_sender_iff, and
+ * for messages 196 and 207 g_pending_hud_message_voice_sfx_id. The template's
+ * first byte is the pane type and, below 9, stays as the text's first
+ * character; '*' inserts the next argument's text, and '&' with a count byte
+ * its value in that many places, dropping zeros in front. Text past 69
+ * characters is cut. It swaps in its own text for message 1, the pause notice.
+ * A pane type of 9 or more becomes 6.
  *
  * Types 1 and 2 enter the message log unless g_replay_view_mode is set:
- * g_message_log_total_count rises and g_message_log_write_index steps on; at 300
- * it goes back to 0 and g_message_log_wrapped to 1, after
- * msg_write_message_log_file when g_radio_message_backup_enabled is set. Types 3,
- * 4 and 7 replace g_system_message_pane when system messages are on (or this
+ * g_message_log_total_count rises and g_message_log_write_index steps on; at
+ * 300 it goes back to 0 and g_message_log_wrapped to 1, after
+ * msg_write_message_log_file when g_radio_message_backup_enabled is set. Types
+ * 3, 4 and 7 replace g_system_message_pane when system messages are on (or this
  * is message 400) and the pane is empty, holds no type 4, or the new one is
  * type 7; else they are dropped. Type 8 replaces g_flight_group_message_pane.
  * Other types go to g_ready_message_pane_queue: an empty slot 0 takes the
  * message and shows it; else, by the type in slot 0, it waits behind it (at
  * most 9 wait; past that it is lost) or takes slot 0 and is shown, after
- * hud_shift_ready_message_queue_for_replacement when slot 0 holds a type 1, 2 or
- * 5. Behind a type 0 it is dropped. Does not check argument slots against
+ * hud_shift_ready_message_queue_for_replacement when slot 0 holds a type 1, 2
+ * or 5. Behind a type 0 it is dropped. Does not check argument slots against
  * the 4-entry tables or an '&' count against g_flight_text_decimal_divisors. */
 // FUNCTION: XVT 0x450650
 void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)

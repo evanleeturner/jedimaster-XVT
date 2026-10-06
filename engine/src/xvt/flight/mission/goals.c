@@ -663,14 +663,13 @@ int16_t goals_draw_condition_text(unsigned int craft_species,
 	return wrap_height;
 }
 
-/* Draws a craft species' name and returns flight_text_get_wrap_height_for_string's
- * extra height for it. A species with a model index draws its plural name
- * when use_plural_name is nonzero, else its short name when use_short_name is
- * nonzero, else its long name; species CRAFT_SPECIES_COMM_SAT_1 to
- * CRAFT_SPECIES_NAV_BUOY_TYPE_2 with none draw their
- * g_str_sat_mine_probe_buoy_pilot_names entry. For any other species the modern
- * build draws an empty string; the original build leaves the name pointer
- * unset. */
+/* Draws a craft species' name and returns
+ * flight_text_get_wrap_height_for_string's extra height for it. A species with
+ * a model index draws its plural name when use_plural_name is nonzero, else its
+ * short name when use_short_name is nonzero, else its long name; species
+ * CRAFT_SPECIES_COMM_SAT_1 to CRAFT_SPECIES_NAV_BUOY_TYPE_2 with none draw
+ * their g_str_sat_mine_probe_buoy_pilot_names entry. For any other species it
+ * draws an empty string. */
 // FUNCTION: XVT 0x415BA0
 int16_t goals_draw_object_type_name(uint16_t craft_species,
 				    int16_t use_plural_name,

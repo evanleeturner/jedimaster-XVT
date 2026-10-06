@@ -13,34 +13,29 @@
 /* Nonzero while flight text wraps at g_flight_clip_right: a glyph that does not
  * fit moves to the next line, and flight_text_draw_string breaks before a word
  * that does not fit. Set by flight_text_set_word_wrap;
- * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
- * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
+ * flight_loading_pulse_and_draw_progress_screen saves it and puts it back. */
 // GLOBAL: XVT 0x9CD270
 int16_t g_flight_word_wrap_enabled;
 /* Nonzero while each wrap and newline first fills the rest of the line with
  * g_flight_text_bg_color. Set by flight_text_set_clear_line_background;
- * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
- * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
+ * flight_loading_pulse_and_draw_progress_screen saves it and puts it back. */
 // GLOBAL: XVT 0x9FE7E4
 int16_t g_flight_clear_line_bg_enabled;
 /* Never set to anything but its starting 0, and never used:
- * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
- * and fe_disk_io_show_fatal_error_message_and_wait_key only save it and put it
+ * flight_loading_pulse_and_draw_progress_screen only saves it and puts it
  * back. */
 // GLOBAL: XVT 0xA07C64
 int16_t g_flight_text_unused_state = 0;
-/* Text cursor row in pixels on the drawing surface: the top of the next
- * glyph. Written by flight_text_set_cursor and by the four glyph drawers on
- * each newline and wrap; flight_loading_pulse_and_draw_progress_screen,
- * fe_disk_io_show_retry_fail_prompt and fe_disk_io_show_fatal_error_message_and_wait_key
- * save it and put it back. */
+/* Text cursor row in pixels on the drawing surface: the top of the next glyph.
+ * Written by flight_text_set_cursor and by the four glyph drawers on each
+ * newline and wrap; flight_loading_pulse_and_draw_progress_screen saves it and
+ * puts it back. */
 // GLOBAL: XVT 0xA08102
 int16_t g_flight_cursor_y = 0;
 /* Text cursor column in pixels on the drawing surface: the left edge of the
  * next glyph. Written by flight_text_set_cursor and by the four glyph drawers,
  * which advance it by each glyph's width and reset it on newline and wrap;
- * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
- * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
+ * flight_loading_pulse_and_draw_progress_screen saves it and puts it back. */
 // GLOBAL: XVT 0xA08108
 int16_t g_flight_cursor_x = 0;
 /* Shared buffer where text is built before it is drawn or handed to
@@ -62,10 +57,9 @@ uint8_t g_flight_text_color_index;
 // GLOBAL: XVT 0xA08100
 uint8_t g_flight_text_bg_color;
 /* Palette index of the drop shadow drawn while g_flight_text_shadow_enabled is
- * set. Written by flight_text_set_shadow_color; fe_disk_io_init_global_buffers,
- * fe_disk_io_show_retry_fail_prompt and fe_disk_io_show_fatal_error_message_and_wait_key
- * set it to 0, and those two prompts and
- * flight_loading_pulse_and_draw_progress_screen put back what they saved. */
+ * set. Written by flight_text_set_shadow_color; fe_disk_io_init_global_buffers
+ * sets it to 0, and flight_loading_pulse_and_draw_progress_screen puts back
+ * what it saved. */
 // GLOBAL: XVT 0x9E8F52
 uint8_t g_flight_text_shadow_color;
 /* Font size class last given to flight_text_set_font_tier, its only writer,
@@ -115,28 +109,24 @@ uint8_t *g_flight_font_medium_sw = 0;
  * fe_disk_io_lock_global_buffers. */
 // GLOBAL: XVT 0xA07CC0
 uint8_t *g_flight_font_micro_sw = 0;
-/* Left edge in pixels of the clip rectangle for flight text,
- * fills and lines. Written by flight_text_set_clip_rect;
- * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
- * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
+/* Left edge in pixels of the clip rectangle for flight text, fills and lines.
+ * Written by flight_text_set_clip_rect;
+ * flight_loading_pulse_and_draw_progress_screen saves it and puts it back. */
 // GLOBAL: XVT 0x9A6FE0
 int16_t g_flight_clip_left = 0;
-/* Right edge, exclusive, in pixels of the clip rectangle for flight text,
- * fills and lines. Written by flight_text_set_clip_rect;
- * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
- * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
+/* Right edge, exclusive, in pixels of the clip rectangle for flight text, fills
+ * and lines. Written by flight_text_set_clip_rect;
+ * flight_loading_pulse_and_draw_progress_screen saves it and puts it back. */
 // GLOBAL: XVT 0x9D8C00
 int16_t g_flight_clip_right = 0;
 /* Bottom edge, exclusive, in pixels of the clip rectangle for flight text,
  * fills and lines. Written by flight_text_set_clip_rect;
- * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
- * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
+ * flight_loading_pulse_and_draw_progress_screen saves it and puts it back. */
 // GLOBAL: XVT 0xA07CE4
 int16_t g_flight_clip_bottom = 0;
-/* Top edge in pixels of the clip rectangle for flight text,
- * fills and lines. Written by flight_text_set_clip_rect;
- * flight_loading_pulse_and_draw_progress_screen, fe_disk_io_show_retry_fail_prompt
- * and fe_disk_io_show_fatal_error_message_and_wait_key save it and put it back. */
+/* Top edge in pixels of the clip rectangle for flight text, fills and lines.
+ * Written by flight_text_set_clip_rect;
+ * flight_loading_pulse_and_draw_progress_screen saves it and puts it back. */
 // GLOBAL: XVT 0xA0813C
 int16_t g_flight_clip_top = 0;
 /* Palette indices for the color codes 0x40 to 0x5F that
@@ -389,9 +379,9 @@ void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 /* Draws one character at the text cursor into an 8-bit surface, as
  * flight_text_draw_narrow_glyph8bpp does, for fonts whose rows are a 32-bit
  * little-endian word, stored 8 bytes apart, top bit leftmost; a newline moves
- * down g_flight_font_line_height plus 1. flight_render_install_callbacks installs
- * it as g_flight_draw_char_fn for pixel modes 0 and 1. In the modern build it
- * also records the glyph for the modern renderer. */
+ * down g_flight_font_line_height plus 1. flight_render_install_callbacks
+ * installs it as g_flight_draw_char_fn for pixel modes 0 and 1. It also records
+ * the glyph for the renderer. */
 // FUNCTION: XVT 0x40F520
 void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 {
@@ -874,9 +864,8 @@ void flight_text_draw_narrow_glyph(uint8_t ch)
 
 /* The 16-bit surface version of flight_text_draw_wide_glyph8bpp, with each
  * palette index turned into a pixel through g_flight_palette16_bpp.
- * flight_render_install_callbacks installs it as g_flight_draw_char_fn for pixel
- * mode 2. In the modern build it also records the glyph for the modern
- * renderer. */
+ * flight_render_install_callbacks installs it as g_flight_draw_char_fn for
+ * pixel mode 2. It also records the glyph for the renderer. */
 // FUNCTION: XVT 0x44A270
 void flight_text_draw_wide_glyph(uint8_t ch)
 {
@@ -1317,13 +1306,13 @@ uint16_t flight_text_format_scratch_int(int value)
 }
 
 /* Draws str at the text cursor through g_flight_draw_char_fn. A 0xFE byte sets
- * the text color from the byte after it; a byte below 0x10, newline
- * included, sets the color to that value; both go through
- * flight_text_set_color. With word wrap on, a space draws as a newline when
- * it and the word after it would end beyond g_flight_clip_right - 2. Returns
- * at once for an empty string; does not check str for NULL. The modern build
- * reads at most 79 characters of that word; the original does not bound it,
- * and a word of 80 or more overruns the 80-byte buffer it is copied into. */
+ * the text color from the byte after it; a byte below 0x10, newline included,
+ * sets the color to that value; both go through flight_text_set_color. With
+ * word wrap on, a space draws as a newline when it and the word after it would
+ * end beyond g_flight_clip_right - 2. Returns at once for an empty string; does
+ * not check str for NULL. It reads at most 79 characters of that word; the 1997
+ * game did not bound it, and a word of 80 or more overran the 80-byte buffer it
+ * was copied into. */
 // FUNCTION: XVT 0x4A9960
 void flight_text_draw_string(const char *str)
 {

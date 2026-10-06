@@ -89,14 +89,14 @@ int frontend_sound_init_direct_sound(void *hwnd)
 	return 1;
 }
 
-/* Returns 1 at once when g_front_state.frontend_direct_sound is NULL. Otherwise it
- * releases it and sets it to NULL, clears the buffer and name of the 128 buffer
- * records and the 12 voices, sets frontend_primary_sound_buffer to NULL without
- * releasing it and frontend_sound_play_serial to 0, and returns 1. It releases
- * none of the loaded buffers and leaves frontend_sound_buffer_count and
- * frontend_active_voice_count as they are. frontend_display_shutdown and
- * frontend_display_release_surfaces_for_flight call it, and in the original build
- * net_shutdown_direct_play_session_ex. */
+/* Returns 1 at once when g_front_state.frontend_direct_sound is NULL. Otherwise
+ * it releases it and sets it to NULL, clears the buffer and name of the 128
+ * buffer records and the 12 voices, sets frontend_primary_sound_buffer to NULL
+ * without releasing it and frontend_sound_play_serial to 0, and returns 1. It
+ * releases none of the loaded buffers and leaves frontend_sound_buffer_count
+ * and frontend_active_voice_count as they are. frontend_display_shutdown,
+ * frontend_display_release_surfaces_for_flight and
+ * frontend_sound_init_direct_sound call it. */
 // FUNCTION: XVT 0x4DE2E0
 int frontend_sound_shutdown_direct_sound(void)
 {
@@ -218,12 +218,12 @@ void frontend_sound_unload_all_buffers(void)
 		      g_front_state.frontend_sound_buffer_count);
 }
 
-/* Stops the named sound's voices with frontend_sound_stop_oldest_voice_by_name until
- * it returns other than 1, releases its buffer and removes its record with
- * frontend_sound_remove_buffer_record. Returns 1, or 0 when the name is empty or
- * not loaded. Unlocks the front end's back buffer around its DirectSound calls
- * and, when it was locked, locks it again into g_draw_surface_ptr.
- * frontend_sound_unload_all_buffers and frontend_sound_unload_list call it. */
+/* Stops the named sound's voices with frontend_sound_stop_oldest_voice_by_name
+ * until it returns other than 1, releases its buffer and removes its record
+ * with frontend_sound_remove_buffer_record. Returns 1, or 0 when the name is
+ * empty or not loaded. Unlocks the front end's back buffer around its
+ * DirectSound calls and, when it was locked, locks it again into
+ * g_draw_surface_ptr. frontend_sound_unload_all_buffers calls it. */
 // FUNCTION: XVT 0x4DE4F0
 int frontend_sound_unload_buffer_by_name(const char *sound_name)
 {
@@ -521,12 +521,12 @@ int frontend_sound_play_ui_sound(const char *sound_name,
 
 /* Stops the oldest voice of the named sound, the one with the lowest play
  * serial: stops and releases its buffer, frees the voice and lowers
- * g_front_state.frontend_active_voice_count. Returns 1 when Stop succeeded, else 0;
- * returns 0 with nothing stopped when frontend_direct_sound is NULL, the name is
- * empty or not loaded, no voice holds the sound, or the voice's buffer is NULL.
- * Unlocks the front end's back buffer around its DirectSound calls and, when it
- * was locked, locks it again into g_draw_surface_ptr.
- * frontend_sound_unload_buffer_by_name and frontend_sound_stop_all_voices call it. */
+ * g_front_state.frontend_active_voice_count. Returns 1 when Stop succeeded,
+ * else 0; returns 0 with nothing stopped when frontend_direct_sound is NULL,
+ * the name is empty or not loaded, no voice holds the sound, or the voice's
+ * buffer is NULL. Unlocks the front end's back buffer around its DirectSound
+ * calls and, when it was locked, locks it again into g_draw_surface_ptr.
+ * frontend_sound_unload_buffer_by_name calls it. */
 // FUNCTION: XVT 0x4DE9A0
 int frontend_sound_stop_oldest_voice_by_name(const char *name)
 {
@@ -715,12 +715,11 @@ int frontend_sound_binary_search_buffer_by_name(
 
 /* Loads the front end's sounds from a list file: skips the first line, read
  * with FILE_GETS into 255 bytes, then reads pairs of words, a WAV file and a
- * sound name, and loads each with frontend_sound_load_sound, ignoring its result.
- * Returns 1 at the end of the file, also when the first line cannot be read; 0
- * when the file does not open or a line does not hold two words. The original
- * build reads each word with %s into a 256-byte buffer without a limit; the
- * modern build stops at 255 characters. Every caller passes the front end's
- * sound list file. */
+ * sound name, and loads each with frontend_sound_load_sound, ignoring its
+ * result. Returns 1 at the end of the file, also when the first line cannot be
+ * read; 0 when the file does not open or a line does not hold two words. It
+ * reads each word up to 255 characters into a 256-byte buffer; the 1997 game
+ * used no limit. Every caller passes the front end's sound list file. */
 // FUNCTION: XVT 0x4DF700
 int frontend_sound_load_list(const char *file_name)
 {

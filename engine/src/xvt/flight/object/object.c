@@ -54,11 +54,10 @@ static const uint16_t g_projectile_homing_speed_adjust_rate_by_profile[44] = {
 
 /* The slot numbers below describe the layout of g_object_table that
  * mission_init sets when a mission loads: craft 0 to 31, shots 32 to 191,
- * debris 192 to 207, explosions 208 to 223, character slots 224 to 479,
- * local slots 480 to 487, then 64 static slots, 488 to 551. Where a comment
- * says "restored", a world-state load copies the value back in:
- * flight_restore_world_state in the original build, xvt_snapshot_decode_prefix
- * in the modern one. */
+ * debris 192 to 207, explosions 208 to 223, character slots 224 to 479, local
+ * slots 480 to 487, then 64 static slots, 488 to 551. Where a comment says
+ * "restored", a world-state load copies the value back in:
+ * xvt_snapshot_decode_prefix. */
 
 /* One past the last craft slot, 32 (CRAFT_SLOT_COUNT); set by mission_init
  * and restored. Craft loops across the game run from
@@ -67,8 +66,8 @@ static const uint16_t g_projectile_homing_speed_adjust_rate_by_profile[44] = {
 int g_active_region_craft_object_slot_end = 0;
 /* The object table: g_region_main_object_slot_end slots with a mobile_object,
  * then g_region_static_object_slot_count static slots. mission_init allocates
- * g_object_table_handle; fe_disk_io_lock_global_buffers points this at its locked
- * memory. In the modern build xvt_flight_loading_reset sets NULL. */
+ * g_object_table_handle; fe_disk_io_lock_global_buffers points this at its
+ * locked memory. xvt_flight_loading_reset sets NULL. */
 // GLOBAL: XVT 0x9A1FE8
 struct object_record *g_object_table = 0;
 /* Per mobile slot, the pool entries object_relink_mobile_object_pointers
@@ -89,16 +88,16 @@ int g_mobile_object_char_data_count = 0;
  * and restored. */
 // GLOBAL: XVT 0x9A7B58
 int g_debris_object_slot_start = 0;
-/* The character records, g_mobile_object_char_data_count of them, in the
- * locked memory of g_mobile_object_char_data_handle; fe_disk_io_lock_global_buffers
- * sets it. In the modern build xvt_flight_loading_reset sets NULL. */
+/* The character records, g_mobile_object_char_data_count of them, in the locked
+ * memory of g_mobile_object_char_data_handle; fe_disk_io_lock_global_buffers
+ * sets it. xvt_flight_loading_reset sets NULL. */
 // GLOBAL: XVT 0x9A8DA0
 struct mobile_object_char_data *g_mobile_object_char_data_pool = 0;
 /* One guidance record per shot slot, indexed by slot minus
  * g_projectile_object_slot_start (g_projectile_object_slots_total + 1 entries),
  * in the locked memory of g_warhead_guidance_pool_handle;
- * fe_disk_io_lock_global_buffers sets it. In the modern build
- * xvt_flight_loading_reset sets NULL. */
+ * fe_disk_io_lock_global_buffers sets it. xvt_flight_loading_reset sets
+ * NULL. */
 // GLOBAL: XVT 0x9A8E18
 struct warhead_guidance_state *g_projectile_guidance_states = 0;
 /* Static slots after g_region_main_object_slot_end, 64
@@ -120,8 +119,8 @@ int g_mobile_object_char_data_slot_start = 0;
 // GLOBAL: XVT 0x9D1310
 int g_explosion_object_slot_start = 0;
 /* One mobile_object per slot below g_region_main_object_slot_end, in the locked
- * memory of g_mobile_object_pool_handle; fe_disk_io_lock_global_buffers sets it.
- * In the modern build xvt_flight_loading_reset sets NULL. */
+ * memory of g_mobile_object_pool_handle; fe_disk_io_lock_global_buffers sets
+ * it. xvt_flight_loading_reset sets NULL. */
 // GLOBAL: XVT 0x9D6820
 struct mobile_object *g_mobile_object_pool_base = 0;
 /* First shot slot, 32; set by mission_init and restored. Slots 32 to 159
@@ -131,9 +130,9 @@ struct mobile_object *g_mobile_object_pool_base = 0;
 int g_projectile_object_slot_start = 0;
 /* Number of local slots at the end of the main region: mission_init sets 8
  * (LOCAL_DEBRIS_SLOT_COUNT); it is restored. Only the world-state checksums
- * read it, and the modern build's check that a loaded world matches the live
- * slot ranges: the checksums cover slots 0 to g_region_main_object_slot_end minus
- * this, which leaves out the 8 local slots, and mix in the value. */
+ * read it, and the check that a loaded world matches the live slot ranges: the
+ * checksums cover slots 0 to g_region_main_object_slot_end minus this, which
+ * leaves out the 8 local slots, and mix in the value. */
 // GLOBAL: XVT 0x9D767C
 int g_local_debris_slot_count = 0;
 /* Shot slots in all, 160: 128 for players and 32 for the rest; set by
@@ -155,7 +154,7 @@ int g_region_main_object_slot_end = -1;
 // GLOBAL: XVT 0xA07CEC
 int g_active_region_object_slot_start = 0;
 /* Debris slots in all, 16; set by mission_init and restored. Only the
- * world-state checksums and the modern build's range check read it. */
+ * world-state checksums and the range check read it. */
 // GLOBAL: XVT 0xA0814C
 unsigned int g_debris_object_slots_total = 0;
 /* One past the last character slot, 480, where the local slots begin; set
@@ -170,31 +169,30 @@ int g_mobile_object_char_data_slot_end = 0;
 // GLOBAL: XVT 0xA082C0
 struct object_slot_range g_object_slot_range_by_genus[20] = {{0}};
 
-/* Advances every object in the mobile slots by one simulation step. First,
- * for each player flying a starfighter (remote players, then the local
- * one), moves hardpointWorld* to prevHardpointWorld* in g_players and stores
- * the craft's primary hardpoint world position in hardpointWorld*. Then,
- * for each slot below g_region_main_object_slot_end, or only
+/* Advances every object in the mobile slots by one simulation step. First, for
+ * each player flying a starfighter (remote players, then the local one), moves
+ * hardpointWorld* to prevHardpointWorld* in g_players and stores the craft's
+ * primary hardpoint world position in hardpointWorld*. Then, for each slot
+ * below g_region_main_object_slot_end, or only
  * g_single_object_update_override_idx when that is not -1: an object with its
  * own sim_state_timestamp is stepped by its own elapsed ticks, which changes
  * g_elapsed_ticks and g_sim_steps_per_second for that object (both are put back
- * on return), and is skipped when that comes to 0 (a player's craft still
- * gets prevWorld* updated); lifetime_timer counts down, and at 0 the object
- * explodes or is removed by genus (a destroyed craft is recorded through
- * mission_record_craft_outcome); prevWorld* takes the current position,
- * except while a single object is overridden; a nonzero roll_impulse_rate
- * turns roll (and on a craft after an impact decays); then craft (genus 0
- * to 4), shots, small debris and explosions move along their move vector.
- * A craft with working systems adds its push accumulators, at most
- * max_push_rate per simulated second (250 while boarding, 750 while dropping
- * off, else the model's), and drags a carried object to its docking point.
- * A homing shot explodes when its target, in a mobile slot, is gone or its
- * slot reused; holds course while the target craft runs a decoy beam; and
- * otherwise turns toward the target (a mesh center on a craft) and changes
- * speed by the homing tables. In the modern build, timing-unlocked play
- * hands the integration to XvtFlightIntegration_*, and each object stepped
- * is reported to xvt_reference_motion_committed. Also writes
- * trig2_*movedist, g_rotated* and g_worldLoc*. */
+ * on return), and is skipped when that comes to 0 (a player's craft still gets
+ * prevWorld* updated); lifetime_timer counts down, and at 0 the object explodes
+ * or is removed by genus (a destroyed craft is recorded through
+ * mission_record_craft_outcome); prevWorld* takes the current position, except
+ * while a single object is overridden; a nonzero roll_impulse_rate turns roll
+ * (and on a craft after an impact decays); then craft (genus 0 to 4), shots,
+ * small debris and explosions move along their move vector. A craft with
+ * working systems adds its push accumulators, at most max_push_rate per
+ * simulated second (250 while boarding, 750 while dropping off, else the
+ * model's), and drags a carried object to its docking point. A homing shot
+ * explodes when its target, in a mobile slot, is gone or its slot reused; holds
+ * course while the target craft runs a decoy beam; and otherwise turns toward
+ * the target (a mesh center on a craft) and changes speed by the homing tables.
+ * Timing-unlocked play hands the integration to XvtFlightIntegration_*, and
+ * each object stepped is reported to xvt_reference_motion_committed. Also
+ * writes trig2_*movedist, g_rotated* and g_worldLoc*. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x445570
 void object_update_lifetime_and_movement(void)
@@ -1542,11 +1540,11 @@ uint16_t object_spawn_local_effect_fragment(uint16_t source_obj_idx)
 }
 
 /* Finds the first free slot (objectType 0) in genus_id's range in
- * g_object_slot_range_by_genus, sets its mobj->source_obj_idx and effect_size to 0,
- * and resets its proximity lists (collide_reset_object_proximity_for_slot; the
- * modern build also calls xvt_flight_integration_reset_slot_and_motion). Returns
- * the slot, or UINT16_MAX when the range is full or empty. Does not check
- * genus_id. */
+ * g_object_slot_range_by_genus, sets its mobj->source_obj_idx and effect_size
+ * to 0, and resets its proximity lists
+ * (collide_reset_object_proximity_for_slot; it also calls
+ * xvt_flight_integration_reset_slot_and_motion). Returns the slot, or
+ * UINT16_MAX when the range is full or empty. Does not check genus_id. */
 // FUNCTION: XVT 0x459750
 uint16_t object_alloc_slot_for_genus(uint16_t genus_id)
 {
@@ -1604,10 +1602,10 @@ uint16_t object_find_free_mission_slot(void)
 }
 
 /* Copies the object in src_obj_idx onto dst_obj_idx: the contents of its craft,
- * guidance and character records where both slots have one, its
- * mobile_object where both have one, and its object_record; the destination
- * keeps its own mobj, p_craft, p_warhead_guidance and p_char_data pointers. Then
- * resets the destination's proximity lists; the modern build first calls
+ * guidance and character records where both slots have one, its mobile_object
+ * where both have one, and its object_record; the destination keeps its own
+ * mobj, p_craft, p_warhead_guidance and p_char_data pointers. Then resets the
+ * destination's proximity lists; it first calls
  * xvt_flight_integration_reset_slot_and_motion. Does not check that the
  * destination has a mobile_object. */
 // FUNCTION: XVT 0x459F30

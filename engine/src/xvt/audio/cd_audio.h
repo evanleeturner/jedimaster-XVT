@@ -11,9 +11,7 @@ extern "C" {
 
 struct cd_audio_track_cache {
 	/* CD volume, 0 to 65535, cd_audio_set_aux_volume last set;
-	 * frontend_display_init and
-	 * frontend_display_reset_global_state_preserving_network_session clear it
-	 * with the rest of g_front_state. */
+	 * xvt_frontend_task_init clears it with the rest of g_front_state. */
 	unsigned int current_aux_volume;
 	/* Length of track n + 1 in entry n, as MCI minutes, seconds and frames;
 	 * cd_audio_initialize fills it, cd_audio_close_device clears it. */

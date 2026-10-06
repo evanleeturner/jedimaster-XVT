@@ -440,7 +440,7 @@ struct mission_flight_runtime_state {
 	/* 1 once any team's primary goal is complete, else 0. */
 	uint8_t global_primary_goal_status;
 	/* Set to 0 by mission_init_flight_runtime_state; no game code reads it,
-	 * only the modern build's snapshot copies it. */
+	 * only the snapshot copies it. */
 	uint16_t global_goal_status_unused;
 	/* 1 once any team's bonus goal is complete, else 0. */
 	uint8_t global_bonus_goal_status;

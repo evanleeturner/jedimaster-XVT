@@ -11,20 +11,18 @@ uint16_t g_game_rand2_value_state = 0;
 int16_t g_game_rand_value_state = 0;
 /* State of the game's main random generator, a 16-bit shift register that
  * game_rand returns and steps. Flight start seeds it from
- * g_game_config.random_seed when g_active_flight_player_count is not 1, else from
- * timeGetTime XOR 0xBEEF (flight_main_loop in the original build,
- * xvt_flight_loading_globals in the modern one). Many functions write it, chiefly
- * game_rand; mission_init, mission_spawn_flight_group_static_objects,
- * pai_update_all_craft_ai and collide_damagecraft swap another seed in for a while
- * and put it back. The saved world state carries it and the world checksum
- * includes it. */
+ * g_game_config.random_seed when g_active_flight_player_count is not 1, else
+ * from timeGetTime XOR 0xBEEF (xvt_flight_loading_globals). Many functions
+ * write it, chiefly game_rand; mission_init,
+ * mission_spawn_flight_group_static_objects, pai_update_all_craft_ai and
+ * collide_damagecraft swap another seed in for a while and put it back. The
+ * saved world state carries it and the world checksum includes it. */
 // GLOBAL: XVT 0x9D113C
 int16_t g_game_rand_feedback_state = 0;
 /* State of the second random generator, stepped by game_rand2 the same way.
  * Flight start seeds it with timeGetTime plus g_game_rand_feedback_state
- * (flight_main_loop in the original build, xvt_flight_loading_globals in the
- * modern one); after that only game_rand2 writes it. The saved world state and
- * the world checksum leave it out. */
+ * (xvt_flight_loading_globals); after that only game_rand2 writes it. The saved
+ * world state and the world checksum leave it out. */
 // GLOBAL: XVT 0x9D77A8
 uint16_t g_game_rand2_feedback_state = 0;
 

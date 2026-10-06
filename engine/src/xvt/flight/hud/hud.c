@@ -77,22 +77,22 @@ static uint8_t g_panel_box_span_scratch[PANEL_BOX_SPAN_SCRATCH_SIZE] = {0};
 static uint16_t g_hud_target_inset_mask_refresh_pending = 0;
 
 /* Memory handle of the panel sprite data, HUD_PANEL_SPRITE_BUFFER_BYTES
- * (120,000) long, allocated by fe_disk_io_init_global_buffers and freed and set to
- * 0 by fe_disk_io_free_flight_resources; the modern build's xvt_flight_loading_reset
- * also sets it to 0. hud_rebuild_display_for_view_state starts
+ * (120,000) long, allocated by fe_disk_io_init_global_buffers and freed and set
+ * to 0 by fe_disk_io_free_flight_resources; xvt_flight_loading_reset also sets
+ * it to 0. hud_rebuild_display_for_view_state starts
  * g_hud_panel_sprite_data_write_cursor at its memory. */
 // GLOBAL: XVT 0x9D8A50
 uint16_t g_hud_panel_sprite_data_handle = 0;
 /* Memory handle of the message log, MESSAGE_LOG_BUFFER_BYTES (32,000) long,
  * allocated by fe_disk_io_init_global_buffers and freed and set to 0 by
- * fe_disk_io_free_flight_resources; the modern build's xvt_flight_loading_reset also
- * sets it to 0. msg_emit_in_flight_message and mfd_draw_message_log_page lock it into
+ * fe_disk_io_free_flight_resources; xvt_flight_loading_reset also sets it to 0.
+ * msg_emit_in_flight_message and mfd_draw_message_log_page lock it into
  * g_message_log_records. */
 // GLOBAL: XVT 0x9EC5FC
 uint16_t g_message_log_handle = 0;
 /* Memory handle of the flight icon frames and their pointers, allocated by
  * fe_disk_io_init_global_buffers, which also locks it and loads the frames, and
- * freed and set to 0 by fe_disk_io_free_flight_resources; the modern build's
+ * freed and set to 0 by fe_disk_io_free_flight_resources;
  * xvt_flight_loading_reset also sets it to 0. */
 // GLOBAL: XVT 0xA07CCC
 uint16_t g_flight_icon_frames_handle = 0;
@@ -137,10 +137,9 @@ struct hud_panel_sprite_file_info g_hud_panel_sprite_file_info = {{0}, 0, 0};
  * of -1 to -3 the targeting computer also redraws its labels. */
 // GLOBAL: XVT 0xA08C74
 int16_t g_hud_cached_target_object_idx = 0;
-/* Panel sprite set the cockpit wants; set to 0 by hud_load_cockpit_resources and
- * hud_reload_cockpit_interface_file, and nothing sets another value.
- * hud_rebuild_display_for_view_state reloads the panel sprites while it differs
- * from g_hud_loaded_panel_set_id. */
+/* Panel sprite set the cockpit wants; set to 0 by hud_load_cockpit_resources,
+ * and nothing sets another value. hud_rebuild_display_for_view_state reloads
+ * the panel sprites while it differs from g_hud_loaded_panel_set_id. */
 // GLOBAL: XVT 0xA0813E
 uint8_t g_hud_panel_set_id = 0;
 /* Where hud_load_cockpit_lfd_entries writes the next LFD entry; it advances past
@@ -148,10 +147,10 @@ uint8_t g_hud_panel_set_id = 0;
  * g_flight_scratch_screen_buffer by hud_rebuild_display_for_view_state. */
 // GLOBAL: XVT 0xA08370
 uint8_t *g_hud_cockpit_resource_write_cursor = NULL;
-/* 1 once hud_load_cockpit_sprite_resources has loaded the cockpit images. Set to 0
- * by fe_disk_io_init_global_buffers and at flight start (flight_main_loop in the
- * original build, xvt_flight_loading_globals in the modern one);
- * mission_init_flight_runtime_state loads the cockpit while it is 0. */
+/* 1 once hud_load_cockpit_sprite_resources has loaded the cockpit images. Set
+ * to 0 by fe_disk_io_init_global_buffers and at flight start
+ * (xvt_flight_loading_globals); mission_init_flight_runtime_state loads the
+ * cockpit while it is 0. */
 // GLOBAL: XVT 0x9D8C10
 int g_hud_cockpit_resources_loaded = 0;
 /* Panel sprite set last loaded by hud_rebuild_display_for_view_state, which sets it
@@ -160,8 +159,8 @@ int g_hud_cockpit_resources_loaded = 0;
 // GLOBAL: XVT 0x9D113E
 uint8_t g_hud_loaded_panel_set_id = 0;
 /* Set to 1 by mission_init_flight_runtime_state and to 0 by
- * hud_rebuild_display_for_view_state and by flight_update_player_step in the original
- * build or xvt_flight_sim_resume in the modern one. Nothing reads it. */
+ * hud_rebuild_display_for_view_state and by xvt_flight_sim_resume. Nothing
+ * reads it. */
 // GLOBAL: XVT 0xA00730
 uint8_t g_flight_display_rebuild_pending = 0;
 /* Names of the waypoints, by waypoint index, filled by
@@ -196,8 +195,8 @@ uint8_t *g_hud_panel_sprite_data_write_cursor = NULL;
 struct hud_element_layout g_hud_element_layouts[HUD_INSTRUMENT_COUNT] = {{0}};
 /* Per HUD element, the value or state it was last drawn with, so it is redrawn
  * only on a change; writers set -1 or -2 to force a redraw. Many functions
- * write it, chiefly the Hud_DrawCached... functions and hud_init_hud, which sets
- * -2 everywhere and -3 for the MFD page elements; the modern build's
+ * write it, chiefly the Hud_DrawCached... functions and hud_init_hud, which
+ * sets -2 everywhere and -3 for the MFD page elements;
  * xvt_cockpit_readouts_begin_target sets entries 102 and 103 to -2. */
 // GLOBAL: XVT 0xA0A1E0
 int16_t g_hud_element_state_cache[HUD_INSTRUMENT_COUNT] = {0};
@@ -467,35 +466,29 @@ const uint8_t g_message_text_prefix_color_codes[16] = {
 const uint8_t g_message_sender_iff_color_codes[8] = {0x52, 0x4A, 0x46, 0x4E,
 						     0x4A, 0x4E, 0,    0};
 /* 1 when the mission command line asks for the frame rate overlay with
- * "tickcounter"; set from it by flight_main in the original build and
- * xvt_flight_entry_read_launch_switches in the modern one. */
+ * "tickcounter"; set from it by xvt_flight_entry_read_launch_switches. */
 // GLOBAL: XVT 0x5235E0
 uint8_t g_flight_conf_tick_counter_enabled = 0;
 /* Ticks the last flight loop took, for the frame rate overlay; written by
- * flight_run_mission_loop in the original build and xvt_flight_frame_render in the
- * modern one, only while the overlay is on. */
+ * xvt_flight_frame_render, only while the overlay is on. */
 // GLOBAL: XVT 0x9A8D90
 int g_flight_tick_overlay_last_loop_ticks = 0;
 /* Ticks summed over the overlay's sampling window; reset to 0 while the overlay
  * is off or once the sum passes LAG_LEVEL_2_TICKS (944). Written by
- * flight_run_mission_loop in the original build and xvt_flight_frame_render in the
- * modern one. */
+ * xvt_flight_frame_render. */
 // GLOBAL: XVT 0x9A7BA0
 int g_flight_tick_overlay_window_ticks = 0;
-/* Loops counted in g_flight_tick_overlay_window_ticks; reset with it. Written by
- * flight_run_mission_loop in the original build and xvt_flight_frame_render in the
- * modern one. */
+/* Loops counted in g_flight_tick_overlay_window_ticks; reset with it. Written
+ * by xvt_flight_frame_render. */
 // GLOBAL: XVT 0xA0829C
 int g_flight_tick_overlay_sample_count = 0;
 /* Packet drop level, 0 to 3, shown by the status line's packet drop mark; 0
- * hides it. Set by flight_run_mission_loop in the original build and
- * xvt_flight_frame_update_packet_drop_indicator in the modern one; flight start sets
- * 0. */
+ * hides it. Set by xvt_flight_frame_update_packet_drop_indicator; flight start
+ * sets 0. */
 // GLOBAL: XVT 0x9A8BFC
 int g_packet_drop_indicator = 0;
 /* Lag level, 0 to 3, shown by the status line's lag mark; 0 hides it. Set by
- * flight_run_mission_loop in the original build and
- * xvt_flight_frame_update_lag_indicator in the modern one; flight start sets 0. */
+ * xvt_flight_frame_update_lag_indicator; flight start sets 0. */
 // GLOBAL: XVT 0x9EC45C
 int g_lag_indicator = 0;
 
@@ -542,11 +535,11 @@ static uint16_t g_unused_ready_message_pane_initial_state = 0;
  * 331, the blank message. */
 // GLOBAL: XVT 0x9D7694
 int g_target_description_message_id = 0;
-/* 1 while radio messages are backed up: msg_write_message_log_file then runs when
- * the message log wraps, at mission end, and when the player turns the backup
- * off. The player's Shift+L turns it on and off (flight_update_player_step in the
- * original build, xvt_flight_sim_update_player_step in the modern one); mission end
- * and hud_reset_flight_message_panes set 0. */
+/* 1 while radio messages are backed up: msg_write_message_log_file then runs
+ * when the message log wraps, at mission end, and when the player turns the
+ * backup off. The player's Shift+L turns it on and off
+ * (xvt_flight_sim_update_player_step); mission end and
+ * hud_reset_flight_message_panes set 0. */
 // GLOBAL: XVT 0x9ECC3C
 int g_radio_message_backup_enabled = 0;
 /* Read as a replay view switch by msg_emit_in_flight_message, hud_update3d_crt and
@@ -554,16 +547,14 @@ int g_radio_message_backup_enabled = 0;
 // GLOBAL: XVT 0xA00860
 uint16_t g_replay_view_mode = 0;
 /* 1 while system messages (pane types 3, 4 and 7) are shown. Flight start sets
- * 1 (flight_main_loop in the original build, xvt_flight_loading_mission_setup in
- * the modern one); the player step toggles it (flight_update_player_step in the
- * original build, xvt_flight_sim_update_player_step in the modern one). */
+ * 1 (xvt_flight_loading_mission_setup); the player step toggles it
+ * (xvt_flight_sim_update_player_step). */
 // GLOBAL: XVT 0x9A7B54
 int g_system_message_display_enabled = 0;
 /* The ready pane's left edge on g_flight_offscreen_buffer: 42 at 320x240, 85 at
- * 640x480, 63 at 480x360, set by hud_reset_flight_message_panes when it finds -1.
- * Flight start sets -1 (flight_main_loop in the original build,
- * xvt_flight_loading_mission_setup in the modern one), so the pane rectangles are
- * set once per flight. */
+ * 640x480, 63 at 480x360, set by hud_reset_flight_message_panes when it finds
+ * -1. Flight start sets -1 (xvt_flight_loading_mission_setup), so the pane
+ * rectangles are set once per flight. */
 // GLOBAL: XVT 0x5235DC
 int g_ready_message_pane_left = -1;
 /* The ready pane's top edge on g_flight_offscreen_buffer: 3 at 320x240, 6 at
@@ -1508,11 +1499,11 @@ void hud_init_hud(int player_idx)
  * nothing drawn. While awaiting a new craft or with the mission ending, it only
  * stops the incoming missile warning. In the map view it draws the map overlay;
  * in the forward cockpit hud_update_hud, in the HUD-only view
- * hud_update_hud_only_view, in the target camera hud_update_cmd_text, in any other
- * view the MFD pages; views other than the forward and HUD-only ones also call
- * fsfx_update_targeting_tone(0) to stop the targeting tone. Every view but the
- * first case then updates the critical hull and shield warning. The modern
- * build records the instruments for its renderer around it. */
+ * hud_update_hud_only_view, in the target camera hud_update_cmd_text, in any
+ * other view the MFD pages; views other than the forward and HUD-only ones also
+ * call fsfx_update_targeting_tone(0) to stop the targeting tone. Every view but
+ * the first case then updates the critical hull and shield warning. It records
+ * the instruments for the renderer around it. */
 // FUNCTION: XVT 0x438DF0
 void hud_render_hud(int player_idx)
 {
@@ -7800,13 +7791,13 @@ void hud_load_cockpit_resources(void)
 		(unsigned)model_index, cockpit_resource_name);
 }
 
-/* Reads base_path plus ".INT", named in g_hud_cockpit_resource_path, into the HUD
- * tables: the 28 g_hud_cockpit_resource_descriptors, the first 288
+/* Reads base_path plus ".INT", named in g_hud_cockpit_resource_path, into the
+ * HUD tables: the 28 g_hud_cockpit_resource_descriptors, the first 288
  * g_hud_element_layouts (the cockpit and HUD-only sets),
- * g_hud_panel_sprite_file_info, and the cockpit and HUD-only inset span masks, 480
- * bytes each at 640x480 and 480x360 and 200 at 320x240. Reads go through
- * fe_disk_io_read_with_retry_prompt. The modern build records the cockpit for its
- * renderer. Does not check the path's length. */
+ * g_hud_panel_sprite_file_info, and the cockpit and HUD-only inset span masks,
+ * 480 bytes each at 640x480 and 480x360 and 200 at 320x240. Reads go through
+ * fe_disk_io_read_with_retry_prompt. It records the cockpit for the renderer.
+ * Does not check the path's length. */
 // FUNCTION: XVT 0x440B10
 void hud_load_cockpit_interface_file(const char *base_path)
 {
@@ -7903,16 +7894,16 @@ void hud_force_player_view_state(int hud_view_state, int player_idx)
  * another player. The view's resource_ref picks the cockpit image: below 0x80
  * its own, from 0x80 another, from 0xC0 another drawn mirrored; the full-screen
  * view always takes its own. Reloads the panel sprites (.PNL) when
- * g_hud_panel_set_id differs from g_hud_loaded_panel_set_id, adding the craft list's
- * first sprite to layout 396 once. For a view with a cockpit it loads the
- * image's LFD entries into g_flight_scratch_screen_buffer if they are not loaded,
- * sets palette entries 0 to 63 from it, clears the surface, blits the image,
- * and sets the flight viewport, span mask and g_proj_offset_y from the view's
- * descriptor; the full-screen view gets the whole surface and offset 0.
+ * g_hud_panel_set_id differs from g_hud_loaded_panel_set_id, adding the craft
+ * list's first sprite to layout 396 once. For a view with a cockpit it loads
+ * the image's LFD entries into g_flight_scratch_screen_buffer if they are not
+ * loaded, sets palette entries 0 to 63 from it, clears the surface, blits the
+ * image, and sets the flight viewport, span mask and g_proj_offset_y from the
+ * view's descriptor; the full-screen view gets the whole surface and offset 0.
  *
  * Then it saves the MFD pages when leaving the forward or HUD-only view, closes
- * them when leaving the craft list, and sets g_hud_instrument_set_base_index and
- * the pages for the new view: the HUD-only set, with the saved pages unless
+ * them when leaving the craft list, and sets g_hud_instrument_set_base_index
+ * and the pages for the new view: the HUD-only set, with the saved pages unless
  * coming from the forward view; the craft list set, with the map help and
  * friendly craft pages; the cockpit set for every other view. The full-screen
  * view closes the pages while the external camera is on, the target camera view
@@ -7921,7 +7912,7 @@ void hud_force_player_view_state(int hud_view_state, int player_idx)
  * views also reset the message panes with expiry. Then hud_init_hud, a palette
  * reset, and for resource 17 the view's displayName at layout 49. Sets
  * g_flight_initial_texture_cache_flush_pending to 1 and
- * g_flight_display_rebuild_pending to 0. The modern build resets and refreshes its
+ * g_flight_display_rebuild_pending to 0. It also resets and refreshes the
  * captured cockpit. */
 // FUNCTION: XVT 0x440DA0
 void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
@@ -8245,13 +8236,13 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 	xvt_cockpit_refresh_instruments(player_idx);
 }
 
-/* Reads entry_count entries of lfd_name's .LFD file, in the resolution's cockpit
- * folder, to g_hud_cockpit_resource_write_cursor and advances it, storing where
- * each entry's data starts in out_entries. Each entry is a 16-byte header (type
- * tag, name, data size) and its data; a PLTT (palette) entry has every byte
- * divided by 4 and its pointer moved 2 bytes in. Does not check the space at
- * the cursor or the sizes in the file. The modern build registers the entries
- * for its renderer. */
+/* Reads entry_count entries of lfd_name's .LFD file, in the resolution's
+ * cockpit folder, to g_hud_cockpit_resource_write_cursor and advances it,
+ * storing where each entry's data starts in out_entries. Each entry is a
+ * 16-byte header (type tag, name, data size) and its data; a PLTT (palette)
+ * entry has every byte divided by 4 and its pointer moved 2 bytes in. Does not
+ * check the space at the cursor or the sizes in the file. It registers the
+ * entries for the renderer. */
 // FUNCTION: XVT 0x441550
 void hud_load_cockpit_lfd_entries(const char *lfd_name, uint8_t **out_entries,
 				  unsigned int entry_count)
@@ -8594,8 +8585,8 @@ void hud_update_mfd_pages(void)
  * map element while the map camera is on, else to their own; damage only
  * outside the map, map help only in it, friendly craft always. In the HUD-only
  * set with HUD feature 8 it also copies each warhead count drawn by
- * hud_output_warhead_count to layout 27 plus the launcher. The modern build
- * latches the pages for its renderer. */
+ * hud_output_warhead_count to layout 27 plus the launcher. It latches the pages
+ * for the renderer. */
 // FUNCTION: XVT 0x441C30
 void hud_blit_software_mfd_pages(void)
 {
@@ -9481,14 +9472,14 @@ void hud_point_camera(uint16_t target_idx, int16_t use_hud_layout_scale,
 }
 
 /* Resets the three message panes. The first time in a flight (while
- * g_ready_message_pane_left is -1) it sets the ready, system and flight group pane
- * rectangles for the resolution and clears them on g_flight_offscreen_buffer;
- * later calls with force_expire_active_messages set raise
- * g_flight_message_panes_force_expire instead. Then it redraws the craft name and
- * status line, empties the three panes and the ready queue, sets
- * g_radio_message_backup_enabled to 0, g_target_description_message_id to 331 (the
- * blank message) and g_unused_ready_message_pane_initial_state to slot 0's id. The
- * modern build resets its message capture. */
+ * g_ready_message_pane_left is -1) it sets the ready, system and flight group
+ * pane rectangles for the resolution and clears them on
+ * g_flight_offscreen_buffer; later calls with force_expire_active_messages set
+ * raise g_flight_message_panes_force_expire instead. Then it redraws the craft
+ * name and status line, empties the three panes and the ready queue, sets
+ * g_radio_message_backup_enabled to 0, g_target_description_message_id to 331
+ * (the blank message) and g_unused_ready_message_pane_initial_state to slot 0's
+ * id. It also resets the message capture. */
 // FUNCTION: XVT 0x450260
 void hud_reset_flight_message_panes(int force_expire_active_messages)
 {
@@ -10257,11 +10248,11 @@ uint16_t hud_get_system_message_pane_state(void)
 
 /* Copies the message panes from g_flight_offscreen_buffer onto the flight
  * surface, skipping the transparent color: the ready pane, widened by two digit
- * widths on each side while g_flight_player_count is 1 or more, to layout 117 of
- * the current set; the system and flight group panes, while they hold a
+ * widths on each side while g_flight_player_count is 1 or more, to layout 117
+ * of the current set; the system and flight group panes, while they hold a
  * message, to layouts 118 and 119, or in the full-screen view to those layouts'
- * x at 11 and 22 rows above the viewport's bottom. The modern build latches the
- * panes for its renderer. */
+ * x at 11 and 22 rows above the viewport's bottom. It latches the panes for the
+ * renderer. */
 // FUNCTION: XVT 0x452960
 void hud_blit_software_hud_text_panes(void)
 {
@@ -10675,10 +10666,11 @@ void hud_draw_depth_tested_box_corners(int x, int y, int width, int height,
 /* Reads panel sprites from fileName: records end at a 0xFF byte; the first
  * records_to_skip are dropped and the next sprite_count are copied, each ended
  * with 0xFF, to g_hud_panel_sprite_data_write_cursor, which advances, with
- * g_hud_panel_sprite_data_by_index from first_sprite_index on pointing at each. A file
- * that ends early gives empty sprites. Returns what fe_disk_io_close_global_stream
- * returns; in the modern build 1 when the file does not open, and a read error
- * is fatal. Does not check the 265 entries or the space at the cursor. */
+ * g_hud_panel_sprite_data_by_index from first_sprite_index on pointing at each.
+ * A file that ends early gives empty sprites. Returns what
+ * fe_disk_io_close_global_stream returns, or 1 when the file does not open; a
+ * read error is fatal. Does not check the 265 entries or the space at the
+ * cursor. */
 // FUNCTION: XVT 0x49C250
 int16_t hud_load_panel_sprite_records(const char *file_name,
 				      uint16_t first_sprite_index,
@@ -10742,9 +10734,9 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
 
 /* Reads flight icon frames from fileName into dataBuffer, frames ending at a
  * 0xFF byte, each copied with its 0xFF and pointed at by frame_pointers in
- * order. Returns the frame count, or 0 when the file does not open; in the
- * modern build a read error is fatal. A file ending in 0xFF yields an empty
- * last frame. Does not check the buffer's size or the pointer count. */
+ * order. Returns the frame count, or 0 when the file does not open; a read
+ * error is fatal. A file ending in 0xFF yields an empty last frame. Does not
+ * check the buffer's size or the pointer count. */
 // FUNCTION: XVT 0x49C330
 int flight_icon_load_frames(const char *file_name, uint8_t *data_buffer,
 			    uint8_t **frame_pointers)

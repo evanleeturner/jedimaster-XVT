@@ -73,8 +73,7 @@ enum flight_launch_argument {
 	FLIGHT_LAUNCH_ARG_COUNT,
 };
 
-/* The launch command line split into arguments by flight_main
- * (xvt_flight_entry_prepare in the modern build). */
+/* The launch command line split into arguments by xvt_flight_entry_prepare. */
 struct flight_launch_args {
 	char *program_name; /* Set to "xtie"; nothing reads it. */
 	char *sentinel;	    /* Set to "/trebla"; nothing reads it. */
@@ -110,7 +109,7 @@ extern const uint16_t g_subsystem_failure_hud_mask_by_random_slot[16];
 /* The flight's mission state: options taken from the game configuration at
  * flight start, the proving grounds counters, the time limits and the mission's
  * runtime goal state. Saved and restored with the world state and folded into
- * the checksums; the modern build's snapshot code lists every field. */
+ * the checksums; the snapshot code lists every field. */
 struct flight_mission_state {
 	/* 1 once the mission is to end: by the time limit
 	 * (flight_update_timers), when no connected player is left or the local
@@ -131,13 +130,13 @@ struct flight_mission_state {
 	/* Proving grounds score in points; flight start credits 10,000 for each
 	 * level below the starting one. */
 	uint32_t proving_grounds_score;
-	/* Zeroed by mission_init and copied by the modern build's snapshot;
-	 * nothing reads it. */
+	/* Zeroed by mission_init and copied by the snapshot; nothing reads
+	 * it. */
 	uint8_t unused08[2];
 	/* Course checkpoints passed this level. */
 	uint16_t proving_grounds_checkpoints_passed;
-	/* Zeroed by mission_init and copied by the modern build's snapshot;
-	 * nothing reads it. */
+	/* Zeroed by mission_init and copied by the snapshot; nothing reads
+	 * it. */
 	uint8_t unused0c[2];
 	/* Course checkpoints left this level. */
 	uint16_t proving_grounds_checkpoints_remaining;

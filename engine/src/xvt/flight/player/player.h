@@ -49,8 +49,7 @@ struct player_view_state {
 	/* hud_state_live kept when an outside camera takes over from the cockpit;
 	 * player_update_hud_view_for_camera_focus restores it. */
 	uint8_t saved_hud_state_byte;
-	/* No game code reads or writes it; only the modern build's snapshot
-	 * copies it. */
+	/* No game code reads or writes it; only the snapshot copies it. */
 	uint8_t unused20;
 	/* hud_aim_x kept with saved_hud_state_byte and restored with it. */
 	int16_t saved_hud_aim_x;
@@ -78,8 +77,7 @@ struct player_view_state {
 	int16_t camera_pitch_history[60];
 	/* Filled like camera_roll_history with view_yaw; no game code reads it. */
 	int16_t camera_yaw_history[60];
-	/* No game code reads or writes it; only the modern build's snapshot
-	 * copies it. */
+	/* No game code reads or writes it; only the snapshot copies it. */
 	uint16_t unused199;
 };
 
@@ -247,7 +245,7 @@ struct player_data {
 	 * or leaves. */
 	uint8_t awaiting_new_craft;
 	/* The bound model's engine_glow_count, set at spawn; no game code reads
-	 * it, only the modern build's snapshot copies it. */
+	 * it, only the snapshot copies it. */
 	uint8_t bound_craft_engine_glow_count;
 	/* Map camera, 0 off: bit 7 set while it opens or is open, the low 7
 	 * bits a count up to 0x7F that rises by elapsed ticks with bit 7 set
@@ -282,7 +280,7 @@ struct player_data {
 	 * on when that one is destroyed. */
 	int16_t selected_target_component;
 	/* -1 at flight start and on binding, 0 when a target is dropped; no
-	 * game code reads it, only the modern build's snapshot copies it. */
+	 * game code reads it, only the snapshot copies it. */
 	int16_t targeting_state;
 	/* Object whose engine wash strikes the player's craft, -1 for none:
 	 * collide_collisions clears it at each check and
@@ -353,8 +351,7 @@ struct player_data {
 	struct player_network_runtime_tail
 		network; /* Network identity and resolution. */
 	/* Game time of the last input frame applied to the player's craft
-	 * (flight_advance_one_step, xvt_flight_sim_advance in the modern build); 0
-	 * at flight start. */
+	 * (xvt_flight_sim_advance); 0 at flight start. */
 	int lockstep_timestamp;
 	/* World X of the player's craft after that frame, kept to be put back
 	 * before later frames are replayed. */

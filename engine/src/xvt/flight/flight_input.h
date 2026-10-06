@@ -172,8 +172,7 @@ typedef enum flight_action_key {
 
 enum { XVT_INPUT_THROTTLE_PRESENT = 1 };
 /* One player's input for one simulation step, as recorded, sent between players
- * and replayed. The modern build's layout differs (8 bytes, with roll, flags
- * and throttle). */
+ * and replayed. It is 8 bytes, with roll, flags and throttle. */
 struct flight_input_frame_record {
 	/* Roll axis, signed, low bit cleared where sampled; replayed into
 	 * g_xvt_control_roll. */

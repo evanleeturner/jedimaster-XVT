@@ -37,9 +37,8 @@ int g_joy_axis_center_x = 0;
 // GLOBAL: XVT 0x622CB8
 int g_joy_axis_center_y = 0;
 /* 1 when the joystick detection found a joystick, else 0. Written only by
- * input_initialize_joystick_backend and input_detect_active_joystick, the first
- * time either runs; joystick_poll_scaled_axes_if_active polls only while it is
- * set. */
+ * input_detect_active_joystick, the first time it runs;
+ * joystick_poll_scaled_axes_if_active polls only while it is set. */
 // GLOBAL: XVT 0x5280F8
 int g_joystick_active = 0;
 /* Joystick index, 0 or 1, that joystick_poll_scaled_axes_if_active polls: the first
@@ -256,9 +255,10 @@ void joystick_poll_scaled_axes(int device_index, int *p_axis_x, int *p_axis_y,
 int16_t joystick_initialize_backend_stub(void) { return 1; }
 
 /* When g_joystick_active is 0, sets the three axes to 0 and returns 0 without
- * polling. Otherwise polls index g_joy_device_index with joystick_poll_scaled_axes
- * and returns its buttons. p_axis_r is ignored. Only the original build reaches
- * its one call, in flight_input_read; the modern build returns before it. */
+ * polling. Otherwise polls index g_joy_device_index with
+ * joystick_poll_scaled_axes and returns its buttons. p_axis_r is ignored. Its
+ * one call is in the unreachable part of flight_input_read, so it never
+ * runs. */
 // FUNCTION: XVT 0x4ACB90
 int joystick_poll_scaled_axes_if_active(int *p_axis_x, int *p_axis_y,
 					int *p_axis_z, const int *p_axis_r)

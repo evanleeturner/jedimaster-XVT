@@ -209,9 +209,9 @@ direct_sound_load_wave_buffer_set(IDirectSound *direct_sound,
 }
 
 /* Releases each buffer of the set that is not NULL, setting its slot to NULL,
- * and frees the set (LocalFree in the original build, free in the modern one);
- * wave_data stays allocated. Does nothing for NULL. Only
- * direct_sound_load_wave_buffer_set calls it, and nothing calls that. */
+ * and frees the set (with free); wave_data stays allocated. Does nothing for
+ * NULL. Only direct_sound_load_wave_buffer_set calls it, and nothing calls
+ * that. */
 // FUNCTION: XVT 0x44B920
 void direct_sound_free_wave_buffer_set(struct direct_sound_buffer_set *set)
 {
@@ -235,11 +235,11 @@ void direct_sound_free_wave_buffer_set(struct direct_sound_buffer_set *set)
 /* Picks the set's buffer to play next. Returns the buffer at next_buffer_index
  * when it is not playing (the 0x1 status bit clear, or GetStatus failed). When
  * it plays, a set of one buffer returns NULL; a larger set advances
- * next_buffer_index, wrapping to 0 at bufferCount, and returns that buffer, first
- * stopping it and rewinding it to 0 when it plays too. When the status read
- * last has the 0x2 bit (buffer lost) it calls Restore and copies wave_data back
- * in, returning NULL when either fails. Returns NULL for a NULL set or slot.
- * Only direct_sound_play_wave_buffer_set calls it, and nothing calls that. */
+ * next_buffer_index, wrapping to 0 at bufferCount, and returns that buffer,
+ * first stopping it and rewinding it to 0 when it plays too. When the status
+ * read last has the 0x2 bit (buffer lost) it calls Restore and copies wave_data
+ * back in, returning NULL when either fails. Returns NULL for a NULL set or
+ * slot. Nothing calls it. */
 // FUNCTION: XVT 0x44B960
 IDirectSoundBuffer *
 direct_sound_acquire_wave_buffer_set_buffer(struct direct_sound_buffer_set *set)

@@ -2,9 +2,9 @@
 
 #include "xvt/frontend/frontend_state.h"
 
-/* Returns 1 when the 0x80 bit of g_front_state.key_state for the virtual-key code
- * is set, else 0. The original build fills that table with GetKeyboardState on
- * each front-end frame, the modern build in xvt_input_update. */
+/* Returns 1 when the 0x80 bit of g_front_state.key_state for the virtual-key
+ * code is set, else 0. xvt_input_update fills that table on each front-end
+ * frame. */
 // FUNCTION: XVT 0x4DCA90
 int keyboard_is_key_down(uint8_t virtual_key)
 {

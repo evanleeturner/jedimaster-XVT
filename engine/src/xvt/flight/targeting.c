@@ -376,7 +376,7 @@ void targeting_draw_scene_object_boxes(void)
  * three quarters of the screen width, plus 4. Draws map-view corners when the
  * local player's map_camera_state is set, else depth-tested HUD corners. Does
  * nothing for UINT16_MAX, in replay view, with the local player's target box
- * off, or behind the camera. The modern build also hands the box to
+ * off, or behind the camera. It also hands the box to
  * xvt_render_hud_target_box. */
 // FUNCTION: XVT 0x482EB0
 void targeting_draw_object_box(uint16_t object_idx, uint16_t component_idx,

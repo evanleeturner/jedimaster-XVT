@@ -19,8 +19,7 @@ struct frontend_sound_buffer_record {
 	/* The loaded buffer each play duplicates. */
 	IDirectSoundBuffer *buffer;
 	/* Priority, 0 to 255, weighed when frontend_sound_play_ui_sound needs a
-	 * voice; 0 at load, and only frontend_sound_set_buffer_priority_by_name,
-	 * which nothing calls, changes it. */
+	 * voice; 0 at load, and nothing changes it. */
 	uint8_t priority;
 };
 

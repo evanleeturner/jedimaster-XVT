@@ -12,8 +12,7 @@
  * at once while it is NULL. */
 // GLOBAL: XVT 0xA10514
 IDirectSound *g_direct_sound = 0;
-/* The primary buffer sound_init_sound_engine creates. Only
- * sound_get_primary_buffer_volume reads it, and nothing calls that;
+/* The primary buffer sound_init_sound_engine creates. Nothing reads it;
  * sound_shutdown_sound_engine sets it to NULL without releasing it. */
 // GLOBAL: XVT 0xA10518
 IDirectSoundBuffer *g_sound_primary_buffer = 0;
@@ -54,13 +53,13 @@ static unsigned int g_next_sound_instance_seq = 0;
 
 /* Starts DirectSound for flight. Returns 1 at once when g_direct_sound is
  * already set. Otherwise it clears the 8 slots of g_active_sound_instances,
- * g_active_sound_count, g_sound_count, g_next_sound_instance_seq and the buffer and
- * name of every g_sound_defs entry, creates g_direct_sound with DirectSoundCreate
- * on the default device, sets cooperative level 2 (DSSCL_PRIORITY) for hwnd and
- * creates g_sound_primary_buffer. Returns 1, or 0 when a step fails, after
- * calling sound_shutdown_sound_engine when the object exists. It sets no format
- * on the primary buffer: the format it clears is never used. flight_main calls
- * it in the original build, xvt_flight_entry_create_devices in the modern one. */
+ * g_active_sound_count, g_sound_count, g_next_sound_instance_seq and the buffer
+ * and name of every g_sound_defs entry, creates g_direct_sound with
+ * DirectSoundCreate on the default device, sets cooperative level 2
+ * (DSSCL_PRIORITY) for hwnd and creates g_sound_primary_buffer. Returns 1, or 0
+ * when a step fails, after calling sound_shutdown_sound_engine when the object
+ * exists. It sets no format on the primary buffer: the format it clears is
+ * never used. xvt_flight_entry_create_devices calls it. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x42CD50
 int sound_init_sound_engine(void *hwnd)
@@ -117,9 +116,8 @@ int sound_init_sound_engine(void *hwnd)
  * effects with sound_unload_all_effects, releases g_direct_sound and sets it to
  * NULL, clears the buffer and name of every g_sound_defs entry and the 8
  * instance slots, sets g_sound_primary_buffer to NULL without releasing it and
- * g_next_sound_instance_seq to 0, and returns 1. It does not set g_sound_count or
- * g_active_sound_count back to 0. flight_main calls it in the original build,
- * xvt_flight_entry_cleanup in the modern one. */
+ * g_next_sound_instance_seq to 0, and returns 1. It does not set g_sound_count
+ * or g_active_sound_count back to 0. xvt_flight_entry_cleanup calls it. */
 // FUNCTION: XVT 0x42CE60
 int sound_shutdown_sound_engine(void)
 {
@@ -249,9 +247,8 @@ int sound_unload_effect_by_name(const char *name)
 }
 
 /* Plays every queued effect with sound_play_effect_now in queue order, highest
- * priority first, and sets g_sound_queue_count to 0. The original build calls it
- * from flight_run_mission_loop and flight_sync_apply_world_message_packet, the modern
- * one from xvt_flight_frame_render, xvt_flight_frame_advance and
+ * priority first, and sets g_sound_queue_count to 0. It is called from
+ * xvt_flight_frame_render, xvt_flight_frame_advance and
  * xvt_flight_frame_confirm. */
 // FUNCTION: XVT 0x42D0D0
 void sound_flush_queued_effects(void)
@@ -274,14 +271,13 @@ void sound_flush_queued_effects(void)
 }
 
 /* Queues a loaded effect for the next sound_flush_queued_effects, keeping
- * g_sound_queue ordered by priority, highest first, the new entry after those of
- * equal or higher priority. Returns 0 when g_direct_sound is NULL, the name is
- * empty or not loaded, or 4 entries wait, none of lower priority. Otherwise it
- * moves the later entries down one, writes the entry (the name by strncpy of 64
- * characters, not terminated for a name of 64 or more) and returns 1;
+ * g_sound_queue ordered by priority, highest first, the new entry after those
+ * of equal or higher priority. Returns 0 when g_direct_sound is NULL, the name
+ * is empty or not loaded, or 4 entries wait, none of lower priority. Otherwise
+ * it moves the later entries down one, writes the entry (the name by strncpy of
+ * 64 characters, not terminated for a name of 64 or more) and returns 1;
  * g_sound_queue_count grows by 1 but stops at 4, so an insert among 4 entries
- * drops the last. The modern build moves the entries with memmove, the original
- * with memcpy. */
+ * drops the last. It moves the entries with memmove. */
 // FUNCTION: XVT 0x42D120
 int sound_queue_effect(const char *sound_name, int allow_restart_existing,
 		       int loop, int priority, int volume, int pan)
@@ -1071,8 +1067,7 @@ int sound_stop_oldest_instance_by_id(int flight_sound_id)
 		g_fsfx_sfx_name_table[flight_sound_id]);
 }
 
-/* Does nothing. flight_main_loop calls it in the original build and
- * xvt_flight_task_release_mission in the modern one, each after
+/* Does nothing. xvt_flight_task_release_mission calls it, after
  * sound_stop_all_instances. */
 // FUNCTION: XVT 0x4A93B0
 void sound_empty_stub(void) {}

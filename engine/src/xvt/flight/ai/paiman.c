@@ -4162,14 +4162,14 @@ void paiman_attacktarget(int16_t yaw_offset)
 
 /* Sets the aim point where the target will be when a shot reaches it: the
  * target's position plus its last frame's movement times a number of frames
- * (xvt_reference_motion_axis_displacement in the modern build with unlocked
- * timing). For a target that is not moving that number is 0; else it is the
- * frames the shot needs to cover trig2_polardistance at the closing speed,
- * scaled by the effective skill. The closing speed adds the shot's speed (ion
- * laser on disableldr1pln with a live target, else the craft's first laser) and
- * the craft's, then takes off the target's speed times the cosine of the
- * heading difference, or adds it when the headings differ by a quarter turn or
- * more. For a moving target it sets the trig2_ globals. */
+ * (xvt_reference_motion_axis_displacement with unlocked timing). For a target
+ * that is not moving that number is 0; else it is the frames the shot needs to
+ * cover trig2_polardistance at the closing speed, scaled by the effective
+ * skill. The closing speed adds the shot's speed (ion laser on disableldr1pln
+ * with a live target, else the craft's first laser) and the craft's, then takes
+ * off the target's speed times the cosine of the heading difference, or adds it
+ * when the headings differ by a quarter turn or more. For a moving target it
+ * sets the trig2_ globals. */
 // FUNCTION: XVT 0x4A4840
 void paiman_calcplanelead(int target_obj_idx)
 {

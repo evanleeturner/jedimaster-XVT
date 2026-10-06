@@ -135,24 +135,23 @@ const uint8_t g_dinput_alt_key_code_table[256] = {
 	0x00, 0x00, 0x00, 0x00};
 
 /* The DirectInput object dinput_init creates, version 0x500 or, when that
- * fails, 0x300. dinput_shutdown releases it; only the modern build sets it back
- * to NULL there. */
+ * fails, 0x300. dinput_shutdown releases it and sets it back to NULL. */
 // GLOBAL: XVT 0x556900
 IDirectInputA *g_direct_input;
 /* The system keyboard device dinput_init creates, foreground and non-exclusive
- * with a 32-event buffer. dinput_shutdown releases it; only the modern build
- * sets it back to NULL there. */
+ * with a 32-event buffer. dinput_shutdown releases it and sets it back to
+ * NULL. */
 // GLOBAL: XVT 0x556904
 IDirectInputDeviceA *g_dinput_keyboard_device;
 /* 1 while the keyboard device is acquired: dinput_init sets 1 when every step
- * worked, dinput_reacquire_keyboard sets 1 (the modern build: whether Acquire
- * succeeded), and dinput_shutdown sets 0 after Unacquire. */
+ * worked, dinput_reacquire_keyboard sets 1 when Acquire succeeded, else 0, and
+ * dinput_shutdown sets 0 after Unacquire. */
 // GLOBAL: XVT 0x556908
 int g_dinput_keyboard_acquired;
-/* Nonzero while a control key is held. dinput_update_keyboard_modifier_state sets
- * 1 or 0 from the keyboard state; dinput_skip_to_pending_key_press and
- * dinput_get_key set 0x80 or 0 from a control key's buffered event; the modern
- * build's xvt_input_flush_raw_keyboard sets 0. */
+/* Nonzero while a control key is held. dinput_update_keyboard_modifier_state
+ * sets 1 or 0 from the keyboard state; dinput_skip_to_pending_key_press and
+ * dinput_get_key set 0x80 or 0 from a control key's buffered event;
+ * xvt_input_flush_raw_keyboard sets 0. */
 // GLOBAL: XVT 0x521AD0
 int g_dinput_ctrl_down = 0;
 /* Nonzero while a shift key is held, written like g_dinput_ctrl_down. */
@@ -168,9 +167,9 @@ int g_dinput_alt_down = 0;
  * format, foreground non-exclusive use with g_flight_main_window_handle and a
  * 32-event buffer, and acquires it. Sets g_dinput_keyboard_acquired to 1 and
  * returns 1. At the first step that fails it shows an error box naming the step
- * and returns 0, releasing nothing it already made. flight_main calls it in the
- * original build and xvt_flight_entry_create_devices in the modern one, both only
- * while g_flight_conf_direct_input is set. */
+ * and returns 0, releasing nothing it already made.
+ * xvt_flight_entry_create_devices calls it, only while
+ * g_flight_conf_direct_input is set. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x443330
 int dinput_init(void)
@@ -326,14 +325,13 @@ int dinput_skip_to_pending_key_press(void)
 /* Takes the next key press from the keyboard's buffer and returns its game key
  * code. First refreshes the modifier flags with
  * dinput_update_keyboard_modifier_state; modifier events on the way set them as
- * dinput_skip_to_pending_key_press does, and other releases are dropped. The code
- * comes from g_dinput_shift_key_code_table while shift is held, else
- * g_dinput_ctrl_key_code_table for control, else g_dinput_alt_key_code_table for alt,
- * else g_dinput_key_code_table; a key the table maps to 0 returns 0. Returns 0
- * when the read fails or when the input is lost and dinput_reacquire_keyboard
- * returns 0. With the buffer empty the modern build returns 0, while the
- * original build keeps reading until a press arrives. The modern build also
- * returns 0 when g_dinput_keyboard_device is NULL. */
+ * dinput_skip_to_pending_key_press does, and other releases are dropped. The
+ * code comes from g_dinput_shift_key_code_table while shift is held, else
+ * g_dinput_ctrl_key_code_table for control, else g_dinput_alt_key_code_table
+ * for alt, else g_dinput_key_code_table; a key the table maps to 0 returns 0.
+ * Returns 0 when the read fails or when the input is lost and
+ * dinput_reacquire_keyboard returns 0. With the buffer empty it returns 0. It
+ * also returns 0 when g_dinput_keyboard_device is NULL. */
 // FUNCTION: XVT 0x443630
 uint8_t dinput_get_key(void)
 {
@@ -419,11 +417,10 @@ void dinput_update_keyboard_modifier_state(void)
 	}
 }
 
-/* Unacquires the keyboard and sets g_dinput_keyboard_acquired to 0 when that flag
- * is set, then releases g_dinput_keyboard_device and g_direct_input when they are
- * not NULL. The modern build also sets both to NULL; the original build leaves
- * them pointing at the released objects. flight_main calls it in the original
- * build, xvt_flight_entry_cleanup in the modern one. */
+/* Unacquires the keyboard and sets g_dinput_keyboard_acquired to 0 when that
+ * flag is set, then releases g_dinput_keyboard_device and g_direct_input when
+ * they are not NULL. It also sets both to NULL. xvt_flight_entry_cleanup calls
+ * it. */
 // FUNCTION: XVT 0x443820
 void dinput_shutdown(void)
 {
@@ -444,13 +441,10 @@ void dinput_shutdown(void)
 }
 
 /* Acquires the keyboard device again; dinput_skip_to_pending_key_press and
- * dinput_get_key call it when DirectInput reports the input lost. The original
- * build calls Acquire when the device exists, ignores its result, sets
- * g_dinput_keyboard_acquired to 1 and returns 1, and returns 0 without a device.
- * The modern build returns 0 without a device or when
- * xvt_input_consume_keyboard_reacquire returns 0; otherwise it sets
- * g_dinput_keyboard_acquired to 1 when Acquire returns 0 or more, else 0, and
- * returns that. */
+ * dinput_get_key call it when DirectInput reports the input lost. It returns 0
+ * without a device or when xvt_input_consume_keyboard_reacquire returns 0;
+ * otherwise it sets g_dinput_keyboard_acquired to 1 when Acquire returns 0 or
+ * more, else 0, and returns that. */
 // FUNCTION: XVT 0x443860
 int dinput_reacquire_keyboard(void)
 {

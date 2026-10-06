@@ -30,18 +30,18 @@ void *g_flight_alert_box_saved_pixels = 0;
 // GLOBAL: XVT 0x5236A4
 int g_flight_alert_box_saved_bytes = 0;
 
-/* Saves the screen under the alert box that network waits draw over the
- * flight view, so flight_alert_restore_box_background can put it back. The box
- * is half as wide as the span from g_flight_viewport_inset_x to g_surface_width
- * and centered on it, five lines of font tier 0 tall, centered at half of
+/* Saves the screen under the alert box that network waits draw over the flight
+ * view, so flight_alert_restore_box_background can put it back. The box is half
+ * as wide as the span from g_flight_viewport_inset_x to g_surface_width and
+ * centered on it, five lines of font tier 0 tall, centered at half of
  * g_surface_height plus g_flight_alert_box_vertical_offset, and saved with a
- * one-pixel border. Sets font tier 0. Allocates g_flight_alert_box_saved_pixels,
- * or a larger one when the box needs more than g_flight_alert_box_saved_bytes,
- * and returns without saving when the allocation fails. Then calls
- * flight_display_flip, copies the box out of the frame buffer with
- * g_flight_draw_to_hud_layer at 0, sets g_flight_draw_to_hud_layer to 1 and calls
- * flight_display_flip again. The modern build first clears the alert it
- * records for its renderer. */
+ * one-pixel border. Sets font tier 0. Allocates
+ * g_flight_alert_box_saved_pixels, or a larger one when the box needs more than
+ * g_flight_alert_box_saved_bytes, and returns without saving when the
+ * allocation fails. Then calls flight_display_flip, copies the box out of the
+ * frame buffer with g_flight_draw_to_hud_layer at 0, sets
+ * g_flight_draw_to_hud_layer to 1 and calls flight_display_flip again. It first
+ * clears the alert it records for the renderer. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x448DA0
 void flight_alert_save_box_background(void)
@@ -116,10 +116,9 @@ void flight_alert_save_box_background(void)
  * box, which removes the alert. Sets font tier 0 and computes the box again
  * from the same globals; when nothing was saved it stops there. Otherwise it
  * calls flight_display_flip, writes the saved pixels into the frame buffer with
- * g_flight_draw_to_hud_layer at 0, sets g_flight_draw_to_hud_layer to 1 and calls
- * flight_display_flip again; the modern build also ends its recorded alert.
- * Keeps the saved copy. Does not check that the box is still the size it
- * saved. */
+ * g_flight_draw_to_hud_layer at 0, sets g_flight_draw_to_hud_layer to 1 and
+ * calls flight_display_flip again; it also ends its recorded alert. Keeps the
+ * saved copy. Does not check that the box is still the size it saved. */
 // FUNCTION: XVT 0x448ED0
 void flight_alert_restore_box_background(void)
 {
@@ -161,8 +160,8 @@ void flight_alert_restore_box_background(void)
 }
 
 /* Writes one line of text, centered, into the alert box on the frame buffer,
- * between two calls to flight_display_flip, with g_flight_draw_to_hud_layer at 0
- * while drawing and 1 after. Line N sits N lines of font tier 0 below the
+ * between two calls to flight_display_flip, with g_flight_draw_to_hud_layer at
+ * 0 while drawing and 1 after. Line N sits N lines of font tier 0 below the
  * box's top; text_row 1 starts a new alert: it fills the box and a one-pixel
  * border with color bg_color + 2, then the box with bg_color, and writes on
  * line 1. Row 0 does the same without the border. Any other row fills the box
@@ -170,8 +169,8 @@ void flight_alert_restore_box_background(void)
  * there. Colors pass through flight_text_set_background_color; the text is
  * palette index 0x2F with a 0x2C shadow. Leaves font tier 0,
  * g_flight_text_shadow_enabled at 1 and the text clip on the box. Returns
- * without drawing when flight_alert_save_box_background has saved nothing. The
- * modern build also records the line for its renderer. */
+ * without drawing when flight_alert_save_box_background has saved nothing. It
+ * also records the line for the renderer. */
 // FUNCTION: XVT 0x448F90
 void flight_alert_draw_box(int text_row, const char *text, uint8_t bg_color)
 {

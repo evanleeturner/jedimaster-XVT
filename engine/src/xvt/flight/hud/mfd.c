@@ -28,20 +28,18 @@
  * none: the up and down keys scroll it and it gets the bright border. Many
  * functions write it, chiefly mfd_toggle_page, the page draw functions (which
  * pass it to g_mfd_secondary_page as their page closes),
- * hud_rebuild_display_for_view_state and damage_display_mfd_page. Flight start sets
- * MFD_PAGE_NONE: flight_main_loop in the original build,
- * xvt_flight_loading_mission_setup in the modern one. */
+ * hud_rebuild_display_for_view_state and damage_display_mfd_page. Flight start
+ * sets MFD_PAGE_NONE: xvt_flight_loading_mission_setup. */
 // GLOBAL: XVT 0x521548
 uint16_t g_mfd_active_page = MFD_PAGE_NONE;
 /* The page that becomes active when the active one closes, MFD_PAGE_NONE
  * when none; written alongside g_mfd_active_page by the same functions. */
 // GLOBAL: XVT 0x52154C
 uint16_t g_mfd_secondary_page = MFD_PAGE_NONE;
-/* g_mfd_active_page as hud_rebuild_display_for_view_state saved it on leaving the
- * forward or HUD-only view, put back when that view returns. 3 functions
+/* g_mfd_active_page as hud_rebuild_display_for_view_state saved it on leaving
+ * the forward or HUD-only view, put back when that view returns. 3 functions
  * write it: hud_rebuild_display_for_view_state, and at flight start
- * flight_main_loop in the original build and xvt_flight_loading_mission_setup in
- * the modern one. */
+ * xvt_flight_loading_mission_setup. */
 // GLOBAL: XVT 0x521554
 uint16_t g_mfd_saved_active_page = MFD_PAGE_NONE;
 /* g_mfd_secondary_page saved with g_mfd_saved_active_page, by the same 3
@@ -1350,10 +1348,11 @@ int16_t mfd_draw_mission_goals_page(void)
  * page state changed; when the page is closing it makes the secondary page
  * active, resets the cached width and count, and returns. It makes itself the
  * active page when none is and the map is not shown. Writes
- * g_mfd_mission_scoreboard_first_visible_row, g_mfd_mission_scoreboard_last_width,
+ * g_mfd_mission_scoreboard_first_visible_row,
+ * g_mfd_mission_scoreboard_last_width,
  * g_mfd_mission_scoreboard_last_player_count, g_mfd_active_page and
- * g_mfd_secondary_page. In the original build, with no team or player to list, it
- * reads the entry before its order array. */
+ * g_mfd_secondary_page. With no team or player to list it does not read the
+ * entry before its order array, as the 1997 game did. */
 // FUNCTION: XVT 0x44BC90
 void mfd_draw_mission_scoreboard_page(void)
 {
@@ -3611,12 +3610,11 @@ int16_t mfd_find_secondary_open_page(void)
  * active, action keys 0xA6 and 0xA7 scroll one line and 0xAC and 0xAD four; it
  * redraws when scrolled or when the log grows. When the page state turns to
  * closing it clears the pane, makes the secondary page active, and returns
- * cursor_y, which the modern build sets to 0 and the original leaves unset;
- * otherwise it returns the last display offset the pane covers. Writes
- * g_mfd_message_log_scroll_offset, g_mfd_message_log_redraw,
- * g_mfd_message_log_last_draw_total_count, g_message_log_records,
- * g_flight_text_shadow_enabled, g_flight_text_color_index, g_mfd_active_page and
- * g_mfd_secondary_page. */
+ * cursor_y, which it sets to 0; otherwise it returns the last display offset
+ * the pane covers. Writes g_mfd_message_log_scroll_offset,
+ * g_mfd_message_log_redraw, g_mfd_message_log_last_draw_total_count,
+ * g_message_log_records, g_flight_text_shadow_enabled,
+ * g_flight_text_color_index, g_mfd_active_page and g_mfd_secondary_page. */
 // FUNCTION: XVT 0x49EC40
 int16_t mfd_draw_message_log_page(void)
 {

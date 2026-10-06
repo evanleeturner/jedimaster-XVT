@@ -128,11 +128,11 @@ static int g_fsfx_tac_officer_last_speak_seconds_by_obj[136] = {0};
  * with the wave folder. */
 // GLOBAL: XVT 0xA0AB20
 static char g_fsfx_sfx_load_path[720] = {0};
-/* Path of the mission file being flown: "DEMO.TIE" until flight_main (original
- * build) or xvt_flight_entry_create_devices (modern) copies in the mission path
- * from the launch arguments. fe_disk_io_init_resources, flight_main_loop and
- * xvt_flight_loading_palette change its last three letters while they open the
- * mission's other files, then put them back. */
+/* Path of the mission file being flown: "DEMO.TIE" until
+ * xvt_flight_entry_create_devices copies in the mission path from the launch
+ * arguments. fe_disk_io_init_resources and xvt_flight_loading_palette change
+ * its last three letters while they open the mission's other files, then put
+ * them back. */
 // GLOBAL: XVT 0x523448
 char g_current_mission_file[128] = "DEMO.TIE";
 /* Speaker type of each queued voice line: 0 special, 1 wingman pilot, 2
@@ -181,8 +181,8 @@ static uint8_t g_fsfx_current_voice_chain_flag = 0;
 // GLOBAL: XVT 0x556350
 uint8_t g_player_engine_loop_object_type = 0;
 
-/* Empties every name in g_fsfx_sfx_name_table. Returns 0. flight_main_loop calls it
- * in the original build, xvt_flight_loading_globals in the modern one. */
+/* Empties every name in g_fsfx_sfx_name_table. Returns 0.
+ * xvt_flight_loading_globals calls it. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x42DE40
 int fsfx_clear_sfx_name_table(void)
@@ -277,19 +277,20 @@ int fsfx_load_sfx_list(const char *file_name_buffer, uint16_t first_sound_id)
 }
 
 /* Loads the mission's voice lists from the wave folder with fsfx_load_sfx_list;
- * does nothing when g_flight_conf_voice_enabled or the voice volume is 0. With the
- * tactical officer on it loads RTO1.LST or RTO2.LST for a player on IFF 0, else
- * ITO1.LST or ITO2.LST, chosen by game_rand2() & 1, at id 0x2B8 (696). With the
- * commander on it loads RCMD.LST for IFF 0, ICMD.LST for IFF 1, else PCMD.LST,
- * at 0x324 (804). With wingman voices on, when the player's flight group (the
- * first whose player_owner_idx is g_local_player) has more than one craft or more
- * than one group has a player_number, it loads one pilot list per craft of that
- * group, RSP1.LST to RSP6.LST (ISP for IFF 1) starting at a random one and
- * cycling, at ids 114, 211 and on, 97 apart, with no limit on the count. With
- * special voices on it loads the mission file's name, less anything up to and
- * including its first backslash, with its last three letters changed to "lst",
- * at 0x5F. Does not check that the mission name fits its 64-byte buffers; the
- * modern build changes the letters only for a name of 3 or more characters. */
+ * does nothing when g_flight_conf_voice_enabled or the voice volume is 0. With
+ * the tactical officer on it loads RTO1.LST or RTO2.LST for a player on IFF 0,
+ * else ITO1.LST or ITO2.LST, chosen by game_rand2() & 1, at id 0x2B8 (696).
+ * With the commander on it loads RCMD.LST for IFF 0, ICMD.LST for IFF 1, else
+ * PCMD.LST, at 0x324 (804). With wingman voices on, when the player's flight
+ * group (the first whose player_owner_idx is g_local_player) has more than one
+ * craft or more than one group has a player_number, it loads one pilot list per
+ * craft of that group, RSP1.LST to RSP6.LST (ISP for IFF 1) starting at a
+ * random one and cycling, at ids 114, 211 and on, 97 apart, with no limit on
+ * the count. With special voices on it loads the mission file's name, less
+ * anything up to and including its first backslash, with its last three letters
+ * changed to "lst", at 0x5F. Does not check that the mission name fits its
+ * 64-byte buffers; it changes the letters only for a name of 3 or more
+ * characters. */
 // FUNCTION: XVT 0x42E070
 void fsfx_load_mission_voice_sfx(void)
 {
@@ -1227,16 +1228,15 @@ void fsfx_update_player_engine_loop(void)
 }
 
 /* Keeps the loops for the beam effects on the local player's craft in step.
- * While beam_effect_accum[1] is nonzero it queues 63 unless it plays and,
- * when neither 64 nor 65 plays and game_rand2() < 0x1000 (in the modern
- * build only while xvt_flight_timing_reference_due is true), queues id
- * (game_rand2() & 1) + 63, so 63 or 64; once it is 0 it stops 63, 64 and 65.
- * While beam_effect_accum[2] is nonzero it queues 66 at half volume unless it
- * plays, and stops it once that is 0. With no craft it stops 63 to 66.
- * Loops are queued looping, centered, at priority 125 and the interior
- * volume setting times 13, 127 from 10 up. Does nothing when
- * g_flight_sim_side_effects_suppressed is set, g_flight_conf_sfx_enabled is 0 or
- * interior sounds are off or at volume 0. */
+ * While beam_effect_accum[1] is nonzero it queues 63 unless it plays and, when
+ * neither 64 nor 65 plays and game_rand2() < 0x1000 (only while
+ * xvt_flight_timing_reference_due is true), queues id (game_rand2() & 1) + 63,
+ * so 63 or 64; once it is 0 it stops 63, 64 and 65. While beam_effect_accum[2]
+ * is nonzero it queues 66 at half volume unless it plays, and stops it once
+ * that is 0. With no craft it stops 63 to 66. Loops are queued looping,
+ * centered, at priority 125 and the interior volume setting times 13, 127 from
+ * 10 up. Does nothing when g_flight_sim_side_effects_suppressed is set,
+ * g_flight_conf_sfx_enabled is 0 or interior sounds are off or at volume 0. */
 // FUNCTION: XVT 0x42F5D0
 void fsfx_update_beam_effect_loops(void)
 {

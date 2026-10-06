@@ -20,11 +20,9 @@
 
 /* The loaded AI plans; a plan id is an index into it. Each entry holds the
  * plan's name, whether the plan text defined it, and where its bytes start in
- * g_plan_order_data. pai_loadplans clears it and fills it from the .plo file, or
- * pai_compile_plans_from_text fills it from the .pln text. The world state saves
- * and restores it: flight_save_world_state and flight_restore_world_state in the
- * original build, xvt_snapshot_encode and xvt_snapshot_decode_prefix in the modern
- * one. */
+ * g_plan_order_data. pai_loadplans clears it and fills it from the .plo file,
+ * or pai_compile_plans_from_text fills it from the .pln text. The world state
+ * saves and restores it: xvt_snapshot_encode and xvt_snapshot_decode_prefix. */
 // GLOBAL: XVT 0x9D1320
 struct pai_plan_record g_plan_table[256];
 
@@ -276,8 +274,8 @@ uint8_t *g_plan_data_ptrs[256];
 /* The compiled plans, back to back. Each plan is a target byte, a maneuver
  * byte, then pairs of an order id and the plan id to switch to when that order
  * fires, ended by order 0. pai_compile_plans_from_text writes it from the .pln
- * text; pai_loadplans reads it from the .plo file. The world checksum covers it
- * in both builds. */
+ * text; pai_loadplans reads it from the .plo file. The world checksum covers
+ * it. */
 // GLOBAL: XVT 0x9A8E40
 uint8_t g_plan_order_data[0x20000] = {0};
 /* Plans loaded. pai_loadplans sets it to 0, then, after reading the .plo file,
@@ -286,9 +284,9 @@ uint8_t g_plan_order_data[0x20000] = {0};
  * and checksum use it. */
 // GLOBAL: XVT 0x9A8068
 int g_plan_count = 0;
-/* For each name in g_builtin_plan_name_table, the plan id loaded under that name,
- * or 0 when no plan has it. pai_cache_builtin_plan_ids fills it at flight start;
- * the world state saves and restores it in both builds. */
+/* For each name in g_builtin_plan_name_table, the plan id loaded under that
+ * name, or 0 when no plan has it. pai_cache_builtin_plan_ids fills it at flight
+ * start; the world state saves and restores it. */
 // GLOBAL: XVT 0x9A7A40
 uint8_t g_builtin_plan_id_by_name_index[256] = {0};
 /* For each mission order, 0 to 39, the g_builtin_plan_name_table index of the
@@ -1418,13 +1416,13 @@ uint16_t pai_get_effective_skill_value(struct craft_data *craft)
 }
 
 /* Returns 1 when one of the object's flight group orders in slots 0 to 2 gives
- * a leader the plan named by leader_plan_name_index and targets the given object,
- * else 0; returns 0 at once for object_idx -1. Sets up g_pai_context for the
- * object, and leaves g_pai_context.order_slot at the matching slot, else at the
- * last slot that gave that plan, else at the craft's current slot.
- * The modern build puts g_pai_context back as it found it before returning: the
- * target description calls this for this machine's own player, so the context
- * it left behind differed between the machines of a network game, and a mine's
+ * a leader the plan named by leader_plan_name_index and targets the given
+ * object, else 0; returns 0 at once for object_idx -1. Sets up g_pai_context
+ * for the object, and leaves g_pai_context.order_slot at the matching slot,
+ * else at the last slot that gave that plan, else at the craft's current slot.
+ * Puts g_pai_context back as it found it before returning: the target
+ * description calls this for this machine's own player, so a context left
+ * behind would differ between the machines of a network game, and a mine's
  * decoy test in a later step reads it. */
 // FUNCTION: XVT 0x404670
 int pai_setup_context_and_find_order_plan_on_target(int object_idx,

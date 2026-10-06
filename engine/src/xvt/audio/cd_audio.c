@@ -11,18 +11,18 @@
 #include "xvt_runtime/runtime/port.h"
 
 /* Opens the CD audio device through MCI for the front end's music. Returns 0 at
- * once when the window is not up: g_front_state.hWnd NULL in the original build,
- * xvt_port_is_initialized false in the modern one. Closes a device already open
- * with cd_audio_close_device. Takes the first auxiliary device that is a CD audio
- * device with volume control and whose volume reads, and stores the low 16 bits
- * of that volume in g_front_state.cd_audio_saved_aux_volume. Opens "cdaudio" into
+ * once when the window is not up (xvt_port_is_initialized false). Closes a
+ * device already open with cd_audio_close_device. Takes the first auxiliary
+ * device that is a CD audio device with volume control and whose volume reads,
+ * and stores the low 16 bits of that volume in
+ * g_front_state.cd_audio_saved_aux_volume. Opens "cdaudio" into
  * cd_audio_mci_device_id, sets the time format to tracks, minutes, seconds and
  * frames (MCI_FORMAT_TMSF), and reads the track count into cd_audio_track_count
  * and each track's length, in minutes, seconds and frames, into
- * cd_audio_track_cache.track_length_msf_by_track. Returns 1; 0 when the open fails, or
- * when a later step fails, after closing the device and setting
- * cd_audio_mci_device_id to 0. Does not check the track count against the cache's
- * 40 entries. */
+ * cd_audio_track_cache.track_length_msf_by_track. Returns 1; 0 when the open
+ * fails, or when a later step fails, after closing the device and setting
+ * cd_audio_mci_device_id to 0. Does not check the track count against the
+ * cache's 40 entries. */
 // FUNCTION: XVT 0x4D2E50
 int cd_audio_initialize(void)
 {
@@ -210,12 +210,13 @@ int cd_audio_stop_current_track(void)
 }
 
 /* Closes the CD audio device: stops a current track, closes the device and sets
- * g_front_state.cd_audio_mci_device_id to 0, and clears the cached track lengths,
- * cd_audio_current_track, cd_audio_playback_complete and cd_audio_suspend_state. When
- * cd_audio_saved_aux_volume is not -1 it puts that volume back on both channels of
- * every CD audio auxiliary device with volume control; then it sets
- * cd_audio_saved_aux_volume to -1. Does nothing when no device is open, but the
- * modern build first cancels a volume fade with xvt_cd_task_cancel_fade. */
+ * g_front_state.cd_audio_mci_device_id to 0, and clears the cached track
+ * lengths, cd_audio_current_track, cd_audio_playback_complete and
+ * cd_audio_suspend_state. When cd_audio_saved_aux_volume is not -1 it puts that
+ * volume back on both channels of every CD audio auxiliary device with volume
+ * control; then it sets cd_audio_saved_aux_volume to -1. Does nothing when no
+ * device is open, but it first cancels a volume fade with
+ * xvt_cd_task_cancel_fade. */
 // FUNCTION: XVT 0x4D31A0
 void cd_audio_close_device(void)
 {
@@ -384,13 +385,12 @@ int cd_audio_request_resume_playback(void)
 	return 1;
 }
 
-/* Plays the current track on from g_front_state.cd_audio_suspend_elapsed_ms, cut to
- * whole minutes and seconds, with cd_audio_play_track_from_time, then sets
- * cd_audio_track_end_ms to GetTickCount() + cd_audio_suspend_remaining_ms + 2000 and
- * cd_audio_suspend_state to CD_AUDIO_NOT_SUSPENDED. Returns 1, also when the play
- * fails. Does not check that playback was suspended. The front end's frame loop
- * calls it: frontend_display_run_main_loop in the original build, xvt_cd_task_update
- * in the modern one. */
+/* Plays the current track on from g_front_state.cd_audio_suspend_elapsed_ms,
+ * cut to whole minutes and seconds, with cd_audio_play_track_from_time, then
+ * sets cd_audio_track_end_ms to GetTickCount() + cd_audio_suspend_remaining_ms
+ * + 2000 and cd_audio_suspend_state to CD_AUDIO_NOT_SUSPENDED. Returns 1, also
+ * when the play fails. Does not check that playback was suspended. The front
+ * end's frame loop calls it, through xvt_cd_task_update. */
 // FUNCTION: XVT 0x4D3430
 int cd_audio_resume_suspended_playback(void)
 {
@@ -442,13 +442,8 @@ int cd_audio_set_aux_volume(unsigned int volume0_to65535)
 }
 
 /* Moves the CD volume from from_volume to to_volume over about fade_duration_ms
- * milliseconds. The modern build hands the fade to xvt_cd_task_begin_fade and
- * returns its result. The original build returns 0 when no device is open and 1
- * at once when the two volumes are equal; otherwise it waits in a loop, moving
- * the volume 256 toward to_volume with cd_audio_set_aux_volume, kept within 0 to
- * 65535, each time more than (fade_duration_ms << 8) / the difference
- * milliseconds have passed, until it reaches or passes to_volume, and returns
- * 1. */
+ * milliseconds. It hands the fade to xvt_cd_task_begin_fade and returns its
+ * result. */
 // FUNCTION: XVT 0x4D3520
 int cd_audio_fade_aux_volume(unsigned int from_volume, unsigned int to_volume,
 			     int fade_duration_ms)

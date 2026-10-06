@@ -11,23 +11,20 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/timing/flight_timing.h"
 
-/* 1 when keys are read through DirectInput, 0 when through window messages; the
- * modern build reads keys through DirectInput either way. Starts at 1; at
- * flight start the launch option "nodinput" sets 0 and "dinput" or neither sets
- * 1 (flight_main in the original build, xvt_flight_entry_read_launch_switches in
- * the modern one), and it falls to 0 when dinput_init fails (flight_main,
- * xvt_flight_entry_create_devices). */
+/* 1 when keys are read through DirectInput, 0 when through window messages;
+ * keys are read through DirectInput either way. Starts at 1; at flight start
+ * the launch option "nodinput" sets 0 and "dinput" or neither sets 1
+ * (xvt_flight_entry_read_launch_switches), and it falls to 0 when dinput_init
+ * fails (xvt_flight_entry_create_devices). */
 // GLOBAL: XVT 0x527EB4
 int g_flight_conf_direct_input = 1;
-/* Key code flight_input_get_next_key returns on the window-message path. Nothing
- * in the engine stores a key in it; only xvt_input_flush_raw_keyboard writes it,
- * setting 0, in the modern build. */
+/* Key code from the window-message path. Nothing reads it, and nothing in the
+ * engine stores a key in it; only xvt_input_flush_raw_keyboard writes it,
+ * setting 0. */
 // GLOBAL: XVT 0x66E1F4
 uint8_t g_last_key_code = 0;
-/* 1 when a key waits for flight_input_get_next_key on the window-message path.
- * Nothing in the engine sets it to 1: flight_input_get_next_key and, in the modern
- * build, xvt_input_flush_raw_keyboard set it to 0, so that path never sees a
- * key. */
+/* 1 when a key waits on the window-message path. Nothing reads it, and nothing
+ * sets it to 1; xvt_input_flush_raw_keyboard sets it to 0. */
 // GLOBAL: XVT 0x66E708
 int g_key_ready = 0;
 
@@ -54,18 +51,17 @@ uint8_t g_throttle_key_table[17] = {0x5C, 0xDB, 0xDC, 0xDD, 0xDE, 0x5B,
 /* Per player, the input record flight_input_read applies when called with that
  * player's index: the input from that player's history for the step being
  * simulated, its key and button bits cleared when a step with side effects
- * suppressed replays a tick already simulated. Five functions write it:
- * flight_advance_one_step, and at flight start flight_main_loop, which clears it,
- * in the original build; xvt_flight_sim_advance, xvt_flight_loading_globals, and
- * xvt_flight_sim_update_player_step, which clears its flags and throttle on a
- * pause, in the modern one. */
+ * suppressed replays a tick already simulated. Three functions write it:
+ * xvt_flight_sim_advance; xvt_flight_loading_globals, which clears it at flight
+ * start; and xvt_flight_sim_update_player_step, which clears its flags and
+ * throttle on a pause. */
 // GLOBAL: XVT 0x9A7B70
 struct flight_input_frame_record g_replay_inputs[8] = {{0}};
 /* Stick X axis of the input being applied: the local joystick's on a local
  * read, else the replayed record's. flight_input_latch_flight_controls turns it
  * into g_scaled_input_yaw (times 120) when the mouse gives no yaw. Written by
- * flight_input_read and flight_input_clear_axes_and_modifiers, and in the modern
- * build by xvt_flight_controls_read_local and xvt_input_set_captured. */
+ * flight_input_read, xvt_flight_controls_read_local and
+ * xvt_input_set_captured. */
 // GLOBAL: XVT 0xA00498
 int16_t g_ctrl_axis_x;
 /* Stick Y axis, as g_ctrl_axis_x; it becomes g_scaled_input_pitch (times 50) when
@@ -75,9 +71,9 @@ int16_t g_ctrl_axis_y;
 /* Button bits of the input being applied: bit 0 fire, bit 1 target, set while a
  * joystick button mapped to code 156 or 157 is held, or from a replayed record
  * (its key_mods, low 2 bits). flight_input_latch_flight_controls merges it into
- * g_flight_key_mods. Written by flight_input_read, flight_input_reset_runtime_state
- * and flight_input_clear_axes_and_modifiers, and in the modern build by
- * xvt_flight_controls_read_local and xvt_input_set_captured. */
+ * g_flight_key_mods. Written by flight_input_read,
+ * flight_input_reset_runtime_state, xvt_flight_controls_read_local and
+ * xvt_input_set_captured. */
 // GLOBAL: XVT 0xA08244
 uint16_t g_key_mods;
 /* What input_detect_active_joystick returned, cut to 16 bits;
@@ -86,11 +82,10 @@ uint16_t g_key_mods;
 // GLOBAL: XVT 0xA08130
 uint16_t g_joystick_detect_result_word = 0;
 /* Action key of the last flight_input_read (a flight_action_key, 0 for none);
- * flight_input_latch_flight_controls copies it to g_current_action_key. Seven
+ * flight_input_latch_flight_controls copies it to g_current_action_key. Six
  * functions write it: flight_input_read, mission_init_flight_runtime_state (0),
- * flight_update_player_step in the original build, and
- * xvt_flight_controls_read_local, xvt_flight_controls_recover, xvt_flight_sim_resume
- * and xvt_input_set_captured in the modern one. */
+ * xvt_flight_controls_read_local, xvt_flight_controls_recover,
+ * xvt_flight_sim_resume and xvt_input_set_captured. */
 // GLOBAL: XVT 0x9A8C12
 uint16_t g_action_key;
 /* Action key the current player step acts on, latched from g_action_key by
@@ -103,15 +98,15 @@ uint16_t g_current_action_key;
  * merged by flight_input_latch_flight_controls. Bit 0, with bits 2 and 3 clear,
  * fires the weapon. Bit 1, with bits 2 and 3 clear, picks a target when
  * released within 59 ticks and, held longer, turns yaw input into roll; the
- * player step clears it here during those first 59 ticks. Three functions write
+ * player step clears it here during those first 59 ticks. Two functions write
  * it: flight_input_latch_flight_controls and the player step,
- * flight_update_player_step in the original build and
- * xvt_flight_sim_update_player_step in the modern one. */
+ * xvt_flight_sim_update_player_step. */
 // GLOBAL: XVT 0x9EC474
 uint16_t g_flight_key_mods;
 /* 1 when the mouse steers. Only flight_input_reset_runtime_state writes it,
  * setting 0, so the mouse paths in flight_input_read,
- * flight_input_latch_flight_controls and the modern controls never run. */
+ * flight_input_latch_flight_controls, xvt_flight_controls_read_local and
+ * xvt_flight_controls_sample_recorded never run. */
 // GLOBAL: XVT 0x9E95F0
 uint16_t g_flight_mouse_enabled;
 /* 1 when flight_input_reset_runtime_state found a joystick
@@ -120,9 +115,9 @@ uint16_t g_flight_mouse_enabled;
 // GLOBAL: XVT 0xA08242
 uint16_t g_joystick_available;
 /* Mouse movement in X since the last local read, clamped to -191 to 191;
- * flight_input_latch_flight_controls turns it into yaw (shifted left 7). Written
- * by flight_input_read, and in the modern build by xvt_flight_controls_read_local
- * and xvt_input_set_captured. */
+ * flight_input_latch_flight_controls turns it into yaw (shifted left 7).
+ * Written by flight_input_read, xvt_flight_controls_read_local and
+ * xvt_input_set_captured. */
 // GLOBAL: XVT 0x9A73E8
 int16_t g_flight_mouse_delta_x;
 /* Mouse movement in Y, clamped to -127 to 127, turned into pitch (shifted left
@@ -136,16 +131,16 @@ int16_t g_flight_mouse_x = 0;
 /* Mouse Y position, as g_flight_mouse_x; nothing reads it. */
 // GLOBAL: XVT 0x9A739E
 int16_t g_flight_mouse_y = 0;
-/* Mouse button bits from the last local read; flight_input_latch_flight_controls
- * merges them into g_flight_key_mods. Written by flight_input_read and
- * flight_input_reset_runtime_state, and in the modern build by
+/* Mouse button bits from the last local read;
+ * flight_input_latch_flight_controls merges them into g_flight_key_mods.
+ * Written by flight_input_read, flight_input_reset_runtime_state,
  * xvt_flight_controls_read_local and xvt_input_set_captured. */
 // GLOBAL: XVT 0x9D8C06
 uint16_t g_mouse_buttons;
 /* Yaw input for the current player step, signed: mouse X movement shifted left
  * 7, or with no mouse yaw, g_ctrl_axis_x times 120. Set by
- * flight_input_latch_flight_controls; the dead zones (flight_input_apply_deadzone,
- * flight_input_read_and_apply_flight_deadzone) zero it, and
+ * flight_input_latch_flight_controls; the dead zone
+ * (flight_input_apply_deadzone) zeroes it, and
  * player_update_flight_controls_and_camera also writes it. */
 // GLOBAL: XVT 0x9ECC30
 int16_t g_scaled_input_yaw;
@@ -245,8 +240,8 @@ void flight_input_reset_runtime_state(void)
 		      (unsigned)g_joystick_detect_result_word);
 }
 
-/* Sets g_throttle_smoothed to -1 (no reading yet) and g_held_joystick_buttons to
- * 0; the modern build also calls xvt_flight_controls_reset. */
+/* Sets g_throttle_smoothed to -1 (no reading yet) and g_held_joystick_buttons
+ * to 0; it also calls xvt_flight_controls_reset. */
 // FUNCTION: XVT 0x4117F0
 void flight_input_reset_control_state(void)
 {
@@ -257,23 +252,13 @@ void flight_input_reset_control_state(void)
 }
 
 /* Reads one input and returns its action key (0 for none). With a negative
- * argument it reads the local devices: the modern build returns
- * xvt_flight_controls_read_local at once, and the rest of this path runs only in
- * the original build. That path polls the joystick when g_joystick_available and
- * the mouse when g_flight_mouse_enabled, takes one waiting key, and maps the 20
- * joystick buttons through g_game_config.joy_buttons: a newly pressed button
- * gives its key when no key came yet (else it is counted as not held, so it
- * gives its key on a later read); releasing a button mapped to keypad 0 gives
- * keypad 0, and one mapped to keypad 1 to 9 gives keypad 8, the same way;
- * buttons mapped to codes 156 and 157 set g_key_mods bits 0 and 1 while held.
- * With still no key, the smoothed throttle may give one from
- * g_throttle_key_table. It writes g_action_key, g_ctrl_axis_x, g_ctrl_axis_y,
- * g_key_mods, g_mouse_buttons, the mouse globals, g_held_joystick_buttons and
- * g_throttle_smoothed; with the mouse off it stores mouse positions it never
- * set. With a player index it applies g_replay_inputs for that player instead:
- * the axes, the key (into g_action_key) and the low 2 bits of key_mods; the
- * modern build also sets g_xvt_control_roll and, under the network timing, zeroes
- * the mouse movement and buttons. */
+ * argument it reads the local devices: it returns
+ * xvt_flight_controls_read_local at once. The code after that return, which
+ * polls the joystick, the mouse and the keys the 1997 way, is never reached.
+ * With a player index it applies g_replay_inputs for that player instead: the
+ * axes, the key (into g_action_key) and the low 2 bits of key_mods; it also
+ * sets g_xvt_control_roll and, under the network timing, zeroes the mouse
+ * movement and buttons. */
 // FUNCTION: XVT 0x411810
 uint16_t flight_input_read(int player_idx_or_sentinel)
 {
@@ -438,23 +423,16 @@ uint16_t flight_input_read(int player_idx_or_sentinel)
 	}
 }
 
-/* Returns nonzero when a key press waits. The modern build returns 0 while the
- * input is captured (xvt_input_is_captured), else dinput_skip_to_pending_key_press.
- * The original build asks dinput_skip_to_pending_key_press when
- * g_flight_conf_direct_input is set; otherwise it handles one window message,
- * waiting for one in GetMessageA unless g_flight_input_non_blocking_msg_pump is set
- * and none is queued, and returns g_key_ready. */
+/* Returns nonzero when a key press waits: 0 while the input is captured
+ * (xvt_input_is_captured), else dinput_skip_to_pending_key_press. */
 // FUNCTION: XVT 0x4AA7F0
 int flight_input_has_key_ready(void)
 {
 	return xvt_input_is_captured() ? 0 : dinput_skip_to_pending_key_press();
 }
 
-/* Returns the next key press. The modern build returns 0 while the input is
- * captured, else dinput_get_key. The original build returns dinput_get_key when
- * g_flight_conf_direct_input is set; otherwise it handles window messages until
- * g_key_ready is set, clears it and returns g_last_key_code, or returns
- * g_last_key_code when GetMessageA reports the quit message. */
+/* Returns the next key press: 0 while the input is captured, else
+ * dinput_get_key. */
 // FUNCTION: XVT 0x4AA870
 int flight_input_get_next_key(void)
 {

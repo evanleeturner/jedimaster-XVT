@@ -186,18 +186,19 @@ void flight_hyperspace_request_transition_effect_initialization(void)
 }
 
 /* Draws the hyperspace streaks around the local player's camera: 1,024 with
- * hardware 3D, 512 in software. When g_hyperspace_transition_effect_init_pending is
- * set it first plays the entry sound for the player's side (the imperial sound
- * for IFF 1, else the other one) and places all 1,024 streaks at random (the
- * g_hyperspaceStreak arrays). Each streak is drawn as object 0, type 137, at
- * the camera plus its offset, pitched a quarter turn and rolled by its angle
+ * hardware 3D, 512 in software. When
+ * g_hyperspace_transition_effect_init_pending is set it first plays the entry
+ * sound for the player's side (the imperial sound for IFF 1, else the other
+ * one) and places all 1,024 streaks at random (the g_hyperspaceStreak arrays).
+ * Each streak is drawn as object 0, type 137, at the camera plus its offset,
+ * pitched a quarter turn and rolled by its angle
  * (flight_hyperspace_draw_transition_effect_object). Until the local player's
  * hyperspace_runtime.phase_elapsed_ticks reach 472, a streak's length is the
  * square of a quarter of them and its world Y is lowered by 16 per tick; after
  * that its length is 16,000, its Y is lowered by 7,552 plus the square of twice
  * the ticks less 944, and the exit sound plays once. Object 0, its mobj and
- * g_bilinear_enabled, cleared while drawing, are put back after. The modern
- * build also hands the streaks to xvt_render_capture_hyperspace. */
+ * g_bilinear_enabled, cleared while drawing, are put back after. It also hands
+ * the streaks to xvt_render_capture_hyperspace. */
 // FUNCTION: XVT 0x4244E0
 void flight_hyperspace_render_transition_effect(void)
 {

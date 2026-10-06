@@ -152,14 +152,14 @@ struct mobile_object_char_data {
 	 * effective_ai_object_link; no code sets it other than by clearing or
 	 * copying the whole record. */
 	uint16_t skill_value;
-	/* Never read or written by name, save in the modern build's snapshot
-	 * field table, which copies it. */
+	/* Never read or written by name, save in the snapshot field table,
+	 * which copies it. */
 	uint8_t unused02[2];
 	/* AI state; flight_update_timers counts down its think and maneuver
 	 * timers. */
 	struct ai_controller ai_controller;
-	/* Never read or written by name, save in the modern build's snapshot
-	 * field table, which copies it. */
+	/* Never read or written by name, save in the snapshot field table,
+	 * which copies it. */
 	uint8_t unused40[12];
 };
 

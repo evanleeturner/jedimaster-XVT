@@ -198,20 +198,19 @@ int g_collision_hit_offset_z = 0;
 /* Fills list, the proximity list of owner_obj_idx, through
  * collide_insert_mobile_object_proximity_candidate, by the owner's kind. A
  * player's craft: with working systems, every live craft of another flight
- * group except explosions; outside proving grounds, every static object.
- * An AI starfighter, transport or utility vehicle (not in proving grounds):
- * it adds itself to the lists of player craft and of freighters,
- * starships and platforms (not dropping off or carried) in other flight
- * groups, and adds static objects of types 100 to 105 to its own. An AI
- * freighter, starship or platform not dropping off or carried: it adds
- * itself to player craft's lists and to other such large craft's lists,
- * and adds every other AI craft except explosions to its own. A shot:
- * from g_active_region_object_slot_start to g_projectile_object_slot_end, every
- * craft and every warhead from another source, not itself, its source or
- * an explosion, when the shot's target or source belongs to a player or
- * the candidate is its target (the modern build also passes over effects
- * left in shot slots); outside proving grounds, every static object. Other
- * genera get nothing. Does not empty the list first. */
+ * group except explosions; outside proving grounds, every static object. An AI
+ * starfighter, transport or utility vehicle (not in proving grounds): it adds
+ * itself to the lists of player craft and of freighters, starships and
+ * platforms (not dropping off or carried) in other flight groups, and adds
+ * static objects of types 100 to 105 to its own. An AI freighter, starship or
+ * platform not dropping off or carried: it adds itself to player craft's lists
+ * and to other such large craft's lists, and adds every other AI craft except
+ * explosions to its own. A shot: from g_active_region_object_slot_start to
+ * g_projectile_object_slot_end, every craft and every warhead from another
+ * source, not itself, its source or an explosion, when the shot's target or
+ * source belongs to a player or the candidate is its target (it also passes
+ * over effects left in shot slots); outside proving grounds, every static
+ * object. Other genera get nothing. Does not empty the list first. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x419890
 void collide_populate_mobile_object_proximity_candidates(
@@ -5526,17 +5525,17 @@ unsigned int collide_compute_craft_damage_amount(uint16_t victim_obj_idx,
 /* Polygon test of the sweep from g_collisionSegmentStartWorld* to
  * g_collisionProbeWorld* against the model of target_obj_idx. Moves the sweep
  * into the model's own axes and walks each root mesh whose box the sweep does
- * not lie wholly beside, with collide_test_sweep_against_opt_node. Skips a craft's
- * destroyed meshes (component_hp 0); when source_obj_idx is the target, a turret
- * firing past its own ship, it also skips laser turret and gun meshes and, on a
- * Super Star Destroyer, the mesh at g_turret_fire_hull_mesh_ordinal. A rotating
- * mesh is tested turned by its mesh_rotation in proving grounds or for a source
- * no player owns, and unturned for a player's source. Returns the 1-based
- * ordinal of the mesh with the nearest hit, or 0; on a hit it sets
+ * not lie wholly beside, with collide_test_sweep_against_opt_node. Skips a
+ * craft's destroyed meshes (component_hp 0); when source_obj_idx is the target,
+ * a turret firing past its own ship, it also skips laser turret and gun meshes
+ * and, on a Super Star Destroyer, the mesh at g_turret_fire_hull_mesh_ordinal.
+ * A rotating mesh is tested turned by its mesh_rotation in proving grounds or
+ * for a source no player owns, and unturned for a player's source. Returns the
+ * 1-based ordinal of the mesh with the nearest hit, or 0; on a hit it sets
  * g_collisionHitOffset* to the source's travel up to the hit fraction less 0.1
- * (not below 0). Returns 0 when the model will not lock, and in the modern
- * build for an object type whose asset_flags bit 0 is clear. Writes the
- * g_collideSweep* and g_collideCurrent* globals. */
+ * (not below 0). Returns 0 when the model will not lock, and for an object type
+ * whose asset_flags bit 0 is clear. Writes the g_collideSweep* and
+ * g_collideCurrent* globals. */
 /* Besides the test, this sets g_cur_craft to the target's craft when the target
  * has one and does not restore it; nothing in this function or the functions it
  * calls reads g_cur_craft. */
@@ -5802,16 +5801,16 @@ int collide_check_swept_model_collision(uint16_t source_obj_idx,
 	return g_collide_sweep_hit_mesh_ordinal;
 }
 
-/* Walks node and its children: OPT_NODEREF links are resolved by name
- * (kept in the node once resolved while g_cache_resolved_opt_node_refs is set;
- * the modern build uses xvt_opt_resolve_cached); an OPT_MESHVERTS node
- * becomes the vertex source for the faces after it and stops the walk
- * when the sweep lies wholly beside its box; an OPT_ROTSCALE node turns
- * the sweep about its origin and axis by g_collide_current_mesh_rotation_angle;
- * an OPT_FACEGROUP node walks its first child only. A face whose plane the
- * sweep crosses, inside the face, nearer than the best so far (and, under
- * g_collide_sweep_reject_near_start_hits, at least 0.1 along) becomes the best
- * hit. Returns 0 at the end of a branch or on a missing node. */
+/* Walks node and its children: OPT_NODEREF links are resolved by name (kept in
+ * the node once resolved while g_cache_resolved_opt_node_refs is set, through
+ * xvt_opt_resolve_cached); an OPT_MESHVERTS node becomes the vertex source for
+ * the faces after it and stops the walk when the sweep lies wholly beside its
+ * box; an OPT_ROTSCALE node turns the sweep about its origin and axis by
+ * g_collide_current_mesh_rotation_angle; an OPT_FACEGROUP node walks its first
+ * child only. A face whose plane the sweep crosses, inside the face, nearer
+ * than the best so far (and, under g_collide_sweep_reject_near_start_hits, at
+ * least 0.1 along) becomes the best hit. Returns 0 at the end of a branch or on
+ * a missing node. */
 /* Walks the model tree under node for the sweep segment. Hits are reported only
  * through g_collide_sweep_hit_mesh_ordinal and g_collide_sweep_hit_fraction.
  * The return value is not a hit: it is 1 when the segment misses a mesh's

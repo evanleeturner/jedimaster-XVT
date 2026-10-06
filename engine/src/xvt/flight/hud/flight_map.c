@@ -29,8 +29,8 @@
 #include "xvt_runtime/log/log.h"
 
 /* Icon frame for each object type, 0 to 105, in the 640x480 icon set
- * (RESOURCE\icons640.ico); flight_map_draw_object_icon_at_view_pos uses frame 19
- * for higher types. The modern build's map capture reads it too. */
+ * (RESOURCE\icons640.ico); flight_map_draw_object_icon_at_view_pos uses frame
+ * 19 for higher types. The map capture reads it too. */
 // GLOBAL: XVT 0x521240
 const uint8_t g_flight_icons640_frame_by_object_type[106] = {
 	0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x00, 0x00,

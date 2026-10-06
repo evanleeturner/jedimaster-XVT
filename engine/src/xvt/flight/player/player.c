@@ -38,9 +38,8 @@
  * write them, chiefly in the HUD, message and collision code. */
 // GLOBAL: XVT 0x9D8B80
 struct player_flight_transient_timers g_player_flight_transient_timers[8];
-/* Slot, 0 to 7, of the player at this machine. Two functions write it, both at
- * flight start from net_session_find_player_slot_by_dpid: flight_main_loop in the
- * original build and xvt_flight_loading_globals in the modern one. */
+/* Slot, 0 to 7, of the player at this machine. Only xvt_flight_loading_globals
+ * writes it, at flight start, from net_session_find_player_slot_by_dpid. */
 // GLOBAL: XVT 0x9ECC34
 int g_local_player;
 /* Each player's flight state: the craft flown, targeting, saved settings,
@@ -48,11 +47,9 @@ int g_local_player;
 // GLOBAL: XVT 0x9E9670
 struct player_data g_players[8];
 /* Each player's four taunt lines, 70 bytes each, sent as chat by keys 155 to
- * 158. Alone, a player gets g_game_config.taunts; in multiplayer each slot holds
- * what arrived over the network. Written by
- * flight_net_sync_player_options_and_taunts in the original build and by
- * xvt_flight_network_read_taunts and xvt_flight_network_exchange_options in the
- * modern one. */
+ * 158. Alone, a player gets g_game_config.taunts; in multiplayer each slot
+ * holds what arrived over the network. Written by
+ * xvt_flight_network_read_taunts and xvt_flight_network_exchange_options. */
 // GLOBAL: XVT 0x9D7800
 char g_player_taunt_text[8][4][70] = {{{0}}};
 
@@ -661,11 +658,11 @@ void player_save_craft_settings(int player_index)
 }
 
 /* Turns one player's stick input into craft rotation or camera movement, after
- * flight_input_apply_deadzone, doubling g_scaled_input_pitch. In the cockpit (input
- * not blocked, no map camera) and outside hyperspace, the model's roll and
- * pitch rates scale with throttle (a third at a stop, full at a third of full
- * throttle, two thirds at full; a craft without engines counts as stopped) and
- * with power: each level the shield and laser recharge levels together sit
+ * flight_input_apply_deadzone, doubling g_scaled_input_pitch. In the cockpit
+ * (input not blocked, no map camera) and outside hyperspace, the model's roll
+ * and pitch rates scale with throttle (a third at a stop, full at a third of
+ * full throttle, two thirds at full; a craft without engines counts as stopped)
+ * and with power: each level the shield and laser recharge levels together sit
  * below 4 adds 0xC00 / 65536 of the rate, each level above takes as much
  * (lasers count twice without shields). The input sets a desired yaw and pitch,
  * zero when flight controls are out or a tractor beam holds the craft without
@@ -673,13 +670,13 @@ void player_save_craft_settings(int player_index)
  * steps, scaled by elapsed ticks, turn the craft through
  * player_apply_pitch_yaw_steps, yaw also rolling it. With the roll modifier key
  * (g_flight_key_mods & 0xE is 2) yaw input rolls the craft at twice the step
- * instead; the modern build takes that roll from xvt_flight_controls_roll_step. In
- * hyperspace nothing turns. With input blocked or a map camera, it drives the
- * camera: steps the map camera's transition in map_camera_state, pans the map
- * camera or moves the HUD aim or view by input, and with g_flight_key_mods & 0xF
- * of 1 or 2 moves the camera in or out by camera_distance_step; otherwise it
- * shrinks camera_distance_step back to 32. The modern build's unlocked timing
- * scales the steps with XvtPlayerTiming instead. */
+ * instead; that roll comes from xvt_flight_controls_roll_step. In hyperspace
+ * nothing turns. With input blocked or a map camera, it drives the camera:
+ * steps the map camera's transition in map_camera_state, pans the map camera or
+ * moves the HUD aim or view by input, and with g_flight_key_mods & 0xF of 1 or
+ * 2 moves the camera in or out by camera_distance_step; otherwise it shrinks
+ * camera_distance_step back to 32. Unlocked timing scales the steps with
+ * XvtPlayerTiming instead. */
 // FUNCTION: XVT 0x480570
 void player_update_flight_controls_and_camera(int player_idx)
 {
@@ -2818,11 +2815,9 @@ uint16_t player_select_target_component_mesh(uint16_t target_obj_idx,
 
 /* Applies a pitch step and a yaw step to a craft's orientation. It returns the
  * new roll, which both callers drop. The yaw step is ignored while the roll
- * modifier key is held (g_flight_key_mods & 0xE is 2). The modern build turns the
- * angles with xvt_orientation_apply_pitch_yaw and writes the object's pitch, yaw
- * and roll and craft->pitch. The original build rotates the object's axes in
- * g_curMatR0 to g_curMatR2 and writes the new pitch to craft->pitch only, and
- * yaw and roll to the object. */
+ * modifier key is held (g_flight_key_mods & 0xE is 2). It turns the angles with
+ * xvt_orientation_apply_pitch_yaw and writes the object's pitch, yaw and roll
+ * and craft->pitch. */
 // FUNCTION: XVT 0x483A00
 int16_t player_apply_pitch_yaw_steps(int16_t pitch_angle_q16,
 				     int16_t yaw_angle_q16,

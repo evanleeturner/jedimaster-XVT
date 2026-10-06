@@ -13,8 +13,8 @@
 /* Calls made to flight_loading_pulse_and_draw_progress_screen since the last
  * reset; its low 7 bits are the bar's fill. Three functions write it:
  * flight_loading_reset_progress_state sets 0 at flight start,
- * flight_loading_pulse_and_draw_progress_screen adds 1 per call, and, in the
- * modern build, xvt_flight_task_update sets its low 7 bits to fill the bar. */
+ * flight_loading_pulse_and_draw_progress_screen adds 1 per call, and
+ * xvt_flight_task_update sets its low 7 bits to fill the bar. */
 // GLOBAL: XVT 0x5236A8
 uint32_t g_flight_loading_progress_step;
 /* timeGetTime, in ms, when the loading bar was last drawn. Written only by
@@ -24,8 +24,8 @@ uint32_t g_flight_loading_progress_step;
 uint32_t g_flight_loading_progress_last_draw_ms;
 
 /* Sets g_flight_loading_progress_step to 0 and
- * g_flight_loading_progress_last_draw_ms to now; the modern build also clears its
- * record of the bar (xvt_cockpit_messages_clear_progress). */
+ * g_flight_loading_progress_last_draw_ms to now; it also clears the record of
+ * the bar (xvt_cockpit_messages_clear_progress). */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x449110
 void flight_loading_reset_progress_state(void)
@@ -36,17 +36,16 @@ void flight_loading_reset_progress_state(void)
 }
 
 /* Called between loading steps: adds 1 to g_flight_loading_progress_step and,
- * when 200 ms have passed since the last draw or the step's low 6 bits were
- * 63, draws the loading bar and shows it. On the 63 case it first sends the
- * other players a still-loading packet (flight_net_broadcast_still_loading_pulse).
+ * when 200 ms have passed since the last draw or the step's low 6 bits were 63,
+ * draws the loading bar and shows it. On the 63 case it first sends the other
+ * players a still-loading packet (flight_net_broadcast_still_loading_pulse).
  * The bar sits at mid-height from a quarter to three quarters of the screen
- * width, filled in 128 steps that start again from empty, its color index
- * 48 plus the step divided by 128. To draw, it unlocks the surface fully,
- * locks it once, then blits and flips (flight_display_blit_render_surface,
+ * width, filled in 128 steps that start again from empty, its color index 48
+ * plus the step divided by 128. To draw, it unlocks the surface fully, locks it
+ * once, then blits and flips (flight_display_blit_render_surface,
  * flight_display_flip) and locks it back to the count it found. The text
- * cursor, clip rectangle and text colors are saved and put back. The modern
- * build also marks the drawing as an overlay and records the bar for its own
- * renderer. */
+ * cursor, clip rectangle and text colors are saved and put back. It also marks
+ * the drawing as an overlay and records the bar for the renderer. */
 // FUNCTION: XVT 0x449130
 void flight_loading_pulse_and_draw_progress_screen(void)
 {

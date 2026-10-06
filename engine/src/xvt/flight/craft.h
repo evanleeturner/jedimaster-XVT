@@ -95,10 +95,10 @@ enum {
 
 struct craft_weapon_stats {
 	/* Laser shots fired; laser_firelasersystem adds them, spawn zeroes it.
-	 * Only the modern build's snapshot copy reads it. */
+	 * Only the snapshot copy reads it. */
 	uint16_t laser_shots_fired;
-	/* Laser hits scored, added by mission_record_projectile_hit_stats; zeroed
-	 * at spawn and read only by the modern build's snapshot copy. */
+	/* Laser hits scored, added by mission_record_projectile_hit_stats;
+	 * zeroed at spawn and read only by the snapshot copy. */
 	uint16_t laser_hits_scored;
 	/* Ion shots fired; kept like laser_shots_fired. */
 	uint16_t ion_shots_fired;
@@ -142,8 +142,7 @@ struct craft_data {
 	 * the first craft of each batch a flight group sends leads the rest;
 	 * the AI order code names a new leader when the old one is lost. */
 	uint8_t leader_obj_idx;
-	/* No game code reads or writes it; only the modern build's snapshot
-	 * copies it. */
+	/* No game code reads or writes it; only the snapshot copies it. */
 	uint8_t unused006;
 	/* The craft's state, a craft_object_kind: active, disabled, breaking up,
 	 * exploding, or entering or leaving hyperspace. Set at spawn; many
@@ -156,21 +155,18 @@ struct craft_data {
 	 * the flight group's AI level at spawn; the AI reads it through
 	 * pai_get_effective_skill_value. */
 	uint16_t ai_skill;
-	/* No game code reads or writes it; only the modern build's snapshot
-	 * copies it. */
+	/* No game code reads or writes it; only the snapshot copies it. */
 	uint8_t unused00b[2];
 	/* Pitch the steering code gives the object while the craft is active,
 	 * 65,536 units a circle; player input (player_apply_pitch_yaw_steps) and
 	 * the AI turn it. */
 	uint16_t pitch;
 	/* The object's yaw, copied at spawn and after each steering update; no
-	 * game code reads it, only the modern build's snapshot copies it. */
+	 * game code reads it, only the snapshot copies it. */
 	uint16_t yaw;
-	/* No game code reads or writes it; only the modern build's snapshot
-	 * copies it. */
+	/* No game code reads or writes it; only the snapshot copies it. */
 	int16_t breakup_pitch_rate;
-	/* No game code reads or writes it; only the modern build's snapshot
-	 * copies it. */
+	/* No game code reads or writes it; only the snapshot copies it. */
 	int16_t breakup_yaw_rate;
 	/* Per beam_type, beam output aimed at this craft: laser_weaponsfire
 	 * clears it each call, then adds the beam_output of each tractor (1) or
@@ -256,8 +252,8 @@ struct craft_data {
 	 * as unsigned and held at 0xFFFF; collide_laserhitcraft adds to it and
 	 * flight_update_timers counts it down. */
 	int16_t weapon_fire_inhibit_timer;
-	/* Set to 0 at spawn; no game code reads it, only the modern build's
-	 * snapshot copies it. */
+	/* Set to 0 at spawn; no game code reads it, only the snapshot copies
+	 * it. */
 	uint8_t unused_mission_flag;
 	/* While 0, mission_record_craft_outcome counts the craft as not disabled;
 	 * only spawn and proving_grounds_init_course_objects write it, both with
@@ -351,11 +347,10 @@ struct craft_data {
 	uint16_t cm_fire_cooldown_timer;
 	/* Shots fired and hits scored by this craft. */
 	struct craft_weapon_stats weapon_stats;
-	/* No game code reads or writes it; only the modern build's snapshot
-	 * copies it. */
+	/* No game code reads or writes it; only the snapshot copies it. */
 	uint8_t unused256[73];
-	/* Set to 0 at spawn; no game code reads it, only the modern build's
-	 * snapshot copies it. */
+	/* Set to 0 at spawn; no game code reads it, only the snapshot copies
+	 * it. */
 	uint16_t field_29f;
 	/* Per subsystem, its row on the damage display, the identity at spawn;
 	 * on a player's craft the knocked-out system with the lowest row is

@@ -44,10 +44,10 @@ int g_paifight_search_origin_y = 0;
  * g_paifight_search_origin_x. */
 // GLOBAL: XVT 0xA08148
 int g_paifight_search_origin_z = 0;
-/* Counts the line-of-fire tests paifight_find_nearest_gunner_target_in_candidate_set
- * runs; set to 0 each time the simulation is run up to a new target time, by
- * flight_step_sim_to_time in the original build and xvt_flight_sim_step_to_time in the
- * modern one. Nothing reads it. */
+/* Counts the line-of-fire tests
+ * paifight_find_nearest_gunner_target_in_candidate_set runs; set to 0 each time
+ * the simulation is run up to a new target time, by
+ * xvt_flight_sim_step_to_time. Nothing reads it. */
 // GLOBAL: XVT 0xA8F750
 int g_gunner_collision_probe_count = 0;
 /* Distance in world units, by skill tier 0 to 2, within which

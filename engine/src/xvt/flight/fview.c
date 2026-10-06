@@ -45,14 +45,14 @@ int g_fview_up_y_q15 = 0;
 // GLOBAL: XVT 0x9A8E28
 int g_fview_up_z_q15 = 0;
 
-/* Builds the camera matrix g_cam_mat_r0_x to g_cam_mat_r2_z from view angles
- * (a full circle is 65,536): fview_calcrotatemove for view_pitch and view_yaw,
+/* Builds the camera matrix g_cam_mat_r0_x to g_cam_mat_r2_z from view angles (a
+ * full circle is 65,536): fview_calcrotatemove for view_pitch and view_yaw,
  * fview_calcrotateorient for view_up_axis_angle and view_roll, rows 1 and 2
  * negated, then a turn by hud_aim_x about the side axis and by hud_aim_y about
  * row 1 as it stood before that turn. Those calls also write g_cur_mat_r0_x to
  * g_cur_mat_r2_z, the g_fviewMove globals and the g_fview axis globals, and,
  * when obj_record is not NULL, store that move vector and those axes, as they
- * were before the negation, in obj_record's mobj. The modern build also calls
+ * were before the negation, in obj_record's mobj. It also calls
  * xvt_render_camera_build with the same angles. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x427940

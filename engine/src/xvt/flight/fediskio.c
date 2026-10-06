@@ -35,11 +35,10 @@
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 
-/* Path of the file fe_disk_io_open_global_stream opened or tried last: in the
- * original build the last path tried, in the modern one the path storage
- * resolved. Only that function writes it; the retry prompt,
- * fe_disk_io_close_global_stream (to delete a failed file) and fe_disk_io_fatal_error
- * read it. */
+/* Path of the file fe_disk_io_open_global_stream opened or tried last: the path
+ * storage resolved. Only that function writes it; the retry prompt,
+ * fe_disk_io_close_global_stream (to delete a failed file) and
+ * fe_disk_io_fatal_error read it. */
 // GLOBAL: XVT 0x9D8A60
 char g_file_name[256] = {0};
 /* Locked memory of g_flight_scratch_screen_buffer_handle, one screen of pixels,
@@ -52,9 +51,8 @@ uint8_t *g_flight_scratch_screen_buffer = NULL;
  * fe_disk_io_lock_global_buffers. Nothing reads it. */
 // GLOBAL: XVT 0x9D8C1C
 uint8_t *g_flight_aux_buffer_mirror = NULL;
-/* 1 when the last fe_disk_io_read_with_retry_prompt came up short (in the original
- * build only when the player gave up), else 0. Only that function writes it,
- * and nothing else reads it. */
+/* 1 when the last fe_disk_io_read_with_retry_prompt came up short, else 0. Only
+ * that function writes it, and nothing else reads it. */
 // GLOBAL: XVT 0x9A20AC
 uint16_t g_file_read_abort_flag = 0;
 /* The disk, display and network status strings, indexed by disk_io_string_id.
@@ -68,8 +66,8 @@ char *g_str_disk_io_messages[32] = {0};
  * kept back into it before closing it. */
 // GLOBAL: XVT 0xA07BD8
 xvt_file *g_stream = NULL;
-/* "newpal.act", the palette file read at flight start (flight_main_loop,
- * xvt_flight_loading_palette) and when fe_disk_io_init_resources generates a
+/* "newpal.act", the palette file read at flight start
+ * (xvt_flight_loading_palette) and when fe_disk_io_init_resources generates a
  * palette. */
 // GLOBAL: XVT 0x5236B0
 char g_flight_palette_resource_file_name[12] = {
@@ -88,9 +86,9 @@ static char g_spec_list_prefixes[3][9] = {
 	{'S', 'P', 'E', 'C', '3', '\0', '\0', '\0', '\0'},
 };
 /* Memory handle of the warhead guidance pool, locked into
- * g_projectile_guidance_states; 0 when there is none. mission_init allocates it;
- * fe_disk_io_init_global_buffers, fe_disk_io_free_flight_resources and the modern
- * build's xvt_flight_loading_reset set it to 0. */
+ * g_projectile_guidance_states; 0 when there is none. mission_init allocates
+ * it; fe_disk_io_init_global_buffers, fe_disk_io_free_flight_resources and
+ * xvt_flight_loading_reset set it to 0. */
 // GLOBAL: XVT 0x999400
 uint16_t g_warhead_guidance_pool_handle = 0;
 /* Memory handle of the craft record pool, locked into g_craft_data_pool_base; 0
@@ -102,8 +100,8 @@ uint16_t g_craft_data_pool_handle = 0;
 // GLOBAL: XVT 0x999404
 uint16_t g_mobile_object_pool_handle = 0;
 /* Memory handle of one screen of pixels, locked into g_flight_aux_buffer.
- * fe_disk_io_init_global_buffers allocates it and fe_disk_io_free_flight_resources
- * frees it; only the modern build sets it back to 0. */
+ * fe_disk_io_init_global_buffers allocates it and
+ * fe_disk_io_free_flight_resources frees it and sets it back to 0. */
 // GLOBAL: XVT 0x999406
 uint16_t g_flight_aux_buffer_handle = 0;
 /* Memory handle of the character data pool, locked into
@@ -5934,13 +5932,13 @@ void fe_disk_io_lock_global_buffers(void)
 	g_flight_aux_buffer_mirror = g_flight_aux_buffer;
 }
 
-/* Frees the flight's memory at its end: unlocks the buffers; frees the pool
- * handles and sets them to 0; unloads the sound effects; frees the fixed
- * buffers (the modern build skips handles of 0 and sets them to 0 after), the
- * 28 cockpit resources and each object type's model or texture once; clears
- * g_loaded_models and every type's resource_handle; and frees the render scene
- * buffers and the mission's override strings. The modern build first clears its
- * mission render assets. */
+/* Frees the flight's memory at its end. It first clears the mission render
+ * assets, then unlocks the buffers; frees the pool handles and sets them to 0;
+ * unloads the sound effects; frees the fixed buffers (a handle of 0 is skipped,
+ * and each is set to 0 after), the 28 cockpit resources and each object type's
+ * model or texture once; clears g_loaded_models and every type's
+ * resource_handle; and frees the render scene buffers and the mission's
+ * override strings. */
 // FUNCTION: XVT 0x49CDF0
 void fe_disk_io_free_flight_resources(void)
 {
@@ -7069,13 +7067,9 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 			.warhead_launcher_slot_count[1]);
 }
 
-/* Opens a file into g_stream and returns 1, or 0 with g_stream NULL. The modern
- * build opens through storage, records the resolved path in g_file_name and,
- * with prompt_on_fail, makes a failure fatal; it ignores location_mode. The
- * original build tries the name as given and under the install path (unless
- * location_mode is 2), then on the CD drive under BalanceOfPower and at its root
- * (unless location_mode is 1), four times each; with prompt_on_fail the retry
- * prompt repeats the search on R and ends fatally on F. */
+/* Opens a file into g_stream and returns 1, or 0 with g_stream NULL. It opens
+ * through storage, records the resolved path in g_file_name and, with
+ * prompt_on_fail, makes a failure fatal; it ignores location_mode. */
 // FUNCTION: XVT 0x49E720
 int fe_disk_io_open_global_stream(const char *file_name, const char *mode,
 				  int prompt_on_fail, int location_mode)
@@ -7094,11 +7088,8 @@ int fe_disk_io_open_global_stream(const char *file_name, const char *mode,
 	return g_stream != NULL;
 }
 
-/* Closes g_stream and returns 1 when it failed, else 0. The modern build closes
- * through storage and sets g_stream to NULL. The original build fails a stream
- * whose flag word has bit 0x20 set without closing it, and after a failure
- * deletes g_file_name when remove_file_on_error is set; it leaves g_stream as it
- * was. */
+/* Closes g_stream and returns 1 when it failed, else 0. It closes through
+ * storage and sets g_stream to NULL. */
 // FUNCTION: XVT 0x49E9C0
 int16_t fe_disk_io_close_global_stream(int16_t remove_file_on_error)
 {
@@ -7117,10 +7108,8 @@ int16_t fe_disk_io_close_global_stream(int16_t remove_file_on_error)
 	return (int16_t)failed;
 }
 
-/* Reads elem_count items into dst. The modern build reads once and makes a short
- * read fatal. The original build keeps reading until all arrive, asking after
- * 15 tries: R allows 5 more, F ends the program; it returns elem_count on
- * success. Both set g_file_read_abort_flag. */
+/* Reads elem_count items into dst, once, and makes a short read fatal; it
+ * returns elem_count on success and sets g_file_read_abort_flag. */
 // FUNCTION: XVT 0x49EA10
 size_t fe_disk_io_read_with_retry_prompt(void *dst, size_t elem_size,
 					 size_t elem_count, xvt_file *stream)
@@ -7137,12 +7126,8 @@ size_t fe_disk_io_read_with_retry_prompt(void *dst, size_t elem_size,
 	return count;
 }
 
-/* Ends the program on a file error. The modern build reports a fixed message
- * through storage. The original build, for an error code below 4 with the fonts
- * loaded, shows the message and waits for a key, then prints it (with
- * g_file_name for FILE_ERROR_STR_FILE_MISSING) and exits with -255 minus the
- * code; without fonts it prints nothing; for a code of 4 or more it prints a
- * buffer it never filled. */
+/* Ends the program on a file error, reporting a fixed message through
+ * storage. */
 // FUNCTION: XVT 0x49EB60
 void fe_disk_io_fatal_error(file_error_string_id error_code)
 {

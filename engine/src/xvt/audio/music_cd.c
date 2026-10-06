@@ -10,9 +10,8 @@
 #include "xvt_runtime/runtime/port.h"
 
 /* 1 once the flight music track is marked complete. music_cd_initialize,
- * music_cd_play_track_from_time, music_cd_stop_track and music_cd_close_device set 0;
- * only music_cd_mark_playback_complete sets 1, and nothing calls it, so it stays
- * 0. */
+ * music_cd_play_track_from_time and music_cd_close_device set 0; nothing sets
+ * 1, so it stays 0. */
 // GLOBAL: XVT 0x622BC0
 int g_music_cd_playback_complete = 0;
 /* Tracks on the CD, read by music_cd_initialize; nothing resets it. */
@@ -27,29 +26,28 @@ static int g_music_cd_saved_aux_volume = 0;
  * cleared when the device closes. */
 // GLOBAL: XVT 0x622BCC
 struct music_cd_track_cache g_music_cd_track_cache = {0};
-/* Track music_cd_play_track_from_time last started for flight music, 0 when none;
- * music_cd_initialize, music_cd_stop_track and music_cd_close_device set 0. */
+/* Track music_cd_play_track_from_time last started for flight music, 0 when
+ * none; music_cd_initialize and music_cd_close_device set 0. */
 // GLOBAL: XVT 0x622C48
 int g_music_cd_current_track = 0;
 /* MCI device id of the CD opened for flight music, 0 when none is open;
  * music_cd_initialize sets it and music_cd_close_device sets 0.
- * xvt_cd_task_begin_fade and xvt_flight_task_update read it in the modern build. */
+ * xvt_cd_task_begin_fade and xvt_flight_task_update read it. */
 // GLOBAL: XVT 0x622C4C
 uint32_t g_music_cd_mci_device_id = 0;
 
 /* Opens the CD audio device through MCI for flight music. Returns 0 at once
- * when the window is not up: g_flight_main_window_handle NULL in the original
- * build, xvt_port_is_initialized false in the modern one. A device already open
- * is closed and its state cleared first. Sets g_music_cd_saved_aux_volume to -1,
- * then to the low 16 bits of the volume of the first auxiliary device that is a
- * CD audio device with volume control and whose volume reads. Opens "cdaudio"
- * into g_music_cd_mci_device_id, sets the time format to tracks, minutes, seconds
- * and frames, reads the track count into g_music_cd_track_count and each track's
- * length into g_music_cd_track_cache. Returns 1; 0 when the open fails, or when a
- * later step fails, after closing the device and setting g_music_cd_mci_device_id
- * to 0. Does not check the track count against the cache's 30 entries.
- * flight_main_loop calls it in the original build, xvt_flight_loading_runtime in
- * the modern one. */
+ * when the window is not up (xvt_port_is_initialized false). A device already
+ * open is closed and its state cleared first. Sets g_music_cd_saved_aux_volume
+ * to -1, then to the low 16 bits of the volume of the first auxiliary device
+ * that is a CD audio device with volume control and whose volume reads. Opens
+ * "cdaudio" into g_music_cd_mci_device_id, sets the time format to tracks,
+ * minutes, seconds and frames, reads the track count into
+ * g_music_cd_track_count and each track's length into g_music_cd_track_cache.
+ * Returns 1; 0 when the open fails, or when a later step fails, after closing
+ * the device and setting g_music_cd_mci_device_id to 0. Does not check the
+ * track count against the cache's 30 entries. xvt_flight_loading_runtime calls
+ * it. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4A4EC0
 int music_cd_initialize(void)
@@ -238,11 +236,10 @@ int music_cd_play_track_from_time(int track_number, int start_minute,
 /* Closes the flight music CD device: stops a current track, closes the device
  * and sets g_music_cd_mci_device_id to 0, and clears the cached track lengths,
  * g_music_cd_current_track and g_music_cd_playback_complete. When
- * g_music_cd_saved_aux_volume is not -1 it puts that volume back on both channels
- * of every CD audio auxiliary device with volume control; then it sets
- * g_music_cd_saved_aux_volume to -1. Returns 0 when no device is open. After
- * closing one the modern build returns 0; the original build's code ends with
- * no return statement. */
+ * g_music_cd_saved_aux_volume is not -1 it puts that volume back on both
+ * channels of every CD audio auxiliary device with volume control; then it sets
+ * g_music_cd_saved_aux_volume to -1. Returns 0 when no device is open, and also
+ * after closing one. */
 // FUNCTION: XVT 0x4A5210
 int music_cd_close_device(void)
 {

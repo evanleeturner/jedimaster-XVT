@@ -12,10 +12,10 @@
 #include "xvt/util/game_rand.h"
 #include "xvt_runtime/log/log.h"
 
-/* Craft records in the pool at g_craft_data_pool_base, one for each craft object
- * slot. mission_init sets it to 32 (CRAFT_SLOT_COUNT) when a flight loads; a
- * world-state restore copies in the saved value: flight_restore_world_state in
- * the original build, xvt_snapshot_decode in the modern one. */
+/* Craft records in the pool at g_craft_data_pool_base, one for each craft
+ * object slot. mission_init sets it to 32 (CRAFT_SLOT_COUNT) when a flight
+ * loads; a world-state restore copies in the saved value:
+ * xvt_snapshot_decode. */
 // GLOBAL: XVT 0x9ECA28
 int g_craft_data_pool_capacity = 0;
 /* The craft record the code running now works on. Many functions point it at an
@@ -26,8 +26,8 @@ int g_craft_data_pool_capacity = 0;
 struct craft_data *g_cur_craft;
 /* Locked memory of g_craft_data_pool_handle: g_craft_data_pool_capacity craft
  * records, into which each craft object's mobj->p_craft points. Two functions
- * write it: fe_disk_io_lock_global_buffers, which locks the handle, and, in the
- * modern build, xvt_flight_loading_reset, which sets it to NULL. */
+ * write it: fe_disk_io_lock_global_buffers, which locks the handle, and
+ * xvt_flight_loading_reset, which sets it to NULL. */
 // GLOBAL: XVT 0xA07BD0
 struct craft_data *g_craft_data_pool_base = 0;
 /* Scale, 4/9, from a model's max_speed and accel_rate to the Tech Library's speed
@@ -367,8 +367,7 @@ void craft_detach_damageable_component(uint16_t object_index,
 }
 
 /* Returns the warhead_kind_index for a warhead object type. For any other type
- * the modern build returns -1; the original build returns an uninitialized
- * value. */
+ * it returns -1. */
 // FUNCTION: XVT 0x484D80
 warhead_kind_index object_type_get_warhead_kind_index(uint16_t object_type)
 {

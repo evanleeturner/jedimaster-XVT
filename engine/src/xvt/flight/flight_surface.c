@@ -11,10 +11,10 @@
 #include "xvt_runtime/log/log.h"
 
 /* 1 when flight draws through DirectDraw surfaces and flips pages; 0 when it
- * draws into memory and flight_display_flip copies g_flight_software_framebuffer
- * to the screen. Starts at 1; the launch options "nopageflip" and
- * "pageflip" set it, read by flight_main in the original build and
- * xvt_flight_entry_read_launch_switches in the modern one. */
+ * draws into memory and flight_display_flip copies
+ * g_flight_software_framebuffer to the screen. Starts at 1; the launch options
+ * "nopageflip" and "pageflip" set it, read by
+ * xvt_flight_entry_read_launch_switches. */
 // GLOBAL: XVT 0x527EAC
 int g_flight_page_flip = 1;
 /* 1 when flight_surface_lock is to hand out the cockpit and HUD layer
@@ -27,30 +27,27 @@ int g_flight_page_flip = 1;
 int g_flight_draw_to_hud_layer = 1;
 /* With page flipping, the offscreen surface, g_surface_width by
  * g_surface_height, that holds the cockpit and HUD layer;
- * flight_display_blit_render_surface and flight_view_composite_masked_software_surface
- * copy it onto the back buffer. Four functions write it: flight_display_init
- * creates it; flight_display_cleanup_and_report_error and the flight shutdown
- * (flight_main in the original build, xvt_flight_entry_cleanup in the modern
- * one) release it and set NULL. */
+ * flight_display_blit_render_surface and
+ * flight_view_composite_masked_software_surface copy it onto the back buffer.
+ * Three functions write it: flight_display_init creates it;
+ * flight_display_cleanup_and_report_error and the flight shutdown
+ * (xvt_flight_entry_cleanup) release it and set NULL. */
 // GLOBAL: XVT 0x66DDCC
 IDirectDrawSurface *g_flight_offscreen_surface = 0;
 /* 1 while the flight's back buffer and offscreen surface are in use, so
- * flight_surface_lock locks one of them instead of the primary surface. Set
- * to 1 at flight start and 0 at its end (flight_main_loop in the original
- * build; xvt_flight_loading_globals and xvt_flight_task_release_mission in the
- * modern one); fe_disk_io_show_fatal_error_message_and_wait_key sets 1 while it
- * shows its message and then puts the old value back. */
+ * flight_surface_lock locks one of them instead of the primary surface. Set to
+ * 1 at flight start and 0 at its end (xvt_flight_loading_globals and
+ * xvt_flight_task_release_mission). */
 // GLOBAL: XVT 0x9ED23B
 uint8_t g_flight_display_surfaces_active = 0;
 /* Ticks the local input clock (g_input_timestamp) aims to run ahead of
  * g_server_tick_time: 30, or 130 in internet play, at mission start; then the
- * host's measured start delay, at least 35, and the clock probes move it.
- * Six functions write it: flight_net_wait_for_mission_start and
- * flight_net_process_incoming_packets in the original build;
- * xvt_flight_network_wait_for_mission_start, xvt_flight_network_answer_clock_probe,
- * xvt_flight_network_apply_clock_probe_reply and xvt_flight_network_control in the
- * modern one. flight_surface_lock and flight_surface_unlock also read its low
- * byte: see flight_surface_lock. */
+ * host's measured start delay, at least 35, and the clock probes move it. Four
+ * functions write it: xvt_flight_network_wait_for_mission_start,
+ * xvt_flight_network_answer_clock_probe,
+ * xvt_flight_network_apply_clock_probe_reply and xvt_flight_network_control.
+ * flight_surface_lock and flight_surface_unlock also read its low byte: see
+ * flight_surface_lock. */
 // GLOBAL: XVT 0x9ED23C
 int32_t g_flight_net_clock_lead_ticks = 0;
 /* Nothing sets it to anything but 0 (flight_view_render does, three times),

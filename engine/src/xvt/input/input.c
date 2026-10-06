@@ -2,22 +2,20 @@
 
 #include "xvt/input/joystick.h"
 
-/* 1 once the joystick detection in input_detect_active_joystick or
- * input_initialize_joystick_backend has run; only those two write it, and
- * nothing sets it back to 0, so the detection runs once per run of the
- * program. */
+/* 1 once the joystick detection in input_detect_active_joystick has run; only
+ * that function writes it, and nothing sets it back to 0, so the detection runs
+ * once per run of the program. */
 // GLOBAL: XVT 0x5280F0
 int g_joystick_detection_cached = 0;
 /* What joystick_initialize_backend_stub returned when the detection ran, which
- * is always 1; 0 before. Read only by input_initialize_joystick_backend, which
- * nothing calls. */
+ * is always 1; 0 before. Nothing reads it. */
 // GLOBAL: XVT 0x5280F4
 int g_joystick_backend_initialized = 0;
 
-/* Runs the same once-only detection as input_initialize_joystick_backend and
- * returns g_joystick_active: 1 when one of the two joystick slots answered,
- * else 0. Later calls return the first answer without polling again.
- * flight_input_reset_runtime_state calls it at flight start. */
+/* Runs the once-only joystick detection and returns g_joystick_active: 1 when
+ * one of the two joystick slots answered, else 0. Later calls return the first
+ * answer without polling again. flight_input_reset_runtime_state calls it at
+ * flight start. */
 // FUNCTION: XVT 0x4ACAC0
 int input_detect_active_joystick(void)
 {

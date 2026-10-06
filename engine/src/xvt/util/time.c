@@ -2,10 +2,10 @@
 
 /* Real time in ms, from timeGetTime, of the last whole 4 ms tick
  * time_consume_elapsed_ticks has handed out; 0 at program start and after a
- * reset, until the next call. time_consume_elapsed_ticks advances it by 4 ms per
- * tick it returns; time_reset_elapsed_ticks sets it to 0 at flight start
- * (flight_main_loop in the original build, xvt_flight_loading_globals in the
- * modern one). The modern build's xvt_flight_time_delay_for_ticks also reads it. */
+ * reset, until the next call. time_consume_elapsed_ticks advances it by 4 ms
+ * per tick it returns; time_reset_elapsed_ticks sets it to 0 at flight start
+ * (xvt_flight_loading_globals). xvt_flight_time_delay_for_ticks also reads
+ * it. */
 // GLOBAL: XVT 0x5280E4
 uint32_t g_last_tick_time_ms;
 

@@ -137,8 +137,7 @@ uint16_t g_hypot_excess_q16_table[257] = {
 /* World units an object moves along x this step;
  * object_add_trig_move_delta_and_clamp_world_position adds it to the object's
  * position. Many functions write it, chiefly trig2_movexyz and
- * object_update_lifetime_and_movement, and xvt_flight_integration_move in the
- * modern build. */
+ * object_update_lifetime_and_movement, and xvt_flight_integration_move. */
 // GLOBAL: XVT 0x9A20B0
 int trig2_xmovedist = 0;
 
@@ -147,17 +146,16 @@ int trig2_xmovedist = 0;
 // GLOBAL: XVT 0x9A8E14
 int trig2_xoffset = 0;
 
-/* The hypotenuse trig2_calcangleplanedistance last computed: after trig2_ctop
- * the 3D distance, after trig2_ctop2dim the distance in the x-y plane. Read
- * widely after trig2_ctop. Many functions write it, chiefly
- * trig2_calcangleplanedistance; callers such as flight_update_timers,
+/* The hypotenuse trig2_calcangleplanedistance last computed: after trig2_ctop,
+ * the 3D distance. Read widely after trig2_ctop. Many functions write it,
+ * chiefly trig2_calcangleplanedistance; callers such as flight_update_timers,
  * laser_fireturretslot and hud_draw_cmd_target_details scale it in place. */
 // GLOBAL: XVT 0x9A8C00
 int trig2_polardistance = 0;
 
-/* Heading of the last trig2_ctop or trig2_ctop2dim: 0x4000 minus the angle
- * from +x toward +y, so 0 along +y and 0x4000 along +x. Those two write it,
- * and mission_spawn_flight_group_wave_craft sets or turns it before calling
+/* Heading of the last trig2_ctop: 0x4000 minus the angle from +x toward +y, so
+ * 0 along +y and 0x4000 along +x. That function writes it, and
+ * mission_spawn_flight_group_wave_craft sets or turns it before calling
  * trig2_movexyz. */
 // GLOBAL: XVT 0x9A8070
 uint16_t trig2_xyangle = 0;
@@ -188,15 +186,13 @@ int trig2_yoffset = 0;
 // GLOBAL: XVT 0x9EC460
 static int16_t trig2_legs_swapped = 0;
 
-/* 1 when the x given to the last trig2_ctop, trig2_ctop2dim or trig2_arctan
- * was negative, else 0; 0xFFFF until the first. Only those write and read
- * it. */
+/* 1 when the x given to the last trig2_ctop or trig2_arctan was negative, else
+ * 0; 0xFFFF until the first. Only those write and read it. */
 // GLOBAL: XVT 0x9ECC46
 static uint16_t trig2_signx = UINT16_MAX;
 
-/* 1 when the y given to the last trig2_ctop, trig2_ctop2dim or trig2_arctan
- * was negative, else 0; 0xFFFF until the first. Only those write and read
- * it. */
+/* 1 when the y given to the last trig2_ctop or trig2_arctan was negative, else
+ * 0; 0xFFFF until the first. Only those write and read it. */
 // GLOBAL: XVT 0x9ECC48
 static uint16_t trig2_signy = UINT16_MAX;
 

@@ -84,14 +84,13 @@ const uint16_t g_backdrops_enabled_by_graphics_detail_preset[4] = {0, 0, 0, 1};
 // GLOBAL: XVT 0x527368
 const uint16_t g_debris_enabled_by_graphics_detail_preset[4] = {0, 0, 1, 1};
 /* Resolution mode to go back to when the flight ends. Nothing writes it, so it
- * stays FLIGHT_RESOLUTION_320X240; flight_main_loop and
- * xvt_flight_task_release_mission hand it to
- * flight_display_apply_resolution_mode_stub, which does nothing, when it differs
- * from g_flight_resolution_mode. */
+ * stays FLIGHT_RESOLUTION_320X240; xvt_flight_task_release_mission hands it to
+ * flight_display_apply_resolution_mode_stub, which does nothing, when it
+ * differs from g_flight_resolution_mode. */
 // GLOBAL: XVT 0x5233F0
 int g_pre_flight_resolution_mode = FLIGHT_RESOLUTION_320X240;
-/* 20.0: the cap on the level-of-detail option plus 5 that g_lod_distance_scale is
- * worked out from (flight_main, xvt_flight_entry_configure_lod_distance). Never
+/* 20.0: the cap on the level-of-detail option plus 5 that g_lod_distance_scale
+ * is worked out from (xvt_flight_entry_configure_lod_distance). Never
  * written. */
 // GLOBAL: XVT 0x518218
 const float g_lod_config_max_value = 20.0f;
@@ -109,15 +108,15 @@ const float g_lod_config_curve_double = 2.0f;
  * g_lod_config_curve_double), and the numerator of the bend. Never written. */
 // GLOBAL: XVT 0x518224
 const float g_lod_config_curve_threshold = 1.0f;
-/* 1/19: multiplies the mipmap option on the way to g_mip_lod_scale; an option of
- * 19 turns mipmapping off instead (flight_main,
- * xvt_flight_entry_configure_mipmaps). Never written. */
+/* 1/19: multiplies the mipmap option on the way to g_mip_lod_scale; an option
+ * of 19 turns mipmapping off instead (xvt_flight_entry_configure_mipmaps).
+ * Never written. */
 // GLOBAL: XVT 0x518228
 const float g_mipmap_config_scale_factor = 0.052631579f;
 /* Minutes into the flight music track (track 2) at which a flight's music may
  * start; flight start picks one of the four at random (game_rand2), with the
- * second from g_dynamic_music_initial_start_second_choices (flight_main_loop,
- * xvt_flight_loading_runtime). Never written. */
+ * second from g_dynamic_music_initial_start_second_choices
+ * (xvt_flight_loading_runtime). Never written. */
 // GLOBAL: XVT 0x523644
 uint8_t g_dynamic_music_initial_start_minute_choices[4] = {0, 4, 8, 12};
 /* Seconds added to the start minute picked from
@@ -125,21 +124,21 @@ uint8_t g_dynamic_music_initial_start_minute_choices[4] = {0, 4, 8, 12};
 // GLOBAL: XVT 0x523648
 uint8_t g_dynamic_music_initial_start_second_choices[4] = {0, 1, 40, 52};
 /* "paiplan": the name flight start passes to pai_loadplans to load the AI plans
- * (flight_main_loop, xvt_flight_loading_globals). */
+ * (xvt_flight_loading_globals). */
 // GLOBAL: XVT 0x5236BC
 const char g_pai_plan_resource_base_name[8] = "paiplan";
 /* 1 when the launch command line holds "traincourse": flight start then sets
  * the proving grounds craft type to 2 and level to 4 before the mission loads
- * (flight_main_loop, xvt_flight_loading_mission_setup). Set by flight_main in the
- * original build and xvt_flight_entry_read_launch_switches in the modern one. */
+ * (xvt_flight_loading_mission_setup). Set by
+ * xvt_flight_entry_read_launch_switches. */
 // GLOBAL: XVT 0x527E98
 int g_flight_conf_train_course = 0;
-/* Set to 1 when the launch command line starts with "/+" (flight_main,
- * xvt_flight_entry_read_launch_switches); nothing reads it. */
+/* Set to 1 when the launch command line starts with "/+"
+ * (xvt_flight_entry_read_launch_switches); nothing reads it. */
 // GLOBAL: XVT 0x527E9C
 int g_unused_flight_cmd_line_plus_switch_flag = 0;
-/* 1 when the launch command line holds "nolauncher" (flight_main,
- * xvt_flight_entry_read_launch_switches); nothing reads it. */
+/* 1 when the launch command line holds "nolauncher"
+ * (xvt_flight_entry_read_launch_switches); nothing reads it. */
 // GLOBAL: XVT 0x527EB0
 int g_flight_conf_no_launcher = 0;
 /* Per keypad look key 1 to 9 (indexed by the key less keypad 1), the HUD view
@@ -158,48 +157,47 @@ static const int16_t g_hud_aim_y_by_look_action[9] = {
 	0x4000,		 (int16_t)0xE000, 0,	  0x2000,
 };
 /* Divisor of the starfield grid (flight_starfield_render): 4, 2 or 1 from the
- * star density option at launch (flight_main, xvt_flight_entry_configure), then
- * from the graphics detail preset (flight_apply_graphics_detail_preset). Starts at
- * 1. */
+ * star density option at launch (xvt_flight_entry_configure), then from the
+ * graphics detail preset (flight_apply_graphics_detail_preset). Starts at 1. */
 // GLOBAL: XVT 0x5233FC
 uint16_t g_star_grid_divisor = 1;
 /* 1 while the simulation runs ahead on predicted input in multiplayer, 0 while
  * it runs on confirmed input (a world message from the server, or solo play);
  * many functions read it to hold back effects that must happen once, such as
- * messages, sounds and the end of the mission. Seven functions write it:
- * flight_main_loop, flight_run_mission_loop and flight_sync_apply_world_message_packet
- * in the original build; xvt_flight_loading_globals, xvt_flight_frame_start_advance,
- * xvt_flight_frame_confirm and xvt_flight_frame_network_update in the modern one. */
+ * messages, sounds and the end of the mission. Four functions write it:
+ * xvt_flight_loading_globals, xvt_flight_frame_start_advance,
+ * xvt_flight_frame_confirm and xvt_flight_frame_network_update. */
 // GLOBAL: XVT 0x523410
 int g_flight_sim_side_effects_suppressed = 0;
 /* Which simulation pass fsfx_play_sound lets play: 0, only a pass with side
  * effects on; 1, only a pass with them suppressed; 2, none. In multiplayer,
- * flight_advance_one_step sets 1 while it applies a local input frame for the
- * first time and 2 when it applies one again, and flight_run_mission_loop sets 1
- * while it draws the frame; both set 0 after. Five functions write it: those
- * two, and xvt_flight_sim_advance, xvt_flight_frame_begin and xvt_flight_frame_render
- * in the modern build. */
+ * xvt_flight_sim_advance sets 1 while it applies a local input frame for the
+ * first time and 2 when it applies one again, and xvt_flight_frame_render sets
+ * 1 while it draws the frame; both set 0 after. Three functions write it: those
+ * two and xvt_flight_frame_begin, which sets 0. */
 // GLOBAL: XVT 0x523414
 int g_flight_sfx_side_effect_gate = 0;
 /* 1 from a world checksum, taken when a world message asks for one, until every
  * player's checksum has matched or a resync replays the world messages; while
- * it is 1 a client keeps the server's world messages for that replay. Many
- * functions write it, chiefly flight_sync_apply_world_message_packet (1), the
- * checksum and resync handlers (0) and the modern build's frame and resync
- * code; flight start sets 0. */
+ * it is 1 a client keeps the server's world messages for that replay. Seven
+ * functions write it: the checksum handlers
+ * flight_sync_handle_world_checksum_packet and
+ * flight_sync_handle_server_checksum_packet, the frame and resync code
+ * xvt_flight_frame_checksum, xvt_resync_complete_checksum and
+ * xvt_resync_full_apply, and, at flight start (0), xvt_flight_task_start_world
+ * and xvt_flight_loading_globals. */
 // GLOBAL: XVT 0x52341C
 int g_flight_net_buffer_world_messages_until_checksum = 0;
 /* g_server_tick_time at the last world checksum; resync packets from another
- * epoch are dropped. Six functions write it: flight_main_loop (0 at flight
- * start) and flight_sync_apply_world_message_packet in the original build;
- * xvt_flight_loading_globals, xvt_flight_task_start_world, xvt_flight_frame_checksum
- * and xvt_resync_full_apply in the modern one. */
+ * epoch are dropped. Four functions write it: xvt_flight_loading_globals (0 at
+ * flight start), xvt_flight_task_start_world, xvt_flight_frame_checksum and
+ * xvt_resync_full_apply. */
 // GLOBAL: XVT 0x523420
 unsigned int g_flight_net_world_checksum_epoch = 0;
 /* 1 for internet play: the input clock runs 130 ticks ahead of the server
  * instead of 30, remote craft are drawn smoothed, and no predicted remote input
- * is queued. Copied from g_game_config.internet_play at launch (flight_main,
- * xvt_flight_entry_read_launch_switches), its only writers. */
+ * is queued. Copied from g_game_config.internet_play at launch
+ * (xvt_flight_entry_read_launch_switches), its only writer. */
 // GLOBAL: XVT 0x523428
 int g_internet_play_enabled = 0;
 /* Set to -1 by flight_reset_unused_resume_slots, its only writer; nothing reads
@@ -257,8 +255,8 @@ const uint16_t g_subsystem_failure_hud_mask_by_random_slot[16] = {
 // GLOBAL: XVT 0x550880
 uint8_t *g_world_state_dup_buffer;
 /* Byte length of each region g_world_checksum covers, 0 past the last. Written
- * by flight_checksum_world_state in the original build and by the modern build's
- * snapshot and resync code. */
+ * by the snapshot and resync code (xvt_snapshot_checksum,
+ * xvt_resync_full_apply). */
 // GLOBAL: XVT 0x550840
 unsigned int g_world_checksum_region_lengths[16] = {0};
 /* The saved world state, laid out as flight_save_world_state writes it: saved at
@@ -268,11 +266,9 @@ unsigned int g_world_checksum_region_lengths[16] = {0};
  * set the pointer. */
 // GLOBAL: XVT 0x550B88
 uint8_t *g_world_state_buffer;
-/* Bytes in use in g_world_state_dup_buffer. Five functions write it:
- * flight_sync_snapshot_world_state_for_replay, and in the original build
- * flight_sync_apply_resync_and_replay_world_messages and
- * flight_apply_world_state_object_presence_map; in the modern one
- * xvt_resync_full_apply and xvt_snapshot_apply_presence_map. */
+/* Bytes in use in g_world_state_dup_buffer. Three functions write it:
+ * flight_sync_snapshot_world_state_for_replay, xvt_resync_full_apply and
+ * xvt_snapshot_apply_presence_map. */
 // GLOBAL: XVT 0x550B8C
 int g_world_state_dup_size;
 /* Memory handle of g_world_state_dup_buffer, 0 when none; only
@@ -280,15 +276,13 @@ int g_world_state_dup_size;
 // GLOBAL: XVT 0x550B94
 uint16_t g_world_state_dup_handle = 0;
 /* The world checksum: per region of the saved world state, up to 16, the sum of
- * its bytes, and 0 past the last region. Computed by flight_checksum_world_state
- * (xvt_snapshot_checksum in the modern build), sent between the players and
- * compared. */
+ * its bytes, and 0 past the last region. Computed by
+ * flight_checksum_world_state (xvt_snapshot_checksum), sent between the players
+ * and compared. */
 // GLOBAL: XVT 0x550B98
 unsigned int g_world_checksum[16] = {0};
-/* Bytes in use in g_world_state_buffer. Four functions write it:
- * flight_save_world_state and flight_sync_apply_resync_and_replay_world_messages in the
- * original build, xvt_snapshot_save and xvt_resync_full_apply in the modern
- * one. */
+/* Bytes in use in g_world_state_buffer. Two functions write it:
+ * xvt_snapshot_save and xvt_resync_full_apply. */
 // GLOBAL: XVT 0x550BD8
 unsigned int g_world_state_size;
 /* Memory handle of g_world_state_buffer, 0 when none; only
@@ -305,38 +299,37 @@ void *g_flight_main_window_handle = NULL;
 // GLOBAL: XVT 0x9A7394
 uint16_t g_cur_craft_model_index = 0;
 /* 1 when debris is drawn and the local debris slots are used. Set from the
- * debris option at launch (flight_main, xvt_flight_entry_configure), then from
- * the graphics detail preset (flight_apply_graphics_detail_preset). */
+ * debris option at launch (xvt_flight_entry_configure), then from the graphics
+ * detail preset (flight_apply_graphics_detail_preset). */
 // GLOBAL: XVT 0x9A73F4
 uint8_t g_debris_enabled = 0;
 /* timeGetTime, in ms, of the last music update. Written by
- * flight_update_dynamic_music_state and at flight start (flight_main_loop,
- * xvt_flight_loading_runtime). */
+ * flight_update_dynamic_music_state and at flight start
+ * (xvt_flight_loading_runtime). */
 // GLOBAL: XVT 0x9A7EC4
 uint32_t g_dynamic_music_last_update_ms = 0;
-/* 0 when the launch command line holds "novoice", else 1 (flight_main,
- * xvt_flight_entry_read_launch_switches); the voice loading and queueing code reads
- * it. */
+/* 0 when the launch command line holds "novoice", else 1
+ * (xvt_flight_entry_read_launch_switches); the voice loading and queueing code
+ * reads it. */
 // GLOBAL: XVT 0x9A8C10
 uint8_t g_flight_conf_voice_enabled = 0;
-/* 0 when the launch command line holds "nomusic", else 1 (flight_main,
- * xvt_flight_entry_read_launch_switches); nothing reads it. */
+/* 0 when the launch command line holds "nomusic", else 1
+ * (xvt_flight_entry_read_launch_switches); nothing reads it. */
 // GLOBAL: XVT 0x9D8C28
 uint8_t g_flight_conf_music_enabled = 0;
-/* 1 when the launch command line holds "nopilot" (flight_main,
- * xvt_flight_entry_read_launch_switches): flight start then leaves the network
+/* 1 when the launch command line holds "nopilot"
+ * (xvt_flight_entry_read_launch_switches): flight start then leaves the network
  * players of g_pilot_data unmatched to the session's slots
- * (mission_sync_pilot_network_players_to_session_slots), and mission_init reads it
- * too. */
+ * (mission_sync_pilot_network_players_to_session_slots), and mission_init reads
+ * it too. */
 // GLOBAL: XVT 0x9C8E40
 int g_flight_conf_no_pilot = 0;
-/* Cleared at flight start (flight_main_loop, xvt_flight_loading_globals); nothing
- * else uses it. */
+/* Cleared at flight start (xvt_flight_loading_globals); nothing else uses
+ * it. */
 // GLOBAL: XVT 0x9C8E50
 uint8_t g_unused_flight_runtime_block[768] = {0};
-/* Random bytes filled at mission setup (flight_main_loop,
- * xvt_flight_loading_mission_setup): even entries 0 to 124, odd entries 0 to 3.
- * Nothing else reads it. */
+/* Random bytes filled at mission setup (xvt_flight_loading_mission_setup): even
+ * entries 0 to 124, odd entries 0 to 3. Nothing else reads it. */
 // GLOBAL: XVT 0x9CD060
 uint8_t g_flight_noise_table[512] = {0};
 /* First object slot of the range each player fills locally, up to
@@ -345,9 +338,9 @@ uint8_t g_flight_noise_table[512] = {0};
  * state (flight_restore_world_state, xvt_snapshot_decode_prefix). */
 // GLOBAL: XVT 0x9A8E24
 int g_local_transient_slot_start = 0;
-/* 0 when the launch command line holds "nosfx", else 1 (flight_main,
- * xvt_flight_entry_read_launch_switches); fsfx_play_sound and the sound loops check
- * it. */
+/* 0 when the launch command line holds "nosfx", else 1
+ * (xvt_flight_entry_read_launch_switches); fsfx_play_sound and the sound loops
+ * check it. */
 // GLOBAL: XVT 0x9D80C9
 uint8_t g_flight_conf_sfx_enabled = 0;
 /* Object the local player's beam is on, 0xFFFF while the beam is off; two
@@ -365,10 +358,10 @@ uint16_t g_local_beam_target_obj_idx = 0;
 // GLOBAL: XVT 0x9A8064
 static int16_t g_target_proximity_blink_timer = 0;
 /* Steps per simulated second at the current step's length: 236
- * (SIMULATION_TICKS_PER_SECOND) over g_elapsed_ticks, at least 1. Many functions
- * write it, chiefly flight_step_sim_to_time and flight_advance_one_step (the
- * XvtFlightSim_ functions in the modern build) and the per-object updates,
- * which change it for each object and put it back. */
+ * (SIMULATION_TICKS_PER_SECOND) over g_elapsed_ticks, at least 1. Many
+ * functions write it, chiefly xvt_flight_sim_step_to_time and
+ * xvt_flight_sim_advance and the per-object updates, which change it for each
+ * object and put it back. */
 // GLOBAL: XVT 0x9D8112
 uint16_t g_sim_steps_per_second = 0;
 /* End, one past, of the local slot range that starts at
@@ -382,12 +375,12 @@ int g_local_debris_slot_end = 0;
 uint16_t g_graphics_detail_distance_threshold = 0;
 /* 1 when the mission has no .pal file of its own (checked at flight start at 1
  * byte per pixel), so the palette is built from the colors of the loaded
- * models' textures. Three functions write it: flight_main_loop,
- * xvt_flight_loading_palette and fe_disk_io_init_resources, which clears it unless
+ * models' textures. Two functions write it: xvt_flight_loading_palette and
+ * fe_disk_io_init_resources, which clears it unless
  * g_palette_generation_enabled. */
 // GLOBAL: XVT 0x9E8F54
 int g_generate_mission_palette = 0;
-/* Set to 0 at flight start (flight_main_loop, xvt_flight_loading_globals,
+/* Set to 0 at flight start (xvt_flight_loading_globals,
  * xvt_flight_task_start_world); nothing reads it. */
 // GLOBAL: XVT 0x9E964C
 int g_unused_flight_startup_object_pass_state = 0;
@@ -400,26 +393,23 @@ int g_unused_flight_startup_object_pass_state = 0;
 uint8_t g_transform_light_direction_to_object_space = 0;
 /* Ms left in the music track playing; when flight_update_dynamic_music_state
  * counts it to 0 or below it starts the flight track (track 2) again. INT32_MAX
- * with no music. Written by flight_update_dynamic_music_state and at flight start
- * (flight_main_loop, xvt_flight_loading_runtime). */
+ * with no music. Written by flight_update_dynamic_music_state and at flight
+ * start (xvt_flight_loading_runtime). */
 // GLOBAL: XVT 0x9EC468
 int g_dynamic_music_track_remaining_ms = 0;
 /* Length of the current simulation step, in ticks. Many functions write it,
- * chiefly flight_step_sim_to_time and flight_advance_one_step (the XvtFlightSim_
- * functions in the modern build) and the per-object updates, which change it
- * for each object and put it back. */
+ * chiefly xvt_flight_sim_step_to_time and xvt_flight_sim_advance and the
+ * per-object updates, which change it for each object and put it back. */
 // GLOBAL: XVT 0x9EC5FE
 uint16_t g_elapsed_ticks = 0;
 /* Tick the simulation has reached. Many functions write it, chiefly
- * flight_step_sim_to_time, flight_advance_one_step and flight_run_mission_loop in the
- * original build and the XvtFlightSim_ and XvtFlightFrame_ functions in the
- * modern one; the wait for the mission start sets 0. */
+ * xvt_flight_sim_step_to_time, xvt_flight_sim_advance, xvt_flight_frame_advance
+ * and xvt_flight_frame_confirm; the wait for the mission start sets 0. */
 // GLOBAL: XVT 0x9E9658
 int g_game_time = 0;
 /* -1, or the one object flight_update_craft_steering_and_speed and
- * object_update_lifetime_and_movement move alone while flight_advance_one_step
- * (xvt_flight_sim_advance) brings a player's craft up to an input frame's time.
- * Flight start sets -1. */
+ * object_update_lifetime_and_movement move alone while xvt_flight_sim_advance
+ * brings a player's craft up to an input frame's time. Flight start sets -1. */
 // GLOBAL: XVT 0x9EC5D0
 int g_single_object_update_override_idx = -1;
 /* The flight's shared countdown timers (see flight_global_countdown_timers),
@@ -429,65 +419,56 @@ int g_single_object_update_override_idx = -1;
 struct flight_global_countdown_timers g_flight_global_countdown_timers = {0};
 /* Players taking part (participation_state 1 or 2): the session's player count
  * at flight start, then recounted by flight_update_active_player_count and
- * flight_recount_players_and_check_mission_end. Four functions write it: those two,
- * flight_main_loop and xvt_flight_loading_globals. */
+ * flight_recount_players_and_check_mission_end. Three functions write it: those
+ * two and xvt_flight_loading_globals. */
 // GLOBAL: XVT 0x9FD394
 int g_active_flight_player_count;
-/* Set to 0 at mission setup (flight_main_loop, xvt_flight_loading_mission_setup);
- * nothing reads it. */
+/* Set to 0 at mission setup (xvt_flight_loading_mission_setup); nothing reads
+ * it. */
 // GLOBAL: XVT 0x9FD390
 uint8_t g_unused_flight_message_runtime_state = 0;
-/* Players in the session at flight start (flight_main_loop,
- * xvt_flight_loading_globals), put back with the world state; 1 means solo
- * play. */
+/* Players in the session at flight start (xvt_flight_loading_globals), put back
+ * with the world state; 1 means solo play. */
 // GLOBAL: XVT 0xA080F8
 int g_flight_player_count = 0;
 /* Time stamp of the newest local input frame applied in multiplayer, so one
- * applied again is known (g_flight_sfx_side_effect_gate 2). Four functions write
- * it: flight_advance_one_step and flight_run_mission_loop (0 at its start) in the
- * original build, xvt_flight_sim_advance and xvt_flight_frame_begin in the modern
- * one. */
+ * applied again is known (g_flight_sfx_side_effect_gate 2). Two functions write
+ * it: xvt_flight_sim_advance and xvt_flight_frame_begin (0 at its start). */
 // GLOBAL: XVT 0xA0085C
 int g_last_local_replay_input_timestamp = 0;
 /* Per simulation update length in ticks, the frames that took it (the last
  * bucket counts 19 or more), counted only with the tickcounter launch option.
- * Written by flight_run_mission_loop, which clears it at its start, in the
- * original build and by xvt_flight_frame_begin and xvt_flight_frame_render in the
- * modern one. */
+ * Written by xvt_flight_frame_begin and xvt_flight_frame_render. */
 // GLOBAL: XVT 0x523650
 unsigned int g_flight_update_duration_histogram[20] = {0};
 /* Packet loss score behind g_packet_drop_indicator: up 10 for each new drop on
  * the host link, down 1 per frame. It changes only while
- * g_flight_prev_host_packet_drop_count is nonzero, which never happens, so it stays
- * 0. Written by flight_run_mission_loop in the original build and
- * xvt_flight_frame_begin and xvt_flight_frame_update_packet_drop_indicator in the
- * modern one. */
+ * g_flight_prev_host_packet_drop_count is nonzero, which never happens, so it
+ * stays 0. Written by xvt_flight_frame_begin and
+ * xvt_flight_frame_update_packet_drop_indicator. */
 // GLOBAL: XVT 0x556974
 int g_flight_packet_drop_score = 0;
 /* Ticks between the last two step targets, from which the next is placed.
- * Written by flight_run_mission_loop in the original build and
- * xvt_flight_frame_begin, xvt_flight_frame_start_advance and
- * xvt_flight_frame_network_update in the modern one. */
+ * Written by xvt_flight_frame_begin, xvt_flight_frame_start_advance and
+ * xvt_flight_frame_network_update. */
 // GLOBAL: XVT 0x556978
 int g_predicted_frame_delta = 0;
-/* Tick the simulation was last stepped to, 0 at the mission loop's start.
- * Written by flight_run_mission_loop in the original build and
- * xvt_flight_frame_begin, xvt_flight_frame_advance and xvt_flight_frame_network_update
- * in the modern one. */
+/* Tick the simulation was last stepped to, 0 at the start of the flight's frame
+ * loop. Written by xvt_flight_frame_begin, xvt_flight_frame_advance and
+ * xvt_flight_frame_network_update. */
 // GLOBAL: XVT 0x55697C
 int g_flight_last_step_target_timestamp = 0;
-/* The host link's drop count (net_reliable_get_peer_packet_drop_count_by_dpid) at the
- * last frame, 0 at the mission loop's start. Its only update sits in the branch
- * taken when it is nonzero, so it stays 0 and g_packet_drop_indicator with it.
- * Written by flight_run_mission_loop in the original build and
- * xvt_flight_frame_begin and xvt_flight_frame_update_packet_drop_indicator in the
- * modern one. */
+/* The host link's drop count (net_reliable_get_peer_packet_drop_count_by_dpid)
+ * at the last frame, 0 at the start of the flight's frame loop. Its only update
+ * sits in the branch taken when it is nonzero, so it stays 0 and
+ * g_packet_drop_indicator with it. Written by xvt_flight_frame_begin and
+ * xvt_flight_frame_update_packet_drop_indicator. */
 // GLOBAL: XVT 0x556980
 int g_flight_prev_host_packet_drop_count = 0;
 /* Music track playing: 0 none, 2 the flight track, 3 to 7 an outcome track
- * flight_update_dynamic_music_state picks by the local player's team goal status.
- * Written by flight_update_dynamic_music_state and at flight start
- * (flight_main_loop, xvt_flight_loading_runtime). */
+ * flight_update_dynamic_music_state picks by the local player's team goal
+ * status. Written by flight_update_dynamic_music_state and at flight start
+ * (xvt_flight_loading_runtime). */
 // GLOBAL: XVT 0x9FD434
 uint8_t g_dynamic_music_state = 0;
 /* The flight's mission state (see flight_mission_state); saved and restored with
@@ -495,21 +476,20 @@ uint8_t g_dynamic_music_state = 0;
  * start and flight_update_timers. */
 // GLOBAL: XVT 0x9D6940
 struct flight_mission_state g_flight_mission_state = {0};
-/* 1 once an outcome track has started (flight_update_dynamic_music_state); flight
- * start clears it (flight_main_loop, xvt_flight_loading_runtime). */
+/* 1 once an outcome track has started (flight_update_dynamic_music_state);
+ * flight start clears it (xvt_flight_loading_runtime). */
 // GLOBAL: XVT 0xA004C8
 uint8_t g_dynamic_music_outcome_latched = 0;
 /* 1 when backdrops are drawn. Set from the backdrop option at launch
- * (flight_main, xvt_flight_entry_configure), then from the graphics detail preset
+ * (xvt_flight_entry_configure), then from the graphics detail preset
  * (flight_apply_graphics_detail_preset). */
 // GLOBAL: XVT 0xA080FC
 uint8_t g_backdrops_enabled = 0;
-/* Set to 0 at flight start (flight_main_loop, xvt_flight_loading_globals); nothing
- * reads it. */
+/* Set to 0 at flight start (xvt_flight_loading_globals); nothing reads it. */
 // GLOBAL: XVT 0xA081F0
 int g_unused_flight_session_reset_state = 0;
 /* A debug log file nothing opens: flight start sets NULL, and the flight's end
- * closes it when set (flight_main_loop, xvt_flight_task_release_mission). */
+ * closes it when set (xvt_flight_task_release_mission). */
 // GLOBAL: XVT 0xA08210
 xvt_file *g_unused_flight_debug_log_file = NULL;
 /* A byte saved and restored with the world state and folded into the live
@@ -526,61 +506,58 @@ int g_world_state_debris_slot_count = 0;
  * xvt_snapshot_decode_prefix), so it stays 0. */
 // GLOBAL: XVT 0x9A73A4
 int g_unused_world_state_serialized_dword = 0;
-/* 1 when the launch command line holds "newnet" (flight_main,
- * xvt_flight_entry_read_launch_switches); the options sync with the other players
- * (flight_net_sync_player_options_and_taunts, xvt_flight_network_accept_roster) also
- * writes it, and the live checksum includes it. */
+/* 1 when the launch command line holds "newnet"
+ * (xvt_flight_entry_read_launch_switches); the options sync with the other
+ * players (xvt_flight_network_accept_roster) also writes it, and the live
+ * checksum includes it. */
 // GLOBAL: XVT 0xA08138
 int g_flight_conf_new_net = 0;
-/* Set to 1 at launch (flight_main, xvt_flight_entry_read_launch_switches) and put
- * back with the world state; laser_fireplayerweapon reads it. */
+/* Set to 1 at launch (xvt_flight_entry_read_launch_switches) and put back with
+ * the world state; laser_fireplayerweapon reads it. */
 // GLOBAL: XVT 0x523424
 int g_laser_fire_timestamp_tracking_enabled = 0;
 /* Never written, so it stays 0 and the early returns that test it
- * (flight_update_player_step, xvt_flight_sim_update_player_step,
- * xvt_flight_controls_throttle_eligible) never run. */
+ * (xvt_flight_sim_update_player_step, xvt_flight_controls_throttle_eligible)
+ * never run. */
 // GLOBAL: XVT 0xA07C70
 uint8_t g_dormant_flight_region_session_early_return_flag = 0;
-/* Flipped by the Alt+M key in flight_update_player_step
- * (xvt_flight_sim_update_player_step in the modern build), its only writers;
- * nothing else reads it. */
+/* Flipped by the Alt+M key in xvt_flight_sim_update_player_step, its only
+ * writer; nothing else reads it. */
 // GLOBAL: XVT 0xA07CCE
 uint8_t g_flight_alt_m_toggle = 0;
-/* Set to 0 at flight start (flight_main_loop, xvt_flight_loading_globals); nothing
- * reads it. */
+/* Set to 0 at flight start (xvt_flight_loading_globals); nothing reads it. */
 // GLOBAL: XVT 0x9FE734
 int g_unused_flight_transient_reset_state = 0;
-/* Cleared at flight start (flight_main_loop, xvt_flight_loading_globals); nothing
- * else uses it. */
+/* Cleared at flight start (xvt_flight_loading_globals); nothing else uses
+ * it. */
 // GLOBAL: XVT 0x9FE7A0
 uint8_t g_unused_flight_network_block[48] = {0};
 /* Copy of the local player's record taken when the options sync with the other
- * players fails at flight start (flight_main_loop,
- * xvt_flight_task_release_mission); nothing reads it. */
+ * players fails at flight start (xvt_flight_task_release_mission); nothing
+ * reads it. */
 // GLOBAL: XVT 0x9ECC60
 struct player_data g_local_player_snapshot_on_options_sync_failure = {0};
 /* 1 when the launch command line holds "inprogress": a client joining a flight
- * already under way (flight_main, xvt_flight_entry_read_launch_switches). Handed to
+ * already under way (xvt_flight_entry_read_launch_switches). Handed to
  * net_session_init_game_session. */
 // GLOBAL: XVT 0x523640
 int g_flight_in_progress_launch = 0;
 /* The launch command line split into arguments (see flight_launch_args), by
- * flight_main in the original build and xvt_flight_entry_prepare in the modern
- * one. */
+ * xvt_flight_entry_prepare. */
 // GLOBAL: XVT 0x622CC0
 struct flight_launch_args g_flight_launch_args = {0};
-/* 1 when the launch command line starts with '-' (flight_main,
- * xvt_flight_entry_read_launch_switches); nothing reads it. */
+/* 1 when the launch command line starts with '-'
+ * (xvt_flight_entry_read_launch_switches); nothing reads it. */
 // GLOBAL: XVT 0x66DDE8
 int g_flight_started_with_dash_arg = 0;
-/* timeGetTime, in ms, when sound setup began (flight_main,
- * xvt_flight_entry_create_devices); nothing reads it. */
+/* timeGetTime, in ms, when sound setup began (xvt_flight_entry_create_devices);
+ * nothing reads it. */
 // GLOBAL: XVT 0x66E1FC
 uint32_t g_flight_sound_init_start_time_ms = 0;
 
-/* Sets g_unused_flight_resume_reset_slot0 and g_unused_flight_resume_reset_slot1, which
- * nothing reads, to -1. Called when a pause ends: by flight_update_player_step in
- * the original build, xvt_flight_sim_resume in the modern one. */
+/* Sets g_unused_flight_resume_reset_slot0 and
+ * g_unused_flight_resume_reset_slot1, which nothing reads, to -1. Called by
+ * xvt_flight_sim_resume when a pause ends. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x410FE0
 void flight_reset_unused_resume_slots(void)
@@ -590,30 +567,29 @@ void flight_reset_unused_resume_slots(void)
 }
 
 /* Counts down the flight's timers once per simulation step, by g_elapsed_ticks:
- * every g_flight_global_countdown_timers entry (the modern build takes the
- * reference clock's elapsed ticks for entries 1 to 5 and 10 when the timing is
- * unlocked); with side effects on, each active player's
- * g_player_flight_transient_timers; each player's pending_action_timer and
- * beam_fire_cooldown_timer; and for each craft in the active region and each
- * object with character data, the AI think, maneuver and secondary maneuver
- * timers (the reference clock's ticks in the modern build), plus each craft's
- * weapon fire inhibit and countermeasure cooldown timers and its turrets'
- * retarget cooldowns. Each stops at 0 except the think timers and turret
- * cooldowns. When g_target_proximity_blink_timer runs out it flips
+ * every g_flight_global_countdown_timers entry (entries 1 to 5 and 10 take the
+ * reference clock's elapsed ticks when the timing is unlocked); with side
+ * effects on, each active player's g_player_flight_transient_timers; each
+ * player's pending_action_timer and beam_fire_cooldown_timer; and for each
+ * craft in the active region and each object with character data, the AI think,
+ * maneuver and secondary maneuver timers (the reference clock's ticks), plus
+ * each craft's weapon fire inhibit and countermeasure cooldown timers and its
+ * turrets' retarget cooldowns. Each stops at 0 except the think timers and
+ * turret cooldowns. When g_target_proximity_blink_timer runs out it flips
  * g_target_proximity_blink_bit and restarts the timer; it then sets
  * g_render_object_ref and g_render_target_component_idx from the local player's
  * target. The rest runs once per 236 ticks, a simulated second: it advances
  * g_mission_elapsed_clock and counts g_mission_countdown_clock down, and when a
  * mission time limit runs out with side effects on, sets every player's
- * participation_state to 2 and mission_end_pending; it gives the time warnings at
- * 2 minutes, 1 minute, 15 and 2 seconds; in melee and combat missions with more
- * than one player it starts the team victory time limit when one team is left
- * or a team's goal status allows it; for each player's craft with any working
- * subsystem, it counts down the system_repair_seconds of the failed subsystem
- * with the lowest display slot and repairs it when they run out; it adds 1 to
- * every live object's seconds_alive; and it advances the HUD message panes. In
- * the original build, with no target, the blink test reads max_bounds_extent
- * before any value is set. */
+ * participation_state to 2 and mission_end_pending; it gives the time warnings
+ * at 2 minutes, 1 minute, 15 and 2 seconds; in melee and combat missions with
+ * more than one player it starts the team victory time limit when one team is
+ * left or a team's goal status allows it; for each player's craft with any
+ * working subsystem, it counts down the system_repair_seconds of the failed
+ * subsystem with the lowest display slot and repairs it when they run out; it
+ * adds 1 to every live object's seconds_alive; and it advances the HUD message
+ * panes. With no target the blink test uses a max_bounds_extent of 0; the 1997
+ * game read it before any value was set. */
 // FUNCTION: XVT 0x415C90
 void flight_update_timers(void)
 {
@@ -1258,11 +1234,11 @@ void flight_update_dynamic_music_state(void)
 	}
 }
 
-/* Allocates the two world state buffers, flight_calculate_world_state_buffer_size
- * bytes each, and locks them: g_world_state_handle and g_world_state_buffer, then
- * g_world_state_dup_handle and g_world_state_dup_buffer. A failed allocation calls
- * fe_disk_io_fatal_error with the not-enough-memory message; the modern build
- * returns after it. */
+/* Allocates the two world state buffers,
+ * flight_calculate_world_state_buffer_size bytes each, and locks them:
+ * g_world_state_handle and g_world_state_buffer, then g_world_state_dup_handle
+ * and g_world_state_dup_buffer. A failed allocation calls
+ * fe_disk_io_fatal_error with the not-enough-memory message and returns. */
 // FUNCTION: XVT 0x416720
 void flight_alloc_world_state_buffers(void)
 {
@@ -1292,8 +1268,8 @@ void flight_alloc_world_state_buffers(void)
 		      (unsigned)g_world_state_dup_handle);
 }
 
-/* Frees both world state buffers (the modern build skips a handle of 0) and
- * sets g_world_state_handle, g_world_state_buffer, g_world_state_dup_handle and
+/* Frees both world state buffers (a handle of 0 is skipped) and sets
+ * g_world_state_handle, g_world_state_buffer, g_world_state_dup_handle and
  * g_world_state_dup_buffer to 0 or NULL. */
 // FUNCTION: XVT 0x4167A0
 void flight_free_world_state_buffers(void)
@@ -1316,19 +1292,8 @@ void flight_free_world_state_buffers(void)
 	g_world_state_dup_buffer = NULL;
 }
 
-/* Writes the world state into g_world_state_buffer and sets g_world_state_size to
- * its length. Per object slot, main and static, except the local slots from
- * g_local_transient_slot_start to g_local_debris_slot_end: the type byte, and for a
- * live object its record, mobile object, craft data, warhead guidance and
- * character data, each pointer written as its offset into its pool plus 1, so
- * NULL stays 0 (the live pointers are put back after). Then the mission clocks,
- * header, flight group stats and flight groups, g_flight_mission_state,
- * g_flight_global_countdown_timers, the mission file version, g_flight_player_count,
- * g_world_state_reserved_byte, the pool sizes and slot ranges, the AI plan table
- * and count, g_unused_world_state_serialized_dword, the built-in plan ids, the game
- * random state, the next object signature, g_laser_fire_timestamp_tracking_enabled
- * and g_players. Does not check the buffer's size. The modern build calls
- * xvt_snapshot_save instead. */
+/* Writes the world state into g_world_state_buffer and sets g_world_state_size
+ * to its length, by calling xvt_snapshot_save. */
 // FUNCTION: XVT 0x4167F0
 void flight_save_world_state(void)
 {
@@ -1339,11 +1304,8 @@ void flight_save_world_state(void)
 	}
 }
 
-/* Reads the world state back from g_world_state_buffer in the order
- * flight_save_world_state writes it, turning stored offsets back into pointers; a
- * slot saved empty has its record, mobile object, craft data, guidance and
- * character data cleared, with player_owner_idx -1 and the mobile object's IFF
- * 0xFF. The modern build calls xvt_snapshot_restore instead. */
+/* Reads the world state back from g_world_state_buffer, by calling
+ * xvt_snapshot_restore. */
 // FUNCTION: XVT 0x416E50
 void flight_restore_world_state(void)
 {
@@ -1355,10 +1317,7 @@ void flight_restore_world_state(void)
 	}
 }
 
-/* Returns the bytes flight_save_world_state may write: the fixed part plus the
- * size of each flight group's stats and record, each static slot, each main
- * slot with its mobile object, each character data entry, each projectile
- * guidance and each craft data entry. The modern build returns
+/* Returns the bytes flight_save_world_state may write, from
  * xvt_snapshot_calculate_size. */
 // FUNCTION: XVT 0x4173D0
 size_t flight_calculate_world_state_buffer_size(void)
@@ -1367,14 +1326,8 @@ size_t flight_calculate_world_state_buffer_size(void)
 }
 
 /* Computes the world checksum of the saved state in g_world_state_buffer into
- * g_world_checksum and g_world_checksum_region_lengths: the byte sum of each
- * region, a region closing once it passes a sixteenth of g_world_state_size,
- * unused entries set to 0; a last region no longer than that is left out. Of
- * each object's record, mobile object and craft data only the first bytes are
- * summed: the struct's size less the sizes of its pointer fields and its cached
- * move and orientation fields (for craft data, less its field_3F2 too, plus
- * 32). The arguments are ignored; the modern build passes them to
- * xvt_snapshot_checksum instead. */
+ * g_world_checksum and g_world_checksum_region_lengths, by passing its two
+ * arguments to xvt_snapshot_checksum. */
 // FUNCTION: XVT 0x417450
 void flight_checksum_world_state(int unused_arg0, int unused_arg1)
 {
@@ -1466,14 +1419,7 @@ int flight_recount_players_and_check_mission_end(void)
 	return g_flight_mission_state.mission_end_pending;
 }
 
-/* Returns a checksum of the live world, each part folded in by XOR and a left
- * rotation of 1 bit: the flight_checksum_buffer_rotate_xor checksum of every live
- * object's character data, mobile object, record and craft data, every
- * projectile's guidance, the mission clocks, flight group stats and records,
- * g_flight_mission_state, the timers, the mission header, messages and global
- * goals, the AI plan table and order data, and each active player's record,
- * along with the slot ranges, pool sizes and other counters. The modern build
- * returns xvt_snapshot_live_checksum. */
+/* Returns a checksum of the live world, from xvt_snapshot_live_checksum. */
 // FUNCTION: XVT 0x462A90
 int flight_compute_live_world_state_checksum(void)
 {
@@ -6609,7 +6555,7 @@ char flight_apply_graphics_detail_preset(uint16_t preset)
 }
 
 /* Sets g_flight_main_window_handle to the frontend's main window and returns 1;
- * the original build also updates the window and gives it the focus. */
+ * it does nothing more. */
 // FUNCTION: XVT 0x4AA6F0
 int flight_update_and_focus_main_window(void)
 {
@@ -6617,33 +6563,29 @@ int flight_update_and_focus_main_window(void)
 	return 1;
 }
 
-/* In the original build, brings the main window to the front when it is not
- * there (resetting an 8-bit palette, flight_palette_reset_if8_bit, and hiding the
- * cursor), then takes one waiting window message and dispatches it unless it is
- * 0x06, 0x08, 0x1C, 0x1F or 0x86. Returns the dispatch's result, the message
- * number when not dispatched, or 0 with no message. The modern build returns
- * 0. */
+/* Does nothing and returns 0. */
 // FUNCTION: XVT 0x4AA720
 int32_t flight_pump_window_messages(void) { return 0; }
 
 /* Steers each craft in the active region's craft slots, or only
- * g_single_object_update_override_idx when that is set, and sets its speed, over
- * g_elapsed_ticks plus the ticks its own state lags g_game_time
- * (sim_state_timestamp) when that is set, else over g_elapsed_ticks. An AI craft
- * (no player owner) with working systems and not held by a beam rolls, pitches
- * and turns toward its AI controller's targets at its flight rates, banking as
- * it turns; pitching through a loop turns its yaw and roll half a circle.
- * Climbs end and dives pull out (flight_update_dive_pullout_pitch_target). An
- * active craft's speed moves toward its commanded speed or its throttle's share
- * of a top speed that rises or falls with the energy settings and doubles
- * unless engine_overdrive_off is set; a player's throttle counts only with
- * working engines. Breaking up and exploding craft slow to their top speed,
- * disabled craft slow by 20 per simulated second, and craft entering hyperspace
- * speed up by 50, 200 or 500 per simulated second. A changed orientation is
- * marked for recomputing, and a carried object takes the craft's orientation.
- * Sets g_cur_craft and g_cur_craft_model_index, and puts g_elapsed_ticks and
- * g_sim_steps_per_second back at the end. The modern build steers with its own
- * integration when the timing is unlocked. */
+ * g_single_object_update_override_idx when that is set, and sets its speed,
+ * over g_elapsed_ticks plus the ticks its own state lags g_game_time
+ * (sim_state_timestamp) when that is set, else over g_elapsed_ticks. An AI
+ * craft (no player owner) with working systems and not held by a beam rolls,
+ * pitches and turns toward its AI controller's targets at its flight rates,
+ * banking as it turns; pitching through a loop turns its yaw and roll half a
+ * circle. Climbs end and dives pull out
+ * (flight_update_dive_pullout_pitch_target). An active craft's speed moves
+ * toward its commanded speed or its throttle's share of a top speed that rises
+ * or falls with the energy settings and doubles unless engine_overdrive_off is
+ * set; a player's throttle counts only with working engines. Breaking up and
+ * exploding craft slow to their top speed, disabled craft slow by 20 per
+ * simulated second, and craft entering hyperspace speed up by 50, 200 or 500
+ * per simulated second. A changed orientation is marked for recomputing, and a
+ * carried object takes the craft's orientation. Sets g_cur_craft and
+ * g_cur_craft_model_index, and puts g_elapsed_ticks and g_sim_steps_per_second
+ * back at the end. It steers with its own integration when the timing is
+ * unlocked. */
 // FUNCTION: XVT 0x4ACE80
 void flight_update_craft_steering_and_speed(void)
 {

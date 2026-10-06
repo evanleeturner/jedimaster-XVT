@@ -89,9 +89,9 @@ static int16_t g_proving_grounds_obstacle_anim_timers[3] = {0};
 uint16_t g_proving_grounds_current_checkpoint_obj_idx = 0;
 
 /* Shifts the local player's pose history one place older, dropping entry 3, and
- * records the craft's prev_world_x, prev_world_y and prev_world_z and current roll,
- * pitch and yaw as entry 0. In the modern build with unlocked timing it records
- * only when xvt_player_timing_record_recovery gives a reference position, which it
+ * records the craft's prev_world_x, prev_world_y and prev_world_z and current
+ * roll, pitch and yaw as entry 0. With unlocked timing it records only when
+ * xvt_player_timing_record_recovery gives a reference position, which it
  * records in place of the previous position. Does not check that the local
  * player has a craft. */
 // FLAGS: /O2 /G5
@@ -948,8 +948,8 @@ int proving_grounds_has_player_crossed_checkpoint(uint16_t checkpoint_obj_idx)
 /* Draws the proving grounds panel of the HUD near x, y: on a full HUD redraw
  * the labels and level, every call the gates remaining and passed, targets
  * destroyed and score. 640x480 doubles the column width and offsets; the panel
- * sits one column right for craft models 7, 8, 11 and 15, else one left. The
- * modern build also records each field for its cockpit readouts. */
+ * sits one column right for craft models 7, 8, 11 and 15, else one left. It
+ * also records each field for the cockpit readouts. */
 // FUNCTION: XVT 0x42C750
 void proving_grounds_draw_status_panel(int16_t x, int16_t y)
 {

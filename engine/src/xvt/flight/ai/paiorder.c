@@ -1518,11 +1518,11 @@ int16_t paiorder_abortmissionorder(void)
  * leader is gone: an empty slot, in another flight group, breaking up or
  * exploding, aborted, or flown by a player. This craft then has no leader and
  * takes the old leader's separation, waypoint_index and target, with its aim
- * point (in the modern build only when there is a target); every other craft of
- * the group in the active region's craft slots gets this craft as leader.
- * Returns 0 for a craft with no leader or a leader index at or past the end of
- * those slots. With the leader in place it returns 0, first setting
- * think_interval to 59 ticks when the leader runs enterhangarpln. */
+ * point (only when there is a target); every other craft of the group in the
+ * active region's craft slots gets this craft as leader. Returns 0 for a craft
+ * with no leader or a leader index at or past the end of those slots. With the
+ * leader in place it returns 0, first setting think_interval to 59 ticks when
+ * the leader runs enterhangarpln. */
 // FUNCTION: XVT 0x467C50
 int16_t paiorder_leaderdeadorder(void)
 {

@@ -16,18 +16,17 @@ uint8_t g_handle_allocator_initialized = 0;
 unsigned int g_handle_allocation_attempt_count = 0;
 /* The handle allocator's tables, indexed by handle - 1: each block's pointer
  * and size, with a NULL pointer marking a free slot. Only
- * memory_alloc_handle_internal and memory_free_handle write it. The modern build
- * also reads it: xvt_frontend_task_shutdown frees every live handle, and
- * xvt_render_capture_capture_view reads the object table's size from it. */
+ * memory_alloc_handle_internal and memory_free_handle write it. It is also read
+ * by xvt_frontend_task_shutdown, which frees every live handle, and by
+ * xvt_render_capture_capture_view, which reads the object table's size from
+ * it. */
 // GLOBAL: XVT 0x622CE8
 struct memory_handle_table_state g_handle_tables = {0};
 
-/* In the original build, makes size bytes from address readable, writable and
- * executable (VirtualProtect with 0x40) and returns VirtualProtect's result:
- * nonzero on success, 0 on failure. The modern build changes nothing and
- * returns 1. Its one caller, render_scene_allocate_buffers, passes an address
- * 0x217 bytes into its own code and a size of 0x80000, and ignores the
- * result. */
+/* Changes nothing and returns 1; the 1997 game made size bytes from address
+ * readable, writable and executable here. Its one caller,
+ * render_scene_allocate_buffers, passes an address 0x217 bytes into its own
+ * code and a size of 0x80000, and ignores the result. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4AC490
 int memory_set_region_execute_read_write(void *address, size_t size)
@@ -101,9 +100,9 @@ uint16_t memory_alloc_handle_internal(size_t size, int legacy_tag,
 }
 
 /* Frees a handle's block and marks its slot of g_handle_tables free (NULL
- * pointer, size 0); a slot already free is just cleared again. The modern build
- * first passes the handle to xvt_render_assets_retire_handle. Does not check the
- * handle: 0 or one over 32768 writes outside the tables. */
+ * pointer, size 0); a slot already free is just cleared again. It first passes
+ * the handle to xvt_render_assets_retire_handle. Does not check the handle: 0
+ * or one over 32768 writes outside the tables. */
 // FUNCTION: XVT 0x4AC6E0
 void memory_free_handle(unsigned int handle)
 {

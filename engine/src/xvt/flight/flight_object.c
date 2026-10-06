@@ -42,23 +42,23 @@ uint16_t g_billboard_texture_sequence_index = 0;
 // GLOBAL: XVT 0xA90A60
 int16_t *g_billboard_texture_frame_sequence = NULL;
 
-/* Animates objects. Every call, runs proving_grounds_update_course in the proving
- * grounds; the rest runs only when the global special_behavior_update_timer has
- * reached 0 (in the modern build also only on a reference step), and rearms it
- * to 29 ticks. It then walks the slots from g_active_region_object_slot_start
- * through the static slots: crew object types 100 to 105 tumble at rates set by
- * their slot index. A craft, starfighter through platform, steps its fuselage
- * damage animation once per fuselage mesh; while breaking up it spawns hull
- * explosions or knocks off components with fragments; with a working subsystem
- * and a pending plan other than nullpln, stationaryldrpln and stationaryflwpln
- * it aims each live rotating laser turret at its turret target or swings it
- * idly, and swings its communications and beam meshes; it moves X-wing and
- * B-wing S-foil meshes and, when none moved, ends the S-foil move with
- * IFMSG_128 or IFMSG_129; with chaff active it spawns three local fragments.
- * Small debris and explosions step their texture animation, except type 89,
- * which may spawn an effect fragment; objects without mobile data step theirs
- * too. Writes g_cur_craft, g_billboard_texture_frame_sequence and
- * g_billboard_texture_sequence_index. */
+/* Animates objects. Every call, runs proving_grounds_update_course in the
+ * proving grounds; the rest runs only when the global
+ * special_behavior_update_timer has reached 0 (and only on a reference step),
+ * and rearms it to 29 ticks. It then walks the slots from
+ * g_active_region_object_slot_start through the static slots: crew object types
+ * 100 to 105 tumble at rates set by their slot index. A craft, starfighter
+ * through platform, steps its fuselage damage animation once per fuselage mesh;
+ * while breaking up it spawns hull explosions or knocks off components with
+ * fragments; with a working subsystem and a pending plan other than nullpln,
+ * stationaryldrpln and stationaryflwpln it aims each live rotating laser turret
+ * at its turret target or swings it idly, and swings its communications and
+ * beam meshes; it moves X-wing and B-wing S-foil meshes and, when none moved,
+ * ends the S-foil move with IFMSG_128 or IFMSG_129; with chaff active it spawns
+ * three local fragments. Small debris and explosions step their texture
+ * animation, except type 89, which may spawn an effect fragment; objects
+ * without mobile data step theirs too. Writes g_cur_craft,
+ * g_billboard_texture_frame_sequence and g_billboard_texture_sequence_index. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4015B0
 void flight_object_update_special_behavior(void)

@@ -44,10 +44,9 @@ int16_t g_damage_mfd_last_selected_system_id = 0;
 // GLOBAL: XVT 0x55979C
 static int16_t g_damage_mfd_selection_changed = 0;
 /* System selected on the damage page, a damage_system_id; -1 makes
- * damage_display_mfd_page select the first damaged system it lists. Set to 0
- * as a mission loads: by flight_main_loop in the original build and
- * xvt_flight_loading_mission_setup in the modern one. flight_process_player_actions
- * also reads it. */
+ * damage_display_mfd_page select the first damaged system it lists. Set to 0 as
+ * a mission loads: by xvt_flight_loading_mission_setup.
+ * flight_process_player_actions also reads it. */
 // GLOBAL: XVT 0xA004D4
 int16_t g_damage_mfd_current_system_id = 0;
 /* Mesh count of the object type damage_queue_craft_billboards_for_object_type is
@@ -66,22 +65,21 @@ void damage_queue_craft_billboards(uint16_t object_index)
 						      object_type);
 }
 
-/* Walks the meshes of objectType for the object being drawn and, for an
- * object in a craft slot, queues a textured billboard over each intact
- * fuselage mesh (component_state 0) when the craft's damage frame calls for
- * one. The frame comes from g_fuselage_damage_texture_frame_sequence at the
- * craft's component_state entry just past its last mesh; frames 0x8000 to
- * 0xFEFF are billboards, drawn at size 256 at the projected point and
- * turned to the object's roll on screen. Along the way it sets
+/* Walks the meshes of objectType for the object being drawn and, for an object
+ * in a craft slot, queues a textured billboard over each intact fuselage mesh
+ * (component_state 0) when the craft's damage frame calls for one. The frame
+ * comes from g_fuselage_damage_texture_frame_sequence at the craft's
+ * component_state entry just past its last mesh; frames 0x8000 to 0xFEFF are
+ * billboards, drawn at size 256 at the projected point and turned to the
+ * object's roll on screen. Along the way it sets
  * g_billboard_model_node_switch_index to each mesh, and
  * g_billboard_target_selection_state to 1 for the whole walk when the object is
  * the local beam target, else to 2 on the mesh matching
  * g_render_target_component_idx and 0 on the others. g_render_object_ref points
- * at the object while it is the beam target and is put back on return.
- * Returns that saved g_render_object_ref. Also writes
- * g_billboard_object_or_type_index and g_damage_billboard_mesh_count. In the
- * original build's text have_billboard_angle is read before anything sets it;
- * the modern build sets it to 0 first. */
+ * at the object while it is the beam target and is put back on return. Returns
+ * that saved g_render_object_ref. Also writes g_billboard_object_or_type_index
+ * and g_damage_billboard_mesh_count. have_billboard_angle starts at 0 here; the
+ * 1997 game read it before anything set it. */
 // FUNCTION: XVT 0x41FC50
 uint16_t
 damage_queue_craft_billboards_for_object_type(unsigned int object_index,
@@ -282,20 +280,19 @@ damage_queue_craft_billboards_for_object_type(unsigned int object_index,
 	return saved_render_object_ref;
 }
 
-/* Draws the damage page of the multi-function display for the local
- * player's craft into g_flight_offscreen_buffer: under the Damage Assessment
- * title, one row per fitted system whose health is 0, in the craft's
- * display order, with its repair time. It marks the page closed when
- * nothing is damaged. While it is the active page in a one-player game,
- * action key 0x0D moves the selected system to the top of the display
- * order, and 0xA6 and 0xA7 step the selection back and forward through the
- * damaged systems. Returns 0 when the local player has no craft (clearing
- * the page area if its state changed) or no craft record, or when the
- * page's state changed while it is closing or nothing is damaged; otherwise
- * 1 after drawing the rows. Writes g_mfd_page_states[MFD_PAGE_DAMAGE],
- * g_mfd_active_page, g_mfd_secondary_page, g_hud_element_state_cache, the craft's
- * system_display_slot_by_system and the g_damageMfd* globals; the modern build
- * also records the page through XvtCockpitPages_*. */
+/* Draws the damage page of the multi-function display for the local player's
+ * craft into g_flight_offscreen_buffer: under the Damage Assessment title, one
+ * row per fitted system whose health is 0, in the craft's display order, with
+ * its repair time. It marks the page closed when nothing is damaged. While it
+ * is the active page in a one-player game, action key 0x0D moves the selected
+ * system to the top of the display order, and 0xA6 and 0xA7 step the selection
+ * back and forward through the damaged systems. Returns 0 when the local player
+ * has no craft (clearing the page area if its state changed) or no craft
+ * record, or when the page's state changed while it is closing or nothing is
+ * damaged; otherwise 1 after drawing the rows. Writes
+ * g_mfd_page_states[MFD_PAGE_DAMAGE], g_mfd_active_page, g_mfd_secondary_page,
+ * g_hud_element_state_cache, the craft's system_display_slot_by_system and the
+ * g_damageMfd* globals; it also records the page through XvtCockpitPages_*. */
 // FUNCTION: XVT 0x46B650
 int16_t damage_display_mfd_page(void)
 {
