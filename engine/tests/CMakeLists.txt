@@ -278,6 +278,22 @@ xvt_add_known_failure(test_paiorder cannons_abort_reason)
 xvt_add_known_failure(test_paiorder hangar_takes_other_followers)
 xvt_add_known_failure(test_paiorder hangar_departure_by_hyperspace)
 
+# The collision tests and what a hit does: src/xvt/flight/object/collide.c. The alarm that stops a check whose
+# call does not return is POSIX.
+if(NOT MSVC)
+    xvt_add_engine_test(test_collide test_collide.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/object/collide.c")
+    add_test(NAME collide COMMAND test_collide)
+    xvt_add_known_failure(test_collide self_reference_hangs)
+    xvt_add_known_failure(test_collide reference_pair_hangs)
+    xvt_add_known_failure(test_collide static_hit_uncounted)
+    xvt_add_known_failure(test_collide impact_keeps_homing)
+    xvt_add_known_failure(test_collide explosion_keeps_homing)
+endif()
+
+# The static objects' collision test and what a hit on one does: src/xvt/flight/object/static.c.
+xvt_add_engine_test(test_static test_static.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/object/static.c")
+add_test(NAME static COMMAND test_static)
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
