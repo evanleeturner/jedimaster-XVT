@@ -6733,6 +6733,16 @@
       "fields": ["file", "id"],
       "text": "The sound list {file} reached flight sound id {id}, past the 838 entries of the flight sound tables; its name and load result were written past their end (pilot voice lists get this far for a player flight group of more than 6 craft)"
     },
+    "sound.menu_list_malformed": {
+      "level": "W",
+      "fields": ["file", "fields"],
+      "text": "A line of the menu sound list {file} held {fields} words where 2 (a sound file and a name) were expected; the rest of the list was not read"
+    },
+    "sound.menu_list_missing": {
+      "level": "W",
+      "fields": ["file"],
+      "text": "The menu sound list {file} did not open, so the menus loaded none of its sounds and play them silent"
+    },
     "sound.play_failed": {
       "level": "W",
       "fields": ["site", "effect", "result"],

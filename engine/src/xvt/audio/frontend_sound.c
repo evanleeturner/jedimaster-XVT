@@ -10,6 +10,7 @@
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 struct frontend_sound_pcm_format {
 	uint16_t format_tag;		   /* Wave format, 1 for PCM. */
@@ -56,6 +57,8 @@ int frontend_sound_init_direct_sound(void *hwnd)
 	if (DirectSoundCreate(NULL,
 			      (void **)&g_front_state.frontend_direct_sound,
 			      NULL) != 0) {
+		XVT_LOG_DEBUG(
+			"sound.device_failed site=\"menus\" step=\"create\"");
 		return 0;
 	}
 
@@ -77,9 +80,12 @@ int frontend_sound_init_direct_sound(void *hwnd)
 		&g_front_state.frontend_primary_sound_buffer, NULL);
 	if (g_front_state.frontend_direct_sound->lpVtbl->SetCooperativeLevel(
 		    g_front_state.frontend_direct_sound, hwnd, 1) != 0) {
+		XVT_LOG_DEBUG(
+			"sound.device_failed site=\"menus\" step=\"cooperative_level\"");
 		frontend_sound_shutdown_direct_sound();
 		return 0;
 	}
+	XVT_LOG_INFO("sound.device_opened site=\"menus\"");
 	return 1;
 }
 
@@ -116,6 +122,10 @@ int frontend_sound_shutdown_direct_sound(void)
 	}
 	g_front_state.frontend_primary_sound_buffer = NULL;
 	g_front_state.frontend_sound_play_serial = 0;
+	XVT_LOG_DEBUG(
+		"sound.device_closed site=\"menus\" effects=%d playing=%d",
+		g_front_state.frontend_sound_buffer_count,
+		g_front_state.frontend_active_voice_count);
 	return 1;
 }
 
@@ -147,6 +157,9 @@ int frontend_sound_load_sound_file(const char *file_name,
 		return 0;
 	}
 	if (g_front_state.frontend_sound_buffer_count >= 128) {
+		XVT_LOG_WARN(
+			"sound.table_full site=\"menus\" effect=\"%s\" count=%d",
+			sound_name, g_front_state.frontend_sound_buffer_count);
 		return 0;
 	}
 	if (g_front_state.frontend_direct_sound == NULL) {
@@ -170,12 +183,19 @@ int frontend_sound_load_sound_file(const char *file_name,
 		record.file_name[191] = '\0';
 		record.priority = 0;
 		frontend_sound_insert_sorted_buffer(&record);
+		XVT_LOG_DEBUG(
+			"sound.effect_loaded site=\"menus\" effect=\"%s\" file=\"%s\" count=%d",
+			sound_name, file_name,
+			g_front_state.frontend_sound_buffer_count);
 		if (was_back_buffer_locked != 0) {
 			g_draw_surface_ptr =
 				frontend_display_lock_back_buffer();
 		}
 		return record.buffer != NULL;
 	}
+	XVT_LOG_WARN(
+		"sound.effect_load_failed site=\"menus\" effect=\"%s\" file=\"%s\"",
+		sound_name, file_name);
 	if (was_back_buffer_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
@@ -194,6 +214,8 @@ void frontend_sound_unload_all_buffers(void)
 			g_front_state.frontend_sound_buffers[buffer_index]
 				.name);
 	} while (--buffer_index >= 0);
+	XVT_LOG_DEBUG("sound.effects_unloaded site=\"menus\" left=%d",
+		      g_front_state.frontend_sound_buffer_count);
 }
 
 /* Stops the named sound's voices with frontend_sound_stop_oldest_voice_by_name until
@@ -324,6 +346,16 @@ int frontend_sound_play_ui_sound(const char *sound_name,
 
 			voice_index = candidate_voice_index;
 			if (candidate_voice_index != 12) {
+				XVT_LOG_DEBUG(
+					"sound.channel_taken site=\"menus\" effect=\"%s\" channel=%d stopped=\"%s\"",
+					sound_name, voice_index,
+					g_front_state
+						.frontend_sound_buffers
+							[g_front_state
+								 .frontend_sound_voices
+									 [voice_index]
+								 .buffer_index]
+						.name);
 				g_front_state.frontend_sound_voices[voice_index]
 					.buffer->lpVtbl->Stop(
 						g_front_state
@@ -376,6 +408,9 @@ int frontend_sound_play_ui_sound(const char *sound_name,
 						}
 					}
 				}
+				XVT_LOG_DEBUG(
+					"sound.channels_full site=\"menus\" effect=\"%s\" priority=%d",
+					sound_name, priority);
 				if (was_back_buffer_locked != 0) {
 					g_draw_surface_ptr =
 						frontend_display_lock_back_buffer();
@@ -398,6 +433,9 @@ int frontend_sound_play_ui_sound(const char *sound_name,
 		g_front_state.frontend_sound_buffers[buffer_index].buffer,
 		&duplicate_buffer);
 	if (duplicate_buffer == NULL) {
+		XVT_LOG_WARN(
+			"sound.duplicate_failed site=\"menus\" effect=\"%s\"",
+			sound_name);
 		if (was_back_buffer_locked != 0) {
 			g_draw_surface_ptr =
 				frontend_display_lock_back_buffer();
@@ -432,6 +470,9 @@ int frontend_sound_play_ui_sound(const char *sound_name,
 				.buffer,
 			g_front_state.frontend_sound_buffers[buffer_index]
 				.file_name);
+		XVT_LOG_WARN(
+			"sound.buffer_lost site=\"menus\" effect=\"%s\" reloaded=%d",
+			sound_name, result);
 		if (result == 1) {
 			duplicate_buffer->lpVtbl->SetCurrentPosition(
 				duplicate_buffer, 0);
@@ -448,6 +489,9 @@ int frontend_sound_play_ui_sound(const char *sound_name,
 						.frontend_sound_play_serial++;
 				++g_front_state.frontend_active_voice_count;
 			} else {
+				XVT_LOG_WARN(
+					"sound.play_failed site=\"menus\" effect=\"%s\" result=%#x",
+					sound_name, (unsigned)result);
 				result = 0;
 			}
 		}
@@ -459,7 +503,15 @@ int frontend_sound_play_ui_sound(const char *sound_name,
 		g_front_state.frontend_sound_voices[voice_index].play_serial =
 			g_front_state.frontend_sound_play_serial++;
 		++g_front_state.frontend_active_voice_count;
+		XVT_LOG_DEBUG(
+			"sound.started site=\"menus\" effect=\"%s\" channel=%d volume=%d pan=%d loop=%d playing=%d",
+			sound_name, voice_index, volume0_to127, pan0_to127,
+			loop, g_front_state.frontend_active_voice_count);
 		result = 1;
+	} else {
+		XVT_LOG_WARN(
+			"sound.play_failed site=\"menus\" effect=\"%s\" result=%#x",
+			sound_name, (unsigned)play_result);
 	}
 	if (was_back_buffer_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
@@ -520,6 +572,9 @@ int frontend_sound_stop_oldest_voice_by_name(const char *name)
 	g_front_state.frontend_sound_voices[oldest_voice_index].buffer_index =
 		-1;
 	--g_front_state.frontend_active_voice_count;
+	XVT_LOG_DEBUG(
+		"sound.stopped site=\"menus\" effect=\"%s\" channel=%d result=%#x",
+		name, oldest_voice_index, (unsigned)stop_result);
 	if (was_back_buffer_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
@@ -1090,6 +1145,7 @@ int frontend_sound_load_list(const char *file_name)
 {
 	xvt_file *stream = file_open(file_name, "r");
 	if (stream == NULL) {
+		XVT_LOG_WARN("sound.menu_list_missing file=\"%s\"", file_name);
 		return 0;
 	}
 	char sound_file_name[256];
@@ -1112,6 +1168,9 @@ int frontend_sound_load_list(const char *file_name)
 			return 1;
 		}
 		if (field_count != 2) {
+			XVT_LOG_WARN(
+				"sound.menu_list_malformed file=\"%s\" fields=%d",
+				file_name, field_count);
 			file_close(stream);
 			return 0;
 		}
