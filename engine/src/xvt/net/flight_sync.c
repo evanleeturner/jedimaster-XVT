@@ -25,11 +25,10 @@
 
 enum { INPUT_FRAME_PREDICTED = 2 };
 
-/* Frames held in each player's row of g_input_history, 0 to 450. Six writers;
- * chiefly flight_sync_insert_input_frame (xvt_flight_history_insert in the modern
- * build) and flight_sync_remove_input_history_frame. Flight start sets every
- * count to 0: flight_main_loop in the original build, xvt_flight_loading_globals
- * in the modern one. */
+/* Frames held in each player's row of g_input_history, 0 to 450. Five writers:
+ * flight_sync_remove_input_history_frame, xvt_flight_history_insert,
+ * xvt_flight_history_restore_checkpoint, xvt_flight_history_recover and
+ * xvt_flight_loading_globals, which sets every count to 0 at flight start. */
 // GLOBAL: XVT 0x9A8DB0
 int g_input_frame_count[8] = {0};
 /* Each player's input frames in time stamp order, up to 450 per player, with
@@ -39,8 +38,7 @@ int g_input_frame_count[8] = {0};
 // GLOBAL: XVT 0x9ED670
 struct input_frame g_input_history[8][450] = {{{0}}};
 /* 1 when remote players' craft are drawn smoothed. Starts at 1; flight start
- * copies g_internet_play_enabled into it: flight_main_loop in the original
- * build, xvt_flight_loading_globals in the modern one. */
+ * copies g_internet_play_enabled into it (xvt_flight_loading_globals). */
 // GLOBAL: XVT 0x523430
 int g_remote_player_render_smoothing_enabled = 1;
 /* Per player, the pose and motion of the remote craft as last drawn, taken by
@@ -57,7 +55,7 @@ struct remote_player_saved_sim_pose g_remote_player_saved_sim_poses[8];
 
 /* Removes the predicted frames (input_source 2, not awaiting relay) from one
  * player's input history. Does nothing for an inactive player or the local
- * one, nor, in the original build, in internet play. */
+ * one. */
 // FUNCTION: XVT 0x418650
 void flight_sync_discard_predicted_input_frames(int player_idx)
 {
@@ -130,14 +128,13 @@ void flight_sync_remove_input_history_frame(int player_idx,
 }
 
 /* Puts an input frame into a player's history, kept in time stamp order, and
- * returns it, or NULL when refused. The modern build hands the work to
- * xvt_flight_history_insert and, when the history is full under the network
- * timing (xvt_flight_timing_is_network125), calls
- * xvt_flight_network_request_recovery. In the original build a new time stamp is
- * inserted, refused when all 450 frames are in use; a frame with the same
- * time stamp is overwritten unless it came from the server (input_source 0)
- * or awaits relay, which refuses it. The frame gets input_source 1 and
- * awaiting_relay 0; callers may change them afterwards. */
+ * returns it, or NULL when refused. Hands the work to xvt_flight_history_insert
+ * and, when the history is full under the network timing
+ * (xvt_flight_timing_is_network125), calls xvt_flight_network_request_recovery.
+ * A new time stamp is inserted, refused when all 450 frames are in use; a frame
+ * with the same time stamp is overwritten unless it came from the server
+ * (input_source 0) or awaits relay, which refuses it. The frame gets
+ * input_source 1 and awaiting_relay 0; callers may change them afterwards. */
 // FUNCTION: XVT 0x418760
 struct input_frame *
 flight_sync_insert_input_frame(int player_idx, int timestamp,
@@ -648,17 +645,14 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 /* Handles a player's world checksum for the epoch in
  * g_flight_net_world_checksum_epoch (word 1); other epochs, and players that
  * aborted or are inactive, are ignored. When the 16 region checksums from
- * another player differ from the local ones, the original build sends that
- * player the snapshot in g_world_state_dup_buffer
- * (flight_net_send_world_state_resync_to_player, then
- * flight_net_send_world_state_resync_apply_request when that succeeds); the modern
- * build starts sending it with xvt_resync_begin_send and returns. On the host it
- * then records the player in g_flight_net_world_checksum_peer_status as matched
- * (1) or not (2), and turns buffering off once every active player has
- * matched. In the modern build word 34 is a request code: code 1 is taken in
- * any epoch, and on the host, from another player, starts sending the live
- * world state instead. The original build does not check that the sender has
- * a player slot; the lookup then returns 8, past the 8-entry tables. */
+ * another player differ from the local ones, it starts sending that player the
+ * snapshot in g_world_state_dup_buffer with xvt_resync_begin_send and returns.
+ * On the host it then records the player in
+ * g_flight_net_world_checksum_peer_status as matched (1) or not (2), and turns
+ * buffering off once every active player has matched. Word 34 is a request
+ * code: code 1 is taken in any epoch, and on the host, from another player,
+ * starts sending the live world state instead. A sender with no player slot is
+ * rejected, as is a request code above 1. */
 // FUNCTION: XVT 0x4193C0
 void flight_sync_handle_world_checksum_packet(int sender_dpid,
 					      const int *packet)
@@ -843,9 +837,8 @@ void flight_sync_snapshot_world_state_for_replay(void)
 	g_world_state_dup_size = (int)snapshot_bytes;
 }
 
-/* Empties the world-message buffer: the modern build clears the replay queue
- * (xvt_flight_messages_clear); the original keeps its memory and resets the
- * count and the free space. */
+/* Empties the world-message buffer by clearing the replay queue
+ * (xvt_flight_messages_clear). */
 // FUNCTION: XVT 0x4197B0
 void flight_sync_clear_buffered_world_messages(void)
 {

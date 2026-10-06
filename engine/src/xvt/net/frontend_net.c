@@ -35,16 +35,14 @@
 #include "xvt_runtime/runtime/network_task.h"
 
 /* The mission description id in the host's last lobby STATE packet; -1 while no
- * session is selected or none has arrived. 7 functions write it:
- * frontend_net_process_network_packets sets it from a STATE packet, and the join
- * screen, the session probe and sort code and xvt_network_dialogs_return reset it
- * to -1. The mission setup screens and the join screen's drawing read it. */
+ * session is selected or none has arrived. 2 functions write it:
+ * frontend_net_process_network_packets sets it from a STATE packet, and
+ * xvt_network_dialogs_return resets it to -1. The mission setup screens read
+ * it. */
 // GLOBAL: XVT 0xAA6AE8
 int g_frontend_net_received_mission_description_id = 0;
 /* The mission directory id in the host's last lobby STATE packet. Set by
- * frontend_net_process_network_packets; reset to the training exercises directory
- * by frontend_net_join_game_screen, frontend_net_connect_to_selected_game_screen and
- * frontend_net_probe_session_by_index. */
+ * frontend_net_process_network_packets. */
 // GLOBAL: XVT 0xAA6CF8
 int g_frontend_net_received_mission_directory_id = 0;
 /* The buffer most frontend network packets are built in just before they are
@@ -52,17 +50,14 @@ int g_frontend_net_received_mission_directory_id = 0;
  * screens, 5 in this file. */
 // GLOBAL: XVT 0xAA6AF0
 struct frontend_net_packet_scratch g_frontend_net_packet_scratch = {0};
-/* Index in g_frontend_net_session_list of the game selected on the join screen, -1
- * for none; while one is selected the list is not refreshed and that game's
- * packets are read. 6 functions write it, chiefly frontend_net_join_game_screen,
- * frontend_net_sort_sessions (which follows the game as the list is sorted) and
- * xvt_network_dialogs_return. Only original-build code reads it. */
+/* Index of the game selected on the join screen, -1 for none.
+ * xvt_network_dialogs_return resets it to -1; nothing reads it. */
 // GLOBAL: XVT 0x52BF50
 int g_frontend_net_selected_session_idx = -1;
 /* DirectPlay id of the sender of the last packet
  * frontend_net_process_network_packets read. The mission setup, briefing and
- * debrief screens read it, and the modern admission screen ignores packets not
- * sent by the host. */
+ * debrief screens read it, and the admission screen ignores packets not sent by
+ * the host. */
 // GLOBAL: XVT 0x52C188
 int g_frontend_net_packet_sender_player_id = 0;
 /* First payload word of the last mission choice, countdown, reservation,
@@ -89,20 +84,17 @@ int g_host_game_start_pending = 0;
 // GLOBAL: XVT 0x52C204
 int g_frontend_quick_start_launch_flag = 0;
 /* Protocol version in the last probe answer or game-started notice, stored by
- * frontend_net_process_network_packets; frontend_net_probe_session_by_index copies it
- * into the session list. Only original-build code reads it. */
+ * frontend_net_process_network_packets. Only a debug log line reads it. */
 // GLOBAL: XVT 0xAA62A4
 int g_frontend_net_probe_version = 0;
 /* Players a game still needs: the 8 roster places minus the players in the
  * host's last lobby STATE or READY_ROSTER packet, stored by
- * frontend_net_process_network_packets. frontend_net_probe_session_by_index zeroes it
- * before a probe and copies it into the session list. Only original-build code
- * reads it. */
+ * frontend_net_process_network_packets. Only debug log lines read it. */
 // GLOBAL: XVT 0xAA6A70
 int g_frontend_net_probe_players_needed = 0;
 /* Nonzero when the last probe answer or game-started notice says the game needs
- * a password; stored by frontend_net_process_network_packets and copied into the
- * session list. Only original-build code reads it. */
+ * a password; stored by frontend_net_process_network_packets. Only a debug log
+ * line reads it. */
 // GLOBAL: XVT 0xAA6A74
 int g_frontend_net_probe_password_required = 0;
 /* Mission seconds elapsed, from the last probe answer or game-started notice.
@@ -120,10 +112,10 @@ int g_frontend_briefing_entered_count = 0;
  * clears it. */
 // GLOBAL: XVT 0xAA6A80
 char g_frontend_chat_input_buffer[100] = {0};
-/* The chat log text, 1,024 bytes from frontend_load_resources, freed by game_main
- * or xvt_frontend_task_shutdown; NULL when not allocated.
- * frontend_net_process_network_packets adds received lines to it; concourse_update
- * and the join, connect and host screens clear it. */
+/* The chat log text, 1,024 bytes from frontend_load_resources, freed by
+ * xvt_frontend_task_shutdown; NULL when not allocated.
+ * frontend_net_process_network_packets adds received lines to it;
+ * concourse_update and frontend_net_host_game_screen clear it. */
 // GLOBAL: XVT 0xB69CD0
 char *g_frontend_chat_log_buffer = NULL;
 /* Bytes of text in g_frontend_chat_log_buffer, not counting the NUL after them;
@@ -142,12 +134,9 @@ int g_frontend_chat_team_only = 0;
  * panel's first frame. Only frontend_net_update_and_draw_chat_panel uses it. */
 // GLOBAL: XVT 0x66543C
 int g_frontend_chat_scroll_offset = 0;
-/* Name of the game selected on the join screen, drawn at the top of the screen
- * and given as the session name when probing it; empty when none. It starts as
- * 32 bytes of 0xFF until the join screen's first frame clears it. 5 functions
- * write it: frontend_net_join_game_screen, frontend_net_probe_session_by_index, and
- * frontend_net_sort_sessions, frontend_net_probe_all_sessions and
- * xvt_network_dialogs_return, which clear it. */
+/* Name of the game selected on the join screen; empty when none. It starts as
+ * 32 bytes of 0xFF, and xvt_network_dialogs_return clears it. Nothing reads
+ * it. */
 // GLOBAL: XVT 0x665440
 char g_frontend_net_selected_game_name[32] = {
 	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -155,15 +144,7 @@ char g_frontend_net_selected_game_name[32] = {
 };
 
 /* Draws the join screen's game list and returns the index of the row clicked
- * this frame, or -1. The modern build returns xvt_network_browser_draw_list's
- * result instead. The original draws up to 6 rows from
- * g_frontend_net_session_list_scroll_offset, with a scrollbar past 6 games, the
- * selected row highlighted, a key for a password, and for a game needing 8
- * players or fewer the count and the time since its last query. Row colors:
- * gray for another protocol version, shown with its number; red for a full game
- * in flight; yellow for a full game; green for one needing 1 to 8 players;
- * white otherwise. Frame 0 resets the scroll offset; a click plays a sound when
- * datapad sounds are on. */
+ * this frame, or -1. Returns xvt_network_browser_draw_list's result. */
 // FUNCTION: XVT 0x4D7020
 int frontend_net_draw_join_game_list(int frame_counter)
 {
@@ -171,25 +152,8 @@ int frontend_net_draw_join_game_list(int frame_counter)
 	return xvt_network_browser_draw_list();
 }
 
-/* The join screen, run each frame. The modern build hands off to
- * xvt_network_browser_screen. In the original, any transport but IPX goes to
- * frontend_net_connect_to_selected_game_screen, first sending a client with no IP
- * address or phone number to the configuration screen, or back to the concourse
- * when g_frontend_skip_screen_entry_setup is set. For IPX it lists the games found.
- * Frame 0 resets the roster, chat log, game list (unless
- * g_frontend_skip_screen_entry_setup), selection and mission state and draws the
- * background; every 160 frames with nothing selected it refreshes the list.
- * With a game selected it reads frontend packets: a lobby STATE updates the
- * entry and loads the mission list and briefing; a host cancel, or a mission
- * start, replay or return to mission selection, ends the connection and
- * refreshes; a refusal (full, version, password, started) also shows its
- * message. Clicking a row probes and selects it, or drops the selection. Then
- * it draws the roster, briefing, chat, version, player banner and sidebars.
- * Join, offered when the selected game needs players and runs this protocol
- * version, sends the host a JOIN_REQUEST with the version and password and
- * moves to frontend_net_await_join_admission_screen; the back button ends the
- * connection and returns to the concourse. Returns 1 when
- * frontend_handle_common_screen_controls returns 1, else 0. */
+/* The join screen, run each frame. Hands off to xvt_network_browser_screen and
+ * returns its result. */
 // FUNCTION: XVT 0x4D73C0
 int frontend_net_join_game_screen(int frame_counter)
 {
@@ -197,18 +161,15 @@ int frontend_net_join_game_screen(int frame_counter)
 }
 
 /* Waits for the host's answer to a join request, run each frame, showing the
- * access message, version and player banner. It reads frontend packets; the
- * modern build first shows any admission failure
- * (xvt_network_dialogs_report_admission_failure) and ignores packets not sent by
- * the host. A refusal (full, version, password, roster locked, game started,
- * host cancelled) ends the connection and shows its message; the modern build
- * then continues through xvt_dialog_continue_with and returns its result, while
- * the original opens the configuration screen for a password refusal and
- * returns to the concourse, or to the join screen for IPX. PLAYER_ADMITTED
- * clears g_mp_roster and moves to the mission setup screen. The cancel button,
- * or frame 480 in the original, ends the connection and returns to the join
- * screen. Returns 1 when frontend_handle_common_screen_controls returns 1, else 0
- * unless noted. */
+ * access message, version and player banner. It first shows any admission
+ * failure (xvt_network_dialogs_report_admission_failure), then reads frontend
+ * packets and ignores any not sent by the host. A refusal (full, version,
+ * password, roster locked, game started, host cancelled) ends the connection
+ * and shows its message, then continues through xvt_dialog_continue_with and
+ * returns its result. PLAYER_ADMITTED clears g_mp_roster and moves to the
+ * mission setup screen. The cancel button ends the connection and returns to
+ * the join screen. Returns 1 when frontend_handle_common_screen_controls
+ * returns 1, else 0 unless noted. */
 // FUNCTION: XVT 0x4D7E70
 int frontend_net_await_join_admission_screen(int frame_counter)
 {
@@ -416,8 +377,8 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 
 /* Draws the join screen's mission heading, with the mission's name once a lobby
  * STATE has named it, and then its briefing text from g_mission_text, with a
- * scrollbar past 6 lines; returns 1. The modern build returns
- * xvt_network_browser_draw_mission's result instead. */
+ * scrollbar past 6 lines; returns 1. Returns xvt_network_browser_draw_mission's
+ * result. */
 // FUNCTION: XVT 0x4D8350
 int frontend_net_draw_join_game_mission_briefing(void)
 {
@@ -426,8 +387,7 @@ int frontend_net_draw_join_game_mission_briefing(void)
 
 /* Draws the join screen's player heading and, once a lobby STATE has arrived,
  * each player in g_mp_roster with rating and name, in two columns of 4; returns
- * 1. Calls net_count_ready_players and ignores its result. The modern build
- * returns xvt_network_browser_draw_roster's result instead. */
+ * 1. Returns xvt_network_browser_draw_roster's result. */
 // FUNCTION: XVT 0x4D8540
 int frontend_net_draw_join_game_player_roster(void)
 {
@@ -630,9 +590,8 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 }
 
 /* Draws the join screen's side navigation, its first slot active and shown
- * pressed while the query button is held, and the query button; a click probes
- * every listed game (frontend_net_probe_all_sessions), or in the modern build,
- * where the button reads Refresh, calls xvt_network_task_refresh. Returns 1. */
+ * pressed while the query button is held, and the query button; the button
+ * reads Refresh, and a click calls xvt_network_task_refresh. Returns 1. */
 // FUNCTION: XVT 0x4D9170
 int frontend_net_draw_join_game_sidebars_and_query_all(void)
 {
@@ -694,16 +653,13 @@ int frontend_net_host_game_exit(int frame_counter)
 }
 
 /* The host screen, run each frame. Frame 0 resets the host state
- * (g_host_game_start_pending, g_frontend_quick_start_launch_flag and others), starts
- * from the last host name as the game name, clears the chat log and roster, and
- * draws the background. Until the name is confirmed, by Enter or Tab in the
- * field or the Host button, it edits the name (up to 22 characters, this
- * player's name and a suffix when left empty) and offers the back button to the
- * concourse. On the next frame it keeps the name as the next default and starts
- * hosting: the modern build hands off to xvt_network_task_begin; the original
- * starts a DirectPlay session as host on the configured transport, then marks
- * itself ready, makes itself the only roster entry and moves to the mission
- * setup screen, or on failure returns to the concourse. Returns 1 when
+ * (g_host_game_start_pending, g_frontend_quick_start_launch_flag and others),
+ * starts from the last host name as the game name, clears the chat log and
+ * roster, and draws the background. Until the name is confirmed, by Enter or
+ * Tab in the field or the Host button, it edits the name (up to 22 characters,
+ * this player's name and a suffix when left empty) and offers the back button
+ * to the concourse. On the next frame it keeps the name as the next default and
+ * starts hosting by handing off to xvt_network_task_begin. Returns 1 when
  * frontend_handle_common_screen_controls returns 1, else 0. */
 // FUNCTION: XVT 0x4DFD30
 int frontend_net_host_game_screen(int frame_counter)
@@ -823,34 +779,34 @@ int frontend_net_host_game_screen(int frame_counter)
 	return 0;
 }
 
-/* Reads one frontend packet (net_get_next_app_packet) and acts on it; returns its
- * type, or NET_PACKET_NONE when there is none, the type is unknown, or the
+/* Reads one frontend packet (net_get_next_app_packet) and acts on it; returns
+ * its type, or NET_PACKET_NONE when there is none, the type is unknown, or the
  * packet was refused. First, when a ready player left this frame, it sends
  * everyone the lobby state. Each packet's sender goes in
- * g_frontend_net_packet_sender_player_id. A PROBE_REQUEST gets the lobby state and a
- * PROBE_RESPONSE (version and password flag); a PROBE_RESPONSE or game-started
- * notice fills the g_frontendNetProbe globals. A lobby STATE or READY_ROSTER
- * rebuilds g_mp_roster and the ready flags, a STATE also
- * g_pilot_data.multiplayer_game_name and g_frontend_net_received_mission_directory_id
- * and DescriptionId. A JOIN_REQUEST is refused (roster locked, full, version,
- * password) or admitted, telling all players, resending the lobby state and
- * setting g_mission_setup_begin_button_lockout_frames to 24; the modern build drops
- * one that reaches a client or has the wrong size. Team and flight assignments,
- * ready flags, game options, loadouts, network statistics, mission starts,
- * choices, countdowns and reservations are stored in
- * g_mission_setup_player_assignments, g_mission_setup_player_flight_group_indices,
- * g_mp_roster_ready_flags, the g_missionSetupSelected globals, g_mp_roster,
- * g_game_config, g_pilot_data and g_frontend_net_packet_arg0 and
- * g_frontend_net_reserving_player_id. A CHAT line is added to
- * g_frontend_chat_log_buffer, dropping the oldest bytes past 1,022, with this
- * player's own lines marked by color code 5; a CHAT_SYNC_REQUEST gets the log
- * in 400-byte chunks, and a received chunk rebuilds it with every byte from 0
- * to 6 turned into color code 6. A PLAYER_UNAVAILABLE always returns
- * NET_PACKET_NONE. Also handles movie sync (g_movie_multiplayer_sync_players),
- * battle progress (the g_remoteBattle globals), briefing arrivals
- * (g_frontend_briefing_entered_count), RETURN_TO_SETUP
- * (g_frontend_skip_screen_entry_setup) and player departures, relays a
- * SUBMIT_MISSION_CHOICE to all as a MISSION_CHOICE, and writes
+ * g_frontend_net_packet_sender_player_id. A PROBE_REQUEST gets the lobby state
+ * and a PROBE_RESPONSE (version and password flag); a PROBE_RESPONSE or
+ * game-started notice fills the g_frontendNetProbe globals. A lobby STATE or
+ * READY_ROSTER rebuilds g_mp_roster and the ready flags, a STATE also
+ * g_pilot_data.multiplayer_game_name and
+ * g_frontend_net_received_mission_directory_id and DescriptionId. A
+ * JOIN_REQUEST is refused (roster locked, full, version, password) or admitted,
+ * telling all players, resending the lobby state and setting
+ * g_mission_setup_begin_button_lockout_frames to 24; one that reaches a client
+ * or has the wrong size is dropped. Team and flight assignments, ready flags,
+ * game options, loadouts, network statistics, mission starts, choices,
+ * countdowns and reservations are stored in g_mission_setup_player_assignments,
+ * g_mission_setup_player_flight_group_indices, g_mp_roster_ready_flags, the
+ * g_missionSetupSelected globals, g_mp_roster, g_game_config, g_pilot_data and
+ * g_frontend_net_packet_arg0 and g_frontend_net_reserving_player_id. A CHAT
+ * line is added to g_frontend_chat_log_buffer, dropping the oldest bytes past
+ * 1,022, with this player's own lines marked by color code 5; a
+ * CHAT_SYNC_REQUEST gets the log in 400-byte chunks, and a received chunk
+ * rebuilds it with every byte from 0 to 6 turned into color code 6. A
+ * PLAYER_UNAVAILABLE always returns NET_PACKET_NONE. Also handles movie sync
+ * (g_movie_multiplayer_sync_players), battle progress (the g_remoteBattle
+ * globals), briefing arrivals (g_frontend_briefing_entered_count),
+ * RETURN_TO_SETUP (g_frontend_skip_screen_entry_setup) and player departures,
+ * relays a SUBMIT_MISSION_CHOICE to all as a MISSION_CHOICE, and writes
  * g_frontend_net_packet_scratch. Does not check team, slot or chunk indices or
  * chat sizes from the packet, or the chat log for NULL before a sync chunk. */
 // FUNCTION: XVT 0x4E0490

@@ -16,15 +16,14 @@
 int g_net_recv_queue_write_index = 0;
 /* Index of the oldest entry in g_net_session_recv_queue, 0 to 1023. Written by
  * net_session_receive_packet and net_reliable_remove_queued_packet as entries
- * leave, by net_reliable_reset_recv_queue_state, which sets it to the write index,
- * and by net_session_import_runtime_state. */
+ * leave, and by net_session_import_runtime_state. */
 // GLOBAL: XVT 0x527028
 int g_net_recv_queue_read_index;
-/* Entries held in g_net_session_recv_queue, 0 to 1024. Nine writers; chiefly
+/* Entries held in g_net_session_recv_queue, 0 to 1024. Eight writers; chiefly
  * net_session_pump_incoming_packets, which adds arrivals, and
  * net_reliable_remove_queued_packet, which takes them out.
- * net_session_init_game_session sets it to 0 before net_session_import_runtime_state
- * copies in the lobby's count; net_reliable_reset_recv_queue_state sets it to 0. */
+ * net_session_init_game_session sets it to 0 before
+ * net_session_import_runtime_state copies in the lobby's count. */
 // GLOBAL: XVT 0x52702C
 unsigned int g_net_recv_queue_count;
 /* The flight session's receive queue, a ring of 1024 packets: DirectPlay
@@ -34,8 +33,7 @@ unsigned int g_net_recv_queue_count;
 // GLOBAL: XVT 0x5599A8
 struct net_queued_packet g_net_session_recv_queue[1024];
 /* Sequence, 0 to 127, of the last packet net_session_receive_packet delivered;
- * only that function writes it. Read only by
- * net_reliable_get_last_delivered_recv_sequence, which nothing calls. */
+ * only that function writes it. Nothing reads it. */
 // GLOBAL: XVT 0x60F1BC
 int g_net_last_delivered_recv_sequence;
 
@@ -318,8 +316,7 @@ unsigned int net_reliable_find_or_create_peer_slot(int direct_play_id)
 }
 
 /* Returns packet_drop_count of the flight session's peer slot for a DirectPlay
- * id. With no such slot the modern build returns -1, and the original build
- * reaches the end with no return statement, so the value is undefined. */
+ * id. With no such slot it returns -1. */
 // FUNCTION: XVT 0x470020
 int net_reliable_get_peer_packet_drop_count_by_dpid(int direct_play_id)
 {

@@ -19,10 +19,9 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/network_session.h"
 
-/* Transport of the open lobby session. Written by net_start_network_session on
- * success, by xvt_network_session_update (TCP/IP) in the modern build, and
- * reset to IPX by net_shutdown_direct_play_session_ex when it closes DirectPlay.
- * Only the original build reads it, to wait for shutdown acks on TCP/IP. */
+/* Transport of the open lobby session. Written by xvt_network_session_update
+ * (TCP/IP), and reset to IPX by net_shutdown_direct_play_session_ex when it
+ * closes DirectPlay. Nothing reads it. */
 // GLOBAL: XVT 0x665020
 network_transport_type g_net_active_transport_type = NET_TRANSPORT_IPX;
 
@@ -76,7 +75,7 @@ static const GUID g_net_direct_play_modem_service_provider_guid = {
 	{0x9C, 0x4E, 0x00, 0xA0, 0xC9, 0x05, 0x42, 0x5E},
 };
 /* Service provider GUID the game passes to DirectPlay for a TCP/IP game, the
- * only transport the modern build uses. */
+ * only transport the game uses. */
 // GLOBAL: XVT 0x5182C0
 static const GUID g_net_direct_play_tcp_ip_service_provider_guid = {
 	0x36E95EE0,
@@ -92,9 +91,8 @@ static const GUID g_net_direct_play_serial_service_provider_guid = {
 	0x11CF,
 	{0x9C, 0x4E, 0x00, 0xA0, 0xC9, 0x05, 0x42, 0x5E},
 };
-/* Interface id that net_start_network_session, net_enumerate_app_sessions and
- * xvt_network_session_factory pass to QueryInterface to get the IDirectPlay2A
- * interface kept in g_front_state.net_direct_play. */
+/* Interface id that xvt_network_session_factory passes to QueryInterface to get
+ * the IDirectPlay2A interface kept in g_front_state.net_direct_play. */
 // GLOBAL: XVT 0x518EF0
 const GUID IID_IDirectPlay2A = {
 	0x9D460580,
@@ -109,41 +107,32 @@ static GUID g_net_direct_play_service_provider_guid_scratch = {0};
 /* Link figures for up to 40 players, keyed by DirectPlay id. On the host,
  * net_pump_incoming_packets fills them from each player's keepalive acks; on
  * the other players, the Net_SetPlayer* setters store what the host's lobby
- * packets report. Eight writers in all. Cleared by net_start_network_session
- * and xvt_network_session_factory; the host clears a player's entry when the
- * player leaves (net_handle_direct_play_system_message). */
+ * packets report. Seven writers in all. Cleared by xvt_network_session_factory;
+ * the host clears a player's entry when the player leaves
+ * (net_handle_direct_play_system_message). */
 // GLOBAL: XVT 0x665050
 struct net_player_connection_stats g_net_player_connection_stats[40];
 
-/* net_shutdown_direct_play_session_ex(1, 1): in the original build, with the
- * TCP/IP shutdown handshake and no relaunch when it fails. */
+/* Closes the lobby session: net_shutdown_direct_play_session_ex(1, 1). */
 // FUNCTION: XVT 0x4CD9C0
 void net_shutdown_direct_play_session_for_quit(void)
 {
 	net_shutdown_direct_play_session_ex(1, 1);
 }
 
-/* net_shutdown_direct_play_session_ex(0, 1): in the original build, with the
- * TCP/IP shutdown handshake, relaunching the game when it fails. */
+/* Closes the lobby session: net_shutdown_direct_play_session_ex(0, 1). */
 // FUNCTION: XVT 0x4CD9D0
 void net_shutdown_direct_play_session(void)
 {
 	net_shutdown_direct_play_session_ex(0, 1);
 }
 
-/* Closes the lobby session. The modern build first calls
- * xvt_network_session_on_close. When DirectPlay is open: in the original build
- * a TCP/IP session with wait_for_handshake_acks runs
- * net_wait_for_shutdown_handshake_acks, and when that fails saves the persistent
- * state, shuts the display and CD audio and exits the process, first
- * starting "z_xvt__.exe skipintro" unless suppress_restart is set. It then
- * sets g_net_active_transport_type to IPX and destroys the local player; in the
- * original build, when that takes over 20 seconds, it shows a DirectPlay
- * error (unless suppress_restart is set) and terminates the process. It
- * destroys the group, closes and releases DirectPlay. In every case it
- * empties the receive queue and resets the broadcast and group counters and
+/* Closes the lobby session. It first calls xvt_network_session_on_close. When
+ * DirectPlay is open it sets g_net_active_transport_type to IPX, destroys the
+ * local player and the group, and closes and releases DirectPlay. In every case
+ * it empties the receive queue and resets the broadcast and group counters and
  * the 40 peer slots. Returns 1. The back buffer is unlocked meanwhile and
- * relocked when it was locked. */
+ * relocked when it was locked. Both arguments are only logged. */
 // FUNCTION: XVT 0x4CD9F0
 int net_shutdown_direct_play_session_ex(int suppress_restart,
 					int wait_for_handshake_acks)
@@ -335,10 +324,9 @@ int AERON_DXAPI net_enum_players_callback(DPID player_id, uint32_t player_type,
 	return 1;
 }
 
-/* Creates the local DirectPlay player with the given long and short names
- * and returns its id, or 0 on failure. The original build tries up to 5
- * times; the modern build tries once and returns XVT_NETWORK_PENDING while
- * DirectPlay reports the call pending. */
+/* Creates the local DirectPlay player with the given long and short names and
+ * returns its id, or 0 on failure. It tries once and returns
+ * XVT_NETWORK_PENDING while DirectPlay reports the call pending. */
 // FUNCTION: XVT 0x4CDE40
 int net_create_direct_play_player(const char *long_player_info,
 				  const char *short_player_name)
@@ -2327,20 +2315,18 @@ int *net_get_next_app_packet(DPID *out_sender_id, uint32_t *out_packet_size)
 	return packet;
 }
 
-/* Acts on a DirectPlay system message from the lobby queue. A player
- * created: the host, for a player other than itself, refreshes the roster
- * and sends the new player a NET_PACKET_SEQUENCE_STATUS with the player
- * count, the peer slot table and its time in ms; a client refreshes the
- * roster. A player destroyed: in the modern build, the host's departure
- * calls xvt_network_session_host_lost. The host clears the leaver's ready flag,
- * setting g_front_state.net_ready_player_left_this_frame when it was set, frees
- * its peer slot by moving the last slot into it, and clears its
- * g_net_player_connection_stats entry; a client whose host left queues a
- * NET_PACKET_HOST_CANCELLED to itself. The roster is then refreshed. A
- * player renamed: its roster entry takes the new short and long names, cut
- * to 12 characters. The original build copies them with strcpy, unbounded,
- * into 16-byte fields; the modern build bounds them
- * (xvt_network_session_copy_player_names) and skips a malformed message. */
+/* Acts on a DirectPlay system message from the lobby queue. A player created:
+ * the host, for a player other than itself, refreshes the roster and sends the
+ * new player a NET_PACKET_SEQUENCE_STATUS with the player count, the peer slot
+ * table and its time in ms; a client refreshes the roster. A player destroyed:
+ * the host's departure calls xvt_network_session_host_lost. The host clears the
+ * leaver's ready flag, setting g_front_state.net_ready_player_left_this_frame
+ * when it was set, frees its peer slot by moving the last slot into it, and
+ * clears its g_net_player_connection_stats entry; a client whose host left
+ * queues a NET_PACKET_HOST_CANCELLED to itself. The roster is then refreshed. A
+ * player renamed: its roster entry takes the new short and long names, cut to
+ * 12 characters. The copy is bounded (xvt_network_session_copy_player_names),
+ * and a malformed message is skipped. */
 // FUNCTION: XVT 0x4D00D0
 void net_handle_direct_play_system_message(int packet_type,
 					   const void *packet_data)
@@ -4738,10 +4724,10 @@ int net_set_player_latency_ms(int player_id, int latency_ms)
 }
 
 /* Asks DirectPlay to give player playerId the given long and short names.
- * Returns 1 when SetPlayerName succeeds, else 0; the modern build returns
- * XVT_NETWORK_PENDING while the call is pending. Without DirectPlay it
- * returns 0 with the back buffer unlocked and not locked again; otherwise
- * it relocks the back buffer when it was locked. */
+ * Returns 1 when SetPlayerName succeeds, else 0; it returns XVT_NETWORK_PENDING
+ * while the call is pending. Without DirectPlay it returns 0 with the back
+ * buffer unlocked and not locked again; otherwise it relocks the back buffer
+ * when it was locked. */
 // FUNCTION: XVT 0x4D22E0
 int net_set_player_name_with_lock_guard(unsigned int player_id,
 					const char *long_name,

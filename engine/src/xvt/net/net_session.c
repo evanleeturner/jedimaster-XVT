@@ -74,10 +74,11 @@ struct net_queued_packet g_net_session_sent_world_message_history[256] = {0};
 // GLOBAL: XVT 0x9994C0
 struct net_session_state g_net_session = {0};
 /* The buffer session packets are built in just before they are sent: startup
- * and roster packets, peer sequence status and keepalives. 6 functions write
- * it: net_session_init_game_session, net_session_handle_direct_play_system_message,
- * net_session_broadcast_player_roster, net_session_send_reliable_keepalives,
- * xvt_flight_network_send_roster_record and xvt_flight_network_exchange_roster. */
+ * and roster packets, peer sequence status and keepalives. 5 functions write
+ * it: net_session_init_game_session,
+ * net_session_handle_direct_play_system_message,
+ * net_session_send_reliable_keepalives, xvt_flight_network_send_roster_record
+ * and xvt_flight_network_exchange_roster. */
 // GLOBAL: XVT 0x5597A0
 struct net_session_scratch_state g_net_session_scratch_packet = {0};
 /* Picks the branches net_session_handle_direct_play_system_message takes.
@@ -93,20 +94,16 @@ static uint8_t g_net_session_flight_handshake_active = 0;
  * g_net_session_sent_world_message_history and its write index, and
  * g_net_session_scratch_packet.trailing_state, and sets
  * g_net_session_flight_handshake_active; the import then fills
- * g_net_session_recv_queue with its indices and count, and g_net_session_sent_history
- * with its write index. A solo host takes formalName and pilot_name as its
- * names, becomes roster slot 0 and returns 1; without a DirectPlay interface
- * its id is 1. Otherwise it lists the DirectPlay players that
- * g_pilot_data.network_players also holds, and sends the host a STARTUP_READY and
- * a NOP. The modern build then returns xvt_flight_network_begin_roster_exchange's
- * result, which is XVT_FLIGHT_NETWORK_PENDING unless a client joins a flight in
- * progress. The original blocks: the host waits for num_human_players
- * STARTUP_READY packets, its own included, then with more than one sends
- * everyone the roster; a client, unless in_progress_launch, waits for the roster
- * count and entries. A 60-second wait with no packet returns 0, clearing the
- * DirectPlay interface pointer except while roster entries arrive; else 1.
- * mp_game_name and connection_address are unused. Does not check for a DirectPlay
- * interface outside the solo path, nor the slot number in a roster entry. */
+ * g_net_session_recv_queue with its indices and count, and
+ * g_net_session_sent_history with its write index. A solo host takes formalName
+ * and pilot_name as its names, becomes roster slot 0 and returns 1; without a
+ * DirectPlay interface its id is 1. Otherwise it lists the DirectPlay players
+ * that g_pilot_data.network_players also holds, and sends the host a
+ * STARTUP_READY and a NOP. It then returns
+ * xvt_flight_network_begin_roster_exchange's result, which is
+ * XVT_FLIGHT_NETWORK_PENDING unless a client joins a flight in progress.
+ * mp_game_name and connection_address are unused. Does not check for a
+ * DirectPlay interface outside the solo path. */
 // FUNCTION: XVT 0x46C230
 int net_session_init_game_session(const char *formal_name,
 				  const char *pilot_name, int is_host,
@@ -1212,24 +1209,23 @@ int net_session_broadcast_packet_to_players(unsigned int *payload,
 /* Sends one game packet whose first word is its type; payload_size counts its
  * bytes, and below 4 nothing is sent and 0 returned. The packet goes out with a
  * 2-byte header, the type in the low 7 bits and a 7-bit sequence above, on one
- * of three channels: to id 0, all players, on g_net_session.broadcast_seq_counter;
- * to the session group, or any internet-play REMOTE_INPUT, on group_seq_counter
- * (bits 0x8080); to one player, on that peer's reliable slot sequence (bit
- * 0x8000). Outside the resync types (RESYNC_CHECKSUMS to RESYNC_CHUNK) the body
- * gets a 2-byte length and, behind it, the channel's previous packet (a NOP the
- * first time), from which a receiver can recover a lost one; this packet then
- * becomes the channel's saved copy. Packets to others go into
- * g_net_session_sent_history, and world messages into
- * g_net_session_sent_world_message_history, for resends; internet-play inputs do
- * not. A packet to all, to the group, to this player, or sent with no
- * DirectPlay interface is also queued for this player to receive, in
- * g_net_session_recv_queue with g_net_recv_queue_write_index and g_net_recv_queue_count.
- * Returns 1 when DirectPlay takes it, when the destination is this player, or
- * with no interface; else 0. The original arm's check before it records its own
- * receive sequence compares a 0-or-1 flag with 40, so it always passes; the
- * modern arm checks the slot. Does not check payload_size against the 512-byte
- * saved copies and history entries, or the reliable slot index before it uses
- * the slot's saved copy. */
+ * of three channels: to id 0, all players, on
+ * g_net_session.broadcast_seq_counter; to the session group, or any
+ * internet-play REMOTE_INPUT, on group_seq_counter (bits 0x8080); to one
+ * player, on that peer's reliable slot sequence (bit 0x8000). Outside the
+ * resync types (RESYNC_CHECKSUMS to RESYNC_CHUNK) the body gets a 2-byte length
+ * and, behind it, the channel's previous packet (a NOP the first time), from
+ * which a receiver can recover a lost one; this packet then becomes the
+ * channel's saved copy. Packets to others go into g_net_session_sent_history,
+ * and world messages into g_net_session_sent_world_message_history, for
+ * resends; internet-play inputs do not. A packet to all, to the group, to this
+ * player, or sent with no DirectPlay interface is also queued for this player
+ * to receive, in g_net_session_recv_queue with g_net_recv_queue_write_index and
+ * g_net_recv_queue_count. Returns 1 when DirectPlay takes it, when the
+ * destination is this player, or with no interface; else 0. It records its own
+ * receive sequence only when its peer slot exists. Does not check payload_size
+ * against the 512-byte saved copies and history entries, or the reliable slot
+ * index before it uses the slot's saved copy. */
 // FUNCTION: XVT 0x46D350
 int net_session_send_packet(int direct_play_id, unsigned int *payload,
 			    signed int payload_size)
@@ -1779,20 +1775,20 @@ int *net_session_receive_game_packet(int *out_sender_dpid,
 }
 
 /* Acts on a DirectPlay system message, writing g_net_session and
- * g_net_session_scratch_packet; only the host acts, except on a name change. A new
- * player is sent a SEQUENCE_STATUS with every reliable peer slot's id and
+ * g_net_session_scratch_packet; only the host acts, except on a name change. A
+ * new player is sent a SEQUENCE_STATUS with every reliable peer slot's id and
  * sequences, then a FLIGHT_SESSION_STATUS with the mission's elapsed seconds
- * and the protocol version (103 in the modern build, 101 in the original). A
- * departed player is first reported to xvt_network_session_host_lost in the modern
- * build when it was the host; the host then queues itself a STARTUP_READY if
- * the player was active, removes it from the DirectPlay group, marks it
- * inactive, and frees its reliable peer slot by moving the last slot into its
- * place. A name change updates the matching roster entry's names, cut to 12
- * characters; the original arm copies them with strcpy, unbounded. When
- * g_net_session_flight_handshake_active is 0, a new player's session status carries
- * 0 instead, and the roster is listed again with every other player added to
- * the group, and a departure lists the roster again; that never happens after a
- * session init. Returns a value no caller uses. */
+ * and the protocol version (103). A departed player is first reported to
+ * xvt_network_session_host_lost when it was the host; the host then queues
+ * itself a STARTUP_READY if the player was active, removes it from the
+ * DirectPlay group, marks it inactive, and frees its reliable peer slot by
+ * moving the last slot into its place. A name change updates the matching
+ * roster entry's names, cut to 12 characters, with a bounded copy
+ * (xvt_network_session_copy_player_names). When
+ * g_net_session_flight_handshake_active is 0, a new player's session status
+ * carries 0 instead, and the roster is listed again with every other player
+ * added to the group, and a departure lists the roster again; that never
+ * happens after a session init. Returns a value no caller uses. */
 // FUNCTION: XVT 0x46E080
 int net_session_handle_direct_play_system_message(int packet_opcode,
 						  const int *packet)
@@ -3534,8 +3530,7 @@ int net_session_get_local_dplay_id(void)
 
 /* Returns the short name of the roster entry in player_slot, found by matching
  * DirectPlay ids; in a one-player session, this player's own name whatever the
- * slot. When no entry matches, the modern build returns NULL and the original
- * reaches the end with no return statement. */
+ * slot. When no entry matches, it returns NULL. */
 // FUNCTION: XVT 0x46F720
 char *net_session_get_player_name(int player_slot)
 {
