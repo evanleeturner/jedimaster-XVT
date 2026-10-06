@@ -179,8 +179,8 @@ int16_t g_object_type130_texture_frame_sequence[15] = {
 
 /* Seventeen remaps of 16 palette indices, which object types and
  * g_backdrop_palette_remap_by_flight_group_status point at through
- * object_type_info.palette. The game code never reads them; the modern build's
- * capture copies them for its renderer. */
+ * object_type_info.palette. The game code never reads them; the capture copies
+ * them for its renderer. */
 // GLOBAL: XVT 0x521D78
 uint8_t g_object_type_palette_remaps[17][16] = {
 	{0xD6, 0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF, 0xE0, 0xE1,
@@ -236,7 +236,7 @@ uint8_t *g_backdrop_palette_remap_by_flight_group_status[17] = {
 };
 
 /* Palette remap of object type 110; like g_object_type_palette_remaps, only the
- * modern build's capture reads it. */
+ * capture reads it. */
 // GLOBAL: XVT 0x521ED0
 uint8_t g_object_type110_palette[16] = {
 	0x00, 0x5C, 0x4C, 0xB5, 0x8F, 0x8C, 0xB8, 0xFB,
@@ -244,7 +244,7 @@ uint8_t g_object_type110_palette[16] = {
 };
 
 /* Palette remap of object type 111; like g_object_type_palette_remaps, only the
- * modern build's capture reads it. */
+ * capture reads it. */
 // GLOBAL: XVT 0x521EE0
 uint8_t g_object_type111_palette[16] = {
 	0x00, 0x8E, 0x89, 0x8B, 0x88, 0xB8, 0x5A, 0x5B,
@@ -252,7 +252,7 @@ uint8_t g_object_type111_palette[16] = {
 };
 
 /* Palette remap of object type 112; like g_object_type_palette_remaps, only the
- * modern build's capture reads it. */
+ * capture reads it. */
 // GLOBAL: XVT 0x521EF0
 uint8_t g_object_type112_palette[16] = {
 	0x00, 0x8E, 0xAE, 0x62, 0xB8, 0x77, 0x71, 0xFB,
@@ -260,7 +260,7 @@ uint8_t g_object_type112_palette[16] = {
 };
 
 /* Palette remap of object type 113; like g_object_type_palette_remaps, only the
- * modern build's capture reads it. */
+ * capture reads it. */
 // GLOBAL: XVT 0x521F00
 uint8_t g_object_type113_palette[16] = {
 	0x00, 0xB8, 0x7B, 0x60, 0x5A, 0x5C, 0x5E, 0x53,

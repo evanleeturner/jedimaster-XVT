@@ -62,9 +62,9 @@ struct model_def {
 	 * by the attacker's craft's; a victim with 0 gets the minimum award
 	 * instead. */
 	uint8_t rating_weight;
-	/* Copied into a player's bound_craft_engine_glow_count when the player's
-	 * craft spawns; the game code never reads that copy, only the modern
-	 * build's state records. */
+	/* Copied into a player's bound_craft_engine_glow_count when the
+	 * player's craft spawns; the game code never reads that copy, only the
+	 * state records. */
 	uint8_t engine_glow_count;
 	/* 0 for a model without a hyperdrive: spawning then flips
 	 * CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE in the craft's system_flags unless a
@@ -264,9 +264,7 @@ typedef enum opt_node_type {
 typedef intptr_t xvt_opt_value;
 
 struct opt_node {
-	/* The node's name, or NULL; OPT_NODEREF links find nodes by it. The
-	 * original build's walkers reuse an OPT_NODEREF node's pName to keep
-	 * its target. */
+	/* The node's name, or NULL; OPT_NODEREF links find nodes by it. */
 	char *p_name;
 	opt_node_type
 		node_type; /* What the node is; sets its payload's layout. */
@@ -274,12 +272,11 @@ struct opt_node {
 	/* The children, NULL when none; a slot may be NULL. */
 	struct opt_node **p_children;
 	/* Items in the payload for a list node; faces for a face node; the
-	 * binding for a binding node; records for an imported Inventor node. */
+	 * binding for a binding node. */
 	/* Node-type-dependent scalar/count; OPT_NODEREF may store a relocated
 	 * opt_node pointer value. */
 	xvt_opt_value payload_count;
-	/* For an OPT_NODEREF, the referenced name; for an imported Inventor
-	 * node, its inventor_field_record array. */
+	/* For an OPT_NODEREF, the referenced name. */
 	void *payload; ///< Relocated pointer to node-type-dependent payload data.
 };
 
@@ -288,8 +285,8 @@ struct optimized_poly_object {
 	 * where the block is, opt_model_adjust_optimized_poly_object_pointers moves
 	 * them. */
 	void *self_marker;
-	/* The modern decoder sets it from the 2 bytes at its place in the
-	 * file's body. */
+	/* The decoder sets it from the 2 bytes at its place in the file's
+	 * body. */
 	/* Import packing stores the temporary packed-block handle here; the
 	 * final returned block preserves the now-stale value. No runtime
 	 * consumer is identified. */

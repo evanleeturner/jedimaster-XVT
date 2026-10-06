@@ -51,8 +51,8 @@ int g_sw3d_span_framebuffer_row_offset = 0;
  * globals, for each row with a span. */
 // GLOBAL: XVT 0x61229C
 static float g_sw3d_light_sample_subrow_lerp_t = 0.0f;
-/* Only the modern build's render_scene_initialize writes it, clearing its 0x300
- * bits; nothing reads it. */
+/* Only render_scene_initialize writes it, clearing its 0x300 bits; nothing
+ * reads it. */
 // GLOBAL: XVT 0x612298
 uint32_t g_sw3d_fpu_control_word_scratch = 0;
 /* Rows from the current one to the next lighting block's top, as a float; set
@@ -150,9 +150,8 @@ int g_sw3d_light_sample_block_shift = 0;
 // GLOBAL: XVT 0x612AE0
 struct scene_face g_sw3d_cockpit_mask_sentinel_face = {0};
 /* 1 makes sw3d_insert_span leave out odd rows, so the software renderer draws
- * every other row. The Alt+I key flips it (flight_update_player_step in the
- * original build, xvt_flight_sim_update_player_step in the modern one); flight
- * start and end set 0. */
+ * every other row. The Alt+I key flips it (xvt_flight_sim_update_player_step);
+ * flight start and end set 0. */
 // GLOBAL: XVT 0x523404
 int g_sw3d_skip_odd_scanlines = 0;
 /* Dither carry each span starts with: 0 on even rows, 128 on odd rows. */

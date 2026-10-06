@@ -215,10 +215,10 @@ uint8_t g_flight_sw_rle_palette_shift_by_packing_mode[9] = {0, 1, 2, 3, 4,
 							    5, 6, 7, 8};
 /* Starts at 1, and every writer sets 1:
  * flight_sw_rasterize_prepared_rotated_sprite, render_quad_draw_model_texture,
- * backdrop_draw_model_tex_quad_at_screen, and at flight start flight_main_loop in the
- * original build and xvt_flight_loading_globals in the modern one. So the arms of
- * flight_sw_draw_rotated_sprite_quad and flight_sw_rasterize_prepared_rotated_sprite
- * for other values never run. */
+ * backdrop_draw_model_tex_quad_at_screen, and at flight start
+ * xvt_flight_loading_globals. So the arms of flight_sw_draw_rotated_sprite_quad
+ * and flight_sw_rasterize_prepared_rotated_sprite for other values never
+ * run. */
 // GLOBAL: XVT 0x52361C
 int g_flight_sw_rot_sprite_span_runs_enabled = 1;
 /* The pixels under the radar target marker at 8 bits, saved by
@@ -338,9 +338,9 @@ static int8_t g_flight_sw_rle_palette_shift = 0;
 // GLOBAL: XVT 0x9ED23A
 static uint8_t g_flight_sw_rle_transparent_color = 0;
 
-/* The flight display mode, a flight_resolution_mode. flight_main_loop in the
- * original build and xvt_flight_loading_globals in the modern one set it from
- * g_surface_width: 320x240 for 320, 480x360 for 480, else 640x480. */
+/* The flight display mode, a flight_resolution_mode. xvt_flight_loading_globals
+ * sets it from g_surface_width: 320x240 for 320, 480x360 for 480, else
+ * 640x480. */
 // GLOBAL: XVT 0x5233EC
 int g_flight_resolution_mode = FLIGHT_RESOLUTION_640X480;
 /* 1 when pixels are square (g_proj_aspect_y of 0), set by
@@ -349,9 +349,8 @@ int g_flight_resolution_mode = FLIGHT_RESOLUTION_640X480;
 // GLOBAL: XVT 0x5235F8
 static int g_flight_sw_rot_sprite_square_pixel_mode = 0;
 /* 1 once g_flight_sw_rot_sprite_coeff_cache holds tables, set by
- * flight_sw_prepare_sprite_rotation_tables. Set to 0, to have them built again, by
- * hud_update3d_crt and at flight start: by flight_main_loop in the original
- * build, xvt_flight_loading_globals in the modern one. */
+ * flight_sw_prepare_sprite_rotation_tables. Set to 0, to have them built again,
+ * by hud_update3d_crt and at flight start: by xvt_flight_loading_globals. */
 // GLOBAL: XVT 0x5235F4
 int g_flight_sw_rot_sprite_coeff_cache_valid = 0;
 /* Nothing writes it, so it stays 0 and set_flight_viewport's inset of 160 never
@@ -537,10 +536,10 @@ static int16_t g_flight_sw_rot_sprite_viewport_height = 0;
 // GLOBAL: XVT 0xA080F2
 static uint16_t g_flight_sw_rot_sprite_axis_swap_threshold_angle = 0;
 
-/* Fills g_flight_line_offset_table for g_screen_height rows of g_surface_pitch, sets
- * g_flight_sw_framebuffer_base from flight_surface_get_software_framebuffer_base and
- * clears g_surface_pitch * g_screen_height bytes there (the original build at
- * 640x480 a VESA page at a time), picks the radar target marker for
+/* Fills g_flight_line_offset_table for g_screen_height rows of g_surface_pitch,
+ * sets g_flight_sw_framebuffer_base from
+ * flight_surface_get_software_framebuffer_base and clears g_surface_pitch *
+ * g_screen_height bytes there, picks the radar target marker for
  * g_flight_resolution_mode (12 pixels at 640x480 and 480x360, else 10), and
  * points g_flight_line_pitch_ptr and g_flight_active_line_offset_table at
  * g_surface_pitch and that table. */
@@ -1810,10 +1809,10 @@ void rts_vga2_set_current_page(uint8_t window, uint16_t page)
 }
 
 /* Saves the screen as flightscreenN.bmp, N the first number with no such file
- * (in the modern build, in the user folder). Builds a BMP palette from
- * g_sw_palette with each channel shifted up 2 bits, releases every lock on the
- * flight surface, flips, locks with g_flight_draw_to_hud_layer at 0, writes the
- * surface with front_image_save_bmp_file at 8 or 16 bits, unlocks, puts
+ * (in the user folder). Builds a BMP palette from g_sw_palette with each
+ * channel shifted up 2 bits, releases every lock on the flight surface, flips,
+ * locks with g_flight_draw_to_hud_layer at 0, writes the surface with
+ * front_image_save_bmp_file at 8 or 16 bits, unlocks, puts
  * g_flight_draw_to_hud_layer back and takes the locks again. */
 // FUNCTION: XVT 0x411010
 void flight_screenshot_capture(void)
@@ -4147,10 +4146,10 @@ int flight_sw_step_rot_sprite_octant3(void)
 /* Sets up the walk for octant 4: the edge steps along y, no flips. Moves the
  * edge cursor a whole edge at a time until its y is inside the viewport, moving
  * the span base a viewport height each time; puts the line start at the
- * viewport's top (g_flight_sw_rot_sprite_primary_edge_y 0) in the edge's column there
- * and the far end's column in g_flight_sw_rot_sprite_secondary_edge_x; then sets the
- * clip bounds and g_flight_sw_rot_sprite_span_base_x. Returns 0 when the far end's
- * column is under 0, and in the modern build when the clip search finds no edge
+ * viewport's top (g_flight_sw_rot_sprite_primary_edge_y 0) in the edge's column
+ * there and the far end's column in g_flight_sw_rot_sprite_secondary_edge_x;
+ * then sets the clip bounds and g_flight_sw_rot_sprite_span_base_x. Returns 0
+ * when the far end's column is under 0, and when the clip search finds no edge
  * point; else 1. */
 // FUNCTION: XVT 0x4235D0
 int flight_sw_init_rot_sprite_octant4(void)
@@ -4955,11 +4954,11 @@ unsigned int set_flight_viewport(unsigned int requested_width,
 			       (unsigned int)g_flight_bytes_per_pixel;
 }
 
-/* Saves the viewport and camera matrix in g_saved_flight_viewport (the modern
- * build also saves its own camera state), sets the viewport to width by height
- * at base_offset as set_flight_viewport does, without the inset, and sets
- * g_viewport_span_mask_offset to the second mask, 0xE000. Returns g_flight_vp_x.
- * Ignores refresh_span_mask. */
+/* Saves the viewport and camera matrix in g_saved_flight_viewport (it also
+ * saves its own camera state), sets the viewport to width by height at
+ * base_offset as set_flight_viewport does, without the inset, and sets
+ * g_viewport_span_mask_offset to the second mask, 0xE000. Returns
+ * g_flight_vp_x. Ignores refresh_span_mask. */
 // FUNCTION: XVT 0x426F40
 unsigned int push_flight_viewport(uint16_t width, uint16_t height,
 				  int16_t refresh_span_mask,
@@ -5001,9 +5000,9 @@ unsigned int push_flight_viewport(uint16_t width, uint16_t height,
 	return (unsigned int)g_flight_vp_x;
 }
 
-/* Puts back the camera matrix and viewport push_flight_viewport saved (the modern
- * build also restores its own camera state), with g_flight_vp_base_offset cut to
- * 16 bits, and sets g_viewport_span_mask_offset back to 0xC000. Returns
+/* Puts back the camera matrix and viewport push_flight_viewport saved (it also
+ * restores its own camera state), with g_flight_vp_base_offset cut to 16 bits,
+ * and sets g_viewport_span_mask_offset back to 0xC000. Returns
  * g_flight_vp_x. */
 // FUNCTION: XVT 0x427070
 int pop_flight_viewport(void)
@@ -6046,8 +6045,8 @@ void flight_sw_restore_radar_target_marker16bpp(void)
 }
 
 /* The 16-bit form of flight_sw_draw_line8bpp, drawing in the palette color of
- * color_idx with rows the active row pitch apart. The modern build also returns
- * from an upward line whose clipped end lies below its clipped start. */
+ * color_idx with rows the active row pitch apart. It also returns from an
+ * upward line whose clipped end lies below its clipped start. */
 // FUNCTION: XVT 0x44B140
 void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 {

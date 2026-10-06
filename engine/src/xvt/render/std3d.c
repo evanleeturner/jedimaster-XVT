@@ -25,8 +25,7 @@ struct std3d_unknown {
  * perspective-correct texturing, 0x2 dither, 0x4 specular, 0x8 antialias, and
  * 0x10 and 0x20 subpixel, as std3d_set_initial_render_state reads them.
  * std3d_startup sets 0x19B3: perspective, dither, both subpixel bits, linear
- * filtering both ways, z compare and z write. The only other writer,
- * std3d_set_cap_flags, has no caller. */
+ * filtering both ways, z compare and z write. */
 // GLOBAL: XVT 0x528C50
 unsigned int g_std3d_render_option_flags;
 /* Render-state bits last written into the execute buffer; std3d_set_render_state
@@ -218,14 +217,12 @@ static const struct std3d_error_string_entry g_std3d_error_string_table[121] = {
 	{-2005532083, "DDERR_NOTPALETTIZED"},
 	{-2005532082, "DDERR_UNSUPPORTEDMODE"},
 };
-/* Fog table end that std3d_set_render_state writes when fog turns on. Only
- * std3d_set_fog_table_range_bits writes it, and nothing calls that, so it stays
- * 0. */
+/* Fog table end that std3d_set_render_state writes when fog turns on. Nothing
+ * writes it, so it stays 0. */
 // GLOBAL: XVT 0x6644F0
 static unsigned int g_std3d_fog_table_end_bits;
 /* Blue of the fog color, 0 to 255, that std3d_set_render_state writes when fog
- * turns on. Only std3d_set_fog_color8 writes it, and nothing calls that, so it
- * stays 0. */
+ * turns on. Nothing writes it, so it stays 0. */
 // GLOBAL: XVT 0x6644F4
 static unsigned int g_std3d_fog_color_blue8;
 /* Fog table start, written and read as g_std3d_fog_table_end_bits is; it stays
@@ -242,9 +239,8 @@ static unsigned int g_std3d_fog_color_red8;
  * has no alpha textures. */
 // GLOBAL: XVT 0x664770
 uint16_t g_std3d_palette_scratch16[256];
-/* The palette in the RGBA 4-bit format, for translucent textures. Only
- * std3d_set_palette_conversion_source fills it, and nothing calls that, so it
- * stays 0. */
+/* The palette in the RGBA 4-bit format, for translucent textures. Nothing fills
+ * it, so it stays 0. */
 // GLOBAL: XVT 0x6642F0
 static uint16_t g_tex_conv_buf4444[256] = {0};
 /* The palette in the RGBA 5, 5, 5 and 1 bit format, for color-keyed textures on
@@ -256,7 +252,7 @@ static uint16_t g_tex_conv_buf1555[256] = {0};
 // GLOBAL: XVT 0x664978
 static unsigned int g_std3d_fog_color_green8;
 /* The Direct3D interface std3d_startup gets from the DirectDraw object;
- * std3d_shutdown releases it, and the modern build then sets it to NULL. */
+ * std3d_shutdown releases it and sets it to NULL. */
 // GLOBAL: XVT 0x664970
 static IDirect3D *g_lp_d3d = 0;
 /* The Direct3D viewport std3d_create_viewport makes; std3d_close releases it and
@@ -277,9 +273,9 @@ struct IDirectDrawSurface *g_std3d_render_surface;
 /* The Direct3D devices std3d_enum_devices_callback found, up to 4. */
 // GLOBAL: XVT 0xA91120
 struct std3d_device g_std3d_devices[4] = {{0}};
-/* Red of the full-viewport color overlay. Set by std3d_set_color_overlay_params,
- * which renderer_init_d3d_device calls with 0 and off; read by
- * std3d_draw_color_overlay, which nothing calls. */
+/* Red of the full-viewport color overlay. Set by
+ * std3d_set_color_overlay_params, which renderer_init_d3d_device calls with 0
+ * and off; nothing reads it. */
 // GLOBAL: XVT 0xA90B10
 float g_std3d_color_overlay_red;
 /* Green of the color overlay, set and read as g_std3d_color_overlay_red is. */
@@ -298,9 +294,8 @@ int g_std3d_color_overlay_enabled;
  * its z value, so that a nearer point has the smaller value. */
 // GLOBAL: XVT 0xA90B20
 int g_std3dz_compare_cap = 0;
-/* Two triangles over the viewport quad in g_std3d_quad_verts, alpha-blended with
- * mono off; std3d_build_viewport_quad sets them and std3d_draw_color_overlay draws
- * them. */
+/* Two triangles over the viewport quad in g_std3d_quad_verts, alpha-blended
+ * with mono off; std3d_build_viewport_quad sets them and nothing draws them. */
 // GLOBAL: XVT 0xA90B30
 static struct std3d_render_tri g_std3d_viewport_quad_triangles[2] = {{0}};
 /* The viewport's corners, clockwise from the top left, set by
@@ -318,12 +313,10 @@ static struct std3dz_buffer_surface_block g_std3dz_buffer_surface_block = {0};
  * reads it. */
 // GLOBAL: XVT 0xA919D0
 static struct std3dz_buffer_target g_std3dz_buffer_target = {0};
-/* Only std3d_set_texture_size_caps writes it, and nothing calls that, so it stays
- * 0. */
+/* Nothing writes it, so it stays 0. */
 // GLOBAL: XVT 0x528C70
 int g_std3d_min_texture_width;
-/* Only std3d_set_texture_size_caps writes it, and nothing calls that, so it stays
- * 0. */
+/* Nothing writes it, so it stays 0. */
 // GLOBAL: XVT 0x528C74
 int g_std3d_min_texture_height;
 /* Most vertices one execute buffer takes: the device's max_vertex_count, at most
@@ -346,8 +339,7 @@ struct std3d_tex_cache_node *g_p_tex_cache_head = 0;
 // GLOBAL: XVT 0x528C90
 struct std3d_tex_cache_node *g_p_tex_cache_tail = 0;
 /* A 32 by 32 buffer in the RGBA 4-bit format, made by std3d_create_device when
- * the device has alpha textures but no alpha blending; std3d_draw_color_overlay
- * fills it and std3d_close frees it. */
+ * the device has alpha textures but no alpha blending; std3d_close frees it. */
 // GLOBAL: XVT 0x528C94
 static struct std3dv_buffer *g_p_std3dv_buffer = 0;
 /* The execute buffer every batch is written into; std3d_create_device makes it
@@ -553,8 +545,8 @@ std3d_init_render_target_desc(unsigned int width, unsigned int height,
 	return result;
 }
 
-/* Releases g_lp_d3d when it is set (the modern build then sets it to NULL) and
- * sets g_std3d_startup_done to 0. */
+/* Releases g_lp_d3d when it is set (then sets it to NULL) and sets
+ * g_std3d_startup_done to 0. */
 // FUNCTION: XVT 0x4B0FF0
 void std3d_shutdown(void)
 {

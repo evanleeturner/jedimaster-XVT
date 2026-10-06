@@ -165,8 +165,8 @@ struct object_type_info {
 	 * types keep the table's value. Much of the flight code uses it as the
 	 * object's size. */
 	int max_bounds_extent;
-	/* Half of max_bounds_extent, set beside it; the game code never reads it,
-	 * only the modern build's capture. */
+	/* Half of max_bounds_extent, set beside it; the game code never reads
+	 * it, only the capture. */
 	int half_bounds_extent;
 	/* Memory handle of the type's loaded resource, the same as its
 	 * g_loaded_models entry; 0 for none. */
@@ -176,8 +176,8 @@ struct object_type_info {
 	 * model. */
 	int16_t *texture_frame_sequence;
 	/* A remap of 16 palette indices, or NULL; mission_init sets it for
-	 * backdrop types. The game code never reads it; the modern build's
-	 * capture copies it. */
+	 * backdrop types. The game code never reads it; the capture copies
+	 * it. */
 	uint8_t *palette;
 	/* Bits: 0x1 puts the type's objects on the radar; 0x2 lets the AI pick
 	 * static objects of the type (TARGETABLE_STATIC_MODEL_FLAG); 0x20 marks

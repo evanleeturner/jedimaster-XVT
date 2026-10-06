@@ -33,7 +33,7 @@ struct image_quantizer_image_layout {
 	/* The record's bytes before color_class, not named in this view. */
 	uint8_t reserved0000[0x1024];
 	/* 1 for direct color, 2 for a palette image;
-	 * image_quantizer_assign_palette_colors sets 2 unless colorspace is 3. */
+	 * image_quantizer_allocate_image sets 1. */
 	uint32_t color_class;
 	/* Nonzero makes image_quantizer_compress_pixel_runs also need equal
 	 * palette indexes to join pixels; every writer sets it to 0. */
@@ -167,16 +167,15 @@ struct image_quantizer_legacy_image_record {
 	/* 0 from image_quantizer_allocate_image; image_quantizer_destroy_image
 	 * frees the pointer at this offset when it is not NULL. */
 	uint32_t field1048;
-	/* 0 from image_quantizer_allocate_image;
-	 * image_quantizer_assign_palette_colors keeps the palette pointer at this
-	 * offset, 0x104C. */
+	/* 0 from image_quantizer_allocate_image; image_quantizer_destroy_image
+	 * frees the palette pointer at this offset, 0x104C, when it is not
+	 * NULL. */
 	uint32_t palette;
 	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field1050;
-	/* 0 from image_quantizer_allocate_image;
-	 * image_quantizer_assign_palette_colors stores the color count at this
-	 * offset, 0x1054. */
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes
+	 * it by name. It sits at offset 0x1054. */
 	uint32_t palette_color_count;
 	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
@@ -266,9 +265,8 @@ struct image_quantizer_legacy_image_record {
 	/* 0 from image_quantizer_allocate_image; nothing else reads or writes it
 	 * by name. */
 	uint32_t field18be;
-	/* 0 from image_quantizer_allocate_image;
-	 * image_quantizer_quantize_image_lists reads the next image of a list at
-	 * this offset, 6338. */
+	/* 0 from image_quantizer_allocate_image; nothing else reads or writes
+	 * it by name. It sits at offset 6338. */
 	uint32_t next_image;
 };
 
@@ -316,7 +314,7 @@ static int g_image_quantizer_max_tree_depth = 0;
 // GLOBAL: XVT 0x556930
 static unsigned int g_image_quantizer_color_count = 0;
 /* Palette being built or searched, 9-byte entries; set by
- * image_quantizer_assign_palette_colors and
+ * image_quantizer_build_palette_entries_recursive and
  * image_quantizer_export_palette6_bit_and_destroy. */
 // GLOBAL: XVT 0x55693D
 static struct image_quantizer_palette_entry *g_image_quantizer_palette_entries =

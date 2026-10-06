@@ -6,19 +6,18 @@
 #include "xvt_runtime/log/log.h"
 
 /* Bytes per pixel of the flight frame buffer: 1 in the 8-bit paletted modes, 2
- * in 16-bit color; 1 at start. Four functions write it: flight_main in the
- * original build, xvt_flight_entry_configure in the modern one,
- * flight_display_init and model_preview_load_model. */
+ * in 16-bit color; 1 at start. Three functions write it:
+ * xvt_flight_entry_configure, flight_display_init and
+ * model_preview_load_model. */
 // GLOBAL: XVT 0x5233D8
 int g_flight_bytes_per_pixel = 1;
 /* Flight palette brightness, 256 for 1.0 (eight fraction bits).
- * flight_palette_build_rgb_range and flight_palette_build16_bpp_range scale each
- * color's brightest channel by it, and copy colors unchanged at exactly 256. At
- * flight start flight_main (original build) or xvt_flight_entry_configure
- * (modern) sets it to (setting + 4) << 6 from the solo or multiplayer
- * brightness setting, clamped to 256 to 704; in the 8-bit modes the Alt+B key
- * raises it by 0x40, going from 0x300 back to 0x100 (flight_update_player_step,
- * xvt_flight_sim_update_player_step). */
+ * flight_palette_build_rgb_range and flight_palette_build16_bpp_range scale
+ * each color's brightest channel by it, and copy colors unchanged at exactly
+ * 256. At flight start xvt_flight_entry_configure sets it to (setting + 4) << 6
+ * from the solo or multiplayer brightness setting, clamped to 256 to 704; in
+ * the 8-bit modes the Alt+B key raises it by 0x40, going from 0x300 back to
+ * 0x100 (xvt_flight_sim_update_player_step). */
 // GLOBAL: XVT 0x523400
 int g_flight_brightness_scale_q8 = 0x100;
 /* The flight palette before the brightness adjustment: 256 colors with channels
@@ -232,11 +231,11 @@ void flight_palette_build_rgb_range(const struct rgb_triplet *src_rgb,
 	}
 }
 
-/* Sends g_sw_palette, adjusted by flight_palette_build_rgb_range, to the display
- * with flight_display_set_palette_entries when g_flight_bytes_per_pixel is 1, and
- * clears the 0x1 bit of g_palette_dirty_flags. flight_render_install_callbacks
- * installs it as g_flight_reset_palette_fn; flight_main_loop in the original build
- * and xvt_flight_loading_palette in the modern one also call it. */
+/* Sends g_sw_palette, adjusted by flight_palette_build_rgb_range, to the
+ * display with flight_display_set_palette_entries when g_flight_bytes_per_pixel
+ * is 1, and clears the 0x1 bit of g_palette_dirty_flags.
+ * flight_render_install_callbacks installs it as g_flight_reset_palette_fn;
+ * xvt_flight_loading_palette also calls it. */
 // FUNCTION: XVT 0x40E590
 void flight_palette_apply_to_display(void)
 {

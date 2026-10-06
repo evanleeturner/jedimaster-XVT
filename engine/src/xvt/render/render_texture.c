@@ -47,12 +47,11 @@ static const uint8_t g_bitmap_rle_color_index_shift_by_format[9] = {
 /* Finds the texture cache entry keyed by cache_key, an image's address, or
  * claims a free one for it. When g_render_texture_cache_cursor is -1 it first
  * clears the 1024 keys and every entry's b_cached. It looks from slot
- * xvt_pointer_key_low_bits(cache_key) & 1023 onward, wrapping, for the key, then
- * from the same slot for an entry with b_cached 0, records the key there and
- * returns that entry, leaving its index in g_render_texture_cache_cursor. When all
- * 1024 are cached it writes a line to the debug console with
- * debug_console_write_text and returns the start slot's entry with its key
- * unchanged. */
+ * xvt_pointer_key_low_bits(cache_key) & 1023 onward, wrapping, for the key,
+ * then from the same slot for an entry with b_cached 0, records the key there
+ * and returns that entry, leaving its index in g_render_texture_cache_cursor.
+ * When all 1024 are cached it logs an error and returns the start slot's entry
+ * with its key unchanged. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x4079F0
 struct std3d_tex_cache_node *

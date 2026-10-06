@@ -979,12 +979,11 @@ float *model_mesh_get_rot_scale_data(int object_type, int mesh_index)
 }
 
 /* Walks node and the nodes below it depth first, counting OPT_HARDPOINT nodes
- * in g_opt_hardpoint_search_index, and returns the hardpoint met while the count
- * equals hardpoint_index, or NULL. Follows OPT_NODEREF links; while
+ * in g_opt_hardpoint_search_index, and returns the hardpoint met while the
+ * count equals hardpoint_index, or NULL. Follows OPT_NODEREF links; while
  * g_cache_resolved_opt_node_refs is set it keeps each target in the link node,
- * through xvt_opt_resolve_cached in the modern build, and in the original build
- * in its pName, blanking the first character of its name. A link that does not
- * resolve ends that branch. */
+ * through xvt_opt_resolve_cached. A link that does not resolve ends that
+ * branch. */
 // FUNCTION: XVT 0x4AF090
 struct opt_node *model_mesh_find_nth_hardpoint_node_recursive(
 	struct opt_node *node, struct optimized_poly_object *model,

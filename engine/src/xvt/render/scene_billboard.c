@@ -316,8 +316,8 @@ void scene_billboard_draw_roll_aligned_object_model(uint16_t object_index)
 
 /* Screen size of a billboard at a depth: s = model_max_extent / (size of
  * depth_z >> 8), or 0 when that is 0, then s * base_screen_size >> 8, capped at
- * 1024. The modern build works the product without signed overflow and leaves
- * INT32_MIN as it is. Only render_quad_draw_model_texture calls it. */
+ * 1024. It works the product without signed overflow and leaves INT32_MIN as it
+ * is. Only render_quad_draw_model_texture calls it. */
 // FUNCTION: XVT 0x4243D0
 int scene_billboard_compute_projected_size(int depth_z,
 					   uint16_t model_max_extent,

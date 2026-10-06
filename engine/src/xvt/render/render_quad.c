@@ -103,21 +103,20 @@ void render_quad_draw_model_texture(
  * texture_image, centered at screen_x and screen_y (Y counted up from the
  * viewport's bottom), each half side (screen_size * image side) >> 9, turned by
  * angle. The color is white, or for an explosion in a main object slot
- * (g_billboard_object_or_type_index) g_explosion_billboard_color_by_frame at its
- * frame; 0xFEFFFFFF when g_cap_vertex_alpha is set, which it clears. Its depth
- * is 1 / (g_view_space_depth * g_inv_depth_proj_scale + 1), 1 being
- * g_render_unit_float; when g_view_space_depth, read unsigned, is over 0x1000000
- * it is the fixed value 0.00012205541 and the color is white. With
+ * (g_billboard_object_or_type_index) g_explosion_billboard_color_by_frame at
+ * its frame; 0xFEFFFFFF when g_cap_vertex_alpha is set, which it clears. Its
+ * depth is 1 / (g_view_space_depth * g_inv_depth_proj_scale + 1), 1 being
+ * g_render_unit_float; when g_view_space_depth, read unsigned, is over
+ * 0x1000000 it is the fixed value 0.00012205541 and the color is white. With
  * g_std3dz_compare_cap 2 the depth is 1 less that. The texture is the image cut
  * to 256 by 256 and rounded up to powers of two, square when the device needs
  * it, from render_texture_get_or_create_bitmap. The square is clipped to the
  * viewport (top, bottom, left, right), nothing is drawn below 3 corners, the
  * batch is flushed through std3D first when it would overflow, and the
  * triangles go in as a fan with the sprite flags, the bilinear ones when
- * g_bilinear_enabled is set. The modern build returns at once while classic
- * flight drawing is suppressed, skips a clipping pass after one that left
- * nothing, and starts the color at white; the original build leaves it unset
- * for an object past the main slots unless the depth is over 0x1000000. */
+ * g_bilinear_enabled is set. It returns at once while classic flight drawing is
+ * suppressed, skips a clipping pass after one that left nothing, and starts the
+ * color at white. */
 // FUNCTION: XVT 0x40BBF0
 void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
 				     uint16_t screen_size,

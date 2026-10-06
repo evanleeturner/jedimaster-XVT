@@ -55,7 +55,7 @@ static const double g_model_preview_q16_scale = 0.0000152587890625;
 // GLOBAL: XVT 0x520EC0
 int16_t g_model_preview_up_axis_angle;
 /* The preview model's block, locked by model_preview_load_model; NULL until the
- * first load. The modern xvt_frontend_task_shutdown sets it back to NULL. */
+ * first load. xvt_frontend_task_shutdown sets it back to NULL. */
 // GLOBAL: XVT 0x520EC4
 struct optimized_poly_object *g_model_preview_model_data = NULL;
 /* Nothing sets this flag, and model_preview_load_model clears it through
@@ -68,9 +68,9 @@ int g_model_preview_skip_scene_reset = 0;
  * span mask; model_preview_free_resources frees the buffers and sets it to 0. */
 // GLOBAL: XVT 0x520ECC
 int g_model_preview_render_resources_initialized = 0;
-/* Memory handle of the preview's span mask buffer: model_preview_render_viewport
- * allocates it, regrows it when too small and points g_flight_aux_buffer at it.
- * The modern xvt_frontend_task_shutdown sets it to 0. */
+/* Memory handle of the preview's span mask buffer:
+ * model_preview_render_viewport allocates it, regrows it when too small and
+ * points g_flight_aux_buffer at it. xvt_frontend_task_shutdown sets it to 0. */
 // GLOBAL: XVT 0x520ED0
 uint16_t g_model_preview_aux_buffer_handle = 0;
 /* Bytes allocated for g_model_preview_aux_buffer_handle; written by the same two
@@ -183,10 +183,10 @@ int16_t g_saved_model_preview_roll;
 // GLOBAL: XVT 0x5562D0
 char g_saved_model_preview_model_file_name[128];
 /* X of the light direction in world axes, 1.15 fixed point. Flight start sets
- * all three to DEFAULT_MODEL_LIGHT_DIRECTION (flight_main_loop in the original
- * build, xvt_flight_loading_mission_setup in the modern one);
- * model_preview_set_light_direction and model_preview_restore_state set them for the
- * preview. fview_compute_object_view_matrix turns them into the object's light
+ * all three to DEFAULT_MODEL_LIGHT_DIRECTION
+ * (xvt_flight_loading_mission_setup); model_preview_set_light_direction and
+ * model_preview_restore_state set them for the preview.
+ * fview_compute_object_view_matrix turns them into the object's light
  * direction. */
 // GLOBAL: XVT 0x9D12EC
 int g_world_light_direction_x;
@@ -200,14 +200,12 @@ int g_world_light_direction_y;
 int g_world_light_direction_z;
 /* The preview object's position less the camera's, turned into camera axes;
  * model_preview_render_viewport sets it each draw and makes its z
- * g_view_space_depth. The modern build passes it to
- * xvt_render_capture_frontend_preview. */
+ * g_view_space_depth. It is passed to xvt_render_capture_frontend_preview. */
 // GLOBAL: XVT 0xA60710
 static struct opt_vector g_model_preview_view_delta = {0.0f, 0.0f, 0.0f};
 /* model_preview_render_viewport's float copy of a 1.15 matrix: first the camera
  * rotation, used to turn g_model_preview_view_delta, then the object-to-view
- * rotation, which the modern build passes to
- * xvt_render_capture_frontend_preview. */
+ * rotation, which is passed to xvt_render_capture_frontend_preview. */
 // GLOBAL: XVT 0xA6071C
 static float g_model_preview_matrix[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
 					  0.0f, 0.0f, 0.0f, 0.0f};
@@ -224,20 +222,17 @@ static float g_model_preview_object_view_matrix[9] = {
 /* Loads a model for the frontend preview into g_loaded_models[0] and returns 1,
  * or 0. It frees the preview's render buffers, resets the view and render
  * settings, turns g_mipmapping_enabled on, sets g_loaded_models[0] to 0 when
- * g_model_preview_model_data is NULL, and opens the name with ".opt" in place of
- * its extension. The modern build returns 0 for a NULL name, one of 256 or more
+ * g_model_preview_model_data is NULL, and opens the name with ".opt" in place
+ * of its extension. It returns 0 for a NULL name, one of 256 or more
  * characters, an extension other than ".opt", a file that does not open or a
- * load that fails. The original build cuts the name at its first '.' and, when
- * the OPT file does not open, imports the ".iv" file as opt_model_load_handle
- * does, saving it as the OPT file. An OPT file is loaded with
- * opt_model_load_file_to_handle after the old slot's handle is freed, as an import
- * frees it too, and a runtime copy built with g_flight_bytes_per_pixel set to 2,
- * which it stays, takes the slot. It locks the copy into
- * g_model_preview_model_data, scales it so its largest extent is
+ * load that fails. The OPT file is loaded with opt_model_load_file_to_handle
+ * after the old slot's handle is freed, and a runtime copy built with
+ * g_flight_bytes_per_pixel set to 2, which it stays, takes the slot. It locks
+ * the copy into g_model_preview_model_data, scales it so its largest extent is
  * g_model_preview_target_bounds_extent (g_model_preview_bounds_extent,
- * g_model_preview_scale), sets g_transform_light_direction_to_object_space, and resets
- * the preview object and the view, and the light to (1, 1, 1). The modern build
- * also registers the copy for its renderer. */
+ * g_model_preview_scale), sets g_transform_light_direction_to_object_space, and
+ * resets the preview object and the view, and the light to (1, 1, 1). It also
+ * registers the copy for the renderer. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x429E70
 int model_preview_load_model(const char *model_file_name)
@@ -375,14 +370,14 @@ void model_preview_free_resources(void)
  * bottom edges are cut to 1024 by 768. It sets the flight viewport and
  * projection globals (scale 512, perspective shift 9), builds the camera from
  * the local player's view state and the object's transform with
- * g_model_preview_up_axis_angle, and sets g_model_preview_view_delta and the preview
- * matrices. The first draw after a load allocates the render buffers and the
- * span mask in g_model_preview_aux_buffer_handle: per row the byte 1, then a 0
- * while the width left is 256 or more, taking 255 the first time and 256 the
- * second (twice at most), then the width left. It draws with local lights off,
- * the object's node_switch_index from g_node_switch_index, through
- * render_scene_draw_object_model and sw3d_draw_visible_faces_to_surface. The modern
- * build also records the draw for its renderer. The arguments after height are
+ * g_model_preview_up_axis_angle, and sets g_model_preview_view_delta and the
+ * preview matrices. The first draw after a load allocates the render buffers
+ * and the span mask in g_model_preview_aux_buffer_handle: per row the byte 1,
+ * then a 0 while the width left is 256 or more, taking 255 the first time and
+ * 256 the second (twice at most), then the width left. It draws with local
+ * lights off, the object's node_switch_index from g_node_switch_index, through
+ * render_scene_draw_object_model and sw3d_draw_visible_faces_to_surface. It
+ * also records the draw for the renderer. The arguments after height are
  * ignored. */
 // FUNCTION: XVT 0x42A380
 int model_preview_render_viewport(int x, int y, int width, int height, ...)

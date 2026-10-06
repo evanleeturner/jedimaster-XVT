@@ -9,23 +9,23 @@
 #include "xvt/render/std3d.h"
 #include "xvt_runtime/log/log.h"
 
-/* Level-of-detail child render_scene_draw_model_node takes in every face group, 0
- * to choose by distance (child 1 at a view depth of 0 or less). Only
- * flight_main (original build) and xvt_flight_entry_configure_lod_distance (modern)
- * write it, setting 0, so no level is ever forced. */
+/* Level-of-detail child render_scene_draw_model_node takes in every face group,
+ * 0 to choose by distance (child 1 at a view depth of 0 or less). Only
+ * xvt_flight_entry_configure_lod_distance writes it, setting 0, so no level is
+ * ever forced. */
 // GLOBAL: XVT 0x5233A4
 int g_forced_lod_level = 0;
-/* Factor on view depth when render_scene_draw_model_node picks a level of detail,
- * from the level-of-detail option (flight_main in the original build,
- * xvt_flight_entry_configure_lod_distance in the modern one); 1.0 at start and in
- * the model preview (model_preview_reset_view_and_render_state). */
+/* Factor on view depth when render_scene_draw_model_node picks a level of
+ * detail, from the level-of-detail option
+ * (xvt_flight_entry_configure_lod_distance); 1.0 at start and in the model
+ * preview (model_preview_reset_view_and_render_state). */
 // GLOBAL: XVT 0x5233A8
 float g_lod_distance_scale = 1.0f;
-/* 1 when model textures get mipmap levels, built by opt_model_build_runtime_node
- * and chosen by the drawing code, 0 not. Set from the "nomipmaps" and "mipmaps"
- * launch options and the mipmap option (flight_main in the original build,
- * xvt_flight_entry_read_launch_switches and xvt_flight_entry_configure_mipmaps in the
- * modern one); model_preview_load_model sets 1. */
+/* 1 when model textures get mipmap levels, built by
+ * opt_model_build_runtime_node and chosen by the drawing code, 0 not. Set from
+ * the "nomipmaps" and "mipmaps" launch options and the mipmap option
+ * (xvt_flight_entry_read_launch_switches and
+ * xvt_flight_entry_configure_mipmaps); model_preview_load_model sets 1. */
 // GLOBAL: XVT 0x5233AC
 int g_mipmapping_enabled = 1;
 /* Factor on a face's texels per pixel when the mipmap level is chosen, from the
@@ -33,28 +33,28 @@ int g_mipmapping_enabled = 1;
  * preview. */
 // GLOBAL: XVT 0x5233B0
 float g_mip_lod_scale = 1.0f;
-/* The dithering option, 1 on, 0 off, set at flight start (flight_main,
- * xvt_flight_entry_configure) and 1 in the model preview; nothing reads it. */
+/* The dithering option, 1 on, 0 off, set at flight start
+ * (xvt_flight_entry_configure) and 1 in the model preview; nothing reads it. */
 // GLOBAL: XVT 0x5233B4
 int g_dithering_enabled = 1;
-/* The local lights option, 1 on, 0 off, set at flight start (flight_main,
- * xvt_flight_entry_configure); the object lighting setup lights from nearby
+/* The local lights option, 1 on, 0 off, set at flight start
+ * (xvt_flight_entry_configure); the object lighting setup lights from nearby
  * sources only while it is set. model_preview_render_viewport sets 0 while it
  * draws and puts it back. */
 // GLOBAL: XVT 0x5233B8
 int g_local_lights_enabled = 1;
-/* The specular lighting option, 1 on, 0 off, set at flight start (flight_main,
- * xvt_flight_entry_configure) and 1 in the model preview; read by the face and
+/* The specular lighting option, 1 on, 0 off, set at flight start
+ * (xvt_flight_entry_configure) and 1 in the model preview; read by the face and
  * vertex lighting. */
 // GLOBAL: XVT 0x5233BC
 int g_specular_enabled = 1;
 /* The diffuse (directional) lighting option, 1 on, 0 off, set at flight start
- * (flight_main, xvt_flight_entry_configure) and 1 in the model preview; read by
+ * (xvt_flight_entry_configure) and 1 in the model preview; read by
  * render_scene_compute_vertex_lighting. */
 // GLOBAL: XVT 0x5233C0
 int g_dir_lighting_enabled = 1;
-/* The texture resolution option, 0 to 2, set at flight start (flight_main,
- * xvt_flight_entry_configure) and 1 in the model preview; read when model
+/* The texture resolution option, 0 to 2, set at flight start
+ * (xvt_flight_entry_configure) and 1 in the model preview; read when model
  * textures are built. */
 // GLOBAL: XVT 0x5233C4
 int g_texture_resolution_level = 1;
@@ -76,10 +76,9 @@ uint8_t g_flight_transparent_color_index = 0xfb;
 // GLOBAL: XVT 0x9A7A30
 uint8_t g_flight_pixel_mode = 0;
 /* Graphics detail preset, 3 at start:
- * flight_render_configure_callbacks_for_resolution sets the starting one, and the
- * Alt+D key steps it, wrapping to 0 at GRAPHICS_DETAIL_PRESET_COUNT, and
- * applies it (flight_update_player_step in the original build,
- * xvt_flight_sim_update_player_step in the modern one). */
+ * flight_render_configure_callbacks_for_resolution sets the starting one, and
+ * the Alt+D key steps it, wrapping to 0 at GRAPHICS_DETAIL_PRESET_COUNT, and
+ * applies it (xvt_flight_sim_update_player_step). */
 // GLOBAL: XVT 0x5233F8
 uint8_t g_flight_graphics_detail_preset = 3;
 /* 0 at start; only flight_render_configure_callbacks_for_resolution writes it,
@@ -88,17 +87,16 @@ uint8_t g_flight_graphics_detail_preset = 3;
 // GLOBAL: XVT 0xA08290
 uint16_t g_flight_viewport_mode = 0;
 /* 1 while flight draws through Direct3D hardware, 0 for the software renderer.
- * Set at flight start from the 3D hardware option (flight_main,
- * xvt_flight_entry_configure); renderer_init_d3d_device sets 0 when the device
- * cannot be used, flight_display_init when the color depth is not 16-bit, and
- * flight_main (original build) or xvt_flight_entry_cleanup (modern) when flight
- * ends. */
+ * Set at flight start from the 3D hardware option (xvt_flight_entry_configure);
+ * renderer_init_d3d_device sets 0 when the device cannot be used,
+ * flight_display_init when the color depth is not 16-bit, and
+ * xvt_flight_entry_cleanup when flight ends. */
 // GLOBAL: XVT 0x527E90
 int g_use_hardware3d;
 /* The bilinear filtering option for hardware drawing, 1 on, 0 off, set at
- * flight start (flight_main, xvt_flight_entry_configure). flight_view_render and
- * flight_hyperspace_render_transition_effect turn it off for part of a frame and
- * put it back. */
+ * flight start (xvt_flight_entry_configure). flight_view_render and
+ * flight_hyperspace_render_transition_effect turn it off for part of a frame
+ * and put it back. */
 // GLOBAL: XVT 0x527E94
 int g_bilinear_enabled = 1;
 /* 1 while fe_disk_io_init_resources loads the flight's resources, else 0; only it
@@ -106,8 +104,8 @@ int g_bilinear_enabled = 1;
 // GLOBAL: XVT 0x527EC8
 int g_loading_model;
 /* Width in pixels of the flight's drawing surface: 640 at start; at flight
- * start 320, 480 or 640 from the window size option (flight_main,
- * xvt_flight_entry_configure_display_size). */
+ * start 320, 480 or 640 from the window size option
+ * (xvt_flight_entry_configure_display_size). */
 // GLOBAL: XVT 0x5233E0
 int g_surface_width = 640;
 /* Height in pixels of the flight's drawing surface: 480 at start; at flight
@@ -119,9 +117,8 @@ int g_surface_height = 480;
 // GLOBAL: XVT 0x527ECC
 void *g_surface_pixels = (void *)0xA0000;
 /* Width in pixels of the display mode: 320, 512 or 640 from the screen
- * resolution option at flight start (flight_main,
- * xvt_flight_entry_configure_display_size); flight_display_init changes it when it
- * has to fall back to another mode. */
+ * resolution option at flight start (xvt_flight_entry_configure_display_size);
+ * flight_display_init changes it when it has to fall back to another mode. */
 // GLOBAL: XVT 0x66DDC4
 int g_display_mode_width;
 /* Height in pixels of the display mode: 240, 384 or 480, written with
@@ -353,9 +350,9 @@ int g_object_light_direction_z = 0;
 int g_cur_mat_r0_z = 0;
 /* Row 0 (the side axis), X term, of the current object matrix, Q15. The
  * matrix's nine terms are written by fview_set_object_transform,
- * fview_calcrotatemove, fview_transformaxes and flight_view_rotate_view_by_input,
- * and in the original build player_apply_pitch_yaw_steps; fview_build_camera_orient
- * also negates rows 1 and 2. */
+ * fview_calcrotatemove, fview_transformaxes and
+ * flight_view_rotate_view_by_input; fview_build_camera_orient also negates rows
+ * 1 and 2. */
 // GLOBAL: XVT 0xA0049C
 int g_cur_mat_r0_x = 0;
 /* Row 1 (the up axis), Y term, of the current object matrix, Q15; see
@@ -397,17 +394,17 @@ int g_fview_move_x_q15 = 0;
 // FUNCTION: XVT 0x4079D0
 IDirectDraw *renderer_get_direct_draw(void) { return g_flight_direct_draw; }
 
-/* Sets up Direct3D for hardware drawing. Sets g_render_texture_cache_cursor to -1,
- * gives std3D the render target (g_display_mode_width by g_display_mode_height,
- * pitch g_surface_pitch, surface g_flight_back_buffer), clears the color overlay
- * and starts std3D, then picks the best device asking for hardware, perspective
- * texturing, a z-buffer and color model 2. When that device has all three it
- * creates it and gets the back buffer's attached z-buffer into
- * g_std3dz_buffer_surface; when that fails, or when the device lacks one of the
- * three, it shuts std3D down (closing it first on the z-buffer failure) and
- * sets g_use_hardware3d to 0. Every path ends with
- * math_set_fpu_single_precision_mode. Its error lines go to debug_printf, which
- * prints nothing. flight_display_init calls it while g_use_hardware3d is set. */
+/* Sets up Direct3D for hardware drawing. Sets g_render_texture_cache_cursor to
+ * -1, gives std3D the render target (g_display_mode_width by
+ * g_display_mode_height, pitch g_surface_pitch, surface g_flight_back_buffer),
+ * clears the color overlay and starts std3D, then picks the best device asking
+ * for hardware, perspective texturing, a z-buffer and color model 2. When that
+ * device has all three it creates it and gets the back buffer's attached
+ * z-buffer into g_std3dz_buffer_surface; when that fails, or when the device
+ * lacks one of the three, it shuts std3D down (closing it first on the z-buffer
+ * failure) and sets g_use_hardware3d to 0. Every path ends with
+ * math_set_fpu_single_precision_mode. flight_display_init calls it while
+ * g_use_hardware3d is set. */
 // FUNCTION: XVT 0x408170
 void renderer_init_d3d_device(void)
 {

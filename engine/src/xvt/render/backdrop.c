@@ -535,16 +535,15 @@ void backdrop_build_star_offsets_and_render(void)
 	}
 }
 
-/* Projects a backdrop's view position and draws it; draws nothing when the
- * size of view_x or of view_y is greater than view_z. Each offset is
- * (size * (1 << g_perspective_shift) + g_proj_scale_half_int) / view_z, worked
- * in 64 bits, with the coordinate's sign, or 0x7FFFFF00 when the quotient
- * would not fit in 32 bits. It adds g_flight_vp_center_x to X and
- * g_flight_vp_center_y and g_proj_offset_y to Y, and draws
- * g_backdrop_model_types[backdrop_number - 1] with
- * backdrop_draw_model_tex_quad_at_screen at that X and g_flight_vp_height less
- * that Y. The modern build masks the shift to 5 bits and negates without
- * signed overflow. */
+/* Projects a backdrop's view position and draws it; draws nothing when the size
+ * of view_x or of view_y is greater than view_z. Each offset is (size * (1 <<
+ * g_perspective_shift) + g_proj_scale_half_int) / view_z, worked in 64 bits,
+ * with the coordinate's sign, or 0x7FFFFF00 when the quotient would not fit in
+ * 32 bits. It adds g_flight_vp_center_x to X and g_flight_vp_center_y and
+ * g_proj_offset_y to Y, and draws g_backdrop_model_types[backdrop_number - 1]
+ * with backdrop_draw_model_tex_quad_at_screen at that X and g_flight_vp_height
+ * less that Y. It masks the shift to 5 bits and negates without signed
+ * overflow. */
 // FUNCTION: XVT 0x426860
 void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 					   int angle, int backdrop_number)

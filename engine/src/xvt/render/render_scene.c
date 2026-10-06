@@ -50,10 +50,9 @@ int g_scene_flush_draw_target_markers = 0;
  * 4, and keeps once found; -1 until then. Only that function writes it. */
 // GLOBAL: XVT 0x5272A0
 static int g_bwing_bridge_mesh_index_cache = -1;
-/* 1 when render_scene_compute_vertex_lighting asks whether the object's own model
- * blocks a light from a vertex. Starts at 0; only
- * render_scene_toggle_vertex_light_occlusion changes it, and nothing calls that, so
- * the test never runs. */
+/* 1 when render_scene_compute_vertex_lighting asks whether the object's own
+ * model blocks a light from a vertex. Starts at 0; nothing changes it, so the
+ * test never runs. */
 // GLOBAL: XVT 0x5272A4
 static int g_vertex_light_occlusion_enabled;
 /* Radians per unit of a craft's mesh_rotation byte: 2 pi over 256, to float
@@ -216,8 +215,8 @@ static int g_cur_layer_id = 0;
 // GLOBAL: XVT 0x5271D8
 static struct opt_texture_data *g_default_white_texture_desc_ptr = NULL;
 /* The built-in 8x8 white texture as 24-bit color, every byte 0xFF.
- * g_default_white_texture's texels are built from it, and
- * model_texture_load_rgb_or_tex_file uses it when a texture file does not open. */
+ * render_scene_draw_object_model and render_scene_draw_selected_root_node build
+ * g_default_white_texture's texels from it. */
 // GLOBAL: XVT 0x5271E0
 uint8_t g_default_white_texture_rgb24[DEFAULT_WHITE_TEXTURE_RGB_SIZE] = {
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -788,20 +787,20 @@ void render_scene_project_distant_mesh_vertices(struct scene_mesh *mesh)
  * face it lists the 3 or 4 corners in g_clip_idx_a, adding a copy at
  * g_clip_vert_cursor of any corner whose stored texture coordinates differ from
  * this face's (scaled for a square texture when the device takes only square
- * ones); runs render_clip_clip_poly_near when near_clip_state is -1, then the top,
- * bottom, left and right clips; and emits the result with
+ * ones); runs render_clip_clip_poly_near when near_clip_state is -1, then the
+ * top, bottom, left and right clips; and emits the result with
  * render_scene_emit_flight_vertex, once per mesh for a projected vertex and on
  * every use for a clip vertex. With 3 or more corners left it picks a mip level
- * when the texture's texture_size is width times height: from texels_per_pixel_q8 *
- * g_mip_lod_scale, it shifts the value down 2 bits and takes the next level while
- * the value is over 256 and neither side is 8. When the texels changed it gets
- * the opaque texture, and a color-key texture when the palette marks a
- * transparent entry: for a projectile it clears that mark instead, and when
- * none can be made at full size it puts '_' at the start of the texture's name.
- * Then queues a fan of triangles into g_tri_buffer: first, with a color-key
- * texture, copies of the corners in white with that texture and alpha blending,
- * then the opaque ones. Returns at once when the modern build suppresses
- * classic flight rendering. Does not check the batch limits;
+ * when the texture's texture_size is width times height: from
+ * texels_per_pixel_q8 * g_mip_lod_scale, it shifts the value down 2 bits and
+ * takes the next level while the value is over 256 and neither side is 8. When
+ * the texels changed it gets the opaque texture, and a color-key texture when
+ * the palette marks a transparent entry: for a projectile it clears that mark
+ * instead, and when none can be made at full size it puts '_' at the start of
+ * the texture's name. Then queues a fan of triangles into g_tri_buffer: first,
+ * with a color-key texture, copies of the corners in white with that texture
+ * and alpha blending, then the opaque ones. Returns at once when classic flight
+ * rendering is suppressed. Does not check the batch limits;
  * render_scene_draw_mesh_hardware does. */
 // FUNCTION: XVT 0x408E70
 void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
@@ -2242,23 +2241,22 @@ void render_scene_draw_selected_root_node(struct object_record *obj,
 }
 
 /* Walks one model node and those below it, updating mesh and drawing face data.
- * Follows node references first (in the modern build through the cached
- * resolver; in the original, while g_cache_resolved_opt_node_refs is set, through a
- * pointer cached in the node) and returns when one resolves to nothing. By
- * type: face data sets the mesh's faces, normals and texture axes, takes
- * g_cur_texture_desc when the mesh has no texture, and calls
+ * Follows node references first (through the cached resolver while
+ * g_cache_resolved_opt_node_refs is set) and returns when one resolves to
+ * nothing. By type: face data sets the mesh's faces, normals and texture axes,
+ * takes g_cur_texture_desc when the mesh has no texture, and calls
  * render_scene_draw_scene_mesh, with the generated vertex normals when the mesh
  * has none; transform, translation, rotation and scale nodes update viewPos,
  * view_orient, view_to_model_orient and eyeModelSpace; vertex, normal and
  * texture-coordinate nodes set those arrays; a texture node sets the texture,
- * palettes and g_cur_texture_desc; a material binding copies g_cur_mesh_materials
- * into the field its payload count picks; a rotate-and-scale node turns the
- * mesh by rot_angle about its axis through its pivot; a face group picks a child
- * by distance, or by g_forced_lod_level, and a node switch picks child
- * g_node_switch_index + 1, at most the last. Then walks the picked child, or none
- * when a face group's thresholds all fail, or with no pick every child with a
- * copy of the mesh after clearing the walk's g_cur globals. Raises g_cur_layer_id
- * before each child. */
+ * palettes and g_cur_texture_desc; a material binding copies
+ * g_cur_mesh_materials into the field its payload count picks; a
+ * rotate-and-scale node turns the mesh by rot_angle about its axis through its
+ * pivot; a face group picks a child by distance, or by g_forced_lod_level, and
+ * a node switch picks child g_node_switch_index + 1, at most the last. Then
+ * walks the picked child, or none when a face group's thresholds all fail, or
+ * with no pick every child with a copy of the mesh after clearing the walk's
+ * g_cur globals. Raises g_cur_layer_id before each child. */
 // FUNCTION: XVT 0x472C90
 void render_scene_draw_model_node(struct optimized_poly_object *model,
 				  struct opt_node *node,
@@ -3197,15 +3195,14 @@ int render_scene_test_segment_against_mesh_faces(
 }
 
 /* Allocates the scene's memory handles, calling
- * fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY) when one fails: 20000
- * spans, 20000 span pointers, 5000 faces, twice g_vertex_remap_capacity projected
- * vertices, twice g_scene_edge_flags_capacity edges, g_vertex_remap_capacity remap
- * entries, g_scene_edge_flags_capacity edge flags, 768 edge pointers, 768 row
- * heads, 0x25800 bytes of light samples and 500 queued meshes. Sets those
- * capacities and the sw3d light-sample block, 16 pixels. In the original build
- * it then makes 0x80000 bytes from 0x217 bytes past its own start readable,
- * writable and executable; the modern build's memory_set_region_execute_read_write
- * does nothing. */
+ * fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY) when one fails:
+ * 20000 spans, 20000 span pointers, 5000 faces, twice g_vertex_remap_capacity
+ * projected vertices, twice g_scene_edge_flags_capacity edges,
+ * g_vertex_remap_capacity remap entries, g_scene_edge_flags_capacity edge
+ * flags, 768 edge pointers, 768 row heads, 0x25800 bytes of light samples and
+ * 500 queued meshes. Sets those capacities and the sw3d light-sample block, 16
+ * pixels. It then passes 0x80000 bytes from 0x217 bytes past its own start to
+ * memory_set_region_execute_read_write, which does nothing. */
 // FUNCTION: XVT 0x485CD0
 void render_scene_allocate_buffers(void)
 {
@@ -3336,17 +3333,17 @@ void render_scene_allocate_buffers(void)
 	memory_set_region_execute_read_write(code_address[0], 0x80000);
 }
 
-/* Starts a pass of scene drawing. The original build saves the x87 control word
- * in g_sw3d_initialize_scene_saved_fpu_control and sets extended precision; the
- * modern build clears the 0x300 bits of g_sw3d_fpu_control_word_scratch. Gives
- * g_sw3d_cockpit_mask_sentinel_face a scaled_inverse_depth and a 1-over-depth plane
- * of 1e32, and locks every scene buffer. With reset_scene_state nonzero it
- * empties the face list, span pointers, light-sample rows and mesh queue, and
- * rebuilds g_scanline_span_heads from the viewport span mask: one span with the
- * sentinel face for each run the mask marks. With 0 it starts the new pass at
- * g_vis_face_count. Then sets g_light_sample_slot_stride, adds g_flight_vp_height to
- * g_sw3d_light_sample_cache_scene_stamp_base, sets g_inv_proj_scale, and in the
- * hardware path calls render_scene_init_hardware_frame. */
+/* Starts a pass of scene drawing. It clears the 0x300 bits of
+ * g_sw3d_fpu_control_word_scratch. Gives g_sw3d_cockpit_mask_sentinel_face a
+ * scaled_inverse_depth and a 1-over-depth plane of 1e32, and locks every scene
+ * buffer. With reset_scene_state nonzero it empties the face list, span
+ * pointers, light-sample rows and mesh queue, and rebuilds
+ * g_scanline_span_heads from the viewport span mask: one span with the sentinel
+ * face for each run the mask marks. With 0 it starts the new pass at
+ * g_vis_face_count. Then sets g_light_sample_slot_stride, adds
+ * g_flight_vp_height to g_sw3d_light_sample_cache_scene_stamp_base, sets
+ * g_inv_proj_scale, and in the hardware path calls
+ * render_scene_init_hardware_frame. */
 // FUNCTION: XVT 0x485F00
 void render_scene_initialize(int reset_scene_state)
 {

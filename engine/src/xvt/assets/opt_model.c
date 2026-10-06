@@ -48,20 +48,17 @@ const float g_sw3d_zero_float = 0.0f;
 // GLOBAL: XVT 0x5181CC
 const float g_sw3d_distant_depth = 100000.0f;
 /* 1 while the model walkers keep an OPT_NODEREF node's target in the node after
- * the first lookup: the original build in its pName, blanking the name, the
- * modern build through xvt_opt_resolve_cached. Nothing writes it, so it stays
- * 1. */
+ * the first lookup: through xvt_opt_resolve_cached. Nothing writes it, so it
+ * stays 1. */
 // GLOBAL: XVT 0x5270B0
 int g_cache_resolved_opt_node_refs = 1;
 /* 1 while the model being loaded came from a version 0 file, whose face records
  * carry no normal indices: 48 bytes each where version 1 has 64. Only
- * opt_model_load_file_to_handle writes it; the legacy converter reads it, and
- * opt_model_save_handle_to_file picks its version marker from it. */
+ * opt_model_load_file_to_handle writes it; the legacy converter reads it. */
 // GLOBAL: XVT 0x5272B0
 int g_opt_source_is_version0 = 0;
 /* 1 / n at index n, from 1 to 69, with 1.0 at index 0; read by the software
- * renderer, flight_starfield_render, render_scene_allocate_buffers and
- * opt_model_build_vertex_normals_from_faces. */
+ * renderer, flight_starfield_render and render_scene_allocate_buffers. */
 // GLOBAL: XVT 0x5270B8
 const float g_sw3d_span_length_reciprocal[70] = {
 	1.0f,	      1.0f,	    1.0f / 2.0f,  1.0f / 3.0f,	1.0f / 4.0f,
@@ -81,8 +78,8 @@ const float g_sw3d_span_length_reciprocal[70] = {
 };
 /* Per object type, the Memory handle of its flight resource, a runtime model
  * from opt_model_load_handle or a texture block; 0 for none.
- * fe_disk_io_load_resources fills it, fe_disk_io_free_flight_resources clears it,
- * model_preview_load_model keeps the preview model in slot 0, and the modern
+ * fe_disk_io_load_resources fills it, fe_disk_io_free_flight_resources clears
+ * it, model_preview_load_model keeps the preview model in slot 0, and
  * xvt_frontend_task_shutdown clears it. */
 // GLOBAL: XVT 0x9A7ED0
 uint16_t g_loaded_models[201] = {0};
@@ -102,8 +99,8 @@ static int g_opt_convert_tex_coord_search_cursor = 0;
  * it. */
 // GLOBAL: XVT 0x5272A8
 static uint16_t g_load_opt_buf_handle = 0;
-/* Bytes allocated for g_load_opt_buf_handle (the decoded size in the modern
- * build); written by the same two functions. */
+/* Bytes allocated for g_load_opt_buf_handle (the decoded size); written by the
+ * same two functions. */
 // GLOBAL: XVT 0x5272AC
 static int g_load_opt_buf_size = 0;
 /* Handle of the copy opt_model_convert_legacy_model_to_optimized converts from; it
@@ -174,19 +171,10 @@ static struct opt_node *g_opt_convert_face_texture_node = NULL;
 static struct opt_node *g_opt_convert_vertex_node = NULL;
 
 /* Loads a model file and returns the Memory handle of its runtime copy
- * (opt_model_create_runtime_handle), or 0. The modern build returns 0 for a NULL
- * name or one of 257 or more characters, and when opt_model_load_file_to_handle
- * fails; it registers the copy with xvt_render_assets_register_opt. The original
- * build loads the OPT file when it opens. When it does not, it opens the same
- * name with ".iv" in place of everything from the first '.', checks the
- * "#Inventor" header and its format word, imports an "ascii" file with
- * opt_model_load_inventor_ascii_to_handle (a "binary" one with
- * opt_model_load_inventor_binary_to_handle, which gives 0, and packing then locks
- * handle 0), packs it, saves the packed model under the OPT name and returns
- * its runtime copy. It returns 0 when the .iv file does not open or its header
- * is wrong; only a wrong format word closes the file first. Both builds pulse
- * the loading screen before and after building the runtime copy of an OPT
- * file. */
+ * (opt_model_create_runtime_handle), or 0. It returns 0 for a NULL name or one
+ * of 257 or more characters, and when opt_model_load_file_to_handle fails; it
+ * registers the copy with xvt_render_assets_register_opt. It pulses the loading
+ * screen before and after building the runtime copy of an OPT file. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x411E00
 uint16_t opt_model_load_handle(const char *model_filename)
@@ -209,10 +197,9 @@ uint16_t opt_model_load_handle(const char *model_filename)
 }
 
 /* Moves every pointer inside a packed model by the distance its block moved
- * since self_marker was recorded, and records the new address. The modern build
- * calls xvt_opt_relocate. The original build moves self_marker, the root table
- * and each root, then runs opt_model_adjust_optimized_node_pointers on each root.
- * Most callers call it only when self_marker is not the block's address. */
+ * since self_marker was recorded, and records the new address. It calls
+ * xvt_opt_relocate. Most callers call it only when self_marker is not the
+ * block's address. */
 // FUNCTION: XVT 0x471FF0
 void opt_model_adjust_optimized_poly_object_pointers(
 	struct optimized_poly_object *model)
@@ -220,23 +207,18 @@ void opt_model_adjust_optimized_poly_object_pointers(
 	xvt_opt_relocate(model);
 }
 
-/* Loads an OPT file into g_load_opt_buf_handle, converts a version 0 or 1 model to
- * version 2 with opt_model_convert_legacy_model_to_optimized, and returns that
- * handle; it is reused by the next load. Then it measures each root with
- * opt_model_measure_node_and_raise_capacities, which raises the renderer's capacity
- * counts, after setting g_cur_mesh_vertices, g_cur_mesh_tex_coords,
- * g_cur_vert_normals, g_model_node_walk_unused_scratch2 and g_cur_mesh_materials to
- * NULL and g_cur_vertex_count to 0. The file starts with a 4-byte word: a
- * positive one is the body size of version 0; -1 or -2 (versions 1 and 2) is
- * followed by the size. Sets g_opt_source_is_version0. The modern build decodes
- * the file with xvt_opt_load, keeps the result as g_load_opt_buf_handle in place of
- * the one before, and ends the program through xvt_storage_fatal when that
- * fails. The original build returns 0 when the file does not open and regrows
- * g_load_opt_buf_handle when the body is bigger; running out of memory ends the
- * program through fe_disk_io_fatal_error. For a version 0 or 1 file it also writes
- * the body as read to the name with its last character changed to '0' or '1',
- * and, when the original name is writable, writes the converted model over it
- * with the marker -1 (from version 0) or -2 (from version 1). */
+/* Loads an OPT file into g_load_opt_buf_handle, converts a version 0 or 1 model
+ * to version 2 with opt_model_convert_legacy_model_to_optimized, and returns
+ * that handle; it is reused by the next load. Then it measures each root with
+ * opt_model_measure_node_and_raise_capacities, which raises the renderer's
+ * capacity counts, after setting g_cur_mesh_vertices, g_cur_mesh_tex_coords,
+ * g_cur_vert_normals, g_model_node_walk_unused_scratch2 and
+ * g_cur_mesh_materials to NULL and g_cur_vertex_count to 0. The file starts
+ * with a 4-byte word: a positive one is the body size of version 0; -1 or -2
+ * (versions 1 and 2) is followed by the size. Sets g_opt_source_is_version0. It
+ * decodes the file with xvt_opt_load, keeps the result as g_load_opt_buf_handle
+ * in place of the one before, and ends the program through xvt_storage_fatal
+ * when that fails. */
 // FUNCTION: XVT 0x4742A0
 uint16_t opt_model_load_file_to_handle(char *filename)
 {
@@ -517,22 +499,22 @@ opt_model_find_earlier_shared_texture_data(const void *texture_data,
 /* Writes at dst the version 2 form of src_node and everything below it, and
  * returns the bytes written: 0 for a NULL node, and for a node the conversion
  * drops that has no children, whose slot in the parent's child table becomes
- * NULL. In the modern build every node starts aligned and the size is rounded
- * up.
+ * NULL. Every node starts aligned and the size is rounded up.
  *
  * While g_opt_convert_vertex_node is NULL, as it is at each root, a node with
  * children gets three new first children: an OPT_MESHVERTS, an OPT_TEXCOORDS
  * and an OPT_VERTNORMALS node holding each distinct vertex, texture coordinate
  * and vertex normal found below it. When the merged vertices' last two are not
  * the bounding box's minimum and maximum corners, those two corners are
- * appended. These nodes become g_opt_convert_vertex_node, g_opt_convert_tex_coord_node
- * and g_opt_convert_vertex_normal_node. An OPT_FACEGROUP in that state gets them
- * through a new OPT_GROUP above it. From then on the source's own vertex,
- * texture coordinate and normal nodes are dropped, and each face node takes,
- * through opt_model_append_converted_faces_for_current_mesh, the faces of itself and
- * of the face nodes after it under the same texture, within the same child of
- * the last OPT_FACEGROUP passed, renumbered into the merged lists. Face nodes
- * whose faces were taken this way (edge count -1) are dropped.
+ * appended. These nodes become g_opt_convert_vertex_node,
+ * g_opt_convert_tex_coord_node and g_opt_convert_vertex_normal_node. An
+ * OPT_FACEGROUP in that state gets them through a new OPT_GROUP above it. From
+ * then on the source's own vertex, texture coordinate and normal nodes are
+ * dropped, and each face node takes, through
+ * opt_model_append_converted_faces_for_current_mesh, the faces of itself and of
+ * the face nodes after it under the same texture, within the same child of the
+ * last OPT_FACEGROUP passed, renumbered into the merged lists. Face nodes whose
+ * faces were taken this way (edge count -1) are dropped.
  *
  * An OPT_FACEGROUP keeps its list of one float per child, padded with zeros or
  * cut to its child count. A texture with inline_palette_count 0 whose palette
@@ -543,9 +525,10 @@ opt_model_find_earlier_shared_texture_data(const void *texture_data,
  * payload, its 36 bytes per face of normal and gradients, and, while mesh_state
  * has no vertex normal list, g_cur_vertex_count vertex normals. A dropped node
  * that has children becomes an OPT_GROUP. Other nodes are copied with their
- * payloads. Writes g_cur_mesh_vertices, g_cur_vertex_count, g_cur_mesh_materials,
- * g_cur_vert_normals and g_cur_mesh_tex_coords as it passes those nodes, and
- * g_opt_convert_source_texture_node and g_opt_convert_source_mesh_node. */
+ * payloads. Writes g_cur_mesh_vertices, g_cur_vertex_count,
+ * g_cur_mesh_materials, g_cur_vert_normals and g_cur_mesh_tex_coords as it
+ * passes those nodes, and g_opt_convert_source_texture_node and
+ * g_opt_convert_source_mesh_node. */
 // FUNCTION: XVT 0x474960
 unsigned int opt_model_convert_legacy_node_to_optimized(
 	uint8_t *dst, struct opt_node *src_node,
@@ -1976,14 +1959,14 @@ void opt_model_append_converted_faces_for_current_mesh(
 	}
 }
 
-/* Builds a runtime copy of the packed model in source_handle and returns its new
- * Memory handle. It measures the copy with opt_model_build_runtime_node, allocates
- * it, builds it, then fixes its texture palette pointers with
+/* Builds a runtime copy of the packed model in source_handle and returns its
+ * new Memory handle. It measures the copy with opt_model_build_runtime_node,
+ * allocates it, builds it, then fixes its texture palette pointers with
  * opt_model_fixup_runtime_texture_pointers. Sets g_cur_mesh_vertices,
- * g_cur_mesh_tex_coords, g_cur_vert_normals, g_model_node_walk_unused_scratch2 and
- * g_cur_mesh_materials to NULL and g_cur_vertex_count to 0 first. A failed
- * allocation ends the program through fe_disk_io_fatal_error. The modern build
- * returns 0 for a source_handle of 0. */
+ * g_cur_mesh_tex_coords, g_cur_vert_normals, g_model_node_walk_unused_scratch2
+ * and g_cur_mesh_materials to NULL and g_cur_vertex_count to 0 first. A failed
+ * allocation ends the program through fe_disk_io_fatal_error. It returns 0 for
+ * a source_handle of 0. */
 // FUNCTION: XVT 0x4762F0
 uint16_t opt_model_create_runtime_handle(unsigned int source_handle)
 {
@@ -2541,25 +2524,25 @@ void opt_model_prepare_texture_palette(uint16_t *palette, int entry_count)
 
 /* Returns the bytes src_node and everything below it take in a runtime model;
  * with dst NULL it only measures, otherwise it also writes them there. Copies
- * each node with its name, child table and payload. A texture whose texture_size
- * equals width times height, its data holding the mip levels, drops the top
- * level when g_texture_resolution_level is 0 and both sides are over 8. Any other
- * texture copies its top level and gets mip levels added until a side is 1.
- * With g_mipmapping_enabled set each new texel is the 2-by-2 average of the
- * colors 8192 bytes into the palette, matched back to the nearest of the 256
- * there; otherwise the levels' bytes are left unwritten. Palettes are converted
- * for the display: on an 8-bit display the 4096 RGB565 colors map through
- * g_active_rgb565_to_palette_index_lut to 4096 bytes, and with
- * g_generate_mission_palette set the texels feed
- * image_quantizer_classify_indexed_rgb565_image once per 256-color sub-palette; on
- * a 16-bit display the 8192 bytes are copied and repacked by
- * opt_model_prepare_texture_palette. A texture that uses another's palette copies
- * none. Raises g_scene_edge_flags_capacity and g_vertex_remap_capacity, sets
- * g_cur_vertex_count, g_cur_mesh_materials, g_cur_vert_normals and
+ * each node with its name, child table and payload. A texture whose
+ * texture_size equals width times height, its data holding the mip levels,
+ * drops the top level when g_texture_resolution_level is 0 and both sides are
+ * over 8. Any other texture copies its top level and gets mip levels added
+ * until a side is 1. With g_mipmapping_enabled set each new texel is the 2-by-2
+ * average of the colors 8192 bytes into the palette, matched back to the
+ * nearest of the 256 there; otherwise the levels' bytes are left unwritten.
+ * Palettes are converted for the display: on an 8-bit display the 4096 RGB565
+ * colors map through g_active_rgb565_to_palette_index_lut to 4096 bytes, and
+ * with g_generate_mission_palette set the texels feed
+ * image_quantizer_classify_indexed_rgb565_image once per 256-color sub-palette;
+ * on a 16-bit display the 8192 bytes are copied and repacked by
+ * opt_model_prepare_texture_palette. A texture that uses another's palette
+ * copies none. Raises g_scene_edge_flags_capacity and g_vertex_remap_capacity,
+ * sets g_cur_vertex_count, g_cur_mesh_materials, g_cur_vert_normals and
  * mesh_state->p_vert_normals at those nodes, and sets g_cur_mesh_vertices,
- * g_cur_mesh_tex_coords, g_cur_vert_normals, g_model_node_walk_unused_scratch2 and
- * g_cur_mesh_materials to NULL before a node's children. A child of size 0 leaves
- * a NULL slot. The modern build aligns each node. */
+ * g_cur_mesh_tex_coords, g_cur_vert_normals, g_model_node_walk_unused_scratch2
+ * and g_cur_mesh_materials to NULL before a node's children. A child of size 0
+ * leaves a NULL slot. It aligns each node. */
 // FUNCTION: XVT 0x476C20
 unsigned int opt_model_build_runtime_node(const struct opt_node *src_node,
 					  struct scene_mesh *mesh_state,

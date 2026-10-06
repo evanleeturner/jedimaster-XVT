@@ -15,9 +15,9 @@
 #include "xvt_runtime/log/log.h"
 
 /* The four file error messages, indexed by file_error_string_id: the first four
- * lines of the block string_table_load_game_strings reads after the damage system
- * names, before g_str_disk_io_messages. The original build's fe_disk_io_fatal_error
- * and fe_disk_io_show_fatal_error_message_and_wait_key show them. */
+ * lines of the block string_table_load_game_strings reads after the damage
+ * system names, before g_str_disk_io_messages. Nothing reads them; the 1997
+ * game's fe_disk_io_fatal_error showed them. */
 // GLOBAL: XVT 0xA60A40
 char *g_str_file_error_messages[4] = {0};
 
