@@ -1,9 +1,7 @@
 #include "xvt/net/net_session.h"
-#ifdef XVT_MODERN
 #include "xvt/net/frontend_net.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/network_session.h"
-#endif
 
 #include <string.h>
 
@@ -122,27 +120,15 @@ int net_session_init_game_session(const char *formal_name,
 				  int num_human_players, int in_progress_launch,
 				  const char *connection_address)
 {
-#ifndef XVT_MODERN
-	int out_payload_size;
-	int out_dpid;
-	int *packet;
-	int received_player_count;
-	int roster_index;
-	int *roster_entry;
-#endif
 
 	char dial_number[32] = "Dial a New Number.";
 	(void)dial_number;
 	(void)mp_game_name;
 	(void)connection_address;
-#ifdef XVT_MODERN
 	XVT_LOG_DEBUG(
 		"network.session_init host=%d players=%d in_progress=%d transport=%d",
 		is_host, num_human_players, in_progress_launch,
 		(int)network_type);
-#else
-	net_session_debug_trace("Init network");
-#endif
 	memset(&g_net_session, 0, sizeof(g_net_session));
 	g_net_session_flight_handshake_active = 1;
 	g_net_session_scratch_packet.trailing_state = 0;
@@ -295,9 +281,6 @@ int net_session_init_game_session(const char *formal_name,
 	g_net_session.player_count = 0;
 	g_net_session.local_is_host = is_host;
 	net_session_enumerate_players();
-#ifndef XVT_MODERN
-	received_player_count = num_human_players;
-#endif
 	g_net_session_flight_handshake_active = 1;
 	timeGetTime();
 	g_net_session_scratch_packet.packet_type = NET_PACKET_STARTUP_READY;
@@ -309,67 +292,11 @@ int net_session_init_game_session(const char *formal_name,
 				(unsigned int *)&g_net_session_scratch_packet,
 				4);
 
-#ifdef XVT_MODERN
 	XVT_LOG_INFO(
 		"network.flight_session_open mode=\"multi\" host=%d players=%d in_progress=%d",
 		is_host, num_human_players, in_progress_launch);
 	return xvt_flight_network_begin_roster_exchange(num_human_players,
 							in_progress_launch);
-#else
-	if (net_session_is_local_host() != 0 && num_human_players != 0) {
-		while (received_player_count != 0) {
-			packet = net_session_wait_for_game_packet(
-				&out_dpid, &out_payload_size, 60);
-			if (packet == NULL) {
-				g_net_session.dplay_interface = NULL;
-				return 0;
-			}
-			if (*packet == NET_PACKET_STARTUP_READY) {
-				--received_player_count;
-			}
-		}
-	}
-
-	if (net_session_is_local_host() != 0) {
-		if (num_human_players > 1) {
-			net_session_broadcast_player_roster(0);
-			g_net_session_scratch_packet.packet_type =
-				NET_PACKET_NOP;
-			net_session_send_packet(
-				0,
-				(unsigned int *)&g_net_session_scratch_packet,
-				4);
-		}
-	} else if (in_progress_launch == 0) {
-		do {
-			packet = net_session_wait_for_game_packet(
-				&out_dpid, &out_payload_size, 60);
-			if (packet == NULL) {
-				g_net_session.dplay_interface = NULL;
-				return 0;
-			}
-		} while (*packet != NET_PACKET_ROSTER_COUNT);
-
-		g_net_session.player_count = packet[1];
-		received_player_count = 0;
-		while (g_net_session.player_count > received_player_count) {
-			do {
-				packet = net_session_wait_for_game_packet(
-					&out_dpid, &out_payload_size, 60);
-				if (packet == NULL) {
-					return 0;
-				}
-			} while (*packet != NET_PACKET_ROSTER_ENTRY);
-			roster_entry = packet + 2;
-			roster_index = packet[1];
-			memcpy(&g_net_session.players[roster_index],
-			       roster_entry,
-			       sizeof(struct session_player_info));
-			++received_player_count;
-		}
-	}
-	return success;
-#endif
 }
 
 /* Hands this session's network state back to the frontend through
@@ -540,13 +467,8 @@ void net_session_pump_incoming_packets(void)
 	int duplicate;
 	for (;;) {
 		if ((int)g_net_recv_queue_count >= RECEIVE_QUEUE_LIMIT) {
-#ifdef XVT_MODERN
 			XVT_LOG_WARN("network.receive_queue_full queued=%u",
 				     g_net_recv_queue_count);
-#else
-			net_session_debug_trace(
-				"Ran out of receive buffers!!!");
-#endif
 			net_reliable_keep_only_host_received_packets();
 			return;
 		}
@@ -559,12 +481,8 @@ void net_session_pump_incoming_packets(void)
 			return;
 		}
 		if (from_id == 0) {
-#ifdef XVT_MODERN
 			XVT_LOG_DEBUG("network.system_message bytes=%u",
 				      wire_size);
-#else
-			net_session_debug_trace("(RSM)");
-#endif
 			if (wire_size >
 			    sizeof(g_net_session_recv_queue[0].payload)) {
 				XVT_LOG_WARN(
@@ -1603,11 +1521,7 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 				g_net_session_recv_queue
 					[g_net_recv_queue_write_index]
 						.packet_class = 2;
-#ifdef XVT_MODERN
 				if (peer_slot_available && peer_slot < 40) {
-#else
-				if (peer_slot_available < 40) {
-#endif
 					packet_header &= 0x7F00;
 					packet_header >>= 8;
 					g_net_session
@@ -1638,11 +1552,7 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 				g_net_session_recv_queue
 					[g_net_recv_queue_write_index]
 						.packet_class = 2;
-#ifdef XVT_MODERN
 				if (peer_slot_available && peer_slot < 40) {
-#else
-				if (peer_slot_available < 40) {
-#endif
 					packet_header &= 0x7F00;
 					packet_header >>= 8;
 					g_net_session
@@ -1657,11 +1567,7 @@ int net_session_send_packet(int direct_play_id, unsigned int *payload,
 				g_net_session_recv_queue
 					[g_net_recv_queue_write_index]
 						.packet_class = 1;
-#ifdef XVT_MODERN
 				if (peer_slot_available && peer_slot < 40) {
-#else
-				if (peer_slot_available < 40) {
-#endif
 					packet_header &= 0x7F00;
 					packet_header >>= 8;
 					g_net_session
@@ -2006,11 +1912,7 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 				g_net_session_scratch_packet.payload_dwords[0] =
 					mission_get_elapsed_clock_seconds();
 				g_net_session_scratch_packet.payload_dwords[1] =
-#ifdef XVT_MODERN
 					FRONTEND_NET_PROTOCOL_VERSION;
-#else
-					101;
-#endif
 				g_net_session_scratch_packet.payload_dwords[2] =
 					0;
 				XVT_LOG_INFO(
@@ -2108,12 +2010,10 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 		return result;
 
 	case DPSYS_DESTROYPLAYERORGROUP:
-#ifdef XVT_MODERN
 		if (packet[1] == DPPLAYERTYPE_PLAYER &&
 		    packet[2] == g_net_session.host_dplay_id) {
 			xvt_network_session_host_lost();
 		}
-#endif
 		result = net_session_is_local_host();
 		if (result == 0) {
 			return result;
@@ -2404,7 +2304,6 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 				    (int)((const struct net_player_name_message
 						   *)packet)
 					    ->header.dpId) {
-#ifdef XVT_MODERN
 					if (!xvt_network_session_copy_player_names(
 						    (const struct
 						     net_player_name_message *)
@@ -2429,25 +2328,6 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 							player_index);
 						return 0;
 					}
-#else
-					strcpy(g_net_session
-						       .players[player_index]
-						       .player_name,
-					       ((const struct
-						 net_player_name_message *)
-							packet)
-						       ->names);
-					strcpy(g_net_session
-						       .players[player_index]
-						       .long_name,
-					       &((const struct
-						  net_player_name_message *)
-							 packet)
-							->names[strlen(g_net_session
-									       .players[player_index]
-									       .player_name) +
-								1]);
-#endif
 					g_net_session.players[player_index]
 						.player_name[12] = '\0';
 					g_net_session.players[player_index]
@@ -2686,19 +2566,13 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 				}
 			}
 		}
-#ifdef XVT_MODERN
 		else {
 			expected_sequence = 0;
 			next_sequence = 0;
 		}
-#endif
 
 		payload = g_net_session_recv_queue[queue_index].payload;
-#ifdef XVT_MODERN
 		memcpy(&payload_type, payload, sizeof(payload_type));
-#else
-		payload_type = *(int *)payload;
-#endif
 		delta = sequence - expected_sequence;
 		if (peer_index >= g_net_session.reliable_peer_slot_count ||
 		    (delta >= -28 && (delta < 0 || delta >= 100))) {
@@ -2960,14 +2834,11 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 									   : 1);
 						if (payload_type ==
 							    NET_PACKET_WORLD_MESSAGE
-#ifdef XVT_MODERN
 						    && channels.want_channel_a
-#endif
 						) {
 							retry_packet
 								.packet_type =
 								NET_PACKET_WORLD_NACK;
-#ifdef XVT_MODERN
 							memcpy(&retry_packet.payload_dwords
 									[0],
 							       payload + 4,
@@ -2981,15 +2852,6 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 									 [0] &
 								 0x7fffffff) -
 								missing_tick_offset;
-#else
-							retry_packet
-								.payload_dwords
-									[0] =
-								(*(int *)(payload +
-									  4) &
-								 0x7fffffff) -
-								missing_tick_offset;
-#endif
 							retry_packet
 								.payload_dwords
 									[1] =
@@ -3077,7 +2939,6 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 								    [queue_index]
 									    .last_nack_ms >
 						    timeout) {
-#ifdef XVT_MODERN
 							XVT_LOG_DEBUG(
 								"network.nack_timeout retries=%d peer=%u channel=%d missing=%d waited=%u timeout=%u",
 								g_net_session_recv_queue
@@ -3095,15 +2956,10 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 										   [queue_index]
 											   .last_nack_ms),
 								timeout);
-#else
-							net_session_debug_trace(
-								"(RTO) ");
-#endif
 							if (g_net_session_recv_queue
 								    [queue_index]
 									    .nack_retry_count >
 							    retry_limit) {
-#ifdef XVT_MODERN
 								XVT_LOG_WARN(
 									"network.nack_gave_up retries=%d peer=%u channel=%d missing=%d limit=%u",
 									g_net_session_recv_queue
@@ -3117,10 +2973,6 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 										: 1,
 									remote_sequence,
 									retry_limit);
-#else
-								net_session_debug_trace(
-									"(TMR) ");
-#endif
 								g_net_session
 									.reliable_peer_slots
 										[peer_index]
@@ -3298,15 +3150,12 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 											   : 1);
 								if (payload_type ==
 									    NET_PACKET_WORLD_MESSAGE
-#ifdef XVT_MODERN
 								    &&
 								    channels.want_channel_a
-#endif
 								) {
 									retry_packet
 										.packet_type =
 										NET_PACKET_WORLD_NACK;
-#ifdef XVT_MODERN
 									memcpy(&retry_packet
 											.payload_dwords
 												[0],
@@ -3323,15 +3172,6 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 												 [0] &
 										 0x7fffffff) -
 										missing_tick_offset;
-#else
-									retry_packet
-										.payload_dwords
-											[0] =
-										(*(int *)(payload +
-											  4) &
-										 0x7fffffff) -
-										missing_tick_offset;
-#endif
 									retry_packet
 										.payload_dwords
 											[1] =
@@ -3501,11 +3341,9 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 						}
 					}
 				}
-#ifdef XVT_MODERN
 				else {
 					expected_sequence = 0;
 				}
-#endif
 				delta = sequence - expected_sequence;
 				if (peer_index >=
 					    g_net_session
@@ -3538,7 +3376,6 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 					--full_remaining;
 					continue;
 				} else {
-#ifdef XVT_MODERN
 					XVT_LOG_WARN(
 						"network.queue_full_gap_skipped from=%u peer=%u channel=%d sequence=%d expected=%d retries=%d queued=%u",
 						(unsigned)g_net_session_recv_queue
@@ -3553,9 +3390,6 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 							[full_queue_index]
 								.nack_retry_count,
 						g_net_recv_queue_count);
-#else
-					net_session_debug_trace("(NMR) ");
-#endif
 					if (channels.want_channel_a) {
 						g_net_session
 							.reliable_peer_slots
@@ -3701,31 +3535,6 @@ int net_session_send_compact_game_packet(int direct_play_id,
 	return send_result == 0;
 }
 
-#ifndef XVT_MODERN
-/* Polls net_session_receive_game_packet until a packet arrives or timeout_seconds
- * pass, without sleeping between polls; returns the packet with its sender and
- * size, or NULL on timeout. Only the original build calls this. */
-// FUNCTION: XVT 0x46F5E0
-int *net_session_wait_for_game_packet(int *out_dpid, int *out_payload_size,
-				      int timeout_seconds)
-{
-	uint32_t timeout_milliseconds = (uint32_t)(timeout_seconds * 1000);
-	uint32_t start_time = timeGetTime();
-	int sender_dpid;
-	int payload_size;
-	while (timeGetTime() - start_time <= timeout_milliseconds) {
-		int *packet = net_session_receive_game_packet(&sender_dpid,
-							      &payload_size);
-		if (packet != NULL) {
-			int copied_payload_size = payload_size;
-			*out_dpid = sender_dpid;
-			*out_payload_size = copied_payload_size;
-			return packet;
-		}
-	}
-	return NULL;
-}
-#endif
 
 /* Returns the roster slot whose DirectPlay id is dpid, or 8 when none is. */
 // FUNCTION: XVT 0x46F660
@@ -3828,11 +3637,9 @@ char *net_session_get_player_name(int player_slot)
 			++roster_index;
 		} while (roster_index < g_net_session.player_count);
 	}
-#ifdef XVT_MODERN
 	XVT_LOG_DEBUG("network.player_name_missing slot=%d players=%d",
 		      player_slot, g_net_session.player_count);
 	return NULL;
-#endif
 }
 
 /* Returns the first queued player entry, or NULL when the queue is empty.
@@ -3845,9 +3652,6 @@ struct session_player_info *net_session_peek_queued_player_info(void)
 		       : 0;
 }
 
-#ifndef XVT_MODERN
-#pragma function(memcpy)
-#endif
 /* Takes 1 off g_net_session.player_info_queue_count and copies the queue up over
  * its first entry, but copies only count minus 1 bytes, not entries, so the
  * queue is not moved up. Nothing calls this. */
@@ -3861,9 +3665,6 @@ void net_session_discard_first_queued_player_info(void)
 		g_net_session.player_info_queue_count--;
 	}
 }
-#ifndef XVT_MODERN
-#pragma intrinsic(memcpy)
-#endif
 
 /* Returns how many roster slots from slot 0 are active before the first
  * inactive one. Nothing calls this. */
@@ -3901,58 +3702,6 @@ void net_session_add_player_to_roster_slot(
 	g_net_session.player_count++;
 }
 
-#ifndef XVT_MODERN
-/* Sends to_player_id (0 for all players) a ROSTER_COUNT, then one ROSTER_ENTRY
- * per roster entry with its index. When sending to all, it waits after each
- * send until a packet of that type arrives, which its own queued copy
- * satisfies, and returns 0 when a 60 s wait sees none; else returns 1. Writes
- * g_net_session_scratch_packet. Only the original build calls this. */
-// FUNCTION: XVT 0x46F840
-int net_session_broadcast_player_roster(int to_player_id)
-{
-	g_net_session_scratch_packet.packet_type = NET_PACKET_ROSTER_COUNT;
-	g_net_session_scratch_packet.payload_dwords[0] =
-		g_net_session.player_count;
-	net_session_send_packet(
-		to_player_id, (unsigned int *)&g_net_session_scratch_packet, 8);
-
-	int out_dpid;
-	int out_payload_size;
-	int *packet;
-	if (to_player_id == 0) {
-		do {
-			packet = net_session_wait_for_game_packet(
-				&out_dpid, &out_payload_size, 60);
-			if (packet == NULL) {
-				return 0;
-			}
-		} while (*packet != NET_PACKET_ROSTER_COUNT);
-	}
-
-	for (int player_index = 0; player_index < g_net_session.player_count;
-	     ++player_index) {
-		g_net_session_scratch_packet.packet_type =
-			NET_PACKET_ROSTER_ENTRY;
-		g_net_session_scratch_packet.payload_dwords[0] = player_index;
-		memcpy(&g_net_session_scratch_packet.payload_dwords[1],
-		       &g_net_session.players[player_index],
-		       sizeof(struct session_player_info));
-		net_session_send_packet(
-			to_player_id,
-			(unsigned int *)&g_net_session_scratch_packet, 48);
-		if (to_player_id == 0) {
-			do {
-				packet = net_session_wait_for_game_packet(
-					&out_dpid, &out_payload_size, 60);
-				if (packet == NULL) {
-					return 0;
-				}
-			} while (*packet != NET_PACKET_ROSTER_ENTRY);
-		}
-	}
-	return 1;
-}
-#endif
 
 /* Returns g_net_session.player_info_queue_count. Nothing calls this. */
 // FUNCTION: XVT 0x46F9D0
@@ -4083,7 +3832,6 @@ int net_session_send_reliable_keepalives(void)
 								[peer_slot]
 							.last_activity_ms =
 							current_time;
-#ifdef XVT_MODERN
 						XVT_LOG_DEBUG(
 							"network.keepalive_sent peer=%u broadcast=%d group=%d direct=%d",
 							peer_slot,
@@ -4099,10 +3847,6 @@ int net_session_send_reliable_keepalives(void)
 								.reliable_peer_slots
 									[peer_slot]
 								.recv_seq_default);
-#else
-						net_session_debug_trace(
-							"(Sending RRA) ");
-#endif
 						g_net_session_scratch_packet
 							.packet_type =
 							NET_PACKET_KEEPALIVE;

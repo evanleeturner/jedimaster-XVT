@@ -373,11 +373,9 @@ int net_reliable_get_peer_packet_drop_count_by_dpid(int direct_play_id)
 			slot++;
 		} while (slot < g_net_session.reliable_peer_slot_count);
 	}
-#ifdef XVT_MODERN
 	XVT_LOG_WARN("network.drop_count_unknown_peer peers=%u",
 		     g_net_session.reliable_peer_slot_count);
 	return -1;
-#endif
 }
 
 #if defined(_MSC_VER) && _MSC_VER <= 1100

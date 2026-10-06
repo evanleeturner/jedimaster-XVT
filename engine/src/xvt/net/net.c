@@ -1,7 +1,5 @@
 #include "xvt/net/net.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/network_session.h"
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,52 +18,6 @@
 #include "xvt/util/win32.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifndef XVT_MODERN
-__declspec(dllimport) int __stdcall
-RegOpenKeyExA(uintptr_t key, const char *sub_key, unsigned int options,
-	      unsigned int access, void **result);
-__declspec(dllimport) int __stdcall
-RegQueryValueExA(void *key, const char *value_name, unsigned int *reserved,
-		 unsigned int *type, void *data, unsigned int *data_size);
-__declspec(dllimport) int __stdcall
-RegSetValueExA(void *key, const char *value_name, unsigned int reserved,
-	       unsigned int type, const void *data, unsigned int data_size);
-__declspec(dllimport) int __stdcall RegCloseKey(void *key);
-__declspec(dllimport) void *__stdcall GlobalAlloc(unsigned int flags,
-						  size_t size);
-__declspec(dllimport) void *__stdcall GlobalLock(void *memory_handle);
-__declspec(dllimport) void *__stdcall GlobalHandle(const void *memory);
-__declspec(dllimport) int __stdcall GlobalUnlock(void *memory_handle);
-__declspec(dllimport) void *__stdcall GlobalFree(void *memory_handle);
-__declspec(dllimport) void __stdcall ExitProcess(unsigned int exit_code);
-__declspec(dllimport) void *__stdcall GetCurrentProcess(void);
-__declspec(dllimport) int __stdcall SetWindowTextA(void *window,
-						   const char *text);
-__declspec(dllimport) int __stdcall TerminateProcess(void *process,
-						     unsigned int exit_code);
-HRESULT __stdcall DirectPlayCreate(const GUID *service_provider_guid,
-				   IDirectPlay **out_direct_play,
-				   void *outer_unknown);
-HRESULT __stdcall DirectPlayLobbyCreateA(const GUID *lobby_provider_guid,
-					 IDirectPlayLobbyA **out_lobby,
-					 void *outer_unknown, void *data,
-					 uint32_t data_size);
-
-enum {
-	NET_REGISTRY_ALL_ACCESS = 0xF003F,
-	NET_REGISTRY_BINARY = 3,
-};
-
-/* The EnableAutodial value, up to 5 bytes, that
- * net_disable_auto_dial_registry_setting reads from the Internet Settings
- * registry key and net_restore_auto_dial_registry_setting writes back. */
-// GLOBAL: XVT 0x665018
-static uint8_t g_net_saved_enable_auto_dial_value[5] = {0};
-/* 1 while net_disable_auto_dial_registry_setting has turned autodial off and
- * net_restore_auto_dial_registry_setting has not yet put the saved value back. */
-// GLOBAL: XVT 0x665418
-static int g_net_auto_dial_registry_changed = 0;
-#endif
 
 /* Transport of the open lobby session. Written by net_start_network_session on
  * success, by xvt_network_session_update (TCP/IP) in the modern build, and
@@ -107,17 +59,6 @@ struct net_direct_play_sequenced_packet {
 typedef char xvt_size_net_direct_play_sequenced_packet
 	[(sizeof(struct net_direct_play_sequenced_packet) == 1024) ? 1 : -1];
 
-#ifndef XVT_MODERN
-/* Fixed instance GUID that net_open_direct_play_session puts in the session
- * description it hands DirectPlay's lobby for a modem or TCP/IP game. */
-// GLOBAL: XVT 0x518290
-const GUID g_net_lobby_session_instance_guid = {
-	0x09438C20,
-	0xE01F,
-	0x11CF,
-	{0x86, 0x81, 0x11, 0xAA, 0x15, 0x3D, 0x4E, 0x58},
-};
-#endif
 /* Service provider GUID the game passes to DirectPlay for an IPX game. */
 // GLOBAL: XVT 0x5182A0
 static const GUID g_net_direct_play_ipx_service_provider_guid = {
@@ -161,33 +102,6 @@ const GUID IID_IDirectPlay2A = {
 	0x11CF,
 	{0x96, 0x0C, 0x00, 0x80, 0xC7, 0x53, 0x4E, 0x82},
 };
-#ifndef XVT_MODERN
-/* Address type net_open_direct_play_session gives a serial game's COM port
- * settings. */
-// GLOBAL: XVT 0x518F00
-const GUID g_net_direct_play_com_port_address_type_guid = {
-	0xF2F0CE00,
-	0xE0AF,
-	0x11CF,
-	{0x9C, 0x4E, 0x00, 0xA0, 0xC9, 0x05, 0x42, 0x5E},
-};
-/* Address type net_open_direct_play_session gives a modem game's address. */
-// GLOBAL: XVT 0x518F10
-const GUID g_net_direct_play_phone_address_type_guid = {
-	0x78EC89A0,
-	0xE0AF,
-	0x11CF,
-	{0x9C, 0x4E, 0x00, 0xA0, 0xC9, 0x05, 0x42, 0x5E},
-};
-/* Address type net_open_direct_play_session gives a TCP/IP game's address. */
-// GLOBAL: XVT 0x518F20
-const GUID g_net_direct_play_inet_address_type_guid = {
-	0xC4A54DA0,
-	0xE0AF,
-	0x11CF,
-	{0x9C, 0x4E, 0x00, 0xA0, 0xC9, 0x05, 0x42, 0x5E},
-};
-#endif
 /* Copy of the provider GUID that net_get_direct_play_service_provider_guid last
  * looked up; that function returns this copy's address. */
 // GLOBAL: XVT 0x665040
@@ -213,635 +127,6 @@ int g_net_enum_session_count = 0;
 // GLOBAL: XVT 0x665414
 int g_net_enum_session_capacity = 0;
 
-#ifndef XVT_MODERN
-/* Opens a lobby session. It first resets the lobby's reliable layer in
- * g_front_state (sequence counters, trailers, the 40 peer slots, sent history,
- * host and group ids), clears g_net_player_connection_stats and flips DirectDraw
- * to the GDI surface, then returns 0 at once when a DirectPlay interface
- * already exists. IPX and serial create DirectPlay for the transport's
- * provider, then host (is_host 1) or join, by instance GUID or else by name,
- * a session named session_name, "<name>'s Game." when that is empty, or
- * "Direct serial game." for serial. Modem and TCP/IP go through
- * net_open_direct_play_session with the session name "Dial a New Number."
- * whatever session_name holds. It then creates the local player; a host also
- * creates the group, which takes the first peer slot. It refreshes the
- * roster and empties the receive queue. With wait_for_player_count above 0 it
- * pumps packets until that many players are in, with no time limit, and sets
- * no host id. Otherwise a host takes its own id, and a joiner waits for the
- * host's NET_PACKET_SEQUENCE_STATUS (5 seconds per wait, any other packet
- * starting a new wait), takes the host's id and the peer slot table from it,
- * keeping its own one-player state with the host, and answers with a
- * NET_PACKET_KEEPALIVE_ACK that echoes the host's time stamp. The packet's
- * peer count is not checked against the 40 slots. Returns 1 and sets
- * g_net_active_transport_type on success, or 0 on any failure, after releasing
- * what it opened. Autodial is off for the call and the back buffer unlocked;
- * both are restored on every return. Only the original build calls this. */
-// FUNCTION: XVT 0x4CCF90
-int net_start_network_session(int app_guid_data1, int app_guid_data2,
-			      int app_guid_data3, int app_guid_data4,
-			      const char *local_player_info,
-			      const char *local_player_name, int is_host,
-			      const char *session_name,
-			      network_transport_type network_type,
-			      int wait_for_player_count, int unused_a11,
-			      const char *connection_address,
-			      const GUID *join_session_instance_guid)
-{
-	enum {
-		NET_RELIABLE_PEER_CAPACITY =
-			sizeof(g_front_state.net_runtime_reliable_peer_slots) /
-			sizeof(g_front_state
-				       .net_runtime_reliable_peer_slots[0]),
-		NET_RELIABLE_SEQUENCE_INITIAL = 127,
-		NET_JOIN_TIMEOUT_SECONDS = 5,
-		NET_PLAYER_NAME_TERMINATOR_INDEX = 15,
-		NET_SESSION_NAME_TERMINATOR_INDEX = 31,
-		NET_JOIN_SEQUENCE_RECORD_SIZE = 8,
-		NET_JOIN_SEQUENCE_RECORD_OFFSET = 16,
-		NET_JOIN_RESPONSE_SIZE = 20,
-	};
-
-	struct {
-		int words[10];
-		uint32_t received_size;
-	} packet_workspace;
-
-	(void)unused_a11;
-
-	int back_buffer_locked = g_front_state.back_buffer_locked;
-	frontend_display_unlock_back_buffer();
-	net_disable_auto_dial_registry_setting();
-	g_front_state.net_runtime_sent_history_write_index = 0;
-	g_front_state.net_runtime_broadcast_seq_counter = 0;
-	g_front_state.net_runtime_broadcast_pending_payload.piggyback_empty = 1;
-	g_front_state.net_runtime_broadcast_pending_payload.payload[0] =
-		NET_PACKET_NOP;
-	g_front_state.net_runtime_broadcast_pending_payload.payload_length = 1;
-	g_front_state.net_runtime_group_seq_counter = 0;
-	g_front_state.net_runtime_group_pending_payload.piggyback_empty = 1;
-	g_front_state.net_runtime_group_pending_payload.payload[0] =
-		NET_PACKET_NOP;
-	g_front_state.net_runtime_group_pending_payload.payload_length = 1;
-	g_front_state.net_reliable_peer_slot_count = 0;
-	g_front_state.net_reliable_retry_long_timeout_mode = 0;
-	g_front_state.net_group_dplay_id = 0;
-	g_front_state.net_host_player_id = 0;
-	g_front_state.net_flight_sent_world_message_history = NULL;
-	g_front_state.net_flight_sent_world_message_write_index = 0;
-	for (int peer_index = 0; peer_index < NET_RELIABLE_PEER_CAPACITY;
-	     ++peer_index) {
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.last_delivered_seq_default =
-			NET_RELIABLE_SEQUENCE_INITIAL;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.last_delivered_seq_channel_a =
-			NET_RELIABLE_SEQUENCE_INITIAL;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.last_delivered_seq_channel_b =
-			NET_RELIABLE_SEQUENCE_INITIAL;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.recv_seq_default = NET_RELIABLE_SEQUENCE_INITIAL;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.recv_seq_channel_a = NET_RELIABLE_SEQUENCE_INITIAL;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.recv_seq_channel_b = NET_RELIABLE_SEQUENCE_INITIAL;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.send_seq = 0;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.direct_play_id = 0;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.last_piggyback_type = NET_PACKET_NOP;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.piggyback_length = 1;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.last_activity_ms = 0;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.last_heard_ms = 0;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.packet_count = 0;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.packet_drop_count = 0;
-		g_front_state.net_runtime_reliable_peer_slots[peer_index]
-			.packet_retry_count = 0;
-	}
-	memset(g_front_state.net_runtime_sent_history, 0,
-	       sizeof(g_front_state.net_runtime_sent_history));
-	memset(g_net_player_connection_stats, 0,
-	       sizeof(g_net_player_connection_stats));
-	g_front_state.direct_draw->lpVtbl->FlipToGDISurface(
-		g_front_state.direct_draw);
-
-	if (g_front_state.net_direct_play != NULL) {
-		if (back_buffer_locked != 0) {
-			g_draw_surface_ptr =
-				frontend_display_lock_back_buffer();
-		}
-		net_restore_auto_dial_registry_setting();
-		return 0;
-	}
-	network_transport_type selected_network_type = network_type;
-	switch (selected_network_type) {
-	case NET_TRANSPORT_IPX:
-		memcpy(&packet_workspace.words[6],
-		       &g_net_direct_play_ipx_service_provider_guid,
-		       sizeof(GUID));
-		break;
-	case NET_TRANSPORT_TCPIP:
-		memcpy(&packet_workspace.words[6],
-		       &g_net_direct_play_tcp_ip_service_provider_guid,
-		       sizeof(GUID));
-		break;
-	case NET_TRANSPORT_MODEM:
-		memcpy(&packet_workspace.words[6],
-		       &g_net_direct_play_modem_service_provider_guid,
-		       sizeof(GUID));
-		break;
-	case NET_TRANSPORT_SERIAL:
-		memcpy(&packet_workspace.words[6],
-		       &g_net_direct_play_serial_service_provider_guid,
-		       sizeof(GUID));
-		break;
-	}
-
-	HRESULT result;
-	char game_session_name[32];
-	char dial_number[32] = "Dial a New Number.";
-	char error_message[256];
-	const GUID *service_provider_guid;
-	if (selected_network_type != NET_TRANSPORT_MODEM &&
-	    selected_network_type != NET_TRANSPORT_TCPIP) {
-		service_provider_guid =
-			net_get_direct_play_service_provider_guid(
-				selected_network_type);
-		if (service_provider_guid == NULL) {
-			if (back_buffer_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			net_restore_auto_dial_registry_setting();
-			return 0;
-		}
-		if (DirectPlayCreate(service_provider_guid,
-				     &g_front_state.net_temp_direct_play,
-				     NULL) != 0) {
-			if (error_text_load_line(6, error_message) == 0) {
-				frontend_display_show_game_message_box(
-					"WARNING:  Connection failure!\n"
-					"\n"
-					"Make sure your Windows 95 network\n"
-					"settings are properly configured\n"
-					"for this type of network game.\n"
-					"\n"
-					"Press Enter to continue.");
-			} else {
-				frontend_display_show_game_message_box(
-					error_message);
-			}
-			if (back_buffer_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			net_restore_auto_dial_registry_setting();
-			return 0;
-		}
-		result = g_front_state.net_temp_direct_play->lpVtbl
-				 ->QueryInterface(
-					 g_front_state.net_temp_direct_play,
-					 &IID_IDirectPlay2A,
-					 (void **)&g_front_state
-						 .net_direct_play);
-		g_front_state.net_temp_direct_play->lpVtbl->Release(
-			g_front_state.net_temp_direct_play);
-		g_front_state.net_temp_direct_play = NULL;
-		if (result != 0) {
-			if (back_buffer_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			net_restore_auto_dial_registry_setting();
-			return 0;
-		}
-
-		strncpy(g_front_state.net_players[0].long_name,
-			local_player_info,
-			sizeof(g_front_state.net_players[0].long_name));
-		g_front_state.net_players[0]
-			.long_name[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
-		strncpy(g_front_state.net_players[0].player_name,
-			local_player_name,
-			sizeof(g_front_state.net_players[0].player_name));
-		g_front_state.net_players[0]
-			.player_name[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
-		if (selected_network_type == NET_TRANSPORT_MODEM) {
-			strcpy(game_session_name, dial_number);
-		} else if (selected_network_type == NET_TRANSPORT_SERIAL) {
-			char direct_serial_name[32] = "Direct serial game.";
-			strcpy(game_session_name, direct_serial_name);
-		} else if (session_name[0] == '\0') {
-			sprintf(game_session_name, "%s's Game.",
-				local_player_name);
-		} else {
-			strcpy(game_session_name, session_name);
-		}
-		strncpy(g_front_state.net_session_name, game_session_name,
-			sizeof(g_front_state.net_session_name));
-		g_front_state
-			.net_session_name[NET_SESSION_NAME_TERMINATOR_INDEX] =
-			'\0';
-		g_front_state.net_is_host = is_host;
-		g_front_state.net_app_guid = *(const GUID *)&app_guid_data1;
-		switch (is_host) {
-		case 0:
-			result = net_join_direct_play_session(
-				game_session_name, join_session_instance_guid);
-			break;
-		case 1:
-			result =
-				net_host_direct_play_session(game_session_name);
-			break;
-		default:
-			break;
-		}
-		if (result == 0) {
-			g_front_state.net_direct_play->lpVtbl->Release(
-				g_front_state.net_direct_play);
-			g_front_state.net_direct_play = NULL;
-			if (back_buffer_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			net_restore_auto_dial_registry_setting();
-			return 0;
-		}
-	} else {
-		service_provider_guid =
-			net_get_direct_play_service_provider_guid(
-				selected_network_type);
-		if (service_provider_guid == NULL) {
-			if (back_buffer_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			net_restore_auto_dial_registry_setting();
-			return 0;
-		}
-		if (DirectPlayCreate(service_provider_guid,
-				     &g_front_state.net_temp_direct_play,
-				     NULL) != 0) {
-			if (error_text_load_line(6, error_message) == 0) {
-				frontend_display_show_game_message_box(
-					"WARNING:  Connection failure!\n"
-					"\n"
-					"Make sure your Windows 95 network\n"
-					"settings are properly configured\n"
-					"for this type of network game.\n"
-					"\n"
-					"Press Enter to continue.");
-			} else {
-				frontend_display_show_game_message_box(
-					error_message);
-			}
-			if (back_buffer_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			net_restore_auto_dial_registry_setting();
-			return 0;
-		}
-		g_front_state.net_temp_direct_play->lpVtbl->Release(
-			g_front_state.net_temp_direct_play);
-		g_front_state.net_temp_direct_play = NULL;
-		g_front_state.net_is_host = is_host;
-		strncpy(g_front_state.net_players[0].long_name,
-			local_player_info,
-			sizeof(g_front_state.net_players[0].long_name));
-		g_front_state.net_players[0]
-			.long_name[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
-		strncpy(g_front_state.net_players[0].player_name,
-			local_player_name,
-			sizeof(g_front_state.net_players[0].player_name));
-		g_front_state.net_players[0]
-			.player_name[NET_PLAYER_NAME_TERMINATOR_INDEX] = '\0';
-		if (net_open_direct_play_session(
-			    *(const GUID *)&app_guid_data1, local_player_info,
-			    local_player_name, is_host, dial_number,
-			    selected_network_type, connection_address) == 0) {
-			if (back_buffer_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			net_restore_auto_dial_registry_setting();
-			return 0;
-		}
-	}
-
-	DPCAPS direct_play_caps;
-	memset(&direct_play_caps, 0, sizeof(direct_play_caps));
-	direct_play_caps.dwSize = sizeof(direct_play_caps);
-	g_front_state.net_direct_play->lpVtbl->GetCaps(
-		g_front_state.net_direct_play, &direct_play_caps, 0);
-	DPID direct_play_player = net_create_direct_play_player(
-		local_player_info, local_player_name);
-	if (direct_play_player == 0) {
-		g_front_state.net_direct_play->lpVtbl->Close(
-			g_front_state.net_direct_play);
-		g_front_state.net_direct_play->lpVtbl->Release(
-			g_front_state.net_direct_play);
-		g_front_state.net_direct_play = NULL;
-		if (g_front_state.net_direct_play_lobby != NULL) {
-			g_front_state.net_direct_play_lobby->lpVtbl->Release(
-				g_front_state.net_direct_play_lobby);
-			g_front_state.net_direct_play_lobby = NULL;
-		}
-		if (back_buffer_locked != 0) {
-			g_draw_surface_ptr =
-				frontend_display_lock_back_buffer();
-		}
-		net_restore_auto_dial_registry_setting();
-		return 0;
-	}
-	g_front_state.net_players[0].player_id = direct_play_player;
-	g_front_state.net_runtime_local_player = g_front_state.net_players[0];
-	if (is_host != 0) {
-		if (g_front_state.net_direct_play->lpVtbl->CreateGroup(
-			    g_front_state.net_direct_play,
-			    &g_front_state.net_group_dplay_id, NULL, NULL, 0,
-			    0) != 0) {
-			g_front_state.net_direct_play->lpVtbl->DestroyPlayer(
-				g_front_state.net_direct_play,
-				g_front_state.net_runtime_local_player
-					.player_id);
-			g_front_state.net_direct_play->lpVtbl->Close(
-				g_front_state.net_direct_play);
-			g_front_state.net_direct_play->lpVtbl->Release(
-				g_front_state.net_direct_play);
-			g_front_state.net_direct_play = NULL;
-			if (g_front_state.net_direct_play_lobby != NULL) {
-				g_front_state.net_direct_play_lobby->lpVtbl
-					->Release(
-						g_front_state
-							.net_direct_play_lobby);
-				g_front_state.net_direct_play_lobby = NULL;
-			}
-			if (back_buffer_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			net_restore_auto_dial_registry_setting();
-			return 0;
-		}
-		g_front_state.net_runtime_reliable_peer_slots[0]
-			.direct_play_id = g_front_state.net_group_dplay_id;
-		g_front_state.net_reliable_peer_slot_count = 1;
-		sprintf(game_session_name, "My id%u\n",
-			g_front_state.net_runtime_local_player.player_id);
-		sprintf(game_session_name, "Group id%u\n",
-			g_front_state.net_group_dplay_id);
-	}
-	g_front_state.net_player_count = 1;
-	net_refresh_player_roster();
-	g_front_state.net_runtime_recv_queue_write_index = 0;
-	g_front_state.net_runtime_recv_queue_read_index = 0;
-	g_front_state.net_runtime_recv_queue_count = 0;
-
-	if (wait_for_player_count > 0) {
-		while (net_get_player_count() < wait_for_player_count) {
-			net_pump_incoming_packets();
-		}
-	}
-	if (wait_for_player_count <= 0) {
-		if (is_host != 0) {
-			g_front_state.net_host_player_id =
-				g_front_state.net_runtime_local_player
-					.player_id;
-		} else {
-			DPID sender_id;
-			int *received_packet;
-			do {
-				received_packet = net_wait_for_app_packet(
-					&sender_id,
-					&packet_workspace.received_size,
-					NET_JOIN_TIMEOUT_SECONDS);
-				if (received_packet == NULL) {
-					g_front_state.net_direct_play->lpVtbl
-						->DestroyPlayer(
-							g_front_state
-								.net_direct_play,
-							g_front_state
-								.net_runtime_local_player
-								.player_id);
-					g_front_state.net_direct_play->lpVtbl
-						->Close(g_front_state
-								.net_direct_play);
-					g_front_state.net_direct_play->lpVtbl
-						->Release(
-							g_front_state
-								.net_direct_play);
-					g_front_state.net_direct_play = NULL;
-					if (g_front_state
-						    .net_direct_play_lobby !=
-					    NULL) {
-						g_front_state
-							.net_direct_play_lobby
-							->lpVtbl->Release(
-								g_front_state
-									.net_direct_play_lobby);
-						g_front_state
-							.net_direct_play_lobby =
-							NULL;
-					}
-					if (back_buffer_locked != 0) {
-						g_draw_surface_ptr =
-							frontend_display_lock_back_buffer();
-					}
-					net_restore_auto_dial_registry_setting();
-					return 0;
-				}
-			} while (received_packet[0] !=
-				 NET_PACKET_SEQUENCE_STATUS);
-
-			g_front_state.net_host_player_id = sender_id;
-			struct net_reliable_peer_slot saved_host_slot;
-			memset(&saved_host_slot, 0, sizeof(saved_host_slot));
-			uint32_t peer_slot_index;
-			for (peer_slot_index = 0;
-			     g_front_state.net_reliable_peer_slot_count >
-			     peer_slot_index;
-			     ++peer_slot_index) {
-				if (g_front_state
-					    .net_runtime_reliable_peer_slots
-						    [peer_slot_index]
-					    .direct_play_id ==
-				    g_front_state.net_host_player_id) {
-					memcpy(&saved_host_slot,
-					       &g_front_state
-							.net_runtime_reliable_peer_slots
-								[peer_slot_index],
-					       sizeof(saved_host_slot));
-					break;
-				}
-			}
-
-			g_front_state.net_reliable_peer_slot_count =
-				(uint32_t)received_packet[2];
-			/* From here result holds the host's time stamp in ms,
-			 * echoed back below in the keepalive ack. */
-			result = received_packet[3];
-			const uint8_t *peer_sequence_records =
-				(const uint8_t *)received_packet +
-				NET_JOIN_SEQUENCE_RECORD_OFFSET;
-			for (peer_slot_index = 0;
-			     g_front_state.net_reliable_peer_slot_count >
-			     peer_slot_index;
-			     ++peer_slot_index) {
-				int sequence_record_offset =
-					peer_slot_index *
-					NET_JOIN_SEQUENCE_RECORD_SIZE;
-				memcpy(&g_front_state
-						.net_runtime_reliable_peer_slots
-							[peer_slot_index]
-						.direct_play_id,
-				       &peer_sequence_records
-					       [sequence_record_offset],
-				       sizeof(g_front_state
-						      .net_runtime_reliable_peer_slots
-							      [peer_slot_index]
-						      .direct_play_id));
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.last_delivered_seq_channel_a =
-					peer_sequence_records
-						[sequence_record_offset + 4];
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.last_delivered_seq_channel_b =
-					peer_sequence_records
-						[sequence_record_offset + 5];
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.recv_seq_channel_a =
-					peer_sequence_records
-						[sequence_record_offset + 6];
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.recv_seq_channel_b =
-					peer_sequence_records
-						[sequence_record_offset + 7];
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.last_delivered_seq_default =
-					NET_RELIABLE_SEQUENCE_INITIAL;
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.recv_seq_default =
-					NET_RELIABLE_SEQUENCE_INITIAL;
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.send_seq = 0;
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.last_piggyback_type = NET_PACKET_NOP;
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.piggyback_length = 1;
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.last_activity_ms = GetTickCount();
-				g_front_state
-					.net_runtime_reliable_peer_slots
-						[peer_slot_index]
-					.last_heard_ms = GetTickCount();
-			}
-
-			if (saved_host_slot.direct_play_id != 0) {
-				for (peer_slot_index = 0;
-				     g_front_state
-					     .net_reliable_peer_slot_count >
-				     peer_slot_index;
-				     ++peer_slot_index) {
-					if (g_front_state
-						    .net_runtime_reliable_peer_slots
-							    [peer_slot_index]
-						    .direct_play_id ==
-					    g_front_state.net_host_player_id) {
-						g_front_state
-							.net_runtime_reliable_peer_slots
-								[peer_slot_index]
-							.last_delivered_seq_default =
-							saved_host_slot
-								.last_delivered_seq_default;
-						g_front_state
-							.net_runtime_reliable_peer_slots
-								[peer_slot_index]
-							.recv_seq_default =
-							saved_host_slot
-								.recv_seq_default;
-						g_front_state
-							.net_runtime_reliable_peer_slots
-								[peer_slot_index]
-							.send_seq =
-							saved_host_slot
-								.send_seq;
-						memcpy(&g_front_state
-								.net_runtime_reliable_peer_slots
-									[peer_slot_index]
-								.last_piggyback_type,
-						       &saved_host_slot
-								.last_piggyback_type,
-						       saved_host_slot
-							       .piggyback_length);
-						g_front_state
-							.net_runtime_reliable_peer_slots
-								[peer_slot_index]
-							.piggyback_length =
-							saved_host_slot
-								.piggyback_length;
-						g_front_state
-							.net_runtime_reliable_peer_slots
-								[peer_slot_index]
-							.last_activity_ms =
-							saved_host_slot
-								.last_activity_ms;
-						g_front_state
-							.net_runtime_reliable_peer_slots
-								[peer_slot_index]
-							.last_heard_ms =
-							saved_host_slot
-								.last_heard_ms;
-					}
-				}
-			}
-			packet_workspace.words[0] = NET_PACKET_KEEPALIVE_ACK;
-			memcpy(&packet_workspace.words[1], &result,
-			       sizeof(packet_workspace.words[1]));
-			memset(&packet_workspace.words[2], 0,
-			       NET_JOIN_RESPONSE_SIZE -
-				       2 * sizeof(packet_workspace.words[0]));
-			net_send_direct_play_packet(
-				g_front_state.net_host_player_id,
-				packet_workspace.words, NET_JOIN_RESPONSE_SIZE,
-				0);
-		}
-	}
-
-	if (back_buffer_locked != 0) {
-		g_draw_surface_ptr = frontend_display_lock_back_buffer();
-	}
-	net_restore_auto_dial_registry_setting();
-	g_net_active_transport_type = selected_network_type;
-	return 1;
-}
-#endif
 
 /* net_shutdown_direct_play_session_ex(1, 1): in the original build, with the
  * TCP/IP shutdown handshake and no relaunch when it fails. */
@@ -893,14 +178,9 @@ int net_shutdown_direct_play_session_ex(int suppress_restart,
 		NET_RELIABLE_SEQUENCE_INITIAL = 127
 	};
 
-#ifndef XVT_MODERN
-	uint32_t destroy_player_start_time;
-	void *current_process;
-#endif
 
 	int back_buffer_locked = g_front_state.back_buffer_locked;
 	frontend_display_unlock_back_buffer();
-#ifdef XVT_MODERN
 	xvt_network_session_on_close();
 	XVT_LOG_DEBUG(
 		"network.lobby_closing open=%d player=%u group=%u queued=%d peers=%u quit=%d handshake=%d",
@@ -910,64 +190,13 @@ int net_shutdown_direct_play_session_ex(int suppress_restart,
 		g_front_state.net_runtime_recv_queue_count,
 		(unsigned)g_front_state.net_reliable_peer_slot_count,
 		suppress_restart, wait_for_handshake_acks);
-#endif
 	if (g_front_state.net_direct_play != NULL) {
-#ifndef XVT_MODERN
-		if (g_net_active_transport_type == NET_TRANSPORT_TCPIP &&
-		    wait_for_handshake_acks != 0) {
-			if (net_wait_for_shutdown_handshake_acks() == 0) {
-				if (suppress_restart != 0) {
-					frontend_save_persistent_state();
-					frontend_display_shutdown(0);
-					cd_audio_close_device();
-					ExitProcess(0);
-				} else {
-					frontend_save_persistent_state();
-					frontend_display_shutdown(0);
-					cd_audio_close_device();
-					if (g_front_state.hWnd != NULL) {
-						SetWindowTextA(
-							g_front_state.hWnd,
-							"XvT - Exiting");
-					}
-					win32_create_process_from_command_line(
-						"z_xvt__.exe skipintro");
-					ExitProcess(0);
-				}
-			}
-		}
-#else
 		(void)suppress_restart;
 		(void)wait_for_handshake_acks;
-#endif
 		g_net_active_transport_type = NET_TRANSPORT_IPX;
-#ifndef XVT_MODERN
-		destroy_player_start_time = GetTickCount();
-#endif
 		g_front_state.net_direct_play->lpVtbl->DestroyPlayer(
 			g_front_state.net_direct_play,
 			g_front_state.net_runtime_local_player.player_id);
-#ifndef XVT_MODERN
-		if (GetTickCount() - destroy_player_start_time >
-		    NET_DESTROY_PLAYER_TIMEOUT_MS) {
-			if (suppress_restart == 0) {
-				frontend_dialog_show_network_abort_error(
-					frontend_string_get(
-						FRONTSTR_762_DIRECT_PLAY_ERROR_FAILED_TO_DISCONNECT),
-					frontend_string_get(
-						FRONTSTR_763_ATTEMPTING_TO_EXIT_TO_WINDOWS),
-					frontend_string_get(
-						FRONTSTR_764_YOUR_COMPUTER_MAY_STOP_RESPONDING),
-					frontend_string_get(
-						FRONTSTR_006_EXIT_TO_WINDOWS),
-					NULL);
-			}
-			frontend_sound_shutdown_direct_sound();
-			cd_audio_close_device();
-			current_process = GetCurrentProcess();
-			TerminateProcess(current_process, 0);
-		}
-#endif
 		if (g_front_state.net_group_dplay_id != 0) {
 			g_front_state.net_direct_play->lpVtbl->DestroyGroup(
 				g_front_state.net_direct_play,
@@ -1128,26 +357,6 @@ int AERON_DXAPI net_enum_players_callback(DPID player_id, uint32_t player_type,
 	return 1;
 }
 
-#ifndef XVT_MODERN
-/* Creates a DirectPlay session for up to 32 players under
- * g_front_state.net_app_guid with the given name. Returns 1 when Open succeeds,
- * else 0. Only the original build calls this. */
-// FUNCTION: XVT 0x4CDDC0
-int net_host_direct_play_session(const char *session_name)
-{
-	DPSESSIONDESC2 session_desc;
-
-	memset(&session_desc, 0, sizeof(session_desc));
-	session_desc.dwSize = sizeof(session_desc);
-	session_desc.dwFlags = 0x40;
-	session_desc.guidApplication = g_front_state.net_app_guid;
-	session_desc.dwMaxPlayers = 32;
-	session_desc.lpszSessionNameA = (char *)session_name;
-
-	return g_front_state.net_direct_play->lpVtbl->Open(
-		       g_front_state.net_direct_play, &session_desc, 2) == 0;
-}
-#endif
 
 /* Creates the local DirectPlay player with the given long and short names
  * and returns its id, or 0 on failure. The original build tries up to 5
@@ -1157,7 +366,6 @@ int net_host_direct_play_session(const char *session_name)
 int net_create_direct_play_player(const char *long_player_info,
 				  const char *short_player_name)
 {
-#ifdef XVT_MODERN
 	DPID player = 0;
 	DPNAME name = {sizeof(name), 0, (char *)short_player_name,
 		       (char *)long_player_info};
@@ -1169,110 +377,10 @@ int net_create_direct_play_player(const char *long_player_info,
 	return result == DPERR_PENDING ? XVT_NETWORK_PENDING
 	       : result == 0	       ? (int)player
 				       : 0;
-#else
-	int attempts_remaining = 5;
-	DPNAME player_name;
-	memset(&player_name, 0, sizeof(player_name));
-	player_name.lpszShortNameA = (char *)short_player_name;
-	player_name.lpszLongNameA = (char *)long_player_info;
-	player_name.dwSize = sizeof(player_name);
-	DPID player_id;
-	do {
-		if (g_front_state.net_direct_play->lpVtbl->CreatePlayer(
-			    g_front_state.net_direct_play, &player_id,
-			    &player_name, NULL, NULL, 0, 0) == 0) {
-			break;
-		}
-		--attempts_remaining;
-	} while (attempts_remaining != 0);
-	if (attempts_remaining == 0) {
-		return 0;
-	}
-	return player_id;
-#endif
 }
 
-#ifndef XVT_MODERN
-/* Joins the session with session_instance_guid or, when that is NULL, the one
- * net_find_session_by_name finds by name. Stores its GUID in
- * g_front_state.net_joined_session_guid and returns 1; returns 0 when no session
- * is found or Open fails. Only the original build calls this. */
-// FUNCTION: XVT 0x4CDEB0
-int net_join_direct_play_session(const char *session_name,
-				 const GUID *session_instance_guid)
-{
-	const GUID *resolved_session_guid = session_instance_guid;
-	if (resolved_session_guid == 0) {
-		resolved_session_guid = net_find_session_by_name(session_name);
-		if (resolved_session_guid == 0) {
-			return 0;
-		}
-	}
 
-	DPSESSIONDESC2 session_desc;
-	memset(&session_desc, 0, sizeof(session_desc));
-	session_desc.dwSize = sizeof(session_desc);
-	session_desc.dwFlags = 0x40;
-	session_desc.guidInstance = *resolved_session_guid;
-	if (g_front_state.net_direct_play->lpVtbl->Open(
-		    g_front_state.net_direct_play, &session_desc, 1) != 0) {
-		return 0;
-	}
 
-	g_front_state.net_joined_session_guid = *resolved_session_guid;
-	return 1;
-}
-#endif
-
-#ifndef XVT_MODERN
-/* Enumerates the application's sessions, letting
- * net_enum_sessions_match_name_callback record the one named session_name, and
- * returns &g_net_matched_session_instance_guid when EnumSessions succeeds, else
- * NULL. It does not check that a session matched: with no match it returns
- * whatever GUID the global last held. Only the original build calls this. */
-// FUNCTION: XVT 0x4CDF60
-const GUID *net_find_session_by_name(const char *session_name)
-{
-	DPSESSIONDESC2 session_desc;
-
-	memset(&session_desc, 0, sizeof(session_desc));
-	session_desc.dwSize = sizeof(session_desc);
-	session_desc.guidApplication = g_front_state.net_app_guid;
-
-	return g_front_state.net_direct_play->lpVtbl->EnumSessions(
-		       g_front_state.net_direct_play, &session_desc, 0,
-		       net_enum_sessions_match_name_callback,
-		       (void *)session_name, 1) == 0
-		       ? &g_net_matched_session_instance_guid
-		       : 0;
-}
-#endif
-
-#ifndef XVT_MODERN
-/* Session enumeration callback: copies the instance GUID of the session
- * named context into g_net_matched_session_instance_guid and returns 0 to stop.
- * Also stops on a timeout or a NULL description; otherwise returns 1 to go
- * on. Only the original build calls this. */
-// FUNCTION: XVT 0x4CDFD0
-int AERON_DXAPI net_enum_sessions_match_name_callback(
-	const DPSESSIONDESC2 *session_desc, uint32_t *timeout_ms,
-	uint32_t flags, void *context)
-{
-	(void)timeout_ms;
-
-	if (session_desc == 0 || (flags & 1) != 0) {
-		return 0;
-	}
-	if (strcmp(session_desc->lpszSessionNameA, (const char *)context) ==
-	    0) {
-		g_net_matched_session_instance_guid =
-			session_desc->guidInstance;
-		return 0;
-	}
-
-	return 1;
-}
-#endif
 
 /* Copies the DirectPlay service provider GUID for a transport into
  * g_net_direct_play_service_provider_guid_scratch and returns its address; returns
@@ -2032,19 +1140,11 @@ void net_pump_incoming_packets(void)
 						net_session_get_fixed_payload_size(
 							(int)packet_type);
 					if (payload_size == 0) {
-#ifdef XVT_MODERN
 						uint16_t encoded_size;
 						memcpy(&encoded_size,
 						       wire_packet.data + 1,
 						       sizeof(encoded_size));
 						payload_size = encoded_size;
-#else
-						payload_size = *(
-							const uint16_t
-								*)(wire_packet
-									   .data +
-								   1);
-#endif
 						retransmission_payload =
 							wire_packet.data + 1 +
 							sizeof(uint16_t);
@@ -3095,139 +2195,8 @@ int net_send_sequenced_direct_play_packet(int dest_player_id, int packet_class,
 	return send_result == 0;
 }
 
-#ifndef XVT_MODERN
-/* Lists into out_sessions, sorted by name, up to max_sessions DirectPlay
- * sessions of the application whose GUID the first four arguments make, and
- * returns how many. Without a DirectPlay interface it creates one for
- * network_type; it returns 0 when the provider is unknown, or after a warning
- * box when creation fails, and does not check that QueryInterface succeeded.
- * Afterwards it releases g_front_state.net_direct_play in every case, even one
- * it did not create. Writes g_net_enum_session_capacity and
- * g_net_enum_session_count. The back buffer is unlocked meanwhile and relocked
- * when it was locked. Only the original build calls this. */
-// FUNCTION: XVT 0x4CFC20
-int net_enumerate_app_sessions(unsigned int app_guid0, unsigned int app_guid1,
-			       unsigned int app_guid2, unsigned int app_guid3,
-			       struct net_session_enum_entry *out_sessions,
-			       int max_sessions,
-			       network_transport_type network_type)
-{
-	int was_back_buffer_locked = g_front_state.back_buffer_locked;
-	frontend_display_unlock_back_buffer();
-	if (g_front_state.net_direct_play == NULL) {
-		const GUID *service_provider_guid =
-			net_get_direct_play_service_provider_guid(network_type);
-		if (service_provider_guid == NULL) {
-			if (was_back_buffer_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			return 0;
-		}
-		if (DirectPlayCreate(service_provider_guid,
-				     &g_front_state.net_temp_direct_play,
-				     NULL) != 0) {
-			char error_message[256];
-			if (error_text_load_line(6, error_message) == 0) {
-				frontend_display_show_game_message_box(
-					"WARNING:  Connection failure!\n"
-					"\n"
-					"Make sure your Windows 95 network\n"
-					"settings are properly configured\n"
-					"for this type of network game.\n"
-					"\n"
-					"Press Enter to continue.");
-			} else {
-				frontend_display_show_game_message_box(
-					error_message);
-			}
-			if (was_back_buffer_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			return 0;
-		}
-		g_front_state.net_temp_direct_play->lpVtbl->QueryInterface(
-			g_front_state.net_temp_direct_play, &IID_IDirectPlay2A,
-			(void **)&g_front_state.net_direct_play);
-		g_front_state.net_temp_direct_play->lpVtbl->Release(
-			g_front_state.net_temp_direct_play);
-		g_front_state.net_temp_direct_play = NULL;
-	}
 
-	g_net_enum_session_capacity = max_sessions;
-	g_net_enum_session_count = 0;
-	DPSESSIONDESC2 session_desc;
-	memset(&session_desc, 0, sizeof(session_desc));
-	session_desc.dwSize = sizeof(session_desc);
-	session_desc.guidApplication = *(const GUID *)&app_guid0;
-	g_front_state.net_direct_play->lpVtbl->EnumSessions(
-		g_front_state.net_direct_play, &session_desc, 0,
-		net_enumerate_app_sessions_callback, out_sessions, 1);
-	g_front_state.net_direct_play->lpVtbl->Release(
-		g_front_state.net_direct_play);
-	g_front_state.net_direct_play = NULL;
-	if (was_back_buffer_locked != 0) {
-		g_draw_surface_ptr = frontend_display_lock_back_buffer();
-	}
-	qsort(out_sessions, g_net_enum_session_count, sizeof(*out_sessions),
-	      (int (*)(const void *,
-		       const void *))net_compare_session_enum_entries_by_name);
-	return g_net_enum_session_count;
-}
-#endif
 
-#ifndef XVT_MODERN
-/* Session enumeration callback: while g_net_enum_session_count is below
- * g_net_enum_session_capacity, copies the session's name, cut to 31
- * characters, and instance GUID into the next entry of the array in
- * userData, raises the count and returns 1 to go on. Returns 0 to stop when
- * the array is full, on a timeout or for a NULL description. Only the
- * original build calls this. */
-// FUNCTION: XVT 0x4CFDB0
-int AERON_DXAPI net_enumerate_app_sessions_callback(
-	const DPSESSIONDESC2 *session_desc, uint32_t *timeout_ms,
-	uint32_t flags, void *user_data)
-{
-	struct net_session_enum_entry *out_sessions = user_data;
-
-	(void)timeout_ms;
-
-	if (session_desc == NULL || (flags & 1) != 0) {
-		return 0;
-	}
-	if (g_net_enum_session_capacity > g_net_enum_session_count) {
-		strncpy(out_sessions[g_net_enum_session_count].session_name,
-			session_desc->lpszSessionNameA,
-			sizeof(out_sessions[g_net_enum_session_count]
-				       .session_name));
-		out_sessions[g_net_enum_session_count].session_name
-			[sizeof(out_sessions[g_net_enum_session_count]
-					.session_name) -
-			 1] = '\0';
-		memcpy(&out_sessions[g_net_enum_session_count].session_guid,
-		       &session_desc->guidInstance,
-		       sizeof(out_sessions[g_net_enum_session_count]
-				      .session_guid));
-		++g_net_enum_session_count;
-		return 1;
-	}
-
-	return 0;
-}
-#endif
-
-#ifndef XVT_MODERN
-/* qsort comparison of two session entries by name, as strcmp orders them.
- * Only the original build calls this. */
-// FUNCTION: XVT 0x4CFE50
-int net_compare_session_enum_entries_by_name(
-	const struct net_session_enum_entry *lhs,
-	const struct net_session_enum_entry *rhs)
-{
-	return strcmp(lhs->session_name, rhs->session_name);
-}
-#endif
 
 /* Returns the lobby roster, g_front_state.net_players, with its count in
  * *outCount. */
@@ -3521,12 +2490,10 @@ void net_handle_direct_play_system_message(int packet_type,
 		break;
 	}
 	case DPSYS_DESTROYPLAYERORGROUP: {
-#ifdef XVT_MODERN
 		if (packet_words[1] == DPPLAYERTYPE_PLAYER &&
 		    (DPID)packet_words[2] == g_front_state.net_host_player_id) {
 			xvt_network_session_host_lost();
 		}
-#endif
 		if (g_front_state.net_is_host != 0) {
 			if (packet_words[1] == DPPLAYERTYPE_PLAYER) {
 				unsigned int player_index;
@@ -3728,7 +2695,6 @@ void net_handle_direct_play_system_message(int packet_type,
 				    ((const struct net_player_name_message *)
 					     packet_data)
 					    ->header.dpId) {
-#ifdef XVT_MODERN
 					if (!xvt_network_session_copy_player_names(
 						    (const struct
 						     net_player_name_message *)
@@ -3757,28 +2723,6 @@ void net_handle_direct_play_system_message(int packet_type,
 								.player_id);
 						continue;
 					}
-#else
-					strcpy(g_front_state
-						       .net_players
-							       [player_index]
-						       .player_name,
-					       ((const struct
-						 net_player_name_message *)
-							packet_data)
-						       ->names);
-					strcpy(g_front_state
-						       .net_players
-							       [player_index]
-						       .long_name,
-					       &((const struct
-						  net_player_name_message *)
-							 packet_data)
-							->names[strlen(g_front_state
-									       .net_players
-										       [player_index]
-									       .player_name) +
-								1]);
-#endif
 					g_front_state.net_players[player_index].player_name
 						[PLAYER_NAME_TRUNCATION_INDEX] =
 						'\0';
@@ -4910,31 +3854,6 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 	return NULL;
 }
 
-#ifndef XVT_MODERN
-/* Polls net_get_next_app_packet until a game packet arrives and returns it, with
- * its sender and size in the out arguments; returns NULL once timeout_seconds
- * have passed. Only the original build calls this. */
-// FUNCTION: XVT 0x4D1130
-int *net_wait_for_app_packet(DPID *out_sender_id, uint32_t *out_packet_size,
-			     int timeout_seconds)
-{
-	DPID sender_id;
-	uint32_t packet_size;
-
-	uint32_t timeout_ms = (uint32_t)timeout_seconds * 1000;
-	uint32_t start_time = GetTickCount();
-	int *packet;
-	do {
-		if (GetTickCount() - start_time > timeout_ms) {
-			return NULL;
-		}
-		packet = net_get_next_app_packet(&sender_id, &packet_size);
-	} while (packet == NULL);
-	*out_sender_id = sender_id;
-	*out_packet_size = packet_size;
-	return packet;
-}
-#endif
 
 /* Returns how many roster players have a DirectPlay id below playerId.
  * Nothing in the engine calls this. */
@@ -5139,195 +4058,7 @@ void net_clear_player_ready_flags(void)
 	XVT_LOG_DEBUG("network.lobby_roster_ready_cleared");
 }
 
-#ifndef XVT_MODERN
-/* Opens a session through DirectPlay's lobby: creates the lobby object in
- * g_front_state.net_direct_play_lobby, builds an address from connection_address
- * with the transport's address type (net_build_direct_play_address), hands the
- * lobby connection settings for a session of up to 16 players named
- * session_name under g_net_lobby_session_instance_guid, flagged for a host or a
- * joiner by is_host, and connects, which fills g_front_state.net_direct_play.
- * Releases the lobby object on every path. Returns 1 when Connect succeeds,
- * else 0. The address buffer is never freed. For IPX it leaves the address
- * type unset; the serial settings (COM2, 9600 baud) and the IPX arm are
- * never reached, since its one caller passes only modem and TCP/IP. Only the
- * original build calls this. */
-// FUNCTION: XVT 0x4D1440
-int net_open_direct_play_session(GUID app_guid, const char *local_player_info,
-				 const char *local_player_name, int is_host,
-				 const char *session_name,
-				 network_transport_type network_type,
-				 const char *connection_address)
-{
-	char default_session_name[64] = "modem game";
 
-	(void)default_session_name;
-	GUID service_provider_guid;
-	DPCOMPORTADDRESS serial_address;
-	GUID address_type_guid;
-	const GUID *selected_service_provider_guid;
-	const char *address;
-	switch (network_type) {
-	case NET_TRANSPORT_IPX:
-		service_provider_guid =
-			g_net_direct_play_ipx_service_provider_guid;
-		selected_service_provider_guid = &service_provider_guid;
-		address = connection_address;
-		break;
-	case NET_TRANSPORT_TCPIP:
-		service_provider_guid =
-			g_net_direct_play_tcp_ip_service_provider_guid;
-		address_type_guid = g_net_direct_play_inet_address_type_guid;
-		selected_service_provider_guid = &service_provider_guid;
-		address = connection_address;
-		break;
-	case NET_TRANSPORT_MODEM:
-		service_provider_guid =
-			g_net_direct_play_modem_service_provider_guid;
-		address_type_guid = g_net_direct_play_phone_address_type_guid;
-		selected_service_provider_guid = &service_provider_guid;
-		address = connection_address;
-		break;
-	case NET_TRANSPORT_SERIAL:
-		service_provider_guid =
-			g_net_direct_play_serial_service_provider_guid;
-		serial_address.dwComPort = 2;
-		serial_address.dwBaudRate = 9600;
-		serial_address.dwFlowControl = 1;
-		address_type_guid =
-			g_net_direct_play_com_port_address_type_guid;
-		selected_service_provider_guid = &service_provider_guid;
-		address = (const char *)&serial_address;
-		serial_address.dwStopBits = 0;
-		serial_address.dwParity = 0;
-		break;
-	default:
-		address = connection_address;
-		break;
-	}
-
-	if (DirectPlayLobbyCreateA(NULL, &g_front_state.net_direct_play_lobby,
-				   NULL, NULL, 0) != 0) {
-		return 0;
-	}
-	void *connection_buffer;
-	size_t connection_buffer_size;
-	if (net_build_direct_play_address(
-		    g_front_state.net_direct_play_lobby,
-		    selected_service_provider_guid, &address_type_guid, address,
-		    &connection_buffer, &connection_buffer_size) != 0) {
-		g_front_state.net_direct_play_lobby->lpVtbl->Release(
-			g_front_state.net_direct_play_lobby);
-		g_front_state.net_direct_play_lobby = NULL;
-		return 0;
-	}
-
-	DPSESSIONDESC2 session;
-	memset(&session, 0, sizeof(session));
-	session.dwSize = sizeof(session);
-	session.dwFlags = 0;
-	session.guidInstance = g_net_lobby_session_instance_guid;
-	session.guidApplication = app_guid;
-	session.dwMaxPlayers = 16;
-	session.dwCurrentPlayers = 0;
-	session.lpszSessionNameA = (char *)session_name;
-	session.lpszPasswordA = NULL;
-	session.dwReserved1 = 0;
-	session.dwReserved2 = 0;
-	session.dwUser1 = 0;
-	session.dwUser2 = 0;
-	session.dwUser3 = 0;
-	session.dwUser4 = 0;
-
-	DPNAME player_name;
-	memset(&player_name, 0, sizeof(player_name));
-	player_name.dwSize = sizeof(player_name);
-	player_name.dwFlags = 0;
-	player_name.lpszShortNameA = (char *)local_player_name;
-	player_name.lpszLongNameA = (char *)local_player_info;
-
-	DPLCONNECTION connection;
-	memset(&connection, 0, sizeof(connection));
-	connection.dwSize = sizeof(connection);
-	connection.dwFlags = 2;
-	if (is_host == 0) {
-		connection.dwFlags = 1;
-	}
-	connection.lpSessionDesc = &session;
-	connection.lpPlayerName = &player_name;
-	connection.guidSP = service_provider_guid;
-	connection.lpAddress = connection_buffer;
-	connection.dwAddressSize = connection_buffer_size;
-	if (g_front_state.net_direct_play_lobby->lpVtbl->SetConnectionSettings(
-		    g_front_state.net_direct_play_lobby, 0, 0, &connection) !=
-	    0) {
-		g_front_state.net_direct_play_lobby->lpVtbl->Release(
-			g_front_state.net_direct_play_lobby);
-		g_front_state.net_direct_play_lobby = NULL;
-		return 0;
-	}
-
-	HRESULT connect_result =
-		g_front_state.net_direct_play_lobby->lpVtbl->Connect(
-			g_front_state.net_direct_play_lobby, 0,
-			&g_front_state.net_direct_play, NULL);
-	g_front_state.net_direct_play_lobby->lpVtbl->Release(
-		g_front_state.net_direct_play_lobby);
-	g_front_state.net_direct_play_lobby = NULL;
-	return connect_result == 0;
-}
-#endif
-
-#ifndef XVT_MODERN
-/* Builds a DirectPlay address with the lobby's CreateAddress: a first call
- * learns the size (DPERR_BUFFERTOOSMALL), a second fills a buffer from
- * GlobalAlloc, returned with its size through the out arguments; the result
- * is then 0 and the caller owns the buffer. Returns DX_E_INVALIDARG for an
- * all-zero address type, 0x8007000E when the allocation fails, or
- * CreateAddress's error, freeing the buffer. A first call that reports
- * anything but DPERR_BUFFERTOOSMALL is returned as is, out arguments
- * untouched. Only the original build calls this. */
-// FUNCTION: XVT 0x4D1840
-HRESULT net_build_direct_play_address(IDirectPlayLobbyA *direct_play_lobby,
-				      const GUID *service_provider_guid,
-				      const GUID *address_type_guid,
-				      const char *address,
-				      void **out_connection_buffer,
-				      size_t *out_connection_buffer_size)
-{
-	void *connection_buffer = NULL;
-	uint32_t address_size = 0;
-	if (memcmp(address_type_guid, "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
-		   sizeof(GUID)) == 0) {
-		return DX_E_INVALIDARG;
-	}
-	const char *address_value = address;
-	IDirectPlayLobbyA *lobby = direct_play_lobby;
-	HRESULT result = lobby->lpVtbl->CreateAddress(
-		lobby, service_provider_guid, address_type_guid, address_value,
-		strlen(address_value) + 1, NULL, &address_size);
-	if (result == (HRESULT)0x8877001E) {
-		connection_buffer = GlobalLock(GlobalAlloc(0x42, address_size));
-		if (connection_buffer == NULL) {
-			result = (HRESULT)0x8007000E;
-		} else {
-			result = lobby->lpVtbl->CreateAddress(
-				lobby, service_provider_guid, address_type_guid,
-				address_value, strlen(address_value) + 1,
-				connection_buffer, &address_size);
-			if (result >= 0) {
-				*out_connection_buffer = connection_buffer;
-				*out_connection_buffer_size = address_size;
-				return 0;
-			}
-		}
-	}
-	if (connection_buffer != NULL) {
-		GlobalUnlock(GlobalHandle(connection_buffer));
-		GlobalFree(GlobalHandle(connection_buffer));
-	}
-	return result;
-}
-#endif
 
 /* Copies the lobby's DirectPlay state from g_front_state into the flight
  * session's variables when a flight starts: the interface, application and
@@ -6104,11 +4835,9 @@ int net_set_player_name_with_lock_guard(unsigned int player_id,
 	if (was_back_buffer_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
-#ifdef XVT_MODERN
 	if (result == DPERR_PENDING) {
 		return XVT_NETWORK_PENDING;
 	}
-#endif
 	if (result != 0) {
 		XVT_LOG_WARN("network.lobby_rename_failed player=%u result=%#x",
 			     player_id, (unsigned)result);
@@ -6792,38 +5521,7 @@ int net_set_player_packet_retry_count(int player_id, int packet_retry_count)
 // FUNCTION: XVT 0x4D2BD0
 int net_disable_auto_dial_registry_setting(void)
 {
-#ifdef XVT_MODERN
 	return 0;
-#else
-	g_net_auto_dial_registry_changed = 0;
-	void *registry_key;
-	if (RegOpenKeyExA(
-		    0x80000001u,
-		    "Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
-		    0, NET_REGISTRY_ALL_ACCESS, &registry_key) != 0) {
-		return 0;
-	}
-	unsigned int data_size = 5;
-	if (RegQueryValueExA(registry_key, "EnableAutodial", NULL, NULL,
-			     g_net_saved_enable_auto_dial_value,
-			     &data_size) != 0) {
-		RegCloseKey(registry_key);
-		return 0;
-	}
-	if (g_net_saved_enable_auto_dial_value[0] == 0) {
-		RegCloseKey(registry_key);
-		return 0;
-	}
-	unsigned int disabled_value = 0;
-	if (RegSetValueExA(registry_key, "EnableAutodial", 0,
-			   NET_REGISTRY_BINARY, &disabled_value, 4) != 0) {
-		RegCloseKey(registry_key);
-		return 0;
-	}
-	g_net_auto_dial_registry_changed = 1;
-	RegCloseKey(registry_key);
-	return 1;
-#endif
 }
 
 /* When g_net_auto_dial_registry_changed is set, writes the first 4 bytes of
@@ -6833,95 +5531,6 @@ int net_disable_auto_dial_registry_setting(void)
 // FUNCTION: XVT 0x4D2CB0
 int net_restore_auto_dial_registry_setting(void)
 {
-#ifdef XVT_MODERN
-	return 0;
-#else
-	if (g_net_auto_dial_registry_changed == 0) {
-		return 0;
-	}
-	void *registry_key;
-	if (RegOpenKeyExA(
-		    0x80000001u,
-		    "Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
-		    0, NET_REGISTRY_ALL_ACCESS, &registry_key) != 0) {
-		return 0;
-	}
-	if (RegSetValueExA(registry_key, "EnableAutodial", 0,
-			   NET_REGISTRY_BINARY,
-			   g_net_saved_enable_auto_dial_value, 4) != 0) {
-		RegCloseKey(registry_key);
-		return 0;
-	}
-	g_net_auto_dial_registry_changed = 0;
-	RegCloseKey(registry_key);
-	return 1;
-#endif
-}
-
-#ifndef XVT_MODERN
-/* Sends a PING to every player, again each second, and counts the distinct
- * players that answer with a PONG. Returns 1 as soon as they and the local
- * player make up the roster count, or 0 after 10 seconds. Any other packet
- * read meanwhile is lost. Only the original build calls this. */
-// FUNCTION: XVT 0x4D2D40
-int net_wait_for_shutdown_handshake_acks(void)
-{
-	enum {
-		NET_MAX_PLAYERS = 32,
-		NET_SHUTDOWN_RESEND_INTERVAL_MS = 1000,
-		NET_SHUTDOWN_TIMEOUT_MS = 10000
-	};
-
-	DPID acknowledged_player_ids[NET_MAX_PLAYERS];
-
-	memset(acknowledged_player_ids, 0, sizeof(acknowledged_player_ids));
-	int shutdown_packet = NET_PACKET_PING;
-	net_send_direct_play_packet(0, &shutdown_packet,
-				    sizeof(shutdown_packet), 0);
-	int acknowledged_player_count = 1;
-	uint32_t start_time = GetTickCount();
-	uint32_t current_time = start_time;
-	uint32_t last_send_time = GetTickCount();
-	DPID sender_id;
-	uint32_t packet_size;
-	unsigned int player_index;
-	while (current_time - start_time < NET_SHUTDOWN_TIMEOUT_MS) {
-		current_time = GetTickCount();
-		if (current_time - last_send_time >
-		    NET_SHUTDOWN_RESEND_INTERVAL_MS) {
-			last_send_time = current_time;
-			net_send_direct_play_packet(0, &shutdown_packet,
-						    sizeof(shutdown_packet), 0);
-		}
-		int *packet = net_get_next_app_packet(&sender_id, &packet_size);
-		if (packet != NULL && *packet == NET_PACKET_PONG) {
-			for (player_index = 0; player_index < NET_MAX_PLAYERS;
-			     ++player_index) {
-				if (acknowledged_player_ids[player_index] ==
-				    sender_id) {
-					break;
-				}
-			}
-			if (player_index == NET_MAX_PLAYERS) {
-				++acknowledged_player_count;
-				for (player_index = 0;
-				     player_index < NET_MAX_PLAYERS;
-				     ++player_index) {
-					if (acknowledged_player_ids
-						    [player_index] == 0) {
-						acknowledged_player_ids
-							[player_index] =
-								sender_id;
-						break;
-					}
-				}
-			}
-		}
-		if (g_front_state.net_player_count <=
-		    acknowledged_player_count) {
-			return 1;
-		}
-	}
 	return 0;
 }
-#endif
+

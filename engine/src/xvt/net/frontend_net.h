@@ -12,11 +12,7 @@ extern "C" {
 
 enum {
 	FRONTEND_NET_PROTOCOL_VERSION =
-#ifdef XVT_MODERN
 		103
-#else
-		101
-#endif
 };
 
 #pragma pack(push, 1)
@@ -80,17 +76,6 @@ int frontend_net_host_game_exit(int frame_counter);
 int frontend_net_host_game_screen(int frame_counter);
 int frontend_net_process_network_packets(void);
 
-#ifndef XVT_MODERN
-int frontend_net_connect_to_selected_game_screen(int frame_counter);
-int frontend_net_make_session_guid_key(struct net_session_guid guid);
-int frontend_net_refresh_session_list(void);
-int frontend_net_compare_session_list_entries(
-	const struct frontend_net_session_entry *lhs,
-	const struct frontend_net_session_entry *rhs);
-int frontend_net_sort_sessions(void);
-int frontend_net_probe_all_sessions(void);
-int frontend_net_probe_session_by_index(int session_idx);
-#endif
 
 #ifdef __cplusplus
 }

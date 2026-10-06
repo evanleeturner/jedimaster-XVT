@@ -27,9 +27,6 @@ struct input_frame *flight_sync_find_last_unrelayed_input_frame(int player_idx);
 void flight_sync_reset_remote_player_render_smoothing(void);
 void flight_sync_capture_samples_and_restore_poses(void);
 void flight_sync_apply_remote_player_render_smoothing(void);
-#ifndef XVT_MODERN
-void flight_sync_apply_world_message_packet(uint8_t *packet);
-#endif
 void flight_sync_handle_world_checksum_packet(int sender_dpid,
 					      const int *packet);
 void flight_sync_handle_server_checksum_packet(uint8_t *packet);
@@ -38,13 +35,7 @@ void flight_sync_copy_world_state_resync_chunk(const void *src, int offset,
 void flight_sync_apply_resync_and_replay_world_messages(
 	unsigned int world_state_bytes, int server_tick_time);
 void flight_sync_snapshot_world_state_for_replay(void);
-#ifndef XVT_MODERN
-void flight_sync_buffer_world_message_packet(uint8_t *packet);
-#endif
 void flight_sync_clear_buffered_world_messages(void);
-#ifndef XVT_MODERN
-void flight_sync_replay_buffered_world_messages(void);
-#endif
 int flight_sync_unused_four_arg_forwarder(int arg1, int arg2, int arg3,
 					  int arg4);
 

@@ -1,12 +1,10 @@
 #include "xvt/net/flight_sync.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/runtime/flight_messages.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/flight_sim.h"
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/timing/flight_timing.h"
-#endif
 
 #include <string.h>
 
@@ -47,29 +45,6 @@ struct input_frame g_input_history[8][450] = {{{0}}};
  * original build sets or reads it. */
 // GLOBAL: XVT 0x51BF40
 int g_flight_net_dirty_all_object_transforms_after_restore = 0;
-#ifndef XVT_MODERN
-/* Bytes allocated for g_world_message_buffer. Only
- * flight_sync_buffer_world_message_packet writes it: it grows by 100 times the
- * size of a message that does not fit, and never shrinks. */
-// GLOBAL: XVT 0x51BF48
-static int g_world_message_buffer_capacity;
-/* Bytes still free at the end of g_world_message_buffer. Lowered by
- * flight_sync_buffer_world_message_packet; set back to the capacity by
- * flight_sync_clear_buffered_world_messages and
- * flight_sync_replay_buffered_world_messages. */
-// GLOBAL: XVT 0x51BF4C
-static int g_world_message_buffer_bytes_free;
-/* World messages held in g_world_message_buffer. Raised by
- * flight_sync_buffer_world_message_packet; flight_sync_replay_buffered_world_messages
- * counts it down to 0, and flight_sync_clear_buffered_world_messages sets 0. */
-// GLOBAL: XVT 0x51BF50
-static int g_world_message_buffered_count;
-/* Memory handle of g_world_message_buffer; 0 until the first message is
- * buffered. flight_sync_buffer_world_message_packet replaces it with a larger
- * one, freeing the old, when a message does not fit; nothing else frees it. */
-// GLOBAL: XVT 0x51BF54
-static uint16_t g_world_message_buffer_handle = 0;
-#endif
 /* 1 when remote players' craft are drawn smoothed. Starts at 1; flight start
  * copies g_internet_play_enabled into it: flight_main_loop in the original
  * build, xvt_flight_loading_globals in the modern one. */
@@ -86,56 +61,7 @@ struct remote_player_render_sample g_remote_player_render_samples[8];
  * flight_sync_capture_samples_and_restore_poses puts it back after drawing. */
 // GLOBAL: XVT 0x550A08
 struct remote_player_saved_sim_pose g_remote_player_saved_sim_poses[8];
-#ifndef XVT_MODERN
-/* Locked memory of g_world_message_buffer_handle, where a client keeps the
- * server's world messages back to back while
- * g_flight_net_buffer_world_messages_until_checksum is 1, from a world checksum
- * until the checksum is confirmed or a resync replays them. NULL until the
- * first message is buffered. */
-// GLOBAL: XVT 0x550B90
-static uint8_t *g_world_message_buffer = NULL;
-#endif
 
-#ifndef XVT_MODERN
-/* For every active remote player with any input frames, adds a predicted
- * frame at the last frame's time stamp plus predicted_frame_delta, with that
- * frame's two axes and no key or modifiers, marked predicted (input_source 2)
- * and not awaiting relay, where flight_sync_insert_input_frame accepts it. Does
- * nothing in internet play. Only the original build calls this. */
-// FLAGS: /O2 /G5
-// FUNCTION: XVT 0x418500
-void flight_sync_queue_predicted_remote_input_frames(int predicted_frame_delta)
-{
-	if (g_internet_play_enabled != 0) {
-		return;
-	}
-	struct flight_input_frame_record input;
-	memset(&input, 0, sizeof(input));
-	for (int player_idx = 0; player_idx < 8; ++player_idx) {
-		if (g_players[player_idx].participation_state == 0 ||
-		    player_idx == g_local_player) {
-			continue;
-		}
-		int count = g_input_frame_count[player_idx];
-		if (count == 0) {
-			continue;
-		}
-		struct input_frame *last_frame =
-			&g_input_history[player_idx][count - 1];
-		input.axis_x = last_frame->input.axis_x;
-		input.axis_y = last_frame->input.axis_y;
-		struct input_frame *predicted_frame =
-			flight_sync_insert_input_frame(
-				player_idx,
-				last_frame->timestamp + predicted_frame_delta,
-				&input);
-		if (predicted_frame != NULL) {
-			predicted_frame->awaiting_relay = 0;
-			predicted_frame->input_source = INPUT_FRAME_PREDICTED;
-		}
-	}
-}
-#endif
 
 /* Removes every predicted frame (input_source 2, not awaiting relay) from the
  * input history of every active remote player; in internet play it does
@@ -143,11 +69,6 @@ void flight_sync_queue_predicted_remote_input_frames(int predicted_frame_delta)
 // FUNCTION: XVT 0x4185B0
 void flight_sync_discard_all_predicted_input_frames(void)
 {
-#ifndef XVT_MODERN
-	if (g_internet_play_enabled != 0) {
-		return;
-	}
-#endif
 
 	for (int player_index = 0; player_index < 8; ++player_index) {
 		if (g_players[player_index].participation_state != 0 &&
@@ -178,9 +99,6 @@ void flight_sync_discard_all_predicted_input_frames(void)
 void flight_sync_discard_predicted_input_frames(int player_idx)
 {
 	if (
-#ifndef XVT_MODERN
-		g_internet_play_enabled != 0 ||
-#endif
 		g_players[player_idx].participation_state == 0 ||
 		player_idx == g_local_player) {
 		return;
@@ -263,7 +181,6 @@ struct input_frame *
 flight_sync_insert_input_frame(int player_idx, int timestamp,
 			       const struct flight_input_frame_record *input)
 {
-#ifdef XVT_MODERN
 	struct input_frame *inserted;
 	xvt_input_insert_status status = xvt_flight_history_insert(
 		(unsigned)player_idx, timestamp, input, &inserted);
@@ -283,45 +200,6 @@ flight_sync_insert_input_frame(int player_idx, int timestamp,
 			status == XVT_INPUT_FULL ? "full" : "invalid");
 	}
 	return inserted;
-#else
-
-	int frame_index = 0;
-	int frame_count = g_input_frame_count[player_idx];
-	struct input_frame *frame = g_input_history[player_idx];
-	struct input_frame *array_end = &frame[frame_count];
-
-	while (frame_index < frame_count && frame->timestamp < timestamp) {
-		++frame_index;
-		++frame;
-	}
-	int existing_timestamp = frame->timestamp;
-	if (existing_timestamp > timestamp || frame_index == frame_count) {
-		if (frame_count == 450) {
-			return NULL;
-		}
-		g_input_frame_count[player_idx] = frame_count + 1;
-		if (array_end > frame) {
-			frame_index = frame_count - frame_index;
-			do {
-				--frame_index;
-				frame[frame_index + 1] = frame[frame_index];
-			} while (frame_index != 0);
-		}
-	} else if (existing_timestamp == timestamp) {
-		if (frame->input_source == 0) {
-			return NULL;
-		}
-		if (frame->awaiting_relay == 1) {
-			return NULL;
-		}
-	}
-	frame->timestamp = timestamp;
-	frame->input_source = 1;
-	frame->awaiting_relay = 0;
-	frame->input = *input;
-	return frame;
-
-#endif
 }
 
 /* Returns the last frame in a player's input history that still awaits relay
@@ -805,172 +683,6 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 	}
 }
 
-#ifndef XVT_MODERN
-/* Applies one world message from the server. A client first copies it into
- * the replay buffer while g_flight_net_buffer_world_messages_until_checksum is 1.
- * The tick is word 1 without its top bit, which asks for a world checksum. A
- * tick not past g_server_tick_time is ignored; one that is not exactly
- * g_net_update_interval_ticks past it first empties the flight receive queue
- * (net_reliable_reset_recv_queue_state). It then drops predicted inputs, restores
- * the saved world state of g_server_tick_time (marking every live object's
- * transforms for recomputing when
- * g_flight_net_dirty_all_object_transforms_after_restore is set), inserts each
- * active player's inputs from the message as server frames (input_source 0),
- * runs the simulation to the tick, updates the cameras, flushes queued
- * sounds and saves the new state; g_game_time and g_server_tick_time become the
- * tick. When a checksum is asked for, it computes one, stores the tick in
- * g_flight_net_world_checksum_epoch, sends it to the host (a host also broadcasts
- * it), turns buffering on, snapshots the state and empties the buffer. Only
- * the original build calls this. */
-// FUNCTION: XVT 0x418F80
-void flight_sync_apply_world_message_packet(uint8_t *packet)
-{
-	enum {
-		PLAYER_SLOT_COUNT = 8,
-		FULL_TIMESTAMP_CODE = 127,
-		SHORT_DELTA_CODE = 126,
-		BYTE_DELTA_CODE = 125,
-		KEY_PRESENT_FLAG = 0x80,
-		DELTA_CODE_MASK = 0x7F,
-		WORLD_CHECKSUM_FLAG = INT32_MIN,
-		WORLD_TIMESTAMP_MASK = 0x7FFFFFFFu
-	};
-
-	if (net_session_is_local_host() == 0 &&
-	    g_flight_net_buffer_world_messages_until_checksum == 1) {
-		flight_sync_buffer_world_message_packet(packet);
-	}
-
-	uint32_t raw_packet_tick = ((const uint32_t *)packet)[1];
-	packet += 2 * sizeof(int);
-	int packet_tick = (int)(raw_packet_tick & WORLD_TIMESTAMP_MASK);
-	int checksum_requested = (int)(raw_packet_tick & WORLD_CHECKSUM_FLAG);
-	if (packet_tick <= g_server_tick_time) {
-		return;
-	}
-
-	if (packet_tick - g_net_update_interval_ticks != g_server_tick_time) {
-		net_reliable_reset_recv_queue_state();
-	}
-	flight_sync_discard_all_predicted_input_frames();
-	flight_restore_world_state();
-	g_game_time = g_server_tick_time;
-
-	if (g_flight_net_dirty_all_object_transforms_after_restore != 0) {
-		for (int object_index = 0;
-		     object_index < g_region_main_object_slot_end;
-		     ++object_index) {
-			if (g_object_table[object_index].object_type != 0 &&
-			    g_object_table[object_index].mobj != NULL) {
-				g_object_table[object_index]
-					.mobj->move_vector_dirty = 1;
-				g_object_table[object_index]
-					.mobj->orient_matrix_dirty = 1;
-			}
-		}
-		g_flight_net_dirty_all_object_transforms_after_restore = 0;
-	}
-
-	int player_index;
-	struct flight_input_frame_record input;
-	{
-		uint8_t *cursor = packet;
-		int remaining_player_blocks = *cursor++;
-		for (player_index = 0; player_index < PLAYER_SLOT_COUNT;
-		     ++player_index) {
-			if (g_players[player_index].participation_state == 0) {
-				continue;
-			}
-			if (remaining_player_blocks == 0) {
-				break;
-			}
-
-			--remaining_player_blocks;
-			int frame_count = *cursor++;
-			while (frame_count > 0) {
-				int timestamp_code = *cursor++;
-				int delta_code =
-					timestamp_code & DELTA_CODE_MASK;
-				int timestamp;
-				if (delta_code == FULL_TIMESTAMP_CODE) {
-					timestamp = *(const int *)cursor;
-					cursor += sizeof(timestamp);
-				} else if (delta_code == SHORT_DELTA_CODE) {
-					timestamp = packet_tick -
-						    *(const uint16_t *)cursor;
-					cursor += sizeof(uint16_t);
-				} else {
-					timestamp = packet_tick;
-					if (delta_code == BYTE_DELTA_CODE) {
-						timestamp -= *cursor++;
-					}
-					timestamp -= delta_code;
-				}
-
-				if ((timestamp_code & KEY_PRESENT_FLAG) != 0) {
-					input.key = *cursor++;
-				} else {
-					input.key = 0;
-				}
-				input.axis_x =
-					(int8_t)(cursor[0] & (uint8_t)~1u);
-				input.axis_y =
-					(int8_t)(cursor[1] & (uint8_t)~1u);
-				input.key_mods = cursor[1] & 1u;
-				input.key_mods = (uint8_t)(input.key_mods << 1);
-				input.key_mods |= cursor[0] & 1u;
-				cursor += 2;
-
-				struct input_frame *inserted =
-					flight_sync_insert_input_frame(
-						player_index, timestamp,
-						&input);
-				if (inserted != NULL) {
-					inserted->input_source = 0;
-					inserted->awaiting_relay = 0;
-				}
-				--frame_count;
-			}
-		}
-	}
-
-	g_flight_sim_side_effects_suppressed = 0;
-	flight_step_sim_to_time(packet_tick);
-	for (player_index = 0; player_index < PLAYER_SLOT_COUNT;
-	     ++player_index) {
-		if (g_players[player_index].participation_state != 0 &&
-		    player_index != g_local_player) {
-			flight_view_update_player_camera(player_index);
-		}
-	}
-	flight_view_update_player_camera(g_local_player);
-	g_game_time = packet_tick;
-	g_server_tick_time = packet_tick;
-	sound_flush_queued_effects();
-	flight_save_world_state();
-
-	if (checksum_requested != 0) {
-		flight_checksum_world_state(0, 0);
-		g_flight_net_world_checksum_epoch =
-			(unsigned int)g_server_tick_time;
-		int checksum_dword_count = (int)(sizeof(g_world_checksum) /
-						 sizeof(g_world_checksum[0]));
-		if (net_session_is_local_host() != 0) {
-			flight_net_broadcast_world_checksum(
-				(const int *)g_world_checksum,
-				(const int *)g_world_checksum_region_lengths,
-				checksum_dword_count);
-		}
-		flight_net_send_world_checksum_to_host(
-			(const int *)g_world_checksum,
-			(const int *)g_world_checksum_region_lengths,
-			checksum_dword_count);
-		g_flight_net_buffer_world_messages_until_checksum = 1;
-		flight_sync_snapshot_world_state_for_replay();
-		flight_sync_clear_buffered_world_messages();
-	}
-}
-#endif
 
 /* Handles a player's world checksum for the epoch in
  * g_flight_net_world_checksum_epoch (word 1); other epochs, and players that
@@ -1003,9 +715,7 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 
 	if ((unsigned int)packet[PACKET_EPOCH_INDEX] !=
 		    g_flight_net_world_checksum_epoch
-#ifdef XVT_MODERN
 	    && packet[34] != XVT_CHECKSUM_REQUEST_STATE
-#endif
 	) {
 		XVT_LOG_DEBUG("network.checksum_stale epoch=%u expected=%u",
 			      (unsigned)packet[PACKET_EPOCH_INDEX],
@@ -1016,7 +726,6 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 	int sender_player_index =
 		net_session_find_player_slot_by_dpid(sender_dpid);
 	int checksum_mismatch = 0;
-#ifdef XVT_MODERN
 	if ((unsigned)sender_player_index >= 8) {
 		XVT_LOG_WARN(
 			"network.checksum_rejected slot=%d request=%d reason=\"%s\"",
@@ -1038,7 +747,6 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 				      g_world_state_size);
 		return;
 	}
-#endif
 	if (g_player_abort_flags[sender_player_index] != 0 ||
 	    g_players[sender_player_index].participation_state == 0) {
 		XVT_LOG_DEBUG("network.checksum_ignored slot=%d reason=\"%s\"",
@@ -1073,7 +781,6 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 		(void)remote_world_state_size;
 
 		if (checksum_mismatch != 0) {
-#ifdef XVT_MODERN
 			XVT_LOG_WARN(
 				"network.checksum_mismatch slot=%d epoch=%u bytes=%d peer_bytes=%d",
 				sender_player_index,
@@ -1084,15 +791,6 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 					      g_world_state_dup_buffer,
 					      g_world_state_dup_size);
 			return;
-#else
-			if (flight_net_send_world_state_resync_to_player(
-				    sender_dpid, g_world_state_dup_buffer,
-				    g_world_state_dup_size) != 0) {
-				flight_net_send_world_state_resync_apply_request(
-					sender_dpid, g_world_state_dup_size);
-			}
-			checksum_mismatch = 1;
-#endif
 		}
 	}
 
@@ -1183,39 +881,7 @@ void flight_sync_copy_world_state_resync_chunk(const void *src, int offset,
 	memcpy(&g_world_state_dup_buffer[offset], src, size);
 }
 
-#ifndef XVT_MODERN
-#pragma intrinsic(memcpy)
-#endif
 
-#ifndef XVT_MODERN
-/* Takes the world state a resync left in g_world_state_dup_buffer as the saved
- * state (g_world_state_buffer and g_world_state_size), sets g_server_tick_time to
- * server_tick_time and sets g_flight_net_dirty_all_object_transforms_after_restore.
- * Then it computes the world checksum and sends it to the host, snapshots
- * the state again, turns buffering off and replays the buffered world
- * messages. Only the original build calls this. */
-// FUNCTION: XVT 0x4195A0
-void flight_sync_apply_resync_and_replay_world_messages(
-	unsigned int world_state_bytes, int server_tick_time)
-{
-	g_world_state_dup_size = (int)world_state_bytes;
-	g_flight_net_dirty_all_object_transforms_after_restore = 1;
-	memcpy(g_world_state_buffer, g_world_state_dup_buffer,
-	       world_state_bytes);
-	g_world_state_size = (unsigned int)g_world_state_dup_size;
-	g_server_tick_time = server_tick_time;
-	flight_checksum_world_state(0, 0);
-	int checksum_dword_count =
-		(int)(sizeof(g_world_checksum) / sizeof(g_world_checksum[0]));
-	flight_net_send_world_checksum_to_host(
-		(const int *)g_world_checksum,
-		(const int *)g_world_checksum_region_lengths,
-		checksum_dword_count);
-	flight_sync_snapshot_world_state_for_replay();
-	g_flight_net_buffer_world_messages_until_checksum = 0;
-	flight_sync_replay_buffered_world_messages();
-}
-#endif
 
 /* Copies the saved world state (g_world_state_size bytes of
  * g_world_state_buffer) into g_world_state_dup_buffer and sets
@@ -1229,78 +895,6 @@ void flight_sync_snapshot_world_state_for_replay(void)
 	g_world_state_dup_size = (int)snapshot_bytes;
 }
 
-#ifndef XVT_MODERN
-/* Appends one world message to g_world_message_buffer, growing the buffer by
- * 100 times the message's size when it does not fit (a failed allocation is
- * a fatal error). The size is the 9-byte header plus each player's inputs,
- * walked by their time codes. The walk counts the 4 bytes after code 127 but
- * not the 2 after code 126 or the 1 after code 125, which
- * flight_sync_apply_world_message_packet reads, so a message using those is
- * stored short. Only the original build calls this. */
-// FUNCTION: XVT 0x419650
-void flight_sync_buffer_world_message_packet(uint8_t *packet)
-{
-	int packet_size = 9;
-	uint8_t *packet_start = packet;
-	int player_block_count = packet[8];
-	packet += 8;
-	++packet;
-	if (player_block_count > 0) {
-		do {
-			int frame_count = *packet++;
-			++packet_size;
-			if (frame_count > 0) {
-				do {
-					int timestamp_code = *packet++;
-					++packet_size;
-					if ((timestamp_code & 0x7F) == 0x7F) {
-						packet += 4;
-						packet_size += 4;
-					}
-					if ((timestamp_code & 0x80) != 0) {
-						++packet;
-						++packet_size;
-					}
-					packet += 2;
-					packet_size += 2;
-					--frame_count;
-				} while (frame_count != 0);
-			}
-			--player_block_count;
-		} while (player_block_count != 0);
-	}
-
-	if (g_world_message_buffer_bytes_free < packet_size) {
-		uint16_t old_handle = g_world_message_buffer_handle;
-		unsigned int old_capacity = g_world_message_buffer_capacity;
-		int growth = 100 * packet_size;
-		g_world_message_buffer_bytes_free += growth;
-		g_world_message_buffer_capacity += growth;
-		g_world_message_buffer_handle =
-			memory_alloc_handle(g_world_message_buffer_capacity, 0);
-		if (g_world_message_buffer_handle == 0) {
-			fe_disk_io_fatal_error(
-				FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
-		}
-		g_world_message_buffer =
-			memory_get_handle_block(g_world_message_buffer_handle);
-		if (old_handle != 0) {
-			uint8_t *old_buffer =
-				memory_get_handle_block(old_handle);
-			memcpy(g_world_message_buffer, old_buffer,
-			       old_capacity);
-			memory_handle_block_done_stub(old_handle);
-			memory_free_handle(old_handle);
-		}
-	}
-
-	memcpy(&g_world_message_buffer[g_world_message_buffer_capacity -
-				       g_world_message_buffer_bytes_free],
-	       packet_start, packet_size);
-	g_world_message_buffer_bytes_free -= packet_size;
-	++g_world_message_buffered_count;
-}
-#endif
 
 /* Empties the world-message buffer: the modern build clears the replay queue
  * (xvt_flight_messages_clear); the original keeps its memory and resets the
@@ -1308,68 +902,10 @@ void flight_sync_buffer_world_message_packet(uint8_t *packet)
 // FUNCTION: XVT 0x4197B0
 void flight_sync_clear_buffered_world_messages(void)
 {
-#ifdef XVT_MODERN
 	xvt_flight_messages_clear(XVT_QUEUE_REPLAY);
 	XVT_LOG_DEBUG("network.replay_cleared");
-#else
-	g_world_message_buffered_count = 0;
-	g_world_message_buffer_bytes_free = g_world_message_buffer_capacity;
-#endif
 }
 
-#ifndef XVT_MODERN
-/* Applies every buffered world message in order through
- * flight_sync_apply_world_message_packet, after clearing each one's checksum
- * request bit, then empties the buffer. It steps from one message to the
- * next with the same short size count as flight_sync_buffer_world_message_packet.
- * Only the original build calls this. */
-// FUNCTION: XVT 0x4197D0
-void flight_sync_replay_buffered_world_messages(void)
-{
-	enum {
-		PACKET_PLAYER_COUNT_OFFSET = 2 * sizeof(int),
-		FULL_TIMESTAMP_CODE = 0x7F,
-		KEY_PRESENT_FLAG = 0x80,
-		DELTA_CODE_MASK = 0x7F,
-		INPUT_AXIS_BYTES = 2
-	};
-
-	int packet_offset = 0;
-	while (g_world_message_buffered_count != 0) {
-		--g_world_message_buffered_count;
-		uint8_t *packet = &g_world_message_buffer[packet_offset];
-		packet_offset += PACKET_PLAYER_COUNT_OFFSET;
-		uint8_t *cursor = packet + PACKET_PLAYER_COUNT_OFFSET;
-		++packet_offset;
-		int player_sections_remaining = *cursor++;
-		while (player_sections_remaining > 0) {
-			int frames_remaining = *cursor++;
-			++packet_offset;
-			while (frames_remaining > 0) {
-				int frame_header = *cursor++;
-				++packet_offset;
-				if ((frame_header & DELTA_CODE_MASK) ==
-				    FULL_TIMESTAMP_CODE) {
-					cursor += sizeof(uint32_t);
-					packet_offset += sizeof(uint32_t);
-				}
-				if ((frame_header & KEY_PRESENT_FLAG) != 0) {
-					++cursor;
-					++packet_offset;
-				}
-				cursor += INPUT_AXIS_BYTES;
-				packet_offset += INPUT_AXIS_BYTES;
-				--frames_remaining;
-			}
-			--player_sections_remaining;
-		}
-
-		((uint32_t *)packet)[1] &= INT32_MAX;
-		flight_sync_apply_world_message_packet(packet);
-	}
-	g_world_message_buffer_bytes_free = g_world_message_buffer_capacity;
-}
-#endif
 
 /* Returns what sound_unused_four_arg_stub returns, 0. Nothing in the engine
  * calls this. */

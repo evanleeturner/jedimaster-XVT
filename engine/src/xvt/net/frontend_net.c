@@ -1,11 +1,9 @@
 #include "xvt/net/frontend_net.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/network_browser.h"
 #include "xvt_runtime/runtime/network_dialogs.h"
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/network_task.h"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -192,131 +190,8 @@ char g_frontend_net_selected_game_name[32] = {
 // FUNCTION: XVT 0x4D7020
 int frontend_net_draw_join_game_list(int frame_counter)
 {
-#ifdef XVT_MODERN
 	(void)frame_counter;
 	return xvt_network_browser_draw_list();
-#else
-	if (frame_counter == 0) {
-		g_frontend_net_session_list_scroll_offset = 0;
-	}
-	uint32_t now_ms = GetTickCount();
-	struct RECT rect;
-	frontend_draw_rect_assign(&rect, 88, 94, 416, 109);
-	frontend_text_draw_aligned_in_rect(
-		12,
-		frontend_string_get(
-			FRONTSTR_016_GAME_NAME_PLAYERS_NEEDED_LAST_QUERY),
-		&rect, 0, 1, 0xFFFF);
-	int mouse_x;
-	int mouse_y;
-	frontend_cursor_get_pos(&mouse_x, &mouse_y);
-	if (g_frontend_net_session_count > 6) {
-		frontend_draw_rect_assign(&rect, 421, 114, 430, 204);
-		g_frontend_net_session_list_scroll_offset =
-			frontend_scrollbar_draw(
-				&rect,
-				g_frontend_net_session_list_scroll_offset,
-				g_frontend_net_session_count, 0, 5,
-				(unsigned int)g_color_navy, 5);
-	}
-	frontend_draw_rect_assign(&rect, 88, 114, 419, 128);
-	int clicked_index = -1;
-	int row_index = g_frontend_net_session_list_scroll_offset;
-	struct RECT destination;
-	while (row_index < g_frontend_net_session_list_scroll_offset + 6 &&
-	       row_index < g_frontend_net_session_count) {
-		if (row_index == g_frontend_net_selected_session_idx) {
-			frontend_draw_rect(&rect, 0, 0, g_color_navy, 1);
-		}
-		unsigned short text_color;
-		if (g_frontend_net_session_list[row_index].version != 101u) {
-			text_color = g_color_gray;
-		} else if (g_frontend_net_session_list[row_index]
-				   .players_needed == 0) {
-			text_color =
-				g_frontend_net_session_list[row_index]
-							.game_in_flight != 0
-					? g_color_red
-					: g_color_yellow;
-		} else {
-			text_color = 0xFFFF;
-			if (g_frontend_net_session_list[row_index]
-				    .players_needed <= 8) {
-				text_color = g_color_green2;
-			}
-		}
-		if (g_frontend_net_session_list[row_index].password_required !=
-		    0) {
-			front_image_draw_sprite("key", rect.left - 6,
-						rect.top + 1);
-		}
-		if (g_frontend_net_session_list[row_index].version != 101u) {
-			if (g_frontend_net_session_list[row_index].version ==
-			    0) {
-				sprintf(g_frontend_scratch_buffer, "%s v. ???",
-					g_frontend_net_session_list[row_index]
-						.game_name);
-			} else {
-				sprintf(g_frontend_scratch_buffer,
-					"%s v. %d.%d",
-					g_frontend_net_session_list[row_index]
-						.game_name,
-					(g_frontend_net_session_list[row_index]
-						 .version -
-					 1) / 100 +
-						1,
-					(g_frontend_net_session_list[row_index]
-						 .version -
-					 1) % 100);
-			}
-			frontend_text_draw_aligned_in_rect(
-				12, g_frontend_scratch_buffer, &rect, 0, 1,
-				text_color);
-		} else {
-			frontend_text_draw_aligned_in_rect(
-				12,
-				g_frontend_net_session_list[row_index]
-					.game_name,
-				&rect, 0, 1, text_color);
-		}
-		if (g_frontend_net_session_list[row_index].players_needed <=
-		    8) {
-			frontend_draw_rect_copy(&destination, &rect);
-			destination.left = 285;
-			sprintf(g_frontend_scratch_buffer, "%d",
-				g_frontend_net_session_list[row_index]
-					.players_needed);
-			frontend_text_draw_aligned_in_rect(
-				12, g_frontend_scratch_buffer, &destination, 0,
-				1, text_color);
-			destination.left = 374;
-			frontend_format_seconds_to_clock_string(
-				(now_ms - g_frontend_net_session_list[row_index]
-						  .last_query_ms) /
-				1000);
-			frontend_text_draw_aligned_in_rect(
-				12, g_frontend_scratch_buffer, &destination, 0,
-				1, text_color);
-		}
-		if (frontend_draw_point_in_rect(&rect, mouse_x, mouse_y)) {
-			frontend_draw_rect_outline(&rect, 0, 0, g_color_green);
-			if (frontend_mouse_get_left_click() != 0 ||
-			    frontend_mouse_get_right_click() != 0) {
-				if (g_game_config.sfx_datapad_enabled != 0) {
-					frontend_sound_play_ui_sound(
-						"jewelsound", 1, 0, 255,
-						12 * g_game_config
-								.sfx_datapad_volume,
-						63);
-				}
-				clicked_index = row_index;
-			}
-		}
-		frontend_draw_rect_offset_xy(&rect, 0, 15);
-		++row_index;
-	}
-	return clicked_index;
-#endif
 }
 
 /* The join screen, run each frame. The modern build hands off to
@@ -341,436 +216,7 @@ int frontend_net_draw_join_game_list(int frame_counter)
 // FUNCTION: XVT 0x4D73C0
 int frontend_net_join_game_screen(int frame_counter)
 {
-#ifdef XVT_MODERN
 	return xvt_network_browser_screen(frame_counter);
-#else
-	enum {
-		SESSION_REFRESH_INTERVAL_FRAMES = 160,
-		BRIEFING_TEXT_CAPACITY = 4096,
-		JOIN_REQUEST_PACKET_SIZE = 6 * sizeof(int),
-		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
-	};
-
-	g_config_connection_type_editable = 0;
-	struct RECT screen_rect;
-	if (g_game_config.network_type != NET_TRANSPORT_IPX) {
-		if (g_frontend_skip_screen_entry_setup != 0) {
-			g_frontend_mission_session_mode =
-				FRONTEND_MISSION_SESSION_NONE;
-			frontend_screen_set_callbacks(concourse_update,
-						      concourse_exit);
-			return 0;
-		}
-		if (g_frontend_mission_session_mode ==
-		    FRONTEND_MISSION_SESSION_NET_CLIENT) {
-			switch (g_game_config.network_type) {
-			case NET_TRANSPORT_TCPIP:
-				if (g_game_config.ip_address[0] == '\0') {
-
-					if (frontend_dialog_show_confirm_dialog(
-						    frontend_string_get(
-							    FRONTSTR_693_YOU_HAVE_NOT_ENTERED_AN_IP_ADDRESS_FOR),
-						    frontend_string_get(
-							    FRONTSTR_694_THE_TCP_IP_CONNECTION_PLEASE_ENTER_ONE),
-						    frontend_string_get(
-							    FRONTSTR_695_IN_THE_CONFIGURATION_SCREEN),
-						    frontend_string_get(
-							    FRONTSTR_523_OKAY),
-						    frontend_string_get(
-							    FRONTSTR_019_CANCEL)) ==
-					    0) {
-						g_frontend_mission_session_mode =
-							FRONTEND_MISSION_SESSION_NONE;
-						frontend_screen_set_callbacks(
-							concourse_update,
-							concourse_exit);
-						return 0;
-					}
-
-					frontend_draw_rect_assign(
-						&screen_rect, 0, 0, 640, 480);
-					frontend_screen_queue_push(
-						config_options_datapad_update,
-						&screen_rect);
-					return 0;
-				}
-				break;
-			case NET_TRANSPORT_MODEM:
-				if (g_game_config.phone_number[0] == '\0') {
-
-					if (frontend_dialog_show_confirm_dialog(
-						    frontend_string_get(
-							    FRONTSTR_696_YOU_HAVE_NOT_ENTERED_A_PHONE_NUMBER_FOR),
-						    frontend_string_get(
-							    FRONTSTR_697_THE_MODEM_CONNECTION_PLEASE_ENTER_ONE),
-						    frontend_string_get(
-							    FRONTSTR_698_IN_THE_CONFIGURATION_SCREEN),
-						    frontend_string_get(
-							    FRONTSTR_523_OKAY),
-						    frontend_string_get(
-							    FRONTSTR_019_CANCEL)) ==
-					    0) {
-						g_frontend_mission_session_mode =
-							FRONTEND_MISSION_SESSION_NONE;
-						frontend_screen_set_callbacks(
-							concourse_update,
-							concourse_exit);
-						return 0;
-					}
-
-					frontend_draw_rect_assign(
-						&screen_rect, 0, 0, 640, 480);
-					frontend_screen_queue_push(
-						config_options_datapad_update,
-						&screen_rect);
-					return 0;
-				}
-				break;
-			}
-		}
-		return frontend_net_connect_to_selected_game_screen(
-			frame_counter);
-	} else {
-		if (frame_counter == 0) {
-			frontend_cursor_set_pos(415, 121);
-			memset(g_mp_roster, 0, sizeof(g_mp_roster));
-			net_clear_player_ready_flags();
-			memset(g_frontend_net_selected_game_name, 0,
-			       sizeof(g_frontend_net_selected_game_name));
-			if (g_frontend_chat_log_buffer != NULL) {
-				memset(g_frontend_chat_log_buffer, 0, 1024);
-				g_frontend_chat_log_used_bytes = 0;
-			}
-			if (g_frontend_skip_screen_entry_setup == 0) {
-				memset(g_frontend_net_session_list, 0,
-				       sizeof(g_frontend_net_session_list));
-				g_frontend_net_session_count = 0;
-			}
-			g_frontend_first_visible_line = 0;
-			g_config_connection_type_editable = 0;
-			g_frontend_game_session_in_progress = 0;
-			g_frontend_net_received_mission_directory_id =
-				MISSION_DIRECTORY_TRAINING_EXERCISES;
-			g_frontend_net_received_mission_description_id = -1;
-			g_frontend_net_selected_session_idx = -1;
-			g_mission_setup_roster_authoritative = 0;
-			g_frontend_skip_screen_entry_setup = 0;
-			if (g_mission_text == NULL) {
-				g_mission_text = malloc(BRIEFING_TEXT_CAPACITY);
-			}
-			front_image_register_resource_default(
-				"frontres\\joinback.bmp", "background");
-			frontend_display_lock_offscreen_surface();
-			front_image_draw_sprite_opaque("background", 0, 0);
-			front_image_draw_sprite("frame", 0, 0);
-			if (g_host_cd_available != 0) {
-				front_image_draw_sprite("allactive", 0, 0);
-			} else {
-				front_image_draw_sprite("clientactive", 0, 0);
-			}
-			front_image_draw_sprite_translucent("chatbox", 0, 0);
-			front_image_draw_sprite_translucent("joinoverlay", 0,
-							    0);
-			frontend_display_unlock_offscreen_surface(1);
-			frontend_text_start_text_fade_in(20);
-		}
-
-		struct RECT rect;
-		frontend_draw_rect_assign(&rect, 158, 52, 491, 68);
-		frontend_text_draw_centered(
-			12, g_frontend_net_selected_game_name, &rect, 0xFFFF);
-		if (frame_counter % SESSION_REFRESH_INTERVAL_FRAMES == 0 &&
-		    g_frontend_net_selected_session_idx == -1) {
-			frontend_net_refresh_session_list();
-		}
-		if (g_frontend_net_selected_session_idx != -1) {
-			int packet_type =
-				frontend_net_process_network_packets();
-			if (packet_type == NET_PACKET_STATE) {
-				g_frontend_net_session_list
-					[g_frontend_net_selected_session_idx]
-						.last_query_ms = GetTickCount();
-				g_frontend_net_session_list
-					[g_frontend_net_selected_session_idx]
-						.players_needed =
-					g_frontend_net_probe_players_needed;
-				g_frontend_net_session_list
-					[g_frontend_net_selected_session_idx]
-						.password_required = (uint8_t)
-					g_frontend_net_probe_password_required;
-				mp_roster_compact_active_entries();
-				g_pilot_data.mission_directory_id =
-					g_frontend_net_received_mission_directory_id;
-				g_pilot_data.mission_description_ids
-					[g_frontend_net_received_mission_directory_id] =
-					g_frontend_net_received_mission_description_id;
-				mission_setup_load_mission_list(
-					g_pilot_data.mission_directory_id);
-				mission_setup_load_mission_desc_text(
-					g_mission_text);
-				if (g_mission_list != NULL) {
-					for (g_selected_mission_list_index = 0;
-					     (unsigned int)
-						     g_selected_mission_list_index <
-					     g_mission_count;
-					     ++g_selected_mission_list_index) {
-						if (g_mission_list
-							    [g_selected_mission_list_index]
-								    .mission_idx ==
-						    g_pilot_data.mission_description_ids
-							    [g_pilot_data
-								     .mission_directory_id]) {
-							break;
-						}
-					}
-				}
-				g_frontend_first_visible_line = 0;
-			} else if (
-				packet_type == NET_PACKET_HOST_CANCELLED ||
-				packet_type ==
-					NET_PACKET_FRONTEND_MISSION_START ||
-				packet_type ==
-					NET_PACKET_NEXT_TOURNAMENT_MISSION ||
-				packet_type == NET_PACKET_NEXT_BATTLE_MISSION ||
-				packet_type == NET_PACKET_REPLAY_MISSION ||
-				packet_type ==
-					NET_PACKET_RETURN_TO_MISSION_SELECTION ||
-				packet_type ==
-					NET_PACKET_REPLAY_CURRENT_MISSION) {
-				net_shutdown_direct_play_session();
-				frontend_net_refresh_session_list();
-				g_frontend_net_probe_mission_elapsed_seconds =
-					0;
-				g_frontend_net_selected_session_idx = -1;
-				g_frontend_net_received_mission_description_id =
-					-1;
-				memset(g_frontend_net_selected_game_name, 0,
-				       sizeof(g_frontend_net_selected_game_name));
-				memset(g_mission_text, 0,
-				       BRIEFING_TEXT_CAPACITY);
-			} else if (packet_type ==
-				   NET_PACKET_PLAYER_UNAVAILABLE) {
-				net_shutdown_direct_play_session();
-				g_frontend_net_probe_mission_elapsed_seconds =
-					0;
-				g_frontend_net_selected_session_idx = -1;
-				g_frontend_net_received_mission_description_id =
-					-1;
-				frontend_net_refresh_session_list();
-				memset(g_frontend_net_selected_game_name, 0,
-				       sizeof(g_frontend_net_selected_game_name));
-				memset(g_mission_text, 0,
-				       BRIEFING_TEXT_CAPACITY);
-			} else if (packet_type == NET_PACKET_GAME_FULL ||
-				   packet_type == NET_PACKET_VERSION_MISMATCH ||
-				   packet_type ==
-					   NET_PACKET_PASSWORD_REQUIRED ||
-				   packet_type == NET_PACKET_ROSTER_LOCKED) {
-				net_shutdown_direct_play_session();
-				switch (packet_type - NET_PACKET_GAME_FULL) {
-				case 0:
-					frontend_dialog_show_confirm_dialog(
-						frontend_string_get(
-							FRONTSTR_543_THE_GAME_YOU_ARE_TRYING_TO_JOIN_IS_FULL),
-						frontend_string_get(
-							FRONTSTR_544_PLEASE_TRY_ANOTHER_GAME),
-						frontend_string_get(
-							FRONTSTR_545_SPACE_TRANSLATION_PLACEHOLDER),
-						NULL, NULL);
-					break;
-				case NET_PACKET_VERSION_MISMATCH -
-					NET_PACKET_GAME_FULL:
-					frontend_dialog_show_confirm_dialog(
-						frontend_string_get(
-							FRONTSTR_546_YOUR_VERSION_OF_THE_PROGRAM_DOES_NOT),
-						frontend_string_get(
-							FRONTSTR_547_MATCH_THE_HOSTS_PLEASE_VERIFY_THAT_YOU),
-						frontend_string_get(
-							FRONTSTR_548_HAVE_THE_CORRECT_PROGRAM),
-						NULL, NULL);
-					break;
-				case NET_PACKET_PASSWORD_REQUIRED -
-					NET_PACKET_GAME_FULL:
-					frontend_dialog_show_confirm_dialog(
-						frontend_string_get(
-							FRONTSTR_549_THIS_GAME_REQUIRES_A_PASSWORD),
-						frontend_string_get(
-							FRONTSTR_550_PLEASE_ENTER_THE_CORRECT_PASSWORD_IN),
-						frontend_string_get(
-							FRONTSTR_551_THE_NETWORK_CONFIGURATION_SCREEN),
-						NULL, NULL);
-					frontend_draw_rect_assign(
-						&screen_rect, 0, 0, 640, 480);
-					frontend_screen_queue_push(
-						config_options_datapad_update,
-						&screen_rect);
-					break;
-				case NET_PACKET_ROSTER_LOCKED -
-					NET_PACKET_GAME_FULL:
-					frontend_dialog_show_confirm_dialog(
-						frontend_string_get(
-							FRONTSTR_552_THIS_GAME_HAS_ALREADY_STARTED),
-						frontend_string_get(
-							FRONTSTR_553_PLEASE_SELECT_ANOTHER_GAME_TO_JOIN),
-						frontend_string_get(
-							FRONTSTR_554_SPACE_TRANSLATION_PLACEHOLDER),
-						NULL, NULL);
-					break;
-				}
-				g_frontend_net_probe_mission_elapsed_seconds =
-					0;
-				g_frontend_net_selected_session_idx = -1;
-				g_frontend_net_received_mission_description_id =
-					-1;
-				frontend_net_refresh_session_list();
-				memset(g_frontend_net_selected_game_name, 0,
-				       sizeof(g_frontend_net_selected_game_name));
-				memset(g_mission_text, 0,
-				       BRIEFING_TEXT_CAPACITY);
-			}
-		}
-
-		int clicked_session_index =
-			frontend_net_draw_join_game_list(frame_counter);
-		if (clicked_session_index != -1) {
-			if (g_frontend_net_selected_session_idx ==
-			    clicked_session_index) {
-				g_frontend_net_selected_session_idx = -1;
-				g_frontend_net_received_mission_description_id =
-					-1;
-				g_frontend_net_probe_mission_elapsed_seconds =
-					0;
-				memset(g_frontend_net_selected_game_name, 0,
-				       sizeof(g_frontend_net_selected_game_name));
-				memset(g_mission_text, 0,
-				       BRIEFING_TEXT_CAPACITY);
-				net_shutdown_direct_play_session();
-			} else {
-				g_frontend_net_selected_session_idx =
-					clicked_session_index;
-				if (frontend_net_probe_session_by_index(
-					    clicked_session_index) == 0) {
-					net_shutdown_direct_play_session();
-					g_frontend_net_probe_mission_elapsed_seconds =
-						0;
-					g_frontend_net_selected_session_idx =
-						-1;
-					g_frontend_net_received_mission_description_id =
-						-1;
-					frontend_net_refresh_session_list();
-					memset(g_frontend_net_selected_game_name,
-					       0,
-					       sizeof(g_frontend_net_selected_game_name));
-					memset(g_mission_text, 0,
-					       BRIEFING_TEXT_CAPACITY);
-				} else {
-					frontend_net_sort_sessions();
-					if (g_frontend_net_session_list
-						    [g_frontend_net_selected_session_idx]
-							    .players_needed >
-					    0) {
-						frontend_mouse_clear_clicks();
-						frontend_cursor_set_pos(37,
-									445);
-					}
-				}
-			}
-		}
-		frontend_net_draw_join_game_player_roster();
-		frontend_net_draw_join_game_mission_briefing();
-		if (g_frontend_net_selected_session_idx != -1) {
-			frontend_net_update_and_draw_chat_panel(frame_counter);
-		}
-		frontend_draw_rect_assign(&rect, 507, 452, 562, 464);
-		sprintf(g_frontend_scratch_buffer, "v. %d.%d", 2, 0);
-		frontend_text_draw_centered(12, g_frontend_scratch_buffer,
-					    &rect, 0xFFFF);
-		frontend_draw_rect_assign(&rect, 200, 452, 436, 464);
-		if (g_pilot_data.name[0] != '\0') {
-			sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 6,
-				g_pilot_data.rating_name, 1, g_pilot_data.name);
-			frontend_text_draw_centered(12,
-						    g_frontend_scratch_buffer,
-						    &rect, g_color_yellow);
-			int animation_frame =
-				(frame_counter %
-				 PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >>
-				1;
-			sprintf(g_frontend_scratch_buffer, "rebtiny%d",
-				animation_frame);
-			front_image_draw_sprite(g_frontend_scratch_buffer, 204,
-						453);
-			sprintf(g_frontend_scratch_buffer, "imptiny%d",
-				animation_frame);
-			front_image_draw_sprite(g_frontend_scratch_buffer, 420,
-						453);
-		}
-		frontend_net_draw_join_game_sidebars_and_query_all();
-		if (frontend_handle_common_screen_controls(0) == 1) {
-			return 1;
-		}
-		frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
-		if (g_game_config.help_on != 0) {
-			frontend_button_enable_overlay_text();
-		}
-		frontend_button_set_overlay_text(
-			frontend_string_get(FRONTSTR_569_PREVIOUS));
-		if (frontend_button_handle_sprite_button(
-			    &rect, "leaveup", "leavedown",
-			    frontend_string_get(
-				    FRONTSTR_258_RETURN_TO_PILOT_RECORDS),
-			    12, 0, 8, "buttonsound") != 0) {
-			g_frontend_mission_session_mode =
-				FRONTEND_MISSION_SESSION_NONE;
-			net_shutdown_direct_play_session();
-			frontend_screen_set_callbacks(concourse_update,
-						      concourse_exit);
-		}
-		frontend_draw_rect_assign(&rect, 8, 405, 71, 470);
-		if (g_frontend_net_selected_session_idx != -1 &&
-		    g_frontend_net_session_list
-				    [g_frontend_net_selected_session_idx]
-					    .players_needed > 0 &&
-		    g_frontend_net_session_list
-				    [g_frontend_net_selected_session_idx]
-					    .version ==
-			    FRONTEND_NET_PROTOCOL_VERSION) {
-			frontend_button_set_overlay_text(
-				frontend_string_get(FRONTSTR_018_JOIN));
-			if (frontend_button_handle_sprite_button(
-				    &rect, "nextup", "nextdown",
-				    frontend_string_get(FRONTSTR_018_JOIN), 12,
-				    0, 7, "flysound") != 0) {
-				g_mission_setup_is_host = 0;
-				strcpy(g_pilot_data.multiplayer_game_name,
-				       g_frontend_net_session_list
-					       [g_frontend_net_selected_session_idx]
-						       .game_name);
-				int host_player_id = net_get_host_player_id();
-				g_frontend_net_packet_scratch.packet_type =
-					NET_PACKET_JOIN_REQUEST;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[0] =
-					FRONTEND_NET_PROTOCOL_VERSION;
-				memcpy(&g_frontend_net_packet_scratch
-						.payload[4],
-				       g_game_config.password,
-				       sizeof(g_game_config.password));
-				net_send_packet_and_flush(
-					host_player_id,
-					&g_frontend_net_packet_scratch,
-					JOIN_REQUEST_PACKET_SIZE);
-				frontend_screen_set_callbacks(
-					frontend_net_await_join_admission_screen,
-					NULL);
-			}
-		}
-		frontend_button_disable_overlay_text();
-		return 0;
-	}
-
-	return 0;
-#endif
 }
 
 /* Waits for the host's answer to a join request, run each frame, showing the
@@ -816,13 +262,10 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 		15,
 		frontend_string_get(FRONTSTR_020_ACCESSING_IMPERIAL_NETWORK),
 		&rect, 0xFFFF);
-#ifdef XVT_MODERN
 	if (xvt_network_dialogs_report_admission_failure()) {
 		return 0;
 	}
-#endif
 	int network_result = frontend_net_process_network_packets();
-#ifdef XVT_MODERN
 	if (g_frontend_net_packet_sender_player_id !=
 	    net_get_host_player_id()) {
 		if (network_result != 0) {
@@ -834,18 +277,13 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 		}
 		network_result = 0;
 	}
-#endif
 	if (network_result == NET_PACKET_GAME_FULL ||
 	    network_result == NET_PACKET_VERSION_MISMATCH ||
 	    network_result == NET_PACKET_PASSWORD_REQUIRED ||
 	    network_result == NET_PACKET_ROSTER_LOCKED ||
 	    network_result == NET_PACKET_HOST_CANCELLED ||
 	    network_result == NET_PACKET_FRONTEND_GAME_STARTED) {
-#ifdef XVT_MODERN
 		xvt_network_session_reject();
-#else
-		net_shutdown_direct_play_session_no_handshake();
-#endif
 		struct RECT screen_rect;
 		switch (network_result - NET_PACKET_FRONTEND_GAME_STARTED) {
 		case NET_PACKET_FRONTEND_GAME_STARTED -
@@ -864,11 +302,9 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 				frontend_string_get(
 					FRONTSTR_554_SPACE_TRANSLATION_PLACEHOLDER),
 				NULL, NULL);
-#ifdef XVT_MODERN
 			return xvt_dialog_continue_with(
 				xvt_network_dialogs_resume,
 				XVT_NETWORK_ACCESS_REJECTED);
-#endif
 			break;
 		case NET_PACKET_GAME_FULL - NET_PACKET_FRONTEND_GAME_STARTED:
 			XVT_LOG_DEBUG(
@@ -881,11 +317,9 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 				frontend_string_get(
 					FRONTSTR_545_SPACE_TRANSLATION_PLACEHOLDER),
 				NULL, NULL);
-#ifdef XVT_MODERN
 			return xvt_dialog_continue_with(
 				xvt_network_dialogs_resume,
 				XVT_NETWORK_ACCESS_REJECTED);
-#endif
 			break;
 		case NET_PACKET_HOST_CANCELLED -
 			NET_PACKET_FRONTEND_GAME_STARTED:
@@ -899,11 +333,9 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 				frontend_string_get(
 					FRONTSTR_633_PLEASE_SELECT_ANOTHER_GAME),
 				NULL, NULL);
-#ifdef XVT_MODERN
 			return xvt_dialog_continue_with(
 				xvt_network_dialogs_resume,
 				XVT_NETWORK_ACCESS_REJECTED);
-#endif
 			break;
 		case NET_PACKET_VERSION_MISMATCH -
 			NET_PACKET_FRONTEND_GAME_STARTED:
@@ -917,11 +349,9 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 				frontend_string_get(
 					FRONTSTR_548_HAVE_THE_CORRECT_PROGRAM),
 				NULL, NULL);
-#ifdef XVT_MODERN
 			return xvt_dialog_continue_with(
 				xvt_network_dialogs_resume,
 				XVT_NETWORK_ACCESS_REJECTED);
-#endif
 			break;
 		case NET_PACKET_PASSWORD_REQUIRED -
 			NET_PACKET_FRONTEND_GAME_STARTED:
@@ -935,11 +365,9 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 				frontend_string_get(
 					FRONTSTR_551_THE_NETWORK_CONFIGURATION_SCREEN),
 				NULL, NULL);
-#ifdef XVT_MODERN
 			return xvt_dialog_continue_with(
 				xvt_network_dialogs_resume,
 				XVT_NETWORK_ACCESS_PASSWORD);
-#endif
 			frontend_draw_rect_assign(&screen_rect, 0, 0, 640, 480);
 			frontend_screen_queue_push(
 				config_options_datapad_update, &screen_rect);
@@ -983,11 +411,9 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 	if (frontend_handle_common_screen_controls(0) == 1) {
 		return 1;
 	}
-#ifdef XVT_MODERN
 	if (xvt_dialog_is_active()) {
 		return 0;
 	}
-#endif
 	if (g_game_config.help_on != 0) {
 		frontend_button_enable_overlay_text();
 	}
@@ -999,14 +425,9 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 		frontend_string_get(FRONTSTR_019_CANCEL), 12, 0, 8,
 		"buttonsound");
 	frontend_button_disable_overlay_text();
-#ifdef XVT_MODERN
 	if (cancel_pressed != 0) {
 		XVT_LOG_DEBUG("network.join_cancelled");
 		xvt_network_session_cancel();
-#else
-	if (cancel_pressed != 0 || frame_counter == ACCESS_TIMEOUT_FRAME) {
-		net_shutdown_direct_play_session_no_handshake();
-#endif
 		g_frontend_skip_screen_entry_setup = 1;
 		frontend_screen_set_callbacks(
 			frontend_net_join_game_screen,
@@ -1023,53 +444,7 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 // FUNCTION: XVT 0x4D8350
 int frontend_net_draw_join_game_mission_briefing(void)
 {
-#ifdef XVT_MODERN
 	return xvt_network_browser_draw_mission();
-#else
-	struct RECT rect;
-
-	frontend_draw_rect_assign(&rect, 88, 309, 430, 324);
-	if (g_frontend_net_received_mission_description_id != -1) {
-		if (g_mission_list != NULL &&
-		    g_selected_mission_list_index < g_mission_count) {
-			sprintf(g_frontend_scratch_buffer, "%s %c%s",
-				frontend_string_get(FRONTSTR_187_MISSION), 4,
-				g_mission_list[g_selected_mission_list_index]
-					.description);
-		} else {
-			strcpy(g_frontend_scratch_buffer,
-			       frontend_string_get(FRONTSTR_187_MISSION));
-		}
-		frontend_text_draw_aligned_in_rect(
-			12, g_frontend_scratch_buffer, &rect, 0, 1, 0xFFFF);
-	} else {
-		frontend_text_draw_aligned_in_rect(
-			12, frontend_string_get(FRONTSTR_187_MISSION), &rect, 0,
-			1, 0xFFFF);
-	}
-
-	if (g_frontend_net_received_mission_description_id != -1 &&
-	    g_mission_text != NULL) {
-		frontend_draw_rect_assign(&rect, 88, 328, 420, 426);
-		unsigned int line_count =
-			frontend_text_draw_wrapped(12, g_mission_text, &rect,
-						   0xFFFF, 4, 4096) +
-			1;
-		if (line_count > 6) {
-			frontend_draw_rect_assign(&rect, 421, 328, 430, 426);
-			g_frontend_first_visible_line = frontend_scrollbar_draw(
-				&rect, g_frontend_first_visible_line,
-				line_count, 0, 5, (unsigned int)g_color_navy,
-				6);
-			frontend_draw_rect_assign(&rect, 88, 328, 420, 426);
-		} else {
-			frontend_draw_rect_assign(&rect, 88, 328, 430, 426);
-		}
-		frontend_text_draw_wrapped(12, g_mission_text, &rect, 0xFFFF, 4,
-					   g_frontend_first_visible_line);
-	}
-	return 1;
-#endif
 }
 
 /* Draws the join screen's player heading and, once a lobby STATE has arrived,
@@ -1079,51 +454,7 @@ int frontend_net_draw_join_game_mission_briefing(void)
 // FUNCTION: XVT 0x4D8540
 int frontend_net_draw_join_game_player_roster(void)
 {
-#ifdef XVT_MODERN
 	return xvt_network_browser_draw_roster();
-#else
-	struct RECT rect;
-
-	frontend_draw_rect_assign(&rect, 88, 218, 430, 233);
-	frontend_text_draw_aligned_in_rect(
-		12, frontend_string_get(FRONTSTR_201_PLAYERS_IN_GAME), &rect, 0,
-		1, 0xFFFF);
-	struct RECT previous_clip_rect;
-	if (g_frontend_net_received_mission_description_id != -1) {
-		int displayed_count = 0;
-		net_count_ready_players();
-		frontend_draw_rect_assign(&rect, 88, 238, 258, 252);
-		for (int roster_index = 0; roster_index < 8; ++roster_index) {
-			if (g_mp_roster[roster_index].player_id != 0) {
-				frontend_display_get_screen_clip_rect(
-					&previous_clip_rect);
-				++displayed_count;
-				frontend_display_set_screen_clip_rect640x480(
-					&rect);
-				sprintf(g_frontend_scratch_buffer, "%c%s %c%s",
-					6,
-					frontend_string_get(
-						FRONTSTR_154_DRONE +
-						g_mp_roster[roster_index]
-							.pilot_rating),
-					4, g_mp_roster[roster_index].name);
-				frontend_text_draw_aligned_in_rect(
-					12, g_frontend_scratch_buffer, &rect, 0,
-					1, 0xFFFF);
-				frontend_display_set_screen_clip_rect640x480(
-					&previous_clip_rect);
-				if (displayed_count == 4) {
-					frontend_draw_rect_assign(
-						&rect, 259, 238, 430, 252);
-				} else {
-					frontend_draw_rect_offset_xy(&rect, 0,
-								     15);
-				}
-			}
-		}
-	}
-	return 1;
-#endif
 }
 
 /* Runs the chat panel each frame. Once the mission setup roster is
@@ -1321,262 +652,6 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 		max_scroll - g_frontend_chat_scroll_offset - 1);
 }
 
-#ifndef XVT_MODERN
-/* The connecting screen for TCP/IP, modem and serial play, run each frame.
- * Frame 0 clears the ready flags, chat log, selection and mission state and
- * draws the connecting message; frames 1 to 4 add the transport's hint (the
- * TCP/IP time-out, or Alt+F4 to cancel); frame 5 ends any DirectPlay session
- * and joins one as a client at the configured IP address or phone number, named
- * after g_frontend_net_session_list[0].game_name. On success it sends the host a
- * JOIN_REQUEST with the protocol version and password and moves to
- * frontend_net_await_join_admission_screen; on failure it returns to the concourse.
- * Returns 0. Only the original build calls this. */
-// FUNCTION: XVT 0x4D8C20
-int frontend_net_connect_to_selected_game_screen(int frame_counter)
-{
-	enum {
-		CONNECT_ACTION_FRAME = 5,
-		CONNECT_RESTORE_DISABLE_FRAME = 4,
-		CONNECT_FONT_SIZE = 12,
-		CONNECT_TITLE_FONT_SIZE = 15,
-		CONNECT_SCREEN_WIDTH = 640,
-		CONNECT_SCREEN_HEIGHT = 480,
-		CONNECT_MESSAGE_LEFT = 84,
-		CONNECT_MESSAGE_RIGHT = 605,
-		CONNECT_MESSAGE_TOP = 90,
-		CONNECT_MESSAGE_BOTTOM = 106,
-		CONNECT_MESSAGE_LOWER_TOP = 415,
-		CONNECT_MESSAGE_LOWER_BOTTOM = 429,
-		CONNECT_GDI_MESSAGE_BOTTOM = 429,
-		BRIEFING_TEXT_CAPACITY = 4096,
-		CHAT_LOG_CAPACITY = 1024,
-		JOIN_REQUEST_PACKET_SIZE = 24,
-	};
-
-	struct RECT rect;
-
-	if (frame_counter == 0) {
-		net_clear_player_ready_flags();
-		if (g_frontend_chat_log_buffer != NULL) {
-			memset(g_frontend_chat_log_buffer, 0,
-			       CHAT_LOG_CAPACITY);
-			g_frontend_chat_log_used_bytes = 0;
-		}
-		g_frontend_net_received_mission_directory_id =
-			MISSION_DIRECTORY_TRAINING_EXERCISES;
-		g_frontend_net_received_mission_description_id = -1;
-		g_frontend_net_selected_session_idx = -1;
-		g_mission_setup_roster_authoritative = 0;
-		if (g_mission_text == NULL) {
-			g_mission_text = (char *)malloc(BRIEFING_TEXT_CAPACITY);
-		}
-		front_image_register_resource_default("frontres\\joinback.bmp",
-						      "background");
-		frontend_display_lock_offscreen_surface();
-		front_image_draw_sprite_opaque("background", 0, 0);
-		front_image_draw_sprite("frame", 0, 0);
-		if (g_host_cd_available != 0) {
-			front_image_draw_sprite("allactive", 0, 0);
-		} else {
-			front_image_draw_sprite("clientactive", 0, 0);
-		}
-		frontend_draw_rect_assign(&rect, 0, 0, CONNECT_SCREEN_WIDTH,
-					  CONNECT_SCREEN_HEIGHT);
-		frontend_text_draw_centered(
-			CONNECT_TITLE_FONT_SIZE,
-			frontend_string_get(FRONTSTR_645_CONNECTING), &rect,
-			0xFFFF);
-		frontend_display_unlock_offscreen_surface(1);
-		frontend_text_stop_text_fade();
-		return 0;
-	}
-
-	unsigned int network_type;
-	if (frame_counter > 0 && frame_counter < CONNECT_ACTION_FRAME) {
-		frontend_cursor_hide();
-		network_type = g_game_config.network_type;
-		switch ((network_transport_type)network_type) {
-		case NET_TRANSPORT_TCPIP:
-			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
-						  CONNECT_MESSAGE_LOWER_TOP,
-						  CONNECT_MESSAGE_RIGHT,
-						  CONNECT_MESSAGE_LOWER_BOTTOM);
-			frontend_text_draw_centered(
-				CONNECT_FONT_SIZE,
-				frontend_string_get(
-					FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES),
-				&rect, g_color_red);
-			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
-						  CONNECT_MESSAGE_TOP,
-						  CONNECT_MESSAGE_RIGHT,
-						  CONNECT_MESSAGE_BOTTOM);
-			frontend_text_draw_centered(
-				CONNECT_FONT_SIZE,
-				frontend_string_get(
-					FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES),
-				&rect, g_color_red);
-			break;
-		case NET_TRANSPORT_MODEM:
-		case NET_TRANSPORT_SERIAL:
-			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
-						  CONNECT_MESSAGE_LOWER_TOP,
-						  CONNECT_MESSAGE_RIGHT,
-						  CONNECT_MESSAGE_LOWER_BOTTOM);
-			frontend_text_draw_centered(
-				CONNECT_FONT_SIZE,
-				frontend_string_get(
-					FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-				&rect, g_color_red);
-			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
-						  CONNECT_MESSAGE_TOP,
-						  CONNECT_MESSAGE_RIGHT,
-						  CONNECT_MESSAGE_BOTTOM);
-			frontend_text_draw_centered(
-				CONNECT_FONT_SIZE,
-				frontend_string_get(
-					FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-				&rect, g_color_red);
-			break;
-		default:
-			break;
-		}
-		if (frame_counter == CONNECT_RESTORE_DISABLE_FRAME) {
-			frontend_display_disable_offscreen_restore();
-			return 0;
-		}
-	} else if (frame_counter == CONNECT_ACTION_FRAME) {
-		network_type = g_game_config.network_type;
-		switch ((network_transport_type)network_type) {
-		case NET_TRANSPORT_TCPIP:
-			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
-						  CONNECT_MESSAGE_LOWER_TOP,
-						  CONNECT_MESSAGE_RIGHT,
-						  CONNECT_MESSAGE_LOWER_BOTTOM);
-			frontend_text_draw_centered(
-				CONNECT_FONT_SIZE,
-				frontend_string_get(
-					FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES),
-				&rect, g_color_red);
-			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
-						  CONNECT_MESSAGE_TOP,
-						  CONNECT_MESSAGE_RIGHT,
-						  CONNECT_MESSAGE_BOTTOM);
-			frontend_text_draw_centered(
-				CONNECT_FONT_SIZE,
-				frontend_string_get(
-					FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES),
-				&rect, g_color_red);
-			break;
-		case NET_TRANSPORT_MODEM:
-		case NET_TRANSPORT_SERIAL:
-			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
-						  CONNECT_MESSAGE_LOWER_TOP,
-						  CONNECT_MESSAGE_RIGHT,
-						  CONNECT_MESSAGE_LOWER_BOTTOM);
-			frontend_text_draw_centered(
-				CONNECT_FONT_SIZE,
-				frontend_string_get(
-					FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-				&rect, g_color_red);
-			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
-						  CONNECT_MESSAGE_TOP,
-						  CONNECT_MESSAGE_RIGHT,
-						  CONNECT_MESSAGE_BOTTOM);
-			frontend_text_draw_centered(
-				CONNECT_FONT_SIZE,
-				frontend_string_get(
-					FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-				&rect, g_color_red);
-			break;
-		default:
-			break;
-		}
-
-		g_mission_setup_is_host = 0;
-		net_shutdown_direct_play_session();
-		network_type = g_game_config.network_type;
-		switch ((network_transport_type)network_type) {
-		case NET_TRANSPORT_IPX:
-		case NET_TRANSPORT_SERIAL:
-			g_frontend_scratch_buffer[0] = '\0';
-			break;
-		case NET_TRANSPORT_TCPIP:
-			frontend_display_flip_direct_draw_to_gdi_surface();
-			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
-						  CONNECT_MESSAGE_TOP,
-						  CONNECT_MESSAGE_RIGHT,
-						  CONNECT_GDI_MESSAGE_BOTTOM);
-			frontend_display_draw_gdi_text_on_desktop(
-				&rect,
-				frontend_string_get(FRONTSTR_645_CONNECTING),
-				frontend_string_get(
-					FRONTSTR_740_IF_ATTEMPT_TO_CONNECT_TO_THE_TCP_IP_ADDRESS_FAILS_TIMEOUT_WILL_OCCUR_IN_2_5_MINUTES));
-			strcpy(g_frontend_scratch_buffer,
-			       g_game_config.ip_address);
-			break;
-		case NET_TRANSPORT_MODEM:
-			strcpy(g_frontend_scratch_buffer,
-			       g_game_config.phone_number);
-			break;
-		}
-
-		char player_info[2];
-		player_info[0] = (char)(g_pilot_data.rating + 1);
-		player_info[1] = '\0';
-		frontend_display_unlock_back_buffer();
-		frontend_cursor_show_os_cursor();
-		g_draw_surface_ptr = frontend_display_lock_back_buffer();
-		if (net_start_network_session(
-			    (int)g_frontend_net_xvt_direct_play_app_guid[0],
-			    (int)g_frontend_net_xvt_direct_play_app_guid[1],
-			    (int)g_frontend_net_xvt_direct_play_app_guid[2],
-			    (int)g_frontend_net_xvt_direct_play_app_guid[3],
-			    player_info, g_pilot_data.name,
-			    g_mission_setup_is_host,
-			    g_frontend_net_session_list[0].game_name,
-			    (network_transport_type)g_game_config.network_type,
-			    0, 1, g_frontend_scratch_buffer, NULL) != 0) {
-			int host_player_id = net_get_host_player_id();
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_JOIN_REQUEST;
-			*(int *)g_frontend_net_packet_scratch.payload =
-				FRONTEND_NET_PROTOCOL_VERSION;
-			memcpy(g_frontend_net_packet_scratch.payload +
-				       sizeof(int),
-			       g_game_config.password,
-			       sizeof(g_game_config.password));
-			net_send_packet_and_flush(
-				host_player_id, &g_frontend_net_packet_scratch,
-				JOIN_REQUEST_PACKET_SIZE);
-			frontend_screen_set_callbacks(
-				frontend_net_await_join_admission_screen, NULL);
-		} else {
-			g_frontend_mission_session_mode =
-				FRONTEND_MISSION_SESSION_NONE;
-			frontend_screen_set_callbacks(concourse_update,
-						      concourse_exit);
-		}
-		frontend_display_unlock_back_buffer();
-		network_type = g_game_config.network_type;
-		switch ((network_transport_type)network_type) {
-		case NET_TRANSPORT_TCPIP:
-			frontend_draw_rect_assign(&rect, CONNECT_MESSAGE_LEFT,
-						  CONNECT_MESSAGE_TOP,
-						  CONNECT_MESSAGE_RIGHT,
-						  CONNECT_GDI_MESSAGE_BOTTOM);
-			frontend_display_clear_desktop_gdi(&rect);
-			break;
-		default:
-			break;
-		}
-		frontend_cursor_hide_os_cursor();
-		g_draw_surface_ptr = frontend_display_lock_back_buffer();
-		frontend_cursor_show();
-		frontend_display_enable_offscreen_restore();
-	}
-	return 0;
-}
-#endif
 
 /* Draws the join screen's side navigation, its first slot active and shown
  * pressed while the query button is held, and the query button; a click probes
@@ -1621,505 +696,21 @@ int frontend_net_draw_join_game_sidebars_and_query_all(void)
 	frontend_draw_rect_assign(&rect, QUERY_BUTTON_LEFT, QUERY_BUTTON_TOP,
 				  QUERY_BUTTON_RIGHT, QUERY_BUTTON_BOTTOM);
 	if (frontend_button_handle_sprite_button(&rect, "join1u", "join1d",
-#ifdef XVT_MODERN
 						 "Refresh",
-#else
-						 frontend_string_get(
-							 FRONTSTR_734_QUERY_ALL_GAMES),
-#endif
 						 QUERY_BUTTON_FONT_SIZE, 0,
 						 QUERY_BUTTON_HELD_SLOT,
 						 "jewelsound") != 0) {
-#ifdef XVT_MODERN
 		XVT_LOG_DEBUG("network.refresh_requested");
 		xvt_network_task_refresh();
-#else
-		frontend_net_probe_all_sessions();
-#endif
 	}
 	return 1;
 }
 
-#ifndef XVT_MODERN
-/* Returns a key for a session GUID, the sum of its parts: data2 shifted left
- * 16, data3, both words of data4 and data1, wrapping at 32 bits. Different
- * GUIDs can share a key, and a key of 0 marks an empty list entry. Only the
- * original build calls this. */
-// FUNCTION: XVT 0x4D9280
-int frontend_net_make_session_guid_key(struct net_session_guid guid)
-{
-	return (int)(((unsigned int)guid.data2 << 16) + guid.data3 +
-		     guid.data4[1] + guid.data4[0] + guid.data1);
-}
-#endif
 
-#ifndef XVT_MODERN
-/* Updates the join screen's game list from DirectPlay's list of this game's
- * sessions; returns 0 at once while a game is selected, else the new count.
- * Entries whose GUID key is no longer listed are cleared; new sessions are
- * appended with 9 players needed (not yet probed), no query time, this build's
- * protocol version and no password, with a sound when any was added. Then it
- * closes the gaps, recounts (at most 32) and sorts the list. Does not check
- * that appended sessions fit in the 32 entries. Only the original build calls
- * this. */
-// FUNCTION: XVT 0x4D92B0
-int frontend_net_refresh_session_list(void)
-{
-	enum {
-		FRONTEND_NET_SESSION_CAPACITY =
-			sizeof(g_frontend_net_session_list) /
-			sizeof(g_frontend_net_session_list[0]),
-		FRONTEND_NET_NEW_SESSION_PLAYERS_NEEDED = 9,
-		FRONTEND_NET_UI_SOUND_PRIORITY = 255,
-		FRONTEND_NET_UI_SOUND_VOLUME_SCALE = 12,
-		FRONTEND_NET_UI_SOUND_CENTER_PAN = 63
-	};
 
-	int added_session = 0;
-	if (g_frontend_net_selected_session_idx != -1) {
-		return 0;
-	}
 
-	struct net_session_enum_entry
-		enumerated_sessions[FRONTEND_NET_SESSION_CAPACITY];
-	unsigned int enumerated_session_count =
-		(unsigned int)net_enumerate_app_sessions(
-			g_frontend_net_xvt_direct_play_app_guid[0],
-			g_frontend_net_xvt_direct_play_app_guid[1],
-			g_frontend_net_xvt_direct_play_app_guid[2],
-			g_frontend_net_xvt_direct_play_app_guid[3],
-			enumerated_sessions, FRONTEND_NET_SESSION_CAPACITY,
-			(network_transport_type)g_game_config.network_type);
 
-	int existing_index = 0;
-	unsigned int enumerated_index;
-	if (g_frontend_net_session_count != 0) {
-		do {
-			int existing_guid_key =
-				frontend_net_make_session_guid_key(
-					g_frontend_net_session_list
-						[existing_index]
-							.session_guid);
-			if (existing_guid_key != 0) {
-				for (enumerated_index = 0;
-				     enumerated_index <
-				     enumerated_session_count;
-				     ++enumerated_index) {
-					int replacement_guid_key =
-						frontend_net_make_session_guid_key(
-							enumerated_sessions
-								[enumerated_index]
-									.session_guid);
-					if (replacement_guid_key != 0 &&
-					    replacement_guid_key ==
-						    existing_guid_key) {
-						memset(&enumerated_sessions
-								[enumerated_index]
-									.session_guid,
-						       0,
-						       sizeof(enumerated_sessions[enumerated_index]
-								      .session_guid));
-						break;
-					}
-				}
-				if (enumerated_index ==
-				    enumerated_session_count) {
-					memset(&g_frontend_net_session_list
-						       [existing_index],
-					       0,
-					       sizeof(g_frontend_net_session_list
-							      [existing_index]));
-				}
-			}
-			++existing_index;
-		} while ((unsigned int)existing_index <
-			 (unsigned int)g_frontend_net_session_count);
-	}
 
-	for (enumerated_index = 0; enumerated_index < enumerated_session_count;
-	     ++enumerated_index) {
-		int replacement_guid_key = frontend_net_make_session_guid_key(
-			enumerated_sessions[enumerated_index].session_guid);
-		if (replacement_guid_key != 0) {
-			/* existing_index is reused here as the slot where the
-			 * new session is appended. */
-			existing_index =
-				(unsigned int)g_frontend_net_session_count;
-			strcpy(g_frontend_net_session_list[existing_index]
-				       .game_name,
-			       enumerated_sessions[enumerated_index]
-				       .session_name);
-			memcpy(&g_frontend_net_session_list[existing_index]
-					.session_guid,
-			       &enumerated_sessions[enumerated_index]
-					.session_guid,
-			       sizeof(g_frontend_net_session_list
-					      [existing_index]
-						      .session_guid));
-			++g_frontend_net_session_count;
-			added_session = 1;
-			g_frontend_net_session_list[existing_index]
-				.players_needed =
-				FRONTEND_NET_NEW_SESSION_PLAYERS_NEEDED;
-			g_frontend_net_session_list[existing_index]
-				.last_query_ms = 0;
-			g_frontend_net_session_list[existing_index].version =
-				FRONTEND_NET_PROTOCOL_VERSION;
-			g_frontend_net_session_list[existing_index]
-				.password_required = 0;
-		}
-	}
-
-	if (added_session != 0 && g_game_config.sfx_datapad_enabled != 0) {
-		frontend_sound_play_ui_sound(
-			"newpsound", 1, 0, FRONTEND_NET_UI_SOUND_PRIORITY,
-			FRONTEND_NET_UI_SOUND_VOLUME_SCALE *
-				g_game_config.sfx_datapad_volume,
-			FRONTEND_NET_UI_SOUND_CENTER_PAN);
-	}
-
-	existing_index = 0;
-	if (g_frontend_net_session_count != 0) {
-		do {
-			int existing_guid_key =
-				frontend_net_make_session_guid_key(
-					g_frontend_net_session_list
-						[existing_index]
-							.session_guid);
-			if (existing_guid_key == 0) {
-				for (unsigned int replacement_index =
-					     existing_index + 1;
-				     (unsigned int)replacement_index <
-				     (unsigned int)g_frontend_net_session_count;
-				     ++replacement_index) {
-					int replacement_guid_key =
-						frontend_net_make_session_guid_key(
-							g_frontend_net_session_list
-								[replacement_index]
-									.session_guid);
-					if (replacement_guid_key != 0) {
-						memcpy(&g_frontend_net_session_list
-							       [existing_index],
-						       &g_frontend_net_session_list
-							       [replacement_index],
-						       sizeof(g_frontend_net_session_list
-								      [existing_index]));
-						memset(&g_frontend_net_session_list
-							       [replacement_index],
-						       0,
-						       sizeof(g_frontend_net_session_list
-								      [replacement_index]));
-						break;
-					}
-				}
-			}
-			++existing_index;
-		} while ((unsigned int)existing_index <
-			 (unsigned int)g_frontend_net_session_count);
-	}
-
-	g_frontend_net_session_count = 0;
-	while ((unsigned int)g_frontend_net_session_count <
-	       FRONTEND_NET_SESSION_CAPACITY) {
-		existing_index = (unsigned int)g_frontend_net_session_count;
-		if (frontend_net_make_session_guid_key(
-			    g_frontend_net_session_list[existing_index]
-				    .session_guid) == 0) {
-			break;
-		}
-		++g_frontend_net_session_count;
-	}
-	frontend_net_sort_sessions();
-	return g_frontend_net_session_count;
-}
-#endif
-
-#ifndef XVT_MODERN
-/* qsort order for the game list: games on protocol version 101 first, then
- * games not in flight, then games needing players, then those needing more than
- * 8 (not yet probed), then by name. Returns a negative number, 0 or a positive
- * number. Only the original build calls this. */
-// FUNCTION: XVT 0x4D95D0
-int frontend_net_compare_session_list_entries(
-	const struct frontend_net_session_entry *lhs,
-	const struct frontend_net_session_entry *rhs)
-{
-	int result = (rhs->version == 101u) - (lhs->version == 101u);
-	if (result == 0) {
-		result =
-			(rhs->game_in_flight == 0) - (lhs->game_in_flight == 0);
-		if (result == 0) {
-			unsigned int rhs_players_needed =
-				(unsigned int)rhs->players_needed;
-			unsigned int lhs_players_needed =
-				(unsigned int)lhs->players_needed;
-			result = (rhs_players_needed > 0) -
-				 (lhs_players_needed > 0);
-			if (result == 0) {
-				result = (rhs_players_needed > 8u) -
-					 (lhs_players_needed > 8u);
-				if (result == 0) {
-					return strcmp(lhs->game_name,
-						      rhs->game_name);
-				}
-			}
-		}
-	}
-
-	return result;
-}
-#endif
-
-#ifndef XVT_MODERN
-/* Sorts g_frontend_net_session_list and keeps the selection on the same game by
- * its GUID key; when the selected game is gone it drops the selection, its name
- * and mission text and ends the DirectPlay session. Returns the selected index,
- * or -1 for none or an empty list. Only the original build calls this. */
-// FUNCTION: XVT 0x4D9680
-int frontend_net_sort_sessions(void)
-{
-	enum { FRONTEND_NET_BRIEFING_TEXT_CAPACITY = 4096 };
-
-	if (g_frontend_net_session_count == 0) {
-		return -1;
-	}
-	int selected_session_guid_key;
-	if (g_frontend_net_selected_session_idx != -1) {
-		selected_session_guid_key = frontend_net_make_session_guid_key(
-			g_frontend_net_session_list
-				[g_frontend_net_selected_session_idx]
-					.session_guid);
-	}
-
-	qsort(g_frontend_net_session_list, (size_t)g_frontend_net_session_count,
-	      sizeof(g_frontend_net_session_list[0]),
-	      (int (*)(const void *,
-		       const void *))frontend_net_compare_session_list_entries);
-	if (g_frontend_net_selected_session_idx != -1) {
-		int session_index;
-		for (session_index = 0;
-		     (unsigned int)session_index <
-		     (unsigned int)g_frontend_net_session_count;
-		     ++session_index) {
-			if (frontend_net_make_session_guid_key(
-				    g_frontend_net_session_list[session_index]
-					    .session_guid) ==
-			    selected_session_guid_key) {
-				g_frontend_net_selected_session_idx =
-					session_index;
-				break;
-			}
-		}
-		if (session_index == g_frontend_net_session_count) {
-			g_frontend_net_selected_session_idx = -1;
-			g_frontend_net_received_mission_description_id = -1;
-			memset(g_frontend_net_selected_game_name, 0,
-			       sizeof(g_frontend_net_selected_game_name));
-			memset(g_mission_text, 0,
-			       FRONTEND_NET_BRIEFING_TEXT_CAPACITY);
-			net_shutdown_direct_play_session();
-		}
-	}
-
-	return g_frontend_net_selected_session_idx;
-}
-#endif
-
-#ifndef XVT_MODERN
-/* Drops the selection, refreshes the game list, probes every listed game in
- * turn, ends the DirectPlay session and sorts the list; returns the game count.
- * Only the original build calls this. */
-// FUNCTION: XVT 0x4D9780
-int frontend_net_probe_all_sessions(void)
-{
-	enum { BRIEFING_TEXT_CAPACITY = 4096 };
-
-	g_frontend_net_selected_session_idx = -1;
-	g_frontend_net_probe_mission_elapsed_seconds = 0;
-	g_frontend_net_received_mission_description_id = -1;
-	memset(g_frontend_net_selected_game_name, 0,
-	       sizeof(g_frontend_net_selected_game_name));
-	memset(g_mission_text, 0, BRIEFING_TEXT_CAPACITY);
-	net_shutdown_direct_play_session();
-	frontend_net_refresh_session_list();
-	for (int session_index = 0;
-	     session_index < g_frontend_net_session_count; ++session_index) {
-		frontend_net_probe_session_by_index(session_index);
-	}
-	net_shutdown_direct_play_session();
-	frontend_net_sort_sessions();
-	return g_frontend_net_session_count;
-}
-#endif
-
-#ifndef XVT_MODERN
-/* Joins one listed game briefly to ask about it: ends any DirectPlay session,
- * names the game in g_frontend_net_selected_game_name, joins as a client, and sends
- * the host a PROBE_REQUEST, plus a CHAT_SYNC_REQUEST when it is the selected
- * game. It then reads packets for up to 2,000 ms until a probe answer or a
- * flight-session status arrives, loading the mission list and briefing from a
- * lobby STATE for the selected game. The answer's players needed, version and
- * password flag go into the entry, with game_in_flight 1 for a flight-session
- * status; with no answer the entry gets 0 players and version 0. Returns 1, or
- * 0 when the join failed, which also marks the entry and drops any selection.
- * Leaves the DirectPlay session open. Only the original build calls this. */
-// FUNCTION: XVT 0x4D97F0
-int frontend_net_probe_session_by_index(int session_idx)
-{
-	enum {
-		SESSION_PROBE_PACKET_SIZE = sizeof(int),
-		SESSION_PROBE_TIMEOUT_MS = 2000,
-		BRIEFING_TEXT_CAPACITY = 4096,
-	};
-
-	net_shutdown_direct_play_session();
-	strcpy(g_frontend_net_selected_game_name,
-	       g_frontend_net_session_list[session_idx].game_name);
-	switch ((network_transport_type)g_game_config.network_type) {
-	case NET_TRANSPORT_IPX:
-		g_frontend_scratch_buffer[0] = '\0';
-		break;
-	case NET_TRANSPORT_TCPIP:
-		strcpy(g_frontend_scratch_buffer, g_game_config.ip_address);
-		break;
-	case NET_TRANSPORT_MODEM:
-		strcpy(g_frontend_scratch_buffer, g_game_config.phone_number);
-		break;
-	default:
-		break;
-	}
-
-	GUID session_guid;
-	memcpy(&session_guid,
-	       &g_frontend_net_session_list[session_idx].session_guid,
-	       sizeof(session_guid));
-	char player_info[2];
-	player_info[0] = (char)(g_pilot_data.rating + 1);
-	player_info[1] = '\0';
-	if (net_start_network_session(
-		    (int)g_frontend_net_xvt_direct_play_app_guid[0],
-		    (int)g_frontend_net_xvt_direct_play_app_guid[1],
-		    (int)g_frontend_net_xvt_direct_play_app_guid[2],
-		    (int)g_frontend_net_xvt_direct_play_app_guid[3],
-		    player_info, g_pilot_data.name, 0,
-		    g_frontend_net_selected_game_name,
-		    (network_transport_type)g_game_config.network_type, 0, 1,
-		    g_frontend_scratch_buffer, &session_guid) == 0) {
-		if (g_frontend_net_selected_session_idx != -1) {
-			g_frontend_net_selected_session_idx = -1;
-			g_frontend_net_received_mission_description_id = -1;
-			g_frontend_net_probe_mission_elapsed_seconds = 0;
-			memset(g_frontend_net_selected_game_name, 0,
-			       sizeof(g_frontend_net_selected_game_name));
-			memset(g_mission_text, 0, BRIEFING_TEXT_CAPACITY);
-			frontend_net_refresh_session_list();
-		}
-		g_frontend_net_session_list[session_idx].players_needed = 0;
-		g_frontend_net_session_list[session_idx].last_query_ms =
-			GetTickCount();
-		g_frontend_net_session_list[session_idx].version = 0;
-		g_frontend_net_session_list[session_idx].password_required = 0;
-		g_frontend_net_session_list[session_idx].game_in_flight = 0;
-		return 0;
-	}
-
-	if (g_frontend_net_selected_session_idx != -1 &&
-	    session_idx == g_frontend_net_selected_session_idx) {
-		g_frontend_net_received_mission_directory_id =
-			MISSION_DIRECTORY_TRAINING_EXERCISES;
-		g_frontend_net_received_mission_description_id = -1;
-	}
-	int host_player_id = net_get_host_player_id();
-	g_frontend_net_packet_scratch.packet_type = NET_PACKET_PROBE_REQUEST;
-	net_send_packet_and_flush(host_player_id,
-				  &g_frontend_net_packet_scratch,
-				  SESSION_PROBE_PACKET_SIZE);
-	if (g_frontend_net_selected_session_idx != -1 &&
-	    session_idx == g_frontend_net_selected_session_idx) {
-		g_frontend_net_packet_scratch.packet_type =
-			NET_PACKET_CHAT_SYNC_REQUEST;
-		net_send_packet_and_flush(host_player_id,
-					  &g_frontend_net_packet_scratch,
-					  SESSION_PROBE_PACKET_SIZE);
-	}
-
-	g_frontend_net_probe_players_needed = 0;
-	g_frontend_net_probe_mission_elapsed_seconds = 0;
-	unsigned int probe_start_ms = GetTickCount();
-	unsigned int current_time_ms;
-	int packet_type;
-	do {
-		packet_type = frontend_net_process_network_packets();
-		current_time_ms = GetTickCount();
-		if (packet_type == NET_PACKET_FLIGHT_SESSION_STATUS ||
-		    packet_type == NET_PACKET_PROBE_RESPONSE) {
-			break;
-		}
-		if (packet_type == NET_PACKET_STATE) {
-			if (g_frontend_net_selected_session_idx != -1 &&
-			    session_idx ==
-				    g_frontend_net_selected_session_idx) {
-				g_pilot_data.mission_directory_id =
-					g_frontend_net_received_mission_directory_id;
-				g_pilot_data.mission_description_ids
-					[g_pilot_data.mission_directory_id] =
-					g_frontend_net_received_mission_description_id;
-				mission_setup_load_mission_list(
-					g_pilot_data.mission_directory_id);
-				mission_setup_load_mission_desc_text(
-					g_mission_text);
-				if (g_mission_list != NULL) {
-					g_selected_mission_list_index = 0;
-					while ((unsigned int)g_selected_mission_list_index <
-						       (unsigned int)
-							       g_mission_count &&
-					       g_mission_list[g_selected_mission_list_index]
-							       .mission_idx !=
-						       g_pilot_data.mission_description_ids
-							       [g_pilot_data
-									.mission_directory_id]) {
-						++g_selected_mission_list_index;
-					}
-				}
-				g_frontend_first_visible_line = 0;
-			} else {
-				g_frontend_net_received_mission_description_id =
-					-1;
-			}
-		}
-	} while (current_time_ms - probe_start_ms < SESSION_PROBE_TIMEOUT_MS);
-
-	if (packet_type == NET_PACKET_FLIGHT_SESSION_STATUS) {
-		g_frontend_net_session_list[session_idx].last_query_ms =
-			GetTickCount();
-		g_frontend_net_session_list[session_idx].players_needed =
-			g_frontend_net_probe_players_needed;
-		g_frontend_net_session_list[session_idx].version =
-			g_frontend_net_probe_version;
-		g_frontend_net_session_list[session_idx].password_required =
-			(uint8_t)g_frontend_net_probe_password_required;
-		g_frontend_net_session_list[session_idx].game_in_flight = 1;
-	} else if (packet_type == NET_PACKET_PROBE_RESPONSE) {
-		g_frontend_net_session_list[session_idx].last_query_ms =
-			GetTickCount();
-		g_frontend_net_session_list[session_idx].players_needed =
-			g_frontend_net_probe_players_needed;
-		g_frontend_net_session_list[session_idx].version =
-			g_frontend_net_probe_version;
-		g_frontend_net_session_list[session_idx].password_required =
-			(uint8_t)g_frontend_net_probe_password_required;
-		g_frontend_net_session_list[session_idx].game_in_flight = 0;
-	} else {
-		g_frontend_net_session_list[session_idx].last_query_ms =
-			GetTickCount();
-		g_frontend_net_session_list[session_idx].players_needed = 0;
-		g_frontend_net_session_list[session_idx].version = 0;
-		g_frontend_net_session_list[session_idx].password_required = 0;
-		g_frontend_net_session_list[session_idx].game_in_flight = 0;
-	}
-	return 1;
-}
-#endif
 
 /* Leaves the host screen: frees its background image and resets the scrollable
  * controls; returns 0. */
@@ -2154,11 +745,6 @@ int frontend_net_host_game_screen(int frame_counter)
 		HOST_BUTTON_HELD_SLOT = 20,
 	};
 
-#ifndef XVT_MODERN
-	char player_info[2];
-	int local_player_id;
-	int network_type;
-#endif
 	if (frame_counter == 0) {
 		g_host_game_start_pending = 0;
 		g_frontend_skip_screen_entry_setup = 0;
@@ -2216,34 +802,6 @@ int frontend_net_host_game_screen(int frame_counter)
 					frontend_string_get(
 						FRONTSTR_470_S_GAME));
 			}
-#ifndef XVT_MODERN
-			network_type = g_game_config.network_type;
-			switch ((network_transport_type)network_type) {
-			case NET_TRANSPORT_TCPIP:
-				frontend_cursor_hide();
-				break;
-			case NET_TRANSPORT_MODEM:
-			case NET_TRANSPORT_SERIAL:
-				frontend_cursor_hide();
-				frontend_draw_rect_assign(&rect, 84, 415, 605,
-							  429);
-				frontend_text_draw_centered(
-					12,
-					frontend_string_get(
-						FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-					&rect, g_color_red);
-				frontend_draw_rect_assign(&rect, 84, 90, 605,
-							  106);
-				frontend_text_draw_centered(
-					12,
-					frontend_string_get(
-						FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-					&rect, g_color_red);
-				break;
-			default:
-				break;
-			}
-#endif
 			g_host_game_start_pending = 1;
 			frontend_display_disable_offscreen_restore();
 		}
@@ -2263,11 +821,9 @@ int frontend_net_host_game_screen(int frame_counter)
 		if (frontend_handle_common_screen_controls(0) == 1) {
 			return 1;
 		}
-#ifdef XVT_MODERN
 		if (xvt_dialog_is_active()) {
 			return 0;
 		}
-#endif
 		frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
 		if (g_game_config.help_on != 0) {
 			frontend_button_enable_overlay_text();
@@ -2289,103 +845,13 @@ int frontend_net_host_game_screen(int frame_counter)
 		return 0;
 	}
 
-#ifndef XVT_MODERN
-	network_type = g_game_config.network_type;
-	if (network_type >= NET_TRANSPORT_MODEM &&
-	    network_type <= NET_TRANSPORT_SERIAL) {
-		frontend_draw_rect_assign(&rect, 84, 415, 605, 429);
-		frontend_text_draw_centered(
-			12,
-			frontend_string_get(
-				FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-			&rect, g_color_red);
-		frontend_draw_rect_assign(&rect, 84, 90, 605, 106);
-		frontend_text_draw_centered(
-			12,
-			frontend_string_get(
-				FRONTSTR_671_PRESS_ALT_F4_TO_CANCEL_CONNECTION_ATTEMPT),
-			&rect, g_color_red);
-	}
-#endif
 	strcpy(g_pilot_data.multiplayer_host_name,
 	       g_pilot_data.multiplayer_game_name);
 	g_mission_setup_is_host = 1;
 	g_host_game_start_pending = 0;
 	frontend_cursor_show();
-#ifndef XVT_MODERN
-	network_type = g_game_config.network_type;
-	switch ((network_transport_type)network_type) {
-	case NET_TRANSPORT_IPX:
-		frontend_cursor_show_os_cursor();
-		g_frontend_scratch_buffer[0] = '\0';
-		break;
-	case NET_TRANSPORT_TCPIP:
-		frontend_display_flip_direct_draw_to_gdi_surface();
-		frontend_draw_rect_assign(&rect, 84, 90, 605, 429);
-		frontend_display_draw_gdi_text_on_desktop(
-			&rect,
-			frontend_string_get(
-				FRONTSTR_020_ACCESSING_IMPERIAL_NETWORK),
-			NULL);
-		frontend_cursor_show_os_cursor();
-		strcpy(g_frontend_scratch_buffer, g_game_config.ip_address);
-		break;
-	case NET_TRANSPORT_MODEM:
-		frontend_display_flip_direct_draw_to_gdi_surface();
-		frontend_cursor_show_os_cursor();
-		strcpy(g_frontend_scratch_buffer, g_game_config.phone_number);
-		break;
-	case NET_TRANSPORT_SERIAL:
-		frontend_display_flip_direct_draw_to_gdi_surface();
-		frontend_cursor_show_os_cursor();
-		break;
-	}
-	player_info[0] = (char)(g_pilot_data.rating + 1);
-	player_info[1] = '\0';
-#endif
-#ifdef XVT_MODERN
 	xvt_network_task_begin(XVT_NETWORK_HOST);
 	return 0;
-#else
-	if (net_start_network_session(
-		    (int)g_frontend_net_xvt_direct_play_app_guid[0],
-		    (int)g_frontend_net_xvt_direct_play_app_guid[1],
-		    (int)g_frontend_net_xvt_direct_play_app_guid[2],
-		    (int)g_frontend_net_xvt_direct_play_app_guid[3],
-		    player_info, g_pilot_data.name, g_mission_setup_is_host,
-		    g_pilot_data.multiplayer_game_name,
-		    (network_transport_type)g_game_config.network_type, 0, 0,
-		    g_frontend_scratch_buffer, NULL) == 0) {
-		frontend_display_unlock_back_buffer();
-		frontend_cursor_hide_os_cursor();
-		g_draw_surface_ptr = frontend_display_lock_back_buffer();
-		g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_NONE;
-		frontend_screen_set_callbacks(concourse_update, concourse_exit);
-		frontend_display_enable_offscreen_restore();
-		return 0;
-	}
-	frontend_display_unlock_back_buffer();
-	switch ((network_transport_type)g_game_config.network_type) {
-	case NET_TRANSPORT_TCPIP:
-		frontend_draw_rect_assign(&rect, 84, 90, 605, 429);
-		frontend_display_clear_desktop_gdi(&rect);
-		break;
-	default:
-		break;
-	}
-	frontend_cursor_hide_os_cursor();
-	g_draw_surface_ptr = frontend_display_lock_back_buffer();
-	local_player_id = net_get_local_player_id();
-	net_set_player_ready(local_player_id);
-	memset(g_mp_roster, 0, sizeof(g_mp_roster));
-	strcpy(g_mp_roster[0].name, g_pilot_data.name);
-	g_mp_roster[0].player_id = net_get_local_player_id();
-	g_mp_roster[0].pilot_rating = g_pilot_data.rating;
-	frontend_display_clear_offscreen_surface();
-	frontend_screen_set_callbacks(mission_setup_update, mission_setup_exit);
-	frontend_display_enable_offscreen_restore();
-	return 0;
-#endif
 }
 
 /* Reads one frontend packet (net_get_next_app_packet) and acts on it; returns its
@@ -2579,7 +1045,6 @@ int frontend_net_process_network_packets(void)
 		break;
 
 	case NET_PACKET_JOIN_REQUEST:
-#ifdef XVT_MODERN
 		if (!net_is_host() || packet_size != 6 * sizeof(int)) {
 			XVT_LOG_WARN(
 				"network.join_request_dropped player=%u bytes=%u",
@@ -2588,7 +1053,6 @@ int frontend_net_process_network_packets(void)
 			packet_type = NET_PACKET_NONE;
 			break;
 		}
-#endif
 		ready_player_count = net_count_ready_players();
 		if (g_mission_setup_roster_authoritative != 0) {
 			XVT_LOG_WARN(
@@ -2667,7 +1131,6 @@ int frontend_net_process_network_packets(void)
 		break;
 
 	case NET_PACKET_PLAYER_ADMITTED:
-#ifdef XVT_MODERN
 		if (packet_size < 2 * sizeof(int) ||
 		    sender_player_id != (DPID)net_get_host_player_id() ||
 		    (xvt_network_session_get_status().state ==
@@ -2681,7 +1144,6 @@ int frontend_net_process_network_packets(void)
 			packet_type = NET_PACKET_NONE;
 			break;
 		}
-#endif
 		for (roster_index = 0; roster_index < MAX_PLAYERS;
 		     ++roster_index) {
 			if (g_mp_roster[roster_index].player_id != 0 &&

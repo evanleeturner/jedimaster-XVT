@@ -186,12 +186,6 @@ extern GUID g_net_matched_session_instance_guid;
 /* drift-ok: camelcase -- DirectPlay's interface id */
 extern const GUID IID_IDirectPlay2A;
 extern network_transport_type g_net_active_transport_type;
-#ifndef XVT_MODERN
-extern const GUID g_net_lobby_session_instance_guid;
-extern const GUID g_net_direct_play_com_port_address_type_guid;
-extern const GUID g_net_direct_play_phone_address_type_guid;
-extern const GUID g_net_direct_play_inet_address_type_guid;
-#endif
 
 void net_shutdown_direct_play_session_for_quit(void);
 void net_shutdown_direct_play_session(void);
@@ -298,46 +292,6 @@ int net_disable_auto_dial_registry_setting(void);
 int net_restore_auto_dial_registry_setting(void);
 int net_wait_for_shutdown_handshake_acks(void);
 
-#ifndef XVT_MODERN
-int net_start_network_session(int app_guid_data1, int app_guid_data2,
-			      int app_guid_data3, int app_guid_data4,
-			      const char *local_player_info,
-			      const char *local_player_name, int is_host,
-			      const char *session_name,
-			      network_transport_type network_type,
-			      int wait_for_player_count, int unused_a11,
-			      const char *connection_address,
-			      const GUID *join_session_instance_guid);
-int net_host_direct_play_session(const char *session_name);
-int net_join_direct_play_session(const char *session_name,
-				 const GUID *session_instance_guid);
-const GUID *net_find_session_by_name(const char *session_name);
-int AERON_DXAPI net_enum_sessions_match_name_callback(
-	const DPSESSIONDESC2 *session_desc, uint32_t *timeout_ms,
-	uint32_t flags, void *context);
-int net_enumerate_app_sessions(unsigned int app_guid0, unsigned int app_guid1,
-			       unsigned int app_guid2, unsigned int app_guid3,
-			       struct net_session_enum_entry *out_sessions,
-			       int max_sessions,
-			       network_transport_type network_type);
-int AERON_DXAPI net_enumerate_app_sessions_callback(
-	const DPSESSIONDESC2 *session_desc, uint32_t *timeout_ms,
-	uint32_t flags, void *user_data);
-int net_compare_session_enum_entries_by_name(
-	const struct net_session_enum_entry *lhs,
-	const struct net_session_enum_entry *rhs);
-int net_open_direct_play_session(GUID app_guid, const char *local_player_info,
-				 const char *local_player_name, int is_host,
-				 const char *session_name,
-				 network_transport_type network_type,
-				 const char *connection_address);
-HRESULT net_build_direct_play_address(IDirectPlayLobbyA *direct_play_lobby,
-				      const GUID *service_provider_guid,
-				      const GUID *address_type_guid,
-				      const char *address,
-				      void **out_connection_buffer,
-				      size_t *out_connection_buffer_size);
-#endif
 
 #ifdef __cplusplus
 }
