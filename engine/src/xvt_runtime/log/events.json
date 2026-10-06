@@ -5963,6 +5963,21 @@
       "fields": ["object", "depth"],
       "text": "The list of objects to draw had all 296 entries in use, so object {object} (depth {depth}) was left out of this picture"
     },
+    "render.palette_overrun": {
+      "level": "E",
+      "fields": ["bpp", "colors", "reserved"],
+      "text": "A texture's converted {bpp}-bit palettes took {colors} colors, but its file kept room for {reserved}; the colors past that were written beyond the texture's memory"
+    },
+    "render.palette_skipped": {
+      "level": "W",
+      "fields": ["image", "colors"],
+      "text": "A texture palette of {colors} colors, over the 1,023 the 16-bit conversion takes, was left unconverted, so image {image} (-1 for the texture's own palette) drew with another image's colors or with memory nothing filled"
+    },
+    "render.palettes_converted": {
+      "level": "D",
+      "fields": ["bpp", "images", "colors"],
+      "text": "A texture's palettes were converted for {bpp}-bit drawing: {images} images, {colors} colors written after its data"
+    },
     "render.span_pool_full": {
       "level": "D",
       "fields": ["spans", "faces"],

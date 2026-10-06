@@ -4,6 +4,7 @@
 #include "xvt/render/color.h"
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/image_quantizer.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Builds the 16-bit palettes of a loaded texture block (a tex_level_header, its
  * images after it) in the space after its data, at header->dataSize, with
@@ -54,6 +55,10 @@ unsigned int tex_level_convert24_bpp_palettes_to16_bpp(unsigned int *tex_level)
 							 output_palette16, 0,
 							 palette_color_count);
 			output_palette16 += header->palette_color_count;
+		} else {
+			XVT_LOG_WARN(
+				"render.palette_skipped image=-1 colors=%u",
+				palette_color_count);
 		}
 	}
 
@@ -103,11 +108,30 @@ unsigned int tex_level_convert24_bpp_palettes_to16_bpp(unsigned int *tex_level)
 						image->palette_color_count);
 					output_palette16 +=
 						image->palette_color_count;
+				} else {
+					XVT_LOG_WARN(
+						"render.palette_skipped image=%u colors=%u",
+						image_index,
+						palette_color_count);
 				}
 			}
 			result = image_index + 1;
 			image_index = result;
 		} while (header->image_count > result);
+	}
+	XVT_LOG_DEBUG(
+		"render.palettes_converted bpp=16 images=%u colors=%u", result,
+		(unsigned)(output_palette16 - (uint16_t *)((uint8_t *)header +
+							   header->data_size)));
+	if ((uint32_t)(output_palette16 -
+		       (uint16_t *)((uint8_t *)header + header->data_size)) >
+	    header->reserved04[0]) {
+		XVT_LOG_ERROR(
+			"render.palette_overrun bpp=16 colors=%u reserved=%u",
+			(unsigned)(output_palette16 -
+				   (uint16_t *)((uint8_t *)header +
+						header->data_size)),
+			(unsigned)header->reserved04[0]);
 	}
 	return result;
 }
@@ -191,6 +215,19 @@ unsigned int tex_level_convert24_bpp_palettes_to8_bpp(unsigned int *tex_level)
 			}
 		}
 		++image_index;
+	}
+	XVT_LOG_DEBUG("render.palettes_converted bpp=8 images=%u colors=%u",
+		      image_index,
+		      (unsigned)(output_palette8 -
+				 ((uint8_t *)header + header->data_size)));
+	if ((uint32_t)(output_palette8 -
+		       ((uint8_t *)header + header->data_size)) >
+	    header->reserved04[0]) {
+		XVT_LOG_ERROR(
+			"render.palette_overrun bpp=8 colors=%u reserved=%u",
+			(unsigned)(output_palette8 -
+				   ((uint8_t *)header + header->data_size)),
+			(unsigned)header->reserved04[0]);
 	}
 	return image_index;
 }
