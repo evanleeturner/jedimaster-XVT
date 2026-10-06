@@ -23,6 +23,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/sw3d.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* 1 / 32767, which turns a 1.15 fixed point matrix entry into a float in
  * model_preview_render_viewport. */
@@ -279,6 +280,9 @@ int model_preview_load_model(const char *model_file_name)
 	extension = strrchr(base_name, '.');
 	if (extension) {
 		if (strcasecmp(extension, ".opt") != 0) {
+			XVT_LOG_WARN(
+				"preview.load_failed file=\"%s\" reason=\"extension\"",
+				model_file_name);
 			return 0;
 		}
 		*extension = '\0';
@@ -300,6 +304,8 @@ int model_preview_load_model(const char *model_file_name)
 	xvt_file *stream = g_stream;
 #ifdef XVT_MODERN
 	if (!stream) {
+		XVT_LOG_WARN("preview.load_failed file=\"%s\" reason=\"open\"",
+			     file_name);
 		return 0;
 	}
 	file_close(stream);
@@ -415,6 +421,11 @@ int model_preview_load_model(const char *model_file_name)
 	model_preview_scale_opt_root_nodes(g_model_preview_model_data,
 					   g_model_preview_scale);
 	g_transform_light_direction_to_object_space = 1;
+	XVT_LOG_DEBUG(
+		"preview.loaded file=\"%s\" handle=%u extent=%.3f scale=%.3f",
+		g_model_preview_opt_file_name,
+		(unsigned)g_loaded_models[MODEL_PREVIEW_SLOT],
+		g_model_preview_bounds_extent, g_model_preview_scale);
 
 	if (g_model_preview_skip_scene_reset == 0) {
 		memset(&g_model_preview_mobile_object, 0,
@@ -620,6 +631,11 @@ int model_preview_render_viewport(int x, int y, int width, int height, ...)
 				g_viewport_span_mask_offset +
 				g_flight_vp_height *
 					((g_flight_vp_width >> 7) + 2);
+			if (g_model_preview_aux_buffer_handle == 0) {
+				XVT_LOG_ERROR(
+					"preview.buffer_alloc_failed bytes=%u",
+					g_model_preview_aux_buffer_capacity_bytes);
+			}
 		}
 		uint8_t *aux_buffer = (uint8_t *)memory_get_handle_block(
 			g_model_preview_aux_buffer_handle);
@@ -641,6 +657,10 @@ int model_preview_render_viewport(int x, int y, int width, int height, ...)
 			*mask_cursor++ = (uint8_t)remaining_width;
 		}
 		g_model_preview_render_resources_initialized = 1;
+		XVT_LOG_DEBUG(
+			"preview.buffers_ready width=%d height=%d bytes=%u",
+			(int)g_flight_vp_width, (int)g_flight_vp_height,
+			g_model_preview_aux_buffer_capacity_bytes);
 	}
 
 	g_view_space_depth = (int)g_model_preview_view_delta.z;

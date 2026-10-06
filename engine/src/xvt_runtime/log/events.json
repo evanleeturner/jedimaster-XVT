@@ -5863,6 +5863,26 @@
       "fields": [],
       "text": "The runtime shut down"
     },
+    "preview.buffer_alloc_failed": {
+      "level": "E",
+      "fields": ["bytes"],
+      "text": "The craft preview's {bytes}-byte span mask buffer could not be allocated; the code does not check, and goes on to write the mask through memory handle 0, which holds no block"
+    },
+    "preview.buffers_ready": {
+      "level": "D",
+      "fields": ["width", "height", "bytes"],
+      "text": "The craft preview's first draw after a load set up its drawing buffers for a {width}x{height} view, with a span mask buffer of {bytes} bytes"
+    },
+    "preview.load_failed": {
+      "level": "W",
+      "fields": ["file", "reason"],
+      "text": "The craft preview did not load the model {file} ({reason}: extension, the name does not end in .opt; open, the file did not open); the model shown before, if any, stayed on screen"
+    },
+    "preview.loaded": {
+      "level": "D",
+      "fields": ["file", "handle", "extent", "scale"],
+      "text": "The craft preview loaded the model {file} as memory handle {handle}; its size was taken as {extent} model units, so it was drawn scaled by {scale}"
+    },
     "proving.checkpoint_crossed": {
       "level": "D",
       "fields": ["checkpoint", "passed", "remaining", "level", "minutes", "seconds", "predicted"],
