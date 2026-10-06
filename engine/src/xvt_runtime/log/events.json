@@ -2543,6 +2543,21 @@
       "fields": ["joystick", "detect"],
       "text": "At flight start the flight input was reset: mouse steering off, mouse and stick buttons cleared; the game's original joystick check found a joystick: {joystick} (its answer was {detect}). This version steers through its own controller settings and does not use that check"
     },
+    "input.keyboard_failed": {
+      "level": "W",
+      "fields": ["step"],
+      "text": "The flight keyboard could not be set up through DirectInput at step {step}; the player was shown an error box and the flight went on with DirectInput marked off"
+    },
+    "input.keyboard_lost": {
+      "level": "W",
+      "fields": ["acquired"],
+      "text": "The flight keyboard was lost to the system and acquired again: {acquired} (1 regained; 0 not, and keys read nothing until it is)"
+    },
+    "input.keyboard_opened": {
+      "level": "D",
+      "fields": [],
+      "text": "The flight keyboard was opened through DirectInput and acquired (at flight start, when the DirectInput option is on)"
+    },
     "input.queue_full": {
       "level": "W",
       "fields": ["queue"],

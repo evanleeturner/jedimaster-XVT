@@ -2,6 +2,7 @@
 
 #include "aeron/compat/dinput.h"
 #include "xvt/flight/flight.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifdef XVT_MODERN
 #include "aeron/dialog.h"
@@ -195,6 +196,7 @@ int dinput_init(void)
 #ifdef XVT_MODERN
 		error_options.message = "Direct Input Create FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
+		XVT_LOG_WARN("input.keyboard_failed step=\"create\"");
 #else
 		MessageBoxA(NULL, "Direct Input Create FAILED", "ERROR", 0);
 #endif
@@ -207,6 +209,7 @@ int dinput_init(void)
 #ifdef XVT_MODERN
 		error_options.message = "Direct Input Keyboard Create FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
+		XVT_LOG_WARN("input.keyboard_failed step=\"device\"");
 #else
 		MessageBoxA(NULL, "Direct Input Keyboard Create FAILED",
 			    "ERROR", 0);
@@ -218,6 +221,7 @@ int dinput_init(void)
 #ifdef XVT_MODERN
 		error_options.message = "Direct Input Keyboard Format FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
+		XVT_LOG_WARN("input.keyboard_failed step=\"format\"");
 #else
 		MessageBoxA(NULL, "Direct Input Keyboard Format FAILED",
 			    "ERROR", 0);
@@ -230,6 +234,8 @@ int dinput_init(void)
 #ifdef XVT_MODERN
 		error_options.message = "Direct Input Keyboard SCL FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
+		XVT_LOG_WARN(
+			"input.keyboard_failed step=\"cooperative_level\"");
 #else
 		MessageBoxA(NULL, "Direct Input Keyboard SCL FAILED", "ERROR",
 			    0);
@@ -250,6 +256,7 @@ int dinput_init(void)
 		error_options.message =
 			"Direct Input Keyboard SetBufferSize FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
+		XVT_LOG_WARN("input.keyboard_failed step=\"buffer\"");
 #else
 		MessageBoxA(NULL, "Direct Input Keyboard SetBufferSize FAILED",
 			    "ERROR", 0);
@@ -261,6 +268,7 @@ int dinput_init(void)
 #ifdef XVT_MODERN
 		error_options.message = "Direct Input Keyboard Acquire FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
+		XVT_LOG_WARN("input.keyboard_failed step=\"acquire\"");
 #else
 		MessageBoxA(NULL, "Direct Input Keyboard Acquire FAILED",
 			    "ERROR", 0);
@@ -269,6 +277,7 @@ int dinput_init(void)
 	}
 
 	g_dinput_keyboard_acquired = 1;
+	XVT_LOG_DEBUG("input.keyboard_opened");
 	return 1;
 }
 
@@ -512,6 +521,8 @@ int dinput_reacquire_keyboard(void)
 	}
 	g_dinput_keyboard_acquired = g_dinput_keyboard_device->lpVtbl->Acquire(
 					     g_dinput_keyboard_device) >= 0;
+	XVT_LOG_WARN("input.keyboard_lost acquired=%d",
+		     g_dinput_keyboard_acquired);
 	return g_dinput_keyboard_acquired;
 #else
 	if (g_dinput_keyboard_device != 0) {
