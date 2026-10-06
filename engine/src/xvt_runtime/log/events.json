@@ -3883,6 +3883,16 @@
       "fields": ["cleared"],
       "text": "A texture palette marked {cleared} of its 256 colors see-through for the 3D card"
     },
+    "models.bounds_cached": {
+      "level": "D",
+      "fields": ["type", "min_x", "min_y", "min_z", "max_x", "max_y", "max_z"],
+      "text": "Object type {type}'s model box was stored for the rest of the run: smallest corner ({min_x}, {min_y}, {min_z}), largest corner ({max_x}, {max_y}, {max_z}); a model loaded later for the same type keeps this box"
+    },
+    "models.bounds_empty": {
+      "level": "W",
+      "fields": ["type", "roots"],
+      "text": "Object type {type}'s model ({roots} top-level parts) gave a box whose smallest corner lies past its largest: no part ended its vertex list with the two corner points the game expects, so the type's sizes came out negative"
+    },
     "models.convert_overflow": {
       "level": "E",
       "fields": ["bytes", "capacity"],

@@ -3,6 +3,7 @@
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Per object type, the smallest corner of its model's box, which
  * model_bounds_ensure_cached fills; only that function writes it. */
@@ -105,6 +106,17 @@ void model_bounds_ensure_cached(int object_type)
 		g_model_bounds_max[object_type].y = max_bounds.y;
 		g_model_bounds_cached[object_type] = 1;
 		g_model_bounds_max[object_type].z = max_bounds.z;
+		XVT_LOG_DEBUG(
+			"models.bounds_cached type=%d min_x=%.3f min_y=%.3f min_z=%.3f max_x=%.3f max_y=%.3f max_z=%.3f",
+			object_type, (double)min_bounds.x, (double)min_bounds.y,
+			(double)min_bounds.z, (double)max_bounds.x,
+			(double)max_bounds.y, (double)max_bounds.z);
+		if (min_bounds.x > max_bounds.x ||
+		    min_bounds.y > max_bounds.y ||
+		    min_bounds.z > max_bounds.z) {
+			XVT_LOG_WARN("models.bounds_empty type=%d roots=%d",
+				     object_type, model->root_node_count);
+		}
 		memory_handle_block_done_stub(g_loaded_models[object_type]);
 	}
 }
