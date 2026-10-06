@@ -5,7 +5,7 @@
 
 #include "xvt/assets/file.h"
 #include "xvt/frontend/frontend_state.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Loads the frontend string table from the text file fileName, replacing the
  * one loaded before: each line that does not start with //, read up to 1,023

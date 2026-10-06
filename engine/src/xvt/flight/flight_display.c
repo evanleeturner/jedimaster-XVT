@@ -15,7 +15,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
-#include "xvt_runtime/log/log_both_builds.h"
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 

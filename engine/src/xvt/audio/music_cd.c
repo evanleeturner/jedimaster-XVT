@@ -6,7 +6,7 @@
 #include "xvt/audio/cd_audio.h"
 #include "xvt/flight/flight.h"
 #include "xvt/util/time.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/port.h"
 
 /* 1 once the flight music track is marked complete. music_cd_initialize,

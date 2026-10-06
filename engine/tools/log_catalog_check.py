@@ -43,7 +43,6 @@ from pathlib import Path
 CATALOG = Path("src/xvt_runtime/log/events.json")
 LOG_HEADER = Path("src/xvt_runtime/log/log.h")
 LOG_SOURCE = Path("src/xvt_runtime/log/log.c")
-BOTH_BUILDS_HEADER = Path("src/xvt_runtime/log/log_both_builds.h")
 CRASH_HEADER = Path("src/xvt_app/crash_note.h")
 CRASH_SOURCE = Path("src/xvt_app/crash_note.c")
 SCANNED = ("src/xvt", "src/xvt_runtime", "src/xvt_remaster", "src/xvt_app")
@@ -191,7 +190,6 @@ def scan_file(path: Path, root: Path) -> tuple[list[Site], list[Finding]]:
     if path.relative_to(root) in (
         LOG_HEADER,
         LOG_SOURCE,
-        BOTH_BUILDS_HEADER,
         CRASH_HEADER,
     ):
         return sites, findings

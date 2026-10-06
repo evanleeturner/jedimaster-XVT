@@ -20,7 +20,7 @@
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/timing/flight_timing.h"
 
 /* Falloff distance, in world units, of flight sound ids 0 to 95, one entry per

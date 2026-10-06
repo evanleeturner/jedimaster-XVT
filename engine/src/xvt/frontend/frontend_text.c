@@ -14,7 +14,7 @@
 #include "xvt/frontend/frontend_mouse.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/input/keyboard.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
 

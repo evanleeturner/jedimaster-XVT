@@ -26,7 +26,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
 #include "xvt/render/sw3d.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Icon frame for each object type, 0 to 105, in the 640x480 icon set
  * (RESOURCE\icons640.ico); flight_map_draw_object_icon_at_view_pos uses frame 19

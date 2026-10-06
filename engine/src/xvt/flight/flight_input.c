@@ -8,7 +8,7 @@
 #include "xvt/util/time.h"
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/input/flight_controls.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/timing/flight_timing.h"
 
 /* 1 when keys are read through DirectInput, 0 when through window messages; the

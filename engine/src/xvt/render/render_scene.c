@@ -28,7 +28,6 @@
 #include "xvt/util/memory.h"
 #include "xvt_runtime/assets/opt_native.h"
 #include "xvt_runtime/log/log.h"
-#include "xvt_runtime/log/log_both_builds.h"
 
 enum {
 	OPT_INDEXED_SHADE_TABLE_SIZE = 4096,

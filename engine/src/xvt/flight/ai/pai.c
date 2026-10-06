@@ -16,7 +16,7 @@
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* The loaded AI plans; a plan id is an index into it. Each entry holds the
  * plan's name, whether the plan text defined it, and where its bytes start in

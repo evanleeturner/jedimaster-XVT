@@ -12,7 +12,7 @@
 #include "xvt/render/render_quad.h"
 #include "xvt/render/render_scene.h"
 #include "xvt/render/renderer.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 enum {
 	COMPONENT_OBJECT_TYPE = 89,

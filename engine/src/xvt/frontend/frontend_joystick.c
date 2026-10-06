@@ -10,7 +10,7 @@
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/frontend/frontend_text.h"
 #include "xvt/input/keyboard.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Finds up to two joysticks through the system's joystick API and records them
  * in g_front_state, in slot order: for each device from 0 that reports its

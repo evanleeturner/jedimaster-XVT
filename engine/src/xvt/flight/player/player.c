@@ -28,7 +28,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt_runtime/hooks/orientation_hook.h"
 #include "xvt_runtime/input/flight_controls.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/player_timing.h"
 

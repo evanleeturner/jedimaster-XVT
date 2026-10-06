@@ -12,7 +12,7 @@
 #include "xvt/frontend/frontend_mission_list.h"
 #include "xvt/frontend/movie.h"
 #include "xvt/frontend/pilot_record.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/cutscene_task.h"
 
 /* Entries loaded in g_cutscene_table. cutscene_load_table sets it once it has

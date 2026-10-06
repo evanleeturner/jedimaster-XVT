@@ -20,7 +20,7 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt/util/win32.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/movie_task.h"
 
 /* One palette color in the layout of a Windows palette entry. */

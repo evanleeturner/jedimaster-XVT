@@ -8,7 +8,7 @@
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_mouse.h"
 #include "xvt/input/keyboard.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Frames left before a held scrollbar arrow steps the value again; the step
  * comes on a frame that finds it 0. One shared by every scrollbar. Only

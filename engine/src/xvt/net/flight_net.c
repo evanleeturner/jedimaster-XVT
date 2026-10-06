@@ -18,7 +18,7 @@
 #include "xvt/render/flight_sw.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/input/flight_controls.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/resync_task.h"
 

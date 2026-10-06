@@ -36,7 +36,7 @@
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Text that sprintf fills with debug lines: rating and promotion points,
  * team score and place, update-time histograms. Nothing reads it. 5

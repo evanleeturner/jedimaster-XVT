@@ -10,7 +10,7 @@
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 struct frontend_sound_pcm_format {
 	uint16_t format_tag;		   /* Wave format, 1 for PCM. */

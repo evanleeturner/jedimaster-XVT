@@ -14,7 +14,6 @@
 #include "xvt/util/memory.h"
 #include "xvt_runtime/assets/opt_native.h"
 #include "xvt_runtime/log/log.h"
-#include "xvt_runtime/log/log_both_builds.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 int access(const char *filename, int mode);
 

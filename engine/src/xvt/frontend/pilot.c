@@ -17,7 +17,7 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/compat/pilot_port.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Forty pilot names; pilot_parse_command_line picks one at random for a pilot
  * named "joiner" or "host" on the command line. */

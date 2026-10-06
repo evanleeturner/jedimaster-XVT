@@ -11,7 +11,7 @@
 #include "xvt/render/tex_level.h"
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Object type of each backdrop record, whose texture block holds its image:
  * backdrop_generate_default_records fills the first 22 at random and mission_init

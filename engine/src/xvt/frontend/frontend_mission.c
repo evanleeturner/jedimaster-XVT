@@ -12,7 +12,7 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/net.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* The mission the frontend's setup, briefing and debriefing screens show, as
  * frontend_mission_load_current and frontend_mission_load_current_with_briefing

@@ -7,7 +7,7 @@
 #include "xvt/frontend/briefing_text.h"
 #include "xvt/frontend/config.h"
 #include "xvt/frontend/frontend_mission.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Argument words that follow each briefing script opcode, by opcode 0 to
  * 34. */

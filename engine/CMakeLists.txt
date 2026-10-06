@@ -252,7 +252,6 @@ target_link_libraries(xvt_core PUBLIC aeron_compat aeron_video aeron_audio_decod
 if(NOT MSVC)
     target_link_libraries(xvt_core PUBLIC m)
 endif()
-target_compile_definitions(xvt_core PUBLIC XVT_MODERN)
 
 add_library(xvt_remaster STATIC
     src/xvt_remaster/hud_layout.c

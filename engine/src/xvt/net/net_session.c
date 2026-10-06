@@ -9,7 +9,7 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net_reliable.h"
 #include "xvt/util/time.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/network_session.h"
 

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 
 /* 1 once the first memory_alloc_handle_internal call has cleared g_handle_tables;

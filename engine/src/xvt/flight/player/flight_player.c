@@ -4,7 +4,7 @@
 #include "xvt/flight/flight.h"
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Returns 1 when the local player's craft has an installed subsystem (its flag
  * set in system_flags) whose system_health is 0, else 0. Also returns 0 when the

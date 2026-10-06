@@ -44,7 +44,7 @@
 #include "xvt/render/std3d.h"
 #include "xvt/render/sw3d.h"
 #include "xvt/util/memory.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/cockpit_instruments.h"
 #include "xvt_runtime/snapshot/cockpit_messages.h"

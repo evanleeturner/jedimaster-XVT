@@ -9,7 +9,7 @@
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt/util/game_rand.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Tests whether a moving object, swept from g_collisionSegmentStartWorld* to
  * g_collisionProbeWorld*, hits the static object in slot static_obj_idx (one

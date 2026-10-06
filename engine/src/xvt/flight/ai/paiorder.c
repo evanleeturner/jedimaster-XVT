@@ -20,7 +20,7 @@
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Rough distance in world units, by skill tier 0 to 2, beyond which
  * paiorder_stillattackorder forgets an attacker that is not a warhead. Entry 3

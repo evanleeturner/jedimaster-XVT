@@ -8,7 +8,7 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* 1 when flight draws through DirectDraw surfaces and flips pages; 0 when it
  * draws into memory and flight_display_flip copies g_flight_software_framebuffer

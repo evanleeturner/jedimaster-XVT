@@ -15,7 +15,7 @@
 #include "xvt/frontend/frontend_text.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Flight group nearest the mouse on the briefing map, by its mission point
  * 14: set by briefing_map_select_nearest_mission_point14_flight_group, and to 0 by

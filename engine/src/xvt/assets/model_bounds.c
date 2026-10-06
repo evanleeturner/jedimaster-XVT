@@ -3,7 +3,7 @@
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/util/memory.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Per object type, the smallest corner of its model's box, which
  * model_bounds_ensure_cached fills; only that function writes it. */

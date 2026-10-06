@@ -9,7 +9,7 @@
 #include "xvt/render/render_clip.h"
 #include "xvt/render/render_scene.h"
 #include "xvt/render/renderer.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 struct software_light_sample {
 	/* Lighting block row it was worked out for:

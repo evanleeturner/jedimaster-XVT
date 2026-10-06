@@ -29,7 +29,7 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/compat/win_message_port.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/frontend_task.h"
 #include "xvt_runtime/runtime/presentation.h"
 #include "xvt_runtime/snapshot/render_frontend.h"

@@ -24,7 +24,7 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/input/keyboard.h"
 #include "xvt/net/net.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 
 /* Heap table of 93 craft descriptions from specdesc.txt, by craft_species

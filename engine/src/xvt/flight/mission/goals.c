@@ -5,7 +5,7 @@
 #include "xvt/flight/hud/flight_text.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/render/renderer.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Text color of each goals-page section, as the color letter
  * flight_text_set_color takes: 'J', 'N', 'F' and 'R' (0x4A, 0x4E, 0x46, 0x52)

@@ -4,7 +4,7 @@
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt/flight/transfm2.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Entries queued in g_render_object_list_entries since the last render_list_reset,
  * 0 to 296; only render_list_queue_object and render_list_reset write it. */

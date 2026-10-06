@@ -4,7 +4,7 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Does nothing. flight_render_install_callbacks makes it the transition hook
  * (g_flight_render_transition_hook) in every mode. */

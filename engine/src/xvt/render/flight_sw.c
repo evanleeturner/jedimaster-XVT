@@ -21,7 +21,7 @@
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/compat/framebuffer_address.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/render_camera.h"
 
 /* Stars on each side of each of the starfield's three grids: 32 /

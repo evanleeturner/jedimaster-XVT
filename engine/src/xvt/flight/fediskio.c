@@ -31,7 +31,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/tex_level.h"
 #include "xvt/util/memory.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/render_assets.h"
 

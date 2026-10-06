@@ -16,7 +16,7 @@
 #include "xvt/net/net_session.h"
 #include "xvt/util/time.h"
 #include "xvt/util/win32.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/network_session.h"
 
 /* Transport of the open lobby session. Written by net_start_network_session on

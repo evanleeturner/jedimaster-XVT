@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* The active briefing's 32 map label strings: 40-byte heap buffers that
  * frontend_mission_init_for_briefing allocates and

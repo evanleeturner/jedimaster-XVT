@@ -28,7 +28,7 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/launch_task.h"
 
 /* GetTickCount, in milliseconds, when the "Prepare for launch" screen

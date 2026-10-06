@@ -6,7 +6,7 @@
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/util/time.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/runtime/port.h"
 

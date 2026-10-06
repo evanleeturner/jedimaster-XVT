@@ -4,7 +4,7 @@
 #include "xvt/render/color.h"
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/image_quantizer.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Builds the 16-bit palettes of a loaded texture block (a tex_level_header, its
  * images after it) in the space after its data, at header->dataSize, with

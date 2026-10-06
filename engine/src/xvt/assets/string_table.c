@@ -12,7 +12,7 @@
 #include "xvt/flight/object/damage.h"
 #include "xvt/flight/proving_grounds.h"
 #include "xvt/util/memory.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* The four file error messages, indexed by file_error_string_id: the first four
  * lines of the block string_table_load_game_strings reads after the damage system

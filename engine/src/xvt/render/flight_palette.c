@@ -3,7 +3,7 @@
 #include "xvt/flight/flight_display.h"
 #include "xvt/render/color.h"
 #include "xvt/render/renderer.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Bytes per pixel of the flight frame buffer: 1 in the 8-bit paletted modes, 2
  * in 16-bit color; 1 at start. Four functions write it: flight_main in the

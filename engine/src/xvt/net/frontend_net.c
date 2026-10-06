@@ -27,7 +27,7 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/network_browser.h"
 #include "xvt_runtime/runtime/network_dialogs.h"

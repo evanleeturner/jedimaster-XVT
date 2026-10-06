@@ -10,7 +10,7 @@
 #include "xvt/math/math.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
-#include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/log/log.h"
 
 /* Craft records in the pool at g_craft_data_pool_base, one for each craft object
  * slot. mission_init sets it to 32 (CRAFT_SLOT_COUNT) when a flight loads; a
