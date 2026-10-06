@@ -48,11 +48,11 @@ void xvt_flight_controls_apply_throttle(
 /* Flushes the keyboard, releases controller commands and pending mouse flight input without sending
  * releases, clears the action key and drops the throttle baseline. */
 void xvt_flight_controls_recover(void);
-/* Reads local input through flight_input_read, which runs ReadLocal in the
- * modern build, and records it: the key's low byte, each axis made even, fire
- * and target/roll as values 1 and 2 (bits 0 and 1) of key_mods, and the
- * throttle. With g_flight_mouse_enabled, a nonzero classic mouse delta replaces
- * yaw (times 128/120) and pitch (times 64/50), clamped to -128..126. */
+/* Reads local input through flight_input_read, which runs ReadLocal, and
+ * records it: the key's low byte, each axis made even, fire and target/roll as
+ * values 1 and 2 (bits 0 and 1) of key_mods, and the throttle. With
+ * g_flight_mouse_enabled, a nonzero classic mouse delta replaces yaw (times
+ * 128/120) and pitch (times 64/50), clamped to -128..126. */
 void xvt_flight_controls_sample_recorded(
 	struct flight_input_frame_record *input);
 /* Packs three axes into XVT_FLIGHT_AXIS_BYTES bytes: the low bit of the yaw

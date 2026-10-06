@@ -1,7 +1,7 @@
 #ifndef XVT_RUNTIME_SNAPSHOT_WORLD_STATE_H
 #define XVT_RUNTIME_SNAPSHOT_WORLD_STATE_H
 
-/* World-state image: the modern bodies behind flight.c's world-state functions, plus the
+/* World-state image: the bodies behind flight.c's world-state functions, plus the
  * buffer-level calls the resync code uses (Encode, Validate, Decode, ChecksumImage).
  *
  * Purpose: copy the whole flight world (object slots, mission tables, plans, players) into one

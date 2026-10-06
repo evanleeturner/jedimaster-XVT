@@ -5,8 +5,9 @@
 extern "C" {
 #endif
 
-/* The modern body of cutscene_play_for_current_mission_phase: plays the cutscenes that match the
- * current mission and phase one movie at a time, returning to the caller while each plays. */
+/* The body behind cutscene_play_for_current_mission_phase: plays the cutscenes
+ * that match the current mission and phase one movie at a time, returning to
+ * the caller while each plays. */
 
 /* Starts a run only in the training-exercise mission directory with a mission sequence active and
  * a cutscene table loaded; otherwise returns 0. The call that starts a run records phase; later

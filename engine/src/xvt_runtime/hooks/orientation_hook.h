@@ -10,8 +10,8 @@ extern "C" {
 /* Turns an orientation by a pitch and a yaw about the craft's own axes, through
  * a rotation matrix, so pointing straight up or down does not lock the turn.
  * Angles are 16-bit binary angles, 65536 to a turn, and both deltas use the
- * same unit. The modern player_apply_pitch_yaw_steps calls ApplyPitchYaw in
- * place of the original code. */
+ * same unit. player_apply_pitch_yaw_steps calls ApplyPitchYaw in place of the
+ * 1997 rotation code. */
 
 struct xvt_orientation_angles {
 	uint16_t yaw;

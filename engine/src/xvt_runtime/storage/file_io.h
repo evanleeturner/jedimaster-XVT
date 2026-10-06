@@ -7,11 +7,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* Stand-ins for the C library's FILE calls, over Aeron VFS handles. In the
- * modern build, src/xvt/assets/file.h maps the game's fread, fgets, fscanf and
- * the rest onto these. Each keeps the C library's return convention unless its
- * note says otherwise. The end-of-file and error flags are the handle's own,
- * read with AeronVfs_Eof and AeronVfs_HasError. */
+/* Stand-ins for the C library's FILE calls, over Aeron VFS handles.
+ * src/xvt/assets/file.h maps the game's fread, fgets, fscanf and the rest onto
+ * these. Each keeps the C library's return convention unless its note says
+ * otherwise. The end-of-file and error flags are the handle's own, read with
+ * AeronVfs_Eof and AeronVfs_HasError. */
 
 /* Returns the number of whole elements read; a trailing partial element is
  * consumed but not counted. Returns 0 when size or count is 0. A size * count

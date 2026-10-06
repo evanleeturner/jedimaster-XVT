@@ -9,13 +9,13 @@ extern "C" {
  * the port takes the pending command and starts the flight task, and Complete brings the frontend
  * back. Phases: idle, fade, pending, running. */
 
-/* The modern body of frontend_flight_launch_session. Writes the config, saves
- * the pilot, checks the installation and the selected mission, builds the
- * flight command into g_frontend_flight_command_line, hides the cursor, starts
- * a music fade when datapad music plays, and returns 0 with the fade phase
- * entered. Returns 0 and does nothing while a launch is active, and 1 when
- * saving the pilot fails. A missing installation or mission, or a command over
- * its length, ends the program through xvt_storage_fatal. */
+/* The body behind frontend_flight_launch_session. Writes the config, saves the
+ * pilot, checks the installation and the selected mission, builds the flight
+ * command into g_frontend_flight_command_line, hides the cursor, starts a music
+ * fade when datapad music plays, and returns 0 with the fade phase entered.
+ * Returns 0 and does nothing while a launch is active, and 1 when saving the
+ * pilot fails. A missing installation or mission, or a command over its length,
+ * ends the program through xvt_storage_fatal. */
 int xvt_launch_task_queue(void);
 /* Moves fade to pending once the fade ends. Escape during fade or pending cancels the launch
  * through Complete(0). */

@@ -3,8 +3,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/* The join-game screen over the multiplayer directory: the modern bodies of
- * frontend_net_join_game_screen and of its list, roster and mission-briefing
+/* The join-game screen over the multiplayer directory: the bodies behind
+ * frontend_net_join_game_screen and its list, roster and mission-briefing
  * draws. Rooms, selection, scroll offset and mission preview are held by the
  * network task. */
 

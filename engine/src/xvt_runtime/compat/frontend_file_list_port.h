@@ -3,14 +3,13 @@
 
 #include "xvt/xvt_typedefs.h"
 
-/* The modern body of frontend_file_list_build_sorted: lists the files, never
+/* The body behind frontend_file_list_build_sorted: lists the files, never
  * folders, in USER that match wildcard in any letter case, sorted by strcmp
  * over their paths. Each node's path is the wildcard's folder part plus the
- * file name; the original stored the bare file name. Returns a list to release
+ * file name; the 1997 game stored the bare file name. Returns a list to release
  * with frontend_file_list_free, empty when nothing matched; NULL when the
- * wildcard is rejected, memory runs out, or the listing fails. The original
- * returned an empty list when nothing matched and kept a partial list when
- * memory ran out after the first file. */
+ * wildcard is rejected, memory runs out, or the listing fails. The 1997 game
+ * kept a partial list when memory ran out after the first file. */
 struct frontend_file_list *
 frontend_file_list_build_sorted_modern(const char *wildcard);
 

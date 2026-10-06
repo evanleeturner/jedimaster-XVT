@@ -5,10 +5,10 @@
 extern "C" {
 #endif
 
-/* Screen exit callbacks with the frontend_screen_exit_fn signature, for the
- * modern arms. The original code casts the wrapped functions, which take no
- * argument, to that type; these wrappers ignore frame and return the wrapped
- * function's result. */
+/* Screen exit callbacks with the frontend_screen_exit_fn signature. The 1997
+ * screen code casts the wrapped functions, which take no argument, to that
+ * type; these wrappers ignore frame and return the wrapped function's
+ * result. */
 
 /* frontend_mission_list_free_screen_resources_and_clear_input_gate. */
 int xvt_frontend_cleanup_mission_resources(int frame);

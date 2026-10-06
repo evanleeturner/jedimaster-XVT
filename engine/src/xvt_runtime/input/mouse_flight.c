@@ -18,8 +18,8 @@
 #define MOUSE_FLIGHT_STICK_GAIN (127.0f / 256.0f)
 /* Right-button tap window: release inside it emits the target-in-sight tap
  * action, roll-lock engages only after it. Close to the recovered 59-tick
- * window flight_update_player_step uses for joystick button 2: 236 ms of real
- * time, 250 ms at the original's assumed 236 ticks a second. */
+ * window xvt_flight_sim_update_player_step uses for joystick button 2: 236 ms
+ * of real time, 250 ms at the original's assumed 236 ticks a second. */
 #define MOUSE_FLIGHT_TAP_US 250000u
 
 static struct {
