@@ -24,6 +24,7 @@
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/compat/framebuffer_address.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Stars on each side of each of the starfield's three grids: 32 /
  * g_star_grid_divisor, set by flight_starfield_render on each call. */
@@ -651,6 +652,9 @@ void flight_sw_init_framebuffer(void)
 
 	g_flight_line_pitch_ptr = &g_surface_pitch;
 	g_flight_active_line_offset_table = g_flight_line_offset_table;
+	XVT_LOG_DEBUG("render.framebuffer_cleared rows=%u points=%d present=%d",
+		      g_screen_height, g_radar_target_marker_point_count,
+		      (int)(g_flight_sw_framebuffer_base != NULL));
 }
 
 /* Points the software drawing functions at a target. With surface NULL: back at
@@ -1851,6 +1855,9 @@ void flight_starfield_render(void)
 			g_starfield_colors16_handle = memory_alloc_handle(
 				STAR_COUNT * sizeof(uint16_t), 0);
 			if (g_starfield_colors16_handle == 0) {
+				XVT_LOG_ERROR(
+					"render.stars_alloc_failed what=\"colors16\" bytes=%d",
+					(int)(STAR_COUNT * sizeof(uint16_t)));
 				fe_disk_io_fatal_error(0);
 			}
 			colors16 = (uint16_t *)memory_get_handle_block(
@@ -1874,6 +1881,10 @@ void flight_starfield_render(void)
 			memory_handle_block_done_stub(
 				g_starfield_colors16_handle);
 			g_starfield_colors16_initialized = 1;
+			XVT_LOG_DEBUG(
+				"render.star_colors_made bpp=16 count=%d rand=%u",
+				STAR_COUNT,
+				(unsigned)(uint16_t)g_game_rand_feedback_state);
 		}
 		colors16 = (uint16_t *)memory_get_handle_block(
 			g_starfield_colors16_handle);
@@ -1882,6 +1893,9 @@ void flight_starfield_render(void)
 			g_starfield_colors8_handle =
 				memory_alloc_handle(STAR_COUNT, 0);
 			if (g_starfield_colors8_handle == 0) {
+				XVT_LOG_ERROR(
+					"render.stars_alloc_failed what=\"colors8\" bytes=%d",
+					STAR_COUNT);
 				fe_disk_io_fatal_error(0);
 			}
 			colors8 = (uint8_t *)memory_get_handle_block(
@@ -1901,6 +1915,10 @@ void flight_starfield_render(void)
 			memory_handle_block_done_stub(
 				g_starfield_colors8_handle);
 			g_starfield_colors8_initialized = 1;
+			XVT_LOG_DEBUG(
+				"render.star_colors_made bpp=8 count=%d rand=%u",
+				STAR_COUNT,
+				(unsigned)(uint16_t)g_game_rand_feedback_state);
 		}
 		colors8 = (uint8_t *)memory_get_handle_block(
 			g_starfield_colors8_handle);
@@ -1910,6 +1928,9 @@ void flight_starfield_render(void)
 		g_starfield_random_vector_indices_handle =
 			memory_alloc_handle(STAR_COUNT * STAR_PLANE_COUNT, 0);
 		if (g_starfield_random_vector_indices_handle == 0) {
+			XVT_LOG_ERROR(
+				"render.stars_alloc_failed what=\"jitter\" bytes=%d",
+				STAR_COUNT * STAR_PLANE_COUNT);
 			fe_disk_io_fatal_error(0);
 		}
 		random_vector_indices = (uint8_t *)memory_get_handle_block(
@@ -1926,6 +1947,9 @@ void flight_starfield_render(void)
 		memory_handle_block_done_stub(
 			g_starfield_random_vector_indices_handle);
 		g_starfield_random_vector_indices_initialized = 1;
+		XVT_LOG_DEBUG("render.star_jitter_made count=%d rand=%u",
+			      STAR_COUNT,
+			      (unsigned)(uint16_t)g_game_rand_feedback_state);
 	}
 	random_vector_indices = (uint8_t *)memory_get_handle_block(
 		g_starfield_random_vector_indices_handle);
@@ -2142,6 +2166,8 @@ void flight_screenshot_capture(void)
 	}
 
 	int lock_count = flight_surface_get_lock_count();
+	XVT_LOG_DEBUG("render.screenshot_started index=%d locks=%d layer=%d",
+		      file_index, lock_count, g_flight_draw_to_hud_layer);
 	if (lock_count > 0) {
 		int remaining_locks = lock_count;
 		do {
@@ -2778,6 +2804,10 @@ int flight_sw_load_sprite_palette_tables(struct sprite_payload *sprite)
 		}
 	}
 
+	if (color_count > 256) {
+		XVT_LOG_ERROR("render.sprite_colors_overrun colors=%d bpp=%d",
+			      color_count, 8 * g_flight_bytes_per_pixel);
+	}
 	return color_index;
 }
 
@@ -5611,6 +5641,15 @@ void flight_sw_copy_viewport_span_mask_rle(const uint8_t *encoded_mask,
 					mirror_decoded_width =
 						(uint16_t)(mirror_decoded_width +
 							   run_length);
+				}
+				if (temp_write >
+				    mirror_row.row_runs +
+					    sizeof(mirror_row.row_runs)) {
+					XVT_LOG_ERROR(
+						"render.cockpit_mask_overrun width=%u bytes=%d",
+						(unsigned)width,
+						(int)(temp_write -
+						      mirror_row.row_runs));
 				}
 
 				uint16_t reversed_decoded_width = 0;

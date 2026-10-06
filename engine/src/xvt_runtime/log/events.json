@@ -5953,6 +5953,16 @@
       "fields": ["width", "height"],
       "text": "A {width}x{height} image is over the 65,536-pixel texture limit and gets no texture"
     },
+    "render.cockpit_mask_overrun": {
+      "level": "E",
+      "fields": ["width", "bytes"],
+      "text": "A mirrored row of the cockpit's window outline, {width} pixels wide, took {bytes} bytes to decode, more than the 99 its row buffer holds; the bytes past it were written over other data on the stack"
+    },
+    "render.framebuffer_cleared": {
+      "level": "D",
+      "fields": ["rows", "points", "present"],
+      "text": "The software frame buffer was cleared and its table of {rows} row offsets built; the radar's target marker was set to {points} points; a frame buffer was there to clear: {present}"
+    },
     "render.hardware_unsupported": {
       "level": "E",
       "fields": ["z_buffer", "perspective", "hardware"],
@@ -5978,15 +5988,40 @@
       "fields": ["bpp", "images", "colors"],
       "text": "A texture's palettes were converted for {bpp}-bit drawing: {images} images, {colors} colors written after its data"
     },
+    "render.screenshot_started": {
+      "level": "D",
+      "fields": ["index", "locks", "layer"],
+      "text": "The screenshot key took file number {index}, the first free name, and released the flight surface's {locks} locks to save the screen; drawing layer {layer} was set aside for the save"
+    },
     "render.span_pool_full": {
       "level": "D",
       "fields": ["spans", "faces"],
       "text": "The software renderer's pool of {spans} spans was used up (or came within one entry of it) while the frame's {faces} visible faces were turned into spans; once used up, new spans reuse its last entry, so parts of the frame may be drawn wrong"
     },
+    "render.sprite_colors_overrun": {
+      "level": "E",
+      "fields": ["colors", "bpp"],
+      "text": "A sprite image lists {colors} drawing colors, more than the 256 the {bpp}-bit software sprite tables hold; the colors past 256 were written beyond the tables"
+    },
     "render.sprite_truncated": {
       "level": "W",
       "fields": ["axis"],
       "text": "A rotated sprite is cut to 256 pixels in {axis}"
+    },
+    "render.star_colors_made": {
+      "level": "D",
+      "fields": ["bpp", "count", "rand"],
+      "text": "The {count} background star shades for {bpp}-bit drawing were made on first use from the game's random numbers, whose state then stood at {rand}"
+    },
+    "render.star_jitter_made": {
+      "level": "D",
+      "fields": ["count", "rand"],
+      "text": "Each of the {count} background stars got its random offset on first use, from the game's random numbers, whose state then stood at {rand}"
+    },
+    "render.stars_alloc_failed": {
+      "level": "E",
+      "fields": ["what", "bytes"],
+      "text": "Memory for the background stars' {what} ({bytes} bytes) could not be had; the game then stopped with a fatal resource error"
     },
     "render.texture_add_failed": {
       "level": "E",
