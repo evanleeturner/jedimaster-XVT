@@ -6663,6 +6663,41 @@
       "fields": ["field", "limit"],
       "text": "Cockpit text field {field} exceeds {limit} bytes"
     },
+    "sound.list_loaded": {
+      "level": "D",
+      "fields": ["file", "count", "end"],
+      "text": "The sound list {file} was read: {count} lines went to the sound loader, ending before flight sound id {end}"
+    },
+    "sound.list_past_table": {
+      "level": "W",
+      "fields": ["file", "id"],
+      "text": "The sound list {file} reached flight sound id {id}, past the 838 entries of the flight sound tables; its name and load result were written past their end (pilot voice lists get this far for a player flight group of more than 6 craft)"
+    },
+    "sound.voice_dropped": {
+      "level": "D",
+      "fields": ["index", "signature", "count", "predicted"],
+      "text": "A queued tactical officer status message at queue place {index} was dropped with its chained lines: no flying craft has signature {signature}; {count} lines were queued before the drop; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "sound.voice_queue_full": {
+      "level": "W",
+      "fields": ["id"],
+      "text": "Radio voice line {id} was dropped: the voice queue already held 128 lines"
+    },
+    "sound.voice_queued": {
+      "level": "D",
+      "fields": ["id", "speaker", "category", "chain", "signature", "count"],
+      "text": "Radio voice line {id} was queued: speaker {speaker} (0 special, 1 wingman, 2 tactical officer, 3 commander), category {category}, chained to the line before it {chain}, about the object with signature {signature} (65535 none); {count} lines wait"
+    },
+    "sound.voice_started": {
+      "level": "D",
+      "fields": ["id", "speaker", "category", "left", "predicted"],
+      "text": "Radio voice line {id} started playing (speaker {speaker}, category {category}); {left} lines still wait; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "sound.voices_off": {
+      "level": "D",
+      "fields": ["enabled", "volume"],
+      "text": "No radio voice lists were loaded for this flight: voices enabled {enabled}, voice volume {volume}"
+    },
     "sound.wave_failed": {
       "level": "D",
       "fields": ["file", "step"],
@@ -6672,6 +6707,11 @@
       "level": "D",
       "fields": ["file", "rate", "channels", "bits", "bytes"],
       "text": "The sound file {file} became a sound buffer: {rate} samples a second, {channels} channels, {bits} bits, {bytes} bytes of samples"
+    },
+    "sound.wingman_table_overrun": {
+      "level": "W",
+      "fields": ["what", "value"],
+      "text": "A wingman radio line indexed past a table of 6 entries ({what}: {value}); only a flight group of more than 6 craft gets here (candidates: the speaker list kept on the stack; ordinal: the per-line play counts, indexed by the target craft's place in its group)"
     },
     "strings.alloc_failed": {
       "level": "E",

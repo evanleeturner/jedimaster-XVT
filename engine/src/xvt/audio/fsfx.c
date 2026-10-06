@@ -22,6 +22,7 @@
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Falloff distance, in world units, of flight sound ids 0 to 95, one entry per
  * id; fsfx_compute_source_volume reads entries 0 to 94 (ids from 95 use 8192).
@@ -254,6 +255,10 @@ int fsfx_load_sfx_list(const char *file_name_buffer, uint16_t first_sound_id)
 			continue;
 		}
 
+		if (first_sound_id >= 838u) {
+			XVT_LOG_WARN("sound.list_past_table file=\"%s\" id=%d",
+				     file_name_buffer, (int)first_sound_id);
+		}
 		strcpy(g_fsfx_sfx_load_path, "wave\\");
 		strcat(g_fsfx_sfx_load_path, buffer);
 		strcpy(g_fsfx_sfx_name_table[first_sound_id], buffer);
@@ -267,6 +272,8 @@ int fsfx_load_sfx_list(const char *file_name_buffer, uint16_t first_sound_id)
 		++loaded_count;
 	}
 	fe_disk_io_close_global_stream(0);
+	XVT_LOG_DEBUG("sound.list_loaded file=\"%s\" count=%d end=%d",
+		      file_name_buffer, (int)loaded_count, (int)first_sound_id);
 	return loaded_count;
 }
 
@@ -301,6 +308,9 @@ void fsfx_load_mission_voice_sfx(void)
 
 	if (g_flight_conf_voice_enabled == 0 ||
 	    g_game_config.voice_volume == 0) {
+		XVT_LOG_DEBUG("sound.voices_off enabled=%d volume=%d",
+			      (int)g_flight_conf_voice_enabled,
+			      (int)g_game_config.voice_volume);
 		return;
 	}
 	if (g_game_config.voice_tactical_officer_level != 0) {
@@ -1586,6 +1596,13 @@ int fsfx_speak_wingman_event(int player_idx, int speaker_obj_idx,
 						    .flight_group_idx ==
 					    g_object_table[candidate_index]
 						    .flight_group_idx) {
+					if (g_flight_sim_side_effects_suppressed ==
+						    0 &&
+					    candidate_count >= 6) {
+						XVT_LOG_WARN(
+							"sound.wingman_table_overrun what=\"candidates\" value=%d",
+							candidate_count);
+					}
 					candidates[candidate_count++] =
 						candidate_index;
 				}
@@ -1641,6 +1658,12 @@ int fsfx_speak_wingman_event(int player_idx, int speaker_obj_idx,
 			g_object_table[target_obj_idx].object_signature;
 		target_craft_ordinal = g_object_table[target_obj_idx]
 					       .mobj->p_craft->craft_ordinal;
+		if (g_flight_sim_side_effects_suppressed == 0 &&
+		    target_craft_ordinal >= 6) {
+			XVT_LOG_WARN(
+				"sound.wingman_table_overrun what=\"ordinal\" value=%d",
+				target_craft_ordinal);
+		}
 	}
 	int base_offset = g_fsfx_voice_category_base_offset[voice_category];
 
@@ -2053,6 +2076,7 @@ int fsfx_queue_voice_sfx(int sfx_slot, char speaker_type, char voice_category,
 	}
 	uint8_t queue_count = g_fsfx_voice_queue_count;
 	if (queue_count == 128) {
+		XVT_LOG_WARN("sound.voice_queue_full id=%d", sfx_slot);
 		return 0;
 	}
 	if (queue_count != 0 && speaker_type == FLIGHT_VOICE_SPEAKER_TACTICAL &&
@@ -2073,6 +2097,11 @@ int fsfx_queue_voice_sfx(int sfx_slot, char speaker_type, char voice_category,
 	g_fsfx_voice_queue_category[queue_index] = voice_category;
 	g_fsfx_voice_queue_chain_flag[queue_index] = chain_flag;
 	g_fsfx_voice_queue_count = queue_count + 1;
+	XVT_LOG_DEBUG(
+		"sound.voice_queued id=%d speaker=%d category=%d chain=%d signature=%u count=%d",
+		sfx_slot, (int)speaker_type, (int)voice_category,
+		(int)chain_flag, (unsigned)object_signature,
+		(int)g_fsfx_voice_queue_count);
 	return 1;
 }
 
@@ -2139,6 +2168,12 @@ void fsfx_update_voice_queue(void)
 	sound_play_effect_now(g_fsfx_sfx_name_table[sfx_slot], 1, 0, 126,
 			      volume, 64);
 	g_fsfx_current_voice_sfx_slot = sfx_slot;
+	XVT_LOG_DEBUG(
+		"sound.voice_started id=%d speaker=%d category=%d left=%d predicted=%d",
+		sfx_slot, (int)g_fsfx_current_voice_speaker_type,
+		(int)g_fsfx_current_voice_category,
+		(int)g_fsfx_voice_queue_count,
+		g_flight_sim_side_effects_suppressed);
 }
 
 /* Drops queued tactical status messages about objects that are gone. Each
@@ -2203,6 +2238,13 @@ void fsfx_prune_stale_voice_queue_entries(void)
 		if (referenced_object_found != 0) {
 			++queue_index;
 		} else {
+			XVT_LOG_DEBUG(
+				"sound.voice_dropped index=%u signature=%u count=%d predicted=%d",
+				queue_index,
+				(unsigned)g_fsfx_voice_queue_object_signature
+					[queue_index],
+				(int)g_fsfx_voice_queue_count,
+				g_flight_sim_side_effects_suppressed);
 			fsfx_remove_voice_queue_entry_chain(queue_index);
 		}
 	}
