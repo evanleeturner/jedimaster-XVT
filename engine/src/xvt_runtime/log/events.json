@@ -6628,6 +6628,11 @@
       "fields": ["file", "bytes"],
       "text": "Fitting the menu text from {file} to its {bytes} bytes failed, so the menu text was emptied; at 0 bytes (a file with no text lines) the memory was then freed a second time"
     },
+    "strings.flight_loaded": {
+      "level": "D",
+      "fields": ["bytes"],
+      "text": "The flight text file strings.txt ({bytes} bytes) was read into the flight's text tables (at each flight start)"
+    },
     "strings.loaded": {
       "level": "D",
       "fields": ["file", "count", "capacity", "bytes"],

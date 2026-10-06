@@ -12,6 +12,7 @@
 #include "xvt/flight/object/damage.h"
 #include "xvt/flight/proving_grounds.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The four file error messages, indexed by file_error_string_id: the first four
  * lines of the block string_table_load_game_strings reads after the damage system
@@ -970,6 +971,8 @@ void string_table_load_game_strings(int load_from_disk)
 
 			if (write_ptr != NULL) {
 				FILE_RAW_CLOSE(stream);
+				XVT_LOG_DEBUG("strings.flight_loaded bytes=%u",
+					      (unsigned)file_size);
 				return;
 			}
 		}
