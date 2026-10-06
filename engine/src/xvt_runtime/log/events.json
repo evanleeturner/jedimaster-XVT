@@ -6663,6 +6663,66 @@
       "fields": ["field", "limit"],
       "text": "Cockpit text field {field} exceeds {limit} bytes"
     },
+    "sound.all_stopped": {
+      "level": "D",
+      "fields": ["result", "playing"],
+      "text": "Every flight sound was asked to stop: result {result} (1 every stop worked); {playing} sounds still counted as playing (an effect with two copies can keep one playing)"
+    },
+    "sound.buffer_lost": {
+      "level": "W",
+      "fields": ["site", "effect", "reloaded"],
+      "text": "The {site} sound device lost sound {effect}'s buffer, and the sound was read again from its file: {reloaded} (1 read again; 0 not, and the sound stays silent)"
+    },
+    "sound.channel_taken": {
+      "level": "D",
+      "fields": ["site", "effect", "channel", "stopped"],
+      "text": "Every {site} sound channel was busy, so sound {effect} took channel {channel} from the lower-priority sound {stopped}, which was stopped"
+    },
+    "sound.channels_full": {
+      "level": "D",
+      "fields": ["site", "effect", "priority"],
+      "text": "Sound {effect} (priority {priority}) did not play: every {site} sound channel was busy with a sound of equal or higher priority"
+    },
+    "sound.device_closed": {
+      "level": "D",
+      "fields": ["site", "effects", "playing"],
+      "text": "The {site} sound device was closed; the count of loaded sounds still read {effects} and the count of playing sounds {playing} (the 1997 code does not reset either here)"
+    },
+    "sound.device_failed": {
+      "level": "D",
+      "fields": ["site", "step"],
+      "text": "Starting the {site} sound device failed at step {step} (create: making the DirectSound object; cooperative_level: sharing it with the game window; primary_buffer: making its main buffer); the line that follows from the caller says what happened next"
+    },
+    "sound.device_opened": {
+      "level": "I",
+      "fields": ["site"],
+      "text": "The {site} sound device was opened (flight: at each flight start; menus: when the menus start and again after each flight)"
+    },
+    "sound.duplicate_failed": {
+      "level": "W",
+      "fields": ["site", "effect"],
+      "text": "Sound {effect} did not play: the {site} sound device could not make a playing copy of its buffer"
+    },
+    "sound.effect_duplicate": {
+      "level": "D",
+      "fields": ["effect", "file"],
+      "text": "Sound {effect} from {file} was already loaded under that name, so this load returned 0 and the flight sound id it was loaded for is marked not loaded: anything that plays that id stays silent"
+    },
+    "sound.effect_load_failed": {
+      "level": "W",
+      "fields": ["site", "effect", "file"],
+      "text": "Sound {effect} could not be loaded from {file} for the {site} (the file did not open or parse, or the sound device could not make its buffer); that sound stays silent"
+    },
+    "sound.effect_loaded": {
+      "level": "D",
+      "fields": ["site", "effect", "file", "count"],
+      "text": "Sound {effect} was loaded from {file} for the {site}; {count} sounds are loaded"
+    },
+    "sound.effects_unloaded": {
+      "level": "D",
+      "fields": ["site", "left"],
+      "text": "The {site} sounds were unloaded and {left} stayed loaded (the flight's unload skips names as its table closes up, so about half stay until the sound device closes; the menus' unload reaches every sound)"
+    },
     "sound.list_loaded": {
       "level": "D",
       "fields": ["file", "count", "end"],
@@ -6672,6 +6732,31 @@
       "level": "W",
       "fields": ["file", "id"],
       "text": "The sound list {file} reached flight sound id {id}, past the 838 entries of the flight sound tables; its name and load result were written past their end (pilot voice lists get this far for a player flight group of more than 6 craft)"
+    },
+    "sound.play_failed": {
+      "level": "W",
+      "fields": ["site", "effect", "result"],
+      "text": "Sound {effect} did not play on the {site} sound device: Play returned {result}; its copy of the buffer was not released"
+    },
+    "sound.queue_full": {
+      "level": "D",
+      "fields": ["effect", "priority"],
+      "text": "Sound {effect} (priority {priority}) was left out of the sound queue for this frame: its 4 places were taken by sounds of equal or higher priority, or a higher one pushed it out of the fourth place"
+    },
+    "sound.started": {
+      "level": "D",
+      "fields": ["site", "effect", "channel", "volume", "pan", "loop", "playing"],
+      "text": "Sound {effect} started on {site} channel {channel} with volume {volume} and pan {pan} as asked (0 to 127; pan 64 is centered), looping {loop}; {playing} sounds were playing"
+    },
+    "sound.stopped": {
+      "level": "D",
+      "fields": ["site", "effect", "channel", "result"],
+      "text": "The oldest playing copy of sound {effect} on {site} channel {channel} was stopped and released (Stop returned {result})"
+    },
+    "sound.table_full": {
+      "level": "W",
+      "fields": ["site", "effect", "count"],
+      "text": "Sound {effect} was not loaded for the {site}: the sound table already held {count} sounds, its limit, so that sound stays silent"
     },
     "sound.voice_dropped": {
       "level": "D",

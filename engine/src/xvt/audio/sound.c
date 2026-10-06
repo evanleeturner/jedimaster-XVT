@@ -5,6 +5,7 @@
 #include "aeron/compat/dsound.h"
 #include "xvt/audio/direct_sound.h"
 #include "xvt/audio/fsfx.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* The DirectSound object sound_init_sound_engine creates; NULL before that and
  * after sound_shutdown_sound_engine releases it. Most Sound_ functions return 0
@@ -81,10 +82,14 @@ int sound_init_sound_engine(void *hwnd)
 	}
 
 	if (DirectSoundCreate(NULL, (void **)&g_direct_sound, NULL) != 0) {
+		XVT_LOG_DEBUG(
+			"sound.device_failed site=\"flight\" step=\"create\"");
 		return 0;
 	}
 	if (g_direct_sound->lpVtbl->SetCooperativeLevel(g_direct_sound, hwnd,
 							2) != 0) {
+		XVT_LOG_DEBUG(
+			"sound.device_failed site=\"flight\" step=\"cooperative_level\"");
 		sound_shutdown_sound_engine();
 		return 0;
 	}
@@ -97,11 +102,14 @@ int sound_init_sound_engine(void *hwnd)
 		g_direct_sound, &primary_buffer_desc, &g_sound_primary_buffer,
 		NULL);
 	if (result != 0) {
+		XVT_LOG_DEBUG(
+			"sound.device_failed site=\"flight\" step=\"primary_buffer\"");
 		sound_shutdown_sound_engine();
 		return 0;
 	}
 	WAVEFORMATEX primary_format;
 	memset(&primary_format, 0, sizeof(primary_format));
+	XVT_LOG_INFO("sound.device_opened site=\"flight\"");
 	return 1;
 }
 
@@ -132,6 +140,9 @@ int sound_shutdown_sound_engine(void)
 	}
 	g_sound_primary_buffer = NULL;
 	g_next_sound_instance_seq = 0;
+	XVT_LOG_DEBUG(
+		"sound.device_closed site=\"flight\" effects=%d playing=%d",
+		g_sound_count, g_active_sound_count);
 	return 1;
 }
 
@@ -161,12 +172,18 @@ int sound_load_effect_ex(const char *file_name, const char *name,
 		return 0;
 	}
 	if (g_sound_count >= 1000) {
+		XVT_LOG_WARN(
+			"sound.table_full site=\"flight\" effect=\"%s\" count=%d",
+			name, g_sound_count);
 		return 0;
 	}
 	if (g_direct_sound == NULL) {
 		return 0;
 	}
 	if (sound_find_loaded_effect_by_name(name) != -1) {
+		XVT_LOG_DEBUG(
+			"sound.effect_duplicate effect=\"%s\" file=\"%s\"",
+			name, file_name);
 		return 0;
 	}
 	struct sound_effect_def effect;
@@ -180,8 +197,14 @@ int sound_load_effect_ex(const char *file_name, const char *name,
 		effect.file_name[191] = '\0';
 		effect.current_priority = 0;
 		sound_insert_effect_def_sorted(&effect);
+		XVT_LOG_DEBUG(
+			"sound.effect_loaded site=\"flight\" effect=\"%s\" file=\"%s\" count=%d",
+			name, file_name, g_sound_count);
 		return effect.buffer != NULL;
 	}
+	XVT_LOG_WARN(
+		"sound.effect_load_failed site=\"flight\" effect=\"%s\" file=\"%s\"",
+		name, file_name);
 	return 0;
 }
 
@@ -198,6 +221,8 @@ void sound_unload_all_effects(void)
 		sound_unload_effect_by_name(g_sound_defs[effect_index].name);
 		++effect_index;
 	} while (effect_index < 1000);
+	XVT_LOG_DEBUG("sound.effects_unloaded site=\"flight\" left=%d",
+		      g_sound_count);
 }
 
 /* Stops the named effect's sounds with sound_stop_oldest_instance until it
@@ -290,6 +315,8 @@ int sound_queue_effect(const char *sound_name, int allow_restart_existing,
 		queued_priority = priority;
 	}
 	if (g_sound_queue_count == queue_index && queue_index == 4) {
+		XVT_LOG_DEBUG("sound.queue_full effect=\"%s\" priority=%d",
+			      name, priority);
 		return 0;
 	}
 
@@ -313,6 +340,8 @@ int sound_queue_effect(const char *sound_name, int allow_restart_existing,
 	int queue_count = g_sound_queue_count + 1;
 	g_sound_queue_count = queue_count;
 	if (queue_count > 4) {
+		XVT_LOG_DEBUG("sound.queue_full effect=\"%s\" priority=%d",
+			      g_sound_queue[4].name, g_sound_queue[4].priority);
 		g_sound_queue_count = 4;
 	}
 	return 1;
@@ -425,6 +454,11 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 					return 1;
 				}
 				buffer = instance->buffer;
+				XVT_LOG_DEBUG(
+					"sound.channel_taken site=\"flight\" effect=\"%s\" channel=%d stopped=\"%s\"",
+					sound_name, instance_index,
+					g_sound_defs[instance->effect_index]
+						.name);
 				buffer->lpVtbl->Stop(buffer);
 				buffer->lpVtbl->Release(buffer);
 				instance->effect_index = -1;
@@ -454,6 +488,9 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 						++instance_index;
 					} while (instance_index < 8);
 				}
+				XVT_LOG_DEBUG(
+					"sound.channels_full site=\"flight\" effect=\"%s\" priority=%d",
+					sound_name, priority);
 				return 0;
 			}
 		}
@@ -472,6 +509,9 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 	g_direct_sound->lpVtbl->DuplicateSoundBuffer(
 		g_direct_sound, g_sound_defs[effect_index].buffer, &duplicate);
 	if (duplicate == NULL) {
+		XVT_LOG_WARN(
+			"sound.duplicate_failed site=\"flight\" effect=\"%s\"",
+			sound_name);
 		return 0;
 	}
 	duplicate->lpVtbl->SetCurrentPosition(duplicate, 0);
@@ -498,6 +538,9 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 		result = direct_sound_reload_wave_buffer(
 			g_sound_defs[effect_index].buffer,
 			g_sound_defs[effect_index].file_name);
+		XVT_LOG_WARN(
+			"sound.buffer_lost site=\"flight\" effect=\"%s\" reloaded=%d",
+			sound_name, (int)result);
 		if (result == 1) {
 			duplicate->lpVtbl->SetCurrentPosition(duplicate, 0);
 			result = duplicate->lpVtbl->Play(duplicate, 0, 0,
@@ -512,6 +555,9 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 					g_next_sound_instance_seq++;
 				++g_active_sound_count;
 			} else {
+				XVT_LOG_WARN(
+					"sound.play_failed site=\"flight\" effect=\"%s\" result=%#x",
+					sound_name, (unsigned)result);
 				return 0;
 			}
 		}
@@ -522,7 +568,15 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 		instance->buffer = buffer;
 		instance->sequence = g_next_sound_instance_seq++;
 		++g_active_sound_count;
+		XVT_LOG_DEBUG(
+			"sound.started site=\"flight\" effect=\"%s\" channel=%d volume=%d pan=%d loop=%d playing=%d",
+			sound_name, instance_index, volume, pan, loop,
+			g_active_sound_count);
 		return 1;
+	} else {
+		XVT_LOG_WARN(
+			"sound.play_failed site=\"flight\" effect=\"%s\" result=%#x",
+			sound_name, (unsigned)result);
 	}
 	return result;
 }
@@ -573,6 +627,9 @@ int sound_stop_oldest_instance(const char *name)
 	g_active_sound_instances[oldest_index].buffer = NULL;
 	g_active_sound_instances[oldest_index].effect_index = -1;
 	--g_active_sound_count;
+	XVT_LOG_DEBUG(
+		"sound.stopped site=\"flight\" effect=\"%s\" channel=%d result=%#x",
+		name, oldest_index, (unsigned)stop_result);
 	return stop_result >= 0;
 }
 
@@ -595,6 +652,8 @@ int sound_stop_all_instances(void)
 					.name);
 		}
 	}
+	XVT_LOG_DEBUG("sound.all_stopped result=%d playing=%d", result,
+		      g_active_sound_count);
 	return result;
 }
 
