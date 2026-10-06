@@ -1,7 +1,5 @@
 #include "xvt/render/flight_sw.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_camera.h"
-#endif
 
 #include <math.h>
 #include <stdio.h>
@@ -359,12 +357,6 @@ static int8_t g_flight_sw_rle_palette_shift = 0;
 // GLOBAL: XVT 0x9ED23A
 static uint8_t g_flight_sw_rle_transparent_color = 0;
 
-#ifndef XVT_MODERN
-/* Window number passed to rts_vga2_set_current_page, which ignores it; nothing
- * writes it, so it stays 0. */
-// GLOBAL: XVT 0x5233D4
-unsigned int g_vesa_window = 0;
-#endif
 /* The flight display mode, a flight_resolution_mode. flight_main_loop in the
  * original build and xvt_flight_loading_globals in the modern one set it from
  * g_surface_width: 320x240 for 320, 480x360 for 480, else 640x480. */
@@ -575,9 +567,6 @@ static uint16_t g_flight_sw_rot_sprite_axis_swap_threshold_angle = 0;
 // FUNCTION: XVT 0x40DF00
 void flight_sw_init_framebuffer(void)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	for (unsigned int line = 0; line < (unsigned int)g_screen_height;
 	     ++line) {
@@ -595,35 +584,6 @@ void flight_sw_init_framebuffer(void)
 		g_radar_target_marker_point_count = 10;
 		break;
 
-#ifndef XVT_MODERN
-	case FLIGHT_RESOLUTION_640X480:
-		for (page = 0;
-		     page < (unsigned int)(g_surface_pitch * g_screen_height) /
-				    g_vesa_page_size_bytes;
-		     ++page) {
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-			memset(g_flight_sw_framebuffer_base, 0,
-			       g_vesa_page_size_bytes);
-		}
-		if ((unsigned int)(g_surface_pitch * g_screen_height) %
-			    g_vesa_page_size_bytes !=
-		    0) {
-			rts_vga2_set_current_page(
-				(uint8_t)g_vesa_window,
-				(uint16_t)((unsigned int)(g_surface_pitch *
-							  g_screen_height) /
-					   g_vesa_page_size_bytes));
-			memset(g_flight_sw_framebuffer_base, 0,
-			       (unsigned int)(g_surface_pitch *
-					      g_screen_height) %
-				       g_vesa_page_size_bytes);
-		}
-		g_radar_target_marker_shape =
-			(int8_t *)g_radar_target_marker_shape12;
-		g_radar_target_marker_point_count = 12;
-		break;
-#else
 	case FLIGHT_RESOLUTION_640X480:
 		memset(g_flight_sw_framebuffer_base, 0,
 		       g_surface_pitch * g_screen_height);
@@ -631,7 +591,6 @@ void flight_sw_init_framebuffer(void)
 			(int8_t *)g_radar_target_marker_shape12;
 		g_radar_target_marker_point_count = 12;
 		break;
-#endif
 
 	case FLIGHT_RESOLUTION_480X360:
 		memset(g_flight_sw_framebuffer_base, 0,
@@ -784,16 +743,6 @@ void flight_sw_blit_sprite_rle_impl8bpp(uint8_t *rle_data, int x, int y,
 			(uint16_t)g_flight_sw_rle_sprite_x +
 			flight_sw_get_line_offset(
 				(uint16_t)g_flight_sw_rle_sprite_y);
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			unsigned int page =
-				pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		uint8_t *destination =
 			g_flight_sw_framebuffer_base + pixel_offset;
 
@@ -926,13 +875,6 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 		uint8_t padding[3];
 	} color;
 
-#ifndef XVT_MODERN
-	uint8_t **source;
-	void *color_ref;
-	uint8_t **cursor;
-	int *mirror_ref;
-	int *transparent_ref;
-#endif
 
 	if (g_flight_bytes_per_pixel == 2) {
 		flight_sw_blit_map_icon_rle16bpp(rle_data, x, y,
@@ -945,13 +887,6 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 	uint16_t run_length;
 	uint16_t *count = &run_length;
 	uint8_t *destination;
-#ifndef XVT_MODERN
-	source = &rle_data;
-	color_ref = &color;
-	cursor = &destination;
-	mirror_ref = &mirror;
-	transparent_ref = &transparent_index;
-#endif
 
 	g_flight_sw_rle_sprite_x = (int16_t)x;
 	g_flight_sw_rle_sprite_y = (int16_t)y;
@@ -962,17 +897,6 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 			(uint16_t)g_flight_sw_rle_sprite_x +
 			flight_sw_get_line_offset(
 				(uint16_t)g_flight_sw_rle_sprite_y);
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    xvt_framebuffer_address_is_legacy_base(
-			    g_flight_sw_framebuffer_base)) {
-			unsigned int page =
-				pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		destination = g_flight_sw_framebuffer_base + pixel_offset;
 
 		for (;;) {
@@ -1089,20 +1013,8 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 // FUNCTION: XVT 0x40EFE0
 void flight_sw_draw_pixel8bpp(uint16_t x, uint16_t y, int8_t color_index)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	unsigned int pixel_offset = x + flight_sw_get_line_offset(y);
-#ifndef XVT_MODERN
-	if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-	    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-		page = pixel_offset / g_vesa_page_size_bytes;
-		pixel_offset %= g_vesa_page_size_bytes;
-		rts_vga2_set_current_page((uint8_t)g_vesa_window,
-					  (uint16_t)page);
-	}
-#endif
 	g_flight_sw_framebuffer_base[pixel_offset] = color_index;
 }
 
@@ -1143,12 +1055,8 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 		    g_flight_sw_framebuffer_base)) {
 		unsigned int page = pixel_offset / g_vesa_page_size_bytes;
 		pixel_offset %= g_vesa_page_size_bytes;
-#ifdef XVT_MODERN
 		rts_vga2_set_current_page((uint8_t)g_flight_resolution_mode,
 					  page);
-#else
-		rts_vga2_set_current_page((uint8_t)g_vesa_window, page);
-#endif
 		if (pixel_offset + g_flight_fill_rect_remaining_rows8bpp *
 					   g_surface_pitch >
 		    0xFFFF) {
@@ -1265,15 +1173,10 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 						pixel_offset /
 						g_vesa_page_size_bytes;
 					pixel_offset %= g_vesa_page_size_bytes;
-#ifdef XVT_MODERN
 					rts_vga2_set_current_page(
 						(uint8_t)
 							g_flight_resolution_mode,
 						page);
-#else
-					rts_vga2_set_current_page(
-						(uint8_t)g_vesa_window, page);
-#endif
 				}
 				int16_t width =
 					(int16_t)(g_flight_fill_rect_right8bpp -
@@ -1305,15 +1208,10 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 						pixel_offset /
 						g_vesa_page_size_bytes;
 					pixel_offset %= g_vesa_page_size_bytes;
-#ifdef XVT_MODERN
 					rts_vga2_set_current_page(
 						(uint8_t)
 							g_flight_resolution_mode,
 						page);
-#else
-					rts_vga2_set_current_page(
-						(uint8_t)g_vesa_window, page);
-#endif
 				}
 				int16_t width =
 					(int16_t)(g_flight_fill_rect_right8bpp -
@@ -1348,15 +1246,10 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 						pixel_offset /
 						g_vesa_page_size_bytes;
 					pixel_offset %= g_vesa_page_size_bytes;
-#ifdef XVT_MODERN
 					rts_vga2_set_current_page(
 						(uint8_t)
 							g_flight_resolution_mode,
 						page);
-#else
-					rts_vga2_set_current_page(
-						(uint8_t)g_vesa_window, page);
-#endif
 				}
 				int16_t width =
 					(int16_t)(g_flight_fill_rect_right8bpp -
@@ -1388,15 +1281,10 @@ void flight_sw_fill_rect_or_border8bpp(uint16_t border_thickness)
 						pixel_offset /
 						g_vesa_page_size_bytes;
 					pixel_offset %= g_vesa_page_size_bytes;
-#ifdef XVT_MODERN
 					rts_vga2_set_current_page(
 						(uint8_t)
 							g_flight_resolution_mode,
 						page);
-#else
-					rts_vga2_set_current_page(
-						(uint8_t)g_vesa_window, page);
-#endif
 				}
 				int16_t width =
 					(int16_t)(g_flight_fill_rect_right8bpp -
@@ -1453,9 +1341,6 @@ void flight_sw_fill_rect_clipped8bpp(uint16_t x1, uint16_t y1, uint16_t x2,
 void flight_sw_save_screen_rect8bpp(uint8_t *buffer, int x, int y,
 				    int16_t width, int height)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	int rows_remaining = height;
 	if (rows_remaining == 0) {
@@ -1463,16 +1348,6 @@ void flight_sw_save_screen_rect8bpp(uint8_t *buffer, int x, int y,
 	}
 	do {
 		unsigned int pixel_offset = flight_sw_get_line_offset(y) + x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_sw_framebuffer_base == g_flight_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-			rts_vga2_set_current_page(1, (uint16_t)page);
-		}
-#endif
 		g_saved_row_pixels_remaining = width;
 		uint8_t *source = g_flight_sw_framebuffer_base + pixel_offset;
 		while (g_saved_row_pixels_remaining > 0) {
@@ -1491,22 +1366,10 @@ void flight_sw_save_screen_rect8bpp(uint8_t *buffer, int x, int y,
 void flight_sw_restore_screen_rect8bpp(uint8_t *buffer, int x, int y,
 				       int16_t width, int height)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	int rows_remaining = height;
 	for (; rows_remaining != 0; ++y) {
 		unsigned int pixel_offset = flight_sw_get_line_offset(y) + x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_sw_framebuffer_base == g_flight_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		g_saved_row_pixels_remaining = width;
 		uint8_t *destination = g_flight_sw_framebuffer_base;
 		destination += pixel_offset;
@@ -1533,9 +1396,6 @@ void flight_sw_draw_point_array8bpp(uint16_t *points, int16_t count)
 		uint8_t payload_high;
 	};
 
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	if (count == 0) {
 		return;
@@ -1544,16 +1404,6 @@ void flight_sw_draw_point_array8bpp(uint16_t *points, int16_t count)
 		unsigned int pixel_offset = points[0];
 		uint8_t color = (uint8_t)points[2];
 		pixel_offset += flight_sw_get_line_offset(points[1]);
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-			rts_vga2_set_current_page(1, (uint16_t)page);
-		}
-#endif
 		uint8_t *destination =
 			g_flight_sw_framebuffer_base + pixel_offset;
 		if (*destination != 44) {
@@ -1567,18 +1417,6 @@ void flight_sw_draw_point_array8bpp(uint16_t *points, int16_t count)
 			pixel_offset = points[0];
 			pixel_offset += flight_sw_get_line_offset(
 				(uint16_t)(points[1] + 1));
-#ifndef XVT_MODERN
-			if (g_flight_resolution_mode !=
-				    FLIGHT_RESOLUTION_320X240 &&
-			    g_flight_sw_framebuffer_base ==
-				    g_sw_framebuffer_base) {
-				page = pixel_offset / g_vesa_page_size_bytes;
-				pixel_offset %= g_vesa_page_size_bytes;
-				rts_vga2_set_current_page(
-					(uint8_t)g_vesa_window, (uint16_t)page);
-				rts_vga2_set_current_page(1, (uint16_t)page);
-			}
-#endif
 			destination = g_flight_sw_framebuffer_base;
 			destination += pixel_offset;
 			if (*destination != 44) {
@@ -1600,9 +1438,6 @@ void flight_sw_draw_point_array8bpp(uint16_t *points, int16_t count)
 // FUNCTION: XVT 0x4104D0
 void flight_sw_erase_point_array8bpp(uint16_t *points, int16_t count)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	int16_t remaining = count;
 	if (remaining == 0) {
@@ -1613,15 +1448,6 @@ void flight_sw_erase_point_array8bpp(uint16_t *points, int16_t count)
 		unsigned int x = current[0];
 		unsigned int y = current[1];
 		unsigned int pixel_offset = flight_sw_get_line_offset(y) + x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		uint8_t *destination =
 			g_flight_sw_framebuffer_base + pixel_offset;
 		uint8_t mask = (uint8_t)current[2];
@@ -1632,17 +1458,6 @@ void flight_sw_erase_point_array8bpp(uint16_t *points, int16_t count)
 			x = current[0];
 			y = (uint16_t)(current[1] + 1);
 			pixel_offset = flight_sw_get_line_offset(y) + x;
-#ifndef XVT_MODERN
-			if (g_flight_resolution_mode !=
-				    FLIGHT_RESOLUTION_320X240 &&
-			    g_flight_sw_framebuffer_base ==
-				    g_sw_framebuffer_base) {
-				page = pixel_offset / g_vesa_page_size_bytes;
-				pixel_offset %= g_vesa_page_size_bytes;
-				rts_vga2_set_current_page(
-					(uint8_t)g_vesa_window, (uint16_t)page);
-			}
-#endif
 			destination =
 				g_flight_sw_framebuffer_base + pixel_offset;
 			mask = (uint8_t)current[2];
@@ -1662,9 +1477,6 @@ void flight_sw_erase_point_array8bpp(uint16_t *points, int16_t count)
 // FUNCTION: XVT 0x4105E0
 void flight_sw_draw_radar_target_marker8bpp(void)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	uint16_t saved_pixel_index = 0;
 	uint16_t offset_index = 0;
@@ -1678,16 +1490,6 @@ void flight_sw_draw_radar_target_marker8bpp(void)
 			flight_sw_get_line_offset(g_radar_target_marker_draw_y +
 						  offset[1]) +
 			offset[0] + g_radar_target_marker_draw_x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-			rts_vga2_set_current_page(1, (uint16_t)page);
-		}
-#endif
 		offset_index += 2;
 		uint8_t *pixel = g_flight_sw_framebuffer_base + pixel_offset;
 		g_radar_target_marker_saved_pixels[saved_pixel_index++] =
@@ -1702,9 +1504,6 @@ void flight_sw_draw_radar_target_marker8bpp(void)
 // FUNCTION: XVT 0x4106C0
 void flight_sw_restore_radar_target_marker8bpp(void)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	uint16_t offset_index = 0;
 	uint16_t saved_pixel_index = 0;
@@ -1719,15 +1518,6 @@ void flight_sw_restore_radar_target_marker8bpp(void)
 			flight_sw_get_line_offset(
 				g_radar_target_marker_restore_y + offset[1]) +
 			g_radar_target_marker_restore_x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_sw_framebuffer_base == g_flight_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		offset_index += 2;
 		uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
 		uint8_t pixel =
@@ -1742,9 +1532,6 @@ void flight_sw_restore_radar_target_marker8bpp(void)
 // FUNCTION: XVT 0x410780
 uint8_t flight_sw_draw_cross_marker8bpp(uint16_t x, uint16_t y, uint8_t color)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	int16_t remaining = 7;
 	unsigned int coordinates[2];
@@ -1761,16 +1548,6 @@ uint8_t flight_sw_draw_cross_marker8bpp(uint16_t x, uint16_t y, uint8_t color)
 			((int8_t *)g_flight_sw_cross_marker_offsets)
 				[offset_index] +
 			coordinates[1];
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-			rts_vga2_set_current_page(1, (uint16_t)page);
-		}
-#endif
 		offset_index += 2;
 		uint8_t *pixel = g_flight_sw_framebuffer_base + pixel_offset;
 		g_flight_sw_cross_marker_saved_pixels[saved_pixel_index++] =
@@ -1787,9 +1564,6 @@ uint8_t flight_sw_draw_cross_marker8bpp(uint16_t x, uint16_t y, uint8_t color)
 // FUNCTION: XVT 0x410860
 uint8_t flight_sw_restore_cross_marker8bpp(uint16_t x, uint16_t y)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	int16_t remaining = 7;
 	uint16_t saved_pixel_index = 0;
@@ -1803,15 +1577,6 @@ uint8_t flight_sw_restore_cross_marker8bpp(uint16_t x, uint16_t y)
 				y + ((int8_t *)g_flight_sw_cross_marker_offsets)
 					    [offset_index + 1]) +
 			x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		offset_index += 2;
 		uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
 		pixel = g_flight_sw_cross_marker_saved_pixels
@@ -2139,21 +1904,12 @@ void flight_screenshot_capture(void)
 	int file_index = 0;
 	for (;;) {
 		sprintf(file_name, "flightscreen%d.bmp", file_index);
-#ifdef XVT_MODERN
 		g_stream = xvt_storage_open_root(AERON_VFS_ROOT_USER, file_name,
 						 g_file_mode_read_binary);
-#else
-		fe_disk_io_open_global_stream(file_name,
-					      g_file_mode_read_binary, 0, 1);
-#endif
 		if (g_stream == NULL) {
 			break;
 		}
-#ifdef XVT_MODERN
 		file_close(g_stream);
-#else
-		FILE_RAW_CLOSE((xvt_file *)g_stream);
-#endif
 		++file_index;
 	}
 
@@ -4564,11 +4320,9 @@ int flight_sw_init_rot_sprite_octant4(void)
 				}
 				++point_index;
 			}
-#ifdef XVT_MODERN
 			if (point_index > max_point_index) {
 				return 0;
 			}
-#endif
 		}
 		g_flight_sw_rot_sprite_clip_min_x = clip_min_value;
 	}
@@ -4612,11 +4366,9 @@ int flight_sw_init_rot_sprite_octant4(void)
 			}
 			++point_index;
 		}
-#ifdef XVT_MODERN
 		if (point_index > max_point_index) {
 			return 0;
 		}
-#endif
 	} else {
 		clip_max_value = -1;
 	}
@@ -5322,9 +5074,7 @@ unsigned int push_flight_viewport(uint16_t width, uint16_t height,
 				  unsigned int base_offset)
 {
 	(void)refresh_span_mask;
-#ifdef XVT_MODERN
 	xvt_render_camera_save_viewport();
-#endif
 
 	g_saved_flight_viewport.width = g_flight_vp_width;
 	g_saved_flight_viewport.height = g_flight_vp_height;
@@ -5375,9 +5125,7 @@ int pop_flight_viewport(void)
 	g_cam_mat_r0_z = g_saved_flight_viewport.cam_mat_r0_z;
 	g_cam_mat_r1_z = g_saved_flight_viewport.cam_mat_r1_z;
 	g_cam_mat_r2_z = g_saved_flight_viewport.cam_mat_r2_z;
-#ifdef XVT_MODERN
 	xvt_render_camera_restore_viewport();
-#endif
 	g_flight_vp_width = g_saved_flight_viewport.width;
 	g_flight_vp_max_x = g_saved_flight_viewport.width - 1;
 	g_flight_vp_center_x = g_saved_flight_viewport.width >> 1;
@@ -5806,16 +5554,6 @@ void flight_sw_blit_sprite_rle_impl16bpp(uint8_t *rle_data, int16_t x,
 			flight_sw_get_line_offset(
 				(uint16_t)g_flight_sw_rle_sprite_y) +
 			2 * (uint16_t)g_flight_sw_rle_sprite_x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			unsigned int page =
-				pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		uint16_t *destination =
 			(uint16_t *)(g_flight_sw_framebuffer_base +
 				     pixel_offset);
@@ -5963,17 +5701,6 @@ void flight_sw_blit_map_icon_rle16bpp(uint8_t *rle_data, int x, int y,
 			flight_sw_get_line_offset(
 				(uint16_t)g_flight_sw_rle_sprite_y) +
 			2 * (uint16_t)g_flight_sw_rle_sprite_x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    xvt_framebuffer_address_is_legacy_base(
-			    g_flight_sw_framebuffer_base)) {
-			unsigned int page =
-				pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		memcpy(&destination, &g_flight_sw_framebuffer_base,
 		       sizeof(destination));
 		destination = xvt_framebuffer_address_from_base(destination,
@@ -6117,20 +5844,8 @@ void flight_sw_blit_map_icon_rle16bpp(uint8_t *rle_data, int x, int y,
 // FUNCTION: XVT 0x449EF0
 void flight_sw_draw_pixel16bpp(uint16_t x, uint16_t y, int8_t color_index)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	unsigned int pixel_offset = flight_sw_get_line_offset(y) + 2 * x;
-#ifndef XVT_MODERN
-	if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-	    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-		page = pixel_offset / g_vesa_page_size_bytes;
-		pixel_offset %= g_vesa_page_size_bytes;
-		rts_vga2_set_current_page((uint8_t)g_vesa_window,
-					  (uint16_t)page);
-	}
-#endif
 	uint16_t color = g_flight_palette16_bpp[(int)color_index];
 	uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
 	*(uint16_t *)(framebuffer_base + pixel_offset) = color;
@@ -6154,9 +5869,6 @@ void flight_sw_fill_clip_rect16bpp(void)
 // FUNCTION: XVT 0x44A5B0
 void flight_sw_fill_rect_or_border16bpp(uint16_t border_thickness)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	g_flight_fill_rect_current_y16bpp = g_flight_fill_rect_top16bpp;
 	g_flight_fill_rect_remaining_rows16bpp =
@@ -6176,17 +5888,6 @@ void flight_sw_fill_rect_or_border16bpp(uint16_t border_thickness)
 				flight_sw_get_line_offset(
 					g_flight_fill_rect_current_y16bpp) +
 				2 * g_flight_fill_rect_left16bpp;
-#ifndef XVT_MODERN
-			if (g_flight_resolution_mode !=
-				    FLIGHT_RESOLUTION_320X240 &&
-			    g_flight_sw_framebuffer_base ==
-				    g_sw_framebuffer_base) {
-				page = pixel_offset / g_vesa_page_size_bytes;
-				pixel_offset %= g_vesa_page_size_bytes;
-				rts_vga2_set_current_page(
-					(uint8_t)g_vesa_window, (uint16_t)page);
-			}
-#endif
 			destination =
 				&((uint16_t *)g_flight_sw_framebuffer_base)
 					[pixel_offset / 2];
@@ -6208,17 +5909,6 @@ void flight_sw_fill_rect_or_border16bpp(uint16_t border_thickness)
 				flight_sw_get_line_offset(
 					g_flight_fill_rect_current_y16bpp) +
 				2 * g_flight_fill_rect_left16bpp;
-#ifndef XVT_MODERN
-			if (g_flight_resolution_mode !=
-				    FLIGHT_RESOLUTION_320X240 &&
-			    g_flight_sw_framebuffer_base ==
-				    g_sw_framebuffer_base) {
-				page = pixel_offset / g_vesa_page_size_bytes;
-				pixel_offset %= g_vesa_page_size_bytes;
-				rts_vga2_set_current_page(
-					(uint8_t)g_vesa_window, (uint16_t)page);
-			}
-#endif
 			destination =
 				&((uint16_t *)g_flight_sw_framebuffer_base)
 					[pixel_offset / 2];
@@ -6245,17 +5935,6 @@ void flight_sw_fill_rect_or_border16bpp(uint16_t border_thickness)
 				flight_sw_get_line_offset(
 					g_flight_fill_rect_current_y16bpp) +
 				2 * g_flight_fill_rect_left16bpp;
-#ifndef XVT_MODERN
-			if (g_flight_resolution_mode !=
-				    FLIGHT_RESOLUTION_320X240 &&
-			    g_flight_sw_framebuffer_base ==
-				    g_sw_framebuffer_base) {
-				page = pixel_offset / g_vesa_page_size_bytes;
-				pixel_offset %= g_vesa_page_size_bytes;
-				rts_vga2_set_current_page(
-					(uint8_t)g_vesa_window, (uint16_t)page);
-			}
-#endif
 			destination =
 				&((uint16_t *)g_flight_sw_framebuffer_base)
 					[pixel_offset / 2];
@@ -6277,15 +5956,6 @@ void flight_sw_fill_rect_or_border16bpp(uint16_t border_thickness)
 		pixel_offset = flight_sw_get_line_offset(
 				       g_flight_fill_rect_current_y16bpp) +
 			       2 * g_flight_fill_rect_left16bpp;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		destination = &(
 			(uint16_t *)
 				g_flight_sw_framebuffer_base)[pixel_offset / 2];
@@ -6346,9 +6016,6 @@ void flight_sw_fill_rect_clipped16bpp(uint16_t x1, uint16_t y1, uint16_t x2,
 void flight_sw_save_screen_rect16bpp(uint16_t *buffer, int x, int y,
 				     int16_t width, int height)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	uint16_t *output = buffer;
 	if (height == 0) {
@@ -6357,15 +6024,6 @@ void flight_sw_save_screen_rect16bpp(uint16_t *buffer, int x, int y,
 	do {
 		unsigned int pixel_offset =
 			flight_sw_get_line_offset(y) + 2 * x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		g_saved_row_pixels_remaining = width;
 		uint16_t *source = (uint16_t *)(g_flight_sw_framebuffer_base +
 						pixel_offset);
@@ -6385,9 +6043,6 @@ void flight_sw_save_screen_rect16bpp(uint16_t *buffer, int x, int y,
 void flight_sw_restore_screen_rect16bpp(uint16_t *buffer, int x, int y,
 					int16_t width, int height)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	uint16_t *input = buffer;
 	if (height == 0) {
@@ -6396,15 +6051,6 @@ void flight_sw_restore_screen_rect16bpp(uint16_t *buffer, int x, int y,
 	do {
 		unsigned int pixel_offset =
 			flight_sw_get_line_offset(y) + 2 * x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		g_saved_row_pixels_remaining = width;
 		uint16_t *destination =
 			(uint16_t *)(g_flight_sw_framebuffer_base +
@@ -6427,9 +6073,6 @@ void flight_sw_restore_screen_rect16bpp(uint16_t *buffer, int x, int y,
 // FUNCTION: XVT 0x44AC70
 void flight_sw_draw_point_array16bpp(uint16_t *points, int16_t count)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	uint16_t *current = points;
 	int16_t remaining = count;
@@ -6441,16 +6084,6 @@ void flight_sw_draw_point_array16bpp(uint16_t *points, int16_t count)
 		uint16_t y = current[1];
 		unsigned int pixel_offset =
 			flight_sw_get_line_offset(y) + 2 * x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_sw_framebuffer_base == g_flight_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-			rts_vga2_set_current_page(1, (uint16_t)page);
-		}
-#endif
 		int16_t *destination =
 			(int16_t *)(g_flight_sw_framebuffer_base +
 				    pixel_offset);
@@ -6470,35 +6103,17 @@ void flight_sw_draw_point_array16bpp(uint16_t *points, int16_t count)
 // FUNCTION: XVT 0x44AD30
 void flight_sw_erase_point_array16bpp(uint16_t *points, int16_t count)
 {
-#ifndef XVT_MODERN
-	unsigned int legacy_resolution_mode;
-#endif
-#ifndef XVT_MODERN
-	legacy_resolution_mode = FLIGHT_RESOLUTION_320X240;
-#endif
 	int16_t remaining = count;
 	if (remaining == 0) {
 		return;
 	}
 	uint16_t *current = points;
 	do {
-#ifndef XVT_MODERN
-		unsigned int page;
-#endif
 
 		unsigned int x = current[0];
 		unsigned int y = current[1];
 		unsigned int pixel_offset =
 			flight_sw_get_line_offset(y) + 2 * x;
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != legacy_resolution_mode &&
-		    g_sw_framebuffer_base == g_flight_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		uint16_t *destination =
 			(uint16_t *)(g_flight_sw_framebuffer_base +
 				     pixel_offset);
@@ -6517,9 +6132,6 @@ void flight_sw_erase_point_array16bpp(uint16_t *points, int16_t count)
 // FUNCTION: XVT 0x44ADD0
 void flight_sw_draw_radar_target_marker16bpp(void)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	int16_t remaining = 10;
 	uint16_t offset_index = 0;
@@ -6532,16 +6144,6 @@ void flight_sw_draw_radar_target_marker16bpp(void)
 								 1]) +
 			2 * (g_radar_target_marker_draw_x +
 			     g_radar_target_marker_shape16bpp[offset_index]);
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-			rts_vga2_set_current_page(1, (uint16_t)page);
-		}
-#endif
 		offset_index += 2;
 		uint16_t *pixel = (uint16_t *)(g_flight_sw_framebuffer_base +
 					       pixel_offset);
@@ -6557,9 +6159,6 @@ void flight_sw_draw_radar_target_marker16bpp(void)
 // FUNCTION: XVT 0x44AEB0
 void flight_sw_restore_radar_target_marker16bpp(void)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	uint16_t offset_index = 0;
 	int16_t remaining = 10;
@@ -6572,15 +6171,6 @@ void flight_sw_restore_radar_target_marker16bpp(void)
 								 1]) +
 			2 * (g_radar_target_marker_restore_x +
 			     g_radar_target_marker_shape16bpp[offset_index]);
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_sw_framebuffer_base == g_flight_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		uint8_t *framebuffer_base =
 			g_flight_sw_framebuffer_base + pixel_offset;
 		offset_index += 2;
@@ -6616,17 +6206,6 @@ uint16_t flight_sw_draw_cross_marker16bpp(uint16_t x, uint16_t y,
 			2 * (coordinates[1] +
 			     ((int8_t *)g_flight_sw_cross_marker_offsets16bpp)
 				     [offset_index]);
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			unsigned int page =
-				pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-			rts_vga2_set_current_page(1, (uint16_t)page);
-		}
-#endif
 		offset_index += 2;
 		uint16_t *pixel = (uint16_t *)(g_flight_sw_framebuffer_base +
 					       pixel_offset);
@@ -6644,9 +6223,6 @@ uint16_t flight_sw_draw_cross_marker16bpp(uint16_t x, uint16_t y,
 // FUNCTION: XVT 0x44B070
 uint16_t flight_sw_restore_cross_marker16bpp(uint16_t x, uint16_t y)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	int16_t remaining = 7;
 	uint16_t offset_index = 0;
@@ -6662,15 +6238,6 @@ uint16_t flight_sw_restore_cross_marker16bpp(uint16_t x, uint16_t y)
 			2 * (x +
 			     ((int8_t *)g_flight_sw_cross_marker_offsets16bpp)
 				     [offset_index]);
-#ifndef XVT_MODERN
-		if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-		    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-			page = pixel_offset / g_vesa_page_size_bytes;
-			pixel_offset %= g_vesa_page_size_bytes;
-			rts_vga2_set_current_page((uint8_t)g_vesa_window,
-						  (uint16_t)page);
-		}
-#endif
 		offset_index += 2;
 		uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
 		pixel = g_flight_sw_cross_marker_saved_pixels16bpp
@@ -6773,11 +6340,9 @@ void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2, uint8_t color_idx)
 				y2 = g_flight_clip_top;
 			}
 
-#ifdef XVT_MODERN
 			if (y2 > start_y) {
 				return;
 			}
-#endif
 
 			pixel = g_flight_sw_framebuffer_base +
 				start_y * flight_sw_get_line_pitch() +

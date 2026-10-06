@@ -1,7 +1,5 @@
 #include "xvt/assets/model_mesh.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/assets/opt_native.h"
-#endif
 #include "xvt/assets/model_mesh_internal.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/math/math.h"
@@ -1245,9 +1243,6 @@ struct opt_node *model_mesh_find_nth_hardpoint_node_recursive(
 	struct opt_node *node, struct optimized_poly_object *model,
 	int hardpoint_index)
 {
-#ifndef XVT_MODERN
-	char **reference_name;
-#endif
 
 	struct opt_node *resolved_node = node;
 	if (resolved_node == NULL) {
@@ -1255,24 +1250,8 @@ struct opt_node *model_mesh_find_nth_hardpoint_node_recursive(
 	}
 	while (resolved_node->node_type == OPT_NODEREF) {
 		if (g_cache_resolved_opt_node_refs != 0) {
-#ifdef XVT_MODERN
 			resolved_node =
 				xvt_opt_resolve_cached(model, resolved_node);
-#else
-
-			reference_name = (char **)&resolved_node->payload;
-			if (**reference_name == '\0') {
-				resolved_node = (struct opt_node *)
-							resolved_node->p_name;
-			} else {
-				resolved_node->p_name =
-					(char *)opt_model_resolve_node_ref(
-						model, *reference_name);
-				**reference_name = '\0';
-				resolved_node = (struct opt_node *)
-							resolved_node->p_name;
-			}
-#endif
 		} else {
 			resolved_node = opt_model_resolve_node_ref(
 				model, (const char *)resolved_node->payload);
@@ -1324,9 +1303,6 @@ model_mesh_find_nth_hardpoint_node(struct opt_node *node,
 int model_mesh_count_hardpoint_nodes_recursive(
 	struct opt_node *node, struct optimized_poly_object *model)
 {
-#ifndef XVT_MODERN
-	char **reference_name;
-#endif
 
 	int count = 0;
 	struct opt_node *resolved_node = node;
@@ -1335,24 +1311,8 @@ int model_mesh_count_hardpoint_nodes_recursive(
 	}
 	while (resolved_node->node_type == OPT_NODEREF) {
 		if (g_cache_resolved_opt_node_refs != 0) {
-#ifdef XVT_MODERN
 			resolved_node =
 				xvt_opt_resolve_cached(model, resolved_node);
-#else
-
-			reference_name = (char **)&resolved_node->payload;
-			if (**reference_name == '\0') {
-				resolved_node = (struct opt_node *)
-							resolved_node->p_name;
-			} else {
-				resolved_node->p_name =
-					(char *)opt_model_resolve_node_ref(
-						model, *reference_name);
-				**reference_name = '\0';
-				resolved_node = (struct opt_node *)
-							resolved_node->p_name;
-			}
-#endif
 		} else {
 			resolved_node = opt_model_resolve_node_ref(
 				model, (const char *)resolved_node->payload);

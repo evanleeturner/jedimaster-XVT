@@ -1,7 +1,5 @@
 #include "xvt/render/render_texture.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/log/log.h"
-#endif
 
 #include <stdint.h>
 #include <string.h>
@@ -99,12 +97,7 @@ render_texture_find_or_allocate_cache_entry(const void *cache_key)
 			}
 		}
 		if (probe_count == 1024) {
-#ifdef XVT_MODERN
 			XVT_LOG_ERROR("render.texture_cache_full");
-#else
-			debug_console_write_text(
-				"\n\n\n\n\n\nRAN OUT OF MYCACHETEXTURES!!!\n");
-#endif
 			return &g_render_texture_cache
 				[g_render_texture_cache_cursor];
 		}
@@ -147,13 +140,8 @@ render_texture_get_or_create_bitmap(int width, int height, uint16_t *palette,
 	};
 
 	if (width * height > MAX_BITMAP_PIXELS) {
-#ifdef XVT_MODERN
 		XVT_LOG_WARN("render.bitmap_too_large width=%d height=%d",
 			     width, height);
-#else
-		debug_printf("Error: Bitmap too large! (%d,%d)\n", width,
-			     height);
-#endif
 		return NULL;
 	}
 	const uint8_t *input = pixels;
@@ -261,15 +249,9 @@ render_texture_get_or_create_bitmap(int width, int height, uint16_t *palette,
 		std3d_copy_palette_to_scratch16(palette, (int)max_color + 1);
 	}
 	if (std3d_add_to_texture_cache(&source, node, 1, 0) == 0) {
-#ifdef XVT_MODERN
 		XVT_LOG_ERROR(
 			"render.texture_add_failed kind=\"color_key\" width=%d height=%d",
 			width, height);
-#else
-		debug_printf(
-			"AddToTextureCache returned NULL! (colorkey, (%d,%d))\n",
-			width, height);
-#endif
 		if (g_p_std3d_cur_device->caps.b_color_key_texture != 0) {
 			g_p_std3d_cur_device->caps.b_alpha_texture =
 				old_alpha_texture;
@@ -309,15 +291,9 @@ struct std3d_tex_cache_node *render_texture_get_or_create_opaque(
 	source.raster.color_mode = STDCOLOR_PAL;
 	std3d_copy_palette_to_scratch16(palette, PALETTE_COLOR_COUNT);
 	if (std3d_add_to_texture_cache(&source, node, 0, 0) == 0) {
-#ifdef XVT_MODERN
 		XVT_LOG_ERROR(
 			"render.texture_add_failed kind=\"opaque\" width=%d height=%d",
 			width, height);
-#else
-		debug_printf(
-			"AddToTextureCache returned NULL! (nokey (%d,%d))\n",
-			width, height);
-#endif
 		return NULL;
 	}
 	return node;
@@ -398,15 +374,9 @@ render_texture_get_or_create_color_key(int width, int height, uint16_t *palette,
 		*transparent_color = 0;
 	}
 	if (std3d_add_to_texture_cache(&source, node, 1, 0) == 0) {
-#ifdef XVT_MODERN
 		XVT_LOG_ERROR(
 			"render.texture_add_failed kind=\"alpha\" width=%d height=%d",
 			width, height);
-#else
-		debug_printf(
-			"AlphaTex:AddToTextureCache returned NULL! (colorkey, (%d,%d))\n",
-			width, height);
-#endif
 		if (g_p_std3d_cur_device->caps.b_color_key_texture != 0) {
 			g_p_std3d_cur_device->caps.b_alpha_texture =
 				old_alpha_texture;

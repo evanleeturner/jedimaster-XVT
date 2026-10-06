@@ -47,13 +47,8 @@ struct image_quantizer_node {
 #pragma pack(pop)
 typedef char xvt_size_image_quantizer_palette_entry
 	[(sizeof(struct image_quantizer_palette_entry) == 9) ? 1 : -1];
-#if defined(_MSC_VER) && !defined(XVT_MODERN)
-typedef char xvt_size_image_quantizer_node
-	[(sizeof(struct image_quantizer_node) == 82) ? 1 : -1];
-#else
 typedef char xvt_size_image_quantizer_node
 	[(sizeof(struct image_quantizer_node) == 118) ? 1 : -1];
-#endif
 
 extern unsigned int g_image_quantizer_node_count;
 extern const double g_image_quantizer_max_squared_rgb_error_per_pixel;

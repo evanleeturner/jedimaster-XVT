@@ -552,22 +552,14 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 	enum { PROJECTION_WORD_BITS = 32, PROJECTION_SATURATION = 0x7FFFFF00 };
 
 	uint32_t projection_scale;
-#ifdef XVT_MODERN
 	projection_scale =
 		1u << (g_perspective_shift & (PROJECTION_WORD_BITS - 1));
-#else
-	projection_scale = 1u << g_perspective_shift;
-#endif
 
 	int projected_x;
 	if (view_x < 0) {
 		int projection_depth = view_z;
 		int magnitude;
-#ifdef XVT_MODERN
 		magnitude = (int)(0u - (unsigned int)view_x);
-#else
-		magnitude = -view_x;
-#endif
 		if (projection_depth < magnitude) {
 			return;
 		}
@@ -575,13 +567,8 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 			(uint64_t)(uint32_t)magnitude * projection_scale +
 			(uint32_t)g_proj_scale_half_int;
 		uint32_t quotient;
-#ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
 		    (uint32_t)projection_depth) {
-#else
-		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projection_depth) {
-#endif
 			quotient = (uint32_t)(numerator /
 					      (uint32_t)projection_depth);
 		} else {
@@ -597,13 +584,8 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 		uint64_t numerator =
 			(uint64_t)(uint32_t)magnitude * projection_scale +
 			(uint32_t)g_proj_scale_half_int;
-#ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
 		    (uint32_t)projection_depth) {
-#else
-		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projection_depth) {
-#endif
 			projected_x =
 				(int)(numerator / (uint32_t)projection_depth);
 		} else {
@@ -615,11 +597,7 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 	if (view_y < 0) {
 		int projection_depth = view_z;
 		int magnitude;
-#ifdef XVT_MODERN
 		magnitude = (int)(0u - (unsigned int)view_y);
-#else
-		magnitude = -view_y;
-#endif
 		if (projection_depth < magnitude) {
 			return;
 		}
@@ -627,13 +605,8 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 			(uint64_t)(uint32_t)magnitude * projection_scale +
 			(uint32_t)g_proj_scale_half_int;
 		uint32_t quotient;
-#ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
 		    (uint32_t)projection_depth) {
-#else
-		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projection_depth) {
-#endif
 			quotient = (uint32_t)(numerator /
 					      (uint32_t)projection_depth);
 		} else {
@@ -649,13 +622,8 @@ void backdrop_project_and_draw_screen_quad(int view_x, int view_y, int view_z,
 		uint64_t numerator =
 			(uint64_t)(uint32_t)magnitude * projection_scale +
 			(uint32_t)g_proj_scale_half_int;
-#ifdef XVT_MODERN
 		if ((uint32_t)(numerator >> PROJECTION_WORD_BITS) <
 		    (uint32_t)projection_depth) {
-#else
-		if (((const uint32_t *)&numerator)[1] <
-		    (uint32_t)projection_depth) {
-#endif
 			projected_y =
 				(int)(numerator / (uint32_t)projection_depth);
 		} else {

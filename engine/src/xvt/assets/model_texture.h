@@ -33,9 +33,6 @@ int model_texture_is_hardware_format555(void);
 void model_texture_build_paletted_shade_table(uint8_t *dst,
 					      const uint8_t *rgb24, int width,
 					      int height);
-#ifndef XVT_MODERN
-size_t model_texture_load_rgb_or_tex_file(uint8_t *dst, const char *file_name);
-#endif
 
 #ifdef __cplusplus
 }

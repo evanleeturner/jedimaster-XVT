@@ -1,9 +1,7 @@
 #include "xvt/render/render_quad.h"
 
-#ifdef XVT_MODERN
 #include "aeron/compat/host.h"
 #include "xvt_runtime/log/log.h"
-#endif
 
 #include <string.h>
 
@@ -170,19 +168,15 @@ void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
 	int rle_format;
 	struct std3d_tex_cache_node *texture;
 
-#ifdef XVT_MODERN
 	/* Suppress before texture lookup so hidden classic draws do not refill the cache. */
 	if (AeronDx5_IsClassicFlightRenderingSuppressed()) {
 		return;
 	}
-#endif
 
 	texture_bytes = (const uint8_t *)texture_image;
 	image_header = (const struct tex_level_image_header *)texture_image;
 	screen_y = g_flight_vp_height - screen_y;
-#ifdef XVT_MODERN
 	color = UINT32_MAX;
-#endif
 	if (g_billboard_object_or_type_index >= 0 &&
 	    (unsigned int)g_region_main_object_slot_end >
 		    (unsigned int)g_billboard_object_or_type_index) {
@@ -223,19 +217,11 @@ void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
 	source_height = (int32_t)image_header->height;
 	if (source_width > MAX_TEXTURE_DIMENSION) {
 		source_width = MAX_TEXTURE_DIMENSION;
-#ifdef XVT_MODERN
 		XVT_LOG_WARN("render.sprite_truncated axis=\"width\"");
-#else
-		debug_printf("TRUNCATING BITMAP TO 256 WIDE!!!\n");
-#endif
 	}
 	if (source_height > MAX_TEXTURE_DIMENSION) {
 		source_height = MAX_TEXTURE_DIMENSION;
-#ifdef XVT_MODERN
 		XVT_LOG_WARN("render.sprite_truncated axis=\"height\"");
-#else
-		debug_printf("TRUNCATING BITMAP TO 256 HIGH!!!\n");
-#endif
 	}
 	max_u = (float)source_width;
 	max_v = (float)source_height;
@@ -337,9 +323,7 @@ void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
 	}
 	g_clip_count_a = 0;
 	/* A clipping pass can discard every vertex before the next pass. */
-#ifdef XVT_MODERN
 	if (g_clip_count_b > 0) {
-#endif
 		previous_index = g_clip_idx_b[g_clip_count_b - 1];
 		for (vertex_index = 0; vertex_index < g_clip_count_b;
 		     ++vertex_index) {
@@ -350,13 +334,9 @@ void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
 						     current_index, vertices);
 			previous_index = current_index;
 		}
-#ifdef XVT_MODERN
 	}
-#endif
 	g_clip_count_b = 0;
-#ifdef XVT_MODERN
 	if (g_clip_count_a > 0) {
-#endif
 		previous_index = g_clip_idx_a[g_clip_count_a - 1];
 		for (vertex_index = 0; vertex_index < g_clip_count_a;
 		     ++vertex_index) {
@@ -367,13 +347,9 @@ void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
 						   current_index, vertices);
 			previous_index = current_index;
 		}
-#ifdef XVT_MODERN
 	}
-#endif
 	g_clip_count_a = 0;
-#ifdef XVT_MODERN
 	if (g_clip_count_b > 0) {
-#endif
 		previous_index = g_clip_idx_b[g_clip_count_b - 1];
 		for (vertex_index = 0; vertex_index < g_clip_count_b;
 		     ++vertex_index) {
@@ -384,9 +360,7 @@ void render_quad_draw_rotated_sprite(int angle, int screen_x, int screen_y,
 						    current_index, vertices);
 			previous_index = current_index;
 		}
-#ifdef XVT_MODERN
 	}
-#endif
 	if (g_clip_count_a < MIN_TRIANGLE_VERTEX_COUNT) {
 		return;
 	}

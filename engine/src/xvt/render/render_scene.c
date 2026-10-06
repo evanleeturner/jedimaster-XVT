@@ -1,9 +1,7 @@
 #include "xvt/render/render_scene.h"
-#ifdef XVT_MODERN
 #include "aeron/compat/host.h"
 #include "xvt_runtime/assets/opt_native.h"
 #include "xvt_runtime/log/log.h"
-#endif
 
 #include <string.h>
 
@@ -32,9 +30,6 @@
 #include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log_both_builds.h"
-#ifndef XVT_MODERN
-#include <float.h>
-#endif
 
 enum {
 	OPT_INDEXED_SHADE_TABLE_SIZE = 4096,
@@ -830,12 +825,10 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 		COLOR_KEY_TRIANGLE_FLAGS = STD3D_RS_ALPHA_BLEND
 	};
 
-#ifdef XVT_MODERN
 	/* Suppress before texture lookup so hidden classic draws do not refill the cache. */
 	if (AeronDx5_IsClassicFlightRenderingSuppressed()) {
 		return;
 	}
-#endif
 
 	int vertex_index = mesh->vert_base_index;
 	const uint8_t *previous_texels = NULL;
@@ -852,10 +845,8 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 	}
 	struct std3d_tex_cache_node *opaque_texture;
 	struct std3d_tex_cache_node *color_key_texture;
-#ifdef XVT_MODERN
 	opaque_texture = NULL;
 	color_key_texture = NULL;
-#endif
 
 	int face_index = 0;
 	if (mesh->vis_face_count <= 0) {
@@ -1487,14 +1478,8 @@ void std3d_fill_z_buffer_from_viewport_mask(void)
 			break;
 		}
 		if (lock_result != DX_DDERR_WASSTILLDRAWING) {
-#ifdef XVT_MODERN
 			XVT_LOG_ERROR("render.z_lock_failed result=%#x",
 				      (unsigned int)lock_result);
-#else
-			debug_printf(
-				"ERROR!(%x) failed to lock D3D z buffer!\n",
-				lock_result);
-#endif
 			return;
 		}
 	}
@@ -2352,24 +2337,8 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 	selection.node_switch_selection = 0;
 	while (current_node->node_type == OPT_NODEREF) {
 		if (g_cache_resolved_opt_node_refs != 0) {
-#ifdef XVT_MODERN
 			current_node =
 				xvt_opt_resolve_cached(model, current_node);
-#else
-
-			char **reference_name = (char **)&current_node->payload;
-			if (**reference_name == '\0') {
-				current_node =
-					(struct opt_node *)current_node->p_name;
-			} else {
-				current_node->p_name =
-					(char *)opt_model_resolve_node_ref(
-						model, *reference_name);
-				**reference_name = '\0';
-				current_node =
-					(struct opt_node *)current_node->p_name;
-			}
-#endif
 		} else {
 			current_node = opt_model_resolve_node_ref(
 				model, (const char *)current_node->payload);
@@ -3314,9 +3283,6 @@ int render_scene_test_segment_against_mesh_faces(
 // FUNCTION: XVT 0x485CD0
 void render_scene_allocate_buffers(void)
 {
-#ifndef XVT_MODERN
-	int saved_edge_max;
-#endif
 
 	g_scene_span_data_capacity = 20000;
 	g_scene_span_data_handle = memory_alloc_handle(
@@ -3363,19 +3329,9 @@ void render_scene_allocate_buffers(void)
 	}
 
 	int edge_max = 2 * g_scene_edge_flags_capacity;
-#ifdef XVT_MODERN
 	g_scene_edge_max = edge_max;
 	g_scene_edge_list_handle = memory_alloc_handle(
 		sizeof(*g_scene_edge_list) * g_scene_edge_max, 0);
-#else
-	saved_edge_max = edge_max;
-	g_scene_edge_max = edge_max;
-	/* From here edge_max holds the list's size in bytes, 28 per edge, not a count. */
-	edge_max <<= 3;
-	edge_max -= saved_edge_max;
-	edge_max <<= 2;
-	g_scene_edge_list_handle = memory_alloc_handle(edge_max, 0);
-#endif
 	if (g_scene_edge_list_handle == 0) {
 		XVT_LOG_DEBUG(
 			"render.scene_alloc_failed buffer=\"edges\" bytes=%u",
@@ -3468,12 +3424,7 @@ void render_scene_allocate_buffers(void)
 // FUNCTION: XVT 0x485F00
 void render_scene_initialize(int reset_scene_state)
 {
-#ifndef XVT_MODERN
-	g_sw3d_initialize_scene_saved_fpu_control = _control87(0, 0);
-	_control87(0, 0x30000);
-#else
 	g_sw3d_fpu_control_word_scratch &= 0xFFFFFCFF;
-#endif
 	g_sw3d_cockpit_mask_sentinel_face.max_scaled_inverse_depth = 1.0e32f;
 	g_sw3d_cockpit_mask_sentinel_face.min_scaled_inverse_depth = 1.0e32f;
 	g_sw3d_cockpit_mask_sentinel_face.gradients[8] = 1.0e32f;

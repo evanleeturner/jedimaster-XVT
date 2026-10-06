@@ -3,15 +3,12 @@
 
 #include "xvt/xvt_typedefs.h"
 
-#ifdef XVT_MODERN
 #include "aeron/vfs.h"
 #include "xvt_runtime/storage/file_io.h"
 #include "xvt_runtime/storage/storage.h"
-#endif
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#ifdef XVT_MODERN
 typedef AeronFile xvt_file;
 #define FILE_RAW_OPEN xvt_storage_open
 #define FILE_RAW_CLOSE xvt_file_close
@@ -30,26 +27,6 @@ typedef AeronFile xvt_file;
 #define FILE_CLEAR_ERROR AeronVfs_ClearError
 #define FILE_RENAME xvt_storage_rename
 #define FILE_REMOVE xvt_storage_remove
-#else
-typedef FILE xvt_file;
-#define FILE_RAW_OPEN fopen
-#define FILE_RAW_CLOSE fclose
-#define FILE_RAW_READ fread
-#define FILE_RAW_WRITE fwrite
-#define FILE_RAW_SEEK fseek
-#define FILE_RAW_TELL ftell
-#define FILE_GETS fgets
-#define FILE_GETC fgetc
-#define FILE_PUTC fputc
-#define FILE_SCANF fscanf
-#define FILE_PRINTF fprintf
-#define FILE_FLUSH fflush
-#define FILE_EOF feof
-#define FILE_HAS_ERROR ferror
-#define FILE_CLEAR_ERROR clearerr
-#define FILE_RENAME rename
-#define FILE_REMOVE remove
-#endif
 
 #ifdef __cplusplus
 extern "C" {

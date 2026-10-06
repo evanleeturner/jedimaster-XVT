@@ -323,11 +323,7 @@ int scene_billboard_compute_projected_size(int depth_z,
 					   uint16_t model_max_extent,
 					   uint16_t base_screen_size)
 {
-#ifdef XVT_MODERN
 	if (depth_z < 0 && depth_z != INT32_MIN) {
-#else
-	if (depth_z < 0) {
-#endif
 		depth_z = -depth_z;
 	}
 	depth_z >>= 8;
@@ -337,7 +333,6 @@ int scene_billboard_compute_projected_size(int depth_z,
 	if (depth_z != 0) {
 		depth_z = model_max_extent / depth_z;
 	}
-#ifdef XVT_MODERN
 	{
 		uint32_t product =
 			(uint32_t)base_screen_size * (uint32_t)depth_z;
@@ -346,10 +341,6 @@ int scene_billboard_compute_projected_size(int depth_z,
 			depth_z -= 0x1000000;
 		}
 	}
-#else
-	depth_z *= base_screen_size;
-	depth_z >>= 8;
-#endif
 	if (depth_z > 1024) {
 		depth_z = 1024;
 	}

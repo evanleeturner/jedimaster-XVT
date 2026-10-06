@@ -1184,39 +1184,24 @@ int sw3d_setup_clipped_edge(struct scene_mesh *mesh, struct scene_edge *edge,
 			    const struct proj_vertex *first,
 			    const struct proj_vertex *second)
 {
-#ifdef XVT_MODERN
 	uint32_t coordinate_bits;
-#endif
 	const struct proj_vertex *inside = second;
 	const struct proj_vertex *outside = first;
-#ifdef XVT_MODERN
 	memcpy(&coordinate_bits, &second->scaled_inverse_depth,
 	       sizeof(coordinate_bits));
 	if (coordinate_bits > 0x80000000u) {
-#else
-	if (*(const uint32_t *)&second->scaled_inverse_depth > 0x80000000u) {
-#endif
-#ifdef XVT_MODERN
 		memcpy(&coordinate_bits, &first->scaled_inverse_depth,
 		       sizeof(coordinate_bits));
 		if (coordinate_bits > 0x80000000u) {
-#else
-		if (*(const uint32_t *)&first->scaled_inverse_depth >
-		    0x80000000u) {
-#endif
 			return -1;
 		}
 		outside = second;
 		inside = first;
 	}
 
-#ifdef XVT_MODERN
 	memcpy(&coordinate_bits, &outside->scaled_inverse_depth,
 	       sizeof(coordinate_bits));
 	if (coordinate_bits > 0x80000000u) {
-#else
-	if (*(const uint32_t *)&outside->scaled_inverse_depth > 0x80000000u) {
-#endif
 		float inside_inverse_w;
 		float inside_x;
 		float inside_y;
@@ -1267,12 +1252,8 @@ int sw3d_setup_clipped_edge(struct scene_mesh *mesh, struct scene_edge *edge,
 	}
 
 	int first_y;
-#ifdef XVT_MODERN
 	memcpy(&coordinate_bits, &outside->sy, sizeof(coordinate_bits));
 	if (coordinate_bits > 0x80000000u) {
-#else
-	if (*(const uint32_t *)&outside->sy > 0x80000000u) {
-#endif
 		first_y = 0;
 	} else {
 		first_y = (int)outside->sy;
@@ -1281,12 +1262,8 @@ int sw3d_setup_clipped_edge(struct scene_mesh *mesh, struct scene_edge *edge,
 		}
 	}
 	int second_y;
-#ifdef XVT_MODERN
 	memcpy(&coordinate_bits, &inside->sy, sizeof(coordinate_bits));
 	if (coordinate_bits > 0x80000000u) {
-#else
-	if (*(const uint32_t *)&inside->sy > 0x80000000u) {
-#endif
 		second_y = 0;
 	} else {
 		second_y = (int)inside->sy;

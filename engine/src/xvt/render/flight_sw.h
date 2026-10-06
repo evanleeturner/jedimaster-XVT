@@ -40,9 +40,6 @@ extern int32_t g_starfield_jitter_x[125];
 extern int32_t g_starfield_jitter_y[125];
 extern int32_t g_starfield_jitter_z[125];
 extern uint8_t g_flight_background_color_index;
-#ifndef XVT_MODERN
-extern unsigned int g_vesa_window;
-#endif
 extern uint8_t g_flight_sw_rle_run_length_mask_by_packing_mode[9];
 extern uint8_t g_flight_sw_rle_palette_shift_by_packing_mode[9];
 extern int g_flight_sw_rot_sprite_span_runs_enabled;

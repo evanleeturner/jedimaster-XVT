@@ -1,9 +1,7 @@
 #include "xvt/assets/model_preview.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_capture.h"
-#endif
 #include <math.h>
 #include <string.h>
 
@@ -247,21 +245,8 @@ int model_preview_load_model(const char *model_file_name)
 	enum {
 		MODEL_PREVIEW_SLOT = 0,
 		FILE_NAME_CAPACITY = 256,
-#ifndef XVT_MODERN
-		INVENTOR_SIGNATURE_LENGTH = sizeof("#inventor") - 1,
-		INVENTOR_ASCII_LABEL_LENGTH = sizeof("ascii") - 1,
-		INVENTOR_BINARY_LABEL_LENGTH = sizeof("binary") - 1,
-#endif
 	};
-#ifdef XVT_MODERN
 	char *extension;
-#else
-	int extension_index;
-#endif
-#ifndef XVT_MODERN
-	uint16_t imported_handle;
-	uint16_t packed_handle;
-#endif
 
 	model_preview_free_resources();
 	model_preview_reset_view_and_render_state();
@@ -272,7 +257,6 @@ int model_preview_load_model(const char *model_file_name)
 
 	char file_name[FILE_NAME_CAPACITY];
 	char base_name[FILE_NAME_CAPACITY];
-#ifdef XVT_MODERN
 	if (!model_file_name || strlen(model_file_name) >= sizeof(base_name)) {
 		return 0;
 	}
@@ -290,19 +274,11 @@ int model_preview_load_model(const char *model_file_name)
 	if (strlen(base_name) + sizeof(".opt") > sizeof(file_name)) {
 		return 0;
 	}
-#else
-	strcpy(base_name, model_file_name);
-	for (extension_index = 0; base_name[extension_index] != '.';
-	     ++extension_index) {
-	}
-	base_name[extension_index] = '\0';
-#endif
 
 	strcpy(file_name, base_name);
 	strcat(file_name, ".opt");
 	fe_disk_io_open_global_stream(file_name, g_file_mode_read_binary, 0, 0);
 	xvt_file *stream = g_stream;
-#ifdef XVT_MODERN
 	if (!stream) {
 		XVT_LOG_WARN("preview.load_failed file=\"%s\" reason=\"open\"",
 			     file_name);
@@ -315,75 +291,10 @@ int model_preview_load_model(const char *model_file_name)
 	}
 	g_loaded_models[MODEL_PREVIEW_SLOT] =
 		opt_model_load_file_to_handle(file_name);
-#else
-	if (stream == NULL) {
-		strcpy(file_name, base_name);
-		strcat(file_name, ".iv");
-		fe_disk_io_open_global_stream(file_name,
-					      g_file_mode_read_binary, 0, 0);
-		stream = g_stream;
-		if (stream == NULL) {
-			return 0;
-		}
-		if (FILE_SCANF(stream, "%256s", file_name) != 1) {
-			return 0;
-		}
-		if (_strnicmp(file_name, "#inventor",
-			      INVENTOR_SIGNATURE_LENGTH) != 0) {
-			return 0;
-		}
-		if (FILE_SCANF(stream, " %256s", file_name) != 1) {
-			return 0;
-		}
-		if (FILE_SCANF(stream, " %256s", file_name) != 1) {
-			return 0;
-		}
-		if (_strnicmp(file_name, "ascii",
-			      INVENTOR_ASCII_LABEL_LENGTH) == 0) {
-			if (g_loaded_models[MODEL_PREVIEW_SLOT] != 0) {
-				memory_free_handle(
-					g_loaded_models[MODEL_PREVIEW_SLOT]);
-			}
-			imported_handle =
-				opt_model_load_inventor_ascii_to_handle(stream);
-		} else {
-			if (_strnicmp(file_name, "binary",
-				      INVENTOR_BINARY_LABEL_LENGTH) == 0) {
-				if (g_loaded_models[MODEL_PREVIEW_SLOT] != 0) {
-					memory_free_handle(
-						g_loaded_models
-							[MODEL_PREVIEW_SLOT]);
-				}
-				imported_handle =
-					opt_model_load_inventor_binary_to_handle(
-						stream);
-			} else {
-				FILE_RAW_CLOSE(stream);
-				return 0;
-			}
-		}
-		FILE_RAW_CLOSE(stream);
-		packed_handle = opt_model_convert_imported_handle_to_packed(
-			imported_handle);
-		strcpy(file_name, base_name);
-		strcat(file_name, ".opt");
-		opt_model_save_handle_to_file(file_name, packed_handle);
-		g_loaded_models[MODEL_PREVIEW_SLOT] = packed_handle;
-	} else {
-		FILE_RAW_CLOSE(stream);
-		if (g_loaded_models[MODEL_PREVIEW_SLOT] != 0) {
-			memory_free_handle(g_loaded_models[MODEL_PREVIEW_SLOT]);
-		}
-		g_loaded_models[MODEL_PREVIEW_SLOT] =
-			opt_model_load_file_to_handle(file_name);
-	}
-#endif
 
-#ifdef XVT_MODERN
 	if (!g_loaded_models[MODEL_PREVIEW_SLOT]) {
 		return 0;
 	}
-#endif
 	strcpy(g_model_preview_opt_file_name, base_name);
 	strcat(g_model_preview_opt_file_name, ".opt");
 	if (g_mipmapping_enabled != 0) {
@@ -393,17 +304,13 @@ int model_preview_load_model(const char *model_file_name)
 				g_loaded_models[MODEL_PREVIEW_SLOT]);
 		g_flight_bytes_per_pixel = 2;
 	}
-#ifdef XVT_MODERN
 	if (!g_loaded_models[MODEL_PREVIEW_SLOT]) {
 		return 0;
 	}
-#endif
-#ifdef XVT_MODERN
 	xvt_render_assets_register_opt(g_loaded_models[MODEL_PREVIEW_SLOT],
 				       g_model_preview_opt_file_name);
 	xvt_render_assets_bind_type(MODEL_PREVIEW_SLOT,
 				    g_loaded_models[MODEL_PREVIEW_SLOT]);
-#endif
 	g_model_preview_model_data =
 		(struct optimized_poly_object *)memory_get_handle_block(
 			g_loaded_models[MODEL_PREVIEW_SLOT]);
@@ -669,12 +576,10 @@ int model_preview_render_viewport(int x, int y, int width, int height, ...)
 	int saved_local_lights_enabled = g_local_lights_enabled;
 	g_local_lights_enabled = 0;
 	render_scene_initialize(1);
-#ifdef XVT_MODERN
 	xvt_render_capture_frontend_preview(
 		g_loaded_models[0], &g_model_preview_view_delta.x,
 		g_model_preview_matrix, (float)g_model_preview_scale,
 		(uint16_t)g_node_switch_index, x, y, width, height);
-#endif
 	render_scene_draw_object_model(&g_model_preview_object);
 	sw3d_draw_visible_faces_to_surface();
 	render_scene_unlock_buffers();

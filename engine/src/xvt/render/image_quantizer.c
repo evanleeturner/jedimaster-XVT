@@ -278,17 +278,10 @@ typedef char xvt_size_image_quantizer_pixel_run
 typedef char xvt_size_image_quantizer_legacy_image_record
 	[(sizeof(struct image_quantizer_legacy_image_record) == 0x18C6) ? 1
 									: -1];
-#if defined(_MSC_VER) && !defined(XVT_MODERN)
-typedef char xvt_size_image_quantizer_image_layout
-	[(sizeof(struct image_quantizer_image_layout) == 0x1096) ? 1 : -1];
-typedef char xvt_size_image_quantizer_owned_buffers
-	[(sizeof(struct image_quantizer_owned_buffers) == 0x18B6) ? 1 : -1];
-#else
 typedef char xvt_size_image_quantizer_image_layout
 	[(sizeof(struct image_quantizer_image_layout) == 0x109A) ? 1 : -1];
 typedef char xvt_size_image_quantizer_owned_buffers
 	[(sizeof(struct image_quantizer_owned_buffers) == 0x18DE) ? 1 : -1];
-#endif
 
 struct image_quantizer_node_pool_block {
 	/* Nodes image_quantizer_allocate_node hands out in order. */

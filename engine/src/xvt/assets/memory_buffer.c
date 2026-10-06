@@ -1,7 +1,5 @@
 #include "xvt/assets/memory_buffer.h"
-#ifdef XVT_MODERN
 #include <string.h>
-#endif
 
 /* Returns the byte at buffer + *offset and adds 1 to *offset. Nothing calls
  * this. */
@@ -20,19 +18,12 @@ uint8_t memory_buffer_read_byte(const uint8_t *buffer, unsigned int *offset)
 // FUNCTION: XVT 0x4CC7F0
 uint16_t memory_buffer_read_word(const uint8_t *buffer, unsigned int *offset)
 {
-#ifdef XVT_MODERN
 	unsigned int position = *offset;
 	uint16_t value;
 
 	memcpy(&value, buffer + position, sizeof(value));
 	*offset = position + sizeof(value);
 	return value;
-#else
-	uint16_t value = *(const uint16_t *)&buffer[*offset];
-
-	*offset += sizeof(value);
-	return value;
-#endif
 }
 
 /* Returns the 32-bit value at buffer + *offset, in the machine's byte order,
@@ -41,19 +32,12 @@ uint16_t memory_buffer_read_word(const uint8_t *buffer, unsigned int *offset)
 unsigned int memory_buffer_read_dword(const uint8_t *buffer,
 				      unsigned int *offset)
 {
-#ifdef XVT_MODERN
 	unsigned int position = *offset;
 	unsigned int value;
 
 	memcpy(&value, buffer + position, sizeof(value));
 	*offset = position + sizeof(value);
 	return value;
-#else
-	unsigned int value = *(const unsigned int *)&buffer[*offset];
-
-	*offset += sizeof(value);
-	return value;
-#endif
 }
 
 /* Copies count bytes from buffer + *offset to destination and adds count to
@@ -81,15 +65,10 @@ void memory_buffer_write_byte(uint8_t *buffer, unsigned int *offset,
 void memory_buffer_write_word(uint8_t *buffer, unsigned int *offset,
 			      uint16_t value)
 {
-#ifdef XVT_MODERN
 	unsigned int position = *offset;
 
 	memcpy(buffer + position, &value, sizeof(value));
 	*offset = position + sizeof(value);
-#else
-	*(uint16_t *)&buffer[*offset] = value;
-	*offset += sizeof(value);
-#endif
 }
 
 /* Stores value at buffer + *offset, in the machine's byte order, and adds 4 to
@@ -98,15 +77,10 @@ void memory_buffer_write_word(uint8_t *buffer, unsigned int *offset,
 void memory_buffer_write_dword(uint8_t *buffer, unsigned int *offset,
 			       unsigned int value)
 {
-#ifdef XVT_MODERN
 	unsigned int position = *offset;
 
 	memcpy(buffer + position, &value, sizeof(value));
 	*offset = position + sizeof(value);
-#else
-	*(unsigned int *)&buffer[*offset] = value;
-	*offset += sizeof(value);
-#endif
 }
 
 /* Copies count bytes from source to buffer + *offset and adds count to *offset.
