@@ -2558,6 +2558,16 @@
       "fields": ["stick", "button", "down"],
       "text": "Joystick {stick} button {button} went {down} (1 pressed, 0 released) at this read; the menus read both joysticks every 100 ms"
     },
+    "joystick.calibrated": {
+      "level": "D",
+      "fields": ["index", "id", "x_range", "y_range", "z_range", "pov"],
+      "text": "Joystick index {index} was calibrated from system joystick {id}: axis ranges {x_range}, {y_range} and {z_range}, a hat {pov} (at the flight's first joystick check, once a run)"
+    },
+    "joystick.calibration_empty": {
+      "level": "D",
+      "fields": ["index"],
+      "text": "No system joystick answered when joystick index {index} was calibrated; its axis ranges were set to 1"
+    },
     "joystick.detected": {
       "level": "I",
       "fields": ["joysticks", "devices"],

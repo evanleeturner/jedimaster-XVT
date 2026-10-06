@@ -4,6 +4,7 @@
 
 #include "aeron/compat/mmsystem.h"
 #include "xvt/frontend/frontend_joystick.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Per joystick index, 0 and 1: 1 once joystick_poll_scaled_axes has calibrated
  * that index. Only that function writes it, and nothing sets it back to 0. */
@@ -113,6 +114,14 @@ void joystick_poll_scaled_axes(int device_index, int *p_axis_x, int *p_axis_y,
 			g_joy_axis_center_z =
 				(g_joystick_calibration.axis_range_z >> 1) +
 				(int)joystick_caps.wZmin;
+			XVT_LOG_DEBUG(
+				"joystick.calibrated index=%d id=%u x_range=%d y_range=%d z_range=%d pov=%d",
+				device_index,
+				(unsigned)g_joy_device_id[device_index],
+				g_joystick_calibration.axis_range_x,
+				g_joystick_calibration.axis_range_y,
+				g_joystick_calibration.axis_range_z,
+				g_joystick_calibration.has_pov);
 		} else if (joyGetDevCapsA(
 				   joystick_get_device_id(1), &joystick_caps,
 				   sizeof(joystick_caps)) == JOYERR_NOERROR) {
@@ -153,6 +162,14 @@ void joystick_poll_scaled_axes(int device_index, int *p_axis_x, int *p_axis_y,
 			g_joy_axis_center_z =
 				(g_joystick_calibration.axis_range_z >> 1) +
 				(int)joystick_caps.wZmin;
+			XVT_LOG_DEBUG(
+				"joystick.calibrated index=%d id=%u x_range=%d y_range=%d z_range=%d pov=%d",
+				device_index,
+				(unsigned)g_joy_device_id[device_index],
+				g_joystick_calibration.axis_range_x,
+				g_joystick_calibration.axis_range_y,
+				g_joystick_calibration.axis_range_z,
+				g_joystick_calibration.has_pov);
 		} else {
 			g_joystick_calibration.has_pov = 0;
 			g_joystick_calibration.axis_range_x = 1;
@@ -164,6 +181,8 @@ void joystick_poll_scaled_axes(int device_index, int *p_axis_x, int *p_axis_y,
 			g_joystick_calibration.axis_deadzone_x = 0;
 			g_joystick_calibration.axis_deadzone_y = 0;
 			g_joystick_calibration.axis_deadzone_z = 0;
+			XVT_LOG_DEBUG("joystick.calibration_empty index=%d",
+				      device_index);
 		}
 	}
 
