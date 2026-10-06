@@ -96,7 +96,13 @@ its row names.
 | 3. Meaning | the comment map for the remaining areas: frontend, render, assets, audio, math, input, util; then every comment the renames pushed past 100 columns, wrapped again | code tokens unchanged once comments are stripped; for the wrap, the words of every comment unchanged as well, and identical compiled objects | understand before touching; the comments surface the split candidates and the test targets |
 | 4. Logging | catalog events in the 1997 code, the 119 empty debug calls first | a log line never changes behavior; the catalog check | the DEBUG traces become the oracles the tests read |
 | 5. Tests | tests harvested from the comments and traces, module by module, bug sites first; the two-game run with its world checksums as the whole-game oracle | each test fails on a planted fault before it counts | the safety net goes up before the surgery |
-| 6. Structure | functions split where reading needs it, globals narrowed, the two-version places retired, one function at a time | tests reach every moved line and pass before and after; identical objects where the compiler happens to agree | the first step that changes the code's shape, so it comes last |
+| 6. Structure | functions split where reading needs it, globals narrowed, one function at a time | tests reach every moved line and pass before and after; identical objects where the compiler happens to agree | the first step that changes the code's shape, so it comes last |
+
+One piece of step 6 came early. Before step 4 closed, on 2026-10-06,
+the original 1997 build's code went (760 places, about 21,500 lines),
+with the switch between the two builds and the 1997 code the game never
+reached (199 functions, 73 globals); `RELEASE-PLAN.md`, section 2, has
+the counts and the proofs.
 
 Two rules hold across the steps.
 

@@ -1,6 +1,6 @@
 # Release plan: our own builds of the game, with its bugs fixed
 
-**Status:** planned
+**Status:** planned; section 2 done on 2026-10-06
 **Date:** 2026-10-05
 **Builds on:** `ENGINE-PLAN.md` (owning the 1997 code) and `OPENXVT-FRONTEND-PLAN.md` (the launcher)
 **License:** GPLv3 for the engine; `REUSE.toml` names every file's license
@@ -25,24 +25,30 @@ build players run:
 | machines that disagree | a mine's decoy beam test differs between machines in a network game (#190); a view one machine refuses is set on all the others (#194) |
 | gameplay a player can see | a corvette's hit on a Super Star Destroyer's bridge past 95% hull damage does no damage (#200) |
 
-## 2. The original 1997 build is no longer a goal
+## 2. The original 1997 build is retired
 
-Until now, the work kept the original 1997 build compiling exactly as it
-did, and some changes were set aside for that reason alone. Since this
-project ships its own build, that reason is gone, and the set-aside work
-returns:
+Until 2026-10-05, the work kept the original 1997 build compiling exactly
+as it did, and some changes were set aside for that reason alone. Since
+this project ships its own build, that reason went, and the set-aside
+work was done on 2026-10-06:
 
-| Set aside | Why it was set aside | Now |
+| Set aside | Why it was set aside | Done |
 | --- | --- | --- |
-| 219 places where the code keeps two versions of itself, the 1997 one and a later fix | the original build compiles the 1997 half | one version each; where a 1997 half holds gameplay worth keeping, it moves behind the "1997 rules" switch the host picks |
-| 35 bugs in the original build only | that code is not in players' builds | they close with the code they live in |
-| log lines written twice at 110 places, the new event and the 1997 call kept word for word | the original build keeps its own call | one plain event line each, once the original build retires |
-| the 1997 code's own debug output in the original half: 38 places, the in-game debug console, two empty debug functions | it records what the 1997 program did | turned into events or removed |
-| 58 globals of the 1997 code the modern build never uses | removing them changes the original build's output | removed, or made private to their file |
+| 760 places where the code kept a 1997 version: 558 beside a later version, 202 alone, about 21,500 lines (this table first said 219, counting only one of the two ways the code wrote a switch) | the original build compiled the 1997 half | removed; every place was read first, and five where the 1997 game played differently (turning, ending a pause, the pre-flight timeout, the host's update rate, leaving during a resync) are recorded as issues for the "1997 rules" switch |
+| 35 bugs in the original build only | that code was not in players' builds | closed with the code they lived in |
+| log lines written twice at 112 places, the new event and the 1997 call kept word for word | the original build kept its own call | the 1997 call removed; the event stays |
+| the 1997 code's own debug output, the in-game debug console, two empty debug functions | it recorded what the 1997 program did | removed |
+| 199 functions and 73 globals of the 1997 code the game never reaches (this table first said 58 globals) | removing them changed the original build's output | removed |
+
+Each step carried its proof. Removing the original build's code, the
+layout around it and the switch between the builds left every compiled
+object of the game byte-identical. Removing the unreached code left every
+function and global that stays compiling to the same instructions and
+data, compared one by one.
 
 The proof rule stays: a change meant to keep behavior is proven by
 identical compiled objects where the compiler agrees, and by tests and a
-two-game run elsewhere. It now protects the game players run. A change meant to alter behavior is named first,
+two-game run elsewhere. A change meant to alter behavior is named first,
 with the expected difference written down.
 
 ## 3. Which bugs a release fixes, and how
@@ -52,7 +58,7 @@ with the expected difference written down.
 | hangs, crashes, memory errors | fixed outright | nobody wants them kept |
 | machines that disagree | fixed outright; every player in a game runs the same build | network games stop drifting apart |
 | gameplay a player can see | fixed behind the "1997 rules" or "fixed rules" switch the host picks | the host decides per game |
-| original build only | closed when the original half retires | nobody: no player runs it |
+| original build only | closed with the original build's code on 2026-10-06 | nobody: no player ran it |
 
 The issues carry labels for each bin, so a release's notes list what it
 fixed by kind.
@@ -99,7 +105,7 @@ fixed by kind.
    antivirus warnings. A bought certificate shows the project's name; the
    SignPath Foundation signs open-source projects for free, under its own
    name and its own rules, and may decline.
-6. Retire the original build (section 2).
+6. Retire the original build (section 2): done on 2026-10-06.
 7. Ship the first release: hangs, crashes and machines that disagree
    fixed, "1997 rules" the default.
 
