@@ -166,6 +166,22 @@ if(NOT MSVC)
     xvt_add_known_failure(test_mission_setup battle_client_timeout_type)
 endif()
 
+# The lobby's DirectPlay layer: its peer slots, sends, receive pump, roster flags and link figures:
+# src/xvt/net/net.c. The rename and ready checks run on a frontend display with no window, and an alarm
+# set with POSIX calls stops a call that does not return.
+if(NOT MSVC)
+    xvt_add_engine_test(test_net test_net.c "${PROJECT_SOURCE_DIR}/src/xvt/net/net.c")
+    add_test(NAME net COMMAND test_net)
+    xvt_add_known_failure(test_net rename_without_session_unlocked)
+    xvt_add_known_failure(test_net one_player_send_past_peer_table)
+    xvt_add_known_failure(test_net receive_past_peer_table)
+endif()
+
+# The flight session's reliable layer: its peer slots, sequence checks and receive queue:
+# src/xvt/net/net_reliable.c.
+xvt_add_engine_test(test_net_reliable test_net_reliable.c "${PROJECT_SOURCE_DIR}/src/xvt/net/net_reliable.c")
+add_test(NAME net_reliable COMMAND test_net_reliable)
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
