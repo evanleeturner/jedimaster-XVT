@@ -182,6 +182,28 @@ endif()
 xvt_add_engine_test(test_net_reliable test_net_reliable.c "${PROJECT_SOURCE_DIR}/src/xvt/net/net_reliable.c")
 add_test(NAME net_reliable COMMAND test_net_reliable)
 
+# The original flight networking's packet builders and pilot record list: src/xvt/net/flight_net.c.
+xvt_add_engine_test(test_flight_net test_flight_net.c "${PROJECT_SOURCE_DIR}/src/xvt/net/flight_net.c")
+add_test(NAME flight_net COMMAND test_flight_net)
+xvt_add_known_failure(test_flight_net missing_player_marks_first_entry)
+
+# The flight's input histories, remote craft smoothing and world checksums: src/xvt/net/flight_sync.c.
+xvt_add_engine_test(test_flight_sync test_flight_sync.c "${PROJECT_SOURCE_DIR}/src/xvt/net/flight_sync.c")
+add_test(NAME flight_sync COMMAND test_flight_sync)
+
+# The original flight's network session, its receive order and system messages: src/xvt/net/net_session.c.
+xvt_add_engine_test(test_net_session test_net_session.c "${PROJECT_SOURCE_DIR}/src/xvt/net/net_session.c")
+add_test(NAME net_session COMMAND test_net_session)
+xvt_add_known_failure(test_net_session resent_copy_first_discarded)
+xvt_add_known_failure(test_net_session peer_slot_keeps_retry_count)
+
+# The multiplayer frontend's packet handler: src/xvt/net/frontend_net.c.
+xvt_add_engine_test(test_frontend_net test_frontend_net.c "${PROJECT_SOURCE_DIR}/src/xvt/net/frontend_net.c")
+add_test(NAME frontend_net COMMAND test_frontend_net)
+xvt_add_known_failure(test_frontend_net join_refused_as_full)
+xvt_add_known_failure(test_frontend_net chat_chunk_without_log)
+xvt_add_known_failure(test_frontend_net chat_chunk_past_log)
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
