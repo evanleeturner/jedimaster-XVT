@@ -759,7 +759,13 @@ int tech_library_load_spec_text_table(void)
 					XVT_LOG_DEBUG(
 						"tech.spec_loaded entries=%d",
 						entry_index);
-					if (field_index != 0) {
+					if (field_index != 0 &&
+					    (field_index > 1 ||
+					     g_tech_library_spec_text_table
+							     [entry_index]
+								     .craft_name
+									     [0] !=
+						     '\0')) {
 						XVT_LOG_WARN(
 							"tech.spec_entry_cut entry=%d field=%d",
 							entry_index,

@@ -1635,8 +1635,8 @@
     },
     "display.menu_shutdown": {
       "level": "D",
-      "fields": ["screens", "direct_draw", "surfaces", "destroy"],
-      "text": "The menu display shut down: the saved pictures under {screens} stacked screens were freed with the fonts, images, sound tables and menu text; DirectDraw was still open {direct_draw}, the menu surfaces were still there {surfaces} (0 after a flight took them and they were not rebuilt), and closing the window was asked {destroy} (this version only lets go of the window)"
+      "fields": ["depth", "direct_draw", "surfaces", "destroy"],
+      "text": "The menu display shut down: the saved pictures under the screens still stacked (stack level {depth}) were freed with the fonts, images, sound tables and menu text; DirectDraw was still open {direct_draw}, the menu surfaces were still there {surfaces} (0 after a flight took them and they were not rebuilt), and closing the window was asked {destroy} (this version only lets go of the window)"
     },
     "display.menu_started": {
       "level": "D",

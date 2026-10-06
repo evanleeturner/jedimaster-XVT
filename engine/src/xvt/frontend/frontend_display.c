@@ -413,7 +413,7 @@ void frontend_display_shutdown(int b_destroy_window)
 	}
 	g_shutdown_complete = 1;
 	XVT_LOG_DEBUG(
-		"display.menu_shutdown screens=%d direct_draw=%d surfaces=%d destroy=%d",
+		"display.menu_shutdown depth=%d direct_draw=%d surfaces=%d destroy=%d",
 		g_front_state.screen_stack_top,
 		(int)(g_front_state.direct_draw != NULL),
 		(int)(g_front_state.primary_surface != NULL), b_destroy_window);
