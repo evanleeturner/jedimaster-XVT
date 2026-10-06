@@ -1,7 +1,7 @@
-/* Checks that pai_setup_context_and_find_order_plan_on_target
- * (xvt/flight/ai/pai.c) puts g_pai_context back as it found it in the modern
- * build, on a world this file builds itself: two craft in two flight groups and
- * one plan. No game data is read. */
+/* Tests for xvt/flight/ai/pai.c, the computer pilots' context. Checks that
+ * pai_setup_context_and_find_order_plan_on_target puts g_pai_context back as it
+ * found it, on a world this file builds itself: two craft in two flight groups
+ * and one plan. No game data is read. */
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>

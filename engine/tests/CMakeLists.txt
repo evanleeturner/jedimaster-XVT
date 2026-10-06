@@ -72,8 +72,8 @@ xvt_add_engine_test(test_world_state test_world_state.c
 add_test(NAME world_state COMMAND test_world_state)
 
 # The computer pilots' context: src/xvt/flight/ai/pai.c.
-xvt_add_engine_test(test_pai_context test_pai_context.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/pai.c")
-add_test(NAME pai_context COMMAND test_pai_context)
+xvt_add_engine_test(test_pai test_pai.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/pai.c")
+add_test(NAME pai COMMAND test_pai)
 
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
