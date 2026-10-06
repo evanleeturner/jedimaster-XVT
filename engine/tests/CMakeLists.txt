@@ -123,6 +123,25 @@ if(NOT MSVC)
     xvt_add_known_failure(test_mission_debrief campaign_id_past_table)
 endif()
 
+# The flight's results committed to the pilot record, and the file helpers: src/xvt/flight/fediskio.c.
+# The file checks write their files into a temporary folder made with POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_fediskio test_fediskio.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/fediskio.c")
+    add_test(NAME fediskio COMMAND test_fediskio)
+    xvt_add_known_failure(test_fediskio wave_bonus_entry_slot)
+    xvt_add_known_failure(test_fediskio teams_8_and_9_results)
+    xvt_add_known_failure(test_fediskio ai_level_past_rating_table)
+    xvt_add_known_failure(test_fediskio battle_step_past_table)
+    xvt_add_known_failure(test_fediskio network_campaign_finished)
+endif()
+
+# The goals page's lines: src/xvt/flight/mission/goals.c.
+xvt_add_engine_test(test_goals test_goals.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/mission/goals.c")
+add_test(NAME goals COMMAND test_goals)
+xvt_add_known_failure(test_goals ai_level_escape_text_missing)
+xvt_add_known_failure(test_goals condition_47_unloaded_text)
+xvt_add_known_failure(test_goals condition_47_past_table)
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
