@@ -90,7 +90,6 @@ int joystick_init_devices(void)
 					(joystick_caps.wYmax -
 					 joystick_info.dwYpos) /
 					255;
-#ifdef XVT_MODERN
 				if (g_front_state.joystick_x_negative_scale
 						    [slot] < 1 ||
 				    g_front_state.joystick_x_positive_scale
@@ -139,7 +138,6 @@ int joystick_init_devices(void)
 					g_front_state.joystick_y_positive_scale
 						[slot] = 1;
 				}
-#endif
 				g_front_state.joy_device_ids[slot] =
 					(unsigned int)device;
 				g_front_state.joystick_present[slot] = 1;
@@ -210,19 +208,14 @@ int joystick_get_count(void)
 // FUNCTION: XVT 0x4D5FE0
 void joystick_update_state(int joy_slot)
 {
-#ifdef XVT_MODERN
 	if ((unsigned int)joy_slot >= 2 ||
 	    g_front_state.joystick_present[joy_slot] == 0) {
-#else
-	if (joy_slot > 1 || g_front_state.joystick_present[joy_slot] == 0) {
-#endif
 		return;
 	}
 	JOYINFOEX joystick_info;
 	joystick_info.dwSize = sizeof(joystick_info);
 	joystick_info.dwFlags = JOY_RETURNX | JOY_RETURNY | JOY_RETURNBUTTONS |
 				JOY_RETURNPOV | JOY_RETURNCENTERED;
-#ifdef XVT_MODERN
 	if (joyGetPosEx(g_front_state.joy_device_ids[joy_slot],
 			&joystick_info) != JOYERR_NOERROR) {
 		memset(g_front_state.joystick_button_held[joy_slot], 0,
@@ -237,9 +230,6 @@ void joystick_update_state(int joy_slot)
 			     g_front_state.joy_device_ids[joy_slot]);
 		return;
 	}
-#else
-	joyGetPosEx(g_front_state.joy_device_ids[joy_slot], &joystick_info);
-#endif
 
 	int axis_delta_x = (int)joystick_info.dwXpos -
 			   g_front_state.joystick_x_center[joy_slot];
@@ -328,11 +318,7 @@ void joystick_update_state(int joy_slot)
 // FUNCTION: XVT 0x4D61E0
 int joystick_is_button0_released(int joystick_slot)
 {
-#ifdef XVT_MODERN
 	if ((unsigned int)joystick_slot >= 2) {
-#else
-	if (joystick_slot > 1) {
-#endif
 		return 0;
 	}
 	if (g_front_state.joystick_present[joystick_slot] == 0) {
@@ -348,11 +334,7 @@ int joystick_is_button0_released(int joystick_slot)
 // FUNCTION: XVT 0x4D6210
 int joystick_is_button1_released(int joystick_slot)
 {
-#ifdef XVT_MODERN
 	if ((unsigned int)joystick_slot >= 2) {
-#else
-	if (joystick_slot > 1) {
-#endif
 		return 0;
 	}
 	if (g_front_state.joystick_present[joystick_slot] == 0) {
@@ -366,11 +348,7 @@ int joystick_is_button1_released(int joystick_slot)
 // FUNCTION: XVT 0x4D6240
 int joystick_get_first_pressed_button(int joy_slot)
 {
-#ifdef XVT_MODERN
 	if ((unsigned int)joy_slot >= 2) {
-#else
-	if (joy_slot > 1) {
-#endif
 		return -1;
 	}
 	if (g_front_state.joystick_present[joy_slot] == 0) {
@@ -392,11 +370,7 @@ int joystick_get_first_pressed_button(int joy_slot)
 // FUNCTION: XVT 0x4D6280
 int joystick_get_first_released_button(int joystick_slot)
 {
-#ifdef XVT_MODERN
 	if ((unsigned int)joystick_slot >= 2) {
-#else
-	if (joystick_slot > 1) {
-#endif
 		return -1;
 	}
 	if (g_front_state.joystick_present[joystick_slot] == 0) {
@@ -418,11 +392,7 @@ int joystick_get_first_released_button(int joystick_slot)
 // FUNCTION: XVT 0x4D62C0
 int joystick_get_pov_direction(int joy_slot)
 {
-#ifdef XVT_MODERN
 	if ((unsigned int)joy_slot >= 2) {
-#else
-	if (joy_slot > 1) {
-#endif
 		return 0;
 	}
 	return g_front_state.joystick_pov_direction[joy_slot];
@@ -433,11 +403,7 @@ int joystick_get_pov_direction(int joy_slot)
 // FUNCTION: XVT 0x4D62E0
 int joystick_has_pov(int joy_slot)
 {
-#ifdef XVT_MODERN
 	if ((unsigned int)joy_slot >= 2) {
-#else
-	if (joy_slot > 1) {
-#endif
 		return 0;
 	}
 	return g_front_state.joystick_has_pov[joy_slot];
@@ -448,11 +414,7 @@ int joystick_has_pov(int joy_slot)
 // FUNCTION: XVT 0x4D6300
 int joystick_get_button_count(int joy_slot)
 {
-#ifdef XVT_MODERN
 	if ((unsigned int)joy_slot >= 2) {
-#else
-	if (joy_slot > 1) {
-#endif
 		return 0;
 	}
 	return g_front_state.joystick_button_count[joy_slot];
@@ -532,11 +494,7 @@ int frontend_joystick_update_centering_prompt(int frame_counter)
 // FUNCTION: XVT 0x4D6440
 unsigned int joystick_get_device_id(int joy_slot)
 {
-#ifdef XVT_MODERN
 	if ((unsigned int)joy_slot >= 2) {
-#else
-	if (joy_slot > 2) {
-#endif
 		return 0;
 	}
 	return g_front_state.joy_device_ids[joy_slot];

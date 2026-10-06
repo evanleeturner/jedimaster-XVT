@@ -1,7 +1,5 @@
 #include "xvt/frontend/frontend_dialog.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/dialog_task.h"
-#endif
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/config.h"
 #include "xvt/frontend/front_image.h"
@@ -75,69 +73,8 @@ int frontend_dialog_show_confirm_dialog(const char *line1, const char *line2,
 					const char *okay_label,
 					const char *cancel_label)
 {
-#ifdef XVT_MODERN
 	return xvt_dialog_confirm(line1, line2, line3, okay_label, cancel_label,
 				  0);
-#else
-	enum {
-		SCREEN_LEFT = 0,
-		SCREEN_TOP = 0,
-		SCREEN_RIGHT = 640,
-		SCREEN_BOTTOM = 480,
-		SOUND_ALLOW_RESTART = 1,
-		SOUND_NO_LOOP = 0,
-		SOUND_PRIORITY = 255,
-		SOUND_VOLUME_SCALE = 12,
-		SOUND_CENTER_PAN = 63,
-	};
-
-	int overlay_text_enabled = frontend_button_is_overlay_text_enabled();
-	frontend_button_disable_overlay_text();
-	if (g_game_config.sfx_datapad_enabled != 0) {
-		frontend_sound_play_ui_sound(
-			"warningsound", SOUND_ALLOW_RESTART, SOUND_NO_LOOP,
-			SOUND_PRIORITY,
-			SOUND_VOLUME_SCALE * g_game_config.sfx_datapad_volume,
-			SOUND_CENTER_PAN);
-	}
-	struct RECT rect;
-	frontend_draw_rect_assign(&rect, SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT,
-				  SCREEN_BOTTOM);
-	frontend_cursor_get_pos(&g_front_dialog_saved_mouse_x,
-				&g_front_dialog_saved_mouse_y);
-	if (line1 != NULL) {
-		strcpy(g_front_dialog_line1_or_edit, line1);
-	} else {
-		g_front_dialog_line1_or_edit[0] = '\0';
-	}
-	if (line2 != NULL) {
-		strcpy(g_front_dialog_line2, line2);
-	} else {
-		g_front_dialog_line2[0] = '\0';
-	}
-	if (line3 != NULL) {
-		strcpy(g_front_dialog_line3, line3);
-	} else {
-		g_front_dialog_line3[0] = '\0';
-	}
-	if (okay_label != NULL) {
-		strcpy(g_front_dialog_okay_label, okay_label);
-	} else {
-		g_front_dialog_okay_label[0] = '\0';
-	}
-	if (cancel_label != NULL) {
-		strcpy(g_front_dialog_cancel_label, cancel_label);
-	} else {
-		g_front_dialog_cancel_label[0] = '\0';
-	}
-	frontend_screen_run_modal(frontend_dialog_confirm_update_callback,
-				  &rect);
-	frontend_text_stop_text_fade();
-	if (overlay_text_enabled != 0) {
-		frontend_button_enable_overlay_text();
-	}
-	return g_dialog_result;
-#endif
 }
 
 /* The confirm dialog's frame function. On frame 0 it flushes the typed
@@ -243,10 +180,6 @@ int frontend_dialog_confirm_update_callback(int frame_counter)
 		if (pressed != 0) {
 			finished = 1;
 			g_dialog_result = 1;
-#ifndef XVT_MODERN
-			frontend_cursor_set_pos(g_front_dialog_saved_mouse_x,
-						g_front_dialog_saved_mouse_y);
-#endif
 		}
 	} else if (!g_front_dialog_okay_label[0]) {
 		frontend_draw_rect_assign(&rect, CANCEL_BUTTON_LEFT,
@@ -389,36 +322,7 @@ int frontend_dialog_has_network_dismiss_packet(void)
 // FUNCTION: XVT 0x4DD220
 int frontend_dialog_prompt_for_pilot_name(char *out_name)
 {
-#ifdef XVT_MODERN
 	return xvt_dialog_pilot_name(out_name);
-#else
-	enum {
-		SCREEN_LEFT = 0,
-		SCREEN_TOP = 0,
-		SCREEN_RIGHT = 640,
-		SCREEN_BOTTOM = 480,
-		PILOT_NAME_LENGTH = 12,
-	};
-
-	int overlay_text_enabled = frontend_button_is_overlay_text_enabled();
-	frontend_button_disable_overlay_text();
-	struct RECT rect;
-	frontend_draw_rect_assign(&rect, SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT,
-				  SCREEN_BOTTOM);
-	frontend_cursor_get_pos(&g_front_dialog_saved_mouse_x,
-				&g_front_dialog_saved_mouse_y);
-	memset(g_front_dialog_line1_or_edit, 0,
-	       sizeof(g_front_dialog_line1_or_edit));
-	frontend_screen_run_modal(frontend_dialog_create_pilot_name_callback,
-				  &rect);
-	frontend_text_stop_text_fade();
-	if (overlay_text_enabled != 0) {
-		frontend_button_enable_overlay_text();
-	}
-	memcpy(out_name, g_front_dialog_line1_or_edit, PILOT_NAME_LENGTH);
-	out_name[PILOT_NAME_LENGTH] = '\0';
-	return 1;
-#endif
 }
 
 /* The pilot-name prompt's frame function. On frame 0 it puts the cursor at
@@ -471,11 +375,9 @@ int frontend_dialog_create_pilot_name_callback(int frame_counter)
 		accepted = 1;
 	} else if (keyboard_peek_char() == 27) {
 		keyboard_discard_char();
-#ifdef XVT_MODERN
 		g_front_dialog_line1_or_edit[0] = 0;
 		front_image_free_resource_by_name("backname");
 		return 1;
-#endif
 	}
 
 	if (!accepted || g_front_dialog_line1_or_edit[0] == '\0') {
@@ -502,69 +404,8 @@ int frontend_dialog_show_network_abort_error(const char *line1,
 					     const char *okay_label,
 					     const char *cancel_label)
 {
-#ifdef XVT_MODERN
 	return xvt_dialog_confirm(line1, line2, line3, okay_label, cancel_label,
 				  1);
-#else
-	enum {
-		SCREEN_LEFT = 0,
-		SCREEN_TOP = 0,
-		SCREEN_RIGHT = 640,
-		SCREEN_BOTTOM = 480,
-		SOUND_ALLOW_RESTART = 1,
-		SOUND_NO_LOOP = 0,
-		SOUND_PRIORITY = 255,
-		SOUND_VOLUME_SCALE = 12,
-		SOUND_CENTER_PAN = 63,
-	};
-
-	int overlay_text_enabled = frontend_button_is_overlay_text_enabled();
-	frontend_button_disable_overlay_text();
-	if (g_game_config.sfx_datapad_enabled != 0) {
-		frontend_sound_play_ui_sound(
-			"warningsound", SOUND_ALLOW_RESTART, SOUND_NO_LOOP,
-			SOUND_PRIORITY,
-			SOUND_VOLUME_SCALE * g_game_config.sfx_datapad_volume,
-			SOUND_CENTER_PAN);
-	}
-	struct RECT rect;
-	frontend_draw_rect_assign(&rect, SCREEN_LEFT, SCREEN_TOP, SCREEN_RIGHT,
-				  SCREEN_BOTTOM);
-	frontend_cursor_get_pos(&g_front_dialog_saved_mouse_x,
-				&g_front_dialog_saved_mouse_y);
-	if (line1 != NULL) {
-		strcpy(g_front_dialog_line1_or_edit, line1);
-	} else {
-		g_front_dialog_line1_or_edit[0] = '\0';
-	}
-	if (line2 != NULL) {
-		strcpy(g_front_dialog_line2, line2);
-	} else {
-		g_front_dialog_line2[0] = '\0';
-	}
-	if (line3 != NULL) {
-		strcpy(g_front_dialog_line3, line3);
-	} else {
-		g_front_dialog_line3[0] = '\0';
-	}
-	if (okay_label != NULL) {
-		strcpy(g_front_dialog_okay_label, okay_label);
-	} else {
-		g_front_dialog_okay_label[0] = '\0';
-	}
-	if (cancel_label != NULL) {
-		strcpy(g_front_dialog_cancel_label, cancel_label);
-	} else {
-		g_front_dialog_cancel_label[0] = '\0';
-	}
-	frontend_screen_run_modal(frontend_dialog_network_abort_error_callback,
-				  &rect);
-	frontend_text_stop_text_fade();
-	if (overlay_text_enabled != 0) {
-		frontend_button_enable_overlay_text();
-	}
-	return g_dialog_result;
-#endif
 }
 
 /* The network-error dialog's frame function: the same as
@@ -616,11 +457,6 @@ int frontend_dialog_network_abort_error_callback(int frame_counter)
 			if (pressed != 0) {
 				finished = 1;
 				g_dialog_result = 1;
-#ifndef XVT_MODERN
-				frontend_cursor_set_pos(
-					g_front_dialog_saved_mouse_x,
-					g_front_dialog_saved_mouse_y);
-#endif
 			}
 		} else {
 			frontend_draw_rect_assign(&rect, 481, 240, 513, 275);

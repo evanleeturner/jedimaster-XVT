@@ -14,11 +14,9 @@
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifdef XVT_MODERN
 #include <strings.h>
 
 #include "xvt_runtime/compat/pilot_port.h"
-#endif
 
 #include <stdlib.h>
 #include <string.h>
@@ -55,20 +53,13 @@ int pilot_delete_current(void)
 		selected_index = 0;
 		if (g_pilot_list_display_names != NULL) {
 			while (g_pilot_file_list->count > selected_index) {
-#ifdef XVT_MODERN
 				if (strcasecmp(g_pilot_list_display_names
 						       [selected_index],
 					       g_pilot_data.name) == 0) {
-#else
-				if (_strcmpi(g_pilot_list_display_names
-						     [selected_index],
-					     g_pilot_data.name) == 0) {
-#endif
 					file_change_to_base_game_install_path();
 					XVT_LOG_DEBUG(
 						"pilot.delete_match index=%d path=\"%s\"",
 						selected_index, node->path);
-#ifdef XVT_MODERN
 					if (!pilot_remove_file_modern(
 						    node->path)) {
 						XVT_LOG_ERROR(
@@ -76,16 +67,12 @@ int pilot_delete_current(void)
 							selected_index);
 						return 0;
 					}
-#else
-					FILE_REMOVE(node->path);
-#endif
 					file_change_to_install_path();
 					strcpy(g_frontend_scratch_buffer,
 					       node->path);
 					g_frontend_scratch_buffer
 						[strlen(g_frontend_scratch_buffer) -
 						 1] = '2';
-#ifdef XVT_MODERN
 					if (!pilot_remove_file_modern(
 						    g_frontend_scratch_buffer)) {
 						XVT_LOG_ERROR(
@@ -93,9 +80,6 @@ int pilot_delete_current(void)
 							selected_index);
 						return 0;
 					}
-#else
-					FILE_REMOVE(g_frontend_scratch_buffer);
-#endif
 					XVT_LOG_INFO("pilot.deleted index=%d",
 						     selected_index);
 					break;
@@ -138,39 +122,21 @@ int pilot_delete_current(void)
 // FUNCTION: XVT 0x4BF3A0
 int pilot_create_new(const char *pilot_name)
 {
-#ifndef XVT_MODERN
-	xvt_file *stream;
-#endif
 	int file_index = 0;
 	char pilot_path[32];
 	xvt_file *probe_stream;
 	for (;;) {
 		sprintf(pilot_path, "%s%d.pl2", pilot_name, file_index);
-#ifdef XVT_MODERN
 		probe_stream = file_open(pilot_path, g_file_mode_read_binary);
-#else
-		probe_stream =
-			FILE_RAW_OPEN(pilot_path, g_file_mode_read_binary);
-#endif
 		if (probe_stream == NULL) {
 			break;
 		}
-#ifdef XVT_MODERN
 		file_close(probe_stream);
-#else
-		FILE_RAW_CLOSE(probe_stream);
-#endif
 		++file_index;
 	}
 	XVT_LOG_DEBUG("pilot.create_file number=%d path=\"%s\"", file_index,
 		      pilot_path);
 
-#ifndef XVT_MODERN
-	stream = file_open(pilot_path, "wb");
-	if (stream == NULL) {
-		return 0;
-	}
-#endif
 
 	memset(&g_pilot_data, 0, sizeof(g_pilot_data));
 	strcpy(g_pilot_data.name, pilot_name);
@@ -215,14 +181,10 @@ int pilot_create_new(const char *pilot_name)
 		g_mission_list = NULL;
 	}
 	g_frontend_mission_session_mode = FRONTEND_MISSION_SESSION_NONE;
-#ifdef XVT_MODERN
 	if (!xvt_storage_write_atomic(pilot_path, &g_pilot_data,
 				      sizeof(g_pilot_data))) {
 		return 0;
 	}
-#else
-	file_write_bytes(stream, &g_pilot_data, sizeof(g_pilot_data));
-#endif
 
 	mission_setup_load_mission_list(MISSION_DIRECTORY_COMBAT_ENGAGEMENTS);
 	if (g_mission_list != NULL && g_mission_count < 3) {
@@ -267,16 +229,8 @@ int pilot_create_new(const char *pilot_name)
 		g_pilot_data.faction_statistics[1].mission_description_ids
 			[MISSION_DIRECTORY_COMBAT_ENGAGEMENTS]);
 
-#ifndef XVT_MODERN
-	file_close(stream);
-#endif
 	XVT_LOG_INFO("pilot.created number=%d", file_index);
-#ifdef XVT_MODERN
 	return pilot_save(0);
-#else
-	pilot_save(0);
-	return 1;
-#endif
 }
 
 /* Saves g_pilot_data to the pilot's .pl2 file and the base game's record to its
@@ -317,18 +271,12 @@ int pilot_save(int use_temporary_file)
 						g_frontend_scratch_buffer,
 						sizeof(g_pilot_data.name));
 					file_close(stream);
-#ifdef XVT_MODERN
 					if (strcasecmp(
 						    g_frontend_scratch_buffer,
 						    g_pilot_data.name) == 0) {
 						snprintf(pilot_path,
 							 sizeof(pilot_path),
 							 "%s", node->path);
-#else
-					if (_strcmpi(g_frontend_scratch_buffer,
-						     g_pilot_data.name) == 0) {
-						strcpy(pilot_path, node->path);
-#endif
 						break;
 					}
 				}
@@ -360,18 +308,12 @@ int pilot_save(int use_temporary_file)
 						g_frontend_scratch_buffer,
 						sizeof(g_pilot_data.name));
 					file_close(stream);
-#ifdef XVT_MODERN
 					if (strcasecmp(
 						    g_frontend_scratch_buffer,
 						    g_pilot_data.name) == 0) {
 						snprintf(pilot_path,
 							 sizeof(pilot_path),
 							 "%s", node->path);
-#else
-					if (_strcmpi(g_frontend_scratch_buffer,
-						     g_pilot_data.name) == 0) {
-						strcpy(pilot_path, node->path);
-#endif
 						break;
 					}
 				}
@@ -385,12 +327,8 @@ int pilot_save(int use_temporary_file)
 		}
 
 		if (pilot_path[0] == '\0') {
-#ifdef XVT_MODERN
 			snprintf(pilot_path, sizeof(pilot_path), "%s0.pl2",
 				 g_pilot_data.name);
-#else
-			sprintf(pilot_path, "%s0.pl2", g_pilot_data.name);
-#endif
 		} else {
 			pilot_path[strlen(pilot_path) - 1] = '2';
 		}
@@ -398,42 +336,21 @@ int pilot_save(int use_temporary_file)
 	XVT_LOG_DEBUG("pilot.save_path path=\"%s\" temporary=%d", pilot_path,
 		      use_temporary_file);
 
-#ifndef XVT_MODERN
-	stream = file_open(pilot_path, "wb");
-	if (stream == NULL) {
-		return 0;
-	}
-#endif
-#ifdef XVT_MODERN
 	if (!xvt_storage_write_atomic(pilot_path, &g_pilot_data,
 				      sizeof(g_pilot_data))) {
 		return 0;
 	}
-#else
-	file_write_bytes(stream, &g_pilot_data, sizeof(g_pilot_data));
-#endif
-#ifndef XVT_MODERN
-	file_close(stream);
-#endif
 	XVT_LOG_INFO("pilot.saved rating=%d missions=%d score=%d faction=%d",
 		     (int)g_pilot_data.rating,
 		     g_pilot_data.total_missions_played_count,
 		     g_pilot_data.total_score, g_pilot_data.current_faction_id);
 	if (pilot_path[0] == '\0') {
-#ifdef XVT_MODERN
 		snprintf(pilot_path, sizeof(pilot_path), "%s0.plt",
 			 g_pilot_data.name);
-#else
-		sprintf(pilot_path, "%s0.plt", g_pilot_data.name);
-#endif
 	} else {
 		pilot_path[strlen(pilot_path) - 1] = 't';
 	}
-#ifdef XVT_MODERN
 	return pilot_write_xvt_record(pilot_path, NULL);
-#else
-	pilot_write_xvt_record(pilot_path, stream);
-#endif
 	return 1;
 }
 
@@ -473,13 +390,8 @@ int pilot_find_and_load_by_name(const char *pilot_name)
 			file_read_bytes(stream, g_frontend_scratch_buffer,
 					sizeof(g_pilot_data.name));
 			file_close(stream);
-#ifdef XVT_MODERN
 			if (strcasecmp(g_frontend_scratch_buffer, pilot_name) ==
 			    0) {
-#else
-			if (_strcmpi(g_frontend_scratch_buffer, pilot_name) ==
-			    0) {
-#endif
 				if (pilot_load_from_path(node->path) != 0) {
 					was_loaded = 1;
 					XVT_LOG_INFO(
@@ -659,7 +571,6 @@ int pilot_load_from_path(const char *base_pilot_path)
 		file_open(expansion_pilot_path, g_file_mode_read_binary);
 	if (expansion_stream != NULL) {
 		has_expansion_record = 1;
-#ifdef XVT_MODERN
 		if (!file_read_bytes(expansion_stream, &g_pilot_data,
 				     sizeof(g_pilot_data))) {
 			file_close(expansion_stream);
@@ -668,10 +579,6 @@ int pilot_load_from_path(const char *base_pilot_path)
 				      (unsigned)sizeof(g_pilot_data));
 			return 0;
 		}
-#else
-		file_read_bytes(expansion_stream, &g_pilot_data,
-				sizeof(g_pilot_data));
-#endif
 		file_close(expansion_stream);
 	}
 
@@ -737,14 +644,10 @@ int pilot_load_from_path(const char *base_pilot_path)
 					[MISSION_DIRECTORY_TRAINING_EXERCISES]);
 		}
 
-#ifdef XVT_MODERN
 		if (!pilot_load_xvt_record(xvt_stream)) {
 			file_close(xvt_stream);
 			return 0;
 		}
-#else
-		pilot_load_xvt_record(xvt_stream);
-#endif
 		file_close(xvt_stream);
 		if (has_expansion_record == 0) {
 			sprintf(g_pilot_data.multiplayer_game_name, "%s%s",
@@ -968,15 +871,11 @@ int pilot_load_xvt_record(xvt_file *stream)
 	};
 
 	struct pilot_xvt_record record;
-#ifdef XVT_MODERN
 	if (!file_read_bytes(stream, &record, sizeof(record))) {
 		XVT_LOG_ERROR("pilot.record_unreadable stage=\"load\" bytes=%u",
 			      (unsigned)sizeof(record));
 		return 0;
 	}
-#else
-	file_read_bytes(stream, &record, sizeof(record));
-#endif
 	memcpy(g_pilot_data.name, record.name, sizeof(record.name));
 	g_pilot_data.total_score = record.total_score;
 	g_pilot_data.local_player_id = record.local_player_id;
@@ -1948,7 +1847,6 @@ int pilot_write_xvt_record(const char *file_name, xvt_file *stream)
 	xvt_file *input_stream = file_open(file_name, g_file_mode_read_binary);
 	XVT_LOG_DEBUG("pilot.record_base found=%d", input_stream != NULL);
 	if (input_stream != NULL) {
-#ifdef XVT_MODERN
 		if (!file_read_bytes(input_stream, &record, sizeof(record))) {
 			file_close(input_stream);
 			XVT_LOG_ERROR(
@@ -1956,16 +1854,10 @@ int pilot_write_xvt_record(const char *file_name, xvt_file *stream)
 				(unsigned)sizeof(record));
 			return 0;
 		}
-#else
-		file_read_bytes(input_stream, &record, sizeof(record));
-#endif
 		file_close(input_stream);
 	}
 	file_change_to_install_path();
 	file_change_to_base_game_install_path();
-#ifndef XVT_MODERN
-	stream = file_open(file_name, "wb");
-#endif
 
 	memcpy(record.name, g_pilot_data.name, sizeof(record.name));
 	record.total_score = g_pilot_data.total_score;
@@ -2507,13 +2399,6 @@ int pilot_write_xvt_record(const char *file_name, xvt_file *stream)
 		record.current_rating_promo_points,
 		record.next_promotion_percent, (int)record.promotion_delta);
 
-#ifdef XVT_MODERN
 	(void)stream;
 	return xvt_storage_write_atomic(file_name, &record, sizeof(record));
-#else
-	file_write_bytes(stream, &record, sizeof(record));
-	file_change_to_install_path();
-	file_close(stream);
-	return 1;
-#endif
 }

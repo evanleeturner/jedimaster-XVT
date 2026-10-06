@@ -91,11 +91,9 @@ int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 	int height = bar_rect->bottom - bar_rect->top;
 	int travel = height - 2 * width;
 	int range = maximum_exclusive - minimum;
-#ifdef XVT_MODERN
 	if (range <= 0) {
 		return current_value;
 	}
-#endif
 	int thumb_size = travel / range;
 	if (thumb_size < 1) {
 		thumb_size = 1;

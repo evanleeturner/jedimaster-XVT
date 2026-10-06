@@ -4,13 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/presentation.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
-#endif
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/frontend_task.h"
-#endif
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -34,128 +30,10 @@
 #include "xvt_runtime/compat/win_message_port.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifdef XVT_MODERN
 #include "aeron/aeron.h"
 #include "aeron/compat/host.h"
 #include "aeron/dialog.h"
 #include "xvt/util/time.h"
-#else
-/* drift-ok: camelcase -- a copy of Windows' WNDCLASSA */
-struct WNDCLASSA {
-	unsigned int style; /* Class style bits; set to 8, CS_DBLCLKS. */
-	/* The window procedure, frontend_display_wnd_proc. */
-	int32_t(AERON_DXAPI *lpfnWndProc)(void *hWnd, unsigned int Msg,
-					  uint32_t wParam, int32_t lParam);
-	int cbClsExtra;	     /* Extra bytes per class; set to 0. */
-	int cbWndExtra;	     /* Extra bytes per window; set to 0. */
-	void *hInstance;     /* The module that owns the class. */
-	void *hIcon;	     /* Icon resource 101 of that module. */
-	void *hCursor;	     /* The system arrow cursor, 0x7F00 (IDC_ARROW). */
-	void *hbrBackground; /* Stock object 4, the black brush. */
-	const char *lpszMenuName;  /* No menu; set to NULL. */
-	const char *lpszClassName; /* The class name, g_window_name. */
-};
-
-/* The system's window message record, filled by GetMessageA and
- * PeekMessageA. */
-/* drift-ok: camelcase -- wParam, lParam: Windows' MSG */
-struct frontend_display_win32_message {
-	void *window;	  /* The target window; no code here reads it. */
-	uint32_t message; /* The message number; no code here reads it. */
-	/* The first parameter; for the quit message, the exit code the two
-	 * frame loops return. */
-	uint32_t wParam;
-	int32_t lParam;	 /* The second parameter; no code here reads it. */
-	uint32_t time;	 /* When it was posted; no code here reads it. */
-	int32_t point_x; /* Cursor x when posted; no code here reads it. */
-	int32_t point_y; /* Cursor y when posted; no code here reads it. */
-};
-
-uint32_t GetTickCount(void);
-__declspec(dllimport) int __stdcall
-TranslateMessage(const struct frontend_display_win32_message *message);
-__declspec(dllimport) int __stdcall
-GetMessageA(struct frontend_display_win32_message *message, void *hWnd,
-	    unsigned int filter_min, unsigned int filter_max);
-__declspec(dllimport) int32_t __stdcall
-DispatchMessageA(const struct frontend_display_win32_message *message);
-__declspec(dllimport) int __stdcall
-PeekMessageA(struct frontend_display_win32_message *message, void *hWnd,
-	     unsigned int filter_min, unsigned int filter_max,
-	     unsigned int remove_message);
-__declspec(dllimport) void *__stdcall LoadIconA(void *hInstance,
-						uintptr_t icon_name);
-__declspec(dllimport) void *__stdcall LoadCursorA(void *hInstance,
-						  uintptr_t cursor_name);
-__declspec(dllimport) uint16_t __stdcall
-RegisterClassA(const struct WNDCLASSA *window_class);
-__declspec(dllimport) void *__stdcall
-CreateWindowExA(uint32_t ex_style, const char *class_name,
-		const char *window_name, uint32_t style, int x, int y,
-		int width, int height, void *parent, void *menu, void *instance,
-		void *param);
-__declspec(dllimport) int __stdcall UpdateWindow(void *hWnd);
-__declspec(dllimport) void *__stdcall SetFocus(void *hWnd);
-__declspec(dllimport) int __stdcall GetKeyboardState(uint8_t *key_state);
-__declspec(dllimport) void *__stdcall FindWindowA(const char *class_name,
-						  const char *window_name);
-__declspec(dllimport) int __stdcall MessageBoxA(void *hWnd, const char *text,
-						const char *caption,
-						unsigned int type);
-/* drift-ok: camelcase -- Windows' parameter names */
-__declspec(dllimport) int __stdcall ShowWindowAsync(void *hWnd, int nCmdShow);
-__declspec(dllimport) void *__stdcall CreateDCA(const char *driver,
-						const char *device,
-						const char *port,
-						void *device_mode);
-__declspec(dllimport) void *__stdcall GetStockObject(int object_index);
-__declspec(dllimport) void *__stdcall SelectObject(void *dc, void *object);
-__declspec(dllimport) int __stdcall GetSystemMetrics(int index);
-__declspec(dllimport) int __stdcall Rectangle(void *dc, int left, int top,
-					      int right, int bottom);
-__declspec(dllimport) int __stdcall DeleteDC(void *dc);
-__declspec(dllimport) void *__stdcall
-CreateFontA(int height, int width, int escapement, int orientation, int weight,
-	    unsigned int italic, unsigned int underline,
-	    unsigned int strike_out, unsigned int char_set,
-	    unsigned int out_precision, unsigned int clip_precision,
-	    unsigned int quality, unsigned int pitch_and_family,
-	    const char *face_name);
-__declspec(dllimport) int __stdcall SetMapMode(void *dc, int mode);
-__declspec(dllimport) int __stdcall SetTextCharacterExtra(void *dc, int extra);
-__declspec(dllimport) uint32_t __stdcall SetTextColor(void *dc, uint32_t color);
-__declspec(dllimport) uint32_t __stdcall SetBkColor(void *dc, uint32_t color);
-__declspec(dllimport) int __stdcall SetBkMode(void *dc, int mode);
-__declspec(dllimport) int __stdcall DrawTextA(void *dc, const char *text,
-					      int length, struct RECT *rect,
-					      unsigned int format);
-__declspec(dllimport) int __stdcall DeleteObject(void *object);
-__declspec(dllimport) uint32_t __stdcall GetPixel(void *dc, int x, int y);
-__declspec(dllimport) uint32_t __stdcall SetPixel(void *dc, int x, int y,
-						  uint32_t color);
-__declspec(dllimport) int __stdcall DestroyWindow(void *hWnd);
-__declspec(dllimport) int __stdcall ShowCursor(int show);
-__declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
-__declspec(dllimport) void *__stdcall SetCapture(void *hWnd);
-__declspec(dllimport) int __stdcall ReleaseCapture(void);
-__declspec(dllimport) void *__stdcall SetCursor(void *cursor);
-__declspec(dllimport) int __stdcall
-PostMessageA(void *hWnd, unsigned int message, uint32_t wParam, int32_t lParam);
-__declspec(dllimport) void __stdcall PostQuitMessage(int exit_code);
-__declspec(dllimport) int32_t __stdcall DefWindowProcA(void *hWnd,
-						       unsigned int message,
-						       uint32_t wParam,
-						       int32_t lParam);
-__declspec(dllimport) void *__stdcall
-FindResourceA(void *module, const char *name, uintptr_t type);
-__declspec(dllimport) void *__stdcall LoadResource(void *module,
-						   void *resource_info);
-__declspec(dllimport) void *__stdcall LockResource(void *resource_data);
-__declspec(dllimport) int __stdcall _lopen(const char *path, int mode);
-__declspec(dllimport) unsigned int __stdcall _lread(int file, void *buffer,
-						    unsigned int size);
-__declspec(dllimport) int __stdcall _lclose(int file);
-#endif
 
 typedef HRESULT(AERON_DXAPI *frontend_display_surface_get_dc_func)(
 	IDirectDrawSurface *surface, void **dc);
@@ -479,20 +357,10 @@ void frontend_display_shutdown(int b_destroy_window)
 			g_front_state.direct_draw);
 		g_front_state.direct_draw = NULL;
 		if (g_front_state.hWnd != NULL && b_destroy_window != 0) {
-#ifdef XVT_MODERN
 			g_front_state.hWnd = NULL;
-#else
-			DestroyWindow(g_front_state.hWnd);
-			g_front_state.hWnd = NULL;
-#endif
 		}
 	}
-#ifdef XVT_MODERN
 	Aeron_SetHostCursorVisible(0);
-#else
-	while (ShowCursor(1) < 0) {
-	}
-#endif
 }
 
 /* Only the original build calls this, through frontend_display_wnd_proc while the
@@ -523,48 +391,28 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *hWnd, unsigned int Msg,
 	switch (Msg) {
 	case 0x02:
 		frontend_display_shutdown(1);
-#ifdef XVT_MODERN
 		Aeron_RequestQuit();
-#else
-		PostQuitMessage(0);
-#endif
 		return 0;
 
 	case 0x1C:
 		g_front_state.app_active = (int)wParam;
 		if (wParam != 0) {
 			cd_audio_request_resume_playback();
-#ifndef XVT_MODERN
-			if (g_front_state.hWnd != NULL) {
-				SetCapture(g_front_state.hWnd);
-			}
-#endif
 			g_front_state.restore_offscreen_overlay_after_activate =
 				1;
 			frontend_cursor_hide_os_cursor();
 		} else {
 			cd_audio_suspend_playback();
-#ifndef XVT_MODERN
-			ReleaseCapture();
-#endif
 		}
 		break;
 
 	case 0x20:
-#ifdef XVT_MODERN
 		Aeron_SetHostCursorVisible(0);
-#else
-		SetCursor(NULL);
-#endif
 		return 1;
 
 	case 0x100:
 		if (wParam == 27 && g_front_state.escape_close_enabled != 0) {
-#ifdef XVT_MODERN
 			Aeron_RequestQuit();
-#else
-			PostMessageA(hWnd, 0x10, 0, 0);
-#endif
 		}
 		break;
 
@@ -619,13 +467,8 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *hWnd, unsigned int Msg,
 			g_front_state.mouse_y = 480;
 		}
 		if (cursor_clamped != 0) {
-#ifdef XVT_MODERN
 			xvt_presentation_warp_classic(g_front_state.mouse_x,
 						      g_front_state.mouse_y);
-#else
-			SetCursorPos(g_front_state.mouse_x,
-				     g_front_state.mouse_y);
-#endif
 		}
 		break;
 
@@ -662,13 +505,9 @@ int32_t AERON_DXAPI frontend_display_main_wnd_proc(void *hWnd, unsigned int Msg,
 		break;
 	}
 
-#ifdef XVT_MODERN
 	(void)hWnd;
 	(void)lParam;
 	return 0;
-#else
-	return DefWindowProcA(hWnd, Msg, wParam, lParam);
-#endif
 }
 
 /* Only the original build calls this, as the window class's procedure
@@ -693,11 +532,7 @@ int32_t AERON_DXAPI frontend_display_wnd_proc(void *hWnd, unsigned int Msg,
 			xvt_port_win_message_param_as_pointer(
 				(uint32_t)lParam));
 	default:
-#ifdef XVT_MODERN
 		return 0;
-#else
-		return DefWindowProcA(hWnd, Msg, wParam, lParam);
-#endif
 	}
 }
 
@@ -709,25 +544,19 @@ int32_t AERON_DXAPI frontend_display_wnd_proc(void *hWnd, unsigned int Msg,
 // FUNCTION: XVT 0x4D3DA0
 int frontend_display_report_direct_draw_init_failure(void *hWnd, int stage)
 {
-#ifdef XVT_MODERN
 	(void)hWnd;
 	AeronMessageBoxButton button = {1, "OK", 1, 1};
 	AeronMessageBoxOptions options;
-#endif
 
 	char message[256];
 	sprintf(message, "DirectDraw Init FAILED at %d", stage);
 	XVT_LOG_ERROR("display.menu_setup_failed stage=%d", stage);
-#ifdef XVT_MODERN
 	options.kind = AERON_MESSAGE_BOX_ERROR;
 	options.title = g_window_name;
 	options.message = message;
 	options.buttons = &button;
 	options.button_count = 1;
 	Aeron_ShowMessageBox(&options, NULL);
-#else
-	MessageBoxA(hWnd, message, g_window_name, 0);
-#endif
 	frontend_display_shutdown(1);
 	return 0;
 }
@@ -739,11 +568,9 @@ int frontend_display_report_direct_draw_init_failure(void *hWnd, int stage)
 // FUNCTION: XVT 0x4D3DF0
 int frontend_display_show_game_message_box(const char *text)
 {
-#ifdef XVT_MODERN
 	AeronMessageBoxButton button = {1, "OK", 1, 1};
 	AeronMessageBoxOptions options = {AERON_MESSAGE_BOX_WARNING,
 					  g_window_name, text, &button, 1};
-#endif
 
 	int was_back_buffer_locked = g_front_state.back_buffer_locked;
 	frontend_display_unlock_back_buffer();
@@ -752,11 +579,7 @@ int frontend_display_show_game_message_box(const char *text)
 			g_front_state.direct_draw);
 	}
 
-#ifdef XVT_MODERN
 	Aeron_ShowMessageBox(&options, NULL);
-#else
-	MessageBoxA(g_front_state.hWnd, text, g_window_name, 0x30);
-#endif
 
 	if (was_back_buffer_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
@@ -791,219 +614,11 @@ uint32_t frontend_display_run_main_loop(void *hInstance,
 					const void *hPrevInstance,
 					const char *lpCmdLine, int nShowCmd)
 {
-#ifdef XVT_MODERN
 	(void)hInstance;
 	(void)hPrevInstance;
 	(void)lpCmdLine;
 	(void)nShowCmd;
 	return 0;
-#else
-	enum {
-		SCREEN_CONTINUE = 0,
-		SCREEN_FINISHED = 1,
-		JOYSTICK_UPDATE_INTERVAL_MS = 100,
-		WINDOW_CLOSE_MESSAGE = 0x10,
-	};
-
-	(void)hPrevInstance;
-	(void)lpCmdLine;
-	int update_result = SCREEN_CONTINUE;
-	int frame_ready = 0;
-	if (frontend_display_init_main_window(hInstance, nShowCmd) == 0) {
-		return 0;
-	}
-	if (g_front_state.mode_init_fn != NULL &&
-	    g_front_state.mode_init_fn() != 0) {
-		frontend_display_shutdown(1);
-		return 0;
-	}
-
-	uint32_t frame_start = GetTickCount();
-	uint32_t joystick_update = frame_start;
-	g_front_state.text_color_codes[0] = 0xFFFF;
-	g_front_state.text_color_codes[1] =
-		frontend_display_pack_rgb(0x40, 0xC4, 0x40);
-	g_front_state.text_color_codes[2] =
-		frontend_display_pack_rgb(0xFF, 0, 0);
-	g_front_state.text_color_codes[3] =
-		frontend_display_pack_rgb(0xFF, 0xFF, 0);
-	g_front_state.text_color_codes[4] =
-		frontend_display_pack_rgb(0, 0, 0xFF);
-	g_front_state.text_color_codes[5] =
-		frontend_display_pack_rgb(0x80, 0x80, 0xFF);
-
-	struct frontend_display_win32_message message;
-	for (;;) {
-		if (g_front_state.app_active != 0) {
-			if (frame_ready != 0 &&
-			    update_result == SCREEN_CONTINUE) {
-				frame_ready = 0;
-				g_front_state.net_ready_player_left_this_frame =
-					0;
-				if (g_front_state.text_fade_frames_left != 0) {
-					memset(&g_front_state
-							.text_fade_color_cache,
-					       0,
-					       sizeof(g_front_state
-							      .text_fade_color_cache));
-				}
-				net_pump_incoming_packets();
-				if (g_front_state
-					    .screen_states
-						    [g_front_state
-							     .screen_stack_top]
-					    .update_fn != NULL) {
-					GetKeyboardState(
-						g_front_state.key_state);
-					g_draw_surface_ptr =
-						frontend_display_lock_back_buffer();
-					frontend_screen_exit_fn exit_fn =
-						g_front_state
-							.screen_states
-								[g_front_state
-									 .screen_stack_top]
-							.exit_fn;
-					update_result =
-						g_front_state
-							.screen_states
-								[g_front_state
-									 .screen_stack_top]
-							.update_fn(
-								g_front_state
-									.frame_counter);
-					if (g_front_state.screen_callbacks_dirty ==
-						    1 ||
-					    update_result == SCREEN_FINISHED) {
-						g_front_state
-							.screen_callbacks_dirty =
-							0;
-						if (exit_fn != NULL) {
-							exit_fn(g_front_state
-									.frame_counter);
-						}
-					}
-					frontend_display_unlock_back_buffer();
-					if (g_front_state
-						    .pending_screen_update_fn !=
-					    NULL) {
-						frontend_screen_push_state(
-							g_front_state
-								.pending_screen_update_fn,
-							&g_front_state
-								 .pending_screen_rect);
-						g_front_state
-							.pending_screen_update_fn =
-							NULL;
-					}
-					if (g_front_state.cursor_visible == 1) {
-						frontend_cursor_draw();
-					}
-					memset(g_front_state
-						       .joystick_button_released
-							       [0],
-					       0,
-					       sizeof(g_front_state
-							      .joystick_button_released
-								      [0]));
-					memset(g_front_state
-						       .joystick_button_released
-							       [1],
-					       0,
-					       sizeof(g_front_state
-							      .joystick_button_released
-								      [1]));
-					++g_front_state.frame_counter;
-					if (update_result == SCREEN_FINISHED) {
-						if (g_front_state.cd_audio_mci_device_id !=
-							    0 &&
-						    g_front_state.cd_audio_current_track !=
-							    0 &&
-						    g_front_state.cd_audio_playback_complete ==
-							    0) {
-							cd_audio_fade_aux_volume(
-								g_front_state
-									.cd_audio_track_cache
-									.current_aux_volume,
-								0x200, 2000);
-						}
-						cd_audio_close_device();
-						PostMessageA(
-							g_front_state.hWnd,
-							WINDOW_CLOSE_MESSAGE, 0,
-							0);
-					}
-					if (g_front_state
-						    .text_fade_frames_left !=
-					    0) {
-						--g_front_state
-							  .text_fade_frames_left;
-					}
-					g_front_state.mouse_left_click_latch =
-						0;
-					g_front_state.mouse_right_click_latch =
-						0;
-					if (g_front_state.cd_audio_suspend_state ==
-						    CD_AUDIO_RESUME_PENDING &&
-					    GetTickCount() >
-						    g_front_state
-							    .cd_audio_resume_due_ms) {
-						cd_audio_resume_suspended_playback();
-					}
-					if (g_front_state.cd_audio_current_track !=
-						    0 &&
-					    GetTickCount() >
-						    g_front_state
-							    .cd_audio_track_end_ms) {
-						if (g_front_state
-							    .cd_audio_loop_current_track !=
-						    0) {
-							cd_audio_play_track_from_time(
-								g_front_state
-									.cd_audio_current_track,
-								0, 0);
-						} else {
-							g_front_state
-								.cd_audio_playback_complete =
-								1;
-						}
-					}
-				}
-			}
-
-			if (PeekMessageA(&message, NULL, 0, 0, 0) != 0) {
-				if (GetMessageA(&message, NULL, 0, 0) == 0) {
-					return message.wParam;
-				}
-				TranslateMessage(&message);
-				DispatchMessageA(&message);
-				continue;
-			}
-			if (update_result == SCREEN_CONTINUE) {
-				uint32_t now = GetTickCount();
-				if ((int32_t)(now - frame_start) >=
-				    g_front_state.frame_interval_ms) {
-					frame_ready = 1;
-					frame_start = now;
-					frontend_display_present_frame();
-				}
-				if ((int32_t)(now - joystick_update) >=
-				    JOYSTICK_UPDATE_INTERVAL_MS) {
-					joystick_update_state(0);
-					joystick_update_state(1);
-					joystick_update = now;
-				}
-			}
-		}
-
-		else if (PeekMessageA(&message, NULL, 0, 0, 0) != 0) {
-			if (GetMessageA(&message, NULL, 0, 0) == 0) {
-				return message.wParam;
-			}
-			TranslateMessage(&message);
-			DispatchMessageA(&message);
-		}
-	}
-#endif
 }
 
 /* Makes the frontend's display and returns 1, or 0 when a step fails, after
@@ -1029,52 +644,18 @@ uint32_t frontend_display_run_main_loop(void *hInstance,
 // FUNCTION: XVT 0x4D41E0
 int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 {
-#ifndef XVT_MODERN
-	struct WNDCLASSA window_class;
-#endif
 	(void)nShowCmd;
 
 	void *window_handle;
-#ifdef XVT_MODERN
 	/* The host shell owns the window, so the port keeps the handle it published. */
 	(void)hInstance;
 	window_handle = g_front_state.hWnd;
-#else
-	window_class.style = 8; /* CS_DBLCLKS */
-	window_class.lpfnWndProc = frontend_display_wnd_proc;
-	window_class.cbClsExtra = 0;
-	window_class.cbWndExtra = 0;
-	window_class.hInstance = hInstance;
-	window_class.hIcon = LoadIconA(hInstance, 101);
-	window_class.hCursor = LoadCursorA(NULL, 0x7F00); /* IDC_ARROW */
-	window_class.hbrBackground = GetStockObject(4);	  /* BLACK_BRUSH */
-	window_class.lpszMenuName = NULL;
-	window_class.lpszClassName = g_window_name;
-	RegisterClassA(&window_class);
-	window_handle =
-		CreateWindowExA(0, g_window_name, g_window_name, 0x90000000, 0,
-				0, GetSystemMetrics(0), GetSystemMetrics(1),
-				NULL, NULL, hInstance, NULL);
-	if (window_handle == NULL) {
-		return 0;
-	}
-	g_front_state.hWnd = window_handle;
-	UpdateWindow(window_handle);
-	SetFocus(window_handle);
-#endif
 
 	const DxGuid *driver_guid = frontend_display_load_driver_guid();
-#ifdef XVT_MODERN
 	if (DirectDrawCreate_Compat(driver_guid, &g_front_state.direct_draw,
 				    NULL) != 0) {
 		if (DirectDrawCreate_Compat(NULL, &g_front_state.direct_draw,
 					    NULL) != 0) {
-#else
-	if (DirectDrawCreate(driver_guid, &g_front_state.direct_draw, NULL) !=
-	    0) {
-		if (DirectDrawCreate(NULL, &g_front_state.direct_draw, NULL) !=
-		    0) {
-#endif
 			return frontend_display_report_direct_draw_init_failure(
 				window_handle, 0);
 		}
@@ -1217,9 +798,7 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 	g_front_state.text_color_codes[5] =
 		frontend_display_pack_rgb(0x80, 0x80, 0xFF);
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_reset();
-#endif
 	frontend_display_clear_back_buffer();
 	frontend_display_clear_offscreen_surface();
 	frontend_display_present_frame();
@@ -1230,21 +809,12 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
 
 	joystick_init_devices();
 	frontend_cursor_init();
-#ifdef XVT_MODERN
 	xvt_presentation_warp_classic(0, 0);
-#else
-	SetCursorPos(0, 0);
-#endif
 	if (frontend_sound_init_direct_sound(g_front_state.hWnd) == 0) {
 		XVT_LOG_WARN("frontend.sound_unavailable site=\"start\"");
 		frontend_display_show_game_message_box("Sound not available.");
 	}
-#ifdef XVT_MODERN
 	Aeron_SetHostCursorVisible(0);
-#else
-	while (ShowCursor(0) >= 0) {
-	}
-#endif
 	g_front_state.offscreen_backup_buffer =
 		malloc(480 * g_front_state.offscreen_surface_pitch);
 	if (g_front_state.offscreen_backup_buffer != NULL) {
@@ -1358,9 +928,7 @@ uint8_t *frontend_display_lock_back_buffer(void)
 		return NULL;
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_select(XVT_TARGET_FRONT_BACK);
-#endif
 	g_front_state.draw_surface_pitch = g_front_state.back_buffer_pitch;
 	if (g_front_state.back_buffer_locked != 0) {
 		return (uint8_t *)g_front_state.back_buffer_desc.lpSurface;
@@ -1498,11 +1066,9 @@ void frontend_display_present_frame(void)
 		}
 	}
 
-#ifdef XVT_MODERN
 	if (result == DX_DD_OK) {
 		xvt_render_frontend_present();
 	}
-#endif
 
 	if (g_front_state.offscreen_restore_enabled != 0) {
 		if (g_front_state.restore_offscreen_overlay_after_activate !=
@@ -1539,11 +1105,9 @@ void frontend_display_present_frame(void)
 
 				if (surface_desc.lpSurface != NULL) {
 
-#ifdef XVT_MODERN
 					xvt_render_frontend_copy(
 						XVT_TARGET_FRONT_BACKUP,
 						XVT_TARGET_FRONT_OFFSCREEN);
-#endif
 					memcpy(surface_desc.lpSurface,
 					       g_front_state
 						       .offscreen_backup_buffer,
@@ -1582,10 +1146,8 @@ void frontend_display_present_frame(void)
 					return;
 				}
 			}
-#ifdef XVT_MODERN
 			xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
 						 XVT_TARGET_FRONT_BACK);
-#endif
 
 		} else {
 			frontend_display_restore_back_buffer();
@@ -1666,10 +1228,8 @@ void frontend_display_clear_back_buffer(void)
 		}
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_clear(XVT_TARGET_FRONT_BACK,
 				  g_front_state.surface_clear_color);
-#endif
 
 	if (was_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
@@ -1780,9 +1340,7 @@ int frontend_display_lock_offscreen_surface(void)
 		g_front_state.offscreen_surface_pitch;
 	g_draw_surface_ptr = (uint8_t *)surface_desc.lpSurface;
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_select(XVT_TARGET_FRONT_OFFSCREEN);
-#endif
 	return 1;
 }
 
@@ -1808,10 +1366,8 @@ int frontend_display_unlock_offscreen_surface(int save_to_backup)
 	    g_front_state.offscreen_backup_buffer != NULL &&
 	    save_to_backup != 0) {
 
-#ifdef XVT_MODERN
 		xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
 					 XVT_TARGET_FRONT_BACKUP);
-#endif
 		memcpy(g_front_state.offscreen_backup_buffer,
 		       g_draw_surface_ptr,
 		       (size_t)(480 * g_front_state.offscreen_surface_pitch));
@@ -1827,9 +1383,7 @@ int frontend_display_unlock_offscreen_surface(int save_to_backup)
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_select(XVT_TARGET_FRONT_BACK);
-#endif
 	return 1;
 }
 
@@ -1904,10 +1458,8 @@ void frontend_display_clear_offscreen_surface(void)
 		}
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_clear(XVT_TARGET_FRONT_OFFSCREEN,
 				  g_front_state.surface_clear_color);
-#endif
 
 	if (was_locked != 0) {
 		g_draw_surface_ptr = frontend_display_lock_back_buffer();
@@ -2089,20 +1641,12 @@ int frontend_display_capture_screenshot(void)
 	xvt_file *stream;
 	for (;;) {
 		sprintf(file_name, "frontscreen%d.bmp", sequence);
-#ifdef XVT_MODERN
 		stream = xvt_storage_open_root(AERON_VFS_ROOT_USER, file_name,
 					       g_file_mode_read_binary);
-#else
-		stream = FILE_RAW_OPEN(file_name, g_file_mode_read_binary);
-#endif
 		if (stream == NULL) {
 			break;
 		}
-#ifdef XVT_MODERN
 		file_close(stream);
-#else
-		FILE_RAW_CLOSE(stream);
-#endif
 		++sequence;
 	}
 
@@ -2137,110 +1681,7 @@ uint8_t *frontend_display_get_draw_surface_for_flight(void)
 // FUNCTION: XVT 0x4D5420
 int frontend_display_run_frame(void)
 {
-#ifdef XVT_MODERN
 	return xvt_frontend_task_run_frame();
-#else
-	enum {
-		FRAME_CONTINUE = 0,
-		FRAME_FINISHED = 1,
-		FRAME_QUIT = 2,
-		JOYSTICK_UPDATE_INTERVAL_MS = 100,
-	};
-	struct frontend_display_win32_message message;
-
-	uint32_t frame_start = GetTickCount();
-	uint32_t joystick_update = frame_start;
-	int frame_ready = 0;
-	for (;;) {
-		if (g_front_state.app_active != 0) {
-			if (frame_ready != 0) {
-				break;
-			}
-			if (PeekMessageA(&message, NULL, 0, 0, 0) != 0) {
-				if (GetMessageA(&message, NULL, 0, 0) == 0) {
-					return FRAME_QUIT;
-				}
-				TranslateMessage(&message);
-				DispatchMessageA(&message);
-				continue;
-			}
-			uint32_t now = GetTickCount();
-			if ((int32_t)(now - frame_start) >=
-			    g_front_state.frame_interval_ms) {
-				frame_ready = 1;
-				frame_start = now;
-				frontend_display_present_frame();
-			}
-			if ((int32_t)(now - joystick_update) >=
-			    JOYSTICK_UPDATE_INTERVAL_MS) {
-				joystick_update_state(0);
-				joystick_update_state(1);
-				joystick_update = now;
-			}
-		} else {
-			if (PeekMessageA(&message, NULL, 0, 0, 0) != 0) {
-				if (GetMessageA(&message, NULL, 0, 0) == 0) {
-					return FRAME_QUIT;
-				}
-				TranslateMessage(&message);
-				DispatchMessageA(&message);
-			}
-		}
-	}
-	if (g_front_state.text_fade_frames_left != 0) {
-		memset(&g_front_state.text_fade_color_cache, 0,
-		       sizeof(g_front_state.text_fade_color_cache));
-	}
-	net_pump_incoming_packets();
-	if (g_front_state.screen_states[g_front_state.screen_stack_top]
-		    .update_fn != NULL) {
-		GetKeyboardState(g_front_state.key_state);
-		g_draw_surface_ptr = frontend_display_lock_back_buffer();
-		frontend_screen_exit_fn exit_fn =
-			g_front_state
-				.screen_states[g_front_state.screen_stack_top]
-				.exit_fn;
-		int update_result =
-			g_front_state
-				.screen_states[g_front_state.screen_stack_top]
-				.update_fn(g_front_state.frame_counter);
-		if (g_front_state.screen_callbacks_dirty == 1 ||
-		    update_result == FRAME_FINISHED) {
-			g_front_state.screen_callbacks_dirty = 0;
-			if (exit_fn != NULL) {
-				exit_fn(g_front_state.frame_counter);
-			}
-		}
-		frontend_display_unlock_back_buffer();
-		if (g_front_state.cursor_visible == 1) {
-			frontend_cursor_draw();
-		}
-		memset(g_front_state.joystick_button_released[0], 0,
-		       sizeof(g_front_state.joystick_button_released[0]));
-		memset(g_front_state.joystick_button_released[1], 0,
-		       sizeof(g_front_state.joystick_button_released[1]));
-		++g_front_state.frame_counter;
-		if (update_result == FRAME_FINISHED) {
-			return FRAME_FINISHED;
-		}
-		if (g_front_state.text_fade_frames_left != 0) {
-			--g_front_state.text_fade_frames_left;
-		}
-		g_front_state.mouse_left_click_latch = 0;
-		g_front_state.mouse_right_click_latch = 0;
-		if (g_front_state.cd_audio_current_track != 0 &&
-		    GetTickCount() > g_front_state.cd_audio_track_end_ms) {
-			if (g_front_state.cd_audio_loop_current_track != 0) {
-				cd_audio_play_track_from_time(
-					g_front_state.cd_audio_current_track, 0,
-					0);
-				return FRAME_CONTINUE;
-			}
-			g_front_state.cd_audio_playback_complete = 1;
-		}
-	}
-	return FRAME_CONTINUE;
-#endif
 }
 
 /* Returns g_front_state.hWnd, the frontend window. */
@@ -2442,15 +1883,9 @@ int frontend_display_reinit_surfaces(void)
 		frontend_display_pack_rgb(0x32, 0x32, 0xFF);
 	g_front_state.text_color_codes[5] =
 		frontend_display_pack_rgb(0x80, 0x80, 0xFF);
-#ifdef XVT_MODERN
 	xvt_presentation_warp_classic(0, 0);
-#else
-	SetCursorPos(0, 0);
-#endif
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_reset();
-#endif
 	frontend_display_clear_offscreen_surface();
 	frontend_display_clear_back_buffer();
 	frontend_display_present_frame();
@@ -2505,16 +1940,7 @@ int frontend_display_get_wnd_proc_mode(void)
 // FUNCTION: XVT 0x4D5B90
 int win32_check_single_instance(void)
 {
-#ifdef XVT_MODERN
 	return 0;
-#else
-	void *window = FindWindowA(g_window_name, g_window_name);
-	if (window != NULL) {
-		ShowWindowAsync(window, 9);
-		return 1;
-	}
-	return 0;
-#endif
 }
 
 /* Calls FlipToGDISurface on the frontend's DirectDraw object when it exists. */
@@ -2560,46 +1986,10 @@ int frontend_display_draw_gdi_text_on_desktop(const struct RECT *unused,
 					      const char *text,
 					      const char *overlay_text)
 {
-#ifdef XVT_MODERN
 	(void)unused;
 	(void)text;
 	(void)overlay_text;
 	return 0;
-#else
-	(void)unused;
-	if (g_front_state.secondary_direct_draw_active == 0) {
-		return 0;
-	}
-	void *dc = CreateDCA("DISPLAY", NULL, NULL, NULL);
-	if (dc == NULL) {
-		return 0;
-	}
-	struct RECT rect;
-	frontend_draw_rect_assign(&rect, 0, 0, GetSystemMetrics(0),
-				  GetSystemMetrics(1));
-	void *font = CreateFontA(-12, 0, 0, 0, 400, 0, 0, 0, 0, 4, 0, 3, 0x12,
-				 "times new roman");
-	if (font == NULL) {
-		DeleteDC(dc);
-		return 0;
-	}
-	void *previous_object = SelectObject(dc, font);
-	SetMapMode(dc, 1);
-	SetTextCharacterExtra(dc, 0);
-	SetTextColor(dc, 0xFFFFFF);
-	SetBkColor(dc, 0);
-	SetBkMode(dc, 2);
-	DrawTextA(dc, text, strlen(text), &rect, 0x25);
-	if (overlay_text != NULL) {
-		SetTextColor(dc, 0xFF);
-		DrawTextA(dc, overlay_text, -1, &rect, 0x21);
-		DrawTextA(dc, overlay_text, -1, &rect, 0x29);
-	}
-	SelectObject(dc, previous_object);
-	DeleteObject(font);
-	DeleteDC(dc);
-	return 1;
-#endif
 }
 
 /* Only the original build calls this. While secondary_direct_draw_active is set it
@@ -2609,29 +1999,8 @@ int frontend_display_draw_gdi_text_on_desktop(const struct RECT *unused,
 // FUNCTION: XVT 0x4D5DC0
 int frontend_display_clear_desktop_gdi(const struct RECT *unused)
 {
-#ifdef XVT_MODERN
 	(void)unused;
 	return 0;
-#else
-	(void)unused;
-
-	if (g_front_state.secondary_direct_draw_active == 0) {
-		return 0;
-	}
-
-	void *dc = CreateDCA("DISPLAY", NULL, NULL, NULL);
-	if (dc == NULL) {
-		return 0;
-	}
-
-	SelectObject(dc, GetStockObject(4));
-	struct RECT rect;
-	frontend_draw_rect_assign(&rect, 0, 0, GetSystemMetrics(0),
-				  GetSystemMetrics(1));
-	Rectangle(dc, rect.left, rect.top, rect.right, rect.bottom);
-	DeleteDC(dc);
-	return 1;
-#endif
 }
 
 /* Returns g_front_state.secondary_direct_draw_active, 1 when
@@ -2732,9 +2101,7 @@ int frontend_display_pack_rgb(uint8_t r, uint8_t g, uint8_t b)
 // FUNCTION: XVT 0x4DC9B0
 int frontend_display_save_back_buffer(void)
 {
-#ifdef XVT_MODERN
 	xvt_render_frontend_suppress(1);
-#endif
 	int was_back_buffer_locked = g_front_state.back_buffer_locked;
 	uint8_t *source = frontend_display_lock_back_buffer();
 	frontend_display_lock_offscreen_surface();
@@ -2750,12 +2117,10 @@ int frontend_display_save_back_buffer(void)
 		frontend_display_unlock_back_buffer();
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_suppress(0);
 	xvt_render_frontend_copy(XVT_TARGET_FRONT_BACK,
 				 XVT_TARGET_FRONT_OFFSCREEN);
 	xvt_render_frontend_select(XVT_TARGET_FRONT_BACK);
-#endif
 	return 1;
 }
 
@@ -2766,9 +2131,7 @@ int frontend_display_save_back_buffer(void)
 // FUNCTION: XVT 0x4DCA20
 int frontend_display_restore_back_buffer(void)
 {
-#ifdef XVT_MODERN
 	xvt_render_frontend_suppress(1);
-#endif
 	int was_back_buffer_locked = g_front_state.back_buffer_locked;
 	uint8_t *destination = frontend_display_lock_back_buffer();
 	frontend_display_lock_offscreen_surface();
@@ -2784,12 +2147,10 @@ int frontend_display_restore_back_buffer(void)
 		frontend_display_unlock_back_buffer();
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_suppress(0);
 	xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
 				 XVT_TARGET_FRONT_BACK);
 	xvt_render_frontend_select(XVT_TARGET_FRONT_BACK);
-#endif
 	return 1;
 }
 
@@ -2824,75 +2185,6 @@ IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 	struct frontend_display_bmp_info_header info_header;
 	int color_count;
 	if (lp_name != NULL) {
-#ifndef XVT_MODERN
-		void *resource_info = FindResourceA(NULL, lp_name, 2);
-		if (resource_info != NULL) {
-			uint8_t *resource_data =
-				LockResource(LoadResource(NULL, resource_info));
-			uint8_t *source_entry =
-				resource_data + *(uint32_t *)resource_data;
-			uint16_t bits_per_pixel;
-			if (resource_data != NULL &&
-			    *(uint32_t *)resource_data >=
-				    sizeof(struct
-					   frontend_display_bmp_info_header) &&
-			    (bits_per_pixel =
-				     *(uint16_t *)(resource_data + 14)) <= 8) {
-				color_count = *(uint32_t *)(resource_data + 32);
-				if (color_count == 0) {
-					color_count = 1 << bits_per_pixel;
-				}
-			} else {
-				color_count = 0;
-			}
-			if (color_count > 0) {
-				entry = entries;
-				do {
-					uint8_t color = source_entry[2];
-					entry->red = color;
-					color = source_entry[1];
-					entry->green = color;
-					color = source_entry[0];
-					entry->blue = color;
-					entry->flags = 0;
-					++entry;
-					source_entry += 4;
-					--color_count;
-				} while (color_count != 0);
-			}
-		} else {
-			int file = _lopen(lp_name, 0);
-			if (file != -1) {
-				_lread(file, &file_header, sizeof(file_header));
-				_lread(file, &info_header, sizeof(info_header));
-				_lread(file, entries, sizeof(entries));
-				_lclose(file);
-				if (info_header.header_size ==
-				    sizeof(info_header)) {
-					if (info_header.bits_per_pixel <= 8) {
-						color_count =
-							info_header.colors_used;
-						if (color_count == 0) {
-							color_count =
-								1
-								<< info_header
-									   .bits_per_pixel;
-						}
-					} else {
-						color_count = 0;
-					}
-				} else {
-					color_count = 0;
-				}
-				for (index = 0; index < color_count; ++index) {
-					uint8_t red = entries[index].red;
-					entries[index].red =
-						entries[index].blue;
-					entries[index].blue = red;
-				}
-			}
-		}
-#else
 		xvt_file *stream = file_open(lp_name, "rb");
 		if (stream != NULL) {
 			file_read_bytes(stream, &file_header,
@@ -2922,13 +2214,10 @@ IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 				entries[index].blue = red;
 			}
 		}
-#endif
 	}
 
 	IDirectDrawPalette *palette;
-#ifdef XVT_MODERN
 	palette = NULL;
-#endif
 	p_dd->lpVtbl->CreatePalette(p_dd, DDPCAPS_8BIT | DDPCAPS_ALLOW256,
 				    entries, &palette, NULL);
 	if (palette != NULL) {
@@ -2955,7 +2244,6 @@ uint32_t
 frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,
 						    uint32_t color)
 {
-#ifdef XVT_MODERN
 	uint32_t surface_pixel = UINT32_MAX;
 	DDSURFACEDESC surface_desc;
 	surface_desc.dwSize = sizeof(surface_desc);
@@ -3004,43 +2292,6 @@ frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,
 	}
 	surface->lpVtbl->Unlock(surface, NULL);
 	return surface_pixel;
-#else
-	uint32_t surface_pixel = UINT32_MAX;
-	uint32_t original_color;
-	void *dc;
-	DDSURFACEDESC surface_desc;
-	if (color != UINT32_MAX &&
-	    ((frontend_display_surface_get_dc_func)surface->lpVtbl->GetDC)(
-		    surface, &dc) == 0) {
-		original_color = GetPixel(dc, 0, 0);
-		SetPixel(dc, 0, 0, color);
-		((frontend_display_surface_release_dc_func)
-			 surface->lpVtbl->ReleaseDC)(surface, dc);
-	} else {
-		original_color = surface_desc.dwSize;
-	}
-	surface_desc.dwSize = sizeof(surface_desc);
-	HRESULT lock_result;
-	do {
-		lock_result = surface->lpVtbl->Lock(surface, NULL,
-						    &surface_desc, 0, NULL);
-	} while (lock_result == DX_DDERR_WASSTILLDRAWING);
-	if (lock_result == 0) {
-		surface_pixel = *(uint32_t *)surface_desc.lpSurface &
-				((1u << (int8_t)surface_desc.ddpfPixelFormat
-						.dwRGBBitCount) -
-				 1);
-		surface->lpVtbl->Unlock(surface, NULL);
-	}
-	if (color != UINT32_MAX &&
-	    ((frontend_display_surface_get_dc_func)surface->lpVtbl->GetDC)(
-		    surface, &dc) == 0) {
-		SetPixel(dc, 0, 0, original_color);
-		((frontend_display_surface_release_dc_func)
-			 surface->lpVtbl->ReleaseDC)(surface, dc);
-	}
-	return surface_pixel;
-#endif
 }
 
 /* Nothing calls this. Sets the surface's source color key to the pixel value

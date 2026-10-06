@@ -1,8 +1,6 @@
 #include "xvt/frontend/frontend_draw.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_frontend.h"
-#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -133,11 +131,9 @@ void frontend_draw_fill_rect_translucent(const struct RECT *src, int dx, int dy,
 
 	frontend_draw_rect_clip_to_bounds(&clipped_rect);
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_paint(XVT_PAINT_TRANSLUCENT, clipped_rect.left,
 				  clipped_rect.top, clipped_rect.right + 1,
 				  clipped_rect.bottom + 1, color);
-#endif
 	int bottom_end = clipped_rect.bottom + 1;
 	int width = clipped_rect.right - clipped_rect.left + 1;
 	int draw_surface_pitch = g_front_state.draw_surface_pitch;
@@ -273,11 +269,9 @@ void frontend_draw_rect(const struct RECT *rect, int dx, int dy, int color,
 
 	frontend_draw_rect_clip_to_bounds(&clipped_rect);
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_paint(XVT_PAINT_FILL, clipped_rect.left,
 				  clipped_rect.top, clipped_rect.right + 1,
 				  clipped_rect.bottom + 1, color);
-#endif
 	int bottom_end = clipped_rect.bottom + 1;
 	int width = clipped_rect.right - clipped_rect.left + 1;
 	int draw_surface_pitch = g_front_state.draw_surface_pitch;
@@ -356,11 +350,9 @@ void frontend_draw_rect_outline(const struct RECT *rect, int dx, int dy,
 		return;
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_paint(XVT_PAINT_FRAME, clipped_rect.left,
 				  clipped_rect.top, clipped_rect.right + 1,
 				  clipped_rect.bottom + 1, color);
-#endif
 	struct RECT unclipped_rect;
 	frontend_draw_rect_copy(&unclipped_rect, &clipped_rect);
 	frontend_draw_rect_clip_to_bounds(&clipped_rect);
@@ -477,12 +469,10 @@ int frontend_draw_point_in_rect(const struct RECT *rect, int x, int y)
 // FUNCTION: XVT 0x505CD0
 void frontend_draw_line(int x0, int y0, int x1, int y1, int color)
 {
-#ifdef XVT_MODERN
 	if (x0 != x1 && y0 != y1) {
 		xvt_render_frontend_paint(XVT_PAINT_LINE, x0, y0, x1, y1,
 					  color);
 	}
-#endif
 	char clipped = 0;
 	int end_y = y1;
 	int start_y = y0;
@@ -829,9 +819,7 @@ void frontend_draw_line(int x0, int y0, int x1, int y1, int color)
 // FUNCTION: XVT 0x5063B0
 void frontend_draw_horizontal_line_clipped(int x0, int x1, int y, int color)
 {
-#ifdef XVT_MODERN
 	xvt_render_frontend_paint(XVT_PAINT_LINE, x0, y, x1, y, color);
-#endif
 
 	int pixel_shift = g_front_state.display_bpp >> 4;
 	if (y > g_front_state.clip_max_y || y < g_front_state.clip_min_y) {
@@ -929,9 +917,7 @@ void frontend_draw_horizontal_line_clipped(int x0, int x1, int y, int color)
 // FUNCTION: XVT 0x506550
 void frontend_draw_vertical_line_clipped(int y0, int y1, int x, int color)
 {
-#ifdef XVT_MODERN
 	xvt_render_frontend_paint(XVT_PAINT_LINE, x, y0, x, y1, color);
-#endif
 
 	if (g_front_state.clip_min_x > x || g_front_state.clip_max_x < x) {
 		return;

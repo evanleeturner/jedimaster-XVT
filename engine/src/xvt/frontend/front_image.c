@@ -1,12 +1,8 @@
 #include "xvt/frontend/front_image.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_frontend.h"
-#endif
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_assets.h"
-#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -184,10 +180,8 @@ void front_image_free_resource_by_name(const char *name)
 		      resource_index, g_front_state.resource_count);
 
 	if (g_front_state.resource_table[resource_index].image != NULL) {
-#ifdef XVT_MODERN
 		xvt_render_assets_retire_image(
 			g_front_state.resource_table[resource_index].image);
-#endif
 		if (g_front_state.resource_table[resource_index]
 			    .image->pixels != NULL) {
 			free(g_front_state.resource_table[resource_index]
@@ -315,13 +309,11 @@ int front_image_blit_translucent(const struct image_resource *image, int x,
 				clipped_rect.bottom + image->height -
 				unclipped_rect.bottom - clip_offset_y;
 
-#ifdef XVT_MODERN
 			xvt_render_frontend_image(
 				image, clip_offset_x, clip_offset_y,
 				x + clip_offset_x, y + clip_offset_y,
 				visible_width, visible_height,
 				XVT_SPRITE_FRONT_TRANSLUCENT, 0);
-#endif
 			int display_bpp = g_front_state.display_bpp;
 			uint8_t *source;
 			uint8_t *destination;
@@ -562,14 +554,12 @@ int front_image_blit_rect_transparent(const struct image_resource *image,
 			visible_height -= clip_offset_y;
 			visible_height -= unclipped_rect.bottom;
 
-#ifdef XVT_MODERN
 			xvt_render_frontend_image(
 				image, source_left + clip_offset_x,
 				source_top + clip_offset_y,
 				dst_x + clip_offset_x, dst_y + clip_offset_y,
 				visible_width, visible_height,
 				XVT_SPRITE_FRONT_KEYED, 0);
-#endif
 			int display_bpp = g_front_state.display_bpp;
 			int rows_remaining;
 			switch (display_bpp) {
@@ -727,13 +717,11 @@ int front_image_blit_rect_tinted(const struct image_resource *image,
 				     clip_offset_y - unclipped_rect.bottom +
 				     destination_rect.bottom + 1;
 
-#ifdef XVT_MODERN
 		xvt_render_frontend_image(
 			image, source_left + clip_offset_x,
 			source_top + clip_offset_y, dst_x + clip_offset_x,
 			dst_y + clip_offset_y, visible_width, visible_height,
 			XVT_SPRITE_FRONT_TINTED, tint_color);
-#endif
 		int display_bpp = g_front_state.display_bpp;
 		uint8_t *source;
 		uint8_t *destination;
@@ -885,12 +873,10 @@ int front_image_blit_transparent(const struct image_resource *image, int x,
 		int visible_height = clipped_rect.bottom + image->height -
 				     source_y - original_rect.bottom;
 
-#ifdef XVT_MODERN
 		xvt_render_frontend_image(image, source_x, source_y,
 					  x + source_x, y + source_y,
 					  visible_width, visible_height,
 					  XVT_SPRITE_FRONT_KEYED, 0);
-#endif
 		int display_bpp = g_front_state.display_bpp;
 		if (image->is_compressed == 0) {
 			const uint8_t *source;
@@ -987,11 +973,7 @@ void front_image_blit_rle8(const struct image_resource *image, int dest_x,
 						    dest_y +
 					    dest_x];
 		while (src_top > 0) {
-#ifdef XVT_MODERN
 			memcpy(&row_length, row, sizeof(row_length));
-#else
-			row_length = *(const int *)row;
-#endif
 			row += row_length;
 			--src_top;
 		}
@@ -1042,11 +1024,7 @@ void front_image_blit_rle8(const struct image_resource *image, int dest_x,
 		&g_draw_surface_ptr[g_front_state.draw_surface_pitch * dest_y +
 				    dest_x];
 	while (src_top > 0) {
-#ifdef XVT_MODERN
 		memcpy(&row_length, row, sizeof(row_length));
-#else
-		row_length = *(const int *)row;
-#endif
 		row += row_length;
 		--src_top;
 	}
@@ -1062,11 +1040,7 @@ void front_image_blit_rle8(const struct image_resource *image, int dest_x,
 		const uint8_t *row_start = row;
 		int destination_offset = 0;
 		int token_offset = sizeof(row_length);
-#ifdef XVT_MODERN
 		memcpy(&row_length, row_start, sizeof(row_length));
-#else
-		row_length = *(const int *)row_start;
-#endif
 		uint8_t started = 0;
 
 		for (;;) {
@@ -1208,11 +1182,7 @@ void front_image_blit_rle16(const struct image_resource *image, int dest_x,
 						    dest_y +
 					    2 * dest_x];
 		while (src_top > 0) {
-#ifdef XVT_MODERN
 			memcpy(&row_length, row, sizeof(row_length));
-#else
-			row_length = *(const int *)row;
-#endif
 			row += row_length;
 			--src_top;
 		}
@@ -1276,11 +1246,7 @@ void front_image_blit_rle16(const struct image_resource *image, int dest_x,
 		&g_draw_surface_ptr[g_front_state.draw_surface_pitch * dest_y +
 				    2 * dest_x];
 	while (src_top > 0) {
-#ifdef XVT_MODERN
 		memcpy(&row_length, row, sizeof(row_length));
-#else
-		row_length = *(const int *)row;
-#endif
 		row += row_length;
 		--src_top;
 	}
@@ -1296,11 +1262,7 @@ void front_image_blit_rle16(const struct image_resource *image, int dest_x,
 		const uint8_t *row_start = row;
 		int destination_offset = 0;
 		int token_offset = sizeof(row_length);
-#ifdef XVT_MODERN
 		memcpy(&row_length, row_start, sizeof(row_length));
-#else
-		row_length = *(const int *)row_start;
-#endif
 		uint8_t started = 0;
 
 		for (;;) {
@@ -1507,12 +1469,10 @@ int front_image_blit_opaque(const struct image_resource *image, int x, int y)
 		int visible_height = clipped_rect.bottom + image->height -
 				     source_y - original_rect.bottom;
 
-#ifdef XVT_MODERN
 		xvt_render_frontend_image(image, source_x, source_y,
 					  x + source_x, y + source_y,
 					  visible_width, visible_height,
 					  XVT_SPRITE_FRONT_OPAQUE, 0);
-#endif
 		int display_bpp = g_front_state.display_bpp;
 		if (image->is_compressed == 0) {
 			const uint8_t *source;
@@ -1602,11 +1562,7 @@ void front_image_blit_rle8_opaque(const struct image_resource *image,
 						    dest_y +
 					    dest_x];
 		while (src_top > 0) {
-#ifdef XVT_MODERN
 			memcpy(&row_length, row, sizeof(row_length));
-#else
-			row_length = *(const int *)row;
-#endif
 			row += row_length;
 			--src_top;
 		}
@@ -1660,11 +1616,7 @@ void front_image_blit_rle8_opaque(const struct image_resource *image,
 		&g_draw_surface_ptr[g_front_state.draw_surface_pitch * dest_y +
 				    dest_x];
 	while (src_top > 0) {
-#ifdef XVT_MODERN
 		memcpy(&row_length, row, sizeof(row_length));
-#else
-		row_length = *(const int *)row;
-#endif
 		row += row_length;
 		--src_top;
 	}
@@ -1680,11 +1632,7 @@ void front_image_blit_rle8_opaque(const struct image_resource *image,
 		const uint8_t *row_start = row;
 		int destination_offset = 0;
 		int token_offset = sizeof(row_length);
-#ifdef XVT_MODERN
 		memcpy(&row_length, row_start, sizeof(row_length));
-#else
-		row_length = *(const int *)row_start;
-#endif
 		uint8_t started = 0;
 
 		for (;;) {
@@ -1811,9 +1759,6 @@ void front_image_blit_rle8_opaque(const struct image_resource *image,
 	} while (rows_remaining != 0);
 }
 
-#ifndef XVT_MODERN
-#pragma optimize("y", off)
-#endif
 /* Does what front_image_blit_rle16 does, but fills the pixels of skip tokens with
  * color_lut[0] instead of leaving them. */
 // FUNCTION: XVT 0x4B6340
@@ -1841,11 +1786,7 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 		source_rows_to_skip = src_top;
 		if (source_rows_to_skip > 0) {
 			do {
-#ifdef XVT_MODERN
 				memcpy(&row_length, row, sizeof(row_length));
-#else
-				row_length = *(const int *)row;
-#endif
 				row += row_length;
 				--source_rows_to_skip;
 			} while (source_rows_to_skip != 0);
@@ -1926,11 +1867,7 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 	source_rows_to_skip = src_top;
 	if (source_rows_to_skip > 0) {
 		do {
-#ifdef XVT_MODERN
 			memcpy(&row_length, row, sizeof(row_length));
-#else
-			row_length = *(const int *)row;
-#endif
 			--source_rows_to_skip;
 			row += row_length;
 		} while (source_rows_to_skip != 0);
@@ -1947,11 +1884,7 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 		const uint8_t *row_start = row;
 		int destination_offset = 0;
 		int token_offset = sizeof(row_length);
-#ifdef XVT_MODERN
 		memcpy(&row_length, row_start, sizeof(row_length));
-#else
-		row_length = *(const int *)row_start;
-#endif
 		uint8_t started = 0;
 
 		for (;;) {
@@ -2117,9 +2050,6 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 		--rows_remaining;
 	} while (rows_remaining != 0);
 }
-#ifndef XVT_MODERN
-#pragma optimize("y", on)
-#endif
 
 /* Draws a glyph image with its top-left corner at (x, y), clipped to the clip
  * bounds: every nonzero pixel in color, through front_image_blit_glyph_rle_8bpp or
@@ -2151,9 +2081,7 @@ int front_image_draw_glyph(const struct image_resource *glyph, int x, int y,
 		return clip_result;
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_glyph(glyph, x, y, color, apply_text_fade);
-#endif
 	{
 		int clip_left_skip = clipped_rect.left - original_rect.left;
 		int clip_top_skip = clipped_rect.top - original_rect.top;
@@ -2293,11 +2221,7 @@ void front_image_blit_glyph_rle_8bpp(const struct image_resource *glyph,
 		for (y = 0; y < clip_top_skip; ++y) {
 			int row_length;
 
-#ifdef XVT_MODERN
 			memcpy(&row_length, row, sizeof(row_length));
-#else
-			row_length = *(const int *)row;
-#endif
 			row += row_length;
 		}
 
@@ -2352,11 +2276,7 @@ void front_image_blit_glyph_rle_8bpp(const struct image_resource *glyph,
 	for (y = 0; y < clip_top_skip; ++y) {
 		int row_length;
 
-#ifdef XVT_MODERN
 		memcpy(&row_length, row, sizeof(row_length));
-#else
-		row_length = *(const int *)row;
-#endif
 		row += row_length;
 	}
 
@@ -2365,11 +2285,7 @@ void front_image_blit_glyph_rle_8bpp(const struct image_resource *glyph,
 		int token_offset = 4;
 		char started = 0;
 		int row_length;
-#ifdef XVT_MODERN
 		memcpy(&row_length, row, sizeof(row_length));
-#else
-		row_length = *(const int *)row;
-#endif
 		for (;;) {
 			token = row[token_offset++];
 			/* Until started is set, destination_offset counts the
@@ -2503,11 +2419,7 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 		for (y = clip_top_skip; y > 0; --y) {
 			int row_length;
 
-#ifdef XVT_MODERN
 			memcpy(&row_length, row, sizeof(row_length));
-#else
-			row_length = *(const int *)row;
-#endif
 			row += row_length;
 		}
 
@@ -2574,11 +2486,7 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 	for (y = clip_top_skip; y > 0; --y) {
 		int row_length;
 
-#ifdef XVT_MODERN
 		memcpy(&row_length, row, sizeof(row_length));
-#else
-		row_length = *(const int *)row;
-#endif
 		row += row_length;
 	}
 
@@ -2591,11 +2499,7 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
 			int token_offset = 4;
 			char started = 0;
 			int row_length;
-#ifdef XVT_MODERN
 			memcpy(&row_length, row, sizeof(row_length));
-#else
-			row_length = *(const int *)row;
-#endif
 			for (;;) {
 				token = row[token_offset++];
 				/* Until started is set, destination_offset
@@ -2968,11 +2872,9 @@ int front_image_load_bmp_file(const char *file_name,
 			front_image_compress_rle(image);
 		}
 	}
-#ifdef XVT_MODERN
 	xvt_render_assets_register_frontend_image(
 		image, file_name, remap_to_display_palette,
 		g_front_state.pixel_format555);
-#endif
 	return 1;
 }
 
@@ -4015,15 +3917,9 @@ int front_image_load_resource_list(const char *file_name)
 	char resource_name[256];
 	int field_count;
 	for (;;) {
-#ifdef XVT_MODERN
 		field_count = FILE_SCANF(stream, "%255s %255s %d\n",
 					 resource_file_name, resource_name,
 					 &compress_rle);
-#else
-		field_count =
-			FILE_SCANF(stream, "%s %s %d\n", resource_file_name,
-				   resource_name, &compress_rle);
-#endif
 		if (field_count == EOF) {
 			XVT_LOG_DEBUG(
 				"image.list_done list=\"%s\" action=load end=eof count=%d",
@@ -4079,15 +3975,9 @@ int front_image_unload_resource_list(const char *file_name)
 	char resource_name[256];
 	int field_count;
 	for (;;) {
-#ifdef XVT_MODERN
 		field_count = FILE_SCANF(stream, "%255s %255s %d\n",
 					 resource_file_name, resource_name,
 					 &ignored_flags);
-#else
-		field_count =
-			FILE_SCANF(stream, "%s %s %d\n", resource_file_name,
-				   resource_name, &ignored_flags);
-#endif
 		if (field_count == EOF) {
 			XVT_LOG_DEBUG(
 				"image.list_done list=\"%s\" action=unload end=eof count=%d",

@@ -1,7 +1,5 @@
 #include "xvt/frontend/cutscene.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/cutscene_task.h"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -204,56 +202,5 @@ int cutscene_load_table(const char *file_name)
 // FUNCTION: XVT 0x4DF5F0
 int cutscene_play_for_current_mission_phase(int phase)
 {
-#ifdef XVT_MODERN
 	return xvt_cutscene_task_play(phase);
-#else
-	enum {
-		MISSION_SEQUENCE_ACTIVE = 1,
-		SYNCHRONIZE_MULTIPLAYER = 1,
-	};
-
-	if (g_pilot_data.mission_directory_id !=
-		    MISSION_DIRECTORY_TRAINING_EXERCISES ||
-	    g_pilot_data.mission_sequence_active != MISSION_SEQUENCE_ACTIVE ||
-	    g_pilot_data.mission_directory_id == MISSION_DIRECTORY_CAMPAIGNS) {
-		return 0;
-	}
-	if (g_cutscene_table == NULL) {
-		return 0;
-	}
-
-	for (unsigned int entry_index = 0;
-	     entry_index < (unsigned int)g_cutscene_count; ++entry_index) {
-		if (g_cutscene_table[entry_index].campaign_id ==
-			    g_pilot_data.mission_description_ids
-				    [MISSION_DIRECTORY_CAMPAIGNS] &&
-		    g_cutscene_table[entry_index].play_after_debriefing ==
-			    phase &&
-		    g_cutscene_table[entry_index].campaign_mission_id ==
-			    g_pilot_data.mission_description_ids
-				    [MISSION_DIRECTORY_TRAINING_EXERCISES]) {
-			cd_audio_suspend_playback();
-			frontend_display_disable_offscreen_restore();
-			frontend_display_unlock_back_buffer();
-			frontend_display_clear_back_buffer();
-			frontend_display_present_frame();
-			frontend_display_clear_back_buffer();
-			int play_result = movie_play(
-				g_cutscene_table[entry_index].movie_name,
-				SYNCHRONIZE_MULTIPLAYER);
-			frontend_display_clear_back_buffer();
-			frontend_display_present_frame();
-			frontend_display_clear_back_buffer();
-			frontend_display_clear_offscreen_surface();
-			g_draw_surface_ptr =
-				frontend_display_lock_back_buffer();
-			frontend_display_enable_offscreen_restore();
-			cd_audio_request_resume_playback();
-			if (play_result != 0) {
-				return 0;
-			}
-		}
-	}
-	return 1;
-#endif
 }

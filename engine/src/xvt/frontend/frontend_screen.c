@@ -1,11 +1,7 @@
 #include "xvt/frontend/frontend_screen.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_frontend.h"
-#endif
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/dialog_task.h"
-#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -67,39 +63,7 @@ int frontend_screen_queue_push(int (*update_fn)(int),
 int frontend_screen_run_modal(frontend_screen_update_fn update_fn,
 			      struct RECT *screen_rect)
 {
-#ifdef XVT_MODERN
 	return xvt_dialog_begin(update_fn, screen_rect);
-#else
-	enum { FRAME_FINISHED = 1, FRAME_QUIT = 2 };
-
-	frontend_display_unlock_back_buffer();
-	frontend_screen_push_state(update_fn, screen_rect);
-	g_front_state.frame_counter = 0;
-	memset(g_front_state.joystick_button_released[0], 0,
-	       sizeof(g_front_state.joystick_button_released[0]));
-	memset(g_front_state.joystick_button_released[1], 0,
-	       sizeof(g_front_state.joystick_button_released[1]));
-	if (g_front_state.text_fade_frames_left != 0) {
-		--g_front_state.text_fade_frames_left;
-	}
-	g_front_state.mouse_left_click_latch = 0;
-	g_front_state.mouse_right_click_latch = 0;
-	for (;;) {
-		int frame_result = frontend_display_run_frame();
-		if (frame_result == FRAME_FINISHED) {
-			break;
-		}
-		if (frame_result == FRAME_QUIT) {
-			exit(0);
-		}
-	}
-	keyboard_flush_char_buffer();
-	frontend_screen_pop_state();
-	g_draw_surface_ptr = frontend_display_lock_back_buffer();
-	g_front_state.mouse_left_click_latch = 0;
-	g_front_state.mouse_right_click_latch = 0;
-	return 1;
-#endif
 }
 
 /* Pushes a screen over the current one. In the top slot of
@@ -259,9 +223,7 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 		}
 		}
 
-#ifdef XVT_MODERN
 		xvt_render_frontend_screen(slot, 0);
-#endif
 		g_front_state.screen_states[slot].saved_image.width = width;
 		g_front_state.screen_states[slot].saved_image.height = height;
 		g_front_state.screen_states[slot].saved_image.pixels = pixels;
@@ -339,10 +301,8 @@ void frontend_screen_pop_state(void)
 	if (g_front_state.screen_states[slot].saved_image.pixel_data_bytes >
 	    0) {
 
-#ifdef XVT_MODERN
 		xvt_render_frontend_screen(slot, 1);
 		xvt_render_frontend_suppress(1);
-#endif
 		int display_bpp = g_front_state.display_bpp;
 		int was_back_buffer_locked;
 		switch (display_bpp) {
@@ -429,14 +389,12 @@ void frontend_screen_pop_state(void)
 		}
 		}
 
-#ifdef XVT_MODERN
 		xvt_render_frontend_suppress(0);
 		if (g_front_state.offscreen_restore_enabled) {
 			xvt_render_frontend_copy(XVT_TARGET_FRONT_OFFSCREEN,
 						 XVT_TARGET_FRONT_BACKUP);
 		}
 		xvt_render_frontend_select(XVT_TARGET_FRONT_BACK);
-#endif
 		free(g_front_state.screen_states[slot].saved_image.pixels);
 	}
 

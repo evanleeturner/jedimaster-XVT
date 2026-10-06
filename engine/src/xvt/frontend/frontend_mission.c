@@ -475,7 +475,6 @@ void frontend_mission_load_current(void)
 			++g_selected_mission_list_index;
 		}
 	}
-#ifdef XVT_MODERN
 	/* The caller selects an available entry when the saved selection is absent. */
 	if (g_mission_list == NULL ||
 	    (unsigned int)g_selected_mission_list_index >= g_mission_count) {
@@ -487,7 +486,6 @@ void frontend_mission_load_current(void)
 			g_mission_list != NULL, g_mission_count);
 		return;
 	}
-#endif
 
 	char file_name[256];
 	sprintf(file_name, "%s\\%s",

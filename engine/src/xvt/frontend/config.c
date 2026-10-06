@@ -1,13 +1,9 @@
 #include "xvt/frontend/config.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_actions.h"
 #include "xvt_runtime/runtime/port.h"
-#endif
-#ifdef XVT_MODERN
 #include "xvt_runtime/config/config.h"
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -332,20 +328,16 @@ int config_options_datapad_update(int frame_counter)
 
 	g_config_draw_static_control_background = 0;
 	config_update_navigation_and_restore_defaults();
-#ifdef XVT_MODERN
 	if (xvt_dialog_is_active()) {
 		return 0;
 	}
-#endif
 	if (frontend_handle_common_screen_controls(CONFIG_SCREEN_CONTEXT) ==
 	    1) {
 		return 1;
 	}
-#ifdef XVT_MODERN
 	if (xvt_dialog_is_active()) {
 		return 0;
 	}
-#endif
 
 	frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
 	if (g_game_config.help_on != 0) {
@@ -1184,14 +1176,6 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
 // FUNCTION: XVT 0x4B97E0
 void config_load(void)
 {
-#ifndef XVT_MODERN
-	xvt_file *stream;
-	int loaded_legacy_config;
-	char *value;
-	int character_index;
-	int keyword_index;
-	int matched_keyword_index;
-#endif
 
 	int legacy_joy_button_loaded[20];
 	memset(legacy_joy_button_loaded, 0, sizeof(legacy_joy_button_loaded));
@@ -1302,7 +1286,6 @@ void config_load(void)
 	strcpy(g_game_config.taunts[3],
 	       frontend_string_get(FRONTSTR_793_WOOHOO));
 
-#ifdef XVT_MODERN
 	{
 		char error[512];
 		if (!xvt_config_apply(&g_game_config, error, sizeof(error))) {
@@ -1415,345 +1398,6 @@ void config_load(void)
 			(int)g_game_config.joy_buttons[19]);
 	}
 	return;
-#else
-	stream = file_open("config2.cfg", "r");
-	loaded_legacy_config = 0;
-	if (stream == NULL) {
-		file_change_to_base_game_install_path();
-		stream = file_open("config.cfg", "r");
-		file_change_to_install_path();
-		loaded_legacy_config = 1;
-	}
-	if (stream == NULL) {
-		return;
-	}
-
-	for (;;) {
-		if (FILE_GETS(g_frontend_scratch_buffer, 256, stream) == NULL) {
-			break;
-		}
-		if (g_frontend_scratch_buffer
-			    [strlen(g_frontend_scratch_buffer) - 1] == '\n') {
-			g_frontend_scratch_buffer
-				[strlen(g_frontend_scratch_buffer) - 1] = '\0';
-		}
-
-		value = NULL;
-		character_index = 0;
-		if ((int)strlen(g_frontend_scratch_buffer) > 0) {
-			do {
-				if (g_frontend_scratch_buffer
-					    [character_index] == ' ') {
-					g_frontend_scratch_buffer
-						[character_index] = '\0';
-					value = &g_frontend_scratch_buffer
-							[character_index + 1];
-					break;
-				}
-				++character_index;
-			} while ((int)strlen(g_frontend_scratch_buffer) >
-				 character_index);
-		}
-		if (value == NULL) {
-			continue;
-		}
-
-		keyword_index = 0;
-		matched_keyword_index = -1;
-		while (*g_config_keywords[keyword_index] != '\0') {
-			if (strcmp(g_config_keywords[keyword_index],
-				   g_frontend_scratch_buffer) == 0) {
-				matched_keyword_index = keyword_index;
-				break;
-			}
-			++keyword_index;
-		}
-		if (matched_keyword_index == -1) {
-			continue;
-		}
-
-		switch (matched_keyword_index) {
-		case 0:
-			memcpy(g_game_config.last_pilot_name, value,
-			       sizeof(g_game_config.last_pilot_name));
-			break;
-		case 1:
-			g_game_config.backdrop[0] = (uint8_t)atoi(value);
-			break;
-		case 2:
-			g_game_config.star_density[0] = (uint8_t)atoi(value);
-			break;
-		case 3:
-			g_game_config.debris[0] = (uint8_t)atoi(value);
-			break;
-		case 4:
-			g_game_config.local_lights[0] = (uint8_t)atoi(value);
-			break;
-		case 5:
-			g_game_config.specular[0] = (uint8_t)atoi(value);
-			break;
-		case 6:
-			g_game_config.diffuse[0] = (uint8_t)atoi(value);
-			break;
-		case 7:
-			g_game_config.dither[0] = (uint8_t)atoi(value);
-			break;
-		case 8:
-			g_game_config.texture_res[0] = (uint8_t)atoi(value);
-			break;
-		case 9:
-			g_game_config.mipmap[0] = (uint8_t)atoi(value);
-			break;
-		case 10:
-			g_game_config.lod[0] = (uint8_t)atoi(value);
-			break;
-		case 11:
-			g_game_config.screen_res[0] = (uint8_t)atoi(value);
-			break;
-		case 12:
-			g_game_config.window_size[0] = (uint8_t)atoi(value);
-			break;
-		case 13:
-			g_game_config.color_depth_choice[0] =
-				(uint8_t)atoi(value);
-			break;
-		case 14:
-			g_game_config.brightness[0] = (uint8_t)atoi(value);
-			break;
-		case 15:
-			g_game_config.backdrop[1] = (uint8_t)atoi(value);
-			break;
-		case 16:
-			g_game_config.star_density[1] = (uint8_t)atoi(value);
-			break;
-		case 17:
-			g_game_config.debris[1] = (uint8_t)atoi(value);
-			break;
-		case 18:
-			g_game_config.local_lights[1] = (uint8_t)atoi(value);
-			break;
-		case 19:
-			g_game_config.specular[1] = (uint8_t)atoi(value);
-			break;
-		case 20:
-			g_game_config.diffuse[1] = (uint8_t)atoi(value);
-			break;
-		case 21:
-			g_game_config.dither[1] = (uint8_t)atoi(value);
-			break;
-		case 22:
-			g_game_config.texture_res[1] = (uint8_t)atoi(value);
-			break;
-		case 23:
-			g_game_config.mipmap[1] = (uint8_t)atoi(value);
-			break;
-		case 24:
-			g_game_config.lod[1] = (uint8_t)atoi(value);
-			break;
-		case 25:
-			g_game_config.screen_res[1] = (uint8_t)atoi(value);
-			break;
-		case 26:
-			g_game_config.window_size[1] = (uint8_t)atoi(value);
-			break;
-		case 27:
-			g_game_config.color_depth_choice[1] =
-				(uint8_t)atoi(value);
-			break;
-		case 28:
-			g_game_config.brightness[1] = (uint8_t)atoi(value);
-			break;
-		case 29:
-			g_game_config.network_type = (uint8_t)atoi(value);
-			break;
-		case 30:
-			memcpy(g_game_config.phone_number, value,
-			       sizeof(g_game_config.phone_number));
-			break;
-		case 31:
-			memcpy(g_game_config.ip_address, value,
-			       sizeof(g_game_config.ip_address));
-			break;
-		case 32:
-			g_game_config.sfx_exterior_enabled =
-				(uint8_t)atoi(value);
-			break;
-		case 33:
-			g_game_config.sfx_interior_enabled =
-				(uint8_t)atoi(value);
-			break;
-		case 34:
-			g_game_config.sfx_engine_enabled = (uint8_t)atoi(value);
-			break;
-		case 35:
-			g_game_config.sfx_datapad_enabled =
-				(uint8_t)atoi(value);
-			break;
-		case 36:
-			g_game_config.voice_pilot_level = (uint8_t)atoi(value);
-			break;
-		case 37:
-			g_game_config.voice_tactical_officer_level =
-				(uint8_t)atoi(value);
-			break;
-		case 38:
-			g_game_config.voice_commander_enabled =
-				(uint8_t)atoi(value);
-			break;
-		case 39:
-			g_game_config.voice_special_enabled =
-				(uint8_t)atoi(value);
-			break;
-		case 40:
-			g_game_config.music_enabled = (uint8_t)atoi(value);
-			break;
-		case 41:
-			g_game_config.sfx_datapad_volume = (uint8_t)atoi(value);
-			break;
-		case 42:
-			g_game_config.sfx_exterior_volume =
-				(uint8_t)atoi(value);
-			break;
-		case 43:
-			g_game_config.sfx_interior_volume =
-				(uint8_t)atoi(value);
-			break;
-		case 44:
-			g_game_config.sfx_engine_volume = (uint8_t)atoi(value);
-			break;
-		case 45:
-			g_game_config.voice_volume = (uint8_t)atoi(value);
-			break;
-		case 46:
-			g_game_config.music_volume = (uint8_t)atoi(value);
-			break;
-		case 47:
-		case 48:
-		case 49:
-		case 50:
-		case 51:
-		case 52:
-		case 53:
-		case 54:
-		case 55:
-		case 56:
-		case 57:
-		case 58:
-		case 59:
-		case 60:
-		case 61:
-		case 62:
-		case 63:
-		case 64:
-		case 65:
-		case 66:
-			g_game_config.joy_buttons[matched_keyword_index - 47] =
-				(uint8_t)atoi(value);
-			if (loaded_legacy_config != 0) {
-				legacy_joy_button_loaded[matched_keyword_index -
-							 47] = 1;
-			}
-			break;
-		case 79:
-			g_game_config.difficulty = (game_difficulty)atoi(value);
-			break;
-		case 80:
-			g_game_config.collisions = (uint8_t)atoi(value);
-			break;
-		case 81:
-			g_game_config.craft_jumping = (uint8_t)atoi(value);
-			break;
-		case 82:
-			g_game_config.random_setup = (uint8_t)atoi(value);
-			break;
-		case 83:
-			g_game_config.battle_length_index =
-				(battle_length)atoi(value);
-			break;
-		case 84:
-			g_game_config.require_password = (uint8_t)atoi(value);
-			break;
-		case 85:
-			g_game_config.in_progress_join = (uint8_t)atoi(value);
-			break;
-		case 86:
-			g_game_config.craft_selection =
-				(craft_selection_mode)atoi(value);
-			break;
-		case 87:
-			g_game_config.locate_players = (uint8_t)atoi(value);
-			break;
-		case 88:
-			g_game_config.craft_waves =
-				(craft_wave_mode)atoi(value);
-			break;
-		case 89:
-			g_game_config.mission_time_limit = (uint8_t)atoi(value);
-			break;
-		case 90:
-			g_game_config.last_team_time_limit_minutes =
-				(uint8_t)atoi(value);
-			break;
-		case 91:
-			g_game_config.random_seed = (unsigned int)atoi(value);
-			break;
-		case 92:
-			memcpy(g_game_config.password, value,
-			       sizeof(g_game_config.password));
-			break;
-		case 93:
-			g_game_config.internet_play = (uint8_t)atoi(value);
-			break;
-		case 94:
-			g_game_config.ai_opponents = (uint8_t)atoi(value);
-			break;
-		case 95:
-			g_game_config.help_on = (uint8_t)atoi(value);
-			break;
-		case 96:
-			g_game_config.datapad_music_enabled =
-				(uint8_t)atoi(value);
-			break;
-		case 97:
-			g_game_config.server_update_rate = (uint8_t)atoi(value);
-			break;
-		case 98:
-			g_game_config.combat_balance =
-				(combat_balance_mode)atoi(value);
-			break;
-		case 99:
-		case 100:
-		case 101:
-		case 102:
-			memcpy(g_game_config.taunts[matched_keyword_index - 99],
-			       value, sizeof(g_game_config.taunts[0]));
-			break;
-		case 103:
-			g_game_config.use3d_hardware[0] = (uint8_t)atoi(value);
-			break;
-		case 104:
-			g_game_config.bilinear[0] = (uint8_t)atoi(value);
-			break;
-		case 105:
-			g_game_config.use3d_hardware[1] = (uint8_t)atoi(value);
-			break;
-		case 106:
-			g_game_config.bilinear[1] = (uint8_t)atoi(value);
-			break;
-		}
-	}
-
-	file_close(stream);
-	if (loaded_legacy_config != 0) {
-		for (config_index = 0; config_index < 20; ++config_index) {
-			if (legacy_joy_button_loaded[config_index] != 0 &&
-			    g_game_config.joy_buttons[config_index] >= 124 &&
-			    g_game_config.joy_buttons[config_index] <= 229) {
-				g_game_config.joy_buttons[config_index] += 4;
-			}
-		}
-	}
-#endif
 }
 
 /* Saves g_game_config, with the current pilot as the last pilot. The modern
@@ -1764,7 +1408,6 @@ void config_load(void)
 // FUNCTION: XVT 0x4BA3C0
 void config_write(void)
 {
-#ifdef XVT_MODERN
 	snprintf(g_game_config.last_pilot_name,
 		 sizeof(g_game_config.last_pilot_name), "%s",
 		 g_pilot_data.name);
@@ -1870,146 +1513,6 @@ void config_write(void)
 		xvt_storage_fatal(error, 1);
 	}
 	XVT_LOG_INFO("options.written");
-#else
-
-	strncpy(g_game_config.last_pilot_name, g_pilot_data.name,
-		sizeof(g_game_config.last_pilot_name) - 1);
-	g_game_config
-		.last_pilot_name[sizeof(g_game_config.last_pilot_name) - 1] =
-		'\0';
-	xvt_file *stream = file_open("config2.cfg", "w");
-	if (stream == NULL) {
-		return;
-	}
-
-	FILE_PRINTF(stream, "lastpilot %s\n", g_pilot_data.name);
-	for (int config_index = 0;
-	     config_index < (int)(sizeof(g_game_config.backdrop) /
-				  sizeof(g_game_config.backdrop[0]));
-	     ++config_index) {
-		int option_number = config_index + 1;
-		FILE_PRINTF(stream, "backdrop%d %d\n", option_number,
-			    g_game_config.backdrop[config_index]);
-		FILE_PRINTF(stream, "stardensity%d %d\n", option_number,
-			    g_game_config.star_density[config_index]);
-		FILE_PRINTF(stream, "debris%d %d\n", option_number,
-			    g_game_config.debris[config_index]);
-		FILE_PRINTF(stream, "locallights%d %d\n", option_number,
-			    g_game_config.local_lights[config_index]);
-		FILE_PRINTF(stream, "specular%d %d\n", option_number,
-			    g_game_config.specular[config_index]);
-		FILE_PRINTF(stream, "diffuse%d %d\n", option_number,
-			    g_game_config.diffuse[config_index]);
-		FILE_PRINTF(stream, "dither%d %d\n", option_number,
-			    g_game_config.dither[config_index]);
-		FILE_PRINTF(stream, "textureres%d %d\n", option_number,
-			    g_game_config.texture_res[config_index]);
-		FILE_PRINTF(stream, "mipmap%d %d\n", option_number,
-			    g_game_config.mipmap[config_index]);
-		FILE_PRINTF(stream, "lod%d %d\n", option_number,
-			    g_game_config.lod[config_index]);
-		FILE_PRINTF(stream, "screenres%d %d\n", option_number,
-			    g_game_config.screen_res[config_index]);
-		FILE_PRINTF(stream, "windowsize%d %d\n", option_number,
-			    g_game_config.window_size[config_index]);
-		FILE_PRINTF(stream, "bpp%d %d\n", option_number,
-			    g_game_config.color_depth_choice[config_index]);
-		FILE_PRINTF(stream, "brightness%d %d\n", option_number,
-			    g_game_config.brightness[config_index]);
-		FILE_PRINTF(stream, "use_3d_hardware%d %d\n", option_number,
-			    g_game_config.use3d_hardware[config_index]);
-		FILE_PRINTF(stream, "bilinear%d %d\n", option_number,
-			    g_game_config.bilinear[config_index]);
-	}
-
-	FILE_PRINTF(stream, "networktype %d\n", g_game_config.network_type);
-	FILE_PRINTF(stream, "phonenumber %s\n", g_game_config.phone_number);
-	FILE_PRINTF(stream, "ipaddress %s\n", g_game_config.ip_address);
-	FILE_PRINTF(stream, "server_update_rate %d\n",
-		    g_game_config.server_update_rate);
-	FILE_PRINTF(stream, "sfx_exterior %d\n",
-		    g_game_config.sfx_exterior_enabled);
-	FILE_PRINTF(stream, "sfx_interior %d\n",
-		    g_game_config.sfx_interior_enabled);
-	FILE_PRINTF(stream, "sfx_engine %d\n",
-		    g_game_config.sfx_engine_enabled);
-	FILE_PRINTF(stream, "sfx_datapad %d\n",
-		    g_game_config.sfx_datapad_enabled);
-	FILE_PRINTF(stream, "voice_pilot %d\n",
-		    g_game_config.voice_pilot_level);
-	FILE_PRINTF(stream, "voice_tactical_officer %d\n",
-		    g_game_config.voice_tactical_officer_level);
-	FILE_PRINTF(stream, "voice_commander %d\n",
-		    g_game_config.voice_commander_enabled);
-	FILE_PRINTF(stream, "voice_special %d\n",
-		    g_game_config.voice_special_enabled);
-	FILE_PRINTF(stream, "music %d\n", g_game_config.music_enabled);
-	FILE_PRINTF(stream, "sfx_datapad_volume %d\n",
-		    g_game_config.sfx_datapad_volume);
-	FILE_PRINTF(stream, "sfx_exterior_volume %d\n",
-		    g_game_config.sfx_exterior_volume);
-	FILE_PRINTF(stream, "sfx_interior_volume %d\n",
-		    g_game_config.sfx_interior_volume);
-	FILE_PRINTF(stream, "sfx_engine_volume %d\n",
-		    g_game_config.sfx_engine_volume);
-	FILE_PRINTF(stream, "voice_volume %d\n", g_game_config.voice_volume);
-	FILE_PRINTF(stream, "music_volume %d\n", g_game_config.music_volume);
-	FILE_PRINTF(stream, "datapad_music %d\n",
-		    g_game_config.datapad_music_enabled);
-	FILE_PRINTF(stream, "joybutton1 %d\n", g_game_config.joy_buttons[0]);
-	FILE_PRINTF(stream, "joybutton2 %d\n", g_game_config.joy_buttons[1]);
-	FILE_PRINTF(stream, "joybutton3 %d\n", g_game_config.joy_buttons[2]);
-	FILE_PRINTF(stream, "joybutton4 %d\n", g_game_config.joy_buttons[3]);
-	FILE_PRINTF(stream, "joybutton5 %d\n", g_game_config.joy_buttons[4]);
-	FILE_PRINTF(stream, "joybutton6 %d\n", g_game_config.joy_buttons[5]);
-	FILE_PRINTF(stream, "joybutton7 %d\n", g_game_config.joy_buttons[6]);
-	FILE_PRINTF(stream, "joybutton8 %d\n", g_game_config.joy_buttons[7]);
-	FILE_PRINTF(stream, "joybutton9 %d\n", g_game_config.joy_buttons[8]);
-	FILE_PRINTF(stream, "joybutton10 %d\n", g_game_config.joy_buttons[9]);
-	FILE_PRINTF(stream, "joybutton11 %d\n", g_game_config.joy_buttons[10]);
-	FILE_PRINTF(stream, "joybutton12 %d\n", g_game_config.joy_buttons[11]);
-	FILE_PRINTF(stream, "joybutton13 %d\n", g_game_config.joy_buttons[12]);
-	FILE_PRINTF(stream, "joybutton14 %d\n", g_game_config.joy_buttons[13]);
-	FILE_PRINTF(stream, "joybutton15 %d\n", g_game_config.joy_buttons[14]);
-	FILE_PRINTF(stream, "joybutton16 %d\n", g_game_config.joy_buttons[15]);
-	FILE_PRINTF(stream, "joybutton17 %d\n", g_game_config.joy_buttons[16]);
-	FILE_PRINTF(stream, "joybutton18 %d\n", g_game_config.joy_buttons[17]);
-	FILE_PRINTF(stream, "joybutton19 %d\n", g_game_config.joy_buttons[18]);
-	FILE_PRINTF(stream, "joybutton20 %d\n", g_game_config.joy_buttons[19]);
-	FILE_PRINTF(stream, "difficulty %d\n", g_game_config.difficulty);
-	FILE_PRINTF(stream, "collisions %d\n", g_game_config.collisions);
-	FILE_PRINTF(stream, "craft_jumping %d\n", g_game_config.craft_jumping);
-	FILE_PRINTF(stream, "random_setup %d\n", g_game_config.random_setup);
-	FILE_PRINTF(stream, "handicapping %d\n",
-		    g_game_config.battle_length_index);
-	FILE_PRINTF(stream, "require_password %d\n",
-		    g_game_config.require_password);
-	FILE_PRINTF(stream, "in_progress_join %d\n",
-		    g_game_config.in_progress_join);
-	FILE_PRINTF(stream, "craft_selection %d\n",
-		    g_game_config.craft_selection);
-	FILE_PRINTF(stream, "locate_players %d\n",
-		    g_game_config.locate_players);
-	FILE_PRINTF(stream, "craft_waves %d\n", g_game_config.craft_waves);
-	FILE_PRINTF(stream, "mission_time_limit %d\n",
-		    g_game_config.mission_time_limit);
-	FILE_PRINTF(stream, "last_time_limit %d\n",
-		    g_game_config.last_team_time_limit_minutes);
-	FILE_PRINTF(stream, "random_seed %d\n", g_game_config.random_seed);
-	FILE_PRINTF(stream, "password %s\n", g_game_config.password);
-	FILE_PRINTF(stream, "async_flag %d\n", g_game_config.internet_play);
-	FILE_PRINTF(stream, "ai_opponents %d\n", g_game_config.ai_opponents);
-	FILE_PRINTF(stream, "help_on %d\n", g_game_config.help_on);
-	FILE_PRINTF(stream, "combat_balance %d\n",
-		    g_game_config.combat_balance);
-	FILE_PRINTF(stream, "taunt1 %s\n", g_game_config.taunts[0]);
-	FILE_PRINTF(stream, "taunt2 %s\n", g_game_config.taunts[1]);
-	FILE_PRINTF(stream, "taunt3 %s\n", g_game_config.taunts[2]);
-	FILE_PRINTF(stream, "taunt4 %s\n", g_game_config.taunts[3]);
-
-	file_close(stream);
-
-#endif
 }
 
 /* Draws the config screen's eight page lights and handles its page buttons and
@@ -2150,7 +1653,6 @@ int config_update_navigation_and_restore_defaults(void)
 		frontend_draw_rect_assign(
 			&ui.rect, CONFIG_BUTTON_LEFT, CONFIG_RESTORE_BUTTON_TOP,
 			CONFIG_BUTTON_RIGHT, CONFIG_RESTORE_BUTTON_BOTTOM);
-#ifdef XVT_MODERN
 		if (xvt_frontend_action_trigger(
 			    XVT_ACTION_OWNER_CONFIG, 1,
 			    frontend_button_handle_sprite_button(
@@ -2176,36 +1678,14 @@ int config_update_navigation_and_restore_defaults(void)
 				"options.restore_answered page=%d result=%d",
 				g_config_current_page, result);
 			if (result) {
-#else
-		if (frontend_button_handle_sprite_button(
-			    &ui.rect, "config6u", "config6d",
-			    frontend_string_get(FRONTSTR_420_RESTORE_DEFAULTS),
-			    CONFIG_BUTTON_FONT_SIZE, 0,
-			    CONFIG_RESTORE_HELD_SLOT, "jewelsound") != 0 &&
-		    frontend_dialog_show_confirm_dialog(
-			    frontend_string_get(
-				    FRONTSTR_672_RESTORING_DEFAULTS_WILL_ERASE_ANY_CHANGES),
-			    frontend_string_get(
-				    FRONTSTR_673_YOU_HAVE_MADE_TO_THESE_SETTINGS),
-			    frontend_string_get(
-				    FRONTSTR_674_ARE_YOU_SURE_YOU_WANT_TO_DO_THIS),
-			    frontend_string_get(FRONTSTR_523_OKAY),
-			    frontend_string_get(FRONTSTR_019_CANCEL)) != 0) {
-#endif
 				switch (g_config_current_page) {
 				case CONFIG_PAGE_NETWORK:
 					g_game_config.server_update_rate =
 						CONFIG_DEFAULT_SERVER_UPDATE_RATE;
-#ifdef XVT_MODERN
 					g_game_config.network_type =
 						NET_TRANSPORT_TCPIP;
 					g_game_config.internet_play =
 						CONFIG_DEFAULT_ENABLED;
-#else
-				g_game_config.network_type = NET_TRANSPORT_IPX;
-				g_game_config.internet_play =
-					CONFIG_DEFAULT_DISABLED;
-#endif
 					break;
 				case CONFIG_PAGE_SINGLEPLAYER_VIDEO:
 					g_game_config.backdrop[0] =
@@ -2430,9 +1910,7 @@ int config_update_navigation_and_restore_defaults(void)
 					break;
 				}
 			}
-#ifdef XVT_MODERN
 		}
-#endif
 	}
 
 	frontend_draw_rect_assign(&ui.rect, CONFIG_BUTTON_LEFT,
@@ -2467,7 +1945,6 @@ int config_update_navigation_and_restore_defaults(void)
 	frontend_draw_rect_assign(
 		&ui.rect, CONFIG_BUTTON_LEFT, CONFIG_JOYSTICK_BUTTON_TOP,
 		CONFIG_BUTTON_RIGHT, CONFIG_JOYSTICK_BUTTON_BOTTOM);
-#ifdef XVT_MODERN
 	if (frontend_button_handle_sprite_button(
 		    &ui.rect, "config5u", "config5u", "OpenXvT Settings",
 		    CONFIG_BUTTON_FONT_SIZE, 0, CONFIG_JOYSTICK_HELD_SLOT,
@@ -2476,38 +1953,6 @@ int config_update_navigation_and_restore_defaults(void)
 		XVT_LOG_DEBUG("options.settings_requested page=%d",
 			      g_config_current_page);
 	}
-#else
-	if (g_config_current_page == CONFIG_PAGE_JOYSTICK) {
-		frontend_button_draw_sprite_and_tooltip(
-			&ui.rect, "config5d",
-			frontend_string_get(FRONTSTR_415_JOYSTICK_OPTIONS),
-			CONFIG_BUTTON_FONT_SIZE, 0);
-	} else if (frontend_button_handle_sprite_button(
-			   &ui.rect, "config5u", "config5u",
-			   frontend_string_get(FRONTSTR_415_JOYSTICK_OPTIONS),
-			   CONFIG_BUTTON_FONT_SIZE, 0,
-			   CONFIG_JOYSTICK_HELD_SLOT, "jewelsound") != 0) {
-		g_config_draw_static_control_background = 1;
-		g_config_current_page = CONFIG_PAGE_JOYSTICK;
-		frontend_display_lock_offscreen_surface();
-		front_image_draw_sprite_opaque("backconfig", 0, 0);
-		front_image_draw_sprite("frame", 0, 0);
-		front_image_draw_sprite("alloff", 0, 0);
-		frontend_draw_rect_assign(
-			&ui.rect, CONFIG_CONTENT_LEFT, CONFIG_CONTENT_TOP,
-			CONFIG_CONTENT_RIGHT, CONFIG_CONTENT_BOTTOM);
-		front_image_draw_sprite_translucent("configoverlay", 0, 0);
-		frontend_draw_rect_assign(&ui.rect, CONFIG_JOYSTICK_SHADE_LEFT,
-					  CONFIG_JOYSTICK_SHADE_TOP,
-					  CONFIG_JOYSTICK_SHADE_RIGHT,
-					  CONFIG_JOYSTICK_SHADE_BOTTOM);
-		frontend_draw_fill_rect_translucent(
-			&ui.rect, 0, 0,
-			frontend_display_pack_rgb(0, 0,
-						  CONFIG_JOYSTICK_SHADE_BLUE));
-		frontend_display_unlock_offscreen_surface(1);
-	}
-#endif
 
 	frontend_draw_rect_offset_xy(&ui.rect, 0, -CONFIG_BUTTON_VERTICAL_STEP);
 	if (g_config_current_page == CONFIG_PAGE_SOUND) {
@@ -2653,12 +2098,6 @@ void config_network_options_screen(void)
 		FIELD_WIDTH = 200
 	};
 
-#ifndef XVT_MODERN
-	int cursor_x;
-	int cursor_y;
-	int field_label_width;
-	int button_width;
-#endif
 	struct RECT source_rect;
 	frontend_draw_rect_assign(&source_rect, TITLE_LEFT, TITLE_TOP,
 				  TITLE_RIGHT, TITLE_BOTTOM);
@@ -2669,240 +2108,8 @@ void config_network_options_screen(void)
 		&source_rect, 0xFFFF);
 	struct RECT rect;
 	int label_width;
-#ifdef XVT_MODERN
 	frontend_draw_rect_assign(&source_rect, LABEL_LEFT, LABEL_TOP,
 				  LABEL_RIGHT, LABEL_BOTTOM);
-#else
-	label_width = frontend_text_measure_width(
-		frontend_string_get(FRONTSTR_308_IP_ADDRESS_NAME), FONT_LABEL);
-	field_label_width = frontend_text_measure_width(
-		frontend_string_get(FRONTSTR_309_PHONE_NUMBER), FONT_LABEL);
-	if (field_label_width < label_width) {
-		field_label_width = label_width;
-	}
-	front_image_get_resource_rect("offslot", &rect);
-	button_width = rect.right - rect.left + 1;
-	frontend_cursor_get_pos(&cursor_x, &cursor_y);
-	frontend_draw_rect_assign(&source_rect, LABEL_LEFT, LABEL_TOP,
-				  LABEL_RIGHT, LABEL_BOTTOM);
-	if (g_config_connection_type_editable == 0 &&
-	    g_frontend_mission_session_mode !=
-		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		frontend_text_draw_aligned_in_rect(
-			FONT_LABEL,
-			frontend_string_get(
-				FRONTSTR_692_CONNECTION_TYPE_YOU_CANNOT_CHANGE_THESE_OPTIONS_WHILE_HOSTING_OR_JOINING_A_NETWORK_GAME),
-			&source_rect, 0, 1, 0xFFFF);
-	} else {
-		frontend_text_draw_aligned_in_rect(
-			FONT_LABEL,
-			frontend_string_get(
-				FRONTSTR_477_SELECT_CONNECTION_TYPE),
-			&source_rect, 0, 1, 0xFFFF);
-	}
-	frontend_draw_rect_offset_xy(&source_rect, 0, 20);
-	source_rect.right = source_rect.left + 127;
-	frontend_draw_rect_copy(&rect, &source_rect);
-	rect.right = rect.left + button_width;
-	if (g_config_draw_static_control_background != 0 &&
-	    (g_config_connection_type_editable != 0 ||
-	     g_frontend_mission_session_mode ==
-		     FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
-		frontend_display_lock_offscreen_surface();
-		front_image_draw_sprite_translucent("offslot", rect.left,
-						    rect.top);
-		frontend_display_unlock_offscreen_surface(0);
-		front_image_draw_sprite_translucent("offslot", rect.left,
-						    rect.top);
-	}
-	if (frontend_draw_point_in_rect(&rect, cursor_x, cursor_y) &&
-	    (g_config_connection_type_editable != 0 ||
-	     g_frontend_mission_session_mode ==
-		     FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
-	    (frontend_mouse_get_left_click() != 0 ||
-	     frontend_mouse_get_right_click() != 0)) {
-		if (g_game_config.network_type != NET_TRANSPORT_IPX) {
-			if (g_game_config.sfx_datapad_enabled != 0) {
-				frontend_sound_play_ui_sound(
-					"configsound", 1, 0, 255,
-					12 * g_game_config.sfx_datapad_volume,
-					63);
-			}
-			if (g_game_config.network_type != NET_TRANSPORT_IPX) {
-				g_game_config.internet_play = 0;
-			}
-		}
-		g_game_config.network_type = NET_TRANSPORT_IPX;
-	}
-	if (g_game_config.network_type == NET_TRANSPORT_IPX) {
-		front_image_draw_sprite("3conbtn", rect.left, rect.top);
-	}
-	rect.left = rect.right + 5;
-	rect.right = rect.left + 100;
-	frontend_text_draw_aligned_in_rect(
-		FONT_LABEL, frontend_string_get(FRONTSTR_305_IPX), &rect, 0, 1,
-		g_color_yellow);
-
-	frontend_draw_rect_offset_xy(&source_rect, 0, 25);
-	source_rect.right = source_rect.left + 127;
-	frontend_draw_rect_copy(&rect, &source_rect);
-	rect.right = rect.left + button_width;
-	if (g_config_draw_static_control_background != 0 &&
-	    (g_config_connection_type_editable != 0 ||
-	     g_frontend_mission_session_mode ==
-		     FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
-		frontend_display_lock_offscreen_surface();
-		front_image_draw_sprite_translucent("offslot", rect.left,
-						    rect.top);
-		frontend_display_unlock_offscreen_surface(0);
-		front_image_draw_sprite_translucent("offslot", rect.left,
-						    rect.top);
-	}
-	if (frontend_draw_point_in_rect(&rect, cursor_x, cursor_y) &&
-	    (g_config_connection_type_editable != 0 ||
-	     g_frontend_mission_session_mode ==
-		     FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
-	    (frontend_mouse_get_left_click() != 0 ||
-	     frontend_mouse_get_right_click() != 0)) {
-		if (g_game_config.network_type != NET_TRANSPORT_TCPIP) {
-			if (g_game_config.sfx_datapad_enabled != 0) {
-				frontend_sound_play_ui_sound(
-					"configsound", 1, 0, 255,
-					12 * g_game_config.sfx_datapad_volume,
-					63);
-			}
-			if (g_game_config.network_type != NET_TRANSPORT_TCPIP) {
-				g_game_config.internet_play = 1;
-			}
-		}
-		g_game_config.network_type = NET_TRANSPORT_TCPIP;
-	}
-	if (g_game_config.network_type == NET_TRANSPORT_TCPIP) {
-		front_image_draw_sprite("3conbtn", rect.left, rect.top);
-	}
-	rect.left = rect.right + 5;
-	rect.right = rect.left + 100;
-	frontend_text_draw_aligned_in_rect(
-		FONT_LABEL, frontend_string_get(FRONTSTR_306_TCP_IP), &rect, 0,
-		1, g_color_yellow);
-	frontend_draw_rect_offset_xy(&rect, 100, 0);
-	frontend_text_draw_aligned_in_rect(
-		FONT_LABEL, frontend_string_get(FRONTSTR_308_IP_ADDRESS_NAME),
-		&rect, 0, 1, g_color_yellow);
-	rect.left += field_label_width + 15;
-	rect.right = rect.left + FIELD_WIDTH;
-	frontend_draw_rect_inset_xy(&rect, 0, -2);
-	frontend_draw_fill_rect_translucent(&rect, 0, 0,
-					    g_editable_field_background_color);
-	if (frontend_text_handle_editable_field(&rect, g_game_config.ip_address,
-						64, 0, FONT_LABEL, NULL) != 0) {
-		g_active_text_field_id = 1;
-	}
-
-	frontend_draw_rect_offset_xy(&source_rect, 0, 25);
-	source_rect.right = source_rect.left + 127;
-	frontend_draw_rect_copy(&rect, &source_rect);
-	rect.right = rect.left + button_width;
-	if (g_config_draw_static_control_background != 0 &&
-	    (g_config_connection_type_editable != 0 ||
-	     g_frontend_mission_session_mode ==
-		     FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
-		frontend_display_lock_offscreen_surface();
-		front_image_draw_sprite_translucent("offslot", rect.left,
-						    rect.top);
-		frontend_display_unlock_offscreen_surface(0);
-		front_image_draw_sprite_translucent("offslot", rect.left,
-						    rect.top);
-	}
-	if (frontend_draw_point_in_rect(&rect, cursor_x, cursor_y) &&
-	    (g_config_connection_type_editable != 0 ||
-	     g_frontend_mission_session_mode ==
-		     FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
-	    (frontend_mouse_get_left_click() != 0 ||
-	     frontend_mouse_get_right_click() != 0)) {
-		if (g_game_config.network_type != NET_TRANSPORT_MODEM) {
-			if (g_game_config.sfx_datapad_enabled != 0) {
-				frontend_sound_play_ui_sound(
-					"configsound", 1, 0, 255,
-					12 * g_game_config.sfx_datapad_volume,
-					63);
-			}
-			if (g_game_config.network_type != NET_TRANSPORT_MODEM) {
-				g_game_config.internet_play = 0;
-			}
-		}
-		g_game_config.network_type = NET_TRANSPORT_MODEM;
-	}
-	if (g_game_config.network_type == NET_TRANSPORT_MODEM) {
-		front_image_draw_sprite("3conbtn", rect.left, rect.top);
-	}
-	rect.left = rect.right + 5;
-	rect.right = rect.left + 100;
-	frontend_text_draw_aligned_in_rect(
-		FONT_LABEL, frontend_string_get(FRONTSTR_307_DIRECT_MODEM),
-		&rect, 0, 1, g_color_yellow);
-	frontend_draw_rect_offset_xy(&rect, 100, 0);
-	frontend_text_draw_aligned_in_rect(
-		FONT_LABEL, frontend_string_get(FRONTSTR_309_PHONE_NUMBER),
-		&rect, 0, 1, g_color_yellow);
-	rect.left += field_label_width + 15;
-	rect.right = rect.left + FIELD_WIDTH;
-	frontend_draw_rect_inset_xy(&rect, 0, -2);
-	frontend_draw_fill_rect_translucent(&rect, 0, 0,
-					    g_editable_field_background_color);
-	if (frontend_text_handle_editable_field(&rect,
-						g_game_config.phone_number, 64,
-						1, FONT_LABEL, NULL) != 0) {
-		g_active_text_field_id = 2;
-	}
-
-	frontend_draw_rect_offset_xy(&source_rect, 0, 25);
-	source_rect.right = source_rect.left + 127;
-	frontend_draw_rect_copy(&rect, &source_rect);
-	/* From here button_width holds the serial slot's right edge, not a width. */
-	button_width += rect.left;
-	rect.right = button_width;
-	if (g_config_draw_static_control_background != 0 &&
-	    (g_config_connection_type_editable != 0 ||
-	     g_frontend_mission_session_mode ==
-		     FRONTEND_MISSION_SESSION_SINGLEPLAYER)) {
-		frontend_display_lock_offscreen_surface();
-		front_image_draw_sprite_translucent("offslot", rect.left,
-						    rect.top);
-		frontend_display_unlock_offscreen_surface(0);
-		front_image_draw_sprite_translucent("offslot", rect.left,
-						    rect.top);
-	}
-	if (frontend_draw_point_in_rect(&rect, cursor_x, cursor_y) &&
-	    (g_config_connection_type_editable != 0 ||
-	     g_frontend_mission_session_mode ==
-		     FRONTEND_MISSION_SESSION_SINGLEPLAYER) &&
-	    (frontend_mouse_get_left_click() != 0 ||
-	     frontend_mouse_get_right_click() != 0)) {
-		if (g_game_config.network_type != NET_TRANSPORT_SERIAL) {
-			if (g_game_config.sfx_datapad_enabled != 0) {
-				frontend_sound_play_ui_sound(
-					"configsound", 1, 0, 255,
-					12 * g_game_config.sfx_datapad_volume,
-					63);
-			}
-			if (g_game_config.network_type !=
-			    NET_TRANSPORT_SERIAL) {
-				g_game_config.internet_play = 0;
-			}
-		}
-		g_game_config.network_type = NET_TRANSPORT_SERIAL;
-	}
-	if (g_game_config.network_type == NET_TRANSPORT_SERIAL) {
-		front_image_draw_sprite("3conbtn", rect.left, rect.top);
-	}
-	rect.left = rect.right + 5;
-	rect.right = rect.left + 100;
-	frontend_text_draw_aligned_in_rect(
-		FONT_LABEL, frontend_string_get(FRONTSTR_449_DIRECT_SERIAL),
-		&rect, 0, 1, g_color_yellow);
-
-#endif
 	frontend_draw_rect_offset_xy(&source_rect, 0, 35);
 	frontend_text_draw_aligned_in_rect(
 		FONT_LABEL,
@@ -4067,11 +3274,9 @@ int credits_update_screen(int frame_counter)
 			g_credits_has_more_pages);
 	}
 	if (g_credits_exit_pending != 0) {
-#ifdef XVT_MODERN
 		if (xvt_cd_task_is_fading()) {
 			return 0;
 		}
-#endif
 		frontend_screen_set_callbacks(concourse_update, concourse_exit);
 		return 0;
 	}

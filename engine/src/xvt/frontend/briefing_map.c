@@ -669,9 +669,7 @@ void briefing_map_draw_overlays(const struct RECT *viewport_rect,
 			    .mission_point_enabled[mission_point_index] != 0) {
 			int16_t icon_color_index;
 
-#ifdef XVT_MODERN
 			icon_color_index = 0;
-#endif
 			switch (g_frontend_mission.flight_groups[index].iff) {
 			case 0:
 				icon_color_index = 0;

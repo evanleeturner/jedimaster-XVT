@@ -1,7 +1,5 @@
 #include "xvt/frontend/movie.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/movie_task.h"
-#endif
 
 #include "xvt/assets/file.h"
 #include "xvt/frontend/frontend.h"
@@ -20,9 +18,7 @@
 #include "xvt/util/win32.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifdef XVT_MODERN
 #include "aeron/aeron.h"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,49 +113,6 @@ int g_movie_right_margin = 0;
 typedef HRESULT(AERON_DXAPI *movie_get_pixel_format_fn)(
 	IDirectDrawSurface *surface, struct movie_pixel_format *pixel_format);
 
-#ifndef XVT_MODERN
-__declspec(dllimport) void *__stdcall GetFocus(void);
-__declspec(dllimport) int __stdcall
-SmackToBuffer(struct movie_smack_handle *handle, int x, int y, int pitch,
-	      int height, void *pixels, int format);
-__declspec(dllimport) int __stdcall
-SmackDoFrame(struct movie_smack_handle *handle);
-__declspec(dllimport) int __stdcall
-SmackToBufferRect(struct movie_smack_handle *handle, int rect_index);
-__declspec(dllimport) int __stdcall
-SmackNextFrame(struct movie_smack_handle *handle);
-__declspec(dllimport) void *__stdcall GetDC(void *hWnd);
-__declspec(dllimport) unsigned int __stdcall
-GetSystemPaletteEntries(void *hdc, unsigned int start_index,
-			unsigned int entry_count,
-			struct movie_palette_entry *entries);
-__declspec(dllimport) int __stdcall ReleaseDC(void *hWnd, void *hdc);
-__declspec(dllimport) void *__stdcall BeginPaint(void *hWnd, void *paint);
-__declspec(dllimport) int __stdcall EndPaint(void *hWnd, const void *paint);
-__declspec(dllimport) int __stdcall GetUpdateRect(void *hWnd, struct RECT *rect,
-						  int erase);
-__declspec(dllimport) void __stdcall PostQuitMessage(int exit_code);
-__declspec(dllimport) int32_t __stdcall
-DefWindowProcA(void *hWnd, unsigned int message, void *wParam, void *lParam);
-__declspec(dllimport) int __stdcall ClientToScreen(void *hWnd,
-						   struct POINT *point);
-__declspec(dllimport) int __stdcall
-PeekMessageA(struct movie_win32_message *message, void *hWnd,
-	     unsigned int filter_min, unsigned int filter_max,
-	     unsigned int remove_message);
-__declspec(dllimport) int __stdcall
-TranslateMessage(const struct movie_win32_message *message);
-__declspec(dllimport) int32_t __stdcall
-DispatchMessageA(const struct movie_win32_message *message);
-__declspec(dllimport) void __stdcall
-SmackSoundUseDirectSound(IDirectSound *direct_sound);
-__declspec(dllimport) struct movie_smack_handle *__stdcall
-SmackOpen(const char *file_name, unsigned int flags, int extra_buffer);
-__declspec(dllimport) int __stdcall
-SmackWait(struct movie_smack_handle *handle);
-__declspec(dllimport) void __stdcall
-SmackClose(struct movie_smack_handle *handle);
-#else
 int SmackToBuffer(struct movie_smack_handle *handle, int x, int y, int pitch,
 		  int height, void *pixels, int format);
 int SmackDoFrame(struct movie_smack_handle *handle);
@@ -170,7 +123,6 @@ struct movie_smack_handle *SmackOpen(const char *file_name, unsigned int flags,
 				     int extra_buffer);
 int SmackWait(struct movie_smack_handle *handle);
 void SmackClose(struct movie_smack_handle *handle);
-#endif
 
 /* Left edge of the movie in the display, in pixels: (display_width - movie
  * width) / 2, unsigned, set by movie_run_smacker_playback when a movie starts.
@@ -471,11 +423,7 @@ int32_t AERON_DXAPI movie_window_proc(void *hWnd, unsigned int message,
 		frontend_display_set_wnd_proc_mode(
 			g_movie_previous_wnd_proc_mode);
 		frontend_display_shutdown(1);
-#ifndef XVT_MODERN
-		PostQuitMessage(0);
-#else
 		Aeron_RequestQuit();
-#endif
 		return 0;
 	case 0x46:
 		window_pos = lParam;
@@ -522,11 +470,7 @@ int32_t AERON_DXAPI movie_window_proc(void *hWnd, unsigned int message,
 	default:
 		break;
 	}
-#ifndef XVT_MODERN
-	return DefWindowProcA(hWnd, (uint16_t)message, wParam, lParam);
-#else
 	return 0;
-#endif
 }
 
 /* Repaints the movie after a paint message. Once a frame has been decoded and a
@@ -539,18 +483,10 @@ int32_t AERON_DXAPI movie_window_proc(void *hWnd, unsigned int message,
 // FUNCTION: XVT 0x4EF040
 int movie_handle_paint(void *hWnd)
 {
-#ifndef XVT_MODERN
-	uint8_t paint[64];
-#endif
 	int result;
 
-#ifndef XVT_MODERN
-	BeginPaint(hWnd, paint);
-	result = EndPaint(hWnd, paint);
-#else
 	(void)hWnd;
 	result = 0;
-#endif
 	struct RECT update_rect;
 	if (g_movie_frame_available != 0 && g_movie_smack_handle != NULL &&
 	    g_movie_playback_params != NULL) {
@@ -562,14 +498,10 @@ int movie_handle_paint(void *hWnd)
 				->Flip(g_movie_playback_params->primary_surface,
 				       NULL, 1);
 		}
-#ifndef XVT_MODERN
-		GetUpdateRect(hWnd, &update_rect, 0);
-#else
 		update_rect.left = 0;
 		update_rect.top = 0;
 		update_rect.right = ((int *)g_movie_smack_handle)[1];
 		update_rect.bottom = ((int *)g_movie_smack_handle)[2];
-#endif
 		return movie_blit_rect_to_display(
 			update_rect.left, update_rect.top,
 			update_rect.right - update_rect.left,
@@ -594,133 +526,8 @@ int movie_handle_paint(void *hWnd)
 // FUNCTION: XVT 0x4EF100
 int movie_run_smacker_playback(const struct movie_playback_params *params)
 {
-#ifdef XVT_MODERN
 	return xvt_movie_task_begin(params->movie_name,
 				    params->progress_callback != NULL);
-#else
-	enum {
-		MOVIE_STATUS_OK = 0,
-		MOVIE_STATUS_NOT_FOUND = 2,
-		MOVIE_STATUS_TOO_LARGE = 3,
-		MOVIE_STATUS_SKIPPED = 5,
-		MOVIE_WINDOW_MODE = 2,
-		SMACK_OPEN_FLAGS = 0xFE000,
-		SMACK_DEFAULT_EXTRA_BUFFER = -1,
-		REMOVE_MESSAGE = 1,
-		FLIP_WAIT = 1,
-		PROGRESS_FINISHED = 1,
-		MOVIE_PATH_CAPACITY = 256,
-		MOVIE_EXTENSION_LENGTH = 3,
-		MOVIE_EXTENSION_LAST_INDEX = 2,
-	};
-
-	g_movie_playback_params = params;
-	movie_initialize_system_palette(params->window);
-	g_movie_smack_buffer_format = movie_get_smack_buffer_format();
-	ClientToScreen(g_movie_playback_params->window,
-		       &g_movie_client_screen_origin);
-	frontend_display_clear_back_buffer();
-	frontend_display_clear_offscreen_surface();
-	frontend_display_present_frame();
-	frontend_display_clear_back_buffer();
-	SmackSoundUseDirectSound(g_movie_playback_params->direct_sound);
-
-	char file_name[MOVIE_PATH_CAPACITY];
-	strcpy(file_name, "movies\\");
-	strcat(file_name, g_movie_playback_params->movie_name);
-	strcat(file_name, ".smk");
-	g_movie_smack_handle = SmackOpen(file_name, SMACK_OPEN_FLAGS,
-					 SMACK_DEFAULT_EXTRA_BUFFER);
-	if (g_movie_smack_handle == NULL) {
-		strcpy(file_name, "d:\\movies\\");
-		file_name[0] = file_get_cd_drive_letter();
-		strcat(file_name, g_movie_playback_params->movie_name);
-		strcat(file_name, ".smk");
-		g_movie_smack_handle = SmackOpen(file_name, SMACK_OPEN_FLAGS,
-						 SMACK_DEFAULT_EXTRA_BUFFER);
-		if (g_movie_smack_handle == NULL) {
-			g_movie_playback_params = NULL;
-			return MOVIE_STATUS_NOT_FOUND;
-		}
-	}
-
-	char *subtitle_extension =
-		file_name + strlen(file_name) - MOVIE_EXTENSION_LENGTH;
-	subtitle_extension[MOVIE_EXTENSION_LAST_INDEX] = 't';
-	subtitle_extension[0] = 't';
-	subtitle_extension[1] = 'x';
-	g_movie_subtitle_file = FILE_RAW_OPEN(file_name, "r");
-	if (g_movie_smack_handle->width >
-		    (unsigned int)g_movie_playback_params->display_width &&
-	    g_movie_smack_handle->height >
-		    (unsigned int)g_movie_playback_params->display_height) {
-		g_movie_playback_params = NULL;
-		SmackClose(g_movie_smack_handle);
-		return MOVIE_STATUS_TOO_LARGE;
-	}
-
-	g_movie_x = ((unsigned int)g_movie_playback_params->display_width -
-		     g_movie_smack_handle->width) /
-		    2;
-	g_movie_y = ((unsigned int)g_movie_playback_params->display_height -
-		     g_movie_smack_handle->height) /
-		    2;
-	g_movie_right_margin = g_movie_playback_params->display_width -
-			       g_movie_smack_handle->width - g_movie_x;
-	g_movie_bottom_margin = g_movie_playback_params->display_height -
-				g_movie_smack_handle->height - g_movie_y;
-	g_movie_previous_wnd_proc_mode = frontend_display_get_wnd_proc_mode();
-	frontend_display_set_wnd_proc_mode(MOVIE_WINDOW_MODE);
-	g_movie_playback_completion_state = 0;
-	g_movie_skip_requested = 0;
-	struct movie_win32_message message;
-	while (frontend_display_get_wnd_proc_mode() == MOVIE_WINDOW_MODE) {
-		net_pump_incoming_packets();
-		if (PeekMessageA(&message, NULL, 0, 0, REMOVE_MESSAGE) != 0) {
-			TranslateMessage(&message);
-			DispatchMessageA(&message);
-		} else if (g_movie_playback_completion_state == 0) {
-			if (SmackWait(g_movie_smack_handle) == 0) {
-				movie_decode_and_present_frame();
-			}
-		} else {
-			movie_progress_callback progress_callback =
-				g_movie_playback_params->progress_callback;
-			if (progress_callback != NULL) {
-				if (progress_callback(
-					    g_movie_smack_handle->current_frame,
-					    g_movie_smack_handle->frame_count -
-						    1,
-					    g_movie_playback_params
-						    ->progress_callback_context) ==
-				    PROGRESS_FINISHED) {
-					frontend_display_set_wnd_proc_mode(
-						g_movie_previous_wnd_proc_mode);
-				}
-				if (g_opt_no_fullscreen == 0 &&
-				    g_no_page_flip == 0) {
-					g_movie_playback_params->primary_surface
-						->lpVtbl
-						->Flip(g_movie_playback_params
-							       ->primary_surface,
-						       NULL, FLIP_WAIT);
-				}
-			} else {
-				frontend_display_set_wnd_proc_mode(
-					g_movie_previous_wnd_proc_mode);
-			}
-		}
-	}
-
-	if (g_movie_subtitle_file != NULL) {
-		FILE_RAW_CLOSE(g_movie_subtitle_file);
-		g_movie_subtitle_file = NULL;
-	}
-	SmackClose(g_movie_smack_handle);
-	g_movie_playback_params = NULL;
-	return g_movie_skip_requested == 0 ? MOVIE_STATUS_OK
-					   : MOVIE_STATUS_SKIPPED;
-#endif
 }
 
 /* Picks the Smacker buffer format for the primary surface's pixel format:
@@ -760,12 +567,7 @@ int movie_get_smack_buffer_format(void)
 // FUNCTION: XVT 0x4EF590
 int movie_initialize_system_palette(void *hWnd)
 {
-#ifndef XVT_MODERN
-	void *dc = GetDC(hWnd);
-	GetSystemPaletteEntries(dc, 0, 256, g_movie_palette_entries);
-#else
 	(void)hWnd;
-#endif
 
 	int index;
 	for (index = 0; index < 10; ++index) {
@@ -778,11 +580,7 @@ int movie_initialize_system_palette(void *hWnd)
 		g_movie_palette_entries[index].flags = 0;
 	}
 
-#ifdef XVT_MODERN
 	return 1;
-#else
-	return ReleaseDC(hWnd, dc);
-#endif
 }
 
 /* Decodes and shows one movie frame; the modern build's body is empty, and only
@@ -799,113 +597,6 @@ int movie_initialize_system_palette(void *hWnd)
 // FUNCTION: XVT 0x4EF600
 void movie_decode_and_present_frame(void)
 {
-#ifndef XVT_MODERN
-	void *focus_window = GetFocus();
-	if (g_movie_playback_params->window != focus_window) {
-		return;
-	}
-	if (g_movie_smack_handle->palette_changed != 0) {
-		movie_update_direct_draw_palette();
-	}
-	DDSURFACEDESC surface_desc;
-	surface_desc.dwSize = sizeof(surface_desc);
-	while (g_movie_playback_params->decode_surface->lpVtbl->Lock(
-		       g_movie_playback_params->decode_surface, NULL,
-		       &surface_desc, 1, NULL) == DX_DDERR_SURFACELOST) {
-		int result = g_movie_playback_params->decode_surface->lpVtbl
-				     ->Restore(g_movie_playback_params
-						       ->decode_surface);
-		if (result != 0) {
-			return;
-		}
-	}
-	SmackToBuffer(g_movie_smack_handle, g_movie_x, g_movie_y,
-		      surface_desc.lPitch, g_movie_smack_handle->height,
-		      surface_desc.lpSurface, g_movie_smack_buffer_format);
-	SmackDoFrame(g_movie_smack_handle);
-	g_movie_frame_available = 1;
-	g_movie_playback_params->decode_surface->lpVtbl->Unlock(
-		g_movie_playback_params->decode_surface,
-		surface_desc.lpSurface);
-	movie_draw_subtitles(g_movie_smack_handle->current_frame);
-	if (g_movie_playback_params->progress_callback != NULL &&
-	    g_movie_playback_params->progress_callback(
-		    g_movie_smack_handle->current_frame,
-		    g_movie_smack_handle->frame_count - 1,
-		    g_movie_playback_params->progress_callback_context) == 1) {
-		frontend_display_set_wnd_proc_mode(
-			g_movie_previous_wnd_proc_mode);
-	}
-	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
-		unsigned int current_count = 0;
-		if (SmackToBufferRect(g_movie_smack_handle, 0) != 0) {
-			unsigned int dirty_index = 0;
-			do {
-				if (g_movie_smack_handle->dirty_width != 0) {
-					g_movie_current_dirty_rects[dirty_index]
-						.x =
-						g_movie_smack_handle->dirty_x;
-					++dirty_index;
-					++current_count;
-					g_movie_current_dirty_rects
-						[dirty_index - 1]
-							.y =
-						g_movie_smack_handle->dirty_y;
-					g_movie_current_dirty_rects
-						[dirty_index - 1]
-							.width =
-						g_movie_smack_handle
-							->dirty_width;
-					g_movie_current_dirty_rects
-						[dirty_index - 1]
-							.height =
-						g_movie_smack_handle
-							->dirty_height;
-				}
-			} while (SmackToBufferRect(g_movie_smack_handle, 0) !=
-				 0);
-		}
-		struct movie_dirty_rect *merged_rects;
-		unsigned int merged_count;
-		movie_merge_dirty_rect_lists(g_movie_current_dirty_rects,
-					     current_count,
-					     g_movie_previous_dirty_rects,
-					     g_movie_previous_dirty_rect_count,
-					     &merged_rects, &merged_count);
-		if (merged_count-- != 0) {
-			do {
-				movie_blit_rect_to_display(
-					merged_rects[merged_count].x,
-					merged_rects[merged_count].y,
-					merged_rects[merged_count].width,
-					merged_rects[merged_count].height);
-			} while (merged_count-- != 0);
-		}
-		g_movie_playback_params->primary_surface->lpVtbl->Flip(
-			g_movie_playback_params->primary_surface, NULL, 1);
-		/* merged_rects is reused as the temporary for swapping the
-		 * previous and current dirty lists. */
-		merged_rects = g_movie_previous_dirty_rects;
-		g_movie_previous_dirty_rects = g_movie_current_dirty_rects;
-		g_movie_current_dirty_rects = merged_rects;
-		g_movie_previous_dirty_rect_count = current_count;
-	} else {
-		while (SmackToBufferRect(g_movie_smack_handle, 0) != 0) {
-			movie_blit_rect_to_display(
-				g_movie_smack_handle->dirty_x,
-				g_movie_smack_handle->dirty_y,
-				g_movie_smack_handle->dirty_width,
-				g_movie_smack_handle->dirty_height);
-		}
-	}
-	if (g_movie_smack_handle->frame_count -
-		    g_movie_smack_handle->current_frame ==
-	    1) {
-		g_movie_playback_completion_state = 1;
-		return;
-	}
-	SmackNextFrame(g_movie_smack_handle);
-#endif
 }
 
 /* Merges two lists of changed rectangles into fewer, larger ones. When either
@@ -1109,7 +800,6 @@ int movie_compute_rect_union_and_intersection(
 // FUNCTION: XVT 0x4EFCE0
 int movie_play(const char *name, int synchronize_multiplayer)
 {
-#ifdef XVT_MODERN
 	int result;
 	if (xvt_movie_task_take_result(&result)) {
 		return result;
@@ -1117,107 +807,6 @@ int movie_play(const char *name, int synchronize_multiplayer)
 	XVT_LOG_DEBUG("movie.requested name=\"%.127s\" sync=%d", name,
 		      synchronize_multiplayer);
 	return xvt_movie_task_begin(name, synchronize_multiplayer);
-#else
-	enum {
-		MOVIE_PATH_CAPACITY = 128,
-		MOVIE_NAME_CAPACITY = 256,
-		MOVIE_DISPLAY_WIDTH = 640,
-		MOVIE_DISPLAY_HEIGHT = 480,
-		MOVIE_STATUS_NOT_FOUND = 2,
-	};
-
-	char movie_name[MOVIE_NAME_CAPACITY];
-
-	strcpy(movie_name, name);
-	char movie_path[MOVIE_PATH_CAPACITY];
-	strcpy(movie_path, "movies\\");
-	strcat(movie_path, movie_name);
-	strcat(movie_path, ".smk");
-	xvt_file *probe_stream =
-		FILE_RAW_OPEN(movie_path, g_file_mode_read_binary);
-	if (synchronize_multiplayer != 0 &&
-	    g_frontend_mission_session_mode !=
-		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		if (probe_stream == NULL) {
-			strcpy(movie_path, "d:\\movies\\");
-			movie_path[0] = file_get_cd_drive_letter();
-			strcat(movie_path, movie_name);
-			strcat(movie_path, ".smk");
-			probe_stream = FILE_RAW_OPEN(movie_path,
-						     g_file_mode_read_binary);
-			if (probe_stream == NULL) {
-				strcpy(movie_name, "Flyby1a");
-			} else {
-				FILE_RAW_CLOSE(probe_stream);
-			}
-		} else {
-			FILE_RAW_CLOSE(probe_stream);
-		}
-	} else {
-		if (probe_stream == NULL) {
-			strcpy(movie_path, "d:\\movies\\");
-			movie_path[0] = file_get_cd_drive_letter();
-			strcat(movie_path, movie_name);
-			strcat(movie_path, ".smk");
-			for (;;) {
-				probe_stream = FILE_RAW_OPEN(
-					movie_path, g_file_mode_read_binary);
-				if (probe_stream != NULL) {
-					break;
-				}
-				frontend_display_enable_offscreen_restore();
-				if (frontend_dialog_show_confirm_dialog(
-					    frontend_string_get(
-						    FRONTSTR_827_PLEASE_INSERT_BALANCE_OF_POWER_CD),
-					    frontend_string_get(
-						    FRONTSTR_828_INTO_YOUR_CD_ROM_DRIVE),
-					    frontend_string_get(
-						    FRONTSTR_829_EMPTY_TRANSLATION_PLACEHOLDER),
-					    frontend_string_get(
-						    FRONTSTR_523_OKAY),
-					    frontend_string_get(
-						    FRONTSTR_019_CANCEL)) ==
-				    0) {
-					frontend_display_disable_offscreen_restore();
-					frontend_display_clear_back_buffer();
-					return MOVIE_STATUS_NOT_FOUND;
-				}
-				frontend_display_disable_offscreen_restore();
-				frontend_display_clear_back_buffer();
-			}
-		}
-		FILE_RAW_CLOSE(probe_stream);
-	}
-
-	struct movie_playback_params playback_params;
-	playback_params.movie_name = movie_name;
-	playback_params.primary_surface = g_front_state.primary_surface;
-	playback_params.display_width = MOVIE_DISPLAY_WIDTH;
-	playback_params.display_height = MOVIE_DISPLAY_HEIGHT;
-	if (g_opt_no_fullscreen == 0 && g_no_page_flip == 0) {
-		playback_params.decode_surface =
-			g_front_state.offscreen_surface;
-	} else {
-		playback_params.decode_surface =
-			g_front_state.back_buffer_surface;
-	}
-	playback_params.palette = g_front_state.dd_palette;
-	playback_params.direct_sound = g_front_state.frontend_direct_sound;
-	playback_params.window = g_front_state.hWnd;
-	if (synchronize_multiplayer != 0 &&
-	    g_frontend_mission_session_mode !=
-		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		playback_params.input_callback =
-			(movie_input_callback)movie_multiplayer_input_callback;
-		playback_params.progress_callback = (movie_progress_callback)
-			movie_multiplayer_sync_callback;
-	} else {
-		playback_params.input_callback =
-			(movie_input_callback)movie_singleplayer_input_callback;
-		playback_params.progress_callback = NULL;
-	}
-	return movie_run_smacker_playback(&playback_params);
-#endif
 }
 
 /* Input callback for single-player movies. Paint: clears and presents the

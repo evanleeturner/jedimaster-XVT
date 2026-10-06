@@ -1,7 +1,5 @@
 #include "xvt/frontend/frontend_bootstrap.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/movie_task.h"
-#endif
 #include <stdio.h>
 
 #include "xvt/assets/file.h"
@@ -43,13 +41,9 @@ int frontend_bootstrap_play_opening_and_enter_credits(int frame_counter)
 {
 	(void)frame_counter;
 	frontend_display_unlock_back_buffer();
-#ifdef XVT_MODERN
 	if (movie_play("Opening", 0) == XVT_MOVIE_PENDING) {
 		return 0;
 	}
-#else
-	movie_play("Opening", 0);
-#endif
 	frontend_display_clear_back_buffer();
 	frontend_screen_set_callbacks(
 		credits_update_screen,

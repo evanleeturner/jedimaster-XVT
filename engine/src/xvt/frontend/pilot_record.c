@@ -1,9 +1,7 @@
 #include "xvt/frontend/pilot_record.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_actions.h"
 #include "xvt_runtime/runtime/frontend_movies.h"
-#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -30,9 +28,7 @@
 #include "xvt/frontend/movie.h"
 #include "xvt/input/keyboard.h"
 #include "xvt_runtime/log/log_both_builds.h"
-#ifdef XVT_MODERN
 #include <strings.h>
-#endif
 
 enum {
 	CAMPAIGN_AWARD_FLAG_COUNT = 16,
@@ -367,7 +363,6 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 	int pilot_index;
 	int accepted;
 
-#ifdef XVT_MODERN
 	if (xvt_frontend_action_pending(XVT_ACTION_OWNER_PILOT) == 2) {
 		if (!xvt_dialog_take_result(&accepted)) {
 			return 1;
@@ -395,7 +390,6 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 			      selected_index,
 			      g_pilot_record_name_input[0] != '\0');
 	} else {
-#endif
 		frontend_draw_rect_assign(&rect, 451, 90, 605, 106);
 		frontend_text_draw_centered(
 			12, frontend_string_get(FRONTSTR_463_PILOT_ROSTER),
@@ -432,17 +426,10 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 		/* accepted holds a name comparison in this block: nonzero means
 		 * the clicked pilot is not the current one. */
 		if (selected_index != 0) {
-#ifdef XVT_MODERN
 			accepted = strncasecmp(
 				g_pilot_data.name,
 				g_pilot_list_display_names[selected_index - 1],
 				PILOT_NAME_COMPARE_LENGTH);
-#else
-		accepted = _strnicmp(
-			g_pilot_data.name,
-			g_pilot_list_display_names[selected_index - 1],
-			PILOT_NAME_COMPARE_LENGTH);
-#endif
 			XVT_LOG_DEBUG("pilot.list_clicked index=%d other=%d",
 				      selected_index - 1, accepted != 0);
 			if (accepted != 0) {
@@ -518,14 +505,11 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 			g_pilot_record_pages_need_rebuild = 1;
 		}
 
-#ifdef XVT_MODERN
 		if (!g_pilot_file_list) {
 			xvt_storage_fatal("Cannot enumerate saved pilots", 1);
 			return 1;
 		}
-#endif
 		if (g_pilot_file_list->count == 0) {
-#ifdef XVT_MODERN
 			if (frame_counter == 0) {
 				xvt_frontend_action_trigger(
 					XVT_ACTION_OWNER_PILOT, 1, 1);
@@ -538,10 +522,6 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 			selected_index = frontend_text_handle_editable_field(
 				&rect, g_pilot_record_name_input,
 				PILOT_NAME_MAX_CHARS, 0, 12, "\\*$~|:<>?/\t\"");
-#else
-		selected_index = frontend_dialog_prompt_for_pilot_name(
-			g_pilot_record_name_input);
-#endif
 		} else {
 			frontend_draw_rect_assign(&rect, 461, 321, 595, 340);
 			selected_index = frontend_text_handle_editable_field(
@@ -549,9 +529,7 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 				PILOT_NAME_MAX_CHARS, 0, 12, "\\*$~|:<>?/\t\"");
 		}
 
-#ifdef XVT_MODERN
 	}
-#endif
 	/* selected_index says here whether the name entry was finished; it is
 	 * then reused to say whether the name matched an existing pilot, which
 	 * only the modern build sets. */
@@ -568,21 +546,12 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 				 * pilot. */
 				for (; pilot_index < g_pilot_file_list->count;
 				     ++pilot_index) {
-#ifdef XVT_MODERN
 					accepted = strcasecmp(
 						g_pilot_list_display_names
 							[pilot_index],
 						g_pilot_record_name_input);
-#else
-					accepted = _strcmpi(
-						g_pilot_list_display_names
-							[pilot_index],
-						g_pilot_record_name_input);
-#endif
 					if (accepted == 0) {
-#ifdef XVT_MODERN
 						selected_index = 1;
-#endif
 						if (pilot_load_from_path(
 							    node->path) != 0) {
 							if (g_game_config
@@ -674,15 +643,11 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 							.sfx_datapad_volume,
 					PILOT_UI_SOUND_CENTER_PAN);
 			}
-#ifdef XVT_MODERN
 			if (!pilot_create_new(g_pilot_record_name_input)) {
 				xvt_storage_fatal("Cannot save the new pilot",
 						  1);
 				return 1;
 			}
-#else
-			pilot_create_new(g_pilot_record_name_input);
-#endif
 			if (g_pilot_file_list != NULL &&
 			    g_pilot_file_list->count >
 				    PILOT_LIST_VISIBLE_COUNT) {
@@ -708,7 +673,6 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 	    g_pilot_data.name[0] != '\0') {
 		XVT_LOG_DEBUG("pilot.delete_asked from_button=%d",
 			      selected_index != 0);
-#ifdef XVT_MODERN
 		xvt_frontend_action_trigger(XVT_ACTION_OWNER_PILOT, 2, 1);
 		frontend_dialog_show_confirm_dialog(
 			frontend_string_get(FRONTSTR_527_ARE_YOU_SURE_YOU_WANT),
@@ -716,18 +680,6 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 			NULL, frontend_string_get(FRONTSTR_529_YES),
 			frontend_string_get(FRONTSTR_530_NO));
 		return 1;
-#else
-		if (frontend_dialog_show_confirm_dialog(
-			    frontend_string_get(
-				    FRONTSTR_527_ARE_YOU_SURE_YOU_WANT),
-			    frontend_string_get(
-				    FRONTSTR_528_TO_DELETE_THIS_PILOT),
-			    NULL, frontend_string_get(FRONTSTR_529_YES),
-			    frontend_string_get(FRONTSTR_530_NO)) != 0) {
-			pilot_delete_current();
-		}
-		g_pilot_list_scroll_offset = 0;
-#endif
 	}
 
 	return 1;
@@ -778,7 +730,6 @@ int pilot_record_draw_pilot_list(const struct RECT *bounds,
 					&previous_clip_rect);
 				frontend_display_set_screen_clip_rect640x480(
 					&rect);
-#ifdef XVT_MODERN
 				if (strcasecmp(g_pilot_list_display_names
 						       [display_name_index],
 					       g_pilot_data.name) == 0) {
@@ -794,23 +745,6 @@ int pilot_record_draw_pilot_list(const struct RECT *bounds,
 							[display_name_index],
 						&rect, 0, 1, 0xFFFF);
 				}
-#else
-				if (_strcmpi(g_pilot_list_display_names
-						     [display_name_index],
-					     g_pilot_data.name) == 0) {
-					frontend_text_draw_aligned_in_rect(
-						12,
-						g_pilot_list_display_names
-							[display_name_index],
-						&rect, 0, 1, g_color_yellow);
-				} else {
-					frontend_text_draw_aligned_in_rect(
-						12,
-						g_pilot_list_display_names
-							[display_name_index],
-						&rect, 0, 1, 0xFFFF);
-				}
-#endif
 				++pilot_index;
 				++display_name_index;
 				frontend_display_set_screen_clip_rect640x480(
@@ -856,13 +790,11 @@ int pilot_record_rebuild_pilot_list(int *selected_index)
 		g_pilot_list_display_names = (char (*)[14])malloc(
 			sizeof(*g_pilot_list_display_names) *
 			g_pilot_file_list->count);
-#ifdef XVT_MODERN
 		if (!g_pilot_list_display_names) {
 			XVT_LOG_ERROR("pilot.names_unallocated count=%d",
 				      g_pilot_file_list->count);
 			return 0;
 		}
-#endif
 		memset(g_pilot_list_display_names, 0,
 		       sizeof(*g_pilot_list_display_names) *
 			       g_pilot_file_list->count);
@@ -886,17 +818,10 @@ int pilot_record_rebuild_pilot_list(int *selected_index)
 						12);
 					((char *)g_pilot_list_display_names)
 						[display_offset + 12] = '\0';
-#ifdef XVT_MODERN
 					if (strcasecmp(
 						    (char *)g_pilot_list_display_names +
 							    display_offset,
 						    g_pilot_data.name) == 0) {
-#else
-					if (_strcmpi(
-						    (char *)g_pilot_list_display_names +
-							    display_offset,
-						    g_pilot_data.name) == 0) {
-#endif
 						*selected_index = pilot_index;
 					}
 					file_close(stream);
@@ -6461,16 +6386,11 @@ int pilot_record_draw_cutscene_viewer_page(void)
 		frontend_display_clear_back_buffer();
 		frontend_display_present_frame();
 		frontend_display_clear_back_buffer();
-#ifdef XVT_MODERN
 		if (xvt_frontend_movies_play_viewer(
 			    g_cutscene_table[selected_cutscene - 1]
 				    .movie_name)) {
 			return 1;
 		}
-#else
-		movie_play(g_cutscene_table[selected_cutscene - 1].movie_name,
-			   0);
-#endif
 		frontend_display_clear_back_buffer();
 		frontend_display_present_frame();
 		frontend_display_clear_back_buffer();
@@ -7500,9 +7420,7 @@ int pilot_record_redraw_background(void)
 // FUNCTION: XVT 0x4CC060
 int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 {
-#ifdef XVT_MODERN
 	unsigned int record_capacity;
-#endif
 
 	if (g_campaign_award_sprites != NULL) {
 		free(g_campaign_award_sprites);
@@ -7521,15 +7439,11 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 	}
 	unsigned int record_count_or_index =
 		(unsigned int)atoi(g_frontend_scratch_buffer);
-#ifdef XVT_MODERN
 	record_capacity = record_count_or_index;
-#endif
 	g_campaign_award_sprites = (struct campaign_award_sprite_entry *)malloc(
 		sizeof(*g_campaign_award_sprites) * record_count_or_index);
 	if (g_campaign_award_sprites == NULL) {
-#ifdef XVT_MODERN
 		file_close(stream);
-#endif
 		XVT_LOG_ERROR("pilot.awards_table_unallocated count=%u",
 			      record_count_or_index);
 		return 0;
@@ -7540,14 +7454,7 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 
 	char *line;
 	unsigned int sprite_name_byte_offset;
-#ifdef XVT_MODERN
 	while (g_campaign_award_sprite_count < record_capacity) {
-#else
-	while (1) {
-		if (record_count_or_index <= g_campaign_award_sprite_count) {
-			break;
-		}
-#endif
 		do {
 			line = FILE_GETS(g_frontend_scratch_buffer, 255,
 					 stream);

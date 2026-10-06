@@ -1,10 +1,8 @@
 #include "xvt/frontend/concourse.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_actions.h"
 #include "xvt_runtime/runtime/frontend_movies.h"
 #include "xvt_runtime/runtime/network_task.h"
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -228,12 +226,7 @@ int concourse_exit(int frame_counter)
 int concourse_update(int frame_counter)
 {
 	struct RECT rect;
-#ifndef XVT_MODERN
-	char local_player_info[2];
-	int local_player_id;
-#endif
 
-#ifdef XVT_MODERN
 	if (xvt_frontend_movies_resume_viewer()) {
 		return 0;
 	}
@@ -242,106 +235,14 @@ int concourse_update(int frame_counter)
 	}
 	if (frame_counter == 0 &&
 	    !xvt_frontend_action_pending(XVT_ACTION_OWNER_PILOT)) {
-#else
-	if (frame_counter == 0) {
-#endif
-#ifdef XVT_MODERN
 		if (!xvt_frontend_action_pending(XVT_ACTION_OWNER_CONCOURSE)) {
-#endif
 			keyboard_flush_char_buffer();
-#ifndef XVT_MODERN
-			if (joystick_get_count() == 0) {
-				if (error_text_load_line(
-					    2, g_frontend_scratch_buffer) ==
-				    0) {
-					frontend_display_show_game_message_box(
-						"ERROR:  Joystick not detected!\n"
-						"\n"
-						"The game will not work properly\n"
-						"without a joystick attached.\n"
-						"\n"
-						"Press ENTER to exit.");
-				} else {
-					frontend_display_show_game_message_box(
-						g_frontend_scratch_buffer);
-				}
-				return 1;
-			}
-
-			if (file_check_game_cd_present(g_skip_movie_checks) ==
-			    0) {
-				int keep_retrying;
-
-				do {
-					cd_audio_initialize();
-					frontend_display_clear_back_buffer();
-					if (front_image_resource_exists(
-						    "dialogok") != 0) {
-						keep_retrying = frontend_dialog_show_confirm_dialog(
-							frontend_string_get(
-								FRONTSTR_706_FAILED_TO_DETECT_RETAIL_XVT_CD),
-							frontend_string_get(
-								FRONTSTR_707_PLEASE_INSERT_THE_X_WING_VS_TIE_FIGHTER_CD),
-							frontend_string_get(
-								FRONTSTR_708_INTO_YOUR_CD_ROM_DRIVE),
-							frontend_string_get(
-								FRONTSTR_523_OKAY),
-							frontend_string_get(
-								FRONTSTR_019_CANCEL));
-					} else {
-						keep_retrying = frontend_dialog_show_confirm_dialog(
-							frontend_string_get(
-								FRONTSTR_706_FAILED_TO_DETECT_RETAIL_XVT_CD),
-							frontend_string_get(
-								FRONTSTR_707_PLEASE_INSERT_THE_X_WING_VS_TIE_FIGHTER_CD),
-							frontend_string_get(
-								FRONTSTR_761_INTO_YOUR_CD_ROM_DRIVE_AND_PRESS_ENTER),
-							frontend_string_get(
-								FRONTSTR_523_OKAY),
-							frontend_string_get(
-								FRONTSTR_019_CANCEL));
-					}
-					if (keep_retrying == 0) {
-						return 1;
-					}
-					file_detect_game_and_cd_paths(
-						"\\wave\\PBC\\Pb1los07.wav");
-					if (g_cd_audio_warning_pending != 0) {
-						g_cd_audio_warning_pending =
-							cd_audio_initialize() ==
-							0;
-					} else {
-						cd_audio_initialize();
-					}
-					cd_audio_enable_loop_current_track();
-					if (g_game_config
-						    .datapad_music_enabled !=
-					    0) {
-						cd_audio_set_aux_volume(
-							CONCOURSE_CD_VOLUME_MAX *
-							g_game_config
-								.music_volume /
-							CONCOURSE_CD_VOLUME_DIVISOR);
-						cd_audio_play_track_from_time(
-							CONCOURSE_MUSIC_TRACK,
-							0, 0);
-						cd_audio_suspend_playback();
-						cd_audio_request_resume_playback();
-					} else {
-						cd_audio_stop_current_track();
-					}
-				} while (file_check_game_cd_present(
-						 g_skip_movie_checks) == 0);
-			}
-
-#else
 		if (!file_check_game_cd_present(g_skip_movie_checks)) {
 			xvt_storage_fatal(
 				"Required flight/voice assets are missing; select a complete installation with --setup",
 				1);
 			return 1;
 		}
-#endif
 			front_image_load_resource_list("frontres\\top.lst");
 			front_image_load_resource_list("frontres\\side.lst");
 			front_image_load_resource_list("frontres\\awards.lst");
@@ -350,77 +251,9 @@ int concourse_update(int frame_counter)
 			frontend_sound_load_list("sfx\\sfx.lst");
 			frontend_display_clear_back_buffer();
 			frontend_check_host_cd_present();
-#ifndef XVT_MODERN
-			if (g_skip_movie_checks == 0 && g_opt_is_host == 0 &&
-			    g_opt_is_client == 0) {
-				if (g_pilot_data.faction_statistics[0]
-					    .cd_movie_check_counter == 0) {
-					if (file_check_required_cd_movie_assets_present() ==
-					    0) {
-						do {
-							cd_audio_stop_current_track();
-							frontend_display_clear_back_buffer();
-							front_image_resource_exists(
-								"dialogok");
-							if (frontend_dialog_show_confirm_dialog(
-								    frontend_string_get(
-									    FRONTSTR_827_PLEASE_INSERT_BALANCE_OF_POWER_CD),
-								    frontend_string_get(
-									    FRONTSTR_828_INTO_YOUR_CD_ROM_DRIVE),
-								    frontend_string_get(
-									    FRONTSTR_829_EMPTY_TRANSLATION_PLACEHOLDER),
-								    frontend_string_get(
-									    FRONTSTR_523_OKAY),
-								    frontend_string_get(
-									    FRONTSTR_019_CANCEL)) ==
-							    0) {
-								return 1;
-							}
-							cd_audio_initialize();
-							cd_audio_enable_loop_current_track();
-							if (g_game_config
-								    .datapad_music_enabled !=
-							    0) {
-								cd_audio_set_aux_volume(
-									CONCOURSE_CD_VOLUME_MAX *
-									g_game_config
-										.music_volume /
-									CONCOURSE_CD_VOLUME_DIVISOR);
-								cd_audio_play_track_from_time(
-									CONCOURSE_MUSIC_TRACK,
-									0, 0);
-								cd_audio_suspend_playback();
-								cd_audio_request_resume_playback();
-							} else {
-								cd_audio_stop_current_track();
-							}
-						} while (
-							file_check_required_cd_movie_assets_present() ==
-							0);
-					}
-					frontend_display_clear_back_buffer();
-					g_pilot_data.faction_statistics[0]
-						.cd_movie_check_counter = 1;
-				} else {
-					++g_pilot_data.faction_statistics[0]
-						  .cd_movie_check_counter;
-					if (g_pilot_data.faction_statistics[0]
-						    .cd_movie_check_counter >=
-					    CONCOURSE_CD_MOVIE_CHECK_LIMIT) {
-						g_pilot_data
-							.faction_statistics[0]
-							.cd_movie_check_counter =
-							0;
-					}
-				}
-			}
-#endif
 			g_skip_movie_checks = 1;
-#ifdef XVT_MODERN
 		}
-#endif
 		if (g_cd_audio_warning_pending != 0) {
-#ifdef XVT_MODERN
 			frontend_dialog_show_confirm_dialog(
 				"Music files could not be opened.",
 				"Check BalanceOfPower/MUSIC/TrackNN.ogg in the selected installation.",
@@ -432,16 +265,6 @@ int concourse_update(int frame_counter)
 				return 0;
 			}
 			xvt_frontend_action_finish(XVT_ACTION_OWNER_CONCOURSE);
-#else
-			frontend_dialog_show_confirm_dialog(
-				frontend_string_get(
-					FRONTSTR_765_CD_MUSIC_NOT_AVAILABLE),
-				frontend_string_get(
-					FRONTSTR_766_MAKE_SURE_OTHER_CD_AUDIO_PLAYING_APPLICATIONS),
-				frontend_string_get(
-					FRONTSTR_767_LIKE_FLEXICD_ARE_NOT_ALREADY_RUNNING),
-				frontend_string_get(FRONTSTR_523_OKAY), NULL);
-#endif
 			g_cd_audio_warning_pending = 0;
 			XVT_LOG_DEBUG("frontend.music_warning_shown");
 		}
@@ -533,71 +356,8 @@ int concourse_update(int frame_counter)
 			strcpy(g_pilot_data.multiplayer_game_name,
 			       "Internet game.");
 			g_mission_setup_is_host = 1;
-#ifndef XVT_MODERN
-			switch ((network_transport_type)
-					g_game_config.network_type) {
-			case NET_TRANSPORT_IPX:
-				g_frontend_scratch_buffer[0] = '\0';
-				break;
-			case NET_TRANSPORT_TCPIP:
-				frontend_display_flip_direct_draw_to_gdi_surface();
-				strcpy(g_frontend_scratch_buffer,
-				       g_game_config.ip_address);
-				break;
-			case NET_TRANSPORT_MODEM:
-				frontend_display_flip_direct_draw_to_gdi_surface();
-				strcpy(g_frontend_scratch_buffer,
-				       g_game_config.phone_number);
-				break;
-			case NET_TRANSPORT_SERIAL:
-				break;
-			}
-			local_player_info[0] = (char)(g_pilot_data.rating + 1);
-			local_player_info[1] = '\0';
-			frontend_cursor_show_os_cursor();
-#endif
-#ifdef XVT_MODERN
 			xvt_network_task_begin(XVT_NETWORK_AUTO_HOST);
 			return 0;
-#else
-			if (net_start_network_session(
-				    (int)g_frontend_net_xvt_direct_play_app_guid
-					    [0],
-				    (int)g_frontend_net_xvt_direct_play_app_guid
-					    [1],
-				    (int)g_frontend_net_xvt_direct_play_app_guid
-					    [2],
-				    (int)g_frontend_net_xvt_direct_play_app_guid
-					    [3],
-				    local_player_info, g_pilot_data.name,
-				    g_mission_setup_is_host,
-				    g_pilot_data.multiplayer_game_name,
-				    (network_transport_type)
-					    g_game_config.network_type,
-				    0, 0, g_frontend_scratch_buffer,
-				    NULL) == 0) {
-				frontend_display_unlock_back_buffer();
-				frontend_cursor_hide_os_cursor();
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-				g_frontend_mission_session_mode =
-					FRONTEND_MISSION_SESSION_NONE;
-				return 0;
-			}
-			frontend_display_unlock_back_buffer();
-			frontend_cursor_hide_os_cursor();
-			g_draw_surface_ptr =
-				frontend_display_lock_back_buffer();
-			local_player_id = net_get_local_player_id();
-			net_set_player_ready(local_player_id);
-			memset(g_mp_roster, 0, sizeof(g_mp_roster));
-			strcpy(g_mp_roster[0].name, g_pilot_data.name);
-			g_mp_roster[0].player_id = net_get_local_player_id();
-			g_mp_roster[0].pilot_rating = g_pilot_data.rating;
-			frontend_screen_set_callbacks(mission_setup_update,
-						      mission_setup_exit);
-			return 0;
-#endif
 		}
 		if (g_opt_is_client != 0) {
 			g_opt_is_client = 0;
@@ -623,11 +383,9 @@ int concourse_update(int frame_counter)
 	}
 
 	pilot_record_update_pilot_selection_panel(frame_counter);
-#ifdef XVT_MODERN
 	if (xvt_dialog_is_active()) {
 		return 0;
 	}
-#endif
 	frontend_draw_rect_assign(&rect, 507, 452, 562, 464);
 	sprintf(g_frontend_scratch_buffer, "v. %d.%d", CONCOURSE_VERSION_MAJOR,
 		CONCOURSE_VERSION_MINOR);

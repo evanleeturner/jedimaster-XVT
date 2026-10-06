@@ -1,11 +1,7 @@
 #include "xvt/frontend/mission_briefing.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/frontend_cleanup.h"
-#endif
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/mission_dialogs.h"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -567,11 +563,9 @@ int mission_briefing_craft_selection_update(int frame_counter)
 					frontend_string_get(
 						FRONTSTR_633_PLEASE_SELECT_ANOTHER_GAME),
 					NULL, NULL);
-#ifdef XVT_MODERN
 				return xvt_dialog_continue_with(
 					xvt_mission_dialogs_resume,
 					XVT_MISSION_BRIEFING_CANCELLED);
-#endif
 			}
 			if (net_is_host() != 0) {
 				g_frontend_mission_session_mode =
@@ -958,11 +952,9 @@ int mission_briefing_craft_selection_update(int frame_counter)
 							FRONTSTR_019_CANCEL));
 					XVT_LOG_DEBUG(
 						"mission.setup_confirm_asked screen=\"craft\" action=\"restart\"");
-#ifdef XVT_MODERN
 					return xvt_dialog_continue_with(
 						xvt_mission_dialogs_resume,
 						XVT_MISSION_SOLO_BACK_TO_SETUP);
-#endif
 				}
 			} else {
 				frontend_button_set_overlay_text(
@@ -998,12 +990,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 					frontend_screen_set_callbacks(
 						mission_setup_team_assignment_update,
 
-#ifdef XVT_MODERN
 						xvt_frontend_cleanup_mission_resources
-#else
-						(frontend_screen_exit_fn)
-							frontend_mission_list_free_screen_resources_and_clear_input_gate
-#endif
 					);
 				}
 				return 0;
@@ -1019,7 +1006,6 @@ int mission_briefing_craft_selection_update(int frame_counter)
 		frontend_button_set_overlay_text(
 			frontend_string_get(FRONTSTR_668_RESTART));
 
-#ifdef XVT_MODERN
 		if (frontend_button_handle_sprite_button(
 			    &rect, "leaveup", "leavedown",
 			    frontend_string_get(
@@ -1040,34 +1026,11 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				xvt_mission_dialogs_resume,
 				XVT_MISSION_HOST_RESTART);
 		}
-#else
-		if (frontend_button_handle_sprite_button(
-			    &rect, "leaveup", "leavedown",
-			    frontend_string_get(
-				    FRONTSTR_260_RETURN_TO_SELECT_MISSION),
-			    12, 0, 8, "buttonsound") != 0 &&
-		    frontend_dialog_show_confirm_dialog(
-			    frontend_string_get(
-				    FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
-			    frontend_string_get(
-				    FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
-			    frontend_string_get(FRONTSTR_754_TO_SELECT_MISSION),
-			    frontend_string_get(FRONTSTR_523_OKAY),
-			    frontend_string_get(FRONTSTR_019_CANCEL)) != 0) {
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_RETURN_TO_SETUP;
-			net_send_packet_and_flush(
-				0, &g_frontend_net_packet_scratch,
-				sizeof(g_frontend_net_packet_scratch
-					       .packet_type));
-		}
-#endif
 
 	} else {
 		frontend_button_set_overlay_text(
 			frontend_string_get(FRONTSTR_204_LEAVE));
 
-#ifdef XVT_MODERN
 		if (frontend_button_handle_sprite_button(
 			    &rect, "leaveup", "leavedown",
 			    frontend_string_get(FRONTSTR_204_LEAVE), 12, 0, 8,
@@ -1087,35 +1050,6 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				xvt_mission_dialogs_resume,
 				XVT_MISSION_CLIENT_LEAVE);
 		}
-#else
-		if (frontend_button_handle_sprite_button(
-			    &rect, "leaveup", "leavedown",
-			    frontend_string_get(FRONTSTR_204_LEAVE), 12, 0, 8,
-			    "buttonsound") != 0 &&
-		    frontend_dialog_show_confirm_dialog(
-			    frontend_string_get(
-				    FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
-			    frontend_string_get(
-				    FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-			    frontend_string_get(
-				    FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
-			    frontend_string_get(FRONTSTR_523_OKAY),
-			    frontend_string_get(FRONTSTR_019_CANCEL)) != 0) {
-			g_frontend_skip_screen_entry_setup = 1;
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_PLAYER_LEFT;
-			net_send_packet_and_flush(
-				net_get_host_player_id(),
-				&g_frontend_net_packet_scratch,
-				sizeof(g_frontend_net_packet_scratch
-					       .packet_type));
-			net_shutdown_direct_play_session();
-			frontend_screen_set_callbacks(
-				frontend_net_join_game_screen,
-				(frontend_screen_exit_fn)
-					frontend_mission_list_free_screen_resources);
-		}
-#endif
 	}
 
 	frontend_draw_rect_assign(&rect, 8, 405, 71, 470);

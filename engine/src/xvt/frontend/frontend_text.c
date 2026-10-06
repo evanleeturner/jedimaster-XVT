@@ -1,9 +1,7 @@
 #include "xvt/frontend/frontend_text.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
-#endif
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,37 +18,6 @@
 #include "xvt/input/keyboard.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifndef XVT_MODERN
-__declspec(dllimport) void *__stdcall
-CreateFontA(int height, int width, int escapement, int orientation, int weight,
-	    unsigned int italic, unsigned int underline,
-	    unsigned int strike_out, unsigned int char_set,
-	    unsigned int out_precision, unsigned int clip_precision,
-	    unsigned int quality, unsigned int pitch_and_family,
-	    const char *face_name);
-__declspec(dllimport) int __stdcall DeleteObject(void *object);
-__declspec(dllimport) int __stdcall
-ExtTextOutA(void *dc, int x, int y, unsigned int options,
-	    const struct RECT *rect, const char *text, unsigned int count,
-	    const int *dx);
-__declspec(dllimport) void *__stdcall GetDC(void *hWnd);
-__declspec(dllimport) int __stdcall
-GetTextExtentPoint32A(void *dc, const char *text, int count, struct SIZE *size);
-__declspec(dllimport) int __stdcall ReleaseDC(void *hWnd, void *dc);
-__declspec(dllimport) void *__stdcall SelectObject(void *dc, void *object);
-__declspec(dllimport) uint32_t __stdcall SetBkColor(void *dc, uint32_t color);
-__declspec(dllimport) int __stdcall SetBkMode(void *dc, int mode);
-__declspec(dllimport) int __stdcall SetMapMode(void *dc, int mode);
-__declspec(dllimport) int __stdcall SetRect(struct RECT *rect, int left,
-					    int top, int right, int bottom);
-__declspec(dllimport) uint32_t __stdcall SetTextColor(void *dc, uint32_t color);
-__declspec(dllimport) int __stdcall SetTextCharacterExtra(void *dc, int extra);
-
-typedef HRESULT(AERON_DXAPI *frontend_text_surface_get_dc_func)(
-	IDirectDrawSurface *surface, void **dc);
-typedef HRESULT(AERON_DXAPI *frontend_text_surface_release_dc_func)(
-	IDirectDrawSurface *surface, void *dc);
-#endif
 
 /* g_front_state.text_fade_frames_left as frontend_text_suspend_text_fade saved it, for
  * frontend_text_resume_text_fade to put back. Only the suspend writes it. */
@@ -124,9 +91,7 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 		g_active_text_field_id = field_id;
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_text_entry(field_id);
-#endif
 	if (g_active_text_field_id == field_id) {
 		uint8_t input_char = keyboard_peek_char();
 		if (ignored_chars != NULL) {
@@ -146,12 +111,8 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 			if (character_code != 27) {
 				keyboard_discard_char();
 			}
-#ifdef XVT_MODERN
 			if ((input_char >= 32 && input_char != 127) ||
 			    input_char == 32) {
-#else
-			if (isprint(character_code) || input_char == 32) {
-#endif
 				if (max_chars - 1 > g_text_field_length) {
 					text[g_text_field_length++] =
 						(char)input_char;
@@ -241,23 +202,6 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 // FUNCTION: XVT 0x4DADA0
 int frontend_text_load_font(int point_size)
 {
-#ifndef XVT_MODERN
-	void *font_handle;
-	void *dc;
-	void *previous_object;
-	int back_buffer_was_locked;
-	int blob_capacity;
-	int blob_used;
-	int glyph_index;
-	unsigned int row_index;
-	int row_size;
-	uint8_t *write_cursor;
-	struct SIZE glyph_extent;
-	struct RECT surface_rect;
-	struct RECT text_rect;
-	char glyph_text[2];
-	HRESULT result;
-#endif
 
 	if (point_size > UINT8_MAX) {
 		point_size = UINT8_MAX;
@@ -266,9 +210,6 @@ int frontend_text_load_font(int point_size)
 	}
 
 	struct bitmap_font *font = NULL;
-#ifndef XVT_MODERN
-	blob_capacity = 0;
-#endif
 	if (g_front_state.font_by_size[point_size] != NULL) {
 		return 1;
 	}
@@ -296,229 +237,8 @@ int frontend_text_load_font(int point_size)
 		}
 	}
 
-#ifdef XVT_MODERN
 	XVT_LOG_WARN("text.font_missing points=%d", point_size);
 	return 0;
-#else
-	font_handle = CreateFontA(-point_size, 0, 0, 0, 400, 0, 0, 0, 0, 4, 0,
-				  3, 0x12, "times new roman");
-	if (font_handle == NULL) {
-		return 0;
-	}
-
-	back_buffer_was_locked = g_front_state.back_buffer_locked;
-	frontend_display_unlock_back_buffer();
-	dc = GetDC(NULL);
-	previous_object = SelectObject(dc, font_handle);
-	SetMapMode(dc, 1);
-	SetTextCharacterExtra(dc, 0);
-	font->glyph_width[0] = 0;
-	for (glyph_index = 1; glyph_index < 256; ++glyph_index) {
-		glyph_text[0] = (char)glyph_index;
-		glyph_text[1] = '\0';
-		GetTextExtentPoint32A(dc, glyph_text, 1, &glyph_extent);
-		if (glyph_extent.cx < 0) {
-			glyph_extent.cx = 0;
-		}
-		if (glyph_extent.cy < 0) {
-			glyph_extent.cy = 0;
-		}
-		font->glyph_width[glyph_index] = (uint8_t)glyph_extent.cx;
-		font->glyph_height[glyph_index] = (uint8_t)glyph_extent.cy;
-		blob_capacity += glyph_extent.cy * glyph_extent.cx;
-	}
-	font->glyph_height[0] = font->glyph_height[1];
-	SelectObject(dc, previous_object);
-	ReleaseDC(NULL, dc);
-
-	write_cursor = malloc(blob_capacity);
-	if (write_cursor == NULL) {
-		DeleteObject(font_handle);
-		if (back_buffer_was_locked != 0) {
-			g_draw_surface_ptr =
-				frontend_display_lock_back_buffer();
-		}
-		return 0;
-	}
-	font->p_glyph_bits = write_cursor;
-	font->glyph_bit_offset[0] = 0;
-	surface_rect.left = 0;
-	surface_rect.top = 0;
-	surface_rect.right = 640;
-	surface_rect.bottom = 480;
-
-	for (;;) {
-		result = g_front_state.back_buffer_surface->lpVtbl->BltFast(
-			g_front_state.back_buffer_surface, 0, 0,
-			g_front_state.offscreen_surface, &surface_rect, 0);
-		if (result == DX_DD_OK) {
-			break;
-		}
-		if (result == DX_DDERR_SURFACELOST) {
-			if (frontend_display_restore_lost_surfaces() !=
-			    DX_DD_OK) {
-				DeleteObject(font_handle);
-				if (back_buffer_was_locked != 0) {
-					g_draw_surface_ptr =
-						frontend_display_lock_back_buffer();
-				}
-				free(write_cursor);
-				return 0;
-			}
-		} else if (result != DX_DDERR_WASSTILLDRAWING) {
-			free(write_cursor);
-			DeleteObject(font_handle);
-			if (back_buffer_was_locked != 0) {
-				g_draw_surface_ptr =
-					frontend_display_lock_back_buffer();
-			}
-			return 0;
-		}
-	}
-
-	blob_used = 0;
-	glyph_index = 1;
-	for (;;) {
-		result = ((frontend_text_surface_get_dc_func)g_front_state
-				  .offscreen_surface->lpVtbl->GetDC)(
-			g_front_state.offscreen_surface, &dc);
-		if (result != DX_DD_OK) {
-			if (result == DX_DDERR_SURFACELOST) {
-				result =
-					frontend_display_restore_lost_surfaces();
-				if (result != DX_DD_OK) {
-					break;
-				}
-			}
-			if (result == DX_DDERR_WASSTILLDRAWING) {
-				continue;
-			}
-			if (result != DX_DD_OK) {
-				break;
-			}
-		}
-
-		SetMapMode(dc, 1);
-		previous_object = SelectObject(dc, font_handle);
-		SetTextColor(dc, 0xFFFFFF);
-		SetBkColor(dc, 0);
-		SetBkMode(dc, 2);
-		SetRect(&text_rect, 0, 0, 640, 480);
-		glyph_text[0] = (char)glyph_index;
-		glyph_text[1] = '\0';
-		ExtTextOutA(dc, 0, 0, 2, &text_rect, glyph_text, 1, NULL);
-		SelectObject(dc, previous_object);
-		((frontend_text_surface_release_dc_func)
-			 g_front_state.offscreen_surface->lpVtbl->ReleaseDC)(
-			g_front_state.offscreen_surface, dc);
-		g_draw_surface_ptr = frontend_display_lock_back_buffer();
-		font->glyph_bit_offset[glyph_index] = blob_used;
-
-		for (row_index = 0; row_index < font->glyph_height[glyph_index];
-		     ++row_index) {
-			switch (g_front_state.display_bpp) {
-			case 8:
-				row_size = front_image_encode_glyph_row(
-					&g_front_state.rle_row_buffer,
-					g_draw_surface_ptr,
-					font->glyph_width[glyph_index]);
-				break;
-			case 16: {
-				for (int column_index = 0;
-				     column_index <
-				     font->glyph_width[glyph_index];
-				     ++column_index) {
-					if (((const uint16_t *)
-						     g_draw_surface_ptr)
-						    [column_index] != 0) {
-						scratch_buffer[column_index] =
-							0xFF;
-					} else {
-						scratch_buffer[column_index] =
-							0;
-					}
-				}
-				row_size = front_image_encode_glyph_row(
-					&g_front_state.rle_row_buffer,
-					(const uint8_t *)scratch_buffer,
-					font->glyph_width[glyph_index]);
-				break;
-			}
-			default:
-				break;
-			}
-
-			if (blob_capacity <= blob_used + row_size) {
-				blob_capacity = 3 * blob_capacity / 2;
-				font->p_glyph_bits = realloc(font->p_glyph_bits,
-							     blob_capacity);
-				if (font->p_glyph_bits == NULL) {
-					break;
-				}
-				write_cursor = font->p_glyph_bits + blob_used;
-			}
-			if (font->p_glyph_bits == NULL) {
-				break;
-			}
-			memcpy(write_cursor, &g_front_state.rle_row_buffer,
-			       row_size);
-			blob_used += row_size;
-			write_cursor += row_size;
-			g_draw_surface_ptr += g_front_state.draw_surface_pitch;
-		}
-
-		frontend_display_unlock_back_buffer();
-		if (font->p_glyph_bits == NULL) {
-			break;
-		}
-		++glyph_index;
-		if (glyph_index >= 256) {
-			break;
-		}
-	}
-
-	for (;;) {
-		result = g_front_state.offscreen_surface->lpVtbl->BltFast(
-			g_front_state.offscreen_surface, 0, 0,
-			g_front_state.back_buffer_surface, &surface_rect, 0);
-		if (result == DX_DD_OK) {
-			break;
-		}
-		if ((result == DX_DDERR_SURFACELOST &&
-		     (result = frontend_display_restore_lost_surfaces()) !=
-			     DX_DD_OK) ||
-		    result != DX_DDERR_WASSTILLDRAWING) {
-			glyph_index = 0;
-			break;
-		}
-	}
-
-	if (back_buffer_was_locked != 0) {
-		g_draw_surface_ptr = frontend_display_lock_back_buffer();
-	}
-	DeleteObject(font_handle);
-	if (blob_capacity > blob_used) {
-		font->p_glyph_bits = realloc(font->p_glyph_bits, blob_used);
-		if (font->p_glyph_bits == NULL) {
-			glyph_index = 0;
-		}
-	}
-	if (glyph_index == 256) {
-		font->point_size = point_size;
-		font->in_use = 1;
-		font->char_spacing = 0;
-		font->field_60a = 1;
-		g_front_state.font_by_size[point_size] = font;
-		sprintf(scratch_buffer, "times%u.abp", point_size);
-		frontend_text_save_font_atlas_file(scratch_buffer,
-						   (void **)font, blob_used);
-		return 1;
-	}
-	if (font->p_glyph_bits != NULL) {
-		free(font->p_glyph_bits);
-	}
-	return 0;
-#endif
 }
 
 /* Frees every loaded font: the glyph memory of each slot whose inUse is 1,
@@ -535,10 +255,8 @@ void frontend_text_free_all_fonts(void)
 				g_front_state.font_slots[index].p_glyph_bits =
 					0;
 			}
-#ifdef XVT_MODERN
 			xvt_render_assets_retire_image(
 				&g_front_state.font_slots[index]);
-#endif
 			g_front_state.font_slots[index].in_use = 0;
 		}
 	}
@@ -559,10 +277,8 @@ void frontend_text_free_font(unsigned int point_size)
 			    (uint8_t)point_size) {
 			free(g_front_state.font_slots[index].p_glyph_bits);
 			g_front_state.font_slots[index].p_glyph_bits = 0;
-#ifdef XVT_MODERN
 			xvt_render_assets_retire_image(
 				&g_front_state.font_slots[index]);
-#endif
 			g_front_state.font_slots[index].in_use = 0;
 			g_front_state.font_by_size[point_size] = 0;
 			return;
@@ -1094,10 +810,8 @@ void frontend_text_save_font_atlas_file(const char *file_name, void **font,
 // FUNCTION: XVT 0x4DC0A0
 int frontend_text_load_font_atlas_file(const char *file_name, int slot_index)
 {
-#ifdef XVT_MODERN
 	uint8_t disk_header[0x60B];
 	uint32_t disk_glyph_blob_size;
-#endif
 
 	struct bitmap_font *font = &g_front_state.font_slots[slot_index];
 	xvt_file *stream = file_open(file_name, "rb");
@@ -1106,7 +820,6 @@ int frontend_text_load_font_atlas_file(const char *file_name, int slot_index)
 	}
 
 	size_t glyph_blob_size;
-#ifdef XVT_MODERN
 	if (!file_read_bytes(stream, disk_header, sizeof(disk_header))) {
 		XVT_LOG_DEBUG("text.font_file_short file=\"%s\"", file_name);
 		file_close(stream);
@@ -1126,10 +839,6 @@ int frontend_text_load_font_atlas_file(const char *file_name, int slot_index)
 	font->char_spacing = disk_header[0x609];
 	font->field_60a = disk_header[0x60A];
 	glyph_blob_size = disk_glyph_blob_size;
-#else
-	file_read_bytes(stream, font, 0x60B);
-	glyph_blob_size = *(const uint32_t *)(const void *)font;
-#endif
 	void *glyph_bits = malloc(glyph_blob_size);
 	font->p_glyph_bits = glyph_bits;
 	if (glyph_bits == NULL) {
@@ -1152,11 +861,9 @@ int frontend_text_load_font_atlas_file(const char *file_name, int slot_index)
 		(unsigned)glyph_blob_size, (int)font->glyph_height[0],
 		(int)font->char_spacing, (int)font->in_use);
 	file_close(stream);
-#ifdef XVT_MODERN
 	xvt_render_assets_register_image(font, 0, file_name, XVT_IMAGE_ABP, 0,
 					 256, (uint16_t)font->point_size, 0, 0);
 	xvt_render_frontend_font_loaded(font);
-#endif
 	return 1;
 }
 

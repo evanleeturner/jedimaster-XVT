@@ -1,8 +1,6 @@
 #include "xvt/frontend/frontend.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_actions.h"
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -222,11 +220,7 @@ int frontend_load_resources(void)
 	}
 	frontend_cursor_set_image_from_resource_name("cursor",
 						     g_cursor_save_buffer);
-#ifdef XVT_MODERN
 	sprintf(g_frontend_scratch_buffer, "%p\n", (void *)&g_pilot_data);
-#else
-	sprintf(g_frontend_scratch_buffer, "%x\n", &g_pilot_data);
-#endif
 	memset(&g_pilot_data, 0, sizeof(g_pilot_data));
 	frontend_string_load_table("fronttxt.txt");
 	cutscene_load_table("movies\\cutscene.lst");
@@ -391,10 +385,8 @@ int frontend_handle_common_screen_controls(int screen_context)
 			action_triggered = 1;
 			keyboard_discard_char();
 		}
-#ifdef XVT_MODERN
 		action_triggered = xvt_frontend_action_trigger(
 			XVT_ACTION_OWNER_COMMON, 1, action_triggered);
-#endif
 		if (action_triggered != 0) {
 			if (g_frontend_game_session_in_progress != 0) {
 				if (g_frontend_mission_session_mode !=
@@ -411,11 +403,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 								FRONTSTR_523_OKAY),
 							frontend_string_get(
 								FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 						if (xvt_dialog_is_active()) {
 							return 0;
 						}
-#endif
 					} else {
 						action_triggered = frontend_dialog_show_confirm_dialog(
 							frontend_string_get(
@@ -428,11 +418,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 								FRONTSTR_523_OKAY),
 							frontend_string_get(
 								FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 						if (xvt_dialog_is_active()) {
 							return 0;
 						}
-#endif
 					}
 				} else if (g_pilot_data
 						   .mission_sequence_active ==
@@ -450,11 +438,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 								FRONTSTR_523_OKAY),
 							frontend_string_get(
 								FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 						if (xvt_dialog_is_active()) {
 							return 0;
 						}
-#endif
 					} else if (
 						g_pilot_data
 							.mission_directory_id ==
@@ -470,11 +456,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 								FRONTSTR_523_OKAY),
 							frontend_string_get(
 								FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 						if (xvt_dialog_is_active()) {
 							return 0;
 						}
-#endif
 					} else {
 						action_triggered = frontend_dialog_show_confirm_dialog(
 							frontend_string_get(
@@ -487,11 +471,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 								FRONTSTR_523_OKAY),
 							frontend_string_get(
 								FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 						if (xvt_dialog_is_active()) {
 							return 0;
 						}
-#endif
 					}
 				} else {
 					action_triggered = frontend_dialog_show_confirm_dialog(
@@ -505,11 +487,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 							FRONTSTR_523_OKAY),
 						frontend_string_get(
 							FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 					if (xvt_dialog_is_active()) {
 						return 0;
 					}
-#endif
 				}
 			} else {
 				action_triggered = frontend_dialog_show_confirm_dialog(
@@ -522,11 +502,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 					frontend_string_get(FRONTSTR_523_OKAY),
 					frontend_string_get(
 						FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 				if (xvt_dialog_is_active()) {
 					return 0;
 				}
-#endif
 			}
 			if (action_triggered != 0) {
 				XVT_LOG_INFO(
@@ -821,10 +799,8 @@ int frontend_handle_common_screen_controls(int screen_context)
 				&rect, NULL, "joinindown",
 				g_frontend_scratch_buffer, BUTTON_FONT_SIZE, 0,
 				JOIN_HELD_SLOT, "buttonsound");
-#ifdef XVT_MODERN
 			action_triggered = xvt_frontend_action_trigger(
 				XVT_ACTION_OWNER_COMMON, 2, action_triggered);
-#endif
 			if (action_triggered != 0) {
 				if (g_frontend_game_session_in_progress != 0) {
 					if (g_frontend_mission_session_mode !=
@@ -841,11 +817,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						} else {
 							action_triggered = frontend_dialog_show_confirm_dialog(
 								frontend_string_get(
@@ -858,11 +832,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						}
 					} else if (
 						g_pilot_data
@@ -882,11 +854,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						} else if (
 							g_pilot_data
 								.mission_directory_id ==
@@ -902,11 +872,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						} else {
 							action_triggered = frontend_dialog_show_confirm_dialog(
 								frontend_string_get(
@@ -919,11 +887,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						}
 					}
 				}
@@ -965,11 +931,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 							frontend_string_get(
 								FRONTSTR_526_A_NEW_ONE_BEFORE_CONTINUING),
 							NULL, NULL);
-#ifdef XVT_MODERN
 						if (xvt_dialog_is_active()) {
 							return 0;
 						}
-#endif
 					}
 				}
 			}
@@ -1026,11 +990,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 						g_frontend_scratch_buffer,
 						BUTTON_FONT_SIZE, 0,
 						HOST_HELD_SLOT, "buttonsound");
-#ifdef XVT_MODERN
 				action_triggered = xvt_frontend_action_trigger(
 					XVT_ACTION_OWNER_COMMON, 3,
 					action_triggered);
-#endif
 				if (action_triggered != 0) {
 					if (g_frontend_game_session_in_progress !=
 					    0) {
@@ -1049,11 +1011,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 										FRONTSTR_523_OKAY),
 									frontend_string_get(
 										FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 								if (xvt_dialog_is_active()) {
 									return 0;
 								}
-#endif
 							} else {
 								action_triggered = frontend_dialog_show_confirm_dialog(
 									frontend_string_get(
@@ -1066,11 +1026,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 										FRONTSTR_523_OKAY),
 									frontend_string_get(
 										FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 								if (xvt_dialog_is_active()) {
 									return 0;
 								}
-#endif
 							}
 						} else if (
 							g_pilot_data
@@ -1090,11 +1048,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 										FRONTSTR_523_OKAY),
 									frontend_string_get(
 										FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 								if (xvt_dialog_is_active()) {
 									return 0;
 								}
-#endif
 							} else if (
 								g_pilot_data
 									.mission_directory_id ==
@@ -1110,11 +1066,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 										FRONTSTR_523_OKAY),
 									frontend_string_get(
 										FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 								if (xvt_dialog_is_active()) {
 									return 0;
 								}
-#endif
 							} else {
 								action_triggered = frontend_dialog_show_confirm_dialog(
 									frontend_string_get(
@@ -1127,11 +1081,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 										FRONTSTR_523_OKAY),
 									frontend_string_get(
 										FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 								if (xvt_dialog_is_active()) {
 									return 0;
 								}
-#endif
 							}
 						}
 					}
@@ -1171,11 +1123,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 								frontend_string_get(
 									FRONTSTR_526_A_NEW_ONE_BEFORE_CONTINUING),
 								NULL, NULL);
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						}
 					}
 				}
@@ -1200,11 +1150,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 							FRONTSTR_002_FLY_SOLO),
 						BUTTON_FONT_SIZE, 0,
 						SOLO_HELD_SLOT, "buttonsound");
-#ifdef XVT_MODERN
 				action_triggered = xvt_frontend_action_trigger(
 					XVT_ACTION_OWNER_COMMON, 4,
 					action_triggered);
-#endif
 				if (action_triggered != 0) {
 					if (g_frontend_game_session_in_progress !=
 						    0 &&
@@ -1222,11 +1170,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						} else {
 							action_triggered = frontend_dialog_show_confirm_dialog(
 								frontend_string_get(
@@ -1239,11 +1185,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						}
 					}
 					if (action_triggered != 0) {
@@ -1289,11 +1233,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 								frontend_string_get(
 									FRONTSTR_526_A_NEW_ONE_BEFORE_CONTINUING),
 								NULL, NULL);
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						}
 					}
 				}
@@ -1371,10 +1313,8 @@ int frontend_handle_common_screen_controls(int screen_context)
 				frontend_string_get(FRONTSTR_000_PILOT_RECORDS),
 				BUTTON_FONT_SIZE, 0, PILOT_HELD_SLOT,
 				"buttonsound");
-#ifdef XVT_MODERN
 			action_triggered = xvt_frontend_action_trigger(
 				XVT_ACTION_OWNER_COMMON, 5, action_triggered);
-#endif
 			if (action_triggered != 0) {
 				if (g_frontend_game_session_in_progress != 0) {
 					if (g_frontend_mission_session_mode !=
@@ -1391,11 +1331,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						} else {
 							action_triggered = frontend_dialog_show_confirm_dialog(
 								frontend_string_get(
@@ -1408,11 +1346,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						}
 					} else if (
 						g_pilot_data
@@ -1432,11 +1368,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						} else if (
 							g_pilot_data
 								.mission_directory_id ==
@@ -1452,11 +1386,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						} else {
 							action_triggered = frontend_dialog_show_confirm_dialog(
 								frontend_string_get(
@@ -1469,11 +1401,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 									FRONTSTR_523_OKAY),
 								frontend_string_get(
 									FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 							if (xvt_dialog_is_active()) {
 								return 0;
 							}
-#endif
 						}
 					}
 				}
@@ -1528,9 +1458,7 @@ int frontend_handle_common_screen_controls(int screen_context)
 	}
 
 	frontend_button_disable_overlay_text();
-#ifdef XVT_MODERN
 	xvt_frontend_action_finish(XVT_ACTION_OWNER_COMMON);
-#endif
 	return 0;
 }
 
@@ -1562,18 +1490,10 @@ int frontend_format_seconds_to_clock_string(unsigned int seconds)
 // FUNCTION: XVT 0x4C9E30
 int error_text_load_line(int line_index, char *out_text)
 {
-#ifdef XVT_MODERN
 	char buffer[512];
-#else
-	char buffer[256];
-#endif
 
 	xvt_file *stream;
-#ifdef XVT_MODERN
 	stream = file_open("xvterr.txt", "r");
-#else
-	stream = FILE_RAW_OPEN("xvterr.txt", "r");
-#endif
 	if (stream == 0) {
 		return 0;
 	}
@@ -1585,17 +1505,9 @@ int error_text_load_line(int line_index, char *out_text)
 			--lines_remaining;
 		} while (lines_remaining != 0);
 	} else {
-#ifdef XVT_MODERN
 		line = 0;
-#else
-		line = *(char **)buffer;
-#endif
 	}
-#ifdef XVT_MODERN
 	file_close(stream);
-#else
-	FILE_RAW_CLOSE(stream);
-#endif
 	if (line == 0) {
 		return 0;
 	}
@@ -1619,33 +1531,12 @@ int error_text_load_line(int line_index, char *out_text)
 // FUNCTION: XVT 0x4C9EE0
 int frontend_check_host_cd_present(void)
 {
-#ifdef XVT_MODERN
 	char path[XVT_PATH_CAPACITY];
 	g_host_cd_available =
 		xvt_storage_resolve_asset("train/1ta01bf.tie", path,
 					  sizeof(path)) == 1;
 	XVT_LOG_DEBUG("frontend.host_cd_checked found=%d", g_host_cd_available);
 	return g_host_cd_available;
-#else
-
-	char cd_drive_letter = file_get_cd_drive_letter();
-	if (cd_drive_letter == 0) {
-		return 0;
-	}
-	char file_name[128] = "c\\train\\1TA01BF.TIE\0";
-	file_name[0] = cd_drive_letter;
-	xvt_file *stream = FILE_RAW_OPEN(file_name, "rb");
-	int result;
-	if (stream != 0) {
-		FILE_RAW_CLOSE(stream);
-		result = 1;
-	} else {
-		result = 0;
-	}
-	g_host_cd_available = result;
-	return result;
-
-#endif
 }
 
 /* Saves the pilot with pilot_save(0) and writes the config; returns 1. The
@@ -1692,9 +1583,6 @@ int frontend_register_scrollable_control(int control_id)
 	return 1;
 }
 
-#ifndef XVT_MODERN
-#pragma function(memcpy)
-#endif
 /* Removes the first entry equal to control_id from g_scrollable_control_ids,
  * moving later entries down one, and returns 1; returns 0 when it is not there.
  * The original build moves them with memcpy over overlapping memory; the modern
@@ -1707,19 +1595,11 @@ int frontend_unregister_scrollable_control(int control_id)
 		int count = g_scrollable_control_count;
 		do {
 			if (g_scrollable_control_ids[index] == control_id) {
-#ifdef XVT_MODERN
 				memmove(&g_scrollable_control_ids[index],
 					&g_scrollable_control_ids[index + 1],
 					(size_t)(count - index - 1) *
 						sizeof(g_scrollable_control_ids
 							       [0]));
-#else
-				memcpy(&g_scrollable_control_ids[index],
-				       &g_scrollable_control_ids[index + 1],
-				       (size_t)(count - index - 1) *
-					       sizeof(g_scrollable_control_ids
-							      [0]));
-#endif
 				--g_scrollable_control_count;
 				return 1;
 			}
@@ -1741,23 +1621,14 @@ int frontend_cycle_scrollable_focus(void)
 	}
 
 	int first_control_id = g_scrollable_control_ids[0];
-#ifdef XVT_MODERN
 	/* The source and destination overlap, so modern builds require memmove. */
 	memmove(g_scrollable_control_ids, &g_scrollable_control_ids[1],
 		(size_t)(g_scrollable_control_count - 1) *
 			sizeof(g_scrollable_control_ids[0]));
-#else
-	memcpy(g_scrollable_control_ids, &g_scrollable_control_ids[1],
-	       (size_t)(g_scrollable_control_count - 1) *
-		       sizeof(g_scrollable_control_ids[0]));
-#endif
 	g_scrollable_control_ids[g_scrollable_control_count - 1] =
 		first_control_id;
 	return 1;
 }
-#ifndef XVT_MODERN
-#pragma intrinsic(memcpy)
-#endif
 
 /* Forgets every registered scrollbar: sets g_scrollable_control_count to 0.
  * Returns 1. */

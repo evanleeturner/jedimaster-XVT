@@ -2,22 +2,15 @@
 
 #include <string.h>
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_frontend.h"
-#endif
 #include "xvt/frontend/front_image.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifdef XVT_MODERN
 #include "aeron/aeron.h"
 #include "xvt_runtime/runtime/presentation.h"
-#else
-__declspec(dllimport) int __stdcall ShowCursor(int show);
-__declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
-#endif
 
 /* The built-in cursor, a 10 by 10 arrow pointing up and left, one byte per
  * pixel, row by row: 0 is transparent, 1 the outline and 0xFF the fill.
@@ -79,9 +72,7 @@ int frontend_cursor_set_image_from_resource_name(const char *resource_name,
 	XVT_LOG_DEBUG("ui.cursor_image_set image=\"%s\" width=%d height=%d",
 		      resource_name, g_front_state.cursor_width,
 		      g_front_state.cursor_height);
-#ifdef XVT_MODERN
 	return 0;
-#endif
 }
 
 /* Sets the frontend cursor to the built-in 10 by 10 arrow: copies
@@ -150,9 +141,7 @@ void frontend_cursor_draw(void)
 			      display_bpp);
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_cursor(0);
-#endif
 	uint8_t *back_buffer_row;
 	int rows_remaining;
 	int mask_value;
@@ -310,9 +299,7 @@ void frontend_cursor_draw(void)
 		}
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_frontend_end_cursor();
-#endif
 	frontend_display_unlock_back_buffer();
 	g_front_state.cursor_prev_draw_x = g_front_state.mouse_x;
 	g_front_state.cursor_prev_draw_y = g_front_state.mouse_y;
@@ -332,9 +319,7 @@ void frontend_cursor_restore(void)
 	uint8_t *source = g_front_state.cursor_save_buf;
 	int display_bpp = g_front_state.display_bpp;
 	g_draw_surface_ptr = destination;
-#ifdef XVT_MODERN
 	xvt_render_frontend_cursor(1);
-#endif
 
 	switch (display_bpp) {
 	case 8: {
@@ -424,11 +409,7 @@ int frontend_cursor_set_pos(int x, int y)
 
 	g_front_state.mouse_x = x;
 	g_front_state.mouse_y = y;
-#ifdef XVT_MODERN
 	return xvt_presentation_warp_classic(x, y);
-#else
-	return SetCursorPos(x, y);
-#endif
 }
 
 /* Sets g_front_state.cursor_visible to 1: the frame loop draws the cursor after
@@ -461,13 +442,7 @@ int frontend_cursor_get_dimensions(int *out_width, int *out_height)
 // FUNCTION: XVT 0x4DE150
 int frontend_cursor_hide_os_cursor(void)
 {
-#ifdef XVT_MODERN
 	return Aeron_SetHostCursorVisible(0);
-#else
-	while (ShowCursor(0) >= 0) {
-	}
-	return 1;
-#endif
 }
 
 /* Only the original build calls this. It calls ShowCursor(1) until the display
@@ -476,12 +451,6 @@ int frontend_cursor_hide_os_cursor(void)
 // FUNCTION: XVT 0x4DE170
 int frontend_cursor_show_os_cursor(void)
 {
-#ifdef XVT_MODERN
 	/* The port renders its own cursor, so legacy show requests keep the host cursor hidden. */
 	return Aeron_SetHostCursorVisible(0);
-#else
-	while (ShowCursor(1) < 0) {
-	}
-	return 1;
-#endif
 }

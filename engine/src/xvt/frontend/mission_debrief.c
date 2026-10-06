@@ -1,14 +1,8 @@
 #include "xvt/frontend/mission_debrief.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/campaign_task.h"
-#endif
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/frontend_cleanup.h"
-#endif
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/mission_dialogs.h"
-#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -317,87 +311,12 @@ int mission_debrief_update(int frame_counter)
 	int local_network_player_index = 0;
 	int battle_result_counts[BATTLE_RESULT_COUNT];
 	struct RECT rect;
-#ifndef XVT_MODERN
-	char long_name[16];
-#endif
 	struct RECT saved_clip_rect;
 
 	if (frame_counter == 0) {
-#ifdef XVT_MODERN
 		if (xvt_campaign_task_enter_debrief() != 1) {
 			return 0;
 		}
-#else
-		frontend_cursor_show();
-		keyboard_flush_char_buffer();
-		if (g_pilot_data.mission_directory_id ==
-			    MISSION_DIRECTORY_TRAINING_EXERCISES &&
-		    g_pilot_data.mission_sequence_active == 1) {
-			if (g_pilot_data.campaign_sequence_state
-				    .last_mission_completed != 0) {
-				int cutscene_played =
-					cutscene_play_for_current_mission_phase(
-						1);
-
-				if (g_frontend_mission_session_mode !=
-					    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
-				    cutscene_played == 0) {
-					g_frontend_net_packet_scratch
-						.packet_type =
-						NET_PACKET_PLAYER_LEFT;
-					net_send_packet_and_flush(
-						net_get_host_player_id(),
-						&g_frontend_net_packet_scratch,
-						sizeof(g_frontend_net_packet_scratch
-							       .packet_type));
-					net_shutdown_direct_play_session();
-					frontend_screen_set_callbacks(
-						concourse_update,
-						concourse_exit);
-					return 0;
-				}
-			}
-			g_mission_text = malloc(MISSION_TEXT_BUFFER_SIZE);
-		}
-
-		g_frontend_chat_team_only = 0;
-		g_debrief_disconnected_from_net_game = 0;
-		g_frontend_first_visible_line = 0;
-		for (local_network_player_index = 0;
-		     local_network_player_index < PLAYER_COUNT;
-		     ++local_network_player_index) {
-			if (g_pilot_data.network_players
-					    [local_network_player_index]
-						    .direct_play_id != 0 &&
-			    g_pilot_data.network_players
-					    [local_network_player_index]
-						    .has_left != 0) {
-				net_clear_player_ready_flag_with_lock_guard(
-					g_pilot_data
-						.network_players
-							[local_network_player_index]
-						.direct_play_id);
-				if (net_get_local_player_id() ==
-				    g_pilot_data
-					    .network_players
-						    [local_network_player_index]
-					    .direct_play_id) {
-					g_debrief_disconnected_from_net_game =
-						1;
-				}
-			}
-		}
-		net_refresh_player_roster_with_lock_guard();
-		if (g_pilot_data.promotion_delta != PILOT_PROMOTION_NONE &&
-		    g_frontend_mission_session_mode !=
-			    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-			long_name[0] = (char)(g_pilot_data.rating + 1);
-			long_name[1] = 0;
-			net_set_player_name_with_lock_guard(
-				net_get_local_player_id(), long_name,
-				g_pilot_data.name);
-		}
-#endif
 
 		{
 			int use_exit_cursor = 1;
@@ -1584,12 +1503,7 @@ int mission_debrief_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_enter_next_mission,
 
-#ifdef XVT_MODERN
 					xvt_frontend_cleanup_next_mission
-#else
-					(frontend_screen_exit_fn)
-						mission_setup_exit_next_mission
-#endif
 				);
 				return 0;
 			} else if (network_event ==
@@ -1615,12 +1529,7 @@ int mission_debrief_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_enter_next_mission,
 
-#ifdef XVT_MODERN
 					xvt_frontend_cleanup_next_mission
-#else
-					(frontend_screen_exit_fn)
-						mission_setup_exit_next_mission
-#endif
 				);
 				return 0;
 			} else if (network_event ==
@@ -1650,12 +1559,7 @@ int mission_debrief_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_enter_next_mission,
 
-#ifdef XVT_MODERN
 					xvt_frontend_cleanup_next_mission
-#else
-					(frontend_screen_exit_fn)
-						mission_setup_exit_next_mission
-#endif
 				);
 			} else if (network_event ==
 				   NET_PACKET_REPLAY_CURRENT_MISSION) {
@@ -1673,12 +1577,7 @@ int mission_debrief_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_enter_current_mission,
 
-#ifdef XVT_MODERN
 					xvt_frontend_cleanup_current_mission
-#else
-					(frontend_screen_exit_fn)
-						mission_setup_exit_current_mission
-#endif
 				);
 				return 0;
 			} else if (network_event ==
@@ -1699,12 +1598,7 @@ int mission_debrief_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_enter_current_mission,
 
-#ifdef XVT_MODERN
 					xvt_frontend_cleanup_current_mission
-#else
-					(frontend_screen_exit_fn)
-						mission_setup_exit_current_mission
-#endif
 				);
 			} else if (network_event == NET_PACKET_REPLAY_MISSION) {
 				memset(g_pilot_data.kills_full_on_player, 0,
@@ -1858,11 +1752,9 @@ int mission_debrief_update(int frame_counter)
 			XVT_LOG_INFO("debrief.left to=\"quit\" by=\"player\"");
 			return 1;
 		}
-#ifdef XVT_MODERN
 		if (xvt_dialog_is_active()) {
 			return 0;
 		}
-#endif
 
 		frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
 		if (g_game_config.help_on != 0) {
@@ -1910,13 +1802,11 @@ int mission_debrief_update(int frame_counter)
 								FRONTSTR_523_OKAY),
 							frontend_string_get(
 								FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 						XVT_LOG_DEBUG(
 							"mission.setup_confirm_asked screen=\"debrief\" action=\"leave\"");
 						return xvt_dialog_continue_with(
 							xvt_mission_dialogs_resume,
 							XVT_MISSION_DEBRIEF_CLIENT_LEAVE);
-#endif
 					}
 				}
 				if (disconnect_accepted != 0) {
@@ -2014,13 +1904,11 @@ int mission_debrief_update(int frame_counter)
 							FRONTSTR_523_OKAY),
 						frontend_string_get(
 							FRONTSTR_019_CANCEL));
-#ifdef XVT_MODERN
 					XVT_LOG_DEBUG(
 						"mission.setup_confirm_asked screen=\"debrief\" action=\"leave\"");
 					return xvt_dialog_continue_with(
 						xvt_mission_dialogs_resume,
 						XVT_MISSION_DEBRIEF_CLIENT_LEAVE);
-#endif
 				}
 				if (disconnect_accepted != 0) {
 					XVT_LOG_INFO(
@@ -2101,7 +1989,6 @@ int mission_debrief_update(int frame_counter)
 					if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 
-#ifdef XVT_MODERN
 						{
 							frontend_dialog_show_confirm_dialog(
 								frontend_string_get(
@@ -2120,32 +2007,8 @@ int mission_debrief_update(int frame_counter)
 								xvt_mission_dialogs_resume,
 								XVT_MISSION_DEBRIEF_HOST_ABORT);
 						}
-#else
-						if (frontend_dialog_show_confirm_dialog(
-							    frontend_string_get(
-								    FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
-							    frontend_string_get(
-								    FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
-							    frontend_string_get(
-								    FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-							    frontend_string_get(
-								    FRONTSTR_523_OKAY),
-							    frontend_string_get(
-								    FRONTSTR_019_CANCEL)) !=
-						    0) {
-							g_frontend_net_packet_scratch
-								.packet_type =
-								NET_PACKET_RETURN_TO_MISSION_SELECTION;
-							net_send_packet_and_flush(
-								0,
-								&g_frontend_net_packet_scratch,
-								sizeof(g_frontend_net_packet_scratch
-									       .packet_type));
-						}
-#endif
 
 					}
-#ifdef XVT_MODERN
 					else {
 						frontend_dialog_show_confirm_dialog(
 							frontend_string_get(
@@ -2164,34 +2027,6 @@ int mission_debrief_update(int frame_counter)
 							xvt_mission_dialogs_resume,
 							XVT_MISSION_DEBRIEF_SOLO_ABORT);
 					}
-#else
-					else if (
-						frontend_dialog_show_confirm_dialog(
-							frontend_string_get(
-								FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
-							frontend_string_get(
-								FRONTSTR_679_ARE_YOU_SURE_YOU_WANT_TO),
-							frontend_string_get(
-								FRONTSTR_680_TERMINATE_THIS_TOURNAMENT),
-							frontend_string_get(
-								FRONTSTR_523_OKAY),
-							frontend_string_get(
-								FRONTSTR_019_CANCEL)) !=
-						0) {
-						frontend_button_disable_overlay_text();
-						g_frontend_skip_screen_entry_setup =
-							0;
-						g_frontend_quick_start_launch_flag =
-							0;
-						g_frontend_game_session_in_progress =
-							0;
-						g_mission_setup_roster_authoritative =
-							0;
-						frontend_screen_set_callbacks(
-							mission_setup_update,
-							mission_setup_exit);
-					}
-#endif
 				}
 			}
 		} else if (g_pilot_data.mission_directory_id ==
@@ -2233,7 +2068,6 @@ int mission_debrief_update(int frame_counter)
 					if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 
-#ifdef XVT_MODERN
 						{
 							frontend_dialog_show_confirm_dialog(
 								frontend_string_get(
@@ -2252,32 +2086,8 @@ int mission_debrief_update(int frame_counter)
 								xvt_mission_dialogs_resume,
 								XVT_MISSION_DEBRIEF_HOST_ABORT);
 						}
-#else
-						if (frontend_dialog_show_confirm_dialog(
-							    frontend_string_get(
-								    FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
-							    frontend_string_get(
-								    FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
-							    frontend_string_get(
-								    FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-							    frontend_string_get(
-								    FRONTSTR_523_OKAY),
-							    frontend_string_get(
-								    FRONTSTR_019_CANCEL)) !=
-						    0) {
-							g_frontend_net_packet_scratch
-								.packet_type =
-								NET_PACKET_RETURN_TO_MISSION_SELECTION;
-							net_send_packet_and_flush(
-								0,
-								&g_frontend_net_packet_scratch,
-								sizeof(g_frontend_net_packet_scratch
-									       .packet_type));
-						}
-#endif
 
 					}
-#ifdef XVT_MODERN
 					else {
 						frontend_dialog_show_confirm_dialog(
 							frontend_string_get(
@@ -2296,36 +2106,6 @@ int mission_debrief_update(int frame_counter)
 							xvt_mission_dialogs_resume,
 							XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER);
 					}
-#else
-					else if (
-						frontend_dialog_show_confirm_dialog(
-							frontend_string_get(
-								FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
-							frontend_string_get(
-								FRONTSTR_682_ARE_YOU_SURE_YOU_WANT_TO),
-							frontend_string_get(
-								FRONTSTR_683_TERMINATE_THIS_BATTLE),
-							frontend_string_get(
-								FRONTSTR_523_OKAY),
-							frontend_string_get(
-								FRONTSTR_019_CANCEL)) !=
-						0) {
-						frontend_button_disable_overlay_text();
-						g_frontend_skip_screen_entry_setup =
-							0;
-						g_frontend_quick_start_launch_flag =
-							0;
-						g_frontend_game_session_in_progress =
-							0;
-						g_mission_setup_roster_authoritative =
-							0;
-						memset(g_mp_roster, 0,
-						       sizeof(g_mp_roster));
-						frontend_screen_set_callbacks(
-							mission_setup_update,
-							mission_setup_exit);
-					}
-#endif
 				}
 			} else {
 				frontend_button_set_overlay_text(
@@ -2386,7 +2166,6 @@ int mission_debrief_update(int frame_counter)
 					if (g_frontend_mission_session_mode !=
 					    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 
-#ifdef XVT_MODERN
 						{
 							frontend_dialog_show_confirm_dialog(
 								frontend_string_get(
@@ -2405,32 +2184,8 @@ int mission_debrief_update(int frame_counter)
 								xvt_mission_dialogs_resume,
 								XVT_MISSION_DEBRIEF_HOST_ABORT);
 						}
-#else
-						if (frontend_dialog_show_confirm_dialog(
-							    frontend_string_get(
-								    FRONTSTR_558_YOU_ARE_CURRENTLY_HOSTING_A_GAME_SESSION),
-							    frontend_string_get(
-								    FRONTSTR_559_IF_YOU_QUIT_THE_GAME_WILL_BE_ABORTED),
-							    frontend_string_get(
-								    FRONTSTR_560_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-							    frontend_string_get(
-								    FRONTSTR_523_OKAY),
-							    frontend_string_get(
-								    FRONTSTR_019_CANCEL)) !=
-						    0) {
-							g_frontend_net_packet_scratch
-								.packet_type =
-								NET_PACKET_RETURN_TO_MISSION_SELECTION;
-							net_send_packet_and_flush(
-								0,
-								&g_frontend_net_packet_scratch,
-								sizeof(g_frontend_net_packet_scratch
-									       .packet_type));
-						}
-#endif
 
 					}
-#ifdef XVT_MODERN
 					else {
 						frontend_dialog_show_confirm_dialog(
 							frontend_string_get(
@@ -2449,36 +2204,6 @@ int mission_debrief_update(int frame_counter)
 							xvt_mission_dialogs_resume,
 							XVT_MISSION_DEBRIEF_SOLO_ABORT_CLEAR_ROSTER);
 					}
-#else
-					else if (
-						frontend_dialog_show_confirm_dialog(
-							frontend_string_get(
-								FRONTSTR_779_YOU_ARE_CURRENTLY_PLAYING_A_CAMPAIGN),
-							frontend_string_get(
-								FRONTSTR_780_ARE_YOU_SURE_YOU_WANT_TO),
-							frontend_string_get(
-								FRONTSTR_781_TERMINATE_THIS_CAMPAIGN),
-							frontend_string_get(
-								FRONTSTR_523_OKAY),
-							frontend_string_get(
-								FRONTSTR_019_CANCEL)) !=
-						0) {
-						frontend_button_disable_overlay_text();
-						g_frontend_skip_screen_entry_setup =
-							0;
-						g_frontend_quick_start_launch_flag =
-							0;
-						g_frontend_game_session_in_progress =
-							0;
-						g_mission_setup_roster_authoritative =
-							0;
-						memset(g_mp_roster, 0,
-						       sizeof(g_mp_roster));
-						frontend_screen_set_callbacks(
-							mission_setup_update,
-							mission_setup_exit);
-					}
-#endif
 				}
 			} else {
 				if (g_pilot_data
@@ -2584,12 +2309,7 @@ int mission_debrief_update(int frame_counter)
 						frontend_screen_set_callbacks(
 							mission_setup_enter_next_mission,
 
-#ifdef XVT_MODERN
 							xvt_frontend_cleanup_next_mission
-#else
-							(frontend_screen_exit_fn)
-								mission_setup_exit_next_mission
-#endif
 						);
 					}
 				} else if (
@@ -2630,12 +2350,7 @@ int mission_debrief_update(int frame_counter)
 							frontend_screen_set_callbacks(
 								mission_setup_enter_current_mission,
 
-#ifdef XVT_MODERN
 								xvt_frontend_cleanup_current_mission
-#else
-								(frontend_screen_exit_fn)
-									mission_setup_exit_current_mission
-#endif
 							);
 						}
 					} else {
@@ -2679,12 +2394,7 @@ int mission_debrief_update(int frame_counter)
 							frontend_screen_set_callbacks(
 								mission_setup_enter_next_mission,
 
-#ifdef XVT_MODERN
 								xvt_frontend_cleanup_next_mission
-#else
-								(frontend_screen_exit_fn)
-									mission_setup_exit_next_mission
-#endif
 							);
 						}
 					}
@@ -2729,12 +2439,7 @@ int mission_debrief_update(int frame_counter)
 						frontend_screen_set_callbacks(
 							mission_setup_enter_next_mission,
 
-#ifdef XVT_MODERN
 							xvt_frontend_cleanup_next_mission
-#else
-							(frontend_screen_exit_fn)
-								mission_setup_exit_next_mission
-#endif
 						);
 					}
 				} else {
@@ -2768,12 +2473,7 @@ int mission_debrief_update(int frame_counter)
 						frontend_screen_set_callbacks(
 							mission_setup_enter_current_mission,
 
-#ifdef XVT_MODERN
 							xvt_frontend_cleanup_current_mission
-#else
-							(frontend_screen_exit_fn)
-								mission_setup_exit_current_mission
-#endif
 						);
 					}
 				}
@@ -3087,10 +2787,8 @@ int mission_debrief_update(int frame_counter)
 			frontend_string_get(
 				FRONTSTR_733_YOU_HAVE_BEEN_DISCONNECTED_FROM),
 			g_frontend_scratch_buffer, NULL, NULL, NULL);
-#ifdef XVT_MODERN
 		return xvt_dialog_continue_with(xvt_mission_dialogs_resume,
 						XVT_MISSION_NOTICE);
-#endif
 	} else if (g_flight_net_host_abort_received != 0 &&
 		   frame_counter == NETWORK_DISCONNECT_FRAME &&
 		   net_is_host() == 0) {
@@ -3103,10 +2801,8 @@ int mission_debrief_update(int frame_counter)
 			frontend_string_get(
 				FRONTSTR_739_TO_THE_CURRENT_GAME_SESSION),
 			NULL, NULL);
-#ifdef XVT_MODERN
 		return xvt_dialog_continue_with(xvt_mission_dialogs_resume,
 						XVT_MISSION_NOTICE);
-#endif
 	}
 	return 0;
 }

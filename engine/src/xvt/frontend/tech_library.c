@@ -1,7 +1,5 @@
 #include "xvt/frontend/tech_library.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/dialog_task.h"
-#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -246,11 +244,9 @@ int tech_library_update(int frame_counter)
 		    TECH_LIBRARY_SCREEN_CONTEXT) == 1) {
 		return 1;
 	}
-#ifdef XVT_MODERN
 	if (xvt_dialog_is_active()) {
 		return 0;
 	}
-#endif
 	tech_library_update_model_controls();
 	frontend_draw_rect_assign(
 		&rect, TECH_LIBRARY_DONE_LEFT, TECH_LIBRARY_DONE_TOP,
@@ -725,10 +721,6 @@ int tech_library_load_spec_text_table(void)
 	g_tech_library_spec_text_table =
 		(struct tech_library_spec_text *)malloc(
 			sizeof(*g_tech_library_spec_text_table) * 93u);
-#ifndef XVT_MODERN
-	memset(g_tech_library_spec_text_table, 0,
-	       sizeof(*g_tech_library_spec_text_table) * 93u);
-#endif
 	if (g_tech_library_spec_text_table == NULL) {
 		XVT_LOG_ERROR(
 			"tech.spec_alloc_failed bytes=%u",
@@ -738,24 +730,17 @@ int tech_library_load_spec_text_table(void)
 		return 0;
 	}
 
-#ifdef XVT_MODERN
 	memset(g_tech_library_spec_text_table, 0,
 	       sizeof(*g_tech_library_spec_text_table) * 93u);
-#endif
 	int field_index;
 	size_t length;
 	for (int entry_index = 0; entry_index < 93; ++entry_index) {
 		field_index = 0;
 		while (field_index < 5) {
 			do {
-#ifdef XVT_MODERN
 				if (FILE_GETS(g_frontend_scratch_buffer,
 					      sizeof(g_frontend_scratch_buffer),
 					      stream) == NULL) {
-#else
-				if (FILE_GETS(g_frontend_scratch_buffer, 1024,
-					      stream) == NULL) {
-#endif
 					XVT_LOG_DEBUG(
 						"tech.spec_loaded entries=%d",
 						entry_index);
@@ -820,9 +805,5 @@ int tech_library_load_spec_text_table(void)
 	}
 	XVT_LOG_DEBUG("tech.spec_loaded entries=%d", 93);
 
-#ifdef XVT_MODERN
 	return file_close(stream);
-#else
-	file_close(stream);
-#endif
 }
