@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "xvt_runtime/log/log_both_builds.h"
+
 #ifndef XVT_MODERN
 __declspec(dllimport) int __stdcall
 VirtualProtect(void *address, size_t size, unsigned int new_protection,
@@ -93,6 +95,7 @@ uint16_t memory_alloc_handle_internal(size_t size, int legacy_tag,
 		}
 	}
 	if (table_index == 32768u) {
+		XVT_LOG_ERROR("memory.handles_full bytes=%u", (unsigned)size);
 		return 0;
 	}
 
@@ -100,12 +103,15 @@ uint16_t memory_alloc_handle_internal(size_t size, int legacy_tag,
 	void *block = malloc(size);
 	g_handle_tables.ptr_table[slot_index] = block;
 	if (block == NULL) {
+		XVT_LOG_ERROR("memory.alloc_failed bytes=%u", (unsigned)size);
 		return 0;
 	}
 	if (clear_flag != 0) {
 		memset(block, 0, size);
 	}
 	g_handle_tables.size_table[slot_index] = size;
+	XVT_LOG_DEBUG("memory.allocated handle=%u bytes=%u zeroed=%d",
+		      table_index + 1u, (unsigned)size, clear_flag);
 	return table_index + 1;
 }
 
@@ -119,7 +125,12 @@ void memory_free_handle(unsigned int handle)
 #ifdef XVT_MODERN
 	xvt_render_assets_retire_handle(handle);
 #endif
+	if (handle == 0 || handle > 32768u) {
+		XVT_LOG_WARN("memory.free_invalid handle=%u", handle);
+	}
 	if (g_handle_tables.ptr_table[handle - 1] != NULL) {
+		XVT_LOG_DEBUG("memory.freed handle=%u bytes=%u", handle,
+			      (unsigned)g_handle_tables.size_table[handle - 1]);
 		free(g_handle_tables.ptr_table[handle - 1]);
 	}
 	g_handle_tables.size_table[handle - 1] = 0;

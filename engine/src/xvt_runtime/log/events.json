@@ -2608,6 +2608,31 @@
       "fields": ["slot", "object", "score", "map", "aim", "focus", "width", "height", "shift", "predicted"],
       "text": "Player slot {slot} picked object {object} (-1 for none) nearest the middle of the map view, at a score of {score} (with none, the limit: an eighth of the screen width squared plus its height squared); map view {map}; the aim target {aim} and the camera's object {focus} (65,535 for none) scored worse on purpose; this machine draws {width}x{height} with a projection shift of {shift}, which the pick depends on; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "memory.alloc_failed": {
+      "level": "E",
+      "fields": ["bytes"],
+      "text": "A memory block of {bytes} bytes could not be allocated; the caller got handle 0"
+    },
+    "memory.allocated": {
+      "level": "D",
+      "fields": ["handle", "bytes", "zeroed"],
+      "text": "Memory handle {handle} was given a block of {bytes} bytes (cleared to zero {zeroed})"
+    },
+    "memory.free_invalid": {
+      "level": "W",
+      "fields": ["handle"],
+      "text": "Memory handle {handle} was freed, but handles run from 1 to 32,768: the free writes outside the handle tables"
+    },
+    "memory.freed": {
+      "level": "D",
+      "fields": ["handle", "bytes"],
+      "text": "Memory handle {handle} and its block of {bytes} bytes were freed"
+    },
+    "memory.handles_full": {
+      "level": "E",
+      "fields": ["bytes"],
+      "text": "A memory block of {bytes} bytes was not allocated: all 32,768 memory handles were in use"
+    },
     "mfd.list_emptied": {
       "level": "D",
       "fields": ["page"],
