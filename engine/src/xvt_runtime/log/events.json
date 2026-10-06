@@ -1671,7 +1671,7 @@
     "display.palette_set": {
       "level": "D",
       "fields": ["first", "count", "fullscreen", "palette", "predicted"],
-      "text": "{count} palette colors from entry {first} were sent to the display: full screen {fullscreen}, a DirectDraw palette present {palette} (at 0 the 1997 VGA path, which the modern build skips); predicted step {predicted} (1 in a step that is run again later)"
+      "text": "{count} palette colors from entry {first} were sent to the display: full screen {fullscreen}, a DirectDraw palette present {palette} (at 0 the colors are not set); predicted step {predicted} (1 in a step that is run again later)"
     },
     "display.present_failed": {
       "level": "E",
@@ -5541,7 +5541,7 @@
     "pilot.command_line": {
       "level": "D",
       "fields": ["length", "named", "address"],
-      "text": "The command line ({length} characters) was read: a pilot name given {named}, a network address given {address} (1 yes; neither text is logged); the modern build always passes an empty line"
+      "text": "The command line ({length} characters) was read: a pilot name given {named}, a network address given {address} (1 yes; neither text is logged); the game always passes an empty line"
     },
     "pilot.create_choices": {
       "level": "D",
@@ -5671,7 +5671,7 @@
     "pilot.name_matched": {
       "level": "D",
       "fields": ["matched", "index", "count"],
-      "text": "A typed pilot name was looked up among the {count} listed pilots (-1 with no list): matched {matched} (1 yes; the original build never sets it) at roster entry {index} (the count when none matched)"
+      "text": "A typed pilot name was looked up among the {count} listed pilots (-1 with no list): matched {matched} (1 yes) at roster entry {index} (the count when none matched)"
     },
     "pilot.name_prompted": {
       "level": "D",
