@@ -11,6 +11,7 @@
 #include "xvt/render/tex_level.h"
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Object type of each backdrop record, whose texture block holds its image:
  * backdrop_generate_default_records fills the first 22 at random and mission_init
@@ -87,6 +88,9 @@ void backdrop_draw_model_tex_quad_at_screen(int model_type, int screen_x,
 	g_flight_sw_rot_sprite_span_runs_enabled = 1;
 	g_cam_rel_world_z = 0x100000;
 	g_view_space_depth = 0x7FFFFFFF;
+	if (g_object_type_table[model_type].resource_handle == 0) {
+		XVT_LOG_ERROR("render.backdrop_missing type=%d", model_type);
+	}
 	const uint8_t *model_data = (const uint8_t *)memory_get_handle_block(
 		g_object_type_table[model_type].resource_handle);
 	memory_handle_block_done_stub(

@@ -12,6 +12,7 @@
 #include "xvt/render/render_quad.h"
 #include "xvt/render/render_scene.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 enum {
 	COMPONENT_OBJECT_TYPE = 89,
@@ -197,6 +198,9 @@ void scene_billboard_queue_projected_textured(int object_or_type_index,
 		g_scene_billboard_queue[count].depth_z = depth_z;
 		g_scene_billboard_queue[count].rotation_angle = rotation_angle;
 		g_scene_billboard_queue_count = (int16_t)(count + 1);
+	} else {
+		XVT_LOG_DEBUG("render.billboard_queue_full object=%d frame=%d",
+			      object_or_type_index, frame);
 	}
 }
 

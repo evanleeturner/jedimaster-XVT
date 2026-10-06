@@ -9,6 +9,7 @@
 #include "xvt/render/render_clip.h"
 #include "xvt/render/render_scene.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 struct software_light_sample {
 	/* Lighting block row it was worked out for:
@@ -1421,6 +1422,11 @@ void sw3d_draw_visible_faces_to_surface(void)
 	if (g_use_hardware3d != 0) {
 		render_scene_flush_geometry();
 		return;
+	}
+
+	if (g_p_scene_span_data_cur + 1 == g_p_scene_span_data_end) {
+		XVT_LOG_DEBUG("render.span_pool_full spans=%d faces=%d",
+			      g_scene_span_data_capacity, g_vis_face_count);
 	}
 
 	if (g_flight_surface_already_locked == 0) {

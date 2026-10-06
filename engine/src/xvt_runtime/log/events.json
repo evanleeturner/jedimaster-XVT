@@ -5348,6 +5348,16 @@
       "fields": [],
       "text": "The game options were saved to the player's settings file, with the current pilot as the last pilot (at a flight launch, after a flight, when the configuration screen closes, and at quit)"
     },
+    "palette.applied": {
+      "level": "D",
+      "fields": ["brightness_scale", "bpp"],
+      "text": "The flight palette was applied at brightness scale {brightness_scale} (256 is normal; each brightness step adds 64) for a {bpp}-bit display; at 8 bits its colors were sent to the display, at 16 nothing was sent"
+    },
+    "palette.colors_set": {
+      "level": "D",
+      "fields": ["first", "count", "pixel_mode"],
+      "text": "{count} flight palette colors from entry {first} were set; in pixel mode {pixel_mode} (2 for 16-bit color) the matching 16-bit colors were rebuilt too"
+    },
     "pilot.achievements_counted": {
       "level": "D",
       "fields": ["faction", "rows", "solo_histories", "network_histories"],
@@ -5928,6 +5938,16 @@
       "fields": [],
       "text": "The modern renderer shut down"
     },
+    "render.backdrop_missing": {
+      "level": "E",
+      "fields": ["type"],
+      "text": "Backdrop object type {type} has no loaded image, so drawing it took an image address from outside the game's table of loaded blocks"
+    },
+    "render.billboard_queue_full": {
+      "level": "D",
+      "fields": ["object", "frame"],
+      "text": "All 32 places for flat images waiting to be drawn were taken, so frame {frame} of object {object} (an object type for a few callers) was left out of this picture"
+    },
     "render.bitmap_too_large": {
       "level": "W",
       "fields": ["width", "height"],
@@ -5937,6 +5957,16 @@
       "level": "E",
       "fields": ["z_buffer", "perspective", "hardware"],
       "text": "The 3D device lacks an essential feature: z-buffer {z_buffer}, perspective-correct textures {perspective}, hardware {hardware}"
+    },
+    "render.list_full": {
+      "level": "D",
+      "fields": ["object", "depth"],
+      "text": "The list of objects to draw had all 296 entries in use, so object {object} (depth {depth}) was left out of this picture"
+    },
+    "render.span_pool_full": {
+      "level": "D",
+      "fields": ["spans", "faces"],
+      "text": "The software renderer's pool of {spans} spans was used up (or came within one entry of it) while the frame's {faces} visible faces were turned into spans; once used up, new spans reuse its last entry, so parts of the frame may be drawn wrong"
     },
     "render.sprite_truncated": {
       "level": "W",

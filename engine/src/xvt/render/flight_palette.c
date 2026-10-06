@@ -3,6 +3,7 @@
 #include "xvt/flight/flight_display.h"
 #include "xvt/render/color.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Bytes per pixel of the flight frame buffer: 1 in the 8-bit paletted modes, 2
  * in 16-bit color; 1 at start. Four functions write it: flight_main in the
@@ -247,6 +248,9 @@ void flight_palette_apply_to_display(void)
 						   0, 256);
 	}
 	g_palette_dirty_flags &= ~1;
+	XVT_LOG_DEBUG("palette.applied brightness_scale=%d bpp=%d",
+		      g_flight_brightness_scale_q8,
+		      8 * g_flight_bytes_per_pixel);
 }
 
 /* Copies count colors from rgb_triples into g_sw_palette from entry startIdx,
@@ -273,6 +277,8 @@ void flight_palette_set_range(struct rgb_triplet *rgb_triples,
 						 g_flight_palette16_bpp,
 						 (uint16_t)start_idx, count);
 	}
+	XVT_LOG_DEBUG("palette.colors_set first=%d count=%d pixel_mode=%d",
+		      (int)start_idx, (int)count, (int)g_flight_pixel_mode);
 }
 
 /* Copies the 256 colors of g_sw_palette to dst_palette. Installed as
