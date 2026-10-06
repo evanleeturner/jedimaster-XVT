@@ -95,6 +95,34 @@ if(NOT MSVC)
     xvt_add_known_failure(test_mission tie_goal_text_handles_kept)
 endif()
 
+# The frontend's mission loaders and the launch's pilot record setup: src/xvt/frontend/frontend_mission.c.
+# The loader checks write their mission list and files into a temporary folder made with POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_frontend_mission test_frontend_mission.c
+        "${PROJECT_SOURCE_DIR}/src/xvt/frontend/frontend_mission.c")
+    add_test(NAME frontend_mission COMMAND test_frontend_mission)
+    xvt_add_known_failure(test_frontend_mission briefing_unlisted_mission)
+    xvt_add_known_failure(test_frontend_mission briefing_label_past_buffer)
+    xvt_add_known_failure(test_frontend_mission faction_past_table)
+endif()
+
+# The mission list screens' exit functions: src/xvt/frontend/frontend_mission_list.c.
+xvt_add_engine_test(test_frontend_mission_list test_frontend_mission_list.c
+    "${PROJECT_SOURCE_DIR}/src/xvt/frontend/frontend_mission_list.c")
+add_test(NAME frontend_mission_list COMMAND test_frontend_mission_list)
+
+# The debriefing's standings, outcome text and pages: src/xvt/frontend/mission_debrief.c.
+# The outcome text checks write their mission files into a temporary folder made with POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_mission_debrief test_mission_debrief.c
+        "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_debrief.c")
+    add_test(NAME mission_debrief COMMAND test_mission_debrief)
+    xvt_add_known_failure(test_mission_debrief local_team_rank_by_team_id)
+    xvt_add_known_failure(test_mission_debrief left_player_marked_ready)
+    xvt_add_known_failure(test_mission_debrief short_file_outcome_text)
+    xvt_add_known_failure(test_mission_debrief campaign_id_past_table)
+endif()
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
