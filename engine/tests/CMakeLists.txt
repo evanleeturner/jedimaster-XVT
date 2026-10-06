@@ -142,6 +142,30 @@ xvt_add_known_failure(test_goals ai_level_escape_text_missing)
 xvt_add_known_failure(test_goals condition_47_unloaded_text)
 xvt_add_known_failure(test_goals condition_47_past_table)
 
+
+# The mission setup screens' lists, sequences, rosters, teams and flight assignments:
+# src/xvt/frontend/mission_setup.c. The list and sequence checks write their files into a temporary
+# folder made with POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_mission_setup test_mission_setup.c
+        "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_setup.c")
+    add_test(NAME mission_setup COMMAND test_mission_setup)
+    xvt_add_known_failure(test_mission_setup ship_list_over_100)
+    xvt_add_known_failure(test_mission_setup ship_list_negative_type)
+    xvt_add_known_failure(test_mission_setup team_past_count_table)
+    xvt_add_known_failure(test_mission_setup team_gap_hidden)
+    xvt_add_known_failure(test_mission_setup auto_assign_no_teams)
+    xvt_add_known_failure(test_mission_setup auto_assign_too_few_places)
+    xvt_add_known_failure(test_mission_setup departed_assignment_kept)
+    xvt_add_known_failure(test_mission_setup first_sequence_count_zero)
+    xvt_add_known_failure(test_mission_setup first_sequence_unlisted)
+    xvt_add_known_failure(test_mission_setup next_sequence_draw_endless)
+    xvt_add_known_failure(test_mission_setup next_sequence_count_zero)
+    xvt_add_known_failure(test_mission_setup next_sequence_unlisted)
+    xvt_add_known_failure(test_mission_setup rebel_background_unread_mission)
+    xvt_add_known_failure(test_mission_setup battle_client_timeout_type)
+endif()
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
