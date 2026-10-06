@@ -204,6 +204,40 @@ xvt_add_known_failure(test_frontend_net join_refused_as_full)
 xvt_add_known_failure(test_frontend_net chat_chunk_without_log)
 xvt_add_known_failure(test_frontend_net chat_chunk_past_log)
 
+# The briefing map's script player: src/xvt/frontend/briefing_script.c.
+xvt_add_engine_test(test_briefing_script test_briefing_script.c
+    "${PROJECT_SOURCE_DIR}/src/xvt/frontend/briefing_script.c")
+add_test(NAME briefing_script COMMAND test_briefing_script)
+xvt_add_known_failure(test_briefing_script end_entry_read_past)
+xvt_add_known_failure(test_briefing_script script_without_end_past_words)
+xvt_add_known_failure(test_briefing_script opcode_past_count_table)
+
+# The briefing's text buffers: src/xvt/frontend/briefing_text.c. The checks ask the AddressSanitizer
+# allocator whether a buffer was freed, which only GCC and Clang provide.
+if(NOT MSVC)
+    xvt_add_engine_test(test_briefing_text test_briefing_text.c
+        "${PROJECT_SOURCE_DIR}/src/xvt/frontend/briefing_text.c")
+    add_test(NAME briefing_text COMMAND test_briefing_text)
+endif()
+
+# The briefing map's view, flight group pick and drawing: src/xvt/frontend/briefing_map.c. The checks
+# arm an alarm with POSIX calls, for a grid that never finishes.
+if(NOT MSVC)
+    xvt_add_engine_test(test_briefing_map test_briefing_map.c
+        "${PROJECT_SOURCE_DIR}/src/xvt/frontend/briefing_map.c")
+    add_test(NAME briefing_map COMMAND test_briefing_map)
+    xvt_add_known_failure(test_briefing_map grid_zoom_zero)
+    xvt_add_known_failure(test_briefing_map zoom_divides_by_zero)
+    xvt_add_known_failure(test_briefing_map overlay_craft_type_past_icon_table)
+    xvt_add_known_failure(test_briefing_map highlight_craft_type_past_icon_table)
+    xvt_add_known_failure(test_briefing_map marker_age_past_32767)
+endif()
+
+# The craft selection screen's ready test, briefing map hooks and exit: src/xvt/frontend/mission_briefing.c.
+xvt_add_engine_test(test_mission_briefing test_mission_briefing.c
+    "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing.c")
+add_test(NAME mission_briefing COMMAND test_mission_briefing)
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
