@@ -78,9 +78,6 @@ int frontend_display_save_back_buffer(void);
 int frontend_display_restore_back_buffer(void);
 IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 						  const char *lp_name);
-uint32_t
-frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,
-						    uint32_t color);
 
 #ifdef __cplusplus
 }

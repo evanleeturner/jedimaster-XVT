@@ -81,8 +81,6 @@ typedef char xvt_size_bitmapinfoheader[(sizeof(struct BITMAPINFOHEADER) == 40)
 					       ? 1
 					       : -1];
 
-int win32_create_process_from_command_line(char *command_line);
-
 #ifdef __cplusplus
 }
 #endif

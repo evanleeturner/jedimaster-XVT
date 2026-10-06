@@ -107,7 +107,6 @@ int flight_net_send_world_checksum_to_host(const int *world_checksum,
 int flight_net_broadcast_world_checksum(const int *world_checksum,
 					const int *region_lengths,
 					int checksum_dword_count);
-void flight_net_handle_world_state_resync_packet(const int *packet);
 
 #ifdef __cplusplus
 }

@@ -33,12 +33,6 @@ int direct_sound_load_file_and_find_audio_data(int unused,
 					       WAVEFORMATEX **format,
 					       const void **sample_data,
 					       unsigned int *sample_bytes);
-struct direct_sound_buffer_set *
-direct_sound_load_wave_buffer_set(IDirectSound *direct_sound,
-				  const char *file_name, int buffer_count);
-void direct_sound_free_wave_buffer_set(struct direct_sound_buffer_set *set);
-IDirectSoundBuffer *direct_sound_acquire_wave_buffer_set_buffer(
-	struct direct_sound_buffer_set *set);
 int direct_sound_copy_wave_data_to_buffer(IDirectSoundBuffer *buffer,
 					  const void *sample_data,
 					  unsigned int sample_bytes);

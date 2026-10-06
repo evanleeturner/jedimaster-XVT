@@ -44,10 +44,8 @@ endif()
 # the address it was recovered from. The files are no longer checked against
 # z_bop__.exe: names and layout have changed since.
 set(XVT_RECOVERED_SOURCES
-    src/xvt/assets/endian.c
     src/xvt/assets/file.c
     src/xvt/assets/inventor_ascii.c
-    src/xvt/assets/memory_buffer.c
     src/xvt/assets/model_bounds.c
     src/xvt/assets/model_mesh.c
     src/xvt/assets/model_preview.c
@@ -102,7 +100,6 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/frontend/config.c
     src/xvt/frontend/credits.c
     src/xvt/frontend/cutscene.c
-    src/xvt/frontend/ddutil.c
     src/xvt/frontend/front_image.c
     src/xvt/frontend/frontend.c
     src/xvt/frontend/frontend_bootstrap.c

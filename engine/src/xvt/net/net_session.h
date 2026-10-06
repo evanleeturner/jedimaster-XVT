@@ -173,13 +173,10 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size);
 int net_session_send_compact_game_packet(int direct_play_id,
 					 unsigned int *payload,
 					 int payload_size, ...);
-int *net_session_wait_for_game_packet(int *out_dpid, int *out_payload_size,
-				      int timeout_seconds);
 int net_session_find_player_slot_by_dpid(int dpid);
 int net_session_get_host_dplay_id(void);
 int net_session_get_local_dplay_id(void);
 char *net_session_get_player_name(int player_slot);
-int net_session_broadcast_player_roster(int to_player_id);
 int net_session_add_player_to_group(
 	const struct session_player_info *player_info);
 int net_session_count_active_players(void);

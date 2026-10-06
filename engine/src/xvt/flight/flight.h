@@ -266,8 +266,6 @@ void flight_save_world_state(void);
 void flight_restore_world_state(void);
 size_t flight_calculate_world_state_buffer_size(void);
 void flight_checksum_world_state(int unused_arg0, int unused_arg1);
-void flight_main_loop(int unused);
-void flight_run_mission_loop(void);
 int flight_update_active_player_count(void);
 int flight_recount_players_and_check_mission_end(void);
 int flight_compute_live_world_state_checksum(void);
@@ -281,7 +279,6 @@ static __inline uint32_t flight_rotate_checksum_left(uint32_t checksum)
 
 void flight_process_player_actions(int player_idx);
 char flight_apply_graphics_detail_preset(uint16_t preset);
-int flight_main(char *mission_cmd_line);
 int flight_update_and_focus_main_window(void);
 int32_t flight_pump_window_messages(void);
 void flight_update_craft_steering_and_speed(void);

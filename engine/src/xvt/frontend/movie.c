@@ -100,17 +100,6 @@ typedef char xvt_size_movie_smack_handle
 typedef HRESULT(AERON_DXAPI *movie_get_pixel_format_fn)(
 	IDirectDrawSurface *surface, struct movie_pixel_format *pixel_format);
 
-int SmackToBuffer(struct movie_smack_handle *handle, int x, int y, int pitch,
-		  int height, void *pixels, int format);
-int SmackDoFrame(struct movie_smack_handle *handle);
-int SmackToBufferRect(struct movie_smack_handle *handle, int rect_index);
-int SmackNextFrame(struct movie_smack_handle *handle);
-void SmackSoundUseDirectSound(IDirectSound *direct_sound);
-struct movie_smack_handle *SmackOpen(const char *file_name, unsigned int flags,
-				     int extra_buffer);
-int SmackWait(struct movie_smack_handle *handle);
-void SmackClose(struct movie_smack_handle *handle);
-
 /* Subtitle file of the movie playing, the movie's path with the extension txt;
  * NULL when none is open. xvt_movie_task_begin opens it and the movie task
  * closes it, and frontend_bootstrap_init_mode closes one still open. */

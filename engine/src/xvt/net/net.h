@@ -218,8 +218,6 @@ void net_handle_direct_play_system_message(int packet_type,
 					   const void *packet_data);
 void *net_dequeue_incoming_packet(DPID *out_sender_id,
 				  uint32_t *out_packet_size);
-int *net_wait_for_app_packet(DPID *out_sender_id, uint32_t *out_packet_size,
-			     int timeout_seconds);
 int net_get_host_player_id(void);
 int net_get_local_player_id(void);
 void net_mark_player_ready_no_lock(int player_id);
@@ -284,7 +282,6 @@ int net_get_player_packet_retry_count(int player_id);
 int net_set_player_packet_count(int player_id, int packet_count);
 int net_set_player_packet_drop_count(int player_id, int packet_drop_count);
 int net_set_player_packet_retry_count(int player_id, int packet_retry_count);
-int net_wait_for_shutdown_handshake_acks(void);
 
 #ifdef __cplusplus
 }

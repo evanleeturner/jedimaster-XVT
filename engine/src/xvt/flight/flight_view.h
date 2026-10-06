@@ -48,13 +48,6 @@ struct flight_view_scale {
 	int scale; /* Q15 factor (32,768 is 1.0). */
 };
 
-static __inline int flight_view_scale_q15(struct flight_view_scale operation)
-{
-	operation.value =
-		(int)(((int64_t)operation.value * operation.scale) >> 15);
-	return operation.value;
-}
-
 HRESULT flight_view_composite_masked_software_surface(void);
 extern int g_current_object_bounds_extent;
 int16_t flight_view_rotate_view_by_input(int pitch_step, int yaw_or_roll_step,
