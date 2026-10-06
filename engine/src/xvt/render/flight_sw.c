@@ -1,10 +1,9 @@
 #include "xvt/render/flight_sw.h"
 
-#include "xvt_runtime/snapshot/render_camera.h"
 #include <math.h>
 #include <stdio.h>
-
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -23,6 +22,7 @@
 #include "xvt/util/memory.h"
 #include "xvt_runtime/compat/framebuffer_address.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/render_camera.h"
 
 /* Stars on each side of each of the starfield's three grids: 32 /
  * g_star_grid_divisor, set by flight_starfield_render on each call. */

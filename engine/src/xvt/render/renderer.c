@@ -1,14 +1,14 @@
 #include "xvt/render/renderer.h"
 
-#include "xvt_runtime/log/log.h"
-
 #include <string.h>
+
 #include "xvt/flight/flight_display.h"
 #include "xvt/math/math.h"
 #include "xvt/render/render_scene.h"
 #include "xvt/render/render_texture.h"
 #include "xvt/render/std3d.h"
 #include "xvt/util/debug_console.h"
+#include "xvt_runtime/log/log.h"
 
 /* Level-of-detail child render_scene_draw_model_node takes in every face group, 0
  * to choose by distance (child 1 at a view depth of 0 or less). Only

@@ -1,18 +1,9 @@
 #include "xvt/flight/hud/hud.h"
 
-#include "xvt_runtime/snapshot/cockpit_capture.h"
-#include "xvt_runtime/snapshot/cockpit_instruments.h"
-#include "xvt_runtime/snapshot/cockpit_messages.h"
-
-#include "xvt_runtime/snapshot/cockpit_pages.h"
-#include "xvt_runtime/snapshot/cockpit_readouts.h"
-#include "xvt_runtime/snapshot/cockpit_text.h"
-#include "xvt_runtime/snapshot/render_hud.h"
-#include "xvt_runtime/snapshot/render_assets.h"
-#include "xvt_runtime/snapshot/render_capture.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
@@ -54,6 +45,15 @@
 #include "xvt/render/sw3d.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/cockpit_capture.h"
+#include "xvt_runtime/snapshot/cockpit_instruments.h"
+#include "xvt_runtime/snapshot/cockpit_messages.h"
+#include "xvt_runtime/snapshot/cockpit_pages.h"
+#include "xvt_runtime/snapshot/cockpit_readouts.h"
+#include "xvt_runtime/snapshot/cockpit_text.h"
+#include "xvt_runtime/snapshot/render_assets.h"
+#include "xvt_runtime/snapshot/render_capture.h"
+#include "xvt_runtime/snapshot/render_hud.h"
 
 struct lfd_entry_header {
 	uint8_t resource_type[4]; /* Type tag; PLTT marks a palette. */

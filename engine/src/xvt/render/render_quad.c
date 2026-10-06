@@ -1,9 +1,8 @@
 #include "xvt/render/render_quad.h"
 
-#include "aeron/compat/host.h"
-
-#include "xvt_runtime/log/log.h"
 #include <string.h>
+
+#include "aeron/compat/host.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_view.h"
@@ -22,6 +21,7 @@
 #include "xvt/render/tex_level.h"
 #include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log.h"
 
 /* Vertex color of an explosion billboard for each frame 0 to 31 of the
  * explosion (its type_specific_byte[0]): white with the alpha in the high byte,

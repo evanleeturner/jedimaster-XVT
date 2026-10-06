@@ -1,9 +1,9 @@
 #include "xvt/frontend/frontend_file_list.h"
 
-#include "xvt_runtime/compat/frontend_file_list_port.h"
 #include <stdlib.h>
-
 #include <string.h>
+
+#include "xvt_runtime/compat/frontend_file_list_port.h"
 
 /* Lists the files matching wildcard in a new list for frontend_file_list_free,
  * sorted by strcmp of their names: byte order, so capitals sort before small

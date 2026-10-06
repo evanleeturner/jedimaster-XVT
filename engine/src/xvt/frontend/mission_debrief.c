@@ -1,13 +1,9 @@
 #include "xvt/frontend/mission_debrief.h"
 
-#include "xvt_runtime/runtime/campaign_task.h"
-#include "xvt_runtime/runtime/frontend_cleanup.h"
-#include "xvt_runtime/runtime/dialog_task.h"
-
-#include "xvt_runtime/runtime/mission_dialogs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/frontend/briefing_text.h"
 #include "xvt/frontend/concourse.h"
@@ -34,6 +30,10 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/campaign_task.h"
+#include "xvt_runtime/runtime/dialog_task.h"
+#include "xvt_runtime/runtime/frontend_cleanup.h"
+#include "xvt_runtime/runtime/mission_dialogs.h"
 
 /* 1 asks mission_debrief_draw_player_statistics_page to recount its rows and
  * totals and scroll back to the top; that page sets it to 0 when it does.

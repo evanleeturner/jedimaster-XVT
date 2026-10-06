@@ -1,9 +1,7 @@
 #include "xvt/flight/hud/flight_alert.h"
 
-#include "xvt_runtime/snapshot/cockpit_messages.h"
-
-#include "xvt_runtime/snapshot/render_capture.h"
 #include <stdlib.h>
+
 #include "xvt/flight/flight_display.h"
 #include "xvt/flight/flight_surface.h"
 #include "xvt/flight/hud/flight_text.h"
@@ -11,6 +9,8 @@
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/cockpit_messages.h"
+#include "xvt_runtime/snapshot/render_capture.h"
 
 /* Pixels added to g_surface_height before halving it to place the alert box's
  * vertical center. Nothing writes it, so it stays 0 and the box sits at the

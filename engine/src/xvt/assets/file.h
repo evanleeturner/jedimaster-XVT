@@ -1,14 +1,14 @@
 #ifndef XVT_ASSETS_FILE_H
 #define XVT_ASSETS_FILE_H
 
-#include "xvt/xvt_typedefs.h"
-#include "aeron/vfs.h"
-#include "xvt_runtime/storage/file_io.h"
-
-#include "xvt_runtime/storage/storage.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+
+#include "aeron/vfs.h"
+#include "xvt/xvt_typedefs.h"
+#include "xvt_runtime/storage/file_io.h"
+#include "xvt_runtime/storage/storage.h"
 typedef AeronFile xvt_file;
 #define FILE_RAW_OPEN xvt_storage_open
 #define FILE_RAW_CLOSE xvt_file_close

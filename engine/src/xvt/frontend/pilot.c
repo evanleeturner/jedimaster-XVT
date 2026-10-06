@@ -1,9 +1,12 @@
 #include "xvt/frontend/pilot.h"
 
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/frontend/concourse.h"
 #include "xvt/frontend/config.h"
-
 #include "xvt/frontend/frontend.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_file_list.h"
@@ -13,11 +16,8 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
-#include "xvt_runtime/log/log_both_builds.h"
-#include <strings.h>
 #include "xvt_runtime/compat/pilot_port.h"
-#include <stdlib.h>
-#include <string.h>
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Forty pilot names; pilot_parse_command_line picks one at random for a pilot
  * named "joiner" or "host" on the command line. */

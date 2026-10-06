@@ -1,13 +1,7 @@
 #include "xvt/net/flight_sync.h"
 
-#include "xvt_runtime/input/flight_controls.h"
-
-#include "xvt_runtime/runtime/flight_messages.h"
-#include "xvt_runtime/runtime/flight_network.h"
-#include "xvt_runtime/runtime/flight_sim.h"
-#include "xvt_runtime/runtime/resync_task.h"
-#include "xvt_runtime/timing/flight_timing.h"
 #include <string.h>
+
 #include "xvt/audio/sound.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -21,7 +15,13 @@
 #include "xvt/net/net_reliable.h"
 #include "xvt/net/net_session.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/flight_messages.h"
+#include "xvt_runtime/runtime/flight_network.h"
+#include "xvt_runtime/runtime/flight_sim.h"
+#include "xvt_runtime/runtime/resync_task.h"
+#include "xvt_runtime/timing/flight_timing.h"
 
 enum { INPUT_FRAME_PREDICTED = 2 };
 

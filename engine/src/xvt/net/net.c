@@ -1,10 +1,9 @@
 #include "xvt/net/net.h"
 
-#include "xvt_runtime/runtime/network_session.h"
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <string.h>
+
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/frontend.h"
@@ -18,6 +17,7 @@
 #include "xvt/util/time.h"
 #include "xvt/util/win32.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/network_session.h"
 
 /* Transport of the open lobby session. Written by net_start_network_session on
  * success, by xvt_network_session_update (TCP/IP) in the modern build, and

@@ -7,10 +7,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "xvt/assets/file.h"
-
-#include "xvt/xvt_typedefs.h"
 #include <strings.h>
+
+#include "xvt/assets/file.h"
+#include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {

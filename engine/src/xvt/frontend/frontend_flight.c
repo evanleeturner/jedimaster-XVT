@@ -1,10 +1,9 @@
 #include "xvt/frontend/frontend_flight.h"
 
-#include "xvt_runtime/runtime/launch_task.h"
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -30,6 +29,7 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/launch_task.h"
 
 /* GetTickCount, in milliseconds, when the "Prepare for launch" screen
  * opened; only flight_loading_update_ready_screen writes it. */

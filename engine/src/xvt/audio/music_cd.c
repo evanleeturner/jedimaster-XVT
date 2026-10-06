@@ -1,13 +1,13 @@
 #include "xvt/audio/music_cd.h"
 
-#include "aeron/compat/mmsystem.h"
+#include <string.h>
 
+#include "aeron/compat/mmsystem.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/flight/flight.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
 #include "xvt_runtime/runtime/port.h"
-#include <string.h>
 
 /* 1 once the flight music track is marked complete. music_cd_initialize,
  * music_cd_play_track_from_time, music_cd_stop_track and music_cd_close_device set 0;

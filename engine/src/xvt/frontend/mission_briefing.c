@@ -1,12 +1,9 @@
 #include "xvt/frontend/mission_briefing.h"
 
-#include "xvt_runtime/runtime/frontend_cleanup.h"
-#include "xvt_runtime/runtime/dialog_task.h"
-#include "xvt_runtime/runtime/mission_dialogs.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "xvt/assets/model_preview.h"
 #include "xvt/frontend/briefing_map.h"
 #include "xvt/frontend/briefing_text.h"
@@ -32,6 +29,9 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/dialog_task.h"
+#include "xvt_runtime/runtime/frontend_cleanup.h"
+#include "xvt_runtime/runtime/mission_dialogs.h"
 
 /* 1 while the craft selection screen of mission_briefing_craft_selection_update is
  * current: set on its first frame, set to 0 by

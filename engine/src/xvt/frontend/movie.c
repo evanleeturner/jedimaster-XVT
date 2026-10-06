@@ -1,9 +1,12 @@
 #include "xvt/frontend/movie.h"
 
-#include "xvt_runtime/runtime/movie_task.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "aeron/aeron.h"
 #include "xvt/assets/file.h"
 #include "xvt/frontend/frontend.h"
-
 #include "xvt/frontend/frontend_dialog.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
@@ -18,10 +21,7 @@
 #include "xvt/util/time.h"
 #include "xvt/util/win32.h"
 #include "xvt_runtime/log/log_both_builds.h"
-#include "aeron/aeron.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "xvt_runtime/runtime/movie_task.h"
 
 /* One palette color in the layout of a Windows palette entry. */
 struct movie_palette_entry {

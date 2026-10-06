@@ -2,14 +2,14 @@
 
 #include <string.h>
 
-#include "xvt_runtime/snapshot/render_frontend.h"
+#include "aeron/aeron.h"
 #include "xvt/frontend/front_image.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt_runtime/log/log_both_builds.h"
-#include "aeron/aeron.h"
 #include "xvt_runtime/runtime/presentation.h"
+#include "xvt_runtime/snapshot/render_frontend.h"
 
 /* The built-in cursor, a 10 by 10 arrow pointing up and left, one byte per
  * pixel, row by row: 0 is transparent, 1 the outline and 0xFF the fill.

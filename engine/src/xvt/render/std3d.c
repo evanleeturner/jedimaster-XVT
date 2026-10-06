@@ -1,12 +1,12 @@
 #include "xvt/render/std3d.h"
 
-#include "xvt_runtime/log/log.h"
 #include <math.h>
 #include <stdlib.h>
-
 #include <string.h>
+
 #include "xvt/render/renderer.h"
 #include "xvt/util/debug_console.h"
+#include "xvt_runtime/log/log.h"
 
 struct std3d_unknown;
 

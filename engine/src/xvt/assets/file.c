@@ -1,11 +1,11 @@
 #include "xvt/assets/file.h"
 
+#include <ctype.h>
+#include <limits.h>
+#include <string.h>
+
 #include "xvt/audio/cd_audio.h"
 #include "xvt/frontend/frontend_state.h"
-#include <limits.h>
-
-#include <ctype.h>
-#include <string.h>
 
 /* The mode string "rb" that many of the game's file opens pass; never
  * written. */

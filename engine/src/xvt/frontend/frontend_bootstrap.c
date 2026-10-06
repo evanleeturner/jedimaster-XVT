@@ -1,8 +1,7 @@
 #include "xvt/frontend/frontend_bootstrap.h"
 
-#include "xvt_runtime/runtime/movie_task.h"
-
 #include <stdio.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/frontend/config.h"
@@ -15,6 +14,7 @@
 #include "xvt/frontend/frontend_screen.h"
 #include "xvt/frontend/frontend_text.h"
 #include "xvt/frontend/movie.h"
+#include "xvt_runtime/runtime/movie_task.h"
 
 /* Exit function of the first screen when the intro plays: runs once
  * frontend_bootstrap_play_opening_and_enter_credits has switched to the credits,

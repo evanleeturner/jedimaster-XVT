@@ -1,14 +1,9 @@
 #include "xvt/frontend/config.h"
 
-#include "xvt_runtime/runtime/cd_task.h"
-#include "xvt_runtime/runtime/dialog_task.h"
-#include "xvt_runtime/runtime/frontend_actions.h"
-
-#include "xvt_runtime/runtime/port.h"
-#include "xvt_runtime/config/config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -32,7 +27,12 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt_runtime/config/config.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/cd_task.h"
+#include "xvt_runtime/runtime/dialog_task.h"
+#include "xvt_runtime/runtime/frontend_actions.h"
+#include "xvt_runtime/runtime/port.h"
 
 /* The joystick action list read from joystick.txt: each entry's action code,
  * name and description. config_load_joystick_action_dictionary fills it when the

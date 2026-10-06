@@ -1,12 +1,8 @@
 #include "xvt/flight/player/player.h"
 
-#include "xvt_runtime/hooks/orientation_hook.h"
-#include "xvt_runtime/timing/flight_timing.h"
-
-#include "xvt_runtime/timing/player_timing.h"
-#include "xvt_runtime/input/flight_controls.h"
 #include <limits.h>
 #include <string.h>
+
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
@@ -30,7 +26,11 @@
 #include "xvt/net/flight_net.h"
 #include "xvt/net/net_session.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/hooks/orientation_hook.h"
+#include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/timing/flight_timing.h"
+#include "xvt_runtime/timing/player_timing.h"
 
 /* Per player, countdown timers for HUD panes and redraws, in ticks.
  * flight_update_timers counts each down by g_elapsed_ticks for participating

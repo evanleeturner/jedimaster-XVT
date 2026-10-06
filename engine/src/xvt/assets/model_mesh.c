@@ -1,11 +1,11 @@
 #include "xvt/assets/model_mesh.h"
 
-#include "xvt_runtime/assets/opt_native.h"
 #include "xvt/assets/model_mesh_internal.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/math/math.h"
 #include "xvt/math/trig2.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/assets/opt_native.h"
 
 /* X of the vector the last point rotation produced. Many functions write it,
  * chiefly pai_calcrotatedpoint, which turns a local vector into world axes

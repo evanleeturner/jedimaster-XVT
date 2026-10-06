@@ -1,9 +1,7 @@
 #include "xvt/flight/ai/paiman.h"
 
-#include "xvt_runtime/timing/flight_timing.h"
-
-#include "xvt_runtime/timing/reference_motion.h"
 #include <string.h>
+
 #include "xvt/assets/model_bounds.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai/pai.h"
@@ -20,6 +18,8 @@
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/timing/flight_timing.h"
+#include "xvt_runtime/timing/reference_motion.h"
 
 /* Side offset, in world units along the escorted craft's side axis, of each
  * escort station, indexed by the escort order's variable1: with the Y and Z

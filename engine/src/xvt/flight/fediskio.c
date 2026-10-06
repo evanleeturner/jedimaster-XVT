@@ -1,10 +1,8 @@
 #include "xvt/flight/fediskio.h"
 
-#include "xvt_runtime/snapshot/cockpit_messages.h"
-#include "xvt_runtime/snapshot/render_assets.h"
-
 #include <stdlib.h>
 #include <string.h>
+
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
@@ -34,6 +32,8 @@
 #include "xvt/render/tex_level.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/cockpit_messages.h"
+#include "xvt_runtime/snapshot/render_assets.h"
 
 /* Path of the file fe_disk_io_open_global_stream opened or tried last: in the
  * original build the last path tried, in the modern one the path storage

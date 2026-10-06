@@ -1,12 +1,10 @@
 #include "xvt/frontend/frontend_text.h"
 
-#include "xvt_runtime/snapshot/render_assets.h"
-#include "xvt_runtime/snapshot/render_frontend.h"
 #include <ctype.h>
 #include <stdio.h>
-
 #include <stdlib.h>
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/frontend/front_image.h"
 #include "xvt/frontend/frontend.h"
@@ -17,6 +15,8 @@
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/input/keyboard.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/render_assets.h"
+#include "xvt_runtime/snapshot/render_frontend.h"
 
 /* g_front_state.text_fade_frames_left as frontend_text_suspend_text_fade saved it, for
  * frontend_text_resume_text_fade to put back. Only the suspend writes it. */

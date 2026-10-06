@@ -1,6 +1,5 @@
 #include "xvt/flight/object/damage.h"
 
-#include "xvt_runtime/snapshot/cockpit_pages.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/flight/craft.h"
@@ -18,6 +17,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/scene_billboard.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/cockpit_pages.h"
 
 /* Names of the craft systems by damage_system_id, for the damage page;
  * string_table_load_game_strings points each entry at a line it read from

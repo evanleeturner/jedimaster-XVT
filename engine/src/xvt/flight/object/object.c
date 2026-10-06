@@ -1,10 +1,7 @@
 #include "xvt/flight/object/object.h"
 
-#include "xvt_runtime/timing/flight_integration.h"
-
-#include "xvt_runtime/timing/flight_timing.h"
-#include "xvt_runtime/timing/reference_motion.h"
 #include <string.h>
+
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"
@@ -24,6 +21,9 @@
 #include "xvt/render/scene_billboard.h"
 #include "xvt/util/game_rand.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/timing/flight_integration.h"
+#include "xvt_runtime/timing/flight_timing.h"
+#include "xvt_runtime/timing/reference_motion.h"
 
 /* Per object type counted from WARHEAD_OBJECT_TYPE_PROTON_TORPEDO (143),
  * the first entry of the shot's row of 7 in the two homing tables below;

@@ -1,13 +1,9 @@
 #include "xvt/frontend/concourse.h"
 
-#include "xvt_runtime/runtime/dialog_task.h"
-#include "xvt_runtime/runtime/frontend_actions.h"
-#include "xvt_runtime/runtime/frontend_movies.h"
-
-#include "xvt_runtime/runtime/network_task.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -31,6 +27,10 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/dialog_task.h"
+#include "xvt_runtime/runtime/frontend_actions.h"
+#include "xvt_runtime/runtime/frontend_movies.h"
+#include "xvt_runtime/runtime/network_task.h"
 
 enum {
 	CONCOURSE_CHAT_LOG_BUFFER_SIZE = 0x400,

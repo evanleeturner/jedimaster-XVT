@@ -1,9 +1,5 @@
 #include "xvt/flight/proving_grounds.h"
 
-#include "xvt_runtime/timing/flight_timing.h"
-#include "xvt_runtime/timing/player_timing.h"
-#include "xvt_runtime/snapshot/cockpit_readouts.h"
-#include "xvt_runtime/snapshot/cockpit_text.h"
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/audio/fsfx.h"
@@ -24,6 +20,10 @@
 #include "xvt/render/scene_billboard.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/cockpit_readouts.h"
+#include "xvt_runtime/snapshot/cockpit_text.h"
+#include "xvt_runtime/timing/flight_timing.h"
+#include "xvt_runtime/timing/player_timing.h"
 
 /* Place values for proving_grounds_draw_score_decimal, indexed by the digit places
  * left to draw: entry n is 10 to the power n - 1; entry 0 is never read. Only

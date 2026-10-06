@@ -1,10 +1,10 @@
 #include "xvt/input/dinput.h"
 
 #include "aeron/compat/dinput.h"
-#include "xvt/flight/flight.h"
-#include "xvt_runtime/log/log_both_builds.h"
 #include "aeron/dialog.h"
+#include "xvt/flight/flight.h"
 #include "xvt_runtime/input/input_bridge.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* DirectInput's GUID for the system keyboard,
  * {6F1D2B61-D5A0-11CF-BFC7-444553540000}; dinput_init creates the keyboard

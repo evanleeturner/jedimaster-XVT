@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "xvt_runtime/runtime/presentation.h"
-#include "xvt_runtime/snapshot/render_frontend.h"
-#include "xvt_runtime/runtime/frontend_task.h"
+#include "aeron/aeron.h"
+#include "aeron/compat/host.h"
+#include "aeron/dialog.h"
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -27,12 +27,12 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt/util/time.h"
 #include "xvt_runtime/compat/win_message_port.h"
 #include "xvt_runtime/log/log_both_builds.h"
-#include "aeron/aeron.h"
-#include "aeron/compat/host.h"
-#include "aeron/dialog.h"
-#include "xvt/util/time.h"
+#include "xvt_runtime/runtime/frontend_task.h"
+#include "xvt_runtime/runtime/presentation.h"
+#include "xvt_runtime/snapshot/render_frontend.h"
 
 typedef HRESULT(AERON_DXAPI *frontend_display_surface_get_dc_func)(
 	IDirectDrawSurface *surface, void **dc);

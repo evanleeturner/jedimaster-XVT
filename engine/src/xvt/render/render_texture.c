@@ -1,14 +1,14 @@
 #include "xvt/render/render_texture.h"
 
-#include "xvt_runtime/log/log.h"
 #include <stdint.h>
-
 #include <string.h>
+
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/renderer.h"
 #include "xvt/render/std3d.h"
 #include "xvt/util/debug_console.h"
 #include "xvt_runtime/compat/pointer_key.h"
+#include "xvt_runtime/log/log.h"
 
 /* Key of each entry of g_render_texture_cache, the address of the image data it
  * was made from; NULL for an unclaimed entry.

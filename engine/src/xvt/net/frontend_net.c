@@ -1,14 +1,9 @@
 #include "xvt/net/frontend_net.h"
 
-#include "xvt_runtime/runtime/dialog_task.h"
-#include "xvt_runtime/runtime/network_browser.h"
-#include "xvt_runtime/runtime/network_dialogs.h"
-
-#include "xvt_runtime/runtime/network_session.h"
-#include "xvt_runtime/runtime/network_task.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/briefing_text.h"
 #include "xvt/frontend/concourse.h"
@@ -33,6 +28,11 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/dialog_task.h"
+#include "xvt_runtime/runtime/network_browser.h"
+#include "xvt_runtime/runtime/network_dialogs.h"
+#include "xvt_runtime/runtime/network_session.h"
+#include "xvt_runtime/runtime/network_task.h"
 
 /* The game's DirectPlay application GUID as four words, used to list, join and
  * host sessions of this game (net_enumerate_app_sessions,

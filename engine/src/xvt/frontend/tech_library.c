@@ -1,9 +1,8 @@
 #include "xvt/frontend/tech_library.h"
 
-#include "xvt_runtime/runtime/dialog_task.h"
 #include <stdlib.h>
-
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/flight/craft.h"
@@ -26,6 +25,7 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/net.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/dialog_task.h"
 
 /* Heap table of 93 craft descriptions from specdesc.txt, by craft_species
  * value minus 1. tech_library_load_spec_text_table loads it on the craft

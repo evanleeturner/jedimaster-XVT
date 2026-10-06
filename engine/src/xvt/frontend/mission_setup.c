@@ -1,14 +1,11 @@
 #include "xvt/frontend/mission_setup.h"
 
-#include "xvt_runtime/runtime/campaign_task.h"
-#include "xvt_runtime/runtime/frontend_cleanup.h"
-#include "xvt_runtime/runtime/dialog_task.h"
-#include "xvt_runtime/runtime/mission_dialogs.h"
 #include <ctype.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/audio/cd_audio.h"
@@ -39,7 +36,10 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
-#include <strings.h>
+#include "xvt_runtime/runtime/campaign_task.h"
+#include "xvt_runtime/runtime/dialog_task.h"
+#include "xvt_runtime/runtime/frontend_cleanup.h"
+#include "xvt_runtime/runtime/mission_dialogs.h"
 
 /* Folder of each mission type, by mission_directory_id: training, melee,
  * tournament, combat engagement, battle, campaign. Mission lists and files are

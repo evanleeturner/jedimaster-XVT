@@ -1,17 +1,17 @@
 #include "xvt/net/net_session.h"
 
-#include "xvt/net/frontend_net.h"
-
-#include "xvt_runtime/runtime/flight_network.h"
-#include "xvt_runtime/runtime/network_session.h"
 #include <string.h>
+
 #include "aeron/compat/dplay.h"
 #include "xvt/flight/flight_loading.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/frontend/config.h"
+#include "xvt/net/frontend_net.h"
 #include "xvt/net/net_reliable.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/flight_network.h"
+#include "xvt_runtime/runtime/network_session.h"
 
 #pragma pack(push, 1)
 

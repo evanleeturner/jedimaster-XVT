@@ -1,15 +1,15 @@
 #include "xvt/frontend/frontend_screen.h"
 
-#include "xvt_runtime/snapshot/render_frontend.h"
-#include "xvt_runtime/runtime/dialog_task.h"
-
 #include <stdlib.h>
 #include <string.h>
+
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/input/keyboard.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/dialog_task.h"
+#include "xvt_runtime/snapshot/render_frontend.h"
 
 /* Gives the screen on top of the stack new update and exit functions. Sets
  * g_front_state.frame_counter to -1 and g_front_state.screen_callbacks_dirty to 1:

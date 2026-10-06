@@ -1,9 +1,6 @@
 #include "xvt/assets/opt_model.h"
 
-#include "xvt_runtime/log/log.h"
-#include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt/assets/file.h"
-#include "xvt_runtime/assets/opt_native.h"
 #include "xvt/assets/model_texture.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -16,7 +13,10 @@
 #include "xvt/render/renderer.h"
 #include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/assets/opt_native.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/render_assets.h"
 int access(const char *filename, int mode);
 
 /* One row per model, indexed by model_index: names, flight and combat figures,

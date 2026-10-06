@@ -1,8 +1,7 @@
 #include "xvt/flight/flight_hyperspace.h"
 
-#include "xvt_runtime/snapshot/render_capture.h"
-
 #include <stdlib.h>
+
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/fview.h"
@@ -14,6 +13,7 @@
 #include "xvt/render/scene_billboard.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/render_capture.h"
 
 enum {
 	HYPERSPACE_TRANSITION_OBJECT_TYPE = 137,

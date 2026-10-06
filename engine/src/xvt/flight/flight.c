@@ -1,14 +1,9 @@
 #include "xvt/flight/flight.h"
 
-#include "xvt_runtime/timing/flight_integration.h"
-#include "xvt_runtime/timing/flight_timing.h"
-#include "xvt_runtime/runtime/flight_sim.h"
-
-#include "xvt_runtime/runtime/port.h"
-#include "xvt_runtime/snapshot/world_state.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/model_preview.h"
@@ -66,6 +61,11 @@
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/runtime/flight_sim.h"
+#include "xvt_runtime/runtime/port.h"
+#include "xvt_runtime/snapshot/world_state.h"
+#include "xvt_runtime/timing/flight_integration.h"
+#include "xvt_runtime/timing/flight_timing.h"
 
 /* Per graphics detail preset 0 to 3, the value flight_apply_graphics_detail_preset
  * gives g_graphics_detail_distance_threshold: 0x1000, 0x2000, 0x4000, 0x7FFF. */

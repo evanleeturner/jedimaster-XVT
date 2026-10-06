@@ -1,10 +1,8 @@
 #include "xvt/render/render_scene.h"
 
-#include "aeron/compat/host.h"
-
-#include "xvt_runtime/assets/opt_native.h"
-#include "xvt_runtime/log/log.h"
 #include <string.h>
+
+#include "aeron/compat/host.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/assets/model_texture.h"
@@ -29,6 +27,8 @@
 #include "xvt/render/sw3d.h"
 #include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/assets/opt_native.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
 enum {

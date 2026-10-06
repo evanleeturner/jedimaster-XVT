@@ -1,7 +1,5 @@
 #include "xvt/flight/flight_loading.h"
 
-#include "xvt_runtime/snapshot/cockpit_messages.h"
-#include "xvt_runtime/snapshot/render_capture.h"
 #include "xvt/flight/flight_display.h"
 #include "xvt/flight/flight_surface.h"
 #include "xvt/flight/hud/flight_text.h"
@@ -9,6 +7,8 @@
 #include "xvt/net/flight_net.h"
 #include "xvt/render/renderer.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/snapshot/cockpit_messages.h"
+#include "xvt_runtime/snapshot/render_capture.h"
 
 /* Calls made to flight_loading_pulse_and_draw_progress_screen since the last
  * reset; its low 7 bits are the bar's fill. Three functions write it:

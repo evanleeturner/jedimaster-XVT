@@ -1,11 +1,9 @@
 #include "xvt/frontend/pilot_record.h"
 
-#include "xvt_runtime/runtime/dialog_task.h"
-#include "xvt_runtime/runtime/frontend_actions.h"
-#include "xvt_runtime/runtime/frontend_movies.h"
-
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -29,7 +27,9 @@
 #include "xvt/frontend/movie.h"
 #include "xvt/input/keyboard.h"
 #include "xvt_runtime/log/log_both_builds.h"
-#include <strings.h>
+#include "xvt_runtime/runtime/dialog_task.h"
+#include "xvt_runtime/runtime/frontend_actions.h"
+#include "xvt_runtime/runtime/frontend_movies.h"
 
 enum {
 	CAMPAIGN_AWARD_FLAG_COUNT = 16,

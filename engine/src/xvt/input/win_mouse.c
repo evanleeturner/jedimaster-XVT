@@ -1,8 +1,8 @@
 #include "xvt/input/win_mouse.h"
 
+#include "aeron/aeron.h"
 #include "xvt/flight/flight_input.h"
 #include "xvt/util/win32.h"
-#include "aeron/aeron.h"
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/runtime/presentation.h"
 

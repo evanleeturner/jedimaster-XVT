@@ -1,10 +1,8 @@
 #include "xvt/assets/model_preview.h"
 
-#include "xvt_runtime/snapshot/render_assets.h"
-#include "xvt_runtime/snapshot/render_capture.h"
-
 #include <math.h>
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"
@@ -22,6 +20,8 @@
 #include "xvt/render/sw3d.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/render_assets.h"
+#include "xvt_runtime/snapshot/render_capture.h"
 
 /* 1 / 32767, which turns a 1.15 fixed point matrix entry into a float in
  * model_preview_render_viewport. */

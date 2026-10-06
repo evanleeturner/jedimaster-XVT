@@ -1,11 +1,8 @@
 #include "xvt/flight/flight_display.h"
 
-#include "xvt_runtime/log/log.h"
-#include "xvt_runtime/snapshot/cockpit_capture.h"
-
-#include "xvt_runtime/snapshot/render_capture.h"
 #include <stdio.h>
 #include <string.h>
+
 #include "xvt/assets/model_texture.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_surface.h"
@@ -18,7 +15,10 @@
 #include "xvt/render/renderer.h"
 #include "xvt/util/debug_console.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/cockpit_capture.h"
+#include "xvt_runtime/snapshot/render_capture.h"
 
 /* The DirectDraw primary surface: the screen. flight_display_init creates it; in
  * a window it is created only while needed (flight_display_init reads its

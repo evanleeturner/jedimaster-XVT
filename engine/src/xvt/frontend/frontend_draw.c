@@ -1,10 +1,10 @@
 #include "xvt/frontend/frontend_draw.h"
 
-#include "xvt_runtime/snapshot/render_frontend.h"
 #include <stdlib.h>
-
 #include <string.h>
+
 #include "xvt/frontend/frontend_state.h"
+#include "xvt_runtime/snapshot/render_frontend.h"
 
 /* The first pixel of the surface frontend drawing writes to: the back buffer's
  * locked memory, or the offscreen surface's between

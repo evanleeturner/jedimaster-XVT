@@ -1,15 +1,15 @@
 #include "xvt/flight/flight_input.h"
 
-#include "xvt_runtime/input/capture.h"
-#include "xvt_runtime/input/flight_controls.h"
-#include "xvt_runtime/timing/flight_timing.h"
 #include "xvt/frontend/config.h"
 #include "xvt/input/dinput.h"
 #include "xvt/input/input.h"
 #include "xvt/input/joystick.h"
 #include "xvt/input/mouse.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/input/capture.h"
+#include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/timing/flight_timing.h"
 
 /* 1 when keys are read through DirectInput, 0 when through window messages; the
  * modern build reads keys through DirectInput either way. Starts at 1; at

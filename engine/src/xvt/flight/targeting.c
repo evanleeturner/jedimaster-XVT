@@ -1,6 +1,5 @@
 #include "xvt/flight/targeting.h"
 
-#include "xvt_runtime/snapshot/render_hud.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
@@ -18,6 +17,7 @@
 #include "xvt/math/trig2.h"
 #include "xvt/render/flight_sw.h"
 #include "xvt/render/renderer.h"
+#include "xvt_runtime/snapshot/render_hud.h"
 
 /* How far off the aim line the object targeting_test_aim_cone last tested lies:
  * its up slope times 59578 / 65536 plus its side slope, each 256 times the

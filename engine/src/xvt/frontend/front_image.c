@@ -1,16 +1,16 @@
 #include "xvt/frontend/front_image.h"
 
-#include "xvt_runtime/snapshot/render_frontend.h"
-#include "xvt_runtime/snapshot/render_assets.h"
-
 #include <stdlib.h>
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/frontend/frontend_text.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/snapshot/render_assets.h"
+#include "xvt_runtime/snapshot/render_frontend.h"
 
 #pragma pack(push, 1)
 

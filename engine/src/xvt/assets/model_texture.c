@@ -1,9 +1,8 @@
 #include "xvt/assets/model_texture.h"
 
-#include "xvt_runtime/log/log.h"
 #include <stdlib.h>
-
 #include <string.h>
+
 #include "xvt/assets/file.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/fediskio.h"
@@ -13,6 +12,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/std3d.h"
 #include "xvt/util/debug_console.h"
+#include "xvt_runtime/log/log.h"
 
 /* Returns 1 when the 3D device's opaque texture format has 5 green bits
  * (g_p_fmt_opaque_texture), else 0. Its one caller, display_is_pixel_format555,

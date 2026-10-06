@@ -1,10 +1,7 @@
 #include "xvt/flight/object/collide.h"
 
-#include "xvt_runtime/timing/flight_timing.h"
-
-#include "xvt_runtime/timing/player_timing.h"
-#include "xvt_runtime/assets/opt_native.h"
 #include <string.h>
+
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
@@ -28,7 +25,10 @@
 #include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/assets/opt_native.h"
 #include "xvt_runtime/log/log_both_builds.h"
+#include "xvt_runtime/timing/flight_timing.h"
+#include "xvt_runtime/timing/player_timing.h"
 
 /* The payload of an OPT_ROTSCALE node as collide_test_sweep_against_opt_node
  * reads it. */
