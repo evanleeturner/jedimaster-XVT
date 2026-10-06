@@ -31,6 +31,7 @@
 #include "xvt/render/sw3d.h"
 #include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 #ifndef XVT_MODERN
 #include <float.h>
 #endif
@@ -1116,6 +1117,11 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 						opaque_palette
 							[PALETTE_TRANSPARENT_INDEX_SLOT] =
 								0;
+						XVT_LOG_DEBUG(
+							"render.projectile_key_cleared genus=%d width=%d height=%d",
+							(int)genus_id,
+							texture_width,
+							texture_height);
 					} else if (mesh->p_texture_name !=
 							   NULL &&
 						   *mesh->p_texture_name !=
@@ -1133,6 +1139,10 @@ void render_scene_draw_mesh_faces(const struct scene_mesh *mesh)
 							    texture_height) {
 							*mesh->p_texture_name =
 								'_';
+							XVT_LOG_DEBUG(
+								"render.color_key_dropped width=%d height=%d",
+								texture_width,
+								texture_height);
 						}
 					}
 				}
@@ -1240,6 +1250,14 @@ void render_scene_draw_mesh_hardware(const struct scene_mesh *mesh)
 	    g_vis_face_count + mesh->face_count > g_scene_face_max ||
 	    mesh->vertex_count > g_proj_vert_max ||
 	    mesh->edge_count > g_scene_edge_max) {
+		XVT_LOG_DEBUG(
+			"render.mesh_dropped drawing=\"hardware\" type=%d queued=%d faces=%d mesh_faces=%d mesh_vertices=%d vertex_max=%d mesh_edges=%d edge_max=%d",
+			(int)(mesh->p_object != NULL
+				      ? mesh->p_object->object_type
+				      : -1),
+			g_mesh_queue_index, g_vis_face_count, mesh->face_count,
+			mesh->vertex_count, g_proj_vert_max, mesh->edge_count,
+			g_scene_edge_max);
 		return;
 	}
 	memcpy(&g_mesh_queue[g_mesh_queue_index], mesh,
@@ -1256,6 +1274,13 @@ void render_scene_draw_mesh_hardware(const struct scene_mesh *mesh)
 		math_set_fpu_extended_precision_mode();
 		std3d_start_scene();
 		std3d_lock_execute_buffer();
+		if ((unsigned int)g_d3d_vertex_count >
+		    g_std3d_exec_buf_max_verts) {
+			XVT_LOG_DEBUG(
+				"render.batch_too_large site=\"mesh\" vertices=%d max=%u triangles=%d",
+				g_d3d_vertex_count, g_std3d_exec_buf_max_verts,
+				g_d3d_triangle_count);
+		}
 		std3d_add_vertices(g_flight_vertex_buffer, g_d3d_vertex_count);
 		std3d_begin_instructions();
 		std3d_add_triangles(g_tri_buffer,
@@ -1355,6 +1380,12 @@ void render_scene_flush_geometry(void)
 	math_set_fpu_extended_precision_mode();
 	std3d_start_scene();
 	std3d_lock_execute_buffer();
+	if ((unsigned int)g_d3d_vertex_count > g_std3d_exec_buf_max_verts) {
+		XVT_LOG_DEBUG(
+			"render.batch_too_large site=\"frame\" vertices=%d max=%u triangles=%d",
+			g_d3d_vertex_count, g_std3d_exec_buf_max_verts,
+			g_d3d_triangle_count);
+	}
 	std3d_add_vertices(g_flight_vertex_buffer, g_d3d_vertex_count);
 	std3d_begin_instructions();
 	std3d_add_triangles(g_tri_buffer, g_d3d_triangle_count);
@@ -1544,6 +1575,7 @@ void std3d_detach_and_release_z_buffer_surface(void)
 		g_std3dz_buffer_surface->lpVtbl->Release(
 			g_std3dz_buffer_surface);
 		g_std3dz_buffer_surface = 0;
+		XVT_LOG_DEBUG("render.z_buffer_released");
 	}
 }
 
@@ -1921,6 +1953,15 @@ void render_scene_draw_scene_mesh(const struct scene_mesh *mesh)
 			sw3d_rasterize_mesh_faces(queued_mesh);
 			++g_mesh_queue_index;
 		}
+	} else {
+		XVT_LOG_DEBUG(
+			"render.mesh_dropped drawing=\"software\" type=%d queued=%d faces=%d mesh_faces=%d mesh_vertices=%d vertex_max=%d mesh_edges=%d edge_max=%d",
+			(int)(mesh->p_object != NULL
+				      ? mesh->p_object->object_type
+				      : -1),
+			g_mesh_queue_index, g_vis_face_count, mesh->face_count,
+			mesh->vertex_count, g_proj_vert_max, mesh->edge_count,
+			g_scene_edge_max);
 	}
 }
 
@@ -2099,6 +2140,12 @@ void render_scene_draw_object_model(struct object_record *obj)
 						g_bwing_bridge_mesh_index_cache =
 							model_mesh_find_bridge_index(
 								model);
+						if (g_bwing_bridge_mesh_index_cache !=
+						    -1) {
+							XVT_LOG_DEBUG(
+								"render.bwing_bridge_found index=%d",
+								g_bwing_bridge_mesh_index_cache);
+						}
 					}
 					if (g_bwing_bridge_mesh_index_cache !=
 						    -1 &&
@@ -2328,6 +2375,11 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 				model, (const char *)current_node->payload);
 		}
 		if (current_node == NULL) {
+			XVT_LOG_DEBUG(
+				"render.node_ref_missing type=%d",
+				(int)(mesh->p_object != NULL
+					      ? mesh->p_object->object_type
+					      : -1));
 			return;
 		}
 	}
@@ -3270,6 +3322,10 @@ void render_scene_allocate_buffers(void)
 	g_scene_span_data_handle = memory_alloc_handle(
 		sizeof(struct scene_span) * g_scene_span_data_capacity, 0);
 	if (g_scene_span_data_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"spans\" bytes=%u",
+			(unsigned)(sizeof(struct scene_span) *
+				   (unsigned)g_scene_span_data_capacity));
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
@@ -3277,6 +3333,10 @@ void render_scene_allocate_buffers(void)
 	g_scene_span_ptr_list_handle = memory_alloc_handle(
 		sizeof(struct scene_span *) * g_scene_span_ptr_capacity, 0);
 	if (g_scene_span_ptr_list_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"span_pointers\" bytes=%u",
+			(unsigned)(sizeof(struct scene_span *) *
+				   (unsigned)g_scene_span_ptr_capacity));
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
@@ -3284,6 +3344,10 @@ void render_scene_allocate_buffers(void)
 	g_vis_face_list_handle = memory_alloc_handle(
 		sizeof(struct scene_face) * g_scene_face_max, 0);
 	if (g_vis_face_list_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"faces\" bytes=%u",
+			(unsigned)(sizeof(struct scene_face) *
+				   (unsigned)g_scene_face_max));
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
@@ -3291,6 +3355,10 @@ void render_scene_allocate_buffers(void)
 	g_proj_vert_list_handle = memory_alloc_handle(
 		sizeof(struct proj_vertex) * g_proj_vert_max, 0);
 	if (g_proj_vert_list_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"vertices\" bytes=%u",
+			(unsigned)(sizeof(struct proj_vertex) *
+				   (unsigned)g_proj_vert_max));
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
@@ -3309,30 +3377,48 @@ void render_scene_allocate_buffers(void)
 	g_scene_edge_list_handle = memory_alloc_handle(edge_max, 0);
 #endif
 	if (g_scene_edge_list_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"edges\" bytes=%u",
+			(unsigned)(sizeof(*g_scene_edge_list) *
+				   (unsigned)g_scene_edge_max));
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
 	g_vertex_remap_handle = memory_alloc_handle(
 		sizeof(*g_vertex_remap) * g_vertex_remap_capacity, 0);
 	if (g_vertex_remap_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"vertex_map\" bytes=%u",
+			(unsigned)(sizeof(*g_vertex_remap) *
+				   (unsigned)g_vertex_remap_capacity));
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
 	g_scene_edge_flags_handle = memory_alloc_handle(
 		sizeof(*g_scene_edge_flags) * g_scene_edge_flags_capacity, 0);
 	if (g_scene_edge_flags_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"edge_flags\" bytes=%u",
+			(unsigned)(sizeof(*g_scene_edge_flags) *
+				   (unsigned)g_scene_edge_flags_capacity));
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
 	g_scene_scl_edge_list_handle =
 		memory_alloc_handle(sizeof(*g_scene_scl_edge_list) * 768, 0);
 	if (g_scene_scl_edge_list_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"edge_pointers\" bytes=%u",
+			(unsigned)(sizeof(*g_scene_scl_edge_list) * 768));
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
 	g_scanline_span_heads_handle =
 		memory_alloc_handle(sizeof(*g_scanline_span_heads) * 768, 0);
 	if (g_scanline_span_heads_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"row_heads\" bytes=%u",
+			(unsigned)(sizeof(*g_scanline_span_heads) * 768));
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
@@ -3343,6 +3429,9 @@ void render_scene_allocate_buffers(void)
 	g_sw3d_light_sample_block_size_float = 16.0f;
 	g_scene_light_sample_data_handle = memory_alloc_handle(0x25800, 0);
 	if (g_scene_light_sample_data_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"light_samples\" bytes=%u",
+			(unsigned)0x25800);
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 
@@ -3350,6 +3439,10 @@ void render_scene_allocate_buffers(void)
 	g_mesh_queue_handle = memory_alloc_handle(
 		sizeof(struct scene_mesh) * g_mesh_queue_max, 0);
 	if (g_mesh_queue_handle == 0) {
+		XVT_LOG_DEBUG(
+			"render.scene_alloc_failed buffer=\"meshes\" bytes=%u",
+			(unsigned)(sizeof(struct scene_mesh) *
+				   (unsigned)g_mesh_queue_max));
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
 	}
 

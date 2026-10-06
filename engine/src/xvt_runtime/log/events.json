@@ -5943,6 +5943,11 @@
       "fields": ["type"],
       "text": "Backdrop object type {type} has no loaded image, so drawing it took an image address from outside the game's table of loaded blocks"
     },
+    "render.batch_too_large": {
+      "level": "D",
+      "fields": ["site", "vertices", "max", "triangles"],
+      "text": "A batch of {vertices} vertices and {triangles} triangles was sent to the 3D card at the {site} flush (mesh: before the next mesh; frame: at the end of the frame), over the {max} vertices its command buffer takes, so its vertices were refused and the batch was not drawn as built"
+    },
     "render.billboard_queue_full": {
       "level": "D",
       "fields": ["object", "frame"],
@@ -5953,10 +5958,20 @@
       "fields": ["width", "height"],
       "text": "A {width}x{height} image is over the 65,536-pixel texture limit and gets no texture"
     },
+    "render.bwing_bridge_found": {
+      "level": "D",
+      "fields": ["index"],
+      "text": "The B-wing model's bridge was found as mesh {index}; the B-wing's turning bridge is drawn from that mesh for the rest of the run"
+    },
     "render.cockpit_mask_overrun": {
       "level": "E",
       "fields": ["width", "bytes"],
       "text": "A mirrored row of the cockpit's window outline, {width} pixels wide, took {bytes} bytes to decode, more than the 99 its row buffer holds; the bytes past it were written over other data on the stack"
+    },
+    "render.color_key_dropped": {
+      "level": "D",
+      "fields": ["width", "height"],
+      "text": "No see-through version of a {width}x{height} model texture could be made for the 3D card (every pixel was see-through, or the upload failed), so the texture was marked and is drawn without one from then on"
     },
     "render.framebuffer_cleared": {
       "level": "D",
@@ -5973,6 +5988,16 @@
       "fields": ["object", "depth"],
       "text": "The list of objects to draw had all 296 entries in use, so object {object} (depth {depth}) was left out of this picture"
     },
+    "render.mesh_dropped": {
+      "level": "D",
+      "fields": ["drawing", "type", "queued", "faces", "mesh_faces", "mesh_vertices", "vertex_max", "mesh_edges", "edge_max"],
+      "text": "A mesh of an object of type {type} (-1 for none) was not drawn by the {drawing} renderer because the scene buffers were full: {queued} meshes queued of 500, {faces} faces listed of 5,000 with {mesh_faces} more asked for, a mesh of {mesh_vertices} vertices against room for {vertex_max} and {mesh_edges} edges against room for {edge_max}"
+    },
+    "render.node_ref_missing": {
+      "level": "D",
+      "fields": ["type"],
+      "text": "A model of object type {type} (-1 for none) refers to a part by a name the model does not hold, so that part was not drawn"
+    },
     "render.palette_overrun": {
       "level": "E",
       "fields": ["bpp", "colors", "reserved"],
@@ -5987,6 +6012,16 @@
       "level": "D",
       "fields": ["bpp", "images", "colors"],
       "text": "A texture's palettes were converted for {bpp}-bit drawing: {images} images, {colors} colors written after its data"
+    },
+    "render.projectile_key_cleared": {
+      "level": "D",
+      "fields": ["genus", "width", "height"],
+      "text": "A {width}x{height} texture of a projectile (craft class {genus}) had its see-through color mark cleared, so the 3D card draws it with no see-through color from then on"
+    },
+    "render.scene_alloc_failed": {
+      "level": "D",
+      "fields": ["buffer", "bytes"],
+      "text": "The 3D scene's {buffer} buffer of {bytes} bytes could not be allocated (spans, span_pointers, faces, vertices, edges, vertex_map, edge_flags, edge_pointers, row_heads, light_samples or meshes); the program stops with a fatal error"
     },
     "render.screenshot_started": {
       "level": "D",
@@ -6037,6 +6072,11 @@
       "level": "E",
       "fields": ["result"],
       "text": "No hardware z-buffer could be had; code {result}"
+    },
+    "render.z_buffer_released": {
+      "level": "D",
+      "fields": [],
+      "text": "The 3D card's depth buffer was detached from the flight's back buffer and released"
     },
     "render.z_lock_failed": {
       "level": "E",
