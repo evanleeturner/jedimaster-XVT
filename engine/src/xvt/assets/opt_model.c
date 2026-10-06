@@ -11,7 +11,6 @@
 #include "xvt/render/image_quantizer.h"
 #include "xvt/render/render_scene.h"
 #include "xvt/render/renderer.h"
-#include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/assets/opt_native.h"
 #include "xvt_runtime/log/log.h"

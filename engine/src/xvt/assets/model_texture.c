@@ -11,7 +11,6 @@
 #include "xvt/render/render_scene.h"
 #include "xvt/render/renderer.h"
 #include "xvt/render/std3d.h"
-#include "xvt/util/debug_console.h"
 #include "xvt_runtime/log/log.h"
 
 /* Returns 1 when the 3D device's opaque texture format has 5 green bits

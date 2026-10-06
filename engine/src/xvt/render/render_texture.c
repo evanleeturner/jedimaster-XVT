@@ -6,7 +6,6 @@
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/renderer.h"
 #include "xvt/render/std3d.h"
-#include "xvt/util/debug_console.h"
 #include "xvt_runtime/compat/pointer_key.h"
 #include "xvt_runtime/log/log.h"
 

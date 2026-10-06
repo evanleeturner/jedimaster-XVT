@@ -19,7 +19,6 @@
 #include "xvt/render/scene_billboard.h"
 #include "xvt/render/std3d.h"
 #include "xvt/render/tex_level.h"
-#include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log.h"
 

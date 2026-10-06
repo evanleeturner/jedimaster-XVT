@@ -161,7 +161,6 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/render/std3d.c
     src/xvt/render/sw3d.c
     src/xvt/render/tex_level.c
-    src/xvt/util/debug_console.c
     src/xvt/util/game_rand.c
     src/xvt/util/memory.c
     src/xvt/util/time.c

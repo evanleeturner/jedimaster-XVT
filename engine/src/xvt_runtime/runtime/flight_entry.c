@@ -472,11 +472,9 @@ int xvt_flight_entry_create_devices(void)
 	}
 	g_game_config.use3d_hardware[net_session_get_player_count() > 1] =
 		(uint8_t)g_use_hardware3d;
-	debug_printf("Init Dinput\n");
 	if (g_flight_conf_direct_input != 0 && dinput_init() == 0) {
 		g_flight_conf_direct_input = 0;
 	}
-	debug_printf("Init Dsound\n");
 	g_flight_sound_init_start_time_ms = timeGetTime();
 	g_sound_engine_started = 1;
 	if (sound_init_sound_engine(g_flight_main_window_handle) == 0) {

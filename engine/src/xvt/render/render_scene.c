@@ -25,7 +25,6 @@
 #include "xvt/render/scene_billboard.h"
 #include "xvt/render/std3d.h"
 #include "xvt/render/sw3d.h"
-#include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/assets/opt_native.h"
 #include "xvt_runtime/log/log.h"

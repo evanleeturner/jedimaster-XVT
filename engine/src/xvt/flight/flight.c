@@ -56,7 +56,6 @@
 #include "xvt/render/renderer.h"
 #include "xvt/render/std3d.h"
 #include "xvt/render/sw3d.h"
-#include "xvt/util/debug_console.h"
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
