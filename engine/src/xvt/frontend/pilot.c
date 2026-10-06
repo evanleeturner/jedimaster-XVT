@@ -34,12 +34,11 @@ static const char *const g_random_pilot_names[40] = {
 };
 
 /* Deletes the selected pilot's files and clears g_pilot_data. Finds the pilot's
- * name in g_pilot_list_display_names, ignoring case, and deletes that entry's .plt
- * file in the base game folder and the file of the same name ending in '2'
+ * name in g_pilot_list_display_names, ignoring case, and deletes that entry's
+ * .plt file in the base game folder and the file of the same name ending in '2'
  * (.pl2) in the install folder. Then clears g_pilot_data and rebuilds the pilot
- * list. Returns 1; the modern build returns 0, leaving g_pilot_data as it was,
- * when a file cannot be removed. Also zeroes a 253,754-byte local record that
- * it never uses. */
+ * list. Returns 1, or 0, leaving g_pilot_data as it was, when a file cannot be
+ * removed. Also zeroes a 253,754-byte local record that it never uses. */
 // FUNCTION: XVT 0x4BF260
 int pilot_delete_current(void)
 {
@@ -104,19 +103,18 @@ int pilot_delete_current(void)
 	return 1;
 }
 
-/* Creates a pilot named pilot_name and makes it the current one. Picks the first
- * NAMEn.pl2 that does not exist, counting n from 0; the original build opens it
- * for writing and returns 0 when it cannot. Clears g_pilot_data and sets the
- * name, the Trainee rating, and the game and host names (the name with
- * FRONTSTR_470_S_GAME after it). The first mission of the training exercises
- * list becomes the choice of the pilot and of faction record 0, that of the
- * list loaded for faction 1 record 1's, and that of the multiplayer list record
- * 2's. Writes g_pilot_data to the file, then sets combat engagement choices (the
- * list's third mission for the pilot, the first for factions 0 and 1) and saves
- * again with pilot_save(0). Returns 1 in the original build, or pilot_save's
- * result in the modern one, which also returns 0 when the first write fails.
- * Leaves g_frontend_mission_session_mode at none. Checks neither the name's length
- * nor that the combat list holds three missions. */
+/* Creates a pilot named pilot_name and makes it the current one. Picks the
+ * first NAMEn.pl2 that does not exist, counting n from 0. Clears g_pilot_data
+ * and sets the name, the Trainee rating, and the game and host names (the name
+ * with FRONTSTR_470_S_GAME after it). The first mission of the training
+ * exercises list becomes the choice of the pilot and of faction record 0, that
+ * of the list loaded for faction 1 record 1's, and that of the multiplayer list
+ * record 2's. Writes g_pilot_data to the file, then sets combat engagement
+ * choices (the list's third mission for the pilot, the first for factions 0 and
+ * 1) and saves again with pilot_save(0). Returns pilot_save's result, which is
+ * also 0 when the first write fails. Leaves g_frontend_mission_session_mode at
+ * none. Checks neither the name's length nor that the combat list holds three
+ * missions. */
 // FUNCTION: XVT 0x4BF3A0
 int pilot_create_new(const char *pilot_name)
 {
@@ -231,15 +229,14 @@ int pilot_create_new(const char *pilot_name)
 }
 
 /* Saves g_pilot_data to the pilot's .pl2 file and the base game's record to its
- * .plt file. Returns 0 without a pilot name. With use_temporary_file 0, the .pl2
- * is the *.pl2 file in the current folder whose first 14 bytes hold the pilot's
- * name, ignoring case; otherwise "__temp__.tmp". With none found, it is the
- * name of the matching *.plt in the base game folder with its last letter made
- * '2', or else NAME0.pl2. The original build returns 0 when the file does not
- * open; the modern build writes it whole or returns 0. Then writes the record
- * with pilot_write_xvt_record to the same name with its last letter made 't'.
- * Returns 1 in the original build, ignoring that write, or
- * pilot_write_xvt_record's result in the modern one. Every caller passes 0. */
+ * .plt file. Returns 0 without a pilot name. With use_temporary_file 0, the
+ * .pl2 is the *.pl2 file in the current folder whose first 14 bytes hold the
+ * pilot's name, ignoring case; otherwise "__temp__.tmp". With none found, it is
+ * the name of the matching *.plt in the base game folder with its last letter
+ * made '2', or else NAME0.pl2. It writes the file whole or returns 0. Then
+ * writes the record with pilot_write_xvt_record to the same name with its last
+ * letter made 't'. Returns pilot_write_xvt_record's result. Every caller passes
+ * 0. */
 // FUNCTION: XVT 0x4BF650
 int pilot_save(int use_temporary_file)
 {
@@ -550,12 +547,12 @@ int pilot_parse_command_line(const char *cmd_line)
 }
 
 /* Loads the pilot whose .plt file in the base game folder is base_pilot_path.
- * Clears g_pilot_data and reads the .pl2 file of the same name ending in '2', in
- * the install folder, into it when that opens. When the .plt opens, a pilot
+ * Clears g_pilot_data and reads the .pl2 file of the same name ending in '2',
+ * in the install folder, into it when that opens. When the .plt opens, a pilot
  * without a .pl2 first gets a new pilot's rating and training mission choices,
  * then pilot_load_xvt_record copies the record over g_pilot_data, and the pilot
  * without a .pl2 gets its game and host names. Returns 0 when neither file
- * opens, and in the modern build when a read fails; else 1. */
+ * opens or a read fails; else 1. */
 // FUNCTION: XVT 0x4CB0C0
 int pilot_load_from_path(const char *base_pilot_path)
 {
@@ -836,9 +833,8 @@ typedef char xvt_size_pilot_xvt_record
  * g_pilot_data's first 88, except entries 4, 36, 41, 43, 45, 54 and 78, which
  * keep g_pilot_data's values. Each faction's history blocks go in starting 4
  * bytes before the matching arrays of its pilot_faction. legacy_rating_state,
- * mission_sequence_state and selection_state are not copied. Returns 1; the modern
- * build returns 0 when the read fails. Does not check the record's size or
- * contents. */
+ * mission_sequence_state and selection_state are not copied. Returns 1, or 0
+ * when the read fails. Does not check the record's size or contents. */
 // FUNCTION: XVT 0x4C9F80
 int pilot_load_xvt_record(xvt_file *stream)
 {
@@ -1826,14 +1822,12 @@ int pilot_load_xvt_record(xvt_file *stream)
 }
 
 /* Updates the base game pilot record fileName, in the base game folder, from
- * g_pilot_data: reads the existing record when it opens, else starts from zeros,
- * copies in the same fields pilot_load_xvt_record copies out, and writes it back.
- * Per-craft entries 4, 36, 41, 43, 45, 54 and 78 are written as 0. The five
- * per-mission-type totals at the start of main_stats are copied from the record
- * onto themselves, so they keep the old file's values. The original build opens
- * the file itself, ignoring stream, writes without checking the open, and
- * returns 1; the modern build ignores stream and returns the result of writing
- * the file whole. */
+ * g_pilot_data: reads the existing record when it opens, else starts from
+ * zeros, copies in the same fields pilot_load_xvt_record copies out, and writes
+ * it back. Per-craft entries 4, 36, 41, 43, 45, 54 and 78 are written as 0. The
+ * five per-mission-type totals at the start of main_stats are copied from the
+ * record onto themselves, so they keep the old file's values. It ignores stream
+ * and returns the result of writing the file whole. */
 // FUNCTION: XVT 0x4CB310
 int pilot_write_xvt_record(const char *file_name, xvt_file *stream)
 {

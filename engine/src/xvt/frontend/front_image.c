@@ -14,10 +14,9 @@
 
 #pragma pack(push, 1)
 
-/* A .bmp file's first header, as front_image_save_bmp_file writes it and
- * front_image_load_bmp_palette_file reads it. */
+/* A .bmp file's first header, as front_image_save_bmp_file writes it. */
 struct front_image_bmp_file_header {
-	/* 0x4D42, "BM": written by the save, checked by the palette load. */
+	/* 0x4D42, "BM": written by the save; not read. */
 	uint16_t signature;
 	uint32_t file_size; /* The file's size in bytes; written, never read. */
 	/* Left unset by the save, which writes whatever it holds; not read. */
@@ -27,16 +26,14 @@ struct front_image_bmp_file_header {
 	uint32_t pixel_offset; /* Where the pixels start, 54; not read. */
 };
 
-/* A .bmp file's 40-byte info header, as front_image_save_bmp_file writes it and
- * front_image_load_bmp_palette_file reads it. */
+/* A .bmp file's 40-byte info header, as front_image_save_bmp_file writes it. */
 struct front_image_bmp_info_header {
 	uint32_t header_size; /* This header's size, written as 40; not read. */
 	/* Width in pixels, written rounded up to even; not read. */
 	int32_t width;
 	int32_t height;	 /* Height in pixels; written, not read. */
-	uint16_t planes; /* Written as 1; the palette load needs 1. */
-	/* Written as 24; the palette load takes 16 entries for 4 and 256 for 8,
-	 * and none otherwise. */
+	uint16_t planes; /* Written as 1; not read. */
+	/* Written as 24; not read. */
 	uint16_t bits_per_pixel;
 	uint32_t compression; /* Written as 0, none; not read. */
 	uint32_t image_size;  /* Pixel bytes after the headers; not read. */
@@ -166,8 +163,8 @@ int front_image_register_resource(const char *file_name, const char *name,
 }
 
 /* Frees the image registered under name, its pixels and its record, and takes
- * the record out of g_front_state.resource_table; does nothing when no image has
- * the name. The modern build also drops the image from its renderer. */
+ * the record out of g_front_state.resource_table; does nothing when no image
+ * has the name. It also drops the image from its renderer. */
 // FUNCTION: XVT 0x4B4BF0
 void front_image_free_resource_by_name(const char *name)
 {
@@ -260,9 +257,8 @@ int front_image_draw_sprite_translucent(const char *name, int x, int y)
  * pixel becomes the per-channel average of the screen and the index's color_lut
  * value, as frontend_draw_fill_rect_translucent blends; at 8 bits, despite the
  * name, it writes the index. Returns the clip-edge bits of
- * frontend_draw_rect_clip_to_bounds, or 0 when image is NULL. Does not check that
- * the image is uncompressed. The modern build also records the draw for its
- * renderer. */
+ * frontend_draw_rect_clip_to_bounds, or 0 when image is NULL. Does not check
+ * that the image is uncompressed. It also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B4D90
 int front_image_blit_translucent(const struct image_resource *image, int x,
 				 int y)
@@ -506,9 +502,9 @@ int front_image_draw_sprite_rect_transparent(const char *name,
 /* Draws the part *srcRect of an uncompressed image, edges included, with its
  * top-left corner at (dstX, dstY), clipped to the clip bounds and skipping
  * pixels of index 0: at 8 bits per pixel as the index, at 16 as its color_lut
- * value. Returns the clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when
- * image is NULL. Does not check that srcRect lies inside the image. The modern
- * build also records the draw for its renderer. */
+ * value. Returns the clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0
+ * when image is NULL. Does not check that srcRect lies inside the image. It
+ * also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5100
 int front_image_blit_rect_transparent(const struct image_resource *image,
 				      const struct RECT *src_rect, int dst_x,
@@ -665,8 +661,8 @@ int front_image_draw_sprite_rect_tinted(const char *name,
  * intensity, and each channel of tint_color is drawn as channel * intensity /
  * 31, in the 555 or 565 layout g_front_state.pixel_format555 names; at 8 bits
  * every drawn pixel is tint_color's low byte. Returns the clip-edge bits of
- * frontend_draw_rect_clip_to_bounds, or 0 when image is NULL. The modern build also
- * records the draw for its renderer. */
+ * frontend_draw_rect_clip_to_bounds, or 0 when image is NULL. It also records
+ * the draw for its renderer. */
 // FUNCTION: XVT 0x4B5310
 int front_image_blit_rect_tinted(const struct image_resource *image,
 				 const struct RECT *src_rect, int dst_x,
@@ -832,8 +828,8 @@ int front_image_draw_sprite(const char *name, int x, int y)
  * bounds, skipping pixels of index 0: an uncompressed image pixel by pixel, at
  * 8 bits per pixel as the index and at 16 as its color_lut value, an
  * RLE-compressed one through front_image_blit_rle8 or front_image_blit_rle16.
- * Returns the clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when image
- * is NULL. The modern build also records the draw for its renderer. */
+ * Returns the clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when
+ * image is NULL. It also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B55B0
 int front_image_blit_transparent(const struct image_resource *image, int x,
 				 int y)
@@ -1429,8 +1425,8 @@ int front_image_draw_sprite_opaque(const char *name, int x, int y)
  * bounds, every pixel included: an uncompressed image at 8 bits per pixel as
  * indexes and at 16 as color_lut values, an RLE-compressed one through
  * front_image_blit_rle8_opaque or front_image_blit_rle16_opaque. Returns the
- * clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when image is NULL. The
- * modern build also records the draw for its renderer. */
+ * clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when image is NULL.
+ * It also records the draw for its renderer. */
 // FUNCTION: XVT 0x4B5E20
 int front_image_blit_opaque(const struct image_resource *image, int x, int y)
 {
@@ -2039,12 +2035,12 @@ void front_image_blit_rle16_opaque(const struct image_resource *image,
 }
 
 /* Draws a glyph image with its top-left corner at (x, y), clipped to the clip
- * bounds: every nonzero pixel in color, through front_image_blit_glyph_rle_8bpp or
- * _16bpp when it is RLE-compressed. At 16 bits per pixel, with apply_text_fade
- * nonzero while g_front_state.text_fade_frames_left is not 0, the color is first
- * faded by front_image_get_faded_glyph_color16. Returns the clip-edge bits of
- * frontend_draw_rect_clip_to_bounds, or 0 when glyph is NULL. The modern build also
- * records the glyph for its renderer. */
+ * bounds: every nonzero pixel in color, through front_image_blit_glyph_rle_8bpp
+ * or _16bpp when it is RLE-compressed. At 16 bits per pixel, with
+ * apply_text_fade nonzero while g_front_state.text_fade_frames_left is not 0,
+ * the color is first faded by front_image_get_faded_glyph_color16. Returns the
+ * clip-edge bits of frontend_draw_rect_clip_to_bounds, or 0 when glyph is NULL.
+ * It also records the glyph for its renderer. */
 // FUNCTION: XVT 0x4B6780
 int front_image_draw_glyph(const struct image_resource *glyph, int x, int y,
 			   unsigned int color, int apply_text_fade)
@@ -2657,10 +2653,10 @@ void front_image_blit_glyph_rle_16bpp(const struct image_resource *glyph,
  * (front_image_remap_palette), or at 16 bits fills image->color_lut from the
  * file's palette in the 555 or 565 layout. Sets width, height, pixels,
  * isCompressed 0 and pixel_data_bytes, and with compress_rle 1 compresses it
- * (front_image_compress_rle). Returns 0, freeing what it allocated, when the file
- * does not open, the signature, plane count or bit depth is wrong, or the pixel
- * allocation or decoding fails. Does not handle a top-down file's negative
- * height. The modern build also registers the image with its renderer. */
+ * (front_image_compress_rle). Returns 0, freeing what it allocated, when the
+ * file does not open, the signature, plane count or bit depth is wrong, or the
+ * pixel allocation or decoding fails. Does not handle a top-down file's
+ * negative height. It also registers the image with its renderer. */
 // FUNCTION: XVT 0x4B6FB0
 int front_image_load_bmp_file(const char *file_name,
 			      struct image_resource *image,
@@ -3735,10 +3731,9 @@ unsigned int front_image_get_faded_glyph_color16(unsigned int color16)
 
 /* Registers the images a list file names: skips its first line, then reads
  * lines of a .bmp file name, an image name and a compress flag, and passes each
- * to front_image_register_resource with no palette remap. Returns 1 at the end of
- * the file, or 0 when the file does not open or a line does not hold the three
- * fields; a failed registration is not reported. The original build reads the
- * names with no length limit into 256-byte buffers. */
+ * to front_image_register_resource with no palette remap. Returns 1 at the end
+ * of the file, or 0 when the file does not open or a line does not hold the
+ * three fields; a failed registration is not reported. */
 // FUNCTION: XVT 0x4DF880
 int front_image_load_resource_list(const char *file_name)
 {

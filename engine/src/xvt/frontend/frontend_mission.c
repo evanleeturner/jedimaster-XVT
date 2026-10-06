@@ -455,11 +455,11 @@ void frontend_mission_load_file(const char *file_name,
 	}
 }
 
-/* frontend_mission_load_current_with_briefing without the briefings: reloads the
- * directory's mission list, sets g_selected_mission_list_index and loads the
- * pilot's mission into g_frontend_mission. The modern build returns without
- * loading when the list did not load or lacks the pilot's mission; the
- * original build then reads past the list's end, or through a NULL list. */
+/* frontend_mission_load_current_with_briefing without the briefings: reloads
+ * the directory's mission list, sets g_selected_mission_list_index and loads
+ * the pilot's mission into g_frontend_mission. It returns without loading when
+ * the list did not load or lacks the pilot's mission, where the 1997 game read
+ * past the list's end, or through a NULL list. */
 // FUNCTION: XVT 0x4F70F0
 void frontend_mission_load_current(void)
 {

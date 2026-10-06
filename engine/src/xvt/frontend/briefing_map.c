@@ -591,13 +591,12 @@ void briefing_map_draw_grid(const struct RECT *viewport_rect,
  * every active flight group marker, drawn by its age; then every active label,
  * its text with '[' made text code 2 (the second text color) and ']' code 1
  * (back to the label's color), revealed by its age at its projected point. Then
- * the icon of every flight group whose mission point 14 + g_active_briefing_index
- * is set and whose craft type is not negative, centered there, from "mapicon0"
- * to "mapicon4" by IFF: IFF 0 to 3 give 0 to 3, IFF 4 gives 1, IFF 5 gives 4,
- * and any other gives 0 in the modern build and an unset value in the original.
- * Player flight groups of the pilot's team also get a number, counting from 1,
- * in font 10 at the icon's lower right. The point it projects for each marker
- * goes unused. */
+ * the icon of every flight group whose mission point 14 +
+ * g_active_briefing_index is set and whose craft type is not negative, centered
+ * there, from "mapicon0" to "mapicon4" by IFF: IFF 0 to 3 give 0 to 3, IFF 4
+ * gives 1, IFF 5 gives 4, and any other gives 0. Player flight groups of the
+ * pilot's team also get a number, counting from 1, in font 10 at the icon's
+ * lower right. The point it projects for each marker goes unused. */
 // FUNCTION: XVT 0x4F82A0
 void briefing_map_draw_overlays(const struct RECT *viewport_rect,
 				const struct RECT *clip_rect)

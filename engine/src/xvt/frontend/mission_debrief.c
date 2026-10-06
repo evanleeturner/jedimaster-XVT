@@ -41,12 +41,11 @@
  * mission_debrief_draw_tab_bar on every tab change. */
 // GLOBAL: XVT 0x66D918
 static int g_debrief_stats_page_needs_rebuild = 0;
-/* 1 when the debriefing finds the local player among the network players
- * that left the game (has_left set in g_pilot_data.network_players). Set to 0
- * and then worked out on the debriefing's first frame, by
- * mission_debrief_update in the original build and xvt_campaign_task_enter_debrief
- * in the modern one. While it is 1, mission_debrief_update draws a
- * "disconnecting" notice on frames 0 and 1, shuts the session down and says
+/* 1 when the debriefing finds the local player among the network players that
+ * left the game (has_left set in g_pilot_data.network_players). Set to 0 and
+ * then worked out on the debriefing's first frame, by
+ * xvt_campaign_task_enter_debrief. While it is 1, mission_debrief_update draws
+ * a "disconnecting" notice on frames 0 and 1, shuts the session down and says
  * so on frame 1, and offers Done instead of Disconnect. */
 // GLOBAL: XVT 0x52D1C8
 int g_debrief_disconnected_from_net_game = 0;
@@ -247,47 +246,47 @@ int mission_debrief_exit(int frame_counter)
 }
 
 /* Runs one frame of the debriefing screen shown after a mission. On its first
- * frame (frame_counter 0) it shows the cursor and, after a completed campaign
- * mission, plays its cutscene; a network player for whom
- * cutscene_play_for_current_mission_phase returns 0 then tells the host it left and
- * goes to the concourse. It allocates the 4096-byte g_mission_text for a
- * campaign, zeroes g_frontend_chat_team_only and g_frontend_first_visible_line, sets
- * g_debrief_disconnected_from_net_game, clears the session ready flags of network
- * players who left, refreshes the session roster and, in network play after a
- * promotion or demotion, sets the local player's DirectPlay long name to one
- * character, the new rating plus 1. The modern build does that part through
- * xvt_campaign_task_enter_debrief and returns 0 until it returns 1. It places
- * the cursor, calls
+ * frame (frame_counter 0) it calls xvt_campaign_task_enter_debrief and returns
+ * 0 until that returns 1. That task shows the cursor and, after a completed
+ * campaign mission, plays its cutscene; a network player for whom
+ * cutscene_play_for_current_mission_phase returns 0 then tells the host it left
+ * and goes to the concourse. It allocates the 4096-byte g_mission_text for a
+ * campaign, zeroes g_frontend_chat_team_only and g_frontend_first_visible_line,
+ * sets g_debrief_disconnected_from_net_game, clears the session ready flags of
+ * network players who left, refreshes the session roster and, in network play
+ * after a promotion or demotion, sets the local player's DirectPlay long name
+ * to one character, the new rating plus 1. It places the cursor, calls
  * mission_debrief_prepare, picks g_debrief_tab, clears g_mp_roster_ready_flags,
- * g_mission_sequence_description and g_debrief_session_cancel_or_teams_ready_received
- * and sets g_debrief_stats_page_needs_rebuild. In a sequence it fills
+ * g_mission_sequence_description and
+ * g_debrief_session_cancel_or_teams_ready_received and sets
+ * g_debrief_stats_page_needs_rebuild. In a sequence it fills
  * g_mission_sequence_description and saves the sequence state in the battle or
  * campaign continuation slot of g_pilot_data for a later resume (active for a
  * single player or the host; a client's campaign state goes in slot index + 12,
  * inactive), or marks the slot inactive when the sequence ended. It loads
- * g_mission_list, sets g_selected_mission_list_index, reads a campaign mission's
- * text with mission_debrief_read_outcome_text, marks the network players ready,
- * picks the background by mission type and outcome, sends the lobby state in
- * network play and draws the frame. Every frame, except frames 0 and 1 for a
- * disconnected player, it draws the mission title, acts on network packets,
- * draws the g_debrief_tab page, the pilot's rating and name, the tab bar, the
- * shared controls and two buttons. A next-mission or replay packet advances the
- * sequence's current_mission_index where it applies, records the session in
- * g_pilot_data (launch_session_marker 1, local_player_id, is_host,
+ * g_mission_list, sets g_selected_mission_list_index, reads a campaign
+ * mission's text with mission_debrief_read_outcome_text, marks the network
+ * players ready, picks the background by mission type and outcome, sends the
+ * lobby state in network play and draws the frame. Every frame, except frames 0
+ * and 1 for a disconnected player, it draws the mission title, acts on network
+ * packets, draws the g_debrief_tab page, the pilot's rating and name, the tab
+ * bar, the shared controls and two buttons. A next-mission or replay packet
+ * advances the sequence's current_mission_index where it applies, records the
+ * session in g_pilot_data (launch_session_marker 1, local_player_id, is_host,
  * num_human_players_last_mission, session_mode) and goes to
  * mission_setup_enter_next_mission or mission_setup_enter_current_mission;
  * NET_PACKET_REPLAY_MISSION clears the last mission's results and goes to
  * flight loading; a host cancel or a return to mission selection leaves for the
  * concourse or mission setup; a NET_PACKET_PLAYER_READY clears its sender's
- * g_mp_roster_ready_flags entry. The left button lets a client disconnect, after a
- * confirm dialog unless it was disconnected already, and lets a single player
- * or the host abort a sequence, after a confirm dialog, or pick a new mission;
- * for them, the debriefing of a won campaign's last mission also sets
- * is_finished in the faction's sp_campaigns entry. The right button continues or
- * reflies a sequence, and outside one flies the mission again: directly in
+ * g_mp_roster_ready_flags entry. The left button lets a client disconnect,
+ * after a confirm dialog unless it was disconnected already, and lets a single
+ * player or the host abort a sequence, after a confirm dialog, or pick a new
+ * mission; for them, the debriefing of a won campaign's last mission also sets
+ * is_finished in the faction's sp_campaigns entry. The right button continues
+ * or reflies a sequence, and outside one flies the mission again: directly in
  * single player, by a packet to everyone from the host. Returns 1 when
  * frontend_handle_common_screen_controls(4) returns 1 (the player confirmed
- * quitting the game); otherwise 0, except that the modern build returns
+ * quitting the game); otherwise 0, except that it returns
  * xvt_dialog_continue_with's result once it opens a dialog. Does not check that
  * the local player is among g_pilot_data.network_players, or g_mission_list and
  * g_selected_mission_list_index, before using them; a network client's battle

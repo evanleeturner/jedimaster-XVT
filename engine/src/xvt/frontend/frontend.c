@@ -164,10 +164,9 @@ int g_pilot_record_pages_need_rebuild = 0;
  * shown the warning. */
 // GLOBAL: XVT 0x664EC4
 int g_cd_audio_warning_pending = 0;
-/* Passed to file_check_game_cd_present, whose original build checks the CD's movie
- * files only while this is 0. frontend_load_resources sets 0 and the concourse's
- * first frame sets 1 after its CD checks; while it is set, the original
- * concourse also skips its movie CD check. */
+/* Passed to file_check_game_cd_present, which ignores it.
+ * frontend_load_resources sets 0 and the concourse's first frame sets 1 after
+ * its checks. */
 // GLOBAL: XVT 0xBB2818
 int g_skip_movie_checks = 0;
 
@@ -294,22 +293,21 @@ int frontend_load_resources(void)
 }
 
 /* Handles the buttons along the top of the frontend screens and the help
- * toggle, and returns 1 only when the player quits the game. screen_context is 0
- * for the concourse and the join and host screens, 1 for the mission setup
+ * toggle, and returns 1 only when the player quits the game. screen_context is
+ * 0 for the concourse and the join and host screens, 1 for the mission setup
  * screens (mission, teams, flights, battle choice and craft selection), 2 for
  * the config screen, 3 for the craft database and 4 for the debriefing; most
- * buttons show only in some contexts. Exit, or Esc, asks first (differently
- * in a network game, during a mission sequence, or plainly), then tells the
- * other players when needed,
- * writes the config and shuts DirectPlay down. Config opens the config screen,
- * or closes it from the config context, then sending the game options to the
- * players when hosting. Join, Host (with the host CD only), Fly solo and Pilots
- * ask first while a game session is in progress, need a selected pilot (except
- * Pilots), set g_frontend_mission_session_mode and switch to the join, host,
- * mission setup or concourse screen; leaving mission setup this way tells the
- * other players and shuts the session down. The craft database button pushes
- * the craft database, or closes it from that context. Returns 0 otherwise; the
- * modern build also returns 0 while one of its dialogs is up. */
+ * buttons show only in some contexts. Exit, or Esc, asks first (differently in
+ * a network game, during a mission sequence, or plainly), then tells the other
+ * players when needed, writes the config and shuts DirectPlay down. Config
+ * opens the config screen, or closes it from the config context, then sending
+ * the game options to the players when hosting. Join, Host (with the host CD
+ * only), Fly solo and Pilots ask first while a game session is in progress,
+ * need a selected pilot (except Pilots), set g_frontend_mission_session_mode
+ * and switch to the join, host, mission setup or concourse screen; leaving
+ * mission setup this way tells the other players and shuts the session down.
+ * The craft database button pushes the craft database, or closes it from that
+ * context. Returns 0 otherwise, and while a dialog is up. */
 // FUNCTION: XVT 0x4BF9B0
 int frontend_handle_common_screen_controls(int screen_context)
 {
@@ -1482,12 +1480,9 @@ int frontend_format_seconds_to_clock_string(unsigned int seconds)
 
 /* Copies line line_index (0 for the first) of xvterr.txt into out_text, turning
  * each two-character \n into a newline, and returns 1. Returns 0 when the file
- * does not open or that line is missing. A negative line_index returns 0 in the
- * modern build; the original build then reads a pointer from the unset line
- * buffer. It always copies the first 255 bytes of the line buffer, newline and
- * whatever follows the line included, adding no terminator of its own. The
- * original build reads each line with a 512-byte limit into a 256-byte
- * buffer. */
+ * does not open or that line is missing. A negative line_index returns 0. It
+ * always copies the first 255 bytes of the line buffer, newline and whatever
+ * follows the line included, adding no terminator of its own. */
 // FUNCTION: XVT 0x4C9E30
 int error_text_load_line(int line_index, char *out_text)
 {
@@ -1525,10 +1520,7 @@ int error_text_load_line(int line_index, char *out_text)
 }
 
 /* Sets g_host_cd_available to whether the host CD's first training mission is
- * there, and returns it. The modern build looks for train/1ta01bf.tie among the
- * assets. The original build opens the drive letter followed by
- * \train\1TA01BF.TIE, with no colon after the letter; with no CD drive it
- * returns 0 and leaves g_host_cd_available as it was. */
+ * there, and returns it. It looks for train/1ta01bf.tie among the assets. */
 // FUNCTION: XVT 0x4C9EE0
 int frontend_check_host_cd_present(void)
 {
@@ -1576,8 +1568,7 @@ int frontend_register_scrollable_control(int control_id)
 
 /* Removes the first entry equal to control_id from g_scrollable_control_ids,
  * moving later entries down one, and returns 1; returns 0 when it is not there.
- * The original build moves them with memcpy over overlapping memory; the modern
- * build uses memmove. */
+ * It moves them with memmove. */
 // FUNCTION: XVT 0x4D9BF0
 int frontend_unregister_scrollable_control(int control_id)
 {
@@ -1600,10 +1591,9 @@ int frontend_unregister_scrollable_control(int control_id)
 	return 0;
 }
 
-/* Moves keyboard focus to the next scrollbar: entry 0 of g_scrollable_control_ids
- * goes to the end and the rest move down one. Returns 0 when none is
- * registered, else 1. The original build moves them with memcpy over
- * overlapping memory. */
+/* Moves keyboard focus to the next scrollbar: entry 0 of
+ * g_scrollable_control_ids goes to the end and the rest move down one. Returns
+ * 0 when none is registered, else 1. */
 // FUNCTION: XVT 0x4D9C50
 int frontend_cycle_scrollable_focus(void)
 {
@@ -1612,7 +1602,7 @@ int frontend_cycle_scrollable_focus(void)
 	}
 
 	int first_control_id = g_scrollable_control_ids[0];
-	/* The source and destination overlap, so modern builds require memmove. */
+	/* The source and destination overlap, so this needs memmove. */
 	memmove(g_scrollable_control_ids, &g_scrollable_control_ids[1],
 		(size_t)(g_scrollable_control_count - 1) *
 			sizeof(g_scrollable_control_ids[0]));

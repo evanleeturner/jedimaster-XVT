@@ -10,13 +10,8 @@ typedef HRESULT(AERON_DXAPI *dd_util_surface_get_dc_func)(
 typedef HRESULT(AERON_DXAPI *dd_util_surface_release_dc_func)(
 	IDirectDrawSurface *surface, void *dc);
 
-/* Nothing calls this. The original build loads the bitmap file bitmapName as a
- * DIB section (LoadImageA flags 0x2010, LR_CREATEDIBSECTION | LR_LOADFROMFILE)
- * at width by height, 0 meaning its own size, creates an offscreen surface of
- * the loaded size, copies the bitmap into it with dd_util_copy_bitmap_to_surface,
- * frees the bitmap and returns the surface. It returns NULL when the load or
- * the surface creation fails, the latter without freeing the bitmap. The modern
- * build returns NULL. */
+/* Nothing calls this. It returns NULL, where the 1997 game loaded the bitmap
+ * file bitmapName into a new offscreen surface. */
 // FUNCTION: XVT 0x4F0BE0
 IDirectDrawSurface *dd_util_load_bitmap_surface(IDirectDraw *direct_draw,
 						const char *bitmap_name,
@@ -29,10 +24,8 @@ IDirectDrawSurface *dd_util_load_bitmap_surface(IDirectDraw *direct_draw,
 	return NULL;
 }
 
-/* Nothing calls this. The original build loads bitmapName as a bitmap resource
- * of the executable, else as a bitmap file, copies it over the whole surface
- * with dd_util_copy_bitmap_to_surface and returns that result, or DX_E_FAIL when
- * both loads fail. The modern build returns DX_E_NOTIMPL. */
+/* Nothing calls this. It returns DX_E_NOTIMPL, where the 1997 game loaded
+ * bitmapName and copied it over the whole surface. */
 // FUNCTION: XVT 0x4F0CC0
 HRESULT dd_util_reload_bitmap_surface(IDirectDrawSurface *surface,
 				      const char *bitmap_name)
@@ -42,12 +35,9 @@ HRESULT dd_util_reload_bitmap_surface(IDirectDrawSurface *surface,
 	return DX_E_NOTIMPL;
 }
 
-/* Only dd_util_load_bitmap_surface and dd_util_reload_bitmap_surface call this, and
- * nothing calls them. The original build restores the surface, then stretches
- * the bitmap's width by height pixels from (xSrc, ySrc), 0 meaning the bitmap's
- * own width or height, over the whole surface through GDI. Returns the
- * surface's GetDC result, DX_DD_OK when it copied, or DX_E_FAIL when surface or
- * bitmap is NULL. The modern build returns DX_E_NOTIMPL. */
+/* Only dd_util_load_bitmap_surface and dd_util_reload_bitmap_surface call this,
+ * and nothing calls them. It returns DX_E_NOTIMPL, where the 1997 game
+ * stretched the bitmap over the whole surface through GDI. */
 // FUNCTION: XVT 0x4F0D30
 HRESULT dd_util_copy_bitmap_to_surface(IDirectDrawSurface *surface,
 				       void *bitmap, int x_src, int y_src,

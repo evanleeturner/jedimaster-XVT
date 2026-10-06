@@ -197,26 +197,17 @@ int concourse_exit(int frame_counter)
 }
 
 /* Update function of the concourse: the main screen with the pilot list and the
- * pilot record pages. The modern build first waits out a movie viewer and
- * finishes a pending common action. On frame 0 (in the modern build, only
- * without a pending pilot action), first, unless the modern build has a
- * concourse action pending: the original build ends the game, returning 1,
- * after a message box when no joystick is found, and asks for the game CD until
- * it is found, returning 1 on Cancel; the modern build stops with a fatal error
- * when the flight data is missing. It loads the image and sound lists and
- * checks for the host CD. The original build, unless movie checks are off or
- * the game was started to host or join, checks the movie CD when
- * faction_statistics[0].cd_movie_check_counter is 0, asking for it until it is
- * there and returning 1 on Cancel, then sets the counter to 1; otherwise it
- * counts the counter up, back to 0 at 5. Then it sets g_skip_movie_checks to 1.
- * After that it shows any pending CD music warning, puts the cursor at (32,
- * 127), empties the chat log, sets g_pilot_record_page to 0 and
- * g_frontend_mission_session_mode to none, marks the pilot record pages for
- * rebuilding, and clears other session flags; with the intro skipped it also
- * copies the current faction's mission choice into the pilot. Started with
- * "ishost", it returns 1 after an error box without the host CD, else opens an
- * internet game as host and goes to mission setup, or stays here when that
- * fails (the modern build hands this to xvt_network_task_begin); started with
+ * pilot record pages. It first waits out a movie viewer and finishes a pending
+ * common action. On frame 0, only without a pending pilot action, and first,
+ * unless a concourse action is pending, it stops with a fatal error when the
+ * flight data is missing; it loads the image and sound lists and checks for the
+ * host CD, then sets g_skip_movie_checks to 1. After that it shows any pending
+ * CD music warning, puts the cursor at (32, 127), empties the chat log, sets
+ * g_pilot_record_page to 0 and g_frontend_mission_session_mode to none, marks
+ * the pilot record pages for rebuilding, and clears other session flags; with
+ * the intro skipped it also copies the current faction's mission choice into
+ * the pilot. Started with "ishost", it returns 1 after an error box without the
+ * host CD, else hands hosting to xvt_network_task_begin; started with
  * "isclient", it goes to the join screen. Otherwise it loads the two
  * backgrounds and starts a 20-frame text fade. Every frame it runs the pilot
  * selection panel and draws "v. 2.0", the pilot's rating and name between two

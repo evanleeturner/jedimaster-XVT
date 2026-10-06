@@ -24,8 +24,7 @@ enum {
 
 #pragma pack(push, 1)
 
-/* The game's settings, saved as keyword and value lines (config2.cfg in the
- * original build) or config.yaml (modern). Each two-entry video setting holds
+/* The game's settings, saved in config.yaml. Each two-entry video setting holds
  * [0] for single player and [1] for multiplayer; the flight uses entry 1 when
  * its session has more than one player. */
 struct game_config {
@@ -134,8 +133,8 @@ struct game_config {
 	uint8_t ai_opponents;
 	/* Autobalance, or favor the Imperials, neither or the Rebels. */
 	combat_balance_mode combat_balance;
-	/* Whether a battle or campaign goes on after a mission; not saved by
-	 * the original build's config_write. */
+	/* Whether a battle or campaign goes on after a mission; config.yaml
+	 * keeps it as game.continue_sequence. */
 	sequence_continuation_choice continue_battle_or_campaign;
 	/* Frontend sounds: 0 off, 1 on; saved as "sfx_datapad". */
 	uint8_t sfx_datapad_enabled;

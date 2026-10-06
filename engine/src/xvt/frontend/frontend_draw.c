@@ -107,12 +107,12 @@ int frontend_draw_rect_clip_to_bounds(struct RECT *rect)
 /* Blends color over *src moved by dx and dy, clipped to the clip bounds, both
  * edges of each axis included. At 16 bits per pixel each pixel becomes the
  * per-channel average of itself and color, in the 555 or 565 layout
- * g_front_state.pixel_format555 names: red and green as (a + b) / 2, blue as a /
- * 2 + b / 2, each division rounded down. Despite the name, at 8 bits per pixel
- * it fills solid with the color index. Draws nothing when src->right <=
+ * g_front_state.pixel_format555 names: red and green as (a + b) / 2, blue as a
+ * / 2 + b / 2, each division rounded down. Despite the name, at 8 bits per
+ * pixel it fills solid with the color index. Draws nothing when src->right <=
  * src->left or src->top >= src->bottom, or when the moved rect has left > 640,
- * right < 0, top > 480 or bottom < 0. Writes through g_draw_surface_ptr. The
- * modern build also records the fill for its renderer. */
+ * right < 0, top > 480 or bottom < 0. Writes through g_draw_surface_ptr. It
+ * also records the fill for its renderer. */
 // FUNCTION: XVT 0x4D6550
 void frontend_draw_fill_rect_translucent(const struct RECT *src, int dx, int dy,
 					 unsigned int color)
@@ -242,11 +242,11 @@ void frontend_draw_fill_rect_translucent(const struct RECT *src, int dx, int dy,
 }
 
 /* Draws *rect moved by dx and dy in color: with filled 0 an outline, through
- * frontend_draw_rect_outline, else a solid fill clipped to the clip bounds, both
- * edges of each axis included. The fill draws nothing when rect->right <=
+ * frontend_draw_rect_outline, else a solid fill clipped to the clip bounds,
+ * both edges of each axis included. The fill draws nothing when rect->right <=
  * rect->left or rect->top >= rect->bottom, or when the moved rect has left >
- * 640, right < 0, top > 480 or bottom < 0. Writes through g_draw_surface_ptr. The
- * modern build also records the fill for its renderer. */
+ * 640, right < 0, top > 480 or bottom < 0. Writes through g_draw_surface_ptr.
+ * It also records the fill for its renderer. */
 // FUNCTION: XVT 0x4D67E0
 void frontend_draw_rect(const struct RECT *rect, int dx, int dy, int color,
 			int filled)
@@ -328,8 +328,8 @@ void frontend_draw_rect(const struct RECT *rect, int dx, int dy, int color,
  * row and the bottom edge is drawn one row above the rect's bottom. Draws
  * nothing when rect->right <= rect->left or rect->top >= rect->bottom, or when
  * the moved rect has left > 640, right < 0, top > 480 or bottom < 0. Writes
- * through g_draw_surface_ptr. The modern build also records the unclipped outline
- * for its renderer. */
+ * through g_draw_surface_ptr. It also records the unclipped outline for its
+ * renderer. */
 // FUNCTION: XVT 0x4D6950
 void frontend_draw_rect_outline(const struct RECT *rect, int dx, int dy,
 				int color)
@@ -464,8 +464,8 @@ int frontend_draw_point_in_rect(const struct RECT *rect, int x, int y)
 /* Draws x0 to x1 on row y in color, both ends included, clipped to the clip
  * bounds; nothing when y is outside them. Either order works, but with x0 over
  * x1 a span the clipping leaves one pixel long draws nothing. Writes through
- * g_draw_surface_ptr at 8 or 16 bits per pixel. The modern build also records the
- * line, unclipped, for its renderer. */
+ * g_draw_surface_ptr at 8 or 16 bits per pixel. It also records the line,
+ * unclipped, for its renderer. */
 // FUNCTION: XVT 0x5063B0
 void frontend_draw_horizontal_line_clipped(int x0, int x1, int y, int color)
 {
@@ -562,8 +562,8 @@ void frontend_draw_horizontal_line_clipped(int x0, int x1, int y, int color)
 /* Draws rows y0 to y1 of column x in color, both ends included, clipped to the
  * clip bounds; nothing when x is outside them. Either order works, but with y0
  * over y1 a span the clipping leaves one pixel long draws nothing. Writes
- * through g_draw_surface_ptr at 8 or 16 bits per pixel. The modern build also
- * records the line, unclipped, for its renderer. */
+ * through g_draw_surface_ptr at 8 or 16 bits per pixel. It also records the
+ * line, unclipped, for its renderer. */
 // FUNCTION: XVT 0x506550
 void frontend_draw_vertical_line_clipped(int y0, int y1, int x, int color)
 {

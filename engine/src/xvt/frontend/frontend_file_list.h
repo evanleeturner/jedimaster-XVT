@@ -11,8 +11,8 @@ extern "C" {
 
 /* One file in a frontend_file_list. */
 struct frontend_file_list_node {
-	/* Heap copy of the file's name; the modern build puts the wildcard's
-	 * folder in front of it. */
+	/* Heap copy of the file's name, with the wildcard's folder in front of
+	 * it. */
 	char *path;
 	/* Next file in strcmp order of path; NULL after the last. */
 	struct frontend_file_list_node *next;

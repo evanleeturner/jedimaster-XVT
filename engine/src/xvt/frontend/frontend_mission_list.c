@@ -30,9 +30,9 @@ int frontend_mission_list_free_screen_resources(int frame_counter)
 }
 
 /* frontend_mission_list_free_screen_resources, with the image freed before the
- * controls are forgotten, that also clears the mouse input gate. Returns 0.
- * The original build passes it as an exit function through a cast, so it
- * ignores the frame counter it is given. */
+ * controls are forgotten, that also clears the mouse input gate. Returns 0. It
+ * is passed as an exit function through a cast, so it ignores the frame counter
+ * it is given. */
 // FUNCTION: XVT 0x4F1C60
 int frontend_mission_list_free_screen_resources_and_clear_input_gate(void)
 {

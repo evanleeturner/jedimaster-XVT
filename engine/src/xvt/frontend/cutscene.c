@@ -15,9 +15,8 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/cutscene_task.h"
 
-/* Entries loaded in g_cutscene_table. cutscene_load_table sets it once it has
- * a table; game_main in the original build and xvt_frontend_task_shutdown in the
- * modern one set 0 when they free the table. */
+/* Entries loaded in g_cutscene_table. cutscene_load_table sets it once it has a
+ * table; xvt_frontend_task_shutdown sets 0 when it frees the table. */
 // GLOBAL: XVT 0xB69E34
 int g_cutscene_count = 0;
 /* Heap table of the campaign cutscenes, read from movies\cutscene.lst by
@@ -188,17 +187,7 @@ int cutscene_load_table(const char *file_name)
 
 /* Plays the cutscenes for the current point of a campaign: the argument is 0
  * before a mission, from the mission setup screen, and 1 after its debriefing.
- * Acts only while the pilot is in the training-exercises directory with a
- * mission sequence active and a table is loaded; plays every entry whose
- * campaign_id is the pilot's mission id in the campaigns directory, whose
- * campaign_mission_id is the one in the training-exercises directory and whose
- * play_after_debriefing equals the argument. Around each movie it suspends the CD
- * music, turns off the offscreen refill, clears and presents the screen, and
- * afterwards clears again, clears the offscreen surface, locks the back buffer
- * into g_draw_surface_ptr, turns the refill on and asks the CD music to resume.
- * Movies play with multiplayer sync. Returns 0 when it does not act or a movie
- * returns nonzero, which stops the rest, else 1. The modern build hands the
- * call to xvt_cutscene_task_play. */
+ * Hands the call to xvt_cutscene_task_play and returns its result. */
 // FUNCTION: XVT 0x4DF5F0
 int cutscene_play_for_current_mission_phase(int phase)
 {

@@ -20,7 +20,8 @@ typedef int (*movie_input_callback)(void *hWnd, unsigned int message,
 typedef int (*movie_progress_callback)(unsigned int current_frame,
 				       unsigned int final_frame, void *context);
 
-/* What the original build's movie_play passes to movie_run_smacker_playback. */
+/* What the 1997 movie_play passed to its playback function; nothing uses this
+ * struct now. */
 struct movie_playback_params {
 	/* Movie name, without folder or extension. */
 	const char *movie_name;
@@ -61,8 +62,7 @@ struct movie_playback_params {
 struct movie_dirty_rect {
 	int x; /* Left edge. */
 	int y; /* Top edge. */
-	/* Width; movie_merge_dirty_rect_lists negates it to mark a rectangle
-	 * used. */
+	/* Width; the 1997 playback code negated it to mark a rectangle used. */
 	int width;
 	int height; /* Height. */
 };

@@ -23,15 +23,15 @@ struct frontend_global_state;
  * fonts, screens, the lobby's DirectPlay session, the string table and the
  * install paths; g_front_state is the one instance. */
 struct frontend_global_state {
-	/* Scratch row front_image_compress_rle and the original build's glyph
-	 * encoding fill with one encoded image row. */
+	/* Scratch row front_image_compress_rle fills with one encoded image
+	 * row. */
 	struct front_image_rle_row_buffer rle_row_buffer;
 	/* Heap table of the loaded images, room for 512, kept sorted by name
 	 * for front_image_find_resource_by_name. */
 	struct front_image_resource_record *resource_table;
 	int resource_count; /* Images in resource_table. */
-	/* Cursor x in the 640 by 480 screen, from the window's mouse moves,
-	 * frontend_cursor_set_pos or the modern input bridge. */
+	/* Cursor x in the 640 by 480 screen, from frontend_cursor_set_pos and
+	 * the input bridge. */
 	int mouse_x;
 	int mouse_y;		/* Cursor y, kept like mouse_x. */
 	int cursor_prev_draw_x; /* x where frontend_cursor_draw last drew it. */
@@ -47,8 +47,7 @@ struct frontend_global_state {
 	/* Pixels of the cursor: cursor_default_mask, or the image
 	 * frontend_cursor_set_image_from_resource_name picks. */
 	uint8_t *cursor_mask_pixels;
-	/* Where frontend_cursor_draw keeps the screen under the cursor and
-	 * frontend_cursor_restore puts it back from. */
+	/* Where frontend_cursor_draw keeps the screen under the cursor. */
 	uint8_t *cursor_save_buf;
 	int cursor_width;  /* Cursor width in pixels, 10 by default. */
 	int cursor_height; /* Cursor height in pixels, 10 by default. */
@@ -96,21 +95,21 @@ struct frontend_global_state {
 	int joystick_x_center[2];
 	/* y read when joystick_init_devices ran, taken as the center. */
 	int joystick_y_center[2];
-	/* (center x - lowest x) / 255; at least 1 in the modern build. */
+	/* (center x - lowest x) / 255; at least 1. */
 	int joystick_x_negative_scale[2];
-	/* (highest x - center x) / 255; at least 1 in the modern build. */
+	/* (highest x - center x) / 255; at least 1. */
 	int joystick_x_positive_scale[2];
-	/* (center y - lowest y) / 255; at least 1 in the modern build. */
+	/* (center y - lowest y) / 255; at least 1. */
 	int joystick_y_negative_scale[2];
-	/* (highest y - center y) / 255; at least 1 in the modern build. */
+	/* (highest y - center y) / 255; at least 1. */
 	int joystick_y_positive_scale[2];
-	/* Windows key state by virtual key, the 0x80 bit set while down;
-	 * filled each frame by GetKeyboardState, or the modern input bridge. */
+	/* Windows key state by virtual key, the 0x80 bit set while down; filled
+	 * by the input bridge. */
 	uint8_t key_state[256];
 	/* Cleared on every key release; nothing reads it. */
 	uint8_t key_down_state[256];
-	/* Ring of typed characters, written by the window procedure or the
-	 * modern input bridge and read by keyboard_dequeue_char. */
+	/* Ring of typed characters, written by the input bridge and read by
+	 * keyboard_dequeue_char. */
 	char char_ring_buffer[1024];
 	int char_write_idx; /* Next free entry of char_ring_buffer. */
 	/* Oldest unread entry; equal to char_write_idx when empty. */
@@ -143,8 +142,9 @@ struct frontend_global_state {
 	 * named, 0 on the default one. */
 	uint8_t secondary_direct_draw_active;
 	void *hWnd; /* The game window. */
-	/* Which window procedure frontend_display_wnd_proc forwards to: 0
-	 * frontend, 1 flight, 2 movie. */
+	/* 0 frontend, 1 flight, 2 movie, as frontend_display_set_wnd_proc_mode
+	 * sets it; only frontend_display_get_wnd_proc_mode reads it, and
+	 * nothing calls that. */
 	int frontend_display_wnd_proc_mode;
 	IDirectDraw *direct_draw; /* The DirectDraw object. */
 	/* Surface the fixed background is drawn into. */
@@ -152,8 +152,8 @@ struct frontend_global_state {
 	IDirectDrawSurface *primary_surface; /* The visible surface. */
 	/* Surface the frame is drawn into before it is shown. */
 	IDirectDrawSurface *back_buffer_surface;
-	/* Nonzero while the game is the active application; the original
-	 * frame loop runs frames only then. */
+	/* Nonzero while the game is the active application;
+	 * xvt_frontend_task_init sets 1, and nothing reads it. */
 	int app_active;
 	/* Never read or written by name. */
 	uint8_t unused_display_state_e42[0x40];
@@ -223,8 +223,9 @@ struct frontend_global_state {
 	/* Faded value of each 16-bit color for the current fade frame, 0 when
 	 * not yet worked out; cleared every frame of a fade. */
 	text_fade_color_cache text_fade_color_cache;
-	/* Function the original frame loop runs once before the first frame;
-	 * a nonzero result shuts the display down. */
+	/* Never read or written; the 1997 frame loop ran this function once
+	 * before the first frame, a nonzero result shutting the display
+	 * down. */
 	int (*mode_init_fn)(void);
 	/* Screen frontend_screen_queue_push asked for, pushed after the frame;
 	 * NULL when none waits. */
@@ -275,8 +276,7 @@ struct frontend_global_state {
 	/* Last group-channel packet, sent again behind the next one. */
 	struct net_piggyback_payload net_runtime_group_pending_payload;
 	uint8_t unused_net_state_28865[4]; /* Never read or written by name. */
-	/* Set to 1 by frontend_display_reset_global_state_preserving_network_session,
-	 * whose one caller nothing calls; nothing reads it. */
+	/* Never read or written by name. */
 	int frontend_post_reset_marker;
 	/* Only ever set to 0. While nonzero, a gap in the lobby's packets
 	 * would wait 20 seconds and ask no more. */
@@ -311,15 +311,13 @@ struct frontend_global_state {
 	char *ui_string_data;
 	unsigned int ui_string_count;	 /* Strings in the table. */
 	unsigned int ui_string_capacity; /* Entries ui_string_offsets holds. */
-	/* Lowercase drive letter of the install folder; 0 in the modern
-	 * build. */
+	/* Lowercase drive letter of the install folder; always 0. */
 	char install_drive_letter;
-	/* Drive letter of the game CD; 0 when none was found and in the
-	 * modern build. */
+	/* Drive letter of the game CD; always 0. */
 	char cd_drive_letter;
-	/* The install folder; "BalanceOfPower" in the modern build. */
+	/* The install folder; "BalanceOfPower". */
 	char install_path[256];
-	/* The base game's install folder; empty in the modern build. */
+	/* The base game's install folder; empty. */
 	char base_game_install_path[256];
 };
 

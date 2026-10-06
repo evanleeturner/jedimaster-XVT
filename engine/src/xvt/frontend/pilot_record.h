@@ -30,9 +30,8 @@ extern int g_pilot_list_scroll_offset;
 
 struct pilot_network_player {
 	/* Nothing writes it by name, so it holds what the pilot file held, or 0
-	 * once mission_setup_update clears the entry.
-	 * frontend_flight_launch_session and the modern xvt_launch_task_queue copy
-	 * the local player's entry's into the flight command line. */
+	 * once mission_setup_update clears the entry. xvt_launch_task_queue
+	 * copies the local player's entry's into the flight command line. */
 	char formal_name[14];
 	/* The player's name from g_mp_roster, cut to 12 characters, set at
 	 * launch by frontend_mission_init_player_state; the debriefing shows
@@ -54,8 +53,7 @@ struct pilot_network_player {
 	 * replay. */
 	int kills;
 	int kills_shared; /* The player's shared kills, summed like kills. */
-	/* Only ever set to 0, at launch, next mission and replay; only
-	 * mission_debrief_draw_team_statistics_page, which nothing calls, reads
+	/* Only ever set to 0, at launch, next mission and replay; nothing reads
 	 * it. */
 	int craft_inspected;
 	int kills_assist; /* The player's kill assists, summed like kills. */
@@ -626,11 +624,8 @@ struct pilot_faction {
 	/* Unresolved bytes between multiplayer campaign history and the CD
 	 * movie-check counter. */
 	uint8_t unused_f0e4[24];
-	/* Only entry 0's is used, by concourse_update in the original build
-	 * when movie checks are not skipped and the game is neither host nor
-	 * client: at 0 it asks for the game CD until the movie files are found
-	 * and sets 1; otherwise it counts up and wraps to 0 at
-	 * CONCOURSE_CD_MOVIE_CHECK_LIMIT (5). */
+	/* Nothing uses it now; the 1997 concourse kept the count of its CD
+	 * movie checks in entry 0's. */
 	uint32_t
 		cd_movie_check_counter; ///< Concourse CD movie-check retry counter.
 	/* Single-player campaign mission history indexed by one-based mission
@@ -773,9 +768,8 @@ struct pilot_data {
 	 * it. */
 	int rating_achieved_on_mission[25];
 	/* Name of the pilot's rating: the trainee string for a new pilot; after
-	 * each flight frontend_flight_launch_session (xvt_launch_task_complete in
-	 * the modern build) sets it from rating before saving the pilot. Many
-	 * screens show it. */
+	 * each flight xvt_launch_task_complete sets it from rating before
+	 * saving the pilot. Many screens show it. */
 	char rating_name[32];
 	/* The local player's score in the last mission, its mission score plus
 	 * its team's bonus score, set by fe_disk_io_commit_flight_results; 0 at

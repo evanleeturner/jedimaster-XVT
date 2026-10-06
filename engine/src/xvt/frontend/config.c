@@ -77,8 +77,8 @@ struct game_config g_game_config = {0};
 static int g_config_draw_static_control_background = 0;
 /* 1 while the network page lets the connection type change outside single
  * player. The concourse's first frame sets 1; mission setup, the network
- * screens in frontend_net.c and the modern build's network browser set it as
- * they start or leave a session. */
+ * screens in frontend_net.c and the network browser set it as they start or
+ * leave a session. */
 // GLOBAL: XVT 0xB69CE0
 int g_config_connection_type_editable = 0;
 /* Config page shown: 0 network, 1 single-player video, 2 multiplayer video, 3
@@ -93,14 +93,14 @@ static int g_config_current_page = 0;
  * button 0's action, and draws frontres\configb.bmp with its frame and overlays
  * into the offscreen surface. Every frame it draws the current page; on every
  * page but the joystick page it then locks and unlocks the offscreen surface
- * (flag 1) while g_config_draw_static_control_background is set. Then it draws the
- * pilot banner, clears that flag, handles the page buttons and Restore
- * defaults, and returns 1 when frontend_handle_common_screen_controls(2) returns
- * 1. Done, a network dismiss packet, or as network host a nonzero
- * net_poll_for_player_created_or_backlog closes the screen: it writes the config,
- * pops the screen, restores the scrollbar focus list and, as network host,
- * sends the game options packet. Returns 0 on every other path; the modern
- * build stops there while a dialog is up. */
+ * (flag 1) while g_config_draw_static_control_background is set. Then it draws
+ * the pilot banner, clears that flag, handles the page buttons and Restore
+ * defaults, and returns 1 when frontend_handle_common_screen_controls(2)
+ * returns 1. Done, a network dismiss packet, or as network host a nonzero
+ * net_poll_for_player_created_or_backlog closes the screen: it writes the
+ * config, pops the screen, restores the scrollbar focus list and, as network
+ * host, sends the game options packet. Returns 0 on every other path; it stops
+ * there while a dialog is up. */
 // FUNCTION: XVT 0x4B7F30
 int config_options_datapad_update(int frame_counter)
 {
@@ -1053,12 +1053,8 @@ void config_draw_option_slider(uint8_t *value, struct RECT *rect,
  * sound and message on, at volume 9 and music volume 5; medium difficulty;
  * server update rate 8; mission time limit 255; help on; default actions for
  * joystick buttons 1 to 10, as many as the joystick has; and the four default
- * taunts. The modern build then applies config.yaml through xvt_config_apply and
- * stops with a fatal error when that fails. The original build reads
- * config2.cfg, or else the base game's config.cfg, as lines of a keyword from
- * g_config_keywords, a space and a value; it ignores unknown keywords and
- * joystick buttons 21 to 32. Button actions from config.cfg in 124 to 229 are
- * raised by 4. Checks no value's range. */
+ * taunts. It then applies config.yaml through xvt_config_apply and stops with a
+ * fatal error when that fails. */
 // FUNCTION: XVT 0x4B97E0
 void config_load(void)
 {
@@ -1286,11 +1282,9 @@ void config_load(void)
 	return;
 }
 
-/* Saves g_game_config, with the current pilot as the last pilot. The modern
- * build writes config.yaml through xvt_config_write and stops with a fatal error
- * when that fails. The original build writes config2.cfg, one keyword and value
- * per line, every setting but continue_battle_or_campaign; it writes nothing when
- * the file does not open. */
+/* Saves g_game_config, with the current pilot as the last pilot. It writes
+ * config.yaml through xvt_config_write and stops with a fatal error when that
+ * fails. */
 // FUNCTION: XVT 0x4BA3C0
 void config_write(void)
 {
@@ -1402,18 +1396,16 @@ void config_write(void)
 }
 
 /* Draws the config screen's eight page lights and handles its page buttons and
- * Restore defaults; returns 1, or 0 while the modern build's confirm dialog is
- * up. Restore defaults, hidden on the network page during a network session,
- * asks first, then resets the current page: the network update rate to 8 and
- * the connection to TCP/IP with internet play in the modern build or IPX
- * without it in the original; a video set to its defaults, 3D hardware as
- * frontend_display_is_secondary_direct_draw_active says for single player and off
- * for multiplayer; the sounds, starting CD track 7 when frontend music was off;
- * the joystick buttons; or the taunts. A page button switches pages, redraws
- * the background into the offscreen surface and sets
- * g_config_draw_static_control_background. In the modern build the joystick button
- * calls xvt_port_request_settings instead, so it never shows the joystick
- * page. */
+ * Restore defaults; returns 1, or 0 while the confirm dialog is up. Restore
+ * defaults, hidden on the network page during a network session, asks first,
+ * then resets the current page: the network update rate to 8 and the connection
+ * to TCP/IP with internet play; a video set to its defaults, 3D hardware as
+ * frontend_display_is_secondary_direct_draw_active says for single player and
+ * off for multiplayer; the sounds, starting CD track 7 when frontend music was
+ * off; the joystick buttons; or the taunts. A page button switches pages,
+ * redraws the background into the offscreen surface and sets
+ * g_config_draw_static_control_background. The joystick button calls
+ * xvt_port_request_settings instead, so it never shows the joystick page. */
 // FUNCTION: XVT 0x4BAAF0
 int config_update_navigation_and_restore_defaults(void)
 {
@@ -1959,14 +1951,10 @@ int config_update_navigation_and_restore_defaults(void)
 	return 1;
 }
 
-/* Draws the network page. The original build first offers the connection type
- * (IPX, TCP/IP with the address field, direct modem with the phone field,
- * direct serial), which changes only while g_config_connection_type_editable is
- * set or in single player; picking a different type turns internet play on for
- * TCP/IP and off for the others. Both builds then draw the password field and
- * the host options, internet play and the server update rate (4, 6 or 8 as low,
- * medium or high), read-only for a network client. Enter or Tab in a field
- * moves g_active_text_field_id to the next field. */
+/* Draws the network page: the password field and the host options, internet
+ * play and the server update rate (4, 6 or 8 as low, medium or high), read-only
+ * for a network client. Enter or Tab in a field moves g_active_text_field_id to
+ * the next field. */
 // FUNCTION: XVT 0x4BB680
 void config_network_options_screen(void)
 {
@@ -2396,14 +2384,14 @@ void config_sound_options_screen(void)
 	}
 }
 
-/* Draws the joystick page and remaps buttons; only the original build shows
- * this page. Shows the selected button or hat direction and its action. A
- * pressed joystick button (1 to 16) or hat direction selects itself and scrolls
- * into view. The left list shows each button, and the four hat directions when
- * the joystick has a hat, with its action; a click selects that row. The right
- * list shows every action; a click maps the selected button to it, and so does
- * a key from config_read_joystick_action_picker_key that matches an action's
- * code. */
+/* Draws the joystick page and remaps buttons; nothing shows this page, because
+ * the joystick button calls xvt_port_request_settings instead. Shows the
+ * selected button or hat direction and its action. A pressed joystick button (1
+ * to 16) or hat direction selects itself and scrolls into view. The left list
+ * shows each button, and the four hat directions when the joystick has a hat,
+ * with its action; a click selects that row. The right list shows every action;
+ * a click maps the selected button to it, and so does a key from
+ * config_read_joystick_action_picker_key that matches an action's code. */
 // FUNCTION: XVT 0x4BCC10
 void config_joystick_remap_screen(void)
 {
@@ -3111,9 +3099,8 @@ void config_draw_custom_taunts_page(void)
  * page's time is up it reads the next one and fades it in, turning off the CD
  * loop after the last. After the last page's time, or on a click, Esc, Enter or
  * Space, it clears the offscreen surface (on a key or click the back buffer
- * too), fades the CD music over 2000 ms and sets g_credits_exit_pending; the next
- * frame goes to the concourse, in the modern build once the fade is over.
- * Returns 0. */
+ * too), fades the CD music over 2000 ms and sets g_credits_exit_pending; the
+ * next frame goes to the concourse once the fade is over. Returns 0. */
 // FUNCTION: XVT 0x4FB670
 int credits_update_screen(int frame_counter)
 {

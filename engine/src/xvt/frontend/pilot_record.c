@@ -91,15 +91,15 @@ int g_pilot_record_page = 0;
 // GLOBAL: XVT 0xB6A2E0
 struct pilot_data g_pilot_data;
 /* Records read into g_campaign_award_sprites. Set by
- * pilot_record_load_campaign_award_sprite_table; set to 0 when game_main or, in the
- * modern build, xvt_frontend_task_shutdown frees the table. */
+ * pilot_record_load_campaign_award_sprite_table; set to 0 when
+ * xvt_frontend_task_shutdown frees the table. */
 // GLOBAL: XVT 0xB69CC8
 unsigned int g_campaign_award_sprite_count = 0;
 /* Heap table of campaign medal sprites read from frontres\campawds.lst, one
- * record per campaign. pilot_record_load_campaign_award_sprite_table allocates it
- * for the count on the file's first line; game_main or, in the modern build,
- * xvt_frontend_task_shutdown frees it. NULL until loaded or when loading failed;
- * the campaign medals page then draws only its title. */
+ * record per campaign. pilot_record_load_campaign_award_sprite_table allocates
+ * it for the count on the file's first line; xvt_frontend_task_shutdown frees
+ * it. NULL until loaded or when loading failed; the campaign medals page then
+ * draws only its title. */
 // GLOBAL: XVT 0xB69CD8
 struct campaign_award_sprite_entry *g_campaign_award_sprites = NULL;
 /* Single-player mission awards of the last campaign
@@ -335,26 +335,24 @@ struct POINT g_pilot_rating_icon_pos[25] = {
 
 /* Runs one frame of the concourse's pilot roster panel: the list of saved
  * pilots, a name field and the Delete Pilot button. On its first frame
- * (frame_counter 0) it flushes the keyboard, clears g_pilot_record_name_input and
- * rebuilds the list, scrolled to the current pilot when there are more than 13.
- * Clicking a pilot other than the current one (names compared case-blind over
- * 12 characters) loads it with pilot_load_from_path and, when that succeeds,
- * copies its current faction's team, mission directory, mission ids and
- * sequence fields into g_pilot_data; any click then rebuilds the list, redraws
- * the background and sets g_pilot_record_pages_need_rebuild. A name finished in the
- * field loads the listed pilot of that name, compared case-blind, or else
- * pilot_create_new makes a new pilot of that name; that also sets
- * g_pilot_record_pages_need_rebuild. With no saved pilots it asks for a name in a
- * dialog. Delete Pilot, or the Delete key, with a pilot loaded asks for
- * confirmation, calls pilot_delete_current when confirmed and sets
- * g_pilot_list_scroll_offset to 0. A scroll bar sets g_pilot_list_scroll_offset when
- * there are more than 13 pilots. Returns 1. The modern build runs the dialogs
- * as pending actions, returning 1 while one is open, and calls xvt_storage_fatal
- * when the list is missing or a pilot cannot be saved or deleted; only it
- * rebuilds the list after a delete. In the original build, which never marks a
- * match, a typed name that matches a pilot loads it and then also creates a new
- * pilot of that name. Does not check g_pilot_file_list for NULL in the original
- * build. */
+ * (frame_counter 0) it flushes the keyboard, clears g_pilot_record_name_input
+ * and rebuilds the list, scrolled to the current pilot when there are more than
+ * 13. Clicking a pilot other than the current one (names compared case-blind
+ * over 12 characters) loads it with pilot_load_from_path and, when that
+ * succeeds, copies its current faction's team, mission directory, mission ids
+ * and sequence fields into g_pilot_data; any click then rebuilds the list,
+ * redraws the background and sets g_pilot_record_pages_need_rebuild. A name
+ * finished in the field loads the listed pilot of that name, compared
+ * case-blind, or else pilot_create_new makes a new pilot of that name; that
+ * also sets g_pilot_record_pages_need_rebuild. With no saved pilots it asks for
+ * a name in a dialog. Delete Pilot, or the Delete key, with a pilot loaded asks
+ * for confirmation, calls pilot_delete_current when confirmed and sets
+ * g_pilot_list_scroll_offset to 0. A scroll bar sets g_pilot_list_scroll_offset
+ * when there are more than 13 pilots. Returns 1. It runs the dialogs as pending
+ * actions, returning 1 while one is open, and calls xvt_storage_fatal when the
+ * list is missing or a pilot cannot be saved or deleted; it also rebuilds the
+ * list after a delete. The 1997 game never marked a match, so a typed name that
+ * matched a pilot loaded it and then also created a new pilot of that name. */
 // FUNCTION: XVT 0x4BEA50
 int pilot_record_update_pilot_selection_panel(int frame_counter)
 {
@@ -531,8 +529,7 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 		}
 	}
 	/* selected_index says here whether the name entry was finished; it is
-	 * then reused to say whether the name matched an existing pilot, which
-	 * only the modern build sets. */
+	 * then reused to say whether the name matched an existing pilot. */
 	if (selected_index != 0 && g_pilot_record_name_input[0] != '\0') {
 		selected_index = 0;
 		g_pilot_record_pages_need_rebuild = 1;
@@ -757,15 +754,15 @@ int pilot_record_draw_pilot_list(const struct RECT *bounds,
 	return selected_index;
 }
 
-/* Rebuilds the roster: frees g_pilot_list_display_names and g_pilot_file_list, lists
- * the *.plt files of the base game's install folder into g_pilot_file_list,
- * sorted, and reads the first 12 bytes of each, the pilot's name, into a
- * 14-byte slot of a new g_pilot_list_display_names. Stores the position of the
- * pilot named like g_pilot_data.name, compared case-blind, in *selected_index,
- * which it leaves alone when there is none. Returns 1, or 0 when the file list
- * cannot be built, there are no pilots, or, in the modern build, the names
- * cannot be allocated. A file that does not open is skipped, so the names after
- * it no longer sit at their files' positions in g_pilot_file_list. */
+/* Rebuilds the roster: frees g_pilot_list_display_names and g_pilot_file_list,
+ * lists the *.plt files of the base game's install folder into
+ * g_pilot_file_list, sorted, and reads the first 12 bytes of each, the pilot's
+ * name, into a 14-byte slot of a new g_pilot_list_display_names. Stores the
+ * position of the pilot named like g_pilot_data.name, compared case-blind, in
+ * *selected_index, which it leaves alone when there is none. Returns 1, or 0
+ * when the file list cannot be built, there are no pilots, or the names cannot
+ * be allocated. A file that does not open is skipped, so the names after it no
+ * longer sit at their files' positions in g_pilot_file_list. */
 // FUNCTION: XVT 0x4BF100
 int pilot_record_rebuild_pilot_list(int *selected_index)
 {
@@ -6037,13 +6034,14 @@ int pilot_record_draw_mission_achievements_page(void)
  * campaign mission was flown, one marked so once that mission was completed. It
  * stops drawing once y passes 433. Clicking a thumbnail suspends CD audio,
  * clears the screen, plays the cutscene's movie, redraws the background and
- * resumes the audio; the modern build returns 1 at once when
- * xvt_frontend_movies_play_viewer returns nonzero. When
- * g_pilot_record_pages_need_rebuild is set it first reloads the campaign list into
- * g_pilot_record_singleplayer_campaign_mission_list, cuts each description at its
- * last '(', counts g_cutscene_viewer_total_rows, sets g_cutscene_viewer_scroll_row to
- * 0 and clears the flag; a scroll bar sets the row past 21 rows. Returns 0 when
- * no pilot is loaded or g_cutscene_table is NULL, else 1. */
+ * resumes the audio; it returns 1 at once when xvt_frontend_movies_play_viewer
+ * returns nonzero. When g_pilot_record_pages_need_rebuild is set it first
+ * reloads the campaign list into
+ * g_pilot_record_singleplayer_campaign_mission_list, cuts each description at
+ * its last '(', counts g_cutscene_viewer_total_rows, sets
+ * g_cutscene_viewer_scroll_row to 0 and clears the flag; a scroll bar sets the
+ * row past 21 rows. Returns 0 when no pilot is loaded or g_cutscene_table is
+ * NULL, else 1. */
 // FUNCTION: XVT 0x4C7CC0
 int pilot_record_draw_cutscene_viewer_page(void)
 {
@@ -7406,17 +7404,16 @@ int pilot_record_redraw_background(void)
 }
 
 /* Loads the campaign medal sprite table from fileName into
- * g_campaign_award_sprites, freeing any old one. The first line gives the record
- * count to allocate. Each record is a campaign id line, the main sprite name
- * and 15 multiplayer then 15 single-player mission award sprite names, one per
- * line, lines starting with // skipped; names are cut to 31 characters and the
- * 16th slots stay empty. g_campaign_award_sprite_count counts the complete
+ * g_campaign_award_sprites, freeing any old one. The first line gives the
+ * record count to allocate. Each record is a campaign id line, the main sprite
+ * name and 15 multiplayer then 15 single-player mission award sprite names, one
+ * per line, lines starting with // skipped; names are cut to 31 characters and
+ * the 16th slots stay empty. g_campaign_award_sprite_count counts the complete
  * records. Returns 0 when the file does not open, its first line cannot be read
- * or the allocation fails, which the original build returns from with the file
- * left open; else 1, also when the file ends early, a record cut short getting
- * campaign_id 0. In the original build the record loop stops at 15 records
- * rather than at the count read, and nothing checks that the records fit the
- * allocation; the modern build stops at the count. */
+ * or the allocation fails, else 1, also when the file ends early, a record cut
+ * short getting campaign_id 0. The record loop stops at the count read; the
+ * 1997 game stopped at 15 records and checked nothing against the
+ * allocation. */
 // FUNCTION: XVT 0x4CC060
 int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 {
@@ -7545,9 +7542,9 @@ int pilot_record_load_campaign_award_sprite_table(const char *file_name)
 		}
 
 		/* From here record_count_or_index counts the single-player
-		 * sprite names read, so in the original build the record loop
-		 * stops at 15 records instead of the file's count; the modern
-		 * build keeps the count in record_capacity. */
+		 * sprite names read, so the record loop tests record_capacity,
+		 * which keeps the file's count; the 1997 game's loop stopped at
+		 * 15 records. */
 		record_count_or_index = 0;
 		sprite_name_byte_offset = 0;
 		while (sprite_name_byte_offset < 15 * 32) {

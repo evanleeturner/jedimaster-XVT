@@ -16,10 +16,8 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 
 /* The confirm dialog's OK label, shown only as the OK button's tooltip; empty
- * picks a layout without it (frontend_dialog_confirm_update_callback). Written as
- * each dialog opens: by frontend_dialog_show_confirm_dialog and
- * frontend_dialog_show_network_abort_error in the original build, by
- * xvt_dialog_confirm in the modern build. */
+ * picks a layout without it (frontend_dialog_confirm_update_callback). Written
+ * as each dialog opens, by xvt_dialog_confirm. */
 // GLOBAL: XVT 0x665688
 char g_front_dialog_okay_label[128] = {0};
 /* The third line of the confirm dialog's message, drawn 40 pixels below the
@@ -27,9 +25,7 @@ char g_front_dialog_okay_label[128] = {0};
 // GLOBAL: XVT 0x665708
 char g_front_dialog_line3[256] = {0};
 /* Cursor x when the last confirm, network-error or pilot-name dialog opened.
- * The original build moves the cursor back there when a confirm dialog with
- * neither label closes; the modern build writes it through xvt_dialog_confirm
- * and never reads it. */
+ * xvt_dialog_confirm writes it and nothing reads it. */
 // GLOBAL: XVT 0x665808
 int g_front_dialog_saved_mouse_x = 0;
 /* Cursor y when the last dialog opened; see g_front_dialog_saved_mouse_x. */
@@ -52,22 +48,16 @@ char g_front_dialog_line1_or_edit[256] = {0};
 char g_front_dialog_line2[256] = {0};
 /* The last confirm dialog's answer: 1 for OK or Enter, 0 for Cancel, Esc or a
  * network dismissal. Written by frontend_dialog_confirm_update_callback and
- * frontend_dialog_network_abort_error_callback; the modern build's xvt_dialog_update
- * sets it to 0 as each dialog opens. */
+ * frontend_dialog_network_abort_error_callback; xvt_dialog_update sets it to 0
+ * as each dialog opens. */
 // GLOBAL: XVT 0xAA62A0
 int g_dialog_result = 0;
 
 /* Shows the confirm dialog, three message lines and the OK and Cancel labels,
  * NULL meaning empty, and returns its answer: 1 for OK, 0 for Cancel or a
- * network dismissal. The original build runs it modally over the whole screen:
- * it turns overlay text off, plays "warningsound" when
- * g_game_config.sfx_datapad_enabled is set, saves the cursor position in
- * g_front_dialog_saved_mouse_x and g_front_dialog_saved_mouse_y, copies the texts into
- * the g_frontDialog buffers with strcpy, unchecked against their 256 and 128
- * bytes, runs frontend_dialog_confirm_update_callback, stops the text fade, turns
- * overlay text back on when it was on and returns g_dialog_result. The modern
- * build returns xvt_dialog_confirm's result: XVT_DIALOG_PENDING (-1) while the
- * dialog runs, then the answer on the first call after it closes. */
+ * network dismissal. It returns xvt_dialog_confirm's result: XVT_DIALOG_PENDING
+ * (-1) while the dialog runs, then the answer on the first call after it
+ * closes. */
 // FUNCTION: XVT 0x4DCB90
 int frontend_dialog_show_confirm_dialog(const char *line1, const char *line2,
 					const char *line3,
@@ -86,12 +76,10 @@ int frontend_dialog_show_confirm_dialog(const char *line1, const char *line2,
  * frontend_dialog_has_network_dismiss_packet returns 1, draws the three message
  * lines centered in the size-15 font in 0xFFFF, from y 225, 20 pixels apart,
  * and runs the buttons. With neither label it shows an OK button whose tooltip
- * is string FRONTSTR_523_OKAY; when it is pressed, the original build moves the
- * cursor back to g_front_dialog_saved_mouse_x and Y. With only one label, that one
- * button; with both, both. OK, or Enter, sets g_dialog_result to 1; Cancel, or
- * Esc, sets it to 0. Returns 1 when the dialog ends, else 0. Each later frame
- * takes one character from the keyboard buffer, and with both buttons up to
- * three. */
+ * is string FRONTSTR_523_OKAY. With only one label, that one button; with both,
+ * both. OK, or Enter, sets g_dialog_result to 1; Cancel, or Esc, sets it to 0.
+ * Returns 1 when the dialog ends, else 0. Each later frame takes one character
+ * from the keyboard buffer, and with both buttons up to three. */
 // FUNCTION: XVT 0x4DCD30
 int frontend_dialog_confirm_update_callback(int frame_counter)
 {
@@ -311,12 +299,8 @@ int frontend_dialog_has_network_dismiss_packet(void)
 		       NET_PACKET_RETURN_TO_MISSION_SELECTION) != 0;
 }
 
-/* Asks for a new pilot's name and copies it into out_name as 12 characters and a
- * NUL, so out_name needs 13 bytes. The original build turns overlay text off,
- * saves the cursor position, clears g_front_dialog_line1_or_edit, runs
- * frontend_dialog_create_pilot_name_callback modally over the whole screen until a
- * name is accepted, stops the text fade, turns overlay text back on when it was
- * on and returns 1. The modern build returns xvt_dialog_pilot_name's result:
+/* Asks for a new pilot's name and copies it into out_name as 12 characters and
+ * a NUL, so out_name needs 13 bytes. It returns xvt_dialog_pilot_name's result:
  * XVT_DIALOG_PENDING (-1) while the prompt runs, then, on the first call after
  * it closes, the name copied the same way and 1 when one was entered, else
  * 0. */
@@ -331,13 +315,12 @@ int frontend_dialog_prompt_for_pilot_name(char *out_name)
  * the image "backname" and draws it opaque on the offscreen surface, then the
  * "frame" sprite, "allactive" (or "clientactive" when g_host_cd_available is 0)
  * and "createoverlay" translucent. Every frame it draws the heading string
- * FRONTSTR_716_CREATE_A_NEW_PILOT, an edit field over g_front_dialog_line1_or_edit
- * that takes up to 12 characters, none of \ * $, and a text button labeled
- * FRONTSTR_717_CREATE_PILOT. Enter, the field's own Enter or Tab, or the button
- * accepts; with a name typed it then frees "backname" and returns 1. Returns 0
- * otherwise. An Esc next in the keyboard buffer is taken; the modern build then
- * clears the name, frees "backname" and returns 1, while the original build
- * keeps prompting. */
+ * FRONTSTR_716_CREATE_A_NEW_PILOT, an edit field over
+ * g_front_dialog_line1_or_edit that takes up to 12 characters, none of \ * $,
+ * and a text button labeled FRONTSTR_717_CREATE_PILOT. Enter, the field's own
+ * Enter or Tab, or the button accepts; with a name typed it then frees
+ * "backname" and returns 1. Returns 0 otherwise. An Esc next in the keyboard
+ * buffer is taken; it then clears the name, frees "backname" and returns 1. */
 // FUNCTION: XVT 0x4DD2C0
 int frontend_dialog_create_pilot_name_callback(int frame_counter)
 {
@@ -394,8 +377,9 @@ int frontend_dialog_create_pilot_name_callback(int frame_counter)
 
 /* The network-error dialog's frame function: the same as
  * frontend_dialog_confirm_update_callback, without the check for a dismissing
- * network packet. Returns 1 when the dialog ends, else 0. Only the original
- * build reaches it. */
+ * network packet. Returns 1 when the dialog ends, else 0. Nothing reaches it:
+ * xvt_dialog_confirm picks it only when its last argument is nonzero, and every
+ * caller passes 0. */
 // FUNCTION: XVT 0x4DD620
 int frontend_dialog_network_abort_error_callback(int frame_counter)
 {

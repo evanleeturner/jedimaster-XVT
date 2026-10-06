@@ -25,8 +25,7 @@ static int g_saved_text_fade_frames_left;
 /* The field_id of the edit field that takes typed keys and shows a caret.
  * frontend_text_handle_editable_field sets it when a field is clicked; screens
  * also set it directly, chiefly in config.c and frontend.c. 0 at start, so a
- * field with id 0 is active until another is clicked. The modern build's
- * renderer reads it. */
+ * field with id 0 is active until another is clicked. The renderer reads it. */
 // GLOBAL: XVT 0x52C000
 int g_active_text_field_id = 0;
 /* The edit fields' text and caret color, frontend_display_pack_rgb(0xFF, 0xFF,
@@ -51,8 +50,8 @@ static int g_text_field_length = 0;
 
 /* Draws and runs a one-line edit field over text for one frame. A release of
  * either mouse button in rect makes field_id the active field,
- * g_active_text_field_id. While it is active the field takes the next character in
- * the keyboard buffer, discarding it when it is one of ignored_chars: a
+ * g_active_text_field_id. While it is active the field takes the next character
+ * in the keyboard buffer, discarding it when it is one of ignored_chars: a
  * printable character or a space is appended while the text is shorter than
  * max_chars - 1; Backspace erases the last character; Enter or Tab makes the
  * call return 1; Esc is left in the buffer; other characters are discarded.
@@ -62,9 +61,9 @@ static int g_text_field_length = 0;
  * + 1 it is shifted left by its width + fontSize - (rect->right - rect->left) -
  * 1, keeping its end in view. While active it also draws a caret 2 pixels wide
  * and fontSize + 1 tall after the last character, on frames whose counter
- * modulo 10 is under 5. Returns 0 when Enter or Tab was not taken. The modern
- * build treats every byte from 32 but 127 as printable and records the field
- * for its renderer. */
+ * modulo 10 is under 5. Returns 0 when Enter or Tab was not taken. It treats
+ * every byte from 32 but 127 as printable and records the field for its
+ * renderer. */
 // FUNCTION: XVT 0x4DA380
 int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 					int max_chars, int field_id,
@@ -189,15 +188,7 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
  * functions. Returns 1 when it is already loaded. Otherwise it takes the first
  * free of the 10 slots in g_front_state.font_slots, returning 0 when none is
  * free, and returns 1 when frontend_text_load_font_atlas_file loads
- * "times<size>.abp" into it. When that fails the modern build returns 0, and
- * the original build builds the font from Times New Roman through GDI: it
- * measures characters 1 to 255, copies the offscreen surface to the back
- * buffer, draws each white on black on the offscreen surface through a GDI
- * device context, reads its rows from the locked back buffer and encodes them
- * with front_image_encode_glyph_row, then copies the back buffer to the offscreen
- * surface. With all 255 done it registers the font in g_front_state.font_by_size,
- * saves it as "times<size>.abp" and returns 1; when a step fails it frees the
- * glyph memory and returns 0. */
+ * "times<size>.abp" into it. When that fails it returns 0. */
 // FUNCTION: XVT 0x4DADA0
 int frontend_text_load_font(int point_size)
 {
@@ -241,8 +232,8 @@ int frontend_text_load_font(int point_size)
 }
 
 /* Frees every loaded font: the glyph memory of each slot whose inUse is 1,
- * which it then marks free, and clears g_front_state.font_by_size. The modern
- * build also drops each font from its renderer. */
+ * which it then marks free, and clears g_front_state.font_by_size. It also
+ * drops each font from its renderer. */
 // FUNCTION: XVT 0x4DB420
 void frontend_text_free_all_fonts(void)
 {
@@ -639,15 +630,13 @@ int frontend_text_measure_width(const char *str, int font_size)
 	return width - font->char_spacing;
 }
 
-/* Loads a font file written by frontend_text_save_font_atlas_file into
- * g_front_state.font_slots[slotIndex]: the 0x60B-byte header (the original build
- * reads it over the slot as it lies in memory, the modern build field by
- * field), then a glyph block of the size the header's first 4 bytes give.
- * Registers the slot in g_front_state.font_by_size under the file's point_size, not
- * checking that it is under 256, and returns 1. Returns 0 when the file does
- * not open, when the modern build cannot read the header, or when the glyph
- * block cannot be allocated, which also sets the slot's inUse to 0. The slot's
- * inUse comes from the file. The modern build also registers the font with its
+/* Loads a font file into g_front_state.font_slots[slotIndex]: the 0x60B-byte
+ * header, read field by field, then a glyph block of the size the header's
+ * first 4 bytes give. Registers the slot in g_front_state.font_by_size under
+ * the file's point_size, not checking that it is under 256, and returns 1.
+ * Returns 0 when the file does not open, when it cannot read the header, or
+ * when the glyph block cannot be allocated, which also sets the slot's inUse to
+ * 0. The slot's inUse comes from the file. It also registers the font with its
  * renderer. */
 // FUNCTION: XVT 0x4DC0A0
 int frontend_text_load_font_atlas_file(const char *file_name, int slot_index)

@@ -49,9 +49,7 @@ int g_unused_flight_loading_ready_screen_flag = 0;
 int g_frontend_launch_human_player_count = 0;
 /* The flight's command line: "~folder\file~ ~formal name~ ~pilot name~ host
  * ~game name~ 0 players" and then "nopageflip nofullscreen" or "pageflip
- * fullscreen". The original build builds it in frontend_flight_launch_session
- * and passes it to flight_main; the modern build's xvt_launch_task_queue copies
- * here the line it passes. */
+ * fullscreen". xvt_launch_task_queue copies here the line it passes. */
 // GLOBAL: XVT 0x66DA78
 char g_frontend_flight_command_line[256] = {0};
 
@@ -148,22 +146,8 @@ int frontend_flight_no_op_exit(int frame_counter)
 	return 0;
 }
 
-/* Update function that flies the mission. The modern build hands the work to
- * xvt_launch_task_queue and returns what it returns. The original build, on
- * frame 0: writes the config and saves the pilot; asks for the game CD until
- * it is found, returning 1, which closes the game, on Cancel; without the
- * host CD and outside a network client it says so, cancels a network game,
- * and returns to the concourse. Otherwise, with datapad music on and the CD
- * track still playing, it fades the music to an eighth of its volume over
- * 1000 ms; then hands the display to the flight, builds
- * g_frontend_flight_command_line for the pilot's mission and runs flight_main,
- * whose result decides the next screen. Then it takes the display back,
- * reloads the sound list, writes the config, refreshes the pilot's rating
- * name, saves the pilot and restarts CD track 7 when datapad music is on. A
- * zero result returns to the concourse, shutting the network session; any
- * other goes to the debriefing. Returns 0 on every path but Cancel. Does not
- * check that the pilot's mission is in the list; the note inside covers the
- * case with no list. */
+/* Update function that flies the mission. Hands the work to
+ * xvt_launch_task_queue and returns what it returns. */
 // FUNCTION: XVT 0x5066A0
 int frontend_flight_launch_session(int frame_counter)
 {

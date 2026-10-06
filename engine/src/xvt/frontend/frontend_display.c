@@ -75,8 +75,7 @@ typedef char xvt_size_frontend_display_bmp_info_header
 	[(sizeof(struct frontend_display_bmp_info_header) == 40) ? 1 : -1];
 
 /* 1 once frontend_display_shutdown has run, so a second call does nothing. Only
- * Shutdown sets it to 1; frontend_display_init and, in the modern build,
- * xvt_frontend_task_init set it to 0. */
+ * Shutdown sets it to 1; xvt_frontend_task_init sets it to 0. */
 // GLOBAL: XVT 0x52BA8C
 int g_shutdown_complete = 0;
 /* The window's title and class name, also the title of the message boxes; never
@@ -126,50 +125,49 @@ static DxGuid g_configured_direct_draw_driver_guid = {0};
 int g_pixel_format_code = 8;
 /* 1 while flight-side drawing goes to the frontend's surfaces:
  * flight_surface_lock then takes g_draw_surface_ptr and its pitch, and
- * display_is_pixel_format555 asks the frontend. Set to 0 while a flight runs and
- * back to 1 after it, by flight_main in the original build and by
- * xvt_flight_entry_prepare and xvt_flight_entry_cleanup in the modern build. */
+ * display_is_pixel_format555 asks the frontend. Set to 0 while a flight runs
+ * and back to 1 after it, by xvt_flight_entry_prepare and
+ * xvt_flight_entry_cleanup. */
 // GLOBAL: XVT 0x527EA0
 int g_flight_render_to_frontend = 1;
-/* 1 when the command line holds "nopageflip" or "nofullscreen" (game_main): the
- * frontend then copies a system-memory back buffer to the screen instead of
- * flipping, and drops to normal cooperative level after making its surfaces.
- * The modern build's xvt_frontend_task_init sets it to 0. */
+/* 1 makes the frontend copy a system-memory back buffer to the screen instead
+ * of flipping, and drop to normal cooperative level after making its surfaces.
+ * xvt_frontend_task_init sets it to 0. */
 // GLOBAL: XVT 0xB69CB0
 int g_opt_no_fullscreen = 0;
-/* 1 when the command line holds "nofrontflip" (game_main), and always in the
- * modern build (xvt_frontend_task_init): the frontend then draws to a 640 by 480
- * system-memory back buffer and copies it to the primary surface each frame
- * instead of flipping. */
+/* 1 makes the frontend draw to a 640 by 480 system-memory back buffer and copy
+ * it to the primary surface each frame instead of flipping.
+ * xvt_frontend_task_init sets it to 1. */
 // GLOBAL: XVT 0xB69CBC
 int g_no_page_flip = 0;
-/* The command line game_main was given; frontend_load_resources hands it to
- * pilot_parse_command_line. The modern build points it at an empty string. */
+/* The command line the frontend was given; frontend_load_resources hands it to
+ * pilot_parse_command_line. xvt_frontend_task_init points it at an empty
+ * string. */
 // GLOBAL: XVT 0xB69CAC
 char *g_cmd_line;
-/* 1 when the command line holds "skipintro": game_main then starts at the
- * concourse rather than the opening movie and credits. Written by game_main and,
- * in the modern build, xvt_frontend_task_init; concourse_update reads it. */
+/* 1 to skip the opening movie and credits: the frontend then starts at the
+ * concourse. xvt_frontend_task_init sets it from its skip_intro argument;
+ * concourse_update reads it. */
 // GLOBAL: XVT 0xB69CB8
 int g_opt_skip_intro;
-/* 1 when the command line holds "ishost": game_main then starts at the
+/* 1 when the command line holds "ishost": the frontend then starts at the
  * concourse. concourse_update reads it and sets it to 0, as
  * pilot_parse_command_line does. */
 // GLOBAL: XVT 0xB69CA8
 int g_opt_is_host;
-/* 1 when the command line holds "isclient": game_main then starts at the
+/* 1 when the command line holds "isclient": the frontend then starts at the
  * concourse. concourse_update reads it and sets it to 0, as
  * pilot_parse_command_line does. */
 // GLOBAL: XVT 0xB69CB4
 int g_opt_is_client;
 /* Heap buffer for the screen pixels under the cursor sprite, 2 bytes for each
- * pixel of the "cursor" image: frontend_load_resources allocates it and hands it
- * to frontend_cursor_set_image_from_resource_name as the save buffer. Freed by
- * game_main and, in the modern build, xvt_frontend_task_shutdown. */
+ * pixel of the "cursor" image: frontend_load_resources allocates it and hands
+ * it to frontend_cursor_set_image_from_resource_name as the save buffer. Freed
+ * by xvt_frontend_task_shutdown. */
 // GLOBAL: XVT 0xB6A2AC
 void *g_cursor_save_buffer;
 /* Set to 1 by frontend_load_resources, the main frontend's start, and never set
- * back; game_main returns 1 when it is still 0. */
+ * back; nothing reads it. */
 // GLOBAL: XVT 0x52BA5C
 int g_game_main_skip_intro_relaunch_gate;
 
@@ -199,10 +197,9 @@ HRESULT frontend_display_restore_lost_surfaces(void)
  * the image table, the offscreen backup buffer and the string table. With
  * DirectDraw it then flips to the GDI surface, restores the display mode,
  * releases the primary surface, the palette, the offscreen surface, the
- * separate back buffer (with g_opt_no_fullscreen or g_no_page_flip) and DirectDraw
- * itself, and, with b_destroy_window nonzero and a window, destroys the window;
- * the modern build only forgets its handle. Last it shows the system cursor,
- * which the modern build instead keeps hidden. */
+ * separate back buffer (with g_opt_no_fullscreen or g_no_page_flip) and
+ * DirectDraw itself, and, with b_destroy_window nonzero and a window, forgets
+ * the window handle. Last it hides the system cursor. */
 // FUNCTION: XVT 0x4D3820
 void frontend_display_shutdown(int b_destroy_window)
 {
@@ -283,11 +280,10 @@ void frontend_display_shutdown(int b_destroy_window)
 	Aeron_SetHostCursorVisible(0);
 }
 
-/* Shows "DirectDraw Init FAILED at <stage>" in a message box titled
- * g_window_name, shuts the frontend down with frontend_display_shutdown(1) and
- * returns 0. frontend_display_init_main_window and frontend_display_reinit_surfaces
- * pass the failing step, 0 to 6. The modern build shows an error box through
- * Aeron. */
+/* Shows "DirectDraw Init FAILED at <stage>" in an error box through Aeron,
+ * titled g_window_name, shuts the frontend down with
+ * frontend_display_shutdown(1) and returns 0. frontend_display_init_main_window
+ * and frontend_display_reinit_surfaces pass the failing step, 0 to 6. */
 // FUNCTION: XVT 0x4D3DA0
 int frontend_display_report_direct_draw_init_failure(void *hWnd, int stage)
 {
@@ -308,10 +304,10 @@ int frontend_display_report_direct_draw_init_failure(void *hWnd, int stage)
 	return 0;
 }
 
-/* Shows text in a warning message box titled g_window_name and returns 1 once it
- * is closed. Unlocks the back buffer and, with DirectDraw, flips to the GDI
- * surface first; afterward locks the back buffer into g_draw_surface_ptr again
- * when it was locked. The modern build shows the box through Aeron. */
+/* Shows text in a warning box through Aeron, titled g_window_name, and returns
+ * 1 once it is closed. Unlocks the back buffer and, with DirectDraw, flips to
+ * the GDI surface first; afterward locks the back buffer into
+ * g_draw_surface_ptr again when it was locked. */
 // FUNCTION: XVT 0x4D3DF0
 int frontend_display_show_game_message_box(const char *text)
 {
@@ -335,23 +331,21 @@ int frontend_display_show_game_message_box(const char *text)
 }
 
 /* Makes the frontend's display and returns 1, or 0 when a step fails, after
- * frontend_display_report_direct_draw_init_failure unless the window failed. The
- * original build registers the window class and creates a visible popup window
- * the size of the screen, titled g_window_name, into g_front_state.hWnd; the
- * modern build uses the handle the host already stored there. Creates
- * DirectDraw on the video.cfg driver (frontend_display_load_driver_guid), else on
- * the default one, setting secondary_direct_draw_active only when the configured
- * driver was used; takes exclusive full-screen mode at 640 by 480 and
- * g_front_state.display_bpp; creates the primary surface and the back buffer, a
- * flip chain with one back buffer unless g_opt_no_fullscreen or g_no_page_flip is
- * set, else a separate 640 by 480 system-memory surface; and a 640 by 480
- * offscreen surface, recording pixel_format555 and both pitches. Loads the
- * default palette (frontend_display_load_palette) and sets it at 8 bits per
- * pixel, drops to normal cooperative level with g_opt_no_fullscreen, sets the six
- * text color codes, clears and presents both surfaces, loads the size-20 font,
- * finds the joysticks, sets the default cursor, moves the system cursor to (0,
- * 0), starts DirectSound (showing "Sound not available." when it fails), hides
- * the system cursor and allocates and zeroes
+ * frontend_display_report_direct_draw_init_failure unless the window failed.
+ * Uses the window handle the host already stored in g_front_state.hWnd. Creates
+ * DirectDraw on the video.cfg driver (frontend_display_load_driver_guid), else
+ * on the default one, setting secondary_direct_draw_active only when the
+ * configured driver was used; takes exclusive full-screen mode at 640 by 480
+ * and g_front_state.display_bpp; creates the primary surface and the back
+ * buffer, a flip chain with one back buffer unless g_opt_no_fullscreen or
+ * g_no_page_flip is set, else a separate 640 by 480 system-memory surface; and
+ * a 640 by 480 offscreen surface, recording pixel_format555 and both pitches.
+ * Loads the default palette (frontend_display_load_palette) and sets it at 8
+ * bits per pixel, drops to normal cooperative level with g_opt_no_fullscreen,
+ * sets the six text color codes, clears and presents both surfaces, loads the
+ * size-20 font, finds the joysticks, sets the default cursor, moves the system
+ * cursor to (0, 0), starts DirectSound (showing "Sound not available." when it
+ * fails), hides the system cursor and allocates and zeroes
  * g_front_state.offscreen_backup_buffer, 480 rows of the offscreen pitch,
  * returning 1 even when that allocation fails. */
 // FUNCTION: XVT 0x4D41E0
@@ -557,9 +551,9 @@ int frontend_display_init_main_window(void *hInstance, int nShowCmd)
  * back_buffer_locked is already set it returns the pointer it holds. Retries
  * while the surface is still drawing, busy or obscured, restoring it when it is
  * lost; on any other failure it still sets back_buffer_locked and returns
- * back_buffer_desc.lpSurface unchecked. Returns NULL without DirectDraw or a back
- * buffer. Callers store the result in g_draw_surface_ptr; this does not. The
- * modern build also selects the back buffer as its renderer's target. */
+ * back_buffer_desc.lpSurface unchecked. Returns NULL without DirectDraw or a
+ * back buffer. Callers store the result in g_draw_surface_ptr; this does not.
+ * It also selects the back buffer as its renderer's target. */
 // FUNCTION: XVT 0x4D48E0
 uint8_t *frontend_display_lock_back_buffer(void)
 {
@@ -625,18 +619,18 @@ void frontend_display_unlock_back_buffer(void)
 
 /* Shows the back buffer. Unlocks it when locked; in page-flip mode
  * (g_opt_no_fullscreen and g_no_page_flip both 0) waits for the vertical blank,
- * sets the palette at 8 bits per pixel when palette_needs_set is 1, which no code
- * sets, and flips, retrying while the surface is still drawing or after
+ * sets the palette at 8 bits per pixel when palette_needs_set is 1, which no
+ * code sets, and flips, retrying while the surface is still drawing or after
  * restoring lost surfaces; otherwise it copies the back buffer to the primary
  * surface at (0, 0) and returns early when that copy fails. With offscreen
  * restore on it then puts the offscreen surface back under the next frame:
- * after an activation it first copies g_front_state.offscreen_backup_buffer into
- * the offscreen surface, then copies the offscreen surface onto the back
- * buffer, in non-flip mode through frontend_display_restore_back_buffer, returning
- * early when the flip-mode copy fails. Last it clears the back buffer when
- * clear_back_buffer_after_present is set. Does nothing without DirectDraw. The
- * modern build also presents its renderer's frame after a successful flip or
- * copy and mirrors the copies in its targets. */
+ * after an activation it first copies g_front_state.offscreen_backup_buffer
+ * into the offscreen surface, then copies the offscreen surface onto the back
+ * buffer, in non-flip mode through frontend_display_restore_back_buffer,
+ * returning early when the flip-mode copy fails. Last it clears the back buffer
+ * when clear_back_buffer_after_present is set. Does nothing without DirectDraw.
+ * It also presents its renderer's frame after a successful flip or copy and
+ * mirrors the copies in its targets. */
 // FUNCTION: XVT 0x4D49A0
 void frontend_display_present_frame(void)
 {
@@ -822,12 +816,12 @@ void frontend_display_set_surface_clear_color(uint32_t color)
 	g_front_state.surface_clear_color = color;
 }
 
-/* Fills the back buffer's 640 by 480 pixels with g_front_state.surface_clear_color
- * through a DirectDraw color fill, unlocking it first and, when it was locked,
- * locking it into g_draw_surface_ptr again afterward. Retries while the surface
- * is still drawing or after restoring lost surfaces, and gives up on any other
- * failure. Does nothing without DirectDraw or a back buffer. The modern build
- * also clears its renderer's back target. */
+/* Fills the back buffer's 640 by 480 pixels with
+ * g_front_state.surface_clear_color through a DirectDraw color fill, unlocking
+ * it first and, when it was locked, locking it into g_draw_surface_ptr again
+ * afterward. Retries while the surface is still drawing or after restoring lost
+ * surfaces, and gives up on any other failure. Does nothing without DirectDraw
+ * or a back buffer. It also clears its renderer's back target. */
 // FUNCTION: XVT 0x4D4C10
 void frontend_display_clear_back_buffer(void)
 {
@@ -951,7 +945,7 @@ int frontend_display_set_frame_rate(int fps)
  * g_draw_surface_ptr to its pixels and g_front_state.draw_surface_pitch to its
  * pitch, and returns 1. Retries while it is still drawing, restoring it when it
  * is lost; returns 0 on another failure or without DirectDraw or the surface.
- * The modern build also selects its renderer's offscreen target. */
+ * It also selects its renderer's offscreen target. */
 // FUNCTION: XVT 0x4D4E20
 int frontend_display_lock_offscreen_surface(void)
 {
@@ -992,13 +986,13 @@ int frontend_display_lock_offscreen_surface(void)
 }
 
 /* Unlocks the offscreen surface and makes the back buffer the drawing target
- * again. With save_to_backup nonzero, and g_draw_surface_ptr and the backup buffer
- * set, it first copies 480 rows of the offscreen pitch from g_draw_surface_ptr
- * into g_front_state.offscreen_backup_buffer. Then sets draw_surface_pitch to the
- * back buffer's pitch and g_draw_surface_ptr to the back buffer's pixels, locking
- * it when it is not locked. Returns 1, or 0 without DirectDraw or the surface.
- * Does not check that the offscreen surface was locked. The modern build
- * mirrors the copy and selects its back target. */
+ * again. With save_to_backup nonzero, and g_draw_surface_ptr and the backup
+ * buffer set, it first copies 480 rows of the offscreen pitch from
+ * g_draw_surface_ptr into g_front_state.offscreen_backup_buffer. Then sets
+ * draw_surface_pitch to the back buffer's pitch and g_draw_surface_ptr to the
+ * back buffer's pixels, locking it when it is not locked. Returns 1, or 0
+ * without DirectDraw or the surface. Does not check that the offscreen surface
+ * was locked. It also mirrors the copy and selects its back target. */
 // FUNCTION: XVT 0x4D4EC0
 int frontend_display_unlock_offscreen_surface(int save_to_backup)
 {
@@ -1054,10 +1048,10 @@ int frontend_display_disable_offscreen_restore(void)
 }
 
 /* Fills the offscreen surface's 640 by 480 pixels with
- * g_front_state.surface_clear_color, the way frontend_display_clear_back_buffer fills
- * the back buffer, unlocking and relocking the back buffer around it. Does
- * nothing without DirectDraw or the offscreen surface. The modern build also
- * clears its renderer's offscreen target. */
+ * g_front_state.surface_clear_color, the way frontend_display_clear_back_buffer
+ * fills the back buffer, unlocking and relocking the back buffer around it.
+ * Does nothing without DirectDraw or the offscreen surface. It also clears its
+ * renderer's offscreen target. */
 // FUNCTION: XVT 0x4D4F80
 void frontend_display_clear_offscreen_surface(void)
 {
@@ -1372,8 +1366,8 @@ int frontend_display_reinit_surfaces(void)
 	return 1;
 }
 
-/* Sets g_front_state.frontend_display_wnd_proc_mode, which picks
- * frontend_display_wnd_proc's handler: 0 frontend, 1 flight, 2 movie. */
+/* Sets g_front_state.frontend_display_wnd_proc_mode: 0 frontend, 1 flight, 2
+ * movie. */
 // FUNCTION: XVT 0x4D5B70
 void frontend_display_set_wnd_proc_mode(uint8_t mode)
 {
@@ -1511,9 +1505,9 @@ int frontend_display_pack_rgb(uint8_t r, uint8_t g, uint8_t b)
 /* Copies the back buffer into the offscreen surface: 480 rows of 80 *
  * (display_bpp & 0xFFFFFFF8) bytes, 640 pixels. Locks both, then unlocks the
  * offscreen surface without saving it to the backup buffer, which leaves
- * g_draw_surface_ptr on the back buffer, and unlocks the back buffer when it was
- * not locked before. Returns 1. The modern build mirrors the copy in its
- * renderer's targets. */
+ * g_draw_surface_ptr on the back buffer, and unlocks the back buffer when it
+ * was not locked before. Returns 1. It mirrors the copy in its renderer's
+ * targets. */
 // FUNCTION: XVT 0x4DC9B0
 int frontend_display_save_back_buffer(void)
 {
@@ -1542,8 +1536,8 @@ int frontend_display_save_back_buffer(void)
 
 /* Copies the offscreen surface into the back buffer: 480 rows of 80 *
  * (display_bpp & 0xFFFFFFF8) bytes, 640 pixels, locking and unlocking as
- * frontend_display_save_back_buffer does. Returns 1. The modern build mirrors the
- * copy in its renderer's targets. */
+ * frontend_display_save_back_buffer does. Returns 1. It mirrors the copy in its
+ * renderer's targets. */
 // FUNCTION: XVT 0x4DCA20
 int frontend_display_restore_back_buffer(void)
 {
@@ -1571,15 +1565,13 @@ int frontend_display_restore_back_buffer(void)
 }
 
 /* Builds the frontend's 256-entry palette and returns the pointer DirectDraw's
- * CreatePalette fills with a palette made from it; the modern build starts that
- * pointer at NULL, the original build leaves it unset before the call. Starts
- * from a 3-3-2 color cube: entry i has red 255 * ((i & 0xE0) >> 5) / 7, green
- * 255 * ((i & 0x1C) >> 2) / 7 and blue 255 * (i & 3) / 3. With lpName set it
- * then takes the colors of the bitmap resource lpName (original build only) or
- * else the bitmap file lpName, when it has 8 bits per pixel or fewer; both
- * callers pass NULL, so they get the cube. When the returned pointer is not
- * NULL it copies the entries into g_front_state.display_palette, with entry 0
- * black and entry 255 white. */
+ * CreatePalette fills with a palette made from it; the pointer starts at NULL.
+ * Starts from a 3-3-2 color cube: entry i has red 255 * ((i & 0xE0) >> 5) / 7,
+ * green 255 * ((i & 0x1C) >> 2) / 7 and blue 255 * (i & 3) / 3. With lpName set
+ * it then takes the colors of the bitmap file lpName, when it has 8 bits per
+ * pixel or fewer; both callers pass NULL, so they get the cube. When the
+ * returned pointer is not NULL it copies the entries into
+ * g_front_state.display_palette, with entry 0 black and entry 255 white. */
 // FUNCTION: XVT 0x4F0E30
 IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 						  const char *lp_name)
@@ -1649,12 +1641,9 @@ IDirectDrawPalette *frontend_display_load_palette(IDirectDraw *p_dd,
 	return palette;
 }
 
-/* Only frontend_display_set_surface_color_key calls this, and nothing calls that.
- * Returns the surface's pixel value for the COLORREF color, or for color
- * 0xFFFFFFFF the surface's first pixel; 0xFFFFFFFF when the lock fails. The
- * original build has GDI set the first pixel to color, reads it back through a
- * lock, masked to the pixel's bits, and puts the old pixel back; the modern
- * build computes the value from the surface's channel masks. */
+/* Nothing calls this. Returns the surface's pixel value for the COLORREF color,
+ * or for color 0xFFFFFFFF the surface's first pixel; 0xFFFFFFFF when the lock
+ * fails. It computes the value from the surface's channel masks. */
 // FUNCTION: XVT 0x4F1070
 uint32_t
 frontend_display_convert_color_ref_to_surface_pixel(IDirectDrawSurface *surface,

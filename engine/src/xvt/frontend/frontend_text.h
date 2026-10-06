@@ -11,19 +11,19 @@ extern "C" {
 #endif
 
 struct bitmap_font {
-	/* Each glyph's rows, encoded by front_image_encode_glyph_row, end to end;
-	 * a font built through GDI starts at glyph 1. */
+	/* Each glyph's rows, encoded, end to end; a font file starts at glyph
+	 * 1. */
 	/* Runtime pointer to the compressed glyph-byte blob; serialized in the
 	 * .ABP header as the blob byte count. */
 	uint8_t *p_glyph_bits;
 	unsigned int glyph_bit_offset
 		[256]; ///< Per-character byte offsets into p_glyph_bits.
 	/* Each character's height in pixels. Entry 0 is the font's height that
-	 * frontend_text_get_font_height returns; a font built through GDI copies
-	 * it from entry 1. */
+	 * frontend_text_get_font_height returns; a font file copies it from
+	 * entry 1. */
 	uint8_t glyph_height[256];
 	/* Each character's width in pixels, its advance before char_spacing; 0
-	 * for character 0 in a font built through GDI. */
+	 * for character 0 in a font file. */
 	uint8_t glyph_width[256];
 	/* The size the font was built at, its index in
 	 * g_front_state.font_by_size. */
@@ -33,12 +33,10 @@ struct bitmap_font {
 	/* Font-slot occupancy flag; scanned when allocating and cleared when
 	 * freeing. */
 	uint8_t in_use;
-	/* Pixels added after each glyph's width: 0 in a font built through GDI,
-	 * else what the file holds. */
+	/* Pixels added after each glyph's width, as the font file holds it. */
 	uint8_t char_spacing;
-	/* frontend_text_load_font sets it to 1 and a loaded file sets it from its
-	 * header. No code reads the field itself;
-	 * frontend_text_save_font_atlas_file copies it with the header. */
+	/* A loaded file sets it from its header. No code reads the field
+	 * itself. */
 	/* Set to 1 for generated fonts and persisted in the 1547-byte .ABP
 	 * header; no runtime consumer is identified. */
 	uint8_t field_60a;

@@ -59,16 +59,15 @@ int frontend_scrollbar_restore_state(void)
  * While the bar has the focus, held Page Up and Page Down keys move it by
  * page_step and held Up and Down arrow keys by 1. Each of these starts from
  * current_value, so they do not add up; the last one checked wins. Pressing on
- * the thumb claims the mouse input gate as control_id + 1000; while it holds the
- * gate the value is (cursor y - bar top - width) * (maximum_exclusive - minimum)
- * / travel, and the release opens the gate and clears the clicks. Each change
- * stays from minimum to maximum_exclusive - 1. Fills the track translucent in
- * color (the whole bar during a drag) and outlines the thumb in 0xFFFF, filling
- * it inside, inset 2 pixels, when focused. Draws nothing and returns
- * current_value when the bar is not taller than wide. The original build divides
- * by zero when maximum_exclusive equals minimum; the modern build returns
- * current_value there, drawing nothing, as it does whenever their difference is
- * under 1. */
+ * the thumb claims the mouse input gate as control_id + 1000; while it holds
+ * the gate the value is (cursor y - bar top - width) * (maximum_exclusive -
+ * minimum) / travel, and the release opens the gate and clears the clicks. Each
+ * change stays from minimum to maximum_exclusive - 1. Fills the track
+ * translucent in color (the whole bar during a drag) and outlines the thumb in
+ * 0xFFFF, filling it inside, inset 2 pixels, when focused. Draws nothing and
+ * returns current_value when the bar is not taller than wide. It returns
+ * current_value, drawing nothing, whenever maximum_exclusive less minimum is
+ * under 1; the 1997 game divided by zero when they were equal. */
 // FUNCTION: XVT 0x4D9D70
 int frontend_scrollbar_draw(const struct RECT *bar_rect, int current_value,
 			    int maximum_exclusive, int minimum, int page_step,

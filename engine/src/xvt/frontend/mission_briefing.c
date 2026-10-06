@@ -33,13 +33,11 @@
 #include "xvt_runtime/runtime/frontend_cleanup.h"
 #include "xvt_runtime/runtime/mission_dialogs.h"
 
-/* 1 while the craft selection screen of mission_briefing_craft_selection_update is
- * current: set on its first frame, set to 0 by
+/* 1 while the craft selection screen of mission_briefing_craft_selection_update
+ * is current: set on its first frame, set to 0 by
  * mission_briefing_craft_selection_exit. While it is 1, tech_library_update and
- * frontend_handle_common_screen_controls save and restore the model preview around
- * the tech library instead of freeing g_ship_list.
- * movie_draw_multiplayer_sync_status takes it as the local player's waiting flag
- * when the local player is not in g_movie_multiplayer_sync_players. */
+ * frontend_handle_common_screen_controls save and restore the model preview
+ * around the tech library instead of freeing g_ship_list. */
 // GLOBAL: XVT 0xAA60D0
 int g_mission_briefing_craft_selection_active = 0;
 /* Which side's background the craft selection screen loaded as
@@ -60,13 +58,12 @@ mission_briefing_craft_screen_faction g_mission_briefing_craft_screen_faction =
  * sets entry 0 when a single player flies. */
 // GLOBAL: XVT 0xA91CA0
 int g_mp_roster_ready_flags[8] = {0};
-/* The kind of mission session the frontend runs:
- * FRONTEND_MISSION_SESSION_NONE (0), _SINGLEPLAYER (2), _NET_CLIENT (3) or
- * _NET_HOST (4). Many functions write it, chiefly concourse_update,
- * pilot_create_new, pilot_load_from_path, the FrontendNet join, connect and host
- * screens, the MissionSetup screens and the modern build's network and
- * mission dialogs. Most screens test it to tell single player from network
- * play. */
+/* The kind of mission session the frontend runs: FRONTEND_MISSION_SESSION_NONE
+ * (0), _SINGLEPLAYER (2), _NET_CLIENT (3) or _NET_HOST (4). Many functions
+ * write it, chiefly concourse_update, pilot_create_new, pilot_load_from_path,
+ * frontend_net_host_game_screen, the mission setup screens, the network browser
+ * and session code and the mission dialogs. Most screens test it to tell single
+ * player from network play. */
 // GLOBAL: XVT 0xB69E30
 frontend_mission_session_mode g_frontend_mission_session_mode =
 	FRONTEND_MISSION_SESSION_NONE;
@@ -155,11 +152,11 @@ int mission_briefing_craft_selection_exit(int frame_counter)
 }
 
 /* Runs one frame of the craft selection screen, which the "go to craft
- * selection" button of mission_setup_flight_assignment_update's screen leads to;
- * the briefing map is on that screen. The screen shows the craft and armaments
- * of the selected flight group and, in network play, the other players'
- * loadouts, the chat and a launch countdown. On its first frame (frame_counter
- * 0) it sets g_mission_briefing_craft_selection_active to 1,
+ * selection" button of mission_setup_flight_assignment_update's screen leads
+ * to; the briefing map is on that screen. The screen shows the craft and
+ * armaments of the selected flight group and, in network play, the other
+ * players' loadouts, the chat and a launch countdown. On its first frame
+ * (frame_counter 0) it sets g_mission_briefing_craft_selection_active to 1,
  * g_mission_briefing_unused_state to 0, the countdown state IDLE and
  * g_briefing_skip_player_assignment; sets g_selected_mission_list_index to the
  * pilot's mission in g_mission_list (g_mission_count when it is not there); and
@@ -169,34 +166,35 @@ int mission_briefing_craft_selection_exit(int frame_counter)
  * NET_PACKET_CRAFT_LOADOUT, unless craft selection is host-only on a client
  * outside a training sequence at GAME_DIFFICULTY_EASY_CHEAT, and
  * NET_PACKET_BRIEFING_ENTERED; and it sets the countdown to 60000 ms. Each
- * frame in network play it acts on the packet frontend_net_process_network_packets
- * returns. A host cancel shuts the session down and sends the host to the
- * concourse with g_frontend_mission_session_mode NONE, a client, after a dialog,
- * to the join screen as NET_CLIENT. A state packet prunes the flight
- * assignments and resends the loadout; another player's
- * NET_PACKET_BRIEFING_ENTERED makes a host with host-only craft selection
- * resend its loadout; a lower countdown packet replaces the countdown; flight
- * reservations update g_mission_setup_reserved_player_ids and
+ * frame in network play it acts on the packet
+ * frontend_net_process_network_packets returns. A host cancel shuts the session
+ * down and sends the host to the concourse with g_frontend_mission_session_mode
+ * NONE, a client, after a dialog, to the join screen as NET_CLIENT. A state
+ * packet prunes the flight assignments and resends the loadout; another
+ * player's NET_PACKET_BRIEFING_ENTERED makes a host with host-only craft
+ * selection resend its loadout; a lower countdown packet replaces the
+ * countdown; flight reservations update g_mission_setup_reserved_player_ids and
  * g_mission_setup_reserved_player_count; a pilot rating updates the sender's
  * g_mp_roster entry. The single-player Fly button fills g_mp_roster[0] and
  * g_mp_roster_ready_flags[0] from the selections and goes to
- * flight_loading_update_ready_screen. In network play a host with host-only craft
- * selection gets Fly once g_frontend_briefing_entered_count reaches
+ * flight_loading_update_ready_screen. In network play a host with host-only
+ * craft selection gets Fly once g_frontend_briefing_entered_count reaches
  * net_count_ready_players(); otherwise each player's Ready and Reconfigure
  * buttons send NET_PACKET_PLAYER_READY and _UNREADY. The host broadcasts the
  * launch (mission_briefing_broadcast_roster_and_assignments) when
- * mission_briefing_are_all_network_players_ready returns 1 or the countdown expires,
- * and sends NET_PACKET_BRIEFING_COUNTDOWN when its whole seconds change. After
- * a confirm dialog the network back button makes the host send
+ * mission_briefing_are_all_network_players_ready returns 1 or the countdown
+ * expires, and sends NET_PACKET_BRIEFING_COUNTDOWN when its whole seconds
+ * change. After a confirm dialog the network back button makes the host send
  * NET_PACKET_RETURN_TO_SETUP and a client leave for the join screen. Writes
- * g_frontend_net_packet_scratch and g_frontend_skip_screen_entry_setup. Returns 0
- * after a quick start, a return-to-setup or launch packet, the single-player
- * back or Fly button, and when the countdown expires; the modern build returns
+ * g_frontend_net_packet_scratch and g_frontend_skip_screen_entry_setup. Returns
+ * 0 after a quick start, a return-to-setup or launch packet, the single-player
+ * back or Fly button, and when the countdown expires; it returns
  * xvt_dialog_continue_with's result once it opens a dialog; otherwise 1 when
  * frontend_handle_common_screen_controls(1) returns 1 (the player confirmed
  * quitting the game), else 0. Does not check g_mission_list for NULL or
- * g_selected_mission_list_index against g_mission_count when it draws the title, or
- * that the local player is in g_mp_roster before reading its ready flag. */
+ * g_selected_mission_list_index against g_mission_count when it draws the
+ * title, or that the local player is in g_mp_roster before reading its ready
+ * flag. */
 // FUNCTION: XVT 0x4EAB20
 int mission_briefing_craft_selection_update(int frame_counter)
 {

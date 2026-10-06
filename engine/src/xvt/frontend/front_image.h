@@ -42,8 +42,8 @@ struct front_image_resource_record {
 		*image; /* The heap image registered under name. */
 };
 
-/* The scratch row front_image_compress_rle and front_image_encode_glyph_row encode
- * into; the first encoded_size bytes of the whole struct are one row record. */
+/* The scratch row front_image_compress_rle encodes into; the first encoded_size
+ * bytes of the whole struct are one row record. */
 struct front_image_rle_row_buffer {
 	/* The row record's size in bytes: these 4, the tokens and the closing
 	 * 0x80. */

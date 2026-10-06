@@ -50,9 +50,9 @@ int g_credits_prev_logo_y[2] = {0};
 // GLOBAL: XVT 0x6697C8
 uint16_t g_credits_current_text_color = 0;
 /* credits.txt, open while the credits screen runs. credits_update_screen opens
- * it on its first frame, closing any copy still open; it is NULL when that
- * open fails. frontend_bootstrap_exit_credits_and_load_frontend closes it and sets
- * NULL, and so does xvt_frontend_task_shutdown in the modern build. */
+ * it on its first frame, closing any copy still open; it is NULL when that open
+ * fails. frontend_bootstrap_exit_credits_and_load_frontend closes it and sets
+ * NULL, and so does xvt_frontend_task_shutdown. */
 // GLOBAL: XVT 0x6697CC
 xvt_file *g_frontend_credits_file = NULL;
 /* Per text buffer, the logo drawn with that buffer's page: 1 the "totallylogo"
@@ -105,8 +105,8 @@ uint16_t g_credits_text_colors[2][32] = {0};
 /* 1 once the credits are ending: after the last page's time is up, or on a
  * mouse click, Esc, Enter or Space. Only credits_update_screen writes it,
  * setting 0 on its first frame; its next frame after the 1 switches to the
- * concourse, in the modern build once the CD fade is over.
- * xvt_frontend_task_update also reads it, to keep the last frame shown. */
+ * concourse once the CD fade is over. xvt_frontend_task_update also reads it,
+ * to keep the last frame shown. */
 // GLOBAL: XVT 0x52D0C8
 int g_credits_exit_pending = 0;
 

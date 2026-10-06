@@ -141,8 +141,8 @@ int g_team_count = 0;
  * frontres\frntspec.lst for the tech library and the briefing's craft screen;
  * NULL until loaded. ship_list_load allocates it;
  * mission_briefing_craft_selection_exit, tech_library_update,
- * frontend_handle_common_screen_controls and, in the modern build,
- * xvt_frontend_task_shutdown free it and set it to NULL. */
+ * frontend_handle_common_screen_controls and xvt_frontend_task_shutdown free it
+ * and set it to NULL. */
 // GLOBAL: XVT 0xAA60F4
 struct ship_list_entry *g_ship_list = NULL;
 /* Index in g_ship_list of each craft species' model. It starts with species 2 to
@@ -151,9 +151,9 @@ struct ship_list_entry *g_ship_list = NULL;
 // GLOBAL: XVT 0x52C590
 int g_ship_type_to_ship_list_index[18] = {0, 0, 1, 2, 3, 4, 5, 6, 7,
 					  0, 0, 0, 0, 0, 8, 0, 9, 0};
-/* Entries ship_list_load kept in g_ship_list; the tech library steps through that
- * many. Written by ship_list_load when the list opens and, set to 0, by
- * xvt_frontend_task_shutdown in the modern build. */
+/* Entries ship_list_load kept in g_ship_list; the tech library steps through
+ * that many. Written by ship_list_load when the list opens and, set to 0, by
+ * xvt_frontend_task_shutdown. */
 // GLOBAL: XVT 0xAA60FC
 int g_ship_count = 0;
 /* Index in g_frontend_mission.flight_groups of the local player's flight group on
@@ -362,10 +362,9 @@ int g_mission_setup_mission_list_scroll_offset = 0;
 int g_mission_setup_selected_player_roster_index = 0;
 /* On a network client, whether the host's selected battle has an active saved
  * continuation, from the host's BATTLE_PROGRESS packet
- * (frontend_net_process_network_packets). Set to 0 by mission_setup_update on frame
- * 0, and when a sequence starts without continuing by
- * mission_setup_team_assignment_update in the original build and
- * xvt_campaign_task_enter_teams in the modern one. */
+ * (frontend_net_process_network_packets). Set to 0 by mission_setup_update on
+ * frame 0, and when a sequence starts without continuing by
+ * xvt_campaign_task_enter_teams. */
 // GLOBAL: XVT 0xAA6120
 int g_remote_battle_continuation_active = 0;
 /* On a network client, the host's continue choice from BATTLE_PROGRESS
@@ -406,9 +405,8 @@ int g_frontend_skip_screen_entry_setup = 0;
 int g_mission_setup_begin_button_lockout_frames = 0;
 /* 1 while the team assignment screen shows the mission description in place of
  * the team slots, a choice offered in combat engagement sequences. Set by
- * mission_setup_update_team_controls's buttons, and to 0 on the screen's frame 0
- * by mission_setup_team_assignment_update in the original build and
- * xvt_campaign_task_enter_teams in the modern one. */
+ * mission_setup_update_team_controls's buttons, and to 0 on the screen's frame
+ * 0 by xvt_campaign_task_enter_teams. */
 // GLOBAL: XVT 0x6691D0
 int g_mission_setup_show_description_panel = 0;
 /* GetTickCount() at the flight assignment countdown's latest frame, in ms. Only
@@ -525,46 +523,47 @@ int mission_setup_exit(int frame_counter)
 /* The mission setup screen, run once per frame: the player picks a mission type
  * and a mission, a network game's players gather, and Begin moves on to
  * mission_setup_team_assignment_update. Below, "outside a solo game" means
- * g_frontend_mission_session_mode is not FRONTEND_MISSION_SESSION_SINGLEPLAYER. On
- * frame 0 it resets the screen: it compacts g_mp_roster; clears
- * g_frontend_briefing_entered_count, g_mission_setup_begin_button_lockout_frames and
- * the five g_remoteBattle globals; loads the pilot's mission state from
+ * g_frontend_mission_session_mode is not FRONTEND_MISSION_SESSION_SINGLEPLAYER.
+ * On frame 0 it resets the screen: it compacts g_mp_roster; clears
+ * g_frontend_briefing_entered_count,
+ * g_mission_setup_begin_button_lockout_frames and the five g_remoteBattle
+ * globals; loads the pilot's mission state from
  * g_pilot_data.faction_statistics, entry 2 outside a solo game (setting
- * g_mission_setup_use_combat_sim_pilot_state to 1), else the current faction's entry
- * (setting it to 0); allocates the 4096-byte g_mission_text; and clears the
- * three sequence states. A sequence left active (mission_sequence_active 1) puts
- * saved_mission_description_id back as the current type's selected mission and
- * moves the mission type from melee to tournament, from combat engagement to
- * battle, and from any other type to campaign; mission_sequence_active is then
- * cleared. It loads the mission, its text and team counts, clamps the
- * g_game_config settings the mission type does not allow, takes a saved battle's
- * length and setup choice or a saved campaign's setup choice, and clears the
- * eight network player slots and g_mp_roster_ready_flags; a solo game fills roster
- * entry 0 from the pilot. Every frame outside a solo game, the host sends the
- * ready roster and lobby selection when more than 5000 ms have passed since
- * g_mission_setup_last_host_broadcast_ms, and the packet type
- * frontend_net_process_network_packets returns is handled: a lobby state loads the
- * host's mission; a host cancel shuts the session down and leaves for the
+ * g_mission_setup_use_combat_sim_pilot_state to 1), else the current faction's
+ * entry (setting it to 0); allocates the 4096-byte g_mission_text; and clears
+ * the three sequence states. A sequence left active (mission_sequence_active 1)
+ * puts saved_mission_description_id back as the current type's selected mission
+ * and moves the mission type from melee to tournament, from combat engagement
+ * to battle, and from any other type to campaign; mission_sequence_active is
+ * then cleared. It loads the mission, its text and team counts, clamps the
+ * g_game_config settings the mission type does not allow, takes a saved
+ * battle's length and setup choice or a saved campaign's setup choice, and
+ * clears the eight network player slots and g_mp_roster_ready_flags; a solo
+ * game fills roster entry 0 from the pilot. Every frame outside a solo game,
+ * the host sends the ready roster and lobby selection when more than 5000 ms
+ * have passed since g_mission_setup_last_host_broadcast_ms, and the packet type
+ * frontend_net_process_network_packets returns is handled: a lobby state loads
+ * the host's mission; a host cancel shuts the session down and leaves for the
  * concourse or the join screen; a mission start sets
- * g_mission_setup_roster_authoritative and moves to team assignment; a kick sends
- * a leave packet, shuts the session down and leaves; a pilot rating updates its
- * sender's roster entry. Its branch for a PLAYER_UNAVAILABLE packet never runs:
- * frontend_net_process_network_packets returns NET_PACKET_NONE for one. Then it
- * draws the game name (outside a solo game), title, mission name, description,
- * chat panel, version and pilot, and the settings panel (always in a solo game)
- * or the player roster, and handles the Quick Start or Previous button, the
- * Begin button, the mission list button, the mission type controls and, for a
- * network host on the players panel, the button that boots the selected player.
- * In a solo game Begin and Quick Start move to team assignment, first picking a
- * tournament, battle or campaign's first mission and staying when
- * mission_setup_select_first_sequence_mission returns 0; Begin sets
- * g_game_config.random_seed before that pick, and Quick Start sets
+ * g_mission_setup_roster_authoritative and moves to team assignment; a kick
+ * sends a leave packet, shuts the session down and leaves; a pilot rating
+ * updates its sender's roster entry. Its branch for a PLAYER_UNAVAILABLE packet
+ * never runs: frontend_net_process_network_packets returns NET_PACKET_NONE for
+ * one. Then it draws the game name (outside a solo game), title, mission name,
+ * description, chat panel, version and pilot, and the settings panel (always in
+ * a solo game) or the player roster, and handles the Quick Start or Previous
+ * button, the Begin button, the mission list button, the mission type controls
+ * and, for a network host on the players panel, the button that boots the
+ * selected player. In a solo game Begin and Quick Start move to team
+ * assignment, first picking a tournament, battle or campaign's first mission
+ * and staying when mission_setup_select_first_sequence_mission returns 0; Begin
+ * sets g_game_config.random_seed before that pick, and Quick Start sets
  * g_frontend_quick_start_launch_flag. A host's Begin is refused when the first
  * character of the mission's file name, read as a digit, is under the ready
  * player count; otherwise it picks a sequence's first mission likewise and
  * sends the lobby state and a mission start packet; either way it locks the
- * button for 240 frames. In the modern build each dialog returns 0 at once and
- * the action after it runs when the dialog closes. Returns 1 when
+ * button for 240 frames. Each dialog returns 0 at once and the action after it
+ * runs when the dialog closes. Returns 1 when
  * frontend_handle_common_screen_controls returns 1, the player having quit the
  * game; else 0. */
 // FUNCTION: XVT 0x4E15D0
@@ -4088,20 +4087,19 @@ int mission_setup_draw_mission_type_controls(void)
  * g_mission_count, freeing the old list first. The file is "<type>\mission.lst"
  * in a network game; in a solo game or with no session, training, combat
  * engagements and campaigns read rebel.lst or imperial.lst by the pilot's
- * faction, and melees, tournaments and battles read mission.lst. In the modern
- * build a list that cannot be opened ends the program; the original build asks
- * for the game's CD until it opens, and Cancel returns with an empty list.
- * Lines starting with "//" are skipped and a "[name]" line names the section of
- * the entries after it. Each entry is three lines: the mission id, the file
- * name (lowercased) and the description. A file name starting with "&" marks
- * the entry unavailable; one starting with "*" carries two numbers, from its
- * third character, that are read and dropped, and marks the entry unavailable
- * while the campaign mission with the entry's id has never been flown: by the
- * current faction in a solo game, else by either faction. A list that ends
- * early keeps the entries completed. Does not check the type id: outside 0 to 5
- * a solo game opens whatever name g_frontend_scratch_buffer held and a network
- * game reads past g_mission_directory_names. A failed allocation returns with
- * g_mission_list NULL and g_mission_count still holding the count. */
+ * faction, and melees, tournaments and battles read mission.lst. A list that
+ * cannot be opened ends the program. Lines starting with "//" are skipped and a
+ * "[name]" line names the section of the entries after it. Each entry is three
+ * lines: the mission id, the file name (lowercased) and the description. A file
+ * name starting with "&" marks the entry unavailable; one starting with "*"
+ * carries two numbers, from its third character, that are read and dropped, and
+ * marks the entry unavailable while the campaign mission with the entry's id
+ * has never been flown: by the current faction in a solo game, else by either
+ * faction. A list that ends early keeps the entries completed. Does not check
+ * the type id: outside 0 to 5 a solo game opens whatever name
+ * g_frontend_scratch_buffer held and a network game reads past
+ * g_mission_directory_names. A failed allocation returns with g_mission_list
+ * NULL and g_mission_count still holding the count. */
 // FUNCTION: XVT 0x4E5000
 void mission_setup_load_mission_list(int mission_directory_id)
 {
@@ -11067,56 +11065,54 @@ int mission_setup_enter_current_mission(int frame_counter)
 }
 
 /* The team assignment screen, run once per frame: players are dragged into the
- * mission's team slots, and Next moves on to flight assignment. On frame 0 the
- * original build clears g_frontend_chat_team_only,
- * g_mission_setup_show_description_panel and g_frontend_first_visible_line; asks for
- * the game CD until it is found, Cancel returning 1 after, outside a solo game,
- * telling the host or the players and shutting the session down; and leaves for
- * the concourse when a client CD tries to host or fly solo. Then, entering a
- * campaign or combat engagement sequence (g_frontend_skip_screen_entry_setup 0, not
- * replaying the current mission), it continues a saved campaign or battle when
- * there is one (mission_setup_try_continue_campaign or
- * mission_setup_try_continue_battle), clearing the five g_remoteBattle globals
- * when it does not, and plays a campaign's cutscenes through
- * cutscene_play_for_current_mission_phase(0); a network player whose cutscene
- * result is 0 leaves for the join screen. The modern build does all this in
- * xvt_campaign_task_enter_teams, which ends the program in place of the CD
- * dialogs, and returns 0 until that returns 1. A pending debriefing transition
- * then is cleared and goes straight to flight assignment. Otherwise it clears
- * the drag and the reservations, loads the mission, and either clears the
- * assignments and recounts the teams or, with g_frontend_skip_screen_entry_setup
- * set, keeps them and prunes them. One team with one ready player puts roster
- * entry 0 alone on team 0 and goes to flight assignment (back to
- * mission_setup_update instead when skipping the entry setup). A solo combat
- * engagement or battle puts the pilot on team current_faction_id ^ 1 and goes to
- * the battle choice or flight assignment; a solo game with more teams,
- * g_frontend_skip_screen_entry_setup and g_mission_setup_team_assignment_skipped set
- * goes back to mission_setup_update. In other cases the ready players are dealt
- * into the teams' free slots, one per team per round, in g_mp_roster order. A
- * melee whose teams have one slot each, a solo Quick Start, and a training
- * mission with one team of 8 slots also go straight to flight assignment. Every
- * one of these skips past the teams, the debriefing one included, sets
- * g_mission_setup_team_assignment_skipped. Else it draws the screen's base with a
- * captain and slot overlay per team slot and allocates and loads g_mission_text.
- * Every frame it draws the mission name, title, help text, unassigned players,
- * the team slots or the mission description, the chat panel and the pilot
- * banner. Outside a solo game it handles one packet: a host cancel leaves for
- * the join screen; a lobby state compacts g_mp_roster and prunes the teams; the
- * final team assignments set g_pilot_data.team and go to the battle choice or
- * flight assignment; a return to setup goes back to mission_setup_update; the
- * reservation packets update g_mission_setup_reserved_player_ids; and new or
- * cleared assignments clear the reservations and end any drag. Previous, for
- * the host or a solo player, returns a solo game to mission_setup_update and has
- * a host send every player RETURN_TO_SETUP; for a campaign it first shows a
- * confirm dialog whose answer neither build reads. A client's Leave asks, then
- * tells the host and returns to the join screen. When the teams are valid, Next
- * sets the solo pilot's team and goes to the battle choice or flight
- * assignment, or for a host sends the final team assignments. Last it handles
- * the team controls, draws a dragged name at the cursor and, when a click ends
- * the drag, outside a solo game sends a RELEASE_TEAM_RESERVATION. Returns 1
- * when frontend_handle_common_screen_controls returns 1 or the original build's CD
- * dialog is cancelled; else 0. Does not check that the teams have a free slot
- * for each ready player: the dealing then never ends. */
+ * mission's team slots, and Next moves on to flight assignment. On frame 0 it
+ * calls xvt_campaign_task_enter_teams and returns 0 until that returns 1. That
+ * task clears g_frontend_chat_team_only, g_mission_setup_show_description_panel
+ * and g_frontend_first_visible_line; then, entering a campaign or combat
+ * engagement sequence (g_frontend_skip_screen_entry_setup 0, not replaying the
+ * current mission), it continues a saved campaign or battle when there is one
+ * (mission_setup_try_continue_campaign or mission_setup_try_continue_battle),
+ * clearing the five g_remoteBattle globals when it does not, and plays a
+ * campaign's cutscenes through cutscene_play_for_current_mission_phase(0); a
+ * network player whose cutscene result is 0 leaves for the join screen. It ends
+ * the program in place of the 1997 game's CD dialogs. A pending debriefing
+ * transition then is cleared and goes straight to flight assignment. Otherwise
+ * it clears the drag and the reservations, loads the mission, and either clears
+ * the assignments and recounts the teams or, with
+ * g_frontend_skip_screen_entry_setup set, keeps them and prunes them. One team
+ * with one ready player puts roster entry 0 alone on team 0 and goes to flight
+ * assignment (back to mission_setup_update instead when skipping the entry
+ * setup). A solo combat engagement or battle puts the pilot on team
+ * current_faction_id ^ 1 and goes to the battle choice or flight assignment; a
+ * solo game with more teams, g_frontend_skip_screen_entry_setup and
+ * g_mission_setup_team_assignment_skipped set goes back to
+ * mission_setup_update. In other cases the ready players are dealt into the
+ * teams' free slots, one per team per round, in g_mp_roster order. A melee
+ * whose teams have one slot each, a solo Quick Start, and a training mission
+ * with one team of 8 slots also go straight to flight assignment. Every one of
+ * these skips past the teams, the debriefing one included, sets
+ * g_mission_setup_team_assignment_skipped. Else it draws the screen's base with
+ * a captain and slot overlay per team slot and allocates and loads
+ * g_mission_text. Every frame it draws the mission name, title, help text,
+ * unassigned players, the team slots or the mission description, the chat panel
+ * and the pilot banner. Outside a solo game it handles one packet: a host
+ * cancel leaves for the join screen; a lobby state compacts g_mp_roster and
+ * prunes the teams; the final team assignments set g_pilot_data.team and go to
+ * the battle choice or flight assignment; a return to setup goes back to
+ * mission_setup_update; the reservation packets update
+ * g_mission_setup_reserved_player_ids; and new or cleared assignments clear the
+ * reservations and end any drag. Previous, for the host or a solo player,
+ * returns a solo game to mission_setup_update and has a host send every player
+ * RETURN_TO_SETUP; for a campaign it first shows a confirm dialog whose answer
+ * nothing reads. A client's Leave asks, then tells the host and returns to the
+ * join screen. When the teams are valid, Next sets the solo pilot's team and
+ * goes to the battle choice or flight assignment, or for a host sends the final
+ * team assignments. Last it handles the team controls, draws a dragged name at
+ * the cursor and, when a click ends the drag, outside a solo game sends a
+ * RELEASE_TEAM_RESERVATION. Returns 1 when
+ * frontend_handle_common_screen_controls returns 1; else 0. Does not check that
+ * the teams have a free slot for each ready player: the dealing then never
+ * ends. */
 // FUNCTION: XVT 0x4F1CC0
 int mission_setup_team_assignment_update(int frame_counter)
 {
@@ -13511,24 +13507,24 @@ int mission_setup_broadcast_team_assignments(void)
 }
 
 /* Continues a saved battle when a combat engagement sequence starts, the
- * mission type being combat engagement; mission_setup_team_assignment_update calls
- * it on frame 0, the modern build through its campaign task. It moves the
- * mission type up to battle, loads the list and selects the stored battle. A
- * solo game continues when g_game_config.continue_battle_or_campaign is not
+ * mission type being combat engagement; mission_setup_team_assignment_update
+ * calls it on frame 0, through its campaign task. It moves the mission type up
+ * to battle, loads the list and selects the stored battle. A solo game
+ * continues when g_game_config.continue_battle_or_campaign is not
  * SEQUENCE_RESTART and the battle's sp_battle_continuations entry is active,
  * copying the saved sequence state into g_pilot_data.battle_sequence_state. A
  * network host does the same with mp_battle_continuations, first sending every
  * player a BATTLE_CONTINUATION packet: 1, the saved random_seed and the saved
  * state, or 0 alone when it does not continue. A client waits for that packet
- * until more than 30000 ms have passed; the original build drops any other
- * packet it reads meanwhile. On 1 it takes the host's state, keeping its own
- * saved cumulative_score when the host's seed equals its own saved seed and
- * setting it to 0 when not. Continuing sets launch_session_marker to 1, raises
- * current_mission_index by 1, calls mission_setup_select_next_sequence_mission and
- * returns 1. Otherwise it lowers the mission type by 1, clears the entry's
- * is_active and returns 0. On a client's timeout it returns 0 having lowered the
- * mission type by 1 without raising it first, which leaves it at tournament. In
- * the modern build a client returns XVT_CAMPAIGN_PENDING while it waits. */
+ * until more than 30000 ms have passed. On 1 it takes the host's state, keeping
+ * its own saved cumulative_score when the host's seed equals its own saved seed
+ * and setting it to 0 when not. Continuing sets launch_session_marker to 1,
+ * raises current_mission_index by 1, calls
+ * mission_setup_select_next_sequence_mission and returns 1. Otherwise it lowers
+ * the mission type by 1, clears the entry's is_active and returns 0. On a
+ * client's timeout it returns 0 having lowered the mission type by 1 without
+ * raising it first, which leaves it at tournament. A client returns
+ * XVT_CAMPAIGN_PENDING while it waits. */
 // FUNCTION: XVT 0x4F4750
 int mission_setup_try_continue_battle(void)
 {
@@ -13830,24 +13826,23 @@ int mission_setup_try_continue_battle(void)
 }
 
 /* Continues a saved campaign when a campaign sequence starts, the mission type
- * being training; mission_setup_team_assignment_update calls it on frame 0, the
- * modern build through its campaign task. It sets the mission type to campaign,
- * loads the list and selects the stored campaign. A solo game continues when
+ * being training; mission_setup_team_assignment_update calls it on frame 0,
+ * through its campaign task. It sets the mission type to campaign, loads the
+ * list and selects the stored campaign. A solo game continues when
  * g_game_config.continue_battle_or_campaign is not SEQUENCE_RESTART and the
  * campaign's sp_campaign_continuations entry is active, copying the saved
  * sequence state into g_pilot_data.campaign_sequence_state. A network host does
  * the same with mp_campaign_continuations, first sending every player a
- * CAMPAIGN_CONTINUATION packet: 1, the saved random_seed and the saved state, or
- * 0 alone when it does not continue. A client waits for that packet until more
- * than 30000 ms have passed; the original build drops any other packet it reads
- * meanwhile. On 1 it takes the host's state, keeping the cumulative_score of its
- * own saved entry (mp_campaign_continuations at the campaign id plus 12) when the
- * host's seed equals that entry's seed and setting it to 0 when not. Continuing
- * sets launch_session_marker to 1, raises current_mission_index by 1, calls
- * mission_setup_select_next_sequence_mission and returns 1. Otherwise it sets the
- * mission type back to training, clears the entry's is_active (a client's at the
- * id plus 12) unless the wait timed out, and returns 0. In the modern build a
- * client returns XVT_CAMPAIGN_PENDING while it waits. */
+ * CAMPAIGN_CONTINUATION packet: 1, the saved random_seed and the saved state,
+ * or 0 alone when it does not continue. A client waits for that packet until
+ * more than 30000 ms have passed. On 1 it takes the host's state, keeping the
+ * cumulative_score of its own saved entry (mp_campaign_continuations at the
+ * campaign id plus 12) when the host's seed equals that entry's seed and
+ * setting it to 0 when not. Continuing sets launch_session_marker to 1, raises
+ * current_mission_index by 1, calls mission_setup_select_next_sequence_mission
+ * and returns 1. Otherwise it sets the mission type back to training, clears
+ * the entry's is_active (a client's at the id plus 12) unless the wait timed
+ * out, and returns 0. A client returns XVT_CAMPAIGN_PENDING while it waits. */
 // FUNCTION: XVT 0x4F4B80
 int mission_setup_try_continue_campaign(void)
 {

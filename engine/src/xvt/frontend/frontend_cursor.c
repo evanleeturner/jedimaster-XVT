@@ -15,8 +15,8 @@
  * pixel, row by row: 0 is transparent, 1 the outline and 0xFF the fill.
  * frontend_cursor_draw draws 1 as 31 (blue) and 0xFF as 0xFFFF (white) at 16
  * bits per pixel, and the byte as the palette index at 8. frontend_cursor_init
- * copies it into g_front_state.cursor_default_mask; the modern build's renderer
- * also reads it. */
+ * copies it into g_front_state.cursor_default_mask; the renderer also reads
+ * it. */
 // GLOBAL: XVT 0x52C100
 const uint8_t g_default_cursor_bitmap[100] = {
 	1,    1,    1,	  1,	1,    1,    1,	  1,	1,    0,    1,	  0xFF,
@@ -30,16 +30,16 @@ const uint8_t g_default_cursor_bitmap[100] = {
 	0,    1,    1,	  0,
 };
 
-/* Makes the registered image resource_name the frontend cursor, with save_buf as
- * the buffer for the pixels under it: points g_front_state.cursor_mask_pixels at
- * the image's pixels, sets g_front_state.cursor_save_buf, sets cursor_width and
- * cursor_height to the image's width and height plus 1 (the right and bottom of
+/* Makes the registered image resource_name the frontend cursor, with save_buf
+ * as the buffer for the pixels under it: points
+ * g_front_state.cursor_mask_pixels at the image's pixels, sets
+ * g_front_state.cursor_save_buf, sets cursor_width and cursor_height to the
+ * image's width and height plus 1 (the right and bottom of
  * front_image_get_resource_rect's rect, plus 1) and copies the name into
  * cursor_sprite_name, after which frontend_cursor_draw draws it with
- * front_image_draw_sprite. Returns 0, changing nothing, when no resource has the
- * name or its image is RLE-compressed. On success the modern build returns 0;
- * the original build's function ends without a return statement there. Does not
- * check save_buf's size or the name's length (63 characters fit). */
+ * front_image_draw_sprite. Returns 0, changing nothing, when no resource has
+ * the name or its image is RLE-compressed. On success it returns 0 too. Does
+ * not check save_buf's size or the name's length (63 characters fit). */
 // FUNCTION: XVT 0x4B49A0
 int frontend_cursor_set_image_from_resource_name(const char *resource_name,
 						 void *save_buf)
@@ -93,18 +93,18 @@ void frontend_cursor_init(void)
 }
 
 /* Draws the frontend cursor on the back buffer at g_front_state.mouse_x and
- * mouse_y, first copying the pixels it covers into g_front_state.cursor_save_buf.
- * With a cursor_sprite_name set it draws that image with front_image_draw_sprite.
- * Else it draws the mask at cursor_mask_pixels, one byte per pixel, where 0 is
- * transparent: at 16 bits per pixel 1 is drawn as 31 and 0xFF as 0xFFFF and
- * other values not at all, at 8 bits each nonzero byte is drawn as the palette
- * index. The save and the mask clip only their right and bottom edges, to the
- * clip bounds. Draws and saves nothing when the cursor position is outside 0 to
- * 639 by 0 to 479. Locks the back buffer into g_draw_surface_ptr and unlocks it
- * at the end, leaving the pointer set. Records the position and the visible
- * size in g_front_state.cursor_prev_draw_x, cursor_prev_draw_y, cursor_prev_draw_width
- * and cursor_prev_draw_height. The modern build also marks the cursor for its
- * renderer. */
+ * mouse_y, first copying the pixels it covers into
+ * g_front_state.cursor_save_buf. With a cursor_sprite_name set it draws that
+ * image with front_image_draw_sprite. Else it draws the mask at
+ * cursor_mask_pixels, one byte per pixel, where 0 is transparent: at 16 bits
+ * per pixel 1 is drawn as 31 and 0xFF as 0xFFFF and other values not at all, at
+ * 8 bits each nonzero byte is drawn as the palette index. The save and the mask
+ * clip only their right and bottom edges, to the clip bounds. Draws and saves
+ * nothing when the cursor position is outside 0 to 639 by 0 to 479. Locks the
+ * back buffer into g_draw_surface_ptr and unlocks it at the end, leaving the
+ * pointer set. Records the position and the visible size in
+ * g_front_state.cursor_prev_draw_x, cursor_prev_draw_y, cursor_prev_draw_width
+ * and cursor_prev_draw_height. It also marks the cursor for its renderer. */
 // FUNCTION: XVT 0x4DDC90
 void frontend_cursor_draw(void)
 {
@@ -317,8 +317,7 @@ int *frontend_cursor_get_pos(int *out_x, int *out_y)
 
 /* Moves the cursor: clamps x to 0 to 640 and y to 0 to 480, stores them in
  * g_front_state.mouse_x and mouse_y and moves the system cursor there. Returns
- * SetCursorPos's result in the original build and xvt_presentation_warp_classic's
- * in the modern build. */
+ * xvt_presentation_warp_classic's result. */
 // FUNCTION: XVT 0x4DE0B0
 int frontend_cursor_set_pos(int x, int y)
 {
@@ -359,9 +358,8 @@ int frontend_cursor_get_dimensions(int *out_width, int *out_height)
 	return 1;
 }
 
-/* Hides the system's own mouse cursor. The original build calls ShowCursor(0)
- * until the display count is under 0 and returns 1; the modern build hides the
- * host cursor and returns Aeron_SetHostCursorVisible's result, 1 on success. */
+/* Hides the system's own mouse cursor: hides the host cursor and returns
+ * Aeron_SetHostCursorVisible's result, 1 on success. */
 // FUNCTION: XVT 0x4DE150
 int frontend_cursor_hide_os_cursor(void)
 {

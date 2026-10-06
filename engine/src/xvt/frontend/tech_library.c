@@ -27,11 +27,11 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 
-/* Heap table of 93 craft descriptions from specdesc.txt, by craft_species
- * value minus 1. tech_library_load_spec_text_table loads it on the craft
- * database's first frame; closing the database, by its Done button or its
- * own button among the common screen controls, frees it and sets NULL, as
- * does xvt_frontend_task_shutdown in the modern build. */
+/* Heap table of 93 craft descriptions from specdesc.txt, by craft_species value
+ * minus 1. tech_library_load_spec_text_table loads it on the craft database's
+ * first frame; closing the database, by its Done button or its own button among
+ * the common screen controls, frees it and sets NULL, as does
+ * xvt_frontend_task_shutdown. */
 // GLOBAL: XVT 0xAA6110
 struct tech_library_spec_text *g_tech_library_spec_text_table = NULL;
 
@@ -79,19 +79,19 @@ float g_tech_library_preview_pitch_deg = 0.0f;
 
 /* Update function of the craft database, a screen the common screen controls
  * push. On frame 0 it sets the cursor, selection, light and angles to their
- * starting values, loads the ship list and the spec text table, saves the
- * model preview's state while a briefing is active, builds the first craft's
- * ratings and loads its model, raised to world y 100 for a TIE Interceptor or
- * TIE Bomber, and draws frontres\review.bmp with its frame and overlays into
- * the offscreen surface. Every frame it renders the model at the current
- * angles in (280, 107) to (606, 433), draws the title, the spec panel and
- * the pilot banner, and returns 1 when frontend_handle_common_screen_controls(3)
- * returns 1. Then it handles the model controls and the Done button. Done, a
- * network dismiss packet, or as network host a nonzero
+ * starting values, loads the ship list and the spec text table, saves the model
+ * preview's state while a briefing is active, builds the first craft's ratings
+ * and loads its model, raised to world y 100 for a TIE Interceptor or TIE
+ * Bomber, and draws frontres\review.bmp with its frame and overlays into the
+ * offscreen surface. Every frame it renders the model at the current angles in
+ * (280, 107) to (606, 433), draws the title, the spec panel and the pilot
+ * banner, and returns 1 when frontend_handle_common_screen_controls(3) returns
+ * 1. Then it handles the model controls and the Done button. Done, a network
+ * dismiss packet, or as network host a nonzero
  * net_poll_for_player_created_or_backlog closes the screen: it frees the
- * background and spec table, pops the screen, and frees g_ship_list, or with
- * a briefing active restores the preview state instead. Returns 0 on every
- * other path; the modern build stops there while a dialog is up. */
+ * background and spec table, pops the screen, and frees g_ship_list, or with a
+ * briefing active restores the preview state instead. Returns 0 on every other
+ * path; it stops there while a dialog is up. */
 // FUNCTION: XVT 0x4E96B0
 int tech_library_update(int frame_counter)
 {
@@ -695,16 +695,13 @@ int tech_library_draw_craft_spec_panel(void)
 	return 1;
 }
 
-/* Loads specdesc.txt into a new 93-entry g_tech_library_spec_text_table, freeing
- * the old one. Each entry is five lines, skipping lines that start with "//":
- * name, manufacturer, users, description and crew, each cut to 255
+/* Loads specdesc.txt into a new 93-entry g_tech_library_spec_text_table,
+ * freeing the old one. Each entry is five lines, skipping lines that start with
+ * "//": name, manufacturer, users, description and crew, each cut to 255
  * characters, without its newline, and copied with strncpy, which leaves no
  * terminator when a line fills its field. Returns 0, keeping the old table,
- * when the file does not open, and 0 when the allocation fails; 1 when the
- * file ends before 93 entries. After all 93, the modern build returns what
- * file_close returns and the original build returns no value. The original
- * build zeroes the table before checking the allocation, and reads each line
- * with a 1024-byte limit into the 256-byte g_frontend_scratch_buffer. */
+ * when the file does not open, and 0 when the allocation fails; 1 when the file
+ * ends before 93 entries. After all 93, it returns what file_close returns. */
 // FUNCTION: XVT 0x4EA8C0
 int tech_library_load_spec_text_table(void)
 {

@@ -33,8 +33,8 @@ struct movie_palette_entry {
 	uint8_t flags;
 };
 
-/* DirectDraw's pixel format record, which movie_get_smack_buffer_format has the
- * primary surface fill. */
+/* DirectDraw's pixel format record; only the movie_get_pixel_format_fn typedef
+ * names it. */
 struct movie_pixel_format {
 	uint32_t size;		/* Size of the record, set before the call. */
 	uint32_t flags;		/* Set to 0x40 before the call. */
@@ -50,15 +50,15 @@ struct movie_pixel_format {
 struct movie_window_pos {
 	void *window;	    /* Never read or written by name. */
 	void *insert_after; /* Never read or written by name. */
-	int x;	    /* New left edge; movie_window_proc may change it. */
-	int y;	    /* New top edge; kept as g_movie_client_offset_y. */
+	int x;	    /* New left edge. */
+	int y;	    /* New top edge. */
 	int width;  /* Never read or written by name. */
 	int height; /* Never read or written by name. */
 	unsigned int flags; /* Its 0x2 bit means the window does not move. */
 };
 
-/* Windows' message record, filled and passed on by the original build's
- * playback loop. */
+/* Windows' message record, which the 1997 playback loop filled and passed
+ * on. */
 /* drift-ok: camelcase -- wParam, lParam: Windows' MSG */
 struct movie_win32_message {
 	void *window;	  /* Never read or written by name. */
@@ -81,8 +81,8 @@ struct movie_smack_handle {
 	/* Nonzero when the frame to decode brings a new palette. */
 	uint32_t palette_changed;
 	/* Holds the movie's palette, 3 bytes a color, color 10 at offset 0x8A
-	 * of the handle, where movie_update_direct_draw_palette reads colors 10 to
-	 * 245; nothing else in it is read. */
+	 * of the handle (the 1997 playback read colors 10 to 245); nothing else
+	 * in it is read. */
 	uint8_t gap6c[0x308];
 	uint32_t current_frame; /* Index of the frame being shown. */
 	uint8_t gap378[8];	/* Never read or written by name. */
@@ -112,29 +112,23 @@ int SmackWait(struct movie_smack_handle *handle);
 void SmackClose(struct movie_smack_handle *handle);
 
 /* Subtitle file of the movie playing, the movie's path with the extension txt;
- * NULL when none is open. The original build's movie_run_smacker_playback opens
- * it and closes it at the end, and frontend_bootstrap_init_mode closes one still
- * open; in the modern build xvt_movie_task_begin opens it and the movie task
- * closes it. */
+ * NULL when none is open. xvt_movie_task_begin opens it and the movie task
+ * closes it, and frontend_bootstrap_init_mode closes one still open. */
 // GLOBAL: XVT 0xAA6078
 xvt_file *g_movie_subtitle_file = NULL;
-/* Window procedure mode to go back to when the movie ends; setting the mode
- * back ends the original build's playback loop. Saved by
- * movie_run_smacker_playback, and by xvt_movie_task_begin in the modern build. */
+/* Window procedure mode to go back to when the movie ends. Saved by
+ * xvt_movie_task_begin. */
 // GLOBAL: XVT 0xAA6080
 int g_movie_previous_wnd_proc_mode = 0;
 /* 0 while the movie plays, 1 once its last frame is shown, which in network
  * play means waiting for the others, and 2 once that wait has passed its
- * deadline and the continue or exit prompt shows. The original build's
- * movie_run_smacker_playback, movie_decode_and_present_frame and
- * movie_update_multiplayer_sync_timeout set 0, 1 and 2; the modern build's movie
- * sync functions set them. */
+ * deadline and the continue or exit prompt shows. The movie sync functions set
+ * it. */
 // GLOBAL: XVT 0xAA6084
 int g_movie_playback_completion_state = 0;
 /* GetTickCount time, in milliseconds, after which a network movie wait shows
  * its prompt: 5000 ms after the local movie ended for the host, 20000 for a
- * client; 0 until the wait starts. The original build makes a sum of 0 into
- * 1. */
+ * client; 0 until the wait starts. */
 // GLOBAL: XVT 0xAA607C
 unsigned int g_movie_multiplayer_sync_deadline_ms = 0;
 /* Set to -1 when a client presses E at the timeout prompt to leave the game,
@@ -149,18 +143,9 @@ int g_movie_skip_requested = 0;
 struct movie_multiplayer_sync_player g_movie_multiplayer_sync_players[8] = {
 	{0}};
 
-/* Plays a movie by name. The modern build returns the result of a movie that
- * has finished, when one waits, and otherwise starts the movie through
- * xvt_movie_task_begin, which returns XVT_MOVIE_PENDING (-1), or 2 when it cannot
- * start. The original build looks for movies\NAME.smk, then on the CD drive.
- * With synchronize_multiplayer set outside single player it plays "Flyby1a"
- * instead when neither is there; otherwise it asks for the CD until the file is
- * found and returns 2 on Cancel. Then it plays the movie 640 by 480 through
- * movie_run_smacker_playback, decoding into the offscreen surface in page-flip
- * full screen and the back buffer otherwise, with the network input and sync
- * callbacks in that synchronized case and the single-player input callback
- * otherwise, and returns its result: 0 played, 2 not found, 3 too large, 5 left
- * the game. */
+/* Plays a movie by name. It returns the result of a movie that has finished,
+ * when one waits, and otherwise starts the movie through xvt_movie_task_begin,
+ * which returns XVT_MOVIE_PENDING (-1), or 2 when it cannot start. */
 // FUNCTION: XVT 0x4EFCE0
 int movie_play(const char *name, int synchronize_multiplayer)
 {
@@ -175,13 +160,12 @@ int movie_play(const char *name, int synchronize_multiplayer)
 
 /* Input callback for network movies. Paint: clears and presents the screen.
  * Backspace, Enter, Esc, Space or a button release sends a movie sync packet of
- * 0 (this player waits), writes 0 to *playback_flag and returns 0; this does not
- * end the original build's playback, while the modern build stops its movie
- * when it sees the 0. At the timeout prompt (g_movie_playback_completion_state 2),
- * C on the host sends a packet of 1, which marks every player waiting, and E on
- * a client sets g_movie_skip_requested to -1 and restores the previous mode.
- * Returns 1 when it did not stop playback. The modern build calls it with
- * characters and clicks. */
+ * 0 (this player waits), writes 0 to *playback_flag and returns 0; the movie
+ * task stops its movie when it sees the 0. At the timeout prompt
+ * (g_movie_playback_completion_state 2), C on the host sends a packet of 1,
+ * which marks every player waiting, and E on a client sets
+ * g_movie_skip_requested to -1 and restores the previous mode. Returns 1 when
+ * it did not stop playback. It is called with characters and clicks. */
 // FUNCTION: XVT 0x4F0140
 int movie_multiplayer_input_callback(int window, unsigned int event_code,
 				     int key_code, int lParam,
@@ -262,12 +246,12 @@ int movie_multiplayer_input_callback(int window, unsigned int event_code,
 	return 1;
 }
 
-/* Reads the next subtitle record from g_movie_subtitle_file: a frame number line,
- * then three text lines, each without its newline; a line starting with '.' or
- * missing at the end of the file reads as empty. Returns the frame number; 0,
- * reading nothing, when no file is open; 0xFFFF, with line1 emptied, when no
- * number can be read. Reads each line with a 256-byte limit. Both builds call
- * it. */
+/* Reads the next subtitle record from g_movie_subtitle_file: a frame number
+ * line, then three text lines, each without its newline; a line starting with
+ * '.' or missing at the end of the file reads as empty. Returns the frame
+ * number; 0, reading nothing, when no file is open; 0xFFFF, with line1 emptied,
+ * when no number can be read. Reads each line with a 256-byte limit. The movie
+ * task calls it. */
 // FUNCTION: XVT 0x4F0900
 unsigned int movie_read_subtitle_cue(char *line1, char *line2, char *line3)
 {

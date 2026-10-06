@@ -63,9 +63,8 @@ enum {
 struct mp_roster_entry {
 	/* Player name. The local player's entry gets the pilot's name from the
 	 * solo, concourse and host screens, or the session's player name from
-	 * the modern build's network session; other entries get at most 13
-	 * characters copied from the network player list, or "No name" when it
-	 * lacks the id. */
+	 * the network session; other entries get at most 13 characters copied
+	 * from the network player list, or "No name" when it lacks the id. */
 	char name[14];
 	/* DirectPlay id of the player; 0 for an empty entry, 1 for the pilot in
 	 * a solo game. */
@@ -148,8 +147,7 @@ struct melee_tournament_team_standings {
 	/* Team's points over the tournament: after each melee, fediskio.c adds
 	 * its bonus and mission team scores. A team outside the standings is
 	 * given the score last computed for a team before it instead (when
-	 * there is none, an unset value in the original build and 0 in the
-	 * modern one). */
+	 * there is none, 0). */
 	int total_score;
 	/* Melees in which no other team in the standings scored more than the
 	 * team. */

@@ -17,10 +17,10 @@
  * capabilities and then its position, the button count, whether it has a
  * point-of-view hat, its axis ranges, its current x and y as the center, the
  * scales (center - min) / 255 and (max - center) / 255 for each axis, its
- * device id, and joystick_present 1. First clears joystick_present and sets both
- * joystick_init_flags to 1, which nothing reads, unless the system reports no
- * device at all. Returns 1 when it found one or two, else 0. The modern build
- * raises each scale under 1 to 1. */
+ * device id, and joystick_present 1. First clears joystick_present and sets
+ * both joystick_init_flags to 1, which nothing reads, unless the system reports
+ * no device at all. Returns 1 when it found one or two, else 0. It raises each
+ * scale under 1 to 1. */
 // FUNCTION: XVT 0x4D5E70
 int joystick_init_devices(void)
 {
@@ -172,13 +172,12 @@ int joystick_init_devices(void)
  * the frame loops call it for both slots every 100 ms. Does nothing for a slot
  * over 1 or without a joystick. Sets joystick_axis_x and joystick_axis_y to the
  * offset from the center divided by that side's scale, or 0 while the offset is
- * from -1000 to 1000. For each of 32 buttons sets joystick_button_held to 1 when
- * it is down and joystick_button_released to 1 when it is up now but was held at
- * the last read. With a hat it sets joystick_pov_direction to 0 when centered,
- * else to dwPOV / 9000 + 1, dwPOV being hundredths of a degree clockwise from
- * forward. The modern build also refuses negative slots, and a failed read
- * clears the slot's buttons and axes and marks it absent; the original build
- * does not check the read. */
+ * from -1000 to 1000. For each of 32 buttons sets joystick_button_held to 1
+ * when it is down and joystick_button_released to 1 when it is up now but was
+ * held at the last read. With a hat it sets joystick_pov_direction to 0 when
+ * centered, else to dwPOV / 9000 + 1, dwPOV being hundredths of a degree
+ * clockwise from forward. It also refuses negative slots, and a failed read
+ * clears the slot's buttons and axes and marks it absent. */
 // FUNCTION: XVT 0x4D5FE0
 void joystick_update_state(int joy_slot)
 {
@@ -340,10 +339,9 @@ int joystick_get_button_count(int joy_slot)
 	return g_front_state.joystick_button_count[joy_slot];
 }
 
-/* Returns the system device id of the joystick in slot joy_slot, or 0 for a slot
- * out of range: over 1 in the modern build, over 2 in the original build, which
- * for slot 2 reads joy_device_ids[2], past the array's end. Does not check that a
- * joystick is present. */
+/* Returns the system device id of the joystick in slot joy_slot, or 0 for a
+ * slot over 1; the 1997 game let slot 2 read joy_device_ids[2], past the
+ * array's end. Does not check that a joystick is present. */
 // FUNCTION: XVT 0x4D6440
 unsigned int joystick_get_device_id(int joy_slot)
 {

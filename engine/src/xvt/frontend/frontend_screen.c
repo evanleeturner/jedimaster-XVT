@@ -34,11 +34,9 @@ void frontend_screen_set_callbacks(frontend_screen_update_fn update_fn,
 }
 
 /* Asks the main frame loop to push a screen once the current update and exit
- * functions return: stores update_fn in g_front_state.pending_screen_update_fn and
- * copies *screen_rect into g_front_state.pending_screen_rect. Returns 1. A second
- * call before the push replaces the first. The original build's
- * frontend_display_run_frame, which runs modal screens, never pushes it; its
- * frontend_display_run_main_loop and the modern build's frame loop do. */
+ * functions return: stores update_fn in g_front_state.pending_screen_update_fn
+ * and copies *screen_rect into g_front_state.pending_screen_rect. Returns 1. A
+ * second call before the push replaces the first. The frame loop pushes it. */
 // FUNCTION: XVT 0x4DC380
 int frontend_screen_queue_push(int (*update_fn)(int),
 			       const struct RECT *screen_rect)
@@ -50,23 +48,24 @@ int frontend_screen_queue_push(int (*update_fn)(int),
 }
 
 /* Pushes a screen over the current one. In the top slot of
- * g_front_state.screen_states it saves g_front_state.frame_counter, the clip bounds
- * and a copy of the pixels under screen_rect; then it raises
- * g_front_state.screen_stack_top by one, gives the new top slot update_fn and sets
- * g_front_state.frame_counter to -1. Clamps *screen_rect in place to 0 to 639 by 0
- * to 479, copies it into the slot's saved_rect and makes it the clip. The pixels
- * come from the offscreen surface when g_front_state.offscreen_restore_enabled is
- * set, else from the back buffer; an 8-bit copy then goes through
- * front_image_compress_rle. With offscreen restore on, the unlock also copies the
- * offscreen surface to g_front_state.offscreen_backup_buffer, and
- * frontend_display_save_back_buffer then copies the back buffer to the offscreen
- * surface. With a NULL screen_rect it saves no pixels, a 0 by 0 saved_image, and
- * the clip becomes the whole screen. Returns 1. Returns 0 when
- * g_front_state.screen_stack_top is FRONTEND_SCREEN_MAX_STACK - 1 (9) or more,
- * and, after the frame counter and clip are saved, when the clamped rect has
- * left over right or bottom under top, or when the copy cannot be allocated.
- * Leaves the new slot's exit_fn as it was. The modern build also copies the rect
- * into its renderer's saved target for the slot. */
+ * g_front_state.screen_states it saves g_front_state.frame_counter, the clip
+ * bounds and a copy of the pixels under screen_rect; then it raises
+ * g_front_state.screen_stack_top by one, gives the new top slot update_fn and
+ * sets g_front_state.frame_counter to -1. Clamps *screen_rect in place to 0 to
+ * 639 by 0 to 479, copies it into the slot's saved_rect and makes it the clip.
+ * The pixels come from the offscreen surface when
+ * g_front_state.offscreen_restore_enabled is set, else from the back buffer; an
+ * 8-bit copy then goes through front_image_compress_rle. With offscreen restore
+ * on, the unlock also copies the offscreen surface to
+ * g_front_state.offscreen_backup_buffer, and frontend_display_save_back_buffer
+ * then copies the back buffer to the offscreen surface. With a NULL screen_rect
+ * it saves no pixels, a 0 by 0 saved_image, and the clip becomes the whole
+ * screen. Returns 1. Returns 0 when g_front_state.screen_stack_top is
+ * FRONTEND_SCREEN_MAX_STACK - 1 (9) or more, and, after the frame counter and
+ * clip are saved, when the clamped rect has left over right or bottom under
+ * top, or when the copy cannot be allocated. Leaves the new slot's exit_fn as
+ * it was. It also copies the rect into its renderer's saved target for the
+ * slot. */
 // FUNCTION: XVT 0x4DC450
 int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 			       struct RECT *screen_rect)
@@ -262,13 +261,13 @@ int frontend_screen_push_state(frontend_screen_update_fn update_fn,
  * it, from slot g_front_state.screen_stack_top - 1: draws the saved pixels at
  * saved_rect's top-left corner, on the offscreen surface when
  * g_front_state.offscreen_restore_enabled is set (the unlock then copies it to
- * g_front_state.offscreen_backup_buffer), else on the back buffer, and frees them.
- * The clip is the whole screen while it draws; then it restores the saved clip
- * bounds and g_front_state.frame_counter and lowers g_front_state.screen_stack_top
- * by one. Does nothing when the stack top is 0. Leaves the freed pointer and
- * the byte count in the slot. The modern build also restores its renderer's
- * copy and, with offscreen restore on, copies its offscreen target to its
- * backup target. */
+ * g_front_state.offscreen_backup_buffer), else on the back buffer, and frees
+ * them. The clip is the whole screen while it draws; then it restores the saved
+ * clip bounds and g_front_state.frame_counter and lowers
+ * g_front_state.screen_stack_top by one. Does nothing when the stack top is 0.
+ * Leaves the freed pointer and the byte count in the slot. It also restores its
+ * renderer's copy and, with offscreen restore on, copies its offscreen target
+ * to its backup target. */
 // FUNCTION: XVT 0x4DC7E0
 void frontend_screen_pop_state(void)
 {
