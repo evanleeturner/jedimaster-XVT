@@ -1,8 +1,9 @@
 #include "xvt/audio/fsfx.h"
+
 #include "xvt_runtime/timing/flight_timing.h"
 #include <stdio.h>
-#include <string.h>
 
+#include <string.h>
 #include "xvt/assets/file.h"
 #include "xvt/audio/sound.h"
 #include "xvt/flight/craft.h"
@@ -1282,9 +1283,9 @@ void fsfx_update_beam_effect_loops(void)
 					   volume, 64);
 		}
 		if (sound_get_param(64, 256) == 0 &&
-		    sound_get_param(65, 256) == 0
-		    && xvt_flight_timing_reference_due()
-		    && game_rand2() < 0x1000) {
+		    sound_get_param(65, 256) == 0 &&
+		    xvt_flight_timing_reference_due() &&
+		    game_rand2() < 0x1000) {
 			sound_queue_effect(
 				g_fsfx_sfx_name_table[(game_rand2() & 1) + 63],
 				1, 1, 125, volume, 64);

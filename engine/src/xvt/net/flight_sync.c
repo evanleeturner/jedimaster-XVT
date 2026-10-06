@@ -1,13 +1,13 @@
 #include "xvt/net/flight_sync.h"
+
 #include "xvt_runtime/input/flight_controls.h"
+
 #include "xvt_runtime/runtime/flight_messages.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/flight_sim.h"
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/timing/flight_timing.h"
-
 #include <string.h>
-
 #include "xvt/audio/sound.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -62,7 +62,6 @@ struct remote_player_render_sample g_remote_player_render_samples[8];
 // GLOBAL: XVT 0x550A08
 struct remote_player_saved_sim_pose g_remote_player_saved_sim_poses[8];
 
-
 /* Removes every predicted frame (input_source 2, not awaiting relay) from the
  * input history of every active remote player; in internet play it does
  * nothing. Only the original build calls this. */
@@ -98,9 +97,8 @@ void flight_sync_discard_all_predicted_input_frames(void)
 // FUNCTION: XVT 0x418650
 void flight_sync_discard_predicted_input_frames(int player_idx)
 {
-	if (
-		g_players[player_idx].participation_state == 0 ||
-		player_idx == g_local_player) {
+	if (g_players[player_idx].participation_state == 0 ||
+	    player_idx == g_local_player) {
 		return;
 	}
 
@@ -683,7 +681,6 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 	}
 }
 
-
 /* Handles a player's world checksum for the epoch in
  * g_flight_net_world_checksum_epoch (word 1); other epochs, and players that
  * aborted or are inactive, are ignored. When the 16 region checksums from
@@ -714,9 +711,8 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 	};
 
 	if ((unsigned int)packet[PACKET_EPOCH_INDEX] !=
-		    g_flight_net_world_checksum_epoch
-	    && packet[34] != XVT_CHECKSUM_REQUEST_STATE
-	) {
+		    g_flight_net_world_checksum_epoch &&
+	    packet[34] != XVT_CHECKSUM_REQUEST_STATE) {
 		XVT_LOG_DEBUG("network.checksum_stale epoch=%u expected=%u",
 			      (unsigned)packet[PACKET_EPOCH_INDEX],
 			      g_flight_net_world_checksum_epoch);
@@ -881,8 +877,6 @@ void flight_sync_copy_world_state_resync_chunk(const void *src, int offset,
 	memcpy(&g_world_state_dup_buffer[offset], src, size);
 }
 
-
-
 /* Copies the saved world state (g_world_state_size bytes of
  * g_world_state_buffer) into g_world_state_dup_buffer and sets
  * g_world_state_dup_size: the copy a resync sends to a player whose checksum
@@ -895,7 +889,6 @@ void flight_sync_snapshot_world_state_for_replay(void)
 	g_world_state_dup_size = (int)snapshot_bytes;
 }
 
-
 /* Empties the world-message buffer: the modern build clears the replay queue
  * (xvt_flight_messages_clear); the original keeps its memory and resets the
  * count and the free space. */
@@ -905,7 +898,6 @@ void flight_sync_clear_buffered_world_messages(void)
 	xvt_flight_messages_clear(XVT_QUEUE_REPLAY);
 	XVT_LOG_DEBUG("network.replay_cleared");
 }
-
 
 /* Returns what sound_unused_four_arg_stub returns, 0. Nothing in the engine
  * calls this. */

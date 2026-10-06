@@ -29,7 +29,6 @@
 #include "xvt/net/net.h"
 #include "xvt_runtime/compat/win_message_port.h"
 #include "xvt_runtime/log/log_both_builds.h"
-
 #include "aeron/aeron.h"
 #include "aeron/compat/host.h"
 #include "aeron/dialog.h"
@@ -1679,10 +1678,7 @@ uint8_t *frontend_display_get_draw_surface_for_flight(void)
  * Returns 0 otherwise. The modern build returns xvt_frontend_task_run_frame's
  * result. */
 // FUNCTION: XVT 0x4D5420
-int frontend_display_run_frame(void)
-{
-	return xvt_frontend_task_run_frame();
-}
+int frontend_display_run_frame(void) { return xvt_frontend_task_run_frame(); }
 
 /* Returns g_front_state.hWnd, the frontend window. */
 // FUNCTION: XVT 0x4D5690
@@ -1938,10 +1934,7 @@ int frontend_display_get_wnd_proc_mode(void)
  * exists it restores it (ShowWindowAsync with 9, SW_RESTORE) and returns 1,
  * else 0. The modern build returns 0. */
 // FUNCTION: XVT 0x4D5B90
-int win32_check_single_instance(void)
-{
-	return 0;
-}
+int win32_check_single_instance(void) { return 0; }
 
 /* Calls FlipToGDISurface on the frontend's DirectDraw object when it exists. */
 // FUNCTION: XVT 0x4D5BC0

@@ -2,8 +2,8 @@
 
 #include "xvt_runtime/snapshot/render_frontend.h"
 #include <stdlib.h>
-#include <string.h>
 
+#include <string.h>
 #include "xvt/frontend/frontend_state.h"
 
 /* The first pixel of the surface frontend drawing writes to: the back buffer's

@@ -2,7 +2,6 @@
 
 #include <string.h>
 
-
 /* In the original build, starts the program commandLine names, with default
  * startup settings, and returns CreateProcessA's result: nonzero when the
  * process started. Does not wait for it, and never closes the handles of the

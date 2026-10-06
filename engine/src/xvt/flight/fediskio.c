@@ -2,9 +2,9 @@
 
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/render_assets.h"
+
 #include <stdlib.h>
 #include <string.h>
-
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
@@ -34,7 +34,6 @@
 #include "xvt/render/tex_level.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log_both_builds.h"
-
 
 /* Path of the file fe_disk_io_open_global_stream opened or tried last: in the
  * original build the last path tried, in the modern one the path storage
@@ -7069,7 +7068,6 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 		(unsigned)g_model_defs[model_def_index]
 			.warhead_launcher_slot_count[1]);
 }
-
 
 /* Opens a file into g_stream and returns 1, or 0 with g_stream NULL. The modern
  * build opens through storage, records the resolved path in g_file_name and,

@@ -1,4 +1,5 @@
 #include "xvt/flight/object/damage.h"
+
 #include "xvt_runtime/snapshot/cockpit_pages.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"

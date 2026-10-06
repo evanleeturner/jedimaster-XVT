@@ -1,10 +1,10 @@
 #include "xvt/render/render_scene.h"
+
 #include "aeron/compat/host.h"
+
 #include "xvt_runtime/assets/opt_native.h"
 #include "xvt_runtime/log/log.h"
-
 #include <string.h>
-
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/assets/model_texture.h"

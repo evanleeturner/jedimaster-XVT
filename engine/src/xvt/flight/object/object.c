@@ -1,10 +1,10 @@
 #include "xvt/flight/object/object.h"
+
 #include "xvt_runtime/timing/flight_integration.h"
+
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
-
 #include <string.h>
-
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"
@@ -515,8 +515,7 @@ void object_update_lifetime_and_movement(void)
 											     236)
 										   : ((g_elapsed_ticks *
 										       ROLL_IMPULSE_DECAY_SCALE) /
-										      SIMULATION_TICKS_PER_SECOND))
-								);
+										      SIMULATION_TICKS_PER_SECOND)));
 							updated_roll_impulse_rate_field =
 								&object->mobj
 									 ->roll_impulse_rate;
@@ -543,8 +542,7 @@ void object_update_lifetime_and_movement(void)
 											     236)
 										   : ((g_elapsed_ticks *
 										       ROLL_IMPULSE_DECAY_SCALE) /
-										      -SIMULATION_TICKS_PER_SECOND))
-								);
+										      -SIMULATION_TICKS_PER_SECOND)));
 							updated_roll_impulse_rate_field =
 								&object->mobj
 									 ->roll_impulse_rate;
@@ -564,18 +562,16 @@ void object_update_lifetime_and_movement(void)
 				}
 				object->roll +=
 					(int16_t)(ROLL_IMPULSE_ANGLE_SCALE *
-						  (
-							  (xvt_flight_timing_is_unlocked()
-								   ? xvt_flight_integration_rate(
-									     object_index,
-									     XVT_INTEGRATE_SPIN_ANGLE,
-									     roll_impulse_rate,
-									     g_elapsed_ticks,
-									     236)
-								   : g_elapsed_ticks *
-									     roll_impulse_rate /
-									     SIMULATION_TICKS_PER_SECOND)
-								  ));
+						  ((xvt_flight_timing_is_unlocked()
+							    ? xvt_flight_integration_rate(
+								      object_index,
+								      XVT_INTEGRATE_SPIN_ANGLE,
+								      roll_impulse_rate,
+								      g_elapsed_ticks,
+								      236)
+							    : g_elapsed_ticks *
+								      roll_impulse_rate /
+								      SIMULATION_TICKS_PER_SECOND)));
 				mobile_object->orient_matrix_dirty = 1;
 			}
 		}
@@ -618,7 +614,6 @@ void object_update_lifetime_and_movement(void)
 				trig2_zmovedist =
 					math_mul_q15(mobile_object->move_z,
 						     movement_distance);
-
 			}
 
 			if (craft->working_subsystems != 0) {
@@ -671,7 +666,6 @@ void object_update_lifetime_and_movement(void)
 							push_accumulator -
 							push_step;
 						trig2_xmovedist += push_step;
-
 					}
 				}
 
@@ -707,7 +701,6 @@ void object_update_lifetime_and_movement(void)
 							push_accumulator -
 							push_step;
 						trig2_ymovedist += push_step;
-
 					}
 				}
 
@@ -743,7 +736,6 @@ void object_update_lifetime_and_movement(void)
 							push_accumulator -
 							push_step;
 						trig2_zmovedist += push_step;
-
 					}
 				}
 			}
@@ -1022,8 +1014,7 @@ void object_update_lifetime_and_movement(void)
 											    : (g_elapsed_ticks *
 											       g_projectile_homing_speed_adjust_rate_by_profile
 												       [profile_index] /
-											       SIMULATION_TICKS_PER_SECOND))
-									);
+											       SIMULATION_TICKS_PER_SECOND)));
 							}
 						} else {
 							if (yaw_delta < 0) {
@@ -1053,8 +1044,7 @@ void object_update_lifetime_and_movement(void)
 												    : (g_elapsed_ticks *
 												       g_projectile_homing_speed_adjust_rate_by_profile
 													       [profile_index] /
-												       -SIMULATION_TICKS_PER_SECOND))
-										);
+												       -SIMULATION_TICKS_PER_SECOND)));
 									speed = &object->mobj
 											 ->speed;
 									if (*speed <
@@ -1149,7 +1139,6 @@ void object_update_lifetime_and_movement(void)
 				trig2_zmovedist =
 					math_mul_q15(mobile_object->move_z,
 						     movement_distance);
-
 			}
 
 			object_add_trig_move_delta_and_clamp_world_position(
@@ -1176,7 +1165,6 @@ void object_update_lifetime_and_movement(void)
 				trig2_zmovedist =
 					math_mul_q15(mobile_object->move_z,
 						     movement_distance);
-
 			}
 
 			object_add_trig_move_delta_and_clamp_world_position(

@@ -1,10 +1,10 @@
 #include "xvt/render/flight_sw.h"
-#include "xvt_runtime/snapshot/render_camera.h"
 
+#include "xvt_runtime/snapshot/render_camera.h"
 #include <math.h>
 #include <stdio.h>
-#include <string.h>
 
+#include <string.h>
 #include "xvt/assets/file.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -875,7 +875,6 @@ void flight_sw_blit_map_icon_rle(uint8_t *rle_data, int x, int y,
 		uint8_t padding[3];
 	} color;
 
-
 	if (g_flight_bytes_per_pixel == 2) {
 		flight_sw_blit_map_icon_rle16bpp(rle_data, x, y,
 						 transparent_index, mirror);
@@ -1395,7 +1394,6 @@ void flight_sw_draw_point_array8bpp(uint16_t *points, int16_t count)
 		uint8_t drawn_mask;
 		uint8_t payload_high;
 	};
-
 
 	if (count == 0) {
 		return;

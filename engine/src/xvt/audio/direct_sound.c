@@ -9,7 +9,6 @@
 #include "xvt/flight/fediskio.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-
 /* Heap copy of the WAV file direct_sound_load_file_and_find_audio_data last read; the
  * format and sample pointers it returns point into it.
  * direct_sound_load_wave_buffer and direct_sound_reload_wave_buffer set it to NULL

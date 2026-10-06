@@ -1,7 +1,8 @@
 #include "xvt/frontend/frontend_file_list.h"
-#include "xvt_runtime/compat/frontend_file_list_port.h"
 
+#include "xvt_runtime/compat/frontend_file_list_port.h"
 #include <stdlib.h>
+
 #include <string.h>
 
 /* Lists the files matching wildcard in a new list for frontend_file_list_free,

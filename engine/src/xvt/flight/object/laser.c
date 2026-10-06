@@ -1,10 +1,10 @@
 #include "xvt/flight/object/laser.h"
+
 #include "xvt_runtime/timing/player_timing.h"
+
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
-
 #include <limits.h>
-
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/model_mesh_internal.h"
@@ -155,9 +155,8 @@ void laser_weaponsfire(void)
 	};
 
 	char do_periodic_power_update = 0;
-	if (g_flight_global_countdown_timers.weapon_power_update_timer == 0
-	    && xvt_flight_timing_reference_due()
-	) {
+	if (g_flight_global_countdown_timers.weapon_power_update_timer == 0 &&
+	    xvt_flight_timing_reference_due()) {
 		do_periodic_power_update = 1;
 		g_flight_global_countdown_timers.weapon_power_update_timer =
 			SIMULATION_TICKS_PER_SECOND;
@@ -1116,11 +1115,10 @@ void laser_weaponsfire(void)
 		 * group), weapon slots in the turret loop, then warhead
 		 * launchers. */
 		uint16_t slot_index;
-		if (g_cur_craft->beam_effect_accum[2] == 0
-		    && (!xvt_flight_timing_is_unlocked() ||
-			g_object_table[object_idx].player_owner_idx != -1 ||
-			xvt_flight_timing_reference_due())
-		) {
+		if (g_cur_craft->beam_effect_accum[2] == 0 &&
+		    (!xvt_flight_timing_is_unlocked() ||
+		     g_object_table[object_idx].player_owner_idx != -1 ||
+		     xvt_flight_timing_reference_due())) {
 			struct xvt_flight_clock cannon_clock = {
 				g_elapsed_ticks, g_sim_steps_per_second};
 			if (g_object_table[object_idx].player_owner_idx == -1) {
@@ -3002,42 +3000,33 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 		lead_target_x =
 			g_object_table[target_ref].world_x +
 			lead_frames *
-				(
-					(xvt_flight_timing_is_unlocked()
-						 ? xvt_reference_motion_axis_displacement(
-							   target_ref, 0)
-						 : (g_object_table[target_ref]
-							    .world_x -
-						    g_object_table[target_ref]
-							    .mobj
-							    ->prev_world_x))
-				);
+				((xvt_flight_timing_is_unlocked()
+					  ? xvt_reference_motion_axis_displacement(
+						    target_ref, 0)
+					  : (g_object_table[target_ref]
+						     .world_x -
+					     g_object_table[target_ref]
+						     .mobj->prev_world_x)));
 		lead_target_y =
 			g_object_table[target_ref].world_y +
 			lead_frames *
-				(
-					(xvt_flight_timing_is_unlocked()
-						 ? xvt_reference_motion_axis_displacement(
-							   target_ref, 1)
-						 : (g_object_table[target_ref]
-							    .world_y -
-						    g_object_table[target_ref]
-							    .mobj
-							    ->prev_world_y))
-				);
+				((xvt_flight_timing_is_unlocked()
+					  ? xvt_reference_motion_axis_displacement(
+						    target_ref, 1)
+					  : (g_object_table[target_ref]
+						     .world_y -
+					     g_object_table[target_ref]
+						     .mobj->prev_world_y)));
 		lead_target_z =
 			g_object_table[target_ref].world_z +
 			lead_frames *
-				(
-					(xvt_flight_timing_is_unlocked()
-						 ? xvt_reference_motion_axis_displacement(
-							   target_ref, 2)
-						 : (g_object_table[target_ref]
-							    .world_z -
-						    g_object_table[target_ref]
-							    .mobj
-							    ->prev_world_z))
-				);
+				((xvt_flight_timing_is_unlocked()
+					  ? xvt_reference_motion_axis_displacement(
+						    target_ref, 2)
+					  : (g_object_table[target_ref]
+						     .world_z -
+					     g_object_table[target_ref]
+						     .mobj->prev_world_z)));
 	} else {
 		lead_target_x = target_x;
 		lead_target_y = target_y;
@@ -3578,49 +3567,40 @@ void laser_fireturretslot(uint16_t source_obj_idx, uint16_t weapon_slot_idx,
 				lead_frames, effective_skill);
 			target_x +=
 				lead_scale *
-				(
-					(xvt_flight_timing_is_unlocked()
-						 ? xvt_reference_motion_axis_displacement(
-							   target_ref, 0) +
-							   (target_x -
-							    g_object_table
-								    [target_obj_idx]
-									    .world_x)
-						 : (target_x -
-						    g_object_table[target_obj_idx]
-							    .mobj
-							    ->prev_world_x))
-				);
+				((xvt_flight_timing_is_unlocked()
+					  ? xvt_reference_motion_axis_displacement(
+						    target_ref, 0) +
+						    (target_x -
+						     g_object_table
+							     [target_obj_idx]
+								     .world_x)
+					  : (target_x -
+					     g_object_table[target_obj_idx]
+						     .mobj->prev_world_x)));
 			target_y +=
 				lead_scale *
-				(
-					(xvt_flight_timing_is_unlocked()
-						 ? xvt_reference_motion_axis_displacement(
-							   target_ref, 1) +
-							   (target_y -
-							    g_object_table
-								    [target_obj_idx]
-									    .world_y)
-						 : (target_y -
-						    g_object_table[target_obj_idx]
-							    .mobj
-							    ->prev_world_y))
-				);
+				((xvt_flight_timing_is_unlocked()
+					  ? xvt_reference_motion_axis_displacement(
+						    target_ref, 1) +
+						    (target_y -
+						     g_object_table
+							     [target_obj_idx]
+								     .world_y)
+					  : (target_y -
+					     g_object_table[target_obj_idx]
+						     .mobj->prev_world_y)));
 			target_z +=
 				lead_scale *
-				(
-					(xvt_flight_timing_is_unlocked()
-						 ? xvt_reference_motion_axis_displacement(
-							   target_ref, 2) +
-							   (target_z -
-							    g_object_table
-								    [target_obj_idx]
-									    .world_z)
-						 : (target_z -
-						    g_object_table[target_obj_idx]
-							    .mobj
-							    ->prev_world_z))
-				);
+				((xvt_flight_timing_is_unlocked()
+					  ? xvt_reference_motion_axis_displacement(
+						    target_ref, 2) +
+						    (target_z -
+						     g_object_table
+							     [target_obj_idx]
+								     .world_z)
+					  : (target_z -
+					     g_object_table[target_obj_idx]
+						     .mobj->prev_world_z)));
 		}
 	}
 	trig2_ctop(target_x - launch_x, target_y - launch_y,

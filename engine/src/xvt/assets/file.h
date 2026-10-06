@@ -2,9 +2,9 @@
 #define XVT_ASSETS_FILE_H
 
 #include "xvt/xvt_typedefs.h"
-
 #include "aeron/vfs.h"
 #include "xvt_runtime/storage/file_io.h"
+
 #include "xvt_runtime/storage/storage.h"
 #include <stddef.h>
 #include <stdint.h>

@@ -1,14 +1,14 @@
 #include "xvt/flight/flight.h"
+
 #include "xvt_runtime/timing/flight_integration.h"
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/runtime/flight_sim.h"
+
 #include "xvt_runtime/runtime/port.h"
 #include "xvt_runtime/snapshot/world_state.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/model_preview.h"
@@ -66,7 +66,6 @@
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
-
 
 /* Per graphics detail preset 0 to 3, the value flight_apply_graphics_detail_preset
  * gives g_graphics_detail_distance_threshold: 0x1000, 0x2000, 0x4000, 0x7FFF. */
@@ -1524,8 +1523,6 @@ void flight_advance_one_step(int target_game_time)
 {
 	xvt_flight_sim_advance(target_game_time);
 }
-
-
 
 /* Counts the players taking part (participation_state 1 or 2), stores the count
  * in g_active_flight_player_count and returns it. */
@@ -6761,8 +6758,6 @@ char flight_apply_graphics_detail_preset(uint16_t preset)
 	return (char)g_debris_enabled;
 }
 
-
-
 /* Sets g_flight_main_window_handle to the frontend's main window and returns 1;
  * the original build also updates the window and gives it the focus. */
 // FUNCTION: XVT 0x4AA6F0
@@ -6779,10 +6774,7 @@ int flight_update_and_focus_main_window(void)
  * number when not dispatched, or 0 with no message. The modern build returns
  * 0. */
 // FUNCTION: XVT 0x4AA720
-int32_t flight_pump_window_messages(void)
-{
-	return 0;
-}
+int32_t flight_pump_window_messages(void) { return 0; }
 
 /* Flight's part of the window procedure, called by frontend_display_wnd_proc:
  * resets an 8-bit palette on message 0x311 (flight_palette_reset_if8_bit), and in

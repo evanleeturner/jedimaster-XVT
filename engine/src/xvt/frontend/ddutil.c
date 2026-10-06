@@ -10,7 +10,6 @@ typedef HRESULT(AERON_DXAPI *dd_util_surface_get_dc_func)(
 typedef HRESULT(AERON_DXAPI *dd_util_surface_release_dc_func)(
 	IDirectDrawSurface *surface, void *dc);
 
-
 /* Nothing calls this. The original build loads the bitmap file bitmapName as a
  * DIB section (LoadImageA flags 0x2010, LR_CREATEDIBSECTION | LR_LOADFROMFILE)
  * at width by height, 0 meaning its own size, creates an offscreen surface of

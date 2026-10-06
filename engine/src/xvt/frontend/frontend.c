@@ -1,10 +1,11 @@
 #include "xvt/frontend/frontend.h"
+
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_actions.h"
 #include <stdio.h>
+
 #include <stdlib.h>
 #include <string.h>
-
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/audio/cd_audio.h"

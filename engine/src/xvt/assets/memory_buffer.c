@@ -1,4 +1,5 @@
 #include "xvt/assets/memory_buffer.h"
+
 #include <string.h>
 
 /* Returns the byte at buffer + *offset and adds 1 to *offset. Nothing calls

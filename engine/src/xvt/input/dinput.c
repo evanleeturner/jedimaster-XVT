@@ -3,7 +3,6 @@
 #include "aeron/compat/dinput.h"
 #include "xvt/flight/flight.h"
 #include "xvt_runtime/log/log_both_builds.h"
-
 #include "aeron/dialog.h"
 #include "xvt_runtime/input/input_bridge.h"
 

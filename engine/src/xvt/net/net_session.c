@@ -1,10 +1,10 @@
 #include "xvt/net/net_session.h"
+
 #include "xvt/net/frontend_net.h"
+
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/network_session.h"
-
 #include <string.h>
-
 #include "aeron/compat/dplay.h"
 #include "xvt/flight/flight_loading.h"
 #include "xvt/flight/mission/mission.h"
@@ -2565,8 +2565,7 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 					next_sequence = 0;
 				}
 			}
-		}
-		else {
+		} else {
 			expected_sequence = 0;
 			next_sequence = 0;
 		}
@@ -2833,9 +2832,8 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 									   ? 2
 									   : 1);
 						if (payload_type ==
-							    NET_PACKET_WORLD_MESSAGE
-						    && channels.want_channel_a
-						) {
+							    NET_PACKET_WORLD_MESSAGE &&
+						    channels.want_channel_a) {
 							retry_packet
 								.packet_type =
 								NET_PACKET_WORLD_NACK;
@@ -3149,10 +3147,8 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 											   ? 2
 											   : 1);
 								if (payload_type ==
-									    NET_PACKET_WORLD_MESSAGE
-								    &&
-								    channels.want_channel_a
-								) {
+									    NET_PACKET_WORLD_MESSAGE &&
+								    channels.want_channel_a) {
 									retry_packet
 										.packet_type =
 										NET_PACKET_WORLD_NACK;
@@ -3340,8 +3336,7 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 							expected_sequence = 0;
 						}
 					}
-				}
-				else {
+				} else {
 					expected_sequence = 0;
 				}
 				delta = sequence - expected_sequence;
@@ -3535,7 +3530,6 @@ int net_session_send_compact_game_packet(int direct_play_id,
 	return send_result == 0;
 }
 
-
 /* Returns the roster slot whose DirectPlay id is dpid, or 8 when none is. */
 // FUNCTION: XVT 0x46F660
 int net_session_find_player_slot_by_dpid(int dpid)
@@ -3701,7 +3695,6 @@ void net_session_add_player_to_roster_slot(
 	roster_slot->active_flag = 1;
 	g_net_session.player_count++;
 }
-
 
 /* Returns g_net_session.player_info_queue_count. Nothing calls this. */
 // FUNCTION: XVT 0x46F9D0

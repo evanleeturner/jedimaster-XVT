@@ -1,13 +1,14 @@
 #include "xvt/frontend/mission_setup.h"
+
 #include "xvt_runtime/runtime/campaign_task.h"
 #include "xvt_runtime/runtime/frontend_cleanup.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/mission_dialogs.h"
 #include <ctype.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/audio/cd_audio.h"
@@ -38,7 +39,6 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
-
 #include <strings.h>
 
 /* Folder of each mission type, by mission_directory_id: training, melee,
@@ -1151,8 +1151,7 @@ int mission_setup_update(int frame_counter)
 			frontend_screen_set_callbacks(
 				mission_setup_team_assignment_update,
 
-				xvt_frontend_cleanup_mission_resources
-			);
+				xvt_frontend_cleanup_mission_resources);
 			return 0;
 		} else if (packet_type == NET_PACKET_PLAYER_KICKED) {
 			XVT_LOG_INFO("mission.setup_left reason=\"booted\"");
@@ -1343,8 +1342,7 @@ int mission_setup_update(int frame_counter)
 			frontend_screen_set_callbacks(
 				mission_setup_team_assignment_update,
 
-				xvt_frontend_cleanup_mission_resources
-			);
+				xvt_frontend_cleanup_mission_resources);
 			frontend_button_disable_overlay_text();
 			return 0;
 		}
@@ -1470,8 +1468,7 @@ int mission_setup_update(int frame_counter)
 			frontend_screen_set_callbacks(
 				mission_setup_team_assignment_update,
 
-				xvt_frontend_cleanup_mission_resources
-			);
+				xvt_frontend_cleanup_mission_resources);
 			frontend_button_disable_overlay_text();
 			return 0;
 		}
@@ -10372,8 +10369,7 @@ int mission_setup_enter_next_mission(int frame_counter)
 			frontend_screen_set_callbacks(
 				mission_setup_team_assignment_update,
 
-				xvt_frontend_cleanup_mission_resources
-			);
+				xvt_frontend_cleanup_mission_resources);
 			return 0;
 		}
 		if (g_pilot_data.mission_directory_id ==
@@ -10389,8 +10385,7 @@ int mission_setup_enter_next_mission(int frame_counter)
 			frontend_screen_set_callbacks(
 				mission_setup_battle_choice_update,
 
-				xvt_frontend_cleanup_battle_choice
-			);
+				xvt_frontend_cleanup_battle_choice);
 			return 0;
 		}
 		frontend_screen_set_callbacks(
@@ -10408,8 +10403,7 @@ int mission_setup_enter_next_mission(int frame_counter)
 		frontend_screen_set_callbacks(
 			mission_setup_team_assignment_update,
 
-			xvt_frontend_cleanup_mission_resources
-		);
+			xvt_frontend_cleanup_mission_resources);
 		return 0;
 	}
 	if (g_pilot_data.mission_directory_id ==
@@ -10423,8 +10417,7 @@ int mission_setup_enter_next_mission(int frame_counter)
 			frontend_screen_set_callbacks(
 				mission_setup_battle_choice_update,
 
-				xvt_frontend_cleanup_battle_choice
-			);
+				xvt_frontend_cleanup_battle_choice);
 			return 0;
 		}
 		if ((int)g_pilot_data.battle_sequence_state
@@ -10434,8 +10427,7 @@ int mission_setup_enter_next_mission(int frame_counter)
 			frontend_screen_set_callbacks(
 				mission_setup_battle_choice_update,
 
-				xvt_frontend_cleanup_battle_choice
-			);
+				xvt_frontend_cleanup_battle_choice);
 			return 0;
 		}
 	}
@@ -11047,8 +11039,7 @@ int mission_setup_enter_current_mission(int frame_counter)
 			frontend_screen_set_callbacks(
 				mission_setup_team_assignment_update,
 
-				xvt_frontend_cleanup_mission_resources
-			);
+				xvt_frontend_cleanup_mission_resources);
 			return 0;
 		}
 		frontend_screen_set_callbacks(
@@ -11065,8 +11056,7 @@ int mission_setup_enter_current_mission(int frame_counter)
 			frontend_screen_set_callbacks(
 				mission_setup_team_assignment_update,
 
-				xvt_frontend_cleanup_mission_resources
-			);
+				xvt_frontend_cleanup_mission_resources);
 			return 0;
 		}
 		frontend_screen_set_callbacks(
@@ -11352,8 +11342,7 @@ int mission_setup_team_assignment_update(int frame_counter)
 							frontend_screen_set_callbacks(
 								mission_setup_battle_choice_update,
 
-								xvt_frontend_cleanup_battle_choice
-							);
+								xvt_frontend_cleanup_battle_choice);
 						} else {
 							frontend_screen_set_callbacks(
 								mission_setup_flight_assignment_update,
@@ -11748,8 +11737,7 @@ int mission_setup_team_assignment_update(int frame_counter)
 					frontend_screen_set_callbacks(
 						mission_setup_battle_choice_update,
 
-						xvt_frontend_cleanup_battle_choice
-					);
+						xvt_frontend_cleanup_battle_choice);
 					return 0;
 				}
 				if (g_pilot_data.battle_sequence_state.mission_results
@@ -11760,8 +11748,7 @@ int mission_setup_team_assignment_update(int frame_counter)
 					frontend_screen_set_callbacks(
 						mission_setup_battle_choice_update,
 
-						xvt_frontend_cleanup_battle_choice
-					);
+						xvt_frontend_cleanup_battle_choice);
 					return 0;
 				}
 			}
@@ -12118,8 +12105,7 @@ int mission_setup_team_assignment_update(int frame_counter)
 					frontend_screen_set_callbacks(
 						mission_setup_battle_choice_update,
 
-						xvt_frontend_cleanup_battle_choice
-					);
+						xvt_frontend_cleanup_battle_choice);
 					return 0;
 				}
 				frontend_screen_set_callbacks(
@@ -15155,8 +15141,7 @@ int mission_setup_flight_assignment_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_team_assignment_update,
 
-					xvt_frontend_cleanup_mission_resources
-				);
+					xvt_frontend_cleanup_mission_resources);
 				XVT_LOG_DEBUG(
 					"mission.setup_went_back screen=\"flights\" next=\"teams\"");
 			}
@@ -18068,8 +18053,7 @@ int mission_setup_battle_choice_build_list(void)
 		while (source_mission_index < g_mission_count) {
 			if (strcasecmp(g_frontend_scratch_buffer,
 				       g_mission_list[source_mission_index]
-					       .file_name) == 0)
-			{
+					       .file_name) == 0) {
 				mission_was_used = 0;
 				for (previous_mission_index =
 					     (int)g_pilot_data

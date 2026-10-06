@@ -1,10 +1,11 @@
 #include "xvt/net/flight_net.h"
+
 #include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/runtime/flight_network.h"
+
 #include "xvt_runtime/runtime/resync_task.h"
 #include <stdio.h>
 #include <string.h>
-
 #include "xvt/assets/file.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -388,9 +389,8 @@ int flight_net_send_clock_probe_to_host(void)
 		      g_flight_net_clock_probe_timestamp,
 		      g_flight_net_clock_adjust_accum_ticks,
 		      (int)g_flight_net_clock_lead_ticks);
-	return
-		xvt_flight_network_send_packet
-		(net_session_get_host_dplay_id(), (unsigned int *)packet, 12);
+	return xvt_flight_network_send_packet(net_session_get_host_dplay_id(),
+					      (unsigned int *)packet, 12);
 }
 
 /* Tells every player this one is still loading: a 4-byte STILL_LOADING packet
@@ -402,9 +402,8 @@ int flight_net_broadcast_still_loading_pulse(void)
 {
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_STILL_LOADING;
 	XVT_LOG_DEBUG("network.loading_pulse_sent");
-	return
-		xvt_flight_network_send_packet
-		(0, (unsigned int *)&g_flight_net_scratch_packet, 4);
+	return xvt_flight_network_send_packet(
+		0, (unsigned int *)&g_flight_net_scratch_packet, 4);
 }
 
 /* Sends SESSION_ABORT to every active player in the roster, this one included,
@@ -416,9 +415,8 @@ int flight_net_broadcast_host_session_abort(void)
 {
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_SESSION_ABORT;
 	XVT_LOG_INFO("network.session_abort_sent tick=%d", g_server_tick_time);
-	return
-		xvt_flight_network_broadcast
-		((unsigned int *)&g_flight_net_scratch_packet, 4);
+	return xvt_flight_network_broadcast(
+		(unsigned int *)&g_flight_net_scratch_packet, 4);
 }
 
 /* Tells the host alone that this player is still loading, with a 4-byte
@@ -429,10 +427,9 @@ int flight_net_broadcast_host_session_abort(void)
 int flight_net_send_still_loading_pulse(void)
 {
 	g_flight_net_scratch_packet.packet_type = NET_PACKET_STILL_LOADING;
-	return
-		xvt_flight_network_send_packet
-		(net_session_get_host_dplay_id(),
-		 (unsigned int *)&g_flight_net_scratch_packet, 4);
+	return xvt_flight_network_send_packet(
+		net_session_get_host_dplay_id(),
+		(unsigned int *)&g_flight_net_scratch_packet, 4);
 }
 
 /* Tells every active player that the player in player_slot has lost its link,
@@ -447,9 +444,8 @@ int flight_net_broadcast_player_disconnected(int player_slot)
 		NET_PACKET_PLAYER_DISCONNECTED;
 	g_flight_net_scratch_packet.payload_dwords[0] = player_slot;
 	int result;
-	result =
-		xvt_flight_network_broadcast
-		((unsigned int *)&g_flight_net_scratch_packet, 8);
+	result = xvt_flight_network_broadcast(
+		(unsigned int *)&g_flight_net_scratch_packet, 8);
 	g_player_connected[player_slot] = 0;
 	return result;
 }
@@ -465,9 +461,8 @@ int flight_net_broadcast_player_abort(int player_slot)
 	g_flight_net_scratch_packet.payload_dwords[0] = player_slot;
 	XVT_LOG_DEBUG("network.player_abort_sent slot=%d local=%d", player_slot,
 		      player_slot == g_local_player);
-	return
-		xvt_flight_network_broadcast
-		((unsigned int *)&g_flight_net_scratch_packet, 8);
+	return xvt_flight_network_broadcast(
+		(unsigned int *)&g_flight_net_scratch_packet, 8);
 }
 
 /* Returns the index in g_pilot_data.network_players of the entry with the same
@@ -706,10 +701,9 @@ int flight_net_broadcast_world_checksum(const int *world_checksum,
 		"network.checksum_sent to=\"all\" tick=%d regions=%d bytes=%d",
 		g_server_tick_time, checksum_dword_count,
 		checksum_dword_count * 8 + 8);
-	return
-		xvt_flight_network_broadcast
-		((unsigned int *)&g_flight_net_scratch_packet,
-		 checksum_dword_count * 8 + 8);
+	return xvt_flight_network_broadcast(
+		(unsigned int *)&g_flight_net_scratch_packet,
+		checksum_dword_count * 8 + 8);
 }
 
 /* Tells the player a resync went to that it may apply the world: sends a
@@ -768,4 +762,3 @@ int flight_net_wait_for_world_state_chunk_acks(int direct_play_id,
 {
 	return xvt_resync_wait_acks(direct_play_id, chunk_count);
 }
-

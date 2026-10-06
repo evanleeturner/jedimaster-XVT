@@ -1,9 +1,9 @@
 #include "xvt/assets/model_texture.h"
+
 #include "xvt_runtime/log/log.h"
-
 #include <stdlib.h>
-#include <string.h>
 
+#include <string.h>
 #include "xvt/assets/file.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/fediskio.h"
@@ -273,4 +273,3 @@ void model_texture_build_paletted_shade_table(uint8_t *dst,
 		} while (palette_entry < local_palette + sizeof(local_palette));
 	}
 }
-

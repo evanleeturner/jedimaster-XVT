@@ -1,8 +1,9 @@
 #include "xvt/audio/cd_audio.h"
+
 #include "xvt_runtime/runtime/cd_task.h"
+
 #include "xvt_runtime/runtime/port.h"
 #include <string.h>
-
 #include "aeron/compat/mmsystem.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_state.h"

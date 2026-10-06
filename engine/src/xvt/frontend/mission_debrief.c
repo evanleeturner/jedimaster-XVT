@@ -1,13 +1,13 @@
 #include "xvt/frontend/mission_debrief.h"
+
 #include "xvt_runtime/runtime/campaign_task.h"
 #include "xvt_runtime/runtime/frontend_cleanup.h"
 #include "xvt_runtime/runtime/dialog_task.h"
-#include "xvt_runtime/runtime/mission_dialogs.h"
 
+#include "xvt_runtime/runtime/mission_dialogs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "xvt/assets/file.h"
 #include "xvt/frontend/briefing_text.h"
 #include "xvt/frontend/concourse.h"
@@ -1503,8 +1503,7 @@ int mission_debrief_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_enter_next_mission,
 
-					xvt_frontend_cleanup_next_mission
-				);
+					xvt_frontend_cleanup_next_mission);
 				return 0;
 			} else if (network_event ==
 				   NET_PACKET_NEXT_BATTLE_MISSION) {
@@ -1529,8 +1528,7 @@ int mission_debrief_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_enter_next_mission,
 
-					xvt_frontend_cleanup_next_mission
-				);
+					xvt_frontend_cleanup_next_mission);
 				return 0;
 			} else if (network_event ==
 				   NET_PACKET_NEXT_CAMPAIGN_MISSION) {
@@ -1559,8 +1557,7 @@ int mission_debrief_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_enter_next_mission,
 
-					xvt_frontend_cleanup_next_mission
-				);
+					xvt_frontend_cleanup_next_mission);
 			} else if (network_event ==
 				   NET_PACKET_REPLAY_CURRENT_MISSION) {
 				int local_player_id = net_get_local_player_id();
@@ -1577,8 +1574,7 @@ int mission_debrief_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_enter_current_mission,
 
-					xvt_frontend_cleanup_current_mission
-				);
+					xvt_frontend_cleanup_current_mission);
 				return 0;
 			} else if (network_event ==
 				   NET_PACKET_REPLAY_CAMPAIGN_MISSION) {
@@ -1598,8 +1594,7 @@ int mission_debrief_update(int frame_counter)
 				frontend_screen_set_callbacks(
 					mission_setup_enter_current_mission,
 
-					xvt_frontend_cleanup_current_mission
-				);
+					xvt_frontend_cleanup_current_mission);
 			} else if (network_event == NET_PACKET_REPLAY_MISSION) {
 				memset(g_pilot_data.kills_full_on_player, 0,
 				       sizeof(g_pilot_data
@@ -2008,8 +2003,7 @@ int mission_debrief_update(int frame_counter)
 								XVT_MISSION_DEBRIEF_HOST_ABORT);
 						}
 
-					}
-					else {
+					} else {
 						frontend_dialog_show_confirm_dialog(
 							frontend_string_get(
 								FRONTSTR_678_YOU_ARE_CURRENTLY_PLAYING_A_TOURNAMENT),
@@ -2087,8 +2081,7 @@ int mission_debrief_update(int frame_counter)
 								XVT_MISSION_DEBRIEF_HOST_ABORT);
 						}
 
-					}
-					else {
+					} else {
 						frontend_dialog_show_confirm_dialog(
 							frontend_string_get(
 								FRONTSTR_681_YOU_ARE_CURRENTLY_PLAYING_A_BATTLE),
@@ -2185,8 +2178,7 @@ int mission_debrief_update(int frame_counter)
 								XVT_MISSION_DEBRIEF_HOST_ABORT);
 						}
 
-					}
-					else {
+					} else {
 						frontend_dialog_show_confirm_dialog(
 							frontend_string_get(
 								FRONTSTR_779_YOU_ARE_CURRENTLY_PLAYING_A_CAMPAIGN),
@@ -2309,8 +2301,7 @@ int mission_debrief_update(int frame_counter)
 						frontend_screen_set_callbacks(
 							mission_setup_enter_next_mission,
 
-							xvt_frontend_cleanup_next_mission
-						);
+							xvt_frontend_cleanup_next_mission);
 					}
 				} else if (
 					g_pilot_data.mission_directory_id ==
@@ -2350,8 +2341,7 @@ int mission_debrief_update(int frame_counter)
 							frontend_screen_set_callbacks(
 								mission_setup_enter_current_mission,
 
-								xvt_frontend_cleanup_current_mission
-							);
+								xvt_frontend_cleanup_current_mission);
 						}
 					} else {
 						frontend_button_set_overlay_text(
@@ -2394,8 +2384,7 @@ int mission_debrief_update(int frame_counter)
 							frontend_screen_set_callbacks(
 								mission_setup_enter_next_mission,
 
-								xvt_frontend_cleanup_next_mission
-							);
+								xvt_frontend_cleanup_next_mission);
 						}
 					}
 				} else if (g_pilot_data.campaign_sequence_state
@@ -2439,8 +2428,7 @@ int mission_debrief_update(int frame_counter)
 						frontend_screen_set_callbacks(
 							mission_setup_enter_next_mission,
 
-							xvt_frontend_cleanup_next_mission
-						);
+							xvt_frontend_cleanup_next_mission);
 					}
 				} else {
 					frontend_button_set_overlay_text(
@@ -2473,8 +2461,7 @@ int mission_debrief_update(int frame_counter)
 						frontend_screen_set_callbacks(
 							mission_setup_enter_current_mission,
 
-							xvt_frontend_cleanup_current_mission
-						);
+							xvt_frontend_cleanup_current_mission);
 					}
 				}
 			} else if (g_pilot_data.mission_directory_id ==

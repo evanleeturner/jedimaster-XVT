@@ -1,10 +1,9 @@
 #include "xvt/flight/hud/flight_alert.h"
 
 #include "xvt_runtime/snapshot/cockpit_messages.h"
+
 #include "xvt_runtime/snapshot/render_capture.h"
-
 #include <stdlib.h>
-
 #include "xvt/flight/flight_display.h"
 #include "xvt/flight/flight_surface.h"
 #include "xvt/flight/hud/flight_text.h"

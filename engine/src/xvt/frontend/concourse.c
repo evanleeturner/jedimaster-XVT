@@ -1,12 +1,13 @@
 #include "xvt/frontend/concourse.h"
+
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_actions.h"
 #include "xvt_runtime/runtime/frontend_movies.h"
+
 #include "xvt_runtime/runtime/network_task.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -237,12 +238,12 @@ int concourse_update(int frame_counter)
 	    !xvt_frontend_action_pending(XVT_ACTION_OWNER_PILOT)) {
 		if (!xvt_frontend_action_pending(XVT_ACTION_OWNER_CONCOURSE)) {
 			keyboard_flush_char_buffer();
-		if (!file_check_game_cd_present(g_skip_movie_checks)) {
-			xvt_storage_fatal(
-				"Required flight/voice assets are missing; select a complete installation with --setup",
-				1);
-			return 1;
-		}
+			if (!file_check_game_cd_present(g_skip_movie_checks)) {
+				xvt_storage_fatal(
+					"Required flight/voice assets are missing; select a complete installation with --setup",
+					1);
+				return 1;
+			}
 			front_image_load_resource_list("frontres\\top.lst");
 			front_image_load_resource_list("frontres\\side.lst");
 			front_image_load_resource_list("frontres\\awards.lst");

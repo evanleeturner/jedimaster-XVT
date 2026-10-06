@@ -1,14 +1,14 @@
 #include "xvt/net/frontend_net.h"
+
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/network_browser.h"
 #include "xvt_runtime/runtime/network_dialogs.h"
+
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/network_task.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/briefing_text.h"
 #include "xvt/frontend/concourse.h"
@@ -652,7 +652,6 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 		max_scroll - g_frontend_chat_scroll_offset - 1);
 }
 
-
 /* Draws the join screen's side navigation, its first slot active and shown
  * pressed while the query button is held, and the query button; a click probes
  * every listed game (frontend_net_probe_all_sessions), or in the modern build,
@@ -695,22 +694,15 @@ int frontend_net_draw_join_game_sidebars_and_query_all(void)
 	frontend_button_draw_eight_slot_navigation_state(slot_states);
 	frontend_draw_rect_assign(&rect, QUERY_BUTTON_LEFT, QUERY_BUTTON_TOP,
 				  QUERY_BUTTON_RIGHT, QUERY_BUTTON_BOTTOM);
-	if (frontend_button_handle_sprite_button(&rect, "join1u", "join1d",
-						 "Refresh",
-						 QUERY_BUTTON_FONT_SIZE, 0,
-						 QUERY_BUTTON_HELD_SLOT,
-						 "jewelsound") != 0) {
+	if (frontend_button_handle_sprite_button(
+		    &rect, "join1u", "join1d", "Refresh",
+		    QUERY_BUTTON_FONT_SIZE, 0, QUERY_BUTTON_HELD_SLOT,
+		    "jewelsound") != 0) {
 		XVT_LOG_DEBUG("network.refresh_requested");
 		xvt_network_task_refresh();
 	}
 	return 1;
 }
-
-
-
-
-
-
 
 /* Leaves the host screen: frees its background image and resets the scrollable
  * controls; returns 0. */

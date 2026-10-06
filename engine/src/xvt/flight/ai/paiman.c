@@ -1,8 +1,9 @@
 #include "xvt/flight/ai/paiman.h"
+
 #include "xvt_runtime/timing/flight_timing.h"
+
 #include "xvt_runtime/timing/reference_motion.h"
 #include <string.h>
-
 #include "xvt/assets/model_bounds.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai/pai.h"
@@ -4230,32 +4231,25 @@ void paiman_calcplanelead(int target_obj_idx)
 	struct mobile_object *target_mobile =
 		g_object_table[target_obj_idx].mobj;
 	int delta_y;
-	delta_y =
-		(xvt_flight_timing_is_unlocked()
-			 ? xvt_reference_motion_axis_displacement(
-				   target_obj_idx, 1)
-			 : (g_object_table[target_obj_idx].world_y -
-			    target_mobile->prev_world_y))
-		;
+	delta_y = (xvt_flight_timing_is_unlocked()
+			   ? xvt_reference_motion_axis_displacement(
+				     target_obj_idx, 1)
+			   : (g_object_table[target_obj_idx].world_y -
+			      target_mobile->prev_world_y));
 	int delta_z;
-	delta_z =
-		(xvt_flight_timing_is_unlocked()
-			 ? xvt_reference_motion_axis_displacement(
-				   target_obj_idx, 2)
-			 : (g_object_table[target_obj_idx].world_z -
-			    target_mobile->prev_world_z))
-		;
+	delta_z = (xvt_flight_timing_is_unlocked()
+			   ? xvt_reference_motion_axis_displacement(
+				     target_obj_idx, 2)
+			   : (g_object_table[target_obj_idx].world_z -
+			      target_mobile->prev_world_z));
 	g_pai_context.controller->aim_point_x =
 		g_object_table[target_obj_idx].world_x +
 		lead_frames *
-			(
-				(xvt_flight_timing_is_unlocked()
-					 ? xvt_reference_motion_axis_displacement(
-						   target_obj_idx, 0)
-					 : (g_object_table[target_obj_idx]
-						    .world_x -
-					    target_mobile->prev_world_x))
-			);
+			((xvt_flight_timing_is_unlocked()
+				  ? xvt_reference_motion_axis_displacement(
+					    target_obj_idx, 0)
+				  : (g_object_table[target_obj_idx].world_x -
+				     target_mobile->prev_world_x)));
 	g_pai_context.controller->aim_point_y =
 		g_object_table[target_obj_idx].world_y + lead_frames * delta_y;
 	g_pai_context.controller->aim_point_z =

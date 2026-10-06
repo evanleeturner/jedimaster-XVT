@@ -1,10 +1,10 @@
 #include "xvt/frontend/cutscene.h"
-#include "xvt_runtime/runtime/cutscene_task.h"
 
+#include "xvt_runtime/runtime/cutscene_task.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
+#include <string.h>
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/frontend/frontend.h"

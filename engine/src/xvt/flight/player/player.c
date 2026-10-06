@@ -1,11 +1,12 @@
 #include "xvt/flight/player/player.h"
+
 #include "xvt_runtime/hooks/orientation_hook.h"
 #include "xvt_runtime/timing/flight_timing.h"
+
 #include "xvt_runtime/timing/player_timing.h"
 #include "xvt_runtime/input/flight_controls.h"
 #include <limits.h>
 #include <string.h>
-
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
@@ -902,8 +903,7 @@ void player_update_flight_controls_and_camera(int player_idx)
 								  player_idx,
 								  XVT_PLAYER_SLEW_YAW,
 								  input_difference));
-				} else
-					if (input_difference != 0) {
+				} else if (input_difference != 0) {
 					smoothing_step = input_difference;
 					if (input_difference < 0) {
 						smoothing_step =
@@ -953,8 +953,7 @@ void player_update_flight_controls_and_camera(int player_idx)
 								  player_idx,
 								  XVT_PLAYER_SLEW_PITCH,
 								  input_difference));
-				} else
-					if (input_difference != 0) {
+				} else if (input_difference != 0) {
 					smoothing_step = input_difference;
 					if (input_difference < 0) {
 						smoothing_step =
@@ -1008,28 +1007,30 @@ void player_update_flight_controls_and_camera(int player_idx)
 							XVT_PLAYER_PITCH);
 			}
 			g_players[player_idx].yaw_roll_swap = (int16_t)key_mode;
-			yaw_step = (int16_t)
-				(xvt_flight_timing_is_unlocked()
-					 ? xvt_player_timing_scale(
-						   player_idx, XVT_PLAYER_YAW,
-						   g_players[player_idx]
-							   .smoothed_input_yaw,
-						   g_elapsed_ticks, 236)
-					 : player_scale_control_step_by_elapsed_ticks(
-						   g_players[player_idx]
-							   .smoothed_input_yaw))
-				;
-			pitch_step = (int16_t)
-				(xvt_flight_timing_is_unlocked()
-					 ? xvt_player_timing_scale(
-						   player_idx, XVT_PLAYER_PITCH,
-						   g_players[player_idx]
-							   .smoothed_input_pitch,
-						   g_elapsed_ticks, 236)
-					 : player_scale_control_step_by_elapsed_ticks(
-						   g_players[player_idx]
-							   .smoothed_input_pitch))
-				;
+			yaw_step =
+				(int16_t)(xvt_flight_timing_is_unlocked()
+						  ? xvt_player_timing_scale(
+							    player_idx,
+							    XVT_PLAYER_YAW,
+							    g_players[player_idx]
+								    .smoothed_input_yaw,
+							    g_elapsed_ticks,
+							    236)
+						  : player_scale_control_step_by_elapsed_ticks(
+							    g_players[player_idx]
+								    .smoothed_input_yaw));
+			pitch_step =
+				(int16_t)(xvt_flight_timing_is_unlocked()
+						  ? xvt_player_timing_scale(
+							    player_idx,
+							    XVT_PLAYER_PITCH,
+							    g_players[player_idx]
+								    .smoothed_input_pitch,
+							    g_elapsed_ticks,
+							    236)
+						  : player_scale_control_step_by_elapsed_ticks(
+							    g_players[player_idx]
+								    .smoothed_input_pitch));
 			independent_roll_step = xvt_flight_controls_roll_step(
 				player_idx, roll_rate, key_mode ? yaw_step : 0);
 			if ((craft->working_subsystems &
@@ -1209,22 +1210,22 @@ void player_update_flight_controls_and_camera(int player_idx)
 		}
 	}
 
-	yaw_step = (int16_t)
-		(xvt_flight_timing_is_unlocked()
-			 ? xvt_player_timing_scale(
-				   player_idx, XVT_PLAYER_CAMERA_YAW,
-				   g_scaled_input_yaw, g_elapsed_ticks, 236)
-			 : player_scale_control_step_by_elapsed_ticks(
-				   g_scaled_input_yaw))
-		;
-	pitch_step = (int16_t)
-		(xvt_flight_timing_is_unlocked()
-			 ? xvt_player_timing_scale(
-				   player_idx, XVT_PLAYER_CAMERA_PITCH,
-				   g_scaled_input_pitch, g_elapsed_ticks, 236)
-			 : player_scale_control_step_by_elapsed_ticks(
-				   g_scaled_input_pitch))
-		;
+	yaw_step =
+		(int16_t)(xvt_flight_timing_is_unlocked()
+				  ? xvt_player_timing_scale(
+					    player_idx, XVT_PLAYER_CAMERA_YAW,
+					    g_scaled_input_yaw, g_elapsed_ticks,
+					    236)
+				  : player_scale_control_step_by_elapsed_ticks(
+					    g_scaled_input_yaw));
+	pitch_step =
+		(int16_t)(xvt_flight_timing_is_unlocked()
+				  ? xvt_player_timing_scale(
+					    player_idx, XVT_PLAYER_CAMERA_PITCH,
+					    g_scaled_input_pitch,
+					    g_elapsed_ticks, 236)
+				  : player_scale_control_step_by_elapsed_ticks(
+					    g_scaled_input_pitch));
 	if ((g_players[player_idx].map_camera_state &
 	     MAP_CAMERA_DIRECTION_BIT) != 0) {
 		g_players[player_idx].view_state.camera_world_x +=
@@ -1354,8 +1355,7 @@ void player_update_flight_controls_and_camera(int player_idx)
 					CAMERA_DISTANCE_LARGE_LIMIT;
 			}
 			if ((uint16_t)*camera_distance_step <
-			    CAMERA_DISTANCE_FREE_MIN_STEP)
-			{
+			    CAMERA_DISTANCE_FREE_MIN_STEP) {
 				*camera_distance_step =
 					CAMERA_DISTANCE_FREE_MIN_STEP;
 				xvt_player_timing_clear(player_idx,
@@ -1390,8 +1390,7 @@ void player_update_flight_controls_and_camera(int player_idx)
 						     3));
 
 			if ((uint16_t)*camera_distance_step >
-			    CAMERA_DISTANCE_FREE_MAX_STEP)
-			{
+			    CAMERA_DISTANCE_FREE_MAX_STEP) {
 				*camera_distance_step =
 					CAMERA_DISTANCE_FREE_MAX_STEP;
 				xvt_player_timing_clear(player_idx,
@@ -1416,8 +1415,7 @@ void player_update_flight_controls_and_camera(int player_idx)
 				: (int16_t)(previous_distance_step +
 					    CAMERA_DISTANCE_DEFAULT_STEP);
 
-		if ((uint16_t)*camera_distance_step > 0x400u)
-		{
+		if ((uint16_t)*camera_distance_step > 0x400u) {
 			*camera_distance_step = CAMERA_DISTANCE_FREE_MIN_STEP;
 			xvt_player_timing_clear(player_idx,
 						XVT_PLAYER_DISTANCE);
@@ -1433,16 +1431,13 @@ void player_update_flight_controls_and_camera(int player_idx)
 			: 0;
 	if (camera_key_mode == 1) {
 		if (g_players[player_idx].map_camera_state == 0) {
-			g_players[player_idx]
-				.view_state.camera_distance -= (int16_t)
-				(xvt_flight_timing_is_unlocked()
-					 ? modern_distance_step
-					 : player_scale_control_step_by_elapsed_ticks(
-						   *camera_distance_step))
-				;
+			g_players[player_idx].view_state.camera_distance -=
+				(int16_t)(xvt_flight_timing_is_unlocked()
+						  ? modern_distance_step
+						  : player_scale_control_step_by_elapsed_ticks(
+							    *camera_distance_step));
 			if (g_players[player_idx].view_state.camera_distance <
-			    CAMERA_MINIMUM)
-			{
+			    CAMERA_MINIMUM) {
 				g_players[player_idx]
 					.view_state.camera_distance =
 					CAMERA_MINIMUM;
@@ -1455,13 +1450,11 @@ void player_update_flight_controls_and_camera(int player_idx)
 		}
 		if (g_players[player_idx].view_state.camera_focus_obj_idx !=
 		    UINT16_MAX) {
-			g_players[player_idx]
-				.view_state.camera_distance -= (int16_t)
-				(xvt_flight_timing_is_unlocked()
-					 ? modern_distance_step
-					 : player_scale_control_step_by_elapsed_ticks(
-						   *camera_distance_step))
-				;
+			g_players[player_idx].view_state.camera_distance -=
+				(int16_t)(xvt_flight_timing_is_unlocked()
+						  ? modern_distance_step
+						  : player_scale_control_step_by_elapsed_ticks(
+							    *camera_distance_step));
 			target_clearance =
 				g_object_type_table
 					[g_object_table
@@ -1472,8 +1465,7 @@ void player_update_flight_controls_and_camera(int player_idx)
 						.max_bounds_extent +
 				CAMERA_CLEARANCE;
 			if (g_players[player_idx].view_state.camera_distance <
-			    target_clearance)
-			{
+			    target_clearance) {
 				g_players[player_idx]
 					.view_state.camera_distance =
 					target_clearance;
@@ -1499,34 +1491,31 @@ void player_update_flight_controls_and_camera(int player_idx)
 				NULL);
 		}
 		camera_scale_x = g_cam_mat_r2_x;
-		camera_movement_x = (int16_t)
-			(xvt_flight_timing_is_unlocked()
-				 ? modern_distance_step
-				 : player_scale_control_step_by_elapsed_ticks(
-					   *camera_distance_step))
-			;
+		camera_movement_x =
+			(int16_t)(xvt_flight_timing_is_unlocked()
+					  ? modern_distance_step
+					  : player_scale_control_step_by_elapsed_ticks(
+						    *camera_distance_step));
 		camera_movement_x =
 			math_mul_q15(camera_movement_x, camera_scale_x);
 		g_players[player_idx].view_state.camera_world_x +=
 			camera_movement_x;
 		camera_scale_y = g_cam_mat_r2_y;
-		camera_movement_y = (int16_t)
-			(xvt_flight_timing_is_unlocked()
-				 ? modern_distance_step
-				 : player_scale_control_step_by_elapsed_ticks(
-					   *camera_distance_step))
-			;
+		camera_movement_y =
+			(int16_t)(xvt_flight_timing_is_unlocked()
+					  ? modern_distance_step
+					  : player_scale_control_step_by_elapsed_ticks(
+						    *camera_distance_step));
 		camera_movement_y =
 			math_mul_q15(camera_movement_y, camera_scale_y);
 		g_players[player_idx].view_state.camera_world_y +=
 			camera_movement_y;
 		camera_scale_z = g_cam_mat_r2_z;
-		camera_movement_z = (int16_t)
-			(xvt_flight_timing_is_unlocked()
-				 ? modern_distance_step
-				 : player_scale_control_step_by_elapsed_ticks(
-					   *camera_distance_step))
-			;
+		camera_movement_z =
+			(int16_t)(xvt_flight_timing_is_unlocked()
+					  ? modern_distance_step
+					  : player_scale_control_step_by_elapsed_ticks(
+						    *camera_distance_step));
 		camera_movement_z =
 			math_mul_q15(camera_movement_z, camera_scale_z);
 		g_players[player_idx].view_state.camera_world_z +=
@@ -1624,13 +1613,11 @@ void player_update_flight_controls_and_camera(int player_idx)
 		}
 	} else {
 		if (g_players[player_idx].map_camera_state == 0) {
-			g_players[player_idx]
-				.view_state.camera_distance += (int16_t)
-				(xvt_flight_timing_is_unlocked()
-					 ? modern_distance_step
-					 : player_scale_control_step_by_elapsed_ticks(
-						   *camera_distance_step))
-				;
+			g_players[player_idx].view_state.camera_distance +=
+				(int16_t)(xvt_flight_timing_is_unlocked()
+						  ? modern_distance_step
+						  : player_scale_control_step_by_elapsed_ticks(
+							    *camera_distance_step));
 			if (g_players[player_idx].view_state.camera_distance >
 			    CAMERA_DISTANCE_NORMAL_MAX) {
 				g_players[player_idx]
@@ -1641,13 +1628,11 @@ void player_update_flight_controls_and_camera(int player_idx)
 		}
 		if (g_players[player_idx].view_state.camera_focus_obj_idx !=
 		    UINT16_MAX) {
-			g_players[player_idx]
-				.view_state.camera_distance += (int16_t)
-				(xvt_flight_timing_is_unlocked()
-					 ? modern_distance_step
-					 : player_scale_control_step_by_elapsed_ticks(
-						   *camera_distance_step))
-				;
+			g_players[player_idx].view_state.camera_distance +=
+				(int16_t)(xvt_flight_timing_is_unlocked()
+						  ? modern_distance_step
+						  : player_scale_control_step_by_elapsed_ticks(
+							    *camera_distance_step));
 			return;
 		}
 		if (g_players[player_idx].view_state.aim_target_idx !=
@@ -1665,34 +1650,31 @@ void player_update_flight_controls_and_camera(int player_idx)
 				NULL);
 		}
 		reverse_scale_x = g_cam_mat_r2_x;
-		reverse_movement_x = (int16_t)
-			(xvt_flight_timing_is_unlocked()
-				 ? modern_distance_step
-				 : player_scale_control_step_by_elapsed_ticks(
-					   *camera_distance_step))
-			;
+		reverse_movement_x =
+			(int16_t)(xvt_flight_timing_is_unlocked()
+					  ? modern_distance_step
+					  : player_scale_control_step_by_elapsed_ticks(
+						    *camera_distance_step));
 		reverse_movement_x =
 			math_mul_q15(reverse_movement_x, reverse_scale_x);
 		g_players[player_idx].view_state.camera_world_x -=
 			reverse_movement_x;
 		reverse_scale_y = g_cam_mat_r2_y;
-		reverse_movement_y = (int16_t)
-			(xvt_flight_timing_is_unlocked()
-				 ? modern_distance_step
-				 : player_scale_control_step_by_elapsed_ticks(
-					   *camera_distance_step))
-			;
+		reverse_movement_y =
+			(int16_t)(xvt_flight_timing_is_unlocked()
+					  ? modern_distance_step
+					  : player_scale_control_step_by_elapsed_ticks(
+						    *camera_distance_step));
 		reverse_movement_y =
 			math_mul_q15(reverse_movement_y, reverse_scale_y);
 		g_players[player_idx].view_state.camera_world_y -=
 			reverse_movement_y;
 		reverse_scale_z = g_cam_mat_r2_z;
-		reverse_movement_z = (int16_t)
-			(xvt_flight_timing_is_unlocked()
-				 ? modern_distance_step
-				 : player_scale_control_step_by_elapsed_ticks(
-					   *camera_distance_step))
-			;
+		reverse_movement_z =
+			(int16_t)(xvt_flight_timing_is_unlocked()
+					  ? modern_distance_step
+					  : player_scale_control_step_by_elapsed_ticks(
+						    *camera_distance_step));
 		reverse_movement_z =
 			math_mul_q15(reverse_movement_z, reverse_scale_z);
 		g_players[player_idx].view_state.camera_world_z -=

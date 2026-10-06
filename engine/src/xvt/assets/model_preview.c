@@ -2,9 +2,9 @@
 
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_capture.h"
+
 #include <math.h>
 #include <string.h>
-
 #include "xvt/assets/file.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"

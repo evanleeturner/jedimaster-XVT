@@ -1,10 +1,10 @@
 #include "xvt/flight/hud/mfd.h"
+
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/cockpit_pages.h"
 
 #include <stdio.h>
 #include <string.h>
-
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
@@ -1460,8 +1460,7 @@ void mfd_draw_mission_scoreboard_page(void)
 				scratch.order[team_count++] = team;
 			}
 		}
-		if (team_count > 0)
-		{
+		if (team_count > 0) {
 			for (row = (int16_t)team_count; row < TEAM_COUNT;
 			     ++row) {
 				scratch.order[row] =
@@ -1947,8 +1946,7 @@ void mfd_draw_mission_scoreboard_page(void)
 				scratch.order[connected_count++] = player_idx;
 			}
 		}
-		if (connected_count > 0)
-		{
+		if (connected_count > 0) {
 			for (row = connected_count; row < PLAYER_COUNT; ++row) {
 				scratch.order[row] =
 					scratch.order[connected_count - 1];

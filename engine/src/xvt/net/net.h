@@ -292,7 +292,6 @@ int net_disable_auto_dial_registry_setting(void);
 int net_restore_auto_dial_registry_setting(void);
 int net_wait_for_shutdown_handshake_acks(void);
 
-
 #ifdef __cplusplus
 }
 #endif

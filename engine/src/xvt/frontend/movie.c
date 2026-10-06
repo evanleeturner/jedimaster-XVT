@@ -1,8 +1,9 @@
 #include "xvt/frontend/movie.h"
-#include "xvt_runtime/runtime/movie_task.h"
 
+#include "xvt_runtime/runtime/movie_task.h"
 #include "xvt/assets/file.h"
 #include "xvt/frontend/frontend.h"
+
 #include "xvt/frontend/frontend_dialog.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_draw.h"
@@ -17,9 +18,7 @@
 #include "xvt/util/time.h"
 #include "xvt/util/win32.h"
 #include "xvt_runtime/log/log_both_builds.h"
-
 #include "aeron/aeron.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -595,9 +594,7 @@ int movie_initialize_system_palette(void *hWnd)
  * Smacker to the next frame. Does not check the changed rectangles against the
  * lists' 256 entries. */
 // FUNCTION: XVT 0x4EF600
-void movie_decode_and_present_frame(void)
-{
-}
+void movie_decode_and_present_frame(void) {}
 
 /* Merges two lists of changed rectangles into fewer, larger ones. When either
  * list is empty it returns the other as it is; otherwise it writes

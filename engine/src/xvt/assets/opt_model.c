@@ -19,7 +19,6 @@
 #include "xvt_runtime/log/log_both_builds.h"
 int access(const char *filename, int mode);
 
-
 /* One row per model, indexed by model_index: names, flight and combat figures,
  * weapon groups and points; the starting values come from model_defs_data.inc.
  * fe_disk_io_build_model_def fills the bound sizes and the dock, hangar, primary
@@ -211,7 +210,6 @@ uint16_t opt_model_load_handle(const char *model_filename)
 	return runtime_handle;
 }
 
-
 /* Adds translation, three floats, to every vertex of each OPT_MESHVERTS node at
  * or below node, following OPT_NODEREF links and stopping at one that does not
  * resolve; a node reached through two links moves twice. Only
@@ -276,7 +274,6 @@ void opt_model_translate_vertices(struct optimized_poly_object *model,
 		} while (model->root_node_count > root_index);
 	}
 }
-
 
 /* Moves every pointer inside a packed model by the distance its block moved
  * since self_marker was recorded, and records the new address. The modern build
@@ -2374,7 +2371,6 @@ struct opt_node *opt_model_find_corresponding_texture_node_in_model(
 	return NULL;
 }
 
-
 /* Returns the bytes node and everything below it take in a packed model: the
  * opt_node, its name and the payload of its type. A face node counts its edge
  * count word, 64 bytes per face for the records and 36 for the normal and
@@ -3262,7 +3258,6 @@ unsigned int opt_model_build_runtime_node(const struct opt_node *src_node,
 	return (unsigned int)xvt_opt_align_size(total_size);
 }
 
-
 /* Returns the first node, roots in order and each depth first, whose name is
  * name ignoring case (opt_model_find_node_by_name), or NULL. */
 // FUNCTION: XVT 0x479DE0
@@ -3310,4 +3305,3 @@ struct opt_node *opt_model_find_node_by_name(struct opt_node *node,
 
 	return NULL;
 }
-

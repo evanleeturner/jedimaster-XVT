@@ -1,10 +1,9 @@
 #include "xvt/render/render_quad.h"
 
 #include "aeron/compat/host.h"
+
 #include "xvt_runtime/log/log.h"
-
 #include <string.h>
-
 #include "xvt/assets/object_type.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_view.h"

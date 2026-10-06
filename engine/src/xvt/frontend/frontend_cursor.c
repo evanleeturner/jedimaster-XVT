@@ -8,7 +8,6 @@
 #include "xvt/frontend/frontend_draw.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt_runtime/log/log_both_builds.h"
-
 #include "aeron/aeron.h"
 #include "xvt_runtime/runtime/presentation.h"
 

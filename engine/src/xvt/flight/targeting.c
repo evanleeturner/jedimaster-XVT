@@ -1,6 +1,6 @@
 #include "xvt/flight/targeting.h"
-#include "xvt_runtime/snapshot/render_hud.h"
 
+#include "xvt_runtime/snapshot/render_hud.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"

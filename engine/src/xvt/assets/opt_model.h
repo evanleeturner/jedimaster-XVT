@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "xvt/assets/file.h"
+
 #include "xvt/xvt_typedefs.h"
 #include <strings.h>
 
@@ -402,7 +402,6 @@ struct opt_legacy_face_payload {
 	 * the vertex normals of a mesh without a normal node follow. */
 	struct opt_legacy_face_storage storage[1];
 };
-
 
 struct opt_packed_face_data {
 	/* Edges the faces number; the renderer's edge flag table holds at least

@@ -1,8 +1,8 @@
 #include "xvt/flight/flight_hyperspace.h"
+
 #include "xvt_runtime/snapshot/render_capture.h"
 
 #include <stdlib.h>
-
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/fview.h"

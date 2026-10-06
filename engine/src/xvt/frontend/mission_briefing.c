@@ -1,4 +1,5 @@
 #include "xvt/frontend/mission_briefing.h"
+
 #include "xvt_runtime/runtime/frontend_cleanup.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/mission_dialogs.h"
@@ -6,7 +7,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "xvt/assets/model_preview.h"
 #include "xvt/frontend/briefing_map.h"
 #include "xvt/frontend/briefing_text.h"
@@ -990,8 +990,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 					frontend_screen_set_callbacks(
 						mission_setup_team_assignment_update,
 
-						xvt_frontend_cleanup_mission_resources
-					);
+						xvt_frontend_cleanup_mission_resources);
 				}
 				return 0;
 			}

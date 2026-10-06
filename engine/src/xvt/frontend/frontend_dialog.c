@@ -1,4 +1,5 @@
 #include "xvt/frontend/frontend_dialog.h"
+
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/config.h"

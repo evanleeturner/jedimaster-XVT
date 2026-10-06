@@ -3,9 +3,9 @@
 #include "xvt/audio/cd_audio.h"
 #include "xvt/frontend/frontend_state.h"
 #include <limits.h>
+
 #include <ctype.h>
 #include <string.h>
-
 
 /* The mode string "rb" that many of the game's file opens pass; never
  * written. */
@@ -30,10 +30,7 @@ xvt_file *file_open(const char *file_name, const char *mode)
  * returns 0 for NULL; the original build lowers g_open_file_count for a non-NULL
  * stream and, for NULL, returns its uninitialized local result. */
 // FUNCTION: XVT 0x4CC590
-int16_t file_close(xvt_file *stream)
-{
-	return (int16_t)xvt_file_close(stream);
-}
+int16_t file_close(xvt_file *stream) { return (int16_t)xvt_file_close(stream); }
 
 /* Moves stream's position to offset from origin (SEEK_SET, SEEK_CUR or
  * SEEK_END); returns 0 on success, nonzero on failure. */
@@ -219,16 +216,10 @@ const char *file_get_base_game_install_path(void)
  * folder; the modern build does nothing. Returns 1 either way, even when the
  * change fails. */
 // FUNCTION: XVT 0x4CCF50
-int file_change_to_base_game_install_path(void)
-{
-	return 1;
-}
+int file_change_to_base_game_install_path(void) { return 1; }
 
 /* In the original build, makes g_front_state.install_path the current folder; the
  * modern build does nothing. Returns 1 either way, even when the change
  * fails. */
 // FUNCTION: XVT 0x4CCF70
-int file_change_to_install_path(void)
-{
-	return 1;
-}
+int file_change_to_install_path(void) { return 1; }

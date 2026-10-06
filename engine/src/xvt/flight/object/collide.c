@@ -1,10 +1,10 @@
 #include "xvt/flight/object/collide.h"
+
 #include "xvt_runtime/timing/flight_timing.h"
+
 #include "xvt_runtime/timing/player_timing.h"
 #include "xvt_runtime/assets/opt_native.h"
-
 #include <string.h>
-
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
@@ -567,9 +567,8 @@ void collide_collisions(void)
 				continue;
 			}
 			if (g_players[player_idx].next_engine_wash_check_time <
-				    g_game_time
-			    && xvt_flight_timing_reference_due()
-			) {
+				    g_game_time &&
+			    xvt_flight_timing_reference_due()) {
 				g_players[player_idx]
 					.engine_wash_source_obj_idx = -1;
 				g_players[player_idx].engine_wash_strength = 0;

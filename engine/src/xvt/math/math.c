@@ -1,6 +1,5 @@
 #include "xvt/math/math.h"
 
-
 /* Sets the x87 unit's precision control to single precision (24-bit
  * mantissa) through _control87, leaving its other control bits as they are.
  * Does nothing in the modern build. */

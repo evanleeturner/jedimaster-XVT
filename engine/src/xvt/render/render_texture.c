@@ -1,9 +1,9 @@
 #include "xvt/render/render_texture.h"
+
 #include "xvt_runtime/log/log.h"
-
 #include <stdint.h>
-#include <string.h>
 
+#include <string.h>
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/renderer.h"
 #include "xvt/render/std3d.h"

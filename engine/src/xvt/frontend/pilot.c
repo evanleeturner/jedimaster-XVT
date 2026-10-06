@@ -3,6 +3,7 @@
 #include "xvt/assets/file.h"
 #include "xvt/frontend/concourse.h"
 #include "xvt/frontend/config.h"
+
 #include "xvt/frontend/frontend.h"
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_file_list.h"
@@ -13,11 +14,8 @@
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
-
 #include <strings.h>
-
 #include "xvt_runtime/compat/pilot_port.h"
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -136,7 +134,6 @@ int pilot_create_new(const char *pilot_name)
 	}
 	XVT_LOG_DEBUG("pilot.create_file number=%d path=\"%s\"", file_index,
 		      pilot_path);
-
 
 	memset(&g_pilot_data, 0, sizeof(g_pilot_data));
 	strcpy(g_pilot_data.name, pilot_name);

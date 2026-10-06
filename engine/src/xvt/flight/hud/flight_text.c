@@ -1,9 +1,9 @@
 #include "xvt/flight/hud/flight_text.h"
+
 #include "xvt_runtime/snapshot/cockpit_messages.h"
+
 #include "xvt_runtime/snapshot/cockpit_pages.h"
-
 #include <string.h>
-
 #include "xvt/flight/flight_surface.h"
 #include "xvt/render/flight_palette.h"
 #include "xvt/render/flight_sw.h"
@@ -1342,10 +1342,9 @@ void flight_text_draw_string(const char *str)
 			   g_flight_word_wrap_enabled != 0) {
 			const char *word_scan = str + 1;
 			uint16_t word_length = 0;
-			while (*word_scan != ' ' && *word_scan != '\0'
-			       && word_length <
-					  (uint16_t)(sizeof(word_buffer) - 1u)
-			) {
+			while (*word_scan != ' ' && *word_scan != '\0' &&
+			       word_length <
+				       (uint16_t)(sizeof(word_buffer) - 1u)) {
 				word_buffer[word_length] = *word_scan;
 				++word_length;
 				++word_scan;

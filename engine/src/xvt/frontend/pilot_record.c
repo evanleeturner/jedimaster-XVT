@@ -1,10 +1,11 @@
 #include "xvt/frontend/pilot_record.h"
+
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_actions.h"
 #include "xvt_runtime/runtime/frontend_movies.h"
+
 #include <stdlib.h>
 #include <string.h>
-
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
@@ -528,7 +529,6 @@ int pilot_record_update_pilot_selection_panel(int frame_counter)
 				&rect, g_pilot_record_name_input,
 				PILOT_NAME_MAX_CHARS, 0, 12, "\\*$~|:<>?/\t\"");
 		}
-
 	}
 	/* selected_index says here whether the name entry was finished; it is
 	 * then reused to say whether the name matched an existing pilot, which

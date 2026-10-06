@@ -1,8 +1,8 @@
 #include "xvt/render/renderer.h"
+
 #include "xvt_runtime/log/log.h"
 
 #include <string.h>
-
 #include "xvt/flight/flight_display.h"
 #include "xvt/math/math.h"
 #include "xvt/render/render_scene.h"

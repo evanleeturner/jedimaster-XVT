@@ -1,9 +1,9 @@
 #include "xvt/flight/flight_object.h"
+
 #include "xvt_runtime/timing/flight_integration.h"
+
 #include "xvt_runtime/timing/flight_timing.h"
-
 #include <string.h>
-
 #include "xvt/assets/model_mesh.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai/pai.h"
@@ -89,9 +89,9 @@ void flight_object_update_special_behavior(void)
 	if (g_flight_mission_state.proving_grounds_mode_active != 0) {
 		proving_grounds_update_course();
 	}
-	if (g_flight_global_countdown_timers.special_behavior_update_timer != 0
-	    || !xvt_flight_timing_reference_due()
-	) {
+	if (g_flight_global_countdown_timers.special_behavior_update_timer !=
+		    0 ||
+	    !xvt_flight_timing_reference_due()) {
 		return;
 	}
 

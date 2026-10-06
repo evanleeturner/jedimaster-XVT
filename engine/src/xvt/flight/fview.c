@@ -1,8 +1,8 @@
 #include "xvt/flight/fview.h"
+
 #include "xvt_runtime/snapshot/render_camera.h"
 
 #include <stdint.h>
-
 #include "xvt/assets/model_preview.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/object/object.h"

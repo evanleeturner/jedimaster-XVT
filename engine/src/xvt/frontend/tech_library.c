@@ -1,8 +1,9 @@
 #include "xvt/frontend/tech_library.h"
+
 #include "xvt_runtime/runtime/dialog_task.h"
 #include <stdlib.h>
-#include <string.h>
 
+#include <string.h>
 #include "xvt/assets/file.h"
 #include "xvt/assets/model_preview.h"
 #include "xvt/flight/craft.h"

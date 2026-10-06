@@ -2,9 +2,9 @@
 
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/render_capture.h"
+
 #include <limits.h>
 #include <string.h>
-
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_display.h"
 #include "xvt/flight/flight_hyperspace.h"

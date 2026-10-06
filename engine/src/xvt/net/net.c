@@ -1,9 +1,10 @@
 #include "xvt/net/net.h"
+
 #include "xvt_runtime/runtime/network_session.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
+#include <string.h>
 #include "xvt/audio/cd_audio.h"
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/frontend.h"
@@ -17,7 +18,6 @@
 #include "xvt/util/time.h"
 #include "xvt/util/win32.h"
 #include "xvt_runtime/log/log_both_builds.h"
-
 
 /* Transport of the open lobby session. Written by net_start_network_session on
  * success, by xvt_network_session_update (TCP/IP) in the modern build, and
@@ -127,7 +127,6 @@ int g_net_enum_session_count = 0;
 // GLOBAL: XVT 0x665414
 int g_net_enum_session_capacity = 0;
 
-
 /* net_shutdown_direct_play_session_ex(1, 1): in the original build, with the
  * TCP/IP shutdown handshake and no relaunch when it fails. */
 // FUNCTION: XVT 0x4CD9C0
@@ -177,7 +176,6 @@ int net_shutdown_direct_play_session_ex(int suppress_restart,
 				       .net_runtime_reliable_peer_slots[0]),
 		NET_RELIABLE_SEQUENCE_INITIAL = 127
 	};
-
 
 	int back_buffer_locked = g_front_state.back_buffer_locked;
 	frontend_display_unlock_back_buffer();
@@ -357,7 +355,6 @@ int AERON_DXAPI net_enum_players_callback(DPID player_id, uint32_t player_type,
 	return 1;
 }
 
-
 /* Creates the local DirectPlay player with the given long and short names
  * and returns its id, or 0 on failure. The original build tries up to 5
  * times; the modern build tries once and returns XVT_NETWORK_PENDING while
@@ -378,9 +375,6 @@ int net_create_direct_play_player(const char *long_player_info,
 	       : result == 0	       ? (int)player
 				       : 0;
 }
-
-
-
 
 /* Copies the DirectPlay service provider GUID for a transport into
  * g_net_direct_play_service_provider_guid_scratch and returns its address; returns
@@ -2195,9 +2189,6 @@ int net_send_sequenced_direct_play_packet(int dest_player_id, int packet_class,
 	return send_result == 0;
 }
 
-
-
-
 /* Returns the lobby roster, g_front_state.net_players, with its count in
  * *outCount. */
 // FUNCTION: XVT 0x4CFE80
@@ -3854,7 +3845,6 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 	return NULL;
 }
 
-
 /* Returns how many roster players have a DirectPlay id below playerId.
  * Nothing in the engine calls this. */
 // FUNCTION: XVT 0x4D11A0
@@ -4057,8 +4047,6 @@ void net_clear_player_ready_flags(void)
 	}
 	XVT_LOG_DEBUG("network.lobby_roster_ready_cleared");
 }
-
-
 
 /* Copies the lobby's DirectPlay state from g_front_state into the flight
  * session's variables when a flight starts: the interface, application and
@@ -5519,18 +5507,11 @@ int net_set_player_packet_retry_count(int player_id, int packet_retry_count)
  * g_net_auto_dial_registry_changed. Returns 1 when it wrote, else 0. The modern
  * build does nothing and returns 0. Only the original build calls this. */
 // FUNCTION: XVT 0x4D2BD0
-int net_disable_auto_dial_registry_setting(void)
-{
-	return 0;
-}
+int net_disable_auto_dial_registry_setting(void) { return 0; }
 
 /* When g_net_auto_dial_registry_changed is set, writes the first 4 bytes of
  * g_net_saved_enable_auto_dial_value back to EnableAutodial, clears the flag and
  * returns 1; else returns 0. The modern build does nothing and returns 0.
  * Only the original build calls this. */
 // FUNCTION: XVT 0x4D2CB0
-int net_restore_auto_dial_registry_setting(void)
-{
-	return 0;
-}
-
+int net_restore_auto_dial_registry_setting(void) { return 0; }

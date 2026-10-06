@@ -1,7 +1,8 @@
 #include "xvt/frontend/frontend_bootstrap.h"
-#include "xvt_runtime/runtime/movie_task.h"
-#include <stdio.h>
 
+#include "xvt_runtime/runtime/movie_task.h"
+
+#include <stdio.h>
 #include "xvt/assets/file.h"
 #include "xvt/audio/cd_audio.h"
 #include "xvt/frontend/config.h"

@@ -1,12 +1,10 @@
 #include "xvt/util/memory.h"
 
 #include "xvt_runtime/snapshot/render_assets.h"
-
 #include <stdlib.h>
+
 #include <string.h>
-
 #include "xvt_runtime/log/log_both_builds.h"
-
 
 /* 1 once the first memory_alloc_handle_internal call has cleared g_handle_tables;
  * only that function writes it, and nothing sets it back to 0. */
