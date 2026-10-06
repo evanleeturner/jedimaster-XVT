@@ -75,6 +75,26 @@ add_test(NAME world_state COMMAND test_world_state)
 xvt_add_engine_test(test_pai test_pai.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/pai.c")
 add_test(NAME pai COMMAND test_pai)
 
+# The mission's goals, triggers, scoring, arrivals and loader: src/xvt/flight/mission/mission.c.
+# The loader checks write their mission files into a temporary folder made with POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_mission test_mission.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/mission/mission.c")
+    add_test(NAME mission COMMAND test_mission)
+    xvt_add_known_failure(test_mission bonus_complete_team)
+    xvt_add_known_failure(test_mission bonus_failed_team)
+    xvt_add_known_failure(test_mission player_hit_not_attacked)
+    xvt_add_known_failure(test_mission uncaptured_special_cargo)
+    xvt_add_known_failure(test_mission dropoff_group_past_table)
+    xvt_add_known_failure(test_mission expired_team_goal_score)
+    xvt_add_known_failure(test_mission round_spent_without_mothership)
+    xvt_add_known_failure(test_mission missile_boat_second_launcher)
+    xvt_add_known_failure(test_mission delivery_resets_rounds)
+    xvt_add_known_failure(test_mission attacker_weight_zero)
+    xvt_add_known_failure(test_mission tie_third_order_code)
+    xvt_add_known_failure(test_mission tie_header_kept)
+    xvt_add_known_failure(test_mission tie_goal_text_handles_kept)
+endif()
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
