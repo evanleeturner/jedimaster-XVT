@@ -203,17 +203,6 @@ static int8_t *g_radar_target_marker_shape =
 /* Pixels in g_radar_target_marker_shape, 10 or 12, set with it. */
 // GLOBAL: XVT 0x51A81C
 static int g_radar_target_marker_point_count = 10;
-/* The 7 pixels of the cross marker: 5 across and 3 down through its center. */
-// GLOBAL: XVT 0x51A820
-static struct flight_sw_marker_offset g_flight_sw_cross_marker_offsets[7] = {
-	{-2, 0}, {-1, 0}, {0, 0}, {1, 0}, {2, 0}, {0, 1}, {0, -1},
-};
-/* The same 7 pixels for 16-bit drawing. */
-// GLOBAL: XVT 0x523928
-static struct flight_sw_marker_offset g_flight_sw_cross_marker_offsets16bpp[7] =
-	{
-		{-2, 0}, {-1, 0}, {0, 0}, {1, 0}, {2, 0}, {0, 1}, {0, -1},
-};
 /* (1 << mode) - 1 for packing modes 0 to 8: the run-length bits of a sprite run
  * byte. */
 // GLOBAL: XVT 0x523600
@@ -237,10 +226,6 @@ int g_flight_sw_rot_sprite_span_runs_enabled = 1;
  * flight_sw_restore_radar_target_marker8bpp; up to 12 used. */
 // GLOBAL: XVT 0x54F9C0
 static uint8_t g_radar_target_marker_saved_pixels[16] = {0};
-/* The pixels under the cross marker at 8 bits; the two functions that use it
- * have no caller. */
-// GLOBAL: XVT 0x54F9D8
-static uint8_t g_flight_sw_cross_marker_saved_pixels[7] = {0};
 /* Row pitch in bytes of the target flight_sw_set_render_target was last given with
  * a pitch; g_flight_line_pitch_ptr points here while that target is in use. */
 // GLOBAL: XVT 0x54F9B0
@@ -249,10 +234,6 @@ static int g_flight_alt_line_pitch = 0;
  * g_flight_bytes_per_pixel, not times its pitch. */
 // GLOBAL: XVT 0x54F9E0
 static int g_flight_alt_line_offset_table[768] = {0};
-/* The pixels under the cross marker at 16 bits; the two functions that use it
- * have no caller. */
-// GLOBAL: XVT 0x5569C0
-static uint16_t g_flight_sw_cross_marker_saved_pixels16bpp[7] = {0};
 /* The 10 pixels under the radar target marker at 16 bits, saved by
  * flight_sw_draw_radar_target_marker16bpp and put back by
  * flight_sw_restore_radar_target_marker16bpp. */
@@ -1523,66 +1504,6 @@ void flight_sw_restore_radar_target_marker8bpp(void)
 		framebuffer_base[pixel_offset] = pixel;
 		--remaining;
 	} while (remaining != 0);
-}
-
-/* Draws the 7-pixel cross marker centered on x, y in color, saving the pixels
- * under it; returns color. Nothing calls this. */
-// FUNCTION: XVT 0x410780
-uint8_t flight_sw_draw_cross_marker8bpp(uint16_t x, uint16_t y, uint8_t color)
-{
-
-	int16_t remaining = 7;
-	unsigned int coordinates[2];
-	coordinates[0] = y;
-	uint16_t offset_index = 0;
-	coordinates[1] = x;
-	uint16_t saved_pixel_index = 0;
-	do {
-		unsigned int pixel_offset =
-			flight_sw_get_line_offset(
-				coordinates[0] +
-				((int8_t *)g_flight_sw_cross_marker_offsets)
-					[offset_index + 1]) +
-			((int8_t *)g_flight_sw_cross_marker_offsets)
-				[offset_index] +
-			coordinates[1];
-		offset_index += 2;
-		uint8_t *pixel = g_flight_sw_framebuffer_base + pixel_offset;
-		g_flight_sw_cross_marker_saved_pixels[saved_pixel_index++] =
-			*pixel;
-		*pixel = color;
-		--remaining;
-	} while (remaining != 0);
-
-	return color;
-}
-
-/* Puts back the 7 pixels saved around x, y and returns the last of them.
- * Nothing calls this. */
-// FUNCTION: XVT 0x410860
-uint8_t flight_sw_restore_cross_marker8bpp(uint16_t x, uint16_t y)
-{
-
-	int16_t remaining = 7;
-	uint16_t saved_pixel_index = 0;
-	uint16_t offset_index = 0;
-	uint8_t pixel;
-	do {
-		unsigned int pixel_offset =
-			((int8_t *)g_flight_sw_cross_marker_offsets)
-				[offset_index] +
-			flight_sw_get_line_offset(
-				y + ((int8_t *)g_flight_sw_cross_marker_offsets)
-					    [offset_index + 1]) +
-			x;
-		offset_index += 2;
-		uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
-		pixel = g_flight_sw_cross_marker_saved_pixels
-			[saved_pixel_index++];
-		framebuffer_base[pixel_offset] = pixel;
-		--remaining;
-	} while (remaining != 0);
-	return pixel;
 }
 
 /* Draws the background stars. Three grids of g_starfield_grid_dimension by
@@ -5034,33 +4955,6 @@ unsigned int set_flight_viewport(unsigned int requested_width,
 			       (unsigned int)g_flight_bytes_per_pixel;
 }
 
-/* Copies g_flight_vp_height rows of g_flight_vp_width bytes, packed in src_pixels,
- * into the viewport on the frame buffer, g_surface_pitch apart. Nothing calls
- * this. */
-// FUNCTION: XVT 0x426D50
-void flight_sw_copy_legacy8_bit_viewport_to_framebuffer(
-	const uint8_t *src_pixels)
-{
-	int row = 0;
-	const uint8_t **src_cursor = &src_pixels;
-	int viewport_x = g_flight_vp_x;
-	int viewport_y = g_flight_vp_y;
-	uint8_t *dst_pixels = g_flight_sw_framebuffer_base;
-	dst_pixels += g_flight_bytes_per_pixel * viewport_x;
-	dst_pixels += g_surface_pitch * viewport_y;
-	if (g_flight_vp_height != 0) {
-		uint16_t row_width = g_flight_vp_width;
-		do {
-			++row;
-			unsigned int copy_width = row_width;
-			memcpy(dst_pixels, *src_cursor, copy_width);
-			dst_pixels += g_surface_pitch;
-			unsigned int advance_width = row_width;
-			*src_cursor += advance_width;
-		} while (row < g_flight_vp_height);
-	}
-}
-
 /* Saves the viewport and camera matrix in g_saved_flight_viewport (the modern
  * build also saves its own camera state), sets the viewport to width by height
  * at base_offset as set_flight_viewport does, without the inset, and sets
@@ -5205,34 +5099,6 @@ void flight_sw_blit_rect_to_flight_surface(
 				       width_pixels * g_flight_bytes_per_pixel;
 			source += source_pitch -
 				  width_pixels * g_flight_bytes_per_pixel;
-			--rows_remaining;
-		} while (rows_remaining != 0);
-	}
-}
-
-/* Copies a width_pixels by height_pixels block from srcX, srcY on the frame
- * buffer to dstX, dstY in dst_pixels, dst_pitch_bytes per row. Nothing calls
- * this. */
-// FUNCTION: XVT 0x4272D0
-void flight_sw_copy_framebuffer_rect_to_buffer(uint8_t *dst_pixels,
-					       uint16_t src_x, uint16_t src_y,
-					       uint16_t dst_x, uint16_t dst_y,
-					       uint16_t width_pixels,
-					       uint16_t height_pixels,
-					       uint16_t dst_pitch_bytes)
-{
-	uint8_t *source = g_flight_sw_framebuffer_base +
-			  g_surface_pitch * src_y +
-			  g_flight_bytes_per_pixel * src_x;
-	uint8_t *destination = dst_pixels + dst_pitch_bytes * dst_y +
-			       g_flight_bytes_per_pixel * dst_x;
-	if (height_pixels != 0) {
-		int rows_remaining = height_pixels;
-		do {
-			memcpy(destination, source,
-			       width_pixels * g_flight_bytes_per_pixel);
-			source += g_surface_pitch;
-			destination += dst_pitch_bytes;
 			--rows_remaining;
 		} while (rows_remaining != 0);
 	}
@@ -6177,73 +6043,6 @@ void flight_sw_restore_radar_target_marker16bpp(void)
 		*(uint16_t *)framebuffer_base = pixel;
 		--remaining;
 	} while (remaining != 0);
-}
-
-/* Draws the 7-pixel cross marker centered on x, y in the palette color of
- * color_index, saving the pixels under it; returns that color. Nothing calls
- * this. */
-// FUNCTION: XVT 0x44AF70
-uint16_t flight_sw_draw_cross_marker16bpp(uint16_t x, uint16_t y,
-					  uint8_t color_index)
-{
-	int16_t remaining = 7;
-	unsigned int coordinates[2];
-	coordinates[0] = y;
-	uint16_t offset_index = 0;
-	uint16_t saved_pixel_index = 0;
-	coordinates[1] = x;
-	uint16_t *color = &g_flight_palette16_bpp[color_index];
-	uint16_t result;
-	do {
-		unsigned int pixel_offset =
-			flight_sw_get_line_offset(
-				coordinates[0] +
-				((int8_t *)
-					 g_flight_sw_cross_marker_offsets16bpp)
-					[offset_index + 1]) +
-			2 * (coordinates[1] +
-			     ((int8_t *)g_flight_sw_cross_marker_offsets16bpp)
-				     [offset_index]);
-		offset_index += 2;
-		uint16_t *pixel = (uint16_t *)(g_flight_sw_framebuffer_base +
-					       pixel_offset);
-		g_flight_sw_cross_marker_saved_pixels16bpp
-			[saved_pixel_index++] = *pixel;
-		result = *color;
-		*pixel = *color;
-		--remaining;
-	} while (remaining != 0);
-	return result;
-}
-
-/* Puts back the 7 pixels saved around x, y and returns the last of them.
- * Nothing calls this. */
-// FUNCTION: XVT 0x44B070
-uint16_t flight_sw_restore_cross_marker16bpp(uint16_t x, uint16_t y)
-{
-
-	int16_t remaining = 7;
-	uint16_t offset_index = 0;
-	uint16_t saved_pixel_index = 0;
-	uint16_t pixel;
-	do {
-		unsigned int pixel_offset =
-			flight_sw_get_line_offset(
-				y +
-				((int8_t *)
-					 g_flight_sw_cross_marker_offsets16bpp)
-					[offset_index + 1]) +
-			2 * (x +
-			     ((int8_t *)g_flight_sw_cross_marker_offsets16bpp)
-				     [offset_index]);
-		offset_index += 2;
-		uint8_t *framebuffer_base = g_flight_sw_framebuffer_base;
-		pixel = g_flight_sw_cross_marker_saved_pixels16bpp
-			[saved_pixel_index++];
-		--remaining;
-		*(uint16_t *)(framebuffer_base + pixel_offset) = pixel;
-	} while (remaining != 0);
-	return pixel;
 }
 
 /* The 16-bit form of flight_sw_draw_line8bpp, drawing in the palette color of

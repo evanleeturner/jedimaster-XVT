@@ -7150,12 +7150,3 @@ void fe_disk_io_fatal_error(file_error_string_id error_code)
 	XVT_LOG_ERROR("resources.fatal code=%d", (int)error_code);
 	xvt_storage_fatal("Required resource could not be loaded", 1);
 }
-
-/* Ends the program with a message. The original build prints message to stderr,
- * using it as the format string, and exits with exitCode; the modern build
- * hands both to xvt_storage_fatal. */
-// FUNCTION: XVT 0x4ACE60
-void file_print_fatal_message_and_exit(const char *message, int exit_code)
-{
-	xvt_storage_fatal(message, exit_code);
-}

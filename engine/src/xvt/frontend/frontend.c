@@ -1540,16 +1540,6 @@ int frontend_check_host_cd_present(void)
 	return g_host_cd_available;
 }
 
-/* Saves the pilot with pilot_save(0) and writes the config; returns 1. The
- * network code calls it. */
-// FUNCTION: XVT 0x4C9F60
-int frontend_save_persistent_state(void)
-{
-	pilot_save(0);
-	config_write();
-	return 1;
-}
-
 /* Returns 1 when control_id is entry 0 of g_scrollable_control_ids, the focused
  * control, else 0. Does not check that any control is registered. */
 // FUNCTION: XVT 0x4D9B80

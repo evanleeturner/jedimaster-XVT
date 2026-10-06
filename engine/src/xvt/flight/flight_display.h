@@ -37,7 +37,6 @@ HRESULT flight_display_flip(void);
 void nullsub_11(void);
 int flight_display_blit_render_surface(void);
 void flight_display_apply_resolution_mode_backend_stub(int resolution_mode);
-void flight_display_clear_back_buffer(void);
 void flight_display_clear_surface(IDirectDrawSurface *surface);
 int flight_display_restore_primary_surface(void);
 int display_is_pixel_format555(void);

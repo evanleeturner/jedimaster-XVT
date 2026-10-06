@@ -14,26 +14,6 @@ int g_joystick_detection_cached = 0;
 // GLOBAL: XVT 0x5280F4
 int g_joystick_backend_initialized = 0;
 
-/* Runs the joystick detection the first time it or input_detect_active_joystick
- * is called: sets g_joystick_backend_initialized from
- * joystick_initialize_backend_stub, g_joystick_active from
- * input_probe_active_joystick_devices and g_joystick_detection_cached to 1. Returns
- * g_joystick_backend_initialized, which is 1 once the detection ran. Nothing
- * calls this. */
-// FLAGS: /O2 /G5
-// FUNCTION: XVT 0x4ACA90
-int input_initialize_joystick_backend(void)
-{
-	if (g_joystick_detection_cached == 0) {
-		g_joystick_backend_initialized =
-			joystick_initialize_backend_stub();
-		int active = input_probe_active_joystick_devices();
-		g_joystick_detection_cached = 1;
-		g_joystick_active = active;
-	}
-	return g_joystick_backend_initialized;
-}
-
 /* Runs the same once-only detection as input_initialize_joystick_backend and
  * returns g_joystick_active: 1 when one of the two joystick slots answered,
  * else 0. Later calls return the first answer without polling again.

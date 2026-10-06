@@ -188,54 +188,6 @@ void win_mouse_poll_state(int *position_x, int *position_y, int *delta_x,
 	*position_y *= g_win_mouse_scale_y;
 }
 
-/* Sets g_win_mouse_prev_pos, g_win_mouse_cursor_pos and g_win_mouse_pos to x, y and
- * moves the cursor there, returning the result of SetCursorPos, or of
- * xvt_presentation_warp_classic in the modern build. Only mouse_set_position calls
- * it, and nothing calls that. */
-// FUNCTION: XVT 0x4AAB00
-int win_mouse_set_position(int x, int y)
-{
-	g_win_mouse_prev_pos.x = x;
-	g_win_mouse_cursor_pos.x = x;
-	g_win_mouse_pos.x = x;
-	g_win_mouse_prev_pos.y = y;
-	g_win_mouse_cursor_pos.y = y;
-	g_win_mouse_pos.y = y;
-
-	return xvt_presentation_warp_classic(x, y);
-}
-
-/* Sets g_win_mouse_min_y and g_win_mouse_max_y and g_win_mouse_center_pos.y to
- * (minY + maxY) / 2. Only mouse_set_vertical_bounds calls it, and nothing calls
- * that. */
-// FUNCTION: XVT 0x4AAB60
-void win_mouse_set_vertical_bounds(int min_y, int max_y)
-{
-	g_win_mouse_min_y = min_y;
-	g_win_mouse_max_y = max_y;
-	g_win_mouse_center_pos.y = (min_y + max_y) / 2;
-}
-
-/* Sets g_win_mouse_min_x and g_win_mouse_max_x and g_win_mouse_center_pos.x to
- * (minX + maxX) / 2. Only mouse_set_horizontal_bounds calls it, and nothing
- * calls that. */
-// FUNCTION: XVT 0x4AAB40
-void win_mouse_set_horizontal_bounds(int min_x, int max_x)
-{
-	g_win_mouse_min_x = min_x;
-	g_win_mouse_max_x = max_x;
-	g_win_mouse_center_pos.x = (min_x + max_x) / 2;
-}
-
-/* Sets g_win_mouse_scale_x and g_win_mouse_scale_y. Only mouse_set_scale_factors calls
- * it, and nothing calls that. */
-// FUNCTION: XVT 0x4AAB80
-void win_mouse_set_scale_factors(int scale_x, int scale_y)
-{
-	g_win_mouse_scale_x = scale_x;
-	g_win_mouse_scale_y = scale_y;
-}
-
 /* Polls with win_mouse_poll_state and stores the scaled position, cut to 16 bits,
  * and the held buttons as 0x1 left, 0x2 right, 0x4 middle.
  * mouse_read_position_and_buttons is its only caller. */
@@ -257,54 +209,6 @@ void win_mouse_poll_position_and_buttons(int16_t *buttons, int16_t *x,
 	*y = (int16_t)position_y;
 	*buttons = (int16_t)(button_down[0] |
 			     2 * (button_down[1] | 2 * button_down[2]));
-}
-
-/* Polls with win_mouse_poll_state and reports one button, 0 left, 1 right, 2
- * middle: whether it is held, whether it was pressed since the last poll, and
- * the scaled position, each cut to 16 bits. Does not check button_index. Nothing
- * calls this. */
-// FUNCTION: XVT 0x4AC8F0
-void win_mouse_poll_button_press(int16_t button_index, int16_t *is_down,
-				 int16_t *pressed, int16_t *x, int16_t *y)
-{
-	int position_x;
-	int position_y;
-	int delta_x;
-	int delta_y;
-	int button_down[3];
-	int button_pressed[3];
-	int button_released[3];
-
-	win_mouse_poll_state(&position_x, &position_y, &delta_x, &delta_y,
-			     button_down, button_pressed, button_released);
-	*is_down = (int16_t)button_down[button_index];
-	*pressed = (int16_t)button_pressed[button_index];
-	*x = (int16_t)position_x;
-	*y = (int16_t)position_y;
-}
-
-/* Polls with win_mouse_poll_state and reports one button, 0 left, 1 right, 2
- * middle: whether it is held, whether it was released since the last poll, and
- * the scaled position, each cut to 16 bits. Does not check button_index. Nothing
- * calls this. */
-// FUNCTION: XVT 0x4AC960
-void win_mouse_poll_button_release(int16_t button_index, int16_t *is_down,
-				   int16_t *released, int16_t *x, int16_t *y)
-{
-	int position_x;
-	int position_y;
-	int delta_x;
-	int delta_y;
-	int button_down[3];
-	int button_released[3];
-	int button_pressed[3];
-
-	win_mouse_poll_state(&position_x, &position_y, &delta_x, &delta_y,
-			     button_down, button_pressed, button_released);
-	*is_down = (int16_t)button_down[button_index];
-	*released = (int16_t)button_released[button_index];
-	*x = (int16_t)position_x;
-	*y = (int16_t)position_y;
 }
 
 /* Polls with win_mouse_poll_state and stores the scaled movement, cut to 16 bits.

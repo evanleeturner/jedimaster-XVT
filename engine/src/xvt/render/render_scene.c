@@ -108,10 +108,6 @@ const float g_render_directional_light_intensity_scale = 0.80000001f;
  * adds to a vertex only when its contribution is over it. */
 // GLOBAL: XVT 0x5180A0
 const float g_render_zero_float = 0.0f;
-/* 0.4. Nothing reads it: render_scene_compute_vertex_lighting writes the same 0.4
- * as a literal when directional light is off. */
-// GLOBAL: XVT 0x5180A4
-const float g_render_ambient_light_intensity = 0.40000001f;
 /* 0.2941: the lighting code's rough distance is the largest component of the
  * offset plus the other two times this, in place of a square root. */
 // GLOBAL: XVT 0x5180A8
@@ -1781,60 +1777,6 @@ void render_scene_transform_face_texture_gradients(
 	math3d_rotate_vec3(&face->gradients[3], view_pos_and_orient + 3);
 }
 
-/* Carries a model point into view space (the orientation at view_pos_and_orient +
- * 3, then the position at view_pos_and_orient) and projects it: out_projected[2] is
- * g_proj_scale_int over depth, [0] and [1] viewport x and y. Does not check for a
- * depth of 0 or less. Nothing calls this. */
-// FUNCTION: XVT 0x420E10
-void render_scene_transform_project_legacy_point(
-	float out_projected[3], const float point[3],
-	const float view_pos_and_orient[12])
-{
-	float view_point[3];
-
-	view_point[0] = point[0];
-	view_point[1] = point[1];
-	view_point[2] = point[2];
-	math3d_rotate_vec3(view_point, view_pos_and_orient + 3);
-	view_point[0] += view_pos_and_orient[0];
-	view_point[1] += view_pos_and_orient[1];
-	view_point[2] += view_pos_and_orient[2];
-
-	out_projected[2] = (float)((double)g_proj_scale_int / view_point[2]);
-	out_projected[0] = out_projected[2] * view_point[0];
-	out_projected[1] = out_projected[2] * view_point[1];
-	out_projected[0] += (int)(g_flight_vp_width >> 1);
-	out_projected[1] += g_proj_offset_y + (int)(g_flight_vp_height >> 1);
-}
-
-/* The distant form of render_scene_transform_project_legacy_point: adds 100000 to
- * the depth and scales the projection by g_proj_scale_int / view_pos_and_orient[2] *
- * 100000. Nothing calls this. */
-// FUNCTION: XVT 0x420EE0
-void render_scene_transform_project_legacy_distant_point(
-	float out_projected[3], const float point[3],
-	const float view_pos_and_orient[12])
-{
-	float view_point[3];
-
-	float distant_project_scale = (float)g_proj_scale_int /
-				      view_pos_and_orient[2] * (float)100000.0;
-	view_point[0] = point[0];
-	view_point[1] = point[1];
-	view_point[2] = point[2];
-	math3d_rotate_vec3(view_point, view_pos_and_orient + 3);
-	view_point[0] += view_pos_and_orient[0];
-	view_point[1] += view_pos_and_orient[1];
-	view_point[2] += view_pos_and_orient[2];
-	view_point[2] += (float)100000.0;
-
-	out_projected[2] = distant_project_scale / view_point[2];
-	out_projected[0] = out_projected[2] * view_point[0];
-	out_projected[1] = out_projected[2] * view_point[1];
-	out_projected[0] += (int)(g_flight_vp_width >> 1);
-	out_projected[1] += g_proj_offset_y + (int)(g_flight_vp_height >> 1);
-}
-
 /* Appends to g_vis_face_list each face of the mesh whose normal's dot product
  * with the offset from its first corner to the eye is 0 or more, setting its
  * faceIndex, pMesh, light-sample row, face_and_layer_id and a NULL p_scan_edge, and
@@ -2779,20 +2721,6 @@ void render_scene_draw_model_node(struct optimized_poly_object *model,
 				&child_mesh);
 		}
 	}
-}
-
-/* Flips g_vertex_light_occlusion_enabled between 0 and 1. Nothing calls this. */
-// FUNCTION: XVT 0x473550
-void render_scene_toggle_vertex_light_occlusion(void)
-{
-	g_vertex_light_occlusion_enabled = !g_vertex_light_occlusion_enabled;
-}
-
-/* Returns g_vertex_light_occlusion_enabled. Nothing calls this. */
-// FUNCTION: XVT 0x473570
-int render_scene_get_vertex_light_occlusion_enabled(void)
-{
-	return g_vertex_light_occlusion_enabled;
 }
 
 /* Returns 1 when the segment from segment_start to segment_end crosses a face of

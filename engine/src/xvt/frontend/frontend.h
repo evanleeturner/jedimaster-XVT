@@ -47,7 +47,6 @@ int frontend_handle_common_screen_controls(int screen_context);
 int frontend_format_seconds_to_clock_string(unsigned int seconds);
 int error_text_load_line(int line_index, char *out_text);
 int frontend_check_host_cd_present(void);
-int frontend_save_persistent_state(void);
 int frontend_is_scrollable_control_focused(int control_id);
 int frontend_register_scrollable_control(int control_id);
 int frontend_unregister_scrollable_control(int control_id);

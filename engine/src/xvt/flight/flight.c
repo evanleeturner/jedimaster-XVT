@@ -1259,20 +1259,6 @@ void flight_update_dynamic_music_state(void)
 	}
 }
 
-/* Returns g_world_state_dup_buffer. Only the original build calls this. */
-// FUNCTION: XVT 0x416700
-uint8_t *flight_get_duplicate_world_state_buffer(void)
-{
-	return g_world_state_dup_buffer;
-}
-
-/* Returns g_world_state_dup_size. Only the original build calls this. */
-// FUNCTION: XVT 0x416710
-int flight_get_duplicate_world_state_size(void)
-{
-	return g_world_state_dup_size;
-}
-
 /* Allocates the two world state buffers, flight_calculate_world_state_buffer_size
  * bytes each, and locks them: g_world_state_handle and g_world_state_buffer, then
  * g_world_state_dup_handle and g_world_state_dup_buffer. A failed allocation calls
@@ -1400,49 +1386,6 @@ void flight_checksum_world_state(int unused_arg0, int unused_arg1)
 	}
 }
 
-/* Returns world_state_size divided by 124: the length of each resync segment.
- * Only the original build calls this. */
-// FUNCTION: XVT 0x4178F0
-int flight_compute_world_state_resync_segment_size(int world_state_size)
-{
-	return world_state_size / 124;
-}
-
-/* Writes 125 segment checksums of a world state to out_checksums and returns
- * 125. Each segment is world_state_size divided by 124 bytes (the whole state
- * when that is 0), each byte added and the sum rotated left 1 bit; a segment
- * past the end gets 0. Does not check the room at out_checksums. Only the
- * original build calls this. */
-// FUNCTION: XVT 0x417900
-int flight_build_world_state_resync_segment_checksums(
-	int *out_checksums, const uint8_t *world_state, int world_state_size)
-{
-	int remaining_size = world_state_size;
-	int segment_size = world_state_size / 124;
-	if (segment_size == 0) {
-		segment_size = world_state_size;
-	}
-	int segment_count = 125;
-	do {
-		uint32_t checksum = 0;
-
-		if (segment_size > 0) {
-			int bytes_in_segment = segment_size;
-			do {
-				if (remaining_size != 0) {
-					checksum += *world_state++;
-					--remaining_size;
-					checksum = (checksum << 1) |
-						   (checksum >> 31);
-				}
-			} while (--bytes_in_segment != 0);
-		}
-		*out_checksums++ = (int)checksum;
-	} while (--segment_count != 0);
-
-	return 125;
-}
-
 enum flight_world_state_presence_flags {
 	FLIGHT_WORLDSTATE_HAS_OBJECT = 0x01,
 	FLIGHT_WORLDSTATE_HAS_MOBILE = 0x02,
@@ -1453,76 +1396,6 @@ enum flight_world_state_presence_flags {
 	FLIGHT_WORLDSTATE_EMPTY_RUN_LENGTH_MASK = 0x7F,
 	FLIGHT_WORLDSTATE_MAX_EMPTY_RUN = 0x7E
 };
-
-/* Writes the presence map of a saved world state (laid out as
- * flight_save_world_state writes it) to out_map and returns its length in bytes:
- * an int holding the object slot count, then for each saved slot a byte of
- * FLIGHT_WORLDSTATE_HAS_ flags for the blocks it holds, with a run of empty
- * slots, up to 126, written as one byte of 0x80 plus the run length. The modern
- * build returns xvt_snapshot_build_presence_map. Only the original build calls
- * this. */
-// FUNCTION: XVT 0x417960
-int flight_build_world_state_object_presence_map(uint8_t *out_map,
-						 const uint8_t *world_state)
-{
-	return xvt_snapshot_build_presence_map(out_map, world_state);
-}
-
-/* Reshapes the state gathered in g_world_state_dup_buffer to match another
- * player's presence map: for each saved slot, up to the map's slot count, it
- * takes out the blocks (record, mobile object, craft data, guidance, character
- * data) the map says are absent and puts in zeroed ones it says are present,
- * moving the rest of the buffer, then sets g_world_state_dup_size. Does not check
- * the buffer has room for what it puts in; moving the rest up uses memcpy on
- * overlapping bytes. The modern build calls xvt_snapshot_apply_presence_map. Only
- * the original build calls this. */
-// FUNCTION: XVT 0x417A60
-void flight_apply_world_state_object_presence_map(const uint8_t *presence_map)
-{
-	xvt_snapshot_apply_presence_map(presence_map);
-}
-
-/* Runs the simulation from g_game_time to target_game_time in steps of at most
- * g_net_update_interval_ticks ticks, setting g_elapsed_ticks and
- * g_sim_steps_per_second for each. A step applies the players' input frames that
- * are due (flight_advance_one_step), then, outside the proving grounds, flight
- * group arrivals and the AI; then the timers, weapons, steering and speed,
- * debris recycling near the player (with debris on, outside the proving
- * grounds), collisions, object movement and special behavior, target checks,
- * participation, the mission logic, the message panes, the music and the
- * sounds, and adds the step to g_game_time. It returns early when a mission end
- * is pending with side effects on. When the target is the current time it only
- * applies the due input frames. Only the original build calls this; its modern
- * arm hands the work to xvt_flight_sim_step_to_time. */
-// FUNCTION: XVT 0x417D70
-void flight_step_sim_to_time(int target_game_time)
-{
-	xvt_flight_sim_step_to_time(target_game_time);
-}
-
-/* Applies each active player's due input frames from g_input_history, up to
- * target_game_time, through flight_update_player_step. A frame already applied and
- * not awaiting relay is removed, except in multiplayer with side effects
- * suppressed; a frame past the target is left, and so, with side effects on, is
- * one not from the server (input_source other than 0). For a frame at or before
- * g_game_time it first puts the player's craft back to the state saved after its
- * last applied frame, and sets g_game_time back to that state's time; when the
- * craft has changed it skips the frame with side effects suppressed, else moves
- * the frame to 4 ticks past now. It then moves the craft alone
- * (g_single_object_update_override_idx) up to the frame's time and saves its state
- * in the player record, sets g_replay_inputs for the player to the frame's input
- * (key and buttons cleared when it replays a past tick with side effects
- * suppressed) and g_elapsed_ticks to the ticks since the player's last frame, at
- * least 4. g_elapsed_ticks, g_sim_steps_per_second and g_game_time are put back
- * after each frame; a player who stops taking part gets no more frames. Sets
- * g_flight_sfx_side_effect_gate for the local player in multiplayer. Only the
- * original build calls this; its modern arm hands the work to
- * xvt_flight_sim_advance. */
-// FUNCTION: XVT 0x417F10
-void flight_advance_one_step(int target_game_time)
-{
-	xvt_flight_sim_advance(target_game_time);
-}
 
 /* Counts the players taking part (participation_state 1 or 2), stores the count
  * in g_active_flight_player_count and returns it. */
@@ -1650,28 +1523,6 @@ unsigned int flight_checksum_buffer_rotate_xor(const void *data,
 	}
 
 	return checksum;
-}
-
-/* One player's part of a simulation step; does nothing once a mission end is
- * pending. With side effects on, a camera whose focus object is gone goes back
- * to the player's craft in the forward view (or loses its focus in the map
- * view), and a map aim target that is gone is cleared. It applies the player's
- * input record (flight_input_read with the player's index) and latches it. For
- * the local player with side effects on it handles Shift+L (radio message
- * backup), Alt+B (brightness, at 1 byte per pixel), Alt+D (graphics detail
- * preset), Alt+I (skipping odd scan lines), Alt+M (g_flight_alt_m_toggle), Alt+P
- * (pause, solo only, waiting for a key), Alt+S (system messages), Alt+V
- * (version message) and the screenshot key. A player awaiting a new craft whose
- * craft is gone gets the flight group's next craft, or stops taking part, and
- * the step ends there; outside hyperspace, button bit 0 fires and bit 1 picks a
- * target on a tap. Then the action keys (flight_process_player_actions), or the
- * chat input while chatting, and the flight controls while the player takes
- * part. Only the original build calls this; its modern arm hands the work to
- * xvt_flight_sim_update_player_step. */
-// FUNCTION: XVT 0x47A5E0
-void flight_update_player_step(int player_idx)
-{
-	xvt_flight_sim_update_player_step(player_idx);
 }
 
 /* Acts on the action key a player pressed this step (g_current_action_key). In
@@ -6775,23 +6626,6 @@ int flight_update_and_focus_main_window(void)
  * 0. */
 // FUNCTION: XVT 0x4AA720
 int32_t flight_pump_window_messages(void) { return 0; }
-
-/* Flight's part of the window procedure, called by frontend_display_wnd_proc:
- * resets an 8-bit palette on message 0x311 (flight_palette_reset_if8_bit), and in
- * the original build passes message 0x0F to DefWindowProcA and returns its
- * result. Returns 0 otherwise. */
-// FUNCTION: XVT 0x4AA7B0
-int32_t flight_wnd_proc(void *hWnd, unsigned int Msg, uint32_t wParam,
-			int32_t lParam)
-{
-	if (Msg == 0x311) {
-		flight_palette_reset_if8_bit();
-	}
-	(void)hWnd;
-	(void)wParam;
-	(void)lParam;
-	return 0;
-}
 
 /* Steers each craft in the active region's craft slots, or only
  * g_single_object_update_override_idx when that is set, and sets its speed, over

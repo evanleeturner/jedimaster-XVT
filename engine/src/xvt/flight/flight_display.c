@@ -1103,33 +1103,6 @@ void flight_display_apply_resolution_mode_backend_stub(int resolution_mode)
 	(void)resolution_mode;
 }
 
-/* Fills g_flight_back_buffer with color 0 by a DirectDraw color fill, retrying
- * while DirectDraw is still drawing; after a lost surface it restores the
- * primary and stops without filling. Nothing calls this. */
-// FUNCTION: XVT 0x4AC3A0
-void flight_display_clear_back_buffer(void)
-{
-	DDBLTFX effects;
-
-	effects.dwSize = sizeof(effects);
-	effects.dwFillColor = 0;
-	HRESULT blt_result;
-	do {
-		blt_result = g_flight_back_buffer->lpVtbl->Blt(
-			g_flight_back_buffer, NULL, NULL, NULL, DDBLT_COLORFILL,
-			&effects);
-		if (blt_result == DX_DD_OK) {
-			break;
-		}
-		if (blt_result == DX_DDERR_SURFACELOST) {
-			if (flight_display_restore_primary_surface() == 0) {
-				return;
-			}
-			flight_display_post_primary_surface_create_or_restore_stub();
-		}
-	} while (blt_result == DX_DDERR_WASSTILLDRAWING);
-}
-
 /* Fills a DirectDraw surface with color 0, as flight_display_clear_back_buffer
  * does for the back buffer: it retries while DirectDraw is still drawing and
  * after a lost surface restores the primary surface, not the one given, and

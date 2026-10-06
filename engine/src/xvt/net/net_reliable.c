@@ -39,14 +39,6 @@ struct net_queued_packet g_net_session_recv_queue[1024];
 // GLOBAL: XVT 0x60F1BC
 int g_net_last_delivered_recv_sequence;
 
-/* Returns g_net_last_delivered_recv_sequence. Nothing in the engine calls this. */
-// FLAGS: /O2 /G5
-// FUNCTION: XVT 0x46F650
-int net_reliable_get_last_delivered_recv_sequence(void)
-{
-	return g_net_last_delivered_recv_sequence;
-}
-
 /* Tells whether a flight-session packet's sequence was already received from
  * that player on its channel: broadcast when channel_a is set, else group when
  * channel_b is set, else one-player. Returns 1 when the sequence is not 1 to 63
@@ -323,35 +315,6 @@ unsigned int net_reliable_find_or_create_peer_slot(int direct_play_id)
 	}
 
 	return slot;
-}
-
-/* Drops every packet queued for the flight session (read index set to the
- * write index, count 0). For every peer slot it then counts the newest
- * sequences received as delivered and sets last_activity_ms to timeGetTime.
- * Only the original build calls this. */
-// FUNCTION: XVT 0x46FFC0
-void net_reliable_reset_recv_queue_state(void)
-{
-	g_net_recv_queue_read_index = g_net_recv_queue_write_index;
-	g_net_recv_queue_count = 0;
-
-	for (unsigned int slot = 0;
-	     slot < g_net_session.reliable_peer_slot_count; ++slot) {
-		g_net_session.reliable_peer_slots[slot]
-			.last_delivered_seq_default =
-			g_net_session.reliable_peer_slots[slot]
-				.recv_seq_default;
-		g_net_session.reliable_peer_slots[slot]
-			.last_delivered_seq_channel_a =
-			g_net_session.reliable_peer_slots[slot]
-				.recv_seq_channel_a;
-		g_net_session.reliable_peer_slots[slot]
-			.last_delivered_seq_channel_b =
-			g_net_session.reliable_peer_slots[slot]
-				.recv_seq_channel_b;
-		g_net_session.reliable_peer_slots[slot].last_activity_ms =
-			timeGetTime();
-	}
 }
 
 /* Returns packet_drop_count of the flight session's peer slot for a DirectPlay

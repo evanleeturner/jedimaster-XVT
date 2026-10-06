@@ -48,8 +48,6 @@ void frontend_screen_set_callbacks(frontend_screen_update_fn update_fn,
 				   frontend_screen_exit_fn exit_fn);
 int frontend_screen_queue_push(int (*update_fn)(int),
 			       const struct RECT *screen_rect);
-int frontend_screen_run_modal(frontend_screen_update_fn update_fn,
-			      struct RECT *screen_rect);
 int frontend_screen_push_state(frontend_screen_update_fn update_fn,
 			       struct RECT *screen_rect);
 void frontend_screen_pop_state(void);

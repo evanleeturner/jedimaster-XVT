@@ -23,7 +23,6 @@ int dinput_init(void);
 int dinput_skip_to_pending_key_press(void);
 uint8_t dinput_get_key(void);
 void dinput_update_keyboard_modifier_state(void);
-HRESULT dinput_probe_keyboard_state(void);
 void dinput_shutdown(void);
 int dinput_reacquire_keyboard(void);
 

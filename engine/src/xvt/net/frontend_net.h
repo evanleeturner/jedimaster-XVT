@@ -37,13 +37,9 @@ struct frontend_net_session_entry {
 	uint8_t game_in_flight;	   /* 1 when the probe found the game flying */
 };
 
-extern int g_frontend_net_session_count;
 extern int g_frontend_net_received_mission_description_id;
 extern int g_frontend_net_received_mission_directory_id;
-extern const unsigned int g_frontend_net_xvt_direct_play_app_guid[4];
 extern struct frontend_net_packet_scratch g_frontend_net_packet_scratch;
-extern struct frontend_net_session_entry g_frontend_net_session_list[32];
-extern int g_frontend_net_session_list_scroll_offset;
 extern int g_frontend_net_selected_session_idx;
 extern int g_frontend_net_packet_sender_player_id;
 extern int g_frontend_net_packet_arg0;

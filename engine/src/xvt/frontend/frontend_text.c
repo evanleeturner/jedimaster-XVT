@@ -263,28 +263,6 @@ void frontend_text_free_all_fonts(void)
 	       sizeof(g_front_state.font_by_size));
 }
 
-/* Nothing calls this. Frees the first loaded font whose point_size equals
- * point_size truncated to 8 bits, marks its slot free and clears
- * g_front_state.font_by_size[point_size], not checking that point_size is under 256.
- * The modern build also drops the font from its renderer. */
-// FUNCTION: XVT 0x4DB470
-void frontend_text_free_font(unsigned int point_size)
-{
-	for (int index = 0; index < 10; ++index) {
-		if (g_front_state.font_slots[index].in_use == 1 &&
-		    g_front_state.font_slots[index].point_size ==
-			    (uint8_t)point_size) {
-			free(g_front_state.font_slots[index].p_glyph_bits);
-			g_front_state.font_slots[index].p_glyph_bits = 0;
-			xvt_render_assets_retire_image(
-				&g_front_state.font_slots[index]);
-			g_front_state.font_slots[index].in_use = 0;
-			g_front_state.font_by_size[point_size] = 0;
-			return;
-		}
-	}
-}
-
 /* Draws str from (x, y), the first glyph's top-left corner, in the font of size
  * fontSize, through front_image_draw_glyph with the text fade applied. A byte 1
  * goes back to color; bytes 2 to 6 switch to g_front_state.text_color_codes[1] to
@@ -475,117 +453,6 @@ int frontend_text_draw_aligned_in_rect(int font_size, const char *str,
 	return result;
 }
 
-/* Nothing calls this. Draws lineCount strings from lines, one under another,
- * font height + line_spacing apart, each like frontend_text_draw, centered across
- * rect when center_horizontally is nonzero and the block centered down it when
- * center_vertically is nonzero. Here bytes 2 to 7 are color codes, and 7 reads
- * g_front_state.text_color_codes[6], one past the array's end; the color carries
- * from one line to the next. Returns the glyphs' clip-edge bits ORed together,
- * with 0x4 also set for a line that reached x 640; 0 when lines is NULL,
- * fontSize is outside 0 to 255 or that font is not loaded. */
-// FUNCTION: XVT 0x4DB980
-int frontend_text_draw_line_array_in_rect(int font_size, const char **lines,
-					  int line_count,
-					  const struct RECT *rect, int color,
-					  int center_horizontally,
-					  int center_vertically,
-					  int line_spacing)
-{
-	const char **line_cursor = lines;
-	if (line_cursor == NULL) {
-		return 0;
-	}
-	if (font_size < 0 || font_size > 255) {
-		return 0;
-	}
-	struct bitmap_font *font = g_front_state.font_by_size[font_size];
-	if (font == NULL) {
-		return 0;
-	}
-
-	int draw_status = 0;
-	int current_color = color;
-	int draw_y;
-	if (center_vertically) {
-		draw_y = rect->top + ((rect->bottom - rect->top) >> 1);
-		int font_height = frontend_text_get_font_height(font_size);
-		draw_y -= (line_spacing * (line_count - 1) +
-			   line_count * font_height) >>
-			  1;
-	} else {
-		draw_y = rect->top;
-	}
-	int draw_x;
-	struct image_resource glyph;
-	if (line_count > 0) {
-		int lines_remaining = line_count;
-		do {
-			int half_line_width =
-				frontend_text_measure_width(*line_cursor,
-							    font_size) >>
-				1;
-			if (center_horizontally) {
-				draw_x = rect->left +
-					 ((rect->right - rect->left) >> 1) -
-					 half_line_width;
-			} else {
-				draw_x = rect->left;
-			}
-			int char_index = 0;
-			if (**line_cursor != '\0') {
-				do {
-					if (draw_x >= 640) {
-						break;
-					}
-					const char *char_ptr =
-						&(*line_cursor)[char_index];
-					uint8_t character = (uint8_t)*char_ptr;
-					if (character == 1) {
-						current_color = color;
-					} else if (character >= 2 &&
-						   character <= 7) {
-						current_color =
-							g_front_state.text_color_codes
-								[character - 1];
-					} else {
-						glyph.width =
-							font->glyph_width
-								[character];
-						glyph.height = font->glyph_height[(
-							uint8_t)*char_ptr];
-						glyph.pixel_data_bytes = 0;
-						glyph.is_compressed = 1;
-						glyph.pixels =
-							&font->p_glyph_bits[font->glyph_bit_offset[(
-								uint8_t)*char_ptr]];
-						draw_status |=
-							front_image_draw_glyph(
-								&glyph, draw_x,
-								draw_y,
-								current_color,
-								1);
-						draw_x +=
-							font->char_spacing +
-							font->glyph_width
-								[(uint8_t)(*line_cursor)
-									 [char_index]];
-					}
-					++char_index;
-				} while ((*line_cursor)[char_index] != '\0');
-			}
-			if (draw_x >= 640) {
-				draw_status |= 4;
-			}
-			++line_cursor;
-			draw_y += frontend_text_get_font_height(font_size) +
-				  line_spacing;
-			--lines_remaining;
-		} while (lines_remaining != 0);
-	}
-
-	return draw_status;
-}
-
 /* Draws str in rect with word wrap, clipping to rect meanwhile, and returns the
  * number of line breaks it made, wrapped or forced, which is the index of the
  * last line. Words end at a space, a line feed, a '$' or the string's last
@@ -770,30 +637,6 @@ int frontend_text_measure_width(const char *str, int font_size)
 	}
 
 	return width - font->char_spacing;
-}
-
-/* Only frontend_text_load_font calls this, in the original build. Writes the font
- * to fileName: the first 0x60B (1,547) bytes of the bitmap_font, with the glyph
- * pointer at its start replaced by glyph_blob_size, then glyph_blob_size bytes of
- * glyph rows. Writes nothing when font is NULL or the file does not open; does
- * not check the writes. The header copy assumes the 32-bit layout, with a
- * 4-byte pointer. */
-// FUNCTION: XVT 0x4DC020
-void frontend_text_save_font_atlas_file(const char *file_name, void **font,
-					unsigned int glyph_blob_size)
-{
-	if (font != NULL) {
-		xvt_file *stream = file_open(file_name, "wb");
-		if (stream != NULL) {
-			uint8_t disk_header[0x60B];
-			memcpy(disk_header, font, sizeof(disk_header));
-			*(unsigned int *)disk_header = glyph_blob_size;
-			file_write_bytes(stream, disk_header,
-					 sizeof(disk_header));
-			file_write_bytes(stream, *font, glyph_blob_size);
-			file_close(stream);
-		}
-	}
 }
 
 /* Loads a font file written by frontend_text_save_font_atlas_file into

@@ -92,7 +92,6 @@ int16_t fe_disk_io_close_global_stream(int16_t remove_file_on_error);
 size_t fe_disk_io_read_with_retry_prompt(void *dst, size_t elem_size,
 					 size_t elem_count, xvt_file *stream);
 void fe_disk_io_fatal_error(file_error_string_id error_code);
-void file_print_fatal_message_and_exit(const char *message, int exit_code);
 
 #ifdef __cplusplus
 }

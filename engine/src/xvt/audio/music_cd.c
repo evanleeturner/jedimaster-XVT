@@ -235,25 +235,6 @@ int music_cd_play_track_from_time(int track_number, int start_minute,
 	return 1;
 }
 
-/* Stops the current track with MCI_STOP, sets g_music_cd_current_track and
- * g_music_cd_playback_complete to 0 and returns 1; returns 0 when no device is
- * open or no track is current. Nothing calls this. */
-// FUNCTION: XVT 0x4A51B0
-int music_cd_stop_track(void)
-{
-	if (g_music_cd_mci_device_id == 0) {
-		return 0;
-	}
-	if (g_music_cd_current_track == 0) {
-		return 0;
-	}
-	MCI_GENERIC_PARMS parameters;
-	mciSendCommandA(g_music_cd_mci_device_id, MCI_STOP, 0, &parameters);
-	g_music_cd_current_track = 0;
-	g_music_cd_playback_complete = 0;
-	return 1;
-}
-
 /* Closes the flight music CD device: stops a current track, closes the device
  * and sets g_music_cd_mci_device_id to 0, and clears the cached track lengths,
  * g_music_cd_current_track and g_music_cd_playback_complete. When
@@ -312,32 +293,6 @@ int music_cd_close_device(void)
 	return 0;
 }
 
-/* Returns g_music_cd_playback_complete, or 0 when no device is open or no track is
- * current. Nothing calls this. */
-// FUNCTION: XVT 0x4A5300
-int music_cd_is_playback_complete(void)
-{
-	if (g_music_cd_mci_device_id == 0) {
-		return 0;
-	}
-	if (g_music_cd_current_track == 0) {
-		return 0;
-	}
-	return g_music_cd_playback_complete;
-}
-
-/* Returns g_music_cd_mci_device_id. Nothing calls this. */
-// FUNCTION: XVT 0x4A5320
-uint32_t music_cd_get_device_id(void) { return g_music_cd_mci_device_id; }
-
-/* Sets g_music_cd_playback_complete to 1 and returns 1. Nothing calls this. */
-// FUNCTION: XVT 0x4A5330
-int music_cd_mark_playback_complete(void)
-{
-	g_music_cd_playback_complete = 1;
-	return 1;
-}
-
 /* Returns the cached length of track track_number in milliseconds,
  * frames * 1000 / 75 + 1000 * (seconds + 60 * minutes), or 0 when no device is
  * open or the track is not 1 to g_music_cd_track_count. */
@@ -365,64 +320,4 @@ int music_cd_get_track_length_ms(int track_number)
 int music_cd_set_aux_volume(unsigned int volume0_to65535)
 {
 	return cd_audio_set_aux_volume(volume0_to65535);
-}
-
-/* Moves the CD volume from from_volume to to_volume over about fade_duration_ms
- * milliseconds, as the original build's cd_audio_fade_aux_volume does but timed
- * with timeGetTime and needing g_music_cd_mci_device_id: returns 0 when no device
- * is open, 1 at once when the volumes are equal, else 1 after stepping the
- * volume 256 at a time with music_cd_set_aux_volume until it reaches or passes
- * to_volume. Only the original build calls this, from flight_main_loop. */
-// FUNCTION: XVT 0x4A53C0
-int music_cd_fade_aux_volume(unsigned int from_volume, unsigned int to_volume,
-			     int fade_duration_ms)
-{
-	if (g_music_cd_mci_device_id == 0) {
-		return 0;
-	}
-	if (to_volume == from_volume) {
-		return 1;
-	}
-	int fade_up;
-	unsigned int step_delay_ms;
-	if (to_volume < from_volume) {
-		fade_up = 0;
-		step_delay_ms =
-			(fade_duration_ms << 8) / (from_volume - to_volume);
-	} else {
-		fade_up = 1;
-		step_delay_ms =
-			(fade_duration_ms << 8) / (to_volume - from_volume);
-	}
-
-	uint32_t previous_time_ms = timeGetTime();
-	while (1) {
-		int current_time_ms = timeGetTime();
-		if ((int)(previous_time_ms + step_delay_ms) < current_time_ms) {
-			if (fade_up != 0) {
-				unsigned int next_volume = from_volume + 256;
-				if (next_volume > 65535) {
-					from_volume = 65535;
-				} else {
-					from_volume = next_volume;
-				}
-			} else {
-				if (from_volume < 256) {
-					from_volume = 0;
-				} else {
-					from_volume -= 256;
-				}
-			}
-			music_cd_set_aux_volume(from_volume);
-			previous_time_ms = current_time_ms;
-		}
-		if (fade_up != 0) {
-			if (to_volume <= from_volume) {
-				break;
-			}
-		} else if (to_volume >= from_volume) {
-			break;
-		}
-	}
-	return 1;
 }

@@ -268,8 +268,6 @@ void flight_sw_draw_point_array8bpp(uint16_t *points, int16_t count);
 void flight_sw_erase_point_array8bpp(uint16_t *points, int16_t count);
 void flight_sw_draw_radar_target_marker8bpp(void);
 void flight_sw_restore_radar_target_marker8bpp(void);
-uint8_t flight_sw_draw_cross_marker8bpp(uint16_t x, uint16_t y, uint8_t color);
-uint8_t flight_sw_restore_cross_marker8bpp(uint16_t x, uint16_t y);
 void flight_starfield_render(void);
 void rts_vga2_set_current_page(uint8_t window, uint16_t page);
 void flight_screenshot_capture(void);
@@ -329,8 +327,6 @@ unsigned int set_flight_viewport(unsigned int requested_width,
 				 unsigned int requested_height,
 				 int viewport_mode,
 				 unsigned int requested_base_offset);
-void flight_sw_copy_legacy8_bit_viewport_to_framebuffer(
-	const uint8_t *src_pixels);
 unsigned int push_flight_viewport(uint16_t width, uint16_t height,
 				  int16_t refresh_span_mask,
 				  unsigned int base_offset);
@@ -340,12 +336,6 @@ void flight_sw_blit_rect_to_flight_surface(
 	uint16_t source_x, uint16_t source_y, uint16_t destination_x,
 	uint16_t destination_y, uint16_t width_pixels, uint16_t height_pixels,
 	uint16_t source_pitch);
-void flight_sw_copy_framebuffer_rect_to_buffer(uint8_t *dst_pixels,
-					       uint16_t src_x, uint16_t src_y,
-					       uint16_t dst_x, uint16_t dst_y,
-					       uint16_t width_pixels,
-					       uint16_t height_pixels,
-					       uint16_t dst_pitch_bytes);
 void flight_sw_draw_horizontal_color_span(int x_start, int x_end, int y,
 					  uint8_t color_index);
 void flight_sw_copy_viewport_span_mask_rle(const uint8_t *encoded_mask,
@@ -383,9 +373,6 @@ void flight_sw_draw_point_array16bpp(uint16_t *points, int16_t count);
 void flight_sw_erase_point_array16bpp(uint16_t *points, int16_t count);
 void flight_sw_draw_radar_target_marker16bpp(void);
 void flight_sw_restore_radar_target_marker16bpp(void);
-uint16_t flight_sw_draw_cross_marker16bpp(uint16_t x, uint16_t y,
-					  uint8_t color_index);
-uint16_t flight_sw_restore_cross_marker16bpp(uint16_t x, uint16_t y);
 void flight_sw_draw_line16bpp(int x1, int y1, int x2, int y2,
 			      uint8_t color_idx);
 int16_t flight_sw_lookup_sprite_sine_magnitude_q16(int16_t angle);

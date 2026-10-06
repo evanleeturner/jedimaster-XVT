@@ -9,15 +9,7 @@
 extern "C" {
 #endif
 
-extern int g_debug_console_initialized;
-
 void debug_printf(const char *format, ...);
-void debug_console_set_initialized(int initialized);
-void debug_console_set_cursor_position(int column, int row);
-int debug_console_write_text(const char *text);
-void debug_console_write_text_in_scroll_region(int top_row, int bottom_row,
-					       const char *text);
-void debug_console_toggle_file_dump(void);
 
 #ifdef __cplusplus
 }

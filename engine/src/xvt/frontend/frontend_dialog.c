@@ -392,23 +392,6 @@ int frontend_dialog_create_pilot_name_callback(int frame_counter)
 	return 1;
 }
 
-/* Only the original build calls this, when destroying the local DirectPlay
- * player took longer than NET_DESTROY_PLAYER_TIMEOUT_MS. Shows the dialog the
- * way frontend_dialog_show_confirm_dialog does, with
- * frontend_dialog_network_abort_error_callback, which no network packet dismisses,
- * and returns g_dialog_result. The modern build's body returns
- * xvt_dialog_confirm's result for the same dialog. */
-// FUNCTION: XVT 0x4DD480
-int frontend_dialog_show_network_abort_error(const char *line1,
-					     const char *line2,
-					     const char *line3,
-					     const char *okay_label,
-					     const char *cancel_label)
-{
-	return xvt_dialog_confirm(line1, line2, line3, okay_label, cancel_label,
-				  1);
-}
-
 /* The network-error dialog's frame function: the same as
  * frontend_dialog_confirm_update_callback, without the check for a dismissing
  * network packet. Returns 1 when the dialog ends, else 0. Only the original

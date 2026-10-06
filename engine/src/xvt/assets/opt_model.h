@@ -421,15 +421,8 @@ struct opt_hardpoint {
 };
 
 uint16_t opt_model_load_handle(const char *model_filename);
-void opt_model_translate_node_vertices_recursive(
-	const struct opt_node *node, struct optimized_poly_object *model,
-	const float *translation);
-void opt_model_translate_vertices(struct optimized_poly_object *model,
-				  const float *translation);
 void opt_model_adjust_optimized_poly_object_pointers(
 	struct optimized_poly_object *model);
-void opt_model_adjust_optimized_node_pointers(struct opt_node *node,
-					      xvt_opt_value relocation_delta);
 uint16_t opt_model_load_file_to_handle(char *filename);
 unsigned int
 opt_model_convert_legacy_model_to_optimized(unsigned int source_size);

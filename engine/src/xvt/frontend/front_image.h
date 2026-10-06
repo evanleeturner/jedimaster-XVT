@@ -58,7 +58,6 @@ int front_image_register_resource(const char *file_name, const char *name,
 				  int compress_rle);
 void front_image_free_resource_by_name(const char *name);
 void front_image_free_all_resources(void);
-int front_image_resource_exists(const char *name);
 int front_image_get_resource_rect(const char *name, struct RECT *out_rect);
 int front_image_draw_sprite_translucent(const char *name, int x, int y);
 int front_image_blit_translucent(const struct image_resource *image, int x,
@@ -118,8 +117,6 @@ void front_image_remap_palette(uint8_t *pixels, const uint8_t *src_palette,
 			       const struct BITMAPINFOHEADER *info_header);
 char front_image_remap_palette_index(const uint8_t *src_rgb, int src_index);
 int front_image_compress_rle(struct image_resource *image);
-int front_image_encode_glyph_row(struct front_image_rle_row_buffer *row_buffer,
-				 const uint8_t *src_pixels, int width);
 void front_image_insert_resource_sorted(
 	const struct front_image_resource_record *entry);
 void front_image_remove_resource_at(int index);
@@ -130,8 +127,6 @@ int front_image_bsearch_resource(
 int front_image_save_bmp_file(const char *file_name, const void *pixels,
 			      int width, int height, int pitch, int bpp,
 			      int is555, const void *palette);
-int front_image_load_bmp_palette_file(const char *file_name,
-				      uint8_t *dest_rgba);
 void front_image_read_bmp_palette(xvt_file *stream, uint8_t *dest, int count);
 unsigned int front_image_get_faded_glyph_color16(unsigned int color16);
 int front_image_load_resource_list(const char *file_name);

@@ -126,7 +126,6 @@ extern int g_net_session_sent_world_message_write_index;
 extern struct net_queued_packet g_net_session_sent_history[128];
 extern struct net_queued_packet g_net_session_sent_world_message_history[256];
 
-void net_session_debug_trace(const char *message);
 int net_session_init_game_session(const char *formal_name,
 				  const char *pilot_name, int is_host,
 				  const char *mp_game_name,
@@ -164,9 +163,6 @@ int net_session_send_sequenced_game_packet(int dest_dplay_id,
 					   const unsigned int *packet,
 					   unsigned int packet_size);
 struct session_player_info *net_session_get_player_roster(int *out_count);
-struct session_player_info *net_session_get_local_player_info(void);
-int net_session_set_player_roster(const struct session_player_info *players,
-				  int player_count);
 int net_session_get_player_count(void);
 int net_session_is_local_host(void);
 int *net_session_receive_game_packet(int *out_sender_dpid,
@@ -180,28 +176,14 @@ int net_session_send_compact_game_packet(int direct_play_id,
 int *net_session_wait_for_game_packet(int *out_dpid, int *out_payload_size,
 				      int timeout_seconds);
 int net_session_find_player_slot_by_dpid(int dpid);
-int net_session_get_player_dplay_id(int player_index);
-int net_session_get_dplay_id_by_active_player_index(int active_player_index);
-int net_session_find_active_player_index_by_dpid(int dpid);
 int net_session_get_host_dplay_id(void);
 int net_session_get_local_dplay_id(void);
 char *net_session_get_player_name(int player_slot);
-struct session_player_info *net_session_peek_queued_player_info(void);
-void net_session_discard_first_queued_player_info(void);
-int net_session_count_leading_active_players(void);
-void net_session_set_player_count(int player_count);
-void net_session_add_player_to_roster_slot(
-	int player_slot, const struct session_player_info *player_info);
 int net_session_broadcast_player_roster(int to_player_id);
-int net_session_get_queued_player_info_count(void);
-void net_session_queue_player_info(
-	const struct session_player_info *player_info);
 int net_session_add_player_to_group(
 	const struct session_player_info *player_info);
 int net_session_count_active_players(void);
 int net_session_remove_player_from_group(int player_dplay_id);
-int net_session_select_first_active_player_as_host(void);
-int net_session_unused_stub_return_true(void);
 int net_session_stub_return_true(void);
 int net_session_get_fixed_payload_size(int packet_type);
 int net_session_send_reliable_keepalives(void);

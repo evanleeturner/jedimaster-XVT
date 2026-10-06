@@ -419,18 +419,6 @@ void dinput_update_keyboard_modifier_state(void)
 	}
 }
 
-/* Reads the whole keyboard state into a local buffer, discards it and returns
- * GetDeviceState's result. Nothing calls this. */
-// FUNCTION: XVT 0x4437F0
-HRESULT dinput_probe_keyboard_state(void)
-{
-	uint8_t keyboard_state[256];
-
-	return g_dinput_keyboard_device->lpVtbl->GetDeviceState(
-		g_dinput_keyboard_device, sizeof(keyboard_state),
-		keyboard_state);
-}
-
 /* Unacquires the keyboard and sets g_dinput_keyboard_acquired to 0 when that flag
  * is set, then releases g_dinput_keyboard_device and g_direct_input when they are
  * not NULL. The modern build also sets both to NULL; the original build leaves

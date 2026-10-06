@@ -221,18 +221,12 @@ extern struct flight_input_frame_record g_replay_inputs[8];
 extern int16_t g_flight_mouse_x;
 extern int16_t g_flight_mouse_y;
 extern int g_flight_conf_direct_input;
-extern int g_flight_input_non_blocking_msg_pump;
 extern uint8_t g_last_key_code;
 extern int g_key_ready;
 
 void flight_input_latch_flight_controls(void);
 void flight_input_apply_deadzone(void);
-void flight_input_read_and_apply_flight_deadzone(int player_idx_or_sentinel);
-void flight_input_wait_for_action_key_release(void);
-void flight_input_wait_for_press(void);
-void flight_input_clear_buttons_and_debounce(void);
 void flight_input_reset_runtime_state(void);
-void flight_input_clear_axes_and_modifiers(void);
 void flight_input_reset_control_state(void);
 uint16_t flight_input_read(int player_idx_or_sentinel);
 int flight_input_has_key_ready(void);

@@ -54,26 +54,17 @@ int frontend_text_handle_editable_field(const struct RECT *rect, char *text,
 					const char *ignored_chars);
 int frontend_text_load_font(int point_size);
 void frontend_text_free_all_fonts(void);
-void frontend_text_free_font(unsigned int point_size);
 int frontend_text_draw(int font_size, const char *str, int x, int y, int color);
 int frontend_text_draw_centered(int font_size, const char *str,
 				const struct RECT *rect, int color);
 int frontend_text_draw_aligned_in_rect(int font_size, const char *str,
 				       const struct RECT *rect, int center_h,
 				       int center_v, int color);
-int frontend_text_draw_line_array_in_rect(int font_size, const char **lines,
-					  int line_count,
-					  const struct RECT *rect, int color,
-					  int center_horizontally,
-					  int center_vertically,
-					  int line_spacing);
 int frontend_text_draw_wrapped(int font_size, const char *str,
 			       const struct RECT *rect, int color,
 			       int line_spacing, int first_visible_line);
 int frontend_text_get_font_height(int font_size);
 int frontend_text_measure_width(const char *str, int font_size);
-void frontend_text_save_font_atlas_file(const char *file_name, void **font,
-					unsigned int glyph_blob_size);
 int frontend_text_load_font_atlas_file(const char *file_name, int slot_index);
 int frontend_text_start_text_fade_in(int frames);
 int frontend_text_stop_text_fade(void);

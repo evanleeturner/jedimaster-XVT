@@ -86,11 +86,6 @@ struct net_session_scratch_state g_net_session_scratch_packet = {0};
 // GLOBAL: XVT 0x9EC608
 static uint8_t g_net_session_flight_handshake_active = 0;
 
-/* Does nothing; message is ignored. */
-// FLAGS: /O2 /G5
-// FUNCTION: XVT 0x46C220
-void net_session_debug_trace(const char *message) { (void)message; }
-
 /* Opens the flight's network session from the state the frontend saved
  * (net_session_import_runtime_state): DirectPlay interface, ids, receive queue,
  * reliable peer slots, channel sequences and sent history. It first clears
@@ -1749,26 +1744,6 @@ struct session_player_info *net_session_get_player_roster(int *out_count)
 {
 	*out_count = g_net_session.player_count;
 	return g_net_session.players;
-}
-
-/* Returns this player's own entry, g_net_session.local_player_info. Nothing calls
- * this. */
-// FUNCTION: XVT 0x46DFC0
-struct session_player_info *net_session_get_local_player_info(void)
-{
-	return &g_net_session.local_player_info;
-}
-
-/* Copies player_count entries into the roster and sets the roster count; returns
- * 1. Does not check player_count against the 8 slots. Nothing calls this. */
-// FUNCTION: XVT 0x46DFD0
-int net_session_set_player_roster(const struct session_player_info *players,
-				  int player_count)
-{
-	memcpy(g_net_session.players, players,
-	       (size_t)player_count * sizeof(*players));
-	g_net_session.player_count = player_count;
-	return 1;
 }
 
 /* Returns the roster count, or 1 when it is 0. */
@@ -3546,57 +3521,6 @@ int net_session_find_player_slot_by_dpid(int dpid)
 	return player_slot;
 }
 
-/* Returns the DirectPlay id in roster slot player_index; does not check the
- * index. Nothing calls this. */
-// FUNCTION: XVT 0x46F680
-int net_session_get_player_dplay_id(int player_index)
-{
-	return g_net_session.players[player_index].direct_play_id;
-}
-
-/* Returns the DirectPlay id of the active roster entry numbered
- * active_player_index, counting active entries from 0, or 0 when there are not
- * that many. Nothing calls this. */
-// FUNCTION: XVT 0x46F690
-int net_session_get_dplay_id_by_active_player_index(int active_player_index)
-{
-	int active_index = 0;
-	unsigned int player_slot;
-	for (player_slot = 0; player_slot < 8; player_slot++) {
-		if (g_net_session.players[player_slot].active_flag != 0) {
-			if (active_index == active_player_index) {
-				break;
-			}
-			active_index++;
-		}
-	}
-
-	if (player_slot < 8) {
-		return g_net_session.players[player_slot].direct_play_id;
-	}
-	return 0;
-}
-
-/* Returns how many active roster entries come before the active entry whose id
- * is dpid; when none is, the count of all active entries. Nothing calls
- * this. */
-// FUNCTION: XVT 0x46F6D0
-int net_session_find_active_player_index_by_dpid(int dpid)
-{
-	int active_player_index = 0;
-	for (int player_slot = 0; player_slot < 8; player_slot++) {
-		if (g_net_session.players[player_slot].active_flag != 0) {
-			if (g_net_session.players[player_slot].direct_play_id ==
-			    dpid) {
-				break;
-			}
-			active_player_index++;
-		}
-	}
-
-	return active_player_index;
-}
-
 /* Returns the host's DirectPlay id, g_net_session.host_dplay_id. */
 // FUNCTION: XVT 0x46F700
 int net_session_get_host_dplay_id(void) { return g_net_session.host_dplay_id; }
@@ -3636,84 +3560,6 @@ char *net_session_get_player_name(int player_slot)
 	return NULL;
 }
 
-/* Returns the first queued player entry, or NULL when the queue is empty.
- * Nothing calls this. */
-// FUNCTION: XVT 0x46F780
-struct session_player_info *net_session_peek_queued_player_info(void)
-{
-	return g_net_session.player_info_queue_count > 0
-		       ? g_net_session.player_info_queue
-		       : 0;
-}
-
-/* Takes 1 off g_net_session.player_info_queue_count and copies the queue up over
- * its first entry, but copies only count minus 1 bytes, not entries, so the
- * queue is not moved up. Nothing calls this. */
-// FUNCTION: XVT 0x46F7A0
-void net_session_discard_first_queued_player_info(void)
-{
-	if (g_net_session.player_info_queue_count > 0) {
-		memcpy(g_net_session.player_info_queue,
-		       &g_net_session.player_info_queue[1],
-		       (size_t)(g_net_session.player_info_queue_count - 1));
-		g_net_session.player_info_queue_count--;
-	}
-}
-
-/* Returns how many roster slots from slot 0 are active before the first
- * inactive one. Nothing calls this. */
-// FUNCTION: XVT 0x46F7D0
-int net_session_count_leading_active_players(void)
-{
-	int player_count;
-
-	for (player_count = 0; player_count < 8; ++player_count) {
-		if (g_net_session.players[player_count].active_flag == 0) {
-			break;
-		}
-	}
-	return player_count;
-}
-
-/* Sets the roster count. Nothing calls this. */
-// FUNCTION: XVT 0x46F7F0
-void net_session_set_player_count(int player_count)
-{
-	g_net_session.player_count = player_count;
-}
-
-/* Copies player_info into roster slot player_slot, marks it active and adds 1 to
- * the roster count, even when the slot was in use. Does not check player_slot.
- * Nothing calls this. */
-// FUNCTION: XVT 0x46F800
-void net_session_add_player_to_roster_slot(
-	int player_slot, const struct session_player_info *player_info)
-{
-	g_net_session.players[player_slot] = *player_info;
-	struct session_player_info *roster_slot =
-		&g_net_session.players[player_slot];
-	roster_slot->active_flag = 1;
-	g_net_session.player_count++;
-}
-
-/* Returns g_net_session.player_info_queue_count. Nothing calls this. */
-// FUNCTION: XVT 0x46F9D0
-int net_session_get_queued_player_info_count(void)
-{
-	return g_net_session.player_info_queue_count;
-}
-
-/* Appends a copy of player_info to g_net_session.player_info_queue. Does not check
- * that the 8-entry queue has room. Nothing calls this. */
-// FUNCTION: XVT 0x46F9E0
-void net_session_queue_player_info(
-	const struct session_player_info *player_info)
-{
-	g_net_session.player_info_queue[g_net_session.player_info_queue_count] =
-		*player_info;
-	g_net_session.player_info_queue_count++;
-}
-
 /* Asks DirectPlay to add the player to the session group,
  * g_net_session.group_dplay_id; returns DirectPlay's result code. Does not check
  * for a DirectPlay interface. */
@@ -3749,28 +3595,6 @@ int net_session_remove_player_from_group(int player_dplay_id)
 		g_net_session.dplay_interface, g_net_session.group_dplay_id,
 		(DPID)player_dplay_id);
 }
-
-/* Makes the first active roster entry the host in g_net_session.host_dplay_id and
- * returns 1, or returns 0 when none is active. Does not change
- * g_net_session.local_is_host. Nothing calls this. */
-// FUNCTION: XVT 0x46FA70
-int net_session_select_first_active_player_as_host(void)
-{
-	int player_index = 0;
-	while (g_net_session.players[player_index].active_flag == 0) {
-		player_index++;
-		if (player_index >= 8) {
-			return 0;
-		}
-	}
-	g_net_session.host_dplay_id =
-		g_net_session.players[player_index].direct_play_id;
-	return 1;
-}
-
-/* Returns 1 and does nothing else. Nothing calls this. */
-// FUNCTION: XVT 0x46FAB0
-int net_session_unused_stub_return_true(void) { return 1; }
 
 /* Returns 1 and does nothing else. */
 // FUNCTION: XVT 0x46FAC0

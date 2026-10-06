@@ -112,8 +112,6 @@ static __inline int math_rodrigues_term_negative_cos(int axis_a_q15,
 
 void math_set_fpu_single_precision_mode(void);
 void math_set_fpu_extended_precision_mode(void);
-uint16_t math_div_u16_with_fraction_q16(uint16_t dividend, uint16_t divisor);
-unsigned int math_u16_to_q16(uint16_t value);
 
 #ifdef __cplusplus
 }

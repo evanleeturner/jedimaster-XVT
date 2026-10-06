@@ -33,13 +33,8 @@ int model_preview_render_viewport(int x, int y, int width, int height, ...);
 void model_preview_scale_opt_node_tree(struct opt_node *node,
 				       struct optimized_poly_object *opt,
 				       double scale);
-void model_preview_unscale_opt_node_tree(struct opt_node *node,
-					 struct optimized_poly_object *opt,
-					 double scale);
 void model_preview_scale_opt_root_nodes(struct optimized_poly_object *opt,
 					double scale);
-void model_preview_unscale_opt_root_nodes(struct optimized_poly_object *opt,
-					  double scale);
 void model_preview_accumulate_opt_node_bounds(
 	struct opt_node *node, struct optimized_poly_object *object);
 double

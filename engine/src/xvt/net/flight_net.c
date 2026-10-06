@@ -83,12 +83,6 @@ int g_flight_net_host_abort_received = 0;
  * g_input_timestamp minus g_game_time. */
 // GLOBAL: XVT 0x523418
 int g_net_update_interval_ticks = 29;
-/* 1 while the communication-failure alert of flight_net_process_incoming_packets
- * is up; the host takes no world-message turn meanwhile. Only the original
- * build sets it: flight_net_process_incoming_packets opens and closes the alert,
- * and flight_net_wait_for_mission_start resets it to 0. */
-// GLOBAL: XVT 0x557358
-int g_flight_net_recovery_ui_active = 0;
 /* The buffer each flight packet is built in just before it is sent; what it
  * holds lasts until the next packet is built. 24 functions write it: most
  * functions in this file, xvt_flight_network_wait_for_mission_start,
@@ -111,16 +105,6 @@ int g_flight_net_clock_probe_timestamp = 0;
  * xvt_flight_network_receive; both mission-start waits zero it. */
 // GLOBAL: XVT 0x556ED8
 int g_flight_net_peer_silence_ticks[8] = {0};
-/* Input-clock tick at which the communication-failure alert opened or last
- * changed its text; the text alternates every 118 ticks. Only
- * flight_net_process_incoming_packets uses it, in the original build. */
-// GLOBAL: XVT 0x556EFC
-int g_flight_net_recovery_ui_blink_time = 0;
-/* g_input_timestamp when the communication-failure alert opened;
- * g_input_timestamp returns to it when the alert closes. Only
- * flight_net_process_incoming_packets uses it, in the original build. */
-// GLOBAL: XVT 0x55734C
-int g_flight_net_recovery_saved_input_timestamp = 0;
 /* The local input clock, in ticks: the tick stamped on this player's next
  * input. It runs ahead of g_server_tick_time by about g_flight_net_clock_lead_ticks
  * and is steered toward that gap (see g_flight_net_clock_adjust_accum_ticks). 28
@@ -159,44 +143,6 @@ int g_player_abort_flags[8] = {0};
  * xvt_flight_loading_globals. */
 // GLOBAL: XVT 0xA082A8
 struct flight_input_frame_record g_current_input_frame = {0};
-/* g_input_timestamp of the last input packet flight_net_sample_local_input built; 0
- * means none yet, which forces a full timestamp. Reset to 0 by
- * flight_net_wait_for_mission_start. Only the original build uses it. */
-// GLOBAL: XVT 0x559788
-int g_last_sent_input_timestamp = 0;
-/* g_input_timestamp of the last input packet that carried a full 4-byte
- * timestamp; flight_net_sample_local_input sends a full one again when the
- * previous input came more than 236 ticks after it. Reset to 0 by
- * flight_net_wait_for_mission_start. Only the original build uses it. */
-// GLOBAL: XVT 0x557348
-int g_last_keyframe_time = 0;
-/* The internet-play input batch being filled: packet type, record count, then
- * the records, each encoded as in flight_net_sample_local_input without the packet
- * type. flight_net_sample_local_input appends to it and sends it;
- * flight_net_wait_for_mission_start empties it. Only the original build uses it. */
-// GLOBAL: XVT 0x557148
-struct flight_net_input_batch_packet g_flight_net_input_batch_packet = {0};
-/* Bytes used in g_flight_net_input_batch_packet, its 5-byte header included, so 5
- * when empty. Written by flight_net_sample_local_input and
- * flight_net_wait_for_mission_start; only the original build uses it. */
-// GLOBAL: XVT 0x557354
-int g_flight_net_input_batch_len = 0;
-/* Per player slot, the timestamp of that player's last decoded input; a record
- * that carries only the low 7 bits takes the high bits from here, one step of
- * 128 later when the low bits went backward. Written as inputs are decoded by
- * flight_net_process_incoming_packets and flight_net_handle_world_state_resync_packet;
- * zeroed by flight_net_wait_for_mission_start. Only the original build uses it. */
-// GLOBAL: XVT 0x557560
-int g_flight_net_last_input_timestamp_by_player[8] = {0};
-/* g_input_timestamp when flight_net_sample_local_input last sent the input batch;
- * zeroed by flight_net_wait_for_mission_start. Only the original build uses it. */
-// GLOBAL: XVT 0x556EF8
-int g_flight_net_last_input_batch_send_time = 0;
-/* The input batch goes out once more than this many ticks have passed since the
- * last send. flight_net_wait_for_mission_start sets it to 23 and nothing else
- * writes it; only the original build uses it. */
-// GLOBAL: XVT 0x557580
-int g_flight_net_input_batch_interval_ticks = 0;
 /* With internet play, sessions of at least this many players (3) send inputs to
  * the host only, and smaller ones also send them to every other connected
  * player. The head start a clock probe asks for is halved in smaller sessions,
@@ -207,15 +153,6 @@ int g_flight_net_small_session_player_threshold = 3;
  * xvt_flight_network_receive count it up, and nothing reads or resets it. */
 // GLOBAL: XVT 0x5242CC
 int g_flight_net_received_world_message_count = 0;
-/* When 1, flight_net_sample_local_input logs each local input to inputlog.txt and
- * flight_net_broadcast_world_message logs each world message to serverlog.txt.
- * Nothing sets it, so it stays 0 and neither log is written. */
-// GLOBAL: XVT 0x5242D0
-int g_input_log_enabled = 0;
-/* inputlog.txt, opened by flight_net_sample_local_input on the first logged input
- * and never closed; NULL until then. */
-// GLOBAL: XVT 0x5242D4
-xvt_file *g_input_log_file = NULL;
 /* World messages sent this run (the original also counts a call in a solo
  * flight); flight_net_broadcast_world_message and xvt_flight_network_send_world count
  * it up, and nothing reads or resets it. */
@@ -239,10 +176,6 @@ int g_flight_net_checksum_request_accum_ticks = 0;
  * g_flight_net_buffer_world_messages_until_checksum. */
 // GLOBAL: XVT 0x9D77D0
 int g_flight_net_world_checksum_peer_status[8] = {0};
-/* serverlog.txt, opened by flight_net_broadcast_world_message on the first logged
- * world message and never closed; NULL until then. */
-// GLOBAL: XVT 0x5242D8
-xvt_file *g_flight_net_server_log_file = NULL;
 /* Ticks since this player last heard from the host: a world message or the
  * host's loading pulse sets it to 0, and the ticks that pass without one add up
  * (every frame on a client in the new code, during stalls and resyncs in the
@@ -265,17 +198,6 @@ int g_flight_net_world_state_ack_received_flag = 0;
  * functions. */
 // GLOBAL: XVT 0x556F08
 int g_flight_net_world_state_chunk_acked[16] = {0};
-/* Per world-state segment, the host's checksum of the world it is resending,
- * filled by flight_build_world_state_resync_segment_checksums for
- * flight_net_send_world_state_resync_to_player; segments whose checksum matches the
- * receiver's are not sent. Only the original build uses it. */
-// GLOBAL: XVT 0x556F48
-int g_flight_net_local_resync_checksums[126] = {0};
-/* Per world-state segment, the checksums the receiving player sent back in
- * RESYNC_CHECKSUMS, copied in by flight_net_process_incoming_packets. Only the
- * original build uses it. */
-// GLOBAL: XVT 0x557588
-int g_flight_net_remote_resync_checksums[126] = {0};
 /* The batch of up to 16 RESYNC_CHUNK packets being built and sent to one
  * player; built by flight_net_send_world_state_resync_to_player and the XvtResync_
  * chunk builders. */
@@ -289,37 +211,6 @@ struct flight_net_world_state_chunk_packet
  * xvt_resync_checksums and xvt_resync_receive_packet. */
 // GLOBAL: XVT 0x55978C
 int g_flight_net_remote_resync_checksums_received_flag = 0;
-
-/* Picks the player the communication-failure alert names: the one in
- * g_flight_net_resync_player_dplay_id, or the host when that id is 0 or the player
- * has aborted or no longer takes part. Stores the chosen id back in
- * g_flight_net_resync_player_dplay_id and returns net_session_get_player_name for that
- * slot. Does not check for the 8 net_session_find_player_slot_by_dpid returns when
- * no player has the id. Only the original build calls this. */
-// FLAGS: /O2 /G5
-// FUNCTION: XVT 0x462A10
-char *flight_net_resolve_resync_player_name(void)
-{
-	int player_dplay_id = g_flight_net_resync_player_dplay_id;
-	if (player_dplay_id == 0) {
-		player_dplay_id = net_session_get_host_dplay_id();
-	}
-	g_flight_net_resync_player_dplay_id = player_dplay_id;
-	int player_slot = net_session_find_player_slot_by_dpid(player_dplay_id);
-	if (g_player_abort_flags[player_slot] != 0) {
-		g_flight_net_resync_player_dplay_id =
-			net_session_get_host_dplay_id();
-		player_slot = net_session_find_player_slot_by_dpid(
-			net_session_get_host_dplay_id());
-	}
-	if (g_players[player_slot].participation_state == 0) {
-		g_flight_net_resync_player_dplay_id =
-			net_session_get_host_dplay_id();
-		player_slot = net_session_find_player_slot_by_dpid(
-			net_session_get_host_dplay_id());
-	}
-	return net_session_get_player_name(player_slot);
-}
 
 /* Before a flight, shares each player's screen resolution mode, rating and
  * taunts. The modern build hands off to xvt_flight_network_exchange_options and
@@ -417,37 +308,6 @@ int flight_net_broadcast_host_session_abort(void)
 	XVT_LOG_INFO("network.session_abort_sent tick=%d", g_server_tick_time);
 	return xvt_flight_network_broadcast(
 		(unsigned int *)&g_flight_net_scratch_packet, 4);
-}
-
-/* Tells the host alone that this player is still loading, with a 4-byte
- * STILL_LOADING packet; the host then resets its silence count for this player.
- * Writes g_flight_net_scratch_packet. Returns the send function's result. Only the
- * original build calls this. */
-// FUNCTION: XVT 0x463BF0
-int flight_net_send_still_loading_pulse(void)
-{
-	g_flight_net_scratch_packet.packet_type = NET_PACKET_STILL_LOADING;
-	return xvt_flight_network_send_packet(
-		net_session_get_host_dplay_id(),
-		(unsigned int *)&g_flight_net_scratch_packet, 4);
-}
-
-/* Tells every active player that the player in player_slot has lost its link,
- * and clears g_player_connected for that slot here; players then stop sending it
- * their inputs directly. Writes g_flight_net_scratch_packet. Returns the
- * broadcast's result. Does not check the slot range. Only the original build
- * calls this. */
-// FUNCTION: XVT 0x463C10
-int flight_net_broadcast_player_disconnected(int player_slot)
-{
-	g_flight_net_scratch_packet.packet_type =
-		NET_PACKET_PLAYER_DISCONNECTED;
-	g_flight_net_scratch_packet.payload_dwords[0] = player_slot;
-	int result;
-	result = xvt_flight_network_broadcast(
-		(unsigned int *)&g_flight_net_scratch_packet, 8);
-	g_player_connected[player_slot] = 0;
-	return result;
 }
 
 /* Tells every active player, this one included, that the player in player_slot
@@ -607,47 +467,6 @@ void flight_net_reset_world_message_schedule(void)
 	g_flight_net_last_sent_world_message_timestamp = 0;
 }
 
-/* Says whether the host should send a world message now, and if so moves
- * g_flight_net_world_message_turn_timestamp on by g_net_update_interval_ticks. Returns
- * 0 while acks are pending or the recovery alert is up, and until a full
- * interval has passed since the turn timestamp, which starts at the adjusted
- * time (input_timestamp plus g_flight_net_clock_adjust_accum_ticks) plus an eighth of
- * g_flight_net_clock_lead_ticks. Returns 1 when more than 5 intervals have passed,
- * or when the latest input awaiting relay of every player still flying is later
- * than the last world message's tick plus one interval; else 0. Only the
- * original build calls this; its modern arm hands off to
- * xvt_flight_network_take_world_send_turn. */
-// FUNCTION: XVT 0x464C80
-int flight_net_take_world_message_turn(int input_timestamp)
-{
-	return xvt_flight_network_take_world_send_turn(input_timestamp);
-}
-
-/* Sends the host's world message: every input awaiting relay, from each player
- * still flying, up to the message's tick. The original counts the call in
- * g_flight_net_sent_world_message_count and stops there in a solo flight. The tick
- * is g_flight_net_last_sent_world_message_timestamp plus g_net_update_interval_ticks,
- * stored back there; the ticks since g_server_tick_time add up in
- * g_flight_net_checksum_request_accum_ticks, and past 472 the tick's top bit asks
- * every player for a world checksum, g_flight_net_world_checksum_peer_status is
- * cleared and the sum restarts. Per player: a record count byte, then per input
- * a code byte holding the ticks before the message tick (0-124 as is; 125 and 1
- * more byte; 126 and 2 bytes; 127 and the full 4-byte timestamp), its top bit
- * adding a key byte, then the X and Y bytes with a key-modifier bit in each low
- * bit. Marks each input sent as relayed, and skips the rest of a player's
- * inputs once one more might not fit in 504 bytes less the player count. Sends
- * to DirectPlay id 0, which reaches all players. With g_input_log_enabled at 1 it
- * writes serverlog.txt through g_flight_net_server_log_file, but reads the records
- * as fixed 10-byte entries the packet does not hold. input_timestamp is unused.
- * Writes g_flight_net_scratch_packet. Only the original build calls this; its
- * modern arm hands off to xvt_flight_network_send_world. */
-// FUNCTION: XVT 0x464D70
-void flight_net_broadcast_world_message(int input_timestamp)
-{
-	(void)input_timestamp;
-	xvt_flight_network_send_world();
-}
-
 /* Sends the host this player's world checksum: a WORLD_CHECKSUM packet holding
  * g_server_tick_time, checksum_dword_count checksum words, then as many region
  * lengths. The modern build adds one zero word after them, which the host's
@@ -704,61 +523,4 @@ int flight_net_broadcast_world_checksum(const int *world_checksum,
 	return xvt_flight_network_broadcast(
 		(unsigned int *)&g_flight_net_scratch_packet,
 		checksum_dword_count * 8 + 8);
-}
-
-/* Tells the player a resync went to that it may apply the world: sends a
- * RESYNC_APPLY with g_flight_net_world_checksum_epoch, world_state_size and
- * g_input_timestamp, then waits for its ack in up to 10 passes of 236 ticks,
- * reading packets; a chunk ack restarts the pass, ESC ends the wait, and every
- * 236 ticks waited sends all players a STILL_LOADING. With no ack it tells all
- * players that player has aborted. Then sets g_input_timestamp to
- * g_flight_net_clock_lead_ticks plus g_server_tick_time and sends all players a
- * RESYNC_NOTICE of 0, which ends the resync. Writes g_flight_net_pending_ack_count,
- * g_flight_net_world_state_ack_received_flag and g_flight_net_scratch_packet. Only the
- * original build calls this; its modern arm hands off to
- * xvt_resync_begin_apply. */
-// FUNCTION: XVT 0x4651F0
-void flight_net_send_world_state_resync_apply_request(int direct_play_id,
-						      int world_state_size)
-{
-	xvt_resync_begin_apply(direct_play_id, world_state_size);
-}
-
-/* Resends the world state to a player whose checksum did not match. Shows the
- * communication-failure alert with the player's name, tells all players a
- * resync for that DirectPlay id has begun, and sends the player a
- * RESYNC_REQUEST with the object presence map. It then waits up to 10 passes of
- * 236 ticks for the player's segment checksums, sending it and all players a
- * STILL_LOADING every 236 ticks; ESC ends the wait. With no answer it tells all
- * players that player has aborted and returns 0. Otherwise it sends only the
- * segments whose checksums differ from g_flight_net_local_resync_checksums, as
- * RESYNC_CHUNK packets of (offset, size, bytes) records ended by an offset of
- * -1, in batches of 16 that the player must ack; it always sends a last chunk,
- * even an empty one. Returns 0 when an ack wait fails, else 1. Writes
- * g_flight_net_world_state_chunk_packets, g_flight_net_world_state_chunk_acked,
- * g_flight_net_remote_resync_checksums_received_flag, g_flight_net_pending_ack_count (1
- * while busy, 0 after) and g_flight_net_scratch_packet, and adds the ticks elapsed
- * on entry to g_input_timestamp. Only the original build calls this; its modern
- * arm hands off to xvt_resync_begin_send. */
-// FUNCTION: XVT 0x465390
-int flight_net_send_world_state_resync_to_player(int direct_play_id,
-						 uint8_t *world_state,
-						 int world_state_size)
-{
-	return xvt_resync_begin_send(direct_play_id, world_state,
-				     world_state_size);
-}
-
-/* Waits until the player has acked the first chunk_count resync chunks in
- * g_flight_net_world_state_chunk_acked, reading packets, and returns 1. Every 236
- * ticks it sends all players a STILL_LOADING and changes the alert text; after
- * 20 of those in a row with no new ack, or on ESC, it tells all players that
- * player has aborted and returns 0. Writes g_flight_net_scratch_packet;
- * g_input_timestamp is put back after each read. Only the original build calls
- * this; its modern arm hands off to xvt_resync_wait_acks. */
-// FUNCTION: XVT 0x4658C0
-int flight_net_wait_for_world_state_chunk_acks(int direct_play_id,
-					       int chunk_count)
-{
-	return xvt_resync_wait_acks(direct_play_id, chunk_count);
 }

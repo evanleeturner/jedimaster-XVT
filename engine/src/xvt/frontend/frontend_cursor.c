@@ -306,78 +306,6 @@ void frontend_cursor_draw(void)
 	g_front_state.cursor_prev_draw_height = visible_height;
 }
 
-/* Nothing calls this. Copies the pixels frontend_cursor_draw saved back to the
- * back buffer at g_front_state.cursor_prev_draw_x and cursor_prev_draw_y, over the
- * visible size it recorded, which erases the cursor. Locks the back buffer into
- * g_draw_surface_ptr and unlocks it at the end. The modern build also marks the
- * restore for its renderer. */
-// FUNCTION: XVT 0x4DDF90
-void frontend_cursor_restore(void)
-{
-	uint8_t *destination = frontend_display_lock_back_buffer();
-	uint8_t *source = g_front_state.cursor_save_buf;
-	int display_bpp = g_front_state.display_bpp;
-	g_draw_surface_ptr = destination;
-	xvt_render_frontend_cursor(1);
-
-	switch (display_bpp) {
-	case 8: {
-		int row_offset = g_front_state.draw_surface_pitch;
-		row_offset *= g_front_state.cursor_prev_draw_y;
-		row_offset += g_front_state.cursor_prev_draw_x;
-		destination += row_offset;
-		int source_pitch = g_front_state.cursor_width;
-		int copy_width = g_front_state.cursor_prev_draw_width;
-		if (g_front_state.cursor_prev_draw_height > 0) {
-			int remaining_rows =
-				g_front_state.cursor_prev_draw_height;
-			do {
-				memcpy(destination, source, copy_width);
-				source += source_pitch;
-				destination += g_front_state.draw_surface_pitch;
-				--remaining_rows;
-			} while (remaining_rows != 0);
-		}
-		break;
-	}
-	case 16: {
-		int row_offset = g_front_state.draw_surface_pitch;
-		row_offset *= g_front_state.cursor_prev_draw_y;
-		row_offset += 2 * g_front_state.cursor_prev_draw_x;
-		uint8_t *row_destination = destination + row_offset;
-		int copy_width = g_front_state.cursor_prev_draw_width;
-		int source_pitch = g_front_state.cursor_width;
-		if (g_front_state.cursor_prev_draw_height > 0) {
-			int remaining_rows =
-				g_front_state.cursor_prev_draw_height;
-			do {
-				if (copy_width > 0) {
-					uint16_t *source_pixel =
-						(uint16_t *)source;
-					uint16_t *destination_pixel =
-						(uint16_t *)row_destination;
-					int remaining_pixels = copy_width;
-					do {
-						*destination_pixel++ =
-							*source_pixel++;
-						--remaining_pixels;
-					} while (remaining_pixels != 0);
-				}
-				source += 2 * source_pitch;
-				row_destination +=
-					g_front_state.draw_surface_pitch &
-					0xFFFFFFFE;
-				--remaining_rows;
-			} while (remaining_rows != 0);
-		}
-		break;
-	}
-	default:
-		break;
-	}
-	frontend_display_unlock_back_buffer();
-}
-
 /* Copies g_front_state.mouse_x and mouse_y to *outX and *outY. Returns outX. */
 // FUNCTION: XVT 0x4DE090
 int *frontend_cursor_get_pos(int *out_x, int *out_y)
@@ -421,10 +349,6 @@ void frontend_cursor_show(void) { g_front_state.cursor_visible = 1; }
 // FUNCTION: XVT 0x4DE110
 void frontend_cursor_hide(void) { g_front_state.cursor_visible = 0; }
 
-/* Nothing calls this. Returns g_front_state.cursor_visible. */
-// FUNCTION: XVT 0x4DE120
-int frontend_cursor_is_visible(void) { return g_front_state.cursor_visible; }
-
 /* Copies g_front_state.cursor_width and cursor_height to *out_width and *out_height.
  * Returns 1. */
 // FUNCTION: XVT 0x4DE130
@@ -441,15 +365,5 @@ int frontend_cursor_get_dimensions(int *out_width, int *out_height)
 // FUNCTION: XVT 0x4DE150
 int frontend_cursor_hide_os_cursor(void)
 {
-	return Aeron_SetHostCursorVisible(0);
-}
-
-/* Only the original build calls this. It calls ShowCursor(1) until the display
- * count is 0 or more and returns 1. The modern build's body keeps the host
- * cursor hidden and returns Aeron_SetHostCursorVisible's result. */
-// FUNCTION: XVT 0x4DE170
-int frontend_cursor_show_os_cursor(void)
-{
-	/* The port renders its own cursor, so legacy show requests keep the host cursor hidden. */
 	return Aeron_SetHostCursorVisible(0);
 }

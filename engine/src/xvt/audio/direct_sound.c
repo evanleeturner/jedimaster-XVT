@@ -285,50 +285,6 @@ direct_sound_acquire_wave_buffer_set_buffer(struct direct_sound_buffer_set *set)
 	return buffer;
 }
 
-/* Plays the buffer direct_sound_acquire_wave_buffer_set_buffer picks with play_flags;
- * a looping play (the 0x1 flag) is allowed only for a set of one buffer.
- * Returns 1 when Play succeeds, else 0, and 0 for NULL. Nothing calls this. */
-// FUNCTION: XVT 0x44BA30
-int direct_sound_play_wave_buffer_set(struct direct_sound_buffer_set *set,
-				      uint32_t play_flags)
-{
-	int result = 0;
-	if (set == NULL) {
-		return 0;
-	}
-	if ((play_flags & 1) == 0 || set->buffer_count == 1) {
-		IDirectSoundBuffer *buffer =
-			direct_sound_acquire_wave_buffer_set_buffer(set);
-		if (buffer != NULL) {
-			result = buffer->lpVtbl->Play(buffer, 0, 0,
-						      play_flags) >= 0;
-		}
-	}
-	return result;
-}
-
-/* Stops every buffer of the set and rewinds it to 0. Returns 1, or 0 for a NULL
- * set. Does not check for NULL buffers. Nothing calls this. */
-// FUNCTION: XVT 0x44BA80
-int direct_sound_stop_wave_buffer_set(struct direct_sound_buffer_set *set)
-{
-	if (set == NULL) {
-		return 0;
-	}
-
-	int buffer_index = 0;
-	if (set->buffer_count > 0) {
-		IDirectSoundBuffer **buffer = set->buffers;
-		do {
-			(*buffer)->lpVtbl->Stop(*buffer);
-			(*buffer)->lpVtbl->SetCurrentPosition(*buffer, 0);
-			++buffer;
-			++buffer_index;
-		} while (set->buffer_count > buffer_index);
-	}
-	return 1;
-}
-
 /* Locks the first sample_bytes of the buffer, copies the samples into the one or
  * two regions the lock returns and unlocks it. Returns 1, or 0 when the buffer
  * or data is NULL, sample_bytes is 0 or the lock fails. Does not check that the

@@ -348,7 +348,6 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx);
 void hud_load_cockpit_lfd_entries(const char *lfd_name, uint8_t **out_entries,
 				  unsigned int entry_count);
 void hud_load_cockpit_sprite_resources(unsigned int model_index);
-void hud_reload_cockpit_interface_file(void);
 void hud_update_mfd_pages(void);
 void hud_blit_software_mfd_pages(void);
 void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,

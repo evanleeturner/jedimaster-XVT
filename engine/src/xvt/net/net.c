@@ -114,18 +114,6 @@ static GUID g_net_direct_play_service_provider_guid_scratch = {0};
  * player leaves (net_handle_direct_play_system_message). */
 // GLOBAL: XVT 0x665050
 struct net_player_connection_stats g_net_player_connection_stats[40];
-/* Instance GUID of the session net_enum_sessions_match_name_callback last found
- * by name; net_find_session_by_name returns its address. Never cleared. */
-// GLOBAL: XVT 0x665028
-GUID g_net_matched_session_instance_guid = {0};
-/* Sessions net_enumerate_app_sessions_callback has stored so far; set to 0 by
- * net_enumerate_app_sessions before each enumeration. */
-// GLOBAL: XVT 0x665410
-int g_net_enum_session_count = 0;
-/* Room in the caller's session array for the enumeration under way; set by
- * net_enumerate_app_sessions. */
-// GLOBAL: XVT 0x665414
-int g_net_enum_session_capacity = 0;
 
 /* net_shutdown_direct_play_session_ex(1, 1): in the original build, with the
  * TCP/IP shutdown handshake and no relaunch when it fails. */
@@ -141,14 +129,6 @@ void net_shutdown_direct_play_session_for_quit(void)
 void net_shutdown_direct_play_session(void)
 {
 	net_shutdown_direct_play_session_ex(0, 1);
-}
-
-/* net_shutdown_direct_play_session_ex(0, 0): without the shutdown handshake. Only
- * the original build calls this. */
-// FUNCTION: XVT 0x4CD9E0
-void net_shutdown_direct_play_session_no_handshake(void)
-{
-	net_shutdown_direct_play_session_ex(0, 0);
 }
 
 /* Closes the lobby session. The modern build first calls
@@ -2198,17 +2178,6 @@ struct net_player_info *net_get_player_roster(int *out_count)
 	return g_front_state.net_players;
 }
 
-/* Returns the lobby roster count, or 1 when it is 0. Only the original build
- * calls this. */
-// FUNCTION: XVT 0x4CFEA0
-int net_get_player_count(void)
-{
-	if (g_front_state.net_player_count == 0) {
-		return 1;
-	}
-	return g_front_state.net_player_count;
-}
-
 /* Returns g_front_state.net_ready_player_left_this_frame, which
  * net_handle_direct_play_system_message sets on the host when a ready player
  * leaves and the frontend's frame loop clears every frame. */
@@ -3845,27 +3814,6 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 	return NULL;
 }
 
-/* Returns how many roster players have a DirectPlay id below playerId.
- * Nothing in the engine calls this. */
-// FUNCTION: XVT 0x4D11A0
-int net_count_players_with_lower_id(DPID player_id)
-{
-	int lower_player_id_count = 0;
-	if (g_front_state.net_player_count > 0) {
-		struct net_player_info *player = g_front_state.net_players;
-		int remaining_player_count = g_front_state.net_player_count;
-		do {
-			if (player->player_id < player_id) {
-				lower_player_id_count++;
-			}
-			player++;
-			remaining_player_count--;
-		} while (remaining_player_count != 0);
-	}
-
-	return lower_player_id_count;
-}
-
 /* Returns g_front_state.net_host_player_id, the host's DirectPlay id; 0 until it
  * is known. */
 // FUNCTION: XVT 0x4D11D0
@@ -5500,18 +5448,3 @@ int net_set_player_packet_retry_count(int player_id, int packet_retry_count)
 
 	return 1;
 }
-
-/* Turns autodial off: reads EnableAutodial from the Internet Settings
- * registry key into g_net_saved_enable_auto_dial_value and, when its first byte
- * is nonzero, writes 4 zero bytes in its place and sets
- * g_net_auto_dial_registry_changed. Returns 1 when it wrote, else 0. The modern
- * build does nothing and returns 0. Only the original build calls this. */
-// FUNCTION: XVT 0x4D2BD0
-int net_disable_auto_dial_registry_setting(void) { return 0; }
-
-/* When g_net_auto_dial_registry_changed is set, writes the first 4 bytes of
- * g_net_saved_enable_auto_dial_value back to EnableAutodial, clears the flag and
- * returns 1; else returns 0. The modern build does nothing and returns 0.
- * Only the original build calls this. */
-// FUNCTION: XVT 0x4D2CB0
-int net_restore_auto_dial_registry_setting(void) { return 0; }

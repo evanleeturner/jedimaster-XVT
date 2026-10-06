@@ -140,18 +140,6 @@ void flight_loading_pulse_and_draw_progress_screen(void)
 	xvt_render_capture_end_overlay();
 }
 
-/* Pulses the loading bar until its low 7 bits reach 127, then once more,
- * which always draws it full. Only the original build calls this; the modern
- * build sets the bits itself and pulses once. */
-// FUNCTION: XVT 0x4493C0
-void flight_loading_draw_progress_to_completion(void)
-{
-	while ((g_flight_loading_progress_step & 0x7fu) != 0x7fu) {
-		flight_loading_pulse_and_draw_progress_screen();
-	}
-	flight_loading_pulse_and_draw_progress_screen();
-}
-
 /* Returns 1 when dpid is nonzero and matches the DirectPlay id of one of the
  * 8 entries of g_pilot_data.network_players, else 0. */
 // FUNCTION: XVT 0x4493E0

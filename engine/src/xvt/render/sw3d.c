@@ -55,10 +55,6 @@ static float g_sw3d_light_sample_subrow_lerp_t = 0.0f;
  * bits; nothing reads it. */
 // GLOBAL: XVT 0x612298
 uint32_t g_sw3d_fpu_control_word_scratch = 0;
-/* FPU control word the original build's render_scene_initialize saves before it
- * sets single precision; nothing reads it. */
-// GLOBAL: XVT 0x6122A0
-uint32_t g_sw3d_initialize_scene_saved_fpu_control = 0;
 /* Rows from the current one to the next lighting block's top, as a float; set
  * with g_sw3d_light_sample_subrow_lerp_t. */
 // GLOBAL: XVT 0x6122B0

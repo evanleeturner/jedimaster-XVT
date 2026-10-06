@@ -211,18 +211,6 @@ void front_image_free_all_resources(void)
 	}
 }
 
-/* Only the original build calls this. Returns 1 when an image is registered
- * under name, 0 when none is or name is empty. */
-// FUNCTION: XVT 0x4B4CA0
-int front_image_resource_exists(const char *name)
-{
-	if (*name == '\0') {
-		return 0;
-	}
-
-	return front_image_find_resource_by_name(name) != -1;
-}
-
 /* Sets *out_rect to (0, 0, width, height) of the image registered under name, so
  * right and bottom are one past its last column and row, and returns 1. Sets it
  * to all 0 and returns 0 when name is empty or not registered. */
@@ -3306,107 +3294,6 @@ int front_image_compress_rle(struct image_resource *image)
 	return 1;
 }
 
-/* Only frontend_text_load_font calls this, in the original build. Encodes one row
- * of width one-byte pixels into *row_buffer in front_image_compress_rle's format,
- * with no 640-pixel limit, sets row_buffer->encoded_size and returns it, the
- * row's size in bytes. Does not check that the row fits the buffer. */
-// FUNCTION: XVT 0x4B7840
-int front_image_encode_glyph_row(struct front_image_rle_row_buffer *row_buffer,
-				 const uint8_t *src_pixels, int width)
-{
-	int encoded_bytes = 0;
-	const uint8_t *source = src_pixels;
-	int consumed = 0;
-	uint8_t value = *source;
-	row_buffer->data[0] = 0;
-	uint8_t *token_write = row_buffer->data;
-	uint8_t *last_token = token_write;
-
-	if (width <= 0) {
-		*token_write = 0x80;
-		row_buffer->encoded_size = 5;
-		return 5;
-	}
-
-	int copy_index;
-	for (;;) {
-		int run_length;
-
-		for (run_length = 0; run_length < 63; ++run_length) {
-			if (consumed >= width) {
-				break;
-			}
-			if (source[run_length] != value) {
-				break;
-			}
-			++consumed;
-		}
-
-		if (value == 0) {
-			last_token = token_write;
-			*token_write++ = (uint8_t)(run_length | 0x40);
-			++encoded_bytes;
-		} else if (run_length > 2) {
-			++encoded_bytes;
-			*token_write = (uint8_t)run_length;
-			++encoded_bytes;
-			last_token = token_write;
-			token_write[1] = value;
-			token_write += 2;
-		} else {
-			if ((*last_token & 0x80u) == 0) {
-				*token_write = (uint8_t)(run_length | 0x80);
-				++encoded_bytes;
-				last_token = token_write++;
-				for (copy_index = 0; copy_index < run_length;
-				     ++copy_index) {
-					token_write[copy_index] =
-						source[copy_index];
-				}
-			} else {
-				uint8_t run_length_byte =
-					(uint8_t)(run_length +
-						  (*last_token & 0x7f));
-				if (run_length_byte < 0x80) {
-					*last_token =
-						(uint8_t)(run_length_byte |
-							  0x80);
-					for (copy_index = 0;
-					     copy_index < run_length;
-					     ++copy_index) {
-						token_write[copy_index] =
-							source[copy_index];
-					}
-				} else {
-					*token_write =
-						(uint8_t)(run_length | 0x80);
-					++encoded_bytes;
-					last_token = token_write++;
-					for (copy_index = 0;
-					     copy_index < run_length;
-					     ++copy_index) {
-						token_write[copy_index] =
-							source[copy_index];
-					}
-				}
-			}
-			token_write += run_length;
-			encoded_bytes += run_length;
-		}
-
-		if (consumed >= width) {
-			break;
-		}
-		source += run_length;
-		value = *source;
-	}
-
-	*token_write = 0x80;
-	int row_size = encoded_bytes + 5;
-	row_buffer->encoded_size = row_size;
-	return row_size;
-}
-
 /* Copies *entry into g_front_state.resource_table at its place in name order
  * (strncmp over 64 bytes, after equal names), moving later records up one, and
  * raises g_front_state.resource_count. Does not check that the table has room. */
@@ -3761,48 +3648,6 @@ int front_image_save_bmp_file(const char *file_name, const void *pixels,
 		"image.saved file=\"%s\" width=%d height=%d bpp=%d bytes=%d",
 		file_name, width, height, bpp, file_size);
 	return 1;
-}
-
-/* Nothing calls this. Reads the palette of a 4- or 8-bit .bmp into dest_rgba
- * through front_image_read_bmp_palette, which writes 1,024 bytes, and returns 1;
- * returns 0 when dest_rgba is NULL, the file does not open, or the signature,
- * plane count or bit depth is wrong. */
-// FUNCTION: XVT 0x4D6D30
-int front_image_load_bmp_palette_file(const char *file_name, uint8_t *dest_rgba)
-{
-	if (dest_rgba == NULL) {
-		return 0;
-	}
-
-	xvt_file *stream = file_open(file_name, "rb");
-	int result = 0;
-	if (stream != NULL) {
-		struct front_image_bmp_file_header file_header;
-		file_read_bytes(stream, &file_header, sizeof(file_header));
-		if (file_header.signature == 0x4D42) {
-			struct front_image_bmp_info_header info_header;
-			file_read_bytes(stream, &info_header,
-					sizeof(info_header));
-			if (info_header.planes == 1) {
-				unsigned int bits_per_pixel =
-					info_header.bits_per_pixel;
-				switch (bits_per_pixel) {
-				case 4:
-					front_image_read_bmp_palette(
-						stream, dest_rgba, 16);
-					result = 1;
-					break;
-				case 8:
-					front_image_read_bmp_palette(
-						stream, dest_rgba, 256);
-					result = 1;
-					break;
-				}
-			}
-		}
-		file_close(stream);
-	}
-	return result;
 }
 
 /* Zeroes 256 entries of 4 bytes at dest, then reads count .bmp palette entries,

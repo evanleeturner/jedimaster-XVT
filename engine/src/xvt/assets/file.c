@@ -75,14 +75,6 @@ int16_t file_read_word(xvt_file *stream, uint16_t *value)
 	return !((int16_t)(FILE_RAW_READ(value, 1, 2, stream) != 2));
 }
 
-/* Reads four bytes into *value as they lie in the file; returns 1 when all four
- * were read, else 0. Nothing calls this. */
-// FUNCTION: XVT 0x4CC690
-int16_t file_read_dword(xvt_file *stream, unsigned int *value)
-{
-	return !((int16_t)(FILE_RAW_READ(value, 1, 4, stream) != 4));
-}
-
 /* Reads count bytes into buffer; returns 1 when all were read, else 0. */
 // FUNCTION: XVT 0x4CC6C0
 int16_t file_read_bytes(xvt_file *stream, void *buffer, size_t count)
@@ -97,43 +89,11 @@ int16_t file_write_byte(xvt_file *stream, char value)
 	return !((int16_t)(FILE_RAW_WRITE(&value, 1, 1, stream) != 1));
 }
 
-/* Writes the first 2 bytes of value as stored in memory: on a little-endian
- * machine its low 16 bits, low byte first. Returns 1 when both were written,
- * else 0. Nothing calls this. */
-// FUNCTION: XVT 0x4CC730
-int16_t file_write_word(xvt_file *stream, int value)
-{
-	return !((int16_t)(FILE_RAW_WRITE(&value, 1, 2, stream) != 2));
-}
-
-/* Writes value's 4 bytes as stored in memory; returns 1 when all four were
- * written, else 0. Nothing calls this. */
-// FUNCTION: XVT 0x4CC760
-int16_t file_write_dword(xvt_file *stream, int value)
-{
-	return !((int16_t)(FILE_RAW_WRITE(&value, 1, 4, stream) != 4));
-}
-
 /* Writes count bytes from buffer; returns 1 when all were written, else 0. */
 // FUNCTION: XVT 0x4CC790
 int16_t file_write_bytes(xvt_file *stream, const void *buffer, size_t count)
 {
 	return !((int16_t)(FILE_RAW_WRITE(buffer, 1, count, stream) != count));
-}
-
-/* Returns 1 when wave\PBC\Pb1los07.wav and movies\imp1snd.smk can both be
- * opened, else 0. The original build looks for them at the root of
- * g_front_state.cd_drive_letter's drive, with CD audio suspended meanwhile, and
- * returns 0 when that letter is 0; the modern build asks
- * xvt_storage_resolve_asset. Only the original build calls this. */
-// FUNCTION: XVT 0x4CC930
-int file_check_required_cd_movie_assets_present(void)
-{
-	char path[XVT_PATH_CAPACITY];
-	return xvt_storage_resolve_asset("wave/PBC/Pb1los07.wav", path,
-					 sizeof(path)) == 1 &&
-	       xvt_storage_resolve_asset("movies/imp1snd.smk", path,
-					 sizeof(path)) == 1;
 }
 
 /* Returns 1 when wave\PBC\Pb1los07.wav and ivfiles\cal.opt can both be opened,
@@ -151,34 +111,6 @@ int file_check_game_cd_present(int skip_movie_checks)
 					 sizeof(path)) == 1 &&
 	       xvt_storage_resolve_asset("ivfiles/cal.opt", path,
 					 sizeof(path)) == 1;
-}
-
-/* Returns g_front_state.cd_drive_letter. Only the original build calls this. */
-// FUNCTION: XVT 0x4CCB90
-char file_get_cd_drive_letter(void) { return g_front_state.cd_drive_letter; }
-
-/* Returns g_front_state.install_drive_letter. Nothing calls this. */
-// FUNCTION: XVT 0x4CCBA0
-char file_get_install_drive_letter(void)
-{
-	return g_front_state.install_drive_letter;
-}
-
-/* Returns g_front_state.install_path. Nothing calls this. */
-// FUNCTION: XVT 0x4CCBB0
-const char *file_get_install_path(void) { return g_front_state.install_path; }
-
-/* The original's CD drive search is not reconstructed: this ignores
- * relative_cd_file_path and always returns '.', which
- * file_detect_game_and_cd_paths, outside XVT_MODERN, stores as the CD drive
- * letter. */
-/* Only the original build calls this. */
-// FUNCTION: XVT 0x4CCBC0
-int file_find_cd_drive_letter(const char *relative_cd_file_path)
-{
-	(void)relative_cd_file_path;
-
-	return '.';
 }
 
 /* Fills g_front_state's cd_drive_letter, install_drive_letter, install_path and
@@ -202,14 +134,6 @@ void file_detect_game_and_cd_paths(const char *required_cd_file_path)
 	g_front_state.install_drive_letter = 0;
 	strcpy(g_front_state.install_path, "BalanceOfPower");
 	g_front_state.base_game_install_path[0] = 0;
-}
-
-/* Returns g_front_state.base_game_install_path. Only the original build calls
- * this. */
-// FUNCTION: XVT 0x4CCF40
-const char *file_get_base_game_install_path(void)
-{
-	return g_front_state.base_game_install_path;
 }
 
 /* In the original build, makes g_front_state.base_game_install_path the current

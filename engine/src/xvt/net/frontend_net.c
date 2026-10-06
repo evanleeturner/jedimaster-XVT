@@ -34,13 +34,6 @@
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/network_task.h"
 
-/* The game's DirectPlay application GUID as four words, used to list, join and
- * host sessions of this game (net_enumerate_app_sessions,
- * net_start_network_session). Never written; only original-build code reads
- * it. */
-// GLOBAL: XVT 0x518278
-const unsigned int g_frontend_net_xvt_direct_play_app_guid[4] = {
-	0x09438C20, 0x11CEE06A, 0xAA008186, 0x575D6C00};
 /* The mission description id in the host's last lobby STATE packet; -1 while no
  * session is selected or none has arrived. 7 functions write it:
  * frontend_net_process_network_packets sets it from a STATE packet, and the join
@@ -59,22 +52,6 @@ int g_frontend_net_received_mission_directory_id = 0;
  * screens, 5 in this file. */
 // GLOBAL: XVT 0xAA6AF0
 struct frontend_net_packet_scratch g_frontend_net_packet_scratch = {0};
-/* The games the join screen lists, kept sorted by frontend_net_sort_sessions.
- * Written by frontend_net_refresh_session_list, frontend_net_probe_session_by_index
- * and frontend_net_join_game_screen, which clears it on entry unless
- * g_frontend_skip_screen_entry_setup is set. Only the original build uses it. */
-// GLOBAL: XVT 0xAA62B0
-struct frontend_net_session_entry g_frontend_net_session_list[32] = {{0}};
-/* Entries in use in g_frontend_net_session_list; frontend_net_refresh_session_list
- * recounts it, at most 32, and frontend_net_join_game_screen zeroes it with the
- * list. Only the original build uses it. */
-// GLOBAL: XVT 0xAA6CF4
-int g_frontend_net_session_count = 0;
-/* First session-list row shown, set by the list's scrollbar and zeroed on the
- * join screen's first frame. Only frontend_net_draw_join_game_list uses it, in the
- * original build. */
-// GLOBAL: XVT 0x665438
-int g_frontend_net_session_list_scroll_offset = 0;
 /* Index in g_frontend_net_session_list of the game selected on the join screen, -1
  * for none; while one is selected the list is not refreshed and that game's
  * packets are read. 6 functions write it, chiefly frontend_net_join_game_screen,

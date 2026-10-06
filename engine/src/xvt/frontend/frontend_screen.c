@@ -49,23 +49,6 @@ int frontend_screen_queue_push(int (*update_fn)(int),
 	return 1;
 }
 
-/* Runs a screen as a modal dialog over the current one. The original build
- * unlocks the back buffer, pushes the screen with frontend_screen_push_state
- * without checking its result, sets g_front_state.frame_counter to 0, clears both
- * joysticks' released-button flags and the two click latches, lowers
- * g_front_state.text_fade_frames_left by one when it is not 0, then calls
- * frontend_display_run_frame until it returns 1, ending the process with exit(0)
- * when it returns 2. It then flushes the keyboard's character buffer, pops the
- * screen, locks the back buffer into g_draw_surface_ptr, clears the click latches
- * and returns 1. The modern build instead returns xvt_dialog_begin's result,
- * XVT_DIALOG_PENDING (-1), and its frame loop runs the dialog. */
-// FUNCTION: XVT 0x4DC3B0
-int frontend_screen_run_modal(frontend_screen_update_fn update_fn,
-			      struct RECT *screen_rect)
-{
-	return xvt_dialog_begin(update_fn, screen_rect);
-}
-
 /* Pushes a screen over the current one. In the top slot of
  * g_front_state.screen_states it saves g_front_state.frame_counter, the clip bounds
  * and a copy of the pixels under screen_rect; then it raises

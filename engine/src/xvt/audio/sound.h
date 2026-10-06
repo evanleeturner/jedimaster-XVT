@@ -79,11 +79,8 @@ int sound_play_effect_now(const char *sound_name, int allow_restart_existing,
 			  int loop, int priority, int volume, int pan);
 int sound_stop_oldest_instance(const char *name);
 int sound_stop_all_instances(void);
-int sound_get_primary_buffer_volume(void);
 int sound_set_latest_instance_volume(const char *name, int volume);
-int sound_get_latest_instance_volume(const char *name);
 int sound_set_latest_instance_pan(const char *name, int pan);
-int sound_get_latest_instance_pan(const char *name);
 int sound_set_latest_instance_frequency(const char *name, uint32_t frequency);
 int sound_set_effect_current_priority(const char *name, int priority);
 int sound_get_effect_current_priority(const char *name);
@@ -95,7 +92,6 @@ int sound_find_effect_by_name(const struct sound_effect_def *records,
 			      int last_index, const char *name);
 int sound_set_param(int flight_sound_id, int param_code, int value);
 int sound_get_param(int flight_sound_id, int param_code);
-int sound_unused_four_arg_stub(int arg1, int arg2, int arg3, int arg4);
 int sound_stop_oldest_instance_by_id(int flight_sound_id);
 void sound_empty_stub(void);
 

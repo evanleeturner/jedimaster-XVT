@@ -24,7 +24,6 @@ void flight_palette_set_range(struct rgb_triplet *rgb_triples,
 			      int16_t start_idx, uint16_t count);
 void flight_palette_get_full(struct rgb_triplet *dst_palette);
 void flight_palette_set_full(struct rgb_triplet *rgb_triples);
-void flight_palette_reset_if8_bit(void);
 int16_t flight_palette_build16_bpp_range(struct rgb_triplet *src_rgb,
 					 uint16_t *dst16, int start_index,
 					 int count);

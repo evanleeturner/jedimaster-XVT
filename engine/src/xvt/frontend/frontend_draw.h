@@ -26,7 +26,6 @@ void frontend_draw_rect(const struct RECT *rect, int dx, int dy, int color,
 void frontend_draw_rect_outline(const struct RECT *rect, int dx, int dy,
 				int color);
 int frontend_draw_point_in_rect(const struct RECT *rect, int x, int y);
-void frontend_draw_line(int x0, int y0, int x1, int y1, int color);
 void frontend_draw_horizontal_line_clipped(int x0, int x1, int y, int color);
 void frontend_draw_vertical_line_clipped(int y0, int y1, int x, int color);
 

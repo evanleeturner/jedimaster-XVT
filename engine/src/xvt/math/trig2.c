@@ -274,10 +274,6 @@ int16_t trig2_calcsinemagnitude(int16_t angle)
 	return (int16_t)(base + interpolation);
 }
 
-/* Returns trig2_arcsin(sin_q15). Nothing calls this. */
-// FUNCTION: XVT 0x46A450
-int16_t trig2_w_arcsin(int16_t sin_q15) { return trig2_arcsin(sin_q15); }
-
 /* Returns trig2_arccos(cos_q15). */
 // FUNCTION: XVT 0x46A460
 int16_t trig2_w_arccos(int16_t cos_q15) { return trig2_arccos(cos_q15); }
@@ -348,65 +344,6 @@ int16_t trig2_arccos(int16_t cos_q15)
 	if (cos_q15 < 0) {
 		angle = (uint16_t)-angle;
 		angle += 0x8000u;
-	}
-
-	return angle;
-}
-
-/* Returns an arcsine of sin_q15 (32768 standing for 1) in angle units that
- * runs one g_sin_table step high: it finds the first entry at or over twice
- * the magnitude, at index i, where the arcsine lies between (i - 1) * 64 and
- * i * 64, and returns i * 64 plus a fraction of 64 taken from the entries at
- * i - 2 and i - 1. 16384 gives 5525 where the arcsine is 5461; 32767 gives 32,
- * the index having wrapped. A magnitude from 1 to 201 divides by 0. Negates
- * the result for a negative input. Only trig2_w_arcsin calls this, and
- * nothing calls that. */
-// FUNCTION: XVT 0x46A550
-int16_t trig2_arcsin(int16_t sin_q15)
-{
-	uint16_t interpolation;
-
-	interpolation = 0;
-	int16_t table_index = 0;
-	uint16_t target = (uint16_t)sin_q15;
-	if (sin_q15 < 0) {
-		target = (uint16_t)-target;
-	}
-	target = (uint16_t)(target + target);
-
-	int16_t remaining_steps = 256;
-	while (g_sin_table[table_index] < target) {
-		--remaining_steps;
-		++table_index;
-		if (remaining_steps <= 0) {
-			break;
-		}
-	}
-
-	int table_offset = table_index;
-	--remaining_steps;
-	/* From here table_index holds a table value, the interpolation base
-	 * below target, not an index. */
-	table_index = 0;
-	uint16_t span = 0;
-	if (table_offset >= 2) {
-		table_index = (int16_t)g_sin_table[table_offset - 2];
-		span = (uint16_t)(g_sin_table[table_offset - 1] -
-				  (uint16_t)table_index);
-	}
-	uint16_t delta = (uint16_t)(target - (uint16_t)table_index);
-	if (delta != 0) {
-		interpolation = (uint16_t)(((int)(uint16_t)delta << 16) /
-					   (int)(uint16_t)span);
-		interpolation >>= 8;
-	}
-
-	int16_t angle = (int16_t)(-1 - remaining_steps);
-	angle = (int16_t)((uint16_t)angle << 8);
-	angle = (int16_t)(angle + interpolation);
-	angle = (int16_t)((uint16_t)angle >> 2);
-	if (sin_q15 < 0) {
-		angle = (int16_t)-angle;
 	}
 
 	return angle;
@@ -605,38 +542,6 @@ void trig2_ctop(int dx, int dy, int dz)
 	}
 	trig2_pitch = angle;
 	trig2_pitch = (int16_t)(0x4000 - angle);
-}
-
-/* The x-y half of trig2_ctop: sets trig2_xyangle and trig2_polardistance (the
- * distance in the x-y plane), trig2_signx, trig2_signy, trig2_angleplane,
- * trig2_larger_leg and trig2_legs_swapped; leaves the offsets alone. Nothing
- * calls this. */
-// FUNCTION: XVT 0x46A9E0
-void trig2_ctop2dim(int dx, int dy)
-{
-	int magnitude_x = dx;
-	if (magnitude_x < 0) {
-		magnitude_x = -magnitude_x;
-		trig2_signx = 1;
-	} else {
-		trig2_signx = 0;
-	}
-	int magnitude_y = dy;
-	if (magnitude_y < 0) {
-		magnitude_y = -magnitude_y;
-		trig2_signy = 1;
-	} else {
-		trig2_signy = 0;
-	}
-	trig2_calcangleplanedistance(magnitude_x, magnitude_y);
-	trig2_xyangle = (uint16_t)trig2_angleplane;
-	if (trig2_signy != 0) {
-		trig2_xyangle = (uint16_t)-trig2_angleplane;
-	}
-	if (trig2_signx != 0) {
-		trig2_xyangle = (uint16_t)(0x8000u - trig2_xyangle);
-	}
-	trig2_xyangle = (uint16_t)(0x4000u - trig2_xyangle);
 }
 
 /* Returns the hypotenuse of two non-negative legs and stores it in

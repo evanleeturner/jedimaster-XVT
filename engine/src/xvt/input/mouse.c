@@ -25,31 +25,3 @@ void mouse_read_delta(int16_t *delta_x, int16_t *delta_y)
 {
 	win_mouse_poll_movement_delta(delta_x, delta_y);
 }
-
-/* Passes to win_mouse_set_position and returns its result. Nothing calls this. */
-// FUNCTION: XVT 0x4AC8D0
-int mouse_set_position(int16_t x, int16_t y)
-{
-	return win_mouse_set_position(x, y);
-}
-
-/* Passes to win_mouse_set_horizontal_bounds. Nothing calls this. */
-// FUNCTION: XVT 0x4AC9D0
-void mouse_set_horizontal_bounds(int16_t min_x, int16_t max_x)
-{
-	win_mouse_set_horizontal_bounds(min_x, max_x);
-}
-
-/* Passes to win_mouse_set_vertical_bounds. Nothing calls this. */
-// FUNCTION: XVT 0x4AC9F0
-void mouse_set_vertical_bounds(int16_t min_y, int16_t max_y)
-{
-	win_mouse_set_vertical_bounds(min_y, max_y);
-}
-
-/* Passes to win_mouse_set_scale_factors. Nothing calls this. */
-// FUNCTION: XVT 0x4ACA70
-void mouse_set_scale_factors(int16_t scale_x, int16_t scale_y)
-{
-	win_mouse_set_scale_factors(scale_x, scale_y);
-}

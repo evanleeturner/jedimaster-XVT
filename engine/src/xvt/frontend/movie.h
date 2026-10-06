@@ -75,50 +75,19 @@ struct movie_multiplayer_sync_player {
 	int is_waiting;
 };
 
-extern struct movie_dirty_rect g_movie_merged_dirty_rects[256];
-extern unsigned int g_movie_bottom_margin;
-extern int g_movie_y;
-extern int g_movie_right_margin;
 extern struct movie_multiplayer_sync_player g_movie_multiplayer_sync_players[8];
 extern xvt_file *g_movie_subtitle_file;
 
-HRESULT movie_blit_rect_to_display(int x, int y, int width, int height);
-HRESULT movie_update_direct_draw_palette(void);
-int32_t AERON_DXAPI movie_window_proc(void *hWnd, unsigned int message,
-				      void *wParam, void *lParam);
-int movie_handle_paint(void *hWnd);
-int movie_run_smacker_playback(const struct movie_playback_params *params);
-int movie_get_smack_buffer_format(void);
-int movie_initialize_system_palette(void *hWnd);
-void movie_decode_and_present_frame(void);
-void movie_merge_dirty_rect_lists(struct movie_dirty_rect *current_rects,
-				  unsigned int current_count,
-				  struct movie_dirty_rect *previous_rects,
-				  unsigned int previous_count,
-				  struct movie_dirty_rect **merged_rects,
-				  unsigned int *merged_count);
-int movie_compute_rect_union_and_intersection(
-	const struct movie_dirty_rect *a, const struct movie_dirty_rect *b,
-	struct movie_dirty_rect *union_rect,
-	struct movie_dirty_rect *intersection_rect);
 int movie_play(const char *name, int synchronize_multiplayer);
 extern int g_movie_skip_requested;
 extern int g_movie_playback_completion_state;
 extern unsigned int g_movie_multiplayer_sync_deadline_ms;
 extern int g_movie_previous_wnd_proc_mode;
-int movie_singleplayer_input_callback(int window, unsigned int event_code,
-				      int key_code, int lParam,
-				      int callback_context,
-				      uint32_t *handled_result);
 int movie_multiplayer_input_callback(int window, unsigned int event_code,
 				     int key_code, int lParam,
 				     int callback_context,
 				     uint32_t *playback_flag);
-void movie_draw_multiplayer_sync_status(void);
-void movie_update_multiplayer_sync_timeout(void);
-int movie_multiplayer_sync_callback(int current_frame);
 unsigned int movie_read_subtitle_cue(char *line1, char *line2, char *line3);
-void movie_draw_subtitles(unsigned int frame_number);
 
 #ifdef __cplusplus
 }

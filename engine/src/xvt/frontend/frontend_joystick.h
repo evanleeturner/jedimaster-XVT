@@ -24,21 +24,12 @@ struct joystick_entry {
 extern struct joystick_entry g_joystick_entries[128];
 extern int g_joystick_entry_count;
 
-extern int g_frontend_joystick_centering_slot;
-extern uint8_t g_frontend_joystick_centering_fill_color;
-
 int joystick_init_devices(void);
-int joystick_get_count(void);
 void joystick_update_state(int joy_slot);
-int joystick_is_button0_released(int joystick_slot);
-int joystick_is_button1_released(int joystick_slot);
 int joystick_get_first_pressed_button(int joy_slot);
-int joystick_get_first_released_button(int joystick_slot);
 int joystick_get_pov_direction(int joy_slot);
 int joystick_has_pov(int joy_slot);
 int joystick_get_button_count(int joy_slot);
-int frontend_joystick_begin_centering_prompt(void);
-int frontend_joystick_update_centering_prompt(int frame_counter);
 unsigned int joystick_get_device_id(int joy_slot);
 
 #ifdef __cplusplus

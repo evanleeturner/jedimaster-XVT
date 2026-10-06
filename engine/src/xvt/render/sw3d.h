@@ -21,7 +21,6 @@ extern float g_sw3d_light_sample_inv_block_size;
 extern float g_sw3d_light_sample_block_size_float;
 extern int g_sw3d_light_sample_block_shift;
 extern uint32_t g_sw3d_fpu_control_word_scratch;
-extern uint32_t g_sw3d_initialize_scene_saved_fpu_control;
 extern int g_sw3d_light_sample_cache_scene_stamp_base;
 extern struct scene_face g_sw3d_cockpit_mask_sentinel_face;
 extern struct scene_face *g_sw3d_current_face;

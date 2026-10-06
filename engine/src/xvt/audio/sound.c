@@ -648,26 +648,6 @@ int sound_stop_all_instances(void)
 	return result;
 }
 
-/* Returns the primary buffer's volume on the game's scale,
- * 127 * millibels / 2000 + 127, or 0 when g_direct_sound is
- * NULL or GetVolume fails. Nothing calls this. */
-// FUNCTION: XVT 0x42D770
-int sound_get_primary_buffer_volume(void)
-{
-	if (g_direct_sound == 0) {
-		return 0;
-	}
-	int32_t volume_millibels;
-	if (g_sound_primary_buffer->lpVtbl->GetVolume(g_sound_primary_buffer,
-						      &volume_millibels) != 0) {
-		return 0;
-	}
-	/* From here volume_millibels holds the game's volume scale: 127 at full
-	 * volume, 0 at -20 dB. */
-	volume_millibels = 127 * volume_millibels / 2000 + 127;
-	return volume_millibels;
-}
-
 /* Sets the volume of the named effect's newest sound, the slot with the highest
  * sequence, to 400 * (5 * v - 635) / 127 hundredths of a decibel, v being
  * volume clamped to 0 to 127. Returns 1 when SetVolume succeeds, else 0; 0 also
@@ -721,53 +701,6 @@ int sound_set_latest_instance_volume(const char *name, int volume)
 	return g_active_sound_instances[newest_index].buffer->lpVtbl->SetVolume(
 		       g_active_sound_instances[newest_index].buffer,
 		       clamped_volume) == 0;
-}
-
-/* Returns the volume of the named effect's newest sound on the game's scale,
- * 127 * millibels / 2000 + 127, or 0 when g_direct_sound is NULL, the name is
- * empty or not loaded, no slot holds it, or GetVolume fails. Nothing calls
- * this. */
-// FUNCTION: XVT 0x42D880
-int sound_get_latest_instance_volume(const char *name)
-{
-	if (g_direct_sound == 0) {
-		return 0;
-	}
-	if (name[0] == '\0') {
-		return 0;
-	}
-	int effect_index = sound_find_loaded_effect_by_name(name);
-	if (effect_index == -1) {
-		return 0;
-	}
-	int newest_sequence = -1;
-	int instance_index = 0;
-	int newest_index = -1;
-	do {
-		if (g_active_sound_instances[instance_index].effect_index ==
-			    effect_index &&
-		    (int)g_active_sound_instances[instance_index].sequence >
-			    newest_sequence) {
-			newest_sequence =
-				g_active_sound_instances[instance_index]
-					.sequence;
-			newest_index = instance_index;
-		}
-		++instance_index;
-	} while (instance_index < 8);
-	if (newest_index == -1) {
-		return 0;
-	}
-	int32_t volume_millibels;
-	if (g_active_sound_instances[newest_index].buffer->lpVtbl->GetVolume(
-		    g_active_sound_instances[newest_index].buffer,
-		    &volume_millibels) != 0) {
-		return 0;
-	}
-	/* From here volume_millibels holds the game's volume scale: 127 at full
-	 * volume, 0 at -20 dB. */
-	volume_millibels = 127 * volume_millibels / 2000 + 127;
-	return volume_millibels;
 }
 
 /* Sets the pan of the named effect's newest sound to 400 * (5 * p - 315) / 63
@@ -824,52 +757,6 @@ int sound_set_latest_instance_pan(const char *name, int pan)
 	return g_active_sound_instances[newest_index].buffer->lpVtbl->SetPan(
 		       g_active_sound_instances[newest_index].buffer,
 		       clamped_pan) == 0;
-}
-
-/* Returns the pan of the named effect's newest sound on the game's scale,
- * 63 * pan / 10000 + 63, or 0 when g_direct_sound is NULL, the name is empty or
- * not loaded, no slot holds it, or GetPan fails. Nothing calls this. */
-// FUNCTION: XVT 0x42DA00
-int sound_get_latest_instance_pan(const char *name)
-{
-	if (g_direct_sound == 0) {
-		return 0;
-	}
-	if (name[0] == '\0') {
-		return 0;
-	}
-	int effect_index = sound_find_loaded_effect_by_name(name);
-	if (effect_index == -1) {
-		return 0;
-	}
-	int newest_sequence = -1;
-	int instance_index = 0;
-	int newest_index = -1;
-	do {
-		if (g_active_sound_instances[instance_index].effect_index ==
-			    effect_index &&
-		    (int)g_active_sound_instances[instance_index].sequence >
-			    newest_sequence) {
-			newest_sequence =
-				g_active_sound_instances[instance_index]
-					.sequence;
-			newest_index = instance_index;
-		}
-		++instance_index;
-	} while (instance_index < 8);
-	if (newest_index == -1) {
-		return 0;
-	}
-	int32_t pan_millibels;
-	if (g_active_sound_instances[newest_index].buffer->lpVtbl->GetPan(
-		    g_active_sound_instances[newest_index].buffer,
-		    &pan_millibels) != 0) {
-		return 0;
-	}
-	/* From here pan_millibels holds the game's pan: 0 full left, 63
-	 * centered, 126 full right. */
-	pan_millibels = 63 * pan_millibels / 10000 + 63;
-	return pan_millibels;
 }
 
 /* Sets the playback frequency, in samples per second, of the named effect's
@@ -1169,19 +1056,6 @@ int sound_get_param(int flight_sound_id, int param_code)
 	default:
 		return 0;
 	}
-}
-
-/* Returns 0 and ignores its arguments. Only flight_sync_unused_four_arg_forwarder
- * calls it, and nothing calls that. */
-// FUNCTION: XVT 0x4A9370
-int sound_unused_four_arg_stub(int arg1, int arg2, int arg3, int arg4)
-{
-	(void)arg1;
-	(void)arg2;
-	(void)arg3;
-	(void)arg4;
-
-	return 0;
 }
 
 /* Stops the oldest sound of flight sound id flight_sound_id, named by

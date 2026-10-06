@@ -304,18 +304,6 @@ void flight_palette_set_full(struct rgb_triplet *rgb_triples)
 	flight_palette_set_range(rgb_triples, 0, 256);
 }
 
-/* Calls flight_palette_apply_to_display when g_flight_bytes_per_pixel is 1.
- * flight_wnd_proc calls it on message 0x311; in the original build
- * flight_pump_window_messages calls it after bringing the flight window back to
- * the foreground. */
-// FUNCTION: XVT 0x449100
-void flight_palette_reset_if8_bit(void)
-{
-	if (g_flight_bytes_per_pixel == 1) {
-		flight_palette_apply_to_display();
-	}
-}
-
 /* Packs entries startIndex to startIndex + count - 1 of src_rgb, channels 0 to
  * 63, into 16-bit pixels in the same entries of dst16: 5-6-5 as (r >> 1, g,
  * b >> 1), or 5-5-5 with each channel >> 1 when display_is_pixel_format555 is

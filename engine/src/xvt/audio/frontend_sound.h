@@ -48,19 +48,6 @@ int frontend_sound_play_ui_sound(const char *sound_name,
 				 int priority, int volume0_to127,
 				 int pan0_to127);
 int frontend_sound_stop_oldest_voice_by_name(const char *name);
-int frontend_sound_stop_all_voices(void);
-int frontend_sound_set_primary_volume(int volume0_to127);
-int frontend_sound_get_primary_volume(void);
-int frontend_sound_set_newest_voice_volume_by_name(const char *name,
-						   int volume0_to127);
-int frontend_sound_get_newest_voice_volume_by_name(const char *name);
-int frontend_sound_set_newest_voice_pan_by_name(const char *name,
-						int pan0_to127);
-int frontend_sound_get_newest_voice_pan_by_name(const char *name);
-int frontend_sound_set_buffer_priority_by_name(const char *name,
-					       int priority0_to255);
-int frontend_sound_get_buffer_priority_by_name(const char *name);
-int frontend_sound_get_playing_count(const char *name);
 void frontend_sound_insert_sorted_buffer(
 	const struct frontend_sound_buffer_record *record);
 void frontend_sound_remove_buffer_record(int buffer_index);
@@ -69,7 +56,6 @@ int frontend_sound_binary_search_buffer_by_name(
 	const struct frontend_sound_buffer_record *records, int last_index,
 	const char *name);
 int frontend_sound_load_list(const char *file_name);
-int frontend_sound_unload_list(const char *file_name);
 
 #ifdef __cplusplus
 }

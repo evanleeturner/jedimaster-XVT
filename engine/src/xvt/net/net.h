@@ -182,14 +182,12 @@ struct net_session_enum_entry {
 };
 
 extern struct net_player_connection_stats g_net_player_connection_stats[40];
-extern GUID g_net_matched_session_instance_guid;
 /* drift-ok: camelcase -- DirectPlay's interface id */
 extern const GUID IID_IDirectPlay2A;
 extern network_transport_type g_net_active_transport_type;
 
 void net_shutdown_direct_play_session_for_quit(void);
 void net_shutdown_direct_play_session(void);
-void net_shutdown_direct_play_session_no_handshake(void);
 int net_shutdown_direct_play_session_ex(int suppress_restart,
 					int wait_for_handshake_acks);
 int net_refresh_player_roster(void);
@@ -211,7 +209,6 @@ int net_send_sequenced_direct_play_packet(int dest_player_id, int packet_class,
 					  int sequence_id, const void *packet,
 					  unsigned int packet_size);
 struct net_player_info *net_get_player_roster(int *out_count);
-int net_get_player_count(void);
 int net_did_ready_player_leave_this_frame(void);
 int net_is_host(void);
 int net_poll_for_packet_type_or_backlog(int packet_type);
@@ -223,7 +220,6 @@ void *net_dequeue_incoming_packet(DPID *out_sender_id,
 				  uint32_t *out_packet_size);
 int *net_wait_for_app_packet(DPID *out_sender_id, uint32_t *out_packet_size,
 			     int timeout_seconds);
-int net_count_players_with_lower_id(DPID player_id);
 int net_get_host_player_id(void);
 int net_get_local_player_id(void);
 void net_mark_player_ready_no_lock(int player_id);
@@ -288,8 +284,6 @@ int net_get_player_packet_retry_count(int player_id);
 int net_set_player_packet_count(int player_id, int packet_count);
 int net_set_player_packet_drop_count(int player_id, int packet_drop_count);
 int net_set_player_packet_retry_count(int player_id, int packet_retry_count);
-int net_disable_auto_dial_registry_setting(void);
-int net_restore_auto_dial_registry_setting(void);
 int net_wait_for_shutdown_handshake_acks(void);
 
 #ifdef __cplusplus

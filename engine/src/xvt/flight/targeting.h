@@ -19,11 +19,6 @@ int targeting_get_object_box_extent(unsigned int object_idx);
 void targeting_project_object_or_mission_point(
 	unsigned int obj_or_mission_point_ref, uint16_t component_idx,
 	int *out_screen_x, int *out_screen_y, int *out_view_z);
-void targeting_compute_projected_object_extent(uint16_t object_idx,
-					       uint16_t *out_width,
-					       uint16_t *out_height,
-					       int camera_x, int camera_y,
-					       int camera_z);
 
 #ifdef __cplusplus
 }

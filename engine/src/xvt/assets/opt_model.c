@@ -210,71 +210,6 @@ uint16_t opt_model_load_handle(const char *model_filename)
 	return runtime_handle;
 }
 
-/* Adds translation, three floats, to every vertex of each OPT_MESHVERTS node at
- * or below node, following OPT_NODEREF links and stopping at one that does not
- * resolve; a node reached through two links moves twice. Only
- * opt_model_translate_vertices calls this, and nothing calls that. */
-// FUNCTION: XVT 0x42ABA0
-void opt_model_translate_node_vertices_recursive(
-	const struct opt_node *node, struct optimized_poly_object *model,
-	const float *translation)
-{
-	if (node != NULL) {
-		while (node->node_type == OPT_NODEREF) {
-			node = opt_model_resolve_node_ref(
-				model, (const char *)node->payload);
-			if (node == NULL) {
-				return;
-			}
-		}
-
-		const float *delta;
-		if (node->node_type == OPT_MESHVERTS) {
-			int vertex_count = node->payload_count;
-			float *vertex = node->payload;
-			delta = translation;
-			if (vertex_count > 0) {
-				do {
-					vertex[0] += delta[0];
-					vertex[1] += delta[1];
-					vertex[2] += delta[2];
-					vertex += 3;
-					--vertex_count;
-				} while (vertex_count != 0);
-			}
-		} else {
-			delta = translation;
-		}
-
-		int child_index = 0;
-		if (node->child_count > 0) {
-			do {
-				opt_model_translate_node_vertices_recursive(
-					node->p_children[child_index], model,
-					delta);
-				++child_index;
-			} while (node->child_count > child_index);
-		}
-	}
-}
-
-/* Runs opt_model_translate_node_vertices_recursive on each root of model. Nothing
- * calls this. */
-// FUNCTION: XVT 0x42ACD0
-void opt_model_translate_vertices(struct optimized_poly_object *model,
-				  const float *translation)
-{
-	int root_index = 0;
-	if (model->root_node_count > 0) {
-		do {
-			opt_model_translate_node_vertices_recursive(
-				model->root_nodes[root_index], model,
-				translation);
-			++root_index;
-		} while (model->root_node_count > root_index);
-	}
-}
-
 /* Moves every pointer inside a packed model by the distance its block moved
  * since self_marker was recorded, and records the new address. The modern build
  * calls xvt_opt_relocate. The original build moves self_marker, the root table
@@ -285,18 +220,6 @@ void opt_model_adjust_optimized_poly_object_pointers(
 	struct optimized_poly_object *model)
 {
 	xvt_opt_relocate(model);
-}
-
-/* Adds relocation_delta to node's name, payload and child table pointers and to
- * each child pointer, and to the palette pointer of an OPT_TEXTURE node whose
- * inline_palette_count is 0, then does the same below each child. NULL pointers
- * stay NULL. The modern arm calls xvt_opt_relocate_node, but only the original
- * build calls this. */
-// FUNCTION: XVT 0x472050
-void opt_model_adjust_optimized_node_pointers(struct opt_node *node,
-					      xvt_opt_value relocation_delta)
-{
-	xvt_opt_relocate_node(node, relocation_delta);
 }
 
 /* Loads an OPT file into g_load_opt_buf_handle, converts a version 0 or 1 model to

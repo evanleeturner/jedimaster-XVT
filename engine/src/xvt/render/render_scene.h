@@ -40,7 +40,6 @@ extern const float g_render_quad_corner_count;
 extern const float g_render_light_direction_unit_scale;
 extern const float g_render_directional_light_intensity_scale;
 extern const float g_render_zero_float;
-extern const float g_render_ambient_light_intensity;
 extern const float g_render_rough_distance_scale;
 extern const float g_render_point_light_facing_threshold;
 extern const double g_render_half_double;
@@ -263,12 +262,6 @@ void render_scene_transform_face_texture_gradients(
 	struct scene_face *face,
 	const struct face_texture_gradients *face_tex_gradients,
 	const float *view_pos_and_orient);
-void render_scene_transform_project_legacy_point(
-	float out_projected[3], const float point[3],
-	const float view_pos_and_orient[12]);
-void render_scene_transform_project_legacy_distant_point(
-	float out_projected[3], const float point[3],
-	const float view_pos_and_orient[12]);
 void render_scene_cull_mesh_faces_from_view(struct scene_mesh *mesh);
 void render_scene_draw_scene_mesh(const struct scene_mesh *mesh);
 void render_scene_apply_bwing_bridge_rotation(
@@ -281,8 +274,6 @@ void render_scene_draw_selected_root_node(struct object_record *obj,
 void render_scene_draw_model_node(struct optimized_poly_object *model,
 				  struct opt_node *node,
 				  struct scene_mesh *mesh);
-void render_scene_toggle_vertex_light_occlusion(void);
-int render_scene_get_vertex_light_occlusion_enabled(void);
 int render_scene_is_segment_occluded_by_object_model(
 	struct object_record *object, const struct opt_vector *segment_start,
 	const struct opt_vector *segment_end);

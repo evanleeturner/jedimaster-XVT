@@ -252,10 +252,6 @@ static uint16_t g_tex_conv_buf4444[256] = {0};
  * a device with alpha textures; std3d_convert_palette_to1555 fills it. */
 // GLOBAL: XVT 0x664550
 static uint16_t g_tex_conv_buf1555[256] = {0};
-/* A copy of the last palette given to std3d_set_palette_conversion_source, which
- * nothing calls; nothing reads it. */
-// GLOBAL: XVT 0x664980
-static uint8_t g_std3d_palette_conversion_source_rgb[768] = {0};
 /* Green of the fog color, written and read as g_std3d_fog_color_blue8 is; it stays
  * 0. */
 // GLOBAL: XVT 0x664978
@@ -316,10 +312,6 @@ static D3DTLVERTEX g_std3d_quad_verts[4] = {{0}};
  * target's size. std3d_clear_z_buffer clears this area. */
 // GLOBAL: XVT 0xA90BF0
 static struct std3d_viewport_rect g_std3d_quad_rect = {0};
-/* The texture std3d_draw_color_overlay uploads and removes again each time it
- * draws without alpha blending. */
-// GLOBAL: XVT 0xA90A70
-static struct std3d_tex_cache_node g_std3d_color_overlay_tex_node = {0};
 /* The z-buffer surface and its description, made by std3d_create_z_buffer. */
 // GLOBAL: XVT 0xA91A34
 static struct std3dz_buffer_surface_block g_std3dz_buffer_surface_block = {0};
@@ -335,14 +327,6 @@ int g_std3d_min_texture_width;
  * 0. */
 // GLOBAL: XVT 0x528C74
 int g_std3d_min_texture_height;
-/* Only std3d_set_texture_size_caps writes it, and nothing calls that, so it stays
- * 0. */
-// GLOBAL: XVT 0x528C78
-int g_std3d_max_texture_width;
-/* Only std3d_set_texture_size_caps writes it, and nothing calls that; nothing
- * reads it. */
-// GLOBAL: XVT 0x528C7C
-int g_std3d_max_texture_height;
 /* Most vertices one execute buffer takes: the device's max_vertex_count, at most
  * 512, or 512 when it states none; set by std3d_create_device. std3d_add_vertices
  * refuses more. */
@@ -813,76 +797,6 @@ std3d_lookup_error_string(int error_code,
 	return result;
 }
 
-/* Fills 256 16-bit colors in p_fmt's format from 256 RGB triples, each channel
- * shifted down from 8 bits and into place. For a format with alpha bits the
- * alpha is default_alpha, or with color_key 0 for a color that comes out 0 and
- * 0xFF for any other; but a 1-bit format first replaces the value with 0xFF
- * minus it, and without color_key that change carries into the next entry, so
- * the alpha alternates. With color_key and 1-bit alpha, a color that comes out 0
- * is therefore opaque and every other transparent. */
-// FUNCTION: XVT 0x4B1640
-void std3d_build_colormap16(uint8_t *p_rgb888, uint16_t *p_out,
-			    struct color_info *p_fmt, uint8_t default_alpha,
-			    int color_key)
-{
-	uint16_t *output = p_out;
-	struct color_info *format = p_fmt;
-	uint8_t *rgb888 = p_rgb888;
-
-	int entries_remaining = 256;
-	do {
-		*output = (uint16_t)((uint8_t)(rgb888[0] >>
-					       format->red_pos_shift_right)
-				     << format->red_pos_shift);
-		*output |= (uint16_t)((uint8_t)(rgb888[1] >>
-						format->green_pos_shift_right)
-				      << format->green_pos_shift);
-		*output |= (uint16_t)((uint8_t)(rgb888[2] >>
-						format->blue_pos_shift_right)
-				      << format->blue_pos_shift);
-		if ((uint8_t)color_key != 0) {
-			default_alpha = (uint8_t)((*output == 0) - 1);
-		}
-		int alpha_bpp = format->alpha_bpp;
-		if (alpha_bpp == 1) {
-			default_alpha = (uint8_t)(0xFF - default_alpha);
-		}
-		if (alpha_bpp != 0) {
-			*output |=
-				(uint16_t)((uint8_t)(default_alpha >>
-						     format->alpha_pos_shift_right)
-					   << format->alpha_pos_shift);
-		}
-		rgb888 += 3;
-		++output;
-		--entries_remaining;
-	} while (entries_remaining != 0);
-}
-
-/* std3d_build_colormap16 with alpha 0xFF and no color key. */
-// FUNCTION: XVT 0x4B1710
-void std3d_build_colormap_opaque(uint8_t *p_rgb888, uint16_t *p_out,
-				 struct color_info *p_fmt)
-{
-	std3d_build_colormap16(p_rgb888, p_out, p_fmt, 0xFF, 0);
-}
-
-/* std3d_build_colormap16 with alpha 0xFF and the color key. */
-// FUNCTION: XVT 0x4B1730
-void std3d_build_colormap_color_key(uint8_t *p_rgb888, uint16_t *p_out,
-				    struct color_info *p_fmt)
-{
-	std3d_build_colormap16(p_rgb888, p_out, p_fmt, 0xFF, 1);
-}
-
-/* std3d_build_colormap16 with alpha and no color key. */
-// FUNCTION: XVT 0x4B1750
-void std3d_build_colormap_alpha(uint8_t *p_rgb888, uint16_t *p_out,
-				struct color_info *p_fmt, uint8_t alpha)
-{
-	std3d_build_colormap16(p_rgb888, p_out, p_fmt, alpha, 0);
-}
-
 /* Allocates a buffer in plain memory with a copy of raster and width * height *
  * (bpp >> 3) bytes of pixels, sets its rowPitch to width * (bpp >> 3) and
  * returns it. Does not check either allocation; ignores any further
@@ -1049,128 +963,6 @@ void std3d_blit_v_buffer(struct std3dv_buffer *destination,
 
 	std3d_unlock_v_buffer(destination);
 	std3d_unlock_v_buffer(source);
-}
-
-/* Returns g_std3d_render_option_flags. Nothing calls this. */
-// FUNCTION: XVT 0x4B1A80
-unsigned int std3d_get_cap_flags(void) { return g_std3d_render_option_flags; }
-
-/* Fills the whole buffer with packed_color at 8, 16 or 32 bits per pixel,
- * locking it; leaves a buffer of any other depth alone. Ignores fillMode. */
-// FUNCTION: XVT 0x4B1A90
-void std3d_fill_v_buffer(struct std3dv_buffer *vbuffer,
-			 unsigned int packed_color, int fill_mode)
-{
-	(void)fill_mode;
-	std3d_lock_v_buffer(vbuffer);
-	uint8_t *row_pixels = vbuffer->pixels;
-	unsigned int row_index;
-	switch (vbuffer->raster.bpp) {
-	case 8:
-		row_index = 0;
-		if (vbuffer->raster.height > row_index) {
-			do {
-				memset(row_pixels, (uint8_t)packed_color,
-				       vbuffer->raster.width);
-				row_pixels += vbuffer->raster.row_pitch;
-				++row_index;
-			} while (vbuffer->raster.height > row_index);
-		}
-		break;
-	case 16:
-		row_index = 0;
-		if (vbuffer->raster.height > row_index) {
-			do {
-				unsigned int column_index = 0;
-				if (vbuffer->raster.width > column_index) {
-					uint16_t *destination16 =
-						(uint16_t *)row_pixels;
-					do {
-						*destination16 =
-							(uint16_t)packed_color;
-						++destination16;
-						++column_index;
-					} while (vbuffer->raster.width >
-						 column_index);
-				}
-				row_pixels += vbuffer->raster.row_pitch;
-				++row_index;
-			} while (vbuffer->raster.height > row_index);
-		}
-		break;
-	case 32: {
-		unsigned int row32 = 0;
-		if (vbuffer->raster.height > row32) {
-			do {
-				unsigned int column32 = 0;
-				if (vbuffer->raster.width > column32) {
-					uint32_t *destination32 =
-						(uint32_t *)row_pixels;
-					do {
-						*destination32 = packed_color;
-						++destination32;
-						++column32;
-					} while (vbuffer->raster.width >
-						 column32);
-				}
-				row_pixels += vbuffer->raster.row_pitch;
-				++row32;
-			} while (vbuffer->raster.height > row32);
-		}
-		break;
-	}
-	default:
-		break;
-	}
-
-	std3d_unlock_v_buffer(vbuffer);
-}
-
-/* Sets g_std3d_render_option_flags and writes the initial render state again.
- * Nothing calls this. */
-// FUNCTION: XVT 0x4B1B70
-void std3d_set_cap_flags(unsigned int cap_flags)
-{
-	g_std3d_render_option_flags = cap_flags;
-	int result = std3d_set_initial_render_state();
-	if (result == 0) {
-		XVT_LOG_ERROR("d3d.failed reason=\"render_state\"");
-	}
-}
-
-/* Sets the fog color, 0 to 255 for each channel, and returns red8. Nothing
- * calls this. */
-// FUNCTION: XVT 0x4B1BA0
-int std3d_set_fog_color8(unsigned int red8, unsigned int green8,
-			 unsigned int blue8)
-{
-	g_std3d_fog_color_red8 = red8;
-	g_std3d_fog_color_green8 = green8;
-	g_std3d_fog_color_blue8 = blue8;
-	return red8;
-}
-
-/* Sets the fog table start and end and returns start_bits. Nothing calls
- * this. */
-// FUNCTION: XVT 0x4B1BC0
-int std3d_set_fog_table_range_bits(unsigned int start_bits,
-				   unsigned int end_bits)
-{
-	g_std3d_fog_table_start_bits = start_bits;
-	g_std3d_fog_table_end_bits = end_bits;
-	return start_bits;
-}
-
-/* Sets the four texture size limits and returns maxHeight. Nothing calls
- * this. */
-// FUNCTION: XVT 0x4B1BE0
-int std3d_set_texture_size_caps(int min_width, int min_height, int max_width,
-				int max_height)
-{
-	g_std3d_min_texture_width = min_width;
-	g_std3d_min_texture_height = min_height;
-	g_std3d_max_texture_width = max_width;
-	return g_std3d_max_texture_height = max_height;
 }
 
 /* Begins a Direct3D scene on g_d3d_device; a failure is only printed. */
@@ -1623,101 +1415,6 @@ void std3d_set_render_state(std3d_render_state_flags flags)
 	}
 
 	g_d3d_state_flags = flags;
-}
-
-/* Copies 768 bytes of RGB palette and builds from it the opaque palette when
- * that format is 16-bit RGB, and, with alpha textures, the color-keyed 1555
- * palette and, without alpha blending, the 4444 palette with alpha. Returns 1.
- * Nothing calls this. */
-// FUNCTION: XVT 0x4B2540
-int std3d_set_palette_conversion_source(const void *palette_rgb888,
-					uint8_t alpha)
-{
-	memcpy(g_std3d_palette_conversion_source_rgb, palette_rgb888,
-	       sizeof(g_std3d_palette_conversion_source_rgb));
-	if (g_p_fmt_opaque_texture->color_info.color_mode == STDCOLOR_RGB &&
-	    g_p_fmt_opaque_texture->color_info.bpp == 16) {
-		std3d_build_colormap_opaque(
-			(uint8_t *)palette_rgb888, g_std3d_palette_scratch16,
-			&g_p_fmt_opaque_texture->color_info);
-	}
-	if (g_p_std3d_cur_device->caps.b_alpha_texture != 0) {
-		if (g_p_fmt_rgba1555->color_info.color_mode == STDCOLOR_RGBA &&
-		    g_p_fmt_rgba1555->color_info.bpp == 16) {
-			std3d_build_colormap_color_key(
-				(uint8_t *)palette_rgb888, g_tex_conv_buf1555,
-				&g_p_fmt_rgba1555->color_info);
-		}
-		if (g_p_std3d_cur_device->caps.b_alpha_blend == 0 &&
-		    g_p_fmt_rgba4444->color_info.color_mode == STDCOLOR_RGBA &&
-		    g_p_fmt_rgba4444->color_info.bpp == 16) {
-			std3d_build_colormap_alpha(
-				(uint8_t *)palette_rgb888, g_tex_conv_buf4444,
-				&g_p_fmt_rgba4444->color_info, alpha);
-		}
-	}
-	return 1;
-}
-
-/* Writes the size a texture of srcWidth by srcHeight would get: each side at
- * least 1 and at most g_std3d_max_texture_width; then, when under the minimums or
- * not square on a square-only device, both sides made the larger, or each
- * raised to its minimum. With the limits at 0, as they stay, it writes 0 by 0.
- * Nothing calls this. */
-// FUNCTION: XVT 0x4B25E0
-void std3d_clamp_texture_dimensions(int src_width, int src_height,
-				    int *out_width, int *out_height)
-{
-	unsigned int width;
-
-	if ((uint32_t)src_width >= 1) {
-		width = (uint32_t)g_std3d_max_texture_width;
-		if (width >= (uint32_t)src_width) {
-			width = (uint32_t)src_width;
-		}
-	} else {
-		width = 1;
-	}
-
-	unsigned int height;
-	if ((uint32_t)src_height >= 1) {
-		/* The height is clamped by the width limit, as in the original;
-		 * g_std3d_max_texture_height is never read. */
-		height = (uint32_t)g_std3d_max_texture_width;
-		if (height >= (uint32_t)src_height) {
-			height = (uint32_t)src_height;
-		}
-	} else {
-		height = 1;
-	}
-
-	if (width < (unsigned int)g_std3d_min_texture_width ||
-	    height < (unsigned int)g_std3d_min_texture_height ||
-	    (g_p_std3d_cur_device->caps.b_square_only_texture &&
-	     width != height)) {
-		if (g_p_std3d_cur_device->caps.b_square_only_texture &&
-		    width != height) {
-			if (height <= width) {
-				height = width;
-			}
-			width = height;
-		} else {
-			unsigned int min_width =
-				(unsigned int)g_std3d_min_texture_width;
-			if (width <= min_width) {
-				width = min_width;
-			}
-			if (height <= (uint32_t)g_std3d_min_texture_height) {
-				height = (uint32_t)g_std3d_min_texture_height;
-			}
-		}
-		*out_width = (int)width;
-		*out_height = (int)height;
-		return;
-	}
-
-	*out_width = (int)width;
-	*out_height = (int)height;
 }
 
 /* Uploads source as a texture for node and puts the node at the most recently
@@ -2520,126 +2217,6 @@ int std3d_find_closest_format(const struct color_info *match,
 	XVT_LOG_DEBUG("d3d.mode_chosen format=%d match=\"closest\"",
 		      best_format_index);
 	return best_format_index;
-}
-
-/* Draws the full-viewport color overlay when it is on and not all 0. Each
- * channel is its share of the largest, times 255; alpha is the largest times
- * 0.736 with stippled alpha, else times 0.9, held to 0 to 255, and an alpha of
- * 0 draws nothing. With alpha blending it draws the quad in that color;
- * without, it fills g_p_std3dv_buffer in the 4444 format, uploads it as a
- * translucent texture, draws the quad with it in white, and releases it.
- * Nothing calls this. */
-// FUNCTION: XVT 0x4B3590
-void std3d_draw_color_overlay(void)
-{
-	if (g_std3d_color_overlay_enabled == 0 ||
-	    (g_std3d_color_overlay_red == 0.0f &&
-	     g_std3d_color_overlay_green == 0.0f &&
-	     g_std3d_color_overlay_blue == 0.0f)) {
-		return;
-	}
-	float maximum = g_std3d_color_overlay_red >= g_std3d_color_overlay_green
-				? g_std3d_color_overlay_red
-				: g_std3d_color_overlay_green;
-	maximum = g_std3d_color_overlay_blue >= maximum
-			  ? g_std3d_color_overlay_blue
-			  : maximum;
-	uint8_t red = (uint8_t)(g_std3d_color_overlay_red / maximum * 255.0f);
-	uint8_t green =
-		(uint8_t)(g_std3d_color_overlay_green / maximum * 255.0f);
-	uint8_t blue = (uint8_t)(g_std3d_color_overlay_blue / maximum * 255.0f);
-	uint8_t alpha;
-	if (g_p_std3d_cur_device->caps.b_stippled_shade != 0) {
-		float alpha_scale = maximum * 0.736f;
-		if (alpha_scale >= 0.0f) {
-			float upper_clamped_alpha;
-			if (alpha_scale > 255.0f) {
-				upper_clamped_alpha = 255.0f;
-			} else {
-				upper_clamped_alpha = alpha_scale;
-			}
-			alpha_scale = upper_clamped_alpha;
-		} else {
-			alpha_scale = 0.0f;
-		}
-		alpha = (uint8_t)alpha_scale;
-	} else {
-		float alpha_scale = maximum * 0.9f;
-		if (alpha_scale >= 0.0f) {
-			float upper_clamped_alpha;
-			if (alpha_scale > 255.0f) {
-				upper_clamped_alpha = 255.0f;
-			} else {
-				upper_clamped_alpha = alpha_scale;
-			}
-			alpha_scale = upper_clamped_alpha;
-		} else {
-			alpha_scale = 0.0f;
-		}
-		alpha = (uint8_t)alpha_scale;
-	}
-	if (alpha == 0) {
-		return;
-	}
-	if (g_p_std3d_cur_device->caps.b_alpha_blend != 0) {
-		uint32_t packed_color =
-			(uint32_t)blue | ((uint32_t)red << 16) |
-			(((uint32_t)green | ((uint32_t)alpha << 16)) << 8);
-		g_std3d_quad_verts[0].color = packed_color;
-		g_std3d_quad_verts[1].color = packed_color;
-		g_std3d_quad_verts[2].color = packed_color;
-		g_std3d_quad_verts[3].color = packed_color;
-		std3d_start_scene();
-		std3d_lock_execute_buffer();
-		std3d_add_vertices(g_std3d_quad_verts, 4);
-		std3d_begin_instructions();
-		std3d_add_triangles(g_std3d_viewport_quad_triangles, 2);
-		std3d_execute_buffer();
-		std3d_end_scene();
-	} else {
-		uint16_t color =
-			(uint16_t)(green >> g_p_fmt_rgba4444->color_info
-						    .green_pos_shift_right)
-			<< g_p_fmt_rgba4444->color_info.green_pos_shift;
-		color |= (uint16_t)(red >> g_p_fmt_rgba4444->color_info
-						   .red_pos_shift_right)
-			 << g_p_fmt_rgba4444->color_info.red_pos_shift;
-		color |= (uint16_t)(alpha >> g_p_fmt_rgba4444->color_info
-						     .alpha_pos_shift_right)
-			 << g_p_fmt_rgba4444->color_info.alpha_pos_shift;
-		uint16_t blue_color =
-			(uint16_t)(blue >> g_p_fmt_rgba4444->color_info
-						   .blue_pos_shift_right)
-			<< g_p_fmt_rgba4444->color_info.blue_pos_shift;
-		std3d_fill_v_buffer(g_p_std3dv_buffer,
-				    (uint16_t)(color | blue_color), 0);
-		std3d_start_scene();
-		std3d_lock_execute_buffer();
-		std3d_add_to_texture_cache(g_p_std3dv_buffer,
-					   &g_std3d_color_overlay_tex_node, 0,
-					   1);
-		g_std3d_quad_verts[0].color = UINT32_MAX;
-		g_std3d_quad_verts[1].color = UINT32_MAX;
-		g_std3d_quad_verts[2].color = UINT32_MAX;
-		g_std3d_quad_verts[3].color = UINT32_MAX;
-		g_std3d_viewport_quad_triangles[0].texture =
-			&g_std3d_color_overlay_tex_node;
-		g_std3d_viewport_quad_triangles[1].texture =
-			&g_std3d_color_overlay_tex_node;
-		std3d_add_vertices(g_std3d_quad_verts, 4);
-		std3d_begin_instructions();
-		std3d_add_triangles(g_std3d_viewport_quad_triangles, 2);
-		std3d_execute_buffer();
-		std3d_end_scene();
-		g_std3d_color_overlay_tex_node.p_cached_surface->lpVtbl
-			->Release(g_std3d_color_overlay_tex_node
-					  .p_cached_surface);
-		g_std3d_color_overlay_tex_node.p_cached_texture->lpVtbl
-			->Release(g_std3d_color_overlay_tex_node
-					  .p_cached_texture);
-		g_std3d_color_overlay_tex_node.b_cached = 0;
-		std3d_cache_list_remove(&g_std3d_color_overlay_tex_node);
-	}
 }
 
 /* Stores rect in g_std3d_quad_rect, sets g_std3d_quad_verts to its corners and

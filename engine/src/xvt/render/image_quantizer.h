@@ -60,19 +60,9 @@ void image_quantizer_fatal_allocation_error(const char *context,
 void *image_quantizer_allocate_image(void);
 void image_quantizer_compress_pixel_runs(unsigned int *image);
 void image_quantizer_destroy_image(void *image);
-int image_quantizer_expand_pixel_runs(uint32_t *image);
-void image_quantizer_quantize_image(unsigned int *image,
-				    unsigned int palette_size, int tree_depth,
-				    int dither, int colorspace);
-unsigned int image_quantizer_assign_palette_colors(uint32_t *image,
-						   unsigned int palette_size,
-						   int dither, int colorspace);
 void image_quantizer_classify_image_colors(unsigned int *image);
-void image_quantizer_find_nearest_palette_entry_recursive(
-	const struct image_quantizer_node *node);
 void image_quantizer_build_palette_entries_recursive(
 	struct image_quantizer_node *node);
-int image_quantizer_dither_image_to_palette(uint32_t *image);
 int image_quantizer_initialize_color_tree(int tree_depth);
 struct image_quantizer_node *image_quantizer_allocate_node(
 	int child_index, int level, struct image_quantizer_node *parent,
@@ -84,11 +74,6 @@ image_quantizer_merge_node_into_parent(const struct image_quantizer_node *node);
 void image_quantizer_reduce_color_tree(unsigned int target_color_count);
 void image_quantizer_reduce_color_tree_pass_recursive(
 	const struct image_quantizer_node *node);
-void image_quantizer_quantize_image_lists(unsigned int **image_list_heads,
-					  unsigned int list_count,
-					  unsigned int palette_size,
-					  int tree_depth, int dither,
-					  int colorspace);
 int image_quantizer_begin_palette_collection(int target_color_count,
 					     int tree_depth);
 void image_quantizer_export_palette6_bit_and_destroy(int color_count,

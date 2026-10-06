@@ -117,7 +117,6 @@ extern unsigned int g_net_recv_queue_count;
 extern struct net_queued_packet g_net_session_recv_queue[1024];
 extern int g_net_last_delivered_recv_sequence;
 
-int net_reliable_get_last_delivered_recv_sequence(void);
 int net_reliable_check_and_record_recv_sequence(int direct_play_id,
 						int sequence, int channel_a,
 						int channel_b);
@@ -126,7 +125,6 @@ int net_reliable_find_queued_recv_packet(int unused_search_index,
 					 int channel_b, int peer_slot);
 int net_reliable_remove_queued_packet(unsigned int queue_index);
 unsigned int net_reliable_find_or_create_peer_slot(int direct_play_id);
-void net_reliable_reset_recv_queue_state(void);
 int net_reliable_get_peer_packet_drop_count_by_dpid(int direct_play_id);
 int net_reliable_keep_only_host_received_packets(void);
 

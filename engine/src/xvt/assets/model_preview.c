@@ -673,89 +673,6 @@ void model_preview_scale_opt_node_tree(struct opt_node *node,
 	}
 }
 
-/* Undoes model_preview_scale_opt_node_tree: divides where it multiplies and
- * multiplies where it divides. Only model_preview_unscale_opt_root_nodes calls
- * this, and nothing calls that. */
-// FUNCTION: XVT 0x42AA60
-void model_preview_unscale_opt_node_tree(struct opt_node *node,
-					 struct optimized_poly_object *opt,
-					 double scale)
-{
-	struct opt_node *resolved_node = node;
-	if (resolved_node == NULL) {
-		return;
-	}
-	while (resolved_node->node_type == OPT_NODEREF) {
-		resolved_node = opt_model_resolve_node_ref(
-			opt, (const char *)resolved_node->payload);
-		if (resolved_node == NULL) {
-			return;
-		}
-	}
-
-	switch (resolved_node->node_type) {
-	case OPT_FACEDATA: {
-		int count = resolved_node->payload_count;
-		struct opt_packed_face_data *face_data =
-			(struct opt_packed_face_data *)resolved_node->payload;
-		struct opt_vector *face_normals =
-			(struct opt_vector *)&face_data->records[count];
-		struct face_texture_gradients *gradients =
-			(struct face_texture_gradients *)&face_normals[count];
-		float *points = (float *)gradients;
-		if (count > 0) {
-			do {
-				points[0] = (float)(points[0] / scale);
-				points[1] = (float)(points[1] / scale);
-				points[2] = (float)(points[2] / scale);
-				points += 3;
-				points[0] = (float)(points[0] / scale);
-				points[1] = (float)(points[1] / scale);
-				points[2] = (float)(points[2] / scale);
-				points += 3;
-				--count;
-			} while (count != 0);
-		}
-		break;
-	}
-	case OPT_MESHVERTS: {
-		int count = resolved_node->payload_count;
-		float *vertices = (float *)resolved_node->payload;
-		if (count > 0) {
-			do {
-				vertices[0] = (float)(vertices[0] / scale);
-				vertices[1] = (float)(vertices[1] / scale);
-				vertices[2] = (float)(vertices[2] / scale);
-				vertices += 3;
-				--count;
-			} while (count != 0);
-		}
-		break;
-	}
-	case OPT_FACEGROUP: {
-		int count = resolved_node->child_count;
-		float *lod_thresholds = (float *)resolved_node->payload;
-		if (count > 0) {
-			do {
-				*lod_thresholds =
-					(float)(*lod_thresholds * scale);
-				++lod_thresholds;
-				--count;
-			} while (count != 0);
-		}
-		break;
-	}
-	default:
-		break;
-	}
-
-	for (int child_index = 0; child_index < resolved_node->child_count;
-	     ++child_index) {
-		model_preview_unscale_opt_node_tree(
-			resolved_node->p_children[child_index], opt, scale);
-	}
-}
-
 /* Runs model_preview_scale_opt_node_tree on each root of opt. */
 // FUNCTION: XVT 0x42AC50
 void model_preview_scale_opt_root_nodes(struct optimized_poly_object *opt,
@@ -765,19 +682,6 @@ void model_preview_scale_opt_root_nodes(struct optimized_poly_object *opt,
 	     ++root_index) {
 		model_preview_scale_opt_node_tree(opt->root_nodes[root_index],
 						  opt, scale);
-	}
-}
-
-/* Runs model_preview_unscale_opt_node_tree on each root of opt. Nothing calls
- * this. */
-// FUNCTION: XVT 0x42AC90
-void model_preview_unscale_opt_root_nodes(struct optimized_poly_object *opt,
-					  double scale)
-{
-	for (int root_index = 0; root_index < opt->root_node_count;
-	     ++root_index) {
-		model_preview_unscale_opt_node_tree(opt->root_nodes[root_index],
-						    opt, scale);
 	}
 }
 

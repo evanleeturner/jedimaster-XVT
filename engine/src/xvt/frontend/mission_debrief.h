@@ -45,7 +45,6 @@ int mission_debrief_exit(int frame_counter);
 int mission_debrief_update(int frame_counter);
 int mission_debrief_draw_mission_overview_page(int frame_counter);
 int mission_debrief_draw_player_statistics_page(void);
-int mission_debrief_draw_team_statistics_page(void);
 int mission_debrief_draw_battle_summary_page(void);
 int mission_debrief_draw_tournament_summary_page(int frame_counter);
 int mission_debrief_draw_tab_bar(void);

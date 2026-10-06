@@ -28,10 +28,8 @@ extern uint16_t trig2_pitch;
 
 int16_t trig2_getsignedsin(int16_t angle_q16);
 int16_t trig2_calcsinemagnitude(int16_t angle);
-int16_t trig2_w_arcsin(int16_t sin_q15);
 int16_t trig2_w_arccos(int16_t cos_q15);
 int16_t trig2_arccos(int16_t cos_q15);
-int16_t trig2_arcsin(int16_t sin_q15);
 unsigned int trig2_sinewordmult(int16_t value, int16_t angle);
 int trig2_sinedwordmult(int value, uint16_t angle);
 int16_t trig2_getsignedcos(int16_t angle_q16);
@@ -40,7 +38,6 @@ int trig2_cosinedwordmult(int value, uint16_t angle);
 void trig2_update_cartesian_offsets(void);
 void trig2_movexyz(uint16_t distance, int16_t yaw, uint16_t pitch);
 void trig2_ctop(int dx, int dy, int dz);
-void trig2_ctop2dim(int dx, int dy);
 int trig2_calcangleplanedistance(int magnitude_a, int magnitude_b);
 int16_t trig2_calcarctan_core(int adjacent, int opposite, int16_t *out_angle,
 			      int16_t *out_ratio_index);

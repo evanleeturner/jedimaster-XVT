@@ -8429,19 +8429,6 @@ void hud_load_cockpit_sprite_resources(unsigned int model_index)
 	g_hud_cockpit_resources_loaded = 1;
 }
 
-/* Calls g_flight_render_transition_hook, sets g_hud_panel_set_id to 0 and reads the
- * .INT file again through g_hud_cockpit_resource_path, passing that path as the
- * base name: hud_load_cockpit_interface_file copies it onto itself and adds
- * ".INT" after the extension of the last file opened, so the name gets a
- * second extension. Nothing calls this. */
-// FUNCTION: XVT 0x4419B0
-void hud_reload_cockpit_interface_file(void)
-{
-	g_flight_render_transition_hook();
-	g_hud_panel_set_id = 0;
-	hud_load_cockpit_interface_file(g_hud_cockpit_resource_path);
-}
-
 /* Draws the MFD pages that need it: first each page closing
  * (MFD_PAGE_STATE_CLOSING) once more, which then becomes closed; then every
  * page whose state is not closed. Each draw records the page's state in its

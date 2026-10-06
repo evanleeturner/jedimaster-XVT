@@ -19,12 +19,6 @@
  * xvt_flight_entry_create_devices). */
 // GLOBAL: XVT 0x527EB4
 int g_flight_conf_direct_input = 1;
-/* 1 makes the window-message key reading look for a message with PeekMessageA
- * before waiting in GetMessageA. Nothing changes it from 0, so on that path
- * flight_input_has_key_ready waits for a message on every call; win_mouse_poll_state
- * also reads it. */
-// GLOBAL: XVT 0x66DDC0
-int g_flight_input_non_blocking_msg_pump = 0;
 /* Key code flight_input_get_next_key returns on the window-message path. Nothing
  * in the engine stores a key in it; only xvt_input_flush_raw_keyboard writes it,
  * setting 0, in the modern build. */
@@ -226,92 +220,6 @@ void flight_input_apply_deadzone(void)
 	}
 }
 
-/* Reads input (flight_input_read), latches it (flight_input_latch_flight_controls),
- * then zeroes g_scaled_input_yaw when its size is 2,048 or less and
- * g_scaled_input_pitch when 1,536 or less. Its only callers are
- * flight_input_wait_for_action_key_release, flight_input_wait_for_press and
- * flight_input_clear_buttons_and_debounce, which nothing calls. */
-// FUNCTION: XVT 0x411630
-void flight_input_read_and_apply_flight_deadzone(int player_idx_or_sentinel)
-{
-	flight_input_read(player_idx_or_sentinel);
-	flight_input_latch_flight_controls();
-	int16_t magnitude = g_scaled_input_yaw;
-	if ((uint16_t)g_scaled_input_yaw >= 0x8000u) {
-		magnitude = -g_scaled_input_yaw;
-	}
-	if (magnitude <= 2048) {
-		g_scaled_input_yaw = 0;
-	}
-
-	magnitude = g_scaled_input_pitch;
-	if ((uint16_t)g_scaled_input_pitch >= 0x8000u) {
-		magnitude = -g_scaled_input_pitch;
-	}
-	if (magnitude <= 1536) {
-		g_scaled_input_pitch = 0;
-	}
-}
-
-/* Reads local input until a read yields no action key. Nothing calls this. */
-// FUNCTION: XVT 0x411680
-void flight_input_wait_for_action_key_release(void)
-{
-	flight_input_read_and_apply_flight_deadzone(-2);
-	while (g_current_action_key != 0) {
-		flight_input_read_and_apply_flight_deadzone(-2);
-	}
-}
-
-/* Reads local input until a key, a button bit (g_key_mods bits 0 to 3) or a
- * mouse button comes; when it was a button, reads on until all are released.
- * Nothing calls this. */
-// FUNCTION: XVT 0x4116B0
-void flight_input_wait_for_press(void)
-{
-	uint16_t key;
-	uint16_t mouse_buttons;
-
-	do {
-		key = flight_input_read(-2);
-		mouse_buttons = g_mouse_buttons;
-	} while (key == 0 && (g_key_mods & 0xF) == 0 && mouse_buttons == 0);
-
-	uint16_t key_mods = g_key_mods;
-	if ((key_mods & 0xF) != 0 || mouse_buttons != 0) {
-		while ((key_mods & 0xF) != 0 || mouse_buttons != 0) {
-			flight_input_read_and_apply_flight_deadzone(-2);
-			key_mods = g_key_mods;
-			mouse_buttons = g_mouse_buttons;
-		}
-	}
-}
-
-/* Reads local input until no button bit (g_key_mods bits 0 to 3) or mouse button
- * has been held for 2 ticks in a row. Nothing calls this. */
-// FUNCTION: XVT 0x411710
-void flight_input_clear_buttons_and_debounce(void)
-{
-	uint16_t key_mods = g_key_mods;
-	uint16_t mouse_buttons = g_mouse_buttons;
-	uint32_t clear_ticks = 0;
-	do {
-		if ((key_mods & 0xF) != 0 || mouse_buttons != 0) {
-			while ((key_mods & 0xF) != 0 || mouse_buttons != 0) {
-				flight_input_read_and_apply_flight_deadzone(-2);
-				key_mods = g_key_mods;
-				mouse_buttons = g_mouse_buttons;
-			}
-			clear_ticks = 0;
-			time_consume_elapsed_ticks();
-		}
-		flight_input_read_and_apply_flight_deadzone(-2);
-		clear_ticks += time_consume_elapsed_ticks();
-		mouse_buttons = g_mouse_buttons;
-		key_mods = g_key_mods;
-	} while (clear_ticks < 2);
-}
-
 /* Resets input at flight start: clears g_mouse_buttons, g_key_mods and
  * g_flight_mouse_enabled, asks input_detect_active_joystick for a joystick
  * (g_joystick_detect_result_word, g_joystick_available), and calls
@@ -335,15 +243,6 @@ void flight_input_reset_runtime_state(void)
 	XVT_LOG_DEBUG("input.flight_reset joystick=%d detect=%u",
 		      (int)g_joystick_available,
 		      (unsigned)g_joystick_detect_result_word);
-}
-
-/* Sets g_ctrl_axis_x, g_ctrl_axis_y and g_key_mods to 0. Nothing calls this. */
-// FUNCTION: XVT 0x4117D0
-void flight_input_clear_axes_and_modifiers(void)
-{
-	g_ctrl_axis_y = 0;
-	g_ctrl_axis_x = 0;
-	g_key_mods = 0;
 }
 
 /* Sets g_throttle_smoothed to -1 (no reading yet) and g_held_joystick_buttons to

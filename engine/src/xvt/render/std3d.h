@@ -305,8 +305,6 @@ extern int g_std3d_color_overlay_enabled;
 extern int g_std3d_min_texture_width;
 extern int g_std3dz_compare_cap;
 extern int g_std3d_min_texture_height;
-extern int g_std3d_max_texture_width;
-extern int g_std3d_max_texture_height;
 
 void std3d_copy_palette_to_scratch16(const uint16_t *palette, int color_count);
 void std3d_convert_palette_to1555(const uint16_t *palette, int color_count);
@@ -325,15 +323,6 @@ const char *
 std3d_lookup_error_string(int error_code,
 			  const struct std3d_error_string_entry *entries,
 			  int entry_count);
-void std3d_build_colormap16(uint8_t *p_rgb888, uint16_t *p_out,
-			    struct color_info *p_fmt, uint8_t default_alpha,
-			    int color_key);
-void std3d_build_colormap_opaque(uint8_t *p_rgb888, uint16_t *p_out,
-				 struct color_info *p_fmt);
-void std3d_build_colormap_color_key(uint8_t *p_rgb888, uint16_t *p_out,
-				    struct color_info *p_fmt);
-void std3d_build_colormap_alpha(uint8_t *p_rgb888, uint16_t *p_out,
-				struct color_info *p_fmt, uint8_t alpha);
 struct std3dv_buffer *
 std3d_alloc_v_buffer(const struct std3d_raster_info *raster, ...);
 void std3d_free_v_buffer(struct std3dv_buffer *vbuffer);
@@ -343,16 +332,6 @@ void std3d_close(void);
 void std3d_blit_v_buffer(struct std3dv_buffer *destination,
 			 struct std3dv_buffer *source, int destination_x,
 			 int destination_y, int source_x, int source_y);
-unsigned int std3d_get_cap_flags(void);
-void std3d_fill_v_buffer(struct std3dv_buffer *vbuffer,
-			 unsigned int packed_color, int fill_mode);
-void std3d_set_cap_flags(unsigned int cap_flags);
-int std3d_set_fog_color8(unsigned int red8, unsigned int green8,
-			 unsigned int blue8);
-int std3d_set_fog_table_range_bits(unsigned int start_bits,
-				   unsigned int end_bits);
-int std3d_set_texture_size_caps(int min_width, int min_height, int max_width,
-				int max_height);
 void std3d_start_scene(void);
 void std3d_end_scene(void);
 int std3d_lock_execute_buffer(void);
@@ -362,10 +341,6 @@ int std3d_add_triangles(const struct std3d_render_tri *triangles,
 			unsigned int count);
 int std3d_execute_buffer(void);
 void std3d_set_render_state(std3d_render_state_flags flags);
-int std3d_set_palette_conversion_source(const void *palette_rgb888,
-					uint8_t alpha);
-void std3d_clamp_texture_dimensions(int src_width, int src_height,
-				    int *out_width, int *out_height);
 int std3d_add_to_texture_cache(struct std3dv_buffer *source,
 			       struct std3d_tex_cache_node *node,
 			       int color_keyed, int translucent);
@@ -380,7 +355,6 @@ int std3d_select_best_device(const struct std3d_device_caps *required_caps);
 int std3d_find_closest_format(const struct color_info *match,
 			      struct std3d_tex_fmt *formats,
 			      unsigned int count);
-void std3d_draw_color_overlay(void);
 int std3d_build_viewport_quad(const struct std3d_viewport_rect *rect);
 int std3d_set_initial_render_state(void);
 int std3d_create_viewport(int width, int height);

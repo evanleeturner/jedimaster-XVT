@@ -61,15 +61,8 @@ int collide_convert_object_to_explosion(unsigned int object_index,
 unsigned int collide_roughdistance3du(unsigned int abs_dx, unsigned int abs_dy,
 				      unsigned int abs_dz);
 int collide_roughdistance3d(int dx, int dy, int dz);
-unsigned int collide_test_segment_against_legacy_packed_opt_node(
-	const uint8_t *node_data, int start_x, int start_y, int start_z,
-	int end_x, int end_y, int end_z, int stop_on_first_hit);
 unsigned int collide_compute_craft_damage_amount(uint16_t victim_obj_idx,
 						 uint16_t source_obj_idx);
-int collide_is_legacy_projected_edge_cross_nonpositive(int point_delta_u,
-						       int edge_delta_v,
-						       int point_delta_v,
-						       int edge_delta_u);
 int collide_check_swept_model_collision(uint16_t source_obj_idx,
 					uint16_t target_obj_idx);
 int collide_test_sweep_against_opt_node(struct optimized_poly_object *object,

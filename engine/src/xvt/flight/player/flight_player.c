@@ -43,10 +43,6 @@ int16_t flight_player_has_disabled_subsystem(void)
 	return all_installed_systems_operational == 0;
 }
 
-/* Does nothing with its message. Nothing calls this. */
-// FUNCTION: XVT 0x46C200
-void nullsub_8(const char *message) { (void)message; }
-
 /* Adds step to the throttle_speed of the player's craft, holding at 0xFFFF when
  * the sum would wrap past it. Does not check that the player has a craft. */
 // FUNCTION: XVT 0x481D90

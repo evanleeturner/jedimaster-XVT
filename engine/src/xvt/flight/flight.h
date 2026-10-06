@@ -261,22 +261,12 @@ extern uint32_t g_flight_sound_init_start_time_ms;
 void flight_reset_unused_resume_slots(void);
 void flight_update_timers(void);
 void flight_update_dynamic_music_state(void);
-uint8_t *flight_get_duplicate_world_state_buffer(void);
-int flight_get_duplicate_world_state_size(void);
 void flight_alloc_world_state_buffers(void);
 void flight_free_world_state_buffers(void);
 void flight_save_world_state(void);
 void flight_restore_world_state(void);
 size_t flight_calculate_world_state_buffer_size(void);
 void flight_checksum_world_state(int unused_arg0, int unused_arg1);
-int flight_compute_world_state_resync_segment_size(int world_state_size);
-int flight_build_world_state_resync_segment_checksums(
-	int *out_checksums, const uint8_t *world_state, int world_state_size);
-int flight_build_world_state_object_presence_map(uint8_t *out_map,
-						 const uint8_t *world_state);
-void flight_apply_world_state_object_presence_map(const uint8_t *presence_map);
-void flight_step_sim_to_time(int target_game_time);
-void flight_advance_one_step(int target_game_time);
 void flight_main_loop(int unused);
 void flight_run_mission_loop(void);
 int flight_update_active_player_count(void);
@@ -290,15 +280,11 @@ static __inline uint32_t flight_rotate_checksum_left(uint32_t checksum)
 	return (checksum << 1) | (checksum >> 31);
 }
 
-void flight_update_player_step(int player_idx);
 void flight_process_player_actions(int player_idx);
 char flight_apply_graphics_detail_preset(uint16_t preset);
 int flight_main(char *mission_cmd_line);
 int flight_update_and_focus_main_window(void);
 int32_t flight_pump_window_messages(void);
-/* drift-ok: camelcase -- a Windows window procedure */
-int32_t flight_wnd_proc(void *hWnd, unsigned int Msg, uint32_t wParam,
-			int32_t lParam);
 void flight_update_craft_steering_and_speed(void);
 void flight_slew_object_speed_toward_target(unsigned int object_idx,
 					    int target_speed, int allow_decel,

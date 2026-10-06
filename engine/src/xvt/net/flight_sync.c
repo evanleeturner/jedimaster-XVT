@@ -38,13 +38,6 @@ int g_input_frame_count[8] = {0};
  * flight_sync_remove_input_history_frame. */
 // GLOBAL: XVT 0x9ED670
 struct input_frame g_input_history[8][450] = {{{0}}};
-/* Set to 1 by flight_sync_apply_resync_and_replay_world_messages as it loads a
- * resent world state; the next flight_sync_apply_world_message_packet, after
- * restoring that state, marks every live object's move vector and
- * orientation matrix for recomputing and sets it back to 0. Only the
- * original build sets or reads it. */
-// GLOBAL: XVT 0x51BF40
-int g_flight_net_dirty_all_object_transforms_after_restore = 0;
 /* 1 when remote players' craft are drawn smoothed. Starts at 1; flight start
  * copies g_internet_play_enabled into it: flight_main_loop in the original
  * build, xvt_flight_loading_globals in the modern one. */
@@ -61,35 +54,6 @@ struct remote_player_render_sample g_remote_player_render_samples[8];
  * flight_sync_capture_samples_and_restore_poses puts it back after drawing. */
 // GLOBAL: XVT 0x550A08
 struct remote_player_saved_sim_pose g_remote_player_saved_sim_poses[8];
-
-/* Removes every predicted frame (input_source 2, not awaiting relay) from the
- * input history of every active remote player; in internet play it does
- * nothing. Only the original build calls this. */
-// FUNCTION: XVT 0x4185B0
-void flight_sync_discard_all_predicted_input_frames(void)
-{
-
-	for (int player_index = 0; player_index < 8; ++player_index) {
-		if (g_players[player_index].participation_state != 0 &&
-		    player_index != g_local_player) {
-			struct input_frame *frame =
-				g_input_history[player_index];
-			int frame_index = 0;
-			while (g_input_frame_count[player_index] >
-			       frame_index) {
-				if (frame->awaiting_relay == 0 &&
-				    frame->input_source ==
-					    INPUT_FRAME_PREDICTED) {
-					flight_sync_remove_input_history_frame(
-						player_index, frame);
-				} else {
-					++frame;
-					++frame_index;
-				}
-			}
-		}
-	}
-}
 
 /* Removes the predicted frames (input_source 2, not awaiting relay) from one
  * player's input history. Does nothing for an inactive player or the local
@@ -867,16 +831,6 @@ void flight_sync_handle_server_checksum_packet(uint8_t *packet)
 		      g_flight_net_buffer_world_messages_until_checksum);
 }
 
-/* Copies size bytes of a resent world state to offset in
- * g_world_state_dup_buffer, with no bounds check. Only the original build calls
- * this. */
-// FUNCTION: XVT 0x419570
-void flight_sync_copy_world_state_resync_chunk(const void *src, int offset,
-					       unsigned int size)
-{
-	memcpy(&g_world_state_dup_buffer[offset], src, size);
-}
-
 /* Copies the saved world state (g_world_state_size bytes of
  * g_world_state_buffer) into g_world_state_dup_buffer and sets
  * g_world_state_dup_size: the copy a resync sends to a player whose checksum
@@ -897,13 +851,4 @@ void flight_sync_clear_buffered_world_messages(void)
 {
 	xvt_flight_messages_clear(XVT_QUEUE_REPLAY);
 	XVT_LOG_DEBUG("network.replay_cleared");
-}
-
-/* Returns what sound_unused_four_arg_stub returns, 0. Nothing in the engine
- * calls this. */
-// FUNCTION: XVT 0x419870
-int flight_sync_unused_four_arg_forwarder(int arg1, int arg2, int arg3,
-					  int arg4)
-{
-	return sound_unused_four_arg_stub(arg1, arg2, arg3, arg4);
 }
