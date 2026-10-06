@@ -258,13 +258,8 @@ int16_t math2_getradarcoord(int side, int up, int forward)
 		projected_x = (int)(0u - (uint32_t)side);
 	}
 	uint8_t shift;
-#ifdef XVT_MODERN
 	shift = (uint8_t)(g_perspective_shift - 5);
 	projected_x = (int)((uint32_t)projected_x << (shift & 31u));
-#else
-	shift = g_perspective_shift - 5;
-	projected_x <<= shift;
-#endif
 	if (forward != 0) {
 		projected_x /= forward;
 	}
@@ -275,11 +270,7 @@ int16_t math2_getradarcoord(int side, int up, int forward)
 	if (up < 0) {
 		projected_y = (int)(0u - (uint32_t)up);
 	}
-#ifdef XVT_MODERN
 	projected_y = (int)((uint32_t)projected_y << (shift & 31u));
-#else
-	projected_y <<= shift;
-#endif
 	if (forward != 0) {
 		projected_y /= forward;
 	}

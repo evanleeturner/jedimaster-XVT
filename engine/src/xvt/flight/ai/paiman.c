@@ -1,8 +1,6 @@
 #include "xvt/flight/ai/paiman.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
-#endif
 #include <string.h>
 
 #include "xvt/assets/model_bounds.h"
@@ -4233,45 +4231,30 @@ void paiman_calcplanelead(int target_obj_idx)
 		g_object_table[target_obj_idx].mobj;
 	int delta_y;
 	delta_y =
-#ifdef XVT_MODERN
 		(xvt_flight_timing_is_unlocked()
 			 ? xvt_reference_motion_axis_displacement(
 				   target_obj_idx, 1)
 			 : (g_object_table[target_obj_idx].world_y -
 			    target_mobile->prev_world_y))
-#else
-		g_object_table[target_obj_idx].world_y -
-		target_mobile->prev_world_y
-#endif
 		;
 	int delta_z;
 	delta_z =
-#ifdef XVT_MODERN
 		(xvt_flight_timing_is_unlocked()
 			 ? xvt_reference_motion_axis_displacement(
 				   target_obj_idx, 2)
 			 : (g_object_table[target_obj_idx].world_z -
 			    target_mobile->prev_world_z))
-#else
-		g_object_table[target_obj_idx].world_z -
-		target_mobile->prev_world_z
-#endif
 		;
 	g_pai_context.controller->aim_point_x =
 		g_object_table[target_obj_idx].world_x +
 		lead_frames *
 			(
-#ifdef XVT_MODERN
 				(xvt_flight_timing_is_unlocked()
 					 ? xvt_reference_motion_axis_displacement(
 						   target_obj_idx, 0)
 					 : (g_object_table[target_obj_idx]
 						    .world_x -
 					    target_mobile->prev_world_x))
-#else
-				g_object_table[target_obj_idx].world_x -
-				target_mobile->prev_world_x
-#endif
 			);
 	g_pai_context.controller->aim_point_y =
 		g_object_table[target_obj_idx].world_y + lead_frames * delta_y;

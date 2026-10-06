@@ -287,21 +287,12 @@ unsigned int flight_checksum_buffer_rotate_xor(const void *data,
 
 static __inline uint32_t flight_rotate_checksum_left(uint32_t checksum)
 {
-#ifdef XVT_MODERN
 	return (checksum << 1) | (checksum >> 31);
-#else
-	return _rotl(checksum, 1);
-#endif
 }
 
 void flight_update_player_step(int player_idx);
 void flight_process_player_actions(int player_idx);
 char flight_apply_graphics_detail_preset(uint16_t preset);
-#ifndef XVT_MODERN
-/* drift-ok: camelcase -- Windows' entry point */
-int WinMain(void *hInstance, void *hPrevInstance, char *lpCmdLine,
-	    int nShowCmd);
-#endif
 int flight_main(char *mission_cmd_line);
 int flight_update_and_focus_main_window(void);
 int32_t flight_pump_window_messages(void);

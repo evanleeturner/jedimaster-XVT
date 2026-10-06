@@ -170,30 +170,22 @@ typedef enum flight_action_key {
 	FLIGHT_KEY_SCREENSHOT = 0x0E8,
 } flight_action_key;
 
-#ifdef XVT_MODERN
 enum { XVT_INPUT_THROTTLE_PRESENT = 1 };
-#endif
 /* One player's input for one simulation step, as recorded, sent between players
  * and replayed. The modern build's layout differs (8 bytes, with roll, flags
  * and throttle). */
 struct flight_input_frame_record {
-#ifdef XVT_MODERN
 	/* Roll axis, signed, low bit cleared where sampled; replayed into
 	 * g_xvt_control_roll. */
 	int8_t axis_r;
 	/* XVT_INPUT_THROTTLE_PRESENT when throttle holds a new position. */
 	uint8_t flags;
-#else
-	uint16_t reserved0; /* Never read or written by name. */
-#endif
 	uint8_t key;   /* Action key, a flight_action_key; 0 for none. */
 	int8_t axis_x; /* Stick X axis, signed; replayed into g_ctrl_axis_x. */
 	int8_t axis_y; /* Stick Y axis, signed; replayed into g_ctrl_axis_y. */
 	uint8_t key_mods; /* Button bits: bit 0 fire, bit 1 target. */
-#ifdef XVT_MODERN
 	/* Throttle position, 0 to 65,535, when flags says so. */
 	uint16_t throttle;
-#endif
 };
 
 /* One entry of a player's input history (g_input_history): an input with its
@@ -206,10 +198,8 @@ struct input_frame {
 	int timestamp;				/* Tick the input applies at. */
 	struct flight_input_frame_record input; /* The input itself. */
 };
-#ifdef XVT_MODERN
 typedef char xvt_flight_input_record_size
 	[(sizeof(struct flight_input_frame_record) == 8) ? 1 : -1];
-#endif
 
 extern int16_t g_scaled_input_yaw;
 extern int16_t g_abs_scaled_input_yaw;

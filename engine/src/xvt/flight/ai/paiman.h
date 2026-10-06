@@ -27,9 +27,7 @@ extern ai_course_order_maneuver_proc
 extern ai_course_order_maneuver_proc g_ai_current_maneuver_proc;
 extern uint16_t g_order_throttle_to_craft_throttle_speed[12];
 /* The matching translation unit defines this before use; modern consumers need the declaration. */
-#ifdef XVT_MODERN
 extern uint16_t g_ai_turn_away_state_delay_by_skill[4];
-#endif
 
 void paiman_initmaneuver(void);
 void paiman_initturninsidemaneuver(void);

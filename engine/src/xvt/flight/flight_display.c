@@ -1,10 +1,8 @@
 #include "xvt/flight/flight_display.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/render_capture.h"
-#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -22,17 +20,6 @@
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifndef XVT_MODERN
-__declspec(dllimport) int __cdecl wsprintfA(char *buffer, const char *format,
-					    ...);
-__declspec(dllimport) void __stdcall
-OutputDebugStringA(const char *output_string);
-__declspec(dllimport) int __stdcall MessageBoxA(void *hWnd, const char *text,
-						const char *caption,
-						unsigned int type);
-int __cdecl inp(unsigned short port);
-int __cdecl outp(unsigned short port, int value);
-#endif
 
 /* The DirectDraw primary surface: the screen. flight_display_init creates it; in
  * a window it is created only while needed (flight_display_init reads its
@@ -755,20 +742,10 @@ uint8_t flight_display_set_palette_entries(const uint8_t *rgb_data,
 // FUNCTION: XVT 0x4AB970
 int flight_display_cleanup_and_report_error(int error_code)
 {
-#ifndef XVT_MODERN
-	void(__stdcall * output_debug_string)(const char *output_string);
-#endif
-#ifndef XVT_MODERN
-	output_debug_string = OutputDebugStringA;
-	wsprintfA(g_flight_display_debug_message,
-		  "___CleanupAndExit  err = %d\n", error_code);
-	output_debug_string(g_flight_display_debug_message);
-#else
 	snprintf(g_flight_display_debug_message,
 		 sizeof(g_flight_display_debug_message),
 		 "___CleanupAndExit  err = %d\n", error_code);
 	XVT_LOG_DEBUG("flight.display_cleanup error=%d", error_code);
-#endif
 	IDirectDrawSurface *surface = g_flight_primary_surface;
 	if (surface != NULL) {
 		surface->lpVtbl->Release(surface);
@@ -788,11 +765,7 @@ int flight_display_cleanup_and_report_error(int error_code)
 		}
 	}
 	net_session_shutdown();
-#ifndef XVT_MODERN
-	MessageBoxA(NULL, "Game could not start", "ERROR", 0);
-#else
 	XVT_LOG_ERROR("flight.start_failed error=%d", error_code);
-#endif
 	return 0;
 }
 
@@ -916,9 +889,7 @@ HRESULT flight_display_flip(void)
 
 		HRESULT flip_result = g_flight_primary_surface->lpVtbl->Flip(
 			g_flight_primary_surface, NULL, DDFLIP_WAIT);
-#ifdef XVT_MODERN
 		xvt_render_capture_presented(flip_result == DX_DD_OK);
-#endif
 		if (flip_result == DX_DDERR_NOEXCLUSIVEMODE) {
 			XVT_LOG_WARN("display.exclusive_lost");
 			result = g_flight_direct_draw->lpVtbl
@@ -929,20 +900,14 @@ HRESULT flight_display_flip(void)
 							 DDSCL_EXCLUSIVE |
 							 DDSCL_ALLOWMODEX);
 			if (result != DX_DD_OK) {
-#ifndef XVT_MODERN
-				__debugbreak();
-#else
 				XVT_LOG_ERROR(
 					"flight.cooperative_level_failed mode=\"fullscreen\" result=%d",
 					result);
-#endif
 			}
 
 			result = g_flight_primary_surface->lpVtbl->Flip(
 				g_flight_primary_surface, NULL, DDFLIP_WAIT);
-#ifdef XVT_MODERN
 			xvt_render_capture_presented(result == DX_DD_OK);
-#endif
 			if (result == DX_DDERR_SURFACELOST) {
 				XVT_LOG_WARN("display.surfaces_restored");
 				g_flight_primary_surface->lpVtbl->Restore(
@@ -954,18 +919,12 @@ HRESULT flight_display_flip(void)
 				result = g_flight_primary_surface->lpVtbl->Flip(
 					g_flight_primary_surface, NULL,
 					DDFLIP_WAIT);
-#ifdef XVT_MODERN
 				xvt_render_capture_presented(result ==
 							     DX_DD_OK);
-#endif
 			}
 			if (result != DX_DD_OK) {
-#ifndef XVT_MODERN
-				__debugbreak();
-#else
 				XVT_LOG_ERROR("flight.flip_failed result=%d",
 					      result);
-#endif
 			}
 
 			/* From here flip_result holds the result of returning
@@ -979,13 +938,9 @@ HRESULT flight_display_flip(void)
 						g_flight_main_window_handle,
 						DDSCL_NORMAL);
 			if (flip_result != DX_DD_OK) {
-#ifndef XVT_MODERN
-				__debugbreak();
-#else
 				XVT_LOG_ERROR(
 					"flight.cooperative_level_failed mode=\"normal\" result=%d",
 					flip_result);
-#endif
 			}
 		}
 
@@ -1054,9 +1009,7 @@ HRESULT flight_display_flip(void)
 				"display.present_failed step=\"unlock\" result=%#x",
 				(unsigned)result);
 		}
-#ifdef XVT_MODERN
 		xvt_render_capture_presented(result == DX_DD_OK);
-#endif
 		if (g_flight_fullscreen == 0 &&
 		    g_flight_primary_surface != NULL) {
 			result = g_flight_primary_surface->lpVtbl->Release(
@@ -1135,14 +1088,12 @@ int flight_display_blit_render_surface(void)
 		memcpy(g_flight_software_framebuffer,
 		       g_flight_hud_staging_buffer, 480 * result);
 	}
-#ifdef XVT_MODERN
 	if (g_flight_page_flip == 0 || result == DX_DD_OK) {
 		xvt_cockpit_latch_composition();
 	} else {
 		XVT_LOG_ERROR("display.overlay_copy_failed result=%#x",
 			      (unsigned)result);
 	}
-#endif
 	return result;
 }
 
@@ -1268,42 +1219,9 @@ uint8_t flight_display_write_vga_palette_entries(const uint8_t *rgb_entries,
 						 int16_t first_entry,
 						 int16_t entry_count)
 {
-#ifndef XVT_MODERN
-	const uint8_t *entry;
-	int first;
-	int count;
-	unsigned short port;
-	uint8_t result;
-#endif
 
-#ifdef XVT_MODERN
 	(void)rgb_entries;
 	(void)first_entry;
 	(void)entry_count;
 	return 0;
-#else
-	entry = rgb_entries;
-	first = first_entry;
-	count = entry_count;
-	result = 0;
-	if (count != 0) {
-		port = 0x3DA;
-		while ((inp(port) & 8) != 0) {
-		}
-		while ((inp(port) & 8) == 0) {
-		}
-		port = 0x3C8;
-		outp(port, first);
-		port = 0x3C9;
-		do {
-			outp(port, entry[0]);
-			outp(port, entry[1]);
-			result = entry[2];
-			outp(port, result);
-			entry += 3;
-			--count;
-		} while (count != 0);
-	}
-	return result;
-#endif
 }

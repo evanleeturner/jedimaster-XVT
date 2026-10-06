@@ -1,5 +1,4 @@
 #include "xvt/flight/hud/hud.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/cockpit_instruments.h"
 #include "xvt_runtime/snapshot/cockpit_messages.h"
@@ -7,12 +6,9 @@
 #include "xvt_runtime/snapshot/cockpit_readouts.h"
 #include "xvt_runtime/snapshot/cockpit_text.h"
 #include "xvt_runtime/snapshot/render_hud.h"
-#endif
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_capture.h"
-#endif
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -58,20 +54,7 @@
 #include "xvt/render/sw3d.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log_both_builds.h"
-#ifndef XVT_MODERN
-int(_fileno)(xvt_file *stream);
-long _filelength(int file_descriptor);
-#endif
 
-#ifndef XVT_MODERN
-struct msvc42_crt_file_prefix {
-	/* Never read or written; puts flags at byte 12. */
-	uint8_t reserved[12];
-	/* Stream flags; the original build's loaders read bit 0x10 as end of
-	 * file. */
-	int flags;
-};
-#endif
 
 struct lfd_entry_header {
 	uint8_t resource_type[4]; /* Type tag; PLTT marks a palette. */
@@ -1534,9 +1517,7 @@ void hud_init_hud(int player_idx)
 // FUNCTION: XVT 0x438DF0
 void hud_render_hud(int player_idx)
 {
-#ifdef XVT_MODERN
 	xvt_cockpit_instruments_begin_update(player_idx);
-#endif
 
 	if (player_idx == g_local_player) {
 		if (g_players[g_local_player].awaiting_new_craft != 0 ||
@@ -1574,9 +1555,7 @@ void hud_render_hud(int player_idx)
 			}
 		}
 	}
-#ifdef XVT_MODERN
 	xvt_cockpit_refresh_instruments(player_idx);
-#endif
 }
 
 /* Draws the 3D image of the local player's target into the target inset (layout
@@ -1595,9 +1574,7 @@ void hud_draw_hud_target_inset_if_enabled(int player_index)
 		TARGET_INSET_FEATURE_MASK = 1,
 	};
 
-#ifdef XVT_MODERN
 	xvt_render_draw_scope(XVT_SCOPE_COCKPIT);
-#endif
 
 	if (player_index == g_local_player &&
 	    g_players[g_local_player].awaiting_new_craft == 0 &&
@@ -1754,14 +1731,12 @@ void hud_draw_static_cockpit_text(uint16_t player_idx)
 					      layout_index]
 					.y +
 				g_flight_font_line_height);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(
 			(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_POWER_LABEL_FIRST +
 						    layout_index - 122),
 			g_str_cockpit_overlay_text[layout_index - 122 +
 						   COCKPIT_OVERLAY_STR_L],
 			XVT_COCKPIT_ALIGN_LEFT);
-#endif
 		flight_text_draw_string(
 			g_str_cockpit_overlay_text[layout_index - 122 +
 						   COCKPIT_OVERLAY_STR_L]);
@@ -1808,24 +1783,20 @@ void hud_draw_static_cockpit_text(uint16_t player_idx)
 			if (g_hud_element_layouts
 				    [g_hud_instrument_set_base_index + 121]
 					    .selector <= 4) {
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_SPEED_LABEL,
 					g_str_cockpit_overlay_text
 						[COCKPIT_OVERLAY_STR_SPD],
 					XVT_COCKPIT_ALIGN_LEFT);
-#endif
 				flight_text_draw_string(
 					g_str_cockpit_overlay_text
 						[COCKPIT_OVERLAY_STR_SPD]);
 			} else {
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_SPEED_LABEL,
 					g_str_cockpit_overlay_text
 						[COCKPIT_OVERLAY_STR_SPEED],
 					XVT_COCKPIT_ALIGN_LEFT);
-#endif
 				flight_text_draw_string(
 					g_str_cockpit_overlay_text
 						[COCKPIT_OVERLAY_STR_SPEED]);
@@ -1871,24 +1842,20 @@ void hud_draw_static_cockpit_text(uint16_t player_idx)
 			if (g_hud_element_layouts
 				    [g_hud_instrument_set_base_index + 120]
 					    .selector <= 4) {
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_THROTTLE_LABEL,
 					g_str_cockpit_overlay_text
 						[COCKPIT_OVERLAY_STR_THTL],
 					XVT_COCKPIT_ALIGN_LEFT);
-#endif
 				flight_text_draw_string(
 					g_str_cockpit_overlay_text
 						[COCKPIT_OVERLAY_STR_THTL]);
 			} else {
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_THROTTLE_LABEL,
 					g_str_cockpit_overlay_text
 						[COCKPIT_OVERLAY_STR_THROTTLE],
 					XVT_COCKPIT_ALIGN_LEFT);
-#endif
 				flight_text_draw_string(
 					g_str_cockpit_overlay_text
 						[COCKPIT_OVERLAY_STR_THROTTLE]);
@@ -1929,10 +1896,8 @@ void hud_draw_static_cockpit_text(uint16_t player_idx)
 			g_hud_element_layouts[g_hud_instrument_set_base_index +
 					      41]
 				.y);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_THROTTLE_PERCENT,
 					      "%", XVT_COCKPIT_ALIGN_LEFT);
-#endif
 		g_flight_draw_char_fn('%');
 	}
 
@@ -1985,14 +1950,12 @@ void hud_draw_static_cockpit_text(uint16_t player_idx)
 					[g_hud_instrument_set_base_index + 128 +
 					 layout_index]
 						.color_index_or_widget_param);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_SHIELD_LABEL_FIRST +
 							    layout_index),
 				g_str_cockpit_overlay_text
 					[layout_index + COCKPIT_OVERLAY_STR_F],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(
 				g_str_cockpit_overlay_text
 					[layout_index + COCKPIT_OVERLAY_STR_F]);
@@ -2023,11 +1986,9 @@ void hud_draw_static_cockpit_text(uint16_t player_idx)
 					      126]
 				.clip_height_or_foreground_color);
 	g_flight_fill_clip_rect_fn();
-#ifdef XVT_MODERN
 	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS,
 				      g_flight_text_scratch_buffer,
 				      XVT_COCKPIT_ALIGN_CENTER);
-#endif
 	flight_text_draw_string_centered(g_flight_text_scratch_buffer);
 	if (g_players[player_idx].view_state.hud_state_live ==
 	    HUD_VIEW_FORWARD) {
@@ -2045,10 +2006,8 @@ void hud_draw_static_cockpit_text(uint16_t player_idx)
 			g_hud_element_layouts[46].x +
 				flight_text_measure_string_width("00"),
 			g_hud_element_layouts[46].y);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CLOCK_SEPARATOR,
 					      ":", XVT_COCKPIT_ALIGN_LEFT);
-#endif
 		g_flight_draw_char_fn(':');
 	}
 }
@@ -2245,11 +2204,9 @@ void hud_draw_map_view_overlay(void)
 			g_str_map_room_text[MAP_ROOM_STR_FOLLOWING]);
 		flight_text_append_scratch_char(' ');
 		flight_text_append_scratch_string(text);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_MAP_FOLLOWING,
 					      g_flight_text_scratch_buffer,
 					      XVT_COCKPIT_ALIGN_CENTER);
-#endif
 		flight_text_draw_string_centered(g_flight_text_scratch_buffer);
 		flight_surface_unlock();
 		g_hud_element_state_cache[g_hud_instrument_set_base_index +
@@ -2314,11 +2271,9 @@ void hud_draw_map_view_overlay(void)
 			g_str_map_room_text[MAP_ROOM_STR_TRACKING]);
 		flight_text_append_scratch_char(' ');
 		flight_text_append_scratch_string(text);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_MAP_TRACKING,
 					      g_flight_text_scratch_buffer,
 					      XVT_COCKPIT_ALIGN_CENTER);
-#endif
 		flight_text_draw_string_centered(g_flight_text_scratch_buffer);
 		flight_surface_unlock();
 		g_hud_element_state_cache[g_hud_instrument_set_base_index +
@@ -2389,14 +2344,12 @@ void hud_update_cmd_text(void)
 						g_flight_text_scratch_buffer),
 				g_hud_element_layouts[layout_index].y +
 					g_flight_font_line_height);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_CMD_HEADER_FIRST +
 							    layout_index -
 							    CMD_TEXT_LAYOUT_FIRST),
 				g_flight_text_scratch_buffer,
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_flight_text_scratch_buffer);
 		}
 		g_hud_element_state_cache[CMD_TEXT_CACHE_INDEX] = 0;
@@ -2515,9 +2468,7 @@ void hud_draw_radar_blips(void)
 			(uint16_t *)&g_radar_aft_draw_blips->x,
 			g_radar_aft_blip_count);
 	}
-#ifdef XVT_MODERN
 	xvt_cockpit_instruments_complete_radar();
-#endif
 
 	if (g_players[g_local_player].current_target_object_idx == -1) {
 		g_radar_target_marker_background_saved = 0;
@@ -2659,11 +2610,9 @@ void hud_add_blip_to_radar(int16_t obj_idx)
 			(uint16_t)radary;
 		g_radar_fore_draw_blips[g_radar_fore_blip_count].color =
 			g_radar_blip_color;
-#ifdef XVT_MODERN
 		xvt_cockpit_instruments_record_radar(
 			object_idx, 1, g_radar_fore_blip_count, radarx, radary,
 			g_radar_blip_color);
-#endif
 		++g_radar_fore_blip_count;
 		if (g_radar_fore_blip_count == 48) {
 			--g_radar_fore_blip_count;
@@ -2686,11 +2635,9 @@ void hud_add_blip_to_radar(int16_t obj_idx)
 			(uint16_t)radary;
 		g_radar_aft_draw_blips[g_radar_aft_blip_count].color =
 			g_radar_blip_color;
-#ifdef XVT_MODERN
 		xvt_cockpit_instruments_record_radar(
 			object_idx, 0, g_radar_aft_blip_count, radarx, radary,
 			g_radar_blip_color);
-#endif
 		++g_radar_aft_blip_count;
 		if (g_radar_aft_blip_count == 48) {
 			--g_radar_aft_blip_count;
@@ -2758,9 +2705,7 @@ void hud_update_targeting_computer_display(void)
 	bool draw_target_display;
 	bool use_left_aligned_details;
 
-#ifdef XVT_MODERN
 	xvt_cockpit_readouts_begin_target(0);
-#endif
 
 	g_flight_text_shadow_enabled = 0;
 	uint16_t left = g_hud_element_layouts[g_hud_instrument_set_base_index +
@@ -2770,9 +2715,7 @@ void hud_update_targeting_computer_display(void)
 					     TARGET_INSET_ELEMENT]
 			       .y;
 	if (g_flight_mission_state.proving_grounds_mode_active != 0) {
-#ifdef XVT_MODERN
 		xvt_cockpit_readouts_hide_target();
-#endif
 		proving_grounds_draw_status_panel(left, top);
 		return;
 	}
@@ -2800,10 +2743,8 @@ void hud_update_targeting_computer_display(void)
 	uint16_t dirty_state = UINT16_MAX;
 	if (map_camera_state == 0) {
 		if (!draw_target_display) {
-#ifdef XVT_MODERN
 			xvt_cockpit_readouts_hide_target();
 			xvt_cockpit_text_clear_target_fields();
-#endif
 			return;
 		}
 		if ((g_object_table[local_object_index]
@@ -2812,26 +2753,20 @@ void hud_update_targeting_computer_display(void)
 			if (g_hud_instrument_set_base_index ==
 			    HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
 				if (use_left_aligned_details) {
-#ifdef XVT_MODERN
 					xvt_cockpit_readouts_record_target_cover(
 						TARGET_ALT_PANEL_ELEMENT);
-#endif
 					hud_draw_cached_sprite_element(
 						TARGET_ALT_PANEL_ELEMENT, 0);
 				} else {
-#ifdef XVT_MODERN
 					xvt_cockpit_readouts_record_target_cover(
 						TARGET_PANEL_ELEMENT);
-#endif
 					hud_draw_cached_sprite_element(
 						TARGET_PANEL_ELEMENT, 0);
 				}
 			} else {
-#ifdef XVT_MODERN
 				xvt_cockpit_readouts_record_target_cover(
 					g_hud_instrument_set_base_index +
 					TARGET_PANEL_ELEMENT);
-#endif
 				hud_draw_cached_sprite_element(
 					g_hud_instrument_set_base_index +
 						TARGET_PANEL_ELEMENT,
@@ -2869,10 +2804,8 @@ void hud_update_targeting_computer_display(void)
 		}
 	}
 	if (!draw_target_display) {
-#ifdef XVT_MODERN
 		xvt_cockpit_readouts_hide_target();
 		xvt_cockpit_text_clear_target_fields();
-#endif
 		return;
 	}
 
@@ -2890,9 +2823,7 @@ void hud_update_targeting_computer_display(void)
 	struct craft_data *target_craft;
 	if (current_target_object_index !=
 	    (uint16_t)g_hud_cached_target_object_idx) {
-#ifdef XVT_MODERN
 		xvt_cockpit_text_clear_target_fields();
-#endif
 		int16_t previous_target_object_index =
 			g_hud_cached_target_object_idx;
 		g_hud_target_inset_mask_refresh_pending = 1;
@@ -2936,18 +2867,14 @@ void hud_update_targeting_computer_display(void)
 		g_hud_element_state_cache[g_hud_instrument_set_base_index +
 					  TARGET_CARGO_ELEMENT] = dirty_state;
 		g_hud_element_state_cache[TARGET_CARGO_ELEMENT] = dirty_state;
-#ifdef XVT_MODERN
 		xvt_cockpit_text_clear_field(XVT_COCKPIT_TEXT_TARGET_CARGO);
-#endif
 		g_hud_element_state_cache[g_hud_instrument_set_base_index +
 					  TARGET_UNUSED_ELEMENT] = dirty_state;
 		g_hud_element_state_cache[TARGET_UNUSED_ELEMENT] = dirty_state;
 		g_hud_element_state_cache[g_hud_instrument_set_base_index +
 					  TARGET_DETAIL_ELEMENT] = dirty_state;
 		g_hud_element_state_cache[TARGET_DETAIL_ELEMENT] = dirty_state;
-#ifdef XVT_MODERN
 		xvt_cockpit_text_clear_field(XVT_COCKPIT_TEXT_TARGET_DETAIL);
-#endif
 		if (use_left_aligned_details ||
 		    g_hud_instrument_set_base_index !=
 			    HUD_COCKPIT_INSTRUMENT_BASE_INDEX) {
@@ -2989,13 +2916,11 @@ void hud_update_targeting_computer_display(void)
 					[g_hud_instrument_set_base_index +
 					 TARGET_DISTANCE_LABEL_ELEMENT]
 						.y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_RANGE_LABEL,
 				g_str_cmd_threat_display_text
 					[CMD_THREAT_STR_DIST],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_str_cmd_threat_display_text
 							[CMD_THREAT_STR_DIST]);
 			flight_text_set_cursor(
@@ -3008,11 +2933,9 @@ void hud_update_targeting_computer_display(void)
 					[g_hud_instrument_set_base_index +
 					 TARGET_DISTANCE_VALUE_ELEMENT]
 						.y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_RANGE_SEPARATOR, ".",
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			g_flight_draw_char_fn('.');
 			if (use_left_aligned_details) {
 				flight_text_set_font_tier(0);
@@ -3036,13 +2959,11 @@ void hud_update_targeting_computer_display(void)
 			} else {
 				flight_text_set_color(0x45);
 			}
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_SHIELD_LABEL,
 				g_str_cmd_threat_display_text
 					[CMD_THREAT_STR_SHD],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_str_cmd_threat_display_text
 							[CMD_THREAT_STR_SHD]);
 			flight_text_set_cursor(
@@ -3055,11 +2976,9 @@ void hud_update_targeting_computer_display(void)
 					[g_hud_instrument_set_base_index +
 					 TARGET_SHIELD_VALUE_ELEMENT]
 						.y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_SHIELD_PERCENT, "%",
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			g_flight_draw_char_fn('%');
 			flight_text_set_cursor(
 				g_hud_element_layouts
@@ -3070,13 +2989,11 @@ void hud_update_targeting_computer_display(void)
 					[g_hud_instrument_set_base_index +
 					 TARGET_HULL_LABEL_ELEMENT]
 						.y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_HULL_LABEL,
 				g_str_cmd_threat_display_text
 					[CMD_THREAT_STR_HULL],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_str_cmd_threat_display_text
 							[CMD_THREAT_STR_HULL]);
 			flight_text_set_cursor(
@@ -3089,11 +3006,9 @@ void hud_update_targeting_computer_display(void)
 					[g_hud_instrument_set_base_index +
 					 TARGET_HULL_VALUE_ELEMENT]
 						.y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_HULL_PERCENT, "%",
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			g_flight_draw_char_fn('%');
 			flight_text_set_cursor(
 				g_hud_element_layouts
@@ -3104,13 +3019,11 @@ void hud_update_targeting_computer_display(void)
 					[g_hud_instrument_set_base_index +
 					 TARGET_SYSTEM_LABEL_ELEMENT]
 						.y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_SYSTEM_LABEL,
 				g_str_cmd_threat_display_text
 					[CMD_THREAT_STR_SYS],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_str_cmd_threat_display_text
 							[CMD_THREAT_STR_SYS]);
 			flight_text_set_cursor(
@@ -3123,11 +3036,9 @@ void hud_update_targeting_computer_display(void)
 					[g_hud_instrument_set_base_index +
 					 TARGET_SYSTEM_VALUE_ELEMENT]
 						.y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_SYSTEM_PERCENT, "%",
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			g_flight_draw_char_fn('%');
 			if (use_left_aligned_details &&
 			    g_hud_instrument_set_base_index ==
@@ -3248,12 +3159,10 @@ void hud_update_targeting_computer_display(void)
 				}
 			}
 			flight_text_set_cursor(left, top);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_NAME,
 				g_flight_text_scratch_buffer,
 				XVT_COCKPIT_ALIGN_CENTER);
-#endif
 			flight_text_draw_string_centered(
 				g_flight_text_scratch_buffer);
 
@@ -3306,12 +3215,10 @@ void hud_update_targeting_computer_display(void)
 				g_flight_fill_clip_rect_fn();
 				flight_text_set_cursor(left, top);
 				flight_text_set_color(0x4E);
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_TARGET_DETAIL,
 					g_flight_text_scratch_buffer,
 					XVT_COCKPIT_ALIGN_RIGHT);
-#endif
 				flight_text_draw_string_right_aligned(
 					g_flight_text_scratch_buffer);
 			}
@@ -3321,32 +3228,26 @@ void hud_update_targeting_computer_display(void)
 				if (use_left_aligned_details ||
 				    g_players[g_local_player]
 						    .map_camera_state != 0) {
-#ifdef XVT_MODERN
 					xvt_cockpit_readouts_record_target_cover(
 						g_hud_instrument_set_base_index +
 						TARGET_ALT_PANEL_ELEMENT);
-#endif
 					hud_draw_cached_sprite_element(
 						g_hud_instrument_set_base_index +
 							TARGET_ALT_PANEL_ELEMENT,
 						0);
 				} else {
-#ifdef XVT_MODERN
 					xvt_cockpit_readouts_record_target_cover(
 						g_hud_instrument_set_base_index +
 						TARGET_PANEL_ELEMENT);
-#endif
 					hud_draw_cached_sprite_element(
 						g_hud_instrument_set_base_index +
 							TARGET_PANEL_ELEMENT,
 						0);
 				}
 			} else {
-#ifdef XVT_MODERN
 				xvt_cockpit_readouts_record_target_cover(
 					g_hud_instrument_set_base_index +
 					TARGET_PANEL_ELEMENT);
-#endif
 				hud_draw_cached_sprite_element(
 					g_hud_instrument_set_base_index +
 						TARGET_PANEL_ELEMENT,
@@ -3484,11 +3385,9 @@ void hud_update_targeting_computer_display(void)
 		}
 	}
 	flight_text_set_cursor(left, top);
-#ifdef XVT_MODERN
 	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_TARGET_NAME,
 				      g_flight_text_scratch_buffer,
 				      XVT_COCKPIT_ALIGN_CENTER);
-#endif
 	flight_text_draw_string_centered(g_flight_text_scratch_buffer);
 
 	target_craft = NULL;
@@ -3705,19 +3604,15 @@ void hud_update_targeting_computer_display(void)
 			flight_text_set_cursor(left, top);
 			flight_text_set_color(0x46);
 			if (!use_left_aligned_details) {
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_TARGET_CARGO,
 					cargo_text, XVT_COCKPIT_ALIGN_RIGHT);
-#endif
 				flight_text_draw_string_right_aligned(
 					cargo_text);
 			} else {
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_TARGET_CARGO,
 					cargo_text, XVT_COCKPIT_ALIGN_LEFT);
-#endif
 				flight_text_draw_string(cargo_text);
 			}
 		}
@@ -3760,13 +3655,11 @@ void hud_update_targeting_computer_display(void)
 				flight_text_set_cursor(left, top);
 				if (selected_component ==
 				    NO_SELECTED_COMPONENT) {
-#ifdef XVT_MODERN
 					xvt_cockpit_text_record_field(
 						XVT_COCKPIT_TEXT_TARGET_DETAIL,
 						g_str_mesh_component_names
 							[MESH_COMPONENT_32_DASHES],
 						XVT_COCKPIT_ALIGN_RIGHT);
-#endif
 					flight_text_draw_string_right_aligned(
 						g_str_mesh_component_names
 							[MESH_COMPONENT_32_DASHES]);
@@ -3822,13 +3715,11 @@ void hud_update_targeting_computer_display(void)
 						mesh_type =
 							MESH_COMPONENT_26_COCKPIT;
 					}
-#ifdef XVT_MODERN
 					xvt_cockpit_text_record_field(
 						XVT_COCKPIT_TEXT_TARGET_DETAIL,
 						g_str_mesh_component_names
 							[mesh_type],
 						XVT_COCKPIT_ALIGN_RIGHT);
-#endif
 					flight_text_draw_string_right_aligned(
 						g_str_mesh_component_names
 							[mesh_type]);
@@ -3971,12 +3862,10 @@ void hud_update_targeting_computer_display(void)
 						break;
 					}
 				}
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_TARGET_CARGO,
 					status_first_word,
 					XVT_COCKPIT_ALIGN_LEFT);
-#endif
 				flight_text_draw_string(status_first_word);
 			}
 
@@ -3990,10 +3879,8 @@ void hud_update_targeting_computer_display(void)
 					g_hud_element_state_cache
 						[TARGET_DETAIL_ELEMENT] =
 							invalid_state;
-#ifdef XVT_MODERN
 					xvt_cockpit_text_clear_field(
 						XVT_COCKPIT_TEXT_TARGET_DETAIL);
-#endif
 					flight_text_set_clip_rect(
 						g_hud_element_layouts
 							[g_hud_instrument_set_base_index +
@@ -4045,12 +3932,10 @@ void hud_update_targeting_computer_display(void)
 				hud_format_object_display_name(
 					ai_target_object_index,
 					NORMAL_TARGET_DISPLAY_FLAGS);
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_TARGET_DETAIL,
 					g_flight_text_scratch_buffer,
 					XVT_COCKPIT_ALIGN_RIGHT);
-#endif
 				flight_text_draw_string_right_aligned(
 					g_flight_text_scratch_buffer);
 			}
@@ -4063,10 +3948,8 @@ void hud_update_targeting_computer_display(void)
 			    invalid_state) {
 				g_hud_element_state_cache
 					[TARGET_CARGO_ELEMENT] = invalid_state;
-#ifdef XVT_MODERN
 				xvt_cockpit_text_clear_field(
 					XVT_COCKPIT_TEXT_TARGET_CARGO);
-#endif
 				flight_text_set_clip_rect(
 					g_hud_element_layouts
 						[g_hud_instrument_set_base_index +
@@ -4095,10 +3978,8 @@ void hud_update_targeting_computer_display(void)
 			    invalid_state) {
 				g_hud_element_state_cache
 					[TARGET_DETAIL_ELEMENT] = invalid_state;
-#ifdef XVT_MODERN
 				xvt_cockpit_text_clear_field(
 					XVT_COCKPIT_TEXT_TARGET_DETAIL);
-#endif
 				flight_text_set_clip_rect(
 					g_hud_element_layouts
 						[g_hud_instrument_set_base_index +
@@ -4170,12 +4051,10 @@ void hud_update_targeting_computer_display(void)
 							break;
 						}
 					}
-#ifdef XVT_MODERN
 					xvt_cockpit_text_record_field(
 						XVT_COCKPIT_TEXT_TARGET_CARGO,
 						status_first_word,
 						XVT_COCKPIT_ALIGN_LEFT);
-#endif
 					flight_text_draw_string(
 						status_first_word);
 				}
@@ -4185,10 +4064,8 @@ void hud_update_targeting_computer_display(void)
 					g_hud_element_state_cache
 						[TARGET_DETAIL_ELEMENT] =
 							dirty_state;
-#ifdef XVT_MODERN
 					xvt_cockpit_text_clear_field(
 						XVT_COCKPIT_TEXT_TARGET_DETAIL);
-#endif
 					flight_text_set_clip_rect(
 						g_hud_element_layouts
 							[g_hud_instrument_set_base_index +
@@ -4264,12 +4141,10 @@ void hud_update_targeting_computer_display(void)
 								break;
 							}
 						}
-#ifdef XVT_MODERN
 						xvt_cockpit_text_record_field(
 							XVT_COCKPIT_TEXT_TARGET_CARGO,
 							status_first_word,
 							XVT_COCKPIT_ALIGN_LEFT);
-#endif
 						flight_text_draw_string(
 							status_first_word);
 					}
@@ -4307,12 +4182,10 @@ void hud_update_targeting_computer_display(void)
 										 .player_owner_idx]
 									.current_target_object_idx,
 							NORMAL_TARGET_DISPLAY_FLAGS);
-#ifdef XVT_MODERN
 						xvt_cockpit_text_record_field(
 							XVT_COCKPIT_TEXT_TARGET_DETAIL,
 							g_flight_text_scratch_buffer,
 							XVT_COCKPIT_ALIGN_RIGHT);
-#endif
 						flight_text_draw_string_right_aligned(
 							g_flight_text_scratch_buffer);
 					}
@@ -4362,12 +4235,10 @@ void hud_update_targeting_computer_display(void)
 								break;
 							}
 						}
-#ifdef XVT_MODERN
 						xvt_cockpit_text_record_field(
 							XVT_COCKPIT_TEXT_TARGET_CARGO,
 							status_first_word,
 							XVT_COCKPIT_ALIGN_LEFT);
-#endif
 						flight_text_draw_string(
 							status_first_word);
 					}
@@ -4400,12 +4271,10 @@ void hud_update_targeting_computer_display(void)
 						hud_format_object_display_name(
 							WAYPOINT_ZERO_OBJECT_REF,
 							NORMAL_TARGET_DISPLAY_FLAGS);
-#ifdef XVT_MODERN
 						xvt_cockpit_text_record_field(
 							XVT_COCKPIT_TEXT_TARGET_DETAIL,
 							g_flight_text_scratch_buffer,
 							XVT_COCKPIT_ALIGN_RIGHT);
-#endif
 						flight_text_draw_string_right_aligned(
 							g_flight_text_scratch_buffer);
 					}
@@ -4871,13 +4740,11 @@ void hud_draw_laser_cannon_indicators(void)
 						flight_text_set_background_color(
 							0);
 						flight_text_set_color(0x4A);
-#ifdef XVT_MODERN
 						xvt_cockpit_readouts_record_number(
 							(xvt_cockpit_number_id)(XVT_COCKPIT_NUMBER_LASER_FIRST +
 										laser_slot),
 							charge_percent,
 							selector, 1);
-#endif
 						flight_text_draw_decimal_number(
 							charge_percent,
 							selector, 1);
@@ -5041,10 +4908,8 @@ void hud_draw_laser_cannon_indicators(void)
 		if (lock_state == 3) {
 			lock_state = 0;
 		}
-#ifdef XVT_MODERN
 		xvt_cockpit_instruments_record_laser_lock(laser_slot,
 							  lock_state);
-#endif
 
 		object_index = g_players[g_local_player].object_index;
 		is_rebel_fighter =
@@ -5243,21 +5108,17 @@ void hud_output_warhead_count(uint16_t warhead_slot_idx, uint16_t display_slot,
 				if (get_model_index_from_type(
 					    CRAFT_SPECIES_MISSILE_BOAT) ==
 				    craft_model_index) {
-#ifdef XVT_MODERN
 					xvt_cockpit_readouts_record_number(
 						(xvt_cockpit_number_id)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST +
 									display_slot),
 						warhead_count, 2, 1);
-#endif
 					flight_text_draw_decimal_number(
 						warhead_count, 2, 1);
 				} else {
-#ifdef XVT_MODERN
 					xvt_cockpit_readouts_record_number(
 						(xvt_cockpit_number_id)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST +
 									display_slot),
 						warhead_count, 1, 1);
-#endif
 					flight_text_draw_decimal_number(
 						warhead_count, 1, 1);
 				}
@@ -5274,9 +5135,7 @@ void hud_output_warhead_count(uint16_t warhead_slot_idx, uint16_t display_slot,
 						 1) +
 					3,
 				g_flight_font_line_height + 3);
-#ifdef XVT_MODERN
 			xvt_cockpit_readouts_clear_launcher(display_slot);
-#endif
 			flight_text_set_background_color(
 				g_flight_transparent_color_index);
 			g_flight_fill_clip_rect_fn();
@@ -5319,20 +5178,16 @@ void hud_output_warhead_count(uint16_t warhead_slot_idx, uint16_t display_slot,
 				.object_type);
 		if (get_model_index_from_type(CRAFT_SPECIES_MISSILE_BOAT) ==
 		    craft_model_index) {
-#ifdef XVT_MODERN
 			xvt_cockpit_readouts_record_number(
 				(xvt_cockpit_number_id)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST +
 							display_slot),
 				warhead_count, 2, 1);
-#endif
 			flight_text_draw_decimal_number(warhead_count, 2, 1);
 		} else {
-#ifdef XVT_MODERN
 			xvt_cockpit_readouts_record_number(
 				(xvt_cockpit_number_id)(XVT_COCKPIT_NUMBER_LAUNCHER_FIRST +
 							display_slot),
 				warhead_count, 1, 1);
-#endif
 			flight_text_draw_decimal_number(warhead_count, 1, 1);
 		}
 	}
@@ -5519,12 +5374,10 @@ void hud_draw_shield_strength2d(void)
 						.y);
 			flight_text_format_scratch_int(shield_percent);
 			flight_text_append_scratch_char('%');
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_SHIELD_FORE,
 				g_flight_text_scratch_buffer,
 				XVT_COCKPIT_ALIGN_RIGHT);
-#endif
 			flight_text_draw_string_right_aligned(
 				g_flight_text_scratch_buffer);
 			g_hud_element_state_cache
@@ -5647,12 +5500,10 @@ void hud_draw_shield_strength2d(void)
 						.y);
 			flight_text_format_scratch_int(secondary_level);
 			flight_text_append_scratch_char('%');
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_SHIELD_AFT,
 				g_flight_text_scratch_buffer,
 				XVT_COCKPIT_ALIGN_RIGHT);
-#endif
 			flight_text_draw_string_right_aligned(
 				g_flight_text_scratch_buffer);
 			g_hud_element_state_cache
@@ -5890,19 +5741,15 @@ void hud_update_mission_clock_display(void)
 
 		if (g_flight_mission_state.proving_grounds_mode_active != 0 ||
 		    g_flight_mission_state.mission_time_limit_minutes != 0) {
-#ifdef XVT_MODERN
 			xvt_cockpit_readouts_record_number(
 				XVT_COCKPIT_NUMBER_CLOCK_MINUTES,
 				g_mission_countdown_clock.minutes, 2, 2);
-#endif
 			flight_text_draw_decimal_number(
 				g_mission_countdown_clock.minutes, 2, 2);
 		} else {
-#ifdef XVT_MODERN
 			xvt_cockpit_readouts_record_number(
 				XVT_COCKPIT_NUMBER_CLOCK_MINUTES,
 				g_mission_elapsed_clock.minutes, 2, 1);
-#endif
 			flight_text_draw_decimal_number(
 				g_mission_elapsed_clock.minutes, 2, 1);
 		}
@@ -5924,19 +5771,15 @@ void hud_update_mission_clock_display(void)
 
 		if (g_flight_mission_state.proving_grounds_mode_active != 0 ||
 		    g_flight_mission_state.mission_time_limit_minutes != 0) {
-#ifdef XVT_MODERN
 			xvt_cockpit_readouts_record_number(
 				XVT_COCKPIT_NUMBER_CLOCK_SECONDS,
 				g_mission_countdown_clock.seconds, 2, 2);
-#endif
 			flight_text_draw_decimal_number(
 				g_mission_countdown_clock.seconds, 2, 2);
 		} else {
-#ifdef XVT_MODERN
 			xvt_cockpit_readouts_record_number(
 				XVT_COCKPIT_NUMBER_CLOCK_SECONDS,
 				g_mission_elapsed_clock.seconds, 2, 2);
-#endif
 			flight_text_draw_decimal_number(
 				g_mission_elapsed_clock.seconds, 2, 2);
 		}
@@ -6342,10 +6185,8 @@ void hud_update_threat_indicators(int hud_mode)
 	}
 	hud_draw_cached_sprite_element(g_hud_instrument_set_base_index + 93,
 				       warning_state);
-#ifdef XVT_MODERN
 	xvt_cockpit_instruments_record_threats(attack_threat, laser_threat,
 					       beam_threat, warning_state);
-#endif
 	flight_surface_unlock();
 	fsfx_update_incoming_missile_warning(warning_state);
 	flight_surface_lock();
@@ -6446,13 +6287,11 @@ void hud_update_critical_hull_shield_warning(void)
 	} else {
 		warning_text_idx = 0;
 	}
-#ifdef XVT_MODERN
 	xvt_cockpit_text_record_field(
 		XVT_COCKPIT_TEXT_CRITICAL_WARNING,
 		g_str_cockpit_overlay_text[COCKPIT_OVERLAY_STR_EJECT +
 					   warning_text_idx],
 		XVT_COCKPIT_ALIGN_CENTER);
-#endif
 	flight_text_draw_string_centered(
 		g_str_cockpit_overlay_text[COCKPIT_OVERLAY_STR_EJECT +
 					   warning_text_idx]);
@@ -6494,11 +6333,9 @@ void hud_update_countermeasure_status(void)
 			flight_text_set_background_color(0x2C);
 			g_flight_fill_clip_rect_fn();
 			flight_text_set_color(0x4E);
-#ifdef XVT_MODERN
 			xvt_cockpit_readouts_record_number(
 				XVT_COCKPIT_NUMBER_COUNTERMEASURES,
 				countermeasure_count, 3, 1);
-#endif
 			flight_text_draw_decimal_number(countermeasure_count, 3,
 							1);
 			g_hud_element_state_cache
@@ -6738,9 +6575,7 @@ void hud_draw_cmd_target_details(void)
 		NO_AI_TARGET = 255,
 	};
 
-#ifdef XVT_MODERN
 	xvt_cockpit_readouts_begin_target(1);
-#endif
 
 	g_flight_text_shadow_enabled = 0;
 	flight_text_set_background_color(0x2C);
@@ -6754,9 +6589,7 @@ void hud_draw_cmd_target_details(void)
 	uint16_t current_target_object_idx;
 	if (g_players[g_local_player].current_target_object_idx !=
 	    g_hud_cached_target_object_idx) {
-#ifdef XVT_MODERN
 		xvt_cockpit_text_clear_target_fields();
-#endif
 
 		previous_target_object_idx = g_hud_cached_target_object_idx;
 		g_hud_cached_target_object_idx =
@@ -6847,12 +6680,10 @@ void hud_draw_cmd_target_details(void)
 					current_target_object_idx,
 					NORMAL_TARGET_DISPLAY_FLAGS);
 			}
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_NAME,
 				g_flight_text_scratch_buffer,
 				XVT_COCKPIT_ALIGN_CENTER);
-#endif
 			flight_text_draw_string_centered(
 				g_flight_text_scratch_buffer);
 		}
@@ -6921,12 +6752,10 @@ void hud_draw_cmd_target_details(void)
 					(long)whole_distance,
 					(long)fractional_distance);
 			}
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_CMD_RANGE,
 				g_flight_text_scratch_buffer,
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_flight_text_scratch_buffer);
 		}
 
@@ -6974,11 +6803,9 @@ void hud_draw_cmd_target_details(void)
 			g_flight_fill_clip_rect_fn();
 			flight_text_set_cursor(left, top);
 			flight_text_set_color(0x46);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_CARGO, cargo_text,
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(cargo_text);
 		}
 	}
@@ -7060,13 +6887,11 @@ void hud_draw_cmd_target_details(void)
 			} else {
 				flight_text_set_color(0x46);
 			}
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_CMD_ORDERS_LABEL,
 				g_str_cmd_threat_display_text
 					[CMD_THREAT_STR_CURRENT_ORDERS],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(
 				g_str_cmd_threat_display_text
 					[CMD_THREAT_STR_CURRENT_ORDERS]);
@@ -7083,14 +6908,12 @@ void hud_draw_cmd_target_details(void)
 								 .clip_width,
 				g_flight_cursor_y);
 			flight_text_set_color(0x4E);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_CMD_ORDERS,
 				g_str_in_flight_messages
 					[g_plan_report_message_id_by_plan_id
 						 [display_plan_id]],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(
 				g_str_in_flight_messages
 					[g_plan_report_message_id_by_plan_id
@@ -7126,7 +6949,6 @@ void hud_draw_cmd_target_details(void)
 			g_hud_element_layouts[CMD_ORDER_TIME_ELEMENT]
 				.clip_width = flight_text_measure_string_width(
 				g_flight_text_scratch_buffer);
-#ifdef XVT_MODERN
 			xvt_cockpit_readouts_clear_order_time();
 			xvt_cockpit_text_clear_field(
 				XVT_COCKPIT_TEXT_CMD_TIME_UNKNOWN);
@@ -7134,7 +6956,6 @@ void hud_draw_cmd_target_details(void)
 				XVT_COCKPIT_TEXT_CMD_TIME_LABEL,
 				g_flight_text_scratch_buffer,
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_flight_text_scratch_buffer);
 		}
 
@@ -7197,12 +7018,10 @@ void hud_draw_cmd_target_details(void)
 						[CMD_THREAT_STR_CURRENT_DESTINATION];
 				}
 				flight_text_set_scratch(target_label);
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_CMD_TARGET_LABEL,
 					g_flight_text_scratch_buffer,
 					XVT_COCKPIT_ALIGN_LEFT);
-#endif
 				flight_text_draw_string(
 					g_flight_text_scratch_buffer);
 				g_hud_element_layouts[CMD_ORDER_TARGET_ELEMENT]
@@ -7230,13 +7049,11 @@ void hud_draw_cmd_target_details(void)
 						[CMD_THREAT_STR_DISTANCE_TO_DESTINATION];
 				}
 				flight_text_set_scratch(distance_label);
-#ifdef XVT_MODERN
 				xvt_cockpit_readouts_clear_order_range();
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_CMD_RANGE_LABEL,
 					g_flight_text_scratch_buffer,
 					XVT_COCKPIT_ALIGN_LEFT);
-#endif
 				flight_text_draw_string(
 					g_flight_text_scratch_buffer);
 				g_hud_element_layouts[CMD_ORDER_RANGE_ELEMENT]
@@ -7261,13 +7078,11 @@ void hud_draw_cmd_target_details(void)
 				flight_text_set_cursor(value_left, value_top);
 				if (order_target_object_idx == NO_AI_TARGET ||
 				    order_target_object_idx == UINT16_MAX) {
-#ifdef XVT_MODERN
 					xvt_cockpit_text_record_field(
 						XVT_COCKPIT_TEXT_CMD_TARGET,
 						g_str_cmd_threat_display_text
 							[CMD_THREAT_STR_NONE],
 						XVT_COCKPIT_ALIGN_LEFT);
-#endif
 					flight_text_draw_string(
 						g_str_cmd_threat_display_text
 							[CMD_THREAT_STR_NONE]);
@@ -7275,12 +7090,10 @@ void hud_draw_cmd_target_details(void)
 					hud_format_object_display_name(
 						order_target_object_idx,
 						NORMAL_TARGET_DISPLAY_FLAGS);
-#ifdef XVT_MODERN
 					xvt_cockpit_text_record_field(
 						XVT_COCKPIT_TEXT_CMD_TARGET,
 						g_flight_text_scratch_buffer,
 						XVT_COCKPIT_ALIGN_LEFT);
-#endif
 					flight_text_draw_string(
 						g_flight_text_scratch_buffer);
 				}
@@ -7344,24 +7157,18 @@ void hud_draw_cmd_target_details(void)
 								distance_fraction;
 					flight_text_set_cursor(value_left,
 							       value_top);
-#ifdef XVT_MODERN
 					xvt_cockpit_readouts_record_number(
 						XVT_COCKPIT_NUMBER_ORDER_RANGE,
 						distance_whole, 2, 1);
-#endif
 					flight_text_draw_decimal_number(
 						distance_whole, 2, 1);
-#ifdef XVT_MODERN
 					xvt_cockpit_text_record_field(
 						XVT_COCKPIT_TEXT_ORDER_RANGE_SEPARATOR,
 						".", XVT_COCKPIT_ALIGN_LEFT);
-#endif
 					g_flight_draw_char_fn('.');
-#ifdef XVT_MODERN
 					xvt_cockpit_readouts_record_number(
 						XVT_COCKPIT_NUMBER_ORDER_RANGE_FRACTION,
 						distance_fraction, 2, 2);
-#endif
 					flight_text_draw_decimal_number(
 						distance_fraction, 2, 2);
 				}
@@ -7394,39 +7201,29 @@ void hud_draw_cmd_target_details(void)
 							[CMD_ORDER_TIME_ELEMENT] =
 								0;
 						g_flight_fill_clip_rect_fn();
-#ifdef XVT_MODERN
 						xvt_cockpit_text_clear_field(
 							XVT_COCKPIT_TEXT_CMD_TIME_UNKNOWN);
-#endif
-#ifdef XVT_MODERN
 						xvt_cockpit_readouts_record_number(
 							XVT_COCKPIT_NUMBER_ORDER_MINUTES,
 							0, 2, 1);
-#endif
 						flight_text_draw_decimal_number(
 							0, 2, 1);
-#ifdef XVT_MODERN
 						xvt_cockpit_text_record_field(
 							XVT_COCKPIT_TEXT_ORDER_TIME_SEPARATOR,
 							":",
 							XVT_COCKPIT_ALIGN_LEFT);
-#endif
 						g_flight_draw_char_fn(':');
-#ifdef XVT_MODERN
 						xvt_cockpit_readouts_record_number(
 							XVT_COCKPIT_NUMBER_ORDER_SECONDS,
 							0, 2, 2);
-#endif
 						flight_text_draw_decimal_number(
 							0, 2, 2);
 					} else {
-#ifdef XVT_MODERN
 						xvt_cockpit_readouts_clear_order_time();
 						xvt_cockpit_text_record_field(
 							XVT_COCKPIT_TEXT_CMD_TIME_UNKNOWN,
 							g_str_unknown,
 							XVT_COCKPIT_ALIGN_LEFT);
-#endif
 						flight_text_draw_string(
 							g_str_unknown);
 					}
@@ -7448,27 +7245,19 @@ void hud_draw_cmd_target_details(void)
 					[CMD_ORDER_TIME_ELEMENT] =
 						(int16_t)seconds;
 				g_flight_fill_clip_rect_fn();
-#ifdef XVT_MODERN
 				xvt_cockpit_text_clear_field(
 					XVT_COCKPIT_TEXT_CMD_TIME_UNKNOWN);
-#endif
-#ifdef XVT_MODERN
 				xvt_cockpit_readouts_record_number(
 					XVT_COCKPIT_NUMBER_ORDER_MINUTES,
 					minutes, 2, 1);
-#endif
 				flight_text_draw_decimal_number(minutes, 2, 1);
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_ORDER_TIME_SEPARATOR,
 					":", XVT_COCKPIT_ALIGN_LEFT);
-#endif
 				g_flight_draw_char_fn(':');
-#ifdef XVT_MODERN
 				xvt_cockpit_readouts_record_number(
 					XVT_COCKPIT_NUMBER_ORDER_SECONDS,
 					seconds, 2, 2);
-#endif
 				flight_text_draw_decimal_number(seconds, 2, 2);
 			} else {
 				uint16_t distance_per_second =
@@ -7493,27 +7282,19 @@ void hud_draw_cmd_target_details(void)
 					[CMD_ORDER_TIME_ELEMENT] =
 						(int16_t)seconds;
 				g_flight_fill_clip_rect_fn();
-#ifdef XVT_MODERN
 				xvt_cockpit_text_clear_field(
 					XVT_COCKPIT_TEXT_CMD_TIME_UNKNOWN);
-#endif
-#ifdef XVT_MODERN
 				xvt_cockpit_readouts_record_number(
 					XVT_COCKPIT_NUMBER_ORDER_MINUTES,
 					minutes, 2, 1);
-#endif
 				flight_text_draw_decimal_number(minutes, 2, 1);
-#ifdef XVT_MODERN
 				xvt_cockpit_text_record_field(
 					XVT_COCKPIT_TEXT_ORDER_TIME_SEPARATOR,
 					":", XVT_COCKPIT_ALIGN_LEFT);
-#endif
 				g_flight_draw_char_fn(':');
-#ifdef XVT_MODERN
 				xvt_cockpit_readouts_record_number(
 					XVT_COCKPIT_NUMBER_ORDER_SECONDS,
 					seconds, 2, 2);
-#endif
 				flight_text_draw_decimal_number(seconds, 2, 2);
 			}
 		}
@@ -7630,9 +7411,7 @@ void hud_draw_cmd_target_status_indicators(void)
 				} while (i < cannon_class_count);
 			}
 		}
-#ifdef XVT_MODERN
 		xvt_cockpit_readouts_record_armament(0, laser_state);
-#endif
 		hud_draw_cached_sprite_element(0x62, laser_state);
 		if (laser_state != 0 &&
 		    (uint16_t)g_hud_element_state_cache[135] != laser_state) {
@@ -7658,13 +7437,11 @@ void hud_draw_cmd_target_status_indicators(void)
 						  y, width, bottom);
 			flight_text_set_cursor(g_hud_element_layouts[135].x,
 					       g_hud_element_layouts[135].y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_ARMAMENT_LABEL_FIRST +
 							    0),
 				g_str_threat_display_text[0],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_str_threat_display_text[0]);
 		}
 	}
@@ -7692,9 +7469,7 @@ void hud_draw_cmd_target_status_indicators(void)
 				++i;
 			}
 		}
-#ifdef XVT_MODERN
 		xvt_cockpit_readouts_record_armament(1, ion_state);
-#endif
 		hud_draw_cached_sprite_element(0x63, ion_state);
 		if (ion_state != 0 &&
 		    (uint16_t)g_hud_element_state_cache[136] != ion_state) {
@@ -7720,13 +7495,11 @@ void hud_draw_cmd_target_status_indicators(void)
 						  y, width, bottom);
 			flight_text_set_cursor(g_hud_element_layouts[136].x,
 					       g_hud_element_layouts[136].y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_ARMAMENT_LABEL_FIRST +
 							    1),
 				g_str_threat_display_text[1],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_str_threat_display_text[1]);
 		}
 	}
@@ -7789,9 +7562,7 @@ void hud_draw_cmd_target_status_indicators(void)
 				}
 			}
 		}
-#ifdef XVT_MODERN
 		xvt_cockpit_readouts_record_armament(2, warhead_state);
-#endif
 		hud_draw_cached_sprite_element(0x64, warhead_state);
 		if (warhead_state != 0 &&
 		    (uint16_t)g_hud_element_state_cache[137] != warhead_state) {
@@ -7817,13 +7588,11 @@ void hud_draw_cmd_target_status_indicators(void)
 						  y, width, bottom);
 			flight_text_set_cursor(g_hud_element_layouts[137].x,
 					       g_hud_element_layouts[137].y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_ARMAMENT_LABEL_FIRST +
 							    2),
 				g_str_threat_display_text[2],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_str_threat_display_text[2]);
 		}
 	}
@@ -7839,9 +7608,7 @@ void hud_draw_cmd_target_status_indicators(void)
 				beam_state = 2;
 			}
 		}
-#ifdef XVT_MODERN
 		xvt_cockpit_readouts_record_armament(3, beam_state);
-#endif
 		hud_draw_cached_sprite_element(0x65, beam_state);
 		if (beam_state != 0 &&
 		    (uint16_t)g_hud_element_state_cache[138] != beam_state) {
@@ -7867,13 +7634,11 @@ void hud_draw_cmd_target_status_indicators(void)
 						  y, width, bottom);
 			flight_text_set_cursor(g_hud_element_layouts[138].x,
 					       g_hud_element_layouts[138].y);
-#ifdef XVT_MODERN
 			xvt_cockpit_text_record_field(
 				(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_ARMAMENT_LABEL_FIRST +
 							    3),
 				g_str_threat_display_text[3],
 				XVT_COCKPIT_ALIGN_LEFT);
-#endif
 			flight_text_draw_string(g_str_threat_display_text[3]);
 		}
 	}
@@ -7996,10 +7761,8 @@ void hud_draw_cached_numeric_element(uint16_t element_idx, int16_t value,
 	}
 	flight_text_set_cursor(g_hud_element_layouts[element_idx].x,
 			       g_hud_element_layouts[element_idx].y);
-#ifdef XVT_MODERN
 	xvt_cockpit_readouts_record_cached_number(element_idx, value,
 						  min_digits);
-#endif
 	flight_text_draw_decimal_number(value, selector, min_digits);
 }
 
@@ -8088,9 +7851,7 @@ void hud_load_cockpit_interface_file(const char *base_path)
 					FLIGHT_RESOLUTION_480X360
 			? 480
 			: 200);
-#ifdef XVT_MODERN
 	xvt_render_assets_capture_cockpit(0);
-#endif
 }
 
 /* Reads the craft list view's .INT file, the one named by
@@ -8122,9 +7883,7 @@ int16_t hud_load_auxiliary_cockpit_interface_file(void)
 		fe_disk_io_read_with_retry_prompt(
 			g_hud_craft_list_inset_span_mask, 200, 1, stream);
 	}
-#ifdef XVT_MODERN
 	xvt_render_assets_capture_cockpit(1);
-#endif
 	return fe_disk_io_close_global_stream(0);
 }
 
@@ -8181,12 +7940,10 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 		return;
 	}
 
-#ifdef XVT_MODERN
 	xvt_cockpit_text_reset_fields();
 	xvt_cockpit_readouts_reset();
 	xvt_cockpit_pages_reset_working();
 	xvt_cockpit_messages_reset_working();
-#endif
 	uint8_t mirror_horizontal = 0;
 	int cockpit_x = 0;
 	unsigned int resource_index =
@@ -8473,7 +8230,6 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 		g_flight_fill_clip_rect_fn();
 		flight_text_set_color(PALETTE_COCKPIT_COLOR_COUNT + 3);
 		flight_text_set_cursor(0, text_y);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(
 			XVT_COCKPIT_TEXT_RESOURCE_NAME,
 			g_hud_cockpit_resource_descriptors
@@ -8481,16 +8237,13 @@ void hud_rebuild_display_for_view_state(int hud_view_state, int player_idx)
 					 .view_state.hud_state_live]
 					.display_name,
 			XVT_COCKPIT_ALIGN_CENTER);
-#endif
 		flight_text_draw_string_centered(
 			g_hud_cockpit_resource_descriptors
 				[g_players[g_local_player]
 					 .view_state.hud_state_live]
 					.display_name);
 	}
-#ifdef XVT_MODERN
 	xvt_cockpit_refresh_instruments(player_idx);
-#endif
 }
 
 /* Reads entry_count entries of lfd_name's .LFD file, in the resolution's cockpit
@@ -8549,10 +8302,8 @@ void hud_load_cockpit_lfd_entries(const char *lfd_name, uint8_t **out_entries,
 		lfd_name, entry_count,
 		(long)(g_hud_cockpit_resource_write_cursor - out_entries[0]),
 		g_flight_sim_side_effects_suppressed);
-#ifdef XVT_MODERN
 	xvt_render_assets_register_lfd(g_hud_cockpit_resource_path,
 				       out_entries);
-#endif
 }
 
 /* Loads the cockpit images: for each of the 28 views whose descriptor has
@@ -8584,15 +8335,10 @@ void hud_load_cockpit_sprite_resources(unsigned int model_index)
 			fe_disk_io_open_global_stream(
 				g_hud_cockpit_resource_path, "rb", 1, 0);
 			if (g_stream != NULL) {
-#ifdef XVT_MODERN
 				FILE_RAW_SEEK((xvt_file *)g_stream, 0,
 					      SEEK_END);
 				file_size = (size_t)FILE_RAW_TELL(
 					(xvt_file *)g_stream);
-#else
-				file_size = (size_t)_filelength(
-					(_fileno)((xvt_file *)g_stream));
-#endif
 				fe_disk_io_close_global_stream(0);
 				fe_disk_io_unlock_global_buffers();
 				uint16_t memory_handle =
@@ -9091,7 +8837,6 @@ void hud_blit_software_mfd_pages(void)
 					g_hud_element_layouts[layout_index + 27]
 						.selector;
 				if (selector != 0) {
-#ifdef XVT_MODERN
 					xvt_cockpit_latch_launcher(
 						launcher_index,
 						g_hud_element_layouts
@@ -9103,7 +8848,6 @@ void hud_blit_software_mfd_pages(void)
 						(g_flight_font_digit_width +
 						 1) * selector,
 						g_flight_font_line_height);
-#endif
 					flight_sw_blit_rect_to_flight_surface(
 						g_flight_offscreen_buffer,
 						g_flight_transparent_color_index,
@@ -9127,9 +8871,7 @@ void hud_blit_software_mfd_pages(void)
 			}
 		}
 	}
-#ifdef XVT_MODERN
 	xvt_cockpit_latch_pages();
-#endif
 }
 
 /* Renders the local player's target into a small viewport at screen_x, screen_y:
@@ -9159,9 +8901,7 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 		COMPONENT_MARKER_COLOR = 0xCE,
 	};
 
-#ifdef XVT_MODERN
 	xvt_render_draw_scope(XVT_SCOPE_CRT);
-#endif
 	int saved_proj_offset_y = g_proj_offset_y;
 	int saved_camera_world_x =
 		g_players[g_local_player].view_state.camera_world_x;
@@ -9217,10 +8957,8 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 	}
 	hud_point_camera(g_players[g_local_player].current_target_object_idx, 1,
 			 g_local_player);
-#ifdef XVT_MODERN
 	xvt_render_capture_crt(screen_x, screen_y, width, height,
 			       refresh_span_mask);
-#endif
 	if (g_players[g_local_player].target_box_enabled != 0) {
 		g_render_object_ref |= TARGET_BOX_RENDER_FLAG;
 	} else {
@@ -9456,11 +9194,9 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 			g_view_space_x = transfm2_cam_mat_dot_row0(
 				component_rel_x, component_rel_y,
 				component_rel_z);
-#ifdef XVT_MODERN
 			xvt_render_capture_crt_marker(component_rel_x,
 						      component_rel_y,
 						      component_rel_z);
-#endif
 			g_view_space_y = transfm2_cam_mat_dot_row1(
 				component_rel_x, component_rel_y,
 				component_rel_z);
@@ -9490,9 +9226,7 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 	g_players[g_local_player].view_state.camera_world_z =
 		saved_camera_world_z;
 	g_proj_offset_y = saved_proj_offset_y;
-#ifdef XVT_MODERN
 	xvt_render_draw_scope(XVT_SCOPE_COCKPIT);
-#endif
 }
 
 /* Draws box corners at depth 1 through hud_draw_depth_tested_box_corners. */
@@ -9868,9 +9602,7 @@ void hud_reset_flight_message_panes(int force_expire_active_messages)
 	g_system_message_pane.state_or_message_id = UINT16_MAX;
 	g_flight_group_message_pane.state_or_message_id = UINT16_MAX;
 	flight_surface_unlock();
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_reset_working();
-#endif
 }
 
 /* Makes room in slot 0 of g_ready_message_pane_queue for a new message: when the
@@ -9966,9 +9698,7 @@ void hud_show_flight_message_pane(int16_t pane_type)
 
 	char last_char;
 
-#ifdef XVT_MODERN
 	last_char = 0;
-#endif
 
 	if (g_ready_message_pane_queue[0].state_or_message_id == UINT16_MAX &&
 	    pane_type != 3 && pane_type != 8 && pane_type != 4 &&
@@ -10046,9 +9776,7 @@ void hud_show_flight_message_pane(int16_t pane_type)
 		hud_setup_ready_message_pane_text();
 	}
 
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_begin_message(pane_type);
-#endif
 	uint8_t prefix = (uint8_t)*text;
 	uint8_t current_char;
 	if (prefix < 9) {
@@ -10100,9 +9828,7 @@ void hud_show_flight_message_pane(int16_t pane_type)
 		}
 	}
 
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_record_reveal(visible_chars);
-#endif
 	if (prefix == 3 || prefix == 4 || prefix == 7) {
 		hud_finish_flight_message_pane(g_system_message_pane.pane_type,
 					       last_char);
@@ -10182,9 +9908,7 @@ void hud_finish_flight_message_pane(int16_t pane_type, char last_char)
 		g_player_flight_transient_timers[g_local_player]
 			.ready_message_pane_timer = 1652;
 	}
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_end_message();
-#endif
 	hud_draw_craft_name_fps_and_network_status();
 	flight_text_set_font_tier(2);
 }
@@ -10253,9 +9977,7 @@ void hud_update_flight_message_panes(void)
 						    message_surface_height, 0);
 			g_ready_message_pane_queue[0].state_or_message_id =
 				UINT16_MAX;
-#ifdef XVT_MODERN
 			xvt_cockpit_messages_clear(XVT_COCKPIT_MESSAGE_READY);
-#endif
 		}
 		local_player = g_local_player;
 	}
@@ -10284,9 +10006,7 @@ void hud_update_flight_message_panes(void)
 		flight_sw_set_render_target(NULL, message_surface_width,
 					    message_surface_height, 0);
 		g_system_message_pane.state_or_message_id = UINT16_MAX;
-#ifdef XVT_MODERN
 		xvt_cockpit_messages_clear(XVT_COCKPIT_MESSAGE_SYSTEM);
-#endif
 		local_player = g_local_player;
 	}
 	if ((g_player_flight_transient_timers[local_player]
@@ -10315,9 +10035,7 @@ void hud_update_flight_message_panes(void)
 		flight_sw_set_render_target(NULL, message_surface_width,
 					    message_surface_height, 0);
 		g_flight_group_message_pane.state_or_message_id = UINT16_MAX;
-#ifdef XVT_MODERN
 		xvt_cockpit_messages_clear(XVT_COCKPIT_MESSAGE_FLIGHT_GROUP);
-#endif
 		local_player = g_local_player;
 	}
 	if (g_player_flight_transient_timers[local_player]
@@ -10463,11 +10181,9 @@ void hud_draw_craft_name_fps_and_network_status(void)
 				(g_flight_tick_overlay_window_ticks /
 				 g_flight_tick_overlay_sample_count));
 	}
-#ifdef XVT_MODERN
 	xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_CRAFT_STATUS,
 				      g_flight_text_scratch_buffer,
 				      XVT_COCKPIT_ALIGN_CENTER);
-#endif
 	flight_text_draw_string_centered(g_flight_text_scratch_buffer);
 	flight_surface_unlock();
 
@@ -10510,11 +10226,9 @@ void hud_draw_craft_name_fps_and_network_status(void)
 			flight_text_set_color(74);
 			break;
 		}
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_NETWORK_PING,
 					      g_str_cmd_threat_display_text[16],
 					      XVT_COCKPIT_ALIGN_LEFT);
-#endif
 		flight_text_draw_string(g_str_cmd_threat_display_text[16]);
 		switch (g_lag_indicator) {
 		case 0:
@@ -10537,11 +10251,9 @@ void hud_draw_craft_name_fps_and_network_status(void)
 			flight_text_set_color(75);
 			break;
 		}
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(XVT_COCKPIT_TEXT_NETWORK_LAG,
 					      g_str_cmd_threat_display_text[17],
 					      XVT_COCKPIT_ALIGN_RIGHT);
-#endif
 		flight_text_draw_string_right_aligned(
 			g_str_cmd_threat_display_text[17]);
 		flight_text_set_shadow_color(64);
@@ -10567,13 +10279,10 @@ uint16_t hud_get_system_message_pane_state(void)
 // FUNCTION: XVT 0x452960
 void hud_blit_software_hud_text_panes(void)
 {
-#ifdef XVT_MODERN
 	xvt_cockpit_begin_message_placement();
-#endif
 	uint16_t transparent_color = g_flight_transparent_color_index;
 	if (g_flight_player_count >= 1) {
 		flight_text_set_font_tier(0);
-#ifdef XVT_MODERN
 		xvt_cockpit_latch_message(
 			XVT_COCKPIT_MESSAGE_READY,
 			g_ready_message_pane_left -
@@ -10589,7 +10298,6 @@ void hud_blit_software_hud_text_panes(void)
 				4 * g_flight_font_digit_width -
 				g_ready_message_pane_left + 1,
 			g_ready_message_pane_bottom - g_ready_message_pane_top);
-#endif
 		flight_sw_blit_rect_to_flight_surface(
 			g_flight_offscreen_buffer, transparent_color,
 			g_ready_message_pane_left -
@@ -10607,7 +10315,6 @@ void hud_blit_software_hud_text_panes(void)
 			g_ready_message_pane_bottom - g_ready_message_pane_top,
 			g_screen_width * g_flight_bytes_per_pixel);
 	} else {
-#ifdef XVT_MODERN
 		xvt_cockpit_latch_message(
 			XVT_COCKPIT_MESSAGE_READY, g_ready_message_pane_left,
 			g_ready_message_pane_top,
@@ -10619,7 +10326,6 @@ void hud_blit_software_hud_text_panes(void)
 				.y,
 			g_ready_message_pane_right - g_ready_message_pane_left,
 			g_ready_message_pane_bottom - g_ready_message_pane_top);
-#endif
 		flight_sw_blit_rect_to_flight_surface(
 			g_flight_offscreen_buffer,
 			g_flight_transparent_color_index,
@@ -10638,7 +10344,6 @@ void hud_blit_software_hud_text_panes(void)
 	if (g_players[g_local_player].view_state.hud_state_live !=
 	    HUD_VIEW_FULL_SCREEN) {
 		if (g_system_message_pane.state_or_message_id != UINT16_MAX) {
-#ifdef XVT_MODERN
 			xvt_cockpit_latch_message(
 				XVT_COCKPIT_MESSAGE_SYSTEM,
 				g_system_message_pane_left,
@@ -10653,7 +10358,6 @@ void hud_blit_software_hud_text_panes(void)
 					g_system_message_pane_left,
 				g_system_message_pane_bottom -
 					g_system_message_pane_top);
-#endif
 			flight_sw_blit_rect_to_flight_surface(
 				g_flight_offscreen_buffer, transparent_color,
 				g_system_message_pane_left,
@@ -10672,7 +10376,6 @@ void hud_blit_software_hud_text_panes(void)
 		}
 		if (g_flight_group_message_pane.state_or_message_id !=
 		    UINT16_MAX) {
-#ifdef XVT_MODERN
 			xvt_cockpit_latch_message(
 				XVT_COCKPIT_MESSAGE_FLIGHT_GROUP,
 				g_flight_group_message_pane_left,
@@ -10687,7 +10390,6 @@ void hud_blit_software_hud_text_panes(void)
 					g_flight_group_message_pane_left,
 				g_flight_group_message_pane_bottom -
 					g_flight_group_message_pane_top);
-#endif
 			flight_sw_blit_rect_to_flight_surface(
 				g_flight_offscreen_buffer, transparent_color,
 				g_flight_group_message_pane_left,
@@ -10706,7 +10408,6 @@ void hud_blit_software_hud_text_panes(void)
 		}
 	} else {
 		if (g_system_message_pane.state_or_message_id != UINT16_MAX) {
-#ifdef XVT_MODERN
 			xvt_cockpit_latch_message(
 				XVT_COCKPIT_MESSAGE_SYSTEM,
 				g_system_message_pane_left,
@@ -10719,7 +10420,6 @@ void hud_blit_software_hud_text_panes(void)
 					g_system_message_pane_left,
 				g_system_message_pane_bottom -
 					g_system_message_pane_top);
-#endif
 			flight_sw_blit_rect_to_flight_surface(
 				g_flight_offscreen_buffer, transparent_color,
 				g_system_message_pane_left,
@@ -10736,7 +10436,6 @@ void hud_blit_software_hud_text_panes(void)
 		}
 		if (g_flight_group_message_pane.state_or_message_id !=
 		    UINT16_MAX) {
-#ifdef XVT_MODERN
 			xvt_cockpit_latch_message(
 				XVT_COCKPIT_MESSAGE_FLIGHT_GROUP,
 				g_flight_group_message_pane_left,
@@ -10749,7 +10448,6 @@ void hud_blit_software_hud_text_panes(void)
 					g_flight_group_message_pane_left,
 				g_flight_group_message_pane_bottom -
 					g_flight_group_message_pane_top);
-#endif
 			flight_sw_blit_rect_to_flight_surface(
 				g_flight_offscreen_buffer, transparent_color,
 				g_flight_group_message_pane_left,
@@ -10765,9 +10463,7 @@ void hud_blit_software_hud_text_panes(void)
 				g_screen_width * g_flight_bytes_per_pixel);
 		}
 	}
-#ifdef XVT_MODERN
 	xvt_cockpit_latch_messages();
-#endif
 }
 
 /* Returns the width in pixels of pane pane_type's text without its type byte and
@@ -11006,11 +10702,9 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
 	fe_disk_io_open_global_stream(file_name, "rb", 1, 0);
 	int16_t remaining_sprites = sprite_count;
 	xvt_file *stream = g_stream;
-#ifdef XVT_MODERN
 	if (!stream) {
 		return 1;
 	}
-#endif
 	int16_t record_index = 0;
 	int16_t byte_value;
 	while (remaining_sprites != 0) {
@@ -11019,16 +10713,9 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
 		if (record_index >= (int)records_to_skip) {
 			++first_sprite_index;
 		}
-#ifdef XVT_MODERN
 		for (byte_value = (int16_t)FILE_GETC(stream);
 		     !FILE_EOF(stream) && !FILE_HAS_ERROR(stream);
 		     byte_value = (int16_t)FILE_GETC(stream)) {
-#else
-		for (byte_value = (int16_t)FILE_GETC(stream);
-		     (((struct msvc42_crt_file_prefix *)stream)->flags &
-		      0x10) == 0;
-		     byte_value = (int16_t)FILE_GETC(stream)) {
-#endif
 			if (byte_value == 0xff) {
 				break;
 			}
@@ -11038,13 +10725,11 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
 				++g_hud_panel_sprite_data_write_cursor;
 			}
 		}
-#ifdef XVT_MODERN
 		if (FILE_HAS_ERROR(stream)) {
 			fe_disk_io_close_global_stream(0);
 			xvt_storage_fatal("Cannot read panel sprites", 1);
 			return 1;
 		}
-#endif
 		if (record_index >= (int)records_to_skip) {
 			--remaining_sprites;
 			*g_hud_panel_sprite_data_write_cursor = 0xff;
@@ -11063,11 +10748,9 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
 		(unsigned)(uint16_t)(first_sprite_index - sprite_count),
 		(int)sprite_count, (unsigned)records_to_skip,
 		(int)record_index);
-#ifdef XVT_MODERN
 	xvt_render_assets_register_panel(
 		file_name, (uint16_t)(first_sprite_index - sprite_count),
 		(uint16_t)sprite_count, records_to_skip);
-#endif
 	return fe_disk_io_close_global_stream(0);
 }
 
@@ -11080,9 +10763,6 @@ int16_t hud_load_panel_sprite_records(const char *file_name,
 int flight_icon_load_frames(const char *file_name, uint8_t *data_buffer,
 			    uint8_t **frame_pointers)
 {
-#ifndef XVT_MODERN
-	int *stream_flags;
-#endif
 
 	if (fe_disk_io_open_global_stream(file_name, "rb", 1, 0) == 0) {
 		return 0;
@@ -11090,7 +10770,6 @@ int flight_icon_load_frames(const char *file_name, uint8_t *data_buffer,
 	int16_t frame_count = 0;
 	xvt_file *stream = g_stream;
 	int16_t value;
-#ifdef XVT_MODERN
 	while (1) {
 		if (FILE_HAS_ERROR(stream)) {
 			fe_disk_io_close_global_stream(0);
@@ -11121,27 +10800,8 @@ int flight_icon_load_frames(const char *file_name, uint8_t *data_buffer,
 		*data_buffer = 0xff;
 		++data_buffer;
 	}
-#else
-	stream_flags = &((struct msvc42_crt_file_prefix *)stream)->flags;
-	for (; (*stream_flags & 0x10) == 0; ++data_buffer) {
-		frame_pointers[frame_count] = data_buffer;
-		for (value = (int16_t)FILE_GETC(stream);
-		     (*stream_flags & 0x10) == 0;
-		     value = (int16_t)FILE_GETC(stream)) {
-			if (value == 0xff) {
-				break;
-			}
-			*data_buffer = (uint8_t)value;
-			++data_buffer;
-		}
-		++frame_count;
-		*data_buffer = 0xff;
-	}
-#endif
 	fe_disk_io_close_global_stream(0);
-#ifdef XVT_MODERN
 	xvt_render_assets_register_icons(file_name, frame_pointers,
 					 (uint16_t)frame_count);
-#endif
 	return frame_count;
 }

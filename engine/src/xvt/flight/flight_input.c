@@ -1,9 +1,7 @@
 #include "xvt/flight/flight_input.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/timing/flight_timing.h"
-#endif
 
 #include "xvt/frontend/config.h"
 #include "xvt/input/dinput.h"
@@ -13,32 +11,6 @@
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifndef XVT_MODERN
-/* The Windows message record PeekMessageA and GetMessageA fill in the original
- * build's key reading. */
-/* drift-ok: camelcase -- wParam, lParam: Windows' MSG */
-struct flight_input_win32_message {
-	void *window;	  /* Window the message is for; not read by name. */
-	uint32_t message; /* Message number; not read by name. */
-	uint32_t wParam;  /* First message argument; not read by name. */
-	int32_t lParam;	  /* Second message argument; not read by name. */
-	uint32_t time;	  /* Time the message was posted; not read by name. */
-	int32_t point_x;  /* Cursor X when posted; not read by name. */
-	int32_t point_y;  /* Cursor Y when posted; not read by name. */
-};
-
-__declspec(dllimport) int __stdcall
-PeekMessageA(struct flight_input_win32_message *message, void *hWnd,
-	     unsigned int filter_min, unsigned int filter_max,
-	     unsigned int remove_message);
-__declspec(dllimport) int __stdcall
-GetMessageA(struct flight_input_win32_message *message, void *hWnd,
-	    unsigned int filter_min, unsigned int filter_max);
-__declspec(dllimport) int __stdcall
-TranslateMessage(const struct flight_input_win32_message *message);
-__declspec(dllimport) int32_t __stdcall
-DispatchMessageA(const struct flight_input_win32_message *message);
-#endif
 
 /* 1 when keys are read through DirectInput, 0 when through window messages; the
  * modern build reads keys through DirectInput either way. Starts at 1; at
@@ -380,9 +352,7 @@ void flight_input_clear_axes_and_modifiers(void)
 // FUNCTION: XVT 0x4117F0
 void flight_input_reset_control_state(void)
 {
-#ifdef XVT_MODERN
 	xvt_flight_controls_reset();
-#endif
 	g_throttle_smoothed = -1;
 	g_held_joystick_buttons = 0;
 	XVT_LOG_DEBUG("input.controls_reset");
@@ -417,19 +387,15 @@ uint16_t flight_input_read(int player_idx_or_sentinel)
 	int16_t mouse_x;
 	int16_t mouse_y;
 	if (player_idx_or_sentinel < 0) {
-#ifdef XVT_MODERN
 		return xvt_flight_controls_read_local();
-#endif
 		uint16_t mouse_buttons = 0;
 		int throttle_raw = 0;
 		int16_t mouse_delta_y = 0;
 		int axis_y = 0;
 		int16_t mouse_delta_x = 0;
 		int axis_x = 0;
-#ifdef XVT_MODERN
 		mouse_x = 0;
 		mouse_y = 0;
-#endif
 		if (g_joystick_available != 0) {
 			joystick_buttons = joystick_poll_scaled_axes_if_active(
 				&axis_x, &axis_y, &throttle_raw, NULL);
@@ -550,7 +516,6 @@ uint16_t flight_input_read(int player_idx_or_sentinel)
 		return key;
 	} else {
 		g_ctrl_axis_x = g_replay_inputs[player_idx_or_sentinel].axis_x;
-#ifdef XVT_MODERN
 		g_xvt_control_roll =
 			g_replay_inputs[player_idx_or_sentinel].axis_r;
 		/* Recorded axes are the complete shared control sample. */
@@ -559,7 +524,6 @@ uint16_t flight_input_read(int player_idx_or_sentinel)
 			g_flight_mouse_delta_y = 0;
 			g_mouse_buttons = 0;
 		}
-#endif
 		g_ctrl_axis_y = g_replay_inputs[player_idx_or_sentinel].axis_y;
 		key = g_replay_inputs[player_idx_or_sentinel].key;
 		g_action_key = key;
@@ -585,23 +549,7 @@ uint16_t flight_input_read(int player_idx_or_sentinel)
 // FUNCTION: XVT 0x4AA7F0
 int flight_input_has_key_ready(void)
 {
-#ifdef XVT_MODERN
 	return xvt_input_is_captured() ? 0 : dinput_skip_to_pending_key_press();
-#else
-	if (g_flight_conf_direct_input != 0) {
-		return dinput_skip_to_pending_key_press();
-	}
-	struct flight_input_win32_message message;
-	if (g_flight_input_non_blocking_msg_pump == 0 ||
-	    PeekMessageA(&message, 0, 0, 0, 0) != 0) {
-		if (GetMessageA(&message, 0, 0, 0) == 0) {
-			return g_key_ready;
-		}
-		TranslateMessage(&message);
-		DispatchMessageA(&message);
-	}
-	return g_key_ready;
-#endif
 }
 
 /* Returns the next key press. The modern build returns 0 while the input is
@@ -612,27 +560,5 @@ int flight_input_has_key_ready(void)
 // FUNCTION: XVT 0x4AA870
 int flight_input_get_next_key(void)
 {
-#ifdef XVT_MODERN
 	return xvt_input_is_captured() ? 0 : dinput_get_key();
-#else
-	if (g_flight_conf_direct_input != 0) {
-		return dinput_get_key();
-	}
-	struct flight_input_win32_message message;
-	while (1) {
-		if (g_key_ready != 0) {
-			g_key_ready = 0;
-			return g_last_key_code;
-		}
-		if (g_flight_input_non_blocking_msg_pump != 0 &&
-		    PeekMessageA(&message, 0, 0, 0, 0) == 0) {
-			continue;
-		}
-		if (GetMessageA(&message, 0, 0, 0) == 0) {
-			return g_last_key_code;
-		}
-		TranslateMessage(&message);
-		DispatchMessageA(&message);
-	}
-#endif
 }

@@ -105,12 +105,8 @@ void msg_write_message_log_file(void)
 	xvt_file *stream;
 	do {
 		sprintf(file_name, "msglog%ld.txt", (long)log_index);
-#ifdef XVT_MODERN
 		stream = xvt_storage_open_root(AERON_VFS_ROOT_USER, file_name,
 					       "r");
-#else
-		stream = FILE_RAW_OPEN(file_name, "r");
-#endif
 		if (stream == NULL) {
 			stream = FILE_RAW_OPEN(file_name, "a");
 			break;
@@ -223,14 +219,12 @@ void msg_emit_in_flight_message(in_flight_message_id message_id, int player_idx)
 	const uint8_t *template_cursor =
 		(const uint8_t *)g_str_in_flight_messages[message_id];
 	uint8_t pane_type = *template_cursor;
-#ifdef XVT_MODERN
 	if (message_id == IFMSG_001_MISSION_PAUSED_PRESS_ANY_KEY_TO_CONTINUE) {
 		message.text[text_length++] = (char)pane_type;
 		template_cursor =
 			(const uint8_t
 				 *)"Mission paused. Press your pause key or button to continue.";
 	}
-#endif
 	const char *argument_text;
 	uint16_t output_char;
 	while (*template_cursor != '\0' && text_length < sizeof(message.text)) {

@@ -1,12 +1,8 @@
 #include "xvt/flight/player/player.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/hooks/orientation_hook.h"
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/player_timing.h"
-#endif
-#ifdef XVT_MODERN
 #include "xvt_runtime/input/flight_controls.h"
-#endif
 #include <limits.h>
 #include <string.h>
 
@@ -720,11 +716,9 @@ void player_update_flight_controls_and_camera(int player_idx)
 	struct mobile_object *mobile_object;
 	struct object_record *target_object;
 	int16_t desired_yaw;
-#ifdef XVT_MODERN
 	int16_t independent_roll_step;
 	int16_t modern_distance_step;
 	int16_t previous_distance_step;
-#endif
 	int16_t desired_pitch;
 	int16_t yaw_step;
 	int16_t pitch_step;
@@ -770,9 +764,7 @@ void player_update_flight_controls_and_camera(int player_idx)
 	int reverse_movement_y;
 	int reverse_movement_z;
 
-#ifdef XVT_MODERN
 	xvt_player_timing_begin_controls(player_idx);
-#endif
 	flight_input_apply_deadzone();
 	g_scaled_input_pitch *= 2;
 	if (g_players[player_idx].view_state.player_input_blocked == 0 &&
@@ -902,7 +894,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 				input_difference =
 					(int16_t)((uint16_t)desired_yaw -
 						  (uint16_t)smoothed_input);
-#ifdef XVT_MODERN
 				if (xvt_flight_timing_is_unlocked()) {
 					g_players[player_idx]
 						.smoothed_input_yaw =
@@ -912,7 +903,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 								  XVT_PLAYER_SLEW_YAW,
 								  input_difference));
 				} else
-#endif
 					if (input_difference != 0) {
 					smoothing_step = input_difference;
 					if (input_difference < 0) {
@@ -955,7 +945,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 				input_difference =
 					(int16_t)((uint16_t)desired_pitch -
 						  (uint16_t)smoothed_input);
-#ifdef XVT_MODERN
 				if (xvt_flight_timing_is_unlocked()) {
 					g_players[player_idx]
 						.smoothed_input_pitch =
@@ -965,7 +954,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 								  XVT_PLAYER_SLEW_PITCH,
 								  input_difference));
 				} else
-#endif
 					if (input_difference != 0) {
 					smoothing_step = input_difference;
 					if (input_difference < 0) {
@@ -1010,7 +998,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 					"player.roll_mode slot=%d roll=%d predicted=%d",
 					player_idx, (int)key_mode,
 					g_flight_sim_side_effects_suppressed);
-#ifdef XVT_MODERN
 				xvt_player_timing_clear(player_idx,
 							XVT_PLAYER_SLEW_YAW);
 				xvt_player_timing_clear(player_idx,
@@ -1019,11 +1006,9 @@ void player_update_flight_controls_and_camera(int player_idx)
 							XVT_PLAYER_YAW);
 				xvt_player_timing_clear(player_idx,
 							XVT_PLAYER_PITCH);
-#endif
 			}
 			g_players[player_idx].yaw_roll_swap = (int16_t)key_mode;
 			yaw_step = (int16_t)
-#ifdef XVT_MODERN
 				(xvt_flight_timing_is_unlocked()
 					 ? xvt_player_timing_scale(
 						   player_idx, XVT_PLAYER_YAW,
@@ -1033,14 +1018,8 @@ void player_update_flight_controls_and_camera(int player_idx)
 					 : player_scale_control_step_by_elapsed_ticks(
 						   g_players[player_idx]
 							   .smoothed_input_yaw))
-#else
-				player_scale_control_step_by_elapsed_ticks(
-					g_players[player_idx]
-						.smoothed_input_yaw)
-#endif
 				;
 			pitch_step = (int16_t)
-#ifdef XVT_MODERN
 				(xvt_flight_timing_is_unlocked()
 					 ? xvt_player_timing_scale(
 						   player_idx, XVT_PLAYER_PITCH,
@@ -1050,30 +1029,19 @@ void player_update_flight_controls_and_camera(int player_idx)
 					 : player_scale_control_step_by_elapsed_ticks(
 						   g_players[player_idx]
 							   .smoothed_input_pitch))
-#else
-				player_scale_control_step_by_elapsed_ticks(
-					g_players[player_idx]
-						.smoothed_input_pitch)
-#endif
 				;
-#ifdef XVT_MODERN
 			independent_roll_step = xvt_flight_controls_roll_step(
 				player_idx, roll_rate, key_mode ? yaw_step : 0);
-#endif
 			if ((craft->working_subsystems &
 			     CRAFT_SUBSYSTEM_FLAG_FLIGHT_CONTROLS) == 0 ||
 			    (craft->beam_effect_accum[1] != 0 &&
 			     craft->chaff_active_seconds == 0)) {
 				yaw_step = 0;
 				pitch_step = 0;
-#ifdef XVT_MODERN
 				independent_roll_step = 0;
-#endif
 			}
 			if (key_mode != 0) {
-#ifdef XVT_MODERN
 				yaw_step = independent_roll_step;
-#endif
 				if (pitch_step != 0) {
 					player_apply_pitch_yaw_steps(
 						pitch_step, 0,
@@ -1129,7 +1097,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 						.roll -= yaw_step;
 				}
 			}
-#ifdef XVT_MODERN
 			if (!key_mode && independent_roll_step) {
 				g_object_table[g_players[player_idx]
 						       .object_index]
@@ -1137,7 +1104,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 				mobile_object->orient_matrix_dirty = 1;
 				mobile_object->move_vector_dirty = 1;
 			}
-#endif
 		}
 		return;
 	}
@@ -1244,28 +1210,20 @@ void player_update_flight_controls_and_camera(int player_idx)
 	}
 
 	yaw_step = (int16_t)
-#ifdef XVT_MODERN
 		(xvt_flight_timing_is_unlocked()
 			 ? xvt_player_timing_scale(
 				   player_idx, XVT_PLAYER_CAMERA_YAW,
 				   g_scaled_input_yaw, g_elapsed_ticks, 236)
 			 : player_scale_control_step_by_elapsed_ticks(
 				   g_scaled_input_yaw))
-#else
-		player_scale_control_step_by_elapsed_ticks(g_scaled_input_yaw)
-#endif
 		;
 	pitch_step = (int16_t)
-#ifdef XVT_MODERN
 		(xvt_flight_timing_is_unlocked()
 			 ? xvt_player_timing_scale(
 				   player_idx, XVT_PLAYER_CAMERA_PITCH,
 				   g_scaled_input_pitch, g_elapsed_ticks, 236)
 			 : player_scale_control_step_by_elapsed_ticks(
 				   g_scaled_input_pitch))
-#else
-		player_scale_control_step_by_elapsed_ticks(g_scaled_input_pitch)
-#endif
 		;
 	if ((g_players[player_idx].map_camera_state &
 	     MAP_CAMERA_DIRECTION_BIT) != 0) {
@@ -1294,10 +1252,8 @@ void player_update_flight_controls_and_camera(int player_idx)
 	}
 
 	camera_key_mode = g_flight_key_mods & 0xF;
-#ifdef XVT_MODERN
 	previous_distance_step =
 		g_players[player_idx].view_state.camera_distance_step;
-#endif
 	if (camera_key_mode != 1 && camera_key_mode != 2) {
 		if (g_players[player_idx].map_camera_state != 0) {
 			uint16_t current_distance_step =
@@ -1312,7 +1268,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 				decayed_distance_step -=
 					CAMERA_DISTANCE_DEFAULT_STEP;
 
-#ifdef XVT_MODERN
 				g_players[player_idx]
 					.view_state.camera_distance_step =
 					xvt_flight_timing_is_unlocked()
@@ -1327,11 +1282,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 								    8))
 						: (int16_t)
 							  decayed_distance_step;
-#else
-				g_players[player_idx]
-					.view_state.camera_distance_step =
-					(int16_t)decayed_distance_step;
-#endif
 
 			} else {
 				g_players[player_idx]
@@ -1405,7 +1355,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 			}
 			if ((uint16_t)*camera_distance_step <
 			    CAMERA_DISTANCE_FREE_MIN_STEP)
-#ifdef XVT_MODERN
 			{
 				*camera_distance_step =
 					CAMERA_DISTANCE_FREE_MIN_STEP;
@@ -1414,10 +1363,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 				xvt_player_timing_clear(player_idx,
 							XVT_PLAYER_ZOOM);
 			}
-#else
-				*camera_distance_step =
-					CAMERA_DISTANCE_FREE_MIN_STEP;
-#endif
 		} else {
 			uint16_t current_distance_step;
 			camera_distance_step =
@@ -1430,7 +1375,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 					   CAMERA_DISTANCE_DEFAULT_STEP);
 			*camera_distance_step = (int16_t)current_distance_step;
 
-#ifdef XVT_MODERN
 			*camera_distance_step =
 				xvt_flight_timing_is_unlocked()
 					? (int16_t)(previous_distance_step +
@@ -1444,15 +1388,9 @@ void player_update_flight_controls_and_camera(int player_idx)
 					: (int16_t)(current_distance_step +
 						    (current_distance_step >>
 						     3));
-#else
-			*camera_distance_step =
-				(int16_t)(current_distance_step +
-					  (current_distance_step >> 3));
-#endif
 
 			if ((uint16_t)*camera_distance_step >
 			    CAMERA_DISTANCE_FREE_MAX_STEP)
-#ifdef XVT_MODERN
 			{
 				*camera_distance_step =
 					CAMERA_DISTANCE_FREE_MAX_STEP;
@@ -1461,16 +1399,11 @@ void player_update_flight_controls_and_camera(int player_idx)
 				xvt_player_timing_clear(player_idx,
 							XVT_PLAYER_ZOOM);
 			}
-#else
-				*camera_distance_step =
-					CAMERA_DISTANCE_FREE_MAX_STEP;
-#endif
 		}
 	} else {
 		camera_distance_step =
 			&g_players[player_idx].view_state.camera_distance_step;
 
-#ifdef XVT_MODERN
 		*camera_distance_step =
 			xvt_flight_timing_is_unlocked()
 				? (int16_t)(previous_distance_step +
@@ -1482,51 +1415,33 @@ void player_update_flight_controls_and_camera(int player_idx)
 						    g_elapsed_ticks, 8))
 				: (int16_t)(previous_distance_step +
 					    CAMERA_DISTANCE_DEFAULT_STEP);
-#else
-		*camera_distance_step =
-			(int16_t)(g_players[player_idx]
-					  .view_state.camera_distance_step +
-				  CAMERA_DISTANCE_DEFAULT_STEP);
-#endif
 
 		if ((uint16_t)*camera_distance_step > 0x400u)
-#ifdef XVT_MODERN
 		{
 			*camera_distance_step = CAMERA_DISTANCE_FREE_MIN_STEP;
 			xvt_player_timing_clear(player_idx,
 						XVT_PLAYER_DISTANCE);
 			xvt_player_timing_clear(player_idx, XVT_PLAYER_ZOOM);
 		}
-#else
-			*camera_distance_step = CAMERA_DISTANCE_FREE_MIN_STEP;
-#endif
 	}
 
-#ifdef XVT_MODERN
 	modern_distance_step =
 		xvt_flight_timing_is_unlocked()
 			? (int16_t)xvt_player_timing_scale(
 				  player_idx, XVT_PLAYER_DISTANCE,
 				  *camera_distance_step, g_elapsed_ticks, 236)
 			: 0;
-#endif
 	if (camera_key_mode == 1) {
 		if (g_players[player_idx].map_camera_state == 0) {
 			g_players[player_idx]
 				.view_state.camera_distance -= (int16_t)
-#ifdef XVT_MODERN
 				(xvt_flight_timing_is_unlocked()
 					 ? modern_distance_step
 					 : player_scale_control_step_by_elapsed_ticks(
 						   *camera_distance_step))
-#else
-				player_scale_control_step_by_elapsed_ticks(
-					*camera_distance_step)
-#endif
 				;
 			if (g_players[player_idx].view_state.camera_distance <
 			    CAMERA_MINIMUM)
-#ifdef XVT_MODERN
 			{
 				g_players[player_idx]
 					.view_state.camera_distance =
@@ -1536,26 +1451,16 @@ void player_update_flight_controls_and_camera(int player_idx)
 				xvt_player_timing_clear(player_idx,
 							XVT_PLAYER_ZOOM);
 			}
-#else
-				g_players[player_idx]
-					.view_state.camera_distance =
-					CAMERA_MINIMUM;
-#endif
 			return;
 		}
 		if (g_players[player_idx].view_state.camera_focus_obj_idx !=
 		    UINT16_MAX) {
 			g_players[player_idx]
 				.view_state.camera_distance -= (int16_t)
-#ifdef XVT_MODERN
 				(xvt_flight_timing_is_unlocked()
 					 ? modern_distance_step
 					 : player_scale_control_step_by_elapsed_ticks(
 						   *camera_distance_step))
-#else
-				player_scale_control_step_by_elapsed_ticks(
-					*camera_distance_step)
-#endif
 				;
 			target_clearance =
 				g_object_type_table
@@ -1568,7 +1473,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 				CAMERA_CLEARANCE;
 			if (g_players[player_idx].view_state.camera_distance <
 			    target_clearance)
-#ifdef XVT_MODERN
 			{
 				g_players[player_idx]
 					.view_state.camera_distance =
@@ -1578,11 +1482,6 @@ void player_update_flight_controls_and_camera(int player_idx)
 				xvt_player_timing_clear(player_idx,
 							XVT_PLAYER_ZOOM);
 			}
-#else
-				g_players[player_idx]
-					.view_state.camera_distance =
-					target_clearance;
-#endif
 			return;
 		}
 		if (g_players[player_idx].view_state.aim_target_idx !=
@@ -1601,15 +1500,10 @@ void player_update_flight_controls_and_camera(int player_idx)
 		}
 		camera_scale_x = g_cam_mat_r2_x;
 		camera_movement_x = (int16_t)
-#ifdef XVT_MODERN
 			(xvt_flight_timing_is_unlocked()
 				 ? modern_distance_step
 				 : player_scale_control_step_by_elapsed_ticks(
 					   *camera_distance_step))
-#else
-			player_scale_control_step_by_elapsed_ticks(
-				*camera_distance_step)
-#endif
 			;
 		camera_movement_x =
 			math_mul_q15(camera_movement_x, camera_scale_x);
@@ -1617,15 +1511,10 @@ void player_update_flight_controls_and_camera(int player_idx)
 			camera_movement_x;
 		camera_scale_y = g_cam_mat_r2_y;
 		camera_movement_y = (int16_t)
-#ifdef XVT_MODERN
 			(xvt_flight_timing_is_unlocked()
 				 ? modern_distance_step
 				 : player_scale_control_step_by_elapsed_ticks(
 					   *camera_distance_step))
-#else
-			player_scale_control_step_by_elapsed_ticks(
-				*camera_distance_step)
-#endif
 			;
 		camera_movement_y =
 			math_mul_q15(camera_movement_y, camera_scale_y);
@@ -1633,15 +1522,10 @@ void player_update_flight_controls_and_camera(int player_idx)
 			camera_movement_y;
 		camera_scale_z = g_cam_mat_r2_z;
 		camera_movement_z = (int16_t)
-#ifdef XVT_MODERN
 			(xvt_flight_timing_is_unlocked()
 				 ? modern_distance_step
 				 : player_scale_control_step_by_elapsed_ticks(
 					   *camera_distance_step))
-#else
-			player_scale_control_step_by_elapsed_ticks(
-				*camera_distance_step)
-#endif
 			;
 		camera_movement_z =
 			math_mul_q15(camera_movement_z, camera_scale_z);
@@ -1742,15 +1626,10 @@ void player_update_flight_controls_and_camera(int player_idx)
 		if (g_players[player_idx].map_camera_state == 0) {
 			g_players[player_idx]
 				.view_state.camera_distance += (int16_t)
-#ifdef XVT_MODERN
 				(xvt_flight_timing_is_unlocked()
 					 ? modern_distance_step
 					 : player_scale_control_step_by_elapsed_ticks(
 						   *camera_distance_step))
-#else
-				player_scale_control_step_by_elapsed_ticks(
-					*camera_distance_step)
-#endif
 				;
 			if (g_players[player_idx].view_state.camera_distance >
 			    CAMERA_DISTANCE_NORMAL_MAX) {
@@ -1764,15 +1643,10 @@ void player_update_flight_controls_and_camera(int player_idx)
 		    UINT16_MAX) {
 			g_players[player_idx]
 				.view_state.camera_distance += (int16_t)
-#ifdef XVT_MODERN
 				(xvt_flight_timing_is_unlocked()
 					 ? modern_distance_step
 					 : player_scale_control_step_by_elapsed_ticks(
 						   *camera_distance_step))
-#else
-				player_scale_control_step_by_elapsed_ticks(
-					*camera_distance_step)
-#endif
 				;
 			return;
 		}
@@ -1792,15 +1666,10 @@ void player_update_flight_controls_and_camera(int player_idx)
 		}
 		reverse_scale_x = g_cam_mat_r2_x;
 		reverse_movement_x = (int16_t)
-#ifdef XVT_MODERN
 			(xvt_flight_timing_is_unlocked()
 				 ? modern_distance_step
 				 : player_scale_control_step_by_elapsed_ticks(
 					   *camera_distance_step))
-#else
-			player_scale_control_step_by_elapsed_ticks(
-				*camera_distance_step)
-#endif
 			;
 		reverse_movement_x =
 			math_mul_q15(reverse_movement_x, reverse_scale_x);
@@ -1808,15 +1677,10 @@ void player_update_flight_controls_and_camera(int player_idx)
 			reverse_movement_x;
 		reverse_scale_y = g_cam_mat_r2_y;
 		reverse_movement_y = (int16_t)
-#ifdef XVT_MODERN
 			(xvt_flight_timing_is_unlocked()
 				 ? modern_distance_step
 				 : player_scale_control_step_by_elapsed_ticks(
 					   *camera_distance_step))
-#else
-			player_scale_control_step_by_elapsed_ticks(
-				*camera_distance_step)
-#endif
 			;
 		reverse_movement_y =
 			math_mul_q15(reverse_movement_y, reverse_scale_y);
@@ -1824,15 +1688,10 @@ void player_update_flight_controls_and_camera(int player_idx)
 			reverse_movement_y;
 		reverse_scale_z = g_cam_mat_r2_z;
 		reverse_movement_z = (int16_t)
-#ifdef XVT_MODERN
 			(xvt_flight_timing_is_unlocked()
 				 ? modern_distance_step
 				 : player_scale_control_step_by_elapsed_ticks(
 					   *camera_distance_step))
-#else
-			player_scale_control_step_by_elapsed_ticks(
-				*camera_distance_step)
-#endif
 			;
 		reverse_movement_z =
 			math_mul_q15(reverse_movement_z, reverse_scale_z);
@@ -2988,7 +2847,6 @@ int16_t player_apply_pitch_yaw_steps(int16_t pitch_angle_q16,
 				     uint16_t object_index,
 				     struct craft_data *craft)
 {
-#ifdef XVT_MODERN
 	struct object_record *object = &g_object_table[object_index];
 	struct xvt_orientation_angles current = {object->yaw, object->pitch,
 						 object->roll};
@@ -3002,88 +2860,6 @@ int16_t player_apply_pitch_yaw_steps(int16_t pitch_angle_q16,
 	object->yaw = updated.yaw;
 	object->roll = updated.roll;
 	return (int16_t)updated.roll;
-#else
-	if (g_object_table[object_index].mobj->orient_matrix_dirty != 0) {
-		fview_calcrotatemove(g_object_table[object_index].pitch,
-				     g_object_table[object_index].yaw,
-				     &g_object_table[object_index]);
-		fview_calcrotateorient(g_object_table[object_index].roll, 0,
-				       &g_object_table[object_index]);
-	}
-	g_cur_mat_r2_x = -g_object_table[object_index].mobj->cached_fwd_x;
-	g_cur_mat_r2_y = -g_object_table[object_index].mobj->cached_fwd_y;
-	g_cur_mat_r2_z = -g_object_table[object_index].mobj->cached_fwd_z;
-	g_cur_mat_r1_x = g_object_table[object_index].mobj->cached_up_x;
-	g_cur_mat_r1_y = g_object_table[object_index].mobj->cached_up_y;
-	g_cur_mat_r1_z = g_object_table[object_index].mobj->cached_up_z;
-	g_cur_mat_r0_x = g_object_table[object_index].mobj->cached_side_x;
-	g_cur_mat_r0_y = g_object_table[object_index].mobj->cached_side_y;
-	g_cur_mat_r0_z = g_object_table[object_index].mobj->cached_side_z;
-	fview_transformaxes(g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
-			    pitch_angle_q16);
-	if ((g_flight_key_mods & 0xE) != 2) {
-		fview_transformaxes(g_cur_mat_r1_x, g_cur_mat_r1_y,
-				    g_cur_mat_r1_z, yaw_angle_q16);
-	}
-
-	int16_t pitch = trig2_w_arccos((int16_t)-g_cur_mat_r2_z);
-	craft->pitch = pitch;
-	int16_t yaw = (int16_t)-trig2_arctan(g_cur_mat_r2_x, -g_cur_mat_r2_y);
-	int16_t yaw_cos = trig2_getsignedcos(yaw);
-	int16_t yaw_sin = trig2_getsignedsin(yaw);
-	int16_t pitch_cos = trig2_getsignedcos(pitch);
-	int16_t pitch_sin = trig2_getsignedsin(pitch);
-	int16_t pitch_cos_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_cos);
-	int16_t pitch_sin_yaw_sin = (int16_t)math_mul_q15(yaw_sin, pitch_sin);
-	int16_t pitch_cos_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_cos);
-	int16_t pitch_sin_yaw_cos = (int16_t)math_mul_q15(yaw_cos, pitch_sin);
-	int negative_yaw_sin = (int16_t)-yaw_sin;
-	int negative_pitch_sin = (int16_t)-pitch_sin;
-
-	int16_t rotated_x = (int16_t)math_dot3q15_wrapped(
-		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z, yaw_cos,
-		negative_yaw_sin, 0);
-	int16_t rotated_y = (int16_t)math_dot3q15_wrapped(
-		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
-		pitch_cos_yaw_sin, pitch_cos_yaw_cos, negative_pitch_sin);
-	int16_t rotated_z = (int16_t)math_dot3q15_wrapped(
-		g_cur_mat_r0_x, g_cur_mat_r0_y, g_cur_mat_r0_z,
-		pitch_sin_yaw_sin, pitch_sin_yaw_cos, pitch_cos);
-	g_cur_mat_r0_x = rotated_x;
-	g_cur_mat_r0_y = rotated_y;
-	g_cur_mat_r0_z = rotated_z;
-
-	rotated_x = (int16_t)math_dot3q15_wrapped(
-		g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z, yaw_cos,
-		negative_yaw_sin, 0);
-	rotated_y = (int16_t)math_dot3q15_wrapped(
-		g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z,
-		pitch_cos_yaw_sin, pitch_cos_yaw_cos, negative_pitch_sin);
-	rotated_z = (int16_t)math_dot3q15_wrapped(
-		g_cur_mat_r1_x, g_cur_mat_r1_y, g_cur_mat_r1_z,
-		pitch_sin_yaw_sin, pitch_sin_yaw_cos, pitch_cos);
-	g_cur_mat_r1_x = rotated_x;
-	g_cur_mat_r1_y = rotated_y;
-	g_cur_mat_r1_z = rotated_z;
-
-	rotated_x = (int16_t)math_dot3q15_wrapped(
-		g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z, yaw_cos,
-		negative_yaw_sin, 0);
-	rotated_y = (int16_t)math_dot3q15_wrapped(
-		g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z,
-		pitch_cos_yaw_sin, pitch_cos_yaw_cos, negative_pitch_sin);
-	rotated_z = (int16_t)math_dot3q15_wrapped(
-		g_cur_mat_r2_x, g_cur_mat_r2_y, g_cur_mat_r2_z,
-		pitch_sin_yaw_sin, pitch_sin_yaw_cos, pitch_cos);
-	g_cur_mat_r2_x = rotated_x;
-	g_cur_mat_r2_y = rotated_y;
-	g_cur_mat_r2_z = rotated_z;
-
-	int16_t result = (int16_t)-trig2_arctan(g_cur_mat_r0_y, g_cur_mat_r0_x);
-	g_object_table[object_index].yaw = yaw;
-	g_object_table[object_index].roll = result;
-	return result;
-#endif
 }
 
 /* Besides answering, this leaves g_cur_craft pointing at the targeted craft

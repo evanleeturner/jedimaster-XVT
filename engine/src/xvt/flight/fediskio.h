@@ -86,10 +86,6 @@ void fe_disk_io_load_resources(void);
 unsigned int fe_disk_io_init_resources(void);
 void fe_disk_io_build_model_def(uint8_t model_def_index,
 				object_type_id object_type);
-#ifndef XVT_MODERN
-char fe_disk_io_show_retry_fail_prompt(void);
-int fe_disk_io_show_fatal_error_message_and_wait_key(const char *message);
-#endif
 int fe_disk_io_open_global_stream(const char *file_name, const char *mode,
 				  int prompt_on_fail, int location_mode);
 int16_t fe_disk_io_close_global_stream(int16_t remove_file_on_error);

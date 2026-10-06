@@ -1685,7 +1685,6 @@ int16_t paifight_fightershootorder(void)
 							[projectile_object_index];
 					uint8_t projectile_type =
 						projectile_object->object_type;
-#ifdef XVT_MODERN
 					/* Impact effects remain in projectile slots after a hit. */
 					if (projectile_type <
 						    PROJECTILE_OBJECT_TYPE_FIRST ||
@@ -1694,7 +1693,6 @@ int16_t paifight_fightershootorder(void)
 							    PROJECTILE_OBJECT_TYPE_COUNT) {
 						continue;
 					}
-#endif
 					if (projectile_type != 0 &&
 					    (g_projectile_type_data.warhead_class
 							     [projectile_type -

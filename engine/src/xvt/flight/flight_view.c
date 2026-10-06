@@ -1,9 +1,7 @@
 #include "xvt/flight/flight_view.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/render_capture.h"
-#endif
 #include <limits.h>
 #include <string.h>
 
@@ -279,7 +277,6 @@ HRESULT flight_view_composite_masked_software_surface(void)
 
 	g_flight_offscreen_surface->lpVtbl->Unlock(g_flight_offscreen_surface,
 						   offscreen_pixels);
-#ifdef XVT_MODERN
 	lock_result = g_flight_back_buffer->lpVtbl->Unlock(g_flight_back_buffer,
 							   back_buffer_pixels);
 	if (lock_result == DX_DD_OK) {
@@ -289,10 +286,6 @@ HRESULT flight_view_composite_masked_software_surface(void)
 			      (unsigned)lock_result);
 	}
 	return lock_result;
-#else
-	return g_flight_back_buffer->lpVtbl->Unlock(g_flight_back_buffer,
-						    back_buffer_pixels);
-#endif
 }
 
 /* Turns a player's view by input and stores the new view angles (a full circle
@@ -429,13 +422,11 @@ void flight_view_update_player_camera(int player_idx)
 		uint16_t camera_focus_obj_idx =
 			g_players[player_idx].view_state.camera_focus_obj_idx;
 		if (camera_focus_obj_idx == UINT16_MAX) {
-#ifdef XVT_MODERN
 			/* Mission time-limit expiry marks empty slots
 			 * connected; they have no craft to orbit. */
 			if (g_players[player_idx].object_index == -1) {
 				return;
 			}
-#endif
 			struct object_record *player_object =
 				&g_object_table[g_players[player_idx]
 							.object_index];
@@ -717,9 +708,7 @@ void flight_view_render(void)
 		NO_BILINEAR_OBJECT_TYPE = 36,
 	};
 
-#ifdef XVT_MODERN
 	xvt_render_capture_capture_view();
-#endif
 
 	if (g_players[g_local_player].map_camera_state != 0) {
 		g_flight_draw_to_hud_layer = 0;
@@ -1166,12 +1155,8 @@ int flight_view_project_and_test_sphere_visible(int object_idx,
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
 	g_view_space_x = transformed_x;
 	if (transformed_x < 0) {
-#ifdef XVT_MODERN
 		transformed_x =
 			transformed_x == INT32_MIN ? INT32_MAX : -transformed_x;
-#else
-		transformed_x = -transformed_x;
-#endif
 	}
 	if ((int)((unsigned int)transformed_x - sphere_radius) >
 	    depth_with_radius) {
@@ -1183,11 +1168,7 @@ int flight_view_project_and_test_sphere_visible(int object_idx,
 	int absolute_y = transformed_y;
 	g_view_space_y = transformed_y;
 	if (absolute_y < 0) {
-#ifdef XVT_MODERN
 		absolute_y = absolute_y == INT32_MIN ? INT32_MAX : -absolute_y;
-#else
-		absolute_y = -absolute_y;
-#endif
 	}
 	return (int)((unsigned int)absolute_y - sphere_radius) <=
 	       depth_with_radius;
@@ -1222,12 +1203,8 @@ int flight_view_cull_world_sphere_to_viewport(int world_x, int world_y,
 		g_cam_rel_world_x, g_cam_rel_world_y, g_cam_rel_world_z);
 	g_view_space_x = transformed_x;
 	if (transformed_x < 0) {
-#ifdef XVT_MODERN
 		transformed_x =
 			transformed_x == INT32_MIN ? INT32_MAX : -transformed_x;
-#else
-		transformed_x = -transformed_x;
-#endif
 	}
 	if (transformed_x - sphere_radius > depth_with_radius) {
 		return 0;
@@ -1238,11 +1215,7 @@ int flight_view_cull_world_sphere_to_viewport(int world_x, int world_y,
 	g_view_space_y = transformed_y;
 	int absolute_y = transformed_y;
 	if (absolute_y < 0) {
-#ifdef XVT_MODERN
 		absolute_y = absolute_y == INT32_MIN ? INT32_MAX : -absolute_y;
-#else
-		absolute_y = -absolute_y;
-#endif
 	}
 	return absolute_y - sphere_radius <= depth_with_radius;
 }
@@ -1256,9 +1229,7 @@ int flight_view_cull_world_sphere_to_viewport(int world_x, int world_y,
 // FUNCTION: XVT 0x450110
 void flight_view_render_startup_frame(void)
 {
-#ifdef XVT_MODERN
 	xvt_render_capture_begin_classic_frame();
-#endif
 
 	int player_index;
 	for (player_index = 0;
@@ -1284,13 +1255,9 @@ void flight_view_render_startup_frame(void)
 	}
 	flight_view_update_player_camera(g_local_player);
 	flight_view_render();
-#ifdef XVT_MODERN
 	xvt_render_capture_seal_view();
-#endif
 	flight_display_flip();
-#ifdef XVT_MODERN
 	xvt_render_capture_end_presentation();
-#endif
 	flight_display_blit_render_surface();
 }
 
@@ -1305,9 +1272,7 @@ void flight_view_render_startup_frame(void)
 // FUNCTION: XVT 0x4501C0
 void flight_view_render_frame(void)
 {
-#ifdef XVT_MODERN
 	xvt_render_capture_begin_classic_frame();
-#endif
 
 	for (int player_index = 0;
 	     player_index < (int)(sizeof(g_players) / sizeof(g_players[0]));
@@ -1324,13 +1289,9 @@ void flight_view_render_frame(void)
 	flight_surface_lock();
 	hud_render_hud(g_local_player);
 	flight_surface_unlock();
-#ifdef XVT_MODERN
 	xvt_render_capture_seal_view();
-#endif
 	flight_display_flip();
-#ifdef XVT_MODERN
 	xvt_render_capture_end_presentation();
-#endif
 	nullsub_11();
 	if (g_use_hardware3d != 0) {
 		render_scene_clear_frame_buffers();

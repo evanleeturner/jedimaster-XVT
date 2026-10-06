@@ -678,9 +678,7 @@ int16_t goals_draw_object_type_name(uint16_t craft_species,
 {
 	const char *display_name;
 
-#ifdef XVT_MODERN
 	display_name = "";
-#endif
 	model_index model_index = get_model_index_from_type(craft_species);
 	if (model_index != MODEL_INDEX_NONE) {
 		if (use_plural_name != 0) {

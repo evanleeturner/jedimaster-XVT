@@ -1156,13 +1156,8 @@ int frontend_sound_load_list(const char *file_name)
 	int field_count;
 	char sound_name[256];
 	while (1) {
-#ifdef XVT_MODERN
 		field_count = FILE_SCANF(stream, "%255s %255s\n",
 					 sound_file_name, sound_name);
-#else
-		field_count = FILE_SCANF(stream, "%s %s\n", sound_file_name,
-					 sound_name);
-#endif
 		if (field_count == EOF) {
 			file_close(stream);
 			return 1;
@@ -1196,13 +1191,8 @@ int frontend_sound_unload_list(const char *file_name)
 	int field_count;
 	char sound_name[256];
 	while (1) {
-#ifdef XVT_MODERN
 		field_count = FILE_SCANF(stream, "%255s %255s\n",
 					 ignored_file_name, sound_name);
-#else
-		field_count = FILE_SCANF(stream, "%s %s\n", ignored_file_name,
-					 sound_name);
-#endif
 		if (field_count == EOF) {
 			file_close(stream);
 			return 1;

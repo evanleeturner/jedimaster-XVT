@@ -97,12 +97,8 @@ int debug_console_write_text(const char *text)
 {
 	uint8_t *text_buffer;
 
-#ifdef XVT_MODERN
 	static uint8_t modern_text_buffer[80 * 25 * 2];
 	text_buffer = modern_text_buffer;
-#else
-	text_buffer = g_debug_console_text_buffer;
-#endif
 	if (g_debug_console_initialized == 0) {
 		uint8_t *initialize_cell = text_buffer;
 		int initialize_count = 2000;
@@ -117,21 +113,12 @@ int debug_console_write_text(const char *text)
 	const char *text_cursor;
 	xvt_file *stream;
 	if (g_debug_console_file_dump_enabled != 0) {
-#ifdef XVT_MODERN
 		stream = file_open("mpDump.txt", "a");
 		text_cursor = text;
 		if (stream != NULL) {
 			file_write_bytes(stream, text, strlen(text));
 			file_close(stream);
 		}
-#else
-		stream = FILE_RAW_OPEN("mpDump.txt", "a");
-		text_cursor = text;
-		if (stream != NULL) {
-			FILE_PRINTF(stream, "%s", text);
-			FILE_RAW_CLOSE(stream);
-		}
-#endif
 	} else {
 		text_cursor = text;
 	}
@@ -148,7 +135,6 @@ int debug_console_write_text(const char *text)
 		int source_length = remaining_length;
 		if (g_debug_console_cursor_row >
 		    g_debug_console_scroll_bottom_row) {
-#ifdef XVT_MODERN
 			memmove(&text_buffer[160 *
 					     g_debug_console_scroll_top_row],
 				&text_buffer
@@ -157,16 +143,6 @@ int debug_console_write_text(const char *text)
 				(size_t)(160 *
 					 (g_debug_console_scroll_bottom_row -
 					  g_debug_console_scroll_top_row)));
-#else
-			memcpy(&text_buffer[160 *
-					    g_debug_console_scroll_top_row],
-			       &text_buffer
-				       [160 * g_debug_console_scroll_top_row +
-					160],
-			       (size_t)(160 *
-					(g_debug_console_scroll_bottom_row -
-					 g_debug_console_scroll_top_row)));
-#endif
 			{
 				uint8_t *clear_cell =
 					&text_buffer

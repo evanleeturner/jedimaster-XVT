@@ -4,14 +4,8 @@
 #include "xvt/flight/flight.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifdef XVT_MODERN
 #include "aeron/dialog.h"
 #include "xvt_runtime/input/input_bridge.h"
-#else
-__declspec(dllimport) int __stdcall MessageBoxA(void *hWnd, const char *text,
-						const char *caption,
-						unsigned int type);
-#endif
 
 /* DirectInput's GUID for the system keyboard,
  * {6F1D2B61-D5A0-11CF-BFC7-444553540000}; dinput_init creates the keyboard
@@ -182,64 +176,43 @@ int g_dinput_alt_down = 0;
 // FUNCTION: XVT 0x443330
 int dinput_init(void)
 {
-#ifdef XVT_MODERN
 	AeronMessageBoxButton error_button = {1, "OK", 1, 1};
 	AeronMessageBoxOptions error_options = {
 		AERON_MESSAGE_BOX_ERROR, "ERROR", NULL, &error_button, 1};
-#endif
 
 	DxGuid keyboard_guid = g_direct_input_system_keyboard_guid;
 	if (DirectInputCreateA(g_h_instance, 0x500, &g_direct_input, NULL) !=
 		    0 &&
 	    DirectInputCreateA(g_h_instance, 0x300, &g_direct_input, NULL) !=
 		    0) {
-#ifdef XVT_MODERN
 		error_options.message = "Direct Input Create FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
 		XVT_LOG_WARN("input.keyboard_failed step=\"create\"");
-#else
-		MessageBoxA(NULL, "Direct Input Create FAILED", "ERROR", 0);
-#endif
 		return 0;
 	}
 
 	if (g_direct_input->lpVtbl->CreateDevice(g_direct_input, &keyboard_guid,
 						 &g_dinput_keyboard_device,
 						 NULL) != 0) {
-#ifdef XVT_MODERN
 		error_options.message = "Direct Input Keyboard Create FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
 		XVT_LOG_WARN("input.keyboard_failed step=\"device\"");
-#else
-		MessageBoxA(NULL, "Direct Input Keyboard Create FAILED",
-			    "ERROR", 0);
-#endif
 		return 0;
 	}
 	if (g_dinput_keyboard_device->lpVtbl->SetDataFormat(
 		    g_dinput_keyboard_device, &c_dfDIKeyboard) != 0) {
-#ifdef XVT_MODERN
 		error_options.message = "Direct Input Keyboard Format FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
 		XVT_LOG_WARN("input.keyboard_failed step=\"format\"");
-#else
-		MessageBoxA(NULL, "Direct Input Keyboard Format FAILED",
-			    "ERROR", 0);
-#endif
 		return 0;
 	}
 	if (g_dinput_keyboard_device->lpVtbl->SetCooperativeLevel(
 		    g_dinput_keyboard_device, g_flight_main_window_handle,
 		    DISCL_FOREGROUND | DISCL_NONEXCLUSIVE) != 0) {
-#ifdef XVT_MODERN
 		error_options.message = "Direct Input Keyboard SCL FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
 		XVT_LOG_WARN(
 			"input.keyboard_failed step=\"cooperative_level\"");
-#else
-		MessageBoxA(NULL, "Direct Input Keyboard SCL FAILED", "ERROR",
-			    0);
-#endif
 		return 0;
 	}
 
@@ -252,27 +225,17 @@ int dinput_init(void)
 	if (g_dinput_keyboard_device->lpVtbl->SetProperty(
 		    g_dinput_keyboard_device, DINPUT_DIPROP_BUFFERSIZE,
 		    &buffer_size.diph) < 0) {
-#ifdef XVT_MODERN
 		error_options.message =
 			"Direct Input Keyboard SetBufferSize FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
 		XVT_LOG_WARN("input.keyboard_failed step=\"buffer\"");
-#else
-		MessageBoxA(NULL, "Direct Input Keyboard SetBufferSize FAILED",
-			    "ERROR", 0);
-#endif
 		return 0;
 	}
 	if (g_dinput_keyboard_device->lpVtbl->Acquire(
 		    g_dinput_keyboard_device) != 0) {
-#ifdef XVT_MODERN
 		error_options.message = "Direct Input Keyboard Acquire FAILED";
 		Aeron_ShowMessageBox(&error_options, NULL);
 		XVT_LOG_WARN("input.keyboard_failed step=\"acquire\"");
-#else
-		MessageBoxA(NULL, "Direct Input Keyboard Acquire FAILED",
-			    "ERROR", 0);
-#endif
 		return 0;
 	}
 
@@ -375,11 +338,9 @@ int dinput_skip_to_pending_key_press(void)
 // FUNCTION: XVT 0x443630
 uint8_t dinput_get_key(void)
 {
-#ifdef XVT_MODERN
 	if (!g_dinput_keyboard_device) {
 		return 0;
 	}
-#endif
 	dinput_update_keyboard_modifier_state();
 	DIDEVICEOBJECTDATA key_event[2];
 	uint32_t event_count;
@@ -403,11 +364,7 @@ uint8_t dinput_get_key(void)
 			return 0;
 		}
 		if (event_count == 0) {
-#ifdef XVT_MODERN
 			return 0;
-#else
-			continue;
-#endif
 		}
 
 		uint32_t key_offset = key_event[0].dwOfs;
@@ -491,15 +448,11 @@ void dinput_shutdown(void)
 	if (g_dinput_keyboard_device != 0) {
 		g_dinput_keyboard_device->lpVtbl->Release(
 			g_dinput_keyboard_device);
-#ifdef XVT_MODERN
 		g_dinput_keyboard_device = NULL;
-#endif
 	}
 	if (g_direct_input != 0) {
 		g_direct_input->lpVtbl->Release(g_direct_input);
-#ifdef XVT_MODERN
 		g_direct_input = NULL;
-#endif
 	}
 }
 
@@ -514,7 +467,6 @@ void dinput_shutdown(void)
 // FUNCTION: XVT 0x443860
 int dinput_reacquire_keyboard(void)
 {
-#ifdef XVT_MODERN
 	if (!g_dinput_keyboard_device ||
 	    !xvt_input_consume_keyboard_reacquire()) {
 		return 0;
@@ -524,13 +476,4 @@ int dinput_reacquire_keyboard(void)
 	XVT_LOG_WARN("input.keyboard_lost acquired=%d",
 		     g_dinput_keyboard_acquired);
 	return g_dinput_keyboard_acquired;
-#else
-	if (g_dinput_keyboard_device != 0) {
-		g_dinput_keyboard_device->lpVtbl->Acquire(
-			g_dinput_keyboard_device);
-		g_dinput_keyboard_acquired = 1;
-		return 1;
-	}
-	return 0;
-#endif
 }

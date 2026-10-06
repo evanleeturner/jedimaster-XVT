@@ -1,12 +1,8 @@
 #include "xvt/flight/proving_grounds.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/player_timing.h"
-#endif
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/cockpit_readouts.h"
 #include "xvt_runtime/snapshot/cockpit_text.h"
-#endif
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/audio/fsfx.h"
@@ -101,14 +97,12 @@ uint16_t g_proving_grounds_current_checkpoint_obj_idx = 0;
 // FUNCTION: XVT 0x42B290
 void proving_grounds_record_local_player_pose_history(void)
 {
-#ifdef XVT_MODERN
 	int32_t reference_position[3];
 	if (xvt_flight_timing_is_unlocked() &&
 	    !xvt_player_timing_record_recovery(g_local_player,
 					       reference_position)) {
 		return;
 	}
-#endif
 
 	uint16_t history_index = 2;
 	do {
@@ -139,32 +133,17 @@ void proving_grounds_record_local_player_pose_history(void)
 	struct object_record *object =
 		&g_object_table[g_players[g_local_player].object_index];
 
-#ifdef XVT_MODERN
 	g_proving_grounds_local_player_world_x_history[0] =
 		xvt_flight_timing_is_unlocked() ? reference_position[0]
 						: object->mobj->prev_world_x;
-#else
-	g_proving_grounds_local_player_world_x_history[0] =
-		object->mobj->prev_world_x;
-#endif
 
-#ifdef XVT_MODERN
 	g_proving_grounds_local_player_world_y_history[0] =
 		xvt_flight_timing_is_unlocked() ? reference_position[1]
 						: object->mobj->prev_world_y;
-#else
-	g_proving_grounds_local_player_world_y_history[0] =
-		object->mobj->prev_world_y;
-#endif
 
-#ifdef XVT_MODERN
 	g_proving_grounds_local_player_world_z_history[0] =
 		xvt_flight_timing_is_unlocked() ? reference_position[2]
 						: object->mobj->prev_world_z;
-#else
-	g_proving_grounds_local_player_world_z_history[0] =
-		object->mobj->prev_world_z;
-#endif
 
 	g_proving_grounds_local_player_roll_history[0] = object->roll;
 	g_proving_grounds_local_player_pitch_history[0] = object->pitch;
@@ -1047,22 +1026,18 @@ void proving_grounds_draw_status_panel(int16_t x, int16_t y)
 		g_flight_fill_clip_rect_fn();
 		flight_text_set_color(0x49);
 		flight_text_set_cursor(panel_x + level_label_x_offset, panel_y);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(
 			(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST +
 						    0),
 			g_proving_grounds_status_labels[PROVING_STATUS_LEVEL],
 			XVT_COCKPIT_ALIGN_LEFT);
-#endif
 		flight_text_draw_string(
 			g_proving_grounds_status_labels[PROVING_STATUS_LEVEL]);
 		flight_text_set_color(0x4A);
 		flight_text_set_cursor(panel_x + level_value_x_offset, panel_y);
-#ifdef XVT_MODERN
 		xvt_cockpit_readouts_record_number(
 			XVT_COCKPIT_NUMBER_COURSE_LEVEL,
 			g_flight_mission_state.proving_grounds_level, 2, 2);
-#endif
 		flight_text_draw_decimal_number(
 			g_flight_mission_state.proving_grounds_level, 2, 2);
 		flight_text_set_clip_rect(
@@ -1072,61 +1047,51 @@ void proving_grounds_draw_status_panel(int16_t x, int16_t y)
 		flight_text_set_color(0x45);
 		flight_text_set_cursor(panel_x,
 				       panel_y + g_flight_font_line_height + 1);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(
 			(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST +
 						    1),
 			g_proving_grounds_status_labels
 				[PROVING_STATUS_SEGMENTS_LEFT],
 			XVT_COCKPIT_ALIGN_LEFT);
-#endif
 		flight_text_draw_string(g_proving_grounds_status_labels
 						[PROVING_STATUS_SEGMENTS_LEFT]);
 		flight_text_set_cursor(
 			panel_x, panel_y + 2 * g_flight_font_line_height + 1);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(
 			(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST +
 						    2),
 			g_proving_grounds_status_labels
 				[PROVING_STATUS_SEGMENTS_DONE],
 			XVT_COCKPIT_ALIGN_LEFT);
-#endif
 		flight_text_draw_string(g_proving_grounds_status_labels
 						[PROVING_STATUS_SEGMENTS_DONE]);
 		flight_text_set_color(0x4D);
 		flight_text_set_cursor(
 			panel_x, panel_y + 3 * g_flight_font_line_height + 1);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(
 			(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST +
 						    3),
 			g_proving_grounds_status_labels
 				[PROVING_STATUS_TARGETS_HIT],
 			XVT_COCKPIT_ALIGN_LEFT);
-#endif
 		flight_text_draw_string(g_proving_grounds_status_labels
 						[PROVING_STATUS_TARGETS_HIT]);
 		flight_text_set_color(0x51);
 		flight_text_set_cursor(panel_x + score_label_x_offset,
 				       panel_y + 4 * g_flight_font_line_height +
 					       1);
-#ifdef XVT_MODERN
 		xvt_cockpit_text_record_field(
 			(xvt_cockpit_text_field_id)(XVT_COCKPIT_TEXT_COURSE_LABEL_FIRST +
 						    4),
 			g_proving_grounds_status_labels[PROVING_STATUS_SCORE],
 			XVT_COCKPIT_ALIGN_LEFT);
-#endif
 		flight_text_draw_string(
 			g_proving_grounds_status_labels[PROVING_STATUS_SCORE]);
 	}
 
 	flight_text_set_font_tier(1);
-#ifdef XVT_MODERN
 	xvt_cockpit_readouts_record_course(panel_x, panel_y, panel_width,
 					   5 * g_flight_font_line_height + 1);
-#endif
 	flight_text_set_clip_rect(panel_x,
 				  panel_y + g_flight_font_line_height + 1,
 				  panel_x + panel_width,
@@ -1136,24 +1101,20 @@ void proving_grounds_draw_status_panel(int16_t x, int16_t y)
 	flight_text_set_color(0x46);
 	flight_text_set_cursor(panel_x + value_x_offset,
 			       panel_y + g_flight_font_line_height + 1);
-#ifdef XVT_MODERN
 	xvt_cockpit_readouts_record_number(
 		XVT_COCKPIT_NUMBER_COURSE_REMAINING,
 		g_flight_mission_state.proving_grounds_checkpoints_remaining, 3,
 		1);
-#endif
 	flight_text_draw_decimal_number(
 		g_flight_mission_state.proving_grounds_checkpoints_remaining, 3,
 		1);
 	g_flight_draw_char_fn(' ');
 	flight_text_set_cursor(panel_x + value_x_offset,
 			       panel_y + 2 * g_flight_font_line_height + 1);
-#ifdef XVT_MODERN
 	xvt_cockpit_readouts_record_number(
 		XVT_COCKPIT_NUMBER_COURSE_PASSED,
 		g_flight_mission_state.proving_grounds_checkpoints_passed, 3,
 		1);
-#endif
 	flight_text_draw_decimal_number(
 		g_flight_mission_state.proving_grounds_checkpoints_passed, 3,
 		1);
@@ -1161,22 +1122,18 @@ void proving_grounds_draw_status_panel(int16_t x, int16_t y)
 	flight_text_set_color(0x4E);
 	flight_text_set_cursor(panel_x + value_x_offset,
 			       panel_y + 3 * g_flight_font_line_height + 1);
-#ifdef XVT_MODERN
 	xvt_cockpit_readouts_record_number(
 		XVT_COCKPIT_NUMBER_COURSE_TARGETS,
 		g_flight_mission_state.proving_grounds_targets_destroyed, 3, 1);
-#endif
 	flight_text_draw_decimal_number(
 		g_flight_mission_state.proving_grounds_targets_destroyed, 3, 1);
 	g_flight_draw_char_fn(' ');
 	flight_text_set_color(0x52);
 	flight_text_set_cursor(panel_x + score_value_x_offset,
 			       panel_y + 4 * g_flight_font_line_height + 1);
-#ifdef XVT_MODERN
 	xvt_cockpit_readouts_record_number(
 		XVT_COCKPIT_NUMBER_COURSE_SCORE,
 		g_flight_mission_state.proving_grounds_score, 6, 1);
-#endif
 	proving_grounds_draw_score_decimal(
 		g_flight_mission_state.proving_grounds_score, 6, 1);
 	g_flight_draw_char_fn(' ');

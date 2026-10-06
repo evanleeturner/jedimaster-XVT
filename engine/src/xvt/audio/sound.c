@@ -273,9 +273,6 @@ void sound_flush_queued_effects(void)
 	g_sound_queue_count = 0;
 }
 
-#ifndef XVT_MODERN
-#pragma function(memcpy)
-#endif
 /* Queues a loaded effect for the next sound_flush_queued_effects, keeping
  * g_sound_queue ordered by priority, highest first, the new entry after those of
  * equal or higher priority. Returns 0 when g_direct_sound is NULL, the name is
@@ -321,15 +318,9 @@ int sound_queue_effect(const char *sound_name, int allow_restart_existing,
 	}
 
 	struct sound_queue_entry *queue_entry = &g_sound_queue[queue_index];
-#ifdef XVT_MODERN
 	memmove(&g_sound_queue[queue_index + 1], queue_entry,
 		sizeof(struct sound_queue_entry) *
 			(g_sound_queue_count - queue_index));
-#else
-	memcpy(&g_sound_queue[queue_index + 1], queue_entry,
-	       sizeof(struct sound_queue_entry) *
-		       (g_sound_queue_count - queue_index));
-#endif
 	strncpy(queue_entry->name, name, sizeof(queue_entry->name));
 	g_sound_queue[queue_index].loop = loop;
 	g_sound_queue[queue_index].allow_restart_existing =

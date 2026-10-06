@@ -1,19 +1,12 @@
 #include "xvt/util/memory.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_assets.h"
-#endif
 
 #include <stdlib.h>
 #include <string.h>
 
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifndef XVT_MODERN
-__declspec(dllimport) int __stdcall
-VirtualProtect(void *address, size_t size, unsigned int new_protection,
-	       unsigned int *old_protection);
-#endif
 
 /* 1 once the first memory_alloc_handle_internal call has cleared g_handle_tables;
  * only that function writes it, and nothing sets it back to 0. */
@@ -41,16 +34,10 @@ struct memory_handle_table_state g_handle_tables = {0};
 // FUNCTION: XVT 0x4AC490
 int memory_set_region_execute_read_write(void *address, size_t size)
 {
-#ifdef XVT_MODERN
 	/* The source port does not patch its generated machine code. */
 	(void)address;
 	(void)size;
 	return 1;
-#else
-	unsigned int old_protection;
-
-	return VirtualProtect(address, size, 0x40u, &old_protection);
-#endif
 }
 
 /* memory_alloc_handle_internal with the block filled with zeros. */
@@ -122,9 +109,7 @@ uint16_t memory_alloc_handle_internal(size_t size, int legacy_tag,
 // FUNCTION: XVT 0x4AC6E0
 void memory_free_handle(unsigned int handle)
 {
-#ifdef XVT_MODERN
 	xvt_render_assets_retire_handle(handle);
-#endif
 	if (handle == 0 || handle > 32768u) {
 		XVT_LOG_WARN("memory.free_invalid handle=%u", handle);
 	}

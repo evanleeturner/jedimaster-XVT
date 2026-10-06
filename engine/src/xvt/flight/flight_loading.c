@@ -1,9 +1,7 @@
 #include "xvt/flight/flight_loading.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/render_capture.h"
-#endif
 #include "xvt/flight/flight_display.h"
 #include "xvt/flight/flight_surface.h"
 #include "xvt/flight/hud/flight_text.h"
@@ -32,9 +30,7 @@ uint32_t g_flight_loading_progress_last_draw_ms;
 // FUNCTION: XVT 0x449110
 void flight_loading_reset_progress_state(void)
 {
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_clear_progress();
-#endif
 	g_flight_loading_progress_step = 0;
 	g_flight_loading_progress_last_draw_ms = timeGetTime();
 }
@@ -63,9 +59,7 @@ void flight_loading_pulse_and_draw_progress_screen(void)
 		return;
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_capture_begin_overlay();
-#endif
 	g_flight_loading_progress_last_draw_ms = now;
 	if (step_phase == 63u) {
 		flight_net_broadcast_still_loading_pulse();
@@ -118,11 +112,9 @@ void flight_loading_pulse_and_draw_progress_screen(void)
 		(uint8_t)(g_flight_loading_progress_step / 128u + 48u);
 	g_flight_fill_clip_rect_fn();
 
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_record_progress(bar_step, bar_left, bar_top,
 					     g_screen_width - 2 * bar_left,
 					     line_height, bar_width);
-#endif
 	flight_surface_unlock();
 	flight_display_blit_render_surface();
 	flight_display_flip();
@@ -145,9 +137,7 @@ void flight_loading_pulse_and_draw_progress_screen(void)
 	g_flight_text_shadow_color = saved_shadow_color;
 	g_flight_text_shadow_enabled = saved_shadow_enabled;
 
-#ifdef XVT_MODERN
 	xvt_render_capture_end_overlay();
-#endif
 }
 
 /* Pulses the loading bar until its low 7 bits reach 127, then once more,

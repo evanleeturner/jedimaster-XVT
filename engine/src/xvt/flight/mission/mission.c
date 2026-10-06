@@ -3568,20 +3568,12 @@ int16_t mission_object_matches_trigger_variable(uint16_t object_idx,
 		}
 		break;
 	case 13:
-#ifdef XVT_MODERN
 		if (object->player_owner_idx >= 0 &&
 		    g_mission_flight_groups[g_players[object->player_owner_idx]
 						    .bound_flight_group_idx]
 					    .fg.player_number -
 				    variable ==
 			    1) {
-#else
-		if (g_mission_flight_groups[g_players[object->player_owner_idx]
-						    .bound_flight_group_idx]
-				    .fg.player_number -
-			    variable ==
-		    1) {
-#endif
 			result = 1;
 		}
 		break;
@@ -4448,7 +4440,6 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 								attacker_rating_weight,
 								minimum_rating_award,
 								g_flight_sim_side_effects_suppressed);
-#ifdef XVT_MODERN
 							sprintf(g_flight_text_scratch_buffer,
 								"Rating points awarded: %d to player: %d Better total: %d\n",
 								rating_points,
@@ -4456,15 +4447,6 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 								g_players[player_index]
 									.mission_stats
 									.rating_promo_points);
-#else
-							sprintf(g_mission_debug_buffer,
-								"Rating points awarded: %d to player: %d Better total: %d\n",
-								rating_points,
-								player_index,
-								g_players[player_index]
-									.mission_stats
-									.rating_promo_points);
-#endif
 						} else {
 							if (minimum_rating_award !=
 							    0) {
@@ -4516,7 +4498,6 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 								attacker_rating_weight,
 								minimum_rating_award,
 								g_flight_sim_side_effects_suppressed);
-#ifdef XVT_MODERN
 							sprintf(g_flight_text_scratch_buffer,
 								"Rating points awarded: %d to player: %d Worse total: %d\n",
 								rating_points,
@@ -4524,15 +4505,6 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 								g_players[player_index]
 									.mission_stats
 									.worse_rating_promo_points);
-#else
-							sprintf(g_mission_debug_buffer,
-								"Rating points awarded: %d to player: %d Worse total: %d\n",
-								rating_points,
-								player_index,
-								g_players[player_index]
-									.mission_stats
-									.worse_rating_promo_points);
-#endif
 						}
 					}
 
@@ -5908,7 +5880,6 @@ int mission_compute_craft_point_value(int obj_idx)
 		weapon_count += craft->weapon_slots[last_slot].ammo_count;
 		unsigned int warhead_type =
 			craft->warhead_slot_type_ids[launcher_index];
-#ifdef XVT_MODERN
 		if (warhead_type >= PROJECTILE_OBJECT_TYPE_FIRST &&
 		    warhead_type < PROJECTILE_OBJECT_TYPE_FIRST +
 					   PROJECTILE_OBJECT_TYPE_COUNT) {
@@ -5922,17 +5893,10 @@ int mission_compute_craft_point_value(int obj_idx)
 				"mission.craft_value_type_unknown object=%d kind=\"warhead\" type=%u",
 				obj_idx, warhead_type);
 		}
-#else
-		point_value +=
-			g_projectile_type_data.warhead_point_value
-				[warhead_type - PROJECTILE_OBJECT_TYPE_FIRST] *
-			weapon_count;
-#endif
 	}
 
 	unsigned int countermeasure_type = (uint8_t)craft->cm_type_id;
 	unsigned int beam_type = (uint8_t)craft->beam_type_id;
-#ifdef XVT_MODERN
 	if (countermeasure_type >=
 	    sizeof(g_countermeasure_type_point_value) /
 		    sizeof(g_countermeasure_type_point_value[0])) {
@@ -5952,7 +5916,6 @@ int mission_compute_craft_point_value(int obj_idx)
 		}
 		beam_type = 0;
 	}
-#endif
 	point_value += g_countermeasure_type_point_value[countermeasure_type];
 	point_value += g_beam_type_point_value[beam_type];
 	XVT_LOG_DEBUG(
@@ -6876,7 +6839,6 @@ uint16_t mission_init(const char *file_name)
 									++ordinal;
 								}
 							}
-#ifdef XVT_MODERN
 							if (candidate_team ==
 							    TEAM_COUNT) {
 								XVT_LOG_WARN(
@@ -6885,7 +6847,6 @@ uint16_t mission_init(const char *file_name)
 									player_owned_team_count);
 								continue;
 							}
-#endif
 							if (g_pilot_data.mission_sequence_active ==
 								    1 &&
 							    g_pilot_data.melee_tournament_sequence_state

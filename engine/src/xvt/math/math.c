@@ -1,8 +1,5 @@
 #include "xvt/math/math.h"
 
-#ifndef XVT_MODERN
-#include <float.h>
-#endif
 
 /* Sets the x87 unit's precision control to single precision (24-bit
  * mantissa) through _control87, leaving its other control bits as they are.
@@ -11,16 +8,7 @@
 // FUNCTION: XVT 0x408110
 void math_set_fpu_single_precision_mode(void)
 {
-#ifdef XVT_MODERN
 	// PORT: supported 64-bit hosts use SSE arithmetic rather than x87 precision control.
-#else
-	enum {
-		FPU_PRECISION_CONTROL_MASK = 0x00030000,
-		FPU_SINGLE_PRECISION = 0x00020000,
-	};
-
-	_control87(FPU_SINGLE_PRECISION, FPU_PRECISION_CONTROL_MASK);
-#endif
 }
 
 /* Sets the x87 unit's precision control to extended precision (64-bit
@@ -29,16 +17,7 @@ void math_set_fpu_single_precision_mode(void)
 // FUNCTION: XVT 0x408140
 void math_set_fpu_extended_precision_mode(void)
 {
-#ifdef XVT_MODERN
 	// PORT: supported 64-bit hosts use SSE arithmetic rather than x87 precision control.
-#else
-	enum {
-		FPU_PRECISION_CONTROL_MASK = 0x00030000,
-		FPU_EXTENDED_PRECISION = 0x00000000,
-	};
-
-	_control87(FPU_EXTENDED_PRECISION, FPU_PRECISION_CONTROL_MASK);
-#endif
 }
 
 /* A placeholder for the 1997 code at this address, which is not rebuilt:

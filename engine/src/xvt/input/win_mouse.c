@@ -3,42 +3,9 @@
 #include "xvt/flight/flight_input.h"
 #include "xvt/util/win32.h"
 
-#ifdef XVT_MODERN
 #include "aeron/aeron.h"
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/runtime/presentation.h"
-#else
-/* drift-ok: camelcase -- wParam, lParam: Windows' MSG */
-struct win_mouse_win32_message {
-	/* Target window, as MSG.hwnd; nothing reads it by name. */
-	void *window;
-	uint32_t message; /* Message number; nothing reads it by name. */
-	/* First message parameter; nothing reads it by name. */
-	uint32_t wParam;
-	/* Second message parameter; nothing reads it by name. */
-	int32_t lParam;
-	/* Time the message was posted; nothing reads it by name. */
-	uint32_t time;
-	/* Cursor X when it was posted; nothing reads it by name. */
-	int32_t point_x;
-	/* Cursor Y when it was posted; nothing reads it by name. */
-	int32_t point_y;
-};
-
-__declspec(dllimport) int __stdcall
-PeekMessageA(struct win_mouse_win32_message *message, void *hWnd,
-	     unsigned int filter_min, unsigned int filter_max,
-	     unsigned int remove_message);
-__declspec(dllimport) int __stdcall
-GetMessageA(struct win_mouse_win32_message *message, void *hWnd,
-	    unsigned int filter_min, unsigned int filter_max);
-__declspec(dllimport) int __stdcall
-TranslateMessage(const struct win_mouse_win32_message *message);
-__declspec(dllimport) int32_t __stdcall
-DispatchMessageA(const struct win_mouse_win32_message *message);
-__declspec(dllimport) int __stdcall GetCursorPos(struct POINT *point);
-__declspec(dllimport) int __stdcall SetCursorPos(int x, int y);
-#endif
 
 /* Cursor point the next win_mouse_poll_state measures movement from. Each poll
  * sets it to g_win_mouse_center_pos after warping the cursor there, and
@@ -127,7 +94,6 @@ void win_mouse_poll_state(int *position_x, int *position_y, int *delta_x,
 {
 	struct POINT point;
 
-#ifdef XVT_MODERN
 	const AeronInputSnapshot *input = Aeron_InputSnapshot();
 	if (xvt_input_is_captured() || !input || !input->has_focus) {
 		*position_x = g_win_mouse_pos.x * g_win_mouse_scale_x;
@@ -175,26 +141,11 @@ void win_mouse_poll_state(int *position_x, int *position_y, int *delta_x,
 	g_win_mouse_button_released[2] =
 		(xvt_input_filter_mouse_buttons(input->mouse.released_buttons) &
 		 AERON_MOUSE_BUTTON_MIDDLE) != 0;
-#else
-	struct win_mouse_win32_message message;
-
-	if (g_flight_input_non_blocking_msg_pump == 0 ||
-	    PeekMessageA(&message, 0, 0, 0, 0) != 0) {
-		if (GetMessageA(&message, 0, 0, 0) == 0) {
-			return;
-		}
-		TranslateMessage(&message);
-		DispatchMessageA(&message);
-	}
-	GetCursorPos(&point);
-#endif
 
 	g_win_mouse_cursor_pos = point;
-#ifdef XVT_MODERN
 	if (!xvt_input_mouse_motion_allowed()) {
 		g_win_mouse_prev_pos = point;
 	}
-#endif
 	*delta_x = point.x - g_win_mouse_prev_pos.x;
 	*delta_y = g_win_mouse_cursor_pos.y - g_win_mouse_prev_pos.y;
 	g_win_mouse_pos.x += *delta_x;
@@ -214,12 +165,8 @@ void win_mouse_poll_state(int *position_x, int *position_y, int *delta_x,
 	*position_x = g_win_mouse_pos.x;
 	*position_y = g_win_mouse_pos.y;
 
-#ifdef XVT_MODERN
 	xvt_presentation_warp_classic(g_win_mouse_center_pos.x,
 				      g_win_mouse_center_pos.y);
-#else
-	SetCursorPos(g_win_mouse_center_pos.x, g_win_mouse_center_pos.y);
-#endif
 	g_win_mouse_prev_pos = g_win_mouse_center_pos;
 	button_down[0] = g_win_mouse_button_down[0];
 	button_down[1] = g_win_mouse_button_down[1];
@@ -256,11 +203,7 @@ int win_mouse_set_position(int x, int y)
 	g_win_mouse_cursor_pos.y = y;
 	g_win_mouse_pos.y = y;
 
-#ifdef XVT_MODERN
 	return xvt_presentation_warp_classic(x, y);
-#else
-	return SetCursorPos(x, y);
-#endif
 }
 
 /* Sets g_win_mouse_min_y and g_win_mouse_max_y and g_win_mouse_center_pos.y to

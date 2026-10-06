@@ -1,7 +1,5 @@
 #include "xvt/flight/targeting.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_hud.h"
-#endif
 
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
@@ -413,10 +411,8 @@ void targeting_draw_object_box(uint16_t object_idx, uint16_t component_idx,
 	} else {
 		object_extent = targeting_get_object_box_extent(object_idx);
 	}
-#ifdef XVT_MODERN
 	xvt_render_hud_target_box(object_idx, component_idx, object_extent,
 				  color_index);
-#endif
 	int projected_extent =
 		(int)((unsigned int)(object_extent * (int)g_proj_scale_int) /
 		      (unsigned int)depth);

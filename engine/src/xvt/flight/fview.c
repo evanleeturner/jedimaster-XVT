@@ -1,7 +1,5 @@
 #include "xvt/flight/fview.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_camera.h"
-#endif
 
 #include <stdint.h>
 
@@ -90,10 +88,8 @@ void fview_build_camera_orient(int16_t view_roll, int16_t view_pitch,
 	g_cam_mat_r2_x = g_cur_mat_r2_x;
 	g_cam_mat_r2_y = g_cur_mat_r2_y;
 	g_cam_mat_r2_z = g_cur_mat_r2_z;
-#ifdef XVT_MODERN
 	xvt_render_camera_build(view_roll, view_pitch, view_yaw,
 				view_up_axis_angle, hud_aim_x, hud_aim_y);
-#endif
 }
 
 /* Sets the current object matrix (g_cur_mat_r0_x to g_cur_mat_r2_z) and the

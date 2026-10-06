@@ -1,7 +1,5 @@
 #include "xvt/audio/fsfx.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/timing/flight_timing.h"
-#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -393,15 +391,11 @@ void fsfx_load_mission_voice_sfx(void)
 		strcpy(path, "wave\\");
 		strcpy(mission_file_name, g_current_mission_file);
 		mission_file_name_length = strlen(mission_file_name);
-#ifdef XVT_MODERN
 		if (mission_file_name_length >= 3) {
-#endif
 			mission_file_name[mission_file_name_length - 3] = 'l';
 			mission_file_name[mission_file_name_length - 2] = 's';
 			mission_file_name[mission_file_name_length - 1] = 't';
-#ifdef XVT_MODERN
 		}
-#endif
 		mission_file_name_start = 0;
 		while (mission_file_name[mission_file_name_start] != '\\' &&
 		       mission_file_name_start < mission_file_name_length) {
@@ -1289,9 +1283,7 @@ void fsfx_update_beam_effect_loops(void)
 		}
 		if (sound_get_param(64, 256) == 0 &&
 		    sound_get_param(65, 256) == 0
-#ifdef XVT_MODERN
 		    && xvt_flight_timing_reference_due()
-#endif
 		    && game_rand2() < 0x1000) {
 			sound_queue_effect(
 				g_fsfx_sfx_name_table[(game_rand2() & 1) + 63],

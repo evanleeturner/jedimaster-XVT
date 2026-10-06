@@ -1,8 +1,6 @@
 #include "xvt/audio/cd_audio.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/runtime/port.h"
-#endif
 #include <string.h>
 
 #include "aeron/compat/mmsystem.h"
@@ -27,11 +25,7 @@
 // FUNCTION: XVT 0x4D2E50
 int cd_audio_initialize(void)
 {
-#ifdef XVT_MODERN
 	if (!xvt_port_is_initialized()) {
-#else
-	if (g_front_state.hWnd == NULL) {
-#endif
 		return 0;
 	}
 	if (g_front_state.cd_audio_mci_device_id != 0) {
@@ -224,9 +218,7 @@ int cd_audio_stop_current_track(void)
 // FUNCTION: XVT 0x4D31A0
 void cd_audio_close_device(void)
 {
-#ifdef XVT_MODERN
 	xvt_cd_task_cancel_fade();
-#endif
 	if (g_front_state.cd_audio_mci_device_id == 0) {
 		return;
 	}
@@ -460,58 +452,7 @@ int cd_audio_set_aux_volume(unsigned int volume0_to65535)
 int cd_audio_fade_aux_volume(unsigned int from_volume, unsigned int to_volume,
 			     int fade_duration_ms)
 {
-#ifdef XVT_MODERN
 	XVT_LOG_DEBUG("music.fade_started from=%u to=%u ms=%d", from_volume,
 		      to_volume, fade_duration_ms);
 	return xvt_cd_task_begin_fade(from_volume, to_volume, fade_duration_ms);
-#else
-	if (g_front_state.cd_audio_mci_device_id == 0) {
-		return 0;
-	}
-	if (to_volume == from_volume) {
-		return 1;
-	}
-	int fade_up;
-	unsigned int step_delay_ms;
-	if (to_volume < from_volume) {
-		fade_up = 0;
-		step_delay_ms =
-			(fade_duration_ms << 8) / (from_volume - to_volume);
-	} else {
-		fade_up = 1;
-		step_delay_ms =
-			(fade_duration_ms << 8) / (to_volume - from_volume);
-	}
-
-	uint32_t previous_time_ms = GetTickCount();
-	while (1) {
-		int current_time_ms = GetTickCount();
-		if ((int)(previous_time_ms + step_delay_ms) < current_time_ms) {
-			if (fade_up != 0) {
-				unsigned int next_volume = from_volume + 256;
-				if (next_volume > 65535) {
-					from_volume = 65535;
-				} else {
-					from_volume = next_volume;
-				}
-			} else {
-				if (from_volume < 256) {
-					from_volume = 0;
-				} else {
-					from_volume -= 256;
-				}
-			}
-			cd_audio_set_aux_volume(from_volume);
-			previous_time_ms = current_time_ms;
-		}
-		if (fade_up != 0) {
-			if (to_volume <= from_volume) {
-				break;
-			}
-		} else if (to_volume >= from_volume) {
-			break;
-		}
-	}
-	return 1;
-#endif
 }

@@ -6,9 +6,7 @@
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/runtime/port.h"
-#endif
 
 #include <string.h>
 
@@ -68,11 +66,7 @@ int music_cd_initialize(void)
 		device_caps; /* Capabilities of the device looked at. */
 	} parameters;
 
-#ifdef XVT_MODERN
 	if (!xvt_port_is_initialized()) {
-#else
-	if (g_flight_main_window_handle == NULL) {
-#endif
 		return 0;
 	}
 	if (g_music_cd_mci_device_id != 0) {
@@ -316,9 +310,7 @@ int music_cd_close_device(void)
 	XVT_LOG_DEBUG("music.device_closed site=\"flight\" restored=%d",
 		      (int)(g_music_cd_saved_aux_volume != -1));
 	g_music_cd_saved_aux_volume = -1;
-#ifdef XVT_MODERN
 	return 0;
-#endif
 }
 
 /* Returns g_music_cd_playback_complete, or 0 when no device is open or no track is

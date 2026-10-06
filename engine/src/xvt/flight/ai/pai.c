@@ -1434,9 +1434,7 @@ int pai_setup_context_and_find_order_plan_on_target(int object_idx,
 	if (object_idx == -1) {
 		return 0;
 	}
-#ifdef XVT_MODERN
 	struct pai_context saved_context = g_pai_context;
-#endif
 	pai_setupcraftcontext(object_idx);
 	for (unsigned int order_slot = 0; order_slot < 3; ++order_slot) {
 		uint8_t order =
@@ -1449,16 +1447,12 @@ int pai_setup_context_and_find_order_plan_on_target(int object_idx,
 			g_pai_context.order_slot = (uint16_t)order_slot;
 			if (pai_current_order_targets_match_object(
 				    target_obj_idx) != 0) {
-#ifdef XVT_MODERN
 				g_pai_context = saved_context;
-#endif
 				return 1;
 			}
 		}
 	}
-#ifdef XVT_MODERN
 	g_pai_context = saved_context;
-#endif
 	return 0;
 }
 

@@ -10,9 +10,6 @@ extern "C" {
 #endif
 
 extern int g_debug_console_initialized;
-#ifndef XVT_MODERN
-extern uint8_t g_debug_console_text_buffer[80 * 25 * 2];
-#endif
 
 void debug_printf(const char *format, ...);
 void debug_console_set_initialized(int initialized);

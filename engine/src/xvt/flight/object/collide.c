@@ -1,11 +1,7 @@
 #include "xvt/flight/object/collide.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/player_timing.h"
-#endif
-#ifdef XVT_MODERN
 #include "xvt_runtime/assets/opt_native.h"
-#endif
 
 #include <string.h>
 
@@ -416,7 +412,6 @@ void collide_populate_mobile_object_proximity_candidates(
 			if (candidate_object->object_type == 0) {
 				continue;
 			}
-#ifdef XVT_MODERN
 			/* Impact effects remain in projectile slots after a hit. */
 			if (candidate_obj_idx >=
 				    g_active_region_craft_object_slot_end &&
@@ -427,7 +422,6 @@ void collide_populate_mobile_object_proximity_candidates(
 					     PROJECTILE_OBJECT_TYPE_COUNT)) {
 				continue;
 			}
-#endif
 			if (candidate_obj_idx >=
 				    g_active_region_craft_object_slot_end &&
 			    (g_projectile_type_data.warhead_class
@@ -574,9 +568,7 @@ void collide_collisions(void)
 			}
 			if (g_players[player_idx].next_engine_wash_check_time <
 				    g_game_time
-#ifdef XVT_MODERN
 			    && xvt_flight_timing_reference_due()
-#endif
 			) {
 				g_players[player_idx]
 					.engine_wash_source_obj_idx = -1;
@@ -1251,12 +1243,10 @@ void collide_collisions(void)
 									.yaw =
 								g_proving_grounds_local_player_yaw_history
 									[3];
-#ifdef XVT_MODERN
 							if (xvt_flight_timing_is_unlocked()) {
 								xvt_player_timing_recover(
 									g_local_player);
 							}
-#endif
 							g_object_table[owner_obj_idx]
 								.mobj
 								->move_vector_dirty =
@@ -5932,7 +5922,6 @@ int collide_check_swept_model_collision(uint16_t source_obj_idx,
 	}
 	g_collide_sweep_hit_mesh_ordinal = 0;
 	g_collide_sweep_hit_fraction = 2.0f;
-#ifdef XVT_MODERN
 	/* Gunner obstruction checks can include ACT explosions left in craft slots.
 	 * Relocating their data as a native OPT corrupts the sprite frame table. */
 	if ((g_object_type_table[target->object_type].asset_flags & 1) == 0) {
@@ -5945,7 +5934,6 @@ int collide_check_swept_model_collision(uint16_t source_obj_idx,
 		g_collide_current_mesh_verts_node = NULL;
 		return 0;
 	}
-#endif
 	uint16_t model_handle = g_loaded_models[target->object_type];
 	struct optimized_poly_object *model =
 		(struct optimized_poly_object *)memory_get_handle_block(
@@ -6135,20 +6123,7 @@ int collide_test_sweep_against_opt_node(struct optimized_poly_object *object,
 		child_selection = 0;
 		while (node->node_type == OPT_NODEREF) {
 			if (g_cache_resolved_opt_node_refs != 0) {
-#ifdef XVT_MODERN
 				node = xvt_opt_resolve_cached(object, node);
-#else
-
-				if (*(char *)node->payload != '\0') {
-					node->p_name = (char *)
-						opt_model_resolve_node_ref(
-							object,
-							(const char *)
-								node->payload);
-					*(char *)node->payload = '\0';
-				}
-				node = (struct opt_node *)node->p_name;
-#endif
 			} else {
 				node = opt_model_resolve_node_ref(
 					object, (const char *)node->payload);
@@ -6425,34 +6400,20 @@ int collide_point_in_face_polygon(const float *face_normal,
 				  const int32_t *face_vertex_indices,
 				  float *projected_point)
 {
-#ifdef XVT_MODERN
 	uint32_t sign_bits;
-#endif
 	float abs_x = face_normal[0];
 	float abs_y = face_normal[1];
 	float abs_z = face_normal[2];
-#ifdef XVT_MODERN
 	memcpy(&sign_bits, &abs_x, sizeof(sign_bits));
 	if (sign_bits > 0x80000000u) {
-#else
-	if (*(const uint32_t *)&abs_x > 0x80000000u) {
-#endif
 		abs_x = -abs_x;
 	}
-#ifdef XVT_MODERN
 	memcpy(&sign_bits, &abs_y, sizeof(sign_bits));
 	if (sign_bits > 0x80000000u) {
-#else
-	if (*(const uint32_t *)&abs_y > 0x80000000u) {
-#endif
 		abs_y = -abs_y;
 	}
-#ifdef XVT_MODERN
 	memcpy(&sign_bits, &abs_z, sizeof(sign_bits));
 	if (sign_bits > 0x80000000u) {
-#else
-	if (*(const uint32_t *)&abs_z > 0x80000000u) {
-#endif
 		abs_z = -abs_z;
 	}
 
@@ -6502,13 +6463,8 @@ int collide_point_in_face_polygon(const float *face_normal,
 	if (edge_cross < g_collide_zero_float && !first_edge_negative) {
 		return 0;
 	}
-#ifdef XVT_MODERN
 	memcpy(&sign_bits, &edge_cross, sizeof(sign_bits));
 	if (sign_bits <= 0x80000000u && first_edge_negative) {
-#else
-	if (*(const uint32_t *)&edge_cross <= 0x80000000u &&
-	    first_edge_negative) {
-#endif
 		return 0;
 	}
 
@@ -6526,13 +6482,8 @@ int collide_point_in_face_polygon(const float *face_normal,
 		if (edge_cross < g_collide_zero_float && !first_edge_negative) {
 			return 0;
 		}
-#ifdef XVT_MODERN
 		memcpy(&sign_bits, &edge_cross, sizeof(sign_bits));
 		if (sign_bits <= 0x80000000u && first_edge_negative) {
-#else
-		if (*(const uint32_t *)&edge_cross <= 0x80000000u &&
-		    first_edge_negative) {
-#endif
 			return 0;
 		}
 	}
@@ -6542,13 +6493,8 @@ int collide_point_in_face_polygon(const float *face_normal,
 	if (edge_cross < g_collide_zero_float && !first_edge_negative) {
 		return 0;
 	}
-#ifdef XVT_MODERN
 	memcpy(&sign_bits, &edge_cross, sizeof(sign_bits));
 	if (sign_bits <= 0x80000000u && first_edge_negative) {
-#else
-	if (*(const uint32_t *)&edge_cross <= 0x80000000u &&
-	    first_edge_negative) {
-#endif
 		return 0;
 	}
 	return 1;

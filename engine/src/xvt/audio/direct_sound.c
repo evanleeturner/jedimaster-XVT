@@ -9,11 +9,6 @@
 #include "xvt/flight/fediskio.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifndef XVT_MODERN
-__declspec(dllimport) void *__stdcall LocalAlloc(unsigned int flags,
-						 size_t bytes);
-__declspec(dllimport) void *__stdcall LocalFree(void *memory);
-#endif
 
 /* Heap copy of the WAV file direct_sound_load_file_and_find_audio_data last read; the
  * format and sample pointers it returns point into it.
@@ -178,11 +173,7 @@ direct_sound_load_wave_buffer_set(IDirectSound *direct_sound,
 		size_t allocation_size =
 			offsetof(struct direct_sound_buffer_set, buffers) +
 			actual_buffer_count * sizeof(IDirectSoundBuffer *);
-#ifdef XVT_MODERN
 		set = calloc(1, allocation_size);
-#else
-		set = LocalAlloc(0x40, allocation_size);
-#endif
 		if (set != NULL) {
 			set->buffer_count = actual_buffer_count;
 			set->wave_data = (uint8_t *)sample_data;
@@ -238,11 +229,7 @@ void direct_sound_free_wave_buffer_set(struct direct_sound_buffer_set *set)
 				++buffer_index;
 			} while (set->buffer_count > buffer_index);
 		}
-#ifdef XVT_MODERN
 		free(set);
-#else
-		LocalFree(set);
-#endif
 	}
 }
 

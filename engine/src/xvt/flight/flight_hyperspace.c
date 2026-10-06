@@ -1,7 +1,5 @@
 #include "xvt/flight/flight_hyperspace.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/render_capture.h"
-#endif
 
 #include <stdlib.h>
 
@@ -299,12 +297,10 @@ void flight_hyperspace_render_transition_effect(void)
 				.hyperspace_runtime.phase_elapsed_ticks);
 	}
 
-#ifdef XVT_MODERN
 	xvt_render_capture_hyperspace(
 		(unsigned)streak_count, g_hyperspace_streak_offset_x,
 		g_hyperspace_streak_offset_y, g_hyperspace_streak_offset_z,
 		g_hyperspace_streak_half_width, g_hyperspace_streak_roll_angle);
-#endif
 	const float fully_stretched_length = 16000.0f;
 	for (streak_index = 0; streak_index < streak_count; ++streak_index) {
 		g_object_table->world_x =

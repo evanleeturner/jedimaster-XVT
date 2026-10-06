@@ -1,8 +1,6 @@
 #include "xvt/flight/flight_object.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/timing/flight_integration.h"
 #include "xvt_runtime/timing/flight_timing.h"
-#endif
 
 #include <string.h>
 
@@ -86,25 +84,19 @@ void flight_object_update_special_behavior(void)
 		X_WING_LOWER_MAX_ROTATION = 8,
 	};
 
-#ifdef XVT_MODERN
 	struct xvt_flight_clock animation_clock;
-#endif
 
 	if (g_flight_mission_state.proving_grounds_mode_active != 0) {
 		proving_grounds_update_course();
 	}
 	if (g_flight_global_countdown_timers.special_behavior_update_timer != 0
-#ifdef XVT_MODERN
 	    || !xvt_flight_timing_reference_due()
-#endif
 	) {
 		return;
 	}
 
-#ifdef XVT_MODERN
 	xvt_flight_timing_animation_event();
 	animation_clock = xvt_flight_timing_enter_reference();
-#endif
 	g_flight_global_countdown_timers.special_behavior_update_timer =
 		SPECIAL_BEHAVIOR_UPDATE_TICKS;
 	for (uint16_t object_index =
@@ -645,9 +637,7 @@ void flight_object_update_special_behavior(void)
 			}
 		}
 	}
-#ifdef XVT_MODERN
 	xvt_flight_timing_restore_clock(animation_clock);
-#endif
 }
 
 /* Steps g_billboard_texture_sequence_index one entry along
@@ -1179,9 +1169,7 @@ void flight_object_recycle_local_debris_near_player(void)
 	if (collide_roughdistance3du((unsigned int)delta_x,
 				     (unsigned int)delta_y,
 				     (unsigned int)delta_z) > 0x800) {
-#ifdef XVT_MODERN
 		xvt_flight_integration_reset_slot_and_motion(debris_index);
-#endif
 		g_object_table[debris_index].object_type =
 			(game_rand2() & 3) + 110;
 		g_object_table[debris_index].genus_id = 11;

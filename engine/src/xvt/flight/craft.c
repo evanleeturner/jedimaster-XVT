@@ -374,9 +374,7 @@ warhead_kind_index object_type_get_warhead_kind_index(uint16_t object_type)
 {
 	warhead_kind_index result;
 
-#ifdef XVT_MODERN
 	result = -1;
-#endif
 	switch (object_type) {
 	case WARHEAD_OBJECT_TYPE_PROTON_TORPEDO:
 		result = WARHEAD_KIND_PROTON_TORPEDO;

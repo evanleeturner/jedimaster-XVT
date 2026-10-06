@@ -1586,15 +1586,11 @@ int16_t paiorder_leaderdeadorder(void)
 					controller->has_live_target =
 						leader_controller
 							->has_live_target;
-#ifdef XVT_MODERN
 					/* A leader without a target has no aim point to resolve. */
 					if (controller->target_obj_idx !=
 					    UINT16_MAX) {
 						pai_update_aim_point_from_order_target();
 					}
-#else
-					pai_update_aim_point_from_order_target();
-#endif
 				} else {
 					craft->leader_obj_idx =
 						(uint8_t)g_pai_context

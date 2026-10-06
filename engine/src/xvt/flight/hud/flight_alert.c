@@ -1,9 +1,7 @@
 #include "xvt/flight/hud/flight_alert.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/render_capture.h"
-#endif
 
 #include <stdlib.h>
 
@@ -97,10 +95,8 @@ void flight_alert_save_box_background(void)
 		}
 	}
 
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_begin_alert();
 	xvt_render_capture_begin_overlay();
-#endif
 	flight_display_flip();
 	g_flight_draw_to_hud_layer = 0;
 	flight_surface_lock();
@@ -114,9 +110,7 @@ void flight_alert_save_box_background(void)
 		      box_x, box_y, box_width, box_height,
 		      g_flight_alert_box_saved_bytes);
 
-#ifdef XVT_MODERN
 	xvt_render_capture_end_overlay();
-#endif
 }
 
 /* Puts back the screen flight_alert_save_box_background saved under the alert
@@ -145,9 +139,7 @@ void flight_alert_restore_box_background(void)
 	box_height += 2;
 	if (g_flight_alert_box_saved_pixels != 0) {
 
-#ifdef XVT_MODERN
 		xvt_render_capture_begin_overlay();
-#endif
 		flight_display_flip();
 		g_flight_draw_to_hud_layer = 0;
 		flight_surface_lock();
@@ -156,9 +148,7 @@ void flight_alert_restore_box_background(void)
 		restore_screen_rect(g_flight_alert_box_saved_pixels,
 				    (uint16_t)box_x, (uint16_t)box_y,
 				    (uint16_t)box_width, (uint16_t)box_height);
-#ifdef XVT_MODERN
 		xvt_cockpit_messages_end_alert();
-#endif
 		flight_surface_unlock();
 		g_flight_draw_to_hud_layer = 1;
 		flight_display_flip();
@@ -167,9 +157,7 @@ void flight_alert_restore_box_background(void)
 			box_x, box_y, box_width, box_height,
 			box_width * box_height * g_flight_bytes_per_pixel,
 			g_flight_alert_box_saved_bytes);
-#ifdef XVT_MODERN
 		xvt_render_capture_end_overlay();
-#endif
 	}
 }
 
@@ -211,17 +199,13 @@ void flight_alert_draw_box(int text_row, const char *text, uint8_t bg_color)
 	g_flight_text_shadow_enabled = 1;
 	flight_text_set_shadow_color(',');
 
-#ifdef XVT_MODERN
 	xvt_render_capture_begin_overlay();
-#endif
 	flight_display_flip();
 	g_flight_draw_to_hud_layer = 0;
 	flight_surface_lock();
 
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_begin_alert_line(text_row, box_x, box_y, box_width,
 					      box_height);
-#endif
 	if (text_row == 1) {
 		flight_text_set_clip_rect(box_x - 1, box_y - 1,
 					  box_x + box_width + 1,
@@ -240,14 +224,10 @@ void flight_alert_draw_box(int text_row, const char *text, uint8_t bg_color)
 	flight_text_set_cursor(box_x + g_flight_font_line_height,
 			       box_y + text_row * g_flight_font_line_height);
 	flight_text_draw_string_centered(text);
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_end_alert_line();
-#endif
 	flight_surface_unlock();
 	g_flight_draw_to_hud_layer = 1;
 	flight_display_flip();
 
-#ifdef XVT_MODERN
 	xvt_render_capture_end_overlay();
-#endif
 }

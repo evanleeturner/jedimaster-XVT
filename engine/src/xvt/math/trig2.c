@@ -366,9 +366,7 @@ int16_t trig2_arcsin(int16_t sin_q15)
 {
 	uint16_t interpolation;
 
-#ifdef XVT_MODERN
 	interpolation = 0;
-#endif
 	int16_t table_index = 0;
 	uint16_t target = (uint16_t)sin_q15;
 	if (sin_q15 < 0) {

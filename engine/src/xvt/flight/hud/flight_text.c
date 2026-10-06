@@ -1,8 +1,6 @@
 #include "xvt/flight/hud/flight_text.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/cockpit_pages.h"
-#endif
 
 #include <string.h>
 
@@ -182,11 +180,6 @@ uint8_t g_flight_text_shadow_enabled = 0;
 // FUNCTION: XVT 0x40F050
 void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 {
-#ifndef XVT_MODERN
-	unsigned int pixel_offset;
-	unsigned int page;
-	int clipped_bottom;
-#endif
 
 	if (ch == '\n') {
 		if (g_flight_clear_line_bg_enabled != 0) {
@@ -220,12 +213,10 @@ void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 		g_flight_cursor_y += glyph_height + 2;
 	}
 
-#ifdef XVT_MODERN
 	xvt_cockpit_pages_record_glyph(normalized_char, glyph_advance,
 				       glyph_height, 1);
 	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
 					  glyph_height, 1);
-#endif
 	uint8_t shadow_bits = 0;
 	int address_each_row_separately = 0;
 	int line = g_flight_cursor_y;
@@ -233,31 +224,10 @@ void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 		line = g_flight_clip_top;
 	}
 	int line_offset;
-#ifdef XVT_MODERN
 	/* Fully clipped glyphs still advance the cursor, without looking up a row. */
 	line_offset = line < g_flight_clip_bottom
 			      ? flight_sw_get_line_offset(line)
 			      : 0;
-#else
-	line_offset = flight_sw_get_line_offset(line);
-#endif
-#ifndef XVT_MODERN
-	if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-	    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-		page = line_offset / g_vesa_page_size_bytes;
-		line_offset %= g_vesa_page_size_bytes;
-		rts_vga2_set_current_page((uint8_t)g_vesa_window,
-					  (uint16_t)page);
-		clipped_bottom = g_flight_cursor_y + glyph_height + 1;
-		if (clipped_bottom > g_flight_clip_bottom) {
-			clipped_bottom = g_flight_clip_bottom;
-		}
-		if (line_offset + g_surface_pitch * (clipped_bottom - line) >
-		    0xFFFF) {
-			address_each_row_separately = 1;
-		}
-	}
-#endif
 	if (g_flight_sw_framebuffer_base != g_sw_framebuffer_base) {
 		address_each_row_separately = 1;
 	}
@@ -372,32 +342,11 @@ void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 							break;
 						}
 					}
-#ifdef XVT_MODERN
 					row_start =
 						&g_flight_sw_framebuffer_base
 							[flight_sw_get_line_offset(
 								 line) +
 							 draw_x];
-#else
-					pixel_offset =
-						draw_x +
-						flight_sw_get_line_offset(line);
-					if (g_flight_resolution_mode !=
-						    FLIGHT_RESOLUTION_320X240 &&
-					    g_flight_sw_framebuffer_base ==
-						    g_sw_framebuffer_base) {
-						page = pixel_offset /
-						       g_vesa_page_size_bytes;
-						pixel_offset %=
-							g_vesa_page_size_bytes;
-						rts_vga2_set_current_page(
-							(uint8_t)g_vesa_window,
-							(uint16_t)page);
-					}
-					row_start =
-						&g_flight_sw_framebuffer_base
-							[pixel_offset];
-#endif
 					while (pixel_count-- != 0) {
 						if ((glyph_bits & 0x80u) != 0) {
 							palette_index =
@@ -446,11 +395,6 @@ void flight_text_draw_narrow_glyph8bpp(uint8_t ch)
 // FUNCTION: XVT 0x40F520
 void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 {
-#ifndef XVT_MODERN
-	unsigned int pixel_offset;
-	unsigned int page;
-	int clipped_bottom;
-#endif
 
 	if (ch == '\n') {
 		if (g_flight_clear_line_bg_enabled != 0) {
@@ -485,43 +429,20 @@ void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 	}
 
 	int address_each_row_separately = 0;
-#ifdef XVT_MODERN
 	xvt_cockpit_pages_record_glyph(normalized_char, glyph_advance,
 				       glyph_height, 0);
 	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
 					  glyph_height, 0);
-#endif
 	uint32_t shadow_bits = 0;
 	int line = g_flight_cursor_y;
 	if (line < g_flight_clip_top) {
 		line = g_flight_clip_top;
 	}
 	int line_offset;
-#ifdef XVT_MODERN
 	/* Fully clipped glyphs still advance the cursor, without looking up a row. */
 	line_offset = line < g_flight_clip_bottom
 			      ? flight_sw_get_line_offset(line)
 			      : 0;
-#else
-	line_offset = flight_sw_get_line_offset(line);
-#endif
-#ifndef XVT_MODERN
-	if (g_flight_resolution_mode != FLIGHT_RESOLUTION_320X240 &&
-	    g_flight_sw_framebuffer_base == g_sw_framebuffer_base) {
-		page = line_offset / g_vesa_page_size_bytes;
-		line_offset %= g_vesa_page_size_bytes;
-		rts_vga2_set_current_page((uint8_t)g_vesa_window,
-					  (uint16_t)page);
-		clipped_bottom = g_flight_cursor_y + glyph_height + 1;
-		if (clipped_bottom > g_flight_clip_bottom) {
-			clipped_bottom = g_flight_clip_bottom;
-		}
-		if (line_offset + g_surface_pitch * (clipped_bottom - line) >
-		    0xFFFF) {
-			address_each_row_separately = 1;
-		}
-	}
-#endif
 	if (g_flight_sw_framebuffer_base != g_sw_framebuffer_base) {
 		address_each_row_separately = 1;
 	}
@@ -542,12 +463,8 @@ void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 		if (g_flight_cursor_y + glyph_row_count > line) {
 			do {
 				pixel_count = glyph_width;
-#ifdef XVT_MODERN
 				memcpy(&glyph_bits, row_data,
 				       sizeof(glyph_bits));
-#else
-				glyph_bits = *(const uint32_t *)row_data;
-#endif
 				if (g_flight_text_shadow_enabled != 0) {
 					++pixel_count;
 				}
@@ -600,12 +517,8 @@ void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 					destination +=
 						flight_sw_get_line_pitch();
 				}
-#ifdef XVT_MODERN
 				memcpy(&shadow_bits, row_data,
 				       sizeof(shadow_bits));
-#else
-				shadow_bits = *(const uint32_t *)row_data;
-#endif
 				row_data += 8;
 				++line;
 				shadow_bits >>= 1;
@@ -618,12 +531,8 @@ void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 		if (g_flight_cursor_y + glyph_row_count > line) {
 			do {
 				pixel_count = glyph_width;
-#ifdef XVT_MODERN
 				memcpy(&glyph_bits, row_data,
 				       sizeof(glyph_bits));
-#else
-				glyph_bits = *(const uint32_t *)row_data;
-#endif
 				if (g_flight_text_shadow_enabled != 0) {
 					++pixel_count;
 				}
@@ -652,32 +561,11 @@ void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 							break;
 						}
 					}
-#ifdef XVT_MODERN
 					row_start =
 						&g_flight_sw_framebuffer_base
 							[flight_sw_get_line_offset(
 								 line) +
 							 draw_x];
-#else
-					pixel_offset =
-						draw_x +
-						flight_sw_get_line_offset(line);
-					if (g_flight_resolution_mode !=
-						    FLIGHT_RESOLUTION_320X240 &&
-					    g_flight_sw_framebuffer_base ==
-						    g_sw_framebuffer_base) {
-						page = pixel_offset /
-						       g_vesa_page_size_bytes;
-						pixel_offset %=
-							g_vesa_page_size_bytes;
-						rts_vga2_set_current_page(
-							(uint8_t)g_vesa_window,
-							(uint16_t)page);
-					}
-					row_start =
-						&g_flight_sw_framebuffer_base
-							[pixel_offset];
-#endif
 					while (pixel_count-- != 0) {
 						if ((glyph_bits &
 						     0x80000000u) != 0) {
@@ -699,12 +587,8 @@ void flight_text_draw_wide_glyph8bpp(uint8_t ch)
 						shadow_bits <<= 1;
 					}
 				}
-#ifdef XVT_MODERN
 				memcpy(&shadow_bits, row_data,
 				       sizeof(shadow_bits));
-#else
-				shadow_bits = *(const uint32_t *)row_data;
-#endif
 				row_data += 8;
 				++line;
 				shadow_bits >>= 1;
@@ -862,9 +746,6 @@ uint16_t flight_text_measure_string_width(const char *str)
 // FUNCTION: XVT 0x449F70
 void flight_text_draw_narrow_glyph(uint8_t ch)
 {
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	if (ch == '\n') {
 		if (g_flight_clear_line_bg_enabled != 0) {
@@ -899,12 +780,10 @@ void flight_text_draw_narrow_glyph(uint8_t ch)
 		g_flight_cursor_y += glyph_height + 2;
 	}
 
-#ifdef XVT_MODERN
 	xvt_cockpit_pages_record_glyph(normalized_char, glyph_advance,
 				       glyph_height, 1);
 	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
 					  glyph_height, 1);
-#endif
 	uint8_t shadow_bits = 0;
 	int line = g_flight_cursor_y;
 	int16_t wrap_line_height = glyph_height;
@@ -944,25 +823,8 @@ void flight_text_draw_narrow_glyph(uint8_t ch)
 				}
 			}
 
-#ifndef XVT_MODERN
-			pixel_offset =
-				flight_sw_get_line_offset(line) + 2 * draw_x;
-			if (g_flight_resolution_mode !=
-				    FLIGHT_RESOLUTION_320X240 &&
-			    g_flight_sw_framebuffer_base ==
-				    g_sw_framebuffer_base) {
-				page = pixel_offset / g_vesa_page_size_bytes;
-				pixel_offset %= g_vesa_page_size_bytes;
-				rts_vga2_set_current_page(
-					(uint8_t)g_vesa_window, (uint16_t)page);
-			}
-			destination =
-				&((uint16_t *)g_flight_sw_framebuffer_base)
-					[pixel_offset / 2];
-#endif
 			int pixels_remaining = pixel_count;
 			if (pixels_remaining != 0) {
-#ifdef XVT_MODERN
 				/* The original looks up negative rows even when
 				 * top clipping leaves no pixels. Keep
 				 * row/shadow progression outside this drawing
@@ -972,7 +834,6 @@ void flight_text_draw_narrow_glyph(uint8_t ch)
 				destination = &((
 					uint16_t *)g_flight_sw_framebuffer_base)
 						      [pixel_offset / 2];
-#endif
 				--pixels_remaining;
 				do {
 					if ((glyph_bits & 0x80u) != 0) {
@@ -1019,14 +880,7 @@ void flight_text_draw_narrow_glyph(uint8_t ch)
 // FUNCTION: XVT 0x44A270
 void flight_text_draw_wide_glyph(uint8_t ch)
 {
-#ifdef XVT_MODERN
 	const uint8_t *row_data;
-#else
-	const uint32_t *row_data;
-#endif
-#ifndef XVT_MODERN
-	unsigned int page;
-#endif
 
 	if (ch == '\n') {
 		if (g_flight_clear_line_bg_enabled != 0) {
@@ -1050,11 +904,7 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 					      (uint8_t)(normalized_char - ' ')];
 	int16_t glyph_advance = *glyph_data++;
 	uint8_t glyph_height = *glyph_data++;
-#ifdef XVT_MODERN
 	row_data = glyph_data;
-#else
-	row_data = (const uint32_t *)glyph_data;
-#endif
 	int glyph_width = glyph_advance;
 	if (glyph_width + g_flight_cursor_x >= g_flight_clip_right &&
 	    g_flight_word_wrap_enabled != 0) {
@@ -1065,12 +915,10 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 		g_flight_cursor_y += glyph_height + 2;
 	}
 
-#ifdef XVT_MODERN
 	xvt_cockpit_pages_record_glyph(normalized_char, glyph_advance,
 				       glyph_height, 0);
 	xvt_cockpit_messages_record_glyph(normalized_char, glyph_advance,
 					  glyph_height, 0);
-#endif
 	uint32_t shadow_bits = 0;
 	int16_t wrap_line_height = glyph_height;
 	int line = g_flight_cursor_y;
@@ -1082,11 +930,7 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 	if (g_flight_cursor_y + glyph_row_count > g_flight_cursor_y) {
 		do {
 			int pixel_count = glyph_width;
-#ifdef XVT_MODERN
 			memcpy(&glyph_bits, row_data, sizeof(glyph_bits));
-#else
-			glyph_bits = *row_data;
-#endif
 			if (g_flight_text_shadow_enabled != 0) {
 				++pixel_count;
 			}
@@ -1115,25 +959,8 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 				}
 			}
 
-#ifndef XVT_MODERN
-			pixel_offset =
-				flight_sw_get_line_offset(line) + 2 * draw_x;
-			if (g_flight_resolution_mode !=
-				    FLIGHT_RESOLUTION_320X240 &&
-			    g_flight_sw_framebuffer_base ==
-				    g_sw_framebuffer_base) {
-				page = pixel_offset / g_vesa_page_size_bytes;
-				pixel_offset %= g_vesa_page_size_bytes;
-				rts_vga2_set_current_page(
-					(uint8_t)g_vesa_window, (uint16_t)page);
-			}
-			destination =
-				&((uint16_t *)g_flight_sw_framebuffer_base)
-					[pixel_offset / 2];
-#endif
 			int pixels_remaining = pixel_count;
 			if (pixels_remaining != 0) {
-#ifdef XVT_MODERN
 				/* The original looks up negative rows even when
 				 * top clipping leaves no pixels. Keep
 				 * row/shadow progression outside this drawing
@@ -1143,7 +970,6 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 				destination = &((
 					uint16_t *)g_flight_sw_framebuffer_base)
 						      [pixel_offset / 2];
-#endif
 				--pixels_remaining;
 				do {
 					if ((glyph_bits & 0x80000000u) != 0) {
@@ -1166,13 +992,8 @@ void flight_text_draw_wide_glyph(uint8_t ch)
 					shadow_bits <<= 1;
 				} while (pixels_remaining-- != 0);
 			}
-#ifdef XVT_MODERN
 			memcpy(&shadow_bits, row_data, sizeof(shadow_bits));
 			row_data += 8;
-#else
-			shadow_bits = *row_data;
-			row_data += 2;
-#endif
 			++line;
 			shadow_bits >>= 1;
 		} while (glyph_row_count + g_flight_cursor_y > line);
@@ -1522,10 +1343,8 @@ void flight_text_draw_string(const char *str)
 			const char *word_scan = str + 1;
 			uint16_t word_length = 0;
 			while (*word_scan != ' ' && *word_scan != '\0'
-#ifdef XVT_MODERN
 			       && word_length <
 					  (uint16_t)(sizeof(word_buffer) - 1u)
-#endif
 			) {
 				word_buffer[word_length] = *word_scan;
 				++word_length;

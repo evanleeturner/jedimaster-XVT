@@ -1,7 +1,5 @@
 #include "xvt/flight/object/damage.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/cockpit_pages.h"
-#endif
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/flight/craft.h"
@@ -90,9 +88,7 @@ damage_queue_craft_billboards_for_object_type(unsigned int object_index,
 {
 	uint16_t have_billboard_angle;
 
-#ifdef XVT_MODERN
 	have_billboard_angle = 0;
-#endif
 	g_billboard_object_or_type_index = (uint16_t)object_index;
 	uint16_t saved_render_object_ref = g_render_object_ref;
 	g_billboard_target_selection_state = 0;
@@ -387,19 +383,15 @@ int16_t damage_display_mfd_page(void)
 	source_right = g_mfd_damage_blit_source_x + g_mfd_damage_blit_width - 2;
 	source_bottom =
 		g_mfd_damage_blit_source_y + g_mfd_damage_blit_height - 2;
-#ifdef XVT_MODERN
 	xvt_cockpit_pages_set_origin(MFD_PAGE_DAMAGE,
 				     g_mfd_damage_blit_source_x,
 				     g_mfd_damage_blit_source_y);
-#endif
 	uint16_t row_top = source_top;
 	uint16_t line_height = g_flight_font_line_height + 1;
 	if (g_hud_element_state_cache[g_hud_instrument_set_base_index +
 				      hud_state_index] !=
 	    g_mfd_page_states[MFD_PAGE_DAMAGE]) {
-#ifdef XVT_MODERN
 		xvt_cockpit_pages_clear(MFD_PAGE_DAMAGE);
-#endif
 		flight_text_set_background_color(
 			g_flight_transparent_color_index);
 		flight_text_set_clip_rect(source_left - 2, source_top - 2,
@@ -414,17 +406,13 @@ int16_t damage_display_mfd_page(void)
 			flight_text_set_color(0x46);
 			g_flight_fill_clip_rect_fn();
 			flight_text_set_cursor(source_left, source_top);
-#ifdef XVT_MODERN
 			xvt_cockpit_pages_record_background(MFD_PAGE_DAMAGE);
 			xvt_cockpit_pages_begin_section(
 				MFD_PAGE_DAMAGE, XVT_COCKPIT_PAGE_HEADER);
-#endif
 			flight_text_draw_string_centered(
 				g_str_damage_system_names
 					[DAMAGE_SYSTEM_10_DAMAGE_ASSESSMENT]);
-#ifdef XVT_MODERN
 			xvt_cockpit_pages_end_section();
-#endif
 			g_damage_mfd_damaged_system_count_cached =
 				(int16_t)damaged_system_count;
 		} else {
@@ -474,9 +462,7 @@ int16_t damage_display_mfd_page(void)
 			flight_text_set_clip_rect(
 				source_left - 2, source_top - 2,
 				source_right + 2, row_bottom + 2);
-#ifdef XVT_MODERN
 			xvt_cockpit_pages_record_border(MFD_PAGE_DAMAGE);
-#endif
 			g_flight_fill_rect_clipped_fn(
 				source_left - 2, source_top - 2,
 				source_right + 2, row_bottom + 2, 1);
@@ -486,9 +472,7 @@ int16_t damage_display_mfd_page(void)
 			flight_text_set_clip_rect(
 				source_left - 2, source_top - 2,
 				source_right + 2, row_bottom + 2);
-#ifdef XVT_MODERN
 			xvt_cockpit_pages_record_border(MFD_PAGE_DAMAGE);
-#endif
 			g_flight_fill_rect_clipped_fn(
 				source_left - 2, source_top - 2,
 				source_right + 2, row_bottom + 2, 1);
@@ -594,10 +578,8 @@ int16_t damage_display_mfd_page(void)
 					   [display_slot]] =
 				(int16_t)display_slot;
 		}
-#ifdef XVT_MODERN
 		xvt_cockpit_pages_begin_section(MFD_PAGE_DAMAGE,
 						XVT_COCKPIT_PAGE_BODY);
-#endif
 		for (display_slot = 0; display_slot < CRAFT_SUBSYSTEM_COUNT;
 		     ++display_slot) {
 			uint16_t system_id = system_ids[display_slot];
@@ -622,12 +604,10 @@ int16_t damage_display_mfd_page(void)
 					flight_text_set_background_color(
 						g_flight_transparent_color_index);
 				}
-#ifdef XVT_MODERN
 				xvt_cockpit_pages_record_row(
 					system_id,
 					g_damage_mfd_current_system_id ==
 						system_id);
-#endif
 				if (g_damage_mfd_redraw_all_rows != 0 ||
 				    g_damage_mfd_current_system_id ==
 					    system_id ||
@@ -641,12 +621,10 @@ int16_t damage_display_mfd_page(void)
 				row_top += line_height;
 			}
 		}
-#ifdef XVT_MODERN
 		xvt_cockpit_pages_end_section();
 		xvt_cockpit_pages_record_scroll(MFD_PAGE_DAMAGE, 0,
 						damaged_system_count,
 						g_damage_mfd_current_system_id);
-#endif
 		g_damage_mfd_selection_changed = 0;
 		g_damage_mfd_redraw_all_rows = 0;
 		g_damage_mfd_last_selected_system_id =

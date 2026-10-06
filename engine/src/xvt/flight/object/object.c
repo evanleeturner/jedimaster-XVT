@@ -1,9 +1,7 @@
 #include "xvt/flight/object/object.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/timing/flight_integration.h"
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
-#endif
 
 #include <string.h>
 
@@ -508,7 +506,6 @@ void object_update_lifetime_and_movement(void)
 						if (roll_impulse_rate < 0) {
 							*roll_impulse_rate_field =
 								(int16_t)(roll_impulse_rate +
-#ifdef XVT_MODERN
 									  (xvt_flight_timing_is_unlocked()
 										   ? xvt_flight_integration_rate(
 											     object_index,
@@ -519,11 +516,6 @@ void object_update_lifetime_and_movement(void)
 										   : ((g_elapsed_ticks *
 										       ROLL_IMPULSE_DECAY_SCALE) /
 										      SIMULATION_TICKS_PER_SECOND))
-#else
-									  (g_elapsed_ticks *
-									   ROLL_IMPULSE_DECAY_SCALE) /
-										  SIMULATION_TICKS_PER_SECOND
-#endif
 								);
 							updated_roll_impulse_rate_field =
 								&object->mobj
@@ -542,7 +534,6 @@ void object_update_lifetime_and_movement(void)
 						} else {
 							*roll_impulse_rate_field =
 								(int16_t)(roll_impulse_rate +
-#ifdef XVT_MODERN
 									  (xvt_flight_timing_is_unlocked()
 										   ? xvt_flight_integration_rate(
 											     object_index,
@@ -553,11 +544,6 @@ void object_update_lifetime_and_movement(void)
 										   : ((g_elapsed_ticks *
 										       ROLL_IMPULSE_DECAY_SCALE) /
 										      -SIMULATION_TICKS_PER_SECOND))
-#else
-									  (g_elapsed_ticks *
-									   ROLL_IMPULSE_DECAY_SCALE) /
-										  -SIMULATION_TICKS_PER_SECOND
-#endif
 								);
 							updated_roll_impulse_rate_field =
 								&object->mobj
@@ -579,7 +565,6 @@ void object_update_lifetime_and_movement(void)
 				object->roll +=
 					(int16_t)(ROLL_IMPULSE_ANGLE_SCALE *
 						  (
-#ifdef XVT_MODERN
 							  (xvt_flight_timing_is_unlocked()
 								   ? xvt_flight_integration_rate(
 									     object_index,
@@ -590,11 +575,6 @@ void object_update_lifetime_and_movement(void)
 								   : g_elapsed_ticks *
 									     roll_impulse_rate /
 									     SIMULATION_TICKS_PER_SECOND)
-#else
-							  g_elapsed_ticks *
-							  roll_impulse_rate /
-							  SIMULATION_TICKS_PER_SECOND
-#endif
 								  ));
 				mobile_object->orient_matrix_dirty = 1;
 			}
@@ -625,11 +605,9 @@ void object_update_lifetime_and_movement(void)
 						     object);
 				mobile_object = object->mobj;
 			}
-#ifdef XVT_MODERN
 			if (xvt_flight_timing_is_unlocked()) {
 				xvt_flight_integration_move(object_index);
 			} else {
-#endif
 
 				trig2_xmovedist =
 					math_mul_q15(mobile_object->move_x,
@@ -641,9 +619,7 @@ void object_update_lifetime_and_movement(void)
 					math_mul_q15(mobile_object->move_z,
 						     movement_distance);
 
-#ifdef XVT_MODERN
 			}
-#endif
 
 			if (craft->working_subsystems != 0) {
 				int max_push_rate;
@@ -675,7 +651,6 @@ void object_update_lifetime_and_movement(void)
 						clamped_push_rate = (int16_t)
 							push_accumulator;
 					}
-#ifdef XVT_MODERN
 					if (xvt_flight_timing_is_unlocked()) {
 						xvt_flight_integration_push(
 							object_index, 0,
@@ -683,7 +658,6 @@ void object_update_lifetime_and_movement(void)
 							max_push_rate,
 							&trig2_xmovedist);
 					} else {
-#endif
 
 						push_step =
 							g_elapsed_ticks *
@@ -698,9 +672,7 @@ void object_update_lifetime_and_movement(void)
 							push_step;
 						trig2_xmovedist += push_step;
 
-#ifdef XVT_MODERN
 					}
-#endif
 				}
 
 				push_accumulator = craft->push_accum_y;
@@ -715,7 +687,6 @@ void object_update_lifetime_and_movement(void)
 						clamped_push_rate = (int16_t)
 							push_accumulator;
 					}
-#ifdef XVT_MODERN
 					if (xvt_flight_timing_is_unlocked()) {
 						xvt_flight_integration_push(
 							object_index, 1,
@@ -723,7 +694,6 @@ void object_update_lifetime_and_movement(void)
 							max_push_rate,
 							&trig2_ymovedist);
 					} else {
-#endif
 
 						push_step =
 							g_elapsed_ticks *
@@ -738,9 +708,7 @@ void object_update_lifetime_and_movement(void)
 							push_step;
 						trig2_ymovedist += push_step;
 
-#ifdef XVT_MODERN
 					}
-#endif
 				}
 
 				push_accumulator = craft->push_accum_z;
@@ -755,7 +723,6 @@ void object_update_lifetime_and_movement(void)
 						clamped_push_rate = (int16_t)
 							push_accumulator;
 					}
-#ifdef XVT_MODERN
 					if (xvt_flight_timing_is_unlocked()) {
 						xvt_flight_integration_push(
 							object_index, 2,
@@ -763,7 +730,6 @@ void object_update_lifetime_and_movement(void)
 							max_push_rate,
 							&trig2_zmovedist);
 					} else {
-#endif
 
 						push_step =
 							g_elapsed_ticks *
@@ -778,9 +744,7 @@ void object_update_lifetime_and_movement(void)
 							push_step;
 						trig2_zmovedist += push_step;
 
-#ifdef XVT_MODERN
 					}
-#endif
 				}
 			}
 
@@ -858,14 +822,12 @@ void object_update_lifetime_and_movement(void)
 				mobile_object->p_warhead_guidance;
 
 			if (
-#ifdef XVT_MODERN
 				/* Expiry can convert the object after genus_id
 				 * was cached for movement. */
 				(object->genus_id ==
 					 CRAFT_GENUS_PLAYER_PROJECTILE ||
 				 object->genus_id ==
 					 CRAFT_GENUS_OTHER_PROJECTILE) &&
-#endif
 				guidance->homing_tier != 0 &&
 				guidance->target_obj_idx != UINT16_MAX) {
 				int target_object_index =
@@ -1007,7 +969,6 @@ void object_update_lifetime_and_movement(void)
 							(int16_t)(trig2_xyangle -
 								  old_yaw);
 						absolute_delta = yaw_delta;
-#ifdef XVT_MODERN
 						if (xvt_flight_timing_is_unlocked()) {
 							turn_step = xvt_flight_integration_rate(
 								object_index,
@@ -1023,13 +984,6 @@ void object_update_lifetime_and_movement(void)
 									[profile_index] /
 								SIMULATION_TICKS_PER_SECOND;
 						}
-#else
-						turn_step =
-							g_elapsed_ticks *
-							g_projectile_homing_turn_rate_by_profile
-								[profile_index] /
-							SIMULATION_TICKS_PER_SECOND;
-#endif
 						if (yaw_delta < 0) {
 							absolute_delta =
 								(int16_t)(old_yaw -
@@ -1043,13 +997,11 @@ void object_update_lifetime_and_movement(void)
 
 							object->yaw =
 								trig2_xyangle;
-#ifdef XVT_MODERN
 							if (xvt_flight_timing_is_unlocked()) {
 								xvt_flight_integration_clear(
 									object_index,
 									XVT_INTEGRATE_HOME_YAW);
 							}
-#endif
 							homing_mobile_object =
 								object->mobj;
 							speed = homing_mobile_object
@@ -1059,7 +1011,6 @@ void object_update_lifetime_and_movement(void)
 								homing_mobile_object
 									->speed =
 									(uint16_t)(speed +
-#ifdef XVT_MODERN
 										   (xvt_flight_timing_is_unlocked()
 											    ? xvt_flight_integration_rate(
 												      object_index,
@@ -1072,12 +1023,6 @@ void object_update_lifetime_and_movement(void)
 											       g_projectile_homing_speed_adjust_rate_by_profile
 												       [profile_index] /
 											       SIMULATION_TICKS_PER_SECOND))
-#else
-										   g_elapsed_ticks *
-											   g_projectile_homing_speed_adjust_rate_by_profile
-												   [profile_index] /
-											   SIMULATION_TICKS_PER_SECOND
-#endif
 									);
 							}
 						} else {
@@ -1097,7 +1042,6 @@ void object_update_lifetime_and_movement(void)
 								    HOMING_MIN_TURN_SPEED) {
 									*speed =
 										(uint16_t)(*speed +
-#ifdef XVT_MODERN
 											   (xvt_flight_timing_is_unlocked()
 												    ? xvt_flight_integration_rate(
 													      object_index,
@@ -1110,12 +1054,6 @@ void object_update_lifetime_and_movement(void)
 												       g_projectile_homing_speed_adjust_rate_by_profile
 													       [profile_index] /
 												       -SIMULATION_TICKS_PER_SECOND))
-#else
-											   g_elapsed_ticks *
-												   g_projectile_homing_speed_adjust_rate_by_profile
-													   [profile_index] /
-												   -SIMULATION_TICKS_PER_SECOND
-#endif
 										);
 									speed = &object->mobj
 											 ->speed;
@@ -1133,7 +1071,6 @@ void object_update_lifetime_and_movement(void)
 							(int16_t)(trig2_pitch -
 								  old_pitch);
 						absolute_delta = pitch_delta;
-#ifdef XVT_MODERN
 						if (xvt_flight_timing_is_unlocked()) {
 							turn_step = xvt_flight_integration_rate(
 								object_index,
@@ -1149,13 +1086,6 @@ void object_update_lifetime_and_movement(void)
 									[profile_index] /
 								SIMULATION_TICKS_PER_SECOND;
 						}
-#else
-						turn_step =
-							g_elapsed_ticks *
-							g_projectile_homing_turn_rate_by_profile
-								[profile_index] /
-							SIMULATION_TICKS_PER_SECOND;
-#endif
 						if (pitch_delta < 0) {
 							absolute_delta =
 								(int16_t)(old_pitch -
@@ -1165,13 +1095,11 @@ void object_update_lifetime_and_movement(void)
 						    absolute_delta) {
 							object->pitch =
 								trig2_pitch;
-#ifdef XVT_MODERN
 							if (xvt_flight_timing_is_unlocked()) {
 								xvt_flight_integration_clear(
 									object_index,
 									XVT_INTEGRATE_HOME_PITCH);
 							}
-#endif
 						} else {
 							if (pitch_delta < 0) {
 								turn_step =
@@ -1208,11 +1136,9 @@ void object_update_lifetime_and_movement(void)
 						     object);
 				mobile_object = object->mobj;
 			}
-#ifdef XVT_MODERN
 			if (xvt_flight_timing_is_unlocked()) {
 				xvt_flight_integration_move(object_index);
 			} else {
-#endif
 
 				trig2_xmovedist =
 					math_mul_q15(mobile_object->move_x,
@@ -1224,9 +1150,7 @@ void object_update_lifetime_and_movement(void)
 					math_mul_q15(mobile_object->move_z,
 						     movement_distance);
 
-#ifdef XVT_MODERN
 			}
-#endif
 
 			object_add_trig_move_delta_and_clamp_world_position(
 				(uint32_t *)object);
@@ -1239,11 +1163,9 @@ void object_update_lifetime_and_movement(void)
 						     object);
 				mobile_object = object->mobj;
 			}
-#ifdef XVT_MODERN
 			if (xvt_flight_timing_is_unlocked()) {
 				xvt_flight_integration_move(object_index);
 			} else {
-#endif
 
 				trig2_xmovedist =
 					math_mul_q15(mobile_object->move_x,
@@ -1255,9 +1177,7 @@ void object_update_lifetime_and_movement(void)
 					math_mul_q15(mobile_object->move_z,
 						     movement_distance);
 
-#ifdef XVT_MODERN
 			}
-#endif
 
 			object_add_trig_move_delta_and_clamp_world_position(
 				(uint32_t *)object);
@@ -1266,10 +1186,8 @@ void object_update_lifetime_and_movement(void)
 		default:
 			break;
 		}
-#ifdef XVT_MODERN
 		xvt_reference_motion_committed(object_index,
 					       g_game_time + g_elapsed_ticks);
-#endif
 	}
 
 	g_sim_steps_per_second = (uint16_t)saved_sim_steps_per_second;
@@ -1664,9 +1582,7 @@ uint16_t object_alloc_slot_for_genus(uint16_t genus_id)
 
 	if (end > object_index) {
 		collide_reset_object_proximity_for_slot(object_index);
-#ifdef XVT_MODERN
 		xvt_flight_integration_reset_slot_and_motion(object_index);
-#endif
 		return object_index;
 	}
 
@@ -1710,9 +1626,7 @@ uint16_t object_find_free_mission_slot(void)
 void object_copy_state_preserving_storage(unsigned int dst_obj_idx,
 					  unsigned int src_obj_idx)
 {
-#ifdef XVT_MODERN
 	xvt_flight_integration_reset_slot_and_motion(dst_obj_idx);
-#endif
 
 	struct craft_data *destination_craft =
 		g_object_table[dst_obj_idx].mobj->p_craft;

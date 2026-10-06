@@ -1,9 +1,7 @@
 #include "xvt/flight/fediskio.h"
 
-#ifdef XVT_MODERN
 #include "xvt_runtime/snapshot/cockpit_messages.h"
 #include "xvt_runtime/snapshot/render_assets.h"
-#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -37,13 +35,6 @@
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log_both_builds.h"
 
-#ifndef XVT_MODERN
-struct msvc42_file_prefix {
-	/* Stream bytes before flags; nothing names them. */
-	uint8_t reserved[12];
-	int flags; /* Flag word; bit 0x20 set marks a failed stream. */
-};
-#endif
 
 /* Path of the file fe_disk_io_open_global_stream opened or tried last: in the
  * original build the last path tried, in the modern one the path storage
@@ -4136,11 +4127,9 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 				g_pilot_data.melee_tournament_sequence_state
 					.participating_team_count;
 			int team_mission_score;
-#ifdef XVT_MODERN
 			/* Inactive standings keep the previous team's score;
 			 * the first one would read an uninitialized local. */
 			team_mission_score = 0;
-#endif
 			for (team_idx = 0; team_idx < TEAM_COUNT; ++team_idx) {
 				unsigned int mission_placement;
 
@@ -5489,9 +5478,7 @@ uint16_t fe_disk_io_read_all_bytes_or_fatal(const char *file_name, void *dst)
 	xvt_file *stream = g_stream;
 	if (stream == NULL) {
 		fe_disk_io_fatal_error(FILE_ERROR_STR_FILE_MISSING);
-#ifdef XVT_MODERN
 		return 0;
-#endif
 	}
 	uint16_t total_bytes = 0;
 	uint8_t *output = dst;
@@ -5554,9 +5541,7 @@ void fe_disk_io_init_global_buffers(void)
 		XVT_LOG_DEBUG("resources.strings_alloc_failed bytes=%d",
 			      (int)STRING_DATA_BUFFER_BYTES);
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
-#ifdef XVT_MODERN
 		return;
-#endif
 	}
 
 	g_flight_small_font_handle =
@@ -5581,9 +5566,7 @@ void fe_disk_io_init_global_buffers(void)
 			(unsigned)g_flight_micro_font_handle,
 			(unsigned)g_flight_medium_font_handle);
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
-#ifdef XVT_MODERN
 		return;
-#endif
 	}
 
 	g_flight_scratch_screen_buffer_handle = memory_alloc_handle(
@@ -5669,9 +5652,7 @@ void fe_disk_io_init_global_buffers(void)
 			g_flight_map_icons480x360_resource_path;
 		break;
 	}
-#ifdef XVT_MODERN
 	xvt_render_assets_register_flight_fonts();
-#endif
 	flight_text_set_font_tier(1);
 	if (allocation_failed != 0) {
 		XVT_LOG_DEBUG(
@@ -5687,9 +5668,7 @@ void fe_disk_io_init_global_buffers(void)
 			(unsigned)g_message_log_handle,
 			(unsigned)g_render_object_list_handle);
 		fe_disk_io_fatal_error(FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
-#ifdef XVT_MODERN
 		return;
-#endif
 	}
 
 	g_render_object_list_entries =
@@ -5745,9 +5724,7 @@ void fe_disk_io_init_global_buffers(void)
 			g_str_disk_io_messages[DISK_IO_STR_ENTERING_COMBAT];
 		break;
 	}
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_begin_loading_text();
-#endif
 	flight_text_draw_string_centered(loading_message);
 
 	int requested_render_target_width = g_render_target_width;
@@ -5836,9 +5813,7 @@ void fe_disk_io_init_global_buffers(void)
 			g_str_disk_io_messages
 				[DISK_IO_STR_HARDWARE_3D_NOT_SUPPORTED]);
 	}
-#ifdef XVT_MODERN
 	xvt_cockpit_messages_end_loading_text();
-#endif
 
 	g_hud_cockpit_resources_loaded = 0;
 	g_flight_icon_frames =
@@ -5978,9 +5953,7 @@ void fe_disk_io_free_flight_resources(void)
 		(unsigned)g_craft_data_pool_handle,
 		(unsigned)g_warhead_guidance_pool_handle,
 		(unsigned)g_string_data_handle);
-#ifdef XVT_MODERN
 	xvt_render_assets_clear_mission();
-#endif
 	fe_disk_io_unlock_global_buffers();
 	if (g_object_table_handle != 0) {
 		memory_free_handle(g_object_table_handle);
@@ -6004,84 +5977,39 @@ void fe_disk_io_free_flight_resources(void)
 	}
 
 	fsfx_unload_all_effects_thunk();
-#ifdef XVT_MODERN
 	if (g_string_data_handle) {
 		memory_free_handle(g_string_data_handle);
 	}
-#else
-	memory_free_handle(g_string_data_handle);
-#endif
-#ifdef XVT_MODERN
 	if (g_render_object_list_handle) {
 		memory_free_handle(g_render_object_list_handle);
 	}
-#else
-	memory_free_handle(g_render_object_list_handle);
-#endif
-#ifdef XVT_MODERN
 	if (g_flight_small_font_handle) {
 		memory_free_handle(g_flight_small_font_handle);
 	}
-#else
-	memory_free_handle(g_flight_small_font_handle);
-#endif
-#ifdef XVT_MODERN
 	if (g_flight_micro_font_handle) {
 		memory_free_handle(g_flight_micro_font_handle);
 	}
-#else
-	memory_free_handle(g_flight_micro_font_handle);
-#endif
-#ifdef XVT_MODERN
 	if (g_flight_medium_font_handle) {
 		memory_free_handle(g_flight_medium_font_handle);
 	}
-#else
-	memory_free_handle(g_flight_medium_font_handle);
-#endif
-#ifdef XVT_MODERN
 	if (g_flight_scratch_screen_buffer_handle) {
 		memory_free_handle(g_flight_scratch_screen_buffer_handle);
 	}
-#else
-	memory_free_handle(g_flight_scratch_screen_buffer_handle);
-#endif
-#ifdef XVT_MODERN
 	if (g_flight_aux_buffer_handle) {
 		memory_free_handle(g_flight_aux_buffer_handle);
 	}
-#else
-	memory_free_handle(g_flight_aux_buffer_handle);
-#endif
-#ifdef XVT_MODERN
 	if (g_flight_offscreen_buffer_handle) {
 		memory_free_handle(g_flight_offscreen_buffer_handle);
 	}
-#else
-	memory_free_handle(g_flight_offscreen_buffer_handle);
-#endif
-#ifdef XVT_MODERN
 	if (g_hud_panel_sprite_data_handle) {
 		memory_free_handle(g_hud_panel_sprite_data_handle);
 	}
-#else
-	memory_free_handle(g_hud_panel_sprite_data_handle);
-#endif
-#ifdef XVT_MODERN
 	if (g_flight_icon_frames_handle) {
 		memory_free_handle(g_flight_icon_frames_handle);
 	}
-#else
-	memory_free_handle(g_flight_icon_frames_handle);
-#endif
-#ifdef XVT_MODERN
 	if (g_message_log_handle) {
 		memory_free_handle(g_message_log_handle);
 	}
-#else
-	memory_free_handle(g_message_log_handle);
-#endif
-#ifdef XVT_MODERN
 	g_string_data_handle = 0;
 	g_render_object_list_handle = 0;
 	g_flight_small_font_handle = 0;
@@ -6093,7 +6021,6 @@ void fe_disk_io_free_flight_resources(void)
 	g_hud_panel_sprite_data_handle = 0;
 	g_flight_icon_frames_handle = 0;
 	g_message_log_handle = 0;
-#endif
 
 	for (int cockpit_resource_index = 0; cockpit_resource_index < 28;
 	     ++cockpit_resource_index) {
@@ -6198,16 +6125,10 @@ void fe_disk_io_load_resources(void)
 
 		while (FILE_GETS(resource_name, sizeof(resource_name),
 				 list_stream) != NULL) {
-#ifdef XVT_MODERN
 			for (line_end_index = 0;
 			     resource_name[line_end_index] != '\0' &&
 			     resource_name[line_end_index] != '\n';
 			     ++line_end_index) {
-#else
-			for (line_end_index = 0;
-			     resource_name[line_end_index] != '\n';
-			     ++line_end_index) {
-#endif
 				if (resource_name[line_end_index] == '\r') {
 					break;
 				}
@@ -6298,12 +6219,10 @@ void fe_disk_io_load_resources(void)
 				if (resource_handle == 0) {
 					fe_disk_io_fatal_error(
 						FILE_ERROR_STR_NOT_ENOUGH_MEMORY);
-#ifdef XVT_MODERN
 					file_close(texture_stream);
 					file_close(list_stream);
 					g_stream = NULL;
 					return;
-#endif
 				}
 				unsigned int *texture_data =
 					(unsigned int *)memory_get_handle_block(
@@ -6317,10 +6236,8 @@ void fe_disk_io_load_resources(void)
 					1, texture_stream);
 				g_stream = texture_stream;
 				fe_disk_io_close_global_stream(0);
-#ifdef XVT_MODERN
 				xvt_render_assets_register_texture(
 					resource_handle, resource_name);
-#endif
 				if (g_flight_bytes_per_pixel == 2) {
 					tex_level_convert24_bpp_palettes_to16_bpp(
 						texture_data);
@@ -6384,11 +6301,9 @@ void fe_disk_io_load_resources(void)
 							(unsigned)g_object_type_table
 								[model_type]
 									.model_index);
-#ifdef XVT_MODERN
 						xvt_render_assets_bind_type(
 							model_type,
 							resource_handle);
-#endif
 						if ((resource_asset_flags &
 						     MODEL_ASSET_OPT) != 0) {
 							fe_disk_io_build_model_def(
@@ -7155,232 +7070,6 @@ void fe_disk_io_build_model_def(uint8_t model_def_index,
 			.warhead_launcher_slot_count[1]);
 }
 
-#ifndef XVT_MODERN
-/* Shows a two-line box mid-screen, g_file_name with the
- * DISK_IO_STR_RES_320_NOT_SUPPORTED string, then the
- * DISK_IO_STR_RES_512_NOT_SUPPORTED string, waits for a key and returns it,
- * restoring the screen strip and the text state. Only the original build calls
- * this. */
-// FUNCTION: XVT 0x49E060
-char fe_disk_io_show_retry_fail_prompt(void)
-{
-	int16_t saved_cursor_x = g_flight_cursor_x;
-	int16_t saved_cursor_y = g_flight_cursor_y;
-	int16_t saved_clip_left = g_flight_clip_left;
-	int16_t saved_clip_top = g_flight_clip_top;
-	int16_t saved_clip_right = g_flight_clip_right;
-	int16_t saved_clip_bottom = g_flight_clip_bottom;
-	int16_t saved_word_wrap = g_flight_word_wrap_enabled;
-	int16_t saved_unused_state = g_flight_text_unused_state;
-	uint8_t saved_text_color = g_flight_text_color_index;
-	int16_t saved_clear_line_bg = g_flight_clear_line_bg_enabled;
-	uint8_t saved_bg_color = g_flight_text_bg_color;
-	uint8_t saved_shadow_color = g_flight_text_shadow_color;
-	uint8_t saved_shadow_enabled = g_flight_text_shadow_enabled;
-	uint8_t saved_font_tier = g_flight_font_tier;
-
-	flight_surface_lock();
-	flight_text_set_font_tier(1);
-	int line_height = 4 * g_flight_font_line_height;
-	uint8_t *saved_pixels = g_flight_scratch_screen_buffer +
-				g_screen_width * g_flight_bytes_per_pixel *
-					(g_screen_height - line_height - 1);
-	g_flight_save_screen_rect_fn(saved_pixels, 0,
-				     ((unsigned int)g_screen_height >> 1) -
-					     2 * g_flight_font_line_height,
-				     (int16_t)g_screen_width, line_height + 1);
-	flight_text_set_clip_rect(
-		(int16_t)((unsigned int)g_screen_width >> 4),
-		(int16_t)(((unsigned int)g_screen_height >> 1) -
-			  2 * g_flight_font_line_height),
-		(int16_t)(g_screen_width - ((unsigned int)g_screen_width >> 4)),
-		(int16_t)(((unsigned int)g_screen_height >> 1) +
-			  2 * g_flight_font_line_height));
-	g_flight_text_bg_color = 0xf9;
-	g_flight_fill_clip_rect_fn();
-	flight_text_set_clip_rect(
-		(int16_t)(((unsigned int)g_screen_width >> 4) + 1),
-		(int16_t)(((unsigned int)g_screen_height >> 1) -
-			  2 * g_flight_font_line_height + 1),
-		(int16_t)(g_screen_width - ((unsigned int)g_screen_width >> 4) -
-			  1),
-		(int16_t)(((unsigned int)g_screen_height >> 1) +
-			  2 * g_flight_font_line_height - 1));
-	g_flight_text_bg_color = 0;
-	g_flight_fill_clip_rect_fn();
-	g_flight_text_color_index = 0xf9;
-	g_flight_text_shadow_color = 0;
-	g_flight_text_shadow_enabled = 0;
-	flight_text_set_cursor(0, ((unsigned int)g_screen_height >> 1) -
-					  g_flight_font_line_height - 2);
-	char str[256];
-	strcpy(str, g_file_name);
-	strcat(str, ": ");
-	strcat(str, g_str_disk_io_messages[DISK_IO_STR_RES_320_NOT_SUPPORTED]);
-	flight_text_draw_string_centered(str);
-	flight_text_set_cursor(0, ((unsigned int)g_screen_height >> 1) + 2);
-	flight_text_draw_string_centered(
-		g_str_disk_io_messages[DISK_IO_STR_RES_512_NOT_SUPPORTED]);
-
-	int saved_lock_count = flight_surface_get_lock_count();
-	int remaining_locks = saved_lock_count;
-	while (remaining_locks > 0) {
-		flight_surface_unlock();
-		--remaining_locks;
-	}
-	flight_display_blit_render_surface();
-	flight_display_flip();
-	char next_key = flight_input_get_next_key();
-	while (saved_lock_count > 0) {
-		flight_surface_lock();
-		--saved_lock_count;
-	}
-
-	g_flight_restore_screen_rect_fn(saved_pixels, 0,
-					((unsigned int)g_screen_height >> 1) -
-						2 * g_flight_font_line_height,
-					(int16_t)g_screen_width,
-					4 * g_flight_font_line_height + 1);
-	flight_text_set_font_tier(saved_font_tier);
-	g_flight_cursor_x = saved_cursor_x;
-	g_flight_cursor_y = saved_cursor_y;
-	g_flight_clip_left = saved_clip_left;
-	g_flight_clip_top = saved_clip_top;
-	g_flight_clip_right = saved_clip_right;
-	g_flight_clip_bottom = saved_clip_bottom;
-	g_flight_word_wrap_enabled = saved_word_wrap;
-	g_flight_text_unused_state = saved_unused_state;
-	g_flight_text_color_index = saved_text_color;
-	g_flight_clear_line_bg_enabled = saved_clear_line_bg;
-	g_flight_text_bg_color = saved_bg_color;
-	g_flight_text_shadow_color = saved_shadow_color;
-	g_flight_text_shadow_enabled = saved_shadow_enabled;
-	flight_surface_unlock();
-
-	int current_lock_count = flight_surface_get_lock_count();
-	remaining_locks = current_lock_count;
-	while (remaining_locks > 0) {
-		flight_surface_unlock();
-		--remaining_locks;
-	}
-	flight_display_blit_render_surface();
-	flight_display_flip();
-	while (current_lock_count > 0) {
-		flight_surface_lock();
-		--current_lock_count;
-	}
-	return next_key;
-}
-
-/* Shows message and the press-a-key-to-exit string in a box mid-screen with the
- * surface locks released, waits for a key, restores the locks and text state
- * and returns the key. Only the original build calls this. */
-// FUNCTION: XVT 0x49E420
-int fe_disk_io_show_fatal_error_message_and_wait_key(const char *message)
-{
-	int16_t saved_cursor_x = g_flight_cursor_x;
-	int16_t saved_cursor_y = g_flight_cursor_y;
-	int16_t saved_clip_left = g_flight_clip_left;
-	int16_t saved_clip_top = g_flight_clip_top;
-	int16_t saved_clip_right = g_flight_clip_right;
-	int16_t saved_clip_bottom = g_flight_clip_bottom;
-	int16_t saved_word_wrap = g_flight_word_wrap_enabled;
-	int16_t saved_unused_state = g_flight_text_unused_state;
-	uint8_t saved_text_color = g_flight_text_color_index;
-	int16_t saved_clear_line_bg = g_flight_clear_line_bg_enabled;
-	uint8_t saved_bg_color = g_flight_text_bg_color;
-	uint8_t saved_shadow_color = g_flight_text_shadow_color;
-	uint8_t saved_shadow_enabled = g_flight_text_shadow_enabled;
-	uint8_t saved_font_tier = g_flight_font_tier;
-
-	int saved_lock_count = flight_surface_get_lock_count();
-	int remaining_locks;
-	if (saved_lock_count > 0) {
-		remaining_locks = saved_lock_count;
-		do {
-			flight_surface_unlock();
-			--remaining_locks;
-		} while (remaining_locks != 0);
-	}
-
-	uint8_t saved_display_surfaces_active =
-		g_flight_display_surfaces_active;
-	g_flight_display_surfaces_active = 1;
-	flight_surface_lock();
-	flight_text_set_font_tier(1);
-	flight_text_set_clip_rect(
-		g_screen_width >> 4,
-		(g_screen_height >> 1) - 2 * g_flight_font_line_height,
-		g_screen_width - (g_screen_width >> 4),
-		(g_screen_height >> 1) + 2 * g_flight_font_line_height);
-	g_flight_text_bg_color = 0xF9;
-	g_flight_fill_clip_rect_fn();
-	flight_text_set_clip_rect(
-		(g_screen_width >> 4) + 1,
-		(g_screen_height >> 1) - 2 * g_flight_font_line_height + 1,
-		g_screen_width - (g_screen_width >> 4) - 1,
-		(g_screen_height >> 1) + 2 * g_flight_font_line_height - 1);
-	g_flight_text_bg_color = 0;
-	g_flight_fill_clip_rect_fn();
-	int line_height = g_flight_font_line_height;
-	g_flight_text_color_index = 0xF9;
-	g_flight_text_shadow_color = 0;
-	g_flight_text_shadow_enabled = 0;
-	flight_text_set_cursor(0, (g_screen_height >> 1) - line_height - 2);
-	char str[256];
-	strcpy(str, message);
-	flight_text_draw_string_centered(str);
-	flight_text_set_cursor(0, (g_screen_height >> 1) + 2);
-	flight_text_draw_string_centered(
-		g_str_file_error_messages[FILE_ERROR_STR_PRESS_KEY_TO_EXIT]);
-	flight_surface_unlock();
-	flight_display_blit_render_surface();
-	flight_display_flip();
-	int8_t next_key = flight_input_get_next_key();
-
-	g_flight_display_surfaces_active = saved_display_surfaces_active;
-	if (saved_lock_count > 0) {
-		do {
-			flight_surface_lock();
-			--saved_lock_count;
-		} while (saved_lock_count != 0);
-	}
-
-	flight_text_set_font_tier(saved_font_tier);
-	g_flight_cursor_x = saved_cursor_x;
-	g_flight_cursor_y = saved_cursor_y;
-	g_flight_clip_left = saved_clip_left;
-	g_flight_clip_top = saved_clip_top;
-	g_flight_clip_right = saved_clip_right;
-	g_flight_clip_bottom = saved_clip_bottom;
-	g_flight_word_wrap_enabled = saved_word_wrap;
-	g_flight_text_unused_state = saved_unused_state;
-	g_flight_text_color_index = saved_text_color;
-	g_flight_clear_line_bg_enabled = saved_clear_line_bg;
-	g_flight_text_bg_color = saved_bg_color;
-	g_flight_text_shadow_color = saved_shadow_color;
-	g_flight_text_shadow_enabled = saved_shadow_enabled;
-
-	int current_lock_count = flight_surface_get_lock_count();
-	if (current_lock_count > 0) {
-		remaining_locks = current_lock_count;
-		do {
-			flight_surface_unlock();
-			--remaining_locks;
-		} while (remaining_locks != 0);
-	}
-	flight_display_blit_render_surface();
-	flight_display_flip();
-	if (current_lock_count > 0) {
-		do {
-			flight_surface_lock();
-			--current_lock_count;
-		} while (current_lock_count != 0);
-	}
-	return next_key;
-}
-
-#endif
 
 /* Opens a file into g_stream and returns 1, or 0 with g_stream NULL. The modern
  * build opens through storage, records the resolved path in g_file_name and,
@@ -7393,7 +7082,6 @@ int fe_disk_io_show_fatal_error_message_and_wait_key(const char *message)
 int fe_disk_io_open_global_stream(const char *file_name, const char *mode,
 				  int prompt_on_fail, int location_mode)
 {
-#ifdef XVT_MODERN
 	(void)location_mode;
 	g_stream = file_open(file_name, mode);
 	xvt_storage_capture_global_stream();
@@ -7406,75 +7094,6 @@ int fe_disk_io_open_global_stream(const char *file_name, const char *mode,
 		xvt_storage_fatal("Cannot open required file", 1);
 	}
 	return g_stream != NULL;
-#else
-
-	strcpy(g_file_name, file_name);
-	while (1) {
-		int attempts_remaining = 4;
-		if (location_mode != 2) {
-			while (attempts_remaining-- != 0) {
-				g_stream = FILE_RAW_OPEN(file_name, mode);
-				if (g_stream != NULL) {
-					return 1;
-				}
-			}
-
-			attempts_remaining = 4;
-			strcpy(g_file_name, file_get_base_game_install_path());
-			strcat(g_file_name, "\\");
-			strcat(g_file_name, file_name);
-			while (attempts_remaining-- != 0) {
-				g_stream = FILE_RAW_OPEN(g_file_name, mode);
-				if (g_stream != NULL) {
-					return 1;
-				}
-			}
-		}
-
-		if (location_mode != 1) {
-			strcpy(g_file_name, "D:\\BalanceOfPower\\");
-			attempts_remaining = 4;
-			g_file_name[0] = file_get_cd_drive_letter();
-			strcat(g_file_name, file_name);
-			while (attempts_remaining-- != 0) {
-				g_stream = FILE_RAW_OPEN(g_file_name, mode);
-				if (g_stream != NULL) {
-					return 1;
-				}
-			}
-
-			attempts_remaining = 4;
-			strcpy(g_file_name, "D:\\");
-			g_file_name[0] = file_get_cd_drive_letter();
-			strcat(g_file_name, file_name);
-			while (attempts_remaining-- != 0) {
-				g_stream = FILE_RAW_OPEN(g_file_name, mode);
-				if (g_stream != NULL) {
-					return 1;
-				}
-			}
-		}
-
-		if (prompt_on_fail == 0) {
-			break;
-		}
-		while (1) {
-			char key = fe_disk_io_show_retry_fail_prompt();
-			if (key == 'R' || key == 'r') {
-				break;
-			}
-			if (key == 'F' || key == 'f') {
-				fe_disk_io_fatal_error(
-					FILE_ERROR_STR_FILE_MISSING);
-				g_stream = NULL;
-				return 0;
-			}
-		}
-	}
-	g_stream = NULL;
-	return 0;
-
-#endif
 }
 
 /* Closes g_stream and returns 1 when it failed, else 0. The modern build closes
@@ -7485,7 +7104,6 @@ int fe_disk_io_open_global_stream(const char *file_name, const char *mode,
 // FUNCTION: XVT 0x49E9C0
 int16_t fe_disk_io_close_global_stream(int16_t remove_file_on_error)
 {
-#ifdef XVT_MODERN
 	int failed =
 		xvt_storage_close_global_stream(g_stream, remove_file_on_error);
 	if (failed != 0) {
@@ -7499,21 +7117,6 @@ int16_t fe_disk_io_close_global_stream(int16_t remove_file_on_error)
 	}
 	g_stream = NULL;
 	return (int16_t)failed;
-#else
-
-	int16_t close_error = 0;
-	if ((((struct msvc42_file_prefix *)g_stream)->flags & 0x20) != 0 ||
-	    FILE_RAW_CLOSE((xvt_file *)g_stream) == EOF) {
-		close_error = 1;
-	}
-
-	if (remove_file_on_error != 0 && close_error != 0) {
-		FILE_REMOVE(g_file_name);
-	}
-
-	return close_error;
-
-#endif
 }
 
 /* Reads elem_count items into dst. The modern build reads once and makes a short
@@ -7524,7 +7127,6 @@ int16_t fe_disk_io_close_global_stream(int16_t remove_file_on_error)
 size_t fe_disk_io_read_with_retry_prompt(void *dst, size_t elem_size,
 					 size_t elem_count, xvt_file *stream)
 {
-#ifdef XVT_MODERN
 	size_t count = FILE_RAW_READ(dst, elem_size, elem_count, stream);
 	g_file_read_abort_flag = count != elem_count;
 	if (g_file_read_abort_flag) {
@@ -7535,40 +7137,6 @@ size_t fe_disk_io_read_with_retry_prompt(void *dst, size_t elem_size,
 		xvt_storage_fatal("Incomplete required file read", 1);
 	}
 	return count;
-#else
-
-	size_t requested_count = elem_count;
-	uint8_t *output = dst;
-	int retries_remaining = 15;
-	while (1) {
-		--retries_remaining;
-		size_t read_count =
-			FILE_RAW_READ(output, elem_size, elem_count, stream);
-		output += elem_size * read_count;
-		elem_count -= read_count;
-		if (elem_count == 0) {
-			break;
-		}
-		if (retries_remaining == 0) {
-			while (elem_count != 0) {
-				char key = fe_disk_io_show_retry_fail_prompt();
-				if (key == 'R' || key == 'r') {
-					break;
-				}
-				if (key == 'F' || key == 'f') {
-					g_file_read_abort_flag = 1;
-					fe_disk_io_fatal_error(
-						FILE_ERROR_STR_FILE_MISSING);
-					return 0;
-				}
-			}
-			retries_remaining = 5;
-		}
-	}
-	g_file_read_abort_flag = 0;
-	return requested_count;
-
-#endif
 }
 
 /* Ends the program on a file error. The modern build reports a fixed message
@@ -7580,45 +7148,9 @@ size_t fe_disk_io_read_with_retry_prompt(void *dst, size_t elem_size,
 // FUNCTION: XVT 0x49EB60
 void fe_disk_io_fatal_error(file_error_string_id error_code)
 {
-#ifdef XVT_MODERN
 	(void)error_code;
 	XVT_LOG_ERROR("resources.fatal code=%d", (int)error_code);
 	xvt_storage_fatal("Required resource could not be loaded", 1);
-#else
-
-	char message[128];
-
-	if ((uint16_t)error_code < 4) {
-		if (g_flight_font_small_sw == NULL) {
-			message[0] = 0;
-		} else {
-			const char *error_message =
-				g_str_file_error_messages[(uint16_t)error_code];
-			fe_disk_io_show_fatal_error_message_and_wait_key(
-				error_message);
-			uint16_t i;
-			for (i = 0; i < sizeof(message); ++i) {
-				message[i] = error_message[i];
-				if (message[i] == 0) {
-					break;
-				}
-			}
-			if (error_code == FILE_ERROR_STR_FILE_MISSING) {
-				uint16_t j = 0;
-				for (; i < sizeof(message); ++i) {
-					message[i] = g_file_name[j++];
-					if (message[i] == 0) {
-						break;
-					}
-				}
-				message[i++] = '\n';
-				message[i] = 0;
-			}
-		}
-	}
-	file_print_fatal_message_and_exit(message, -255 - (uint16_t)error_code);
-
-#endif
 }
 
 /* Ends the program with a message. The original build prints message to stderr,
@@ -7627,12 +7159,5 @@ void fe_disk_io_fatal_error(file_error_string_id error_code)
 // FUNCTION: XVT 0x4ACE60
 void file_print_fatal_message_and_exit(const char *message, int exit_code)
 {
-#ifdef XVT_MODERN
 	xvt_storage_fatal(message, exit_code);
-#else
-
-	fprintf(stderr, message);
-	exit(exit_code);
-
-#endif
 }

@@ -1,11 +1,7 @@
 #include "xvt/flight/object/laser.h"
-#ifdef XVT_MODERN
 #include "xvt_runtime/timing/player_timing.h"
-#endif
-#ifdef XVT_MODERN
 #include "xvt_runtime/timing/flight_timing.h"
 #include "xvt_runtime/timing/reference_motion.h"
-#endif
 
 #include <limits.h>
 
@@ -160,9 +156,7 @@ void laser_weaponsfire(void)
 
 	char do_periodic_power_update = 0;
 	if (g_flight_global_countdown_timers.weapon_power_update_timer == 0
-#ifdef XVT_MODERN
 	    && xvt_flight_timing_reference_due()
-#endif
 	) {
 		do_periodic_power_update = 1;
 		g_flight_global_countdown_timers.weapon_power_update_timer =
@@ -240,10 +234,8 @@ void laser_weaponsfire(void)
 					g_players[player_idx]
 						.missile_lock_state = 0;
 					g_cur_craft->warhead_lock_ticks = 0;
-#ifdef XVT_MODERN
 					xvt_player_timing_lock_half(player_idx,
 								    0);
-#endif
 				} else {
 					uint8_t target_genus =
 						g_object_table[target_obj_idx]
@@ -294,18 +286,11 @@ void laser_weaponsfire(void)
 							    target_craft->chaff_active_seconds !=
 								    0) {
 
-#ifdef XVT_MODERN
 								g_cur_craft
 									->warhead_lock_ticks -=
 									xvt_player_timing_lock_half(
 										player_idx,
 										1);
-#else
-								g_cur_craft
-									->warhead_lock_ticks -=
-									g_elapsed_ticks >>
-									1;
-#endif
 							}
 						}
 						model_index missile_boat_model_index =
@@ -362,16 +347,10 @@ void laser_weaponsfire(void)
 								->warhead_lock_ticks;
 						if (lock_ticks > 0) {
 
-#ifdef XVT_MODERN
 							lock_ticks -=
 								xvt_player_timing_lock_half(
 									player_idx,
 									2);
-#else
-							lock_ticks -=
-								g_elapsed_ticks >>
-								1;
-#endif
 
 							lock_ticks -=
 								g_elapsed_ticks;
@@ -1138,20 +1117,16 @@ void laser_weaponsfire(void)
 		 * launchers. */
 		uint16_t slot_index;
 		if (g_cur_craft->beam_effect_accum[2] == 0
-#ifdef XVT_MODERN
 		    && (!xvt_flight_timing_is_unlocked() ||
 			g_object_table[object_idx].player_owner_idx != -1 ||
 			xvt_flight_timing_reference_due())
-#endif
 		) {
-#ifdef XVT_MODERN
 			struct xvt_flight_clock cannon_clock = {
 				g_elapsed_ticks, g_sim_steps_per_second};
 			if (g_object_table[object_idx].player_owner_idx == -1) {
 				cannon_clock =
 					xvt_flight_timing_enter_reference();
 			}
-#endif
 
 			for (slot_index = 0;
 			     slot_index < g_cur_craft->cannon_group_count;
@@ -1203,9 +1178,7 @@ void laser_weaponsfire(void)
 				}
 			}
 
-#ifdef XVT_MODERN
 			xvt_flight_timing_restore_clock(cannon_clock);
-#endif
 		}
 
 		for (slot_index = 0; slot_index < g_cur_craft->laser_slot_count;
@@ -1220,7 +1193,6 @@ void laser_weaponsfire(void)
 						.target_obj_idx;
 				if (target_obj_idx != UINT16_MAX) {
 
-#ifdef XVT_MODERN
 					if (xvt_flight_timing_reference_due()) {
 						struct xvt_flight_clock weapon_clock =
 							xvt_flight_timing_enter_reference();
@@ -1230,11 +1202,6 @@ void laser_weaponsfire(void)
 						xvt_flight_timing_restore_clock(
 							weapon_clock);
 					}
-#else
-					laser_fireturretslot(object_idx,
-							     slot_index,
-							     target_obj_idx);
-#endif
 				}
 			}
 		}
@@ -1265,16 +1232,12 @@ void laser_weaponsfire(void)
 			    CRAFT_SPECIES_UNKNOWN &&
 		    g_object_table[object_idx].genus_id == CRAFT_GENUS_MINE) {
 
-#ifdef XVT_MODERN
 			if (xvt_flight_timing_reference_due()) {
 				struct xvt_flight_clock weapon_clock =
 					xvt_flight_timing_enter_reference();
 				laser_update_mine_weapon_fire(object_idx);
 				xvt_flight_timing_restore_clock(weapon_clock);
 			}
-#else
-			laser_update_mine_weapon_fire(object_idx);
-#endif
 		}
 	}
 }
@@ -1546,7 +1509,6 @@ void laser_firelasersystem(int object_index, int laser_system_index)
 		shot_limit = last_slot - first_slot + 1;
 		break;
 	default:
-#ifdef XVT_MODERN
 		XVT_LOG_DEBUG(
 			"combat.fire_mode_invalid object=%d slot=%d bank=%d link=%d predicted=%d",
 			object_index, owner_player_idx, laser_system_index,
@@ -1554,9 +1516,6 @@ void laser_firelasersystem(int object_index, int laser_system_index)
 				.link_mode[laser_system_index],
 			g_flight_sim_side_effects_suppressed);
 		return;
-#else
-		break;
-#endif
 	}
 	current_slot = first_slot;
 	if (current_slot <= last_slot) {
@@ -3044,7 +3003,6 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 			g_object_table[target_ref].world_x +
 			lead_frames *
 				(
-#ifdef XVT_MODERN
 					(xvt_flight_timing_is_unlocked()
 						 ? xvt_reference_motion_axis_displacement(
 							   target_ref, 0)
@@ -3053,17 +3011,11 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 						    g_object_table[target_ref]
 							    .mobj
 							    ->prev_world_x))
-#else
-					g_object_table[target_ref].world_x -
-					g_object_table[target_ref]
-						.mobj->prev_world_x
-#endif
 				);
 		lead_target_y =
 			g_object_table[target_ref].world_y +
 			lead_frames *
 				(
-#ifdef XVT_MODERN
 					(xvt_flight_timing_is_unlocked()
 						 ? xvt_reference_motion_axis_displacement(
 							   target_ref, 1)
@@ -3072,17 +3024,11 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 						    g_object_table[target_ref]
 							    .mobj
 							    ->prev_world_y))
-#else
-					g_object_table[target_ref].world_y -
-					g_object_table[target_ref]
-						.mobj->prev_world_y
-#endif
 				);
 		lead_target_z =
 			g_object_table[target_ref].world_z +
 			lead_frames *
 				(
-#ifdef XVT_MODERN
 					(xvt_flight_timing_is_unlocked()
 						 ? xvt_reference_motion_axis_displacement(
 							   target_ref, 2)
@@ -3091,11 +3037,6 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 						    g_object_table[target_ref]
 							    .mobj
 							    ->prev_world_z))
-#else
-					g_object_table[target_ref].world_z -
-					g_object_table[target_ref]
-						.mobj->prev_world_z
-#endif
 				);
 	} else {
 		lead_target_x = target_x;
@@ -3638,7 +3579,6 @@ void laser_fireturretslot(uint16_t source_obj_idx, uint16_t weapon_slot_idx,
 			target_x +=
 				lead_scale *
 				(
-#ifdef XVT_MODERN
 					(xvt_flight_timing_is_unlocked()
 						 ? xvt_reference_motion_axis_displacement(
 							   target_ref, 0) +
@@ -3650,16 +3590,10 @@ void laser_fireturretslot(uint16_t source_obj_idx, uint16_t weapon_slot_idx,
 						    g_object_table[target_obj_idx]
 							    .mobj
 							    ->prev_world_x))
-#else
-					target_x -
-					g_object_table[target_obj_idx]
-						.mobj->prev_world_x
-#endif
 				);
 			target_y +=
 				lead_scale *
 				(
-#ifdef XVT_MODERN
 					(xvt_flight_timing_is_unlocked()
 						 ? xvt_reference_motion_axis_displacement(
 							   target_ref, 1) +
@@ -3671,16 +3605,10 @@ void laser_fireturretslot(uint16_t source_obj_idx, uint16_t weapon_slot_idx,
 						    g_object_table[target_obj_idx]
 							    .mobj
 							    ->prev_world_y))
-#else
-					target_y -
-					g_object_table[target_obj_idx]
-						.mobj->prev_world_y
-#endif
 				);
 			target_z +=
 				lead_scale *
 				(
-#ifdef XVT_MODERN
 					(xvt_flight_timing_is_unlocked()
 						 ? xvt_reference_motion_axis_displacement(
 							   target_ref, 2) +
@@ -3692,11 +3620,6 @@ void laser_fireturretslot(uint16_t source_obj_idx, uint16_t weapon_slot_idx,
 						    g_object_table[target_obj_idx]
 							    .mobj
 							    ->prev_world_z))
-#else
-					target_z -
-					g_object_table[target_obj_idx]
-						.mobj->prev_world_z
-#endif
 				);
 		}
 	}
