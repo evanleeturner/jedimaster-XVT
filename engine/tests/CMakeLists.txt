@@ -294,6 +294,28 @@ endif()
 xvt_add_engine_test(test_static test_static.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/object/static.c")
 add_test(NAME static COMMAND test_static)
 
+# The weapons, their shots and the weapon step: src/xvt/flight/object/laser.c.
+# The test arms an alarm with POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_laser test_laser.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/object/laser.c")
+    add_test(NAME laser COMMAND test_laser)
+    xvt_add_known_failure(test_laser static_warhead_takes_impact_effect)
+    xvt_add_known_failure(test_laser second_flare_same_warhead)
+    xvt_add_known_failure(test_laser charged_ion_turbo_fires_torpedo)
+    xvt_add_known_failure(test_laser overdrive_message_to_local_player)
+endif()
+
+# The object table's slots, copies, fragments and the step that moves every object:
+# src/xvt/flight/object/object.c. The test arms an alarm with POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_object test_object.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/object/object.c")
+    add_test(NAME object COMMAND test_object)
+endif()
+
+# The damage page's step through damaged systems: src/xvt/flight/object/damage.c.
+xvt_add_engine_test(test_damage test_damage.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/object/damage.c")
+add_test(NAME damage COMMAND test_damage)
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
