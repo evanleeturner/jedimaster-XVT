@@ -3883,6 +3883,26 @@
       "fields": ["cleared"],
       "text": "A texture palette marked {cleared} of its 256 colors see-through for the 3D card"
     },
+    "models.convert_overflow": {
+      "level": "E",
+      "fields": ["bytes", "capacity"],
+      "text": "Converting an older-version OPT model wrote {bytes} bytes into a buffer of {capacity} bytes, past its end: the conversion does not check its room, so memory after the buffer was overwritten"
+    },
+    "models.converted": {
+      "level": "D",
+      "fields": ["roots", "bytes", "converted", "capacity"],
+      "text": "An older-version OPT model of {bytes} bytes with {roots} top-level parts was converted to version 2: {converted} bytes written into a buffer of {capacity} bytes"
+    },
+    "models.file_loaded": {
+      "level": "D",
+      "fields": ["file", "version", "bytes", "roots", "edges", "vertices"],
+      "text": "The OPT model {file} was read: file version {version} (0 and 1 are older versions, converted to version 2 as they load), {bytes} bytes in memory as version 2, {roots} top-level parts; the 3D scene now needs room for {edges} edges and {vertices} vertices, the most of any model read so far"
+    },
+    "models.no_parts": {
+      "level": "E",
+      "fields": ["file"],
+      "text": "The OPT model {file} has no top-level parts; the flight code reads a model's first part without checking, so it would read a part that is not there"
+    },
     "models.node_palette": {
       "level": "D",
       "fields": ["node"],
@@ -3897,6 +3917,16 @@
       "level": "E",
       "fields": ["path"],
       "text": "The OPT model {path} is invalid or unreadable"
+    },
+    "models.parts_capped": {
+      "level": "W",
+      "fields": ["file", "roots"],
+      "text": "The OPT model {file} has {roots} top-level parts, more than the 50 the flight counts (a texture as the first part is not counted), so the code that counts a craft's parts sees only the first 50"
+    },
+    "models.runtime_built": {
+      "level": "D",
+      "fields": ["handle", "source", "bytes", "roots", "bpp", "hardware", "mip", "detail"],
+      "text": "A drawing copy of the model in memory handle {source} was built as memory handle {handle}: {bytes} bytes, {roots} top-level parts, its palettes converted for {bpp} bytes per pixel (at 2, also filtered for the 3D card when 3D hardware is on: {hardware}, 1 on); texture mip levels averaged {mip} (1 yes, 0 left unwritten), texture detail {detail} (0 drops the largest level of a texture that carries its own smaller ones)"
     },
     "movie.failed": {
       "level": "E",

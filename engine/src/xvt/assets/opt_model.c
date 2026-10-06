@@ -23,6 +23,7 @@
 #include "xvt/render/renderer.h"
 #include "xvt/util/debug_console.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log_both_builds.h"
 #ifndef XVT_MODERN
 int _access(const char *filename, int mode);
 #else
@@ -2886,6 +2887,19 @@ uint16_t opt_model_load_file_to_handle(char *filename)
 		opt_model_measure_node_and_raise_capacities(
 			model->root_nodes[root_index], &mesh_state);
 	}
+	XVT_LOG_DEBUG(
+		"models.file_loaded file=\"%s\" version=%d bytes=%u roots=%d edges=%d vertices=%d",
+		filename, version, native_size, model->root_node_count,
+		g_scene_edge_flags_capacity, g_vertex_remap_capacity);
+	if (model->root_node_count == 0) {
+		XVT_LOG_ERROR("models.no_parts file=\"%s\"", filename);
+	}
+	if (model->root_node_count > 51 ||
+	    (model->root_node_count == 51 &&
+	     model->root_nodes[0]->node_type != OPT_TEXTURE)) {
+		XVT_LOG_WARN("models.parts_capped file=\"%s\" roots=%d",
+			     filename, model->root_node_count);
+	}
 	memory_handle_block_done_stub(handle);
 	return handle;
 #else
@@ -3108,6 +3122,14 @@ opt_model_convert_legacy_model_to_optimized(unsigned int source_size)
 			destination_node += node_size;
 			serialized_size += node_size;
 		} while (root_node_count > root_index);
+	}
+	XVT_LOG_DEBUG(
+		"models.converted roots=%d bytes=%u converted=%u capacity=%d",
+		root_node_count, source_size, serialized_size,
+		destination_capacity);
+	if (serialized_size > (unsigned int)destination_capacity) {
+		XVT_LOG_ERROR("models.convert_overflow bytes=%u capacity=%d",
+			      serialized_size, destination_capacity);
 	}
 	return serialized_size;
 }
@@ -4834,6 +4856,12 @@ uint16_t opt_model_create_runtime_handle(unsigned int source_handle)
 			runtime_model->root_nodes[root_index], runtime_model,
 			source_model);
 	}
+	XVT_LOG_DEBUG(
+		"models.runtime_built handle=%u source=%u bytes=%u roots=%d bpp=%d hardware=%d mip=%d detail=%d",
+		(unsigned)runtime_handle, source_handle, serialized_size,
+		runtime_model->root_node_count, g_flight_bytes_per_pixel,
+		g_use_hardware3d, g_mipmapping_enabled,
+		g_texture_resolution_level);
 	memory_handle_block_done_stub(runtime_handle);
 	memory_handle_block_done_stub(source_handle);
 	return runtime_handle;
