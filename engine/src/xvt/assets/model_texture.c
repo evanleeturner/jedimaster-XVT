@@ -109,17 +109,15 @@ void model_texture_filter_hardware_palette(uint16_t *palette)
 
 		if (cleared_count < 256) {
 #ifdef XVT_MODERN
-			XVT_LOG_DEBUG(
-				"models.alpha_palette palette=%p cleared=%d",
-				(void *)palette, cleared_count);
+			XVT_LOG_DEBUG("models.alpha_palette cleared=%d",
+				      cleared_count);
 #else
 			debug_printf("%x:AlphaTex!(%d)\n", palette,
 				     cleared_count);
 #endif
 		} else {
 #ifdef XVT_MODERN
-			XVT_LOG_DEBUG("models.opaque_palette palette=%p",
-				      (void *)palette);
+			XVT_LOG_DEBUG("models.opaque_palette");
 #else
 			debug_printf("%x:No Alpha\n", palette);
 #endif

@@ -3880,18 +3880,18 @@
     },
     "models.alpha_palette": {
       "level": "D",
-      "fields": ["palette", "cleared"],
-      "text": "Texture palette {palette} marks {cleared} of its 256 colors see-through for the 3D card"
+      "fields": ["cleared"],
+      "text": "A texture palette marked {cleared} of its 256 colors see-through for the 3D card"
     },
     "models.node_palette": {
       "level": "D",
       "fields": ["node"],
-      "text": "On a 16-bit display the palette of model node {node} is copied"
+      "text": "On a 16-bit display the palette of model node {node} was copied"
     },
     "models.opaque_palette": {
       "level": "D",
-      "fields": ["palette"],
-      "text": "All 256 colors of texture palette {palette} passed the see-through test; its count is reset to 0"
+      "fields": [],
+      "text": "All 256 colors of a texture palette passed the see-through test; its count was reset to 0"
     },
     "models.opt_invalid": {
       "level": "E",
@@ -6005,8 +6005,8 @@
     },
     "resources.file_opened": {
       "level": "D",
-      "fields": ["file", "path", "mode", "opened", "required", "stream"],
-      "text": "The file {file} was opened for {mode} at {path}: opened {opened}; required {required} (a required file that does not open ends the program); stream {stream}"
+      "fields": ["file", "path", "mode", "opened", "required"],
+      "text": "The file {file} was opened for {mode} at {path}: opened {opened}; required {required} (a required file that does not open ends the program)"
     },
     "resources.file_read": {
       "level": "D",

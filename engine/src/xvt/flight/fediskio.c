@@ -7400,9 +7400,8 @@ int fe_disk_io_open_global_stream(const char *file_name, const char *mode,
 	snprintf(g_file_name, sizeof(g_file_name), "%s",
 		 xvt_storage_last_path());
 	XVT_LOG_DEBUG(
-		"resources.file_opened file=\"%s\" path=\"%s\" mode=\"%s\" opened=%d required=%d stream=%p",
-		file_name, g_file_name, mode, g_stream != NULL, prompt_on_fail,
-		(void *)g_stream);
+		"resources.file_opened file=\"%s\" path=\"%s\" mode=\"%s\" opened=%d required=%d",
+		file_name, g_file_name, mode, g_stream != NULL, prompt_on_fail);
 	if (!g_stream && prompt_on_fail) {
 		xvt_storage_fatal("Cannot open required file", 1);
 	}
