@@ -7,6 +7,7 @@
 #include "xvt/assets/file.h"
 #include "xvt/audio/sound.h"
 #include "xvt/flight/fediskio.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifndef XVT_MODERN
 __declspec(dllimport) void *__stdcall LocalAlloc(unsigned int flags,
@@ -52,12 +53,30 @@ direct_sound_load_wave_buffer(IDirectSound *direct_sound, const char *file_name,
 			    direct_sound, &desc, &buffer, NULL) >= 0) {
 			if (!direct_sound_copy_wave_data_to_buffer(
 				    buffer, sample_data, desc.dwBufferBytes)) {
+				XVT_LOG_DEBUG(
+					"sound.wave_failed file=\"%s\" step=\"copy\"",
+					file_name);
 				buffer->lpVtbl->Release(buffer);
 				buffer = NULL;
+			} else {
+				XVT_LOG_DEBUG(
+					"sound.wave_loaded file=\"%s\" rate=%u channels=%d bits=%d bytes=%u",
+					file_name,
+					(unsigned)desc.lpwfxFormat
+						->nSamplesPerSec,
+					(int)desc.lpwfxFormat->nChannels,
+					(int)desc.lpwfxFormat->wBitsPerSample,
+					(unsigned)desc.dwBufferBytes);
 			}
 		} else {
+			XVT_LOG_DEBUG(
+				"sound.wave_failed file=\"%s\" step=\"create\"",
+				file_name);
 			buffer = NULL;
 		}
+	} else {
+		XVT_LOG_DEBUG("sound.wave_failed file=\"%s\" step=\"read\"",
+			      file_name);
 	}
 	if (g_wave_file_data_buffer != NULL) {
 		free(g_wave_file_data_buffer);

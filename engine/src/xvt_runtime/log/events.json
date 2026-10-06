@@ -6648,6 +6648,16 @@
       "fields": ["field", "limit"],
       "text": "Cockpit text field {field} exceeds {limit} bytes"
     },
+    "sound.wave_failed": {
+      "level": "D",
+      "fields": ["file", "step"],
+      "text": "The sound file {file} was not made into a sound buffer: step {step} failed (read: the file did not open or its RIFF chunks were not found; create: the device refused the buffer; copy: the samples could not be copied in)"
+    },
+    "sound.wave_loaded": {
+      "level": "D",
+      "fields": ["file", "rate", "channels", "bits", "bytes"],
+      "text": "The sound file {file} became a sound buffer: {rate} samples a second, {channels} channels, {bits} bits, {bytes} bytes of samples"
+    },
     "strings.alloc_failed": {
       "level": "E",
       "fields": ["file", "part"],
