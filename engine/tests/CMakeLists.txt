@@ -254,6 +254,30 @@ xvt_add_known_failure(test_paifight follow_leader_avoid_target)
 xvt_add_known_failure(test_paifight follow_leader_static_skip)
 xvt_add_known_failure(test_paifight defense_last_attacker)
 
+# The maneuvers of the computer pilots: src/xvt/flight/ai/paiman.c.
+xvt_add_engine_test(test_paiman test_paiman.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/paiman.c")
+add_test(NAME paiman COMMAND test_paiman)
+xvt_add_known_failure(test_paiman escort_player_craft_push)
+xvt_add_known_failure(test_paiman escort_station_past_table)
+xvt_add_known_failure(test_paiman speed_away_push_sign)
+xvt_add_known_failure(test_paiman board_approach_full_throttle)
+xvt_add_known_failure(test_paiman dropoff_no_basis)
+xvt_add_known_failure(test_paiman tenth_docking_remembered)
+xvt_add_known_failure(test_paiman formation_seventh_place)
+xvt_add_known_failure(test_paiman reload_display_other_machine)
+xvt_add_known_failure(test_paiman single_waypoint_round)
+xvt_add_known_failure(test_paiman destroy_delay_without_countdown)
+
+# The orders of the computer pilots' plans: src/xvt/flight/ai/paiorder.c.
+xvt_add_engine_test(test_paiorder test_paiorder.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/paiorder.c")
+add_test(NAME paiorder COMMAND test_paiorder)
+xvt_add_known_failure(test_paiorder self_destruct_delay_wraps)
+xvt_add_known_failure(test_paiorder follower_departure_time)
+xvt_add_known_failure(test_paiorder wait_go_other_by_order_code)
+xvt_add_known_failure(test_paiorder cannons_abort_reason)
+xvt_add_known_failure(test_paiorder hangar_takes_other_followers)
+xvt_add_known_failure(test_paiorder hangar_departure_by_hyperspace)
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
