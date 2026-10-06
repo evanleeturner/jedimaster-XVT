@@ -15,3 +15,7 @@
 # and the whitespace a moved note left; every comment keeps its words and
 # every code token is unchanged)
 df96ce4ecfbe40b28a73788e5fdcb1954851126c
+
+# Format the code around the removed 1997 versions (whitespace and line
+# breaks only; every code token and comment word is unchanged)
+99e87fb51dd56812b08d771a7066c37105e296ff
