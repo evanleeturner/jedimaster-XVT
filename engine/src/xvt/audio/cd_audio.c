@@ -9,6 +9,7 @@
 #include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 /* Opens the CD audio device through MCI for the front end's music. Returns 0 at
  * once when the window is not up: g_front_state.hWnd NULL in the original build,
@@ -61,6 +62,8 @@ int cd_audio_initialize(void)
 	open_parameters.lpstrDeviceType = "cdaudio";
 	if (mciSendCommandA(0, MCI_OPEN, MCI_OPEN_TYPE, &open_parameters) !=
 	    MMSYSERR_NOERROR) {
+		XVT_LOG_WARN(
+			"music.device_failed site=\"menus\" step=\"open\"");
 		g_front_state.cd_audio_mci_device_id = 0;
 		return 0;
 	}
@@ -70,6 +73,8 @@ int cd_audio_initialize(void)
 	if (mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_SET,
 			    MCI_SET_TIME_FORMAT,
 			    &set_parameters) != MMSYSERR_NOERROR) {
+		XVT_LOG_WARN(
+			"music.device_failed site=\"menus\" step=\"time_format\"");
 		mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_CLOSE,
 				0, NULL);
 		g_front_state.cd_audio_mci_device_id = 0;
@@ -81,6 +86,8 @@ int cd_audio_initialize(void)
 	if (mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_STATUS,
 			    MCI_STATUS_ITEM,
 			    &status_parameters) != MMSYSERR_NOERROR) {
+		XVT_LOG_WARN(
+			"music.device_failed site=\"menus\" step=\"track_count\"");
 		mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_CLOSE,
 				0, NULL);
 		g_front_state.cd_audio_mci_device_id = 0;
@@ -92,6 +99,8 @@ int cd_audio_initialize(void)
 	 * track number of the loop that caches each track's length. */
 	device_count = 1;
 	if (g_front_state.cd_audio_track_count < device_count) {
+		XVT_LOG_INFO("music.device_opened site=\"menus\" tracks=%d",
+			     g_front_state.cd_audio_track_count);
 		return 1;
 	}
 	while (1) {
@@ -107,9 +116,14 @@ int cd_audio_initialize(void)
 			(unsigned int)status_parameters.dwReturn;
 		device_count++;
 		if (g_front_state.cd_audio_track_count < device_count) {
+			XVT_LOG_INFO(
+				"music.device_opened site=\"menus\" tracks=%d",
+				g_front_state.cd_audio_track_count);
 			return 1;
 		}
 	}
+	XVT_LOG_WARN(
+		"music.device_failed site=\"menus\" step=\"track_length\"");
 	mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_CLOSE, 0,
 			NULL);
 	g_front_state.cd_audio_mci_device_id = 0;
@@ -136,6 +150,8 @@ int cd_audio_play_track_from_time(int track_number, uint16_t start_minute,
 
 	if (g_front_state.cd_audio_track_count < track_number ||
 	    track_number <= 0) {
+		XVT_LOG_DEBUG("music.track_unavailable track=%d tracks=%d",
+			      track_number, g_front_state.cd_audio_track_count);
 		return 0;
 	}
 	if (g_front_state.cd_audio_mci_device_id == 0) {
@@ -159,6 +175,8 @@ int cd_audio_play_track_from_time(int track_number, uint16_t start_minute,
 	if (mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_PLAY,
 			    MCI_NOTIFY | MCI_FROM | MCI_TO,
 			    &parameters) != MMSYSERR_NOERROR) {
+		XVT_LOG_WARN("music.play_failed site=\"menus\" track=%d",
+			     track_number);
 		return 0;
 	}
 
@@ -168,6 +186,8 @@ int cd_audio_play_track_from_time(int track_number, uint16_t start_minute,
 		2000;
 	g_front_state.cd_audio_playback_complete = 0;
 	g_front_state.cd_audio_suspend_state = CD_AUDIO_NOT_SUSPENDED;
+	XVT_LOG_DEBUG("music.track_started track=%d minute=%d second=%d",
+		      track_number, (int)start_minute, (int)start_second);
 	return 1;
 }
 
@@ -188,6 +208,7 @@ int cd_audio_stop_current_track(void)
 	mciSendCommandA(g_front_state.cd_audio_mci_device_id, MCI_STOP, 0,
 			&parameters);
 	g_front_state.cd_audio_current_track = 0;
+	XVT_LOG_DEBUG("music.track_stopped");
 	g_front_state.cd_audio_playback_complete = 0;
 	g_front_state.cd_audio_suspend_state = CD_AUDIO_NOT_SUSPENDED;
 	return 1;
@@ -246,6 +267,8 @@ void cd_audio_close_device(void)
 			} while (++device_index < device_count);
 		}
 	}
+	XVT_LOG_DEBUG("music.device_closed site=\"menus\" restored=%d",
+		      (int)(g_front_state.cd_audio_saved_aux_volume != -1));
 	*saved_aux_volume = -1;
 }
 
@@ -338,6 +361,13 @@ int cd_audio_suspend_playback(void)
 					MCI_STOP, 0, &parameters);
 			g_front_state.cd_audio_suspend_state =
 				CD_AUDIO_SUSPENDED;
+			XVT_LOG_DEBUG(
+				"music.suspended track=%d remaining_ms=%u elapsed_ms=%u",
+				g_front_state.cd_audio_current_track,
+				(unsigned)g_front_state
+					.cd_audio_suspend_remaining_ms,
+				(unsigned)g_front_state
+					.cd_audio_suspend_elapsed_ms);
 			return 1;
 		}
 	} else if (g_front_state.cd_audio_suspend_state ==
@@ -383,6 +413,10 @@ int cd_audio_resume_suspended_playback(void)
 		GetTickCount() + g_front_state.cd_audio_suspend_remaining_ms +
 		2000;
 	g_front_state.cd_audio_suspend_state = CD_AUDIO_NOT_SUSPENDED;
+	XVT_LOG_DEBUG("music.resumed track=%d from_ms=%u remaining_ms=%u",
+		      g_front_state.cd_audio_current_track,
+		      (unsigned)g_front_state.cd_audio_suspend_elapsed_ms,
+		      (unsigned)g_front_state.cd_audio_suspend_remaining_ms);
 	return 1;
 }
 
@@ -427,6 +461,8 @@ int cd_audio_fade_aux_volume(unsigned int from_volume, unsigned int to_volume,
 			     int fade_duration_ms)
 {
 #ifdef XVT_MODERN
+	XVT_LOG_DEBUG("music.fade_started from=%u to=%u ms=%d", from_volume,
+		      to_volume, fade_duration_ms);
 	return xvt_cd_task_begin_fade(from_volume, to_volume, fade_duration_ms);
 #else
 	if (g_front_state.cd_audio_mci_device_id == 0) {

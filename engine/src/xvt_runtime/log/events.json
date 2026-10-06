@@ -4058,6 +4058,56 @@
       "fields": ["message", "args", "tick"],
       "text": "In-flight message {message} came out longer than 69 characters and was cut to 69 (argument values {args} (message numbers, counts, or 32,768 plus a slot for a name)); at tick {tick}"
     },
+    "music.device_closed": {
+      "level": "D",
+      "fields": ["site", "restored"],
+      "text": "The {site} music device was closed; the CD audio volume saved when it opened was put back: {restored}"
+    },
+    "music.device_failed": {
+      "level": "W",
+      "fields": ["site", "step"],
+      "text": "The {site} music device (the CD audio player) did not start at step {step} (open, time_format, track_count or track_length); the {site} went on without music"
+    },
+    "music.device_opened": {
+      "level": "I",
+      "fields": ["site", "tracks"],
+      "text": "The {site} music device was opened with {tracks} tracks"
+    },
+    "music.fade_started": {
+      "level": "D",
+      "fields": ["from", "to", "ms"],
+      "text": "A music volume fade was asked for, from {from} to {to} (0 to 65535) over {ms} ms"
+    },
+    "music.play_failed": {
+      "level": "W",
+      "fields": ["site", "track"],
+      "text": "Music track {track} did not start in the {site}: the music device refused to play it"
+    },
+    "music.resumed": {
+      "level": "D",
+      "fields": ["track", "from_ms", "remaining_ms"],
+      "text": "Menu music track {track} was played on from {from_ms} ms, with {remaining_ms} ms left"
+    },
+    "music.suspended": {
+      "level": "D",
+      "fields": ["track", "remaining_ms", "elapsed_ms"],
+      "text": "Menu music track {track} was paused (for a movie or a disk search) with {elapsed_ms} ms played and {remaining_ms} ms left"
+    },
+    "music.track_started": {
+      "level": "D",
+      "fields": ["track", "minute", "second"],
+      "text": "Menu music track {track} started playing from {minute} minutes {second} seconds"
+    },
+    "music.track_stopped": {
+      "level": "D",
+      "fields": [],
+      "text": "The menu music track was stopped (music switched off)"
+    },
+    "music.track_unavailable": {
+      "level": "D",
+      "fields": ["track", "tracks"],
+      "text": "Music track {track} was asked for in the menus, but the music device holds {tracks} tracks, so nothing played"
+    },
     "network.admission_ignored": {
       "level": "D",
       "fields": ["player"],
