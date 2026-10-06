@@ -4,6 +4,7 @@
 #include "xvt/audio/cd_audio.h"
 #include "xvt/flight/flight.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log_both_builds.h"
 
 #ifdef XVT_MODERN
 #include "xvt_runtime/runtime/port.h"
@@ -119,6 +120,8 @@ int music_cd_initialize(void)
 	parameters.open_parameters.lpstrDeviceType = "cdaudio";
 	if (mciSendCommandA(0, MCI_OPEN, MCI_OPEN_TYPE,
 			    &parameters.open_parameters) != MMSYSERR_NOERROR) {
+		XVT_LOG_WARN(
+			"music.device_failed site=\"flight\" step=\"open\"");
 		g_music_cd_mci_device_id = 0;
 		return 0;
 	}
@@ -127,6 +130,8 @@ int music_cd_initialize(void)
 	if (mciSendCommandA(g_music_cd_mci_device_id, MCI_SET,
 			    MCI_SET_TIME_FORMAT,
 			    &parameters.set_parameters) != MMSYSERR_NOERROR) {
+		XVT_LOG_WARN(
+			"music.device_failed site=\"flight\" step=\"time_format\"");
 		mciSendCommandA(g_music_cd_mci_device_id, MCI_CLOSE, 0, NULL);
 		g_music_cd_mci_device_id = 0;
 		return 0;
@@ -139,6 +144,8 @@ int music_cd_initialize(void)
 				    MCI_STATUS_ITEM,
 				    &parameters.status_parameters) !=
 		    MMSYSERR_NOERROR) {
+			XVT_LOG_WARN(
+				"music.device_failed site=\"flight\" step=\"track_count\"");
 			mciSendCommandA(g_music_cd_mci_device_id, MCI_CLOSE, 0,
 					NULL);
 			g_music_cd_mci_device_id = 0;
@@ -163,6 +170,8 @@ int music_cd_initialize(void)
 				track_count = g_music_cd_track_count;
 				device_id = g_music_cd_mci_device_id;
 				if (result != MMSYSERR_NOERROR) {
+					XVT_LOG_WARN(
+						"music.device_failed site=\"flight\" step=\"track_length\"");
 					mciSendCommandA(device_id, MCI_CLOSE, 0,
 							NULL);
 					g_music_cd_mci_device_id = 0;
@@ -175,6 +184,8 @@ int music_cd_initialize(void)
 				++track_number;
 			} while (track_count >= track_number);
 		}
+		XVT_LOG_INFO("music.device_opened site=\"flight\" tracks=%d",
+			     (int)g_music_cd_track_count);
 		return 1;
 	}
 }
@@ -215,10 +226,19 @@ int music_cd_play_track_from_time(int track_number, int start_minute,
 	parameters.to = to_time;
 	if (mciSendCommandA(device_id, MCI_PLAY, MCI_NOTIFY | MCI_FROM | MCI_TO,
 			    &parameters) != MMSYSERR_NOERROR) {
+		if (g_flight_sim_side_effects_suppressed == 0) {
+			XVT_LOG_WARN(
+				"music.play_failed site=\"flight\" track=%d",
+				track_number);
+		}
 		return 0;
 	}
 	g_music_cd_playback_complete = 0;
 	g_music_cd_current_track = MCI_TMSF_TRACK(parameters.from);
+	XVT_LOG_DEBUG(
+		"music.flight_track_started track=%d minute=%d second=%d predicted=%d",
+		track_number, start_minute, start_second,
+		g_flight_sim_side_effects_suppressed);
 	return 1;
 }
 
@@ -293,6 +313,8 @@ int music_cd_close_device(void)
 			} while (device_index < device_count);
 		}
 	}
+	XVT_LOG_DEBUG("music.device_closed site=\"flight\" restored=%d",
+		      (int)(g_music_cd_saved_aux_volume != -1));
 	g_music_cd_saved_aux_volume = -1;
 #ifdef XVT_MODERN
 	return 0;

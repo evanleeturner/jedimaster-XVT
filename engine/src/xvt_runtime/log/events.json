@@ -4078,6 +4078,11 @@
       "fields": ["from", "to", "ms"],
       "text": "A music volume fade was asked for, from {from} to {to} (0 to 65535) over {ms} ms"
     },
+    "music.flight_track_started": {
+      "level": "D",
+      "fields": ["track", "minute", "second", "predicted"],
+      "text": "Flight music track {track} started playing from {minute} minutes {second} seconds; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "music.play_failed": {
       "level": "W",
       "fields": ["site", "track"],
