@@ -1,7 +1,7 @@
 # Engine plan: owning the 1997 game code
 
 **Status:** in progress
-**Date:** 2026-10-03
+**Date:** 2026-10-03, updated 2026-10-06
 **Scope:** `engine/src/xvt/`, the recovered game
 **Sibling:** `OPENXVT-FRONTEND-PLAN.md`, the launcher this work is the base for
 **License:** GPLv3 for the engine; `REUSE.toml` names every file's license
@@ -12,12 +12,13 @@
 
 *X-Wing vs. TIE Fighter* shipped in 1997. OpenXvT recovered its code, and
 this project imported that code into `engine/` with its full history.
-Everything this project wants to build sits inside the recovered code:
+Everything this project wants to build sits inside the recovered code
+(lines counted on 2026-10-06):
 
 | Code | Lines | What it holds |
 | --- | --- | --- |
-| `engine/src/xvt/`, the 1997 game | 219,049 | flight, computer-flown ships, missions, briefings, cockpit displays, networking |
-| `engine/src/xvt_runtime/`, `xvt_remaster/`, `xvt_app/`, the new code | 50,905 | platform glue, rendering, settings, the current launcher |
+| `engine/src/xvt/`, the 1997 game | 211,304 | flight, computer-flown ships, missions, briefings, cockpit displays, networking |
+| `engine/src/xvt_runtime/`, `xvt_remaster/`, `xvt_app/`, the new code | 53,307 | platform glue, rendering, settings, the current launcher |
 
 The new code defines none of the game's ship behavior, mission rules or
 briefings. Wingman orders, enemy tactics, mission scoring, flight physics
@@ -25,11 +26,12 @@ and the briefing room are all 1997 code. So every launcher goal (a modern
 lobby, a server mode, new netcode, smarter ships, briefings outside the
 game) requires reading and changing that code.
 
-Recovered code is hard to change safely. Names such as `field0004` or
-`unk58` say nothing. Comments are rare. The code holds 1,896 global
-variables, and in 219 places it carries two versions of itself side by
-side, the original behavior and a later fix. A person or an AI assistant
-working in it today spends most of the effort on archaeology.
+Recovered code is hard to change safely. When this plan began, names
+such as `field0004` or `unk58` said nothing and comments were rare. The
+code held 1,896 global variables, and in 760 places it kept the original
+1997 build's version of itself, beside the version the game runs or
+alone. A person or an AI assistant working in it spent most of the effort
+on archaeology.
 
 This plan takes ownership of that code. By the end, it reads like code
 this project wrote: one layout, names that say what things are, comments
@@ -45,15 +47,16 @@ Five layers, each with a standard a machine checks.
 | Form | K&R layout (the style of Kernighan and Ritchie's *The C Programming Language*) in the Linux kernel's form: 8-column tabs, 80-column lines, a brace on every control body; and the layer a formatter cannot decide: include order, `static` by default, snake_case names throughout, no struct typedefs, variables declared where first used | `engine/.clang-format` on every change; a form check for the second layer, built in step 2 |
 | Names | every function, variable, field and constant says what it is, with its unit and its polarity; placeholder names go; a rename is proven by comparing the compiled objects with the symbols mapped | the rename map and the object comparison |
 | Meaning | a comment above each function says what it does, what it returns on every path, which globals it writes, its units (a tick is 4 ms, a circle is 65,536) and what it does not check; a global's comment says what it holds and who writes it | the comment proof: code tokens unchanged once comments are stripped |
-| Logging | the 1997 code has no lines on the project's log API; what it carries is the remains of its own debug output (section 4). INFO lines tell the readable story of a run; DEBUG lines record every value that moved; messages live in one catalog; a log line never changes behavior | the log catalog check |
+| Logging | INFO lines tell the readable story of a run; DEBUG lines record every value that moved; messages live in one catalog; a log line never changes behavior | the log catalog check |
 | Tests | each test is harvested from a comment's promise; every module gets a test file or a written reason; tests run under AddressSanitizer and UndefinedBehaviorSanitizer; a test counts only once it has failed on a planted fault | CTest in `engine/tests/`, run on every change |
 
 Structure follows from the layers: functions sized so a reader can hold
 one in view, globals narrowed to the code that needs them, and one version
-of each piece of code. Each of the 219 two-version places is retired once
-it is understood. The original behavior stays available behind a switch
-the host picks, "1997 rules" or "fixed rules", so the original game
-remains playable.
+of each piece of code. The 760 places that kept the original build's
+version went on 2026-10-06, each one read first. Where the 1997 game
+played differently, an issue keeps the old behavior for a switch the host
+would pick, "1997 rules" or "fixed rules"; the switch is not built yet
+(`RELEASE-PLAN.md`).
 
 ## 3. The rule that holds throughout: the game plays the same
 
@@ -66,23 +69,22 @@ Every change carries its proof.
 - A change meant to alter behavior is named first, with the expected
   difference written down, and goes behind the rules switch.
 - A bug found in the 1997 code is filed as an issue with the label "from
-  the 1997 game", plus "original build only" when the modern build never
-  runs that path. It is fixed only as a named change.
+  the 1997 game". It is fixed only as a named change.
 - The engine stays GPLv3 and a separate program. The launcher starts it
   and talks to it across a process boundary, and `tools/license_boundary.py`
   refuses any file outside `engine/` that reaches inside.
 
-## 4. Where it stands, measured 2026-10-03
+## 4. Where it stands, measured 2026-10-06
 
 | Layer | Done | Left |
 | --- | --- | --- |
-| Form | the whole tree reformatted in October 2026 (564 files); `.git-blame-ignore-revs` hides that commit from blame | kept by the formatter on every change |
-| Names | 1,410 names renamed in 4 batches (272 functions, 202 globals, 355 fields, the rest parameters and locals), each batch proven by object comparison | about 140 placeholder names; the naming layer the first pass set aside |
-| Meaning | the whole 1997 code explained: every labelled function and global, 3,753 of 3,753, each claim checked against the code before it landed (the networking and flight code first, the rest in a second pass); the 2,155 comment lines the renames pushed past 100 columns wrapped again at 80 | nothing in the 1997 code |
-| Logging | 0 lines on the project's log API. The 1997 code's own debug output remains: 110 `debug_printf` and 9 network trace calls whose functions are empty (the retail build compiled them to nothing), an in-game text console with a file dump nothing switches on, a `serverlog.txt` writer only the original build compiles, and 32 plain `printf` error lines in the model loader; none of it sits behind a debug-only compile switch | all of it: each empty call becomes a catalog event or goes, as a named change |
-| Tests | 90 tests on the new code, all green on every platform | the 1997 code; first targets are the paths where the comments found bugs |
-| Structure | measured: 367 functions over 120 lines (120 of them over 300), 95 nested deeper than 6, 42 files over 1,200 lines, among 1,779 functions; 1,896 globals; 219 two-version places | all of it, area by area, each function only after a test reaches it |
-| Bugs | 17 filed from the networking code, 4 of them in the modern build; 52 candidates from the flight code under check | filing follows the checks |
+| Form | the whole tree reformatted in October 2026 (564 files), then the rest of the house C standard across the whole engine (step 2); `.git-blame-ignore-revs` hides the layout-only commits from blame | kept by the formatter and the form check on every change |
+| Names | 1,410 names renamed in 4 batches (272 functions, 202 globals, 355 fields, the rest parameters and locals), each batch proven by object comparison | about 60 placeholder names, most of them struct fields named by their offset; the naming layer the first pass set aside |
+| Meaning | the whole 1997 code explained: every labelled function and global (3,753 when the map was drawn, 3,195 since the original build's code went), each claim checked against the code before it landed (the networking and flight code first, the rest in a second pass); the 2,155 comment lines the renames pushed past 100 columns wrapped again at 80 | nothing in the 1997 code |
+| Logging | 2,035 log lines in the 1997 code, written area by area: networking, missions, briefings, flight, menus, rendering, models, sound, input; the catalog holds 1,402 events, written from 2,184 places across the engine. The 1997 code's own debug output is gone: each empty debug call became a catalog event or went, and the in-game console, the `serverlog.txt` writer and the model loader's `printf` lines went with the original build. The baseline run, 2026-10-06: two two-player games on build `bb4b12d`, clicked through the menus and judged from their logs alone, no screenshots; 12 minutes of flight with all 374 world checksums equal, a 1-minute mission played to its debriefing, 422 different events seen across the two runs, the battle lines identical on both machines, and every line each area's work listed for the run present | kept by the catalog check on every change; the lines the run cannot reach (a player's keys in flight, damage to a player, the fault paths) wait for the tests |
+| Tests | 92 tests, all green on every platform; 1 of them compiles a 1997 file (`pai.c`, the computer pilots' context) | the 1997 code; first targets are the paths where the comments found bugs |
+| Structure | the 760 places that kept the original build's version, and the 1997 code the game never reached (199 functions, 73 globals), removed on 2026-10-06 | 322 functions over 120 lines (112 of them over 300), 85 nested deeper than 6, 39 files over 1,200 lines, among 1,501 functions; 1,694 globals; area by area, each function only after a test reaches it |
+| Bugs | 234 issues filed from the 1997 code as each area was read; 36 closed, 35 of them when the original build was retired | 198 open (193 bugs, 5 "1997 rules" candidates); each fix is a named change (`RELEASE-PLAN.md`) |
 
 ## 5. Order of work
 
@@ -95,8 +97,11 @@ its row names.
 | 2. The rest of the house C standard, one landing | across the whole engine, the newer code and its tests too: include blocks in one place with the file's own header first; `static` on every function and file-scope object no header declares; snake_case throughout and camelCase never; no struct typedefs; variables declared where first used, one per line, with `const` on read-only pointer parameters; no commented-out code; the same sweep rewrites the comments that name identifiers | a form check for these rules, built first, so the landing is measured; compiled objects identical for every layer that only renames or re-forms, with renamed symbols and the changed `static` bindings mapped; where declarations move, a separate checker of the moving rules, the same warnings and tests on every platform, and the two-game run's world checksums | it touches every line, so it lands alone, with nothing else in flight, as the reformat did |
 | 3. Meaning | the comment map for the remaining areas: frontend, render, assets, audio, math, input, util; then every comment the renames pushed past 100 columns, wrapped again | code tokens unchanged once comments are stripped; for the wrap, the words of every comment unchanged as well, and identical compiled objects | understand before touching; the comments surface the split candidates and the test targets |
 | 4. Logging | catalog events in the 1997 code, the 119 empty debug calls first | a log line never changes behavior; the catalog check | the DEBUG traces become the oracles the tests read |
-| 5. Tests | tests harvested from the comments and traces, module by module, bug sites first; the two-game run with its world checksums as the whole-game oracle | each test fails on a planted fault before it counts | the safety net goes up before the surgery |
+| 5. Tests | tests harvested from the comments and traces, module by module, bug sites first; the two-game run with its world checksums as the whole-game oracle; last, a flight test that needs no pictures: every ship's position logged as it flies, so a two-game run is judged from its logs alone | each test fails on a planted fault before it counts | the safety net goes up before the surgery |
 | 6. Structure | functions split where reading needs it, globals narrowed, one function at a time | tests reach every moved line and pass before and after; identical objects where the compiler happens to agree | the first step that changes the code's shape, so it comes last |
+
+Step 4 closed on 2026-10-06 with the baseline run in section 4's Logging
+row; step 5 starts from it.
 
 One piece of step 6 came early. Before step 4 closed, on 2026-10-06,
 the original 1997 build's code went (760 places, about 21,500 lines),
