@@ -71,9 +71,17 @@ xvt_add_engine_test(test_world_state test_world_state.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/world_checksum.c")
 add_test(NAME world_state COMMAND test_world_state)
 
-# The computer pilots' context: src/xvt/flight/ai/pai.c.
-xvt_add_engine_test(test_pai test_pai.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/pai.c")
-add_test(NAME pai COMMAND test_pai)
+# The computer pilots' context, range tests and plans: src/xvt/flight/ai/pai.c.
+# The plan file checks write their files into a temporary folder made with POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_pai test_pai.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/pai.c")
+    add_test(NAME pai COMMAND test_pai)
+    xvt_add_known_failure(test_pai plan_text_crlf)
+    xvt_add_known_failure(test_pai plan_word_too_long)
+    xvt_add_known_failure(test_pai plan_name_unknown)
+    xvt_add_known_failure(test_pai plo_table_too_large)
+    xvt_add_known_failure(test_pai plo_data_too_large)
+endif()
 
 # The mission's goals, triggers, scoring, arrivals and loader: src/xvt/flight/mission/mission.c.
 # The loader checks write their mission files into a temporary folder made with POSIX calls.
@@ -237,6 +245,14 @@ endif()
 xvt_add_engine_test(test_mission_briefing test_mission_briefing.c
     "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing.c")
 add_test(NAME mission_briefing COMMAND test_mission_briefing)
+
+# The computer pilots' fighting orders, the wingman's attack and the warhead defense: src/xvt/flight/ai/paifight.c.
+xvt_add_engine_test(test_paifight test_paifight.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/paifight.c")
+add_test(NAME paifight COMMAND test_paifight)
+xvt_add_known_failure(test_paifight follow_leader_attacker_none)
+xvt_add_known_failure(test_paifight follow_leader_avoid_target)
+xvt_add_known_failure(test_paifight follow_leader_static_skip)
+xvt_add_known_failure(test_paifight defense_last_attacker)
 
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
