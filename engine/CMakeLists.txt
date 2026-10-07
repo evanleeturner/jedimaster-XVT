@@ -228,6 +228,7 @@ set(XVT_RUNTIME_SOURCES
     src/xvt_runtime/runtime/flight_frame.c
     src/xvt_runtime/runtime/flight_sim.c
     src/xvt_runtime/runtime/flight_prediction.c
+    src/xvt_runtime/runtime/flight_record.c
     src/xvt_runtime/runtime/frontend_movies.c
     src/xvt_runtime/input/input_bridge.c
     src/xvt_runtime/input/capture.c

@@ -7,6 +7,7 @@
 #include "xvt_runtime/runtime/flight_messages.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/flight_prediction.h"
+#include "xvt_runtime/runtime/flight_record.h"
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 #include "xvt_runtime/timing/flight_timing.h"
@@ -538,6 +539,7 @@ static void xvt_flight_frame_checksum(void)
 			g_server_tick_time, net_session_is_local_host() != 0,
 			sums, lengths);
 	}
+	xvt_flight_record_point(g_server_tick_time);
 	if (net_session_is_local_host()) {
 		flight_net_broadcast_world_checksum(
 			(const int *)g_world_checksum,

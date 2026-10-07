@@ -595,6 +595,9 @@ endif()
 xvt_add_engine_test(test_flight_frame test_flight_frame.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_frame.c")
 add_test(NAME flight_frame COMMAND test_flight_frame)
+xvt_add_engine_test(test_flight_record test_flight_record.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_record.c")
+add_test(NAME flight_record COMMAND test_flight_record)
 xvt_add_engine_test(test_flight_loading test_flight_loading.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_loading.c")
 add_test(NAME flight_loading COMMAND test_flight_loading)

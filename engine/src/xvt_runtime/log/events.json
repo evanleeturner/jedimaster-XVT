@@ -6023,6 +6023,11 @@
       "fields": ["object", "component", "moving", "targets", "score", "minutes", "seconds", "predicted"],
       "text": "On the proving grounds, component {component} of course object {object} was destroyed (a moving one, worth double: {moving}): {targets} targets so far, score {score}, and the clock gained 2 seconds, now {minutes}:{seconds}; predicted step {predicted} (always 0 here)"
     },
+    "record.point": {
+      "level": "D",
+      "fields": ["tick", "craft", "unlinked"],
+      "text": "Record point at world checksum tick {tick}: {craft} craft follow, one world.track line each; {unlinked} craft slots in use held no craft record and are not tracked"
+    },
     "remaster.alpha_override": {
       "level": "D",
       "fields": ["model", "texture", "mode", "cutoff"],
@@ -7012,6 +7017,11 @@
       "level": "D",
       "fields": ["hardware3d"],
       "text": "The first scene drawn after the flight started or the view changed flushed the 3D card's texture cache (hardware 3D {hardware3d}; at 0 there is no cache and only the request was cleared)"
+    },
+    "world.track": {
+      "level": "D",
+      "fields": ["tick", "object", "signature", "type", "fg", "player", "team", "x", "y", "z", "yaw", "pitch", "roll", "speed", "throttle", "state", "hull", "hull_max", "front", "rear", "target", "ai_target"],
+      "text": "At record point tick {tick}, craft {object} (identity stamp {signature}, object type {type}, flight group {fg}, flown by player {player} or -1 for none, team {team}) was at {x} {y} {z} with heading {yaw}, pitch {pitch} and roll {roll} in 65,536ths of a turn, speed {speed}, throttle {throttle} of 65,535, state {state} (0 active, 1 not named, 2 disabled, 3 breaking up, 4 exploding, 5 entering hyperspace, 6 arriving from it), hull damage {hull} of {hull_max}, shields {front} front and {rear} rear; its player's target {target} (-1 none) and its pilot's target {ai_target} (an object, 32,768 plus a mission point, 65,535 none)"
     }
   }
 }
