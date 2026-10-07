@@ -221,6 +221,7 @@ set(XVT_RUNTIME_SOURCES
     src/xvt_runtime/runtime/flight_wire.c
     src/xvt_runtime/runtime/flight_messages.c
     src/xvt_runtime/runtime/flight_network.c
+    src/xvt_runtime/runtime/flight_network_exchange.c
     src/xvt_runtime/runtime/flight_packets.c
     src/xvt_runtime/runtime/resync_task.c
     src/xvt_runtime/runtime/flight_entry.c

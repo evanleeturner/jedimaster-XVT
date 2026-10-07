@@ -15,7 +15,7 @@
 #include "xvt/util/time.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/log/log.h"
-#include "xvt_runtime/runtime/flight_network.h"
+#include "xvt_runtime/runtime/flight_network_exchange.h"
 #include "xvt_runtime/runtime/network_metadata.h"
 
 enum {

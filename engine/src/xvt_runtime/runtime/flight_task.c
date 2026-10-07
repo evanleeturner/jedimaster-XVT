@@ -6,6 +6,7 @@
 #include "xvt_runtime/runtime/flight_internal.h"
 #include "xvt_runtime/runtime/flight_messages.h"
 #include "xvt_runtime/runtime/flight_network.h"
+#include "xvt_runtime/runtime/flight_network_exchange.h"
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/snapshot/cockpit_capture.h"

@@ -24,7 +24,7 @@
 #include "xvt/net/net_session.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/runtime/flight_messages.h"
-#include "xvt_runtime/runtime/flight_network.h"
+#include "xvt_runtime/runtime/flight_network_exchange.h"
 #include "xvt_runtime/runtime/flight_prediction.h"
 #include "xvt_runtime/runtime/flight_task.h"
 #include "xvt_runtime/runtime/network_session.h"

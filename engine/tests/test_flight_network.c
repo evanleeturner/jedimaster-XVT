@@ -41,6 +41,7 @@
 #include "xvt_runtime/runtime/flight_frame.h"
 #include "xvt_runtime/runtime/flight_messages.h"
 #include "xvt_runtime/runtime/flight_network.h"
+#include "xvt_runtime/runtime/flight_network_exchange.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
 #include "xvt_runtime/runtime/flight_wire.h"
 #include "xvt_runtime/runtime/resync_task.h"

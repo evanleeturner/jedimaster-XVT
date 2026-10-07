@@ -25,6 +25,7 @@
 #include "xvt_runtime/runtime/flight_checkpoint.h"
 #include "xvt_runtime/runtime/flight_messages.h"
 #include "xvt_runtime/runtime/flight_network.h"
+#include "xvt_runtime/runtime/flight_network_exchange.h"
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/timing/host_clock.h"
 

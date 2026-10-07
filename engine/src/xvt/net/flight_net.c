@@ -20,6 +20,7 @@
 #include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_network.h"
+#include "xvt_runtime/runtime/flight_network_exchange.h"
 #include "xvt_runtime/runtime/resync_task.h"
 
 /* DirectPlay id of the player the host is resending the world to; 0 means none.

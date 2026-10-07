@@ -26,7 +26,7 @@
 #include "xvt/flight/player/player.h"
 #include "xvt/net/flight_net.h"
 #include "xvt_runtime/runtime/flight_checkpoint.h"
-#include "xvt_runtime/runtime/flight_network.h"
+#include "xvt_runtime/runtime/flight_network_exchange.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
 #include "xvt_runtime/runtime/flight_wire.h"
 #include "xvt_runtime/timing/flight_integration.h"
