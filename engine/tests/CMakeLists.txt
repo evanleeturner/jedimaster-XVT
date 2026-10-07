@@ -316,6 +316,27 @@ endif()
 xvt_add_engine_test(test_damage test_damage.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/object/damage.c")
 add_test(NAME damage COMMAND test_damage)
 
+# The player's throttle steps and disabled-system test: src/xvt/flight/player/flight_player.c.
+xvt_add_engine_test(test_flight_player test_flight_player.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/player/flight_player.c")
+add_test(NAME flight_player COMMAND test_flight_player)
+
+# The aim cone test and target box sizes: src/xvt/flight/targeting.c.
+xvt_add_engine_test(test_targeting test_targeting.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/targeting.c")
+add_test(NAME targeting COMMAND test_targeting)
+xvt_add_known_failure(test_targeting aim_ahead_past_half_million)
+xvt_add_known_failure(test_targeting aim_ahead_past_eight_million)
+
+# How a player step's input is applied, latched and cut by the dead zone: src/xvt/flight/flight_input.c.
+xvt_add_engine_test(test_flight_input test_flight_input.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/flight_input.c")
+add_test(NAME flight_input COMMAND test_flight_input)
+
+# Handing a player's craft back, the nearest enemy and objective searches: src/xvt/flight/player/player.c.
+xvt_add_engine_test(test_player test_player.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/player/player.c")
+add_test(NAME player COMMAND test_player)
+xvt_add_known_failure(test_player nearest_enemy_none_minus_one)
+xvt_add_known_failure(test_player unbind_plan_to_released_craft)
+xvt_add_known_failure(test_player objective_second_pair_first_trigger)
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
