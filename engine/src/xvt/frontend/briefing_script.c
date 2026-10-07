@@ -237,6 +237,256 @@ int16_t briefing_script_advance_to_next_visible_line(void)
 	return briefing_script_advance_until_time(target_time, 0);
 }
 
+/* Opcode 6 of briefing_script_advance_frame: sets the map center target to
+ * (args[0], args[1]), and the current center too when the entry's time
+ * event_time is 0 or apply_instantly is set. */
+static void briefing_script_apply_map_center(int16_t event_time,
+					     const int16_t *args,
+					     int16_t apply_instantly)
+{
+	if (event_time == 0 || apply_instantly != 0) {
+		g_briefing_map_target_center.x = args[0];
+		g_briefing_map_center.x = args[0];
+		g_briefing_map_target_center.y = args[1];
+		g_briefing_map_center.y = args[1];
+	} else {
+		g_briefing_map_target_center.x = args[0];
+		g_briefing_map_target_center.y = args[1];
+	}
+	g_briefing_map_center_dirty = 1;
+	XVT_LOG_DEBUG(
+		"briefing.map_target kind=\"center\" x=%d y=%d at=%d instant=%d",
+		(int)args[0], (int)args[1],
+		(int)g_briefing_script.current_frame, (int)apply_instantly);
+}
+
+/* Opcode 7 of briefing_script_advance_frame: sets the map scale target to
+ * (args[0], args[1]), and the current scale too when the entry's time
+ * event_time is 0 or apply_instantly is set. */
+static void briefing_script_apply_map_zoom(int16_t event_time,
+					   const int16_t *args,
+					   int16_t apply_instantly)
+{
+	if (event_time == 0 || apply_instantly != 0) {
+		g_briefing_map_target_scale.x = args[0];
+		g_briefing_map_scale.x = args[0];
+		g_briefing_map_target_scale.y = args[1];
+		g_briefing_map_scale.y = args[1];
+	} else {
+		g_briefing_map_target_scale.x = args[0];
+		g_briefing_map_target_scale.y = args[1];
+	}
+	g_briefing_map_scale_dirty = 1;
+	XVT_LOG_DEBUG(
+		"briefing.map_target kind=\"zoom\" x=%d y=%d at=%d instant=%d",
+		(int)args[0], (int)args[1],
+		(int)g_briefing_script.current_frame, (int)apply_instantly);
+	if (args[0] <= 0 || args[1] <= 0) {
+		XVT_LOG_ERROR("briefing.zoom_invalid x=%d y=%d at=%d",
+			      (int)args[0], (int)args[1],
+			      (int)g_briefing_script.current_frame);
+	}
+}
+
+/* Opcodes 9 to 16 of briefing_script_advance_frame: shows marker opcode - 9
+ * on flight group args[0], at age 0, or 80 with apply_instantly set. Without
+ * apply_instantly it reads the group's IFF to pick the marker's sound. */
+static void briefing_script_show_marker(int16_t opcode, const int16_t *args,
+					int16_t apply_instantly)
+{
+	int16_t slot_index;
+	if (args[0] < 0 ||
+	    args[0] >= (int16_t)g_frontend_mission.flight_group_count) {
+		XVT_LOG_WARN(
+			"briefing.marker_group_invalid marker=%d fg=%d groups=%d at=%d",
+			(int)(opcode - 9), (int)args[0],
+			(int)(int16_t)g_frontend_mission.flight_group_count,
+			(int)g_briefing_script.current_frame);
+	}
+	if (apply_instantly == 0) {
+		int16_t iff = g_frontend_mission.flight_groups[args[0]].iff;
+		if (iff > 2) {
+			iff = 2;
+		}
+		if (iff == 1) {
+			if (g_game_config.sfx_datapad_enabled != 0) {
+				frontend_sound_play_ui_sound(
+					"sfxTarget2", 1, 0, 127,
+					12 * g_game_config.sfx_datapad_volume,
+					63);
+			}
+		} else if (g_game_config.sfx_datapad_enabled != 0) {
+			frontend_sound_play_ui_sound(
+				"sfxTarget1", 1, 0, 127,
+				12 * g_game_config.sfx_datapad_volume, 63);
+		}
+	}
+	slot_index = opcode - 9;
+	g_briefing_map_fg_marker_active[slot_index] = 1;
+	g_briefing_map_fg_marker_age[slot_index] =
+		apply_instantly == 0 ? 0 : 80;
+	g_briefing_map_fg_marker_flight_group_idx[slot_index] = args[0];
+	XVT_LOG_DEBUG(
+		"briefing.marker_shown marker=%d fg=%d iff=%d sound=%d at=%d instant=%d",
+		(int)slot_index, (int)args[0],
+		apply_instantly == 0
+			? (int)g_frontend_mission.flight_groups[args[0]].iff
+			: -1,
+		apply_instantly == 0 && g_game_config.sfx_datapad_enabled != 0,
+		(int)g_briefing_script.current_frame, (int)apply_instantly);
+}
+
+/* Opcodes 18 to 25 of briefing_script_advance_frame: shows label opcode - 18
+ * with text args[0] at map point (args[1], args[2]) in shade ramp args[3], at
+ * age 0, or 80 with apply_instantly set. Without apply_instantly it copies
+ * the label's text to decide on its sound. */
+static void briefing_script_show_label(int16_t opcode, const int16_t *args,
+				       int16_t apply_instantly)
+{
+	int16_t slot_index;
+	char label_text[40];
+	if (args[0] < 0 || args[0] >= 32) {
+		XVT_LOG_WARN(
+			"briefing.label_string_invalid label=%d string=%d at=%d",
+			(int)(opcode - 18), (int)args[0],
+			(int)g_briefing_script.current_frame);
+	}
+	if (args[3] < 0 || args[3] > 4) {
+		XVT_LOG_WARN(
+			"briefing.label_color_invalid label=%d color=%d at=%d",
+			(int)(opcode - 18), (int)args[3],
+			(int)g_briefing_script.current_frame);
+	}
+	if (apply_instantly == 0) {
+		strcpy(label_text, g_briefing_map_label_texts[args[0]]);
+		if ((uint16_t)strlen(label_text) != 0 &&
+		    g_game_config.sfx_datapad_enabled != 0) {
+			frontend_sound_play_ui_sound(
+				"sfxText", 1, 0, 127,
+				12 * g_game_config.sfx_datapad_volume, 63);
+		}
+	}
+	slot_index = opcode - 18;
+	g_briefing_map_label_active[slot_index] = 1;
+	g_briefing_map_label_age[slot_index] = apply_instantly == 0 ? 0 : 80;
+	g_briefing_map_label_text_idx[slot_index] = args[0];
+	g_briefing_map_label_x[slot_index] = args[1];
+	g_briefing_map_label_y[slot_index] = args[2];
+	g_briefing_map_label_style[slot_index] = args[3];
+	XVT_LOG_DEBUG(
+		"briefing.label_shown label=%d string=%d x=%d y=%d color=%d sound=%d at=%d instant=%d",
+		(int)slot_index, (int)args[0], (int)args[1], (int)args[2],
+		(int)args[3],
+		apply_instantly == 0 &&
+			g_briefing_map_label_texts[args[0]][0] != '\0' &&
+			g_game_config.sfx_datapad_enabled != 0,
+		(int)g_briefing_script.current_frame, (int)apply_instantly);
+}
+
+/* Applies an entry briefing_script_advance_frame found timed at the current
+ * frame, event_time: opcode with its argument words args. Opcodes 6, 7, 9 to
+ * 16 and 18 to 25 go to the four functions above; saved_cursor_word_index,
+ * the entry's word index, is only logged. */
+static void briefing_script_apply_entry(int16_t event_time, int16_t opcode,
+					const int16_t *args,
+					int16_t apply_instantly,
+					int16_t saved_cursor_word_index)
+{
+	int16_t slot_index;
+	switch (opcode) {
+	case 1:
+		g_briefing_script_pause_marker_reached = 1;
+		XVT_LOG_DEBUG("briefing.stop_point at=%d instant=%d",
+			      (int)g_briefing_script.current_frame,
+			      (int)apply_instantly);
+		break;
+	case 3:
+		for (slot_index = 0; slot_index < 2; ++slot_index) {
+			g_briefing_text_slot_active[slot_index] = 0;
+		}
+		g_briefing_text_slots_changed = 1;
+		XVT_LOG_DEBUG(
+			"briefing.overlay_cleared kind=\"text\" at=%d instant=%d",
+			(int)g_briefing_script.current_frame,
+			(int)apply_instantly);
+		break;
+	case 4:
+	case 5:
+		slot_index = opcode - 4;
+		g_briefing_text_slot_active[slot_index] = 1;
+		g_briefing_text_slot_block_idx[slot_index] = args[0];
+		XVT_LOG_DEBUG(
+			"briefing.text_shown text_slot=%d block=%d at=%d instant=%d",
+			(int)slot_index, (int)args[0],
+			(int)g_briefing_script.current_frame,
+			(int)apply_instantly);
+		if (slot_index == 1 && (args[0] < 0 || args[0] >= 32)) {
+			XVT_LOG_WARN(
+				"briefing.text_block_invalid block=%d at=%d",
+				(int)args[0],
+				(int)g_briefing_script.current_frame);
+		}
+		break;
+	case 6:
+		briefing_script_apply_map_center(event_time, args,
+						 apply_instantly);
+		break;
+	case 7:
+		briefing_script_apply_map_zoom(event_time, args,
+					       apply_instantly);
+		break;
+	case 8:
+		for (slot_index = 0; slot_index < 8; ++slot_index) {
+			g_briefing_map_fg_marker_active[slot_index] = 0;
+		}
+		g_briefing_map_fg_markers_changed = 1;
+		XVT_LOG_DEBUG(
+			"briefing.overlay_cleared kind=\"markers\" at=%d instant=%d",
+			(int)g_briefing_script.current_frame,
+			(int)apply_instantly);
+		break;
+	case 9:
+	case 10:
+	case 11:
+	case 12:
+	case 13:
+	case 14:
+	case 15:
+	case 16:
+		briefing_script_show_marker(opcode, args, apply_instantly);
+		break;
+	case 17:
+		for (slot_index = 0; slot_index < 8; ++slot_index) {
+			g_briefing_map_label_active[slot_index] = 0;
+		}
+		g_briefing_map_labels_changed = 1;
+		XVT_LOG_DEBUG(
+			"briefing.overlay_cleared kind=\"labels\" at=%d instant=%d",
+			(int)g_briefing_script.current_frame,
+			(int)apply_instantly);
+		break;
+	case 18:
+	case 19:
+	case 20:
+	case 21:
+	case 22:
+	case 23:
+	case 24:
+	case 25:
+		briefing_script_show_label(opcode, args, apply_instantly);
+		break;
+	default:
+		if (opcode == 34) {
+			XVT_LOG_WARN(
+				"briefing.script_end_early at=%d frames=%d word=%d",
+				(int)g_briefing_script.current_frame,
+				(int)g_briefing_script.duration_frames,
+				(int)saved_cursor_word_index);
+		}
+		break;
+	}
+}
+
 /* Plays the script frame at g_briefing_script.current_frame, raises
  * current_frame by one, and returns the cursor's new word index. First sets
  * g_briefing_text_slots_changed, g_briefing_map_fg_markers_changed,
@@ -274,8 +524,6 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 	int16_t opcode;
 	int16_t args[8];
 	int16_t argument_count;
-	int16_t slot_index;
-	char label_text[40];
 	if (event_time <= g_briefing_script.current_frame) {
 		do {
 			saved_cursor_word_index = cursor_word_index;
@@ -302,296 +550,10 @@ int16_t briefing_script_advance_frame(int16_t apply_instantly)
 			}
 
 			if (event_time == g_briefing_script.current_frame) {
-				switch (opcode) {
-				case 1:
-					g_briefing_script_pause_marker_reached =
-						1;
-					XVT_LOG_DEBUG(
-						"briefing.stop_point at=%d instant=%d",
-						(int)g_briefing_script
-							.current_frame,
-						(int)apply_instantly);
-					break;
-				case 3:
-					for (slot_index = 0; slot_index < 2;
-					     ++slot_index) {
-						g_briefing_text_slot_active
-							[slot_index] = 0;
-					}
-					g_briefing_text_slots_changed = 1;
-					XVT_LOG_DEBUG(
-						"briefing.overlay_cleared kind=\"text\" at=%d instant=%d",
-						(int)g_briefing_script
-							.current_frame,
-						(int)apply_instantly);
-					break;
-				case 4:
-				case 5:
-					slot_index = opcode - 4;
-					g_briefing_text_slot_active
-						[slot_index] = 1;
-					g_briefing_text_slot_block_idx
-						[slot_index] = args[0];
-					XVT_LOG_DEBUG(
-						"briefing.text_shown text_slot=%d block=%d at=%d instant=%d",
-						(int)slot_index, (int)args[0],
-						(int)g_briefing_script
-							.current_frame,
-						(int)apply_instantly);
-					if (slot_index == 1 &&
-					    (args[0] < 0 || args[0] >= 32)) {
-						XVT_LOG_WARN(
-							"briefing.text_block_invalid block=%d at=%d",
-							(int)args[0],
-							(int)g_briefing_script
-								.current_frame);
-					}
-					break;
-				case 6:
-					if (event_time == 0 ||
-					    apply_instantly != 0) {
-						g_briefing_map_target_center.x =
-							args[0];
-						g_briefing_map_center.x =
-							args[0];
-						g_briefing_map_target_center.y =
-							args[1];
-						g_briefing_map_center.y =
-							args[1];
-					} else {
-						g_briefing_map_target_center.x =
-							args[0];
-						g_briefing_map_target_center.y =
-							args[1];
-					}
-					g_briefing_map_center_dirty = 1;
-					XVT_LOG_DEBUG(
-						"briefing.map_target kind=\"center\" x=%d y=%d at=%d instant=%d",
-						(int)args[0], (int)args[1],
-						(int)g_briefing_script
-							.current_frame,
-						(int)apply_instantly);
-					break;
-				case 7:
-					if (event_time == 0 ||
-					    apply_instantly != 0) {
-						g_briefing_map_target_scale.x =
-							args[0];
-						g_briefing_map_scale.x =
-							args[0];
-						g_briefing_map_target_scale.y =
-							args[1];
-						g_briefing_map_scale.y =
-							args[1];
-					} else {
-						g_briefing_map_target_scale.x =
-							args[0];
-						g_briefing_map_target_scale.y =
-							args[1];
-					}
-					g_briefing_map_scale_dirty = 1;
-					XVT_LOG_DEBUG(
-						"briefing.map_target kind=\"zoom\" x=%d y=%d at=%d instant=%d",
-						(int)args[0], (int)args[1],
-						(int)g_briefing_script
-							.current_frame,
-						(int)apply_instantly);
-					if (args[0] <= 0 || args[1] <= 0) {
-						XVT_LOG_ERROR(
-							"briefing.zoom_invalid x=%d y=%d at=%d",
-							(int)args[0],
-							(int)args[1],
-							(int)g_briefing_script
-								.current_frame);
-					}
-					break;
-				case 8:
-					for (slot_index = 0; slot_index < 8;
-					     ++slot_index) {
-						g_briefing_map_fg_marker_active
-							[slot_index] = 0;
-					}
-					g_briefing_map_fg_markers_changed = 1;
-					XVT_LOG_DEBUG(
-						"briefing.overlay_cleared kind=\"markers\" at=%d instant=%d",
-						(int)g_briefing_script
-							.current_frame,
-						(int)apply_instantly);
-					break;
-				case 9:
-				case 10:
-				case 11:
-				case 12:
-				case 13:
-				case 14:
-				case 15:
-				case 16:
-					if (args[0] < 0 ||
-					    args[0] >=
-						    (int16_t)g_frontend_mission
-							    .flight_group_count) {
-						XVT_LOG_WARN(
-							"briefing.marker_group_invalid marker=%d fg=%d groups=%d at=%d",
-							(int)(opcode - 9),
-							(int)args[0],
-							(int)(int16_t)g_frontend_mission
-								.flight_group_count,
-							(int)g_briefing_script
-								.current_frame);
-					}
-					if (apply_instantly == 0) {
-						int16_t iff =
-							g_frontend_mission
-								.flight_groups
-									[args[0]]
-								.iff;
-						if (iff > 2) {
-							iff = 2;
-						}
-						if (iff == 1) {
-							if (g_game_config
-								    .sfx_datapad_enabled !=
-							    0) {
-								frontend_sound_play_ui_sound(
-									"sfxTarget2",
-									1, 0,
-									127,
-									12 * g_game_config
-											.sfx_datapad_volume,
-									63);
-							}
-						} else if (
-							g_game_config
-								.sfx_datapad_enabled !=
-							0) {
-							frontend_sound_play_ui_sound(
-								"sfxTarget1", 1,
-								0, 127,
-								12 * g_game_config
-										.sfx_datapad_volume,
-								63);
-						}
-					}
-					slot_index = opcode - 9;
-					g_briefing_map_fg_marker_active
-						[slot_index] = 1;
-					g_briefing_map_fg_marker_age
-						[slot_index] =
-							apply_instantly == 0
-								? 0
-								: 80;
-					g_briefing_map_fg_marker_flight_group_idx
-						[slot_index] = args[0];
-					XVT_LOG_DEBUG(
-						"briefing.marker_shown marker=%d fg=%d iff=%d sound=%d at=%d instant=%d",
-						(int)slot_index, (int)args[0],
-						apply_instantly == 0
-							? (int)g_frontend_mission
-								  .flight_groups
-									  [args[0]]
-								  .iff
-							: -1,
-						apply_instantly == 0 &&
-							g_game_config.sfx_datapad_enabled !=
-								0,
-						(int)g_briefing_script
-							.current_frame,
-						(int)apply_instantly);
-					break;
-				case 17:
-					for (slot_index = 0; slot_index < 8;
-					     ++slot_index) {
-						g_briefing_map_label_active
-							[slot_index] = 0;
-					}
-					g_briefing_map_labels_changed = 1;
-					XVT_LOG_DEBUG(
-						"briefing.overlay_cleared kind=\"labels\" at=%d instant=%d",
-						(int)g_briefing_script
-							.current_frame,
-						(int)apply_instantly);
-					break;
-				case 18:
-				case 19:
-				case 20:
-				case 21:
-				case 22:
-				case 23:
-				case 24:
-				case 25:
-					if (args[0] < 0 || args[0] >= 32) {
-						XVT_LOG_WARN(
-							"briefing.label_string_invalid label=%d string=%d at=%d",
-							(int)(opcode - 18),
-							(int)args[0],
-							(int)g_briefing_script
-								.current_frame);
-					}
-					if (args[3] < 0 || args[3] > 4) {
-						XVT_LOG_WARN(
-							"briefing.label_color_invalid label=%d color=%d at=%d",
-							(int)(opcode - 18),
-							(int)args[3],
-							(int)g_briefing_script
-								.current_frame);
-					}
-					if (apply_instantly == 0) {
-						strcpy(label_text,
-						       g_briefing_map_label_texts
-							       [args[0]]);
-						if ((uint16_t)strlen(
-							    label_text) != 0 &&
-						    g_game_config.sfx_datapad_enabled !=
-							    0) {
-							frontend_sound_play_ui_sound(
-								"sfxText", 1, 0,
-								127,
-								12 * g_game_config
-										.sfx_datapad_volume,
-								63);
-						}
-					}
-					slot_index = opcode - 18;
-					g_briefing_map_label_active
-						[slot_index] = 1;
-					g_briefing_map_label_age[slot_index] =
-						apply_instantly == 0 ? 0 : 80;
-					g_briefing_map_label_text_idx
-						[slot_index] = args[0];
-					g_briefing_map_label_x[slot_index] =
-						args[1];
-					g_briefing_map_label_y[slot_index] =
-						args[2];
-					g_briefing_map_label_style[slot_index] =
-						args[3];
-					XVT_LOG_DEBUG(
-						"briefing.label_shown label=%d string=%d x=%d y=%d color=%d sound=%d at=%d instant=%d",
-						(int)slot_index, (int)args[0],
-						(int)args[1], (int)args[2],
-						(int)args[3],
-						apply_instantly == 0 &&
-							g_briefing_map_label_texts
-									[args[0]]
-									[0] !=
-								'\0' &&
-							g_game_config.sfx_datapad_enabled !=
-								0,
-						(int)g_briefing_script
-							.current_frame,
-						(int)apply_instantly);
-					break;
-				default:
-					if (opcode == 34) {
-						XVT_LOG_WARN(
-							"briefing.script_end_early at=%d frames=%d word=%d",
-							(int)g_briefing_script
-								.current_frame,
-							(int)g_briefing_script
-								.duration_frames,
-							(int)saved_cursor_word_index);
-					}
-					break;
-				}
+				briefing_script_apply_entry(
+					event_time, opcode, args,
+					apply_instantly,
+					saved_cursor_word_index);
 			} else if (event_time <
 					   g_briefing_script.current_frame &&
 				   opcode != 0) {
