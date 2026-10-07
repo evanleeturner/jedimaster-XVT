@@ -592,23 +592,14 @@ void briefing_map_draw_grid(const struct RECT *viewport_rect,
 	}
 }
 
-/* Draws the briefing map's overlays in viewport_rect. First the highlight of
- * every active flight group marker, drawn by its age; then every active label,
- * its text with '[' made text code 2 (the second text color) and ']' code 1
- * (back to the label's color), revealed by its age at its projected point. Then
- * the icon of every flight group whose mission point 14 +
- * g_active_briefing_index is set and whose craft type is not negative, centered
- * there, from "mapicon0" to "mapicon4" by IFF: IFF 0 to 3 give 0 to 3, IFF 4
- * gives 1, IFF 5 gives 4, and any other gives 0. Player flight groups of the
- * pilot's team also get a number, counting from 1, in font 10 at the icon's
- * lower right. The point it projects for each marker goes unused. */
-// FUNCTION: XVT 0x4F82A0
-void briefing_map_draw_overlays(const struct RECT *viewport_rect,
-				const struct RECT *clip_rect)
+/* The first part of briefing_map_draw_overlays: the highlight of every active
+ * flight group marker, drawn by its age with viewport_rect and clip_rect. The
+ * point it projects in map_rect for each marker goes unused. */
+static void
+briefing_map_draw_marker_highlights(const struct RECT *viewport_rect,
+				    const struct RECT *clip_rect,
+				    const struct RECT *map_rect)
 {
-	struct RECT map_rect;
-
-	frontend_draw_rect_copy(&map_rect, viewport_rect);
 	int16_t index = 0;
 	int16_t projected_x;
 	int16_t projected_y;
@@ -618,7 +609,7 @@ void briefing_map_draw_overlays(const struct RECT *viewport_rect,
 				g_briefing_map_fg_marker_flight_group_idx
 					[index];
 			briefing_map_project_point_to_viewport(
-				&map_rect,
+				map_rect,
 				g_frontend_mission
 					.flight_groups[flight_group_idx]
 					.mission_point_x[14],
@@ -632,14 +623,23 @@ void briefing_map_draw_overlays(const struct RECT *viewport_rect,
 		}
 		++index;
 	} while (index < 8);
+}
 
+/* The second part of briefing_map_draw_overlays: every active label, its text
+ * with '[' made text code 2 and ']' code 1, revealed by its age at its point
+ * projected in map_rect. */
+static void briefing_map_draw_labels(const struct RECT *map_rect)
+{
+	int16_t index;
+	int16_t projected_x;
+	int16_t projected_y;
 	char text[40];
 	for (index = 0; index < 8; ++index) {
 		if (g_briefing_map_label_active[index] != 0) {
 			int16_t text_index =
 				g_briefing_map_label_text_idx[index];
 			briefing_map_project_point_to_viewport(
-				&map_rect, g_briefing_map_label_x[index],
+				map_rect, g_briefing_map_label_x[index],
 				g_briefing_map_label_y[index], &projected_x,
 				&projected_y);
 			strcpy(text, g_briefing_map_label_texts[text_index]);
@@ -658,87 +658,125 @@ void briefing_map_draw_overlays(const struct RECT *viewport_rect,
 				g_briefing_map_label_style[index]);
 		}
 	}
+}
 
-	int player_icon_number = 1;
-	for (index = 0; index < (int16_t)g_frontend_mission.flight_group_count;
-	     ++index) {
-		int16_t craft_type =
-			g_frontend_mission.flight_groups[index].craft_type;
-		int mission_point_index = g_active_briefing_index + 14;
-		int16_t map_x = g_frontend_mission.flight_groups[index]
-					.mission_point_x[mission_point_index];
-		int16_t map_y = g_frontend_mission.flight_groups[index]
-					.mission_point_y[mission_point_index];
-		if (g_frontend_mission.flight_groups[index]
-			    .mission_point_enabled[mission_point_index] != 0) {
-			int16_t icon_color_index;
+/* One flight group's part of briefing_map_draw_overlays: the icon of group
+ * index, drawn as that function says at its point projected in map_rect, and
+ * for a player flight group of the pilot's team the number
+ * *player_icon_number, which it then raises by one. */
+static void briefing_map_draw_flight_group_icon(const struct RECT *map_rect,
+						int16_t index,
+						int *player_icon_number)
+{
+	int16_t projected_x;
+	int16_t projected_y;
+	int16_t craft_type = g_frontend_mission.flight_groups[index].craft_type;
+	int mission_point_index = g_active_briefing_index + 14;
+	int16_t map_x = g_frontend_mission.flight_groups[index]
+				.mission_point_x[mission_point_index];
+	int16_t map_y = g_frontend_mission.flight_groups[index]
+				.mission_point_y[mission_point_index];
+	if (g_frontend_mission.flight_groups[index]
+		    .mission_point_enabled[mission_point_index] != 0) {
+		int16_t icon_color_index;
 
+		icon_color_index = 0;
+		switch (g_frontend_mission.flight_groups[index].iff) {
+		case 0:
 			icon_color_index = 0;
-			switch (g_frontend_mission.flight_groups[index].iff) {
-			case 0:
-				icon_color_index = 0;
-				break;
-			case 1:
-				icon_color_index = 1;
-				break;
-			case 2:
-				icon_color_index = 2;
-				break;
-			case 3:
-				icon_color_index = 3;
-				break;
-			case 4:
-				icon_color_index = 1;
-				break;
-			case 5:
-				icon_color_index = 4;
-				break;
-			default:
-				break;
-			}
+			break;
+		case 1:
+			icon_color_index = 1;
+			break;
+		case 2:
+			icon_color_index = 2;
+			break;
+		case 3:
+			icon_color_index = 3;
+			break;
+		case 4:
+			icon_color_index = 1;
+			break;
+		case 5:
+			icon_color_index = 4;
+			break;
+		default:
+			break;
+		}
 
-			if (craft_type >= 0) {
-				int icon_index =
-					g_map_icon_by_craft_type[craft_type];
-				struct RECT *icon_rect =
-					&g_map_icon_rects[icon_index];
-				int icon_width =
-					icon_rect->right - icon_rect->left + 1;
-				int icon_height =
-					icon_rect->bottom - icon_rect->top + 1;
-				briefing_map_project_point_to_viewport(
-					&map_rect, map_x, map_y, &projected_x,
-					&projected_y);
-				projected_x = (int16_t)(projected_x -
-							(icon_width >> 1));
-				projected_y = (int16_t)(projected_y -
-							(icon_height >> 1));
-				sprintf(g_frontend_scratch_buffer, "mapicon%d",
-					icon_color_index);
-				front_image_draw_sprite_rect_transparent(
-					g_frontend_scratch_buffer, icon_rect,
-					projected_x, projected_y);
+		if (craft_type >= 0) {
+			int icon_index = g_map_icon_by_craft_type[craft_type];
+			struct RECT *icon_rect = &g_map_icon_rects[icon_index];
+			int icon_width = icon_rect->right - icon_rect->left + 1;
+			int icon_height =
+				icon_rect->bottom - icon_rect->top + 1;
+			briefing_map_project_point_to_viewport(
+				map_rect, map_x, map_y, &projected_x,
+				&projected_y);
+			projected_x =
+				(int16_t)(projected_x - (icon_width >> 1));
+			projected_y =
+				(int16_t)(projected_y - (icon_height >> 1));
+			sprintf(g_frontend_scratch_buffer, "mapicon%d",
+				icon_color_index);
+			front_image_draw_sprite_rect_transparent(
+				g_frontend_scratch_buffer, icon_rect,
+				projected_x, projected_y);
 
-				if (g_frontend_mission.flight_groups[index]
-						    .player_number != 0 &&
-				    g_frontend_mission.flight_groups[index]
-						    .team ==
-					    g_pilot_data.team) {
-					projected_x = (int16_t)(projected_x +
-								icon_width);
-					projected_y = (int16_t)(projected_y +
-								icon_height);
-					sprintf(g_frontend_scratch_buffer, "%u",
-						player_icon_number);
-					frontend_text_draw(
-						10, g_frontend_scratch_buffer,
-						projected_x, projected_y,
-						0xFFFF);
-					++player_icon_number;
-				}
+			if (g_frontend_mission.flight_groups[index]
+					    .player_number != 0 &&
+			    g_frontend_mission.flight_groups[index].team ==
+				    g_pilot_data.team) {
+				projected_x =
+					(int16_t)(projected_x + icon_width);
+				projected_y =
+					(int16_t)(projected_y + icon_height);
+				sprintf(g_frontend_scratch_buffer, "%u",
+					*player_icon_number);
+				frontend_text_draw(
+					10, g_frontend_scratch_buffer,
+					projected_x, projected_y, 0xFFFF);
+				++*player_icon_number;
 			}
 		}
 	}
+}
+
+/* The last part of briefing_map_draw_overlays: the icon of every flight group,
+ * through briefing_map_draw_flight_group_icon, with the player numbers
+ * counting from 1. */
+static void briefing_map_draw_flight_group_icons(const struct RECT *map_rect)
+{
+	int16_t index;
+	int player_icon_number = 1;
+	for (index = 0; index < (int16_t)g_frontend_mission.flight_group_count;
+	     ++index) {
+		briefing_map_draw_flight_group_icon(map_rect, index,
+						    &player_icon_number);
+	}
+}
+
+/* Draws the briefing map's overlays in viewport_rect. First the highlight of
+ * every active flight group marker, drawn by its age; then every active label,
+ * its text with '[' made text code 2 (the second text color) and ']' code 1
+ * (back to the label's color), revealed by its age at its projected point. Then
+ * the icon of every flight group whose mission point 14 +
+ * g_active_briefing_index is set and whose craft type is not negative, centered
+ * there, from "mapicon0" to "mapicon4" by IFF: IFF 0 to 3 give 0 to 3, IFF 4
+ * gives 1, IFF 5 gives 4, and any other gives 0. Player flight groups of the
+ * pilot's team also get a number, counting from 1, in font 10 at the icon's
+ * lower right. The point it projects for each marker goes unused. */
+// FUNCTION: XVT 0x4F82A0
+void briefing_map_draw_overlays(const struct RECT *viewport_rect,
+				const struct RECT *clip_rect)
+{
+	struct RECT map_rect;
+
+	frontend_draw_rect_copy(&map_rect, viewport_rect);
+	briefing_map_draw_marker_highlights(viewport_rect, clip_rect,
+					    &map_rect);
+	briefing_map_draw_labels(&map_rect);
+	briefing_map_draw_flight_group_icons(&map_rect);
 }
 
 /* Draws a label through briefing_map_draw_revealed_label with twice reveal_count
