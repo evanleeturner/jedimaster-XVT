@@ -665,6 +665,23 @@ void xvt_flight_frame_reset_replay(void)
 	xvt_flight_sim_reset();
 }
 
+/* The game time this frame's prediction steps up to: the input clock on an
+ * even tick; while a rebuild predicts again from a confirmed world, no
+ * earlier than the last tick already shown; never more than
+ * XVT_PREDICTION_LEAD_TICKS past the confirmed server tick. */
+static int xvt_flight_frame_prediction_target(void)
+{
+	int target = g_input_timestamp & ~1;
+	if (g_confirm.phase == XVT_CONFIRM_REBUILD &&
+	    target < g_confirm.publish_floor) {
+		target = g_confirm.publish_floor;
+	}
+	if (target > g_server_tick_time + XVT_PREDICTION_LEAD_TICKS) {
+		target = g_server_tick_time + XVT_PREDICTION_LEAD_TICKS;
+	}
+	return target;
+}
+
 static int xvt_flight_frame_network_update(void)
 {
 	if (g_confirm.phase == XVT_CONFIRM_TERMINAL) {
@@ -743,14 +760,7 @@ static int xvt_flight_frame_network_update(void)
 		flight_net_broadcast_host_session_abort();
 		return xvt_flight_frame_end("clock_limit");
 	}
-	int target = g_input_timestamp & ~1;
-	if (g_confirm.phase == XVT_CONFIRM_REBUILD &&
-	    target < g_confirm.publish_floor) {
-		target = g_confirm.publish_floor;
-	}
-	if (target > g_server_tick_time + XVT_PREDICTION_LEAD_TICKS) {
-		target = g_server_tick_time + XVT_PREDICTION_LEAD_TICKS;
-	}
+	int target = xvt_flight_frame_prediction_target();
 	g_predicted_frame_delta = XVT_NETWORK_STEP_TICKS;
 	while (g_game_time < target && xvt_flight_frame_has_budget()) {
 		if (!xvt_flight_network_admit_input(g_game_time +

@@ -352,6 +352,53 @@ static uint32_t xvt_snapshot_mix_pools(uint32_t checksum)
 	return checksum;
 }
 
+/* Folds the object slot layout into checksum: the 20 pool sizes and slot
+ * bounds, in the order xvt_snapshot_encode copies them. Returns the new
+ * checksum. */
+static uint32_t xvt_snapshot_mix_slot_layout(uint32_t checksum)
+{
+	checksum =
+		xvt_snapshot_mix_checksum(checksum, g_craft_data_pool_capacity);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_mobile_object_char_data_count);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_projectile_object_slots_total);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_debris_object_slots_total);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_world_state_debris_slot_count);
+	checksum =
+		xvt_snapshot_mix_checksum(checksum, g_local_debris_slot_count);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_active_region_object_slot_start);
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, g_active_region_craft_object_slot_end);
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, g_mobile_object_char_data_slot_start);
+	checksum = xvt_snapshot_mix_checksum(
+		checksum, g_mobile_object_char_data_slot_end);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_projectile_object_slot_start);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_projectile_object_slot_end);
+	checksum =
+		xvt_snapshot_mix_checksum(checksum, g_debris_object_slot_start);
+	checksum =
+		xvt_snapshot_mix_checksum(checksum, g_debris_object_slot_end);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_explosion_object_slot_start);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_explosion_object_slot_end);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_local_transient_slot_start);
+	checksum = xvt_snapshot_mix_checksum(checksum, g_local_debris_slot_end);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_region_main_object_slot_end);
+	checksum = xvt_snapshot_mix_checksum(checksum,
+					     g_region_static_object_slot_count);
+	return checksum;
+}
+
 int xvt_snapshot_live_checksum(void)
 {
 	uint32_t checksum = 0;
@@ -415,45 +462,7 @@ int xvt_snapshot_live_checksum(void)
 					     g_active_flight_player_count);
 	checksum = xvt_snapshot_mix_checksum(checksum,
 					     g_world_state_reserved_byte);
-	checksum =
-		xvt_snapshot_mix_checksum(checksum, g_craft_data_pool_capacity);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_mobile_object_char_data_count);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_projectile_object_slots_total);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_debris_object_slots_total);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_world_state_debris_slot_count);
-	checksum =
-		xvt_snapshot_mix_checksum(checksum, g_local_debris_slot_count);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_active_region_object_slot_start);
-	checksum = xvt_snapshot_mix_checksum(
-		checksum, g_active_region_craft_object_slot_end);
-	checksum = xvt_snapshot_mix_checksum(
-		checksum, g_mobile_object_char_data_slot_start);
-	checksum = xvt_snapshot_mix_checksum(
-		checksum, g_mobile_object_char_data_slot_end);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_projectile_object_slot_start);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_projectile_object_slot_end);
-	checksum =
-		xvt_snapshot_mix_checksum(checksum, g_debris_object_slot_start);
-	checksum =
-		xvt_snapshot_mix_checksum(checksum, g_debris_object_slot_end);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_explosion_object_slot_start);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_explosion_object_slot_end);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_local_transient_slot_start);
-	checksum = xvt_snapshot_mix_checksum(checksum, g_local_debris_slot_end);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_region_main_object_slot_end);
-	checksum = xvt_snapshot_mix_checksum(checksum,
-					     g_region_static_object_slot_count);
+	checksum = xvt_snapshot_mix_slot_layout(checksum);
 	checksum = xvt_snapshot_mix_checksum(
 		checksum,
 		flight_checksum_buffer_rotate_xor(g_plan_table, 0x5500));

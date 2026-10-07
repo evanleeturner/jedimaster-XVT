@@ -145,39 +145,11 @@ static uint8_t *xvt_snapshot_restore_objects(uint8_t *cursor)
 	return cursor;
 }
 
-size_t xvt_snapshot_encode(uint8_t *image, size_t capacity)
+/* Copies the object slot layout into the image at cursor: the 20 pool sizes
+ * and slot bounds, in the order xvt_snapshot_live_checksum mixes them.
+ * Returns the cursor just past them. */
+static uint8_t *xvt_snapshot_encode_slot_layout(uint8_t *cursor)
 {
-	if (!image || !xvt_snapshot_calculate_size() ||
-	    capacity < xvt_snapshot_calculate_size()) {
-		return 0;
-	}
-	uint8_t *cursor = xvt_snapshot_save_objects(image);
-	memcpy(cursor, &g_mission_elapsed_clock,
-	       sizeof(g_mission_elapsed_clock));
-	cursor += sizeof(g_mission_elapsed_clock);
-	memcpy(cursor, &g_mission_countdown_clock,
-	       sizeof(g_mission_countdown_clock));
-	cursor += sizeof(g_mission_countdown_clock);
-	memcpy(cursor, &g_mission_header, 162);
-	cursor += 162;
-	memcpy(cursor, g_mission_fg_stats,
-	       294 * (int16_t)g_mission_header.num_flight_groups);
-	cursor += 294 * (int16_t)g_mission_header.num_flight_groups;
-	memcpy(cursor, g_mission_flight_groups,
-	       1382 * (int16_t)g_mission_header.num_flight_groups);
-	cursor += 1382 * (int16_t)g_mission_header.num_flight_groups;
-	xvt_snapshot_encode_flight_mission_state(
-		(struct xvt_snapshot_flight_mission_state *)cursor,
-		&g_flight_mission_state);
-	cursor += 3376;
-	memcpy(cursor, &g_flight_global_countdown_timers, 22);
-	cursor += 22;
-	memcpy(cursor, &g_mission_file_version, sizeof(g_mission_file_version));
-	cursor += sizeof(g_mission_file_version);
-	memcpy(cursor, &g_flight_player_count, sizeof(g_flight_player_count));
-	cursor += sizeof(g_flight_player_count);
-	*cursor++ = g_world_state_reserved_byte;
-
 	memcpy(cursor, &g_craft_data_pool_capacity,
 	       sizeof(g_craft_data_pool_capacity));
 	cursor += sizeof(g_craft_data_pool_capacity);
@@ -238,6 +210,43 @@ size_t xvt_snapshot_encode(uint8_t *image, size_t capacity)
 	memcpy(cursor, &g_region_static_object_slot_count,
 	       sizeof(g_region_static_object_slot_count));
 	cursor += sizeof(g_region_static_object_slot_count);
+	return cursor;
+}
+
+size_t xvt_snapshot_encode(uint8_t *image, size_t capacity)
+{
+	if (!image || !xvt_snapshot_calculate_size() ||
+	    capacity < xvt_snapshot_calculate_size()) {
+		return 0;
+	}
+	uint8_t *cursor = xvt_snapshot_save_objects(image);
+	memcpy(cursor, &g_mission_elapsed_clock,
+	       sizeof(g_mission_elapsed_clock));
+	cursor += sizeof(g_mission_elapsed_clock);
+	memcpy(cursor, &g_mission_countdown_clock,
+	       sizeof(g_mission_countdown_clock));
+	cursor += sizeof(g_mission_countdown_clock);
+	memcpy(cursor, &g_mission_header, 162);
+	cursor += 162;
+	memcpy(cursor, g_mission_fg_stats,
+	       294 * (int16_t)g_mission_header.num_flight_groups);
+	cursor += 294 * (int16_t)g_mission_header.num_flight_groups;
+	memcpy(cursor, g_mission_flight_groups,
+	       1382 * (int16_t)g_mission_header.num_flight_groups);
+	cursor += 1382 * (int16_t)g_mission_header.num_flight_groups;
+	xvt_snapshot_encode_flight_mission_state(
+		(struct xvt_snapshot_flight_mission_state *)cursor,
+		&g_flight_mission_state);
+	cursor += 3376;
+	memcpy(cursor, &g_flight_global_countdown_timers, 22);
+	cursor += 22;
+	memcpy(cursor, &g_mission_file_version, sizeof(g_mission_file_version));
+	cursor += sizeof(g_mission_file_version);
+	memcpy(cursor, &g_flight_player_count, sizeof(g_flight_player_count));
+	cursor += sizeof(g_flight_player_count);
+	*cursor++ = g_world_state_reserved_byte;
+
+	cursor = xvt_snapshot_encode_slot_layout(cursor);
 	memcpy(cursor, g_plan_table, 21760);
 	cursor += 21760;
 	memcpy(cursor, &g_plan_count, sizeof(g_plan_count));
