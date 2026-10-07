@@ -328,7 +328,7 @@ static void check_aim_ahead_past_half_million(void)
 	XVT_ASSERT_INT_EQ(aim(0), 1);
 }
 
-/* Known failure aim_ahead_past_eight_million, no issue filed: an object dead
+/* Known failure aim_ahead_past_eight_million, issue #197: an object dead
  * ahead is in the cone. Beyond a rough distance of 655,360 each offset is
  * measured at 1/256 in 16 bits, so one of 8,388,608 or more along an axis
  * wraps as the near branch's does: an object nine million units dead ahead

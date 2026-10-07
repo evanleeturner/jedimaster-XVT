@@ -377,12 +377,12 @@ static void check_match_target_speed(void)
 	XVT_ASSERT_INT_EQ(craft->throttle_speed, 777);
 }
 
-/* Known failure match_speed_settings_above_default: with the recharge
- * settings together above their default the top speed falls, so matching a
- * target's speed takes more throttle. On that path Enter shifts a negative
- * int left, behavior C leaves undefined, and the sanitizer stops the
- * program. The fix negates the margin as the unsigned 16-bit value it is
- * before the shift. */
+/* Known failure match_speed_settings_above_default, issue #273: with the
+ * recharge settings together above their default the top speed falls, so
+ * matching a target's speed takes more throttle. On that path Enter shifts a
+ * negative int left, behavior C leaves undefined, and the sanitizer stops
+ * the program. The fix negates the margin as the unsigned 16-bit value it
+ * is before the shift. */
 static void check_match_speed_above_default(void)
 {
 	struct craft_data *craft = match_speed_world(25);
