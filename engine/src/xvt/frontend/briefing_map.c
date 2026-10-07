@@ -829,6 +829,72 @@ void briefing_map_draw_revealed_label(const char *text,
 	}
 }
 
+/* briefing_map_draw_craft_icon_highlight's drawing while highlight_phase is
+ * under 12: the tinted copies of icon map_icon_index at the four diagonal
+ * offsets from (screen_x, screen_y), in the shades from color_base on, and at
+ * 8 to 11 the box in rect, whose edges it first moves in. */
+static void
+briefing_map_draw_highlight_closing_in(int highlight_phase, int16_t color_base,
+				       struct RECT *rect, int map_icon_index,
+				       int16_t screen_x, int16_t screen_y)
+{
+	int16_t count;
+	int16_t shade_index;
+	int16_t offset;
+
+	if ((int16_t)highlight_phase < 4) {
+		shade_index = (int16_t)(color_base - 2 * highlight_phase + 7);
+		offset = 16;
+		count = (int16_t)(highlight_phase + 1);
+	} else if ((int16_t)highlight_phase < 8) {
+		shade_index = (int16_t)(color_base + 1);
+		offset = (int16_t)(2 * (11 - highlight_phase));
+		count = 4;
+	} else {
+		shade_index = (int16_t)(color_base + 1);
+		offset = (int16_t)(2 * (11 - highlight_phase));
+		count = (int16_t)(12 - highlight_phase);
+	}
+
+	if ((int16_t)highlight_phase >= 8) {
+		int inset = 11 - (int16_t)highlight_phase;
+		frontend_draw_rect_inset_xy(rect, inset, inset);
+		frontend_draw_rect(rect, 0, 0,
+				   g_text_shade_ramps[0][color_base + 2], 1);
+		frontend_draw_rect_outline(
+			rect, 0, 0,
+			g_text_shade_ramps[0][color_base +
+					      (int16_t)highlight_phase - 6]);
+	}
+
+	if (count > 0) {
+		int16_t repeat_count = count;
+		do {
+			int tint_index = shade_index;
+			int draw_offset = (int16_t)offset;
+			shade_index = (int16_t)(shade_index + 2);
+			int *tint_color = &g_text_shade_ramps[0][tint_index];
+			front_image_draw_sprite_rect_tinted(
+				"greyicon", &g_map_icon_rects[map_icon_index],
+				screen_x - draw_offset, screen_y - draw_offset,
+				*tint_color);
+			front_image_draw_sprite_rect_tinted(
+				"greyicon", &g_map_icon_rects[map_icon_index],
+				screen_x + draw_offset, screen_y - draw_offset,
+				*tint_color);
+			front_image_draw_sprite_rect_tinted(
+				"greyicon", &g_map_icon_rects[map_icon_index],
+				screen_x - draw_offset, screen_y + draw_offset,
+				*tint_color);
+			front_image_draw_sprite_rect_tinted(
+				"greyicon", &g_map_icon_rects[map_icon_index],
+				screen_x + draw_offset, screen_y + draw_offset,
+				*tint_color);
+			offset = (int16_t)(offset - 2);
+		} while (--repeat_count != 0);
+	}
+}
+
 /* Draws the highlight around flight group flight_group_index's map icon at
  * mission point 14 + g_active_briefing_index, in a row of g_text_shade_ramps picked
  * by IFF: 0 and any IFF above 5 green, 1 and 4 red, 2 blue, 3 yellow, 5 purple.
@@ -897,69 +963,9 @@ void briefing_map_draw_craft_icon_highlight(const struct RECT *viewport_rect,
 				  screen_y + icon_height - 1);
 
 	if ((int16_t)highlight_phase < 12) {
-		int16_t count;
-		int16_t shade_index;
-		int16_t offset;
-
-		if ((int16_t)highlight_phase < 4) {
-			shade_index =
-				(int16_t)(color_base - 2 * highlight_phase + 7);
-			offset = 16;
-			count = (int16_t)(highlight_phase + 1);
-		} else if ((int16_t)highlight_phase < 8) {
-			shade_index = (int16_t)(color_base + 1);
-			offset = (int16_t)(2 * (11 - highlight_phase));
-			count = 4;
-		} else {
-			shade_index = (int16_t)(color_base + 1);
-			offset = (int16_t)(2 * (11 - highlight_phase));
-			count = (int16_t)(12 - highlight_phase);
-		}
-
-		if ((int16_t)highlight_phase >= 8) {
-			int inset = 11 - (int16_t)highlight_phase;
-			frontend_draw_rect_inset_xy(&rect, inset, inset);
-			frontend_draw_rect(
-				&rect, 0, 0,
-				g_text_shade_ramps[0][color_base + 2], 1);
-			frontend_draw_rect_outline(
-				&rect, 0, 0,
-				g_text_shade_ramps[0][color_base +
-						      (int16_t)highlight_phase -
-						      6]);
-		}
-
-		if (count > 0) {
-			int16_t repeat_count = count;
-			do {
-				int tint_index = shade_index;
-				int draw_offset = (int16_t)offset;
-				shade_index = (int16_t)(shade_index + 2);
-				int *tint_color =
-					&g_text_shade_ramps[0][tint_index];
-				front_image_draw_sprite_rect_tinted(
-					"greyicon",
-					&g_map_icon_rects[map_icon_index],
-					screen_x - draw_offset,
-					screen_y - draw_offset, *tint_color);
-				front_image_draw_sprite_rect_tinted(
-					"greyicon",
-					&g_map_icon_rects[map_icon_index],
-					screen_x + draw_offset,
-					screen_y - draw_offset, *tint_color);
-				front_image_draw_sprite_rect_tinted(
-					"greyicon",
-					&g_map_icon_rects[map_icon_index],
-					screen_x - draw_offset,
-					screen_y + draw_offset, *tint_color);
-				front_image_draw_sprite_rect_tinted(
-					"greyicon",
-					&g_map_icon_rects[map_icon_index],
-					screen_x + draw_offset,
-					screen_y + draw_offset, *tint_color);
-				offset = (int16_t)(offset - 2);
-			} while (--repeat_count != 0);
-		}
+		briefing_map_draw_highlight_closing_in(
+			highlight_phase, color_base, &rect, map_icon_index,
+			screen_x, screen_y);
 	} else {
 		frontend_draw_rect_inset_xy(&rect, -2, -2);
 		frontend_draw_rect(&rect, 0, 0,
