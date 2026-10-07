@@ -1,8 +1,9 @@
 /* Tests for xvt/frontend/briefing_script.c, the briefing map's script player.
  * Each check writes a short script into g_briefing_script, plays it frame by
  * frame and reads back the text slots, markers, labels and map targets the
- * script sets. Datapad sounds stay off, so no sound is played, and the label
- * texts are the test's own strings. No game data is read. */
+ * script sets. Datapad sounds are off except in the two checks of the marker
+ * and label sounds; no sound device is set up, so no sound is played either
+ * way. The label texts are the test's own strings. No game data is read. */
 #include <stdint.h>
 #include <string.h>
 
@@ -265,6 +266,136 @@ static void check_advance_frame_at_once(void)
 	XVT_ASSERT_INT_EQ(g_briefing_map_label_style[7], 3);
 }
 
+/* No range is checked: opcode 5 shows text block 40 in slot 1, and on the
+ * next frame block -1, each as given. */
+static void check_text_block_out_of_range(void)
+{
+	fresh_script(100);
+	int at = 0;
+	at = put(at, (const int16_t[]){0, 5, 40}, 3);
+	at = put(at, (const int16_t[]){1, 5, -1}, 3);
+	at = put(at, (const int16_t[]){END_TIME, END_OPCODE}, 2);
+	XVT_ASSERT_INT_EQ(briefing_script_advance_frame(0), 3);
+	XVT_ASSERT_INT_EQ(g_briefing_text_slot_active[1], 1);
+	XVT_ASSERT_INT_EQ(g_briefing_text_slot_block_idx[1], 40);
+	XVT_ASSERT_INT_EQ(briefing_script_advance_frame(0), 6);
+	XVT_ASSERT_INT_EQ(g_briefing_text_slot_block_idx[1], -1);
+}
+
+/* A zoom of 0 or below is set as given: the zoom entry at time 0 sets the
+ * zoom and its target to (0, 16), the one at frame 1 only the target, to
+ * (16, -2). */
+static void check_zoom_not_positive(void)
+{
+	fresh_script(100);
+	int at = 0;
+	at = put(at, (const int16_t[]){0, 7, 0, 16}, 4);
+	at = put(at, (const int16_t[]){1, 7, 16, -2}, 4);
+	at = put(at, (const int16_t[]){END_TIME, END_OPCODE}, 2);
+	XVT_ASSERT_INT_EQ(briefing_script_advance_frame(0), 4);
+	XVT_ASSERT_INT_EQ(g_briefing_map_target_scale.x, 0);
+	XVT_ASSERT_INT_EQ(g_briefing_map_target_scale.y, 16);
+	XVT_ASSERT_INT_EQ(g_briefing_map_scale.x, 0);
+	XVT_ASSERT_INT_EQ(g_briefing_map_scale.y, 16);
+	XVT_ASSERT_INT_EQ(briefing_script_advance_frame(0), 8);
+	XVT_ASSERT_INT_EQ(g_briefing_map_target_scale.x, 16);
+	XVT_ASSERT_INT_EQ(g_briefing_map_target_scale.y, -2);
+	XVT_ASSERT_INT_EQ(g_briefing_map_scale.x, 0);
+	XVT_ASSERT_INT_EQ(g_briefing_map_scale.y, 16);
+	XVT_ASSERT_INT_EQ(g_briefing_map_scale_dirty, 1);
+}
+
+/* A marker's flight group is stored as given, inside the mission's two
+ * groups or not: played at once, so that no group's IFF is read, opcode 10
+ * shows marker 1 on group 2 and opcode 15 marker 6 on group -1, at age 80. */
+static void check_marker_group_out_of_range(void)
+{
+	fresh_script(100);
+	int at = 0;
+	at = put(at, (const int16_t[]){0, 10, 2}, 3);
+	at = put(at, (const int16_t[]){0, 15, -1}, 3);
+	at = put(at, (const int16_t[]){END_TIME, END_OPCODE}, 2);
+	XVT_ASSERT_INT_EQ(briefing_script_advance_frame(1), 6);
+	XVT_ASSERT_INT_EQ(g_briefing_map_fg_marker_active[1], 1);
+	XVT_ASSERT_INT_EQ(g_briefing_map_fg_marker_flight_group_idx[1], 2);
+	XVT_ASSERT_INT_EQ(g_briefing_map_fg_marker_age[1], 80);
+	XVT_ASSERT_INT_EQ(g_briefing_map_fg_marker_active[6], 1);
+	XVT_ASSERT_INT_EQ(g_briefing_map_fg_marker_flight_group_idx[6], -1);
+	XVT_ASSERT_INT_EQ(g_briefing_map_fg_marker_age[6], 80);
+}
+
+/* With datapad sounds on, a marker played without apply_instantly picks
+ * "sfxTarget2" for a group of IFF 1 and "sfxTarget1" for the others, here IFF
+ * 0 and 3. No sound device is set up, so none plays; each marker shows at
+ * age 0 on its group. */
+static void check_marker_sounds(void)
+{
+	fresh_script(100);
+	g_frontend_mission.flight_group_count = 3;
+	g_frontend_mission.flight_groups[0].iff = 1;
+	g_frontend_mission.flight_groups[1].iff = 0;
+	g_frontend_mission.flight_groups[2].iff = 3;
+	g_game_config.sfx_datapad_enabled = 1;
+	g_game_config.sfx_datapad_volume = 5;
+	int at = 0;
+	at = put(at, (const int16_t[]){0, 9, 0}, 3);
+	at = put(at, (const int16_t[]){0, 10, 1}, 3);
+	at = put(at, (const int16_t[]){0, 11, 2}, 3);
+	at = put(at, (const int16_t[]){END_TIME, END_OPCODE}, 2);
+	XVT_ASSERT_INT_EQ(briefing_script_advance_frame(0), 9);
+	for (int i = 0; i < 3; ++i) {
+		XVT_ASSERT_INT_EQ(g_briefing_map_fg_marker_active[i], 1);
+		XVT_ASSERT_INT_EQ(g_briefing_map_fg_marker_age[i], 0);
+		XVT_ASSERT_INT_EQ(g_briefing_map_fg_marker_flight_group_idx[i],
+				  i);
+	}
+}
+
+/* A label's text and shade ramp are stored as given, in range or not: played
+ * at once, so that no text is read, opcode 19 shows label 1 with text 40 in
+ * shade 5 and opcode 24 label 6 with text -1 in shade -1, at age 80. */
+static void check_label_out_of_range(void)
+{
+	fresh_script(100);
+	int at = 0;
+	at = put(at, (const int16_t[]){0, 19, 40, 7, 8, 5}, 6);
+	at = put(at, (const int16_t[]){0, 24, -1, -7, -8, -1}, 6);
+	at = put(at, (const int16_t[]){END_TIME, END_OPCODE}, 2);
+	XVT_ASSERT_INT_EQ(briefing_script_advance_frame(1), 12);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_active[1], 1);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_text_idx[1], 40);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_x[1], 7);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_y[1], 8);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_style[1], 5);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_age[1], 80);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_active[6], 1);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_text_idx[6], -1);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_style[6], -1);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_age[6], 80);
+}
+
+/* With datapad sounds on, a label played without apply_instantly picks
+ * "sfxText" when its text is not empty and no sound when it is. No sound
+ * device is set up, so none plays; both labels show at age 0 with their
+ * texts. */
+static void check_label_sound(void)
+{
+	fresh_script(100);
+	g_game_config.sfx_datapad_enabled = 1;
+	strcpy(g_label_text[3], "Rendezvous");
+	int at = 0;
+	at = put(at, (const int16_t[]){0, 20, 3, 10, 20, 1}, 6);
+	at = put(at, (const int16_t[]){0, 21, 4, 30, 40, 2}, 6);
+	at = put(at, (const int16_t[]){END_TIME, END_OPCODE}, 2);
+	XVT_ASSERT_INT_EQ(briefing_script_advance_frame(0), 12);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_active[2], 1);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_age[2], 0);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_text_idx[2], 3);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_active[3], 1);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_age[3], 0);
+	XVT_ASSERT_INT_EQ(g_briefing_map_label_text_idx[3], 4);
+}
+
 /* Playing through a time returns 0 and does nothing when that time was the
  * last frame played. Otherwise it plays frames until the current frame passes
  * the time, starting over first when the time is behind, and returns 1. */
@@ -431,6 +562,12 @@ int main(int argc, char **argv)
 	check_reset_state();
 	check_advance_frame();
 	check_advance_frame_at_once();
+	check_text_block_out_of_range();
+	check_zoom_not_positive();
+	check_marker_group_out_of_range();
+	check_marker_sounds();
+	check_label_out_of_range();
+	check_label_sound();
 	check_advance_until_time();
 	check_forward();
 	check_advance_or_reset();
