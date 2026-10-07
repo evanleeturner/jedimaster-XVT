@@ -1,7 +1,7 @@
 # Engine plan: owning the 1997 game code
 
 **Status:** in progress
-**Date:** 2026-10-03, updated 2026-10-06
+**Date:** 2026-10-03, updated 2026-10-07
 **Scope:** `engine/src/xvt/`, the recovered game
 **Sibling:** `OPENXVT-FRONTEND-PLAN.md`, the launcher this work is the base for
 **License:** GPLv3 for the engine; `REUSE.toml` names every file's license
@@ -74,17 +74,17 @@ Every change carries its proof.
   and talks to it across a process boundary, and `tools/license_boundary.py`
   refuses any file outside `engine/` that reaches inside.
 
-## 4. Where it stands, measured 2026-10-06
+## 4. Where it stands, measured 2026-10-07
 
 | Layer | Done | Left |
 | --- | --- | --- |
 | Form | the whole tree reformatted in October 2026 (564 files), then the rest of the house C standard across the whole engine (step 2); `.git-blame-ignore-revs` hides the layout-only commits from blame | kept by the formatter and the form check on every change |
 | Names | 1,410 names renamed in 4 batches (272 functions, 202 globals, 355 fields, the rest parameters and locals), each batch proven by object comparison | about 60 placeholder names, most of them struct fields named by their offset; the naming layer the first pass set aside |
 | Meaning | the whole 1997 code explained: every labelled function and global (3,753 when the map was drawn, 3,195 since the original build's code went), each claim checked against the code before it landed (the networking and flight code first, the rest in a second pass); the 2,155 comment lines the renames pushed past 100 columns wrapped again at 80 | nothing in the 1997 code |
-| Logging | 2,035 log lines in the 1997 code, written area by area: networking, missions, briefings, flight, menus, rendering, models, sound, input; the catalog holds 1,402 events, written from 2,184 places across the engine. The 1997 code's own debug output is gone: each empty debug call became a catalog event or went, and the in-game console, the `serverlog.txt` writer and the model loader's `printf` lines went with the original build. The baseline run, 2026-10-06: two two-player games on build `bb4b12d`, clicked through the menus and judged from their logs alone, no screenshots; 12 minutes of flight with all 374 world checksums equal, a 1-minute mission played to its debriefing, 422 different events seen across the two runs, the battle lines identical on both machines, and every line each area's work listed for the run present | kept by the catalog check on every change; the lines the run cannot reach (a player's keys in flight, damage to a player, the fault paths) wait for the tests |
-| Tests | 92 tests, all green on every platform; 1 of them compiles a 1997 file (`pai.c`, the computer pilots' context) | the 1997 code; first targets are the paths where the comments found bugs |
+| Logging | 2,035 log lines in the 1997 code, written area by area: networking, missions, briefings, flight, menus, rendering, models, sound, input; the catalog holds 1,404 events, written from 2,186 places across the engine. The 1997 code's own debug output is gone: each empty debug call became a catalog event or went, and the in-game console, the `serverlog.txt` writer and the model loader's `printf` lines went with the original build. The baseline run, 2026-10-06: two two-player games on build `bb4b12d`, clicked through the menus and judged from their logs alone, no screenshots; 12 minutes of flight with all 374 world checksums equal, a 1-minute mission played to its debriefing, 422 different events seen across the two runs, the battle lines identical on both machines, and every line each area's work listed for the run present | kept by the catalog check on every change; the lines the run cannot reach (a player's keys in flight, damage to a player, the fault paths) wait for the tests |
+| Tests | 241 tests in 117 programs, all green on every platform. The launcher's four areas (ship behavior, missions, networking, briefings) are tested in the 1997 code file by file: 34 of its 118 files, and a 35th (`flight_hyperspace.c`) has a written reason; a test counted only once it failed on a fault planted in the line it guards. 120 of the tests show open bugs and are expected to fail until each fix lands. The flight test that needs no pictures: at every world checksum tick each game writes where every craft is, and the second baseline run, 2026-10-07, on build `66f668f`, was judged from those lines: 374 of 374 record points identical on both machines, the run's story told in about 2,000 tokens | the other 83 files of the 1997 code, until step 6 reaches them; world checksums never match between two runs, even of one build, so comparing two builds run against run needs the record points, and which of their fields drift between runs is not yet measured |
 | Structure | the 760 places that kept the original build's version, and the 1997 code the game never reached (199 functions, 73 globals), removed on 2026-10-06 | 322 functions over 120 lines (112 of them over 300), 85 nested deeper than 6, 39 files over 1,200 lines, among 1,501 functions; 1,694 globals; area by area, each function only after a test reaches it |
-| Bugs | 234 issues filed from the 1997 code as each area was read; 36 closed, 35 of them when the original build was retired | 198 open (193 bugs, 5 "1997 rules" candidates); each fix is a named change (`RELEASE-PLAN.md`) |
+| Bugs | 241 issues filed from the 1997 code as each area was read or tested; 36 closed, 35 of them when the original build was retired | 205 open (200 bugs, 5 "1997 rules" candidates); each fix is a named change (`RELEASE-PLAN.md`) |
 
 ## 5. Order of work
 
@@ -101,7 +101,8 @@ its row names.
 | 6. Structure | functions split where reading needs it, globals narrowed, one function at a time | tests reach every moved line and pass before and after; identical objects where the compiler happens to agree | the first step that changes the code's shape, so it comes last |
 
 Step 4 closed on 2026-10-06 with the baseline run in section 4's Logging
-row; step 5 starts from it.
+row; step 5 starts from it. Step 5 closed on 2026-10-07 with the second
+baseline run in section 4's Tests row; step 6 starts from it.
 
 One piece of step 6 came early. Before step 4 closed, on 2026-10-06,
 the original 1997 build's code went (760 places, about 21,500 lines),
