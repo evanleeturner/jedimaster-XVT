@@ -337,6 +337,29 @@ xvt_add_known_failure(test_player nearest_enemy_none_minus_one)
 xvt_add_known_failure(test_player unbind_plan_to_released_craft)
 xvt_add_known_failure(test_player objective_second_pair_first_trigger)
 
+# Shield banks, the Tech Library's ratings, warhead kinds and the damage a hit
+# does to a craft's components: src/xvt/flight/craft.c.
+xvt_add_engine_test(test_craft test_craft.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/craft.c")
+add_test(NAME craft COMMAND test_craft)
+xvt_add_known_failure(test_craft ion_pulse_has_no_kind)
+xvt_add_known_failure(test_craft corvette_bridge_past_95_percent)
+
+# The proving grounds course, its gates and its levels:
+# src/xvt/flight/proving_grounds.c. The test arms an alarm with POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_proving_grounds test_proving_grounds.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/proving_grounds.c")
+    add_test(NAME proving_grounds COMMAND test_proving_grounds)
+    xvt_add_known_failure(test_proving_grounds level_21_clock_wraps)
+    xvt_add_known_failure(test_proving_grounds level_end_hangs)
+    xvt_add_known_failure(test_proving_grounds level_end_restarts_game_clock)
+    xvt_add_known_failure(test_proving_grounds level_20_period_past_table)
+endif()
+
+# An object's texture animation, the local debris, a player's hyperspace jump
+# and the animation step: src/xvt/flight/flight_object.c.
+xvt_add_engine_test(test_flight_object test_flight_object.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/flight_object.c")
+add_test(NAME flight_object COMMAND test_flight_object)
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
