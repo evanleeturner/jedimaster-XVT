@@ -45,7 +45,8 @@ int g_briefing_text_page_number = 0;
 // GLOBAL: XVT 0x6696DA
 int16_t g_briefing_text_slot_active[2] = {0};
 /* Per text slot, the index in g_briefing_text_blocks of the block it shows: the
- * argument of opcode 4 or 5. Only briefing_script_advance_frame writes it. */
+ * argument of opcode 4 or 5. Only briefing_script_apply_entry writes it, as
+ * briefing_script_advance_frame plays a frame. */
 // GLOBAL: XVT 0x6696DE
 int16_t g_briefing_text_slot_block_idx[2] = {0};
 /* 1 when the script frame just played held opcode 3, which cleared the text

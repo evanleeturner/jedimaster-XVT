@@ -112,7 +112,8 @@ int16_t g_briefing_map_scale_dirty = 0;
 // GLOBAL: XVT 0x6696E4
 int16_t g_briefing_map_fg_marker_active[8] = {0};
 /* Per marker slot, the flight group it highlights; only
- * briefing_script_advance_frame writes it. */
+ * briefing_script_show_marker writes it, as briefing_script_advance_frame
+ * plays a frame. */
 // GLOBAL: XVT 0x6696F4
 int16_t g_briefing_map_fg_marker_flight_group_idx[8] = {0};
 /* Per marker slot, frames since it appeared: 0 when shown, 80 when shown at
@@ -130,15 +131,18 @@ int16_t g_briefing_map_fg_markers_changed = 0;
 // GLOBAL: XVT 0x669716
 int16_t g_briefing_map_label_active[8] = {0};
 /* Per label slot, the index in g_briefing_map_label_texts of its text; only
- * briefing_script_advance_frame writes it. */
+ * briefing_script_show_label writes it, as briefing_script_advance_frame
+ * plays a frame. */
 // GLOBAL: XVT 0x669726
 int16_t g_briefing_map_label_text_idx[8] = {0};
 /* Per label slot, the map x its text is drawn at; only
- * briefing_script_advance_frame writes it. */
+ * briefing_script_show_label writes it, as briefing_script_advance_frame
+ * plays a frame. */
 // GLOBAL: XVT 0x669736
 int16_t g_briefing_map_label_x[8] = {0};
 /* Per label slot, the map y its text is drawn at; only
- * briefing_script_advance_frame writes it. */
+ * briefing_script_show_label writes it, as briefing_script_advance_frame
+ * plays a frame. */
 // GLOBAL: XVT 0x669746
 int16_t g_briefing_map_label_y[8] = {0};
 /* Per label slot, frames since it appeared, kept like g_briefing_map_fg_marker_age;
@@ -147,7 +151,8 @@ int16_t g_briefing_map_label_y[8] = {0};
 int16_t g_briefing_map_label_age[8] = {0};
 /* Per label slot, the row of g_text_shade_ramps its text is drawn in; the
  * mission setup screen fills rows 0 to 4 with green, red, yellow, blue and
- * purple, dark to bright. Only briefing_script_advance_frame writes it. */
+ * purple, dark to bright. Only briefing_script_show_label writes it, as
+ * briefing_script_advance_frame plays a frame. */
 // GLOBAL: XVT 0x669766
 int16_t g_briefing_map_label_style[8] = {0};
 /* Set to 1 by script opcode 17 and to 0 at the start of every script frame by
