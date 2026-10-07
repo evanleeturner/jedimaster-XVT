@@ -360,6 +360,23 @@ endif()
 xvt_add_engine_test(test_flight_object test_flight_object.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/flight_object.c")
 add_test(NAME flight_object COMMAND test_flight_object)
 
+# The key handler and the timer step: src/xvt/flight/flight.c. The test arms an alarm with POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_flight test_flight.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/flight.c")
+    add_test(NAME flight COMMAND test_flight)
+    xvt_add_known_failure(test_flight mfd_paging_no_open_page)
+    xvt_add_known_failure(test_flight last_team_past_team_table)
+    xvt_add_known_failure(test_flight reinforcements_paid_once)
+    xvt_add_known_failure(test_flight all_to_shields_empty_lasers)
+    xvt_add_known_failure(test_flight all_to_shields_bank_over_limit)
+    xvt_add_known_failure(test_flight shields_to_lasers_rear_half)
+    xvt_add_known_failure(test_flight shields_to_lasers_full_slot)
+    xvt_add_known_failure(test_flight evade_answer_stale_object)
+    xvt_add_known_failure(test_flight laser_recharge_damaged_cannons)
+    xvt_add_known_failure(test_flight laser_recharge_without_cannons)
+    xvt_add_known_failure(test_flight match_speed_settings_above_default)
+endif()
+
 # Settings and bindings files: src/xvt_runtime/config/.
 # These tests make a temporary folder with POSIX calls and copy the shipped defaults out of the source tree.
 if(NOT MSVC)
