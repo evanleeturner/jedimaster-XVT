@@ -18,6 +18,7 @@
 #include "xvt/frontend/briefing_map.h"
 #include "xvt/frontend/briefing_script.h"
 #include "xvt/frontend/briefing_text.h"
+#include "xvt/frontend/frontend.h"
 #include "xvt/frontend/frontend_mission.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
@@ -442,6 +443,23 @@ static void check_icon_highlight(void)
 	end_drawing();
 }
 
+/* The highlight picks its row of g_text_shade_ramps by IFF: 1 and 4 red, 2
+ * blue, 3 yellow, 5 purple. Those rows are read through row 0, past its end,
+ * which the test build stops on (issue #270), so for IFF 1 to 5 this check
+ * runs only the pick: at phase -1 the highlight reads no shade. */
+static void check_highlight_iff_rows(void)
+{
+	for (int iff = 1; iff <= 5; ++iff) {
+		fresh_map();
+		place_group(1, 0, 0);
+		g_frontend_mission.flight_groups[1].iff = (uint8_t)iff;
+		begin_drawing();
+		briefing_map_draw_craft_icon_highlight(&g_viewport, &g_viewport,
+						       1, -1);
+		end_drawing();
+	}
+}
+
 /* A label types itself out: while fewer characters show than the text has, a
  * small block in shade 7 of its row, here row 0 as above, follows the text (here, with no font, at
  * the label's point plus 2 to 8 pixels across and 0 to 6 down); once all
@@ -493,6 +511,62 @@ static void check_labels_and_markers(void)
 	XVT_ASSERT_INT_EQ(pixel(192 + 3, 100 + 3), 0);
 	XVT_ASSERT_INT_EQ(pixel(160, 100), 0);
 	end_drawing();
+}
+
+/* The overlays draw the icon of every flight group whose point is set, from
+ * "mapicon0" to "mapicon4" by IFF: IFF 0 to 3 give 0 to 3, IFF 4 gives 1,
+ * IFF 5 gives 4, and any other gives 0. Images draw nothing on this display,
+ * so the check reads the name the overlays last handed to the image drawer,
+ * which stays in g_frontend_scratch_buffer: one group per drawing, of IFF 0
+ * to 6. */
+static void check_overlay_icons_by_iff(void)
+{
+	static const char *const expected[7] = {
+		"mapicon0", "mapicon1", "mapicon2", "mapicon3",
+		"mapicon1", "mapicon4", "mapicon0",
+	};
+	for (int iff = 0; iff < 7; ++iff) {
+		fresh_map();
+		g_frontend_mission.flight_group_count = 1;
+		place_group(0, 0, 0);
+		g_frontend_mission.flight_groups[0].iff = (uint8_t)iff;
+		g_frontend_scratch_buffer[0] = '\0';
+		begin_drawing();
+		briefing_map_draw_overlays(&g_viewport, &g_viewport);
+		end_drawing();
+		XVT_ASSERT_TRUE(
+			strcmp(g_frontend_scratch_buffer, expected[iff]) == 0);
+	}
+}
+
+/* Player flight groups of the pilot's team get a number at the icon's lower
+ * right, counting from 1. Text draws nothing on this display, so the check
+ * reads the last text the overlays wrote, which stays in
+ * g_frontend_scratch_buffer. Groups 0 and 2 are players of the pilot's team
+ * 1, group 1 a player of team 2: drawn alone, group 0 gets 1; drawn with
+ * the other two, the last number is 2, as group 1 gets none. */
+static void check_overlay_player_numbers(void)
+{
+	fresh_map();
+	g_pilot_data.team = 1;
+	for (int fg = 0; fg < 3; ++fg) {
+		place_group(fg, 256 * (fg - 1), 0);
+		g_frontend_mission.flight_groups[fg].player_number =
+			(uint8_t)(fg + 1);
+		g_frontend_mission.flight_groups[fg].team = 1;
+	}
+	g_frontend_mission.flight_groups[1].team = 2;
+	g_frontend_mission.flight_group_count = 1;
+	begin_drawing();
+	briefing_map_draw_overlays(&g_viewport, &g_viewport);
+	end_drawing();
+	XVT_ASSERT_TRUE(strcmp(g_frontend_scratch_buffer, "1") == 0);
+	g_frontend_mission.flight_group_count = 3;
+	begin_drawing();
+	briefing_map_draw_overlays(&g_viewport, &g_viewport);
+	end_drawing();
+	XVT_ASSERT_TRUE(strcmp(g_frontend_scratch_buffer, "2") == 0);
+	g_pilot_data.team = 0;
 }
 
 /* The panel draws the map, in the panel less its bottom 28 pixels, and
@@ -648,7 +722,10 @@ int main(int argc, char **argv)
 	check_select_nearest();
 	check_draw_grid();
 	check_icon_highlight();
+	check_highlight_iff_rows();
 	check_labels_and_markers();
+	check_overlay_icons_by_iff();
+	check_overlay_player_numbers();
 	check_viewport_and_selection();
 	xvt_test_close_display();
 	return 0;
