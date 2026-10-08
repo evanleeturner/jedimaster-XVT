@@ -1998,7 +1998,7 @@ static void check_chat_sent_to_everyone(void)
 
 /* A team message, color code 2 when ready and 4 when not, goes to the
  * players of this pilot's team, or to everyone when this player has no team
- * assignment. */
+ * assignment. The assignment is found in the first place and in the last. */
 static void check_chat_sent_to_team(void)
 {
 	for (int ready = 0; ready < 2; ++ready) {
@@ -2007,8 +2007,8 @@ static void check_chat_sent_to_team(void)
 		g_frontend_chat_team_only = 1;
 		g_front_state.net_players[0].ready_flag = ready;
 		g_pilot_data.team = 3;
-		g_mission_setup_player_assignments.assigned_player_ids[5] =
-			LOCAL_ID;
+		g_mission_setup_player_assignments
+			.assigned_player_ids[ready ? 0 : 7] = LOCAL_ID;
 		g_mission_setup_player_assignments.team_player_ids[3][0] =
 			LOCAL_ID;
 		g_mission_setup_player_assignments.team_player_ids[3][2] =
