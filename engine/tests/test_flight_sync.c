@@ -5,21 +5,23 @@
  * network session's ids, the local world checksum and the checksum epoch. No
  * game data is read and no DirectPlay session is open.
  *
- * Not checked here: a player's checksum that differs from the local one, which
- * starts a resync that shows an alert on the flight display, and the angle
- * limits of the smoothing, which only act after simulation time has passed
- * since the sample. */
+ * Not checked here: what a resync sends. With no transfer under way,
+ * xvt_resync_begin_send draws an alert on the flight display, which this
+ * program does not have, so the checks whose packets start a resync keep
+ * another transfer under way, which it leaves alone. */
 #include <stdint.h>
 #include <string.h>
 
 #include "test_assert.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
+#include "xvt/flight/fview.h"
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt/net/flight_net.h"
 #include "xvt/net/flight_sync.h"
 #include "xvt/net/net_session.h"
+#include "xvt/render/renderer.h"
 #include "xvt_runtime/runtime/flight_messages.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
 #include "xvt_runtime/runtime/resync_task.h"
@@ -312,6 +314,22 @@ static void check_capture_turn(void)
 	XVT_ASSERT_INT_EQ(g_remote_player_render_samples[1].roll, 110);
 }
 
+/* A stale move vector is recomputed from the craft's pitch and yaw before it
+ * is sampled. */
+static void check_capture_stale_move_vector(void)
+{
+	smoothing_world();
+	g_test_mobiles[2].move_vector_dirty = 1;
+	flight_sync_capture_samples_and_restore_poses();
+	const struct remote_player_render_sample *sample =
+		&g_remote_player_render_samples[1];
+	XVT_ASSERT_TRUE(sample->move_x != 0x7fff);
+	fview_calcrotatemove(200, 300, NULL);
+	XVT_ASSERT_INT_EQ(sample->move_x, (int16_t)g_fview_move_x_q15);
+	XVT_ASSERT_INT_EQ(sample->move_y, (int16_t)g_fview_move_y_q15);
+	XVT_ASSERT_INT_EQ(sample->move_z, (int16_t)g_fview_move_z_q15);
+}
+
 /* After a sample, the craft moves on in the simulation with no simulation time
  * passed: it is drawn half way from the sample to its simulated position, and
  * the simulated pose, saved first, is put back after drawing. */
@@ -365,6 +383,141 @@ static void check_apply_leaves_craft(void)
 	flight_sync_capture_samples_and_restore_poses();
 	XVT_ASSERT_INT_EQ(g_remote_player_render_samples[1].world_x, 1000);
 	g_remote_player_render_smoothing_enabled = 1;
+}
+
+/* Samples player 1's craft moving along (0x7fff, 0x4000, -0x4000) at speed,
+ * then draws it elapsed simulation ticks later, still at the sampled position
+ * in the simulation. */
+static void draw_after(int elapsed, int speed)
+{
+	smoothing_world();
+	g_test_mobiles[2].move_y = 0x4000;
+	g_test_mobiles[2].move_z = -0x4000;
+	g_test_mobiles[2].speed = (uint16_t)speed;
+	flight_sync_capture_samples_and_restore_poses();
+	g_test_mobiles[2].sim_state_timestamp = 50 + elapsed;
+	flight_sync_apply_remote_player_render_smoothing();
+}
+
+/* Once simulation time has passed since a sample with speed, even one tick,
+ * the craft is drawn ahead of the sampled position along the sampled move
+ * vector, further after more time or at more speed; at speed 0 it stays where
+ * it is. */
+static void check_apply_projects_along_move_vector(void)
+{
+	draw_after(1, 100);
+	XVT_ASSERT_TRUE(g_test_objects[2].world_x > 1000);
+	draw_after(SIMULATION_TICKS_PER_SECOND, 100);
+	int ahead_x = g_test_objects[2].world_x;
+	XVT_ASSERT_TRUE(ahead_x > 1000);
+	XVT_ASSERT_TRUE(g_test_objects[2].world_y > 2000);
+	XVT_ASSERT_TRUE(g_test_objects[2].world_z < 3000);
+	draw_after(2 * SIMULATION_TICKS_PER_SECOND, 100);
+	XVT_ASSERT_TRUE(g_test_objects[2].world_x > ahead_x);
+	draw_after(SIMULATION_TICKS_PER_SECOND, 200);
+	XVT_ASSERT_TRUE(g_test_objects[2].world_x > ahead_x);
+	draw_after(SIMULATION_TICKS_PER_SECOND, 0);
+	XVT_ASSERT_INT_EQ(g_test_objects[2].world_x, 1000);
+	XVT_ASSERT_INT_EQ(g_test_objects[2].world_y, 2000);
+	XVT_ASSERT_INT_EQ(g_test_objects[2].world_z, 3000);
+}
+
+/* With no move vector the projection stays at the sampled position. At speed
+ * 100 a craft travels (4,660 * 100 + 128) / 256 = 1,820 world units in a
+ * simulated second (the speed's comment in object.h), so a gap of 20,000 is
+ * within 32 times the distance and the craft is moved toward its simulated
+ * position by less than half the gap; a gap of 100,000 is not, and it is moved
+ * by half. */
+static void check_apply_smaller_share(void)
+{
+	static const int gaps[] = {20000, 100000};
+	for (int i = 0; i < 2; ++i) {
+		smoothing_world();
+		g_test_mobiles[2].move_x = 0;
+		g_test_mobiles[2].speed = 100;
+		flight_sync_capture_samples_and_restore_poses();
+		g_test_mobiles[2].sim_state_timestamp =
+			50 + SIMULATION_TICKS_PER_SECOND;
+		g_test_objects[2].world_y = 2000 + gaps[i];
+		flight_sync_apply_remote_player_render_smoothing();
+		XVT_ASSERT_INT_EQ(g_test_objects[2].world_x, 1000);
+		XVT_ASSERT_INT_EQ(g_test_objects[2].world_z, 3000);
+		if (i == 0) {
+			XVT_ASSERT_TRUE(g_test_objects[2].world_y > 2000);
+			XVT_ASSERT_TRUE(g_test_objects[2].world_y <
+					2000 + gaps[0] / 2);
+		} else {
+			XVT_ASSERT_INT_EQ(g_test_objects[2].world_y,
+					  2000 + gaps[1] / 2);
+		}
+	}
+}
+
+/* Samples player 1's craft twice, turned by turn_roll, turn_pitch and turn_yaw
+ * between the samples, then moves each simulated angle back by a tenth of its
+ * turn and draws the craft with no simulation time passed. */
+static void draw_turned_back(int turn_roll, int turn_pitch, int turn_yaw)
+{
+	smoothing_world();
+	flight_sync_capture_samples_and_restore_poses();
+	g_test_objects[2].roll = (uint16_t)(100 + turn_roll);
+	g_test_objects[2].pitch = (uint16_t)(200 + turn_pitch);
+	g_test_objects[2].yaw = (uint16_t)(300 + turn_yaw);
+	flight_sync_capture_samples_and_restore_poses();
+	g_test_objects[2].roll = (uint16_t)(100 + turn_roll - turn_roll / 10);
+	g_test_objects[2].pitch =
+		(uint16_t)(200 + turn_pitch - turn_pitch / 10);
+	g_test_objects[2].yaw = (uint16_t)(300 + turn_yaw - turn_yaw / 10);
+	flight_sync_apply_remote_player_render_smoothing();
+}
+
+/* An angle that moved against the sampled turn is held at the sampled angle:
+ * roll and yaw turned up, pitch down. */
+static void check_apply_holds_turned_back(void)
+{
+	draw_turned_back(10, -10, 10);
+	XVT_ASSERT_INT_EQ(g_test_objects[2].roll, 110);
+	XVT_ASSERT_INT_EQ(g_test_objects[2].pitch, 190);
+	XVT_ASSERT_INT_EQ(g_test_objects[2].yaw, 310);
+}
+
+/* The same with each turn the other way: roll and yaw turned down, pitch
+ * up. */
+static void check_apply_holds_turned_back_other_way(void)
+{
+	draw_turned_back(-10, 10, -10);
+	XVT_ASSERT_INT_EQ(g_test_objects[2].roll, 90);
+	XVT_ASSERT_INT_EQ(g_test_objects[2].pitch, 210);
+	XVT_ASSERT_INT_EQ(g_test_objects[2].yaw, 290);
+}
+
+/* The step that compares an angle's change with max_angle_change changes
+ * nothing: changes of 100 either way one tick after the sample, and a change
+ * of 10,000 from 39,900 to 49,900 (an angle sampled as -25,636) 320 ticks
+ * after it, where the angle it sets differs from the drawn one by 65,536. */
+static void check_apply_angle_step_changes_nothing(void)
+{
+	for (int sign = -1; sign <= 1; sign += 2) {
+		smoothing_world();
+		flight_sync_capture_samples_and_restore_poses();
+		g_test_objects[2].roll = (uint16_t)(100 + sign * 100);
+		g_test_objects[2].pitch = (uint16_t)(200 - sign * 100);
+		g_test_objects[2].yaw = (uint16_t)(300 + sign * 100);
+		g_test_mobiles[2].sim_state_timestamp = 51;
+		flight_sync_apply_remote_player_render_smoothing();
+		XVT_ASSERT_INT_EQ(g_test_objects[2].roll, 100 + sign * 100);
+		XVT_ASSERT_INT_EQ(g_test_objects[2].pitch, 200 - sign * 100);
+		XVT_ASSERT_INT_EQ(g_test_objects[2].yaw, 300 + sign * 100);
+	}
+
+	smoothing_world();
+	g_test_objects[2].yaw = 39900;
+	flight_sync_capture_samples_and_restore_poses();
+	XVT_ASSERT_INT_EQ(g_remote_player_render_samples[1].yaw, -25636);
+	g_test_objects[2].yaw = 49900;
+	g_test_mobiles[2].sim_state_timestamp = 50 + 320;
+	flight_sync_apply_remote_player_render_smoothing();
+	XVT_ASSERT_INT_EQ(g_test_objects[2].yaw, 49900);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -434,6 +587,40 @@ static void check_client_records_nothing(void)
 	XVT_ASSERT_INT_EQ(g_flight_net_world_checksum_peer_status[0], 0);
 	XVT_ASSERT_INT_EQ(g_flight_net_world_checksum_peer_status[1], 0);
 	XVT_ASSERT_INT_EQ(g_flight_net_buffer_world_messages_until_checksum, 1);
+}
+
+/* On the host, another player's request for the world state (request code 1)
+ * is answered with a resync instead of being taken as a checksum, so nothing
+ * is recorded for that player although its words match; the host's own
+ * request is taken as its checksum and recorded as matched. A transfer to
+ * player 2 is under way. */
+static void check_host_answers_state_request(void)
+{
+	int packet[CHECKSUM_WORDS];
+	flight_sync_world(1);
+	xvt_resync_begin_apply(102, 64);
+	world_checksum_packet(packet);
+	packet[REQUEST_WORD] = XVT_CHECKSUM_REQUEST_STATE;
+	flight_sync_handle_world_checksum_packet(101, packet);
+	XVT_ASSERT_INT_EQ(g_flight_net_world_checksum_peer_status[1], 0);
+	flight_sync_handle_world_checksum_packet(100, packet);
+	XVT_ASSERT_INT_EQ(g_flight_net_world_checksum_peer_status[0], 1);
+}
+
+/* On the host, another player's checksums that differ from the local ones
+ * start a resync and the handler returns, so the player is not recorded. The
+ * function's comment says the host then records it as not matched (2); the
+ * resync does that when it ends (issue #116). A transfer to player 2 is under
+ * way. */
+static void check_host_mismatch_returns(void)
+{
+	int packet[CHECKSUM_WORDS];
+	flight_sync_world(1);
+	xvt_resync_begin_apply(102, 64);
+	world_checksum_packet(packet);
+	packet[2 + 15] += 1;
+	flight_sync_handle_world_checksum_packet(101, packet);
+	XVT_ASSERT_INT_EQ(g_flight_net_world_checksum_peer_status[1], 0);
 }
 
 /* The server's checksum for the current epoch, holding the local words. */
@@ -539,11 +726,19 @@ int main(void)
 	check_reset_smoothing();
 	check_capture_first_sample();
 	check_capture_turn();
+	check_capture_stale_move_vector();
 	check_apply_and_restore();
 	check_apply_leaves_craft();
+	check_apply_projects_along_move_vector();
+	check_apply_smaller_share();
+	check_apply_holds_turned_back();
+	check_apply_holds_turned_back_other_way();
+	check_apply_angle_step_changes_nothing();
 	check_host_records_matches();
 	check_host_ignores();
 	check_client_records_nothing();
+	check_host_answers_state_request();
+	check_host_mismatch_returns();
 	check_server_checksum();
 	check_server_checksum_ignored();
 	check_snapshot();
