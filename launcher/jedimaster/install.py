@@ -146,20 +146,36 @@ def _lookup(base: Path, parts: list[str]) -> Path | None:
     return current
 
 
-def resolve_game_path(install: str | os.PathLike[str], game_path: str) -> Path | None:
+def child_in_any_case(folder: Path, name: str) -> Path | None:
+    """Return the entry of ``folder`` named ``name`` in any letter case.
+
+    An exact-case match wins, else the first case-insensitive match in
+    sorted order. Returns None when there is none or ``folder`` cannot be
+    listed. Does not check whether the entry is a file or a folder.
+    """
+    return _child(folder, name)
+
+
+def resolve_game_path(
+    install: str | os.PathLike[str],
+    game_path: str,
+    balance_of_power: bool = True,
+) -> Path | None:
     """Return the file or folder a game path names, or None when none exists.
 
-    Looks under ``<install>/BalanceOfPower/`` first, then under
-    ``<install>``; each part matches in any letter case. Raises
-    ``ValueError`` for a path that is absolute or contains ``..``. Does not
-    check that the result is a mission or readable.
+    Looks under ``<install>/BalanceOfPower/`` first (unless
+    ``balance_of_power`` is False, which reads the install as if Balance of
+    Power were not installed), then under ``<install>``; each part matches
+    in any letter case. Raises ``ValueError`` for a path that is absolute or
+    contains ``..``. Does not check that the result is a mission or
+    readable.
     """
     install = Path(install)
     parts = game_path_parts(game_path)
     if not parts:
         return None
     bases = []
-    bop = _child(install, BALANCE_OF_POWER)
+    bop = _child(install, BALANCE_OF_POWER) if balance_of_power else None
     if bop is not None and bop.is_dir():
         bases.append(bop)
     bases.append(install)
