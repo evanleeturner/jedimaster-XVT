@@ -44,24 +44,34 @@ void asset_dump_quote(const char *value, size_t size)
 	putchar('"');
 }
 
-int asset_dump_print_header(const char *kind, const char *game_name)
+int asset_dump_resolve(const char *game_name, char *relative, size_t size)
 {
 	char normalized[PATH_CAPACITY];
 	char resolved[PATH_CAPACITY];
 	if (!xvt_storage_normalize(game_name, normalized, sizeof(normalized)) ||
 	    xvt_storage_resolve_asset(normalized, resolved, sizeof(resolved)) !=
 		    1) {
-		fprintf(stderr, "%s: %s does not resolve under %s\n", g_program,
-			game_name, g_root);
 		return 0;
 	}
 	size_t root_length = strlen(g_root);
-	const char *relative = resolved;
+	const char *path = resolved;
 	if (strncmp(resolved, g_root, root_length) == 0) {
-		relative = resolved + root_length;
-		while (*relative == '/') {
-			++relative;
+		path = resolved + root_length;
+		while (*path == '/') {
+			++path;
 		}
+	}
+	snprintf(relative, size, "%s", path);
+	return 1;
+}
+
+int asset_dump_print_header(const char *kind, const char *game_name)
+{
+	char relative[PATH_CAPACITY];
+	if (!asset_dump_resolve(game_name, relative, sizeof(relative))) {
+		fprintf(stderr, "%s: %s does not resolve under %s\n", g_program,
+			game_name, g_root);
+		return 0;
 	}
 	printf("kind %s\nname ", kind);
 	asset_dump_quote(game_name, strlen(game_name));

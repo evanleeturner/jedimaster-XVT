@@ -13,6 +13,12 @@
  * when a folder or the binding cannot be made. */
 int asset_dump_bind_root(const char *program, const char *root);
 
+/* Writes into relative, size bytes, the host path game_name resolves to,
+ * relative to the root, the name's separators cleaned as the engine's file
+ * opening cleans them. Returns 0, writing nothing, when the name does not
+ * resolve. */
+int asset_dump_resolve(const char *game_name, char *relative, size_t size);
+
 /* Prints the sheet's first lines: the kind, the game name and the host path it
  * resolves to, relative to the root, the name's separators cleaned as the
  * engine's file opening cleans them. Returns 0, printing why on stderr, when

@@ -262,7 +262,7 @@ endif()
 # What the engine's own list readers keep from a list file, and what it keeps
 # and draws for the briefing map's icons; see each tool's header comment.
 if(XVT_BUILD_TOOLS)
-    foreach(tool list_dump icon_dump)
+    foreach(tool list_dump icon_dump picture_dump text_dump)
         add_executable(${tool} tools/${tool}.c tools/asset_dump.c)
         target_link_libraries(${tool} PRIVATE xvt_core)
         if(MSVC)
