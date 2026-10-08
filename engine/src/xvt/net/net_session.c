@@ -417,6 +417,11 @@ enum {
 	SEQUENCE_NONE = 128
 };
 
+struct net_session_wire_packet {
+	uint16_t header;    /* Type, sequence and channel bits */
+	uint8_t data[1022]; /* The rest; a system message fills both */
+};
+
 /* Moves every packet DirectPlay holds for this player into the receive queue.
  * Does nothing without a DirectPlay interface; stops when DirectPlay has no
  * more, or when the queue holds 1,023 entries, after calling
@@ -442,10 +447,7 @@ enum {
 void net_session_pump_incoming_packets(void)
 {
 	static int receive_suppress_count;
-	struct {
-		uint16_t header;    /* Type, sequence and channel bits */
-		uint8_t data[1022]; /* The rest; a system message fills both */
-	} wire_packet;
+	struct net_session_wire_packet wire_packet;
 	if (g_net_session.dplay_interface == NULL) {
 		return;
 	}
