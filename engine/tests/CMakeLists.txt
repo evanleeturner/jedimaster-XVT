@@ -199,7 +199,8 @@ xvt_add_known_failure(test_flight_net missing_player_marks_first_entry)
 xvt_add_engine_test(test_flight_sync test_flight_sync.c "${PROJECT_SOURCE_DIR}/src/xvt/net/flight_sync.c")
 add_test(NAME flight_sync COMMAND test_flight_sync)
 
-# The original flight's network session, its receive order and system messages: src/xvt/net/net_session.c.
+# The original flight's network session: its opening, its sends, the receive pump, the receive order with
+# its resend requests, and the system messages: src/xvt/net/net_session.c.
 xvt_add_engine_test(test_net_session test_net_session.c "${PROJECT_SOURCE_DIR}/src/xvt/net/net_session.c")
 add_test(NAME net_session COMMAND test_net_session)
 xvt_add_known_failure(test_net_session resent_copy_first_discarded)
