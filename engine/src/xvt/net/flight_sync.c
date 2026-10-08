@@ -678,21 +678,20 @@ static void flight_sync_compare_world_checksums(const int *packet,
 						int *remote_world_state_size,
 						int *checksum_mismatch)
 {
-	int player_index;
+	int region_index;
 
 	const int *remote_checksums = &packet[PACKET_CHECKSUM_INDEX];
 	const int *remote_region_lengths = &packet[PACKET_REGION_LENGTH_INDEX];
 
 	*local_world_state_size = 0;
 	*remote_world_state_size = 0;
-	/* player_index counts checksum regions here, not players. */
-	for (player_index = 0; player_index < CHECKSUM_REGION_COUNT;
-	     ++player_index) {
-		*remote_world_state_size += remote_region_lengths[player_index];
+	for (region_index = 0; region_index < CHECKSUM_REGION_COUNT;
+	     ++region_index) {
+		*remote_world_state_size += remote_region_lengths[region_index];
 		*local_world_state_size +=
-			(int)g_world_checksum_region_lengths[player_index];
-		if (g_world_checksum[player_index] !=
-		    (unsigned int)remote_checksums[player_index]) {
+			(int)g_world_checksum_region_lengths[region_index];
+		if (g_world_checksum[region_index] !=
+		    (unsigned int)remote_checksums[region_index]) {
 			*checksum_mismatch = 1;
 		}
 	}
