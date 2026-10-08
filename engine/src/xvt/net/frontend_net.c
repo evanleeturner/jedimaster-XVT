@@ -35,18 +35,20 @@
 
 /* The mission description id in the host's last lobby STATE packet; -1 while no
  * session is selected or none has arrived. 2 functions write it:
- * frontend_net_process_network_packets sets it from a STATE packet, and
+ * frontend_net_on_lobby_state sets it from a STATE packet, and
  * xvt_network_dialogs_return resets it to -1. The mission setup screens read
  * it. */
 // GLOBAL: XVT 0xAA6AE8
 int g_frontend_net_received_mission_description_id = 0;
 /* The mission directory id in the host's last lobby STATE packet. Set by
- * frontend_net_process_network_packets. */
+ * frontend_net_on_lobby_state. */
 // GLOBAL: XVT 0xAA6CF8
 int g_frontend_net_received_mission_directory_id = 0;
 /* The buffer most frontend network packets are built in just before they are
- * sent. 37 functions write it, most in the mission setup, briefing and debrief
- * screens, 5 in this file. */
+ * sent. Many functions write it, most in the mission setup, briefing and
+ * debrief screens; in this file frontend_net_send_chat_line, and the packet
+ * handler's answers in frontend_net_packets.c and frontend_net_setup_packets.c.
+ */
 // GLOBAL: XVT 0xAA6AF0
 struct frontend_net_packet_scratch g_frontend_net_packet_scratch = {0};
 /* Index of the game selected on the join screen, -1 for none.
@@ -65,8 +67,8 @@ int g_frontend_net_packet_sender_player_id = 0;
 // GLOBAL: XVT 0x52C18C
 int g_frontend_net_packet_arg0 = 0;
 /* DirectPlay id of the player who made the last team or flight reservation: the
- * second payload word of that packet. frontend_net_process_network_packets writes
- * it and nothing reads it. */
+ * second payload word of that packet. frontend_net_store_reservation writes it
+ * and nothing reads it. */
 // GLOBAL: XVT 0x52C190
 int g_frontend_net_reserving_player_id = 0;
 /* 1 from the frame the host screen's game name is confirmed until the next
@@ -83,50 +85,55 @@ int g_host_game_start_pending = 0;
 // GLOBAL: XVT 0x52C204
 int g_frontend_quick_start_launch_flag = 0;
 /* Protocol version in the last probe answer or game-started notice, stored by
- * frontend_net_process_network_packets. Only a debug log line reads it. */
+ * frontend_net_store_game_status. Only a debug log line reads it. */
 // GLOBAL: XVT 0xAA62A4
 int g_frontend_net_probe_version = 0;
 /* Players a game still needs: the 8 roster places minus the players in the
  * host's last lobby STATE or READY_ROSTER packet, stored by
- * frontend_net_process_network_packets. Only debug log lines read it. */
+ * frontend_net_on_lobby_state and frontend_net_on_ready_roster. Only debug log
+ * lines read it. */
 // GLOBAL: XVT 0xAA6A70
 int g_frontend_net_probe_players_needed = 0;
 /* Nonzero when the last probe answer or game-started notice says the game needs
- * a password; stored by frontend_net_process_network_packets. Only a debug log
- * line reads it. */
+ * a password; stored by frontend_net_store_game_status. Only a debug log line
+ * reads it. */
 // GLOBAL: XVT 0xAA6A74
 int g_frontend_net_probe_password_required = 0;
 /* Mission seconds elapsed, from the last probe answer or game-started notice.
- * frontend_net_process_network_packets stores it, and the join screen code and
+ * frontend_net_store_game_status stores it, and the join screen code and
  * xvt_network_dialogs_return reset it to 0, but nothing reads it. */
 // GLOBAL: XVT 0xAA6CF0
 int g_frontend_net_probe_mission_elapsed_seconds = 0;
 /* BRIEFING_ENTERED packets received, which the briefing compares with the ready
- * players. frontend_net_process_network_packets counts it up; mission_setup_update
- * and mission_setup_flight_assignment_update reset it to 0. */
+ * players. frontend_net_count_briefing_arrival counts it up;
+ * mission_setup_update and mission_setup_flight_assignment_update reset it to
+ * 0. */
 // GLOBAL: XVT 0xA91C90
 int g_frontend_briefing_entered_count = 0;
 /* The chat line being typed, up to 100 bytes;
- * frontend_net_update_and_draw_chat_panel edits it, sends it on Enter or Tab and
- * clears it. */
+ * frontend_net_update_and_draw_chat_panel edits it, and
+ * frontend_net_send_chat_line sends it on Enter or Tab and clears it. */
 // GLOBAL: XVT 0xAA6A80
 char g_frontend_chat_input_buffer[100] = {0};
 /* The chat log text, 1,024 bytes from frontend_load_resources, freed by
- * xvt_frontend_task_shutdown; NULL when not allocated.
- * frontend_net_process_network_packets adds received lines to it;
- * concourse_update and frontend_net_host_game_screen clear it. */
+ * xvt_frontend_task_shutdown; NULL when not allocated. frontend_net_on_chat
+ * adds received lines to it and frontend_net_on_chat_sync_chunk rebuilds it
+ * from a synced log; concourse_update and frontend_net_host_game_screen clear
+ * it. */
 // GLOBAL: XVT 0xB69CD0
 char *g_frontend_chat_log_buffer = NULL;
 /* Bytes of text in g_frontend_chat_log_buffer, not counting the NUL after them;
  * zeroed whenever the log is cleared. */
 // GLOBAL: XVT 0xB6A2C4
 int g_frontend_chat_log_used_bytes = 0;
-/* 1 while chat goes to this player's team only.
- * frontend_net_update_and_draw_chat_panel sets it from its Team and All tabs, which
- * show only once the mission setup roster is authoritative, and otherwise holds
- * it at 0. mission_setup_flight_assignment_update sets it to 1;
+/* 1 while chat goes to this player's team only. frontend_net_update_chat_tabs
+ * sets it from the chat panel's Team and All tabs, which show only once the
+ * mission setup roster is authoritative;
+ * frontend_net_update_and_draw_chat_panel otherwise holds it at 0.
+ * mission_setup_flight_assignment_update sets it to 1;
  * mission_setup_team_assignment_update, mission_debrief_update,
- * xvt_campaign_task_enter_teams and xvt_campaign_task_enter_debrief reset it to 0. */
+ * xvt_campaign_task_enter_teams and xvt_campaign_task_enter_debrief reset it to
+ * 0. */
 // GLOBAL: XVT 0x52BF54
 int g_frontend_chat_team_only = 0;
 /* Lines the chat log view is scrolled back from its newest line; zeroed on the
@@ -255,11 +262,11 @@ static void frontend_net_show_password_refusal(void)
 		NULL, NULL);
 }
 
-/* Part of frontend_net_await_join_admission_screen: the answer to the
- * refusal in network_result. Rejects the session, shows the refusal's
- * dialog and returns xvt_dialog_continue_with's result; past the switch, it
- * sets the concourse or the join screen as the next screen and returns
- * FRONTEND_NET_FRAME_GOES_ON. */
+/* Part of frontend_net_await_join_admission_screen: the answer to the refusal
+ * in network_result. Rejects the session, shows the refusal's dialog and
+ * returns xvt_dialog_continue_with's result; past the switch, which no refusal
+ * reaches as each case returns, it sets the concourse or the join screen as the
+ * next screen and returns FRONTEND_NET_FRAME_GOES_ON. */
 static int frontend_net_handle_refusal(int network_result)
 {
 	xvt_network_session_reject();

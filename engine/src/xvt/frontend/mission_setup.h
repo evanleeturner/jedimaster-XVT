@@ -72,10 +72,11 @@ struct mp_roster_entry {
 	/* Pilot rating; its name is string FRONTSTR_154_DRONE plus the
 	 * rating. */
 	pilot_rating pilot_rating;
-	/* 0, or the chosen preset's craft: set by
-	 * frontend_net_process_network_packets from a player's CRAFT_LOADOUT or
-	 * copied from the host's roster packets, and in a solo game from the
-	 * local choice by the briefing. */
+	/* 0, or the chosen preset's craft: set by frontend_net_on_craft_loadout
+	 * from a player's CRAFT_LOADOUT or copied from the host's roster
+	 * packets by frontend_net_on_launch_roster and
+	 * frontend_net_store_roster_loadouts, and in a solo game from the local
+	 * choice by the briefing. */
 	/* Nonzero exact craft type; zero selects the assigned flight group's
 	 * base or optional craft. */
 	int craft_type_override;

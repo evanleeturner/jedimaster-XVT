@@ -699,7 +699,7 @@ struct pilot_data {
 	/* Name of the network game. The host screen edits it (an empty one
 	 * becomes the pilot's name plus FRONTSTR_470_S_GAME);
 	 * frontend_net_join_game_screen copies the joined session's and
-	 * frontend_net_process_network_packets the host's lobby state's.
+	 * frontend_net_on_lobby_state the host's lobby state's.
 	 * pilot_create_new sets that default. */
 	char multiplayer_game_name[32];
 	/* Game name the pilot last hosted under: frontend_net_host_game_screen

@@ -81,11 +81,12 @@ static const struct model_preview_craft_position
 		{-10, -200, 10},
 };
 /* Flight group given to each team slot: entry team * 8 + slot, beside
- * g_mission_setup_player_assignments.team_player_ids[team][slot]; -1 for none. Many
- * functions write it, chiefly mission_setup_flight_assignment_update, which sets
- * all 80 entries to -1 on its frame 0 unless g_frontend_skip_screen_entry_setup is
- * set, the other flight assignment functions, and
- * frontend_net_process_network_packets from the flight assignment packets. */
+ * g_mission_setup_player_assignments.team_player_ids[team][slot]; -1 for none.
+ * Many functions write it, chiefly mission_setup_flight_assignment_update,
+ * which sets all 80 entries to -1 on its frame 0 unless
+ * g_frontend_skip_screen_entry_setup is set, the other flight assignment
+ * functions, and the flight assignment functions of
+ * frontend_net_setup_packets.c from the flight assignment packets. */
 // GLOBAL: XVT 0xAA5AC0
 int g_mission_setup_player_flight_group_indices[80] = {0};
 /* Five ramps of eight colors, dark to bright, from 0x48 to 0xFC in each lit
@@ -94,12 +95,12 @@ int g_mission_setup_player_flight_group_indices[80] = {0};
  * writes it, on its frame 0; until then every entry is 0. */
 // GLOBAL: XVT 0xAA5C10
 int g_text_shade_ramps[5][8] = {{0}};
-/* The team assignment: team_player_ids holds the player id in each of the 8 slots
- * of the 10 teams, slot 0 being the team's captain, 0 for an empty slot, and
- * assigned_player_ids the ids of the players who have a team slot. Many functions
- * write it, chiefly the team assignment screen and the functions it calls, the
- * prune functions, and frontend_net_process_network_packets from the team
- * assignment packets. */
+/* The team assignment: team_player_ids holds the player id in each of the 8
+ * slots of the 10 teams, slot 0 being the team's captain, 0 for an empty slot,
+ * and assigned_player_ids the ids of the players who have a team slot. Many
+ * functions write it, chiefly the team assignment screen and the functions it
+ * calls, the prune functions, and the team assignment functions of
+ * frontend_net_setup_packets.c from the team assignment packets. */
 // GLOBAL: XVT 0xAA5CB0
 struct mission_setup_player_assignments g_mission_setup_player_assignments = {
 	{0}, {0}};
@@ -166,7 +167,7 @@ int g_mission_setup_selected_flight_group_index = 0;
 /* The local player's craft choice among its flight group's own craft: 0 the
  * group's craft, n its optional craft n - 1. Written by
  * mission_setup_init_craft_loadout (0, then any stepping to the right side),
- * mission_setup_update_craft_loadout, and frontend_net_process_network_packets from
+ * mission_setup_update_craft_loadout, and frontend_net_on_craft_loadout from
  * the host's CRAFT_LOADOUT when craft selection is host only. */
 // GLOBAL: XVT 0xAA60F8
 int g_mission_setup_selected_flight_group_craft_option_index = 0;
@@ -183,7 +184,7 @@ int g_mission_setup_selected_preset_craft_option_index = 0;
 int g_mission_setup_preset_craft_option_count = 0;
 /* The local player's warhead choice: 0 the flight group's default, n its
  * optional warhead n - 1. Written by mission_setup_init_craft_loadout (0),
- * mission_setup_update_craft_loadout, and frontend_net_process_network_packets from
+ * mission_setup_update_craft_loadout, and frontend_net_on_craft_loadout from
  * the host's CRAFT_LOADOUT when craft selection is host only. */
 // GLOBAL: XVT 0xAA60D8
 int g_mission_setup_selected_warhead_option_index = 0;
@@ -199,9 +200,10 @@ int g_mission_setup_selected_beam_option_index = 0;
 int g_mission_setup_selected_countermeasure_option_index = 0;
 /* Waves of the local player's flight group, or of its chosen optional craft,
  * less one as the mission stores them; the craft screen shows it plus 1 when
- * craft waves are on their default. Written by mission_setup_init_craft_loadout,
- * mission_setup_update_craft_loadout, and frontend_net_process_network_packets from
- * the host's CRAFT_LOADOUT when craft selection is host only. */
+ * craft waves are on their default. Written by
+ * mission_setup_init_craft_loadout, mission_setup_update_craft_loadout, and
+ * frontend_net_on_craft_loadout from the host's CRAFT_LOADOUT when craft
+ * selection is host only. */
 // GLOBAL: XVT 0xAA60E8
 int g_mission_setup_selected_wave_count_minus_one = 0;
 /* Craft in the local player's flight group, or of its chosen optional craft,
@@ -270,8 +272,9 @@ int g_mission_setup_roster_authoritative = 0;
 unsigned int g_mission_count = 0;
 /* The game's players as the mission setup screens show them: up to 8 entries,
  * each a name, an id (0 for an empty entry), a rating and the loadout choices.
- * Many functions write it, chiefly frontend_net_process_network_packets from the
- * host's lobby and loadout packets, the lobby senders, which clear departed
+ * Many functions write it, chiefly the frontend's packet handling from the
+ * host's lobby and loadout packets (frontend_net_packets.c,
+ * frontend_net_setup_packets.c), the lobby senders, which clear departed
  * players, and in a solo game mission_setup_update and the Enter functions,
  * which put the pilot in entry 0. */
 // GLOBAL: XVT 0xAA6150
@@ -365,7 +368,7 @@ int g_mission_setup_mission_list_scroll_offset = 0;
 int g_mission_setup_selected_player_roster_index = 0;
 /* On a network client, whether the host's selected battle has an active saved
  * continuation, from the host's BATTLE_PROGRESS packet
- * (frontend_net_process_network_packets). Set to 0 by mission_setup_update on
+ * (frontend_net_store_battle_progress). Set to 0 by mission_setup_update on
  * frame 0, and when a sequence starts without continuing by
  * xvt_campaign_task_enter_teams. */
 // GLOBAL: XVT 0xAA6120
@@ -401,7 +404,7 @@ int g_remote_battle_imperial_victory_count = 0;
 // GLOBAL: XVT 0x52C184
 int g_frontend_skip_screen_entry_setup = 0;
 /* Frames before the host's Begin button on the mission setup screen shows
- * again: 240 after a Begin press, 24 when frontend_net_process_network_packets
+ * again: 240 after a Begin press, 24 when frontend_net_answer_join_request
  * admits a joining player. mission_setup_update sets it to 0 on frame 0 and
  * lowers it by 1 each frame. */
 // GLOBAL: XVT 0xAA6140

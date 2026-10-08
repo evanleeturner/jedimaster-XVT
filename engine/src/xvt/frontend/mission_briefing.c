@@ -6,11 +6,12 @@
 #include "xvt/frontend/mission_setup.h"
 
 /* Per g_mp_roster entry, 1 once that player pressed Ready on the craft
- * selection screen. 4 functions write it: frontend_net_process_network_packets
- * sets an entry to 1 on the player's NET_PACKET_PLAYER_READY, to 0 on
- * NET_PACKET_PLAYER_UNREADY, and clears all of them when a roster player
- * leaves and, on the host, when a player is unavailable; mission_setup_update
- * and mission_debrief_update clear entries;
+ * selection screen. 7 functions write it: frontend_net_on_player_ready sets an
+ * entry to 1 on the player's NET_PACKET_PLAYER_READY,
+ * frontend_net_on_player_unready to 0 on NET_PACKET_PLAYER_UNREADY,
+ * frontend_net_on_player_left clears all of them when a roster player leaves
+ * and, on the host, frontend_net_on_player_unavailable when a player is
+ * unavailable; mission_setup_update and mission_debrief_update clear entries;
  * mission_briefing_craft_fill_solo_roster sets entry 0 when a single player
  * flies. */
 // GLOBAL: XVT 0xA91CA0
