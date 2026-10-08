@@ -116,8 +116,9 @@ int g_mission_setup_dragged_player_id = 0;
  * assignment screen, which no one else may drag; the first
  * g_mission_setup_reserved_player_count entries count. Written by the team and
  * flight assignment screens and their draw functions when a drag starts or a
- * reservation packet arrives, and by mission_briefing_craft_selection_update from
- * the reservation packets; cleared when those screens start. */
+ * reservation packet arrives, and by mission_briefing_craft_add_reservation and
+ * mission_briefing_craft_release_reservation from the packets the craft
+ * selection screen reads; cleared when those screens start. */
 // GLOBAL: XVT 0xAA5E40
 int g_mission_setup_reserved_player_ids[8] = {0};
 /* Entries in use in g_mission_setup_reserved_player_ids, 0 to 8; written beside
