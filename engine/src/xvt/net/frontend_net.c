@@ -160,6 +160,215 @@ int frontend_net_join_game_screen(int frame_counter)
 	return xvt_network_browser_screen(frame_counter);
 }
 
+/* What a part of frontend_net_await_join_admission_screen returns when it
+ * did not end the frame; the screen's own returns are 0 or 1. */
+enum { FRONTEND_NET_FRAME_GOES_ON = -1 };
+
+/* Part of frontend_net_await_join_admission_screen's first frame: registers
+ * joinback.bmp as "background" and draws it with the frame, "allactive"
+ * or "clientactive" by g_host_cd_available and the chat box, then starts
+ * the text fade-in. */
+static void frontend_net_draw_admission_background(void)
+{
+	front_image_register_resource_default("frontres\\joinback.bmp",
+					      "background");
+	frontend_display_lock_offscreen_surface();
+	front_image_draw_sprite_opaque("background", 0, 0);
+	front_image_draw_sprite("frame", 0, 0);
+	if (g_host_cd_available != 0) {
+		front_image_draw_sprite("allactive", 0, 0);
+	} else {
+		front_image_draw_sprite("clientactive", 0, 0);
+	}
+	front_image_draw_sprite_translucent("chatbox", 0, 0);
+	frontend_display_unlock_offscreen_surface(1);
+	frontend_text_start_text_fade_in(20);
+}
+
+/* Part of frontend_net_handle_refusal for a game that has started, or whose
+ * roster is locked when network_result is NET_PACKET_ROSTER_LOCKED: logs the
+ * refusal and shows the dialog that says the game has already started. */
+static void frontend_net_show_started_refusal(int network_result)
+{
+	XVT_LOG_DEBUG("network.refusal_received reason=\"%s\"",
+		      network_result == NET_PACKET_ROSTER_LOCKED ? "locked"
+								 : "started");
+	frontend_dialog_show_confirm_dialog(
+		frontend_string_get(FRONTSTR_552_THIS_GAME_HAS_ALREADY_STARTED),
+		frontend_string_get(
+			FRONTSTR_553_PLEASE_SELECT_ANOTHER_GAME_TO_JOIN),
+		frontend_string_get(FRONTSTR_554_SPACE_TRANSLATION_PLACEHOLDER),
+		NULL, NULL);
+}
+
+/* Part of frontend_net_handle_refusal for NET_PACKET_GAME_FULL: logs the
+ * refusal and shows the dialog that says the game is full. */
+static void frontend_net_show_full_refusal(void)
+{
+	XVT_LOG_DEBUG("network.refusal_received reason=\"full\"");
+	frontend_dialog_show_confirm_dialog(
+		frontend_string_get(
+			FRONTSTR_543_THE_GAME_YOU_ARE_TRYING_TO_JOIN_IS_FULL),
+		frontend_string_get(FRONTSTR_544_PLEASE_TRY_ANOTHER_GAME),
+		frontend_string_get(FRONTSTR_545_SPACE_TRANSLATION_PLACEHOLDER),
+		NULL, NULL);
+}
+
+/* Part of frontend_net_handle_refusal for NET_PACKET_HOST_CANCELLED: logs
+ * it and shows the dialog that says the host cancelled the game. */
+static void frontend_net_show_host_cancelled(void)
+{
+	XVT_LOG_DEBUG("network.refusal_received reason=\"host_cancelled\"");
+	frontend_dialog_show_confirm_dialog(
+		frontend_string_get(FRONTSTR_631_THE_CURRENT_GAME_HAS_BEEN),
+		frontend_string_get(FRONTSTR_632_CANCELLED_BY_THE_HOST),
+		frontend_string_get(FRONTSTR_633_PLEASE_SELECT_ANOTHER_GAME),
+		NULL, NULL);
+}
+
+/* Part of frontend_net_handle_refusal for NET_PACKET_VERSION_MISMATCH: logs
+ * the refusal and shows the dialog that says this program's version does
+ * not match the host's. */
+static void frontend_net_show_version_refusal(void)
+{
+	XVT_LOG_DEBUG("network.refusal_received reason=\"version\"");
+	frontend_dialog_show_confirm_dialog(
+		frontend_string_get(
+			FRONTSTR_546_YOUR_VERSION_OF_THE_PROGRAM_DOES_NOT),
+		frontend_string_get(
+			FRONTSTR_547_MATCH_THE_HOSTS_PLEASE_VERIFY_THAT_YOU),
+		frontend_string_get(FRONTSTR_548_HAVE_THE_CORRECT_PROGRAM),
+		NULL, NULL);
+}
+
+/* Part of frontend_net_handle_refusal for NET_PACKET_PASSWORD_REQUIRED: logs
+ * the refusal and shows the dialog that asks for the correct password in
+ * the network configuration screen. */
+static void frontend_net_show_password_refusal(void)
+{
+	XVT_LOG_DEBUG("network.refusal_received reason=\"password\"");
+	frontend_dialog_show_confirm_dialog(
+		frontend_string_get(FRONTSTR_549_THIS_GAME_REQUIRES_A_PASSWORD),
+		frontend_string_get(
+			FRONTSTR_550_PLEASE_ENTER_THE_CORRECT_PASSWORD_IN),
+		frontend_string_get(
+			FRONTSTR_551_THE_NETWORK_CONFIGURATION_SCREEN),
+		NULL, NULL);
+}
+
+/* Part of frontend_net_await_join_admission_screen: the answer to the
+ * refusal in network_result. Rejects the session, shows the refusal's
+ * dialog and returns xvt_dialog_continue_with's result; past the switch, it
+ * sets the concourse or the join screen as the next screen and returns
+ * FRONTEND_NET_FRAME_GOES_ON. */
+static int frontend_net_handle_refusal(int network_result)
+{
+	xvt_network_session_reject();
+	struct RECT screen_rect;
+	switch (network_result - NET_PACKET_FRONTEND_GAME_STARTED) {
+	case NET_PACKET_FRONTEND_GAME_STARTED -
+		NET_PACKET_FRONTEND_GAME_STARTED:
+	case NET_PACKET_ROSTER_LOCKED - NET_PACKET_FRONTEND_GAME_STARTED:
+		frontend_net_show_started_refusal(network_result);
+		return xvt_dialog_continue_with(xvt_network_dialogs_resume,
+						XVT_NETWORK_ACCESS_REJECTED);
+		break;
+	case NET_PACKET_GAME_FULL - NET_PACKET_FRONTEND_GAME_STARTED:
+		frontend_net_show_full_refusal();
+		return xvt_dialog_continue_with(xvt_network_dialogs_resume,
+						XVT_NETWORK_ACCESS_REJECTED);
+		break;
+	case NET_PACKET_HOST_CANCELLED - NET_PACKET_FRONTEND_GAME_STARTED:
+		frontend_net_show_host_cancelled();
+		return xvt_dialog_continue_with(xvt_network_dialogs_resume,
+						XVT_NETWORK_ACCESS_REJECTED);
+		break;
+	case NET_PACKET_VERSION_MISMATCH - NET_PACKET_FRONTEND_GAME_STARTED:
+		frontend_net_show_version_refusal();
+		return xvt_dialog_continue_with(xvt_network_dialogs_resume,
+						XVT_NETWORK_ACCESS_REJECTED);
+		break;
+	case NET_PACKET_PASSWORD_REQUIRED - NET_PACKET_FRONTEND_GAME_STARTED:
+		frontend_net_show_password_refusal();
+		return xvt_dialog_continue_with(xvt_network_dialogs_resume,
+						XVT_NETWORK_ACCESS_PASSWORD);
+		frontend_draw_rect_assign(&screen_rect, 0, 0, 640, 480);
+		frontend_screen_queue_push(config_options_datapad_update,
+					   &screen_rect);
+		break;
+	}
+	if (g_game_config.network_type != 0) {
+		frontend_screen_set_callbacks(concourse_update, concourse_exit);
+	} else {
+		g_frontend_skip_screen_entry_setup = 1;
+		frontend_screen_set_callbacks(
+			frontend_net_join_game_screen,
+			frontend_mission_list_free_screen_resources);
+	}
+	return FRONTEND_NET_FRAME_GOES_ON;
+}
+
+enum {
+	ACCESS_TIMEOUT_FRAME = 480,
+	PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
+};
+
+/* Part of each frame of frontend_net_await_join_admission_screen: draws
+ * the version text in rect and, when the pilot has a name, the pilot's
+ * rating and name with the "rebtiny" and "imptiny" sprites of frame
+ * (frame_counter % 32) >> 1. */
+static void frontend_net_draw_admission_banner(int frame_counter,
+					       struct RECT *rect)
+{
+	frontend_draw_rect_assign(rect, 507, 452, 562, 464);
+	sprintf(g_frontend_scratch_buffer, "v. %d.%d", 2, 0);
+	frontend_text_draw_centered(12, g_frontend_scratch_buffer, rect,
+				    0xFFFF);
+	frontend_draw_rect_assign(rect, 200, 452, 436, 464);
+	if (g_pilot_data.name[0] != '\0') {
+		sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 6,
+			g_pilot_data.rating_name, 1, g_pilot_data.name);
+		frontend_text_draw_centered(12, g_frontend_scratch_buffer, rect,
+					    g_color_yellow);
+		int animation_frame = (frame_counter %
+				       PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >>
+				      1;
+		sprintf(g_frontend_scratch_buffer, "rebtiny%d",
+			animation_frame);
+		front_image_draw_sprite(g_frontend_scratch_buffer, 204, 453);
+		sprintf(g_frontend_scratch_buffer, "imptiny%d",
+			animation_frame);
+		front_image_draw_sprite(g_frontend_scratch_buffer, 420, 453);
+	}
+}
+
+/* Part of each frame of frontend_net_await_join_admission_screen: draws
+ * the cancel button in rect; when it is pressed, cancels the session, goes
+ * back to the join screen and frees "background". */
+static void frontend_net_handle_admission_cancel(struct RECT *rect)
+{
+	if (g_game_config.help_on != 0) {
+		frontend_button_enable_overlay_text();
+	}
+	frontend_button_set_overlay_text(
+		frontend_string_get(FRONTSTR_019_CANCEL));
+	frontend_draw_rect_assign(rect, 85, 447, 176, 471);
+	int cancel_pressed = frontend_button_handle_sprite_button(
+		rect, "leaveup", "leavedown",
+		frontend_string_get(FRONTSTR_019_CANCEL), 12, 0, 8,
+		"buttonsound");
+	frontend_button_disable_overlay_text();
+	if (cancel_pressed != 0) {
+		XVT_LOG_DEBUG("network.join_cancelled");
+		xvt_network_session_cancel();
+		g_frontend_skip_screen_entry_setup = 1;
+		frontend_screen_set_callbacks(
+			frontend_net_join_game_screen,
+			frontend_mission_list_free_screen_resources);
+		front_image_free_resource_by_name("background");
+	}
+}
+
 /* Waits for the host's answer to a join request, run each frame, showing the
  * access message, version and player banner. It first shows any admission
  * failure (xvt_network_dialogs_report_admission_failure), then reads frontend
@@ -173,25 +382,8 @@ int frontend_net_join_game_screen(int frame_counter)
 // FUNCTION: XVT 0x4D7E70
 int frontend_net_await_join_admission_screen(int frame_counter)
 {
-	enum {
-		ACCESS_TIMEOUT_FRAME = 480,
-		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
-	};
-
 	if (frame_counter == 0) {
-		front_image_register_resource_default("frontres\\joinback.bmp",
-						      "background");
-		frontend_display_lock_offscreen_surface();
-		front_image_draw_sprite_opaque("background", 0, 0);
-		front_image_draw_sprite("frame", 0, 0);
-		if (g_host_cd_available != 0) {
-			front_image_draw_sprite("allactive", 0, 0);
-		} else {
-			front_image_draw_sprite("clientactive", 0, 0);
-		}
-		front_image_draw_sprite_translucent("chatbox", 0, 0);
-		frontend_display_unlock_offscreen_surface(1);
-		frontend_text_start_text_fade_in(20);
+		frontend_net_draw_admission_background();
 	}
 
 	struct RECT rect;
@@ -221,104 +413,9 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 	    network_result == NET_PACKET_ROSTER_LOCKED ||
 	    network_result == NET_PACKET_HOST_CANCELLED ||
 	    network_result == NET_PACKET_FRONTEND_GAME_STARTED) {
-		xvt_network_session_reject();
-		struct RECT screen_rect;
-		switch (network_result - NET_PACKET_FRONTEND_GAME_STARTED) {
-		case NET_PACKET_FRONTEND_GAME_STARTED -
-			NET_PACKET_FRONTEND_GAME_STARTED:
-		case NET_PACKET_ROSTER_LOCKED -
-			NET_PACKET_FRONTEND_GAME_STARTED:
-			XVT_LOG_DEBUG("network.refusal_received reason=\"%s\"",
-				      network_result == NET_PACKET_ROSTER_LOCKED
-					      ? "locked"
-					      : "started");
-			frontend_dialog_show_confirm_dialog(
-				frontend_string_get(
-					FRONTSTR_552_THIS_GAME_HAS_ALREADY_STARTED),
-				frontend_string_get(
-					FRONTSTR_553_PLEASE_SELECT_ANOTHER_GAME_TO_JOIN),
-				frontend_string_get(
-					FRONTSTR_554_SPACE_TRANSLATION_PLACEHOLDER),
-				NULL, NULL);
-			return xvt_dialog_continue_with(
-				xvt_network_dialogs_resume,
-				XVT_NETWORK_ACCESS_REJECTED);
-			break;
-		case NET_PACKET_GAME_FULL - NET_PACKET_FRONTEND_GAME_STARTED:
-			XVT_LOG_DEBUG(
-				"network.refusal_received reason=\"full\"");
-			frontend_dialog_show_confirm_dialog(
-				frontend_string_get(
-					FRONTSTR_543_THE_GAME_YOU_ARE_TRYING_TO_JOIN_IS_FULL),
-				frontend_string_get(
-					FRONTSTR_544_PLEASE_TRY_ANOTHER_GAME),
-				frontend_string_get(
-					FRONTSTR_545_SPACE_TRANSLATION_PLACEHOLDER),
-				NULL, NULL);
-			return xvt_dialog_continue_with(
-				xvt_network_dialogs_resume,
-				XVT_NETWORK_ACCESS_REJECTED);
-			break;
-		case NET_PACKET_HOST_CANCELLED -
-			NET_PACKET_FRONTEND_GAME_STARTED:
-			XVT_LOG_DEBUG(
-				"network.refusal_received reason=\"host_cancelled\"");
-			frontend_dialog_show_confirm_dialog(
-				frontend_string_get(
-					FRONTSTR_631_THE_CURRENT_GAME_HAS_BEEN),
-				frontend_string_get(
-					FRONTSTR_632_CANCELLED_BY_THE_HOST),
-				frontend_string_get(
-					FRONTSTR_633_PLEASE_SELECT_ANOTHER_GAME),
-				NULL, NULL);
-			return xvt_dialog_continue_with(
-				xvt_network_dialogs_resume,
-				XVT_NETWORK_ACCESS_REJECTED);
-			break;
-		case NET_PACKET_VERSION_MISMATCH -
-			NET_PACKET_FRONTEND_GAME_STARTED:
-			XVT_LOG_DEBUG(
-				"network.refusal_received reason=\"version\"");
-			frontend_dialog_show_confirm_dialog(
-				frontend_string_get(
-					FRONTSTR_546_YOUR_VERSION_OF_THE_PROGRAM_DOES_NOT),
-				frontend_string_get(
-					FRONTSTR_547_MATCH_THE_HOSTS_PLEASE_VERIFY_THAT_YOU),
-				frontend_string_get(
-					FRONTSTR_548_HAVE_THE_CORRECT_PROGRAM),
-				NULL, NULL);
-			return xvt_dialog_continue_with(
-				xvt_network_dialogs_resume,
-				XVT_NETWORK_ACCESS_REJECTED);
-			break;
-		case NET_PACKET_PASSWORD_REQUIRED -
-			NET_PACKET_FRONTEND_GAME_STARTED:
-			XVT_LOG_DEBUG(
-				"network.refusal_received reason=\"password\"");
-			frontend_dialog_show_confirm_dialog(
-				frontend_string_get(
-					FRONTSTR_549_THIS_GAME_REQUIRES_A_PASSWORD),
-				frontend_string_get(
-					FRONTSTR_550_PLEASE_ENTER_THE_CORRECT_PASSWORD_IN),
-				frontend_string_get(
-					FRONTSTR_551_THE_NETWORK_CONFIGURATION_SCREEN),
-				NULL, NULL);
-			return xvt_dialog_continue_with(
-				xvt_network_dialogs_resume,
-				XVT_NETWORK_ACCESS_PASSWORD);
-			frontend_draw_rect_assign(&screen_rect, 0, 0, 640, 480);
-			frontend_screen_queue_push(
-				config_options_datapad_update, &screen_rect);
-			break;
-		}
-		if (g_game_config.network_type != 0) {
-			frontend_screen_set_callbacks(concourse_update,
-						      concourse_exit);
-		} else {
-			g_frontend_skip_screen_entry_setup = 1;
-			frontend_screen_set_callbacks(
-				frontend_net_join_game_screen,
-				frontend_mission_list_free_screen_resources);
+		int refused = frontend_net_handle_refusal(network_result);
+		if (refused != FRONTEND_NET_FRAME_GOES_ON) {
+			return refused;
 		}
 	} else if (network_result == NET_PACKET_PLAYER_ADMITTED) {
 		memset(g_mp_roster, 0, sizeof(g_mp_roster));
@@ -326,52 +423,14 @@ int frontend_net_await_join_admission_screen(int frame_counter)
 					      mission_setup_exit);
 	}
 
-	frontend_draw_rect_assign(&rect, 507, 452, 562, 464);
-	sprintf(g_frontend_scratch_buffer, "v. %d.%d", 2, 0);
-	frontend_text_draw_centered(12, g_frontend_scratch_buffer, &rect,
-				    0xFFFF);
-	frontend_draw_rect_assign(&rect, 200, 452, 436, 464);
-	if (g_pilot_data.name[0] != '\0') {
-		sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 6,
-			g_pilot_data.rating_name, 1, g_pilot_data.name);
-		frontend_text_draw_centered(12, g_frontend_scratch_buffer,
-					    &rect, g_color_yellow);
-		int animation_frame = (frame_counter %
-				       PILOT_BANNER_ANIMATION_PERIOD_FRAMES) >>
-				      1;
-		sprintf(g_frontend_scratch_buffer, "rebtiny%d",
-			animation_frame);
-		front_image_draw_sprite(g_frontend_scratch_buffer, 204, 453);
-		sprintf(g_frontend_scratch_buffer, "imptiny%d",
-			animation_frame);
-		front_image_draw_sprite(g_frontend_scratch_buffer, 420, 453);
-	}
+	frontend_net_draw_admission_banner(frame_counter, &rect);
 	if (frontend_handle_common_screen_controls(0) == 1) {
 		return 1;
 	}
 	if (xvt_dialog_is_active()) {
 		return 0;
 	}
-	if (g_game_config.help_on != 0) {
-		frontend_button_enable_overlay_text();
-	}
-	frontend_button_set_overlay_text(
-		frontend_string_get(FRONTSTR_019_CANCEL));
-	frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
-	int cancel_pressed = frontend_button_handle_sprite_button(
-		&rect, "leaveup", "leavedown",
-		frontend_string_get(FRONTSTR_019_CANCEL), 12, 0, 8,
-		"buttonsound");
-	frontend_button_disable_overlay_text();
-	if (cancel_pressed != 0) {
-		XVT_LOG_DEBUG("network.join_cancelled");
-		xvt_network_session_cancel();
-		g_frontend_skip_screen_entry_setup = 1;
-		frontend_screen_set_callbacks(
-			frontend_net_join_game_screen,
-			frontend_mission_list_free_screen_resources);
-		front_image_free_resource_by_name("background");
-	}
+	frontend_net_handle_admission_cancel(&rect);
 	return 0;
 }
 
