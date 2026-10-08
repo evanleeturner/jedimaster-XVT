@@ -241,12 +241,14 @@ if(NOT MSVC)
     xvt_add_known_failure(test_briefing_map marker_age_past_32767)
 endif()
 
-# The craft selection screen's ready test, briefing map hooks, exit and frame: src/xvt/frontend/mission_briefing.c.
+# The craft selection screen's ready test, exit and frame: src/xvt/frontend/mission_briefing_craft.c;
+# the briefing map hooks: src/xvt/frontend/mission_briefing.c.
 # The frame checks write their mission lists, ship list and strings into a temporary folder made with POSIX
 # calls, and arm an alarm with POSIX calls for a frame that never returns.
 if(NOT MSVC)
     xvt_add_engine_test(test_mission_briefing test_mission_briefing.c
-        "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing.c")
+        "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing_craft.c")
     add_test(NAME mission_briefing COMMAND test_mission_briefing)
     xvt_add_known_failure(test_mission_briefing title_unlisted_mission)
     xvt_add_known_failure(test_mission_briefing ninth_reservation)

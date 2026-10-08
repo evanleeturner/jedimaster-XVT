@@ -120,6 +120,7 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/frontend/frontend_string.c
     src/xvt/frontend/frontend_text.c
     src/xvt/frontend/mission_briefing.c
+    src/xvt/frontend/mission_briefing_craft.c
     src/xvt/frontend/mission_debrief.c
     src/xvt/frontend/mission_setup.c
     src/xvt/frontend/movie.c

@@ -30,6 +30,7 @@
 #include "xvt/frontend/frontend_string.h"
 #include "xvt/frontend/frontend_text.h"
 #include "xvt/frontend/mission_briefing.h"
+#include "xvt/frontend/mission_briefing_craft.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/input/keyboard.h"
 #include "xvt/net/frontend_net.h"

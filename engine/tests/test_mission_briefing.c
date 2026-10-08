@@ -1,6 +1,7 @@
-/* Tests for xvt/frontend/mission_briefing.c, the craft selection screen:
- * its ready test, its briefing map hooks, its exit and its frame,
- * mission_briefing_craft_selection_update. The ready checks set the session's
+/* Tests for xvt/frontend/mission_briefing_craft.c, the craft selection screen:
+ * its ready test, its exit and its frame,
+ * mission_briefing_craft_selection_update; and for the briefing map hooks of
+ * xvt/frontend/mission_briefing.c. The ready checks set the session's
  * players and the roster's ready flags in the game's own tables. The map
  * checks run on a frontend display with no window (test_frontend_display.h).
  *
@@ -42,6 +43,7 @@
 #include "xvt/frontend/frontend_state.h"
 #include "xvt/frontend/frontend_string.h"
 #include "xvt/frontend/mission_briefing.h"
+#include "xvt/frontend/mission_briefing_craft.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/frontend_net.h"
