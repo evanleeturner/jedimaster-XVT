@@ -2227,6 +2227,12 @@ int net_session_handle_direct_play_system_message(int packet_opcode,
 	}
 }
 
+struct net_session_receive_channels {
+	int want_channel_a; /* Entry is on the all-players channel */
+	int want_channel_b; /* Entry is on the group channel */
+	unsigned int remaining_queue_entries; /* Entries left to scan */
+};
+
 /* Returns the next packet to hand to the game, in order per peer and channel,
  * or NULL; *out_sender_dpid and *out_payload_size describe it, and the pointer,
  * into g_net_session.recv_scratch_packet, is valid until the next call. It first
@@ -2258,11 +2264,7 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 	int expected_sequence;
 	int queue_index;
 
-	struct {
-		int want_channel_a; /* Entry is on the all-players channel */
-		int want_channel_b; /* Entry is on the group channel */
-		unsigned int remaining_queue_entries; /* Entries left to scan */
-	} channels;
+	struct net_session_receive_channels channels;
 
 	int next_sequence;
 	int sequence_distance;
