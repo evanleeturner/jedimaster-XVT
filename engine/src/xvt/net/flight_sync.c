@@ -642,6 +642,87 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 	}
 }
 
+enum {
+	PACKET_EPOCH_INDEX = 1,
+	PACKET_CHECKSUM_INDEX = 2,
+	CHECKSUM_REGION_COUNT = 16,
+	PACKET_REGION_LENGTH_INDEX =
+		PACKET_CHECKSUM_INDEX + CHECKSUM_REGION_COUNT,
+	PEER_STATUS_MISMATCHED = 2,
+	PEER_STATUS_MATCHED = 1,
+	ALL_PEER_STATUS_BITS = 3
+};
+
+/* Part of flight_sync_handle_world_checksum_packet: compares the 16 region
+ * checksums in packet with the local ones and sets *checksum_mismatch to 1
+ * when any differs. Adds up both sides' region lengths in
+ * *local_world_state_size and *remote_world_state_size for the mismatch
+ * warning. */
+static void flight_sync_compare_world_checksums(const int *packet,
+						int *local_world_state_size,
+						int *remote_world_state_size,
+						int *checksum_mismatch)
+{
+	int player_index;
+
+	const int *remote_checksums = &packet[PACKET_CHECKSUM_INDEX];
+	const int *remote_region_lengths = &packet[PACKET_REGION_LENGTH_INDEX];
+
+	*local_world_state_size = 0;
+	*remote_world_state_size = 0;
+	/* player_index is reused here as a checksum region index. */
+	for (player_index = 0; player_index < CHECKSUM_REGION_COUNT;
+	     ++player_index) {
+		*remote_world_state_size += remote_region_lengths[player_index];
+		*local_world_state_size +=
+			(int)g_world_checksum_region_lengths[player_index];
+		if (g_world_checksum[player_index] !=
+		    (unsigned int)remote_checksums[player_index]) {
+			*checksum_mismatch = 1;
+		}
+	}
+	(void)*local_world_state_size;
+	(void)*remote_world_state_size;
+}
+
+/* Part of flight_sync_handle_world_checksum_packet on the host: records
+ * sender_player_index in g_flight_net_world_checksum_peer_status as matched
+ * (1), or not (2) when checksum_mismatch is 1, turns buffering off once
+ * every active player has matched, and logs it with packet's epoch. */
+static void flight_sync_record_checksum_status(int sender_player_index,
+					       int checksum_mismatch,
+					       const int *packet)
+{
+	int player_index;
+
+	g_flight_net_world_checksum_peer_status[sender_player_index] =
+		PEER_STATUS_MISMATCHED;
+	if (checksum_mismatch != 1) {
+		g_flight_net_world_checksum_peer_status[sender_player_index] =
+			PEER_STATUS_MATCHED;
+	}
+
+	int all_peer_status = ALL_PEER_STATUS_BITS;
+	for (player_index = 0;
+	     player_index < (int)(sizeof(g_players) / sizeof(g_players[0]));
+	     ++player_index) {
+		if (g_players[player_index].participation_state != 0) {
+			all_peer_status &=
+				g_flight_net_world_checksum_peer_status
+					[player_index];
+		}
+	}
+	if ((all_peer_status & PEER_STATUS_MATCHED) != 0) {
+		g_flight_net_buffer_world_messages_until_checksum = 0;
+	}
+	XVT_LOG_DEBUG(
+		"network.checksum_recorded slot=%d epoch=%u status=%d all=%d buffering=%d",
+		sender_player_index, (unsigned)packet[PACKET_EPOCH_INDEX],
+		g_flight_net_world_checksum_peer_status[sender_player_index],
+		all_peer_status,
+		g_flight_net_buffer_world_messages_until_checksum);
+}
+
 /* Handles a player's world checksum for the epoch in
  * g_flight_net_world_checksum_epoch (word 1); other epochs, and players that
  * aborted or are inactive, are ignored. When the 16 region checksums from
@@ -657,17 +738,6 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 void flight_sync_handle_world_checksum_packet(int sender_dpid,
 					      const int *packet)
 {
-	enum {
-		PACKET_EPOCH_INDEX = 1,
-		PACKET_CHECKSUM_INDEX = 2,
-		CHECKSUM_REGION_COUNT = 16,
-		PACKET_REGION_LENGTH_INDEX =
-			PACKET_CHECKSUM_INDEX + CHECKSUM_REGION_COUNT,
-		PEER_STATUS_MISMATCHED = 2,
-		PEER_STATUS_MATCHED = 1,
-		ALL_PEER_STATUS_BITS = 3
-	};
-
 	if ((unsigned int)packet[PACKET_EPOCH_INDEX] !=
 		    g_flight_net_world_checksum_epoch &&
 	    packet[34] != XVT_CHECKSUM_REQUEST_STATE) {
@@ -711,28 +781,12 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 		return;
 	}
 
-	int player_index;
 	if (g_local_player != sender_player_index) {
-		const int *remote_checksums = &packet[PACKET_CHECKSUM_INDEX];
-		const int *remote_region_lengths =
-			&packet[PACKET_REGION_LENGTH_INDEX];
-
-		int local_world_state_size = 0;
-		int remote_world_state_size = 0;
-		/* player_index is reused here as a checksum region index. */
-		for (player_index = 0; player_index < CHECKSUM_REGION_COUNT;
-		     ++player_index) {
-			remote_world_state_size +=
-				remote_region_lengths[player_index];
-			local_world_state_size += (int)
-				g_world_checksum_region_lengths[player_index];
-			if (g_world_checksum[player_index] !=
-			    (unsigned int)remote_checksums[player_index]) {
-				checksum_mismatch = 1;
-			}
-		}
-		(void)local_world_state_size;
-		(void)remote_world_state_size;
+		int local_world_state_size;
+		int remote_world_state_size;
+		flight_sync_compare_world_checksums(
+			packet, &local_world_state_size,
+			&remote_world_state_size, &checksum_mismatch);
 
 		if (checksum_mismatch != 0) {
 			XVT_LOG_WARN(
@@ -757,32 +811,8 @@ void flight_sync_handle_world_checksum_packet(int sender_dpid,
 		return;
 	}
 
-	g_flight_net_world_checksum_peer_status[sender_player_index] =
-		PEER_STATUS_MISMATCHED;
-	if (checksum_mismatch != 1) {
-		g_flight_net_world_checksum_peer_status[sender_player_index] =
-			PEER_STATUS_MATCHED;
-	}
-
-	int all_peer_status = ALL_PEER_STATUS_BITS;
-	for (player_index = 0;
-	     player_index < (int)(sizeof(g_players) / sizeof(g_players[0]));
-	     ++player_index) {
-		if (g_players[player_index].participation_state != 0) {
-			all_peer_status &=
-				g_flight_net_world_checksum_peer_status
-					[player_index];
-		}
-	}
-	if ((all_peer_status & PEER_STATUS_MATCHED) != 0) {
-		g_flight_net_buffer_world_messages_until_checksum = 0;
-	}
-	XVT_LOG_DEBUG(
-		"network.checksum_recorded slot=%d epoch=%u status=%d all=%d buffering=%d",
-		sender_player_index, (unsigned)packet[PACKET_EPOCH_INDEX],
-		g_flight_net_world_checksum_peer_status[sender_player_index],
-		all_peer_status,
-		g_flight_net_buffer_world_messages_until_checksum);
+	flight_sync_record_checksum_status(sender_player_index,
+					   checksum_mismatch, packet);
 }
 
 /* On a client, compares the 16 world checksum words the server sent for the
