@@ -1792,6 +1792,379 @@ int *net_session_receive_game_packet(int *out_sender_dpid,
 	}
 }
 
+enum {
+	RELIABLE_SEQUENCE_SENTINEL = 127,
+	PEER_SNAPSHOT_METADATA_DWORD_COUNT = 3,
+	PEER_SNAPSHOT_STRIDE = 8,
+	PEER_PREV_CHANNEL_A_OFFSET = 4,
+	PEER_PREV_CHANNEL_B_OFFSET = 5,
+	PEER_CHANNEL_A_OFFSET = 6,
+	PEER_CHANNEL_B_OFFSET = 7,
+	PEER_SLOT_QWORD_COUNT =
+		sizeof(struct net_reliable_peer_slot) / sizeof(uint64_t)
+};
+
+/* Part of net_session_handle_direct_play_system_message for a new player: sends
+ * the player in packet[2] a SEQUENCE_STATUS with every reliable peer slot's id
+ * and sequences, built in g_net_session_scratch_packet. */
+static void net_session_send_sequence_status(const int *packet)
+{
+	int peer_index;
+	struct net_reliable_peer_slot *peer;
+	uint8_t *encoded_peer;
+	g_net_session_scratch_packet.payload_dwords[0] = 0;
+	g_net_session_scratch_packet.packet_type = NET_PACKET_SEQUENCE_STATUS;
+	g_net_session_scratch_packet.payload_dwords[1] =
+		(int)g_net_session.reliable_peer_slot_count;
+	g_net_session_scratch_packet.payload_dwords[2] = (int)timeGetTime();
+	encoded_peer =
+		(uint8_t *)&g_net_session_scratch_packet
+			.payload_dwords[PEER_SNAPSHOT_METADATA_DWORD_COUNT];
+	for (peer_index = 0;
+	     peer_index < (int)g_net_session.reliable_peer_slot_count;
+	     ++peer_index) {
+		peer = &g_net_session.reliable_peer_slots[peer_index];
+		memcpy(&encoded_peer[peer_index * PEER_SNAPSHOT_STRIDE],
+		       &peer->direct_play_id, sizeof(peer->direct_play_id));
+		encoded_peer[peer_index * PEER_SNAPSHOT_STRIDE +
+			     PEER_PREV_CHANNEL_A_OFFSET] =
+			(uint8_t)peer->last_delivered_seq_channel_a;
+		encoded_peer[peer_index * PEER_SNAPSHOT_STRIDE +
+			     PEER_PREV_CHANNEL_B_OFFSET] =
+			(uint8_t)peer->last_delivered_seq_channel_b;
+		encoded_peer[peer_index * PEER_SNAPSHOT_STRIDE +
+			     PEER_CHANNEL_A_OFFSET] =
+			(uint8_t)peer->recv_seq_channel_a;
+		encoded_peer[peer_index * PEER_SNAPSHOT_STRIDE +
+			     PEER_CHANNEL_B_OFFSET] =
+			(uint8_t)peer->recv_seq_channel_b;
+	}
+	net_session_send_packet(
+		packet[2], (unsigned int *)&g_net_session_scratch_packet,
+		8 * (int)g_net_session.reliable_peer_slot_count + 16);
+}
+
+/* Part of net_session_handle_direct_play_system_message for
+ * DPSYS_CREATEPLAYERORGROUP: only the host acts. It sends the new player in
+ * packet[2] its sequence status and session status, and while
+ * g_net_session_flight_handshake_active is 0 it lists the roster again and adds
+ * every other player to the group. Returns the function's result. */
+static int net_session_on_player_created(const int *packet)
+{
+	int result;
+	uint8_t handshake_active;
+	int player_index;
+	result = net_session_is_local_host();
+	if (result == 0) {
+		return result;
+	}
+	handshake_active = g_net_session_flight_handshake_active;
+	result = packet[1];
+	if (handshake_active != 0) {
+		if (result == 1 &&
+		    packet[2] !=
+			    g_net_session.local_player_info.direct_play_id) {
+			net_session_send_sequence_status(packet);
+			g_net_session_scratch_packet.packet_type =
+				NET_PACKET_FLIGHT_SESSION_STATUS;
+			g_net_session_scratch_packet.payload_dwords[0] =
+				mission_get_elapsed_clock_seconds();
+			g_net_session_scratch_packet.payload_dwords[1] =
+				FRONTEND_NET_PROTOCOL_VERSION;
+			g_net_session_scratch_packet.payload_dwords[2] = 0;
+			XVT_LOG_INFO(
+				"network.player_joined_flight player=%u peers=%u seconds=%d",
+				(unsigned)packet[2],
+				g_net_session.reliable_peer_slot_count,
+				g_net_session_scratch_packet.payload_dwords[0]);
+			return net_session_send_packet(
+				packet[2],
+				(unsigned int *)&g_net_session_scratch_packet,
+				16);
+		}
+	} else if (result == 1) {
+		if (packet[2] !=
+		    g_net_session.local_player_info.direct_play_id) {
+			net_session_send_sequence_status(packet);
+			g_net_session_scratch_packet.packet_type =
+				NET_PACKET_FLIGHT_SESSION_STATUS;
+			g_net_session_scratch_packet.payload_dwords[0] = 0;
+			net_session_send_packet(
+				packet[2],
+				(unsigned int *)&g_net_session_scratch_packet,
+				8);
+		}
+		g_net_session.player_count = 0;
+		net_session_enumerate_players();
+		for (player_index = 0;
+		     player_index < g_net_session.player_count;
+		     ++player_index) {
+			if (g_net_session.players[player_index]
+				    .direct_play_id !=
+			    g_net_session.local_player_info.direct_play_id) {
+				net_session_add_player_to_group(
+					&g_net_session.players[player_index]);
+			}
+		}
+	}
+	return result;
+}
+
+/* Part of net_session_handle_direct_play_system_message for a departed player:
+ * gives reliable peer slot g_net_session.reliable_peer_slot_count, the first
+ * past the slots in use, its opening values. */
+static void net_session_clear_last_peer_slot(void)
+{
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.direct_play_id = 0;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.last_delivered_seq_default = RELIABLE_SEQUENCE_SENTINEL;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.last_delivered_seq_channel_a = RELIABLE_SEQUENCE_SENTINEL;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.last_delivered_seq_channel_b = RELIABLE_SEQUENCE_SENTINEL;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.recv_seq_default = RELIABLE_SEQUENCE_SENTINEL;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.recv_seq_channel_a = RELIABLE_SEQUENCE_SENTINEL;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.recv_seq_channel_b = RELIABLE_SEQUENCE_SENTINEL;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.send_seq = 0;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.last_piggyback_type = NET_PACKET_NOP;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.piggyback_length = 1;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.last_activity_ms = 0;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.packet_count = 0;
+	g_net_session
+		.reliable_peer_slots[g_net_session.reliable_peer_slot_count]
+		.packet_drop_count = 0;
+}
+
+/* Part of net_session_handle_direct_play_system_message for a departed player:
+ * frees reliable peer slot player_index by moving the last slot into its place,
+ * and clears the last slot. */
+static void net_session_free_peer_slot(int player_index)
+{
+	--g_net_session.reliable_peer_slot_count;
+	memcpy(&g_net_session.reliable_peer_slots[player_index],
+	       &g_net_session.reliable_peer_slots
+			[g_net_session.reliable_peer_slot_count],
+	       sizeof(g_net_session.reliable_peer_slots[player_index]));
+	net_session_clear_last_peer_slot();
+}
+
+/* Part of net_session_handle_direct_play_system_message for a departed
+ * player: finds the player in packet[2] in the roster, queues this player a
+ * STARTUP_READY if it was active, removes it from the DirectPlay group and
+ * marks it inactive; result gets the roster count, then the removal's
+ * result. */
+static void net_session_mark_player_departed(int *result, const int *packet)
+{
+	int player_index;
+	*result = g_net_session.player_count;
+	for (player_index = 0; player_index < g_net_session.player_count;
+	     ++player_index) {
+		if (g_net_session.players[player_index].direct_play_id ==
+		    packet[2]) {
+			if (g_net_session.players[player_index].active_flag !=
+			    0) {
+				g_net_session_scratch_packet.packet_type =
+					NET_PACKET_STARTUP_READY;
+				net_session_send_packet(
+					g_net_session.local_player_info
+						.direct_play_id,
+					(unsigned int
+						 *)&g_net_session_scratch_packet,
+					4);
+			}
+			*result =
+				net_session_remove_player_from_group(packet[2]);
+			XVT_LOG_INFO(
+				"network.player_destroyed player=%u slot=%d active=%d result=%#x",
+				(unsigned)packet[2], player_index,
+				g_net_session.players[player_index].active_flag,
+				(unsigned)*result);
+			g_net_session.players[player_index].active_flag = 0;
+			break;
+		}
+	}
+}
+
+/* Part of net_session_handle_direct_play_system_message for a departed player
+ * while g_net_session_flight_handshake_active is set: marks the player in
+ * packet[2] inactive and frees its reliable peer slot. Returns the function's
+ * result. */
+static int net_session_on_player_left_in_flight(const int *packet)
+{
+	int result;
+	int player_index;
+	result = packet[1];
+	if (result == 1) {
+		net_session_mark_player_departed(&result, packet);
+		/* Below, player_index indexes reliable peer
+		 * slots, to drop the departed player's slot. */
+		player_index = 0;
+		if ((int)g_net_session.reliable_peer_slot_count <=
+		    player_index) {
+			return result;
+		}
+		result = packet[2];
+		do {
+			if (g_net_session.reliable_peer_slots[player_index]
+				    .direct_play_id == (DPID)packet[2]) {
+				XVT_LOG_DEBUG(
+					"network.peer_slot_freed player=%u peer=%d delivered=%d drops=%d gaps=%d left=%u",
+					(unsigned)packet[2], player_index,
+					g_net_session
+						.reliable_peer_slots
+							[player_index]
+						.packet_count,
+					g_net_session
+						.reliable_peer_slots
+							[player_index]
+						.packet_drop_count,
+					g_net_session
+						.reliable_peer_slots
+							[player_index]
+						.packet_retry_count,
+					g_net_session.reliable_peer_slot_count -
+						1);
+				net_session_free_peer_slot(player_index);
+				return PEER_SLOT_QWORD_COUNT *
+				       (int)g_net_session
+					       .reliable_peer_slot_count;
+			}
+			++player_index;
+		} while (player_index <
+			 (int)g_net_session.reliable_peer_slot_count);
+		return result;
+	}
+	return result;
+}
+
+/* Part of net_session_handle_direct_play_system_message for
+ * DPSYS_DESTROYPLAYERORGROUP: reports a departed host to
+ * xvt_network_session_host_lost; then only the host acts, removing the player
+ * in packet[2] from the DirectPlay group and freeing its reliable peer slot.
+ * Returns the function's result. */
+static int net_session_on_player_destroyed(const int *packet)
+{
+	int result;
+	int player_index;
+	if (packet[1] == DPPLAYERTYPE_PLAYER &&
+	    packet[2] == g_net_session.host_dplay_id) {
+		xvt_network_session_host_lost();
+	}
+	result = net_session_is_local_host();
+	if (result == 0) {
+		return result;
+	}
+	if (g_net_session_flight_handshake_active != 0) {
+		return net_session_on_player_left_in_flight(packet);
+	}
+	result = packet[1];
+	if (result != 1) {
+		return result;
+	}
+	g_net_session.player_count = 0;
+	net_session_enumerate_players();
+	result = net_session_remove_player_from_group(packet[2]);
+	/* Below, player_index indexes reliable peer slots, to drop the
+	 * departed player's slot. */
+	player_index = 0;
+	if ((int)g_net_session.reliable_peer_slot_count <= player_index) {
+		return result;
+	}
+	result = packet[2];
+	do {
+		if (g_net_session.reliable_peer_slots[player_index]
+			    .direct_play_id == (DPID)packet[2]) {
+			net_session_free_peer_slot(player_index);
+			return PEER_SLOT_QWORD_COUNT *
+			       (int)g_net_session.reliable_peer_slot_count;
+		}
+		++player_index;
+	} while (player_index < (int)g_net_session.reliable_peer_slot_count);
+	return result;
+}
+
+/* Part of net_session_handle_direct_play_system_message for
+ * DPSYS_SETPLAYERORGROUPNAME: copies the new names into the matching roster
+ * entry, cut to 12 characters. Returns the function's result. */
+static int net_session_on_player_renamed(const int *packet)
+{
+	int result;
+	int player_index;
+	result = ((const struct net_player_name_message *)packet)
+			 ->header.dwPlayerType;
+	if (result == 1) {
+		result = g_net_session.player_count;
+		for (player_index = 0;
+		     player_index < g_net_session.player_count;
+		     ++player_index) {
+			if (g_net_session.players[player_index]
+				    .direct_play_id ==
+			    (int)((const struct net_player_name_message *)
+					  packet)
+				    ->header.dpId) {
+				if (!xvt_network_session_copy_player_names(
+					    (const struct
+					     net_player_name_message *)packet,
+					    g_net_session.players[player_index]
+						    .player_name,
+					    sizeof(g_net_session
+							   .players[player_index]
+							   .player_name),
+					    g_net_session.players[player_index]
+						    .long_name,
+					    sizeof(g_net_session
+							   .players[player_index]
+							   .long_name))) {
+					XVT_LOG_WARN(
+						"network.rename_rejected player=%u slot=%d",
+						(unsigned)g_net_session
+							.players[player_index]
+							.direct_play_id,
+						player_index);
+					return 0;
+				}
+				g_net_session.players[player_index]
+					.player_name[12] = '\0';
+				g_net_session.players[player_index]
+					.long_name[12] = '\0';
+				XVT_LOG_DEBUG(
+					"network.player_renamed player=%u slot=%d name=\"%s\" long_name=\"%s\"",
+					(unsigned)g_net_session
+						.players[player_index]
+						.direct_play_id,
+					player_index,
+					g_net_session.players[player_index]
+						.player_name,
+					g_net_session.players[player_index]
+						.long_name);
+				return 0;
+			}
+		}
+	}
+	return result;
+}
+
 /* Acts on a DirectPlay system message, writing g_net_session and
  * g_net_session_scratch_packet; only the host acts, except on a name change. A
  * new player is sent a SEQUENCE_STATUS with every reliable peer slot's id and
@@ -1811,533 +2184,19 @@ int *net_session_receive_game_packet(int *out_sender_dpid,
 int net_session_handle_direct_play_system_message(int packet_opcode,
 						  const int *packet)
 {
-	enum {
-		RELIABLE_SEQUENCE_SENTINEL = 127,
-		PEER_SNAPSHOT_METADATA_DWORD_COUNT = 3,
-		PEER_SNAPSHOT_STRIDE = 8,
-		PEER_PREV_CHANNEL_A_OFFSET = 4,
-		PEER_PREV_CHANNEL_B_OFFSET = 5,
-		PEER_CHANNEL_A_OFFSET = 6,
-		PEER_CHANNEL_B_OFFSET = 7,
-		PEER_SLOT_QWORD_COUNT =
-			sizeof(struct net_reliable_peer_slot) / sizeof(uint64_t)
-	};
-
 	int result = packet_opcode;
-	int player_index;
-	int peer_index;
-	uint8_t handshake_active;
-	struct net_reliable_peer_slot *peer;
-	uint8_t *encoded_peer;
 	XVT_LOG_DEBUG("network.system_message_handled opcode=%d host=%d",
 		      packet_opcode, g_net_session.local_is_host);
 
 	switch (packet_opcode) {
 	case DPSYS_CREATEPLAYERORGROUP:
-		result = net_session_is_local_host();
-		if (result == 0) {
-			return result;
-		}
-		handshake_active = g_net_session_flight_handshake_active;
-		result = packet[1];
-		if (handshake_active != 0) {
-			if (result == 1 &&
-			    packet[2] != g_net_session.local_player_info
-						 .direct_play_id) {
-				g_net_session_scratch_packet.payload_dwords[0] =
-					0;
-				g_net_session_scratch_packet.packet_type =
-					NET_PACKET_SEQUENCE_STATUS;
-				g_net_session_scratch_packet.payload_dwords[1] =
-					(int)g_net_session
-						.reliable_peer_slot_count;
-				g_net_session_scratch_packet.payload_dwords[2] =
-					(int)timeGetTime();
-				encoded_peer =
-					(uint8_t *)&g_net_session_scratch_packet.payload_dwords
-						[PEER_SNAPSHOT_METADATA_DWORD_COUNT];
-				for (peer_index = 0;
-				     peer_index <
-				     (int)g_net_session
-					     .reliable_peer_slot_count;
-				     ++peer_index) {
-					peer = &g_net_session
-							.reliable_peer_slots
-								[peer_index];
-					memcpy(&encoded_peer
-						       [peer_index *
-							PEER_SNAPSHOT_STRIDE],
-					       &peer->direct_play_id,
-					       sizeof(peer->direct_play_id));
-					encoded_peer[peer_index *
-							     PEER_SNAPSHOT_STRIDE +
-						     PEER_PREV_CHANNEL_A_OFFSET] =
-						(uint8_t)peer
-							->last_delivered_seq_channel_a;
-					encoded_peer[peer_index *
-							     PEER_SNAPSHOT_STRIDE +
-						     PEER_PREV_CHANNEL_B_OFFSET] =
-						(uint8_t)peer
-							->last_delivered_seq_channel_b;
-					encoded_peer[peer_index *
-							     PEER_SNAPSHOT_STRIDE +
-						     PEER_CHANNEL_A_OFFSET] =
-						(uint8_t)peer
-							->recv_seq_channel_a;
-					encoded_peer[peer_index *
-							     PEER_SNAPSHOT_STRIDE +
-						     PEER_CHANNEL_B_OFFSET] =
-						(uint8_t)peer
-							->recv_seq_channel_b;
-				}
-				net_session_send_packet(
-					packet[2],
-					(unsigned int
-						 *)&g_net_session_scratch_packet,
-					8 * (int)g_net_session.reliable_peer_slot_count +
-						16);
-				g_net_session_scratch_packet.packet_type =
-					NET_PACKET_FLIGHT_SESSION_STATUS;
-				g_net_session_scratch_packet.payload_dwords[0] =
-					mission_get_elapsed_clock_seconds();
-				g_net_session_scratch_packet.payload_dwords[1] =
-					FRONTEND_NET_PROTOCOL_VERSION;
-				g_net_session_scratch_packet.payload_dwords[2] =
-					0;
-				XVT_LOG_INFO(
-					"network.player_joined_flight player=%u peers=%u seconds=%d",
-					(unsigned)packet[2],
-					g_net_session.reliable_peer_slot_count,
-					g_net_session_scratch_packet
-						.payload_dwords[0]);
-				return net_session_send_packet(
-					packet[2],
-					(unsigned int
-						 *)&g_net_session_scratch_packet,
-					16);
-			}
-		} else if (result == 1) {
-			if (packet[2] !=
-			    g_net_session.local_player_info.direct_play_id) {
-				g_net_session_scratch_packet.payload_dwords[0] =
-					0;
-				g_net_session_scratch_packet.packet_type =
-					NET_PACKET_SEQUENCE_STATUS;
-				g_net_session_scratch_packet.payload_dwords[1] =
-					(int)g_net_session
-						.reliable_peer_slot_count;
-				g_net_session_scratch_packet.payload_dwords[2] =
-					(int)timeGetTime();
-				encoded_peer =
-					(uint8_t *)&g_net_session_scratch_packet.payload_dwords
-						[PEER_SNAPSHOT_METADATA_DWORD_COUNT];
-				for (peer_index = 0;
-				     peer_index <
-				     (int)g_net_session
-					     .reliable_peer_slot_count;
-				     ++peer_index) {
-					peer = &g_net_session
-							.reliable_peer_slots
-								[peer_index];
-					memcpy(&encoded_peer
-						       [peer_index *
-							PEER_SNAPSHOT_STRIDE],
-					       &peer->direct_play_id,
-					       sizeof(peer->direct_play_id));
-					encoded_peer[peer_index *
-							     PEER_SNAPSHOT_STRIDE +
-						     PEER_PREV_CHANNEL_A_OFFSET] =
-						(uint8_t)peer
-							->last_delivered_seq_channel_a;
-					encoded_peer[peer_index *
-							     PEER_SNAPSHOT_STRIDE +
-						     PEER_PREV_CHANNEL_B_OFFSET] =
-						(uint8_t)peer
-							->last_delivered_seq_channel_b;
-					encoded_peer[peer_index *
-							     PEER_SNAPSHOT_STRIDE +
-						     PEER_CHANNEL_A_OFFSET] =
-						(uint8_t)peer
-							->recv_seq_channel_a;
-					encoded_peer[peer_index *
-							     PEER_SNAPSHOT_STRIDE +
-						     PEER_CHANNEL_B_OFFSET] =
-						(uint8_t)peer
-							->recv_seq_channel_b;
-				}
-				net_session_send_packet(
-					packet[2],
-					(unsigned int
-						 *)&g_net_session_scratch_packet,
-					8 * (int)g_net_session.reliable_peer_slot_count +
-						16);
-				g_net_session_scratch_packet.packet_type =
-					NET_PACKET_FLIGHT_SESSION_STATUS;
-				g_net_session_scratch_packet.payload_dwords[0] =
-					0;
-				net_session_send_packet(
-					packet[2],
-					(unsigned int
-						 *)&g_net_session_scratch_packet,
-					8);
-			}
-			g_net_session.player_count = 0;
-			net_session_enumerate_players();
-			for (player_index = 0;
-			     player_index < g_net_session.player_count;
-			     ++player_index) {
-				if (g_net_session.players[player_index]
-					    .direct_play_id !=
-				    g_net_session.local_player_info
-					    .direct_play_id) {
-					net_session_add_player_to_group(
-						&g_net_session.players
-							 [player_index]);
-				}
-			}
-		}
-		return result;
+		return net_session_on_player_created(packet);
 
 	case DPSYS_DESTROYPLAYERORGROUP:
-		if (packet[1] == DPPLAYERTYPE_PLAYER &&
-		    packet[2] == g_net_session.host_dplay_id) {
-			xvt_network_session_host_lost();
-		}
-		result = net_session_is_local_host();
-		if (result == 0) {
-			return result;
-		}
-		if (g_net_session_flight_handshake_active != 0) {
-			result = packet[1];
-			if (result == 1) {
-				result = g_net_session.player_count;
-				for (player_index = 0;
-				     player_index < g_net_session.player_count;
-				     ++player_index) {
-					if (g_net_session.players[player_index]
-						    .direct_play_id ==
-					    packet[2]) {
-						if (g_net_session
-							    .players[player_index]
-							    .active_flag != 0) {
-							g_net_session_scratch_packet
-								.packet_type =
-								NET_PACKET_STARTUP_READY;
-							net_session_send_packet(
-								g_net_session
-									.local_player_info
-									.direct_play_id,
-								(unsigned int
-									 *)&g_net_session_scratch_packet,
-								4);
-						}
-						result =
-							net_session_remove_player_from_group(
-								packet[2]);
-						XVT_LOG_INFO(
-							"network.player_destroyed player=%u slot=%d active=%d result=%#x",
-							(unsigned)packet[2],
-							player_index,
-							g_net_session
-								.players[player_index]
-								.active_flag,
-							(unsigned)result);
-						g_net_session
-							.players[player_index]
-							.active_flag = 0;
-						break;
-					}
-				}
-				/* Below, player_index indexes reliable peer
-				 * slots, to drop the departed player's slot. */
-				player_index = 0;
-				if ((int)g_net_session
-					    .reliable_peer_slot_count <=
-				    player_index) {
-					return result;
-				}
-				result = packet[2];
-				do {
-					if (g_net_session
-						    .reliable_peer_slots
-							    [player_index]
-						    .direct_play_id ==
-					    (DPID)packet[2]) {
-						XVT_LOG_DEBUG(
-							"network.peer_slot_freed player=%u peer=%d delivered=%d drops=%d gaps=%d left=%u",
-							(unsigned)packet[2],
-							player_index,
-							g_net_session
-								.reliable_peer_slots
-									[player_index]
-								.packet_count,
-							g_net_session
-								.reliable_peer_slots
-									[player_index]
-								.packet_drop_count,
-							g_net_session
-								.reliable_peer_slots
-									[player_index]
-								.packet_retry_count,
-							g_net_session.reliable_peer_slot_count -
-								1);
-						--g_net_session
-							  .reliable_peer_slot_count;
-						memcpy(&g_net_session.reliable_peer_slots
-								[player_index],
-						       &g_net_session.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count],
-						       sizeof(g_net_session.reliable_peer_slots
-								      [player_index]));
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.direct_play_id = 0;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.last_delivered_seq_default =
-							RELIABLE_SEQUENCE_SENTINEL;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.last_delivered_seq_channel_a =
-							RELIABLE_SEQUENCE_SENTINEL;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.last_delivered_seq_channel_b =
-							RELIABLE_SEQUENCE_SENTINEL;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.recv_seq_default =
-							RELIABLE_SEQUENCE_SENTINEL;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.recv_seq_channel_a =
-							RELIABLE_SEQUENCE_SENTINEL;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.recv_seq_channel_b =
-							RELIABLE_SEQUENCE_SENTINEL;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.send_seq = 0;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.last_piggyback_type =
-							NET_PACKET_NOP;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.piggyback_length = 1;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.last_activity_ms = 0;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.packet_count = 0;
-						g_net_session
-							.reliable_peer_slots
-								[g_net_session
-									 .reliable_peer_slot_count]
-							.packet_drop_count = 0;
-						return PEER_SLOT_QWORD_COUNT *
-						       (int)g_net_session
-							       .reliable_peer_slot_count;
-					}
-					++player_index;
-				} while (player_index <
-					 (int)g_net_session
-						 .reliable_peer_slot_count);
-				return result;
-			}
-			return result;
-		}
-		result = packet[1];
-		if (result != 1) {
-			return result;
-		}
-		g_net_session.player_count = 0;
-		net_session_enumerate_players();
-		result = net_session_remove_player_from_group(packet[2]);
-		/* Below, player_index indexes reliable peer slots, to drop the
-		 * departed player's slot. */
-		player_index = 0;
-		if ((int)g_net_session.reliable_peer_slot_count <=
-		    player_index) {
-			return result;
-		}
-		result = packet[2];
-		do {
-			if (g_net_session.reliable_peer_slots[player_index]
-				    .direct_play_id == (DPID)packet[2]) {
-				--g_net_session.reliable_peer_slot_count;
-				memcpy(&g_net_session.reliable_peer_slots
-						[player_index],
-				       &g_net_session.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count],
-				       sizeof(g_net_session.reliable_peer_slots
-						      [player_index]));
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.direct_play_id = 0;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.last_delivered_seq_default =
-					RELIABLE_SEQUENCE_SENTINEL;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.last_delivered_seq_channel_a =
-					RELIABLE_SEQUENCE_SENTINEL;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.last_delivered_seq_channel_b =
-					RELIABLE_SEQUENCE_SENTINEL;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.recv_seq_default =
-					RELIABLE_SEQUENCE_SENTINEL;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.recv_seq_channel_a =
-					RELIABLE_SEQUENCE_SENTINEL;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.recv_seq_channel_b =
-					RELIABLE_SEQUENCE_SENTINEL;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.send_seq = 0;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.last_piggyback_type = NET_PACKET_NOP;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.piggyback_length = 1;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.last_activity_ms = 0;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.packet_count = 0;
-				g_net_session
-					.reliable_peer_slots
-						[g_net_session
-							 .reliable_peer_slot_count]
-					.packet_drop_count = 0;
-				return PEER_SLOT_QWORD_COUNT *
-				       (int)g_net_session
-					       .reliable_peer_slot_count;
-			}
-			++player_index;
-		} while (player_index <
-			 (int)g_net_session.reliable_peer_slot_count);
-		return result;
+		return net_session_on_player_destroyed(packet);
 
 	case DPSYS_SETPLAYERORGROUPNAME:
-		result = ((const struct net_player_name_message *)packet)
-				 ->header.dwPlayerType;
-		if (result == 1) {
-			result = g_net_session.player_count;
-			for (player_index = 0;
-			     player_index < g_net_session.player_count;
-			     ++player_index) {
-				if (g_net_session.players[player_index]
-					    .direct_play_id ==
-				    (int)((const struct net_player_name_message
-						   *)packet)
-					    ->header.dpId) {
-					if (!xvt_network_session_copy_player_names(
-						    (const struct
-						     net_player_name_message *)
-							    packet,
-						    g_net_session
-							    .players[player_index]
-							    .player_name,
-						    sizeof(g_net_session
-								   .players[player_index]
-								   .player_name),
-						    g_net_session
-							    .players[player_index]
-							    .long_name,
-						    sizeof(g_net_session
-								   .players[player_index]
-								   .long_name))) {
-						XVT_LOG_WARN(
-							"network.rename_rejected player=%u slot=%d",
-							(unsigned)g_net_session
-								.players[player_index]
-								.direct_play_id,
-							player_index);
-						return 0;
-					}
-					g_net_session.players[player_index]
-						.player_name[12] = '\0';
-					g_net_session.players[player_index]
-						.long_name[12] = '\0';
-					XVT_LOG_DEBUG(
-						"network.player_renamed player=%u slot=%d name=\"%s\" long_name=\"%s\"",
-						(unsigned)g_net_session
-							.players[player_index]
-							.direct_play_id,
-						player_index,
-						g_net_session
-							.players[player_index]
-							.player_name,
-						g_net_session
-							.players[player_index]
-							.long_name);
-					return 0;
-				}
-			}
-		}
-		return result;
+		return net_session_on_player_renamed(packet);
 
 	default:
 		return result;
