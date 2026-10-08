@@ -241,10 +241,19 @@ if(NOT MSVC)
     xvt_add_known_failure(test_briefing_map marker_age_past_32767)
 endif()
 
-# The craft selection screen's ready test, briefing map hooks and exit: src/xvt/frontend/mission_briefing.c.
-xvt_add_engine_test(test_mission_briefing test_mission_briefing.c
-    "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing.c")
-add_test(NAME mission_briefing COMMAND test_mission_briefing)
+# The craft selection screen's ready test, briefing map hooks, exit and frame: src/xvt/frontend/mission_briefing.c.
+# The frame checks write their mission lists, ship list and strings into a temporary folder made with POSIX
+# calls, and arm an alarm with POSIX calls for a frame that never returns.
+if(NOT MSVC)
+    xvt_add_engine_test(test_mission_briefing test_mission_briefing.c
+        "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing.c")
+    add_test(NAME mission_briefing COMMAND test_mission_briefing)
+    xvt_add_known_failure(test_mission_briefing title_unlisted_mission)
+    xvt_add_known_failure(test_mission_briefing ninth_reservation)
+    xvt_add_known_failure(test_mission_briefing release_on_full_table)
+    xvt_add_known_failure(test_mission_briefing launch_sent_once)
+    xvt_add_known_failure(test_mission_briefing ready_flag_unlisted_player)
+endif()
 
 # The computer pilots' fighting orders, the wingman's attack and the warhead defense: src/xvt/flight/ai/paifight.c.
 xvt_add_engine_test(test_paifight test_paifight.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/paifight.c")
