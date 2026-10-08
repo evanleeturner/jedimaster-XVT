@@ -779,67 +779,36 @@ int frontend_net_host_game_screen(int frame_counter)
 	return 0;
 }
 
-/* Reads one frontend packet (net_get_next_app_packet) and acts on it; returns
- * its type, or NET_PACKET_NONE when there is none, the type is unknown, or the
- * packet was refused. First, when a ready player left this frame, it sends
- * everyone the lobby state. Each packet's sender goes in
- * g_frontend_net_packet_sender_player_id. A PROBE_REQUEST gets the lobby state
- * and a PROBE_RESPONSE (version and password flag); a PROBE_RESPONSE or
- * game-started notice fills the g_frontendNetProbe globals. A lobby STATE or
- * READY_ROSTER rebuilds g_mp_roster and the ready flags, a STATE also
- * g_pilot_data.multiplayer_game_name and
- * g_frontend_net_received_mission_directory_id and DescriptionId. A
- * JOIN_REQUEST is refused (roster locked, full, version, password) or admitted,
- * telling all players, resending the lobby state and setting
- * g_mission_setup_begin_button_lockout_frames to 24; one that reaches a client
- * or has the wrong size is dropped. Team and flight assignments, ready flags,
- * game options, loadouts, network statistics, mission starts, choices,
- * countdowns and reservations are stored in g_mission_setup_player_assignments,
- * g_mission_setup_player_flight_group_indices, g_mp_roster_ready_flags, the
- * g_missionSetupSelected globals, g_mp_roster, g_game_config, g_pilot_data and
- * g_frontend_net_packet_arg0 and g_frontend_net_reserving_player_id. A CHAT
- * line is added to g_frontend_chat_log_buffer, dropping the oldest bytes past
- * 1,022, with this player's own lines marked by color code 5; a
- * CHAT_SYNC_REQUEST gets the log in 400-byte chunks, and a received chunk
- * rebuilds it with every byte from 0 to 6 turned into color code 6. A
- * PLAYER_UNAVAILABLE always returns NET_PACKET_NONE. Also handles movie sync
- * (g_movie_multiplayer_sync_players), battle progress (the g_remoteBattle
- * globals), briefing arrivals (g_frontend_briefing_entered_count),
- * RETURN_TO_SETUP (g_frontend_skip_screen_entry_setup) and player departures,
- * relays a SUBMIT_MISSION_CHOICE to all as a MISSION_CHOICE, and writes
- * g_frontend_net_packet_scratch. Does not check team, slot or chunk indices or
- * chat sizes from the packet, or the chat log for NULL before a sync chunk. */
-// FUNCTION: XVT 0x4E0490
-int frontend_net_process_network_packets(void)
-{
-	enum {
-		MAX_PLAYERS = 8,
-		TEAM_COUNT = 10,
-		PLAYER_NAME_COPY_SIZE = 13,
-		ROSTER_PACKET_FIRST_PLAYER_WORD = 13,
-		ROSTER_PACKET_COMPACT_FIRST_PLAYER_WORD = 2,
-		ROSTER_OPTION_WORD_COUNT = 5,
-		CHAT_LOG_CAPACITY = 1024,
-		CHAT_LOG_CONTENT_LIMIT = 1022,
-		CHAT_SYNC_CHUNK_SIZE = 400,
-		FLIGHT_GROUP_ASSIGNMENT_COUNT = 80,
-		MISSION_ASSIGNMENT_TEAM_BYTES = 320,
-		MISSION_SETUP_PLAYER_LIMIT = 8,
-		BEGIN_BUTTON_LOCKOUT_FRAMES = 24,
-		MIN_PRESET_CRAFT_CATEGORY = 1,
-		MAX_STANDARD_PRESET_CRAFT_CATEGORY = 2,
-		SPECIAL_PRESET_CRAFT_CATEGORY = 3,
-		SPECIAL_PRESET_CRAFT_OFFSET = 5,
-	};
+enum {
+	MAX_PLAYERS = 8,
+	TEAM_COUNT = 10,
+	PLAYER_NAME_COPY_SIZE = 13,
+	ROSTER_PACKET_FIRST_PLAYER_WORD = 13,
+	ROSTER_PACKET_COMPACT_FIRST_PLAYER_WORD = 2,
+	ROSTER_OPTION_WORD_COUNT = 5,
+	CHAT_LOG_CAPACITY = 1024,
+	CHAT_LOG_CONTENT_LIMIT = 1022,
+	CHAT_SYNC_CHUNK_SIZE = 400,
+	FLIGHT_GROUP_ASSIGNMENT_COUNT = 80,
+	MISSION_ASSIGNMENT_TEAM_BYTES = 320,
+	MISSION_SETUP_PLAYER_LIMIT = 8,
+	BEGIN_BUTTON_LOCKOUT_FRAMES = 24,
+	MIN_PRESET_CRAFT_CATEGORY = 1,
+	MAX_STANDARD_PRESET_CRAFT_CATEGORY = 2,
+	SPECIAL_PRESET_CRAFT_CATEGORY = 3,
+	SPECIAL_PRESET_CRAFT_OFFSET = 5,
+};
 
-	int *packet;
-	int *payload;
-	uint8_t *payload_bytes;
-	uint8_t *chat_chunk_bytes;
-	uint32_t packet_size;
-	DPID sender_player_id;
-	struct net_player_info *net_player;
-	int packet_type;
+/* Part of frontend_net_process_network_packets: acts on one packet of the
+ * mission setup, briefing and launch screens (assignments, ready flags, game
+ * options, loadouts, seeds, countdowns, reservations, battle progress, the
+ * mission choice relay) as that function's comment says, and sets
+ * *packet_type to NET_PACKET_NONE when the type is unknown. */
+static void frontend_net_process_setup_packet(int *packet_type,
+					      DPID sender_player_id,
+					      int *payload,
+					      uint8_t *payload_bytes)
+{
 	int packet_word_index;
 	int roster_index;
 	int player_index;
@@ -847,291 +816,11 @@ int frontend_net_process_network_packets(void)
 	int slot_index;
 	int source_slot;
 	int destination_slot;
-	int ready_player_count;
-	int bytes_to_discard;
-	int chunk_index;
-	int chat_offset;
-	int remaining_bytes;
 	int stats_count;
 	int craft_option;
-	int movie_player_index;
 	int assignment_index;
 
-	net_get_host_player_id();
-	packet = net_get_next_app_packet(&sender_player_id, &packet_size);
-	if (net_did_ready_player_leave_this_frame() != 0) {
-		mission_setup_send_lobby_state(0);
-		XVT_LOG_DEBUG("network.lobby_state_resent");
-	}
-	if (packet == NULL) {
-		return 0;
-	}
-
-	packet_type = packet[0];
-	g_frontend_net_packet_sender_player_id = sender_player_id;
-	payload = &packet[1];
-	payload_bytes = (uint8_t *)payload;
-	switch (packet_type) {
-	case NET_PACKET_FRONTEND_GAME_STARTED:
-	case NET_PACKET_PROBE_RESPONSE:
-		g_frontend_net_probe_mission_elapsed_seconds = payload[0];
-		g_frontend_net_probe_version = payload[1];
-		g_frontend_net_probe_password_required = payload[2];
-		XVT_LOG_DEBUG(
-			"network.game_status seconds=%d version=%d password=%d",
-			g_frontend_net_probe_mission_elapsed_seconds,
-			g_frontend_net_probe_version,
-			g_frontend_net_probe_password_required);
-		break;
-
-	case NET_PACKET_PROBE_REQUEST:
-		mission_setup_send_lobby_state(sender_player_id);
-		g_frontend_net_packet_scratch.packet_type =
-			NET_PACKET_PROBE_RESPONSE;
-		*(int *)&g_frontend_net_packet_scratch.payload[0] = 0;
-		*(int *)&g_frontend_net_packet_scratch.payload[4] =
-			FRONTEND_NET_PROTOCOL_VERSION;
-		*(int *)&g_frontend_net_packet_scratch.payload[8] =
-			g_game_config.require_password;
-		net_send_packet_and_flush(sender_player_id,
-					  &g_frontend_net_packet_scratch,
-					  4 * sizeof(int));
-		XVT_LOG_DEBUG("network.status_query player=%u password=%u",
-			      (unsigned)sender_player_id,
-			      (unsigned)g_game_config.require_password);
-		break;
-
-	case NET_PACKET_STATE:
-		net_clear_player_ready_flags();
-		memcpy(g_pilot_data.multiplayer_game_name, payload,
-		       sizeof(g_pilot_data.multiplayer_game_name));
-		g_frontend_net_received_mission_directory_id = payload[9];
-		g_frontend_net_received_mission_description_id = payload[10];
-		g_frontend_net_probe_players_needed = payload[11] - payload[12];
-		ready_player_count = payload[12];
-		XVT_LOG_DEBUG(
-			"network.lobby_state game=\"%.32s\" directory=%d mission=%d players=%d needed=%d",
-			g_pilot_data.multiplayer_game_name,
-			g_frontend_net_received_mission_directory_id,
-			g_frontend_net_received_mission_description_id,
-			ready_player_count,
-			g_frontend_net_probe_players_needed);
-		packet_word_index = ROSTER_PACKET_FIRST_PLAYER_WORD;
-		memset(g_mp_roster, 0, sizeof(g_mp_roster));
-		for (roster_index = 0; roster_index < ready_player_count;
-		     ++roster_index) {
-			if (payload[packet_word_index] == 0) {
-				++packet_word_index;
-				g_mp_roster[roster_index].player_id = 0;
-				g_mp_roster[roster_index].pilot_rating =
-					payload[packet_word_index++];
-				++packet_word_index;
-			} else {
-				net_player = net_find_player(
-					payload[packet_word_index]);
-				if (net_player != NULL) {
-					net_mark_player_ready_no_lock(
-						payload[packet_word_index]);
-					strncpy(g_mp_roster[roster_index].name,
-						net_player->player_name,
-						PLAYER_NAME_COPY_SIZE);
-					g_mp_roster[roster_index].player_id =
-						net_player->player_id;
-					++packet_word_index;
-					g_mp_roster[roster_index].pilot_rating =
-						payload[packet_word_index];
-					++packet_word_index;
-					if (net_is_host() == 0) {
-						net_set_player_latency_ms(
-							g_mp_roster[roster_index]
-								.player_id,
-							payload[packet_word_index]);
-					}
-					++packet_word_index;
-				} else {
-					memcpy(g_mp_roster[roster_index].name,
-					       "No name", sizeof("No name"));
-					g_mp_roster[roster_index].player_id =
-						payload[packet_word_index];
-					++packet_word_index;
-					g_mp_roster[roster_index].pilot_rating =
-						payload[packet_word_index];
-					packet_word_index += 2;
-				}
-			}
-			XVT_LOG_DEBUG(
-				"network.roster_entry index=%d player=%u rating=%d latency=%d name=\"%.14s\"",
-				roster_index,
-				(unsigned)g_mp_roster[roster_index].player_id,
-				(int)g_mp_roster[roster_index].pilot_rating,
-				payload[packet_word_index - 1],
-				g_mp_roster[roster_index].name);
-		}
-		break;
-
-	case NET_PACKET_JOIN_REQUEST:
-		if (!net_is_host() || packet_size != 6 * sizeof(int)) {
-			XVT_LOG_WARN(
-				"network.join_request_dropped player=%u bytes=%u",
-				(unsigned)sender_player_id,
-				(unsigned)packet_size);
-			packet_type = NET_PACKET_NONE;
-			break;
-		}
-		ready_player_count = net_count_ready_players();
-		if (g_mission_setup_roster_authoritative != 0) {
-			XVT_LOG_WARN(
-				"network.join_request_refused player=%u reason=\"locked\" version=%d",
-				(unsigned)sender_player_id, payload[0]);
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_ROSTER_LOCKED;
-			net_send_packet_and_flush(
-				sender_player_id,
-				&g_frontend_net_packet_scratch, sizeof(int));
-		} else if (ready_player_count >= MAX_PLAYERS) {
-			XVT_LOG_WARN(
-				"network.join_request_refused player=%u reason=\"full\" version=%d",
-				(unsigned)sender_player_id, payload[0]);
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_GAME_FULL;
-			net_send_packet_and_flush(
-				sender_player_id,
-				&g_frontend_net_packet_scratch, sizeof(int));
-		} else if (payload[0] != FRONTEND_NET_PROTOCOL_VERSION) {
-			XVT_LOG_WARN(
-				"network.join_request_refused player=%u reason=\"version\" version=%d",
-				(unsigned)sender_player_id, payload[0]);
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_VERSION_MISMATCH;
-			net_send_packet_and_flush(
-				sender_player_id,
-				&g_frontend_net_packet_scratch, sizeof(int));
-		} else if (g_game_config.require_password != 0 &&
-			   strncmp(g_game_config.password,
-				   (const char *)&payload[1],
-				   sizeof(g_game_config.password)) != 0) {
-			XVT_LOG_WARN(
-				"network.join_request_refused player=%u reason=\"password\" version=%d",
-				(unsigned)sender_player_id, payload[0]);
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_PASSWORD_REQUIRED;
-			net_send_packet_and_flush(
-				sender_player_id,
-				&g_frontend_net_packet_scratch, sizeof(int));
-		} else if (net_set_player_ready(sender_player_id) != 0) {
-			*(int *)&g_frontend_net_packet_scratch.payload[0] =
-				sender_player_id;
-			g_mission_setup_begin_button_lockout_frames =
-				BEGIN_BUTTON_LOCKOUT_FRAMES;
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_PLAYER_ADMITTED;
-			net_send_packet_and_flush(
-				0, &g_frontend_net_packet_scratch,
-				2 * sizeof(int));
-			mission_setup_send_lobby_state(0);
-			XVT_LOG_INFO(
-				"network.player_admitted player=%u players=%d",
-				(unsigned)sender_player_id,
-				ready_player_count + 1);
-		} else {
-			XVT_LOG_WARN(
-				"network.join_request_refused player=%u reason=\"not_listed\" version=%d",
-				(unsigned)sender_player_id, payload[0]);
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_GAME_FULL;
-			net_send_packet_and_flush(
-				sender_player_id,
-				&g_frontend_net_packet_scratch, sizeof(int));
-		}
-		break;
-
-	case NET_PACKET_GAME_FULL:
-	case NET_PACKET_HOST_CANCELLED:
-	case NET_PACKET_PLAYER_KICKED:
-	case NET_PACKET_SESSION_CANCELLED:
-	case NET_PACKET_VERSION_MISMATCH:
-	case NET_PACKET_PASSWORD_REQUIRED:
-	case NET_PACKET_ROSTER_LOCKED:
-	case NET_PACKET_FLIGHT_ASSIGNMENTS_READY:
-		break;
-
-	case NET_PACKET_PLAYER_ADMITTED:
-		if (packet_size < 2 * sizeof(int) ||
-		    sender_player_id != (DPID)net_get_host_player_id() ||
-		    (xvt_network_session_get_status().state ==
-			     XVT_NETWORK_SESSION_ADMISSION &&
-		     !xvt_network_session_accept_admission(sender_player_id,
-							   (DPID)payload[0]))) {
-			XVT_LOG_WARN(
-				"network.admission_rejected player=%u bytes=%u",
-				(unsigned)sender_player_id,
-				(unsigned)packet_size);
-			packet_type = NET_PACKET_NONE;
-			break;
-		}
-		for (roster_index = 0; roster_index < MAX_PLAYERS;
-		     ++roster_index) {
-			if (g_mp_roster[roster_index].player_id != 0 &&
-			    g_mp_roster[roster_index].player_id ==
-				    net_get_local_player_id()) {
-				break;
-			}
-		}
-		if (roster_index >= MAX_PLAYERS &&
-		    net_get_local_player_id() != payload[0]) {
-			XVT_LOG_DEBUG("network.admission_ignored player=%u",
-				      (unsigned)payload[0]);
-			packet_type = NET_PACKET_NONE;
-			break;
-		}
-		if (g_game_config.sfx_datapad_enabled != 0) {
-			frontend_sound_play_ui_sound(
-				"newpsound", 1, 0, 255,
-				12 * g_game_config.sfx_datapad_volume, 63);
-		}
-		net_mark_player_ready_no_lock(payload[0]);
-		XVT_LOG_DEBUG("network.admission_received player=%u",
-			      (unsigned)payload[0]);
-		break;
-
-	case NET_PACKET_PLAYER_LEFT:
-		ready_player_count = net_count_ready_players();
-		roster_index = 0;
-		if (ready_player_count > 0) {
-			do {
-				if ((DPID)g_mp_roster[roster_index].player_id ==
-				    sender_player_id) {
-					if (g_game_config.sfx_datapad_enabled !=
-					    0) {
-						frontend_sound_play_ui_sound(
-							"exitpsound", 1, 0, 255,
-							12 * g_game_config
-									.sfx_datapad_volume,
-							63);
-					}
-					memset(g_mp_roster_ready_flags, 0,
-					       sizeof(g_mp_roster_ready_flags));
-					net_clear_player_ready_flag_with_lock_guard(
-						sender_player_id);
-					mission_setup_send_lobby_state(0);
-					break;
-				}
-				++roster_index;
-			} while (roster_index < ready_player_count);
-		}
-		g_frontend_net_packet_scratch.packet_type =
-			NET_PACKET_MOVIE_SYNC;
-		*(int *)&g_frontend_net_packet_scratch.payload[0] = 2;
-		*(int *)&g_frontend_net_packet_scratch.payload[4] =
-			sender_player_id;
-		net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
-					  3 * sizeof(int));
-		XVT_LOG_DEBUG(
-			"network.leave_notice player=%u index=%d ready=%d",
-			(unsigned)sender_player_id, roster_index,
-			ready_player_count);
-		break;
-
+	switch (*packet_type) {
 	case NET_PACKET_TEAM_ASSIGNMENTS_READY:
 		memcpy(&g_mission_setup_player_assignments, payload,
 		       MISSION_ASSIGNMENT_TEAM_BYTES);
@@ -1192,46 +881,6 @@ int frontend_net_process_network_packets(void)
 		g_game_config.random_seed = payload[0];
 		XVT_LOG_DEBUG("network.seed_received seed=%u",
 			      (unsigned)g_game_config.random_seed);
-		break;
-
-	case NET_PACKET_CHAT:
-		if (g_frontend_chat_log_buffer != NULL) {
-			packet_size -= sizeof(int);
-			bytes_to_discard = CHAT_LOG_CONTENT_LIMIT;
-			bytes_to_discard -= g_frontend_chat_log_used_bytes;
-			bytes_to_discard -= (int)packet_size;
-			if (bytes_to_discard < 0) {
-				bytes_to_discard = -bytes_to_discard;
-				memmove(g_frontend_chat_log_buffer,
-					&g_frontend_chat_log_buffer
-						[bytes_to_discard],
-					CHAT_LOG_CAPACITY - bytes_to_discard);
-				g_frontend_chat_log_used_bytes -=
-					bytes_to_discard;
-			}
-			memcpy(&g_frontend_chat_log_buffer
-				       [g_frontend_chat_log_used_bytes],
-			       payload, packet_size);
-			if ((DPID)net_get_local_player_id() ==
-			    sender_player_id) {
-				g_frontend_chat_log_buffer
-					[g_frontend_chat_log_used_bytes] = 5;
-			}
-			g_frontend_chat_log_used_bytes += packet_size;
-			g_frontend_chat_log_buffer
-				[g_frontend_chat_log_used_bytes++] = '\n';
-			g_frontend_chat_log_buffer
-				[g_frontend_chat_log_used_bytes] = '\0';
-			XVT_LOG_DEBUG(
-				"network.chat_received player=%u bytes=%u used=%d",
-				(unsigned)sender_player_id,
-				(unsigned)packet_size,
-				g_frontend_chat_log_used_bytes);
-		} else {
-			XVT_LOG_WARN(
-				"network.chat_dropped player=%u kind=\"chat_line\"",
-				(unsigned)sender_player_id);
-		}
 		break;
 
 	case NET_PACKET_TEAM_ASSIGNMENT:
@@ -1711,6 +1360,412 @@ int frontend_net_process_network_packets(void)
 			      (unsigned)g_frontend_net_reserving_player_id);
 		break;
 
+	case NET_PACKET_PILOT_RATING:
+		g_frontend_net_packet_arg0 = payload[0];
+		XVT_LOG_DEBUG(
+			"network.setup_value kind=\"pilot_rating\" value=%d",
+			g_frontend_net_packet_arg0);
+		break;
+
+	case NET_PACKET_BATTLE_PROGRESS:
+		g_remote_battle_continuation_active = payload[0];
+		g_remote_battle_sequence_continuation_choice = payload[1];
+		g_remote_battle_last_completed_mission_index = payload[2];
+		g_remote_battle_rebel_victory_count = payload[3];
+		g_remote_battle_imperial_victory_count = payload[4];
+		XVT_LOG_DEBUG(
+			"network.battle_progress active=%d choice=%d last=%d rebel=%d imperial=%d",
+			g_remote_battle_continuation_active,
+			g_remote_battle_sequence_continuation_choice,
+			g_remote_battle_last_completed_mission_index,
+			g_remote_battle_rebel_victory_count,
+			g_remote_battle_imperial_victory_count);
+		break;
+
+	case NET_PACKET_SUBMIT_MISSION_CHOICE:
+		g_frontend_net_packet_scratch.packet_type =
+			NET_PACKET_MISSION_CHOICE;
+		*(int *)&g_frontend_net_packet_scratch.payload[0] = payload[0];
+		net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
+					  2 * sizeof(int));
+		XVT_LOG_DEBUG(
+			"network.mission_choice_relayed player=%u choice=%d",
+			(unsigned)sender_player_id, payload[0]);
+		break;
+
+	default:
+		XVT_LOG_DEBUG("network.packet_unknown type=%d", *packet_type);
+		*packet_type = NET_PACKET_NONE;
+		break;
+	}
+}
+
+/* Reads one frontend packet (net_get_next_app_packet) and acts on it; returns
+ * its type, or NET_PACKET_NONE when there is none, the type is unknown, or the
+ * packet was refused. First, when a ready player left this frame, it sends
+ * everyone the lobby state. Each packet's sender goes in
+ * g_frontend_net_packet_sender_player_id. A PROBE_REQUEST gets the lobby state
+ * and a PROBE_RESPONSE (version and password flag); a PROBE_RESPONSE or
+ * game-started notice fills the g_frontendNetProbe globals. A lobby STATE or
+ * READY_ROSTER rebuilds g_mp_roster and the ready flags, a STATE also
+ * g_pilot_data.multiplayer_game_name and
+ * g_frontend_net_received_mission_directory_id and DescriptionId. A
+ * JOIN_REQUEST is refused (roster locked, full, version, password) or admitted,
+ * telling all players, resending the lobby state and setting
+ * g_mission_setup_begin_button_lockout_frames to 24; one that reaches a client
+ * or has the wrong size is dropped. Team and flight assignments, ready flags,
+ * game options, loadouts, network statistics, mission starts, choices,
+ * countdowns and reservations are stored in g_mission_setup_player_assignments,
+ * g_mission_setup_player_flight_group_indices, g_mp_roster_ready_flags, the
+ * g_missionSetupSelected globals, g_mp_roster, g_game_config, g_pilot_data and
+ * g_frontend_net_packet_arg0 and g_frontend_net_reserving_player_id. A CHAT
+ * line is added to g_frontend_chat_log_buffer, dropping the oldest bytes past
+ * 1,022, with this player's own lines marked by color code 5; a
+ * CHAT_SYNC_REQUEST gets the log in 400-byte chunks, and a received chunk
+ * rebuilds it with every byte from 0 to 6 turned into color code 6. A
+ * PLAYER_UNAVAILABLE always returns NET_PACKET_NONE. Also handles movie sync
+ * (g_movie_multiplayer_sync_players), battle progress (the g_remoteBattle
+ * globals), briefing arrivals (g_frontend_briefing_entered_count),
+ * RETURN_TO_SETUP (g_frontend_skip_screen_entry_setup) and player departures,
+ * relays a SUBMIT_MISSION_CHOICE to all as a MISSION_CHOICE, and writes
+ * g_frontend_net_packet_scratch. Does not check team, slot or chunk indices or
+ * chat sizes from the packet, or the chat log for NULL before a sync chunk. */
+// FUNCTION: XVT 0x4E0490
+int frontend_net_process_network_packets(void)
+{
+	int *packet;
+	int *payload;
+	uint8_t *payload_bytes;
+	uint8_t *chat_chunk_bytes;
+	uint32_t packet_size;
+	DPID sender_player_id;
+	struct net_player_info *net_player;
+	int packet_type;
+	int packet_word_index;
+	int roster_index;
+	int player_index;
+	int ready_player_count;
+	int bytes_to_discard;
+	int chunk_index;
+	int chat_offset;
+	int remaining_bytes;
+	int movie_player_index;
+
+	net_get_host_player_id();
+	packet = net_get_next_app_packet(&sender_player_id, &packet_size);
+	if (net_did_ready_player_leave_this_frame() != 0) {
+		mission_setup_send_lobby_state(0);
+		XVT_LOG_DEBUG("network.lobby_state_resent");
+	}
+	if (packet == NULL) {
+		return 0;
+	}
+
+	packet_type = packet[0];
+	g_frontend_net_packet_sender_player_id = sender_player_id;
+	payload = &packet[1];
+	payload_bytes = (uint8_t *)payload;
+	switch (packet_type) {
+	case NET_PACKET_FRONTEND_GAME_STARTED:
+	case NET_PACKET_PROBE_RESPONSE:
+		g_frontend_net_probe_mission_elapsed_seconds = payload[0];
+		g_frontend_net_probe_version = payload[1];
+		g_frontend_net_probe_password_required = payload[2];
+		XVT_LOG_DEBUG(
+			"network.game_status seconds=%d version=%d password=%d",
+			g_frontend_net_probe_mission_elapsed_seconds,
+			g_frontend_net_probe_version,
+			g_frontend_net_probe_password_required);
+		break;
+
+	case NET_PACKET_PROBE_REQUEST:
+		mission_setup_send_lobby_state(sender_player_id);
+		g_frontend_net_packet_scratch.packet_type =
+			NET_PACKET_PROBE_RESPONSE;
+		*(int *)&g_frontend_net_packet_scratch.payload[0] = 0;
+		*(int *)&g_frontend_net_packet_scratch.payload[4] =
+			FRONTEND_NET_PROTOCOL_VERSION;
+		*(int *)&g_frontend_net_packet_scratch.payload[8] =
+			g_game_config.require_password;
+		net_send_packet_and_flush(sender_player_id,
+					  &g_frontend_net_packet_scratch,
+					  4 * sizeof(int));
+		XVT_LOG_DEBUG("network.status_query player=%u password=%u",
+			      (unsigned)sender_player_id,
+			      (unsigned)g_game_config.require_password);
+		break;
+
+	case NET_PACKET_STATE:
+		net_clear_player_ready_flags();
+		memcpy(g_pilot_data.multiplayer_game_name, payload,
+		       sizeof(g_pilot_data.multiplayer_game_name));
+		g_frontend_net_received_mission_directory_id = payload[9];
+		g_frontend_net_received_mission_description_id = payload[10];
+		g_frontend_net_probe_players_needed = payload[11] - payload[12];
+		ready_player_count = payload[12];
+		XVT_LOG_DEBUG(
+			"network.lobby_state game=\"%.32s\" directory=%d mission=%d players=%d needed=%d",
+			g_pilot_data.multiplayer_game_name,
+			g_frontend_net_received_mission_directory_id,
+			g_frontend_net_received_mission_description_id,
+			ready_player_count,
+			g_frontend_net_probe_players_needed);
+		packet_word_index = ROSTER_PACKET_FIRST_PLAYER_WORD;
+		memset(g_mp_roster, 0, sizeof(g_mp_roster));
+		for (roster_index = 0; roster_index < ready_player_count;
+		     ++roster_index) {
+			if (payload[packet_word_index] == 0) {
+				++packet_word_index;
+				g_mp_roster[roster_index].player_id = 0;
+				g_mp_roster[roster_index].pilot_rating =
+					payload[packet_word_index++];
+				++packet_word_index;
+			} else {
+				net_player = net_find_player(
+					payload[packet_word_index]);
+				if (net_player != NULL) {
+					net_mark_player_ready_no_lock(
+						payload[packet_word_index]);
+					strncpy(g_mp_roster[roster_index].name,
+						net_player->player_name,
+						PLAYER_NAME_COPY_SIZE);
+					g_mp_roster[roster_index].player_id =
+						net_player->player_id;
+					++packet_word_index;
+					g_mp_roster[roster_index].pilot_rating =
+						payload[packet_word_index];
+					++packet_word_index;
+					if (net_is_host() == 0) {
+						net_set_player_latency_ms(
+							g_mp_roster[roster_index]
+								.player_id,
+							payload[packet_word_index]);
+					}
+					++packet_word_index;
+				} else {
+					memcpy(g_mp_roster[roster_index].name,
+					       "No name", sizeof("No name"));
+					g_mp_roster[roster_index].player_id =
+						payload[packet_word_index];
+					++packet_word_index;
+					g_mp_roster[roster_index].pilot_rating =
+						payload[packet_word_index];
+					packet_word_index += 2;
+				}
+			}
+			XVT_LOG_DEBUG(
+				"network.roster_entry index=%d player=%u rating=%d latency=%d name=\"%.14s\"",
+				roster_index,
+				(unsigned)g_mp_roster[roster_index].player_id,
+				(int)g_mp_roster[roster_index].pilot_rating,
+				payload[packet_word_index - 1],
+				g_mp_roster[roster_index].name);
+		}
+		break;
+
+	case NET_PACKET_JOIN_REQUEST:
+		if (!net_is_host() || packet_size != 6 * sizeof(int)) {
+			XVT_LOG_WARN(
+				"network.join_request_dropped player=%u bytes=%u",
+				(unsigned)sender_player_id,
+				(unsigned)packet_size);
+			packet_type = NET_PACKET_NONE;
+			break;
+		}
+		ready_player_count = net_count_ready_players();
+		if (g_mission_setup_roster_authoritative != 0) {
+			XVT_LOG_WARN(
+				"network.join_request_refused player=%u reason=\"locked\" version=%d",
+				(unsigned)sender_player_id, payload[0]);
+			g_frontend_net_packet_scratch.packet_type =
+				NET_PACKET_ROSTER_LOCKED;
+			net_send_packet_and_flush(
+				sender_player_id,
+				&g_frontend_net_packet_scratch, sizeof(int));
+		} else if (ready_player_count >= MAX_PLAYERS) {
+			XVT_LOG_WARN(
+				"network.join_request_refused player=%u reason=\"full\" version=%d",
+				(unsigned)sender_player_id, payload[0]);
+			g_frontend_net_packet_scratch.packet_type =
+				NET_PACKET_GAME_FULL;
+			net_send_packet_and_flush(
+				sender_player_id,
+				&g_frontend_net_packet_scratch, sizeof(int));
+		} else if (payload[0] != FRONTEND_NET_PROTOCOL_VERSION) {
+			XVT_LOG_WARN(
+				"network.join_request_refused player=%u reason=\"version\" version=%d",
+				(unsigned)sender_player_id, payload[0]);
+			g_frontend_net_packet_scratch.packet_type =
+				NET_PACKET_VERSION_MISMATCH;
+			net_send_packet_and_flush(
+				sender_player_id,
+				&g_frontend_net_packet_scratch, sizeof(int));
+		} else if (g_game_config.require_password != 0 &&
+			   strncmp(g_game_config.password,
+				   (const char *)&payload[1],
+				   sizeof(g_game_config.password)) != 0) {
+			XVT_LOG_WARN(
+				"network.join_request_refused player=%u reason=\"password\" version=%d",
+				(unsigned)sender_player_id, payload[0]);
+			g_frontend_net_packet_scratch.packet_type =
+				NET_PACKET_PASSWORD_REQUIRED;
+			net_send_packet_and_flush(
+				sender_player_id,
+				&g_frontend_net_packet_scratch, sizeof(int));
+		} else if (net_set_player_ready(sender_player_id) != 0) {
+			*(int *)&g_frontend_net_packet_scratch.payload[0] =
+				sender_player_id;
+			g_mission_setup_begin_button_lockout_frames =
+				BEGIN_BUTTON_LOCKOUT_FRAMES;
+			g_frontend_net_packet_scratch.packet_type =
+				NET_PACKET_PLAYER_ADMITTED;
+			net_send_packet_and_flush(
+				0, &g_frontend_net_packet_scratch,
+				2 * sizeof(int));
+			mission_setup_send_lobby_state(0);
+			XVT_LOG_INFO(
+				"network.player_admitted player=%u players=%d",
+				(unsigned)sender_player_id,
+				ready_player_count + 1);
+		} else {
+			XVT_LOG_WARN(
+				"network.join_request_refused player=%u reason=\"not_listed\" version=%d",
+				(unsigned)sender_player_id, payload[0]);
+			g_frontend_net_packet_scratch.packet_type =
+				NET_PACKET_GAME_FULL;
+			net_send_packet_and_flush(
+				sender_player_id,
+				&g_frontend_net_packet_scratch, sizeof(int));
+		}
+		break;
+
+	case NET_PACKET_GAME_FULL:
+	case NET_PACKET_HOST_CANCELLED:
+	case NET_PACKET_PLAYER_KICKED:
+	case NET_PACKET_SESSION_CANCELLED:
+	case NET_PACKET_VERSION_MISMATCH:
+	case NET_PACKET_PASSWORD_REQUIRED:
+	case NET_PACKET_ROSTER_LOCKED:
+	case NET_PACKET_FLIGHT_ASSIGNMENTS_READY:
+		break;
+
+	case NET_PACKET_PLAYER_ADMITTED:
+		if (packet_size < 2 * sizeof(int) ||
+		    sender_player_id != (DPID)net_get_host_player_id() ||
+		    (xvt_network_session_get_status().state ==
+			     XVT_NETWORK_SESSION_ADMISSION &&
+		     !xvt_network_session_accept_admission(sender_player_id,
+							   (DPID)payload[0]))) {
+			XVT_LOG_WARN(
+				"network.admission_rejected player=%u bytes=%u",
+				(unsigned)sender_player_id,
+				(unsigned)packet_size);
+			packet_type = NET_PACKET_NONE;
+			break;
+		}
+		for (roster_index = 0; roster_index < MAX_PLAYERS;
+		     ++roster_index) {
+			if (g_mp_roster[roster_index].player_id != 0 &&
+			    g_mp_roster[roster_index].player_id ==
+				    net_get_local_player_id()) {
+				break;
+			}
+		}
+		if (roster_index >= MAX_PLAYERS &&
+		    net_get_local_player_id() != payload[0]) {
+			XVT_LOG_DEBUG("network.admission_ignored player=%u",
+				      (unsigned)payload[0]);
+			packet_type = NET_PACKET_NONE;
+			break;
+		}
+		if (g_game_config.sfx_datapad_enabled != 0) {
+			frontend_sound_play_ui_sound(
+				"newpsound", 1, 0, 255,
+				12 * g_game_config.sfx_datapad_volume, 63);
+		}
+		net_mark_player_ready_no_lock(payload[0]);
+		XVT_LOG_DEBUG("network.admission_received player=%u",
+			      (unsigned)payload[0]);
+		break;
+
+	case NET_PACKET_PLAYER_LEFT:
+		ready_player_count = net_count_ready_players();
+		roster_index = 0;
+		if (ready_player_count > 0) {
+			do {
+				if ((DPID)g_mp_roster[roster_index].player_id ==
+				    sender_player_id) {
+					if (g_game_config.sfx_datapad_enabled !=
+					    0) {
+						frontend_sound_play_ui_sound(
+							"exitpsound", 1, 0, 255,
+							12 * g_game_config
+									.sfx_datapad_volume,
+							63);
+					}
+					memset(g_mp_roster_ready_flags, 0,
+					       sizeof(g_mp_roster_ready_flags));
+					net_clear_player_ready_flag_with_lock_guard(
+						sender_player_id);
+					mission_setup_send_lobby_state(0);
+					break;
+				}
+				++roster_index;
+			} while (roster_index < ready_player_count);
+		}
+		g_frontend_net_packet_scratch.packet_type =
+			NET_PACKET_MOVIE_SYNC;
+		*(int *)&g_frontend_net_packet_scratch.payload[0] = 2;
+		*(int *)&g_frontend_net_packet_scratch.payload[4] =
+			sender_player_id;
+		net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
+					  3 * sizeof(int));
+		XVT_LOG_DEBUG(
+			"network.leave_notice player=%u index=%d ready=%d",
+			(unsigned)sender_player_id, roster_index,
+			ready_player_count);
+		break;
+
+	case NET_PACKET_CHAT:
+		if (g_frontend_chat_log_buffer != NULL) {
+			packet_size -= sizeof(int);
+			bytes_to_discard = CHAT_LOG_CONTENT_LIMIT;
+			bytes_to_discard -= g_frontend_chat_log_used_bytes;
+			bytes_to_discard -= (int)packet_size;
+			if (bytes_to_discard < 0) {
+				bytes_to_discard = -bytes_to_discard;
+				memmove(g_frontend_chat_log_buffer,
+					&g_frontend_chat_log_buffer
+						[bytes_to_discard],
+					CHAT_LOG_CAPACITY - bytes_to_discard);
+				g_frontend_chat_log_used_bytes -=
+					bytes_to_discard;
+			}
+			memcpy(&g_frontend_chat_log_buffer
+				       [g_frontend_chat_log_used_bytes],
+			       payload, packet_size);
+			if ((DPID)net_get_local_player_id() ==
+			    sender_player_id) {
+				g_frontend_chat_log_buffer
+					[g_frontend_chat_log_used_bytes] = 5;
+			}
+			g_frontend_chat_log_used_bytes += packet_size;
+			g_frontend_chat_log_buffer
+				[g_frontend_chat_log_used_bytes++] = '\n';
+			g_frontend_chat_log_buffer
+				[g_frontend_chat_log_used_bytes] = '\0';
+			XVT_LOG_DEBUG(
+				"network.chat_received player=%u bytes=%u used=%d",
+				(unsigned)sender_player_id,
+				(unsigned)packet_size,
+				g_frontend_chat_log_used_bytes);
+		} else {
+			XVT_LOG_WARN(
+				"network.chat_dropped player=%u kind=\"chat_line\"",
+				(unsigned)sender_player_id);
+		}
+		break;
+
 	case NET_PACKET_PLAYER_UNAVAILABLE:
 		if (net_is_host() != 0) {
 			if (g_game_config.sfx_datapad_enabled != 0) {
@@ -1870,28 +1925,6 @@ int frontend_net_process_network_packets(void)
 		}
 		break;
 
-	case NET_PACKET_PILOT_RATING:
-		g_frontend_net_packet_arg0 = payload[0];
-		XVT_LOG_DEBUG(
-			"network.setup_value kind=\"pilot_rating\" value=%d",
-			g_frontend_net_packet_arg0);
-		break;
-
-	case NET_PACKET_BATTLE_PROGRESS:
-		g_remote_battle_continuation_active = payload[0];
-		g_remote_battle_sequence_continuation_choice = payload[1];
-		g_remote_battle_last_completed_mission_index = payload[2];
-		g_remote_battle_rebel_victory_count = payload[3];
-		g_remote_battle_imperial_victory_count = payload[4];
-		XVT_LOG_DEBUG(
-			"network.battle_progress active=%d choice=%d last=%d rebel=%d imperial=%d",
-			g_remote_battle_continuation_active,
-			g_remote_battle_sequence_continuation_choice,
-			g_remote_battle_last_completed_mission_index,
-			g_remote_battle_rebel_victory_count,
-			g_remote_battle_imperial_victory_count);
-		break;
-
 	case NET_PACKET_MOVIE_SYNC:
 		XVT_LOG_DEBUG("network.movie_sync player=%u op=%d target=%u",
 			      (unsigned)sender_player_id, payload[0],
@@ -1932,20 +1965,9 @@ int frontend_net_process_network_packets(void)
 		}
 		break;
 
-	case NET_PACKET_SUBMIT_MISSION_CHOICE:
-		g_frontend_net_packet_scratch.packet_type =
-			NET_PACKET_MISSION_CHOICE;
-		*(int *)&g_frontend_net_packet_scratch.payload[0] = payload[0];
-		net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
-					  2 * sizeof(int));
-		XVT_LOG_DEBUG(
-			"network.mission_choice_relayed player=%u choice=%d",
-			(unsigned)sender_player_id, payload[0]);
-		break;
-
 	default:
-		XVT_LOG_DEBUG("network.packet_unknown type=%d", packet_type);
-		packet_type = NET_PACKET_NONE;
+		frontend_net_process_setup_packet(
+			&packet_type, sender_player_id, payload, payload_bytes);
 		break;
 	}
 	return packet_type;
