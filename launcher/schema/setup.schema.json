@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/evanleeturner/jedimaster-XVT/launcher/schema/setup.schema.json",
+  "title": "Game setup",
+  "description": "The lobby's setup document: everything a game's host decides before launch, sent whole to every player on each change. The host's launcher owns it; every player's engine must fly the same one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "revision", "build", "host", "mission", "settings", "engine_options", "roster", "teams", "launch"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "revision": {
+      "description": "Raised by one on every change; a player keeps the highest revision it has seen.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "build": {
+      "description": "The engine build every player must run, as the launcher names it.",
+      "type": "string",
+      "minLength": 1
+    },
+    "host": {
+      "description": "The roster id of the player who opened the lobby and holds the setup.",
+      "$ref": "#/$defs/player_id"
+    },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "game_type"],
+      "properties": {
+        "path": {
+          "description": "The mission file, relative to the install folder, with forward slashes.",
+          "type": "string",
+          "pattern": "^[^/\\\\][^\\\\]*\\.(tie|TIE)$"
+        },
+        "game_type": {
+          "type": "string",
+          "enum": ["training", "melee", "tournament", "combat", "battle", "campaign"]
+        }
+      }
+    },
+    "settings": {
+      "description": "The 17 game settings of the 1997 lobby's GAME_OPTIONS packet, in plain values; jedimaster.setup.engine_settings gives the engine's.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["difficulty", "collisions", "craft_jumping", "random_setup", "battle_length", "in_progress_join", "craft_selection", "locate_players", "craft_waves", "mission_time_limit", "last_team_time_limit", "random_seed", "internet_play", "ai_opponents", "server_update_rate", "combat_balance", "continue_sequence"],
+      "properties": {
+        "difficulty": {"type": "string", "enum": ["easy", "medium", "hard", "easy_cheat"]},
+        "collisions": {"type": "boolean"},
+        "craft_jumping": {"type": "boolean"},
+        "random_setup": {"type": "boolean"},
+        "battle_length": {"description": "Wins that end a battle.", "enum": [2, 3, 4]},
+        "in_progress_join": {"type": "boolean"},
+        "craft_selection": {"description": "Who may choose a craft: nobody, everyone, or the host alone.", "type": "string", "enum": ["off", "on", "host_only"]},
+        "locate_players": {"type": "boolean"},
+        "craft_waves": {"description": "Reinforcement rounds of the players' flight groups.", "type": "string", "enum": ["none", "default", "unlimited"]},
+        "mission_time_limit": {
+          "description": "Minutes, or none, or the mission's own.",
+          "oneOf": [{"enum": ["none", "default"]}, {"type": "integer", "minimum": 1, "maximum": 20}]
+        },
+        "last_team_time_limit": {
+          "description": "Minutes the last team standing has, or none.",
+          "oneOf": [{"const": "none"}, {"type": "integer", "minimum": 1, "maximum": 10}]
+        },
+        "random_seed": {"description": "The seed every machine's flight starts from; the host draws it.", "type": "integer", "minimum": 0, "maximum": 4294967295},
+        "internet_play": {"type": "boolean"},
+        "ai_opponents": {"type": "boolean"},
+        "server_update_rate": {"description": "The host's world updates a second.", "enum": [4, 6, 8]},
+        "combat_balance": {"type": "string", "enum": ["autobalance", "favor_imperial", "neutral", "favor_rebel"]},
+        "continue_sequence": {"description": "Whether a battle or campaign goes on after a mission.", "type": "string", "enum": ["restart", "continue"]}
+      }
+    },
+    "password_required": {
+      "description": "Whether joining needs the password; the password itself never travels in this document.",
+      "type": "boolean"
+    },
+    "engine_options": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rules"],
+      "properties": {
+        "rules": {"description": "The 1997 game's behavior, or the fixed one.", "type": "string", "enum": ["1997", "fixed"]},
+        "changes": {
+          "description": "Named behavior changes the host turns on one by one, under fixed rules.",
+          "type": "object",
+          "propertyNames": {"pattern": "^[a-z][a-z0-9_]*$"},
+          "additionalProperties": {"type": "boolean"}
+        }
+      }
+    },
+    "roster": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "ready"],
+        "properties": {
+          "id": {"$ref": "#/$defs/player_id"},
+          "name": {"description": "The pilot's name, at most 13 characters as the game keeps it.", "type": "string", "minLength": 1, "maxLength": 13},
+          "rating": {"type": "integer", "minimum": 0},
+          "flight_group": {"description": "The mission flight group the player flies in, once assigned.", "type": ["integer", "null"], "minimum": 0, "maximum": 47},
+          "loadout": {
+            "description": "Option numbers from the flight group's lists; 0 keeps the mission's own.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "craft": {"type": "integer", "minimum": 0, "maximum": 10},
+              "warhead": {"type": "integer", "minimum": 0},
+              "beam": {"type": "integer", "minimum": 0},
+              "countermeasure": {"type": "integer", "minimum": 0}
+            }
+          },
+          "ready": {"type": "boolean"},
+          "ping_ms": {"type": ["integer", "null"], "minimum": 0},
+          "build": {"description": "The engine build this player's launcher reports.", "type": "string"}
+        }
+      }
+    },
+    "teams": {
+      "description": "Up to 10 teams of up to 8 players; the first player of a team is its captain.",
+      "type": "array",
+      "maxItems": 10,
+      "items": {"type": "array", "maxItems": 8, "items": {"$ref": "#/$defs/player_id"}}
+    },
+    "launch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frozen"],
+      "properties": {
+        "frozen": {"description": "True once the host pressed Launch; nothing changes after.", "type": "boolean"},
+        "fingerprint": {"description": "The SHA-256 of the frozen document, as jedimaster.setup.setup_fingerprint computes it.", "type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  },
+  "$defs": {
+    "player_id": {"type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$"}
+  }
+}
