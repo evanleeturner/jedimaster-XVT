@@ -253,16 +253,18 @@ if(NOT MSVC)
     target_link_libraries(xvt_core PUBLIC m)
 endif()
 
-# What the engine's own list readers keep from a list file; see the tool's
-# header comment.
+# What the engine's own list readers keep from a list file, and what it keeps
+# and draws for the briefing map's icons; see each tool's header comment.
 if(XVT_BUILD_TOOLS)
-    add_executable(list_dump tools/list_dump.c)
-    target_link_libraries(list_dump PRIVATE xvt_core)
-    if(MSVC)
-        target_compile_options(list_dump PRIVATE /W4)
-    else()
-        target_compile_options(list_dump PRIVATE -Wall -Wextra -Wpedantic)
-    endif()
+    foreach(tool list_dump icon_dump)
+        add_executable(${tool} tools/${tool}.c tools/asset_dump.c)
+        target_link_libraries(${tool} PRIVATE xvt_core)
+        if(MSVC)
+            target_compile_options(${tool} PRIVATE /W4)
+        else()
+            target_compile_options(${tool} PRIVATE -Wall -Wextra -Wpedantic)
+        endif()
+    endforeach()
 endif()
 
 add_library(xvt_remaster STATIC
