@@ -13,6 +13,11 @@
  * when a folder or the binding cannot be made. */
 int asset_dump_bind_root(const char *program, const char *root);
 
+/* Returns the user folder asset_dump_bind_root made, where the engine keeps
+ * the files it writes for the player (a pilot's .plt and .pl2 among them).
+ * Before a successful bind it holds the folder's unfilled pattern. */
+const char *asset_dump_user_root(void);
+
 /* Writes into relative, size bytes, the host path game_name resolves to,
  * relative to the root, the name's separators cleaned as the engine's file
  * opening cleans them. Returns 0, writing nothing, when the name does not

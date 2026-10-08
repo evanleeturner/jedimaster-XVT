@@ -259,11 +259,13 @@ if(NOT MSVC)
     target_link_libraries(xvt_core PUBLIC m)
 endif()
 
-# What the engine's own list readers keep from a list file, and what it keeps
-# and draws for the briefing map's icons; see each tool's header comment.
+# What the engine's own readers keep from the game's files (lists, icons, text,
+# fonts, pictures, pilots, 3D models) and what it draws from them, printed for
+# other readers to be checked against; see each tool's header comment.
 if(XVT_BUILD_TOOLS)
-    foreach(tool list_dump icon_dump picture_dump text_dump)
-        add_executable(${tool} tools/${tool}.c tools/asset_dump.c)
+    set(opt_dump_extra_sources tools/opt_draw.c)
+    foreach(tool list_dump icon_dump picture_dump text_dump pilot_dump opt_dump)
+        add_executable(${tool} tools/${tool}.c tools/asset_dump.c ${${tool}_extra_sources})
         target_link_libraries(${tool} PRIVATE xvt_core)
         if(MSVC)
             target_compile_options(${tool} PRIVATE /W4)

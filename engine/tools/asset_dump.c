@@ -81,9 +81,14 @@ int asset_dump_print_header(const char *kind, const char *game_name)
 	return 1;
 }
 
+/* The user folder asset_dump_bind_root made; empty before it. */
+static char g_user_root[] = "/tmp/asset_dump_user_XXXXXX";
+
+const char *asset_dump_user_root(void) { return g_user_root; }
+
 int asset_dump_bind_root(const char *program, const char *root)
 {
-	static char user[] = "/tmp/asset_dump_user_XXXXXX";
+	char *user = g_user_root;
 	static char temp[] = "/tmp/asset_dump_temp_XXXXXX";
 	g_program = program;
 	if (realpath(root, g_root) == NULL) {
