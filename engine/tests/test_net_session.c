@@ -1663,6 +1663,38 @@ static void check_pump_keepalive(void)
 			  NET_PACKET_KEEPALIVE);
 }
 
+/* The WORLD_NACK, NACK and KEEPALIVE searches start at the history slot to
+ * be written next and go round to slot 0, so a packet kept in slot 0 is
+ * found while later slots hold others. */
+static void check_pump_history_searches_wrap(void)
+{
+	unsigned int packet[4];
+	pump_world();
+	make_packet(packet, NET_PACKET_WORLD_MESSAGE, 0x60, 1, 0);
+	XVT_ASSERT_INT_EQ(net_session_send_packet(0, packet, 12), 1);
+	make_packet(packet, NET_PACKET_WORLD_MESSAGE, 0x61, 2, 0);
+	XVT_ASSERT_INT_EQ(net_session_send_packet(0, packet, 12), 1);
+	send_marked(PEER_DPID, NET_PACKET_CHAT, 7, 8);
+	send_marked(PEER_DPID, NET_PACKET_CHAT, 8, 8);
+	empty_queue();
+	/* Slot 0 of both histories holds the world message of tick 0x60,
+	 * sequence 0 on the all-players channel. */
+	deliver_control(NET_PACKET_WORLD_NACK, 0x60, 0, 0, 12);
+	deliver_control(NET_PACKET_NACK, 0, 0, 0, 12);
+	deliver_control(NET_PACKET_KEEPALIVE, 0, 0, 2, 16);
+	forget_sends();
+	net_session_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_sent_count, 3);
+	for (int i = 0; i < 3; ++i) {
+		XVT_ASSERT_INT_EQ(sent_message(i)->to, PEER_DPID);
+		XVT_ASSERT_INT_EQ(sent_type(i), NET_PACKET_WORLD_MESSAGE);
+		XVT_ASSERT_INT_EQ(sent_sequence(i), 0);
+		XVT_ASSERT_INT_EQ(sent_message(i)->bytes[RESEND_CLASS], 0);
+		XVT_ASSERT_INT_EQ(sent_word(i, RESEND_BODY), 0x60);
+	}
+	XVT_ASSERT_INT_EQ(count_lines("network.keepalive_unanswered"), 0);
+}
+
 /* ------------------------------------------------------------------------ */
 /* net_session_pump_incoming_packets: a resent copy, the previous packet
  * missing, and the packet queued. */
@@ -1845,6 +1877,30 @@ static void check_pump_previous_copy_cut(void)
 	g_game_config.internet_play = 0;
 }
 
+/* The copy of the previous packet riding behind a packet is queued with
+ * every byte of its body, the last one included. */
+static void check_pump_previous_copy_whole(void)
+{
+	unsigned int packet[4];
+	pump_world();
+	make_packet(packet, NET_PACKET_CHAT, 0x0A0B0C0D, 0x1A1B1C1D, 0);
+	XVT_ASSERT_INT_EQ(net_session_send_packet(PEER_DPID, packet, 12), 1);
+	make_packet(packet, NET_PACKET_CHAT, 0x2A2B2C2D, 0, 0);
+	XVT_ASSERT_INT_EQ(net_session_send_packet(PEER_DPID, packet, 8), 1);
+	deliver_last_send();
+	empty_queue();
+	memset(g_net_session_recv_queue[0].payload, 0xEE,
+	       sizeof g_net_session_recv_queue[0].payload);
+	net_session_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_net_recv_queue_count, 2);
+	XVT_ASSERT_INT_EQ(queued(0)->sequence_byte, 0);
+	XVT_ASSERT_INT_EQ(queued(0)->payload_size, 12);
+	XVT_ASSERT_INT_EQ(queued_word(0, 0), NET_PACKET_CHAT);
+	XVT_ASSERT_INT_EQ(queued_word(0, 1), 0x0A0B0C0D);
+	XVT_ASSERT_INT_EQ(queued_word(0, 2), 0x1A1B1C1D);
+	XVT_ASSERT_INT_EQ(queued_word(1, 1), 0x2A2B2C2D);
+}
+
 /* A packet is queued with its sender, channel, sequence and body, the write
  * index wrapping from 1,023 to 0. A repeat is queued again marked as a resent
  * copy, except on the group channel, where it is dropped. */
@@ -1980,6 +2036,32 @@ static void check_send_channels_and_saved_copies(void)
 		XVT_ASSERT_INT_EQ(sent_message(2)->bytes[8], NET_PACKET_ACK);
 		XVT_ASSERT_INT_EQ(sent_word(2, 9), 0x33);
 		XVT_ASSERT_INT_EQ(sent_message(2)->size, 13);
+	}
+}
+
+/* Each packet carries every byte of its body, and each channel's saved copy
+ * keeps every byte of the body it was made from, so the next packet on that
+ * channel carries the whole body behind it. */
+static void check_send_saved_copies_whole(void)
+{
+	static const int ids[] = {0, GROUP_DPID, PEER_DPID};
+	unsigned int packet[4];
+	for (size_t row = 0; row < sizeof ids / sizeof ids[0]; ++row) {
+		session_world(1);
+		use_fake_dplay();
+		g_net_session.group_dplay_id = GROUP_DPID;
+		make_packet(packet, NET_PACKET_CHAT, 0x0A0B0C0D, 0x1A1B1C1D, 0);
+		XVT_ASSERT_INT_EQ(net_session_send_packet(ids[row], packet, 12),
+				  1);
+		XVT_ASSERT_INT_EQ(sent_word(0, GAME_BODY), 0x0A0B0C0D);
+		XVT_ASSERT_INT_EQ(sent_word(0, GAME_BODY + 4), 0x1A1B1C1D);
+		make_packet(packet, NET_PACKET_ACK, 0x33, 0, 0);
+		XVT_ASSERT_INT_EQ(net_session_send_packet(ids[row], packet, 8),
+				  1);
+		XVT_ASSERT_INT_EQ(sent_message(1)->size, 17);
+		XVT_ASSERT_INT_EQ(sent_message(1)->bytes[8], NET_PACKET_CHAT);
+		XVT_ASSERT_INT_EQ(sent_word(1, 9), 0x0A0B0C0D);
+		XVT_ASSERT_INT_EQ(sent_word(1, 13), 0x1A1B1C1D);
 	}
 }
 
@@ -2976,13 +3058,16 @@ int main(int argc, char **argv)
 	check_pump_world_nack();
 	check_pump_nack();
 	check_pump_keepalive();
+	check_pump_history_searches_wrap();
 	check_pump_resent_copies();
 	check_pump_resent_copy_sizes();
 	check_pump_previous_missing();
 	check_pump_previous_copy_cut();
+	check_pump_previous_copy_whole();
 	check_pump_queues_packets();
 	check_send_resync_types_bare();
 	check_send_channels_and_saved_copies();
+	check_send_saved_copies_whole();
 	check_send_internet_input();
 	check_send_histories();
 	check_send_queued_for_self();
