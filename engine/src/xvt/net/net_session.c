@@ -87,40 +87,14 @@ struct net_session_scratch_state g_net_session_scratch_packet = {0};
 // GLOBAL: XVT 0x9EC608
 static uint8_t g_net_session_flight_handshake_active = 0;
 
-/* Opens the flight's network session from the state the frontend saved
- * (net_session_import_runtime_state): DirectPlay interface, ids, receive queue,
- * reliable peer slots, channel sequences and sent history. It first clears
- * g_net_session and g_net_recv_queue_count, resets the 40 reliable peer slots,
- * g_net_session_sent_world_message_history and its write index, and
- * g_net_session_scratch_packet.trailing_state, and sets
- * g_net_session_flight_handshake_active; the import then fills
- * g_net_session_recv_queue with its indices and count, and
- * g_net_session_sent_history with its write index. A solo host takes formalName
- * and pilot_name as its names, becomes roster slot 0 and returns 1; without a
- * DirectPlay interface its id is 1. Otherwise it lists the DirectPlay players
- * that g_pilot_data.network_players also holds, and sends the host a
- * STARTUP_READY and a NOP. It then returns
- * xvt_flight_network_begin_roster_exchange's result, which is
- * XVT_FLIGHT_NETWORK_PENDING unless a client joins a flight in progress.
- * mp_game_name and connection_address are unused. Does not check for a
- * DirectPlay interface outside the solo path. */
-// FUNCTION: XVT 0x46C230
-int net_session_init_game_session(const char *formal_name,
-				  const char *pilot_name, int is_host,
-				  const char *mp_game_name,
-				  network_transport_type network_type,
-				  int num_human_players, int in_progress_launch,
-				  const char *connection_address)
+/* Part of net_session_init_game_session: clears g_net_session, stores
+ * network_type in it and gives its two channels and its 40 reliable peer slots
+ * their opening values; sets g_net_session_flight_handshake_active, and clears
+ * g_net_session_scratch_packet.trailing_state,
+ * g_net_session_sent_world_message_history with its write index and
+ * g_net_recv_queue_count. */
+static void net_session_reset_for_flight(network_transport_type network_type)
 {
-
-	char dial_number[32] = "Dial a New Number.";
-	(void)dial_number;
-	(void)mp_game_name;
-	(void)connection_address;
-	XVT_LOG_DEBUG(
-		"network.session_init host=%d players=%d in_progress=%d transport=%d",
-		is_host, num_human_players, in_progress_launch,
-		(int)network_type);
 	memset(&g_net_session, 0, sizeof(g_net_session));
 	g_net_session_flight_handshake_active = 1;
 	g_net_session_scratch_packet.trailing_state = 0;
@@ -166,71 +140,14 @@ int net_session_init_game_session(const char *formal_name,
 	       sizeof(g_net_session_sent_world_message_history));
 	g_net_recv_queue_count = 0;
 	g_net_session.reliable_peer_slot_count = 0;
-	/* The 1 stored in success here also serves below as the player count,
-	 * the host flag, a DirectPlay id and an active flag. */
-	int success = 1;
+}
 
-	DPCAPS direct_play_caps;
-	if (num_human_players == success && is_host == success) {
-		/* The single-player path reuses the persisted DirectPlay snapshot. */
-		net_session_import_runtime_state(
-			(void **)&g_net_session.dplay_interface,
-			&g_net_session.app_guid, &g_net_session.instance_guid,
-			(int32_t *)&g_net_session.group_dplay_id,
-			&g_net_session.host_dplay_id,
-			(struct net_player_info *)&g_net_session
-				.local_player_info,
-			g_net_session_recv_queue, &g_net_recv_queue_read_index,
-			(int *)&g_net_recv_queue_count,
-			&g_net_recv_queue_write_index,
-			g_net_session.reliable_peer_slots,
-			&g_net_session.reliable_peer_slot_count,
-			&g_net_session.broadcast_seq_counter,
-			(char *)g_net_session.broadcast_payload,
-			&g_net_session.broadcast_payload_length,
-			&g_net_session.broadcast_piggyback_empty,
-			&g_net_session.group_seq_counter,
-			(char *)g_net_session.group_payload,
-			&g_net_session.group_payload_length,
-			&g_net_session.group_piggyback_empty,
-			g_net_session_sent_history,
-			&g_net_session_sent_history_write_index);
-		XVT_LOG_DEBUG(
-			"network.flight_session_imported interface=%d local=%u peers=%u queued=%u read=%d write=%d history=%d broadcast_seq=%u group_seq=%u",
-			g_net_session.dplay_interface != NULL,
-			(unsigned)
-				g_net_session.local_player_info.direct_play_id,
-			g_net_session.reliable_peer_slot_count,
-			g_net_recv_queue_count, g_net_recv_queue_read_index,
-			g_net_recv_queue_write_index,
-			g_net_session_sent_history_write_index,
-			(unsigned)g_net_session.broadcast_seq_counter,
-			(unsigned)g_net_session.group_seq_counter);
-		if (g_net_session.dplay_interface == NULL) {
-			g_net_session.local_player_info.direct_play_id =
-				success;
-			g_net_session.local_player_info.active_flag = success;
-		} else {
-			memset(&direct_play_caps, 0, sizeof(direct_play_caps));
-			direct_play_caps.dwSize = sizeof(direct_play_caps);
-			g_net_session.dplay_interface->lpVtbl->GetCaps(
-				g_net_session.dplay_interface,
-				&direct_play_caps, 0);
-		}
-		strncpy(g_net_session.local_player_info.long_name, formal_name,
-			sizeof(g_net_session.local_player_info.long_name));
-		strncpy(g_net_session.local_player_info.player_name, pilot_name,
-			sizeof(g_net_session.local_player_info.player_name));
-		g_net_session.players[0] = g_net_session.local_player_info;
-		g_net_session.local_is_host = is_host;
-		g_net_session.player_count = success;
-		XVT_LOG_INFO(
-			"network.flight_session_open mode=\"solo\" host=%d players=%d in_progress=%d",
-			is_host, g_net_session.player_count,
-			in_progress_launch);
-		return success;
-	}
-
+/* Part of net_session_init_game_session: loads the state the frontend saved
+ * through net_session_import_runtime_state into g_net_session,
+ * g_net_session_recv_queue with its indices and count, and
+ * g_net_session_sent_history with its write index, and logs what it loaded. */
+static void net_session_import_lobby_state(void)
+{
 	net_session_import_runtime_state(
 		(void **)&g_net_session.dplay_interface,
 		&g_net_session.app_guid, &g_net_session.instance_guid,
@@ -260,6 +177,87 @@ int net_session_init_game_session(const char *formal_name,
 		g_net_session_sent_history_write_index,
 		(unsigned)g_net_session.broadcast_seq_counter,
 		(unsigned)g_net_session.group_seq_counter);
+}
+
+/* Part of net_session_init_game_session for a host flying alone: loads the
+ * saved state, takes id 1 without a DirectPlay interface, takes formal_name and
+ * pilot_name as its names, becomes roster slot 0 and returns 1. */
+static int net_session_open_solo(const char *formal_name,
+				 const char *pilot_name, int is_host,
+				 int in_progress_launch)
+{
+	int success = 1;
+	DPCAPS direct_play_caps;
+	net_session_import_lobby_state();
+	if (g_net_session.dplay_interface == NULL) {
+		g_net_session.local_player_info.direct_play_id = success;
+		g_net_session.local_player_info.active_flag = success;
+	} else {
+		memset(&direct_play_caps, 0, sizeof(direct_play_caps));
+		direct_play_caps.dwSize = sizeof(direct_play_caps);
+		g_net_session.dplay_interface->lpVtbl->GetCaps(
+			g_net_session.dplay_interface, &direct_play_caps, 0);
+	}
+	strncpy(g_net_session.local_player_info.long_name, formal_name,
+		sizeof(g_net_session.local_player_info.long_name));
+	strncpy(g_net_session.local_player_info.player_name, pilot_name,
+		sizeof(g_net_session.local_player_info.player_name));
+	g_net_session.players[0] = g_net_session.local_player_info;
+	g_net_session.local_is_host = is_host;
+	g_net_session.player_count = success;
+	XVT_LOG_INFO(
+		"network.flight_session_open mode=\"solo\" host=%d players=%d in_progress=%d",
+		is_host, g_net_session.player_count, in_progress_launch);
+	return success;
+}
+
+/* Opens the flight's network session from the state the frontend saved
+ * (net_session_import_runtime_state): DirectPlay interface, ids, receive queue,
+ * reliable peer slots, channel sequences and sent history. It first clears
+ * g_net_session and g_net_recv_queue_count, resets the 40 reliable peer slots,
+ * g_net_session_sent_world_message_history and its write index, and
+ * g_net_session_scratch_packet.trailing_state, and sets
+ * g_net_session_flight_handshake_active; the import then fills
+ * g_net_session_recv_queue with its indices and count, and
+ * g_net_session_sent_history with its write index. A solo host takes formalName
+ * and pilot_name as its names, becomes roster slot 0 and returns 1; without a
+ * DirectPlay interface its id is 1. Otherwise it lists the DirectPlay players
+ * that g_pilot_data.network_players also holds, and sends the host a
+ * STARTUP_READY and a NOP. It then returns
+ * xvt_flight_network_begin_roster_exchange's result, which is
+ * XVT_FLIGHT_NETWORK_PENDING unless a client joins a flight in progress.
+ * mp_game_name and connection_address are unused. Does not check for a
+ * DirectPlay interface outside the solo path. */
+// FUNCTION: XVT 0x46C230
+int net_session_init_game_session(const char *formal_name,
+				  const char *pilot_name, int is_host,
+				  const char *mp_game_name,
+				  network_transport_type network_type,
+				  int num_human_players, int in_progress_launch,
+				  const char *connection_address)
+{
+
+	char dial_number[32] = "Dial a New Number.";
+	(void)dial_number;
+	(void)mp_game_name;
+	(void)connection_address;
+	XVT_LOG_DEBUG(
+		"network.session_init host=%d players=%d in_progress=%d transport=%d",
+		is_host, num_human_players, in_progress_launch,
+		(int)network_type);
+	net_session_reset_for_flight(network_type);
+	/* The 1 stored in success here also serves below as the player count,
+	 * the host flag, a DirectPlay id and an active flag. */
+	int success = 1;
+
+	DPCAPS direct_play_caps;
+	if (num_human_players == success && is_host == success) {
+		/* The single-player path reuses the persisted DirectPlay snapshot. */
+		return net_session_open_solo(formal_name, pilot_name, is_host,
+					     in_progress_launch);
+	}
+
+	net_session_import_lobby_state();
 	memset(&direct_play_caps, 0, sizeof(direct_play_caps));
 	direct_play_caps.dwSize = sizeof(direct_play_caps);
 	g_net_session.dplay_interface->lpVtbl->GetCaps(
