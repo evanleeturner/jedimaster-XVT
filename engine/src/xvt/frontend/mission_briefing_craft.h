@@ -19,11 +19,12 @@ typedef enum mission_briefing_launch_countdown_state {
 extern int g_mission_briefing_craft_selection_active;
 extern mission_briefing_craft_screen_faction
 	g_mission_briefing_craft_screen_faction;
+extern mission_briefing_launch_countdown_state
+	g_mission_briefing_launch_countdown_state;
+extern int g_mission_briefing_launch_countdown_ms;
 
 int mission_briefing_craft_selection_exit(int frame_counter);
 int mission_briefing_craft_selection_update(int frame_counter);
-int mission_briefing_broadcast_roster_and_assignments(void);
-int mission_briefing_are_all_network_players_ready(void);
 
 #ifdef __cplusplus
 }

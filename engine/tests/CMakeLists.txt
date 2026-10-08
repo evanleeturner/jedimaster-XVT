@@ -246,12 +246,14 @@ xvt_add_engine_test(test_mission_briefing test_mission_briefing.c
     "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing.c")
 add_test(NAME mission_briefing COMMAND test_mission_briefing)
 
-# The craft selection screen's ready test, exit and frame: src/xvt/frontend/mission_briefing_craft.c.
+# The craft selection screen's exit and frame: src/xvt/frontend/mission_briefing_craft.c; its ready test and
+# the packets the frame answers: src/xvt/frontend/mission_briefing_craft_network.c.
 # The frame checks write their mission lists, ship list and strings into a temporary folder made with POSIX
 # calls, and arm an alarm with POSIX calls for a frame that never returns.
 if(NOT MSVC)
     xvt_add_engine_test(test_mission_briefing_craft test_mission_briefing_craft.c
         "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing_craft.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing_craft_network.c"
         "${PROJECT_SOURCE_DIR}/src/xvt/frontend/mission_briefing.c")
     add_test(NAME mission_briefing_craft COMMAND test_mission_briefing_craft)
     xvt_add_known_failure(test_mission_briefing_craft title_unlisted_mission)
