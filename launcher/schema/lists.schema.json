@@ -1,0 +1,804 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/lists.schema.json",
+  "title": "XvT/BoP text list (jedimaster export)",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/MenuList"
+    },
+    {
+      "$ref": "#/$defs/SequenceList"
+    },
+    {
+      "$ref": "#/$defs/ImageList"
+    },
+    {
+      "$ref": "#/$defs/ShipList"
+    },
+    {
+      "$ref": "#/$defs/SoundList"
+    },
+    {
+      "$ref": "#/$defs/CutsceneList"
+    },
+    {
+      "$ref": "#/$defs/AwardList"
+    }
+  ],
+  "$defs": {
+    "AwardList": {
+      "type": "object",
+      "description": "The campaign medal list: a count, then that many 32-value records.",
+      "properties": {
+        "format": {
+          "const": "jedimaster.lists"
+        },
+        "format_version": {
+          "const": 1
+        },
+        "size": {
+          "type": "integer"
+        },
+        "end_mark": {
+          "type": "boolean"
+        },
+        "count_line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "count": {
+          "type": "integer"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AwardRecord"
+          }
+        },
+        "end": {
+          "type": "string"
+        },
+        "unread": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextLine"
+          }
+        },
+        "kind": {
+          "const": "awards"
+        }
+      },
+      "required": [
+        "format",
+        "format_version",
+        "size",
+        "end_mark",
+        "count_line",
+        "count",
+        "records",
+        "end",
+        "unread",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "AwardRecord": {
+      "type": "object",
+      "description": "Campaign id, main medal, 15 multiplayer and 15 single-player names.",
+      "properties": {
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextLine"
+          }
+        },
+        "campaign_line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "campaign": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "main": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "multiplayer": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextLine"
+          }
+        },
+        "singleplayer": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextLine"
+          }
+        },
+        "complete": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "comments",
+        "campaign_line",
+        "campaign",
+        "main",
+        "multiplayer",
+        "singleplayer",
+        "complete"
+      ],
+      "additionalProperties": false
+    },
+    "Cutscene": {
+      "type": "object",
+      "description": "Four values (movie, numbers, thumbnail, description) and comments.",
+      "properties": {
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextLine"
+          }
+        },
+        "movie": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "numbers_line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "numbers": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "thumbnail": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "comments",
+        "movie",
+        "numbers_line",
+        "numbers",
+        "thumbnail",
+        "description",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "CutsceneList": {
+      "type": "object",
+      "description": "The cutscene list: a count, then that many four-value entries.",
+      "properties": {
+        "format": {
+          "const": "jedimaster.lists"
+        },
+        "format_version": {
+          "const": 1
+        },
+        "size": {
+          "type": "integer"
+        },
+        "end_mark": {
+          "type": "boolean"
+        },
+        "count_line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "count": {
+          "type": "integer"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Cutscene"
+          }
+        },
+        "end": {
+          "type": "string"
+        },
+        "unread": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextLine"
+          }
+        },
+        "kind": {
+          "const": "cutscenes"
+        }
+      },
+      "required": [
+        "format",
+        "format_version",
+        "size",
+        "end_mark",
+        "count_line",
+        "count",
+        "entries",
+        "end",
+        "unread",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "ImageGroup": {
+      "type": "object",
+      "description": "Three words: bitmap file, image name, compress flag.",
+      "properties": {
+        "bitmap": {
+          "$ref": "#/$defs/Word"
+        },
+        "name": {
+          "$ref": "#/$defs/Word"
+        },
+        "flag": {
+          "$ref": "#/$defs/Word"
+        },
+        "flag_value": {
+          "type": "integer"
+        },
+        "repeat_of": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "bitmap",
+        "name",
+        "flag",
+        "flag_value",
+        "repeat_of"
+      ],
+      "additionalProperties": false
+    },
+    "ImageList": {
+      "type": "object",
+      "description": "An image list: a skipped first line, then groups of three words.",
+      "properties": {
+        "format": {
+          "const": "jedimaster.lists"
+        },
+        "format_version": {
+          "const": 1
+        },
+        "size": {
+          "type": "integer"
+        },
+        "end_mark": {
+          "type": "boolean"
+        },
+        "first_line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ImageGroup"
+          }
+        },
+        "end": {
+          "type": "string"
+        },
+        "unread": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Word"
+          }
+        },
+        "kind": {
+          "const": "images"
+        }
+      },
+      "required": [
+        "format",
+        "format_version",
+        "size",
+        "end_mark",
+        "first_line",
+        "groups",
+        "end",
+        "unread",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "MenuComment": {
+      "type": "object",
+      "description": "A line starting with ``//`` where an entry or a section may start.",
+      "properties": {
+        "line": {
+          "$ref": "#/$defs/TextLine"
+        },
+        "kind": {
+          "const": "comment"
+        }
+      },
+      "required": [
+        "line",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "MenuEntry": {
+      "type": "object",
+      "description": "Three lines: id, mission file (maybe with a marker), title.",
+      "properties": {
+        "id_line": {
+          "$ref": "#/$defs/TextLine"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "file_line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title_line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "marker": {
+          "type": "string"
+        },
+        "star_texts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "star_numbers": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "file_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "kind": {
+          "const": "entry"
+        }
+      },
+      "required": [
+        "id_line",
+        "id",
+        "file_line",
+        "title_line",
+        "marker",
+        "star_texts",
+        "star_numbers",
+        "file_name",
+        "complete",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "MenuList": {
+      "type": "object",
+      "description": "A mission menu (``mission.lst``, ``rebel.lst``, ``imperial.lst``).",
+      "properties": {
+        "format": {
+          "const": "jedimaster.lists"
+        },
+        "format_version": {
+          "const": 1
+        },
+        "size": {
+          "type": "integer"
+        },
+        "end_mark": {
+          "type": "boolean"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/MenuComment"
+              },
+              {
+                "$ref": "#/$defs/MenuSection"
+              },
+              {
+                "$ref": "#/$defs/MenuEntry"
+              }
+            ]
+          }
+        },
+        "kind": {
+          "const": "menu"
+        }
+      },
+      "required": [
+        "format",
+        "format_version",
+        "size",
+        "end_mark",
+        "items",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "MenuSection": {
+      "type": "object",
+      "description": "A line starting with ``[``: the section every later entry belongs to.",
+      "properties": {
+        "line": {
+          "$ref": "#/$defs/TextLine"
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "const": "section"
+        }
+      },
+      "required": [
+        "line",
+        "name",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "SequenceList": {
+      "type": "object",
+      "description": "A tournament, battle or campaign: count, mission lines, description.",
+      "properties": {
+        "format": {
+          "const": "jedimaster.lists"
+        },
+        "format_version": {
+          "const": 1
+        },
+        "size": {
+          "type": "integer"
+        },
+        "end_mark": {
+          "type": "boolean"
+        },
+        "count_line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "count": {
+          "type": "integer"
+        },
+        "missions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TextLine"
+          }
+        },
+        "description_line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "kind": {
+          "const": "sequence"
+        }
+      },
+      "required": [
+        "format",
+        "format_version",
+        "size",
+        "end_mark",
+        "count_line",
+        "count",
+        "missions",
+        "description_line",
+        "description",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "ShipList": {
+      "type": "object",
+      "description": "The ship list: pairs of words from the very first word.",
+      "properties": {
+        "format": {
+          "const": "jedimaster.lists"
+        },
+        "format_version": {
+          "const": 1
+        },
+        "size": {
+          "type": "integer"
+        },
+        "end_mark": {
+          "type": "boolean"
+        },
+        "pairs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ShipPair"
+          }
+        },
+        "end": {
+          "type": "string"
+        },
+        "unread": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Word"
+          }
+        },
+        "kind": {
+          "const": "ships"
+        }
+      },
+      "required": [
+        "format",
+        "format_version",
+        "size",
+        "end_mark",
+        "pairs",
+        "end",
+        "unread",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "ShipPair": {
+      "type": "object",
+      "description": "Two words: model file, craft type.",
+      "properties": {
+        "model": {
+          "$ref": "#/$defs/Word"
+        },
+        "type": {
+          "$ref": "#/$defs/Word"
+        },
+        "type_value": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "model",
+        "type",
+        "type_value"
+      ],
+      "additionalProperties": false
+    },
+    "SoundList": {
+      "type": "object",
+      "description": "The sound list: a skipped first line, then pairs of words.",
+      "properties": {
+        "format": {
+          "const": "jedimaster.lists"
+        },
+        "format_version": {
+          "const": 1
+        },
+        "size": {
+          "type": "integer"
+        },
+        "end_mark": {
+          "type": "boolean"
+        },
+        "first_line": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextLine"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pairs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SoundPair"
+          }
+        },
+        "end": {
+          "type": "string"
+        },
+        "unread": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Word"
+          }
+        },
+        "kind": {
+          "const": "sounds"
+        }
+      },
+      "required": [
+        "format",
+        "format_version",
+        "size",
+        "end_mark",
+        "first_line",
+        "pairs",
+        "end",
+        "unread",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "SoundPair": {
+      "type": "object",
+      "description": "Two words: WAV file, sound name.",
+      "properties": {
+        "wav": {
+          "$ref": "#/$defs/Word"
+        },
+        "name": {
+          "$ref": "#/$defs/Word"
+        },
+        "repeat_of": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "wav",
+        "name",
+        "repeat_of"
+      ],
+      "additionalProperties": false
+    },
+    "TextLine": {
+      "type": "object",
+      "description": "One line as written: its number, its text, and its line ending.",
+      "properties": {
+        "line": {
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        },
+        "ending": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "line",
+        "text",
+        "ending"
+      ],
+      "additionalProperties": false
+    },
+    "Word": {
+      "type": "object",
+      "description": "One word as written and the line it starts on.",
+      "properties": {
+        "line": {
+          "type": "integer"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "line",
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
