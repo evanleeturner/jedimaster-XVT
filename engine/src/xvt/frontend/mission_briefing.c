@@ -151,6 +151,10 @@ int mission_briefing_craft_selection_exit(int frame_counter)
 	return 0;
 }
 
+/* What a part of mission_briefing_craft_selection_update returns when it
+ * did not end the frame; the frame's own returns are 0 or 1. */
+enum { CRAFT_SELECTION_FRAME_GOES_ON = -1 };
+
 /* Part of mission_briefing_craft_selection_update: sends everyone
  * NET_PACKET_CRAFT_LOADOUT with eight ints, the selected flight group's
  * optional_craft_category and the selected preset craft, craft, warhead,
@@ -204,6 +208,268 @@ static void mission_briefing_craft_fill_solo_roster(void)
 		g_mission_setup_selected_countermeasure_option_index;
 }
 
+/* Part of mission_briefing_craft_selection_update's first frame: in a melee
+ * in which no team has more than one player flight group, sets
+ * g_briefing_skip_player_assignment to 1. */
+static void mission_briefing_craft_check_skip(void)
+{
+	if (g_pilot_data.mission_directory_id == MISSION_DIRECTORY_MELEES) {
+		int team_index;
+		for (team_index = 0; team_index < g_team_count; ++team_index) {
+			if (g_team_player_flight_group_count[team_index] > 1) {
+				break;
+			}
+		}
+		if (team_index == g_team_count) {
+			g_briefing_skip_player_assignment = 1;
+		}
+	}
+}
+
+/* Part of mission_briefing_craft_selection_update's first frame: loads the
+ * mission list of the pilot's mission directory and, when g_mission_list is
+ * not NULL, sets g_selected_mission_list_index to the pilot's mission in it
+ * (g_mission_count when it is not there). Logs a warning when the list is
+ * NULL or the index is not under g_mission_count. */
+static void mission_briefing_craft_find_mission(void)
+{
+	mission_setup_load_mission_list(g_pilot_data.mission_directory_id);
+	if (g_mission_list != NULL) {
+		g_selected_mission_list_index = 0;
+		if (g_mission_count > 0) {
+			do {
+				if (g_mission_list
+					    [g_selected_mission_list_index]
+						    .mission_idx ==
+				    g_pilot_data.mission_description_ids
+					    [g_pilot_data
+						     .mission_directory_id]) {
+					break;
+				}
+				++g_selected_mission_list_index;
+			} while (g_mission_count >
+				 (unsigned int)g_selected_mission_list_index);
+		}
+	}
+	if (g_mission_list == NULL ||
+	    g_mission_count <= (unsigned int)g_selected_mission_list_index) {
+		XVT_LOG_WARN(
+			"briefing.craft_mission_unlisted directory=%d mission=%d listed=%d count=%u index=%d",
+			(int)g_pilot_data.mission_directory_id,
+			(int)g_pilot_data.mission_description_ids
+				[g_pilot_data.mission_directory_id],
+			g_mission_list != NULL, g_mission_count,
+			g_selected_mission_list_index);
+	}
+}
+
+/* Part of mission_briefing_craft_selection_update's first frame: loads the
+ * loadout and the ship list, sets *craft_type to
+ * mission_setup_get_craft_type(-1) and loads that craft's preview model with
+ * the selected flight group's markings. */
+static void mission_briefing_craft_load_preview(int *craft_type)
+{
+	mission_setup_init_craft_loadout();
+	ship_list_load();
+	*craft_type = mission_setup_get_craft_type(-1);
+	model_preview_load_model(
+		g_ship_list[g_ship_type_to_ship_list_index[*craft_type]]
+			.model_file_name);
+	model_preview_set_node_switch_index(
+		g_frontend_mission
+			.flight_groups
+				[g_mission_setup_selected_flight_group_index]
+			.markings);
+	model_preview_set_light_direction(-1, 0, 1);
+	model_preview_set_object_up_axis_angle_degrees(0.0f);
+	XVT_LOG_DEBUG(
+		"briefing.craft_setup fg=%d craft=%d markings=%d skip=%d index=%d missions=%u selection=%d quick=%d",
+		g_mission_setup_selected_flight_group_index, *craft_type,
+		(int)g_frontend_mission
+			.flight_groups
+				[g_mission_setup_selected_flight_group_index]
+			.markings,
+		g_briefing_skip_player_assignment,
+		g_selected_mission_list_index, g_mission_count,
+		(int)g_game_config.craft_selection,
+		g_frontend_quick_start_launch_flag);
+}
+
+/* Part of mission_briefing_craft_selection_update's first frame: registers
+ * the "background" image and sets g_mission_briefing_craft_screen_faction,
+ * by the session mode, the pilot's mission directory, faction or team, or
+ * the craft type, which it then leaves in *craft_type. */
+static void mission_briefing_craft_pick_background(int *craft_type)
+{
+	if (g_frontend_mission_session_mode ==
+	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+		if (g_pilot_data.mission_directory_id ==
+			    MISSION_DIRECTORY_MELEES ||
+		    g_pilot_data.mission_directory_id ==
+			    MISSION_DIRECTORY_TOURNAMENTS) {
+			*craft_type = mission_setup_get_craft_type(-1);
+			if (*craft_type < 1 ||
+			    (*craft_type > 4 && *craft_type != 14)) {
+				g_mission_briefing_craft_screen_faction =
+					MISSION_BRIEFING_CRAFT_SCREEN_IMPERIAL;
+				front_image_register_resource_default(
+					"frontres\\craftsi.bmp", "background");
+			} else {
+				g_mission_briefing_craft_screen_faction =
+					MISSION_BRIEFING_CRAFT_SCREEN_REBEL;
+				front_image_register_resource_default(
+					"frontres\\craftsr.bmp", "background");
+			}
+		} else if (g_pilot_data.current_faction_id == 0) {
+			g_mission_briefing_craft_screen_faction =
+				MISSION_BRIEFING_CRAFT_SCREEN_REBEL;
+			front_image_register_resource_default(
+				"frontres\\craftsr.bmp", "background");
+		} else {
+			g_mission_briefing_craft_screen_faction =
+				MISSION_BRIEFING_CRAFT_SCREEN_IMPERIAL;
+			front_image_register_resource_default(
+				"frontres\\craftsi.bmp", "background");
+		}
+	} else if (g_pilot_data.mission_directory_id ==
+			   MISSION_DIRECTORY_COMBAT_ENGAGEMENTS ||
+		   g_pilot_data.mission_directory_id ==
+			   MISSION_DIRECTORY_BATTLES) {
+		if (g_pilot_data.team == 0) {
+			g_mission_briefing_craft_screen_faction =
+				MISSION_BRIEFING_CRAFT_SCREEN_IMPERIAL;
+			front_image_register_resource_default(
+				"frontres\\craftmi.bmp", "background");
+		} else {
+			g_mission_briefing_craft_screen_faction =
+				MISSION_BRIEFING_CRAFT_SCREEN_REBEL;
+			front_image_register_resource_default(
+				"frontres\\craftmr.bmp", "background");
+		}
+	} else {
+		*craft_type = mission_setup_get_craft_type(-1);
+		if (*craft_type >= 1 &&
+		    (*craft_type <= 4 || *craft_type == 14)) {
+			g_mission_briefing_craft_screen_faction =
+				MISSION_BRIEFING_CRAFT_SCREEN_REBEL;
+			front_image_register_resource_default(
+				"frontres\\craftmr.bmp", "background");
+		} else {
+			g_mission_briefing_craft_screen_faction =
+				MISSION_BRIEFING_CRAFT_SCREEN_IMPERIAL;
+			front_image_register_resource_default(
+				"frontres\\craftmi.bmp", "background");
+		}
+	}
+}
+
+/* Part of mission_briefing_craft_selection_update's first frame: in network
+ * play sends everyone the loadout, unless craft selection is host-only on a
+ * client outside a training sequence at GAME_DIFFICULTY_EASY_CHEAT, and then
+ * NET_PACKET_BRIEFING_ENTERED. */
+static void mission_briefing_craft_send_entry_packets(void)
+{
+	if (g_frontend_mission_session_mode !=
+	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+		if ((g_pilot_data.mission_directory_id ==
+			     MISSION_DIRECTORY_TRAINING_EXERCISES &&
+		     g_pilot_data.mission_sequence_active == 1 &&
+		     g_game_config.difficulty == GAME_DIFFICULTY_EASY_CHEAT) ||
+		    g_game_config.craft_selection !=
+			    CRAFT_SELECTION_HOST_ONLY ||
+		    net_is_host() != 0) {
+			mission_briefing_craft_send_loadout();
+			XVT_LOG_DEBUG(
+				"briefing.loadout_sent by=\"entry\" category=%d preset=%d option=%d warhead=%d beam=%d countermeasure=%d waves=%d count=%d",
+				(int)g_frontend_mission
+					.flight_groups
+						[g_mission_setup_selected_flight_group_index]
+					.optional_craft_category,
+				g_mission_setup_selected_preset_craft_option_index,
+				g_mission_setup_selected_flight_group_craft_option_index,
+				g_mission_setup_selected_warhead_option_index,
+				g_mission_setup_selected_beam_option_index,
+				g_mission_setup_selected_countermeasure_option_index,
+				g_mission_setup_selected_wave_count_minus_one,
+				g_mission_setup_selected_craft_count);
+		}
+		g_frontend_net_packet_scratch.packet_type =
+			NET_PACKET_BRIEFING_ENTERED;
+		net_send_packet_and_flush(
+			0, &g_frontend_net_packet_scratch,
+			sizeof(g_frontend_net_packet_scratch.packet_type));
+	}
+}
+
+enum {
+	MAX_PLAYERS = 8,
+	LAUNCH_COUNTDOWN_MS = 60000,
+};
+
+/* The first frame of mission_briefing_craft_selection_update, as its comment
+ * tells it, up to the countdown set to 60000 ms. Returns 0 after a quick
+ * start, else CRAFT_SELECTION_FRAME_GOES_ON. */
+static int mission_briefing_craft_open(void)
+{
+	int craft_type;
+
+	frontend_cursor_set_pos(37, 445);
+	g_mission_briefing_unused_state = 0;
+	g_briefing_skip_player_assignment = 0;
+	g_mission_briefing_launch_countdown_state =
+		MISSION_BRIEFING_COUNTDOWN_IDLE;
+	g_mission_briefing_craft_selection_active = 1;
+
+	mission_briefing_craft_check_skip();
+
+	mission_briefing_craft_find_mission();
+
+	mission_briefing_craft_load_preview(&craft_type);
+
+	if (g_frontend_mission_session_mode ==
+		    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
+	    g_frontend_quick_start_launch_flag == 1) {
+		mission_briefing_craft_fill_solo_roster();
+		XVT_LOG_DEBUG(
+			"briefing.craft_quick_start fg=%d craft=%d option=%d",
+			g_mission_setup_selected_flight_group_index,
+			g_mp_roster[0].craft_type_override,
+			g_mp_roster[0].craft_option_index);
+		frontend_mission_init_player_state();
+		frontend_screen_set_callbacks(
+			flight_loading_update_ready_screen, NULL);
+		return 0;
+	}
+
+	mission_briefing_craft_pick_background(&craft_type);
+
+	frontend_display_lock_offscreen_surface();
+	front_image_draw_sprite_opaque("background", 0, 0);
+	front_image_draw_sprite("frame", 0, 0);
+	if (g_host_cd_available != 0) {
+		front_image_draw_sprite("allactive", 0, 0);
+	} else {
+		front_image_draw_sprite("clientactive", 0, 0);
+	}
+	if (g_frontend_mission_session_mode !=
+	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+		front_image_draw_sprite_translucent("chatbox", 0, 0);
+	}
+	front_image_draw_sprite_translucent("regoverlay", 0, 0);
+	frontend_display_unlock_offscreen_surface(1);
+	frontend_text_start_text_fade_in(20);
+
+	mission_briefing_craft_send_entry_packets();
+	g_mission_briefing_launch_countdown_ms = LAUNCH_COUNTDOWN_MS;
+	g_mission_briefing_now_ms = GetTickCount();
+	g_mission_briefing_last_update_ms = g_mission_briefing_now_ms;
+	XVT_LOG_INFO("briefing.craft_opened fg=%d craft=%d faction=%d mode=%d",
+		     g_mission_setup_selected_flight_group_index, craft_type,
+		     (int)g_mission_briefing_craft_screen_faction,
+		     (int)g_frontend_mission_session_mode);
+	return CRAFT_SELECTION_FRAME_GOES_ON;
+}
+
 /* Runs one frame of the craft selection screen, which the "go to craft
  * selection" button of mission_setup_flight_assignment_update's screen leads
  * to; the briefing map is on that screen. The screen shows the craft and
@@ -251,227 +517,13 @@ static void mission_briefing_craft_fill_solo_roster(void)
 // FUNCTION: XVT 0x4EAB20
 int mission_briefing_craft_selection_update(int frame_counter)
 {
-	enum {
-		MAX_PLAYERS = 8,
-		LAUNCH_COUNTDOWN_MS = 60000,
-	};
-
 	int craft_type;
 
 	if (frame_counter == 0) {
-		frontend_cursor_set_pos(37, 445);
-		g_mission_briefing_unused_state = 0;
-		g_briefing_skip_player_assignment = 0;
-		g_mission_briefing_launch_countdown_state =
-			MISSION_BRIEFING_COUNTDOWN_IDLE;
-		g_mission_briefing_craft_selection_active = 1;
-
-		if (g_pilot_data.mission_directory_id ==
-		    MISSION_DIRECTORY_MELEES) {
-			int team_index;
-			for (team_index = 0; team_index < g_team_count;
-			     ++team_index) {
-				if (g_team_player_flight_group_count
-					    [team_index] > 1) {
-					break;
-				}
-			}
-			if (team_index == g_team_count) {
-				g_briefing_skip_player_assignment = 1;
-			}
+		int opened = mission_briefing_craft_open();
+		if (opened != CRAFT_SELECTION_FRAME_GOES_ON) {
+			return opened;
 		}
-
-		mission_setup_load_mission_list(
-			g_pilot_data.mission_directory_id);
-		if (g_mission_list != NULL) {
-			g_selected_mission_list_index = 0;
-			if (g_mission_count > 0) {
-				do {
-					if (g_mission_list
-						    [g_selected_mission_list_index]
-							    .mission_idx ==
-					    g_pilot_data.mission_description_ids
-						    [g_pilot_data
-							     .mission_directory_id]) {
-						break;
-					}
-					++g_selected_mission_list_index;
-				} while (g_mission_count >
-					 (unsigned int)
-						 g_selected_mission_list_index);
-			}
-		}
-		if (g_mission_list == NULL ||
-		    g_mission_count <=
-			    (unsigned int)g_selected_mission_list_index) {
-			XVT_LOG_WARN(
-				"briefing.craft_mission_unlisted directory=%d mission=%d listed=%d count=%u index=%d",
-				(int)g_pilot_data.mission_directory_id,
-				(int)g_pilot_data.mission_description_ids
-					[g_pilot_data.mission_directory_id],
-				g_mission_list != NULL, g_mission_count,
-				g_selected_mission_list_index);
-		}
-
-		mission_setup_init_craft_loadout();
-		ship_list_load();
-		craft_type = mission_setup_get_craft_type(-1);
-		model_preview_load_model(
-			g_ship_list[g_ship_type_to_ship_list_index[craft_type]]
-				.model_file_name);
-		model_preview_set_node_switch_index(
-			g_frontend_mission
-				.flight_groups
-					[g_mission_setup_selected_flight_group_index]
-				.markings);
-		model_preview_set_light_direction(-1, 0, 1);
-		model_preview_set_object_up_axis_angle_degrees(0.0f);
-		XVT_LOG_DEBUG(
-			"briefing.craft_setup fg=%d craft=%d markings=%d skip=%d index=%d missions=%u selection=%d quick=%d",
-			g_mission_setup_selected_flight_group_index, craft_type,
-			(int)g_frontend_mission
-				.flight_groups
-					[g_mission_setup_selected_flight_group_index]
-				.markings,
-			g_briefing_skip_player_assignment,
-			g_selected_mission_list_index, g_mission_count,
-			(int)g_game_config.craft_selection,
-			g_frontend_quick_start_launch_flag);
-
-		if (g_frontend_mission_session_mode ==
-			    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
-		    g_frontend_quick_start_launch_flag == 1) {
-			mission_briefing_craft_fill_solo_roster();
-			XVT_LOG_DEBUG(
-				"briefing.craft_quick_start fg=%d craft=%d option=%d",
-				g_mission_setup_selected_flight_group_index,
-				g_mp_roster[0].craft_type_override,
-				g_mp_roster[0].craft_option_index);
-			frontend_mission_init_player_state();
-			frontend_screen_set_callbacks(
-				flight_loading_update_ready_screen, NULL);
-			return 0;
-		}
-
-		if (g_frontend_mission_session_mode ==
-		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-			if (g_pilot_data.mission_directory_id ==
-				    MISSION_DIRECTORY_MELEES ||
-			    g_pilot_data.mission_directory_id ==
-				    MISSION_DIRECTORY_TOURNAMENTS) {
-				craft_type = mission_setup_get_craft_type(-1);
-				if (craft_type < 1 ||
-				    (craft_type > 4 && craft_type != 14)) {
-					g_mission_briefing_craft_screen_faction =
-						MISSION_BRIEFING_CRAFT_SCREEN_IMPERIAL;
-					front_image_register_resource_default(
-						"frontres\\craftsi.bmp",
-						"background");
-				} else {
-					g_mission_briefing_craft_screen_faction =
-						MISSION_BRIEFING_CRAFT_SCREEN_REBEL;
-					front_image_register_resource_default(
-						"frontres\\craftsr.bmp",
-						"background");
-				}
-			} else if (g_pilot_data.current_faction_id == 0) {
-				g_mission_briefing_craft_screen_faction =
-					MISSION_BRIEFING_CRAFT_SCREEN_REBEL;
-				front_image_register_resource_default(
-					"frontres\\craftsr.bmp", "background");
-			} else {
-				g_mission_briefing_craft_screen_faction =
-					MISSION_BRIEFING_CRAFT_SCREEN_IMPERIAL;
-				front_image_register_resource_default(
-					"frontres\\craftsi.bmp", "background");
-			}
-		} else if (g_pilot_data.mission_directory_id ==
-				   MISSION_DIRECTORY_COMBAT_ENGAGEMENTS ||
-			   g_pilot_data.mission_directory_id ==
-				   MISSION_DIRECTORY_BATTLES) {
-			if (g_pilot_data.team == 0) {
-				g_mission_briefing_craft_screen_faction =
-					MISSION_BRIEFING_CRAFT_SCREEN_IMPERIAL;
-				front_image_register_resource_default(
-					"frontres\\craftmi.bmp", "background");
-			} else {
-				g_mission_briefing_craft_screen_faction =
-					MISSION_BRIEFING_CRAFT_SCREEN_REBEL;
-				front_image_register_resource_default(
-					"frontres\\craftmr.bmp", "background");
-			}
-		} else {
-			craft_type = mission_setup_get_craft_type(-1);
-			if (craft_type >= 1 &&
-			    (craft_type <= 4 || craft_type == 14)) {
-				g_mission_briefing_craft_screen_faction =
-					MISSION_BRIEFING_CRAFT_SCREEN_REBEL;
-				front_image_register_resource_default(
-					"frontres\\craftmr.bmp", "background");
-			} else {
-				g_mission_briefing_craft_screen_faction =
-					MISSION_BRIEFING_CRAFT_SCREEN_IMPERIAL;
-				front_image_register_resource_default(
-					"frontres\\craftmi.bmp", "background");
-			}
-		}
-
-		frontend_display_lock_offscreen_surface();
-		front_image_draw_sprite_opaque("background", 0, 0);
-		front_image_draw_sprite("frame", 0, 0);
-		if (g_host_cd_available != 0) {
-			front_image_draw_sprite("allactive", 0, 0);
-		} else {
-			front_image_draw_sprite("clientactive", 0, 0);
-		}
-		if (g_frontend_mission_session_mode !=
-		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-			front_image_draw_sprite_translucent("chatbox", 0, 0);
-		}
-		front_image_draw_sprite_translucent("regoverlay", 0, 0);
-		frontend_display_unlock_offscreen_surface(1);
-		frontend_text_start_text_fade_in(20);
-
-		if (g_frontend_mission_session_mode !=
-		    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-			if ((g_pilot_data.mission_directory_id ==
-				     MISSION_DIRECTORY_TRAINING_EXERCISES &&
-			     g_pilot_data.mission_sequence_active == 1 &&
-			     g_game_config.difficulty ==
-				     GAME_DIFFICULTY_EASY_CHEAT) ||
-			    g_game_config.craft_selection !=
-				    CRAFT_SELECTION_HOST_ONLY ||
-			    net_is_host() != 0) {
-				mission_briefing_craft_send_loadout();
-				XVT_LOG_DEBUG(
-					"briefing.loadout_sent by=\"entry\" category=%d preset=%d option=%d warhead=%d beam=%d countermeasure=%d waves=%d count=%d",
-					(int)g_frontend_mission
-						.flight_groups
-							[g_mission_setup_selected_flight_group_index]
-						.optional_craft_category,
-					g_mission_setup_selected_preset_craft_option_index,
-					g_mission_setup_selected_flight_group_craft_option_index,
-					g_mission_setup_selected_warhead_option_index,
-					g_mission_setup_selected_beam_option_index,
-					g_mission_setup_selected_countermeasure_option_index,
-					g_mission_setup_selected_wave_count_minus_one,
-					g_mission_setup_selected_craft_count);
-			}
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_BRIEFING_ENTERED;
-			net_send_packet_and_flush(
-				0, &g_frontend_net_packet_scratch,
-				sizeof(g_frontend_net_packet_scratch
-					       .packet_type));
-		}
-		g_mission_briefing_launch_countdown_ms = LAUNCH_COUNTDOWN_MS;
-		g_mission_briefing_now_ms = GetTickCount();
-		g_mission_briefing_last_update_ms = g_mission_briefing_now_ms;
-		XVT_LOG_INFO(
-			"briefing.craft_opened fg=%d craft=%d faction=%d mode=%d",
-			g_mission_setup_selected_flight_group_index, craft_type,
-			(int)g_mission_briefing_craft_screen_faction,
-			(int)g_frontend_mission_session_mode);
 	}
 
 	struct RECT rect;
