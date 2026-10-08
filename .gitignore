@@ -1,3 +1,9 @@
 # Python bytecode from running tools/.
 __pycache__/
 *.py[cod]
+# The launcher package's build leftovers and test cache.
+launcher/build/
+launcher/*.egg-info/
+.pytest_cache/
+# A mission export holds the game's own text; it never enters the repository.
+launcher/export/

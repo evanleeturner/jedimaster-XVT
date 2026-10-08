@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jedimaster"
+version = "0.1.0"
+description = "Read X-Wing vs. TIE Fighter and Balance of Power mission files (.tie)"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest", "jsonschema"]
+
+[project.scripts]
+jedimaster = "jedimaster.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["jedimaster*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "tests"]
