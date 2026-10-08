@@ -470,6 +470,107 @@ static int mission_briefing_craft_open(void)
 	return CRAFT_SELECTION_FRAME_GOES_ON;
 }
 
+/* Part of each frame of mission_briefing_craft_selection_update: draws the
+ * selected mission's description in g_mission_list, cut at its last '(', as
+ * the screen's title. */
+static void mission_briefing_craft_draw_title(void)
+{
+	struct RECT rect;
+	frontend_draw_rect_assign(&rect, 158, 52, 491, 68);
+	struct RECT saved_clip_rect;
+	frontend_display_get_screen_clip_rect(&saved_clip_rect);
+	frontend_display_set_screen_clip_rect640x480(&rect);
+	sprintf(g_frontend_scratch_buffer, "%c%s", 4,
+		g_mission_list[g_selected_mission_list_index].description);
+	for (int text_index = (int)strlen(g_frontend_scratch_buffer) - 1;
+	     text_index > 0; --text_index) {
+		if (g_frontend_scratch_buffer[text_index] == '(') {
+			g_frontend_scratch_buffer[text_index] = '\0';
+			break;
+		}
+	}
+	frontend_text_draw_centered(12, g_frontend_scratch_buffer, &rect,
+				    0xFFFF);
+	frontend_display_set_screen_clip_rect640x480(&saved_clip_rect);
+}
+
+/* Part of each frame of mission_briefing_craft_selection_update: unless the
+ * mission is in a training sequence at a difficulty other than
+ * GAME_DIFFICULTY_EASY_CHEAT, sets *craft_selectable when there is a craft
+ * choice and adds one to *armament_selectable_count for each armament the
+ * player may choose, by the option counts and, for the beam, the craft type.
+ * Logs both on frame_counter 0. */
+static void mission_briefing_craft_count_choices(int frame_counter,
+						 int *craft_selectable,
+						 int *armament_selectable_count)
+{
+	int craft_type;
+
+	int configuration_allowed = 1;
+	if (g_pilot_data.mission_directory_id ==
+		    MISSION_DIRECTORY_TRAINING_EXERCISES &&
+	    g_pilot_data.mission_sequence_active == 1 &&
+	    g_game_config.difficulty != GAME_DIFFICULTY_EASY_CHEAT) {
+		configuration_allowed = 0;
+	}
+	if (configuration_allowed != 0) {
+		if (g_mission_setup_flight_group_craft_option_count > 1 ||
+		    g_mission_setup_preset_craft_option_count > 1) {
+			*craft_selectable = 1;
+		}
+		if (g_mission_setup_warhead_option_count > 1) {
+			*armament_selectable_count = 1;
+		}
+		if (g_mission_setup_beam_option_count > 1) {
+			craft_type = mission_setup_get_craft_type(-1);
+			if (craft_type < 1 ||
+			    (craft_type > 5 && craft_type != 14)) {
+				++*armament_selectable_count;
+			}
+		}
+		if (g_mission_setup_countermeasure_option_count > 1) {
+			++*armament_selectable_count;
+		}
+	}
+	if (frame_counter == 0) {
+		XVT_LOG_DEBUG(
+			"briefing.craft_choices allowed=%d craft_choice=%d armaments=%d",
+			configuration_allowed, *craft_selectable,
+			*armament_selectable_count);
+	}
+}
+
+/* Part of each frame of mission_briefing_craft_selection_update: draws the
+ * heading for the selected flight group, "craft configuration" when
+ * craft_selectable or armament_selectable_count is not 0, else "craft
+ * review". */
+static void mission_briefing_craft_draw_header(int craft_selectable,
+					       int armament_selectable_count)
+{
+	struct RECT rect;
+
+	frontend_draw_rect_assign(&rect, 84, 90, 434, 108);
+	if (craft_selectable != 0 || armament_selectable_count != 0) {
+		sprintf(g_frontend_scratch_buffer, "%s %s %c%s",
+			frontend_string_get(FRONTSTR_263_CRAFT_CONFIGURATION),
+			frontend_string_get(FRONTSTR_604_FOR_FLIGHT_GROUP), 4,
+			g_frontend_mission
+				.flight_groups
+					[g_mission_setup_selected_flight_group_index]
+				.name);
+	} else {
+		sprintf(g_frontend_scratch_buffer, "%s %s %c%s",
+			frontend_string_get(FRONTSTR_606_CRAFT_REVIEW),
+			frontend_string_get(FRONTSTR_604_FOR_FLIGHT_GROUP), 4,
+			g_frontend_mission
+				.flight_groups
+					[g_mission_setup_selected_flight_group_index]
+				.name);
+	}
+	frontend_text_draw_centered(15, g_frontend_scratch_buffer, &rect,
+				    0xFFFF);
+}
+
 /* mission_briefing_craft_selection_update's answer to
  * NET_PACKET_HOST_CANCELLED: shuts the session down; a client gets the cancel
  * dialog and returns xvt_dialog_continue_with's result, the host goes to the
@@ -709,6 +810,153 @@ static int mission_briefing_craft_handle_packet(int frame_counter)
 		mission_briefing_craft_store_pilot_rating();
 	}
 	return CRAFT_SELECTION_FRAME_GOES_ON;
+}
+
+/* Part of each frame of mission_briefing_craft_selection_update: draws the
+ * line that tells the player what to do, by craft_selectable,
+ * armament_selectable_count, the session mode, g_game_config.craft_selection
+ * and whether this machine is the host. */
+static void
+mission_briefing_craft_draw_instruction(int craft_selectable,
+					int armament_selectable_count)
+{
+	struct RECT rect;
+
+	frontend_draw_rect_assign(&rect, 84, 419, 430, 434);
+	if (g_frontend_mission_session_mode ==
+		    FRONTEND_MISSION_SESSION_SINGLEPLAYER ||
+	    g_game_config.craft_selection != CRAFT_SELECTION_OFF) {
+		if (craft_selectable != 0 || armament_selectable_count != 0) {
+			if (g_frontend_mission_session_mode ==
+				    FRONTEND_MISSION_SESSION_SINGLEPLAYER ||
+			    g_game_config.craft_selection ==
+				    CRAFT_SELECTION_ON) {
+				strcpy(g_frontend_scratch_buffer,
+				       frontend_string_get(
+					       FRONTSTR_600_SELECT_YOUR));
+			} else if (net_is_host() != 0) {
+				strcpy(g_frontend_scratch_buffer,
+				       frontend_string_get(
+					       FRONTSTR_601_SELECT_EVERYBODY_S));
+			} else {
+				strcpy(g_frontend_scratch_buffer,
+				       frontend_string_get(
+					       FRONTSTR_602_HOST_IS_SELECTING));
+			}
+			if (craft_selectable != 0) {
+				strcat(g_frontend_scratch_buffer, " ");
+				strcat(g_frontend_scratch_buffer,
+				       frontend_string_get(FRONTSTR_609_CRAFT));
+			}
+			if (armament_selectable_count != 0) {
+				if (craft_selectable != 0) {
+					strcat(g_frontend_scratch_buffer, " ");
+					strcat(g_frontend_scratch_buffer,
+					       frontend_string_get(
+						       FRONTSTR_515_AND));
+				}
+				strcat(g_frontend_scratch_buffer, " ");
+				strcat(g_frontend_scratch_buffer,
+				       frontend_string_get(
+					       FRONTSTR_607_ARMAMENTS));
+			}
+			strcat(g_frontend_scratch_buffer, ".");
+			frontend_text_draw_centered(12,
+						    g_frontend_scratch_buffer,
+						    &rect, g_color_green);
+		} else {
+			frontend_text_draw_centered(
+				12,
+				frontend_string_get(
+					FRONTSTR_608_REVIEW_YOUR_CRAFT_AND_ARMAMENTS),
+				&rect, g_color_red);
+		}
+	} else {
+		frontend_text_draw_centered(
+			12,
+			frontend_string_get(
+				FRONTSTR_603_CRAFT_SELECTION_IS_DISABLED),
+			&rect, g_color_red);
+	}
+}
+
+/* Part of each frame of mission_briefing_craft_selection_update: when the
+ * pilot has a name, draws the pilot's rating and name and, on each side, the
+ * "rebtiny" or "imptiny" sprite of frame (frame_counter % 32) >> 1. */
+static void mission_briefing_craft_draw_pilot_line(int frame_counter)
+{
+	struct RECT rect;
+	int craft_type;
+
+	frontend_draw_rect_assign(&rect, 200, 452, 436, 464);
+	if (g_pilot_data.name[0] != '\0') {
+		sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 6,
+			g_pilot_data.rating_name, 1, g_pilot_data.name);
+		frontend_text_draw_centered(12, g_frontend_scratch_buffer,
+					    &rect, g_color_yellow);
+		if (g_pilot_data.mission_directory_id ==
+			    MISSION_DIRECTORY_TRAINING_EXERCISES ||
+		    g_pilot_data.mission_directory_id ==
+			    MISSION_DIRECTORY_MELEES ||
+		    g_pilot_data.mission_directory_id ==
+			    MISSION_DIRECTORY_TOURNAMENTS) {
+			craft_type = mission_setup_get_craft_type(-1);
+			if (craft_type >= 1 &&
+			    (craft_type <= 4 || craft_type == 14)) {
+				sprintf(g_frontend_scratch_buffer, "rebtiny%d",
+					(frame_counter % 32) >> 1);
+			} else {
+				sprintf(g_frontend_scratch_buffer, "imptiny%d",
+					(frame_counter % 32) >> 1);
+			}
+		} else if (g_pilot_data.team == 0) {
+			sprintf(g_frontend_scratch_buffer, "imptiny%d",
+				(frame_counter % 32) >> 1);
+		} else {
+			sprintf(g_frontend_scratch_buffer, "rebtiny%d",
+				(frame_counter % 32) >> 1);
+		}
+		front_image_draw_sprite(g_frontend_scratch_buffer, 204, 453);
+		front_image_draw_sprite(g_frontend_scratch_buffer, 420, 453);
+	}
+}
+
+/* Part of each frame of mission_briefing_craft_selection_update in network
+ * play: once g_frontend_briefing_entered_count reaches
+ * net_count_ready_players(), starts the launch countdown, or draws its clock
+ * when it has started. */
+static void mission_briefing_craft_update_countdown_clock(void)
+{
+	struct RECT rect;
+
+	if (g_frontend_mission_session_mode !=
+	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+		frontend_draw_rect_assign(&rect, 507, 452, 562, 464);
+		if (net_count_ready_players() <=
+		    g_frontend_briefing_entered_count) {
+			if (g_mission_briefing_launch_countdown_state ==
+			    MISSION_BRIEFING_COUNTDOWN_IDLE) {
+				g_mission_briefing_now_ms = GetTickCount();
+				g_mission_briefing_last_update_ms =
+					g_mission_briefing_now_ms;
+				g_mission_briefing_last_countdown_second_sent =
+					LAUNCH_COUNTDOWN_MS / 1000;
+				g_mission_briefing_launch_countdown_state =
+					MISSION_BRIEFING_COUNTDOWN_ACTIVE;
+				XVT_LOG_INFO(
+					"briefing.countdown_started entered=%d ms=%d",
+					g_frontend_briefing_entered_count,
+					g_mission_briefing_launch_countdown_ms);
+			} else {
+				frontend_format_seconds_to_clock_string(
+					g_mission_briefing_launch_countdown_ms /
+					1000);
+				frontend_text_draw_centered(
+					12, g_frontend_scratch_buffer, &rect,
+					0xFFFF);
+			}
+		}
+	}
 }
 
 /* The single-player back button of mission_briefing_craft_selection_update,
@@ -975,6 +1223,56 @@ static int mission_briefing_craft_handle_fly(void)
 	return CRAFT_SELECTION_FRAME_GOES_ON;
 }
 
+/* The launch countdown's step in each frame of
+ * mission_briefing_craft_selection_update in network play while it is
+ * ACTIVE, as that function's comment tells it. Returns 0 when the countdown
+ * expires, else CRAFT_SELECTION_FRAME_GOES_ON. */
+static int mission_briefing_craft_step_countdown(void)
+{
+	if (g_frontend_mission_session_mode !=
+		    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
+	    g_mission_briefing_launch_countdown_state ==
+		    MISSION_BRIEFING_COUNTDOWN_ACTIVE) {
+		g_mission_briefing_now_ms = GetTickCount();
+		g_mission_briefing_launch_countdown_ms +=
+			g_mission_briefing_last_update_ms -
+			g_mission_briefing_now_ms;
+		if (net_is_host() != 0 &&
+		    g_mission_briefing_last_countdown_second_sent !=
+			    g_mission_briefing_launch_countdown_ms / 1000) {
+			g_mission_briefing_last_countdown_second_sent =
+				g_mission_briefing_launch_countdown_ms / 1000;
+			*(int *)g_frontend_net_packet_scratch.payload =
+				g_mission_briefing_launch_countdown_ms;
+			g_frontend_net_packet_scratch.packet_type =
+				NET_PACKET_BRIEFING_COUNTDOWN;
+			net_send_packet_and_flush(
+				0, &g_frontend_net_packet_scratch,
+				2 * sizeof(int));
+			XVT_LOG_DEBUG("briefing.countdown_sent ms=%d",
+				      g_mission_briefing_launch_countdown_ms);
+		}
+		if (g_mission_briefing_launch_countdown_ms < 0) {
+			XVT_LOG_INFO("briefing.countdown_expired ms=%d mode=%d",
+				     g_mission_briefing_launch_countdown_ms,
+				     (int)g_frontend_mission_session_mode);
+			g_mission_briefing_launch_countdown_ms = 0;
+			g_mission_briefing_launch_countdown_state =
+				MISSION_BRIEFING_COUNTDOWN_EXPIRED;
+			if (net_is_host() != 0) {
+				XVT_LOG_DEBUG(
+					"briefing.roster_sent by=\"countdown\" entered=%d ms=%d",
+					g_frontend_briefing_entered_count,
+					g_mission_briefing_launch_countdown_ms);
+				mission_briefing_broadcast_roster_and_assignments();
+			}
+			return 0;
+		}
+		g_mission_briefing_last_update_ms = g_mission_briefing_now_ms;
+	}
+	return CRAFT_SELECTION_FRAME_GOES_ON;
+}
+
 /* Runs one frame of the craft selection screen, which the "go to craft
  * selection" button of mission_setup_flight_assignment_update's screen leads
  * to; the briefing map is on that screen. The screen shows the craft and
@@ -1022,8 +1320,6 @@ static int mission_briefing_craft_handle_fly(void)
 // FUNCTION: XVT 0x4EAB20
 int mission_briefing_craft_selection_update(int frame_counter)
 {
-	int craft_type;
-
 	if (frame_counter == 0) {
 		int opened = mission_briefing_craft_open();
 		if (opened != CRAFT_SELECTION_FRAME_GOES_ON) {
@@ -1031,79 +1327,15 @@ int mission_briefing_craft_selection_update(int frame_counter)
 		}
 	}
 
-	struct RECT rect;
-	frontend_draw_rect_assign(&rect, 158, 52, 491, 68);
-	struct RECT saved_clip_rect;
-	frontend_display_get_screen_clip_rect(&saved_clip_rect);
-	frontend_display_set_screen_clip_rect640x480(&rect);
-	sprintf(g_frontend_scratch_buffer, "%c%s", 4,
-		g_mission_list[g_selected_mission_list_index].description);
-	for (int text_index = (int)strlen(g_frontend_scratch_buffer) - 1;
-	     text_index > 0; --text_index) {
-		if (g_frontend_scratch_buffer[text_index] == '(') {
-			g_frontend_scratch_buffer[text_index] = '\0';
-			break;
-		}
-	}
-	frontend_text_draw_centered(12, g_frontend_scratch_buffer, &rect,
-				    0xFFFF);
-	frontend_display_set_screen_clip_rect640x480(&saved_clip_rect);
+	mission_briefing_craft_draw_title();
 	int craft_selectable = 0;
 	int armament_selectable_count = 0;
 
-	int configuration_allowed = 1;
-	if (g_pilot_data.mission_directory_id ==
-		    MISSION_DIRECTORY_TRAINING_EXERCISES &&
-	    g_pilot_data.mission_sequence_active == 1 &&
-	    g_game_config.difficulty != GAME_DIFFICULTY_EASY_CHEAT) {
-		configuration_allowed = 0;
-	}
-	if (configuration_allowed != 0) {
-		if (g_mission_setup_flight_group_craft_option_count > 1 ||
-		    g_mission_setup_preset_craft_option_count > 1) {
-			craft_selectable = 1;
-		}
-		if (g_mission_setup_warhead_option_count > 1) {
-			armament_selectable_count = 1;
-		}
-		if (g_mission_setup_beam_option_count > 1) {
-			craft_type = mission_setup_get_craft_type(-1);
-			if (craft_type < 1 ||
-			    (craft_type > 5 && craft_type != 14)) {
-				++armament_selectable_count;
-			}
-		}
-		if (g_mission_setup_countermeasure_option_count > 1) {
-			++armament_selectable_count;
-		}
-	}
-	if (frame_counter == 0) {
-		XVT_LOG_DEBUG(
-			"briefing.craft_choices allowed=%d craft_choice=%d armaments=%d",
-			configuration_allowed, craft_selectable,
-			armament_selectable_count);
-	}
+	mission_briefing_craft_count_choices(frame_counter, &craft_selectable,
+					     &armament_selectable_count);
 
-	frontend_draw_rect_assign(&rect, 84, 90, 434, 108);
-	if (craft_selectable != 0 || armament_selectable_count != 0) {
-		sprintf(g_frontend_scratch_buffer, "%s %s %c%s",
-			frontend_string_get(FRONTSTR_263_CRAFT_CONFIGURATION),
-			frontend_string_get(FRONTSTR_604_FOR_FLIGHT_GROUP), 4,
-			g_frontend_mission
-				.flight_groups
-					[g_mission_setup_selected_flight_group_index]
-				.name);
-	} else {
-		sprintf(g_frontend_scratch_buffer, "%s %s %c%s",
-			frontend_string_get(FRONTSTR_606_CRAFT_REVIEW),
-			frontend_string_get(FRONTSTR_604_FOR_FLIGHT_GROUP), 4,
-			g_frontend_mission
-				.flight_groups
-					[g_mission_setup_selected_flight_group_index]
-				.name);
-	}
-	frontend_text_draw_centered(15, g_frontend_scratch_buffer, &rect,
-				    0xFFFF);
+	mission_briefing_craft_draw_header(craft_selectable,
+					   armament_selectable_count);
 
 	if (g_frontend_mission_session_mode !=
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
@@ -1121,123 +1353,12 @@ int mission_briefing_craft_selection_update(int frame_counter)
 		frontend_net_update_and_draw_chat_panel(frame_counter);
 	}
 
-	frontend_draw_rect_assign(&rect, 84, 419, 430, 434);
-	if (g_frontend_mission_session_mode ==
-		    FRONTEND_MISSION_SESSION_SINGLEPLAYER ||
-	    g_game_config.craft_selection != CRAFT_SELECTION_OFF) {
-		if (craft_selectable != 0 || armament_selectable_count != 0) {
-			if (g_frontend_mission_session_mode ==
-				    FRONTEND_MISSION_SESSION_SINGLEPLAYER ||
-			    g_game_config.craft_selection ==
-				    CRAFT_SELECTION_ON) {
-				strcpy(g_frontend_scratch_buffer,
-				       frontend_string_get(
-					       FRONTSTR_600_SELECT_YOUR));
-			} else if (net_is_host() != 0) {
-				strcpy(g_frontend_scratch_buffer,
-				       frontend_string_get(
-					       FRONTSTR_601_SELECT_EVERYBODY_S));
-			} else {
-				strcpy(g_frontend_scratch_buffer,
-				       frontend_string_get(
-					       FRONTSTR_602_HOST_IS_SELECTING));
-			}
-			if (craft_selectable != 0) {
-				strcat(g_frontend_scratch_buffer, " ");
-				strcat(g_frontend_scratch_buffer,
-				       frontend_string_get(FRONTSTR_609_CRAFT));
-			}
-			if (armament_selectable_count != 0) {
-				if (craft_selectable != 0) {
-					strcat(g_frontend_scratch_buffer, " ");
-					strcat(g_frontend_scratch_buffer,
-					       frontend_string_get(
-						       FRONTSTR_515_AND));
-				}
-				strcat(g_frontend_scratch_buffer, " ");
-				strcat(g_frontend_scratch_buffer,
-				       frontend_string_get(
-					       FRONTSTR_607_ARMAMENTS));
-			}
-			strcat(g_frontend_scratch_buffer, ".");
-			frontend_text_draw_centered(12,
-						    g_frontend_scratch_buffer,
-						    &rect, g_color_green);
-		} else {
-			frontend_text_draw_centered(
-				12,
-				frontend_string_get(
-					FRONTSTR_608_REVIEW_YOUR_CRAFT_AND_ARMAMENTS),
-				&rect, g_color_red);
-		}
-	} else {
-		frontend_text_draw_centered(
-			12,
-			frontend_string_get(
-				FRONTSTR_603_CRAFT_SELECTION_IS_DISABLED),
-			&rect, g_color_red);
-	}
+	mission_briefing_craft_draw_instruction(craft_selectable,
+						armament_selectable_count);
 
-	frontend_draw_rect_assign(&rect, 200, 452, 436, 464);
-	if (g_pilot_data.name[0] != '\0') {
-		sprintf(g_frontend_scratch_buffer, "%c%s %c%s", 6,
-			g_pilot_data.rating_name, 1, g_pilot_data.name);
-		frontend_text_draw_centered(12, g_frontend_scratch_buffer,
-					    &rect, g_color_yellow);
-		if (g_pilot_data.mission_directory_id ==
-			    MISSION_DIRECTORY_TRAINING_EXERCISES ||
-		    g_pilot_data.mission_directory_id ==
-			    MISSION_DIRECTORY_MELEES ||
-		    g_pilot_data.mission_directory_id ==
-			    MISSION_DIRECTORY_TOURNAMENTS) {
-			craft_type = mission_setup_get_craft_type(-1);
-			if (craft_type >= 1 &&
-			    (craft_type <= 4 || craft_type == 14)) {
-				sprintf(g_frontend_scratch_buffer, "rebtiny%d",
-					(frame_counter % 32) >> 1);
-			} else {
-				sprintf(g_frontend_scratch_buffer, "imptiny%d",
-					(frame_counter % 32) >> 1);
-			}
-		} else if (g_pilot_data.team == 0) {
-			sprintf(g_frontend_scratch_buffer, "imptiny%d",
-				(frame_counter % 32) >> 1);
-		} else {
-			sprintf(g_frontend_scratch_buffer, "rebtiny%d",
-				(frame_counter % 32) >> 1);
-		}
-		front_image_draw_sprite(g_frontend_scratch_buffer, 204, 453);
-		front_image_draw_sprite(g_frontend_scratch_buffer, 420, 453);
-	}
+	mission_briefing_craft_draw_pilot_line(frame_counter);
 
-	if (g_frontend_mission_session_mode !=
-	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		frontend_draw_rect_assign(&rect, 507, 452, 562, 464);
-		if (net_count_ready_players() <=
-		    g_frontend_briefing_entered_count) {
-			if (g_mission_briefing_launch_countdown_state ==
-			    MISSION_BRIEFING_COUNTDOWN_IDLE) {
-				g_mission_briefing_now_ms = GetTickCount();
-				g_mission_briefing_last_update_ms =
-					g_mission_briefing_now_ms;
-				g_mission_briefing_last_countdown_second_sent =
-					LAUNCH_COUNTDOWN_MS / 1000;
-				g_mission_briefing_launch_countdown_state =
-					MISSION_BRIEFING_COUNTDOWN_ACTIVE;
-				XVT_LOG_INFO(
-					"briefing.countdown_started entered=%d ms=%d",
-					g_frontend_briefing_entered_count,
-					g_mission_briefing_launch_countdown_ms);
-			} else {
-				frontend_format_seconds_to_clock_string(
-					g_mission_briefing_launch_countdown_ms /
-					1000);
-				frontend_text_draw_centered(
-					12, g_frontend_scratch_buffer, &rect,
-					0xFFFF);
-			}
-		}
-	}
+	mission_briefing_craft_update_countdown_clock();
 
 	int back_handled = mission_briefing_craft_handle_back();
 	if (back_handled != CRAFT_SELECTION_FRAME_GOES_ON) {
@@ -1260,46 +1381,9 @@ int mission_briefing_craft_selection_update(int frame_counter)
 			g_mission_briefing_launch_countdown_ms);
 		mission_briefing_broadcast_roster_and_assignments();
 	}
-	if (g_frontend_mission_session_mode !=
-		    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
-	    g_mission_briefing_launch_countdown_state ==
-		    MISSION_BRIEFING_COUNTDOWN_ACTIVE) {
-		g_mission_briefing_now_ms = GetTickCount();
-		g_mission_briefing_launch_countdown_ms +=
-			g_mission_briefing_last_update_ms -
-			g_mission_briefing_now_ms;
-		if (net_is_host() != 0 &&
-		    g_mission_briefing_last_countdown_second_sent !=
-			    g_mission_briefing_launch_countdown_ms / 1000) {
-			g_mission_briefing_last_countdown_second_sent =
-				g_mission_briefing_launch_countdown_ms / 1000;
-			*(int *)g_frontend_net_packet_scratch.payload =
-				g_mission_briefing_launch_countdown_ms;
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_BRIEFING_COUNTDOWN;
-			net_send_packet_and_flush(
-				0, &g_frontend_net_packet_scratch,
-				2 * sizeof(int));
-			XVT_LOG_DEBUG("briefing.countdown_sent ms=%d",
-				      g_mission_briefing_launch_countdown_ms);
-		}
-		if (g_mission_briefing_launch_countdown_ms < 0) {
-			XVT_LOG_INFO("briefing.countdown_expired ms=%d mode=%d",
-				     g_mission_briefing_launch_countdown_ms,
-				     (int)g_frontend_mission_session_mode);
-			g_mission_briefing_launch_countdown_ms = 0;
-			g_mission_briefing_launch_countdown_state =
-				MISSION_BRIEFING_COUNTDOWN_EXPIRED;
-			if (net_is_host() != 0) {
-				XVT_LOG_DEBUG(
-					"briefing.roster_sent by=\"countdown\" entered=%d ms=%d",
-					g_frontend_briefing_entered_count,
-					g_mission_briefing_launch_countdown_ms);
-				mission_briefing_broadcast_roster_and_assignments();
-			}
-			return 0;
-		}
-		g_mission_briefing_last_update_ms = g_mission_briefing_now_ms;
+	int countdown_stepped = mission_briefing_craft_step_countdown();
+	if (countdown_stepped != CRAFT_SELECTION_FRAME_GOES_ON) {
+		return countdown_stepped;
 	}
 
 	mission_setup_update_craft_loadout();
