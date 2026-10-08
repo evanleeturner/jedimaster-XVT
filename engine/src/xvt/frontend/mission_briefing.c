@@ -151,6 +151,59 @@ int mission_briefing_craft_selection_exit(int frame_counter)
 	return 0;
 }
 
+/* Part of mission_briefing_craft_selection_update: sends everyone
+ * NET_PACKET_CRAFT_LOADOUT with eight ints, the selected flight group's
+ * optional_craft_category and the selected preset craft, craft, warhead,
+ * beam and countermeasure options, wave count minus one and craft count. */
+static void mission_briefing_craft_send_loadout(void)
+{
+	g_frontend_net_packet_scratch.packet_type = NET_PACKET_CRAFT_LOADOUT;
+	*(int *)&g_frontend_net_packet_scratch.payload[0] =
+		g_frontend_mission
+			.flight_groups
+				[g_mission_setup_selected_flight_group_index]
+			.optional_craft_category;
+	*(int *)&g_frontend_net_packet_scratch.payload[sizeof(int)] =
+		g_mission_setup_selected_preset_craft_option_index;
+	*(int *)&g_frontend_net_packet_scratch.payload[2 * sizeof(int)] =
+		g_mission_setup_selected_flight_group_craft_option_index;
+	*(int *)&g_frontend_net_packet_scratch.payload[3 * sizeof(int)] =
+		g_mission_setup_selected_warhead_option_index;
+	*(int *)&g_frontend_net_packet_scratch.payload[4 * sizeof(int)] =
+		g_mission_setup_selected_beam_option_index;
+	*(int *)&g_frontend_net_packet_scratch.payload[5 * sizeof(int)] =
+		g_mission_setup_selected_countermeasure_option_index;
+	*(int *)&g_frontend_net_packet_scratch.payload[6 * sizeof(int)] =
+		g_mission_setup_selected_wave_count_minus_one;
+	*(int *)&g_frontend_net_packet_scratch.payload[7 * sizeof(int)] =
+		g_mission_setup_selected_craft_count;
+	net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
+				  9 * sizeof(int));
+}
+
+/* Part of mission_briefing_craft_selection_update when a single player
+ * flies: fills g_mp_roster[0] from the pilot's rating and the selected
+ * options and sets g_mp_roster_ready_flags[0] to 1. */
+static void mission_briefing_craft_fill_solo_roster(void)
+{
+	if (g_mission_setup_selected_preset_craft_option_index == 0) {
+		g_mp_roster[0].craft_type_override = 0;
+	} else {
+		g_mp_roster[0].craft_type_override =
+			mission_setup_get_craft_type(-1);
+	}
+	g_mp_roster[0].pilot_rating = g_pilot_data.rating;
+	g_mp_roster[0].warhead_option_index =
+		g_mission_setup_selected_warhead_option_index;
+	g_mp_roster[0].beam_option_index =
+		g_mission_setup_selected_beam_option_index;
+	g_mp_roster_ready_flags[0] = 1;
+	g_mp_roster[0].craft_option_index =
+		g_mission_setup_selected_flight_group_craft_option_index - 1;
+	g_mp_roster[0].countermeasure_option_index =
+		g_mission_setup_selected_countermeasure_option_index;
+}
+
 /* Runs one frame of the craft selection screen, which the "go to craft
  * selection" button of mission_setup_flight_assignment_update's screen leads
  * to; the briefing map is on that screen. The screen shows the craft and
@@ -288,24 +341,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 		if (g_frontend_mission_session_mode ==
 			    FRONTEND_MISSION_SESSION_SINGLEPLAYER &&
 		    g_frontend_quick_start_launch_flag == 1) {
-			if (g_mission_setup_selected_preset_craft_option_index ==
-			    0) {
-				g_mp_roster[0].craft_type_override = 0;
-			} else {
-				g_mp_roster[0].craft_type_override =
-					mission_setup_get_craft_type(-1);
-			}
-			g_mp_roster[0].pilot_rating = g_pilot_data.rating;
-			g_mp_roster[0].warhead_option_index =
-				g_mission_setup_selected_warhead_option_index;
-			g_mp_roster[0].beam_option_index =
-				g_mission_setup_selected_beam_option_index;
-			g_mp_roster_ready_flags[0] = 1;
-			g_mp_roster[0].craft_option_index =
-				g_mission_setup_selected_flight_group_craft_option_index -
-				1;
-			g_mp_roster[0].countermeasure_option_index =
-				g_mission_setup_selected_countermeasure_option_index;
+			mission_briefing_craft_fill_solo_roster();
 			XVT_LOG_DEBUG(
 				"briefing.craft_quick_start fg=%d craft=%d option=%d",
 				g_mission_setup_selected_flight_group_index,
@@ -406,38 +442,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 			    g_game_config.craft_selection !=
 				    CRAFT_SELECTION_HOST_ONLY ||
 			    net_is_host() != 0) {
-				g_frontend_net_packet_scratch.packet_type =
-					NET_PACKET_CRAFT_LOADOUT;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[0] =
-					g_frontend_mission
-						.flight_groups
-							[g_mission_setup_selected_flight_group_index]
-						.optional_craft_category;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[sizeof(int)] =
-					g_mission_setup_selected_preset_craft_option_index;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[2 * sizeof(int)] =
-					g_mission_setup_selected_flight_group_craft_option_index;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[3 * sizeof(int)] =
-					g_mission_setup_selected_warhead_option_index;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[4 * sizeof(int)] =
-					g_mission_setup_selected_beam_option_index;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[5 * sizeof(int)] =
-					g_mission_setup_selected_countermeasure_option_index;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[6 * sizeof(int)] =
-					g_mission_setup_selected_wave_count_minus_one;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[7 * sizeof(int)] =
-					g_mission_setup_selected_craft_count;
-				net_send_packet_and_flush(
-					0, &g_frontend_net_packet_scratch,
-					9 * sizeof(int));
+				mission_briefing_craft_send_loadout();
 				XVT_LOG_DEBUG(
 					"briefing.loadout_sent by=\"entry\" category=%d preset=%d option=%d warhead=%d beam=%d countermeasure=%d waves=%d count=%d",
 					(int)g_frontend_mission
@@ -583,37 +588,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 			}
 		} else if (packet_type == NET_PACKET_STATE) {
 			mission_setup_prune_flight_assignments();
-			g_frontend_net_packet_scratch.packet_type =
-				NET_PACKET_CRAFT_LOADOUT;
-			*(int *)&g_frontend_net_packet_scratch.payload[0] =
-				g_frontend_mission
-					.flight_groups
-						[g_mission_setup_selected_flight_group_index]
-					.optional_craft_category;
-			*(int *)&g_frontend_net_packet_scratch
-				 .payload[sizeof(int)] =
-				g_mission_setup_selected_preset_craft_option_index;
-			*(int *)&g_frontend_net_packet_scratch
-				 .payload[2 * sizeof(int)] =
-				g_mission_setup_selected_flight_group_craft_option_index;
-			*(int *)&g_frontend_net_packet_scratch
-				 .payload[3 * sizeof(int)] =
-				g_mission_setup_selected_warhead_option_index;
-			*(int *)&g_frontend_net_packet_scratch
-				 .payload[4 * sizeof(int)] =
-				g_mission_setup_selected_beam_option_index;
-			*(int *)&g_frontend_net_packet_scratch
-				 .payload[5 * sizeof(int)] =
-				g_mission_setup_selected_countermeasure_option_index;
-			*(int *)&g_frontend_net_packet_scratch
-				 .payload[6 * sizeof(int)] =
-				g_mission_setup_selected_wave_count_minus_one;
-			*(int *)&g_frontend_net_packet_scratch
-				 .payload[7 * sizeof(int)] =
-				g_mission_setup_selected_craft_count;
-			net_send_packet_and_flush(
-				0, &g_frontend_net_packet_scratch,
-				9 * sizeof(int));
+			mission_briefing_craft_send_loadout();
 			XVT_LOG_DEBUG(
 				"briefing.loadout_sent by=\"state\" category=%d preset=%d option=%d warhead=%d beam=%d countermeasure=%d waves=%d count=%d",
 				(int)g_frontend_mission
@@ -633,38 +608,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 				    CRAFT_SELECTION_HOST_ONLY &&
 			    net_get_local_player_id() !=
 				    g_frontend_net_packet_sender_player_id) {
-				g_frontend_net_packet_scratch.packet_type =
-					NET_PACKET_CRAFT_LOADOUT;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[0] =
-					g_frontend_mission
-						.flight_groups
-							[g_mission_setup_selected_flight_group_index]
-						.optional_craft_category;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[sizeof(int)] =
-					g_mission_setup_selected_preset_craft_option_index;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[2 * sizeof(int)] =
-					g_mission_setup_selected_flight_group_craft_option_index;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[3 * sizeof(int)] =
-					g_mission_setup_selected_warhead_option_index;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[4 * sizeof(int)] =
-					g_mission_setup_selected_beam_option_index;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[5 * sizeof(int)] =
-					g_mission_setup_selected_countermeasure_option_index;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[6 * sizeof(int)] =
-					g_mission_setup_selected_wave_count_minus_one;
-				*(int *)&g_frontend_net_packet_scratch
-					 .payload[7 * sizeof(int)] =
-					g_mission_setup_selected_craft_count;
-				net_send_packet_and_flush(
-					0, &g_frontend_net_packet_scratch,
-					9 * sizeof(int));
+				mission_briefing_craft_send_loadout();
 				XVT_LOG_DEBUG(
 					"briefing.loadout_sent by=\"player_entered\" category=%d preset=%d option=%d warhead=%d beam=%d countermeasure=%d waves=%d count=%d",
 					(int)g_frontend_mission
@@ -1060,24 +1004,7 @@ int mission_briefing_craft_selection_update(int frame_counter)
 			    "flysound") != 0 &&
 		    g_frontend_mission_session_mode ==
 			    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-			if (g_mission_setup_selected_preset_craft_option_index ==
-			    0) {
-				g_mp_roster[0].craft_type_override = 0;
-			} else {
-				g_mp_roster[0].craft_type_override =
-					mission_setup_get_craft_type(-1);
-			}
-			g_mp_roster[0].pilot_rating = g_pilot_data.rating;
-			g_mp_roster[0].warhead_option_index =
-				g_mission_setup_selected_warhead_option_index;
-			g_mp_roster[0].beam_option_index =
-				g_mission_setup_selected_beam_option_index;
-			g_mp_roster_ready_flags[0] = 1;
-			g_mp_roster[0].craft_option_index =
-				g_mission_setup_selected_flight_group_craft_option_index -
-				1;
-			g_mp_roster[0].countermeasure_option_index =
-				g_mission_setup_selected_countermeasure_option_index;
+			mission_briefing_craft_fill_solo_roster();
 			XVT_LOG_INFO(
 				"briefing.craft_confirmed fg=%d craft=%d option=%d",
 				g_mission_setup_selected_flight_group_index,
