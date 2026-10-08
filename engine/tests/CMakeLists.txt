@@ -625,6 +625,10 @@ xvt_add_engine_test(test_flight_network test_flight_network.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_network.c"
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_network_exchange.c")
 add_test(NAME flight_network COMMAND test_flight_network)
+xvt_add_engine_test(test_flight_network_exchange test_flight_network_exchange.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_network_exchange.c"
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_network.c")
+add_test(NAME flight_network_exchange COMMAND test_flight_network_exchange)
 xvt_add_engine_test(test_flight_packets test_flight_packets.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/flight_packets.c")
 add_test(NAME flight_packets COMMAND test_flight_packets)

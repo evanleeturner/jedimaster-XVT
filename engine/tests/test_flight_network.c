@@ -1,44 +1,32 @@
 /* Checks network125 flight networking (xvt_runtime/runtime/flight_network.h)
  * against the promises in its header, for every part that holds without a
- * network peer: the mission cookie and its counter, the single-player paths of
- * Options, Start and the roster exchange and the exchange's timeout, the
- * recovery request, PlayerAbort's result, the packet budget, AdmitInput's
- * refusals, InsertWorld, what Receive consumes and where it puts it,
- * DecodeControl, NextWakeDelayUs, ShouldSend, and SendWorld on a host flying
- * alone. No game data is read: the test sets the player records, the input
- * histories, the network session's ids and the flight network globals itself,
- * and drives the host clock. Player 0 is the local player; the roster gives
- * player n the network id 100 + n, and the host's id is 500. Every check starts
- * from that world with no mission cookie, empty queues and histories, and the
- * host clock at one second.
+ * network peer: the recovery request, PlayerAbort's result, the packet budget,
+ * AdmitInput's refusals, InsertWorld, what Receive consumes and where it puts
+ * it, DecodeControl, NextWakeDelayUs, ShouldSend, and SendWorld on a host
+ * flying alone. The exchanges before flight have their own checks,
+ * test_flight_network_exchange.c. Every check starts from the world of
+ * test_flight_network_world.h.
  *
  * Nothing here sends a packet: without a network session the game's send path
  * loops packets back into its own receive queue. So these need a second machine
- * and are not checked: the multiplayer exchanges of Session, Options and Start,
- * FlushInput and FlushWorld to remote players, peer timeouts in SendWorld, and
- * that a player PlayerAbort excludes leaves later world messages.
- * ProcessPackets is in flight_packets.c. AdmitInput's staging needs the
- * recorded controls, which need loaded settings and the game's DirectInput
- * keyboard device, so only its refusals before sampling are checked. */
+ * and are not checked: FlushInput and FlushWorld to remote players, peer
+ * timeouts in SendWorld, and that a player PlayerAbort excludes leaves later
+ * world messages. ProcessPackets is in flight_packets.c. AdmitInput's staging
+ * needs the recorded controls, which need loaded settings and the game's
+ * DirectInput keyboard device, so only its refusals before sampling are
+ * checked. */
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "test_assert.h"
+#include "test_flight_network_world.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
-#include "xvt/flight/flight_surface.h"
 #include "xvt/flight/player/player.h"
-#include "xvt/frontend/config.h"
-#include "xvt/frontend/pilot_record.h"
 #include "xvt/net/flight_net.h"
 #include "xvt/net/flight_sync.h"
 #include "xvt/net/net.h"
-#include "xvt/net/net_session.h"
-#include "xvt/render/flight_sw.h"
-#include "xvt/util/time.h"
 #include "xvt_runtime/runtime/flight_checkpoint.h"
-#include "xvt_runtime/runtime/flight_frame.h"
 #include "xvt_runtime/runtime/flight_messages.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/flight_network_exchange.h"
@@ -47,63 +35,9 @@
 #include "xvt_runtime/runtime/resync_task.h"
 #include "xvt_runtime/timing/host_clock.h"
 
-enum { HOST_DPID = 500, SECOND_US = 1000000 };
-
 static struct xvt_flight_message g_message;
 static struct xvt_flight_message g_out;
 static uint8_t g_packet[XVT_FLIGHT_PACKET_BYTES + 8];
-
-static int dpid(unsigned player) { return 100 + (int)player; }
-
-static void flight_network_world(int host)
-{
-	memset(g_players, 0, sizeof g_players);
-	for (int i = 0; i < 8; ++i) {
-		g_players[i].object_index = -1;
-		g_player_abort_flags[i] = 0;
-		g_flight_net_peer_silence_ticks[i] = 0;
-	}
-	g_players[0].participation_state = 1;
-	g_local_player = 0;
-	memset(&g_net_session, 0, sizeof g_net_session);
-	g_net_session.local_is_host = host;
-	g_net_session.host_dplay_id = HOST_DPID;
-	for (unsigned i = 0; i < 8; ++i) {
-		g_net_session.players[i].direct_play_id = dpid(i);
-	}
-	memset(g_input_history, 0, sizeof g_input_history);
-	memset(g_input_frame_count, 0, sizeof g_input_frame_count);
-	memset(&g_flight_mission_state, 0, sizeof g_flight_mission_state);
-	g_game_time = 0;
-	g_server_tick_time = 0;
-	g_active_flight_player_count = 1;
-	g_flight_net_pending_ack_count = 0;
-	g_flight_net_clock_adjust_accum_ticks = 0;
-	g_flight_net_world_message_turn_timestamp = 0;
-	g_flight_net_clock_lead_ticks = 0;
-	g_flight_net_last_sent_world_message_timestamp = 0;
-	g_flight_net_checksum_request_accum_ticks = 0;
-	xvt_time_reset();
-	xvt_time_advance_host_clock(SECOND_US);
-	time_reset_elapsed_ticks();
-	xvt_resync_reset();
-	xvt_flight_network_reset();
-	xvt_flight_network_clear_cookies();
-	xvt_flight_network_reset_mission();
-	xvt_flight_network_clear_recovery_request();
-	xvt_flight_checkpoint_begin(0x01);
-}
-
-/* Agrees a mission cookie the way a host flying alone does, and returns it. */
-static uint32_t agree_cookie(void)
-{
-	int host = g_net_session.local_is_host;
-	g_net_session.local_is_host = 1;
-	XVT_ASSERT_INT_EQ(xvt_flight_network_exchange_options(), 1);
-	g_net_session.local_is_host = host;
-	XVT_ASSERT_TRUE(xvt_flight_network_cookie() != 0);
-	return xvt_flight_network_cookie();
-}
 
 static struct flight_input_frame_record controls(int8_t axis)
 {
@@ -145,95 +79,6 @@ static void add_record(struct xvt_flight_message *message, unsigned player,
 	struct flight_input_frame_record input = controls(axis);
 	record->player = (uint8_t)player;
 	xvt_flight_wire_encode_input(&record->input, tick, &input);
-}
-
-static void check_cookie(void)
-{
-	flight_network_world(1);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_cookie(), 0);
-	uint32_t first = agree_cookie();
-	/* Each agreement takes a new cookie. */
-	uint32_t second = agree_cookie();
-	XVT_ASSERT_TRUE(second != first);
-	/* Reset forgets the cookie and keeps the counter: the next cookie is new again. */
-	xvt_flight_network_reset();
-	XVT_ASSERT_INT_EQ(xvt_flight_network_cookie(), 0);
-	uint32_t third = agree_cookie();
-	XVT_ASSERT_TRUE(third != first && third != second);
-	/* CloseSession forgets both: the counter starts over, so the cookie
-	 * after it is the one after the earlier CloseSession. */
-	xvt_flight_network_clear_cookies();
-	XVT_ASSERT_INT_EQ(xvt_flight_network_cookie(), 0);
-	XVT_ASSERT_INT_EQ(agree_cookie(), first);
-
-	/* A client flying alone takes no cookie of its own. */
-	xvt_flight_network_clear_cookies();
-	g_net_session.local_is_host = 0;
-	XVT_ASSERT_INT_EQ(xvt_flight_network_exchange_options(), 1);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_cookie(), 0);
-}
-
-static void check_options_alone(void)
-{
-	/* A single player fills its own resolution, rating and taunts. */
-	flight_network_world(1);
-	g_flight_resolution_mode = 2;
-	g_pilot_data.rating = 1234;
-	for (int i = 0; i < 4; ++i) {
-		snprintf(g_game_config.taunts[i],
-			 sizeof g_game_config.taunts[i], "taunt %d", i);
-	}
-	memset(g_player_taunt_text, 0, sizeof g_player_taunt_text);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_exchange_options(), 1);
-	XVT_ASSERT_INT_EQ(g_players[0].network.flight_resolution_mode, 2);
-	XVT_ASSERT_INT_EQ(g_players[0].pilot_rating, 1234);
-	XVT_ASSERT_INT_EQ(memcmp(g_player_taunt_text[0], g_game_config.taunts,
-				 sizeof g_game_config.taunts),
-			  0);
-}
-
-static void check_start_alone(void)
-{
-	flight_network_world(1);
-	g_game_time = 400;
-	g_server_tick_time = 400;
-	XVT_ASSERT_INT_EQ(xvt_flight_network_wait_for_mission_start(), 1);
-	XVT_ASSERT_INT_EQ(g_game_time, 0);
-	XVT_ASSERT_INT_EQ(g_server_tick_time, 0);
-}
-
-static void check_session(void)
-{
-	/* A host expecting no players is done at once; a client joining a
-	 * flight in progress too. */
-	flight_network_world(1);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_begin_roster_exchange(0, 0),
-			  XVT_FLIGHT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_exchange_roster(), 1);
-	flight_network_world(0);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_begin_roster_exchange(2, 1), 1);
-
-	/* A host waiting for two players gives up after 60 seconds without a packet. */
-	flight_network_world(1);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_begin_roster_exchange(2, 0),
-			  XVT_FLIGHT_NETWORK_PENDING);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_exchange_roster(),
-			  XVT_FLIGHT_NETWORK_PENDING);
-	xvt_time_advance_host_clock(59 * SECOND_US);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_exchange_roster(),
-			  XVT_FLIGHT_NETWORK_PENDING);
-	xvt_time_advance_host_clock(2 * SECOND_US);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_exchange_roster(), 0);
-
-	/* So does a client waiting for the roster. */
-	flight_network_world(0);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_begin_roster_exchange(2, 0),
-			  XVT_FLIGHT_NETWORK_PENDING);
-	xvt_time_advance_host_clock(59 * SECOND_US);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_exchange_roster(),
-			  XVT_FLIGHT_NETWORK_PENDING);
-	xvt_time_advance_host_clock(2 * SECOND_US);
-	XVT_ASSERT_INT_EQ(xvt_flight_network_exchange_roster(), 0);
 }
 
 static void check_recovery_flags(void)
@@ -844,10 +689,6 @@ static void check_checksum_flag(void)
 
 int main(void)
 {
-	check_cookie();
-	check_options_alone();
-	check_start_alone();
-	check_session();
 	check_recovery_flags();
 	check_player_abort();
 	check_packet_budget();
