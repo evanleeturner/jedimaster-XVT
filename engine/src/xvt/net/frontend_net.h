@@ -67,7 +67,6 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter);
 int frontend_net_draw_join_game_sidebars_and_query_all(void);
 int frontend_net_host_game_exit(int frame_counter);
 int frontend_net_host_game_screen(int frame_counter);
-int frontend_net_process_network_packets(void);
 
 #ifdef __cplusplus
 }

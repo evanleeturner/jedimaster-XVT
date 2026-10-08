@@ -52,6 +52,7 @@
 #include "xvt/frontend/movie.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/frontend_net.h"
+#include "xvt/net/frontend_net_packets.h"
 #include "xvt/net/net.h"
 #include "xvt/net/net_reliable.h"
 #include "xvt_runtime/log/log.h"

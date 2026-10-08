@@ -141,6 +141,8 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/net/flight_net.c
     src/xvt/net/flight_sync.c
     src/xvt/net/frontend_net.c
+    src/xvt/net/frontend_net_packets.c
+    src/xvt/net/frontend_net_setup_packets.c
     src/xvt/net/net.c
     src/xvt/net/net_reliable.c
     src/xvt/net/net_session.c

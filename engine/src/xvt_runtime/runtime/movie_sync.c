@@ -9,6 +9,7 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/movie.h"
 #include "xvt/net/frontend_net.h"
+#include "xvt/net/frontend_net_packets.h"
 #include "xvt/net/net.h"
 #include "xvt/util/time.h"
 

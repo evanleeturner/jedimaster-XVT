@@ -15,6 +15,7 @@
 #include "xvt/frontend/mission_briefing_craft.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/net/frontend_net.h"
+#include "xvt/net/frontend_net_packets.h"
 #include "xvt/net/net.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"

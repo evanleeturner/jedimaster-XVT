@@ -205,11 +205,15 @@ add_test(NAME net_session COMMAND test_net_session)
 xvt_add_known_failure(test_net_session resent_copy_first_discarded)
 xvt_add_known_failure(test_net_session peer_slot_keeps_retry_count)
 
-# The multiplayer frontend's packet handler, join admission screen and chat panel: src/xvt/net/frontend_net.c.
+# The multiplayer frontend's join admission screen and chat panel: src/xvt/net/frontend_net.c; its packet
+# handler: src/xvt/net/frontend_net_packets.c and src/xvt/net/frontend_net_setup_packets.c.
 # The screen checks write their mission lists and strings into a temporary folder made with POSIX calls, and
 # arm an alarm with POSIX calls for a frame that never returns.
 if(NOT MSVC)
-    xvt_add_engine_test(test_frontend_net test_frontend_net.c "${PROJECT_SOURCE_DIR}/src/xvt/net/frontend_net.c")
+    xvt_add_engine_test(test_frontend_net test_frontend_net.c
+        "${PROJECT_SOURCE_DIR}/src/xvt/net/frontend_net.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt/net/frontend_net_packets.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt/net/frontend_net_setup_packets.c")
     add_test(NAME frontend_net COMMAND test_frontend_net)
     xvt_add_known_failure(test_frontend_net join_refused_as_full)
     xvt_add_known_failure(test_frontend_net chat_chunk_without_log)
