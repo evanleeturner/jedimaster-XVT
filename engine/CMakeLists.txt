@@ -252,6 +252,18 @@ if(NOT MSVC)
     target_link_libraries(xvt_core PUBLIC m)
 endif()
 
+# What the engine's own list readers keep from a list file; see the tool's
+# header comment.
+if(XVT_BUILD_TOOLS)
+    add_executable(list_dump tools/list_dump.c)
+    target_link_libraries(list_dump PRIVATE xvt_core)
+    if(MSVC)
+        target_compile_options(list_dump PRIVATE /W4)
+    else()
+        target_compile_options(list_dump PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endif()
+
 add_library(xvt_remaster STATIC
     src/xvt_remaster/hud_layout.c
     src/xvt_remaster/hud_assets.c
