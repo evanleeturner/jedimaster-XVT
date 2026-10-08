@@ -564,17 +564,18 @@ static void flight_sync_smooth_yaw(int player_index,
 
 /* Runs before a frame is drawn. Moves each active remote player's craft from
  * its simulated pose to a smoothed one, after saving the simulated pose in
- * g_remote_player_saved_sim_poses for flight_sync_capture_samples_and_restore_poses to
- * put back. Leaves a craft as simulated when its sample is invalid or belongs
- * to another object, or when its simulation time stamp is older than the
- * sample's. The position is projected from the sampled one along the sampled
- * move vector, by a distance that grows with the sampled speed and the
- * simulation time since the sample, then moved toward the simulated position
- * by half the gap, or a smaller share when the gap is within 32 times that
- * distance. An angle that moved against the sampled turn is held at the
- * sampled angle. The step that compares the change with max_angle_change sets
- * each angle to a value equal to itself modulo 65,536, so it changes
- * nothing. Does nothing when g_remote_player_render_smoothing_enabled is 0. */
+ * g_remote_player_saved_sim_poses for
+ * flight_sync_capture_samples_and_restore_poses to put back. Leaves a craft as
+ * simulated when its sample is invalid or belongs to another object, or when
+ * its simulation time stamp is older than the sample's. The position is
+ * projected from the sampled one along the sampled move vector, by a distance
+ * that grows with the sampled speed and the simulation time since the sample,
+ * then moved toward the simulated position by half the gap, or a smaller share
+ * when the gap is within 32 times that distance. An angle that moved against
+ * the sampled turn is held at the sampled angle. The step that compares the
+ * change with max_angle_change sets each angle to a value equal to itself
+ * modulo 65,536, so it changes nothing. Does nothing when
+ * g_remote_player_render_smoothing_enabled is 0. */
 // FUNCTION: XVT 0x418B70
 void flight_sync_apply_remote_player_render_smoothing(void)
 {
