@@ -2,7 +2,7 @@
 # Python under tools/. engine/ is C, and its one Python script keeps its form.
 target-version = "py311"          # the oldest Python the tools/ scripts run on
 line-length = 88
-src = ["tools"]
+src = ["tools", "launcher"]
 extend-exclude = ["engine"]       # the engine is not this project's Python
 
 [lint]

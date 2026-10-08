@@ -1,0 +1,1689 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/mission.schema.json",
+  "title": "XvT/BoP mission (jedimaster export)",
+  "type": "object",
+  "description": "A whole mission file.",
+  "properties": {
+    "format": {
+      "const": "jedimaster.mission"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "header": {
+      "$ref": "#/$defs/FileHeader"
+    },
+    "flight_groups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FlightGroup"
+      }
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Message"
+      }
+    },
+    "global_goals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/GlobalGoal"
+      },
+      "minItems": 10,
+      "maxItems": 10
+    },
+    "teams": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Team"
+      },
+      "minItems": 10,
+      "maxItems": 10
+    },
+    "briefings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Briefing"
+      },
+      "minItems": 8,
+      "maxItems": 8
+    },
+    "fg_goal_strings": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "minItems": 8,
+        "maxItems": 8
+      }
+    },
+    "global_goal_strings": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "minItems": 3,
+        "maxItems": 3
+      },
+      "minItems": 10,
+      "maxItems": 10
+    },
+    "descriptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 4096
+      },
+      "minItems": 1,
+      "maxItems": 3
+    },
+    "layout": {
+      "$ref": "#/$defs/Layout"
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "header",
+    "flight_groups",
+    "messages",
+    "global_goals",
+    "teams",
+    "briefings",
+    "fg_goal_strings",
+    "global_goal_strings",
+    "descriptions",
+    "layout"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Briefing": {
+      "type": "object",
+      "description": "One briefing: header counts, events, viewers, tags and strings.",
+      "properties": {
+        "running_time": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "current_time": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "start_events": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "events_length": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "tile": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Event"
+          }
+        },
+        "events_tail": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": -32768,
+            "maximum": 32767
+          }
+        },
+        "events_complete": {
+          "type": "boolean"
+        },
+        "viewed_by_team": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 10,
+          "maxItems": 10
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 32,
+          "maxItems": 32
+        },
+        "strings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 32,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "running_time",
+        "current_time",
+        "start_events",
+        "events_length",
+        "tile",
+        "events",
+        "events_tail",
+        "events_complete",
+        "viewed_by_team",
+        "tags",
+        "strings"
+      ],
+      "additionalProperties": false
+    },
+    "Event": {
+      "type": "object",
+      "description": "One briefing event: a time in ticks, a type and its variables.",
+      "properties": {
+        "time": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "type": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "type_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": -32768,
+            "maximum": 32767
+          }
+        }
+      },
+      "required": [
+        "time",
+        "type",
+        "type_name",
+        "variables"
+      ],
+      "additionalProperties": false
+    },
+    "FileHeader": {
+      "type": "object",
+      "description": "The file header (0xA4 bytes).",
+      "properties": {
+        "platform_id": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "platform_id_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "num_fgs": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "num_messages": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "time_limit_min": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "time_limit_sec": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "win_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "rnd_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "rescue": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "all_way_shown": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "vars": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 8,
+          "maxItems": 8
+        },
+        "iff_names": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "mission_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "mission_type_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "goals_unimportant": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "time_limit_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "time_limit_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "required": [
+        "platform_id",
+        "platform_id_name",
+        "num_fgs",
+        "num_messages",
+        "time_limit_min",
+        "time_limit_sec",
+        "win_type",
+        "rnd_seed",
+        "rescue",
+        "all_way_shown",
+        "vars",
+        "iff_names",
+        "mission_type",
+        "mission_type_name",
+        "goals_unimportant",
+        "time_limit_minutes",
+        "time_limit_seconds"
+      ],
+      "additionalProperties": false
+    },
+    "FlightGroup": {
+      "type": "object",
+      "description": "One flight group (0x562 bytes).",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Role"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "roles_text": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "cargo": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "special_cargo": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "special_cargo_craft": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "random_special_cargo": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "craft_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "craft_type_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "number_of_craft": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "status1": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "status1_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "warhead": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "warhead_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "beam": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "beam_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "iff": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "team": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "group_ai": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "group_ai_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "markings": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "markings_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "radio": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "radio_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unused_05c": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "formation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "formation_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "formation_spacing": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "global_group": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "leader_spacing": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "number_of_waves": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "waves_delay": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "stop_arriving_when": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "stop_arriving_when_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "player_number": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "arrive_only_if_human": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "player_craft": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "yaw": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "pitch": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "roll": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "perma_death_enabled": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "perma_death_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "unused_06c": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "arrival_difficulty": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "arrival_difficulty_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "arrival1_and_2": {
+          "$ref": "#/$defs/TriggerPair"
+        },
+        "arrival3_and_4": {
+          "$ref": "#/$defs/TriggerPair"
+        },
+        "arrival12_or_arrival34": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "random_arrival_delay_extra_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "arrival_delay_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "arrival_delay_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "departure": {
+          "$ref": "#/$defs/TriggerPair"
+        },
+        "departure_delay_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "departure_delay_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "abort_trigger": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "abort_trigger_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "random_arrival_delay_extra_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "io_reserved": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "current_mothership": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "arrival_mothership": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "arrive_via_mothership": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "departure_mothership": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "depart_via_mothership": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "alternate_mothership": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "alternate_mothership_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "captured_departure_mothership": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "captured_depart_via_mothership": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "orders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Order"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "skip_to_order4": {
+          "$ref": "#/$defs/TriggerPair"
+        },
+        "goals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GoalFG"
+          },
+          "minItems": 8,
+          "maxItems": 8
+        },
+        "unused_465": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Waypoint"
+          },
+          "minItems": 22,
+          "maxItems": 22
+        },
+        "waypoint_shown": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "unused_517": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "briefing_linked": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 8,
+          "maxItems": 8
+        },
+        "prevent_craft_numbering": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "departure_clock_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "departure_clock_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "countermeasures": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "countermeasures_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "craft_explosion_time": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "status2": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "status2_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "global_unit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "briefing_start": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 8,
+          "maxItems": 8
+        },
+        "handicap": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "optional_warheads": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 8,
+          "maxItems": 8
+        },
+        "optional_warheads_names": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "optional_beams": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "optional_beams_names": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "optional_countermeasures": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "optional_countermeasures_names": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "optional_craft_category": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "optional_craft_category_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "optional_craft": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 10,
+          "maxItems": 10
+        },
+        "optional_craft_names": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "number_of_optional_craft": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 10,
+          "maxItems": 10
+        },
+        "number_of_optional_craft_waves": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 10,
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "name",
+        "roles",
+        "roles_text",
+        "cargo",
+        "special_cargo",
+        "special_cargo_craft",
+        "random_special_cargo",
+        "craft_type",
+        "craft_type_name",
+        "number_of_craft",
+        "status1",
+        "status1_name",
+        "warhead",
+        "warhead_name",
+        "beam",
+        "beam_name",
+        "iff",
+        "team",
+        "group_ai",
+        "group_ai_name",
+        "markings",
+        "markings_name",
+        "radio",
+        "radio_name",
+        "unused_05c",
+        "formation",
+        "formation_name",
+        "formation_spacing",
+        "global_group",
+        "leader_spacing",
+        "number_of_waves",
+        "waves_delay",
+        "stop_arriving_when",
+        "stop_arriving_when_name",
+        "player_number",
+        "arrive_only_if_human",
+        "player_craft",
+        "yaw",
+        "pitch",
+        "roll",
+        "perma_death_enabled",
+        "perma_death_id",
+        "unused_06c",
+        "arrival_difficulty",
+        "arrival_difficulty_name",
+        "arrival1_and_2",
+        "arrival3_and_4",
+        "arrival12_or_arrival34",
+        "random_arrival_delay_extra_minutes",
+        "arrival_delay_minutes",
+        "arrival_delay_seconds",
+        "departure",
+        "departure_delay_minutes",
+        "departure_delay_seconds",
+        "abort_trigger",
+        "abort_trigger_name",
+        "random_arrival_delay_extra_seconds",
+        "io_reserved",
+        "current_mothership",
+        "arrival_mothership",
+        "arrive_via_mothership",
+        "departure_mothership",
+        "depart_via_mothership",
+        "alternate_mothership",
+        "alternate_mothership_used",
+        "captured_departure_mothership",
+        "captured_depart_via_mothership",
+        "orders",
+        "skip_to_order4",
+        "goals",
+        "unused_465",
+        "waypoints",
+        "waypoint_shown",
+        "unused_517",
+        "briefing_linked",
+        "prevent_craft_numbering",
+        "departure_clock_minutes",
+        "departure_clock_seconds",
+        "countermeasures",
+        "countermeasures_name",
+        "craft_explosion_time",
+        "status2",
+        "status2_name",
+        "global_unit",
+        "briefing_start",
+        "handicap",
+        "optional_warheads",
+        "optional_warheads_names",
+        "optional_beams",
+        "optional_beams_names",
+        "optional_countermeasures",
+        "optional_countermeasures_names",
+        "optional_craft_category",
+        "optional_craft_category_name",
+        "optional_craft",
+        "optional_craft_names",
+        "number_of_optional_craft",
+        "number_of_optional_craft_waves"
+      ],
+      "additionalProperties": false
+    },
+    "GlobalGoal": {
+      "type": "object",
+      "description": "One team's global goals: Primary, Prevent, Secondary (0x80 bytes).",
+      "properties": {
+        "num_goals": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "goals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GoalGlobal"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "num_goals",
+        "goals"
+      ],
+      "additionalProperties": false
+    },
+    "GoalFG": {
+      "type": "object",
+      "description": "One flight-group goal (0x4E bytes).",
+      "properties": {
+        "argument": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "argument_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "condition": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "condition_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "amount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "amount_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "points": {
+          "type": "integer",
+          "minimum": -128,
+          "maximum": 127
+        },
+        "enabled_for_team": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 10,
+          "maxItems": 10
+        },
+        "time_limit": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "reserved_0f": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "reserved_nonzero": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^0x[0-9a-f]{2}$"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        }
+      },
+      "required": [
+        "argument",
+        "argument_name",
+        "condition",
+        "condition_name",
+        "amount",
+        "amount_name",
+        "points",
+        "enabled_for_team",
+        "time_limit",
+        "reserved_0f",
+        "reserved_nonzero"
+      ],
+      "additionalProperties": false
+    },
+    "GoalGlobal": {
+      "type": "object",
+      "description": "One global goal of a team (0x2A bytes).",
+      "properties": {
+        "triggers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TriggerPair"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "triggers12_or_triggers34": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "delay": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "points": {
+          "type": "integer",
+          "minimum": -128,
+          "maximum": 127
+        }
+      },
+      "required": [
+        "triggers",
+        "name",
+        "version",
+        "triggers12_or_triggers34",
+        "delay",
+        "points"
+      ],
+      "additionalProperties": false
+    },
+    "Layout": {
+      "type": "object",
+      "description": "Absolute file offsets where each section starts, as read.",
+      "properties": {
+        "flight_groups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "messages": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "global_goals": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "teams": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "briefings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fg_goal_strings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "global_goal_strings": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "descriptions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "flight_groups",
+        "messages",
+        "global_goals",
+        "teams",
+        "briefings",
+        "fg_goal_strings",
+        "global_goal_strings",
+        "descriptions",
+        "end"
+      ],
+      "additionalProperties": false
+    },
+    "Message": {
+      "type": "object",
+      "description": "One in-flight message (0x74 bytes).",
+      "properties": {
+        "message_index": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "sent_to_teams": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 10,
+          "maxItems": 10
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TriggerPair"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "editor_note": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "delay": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "triggers12_or_triggers34": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "required": [
+        "message_index",
+        "message",
+        "sent_to_teams",
+        "triggers",
+        "editor_note",
+        "delay",
+        "triggers12_or_triggers34"
+      ],
+      "additionalProperties": false
+    },
+    "Order": {
+      "type": "object",
+      "description": "One flight-group order (0x52 bytes).",
+      "properties": {
+        "order": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "order_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "throttle": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "target3_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "target3_type_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target4_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "target4_type_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target3": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "target4": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "target3_or_target4": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "unused_0b": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "target1_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "target1_type_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target1": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "target2_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "target2_type_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target2": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "target1_or_target2": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "unused_11": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "speed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "designation": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "reserved_nonzero": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^0x[0-9a-f]{2}$"
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
+        }
+      },
+      "required": [
+        "order",
+        "order_name",
+        "throttle",
+        "variables",
+        "target3_type",
+        "target3_type_name",
+        "target4_type",
+        "target4_type_name",
+        "target3",
+        "target4",
+        "target3_or_target4",
+        "unused_0b",
+        "target1_type",
+        "target1_type_name",
+        "target1",
+        "target2_type",
+        "target2_type_name",
+        "target2",
+        "target1_or_target2",
+        "unused_11",
+        "speed",
+        "designation",
+        "reserved_nonzero"
+      ],
+      "additionalProperties": false
+    },
+    "Role": {
+      "type": "object",
+      "description": "One craft role: a team character and a three-letter designation.",
+      "properties": {
+        "designation_team": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "designation_team_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "designation": {
+          "type": "string",
+          "maxLength": 3
+        },
+        "designation_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "designation_team",
+        "designation_team_name",
+        "designation",
+        "designation_name"
+      ],
+      "additionalProperties": false
+    },
+    "Team": {
+      "type": "object",
+      "description": "One team (0x1E7 bytes).",
+      "properties": {
+        "reserved": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "unknown_12": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 8,
+          "maxItems": 8
+        },
+        "allegiances": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 10,
+          "maxItems": 10
+        },
+        "end_of_mission_messages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "eom_message_delays": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "reserved",
+        "name",
+        "unknown_12",
+        "allegiances",
+        "end_of_mission_messages",
+        "eom_message_delays"
+      ],
+      "additionalProperties": false
+    },
+    "Trigger": {
+      "type": "object",
+      "description": "One trigger: if Amount of VariableType Variable are Condition.",
+      "properties": {
+        "condition": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "condition_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variable_type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "variable_type_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "variable": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "amount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "amount_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "condition",
+        "condition_name",
+        "variable_type",
+        "variable_type_name",
+        "variable",
+        "amount",
+        "amount_name"
+      ],
+      "additionalProperties": false
+    },
+    "TriggerPair": {
+      "type": "object",
+      "description": "Two triggers and the AND (0) / OR (1) that joins them (0x0B bytes).",
+      "properties": {
+        "trigger1": {
+          "$ref": "#/$defs/Trigger"
+        },
+        "trigger2": {
+          "$ref": "#/$defs/Trigger"
+        },
+        "unused": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "t1_or_t2": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "required": [
+        "trigger1",
+        "trigger2",
+        "unused",
+        "t1_or_t2"
+      ],
+      "additionalProperties": false
+    },
+    "Waypoint": {
+      "type": "object",
+      "description": "One point of a flight group: X, Y, Z (km * 160) and Enabled.",
+      "properties": {
+        "x": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "y": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "z": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        },
+        "enabled": {
+          "type": "integer",
+          "minimum": -32768,
+          "maximum": 32767
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z",
+        "enabled"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
