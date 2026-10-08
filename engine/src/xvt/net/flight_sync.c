@@ -41,15 +41,18 @@ struct input_frame g_input_history[8][450] = {{{0}}};
  * copies g_internet_play_enabled into it (xvt_flight_loading_globals). */
 // GLOBAL: XVT 0x523430
 int g_remote_player_render_smoothing_enabled = 1;
-/* Per player, the pose and motion of the remote craft as last drawn, taken by
- * flight_sync_capture_samples_and_restore_poses after each frame is drawn;
- * flight_sync_apply_remote_player_render_smoothing predicts the next drawn pose
- * from it. flight_sync_reset_remote_player_render_smoothing marks all invalid. */
+/* Per player, the pose and motion of the remote craft as last drawn. After
+ * each frame is drawn flight_sync_capture_samples_and_restore_poses marks
+ * every entry invalid and flight_sync_record_render_sample takes a new one
+ * for each remote craft; flight_sync_apply_remote_player_render_smoothing
+ * predicts the next drawn pose from it.
+ * flight_sync_reset_remote_player_render_smoothing marks all invalid. */
 // GLOBAL: XVT 0x550888
 struct remote_player_render_sample g_remote_player_render_samples[8];
-/* Per player, the simulated pose flight_sync_apply_remote_player_render_smoothing
- * saves before it moves the craft to its drawn pose;
- * flight_sync_capture_samples_and_restore_poses puts it back after drawing. */
+/* Per player, the simulated pose saved before the craft moves to its drawn
+ * pose: flight_sync_apply_remote_player_render_smoothing marks every entry
+ * invalid, then flight_sync_save_sim_pose saves each craft it smooths;
+ * flight_sync_restore_saved_pose puts it back after drawing. */
 // GLOBAL: XVT 0x550A08
 struct remote_player_saved_sim_pose g_remote_player_saved_sim_poses[8];
 
@@ -682,7 +685,7 @@ static void flight_sync_compare_world_checksums(const int *packet,
 
 	*local_world_state_size = 0;
 	*remote_world_state_size = 0;
-	/* player_index is reused here as a checksum region index. */
+	/* player_index counts checksum regions here, not players. */
 	for (player_index = 0; player_index < CHECKSUM_REGION_COUNT;
 	     ++player_index) {
 		*remote_world_state_size += remote_region_lengths[player_index];

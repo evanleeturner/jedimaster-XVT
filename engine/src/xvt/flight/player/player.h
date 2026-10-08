@@ -415,7 +415,8 @@ extern char g_player_taunt_text[8][4][70];
 
 struct remote_player_render_sample {
 	/* 1 while the sample holds the remote craft as last drawn;
-	 * flight_sync_capture_samples_and_restore_poses sets it. */
+	 * flight_sync_record_render_sample sets it, after
+	 * flight_sync_capture_samples_and_restore_poses cleared it. */
 	int valid;
 	/* Signature of the sampled craft; smoothing skips a craft whose
 	 * signature differs. */

@@ -180,8 +180,8 @@ int g_flight_sfx_side_effect_gate = 0;
 /* 1 from a world checksum, taken when a world message asks for one, until every
  * player's checksum has matched or a resync replays the world messages; while
  * it is 1 a client keeps the server's world messages for that replay. Seven
- * functions write it: the checksum handlers
- * flight_sync_handle_world_checksum_packet and
+ * functions write it: flight_sync_record_checksum_status, part of the world
+ * checksum handler, and the server checksum handler
  * flight_sync_handle_server_checksum_packet, the frame and resync code
  * xvt_flight_frame_checksum, xvt_resync_complete_checksum and
  * xvt_resync_full_apply, and, at flight start (0), xvt_flight_task_start_world

@@ -159,7 +159,7 @@ int g_flight_net_checksum_request_accum_ticks = 0;
  * 0 none yet, 1 matched the host's, 2 did not. Cleared when a world message
  * asks for checksums (xvt_flight_network_send_world) and at flight load
  * (xvt_flight_loading_globals); set by
- * flight_sync_handle_world_checksum_packet, and to 2 by
+ * flight_sync_record_checksum_status, and to 2 by
  * xvt_resync_complete_checksum after a resync. When every player still flying
  * shows 1, the host clears
  * g_flight_net_buffer_world_messages_until_checksum. */
