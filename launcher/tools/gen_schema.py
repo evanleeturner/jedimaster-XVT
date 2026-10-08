@@ -4,10 +4,10 @@ Purpose:
     Keep the published JSON Schemas (``schema/mission.schema.json``,
     ``schema/lists.schema.json``, ``schema/icons.schema.json``,
     ``schema/text.schema.json``, ``schema/fonts.schema.json``,
-    ``schema/pictures.schema.json``) equal to what ``mission_schema()``,
-    ``lists_schema()``, ``icons_schema()``, ``text_schema()``,
-    ``fonts_schema()`` and ``pictures_schema()`` build; a test fails when a
-    file and its model drift.
+    ``schema/pictures.schema.json``, ``schema/pilot.schema.json``) equal to
+    what ``mission_schema()``, ``lists_schema()``, ``icons_schema()``,
+    ``text_schema()``, ``fonts_schema()``, ``pictures_schema()`` and
+    ``pilot_schema()`` build; a test fails when a file and its model drift.
 
 Flow:
     Build each schema, dump it with sorted-free stable formatting, write it.
@@ -34,6 +34,7 @@ from jedimaster.icons.to_json import icons_schema  # noqa: E402
 from jedimaster.lists.to_json import lists_schema  # noqa: E402
 from jedimaster.mission.to_json import mission_schema  # noqa: E402
 from jedimaster.pictures.to_json import pictures_schema  # noqa: E402
+from jedimaster.pilot.to_json import pilot_schema  # noqa: E402
 from jedimaster.text.to_json import text_schema  # noqa: E402
 
 logger = logging.getLogger("gen_schema")
@@ -44,6 +45,7 @@ ICONS_SCHEMA_PATH = HERE.parents[1] / "schema" / "icons.schema.json"
 TEXT_SCHEMA_PATH = HERE.parents[1] / "schema" / "text.schema.json"
 FONTS_SCHEMA_PATH = HERE.parents[1] / "schema" / "fonts.schema.json"
 PICTURES_SCHEMA_PATH = HERE.parents[1] / "schema" / "pictures.schema.json"
+PILOT_SCHEMA_PATH = HERE.parents[1] / "schema" / "pilot.schema.json"
 
 
 def schema_text() -> str:
@@ -76,8 +78,13 @@ def pictures_schema_text() -> str:
     return json.dumps(pictures_schema(), indent=2) + "\n"
 
 
+def pilot_schema_text() -> str:
+    """Return the pilot schema file's text: indented JSON and a newline."""
+    return json.dumps(pilot_schema(), indent=2) + "\n"
+
+
 def main() -> int:
-    """Write the six schema files; return 0."""
+    """Write the seven schema files; return 0."""
     for path, text in (
         (SCHEMA_PATH, schema_text()),
         (LISTS_SCHEMA_PATH, lists_schema_text()),
@@ -85,6 +92,7 @@ def main() -> int:
         (TEXT_SCHEMA_PATH, text_schema_text()),
         (FONTS_SCHEMA_PATH, fonts_schema_text()),
         (PICTURES_SCHEMA_PATH, pictures_schema_text()),
+        (PILOT_SCHEMA_PATH, pilot_schema_text()),
     ):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")

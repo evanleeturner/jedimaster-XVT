@@ -5,8 +5,9 @@ Purpose:
     codes. They are in no file of the game: they are the game's own
     values, as printed by the engine's font_dump tool (its ``color_codes``
     line), copied here from that printout. With the icon tables of
-    ``jedimaster.icons.tables`` and the strings.txt tables of
-    ``jedimaster.text.tables``, they are the only game data in this
+    ``jedimaster.icons.tables``, the strings.txt tables of
+    ``jedimaster.text.tables`` and the pilot layout of
+    ``jedimaster.pilot.layout``, they are the only game data in this
     package's code.
 
 Flow:

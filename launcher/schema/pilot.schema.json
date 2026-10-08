@@ -1,0 +1,2763 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/pilot.schema.json",
+  "title": "XvT/BoP pilot (jedimaster export)",
+  "type": "object",
+  "description": "A pilot as the game holds it after loading (jedimaster export).",
+  "properties": {
+    "format": {
+      "const": "jedimaster.pilot"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "file": {
+      "type": "string"
+    },
+    "balance_of_power": {
+      "type": "boolean"
+    },
+    "files": {
+      "type": "object",
+      "description": "Which of the pilot's files were there.",
+      "properties": {
+        "pl2": {
+          "type": "boolean"
+        },
+        "plt": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "pl2",
+        "plt"
+      ],
+      "additionalProperties": false
+    },
+    "result": {
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "record": {
+      "$ref": "#/$defs/pilot_data"
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "file",
+    "balance_of_power",
+    "files",
+    "result",
+    "record"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "pilot_network_player": {
+      "type": "object",
+      "description": "pilot_network_player: 88 bytes in the game's layout.",
+      "properties": {
+        "formal_name": {
+          "type": "string",
+          "maxLength": 14
+        },
+        "friendly_name": {
+          "type": "string",
+          "maxLength": 14
+        },
+        "flight_group_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "direct_play_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "rating": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "total_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "kills": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "kills_shared": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "craft_inspected": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "kills_assist": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "total_losses": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "craft_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "craft_option": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "warhead_option": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "beam_option": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "countermeasure_option": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "has_left": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "formal_name",
+        "friendly_name",
+        "flight_group_id",
+        "direct_play_id",
+        "rating",
+        "total_score",
+        "kills",
+        "kills_shared",
+        "craft_inspected",
+        "kills_assist",
+        "total_losses",
+        "craft_id",
+        "craft_option",
+        "warhead_option",
+        "beam_option",
+        "countermeasure_option",
+        "has_left"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_team": {
+      "type": "object",
+      "description": "pilot_team: 28 bytes in the game's layout.",
+      "properties": {
+        "mission_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "is_mission_completed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unknown08": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "mission_time": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "kills": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "kills_shared": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "losses": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "mission_score",
+        "is_mission_completed",
+        "unknown08",
+        "mission_time",
+        "kills",
+        "kills_shared",
+        "losses"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_mission": {
+      "type": "object",
+      "description": "pilot_mission: 36 bytes in the game's layout.",
+      "properties": {
+        "number_times_flown": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "completed_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "failed_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_time": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_placement": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "award_level": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_margin": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "field20": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "number_times_flown",
+        "completed_count",
+        "failed_count",
+        "best_score",
+        "best_time",
+        "best_placement",
+        "award_level",
+        "best_margin",
+        "field20"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_multiplayer_mission": {
+      "type": "object",
+      "description": "pilot_multiplayer_mission: 48 bytes in the game's layout.",
+      "properties": {
+        "number_times_flown": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "first_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "second_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "third_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "completed_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "failed_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_time": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_placement": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "award_level": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_margin": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "field2c": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "number_times_flown",
+        "first_place_count",
+        "second_place_count",
+        "third_place_count",
+        "completed_count",
+        "failed_count",
+        "best_score",
+        "best_time",
+        "best_placement",
+        "award_level",
+        "best_margin",
+        "field2c"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_tournament": {
+      "type": "object",
+      "description": "pilot_tournament: 40 bytes in the game's layout.",
+      "properties": {
+        "attempt_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "completed_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "first_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "second_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "third_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_placement": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "award_level": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_margin": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "field24": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "attempt_count",
+        "completed_count",
+        "first_place_count",
+        "second_place_count",
+        "third_place_count",
+        "best_score",
+        "best_placement",
+        "award_level",
+        "best_margin",
+        "field24"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_multiplayer_tournament": {
+      "type": "object",
+      "description": "pilot_multiplayer_tournament: 44 bytes in the game's layout.",
+      "properties": {
+        "attempt_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "completed_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "first_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "second_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "third_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_placement": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unused1c": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "award_level": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_margin": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "field28": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "attempt_count",
+        "completed_count",
+        "first_place_count",
+        "second_place_count",
+        "third_place_count",
+        "best_score",
+        "best_placement",
+        "unused1c",
+        "award_level",
+        "best_margin",
+        "field28"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_battle": {
+      "type": "object",
+      "description": "pilot_battle: 36 bytes in the game's layout.",
+      "properties": {
+        "attempt_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "victory_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "defeat_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "draw_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unused14": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "award_level": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_victory_margin": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "field20": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "attempt_count",
+        "victory_count",
+        "defeat_count",
+        "draw_count",
+        "best_score",
+        "unused14",
+        "award_level",
+        "best_victory_margin",
+        "field20"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_multiplayer_battle": {
+      "type": "object",
+      "description": "pilot_multiplayer_battle: 40 bytes in the game's layout.",
+      "properties": {
+        "attempt_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "victory_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "defeat_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "draw_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unused14": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unused18": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "award_level": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_victory_margin": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "unused24": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "attempt_count",
+        "victory_count",
+        "defeat_count",
+        "draw_count",
+        "best_score",
+        "unused14",
+        "unused18",
+        "award_level",
+        "best_victory_margin",
+        "unused24"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_campaign": {
+      "type": "object",
+      "description": "pilot_campaign: 36 bytes in the game's layout.",
+      "properties": {
+        "attempt_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "next_mission_index": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "is_finished": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unused10": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unused14": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unused18": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unused1c": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unused20": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "attempt_count",
+        "next_mission_index",
+        "is_finished",
+        "best_score",
+        "unused10",
+        "unused14",
+        "unused18",
+        "unused1c",
+        "unused20"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_campaign_mission": {
+      "type": "object",
+      "description": "pilot_campaign_mission: 32 bytes in the game's layout.",
+      "properties": {
+        "campaign_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "number_times_flown": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "award_eligible": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "award_level": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "best_time": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "is_completed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "unused1c": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "campaign_id",
+        "number_times_flown",
+        "award_eligible",
+        "best_score",
+        "award_level",
+        "best_time",
+        "is_completed",
+        "unused1c"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_stats": {
+      "type": "object",
+      "description": "pilot_stats: 5256 bytes in the game's layout.",
+      "properties": {
+        "total_score_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "standalone_missions_played_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "sequence_missions_played_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "total_kills_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "total_friendlies_killed_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_per_craft_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 100,
+            "maxItems": 100,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_shared_per_craft_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 100,
+            "maxItems": 100,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_assists_per_craft_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 100,
+            "maxItems": 100,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_full_on_player_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 25,
+            "maxItems": 25,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_shared_on_player_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 25,
+            "maxItems": 25,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_assist_on_player_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 25,
+            "maxItems": 25,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_full_on_ai_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 6,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_shared_on_ai_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 6,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_assist_on_ai_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 6,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "num_special_inspected_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "energy_hits_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "energy_fired_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "warheads_hits_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "warheads_fired_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "total_craft_losses_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "losses_by_collisions_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "losses_by_starships_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "losses_by_mines_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "killed_by_player_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 25,
+            "maxItems": 25,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "killed_by_ai_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 6,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        }
+      },
+      "required": [
+        "total_score_per_mt",
+        "standalone_missions_played_per_mt",
+        "sequence_missions_played_per_mt",
+        "total_kills_per_mt",
+        "total_friendlies_killed_per_mt",
+        "kills_per_craft_per_mt",
+        "kills_shared_per_craft_per_mt",
+        "kills_assists_per_craft_per_mt",
+        "kills_full_on_player_rating_per_mt",
+        "kills_shared_on_player_rating_per_mt",
+        "kills_assist_on_player_rating_per_mt",
+        "kills_full_on_ai_rating_per_mt",
+        "kills_shared_on_ai_rating_per_mt",
+        "kills_assist_on_ai_rating_per_mt",
+        "num_special_inspected_per_mt",
+        "energy_hits_per_mt",
+        "energy_fired_per_mt",
+        "warheads_hits_per_mt",
+        "warheads_fired_per_mt",
+        "total_craft_losses_per_mt",
+        "losses_by_collisions_per_mt",
+        "losses_by_starships_per_mt",
+        "losses_by_mines_per_mt",
+        "killed_by_player_rating_per_mt",
+        "killed_by_ai_rating_per_mt"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_faction": {
+      "type": "object",
+      "description": "pilot_faction: 68064 bytes in the game's layout.",
+      "properties": {
+        "total_missions_played_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "team": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "mission_directory_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "mission_description_ids": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "unused24": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){32}$"
+        },
+        "mission_sequence_active": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "saved_mission_description_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "melee_plaques": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "tournament_trophies": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "mission_evaluations": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "battle_medallions": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "mission_awards": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "field_bc": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){16}$"
+        },
+        "total_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "stats": {
+          "$ref": "#/$defs/pilot_stats"
+        },
+        "field1558": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){4}$"
+        },
+        "sp_training_missions": {
+          "type": "array",
+          "minItems": 100,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/pilot_mission"
+          }
+        },
+        "sp_melee_missions": {
+          "type": "array",
+          "minItems": 250,
+          "maxItems": 250,
+          "items": {
+            "$ref": "#/$defs/pilot_mission"
+          }
+        },
+        "sp_combat_missions": {
+          "type": "array",
+          "minItems": 250,
+          "maxItems": 250,
+          "items": {
+            "$ref": "#/$defs/pilot_mission"
+          }
+        },
+        "mp_training_missions": {
+          "type": "array",
+          "minItems": 100,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/pilot_multiplayer_mission"
+          }
+        },
+        "mp_melee_missions": {
+          "type": "array",
+          "minItems": 250,
+          "maxItems": 250,
+          "items": {
+            "$ref": "#/$defs/pilot_multiplayer_mission"
+          }
+        },
+        "mp_combat_missions": {
+          "type": "array",
+          "minItems": 250,
+          "maxItems": 250,
+          "items": {
+            "$ref": "#/$defs/pilot_multiplayer_mission"
+          }
+        },
+        "sp_tournaments": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "$ref": "#/$defs/pilot_tournament"
+          }
+        },
+        "mp_tournaments": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "$ref": "#/$defs/pilot_multiplayer_tournament"
+          }
+        },
+        "sp_battles": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "$ref": "#/$defs/pilot_battle"
+          }
+        },
+        "mp_battles": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "$ref": "#/$defs/pilot_multiplayer_battle"
+          }
+        },
+        "sp_campaigns": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "$ref": "#/$defs/pilot_campaign"
+          }
+        },
+        "mp_campaigns": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "$ref": "#/$defs/pilot_campaign"
+          }
+        },
+        "unused_f0e4": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){24}$"
+        },
+        "cd_movie_check_counter": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "sp_campaign_missions": {
+          "type": "array",
+          "minItems": 99,
+          "maxItems": 99,
+          "items": {
+            "$ref": "#/$defs/pilot_campaign_mission"
+          }
+        },
+        "unused_fd60": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){32}$"
+        },
+        "mp_campaign_missions": {
+          "type": "array",
+          "minItems": 99,
+          "maxItems": 99,
+          "items": {
+            "$ref": "#/$defs/pilot_campaign_mission"
+          }
+        }
+      },
+      "required": [
+        "total_missions_played_count",
+        "team",
+        "mission_directory_id",
+        "mission_description_ids",
+        "unused24",
+        "mission_sequence_active",
+        "saved_mission_description_id",
+        "melee_plaques",
+        "tournament_trophies",
+        "mission_evaluations",
+        "battle_medallions",
+        "mission_awards",
+        "field_bc",
+        "total_score",
+        "stats",
+        "field1558",
+        "sp_training_missions",
+        "sp_melee_missions",
+        "sp_combat_missions",
+        "mp_training_missions",
+        "mp_melee_missions",
+        "mp_combat_missions",
+        "sp_tournaments",
+        "mp_tournaments",
+        "sp_battles",
+        "mp_battles",
+        "sp_campaigns",
+        "mp_campaigns",
+        "unused_f0e4",
+        "cd_movie_check_counter",
+        "sp_campaign_missions",
+        "unused_fd60",
+        "mp_campaign_missions"
+      ],
+      "additionalProperties": false
+    },
+    "melee_tournament_team_standings": {
+      "type": "object",
+      "description": "melee_tournament_team_standings: 20 bytes in the game's layout.",
+      "properties": {
+        "ai_opponent_source_team_and_type_flag": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "total_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "first_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "second_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "third_place_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "ai_opponent_source_team_and_type_flag",
+        "total_score",
+        "first_place_count",
+        "second_place_count",
+        "third_place_count"
+      ],
+      "additionalProperties": false
+    },
+    "melee_tournament_sequence_state": {
+      "type": "object",
+      "description": "melee_tournament_sequence_state: 256 bytes in the game's layout.",
+      "properties": {
+        "reserved": {
+          "type": "array",
+          "minItems": 9,
+          "maxItems": 9,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "current_mission_index": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "mission_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "team_standings": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/$defs/melee_tournament_team_standings"
+          }
+        },
+        "human_player_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "participating_team_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "ai_boost_first_team": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "reserved",
+        "current_mission_index",
+        "mission_count",
+        "team_standings",
+        "human_player_count",
+        "participating_team_count",
+        "ai_boost_first_team"
+      ],
+      "additionalProperties": false
+    },
+    "battle_sequence_state": {
+      "type": "object",
+      "description": "battle_sequence_state: 140 bytes in the game's layout.",
+      "properties": {
+        "current_mission_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "current_mission_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "victories_needed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "mission_results": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "mission_ordinals": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "mission_list_indices": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "human_player_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "cumulative_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "current_mission_index",
+        "current_mission_id",
+        "victories_needed",
+        "mission_results",
+        "mission_ordinals",
+        "mission_list_indices",
+        "human_player_count",
+        "cumulative_score"
+      ],
+      "additionalProperties": false
+    },
+    "campaign_sequence_state": {
+      "type": "object",
+      "description": "campaign_sequence_state: 24 bytes in the game's layout.",
+      "properties": {
+        "unused00": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "current_mission_index": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "mission_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "last_mission_completed": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "human_player_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "cumulative_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "unused00",
+        "current_mission_index",
+        "mission_count",
+        "last_mission_completed",
+        "human_player_count",
+        "cumulative_score"
+      ],
+      "additionalProperties": false
+    },
+    "battle_continuation": {
+      "type": "object",
+      "description": "battle_continuation: 160 bytes in the game's layout.",
+      "properties": {
+        "unused00": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "random_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "is_active": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "battle_length_index": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "random_setup": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "sequence_state": {
+          "$ref": "#/$defs/battle_sequence_state"
+        }
+      },
+      "required": [
+        "unused00",
+        "random_seed",
+        "is_active",
+        "battle_length_index",
+        "random_setup",
+        "sequence_state"
+      ],
+      "additionalProperties": false
+    },
+    "campaign_continuation": {
+      "type": "object",
+      "description": "campaign_continuation: 40 bytes in the game's layout.",
+      "properties": {
+        "unused00": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "random_seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "is_active": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "random_setup": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "sequence_state": {
+          "$ref": "#/$defs/campaign_sequence_state"
+        }
+      },
+      "required": [
+        "unused00",
+        "random_seed",
+        "is_active",
+        "random_setup",
+        "sequence_state"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_data": {
+      "type": "object",
+      "description": "pilot_data: 296238 bytes in the game's layout.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 14
+        },
+        "total_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "local_player_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "launch_session_marker": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "is_host": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "num_human_players_last_mission": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "session_mode": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "xvt_record_payload": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){672}$"
+        },
+        "team": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "mission_directory_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "mission_description_ids": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "multiplayer_game_name": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "multiplayer_host_name": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "mission_sequence_active": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "saved_mission_description_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "current_rating_promo_points": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "current_rating_worse_promo_points": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "promotion_delta": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "next_promotion_percent": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "main_stats": {
+          "$ref": "#/$defs/pilot_stats"
+        },
+        "melee_tournament_sequence_state": {
+          "$ref": "#/$defs/melee_tournament_sequence_state"
+        },
+        "battle_sequence_state": {
+          "$ref": "#/$defs/battle_sequence_state"
+        },
+        "rating": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "total_missions_played_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "rating_achieved_on_mission": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "rating_name": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "mission_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "kills_full_on_player": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_shared_on_player": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_full_on_flight_group": {
+          "type": "array",
+          "minItems": 48,
+          "maxItems": 48,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_shared_on_flight_group": {
+          "type": "array",
+          "minItems": 48,
+          "maxItems": 48,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_full_from_player": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_shared_from_player": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_full_from_flight_group": {
+          "type": "array",
+          "minItems": 48,
+          "maxItems": 48,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_shared_from_flight_group": {
+          "type": "array",
+          "minItems": 48,
+          "maxItems": 48,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "flight_group_rating": {
+          "type": "array",
+          "minItems": 48,
+          "maxItems": 48,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "last_mission_stats": {
+          "$ref": "#/$defs/pilot_stats"
+        },
+        "network_players": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/pilot_network_player"
+          }
+        },
+        "teams": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/$defs/pilot_team"
+          }
+        },
+        "current_faction_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "faction_statistics": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/pilot_faction"
+          }
+        },
+        "campaign_sequence_state": {
+          "$ref": "#/$defs/campaign_sequence_state"
+        },
+        "sp_battle_continuations": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "$ref": "#/$defs/battle_continuation"
+          }
+        },
+        "mp_battle_continuations": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "$ref": "#/$defs/battle_continuation"
+          }
+        },
+        "sp_campaign_continuations": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "$ref": "#/$defs/campaign_continuation"
+          }
+        },
+        "mp_campaign_continuations": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "$ref": "#/$defs/campaign_continuation"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "total_score",
+        "local_player_id",
+        "launch_session_marker",
+        "is_host",
+        "num_human_players_last_mission",
+        "session_mode",
+        "xvt_record_payload",
+        "team",
+        "mission_directory_id",
+        "mission_description_ids",
+        "multiplayer_game_name",
+        "multiplayer_host_name",
+        "mission_sequence_active",
+        "saved_mission_description_id",
+        "current_rating_promo_points",
+        "current_rating_worse_promo_points",
+        "promotion_delta",
+        "next_promotion_percent",
+        "main_stats",
+        "melee_tournament_sequence_state",
+        "battle_sequence_state",
+        "rating",
+        "total_missions_played_count",
+        "rating_achieved_on_mission",
+        "rating_name",
+        "mission_score",
+        "kills_full_on_player",
+        "kills_shared_on_player",
+        "kills_full_on_flight_group",
+        "kills_shared_on_flight_group",
+        "kills_full_from_player",
+        "kills_shared_from_player",
+        "kills_full_from_flight_group",
+        "kills_shared_from_flight_group",
+        "flight_group_rating",
+        "last_mission_stats",
+        "network_players",
+        "teams",
+        "current_faction_id",
+        "faction_statistics",
+        "campaign_sequence_state",
+        "sp_battle_continuations",
+        "mp_battle_continuations",
+        "sp_campaign_continuations",
+        "mp_campaign_continuations"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_xvt_stats": {
+      "type": "object",
+      "description": "pilot_xvt_stats: 4824 bytes in the game's layout.",
+      "properties": {
+        "total_score_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "standalone_missions_played_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "sequence_missions_played_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "total_kills_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "total_friendlies_killed_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_per_craft_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 88,
+            "maxItems": 88,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_shared_per_craft_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 88,
+            "maxItems": 88,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_assists_per_craft_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 88,
+            "maxItems": 88,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_full_on_player_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 25,
+            "maxItems": 25,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_shared_on_player_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 25,
+            "maxItems": 25,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_assist_on_player_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 25,
+            "maxItems": 25,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_full_on_ai_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 6,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_shared_on_ai_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 6,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "kills_assist_on_ai_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 6,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "num_special_inspected_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "energy_hits_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "energy_fired_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "warheads_hits_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "warheads_fired_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "total_craft_losses_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "losses_by_collisions_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "losses_by_starships_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "losses_by_mines_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "killed_by_player_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 25,
+            "maxItems": 25,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        },
+        "killed_by_ai_rating_per_mt": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "array",
+            "minItems": 6,
+            "maxItems": 6,
+            "items": {
+              "type": "integer",
+              "minimum": -2147483648,
+              "maximum": 2147483647
+            }
+          }
+        }
+      },
+      "required": [
+        "total_score_per_mt",
+        "standalone_missions_played_per_mt",
+        "sequence_missions_played_per_mt",
+        "total_kills_per_mt",
+        "total_friendlies_killed_per_mt",
+        "kills_per_craft_per_mt",
+        "kills_shared_per_craft_per_mt",
+        "kills_assists_per_craft_per_mt",
+        "kills_full_on_player_rating_per_mt",
+        "kills_shared_on_player_rating_per_mt",
+        "kills_assist_on_player_rating_per_mt",
+        "kills_full_on_ai_rating_per_mt",
+        "kills_shared_on_ai_rating_per_mt",
+        "kills_assist_on_ai_rating_per_mt",
+        "num_special_inspected_per_mt",
+        "energy_hits_per_mt",
+        "energy_fired_per_mt",
+        "warheads_hits_per_mt",
+        "warheads_fired_per_mt",
+        "total_craft_losses_per_mt",
+        "losses_by_collisions_per_mt",
+        "losses_by_starships_per_mt",
+        "losses_by_mines_per_mt",
+        "killed_by_player_rating_per_mt",
+        "killed_by_ai_rating_per_mt"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_xvt_faction": {
+      "type": "object",
+      "description": "pilot_xvt_faction: 59428 bytes in the game's layout.",
+      "properties": {
+        "total_missions_played_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "selection_state": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){68}$"
+        },
+        "melee_plaques": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "tournament_trophies": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "mission_evaluations": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "battle_medallions": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "mission_awards": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "field_bc": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){16}$"
+        },
+        "total_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "stats": {
+          "$ref": "#/$defs/pilot_xvt_stats"
+        },
+        "sp_training_data": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){3600}$"
+        },
+        "sp_melee_data": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){9000}$"
+        },
+        "sp_combat_data": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){9000}$"
+        },
+        "mp_training_data": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){4800}$"
+        },
+        "mp_melee_data": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){12000}$"
+        },
+        "mp_combat_data": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){12000}$"
+        },
+        "sp_tournament_data": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){1000}$"
+        },
+        "mp_tournament_data": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){1100}$"
+        },
+        "sp_battle_data": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){900}$"
+        },
+        "mp_battle_data": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){1000}$"
+        }
+      },
+      "required": [
+        "total_missions_played_count",
+        "selection_state",
+        "melee_plaques",
+        "tournament_trophies",
+        "mission_evaluations",
+        "battle_medallions",
+        "mission_awards",
+        "field_bc",
+        "total_score",
+        "stats",
+        "sp_training_data",
+        "sp_melee_data",
+        "sp_combat_data",
+        "mp_training_data",
+        "mp_melee_data",
+        "mp_combat_data",
+        "sp_tournament_data",
+        "mp_tournament_data",
+        "sp_battle_data",
+        "mp_battle_data"
+      ],
+      "additionalProperties": false
+    },
+    "pilot_xvt_record": {
+      "type": "object",
+      "description": "pilot_xvt_record: 253754 bytes in the game's layout.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 14
+        },
+        "total_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "local_player_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "launch_session_marker": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "is_host": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "num_human_players_last_mission": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "session_mode": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "xvt_record_combat_payload": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){320}$"
+        },
+        "xvt_record_identity_payload": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){32}$"
+        },
+        "xvt_record_object_payload": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){320}$"
+        },
+        "legacy_rating_state": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){100}$"
+        },
+        "current_rating_promo_points": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "current_rating_worse_promo_points": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "promotion_delta": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "next_promotion_percent": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "main_stats": {
+          "$ref": "#/$defs/pilot_xvt_stats"
+        },
+        "mission_sequence_state": {
+          "type": "string",
+          "pattern": "^([0-9a-f]{2}){3348}$"
+        },
+        "rating": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "total_missions_played_count": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "rating_achieved_on_mission": {
+          "type": "array",
+          "minItems": 25,
+          "maxItems": 25,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "rating_name": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "mission_score": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "kills_full_on_player": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_shared_on_player": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_full_on_flight_group": {
+          "type": "array",
+          "minItems": 48,
+          "maxItems": 48,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_shared_on_flight_group": {
+          "type": "array",
+          "minItems": 48,
+          "maxItems": 48,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_full_from_player": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_shared_from_player": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_full_from_flight_group": {
+          "type": "array",
+          "minItems": 48,
+          "maxItems": 48,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "kills_shared_from_flight_group": {
+          "type": "array",
+          "minItems": 48,
+          "maxItems": 48,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "flight_group_rating": {
+          "type": "array",
+          "minItems": 48,
+          "maxItems": 48,
+          "items": {
+            "type": "integer",
+            "minimum": -2147483648,
+            "maximum": 2147483647
+          }
+        },
+        "last_mission_stats": {
+          "$ref": "#/$defs/pilot_xvt_stats"
+        },
+        "network_players": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/pilot_network_player"
+          }
+        },
+        "teams": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/$defs/pilot_team"
+          }
+        },
+        "current_faction_id": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "faction_statistics": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/pilot_xvt_faction"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "total_score",
+        "local_player_id",
+        "launch_session_marker",
+        "is_host",
+        "num_human_players_last_mission",
+        "session_mode",
+        "xvt_record_combat_payload",
+        "xvt_record_identity_payload",
+        "xvt_record_object_payload",
+        "legacy_rating_state",
+        "current_rating_promo_points",
+        "current_rating_worse_promo_points",
+        "promotion_delta",
+        "next_promotion_percent",
+        "main_stats",
+        "mission_sequence_state",
+        "rating",
+        "total_missions_played_count",
+        "rating_achieved_on_mission",
+        "rating_name",
+        "mission_score",
+        "kills_full_on_player",
+        "kills_shared_on_player",
+        "kills_full_on_flight_group",
+        "kills_shared_on_flight_group",
+        "kills_full_from_player",
+        "kills_shared_from_player",
+        "kills_full_from_flight_group",
+        "kills_shared_from_flight_group",
+        "flight_group_rating",
+        "last_mission_stats",
+        "network_players",
+        "teams",
+        "current_faction_id",
+        "faction_statistics"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

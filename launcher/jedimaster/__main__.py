@@ -1,11 +1,13 @@
-"""Command line: ``python -m jedimaster dump|export|lists|icons|text|fonts|pictures``.
+"""Command line: ``python -m jedimaster <command>``, one command per kind of file.
 
 Purpose:
-    Print one mission in the answer-sheet text format, or export every
-    mission of an install as JSON files; ``lists`` does the same for the
-    game's text lists; ``icons`` reads the briefing map's icon sheets;
-    ``text``, ``fonts`` and ``pictures`` read the menus' text files, fonts
-    and pictures.
+    The commands are ``dump``, ``export``, ``lists``, ``icons``, ``text``,
+    ``fonts``, ``pictures`` and ``pilot``. Print one mission in the
+    answer-sheet text format, or export every mission of an install as
+    JSON files; ``lists`` does the same for the game's text lists;
+    ``icons`` reads the briefing map's icon sheets; ``text``, ``fonts`` and
+    ``pictures`` read the menus' text files, fonts and pictures; ``pilot``
+    reads a pilot's files and loads a pilot.
 
 Flow:
     ``dump <mission>``: read the file (or, when no such file exists, resolve
@@ -20,7 +22,8 @@ Flow:
     export <install> <out-folder>`` are ``jedimaster.icons.cli``'s; ``text
     dump <kind> <file>``, ``fonts dump <file>``, ``pictures dump <bmp>`` and
     their ``export <install> <out-folder>`` are the ``cli`` modules' of
-    ``jedimaster.text``, ``jedimaster.fonts`` and ``jedimaster.pictures``.
+    ``jedimaster.text``, ``jedimaster.fonts`` and ``jedimaster.pictures``;
+    ``pilot dump|load|export`` is ``jedimaster.pilot.cli``'s.
 
 Invariants:
     - ``print`` is used only for the command's output; diagnostics go to the
@@ -58,11 +61,17 @@ from .mission import MissionFormatError
 from .mission import read_mission
 from .mission import render_mission
 from .pictures import cli as pictures_cli
+from .pilot import cli as pilot_cli
 from .text import cli as text_cli
 
 logger = logging.getLogger(__name__)
 
-SUBCOMMANDS = {"text": text_cli, "fonts": fonts_cli, "pictures": pictures_cli}
+SUBCOMMANDS = {
+    "text": text_cli,
+    "fonts": fonts_cli,
+    "pictures": pictures_cli,
+    "pilot": pilot_cli,
+}
 """The commands whose modules parse and run their own subcommands."""
 
 
@@ -91,6 +100,7 @@ def _parser() -> argparse.ArgumentParser:
     text_cli.add_parser(sub)
     fonts_cli.add_parser(sub)
     pictures_cli.add_parser(sub)
+    pilot_cli.add_parser(sub)
     return parser
 
 
@@ -191,9 +201,9 @@ def _export(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     """Run the command line; return the exit status.
 
-    Returns 0 on success, 1 when a mission, list, bitmap, text file, font
-    or picture fails to read or write, 2 for a missing one or install or a
-    list of unknown kind (argparse itself exits 2 on bad usage). Does not
+    Returns 0 on success, 1 when a mission, list, bitmap, text file, font,
+    picture or pilot fails to read or write, 2 for a missing one or install
+    or a list of unknown kind (argparse itself exits 2 on bad usage). Does not
     catch errors other than the readers' format errors and OS errors.
     """
     args = _parser().parse_args(argv)

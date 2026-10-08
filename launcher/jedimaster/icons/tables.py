@@ -5,9 +5,10 @@ Purpose:
     the 106 craft types. Neither table is in any file of the game: they are
     the game's own tables, as printed by the engine's icon_dump tool, copied
     here from that printout. They are carried here as facts about the
-    game's art. With the strings.txt tables of ``jedimaster.text.tables``
-    and the text colors of ``jedimaster.fonts.colors``, they are the only
-    game data in this package's code.
+    game's art. With the strings.txt tables of ``jedimaster.text.tables``,
+    the text colors of ``jedimaster.fonts.colors`` and the pilot layout of
+    ``jedimaster.pilot.layout``, they are the only game data in this
+    package's code.
 
 Flow:
     ``BOXES[n]`` is box ``n``; ``CRAFT_BOXES[t]`` is the box number of craft
