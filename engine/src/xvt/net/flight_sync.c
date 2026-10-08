@@ -334,6 +334,231 @@ void flight_sync_capture_samples_and_restore_poses(void)
 	} while (player_index < 8);
 }
 
+/* Part of flight_sync_apply_remote_player_render_smoothing: saves
+ * object's simulated pose in player player_index's
+ * g_remote_player_saved_sim_poses entry and marks it valid. */
+static void flight_sync_save_sim_pose(int player_index,
+				      const struct object_record *object)
+{
+	g_remote_player_saved_sim_poses[player_index].roll = object->roll;
+	g_remote_player_saved_sim_poses[player_index].pitch = object->pitch;
+	g_remote_player_saved_sim_poses[player_index].yaw = object->yaw;
+	g_remote_player_saved_sim_poses[player_index].world_x = object->world_x;
+	g_remote_player_saved_sim_poses[player_index].world_y = object->world_y;
+	g_remote_player_saved_sim_poses[player_index].world_z = object->world_z;
+	g_remote_player_saved_sim_poses[player_index].valid = 1;
+}
+
+/* Part of flight_sync_apply_remote_player_render_smoothing: projects
+ * *predicted_world_x, *predicted_world_y and *predicted_world_z along player
+ * player_index's sampled move vector by a distance from the sampled speed and
+ * elapsed_time, moves them toward object's simulated position as that
+ * function's comment tells it, and draws object there. Leaves 32 times the
+ * distance in *prediction_distance, the gap's rough length in
+ * *rough_distance and the share in *position_blend for the log line. */
+static void flight_sync_blend_position(
+	int player_index, struct object_record *object, int elapsed_time,
+	int *predicted_world_x, int *predicted_world_y, int *predicted_world_z,
+	int *prediction_distance, int *rough_distance, int *position_blend)
+{
+	*prediction_distance = 0;
+	if (elapsed_time > 0 &&
+	    g_remote_player_render_samples[player_index].speed_magnitude != 0) {
+		*prediction_distance =
+			elapsed_time *
+			((4660 * g_remote_player_render_samples[player_index]
+					  .speed_magnitude +
+			  128) >>
+			 8) /
+			SIMULATION_TICKS_PER_SECOND;
+		*predicted_world_x += math_mul_q15(
+			g_remote_player_render_samples[player_index].move_x,
+			*prediction_distance);
+		*predicted_world_y += math_mul_q15(
+			g_remote_player_render_samples[player_index].move_y,
+			*prediction_distance);
+		*predicted_world_z += math_mul_q15(
+			g_remote_player_render_samples[player_index].move_z,
+			*prediction_distance);
+	}
+
+	int position_delta_x = object->world_x - *predicted_world_x;
+	int position_delta_y = object->world_y - *predicted_world_y;
+	int position_delta_z = object->world_z - *predicted_world_z;
+	*rough_distance = collide_roughdistance3d(
+		position_delta_x, position_delta_y, position_delta_z);
+	*prediction_distance *= 32;
+	if (*prediction_distance >= *rough_distance && *rough_distance != 0) {
+		*position_blend =
+			(*rough_distance << 14) / *prediction_distance;
+	} else {
+		*position_blend = 0x4000;
+	}
+	int blended_x = math_mul_q15(*position_blend, position_delta_x);
+	int blended_y = math_mul_q15(*position_blend, position_delta_y);
+	int blended_z = math_mul_q15(*position_blend, position_delta_z);
+	*predicted_world_x += blended_x;
+	*predicted_world_y += blended_y;
+	*predicted_world_z += blended_z;
+	object->world_x = *predicted_world_x;
+	object->world_y = *predicted_world_y;
+	object->world_z = *predicted_world_z;
+}
+
+/* Part of flight_sync_apply_remote_player_render_smoothing: holds
+ * object's roll at player player_index's sampled roll when it moved against
+ * the sampled turn, sets *max_angle_change from elapsed_time, and runs the
+ * roll's step that compares the change with it, which changes nothing. */
+static void flight_sync_smooth_roll(int player_index,
+				    struct object_record *object,
+				    int elapsed_time, int *max_angle_change)
+{
+	int candidate_angle;
+	int candidate_difference;
+
+	int angle_difference =
+		(int16_t)(object->roll -
+			  g_remote_player_render_samples[player_index].roll);
+	int signed_angle_difference = angle_difference;
+	if (g_remote_player_render_samples[player_index].roll_delta > 0) {
+		if (angle_difference < 0) {
+			object->roll =
+				g_remote_player_render_samples[player_index]
+					.roll;
+			angle_difference = 0;
+			signed_angle_difference = 0;
+		}
+	} else if (g_remote_player_render_samples[player_index].roll_delta <
+		   0) {
+		if (signed_angle_difference > 0) {
+			object->roll =
+				g_remote_player_render_samples[player_index]
+					.roll;
+			angle_difference = 0;
+			signed_angle_difference = 0;
+		}
+	}
+	if (angle_difference < 0) {
+		angle_difference = -angle_difference;
+	}
+	*max_angle_change = 6144 * elapsed_time / SIMULATION_TICKS_PER_SECOND;
+	if (angle_difference > *max_angle_change) {
+		candidate_angle =
+			g_remote_player_render_samples[player_index].roll +
+			signed_angle_difference;
+		candidate_difference = object->roll - candidate_angle;
+		if (candidate_difference < 0) {
+			candidate_difference = -candidate_difference;
+		}
+		if (8 * *max_angle_change > candidate_difference) {
+			object->roll = candidate_angle;
+		}
+	}
+}
+
+/* Part of flight_sync_apply_remote_player_render_smoothing: holds
+ * object's pitch at player player_index's sampled pitch when it moved
+ * against the sampled turn, and runs the pitch's step that compares the
+ * change with max_angle_change, which changes nothing. */
+static void flight_sync_smooth_pitch(int player_index,
+				     struct object_record *object,
+				     int max_angle_change)
+{
+	int angle_difference;
+	int signed_angle_difference;
+	int candidate_angle;
+	int candidate_difference;
+
+	angle_difference =
+		(int16_t)(object->pitch -
+			  g_remote_player_render_samples[player_index].pitch);
+	signed_angle_difference = angle_difference;
+	if (g_remote_player_render_samples[player_index].pitch_delta > 0) {
+		if (angle_difference < 0) {
+			object->pitch =
+				g_remote_player_render_samples[player_index]
+					.pitch;
+			angle_difference = 0;
+			signed_angle_difference = 0;
+		}
+	} else if (g_remote_player_render_samples[player_index].pitch_delta <
+		   0) {
+		if (signed_angle_difference > 0) {
+			object->pitch =
+				g_remote_player_render_samples[player_index]
+					.pitch;
+			angle_difference = 0;
+			signed_angle_difference = 0;
+		}
+	}
+	if (angle_difference < 0) {
+		angle_difference = -angle_difference;
+	}
+	if (angle_difference > max_angle_change) {
+		candidate_angle =
+			g_remote_player_render_samples[player_index].pitch +
+			signed_angle_difference;
+		candidate_difference = object->pitch - candidate_angle;
+		if (candidate_difference < 0) {
+			candidate_difference = -candidate_difference;
+		}
+		if (8 * max_angle_change > candidate_difference) {
+			object->pitch = candidate_angle;
+		}
+	}
+}
+
+/* Part of flight_sync_apply_remote_player_render_smoothing: holds
+ * object's yaw at player player_index's sampled yaw when it moved against
+ * the sampled turn, and runs the yaw's step that compares the change with
+ * max_angle_change, which changes nothing. */
+static void flight_sync_smooth_yaw(int player_index,
+				   struct object_record *object,
+				   int max_angle_change)
+{
+	int angle_difference;
+	int signed_angle_difference;
+	int candidate_angle;
+	int candidate_difference;
+
+	angle_difference =
+		(int16_t)(object->yaw -
+			  g_remote_player_render_samples[player_index].yaw);
+	signed_angle_difference = angle_difference;
+	if (g_remote_player_render_samples[player_index].yaw_delta > 0) {
+		if (angle_difference < 0) {
+			object->yaw =
+				g_remote_player_render_samples[player_index]
+					.yaw;
+			angle_difference = 0;
+			signed_angle_difference = 0;
+		}
+	} else if (g_remote_player_render_samples[player_index].yaw_delta < 0) {
+		if (signed_angle_difference > 0) {
+			object->yaw =
+				g_remote_player_render_samples[player_index]
+					.yaw;
+			angle_difference = 0;
+			signed_angle_difference = 0;
+		}
+	}
+	if (angle_difference < 0) {
+		angle_difference = -angle_difference;
+	}
+	if (angle_difference > max_angle_change) {
+		candidate_angle =
+			g_remote_player_render_samples[player_index].yaw +
+			signed_angle_difference;
+		candidate_difference = object->yaw - candidate_angle;
+		if (candidate_difference < 0) {
+			candidate_difference = -candidate_difference;
+		}
+		if (8 * max_angle_change > candidate_difference) {
+			object->yaw = candidate_angle;
+		}
+	}
+}
+
 /* Runs before a frame is drawn. Moves each active remote player's craft from
  * its simulated pose to a smoothed one, after saving the simulated pose in
  * g_remote_player_saved_sim_poses for flight_sync_capture_samples_and_restore_poses to
@@ -355,8 +580,6 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 	}
 
 	int position_blend;
-	int candidate_angle;
-	int candidate_difference;
 	for (int player_index = 0; player_index < 8; ++player_index) {
 		g_remote_player_saved_sim_poses[player_index].valid = 0;
 		if (g_players[player_index].participation_state == 0 ||
@@ -389,26 +612,13 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 			continue;
 		}
 
-		g_remote_player_saved_sim_poses[player_index].roll =
-			object->roll;
-		g_remote_player_saved_sim_poses[player_index].pitch =
-			object->pitch;
-		g_remote_player_saved_sim_poses[player_index].yaw = object->yaw;
-		g_remote_player_saved_sim_poses[player_index].world_x =
-			object->world_x;
-		g_remote_player_saved_sim_poses[player_index].world_y =
-			object->world_y;
-		g_remote_player_saved_sim_poses[player_index].world_z =
-			object->world_z;
-		g_remote_player_saved_sim_poses[player_index].valid = 1;
-
+		flight_sync_save_sim_pose(player_index, object);
 		int predicted_world_x =
 			g_remote_player_render_samples[player_index].world_x;
 		int predicted_world_y =
 			g_remote_player_render_samples[player_index].world_y;
 		int predicted_world_z =
 			g_remote_player_render_samples[player_index].world_z;
-
 		int elapsed_time = object->mobj->sim_state_timestamp -
 				   g_remote_player_render_samples[player_index]
 					   .sim_state_timestamp;
@@ -419,179 +629,18 @@ void flight_sync_apply_remote_player_render_smoothing(void)
 			continue;
 		}
 
-		int prediction_distance = 0;
-		if (elapsed_time > 0 &&
-		    g_remote_player_render_samples[player_index]
-				    .speed_magnitude != 0) {
-			prediction_distance =
-				elapsed_time *
-				((4660 * g_remote_player_render_samples
-						  [player_index]
-							  .speed_magnitude +
-				  128) >>
-				 8) /
-				SIMULATION_TICKS_PER_SECOND;
-			predicted_world_x += math_mul_q15(
-				g_remote_player_render_samples[player_index]
-					.move_x,
-				prediction_distance);
-			predicted_world_y += math_mul_q15(
-				g_remote_player_render_samples[player_index]
-					.move_y,
-				prediction_distance);
-			predicted_world_z += math_mul_q15(
-				g_remote_player_render_samples[player_index]
-					.move_z,
-				prediction_distance);
-		}
-
-		int position_delta_x = object->world_x - predicted_world_x;
-		int position_delta_y = object->world_y - predicted_world_y;
-		int position_delta_z = object->world_z - predicted_world_z;
-		int rough_distance = collide_roughdistance3d(
-			position_delta_x, position_delta_y, position_delta_z);
-		prediction_distance *= 32;
-		if (prediction_distance >= rough_distance &&
-		    rough_distance != 0) {
-			position_blend =
-				(rough_distance << 14) / prediction_distance;
-		} else {
-			position_blend = 0x4000;
-		}
-		int blended_x = math_mul_q15(position_blend, position_delta_x);
-		int blended_y = math_mul_q15(position_blend, position_delta_y);
-		int blended_z = math_mul_q15(position_blend, position_delta_z);
-		predicted_world_x += blended_x;
-		predicted_world_y += blended_y;
-		predicted_world_z += blended_z;
-		object->world_x = predicted_world_x;
-		object->world_y = predicted_world_y;
-		object->world_z = predicted_world_z;
-
-		int angle_difference =
-			(int16_t)(object->roll -
-				  g_remote_player_render_samples[player_index]
-					  .roll);
-		int signed_angle_difference = angle_difference;
-		if (g_remote_player_render_samples[player_index].roll_delta >
-		    0) {
-			if (angle_difference < 0) {
-				object->roll = g_remote_player_render_samples
-						       [player_index]
-							       .roll;
-				angle_difference = 0;
-				signed_angle_difference = 0;
-			}
-		} else if (g_remote_player_render_samples[player_index]
-				   .roll_delta < 0) {
-			if (signed_angle_difference > 0) {
-				object->roll = g_remote_player_render_samples
-						       [player_index]
-							       .roll;
-				angle_difference = 0;
-				signed_angle_difference = 0;
-			}
-		}
-		if (angle_difference < 0) {
-			angle_difference = -angle_difference;
-		}
-		int max_angle_change =
-			6144 * elapsed_time / SIMULATION_TICKS_PER_SECOND;
-		if (angle_difference > max_angle_change) {
-			candidate_angle =
-				g_remote_player_render_samples[player_index]
-					.roll +
-				signed_angle_difference;
-			candidate_difference = object->roll - candidate_angle;
-			if (candidate_difference < 0) {
-				candidate_difference = -candidate_difference;
-			}
-			if (8 * max_angle_change > candidate_difference) {
-				object->roll = candidate_angle;
-			}
-		}
-
-		angle_difference =
-			(int16_t)(object->pitch -
-				  g_remote_player_render_samples[player_index]
-					  .pitch);
-		signed_angle_difference = angle_difference;
-		if (g_remote_player_render_samples[player_index].pitch_delta >
-		    0) {
-			if (angle_difference < 0) {
-				object->pitch = g_remote_player_render_samples
-							[player_index]
-								.pitch;
-				angle_difference = 0;
-				signed_angle_difference = 0;
-			}
-		} else if (g_remote_player_render_samples[player_index]
-				   .pitch_delta < 0) {
-			if (signed_angle_difference > 0) {
-				object->pitch = g_remote_player_render_samples
-							[player_index]
-								.pitch;
-				angle_difference = 0;
-				signed_angle_difference = 0;
-			}
-		}
-		if (angle_difference < 0) {
-			angle_difference = -angle_difference;
-		}
-		if (angle_difference > max_angle_change) {
-			candidate_angle =
-				g_remote_player_render_samples[player_index]
-					.pitch +
-				signed_angle_difference;
-			candidate_difference = object->pitch - candidate_angle;
-			if (candidate_difference < 0) {
-				candidate_difference = -candidate_difference;
-			}
-			if (8 * max_angle_change > candidate_difference) {
-				object->pitch = candidate_angle;
-			}
-		}
-
-		angle_difference =
-			(int16_t)(object->yaw -
-				  g_remote_player_render_samples[player_index]
-					  .yaw);
-		signed_angle_difference = angle_difference;
-		if (g_remote_player_render_samples[player_index].yaw_delta >
-		    0) {
-			if (angle_difference < 0) {
-				object->yaw = g_remote_player_render_samples
-						      [player_index]
-							      .yaw;
-				angle_difference = 0;
-				signed_angle_difference = 0;
-			}
-		} else if (g_remote_player_render_samples[player_index]
-				   .yaw_delta < 0) {
-			if (signed_angle_difference > 0) {
-				object->yaw = g_remote_player_render_samples
-						      [player_index]
-							      .yaw;
-				angle_difference = 0;
-				signed_angle_difference = 0;
-			}
-		}
-		if (angle_difference < 0) {
-			angle_difference = -angle_difference;
-		}
-		if (angle_difference > max_angle_change) {
-			candidate_angle =
-				g_remote_player_render_samples[player_index]
-					.yaw +
-				signed_angle_difference;
-			candidate_difference = object->yaw - candidate_angle;
-			if (candidate_difference < 0) {
-				candidate_difference = -candidate_difference;
-			}
-			if (8 * max_angle_change > candidate_difference) {
-				object->yaw = candidate_angle;
-			}
-		}
+		int prediction_distance;
+		int rough_distance;
+		flight_sync_blend_position(
+			player_index, object, elapsed_time, &predicted_world_x,
+			&predicted_world_y, &predicted_world_z,
+			&prediction_distance, &rough_distance, &position_blend);
+		int max_angle_change;
+		flight_sync_smooth_roll(player_index, object, elapsed_time,
+					&max_angle_change);
+		flight_sync_smooth_pitch(player_index, object,
+					 max_angle_change);
+		flight_sync_smooth_yaw(player_index, object, max_angle_change);
 		XVT_LOG_DEBUG(
 			"network.smoothing_applied slot=%d elapsed=%d reach=%d gap=%d share=%d x=%d y=%d z=%d sx=%d sy=%d sz=%d roll=%u pitch=%u yaw=%u max_turn=%d",
 			player_index, elapsed_time, prediction_distance,
