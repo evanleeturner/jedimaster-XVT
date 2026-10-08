@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/pictures.schema.json",
+  "title": "XvT/BoP menu pictures (jedimaster export)",
+  "type": "object",
+  "description": "The menu screens' pictures (jedimaster export).",
+  "properties": {
+    "format": {
+      "const": "jedimaster.pictures"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "balance_of_power": {
+      "type": "boolean"
+    },
+    "transparent_index": {
+      "const": 0
+    },
+    "pictures": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Picture"
+      }
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "balance_of_power",
+    "transparent_index",
+    "pictures"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Color": {
+      "type": "object",
+      "description": "Index 0's palette color: 8-bit red, green, blue and its 565 value.",
+      "properties": {
+        "red": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "green": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "blue": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "color": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "red",
+        "green",
+        "blue",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "Picture": {
+      "type": "object",
+      "description": "One picture name: status, file, size, PNG, index 0's color.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^frontres\\\\"
+        },
+        "status": {
+          "enum": [
+            "loaded",
+            "missing",
+            "not_loaded"
+          ]
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "width": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "picture": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9_.~-]+\\.png$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "index_0": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Color"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "status",
+        "file",
+        "width",
+        "height",
+        "picture",
+        "index_0"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -716,8 +716,8 @@ OUTPUT_PLANTS: list[Plant] = [
     Plant(
         "icons-png-empty-allowed",
         PNG,
-        "    if bmp.width <= 0 or bmp.height <= 0:",
-        "    if bmp.width < 0 or bmp.height < 0:",
+        "    if width <= 0 or height <= 0:",
+        "    if width < 0 or height < 0:",
         (T_OUT + "test_png_of_an_empty_bitmap_is_refused",),
     ),
     # The command line.

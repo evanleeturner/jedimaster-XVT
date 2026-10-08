@@ -1,0 +1,783 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/text.schema.json",
+  "title": "XvT/BoP text files (jedimaster export)",
+  "type": "object",
+  "description": "The game's text files as the game reads them (jedimaster export).",
+  "properties": {
+    "format": {
+      "const": "jedimaster.text"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "balance_of_power": {
+      "type": "boolean"
+    },
+    "strings": {
+      "type": "object",
+      "description": "The strings.txt file: game name, file, error, and what was read.",
+      "properties": {
+        "name": {
+          "const": "strings.txt"
+        },
+        "file": {
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tables": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Table"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "file",
+        "error",
+        "tables"
+      ],
+      "additionalProperties": false
+    },
+    "front": {
+      "type": "object",
+      "description": "The fronttxt.txt file: game name, file, error, and what was read.",
+      "properties": {
+        "name": {
+          "const": "fronttxt.txt"
+        },
+        "file": {
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entries": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "no_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "file",
+        "error",
+        "entries",
+        "no_text"
+      ],
+      "additionalProperties": false
+    },
+    "specs": {
+      "type": "object",
+      "description": "The specdesc.txt file: game name, file, error, and what was read.",
+      "properties": {
+        "name": {
+          "const": "specdesc.txt"
+        },
+        "file": {
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Field"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entries": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Spec"
+              },
+              "minItems": 93,
+              "maxItems": 93
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "complete": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 93
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cut": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 92
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "file",
+        "error",
+        "fields",
+        "entries",
+        "complete",
+        "cut"
+      ],
+      "additionalProperties": false
+    },
+    "errors": {
+      "type": "object",
+      "description": "The xvterr.txt file: game name, file, error, and what was read.",
+      "properties": {
+        "name": {
+          "const": "xvterr.txt"
+        },
+        "file": {
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "messages": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "file",
+        "error",
+        "messages"
+      ],
+      "additionalProperties": false
+    },
+    "joystick": {
+      "type": "object",
+      "description": "The joystick.txt file: game name, file, error, and what was read.",
+      "properties": {
+        "name": {
+          "const": "joystick.txt"
+        },
+        "file": {
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actions": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Action"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "file",
+        "error",
+        "actions"
+      ],
+      "additionalProperties": false
+    },
+    "credits": {
+      "type": "object",
+      "description": "The credits.txt file: game name, file, error, and what was read.",
+      "properties": {
+        "name": {
+          "const": "credits.txt"
+        },
+        "file": {
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Error"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "start_color": {
+          "anyOf": [
+            {
+              "const": 65535
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pages": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Page"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "file",
+        "error",
+        "start_color",
+        "pages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "balance_of_power",
+    "strings",
+    "front",
+    "specs",
+    "errors",
+    "joystick",
+    "credits"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Action": {
+      "type": "object",
+      "description": "One joystick action: code byte, name, description, file line.",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "code",
+        "name",
+        "description",
+        "line"
+      ],
+      "additionalProperties": false
+    },
+    "CreditsLine": {
+      "type": "object",
+      "description": "One page buffer line: its text and its 16-bit 565 color.",
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "color": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "text",
+        "color"
+      ],
+      "additionalProperties": false
+    },
+    "Entry": {
+      "type": "object",
+      "description": "One entry: number (a goal table's row), variant, gender, text, line.",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gender": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "index",
+        "variant",
+        "gender",
+        "text",
+        "line"
+      ],
+      "additionalProperties": false
+    },
+    "Error": {
+      "type": "object",
+      "description": "Why a file has no result; for a refused strings.txt, where, whether the game stops, and the message it shows (a line of the file).",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "table": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "file_line": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "game_stop": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stop": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "message",
+        "table",
+        "line",
+        "file_line",
+        "game_stop",
+        "stop"
+      ],
+      "additionalProperties": false
+    },
+    "Field": {
+      "type": "object",
+      "description": "A craft entry's field and its size in bytes.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "name",
+        "size"
+      ],
+      "additionalProperties": false
+    },
+    "Page": {
+      "type": "object",
+      "description": "One credits page: header (null where not read), buffer, lines.",
+      "properties": {
+        "page": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "header": {
+          "type": "object",
+          "description": "The page header's ten numbers.",
+          "properties": {
+            "text_x": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "text_y": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "paragraph": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fade": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "duration": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "logo": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "logo_x": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "logo_y": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spare_1": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "spare_2": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "text_x",
+            "text_y",
+            "paragraph",
+            "fade",
+            "duration",
+            "logo",
+            "logo_x",
+            "logo_y",
+            "spare_1",
+            "spare_2"
+          ],
+          "additionalProperties": false
+        },
+        "header_read": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "buffer": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "more": {
+          "type": "boolean"
+        },
+        "used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CreditsLine"
+          },
+          "minItems": 32,
+          "maxItems": 32
+        }
+      },
+      "required": [
+        "page",
+        "header",
+        "header_read",
+        "buffer",
+        "more",
+        "used",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "Spec": {
+      "type": "object",
+      "description": "One craft entry: five fields, each as the game's field holds it.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "manufacturer": {
+          "type": "string"
+        },
+        "users": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "crew": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "manufacturer",
+        "users",
+        "description",
+        "crew"
+      ],
+      "additionalProperties": false
+    },
+    "Table": {
+      "type": "object",
+      "description": "One strings.txt table, in the game's order; absent ones are empty.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "lines",
+            "goal",
+            "models",
+            "escaped"
+          ]
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Entry"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "kind",
+        "present",
+        "lines",
+        "entries"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

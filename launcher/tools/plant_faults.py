@@ -17,8 +17,9 @@ Flow:
        must match its snapshot byte for byte.
 
     The plants live in ``plants_mission``, ``plants_setup``,
-    ``plants_lists_read``, ``plants_lists_output`` and ``plants_icons``;
-    ``PLANTS`` joins them in that order.
+    ``plants_lists_read``, ``plants_lists_output``, ``plants_icons``,
+    ``plants_text_lines``, ``plants_text_read``, ``plants_text_output``,
+    ``plants_fonts`` and ``plants_pictures``; ``PLANTS`` joins them in that order.
 
 Invariants:
     - Files are always restored, also on error or Ctrl-C (``finally``).
@@ -41,11 +42,16 @@ import sys
 from pathlib import Path
 
 from plants_common import Plant
+from plants_fonts import FONTS_PLANTS
 from plants_icons import ICONS_PLANTS
 from plants_lists_output import LISTS_OUTPUT_PLANTS
 from plants_lists_read import LISTS_READ_PLANTS
 from plants_mission import MISSION_PLANTS
+from plants_pictures import PICTURES_PLANTS
 from plants_setup import SETUP_PLANTS
+from plants_text_lines import TEXT_LINES_PLANTS
+from plants_text_output import TEXT_OUTPUT_PLANTS
+from plants_text_read import TEXT_READ_PLANTS
 
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON = sys.executable
@@ -67,6 +73,9 @@ SCHEMA_FILES = (
     ROOT / "schema/mission.schema.json",
     ROOT / "schema/lists.schema.json",
     ROOT / "schema/icons.schema.json",
+    ROOT / "schema/text.schema.json",
+    ROOT / "schema/fonts.schema.json",
+    ROOT / "schema/pictures.schema.json",
 )
 
 PLANTS: list[Plant] = [
@@ -75,6 +84,11 @@ PLANTS: list[Plant] = [
     *LISTS_READ_PLANTS,
     *LISTS_OUTPUT_PLANTS,
     *ICONS_PLANTS,
+    *TEXT_LINES_PLANTS,
+    *TEXT_READ_PLANTS,
+    *TEXT_OUTPUT_PLANTS,
+    *FONTS_PLANTS,
+    *PICTURES_PLANTS,
 ]
 
 

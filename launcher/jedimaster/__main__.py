@@ -1,9 +1,11 @@
-"""Command line: ``python -m jedimaster dump|export|lists|icons``.
+"""Command line: ``python -m jedimaster dump|export|lists|icons|text|fonts|pictures``.
 
 Purpose:
     Print one mission in the answer-sheet text format, or export every
     mission of an install as JSON files; ``lists`` does the same for the
-    game's text lists; ``icons`` reads the briefing map's icon sheets.
+    game's text lists; ``icons`` reads the briefing map's icon sheets;
+    ``text``, ``fonts`` and ``pictures`` read the menus' text files, fonts
+    and pictures.
 
 Flow:
     ``dump <mission>``: read the file (or, when no such file exists, resolve
@@ -15,7 +17,10 @@ Flow:
     name unless ``--kind`` gives it; ``lists export <install> <out-folder>``
     writes ``<out>/<path in the install>.json`` for every list of
     ``list_files``, then one summary line. ``icons dump <bmp>`` and ``icons
-    export <install> <out-folder>`` are ``jedimaster.icons.cli``'s.
+    export <install> <out-folder>`` are ``jedimaster.icons.cli``'s; ``text
+    dump <kind> <file>``, ``fonts dump <file>``, ``pictures dump <bmp>`` and
+    their ``export <install> <out-folder>`` are the ``cli`` modules' of
+    ``jedimaster.text``, ``jedimaster.fonts`` and ``jedimaster.pictures``.
 
 Invariants:
     - ``print`` is used only for the command's output; diagnostics go to the
@@ -36,6 +41,7 @@ import logging
 import sys
 from pathlib import Path
 
+from .fonts import cli as fonts_cli
 from .icons import cli as icons_cli
 from .install import find_install
 from .install import list_missions
@@ -51,8 +57,13 @@ from .mission import mission_to_json
 from .mission import MissionFormatError
 from .mission import read_mission
 from .mission import render_mission
+from .pictures import cli as pictures_cli
+from .text import cli as text_cli
 
 logger = logging.getLogger(__name__)
+
+SUBCOMMANDS = {"text": text_cli, "fonts": fonts_cli, "pictures": pictures_cli}
+"""The commands whose modules parse and run their own subcommands."""
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -77,6 +88,9 @@ def _parser() -> argparse.ArgumentParser:
     lexport.add_argument("install", help="the install folder")
     lexport.add_argument("out", help="the output folder")
     icons_cli.add_parser(sub)
+    text_cli.add_parser(sub)
+    fonts_cli.add_parser(sub)
+    pictures_cli.add_parser(sub)
     return parser
 
 
@@ -177,11 +191,10 @@ def _export(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     """Run the command line; return the exit status.
 
-    Returns 0 on success, 1 when a mission, list or bitmap fails to read or
-    write, 2 for a missing mission, list, bitmap or install or a list of
-    unknown kind (argparse itself exits 2 on bad usage). Does not catch
-    errors other than mission-format, list-format, bitmap-format and OS
-    errors.
+    Returns 0 on success, 1 when a mission, list, bitmap, text file, font
+    or picture fails to read or write, 2 for a missing one or install or a
+    list of unknown kind (argparse itself exits 2 on bad usage). Does not
+    catch errors other than the readers' format errors and OS errors.
     """
     args = _parser().parse_args(argv)
     level = (logging.WARNING, logging.INFO, logging.DEBUG)[min(args.verbose, 2)]
@@ -190,6 +203,8 @@ def main(argv: list[str] | None = None) -> int:
         return _dump(args)
     if args.command == "icons":
         return icons_cli.run(args)
+    if args.command in SUBCOMMANDS:
+        return SUBCOMMANDS[args.command].run(args)
     if args.command == "lists":
         return (
             _lists_dump(args) if args.lists_command == "dump" else _lists_export(args)

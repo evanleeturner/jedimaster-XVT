@@ -6,9 +6,11 @@ Purpose:
     transparent, as icons draw it.
 
 Flow:
-    ``png_bytes`` expands the palette indices to RGBA rows (filter 0 each),
-    compresses them with ``zlib`` and wraps them in the IHDR, IDAT and IEND
-    chunks; ``write_png`` writes those bytes.
+    ``png_bytes`` expands the palette indices to RGBA pixels and hands them
+    to ``rgba_png``, which writes rows (filter 0 each), compresses them
+    with ``zlib`` and wraps them in the IHDR, IDAT and IEND chunks;
+    ``write_png`` writes those bytes. ``rgba_png`` is shared with the other
+    pictures this package writes.
 
 Invariants:
     - Standard library only (``zlib``, ``struct``).
@@ -41,6 +43,31 @@ def _chunk(kind: bytes, body: bytes) -> bytes:
     return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", crc)
 
 
+def rgba_png(width: int, height: int, rgba: bytes) -> bytes:
+    """Return a PNG file's bytes for ``width * height`` RGBA pixels, rows top first.
+
+    ``rgba`` holds 4 bytes per pixel. Raises ``ValueError`` for an empty
+    image (PNG has none) or a pixel count other than ``width * height``.
+    Does not check the alpha values.
+    """
+    if width <= 0 or height <= 0:
+        raise ValueError(f"no PNG for a {width}x{height} bitmap")
+    stride = 4 * width
+    if len(rgba) != stride * height:
+        raise ValueError(f"{len(rgba)} bytes are not {width}x{height} RGBA pixels")
+    raw = bytearray()
+    for y in range(height):
+        raw.append(0)
+        raw += rgba[y * stride : (y + 1) * stride]
+    header = struct.pack(">IIBBBBB", width, height, BIT_DEPTH, COLOR_RGBA, 0, 0, 0)
+    return (
+        SIGNATURE
+        + _chunk(b"IHDR", header)
+        + _chunk(b"IDAT", zlib.compress(bytes(raw), 9))
+        + _chunk(b"IEND", b"")
+    )
+
+
 def png_bytes(bmp: BmpFile) -> bytes:
     """Return a bitmap's pixels as a PNG file's bytes, 8-bit RGBA.
 
@@ -48,26 +75,12 @@ def png_bytes(bmp: BmpFile) -> bytes:
     or alpha 0 for index 0. Raises ``ValueError`` for a bitmap with no
     pixels (PNG has no empty image). Does not keep the palette as a palette.
     """
-    if bmp.width <= 0 or bmp.height <= 0:
-        raise ValueError(f"no PNG for a {bmp.width}x{bmp.height} bitmap")
     rgba = [
         bytes((*entry, 0 if index == TRANSPARENT else 255))
         for index, entry in enumerate(bmp.palette)
     ]
-    raw = bytearray()
-    for y in range(bmp.height):
-        raw.append(0)
-        row = bmp.pixels[y * bmp.width : (y + 1) * bmp.width]
-        raw += b"".join(rgba[index] for index in row)
-    header = struct.pack(
-        ">IIBBBBB", bmp.width, bmp.height, BIT_DEPTH, COLOR_RGBA, 0, 0, 0
-    )
-    return (
-        SIGNATURE
-        + _chunk(b"IHDR", header)
-        + _chunk(b"IDAT", zlib.compress(bytes(raw), 9))
-        + _chunk(b"IEND", b"")
-    )
+    pixels = b"".join(rgba[index] for index in bmp.pixels)
+    return rgba_png(bmp.width, bmp.height, pixels)
 
 
 def write_png(path: str | os.PathLike[str], bmp: BmpFile) -> int:

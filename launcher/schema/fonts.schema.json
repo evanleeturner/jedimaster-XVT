@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/fonts.schema.json",
+  "title": "XvT/BoP menu fonts (jedimaster export)",
+  "type": "object",
+  "description": "The game's menu fonts as glyph atlases (jedimaster export).",
+  "properties": {
+    "format": {
+      "const": "jedimaster.fonts"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "balance_of_power": {
+      "type": "boolean"
+    },
+    "reset_byte": {
+      "const": 1
+    },
+    "fonts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Font"
+      }
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "balance_of_power",
+    "reset_byte",
+    "fonts"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Atlas": {
+      "type": "object",
+      "description": "The atlas picture: size, cells per row, cell size.",
+      "properties": {
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "columns": {
+          "const": 16
+        },
+        "cell_width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "cell_height": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "columns",
+        "cell_width",
+        "cell_height"
+      ],
+      "additionalProperties": false
+    },
+    "Font": {
+      "type": "object",
+      "description": "One menu font: where it came from, its fields, atlas and glyphs.",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "points": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "in_use": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "spacing": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "height": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "picture": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9_.-]+\\.png$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "atlas": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Atlas"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text_colors": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/TextColor"
+              },
+              "minItems": 5,
+              "maxItems": 5
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "glyphs": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Glyph"
+              },
+              "minItems": 256,
+              "maxItems": 256
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "file",
+        "error",
+        "points",
+        "in_use",
+        "spacing",
+        "height",
+        "picture",
+        "atlas",
+        "text_colors",
+        "glyphs"
+      ],
+      "additionalProperties": false
+    },
+    "Glyph": {
+      "type": "object",
+      "description": "One glyph: its code, its cell's top-left corner in the atlas, size.",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "x": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "required": [
+        "code",
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "TextColor": {
+      "type": "object",
+      "description": "A color byte of a string and the 16-bit 565 color it switches to.",
+      "properties": {
+        "byte": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 6
+        },
+        "name": {
+          "type": "string"
+        },
+        "color": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "byte",
+        "name",
+        "color"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
