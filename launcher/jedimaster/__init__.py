@@ -8,7 +8,8 @@ Purpose:
 Flow:
     ``install`` finds an install and its missions; ``mission`` reads, renders
     and exports them; ``setup`` holds the lobby's setup document's fingerprint
-    and engine values; ``__main__`` is the command line.
+    and engine values; ``icons`` reads the briefing map's icon sheets and
+    draws its icons; ``__main__`` is the command line.
 
 Invariants:
     - Standard library only at run time.

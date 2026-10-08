@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/icons.schema.json",
+  "title": "XvT/BoP briefing map icons (jedimaster export)",
+  "type": "object",
+  "description": "The briefing map's icon sheets and tables (jedimaster export).",
+  "properties": {
+    "format": {
+      "const": "jedimaster.icons"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "balance_of_power": {
+      "type": "boolean"
+    },
+    "list": {
+      "$ref": "#/$defs/List"
+    },
+    "transparent_index": {
+      "const": 0
+    },
+    "sheets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Sheet"
+      }
+    },
+    "boxes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Box"
+      }
+    },
+    "crafts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Craft"
+      }
+    },
+    "iffs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 256,
+      "maxItems": 256
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "balance_of_power",
+    "list",
+    "transparent_index",
+    "sheets",
+    "boxes",
+    "crafts",
+    "iffs"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Box": {
+      "type": "object",
+      "description": "One box: its number, edges (inclusive) and size, in sheet pixels.",
+      "properties": {
+        "box": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "left": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "top": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "right": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bottom": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "box",
+        "left",
+        "top",
+        "right",
+        "bottom",
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "Craft": {
+      "type": "object",
+      "description": "One craft type and the box of its icon.",
+      "properties": {
+        "craft": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "box": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "craft",
+        "box"
+      ],
+      "additionalProperties": false
+    },
+    "List": {
+      "type": "object",
+      "description": "The image list that registers the sheets.",
+      "properties": {
+        "game_path": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "game_path",
+        "file"
+      ],
+      "additionalProperties": false
+    },
+    "Sheet": {
+      "type": "object",
+      "description": "One icon sheet: image name, color, where it came from, size, picture.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "game_path": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "picture": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+\\.png$"
+        }
+      },
+      "required": [
+        "name",
+        "color",
+        "game_path",
+        "file",
+        "width",
+        "height",
+        "picture"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

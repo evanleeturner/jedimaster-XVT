@@ -10,14 +10,15 @@ Flow:
     2. For each plant: check its ``old`` text occurs exactly once, write
        ``new`` in its place (regenerating the schema files when the plant
        touches a schema generator), run the suite, restore the file (and
-       both schema files), and check that each test the plant names failed.
+       the generated schema files), and check that each test the plant
+       names failed.
     3. Report each plant, the tests it failed, and any collected test that no
        plant made fail; run the suite again: it must pass, and every file
        must match its snapshot byte for byte.
 
     The plants live in ``plants_mission``, ``plants_setup``,
-    ``plants_lists_read`` and ``plants_lists_output``; ``PLANTS`` joins them
-    in that order.
+    ``plants_lists_read``, ``plants_lists_output`` and ``plants_icons``;
+    ``PLANTS`` joins them in that order.
 
 Invariants:
     - Files are always restored, also on error or Ctrl-C (``finally``).
@@ -40,6 +41,7 @@ import sys
 from pathlib import Path
 
 from plants_common import Plant
+from plants_icons import ICONS_PLANTS
 from plants_lists_output import LISTS_OUTPUT_PLANTS
 from plants_lists_read import LISTS_READ_PLANTS
 from plants_mission import MISSION_PLANTS
@@ -61,13 +63,18 @@ def clear_bytecode() -> None:
 
 logger = logging.getLogger("plant_faults")
 
-SCHEMA_FILES = (ROOT / "schema/mission.schema.json", ROOT / "schema/lists.schema.json")
+SCHEMA_FILES = (
+    ROOT / "schema/mission.schema.json",
+    ROOT / "schema/lists.schema.json",
+    ROOT / "schema/icons.schema.json",
+)
 
 PLANTS: list[Plant] = [
     *MISSION_PLANTS,
     *SETUP_PLANTS,
     *LISTS_READ_PLANTS,
     *LISTS_OUTPUT_PLANTS,
+    *ICONS_PLANTS,
 ]
 
 
@@ -106,7 +113,7 @@ def collect() -> list[str]:
 
 
 def regenerate_schema() -> None:
-    """Rewrite both schema files from the (possibly planted) models."""
+    """Rewrite the generated schema files from the (possibly planted) models."""
     subprocess.run(
         [PYTHON, "tools/gen_schema.py"],
         cwd=ROOT,

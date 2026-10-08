@@ -1,9 +1,9 @@
-"""Command line: ``python -m jedimaster dump|export|lists``.
+"""Command line: ``python -m jedimaster dump|export|lists|icons``.
 
 Purpose:
     Print one mission in the answer-sheet text format, or export every
     mission of an install as JSON files; ``lists`` does the same for the
-    game's text lists.
+    game's text lists; ``icons`` reads the briefing map's icon sheets.
 
 Flow:
     ``dump <mission>``: read the file (or, when no such file exists, resolve
@@ -14,7 +14,8 @@ Flow:
     reader's own view of one list (``render_raw``), its kind taken from its
     name unless ``--kind`` gives it; ``lists export <install> <out-folder>``
     writes ``<out>/<path in the install>.json`` for every list of
-    ``list_files``, then one summary line.
+    ``list_files``, then one summary line. ``icons dump <bmp>`` and ``icons
+    export <install> <out-folder>`` are ``jedimaster.icons.cli``'s.
 
 Invariants:
     - ``print`` is used only for the command's output; diagnostics go to the
@@ -35,6 +36,7 @@ import logging
 import sys
 from pathlib import Path
 
+from .icons import cli as icons_cli
 from .install import find_install
 from .install import list_missions
 from .install import resolve_game_path
@@ -74,6 +76,7 @@ def _parser() -> argparse.ArgumentParser:
     lexport = lists_sub.add_parser("export", help="write one JSON file per list")
     lexport.add_argument("install", help="the install folder")
     lexport.add_argument("out", help="the output folder")
+    icons_cli.add_parser(sub)
     return parser
 
 
@@ -174,16 +177,19 @@ def _export(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     """Run the command line; return the exit status.
 
-    Returns 0 on success, 1 when a mission or list fails to read or write,
-    2 for a missing mission, list or install or a list of unknown kind
-    (argparse itself exits 2 on bad usage). Does not catch errors other than
-    mission-format, list-format and OS errors.
+    Returns 0 on success, 1 when a mission, list or bitmap fails to read or
+    write, 2 for a missing mission, list, bitmap or install or a list of
+    unknown kind (argparse itself exits 2 on bad usage). Does not catch
+    errors other than mission-format, list-format, bitmap-format and OS
+    errors.
     """
     args = _parser().parse_args(argv)
     level = (logging.WARNING, logging.INFO, logging.DEBUG)[min(args.verbose, 2)]
     logging.basicConfig(level=level, format="%(levelname)s %(name)s: %(message)s")
     if args.command == "dump":
         return _dump(args)
+    if args.command == "icons":
+        return icons_cli.run(args)
     if args.command == "lists":
         return (
             _lists_dump(args) if args.lists_command == "dump" else _lists_export(args)
