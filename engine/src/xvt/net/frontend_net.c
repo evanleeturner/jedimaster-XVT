@@ -453,6 +453,154 @@ int frontend_net_draw_join_game_player_roster(void)
 	return xvt_network_browser_draw_roster();
 }
 
+/* Part of frontend_net_update_and_draw_chat_panel once the mission setup
+ * roster is authoritative: draws the All and Team tabs in rect, and a click
+ * on the tab not selected sets g_frontend_chat_team_only to match it. */
+static void frontend_net_update_chat_tabs(struct RECT *rect)
+{
+	int cursor_x;
+	int cursor_y;
+	frontend_cursor_get_pos(&cursor_x, &cursor_y);
+	if (g_frontend_chat_team_only == 0) {
+		front_image_draw_sprite("tab2", 0, 0);
+		frontend_draw_rect_assign(rect, 556, 95, 588, 105);
+		frontend_text_draw_centered(
+			10, frontend_string_get(FRONTSTR_217_TEAM), rect,
+			g_color_gray);
+		if (frontend_draw_point_in_rect(rect, cursor_x, cursor_y) &&
+		    (frontend_mouse_get_left_click() != 0 ||
+		     frontend_mouse_get_right_click() != 0)) {
+			if (g_game_config.sfx_datapad_enabled != 0) {
+				frontend_sound_play_ui_sound(
+					"jewelsound", 1, 0, 255,
+					12 * g_game_config.sfx_datapad_volume,
+					63);
+			}
+			g_frontend_chat_team_only = 1;
+			XVT_LOG_DEBUG("network.chat_channel team_only=%d",
+				      g_frontend_chat_team_only);
+		}
+		front_image_draw_sprite("tab1", 0, 0);
+		frontend_draw_rect_assign(rect, 520, 95, 552, 105);
+		frontend_text_draw_centered(
+			10, frontend_string_get(FRONTSTR_402_ALL), rect,
+			0xFFFF);
+	} else {
+		front_image_draw_sprite("tab1", 0, 0);
+		frontend_draw_rect_assign(rect, 520, 95, 552, 105);
+		frontend_text_draw_centered(
+			10, frontend_string_get(FRONTSTR_402_ALL), rect,
+			g_color_gray);
+		if (frontend_draw_point_in_rect(rect, cursor_x, cursor_y) &&
+		    (frontend_mouse_get_left_click() != 0 ||
+		     frontend_mouse_get_right_click() != 0)) {
+			if (g_game_config.sfx_datapad_enabled != 0) {
+				frontend_sound_play_ui_sound(
+					"jewelsound", 1, 0, 255,
+					12 * g_game_config.sfx_datapad_volume,
+					63);
+			}
+			g_frontend_chat_team_only = 0;
+			XVT_LOG_DEBUG("network.chat_channel team_only=%d",
+				      g_frontend_chat_team_only);
+		}
+		front_image_draw_sprite("tab2", 0, 0);
+		frontend_draw_rect_assign(rect, 556, 95, 588, 105);
+		frontend_text_draw_centered(
+			10, frontend_string_get(FRONTSTR_217_TEAM), rect,
+			0xFFFF);
+	}
+}
+
+/* Part of frontend_net_send_chat_line: sends the CHAT packet in
+ * g_frontend_net_packet_scratch to each player on this player's team when
+ * team_message is not 0 and this player has a team assignment, else to
+ * everyone, and logs where it went. */
+static void frontend_net_route_chat_packet(int team_message)
+{
+	if (team_message != 0) {
+		int player_index = 0;
+		while (player_index < 8 &&
+		       net_get_local_player_id() !=
+			       g_mission_setup_player_assignments
+				       .assigned_player_ids[player_index]) {
+			++player_index;
+		}
+		if (player_index == 8) {
+			XVT_LOG_DEBUG(
+				"network.chat_sent to=\"everyone_no_team\" team=%d ready=%d",
+				g_pilot_data.team,
+				g_frontend_scratch_buffer[0] != 4);
+			net_send_packet_and_flush(
+				0, &g_frontend_net_packet_scratch,
+				strlen(g_frontend_scratch_buffer) + 4);
+		} else {
+			for (player_index = 0; player_index < 8;
+			     ++player_index) {
+				int player_id =
+					g_mission_setup_player_assignments
+						.team_player_ids[g_pilot_data
+									 .team]
+								[player_index];
+				if (player_id != 0) {
+					net_send_packet_and_flush(
+						(DPID)player_id,
+						&g_frontend_net_packet_scratch,
+						strlen(g_frontend_scratch_buffer) +
+							4);
+				}
+			}
+			XVT_LOG_DEBUG(
+				"network.chat_sent to=\"team\" team=%d ready=%d",
+				g_pilot_data.team,
+				g_frontend_scratch_buffer[0] != 4);
+		}
+	} else {
+		net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
+					  strlen(g_frontend_scratch_buffer) +
+						  4);
+		XVT_LOG_DEBUG(
+			"network.chat_sent to=\"everyone\" team=%d ready=%d",
+			g_pilot_data.team, g_frontend_scratch_buffer[0] != 4);
+	}
+}
+
+/* Part of frontend_net_update_and_draw_chat_panel when Enter or Tab
+ * sends the text in g_frontend_chat_input_buffer: builds the CHAT packet in
+ * g_frontend_net_packet_scratch as that function's comment tells it, sends
+ * it through frontend_net_route_chat_packet and clears the buffer. */
+static void frontend_net_send_chat_line(void)
+{
+	g_frontend_net_packet_scratch.packet_type = NET_PACKET_CHAT;
+	int local_player_id = net_get_local_player_id();
+	int team_message;
+	if (net_is_player_ready(local_player_id) != 0) {
+		team_message = g_frontend_chat_team_only;
+		if (g_frontend_chat_team_only == 1) {
+			g_frontend_scratch_buffer[0] = 2;
+		} else {
+			g_frontend_scratch_buffer[0] = 3;
+		}
+	} else {
+		g_frontend_scratch_buffer[0] = 4;
+		team_message = g_frontend_chat_team_only;
+	}
+	g_frontend_scratch_buffer[1] = 0;
+	strcat(g_frontend_scratch_buffer, g_pilot_data.name);
+	strcat(g_frontend_scratch_buffer, ": ");
+	{
+		size_t message_length = strlen(g_frontend_scratch_buffer);
+		g_frontend_scratch_buffer[message_length] = 1;
+		g_frontend_scratch_buffer[message_length + 1] = 0;
+	}
+	strcat(g_frontend_scratch_buffer, g_frontend_chat_input_buffer);
+	memcpy(g_frontend_net_packet_scratch.payload, g_frontend_scratch_buffer,
+	       strlen(g_frontend_scratch_buffer));
+	frontend_net_route_chat_packet(team_message);
+	memset(g_frontend_chat_input_buffer, 0,
+	       sizeof(g_frontend_chat_input_buffer));
+}
+
 /* Runs the chat panel each frame. Once the mission setup roster is
  * authoritative it shows All and Team tabs that set g_frontend_chat_team_only;
  * before that it holds it at 0. On Enter or Tab with text in
@@ -474,64 +622,7 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 
 	struct RECT rect;
 	if (g_mission_setup_roster_authoritative != 0) {
-		int cursor_x;
-		int cursor_y;
-		frontend_cursor_get_pos(&cursor_x, &cursor_y);
-		if (g_frontend_chat_team_only == 0) {
-			front_image_draw_sprite("tab2", 0, 0);
-			frontend_draw_rect_assign(&rect, 556, 95, 588, 105);
-			frontend_text_draw_centered(
-				10, frontend_string_get(FRONTSTR_217_TEAM),
-				&rect, g_color_gray);
-			if (frontend_draw_point_in_rect(&rect, cursor_x,
-							cursor_y) &&
-			    (frontend_mouse_get_left_click() != 0 ||
-			     frontend_mouse_get_right_click() != 0)) {
-				if (g_game_config.sfx_datapad_enabled != 0) {
-					frontend_sound_play_ui_sound(
-						"jewelsound", 1, 0, 255,
-						12 * g_game_config
-								.sfx_datapad_volume,
-						63);
-				}
-				g_frontend_chat_team_only = 1;
-				XVT_LOG_DEBUG(
-					"network.chat_channel team_only=%d",
-					g_frontend_chat_team_only);
-			}
-			front_image_draw_sprite("tab1", 0, 0);
-			frontend_draw_rect_assign(&rect, 520, 95, 552, 105);
-			frontend_text_draw_centered(
-				10, frontend_string_get(FRONTSTR_402_ALL),
-				&rect, 0xFFFF);
-		} else {
-			front_image_draw_sprite("tab1", 0, 0);
-			frontend_draw_rect_assign(&rect, 520, 95, 552, 105);
-			frontend_text_draw_centered(
-				10, frontend_string_get(FRONTSTR_402_ALL),
-				&rect, g_color_gray);
-			if (frontend_draw_point_in_rect(&rect, cursor_x,
-							cursor_y) &&
-			    (frontend_mouse_get_left_click() != 0 ||
-			     frontend_mouse_get_right_click() != 0)) {
-				if (g_game_config.sfx_datapad_enabled != 0) {
-					frontend_sound_play_ui_sound(
-						"jewelsound", 1, 0, 255,
-						12 * g_game_config
-								.sfx_datapad_volume,
-						63);
-				}
-				g_frontend_chat_team_only = 0;
-				XVT_LOG_DEBUG(
-					"network.chat_channel team_only=%d",
-					g_frontend_chat_team_only);
-			}
-			front_image_draw_sprite("tab2", 0, 0);
-			frontend_draw_rect_assign(&rect, 556, 95, 588, 105);
-			frontend_text_draw_centered(
-				10, frontend_string_get(FRONTSTR_217_TEAM),
-				&rect, 0xFFFF);
-		}
+		frontend_net_update_chat_tabs(&rect);
 	} else {
 		g_frontend_chat_team_only = 0;
 	}
@@ -541,83 +632,7 @@ int frontend_net_update_and_draw_chat_panel(int frame_counter)
 						g_frontend_chat_input_buffer,
 						100, 0, 12, NULL) != 0 &&
 	    g_frontend_chat_input_buffer[0] != 0) {
-		g_frontend_net_packet_scratch.packet_type = NET_PACKET_CHAT;
-		int local_player_id = net_get_local_player_id();
-		int team_message;
-		if (net_is_player_ready(local_player_id) != 0) {
-			team_message = g_frontend_chat_team_only;
-			if (g_frontend_chat_team_only == 1) {
-				g_frontend_scratch_buffer[0] = 2;
-			} else {
-				g_frontend_scratch_buffer[0] = 3;
-			}
-		} else {
-			g_frontend_scratch_buffer[0] = 4;
-			team_message = g_frontend_chat_team_only;
-		}
-		g_frontend_scratch_buffer[1] = 0;
-		strcat(g_frontend_scratch_buffer, g_pilot_data.name);
-		strcat(g_frontend_scratch_buffer, ": ");
-		{
-			size_t message_length =
-				strlen(g_frontend_scratch_buffer);
-			g_frontend_scratch_buffer[message_length] = 1;
-			g_frontend_scratch_buffer[message_length + 1] = 0;
-		}
-		strcat(g_frontend_scratch_buffer, g_frontend_chat_input_buffer);
-		memcpy(g_frontend_net_packet_scratch.payload,
-		       g_frontend_scratch_buffer,
-		       strlen(g_frontend_scratch_buffer));
-		if (team_message != 0) {
-			int player_index = 0;
-			while (player_index < 8 &&
-			       net_get_local_player_id() !=
-				       g_mission_setup_player_assignments
-					       .assigned_player_ids
-						       [player_index]) {
-				++player_index;
-			}
-			if (player_index == 8) {
-				XVT_LOG_DEBUG(
-					"network.chat_sent to=\"everyone_no_team\" team=%d ready=%d",
-					g_pilot_data.team,
-					g_frontend_scratch_buffer[0] != 4);
-				net_send_packet_and_flush(
-					0, &g_frontend_net_packet_scratch,
-					strlen(g_frontend_scratch_buffer) + 4);
-			} else {
-				for (player_index = 0; player_index < 8;
-				     ++player_index) {
-					int player_id =
-						g_mission_setup_player_assignments
-							.team_player_ids
-								[g_pilot_data
-									 .team]
-								[player_index];
-					if (player_id != 0) {
-						net_send_packet_and_flush(
-							(DPID)player_id,
-							&g_frontend_net_packet_scratch,
-							strlen(g_frontend_scratch_buffer) +
-								4);
-					}
-				}
-				XVT_LOG_DEBUG(
-					"network.chat_sent to=\"team\" team=%d ready=%d",
-					g_pilot_data.team,
-					g_frontend_scratch_buffer[0] != 4);
-			}
-		} else {
-			net_send_packet_and_flush(
-				0, &g_frontend_net_packet_scratch,
-				strlen(g_frontend_scratch_buffer) + 4);
-			XVT_LOG_DEBUG(
-				"network.chat_sent to=\"everyone\" team=%d ready=%d",
-				g_pilot_data.team,
-				g_frontend_scratch_buffer[0] != 4);
-		}
-		memset(g_frontend_chat_input_buffer, 0,
-		       sizeof(g_frontend_chat_input_buffer));
+		frontend_net_send_chat_line();
 	}
 
 	frontend_draw_rect_assign(&rect, 461, 117, 595, 407);
