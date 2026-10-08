@@ -193,6 +193,107 @@ void flight_sync_reset_remote_player_render_smoothing(void)
 	XVT_LOG_DEBUG("network.smoothing_reset");
 }
 
+/* Part of flight_sync_capture_samples_and_restore_poses: records in player
+ * player_index's g_remote_player_render_samples entry where and at what
+ * angles object was drawn, each angle's change since the last sample (none
+ * when sample_was_valid is 0), and its move vector, recomputed first when
+ * stale, speed and simulation time stamp. */
+static void flight_sync_record_render_sample(int player_index,
+					     const struct object_record *object,
+					     int sample_was_valid)
+{
+	if (sample_was_valid == 0) {
+		g_remote_player_render_samples[player_index].roll =
+			object->roll;
+		g_remote_player_render_samples[player_index].pitch =
+			object->pitch;
+		g_remote_player_render_samples[player_index].yaw = object->yaw;
+	}
+
+	g_remote_player_render_samples[player_index].valid = 1;
+	g_remote_player_render_samples[player_index].object_signature =
+		object->object_signature;
+	g_remote_player_render_samples[player_index].world_x = object->world_x;
+	g_remote_player_render_samples[player_index].world_y = object->world_y;
+	g_remote_player_render_samples[player_index].world_z = object->world_z;
+	g_remote_player_render_samples[player_index].roll_delta =
+		object->roll -
+		(uint16_t)g_remote_player_render_samples[player_index].roll;
+	g_remote_player_render_samples[player_index].pitch_delta =
+		object->pitch -
+		(uint16_t)g_remote_player_render_samples[player_index].pitch;
+	g_remote_player_render_samples[player_index].yaw_delta =
+		object->yaw -
+		(uint16_t)g_remote_player_render_samples[player_index].yaw;
+	g_remote_player_render_samples[player_index].roll = object->roll;
+	g_remote_player_render_samples[player_index].pitch = object->pitch;
+	g_remote_player_render_samples[player_index].yaw = object->yaw;
+
+	if (object->mobj->move_vector_dirty != 0) {
+		fview_calcrotatemove(object->pitch, object->yaw, object);
+	}
+	g_remote_player_render_samples[player_index].move_x =
+		object->mobj->move_x;
+	g_remote_player_render_samples[player_index].move_y =
+		object->mobj->move_y;
+	g_remote_player_render_samples[player_index].move_z =
+		object->mobj->move_z;
+	g_remote_player_render_samples[player_index].speed_magnitude =
+		object->mobj->speed;
+	g_remote_player_render_samples[player_index].sim_state_timestamp =
+		object->mobj->sim_state_timestamp;
+}
+
+/* Part of flight_sync_capture_samples_and_restore_poses: when player
+ * player_index's g_remote_player_saved_sim_poses entry is valid, puts object
+ * back in that simulated pose. */
+static void flight_sync_restore_saved_pose(int player_index,
+					   struct object_record *object)
+{
+	if (g_remote_player_saved_sim_poses[player_index].valid != 0) {
+		object->roll =
+			g_remote_player_saved_sim_poses[player_index].roll;
+		object->pitch =
+			g_remote_player_saved_sim_poses[player_index].pitch;
+		object->yaw = g_remote_player_saved_sim_poses[player_index].yaw;
+		object->world_x =
+			g_remote_player_saved_sim_poses[player_index].world_x;
+		object->world_y =
+			g_remote_player_saved_sim_poses[player_index].world_y;
+		object->world_z =
+			g_remote_player_saved_sim_poses[player_index].world_z;
+	}
+}
+
+/* Part of flight_sync_capture_samples_and_restore_poses: logs player
+ * player_index's new sample and whether its saved pose was valid. */
+static void flight_sync_log_render_sample(int player_index)
+{
+	XVT_LOG_DEBUG(
+		"network.smoothing_sample slot=%d x=%d y=%d z=%d roll=%u pitch=%u yaw=%u turn_roll=%d turn_pitch=%d turn_yaw=%d mx=%d my=%d mz=%d speed=%u time=%d restored=%d",
+		player_index,
+		g_remote_player_render_samples[player_index].world_x,
+		g_remote_player_render_samples[player_index].world_y,
+		g_remote_player_render_samples[player_index].world_z,
+		(unsigned)(uint16_t)g_remote_player_render_samples[player_index]
+			.roll,
+		(unsigned)(uint16_t)g_remote_player_render_samples[player_index]
+			.pitch,
+		(unsigned)(uint16_t)g_remote_player_render_samples[player_index]
+			.yaw,
+		g_remote_player_render_samples[player_index].roll_delta,
+		g_remote_player_render_samples[player_index].pitch_delta,
+		g_remote_player_render_samples[player_index].yaw_delta,
+		(int)g_remote_player_render_samples[player_index].move_x,
+		(int)g_remote_player_render_samples[player_index].move_y,
+		(int)g_remote_player_render_samples[player_index].move_z,
+		(unsigned)g_remote_player_render_samples[player_index]
+			.speed_magnitude,
+		(int)g_remote_player_render_samples[player_index]
+			.sim_state_timestamp,
+		g_remote_player_saved_sim_poses[player_index].valid);
+}
+
 /* Runs after a frame is drawn. For each active remote player whose craft
  * exists it records in g_remote_player_render_samples the position and angles
  * the craft was drawn at, the change in each angle since the last sample
@@ -221,150 +322,12 @@ void flight_sync_capture_samples_and_restore_poses(void)
 			struct object_record *object =
 				&g_object_table[player->object_index];
 			if (object->object_type != 0 && object->mobj != NULL) {
-				if (sample_was_valid == 0) {
-					g_remote_player_render_samples
-						[player_index]
-							.roll = object->roll;
-					g_remote_player_render_samples
-						[player_index]
-							.pitch = object->pitch;
-					g_remote_player_render_samples
-						[player_index]
-							.yaw = object->yaw;
-				}
+				flight_sync_record_render_sample(
+					player_index, object, sample_was_valid);
 
-				g_remote_player_render_samples[player_index]
-					.valid = 1;
-				g_remote_player_render_samples[player_index]
-					.object_signature =
-					object->object_signature;
-				g_remote_player_render_samples[player_index]
-					.world_x = object->world_x;
-				g_remote_player_render_samples[player_index]
-					.world_y = object->world_y;
-				g_remote_player_render_samples[player_index]
-					.world_z = object->world_z;
-				g_remote_player_render_samples[player_index]
-					.roll_delta =
-					object->roll -
-					(uint16_t)g_remote_player_render_samples
-						[player_index]
-							.roll;
-				g_remote_player_render_samples[player_index]
-					.pitch_delta =
-					object->pitch -
-					(uint16_t)g_remote_player_render_samples
-						[player_index]
-							.pitch;
-				g_remote_player_render_samples[player_index]
-					.yaw_delta =
-					object->yaw -
-					(uint16_t)g_remote_player_render_samples
-						[player_index]
-							.yaw;
-				g_remote_player_render_samples[player_index]
-					.roll = object->roll;
-				g_remote_player_render_samples[player_index]
-					.pitch = object->pitch;
-				g_remote_player_render_samples[player_index]
-					.yaw = object->yaw;
-
-				if (object->mobj->move_vector_dirty != 0) {
-					fview_calcrotatemove(object->pitch,
-							     object->yaw,
-							     object);
-				}
-				g_remote_player_render_samples[player_index]
-					.move_x = object->mobj->move_x;
-				g_remote_player_render_samples[player_index]
-					.move_y = object->mobj->move_y;
-				g_remote_player_render_samples[player_index]
-					.move_z = object->mobj->move_z;
-				g_remote_player_render_samples[player_index]
-					.speed_magnitude = object->mobj->speed;
-				g_remote_player_render_samples[player_index]
-					.sim_state_timestamp =
-					object->mobj->sim_state_timestamp;
-
-				if (g_remote_player_saved_sim_poses
-					    [player_index]
-						    .valid != 0) {
-					object->roll =
-						g_remote_player_saved_sim_poses
-							[player_index]
-								.roll;
-					object->pitch =
-						g_remote_player_saved_sim_poses
-							[player_index]
-								.pitch;
-					object->yaw =
-						g_remote_player_saved_sim_poses
-							[player_index]
-								.yaw;
-					object->world_x =
-						g_remote_player_saved_sim_poses
-							[player_index]
-								.world_x;
-					object->world_y =
-						g_remote_player_saved_sim_poses
-							[player_index]
-								.world_y;
-					object->world_z =
-						g_remote_player_saved_sim_poses
-							[player_index]
-								.world_z;
-				}
-				XVT_LOG_DEBUG(
-					"network.smoothing_sample slot=%d x=%d y=%d z=%d roll=%u pitch=%u yaw=%u turn_roll=%d turn_pitch=%d turn_yaw=%d mx=%d my=%d mz=%d speed=%u time=%d restored=%d",
-					player_index,
-					g_remote_player_render_samples
-						[player_index]
-							.world_x,
-					g_remote_player_render_samples
-						[player_index]
-							.world_y,
-					g_remote_player_render_samples
-						[player_index]
-							.world_z,
-					(unsigned)(uint16_t)
-						g_remote_player_render_samples
-							[player_index]
-								.roll,
-					(unsigned)(uint16_t)
-						g_remote_player_render_samples
-							[player_index]
-								.pitch,
-					(unsigned)(uint16_t)
-						g_remote_player_render_samples
-							[player_index]
-								.yaw,
-					g_remote_player_render_samples
-						[player_index]
-							.roll_delta,
-					g_remote_player_render_samples
-						[player_index]
-							.pitch_delta,
-					g_remote_player_render_samples
-						[player_index]
-							.yaw_delta,
-					(int)g_remote_player_render_samples
-						[player_index]
-							.move_x,
-					(int)g_remote_player_render_samples
-						[player_index]
-							.move_y,
-					(int)g_remote_player_render_samples
-						[player_index]
-							.move_z,
-					(unsigned)g_remote_player_render_samples
-						[player_index]
-							.speed_magnitude,
-					(int)g_remote_player_render_samples
-						[player_index]
-							.sim_state_timestamp,
-					g_remote_player_saved_sim_poses
-						[player_index]
-							.valid);
+				flight_sync_restore_saved_pose(player_index,
+							       object);
+				flight_sync_log_render_sample(player_index);
 			}
 		}
 		++player_index;
