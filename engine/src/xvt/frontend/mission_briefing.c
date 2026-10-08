@@ -711,6 +711,270 @@ static int mission_briefing_craft_handle_packet(int frame_counter)
 	return CRAFT_SELECTION_FRAME_GOES_ON;
 }
 
+/* The single-player back button of mission_briefing_craft_selection_update,
+ * in rect. It goes back to the flight assignment screen, or with
+ * g_briefing_skip_player_assignment set to the team assignment screen, or
+ * when g_mission_setup_team_assignment_skipped is set too opens the confirm
+ * dialog to restart and return to mission selection. Returns 0 or the
+ * dialog's result when pressed, else CRAFT_SELECTION_FRAME_GOES_ON. */
+static int mission_briefing_craft_handle_solo_back(struct RECT *rect)
+{
+	int action_triggered;
+	if (g_briefing_skip_player_assignment != 0) {
+		if (g_mission_setup_team_assignment_skipped != 0) {
+			frontend_button_set_overlay_text(
+				frontend_string_get(FRONTSTR_216_ABORT));
+			action_triggered = frontend_button_handle_sprite_button(
+				rect, "leaveup", "leavedown",
+				frontend_string_get(
+					FRONTSTR_260_RETURN_TO_SELECT_MISSION),
+				12, 0, 8, "buttonsound");
+			if (action_triggered != 0) {
+				action_triggered = frontend_dialog_show_confirm_dialog(
+					frontend_string_get(
+						FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
+					frontend_string_get(
+						FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
+					frontend_string_get(
+						FRONTSTR_754_TO_SELECT_MISSION),
+					frontend_string_get(FRONTSTR_523_OKAY),
+					frontend_string_get(
+						FRONTSTR_019_CANCEL));
+				XVT_LOG_DEBUG(
+					"mission.setup_confirm_asked screen=\"craft\" action=\"restart\"");
+				return xvt_dialog_continue_with(
+					xvt_mission_dialogs_resume,
+					XVT_MISSION_SOLO_BACK_TO_SETUP);
+			}
+		} else {
+			frontend_button_set_overlay_text(
+				frontend_string_get(FRONTSTR_569_PREVIOUS));
+			action_triggered = frontend_button_handle_sprite_button(
+				rect, "leaveup", "leavedown",
+				frontend_string_get(
+					FRONTSTR_261_RETURN_TO_SELECT_TEAMS),
+				12, 0, 8, "buttonsound");
+		}
+	} else {
+		frontend_button_set_overlay_text(
+			frontend_string_get(FRONTSTR_569_PREVIOUS));
+		action_triggered = frontend_button_handle_sprite_button(
+			rect, "leaveup", "leavedown",
+			frontend_string_get(
+				FRONTSTR_262_RETURN_TO_BRIEFING_AND_PILOT_ASSIGNMENT),
+			12, 0, 8, "buttonsound");
+	}
+	if (action_triggered != 0) {
+		if (g_briefing_skip_player_assignment != 0) {
+			if (g_mission_setup_team_assignment_skipped != 0) {
+				g_frontend_skip_screen_entry_setup = 1;
+				frontend_screen_set_callbacks(
+					mission_setup_update,
+					(frontend_screen_exit_fn)
+						mission_setup_exit);
+			} else {
+				XVT_LOG_INFO(
+					"briefing.craft_left reason=\"back_to_teams\"");
+				frontend_screen_set_callbacks(
+					mission_setup_team_assignment_update,
+
+					xvt_frontend_cleanup_mission_resources);
+			}
+			return 0;
+		}
+		XVT_LOG_INFO("briefing.craft_left reason=\"back_to_flights\"");
+		frontend_screen_set_callbacks(
+			mission_setup_flight_assignment_update,
+			mission_setup_free_screen_resources);
+		return 0;
+	}
+	return CRAFT_SELECTION_FRAME_GOES_ON;
+}
+
+/* The back button of each frame of mission_briefing_craft_selection_update:
+ * a single player's through mission_briefing_craft_handle_solo_back, the
+ * host's restart or a client's leave after a confirm dialog. Returns the
+ * frame's result when the button ends the frame, else
+ * CRAFT_SELECTION_FRAME_GOES_ON. */
+static int mission_briefing_craft_handle_back(void)
+{
+	struct RECT rect;
+
+	frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
+	if (g_game_config.help_on != 0) {
+		frontend_button_enable_overlay_text();
+	}
+	if (g_frontend_mission_session_mode ==
+	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+		int solo_back_handled =
+			mission_briefing_craft_handle_solo_back(&rect);
+		if (solo_back_handled != CRAFT_SELECTION_FRAME_GOES_ON) {
+			return solo_back_handled;
+		}
+	} else if (net_is_host() != 0) {
+		frontend_button_set_overlay_text(
+			frontend_string_get(FRONTSTR_668_RESTART));
+
+		if (frontend_button_handle_sprite_button(
+			    &rect, "leaveup", "leavedown",
+			    frontend_string_get(
+				    FRONTSTR_260_RETURN_TO_SELECT_MISSION),
+			    12, 0, 8, "buttonsound") != 0) {
+			frontend_dialog_show_confirm_dialog(
+				frontend_string_get(
+					FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
+				frontend_string_get(
+					FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
+				frontend_string_get(
+					FRONTSTR_754_TO_SELECT_MISSION),
+				frontend_string_get(FRONTSTR_523_OKAY),
+				frontend_string_get(FRONTSTR_019_CANCEL));
+			XVT_LOG_DEBUG(
+				"mission.setup_confirm_asked screen=\"craft\" action=\"restart\"");
+			return xvt_dialog_continue_with(
+				xvt_mission_dialogs_resume,
+				XVT_MISSION_HOST_RESTART);
+		}
+
+	} else {
+		frontend_button_set_overlay_text(
+			frontend_string_get(FRONTSTR_204_LEAVE));
+
+		if (frontend_button_handle_sprite_button(
+			    &rect, "leaveup", "leavedown",
+			    frontend_string_get(FRONTSTR_204_LEAVE), 12, 0, 8,
+			    "buttonsound") != 0) {
+			frontend_dialog_show_confirm_dialog(
+				frontend_string_get(
+					FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
+				frontend_string_get(
+					FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
+				frontend_string_get(
+					FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
+				frontend_string_get(FRONTSTR_523_OKAY),
+				frontend_string_get(FRONTSTR_019_CANCEL));
+			XVT_LOG_DEBUG(
+				"mission.setup_confirm_asked screen=\"craft\" action=\"leave\"");
+			return xvt_dialog_continue_with(
+				xvt_mission_dialogs_resume,
+				XVT_MISSION_CLIENT_LEAVE);
+		}
+	}
+	return CRAFT_SELECTION_FRAME_GOES_ON;
+}
+
+/* The network Ready and Reconfigure button of
+ * mission_briefing_craft_selection_update, in rect, unless craft selection is
+ * host-only: sends NET_PACKET_PLAYER_READY or _UNREADY by the local player's
+ * ready flag. */
+static void mission_briefing_craft_handle_ready(struct RECT *rect)
+{
+	int roster_index;
+
+	if (g_game_config.craft_selection != CRAFT_SELECTION_HOST_ONLY) {
+		for (roster_index = 0; roster_index < MAX_PLAYERS;
+		     ++roster_index) {
+			if (net_get_local_player_id() ==
+			    g_mp_roster[roster_index].player_id) {
+				break;
+			}
+		}
+		if (g_mp_roster_ready_flags[roster_index] != 0) {
+			frontend_button_set_overlay_text(
+				frontend_string_get(FRONTSTR_575_RECONFIGURE));
+			if (frontend_button_handle_sprite_button(
+				    rect, "flydown", "flyup",
+				    frontend_string_get(
+					    FRONTSTR_575_RECONFIGURE),
+				    12, 0, 7, "flysound") != 0) {
+				g_frontend_net_packet_scratch.packet_type =
+					NET_PACKET_PLAYER_UNREADY;
+				net_send_packet_and_flush(
+					0, &g_frontend_net_packet_scratch,
+					sizeof(g_frontend_net_packet_scratch
+						       .packet_type));
+				XVT_LOG_INFO(
+					"briefing.ready_sent ready=0 entry=%d",
+					roster_index);
+			}
+		} else {
+			frontend_button_set_overlay_text(
+				frontend_string_get(FRONTSTR_574_READY));
+			if (frontend_button_handle_sprite_button(
+				    rect, "flyup", "flydown",
+				    frontend_string_get(FRONTSTR_574_READY), 12,
+				    0, 7, "flysound") != 0) {
+				g_frontend_net_packet_scratch.packet_type =
+					NET_PACKET_PLAYER_READY;
+				net_send_packet_and_flush(
+					0, &g_frontend_net_packet_scratch,
+					sizeof(g_frontend_net_packet_scratch
+						       .packet_type));
+				XVT_LOG_INFO(
+					"briefing.ready_sent ready=1 entry=%d",
+					roster_index);
+			}
+		}
+	}
+}
+
+/* The Fly button of each frame of mission_briefing_craft_selection_update,
+ * as that function's comment tells it, with the network Ready and
+ * Reconfigure button through mission_briefing_craft_handle_ready. Returns 0
+ * when a single player flies, else CRAFT_SELECTION_FRAME_GOES_ON. */
+static int mission_briefing_craft_handle_fly(void)
+{
+	struct RECT rect;
+
+	frontend_draw_rect_assign(&rect, 8, 405, 71, 470);
+	if (g_frontend_mission_session_mode ==
+	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+		frontend_button_set_overlay_text(
+			frontend_string_get(FRONTSTR_200_FLY));
+		if (frontend_button_handle_sprite_button(
+			    &rect, "flyup", "flydown",
+			    frontend_string_get(FRONTSTR_200_FLY), 12, 0, 7,
+			    "flysound") != 0 &&
+		    g_frontend_mission_session_mode ==
+			    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
+			mission_briefing_craft_fill_solo_roster();
+			XVT_LOG_INFO(
+				"briefing.craft_confirmed fg=%d craft=%d option=%d",
+				g_mission_setup_selected_flight_group_index,
+				g_mp_roster[0].craft_type_override,
+				g_mp_roster[0].craft_option_index);
+			frontend_mission_init_player_state();
+			frontend_screen_set_callbacks(
+				flight_loading_update_ready_screen, NULL);
+			frontend_button_disable_overlay_text();
+			return 0;
+		}
+	} else {
+		if (g_game_config.craft_selection ==
+		    CRAFT_SELECTION_HOST_ONLY) {
+			if (net_is_host() != 0 &&
+			    net_count_ready_players() <=
+				    g_frontend_briefing_entered_count) {
+				frontend_button_set_overlay_text(
+					frontend_string_get(FRONTSTR_200_FLY));
+				if (frontend_button_handle_sprite_button(
+					    &rect, "flyup", "flydown",
+					    frontend_string_get(
+						    FRONTSTR_200_FLY),
+					    12, 0, 7, "flysound") != 0) {
+					XVT_LOG_DEBUG(
+						"briefing.roster_sent by=\"fly\" entered=%d ms=%d",
+						g_frontend_briefing_entered_count,
+						g_mission_briefing_launch_countdown_ms);
+					mission_briefing_broadcast_roster_and_assignments();
+				}
+			}
+		}
+		mission_briefing_craft_handle_ready(&rect);
+	}
+	return CRAFT_SELECTION_FRAME_GOES_ON;
+}
+
 /* Runs one frame of the craft selection screen, which the "go to craft
  * selection" button of mission_setup_flight_assignment_update's screen leads
  * to; the briefing map is on that screen. The screen shows the craft and
@@ -841,7 +1105,6 @@ int mission_briefing_craft_selection_update(int frame_counter)
 	frontend_text_draw_centered(15, g_frontend_scratch_buffer, &rect,
 				    0xFFFF);
 
-	int roster_index;
 	if (g_frontend_mission_session_mode !=
 	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
 		int handled =
@@ -976,233 +1239,14 @@ int mission_briefing_craft_selection_update(int frame_counter)
 		}
 	}
 
-	frontend_draw_rect_assign(&rect, 85, 447, 176, 471);
-	if (g_game_config.help_on != 0) {
-		frontend_button_enable_overlay_text();
-	}
-	if (g_frontend_mission_session_mode ==
-	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		int action_triggered;
-		if (g_briefing_skip_player_assignment != 0) {
-			if (g_mission_setup_team_assignment_skipped != 0) {
-				frontend_button_set_overlay_text(
-					frontend_string_get(
-						FRONTSTR_216_ABORT));
-				action_triggered = frontend_button_handle_sprite_button(
-					&rect, "leaveup", "leavedown",
-					frontend_string_get(
-						FRONTSTR_260_RETURN_TO_SELECT_MISSION),
-					12, 0, 8, "buttonsound");
-				if (action_triggered != 0) {
-					action_triggered = frontend_dialog_show_confirm_dialog(
-						frontend_string_get(
-							FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
-						frontend_string_get(
-							FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
-						frontend_string_get(
-							FRONTSTR_754_TO_SELECT_MISSION),
-						frontend_string_get(
-							FRONTSTR_523_OKAY),
-						frontend_string_get(
-							FRONTSTR_019_CANCEL));
-					XVT_LOG_DEBUG(
-						"mission.setup_confirm_asked screen=\"craft\" action=\"restart\"");
-					return xvt_dialog_continue_with(
-						xvt_mission_dialogs_resume,
-						XVT_MISSION_SOLO_BACK_TO_SETUP);
-				}
-			} else {
-				frontend_button_set_overlay_text(
-					frontend_string_get(
-						FRONTSTR_569_PREVIOUS));
-				action_triggered = frontend_button_handle_sprite_button(
-					&rect, "leaveup", "leavedown",
-					frontend_string_get(
-						FRONTSTR_261_RETURN_TO_SELECT_TEAMS),
-					12, 0, 8, "buttonsound");
-			}
-		} else {
-			frontend_button_set_overlay_text(
-				frontend_string_get(FRONTSTR_569_PREVIOUS));
-			action_triggered = frontend_button_handle_sprite_button(
-				&rect, "leaveup", "leavedown",
-				frontend_string_get(
-					FRONTSTR_262_RETURN_TO_BRIEFING_AND_PILOT_ASSIGNMENT),
-				12, 0, 8, "buttonsound");
-		}
-		if (action_triggered != 0) {
-			if (g_briefing_skip_player_assignment != 0) {
-				if (g_mission_setup_team_assignment_skipped !=
-				    0) {
-					g_frontend_skip_screen_entry_setup = 1;
-					frontend_screen_set_callbacks(
-						mission_setup_update,
-						(frontend_screen_exit_fn)
-							mission_setup_exit);
-				} else {
-					XVT_LOG_INFO(
-						"briefing.craft_left reason=\"back_to_teams\"");
-					frontend_screen_set_callbacks(
-						mission_setup_team_assignment_update,
-
-						xvt_frontend_cleanup_mission_resources);
-				}
-				return 0;
-			}
-			XVT_LOG_INFO(
-				"briefing.craft_left reason=\"back_to_flights\"");
-			frontend_screen_set_callbacks(
-				mission_setup_flight_assignment_update,
-				mission_setup_free_screen_resources);
-			return 0;
-		}
-	} else if (net_is_host() != 0) {
-		frontend_button_set_overlay_text(
-			frontend_string_get(FRONTSTR_668_RESTART));
-
-		if (frontend_button_handle_sprite_button(
-			    &rect, "leaveup", "leavedown",
-			    frontend_string_get(
-				    FRONTSTR_260_RETURN_TO_SELECT_MISSION),
-			    12, 0, 8, "buttonsound") != 0) {
-			frontend_dialog_show_confirm_dialog(
-				frontend_string_get(
-					FRONTSTR_752_ARE_YOU_SURE_YOU_WANT_TO),
-				frontend_string_get(
-					FRONTSTR_753_RESTART_THE_GAME_AND_RETURN),
-				frontend_string_get(
-					FRONTSTR_754_TO_SELECT_MISSION),
-				frontend_string_get(FRONTSTR_523_OKAY),
-				frontend_string_get(FRONTSTR_019_CANCEL));
-			XVT_LOG_DEBUG(
-				"mission.setup_confirm_asked screen=\"craft\" action=\"restart\"");
-			return xvt_dialog_continue_with(
-				xvt_mission_dialogs_resume,
-				XVT_MISSION_HOST_RESTART);
-		}
-
-	} else {
-		frontend_button_set_overlay_text(
-			frontend_string_get(FRONTSTR_204_LEAVE));
-
-		if (frontend_button_handle_sprite_button(
-			    &rect, "leaveup", "leavedown",
-			    frontend_string_get(FRONTSTR_204_LEAVE), 12, 0, 8,
-			    "buttonsound") != 0) {
-			frontend_dialog_show_confirm_dialog(
-				frontend_string_get(
-					FRONTSTR_555_YOU_ARE_CURRENTLY_IN_A_GAME_SESSION),
-				frontend_string_get(
-					FRONTSTR_556_ARE_YOU_SURE_YOU_WANT_TO_QUIT),
-				frontend_string_get(
-					FRONTSTR_557_SPACE_TRANSLATION_PLACEHOLDER),
-				frontend_string_get(FRONTSTR_523_OKAY),
-				frontend_string_get(FRONTSTR_019_CANCEL));
-			XVT_LOG_DEBUG(
-				"mission.setup_confirm_asked screen=\"craft\" action=\"leave\"");
-			return xvt_dialog_continue_with(
-				xvt_mission_dialogs_resume,
-				XVT_MISSION_CLIENT_LEAVE);
-		}
+	int back_handled = mission_briefing_craft_handle_back();
+	if (back_handled != CRAFT_SELECTION_FRAME_GOES_ON) {
+		return back_handled;
 	}
 
-	frontend_draw_rect_assign(&rect, 8, 405, 71, 470);
-	if (g_frontend_mission_session_mode ==
-	    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-		frontend_button_set_overlay_text(
-			frontend_string_get(FRONTSTR_200_FLY));
-		if (frontend_button_handle_sprite_button(
-			    &rect, "flyup", "flydown",
-			    frontend_string_get(FRONTSTR_200_FLY), 12, 0, 7,
-			    "flysound") != 0 &&
-		    g_frontend_mission_session_mode ==
-			    FRONTEND_MISSION_SESSION_SINGLEPLAYER) {
-			mission_briefing_craft_fill_solo_roster();
-			XVT_LOG_INFO(
-				"briefing.craft_confirmed fg=%d craft=%d option=%d",
-				g_mission_setup_selected_flight_group_index,
-				g_mp_roster[0].craft_type_override,
-				g_mp_roster[0].craft_option_index);
-			frontend_mission_init_player_state();
-			frontend_screen_set_callbacks(
-				flight_loading_update_ready_screen, NULL);
-			frontend_button_disable_overlay_text();
-			return 0;
-		}
-	} else {
-		if (g_game_config.craft_selection ==
-		    CRAFT_SELECTION_HOST_ONLY) {
-			if (net_is_host() != 0 &&
-			    net_count_ready_players() <=
-				    g_frontend_briefing_entered_count) {
-				frontend_button_set_overlay_text(
-					frontend_string_get(FRONTSTR_200_FLY));
-				if (frontend_button_handle_sprite_button(
-					    &rect, "flyup", "flydown",
-					    frontend_string_get(
-						    FRONTSTR_200_FLY),
-					    12, 0, 7, "flysound") != 0) {
-					XVT_LOG_DEBUG(
-						"briefing.roster_sent by=\"fly\" entered=%d ms=%d",
-						g_frontend_briefing_entered_count,
-						g_mission_briefing_launch_countdown_ms);
-					mission_briefing_broadcast_roster_and_assignments();
-				}
-			}
-		}
-		if (g_game_config.craft_selection !=
-		    CRAFT_SELECTION_HOST_ONLY) {
-			for (roster_index = 0; roster_index < MAX_PLAYERS;
-			     ++roster_index) {
-				if (net_get_local_player_id() ==
-				    g_mp_roster[roster_index].player_id) {
-					break;
-				}
-			}
-			if (g_mp_roster_ready_flags[roster_index] != 0) {
-				frontend_button_set_overlay_text(
-					frontend_string_get(
-						FRONTSTR_575_RECONFIGURE));
-				if (frontend_button_handle_sprite_button(
-					    &rect, "flydown", "flyup",
-					    frontend_string_get(
-						    FRONTSTR_575_RECONFIGURE),
-					    12, 0, 7, "flysound") != 0) {
-					g_frontend_net_packet_scratch
-						.packet_type =
-						NET_PACKET_PLAYER_UNREADY;
-					net_send_packet_and_flush(
-						0,
-						&g_frontend_net_packet_scratch,
-						sizeof(g_frontend_net_packet_scratch
-							       .packet_type));
-					XVT_LOG_INFO(
-						"briefing.ready_sent ready=0 entry=%d",
-						roster_index);
-				}
-			} else {
-				frontend_button_set_overlay_text(
-					frontend_string_get(
-						FRONTSTR_574_READY));
-				if (frontend_button_handle_sprite_button(
-					    &rect, "flyup", "flydown",
-					    frontend_string_get(
-						    FRONTSTR_574_READY),
-					    12, 0, 7, "flysound") != 0) {
-					g_frontend_net_packet_scratch
-						.packet_type =
-						NET_PACKET_PLAYER_READY;
-					net_send_packet_and_flush(
-						0,
-						&g_frontend_net_packet_scratch,
-						sizeof(g_frontend_net_packet_scratch
-							       .packet_type));
-					XVT_LOG_INFO(
-						"briefing.ready_sent ready=1 entry=%d",
-						roster_index);
-				}
-			}
-		}
+	int fly_handled = mission_briefing_craft_handle_fly();
+	if (fly_handled != CRAFT_SELECTION_FRAME_GOES_ON) {
+		return fly_handled;
 	}
 
 	frontend_button_disable_overlay_text();
