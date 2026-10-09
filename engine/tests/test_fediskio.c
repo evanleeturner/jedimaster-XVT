@@ -11,8 +11,8 @@
  * files, texture blocks, lookup tables) into a temporary asset folder, run
  * fe_disk_io_build_model_def, _load_resources, _init_resources,
  * _free_flight_resources, _lock_global_buffers and _unlock_global_buffers and
- * the file helpers, and read the flight's tables and memory handles
- * afterwards. No game data is read.
+ * the small file functions (open, read, close), and read the flight's tables
+ * and memory handles afterwards. No game data is read.
  *
  * Not checked here:
  * - fe_disk_io_init_global_buffers: it needs the strings file in the game's
@@ -282,6 +282,24 @@ static void check_wave_bonus(void)
 	XVT_ASSERT_INT_EQ(g_pilot_data.mission_score, 2600);
 	/* Slot 1 holds no player, though its team is 0. */
 	XVT_ASSERT_INT_EQ(g_players[1].mission_stats.mission_score, 0);
+}
+
+/* Every human player whose team met its primary goal gets the bonus, here
+ * the second human too: its group sends two craft, two rounds left, 80 * 4 *
+ * 10 = 3200. */
+static void check_wave_bonus_second_player(void)
+{
+	fresh_flight();
+	add_second_human();
+	set_goals(0, 1, 0);
+	set_goals(1, 1, 0);
+	g_mission_fg_stats[0].waves_remaining = 1;
+	g_mission_fg_stats[1].waves_remaining = 2;
+	g_players[0].mission_stats.mission_score = 1000;
+	g_players[1].mission_stats.mission_score = 500;
+	XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
+	XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score, 2600);
+	XVT_ASSERT_INT_EQ(g_players[1].mission_stats.mission_score, 3700);
 }
 
 /* No bonus for the craft left when the player's team missed its primary
@@ -994,6 +1012,10 @@ static void check_training_award(void)
 		g_pilot_data.mission_sequence_active = cases[i].sequence;
 		g_game_config.difficulty =
 			(game_difficulty)cases[i].config_difficulty;
+		for (int slot = 0; slot < 4; ++slot) {
+			g_pilot_data.faction_statistics[0]
+				.mission_awards[slot] = 9;
+		}
 		XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
 		const struct pilot_faction *faction =
 			&g_pilot_data.faction_statistics[0];
@@ -1173,6 +1195,8 @@ static void check_melee_award_by_difficulty(void)
 		{2, 3, 2, 100, 3000, 5},   {2, 2, 2, 100, 3000, 0},
 		{2, 5, 3, 100, 3000, 5},   {2, 4, 3, 100, 3000, 0},
 		{2, 8, 8, 100, 3000, 6},   {2, 8, 7, 100, 3000, 0},
+		{1, 3, 1, 5000, 3000, 4},  {1, 3, 1, 10000, 3000, 3},
+		{2, 3, 1, 5000, 3000, 3},  {2, 3, 1, 10000, 3000, 2},
 	};
 	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
 		melee_flight(cases[i].teams, 1, cases[i].placement, 6000,
@@ -1437,6 +1461,14 @@ static void check_record_steps(int kind, const struct record_step *steps,
 		XVT_ASSERT_INT_EQ(view.campaign, TEST_CAMPAIGN_ID);
 		XVT_ASSERT_INT_EQ(view.eligible, 1);
 	}
+	/* A better award in place of a worse one that is not a failed one
+	 * leaves the failed count alone. */
+	record_set_award(kind, 5);
+	record_set_count(kind, TEST_FAILED_AWARD - 1, 2);
+	record_flight(kind, 1, 0, 60000, 90, CRAFT_WAVES_DEFAULT, 1, 100);
+	record_load(kind, &view);
+	XVT_ASSERT_INT_EQ(view.award, 1);
+	XVT_ASSERT_INT_EQ(record_count(kind, TEST_FAILED_AWARD - 1), 2);
 	/* A better award takes the failed award (6) off the record's count. */
 	record_set_award(kind, TEST_FAILED_AWARD);
 	record_set_count(kind, TEST_FAILED_AWARD - 1, 1);
@@ -1444,6 +1476,20 @@ static void check_record_steps(int kind, const struct record_step *steps,
 	record_load(kind, &view);
 	XVT_ASSERT_INT_EQ(view.award, 1);
 	XVT_ASSERT_INT_EQ(record_count(kind, TEST_FAILED_AWARD - 1), 0);
+	/* A failed award on a failed record changes nothing. */
+	record_set_award(kind, TEST_FAILED_AWARD);
+	record_set_count(kind, TEST_FAILED_AWARD - 1, 1);
+	if (kind == REC_SP_COMBAT) {
+		record_flight(kind, 2, 0, 0, 0, CRAFT_WAVES_DEFAULT, 1, 100);
+	} else if (kind == REC_MP_COMBAT) {
+		record_flight(kind, 0, 0, -30000, 0, CRAFT_WAVES_DEFAULT, 1,
+			      100);
+	} else {
+		record_flight(kind, 0, 0, -5, 0, CRAFT_WAVES_DEFAULT, 1, 100);
+	}
+	record_load(kind, &view);
+	XVT_ASSERT_INT_EQ(view.award, TEST_FAILED_AWARD);
+	XVT_ASSERT_INT_EQ(record_count(kind, TEST_FAILED_AWARD - 1), 1);
 	/* A flight with no award takes a failed award (6) off the record and
 	 * its count. */
 	record_set_award(kind, TEST_FAILED_AWARD);
@@ -1685,14 +1731,14 @@ static void check_melee_record(void)
 		 3000,
 		 90,
 		 1,
-		 100,
+		 1,
 		 1,
 		 1,
 		 0,
 		 3000,
 		 90,
 		 1,
-		 100,
+		 1,
 		 3,
 		 {0, 0, 0},
 		 {0, 0, 1, 0, 0, 0}},
@@ -1707,7 +1753,7 @@ static void check_melee_record(void)
 		 5000,
 		 90,
 		 1,
-		 100,
+		 1,
 		 3,
 		 {0, 0, 0},
 		 {0, 0, 1, 0, 0, 0}},
@@ -1741,20 +1787,35 @@ static void check_melee_record(void)
 		 2,
 		 {0, 0, 0},
 		 {0, 1, 0, 0, 0, 0}},
+		{1,
+		 500,
+		 0,
+		 1,
+		 200,
+		 5,
+		 4,
+		 1,
+		 7000,
+		 80,
+		 1,
+		 5001,
+		 2,
+		 {0, 0, 0},
+		 {0, 1, 0, 0, 0, 0}},
 	};
 	static const struct melee_step mp_steps[] = {
 		{1,
 		 6000,
 		 90,
 		 1,
-		 100,
+		 1,
 		 1,
 		 1,
 		 0,
 		 6000,
 		 90,
 		 1,
-		 100,
+		 1,
 		 5,
 		 {1, 0, 0},
 		 {0, 0, 0, 0, 1, 0}},
@@ -1769,7 +1830,7 @@ static void check_melee_record(void)
 		 7000,
 		 90,
 		 1,
-		 100,
+		 1,
 		 5,
 		 {1, 1, 0},
 		 {0, 0, 0, 0, 1, 0}},
@@ -1802,6 +1863,21 @@ static void check_melee_record(void)
 		 5001,
 		 4,
 		 {2, 1, 1},
+		 {0, 0, 0, 1, 1, 0}},
+		{1,
+		 500,
+		 0,
+		 1,
+		 200,
+		 5,
+		 3,
+		 1,
+		 9000,
+		 80,
+		 1,
+		 5001,
+		 4,
+		 {3, 1, 1},
 		 {0, 0, 0, 1, 1, 0}},
 	};
 	for (int kind = REC_SP_MELEE; kind <= REC_MP_MELEE;
@@ -1852,6 +1928,32 @@ static void check_melee_record(void)
 		XVT_ASSERT_INT_EQ(view.award, 0);
 		XVT_ASSERT_INT_EQ(record_count(kind, TEST_FAILED_AWARD - 1), 0);
 	}
+}
+
+/* In multiplayer, last place among four melee teams is the failed award (6):
+ * it becomes the record's award when there is none, and is not counted as a
+ * plaque, nor does it replace a better award. */
+static void check_mp_melee_failed_award(void)
+{
+	g_keep_pilot_record = 0;
+	melee_flight(4, 2, 4, 6000, 100, 6000);
+	g_pilot_data.mission_description_ids[MISSION_DIRECTORY_MELEES] =
+		TEST_MISSION_ID;
+	XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
+	struct record_view view;
+	record_load(REC_MP_MELEE, &view);
+	XVT_ASSERT_INT_EQ(view.award, TEST_FAILED_AWARD);
+	XVT_ASSERT_INT_EQ(record_count(REC_MP_MELEE, TEST_FAILED_AWARD - 1), 0);
+	record_set_award(REC_MP_MELEE, 1);
+	g_keep_pilot_record = 1;
+	melee_flight(4, 2, 4, 6000, 100, 6000);
+	g_keep_pilot_record = 0;
+	g_pilot_data.mission_description_ids[MISSION_DIRECTORY_MELEES] =
+		TEST_MISSION_ID;
+	XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
+	record_load(REC_MP_MELEE, &view);
+	XVT_ASSERT_INT_EQ(view.award, 1);
+	XVT_ASSERT_INT_EQ(record_count(REC_MP_MELEE, TEST_FAILED_AWARD - 1), 0);
 }
 
 /* ---- fe_disk_io_commit_flight_results: campaign standings -------------- */
@@ -2043,6 +2145,31 @@ static int tournament_award_of(int teams, int humans, int difficulty,
 		.mission_awards[TEST_AWARD_TOURNAMENT];
 }
 
+/* A team that is not taking part gets no place; with the first team out the
+ * team after it starts from nothing: the local player's team 1 is placed
+ * first of two, and team 0 adds nothing to its own total. */
+static void check_tournament_first_team_inactive(void)
+{
+	g_keep_pilot_record = 0;
+	fresh_flight();
+	tournament_flight(3, 1, 0);
+	struct melee_tournament_sequence_state *state =
+		&g_pilot_data.melee_tournament_sequence_state;
+	state->team_standings[0].ai_opponent_source_team_and_type_flag = -1;
+	g_players[0].team = 1;
+	g_flight_mission_state.runtime.team_scores[TEAM_SCORE_BONUS][0] = 777;
+	g_flight_mission_state.runtime.team_scores[TEAM_SCORE_MISSION][1] =
+		3000;
+	g_flight_mission_state.runtime.team_scores[TEAM_SCORE_MISSION][2] =
+		1000;
+	XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
+	XVT_ASSERT_INT_EQ(state->team_standings[0].total_score, 0);
+	XVT_ASSERT_INT_EQ(state->team_standings[0].first_place_count, 0);
+	XVT_ASSERT_INT_EQ(state->team_standings[1].total_score, 3000);
+	XVT_ASSERT_INT_EQ(state->team_standings[1].first_place_count, 1);
+	XVT_ASSERT_INT_EQ(state->team_standings[2].second_place_count, 1);
+}
+
 /* The tournament award, from the local team's total score and placement among
  * the teams taking part, comes from g_placement_award_levels when the total is
  * over 5,000 and the placement 1 to 3; with fewer than 3 human players it is
@@ -2065,13 +2192,13 @@ static void check_tournament_award(void)
 		{4, 1, 2, 2, 100, 6000, 5},   {4, 1, 2, 4, 100, 6000, 6},
 		{5, 1, 2, 3, 100, 6000, 0},   {6, 1, 2, 1, 100, 6000, 3},
 		{6, 1, 0, 1, 100, 6000, 4},   {6, 1, 2, 1, 10001, 6000, 2},
-		{6, 1, 2, 1, 10000, 6000, 3}, {6, 1, 2, 1, 20001, 6000, 1},
-		{7, 3, 2, 1, 100, 6000, 1},   {7, 3, 0, 2, 100, 6000, 3},
-		{7, 5, 0, 2, 100, 6000, 2},   {8, 2, 0, 3, 100, 6000, 5},
-		{8, 1, 0, 1, 20001, 6000, 1}, {8, 1, 2, 1, 20001, 6000, 1},
-		{3, 1, 2, 3, 100, 6000, 0},   {8, 5, 2, 8, 100, 6000, 6},
-		{4, 3, 0, 2, 100, 6000, 5},   {6, 1, 2, 1, 100, 5000, 0},
-		{2, 1, 2, 1, 100, 6000, 5},
+		{6, 1, 2, 1, 0, 6000, 3},     {6, 1, 2, 1, 10000, 6000, 3},
+		{6, 1, 2, 1, 20001, 6000, 1}, {7, 3, 2, 1, 100, 6000, 1},
+		{7, 3, 0, 2, 100, 6000, 3},   {7, 5, 0, 2, 100, 6000, 2},
+		{8, 2, 0, 3, 100, 6000, 5},   {8, 1, 0, 1, 20001, 6000, 1},
+		{8, 1, 2, 1, 20001, 6000, 1}, {3, 1, 2, 3, 100, 6000, 0},
+		{8, 5, 2, 8, 100, 6000, 6},   {4, 3, 0, 2, 100, 6000, 5},
+		{6, 1, 2, 1, 100, 5000, 0},   {2, 1, 2, 1, 100, 6000, 5},
 	};
 	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
 		g_keep_pilot_record = 0;
@@ -2130,13 +2257,13 @@ static void check_tournament_record(void)
 		 0,
 		 {0, 0, 0, 0, 0, 0}},
 		{2,
-		 {8000, 7000, 3000},
+		 {8001, 8000, 3000},
 		 1,
 		 2,
 		 {1, 1, 0},
-		 8000,
+		 8001,
 		 1,
-		 1000,
+		 1,
 		 5,
 		 {0, 0, 0, 0, 1, 0}},
 		{2,
@@ -2145,6 +2272,26 @@ static void check_tournament_record(void)
 		 3,
 		 {2, 1, 0},
 		 30000,
+		 1,
+		 27000,
+		 3,
+		 {0, 0, 1, 0, 0, 0}},
+		{2,
+		 {30500, 30000, 2000},
+		 1,
+		 4,
+		 {3, 1, 0},
+		 30500,
+		 1,
+		 27000,
+		 3,
+		 {0, 0, 1, 0, 0, 0}},
+		{2,
+		 {7000, 7100, 7200},
+		 1,
+		 5,
+		 {3, 1, 1},
+		 30500,
 		 1,
 		 27000,
 		 3,
@@ -2172,13 +2319,13 @@ static void check_tournament_record(void)
 		 0,
 		 {0, 0, 0, 0, 0, 0}},
 		{2,
-		 {8000, 7000, 3000},
+		 {8001, 8000, 3000},
 		 1,
 		 2,
 		 {1, 1, 0},
-		 8000,
+		 8001,
 		 1,
-		 1000,
+		 1,
 		 5,
 		 {0, 0, 0, 0, 1, 0}},
 		{2,
@@ -2191,13 +2338,33 @@ static void check_tournament_record(void)
 		 27000,
 		 3,
 		 {0, 0, 1, 0, 1, 0}},
+		{2,
+		 {30500, 30000, 2000},
+		 1,
+		 4,
+		 {3, 1, 0},
+		 30500,
+		 1,
+		 27000,
+		 3,
+		 {0, 0, 1, 0, 2, 0}},
+		{2,
+		 {7000, 7100, 7200},
+		 1,
+		 5,
+		 {3, 1, 1},
+		 30500,
+		 1,
+		 27000,
+		 3,
+		 {0, 0, 1, 0, 2, 0}},
 	};
 	for (int humans = 1; humans <= 2; ++humans) {
 		const struct tournament_step *steps =
 			humans == 1 ? sp_steps : mp_steps;
 		g_keep_pilot_record = 0;
 		fresh_flight();
-		for (int i = 0; i < 4; ++i) {
+		for (int i = 0; i < 6; ++i) {
 			tournament_flight(3, humans, steps[i].index);
 			struct melee_tournament_team_standings *standings =
 				g_pilot_data.melee_tournament_sequence_state
@@ -2268,6 +2435,27 @@ static void check_tournament_record(void)
 							      .attempt_count,
 				0);
 		}
+		/* A better award in place of a worse one that is not a failed
+		 * one leaves the failed count alone. */
+		g_pilot_data.faction_statistics[0].tournament_trophies[5] = 2;
+		if (humans == 1) {
+			g_pilot_data.faction_statistics[0]
+				.sp_tournaments[TEST_TOURNAMENT_ID]
+				.award_level = 5;
+		} else {
+			g_pilot_data.faction_statistics[0]
+				.mp_tournaments[TEST_TOURNAMENT_ID]
+				.award_level = 5;
+		}
+		tournament_flight(3, humans, 2);
+		g_pilot_data.melee_tournament_sequence_state.team_standings[0]
+			.total_score = 30000;
+		g_pilot_data.melee_tournament_sequence_state.team_standings[1]
+			.total_score = 3000;
+		XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
+		XVT_ASSERT_INT_EQ(g_pilot_data.faction_statistics[0]
+					  .tournament_trophies[5],
+				  2);
 		/* A better award takes a failed award off its count. */
 		g_pilot_data.faction_statistics[0].tournament_trophies[5] = 1;
 		if (humans == 1) {
@@ -2684,7 +2872,14 @@ static void check_craft_type_96(void)
 {
 	fresh_flight();
 	g_mission_flight_groups[1].fg.craft_type = 96;
+	g_players[0].per_mission_kills.kills_full_on_flight_group[1] = 5;
 	XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
+	/* A group of an unknown craft type counts for no craft's kills. */
+	for (int craft = 0; craft < 100; ++craft) {
+		XVT_ASSERT_INT_EQ(g_pilot_data.main_stats
+					  .kills_per_craft_per_mt[2][craft],
+				  0);
+	}
 }
 
 static struct xvt_test_assets g_assets;
@@ -3021,6 +3216,8 @@ static void check_model_weapon_group_types(void)
 		const struct model_def *def = &g_model_defs[TEST_MODEL_DEF];
 		XVT_ASSERT_INT_EQ(def->laser_group_weapon_type[0],
 				  laser ? (type + 136) & 0xFF : 0);
+		XVT_ASSERT_INT_EQ(def->laser_group_mount_type[0],
+				  laser && type == 5 ? 1 : 0);
 		XVT_ASSERT_INT_EQ(def->laser_group_weapon_type[1], 0);
 		XVT_ASSERT_INT_EQ(def->warhead_launcher_type[0],
 				  launcher ? (type + 136) & 0xFF : 0);
@@ -3294,6 +3491,27 @@ static void check_model_repeated_and_overflowing_launchers(void)
 	xvt_test_close_assets(&g_assets);
 }
 
+/* A rotating laser turret is a turret like the fixed one: its laser group
+ * mounts the turret way (2) and its second hardpoint of the type is the
+ * first one's alternate. */
+static void check_model_rotating_turret(void)
+{
+	struct mb_mesh mesh;
+	memset(&mesh, 0, sizeof mesh);
+	mesh.mesh_type = MESH_COMPONENT_21_ROTATING_LASR_TUR;
+	mesh.hardpoint_count = 2;
+	mesh.hardpoints[0] = (struct mb_hardpoint){1, 5, 6, 7};
+	mesh.hardpoints[1] = (struct mb_hardpoint){1, 8, 9, 10};
+	xvt_test_open_assets(&g_assets);
+	build_def(&mesh, 1);
+	const struct model_def *def = &g_model_defs[TEST_MODEL_DEF];
+	XVT_ASSERT_INT_EQ(def->laser_group_mount_type[0], 2);
+	XVT_ASSERT_INT_EQ(def->laser_group_slot_count[0], 1);
+	XVT_ASSERT_INT_EQ(
+		def->weapon_hardpoints[0].alternate_mesh_hardpoint_idx, 1);
+	xvt_test_close_assets(&g_assets);
+}
+
 /* ---- fe_disk_io_load_resources ----------------------------------------- */
 
 enum {
@@ -3405,15 +3623,26 @@ static void check_load_resources_lists(void)
 		bind_type(7, 0, 2, TEST_LOAD_OPT, 8);
 		bind_type(8, 0, 3, TEST_LOAD_PROVING_ONLY, 9);
 		bind_type(9, 0, 0, TEST_LOAD_OPT, 10);
+		bind_type(0, 0, 0, TEST_LOAD_OPT, 11);
 		g_object_type_table[9].record_flags = 0;
+		g_loaded_models[0] = 76;
+		g_object_type_table[0].resource_handle = 76;
 		g_loaded_models[150] = 77;
 		g_object_type_table[150].resource_handle = 77;
+		g_scene_edge_flags_capacity = 99999;
+		g_vertex_remap_capacity = 99999;
 		g_flight_resolution_mode = modes[mode];
 		g_flight_bytes_per_pixel = 2;
 		g_flight_mission_state.proving_grounds_mode_active = 0;
 		memset(g_model_bounds_cached, 0, sizeof g_model_bounds_cached);
 		fe_disk_io_load_resources();
 		XVT_ASSERT_INT_EQ(g_loaded_models[150], 0);
+		XVT_ASSERT_TRUE(g_scene_edge_flags_capacity < 99999);
+		XVT_ASSERT_TRUE(g_vertex_remap_capacity < 99999);
+		XVT_ASSERT_INT_EQ(g_loaded_models[0], g_loaded_models[1]);
+		XVT_ASSERT_INT_EQ(g_object_type_table[0].resource_handle,
+				  g_loaded_models[1]);
+		XVT_ASSERT_INT_EQ(g_model_defs[11].bound_size_x, 60);
 		XVT_ASSERT_INT_EQ(g_object_type_table[150].resource_handle, 0);
 		XVT_ASSERT_TRUE(g_loaded_models[1] != 0);
 		XVT_ASSERT_INT_EQ(g_loaded_models[1], g_loaded_models[2]);
@@ -3667,15 +3896,30 @@ static void check_melee_opponents_and_leads(void)
 				  .mission_awards[TEST_AWARD_MELEE],
 			  3);
 
-	melee_flight(3, 1, 1, 6000, 100, 3000);
+	melee_flight(3, 1, 1, 20000, 100, 3000);
 	g_flight_mission_state.runtime.team_scores[TEAM_SCORE_MISSION][1] =
-		-6000;
+		8000;
 	g_flight_mission_state.runtime.team_scores[TEAM_SCORE_MISSION][2] =
-		-1000;
+		13000;
 	XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
 	XVT_ASSERT_INT_EQ(g_pilot_data.faction_statistics[0]
 				  .mission_awards[TEST_AWARD_MELEE],
 			  2);
+
+	/* The local player on team 1: team 0, through its only flight group
+	 * (the first), is an opponent ahead of it. */
+	melee_flight(2, 2, 1, 6000, 100, 0);
+	g_local_player = 1;
+	g_players[1].mission_stats.mission_score = 6000;
+	g_flight_mission_state.runtime.team_scores[TEAM_SCORE_MISSION][0] =
+		7000;
+	g_flight_mission_state.runtime.team_scores[TEAM_SCORE_MISSION][1] =
+		6000;
+	XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
+	XVT_ASSERT_INT_EQ(g_pilot_data.faction_statistics[0]
+				  .mission_awards[TEST_AWARD_MELEE],
+			  0);
+	g_local_player = 0;
 }
 
 /* ---- fe_disk_io_init_resources ----------------------------------------- */
@@ -3720,6 +3964,8 @@ static void check_init_resources_16bit(void)
 	bind_type(1, 0, 0, TEST_LOAD_OPT, 3);
 	g_flight_bytes_per_pixel = 2;
 	g_loading_model = 0;
+	g_loaded_models[0] = 76;
+	g_object_type_table[0].resource_handle = 76;
 	g_flight_transparent_color_index = 99;
 	g_flight_background_color_index = 99;
 	g_active_rgb565_to_palette_index_lut = NULL;
@@ -3731,6 +3977,9 @@ static void check_init_resources_16bit(void)
 	XVT_ASSERT_INT_EQ(g_loading_model, 0);
 	XVT_ASSERT_TRUE(g_active_rgb565_to_palette_index_lut == NULL);
 	XVT_ASSERT_TRUE(g_loaded_models[1] != 0);
+	/* The entries the loader clears first include the first. */
+	XVT_ASSERT_INT_EQ(g_loaded_models[0], 0);
+	XVT_ASSERT_INT_EQ(g_object_type_table[0].resource_handle, 0);
 	XVT_ASSERT_INT_EQ(g_object_type_mesh_cache[1].mesh_count, 1);
 	XVT_ASSERT_INT_EQ(g_object_type_mesh_cache[1].mesh_types[0],
 			  MESH_COMPONENT_04_LASR_TUR);
@@ -3773,13 +4022,16 @@ static void check_init_resources_lookup(void)
 					    sizeof table);
 		}
 		if (source == 3) {
-			/* Nowhere to save the table. */
+			/* Nowhere to save the table: files stand where its
+			 * folders were. */
 			char user[XVT_TEST_PATH_CAPACITY];
 			char temp[XVT_TEST_PATH_CAPACITY];
 			xvt_test_join(user, g_assets.folder, "user");
 			xvt_test_join(temp, g_assets.folder, "temp");
 			xvt_test_remove_tree(user);
 			xvt_test_remove_tree(temp);
+			xvt_test_write_file(g_assets.folder, "user", "x", 1);
+			xvt_test_write_file(g_assets.folder, "temp", "x", 1);
 		}
 		XVT_ASSERT_INT_EQ(fe_disk_io_init_resources(), 7);
 		XVT_ASSERT_TRUE(g_active_rgb565_to_palette_index_lut ==
@@ -3828,7 +4080,8 @@ static void check_init_resources_lookup(void)
 static void check_load_resources_8bit_and_unknown_kind(void)
 {
 	xvt_test_open_assets(&g_assets);
-	write_lists("320", "model_a.opt\r\nweird.bin\r\n", "tex_a.lvl\r\n", "");
+	write_lists("320", "model_a.opt\r\nweird.bin\r\n", "tex_a.lvl\r\n",
+		    "model_a.opt\r\n");
 	struct mb_mesh mesh;
 	memset(&mesh, 0, sizeof mesh);
 	mesh.max[0] = 8;
@@ -3839,9 +4092,13 @@ static void check_load_resources_8bit_and_unknown_kind(void)
 	bind_type(1, 0, 0, TEST_LOAD_OPT, 3);
 	bind_type(2, 0, 1, 0x08, 4);
 	bind_type(3, 1, 0, TEST_LOAD_TEXTURE, 0);
+	bind_type(0, 2, 0, TEST_LOAD_OPT, 12);
+	g_loaded_models[0] = 76;
 	g_flight_bytes_per_pixel = 1;
 	fe_disk_io_load_resources();
 	XVT_ASSERT_TRUE(g_loaded_models[1] != 0);
+	XVT_ASSERT_TRUE(g_loaded_models[0] != 0 && g_loaded_models[0] != 76);
+	XVT_ASSERT_INT_EQ(g_model_defs[12].bound_size_x, 8);
 	XVT_ASSERT_INT_EQ(g_model_defs[3].bound_size_x, 8);
 	XVT_ASSERT_INT_EQ(g_model_defs[4].bound_size_x, 0);
 	uint8_t *texture = memory_get_handle_block(g_loaded_models[3]);
@@ -4220,6 +4477,7 @@ int main(int argc, char **argv)
 	check_melee_team_score();
 	check_wave_bonus();
 	check_wave_bonus_withheld();
+	check_wave_bonus_second_player();
 	check_melee_flight_group_rating();
 	check_campaign_completed();
 	check_campaign_failed();
@@ -4241,9 +4499,11 @@ int main(int argc, char **argv)
 	check_campaign_mission_record();
 	check_campaign_mission_eligible();
 	check_melee_record();
+	check_mp_melee_failed_award();
 	check_campaign_record_progress();
 	check_campaign_finished_at_count();
 	check_tournament_standings();
+	check_tournament_first_team_inactive();
 	check_tournament_award();
 	check_tournament_record();
 	check_battle_record();
@@ -4257,6 +4517,7 @@ int main(int argc, char **argv)
 	check_model_weapon_slots();
 	check_model_mount_texture_and_type_53();
 	check_model_slots_run_out();
+	check_model_rotating_turret();
 	check_load_resources_lists();
 	check_free_flight_resources();
 	check_free_flight_override_strings();
