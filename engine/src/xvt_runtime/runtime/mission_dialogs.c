@@ -11,6 +11,7 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt/net/net_send.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/frontend_cleanup.h"
 

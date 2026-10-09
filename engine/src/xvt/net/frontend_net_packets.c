@@ -11,6 +11,8 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/frontend_net_setup_packets.h"
 #include "xvt/net/net.h"
+#include "xvt/net/net_peers.h"
+#include "xvt/net/net_send.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/network_session.h"
 

@@ -10,6 +10,8 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt/net/net_peers.h"
+#include "xvt/net/net_send.h"
 #include "xvt_runtime/log/log.h"
 
 /* Part of the frontend's packet handling: sets *roster_index to the first

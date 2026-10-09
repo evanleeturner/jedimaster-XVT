@@ -27,6 +27,7 @@
 #include "xvt/input/keyboard.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt/net/net_send.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/cd_task.h"

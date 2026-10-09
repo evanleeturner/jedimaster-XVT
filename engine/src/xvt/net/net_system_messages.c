@@ -1,7 +1,9 @@
-#include "xvt/net/net.h"
+#include "xvt/net/net_system_messages.h"
 
 #include "xvt/frontend/frontend_state.h"
+#include "xvt/net/net.h"
 #include "xvt/net/net_reliable.h"
+#include "xvt/net/net_send.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/network_session.h"

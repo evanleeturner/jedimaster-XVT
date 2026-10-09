@@ -11,6 +11,7 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/frontend_net_packets.h"
 #include "xvt/net/net.h"
+#include "xvt/net/net_send.h"
 #include "xvt/util/time.h"
 
 void xvt_movie_sync_begin(void)

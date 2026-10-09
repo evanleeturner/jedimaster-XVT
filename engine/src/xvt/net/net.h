@@ -198,26 +198,12 @@ int net_create_direct_play_player(const char *long_player_info,
 				  const char *short_player_name);
 const GUID *
 net_get_direct_play_service_provider_guid(network_transport_type network_type);
-void net_pump_incoming_packets(void);
-int net_send_packet_and_flush(int to_player_id, const void *packet,
-			      unsigned int packet_size);
-int net_send_packet_internal(int to_player_id, const void *packet,
-			     unsigned int packet_size);
-int net_send_direct_play_packet(int dest_player_id, const void *packet,
-				int packet_size, int unused_send_mode);
-int net_send_sequenced_direct_play_packet(int dest_player_id, int packet_class,
-					  int sequence_id, const void *packet,
-					  unsigned int packet_size);
 struct net_player_info *net_get_player_roster(int *out_count);
 int net_did_ready_player_leave_this_frame(void);
 int net_is_host(void);
 int net_poll_for_packet_type_or_backlog(int packet_type);
 int net_poll_for_player_created_or_backlog(void);
 int *net_get_next_app_packet(DPID *out_sender_id, uint32_t *out_packet_size);
-void net_handle_direct_play_system_message(int packet_type,
-					   const void *packet_data);
-void *net_dequeue_incoming_packet(DPID *out_sender_id,
-				  uint32_t *out_packet_size);
 int net_get_host_player_id(void);
 int net_get_local_player_id(void);
 void net_mark_player_ready_no_lock(int player_id);
@@ -259,29 +245,10 @@ int net_session_export_runtime_state(
 	const int *sent_history_write_index,
 	struct net_queued_packet *sent_world_message_history,
 	const int *sent_world_message_write_index);
-int net_compact_reliable_peer_slots_for_roster(void);
-int net_send_sequence_keepalives(void);
-int net_check_and_record_incoming_sequence(int player_id, int sequence_id,
-					   int use_channel0, int use_channel2);
-int net_find_queued_sequenced_packet(int unused_queue_index, int sequence_id,
-				     int use_channel0, int use_channel2,
-				     int peer_slot_index);
-int net_remove_incoming_packet_at_index(unsigned int queue_index);
-unsigned int net_get_average_latency_ms(int player_id);
-int net_set_player_latency_ms(int player_id, int latency_ms);
 int net_set_player_name_with_lock_guard(unsigned int player_id,
 					const char *long_name,
 					const char *short_name);
 int net_refresh_player_roster_with_lock_guard(void);
-unsigned int net_find_or_create_peer_slot(int direct_play_id);
-int net_get_packet_drop_rate_basis_points(int player_id);
-int net_drop_silent_peers(void);
-int net_get_player_packet_count(int player_id);
-int net_get_player_packet_drop_count(int player_id);
-int net_get_player_packet_retry_count(int player_id);
-int net_set_player_packet_count(int player_id, int packet_count);
-int net_set_player_packet_drop_count(int player_id, int packet_drop_count);
-int net_set_player_packet_retry_count(int player_id, int packet_retry_count);
 
 #ifdef __cplusplus
 }

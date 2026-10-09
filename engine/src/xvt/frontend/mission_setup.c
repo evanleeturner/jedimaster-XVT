@@ -36,6 +36,8 @@
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/frontend_net_packets.h"
 #include "xvt/net/net.h"
+#include "xvt/net/net_peers.h"
+#include "xvt/net/net_send.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/campaign_task.h"

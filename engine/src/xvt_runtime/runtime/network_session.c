@@ -12,6 +12,8 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/frontend_net.h"
+#include "xvt/net/net_pump.h"
+#include "xvt/net/net_send.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/log/log.h"

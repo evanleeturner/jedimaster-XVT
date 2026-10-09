@@ -18,6 +18,7 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt/net/net_send.h"
 #include "xvt/util/time.h"
 #include "xvt/util/win32.h"
 #include "xvt_runtime/log/log.h"

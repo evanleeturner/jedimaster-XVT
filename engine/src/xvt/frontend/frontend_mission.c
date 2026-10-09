@@ -12,6 +12,7 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/net.h"
+#include "xvt/net/net_peers.h"
 #include "xvt_runtime/log/log.h"
 
 /* The mission the frontend's setup, briefing and debriefing screens show, as

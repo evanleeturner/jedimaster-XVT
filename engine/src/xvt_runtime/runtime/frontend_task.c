@@ -27,6 +27,7 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/frontend/tech_library.h"
 #include "xvt/net/frontend_net.h"
+#include "xvt/net/net_pump.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/campaign_task.h"
