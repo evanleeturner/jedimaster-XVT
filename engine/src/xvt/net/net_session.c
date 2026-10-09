@@ -2371,6 +2371,434 @@ static void *net_session_deliver_internet_input(
 	return g_net_session.recv_scratch_packet.payload;
 }
 
+/* Part of net_session_receive_packet when the queue holds the expected
+ * sequence: takes the entry at queued_index, marks it delivered in the peer's
+ * slot, counts and logs it; clears the NACK count and time of the entry at
+ * queue_index when sequence_distance is 1 or less, and returns the payload. */
+static void *
+net_session_deliver_gap_filled(unsigned int peer_index, int queued_index,
+			       struct net_session_receive_channels *channels,
+			       int expected_sequence, int *out_sender_dpid,
+			       int *out_payload_size, int *sequence_distance,
+			       int queue_index)
+{
+	g_net_session.reliable_peer_slots[peer_index].last_activity_ms =
+		timeGetTime();
+	memcpy(&g_net_session.recv_scratch_packet,
+	       &g_net_session_recv_queue[queued_index],
+	       sizeof(g_net_session.recv_scratch_packet));
+	net_reliable_remove_queued_packet(queued_index);
+	if (channels->want_channel_a) {
+		g_net_session.reliable_peer_slots[peer_index]
+			.last_delivered_seq_channel_a = expected_sequence;
+	} else if (channels->want_channel_b) {
+		g_net_session.reliable_peer_slots[peer_index]
+			.last_delivered_seq_channel_b = expected_sequence;
+	} else {
+		g_net_session.reliable_peer_slots[peer_index]
+			.last_delivered_seq_default = expected_sequence;
+	}
+	g_net_last_delivered_recv_sequence = expected_sequence;
+	++g_net_session.reliable_peer_slots[peer_index].packet_count;
+	*out_sender_dpid = g_net_session.recv_scratch_packet.direct_play_id;
+	*out_payload_size = g_net_session.recv_scratch_packet.payload_size;
+	XVT_LOG_DEBUG(
+		"network.packet_delivered path=\"gap_filled\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
+		(unsigned)g_net_session.recv_scratch_packet.direct_play_id,
+		peer_index,
+		(unsigned)g_net_session.recv_scratch_packet.packet_class,
+		(unsigned)g_net_session.recv_scratch_packet.sequence_byte,
+		(unsigned)g_net_session.recv_scratch_packet.payload[0],
+		(unsigned)g_net_session.recv_scratch_packet.payload_size,
+		g_net_session.reliable_peer_slots[peer_index].packet_count,
+		g_net_recv_queue_count);
+	if (*sequence_distance <= 1) {
+		g_net_session_recv_queue[queue_index].nack_retry_count = 0;
+		g_net_session_recv_queue[queue_index].last_nack_ms = 0;
+	}
+	return g_net_session.recv_scratch_packet.payload;
+}
+
+/* Part of net_session_receive_packet's requests for a missing sequence: builds
+ * in retry_packet and sends to the entry's sender a WORLD_NACK for a world
+ * message on the broadcast channel, holding the missing message's tick, the
+ * queued one's less missing_tick_offset, and remote_sequence; or else a NACK
+ * holding remote_sequence and retry_channel. */
+static void net_session_send_gap_nack(
+	int payload_type, struct net_session_receive_channels *channels,
+	struct net_session_scratch_packet *retry_packet, uint8_t *payload,
+	int *missing_tick_offset, int *remote_sequence,
+	struct net_queued_packet *packet, int retry_channel)
+{
+	if (payload_type == NET_PACKET_WORLD_MESSAGE &&
+	    channels->want_channel_a) {
+		retry_packet->packet_type = NET_PACKET_WORLD_NACK;
+		memcpy(&retry_packet->payload_dwords[0], payload + 4,
+		       sizeof(retry_packet->payload_dwords[0]));
+		retry_packet->payload_dwords[0] =
+			(retry_packet->payload_dwords[0] & 0x7fffffff) -
+			*missing_tick_offset;
+		retry_packet->payload_dwords[1] = *remote_sequence;
+		net_session_send_compact_game_packet(
+			packet->direct_play_id, (unsigned int *)retry_packet,
+			12, 1);
+	} else {
+		int retry_direct_play_id = packet->direct_play_id;
+		retry_packet->payload_dwords[0] = *remote_sequence;
+		retry_packet->packet_type = NET_PACKET_NACK;
+		retry_packet->payload_dwords[1] = retry_channel;
+		net_session_send_compact_game_packet(
+			retry_direct_play_id, (unsigned int *)retry_packet, 12,
+			1);
+	}
+}
+
+/* Part of net_session_receive_packet's first request for a missing sequence,
+ * remote_sequence: sends the NACK or WORLD_NACK, counts it in the peer's retry
+ * count, logs it and sets sent_retry. */
+static void net_session_send_first_nack(
+	struct net_session_receive_channels *channels, int payload_type,
+	uint8_t *payload, int *missing_tick_offset, int *remote_sequence,
+	struct net_queued_packet *packet, unsigned int peer_index,
+	int queue_index, int *sent_retry)
+{
+	struct net_session_scratch_packet retry_packet;
+	int retry_channel = channels->want_channel_a
+				    ? 0
+				    : (channels->want_channel_b ? 2 : 1);
+	net_session_send_gap_nack(payload_type, channels, &retry_packet,
+				  payload, missing_tick_offset, remote_sequence,
+				  packet, retry_channel);
+	++g_net_session.reliable_peer_slots[peer_index].packet_retry_count;
+	XVT_LOG_DEBUG(
+		"network.nack_sent to=%u peer=%u channel=%d missing=%d kind=\"%s\" tick=%d attempt=%d gaps=%d",
+		(unsigned)packet->direct_play_id, peer_index, retry_channel,
+		*remote_sequence,
+		retry_packet.packet_type == NET_PACKET_WORLD_NACK ? "world"
+								  : "packet",
+		retry_packet.packet_type == NET_PACKET_WORLD_NACK
+			? retry_packet.payload_dwords[0]
+			: -1,
+		(int)g_net_session_recv_queue[queue_index].nack_retry_count,
+		g_net_session.reliable_peer_slots[peer_index]
+			.packet_retry_count);
+	*sent_retry = 1;
+}
+
+/* Part of net_session_receive_packet's giving up of a gap, when its search
+ * reaches the entry's own sequence: marks that sequence delivered in the peer's
+ * slot and counts it, copies the entry at queue_index, removes the one at
+ * unused_search_index, logs it and returns its payload. */
+static void *
+net_session_deliver_at_gap_end(struct net_session_receive_channels *channels,
+			       unsigned int peer_index, int sequence,
+			       int queue_index, int unused_search_index,
+			       int *out_sender_dpid, int *out_payload_size)
+{
+	if (channels->want_channel_a) {
+		g_net_session.reliable_peer_slots[peer_index]
+			.last_delivered_seq_channel_a = sequence;
+	} else if (channels->want_channel_b) {
+		g_net_session.reliable_peer_slots[peer_index]
+			.last_delivered_seq_channel_b = sequence;
+	} else {
+		g_net_session.reliable_peer_slots[peer_index]
+			.last_delivered_seq_default = sequence;
+	}
+	g_net_last_delivered_recv_sequence = sequence;
+	++g_net_session.reliable_peer_slots[peer_index].packet_count;
+	memcpy(&g_net_session.recv_scratch_packet,
+	       &g_net_session_recv_queue[queue_index],
+	       sizeof(g_net_session.recv_scratch_packet));
+	net_reliable_remove_queued_packet((unsigned int)unused_search_index);
+	*out_sender_dpid = g_net_session.recv_scratch_packet.direct_play_id;
+	*out_payload_size = g_net_session.recv_scratch_packet.payload_size;
+	XVT_LOG_DEBUG(
+		"network.packet_delivered path=\"gave_up\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
+		(unsigned)g_net_session.recv_scratch_packet.direct_play_id,
+		peer_index,
+		(unsigned)g_net_session.recv_scratch_packet.packet_class,
+		(unsigned)g_net_session.recv_scratch_packet.sequence_byte,
+		(unsigned)g_net_session.recv_scratch_packet.payload[0],
+		(unsigned)g_net_session.recv_scratch_packet.payload_size,
+		g_net_session.reliable_peer_slots[peer_index].packet_count,
+		g_net_recv_queue_count);
+	return g_net_session.recv_scratch_packet.payload;
+}
+
+/* Part of net_session_receive_packet's giving up of a gap: steps
+ * remote_sequence on until the queue holds that sequence, leaving its entry's
+ * index in queued_index, and returns NULL; when it reaches the entry's own
+ * sequence first, it delivers the entry and returns its payload. */
+static void *net_session_find_after_gap(
+	int *queued_index, int unused_search_index, int *remote_sequence,
+	struct net_session_receive_channels *channels, unsigned int peer_index,
+	int sequence, int queue_index, int *out_sender_dpid,
+	int *out_payload_size)
+{
+	for (;;) {
+		*queued_index = net_reliable_find_queued_recv_packet(
+			unused_search_index, *remote_sequence,
+			channels->want_channel_a, channels->want_channel_b,
+			(int)peer_index);
+		if (*queued_index >= 0 && *queued_index <= 1024) {
+			break;
+		}
+		if (sequence == *remote_sequence) {
+			return net_session_deliver_at_gap_end(
+				channels, peer_index, sequence, queue_index,
+				unused_search_index, out_sender_dpid,
+				out_payload_size);
+		}
+		++*remote_sequence;
+		if (*remote_sequence > 127) {
+			*remote_sequence = 0;
+		}
+	}
+	return NULL;
+}
+
+/* Part of net_session_receive_packet's giving up of a gap: takes the entry at
+ * queued_index, the first found from the gap's start on, marks remote_sequence
+ * delivered in the peer's slot, counts and logs it, and returns its payload. */
+static void *
+net_session_deliver_found_copy(int queued_index,
+			       struct net_session_receive_channels *channels,
+			       unsigned int peer_index, int *remote_sequence,
+			       int *out_sender_dpid, int *out_payload_size)
+{
+	memcpy(&g_net_session.recv_scratch_packet,
+	       &g_net_session_recv_queue[queued_index],
+	       sizeof(g_net_session.recv_scratch_packet));
+	net_reliable_remove_queued_packet(queued_index);
+	if (channels->want_channel_a) {
+		g_net_session.reliable_peer_slots[peer_index]
+			.last_delivered_seq_channel_a = *remote_sequence;
+	} else if (channels->want_channel_b) {
+		g_net_session.reliable_peer_slots[peer_index]
+			.last_delivered_seq_channel_b = *remote_sequence;
+	} else {
+		g_net_session.reliable_peer_slots[peer_index]
+			.last_delivered_seq_default = *remote_sequence;
+	}
+	g_net_last_delivered_recv_sequence = *remote_sequence;
+	++g_net_session.reliable_peer_slots[peer_index].packet_count;
+	*out_sender_dpid = g_net_session.recv_scratch_packet.direct_play_id;
+	*out_payload_size = g_net_session.recv_scratch_packet.payload_size;
+	XVT_LOG_DEBUG(
+		"network.packet_delivered path=\"gave_up\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
+		(unsigned)g_net_session.recv_scratch_packet.direct_play_id,
+		peer_index,
+		(unsigned)g_net_session.recv_scratch_packet.packet_class,
+		(unsigned)g_net_session.recv_scratch_packet.sequence_byte,
+		(unsigned)g_net_session.recv_scratch_packet.payload[0],
+		(unsigned)g_net_session.recv_scratch_packet.payload_size,
+		g_net_session.reliable_peer_slots[peer_index].packet_count,
+		g_net_recv_queue_count);
+	return g_net_session.recv_scratch_packet.payload;
+}
+
+/* Part of net_session_receive_packet once the NACK count of a gap passes
+ * retry_limit: logs the giving up, records the peer's activity time and returns
+ * the first packet the queue holds from search_sequence on, the entry itself at
+ * the latest. */
+static void *net_session_give_up_gap(
+	int queue_index, unsigned int peer_index,
+	struct net_session_receive_channels *channels, int *remote_sequence,
+	unsigned int retry_limit, int search_sequence, int unused_search_index,
+	int sequence, int *out_sender_dpid, int *out_payload_size)
+{
+	int queued_index;
+	void *delivered;
+	XVT_LOG_WARN(
+		"network.nack_gave_up retries=%d peer=%u channel=%d missing=%d limit=%u",
+		g_net_session_recv_queue[queue_index].nack_retry_count,
+		peer_index,
+		channels->want_channel_a   ? 0
+		: channels->want_channel_b ? 2
+					   : 1,
+		*remote_sequence, retry_limit);
+	g_net_session.reliable_peer_slots[peer_index].last_activity_ms =
+		timeGetTime();
+	*remote_sequence = search_sequence;
+	delivered = net_session_find_after_gap(
+		&queued_index, unused_search_index, remote_sequence, channels,
+		peer_index, sequence, queue_index, out_sender_dpid,
+		out_payload_size);
+	if (delivered != NULL) {
+		return delivered;
+	}
+	return net_session_deliver_found_copy(
+		queued_index, channels, peer_index, remote_sequence,
+		out_sender_dpid, out_payload_size);
+}
+
+/* Part of net_session_receive_packet's repeat of a request for a missing
+ * sequence, remote_sequence, once its wait is over: sends the NACK or
+ * WORLD_NACK again, sets sent_retry and logs it. */
+static void net_session_send_repeat_nack(
+	struct net_session_receive_channels *channels, int payload_type,
+	uint8_t *payload, int *missing_tick_offset, int *remote_sequence,
+	struct net_queued_packet *packet, unsigned int peer_index,
+	int queue_index, int *sent_retry)
+{
+	struct net_session_scratch_packet retry_packet;
+	{
+		int retry_channel =
+			channels->want_channel_a
+				? 0
+				: (channels->want_channel_b ? 2 : 1);
+		net_session_send_gap_nack(payload_type, channels, &retry_packet,
+					  payload, missing_tick_offset,
+					  remote_sequence, packet,
+					  retry_channel);
+		*sent_retry = 1;
+		XVT_LOG_DEBUG(
+			"network.nack_sent to=%u peer=%u channel=%d missing=%d kind=\"%s\" tick=%d attempt=%d gaps=%d",
+			(unsigned)packet->direct_play_id, peer_index,
+			retry_channel, *remote_sequence,
+			retry_packet.packet_type == NET_PACKET_WORLD_NACK
+				? "world"
+				: "packet",
+			retry_packet.packet_type == NET_PACKET_WORLD_NACK
+				? retry_packet.payload_dwords[0]
+				: -1,
+			(int)g_net_session_recv_queue[queue_index]
+				.nack_retry_count,
+			g_net_session.reliable_peer_slots[peer_index]
+				.packet_retry_count);
+	}
+}
+
+/* Part of net_session_receive_packet for a gap already NACKed: once the wait
+ * since the last NACK passes its timeout, logs it and either gives the gap up,
+ * returning what that delivers, or sends the NACK again. Returns NULL when
+ * nothing is delivered. */
+static void *net_session_retry_gap_nack(
+	int payload_type, int queue_index, unsigned int peer_index,
+	struct net_session_receive_channels *channels, int *remote_sequence,
+	int search_sequence, int unused_search_index, int sequence,
+	uint8_t *payload, int *missing_tick_offset,
+	struct net_queued_packet *packet, int *sent_retry, int *out_sender_dpid,
+	int *out_payload_size)
+{
+	uint32_t now;
+	unsigned int timeout;
+	unsigned int retry_limit;
+	int timeout_payload_type;
+	now = timeGetTime();
+	timeout_payload_type = payload_type;
+	if (g_net_session.reliable_use_fixed_resend_timeouts != 0) {
+		retry_limit = 0;
+		timeout = timeout_payload_type == 2 ? 40000 : 3000;
+	} else {
+		retry_limit = timeout_payload_type == 2 ? 5 : 3;
+		timeout = 1000 << g_net_session_recv_queue[queue_index]
+					  .nack_retry_count;
+	}
+	if (now - (uint32_t)g_net_session_recv_queue[queue_index].last_nack_ms >
+	    timeout) {
+		XVT_LOG_DEBUG(
+			"network.nack_timeout retries=%d peer=%u channel=%d missing=%d waited=%u timeout=%u",
+			g_net_session_recv_queue[queue_index].nack_retry_count,
+			peer_index,
+			channels->want_channel_a   ? 0
+			: channels->want_channel_b ? 2
+						   : 1,
+			*remote_sequence,
+			(unsigned)(now -
+				   (uint32_t)
+					   g_net_session_recv_queue[queue_index]
+						   .last_nack_ms),
+			timeout);
+		if (g_net_session_recv_queue[queue_index].nack_retry_count >
+		    retry_limit) {
+			return net_session_give_up_gap(
+				queue_index, peer_index, channels,
+				remote_sequence, retry_limit, search_sequence,
+				unused_search_index, sequence, out_sender_dpid,
+				out_payload_size);
+		}
+		net_session_send_repeat_nack(
+			channels, payload_type, payload, missing_tick_offset,
+			remote_sequence, packet, peer_index, queue_index,
+			sent_retry);
+	}
+	return NULL;
+}
+
+/* Part of net_session_receive_packet for an entry not next in order: looks in
+ * the queue for each missing sequence from remote_sequence on and returns the
+ * expected one when found, or else asks for it, waits or gives the gap up;
+ * then sets the entry's NACK count and time. Returns NULL when nothing is
+ * delivered. */
+static void *net_session_chase_gap(
+	int sequence, int *remote_sequence, int queue_index,
+	struct net_session_receive_channels *channels, unsigned int peer_index,
+	int expected_sequence, int *sequence_distance, uint8_t retry_counts[40],
+	int payload_type, uint8_t *payload, int *missing_tick_offset,
+	struct net_queued_packet *packet, int *sent_retry, int search_sequence,
+	int *out_sender_dpid, int *out_payload_size)
+{
+	int queued_index;
+	int unused_search_index;
+	void *delivered;
+	extern int g_net_update_interval_ticks;
+	while (sequence != *remote_sequence) {
+		unused_search_index = queue_index;
+		queued_index = net_reliable_find_queued_recv_packet(
+			unused_search_index, *remote_sequence,
+			channels->want_channel_a, channels->want_channel_b,
+			(int)peer_index);
+		if (queued_index < 1024 && queued_index >= 0) {
+			if (expected_sequence == *remote_sequence) {
+				return net_session_deliver_gap_filled(
+					peer_index, queued_index, channels,
+					expected_sequence, out_sender_dpid,
+					out_payload_size, sequence_distance,
+					queue_index);
+			}
+			--*sequence_distance;
+		} else {
+			++retry_counts[peer_index];
+			if (g_net_session_recv_queue[queue_index]
+				    .nack_retry_count == 0) {
+				net_session_send_first_nack(
+					channels, payload_type, payload,
+					missing_tick_offset, remote_sequence,
+					packet, peer_index, queue_index,
+					sent_retry);
+			} else {
+				delivered = net_session_retry_gap_nack(
+					payload_type, queue_index, peer_index,
+					channels, remote_sequence,
+					search_sequence, unused_search_index,
+					sequence, payload, missing_tick_offset,
+					packet, sent_retry, out_sender_dpid,
+					out_payload_size);
+				if (delivered != NULL) {
+					return delivered;
+				}
+			}
+		}
+		*missing_tick_offset -= g_net_update_interval_ticks;
+		++*remote_sequence;
+		if (*remote_sequence > 127) {
+			*remote_sequence = 0;
+		}
+	}
+
+	if (*sequence_distance <= 0) {
+		g_net_session_recv_queue[queue_index].nack_retry_count = 0;
+		g_net_session_recv_queue[queue_index].last_nack_ms = 0;
+	} else if (*sent_retry == 1) {
+		++g_net_session_recv_queue[queue_index].nack_retry_count;
+		g_net_session_recv_queue[queue_index].last_nack_ms =
+			timeGetTime();
+	}
+	return NULL;
+}
+
 /* Part of net_session_receive_packet's full-queue pass: reads the entry's
  * sequence and channel, finds or makes its sender's peer slot, and sets
  * expected_sequence to the sequence after the last one delivered on that
@@ -2571,27 +2999,22 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 
 	int next_sequence;
 	int sequence_distance;
-	int queued_index;
 	int payload_type;
 	int missing_tick_offset;
 	uint8_t *payload;
 	int sent_retry;
-	int unused_search_index;
 	int remote_sequence;
 	uint8_t inspected[40];
 	uint8_t retry_counts[40];
 	uint8_t last_sequences[40][3];
 	uint8_t inspection_limits[40];
-	struct net_session_scratch_packet retry_packet;
 	struct net_queued_packet *packet;
 	unsigned int old_peer_count;
 	unsigned int peer_index;
 	int delta;
-	uint32_t now;
-	unsigned int timeout;
-	unsigned int retry_limit;
 	int search_sequence;
 	int direct_play_id;
+	void *delivered;
 
 	extern int g_net_update_interval_ticks;
 
@@ -2785,530 +3208,15 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 				continue;
 			}
 
-			while (sequence != remote_sequence) {
-				unused_search_index = queue_index;
-				queued_index =
-					net_reliable_find_queued_recv_packet(
-						unused_search_index,
-						remote_sequence,
-						channels.want_channel_a,
-						channels.want_channel_b,
-						(int)peer_index);
-				if (queued_index < 1024 && queued_index >= 0) {
-					if (expected_sequence ==
-					    remote_sequence) {
-						g_net_session
-							.reliable_peer_slots
-								[peer_index]
-							.last_activity_ms =
-							timeGetTime();
-						memcpy(&g_net_session
-								.recv_scratch_packet,
-						       &g_net_session_recv_queue
-							       [queued_index],
-						       sizeof(g_net_session
-								      .recv_scratch_packet));
-						net_reliable_remove_queued_packet(
-							queued_index);
-						if (channels.want_channel_a) {
-							g_net_session
-								.reliable_peer_slots
-									[peer_index]
-								.last_delivered_seq_channel_a =
-								expected_sequence;
-						} else if (
-							channels.want_channel_b) {
-							g_net_session
-								.reliable_peer_slots
-									[peer_index]
-								.last_delivered_seq_channel_b =
-								expected_sequence;
-						} else {
-							g_net_session
-								.reliable_peer_slots
-									[peer_index]
-								.last_delivered_seq_default =
-								expected_sequence;
-						}
-						g_net_last_delivered_recv_sequence =
-							expected_sequence;
-						++g_net_session
-							  .reliable_peer_slots
-								  [peer_index]
-							  .packet_count;
-						*out_sender_dpid =
-							g_net_session
-								.recv_scratch_packet
-								.direct_play_id;
-						*out_payload_size =
-							g_net_session
-								.recv_scratch_packet
-								.payload_size;
-						XVT_LOG_DEBUG(
-							"network.packet_delivered path=\"gap_filled\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
-							(unsigned)g_net_session
-								.recv_scratch_packet
-								.direct_play_id,
-							peer_index,
-							(unsigned)g_net_session
-								.recv_scratch_packet
-								.packet_class,
-							(unsigned)g_net_session
-								.recv_scratch_packet
-								.sequence_byte,
-							(unsigned)g_net_session
-								.recv_scratch_packet
-								.payload[0],
-							(unsigned)g_net_session
-								.recv_scratch_packet
-								.payload_size,
-							g_net_session
-								.reliable_peer_slots
-									[peer_index]
-								.packet_count,
-							g_net_recv_queue_count);
-						if (sequence_distance <= 1) {
-							g_net_session_recv_queue
-								[queue_index]
-									.nack_retry_count =
-								0;
-							g_net_session_recv_queue
-								[queue_index]
-									.last_nack_ms =
-								0;
-						}
-						return g_net_session
-							.recv_scratch_packet
-							.payload;
-					}
-					--sequence_distance;
-				} else {
-					++retry_counts[peer_index];
-					if (g_net_session_recv_queue
-						    [queue_index]
-							    .nack_retry_count ==
-					    0) {
-						int retry_channel =
-							channels.want_channel_a
-								? 0
-								: (channels.want_channel_b
-									   ? 2
-									   : 1);
-						if (payload_type ==
-							    NET_PACKET_WORLD_MESSAGE &&
-						    channels.want_channel_a) {
-							retry_packet
-								.packet_type =
-								NET_PACKET_WORLD_NACK;
-							memcpy(&retry_packet.payload_dwords
-									[0],
-							       payload + 4,
-							       sizeof(retry_packet
-									      .payload_dwords
-										      [0]));
-							retry_packet
-								.payload_dwords
-									[0] =
-								(retry_packet.payload_dwords
-									 [0] &
-								 0x7fffffff) -
-								missing_tick_offset;
-							retry_packet
-								.payload_dwords
-									[1] =
-								remote_sequence;
-							net_session_send_compact_game_packet(
-								packet->direct_play_id,
-								(unsigned int
-									 *)&retry_packet,
-								12, 1);
-						} else {
-							int retry_direct_play_id =
-								packet->direct_play_id;
-							retry_packet
-								.payload_dwords
-									[0] =
-								remote_sequence;
-							retry_packet
-								.packet_type =
-								NET_PACKET_NACK;
-							retry_packet
-								.payload_dwords
-									[1] =
-								retry_channel;
-							net_session_send_compact_game_packet(
-								retry_direct_play_id,
-								(unsigned int
-									 *)&retry_packet,
-								12, 1);
-						}
-						++g_net_session
-							  .reliable_peer_slots
-								  [peer_index]
-							  .packet_retry_count;
-						XVT_LOG_DEBUG(
-							"network.nack_sent to=%u peer=%u channel=%d missing=%d kind=\"%s\" tick=%d attempt=%d gaps=%d",
-							(unsigned)packet
-								->direct_play_id,
-							peer_index,
-							retry_channel,
-							remote_sequence,
-							retry_packet.packet_type ==
-									NET_PACKET_WORLD_NACK
-								? "world"
-								: "packet",
-							retry_packet.packet_type ==
-									NET_PACKET_WORLD_NACK
-								? retry_packet.payload_dwords
-									  [0]
-								: -1,
-							(int)g_net_session_recv_queue
-								[queue_index]
-									.nack_retry_count,
-							g_net_session
-								.reliable_peer_slots
-									[peer_index]
-								.packet_retry_count);
-						sent_retry = 1;
-					} else {
-						int timeout_payload_type;
-						now = timeGetTime();
-						timeout_payload_type =
-							payload_type;
-						if (g_net_session
-							    .reliable_use_fixed_resend_timeouts !=
-						    0) {
-							retry_limit = 0;
-							timeout =
-								timeout_payload_type ==
-										2
-									? 40000
-									: 3000;
-						} else {
-							retry_limit =
-								timeout_payload_type ==
-										2
-									? 5
-									: 3;
-							timeout =
-								1000
-								<< g_net_session_recv_queue
-									   [queue_index]
-										   .nack_retry_count;
-						}
-						if (now - (uint32_t)g_net_session_recv_queue
-								    [queue_index]
-									    .last_nack_ms >
-						    timeout) {
-							XVT_LOG_DEBUG(
-								"network.nack_timeout retries=%d peer=%u channel=%d missing=%d waited=%u timeout=%u",
-								g_net_session_recv_queue
-									[queue_index]
-										.nack_retry_count,
-								peer_index,
-								channels.want_channel_a
-									? 0
-								: channels.want_channel_b
-									? 2
-									: 1,
-								remote_sequence,
-								(unsigned)(now -
-									   (uint32_t)g_net_session_recv_queue
-										   [queue_index]
-											   .last_nack_ms),
-								timeout);
-							if (g_net_session_recv_queue
-								    [queue_index]
-									    .nack_retry_count >
-							    retry_limit) {
-								XVT_LOG_WARN(
-									"network.nack_gave_up retries=%d peer=%u channel=%d missing=%d limit=%u",
-									g_net_session_recv_queue
-										[queue_index]
-											.nack_retry_count,
-									peer_index,
-									channels.want_channel_a
-										? 0
-									: channels.want_channel_b
-										? 2
-										: 1,
-									remote_sequence,
-									retry_limit);
-								g_net_session
-									.reliable_peer_slots
-										[peer_index]
-									.last_activity_ms =
-									timeGetTime();
-								remote_sequence =
-									search_sequence;
-								for (;;) {
-									queued_index = net_reliable_find_queued_recv_packet(
-										unused_search_index,
-										remote_sequence,
-										channels.want_channel_a,
-										channels.want_channel_b,
-										(int)peer_index);
-									if (queued_index >=
-										    0 &&
-									    queued_index <=
-										    1024) {
-										break;
-									}
-									if (sequence ==
-									    remote_sequence) {
-										if (channels.want_channel_a) {
-											g_net_session
-												.reliable_peer_slots
-													[peer_index]
-												.last_delivered_seq_channel_a =
-												sequence;
-										} else if (
-											channels.want_channel_b) {
-											g_net_session
-												.reliable_peer_slots
-													[peer_index]
-												.last_delivered_seq_channel_b =
-												sequence;
-										} else {
-											g_net_session
-												.reliable_peer_slots
-													[peer_index]
-												.last_delivered_seq_default =
-												sequence;
-										}
-										g_net_last_delivered_recv_sequence =
-											sequence;
-										++g_net_session
-											  .reliable_peer_slots
-												  [peer_index]
-											  .packet_count;
-										memcpy(&g_net_session
-												.recv_scratch_packet,
-										       &g_net_session_recv_queue
-											       [queue_index],
-										       sizeof(g_net_session
-												      .recv_scratch_packet));
-										net_reliable_remove_queued_packet(
-											(unsigned int)
-												unused_search_index);
-										*out_sender_dpid =
-											g_net_session
-												.recv_scratch_packet
-												.direct_play_id;
-										*out_payload_size =
-											g_net_session
-												.recv_scratch_packet
-												.payload_size;
-										XVT_LOG_DEBUG(
-											"network.packet_delivered path=\"gave_up\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
-											(unsigned)g_net_session
-												.recv_scratch_packet
-												.direct_play_id,
-											peer_index,
-											(unsigned)g_net_session
-												.recv_scratch_packet
-												.packet_class,
-											(unsigned)g_net_session
-												.recv_scratch_packet
-												.sequence_byte,
-											(unsigned)g_net_session
-												.recv_scratch_packet
-												.payload[0],
-											(unsigned)g_net_session
-												.recv_scratch_packet
-												.payload_size,
-											g_net_session
-												.reliable_peer_slots
-													[peer_index]
-												.packet_count,
-											g_net_recv_queue_count);
-										return g_net_session
-											.recv_scratch_packet
-											.payload;
-									}
-									++remote_sequence;
-									if (remote_sequence >
-									    127) {
-										remote_sequence =
-											0;
-									}
-								}
-								memcpy(&g_net_session
-										.recv_scratch_packet,
-								       &g_net_session_recv_queue
-									       [queued_index],
-								       sizeof(g_net_session
-										      .recv_scratch_packet));
-								net_reliable_remove_queued_packet(
-									queued_index);
-								if (channels.want_channel_a) {
-									g_net_session
-										.reliable_peer_slots
-											[peer_index]
-										.last_delivered_seq_channel_a =
-										remote_sequence;
-								} else if (
-									channels.want_channel_b) {
-									g_net_session
-										.reliable_peer_slots
-											[peer_index]
-										.last_delivered_seq_channel_b =
-										remote_sequence;
-								} else {
-									g_net_session
-										.reliable_peer_slots
-											[peer_index]
-										.last_delivered_seq_default =
-										remote_sequence;
-								}
-								g_net_last_delivered_recv_sequence =
-									remote_sequence;
-								++g_net_session
-									  .reliable_peer_slots
-										  [peer_index]
-									  .packet_count;
-								*out_sender_dpid =
-									g_net_session
-										.recv_scratch_packet
-										.direct_play_id;
-								*out_payload_size =
-									g_net_session
-										.recv_scratch_packet
-										.payload_size;
-								XVT_LOG_DEBUG(
-									"network.packet_delivered path=\"gave_up\" from=%u peer=%u channel=%u sequence=%u type=%u bytes=%u delivered=%d queued=%u",
-									(unsigned)g_net_session
-										.recv_scratch_packet
-										.direct_play_id,
-									peer_index,
-									(unsigned)g_net_session
-										.recv_scratch_packet
-										.packet_class,
-									(unsigned)g_net_session
-										.recv_scratch_packet
-										.sequence_byte,
-									(unsigned)g_net_session
-										.recv_scratch_packet
-										.payload[0],
-									(unsigned)g_net_session
-										.recv_scratch_packet
-										.payload_size,
-									g_net_session
-										.reliable_peer_slots
-											[peer_index]
-										.packet_count,
-									g_net_recv_queue_count);
-								return g_net_session
-									.recv_scratch_packet
-									.payload;
-							}
-							{
-								int retry_channel =
-									channels.want_channel_a
-										? 0
-										: (channels.want_channel_b
-											   ? 2
-											   : 1);
-								if (payload_type ==
-									    NET_PACKET_WORLD_MESSAGE &&
-								    channels.want_channel_a) {
-									retry_packet
-										.packet_type =
-										NET_PACKET_WORLD_NACK;
-									memcpy(&retry_packet
-											.payload_dwords
-												[0],
-									       payload +
-										       4,
-									       sizeof(retry_packet
-											      .payload_dwords
-												      [0]));
-									retry_packet
-										.payload_dwords
-											[0] =
-										(retry_packet
-											 .payload_dwords
-												 [0] &
-										 0x7fffffff) -
-										missing_tick_offset;
-									retry_packet
-										.payload_dwords
-											[1] =
-										remote_sequence;
-									net_session_send_compact_game_packet(
-										packet->direct_play_id,
-										(unsigned int
-											 *)&retry_packet,
-										12,
-										1);
-								} else {
-									int retry_direct_play_id =
-										packet->direct_play_id;
-									retry_packet
-										.payload_dwords
-											[0] =
-										remote_sequence;
-									retry_packet
-										.packet_type =
-										NET_PACKET_NACK;
-									retry_packet
-										.payload_dwords
-											[1] =
-										retry_channel;
-									net_session_send_compact_game_packet(
-										retry_direct_play_id,
-										(unsigned int
-											 *)&retry_packet,
-										12,
-										1);
-								}
-								sent_retry = 1;
-								XVT_LOG_DEBUG(
-									"network.nack_sent to=%u peer=%u channel=%d missing=%d kind=\"%s\" tick=%d attempt=%d gaps=%d",
-									(unsigned)packet
-										->direct_play_id,
-									peer_index,
-									retry_channel,
-									remote_sequence,
-									retry_packet.packet_type ==
-											NET_PACKET_WORLD_NACK
-										? "world"
-										: "packet",
-									retry_packet.packet_type ==
-											NET_PACKET_WORLD_NACK
-										? retry_packet
-											  .payload_dwords
-												  [0]
-										: -1,
-									(int)g_net_session_recv_queue
-										[queue_index]
-											.nack_retry_count,
-									g_net_session
-										.reliable_peer_slots
-											[peer_index]
-										.packet_retry_count);
-							}
-						}
-					}
-				}
-				missing_tick_offset -=
-					g_net_update_interval_ticks;
-				++remote_sequence;
-				if (remote_sequence > 127) {
-					remote_sequence = 0;
-				}
-			}
-
-			if (sequence_distance <= 0) {
-				g_net_session_recv_queue[queue_index]
-					.nack_retry_count = 0;
-				g_net_session_recv_queue[queue_index]
-					.last_nack_ms = 0;
-			} else if (sent_retry == 1) {
-				++g_net_session_recv_queue[queue_index]
-					  .nack_retry_count;
-				g_net_session_recv_queue[queue_index]
-					.last_nack_ms = timeGetTime();
+			delivered = net_session_chase_gap(
+				sequence, &remote_sequence, queue_index,
+				&channels, peer_index, expected_sequence,
+				&sequence_distance, retry_counts, payload_type,
+				payload, &missing_tick_offset, packet,
+				&sent_retry, search_sequence, out_sender_dpid,
+				out_payload_size);
+			if (delivered != NULL) {
+				return delivered;
 			}
 		} else {
 			if (g_net_recv_queue_read_index == queue_index) {
