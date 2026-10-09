@@ -144,11 +144,16 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/net/frontend_net_packets.c
     src/xvt/net/frontend_net_setup_packets.c
     src/xvt/net/net.c
+    src/xvt/net/net_peers.c
+    src/xvt/net/net_pump.c
+    src/xvt/net/net_receive.c
     src/xvt/net/net_reliable.c
+    src/xvt/net/net_send.c
     src/xvt/net/net_session.c
     src/xvt/net/net_session_pump.c
     src/xvt/net/net_session_receive.c
     src/xvt/net/net_session_send.c
+    src/xvt/net/net_system_messages.c
     src/xvt/render/backdrop.c
     src/xvt/render/color.c
     src/xvt/render/flight_light.c

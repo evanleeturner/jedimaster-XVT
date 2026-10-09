@@ -175,10 +175,17 @@ if(NOT MSVC)
 endif()
 
 # The lobby's DirectPlay layer: its peer slots, sends, receive pump, roster flags and link figures:
-# src/xvt/net/net.c. The rename and ready checks run on a frontend display with no window, and an alarm
-# set with POSIX calls stops a call that does not return.
+# src/xvt/net/net.c, net_peers.c, net_pump.c, net_receive.c, net_send.c and net_system_messages.c.
+# The rename and ready checks run on a frontend display with no window, and an alarm set with POSIX
+# calls stops a call that does not return.
 if(NOT MSVC)
-    xvt_add_engine_test(test_net test_net.c "${PROJECT_SOURCE_DIR}/src/xvt/net/net.c")
+    xvt_add_engine_test(test_net test_net.c
+        "${PROJECT_SOURCE_DIR}/src/xvt/net/net.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt/net/net_peers.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt/net/net_pump.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt/net/net_receive.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt/net/net_send.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt/net/net_system_messages.c")
     add_test(NAME net COMMAND test_net)
     xvt_add_known_failure(test_net rename_without_session_unlocked)
     xvt_add_known_failure(test_net one_player_send_past_peer_table)
