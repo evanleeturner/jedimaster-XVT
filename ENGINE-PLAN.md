@@ -98,7 +98,7 @@ its row names.
 | 3. Meaning | the comment map for the remaining areas: frontend, render, assets, audio, math, input, util; then every comment the renames pushed past 100 columns, wrapped again | code tokens unchanged once comments are stripped; for the wrap, the words of every comment unchanged as well, and identical compiled objects | understand before touching; the comments surface the split candidates and the test targets |
 | 4. Logging | catalog events in the 1997 code, the 119 empty debug calls first | a log line never changes behavior; the catalog check | the DEBUG traces become the oracles the tests read |
 | 5. Tests | tests harvested from the comments and traces, module by module, bug sites first; the two-game run with its world checksums as the whole-game oracle; last, a flight test that needs no pictures: every ship's position logged as it flies, so a two-game run is judged from its logs alone | each test fails on a planted fault before it counts | the safety net goes up before the surgery |
-| 6. Structure | first, every file over 1,200 lines split by job, each line moved unchanged and each new file given its own header; then a long function split, or a global narrowed, only when a change has to work inside it, its tests written in the same pass | for a file split, every line placed once in its old order and each function's machine code compared; for a function split, tests reach every moved line and pass before and after, identical objects where the compiler happens to agree | the first step that changes the code's shape, so it comes last; files go first because a file split is mechanical and already narrows what a reader must load |
+| 6. Structure | the network files split by job, each line moved unchanged and each new file given its own header; from there, unit tests for the code no test reaches yet, and a file or a long function split, or a global narrowed, only when a change has to work inside it, its tests written in the same pass | for a file split, every line placed once in its old order and each function's machine code compared; for a test, it fails on a fault planted in each line it guards; for a function split, tests reach every moved line and pass before and after, identical objects where the compiler happens to agree | the first step that changes the code's shape, so it comes last; it turned to tests because the tests found bugs and the splits, which only move code, found none |
 
 Step 4 closed on 2026-10-06 with the baseline run in section 4's Logging
 row; step 5 starts from it. Step 5 closed on 2026-10-07 with the second
@@ -115,11 +115,11 @@ Two rules hold across the steps.
 - No function is restructured until a test reaches it and passes on the
   old code. That rule took the new code's 20 oversize findings to 0 in
   October 2026, and it holds here.
-- Structure work goes file first, then on demand: every file over 1,200
-  lines is split by job; a long function is split only when a change has
-  to work inside it, the areas the launcher needs first (ship behavior,
-  missions, networking, briefings). The size check reports on the whole
-  tree and enforces only in the areas already done.
+- Structure work is now tests first: each round adds unit tests for the
+  code no test reaches yet, the areas the launcher needs first (ship
+  behavior, missions, networking, briefings). A file or a long function is
+  split only when a change has to work inside it. The size check reports
+  on the whole tree and enforces only in the areas already done.
 
 Each step is planned and reviewed before it opens, lands one commit per
 area with its proof, and keeps the builds green on Windows, macOS and
