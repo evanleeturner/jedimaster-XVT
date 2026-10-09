@@ -3013,6 +3013,118 @@ net_session_note_discarded_copy(int direct_play_id, unsigned int peer_index,
 		sequence, expected_sequence);
 }
 
+/* Part of net_session_receive_packet: scans the queue from its front and
+ * returns the first packet it can deliver, asking for the missing sequences of
+ * any gap on the way; returns NULL when it delivers none. */
+static void *net_session_scan_queue(int *out_sender_dpid, int *out_payload_size,
+				    uint8_t inspected[40],
+				    uint8_t retry_counts[40],
+				    uint8_t last_sequences[40][3],
+				    uint8_t inspection_limits[40])
+{
+	int sequence;
+	int expected_sequence;
+	int queue_index;
+	struct net_session_receive_channels channels;
+	int next_sequence;
+	int sequence_distance;
+	int payload_type;
+	int missing_tick_offset;
+	uint8_t *payload;
+	int sent_retry;
+	int remote_sequence;
+	struct net_queued_packet *packet;
+	unsigned int peer_index;
+	int search_sequence;
+	int direct_play_id;
+	void *delivered;
+	queue_index = g_net_recv_queue_read_index;
+	channels.remaining_queue_entries = g_net_recv_queue_count;
+	while ((int)channels.remaining_queue_entries > 0) {
+		direct_play_id =
+			g_net_session_recv_queue[queue_index].direct_play_id;
+		packet = &g_net_session_recv_queue[queue_index];
+		if (direct_play_id == 0) {
+			if (queue_index == g_net_recv_queue_read_index) {
+				return net_session_take_system_message(
+					queue_index, out_sender_dpid,
+					out_payload_size);
+			}
+			net_session_step_to_next_entry(&queue_index, &channels);
+			continue;
+		}
+		int next = net_session_read_entry_channel(
+			&sequence, &queue_index, &channels, &peer_index,
+			direct_play_id, last_sequences, inspection_limits,
+			inspected, &expected_sequence, &next_sequence);
+		if (next != NET_SESSION_ENTRY_GOES_ON) {
+			continue;
+		}
+
+		payload = g_net_session_recv_queue[queue_index].payload;
+		memcpy(&payload_type, payload, sizeof(payload_type));
+		next = net_session_drop_stale_entry(sequence, expected_sequence,
+						    peer_index, direct_play_id,
+						    &channels, &queue_index);
+		if (next != NET_SESSION_ENTRY_GOES_ON) {
+			continue;
+		}
+
+		if (expected_sequence == sequence &&
+		    next_sequence == expected_sequence) {
+			return net_session_deliver_in_order(
+				peer_index, &channels, sequence, payload_type,
+				queue_index, out_sender_dpid, out_payload_size);
+		}
+
+		if (payload_type == NET_PACKET_REMOTE_INPUT &&
+		    g_game_config.internet_play == 1) {
+			return net_session_deliver_internet_input(
+				peer_index, &channels, sequence, queue_index,
+				out_sender_dpid, out_payload_size);
+		}
+
+		if (g_net_session_recv_queue[queue_index].is_resent_copy == 0) {
+			net_session_start_gap(
+				&channels, last_sequences, peer_index, sequence,
+				&remote_sequence, &sequence_distance,
+				&search_sequence, &missing_tick_offset,
+				&sent_retry, inspected);
+			if (retry_counts[peer_index] > 25) {
+				net_session_step_to_next_entry(&queue_index,
+							       &channels);
+				continue;
+			}
+
+			delivered = net_session_chase_gap(
+				sequence, &remote_sequence, queue_index,
+				&channels, peer_index, expected_sequence,
+				&sequence_distance, retry_counts, payload_type,
+				payload, &missing_tick_offset, packet,
+				&sent_retry, search_sequence, out_sender_dpid,
+				out_payload_size);
+			if (delivered != NULL) {
+				return delivered;
+			}
+		} else {
+			if (g_net_recv_queue_read_index == queue_index) {
+				net_session_note_discarded_copy(
+					direct_play_id, peer_index, &channels,
+					sequence, expected_sequence);
+				if (net_reliable_remove_queued_packet(
+					    queue_index) == 0) {
+					--channels.remaining_queue_entries;
+					continue;
+				}
+			}
+			net_session_step_to_next_entry(&queue_index, &channels);
+			continue;
+		}
+		net_session_step_to_next_entry(&queue_index, &channels);
+	}
+	return NULL;
+}
+
 /* Part of net_session_receive_packet's full-queue pass: reads the entry's
  * sequence and channel, finds or makes its sender's peer slot, and sets
  * expected_sequence to the sequence after the last one delivered on that
@@ -3205,27 +3317,10 @@ static void *net_session_take_from_full_queue(int *out_sender_dpid,
 // FUNCTION: XVT 0x46E780
 void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 {
-	int sequence;
-	int expected_sequence;
-	int queue_index;
-
-	struct net_session_receive_channels channels;
-
-	int next_sequence;
-	int sequence_distance;
-	int payload_type;
-	int missing_tick_offset;
-	uint8_t *payload;
-	int sent_retry;
-	int remote_sequence;
 	uint8_t inspected[40];
 	uint8_t retry_counts[40];
 	uint8_t last_sequences[40][3];
 	uint8_t inspection_limits[40];
-	struct net_queued_packet *packet;
-	unsigned int peer_index;
-	int search_sequence;
-	int direct_play_id;
 	void *delivered;
 
 	net_session_pump_incoming_packets();
@@ -3240,89 +3335,11 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 	memset(last_sequences, 0, sizeof(last_sequences));
 	net_session_load_delivered_sequences(last_sequences);
 
-	queue_index = g_net_recv_queue_read_index;
-	channels.remaining_queue_entries = g_net_recv_queue_count;
-	while ((int)channels.remaining_queue_entries > 0) {
-		direct_play_id =
-			g_net_session_recv_queue[queue_index].direct_play_id;
-		packet = &g_net_session_recv_queue[queue_index];
-		if (direct_play_id == 0) {
-			if (queue_index == g_net_recv_queue_read_index) {
-				return net_session_take_system_message(
-					queue_index, out_sender_dpid,
-					out_payload_size);
-			}
-			net_session_step_to_next_entry(&queue_index, &channels);
-			continue;
-		}
-		int next = net_session_read_entry_channel(
-			&sequence, &queue_index, &channels, &peer_index,
-			direct_play_id, last_sequences, inspection_limits,
-			inspected, &expected_sequence, &next_sequence);
-		if (next != NET_SESSION_ENTRY_GOES_ON) {
-			continue;
-		}
-
-		payload = g_net_session_recv_queue[queue_index].payload;
-		memcpy(&payload_type, payload, sizeof(payload_type));
-		next = net_session_drop_stale_entry(sequence, expected_sequence,
-						    peer_index, direct_play_id,
-						    &channels, &queue_index);
-		if (next != NET_SESSION_ENTRY_GOES_ON) {
-			continue;
-		}
-
-		if (expected_sequence == sequence &&
-		    next_sequence == expected_sequence) {
-			return net_session_deliver_in_order(
-				peer_index, &channels, sequence, payload_type,
-				queue_index, out_sender_dpid, out_payload_size);
-		}
-
-		if (payload_type == NET_PACKET_REMOTE_INPUT &&
-		    g_game_config.internet_play == 1) {
-			return net_session_deliver_internet_input(
-				peer_index, &channels, sequence, queue_index,
-				out_sender_dpid, out_payload_size);
-		}
-
-		if (g_net_session_recv_queue[queue_index].is_resent_copy == 0) {
-			net_session_start_gap(
-				&channels, last_sequences, peer_index, sequence,
-				&remote_sequence, &sequence_distance,
-				&search_sequence, &missing_tick_offset,
-				&sent_retry, inspected);
-			if (retry_counts[peer_index] > 25) {
-				net_session_step_to_next_entry(&queue_index,
-							       &channels);
-				continue;
-			}
-
-			delivered = net_session_chase_gap(
-				sequence, &remote_sequence, queue_index,
-				&channels, peer_index, expected_sequence,
-				&sequence_distance, retry_counts, payload_type,
-				payload, &missing_tick_offset, packet,
-				&sent_retry, search_sequence, out_sender_dpid,
-				out_payload_size);
-			if (delivered != NULL) {
-				return delivered;
-			}
-		} else {
-			if (g_net_recv_queue_read_index == queue_index) {
-				net_session_note_discarded_copy(
-					direct_play_id, peer_index, &channels,
-					sequence, expected_sequence);
-				if (net_reliable_remove_queued_packet(
-					    queue_index) == 0) {
-					--channels.remaining_queue_entries;
-					continue;
-				}
-			}
-			net_session_step_to_next_entry(&queue_index, &channels);
-			continue;
-		}
-		net_session_step_to_next_entry(&queue_index, &channels);
+	delivered = net_session_scan_queue(out_sender_dpid, out_payload_size,
+					   inspected, retry_counts,
+					   last_sequences, inspection_limits);
+	if (delivered != NULL) {
+		return delivered;
 	}
 
 	if ((int)g_net_recv_queue_count < 1023) {
