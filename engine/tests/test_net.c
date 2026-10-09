@@ -18,7 +18,8 @@
  * DEBUG lines let through. The rename and ready checks lock a back buffer on a
  * frontend display with no window. No game data is read. Every check starts
  * from a cleared g_front_state with the local player, id 1000, alone in the
- * roster, the group id 2000, no link figures, no session and the clock at one
+ * roster, the group id 2000, no link figures, no session, the broadcast and
+ * group trailers empty as a shutdown leaves them, and the clock at one
  * second.
  *
  * Not checked here: the lobby's opening and closing of DirectPlay, the player
@@ -55,6 +56,7 @@
 #include "xvt/net/net_receive.h"
 #include "xvt/net/net_reliable.h"
 #include "xvt/net/net_send.h"
+#include "xvt/net/net_system_messages.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/network_session.h"
@@ -157,6 +159,7 @@ struct fake_message {
 
 static struct fake_message g_sent[FAKE_MESSAGES];
 static int g_sent_count;
+static int g_send_saw_locked;
 static HRESULT g_send_result;
 static struct fake_message g_inbox[FAKE_MESSAGES];
 static int g_inbox_count;
@@ -165,6 +168,20 @@ static int g_receive_calls;
 static int g_receive_saw_locked;
 static HRESULT g_rename_result;
 static int g_rename_calls;
+/* The players EnumPlayers lists, in order, and what CreatePlayer answers. */
+struct listed_player {
+	DPID id;
+	uint32_t type;
+	const char *short_name;
+	const char *long_name;
+};
+static struct listed_player g_listed[48];
+static int g_listed_count;
+static int g_enum_saw_locked;
+static HRESULT g_create_result;
+static DPID g_create_player_id;
+static char g_create_short[16];
+static char g_create_long[16];
 static DPID g_renamed_player;
 static char g_renamed_short[16];
 static char g_renamed_long[16];
@@ -173,7 +190,10 @@ static HRESULT AERON_DXAPI fake_send(IDirectPlay2A *self, DPID from, DPID to,
 				     uint32_t flags, void *data, uint32_t size)
 {
 	(void)self;
-	(void)flags;
+	XVT_ASSERT_INT_EQ(flags, 0);
+	if (g_front_state.back_buffer_locked != 0) {
+		g_send_saw_locked = 1;
+	}
 	XVT_ASSERT_TRUE(g_sent_count < FAKE_MESSAGES);
 	XVT_ASSERT_TRUE(size <= sizeof g_sent[0].bytes);
 	struct fake_message *message = &g_sent[g_sent_count++];
@@ -221,10 +241,53 @@ static HRESULT AERON_DXAPI fake_set_player_name(IDirectPlay2A *self,
 	return g_rename_result;
 }
 
+static HRESULT AERON_DXAPI fake_enum_players(IDirectPlay2A *self,
+					     GUID *instance_guid,
+					     DPEnumPlayersCallback2 callback,
+					     void *context, uint32_t flags)
+{
+	(void)self;
+	(void)instance_guid;
+	XVT_ASSERT_INT_EQ(flags, 0);
+	if (g_front_state.back_buffer_locked != 0) {
+		g_enum_saw_locked = 1;
+	}
+	for (int i = 0; i < g_listed_count; ++i) {
+		DPNAME name = {sizeof name, 0, (char *)g_listed[i].short_name,
+			       (char *)g_listed[i].long_name};
+		if (!callback(g_listed[i].id, g_listed[i].type, &name, 0,
+			      context)) {
+			break;
+		}
+	}
+	return 0;
+}
+
+static HRESULT AERON_DXAPI fake_create_player(IDirectPlay2A *self, DPID *player,
+					      DPNAME *name, void *event,
+					      void *data, uint32_t size,
+					      uint32_t flags)
+{
+	(void)self;
+	(void)event;
+	(void)data;
+	XVT_ASSERT_INT_EQ(size, 0);
+	XVT_ASSERT_INT_EQ(flags, 0);
+	XVT_ASSERT_INT_EQ(name->dwSize, sizeof *name);
+	XVT_ASSERT_INT_EQ(name->dwFlags, 0);
+	strncpy(g_create_short, name->lpszShortNameA,
+		sizeof g_create_short - 1);
+	strncpy(g_create_long, name->lpszLongNameA, sizeof g_create_long - 1);
+	*player = g_create_player_id;
+	return g_create_result;
+}
+
 static IDirectPlay2AVtbl g_fake_vtbl = {
 	.Send = fake_send,
 	.Receive = fake_receive,
 	.SetPlayerName = fake_set_player_name,
+	.EnumPlayers = fake_enum_players,
+	.CreatePlayer = fake_create_player,
 };
 static IDirectPlay2A g_fake_direct_play = {&g_fake_vtbl};
 
@@ -338,9 +401,12 @@ static void fresh(void)
 	g_front_state.net_players[0].player_id = LOCAL_ID;
 	g_front_state.net_player_count = 1;
 	g_front_state.net_group_dplay_id = GROUP_ID;
+	g_front_state.net_runtime_broadcast_pending_payload.piggyback_empty = 1;
+	g_front_state.net_runtime_group_pending_payload.piggyback_empty = 1;
 	g_draw_surface_ptr = NULL;
 	memset(g_sent, 0, sizeof g_sent);
 	g_sent_count = 0;
+	g_send_saw_locked = 0;
 	g_send_result = 0;
 	memset(g_inbox, 0, sizeof g_inbox);
 	g_inbox_count = 0;
@@ -350,6 +416,12 @@ static void fresh(void)
 	forget_lines();
 	g_rename_result = 0;
 	g_rename_calls = 0;
+	g_listed_count = 0;
+	g_enum_saw_locked = 0;
+	g_create_result = 0;
+	g_create_player_id = 0;
+	memset(g_create_short, 0, sizeof g_create_short);
+	memset(g_create_long, 0, sizeof g_create_long);
 	g_renamed_player = 0;
 	memset(g_renamed_short, 0, sizeof g_renamed_short);
 	memset(g_renamed_long, 0, sizeof g_renamed_long);
@@ -892,6 +964,31 @@ static void check_keepalives(void)
 	XVT_ASSERT_INT_EQ(peer(slot)->last_activity_ms, GetTickCount());
 	XVT_ASSERT_INT_EQ(net_send_sequence_keepalives(), 1);
 	XVT_ASSERT_INT_EQ(g_sent_count, 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_keepalive_sent", "player"),
+			  30);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_keepalive_sent", "peer"),
+			  (int)slot);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_keepalive_sent", "broadcast"), 6);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_keepalive_sent", "group"),
+			  0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_keepalive_sent", "single"),
+			  10);
+
+	/* A new slot has every sequence at 127, so each next one is 0. */
+	fresh();
+	open_session();
+	g_front_state.net_players[1].player_id = 40;
+	g_front_state.net_player_count = 2;
+	net_find_or_create_peer_slot(40);
+	xvt_time_advance_host_clock(4000 * MS_US);
+	peer(0)->last_activity_ms = 0;
+	XVT_ASSERT_INT_EQ(net_send_sequence_keepalives(), 1);
+	XVT_ASSERT_INT_EQ(g_sent_count, 1);
+	XVT_ASSERT_INT_EQ(g_sent[0].to, 40);
+	XVT_ASSERT_INT_EQ(sent_word(0, 4), 0);
+	XVT_ASSERT_INT_EQ(sent_word(0, 8), 0);
+	XVT_ASSERT_INT_EQ(sent_word(0, 12), 0);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -3228,6 +3325,899 @@ static void check_dequeue_under_pressure(void)
 }
 
 /* ------------------------------------------------------------------------ */
+/* net_handle_direct_play_system_message, and the roster refresh it runs. */
+
+enum {
+	PLAYER_TYPE = 1,
+	GROUP_TYPE = 0,
+};
+
+/* Makes EnumPlayers list one more player. */
+static void list_player(DPID id, uint32_t type, const char *short_name,
+			const char *long_name)
+{
+	XVT_ASSERT_TRUE(g_listed_count < 48);
+	g_listed[g_listed_count].id = id;
+	g_listed[g_listed_count].type = type;
+	g_listed[g_listed_count].short_name = short_name;
+	g_listed[g_listed_count].long_name = long_name;
+	++g_listed_count;
+}
+
+/* Hands the handler a create or destroy message for a player or group. */
+static void send_system_message(int type, int player_type, DPID player)
+{
+	int message[8] = {type, player_type, (int)player};
+	net_handle_direct_play_system_message(type, message);
+}
+
+/* The state the system-message checks start from: a session that is not lost,
+ * the local player first in the roster, listed by DirectPlay too. */
+static void system_world(int host)
+{
+	fresh();
+	xvt_network_session_on_close();
+	open_session();
+	g_front_state.net_is_host = host;
+	g_front_state.net_host_player_id = host ? LOCAL_ID : 30;
+	roster_player(0, LOCAL_ID, 1);
+	list_player(LOCAL_ID, PLAYER_TYPE, "Luke", "L0");
+}
+
+/* The names in a roster entry, short then long. */
+static int roster_named(int index, const char *short_name,
+			const char *long_name)
+{
+	return strcmp(g_front_state.net_players[index].player_name,
+		      short_name) == 0 &&
+	       strcmp(g_front_state.net_players[index].long_name, long_name) ==
+		       0;
+}
+
+/* On the host, a player created other than the host itself has the roster
+ * rebuilt from DirectPlay's and is sent a SEQUENCE_STATUS, flushed: the count
+ * of players, the count of peer slots, the host's time in ms and, for each
+ * peer slot, its id and the sequences delivered and received on the broadcast
+ * and group channels. The join is logged. The host's own creation, and a
+ * group, change nothing. A client only rebuilds its roster, and nothing is
+ * sent. */
+static void check_system_player_created(void)
+{
+	system_world(1);
+	list_player(40, PLAYER_TYPE, "Biggs", "L2");
+	list_player(30, PLAYER_TYPE, "Wedge", "L3");
+	roster_player(1, 30, 1);
+	roster_player(2, 50, 1);
+	unsigned int first = net_find_or_create_peer_slot(40);
+	unsigned int second = net_find_or_create_peer_slot(GROUP_ID);
+	peer(first)->last_delivered_seq_channel_a = 5;
+	peer(first)->last_delivered_seq_channel_b = 6;
+	peer(first)->recv_seq_channel_a = 7;
+	peer(first)->recv_seq_channel_b = 8;
+	xvt_time_advance_host_clock(SECOND_US);
+	send_system_message(DPSYS_CREATEPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 3);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[0].player_id, LOCAL_ID);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[1].player_id, 40);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[2].player_id, 30);
+	XVT_ASSERT_INT_EQ(roster_named(2, "Wedge", "L3"), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[2].ready_flag, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[1].ready_flag, 0);
+	XVT_ASSERT_INT_EQ(g_sent_count, 2);
+	XVT_ASSERT_INT_EQ(g_sent[0].to, 30);
+	XVT_ASSERT_INT_EQ(sent_header(0) & 0x7F, NET_PACKET_SEQUENCE_STATUS);
+	XVT_ASSERT_INT_EQ(sent_length(0), 28);
+	XVT_ASSERT_INT_EQ(sent_word(0, 4), 3);
+	XVT_ASSERT_INT_EQ(sent_word(0, 8), 2);
+	XVT_ASSERT_INT_EQ(sent_word(0, 12), (int)GetTickCount());
+	XVT_ASSERT_INT_EQ(sent_word(0, 16), 40);
+	XVT_ASSERT_INT_EQ(g_sent[0].bytes[20], 5);
+	XVT_ASSERT_INT_EQ(g_sent[0].bytes[21], 6);
+	XVT_ASSERT_INT_EQ(g_sent[0].bytes[22], 7);
+	XVT_ASSERT_INT_EQ(g_sent[0].bytes[23], 8);
+	XVT_ASSERT_INT_EQ(sent_word(0, 24), GROUP_ID);
+	XVT_ASSERT_INT_EQ(g_sent[0].bytes[28], 127);
+	XVT_ASSERT_INT_EQ(g_sent[0].bytes[31], 127);
+	XVT_ASSERT_INT_EQ(sent_header(1) & 0x7F, NET_PACKET_NOP);
+	XVT_ASSERT_INT_EQ(g_sent[1].to, 30);
+	XVT_ASSERT_INT_EQ(second, 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_system_handled", "type"),
+			  DPSYS_CREATEPLAYERORGROUP);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_system_handled", "player"),
+			  30);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_system_handled", "host"),
+			  1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_joined", "player"),
+			  30);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_joined", "players"),
+			  3);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_joined", "peers"),
+			  3);
+
+	/* With one peer slot its record is sent, with none there is none. */
+	system_world(1);
+	list_player(30, PLAYER_TYPE, "Wedge", "L3");
+	unsigned int only = net_find_or_create_peer_slot(40);
+	peer(only)->recv_seq_channel_b = 9;
+	send_system_message(DPSYS_CREATEPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(sent_length(0), 20);
+	XVT_ASSERT_INT_EQ(sent_word(0, 8), 1);
+	XVT_ASSERT_INT_EQ(sent_word(0, 16), 40);
+	XVT_ASSERT_INT_EQ(g_sent[0].bytes[23], 9);
+	system_world(1);
+	list_player(30, PLAYER_TYPE, "Wedge", "L3");
+	send_system_message(DPSYS_CREATEPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(sent_length(0), 12);
+	XVT_ASSERT_INT_EQ(sent_word(0, 8), 0);
+
+	/* The host itself and a group: nothing changes. */
+	system_world(1);
+	list_player(30, PLAYER_TYPE, "Wedge", "L3");
+	forget_sends();
+	forget_lines();
+	g_front_state.net_player_count = 2;
+	send_system_message(DPSYS_CREATEPLAYERORGROUP, PLAYER_TYPE, LOCAL_ID);
+	send_system_message(DPSYS_CREATEPLAYERORGROUP, GROUP_TYPE, 60);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 2);
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_joined"), 0);
+
+	/* A client rebuilds its roster and sends nothing. */
+	g_front_state.net_is_host = 0;
+	g_front_state.net_player_count = 5;
+	send_system_message(DPSYS_CREATEPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 2);
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_joined"), 0);
+}
+
+/* The slot's fields as net_find_or_create_peer_slot sets a new one, apart from
+ * the times, which a freed slot has at 0. */
+static int slot_is_cleared(const struct net_reliable_peer_slot *slot)
+{
+	return slot->direct_play_id == 0 &&
+	       slot->last_delivered_seq_default == 127 &&
+	       slot->last_delivered_seq_channel_a == 127 &&
+	       slot->last_delivered_seq_channel_b == 127 &&
+	       slot->recv_seq_default == 127 &&
+	       slot->recv_seq_channel_a == 127 &&
+	       slot->recv_seq_channel_b == 127 && slot->send_seq == 0 &&
+	       slot->last_piggyback_type == NET_PACKET_NOP &&
+	       slot->piggyback_length == 1 && slot->last_heard_ms == 0 &&
+	       slot->last_activity_ms == 0 && slot->packet_count == 0 &&
+	       slot->packet_drop_count == 0 && slot->packet_retry_count == 0;
+}
+
+/* On the host, a player destroyed leaves the roster as DirectPlay now lists
+ * it, with the mark that a ready player left this frame when the leaver was
+ * ready. Its peer slot is freed by moving the last slot into it, and the slot
+ * left at the end is cleared, the resend-request count with it. Its link
+ * figures entry is cleared. A group, or a player that has no slot or entry,
+ * frees nothing. The leaving is logged with the count of slots left. */
+static void check_system_player_destroyed_on_host(void)
+{
+	system_world(1);
+	list_player(50, PLAYER_TYPE, "Biggs", "L2");
+	roster_player(1, 30, 1);
+	roster_player(2, 50, 0);
+	net_find_or_create_peer_slot(40);
+	net_find_or_create_peer_slot(30);
+	unsigned int last = net_find_or_create_peer_slot(50);
+	peer(last)->last_delivered_seq_channel_b = 11;
+	peer(last)->send_seq = 4;
+	peer(last)->packet_count = 9;
+	peer(last)->packet_retry_count = 9;
+	peer(last)->last_heard_ms = 77;
+	g_net_player_connection_stats[0].player_id = 30;
+	g_net_player_connection_stats[0].latency_total_ms = 300;
+	g_net_player_connection_stats[0].latency_sample_count = 3;
+	g_net_player_connection_stats[0].packet_count = 4;
+	g_net_player_connection_stats[0].packet_drop_count = 5;
+	g_net_player_connection_stats[0].packet_retry_count = 6;
+	g_net_player_connection_stats[1].player_id = 50;
+	g_net_player_connection_stats[1].latency_total_ms = 50;
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(g_front_state.net_ready_player_left_this_frame, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 2);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[1].player_id, 50);
+	XVT_ASSERT_INT_EQ(roster_named(1, "Biggs", "L2"), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_reliable_peer_slot_count, 2);
+	XVT_ASSERT_INT_EQ(peer(0)->direct_play_id, 40);
+	XVT_ASSERT_INT_EQ(peer(1)->direct_play_id, 50);
+	XVT_ASSERT_INT_EQ(peer(1)->last_delivered_seq_channel_b, 11);
+	XVT_ASSERT_INT_EQ(peer(1)->send_seq, 4);
+	XVT_ASSERT_INT_EQ(peer(1)->packet_count, 9);
+	XVT_ASSERT_INT_EQ(peer(1)->packet_retry_count, 9);
+	XVT_ASSERT_INT_EQ(peer(1)->last_heard_ms, 77);
+	XVT_ASSERT_INT_EQ(slot_is_cleared(peer(2)), 1);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].player_id, 0);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].latency_total_ms, 0);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].latency_sample_count,
+			  0);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].packet_count, 0);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].packet_drop_count,
+			  0);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].packet_retry_count,
+			  0);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[1].player_id, 50);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[1].latency_total_ms,
+			  50);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_left", "player"),
+			  30);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_left", "ready"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_left", "peers"), 2);
+
+	/* The player holding the last slot frees that slot alone. */
+	system_world(1);
+	net_find_or_create_peer_slot(40);
+	unsigned int leaver = net_find_or_create_peer_slot(30);
+	peer(leaver)->packet_retry_count = 9;
+	peer(leaver)->last_heard_ms = 77;
+	roster_player(1, 30, 0);
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(g_front_state.net_ready_player_left_this_frame, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_reliable_peer_slot_count, 1);
+	XVT_ASSERT_INT_EQ(peer(0)->direct_play_id, 40);
+	XVT_ASSERT_INT_EQ(slot_is_cleared(peer(1)), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_left", "ready"), 0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_left", "peers"), 1);
+
+	/* The player in the first slot and the first roster entry, the figures
+	 * entry well into the table, and slots and entries past the counts
+	 * that merely carry the id. */
+	system_world(1);
+	net_find_or_create_peer_slot(30);
+	net_find_or_create_peer_slot(40);
+	peer(1)->packet_count = 6;
+	g_net_player_connection_stats[3].player_id = LOCAL_ID;
+	g_net_player_connection_stats[3].packet_count = 8;
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(g_front_state.net_reliable_peer_slot_count, 1);
+	XVT_ASSERT_INT_EQ(peer(0)->direct_play_id, 40);
+	XVT_ASSERT_INT_EQ(peer(0)->packet_count, 6);
+	XVT_ASSERT_INT_EQ(slot_is_cleared(peer(1)), 1);
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, LOCAL_ID);
+	XVT_ASSERT_INT_EQ(g_front_state.net_ready_player_left_this_frame, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[0].ready_flag, 0);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[3].player_id, 0);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[3].packet_count, 0);
+	system_world(1);
+	net_find_or_create_peer_slot(40);
+	peer(1)->direct_play_id = 30;
+	roster_player(1, 40, 0);
+	g_front_state.net_players[2].player_id = 40;
+	g_front_state.net_players[2].ready_flag = 1;
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 40);
+	XVT_ASSERT_INT_EQ(g_front_state.net_ready_player_left_this_frame, 0);
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(g_front_state.net_reliable_peer_slot_count, 0);
+	system_world(1);
+	net_find_or_create_peer_slot(40);
+	peer(1)->direct_play_id = 30;
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(g_front_state.net_reliable_peer_slot_count, 1);
+	XVT_ASSERT_INT_EQ(peer(0)->direct_play_id, 40);
+
+	/* An entry past the roster's count does not count as the leaver. */
+	system_world(1);
+	g_front_state.net_players[1].player_id = 40;
+	g_front_state.net_players[1].ready_flag = 1;
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 40);
+	XVT_ASSERT_INT_EQ(g_front_state.net_ready_player_left_this_frame, 0);
+
+	/* A slot freed and taken again starts from nothing. */
+	system_world(1);
+	net_find_or_create_peer_slot(40);
+	unsigned int held = net_find_or_create_peer_slot(30);
+	peer(held)->packet_retry_count = 9;
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(net_find_or_create_peer_slot(60), 1);
+	XVT_ASSERT_INT_EQ(peer(1)->packet_retry_count, 0);
+
+	/* A group, and a player with no slot or entry, free nothing. */
+	system_world(1);
+	net_find_or_create_peer_slot(40);
+	g_net_player_connection_stats[0].player_id = 40;
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, GROUP_TYPE, 40);
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 99);
+	XVT_ASSERT_INT_EQ(g_front_state.net_reliable_peer_slot_count, 1);
+	XVT_ASSERT_INT_EQ(peer(0)->direct_play_id, 40);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].player_id, 40);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_left"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_left", "player"),
+			  99);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 1);
+}
+
+/* On a client, a player destroyed frees no slot and no figures; the roster is
+ * rebuilt. The host's destruction marks the session lost and queues a
+ * HOST_CANCELLED, with the flush NOP behind it, as received from the local
+ * player: nothing is sent to DirectPlay. A player that is not the host queues
+ * nothing. */
+static void check_system_player_destroyed_on_client(void)
+{
+	system_world(0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_is_lost(), 0);
+	net_find_or_create_peer_slot(40);
+	g_net_player_connection_stats[0].player_id = 40;
+	roster_player(1, 40, 1);
+	list_player(40, PLAYER_TYPE, "Biggs", "L2");
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 40);
+	XVT_ASSERT_INT_EQ(g_front_state.net_reliable_peer_slot_count, 1);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].player_id, 40);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_is_lost(), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 2);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_left"), 0);
+
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, GROUP_TYPE, 30);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_is_lost(), 0);
+
+	send_system_message(DPSYS_DESTROYPLAYERORGROUP, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(xvt_network_session_is_lost(), 1);
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 2);
+	XVT_ASSERT_INT_EQ(queued_type(0), NET_PACKET_HOST_CANCELLED);
+	XVT_ASSERT_INT_EQ(queued(0)->direct_play_id, LOCAL_ID);
+	XVT_ASSERT_INT_EQ(queued_type(1), NET_PACKET_NOP);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_host_cancel_queued", "host"), 30);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 2);
+}
+
+/* A message that a player was renamed gives its roster entry the new short and
+ * long names, cut to 12 characters, and logs the new name. A group's, an id not
+ * in the roster and an entry past the roster's count change nothing; names the
+ * message does not end are rejected with a warning and leave the entry
+ * alone. */
+static void check_system_player_renamed(void)
+{
+	static const struct {
+		const char *short_name;
+		const char *long_name;
+		const char *new_short;
+		const char *new_long;
+	} rows[] = {
+		{"Wedge", "Rogue Two", "Wedge", "Rogue Two"},
+		{"ABCDEFGHIJKLMNOP", "0123456789ABCDEFGHI", "ABCDEFGHIJKL",
+		 "0123456789AB"},
+	};
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		struct net_player_name_message message;
+		memset(&message, 0, sizeof message);
+		message.header.dwType = DPSYS_SETPLAYERORGROUPNAME;
+		message.header.dwPlayerType = PLAYER_TYPE;
+		message.header.dpId = 30;
+		strcpy(message.names, rows[row].short_name);
+		strcpy(message.names + strlen(rows[row].short_name) + 1,
+		       rows[row].long_name);
+		system_world(0);
+		roster_player(1, 30, 0);
+		roster_player(2, 40, 0);
+		roster_player(3, 30, 0);
+		strcpy(g_front_state.net_players[2].player_name, "Biggs");
+		strcpy(g_front_state.net_players[4].player_name, "Past");
+		g_front_state.net_players[4].player_id = 30;
+		net_handle_direct_play_system_message(
+			DPSYS_SETPLAYERORGROUPNAME, &message);
+		XVT_ASSERT_INT_EQ(roster_named(1, rows[row].new_short,
+					       rows[row].new_long),
+				  1);
+		XVT_ASSERT_INT_EQ(roster_named(3, rows[row].new_short,
+					       rows[row].new_long),
+				  1);
+		XVT_ASSERT_INT_EQ(
+			strcmp(g_front_state.net_players[2].player_name,
+			       "Biggs"),
+			0);
+		XVT_ASSERT_INT_EQ(
+			strcmp(g_front_state.net_players[4].player_name,
+			       "Past"),
+			0);
+		XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_renamed"),
+				  2);
+		XVT_ASSERT_INT_EQ(count_lines("network.lobby_rename_rejected"),
+				  0);
+		XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 4);
+	}
+
+	struct net_player_name_message message;
+	memset(&message, 0, sizeof message);
+	message.header.dwType = DPSYS_SETPLAYERORGROUPNAME;
+	message.header.dwPlayerType = PLAYER_TYPE;
+	message.header.dpId = LOCAL_ID;
+	strcpy(message.names, "Luke");
+	strcpy(message.names + 5, "Skywalker");
+	system_world(0);
+	net_handle_direct_play_system_message(DPSYS_SETPLAYERORGROUPNAME,
+					      &message);
+	XVT_ASSERT_INT_EQ(roster_named(0, "Luke", "Skywalker"), 1);
+	message.header.dpId = 30;
+	memset(message.names, 'x', sizeof message.names);
+	system_world(0);
+	roster_player(1, 30, 0);
+	strcpy(g_front_state.net_players[1].player_name, "Wedge");
+	net_handle_direct_play_system_message(DPSYS_SETPLAYERORGROUPNAME,
+					      &message);
+	XVT_ASSERT_INT_EQ(
+		strcmp(g_front_state.net_players[1].player_name, "Wedge"), 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_rename_rejected"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_rename_rejected", "player"),
+			  30);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_renamed"), 0);
+
+	/* A group's name, and an id that is not in the roster. */
+	strcpy(message.names, "Gone");
+	strcpy(message.names + 5, "Gone Too");
+	message.header.dwPlayerType = GROUP_TYPE;
+	net_handle_direct_play_system_message(DPSYS_SETPLAYERORGROUPNAME,
+					      &message);
+	message.header.dwPlayerType = PLAYER_TYPE;
+	message.header.dpId = 77;
+	net_handle_direct_play_system_message(DPSYS_SETPLAYERORGROUPNAME,
+					      &message);
+	XVT_ASSERT_INT_EQ(
+		strcmp(g_front_state.net_players[1].player_name, "Wedge"), 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_renamed"), 0);
+	/* Any other kind of message does nothing. */
+	send_system_message(0x7777, PLAYER_TYPE, 30);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 2);
+}
+
+/* The roster refresh keeps the first entry, clears the others, lists what
+ * DirectPlay lists except a type 0 entry and the local player, each name cut to
+ * 15 characters, carries each player's ready flag over by id and logs each
+ * player and the count. It returns 0 and changes nothing without DirectPlay,
+ * and stops at 32 players with a warning. DirectPlay is asked with the back
+ * buffer unlocked, which is locked again when it was. */
+static void check_roster_refresh(void)
+{
+	fresh();
+	XVT_ASSERT_INT_EQ(net_refresh_player_roster(), 0);
+	XVT_ASSERT_INT_EQ(net_refresh_player_roster_with_lock_guard(), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 1);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_roster_skipped"), 1);
+
+	system_world(0);
+	xvt_test_open_display();
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
+	strcpy(g_front_state.net_players[0].player_name, "Luke");
+	roster_player(1, 30, 1);
+	roster_player(2, 40, 0);
+	roster_player(5, 77, 1);
+	g_front_state.net_players[0].ready_flag = 1;
+	list_player(99, 0, "Nobody", "Nothing");
+	list_player(40, PLAYER_TYPE, "Biggs", "0123456789ABCDEFGHIJ");
+	list_player(30, PLAYER_TYPE, "ABCDEFGHIJKLMNOPQRST", "Rogue Two");
+	XVT_ASSERT_INT_EQ(net_refresh_player_roster(), 1);
+	XVT_ASSERT_INT_EQ(g_enum_saw_locked, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 3);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[0].player_id, LOCAL_ID);
+	XVT_ASSERT_INT_EQ(
+		strcmp(g_front_state.net_players[0].player_name, "Luke"), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[0].ready_flag, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[1].player_id, 40);
+	XVT_ASSERT_INT_EQ(roster_named(1, "Biggs", "0123456789ABCDE"), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[1].ready_flag, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[2].player_id, 30);
+	XVT_ASSERT_INT_EQ(roster_named(2, "ABCDEFGHIJKLMNO", "Rogue Two"), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[2].ready_flag, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[5].player_id, 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_listed"), 2);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_listed", "index"),
+			  2);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_listed", "player"),
+			  30);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_roster", "players"), 3);
+	g_enum_saw_locked = 0;
+	XVT_ASSERT_INT_EQ(net_refresh_player_roster_with_lock_guard(), 1);
+	XVT_ASSERT_INT_EQ(g_enum_saw_locked, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 3);
+	frontend_display_unlock_back_buffer();
+	XVT_ASSERT_INT_EQ(net_refresh_player_roster_with_lock_guard(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 0);
+	xvt_test_close_display();
+
+	system_world(0);
+	for (int i = 0; i < 40; ++i) {
+		list_player(100 + i, PLAYER_TYPE, "Pilot", "Pilot");
+	}
+	XVT_ASSERT_INT_EQ(net_refresh_player_roster(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_player_count, 32);
+	XVT_ASSERT_INT_EQ(g_front_state.net_players[31].player_id, 130);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_roster_full", "players"),
+			  32);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_roster_full"), 1);
+}
+
+/* Creating the local player gives DirectPlay the long and short names and
+ * returns the id it made, 0 when it fails, and the pending mark while it is
+ * pending; the result is logged. */
+static void check_create_player(void)
+{
+	fresh();
+	open_session();
+	g_create_player_id = 1234;
+	XVT_ASSERT_INT_EQ(net_create_direct_play_player("Long", "Short"), 1234);
+	XVT_ASSERT_INT_EQ(strcmp(g_create_short, "Short"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_create_long, "Long"), 0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_created", "player"),
+			  1234);
+	g_create_result = DPERR_PENDING;
+	XVT_ASSERT_INT_EQ(net_create_direct_play_player("Long", "Short"),
+			  XVT_NETWORK_PENDING);
+	g_create_result = DPERR_INVALIDPLAYER;
+	XVT_ASSERT_INT_EQ(net_create_direct_play_player("Long", "Short"), 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_created"), 3);
+}
+
+/* ------------------------------------------------------------------------ */
+/* The sends not outside the sequence scheme, and the resends. */
+
+/* A resend carries the resend bit in its header with the type and the sequence,
+ * the channel byte, then the body's length, the body and a NOP trailer; for a
+ * type from 60 to 63 neither the length nor the trailer. It goes from the local
+ * player to the player, and is logged with its size and the send's result. The
+ * call returns 1 when Send succeeds and 0 when it fails. */
+static void check_sequenced_send_layout(void)
+{
+	static const struct {
+		int type;
+		int bare;
+	} rows[] = {{NET_PACKET_CHAT, 0},
+		    {NET_PACKET_SEQUENCE_STATUS, 0},
+		    {NET_PACKET_RESYNC_CHECKSUMS, 1},
+		    {NET_PACKET_RESYNC_CHUNK, 1},
+		    {NET_PACKET_PROBE_REQUEST, 0}};
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		int packet[3] = {rows[row].type, 0x11223344, 0x55667788};
+		fresh();
+		open_session();
+		XVT_ASSERT_INT_EQ(net_send_sequenced_direct_play_packet(
+					  30, 2, 5, packet, sizeof packet),
+				  1);
+		XVT_ASSERT_INT_EQ(g_sent_count, 1);
+		XVT_ASSERT_INT_EQ(g_sent[0].from, LOCAL_ID);
+		XVT_ASSERT_INT_EQ(g_sent[0].to, 30);
+		XVT_ASSERT_INT_EQ(sent_header(0),
+				  0x80 | (5 << 8) | rows[row].type);
+		XVT_ASSERT_INT_EQ(g_sent[0].bytes[RESEND_CLASS], 2);
+		if (rows[row].bare) {
+			XVT_ASSERT_INT_EQ(g_sent[0].size, 11);
+			XVT_ASSERT_INT_EQ(sent_word(0, 3), packet[1]);
+			XVT_ASSERT_INT_EQ(sent_word(0, 7), packet[2]);
+		} else {
+			XVT_ASSERT_INT_EQ(g_sent[0].size, 14);
+			XVT_ASSERT_INT_EQ(g_sent[0].bytes[RESEND_LENGTH], 8);
+			XVT_ASSERT_INT_EQ(sent_word(0, RESEND_BODY), packet[1]);
+			XVT_ASSERT_INT_EQ(sent_word(0, RESEND_BODY + 4),
+					  packet[2]);
+			XVT_ASSERT_INT_EQ(g_sent[0].bytes[13], NET_PACKET_NOP);
+		}
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_resent", "to"), 30);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_resent", "type"),
+			rows[row].type);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_resent", "channel"),
+			2);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_resent", "seq"), 5);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_resent", "bytes"),
+			g_sent[0].size);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_resent", "result"), 0);
+		g_send_result = DPERR_INVALIDPLAYER;
+		XVT_ASSERT_INT_EQ(net_send_sequenced_direct_play_packet(
+					  30, 2, 5, packet, sizeof packet),
+				  0);
+	}
+	fresh();
+	int packet[2] = {NET_PACKET_CHAT, 1};
+	XVT_ASSERT_INT_EQ(net_send_sequenced_direct_play_packet(
+				  30, 0, 5, packet, sizeof packet),
+			  1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+}
+
+/* A resend to the local player is not sent: it is queued as a resent copy from
+ * the local player with the packet as it is, on the channel and sequence given,
+ * and the call returns 1. With 1,024 queued it is dropped with a warning. */
+static void check_sequenced_send_to_self(void)
+{
+	int packet[2] = {NET_PACKET_CHAT, 0x1234};
+	fresh();
+	open_session();
+	g_front_state.net_runtime_recv_queue_read_index = 1023;
+	g_front_state.net_runtime_recv_queue_write_index = 1023;
+	poison_queue(1023, 1);
+	queued(1023)->is_resent_copy = 0;
+	XVT_ASSERT_INT_EQ(net_send_sequenced_direct_play_packet(
+				  LOCAL_ID, 2, 9, packet, sizeof packet),
+			  1);
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_write_index, 0);
+	XVT_ASSERT_INT_EQ(queued(1023)->direct_play_id, LOCAL_ID);
+	XVT_ASSERT_INT_EQ(queued(1023)->payload_size, sizeof packet);
+	XVT_ASSERT_INT_EQ(memcmp(queued(1023)->payload, packet, sizeof packet),
+			  0);
+	XVT_ASSERT_INT_EQ(queued(1023)->packet_class, 2);
+	XVT_ASSERT_INT_EQ(queued(1023)->sequence_byte, 9);
+	XVT_ASSERT_INT_EQ(queued(1023)->is_resent_copy, 1);
+	XVT_ASSERT_INT_EQ(queued(1023)->nack_retry_count, 0);
+	XVT_ASSERT_INT_EQ(queued(1023)->last_nack_ms, 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_local_copy_dropped"), 0);
+
+	g_front_state.net_runtime_recv_queue_count = 1024;
+	XVT_ASSERT_INT_EQ(net_send_sequenced_direct_play_packet(
+				  LOCAL_ID, 2, 9, packet, sizeof packet),
+			  1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1024);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_write_index, 0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_local_copy_dropped", "to"),
+			  LOCAL_ID);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_local_copy_dropped", "queued"), 1024);
+}
+
+/* A packet outside the sequence scheme goes with sequence 0 and its type
+ * alone, or with the group bits for a send to the group, then the body's
+ * length, the body and a NOP trailer; types from 60 to 63 have neither length
+ * nor trailer. It is recorded in no history and queued nowhere, nothing is
+ * sent to the local player, and the call returns 1 without DirectPlay, 1 when
+ * Send succeeds and 0 when it fails. A failure other than an invalid player is
+ * logged as a warning. */
+static void check_control_send(void)
+{
+	static const struct {
+		int to;
+		int type;
+		int header_bits;
+		int size;
+	} rows[] = {
+		{30, NET_PACKET_KEEPALIVE, 0, 13},
+		{GROUP_ID, NET_PACKET_KEEPALIVE, 0x8080, 13},
+		{0, NET_PACKET_KEEPALIVE, 0, 13},
+		{30, NET_PACKET_SEQUENCE_STATUS, 0, 13},
+		{30, NET_PACKET_RESYNC_CHECKSUMS, 0, 10},
+		{30, NET_PACKET_RESYNC_CHUNK, 0, 10},
+		{30, NET_PACKET_PROBE_REQUEST, 0, 13},
+	};
+	int packet[3] = {0, 0x11223344, 0x55667788};
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		fresh();
+		packet[0] = rows[row].type;
+		XVT_ASSERT_INT_EQ(net_send_direct_play_packet(rows[row].to,
+							      packet,
+							      sizeof packet, 0),
+				  1);
+		XVT_ASSERT_INT_EQ(g_sent_count, 0);
+		open_session();
+		XVT_ASSERT_INT_EQ(net_send_direct_play_packet(rows[row].to,
+							      packet,
+							      sizeof packet, 0),
+				  1);
+		XVT_ASSERT_INT_EQ(g_sent_count, 1);
+		XVT_ASSERT_INT_EQ(g_sent[0].from, LOCAL_ID);
+		XVT_ASSERT_INT_EQ(g_sent[0].to, rows[row].to);
+		XVT_ASSERT_INT_EQ(sent_header(0),
+				  rows[row].header_bits | rows[row].type);
+		XVT_ASSERT_INT_EQ(g_sent[0].size, rows[row].size);
+		if (rows[row].size == 10) {
+			XVT_ASSERT_INT_EQ(sent_word(0, 2), packet[1]);
+			XVT_ASSERT_INT_EQ(sent_word(0, 6), packet[2]);
+		} else {
+			XVT_ASSERT_INT_EQ(sent_length(0), 8);
+			XVT_ASSERT_INT_EQ(sent_word(0, 4), packet[1]);
+			XVT_ASSERT_INT_EQ(sent_word(0, 8), packet[2]);
+			XVT_ASSERT_INT_EQ(g_sent[0].bytes[12], NET_PACKET_NOP);
+		}
+		XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count,
+				  0);
+		XVT_ASSERT_INT_EQ(
+			g_front_state.net_runtime_sent_history_write_index, 0);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_control_sent", "to"),
+			rows[row].to);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_control_sent", "type"),
+			rows[row].type);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_control_sent", "bytes"),
+			rows[row].size);
+	}
+	fresh();
+	open_session();
+	packet[0] = NET_PACKET_KEEPALIVE;
+	XVT_ASSERT_INT_EQ(
+		net_send_direct_play_packet(LOCAL_ID, packet, sizeof packet, 0),
+		1);
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	g_send_result = DPERR_INVALIDPLAYER;
+	XVT_ASSERT_INT_EQ(
+		net_send_direct_play_packet(30, packet, sizeof packet, 0), 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_control_send_failed"), 0);
+	g_send_result = DPERR_PENDING;
+	XVT_ASSERT_INT_EQ(
+		net_send_direct_play_packet(30, packet, sizeof packet, 0), 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_control_send_failed"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_control_send_failed", "to"),
+			  30);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_control_send_failed", "type"),
+		NET_PACKET_KEEPALIVE);
+}
+
+/* The first packet sent on the broadcast or the group channel carries a NOP
+ * trailer, the next the first one's type byte and body; the group's header has
+ * both group bits, the broadcast's none; a type from 60 to 63 has no length
+ * word and no trailer. Each send also clears whatever the sent history and the
+ * receive queue entries it takes held: resend requests, and a resent-copy
+ * mark. */
+static void check_broadcast_and_group_layout(void)
+{
+	static const struct {
+		int to;
+		int bits;
+	} rows[] = {{0, 0}, {GROUP_ID, 0x8080}};
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		int to = rows[row].to;
+		fresh();
+		open_session();
+		for (int i = 0; i < 3; ++i) {
+			struct net_queued_packet *entry =
+				&g_front_state.net_runtime_sent_history[i];
+			entry->last_nack_ms = 5;
+			entry->nack_retry_count = 3;
+			entry = queued(i);
+			entry->last_nack_ms = 5;
+			entry->nack_retry_count = 3;
+			entry->is_resent_copy = 1;
+		}
+		int first = send_game_packet(to, NET_PACKET_CHAT, 0x1111);
+		int second =
+			send_game_packet(to, NET_PACKET_REMOTE_INPUT, 0x2222);
+		int bare = send_game_packet(to, NET_PACKET_RESYNC_CHECKSUMS,
+					    0x3333);
+		int third = send_game_packet(to, NET_PACKET_CHAT, 0x4444);
+		XVT_ASSERT_INT_EQ(g_sent[first].to, to);
+		XVT_ASSERT_INT_EQ(sent_header(first),
+				  rows[row].bits | NET_PACKET_CHAT);
+		XVT_ASSERT_INT_EQ(g_sent[first].size, 9);
+		XVT_ASSERT_INT_EQ(sent_length(first), 4);
+		XVT_ASSERT_INT_EQ(sent_word(first, 4), 0x1111);
+		XVT_ASSERT_INT_EQ(g_sent[first].bytes[8], NET_PACKET_NOP);
+		XVT_ASSERT_INT_EQ(sent_header(second),
+				  rows[row].bits | (1 << 8) |
+					  NET_PACKET_REMOTE_INPUT);
+		XVT_ASSERT_INT_EQ(g_sent[second].size, 13);
+		XVT_ASSERT_INT_EQ(g_sent[second].bytes[8], NET_PACKET_CHAT);
+		XVT_ASSERT_INT_EQ(sent_word(second, 9), 0x1111);
+		XVT_ASSERT_INT_EQ(sent_header(bare),
+				  rows[row].bits | (2 << 8) |
+					  NET_PACKET_RESYNC_CHECKSUMS);
+		XVT_ASSERT_INT_EQ(g_sent[bare].size, 6);
+		XVT_ASSERT_INT_EQ(sent_word(bare, 2), 0x3333);
+		XVT_ASSERT_INT_EQ(sent_header(third),
+				  rows[row].bits | (3 << 8) | NET_PACKET_CHAT);
+		XVT_ASSERT_INT_EQ(g_sent[third].size, 13);
+		XVT_ASSERT_INT_EQ(g_sent[third].bytes[8],
+				  NET_PACKET_RESYNC_CHECKSUMS);
+		XVT_ASSERT_INT_EQ(sent_word(third, 9), 0x3333);
+		for (int i = 0; i < 3; ++i) {
+			XVT_ASSERT_INT_EQ(
+				g_front_state.net_runtime_sent_history[i]
+					.last_nack_ms,
+				0);
+			XVT_ASSERT_INT_EQ(
+				g_front_state.net_runtime_sent_history[i]
+					.nack_retry_count,
+				0);
+			XVT_ASSERT_INT_EQ(queued(i)->last_nack_ms, 0);
+			XVT_ASSERT_INT_EQ(queued(i)->nack_retry_count, 0);
+			XVT_ASSERT_INT_EQ(queued(i)->is_resent_copy, 0);
+		}
+	}
+}
+
+/* A packet sent to the local player, or to the group or everyone when the
+ * receive queue is full, has its local copy dropped with a warning that names
+ * the destination and the count. */
+static void check_local_copy_dropped_logged(void)
+{
+	static const int destinations[] = {LOCAL_ID, GROUP_ID, 0};
+	for (int i = 0; i < 3; ++i) {
+		int packet[2] = {NET_PACKET_CHAT, 1};
+		fresh();
+		open_session();
+		g_front_state.net_runtime_recv_queue_count = 1024;
+		XVT_ASSERT_INT_EQ(net_send_packet_internal(destinations[i],
+							   packet,
+							   sizeof packet),
+				  1);
+		XVT_ASSERT_INT_EQ(
+			count_lines("network.lobby_local_copy_dropped"), 1);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_local_copy_dropped", "to"),
+			destinations[i]);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_local_copy_dropped", "type"),
+			NET_PACKET_CHAT);
+		XVT_ASSERT_INT_EQ(line_value("network.lobby_local_copy_dropped",
+					     "queued"),
+				  1024);
+	}
+	int packet[2] = {NET_PACKET_CHAT, 1};
+	fresh();
+	open_session();
+	g_front_state.net_runtime_recv_queue_count = 1024;
+	XVT_ASSERT_INT_EQ(net_send_packet_internal(30, packet, sizeof packet),
+			  1);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_local_copy_dropped"), 0);
+}
+
+/* A send that fails with anything but an invalid player is logged as a warning
+ * with the player and type; the local copy dropped for a full queue is logged
+ * with the count; each packet sent is logged with its channel, sequence and
+ * size. The send-and-flush leaves the back buffer unlocked while it sends and
+ * locks it again when it was locked. */
+static void check_send_logs_and_back_buffer(void)
+{
+	int packet[2] = {NET_PACKET_CHAT, 1};
+	fresh();
+	open_session();
+	g_send_result = DPERR_PENDING;
+	XVT_ASSERT_INT_EQ(net_send_packet_internal(30, packet, sizeof packet),
+			  0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_send_failed"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_send_failed", "to"), 30);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_send_failed", "type"),
+			  NET_PACKET_CHAT);
+	g_send_result = DPERR_INVALIDPLAYER;
+	XVT_ASSERT_INT_EQ(net_send_packet_internal(30, packet, sizeof packet),
+			  0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_send_failed"), 1);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_packet_sent"), 2);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_packet_sent", "to"), 30);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_packet_sent", "channel"),
+			  1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_packet_sent", "seq"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_packet_sent", "bytes"), 13);
+
+	g_front_state.net_runtime_recv_queue_count = 1024;
+	XVT_ASSERT_INT_EQ(net_send_packet_internal(0, packet, sizeof packet),
+			  0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_local_copy_dropped", "to"),
+			  0);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_local_copy_dropped", "queued"), 1024);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_packet_sent", "channel"),
+			  0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_packet_sent", "queued"),
+			  1024);
+
+	fresh();
+	open_session();
+	xvt_test_open_display();
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
+	XVT_ASSERT_INT_EQ(net_send_packet_and_flush(30, packet, sizeof packet),
+			  1);
+	XVT_ASSERT_INT_EQ(g_send_saw_locked, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 1);
+	frontend_display_unlock_back_buffer();
+	XVT_ASSERT_INT_EQ(net_send_packet_and_flush(30, packet, sizeof packet),
+			  1);
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 0);
+	xvt_test_close_display();
+}
+
+/* ------------------------------------------------------------------------ */
 /* The roster. */
 
 /* The getters return the roster with its count, the left-this-frame mark, the
@@ -3746,6 +4736,18 @@ int main(int argc, char **argv)
 	check_dequeue_long_timeout_mode();
 	check_dequeue_gap_filled_by_copies();
 	check_dequeue_under_pressure();
+	check_system_player_created();
+	check_system_player_destroyed_on_host();
+	check_system_player_destroyed_on_client();
+	check_system_player_renamed();
+	check_roster_refresh();
+	check_create_player();
+	check_sequenced_send_layout();
+	check_sequenced_send_to_self();
+	check_control_send();
+	check_broadcast_and_group_layout();
+	check_local_copy_dropped_logged();
+	check_send_logs_and_back_buffer();
 	check_roster_getters();
 	check_ready_flags();
 	check_ready_flags_locked();
