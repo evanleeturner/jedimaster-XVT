@@ -265,11 +265,12 @@ if(NOT MSVC)
 endif()
 
 # What the engine's own readers keep from the game's files (lists, icons, text,
-# fonts, pictures, pilots, 3D models) and what it draws from them, printed for
-# other readers to be checked against; see each tool's header comment.
+# fonts, pictures, pilots, 3D models, movies) and what it draws from them,
+# printed for other readers to be checked against; see each tool's header
+# comment.
 if(XVT_BUILD_TOOLS)
     set(opt_dump_extra_sources tools/opt_draw.c)
-    foreach(tool list_dump icon_dump picture_dump text_dump pilot_dump opt_dump)
+    foreach(tool list_dump icon_dump picture_dump text_dump pilot_dump opt_dump movie_dump)
         add_executable(${tool} tools/${tool}.c tools/asset_dump.c ${${tool}_extra_sources})
         target_link_libraries(${tool} PRIVATE xvt_core)
         if(MSVC)
@@ -278,6 +279,9 @@ if(XVT_BUILD_TOOLS)
             target_compile_options(${tool} PRIVATE -Wall -Wextra -Wpedantic)
         endif()
     endforeach()
+    # movie_dump takes frames off Aeron's video player queue, which only
+    # Aeron's own sources declare.
+    target_include_directories(movie_dump PRIVATE aeron/src)
 endif()
 
 add_library(xvt_remaster STATIC
