@@ -1,29 +1,39 @@
 /* Tests for the lobby's side of DirectPlay, xvt/net/net.c and the files split
  * from it (net_peers.c, net_pump.c, net_receive.c and net_send.c): its peer
  * slots, the check on an arriving packet's sequence, its receive queue, the
- * sends on the broadcast, group and one-player channels, the receive pump, the
- * keepalives, the roster's ready flags and the link figures kept for each
- * player. Each check sets the lobby state it needs in g_front_state and drives
- * the host clock. Where a check needs a DirectPlay session, it gives the lobby
- * an interface this file owns: Send records what the lobby sends, Receive hands
+ * sends on the broadcast, group and one-player channels, the receive pump with
+ * its answers to PING, KEEPALIVE_ACK, NACK, WORLD_NACK and KEEPALIVE, the
+ * resent copies and trailers it queues, the keepalives, the drop of silent
+ * peers, the roster's ready flags and the link figures kept for each player.
+ * Each check sets the lobby state it needs in g_front_state and drives the host
+ * clock. Where a check needs a DirectPlay session, it gives the lobby an
+ * interface this file owns: Send records what the lobby sends, Receive hands
  * the pump the messages the check put in its inbox, and SetPlayerName records
- * the names and returns the result the check chose. The rename and ready checks
- * lock a back buffer on a frontend display with no window. No game data is
- * read. Every check starts from a cleared g_front_state with the local player,
- * id 1000, alone in the roster, the group id 2000, no link figures, no session
- * and the clock at one second.
+ * the names and returns the result the check chose. The packets in the inbox
+ * come from the lobby's own senders, replayed as if another player had sent
+ * them, or are laid out byte by byte where a sender would not make them. The
+ * checks also read the lines the code logs, kept by a log sink with DEBUG lines
+ * let through. The rename and ready checks lock a back buffer on a frontend
+ * display with no window. No game data is read. Every check starts from a
+ * cleared g_front_state with the local player, id 1000, alone in the roster,
+ * the group id 2000, no link figures, no session and the clock at one second.
  *
  * Not checked here: the lobby's opening and closing of DirectPlay, the player
  * roster's refresh, the handling of DirectPlay's system messages, the hand-over
- * of state to and from the flight session, the NACK, KEEPALIVE and
- * KEEPALIVE_ACK handling of the pump, the resends, the silent-peer drop and
- * the dequeue; they are left for later rounds.
+ * of state to and from the flight session and the dequeue; they are left for
+ * later rounds. Nor is what the pump does with a resent copy or the sequences
+ * of a sender that gets no peer slot because the table is full, beyond the
+ * known failure for it below: the sanitizer stops the program at the first
+ * write past the table.
  *
  * POSIX only, for the alarm that stops a check whose call does not return. */
 #define _POSIX_C_SOURCE 200809L
 
+#include <SDL3/SDL_log.h>
 #include <signal.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -37,6 +47,7 @@
 #include "xvt/net/net_reliable.h"
 #include "xvt/net/net_send.h"
 #include "xvt/util/time.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/timing/host_clock.h"
 
@@ -47,8 +58,83 @@ enum {
 	GROUP_ID = 2000,
 	ONE_PLAYER_BIT = 0x8000,
 	GROUP_BITS = 0x8080,
-	FAKE_MESSAGES = 8,
+	FAKE_MESSAGES = 32,
+	LINE_CAPACITY = 4096,
+	LINE_SIZE = 256,
+	/* Byte offsets in a resent packet as sent: the header word, the channel
+	 * byte, the body's length, the body. */
+	RESEND_CLASS = 2,
+	RESEND_LENGTH = 3,
+	RESEND_BODY = 5,
 };
+
+/* ------------------------------------------------------------------------ */
+/* The log sink. */
+
+static char g_lines[LINE_CAPACITY][LINE_SIZE];
+static int g_line_count;
+
+/* Keeps each line the engine writes, without Aeron's "xvt: " category
+ * prefix. */
+static void catch_line(void *userdata, int category, SDL_LogPriority priority,
+		       const char *message)
+{
+	(void)userdata;
+	(void)category;
+	(void)priority;
+	static const char prefix[] = "xvt: ";
+	if (g_line_count >= LINE_CAPACITY) {
+		fprintf(stderr, "more than %d lines written\n", LINE_CAPACITY);
+		exit(1);
+	}
+	if (!strncmp(message, prefix, sizeof prefix - 1)) {
+		message += sizeof prefix - 1;
+	}
+	snprintf(g_lines[g_line_count++], LINE_SIZE, "%s", message);
+}
+
+static void forget_lines(void) { g_line_count = 0; }
+
+/* Returns 1 when the kept line starts with start, followed by a space or
+ * nothing. */
+static int line_starts_with(int index, const char *start)
+{
+	size_t length = strlen(start);
+	const char *line = g_lines[index];
+	return strncmp(line, start, length) == 0 &&
+	       (line[length] == ' ' || line[length] == '\0');
+}
+
+/* The number of kept lines that start with start: an event name, with any of
+ * its first values. */
+static int count_lines(const char *start)
+{
+	int count = 0;
+	for (int i = 0; i < g_line_count; ++i) {
+		if (line_starts_with(i, start)) {
+			++count;
+		}
+	}
+	return count;
+}
+
+/* The number after " key=" in the last kept line that starts with start; the
+ * check fails when there is none. */
+static int line_value(const char *start, const char *key)
+{
+	char field[64];
+	snprintf(field, sizeof field, " %s=", key);
+	for (int i = g_line_count - 1; i >= 0; --i) {
+		if (!line_starts_with(i, start)) {
+			continue;
+		}
+		const char *value = strstr(g_lines[i], field);
+		XVT_ASSERT_TRUE(value != NULL);
+		return atoi(value + strlen(field));
+	}
+	fprintf(stderr, "no line starts with %s\n", start);
+	exit(1);
+}
 
 /* ------------------------------------------------------------------------ */
 /* The DirectPlay interface the checks give the lobby. */
@@ -66,6 +152,8 @@ static HRESULT g_send_result;
 static struct fake_message g_inbox[FAKE_MESSAGES];
 static int g_inbox_count;
 static int g_inbox_next;
+static int g_receive_calls;
+static int g_receive_saw_locked;
 static HRESULT g_rename_result;
 static int g_rename_calls;
 static DPID g_renamed_player;
@@ -92,7 +180,11 @@ static HRESULT AERON_DXAPI fake_receive(IDirectPlay2A *self, DPID *from,
 					uint32_t *size)
 {
 	(void)self;
-	(void)flags;
+	XVT_ASSERT_INT_EQ(flags, DPRECEIVE_ALL);
+	++g_receive_calls;
+	if (g_front_state.back_buffer_locked != 0) {
+		g_receive_saw_locked = 1;
+	}
 	if (g_inbox_next >= g_inbox_count) {
 		return DPERR_NOMESSAGES;
 	}
@@ -151,6 +243,59 @@ static void inbox_packet(DPID from, DPID to, uint16_t header, const void *body,
 	message->size = 5u + body_size;
 }
 
+/* Puts a message of the given bytes in the inbox, from and to the given ids. */
+static void inbox_bytes(DPID from, DPID to, const void *bytes, uint32_t size)
+{
+	XVT_ASSERT_TRUE(g_inbox_count < FAKE_MESSAGES);
+	XVT_ASSERT_TRUE(size <= sizeof g_inbox[0].bytes);
+	struct fake_message *message = &g_inbox[g_inbox_count++];
+	message->from = from;
+	message->to = to;
+	message->size = size;
+	memcpy(message->bytes, bytes, size);
+}
+
+/* Puts send number index, which the stand-in recorded, in the inbox as if the
+ * player from had sent it to the local player. */
+static void replay_send(int index, DPID from)
+{
+	XVT_ASSERT_TRUE(index >= 0 && index < g_sent_count);
+	inbox_bytes(from, LOCAL_ID, g_sent[index].bytes, g_sent[index].size);
+}
+
+/* Sends a game packet of the type with one body word, as the lobby sends one
+ * to a player (0 for everyone, the group's id for the group), and returns the
+ * number of that send. With no session it records nothing. */
+static int send_game_packet(int to, int type, int word)
+{
+	int packet[2] = {type, word};
+	int number = g_sent_count;
+	XVT_ASSERT_INT_EQ(net_send_packet_internal(to, packet, sizeof packet),
+			  1);
+	return number;
+}
+
+/* Sends a packet outside the sequence scheme, the way the keepalive and its
+ * answer go, and returns the number of that send. packet[0] is the type. */
+static int send_control_packet(int to, const int *packet, int size)
+{
+	int number = g_sent_count;
+	XVT_ASSERT_INT_EQ(net_send_direct_play_packet(to, packet, size, 0), 1);
+	XVT_ASSERT_INT_EQ(g_sent_count, number + 1);
+	return number;
+}
+
+/* Puts a KEEPALIVE_ACK from player 30 in the inbox: the echoed time, then its
+ * packet, drop and retry counts. */
+static void inbox_keepalive_ack(int echoed_ms, int packets, int drops,
+				int retries)
+{
+	int packet[5] = {NET_PACKET_KEEPALIVE_ACK, echoed_ms, packets, drops,
+			 retries};
+	int number = send_control_packet(30, packet, sizeof packet);
+	replay_send(number, 30);
+}
+
 static int sent_word(int message, int offset)
 {
 	int word;
@@ -191,6 +336,9 @@ static void fresh(void)
 	memset(g_inbox, 0, sizeof g_inbox);
 	g_inbox_count = 0;
 	g_inbox_next = 0;
+	g_receive_calls = 0;
+	g_receive_saw_locked = 0;
+	forget_lines();
 	g_rename_result = 0;
 	g_rename_calls = 0;
 	g_renamed_player = 0;
@@ -215,6 +363,17 @@ static int queued_type(int index)
 	int type;
 	memcpy(&type, queued(index)->payload, sizeof type);
 	return type;
+}
+
+/* 1 when one of the 40 peer slots belongs to the player. */
+static int has_peer_slot(DPID player)
+{
+	for (int i = 0; i < 40; ++i) {
+		if (peer((unsigned int)i)->direct_play_id == player) {
+			return 1;
+		}
+	}
+	return 0;
 }
 
 /* Gives the 40 peer slots to players 100 to 139. */
@@ -834,6 +993,1390 @@ static void check_poll(void)
 }
 
 /* ------------------------------------------------------------------------ */
+/* net_pump_incoming_packets: the back buffer, system messages, messages for
+ * others, the PING and the KEEPALIVE_ACK. */
+
+/* The back buffer is unlocked while the pump reads and locked again when it
+ * was locked, whether the pump stops because DirectPlay has nothing more,
+ * because 1,023 entries are queued, which it logs with the count, or because
+ * there is no DirectPlay. It is left unlocked when it was not locked. Every
+ * read asks for all waiting messages. */
+static void check_pump_back_buffer(void)
+{
+	fresh();
+	open_session();
+	xvt_test_open_display();
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 1);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_receive_calls, 1);
+	XVT_ASSERT_INT_EQ(g_receive_saw_locked, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 1);
+	XVT_ASSERT_TRUE(g_draw_surface_ptr != NULL);
+
+	g_front_state.net_runtime_recv_queue_count = 1023;
+	g_receive_calls = 0;
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_receive_calls, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 1);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_receive_queue_full"), 1);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_receive_queue_full", "queued"), 1023);
+
+	frontend_display_unlock_back_buffer();
+	g_front_state.net_runtime_recv_queue_count = 1022;
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_receive_calls, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 0);
+	g_front_state.net_runtime_recv_queue_count = 1023;
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 0);
+
+	/* Without DirectPlay the pump reads nothing and leaves the buffer as it
+	 * found it. */
+	g_front_state.net_direct_play = NULL;
+	g_receive_calls = 0;
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 0);
+	g_draw_surface_ptr = frontend_display_lock_back_buffer();
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_receive_calls, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.back_buffer_locked, 1);
+	xvt_test_close_display();
+}
+
+/* A system message (sender 0) is queued as received, with sender 0, not marked
+ * a resent copy whatever the entry held, and its size logged as received; one
+ * over 512 bytes is cut to 512. The write index wraps from 1,023 to 0. */
+static void check_pump_system_messages(void)
+{
+	uint8_t bytes[600];
+	fresh();
+	open_session();
+	for (int i = 0; i < 600; ++i) {
+		bytes[i] = (uint8_t)(i * 7);
+	}
+	inbox_bytes(0, LOCAL_ID, bytes, 600);
+	inbox_bytes(0, LOCAL_ID, bytes, 512);
+	inbox_bytes(0, LOCAL_ID, bytes, 12);
+	for (int i = 0; i < 3; ++i) {
+		queued((1023 + i) % 1024)->direct_play_id = 99;
+		queued((1023 + i) % 1024)->is_resent_copy = 1;
+	}
+	g_front_state.net_runtime_recv_queue_read_index = 1023;
+	g_front_state.net_runtime_recv_queue_write_index = 1023;
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 3);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_write_index, 2);
+	static const uint32_t sizes[] = {512, 512, 12};
+	for (int i = 0; i < 3; ++i) {
+		XVT_ASSERT_INT_EQ(queued((1023 + i) % 1024)->direct_play_id, 0);
+		XVT_ASSERT_INT_EQ(queued((1023 + i) % 1024)->is_resent_copy, 0);
+		XVT_ASSERT_INT_EQ(queued((1023 + i) % 1024)->payload_size,
+				  sizes[i]);
+		XVT_ASSERT_INT_EQ(memcmp(queued((1023 + i) % 1024)->payload,
+					 bytes, sizes[i]),
+				  0);
+	}
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_system_received"), 3);
+}
+
+/* A message for anyone but the local player is dropped, logged with both ids,
+ * and gives its sender no peer slot; the same packet to the local player is
+ * queued. A PING is answered and logged but not queued. */
+static void check_pump_misaddressed_and_ping(void)
+{
+	int body = 5;
+	fresh();
+	open_session();
+	inbox_packet(30, 31, ONE_PLAYER_BIT | NET_PACKET_CHAT, &body,
+		     sizeof body);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_inbox_next, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+	XVT_ASSERT_INT_EQ(has_peer_slot(30), 0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_packet_not_local", "from"),
+			  30);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_packet_not_local", "to"),
+			  31);
+	inbox_packet(30, LOCAL_ID, ONE_PLAYER_BIT | NET_PACKET_CHAT, &body,
+		     sizeof body);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_packet_not_local"), 1);
+
+	fresh();
+	open_session();
+	inbox_packet(30, LOCAL_ID, ONE_PLAYER_BIT | NET_PACKET_PING, NULL, 0);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_sent_count, 2);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_ping_answered", "from"),
+			  30);
+}
+
+/* The state a KEEPALIVE_ACK check starts from: player 30 has the entry at the
+ * index with the given latency total and samples, other players have the other
+ * entries of 0 to 2, and the clock reads ten seconds. */
+static void ack_world(int total_ms, int samples, int index)
+{
+	fresh();
+	open_session();
+	xvt_time_advance_host_clock(9 * SECOND_US);
+	g_net_player_connection_stats[0].player_id = 60;
+	g_net_player_connection_stats[1].player_id = 61;
+	g_net_player_connection_stats[2].player_id = 62;
+	g_net_player_connection_stats[index].player_id = 30;
+	g_net_player_connection_stats[index].latency_total_ms = total_ms;
+	g_net_player_connection_stats[index].latency_sample_count = samples;
+}
+
+/* A KEEPALIVE_ACK stamps the sender's last_heard_ms and stores the three
+ * counts it carries in the sender's entry. The latency sample is the time
+ * since the echoed stamp less 40 ms, 1 when the stamp is not older than that.
+ * It is added to the entry's total and samples when under 750 ms and no more
+ * than half above the average, and left out otherwise; the counts are stored
+ * either way. Nothing is queued. */
+static void check_pump_keepalive_ack_latency(void)
+{
+	static const struct {
+		int total_ms;
+		int samples;
+		int echo_age_ms; /* The clock less the echoed stamp. */
+		int latency_ms;
+		int new_total_ms;
+		int new_samples;
+		int entry;
+	} rows[] = {
+		/* The average is 100. */
+		{400, 4, 140, 100, 500, 5, 2}, /* Equal to it. */
+		{400, 4, 100, 60, 460, 5, 2},  /* Below it. */
+		{400, 4, 190, 150, 550, 5, 2}, /* Exactly half above. */
+		{400, 4, 191, 151, 400, 4, 2}, /* Just over half above. */
+		{400, 4, 41, 1, 401, 5, 2},
+		{400, 4, 40, 1, 401, 5, 2}, /* A stamp as old as the 40 ms. */
+		{400, 4, 0, 1, 401, 5, 2},  /* A stamp from this very moment. */
+		/* The average is 500. */
+		{2000, 4, 789, 749, 2749, 5,
+		 2}, /* The last sample under 750. */
+		{2000, 4, 790, 750, 2000, 4, 2},
+		{2000, 4, 5000, 4960, 2000, 4, 2},
+		/* One sample, and the entry first in the table. */
+		{100, 1, 190, 150, 250, 2, 0},
+		{100, 1, 191, 151, 100, 1, 0},
+	};
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		ack_world(rows[row].total_ms, rows[row].samples,
+			  rows[row].entry);
+		int now = (int)GetTickCount();
+		unsigned int slot = net_find_or_create_peer_slot(30);
+		peer(slot)->last_heard_ms = 0;
+		inbox_keepalive_ack(now - rows[row].echo_age_ms, 11, 22, 33);
+		net_pump_incoming_packets();
+		const struct net_player_connection_stats *entry =
+			&g_net_player_connection_stats[rows[row].entry];
+		XVT_ASSERT_INT_EQ(entry->latency_total_ms,
+				  rows[row].new_total_ms);
+		XVT_ASSERT_INT_EQ(entry->latency_sample_count,
+				  rows[row].new_samples);
+		XVT_ASSERT_INT_EQ(entry->packet_count, 11);
+		XVT_ASSERT_INT_EQ(entry->packet_drop_count, 22);
+		XVT_ASSERT_INT_EQ(entry->packet_retry_count, 33);
+		XVT_ASSERT_INT_EQ(
+			g_net_player_connection_stats[rows[row].entry == 0 ? 1
+									   : 0]
+				.packet_count,
+			0);
+		XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count,
+				  0);
+		XVT_ASSERT_INT_EQ(peer(slot)->last_heard_ms, GetTickCount());
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_keepalive_ack", "from"), 30);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_keepalive_ack", "latency"),
+			rows[row].latency_ms);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_keepalive_ack", "entry"),
+			rows[row].entry);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_keepalive_ack", "packets"),
+			11);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_keepalive_ack", "drops"), 22);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_keepalive_ack", "retries"),
+			33);
+	}
+}
+
+/* A KEEPALIVE_ACK from a player with no peer slot gives it one. From a player
+ * with no entry it claims the first free entry for it: its id, the latency as
+ * the only sample, capped at 750, and the counts. A player with no entry and
+ * none free is logged as a warning and changes nothing. */
+static void check_pump_keepalive_ack_new_entry(void)
+{
+	ack_world(0, 0, 2);
+	g_net_player_connection_stats[2].player_id = 0;
+	inbox_keepalive_ack((int)GetTickCount() - 140, 11, 22, 33);
+	net_pump_incoming_packets();
+	const struct net_player_connection_stats *entry =
+		&g_net_player_connection_stats[2];
+	XVT_ASSERT_INT_EQ(has_peer_slot(30), 1);
+	XVT_ASSERT_INT_EQ(entry->player_id, 30);
+	XVT_ASSERT_INT_EQ(entry->latency_total_ms, 100);
+	XVT_ASSERT_INT_EQ(entry->latency_sample_count, 1);
+	XVT_ASSERT_INT_EQ(entry->packet_count, 11);
+	XVT_ASSERT_INT_EQ(entry->packet_drop_count, 22);
+	XVT_ASSERT_INT_EQ(entry->packet_retry_count, 33);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[3].player_id, 0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_keepalive_ack", "entry"),
+			  2);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_link_stats_full"), 0);
+
+	ack_world(0, 0, 2);
+	g_net_player_connection_stats[2].player_id = 0;
+	inbox_keepalive_ack((int)GetTickCount() - 940, 1, 2, 3);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(entry->player_id, 30);
+	XVT_ASSERT_INT_EQ(entry->latency_total_ms, 750);
+	XVT_ASSERT_INT_EQ(entry->latency_sample_count, 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_keepalive_ack", "latency"),
+			  750);
+
+	ack_world(0, 0, 2);
+	g_net_player_connection_stats[2].player_id = 0;
+	inbox_keepalive_ack((int)GetTickCount() - 790, 1, 2, 3);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(entry->latency_total_ms, 750);
+
+	/* The first entry of the table is free. */
+	ack_world(0, 0, 2);
+	g_net_player_connection_stats[0].player_id = 0;
+	g_net_player_connection_stats[2].player_id = 62;
+	inbox_keepalive_ack((int)GetTickCount() - 140, 11, 22, 33);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].player_id, 30);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].latency_total_ms,
+			  100);
+	XVT_ASSERT_INT_EQ(g_net_player_connection_stats[0].packet_count, 11);
+
+	ack_world(0, 0, 2);
+	for (int i = 0; i < 40; ++i) {
+		g_net_player_connection_stats[i].player_id = 100 + i;
+		g_net_player_connection_stats[i].latency_total_ms = 7;
+		g_net_player_connection_stats[i].latency_sample_count = 1;
+	}
+	inbox_keepalive_ack((int)GetTickCount() - 140, 11, 22, 33);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_link_stats_full"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_link_stats_full", "player"),
+			  30);
+	for (int i = 0; i < 40; ++i) {
+		XVT_ASSERT_INT_EQ(g_net_player_connection_stats[i].player_id,
+				  100 + i);
+		XVT_ASSERT_INT_EQ(
+			g_net_player_connection_stats[i].latency_total_ms, 7);
+		XVT_ASSERT_INT_EQ(g_net_player_connection_stats[i].packet_count,
+				  0);
+	}
+}
+
+/* ------------------------------------------------------------------------ */
+/* net_pump_incoming_packets: WORLD_NACK, NACK and KEEPALIVE. */
+
+/* Starts counting sends again from 0. */
+static void forget_sends(void)
+{
+	g_sent_count = 0;
+	memset(g_sent, 0, sizeof g_sent);
+}
+
+/* Drops what the lobby's own sends queued for it: the receive queue is empty
+ * again. */
+static void empty_recv_queue(void)
+{
+	g_front_state.net_runtime_recv_queue_count = 0;
+	g_front_state.net_runtime_recv_queue_read_index = 0;
+	g_front_state.net_runtime_recv_queue_write_index = 0;
+}
+
+/* Puts a control packet of the type with the given body words in the inbox as
+ * sent by player from. */
+static void inbox_control(DPID from, int type, int first, int second, int third,
+			  int fourth, int words)
+{
+	int packet[5] = {type, first, second, third, fourth};
+	int number = send_control_packet(
+		(int)from, packet, (int)((unsigned)(words + 1) * sizeof(int)));
+	replay_send(number, from);
+}
+
+/* The number of kept lines that start with start and hold text. */
+static int count_lines_holding(const char *start, const char *text)
+{
+	int count = 0;
+	for (int i = 0; i < g_line_count; ++i) {
+		if (line_starts_with(i, start) && strstr(g_lines[i], text)) {
+			++count;
+		}
+	}
+	return count;
+}
+
+/* The header's type, sequence and channel bits (0x80 and 0x8000) of send
+ * number index. */
+static int sent_type(int index) { return sent_header(index) & 0x7F; }
+
+static int sent_sequence(int index) { return (sent_header(index) >> 8) & 0x7F; }
+
+static int sent_channel_bits(int index) { return sent_header(index) & 0x8080; }
+
+/* The sent world messages a WORLD_NACK looks through. */
+static struct net_queued_packet g_world_history[256];
+
+/* Puts a world message of the tick, as the flight kept it with its top bit
+ * set, and a mark of 0x100 plus its index, in the world history; size 0 leaves
+ * the entry marked empty. */
+static void world_history_entry(int index, int tick, int sequence, int size)
+{
+	struct net_queued_packet *entry = &g_world_history[index];
+	int words[3] = {2, (int)(0x80000000u | (unsigned)tick), 0x100 + index};
+	memset(entry, 0, sizeof *entry);
+	memcpy(entry->payload, words, sizeof words);
+	entry->payload_size = (uint32_t)size;
+	entry->sequence_byte = (uint8_t)sequence;
+}
+
+/* A WORLD_NACK is answered, once a flight has kept its world messages, with
+ * the message whose first body word, its top bit cleared, is the tick asked
+ * for, found from the history slot to be written next on round to the others
+ * and skipping empty entries: resent on the broadcast channel under its own
+ * sequence. With none, a NOP in the sequence the packet names is sent instead.
+ * Each counts a drop for the sender after its first 20 packets, and is logged
+ * with whether the message was found. Before any flight has ended there is no
+ * history: the packet is only logged, and the sender gets no slot. */
+static void check_pump_world_nack(void)
+{
+	fresh();
+	open_session();
+	memset(g_world_history, 0, sizeof g_world_history);
+	g_front_state.net_flight_sent_world_message_history = g_world_history;
+	g_front_state.net_flight_sent_world_message_write_index = 200;
+	world_history_entry(3, 0x55, 9, 12);
+	world_history_entry(100, 0x57, 5, 0);
+	world_history_entry(150, 0x57, 6, 12);
+	world_history_entry(199, 0x58, 12, 12);
+	world_history_entry(0, 0x59, 13, 12);
+	world_history_entry(250, 0x5A, 14, 12);
+	unsigned int slot = net_find_or_create_peer_slot(30);
+	peer(slot)->packet_count = 21;
+	inbox_control(30, NET_PACKET_WORLD_NACK, 0x55, 7, 0, 0, 2);
+	inbox_control(30, NET_PACKET_WORLD_NACK, 0x57, 8, 0, 0, 2);
+	inbox_control(30, NET_PACKET_WORLD_NACK, 0x99, 11, 0, 0, 2);
+	inbox_control(30, NET_PACKET_WORLD_NACK, 0x58, 13, 0, 0, 2);
+	inbox_control(30, NET_PACKET_WORLD_NACK, 0x59, 13, 0, 0, 2);
+	inbox_control(30, NET_PACKET_WORLD_NACK, 0x5A, 13, 0, 0, 2);
+	forget_sends();
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+	XVT_ASSERT_INT_EQ(g_sent_count, 6);
+	XVT_ASSERT_INT_EQ(sent_type(3), 2);
+	XVT_ASSERT_INT_EQ(sent_sequence(3), 12);
+	XVT_ASSERT_INT_EQ(sent_word(3, RESEND_BODY + 4), 0x100 + 199);
+	XVT_ASSERT_INT_EQ(sent_sequence(4), 13);
+	XVT_ASSERT_INT_EQ(sent_word(4, RESEND_BODY + 4), 0x100);
+	XVT_ASSERT_INT_EQ(sent_sequence(5), 14);
+	XVT_ASSERT_INT_EQ(sent_word(5, RESEND_BODY + 4), 0x100 + 250);
+	for (int i = 0; i < 3; ++i) {
+		XVT_ASSERT_INT_EQ(g_sent[i].to, 30);
+		XVT_ASSERT_INT_EQ(g_sent[i].from, LOCAL_ID);
+		XVT_ASSERT_INT_EQ(sent_channel_bits(i), 0x80);
+		XVT_ASSERT_INT_EQ(g_sent[i].bytes[RESEND_CLASS], 0);
+	}
+	XVT_ASSERT_INT_EQ(sent_type(0), 2);
+	XVT_ASSERT_INT_EQ(sent_sequence(0), 9);
+	XVT_ASSERT_INT_EQ(sent_word(0, RESEND_BODY), (int)0x80000055u);
+	XVT_ASSERT_INT_EQ(sent_word(0, RESEND_BODY + 4), 0x103);
+	XVT_ASSERT_INT_EQ(sent_type(1), 2);
+	XVT_ASSERT_INT_EQ(sent_sequence(1), 6);
+	XVT_ASSERT_INT_EQ(sent_word(1, RESEND_BODY + 4), 0x100 + 150);
+	XVT_ASSERT_INT_EQ(sent_type(2), NET_PACKET_NOP);
+	XVT_ASSERT_INT_EQ(sent_sequence(2), 11);
+	XVT_ASSERT_INT_EQ(g_sent[2].size, 6);
+	XVT_ASSERT_INT_EQ(peer(slot)->packet_drop_count, 6);
+	XVT_ASSERT_INT_EQ(
+		count_lines_holding("network.lobby_world_nack", "found=1"), 5);
+	XVT_ASSERT_INT_EQ(
+		count_lines_holding("network.lobby_world_nack", "found=0"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_world_nack", "tick"), 0x5A);
+
+	/* A player's 20th packet is not yet counted, its 21st is. */
+	peer(slot)->packet_count = 20;
+	inbox_control(30, NET_PACKET_WORLD_NACK, 0x55, 7, 0, 0, 2);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(peer(slot)->packet_drop_count, 6);
+
+	fresh();
+	open_session();
+	inbox_control(30, NET_PACKET_WORLD_NACK, 0x55, 7, 0, 0, 2);
+	forget_sends();
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	XVT_ASSERT_INT_EQ(has_peer_slot(30), 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_world_nack"), 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_world_nack_ignored"), 1);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_world_nack_ignored", "tick"), 0x55);
+}
+
+/* A NACK is answered with the packet from the sent history whose sequence and
+ * channel it names, resent under that channel's sequence, found from the slot
+ * to be written next on round to the others: on the broadcast and group
+ * channels by sequence and channel, on the one-player channel only a packet
+ * that went to the player who asked. With none, a NOP in that sequence goes on
+ * that channel. The sender's last_heard_ms is stamped, and a drop counted after
+ * its first 20 packets. Each is logged with whether the packet was found. */
+static void check_pump_nack(void)
+{
+	static const struct {
+		int from;
+		int sequence;
+		int channel;
+		int mark; /* 0 for a NOP. */
+	} rows[] = {
+		{30, 0, 1, 2}, {30, 1, 1, 5}, {30, 0, 2, 3}, {30, 0, 0, 4},
+		{40, 0, 1, 1}, {30, 9, 1, 0}, {30, 1, 0, 0},
+	};
+	fresh();
+	open_session();
+	send_game_packet(40, NET_PACKET_CHAT, 1);
+	send_game_packet(30, NET_PACKET_CHAT, 2);
+	send_game_packet(GROUP_ID, NET_PACKET_CHAT, 3);
+	send_game_packet(0, NET_PACKET_CHAT, 4);
+	send_game_packet(30, NET_PACKET_CHAT, 5);
+	empty_recv_queue();
+	unsigned int slot = net_find_or_create_peer_slot(30);
+	unsigned int quiet = net_find_or_create_peer_slot(40);
+	peer(slot)->packet_count = 21;
+	peer(slot)->last_heard_ms = 0;
+	peer(quiet)->packet_count = 20;
+	peer(quiet)->last_heard_ms = 0;
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		inbox_control((DPID)rows[row].from, NET_PACKET_NACK,
+			      rows[row].sequence, rows[row].channel, 0, 0, 2);
+	}
+	forget_sends();
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+	XVT_ASSERT_INT_EQ(g_sent_count, 7);
+	for (int i = 0; i < 7; ++i) {
+		XVT_ASSERT_INT_EQ(g_sent[i].to, rows[i].from);
+		XVT_ASSERT_INT_EQ(sent_channel_bits(i), 0x80);
+		XVT_ASSERT_INT_EQ(sent_sequence(i), rows[i].sequence);
+		XVT_ASSERT_INT_EQ(g_sent[i].bytes[RESEND_CLASS],
+				  rows[i].channel);
+		if (rows[i].mark != 0) {
+			XVT_ASSERT_INT_EQ(sent_type(i), NET_PACKET_CHAT);
+			XVT_ASSERT_INT_EQ(sent_word(i, RESEND_BODY),
+					  rows[i].mark);
+		} else {
+			XVT_ASSERT_INT_EQ(sent_type(i), NET_PACKET_NOP);
+		}
+	}
+	XVT_ASSERT_INT_EQ(peer(slot)->packet_drop_count, 6);
+	XVT_ASSERT_INT_EQ(peer(quiet)->packet_drop_count, 0);
+	XVT_ASSERT_INT_EQ(peer(slot)->last_heard_ms, GetTickCount());
+	XVT_ASSERT_INT_EQ(peer(quiet)->last_heard_ms, GetTickCount());
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_nack"), 7);
+	XVT_ASSERT_INT_EQ(count_lines_holding("network.lobby_nack", "found=1"),
+			  5);
+	XVT_ASSERT_INT_EQ(count_lines_holding("network.lobby_nack", "found=0"),
+			  2);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_nack", "seq"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_nack", "channel"), 0);
+
+	/* The search goes round the whole history: a packet kept past the slot
+	 * to be written next is found. */
+	struct net_queued_packet *kept =
+		&g_front_state.net_runtime_sent_history[20];
+	g_front_state.net_runtime_sent_history_write_index = 100;
+	memcpy(kept, &g_front_state.net_runtime_sent_history[3], sizeof *kept);
+	kept->sequence_byte = 7;
+	inbox_control(30, NET_PACKET_NACK, 7, 0, 0, 0, 2);
+	forget_sends();
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_sent_count, 1);
+	XVT_ASSERT_INT_EQ(sent_sequence(0), 7);
+	XVT_ASSERT_INT_EQ(sent_type(0), NET_PACKET_CHAT);
+	XVT_ASSERT_INT_EQ(sent_word(0, RESEND_BODY), 4);
+}
+
+/* Four KEEPALIVE packets, and what each makes the pump do. */
+static void inbox_keepalive(DPID from, int broadcast, int group, int direct)
+{
+	inbox_control(from, NET_PACKET_KEEPALIVE, broadcast, group, direct, 777,
+		      4);
+}
+
+/* A KEEPALIVE from the host is answered with a KEEPALIVE_ACK to the host that
+ * echoes the time it carries and gives this side's packet, drop and retry
+ * counts for it. Any KEEPALIVE makes the pump resend, on each channel whose
+ * counter has moved past the sequence the sender expects next, the packet of
+ * that sequence, once: on the broadcast and group channels the one sent on that
+ * channel, on the one-player channel the one sent to that player. A sequence
+ * asked for and not in the history is logged with what was left unanswered,
+ * 128 for a channel with nothing to resend. Each is logged with whether it came
+ * from the host. */
+static void check_pump_keepalive(void)
+{
+	fresh();
+	open_session();
+	g_front_state.net_host_player_id = 30;
+	send_game_packet(0, NET_PACKET_CHAT, 4);
+	send_game_packet(0, NET_PACKET_CHAT, 5);
+	send_game_packet(GROUP_ID, NET_PACKET_CHAT, 6);
+	send_game_packet(GROUP_ID, NET_PACKET_CHAT, 7);
+	send_game_packet(30, NET_PACKET_CHAT, 8);
+	send_game_packet(30, NET_PACKET_CHAT, 9);
+	send_game_packet(40, NET_PACKET_CHAT, 10);
+	empty_recv_queue();
+	unsigned int host = net_find_or_create_peer_slot(30);
+	peer(host)->packet_count = 7;
+	peer(host)->packet_drop_count = 3;
+	peer(host)->packet_retry_count = 2;
+	peer(host)->last_heard_ms = 0;
+	/* The counters stand at 2, 2 and, for player 30, 2. */
+	inbox_keepalive(30, 1, 1, 1);
+	forget_sends();
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(peer(host)->last_heard_ms, GetTickCount());
+	XVT_ASSERT_INT_EQ(g_sent_count, 4);
+	XVT_ASSERT_INT_EQ(g_sent[0].to, 30);
+	XVT_ASSERT_INT_EQ(sent_header(0), NET_PACKET_KEEPALIVE_ACK);
+	XVT_ASSERT_INT_EQ(sent_length(0), 16);
+	XVT_ASSERT_INT_EQ(sent_word(0, 4), 777);
+	XVT_ASSERT_INT_EQ(sent_word(0, 8), 7);
+	XVT_ASSERT_INT_EQ(sent_word(0, 12), 3);
+	XVT_ASSERT_INT_EQ(sent_word(0, 16), 2);
+	static const struct {
+		int sequence;
+		int channel;
+		int mark;
+	} resends[] = {{1, 0, 5}, {1, 2, 7}, {1, 1, 9}};
+	for (int i = 0; i < 3; ++i) {
+		XVT_ASSERT_INT_EQ(g_sent[i + 1].to, 30);
+		XVT_ASSERT_INT_EQ(sent_type(i + 1), NET_PACKET_CHAT);
+		XVT_ASSERT_INT_EQ(sent_channel_bits(i + 1), 0x80);
+		XVT_ASSERT_INT_EQ(sent_sequence(i + 1), resends[i].sequence);
+		XVT_ASSERT_INT_EQ(g_sent[i + 1].bytes[RESEND_CLASS],
+				  resends[i].channel);
+		XVT_ASSERT_INT_EQ(sent_word(i + 1, RESEND_BODY),
+				  resends[i].mark);
+	}
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_resend_unavailable"), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+
+	/* A sender expecting the sequence each counter stands at is sent
+	 * nothing but the host's answer. */
+	inbox_keepalive(30, 2, 2, 2);
+	forget_sends();
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_sent_count, 1);
+	XVT_ASSERT_INT_EQ(sent_header(0), NET_PACKET_KEEPALIVE_ACK);
+
+	/* A player that is not the host gets no answer, and a packet sent to
+	 * another player is not resent to it. */
+	inbox_keepalive(40, 0, 0, 0);
+	forget_sends();
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_sent_count, 3);
+	XVT_ASSERT_INT_EQ(sent_sequence(0), 0);
+	XVT_ASSERT_INT_EQ(g_sent[0].bytes[RESEND_CLASS], 0);
+	XVT_ASSERT_INT_EQ(sent_word(0, RESEND_BODY), 4);
+	XVT_ASSERT_INT_EQ(sent_sequence(1), 0);
+	XVT_ASSERT_INT_EQ(g_sent[1].bytes[RESEND_CLASS], 2);
+	XVT_ASSERT_INT_EQ(sent_word(1, RESEND_BODY), 6);
+	XVT_ASSERT_INT_EQ(g_sent[2].bytes[RESEND_CLASS], 1);
+	XVT_ASSERT_INT_EQ(sent_word(2, RESEND_BODY), 10);
+	for (int i = 0; i < 3; ++i) {
+		XVT_ASSERT_INT_EQ(g_sent[i].to, 40);
+	}
+
+	/* What is not in the history stays unanswered. */
+	inbox_keepalive(40, 50, 50, 50);
+	forget_sends();
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_resend_unavailable"), 1);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_resend_unavailable", "from"), 40);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_resend_unavailable", "broadcast"),
+		50);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_resend_unavailable", "group"), 50);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_resend_unavailable", "direct"), 50);
+	inbox_keepalive(40, 1, 50, 2);
+	forget_sends();
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_sent_count, 1);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_resend_unavailable"), 2);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_resend_unavailable", "broadcast"),
+		128);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_resend_unavailable", "group"), 50);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_resend_unavailable", "direct"), 2);
+	/* Each channel left unanswered alone is logged too. */
+	static const struct {
+		int broadcast;
+		int group;
+		int direct;
+	} alone[] = {{50, 1, 0}, {1, 50, 0}, {1, 1, 50}};
+	for (int i = 0; i < 3; ++i) {
+		inbox_keepalive(40, alone[i].broadcast, alone[i].group,
+				alone[i].direct);
+		net_pump_incoming_packets();
+		XVT_ASSERT_INT_EQ(
+			count_lines("network.lobby_resend_unavailable"), 3 + i);
+		XVT_ASSERT_INT_EQ(line_value("network.lobby_resend_unavailable",
+					     "broadcast"),
+				  alone[i].broadcast == 50 ? 50 : 128);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_resend_unavailable", "group"),
+			alone[i].group == 50 ? 50 : 128);
+		XVT_ASSERT_INT_EQ(line_value("network.lobby_resend_unavailable",
+					     "direct"),
+				  alone[i].direct == 50 ? 50 : 128);
+	}
+	XVT_ASSERT_INT_EQ(
+		count_lines_holding("network.lobby_keepalive", "host=1"), 2);
+	XVT_ASSERT_INT_EQ(
+		count_lines_holding("network.lobby_keepalive", "host=0"), 6);
+}
+
+/* ------------------------------------------------------------------------ */
+/* net_pump_incoming_packets: resent copies, the previous packet missing, and
+ * the packet queued. */
+
+/* Marks the entries from index first on as holding a resent copy that a resend
+ * request was made for, on a channel and sequence of no packet, all of which a
+ * packet queued over them must set again. */
+static void poison_queue(int first, int count)
+{
+	for (int i = 0; i < count; ++i) {
+		struct net_queued_packet *entry = queued((first + i) % 1024);
+		entry->is_resent_copy = 1;
+		entry->nack_retry_count = 3;
+		entry->last_nack_ms = 5;
+		entry->packet_class = 9;
+		entry->sequence_byte = 99;
+	}
+}
+
+/* Writes a game packet as DirectPlay delivers it into bytes, laid out as the
+ * lobby's sends lay it out: the header word, the body's length, the body, and
+ * then the trailer, which is its type byte and body. Returns the size. */
+static uint32_t build_wire(uint8_t *bytes, uint16_t header, const void *body,
+			   uint16_t body_size, int trailer_type,
+			   const void *trailer_body, uint16_t trailer_size)
+{
+	memcpy(bytes, &header, sizeof header);
+	memcpy(bytes + 2, &body_size, sizeof body_size);
+	memcpy(bytes + 4, body, body_size);
+	uint32_t size = 4u + body_size;
+	bytes[size++] = (uint8_t)trailer_type;
+	memcpy(bytes + size, trailer_body, trailer_size);
+	return size + trailer_size;
+}
+
+/* The newest sequence received from the slot's player on a channel, 0 the
+ * broadcast channel, 1 the one-player channel and 2 the group channel. */
+static int newest_received(const struct net_reliable_peer_slot *slot,
+			   int channel)
+{
+	return channel == 0   ? slot->recv_seq_channel_a
+	       : channel == 2 ? slot->recv_seq_channel_b
+			      : slot->recv_seq_default;
+}
+
+static void set_newest_received(struct net_reliable_peer_slot *slot,
+				int channel, int sequence)
+{
+	if (channel == 0) {
+		slot->recv_seq_channel_a = sequence;
+	} else if (channel == 2) {
+		slot->recv_seq_channel_b = sequence;
+	} else {
+		slot->recv_seq_default = sequence;
+	}
+}
+
+/* A resent packet is queued as a resent copy with its sender, the channel its
+ * marker byte names (0 the broadcast channel, 2 the group channel, any other
+ * the one-player channel), its sequence and its body, whatever the entry held
+ * before. The channel's newest received sequence moves only when the copy
+ * carries the next one, 127 wrapping to 0, and no other channel's moves. The
+ * sender's last_heard_ms is stamped and the copy is logged. */
+static void check_pump_resent_copies(void)
+{
+	static const struct {
+		int marker;
+		int packet_class;
+	} rows[] = {{0, 0}, {2, 2}, {1, 1}, {5, 1}};
+	/* Each copy's sequence, and the newest received afterwards. */
+	static const int copies[][2] = {{7, 127}, {0, 0}, {1, 1}, {3, 1}};
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		int packet[2] = {NET_PACKET_CHAT, 0};
+		fresh();
+		open_session();
+		unsigned int slot = net_find_or_create_peer_slot(30);
+		peer(slot)->last_heard_ms = 0;
+		int channel = rows[row].packet_class;
+		poison_queue(0, 4);
+		for (int i = 0; i < 4; ++i) {
+			packet[1] = 10 + i;
+			XVT_ASSERT_INT_EQ(net_send_sequenced_direct_play_packet(
+						  30, rows[row].marker,
+						  copies[i][0], packet,
+						  sizeof packet),
+					  1);
+			replay_send(i, 30);
+			net_pump_incoming_packets();
+			XVT_ASSERT_INT_EQ(
+				g_front_state.net_runtime_recv_queue_count,
+				i + 1);
+			XVT_ASSERT_INT_EQ(newest_received(peer(slot), channel),
+					  copies[i][1]);
+			for (int other = 0; other < 3; ++other) {
+				if (other != channel) {
+					XVT_ASSERT_INT_EQ(
+						newest_received(peer(slot),
+								other),
+						127);
+				}
+			}
+			XVT_ASSERT_INT_EQ(queued(i)->direct_play_id, 30);
+			XVT_ASSERT_INT_EQ(queued(i)->packet_class, channel);
+			XVT_ASSERT_INT_EQ(queued(i)->is_resent_copy, 1);
+			XVT_ASSERT_INT_EQ(queued(i)->nack_retry_count, 0);
+			XVT_ASSERT_INT_EQ(queued(i)->last_nack_ms, 0);
+			XVT_ASSERT_INT_EQ(queued(i)->payload_size, 8);
+			XVT_ASSERT_INT_EQ(queued(i)->sequence_byte,
+					  copies[i][0]);
+			XVT_ASSERT_INT_EQ(queued_type(i), NET_PACKET_CHAT);
+			int mark;
+			memcpy(&mark, queued(i)->payload + 4, sizeof mark);
+			XVT_ASSERT_INT_EQ(mark, 10 + i);
+			XVT_ASSERT_INT_EQ(peer(slot)->last_heard_ms,
+					  GetTickCount());
+			peer(slot)->last_heard_ms = 0;
+		}
+		XVT_ASSERT_INT_EQ(count_lines("network.lobby_resent_received"),
+				  4);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_resent_received", "from"),
+			30);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_resent_received", "type"),
+			NET_PACKET_CHAT);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_resent_received", "channel"),
+			channel);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_resent_received", "seq"), 3);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_resent_received", "bytes"),
+			4);
+
+		/* The newest at 126 moves to 127, which is not a wrap. */
+		set_newest_received(peer(slot), channel, 126);
+		packet[1] = 14;
+		XVT_ASSERT_INT_EQ(net_send_sequenced_direct_play_packet(
+					  30, rows[row].marker, 127, packet,
+					  sizeof packet),
+				  1);
+		replay_send(4, 30);
+		net_pump_incoming_packets();
+		XVT_ASSERT_INT_EQ(newest_received(peer(slot), channel), 127);
+	}
+}
+
+/* A resent copy's body is cut to 508 bytes: a body of 508 is queued whole,
+ * its last byte too, a longer one cut, with the queue entry's size 512 either
+ * way. The write index wraps from 1,023 to 0. */
+static void check_pump_resent_copy_sizes(void)
+{
+	static const int sizes[] = {508, 509, 600};
+	uint8_t packet[604];
+	fresh();
+	open_session();
+	g_front_state.net_runtime_recv_queue_read_index = 1023;
+	g_front_state.net_runtime_recv_queue_write_index = 1023;
+	int type = NET_PACKET_CHAT;
+	memcpy(packet, &type, sizeof type);
+	for (int i = 4; i < 604; ++i) {
+		packet[i] = (uint8_t)(i * 3);
+	}
+	for (int i = 0; i < 3; ++i) {
+		XVT_ASSERT_INT_EQ(net_send_sequenced_direct_play_packet(
+					  30, 1, 10 + i, packet,
+					  (unsigned int)sizes[i] + 4),
+				  1);
+		replay_send(i, 30);
+	}
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 3);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_write_index, 2);
+	for (int i = 0; i < 3; ++i) {
+		struct net_queued_packet *entry = queued((1023 + i) % 1024);
+		XVT_ASSERT_INT_EQ(entry->payload_size, 512);
+		XVT_ASSERT_INT_EQ(entry->sequence_byte, 10 + i);
+		XVT_ASSERT_INT_EQ(memcmp(entry->payload + 4, packet + 4, 508),
+				  0);
+	}
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_resent_received"), 3);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_resent_received", "bytes"),
+			  508);
+}
+
+/* A resent copy of a resync type (60 to 63) has no length word and no
+ * trailer: its body is queued after the type, and no earlier packet is looked
+ * for. */
+static void check_pump_resent_resync_copy(void)
+{
+	int packet[3] = {NET_PACKET_RESYNC_CHUNK, 0x11223344, 0x55667788};
+	fresh();
+	open_session();
+	XVT_ASSERT_INT_EQ(net_send_sequenced_direct_play_packet(
+				  30, 1, 0, packet, sizeof packet),
+			  1);
+	XVT_ASSERT_INT_EQ(g_sent[0].size, 11);
+	replay_send(0, 30);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1);
+	XVT_ASSERT_INT_EQ(queued(0)->is_resent_copy, 1);
+	XVT_ASSERT_INT_EQ(queued_type(0), NET_PACKET_RESYNC_CHUNK);
+	XVT_ASSERT_INT_EQ(memcmp(queued(0)->payload + 4, packet + 1, 8), 0);
+}
+
+/* When a packet's previous sequence on its channel is new, the packet riding
+ * behind it as trailer is queued first, as a packet of that previous sequence
+ * and the same channel, and logged with its type. The sender's drop count
+ * rises after its first 20 packets, on any channel. Sequence 0's previous one
+ * is 127. A NOP trailer queues nothing but still counts the drop. */
+static void check_pump_previous_missed(void)
+{
+	static const struct {
+		int to;
+		int packet_class;
+		int packet_count;
+		int drops;
+		int first_sequence;
+		int trailer;
+	} rows[] = {
+		{30, 1, 21, 1, 0, NET_PACKET_CHAT},
+		{30, 1, 20, 0, 0, NET_PACKET_CHAT},
+		{0, 0, 21, 1, 0, NET_PACKET_CHAT},
+		{GROUP_ID, 2, 21, 1, 0, NET_PACKET_CHAT},
+		{30, 1, 21, 1, 127, NET_PACKET_CHAT},
+		{30, 1, 21, 1, 5, NET_PACKET_NOP},
+	};
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		int first = rows[row].first_sequence;
+		fresh();
+		open_session();
+		g_front_state.net_runtime_broadcast_seq_counter = first;
+		g_front_state.net_runtime_group_seq_counter = first;
+		unsigned int sender_slot =
+			net_find_or_create_peer_slot(LOCAL_ID);
+		peer(sender_slot)->send_seq = first;
+		unsigned int sender = net_find_or_create_peer_slot(30);
+		peer(sender)->send_seq = first;
+		if (rows[row].trailer == NET_PACKET_CHAT) {
+			send_game_packet(rows[row].to, NET_PACKET_CHAT, 10);
+		}
+		int number =
+			send_game_packet(rows[row].to, NET_PACKET_CHAT, 11);
+		empty_recv_queue();
+		forget_lines();
+		replay_send(number, 30);
+		peer(sender)->packet_count = rows[row].packet_count;
+		if (first == 127) {
+			peer(sender)->recv_seq_default = 126;
+		}
+		g_front_state.net_runtime_recv_queue_read_index = 1023;
+		g_front_state.net_runtime_recv_queue_write_index = 1023;
+		poison_queue(1023, 2);
+		net_pump_incoming_packets();
+		int queued_count = rows[row].trailer == NET_PACKET_CHAT ? 2 : 1;
+		XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count,
+				  queued_count);
+		XVT_ASSERT_INT_EQ(
+			g_front_state.net_runtime_recv_queue_write_index,
+			queued_count - 1);
+		int newest = queued_count - 1;
+		int previous = first == 0 ? 127 : first - 1;
+		if (rows[row].trailer == NET_PACKET_CHAT) {
+			struct net_queued_packet *entry = queued(1023);
+			XVT_ASSERT_INT_EQ(entry->direct_play_id, 30);
+			XVT_ASSERT_INT_EQ(entry->packet_class,
+					  rows[row].packet_class);
+			XVT_ASSERT_INT_EQ(entry->sequence_byte, first);
+			XVT_ASSERT_INT_EQ(entry->is_resent_copy, 0);
+			XVT_ASSERT_INT_EQ(entry->nack_retry_count, 0);
+			XVT_ASSERT_INT_EQ(entry->last_nack_ms, 0);
+			XVT_ASSERT_INT_EQ(entry->payload_size, 8);
+			XVT_ASSERT_INT_EQ(*(int *)entry->payload,
+					  NET_PACKET_CHAT);
+			XVT_ASSERT_INT_EQ(*(int *)(entry->payload + 4), 10);
+			previous = first;
+			newest = 1;
+		}
+		struct net_queued_packet *last = queued((1023 + newest) % 1024);
+		XVT_ASSERT_INT_EQ(last->packet_class, rows[row].packet_class);
+		XVT_ASSERT_INT_EQ(last->is_resent_copy, 0);
+		XVT_ASSERT_INT_EQ(last->nack_retry_count, 0);
+		XVT_ASSERT_INT_EQ(*(int *)(last->payload + 4), 11);
+		XVT_ASSERT_INT_EQ(peer(sender)->packet_drop_count,
+				  rows[row].drops);
+		XVT_ASSERT_INT_EQ(count_lines("network.lobby_packet_missed"),
+				  1);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_missed", "from"), 30);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_missed", "channel"),
+			rows[row].packet_class);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_missed", "trailer"),
+			rows[row].trailer);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_missed", "seq"),
+			rows[row].trailer == NET_PACKET_CHAT ? previous
+							     : (first - 1));
+	}
+}
+
+/* A type from 60 to 63 travels with no length word and no trailer, so its
+ * packet is queued from the bytes after the header and no earlier packet is
+ * looked for; the types on each side, 59 and 64, have both and are. For a
+ * jump in sequence the trailer is read and counted as a drop. */
+static void check_pump_resync_types_bare(void)
+{
+	static const struct {
+		int type;
+		int sent_size;
+		int missed;
+	} rows[] = {
+		{NET_PACKET_SEQUENCE_STATUS, 9, 1},
+		{NET_PACKET_RESYNC_CHECKSUMS, 6, 0},
+		{NET_PACKET_RESYNC_CHUNK, 6, 0},
+		{NET_PACKET_PROBE_REQUEST, 9, 1},
+	};
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		fresh();
+		open_session();
+		unsigned int slot = net_find_or_create_peer_slot(30);
+		peer(slot)->send_seq = 5;
+		peer(slot)->packet_count = 21;
+		int number = send_game_packet(30, rows[row].type, 0x1234);
+		XVT_ASSERT_INT_EQ(g_sent[number].size, rows[row].sent_size);
+		replay_send(number, 30);
+		net_pump_incoming_packets();
+		XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count,
+				  1);
+		XVT_ASSERT_INT_EQ(queued(0)->payload_size, 8);
+		XVT_ASSERT_INT_EQ(queued_type(0), rows[row].type);
+		XVT_ASSERT_INT_EQ(*(int *)(queued(0)->payload + 4), 0x1234);
+		XVT_ASSERT_INT_EQ(queued(0)->sequence_byte, 5);
+		XVT_ASSERT_INT_EQ(peer(slot)->packet_drop_count,
+				  rows[row].missed);
+		XVT_ASSERT_INT_EQ(count_lines("network.lobby_packet_missed"),
+				  rows[row].missed);
+	}
+}
+
+/* A packet that is not a repeat is queued with its sender, channel, sequence
+ * and body, whatever the entry held before, and logged with its size and the
+ * count queued; the write index wraps from 1,023 to 0. The same packet again
+ * is not queued and is logged as a repeat. */
+static void check_pump_packet_channels(void)
+{
+	static const struct {
+		int to;
+		int packet_class;
+	} rows[] = {{30, 1}, {0, 0}, {GROUP_ID, 2}};
+	for (size_t row = 0; row < sizeof rows / sizeof rows[0]; ++row) {
+		fresh();
+		open_session();
+		g_front_state.net_runtime_broadcast_seq_counter = 5;
+		g_front_state.net_runtime_group_seq_counter = 5;
+		unsigned int slot = net_find_or_create_peer_slot(30);
+		peer(slot)->send_seq = 5;
+		int number =
+			send_game_packet(rows[row].to, NET_PACKET_CHAT, 20);
+		empty_recv_queue();
+		replay_send(number, 30);
+		replay_send(number, 30);
+		g_front_state.net_runtime_recv_queue_read_index = 1023;
+		g_front_state.net_runtime_recv_queue_write_index = 1023;
+		poison_queue(1023, 2);
+		net_pump_incoming_packets();
+		XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count,
+				  1);
+		XVT_ASSERT_INT_EQ(
+			g_front_state.net_runtime_recv_queue_write_index, 0);
+		struct net_queued_packet *entry = queued(1023);
+		XVT_ASSERT_INT_EQ(entry->direct_play_id, 30);
+		XVT_ASSERT_INT_EQ(entry->packet_class, rows[row].packet_class);
+		XVT_ASSERT_INT_EQ(entry->sequence_byte, 5);
+		XVT_ASSERT_INT_EQ(entry->is_resent_copy, 0);
+		XVT_ASSERT_INT_EQ(entry->nack_retry_count, 0);
+		XVT_ASSERT_INT_EQ(entry->last_nack_ms, 0);
+		XVT_ASSERT_INT_EQ(entry->payload_size, 8);
+		XVT_ASSERT_INT_EQ(*(int *)(entry->payload + 4), 20);
+		XVT_ASSERT_INT_EQ(count_lines("network.lobby_packet_received"),
+				  1);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_received", "channel"),
+			rows[row].packet_class);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_received", "seq"), 5);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_received", "bytes"),
+			4);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_received", "queued"),
+			1);
+		XVT_ASSERT_INT_EQ(count_lines("network.lobby_packet_repeat"),
+				  1);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_repeat", "seq"), 5);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_repeat", "channel"),
+			rows[row].packet_class);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_repeat", "type"),
+			NET_PACKET_CHAT);
+	}
+}
+
+/* A body over 508 bytes is cut to 508, and a body of 508 kept whole, the
+ * queue entry's size 512 either way. A trailer past 508 bytes is cut to 508
+ * too. The packet riding behind a long body is found where the body really
+ * ends: with its previous sequence new, it is queued under its own type, not
+ * made of the body's tail. */
+static void check_pump_long_bodies(void)
+{
+	uint8_t body[600];
+	uint8_t bytes[1024];
+	for (int i = 0; i < 600; ++i) {
+		body[i] = (uint8_t)(i * 7);
+	}
+	body[508] = 29;
+	static const uint8_t trailer_body[4] = {0xAB, 0xCD, 0xEF, 0x01};
+	uint16_t header = ONE_PLAYER_BIT | (5 << 8) | NET_PACKET_CHAT;
+	static const int sizes[] = {508, 509, 600};
+	for (int i = 0; i < 3; ++i) {
+		fresh();
+		open_session();
+		uint32_t size =
+			build_wire(bytes, header, body, (uint16_t)sizes[i],
+				   NET_PACKET_NOP, trailer_body, 0);
+		inbox_bytes(30, LOCAL_ID, bytes, size);
+		net_pump_incoming_packets();
+		XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count,
+				  1);
+		XVT_ASSERT_INT_EQ(queued(0)->payload_size, 512);
+		XVT_ASSERT_INT_EQ(queued_type(0), NET_PACKET_CHAT);
+		XVT_ASSERT_INT_EQ(memcmp(queued(0)->payload + 4, body, 508), 0);
+		XVT_ASSERT_INT_EQ(
+			line_value("network.lobby_packet_received", "bytes"),
+			508);
+	}
+
+	fresh();
+	open_session();
+	uint32_t size = build_wire(bytes, header, body, 600, NET_PACKET_CHAT,
+				   trailer_body, sizeof trailer_body);
+	inbox_bytes(30, LOCAL_ID, bytes, size);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 2);
+	XVT_ASSERT_INT_EQ(queued(0)->sequence_byte, 4);
+	XVT_ASSERT_INT_EQ(queued(0)->payload_size, 8);
+	XVT_ASSERT_INT_EQ(queued_type(0), NET_PACKET_CHAT);
+	XVT_ASSERT_INT_EQ(memcmp(queued(0)->payload + 4, trailer_body, 4), 0);
+	XVT_ASSERT_INT_EQ(queued(1)->sequence_byte, 5);
+	XVT_ASSERT_INT_EQ(queued(1)->payload_size, 512);
+	XVT_ASSERT_INT_EQ(memcmp(queued(1)->payload + 4, body, 508), 0);
+
+	fresh();
+	open_session();
+	uint8_t long_trailer[600];
+	for (int i = 0; i < 600; ++i) {
+		long_trailer[i] = (uint8_t)(i * 5 + 1);
+	}
+	size = build_wire(bytes, header, body, 8, NET_PACKET_CHAT, long_trailer,
+			  600);
+	inbox_bytes(30, LOCAL_ID, bytes, size);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 2);
+	XVT_ASSERT_INT_EQ(queued(0)->sequence_byte, 4);
+	XVT_ASSERT_INT_EQ(queued(0)->payload_size, 512);
+	XVT_ASSERT_INT_EQ(memcmp(queued(0)->payload + 4, long_trailer, 508), 0);
+	XVT_ASSERT_INT_EQ(queued(1)->payload_size, 12);
+}
+
+/* ------------------------------------------------------------------------ */
+/* net_drop_silent_peers, and the keepalives and silent-peer check the pump
+ * runs first. */
+
+/* Puts a ready player in the roster entry. */
+static void roster_player(int index, DPID player, int ready)
+{
+	g_front_state.net_players[index].player_id = player;
+	g_front_state.net_players[index].ready_flag = ready;
+	if (index >= g_front_state.net_player_count) {
+		g_front_state.net_player_count = index + 1;
+	}
+}
+
+/* On the host, a ready roster player other than the local player and the
+ * group that has been silent for over 45,000 ms is sent a KICKED packet,
+ * flushed, and a PLAYER_LEFT is queued as if from the player, on the one-player
+ * channel with the next sequence after the newest received, 127 wrapping to 0,
+ * which becomes the newest; the player's timer restarts and the drop is
+ * logged. A player not ready, one silent for exactly 45,000 ms and an empty
+ * entry are left alone. With 1,024 queued the drop is only logged and the timer
+ * restarts. Returns 1. */
+static void check_silent_peer_on_host(void)
+{
+	fresh();
+	open_session();
+	g_front_state.net_is_host = 1;
+	g_front_state.net_runtime_local_player.ready_flag = 1;
+	roster_player(0, LOCAL_ID, 1);
+	roster_player(1, 30, 1);
+	roster_player(2, 40, 0);
+	roster_player(3, 50, 1);
+	roster_player(4, GROUP_ID, 1);
+	roster_player(6, 60, 1);
+	unsigned int silent = net_find_or_create_peer_slot(30);
+	unsigned int not_ready = net_find_or_create_peer_slot(40);
+	unsigned int edge = net_find_or_create_peer_slot(50);
+	unsigned int wraps = net_find_or_create_peer_slot(60);
+	unsigned int local = net_find_or_create_peer_slot(LOCAL_ID);
+	unsigned int group = net_find_or_create_peer_slot(GROUP_ID);
+	xvt_time_advance_host_clock(100 * SECOND_US);
+	uint32_t now = GetTickCount();
+	peer(silent)->last_heard_ms = now - 46000;
+	peer(not_ready)->last_heard_ms = now - 46000;
+	peer(edge)->last_heard_ms = now - 45000;
+	peer(wraps)->last_heard_ms = now - 45001;
+	peer(local)->last_heard_ms = now - 90000;
+	peer(group)->last_heard_ms = now - 90000;
+	peer(wraps)->recv_seq_default = 126;
+	g_front_state.net_runtime_recv_queue_read_index = 1022;
+	g_front_state.net_runtime_recv_queue_write_index = 1022;
+	poison_queue(1022, 2);
+	XVT_ASSERT_INT_EQ(net_drop_silent_peers(), 1);
+
+	XVT_ASSERT_INT_EQ(g_sent_count, 4);
+	XVT_ASSERT_INT_EQ(g_sent[0].to, 30);
+	XVT_ASSERT_INT_EQ(sent_header(0) & 0x7F, NET_PACKET_PLAYER_KICKED);
+	XVT_ASSERT_INT_EQ(sent_header(1) & 0x7F, NET_PACKET_NOP);
+	XVT_ASSERT_INT_EQ(g_sent[2].to, 60);
+	XVT_ASSERT_INT_EQ(sent_header(2) & 0x7F, NET_PACKET_PLAYER_KICKED);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 2);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_write_index, 0);
+	static const struct {
+		int player;
+		int sequence;
+	} left[] = {{30, 0}, {60, 127}};
+	for (int i = 0; i < 2; ++i) {
+		struct net_queued_packet *entry = queued((1022 + i) % 1024);
+		XVT_ASSERT_INT_EQ(*(int *)entry->payload,
+				  NET_PACKET_PLAYER_LEFT);
+		XVT_ASSERT_INT_EQ(entry->direct_play_id, left[i].player);
+		XVT_ASSERT_INT_EQ(entry->payload_size, 4);
+		XVT_ASSERT_INT_EQ(entry->packet_class, 1);
+		XVT_ASSERT_INT_EQ(entry->sequence_byte, left[i].sequence);
+		XVT_ASSERT_INT_EQ(entry->is_resent_copy, 0);
+		XVT_ASSERT_INT_EQ(entry->nack_retry_count, 0);
+		XVT_ASSERT_INT_EQ(entry->last_nack_ms, 0);
+	}
+	XVT_ASSERT_INT_EQ(peer(silent)->recv_seq_default, 0);
+	XVT_ASSERT_INT_EQ(peer(wraps)->recv_seq_default, 127);
+	XVT_ASSERT_INT_EQ(peer(silent)->last_heard_ms, now);
+	XVT_ASSERT_INT_EQ(peer(wraps)->last_heard_ms, now);
+	XVT_ASSERT_INT_EQ(peer(not_ready)->last_heard_ms, now - 46000);
+	XVT_ASSERT_INT_EQ(peer(edge)->last_heard_ms, now - 45000);
+	XVT_ASSERT_INT_EQ(peer(local)->last_heard_ms, now - 90000);
+	XVT_ASSERT_INT_EQ(peer(group)->last_heard_ms, now - 90000);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_silent"), 2);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_departure_queued"), 2);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_silent", "player"),
+			  60);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_player_silent", "ms"),
+			  45001);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_departure_queued", "player"), 60);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_departure_queued", "seq"),
+			  127);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_departure_queued", "queued"), 2);
+
+	/* The timer restarted, so the next call finds nobody silent. */
+	forget_sends();
+	XVT_ASSERT_INT_EQ(net_drop_silent_peers(), 1);
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 2);
+
+	/* With 1,024 queued the drop is deferred. */
+	peer(silent)->last_heard_ms = now - 46000;
+	g_front_state.net_runtime_recv_queue_count = 1024;
+	XVT_ASSERT_INT_EQ(net_drop_silent_peers(), 1);
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1024);
+	XVT_ASSERT_INT_EQ(peer(silent)->last_heard_ms, now);
+	XVT_ASSERT_INT_EQ(peer(silent)->recv_seq_default, 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_drop_deferred"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_drop_deferred", "player"),
+			  30);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_drop_deferred", "queued"),
+			  1024);
+
+	/* With 1,023 queued it still goes through. */
+	peer(silent)->last_heard_ms = now - 46000;
+	g_front_state.net_runtime_recv_queue_count = 1023;
+	XVT_ASSERT_INT_EQ(net_drop_silent_peers(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1024);
+	XVT_ASSERT_INT_EQ(peer(silent)->recv_seq_default, 1);
+}
+
+/* On the host, a ready roster player that can get no peer slot because the
+ * table is full is left alone: nothing is sent or queued, and the full table
+ * is logged. */
+static void check_silent_peer_without_slot(void)
+{
+	fresh();
+	open_session();
+	g_front_state.net_is_host = 1;
+	fill_peer_table();
+	roster_player(0, LOCAL_ID, 1);
+	roster_player(1, 999, 1);
+	xvt_time_advance_host_clock(100 * SECOND_US);
+	XVT_ASSERT_INT_EQ(net_drop_silent_peers(), 1);
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_player_silent"), 0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_peer_table_full", "player"),
+			  999);
+}
+
+/* On a client, a host silent for over 45,000 ms has a HOST_CANCELLED queued as
+ * if from it, on the broadcast channel with the next sequence after the newest
+ * received, 127 wrapping to 0, which becomes the newest; its timer restarts and
+ * the drop is logged. Exactly 45,000 ms is not silent. With 1,024 queued the
+ * drop is only logged and the timer restarts. With no peer slot to be had for
+ * the host the call returns 0 and queues nothing; otherwise it returns 1. */
+static void check_silent_host_on_client(void)
+{
+	fresh();
+	open_session();
+	g_front_state.net_host_player_id = 30;
+	unsigned int host = net_find_or_create_peer_slot(30);
+	xvt_time_advance_host_clock(100 * SECOND_US);
+	uint32_t now = GetTickCount();
+	peer(host)->last_heard_ms = now - 45000;
+	XVT_ASSERT_INT_EQ(net_drop_silent_peers(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_host_silent"), 0);
+
+	peer(host)->last_heard_ms = now - 45001;
+	peer(host)->recv_seq_channel_a = 127;
+	g_front_state.net_runtime_recv_queue_read_index = 1023;
+	g_front_state.net_runtime_recv_queue_write_index = 1023;
+	poison_queue(1023, 1);
+	XVT_ASSERT_INT_EQ(net_drop_silent_peers(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_write_index, 0);
+	struct net_queued_packet *entry = queued(1023);
+	XVT_ASSERT_INT_EQ(*(int *)entry->payload, NET_PACKET_HOST_CANCELLED);
+	XVT_ASSERT_INT_EQ(entry->direct_play_id, 30);
+	XVT_ASSERT_INT_EQ(entry->payload_size, 4);
+	XVT_ASSERT_INT_EQ(entry->packet_class, 0);
+	XVT_ASSERT_INT_EQ(entry->sequence_byte, 0);
+	XVT_ASSERT_INT_EQ(entry->is_resent_copy, 0);
+	XVT_ASSERT_INT_EQ(entry->nack_retry_count, 0);
+	XVT_ASSERT_INT_EQ(entry->last_nack_ms, 0);
+	XVT_ASSERT_INT_EQ(peer(host)->recv_seq_channel_a, 0);
+	XVT_ASSERT_INT_EQ(peer(host)->last_heard_ms, now);
+	XVT_ASSERT_INT_EQ(g_sent_count, 0);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_host_silent", "player"),
+			  30);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_host_silent", "ms"), 45001);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_departure_queued", "seq"),
+			  0);
+	XVT_ASSERT_INT_EQ(
+		line_value("network.lobby_departure_queued", "queued"), 1);
+
+	peer(host)->last_heard_ms = now - 46000;
+	peer(host)->recv_seq_channel_a = 126;
+	g_front_state.net_runtime_recv_queue_count = 1023;
+	XVT_ASSERT_INT_EQ(net_drop_silent_peers(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1024);
+	XVT_ASSERT_INT_EQ(peer(host)->recv_seq_channel_a, 127);
+
+	peer(host)->last_heard_ms = now - 46000;
+	g_front_state.net_runtime_recv_queue_count = 1024;
+	XVT_ASSERT_INT_EQ(net_drop_silent_peers(), 1);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1024);
+	XVT_ASSERT_INT_EQ(peer(host)->recv_seq_channel_a, 127);
+	XVT_ASSERT_INT_EQ(peer(host)->last_heard_ms, now);
+	XVT_ASSERT_INT_EQ(count_lines("network.lobby_drop_deferred"), 1);
+	XVT_ASSERT_INT_EQ(line_value("network.lobby_drop_deferred", "queued"),
+			  1024);
+
+	/* A host whose slot cannot be had: the table is full of others. */
+	fresh();
+	open_session();
+	fill_peer_table();
+	g_front_state.net_host_player_id = 999;
+	XVT_ASSERT_INT_EQ(net_drop_silent_peers(), 0);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
+}
+
+/* The pump sends the keepalives that are due, then checks for silent peers,
+ * before it reads anything: a roster player idle for over 3,000 ms is sent a
+ * KEEPALIVE and, silent for over 45,000 ms, a KICKED, and its departure is
+ * queued ahead of what DirectPlay delivers. */
+static void check_pump_keepalives_and_silent_peers(void)
+{
+	int body = 5;
+	fresh();
+	open_session();
+	g_front_state.net_is_host = 1;
+	roster_player(0, LOCAL_ID, 1);
+	roster_player(1, 30, 1);
+	net_find_or_create_peer_slot(30);
+	xvt_time_advance_host_clock(46 * SECOND_US);
+	inbox_packet(40, LOCAL_ID, ONE_PLAYER_BIT | NET_PACKET_CHAT, &body,
+		     sizeof body);
+	net_pump_incoming_packets();
+	XVT_ASSERT_INT_EQ(g_sent[0].to, 30);
+	XVT_ASSERT_INT_EQ(sent_header(0), NET_PACKET_KEEPALIVE);
+	XVT_ASSERT_INT_EQ(sent_header(1) & 0x7F, NET_PACKET_PLAYER_KICKED);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 2);
+	XVT_ASSERT_INT_EQ(queued_type(0), NET_PACKET_PLAYER_LEFT);
+	XVT_ASSERT_INT_EQ(queued(0)->direct_play_id, 30);
+	XVT_ASSERT_INT_EQ(queued_type(1), NET_PACKET_CHAT);
+	XVT_ASSERT_INT_EQ(queued(1)->direct_play_id, 40);
+}
+
+/* ------------------------------------------------------------------------ */
 /* The roster. */
 
 /* The getters return the roster with its count, the left-this-frame mark, the
@@ -1260,6 +2803,9 @@ static void check_receive_keeps_past_peer_table(void)
 int main(int argc, char **argv)
 {
 	fail_after_seconds(30);
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+	SDL_SetLogOutputFunction(catch_line, NULL);
 	/* "known-failure <check>" runs one check the code is known to fail; an
 	 * unknown name runs nothing. */
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
@@ -1297,6 +2843,25 @@ int main(int argc, char **argv)
 	check_pump_queues();
 	check_pump_answers_ping();
 	check_poll();
+	check_pump_back_buffer();
+	check_pump_system_messages();
+	check_pump_misaddressed_and_ping();
+	check_pump_keepalive_ack_latency();
+	check_pump_keepalive_ack_new_entry();
+	check_pump_world_nack();
+	check_pump_nack();
+	check_pump_keepalive();
+	check_pump_resent_copies();
+	check_pump_resent_copy_sizes();
+	check_pump_resent_resync_copy();
+	check_pump_previous_missed();
+	check_pump_resync_types_bare();
+	check_pump_packet_channels();
+	check_pump_long_bodies();
+	check_silent_peer_on_host();
+	check_silent_peer_without_slot();
+	check_silent_host_on_client();
+	check_pump_keepalives_and_silent_peers();
 	check_roster_getters();
 	check_ready_flags();
 	check_ready_flags_locked();
