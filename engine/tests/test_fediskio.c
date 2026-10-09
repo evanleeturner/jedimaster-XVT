@@ -1,38 +1,72 @@
-/* Tests for xvt/flight/fediskio.c: fe_disk_io_commit_flight_results, which
- * records a finished flight into the pilot record, and the file helpers. Each
- * commit check sets the flight it needs in the game's own tables (the mission
- * header, flight groups, the players, the goal statuses and scores) and a
- * cleared pilot record, or the record the flights before it left, then reads
- * what the commit wrote: scores and tallies, promotion, kills, team results,
- * the award, and each history record. The file checks read files this file
- * writes into a temporary asset folder. No game data is read.
+/* Tests for xvt/flight/fediskio.c: the flight's results and its loaders.
  *
- * Not checked here: the commit's warnings for a campaign, tournament or battle
- * number past the history tables, and its draw count at battle step 10, which
- * run only after an indexing fault that stops the sanitizer; and lines no
- * input reaches: the 2,500 and 1,250 score steps of a melee award (an award
- * needs a score over 5,000) and the cap of 100 on a training flight's
- * progress (a promotion sets the points to 0 first).
+ * fe_disk_io_commit_flight_results records a finished flight into the pilot
+ * record. Each of its checks sets the flight it needs in the game's own tables
+ * (the mission header, flight groups, the players, the goal statuses and
+ * scores) and a cleared pilot record, or the record the flights before it left,
+ * then reads what the commit wrote: scores and tallies, promotion, kills, team
+ * results, the award, and each history record.
+ *
+ * The loader checks write the files the loaders read (resource lists, OPT model
+ * files, texture blocks, lookup tables) into a temporary asset folder, run
+ * fe_disk_io_build_model_def, _load_resources, _init_resources,
+ * _free_flight_resources, _lock_global_buffers and _unlock_global_buffers and
+ * the file helpers, and read the flight's tables and memory handles
+ * afterwards. No game data is read.
+ *
+ * Not checked here:
+ * - fe_disk_io_init_global_buffers: it needs the strings file in the game's
+ *   full layout, the font and icon files, a drawing surface and the sound
+ *   list.
+ * - The paths that end in xvt_storage_fatal (fe_disk_io_fatal_error, a
+ *   required file that will not open or read whole, an allocation that fails,
+ *   a model file that is missing): it shows a message box and waits for it on
+ *   a machine with a display.
+ * - In fe_disk_io_init_resources, the palette generation that
+ *   g_palette_generation_enabled keeps off.
+ * - In the commit, the warnings for a campaign, tournament or battle number
+ *   past the history tables and the draw count at battle step 10, which run
+ *   only after an indexing fault that stops the sanitizer; and lines no input
+ *   reaches: the 1,250 and 2,500 score steps of a melee award (an award needs
+ *   a score over 5,000) and the cap of 100 on a training flight's progress (a
+ *   promotion sets the points to 0 first).
  *
  * POSIX only, for the temporary folder (test_asset_folder.h). */
 #define _POSIX_C_SOURCE 200809L
 
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "test_assert.h"
 #include "test_asset_folder.h"
+#include "xvt/assets/file.h"
+#include "xvt/assets/model_bounds.h"
+#include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
+#include "xvt/audio/fsfx.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/flight_loading.h"
+#include "xvt/flight/hud/flight_text.h"
+#include "xvt/flight/hud/hud.h"
 #include "xvt/flight/mission/mission.h"
+#include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt/frontend/config.h"
 #include "xvt/frontend/frontend_mission_list.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
+#include "xvt/render/flight_palette.h"
+#include "xvt/render/flight_sw.h"
+#include "xvt/render/render_list.h"
+#include "xvt/render/render_scene.h"
+#include "xvt/render/renderer.h"
+#include "xvt/util/memory.h"
+#include "xvt/util/time.h"
 
 enum {
 	TEST_XWING = 1,	       /* Craft type 1, a starfighter with a model. */
@@ -2653,6 +2687,938 @@ static void check_craft_type_96(void)
 	XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
 }
 
+static struct xvt_test_assets g_assets;
+static uint8_t g_file_bytes[65541];
+static uint8_t g_read_bytes[sizeof g_file_bytes + 512];
+
+/* Writes a file of size bytes into the asset folder, byte i holding i * 7
+ * modulo 251. */
+static void write_asset(const char *name, size_t size)
+{
+	for (size_t i = 0; i < size; ++i) {
+		g_file_bytes[i] = (uint8_t)(i * 7 % 251);
+	}
+	xvt_test_write_file(g_assets.asset, name, g_file_bytes, size);
+}
+
+/* ---- OPT model files for the loaders ----------------------------------- */
+
+/* The address model files count their links from, as test_opt_native.c. */
+#define MB_BASE 0x00400000u
+
+struct mb_body {
+	uint8_t *bytes;
+	uint32_t size;
+	uint32_t capacity;
+};
+
+struct mb_hardpoint {
+	int type;
+	float x;
+	float y;
+	float z;
+};
+
+enum {
+	MB_MAX_HARDPOINTS = 24,
+};
+
+/* One top-level part of a model: its component type, the two corners of its
+ * bounds and its hardpoints; texture 1 makes it a texture instead. */
+struct mb_mesh {
+	int texture;
+	int mesh_type;
+	float min[3];
+	float max[3];
+	int hardpoint_count;
+	struct mb_hardpoint hardpoints[MB_MAX_HARDPOINTS];
+};
+
+static uint32_t mb_append(struct mb_body *body, const void *data, uint32_t size)
+{
+	if (body->size + size > body->capacity) {
+		body->capacity = (body->size + size) * 2;
+		body->bytes = realloc(body->bytes, body->capacity);
+		XVT_ASSERT_TRUE(body->bytes != NULL);
+	}
+	if (data) {
+		memcpy(body->bytes + body->size, data, size);
+	} else {
+		memset(body->bytes + body->size, 0, size);
+	}
+	body->size += size;
+	return MB_BASE + body->size - size;
+}
+
+static void mb_put(const struct mb_body *body, uint32_t address, uint32_t value)
+{
+	uint8_t *at = body->bytes + (address - MB_BASE);
+	for (int i = 0; i < 4; ++i) {
+		at[i] = (uint8_t)(value >> (8 * i));
+	}
+}
+
+/* Appends a node record (name, type, child count, child table, parameter,
+ * payload) and returns its address. */
+static uint32_t mb_node(struct mb_body *body, int32_t type, int32_t count,
+			uint32_t children, int32_t param, uint32_t payload)
+{
+	uint32_t node = mb_append(body, NULL, 24);
+	mb_put(body, node + 4, (uint32_t)type);
+	mb_put(body, node + 8, (uint32_t)count);
+	mb_put(body, node + 12, children);
+	mb_put(body, node + 16, (uint32_t)param);
+	mb_put(body, node + 20, payload);
+	return node;
+}
+
+/* Writes a model file of version 2 with the given top-level parts into the
+ * asset folder. */
+static void mb_write_model(const char *name, const struct mb_mesh *meshes,
+			   int mesh_count)
+{
+	struct mb_body body = {0};
+	mb_append(&body, NULL, 14);
+	mb_put(&body, MB_BASE, MB_BASE);
+	mb_put(&body, MB_BASE + 6, (uint32_t)mesh_count);
+	uint32_t table = mb_append(&body, NULL, (uint32_t)mesh_count * 4);
+	mb_put(&body, MB_BASE + 10, mesh_count ? table : 0);
+	for (int i = 0; i < mesh_count; ++i) {
+		const struct mb_mesh *mesh = &meshes[i];
+		uint32_t root;
+		if (mesh->texture) {
+			/* A 1 by 1 texture, its palette of 16 blocks inside. */
+			uint32_t words[6] = {0, 16, 1, 1, 1, 1};
+			uint32_t payload =
+				mb_append(&body, words, sizeof words);
+			mb_append(&body, NULL, 1 + 16 * 768);
+			root = mb_node(&body, OPT_TEXTURE, 0, 0, 0, payload);
+		} else {
+			struct mesh_descriptor descriptor;
+			memset(&descriptor, 0, sizeof descriptor);
+			descriptor.mesh_type =
+				(mesh_component_type)mesh->mesh_type;
+			uint32_t descriptor_at = mb_append(&body, &descriptor,
+							   sizeof descriptor);
+			float corners[6] = {mesh->min[0], mesh->min[1],
+					    mesh->min[2], mesh->max[0],
+					    mesh->max[1], mesh->max[2]};
+			uint32_t corners_at =
+				mb_append(&body, corners, sizeof corners);
+			uint32_t children[2 + MB_MAX_HARDPOINTS];
+			children[0] = mb_node(&body, OPT_MESHDESC, 0, 0, 0,
+					      descriptor_at);
+			children[1] = mb_node(&body, OPT_MESHVERTS, 0, 0, 2,
+					      corners_at);
+			for (int h = 0; h < mesh->hardpoint_count; ++h) {
+				uint32_t point[4];
+				memcpy(&point[0], &mesh->hardpoints[h].type, 4);
+				memcpy(&point[1], &mesh->hardpoints[h].x, 4);
+				memcpy(&point[2], &mesh->hardpoints[h].y, 4);
+				memcpy(&point[3], &mesh->hardpoints[h].z, 4);
+				uint32_t point_at =
+					mb_append(&body, point, sizeof point);
+				children[2 + h] = mb_node(&body, OPT_HARDPOINT,
+							  0, 0, 0, point_at);
+			}
+			uint32_t child_count =
+				2 + (uint32_t)mesh->hardpoint_count;
+			uint32_t table_at =
+				mb_append(&body, children, child_count * 4);
+			root = mb_node(&body, OPT_GROUP, (int32_t)child_count,
+				       table_at, 0, 0);
+		}
+		mb_put(&body, table + 4 * (uint32_t)i, root);
+	}
+	uint8_t *file = malloc(8 + (size_t)body.size);
+	XVT_ASSERT_TRUE(file != NULL);
+	uint32_t head[2] = {0xFFFFFFFEu, body.size};
+	memcpy(file, head, 8);
+	memcpy(file + 8, body.bytes, body.size);
+	xvt_test_write_file(g_assets.asset, name, file, 8 + (size_t)body.size);
+	free(file);
+	free(body.bytes);
+}
+
+/* The time of the loading bar's last redraw, which flight_loading.c keeps
+ * without declaring it in its header. */
+extern uint32_t g_flight_loading_progress_last_draw_ms;
+
+/* Loads the model file name as the model of object type type, the way the
+ * flight does: its handle in g_loaded_models, its asset flags marking an OPT
+ * model, and no bounds cached. */
+static void mb_load_as(int type, const char *name)
+{
+	/* The loader redraws the loading bar every 200 ms; there is no
+	 * screen to draw it on. */
+	g_flight_loading_progress_step = 0;
+	g_flight_loading_progress_last_draw_ms = timeGetTime();
+	g_loaded_models[type] = opt_model_load_handle(name);
+	XVT_ASSERT_TRUE(g_loaded_models[type] != 0);
+	g_object_type_table[type].asset_flags = 1;
+	g_model_bounds_cached[type] = 0;
+}
+
+/* ---- fe_disk_io_build_model_def ---------------------------------------- */
+
+enum {
+	TEST_MODEL_TYPE = 1, /* The object type whose model is built. */
+	TEST_MODEL_DEF = 3,  /* The model definition built. */
+	TEST_NO_MODEL_DEF = 0xFF,
+};
+
+/* Object type 1 with the model of the given parts, built into model
+ * definition 3 (cleared first); the asset folder is opened by the caller. */
+static void build_def(const struct mb_mesh *meshes, int mesh_count)
+{
+	memset(&g_model_defs[TEST_MODEL_DEF], 0, sizeof g_model_defs[0]);
+	mb_write_model("model.opt", meshes, mesh_count);
+	mb_load_as(TEST_MODEL_TYPE, "model.opt");
+	fe_disk_io_build_model_def(TEST_MODEL_DEF, TEST_MODEL_TYPE);
+}
+
+/* The object type's maximum bounds extent is the largest of its model's box
+ * sizes and half of it is kept; with a model definition number of 0xFF
+ * nothing else is built. The model definition otherwise gets the box sizes
+ * halved together, counting the halvings, until none is over 0x280 (640). */
+static void check_model_extent_and_bounds(void)
+{
+	xvt_test_open_assets(&g_assets);
+	struct mb_mesh mesh;
+	memset(&mesh, 0, sizeof mesh);
+	mesh.min[0] = -30;
+	mesh.min[1] = -40;
+	mesh.min[2] = -50;
+	mesh.max[0] = 30;
+	mesh.max[1] = 40;
+	mesh.max[2] = 50;
+	build_def(&mesh, 1);
+	XVT_ASSERT_INT_EQ(
+		g_object_type_table[TEST_MODEL_TYPE].max_bounds_extent, 100);
+	XVT_ASSERT_INT_EQ(
+		g_object_type_table[TEST_MODEL_TYPE].half_bounds_extent, 50);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].bound_size_shift, 0);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].bound_size_x, 60);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].bound_size_y, 80);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].bound_size_z, 100);
+	/* Docking heights the table left 0 come from the z bounds. */
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].dock_to_up[0], -50);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].dock_to_up[1], -50);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].dock_from_up[0], 50);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].dock_from_up[1], 50);
+
+	mesh.min[0] = -700;
+	mesh.max[0] = 700;
+	mesh.min[1] = -350;
+	mesh.max[1] = 350;
+	g_model_defs[TEST_MODEL_DEF].dock_to_up[0] = 7;
+	g_model_defs[TEST_MODEL_DEF].dock_from_up[0] = 9;
+	mb_write_model("model.opt", &mesh, 1);
+	mb_load_as(TEST_MODEL_TYPE, "model.opt");
+	fe_disk_io_build_model_def(TEST_MODEL_DEF, TEST_MODEL_TYPE);
+	XVT_ASSERT_INT_EQ(
+		g_object_type_table[TEST_MODEL_TYPE].max_bounds_extent, 1400);
+	XVT_ASSERT_INT_EQ(
+		g_object_type_table[TEST_MODEL_TYPE].half_bounds_extent, 700);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].bound_size_shift, 2);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].bound_size_x, 350);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].bound_size_y, 175);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].bound_size_z, 25);
+	/* A nonzero docking height is left as it was. */
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].dock_to_up[0], 7);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].dock_from_up[0], 9);
+
+	memset(&g_model_defs[TEST_MODEL_DEF], 0, sizeof g_model_defs[0]);
+	g_model_bounds_cached[TEST_MODEL_TYPE] = 0;
+	g_object_type_table[TEST_MODEL_TYPE].max_bounds_extent = 0;
+	fe_disk_io_build_model_def(TEST_NO_MODEL_DEF, TEST_MODEL_TYPE);
+	XVT_ASSERT_INT_EQ(
+		g_object_type_table[TEST_MODEL_TYPE].max_bounds_extent, 1400);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].bound_size_x, 0);
+	xvt_test_close_assets(&g_assets);
+}
+
+/* The hardpoint types the model parts of the next checks carry: 25 and 26
+ * give a hangar's inside and outside points; 27 to 30 a docking height and the
+ * forward point; 31 the primary weapon point. Each hardpoint is placed at
+ * (base + 10, base + 20, base + 30), which the model definition gets as x,
+ * the negated y, and z. */
+static void check_model_special_hardpoints(void)
+{
+	xvt_test_open_assets(&g_assets);
+	for (int type = 25; type <= 31; ++type) {
+		struct mb_mesh mesh;
+		memset(&mesh, 0, sizeof mesh);
+		mesh.min[2] = -50;
+		mesh.max[2] = 50;
+		mesh.hardpoint_count = 1;
+		mesh.hardpoints[0].type = type;
+		mesh.hardpoints[0].x = (float)(type + 10);
+		mesh.hardpoints[0].y = (float)(type + 20);
+		mesh.hardpoints[0].z = (float)(type + 30);
+		build_def(&mesh, 1);
+		const struct model_def *def = &g_model_defs[TEST_MODEL_DEF];
+		int x = type + 10;
+		int y = -(type + 20);
+		int z = type + 30;
+		XVT_ASSERT_INT_EQ(def->hangar_points.inside.side,
+				  type == 25 ? x : 0);
+		XVT_ASSERT_INT_EQ(def->hangar_points.inside.forward,
+				  type == 25 ? y : 0);
+		XVT_ASSERT_INT_EQ(def->hangar_points.inside.up,
+				  type == 25 ? z : 0);
+		XVT_ASSERT_INT_EQ(def->hangar_points.outside.side,
+				  type == 26 ? x : 0);
+		XVT_ASSERT_INT_EQ(def->hangar_points.outside.forward,
+				  type == 26 ? y : 0);
+		XVT_ASSERT_INT_EQ(def->hangar_points.outside.up,
+				  type == 26 ? z : 0);
+		XVT_ASSERT_INT_EQ(def->dock_from_up[1], type == 27 ? z : 50);
+		XVT_ASSERT_INT_EQ(def->dock_from_up[0], type == 28 ? z : 50);
+		XVT_ASSERT_INT_EQ(def->dock_to_up[1], type == 29 ? z : -50);
+		XVT_ASSERT_INT_EQ(def->dock_to_up[0], type == 30 ? z : -50);
+		XVT_ASSERT_INT_EQ(def->dock_forward,
+				  type >= 27 && type <= 30 ? y : 0);
+		XVT_ASSERT_INT_EQ(def->primary_hardpoint_z, type == 31 ? z : 0);
+		XVT_ASSERT_INT_EQ(def->primary_hardpoint_y, type == 31 ? y : 0);
+		XVT_ASSERT_INT_EQ(def->laser_group_weapon_type[0], 0);
+		XVT_ASSERT_INT_EQ(def->warhead_launcher_type[0], 0);
+		XVT_ASSERT_INT_EQ(def->laser_group_slot_count[0], 0);
+	}
+	xvt_test_close_assets(&g_assets);
+}
+
+/* A weapon hardpoint's type gives the group its weapon type, the hardpoint type
+ * less 120 as a byte: types 1 to 6 and 9 to 11 make a laser group, 7, 8 and 12
+ * to 18 a warhead launcher, and 0 and 19 to 24 neither. */
+static void check_model_weapon_group_types(void)
+{
+	static const int lasers[] = {1, 2, 3, 4, 5, 6, 9, 10, 11};
+	static const int launchers[] = {7, 8, 12, 13, 14, 15, 16, 17, 18};
+	static const int neither[] = {0, 19, 20, 21, 22, 23, 24};
+	xvt_test_open_assets(&g_assets);
+	for (int type = 0; type <= 24; ++type) {
+		int laser = 0;
+		int launcher = 0;
+		for (size_t i = 0; i < sizeof lasers / sizeof lasers[0]; ++i) {
+			laser |= lasers[i] == type;
+			launcher |= launchers[i] == type;
+		}
+		int other = 0;
+		for (size_t i = 0; i < sizeof neither / sizeof neither[0];
+		     ++i) {
+			other |= neither[i] == type;
+		}
+		XVT_ASSERT_INT_EQ(laser + launcher + other, 1);
+		struct mb_mesh mesh;
+		memset(&mesh, 0, sizeof mesh);
+		mesh.hardpoint_count = 1;
+		mesh.hardpoints[0].type = type;
+		mesh.hardpoints[0].x = 8;
+		mesh.hardpoints[0].y = 6;
+		mesh.hardpoints[0].z = 4;
+		build_def(&mesh, 1);
+		const struct model_def *def = &g_model_defs[TEST_MODEL_DEF];
+		XVT_ASSERT_INT_EQ(def->laser_group_weapon_type[0],
+				  laser ? (type + 136) & 0xFF : 0);
+		XVT_ASSERT_INT_EQ(def->laser_group_weapon_type[1], 0);
+		XVT_ASSERT_INT_EQ(def->warhead_launcher_type[0],
+				  launcher ? (type + 136) & 0xFF : 0);
+		XVT_ASSERT_INT_EQ(def->laser_group_slot_count[0], laser);
+		XVT_ASSERT_INT_EQ(def->warhead_launcher_slot_count[0],
+				  launcher);
+		XVT_ASSERT_INT_EQ(def->weapon_hardpoints[0].x,
+				  laser || launcher ? 8 : 0);
+		XVT_ASSERT_INT_EQ(def->weapon_hardpoints[0].y,
+				  laser || launcher ? -6 : 0);
+		XVT_ASSERT_INT_EQ(def->weapon_hardpoints[0].z,
+				  laser || launcher ? 4 : 0);
+	}
+	xvt_test_close_assets(&g_assets);
+}
+
+/* The model of three parts used by the next checks: part 0 (hull) has laser
+ * hardpoints of type 5 at (2, 4, 6) and (8, 10, 12) and a warhead hardpoint of
+ * type 7 between them at (14, 16, 18); part 1 is a laser turret with two laser
+ * hardpoints of type 2 at (20, 22, 24) and (26, 28, 30) and a warhead
+ * hardpoint of type 12 at (32, 34, 36); part 2 is a laser gun with a laser
+ * hardpoint of type 1, a third laser type. */
+static void weapon_model(struct mb_mesh meshes[3])
+{
+	memset(meshes, 0, 3 * sizeof meshes[0]);
+	meshes[0].hardpoint_count = 3;
+	meshes[0].hardpoints[0] = (struct mb_hardpoint){5, 2, 4, 6};
+	meshes[0].hardpoints[1] = (struct mb_hardpoint){7, 14, 16, 18};
+	meshes[0].hardpoints[2] = (struct mb_hardpoint){5, 8, 10, 12};
+	meshes[1].mesh_type = MESH_COMPONENT_04_LASR_TUR;
+	meshes[1].hardpoint_count = 3;
+	meshes[1].hardpoints[0] = (struct mb_hardpoint){2, 20, 22, 24};
+	meshes[1].hardpoints[1] = (struct mb_hardpoint){2, 26, 28, 30};
+	meshes[1].hardpoints[2] = (struct mb_hardpoint){12, 32, 34, 36};
+	meshes[2].mesh_type = MESH_COMPONENT_05_LASR_GUN;
+	meshes[2].hardpoint_count = 1;
+	meshes[2].hardpoints[0] = (struct mb_hardpoint){1, 38, 40, 42};
+}
+
+/* The first two different laser hardpoint types found, in part order, become
+ * the two laser groups (a third is left out), the first two warhead types the
+ * two launchers. The 16 weapon slots hold the laser groups' hardpoints first,
+ * in part order, then the launchers'; each group records its first slot, last
+ * slot and slot count. A turret's second hardpoint of the same type is not a
+ * slot: it is the first one's alternate, named by its number in the part (a
+ * launcher's slot has none). A
+ * group's mount type is 2 for a turret or gun part, 1 for hardpoint type 5
+ * on another part. */
+static void check_model_weapon_slots(void)
+{
+	struct mb_mesh meshes[3];
+	weapon_model(meshes);
+	xvt_test_open_assets(&g_assets);
+	build_def(meshes, 3);
+	const struct model_def *def = &g_model_defs[TEST_MODEL_DEF];
+	XVT_ASSERT_INT_EQ(def->laser_group_weapon_type[0], 141);
+	XVT_ASSERT_INT_EQ(def->laser_group_weapon_type[1], 138);
+	XVT_ASSERT_INT_EQ(def->laser_group_mount_type[0], 1);
+	XVT_ASSERT_INT_EQ(def->laser_group_mount_type[1], 2);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_type[0], 143);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_type[1], 148);
+	XVT_ASSERT_INT_EQ(def->laser_group_first_slot[0], 0);
+	XVT_ASSERT_INT_EQ(def->laser_group_last_slot[0], 1);
+	XVT_ASSERT_INT_EQ(def->laser_group_slot_count[0], 2);
+	XVT_ASSERT_INT_EQ(def->laser_group_first_slot[1], 2);
+	XVT_ASSERT_INT_EQ(def->laser_group_last_slot[1], 2);
+	XVT_ASSERT_INT_EQ(def->laser_group_slot_count[1], 1);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_first_slot[0], 3);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_last_slot[0], 3);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_slot_count[0], 1);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_first_slot[1], 4);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_last_slot[1], 4);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_slot_count[1], 1);
+	static const struct {
+		int x;
+		int y;
+		int z;
+		int mesh;
+		int alternate;
+	} slots[5] = {
+		{2, -4, 6, 0, 0xFF},  {8, -10, 12, 0, 0xFF},
+		{20, -22, 24, 1, 1},  {14, -16, 18, 0, -1},
+		{32, -34, 36, 1, -1},
+	};
+	for (int slot = 0; slot < 5; ++slot) {
+		XVT_ASSERT_INT_EQ(def->weapon_hardpoints[slot].x,
+				  slots[slot].x);
+		XVT_ASSERT_INT_EQ(def->weapon_hardpoints[slot].y,
+				  slots[slot].y);
+		XVT_ASSERT_INT_EQ(def->weapon_hardpoints[slot].z,
+				  slots[slot].z);
+		XVT_ASSERT_INT_EQ(def->weapon_hardpoints[slot].mesh_idx,
+				  slots[slot].mesh);
+		if (slots[slot].alternate >= 0) {
+			XVT_ASSERT_INT_EQ(def->weapon_hardpoints[slot]
+						  .alternate_mesh_hardpoint_idx,
+					  slots[slot].alternate);
+		}
+	}
+	XVT_ASSERT_INT_EQ(def->weapon_hardpoints[5].x, 0);
+	xvt_test_close_assets(&g_assets);
+}
+
+/* A freighter, starship or platform mounts every laser group the turret way
+ * (2) whatever its parts are. Object type 53 halves the coordinates of its
+ * weapon slots. A model that starts with a texture part counts its parts
+ * without it, so a slot's part number is the part's place after the texture. */
+static void check_model_mount_texture_and_type_53(void)
+{
+	struct mb_mesh meshes[3];
+	weapon_model(meshes);
+	xvt_test_open_assets(&g_assets);
+	static const int genus[3] = {CRAFT_GENUS_FREIGHTER,
+				     CRAFT_GENUS_STARSHIP,
+				     CRAFT_GENUS_PLATFORM};
+	for (int i = 0; i < 3; ++i) {
+		g_object_type_table[TEST_MODEL_TYPE].genus_id =
+			(uint8_t)genus[i];
+		build_def(meshes, 3);
+		XVT_ASSERT_INT_EQ(
+			g_model_defs[TEST_MODEL_DEF].laser_group_mount_type[0],
+			2);
+		XVT_ASSERT_INT_EQ(
+			g_model_defs[TEST_MODEL_DEF].laser_group_mount_type[1],
+			2);
+	}
+	g_object_type_table[TEST_MODEL_TYPE].genus_id = 0;
+
+	struct mb_mesh with_texture[4];
+	memset(with_texture, 0, sizeof with_texture);
+	with_texture[0].texture = 1;
+	memcpy(&with_texture[1], meshes, sizeof meshes);
+	/* The texture's palette is copied for a 16-bit display. */
+	int saved_depth = g_flight_bytes_per_pixel;
+	g_flight_bytes_per_pixel = 2;
+	build_def(with_texture, 4);
+	g_flight_bytes_per_pixel = saved_depth;
+	XVT_ASSERT_INT_EQ(
+		g_model_defs[TEST_MODEL_DEF].laser_group_slot_count[0], 2);
+	XVT_ASSERT_INT_EQ(
+		g_model_defs[TEST_MODEL_DEF].weapon_hardpoints[0].mesh_idx, 0);
+	XVT_ASSERT_INT_EQ(
+		g_model_defs[TEST_MODEL_DEF].weapon_hardpoints[2].mesh_idx, 1);
+	XVT_ASSERT_INT_EQ(
+		g_model_defs[TEST_MODEL_DEF].weapon_hardpoints[4].mesh_idx, 1);
+
+	memset(&g_model_defs[TEST_MODEL_DEF], 0, sizeof g_model_defs[0]);
+	mb_write_model("model.opt", meshes, 3);
+	mb_load_as(53, "model.opt");
+	fe_disk_io_build_model_def(TEST_MODEL_DEF, 53);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].weapon_hardpoints[0].x,
+			  1);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].weapon_hardpoints[0].y,
+			  -2);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].weapon_hardpoints[0].z,
+			  3);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].weapon_hardpoints[3].x,
+			  7);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].weapon_hardpoints[3].y,
+			  -8);
+	XVT_ASSERT_INT_EQ(g_model_defs[TEST_MODEL_DEF].weapon_hardpoints[3].z,
+			  9);
+	xvt_test_close_assets(&g_assets);
+}
+
+/* A model has 16 weapon slots. A laser group that takes them all leaves none
+ * for the groups after it: the second laser group and the launcher are cleared
+ * (weapon type and mount type 0). */
+static void check_model_slots_run_out(void)
+{
+	struct mb_mesh mesh;
+	memset(&mesh, 0, sizeof mesh);
+	mesh.hardpoint_count = MB_MAX_HARDPOINTS;
+	for (int i = 0; i < 21; ++i) {
+		mesh.hardpoints[i] = (struct mb_hardpoint){5, (float)i, 0, 0};
+	}
+	mesh.hardpoints[21] = (struct mb_hardpoint){2, 100, 0, 0};
+	mesh.hardpoints[22] = (struct mb_hardpoint){7, 200, 0, 0};
+	mesh.hardpoints[23] = (struct mb_hardpoint){5, 21, 0, 0};
+	xvt_test_open_assets(&g_assets);
+	build_def(&mesh, 1);
+	const struct model_def *def = &g_model_defs[TEST_MODEL_DEF];
+	XVT_ASSERT_INT_EQ(def->laser_group_weapon_type[0], 141);
+	XVT_ASSERT_INT_EQ(def->laser_group_first_slot[0], 0);
+	XVT_ASSERT_INT_EQ(def->laser_group_last_slot[0], 15);
+	XVT_ASSERT_INT_EQ(def->laser_group_slot_count[0], 16);
+	XVT_ASSERT_INT_EQ(def->weapon_hardpoints[15].x, 15);
+	XVT_ASSERT_INT_EQ(def->laser_group_weapon_type[1], 0);
+	XVT_ASSERT_INT_EQ(def->laser_group_mount_type[1], 0);
+	XVT_ASSERT_INT_EQ(def->laser_group_slot_count[1], 0);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_type[0], 0);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_slot_count[0], 0);
+	xvt_test_close_assets(&g_assets);
+}
+
+/* Known failure model_without_parts, issue #253: a model file whose header
+ * gives no top-level parts loads, but building its model definition reads the
+ * first part, which is not there. A model with no parts should build to a
+ * definition with no weapons. */
+static void check_model_with_no_parts(void)
+{
+	xvt_test_open_assets(&g_assets);
+	build_def(NULL, 0);
+	XVT_ASSERT_INT_EQ(
+		g_model_defs[TEST_MODEL_DEF].laser_group_slot_count[0], 0);
+	XVT_ASSERT_INT_EQ(
+		g_model_defs[TEST_MODEL_DEF].warhead_launcher_slot_count[0], 0);
+	xvt_test_close_assets(&g_assets);
+}
+
+/* Known failure hardpoint_type_past_table, issue #187: a weapon hardpoint's
+ * type, an integer from the model file, indexes the 32-entry table that says
+ * which weapon group it joins, without a check. A hardpoint of type 40 reads
+ * past the table, and the sanitizer stops the program; it should join no
+ * group. */
+static void check_hardpoint_type_40(void)
+{
+	xvt_test_open_assets(&g_assets);
+	struct mb_mesh mesh;
+	memset(&mesh, 0, sizeof mesh);
+	mesh.hardpoint_count = 1;
+	mesh.hardpoints[0].type = 40;
+	build_def(&mesh, 1);
+	XVT_ASSERT_INT_EQ(
+		g_model_defs[TEST_MODEL_DEF].laser_group_slot_count[0], 0);
+	XVT_ASSERT_INT_EQ(
+		g_model_defs[TEST_MODEL_DEF].warhead_launcher_slot_count[0], 0);
+	xvt_test_close_assets(&g_assets);
+}
+
+/* A launcher's hardpoints of one type all go in its slots, in part order, and
+ * a second warhead type makes the second launcher. When the slots run out
+ * (14 laser slots, then 5 warhead hardpoints for the remaining 2) the rest
+ * are left out. */
+static void check_model_repeated_and_overflowing_launchers(void)
+{
+	struct mb_mesh mesh;
+	memset(&mesh, 0, sizeof mesh);
+	mesh.hardpoint_count = 4;
+	mesh.hardpoints[0] = (struct mb_hardpoint){7, 1, 0, 0};
+	mesh.hardpoints[1] = (struct mb_hardpoint){7, 2, 0, 0};
+	mesh.hardpoints[2] = (struct mb_hardpoint){8, 3, 0, 0};
+	mesh.hardpoints[3] = (struct mb_hardpoint){7, 4, 0, 0};
+	xvt_test_open_assets(&g_assets);
+	build_def(&mesh, 1);
+	const struct model_def *def = &g_model_defs[TEST_MODEL_DEF];
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_type[0], 143);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_type[1], 144);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_first_slot[0], 0);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_last_slot[0], 2);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_slot_count[0], 3);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_first_slot[1], 3);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_slot_count[1], 1);
+	XVT_ASSERT_INT_EQ(def->weapon_hardpoints[2].x, 4);
+	XVT_ASSERT_INT_EQ(def->weapon_hardpoints[3].x, 3);
+
+	memset(&mesh, 0, sizeof mesh);
+	mesh.hardpoint_count = 19;
+	for (int i = 0; i < 14; ++i) {
+		mesh.hardpoints[i] = (struct mb_hardpoint){5, (float)i, 0, 0};
+	}
+	for (int i = 14; i < 19; ++i) {
+		mesh.hardpoints[i] = (struct mb_hardpoint){7, (float)i, 0, 0};
+	}
+	build_def(&mesh, 1);
+	XVT_ASSERT_INT_EQ(def->laser_group_slot_count[0], 14);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_first_slot[0], 14);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_last_slot[0], 15);
+	XVT_ASSERT_INT_EQ(def->warhead_launcher_slot_count[0], 2);
+	XVT_ASSERT_INT_EQ(def->weapon_hardpoints[15].x, 15);
+	xvt_test_close_assets(&g_assets);
+}
+
+/* ---- fe_disk_io_load_resources ----------------------------------------- */
+
+enum {
+	/* Asset flags of an object type: 0x08 or 0x10 makes it wanted, 0x01 a
+	 * model, 0x02 a texture, 0x40 wanted only in the proving grounds. */
+	TEST_LOAD_OPT = 0x09,
+	TEST_LOAD_TEXTURE = 0x0A,
+	TEST_LOAD_PROVING_ONLY = 0x49,
+	TEST_LOAD_NOT_WANTED = 0x01,
+	TEST_HAS_RESOURCE = 0x02, /* Record flag: the type names a resource. */
+};
+
+/* Makes object type type name entry entry of list list (0 SPEC, 1 SPEC2,
+ * 2 SPEC3) with the given asset flags, built into model definition def. */
+static void bind_type(int type, int list, int entry, int flags, int def)
+{
+	g_object_type_table[type].record_flags = TEST_HAS_RESOURCE;
+	g_object_type_table[type].texture_group = (uint8_t)list;
+	g_object_type_table[type].resource_index = (uint8_t)entry;
+	g_object_type_table[type].asset_flags = (uint8_t)flags;
+	g_object_type_table[type].model_index = (uint8_t)def;
+}
+
+/* Writes the three resource lists the flight reads at a resolution under
+ * ivfiles, with the given text; suffix is "320" or "640". */
+static void write_lists(const char *suffix, const char *spec, const char *spec2,
+			const char *spec3)
+{
+	const char *prefixes[3] = {"SPEC", "SPEC2", "SPEC3"};
+	const char *texts[3] = {spec, spec2, spec3};
+	for (int i = 0; i < 3; ++i) {
+		char path[64];
+		snprintf(path, sizeof path, "ivfiles/%s%s.LST", prefixes[i],
+			 suffix);
+		xvt_test_add_asset(&g_assets, path);
+		xvt_test_write_file(g_assets.asset, path, texts[i],
+				    strlen(texts[i]));
+	}
+}
+
+/* A texture block of 52 bytes of header, then a block palette of two 24-bit
+ * colors (red and green), room for room converted colors, no images. */
+static void write_texture(const char *name, uint32_t room)
+{
+	uint32_t words[15];
+	memset(words, 0, sizeof words);
+	words[0] = sizeof words; /* Bytes in the block. */
+	words[1] = room;	 /* Converted colors it has room for. */
+	words[3] = 52;		 /* Palette offset. */
+	words[4] = sizeof words; /* Image offset table, none. */
+	words[11] = 24;		 /* A 24-bit palette. */
+	words[12] = 2;		 /* Two colors. */
+	words[13] = 0x000000FCu; /* Red: bytes 252, 0, 0, 0. */
+	words[14] = 0x0000FC00u; /* Green: bytes 0, 252, 0, 0. */
+	xvt_test_write_file(g_assets.asset, name, words, sizeof words);
+}
+
+/* Reads the loaded model block of an object type's handle. */
+static int loaded_roots(int type)
+{
+	struct optimized_poly_object *model =
+		memory_get_handle_block(g_loaded_models[type]);
+	return model->root_node_count;
+}
+
+/* The loader reads the lists SPEC, SPEC2 and SPEC3 under ivfiles (the 320
+ * version at 320x240, the 640 version at 640x480 and 480x360). Each non-blank
+ * line, counted from 0 with line ends cut, names the resource of the object
+ * types that have a resource, their texture group that list and their
+ * resource index that line, and are wanted (asset flags 0x18 and, for 0x40,
+ * the proving grounds). A model (0x01) is loaded and built into its type's
+ * model definition; every type of a line gets the same handle in
+ * g_loaded_models and resource_handle; the entries before are cleared. */
+static void check_load_resources_lists(void)
+{
+	static const char suffix_for_mode[3][4] = {"320", "640", "640"};
+	static const int modes[3] = {FLIGHT_RESOLUTION_320X240,
+				     FLIGHT_RESOLUTION_640X480,
+				     FLIGHT_RESOLUTION_480X360};
+	xvt_test_open_assets(&g_assets);
+	struct mb_mesh mesh;
+	memset(&mesh, 0, sizeof mesh);
+	mesh.min[0] = -30;
+	mesh.max[0] = 30;
+	mesh.min[1] = -40;
+	mesh.max[1] = 40;
+	mesh.min[2] = -50;
+	mesh.max[2] = 50;
+	mb_write_model("model_a.opt", &mesh, 1);
+	mb_write_model("model_b.opt", &mesh, 1);
+	mb_write_model("model_c.opt", &mesh, 1);
+	mb_write_model("model_d.opt", &mesh, 1);
+	mb_write_model("model_e.opt", &mesh, 1);
+	write_texture("tex_a.lvl", 2);
+	for (int mode = 0; mode < 3; ++mode) {
+		write_lists(suffix_for_mode[mode],
+			    "model_a.opt\r\n\r\nunused.opt\r\n"
+			    "model_c.opt\rignored\nmodel_d.opt",
+			    "tex_a.lvl\r\nmodel_b.opt\r\n",
+			    "model_e.opt\r\n\x1a");
+		memset(g_object_type_table, 0, sizeof g_object_type_table);
+		memset(g_model_defs, 0, sizeof g_model_defs);
+		bind_type(1, 0, 0, TEST_LOAD_OPT, 3);
+		bind_type(2, 0, 0, TEST_LOAD_OPT, 4);
+		bind_type(3, 1, 0, TEST_LOAD_TEXTURE, 0);
+		bind_type(4, 1, 1, TEST_LOAD_OPT, 5);
+		bind_type(5, 2, 0, TEST_LOAD_OPT, 6);
+		bind_type(6, 0, 1, TEST_LOAD_NOT_WANTED, 7);
+		bind_type(7, 0, 2, TEST_LOAD_OPT, 8);
+		bind_type(8, 0, 3, TEST_LOAD_PROVING_ONLY, 9);
+		bind_type(9, 0, 0, TEST_LOAD_OPT, 10);
+		g_object_type_table[9].record_flags = 0;
+		g_loaded_models[150] = 77;
+		g_object_type_table[150].resource_handle = 77;
+		g_flight_resolution_mode = modes[mode];
+		g_flight_bytes_per_pixel = 2;
+		g_flight_mission_state.proving_grounds_mode_active = 0;
+		memset(g_model_bounds_cached, 0, sizeof g_model_bounds_cached);
+		fe_disk_io_load_resources();
+		XVT_ASSERT_INT_EQ(g_loaded_models[150], 0);
+		XVT_ASSERT_INT_EQ(g_object_type_table[150].resource_handle, 0);
+		XVT_ASSERT_TRUE(g_loaded_models[1] != 0);
+		XVT_ASSERT_INT_EQ(g_loaded_models[1], g_loaded_models[2]);
+		XVT_ASSERT_INT_EQ(g_object_type_table[1].resource_handle,
+				  g_loaded_models[1]);
+		XVT_ASSERT_INT_EQ(g_object_type_table[2].resource_handle,
+				  g_loaded_models[2]);
+		XVT_ASSERT_INT_EQ(loaded_roots(1), 1);
+		static const int loaded[] = {1, 2, 3, 4, 5, 7};
+		for (size_t i = 0; i < sizeof loaded / sizeof loaded[0]; ++i) {
+			XVT_ASSERT_TRUE(g_loaded_models[loaded[i]] != 0);
+			XVT_ASSERT_INT_EQ(
+				g_object_type_table[loaded[i]].resource_handle,
+				g_loaded_models[loaded[i]]);
+		}
+		static const int not_loaded[] = {6, 8, 9};
+		for (size_t i = 0; i < sizeof not_loaded / sizeof not_loaded[0];
+		     ++i) {
+			XVT_ASSERT_INT_EQ(g_loaded_models[not_loaded[i]], 0);
+			XVT_ASSERT_INT_EQ(g_object_type_table[not_loaded[i]]
+						  .resource_handle,
+					  0);
+		}
+		XVT_ASSERT_TRUE(g_loaded_models[1] != g_loaded_models[4]);
+		XVT_ASSERT_TRUE(g_loaded_models[4] != g_loaded_models[5]);
+		/* The models are built into their definitions. */
+		XVT_ASSERT_INT_EQ(g_model_defs[3].bound_size_x, 60);
+		XVT_ASSERT_INT_EQ(g_model_defs[4].bound_size_x, 60);
+		XVT_ASSERT_INT_EQ(g_model_defs[5].bound_size_y, 80);
+		XVT_ASSERT_INT_EQ(g_model_defs[6].bound_size_z, 100);
+		XVT_ASSERT_INT_EQ(g_model_defs[8].bound_size_x, 60);
+		XVT_ASSERT_INT_EQ(g_model_defs[9].bound_size_x, 0);
+		XVT_ASSERT_INT_EQ(g_model_defs[10].bound_size_x, 0);
+		/* A texture is read whole, with room after it for its converted
+		 * palette. */
+		uint32_t *texture = memory_get_handle_block(g_loaded_models[3]);
+		XVT_ASSERT_INT_EQ(texture[0], 60);
+		XVT_ASSERT_INT_EQ(texture[1], 2);
+		XVT_ASSERT_INT_EQ(texture[13], 0x000000FCu);
+		XVT_ASSERT_INT_EQ(texture[14], 0x0000FC00u);
+		XVT_ASSERT_INT_EQ(texture[5], 60);
+		XVT_ASSERT_INT_EQ(
+			g_handle_tables.size_table[g_loaded_models[3] - 1],
+			60 + 2 * 2);
+
+		g_flight_mission_state.proving_grounds_mode_active = 1;
+		memset(g_model_bounds_cached, 0, sizeof g_model_bounds_cached);
+		fe_disk_io_load_resources();
+		XVT_ASSERT_TRUE(g_loaded_models[8] != 0);
+		XVT_ASSERT_INT_EQ(g_model_defs[9].bound_size_x, 60);
+		XVT_ASSERT_INT_EQ(g_loaded_models[6], 0);
+		g_flight_mission_state.proving_grounds_mode_active = 0;
+	}
+	xvt_test_close_assets(&g_assets);
+}
+
+/* ---- fe_disk_io_free_flight_resources ---------------------------------- */
+
+/* A memory handle of a small block. */
+static uint16_t some_handle(void)
+{
+	uint16_t handle = memory_alloc_handle(16, 0);
+	XVT_ASSERT_TRUE(handle != 0);
+	return handle;
+}
+
+/* 1 when the handle's block has been freed. */
+static int handle_is_free(uint16_t handle)
+{
+	return g_handle_tables.ptr_table[handle - 1] == NULL;
+}
+
+/* Gives every handle the flight keeps a block, and returns them in
+ * handles[]: the five pools, the eleven fixed buffers, three of the
+ * cockpit resources, and the models and textures of four object types, two
+ * of which share one handle. */
+static int fill_flight_handles(uint16_t handles[40])
+{
+	uint16_t *variables[16] = {
+		&g_object_table_handle,
+		&g_mobile_object_pool_handle,
+		&g_mobile_object_char_data_handle,
+		&g_craft_data_pool_handle,
+		&g_warhead_guidance_pool_handle,
+		&g_string_data_handle,
+		&g_render_object_list_handle,
+		&g_flight_small_font_handle,
+		&g_flight_micro_font_handle,
+		&g_flight_medium_font_handle,
+		&g_flight_scratch_screen_buffer_handle,
+		&g_flight_aux_buffer_handle,
+		&g_flight_offscreen_buffer_handle,
+		&g_hud_panel_sprite_data_handle,
+		&g_flight_icon_frames_handle,
+		&g_message_log_handle,
+	};
+	int count = 0;
+	for (size_t i = 0; i < sizeof variables / sizeof variables[0]; ++i) {
+		*variables[i] = some_handle();
+		handles[count++] = *variables[i];
+	}
+	for (int i = 0; i < 28; i += 11) {
+		g_hud_cockpit_resources[i].memory_handle = some_handle();
+		handles[count++] = g_hud_cockpit_resources[i].memory_handle;
+	}
+	uint16_t shared = some_handle();
+	uint16_t own = some_handle();
+	g_object_type_table[10].resource_handle = shared;
+	g_object_type_table[20].resource_handle = shared;
+	g_object_type_table[30].resource_handle = own;
+	g_loaded_models[10] = shared;
+	g_loaded_models[20] = shared;
+	g_loaded_models[30] = own;
+	handles[count++] = shared;
+	handles[count++] = own;
+	return count;
+}
+
+/* At the end of a flight the loader frees the five pools, the eleven fixed
+ * buffers, the cockpit resources and each object type's model or texture (a
+ * handle two types share once), sets the pool and buffer handles, the
+ * cockpit resources' handles and every type's resource_handle to 0, and
+ * clears g_loaded_models; a handle of 0 is skipped. */
+static void check_free_flight_resources(void)
+{
+	memset(g_object_type_table, 0, sizeof g_object_type_table);
+	memset(g_loaded_models, 0, sizeof g_loaded_models);
+	memset(g_hud_cockpit_resources, 0, sizeof g_hud_cockpit_resources);
+	uint16_t handles[40];
+	int count = fill_flight_handles(handles);
+	for (int i = 0; i < count; ++i) {
+		XVT_ASSERT_TRUE(!handle_is_free(handles[i]));
+	}
+	fe_disk_io_free_flight_resources();
+	for (int i = 0; i < count; ++i) {
+		XVT_ASSERT_TRUE(handle_is_free(handles[i]));
+	}
+	XVT_ASSERT_INT_EQ(g_object_table_handle, 0);
+	XVT_ASSERT_INT_EQ(g_mobile_object_pool_handle, 0);
+	XVT_ASSERT_INT_EQ(g_mobile_object_char_data_handle, 0);
+	XVT_ASSERT_INT_EQ(g_craft_data_pool_handle, 0);
+	XVT_ASSERT_INT_EQ(g_warhead_guidance_pool_handle, 0);
+	XVT_ASSERT_INT_EQ(g_string_data_handle, 0);
+	XVT_ASSERT_INT_EQ(g_render_object_list_handle, 0);
+	XVT_ASSERT_INT_EQ(g_flight_small_font_handle, 0);
+	XVT_ASSERT_INT_EQ(g_flight_micro_font_handle, 0);
+	XVT_ASSERT_INT_EQ(g_flight_medium_font_handle, 0);
+	XVT_ASSERT_INT_EQ(g_flight_scratch_screen_buffer_handle, 0);
+	XVT_ASSERT_INT_EQ(g_flight_aux_buffer_handle, 0);
+	XVT_ASSERT_INT_EQ(g_flight_offscreen_buffer_handle, 0);
+	XVT_ASSERT_INT_EQ(g_hud_panel_sprite_data_handle, 0);
+	XVT_ASSERT_INT_EQ(g_flight_icon_frames_handle, 0);
+	XVT_ASSERT_INT_EQ(g_message_log_handle, 0);
+	for (int i = 0; i < 28; ++i) {
+		XVT_ASSERT_INT_EQ(g_hud_cockpit_resources[i].memory_handle, 0);
+	}
+	for (int type = 0; type < 201; ++type) {
+		XVT_ASSERT_INT_EQ(g_object_type_table[type].resource_handle, 0);
+	}
+	for (size_t i = 0;
+	     i < sizeof g_loaded_models / sizeof g_loaded_models[0]; ++i) {
+		XVT_ASSERT_INT_EQ(g_loaded_models[i], 0);
+	}
+	/* A second call finds nothing left to free. */
+	fe_disk_io_free_flight_resources();
+}
+
+/* The mission's goal replacement texts are freed with the flight. */
+static void check_free_flight_override_strings(void)
+{
+	memset(g_object_type_table, 0, sizeof g_object_type_table);
+	memset(g_loaded_models, 0, sizeof g_loaded_models);
+	memset(g_hud_cockpit_resources, 0, sizeof g_hud_cockpit_resources);
+	memset(g_mission_fg_override_string_handles, 0,
+	       sizeof g_mission_fg_override_string_handles);
+	g_mission_header.num_flight_groups = 2;
+	uint16_t first = some_handle();
+	uint16_t second = some_handle();
+	g_mission_fg_override_string_handles[1][7][2] = first;
+	g_global_goal_override_string_handles[9][6][3][2] = second;
+	fe_disk_io_free_flight_resources();
+	XVT_ASSERT_TRUE(handle_is_free(first));
+	XVT_ASSERT_TRUE(handle_is_free(second));
+	memset(g_mission_fg_override_string_handles, 0,
+	       sizeof g_mission_fg_override_string_handles);
+	memset(g_global_goal_override_string_handles, 0,
+	       sizeof g_global_goal_override_string_handles);
+}
+
+/* Known failure goal_handles_cleared, issue #129: the loader frees the
+ * mission's goal replacement texts at the flight's end but leaves their
+ * numbers in g_mission_fg_override_string_handles, so a later flight that does
+ * not load them (a TIE-format or failed mission load) frees the same numbers
+ * again. After the flight's end the numbers should read 0. */
+static void check_goal_handles_cleared(void)
+{
+	memset(g_object_type_table, 0, sizeof g_object_type_table);
+	memset(g_loaded_models, 0, sizeof g_loaded_models);
+	memset(g_hud_cockpit_resources, 0, sizeof g_hud_cockpit_resources);
+	g_mission_header.num_flight_groups = 2;
+	g_mission_fg_override_string_handles[1][7][2] = some_handle();
+	fe_disk_io_free_flight_resources();
+	XVT_ASSERT_INT_EQ(g_mission_fg_override_string_handles[1][7][2], 0);
+}
+
 /* ---- fe_disk_io_commit_flight_results: flight groups past the count ---- */
 
 /* The commit looks only at the first num_flight_groups flight groups: a group
@@ -2712,20 +3678,379 @@ static void check_melee_opponents_and_leads(void)
 			  2);
 }
 
-static struct xvt_test_assets g_assets;
-static uint8_t g_file_bytes[65541];
-static uint8_t g_read_bytes[sizeof g_file_bytes + 512];
+/* ---- fe_disk_io_init_resources ----------------------------------------- */
 
-/* Writes a file of size bytes into the asset folder, byte i holding i * 7
- * modulo 251. */
-static void write_asset(const char *name, size_t size)
+enum {
+	TEST_LUT_BYTES = 65536,
+};
+
+/* Resets the flight's palette: black, but for (0, 0, 2) at index 7 and the
+ * primaries at 100, 150 and 200; no resource lists are wanted by any type. */
+static void init_resources_palette(void)
 {
-	for (size_t i = 0; i < size; ++i) {
-		g_file_bytes[i] = (uint8_t)(i * 7 % 251);
-	}
-	xvt_test_write_file(g_assets.asset, name, g_file_bytes, size);
+	memset(g_sw_palette, 0, sizeof g_sw_palette);
+	g_sw_palette[7] = (struct rgb_triplet){0, 0, 2};
+	g_sw_palette[100] = (struct rgb_triplet){63, 0, 0};
+	g_sw_palette[150] = (struct rgb_triplet){0, 63, 0};
+	g_sw_palette[200] = (struct rgb_triplet){0, 0, 63};
+	memset(g_object_type_table, 0, sizeof g_object_type_table);
+	memset(g_loaded_models, 0, sizeof g_loaded_models);
+	memset(g_model_bounds_cached, 0, sizeof g_model_bounds_cached);
+	g_flight_resolution_mode = FLIGHT_RESOLUTION_320X240;
+	snprintf(g_current_mission_file, sizeof g_current_mission_file,
+		 "mission.tie");
 }
 
+/* In 16-bit color the loader loads the resources with g_loading_model set (and
+ * clears it), builds the mesh cache, and returns the palette index nearest the
+ * color (0, 0, 2), which it also stores as the transparent and background
+ * color index; it reads no lookup table. */
+static void check_init_resources_16bit(void)
+{
+	xvt_test_open_assets(&g_assets);
+	write_lists("320", "model_a.opt\r\n", "", "");
+	struct mb_mesh mesh;
+	memset(&mesh, 0, sizeof mesh);
+	mesh.mesh_type = MESH_COMPONENT_04_LASR_TUR;
+	mesh.max[0] = 8;
+	mesh.max[1] = 8;
+	mesh.max[2] = 8;
+	mb_write_model("model_a.opt", &mesh, 1);
+	init_resources_palette();
+	bind_type(1, 0, 0, TEST_LOAD_OPT, 3);
+	g_flight_bytes_per_pixel = 2;
+	g_loading_model = 0;
+	g_flight_transparent_color_index = 99;
+	g_flight_background_color_index = 99;
+	g_active_rgb565_to_palette_index_lut = NULL;
+	memset(&g_object_type_mesh_cache[1], 0,
+	       sizeof g_object_type_mesh_cache[1]);
+	XVT_ASSERT_INT_EQ(fe_disk_io_init_resources(), 7);
+	XVT_ASSERT_INT_EQ(g_flight_transparent_color_index, 7);
+	XVT_ASSERT_INT_EQ(g_flight_background_color_index, 7);
+	XVT_ASSERT_INT_EQ(g_loading_model, 0);
+	XVT_ASSERT_TRUE(g_active_rgb565_to_palette_index_lut == NULL);
+	XVT_ASSERT_TRUE(g_loaded_models[1] != 0);
+	XVT_ASSERT_INT_EQ(g_object_type_mesh_cache[1].mesh_count, 1);
+	XVT_ASSERT_INT_EQ(g_object_type_mesh_cache[1].mesh_types[0],
+			  MESH_COMPONENT_04_LASR_TUR);
+	XVT_ASSERT_INT_EQ(xvt_test_kind(g_assets.asset, "mission.inv"), 0);
+	xvt_test_close_assets(&g_assets);
+}
+
+/* In 8-bit color the RGB565 lookup table is read from the mission file's twin
+ * with the extension .inv, else from newpal.inv; with neither it is built from
+ * the flight palette (the nearest of the colors from index 64 up to each color)
+ * and written as the twin, which a failed write leaves unsaved. The mission
+ * file's name is left as it was. */
+static void check_init_resources_lookup(void)
+{
+	static uint8_t table[TEST_LUT_BYTES];
+	for (int source = 0; source < 4; ++source) {
+		xvt_test_open_assets(&g_assets);
+		write_lists("320", "", "", "");
+		init_resources_palette();
+		g_flight_bytes_per_pixel = 1;
+		g_active_rgb565_to_palette_index_lut = NULL;
+		memset(g_rgb565_to_palette_index_lut, 0xEE,
+		       sizeof g_rgb565_to_palette_index_lut);
+		for (size_t i = 0; i < sizeof table; ++i) {
+			table[i] = (uint8_t)(i * 7 % 251);
+		}
+		if (source == 0) {
+			xvt_test_write_file(g_assets.asset, "mission.inv",
+					    table, sizeof table);
+			for (size_t i = 0; i < sizeof table; ++i) {
+				table[i] = (uint8_t)(i * 5 % 241);
+			}
+			xvt_test_write_file(g_assets.asset, "newpal.inv", table,
+					    sizeof table);
+			for (size_t i = 0; i < sizeof table; ++i) {
+				table[i] = (uint8_t)(i * 7 % 251);
+			}
+		} else if (source == 1) {
+			xvt_test_write_file(g_assets.asset, "newpal.inv", table,
+					    sizeof table);
+		}
+		if (source == 3) {
+			/* Nowhere to save the table. */
+			char user[XVT_TEST_PATH_CAPACITY];
+			char temp[XVT_TEST_PATH_CAPACITY];
+			xvt_test_join(user, g_assets.folder, "user");
+			xvt_test_join(temp, g_assets.folder, "temp");
+			xvt_test_remove_tree(user);
+			xvt_test_remove_tree(temp);
+		}
+		XVT_ASSERT_INT_EQ(fe_disk_io_init_resources(), 7);
+		XVT_ASSERT_TRUE(g_active_rgb565_to_palette_index_lut ==
+				g_rgb565_to_palette_index_lut);
+		XVT_ASSERT_TRUE(strcmp(g_current_mission_file, "mission.tie") ==
+				0);
+		if (source < 2) {
+			XVT_ASSERT_TRUE(memcmp(g_rgb565_to_palette_index_lut,
+					       table, sizeof table) == 0);
+		} else if (source == 3) {
+			XVT_ASSERT_INT_EQ(g_rgb565_to_palette_index_lut[0xF800],
+					  100);
+			XVT_ASSERT_INT_EQ(
+				xvt_test_kind(g_assets.asset, "mission.inv"),
+				0);
+		} else {
+			XVT_ASSERT_INT_EQ(g_rgb565_to_palette_index_lut[0xF800],
+					  100);
+			XVT_ASSERT_INT_EQ(g_rgb565_to_palette_index_lut[0x07E0],
+					  150);
+			XVT_ASSERT_INT_EQ(g_rgb565_to_palette_index_lut[0x001F],
+					  200);
+			XVT_ASSERT_INT_EQ(g_rgb565_to_palette_index_lut[0x0000],
+					  64);
+			/* The table is saved as the mission file's twin. */
+			XVT_ASSERT_INT_EQ(fe_disk_io_open_global_stream(
+						  "mission.inv", "rb", 0, 0),
+					  1);
+			XVT_ASSERT_INT_EQ(fe_disk_io_read_with_retry_prompt(
+						  g_read_bytes, 1,
+						  TEST_LUT_BYTES, g_stream),
+					  TEST_LUT_BYTES);
+			XVT_ASSERT_TRUE(memcmp(g_read_bytes,
+					       g_rgb565_to_palette_index_lut,
+					       TEST_LUT_BYTES) == 0);
+			fe_disk_io_close_global_stream(0);
+		}
+		xvt_test_close_assets(&g_assets);
+	}
+}
+
+/* In 8-bit color a texture's palette is converted to the index of the nearest
+ * flight palette color from 0x40 up, placed after the block, which has room
+ * for one byte a color. A wanted resource with neither load flag (0x01 or
+ * 0x02) is not loaded or built. */
+static void check_load_resources_8bit_and_unknown_kind(void)
+{
+	xvt_test_open_assets(&g_assets);
+	write_lists("320", "model_a.opt\r\nweird.bin\r\n", "tex_a.lvl\r\n", "");
+	struct mb_mesh mesh;
+	memset(&mesh, 0, sizeof mesh);
+	mesh.max[0] = 8;
+	mb_write_model("model_a.opt", &mesh, 1);
+	write_texture("tex_a.lvl", 2);
+	init_resources_palette();
+	memset(g_model_defs, 0, sizeof g_model_defs);
+	bind_type(1, 0, 0, TEST_LOAD_OPT, 3);
+	bind_type(2, 0, 1, 0x08, 4);
+	bind_type(3, 1, 0, TEST_LOAD_TEXTURE, 0);
+	g_flight_bytes_per_pixel = 1;
+	fe_disk_io_load_resources();
+	XVT_ASSERT_TRUE(g_loaded_models[1] != 0);
+	XVT_ASSERT_INT_EQ(g_model_defs[3].bound_size_x, 8);
+	XVT_ASSERT_INT_EQ(g_model_defs[4].bound_size_x, 0);
+	uint8_t *texture = memory_get_handle_block(g_loaded_models[3]);
+	XVT_ASSERT_INT_EQ(g_handle_tables.size_table[g_loaded_models[3] - 1],
+			  60 + 2);
+	uint32_t converted_offset;
+	memcpy(&converted_offset, texture + 20, sizeof converted_offset);
+	XVT_ASSERT_INT_EQ(converted_offset, 60);
+	XVT_ASSERT_INT_EQ(texture[60], 100);
+	XVT_ASSERT_INT_EQ(texture[61], 150);
+	xvt_test_close_assets(&g_assets);
+}
+
+/* ---- fe_disk_io_lock_global_buffers and _unlock_global_buffers ---------- */
+
+/* Gives every handle of the flight's fixed buffers and pools a block and
+ * returns the flight's tables to a known state. */
+static void lock_setup(void)
+{
+	uint16_t *handles[13] = {
+		&g_mobile_object_char_data_handle,
+		&g_craft_data_pool_handle,
+		&g_warhead_guidance_pool_handle,
+		&g_mobile_object_pool_handle,
+		&g_object_table_handle,
+		&g_string_data_handle,
+		&g_render_object_list_handle,
+		&g_flight_small_font_handle,
+		&g_flight_micro_font_handle,
+		&g_flight_medium_font_handle,
+		&g_flight_scratch_screen_buffer_handle,
+		&g_flight_aux_buffer_handle,
+		&g_flight_offscreen_buffer_handle,
+	};
+	for (size_t i = 0; i < sizeof handles / sizeof handles[0]; ++i) {
+		*handles[i] = 0;
+	}
+}
+
+/* Locking points each pool and buffer at its handle's block: the character
+ * data, craft, warhead guidance and mobile object pools, the object table
+ * (and links each of its first slots to its mobile object), the render list,
+ * the three fonts, the scratch, offscreen and aux screens, with the mirror of
+ * the aux screen; a pool with no handle is left as it was. The glyph table is
+ * the small font in font tier 1, the micro font in tier 2, the medium font in
+ * tier 0, and left alone in another tier. */
+static void check_lock_global_buffers(void)
+{
+	lock_setup();
+	static uint8_t untouched;
+	g_mobile_object_char_data_pool = (void *)&untouched;
+	g_craft_data_pool_base = (void *)&untouched;
+	g_projectile_guidance_states = (void *)&untouched;
+	g_mobile_object_pool_base = (void *)&untouched;
+	g_object_table = (void *)&untouched;
+	g_flight_font_glyph_table_sw = &untouched;
+	g_region_main_object_slot_end = 0;
+	g_flight_font_tier = 3;
+	fe_disk_io_lock_global_buffers();
+	XVT_ASSERT_TRUE(g_mobile_object_char_data_pool == (void *)&untouched);
+	XVT_ASSERT_TRUE(g_craft_data_pool_base == (void *)&untouched);
+	XVT_ASSERT_TRUE(g_projectile_guidance_states == (void *)&untouched);
+	XVT_ASSERT_TRUE(g_mobile_object_pool_base == (void *)&untouched);
+	XVT_ASSERT_TRUE(g_object_table == (void *)&untouched);
+	XVT_ASSERT_TRUE(g_flight_font_glyph_table_sw == &untouched);
+
+	g_mobile_object_char_data_handle = some_handle();
+	g_craft_data_pool_handle = some_handle();
+	g_warhead_guidance_pool_handle = some_handle();
+	g_mobile_object_pool_handle =
+		memory_alloc_handle(2 * sizeof(struct mobile_object), 0);
+	g_object_table_handle =
+		memory_alloc_handle(2 * sizeof(struct object_record), 0);
+	g_render_object_list_handle = some_handle();
+	g_flight_small_font_handle = some_handle();
+	g_flight_micro_font_handle = some_handle();
+	g_flight_medium_font_handle = some_handle();
+	g_flight_scratch_screen_buffer_handle = some_handle();
+	g_flight_aux_buffer_handle = some_handle();
+	g_flight_offscreen_buffer_handle = some_handle();
+	g_region_main_object_slot_end = 2;
+	static const uint8_t tiers[4] = {0, 1, 2, 3};
+	for (int i = 0; i < 4; ++i) {
+		g_flight_font_tier = tiers[i];
+		g_flight_font_glyph_table_sw = &untouched;
+		fe_disk_io_lock_global_buffers();
+		XVT_ASSERT_TRUE(g_mobile_object_char_data_pool ==
+				memory_get_handle_block(
+					g_mobile_object_char_data_handle));
+		XVT_ASSERT_TRUE(
+			g_craft_data_pool_base ==
+			memory_get_handle_block(g_craft_data_pool_handle));
+		XVT_ASSERT_TRUE(g_projectile_guidance_states ==
+				memory_get_handle_block(
+					g_warhead_guidance_pool_handle));
+		XVT_ASSERT_TRUE(
+			g_mobile_object_pool_base ==
+			memory_get_handle_block(g_mobile_object_pool_handle));
+		XVT_ASSERT_TRUE(g_object_table ==
+				memory_get_handle_block(g_object_table_handle));
+		XVT_ASSERT_TRUE(g_object_table[1].mobj ==
+				&g_mobile_object_pool_base[1]);
+		XVT_ASSERT_TRUE(
+			g_render_object_list_entries ==
+			memory_get_handle_block(g_render_object_list_handle));
+		XVT_ASSERT_TRUE(
+			g_flight_font_small_sw ==
+			memory_get_handle_block(g_flight_small_font_handle));
+		XVT_ASSERT_TRUE(
+			g_flight_font_micro_sw ==
+			memory_get_handle_block(g_flight_micro_font_handle));
+		XVT_ASSERT_TRUE(
+			g_flight_font_medium_sw ==
+			memory_get_handle_block(g_flight_medium_font_handle));
+		XVT_ASSERT_TRUE(g_flight_scratch_screen_buffer ==
+				memory_get_handle_block(
+					g_flight_scratch_screen_buffer_handle));
+		XVT_ASSERT_TRUE(g_flight_offscreen_buffer ==
+				memory_get_handle_block(
+					g_flight_offscreen_buffer_handle));
+		XVT_ASSERT_TRUE(
+			g_flight_aux_buffer ==
+			memory_get_handle_block(g_flight_aux_buffer_handle));
+		XVT_ASSERT_TRUE(g_flight_aux_buffer_mirror ==
+				g_flight_aux_buffer);
+		uint8_t *want = i == 0	 ? g_flight_font_medium_sw
+				: i == 1 ? g_flight_font_small_sw
+				: i == 2 ? g_flight_font_micro_sw
+					 : &untouched;
+		XVT_ASSERT_TRUE(g_flight_font_glyph_table_sw == want);
+	}
+	g_region_main_object_slot_end = 0;
+	lock_setup();
+}
+
+/* Unlocking only hands each handle back (nothing is locked in this build): it
+ * leaves every handle and pointer as it was, including a handle of 0. */
+static void check_unlock_global_buffers(void)
+{
+	lock_setup();
+	g_craft_data_pool_handle = some_handle();
+	g_mobile_object_char_data_handle = some_handle();
+	g_flight_small_font_handle = some_handle();
+	uint16_t craft = g_craft_data_pool_handle;
+	void *craft_block = memory_get_handle_block(craft);
+	fe_disk_io_unlock_global_buffers();
+	XVT_ASSERT_INT_EQ(g_craft_data_pool_handle, craft);
+	XVT_ASSERT_TRUE(memory_get_handle_block(craft) == craft_block);
+	XVT_ASSERT_INT_EQ(g_object_table_handle, 0);
+	XVT_ASSERT_TRUE(!handle_is_free(g_flight_small_font_handle));
+	memory_free_handle(g_craft_data_pool_handle);
+	memory_free_handle(g_mobile_object_char_data_handle);
+	memory_free_handle(g_flight_small_font_handle);
+	lock_setup();
+}
+
+/* fe_disk_io_close_global_stream returns 1 for a stream that failed, here one
+ * opened for reading that a write was tried on, and closes it all the same. */
+static void check_close_failed_stream(void)
+{
+	xvt_test_open_assets(&g_assets);
+	write_asset("failed.bin", 10);
+	XVT_ASSERT_INT_EQ(
+		fe_disk_io_open_global_stream("failed.bin", "rb", 0, 0), 1);
+	FILE_RAW_WRITE("abcd", 1, 4, g_stream);
+	XVT_ASSERT_INT_EQ(fe_disk_io_close_global_stream(0), 1);
+	XVT_ASSERT_TRUE(g_stream == NULL);
+	xvt_test_close_assets(&g_assets);
+}
+
+/* Known failure preview_model_dropped, issue #250: the menus' craft preview
+ * keeps its model in g_loaded_models[0], and loading the flight's resources
+ * clears every entry of g_loaded_models, the preview's included, without
+ * freeing the model. Its block stays allocated with nothing left to free it;
+ * it should be freed when its handle is dropped. */
+static void check_preview_model_dropped(void)
+{
+	xvt_test_open_assets(&g_assets);
+	write_lists("320", "", "", "");
+	memset(g_object_type_table, 0, sizeof g_object_type_table);
+	g_flight_resolution_mode = FLIGHT_RESOLUTION_320X240;
+	uint16_t preview = some_handle();
+	g_loaded_models[0] = preview;
+	fe_disk_io_load_resources();
+	XVT_ASSERT_INT_EQ(g_loaded_models[0], 0);
+	XVT_ASSERT_TRUE(handle_is_free(preview));
+	xvt_test_close_assets(&g_assets);
+}
+
+/* Known failure texture_palette_room, issue #256: the loader makes room after
+ * a texture for the converted colors its file says (here 1) and the conversion
+ * writes one for every color of the texture's palette (here 2) without
+ * comparing the two, so the converted palette runs past the end of the block.
+ * The palette should end inside the block. */
+static void check_texture_palette_room(void)
+{
+	xvt_test_open_assets(&g_assets);
+	write_lists("320", "", "tex_a.lvl\r\n", "");
+	write_texture("tex_a.lvl", 1);
+	memset(g_object_type_table, 0, sizeof g_object_type_table);
+	bind_type(3, 1, 0, TEST_LOAD_TEXTURE, 0);
+	g_flight_resolution_mode = FLIGHT_RESOLUTION_320X240;
+	g_flight_bytes_per_pixel = 2;
+	fe_disk_io_load_resources();
+	uint32_t *texture = memory_get_handle_block(g_loaded_models[3]);
+	size_t size = g_handle_tables.size_table[g_loaded_models[3] - 1];
+	XVT_ASSERT_TRUE(texture[5] + texture[12] * 2u <= size);
+	xvt_test_close_assets(&g_assets);
+}
 /* fe_disk_io_open_global_stream opens a file into g_stream, records the path
  * storage resolved in g_file_name and returns 1; for a missing file, when no
  * failure is required to be fatal, it returns 0 with g_stream NULL.
@@ -2873,6 +4198,11 @@ int main(int argc, char **argv)
 			 check_network_campaign_finished},
 			{"campaign_id_past_table", check_campaign_id_25},
 			{"craft_type_past_table", check_craft_type_96},
+			{"model_without_parts", check_model_with_no_parts},
+			{"hardpoint_type_past_table", check_hardpoint_type_40},
+			{"goal_handles_cleared", check_goal_handles_cleared},
+			{"preview_model_dropped", check_preview_model_dropped},
+			{"texture_palette_room", check_texture_palette_room},
 		};
 		for (size_t i = 0;
 		     i < sizeof known_failures / sizeof known_failures[0];
@@ -2919,9 +4249,25 @@ int main(int argc, char **argv)
 	check_battle_record();
 	check_battle_award();
 	check_battle_result_other_team();
-	check_groups_past_count_ignored();
-	check_melee_opponents_and_leads();
 	check_global_stream();
 	check_read_all_bytes();
+	check_model_extent_and_bounds();
+	check_model_special_hardpoints();
+	check_model_weapon_group_types();
+	check_model_weapon_slots();
+	check_model_mount_texture_and_type_53();
+	check_model_slots_run_out();
+	check_load_resources_lists();
+	check_free_flight_resources();
+	check_free_flight_override_strings();
+	check_groups_past_count_ignored();
+	check_melee_opponents_and_leads();
+	check_init_resources_16bit();
+	check_init_resources_lookup();
+	check_lock_global_buffers();
+	check_unlock_global_buffers();
+	check_close_failed_stream();
+	check_model_repeated_and_overflowing_launchers();
+	check_load_resources_8bit_and_unknown_kind();
 	return 0;
 }

@@ -143,6 +143,11 @@ if(NOT MSVC)
     xvt_add_known_failure(test_fediskio network_campaign_finished)
     xvt_add_known_failure(test_fediskio campaign_id_past_table)
     xvt_add_known_failure(test_fediskio craft_type_past_table)
+    xvt_add_known_failure(test_fediskio model_without_parts)
+    xvt_add_known_failure(test_fediskio hardpoint_type_past_table)
+    xvt_add_known_failure(test_fediskio goal_handles_cleared)
+    xvt_add_known_failure(test_fediskio preview_model_dropped)
+    xvt_add_known_failure(test_fediskio texture_palette_room)
 endif()
 
 # The goals page's lines: src/xvt/flight/mission/goals.c.
