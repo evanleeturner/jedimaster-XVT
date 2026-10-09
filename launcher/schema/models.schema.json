@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/models.schema.json",
+  "title": "XvT/BoP 3D models (jedimaster export)",
+  "type": "object",
+  "description": "The models, objects and craft (jedimaster export).",
+  "properties": {
+    "format": {
+      "const": "jedimaster.models"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "balance_of_power": {
+      "type": "boolean"
+    },
+    "lod": {
+      "const": 1
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Model"
+      }
+    },
+    "objects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Object"
+      },
+      "minItems": 201,
+      "maxItems": 201
+    },
+    "crafts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Craft"
+      },
+      "minItems": 96,
+      "maxItems": 96
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "balance_of_power",
+    "lod",
+    "models",
+    "objects",
+    "crafts"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Texture": {
+      "type": "object",
+      "description": "One texture node: its number, name, size, and whether it glows.",
+      "properties": {
+        "node": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "glows": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "node",
+        "name",
+        "width",
+        "height",
+        "glows"
+      ],
+      "additionalProperties": false
+    },
+    "Model": {
+      "type": "object",
+      "description": "One model name: status, file, version, counts, .glb files, textures.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^ivfiles\\\\"
+        },
+        "status": {
+          "enum": [
+            "loaded",
+            "missing",
+            "not_loaded"
+          ]
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "anyOf": [
+            {
+              "enum": [
+                0,
+                1,
+                2
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "components": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "lods": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "switches": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "glb": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9_.~-]+(_s[1-9][0-9]*)?\\.glb$"
+          }
+        },
+        "textures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Texture"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "status",
+        "file",
+        "version",
+        "components",
+        "lods",
+        "switches",
+        "glb",
+        "textures"
+      ],
+      "additionalProperties": false
+    },
+    "Object": {
+      "type": "object",
+      "description": "One object type: its model's game path and list name, proving grounds.",
+      "properties": {
+        "type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proving_grounds": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "model",
+        "model_name",
+        "proving_grounds"
+      ],
+      "additionalProperties": false
+    },
+    "Craft": {
+      "type": "object",
+      "description": "One craft type: its object type and that type's model.",
+      "properties": {
+        "type": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 95
+        },
+        "object": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "object",
+        "model",
+        "model_name"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

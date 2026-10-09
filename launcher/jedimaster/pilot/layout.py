@@ -9,8 +9,9 @@ Purpose:
     of the game's program, as printed by the engine's pilot_dump tool,
     copied here from that printout. The member names are the game
     program's. With the strings.txt tables of ``jedimaster.text.tables``,
-    the icon tables of ``jedimaster.icons.tables`` and the text colors of
-    ``jedimaster.fonts.colors``, it is the only game data in this
+    the icon tables of ``jedimaster.icons.tables``, the text colors of
+    ``jedimaster.fonts.colors`` and the object tables of
+    ``jedimaster.models.tables``, it is the only game data in this
     package's code.
 
 Flow:

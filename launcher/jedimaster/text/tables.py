@@ -9,8 +9,9 @@ Purpose:
     from that printout, like the icon tables. The table names are the
     printout's, not the game's. With the icon tables of
     ``jedimaster.icons.tables``, the text colors of
-    ``jedimaster.fonts.colors`` and the pilot layout of
-    ``jedimaster.pilot.layout``, they are the only game data in this
+    ``jedimaster.text.tables``, the pilot layout of
+    ``jedimaster.pilot.layout`` and the object tables of
+    ``jedimaster.models.tables``, they are the only game data in this
     package's code.
 
 Flow:

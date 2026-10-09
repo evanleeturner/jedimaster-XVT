@@ -19,8 +19,9 @@ Flow:
     The plants live in ``plants_mission``, ``plants_setup``,
     ``plants_lists_read``, ``plants_lists_output``, ``plants_icons``,
     ``plants_text_lines``, ``plants_text_read``, ``plants_text_output``,
-    ``plants_fonts``, ``plants_pictures`` and ``plants_pilot``; ``PLANTS``
-    joins them in that order.
+    ``plants_fonts``, ``plants_pictures``, ``plants_pilot``,
+    ``plants_models_read``, ``plants_models_draw`` and
+    ``plants_models_output``; ``PLANTS`` joins them in that order.
 
 Invariants:
     - Files are always restored, also on error or Ctrl-C (``finally``).
@@ -48,6 +49,9 @@ from plants_icons import ICONS_PLANTS
 from plants_lists_output import LISTS_OUTPUT_PLANTS
 from plants_lists_read import LISTS_READ_PLANTS
 from plants_mission import MISSION_PLANTS
+from plants_models_draw import MODELS_DRAW_PLANTS
+from plants_models_output import MODELS_OUTPUT_PLANTS
+from plants_models_read import MODELS_READ_PLANTS
 from plants_pictures import PICTURES_PLANTS
 from plants_pilot import PILOT_PLANTS
 from plants_setup import SETUP_PLANTS
@@ -79,6 +83,7 @@ SCHEMA_FILES = (
     ROOT / "schema/fonts.schema.json",
     ROOT / "schema/pictures.schema.json",
     ROOT / "schema/pilot.schema.json",
+    ROOT / "schema/models.schema.json",
 )
 
 PLANTS: list[Plant] = [
@@ -93,6 +98,9 @@ PLANTS: list[Plant] = [
     *FONTS_PLANTS,
     *PICTURES_PLANTS,
     *PILOT_PLANTS,
+    *MODELS_READ_PLANTS,
+    *MODELS_DRAW_PLANTS,
+    *MODELS_OUTPUT_PLANTS,
 ]
 
 

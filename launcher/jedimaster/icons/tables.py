@@ -6,8 +6,9 @@ Purpose:
     the game's own tables, as printed by the engine's icon_dump tool, copied
     here from that printout. They are carried here as facts about the
     game's art. With the strings.txt tables of ``jedimaster.text.tables``,
-    the text colors of ``jedimaster.fonts.colors`` and the pilot layout of
-    ``jedimaster.pilot.layout``, they are the only game data in this
+    ``jedimaster.text.tables``, the pilot layout of
+    ``jedimaster.pilot.layout`` and the object tables of
+    ``jedimaster.models.tables``, they are the only game data in this
     package's code.
 
 Flow:
