@@ -146,6 +146,9 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/net/net.c
     src/xvt/net/net_reliable.c
     src/xvt/net/net_session.c
+    src/xvt/net/net_session_pump.c
+    src/xvt/net/net_session_receive.c
+    src/xvt/net/net_session_send.c
     src/xvt/render/backdrop.c
     src/xvt/render/color.c
     src/xvt/render/flight_light.c

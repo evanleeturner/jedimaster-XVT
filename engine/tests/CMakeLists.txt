@@ -200,8 +200,13 @@ xvt_add_engine_test(test_flight_sync test_flight_sync.c "${PROJECT_SOURCE_DIR}/s
 add_test(NAME flight_sync COMMAND test_flight_sync)
 
 # The original flight's network session: its opening, its sends, the receive pump, the receive order with
-# its resend requests, and the system messages: src/xvt/net/net_session.c.
-xvt_add_engine_test(test_net_session test_net_session.c "${PROJECT_SOURCE_DIR}/src/xvt/net/net_session.c")
+# its resend requests, and the system messages: src/xvt/net/net_session.c, net_session_send.c,
+# net_session_pump.c and net_session_receive.c.
+xvt_add_engine_test(test_net_session test_net_session.c
+    "${PROJECT_SOURCE_DIR}/src/xvt/net/net_session.c"
+    "${PROJECT_SOURCE_DIR}/src/xvt/net/net_session_pump.c"
+    "${PROJECT_SOURCE_DIR}/src/xvt/net/net_session_receive.c"
+    "${PROJECT_SOURCE_DIR}/src/xvt/net/net_session_send.c")
 add_test(NAME net_session COMMAND test_net_session)
 xvt_add_known_failure(test_net_session resent_copy_first_discarded)
 xvt_add_known_failure(test_net_session peer_slot_keeps_retry_count)
