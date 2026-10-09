@@ -1,9 +1,12 @@
-#include "xvt/net/net_session.h"
+#include "xvt/net/net_session_receive.h"
 
 #include <string.h>
 
 #include "xvt/frontend/config.h"
 #include "xvt/net/net_reliable.h"
+#include "xvt/net/net_session.h"
+#include "xvt/net/net_session_pump.h"
+#include "xvt/net/net_session_send.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
 

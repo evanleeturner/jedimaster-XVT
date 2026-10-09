@@ -1,3 +1,4 @@
+#include "xvt/net/net_session_receive.h"
 #include "xvt_runtime/runtime/flight_internal.h"
 #include "xvt_runtime/runtime/flight_network.h"
 #include "xvt_runtime/runtime/flight_network_exchange.h"

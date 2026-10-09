@@ -1,9 +1,11 @@
-#include "xvt/net/net_session.h"
+#include "xvt/net/net_session_pump.h"
 
 #include <string.h>
 
 #include "aeron/compat/dplay.h"
 #include "xvt/net/net_reliable.h"
+#include "xvt/net/net_session.h"
+#include "xvt/net/net_session_send.h"
 #include "xvt_runtime/log/log.h"
 
 enum {

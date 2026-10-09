@@ -152,27 +152,11 @@ static inline void net_session_advance_received_sequence(int *received_sequence,
 	}
 }
 
-void net_session_pump_incoming_packets(void);
-int net_session_broadcast_packet_to_players(unsigned int *payload,
-					    int payload_size);
-int net_session_send_packet(int direct_play_id, unsigned int *payload,
-			    signed int payload_size);
-int net_session_send_sequenced_game_packet(int dest_dplay_id,
-					   uint8_t packet_class,
-					   uint8_t sequence,
-					   const unsigned int *packet,
-					   unsigned int packet_size);
 struct session_player_info *net_session_get_player_roster(int *out_count);
 int net_session_get_player_count(void);
 int net_session_is_local_host(void);
-int *net_session_receive_game_packet(int *out_sender_dpid,
-				     int *out_payload_size);
 int net_session_handle_direct_play_system_message(int packet_opcode,
 						  const int *packet);
-void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size);
-int net_session_send_compact_game_packet(int direct_play_id,
-					 unsigned int *payload,
-					 int payload_size, ...);
 int net_session_find_player_slot_by_dpid(int dpid);
 int net_session_get_host_dplay_id(void);
 int net_session_get_local_dplay_id(void);
@@ -183,7 +167,6 @@ int net_session_count_active_players(void);
 int net_session_remove_player_from_group(int player_dplay_id);
 int net_session_stub_return_true(void);
 int net_session_get_fixed_payload_size(int packet_type);
-int net_session_send_reliable_keepalives(void);
 
 #ifdef __cplusplus
 }

@@ -7,6 +7,7 @@
 #include "xvt/flight/mission/mission.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net_reliable.h"
+#include "xvt/net/net_session_send.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_network_exchange.h"
