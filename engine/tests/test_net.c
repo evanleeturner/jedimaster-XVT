@@ -1,16 +1,17 @@
-/* Tests for xvt/net/net.c, the lobby's side of DirectPlay: its peer slots, the
- * check on an arriving packet's sequence, its receive queue, the sends on the
- * broadcast, group and one-player channels, the receive pump, the keepalives,
- * the roster's ready flags and the link figures kept for each player. Each
- * check sets the lobby state it needs in g_front_state and drives the host
- * clock. Where a check needs a DirectPlay session, it gives the lobby an
- * interface this file owns: Send records what the lobby sends, Receive hands
+/* Tests for the lobby's side of DirectPlay, xvt/net/net.c and the files split
+ * from it (net_peers.c, net_pump.c, net_receive.c and net_send.c): its peer
+ * slots, the check on an arriving packet's sequence, its receive queue, the
+ * sends on the broadcast, group and one-player channels, the receive pump, the
+ * keepalives, the roster's ready flags and the link figures kept for each
+ * player. Each check sets the lobby state it needs in g_front_state and drives
+ * the host clock. Where a check needs a DirectPlay session, it gives the lobby
+ * an interface this file owns: Send records what the lobby sends, Receive hands
  * the pump the messages the check put in its inbox, and SetPlayerName records
- * the names and returns the result the check chose. The rename and ready
- * checks lock a back buffer on a frontend display with no window. No game
- * data is read. Every check starts from a cleared g_front_state with the
- * local player, id 1000, alone in the roster, the group id 2000, no link
- * figures, no session and the clock at one second.
+ * the names and returns the result the check chose. The rename and ready checks
+ * lock a back buffer on a frontend display with no window. No game data is
+ * read. Every check starts from a cleared g_front_state with the local player,
+ * id 1000, alone in the roster, the group id 2000, no link figures, no session
+ * and the clock at one second.
  *
  * Not checked here: the lobby's opening and closing of DirectPlay, the player
  * roster's refresh, the handling of DirectPlay's system messages, the hand-over
