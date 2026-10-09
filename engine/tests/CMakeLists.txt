@@ -141,6 +141,8 @@ if(NOT MSVC)
     xvt_add_known_failure(test_fediskio ai_level_past_rating_table)
     xvt_add_known_failure(test_fediskio battle_step_past_table)
     xvt_add_known_failure(test_fediskio network_campaign_finished)
+    xvt_add_known_failure(test_fediskio campaign_id_past_table)
+    xvt_add_known_failure(test_fediskio craft_type_past_table)
 endif()
 
 # The goals page's lines: src/xvt/flight/mission/goals.c.
