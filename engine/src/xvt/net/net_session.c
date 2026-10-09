@@ -2283,6 +2283,167 @@ static void *net_session_take_system_message(int queue_index,
 	return g_net_session.recv_scratch_packet.payload;
 }
 
+/* Part of net_session_receive_packet's scan of the queue: steps queue_index to
+ * the next entry, back to 0 at 1,024, and lowers the count of entries left. */
+static void
+net_session_step_to_next_entry(int *queue_index,
+			       struct net_session_receive_channels *channels)
+{
+	++*queue_index;
+	if (*queue_index >= 1024) {
+		*queue_index = 0;
+	}
+	--channels->remaining_queue_entries;
+}
+
+/* Part of net_session_receive_packet when an entry's sender was just given a
+ * reliable peer slot: logs it and sets the slot's three sequences in
+ * last_sequences to 127. */
+static void net_session_note_new_peer_slot(int direct_play_id,
+					   unsigned int *peer_index,
+					   uint8_t last_sequences[40][3])
+{
+	XVT_LOG_DEBUG("network.peer_slot_added player=%u peer=%u",
+		      (unsigned)direct_play_id, *peer_index);
+	last_sequences[*peer_index][0] = 127;
+	last_sequences[*peer_index][1] = 127;
+	last_sequences[*peer_index][2] = 127;
+}
+
+/* Part of net_session_receive_packet's scan of the queue: sets
+ * expected_sequence to the sequence after the last one delivered on the entry's
+ * channel, and next_sequence to the one after the channel's last_sequences
+ * entry, each 0 after 127. */
+static void net_session_find_expected_sequences(
+	struct net_session_receive_channels *channels, unsigned int *peer_index,
+	int *expected_sequence, int *next_sequence,
+	uint8_t last_sequences[40][3])
+{
+	if (channels->want_channel_a) {
+		*expected_sequence =
+			g_net_session.reliable_peer_slots[*peer_index]
+				.last_delivered_seq_channel_a +
+			1;
+		if (*expected_sequence > 127) {
+			*expected_sequence = 0;
+		}
+		*next_sequence =
+			(unsigned int)last_sequences[*peer_index][0] + 1;
+		if (*next_sequence > 127) {
+			*next_sequence = 0;
+		}
+	} else if (channels->want_channel_b) {
+		*expected_sequence =
+			g_net_session.reliable_peer_slots[*peer_index]
+				.last_delivered_seq_channel_b +
+			1;
+		if (*expected_sequence > 127) {
+			*expected_sequence = 0;
+		}
+		*next_sequence =
+			(unsigned int)last_sequences[*peer_index][2] + 1;
+		if (*next_sequence > 127) {
+			*next_sequence = 0;
+		}
+	} else {
+		*expected_sequence =
+			g_net_session.reliable_peer_slots[*peer_index]
+				.last_delivered_seq_default +
+			1;
+		if (*expected_sequence > 127) {
+			*expected_sequence = 0;
+		}
+		*next_sequence =
+			(unsigned int)last_sequences[*peer_index][1] + 1;
+		if (*next_sequence > 127) {
+			*next_sequence = 0;
+		}
+	}
+}
+
+/* What net_session_read_entry_channel and net_session_drop_stale_entry return
+ * when the scan of the queue goes on with the entry; they return 1 when it
+ * moves on to the next one. */
+enum { NET_SESSION_ENTRY_GOES_ON = -1 };
+
+/* Part of net_session_receive_packet's scan of the queue: reads the entry's
+ * sequence and channel, finds or makes its sender's peer slot, counts the entry
+ * as examined unless it is a resent copy, and sets its expected and next
+ * sequences. Once the peer's examined count passes its limit, it steps to the
+ * next entry and returns 1. */
+static int net_session_read_entry_channel(
+	int *sequence, int *queue_index,
+	struct net_session_receive_channels *channels, unsigned int *peer_index,
+	int direct_play_id, uint8_t last_sequences[40][3],
+	uint8_t inspection_limits[40], uint8_t inspected[40],
+	int *expected_sequence, int *next_sequence)
+{
+	unsigned int old_peer_count;
+	*sequence = g_net_session_recv_queue[*queue_index].sequence_byte;
+	old_peer_count = g_net_session.reliable_peer_slot_count;
+	channels->want_channel_a =
+		g_net_session_recv_queue[*queue_index].packet_class == 0;
+	channels->want_channel_b =
+		g_net_session_recv_queue[*queue_index].packet_class == 2;
+	*peer_index = net_reliable_find_or_create_peer_slot(direct_play_id);
+	if (old_peer_count != g_net_session.reliable_peer_slot_count &&
+	    *peer_index < 40) {
+		net_session_note_new_peer_slot(direct_play_id, peer_index,
+					       last_sequences);
+	}
+	if (*peer_index < g_net_session.reliable_peer_slot_count) {
+		if (inspection_limits[*peer_index] < inspected[*peer_index]) {
+			net_session_step_to_next_entry(queue_index, channels);
+			return 1;
+		}
+		if (g_net_session_recv_queue[*queue_index].is_resent_copy ==
+		    0) {
+			++inspected[*peer_index];
+		}
+
+		net_session_find_expected_sequences(
+			channels, peer_index, expected_sequence, next_sequence,
+			last_sequences);
+	} else {
+		*expected_sequence = 0;
+		*next_sequence = 0;
+	}
+	return NET_SESSION_ENTRY_GOES_ON;
+}
+
+/* Part of net_session_receive_packet's scan of the queue: when the entry's
+ * sender has no reliable slot, or the entry is 1 to 28 sequence numbers behind
+ * the expected one, counting around the 128 wrap, logs it, removes it from the
+ * queue and returns 1. */
+static int
+net_session_drop_stale_entry(int sequence, int expected_sequence,
+			     unsigned int peer_index, int direct_play_id,
+			     struct net_session_receive_channels *channels,
+			     int *queue_index)
+{
+	int delta;
+	delta = sequence - expected_sequence;
+	if (peer_index >= g_net_session.reliable_peer_slot_count ||
+	    (delta >= -28 && (delta < 0 || delta >= 100))) {
+		XVT_LOG_DEBUG(
+			"network.stale_dropped from=%u peer=%u channel=%d sequence=%d expected=%d",
+			(unsigned)direct_play_id, peer_index,
+			channels->want_channel_a   ? 0
+			: channels->want_channel_b ? 2
+						   : 1,
+			sequence, expected_sequence);
+		if (net_reliable_remove_queued_packet(*queue_index) != 0) {
+			++*queue_index;
+			if (*queue_index >= 1024) {
+				*queue_index = 0;
+			}
+		}
+		--channels->remaining_queue_entries;
+		return 1;
+	}
+	return NET_SESSION_ENTRY_GOES_ON;
+}
+
 /* Part of net_session_receive_packet for the entry whose sequence comes next on
  * its channel: marks it delivered in the peer's slot and counts it there unless
  * it is an internet-play REMOTE_INPUT; copies it into
@@ -2369,6 +2530,43 @@ static void *net_session_deliver_internet_input(
 		g_net_session.reliable_peer_slots[peer_index].packet_count,
 		g_net_recv_queue_count);
 	return g_net_session.recv_scratch_packet.payload;
+}
+
+/* Part of net_session_receive_packet for an entry that is not a resent copy:
+ * sets remote_sequence to the sequence after the newest one seen on the entry's
+ * channel, and puts the entry's there; sets sequence_distance, search_sequence
+ * and missing_tick_offset from them, clears sent_retry and, while the peer's
+ * examined count is under 127, adds the distance to it. */
+static void net_session_start_gap(struct net_session_receive_channels *channels,
+				  uint8_t last_sequences[40][3],
+				  unsigned int peer_index, int sequence,
+				  int *remote_sequence, int *sequence_distance,
+				  int *search_sequence,
+				  int *missing_tick_offset, int *sent_retry,
+				  uint8_t inspected[40])
+{
+	extern int g_net_update_interval_ticks;
+	int selected_channel = channels->want_channel_a
+				       ? 0
+				       : (channels->want_channel_b ? 2 : 1);
+	*remote_sequence =
+		(unsigned int)last_sequences[peer_index][selected_channel] + 1;
+	last_sequences[peer_index][selected_channel] = (uint8_t)sequence;
+	if (*remote_sequence > 127) {
+		*remote_sequence = 0;
+	}
+	*sequence_distance = sequence - *remote_sequence;
+	if (*sequence_distance < 0) {
+		*sequence_distance += 128;
+	}
+	*search_sequence = *remote_sequence;
+	*missing_tick_offset = *sequence_distance;
+	*missing_tick_offset *= g_net_update_interval_ticks;
+	*sent_retry = 0;
+	if (inspected[peer_index] < 127) {
+		inspected[peer_index] =
+			(uint8_t)(inspected[peer_index] + *sequence_distance);
+	}
 }
 
 /* Part of net_session_receive_packet when the queue holds the expected
@@ -2799,6 +2997,22 @@ static void *net_session_chase_gap(
 	return NULL;
 }
 
+/* Part of net_session_receive_packet's scan of the queue: logs that a resent
+ * copy at the queue's front is discarded. */
+static void
+net_session_note_discarded_copy(int direct_play_id, unsigned int peer_index,
+				struct net_session_receive_channels *channels,
+				int sequence, int expected_sequence)
+{
+	XVT_LOG_WARN(
+		"network.resent_copy_discarded from=%u peer=%u channel=%d sequence=%d expected=%d",
+		(unsigned)direct_play_id, peer_index,
+		channels->want_channel_a   ? 0
+		: channels->want_channel_b ? 2
+					   : 1,
+		sequence, expected_sequence);
+}
+
 /* Part of net_session_receive_packet's full-queue pass: reads the entry's
  * sequence and channel, finds or makes its sender's peer slot, and sets
  * expected_sequence to the sequence after the last one delivered on that
@@ -3009,14 +3223,10 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 	uint8_t last_sequences[40][3];
 	uint8_t inspection_limits[40];
 	struct net_queued_packet *packet;
-	unsigned int old_peer_count;
 	unsigned int peer_index;
-	int delta;
 	int search_sequence;
 	int direct_play_id;
 	void *delivered;
-
-	extern int g_net_update_interval_ticks;
 
 	net_session_pump_incoming_packets();
 	net_session_send_reliable_keepalives();
@@ -3042,119 +3252,23 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 					queue_index, out_sender_dpid,
 					out_payload_size);
 			}
-			++queue_index;
-			if (queue_index >= 1024) {
-				queue_index = 0;
-			}
-			--channels.remaining_queue_entries;
+			net_session_step_to_next_entry(&queue_index, &channels);
 			continue;
 		}
-		sequence = g_net_session_recv_queue[queue_index].sequence_byte;
-		old_peer_count = g_net_session.reliable_peer_slot_count;
-		channels.want_channel_a =
-			g_net_session_recv_queue[queue_index].packet_class == 0;
-		channels.want_channel_b =
-			g_net_session_recv_queue[queue_index].packet_class == 2;
-		peer_index =
-			net_reliable_find_or_create_peer_slot(direct_play_id);
-		if (old_peer_count != g_net_session.reliable_peer_slot_count &&
-		    peer_index < 40) {
-			XVT_LOG_DEBUG(
-				"network.peer_slot_added player=%u peer=%u",
-				(unsigned)direct_play_id, peer_index);
-			last_sequences[peer_index][0] = 127;
-			last_sequences[peer_index][1] = 127;
-			last_sequences[peer_index][2] = 127;
-		}
-		if (peer_index < g_net_session.reliable_peer_slot_count) {
-			if (inspection_limits[peer_index] <
-			    inspected[peer_index]) {
-				++queue_index;
-				if (queue_index >= 1024) {
-					queue_index = 0;
-				}
-				--channels.remaining_queue_entries;
-				continue;
-			}
-			if (g_net_session_recv_queue[queue_index]
-				    .is_resent_copy == 0) {
-				++inspected[peer_index];
-			}
-
-			if (channels.want_channel_a) {
-				expected_sequence =
-					g_net_session
-						.reliable_peer_slots[peer_index]
-						.last_delivered_seq_channel_a +
-					1;
-				if (expected_sequence > 127) {
-					expected_sequence = 0;
-				}
-				next_sequence =
-					(unsigned int)
-						last_sequences[peer_index][0] +
-					1;
-				if (next_sequence > 127) {
-					next_sequence = 0;
-				}
-			} else if (channels.want_channel_b) {
-				expected_sequence =
-					g_net_session
-						.reliable_peer_slots[peer_index]
-						.last_delivered_seq_channel_b +
-					1;
-				if (expected_sequence > 127) {
-					expected_sequence = 0;
-				}
-				next_sequence =
-					(unsigned int)
-						last_sequences[peer_index][2] +
-					1;
-				if (next_sequence > 127) {
-					next_sequence = 0;
-				}
-			} else {
-				expected_sequence =
-					g_net_session
-						.reliable_peer_slots[peer_index]
-						.last_delivered_seq_default +
-					1;
-				if (expected_sequence > 127) {
-					expected_sequence = 0;
-				}
-				next_sequence =
-					(unsigned int)
-						last_sequences[peer_index][1] +
-					1;
-				if (next_sequence > 127) {
-					next_sequence = 0;
-				}
-			}
-		} else {
-			expected_sequence = 0;
-			next_sequence = 0;
+		int next = net_session_read_entry_channel(
+			&sequence, &queue_index, &channels, &peer_index,
+			direct_play_id, last_sequences, inspection_limits,
+			inspected, &expected_sequence, &next_sequence);
+		if (next != NET_SESSION_ENTRY_GOES_ON) {
+			continue;
 		}
 
 		payload = g_net_session_recv_queue[queue_index].payload;
 		memcpy(&payload_type, payload, sizeof(payload_type));
-		delta = sequence - expected_sequence;
-		if (peer_index >= g_net_session.reliable_peer_slot_count ||
-		    (delta >= -28 && (delta < 0 || delta >= 100))) {
-			XVT_LOG_DEBUG(
-				"network.stale_dropped from=%u peer=%u channel=%d sequence=%d expected=%d",
-				(unsigned)direct_play_id, peer_index,
-				channels.want_channel_a	  ? 0
-				: channels.want_channel_b ? 2
-							  : 1,
-				sequence, expected_sequence);
-			if (net_reliable_remove_queued_packet(queue_index) !=
-			    0) {
-				++queue_index;
-				if (queue_index >= 1024) {
-					queue_index = 0;
-				}
-			}
-			--channels.remaining_queue_entries;
+		next = net_session_drop_stale_entry(sequence, expected_sequence,
+						    peer_index, direct_play_id,
+						    &channels, &queue_index);
+		if (next != NET_SESSION_ENTRY_GOES_ON) {
 			continue;
 		}
 
@@ -3173,38 +3287,14 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 		}
 
 		if (g_net_session_recv_queue[queue_index].is_resent_copy == 0) {
-			int selected_channel =
-				channels.want_channel_a
-					? 0
-					: (channels.want_channel_b ? 2 : 1);
-			remote_sequence =
-				(unsigned int)last_sequences[peer_index]
-							    [selected_channel] +
-				1;
-			last_sequences[peer_index][selected_channel] =
-				(uint8_t)sequence;
-			if (remote_sequence > 127) {
-				remote_sequence = 0;
-			}
-			sequence_distance = sequence - remote_sequence;
-			if (sequence_distance < 0) {
-				sequence_distance += 128;
-			}
-			search_sequence = remote_sequence;
-			missing_tick_offset = sequence_distance;
-			missing_tick_offset *= g_net_update_interval_ticks;
-			sent_retry = 0;
-			if (inspected[peer_index] < 127) {
-				inspected[peer_index] =
-					(uint8_t)(inspected[peer_index] +
-						  sequence_distance);
-			}
+			net_session_start_gap(
+				&channels, last_sequences, peer_index, sequence,
+				&remote_sequence, &sequence_distance,
+				&search_sequence, &missing_tick_offset,
+				&sent_retry, inspected);
 			if (retry_counts[peer_index] > 25) {
-				++queue_index;
-				if (queue_index >= 1024) {
-					queue_index = 0;
-				}
-				--channels.remaining_queue_entries;
+				net_session_step_to_next_entry(&queue_index,
+							       &channels);
 				continue;
 			}
 
@@ -3220,12 +3310,8 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 			}
 		} else {
 			if (g_net_recv_queue_read_index == queue_index) {
-				XVT_LOG_WARN(
-					"network.resent_copy_discarded from=%u peer=%u channel=%d sequence=%d expected=%d",
-					(unsigned)direct_play_id, peer_index,
-					channels.want_channel_a	  ? 0
-					: channels.want_channel_b ? 2
-								  : 1,
+				net_session_note_discarded_copy(
+					direct_play_id, peer_index, &channels,
 					sequence, expected_sequence);
 				if (net_reliable_remove_queued_packet(
 					    queue_index) == 0) {
@@ -3233,18 +3319,10 @@ void *net_session_receive_packet(int *out_sender_dpid, int *out_payload_size)
 					continue;
 				}
 			}
-			++queue_index;
-			if (queue_index >= 1024) {
-				queue_index = 0;
-			}
-			--channels.remaining_queue_entries;
+			net_session_step_to_next_entry(&queue_index, &channels);
 			continue;
 		}
-		++queue_index;
-		if (queue_index >= 1024) {
-			queue_index = 0;
-		}
-		--channels.remaining_queue_entries;
+		net_session_step_to_next_entry(&queue_index, &channels);
 	}
 
 	if ((int)g_net_recv_queue_count < 1023) {
