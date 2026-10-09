@@ -2881,6 +2881,24 @@ static void check_dequeue_drops_stale_and_slotless(void)
 	XVT_ASSERT_INT_EQ(
 		line_value("network.lobby_packet_dropped", "expected"), 51);
 
+	/* A stale packet behind one that waits goes too. */
+	fresh();
+	slot = net_find_or_create_peer_slot(30);
+	*delivered_on(peer(slot), 1) = 50;
+	push_packet(30, 1, 53, 0, NET_PACKET_CHAT, 1);
+	push_packet(40, 1, 5, 0, NET_PACKET_CHAT, 2);
+	push_packet(40, 1, 126, 0, NET_PACKET_CHAT, 3);
+	XVT_ASSERT_TRUE(dequeue() == NULL);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 2);
+	push_packet(30, 1, 50, 0, NET_PACKET_CHAT, 4);
+	XVT_ASSERT_TRUE(dequeue() == NULL);
+	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 2);
+	XVT_ASSERT_INT_EQ(queued(0)->sequence_byte, 53);
+	XVT_ASSERT_INT_EQ(queued(1)->sequence_byte, 5);
+	XVT_ASSERT_INT_EQ(count_lines_holding("network.lobby_packet_dropped",
+					      "reason=\"stale\""),
+			  2);
+
 	/* A packet 100 or more ahead is stale too; 99 ahead is not. */
 	fresh();
 	slot = net_find_or_create_peer_slot(30);
@@ -3069,13 +3087,13 @@ static void check_dequeue_asks_for_missing(void)
  * queued packet after it is delivered, the gap skipped. That is the packet
  * itself, or a resent copy of an earlier sequence. The give-up is logged with
  * the first sequence missed and the resend requests made. */
-static void check_dequeue_gives_up_on_gap(void)
+static void gives_up_on_gap_on(int packet_class)
 {
 	fresh();
 	open_session();
 	unsigned int slot = net_find_or_create_peer_slot(30);
-	*delivered_on(peer(slot), 1) = 2;
-	push_packet(30, 1, 4, 0, NET_PACKET_CHAT, 1);
+	*delivered_on(peer(slot), packet_class) = 2;
+	push_packet(30, packet_class, 4, 0, NET_PACKET_CHAT, 1);
 	XVT_ASSERT_TRUE(dequeue() == NULL);
 	for (int round = 0; round < 20; ++round) {
 		xvt_time_advance_host_clock(1001 * MS_US);
@@ -3089,7 +3107,7 @@ static void check_dequeue_gives_up_on_gap(void)
 	XVT_ASSERT_TRUE(packet != NULL);
 	XVT_ASSERT_INT_EQ(mark_of(packet), 1);
 	XVT_ASSERT_INT_EQ(nacks_sent(), 21);
-	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), 1), 4);
+	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), packet_class), 4);
 	XVT_ASSERT_INT_EQ(peer(slot)->packet_count, 1);
 	XVT_ASSERT_INT_EQ(peer(slot)->last_activity_ms, GetTickCount());
 	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
@@ -3097,7 +3115,7 @@ static void check_dequeue_gives_up_on_gap(void)
 	XVT_ASSERT_INT_EQ(line_value("network.lobby_nack_gave_up", "player"),
 			  30);
 	XVT_ASSERT_INT_EQ(line_value("network.lobby_nack_gave_up", "channel"),
-			  1);
+			  packet_class);
 	XVT_ASSERT_INT_EQ(line_value("network.lobby_nack_gave_up", "first"), 3);
 	XVT_ASSERT_INT_EQ(line_value("network.lobby_nack_gave_up", "retries"),
 			  21);
@@ -3111,9 +3129,9 @@ static void check_dequeue_gives_up_on_gap(void)
 	fresh();
 	open_session();
 	slot = net_find_or_create_peer_slot(30);
-	*delivered_on(peer(slot), 1) = 2;
-	push_packet(30, 1, 5, 0, NET_PACKET_CHAT, 1);
-	push_packet(30, 1, 4, 1, NET_PACKET_CHAT, 2);
+	*delivered_on(peer(slot), packet_class) = 2;
+	push_packet(30, packet_class, 5, 0, NET_PACKET_CHAT, 1);
+	push_packet(30, packet_class, 4, 1, NET_PACKET_CHAT, 2);
 	XVT_ASSERT_TRUE(dequeue() == NULL);
 	XVT_ASSERT_INT_EQ(nacks_sent(), 1);
 	XVT_ASSERT_INT_EQ(sent_word(0, 4), 3);
@@ -3125,7 +3143,7 @@ static void check_dequeue_gives_up_on_gap(void)
 	packet = dequeue();
 	XVT_ASSERT_TRUE(packet != NULL);
 	XVT_ASSERT_INT_EQ(mark_of(packet), 2);
-	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), 1), 4);
+	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), packet_class), 4);
 	XVT_ASSERT_INT_EQ(peer(slot)->packet_count, 1);
 	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1);
 	XVT_ASSERT_INT_EQ(line_value("network.lobby_delivered", "seq"), 4);
@@ -3134,10 +3152,17 @@ static void check_dequeue_gives_up_on_gap(void)
 	packet = dequeue();
 	XVT_ASSERT_TRUE(packet != NULL);
 	XVT_ASSERT_INT_EQ(mark_of(packet), 1);
-	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), 1), 5);
+	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), packet_class), 5);
 	XVT_ASSERT_INT_EQ(count_lines_holding("network.lobby_delivered",
 					      "path=\"in_order\""),
 			  1);
+}
+
+static void check_dequeue_gives_up_on_gap(void)
+{
+	for (int packet_class = 0; packet_class < 3; ++packet_class) {
+		gives_up_on_gap_on(packet_class);
+	}
 }
 
 /* A gap that runs round the end of the sequences, 127 then 0, is given up the
@@ -3242,23 +3267,23 @@ static void check_dequeue_long_timeout_mode(void)
  * sender is asked for nothing it has copies of; a copy of only the later
  * sequence leaves the earlier one asked for. The packet's resend count is
  * cleared once at most one sequence is still missing. */
-static void check_dequeue_gap_filled_by_copies(void)
+static void gap_filled_on(int packet_class)
 {
 	fresh();
 	open_session();
 	unsigned int slot = net_find_or_create_peer_slot(30);
-	*delivered_on(peer(slot), 1) = 2;
+	*delivered_on(peer(slot), packet_class) = 2;
 	peer(slot)->packet_count = 21;
-	push_packet(30, 1, 5, 0, NET_PACKET_CHAT, 1);
-	push_packet(30, 1, 3, 1, NET_PACKET_CHAT, 2);
-	push_packet(30, 1, 4, 1, NET_PACKET_CHAT, 3);
+	push_packet(30, packet_class, 5, 0, NET_PACKET_CHAT, 1);
+	push_packet(30, packet_class, 3, 1, NET_PACKET_CHAT, 2);
+	push_packet(30, packet_class, 4, 1, NET_PACKET_CHAT, 3);
 	queued(0)->nack_retry_count = 2;
 	queued(0)->last_nack_ms = 7;
 	const uint8_t *packet = dequeue();
 	XVT_ASSERT_TRUE(packet != NULL);
 	XVT_ASSERT_INT_EQ(g_got_sender, 30);
 	XVT_ASSERT_INT_EQ(mark_of(packet), 2);
-	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), 1), 3);
+	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), packet_class), 3);
 	XVT_ASSERT_INT_EQ(peer(slot)->packet_count, 22);
 	XVT_ASSERT_INT_EQ(peer(slot)->last_activity_ms, GetTickCount());
 	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 2);
@@ -3271,27 +3296,34 @@ static void check_dequeue_gap_filled_by_copies(void)
 	packet = dequeue();
 	XVT_ASSERT_TRUE(packet != NULL);
 	XVT_ASSERT_INT_EQ(mark_of(packet), 3);
-	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), 1), 4);
+	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), packet_class), 4);
 	XVT_ASSERT_INT_EQ(queued(0)->nack_retry_count, 0);
 	XVT_ASSERT_INT_EQ(queued(0)->last_nack_ms, 0);
 	packet = dequeue();
 	XVT_ASSERT_TRUE(packet != NULL);
 	XVT_ASSERT_INT_EQ(mark_of(packet), 1);
-	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), 1), 5);
+	XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), packet_class), 5);
 	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 0);
 	XVT_ASSERT_INT_EQ(g_sent_count, 0);
 	XVT_ASSERT_INT_EQ(peer(slot)->packet_retry_count, 0);
+}
+
+static void check_dequeue_gap_filled_by_copies(void)
+{
+	for (int packet_class = 0; packet_class < 3; ++packet_class) {
+		gap_filled_on(packet_class);
+	}
 
 	/* A copy kept on the first place of the ring is found. */
 	fresh();
 	open_session();
-	slot = net_find_or_create_peer_slot(30);
+	unsigned int slot = net_find_or_create_peer_slot(30);
 	*delivered_on(peer(slot), 1) = 2;
 	g_front_state.net_runtime_recv_queue_read_index = 1023;
 	g_front_state.net_runtime_recv_queue_write_index = 1023;
 	push_packet(30, 1, 4, 0, NET_PACKET_CHAT, 1);
 	push_packet(30, 1, 3, 1, NET_PACKET_CHAT, 2);
-	packet = dequeue();
+	const uint8_t *packet = dequeue();
 	XVT_ASSERT_TRUE(packet != NULL);
 	XVT_ASSERT_INT_EQ(mark_of(packet), 2);
 	XVT_ASSERT_INT_EQ(g_front_state.net_runtime_recv_queue_count, 1);
@@ -3327,7 +3359,7 @@ static void check_dequeue_under_pressure(void)
 		fresh();
 		unsigned int slot = net_find_or_create_peer_slot(30);
 		for (int channel = 0; channel < 3; ++channel) {
-			*delivered_on(peer(slot), channel) = 2;
+			*delivered_on(peer(slot), channel) = 127;
 		}
 		/* The place just before the first packet holds an old packet
 		 * that is no longer queued. */
@@ -3349,7 +3381,7 @@ static void check_dequeue_under_pressure(void)
 				  1022);
 		for (int channel = 0; channel < 3; ++channel) {
 			XVT_ASSERT_INT_EQ(*delivered_on(peer(slot), channel),
-					  channel == channels[i] ? 10 : 2);
+					  channel == channels[i] ? 10 : 127);
 		}
 		XVT_ASSERT_INT_EQ(peer(slot)->packet_count, 1);
 		XVT_ASSERT_INT_EQ(
