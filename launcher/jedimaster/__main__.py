@@ -2,13 +2,13 @@
 
 Purpose:
     The commands are ``dump``, ``export``, ``lists``, ``icons``, ``text``,
-    ``fonts``, ``pictures``, ``pilot`` and ``models``. Print one mission in
+    ``fonts``, ``pictures``, ``pilot``, ``models`` and ``movies``. Print one mission in
     the answer-sheet text format, or export every mission of an install as
     JSON files; ``lists`` does the same for the game's text lists;
     ``icons`` reads the briefing map's icon sheets; ``text``, ``fonts`` and
     ``pictures`` read the menus' text files, fonts and pictures; ``pilot``
     reads a pilot's files and loads a pilot; ``models`` reads the 3D model
-    files.
+    files; ``movies`` reads the movies and their subtitle files.
 
 Flow:
     ``dump <mission>``: read the file (or, when no such file exists, resolve
@@ -63,6 +63,7 @@ from .mission import MissionFormatError
 from .mission import read_mission
 from .mission import render_mission
 from .models import cli as models_cli
+from .movies import cli as movies_cli
 from .pictures import cli as pictures_cli
 from .pilot import cli as pilot_cli
 from .text import cli as text_cli
@@ -75,6 +76,7 @@ SUBCOMMANDS = {
     "pictures": pictures_cli,
     "pilot": pilot_cli,
     "models": models_cli,
+    "movies": movies_cli,
 }
 """The commands whose modules parse and run their own subcommands."""
 
@@ -106,6 +108,7 @@ def _parser() -> argparse.ArgumentParser:
     pictures_cli.add_parser(sub)
     pilot_cli.add_parser(sub)
     models_cli.add_parser(sub)
+    movies_cli.add_parser(sub)
     return parser
 
 

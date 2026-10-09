@@ -1,0 +1,534 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/movies.schema.json",
+  "title": "XvT/BoP movies and subtitles (jedimaster export)",
+  "type": "object",
+  "description": "The game's movies and their subtitles (jedimaster export).",
+  "properties": {
+    "format": {
+      "const": "jedimaster.movies"
+    },
+    "format_version": {
+      "const": 1
+    },
+    "balance_of_power": {
+      "type": "boolean"
+    },
+    "ffmpeg": {
+      "type": "object",
+      "description": "The ffmpeg version and the settings that wrote the MP4 files.",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "settings": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "version",
+        "settings"
+      ],
+      "additionalProperties": false
+    },
+    "movies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Movie"
+      }
+    }
+  },
+  "required": [
+    "format",
+    "format_version",
+    "balance_of_power",
+    "ffmpeg",
+    "movies"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Track": {
+      "type": "object",
+      "description": "One audio track of the header: buffer, rate word and its parts.",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "buffer_size": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "word": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "rate": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777215
+        },
+        "compressed": {
+          "type": "boolean"
+        },
+        "has_data": {
+          "type": "boolean"
+        },
+        "sixteen_bit": {
+          "type": "boolean"
+        },
+        "stereo": {
+          "type": "boolean"
+        },
+        "compression": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        }
+      },
+      "required": [
+        "index",
+        "buffer_size",
+        "word",
+        "rate",
+        "compressed",
+        "has_data",
+        "sixteen_bit",
+        "stereo",
+        "compression"
+      ],
+      "additionalProperties": false
+    },
+    "Header": {
+      "type": "object",
+      "description": "The Smacker header's fields; the per-frame tables are summarised.",
+      "properties": {
+        "signature": {
+          "enum": [
+            "SMK2",
+            "SMK4"
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "frames": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "rate": {
+          "type": "integer",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        "flags": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "tree_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "ring": {
+          "type": "boolean"
+        },
+        "interlaced": {
+          "type": "boolean"
+        },
+        "y_doubled": {
+          "type": "boolean"
+        },
+        "tree_sizes": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "tracks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Track"
+          },
+          "minItems": 7,
+          "maxItems": 7
+        },
+        "table_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "key_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "palette_frames": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frame_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "signature",
+        "width",
+        "height",
+        "frames",
+        "rate",
+        "flags",
+        "tree_bytes",
+        "ring",
+        "interlaced",
+        "y_doubled",
+        "tree_sizes",
+        "tracks",
+        "table_frames",
+        "key_frames",
+        "palette_frames",
+        "frame_bytes"
+      ],
+      "additionalProperties": false
+    },
+    "Record": {
+      "type": "object",
+      "description": "One subtitle record: its number and three lines.",
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "number",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "Caption": {
+      "type": "object",
+      "description": "One caption as shown: record index, frames, microseconds, lines.",
+      "properties": {
+        "record": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "start_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "end_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "start_frame": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_frame": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        }
+      },
+      "required": [
+        "record",
+        "start_us",
+        "end_us",
+        "start_frame",
+        "end_frame",
+        "lines"
+      ],
+      "additionalProperties": false
+    },
+    "Subtitles": {
+      "type": "object",
+      "description": "A movie's subtitle file: records, why reading stopped, shown captions.",
+      "properties": {
+        "file": {
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "eof",
+            "bad_number",
+            "end_mark"
+          ]
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Record"
+          }
+        },
+        "captions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Caption"
+          }
+        }
+      },
+      "required": [
+        "file",
+        "reason",
+        "records",
+        "captions"
+      ],
+      "additionalProperties": false
+    },
+    "Audio": {
+      "type": "object",
+      "description": "The audio track the decoder plays.",
+      "properties": {
+        "track": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "codec": {
+          "type": "string"
+        },
+        "rate": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777215
+        },
+        "channels": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "bits": {
+          "enum": [
+            8,
+            16
+          ]
+        }
+      },
+      "required": [
+        "track",
+        "codec",
+        "rate",
+        "channels",
+        "bits"
+      ],
+      "additionalProperties": false
+    },
+    "Files": {
+      "type": "object",
+      "description": "The files written for the movie, by name in the export folder.",
+      "properties": {
+        "video": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.~-]+\\.mp4$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "poster": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.~-]+\\.png$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "captions": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.~-]+\\.vtt$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "video",
+        "poster",
+        "captions"
+      ],
+      "additionalProperties": false
+    },
+    "Movie": {
+      "type": "object",
+      "description": "One name the game asks for: where it resolved, the header, the files.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "found",
+            "missing",
+            "unreadable"
+          ]
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "header": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Header"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "picture_width": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "picture_height": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frames": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "frame_us": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "duration_us": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "audio": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Audio"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subtitles": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Subtitles"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "files": {
+          "$ref": "#/$defs/Files"
+        }
+      },
+      "required": [
+        "name",
+        "status",
+        "file",
+        "error",
+        "header",
+        "picture_width",
+        "picture_height",
+        "frames",
+        "frame_us",
+        "duration_us",
+        "audio",
+        "subtitles",
+        "files"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

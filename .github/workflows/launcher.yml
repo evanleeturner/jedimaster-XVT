@@ -3,7 +3,7 @@ name: Launcher
 
 # Lint and test the launcher's Python package (launcher/, the jedimaster
 # package) on the oldest Python it supports. The tests build their own
-# mission files; no game data is used.
+# game files (missions, and movies made with FFmpeg); no game data is used.
 
 on:
   workflow_dispatch:
@@ -40,6 +40,12 @@ jobs:
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
         with:
           python-version: "3.11"
+
+      - name: Install FFmpeg, which the movie reader runs
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+          ffmpeg -version
 
       - name: Install the package with its test tools
         run: python -m pip install --disable-pip-version-check "./launcher[test]" "ruff==0.15.20"
