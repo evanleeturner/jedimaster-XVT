@@ -7,33 +7,36 @@
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
 
-/* Index of the next free entry in g_net_session_recv_queue, 0 to 1023. Six
- * writers; chiefly net_session_pump_incoming_packets, which queues arrivals,
+/* Index of the next free entry in g_net_session_recv_queue, 0 to 1023. Seven
+ * writers; chiefly net_session_step_queue_write_index and
+ * net_session_queue_resent_copy, which queue arrivals,
  * net_reliable_remove_queued_packet, which steps it back one, and
  * net_session_import_runtime_state, which copies in the lobby's index when a
  * flight session starts. */
 // GLOBAL: XVT 0x527024
 int g_net_recv_queue_write_index = 0;
 /* Index of the oldest entry in g_net_session_recv_queue, 0 to 1023. Written by
- * net_session_receive_packet and net_reliable_remove_queued_packet as entries
- * leave, and by net_session_import_runtime_state. */
+ * net_session_take_system_message and net_reliable_remove_queued_packet as
+ * entries leave, and by net_session_import_runtime_state. */
 // GLOBAL: XVT 0x527028
 int g_net_recv_queue_read_index;
-/* Entries held in g_net_session_recv_queue, 0 to 1024. Eight writers; chiefly
- * net_session_pump_incoming_packets, which adds arrivals, and
- * net_reliable_remove_queued_packet, which takes them out.
- * net_session_init_game_session sets it to 0 before
+/* Entries held in g_net_session_recv_queue, 0 to 1024. Nine writers; chiefly
+ * net_session_step_queue_write_index and net_session_queue_resent_copy, which
+ * add arrivals, and net_reliable_remove_queued_packet, which takes them out.
+ * net_session_reset_for_flight sets it to 0 before
  * net_session_import_runtime_state copies in the lobby's count. */
 // GLOBAL: XVT 0x52702C
 unsigned int g_net_recv_queue_count;
-/* The flight session's receive queue, a ring of 1024 packets: DirectPlay
- * system messages, packets from other players, resent copies and the local
- * player's own packets, held until net_session_receive_packet hands them out in
- * sequence order. Seven writers; chiefly net_session_pump_incoming_packets. */
+/* The flight session's receive queue, a ring of 1024 packets: DirectPlay system
+ * messages, packets from other players, resent copies and the local player's
+ * own packets, held until net_session_receive_packet hands them out in sequence
+ * order. Thirteen writers; chiefly the functions of net_session_pump.c that
+ * queue arrivals. */
 // GLOBAL: XVT 0x5599A8
 struct net_queued_packet g_net_session_recv_queue[1024];
 /* Sequence, 0 to 127, of the last packet net_session_receive_packet delivered;
- * only that function writes it. Nothing reads it. */
+ * only its six delivering functions, in net_session_receive.c, write it.
+ * Nothing reads it. */
 // GLOBAL: XVT 0x60F1BC
 int g_net_last_delivered_recv_sequence;
 

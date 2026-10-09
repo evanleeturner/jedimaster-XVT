@@ -3984,10 +3984,10 @@ void net_clear_player_ready_flags(void)
 
 /* Copies the lobby's DirectPlay state from g_front_state into the flight
  * session's variables when a flight starts: the interface, application and
- * session GUIDs, group and host ids, local player, receive queue (entries
- * kept at their indices) with its indices and count, peer slots, broadcast
- * and group counters and trailers, and the 128-entry sent history. Returns
- * 1. Only net_session_init_game_session calls it. */
+ * session GUIDs, group and host ids, local player, receive queue (entries kept
+ * at their indices) with its indices and count, peer slots, broadcast and group
+ * counters and trailers, and the 128-entry sent history. Returns 1. Only
+ * net_session_import_lobby_state calls it. */
 // FUNCTION: XVT 0x4D1940
 int net_session_import_runtime_state(
 	void **dplay_interface_out, GUID *app_guid_out, GUID *session_guid_out,

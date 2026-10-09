@@ -12,49 +12,53 @@
 #include "xvt_runtime/runtime/flight_network_exchange.h"
 #include "xvt_runtime/runtime/network_session.h"
 
-/* Next slot, 0-127, that net_session_send_packet fills in
- * g_net_session_sent_history; it wraps to 0. net_session_init_game_session takes it
- * from the frontend's saved state, and net_session_shutdown hands it back. */
+/* Next slot, 0-127, that net_session_record_sent_packet fills in
+ * g_net_session_sent_history; it wraps to 0. net_session_import_lobby_state
+ * takes it from the frontend's saved state, and net_session_shutdown hands it
+ * back. */
 // GLOBAL: XVT 0x52701C
 int g_net_session_sent_history_write_index = 0;
-/* Next slot, 0-255, that net_session_send_packet fills in
+/* Next slot, 0-255, that net_session_record_sent_packet fills in
  * g_net_session_sent_world_message_history; it wraps to 0. Zeroed by
- * net_session_init_game_session; net_session_shutdown hands it to the frontend. */
+ * net_session_reset_for_flight; net_session_shutdown hands it to the frontend.
+ */
 // GLOBAL: XVT 0x527020
 int g_net_session_sent_world_message_write_index = 0;
 /* The last 128 packets this player sent to others, each with its destination,
  * size, channel class (0 all players, 1 direct, 2 group) and sequence, kept so
- * net_session_pump_incoming_packets can resend one a peer asks for. Internet-play
- * inputs are not kept. Filled by net_session_send_packet;
- * net_session_init_game_session loads the frontend's saved copy and
- * net_session_shutdown hands it back. */
+ * net_session_resend_from_history and net_session_resend_for_keepalive can
+ * resend one a peer asks for. Internet-play inputs are not kept. Filled by
+ * net_session_record_sent_packet; net_session_import_lobby_state loads the
+ * frontend's saved copy and net_session_shutdown hands it back. */
 // GLOBAL: XVT 0x5DD9B8
 struct net_queued_packet g_net_session_sent_history[128] = {0};
 /* The last 256 world messages this player sent, kept so
- * net_session_pump_incoming_packets can resend the one with the tick a WORLD_NACK
- * asks for. Filled by net_session_send_packet; cleared by
- * net_session_init_game_session. */
+ * net_session_answer_world_nack can find the one with the tick a WORLD_NACK
+ * asks for, which net_session_resend_world_message resends. Filled by
+ * net_session_record_sent_packet; cleared by net_session_reset_for_flight. */
 // GLOBAL: XVT 0x5EE1B8
 struct net_queued_packet g_net_session_sent_world_message_history[256] = {0};
 /* The flight's network session: DirectPlay interface and ids, the player
  * roster, channel sequences and saved copies, and reliable delivery state per
- * peer. net_session_init_game_session clears it and loads it from the frontend's
- * saved state. 18 functions write it, chiefly net_session_init_game_session,
- * net_session_send_packet, net_session_pump_incoming_packets,
- * net_session_receive_packet, net_session_handle_direct_play_system_message and the
- * NetReliable_ functions. */
+ * peer. net_session_reset_for_flight clears it and
+ * net_session_import_lobby_state loads it from the frontend's saved state. Many
+ * functions write it, chiefly those of net_session_send.c, net_session_pump.c
+ * and net_session_receive.c, the system message functions of this file and the
+ * net_reliable_ functions. */
 // GLOBAL: XVT 0x9994C0
 struct net_session_state g_net_session = {0};
 /* The buffer session packets are built in just before they are sent: startup
- * and roster packets, peer sequence status and keepalives. 5 functions write
- * it: net_session_init_game_session,
- * net_session_handle_direct_play_system_message,
- * net_session_send_reliable_keepalives, xvt_flight_network_send_roster_record
- * and xvt_flight_network_exchange_roster. */
+ * and roster packets, peer sequence status and keepalives. 8 functions write
+ * it: net_session_reset_for_flight, net_session_init_game_session,
+ * net_session_send_sequence_status, net_session_on_player_created,
+ * net_session_mark_player_departed, net_session_send_reliable_keepalives,
+ * xvt_flight_network_send_roster_record and xvt_flight_network_exchange_roster.
+ */
 // GLOBAL: XVT 0x5597A0
 struct net_session_scratch_state g_net_session_scratch_packet = {0};
-/* Picks the branches net_session_handle_direct_play_system_message takes.
- * net_session_init_game_session sets it to 1 and nothing sets it back to 0, so
+/* Picks the branches net_session_on_player_created and
+ * net_session_on_player_destroyed take. net_session_reset_for_flight and
+ * net_session_init_game_session set it to 1 and nothing sets it back to 0, so
  * after the first session of a run the branches for 0 never run. */
 // GLOBAL: XVT 0x9EC608
 static uint8_t g_net_session_flight_handshake_active = 0;
@@ -191,10 +195,10 @@ static int net_session_open_solo(const char *formal_name,
  * g_net_session_scratch_packet.trailing_state, and sets
  * g_net_session_flight_handshake_active; the import then fills
  * g_net_session_recv_queue with its indices and count, and
- * g_net_session_sent_history with its write index. A solo host takes formalName
- * and pilot_name as its names, becomes roster slot 0 and returns 1; without a
- * DirectPlay interface its id is 1. Otherwise it lists the DirectPlay players
- * that g_pilot_data.network_players also holds, and sends the host a
+ * g_net_session_sent_history with its write index. A solo host takes
+ * formal_name and pilot_name as its names, becomes roster slot 0 and returns 1;
+ * without a DirectPlay interface its id is 1. Otherwise it lists the DirectPlay
+ * players that g_pilot_data.network_players also holds, and sends the host a
  * STARTUP_READY and a NOP. It then returns
  * xvt_flight_network_begin_roster_exchange's result, which is
  * XVT_FLIGHT_NETWORK_PENDING unless a client joins a flight in progress.

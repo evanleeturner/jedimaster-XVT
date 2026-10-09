@@ -5918,7 +5918,7 @@ int mission_compute_craft_point_value(int obj_idx)
 }
 
 /* Returns g_mission_elapsed_clock as a count of seconds. Called only by
- * net_session_send_packet. */
+ * net_session_on_player_created. */
 // FUNCTION: XVT 0x448D70
 int mission_get_elapsed_clock_seconds(void)
 {

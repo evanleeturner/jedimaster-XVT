@@ -41,7 +41,7 @@ typedef char xvt_size_net_session_scratch_packet
 struct net_session_scratch_state {
 	int packet_type;	 /* NET_PACKET_ value naming the packet */
 	int payload_dwords[127]; /* Body; its layout depends on packet_type */
-	/* Zeroed by net_session_init_game_session; nothing reads it */
+	/* Zeroed by net_session_reset_for_flight; nothing reads it */
 	int trailing_state;
 };
 
@@ -53,12 +53,12 @@ typedef char xvt_size_net_session_scratch_state
 #pragma pack(push, 1)
 
 struct net_session_state {
-	/* Never named; only net_session_init_game_session's clear sets it */
+	/* Never named; only net_session_reset_for_flight's clear sets it */
 	uint32_t reserved_state0;
 	/* Taken from the frontend; NULL when there is none or a startup wait
 	 * timed out, and then sends are only queued for this player */
 	IDirectPlay2A *dplay_interface;
-	/* Never named; only net_session_init_game_session's clear sets it */
+	/* Never named; only net_session_reset_for_flight's clear sets it */
 	uint32_t reserved_state1;
 	/* Transport given to net_session_init_game_session; nothing reads it */
 	network_transport_type network_type;
@@ -73,7 +73,7 @@ struct net_session_state {
 	int player_count;  /* Entries in players */
 	/* Set to 0 by net_session_pump_incoming_packets; nothing reads it */
 	int receive_pump_state;
-	/* Never named; only net_session_init_game_session's clear sets it */
+	/* Never named; only net_session_reset_for_flight's clear sets it */
 	uint8_t reserved_session_state[32];
 	/* Only ever set to 0. When nonzero, net_session_receive_packet gives up
 	 * a gap a fixed time after one NACK: 3,000 ms, or 40,000 ms for world
