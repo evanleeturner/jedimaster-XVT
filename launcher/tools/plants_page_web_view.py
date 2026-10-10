@@ -190,8 +190,8 @@ STATE_PLANTS: list[Plant] = [
     Plant(
         "web-state-availability-by-colour-only",
         STA,
-        "    return { text: `${place}${entry.title} (${entry.file}), ${word}` };",
-        "    return { text: `${place}${entry.title} (${entry.file})` };",
+        "      text: `${place}${entry.title} (${entry.file}), ${word}`,",
+        "      text: `${place}${entry.title} (${entry.file})`,",
         (N + "missions list one heading per menu",),
     ),
     Plant(
@@ -601,4 +601,126 @@ SITE_PLANTS: list[Plant] = [
     ),
 ]
 
-VIEW_PLANTS: list[Plant] = [*STATE_PLANTS, *SITE_PLANTS]
+SHOW_VIEW_PLANTS: list[Plant] = [
+    Plant(
+        "web-state-push-not-kept",
+        STA,
+        "        shown: message.data,",
+        "        shown: null,",
+        (N + "a show-mission push marks that entry and announces its title",),
+    ),
+    Plant(
+        "web-state-push-not-counted",
+        STA,
+        "        shownCount: state.shownCount + 1,",
+        "        shownCount: state.shownCount,",
+        (N + "a show-mission push marks that entry and announces its title",),
+    ),
+    Plant(
+        "web-state-mark-any-type",
+        STA,
+        "    shown?.mission_type === menu.mission_type",
+        "    shown !== null",
+        (N + "the mark needs the same type as well as the same id",),
+    ),
+    Plant(
+        "web-state-mark-any-id",
+        STA,
+        "menu.entries.findIndex((entry) => entry.id === shown.id)",
+        "menu.entries.findIndex(() => true)",
+        (N + "a show-mission push marks that entry and announces its title",),
+    ),
+    Plant(
+        "web-state-mark-last-repeat",
+        STA,
+        "menu.entries.findIndex((entry) => entry.id === shown.id)",
+        "menu.entries.findLastIndex((entry) => entry.id === shown.id)",
+        (N + "when an id repeats inside a menu, the first entry is marked",),
+    ),
+    Plant(
+        "web-state-announce-the-type",
+        STA,
+        "`Showing ${state.shown.title}`",
+        "`Showing ${state.shown.mission_type}`",
+        (N + "a show-mission push marks that entry and announces its title",),
+    ),
+    Plant(
+        "web-state-announce-before-a-push",
+        STA,
+        '    shownText: state.shown === null ? "" :',
+        '    shownText: state.shown === null ? "Nothing" :',
+        (N + "before any push, nothing is marked and nothing is announced",),
+    ),
+    Plant(
+        "web-state-result-clears-the-mark",
+        STA,
+        '  if ("shown" in result) return state;',
+        '  if ("shown" in result) return { ...state, shown: null };',
+        (N + "a show-mission result changes nothing",),
+    ),
+    Plant(
+        "web-state-mark-needs-lists-first",
+        STA,
+        "    shown: message.data,",
+        "    shown: state.menus === null ? null : message.data,",
+        (N + "the mark appears once the lists arrive after the push",),
+    ),
+    Plant(
+        "web-main-mark-never-set",
+        MAI,
+        '      if (entry.current) item.setAttribute("aria-current", "true");\n',
+        "",
+        (B + "a mission shown from a second socket",),
+    ),
+    Plant(
+        "web-main-mark-says-page",
+        MAI,
+        'item.setAttribute("aria-current", "true");',
+        'item.setAttribute("aria-current", "page");',
+        (B + "a mission shown from a second socket",),
+    ),
+    Plant(
+        "web-main-no-scroll",
+        MAI,
+        '    mark.scrollIntoView({ block: "center" });',
+        "    void mark;",
+        (B + "a mission shown from a second socket",),
+    ),
+    Plant(
+        "web-main-focus-moves",
+        MAI,
+        '    mark.scrollIntoView({ block: "center" });',
+        '    mark.setAttribute("tabindex", "-1");\n    (mark as HTMLElement).focus();\n    mark.scrollIntoView({ block: "center" });',
+        (B + "a mission shown from a second socket",),
+    ),
+    Plant(
+        "web-main-nothing-announced",
+        MAI,
+        "  setText(shownLine, view.shownText);\n",
+        "",
+        (B + "a mission shown from a second socket",),
+    ),
+    Plant(
+        "web-html-announcement-silent",
+        HTM,
+        '<p id="mission-shown" class="mission-shown" aria-live="polite"></p>',
+        '<p id="mission-shown" class="mission-shown"></p>',
+        (B + "a mission shown from a second socket",),
+    ),
+    Plant(
+        "web-html-announcement-assertive",
+        HTM,
+        '<p id="mission-shown" class="mission-shown" aria-live="polite"></p>',
+        '<p id="mission-shown" class="mission-shown" aria-live="assertive"></p>',
+        (B + "a mission shown from a second socket",),
+    ),
+    Plant(
+        "web-css-mark-by-colour-alone",
+        CSS,
+        '  content: "\\25B6\\00a0" / "";',
+        "  content: none;",
+        (B + "a mission shown from a second socket",),
+    ),
+]
+
+VIEW_PLANTS: list[Plant] = [*STATE_PLANTS, *SITE_PLANTS, *SHOW_VIEW_PLANTS]

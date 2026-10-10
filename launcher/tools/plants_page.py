@@ -303,8 +303,8 @@ SERVER_PLANTS: list[Plant] = [
     Plant(
         "page-server-pushes-to-nobody",
         SRV,
-        "        for other in list(app[SOCKETS]):",
-        "        for other in []:",
+        "    pages = list(app[SOCKETS])",
+        "    pages = []",
         (TV + "test_a_setting_reaches_a_second_page_and_the_file",),
     ),
     Plant(

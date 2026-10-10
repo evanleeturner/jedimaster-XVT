@@ -19,6 +19,8 @@ Invariants:
     - Only ``server`` imports the web framework (the optional ``page``
       extra); the readers and the other commands work without it.
     - The server binds to 127.0.0.1 and nothing else.
+    - The bot (``jedimaster.bot``) uses the same ``Control``; it is the page
+      server's second user and does not start or stop it.
 
 Call:
     ``python -m jedimaster page --install <folder>``

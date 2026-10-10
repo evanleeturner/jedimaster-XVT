@@ -92,8 +92,8 @@ def _define(cls: type, defs: dict[str, Any]) -> None:
 def control_schema() -> dict[str, Any]:
     """Return the JSON Schema (draft 2020-12) of every control message.
 
-    Always returns the same dict for the same model: one of the five
-    requests, the two replies or the two pushes, each a closed object. Does
+    Always returns the same dict for the same model: one of the six
+    requests, the two replies or the three pushes, each a closed object. Does
     not encode which result answers which command, or that a setting's value
     belongs to its name beyond what the argument classes say.
     """

@@ -7,7 +7,8 @@ Purpose:
 Flow:
     ``add_parser`` adds the ``page`` command; ``run`` finds the install
     (``--install``, else ``find_install()``), builds the ``Control`` and
-    runs ``server.serve`` until Ctrl-C. The web framework is imported only
+    runs ``server.serve`` until Ctrl-C; with ``--bot`` the bot starts in the
+    same event loop and shares the ``Control``. The web framework is imported only
     inside ``run``, so the package's other commands work without it.
 
 Invariants:
@@ -61,6 +62,11 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
     page.add_argument("--settings", help="the settings file (default: the user's own)")
     page.add_argument("--page-dir", help="the built page (default: launcher/page/dist)")
     page.add_argument(
+        "--bot",
+        action="store_true",
+        help="also run the Discord bot (jedimaster bot setup first)",
+    )
+    page.add_argument(
         "--no-open", action="store_true", help="print the URL, do not open it"
     )
 
@@ -77,6 +83,14 @@ def run(args: argparse.Namespace) -> int:
     except ImportError:
         logger.error("the page needs aiohttp: pip install 'jedimaster[page]'")
         return 2
+    settings_path = Path(args.settings) if args.settings else default_settings_path()
+    token = None
+    if args.bot:
+        from ..bot import cli as bot_cli
+
+        token = bot_cli.check(settings_path)
+        if isinstance(token, int):
+            return token
     page_dir = Path(args.page_dir) if args.page_dir else DEFAULT_PAGE_DIR
     if not page_dir.is_dir():
         logger.error("page folder not found: %s (build it: npm run build)", page_dir)
@@ -87,11 +101,13 @@ def run(args: argparse.Namespace) -> int:
     install = find_install(args.install) if args.install else find_install()
     if install is None:
         logger.warning("no install found: the page will say so")
-    settings_path = Path(args.settings) if args.settings else default_settings_path()
     control = Control(install, SettingsStore(settings_path), __version__)
     key = secrets.token_urlsafe(32)
+    extra = {}
+    if token is not None:
+        extra["on_start"] = bot_cli.starter(control, settings_path, token)
     try:
-        asyncio.run(serve(control, key, args.port, page_dir, not args.no_open))
+        asyncio.run(serve(control, key, args.port, page_dir, not args.no_open, **extra))
     except KeyboardInterrupt:
         logger.info("stopped")
     except OSError as exc:

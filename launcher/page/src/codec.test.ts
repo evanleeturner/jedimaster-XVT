@@ -29,13 +29,23 @@ test("every request is read back as written", () => {
       command: "settings.set",
       args: { name: "art_scaling", value: "sharp_bilinear" },
     },
+    {
+      id: 6,
+      command: "page.show_mission",
+      args: { mission_type: "campaign", id: 0 },
+    },
+    {
+      id: 7,
+      command: "page.show_mission",
+      args: { mission_type: "training", id: MAX_ID },
+    },
   ];
   for (const request of requests) assert.deepEqual(accepted(request), request);
 });
 
 test("every kind of ok reply is read back as written", () => {
   const results: unknown[] = [
-    { launcher_version: "0.1.0", schema_revision: 1 },
+    { launcher_version: "0.1.0", schema_revision: 2 },
     { found: true, path: "~/Games/XvT", balance_of_power: false },
     { found: false, path: null, balance_of_power: false },
     {
@@ -58,6 +68,8 @@ test("every kind of ok reply is read back as written", () => {
       ],
     },
     { settings: SETTINGS },
+    { shown: true },
+    { shown: false },
   ];
   for (const result of results) {
     const reply = { id: 9, ok: true, result };
@@ -153,8 +165,10 @@ test("a reply refuses a result that matches no command", () => {
   refused(reply(null));
   refused(reply({}));
   refused(reply({ launcher_version: "0.1.0" }));
-  refused(reply({ launcher_version: "0.1.0", schema_revision: 2 }));
-  refused(reply({ launcher_version: 1, schema_revision: 1 }));
+  refused(reply({ launcher_version: "0.1.0", schema_revision: 1 }));
+  refused(reply({ shown: "yes" }));
+  refused(reply({ shown: true, more: 1 }));
+  refused(reply({ launcher_version: 1, schema_revision: 2 }));
   refused(reply({ found: "yes", path: null, balance_of_power: false }));
   refused(reply({ found: true, path: 3, balance_of_power: false }));
   refused(reply({ settings: { art_scaling: "stretched" } }));
@@ -222,6 +236,53 @@ test("a push refuses an unknown event and a wrong payload", () => {
   });
   refused({ event: "settings.changed", data: { settings: SETTINGS, x: 1 } });
   refused({ event: "status", data: {}, extra: 1 });
+});
+
+test("a push to show a mission is read back as written", () => {
+  for (const id of [0, 2, MAX_ID]) {
+    const push = {
+      event: "page.show_mission",
+      data: { mission_type: "melee", id, title: "Open Field" },
+    };
+    assert.deepEqual(accepted(push), push);
+  }
+});
+
+test("a show-mission push refuses a wrong payload", () => {
+  const data = { mission_type: "melee", id: 2, title: "t" };
+  const push = (changed: unknown): unknown => ({
+    event: "page.show_mission",
+    data: changed,
+  });
+  refused(push({}));
+  refused(push({ ...data, mission_type: "skirmish" }));
+  refused(push({ ...data, mission_type: "Melee" }));
+  refused(push({ ...data, id: -1 }));
+  refused(push({ ...data, id: MAX_ID + 1 }));
+  refused(push({ ...data, id: 1.5 }));
+  refused(push({ ...data, id: "2" }));
+  refused(push({ ...data, title: 3 }));
+  refused(push({ ...data, more: 1 }));
+  refused(push({ mission_type: "melee", id: 2 }));
+});
+
+test("a show-mission request refuses a wrong type, id or shape", () => {
+  const args = { mission_type: "melee", id: 2 };
+  const ask = (changed: unknown): unknown => ({
+    id: 1,
+    command: "page.show_mission",
+    args: changed,
+  });
+  refused(ask({}));
+  refused(ask({ mission_type: "melee" }));
+  refused(ask({ id: 2 }));
+  refused(ask({ ...args, mission_type: "skirmish" }));
+  refused(ask({ ...args, mission_type: 4 }));
+  refused(ask({ ...args, id: -1 }));
+  refused(ask({ ...args, id: MAX_ID + 1 }));
+  refused(ask({ ...args, id: 0.5 }));
+  refused(ask({ ...args, id: "2" }));
+  refused(ask({ ...args, more: 1 }));
 });
 
 test("anything that is not an object is refused", () => {

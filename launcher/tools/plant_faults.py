@@ -22,7 +22,8 @@ Flow:
     ``plants_fonts``, ``plants_pictures``, ``plants_pilot``,
     ``plants_models_read``, ``plants_models_draw``,
     ``plants_models_output``, ``plants_movies_read``,
-    ``plants_movies_subtitles``, ``plants_movies_output`` and ``plants_page``;
+    ``plants_movies_subtitles``, ``plants_movies_output``, ``plants_page`` and
+    ``plants_bot``;
     ``PLANTS`` joins them in that order.
 
 Invariants:
@@ -45,6 +46,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from plants_bot import BOT_PLANTS
 from plants_common import Plant
 from plants_fonts import FONTS_PLANTS
 from plants_icons import ICONS_PLANTS
@@ -113,6 +115,7 @@ PLANTS: list[Plant] = [
     *SUBTITLE_PLANTS,
     *MOVIES_OUTPUT_PLANTS,
     *PAGE_PLANTS,
+    *BOT_PLANTS,
 ]
 
 

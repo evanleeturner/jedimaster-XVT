@@ -9,11 +9,12 @@ Flow:
     ``parse_request`` turns text into a ``ParsedRequest`` or a ``Refusal``
     (``bad_message``, ``unknown_command``, ``bad_arguments``); ``Control``
     runs the command from ``Control.commands`` and builds the reply dict.
-    ``settings.set`` also builds the ``settings.changed`` push for every
-    open front end; the caller sends it.
+    ``settings.set`` also builds the ``settings.changed`` push, and
+    ``page.show_mission`` the ``page.show_mission`` push, for every open
+    front end; the caller sends them.
 
 Invariants:
-    - Only the five commands of ``protocol.COMMANDS`` run; every other name
+    - Only the six commands of ``protocol.COMMANDS`` run; every other name
       is refused and logged at WARNING.
     - ``handle`` never raises for a request, however malformed.
     - A reply to a request whose id cannot be read carries id 0.
@@ -43,6 +44,7 @@ from ..lists.text import ListFormatError
 from .protocol import COMMANDS
 from .protocol import MAX_ID
 from .protocol import MAX_MESSAGE_BYTES
+from .protocol import MISSION_TYPE_NAMES
 from .protocol import SCHEMA_REVISION
 from .protocol import SETTINGS
 from .protocol import UNKNOWN_ID
@@ -107,12 +109,24 @@ def _set_args(args: Json) -> str | None:
     return None
 
 
+def _show_args(args: Json) -> str | None:
+    if set(args) != {"mission_type", "id"}:
+        return "arguments must be exactly mission_type and id"
+    kind, ident = args["mission_type"], args["id"]
+    if not isinstance(kind, str) or kind not in MISSION_TYPE_NAMES:
+        return f"no such mission type; one of {list(MISSION_TYPE_NAMES)}"
+    if not _is_int(ident) or not 0 <= ident <= MAX_ID:
+        return "id must be a whole number from 0 to 2147483647"
+    return None
+
+
 ARG_CHECKS: dict[str, Callable[[Json], str | None]] = {
     "hello": _hello_args,
     "install.status": _no_args,
     "missions.list": _no_args,
     "settings.get": _no_args,
     "settings.set": _set_args,
+    "page.show_mission": _show_args,
 }
 """Each command's check of its arguments: None when fine, else the reason."""
 
@@ -163,7 +177,7 @@ def _home_form(path: Path) -> str:
 
 
 class Control:
-    """The launcher's state and the five commands that read or change it."""
+    """The launcher's state and the six commands that read or change it."""
 
     def __init__(
         self, install: Path | None, store: SettingsStore, launcher_version: str
@@ -178,6 +192,7 @@ class Control:
             "missions.list": self._missions_list,
             "settings.get": self._settings_get,
             "settings.set": self._settings_set,
+            "page.show_mission": self._show_mission,
         }
         self._pushes: list[Json] = []
 
@@ -276,3 +291,21 @@ class Control:
         result = {"settings": self.store.get()}
         self._pushes.append({"event": "settings.changed", "data": result})
         return result
+
+    def _show_mission(self, args: Json) -> Json:
+        menu = self._menu(args["mission_type"])
+        for entry in menu["entries"]:
+            if entry["id"] == args["id"]:
+                self._pushes.append(
+                    {
+                        "event": "page.show_mission",
+                        "data": {
+                            "mission_type": args["mission_type"],
+                            "id": args["id"],
+                            "title": entry["title"],
+                        },
+                    }
+                )
+                return {"shown": True}
+        logger.debug("no mission %d in the %s menu", args["id"], args["mission_type"])
+        return {"shown": False}

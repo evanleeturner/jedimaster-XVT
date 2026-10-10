@@ -22,11 +22,13 @@ const problemLine = find(HTMLParagraphElement, "#problem");
 const reconnectButton = find(HTMLButtonElement, "#reconnect");
 const missionsNote = find(HTMLParagraphElement, "#missions-note");
 const missionsBody = find(HTMLDivElement, "#missions-body");
+const shownLine = find(HTMLParagraphElement, "#mission-shown");
 const scalingGroup = find(HTMLFieldSetElement, "#art-scaling");
 
 let state: State = initialState();
 let socket: WebSocket | null = null;
 let nextId = 1;
+let scrolledFor = 0;
 
 function setText(element: HTMLElement, text: string): void {
   if (element.textContent !== text) element.textContent = text;
@@ -48,6 +50,7 @@ function menuElements(menu: MenuView): HTMLElement[] {
       const item = document.createElement("li");
       item.className = "mission-item";
       item.textContent = entry.text;
+      if (entry.current) item.setAttribute("aria-current", "true");
       list.append(item);
     }
     parts.push(list);
@@ -66,6 +69,12 @@ function render(view: View): void {
   missionsNote.hidden = view.missionsNote === null;
   setText(missionsNote, view.missionsNote ?? "");
   missionsBody.replaceChildren(...view.menus.flatMap(menuElements));
+  setText(shownLine, view.shownText);
+  const mark = missionsBody.querySelector('[aria-current="true"]');
+  if (mark !== null && view.shownCount !== scrolledFor) {
+    scrolledFor = view.shownCount;
+    mark.scrollIntoView({ block: "center" });
+  }
   scalingGroup.disabled = !view.settingsEnabled;
   for (const input of scalingGroup.querySelectorAll("input")) {
     input.checked = input.value === view.artScaling;

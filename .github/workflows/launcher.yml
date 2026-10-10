@@ -51,7 +51,7 @@ jobs:
       - name: Install the package with its test tools
         run: |
           python -m pip install --disable-pip-version-check \
-            "./launcher[test,page]" "ruff==0.15.20"
+            "./launcher[test,page,bot]" "ruff==0.15.20"
 
       - name: Check the package's form
         run: |

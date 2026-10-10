@@ -11,6 +11,9 @@ import type {
   SettingsChangedPush,
   SettingsGetRequest,
   SettingsSetRequest,
+  ShowMissionPush,
+  ShowMissionRequest,
+  ShownMission,
   StatusPush,
 } from "./generated/control.ts";
 
@@ -20,7 +23,8 @@ export type Request =
   | InstallStatusRequest
   | MissionsListRequest
   | SettingsGetRequest
-  | SettingsSetRequest;
+  | SettingsSetRequest
+  | ShowMissionRequest;
 export type Decoded =
   | { readonly ok: true; readonly message: Message }
   | { readonly ok: false; readonly reason: string };
@@ -32,6 +36,15 @@ export const ART_SCALING_VALUES = [
   "sharp_bilinear",
 ] as const;
 export type ArtScaling = Settings["art_scaling"];
+export const MISSION_TYPES = [
+  "training",
+  "melee",
+  "tournament",
+  "combat",
+  "battle",
+  "campaign",
+] as const;
+export type MissionType = ShownMission["mission_type"];
 const ERROR_CODES = [
   "bad_message",
   "unknown_command",
@@ -60,6 +73,10 @@ function isList(value: unknown): value is unknown[] {
 
 export function isArtScaling(value: unknown): value is ArtScaling {
   return ART_SCALING_VALUES.some((known) => known === value);
+}
+
+export function isMissionType(value: unknown): value is MissionType {
+  return MISSION_TYPES.some((known) => known === value);
 }
 
 function fail<T>(reason: string): Parsed<T> {
@@ -122,7 +139,7 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
   if (!isRecord(value)) return fail("a result must be an object");
   if (hasExactly(value, ["launcher_version", "schema_revision"])) {
     const { launcher_version, schema_revision } = value;
-    if (typeof launcher_version === "string" && schema_revision === 1) {
+    if (typeof launcher_version === "string" && schema_revision === 2) {
       return { value: { launcher_version, schema_revision } };
     }
     return fail("a hello result has the wrong values");
@@ -154,6 +171,11 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
     return "reason" in settings
       ? fail(settings.reason)
       : { value: { settings: settings.value } };
+  }
+  if (hasExactly(value, ["shown"])) {
+    const { shown } = value;
+    if (typeof shown !== "boolean") return fail("shown must be true or false");
+    return { value: { shown } };
   }
   return fail("a result matches no command's answer");
 }
@@ -222,6 +244,24 @@ function pushOf(value: Fields): Decoded {
     };
     return { ok: true, message: push };
   }
+  if (event === "page.show_mission") {
+    const names = ["mission_type", "id", "title"];
+    const { mission_type, id, title } = data;
+    if (
+      !hasExactly(data, names) ||
+      !isMissionType(mission_type) ||
+      !isWhole(id, 0) ||
+      id > MAX_ID ||
+      typeof title !== "string"
+    ) {
+      return { ok: false, reason: "page.show_mission data has wrong fields" };
+    }
+    const push: ShowMissionPush = {
+      event,
+      data: { mission_type, id, title },
+    };
+    return { ok: true, message: push };
+  }
   return { ok: false, reason: "no such push" };
 }
 
@@ -274,6 +314,24 @@ function requestOf(value: Fields): Decoded {
       return {
         ok: true,
         message: { id, command, args: { name, value: setting } },
+      };
+    }
+    case "page.show_mission": {
+      const { mission_type, id: mission } = args;
+      if (
+        !hasExactly(args, ["mission_type", "id"]) ||
+        !isMissionType(mission_type) ||
+        !isWhole(mission, 0) ||
+        mission > MAX_ID
+      ) {
+        return {
+          ok: false,
+          reason: "page.show_mission takes a mission type and an id",
+        };
+      }
+      return {
+        ok: true,
+        message: { id, command, args: { mission_type, id: mission } },
       };
     }
     default:

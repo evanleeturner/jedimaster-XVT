@@ -1,14 +1,14 @@
 """The control list: every message the page and the launcher exchange.
 
 Purpose:
-    Name, as dataclasses, the one fixed list of commands (version 1), their
-    arguments and results, the two pushes and the error codes. The schema
+    Name, as dataclasses, the one fixed list of commands (revision 2), their
+    arguments and results, the three pushes and the error codes. The schema
     (``schema``) is built from these classes, so the list has one source.
 
 Flow:
     A request is one of the ``*Request`` classes; the launcher answers with
     ``OkReply`` (its ``result`` one of the ``*Result`` classes) or
-    ``ErrorReply``; it also sends ``StatusPush`` and ``SettingsChangedPush``.
+    ``ErrorReply``; it also sends ``StatusPush`` and ``SettingsChangedPush`` and ``ShowMissionPush``.
     The classes describe the JSON shapes; ``control`` builds the dicts.
 
 Invariants:
@@ -32,7 +32,7 @@ from typing import Literal
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_REVISION = 1
+SCHEMA_REVISION = 2
 """The revision of the control list; a change to any message raises it."""
 
 MAX_MESSAGE_BYTES = 64 * 1024
@@ -44,6 +44,12 @@ ART_SCALING_VALUES: tuple[str, ...] = typing.get_args(ArtScaling)
 SETTINGS: dict[str, tuple[str, ...]] = {"art_scaling": ART_SCALING_VALUES}
 """Each setting's name and the values it may take."""
 DEFAULT_SETTINGS: dict[str, str] = {"art_scaling": "whole_pixels"}
+
+MissionTypeName = Literal[
+    "training", "melee", "tournament", "combat", "battle", "campaign"
+]
+MISSION_TYPE_NAMES: tuple[str, ...] = typing.get_args(MissionTypeName)
+"""The six mission types a page can be told to show."""
 
 ERROR_CODES = ("bad_message", "unknown_command", "bad_arguments")
 ErrorCode = Literal["bad_message", "unknown_command", "bad_arguments"]
@@ -84,11 +90,19 @@ class Settings:
 
 
 @dataclass
+class ShowMissionArgs:
+    """The mission to show: its type and its id in the network menu of that type."""
+
+    mission_type: MissionTypeName
+    id: int = field(metadata={"minimum": 0, "maximum": MAX_ID})
+
+
+@dataclass
 class HelloResult:
     """The launcher's version and the revision of the control list."""
 
     launcher_version: str
-    schema_revision: Literal[1]
+    schema_revision: Literal[2]
 
 
 @dataclass
@@ -133,6 +147,13 @@ class SettingsResult:
     """The settings as they stand."""
 
     settings: Settings
+
+
+@dataclass
+class ShowMissionResult:
+    """Whether the mission was found in its menu and so shown."""
+
+    shown: bool
 
 
 # ---- requests -------------------------------------------------------------
@@ -183,12 +204,22 @@ class SettingsSetRequest:
     args: ArtScalingChange
 
 
+@dataclass
+class ShowMissionRequest:
+    """Tell every open page to show one mission of the network menus."""
+
+    id: int = field(metadata=ID_RANGE)
+    command: Literal["page.show_mission"]
+    args: ShowMissionArgs
+
+
 REQUEST_CLASSES = (
     HelloRequest,
     InstallStatusRequest,
     MissionsListRequest,
     SettingsGetRequest,
     SettingsSetRequest,
+    ShowMissionRequest,
 )
 COMMANDS: tuple[str, ...] = tuple(
     typing.get_args(typing.get_type_hints(cls)["command"])[0] for cls in REQUEST_CLASSES
@@ -204,7 +235,13 @@ class OkReply:
 
     id: int = field(metadata=REPLY_ID_RANGE)
     ok: Literal[True]
-    result: HelloResult | InstallStatusResult | MissionsListResult | SettingsResult
+    result: (
+        HelloResult
+        | InstallStatusResult
+        | MissionsListResult
+        | SettingsResult
+        | ShowMissionResult
+    )
 
 
 @dataclass
@@ -248,10 +285,28 @@ class SettingsChangedPush:
     data: SettingsResult
 
 
+@dataclass
+class ShownMission:
+    """The mission a page is told to show."""
+
+    mission_type: MissionTypeName
+    id: int = field(metadata={"minimum": 0, "maximum": MAX_ID})
+    title: str
+
+
+@dataclass
+class ShowMissionPush:
+    """Sent to every open page when a mission is to be shown."""
+
+    event: Literal["page.show_mission"]
+    data: ShownMission
+
+
 MESSAGE_CLASSES = (
     *REQUEST_CLASSES,
     OkReply,
     ErrorReply,
     StatusPush,
     SettingsChangedPush,
+    ShowMissionPush,
 )

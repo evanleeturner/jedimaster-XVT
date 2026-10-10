@@ -24,15 +24,20 @@ import logging
 from pathlib import Path
 
 import pytest
+from listdata import crlf
 from pagedata import check_valid
 from pagedata import LAUNCHER_VERSION
 from pagedata import make_install
 from pagedata import request
 
+from jedimaster.lists.game import MISSION_TYPES
 from jedimaster.page.control import Control
 from jedimaster.page.control import parse_request
 from jedimaster.page.control import Refusal
+from jedimaster.page.protocol import COMMANDS
 from jedimaster.page.protocol import MAX_MESSAGE_BYTES
+from jedimaster.page.protocol import MISSION_TYPE_NAMES
+from jedimaster.page.protocol import SCHEMA_REVISION
 from jedimaster.page.settings import SettingsStore
 
 logger = logging.getLogger(__name__)
@@ -56,7 +61,7 @@ def test_hello(control):
     assert reply == {
         "id": 5,
         "ok": True,
-        "result": {"launcher_version": LAUNCHER_VERSION, "schema_revision": 1},
+        "result": {"launcher_version": LAUNCHER_VERSION, "schema_revision": 2},
     }
 
 
@@ -253,7 +258,17 @@ def test_the_largest_id_is_accepted(control):
 
 
 @pytest.mark.parametrize(
-    "command", ["", "Hello", "settings", "settings.reset", "install", "shutdown"]
+    "command",
+    [
+        "",
+        "Hello",
+        "settings",
+        "settings.reset",
+        "install",
+        "shutdown",
+        "page.show",
+        "page.hide_mission",
+    ],
 )
 def test_command_off_the_list_is_refused_and_logged(control, caplog, command):
     with caplog.at_level(logging.WARNING):
@@ -280,6 +295,18 @@ def test_command_off_the_list_is_refused_and_logged(control, caplog, command):
         ("settings.set", {"name": "art_scaling", "value": 1}),
         ("settings.set", {"name": ["art_scaling"], "value": "engine_fit"}),
         ("settings.set", {"name": "art_scaling", "value": "engine_fit", "x": 1}),
+        ("page.show_mission", {}),
+        ("page.show_mission", {"mission_type": "training"}),
+        ("page.show_mission", {"id": 1}),
+        ("page.show_mission", {"mission_type": "skirmish", "id": 1}),
+        ("page.show_mission", {"mission_type": "Training", "id": 1}),
+        ("page.show_mission", {"mission_type": ["training"], "id": 1}),
+        ("page.show_mission", {"mission_type": "training", "id": -1}),
+        ("page.show_mission", {"mission_type": "training", "id": 2**31}),
+        ("page.show_mission", {"mission_type": "training", "id": 1.5}),
+        ("page.show_mission", {"mission_type": "training", "id": "1"}),
+        ("page.show_mission", {"mission_type": "training", "id": True}),
+        ("page.show_mission", {"mission_type": "training", "id": 1, "x": 1}),
     ],
     ids=[
         "hello-no-version",
@@ -297,6 +324,18 @@ def test_command_off_the_list_is_refused_and_logged(control, caplog, command):
         "set-number-value",
         "set-list-name",
         "set-extra",
+        "show-empty",
+        "show-no-id",
+        "show-no-type",
+        "show-unknown-type",
+        "show-type-case",
+        "show-list-type",
+        "show-negative-id",
+        "show-id-too-large",
+        "show-fraction-id",
+        "show-text-id",
+        "show-bool-id",
+        "show-extra",
     ],
 )
 def test_bad_arguments(control, command, args):
@@ -322,3 +361,91 @@ def test_parse_request_returns_the_request():
 
 def test_the_size_cap_is_64_kib():
     assert MAX_MESSAGE_BYTES == 65536
+
+
+# ---- page.show_mission ----------------------------------------------------
+
+
+def shown(control: Control, mission_type: str, ident: int):
+    """Run ``page.show_mission``; return the checked reply and its pushes."""
+    outcome = control.handle(
+        request(1, "page.show_mission", {"mission_type": mission_type, "id": ident})
+    )
+    for push in outcome.pushes:
+        check_valid(push)
+    return check_valid(outcome.reply), outcome.pushes
+
+
+def test_the_list_has_six_commands_and_revision_2():
+    assert len(COMMANDS) == 6 and COMMANDS[-1] == "page.show_mission"
+    assert SCHEMA_REVISION == 2
+
+
+def test_the_mission_types_of_the_list_are_the_games_six():
+    assert MISSION_TYPE_NAMES == tuple(MISSION_TYPES)
+
+
+def test_show_mission_finds_the_entry_and_pushes_it(control):
+    reply, pushes = shown(control, "training", 2)
+    assert reply == {"id": 1, "ok": True, "result": {"shown": True}}
+    assert pushes == [
+        {
+            "event": "page.show_mission",
+            "data": {"mission_type": "training", "id": 2, "title": "Second Flight"},
+        }
+    ]
+
+
+def test_show_mission_finds_an_entry_in_another_type(control):
+    reply, pushes = shown(control, "melee", 7)
+    assert reply["result"] == {"shown": True}
+    assert pushes[0]["data"] == {
+        "mission_type": "melee",
+        "id": 7,
+        "title": "Open Field",
+    }
+
+
+@pytest.mark.parametrize(
+    ("mission_type", "ident"),
+    [("training", 99), ("training", 0), ("melee", 1), ("tournament", 1), ("combat", 1)],
+    ids=["no-such-id", "id-zero", "id-of-another-type", "menu-missing", "menu-broken"],
+)
+def test_a_missing_mission_is_an_ok_reply_with_no_push(control, mission_type, ident):
+    reply, pushes = shown(control, mission_type, ident)
+    assert reply == {"id": 1, "ok": True, "result": {"shown": False}}
+    assert pushes == []
+
+
+@pytest.mark.parametrize("mission_type", list(MISSION_TYPES))
+def test_every_mission_type_is_accepted(control, mission_type):
+    reply, _ = shown(control, mission_type, 1)
+    assert reply["ok"] is True
+
+
+def test_when_an_id_repeats_the_first_entry_wins(control, tmp_path):
+    menu = tmp_path / "XvT" / "Melee" / "MISSION.LST"
+    menu.write_bytes(
+        crlf("[Open]", "5", "A.TIE", "First One", "5", "B.TIE", "Second One")
+    )
+    reply, pushes = shown(control, "melee", 5)
+    assert reply["result"] == {"shown": True}
+    assert [p["data"]["title"] for p in pushes] == ["First One"]
+
+
+def test_show_mission_changes_no_setting_and_writes_no_file(control):
+    shown(control, "training", 1)
+    assert control.store.get() == {"art_scaling": "whole_pixels"}
+    assert not control.store.path.exists()
+
+
+def test_show_mission_pushes_do_not_leak_into_the_next_request(control):
+    shown(control, "training", 1)
+    assert control.handle(request(2, "settings.get")).pushes == []
+
+
+def test_show_mission_without_an_install_shows_nothing(tmp_path):
+    store = SettingsStore(tmp_path / "s.json")
+    bare = Control(None, store, LAUNCHER_VERSION)
+    reply, pushes = shown(bare, "training", 1)
+    assert reply["result"] == {"shown": False} and pushes == []

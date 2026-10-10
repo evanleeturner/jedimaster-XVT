@@ -29,6 +29,7 @@ from pagedata import EXAMPLES
 from pagedata import SCHEMA_FILE
 from pagedata import validator
 
+from jedimaster.lists.game import MISSION_TYPES
 from jedimaster.page.control import parse_request
 from jedimaster.page.control import Refusal
 from jedimaster.page.protocol import COMMANDS
@@ -89,3 +90,25 @@ def test_refused_example(path):
 def test_every_object_is_closed():
     defs = control_schema()["$defs"]
     assert all(d["additionalProperties"] is False for d in defs.values())
+
+
+def test_the_mission_types_in_the_schema_are_the_games_six():
+    defs = control_schema()["$defs"]
+    assert defs["ShowMissionArgs"]["properties"]["mission_type"]["enum"] == list(
+        MISSION_TYPES
+    )
+    assert defs["ShownMission"]["properties"]["mission_type"]["enum"] == list(
+        MISSION_TYPES
+    )
+
+
+def test_the_mission_id_runs_from_zero_to_the_largest_id():
+    defs = control_schema()["$defs"]
+    for name in ("ShowMissionArgs", "ShownMission"):
+        assert defs[name]["properties"]["id"]["minimum"] == 0
+        assert defs[name]["properties"]["id"]["maximum"] == 2**31 - 1
+
+
+def test_hello_promises_revision_2_only():
+    defs = control_schema()["$defs"]
+    assert defs["HelloResult"]["properties"]["schema_revision"] == {"const": 2}

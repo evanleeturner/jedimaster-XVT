@@ -239,7 +239,7 @@ CODEC_PLANTS: list[Plant] = [
     Plant(
         "web-codec-hello-revision",
         COD,
-        '    if (typeof launcher_version === "string" && schema_revision === 1) {',
+        '    if (typeof launcher_version === "string" && schema_revision === 2) {',
         '    if (typeof launcher_version === "string" && schema_revision !== 0) {',
         (
             N + "a reply refuses a result that matches no command",
@@ -457,4 +457,168 @@ LOGGER_PLANTS: list[Plant] = [
     ),
 ]
 
-WEB_PLANTS: list[Plant] = [*CODEC_PLANTS, *LOGGER_PLANTS, *VIEW_PLANTS]
+SHOW_PLANTS: list[Plant] = [
+    Plant(
+        "web-codec-hello-promises-revision-1",
+        COD,
+        '    if (typeof launcher_version === "string" && schema_revision === 2) {',
+        '    if (typeof launcher_version === "string" && schema_revision === 1) {',
+        (ACC + "reply-ok-hello.json",),
+    ),
+    Plant(
+        "web-codec-mission-types-short",
+        COD,
+        '  "campaign",\n] as const;\nexport type MissionType',
+        "] as const;\nexport type MissionType",
+        (ACC + "request-show-mission-id-zero.json",),
+    ),
+    Plant(
+        "web-codec-show-push-type-free",
+        COD,
+        "      !isMissionType(mission_type) ||\n      !isWhole(id, 0) ||\n      id > MAX_ID ||",
+        "      !isWhole(id, 0) ||\n      id > MAX_ID ||",
+        (
+            REF + "push-show-mission-unknown-type.json",
+            N + "a show-mission push refuses a wrong payload",
+        ),
+    ),
+    Plant(
+        "web-codec-show-push-negative-id",
+        COD,
+        "      !isMissionType(mission_type) ||\n      !isWhole(id, 0) ||\n      id > MAX_ID ||",
+        "      !isMissionType(mission_type) ||\n      !isWhole(id, -5) ||\n      id > MAX_ID ||",
+        (
+            REF + "push-show-mission-negative-id.json",
+            N + "a show-mission push refuses a wrong payload",
+        ),
+    ),
+    Plant(
+        "web-codec-show-push-id-unbounded",
+        COD,
+        "      !isWhole(id, 0) ||\n      id > MAX_ID ||\n      typeof title",
+        "      !isWhole(id, 0) ||\n      typeof title",
+        (N + "a show-mission push refuses a wrong payload",),
+    ),
+    Plant(
+        "web-codec-show-push-title-unchecked",
+        COD,
+        '      id > MAX_ID ||\n      typeof title !== "string"',
+        "      id > MAX_ID ||\n      false",
+        (N + "a show-mission push refuses a wrong payload",),
+    ),
+    Plant(
+        "web-codec-show-push-extra-field",
+        COD,
+        "      !hasExactly(data, names) ||",
+        "      false ||",
+        (N + "a show-mission push refuses a wrong payload",),
+    ),
+    Plant(
+        "web-codec-show-push-unchecked",
+        COD,
+        "      !hasExactly(data, names) ||\n      !isMissionType(mission_type) ||\n"
+        '      !isWhole(id, 0) ||\n      id > MAX_ID ||\n      typeof title !== "string"\n',
+        "      false\n",
+        (
+            REF + "push-show-mission-no-title.json",
+            REF + "push-show-mission-unknown-type.json",
+            REF + "push-show-mission-negative-id.json",
+        ),
+    ),
+    Plant(
+        "web-codec-show-push-title-lost",
+        COD,
+        "      data: { mission_type, id, title },",
+        '      data: { mission_type, id, title: "" },',
+        (
+            ACC + "push-show-mission.json",
+            N + "a push to show a mission is read back as written",
+        ),
+    ),
+    Plant(
+        "web-codec-show-request-type-free",
+        COD,
+        "        !isMissionType(mission_type) ||\n        !isWhole(mission, 0) ||",
+        "        !isWhole(mission, 0) ||",
+        (
+            REF + "request-show-mission-unknown-type.json",
+            N + "a show-mission request refuses a wrong type, id or shape",
+        ),
+    ),
+    Plant(
+        "web-codec-show-request-negative-id",
+        COD,
+        "        !isWhole(mission, 0) ||",
+        "        !isWhole(mission, -5) ||",
+        (
+            REF + "request-show-mission-negative-id.json",
+            N + "a show-mission request refuses a wrong type, id or shape",
+        ),
+    ),
+    Plant(
+        "web-codec-show-request-id-unbounded",
+        COD,
+        "        !isWhole(mission, 0) ||\n        mission > MAX_ID\n",
+        "        !isWhole(mission, 0)\n",
+        (
+            REF + "request-show-mission-id-too-large.json",
+            N + "a show-mission request refuses a wrong type, id or shape",
+        ),
+    ),
+    Plant(
+        "web-codec-show-request-extra-argument",
+        COD,
+        '        !hasExactly(args, ["mission_type", "id"]) ||',
+        "        false ||",
+        (
+            REF + "request-show-mission-extra-argument.json",
+            N + "a show-mission request refuses a wrong type, id or shape",
+        ),
+    ),
+    Plant(
+        "web-codec-show-request-unlisted",
+        COD,
+        '    case "page.show_mission": {',
+        '    case "page.show_missions": {',
+        (
+            ACC + "request-show-mission.json",
+            N + "every request is read back as written",
+        ),
+    ),
+    Plant(
+        "web-codec-show-request-type-lost",
+        COD,
+        "        message: { id, command, args: { mission_type, id: mission } },",
+        '        message: { id, command, args: { mission_type: "training", id: mission } },',
+        (N + "every request is read back as written",),
+    ),
+    Plant(
+        "web-codec-show-request-id-lost",
+        COD,
+        "        message: { id, command, args: { mission_type, id: mission } },",
+        "        message: { id, command, args: { mission_type, id: 1 } },",
+        (N + "every request is read back as written",),
+    ),
+    Plant(
+        "web-codec-show-result-flag-unchecked",
+        COD,
+        '    if (typeof shown !== "boolean") return fail("shown must be true or false");\n',
+        "",
+        (
+            REF + "reply-show-mission-shown-text.json",
+            N + "a reply refuses a result that matches no command",
+        ),
+    ),
+    Plant(
+        "web-codec-show-result-unlisted",
+        COD,
+        '  if (hasExactly(value, ["shown"])) {',
+        "  if (false) {",
+        (
+            ACC + "reply-ok-show-mission.json",
+            N + "every kind of ok reply is read back as written",
+        ),
+    ),
+]
+
+WEB_PLANTS: list[Plant] = [*CODEC_PLANTS, *LOGGER_PLANTS, *VIEW_PLANTS, *SHOW_PLANTS]

@@ -2,14 +2,15 @@
 
 Purpose:
     The commands are ``dump``, ``export``, ``lists``, ``icons``, ``text``,
-    ``fonts``, ``pictures``, ``pilot``, ``models``, ``movies`` and ``page``.
+    ``fonts``, ``pictures``, ``pilot``, ``models``, ``movies``, ``page`` and ``bot``.
     Print one mission in the answer-sheet text format, or export every
     mission of an install as JSON files; ``lists`` does the same for the game's text lists;
     ``icons`` reads the briefing map's icon sheets; ``text``, ``fonts`` and
     ``pictures`` read the menus' text files, fonts and pictures; ``pilot``
     reads a pilot's files and loads a pilot; ``models`` reads the 3D model
     files; ``movies`` reads the movies and their subtitle files; ``page``
-    serves the launcher's local web page.
+    serves the launcher's local web page; ``bot`` sets up and manages its
+    Discord bot.
 
 Flow:
     ``dump <mission>``: read the file (or, when no such file exists, resolve
@@ -47,6 +48,7 @@ import logging
 import sys
 from pathlib import Path
 
+from .bot import cli as bot_cli
 from .fonts import cli as fonts_cli
 from .icons import cli as icons_cli
 from .install import find_install
@@ -80,6 +82,7 @@ SUBCOMMANDS = {
     "models": models_cli,
     "movies": movies_cli,
     "page": page_cli,
+    "bot": bot_cli,
 }
 """The commands whose modules parse and run their own subcommands."""
 
@@ -113,6 +116,7 @@ def _parser() -> argparse.ArgumentParser:
     models_cli.add_parser(sub)
     movies_cli.add_parser(sub)
     page_cli.add_parser(sub)
+    bot_cli.add_parser(sub)
     return parser
 
 

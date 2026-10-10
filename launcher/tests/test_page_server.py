@@ -341,6 +341,57 @@ async def test_a_setting_reaches_a_second_page_and_the_file(client, control):
     await second.close()
 
 
+async def test_show_mission_reaches_every_open_page(client):
+    first = await connect(client)
+    second = await connect(client)
+    await receive(first)
+    await receive(second)
+    args = {"mission_type": "training", "id": 1}
+    reply = await ask(first, 6, "page.show_mission", args)
+    assert reply == {"id": 6, "ok": True, "result": {"shown": True}}
+    shown = {
+        "event": "page.show_mission",
+        "data": {"mission_type": "training", "id": 1, "title": "First Flight"},
+    }
+    assert await receive(first) == shown
+    assert await receive(second) == shown
+    await first.close()
+    await second.close()
+
+
+async def test_a_mission_that_is_not_listed_is_answered_and_pushed_to_nobody(client):
+    first = await connect(client)
+    second = await connect(client)
+    await receive(first)
+    await receive(second)
+    args = {"mission_type": "training", "id": 99}
+    reply = await ask(first, 6, "page.show_mission", args)
+    assert reply["result"] == {"shown": False}
+    reply = await ask(second, 1, "settings.get")
+    assert reply["id"] == 1
+    await first.close()
+    await second.close()
+
+
+async def test_the_broadcast_counts_the_open_pages_and_sends_in_order(client):
+    first = await connect(client)
+    await receive(first)
+    pushes = [
+        {
+            "event": "settings.changed",
+            "data": {"settings": {"art_scaling": "engine_fit"}},
+        },
+        {
+            "event": "settings.changed",
+            "data": {"settings": {"art_scaling": "whole_pixels"}},
+        },
+    ]
+    assert await server.broadcast(client.app, pushes) == 1
+    assert (await receive(first))["data"]["settings"]["art_scaling"] == "engine_fit"
+    assert (await receive(first))["data"]["settings"]["art_scaling"] == "whole_pixels"
+    await first.close()
+
+
 async def test_a_closed_page_is_dropped_from_the_pushes(client):
     first = await connect(client)
     second = await connect(client)
@@ -415,3 +466,28 @@ async def test_serve_binds_locally_prints_the_url_and_logs_no_secret(
     assert opened == ([url] if open_browser else [])
     assert KEY not in caplog.text
     assert "aiohttp.access" not in caplog.text
+
+
+async def test_serve_calls_on_start_once_with_the_bound_application(
+    control, page_dir, monkeypatch, capsys
+):
+    monkeypatch.setattr(server.webbrowser, "open", lambda url: None)
+    started: list[tuple[object, str]] = []
+
+    def on_start(app):
+        started.append((app, capsys.readouterr().out.strip()))
+
+    task = asyncio.create_task(serve(control, KEY, 0, page_dir, False, on_start))
+    for _ in range(100):
+        if started:
+            break
+        await asyncio.sleep(0.05)
+    assert len(started) == 1
+    app, printed = started[0]
+    assert app[server.CONTROL] is control
+    assert app[SOCKETS] == set()
+    assert printed.endswith(f"/?key={KEY}")
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert len(started) == 1

@@ -3,6 +3,7 @@ import type {
   InstallStatusResult,
   MenuData,
   OkReply,
+  ShownMission,
 } from "./generated/control.ts";
 
 export type Connection = "connecting" | "open" | "closed";
@@ -13,6 +14,8 @@ export interface State {
   readonly install: InstallStatusResult | null;
   readonly menus: readonly MenuData[] | null;
   readonly artScaling: ArtScaling | null;
+  readonly shown: ShownMission | null;
+  readonly shownCount: number;
   readonly problem: string | null;
 }
 
@@ -24,6 +27,7 @@ export type Action =
 
 export interface MenuEntryView {
   readonly text: string;
+  readonly current: boolean;
 }
 
 export interface MenuView {
@@ -41,6 +45,8 @@ export interface View {
   readonly menus: readonly MenuView[];
   readonly missionsNote: string | null;
   readonly artScaling: ArtScaling | null;
+  readonly shownText: string;
+  readonly shownCount: number;
   readonly settingsEnabled: boolean;
   readonly problem: string | null;
 }
@@ -54,6 +60,8 @@ export function initialState(): State {
     install: null,
     menus: null,
     artScaling: null,
+    shown: null,
+    shownCount: 0,
     problem: null,
   };
 }
@@ -64,6 +72,7 @@ function applyResult(state: State, result: OkReply["result"]): State {
   }
   if ("found" in result) return { ...state, install: result };
   if ("menus" in result) return { ...state, menus: result.menus };
+  if ("shown" in result) return state;
   return { ...state, artScaling: result.settings.art_scaling };
 }
 
@@ -73,6 +82,14 @@ function applyMessage(state: State, message: Message): State {
       return {
         ...state,
         launcherVersion: message.data.launcher_version,
+        problem: null,
+      };
+    }
+    if (message.event === "page.show_mission") {
+      return {
+        ...state,
+        shown: message.data,
+        shownCount: state.shownCount + 1,
         problem: null,
       };
     }
@@ -116,7 +133,7 @@ function titleCase(name: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
 
-function menuView(menu: MenuData): MenuView {
+function menuView(menu: MenuData, shown: ShownMission | null): MenuView {
   const heading = `${titleCase(menu.mission_type)} missions`;
   if (!menu.resolved) {
     return {
@@ -125,10 +142,17 @@ function menuView(menu: MenuData): MenuView {
       entries: [],
     };
   }
-  const entries = menu.entries.map((entry) => {
+  const target =
+    shown?.mission_type === menu.mission_type
+      ? menu.entries.findIndex((entry) => entry.id === shown.id)
+      : -1;
+  const entries = menu.entries.map((entry, index) => {
     const place = entry.section === "" ? "" : `${entry.section}: `;
     const word = entry.available ? "available" : "not available";
-    return { text: `${place}${entry.title} (${entry.file}), ${word}` };
+    return {
+      text: `${place}${entry.title} (${entry.file}), ${word}`,
+      current: index === target,
+    };
   });
   return {
     heading,
@@ -163,10 +187,12 @@ export function describe(state: State): View {
         : `Launcher version: ${state.launcherVersion}`,
     installText: installText(state),
     balanceText: balanceText(state),
-    menus: menus.map(menuView),
+    menus: menus.map((menu) => menuView(menu, state.shown)),
     missionsNote:
       state.menus === null ? "The mission lists have not arrived yet." : null,
     artScaling: state.artScaling,
+    shownText: state.shown === null ? "" : `Showing ${state.shown.title}`,
+    shownCount: state.shownCount,
     settingsEnabled: state.connection === "open",
     problem: state.problem,
   };

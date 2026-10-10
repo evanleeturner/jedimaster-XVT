@@ -193,6 +193,21 @@ a {
   margin-block: 0.25rem;
 }
 
+.mission-shown {
+  margin-block: 0.5rem;
+  font-weight: 600;
+}
+
+.mission-item[aria-current="true"] {
+  border-inline-start: 0.25rem solid var(--focus);
+  padding-inline-start: 0.5rem;
+  font-weight: 700;
+}
+
+.mission-item[aria-current="true"]::before {
+  content: "\25B6\00a0" / "";
+}
+
 [hidden] {
   display: none;
 }

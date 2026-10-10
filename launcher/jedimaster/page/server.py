@@ -148,10 +148,22 @@ async def _send(ws: web.WebSocketResponse, message: dict) -> None:
         logger.warning("cannot send to a page: %s", exc)
 
 
-async def _broadcast(app: web.Application, outcome: Outcome) -> None:
-    for push in outcome.pushes:
-        for other in list(app[SOCKETS]):
+async def broadcast(app: web.Application, pushes: list[dict]) -> int:
+    """Send each push, in order, to every open page; return how many pages are open.
+
+    A page that cannot be reached is logged at WARNING and skipped. Returns
+    the count of sockets open when the call began, also when ``pushes`` is
+    empty. Does not check what the pushes say.
+    """
+    pages = list(app[SOCKETS])
+    for push in pushes:
+        for other in pages:
             await _send(other, push)
+    return len(pages)
+
+
+async def _broadcast(app: web.Application, outcome: Outcome) -> None:
+    await broadcast(app, outcome.pushes)
 
 
 async def socket(request: web.Request) -> web.StreamResponse:
@@ -212,14 +224,20 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
 
 
 async def serve(
-    control: Control, key: str, port: int, page_dir: Path, open_browser: bool
+    control: Control,
+    key: str,
+    port: int,
+    page_dir: Path,
+    open_browser: bool,
+    on_start: Callable[[web.Application], None] | None = None,
 ) -> None:
     """Bind 127.0.0.1:``port`` (0 takes a free one), print the URL, run on.
 
     Prints ``http://127.0.0.1:PORT/?key=SECRET`` and opens it in the browser
-    unless ``open_browser`` is False. Runs until cancelled, then closes the
-    sockets and the server. Raises ``OSError`` when the port cannot be
-    bound.
+    unless ``open_browser`` is False. Calls ``on_start`` once, with the
+    application, after the port is bound (a second user of the same event
+    loop starts there). Runs until cancelled, then closes the sockets and
+    the server. Raises ``OSError`` when the port cannot be bound.
     """
     runner = web.AppRunner(make_app(control, key, page_dir), **RUNNER_OPTIONS)
     await runner.setup()
@@ -229,6 +247,8 @@ async def serve(
         url = f"http://{HOST}:{bound}/?key={key}"
         logger.info("serving on %s:%d", HOST, bound)
         print(url, flush=True)
+        if on_start is not None:
+            on_start(runner.app)
         if open_browser:
             webbrowser.open(url)
         await asyncio.Event().wait()

@@ -11,10 +11,12 @@ export type LauncherControlMessage =
   | MissionsListRequest
   | SettingsGetRequest
   | SettingsSetRequest
+  | ShowMissionRequest
   | OkReply
   | ErrorReply
   | StatusPush
-  | SettingsChangedPush;
+  | SettingsChangedPush
+  | ShowMissionPush;
 
 /**
  * Ask the launcher to introduce itself.
@@ -74,19 +76,34 @@ export interface ArtScalingChange {
   value: "whole_pixels" | "engine_fit" | "sharp_bilinear";
 }
 /**
+ * Tell every open page to show one mission of the network menus.
+ */
+export interface ShowMissionRequest {
+  id: number;
+  command: "page.show_mission";
+  args: ShowMissionArgs;
+}
+/**
+ * The mission to show: its type and its id in the network menu of that type.
+ */
+export interface ShowMissionArgs {
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  id: number;
+}
+/**
  * The command ran; its result.
  */
 export interface OkReply {
   id: number;
   ok: true;
-  result: HelloResult | InstallStatusResult | MissionsListResult | SettingsResult;
+  result: HelloResult | InstallStatusResult | MissionsListResult | SettingsResult | ShowMissionResult;
 }
 /**
  * The launcher's version and the revision of the control list.
  */
 export interface HelloResult {
   launcher_version: string;
-  schema_revision: 1;
+  schema_revision: 2;
 }
 /**
  * The install found (home shown as ~) and whether Balance of Power is in it.
@@ -134,6 +151,12 @@ export interface Settings {
   art_scaling: "whole_pixels" | "engine_fit" | "sharp_bilinear";
 }
 /**
+ * Whether the mission was found in its menu and so shown.
+ */
+export interface ShowMissionResult {
+  shown: boolean;
+}
+/**
  * The command did not run; the reason.
  */
 export interface ErrorReply {
@@ -168,4 +191,19 @@ export interface StatusData {
 export interface SettingsChangedPush {
   event: "settings.changed";
   data: SettingsResult;
+}
+/**
+ * Sent to every open page when a mission is to be shown.
+ */
+export interface ShowMissionPush {
+  event: "page.show_mission";
+  data: ShownMission;
+}
+/**
+ * The mission a page is told to show.
+ */
+export interface ShownMission {
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  id: number;
+  title: string;
 }

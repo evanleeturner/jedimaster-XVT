@@ -1,5 +1,5 @@
 import { AxeBuilder } from "@axe-core/playwright";
-import type { Page } from "@playwright/test";
+import type { BrowserContext, Page } from "@playwright/test";
 
 import { expect, test } from "./launcher.ts";
 
@@ -81,6 +81,88 @@ test("missions list each menu, with availability in words", async ({
   ).toHaveText("Open: Open Field (delta.tie), available");
   await expect(missions.getByRole("heading", { level: 3 })).toHaveCount(6);
   await expect(missions).toContainText("was not found (tourn\\mission.lst)");
+});
+
+async function askFromSecondSocket(
+  context: BrowserContext,
+  origin: string,
+  mission: { mission_type: string; id: number },
+): Promise<unknown> {
+  const caller = await context.newPage();
+  await caller.goto(`${origin}/style.css`);
+  const reply = await caller.evaluate(
+    (args) =>
+      new Promise<unknown>((resolve, reject) => {
+        const socket = new WebSocket(`ws://${location.host}/ws`);
+        socket.addEventListener("error", () => {
+          reject(new Error("the second socket failed"));
+        });
+        socket.addEventListener("message", (event: MessageEvent<string>) => {
+          const message = JSON.parse(event.data) as Record<string, unknown>;
+          if ("ok" in message) {
+            socket.close();
+            resolve(message);
+          }
+        });
+        socket.addEventListener("open", () => {
+          socket.send(
+            JSON.stringify({ id: 1, command: "page.show_mission", args }),
+          );
+        });
+      }),
+    mission,
+  );
+  await caller.close();
+  return reply;
+}
+
+test("a mission shown from a second socket is marked, scrolled to and announced", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await page.setViewportSize({ width: 800, height: 260 });
+  await openPage(page, launcher.url);
+  const far = page.getByRole("listitem").filter({ hasText: "Open Field" });
+  const first = page.getByRole("listitem").filter({ hasText: "First Flight" });
+  await expect(page.locator("[aria-current]")).toHaveCount(0);
+  await expect(far).not.toBeInViewport();
+  await page.getByRole("link", { name: "Settings" }).focus();
+  const reply = await askFromSecondSocket(context, launcher.origin, {
+    mission_type: "melee",
+    id: 7,
+  });
+  expect(reply).toEqual({ id: 1, ok: true, result: { shown: true } });
+  await expect(far).toHaveAttribute("aria-current", "true");
+  await expect(page.locator("[aria-current]")).toHaveCount(1);
+  await expect(far).toBeInViewport();
+  await expect(page.locator("#mission-shown")).toHaveText("Showing Open Field");
+  await expect(page.locator("#mission-shown")).toHaveAttribute(
+    "aria-live",
+    "polite",
+  );
+  const mark = await far.evaluate(
+    (el) => getComputedStyle(el, "::before").content,
+  );
+  expect(mark).toContain("\u25B6");
+  await expect(page.getByRole("link", { name: "Settings" })).toBeFocused();
+  await askFromSecondSocket(context, launcher.origin, {
+    mission_type: "training",
+    id: 1,
+  });
+  await expect(first).toHaveAttribute("aria-current", "true");
+  await expect(far).not.toHaveAttribute("aria-current", "true");
+  await expect(page.locator("#mission-shown")).toHaveText(
+    "Showing First Flight",
+  );
+  const missing = await askFromSecondSocket(context, launcher.origin, {
+    mission_type: "training",
+    id: 99,
+  });
+  expect(missing).toEqual({ id: 1, ok: true, result: { shown: false } });
+  await expect(first).toHaveAttribute("aria-current", "true");
+  const found = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+  expect(found.violations).toEqual([]);
 });
 
 test("art scaling has three choices, one plain sentence each", async ({
