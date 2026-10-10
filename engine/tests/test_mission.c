@@ -2,13 +2,25 @@
  * scoring and flight group arrivals. Each check builds the mission it needs in
  * the game's own tables: two flight groups, a few craft in a small object table
  * this file owns, and the goal and trigger records set field by field. The
- * loader checks read TIE-format mission files this file writes into a
- * temporary asset folder; no game data is read.
+ * loader checks read mission files this file writes, in the stored format of
+ * versions 12 to 14 and in the TIE format, into a temporary asset folder; no
+ * game data is read.
+ *
+ * Not checked here, in mission_load_file:
+ * - A file that does not open, or comes up short, ends the program on a
+ *   message box that waits on a machine with a display.
+ * - The version 10 branches never run, and a message index, a flight group
+ *   count, a message count or a global goal count past its table (of the TIE
+ *   format) would write past the table, which the sanitizers stop.
+ * - A role that fills all 16 bytes makes the upper-casing loop read the byte
+ *   after its field, which the array-bounds check of the sanitizers stops.
  *
  * POSIX only, for the temporary folder (test_asset_folder.h). */
 #define _POSIX_C_SOURCE 200809L
 
+#include <SDL3/SDL_log.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "test_assert.h"
@@ -23,6 +35,8 @@
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt/frontend/mission_setup.h"
+#include "xvt/util/memory.h"
+#include "xvt_runtime/log/log.h"
 
 enum {
 	TEST_OBJECT_COUNT = 8,
@@ -1335,10 +1349,17 @@ static void check_kill_credit_weightless_attacker(void)
 
 static struct xvt_test_assets g_assets;
 
+static struct tie_radio_message g_tie_messages[4];
+static int16_t g_tie_message_count;
+/* The length of the briefing text mission_load_file skips: the first string
+ * of each list has this many bytes. */
+static int16_t g_tie_briefing_text_length;
+
 /* Writes a mission file in the TIE format, version 0xFFFF: the counts of
- * flight groups, messages (none here) and goals, the header, each flight
- * group, each goal, then the briefing the loader skips, 810 bytes and 64
- * empty strings. */
+ * flight groups, messages (g_tie_messages, none unless a check sets them) and
+ * goals, the header, each flight group, each message, each goal, then the
+ * briefing the loader skips, 810 bytes and 2 lists of 32 strings (empty
+ * unless g_tie_briefing_text_length says so). */
 static void write_tie_mission(const char *name, uint16_t version,
 			      const struct e_mission_struct *header,
 			      const struct efg_struct *groups,
@@ -1348,7 +1369,7 @@ static void write_tie_mission(const char *name, uint16_t version,
 {
 	static uint8_t file[8192];
 	size_t size = 0;
-	int16_t message_count = 0;
+	int16_t message_count = g_tie_message_count;
 	memset(file, 0, sizeof file);
 	memcpy(file + size, &version, sizeof version);
 	size += sizeof version;
@@ -1362,16 +1383,29 @@ static void write_tie_mission(const char *name, uint16_t version,
 	size += sizeof *header;
 	memcpy(file + size, groups, group_count * sizeof *groups);
 	size += group_count * sizeof *groups;
+	memcpy(file + size, g_tie_messages,
+	       message_count * sizeof g_tie_messages[0]);
+	size += message_count * sizeof g_tie_messages[0];
 	memcpy(file + size, goals, goal_count * sizeof *goals);
 	size += goal_count * sizeof *goals;
-	size += 810 + 64 * sizeof(int16_t);
+	size += 810;
+	for (int list = 0; list < 2; ++list) {
+		for (int string = 0; string < 32; ++string) {
+			int16_t length =
+				string == 0 ? g_tie_briefing_text_length : 0;
+			memcpy(file + size, &length, sizeof length);
+			size += sizeof length;
+			memset(file + size, 'b', (size_t)length);
+			size += (size_t)length;
+		}
+	}
 	XVT_ASSERT_TRUE(size <= sizeof file);
 	xvt_test_write_file(g_assets.asset, name, file, size);
 }
 
 static struct e_mission_struct g_tie_header;
-static struct efg_struct g_tie_groups[4];
-static struct e_mission_goal g_tie_goals[2];
+static struct efg_struct g_tie_groups[8];
+static struct e_mission_goal g_tie_goals[8];
 
 /* A TIE mission of four groups on IFF 1, 0, 2 and 3, IFF 2's name starting
  * with '1'. Group 0 is the player's, flying its second craft; its role is
@@ -1384,6 +1418,9 @@ static void build_tie_mission(void)
 	memset(&g_tie_header, 0, sizeof g_tie_header);
 	memset(g_tie_groups, 0, sizeof g_tie_groups);
 	memset(g_tie_goals, 0, sizeof g_tie_goals);
+	memset(g_tie_messages, 0, sizeof g_tie_messages);
+	g_tie_message_count = 0;
+	g_tie_briefing_text_length = 0;
 	strcpy(g_tie_header.neutral_name[0], "1Pirates");
 	strcpy(g_tie_header.neutral_name[1], "Traders");
 	static const uint8_t sides[4] = {1, 0, 2, 3};
@@ -1585,8 +1622,1234 @@ static void check_tie_goal_text_handles_cleared(void)
 	XVT_ASSERT_INT_EQ(g_global_goal_override_string_handles[0][0][0][0], 0);
 }
 
+/* The engine's log lines, kept without Aeron's "xvt: " prefix; lines past the
+ * capacity are dropped. */
+enum {
+	LOG_LINE_CAPACITY = 800,
+	LOG_LINE_SIZE = 320,
+};
+
+static char g_log_lines[LOG_LINE_CAPACITY][LOG_LINE_SIZE];
+static int g_log_line_count;
+
+static void catch_line(void *userdata, int category, SDL_LogPriority priority,
+		       const char *message)
+{
+	(void)userdata;
+	(void)category;
+	(void)priority;
+	static const char prefix[] = "xvt: ";
+	if (g_log_line_count >= LOG_LINE_CAPACITY) {
+		return;
+	}
+	if (strncmp(message, prefix, sizeof prefix - 1) == 0) {
+		message += sizeof prefix - 1;
+	}
+	snprintf(g_log_lines[g_log_line_count++], LOG_LINE_SIZE, "%s", message);
+}
+
+/* The last kept line that starts with start (an event and any of its first
+ * fields), or NULL. */
+static const char *find_line(const char *start)
+{
+	size_t length = strlen(start);
+	for (int i = g_log_line_count - 1; i >= 0; --i) {
+		if (strncmp(g_log_lines[i], start, length) == 0) {
+			return g_log_lines[i];
+		}
+	}
+	return NULL;
+}
+
+/* 1 when the last kept line that starts with start also holds fields. */
+static int line_holds(const char *start, const char *fields)
+{
+	const char *line = find_line(start);
+	return line != NULL && strstr(line, fields) != NULL;
+}
+
+/* The number of kept lines that start with start. */
+static int count_lines(const char *start)
+{
+	size_t length = strlen(start);
+	int count = 0;
+	for (int i = 0; i < g_log_line_count; ++i) {
+		if (strncmp(g_log_lines[i], start, length) == 0) {
+			++count;
+		}
+	}
+	return count;
+}
+
+/* Fills size bytes at memory with a sequence that differs at every offset and
+ * with the seed, so a field copied from the wrong place shows. */
+static void pattern_fill(void *memory, size_t size, unsigned int seed)
+{
+	uint8_t *bytes = memory;
+	for (size_t i = 0; i < size; ++i) {
+		bytes[i] = (uint8_t)(seed + 7 * i);
+	}
+}
+
+/* A mission file of versions 12 to 14, built field by field in g_stored and
+ * written by write_stored_mission in the order mission_load_file reads it. */
+static struct {
+	struct mission_header header;
+	struct xvt_flight_group groups[48];
+	int16_t message_index[MISSION_MESSAGE_COUNT];
+	struct mission_message messages[MISSION_MESSAGE_COUNT];
+	int16_t goal_count[10];
+	struct global_goal goals[10][7];
+	int16_t team_count[10];
+	struct team teams[10];
+	/* The length of the briefing text mission_load_file skips: the first
+	 * string of each list of the odd briefings has this many bytes. A
+	 * negative length is written without text. */
+	int16_t briefing_text_length;
+	/* Replaces the length of the last string of the last briefing. */
+	int16_t last_briefing_length;
+	char flight_group_text[48][8][3][64];
+	char team_goal_text[10][7][4][3][64];
+} g_stored;
+
+static uint8_t g_file_image[400000];
+
+static size_t put_bytes(size_t size, const void *data, size_t length)
+{
+	XVT_ASSERT_TRUE(size + length <= sizeof g_file_image);
+	memcpy(g_file_image + size, data, length);
+	return size + length;
+}
+
+static size_t put_fill(size_t size, uint8_t byte, size_t length)
+{
+	XVT_ASSERT_TRUE(size + length <= sizeof g_file_image);
+	memset(g_file_image + size, byte, length);
+	return size + length;
+}
+
+/* A list of 32 briefing strings, each a 16-bit length and the text: the first
+ * has first_length bytes, the last last_length, the rest none. */
+static size_t put_text_list(size_t size, int16_t first_length,
+			    int16_t last_length)
+{
+	for (int string = 0; string < 32; ++string) {
+		int16_t length = 0;
+		if (string == 0) {
+			length = first_length;
+		}
+		if (string == 31) {
+			length = last_length;
+		}
+		size = put_bytes(size, &length, sizeof length);
+		if (length > 0) {
+			size = put_fill(size, 'b', (size_t)length);
+		}
+	}
+	return size;
+}
+
+static void write_stored_mission(const char *name, uint16_t version)
+{
+	size_t size = 0;
+	int groups = g_stored.header.num_flight_groups;
+	size = put_bytes(size, &version, sizeof version);
+	size = put_bytes(size, &g_stored.header, sizeof g_stored.header);
+	size = put_bytes(size, g_stored.groups,
+			 (size_t)groups * sizeof g_stored.groups[0]);
+	for (int i = 0; i < (int16_t)g_stored.header.num_messages; ++i) {
+		size = put_bytes(size, &g_stored.message_index[i],
+				 sizeof g_stored.message_index[0]);
+		size = put_bytes(size, &g_stored.messages[i],
+				 sizeof g_stored.messages[0]);
+	}
+	for (int team = 0; team < 10; ++team) {
+		size = put_bytes(size, &g_stored.goal_count[team],
+				 sizeof g_stored.goal_count[0]);
+		size = put_bytes(size, g_stored.goals[team],
+				 (size_t)g_stored.goal_count[team] *
+					 sizeof g_stored.goals[0][0]);
+	}
+	for (int team = 0; team < 10; ++team) {
+		size = put_bytes(size, &g_stored.team_count[team],
+				 sizeof g_stored.team_count[0]);
+		if (g_stored.team_count[team] != 0) {
+			size = put_bytes(size, &g_stored.teams[team],
+					 sizeof g_stored.teams[0]);
+		}
+	}
+	for (int player = 0; player < 8; ++player) {
+		int16_t length =
+			player % 2 != 0 ? g_stored.briefing_text_length : 0;
+		int16_t last_length =
+			player == 7 ? g_stored.last_briefing_length : 0;
+		size = put_fill(size, 0, 810 + 10);
+		size = put_text_list(size, length, 0);
+		size = put_text_list(size, length, last_length);
+	}
+	size = put_bytes(size, g_stored.flight_group_text,
+			 (size_t)groups * sizeof g_stored.flight_group_text[0]);
+	size = put_bytes(size, g_stored.team_goal_text,
+			 sizeof g_stored.team_goal_text);
+	xvt_test_write_file(g_assets.asset, name, g_file_image, size);
+}
+
+/* Two groups of X-wings on teams 0 and 1, no messages, no goals, no team
+ * records and no text, the briefings 5 bytes of text each. */
+static void stored_reset(void)
+{
+	memset(&g_stored, 0, sizeof g_stored);
+	g_stored.header.num_flight_groups = 2;
+	g_stored.briefing_text_length = 5;
+	for (int fg = 0; fg < 2; ++fg) {
+		snprintf(g_stored.groups[fg].name,
+			 sizeof g_stored.groups[fg].name, "Group %d", fg);
+		g_stored.groups[fg].craft_type = TEST_XWING;
+		g_stored.groups[fg].number_of_craft = 2;
+		g_stored.groups[fg].team = (uint8_t)fg;
+		g_stored.groups[fg].iff = (uint8_t)fg;
+	}
+}
+
+/* The world a stored mission loads into: the two groups of fresh_world, no
+ * messages, no goal texts and an empty log. */
+static void stored_world(void)
+{
+	fresh_world();
+	memset(g_mission_messages, 0, sizeof g_mission_messages);
+	memset(g_mission_fg_override_string_handles, 0,
+	       sizeof g_mission_fg_override_string_handles);
+	memset(g_global_goal_override_string_handles, 0,
+	       sizeof g_global_goal_override_string_handles);
+	g_log_line_count = 0;
+}
+
+/* Fills the stack the next call will use with a byte that is not 0, so
+ * what the loader leaves unwritten in a buffer of its own is not a lucky
+ * run of zeros. */
+__attribute__((noinline)) static void dirty_stack(void)
+{
+	volatile unsigned char scratch[32768];
+	for (size_t i = 0; i < sizeof scratch; ++i) {
+		scratch[i] = 'X';
+	}
+}
+
+/* Writes g_stored as "stored.mis", of the given version, into a fresh asset
+ * folder and loads it; returns the loader's result. */
+static int load_stored(uint16_t version)
+{
+	xvt_test_open_assets(&g_assets);
+	write_stored_mission("stored.mis", version);
+	dirty_stack();
+	int result = mission_load_file("stored.mis");
+	xvt_test_close_assets(&g_assets);
+	return result;
+}
+
+/* A global goal of seed-dependent bytes whose four conditions are all "destroyed",
+ * so the loader's last step leaves it alone. */
+static void plain_goal(struct global_goal *goal, unsigned int seed)
+{
+	pattern_fill(goal, sizeof *goal, seed);
+	for (int pair = 0; pair < 2; ++pair) {
+		for (int trigger = 0; trigger < 2; ++trigger) {
+			goal->trigger_pairs[pair].triggers[trigger].condition =
+				MISSION_COND_DESTROYED;
+		}
+	}
+}
+
+/* Versions 12, 13 and 14 read the same records: the header replaces the old
+ * one whole, each flight group is stored as it is with no player owning it,
+ * and the loader returns 1. */
+static void check_load_stored_versions(void)
+{
+	static const uint16_t versions[] = {12, 13, 14};
+	for (size_t i = 0; i < sizeof versions / sizeof versions[0]; ++i) {
+		stored_reset();
+		pattern_fill(&g_stored.header, sizeof g_stored.header, 3);
+		g_stored.header.num_flight_groups = 2;
+		g_stored.header.num_messages = 0;
+		g_stored.header.mission_type = MISSION_TYPE_MELEE;
+		g_stored.header.backdrop = 7;
+		g_stored.header.time_limit_minutes = 30;
+		for (int fg = 0; fg < 2; ++fg) {
+			pattern_fill(&g_stored.groups[fg],
+				     sizeof g_stored.groups[fg], 40 + fg);
+			strcpy(g_stored.groups[fg].craft_role, "ABC1");
+		}
+		stored_world();
+		g_mission_header.reserved[5] = 99;
+		g_mission_flight_groups[0].player_owner_idx = 3;
+		g_mission_flight_groups[1].player_owner_idx = 4;
+		XVT_ASSERT_INT_EQ(load_stored(versions[i]), 1);
+		XVT_ASSERT_INT_EQ(g_mission_file_version, versions[i]);
+		XVT_ASSERT_INT_EQ(memcmp(&g_mission_header, &g_stored.header,
+					 sizeof g_stored.header),
+				  0);
+		for (int fg = 0; fg < 2; ++fg) {
+			XVT_ASSERT_INT_EQ(
+				memcmp(&g_mission_flight_groups[fg].fg,
+				       &g_stored.groups[fg],
+				       sizeof g_stored.groups[fg]),
+				0);
+			XVT_ASSERT_INT_EQ(
+				g_mission_flight_groups[fg].player_owner_idx,
+				-1);
+		}
+		XVT_ASSERT_TRUE(line_holds(
+			"mission.file_header",
+			"groups=2 messages=0 backdrop=7 minutes=30"));
+	}
+}
+
+/* A file whose version is not 12, 13, 14 or 0xFFFF is refused with 0 and
+ * leaves the tables as they were. Version 10, which the loader's own branches
+ * name, is refused too. */
+static void check_load_refuses_other_versions(void)
+{
+	static const uint16_t versions[] = {0, 10, 11, 15, 0xFFFE};
+	for (size_t i = 0; i < sizeof versions / sizeof versions[0]; ++i) {
+		stored_reset();
+		stored_world();
+		g_mission_header.mission_type = MISSION_TYPE_COMBAT;
+		XVT_ASSERT_INT_EQ(load_stored(versions[i]), 0);
+		XVT_ASSERT_INT_EQ(g_mission_file_version, versions[i]);
+		XVT_ASSERT_INT_EQ(g_mission_header.mission_type,
+				  MISSION_TYPE_COMBAT);
+		XVT_ASSERT_INT_EQ(g_mission_header.num_flight_groups, 2);
+		if (g_stream != NULL) {
+			fe_disk_io_close_global_stream(0);
+		}
+	}
+}
+
+/* Known failure refused_version_stays_open, issue #266: a refused file's
+ * stream is closed with the loader's other ending; the loader returns 0 for a
+ * version it does not know and leaves the file open. */
+static void check_refused_version_closes_file(void)
+{
+	stored_reset();
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(11), 0);
+	XVT_ASSERT_TRUE(g_stream == NULL);
+}
+
+/* Each message goes to the index the file gives it, in any order, and the
+ * messages the file does not name are left alone. */
+static void check_load_stored_messages(void)
+{
+	static const int16_t indexes[3] = {5, 0, MISSION_MESSAGE_COUNT - 1};
+	stored_reset();
+	g_stored.header.num_messages = 3;
+	for (int i = 0; i < 3; ++i) {
+		g_stored.message_index[i] = indexes[i];
+		pattern_fill(&g_stored.messages[i], sizeof g_stored.messages[i],
+			     90 + i);
+		snprintf(g_stored.messages[i].message,
+			 sizeof g_stored.messages[i].message, "Message %d", i);
+	}
+	stored_world();
+	strcpy(g_mission_messages[1].message, "Old");
+	XVT_ASSERT_INT_EQ(load_stored(13), 1);
+	for (int i = 0; i < 3; ++i) {
+		XVT_ASSERT_INT_EQ(memcmp(&g_mission_messages[indexes[i]],
+					 &g_stored.messages[i],
+					 sizeof g_stored.messages[i]),
+				  0);
+	}
+	XVT_ASSERT_TRUE(strcmp(g_mission_messages[1].message, "Old") == 0);
+	XVT_ASSERT_TRUE(strcmp(g_mission_messages[2].message, "") == 0);
+}
+
+/* A message count of 0x8000 or more is over the table's size, which the loader
+ * warns of; its loop treats the count as negative and reads none. */
+static void check_load_stored_messages_over(void)
+{
+	stored_reset();
+	g_stored.header.num_messages = 0x8000;
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(14), 1);
+	XVT_ASSERT_TRUE(line_holds("mission.file_counts_over",
+				   "groups=2 messages=32768"));
+	stored_reset();
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(14), 1);
+	XVT_ASSERT_INT_EQ(count_lines("mission.file_counts_over"), 0);
+}
+
+/* Each team has as many global goals as the file counts for it; a team that
+ * counts none keeps what it had, and so does a goal past the count. A count
+ * over 7 is warned of. */
+static void check_load_stored_team_goals(void)
+{
+	static const int16_t counts[10] = {3, 0, 7, 1, 0, 0, 0, 0, 0, 2};
+	stored_reset();
+	for (int team = 0; team < 10; ++team) {
+		g_stored.goal_count[team] = counts[team];
+		for (int goal = 0; goal < counts[team]; ++goal) {
+			plain_goal(&g_stored.goals[team][goal],
+				   (unsigned int)(10 * team + goal));
+		}
+	}
+	stored_world();
+	for (int team = 0; team < 10; ++team) {
+		for (int goal = 0; goal < 7; ++goal) {
+			strcpy(g_mission_global_goals[team][goal].name, "Old");
+		}
+	}
+	XVT_ASSERT_INT_EQ(load_stored(12), 1);
+	for (int team = 0; team < 10; ++team) {
+		for (int goal = 0; goal < 7; ++goal) {
+			if (goal < counts[team]) {
+				XVT_ASSERT_INT_EQ(
+					memcmp(&g_mission_global_goals[team]
+								      [goal],
+					       &g_stored.goals[team][goal],
+					       sizeof g_stored.goals[0][0]),
+					0);
+			} else {
+				XVT_ASSERT_TRUE(strcmp(g_mission_global_goals
+							       [team][goal]
+								       .name,
+						       "Old") == 0);
+			}
+		}
+	}
+	XVT_ASSERT_TRUE(
+		line_holds("mission.team_goals_read team=2 ", "count=7"));
+	XVT_ASSERT_TRUE(
+		line_holds("mission.team_goals_read team=9 ", "count=2"));
+	XVT_ASSERT_INT_EQ(count_lines("mission.team_goals_read"), 10);
+	XVT_ASSERT_INT_EQ(count_lines("mission.goal_count_invalid"), 0);
+}
+
+/* A team that counts 8 goals is warned of and still reads them all, the
+ * eighth into the next team's first place, which that team's own read then
+ * replaces. */
+static void check_load_stored_team_goals_over(void)
+{
+	stored_reset();
+	g_stored.goal_count[0] = 8;
+	g_stored.goal_count[1] = 1;
+	for (int goal = 0; goal < 8; ++goal) {
+		plain_goal(&g_stored.goals[0][goal], (unsigned int)goal);
+	}
+	plain_goal(&g_stored.goals[1][0], 200);
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(13), 1);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.goal_count_invalid team=0 ", "count=8"));
+	XVT_ASSERT_INT_EQ(count_lines("mission.goal_count_invalid"), 1);
+	XVT_ASSERT_INT_EQ(memcmp(&g_mission_global_goals[0][6],
+				 &g_stored.goals[0][6],
+				 sizeof g_stored.goals[0][0]),
+			  0);
+	XVT_ASSERT_INT_EQ(memcmp(&g_mission_global_goals[1][0],
+				 &g_stored.goals[1][0],
+				 sizeof g_stored.goals[0][0]),
+			  0);
+}
+
+/* A team record is read when the file's count for the team is nonzero, the
+ * same record for any count; a team without one keeps its record. */
+static void check_load_stored_team_records(void)
+{
+	static const int16_t counts[10] = {1, 0, 3, 0, 0, 0, 0, 0, 0, 255};
+	stored_reset();
+	for (int team = 0; team < 10; ++team) {
+		g_stored.team_count[team] = counts[team];
+		if (counts[team] != 0) {
+			pattern_fill(&g_stored.teams[team],
+				     sizeof g_stored.teams[team],
+				     (unsigned int)(60 + team));
+			g_stored.teams[team].allies[team] = 1;
+		}
+	}
+	stored_world();
+	strcpy(g_mission_teams[1].name, "Old");
+	g_mission_teams[1].allies[3] = 1;
+	XVT_ASSERT_INT_EQ(load_stored(14), 1);
+	for (int team = 0; team < 10; ++team) {
+		if (counts[team] != 0) {
+			XVT_ASSERT_INT_EQ(memcmp(&g_mission_teams[team],
+						 &g_stored.teams[team],
+						 sizeof g_stored.teams[team]),
+					  0);
+		}
+	}
+	XVT_ASSERT_TRUE(strcmp(g_mission_teams[1].name, "Old") == 0);
+	XVT_ASSERT_INT_EQ(g_mission_teams[1].allies[3], 1);
+}
+
+/* Counts the nonzero handles in the flight group goal text table. */
+static int fg_text_handle_count(void)
+{
+	int count = 0;
+	for (int fg = 0; fg < 48; ++fg) {
+		for (int goal = 0; goal < 8; ++goal) {
+			for (int text = 0; text < 3; ++text) {
+				count += g_mission_fg_override_string_handles
+						 [fg][goal][text] != 0;
+			}
+		}
+	}
+	return count;
+}
+
+/* Counts the nonzero handles in the global goal text table. */
+static int team_text_handle_count(void)
+{
+	int count = 0;
+	for (int team = 0; team < 10; ++team) {
+		for (int goal = 0; goal < 7; ++goal) {
+			for (int trigger = 0; trigger < 4; ++trigger) {
+				for (int text = 0; text < 3; ++text) {
+					count +=
+						g_global_goal_override_string_handles
+							[team][goal][trigger]
+							[text] != 0;
+				}
+			}
+		}
+	}
+	return count;
+}
+
+/* Each nonempty 64-byte goal text goes into a new memory handle holding the
+ * text and its terminator, in the table of its place; an empty one leaves 0.
+ * The briefing text the loader skips does not shift them. */
+static void check_load_stored_goal_texts(void)
+{
+	stored_reset();
+	strcpy(g_stored.flight_group_text[0][0][0], "First");
+	strcpy(g_stored.flight_group_text[0][7][2], "Last of group 0");
+	strcpy(g_stored.flight_group_text[1][2][1], "Destroy the freighter");
+	strcpy(g_stored.team_goal_text[0][0][0][0], "Team 0 goal 0");
+	strcpy(g_stored.team_goal_text[9][6][3][2], "Team 9 goal 6");
+	strcpy(g_stored.team_goal_text[4][3][1][1], "Middle");
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(13), 1);
+	XVT_ASSERT_INT_EQ(fg_text_handle_count(), 3);
+	XVT_ASSERT_INT_EQ(team_text_handle_count(), 3);
+	static const struct {
+		uint16_t *handle;
+		const char *text;
+	} texts[] = {
+		{&g_mission_fg_override_string_handles[0][0][0], "First"},
+		{&g_mission_fg_override_string_handles[0][7][2],
+		 "Last of group 0"},
+		{&g_mission_fg_override_string_handles[1][2][1],
+		 "Destroy the freighter"},
+		{&g_global_goal_override_string_handles[0][0][0][0],
+		 "Team 0 goal 0"},
+		{&g_global_goal_override_string_handles[9][6][3][2],
+		 "Team 9 goal 6"},
+		{&g_global_goal_override_string_handles[4][3][1][1], "Middle"},
+	};
+	for (size_t i = 0; i < sizeof texts / sizeof texts[0]; ++i) {
+		uint16_t handle = *texts[i].handle;
+		XVT_ASSERT_TRUE(handle != 0);
+		XVT_ASSERT_TRUE(strcmp(memory_get_handle_block(handle),
+				       texts[i].text) == 0);
+		XVT_ASSERT_INT_EQ(g_handle_tables.size_table[handle - 1],
+				  strlen(texts[i].text) + 1);
+	}
+	mission_free_override_string_handles();
+}
+
+/* mission_free_override_string_handles frees the blocks of the flight group
+ * goal texts of the mission's groups and of every global goal text, and leaves
+ * the handle numbers in the tables; a handle of a group past the mission's
+ * count is not freed. */
+static void check_free_override_string_handles(void)
+{
+	stored_reset();
+	strcpy(g_stored.flight_group_text[1][5][0], "Group text");
+	strcpy(g_stored.team_goal_text[3][2][2][1], "Team text");
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(12), 1);
+	uint16_t group_handle = g_mission_fg_override_string_handles[1][5][0];
+	uint16_t team_handle =
+		g_global_goal_override_string_handles[3][2][2][1];
+	uint16_t beyond = memory_alloc_handle_zeroed(8, 0);
+	g_mission_fg_override_string_handles[2][0][0] = beyond;
+	XVT_ASSERT_TRUE(group_handle != 0);
+	XVT_ASSERT_TRUE(team_handle != 0);
+	XVT_ASSERT_TRUE(beyond != 0);
+	mission_free_override_string_handles();
+	XVT_ASSERT_TRUE(g_handle_tables.ptr_table[group_handle - 1] == NULL);
+	XVT_ASSERT_TRUE(g_handle_tables.ptr_table[team_handle - 1] == NULL);
+	XVT_ASSERT_TRUE(g_handle_tables.ptr_table[beyond - 1] != NULL);
+	XVT_ASSERT_INT_EQ(g_mission_fg_override_string_handles[1][5][0],
+			  group_handle);
+	XVT_ASSERT_INT_EQ(g_global_goal_override_string_handles[3][2][2][1],
+			  team_handle);
+	memory_free_handle(beyond);
+	g_mission_fg_override_string_handles[2][0][0] = 0;
+}
+
+/* Known failure goal_text_unterminated, issue #135: a goal text that fills
+ * all 64 bytes of its place in the file is kept as those 64 bytes. The loader
+ * measures it with strlen in a buffer nothing terminates after byte 64. */
+static void check_goal_text_fills_place(void)
+{
+	stored_reset();
+	memset(g_stored.flight_group_text[0][0][0], 'A', 64);
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(14), 1);
+	uint16_t handle = g_mission_fg_override_string_handles[0][0][0];
+	XVT_ASSERT_TRUE(handle != 0);
+	XVT_ASSERT_INT_EQ(strlen(memory_get_handle_block(handle)), 64);
+}
+
+/* A seek in the skipped briefing text that fails (back past the start of the
+ * file) leaves an error on the stream: the loader has read everything, then
+ * returns 0 because closing the stream reports it. */
+static void check_load_close_error(void)
+{
+	stored_reset();
+	g_stored.last_briefing_length = -32768;
+	g_stored.header.backdrop = 9;
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(13), 0);
+	XVT_ASSERT_INT_EQ(g_mission_header.backdrop, 9);
+	XVT_ASSERT_TRUE(g_stream == NULL);
+	XVT_ASSERT_TRUE(line_holds("resources.file_close_failed", "remove=0"));
+}
+
+/* Takes every free memory handle, one byte each; returns how many were taken,
+ * so the table is full and the next allocation fails. */
+static uint16_t g_taken_handles[32768];
+
+static int take_all_handles(void)
+{
+	int count = 0;
+	xvt_log_set_level(AERON_LOG_WARN);
+	for (;;) {
+		uint16_t handle = memory_alloc_handle_zeroed(1, 0);
+		if (handle == 0) {
+			break;
+		}
+		g_taken_handles[count++] = handle;
+	}
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	g_log_line_count = 0;
+	return count;
+}
+
+static void give_back_handles(int count)
+{
+	xvt_log_set_level(AERON_LOG_WARN);
+	for (int i = 0; i < count; ++i) {
+		memory_free_handle(g_taken_handles[i]);
+	}
+	xvt_log_set_level(AERON_LOG_DEBUG);
+}
+
+/* A goal text that cannot get a memory handle is lost with a warning naming
+ * its place and size, and its place in the table stays 0; the texts the file
+ * holds are still read past, so the next ones land in their places. */
+static void check_load_stored_goal_text_lost(void)
+{
+	stored_reset();
+	strcpy(g_stored.flight_group_text[1][2][1], "Destroy the freighter");
+	strcpy(g_stored.team_goal_text[9][6][3][2], "Team 9 goal 6");
+	stored_world();
+	int taken = take_all_handles();
+	XVT_ASSERT_TRUE(taken > 0);
+	XVT_ASSERT_INT_EQ(load_stored(12), 1);
+	give_back_handles(taken);
+	XVT_ASSERT_INT_EQ(fg_text_handle_count(), 0);
+	XVT_ASSERT_INT_EQ(team_text_handle_count(), 0);
+	XVT_ASSERT_INT_EQ(count_lines("mission.fg_goal_text_lost"), 1);
+	XVT_ASSERT_TRUE(line_holds("mission.fg_goal_text_lost",
+				   "fg=1 goal=2 text=1 bytes=22"));
+	XVT_ASSERT_INT_EQ(count_lines("mission.team_goal_text_lost"), 1);
+	XVT_ASSERT_TRUE(line_holds("mission.team_goal_text_lost",
+				   "team=9 goal=6 trigger=3 text=2 bytes=14"));
+}
+
+/* The role characters a to z become upper case, and nothing else changes:
+ * not the characters next to the letters in the character set, digits, or
+ * the bytes after the first 0. A role of 15 characters is made upper case
+ * to its end. */
+static void check_load_role_upper_case(void)
+{
+	stored_reset();
+	strcpy(g_stored.groups[0].craft_role, "`az{AZ09@[ yz");
+	strcpy(g_stored.groups[1].craft_role, "abcdefghijklmno");
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(14), 1);
+	XVT_ASSERT_TRUE(strcmp(g_mission_flight_groups[0].fg.craft_role,
+			       "`AZ{AZ09@[ YZ") == 0);
+	XVT_ASSERT_TRUE(strcmp(g_mission_flight_groups[1].fg.craft_role,
+			       "ABCDEFGHIJKLMNO") == 0);
+	stored_reset();
+	memcpy(g_stored.groups[0].craft_role, "\0abc", 4);
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(14), 1);
+	XVT_ASSERT_INT_EQ(
+		memcmp(g_mission_flight_groups[0].fg.craft_role, "\0abc", 4),
+		0);
+}
+
+/* The roles of groups past the mission's count are not made upper case. */
+static void check_load_role_upper_case_count(void)
+{
+	stored_reset();
+	g_stored.header.num_flight_groups = 1;
+	strcpy(g_stored.groups[0].craft_role, "ab");
+	stored_world();
+	strcpy(g_mission_flight_groups[1].fg.craft_role, "cd");
+	XVT_ASSERT_INT_EQ(load_stored(13), 1);
+	XVT_ASSERT_TRUE(
+		strcmp(g_mission_flight_groups[0].fg.craft_role, "AB") == 0);
+	XVT_ASSERT_TRUE(
+		strcmp(g_mission_flight_groups[1].fg.craft_role, "cd") == 0);
+}
+
+/* How a global goal's trigger slots look after the loader's last step: the
+ * conditions of its four slots as the file gave them (1 where the slot is
+ * "never") and what each slot must be afterwards. */
+struct fill_case {
+	uint8_t never[4];
+	uint8_t filled_slots;
+};
+
+/* The last step fills only a goal whose first condition is not "never": its
+ * three trailing "never" slots (pair 1 and the second of pair 0) when all
+ * three are, its two of pair 1 when the second of pair 0 is set and pair 1 is
+ * not, its last when only that one is never. Any other pattern, and any goal
+ * whose first slot is "never", is left as it is. */
+static void check_load_goal_trigger_fill(void)
+{
+	static const struct fill_case cases[] = {
+		{{0, 0, 0, 0}, 0}, {{0, 0, 0, 1}, 1}, {{0, 0, 1, 0}, 0},
+		{{0, 0, 1, 1}, 2}, {{0, 1, 0, 0}, 0}, {{0, 1, 0, 1}, 0},
+		{{0, 1, 1, 0}, 0}, {{0, 1, 1, 1}, 3}, {{1, 0, 0, 0}, 0},
+		{{1, 0, 0, 1}, 0}, {{1, 0, 1, 0}, 0}, {{1, 0, 1, 1}, 0},
+		{{1, 1, 0, 0}, 0}, {{1, 1, 0, 1}, 0}, {{1, 1, 1, 0}, 0},
+		{{1, 1, 1, 1}, 0},
+	};
+	enum { CASE_COUNT = sizeof cases / sizeof cases[0] };
+	stored_reset();
+	for (int i = 0; i < CASE_COUNT; ++i) {
+		int team = i / 3;
+		int goal = i % 3;
+		g_stored.goal_count[team] = (int16_t)(goal + 1);
+		struct global_goal *record = &g_stored.goals[team][goal];
+		for (int slot = 0; slot < 4; ++slot) {
+			struct mission_trigger_pair *pair =
+				&record->trigger_pairs[slot / 2];
+			pair->triggers[slot % 2].condition =
+				cases[i].never[slot] ? MISSION_COND_NEVER
+						     : MISSION_COND_DESTROYED;
+			pair->trigger1_or_trigger2 = 1;
+		}
+		record->trigger_pair1_or_trigger_pair2 = 1;
+	}
+	/* A goal past the third of its team is not touched. */
+	g_stored.goal_count[9] = 4;
+	for (int slot = 1; slot < 4; ++slot) {
+		g_stored.goals[9][3]
+			.trigger_pairs[slot / 2]
+			.triggers[slot % 2]
+			.condition = MISSION_COND_NEVER;
+	}
+	g_stored.goals[9][3].trigger_pairs[0].triggers[0].condition =
+		MISSION_COND_DESTROYED;
+	stored_world();
+	XVT_ASSERT_INT_EQ(load_stored(13), 1);
+	for (int i = 0; i < CASE_COUNT; ++i) {
+		const struct global_goal *goal =
+			&g_mission_global_goals[i / 3][i % 3];
+		const struct global_goal *file_goal =
+			&g_stored.goals[i / 3][i % 3];
+		int filled = cases[i].filled_slots;
+		/* The slots in the order the loader fills them: 1 is the
+		 * second of pair 0, 2 and 3 are pair 1. */
+		for (int slot = 0; slot < 4; ++slot) {
+			int becomes_true = (filled == 3 && slot >= 1) ||
+					   (filled == 2 && slot >= 2) ||
+					   (filled == 1 && slot == 3);
+			uint8_t expected =
+				becomes_true
+					? MISSION_COND_ALWAYS_TRUE
+					: file_goal->trigger_pairs[slot / 2]
+						  .triggers[slot % 2]
+						  .condition;
+			XVT_ASSERT_INT_EQ(goal->trigger_pairs[slot / 2]
+						  .triggers[slot % 2]
+						  .condition,
+					  expected);
+		}
+		/* A fill joins the pairs by AND; no fill touches the joins. */
+		XVT_ASSERT_INT_EQ(goal->trigger_pairs[1].trigger1_or_trigger2,
+				  filled == 0 ? 1 : 0);
+		XVT_ASSERT_INT_EQ(goal->trigger_pairs[0].trigger1_or_trigger2,
+				  filled == 3 ? 0 : 1);
+		XVT_ASSERT_INT_EQ(goal->trigger_pair1_or_trigger_pair2,
+				  filled == 0 || filled == 1 ? 1 : 0);
+		static const char *const events[] = {"", "slots=1", "slots=2",
+						     "slots=3"};
+		if (filled != 0) {
+			char start[64];
+			snprintf(
+				start, sizeof start,
+				"mission.goal_triggers_filled team=%d goal=%d ",
+				i / 3, i % 3);
+			XVT_ASSERT_TRUE(line_holds(start, events[filled]));
+		}
+	}
+	XVT_ASSERT_INT_EQ(count_lines("mission.goal_triggers_filled"), 3);
+	XVT_ASSERT_INT_EQ(g_mission_global_goals[9][3]
+				  .trigger_pairs[1]
+				  .triggers[1]
+				  .condition,
+			  MISSION_COND_NEVER);
+}
+
+/* The TIE header's fields go where mission.h says: the backdrop byte to the
+ * time limit's minutes, the rescue and waypoint flags and variables, the six
+ * win and loss texts to team 0's end-of-mission texts, the loss delay, and
+ * the first neutral name to all four IFF names. The briefing text between the
+ * goals and the end of the file is skipped whatever its length. */
+static void check_load_tie_header(void)
+{
+	build_tie_mission();
+	g_tie_header.backdrop = 11;
+	g_tie_header.rescue = 12;
+	g_tie_header.all_way_shown = 13;
+	for (int i = 0; i < 8; ++i) {
+		g_tie_header.mis_var[i] = (uint8_t)(20 + i);
+	}
+	strcpy((char *)g_tie_header.win_msg1[0], "Win one");
+	strcpy((char *)g_tie_header.win_msg1[1], "Win two");
+	strcpy((char *)g_tie_header.win_msg2[0], "Bonus one");
+	strcpy((char *)g_tie_header.win_msg2[1], "Bonus two");
+	strcpy((char *)g_tie_header.loss_msg[0], "Lose one");
+	strcpy((char *)g_tie_header.loss_msg[1], "Lose two");
+	g_tie_header.loss_msg_delay = 44;
+	strcpy(g_tie_header.neutral_name[0], "Rebels");
+	strcpy(g_tie_header.neutral_name[1], "Other");
+	g_tie_briefing_text_length = 7;
+	XVT_ASSERT_INT_EQ(load_tie_mission(), 1);
+	XVT_ASSERT_INT_EQ(g_mission_header.time_limit_min, 11);
+	XVT_ASSERT_INT_EQ(g_mission_header.rescue, 12);
+	XVT_ASSERT_INT_EQ(g_mission_header.all_waypoints_shown, 13);
+	for (int i = 0; i < 8; ++i) {
+		XVT_ASSERT_INT_EQ(g_mission_header.variables[i], 20 + i);
+	}
+	static const char *const texts[6] = {"Win one",	  "Win two",
+					     "Lose one",  "Lose two",
+					     "Bonus one", "Bonus two"};
+	for (int i = 0; i < 6; ++i) {
+		XVT_ASSERT_TRUE(
+			strcmp(g_mission_teams[0].end_of_mission_messages[i],
+			       texts[i]) == 0);
+	}
+	XVT_ASSERT_INT_EQ(g_mission_teams[0].eom_raw_delay[1], 44);
+	for (int iff = 0; iff < 4; ++iff) {
+		XVT_ASSERT_TRUE(
+			strcmp(g_mission_header.iff_names[iff], "Rebels") == 0);
+	}
+	XVT_ASSERT_TRUE(line_holds("mission.tie_header",
+				   "groups=4 messages=0 goals=2"));
+}
+
+/* The team of a TIE group follows its IFF: 0 and 4 are team 1, 1 and 6 up are
+ * team 0, and 2, 3 and 5 are team 1 when the neutral name at the IFF's place
+ * (IFF minus 2) starts with '1'. */
+static void check_load_tie_team_by_iff(void)
+{
+	static const char *const names[2][4] = {{"1a", "0b", "0c", "1d"},
+						{"0a", "1b", "1c", "0d"}};
+	static const uint8_t teams[2][8] = {{1, 0, 1, 0, 1, 1, 0, 0},
+					    {1, 0, 0, 1, 1, 0, 0, 0}};
+	for (int variant = 0; variant < 2; ++variant) {
+		build_tie_mission();
+		for (int name = 0; name < 4; ++name) {
+			strcpy(g_tie_header.neutral_name[name],
+			       names[variant][name]);
+		}
+		fresh_world();
+		for (int group = 0; group < 8; ++group) {
+			strcpy(g_tie_groups[group].name, "Group");
+			g_tie_groups[group].species = TEST_XWING;
+			g_tie_groups[group].count = 1;
+			g_tie_groups[group].side = (uint8_t)group;
+		}
+		xvt_test_open_assets(&g_assets);
+		write_tie_mission("iff.tie", UINT16_MAX, &g_tie_header,
+				  g_tie_groups, 8, g_tie_goals, 0);
+		XVT_ASSERT_INT_EQ(mission_load_file("iff.tie"), 1);
+		xvt_test_close_assets(&g_assets);
+		for (int group = 0; group < 8; ++group) {
+			XVT_ASSERT_INT_EQ(g_mission_flight_groups[group].fg.iff,
+					  group);
+			XVT_ASSERT_INT_EQ(
+				g_mission_flight_groups[group].fg.team,
+				teams[variant][group]);
+		}
+	}
+}
+
+/* Every field of a TIE flight group lands in the field mission.h names. A
+ * group with no player flag has player number 0; the arrival and departure
+ * fields the TIE format lacks are 0, whatever the group held before. */
+static void check_load_tie_group_fields(void)
+{
+	build_tie_mission();
+	struct efg_struct *tie = &g_tie_groups[1];
+	strcpy(tie->name, "Alpha");
+	strcpy(tie->cmdr, "cmd");
+	strcpy(tie->contents[0], "Fuel");
+	strcpy(tie->contents[1], "Secret");
+	tie->special_craft = 3;
+	tie->special_flag = 4;
+	tie->species = TEST_XWING;
+	tie->count = 5;
+	tie->status = 6;
+	tie->warhead = 7;
+	tie->beam = 8;
+	tie->side = 2;
+	tie->skill = 9;
+	tie->camoflage = 10;
+	tie->camo_flag = 11;
+	tie->camo_unused = 12;
+	tie->formation = 13;
+	tie->form_spacing = 14;
+	tie->set = 15;
+	tie->set_unused = 16;
+	tie->waves = 17;
+	tie->wave_delay = 18;
+	tie->player_flag = 0;
+	tie->heading = 19;
+	tie->pitch = 20;
+	tie->rotation = 21;
+	tie->link_flag = 22;
+	tie->link_code = 23;
+	tie->link_unused = 24;
+	tie->difficulty = 25;
+	tie->start_cond[0] = (struct e_cond_struct){26, 27, 28, 29};
+	tie->start_cond[1] = (struct e_cond_struct){30, 31, 32, 33};
+	tie->start_op = 1;
+	tie->start_delay_min = 34;
+	tie->start_delay_sec = 35;
+	tie->stop_cond = (struct e_cond_struct){36, 37, 38, 39};
+	tie->stop_min = 40;
+	tie->stop_sec = 41;
+	tie->stop_abort = 42;
+	tie->cur_start_fg = 0x2B2A;
+	tie->start_fg = 43;
+	tie->start_fg_used = 44;
+	tie->pri_stop_fg = 45;
+	tie->pri_stop_fg_used = 46;
+	tie->secondary_stop_fg = 47;
+	tie->secondary_stop_fg_used = 48;
+	tie->capture_fg = 49;
+	tie->capture_fg_used = 50;
+	tie->way_shown = 51;
+	tie->way_unused = 52;
+	tie->way_brief_link = 53;
+	tie->way_brief_shown = 54;
+	for (int i = 0; i < 15; ++i) {
+		tie->way_x[i] = (int16_t)(100 + i);
+		tie->way_y[i] = (int16_t)(-200 - i);
+		tie->way_z[i] = (int16_t)(300 + i);
+		tie->way_used[i] = (int16_t)(i % 2);
+	}
+	fresh_world();
+	struct xvt_flight_group *fg = &g_mission_flight_groups[1].fg;
+	fg->stop_arriving_when = 2;
+	fg->arrive_only_if_human = 1;
+	fg->arrival_rand_delay_minutes = 3;
+	fg->arrival_rand_delay_seconds = 4;
+	xvt_test_open_assets(&g_assets);
+	write_tie_mission("fields.tie", UINT16_MAX, &g_tie_header, g_tie_groups,
+			  4, g_tie_goals, 0);
+	XVT_ASSERT_INT_EQ(mission_load_file("fields.tie"), 1);
+	xvt_test_close_assets(&g_assets);
+	XVT_ASSERT_TRUE(strcmp(fg->name, "Alpha") == 0);
+	XVT_ASSERT_TRUE(strcmp(fg->craft_role, "CMD") == 0);
+	XVT_ASSERT_TRUE(strcmp(fg->cargo, "Fuel") == 0);
+	XVT_ASSERT_TRUE(strcmp(fg->special_cargo, "Secret") == 0);
+	XVT_ASSERT_INT_EQ(fg->special_cargo_craft, 3);
+	XVT_ASSERT_INT_EQ(fg->random_special_cargo_craft, 4);
+	XVT_ASSERT_INT_EQ(fg->craft_type, TEST_XWING);
+	XVT_ASSERT_INT_EQ(fg->number_of_craft, 5);
+	XVT_ASSERT_INT_EQ(fg->status1, 6);
+	XVT_ASSERT_INT_EQ(fg->warhead, 7);
+	XVT_ASSERT_INT_EQ(fg->beam, 8);
+	XVT_ASSERT_INT_EQ(fg->iff, 2);
+	XVT_ASSERT_INT_EQ(fg->group_ai, 9);
+	XVT_ASSERT_INT_EQ(fg->markings, 10);
+	XVT_ASSERT_INT_EQ(fg->radio, 11);
+	XVT_ASSERT_INT_EQ(fg->unused5c, 12);
+	XVT_ASSERT_INT_EQ(fg->formation, 13);
+	XVT_ASSERT_INT_EQ(fg->formation_spacing, 14);
+	XVT_ASSERT_INT_EQ(fg->global_group, 15);
+	XVT_ASSERT_INT_EQ(fg->unused60, 16);
+	XVT_ASSERT_INT_EQ(fg->number_of_waves, 17);
+	XVT_ASSERT_INT_EQ(fg->waves_delay, 18);
+	XVT_ASSERT_INT_EQ(fg->stop_arriving_when, 0);
+	XVT_ASSERT_INT_EQ(fg->player_number, 0);
+	XVT_ASSERT_INT_EQ(fg->arrive_only_if_human, 0);
+	XVT_ASSERT_INT_EQ(fg->yaw, 19);
+	XVT_ASSERT_INT_EQ(fg->pitch, 20);
+	XVT_ASSERT_INT_EQ(fg->roll, 21);
+	XVT_ASSERT_INT_EQ(fg->legacy_perma_death_enabled, 22);
+	XVT_ASSERT_INT_EQ(fg->legacy_perma_death_id, 23);
+	XVT_ASSERT_INT_EQ(fg->reserved_perma_death, 24);
+	XVT_ASSERT_INT_EQ(fg->arrival_difficulty, 25);
+	for (int trigger = 0; trigger < 2; ++trigger) {
+		const struct mission_trigger *arrival =
+			&fg->arrival_triggers[0].triggers[trigger];
+		XVT_ASSERT_INT_EQ(arrival->condition, 26 + 4 * trigger);
+		XVT_ASSERT_INT_EQ(arrival->variable_type, 27 + 4 * trigger);
+		XVT_ASSERT_INT_EQ(arrival->variable, 28 + 4 * trigger);
+		XVT_ASSERT_INT_EQ(arrival->amount, 29 + 4 * trigger);
+	}
+	XVT_ASSERT_INT_EQ(fg->arrival_triggers[0].trigger1_or_trigger2, 1);
+	XVT_ASSERT_INT_EQ(fg->arrival_rand_delay_minutes, 0);
+	XVT_ASSERT_INT_EQ(fg->arrival_rand_delay_seconds, 0);
+	XVT_ASSERT_INT_EQ(fg->arrival_delay_minutes, 34);
+	XVT_ASSERT_INT_EQ(fg->arrival_delay_seconds, 35);
+	XVT_ASSERT_INT_EQ(fg->departure_trigger.triggers[0].condition, 36);
+	XVT_ASSERT_INT_EQ(fg->departure_trigger.triggers[0].variable_type, 37);
+	XVT_ASSERT_INT_EQ(fg->departure_trigger.triggers[0].variable, 38);
+	XVT_ASSERT_INT_EQ(fg->departure_trigger.triggers[0].amount, 39);
+	XVT_ASSERT_INT_EQ(fg->departure_delay_minutes, 40);
+	XVT_ASSERT_INT_EQ(fg->departure_delay_seconds, 41);
+	XVT_ASSERT_INT_EQ(fg->abort_trigger, 42);
+	/* The two bytes of cur_start_fg go over the second byte of
+	 * editor_mothership and reserved_mothership. */
+	XVT_ASSERT_INT_EQ((fg->editor_mothership >> 8) & 0xFF, 0x2A);
+	XVT_ASSERT_INT_EQ(fg->reserved_mothership, 0x2B);
+	XVT_ASSERT_INT_EQ(fg->arrival_mothership, 43);
+	XVT_ASSERT_INT_EQ(fg->arrival_method, 44);
+	XVT_ASSERT_INT_EQ(fg->departure_mothership, 45);
+	XVT_ASSERT_INT_EQ(fg->departure_method, 46);
+	XVT_ASSERT_INT_EQ(fg->alternate_mothership, 47);
+	XVT_ASSERT_INT_EQ(fg->alternate_mothership_used, 48);
+	XVT_ASSERT_INT_EQ(fg->captured_departure_mothership, 49);
+	XVT_ASSERT_INT_EQ(fg->captured_depart_via_mothership, 50);
+	XVT_ASSERT_INT_EQ(fg->reserved_options_prefix[0], 51);
+	XVT_ASSERT_INT_EQ(fg->reserved_options_prefix[1], 52);
+	XVT_ASSERT_INT_EQ(fg->reserved_options_prefix[2], 53);
+	XVT_ASSERT_INT_EQ(fg->reserved_options[0], 54);
+	for (int i = 0; i < 15; ++i) {
+		XVT_ASSERT_INT_EQ(fg->mission_point_x[i], 100 + i);
+		XVT_ASSERT_INT_EQ(fg->mission_point_y[i], -200 - i);
+		XVT_ASSERT_INT_EQ(fg->mission_point_z[i], 300 + i);
+		XVT_ASSERT_INT_EQ(fg->mission_point_enabled[i], i % 2);
+	}
+}
+
+/* A TIE group's three orders: each field of the TIE order lands in the
+ * field of the mission order mission.h names, and the order's targets with
+ * their types are copied for all three. (The third order's code is
+ * check_tie_third_order.) */
+static void check_load_tie_orders(void)
+{
+	build_tie_mission();
+	struct efg_struct *tie = &g_tie_groups[1];
+	for (int order = 0; order < 3; ++order) {
+		struct eai_struct *ai = &tie->ai[order];
+		uint8_t base = (uint8_t)(10 * (order + 1));
+		ai->order = base;
+		ai->speed = base + 1;
+		for (int i = 0; i < 4; ++i) {
+			ai->var[i] = (uint8_t)(base + 2 + i);
+		}
+		ai->target_type[0] = base + 6;
+		ai->target_type[1] = base + 7;
+		ai->target_id[0] = base + 8;
+		ai->target_id[1] = base + 9;
+		ai->target_op = 1;
+		ai->target_unused = base + 3;
+		ai->pri_type = base + 4;
+		ai->pri_id = base + 5;
+		ai->secondary_type = base + 6;
+		ai->secondary_id = base + 7;
+		ai->pri_secondary_op = 1;
+		ai->pri_secondary_unused = base + 8;
+	}
+	XVT_ASSERT_INT_EQ(load_tie_mission(), 1);
+	for (int order = 0; order < 3; ++order) {
+		const struct mission_order *mission_order =
+			&g_mission_flight_groups[1].fg.orders[order];
+		uint8_t base = (uint8_t)(10 * (order + 1));
+		if (order != 2) {
+			XVT_ASSERT_INT_EQ(mission_order->order, base);
+		}
+		XVT_ASSERT_INT_EQ(mission_order->throttle, base + 1);
+		XVT_ASSERT_INT_EQ(mission_order->variable1, base + 2);
+		XVT_ASSERT_INT_EQ(mission_order->variable2, base + 3);
+		XVT_ASSERT_INT_EQ(mission_order->variable3, base + 4);
+		XVT_ASSERT_INT_EQ(mission_order->variable4, base + 5);
+		XVT_ASSERT_INT_EQ(mission_order->secondary_target_types[0],
+				  base + 6);
+		XVT_ASSERT_INT_EQ(mission_order->secondary_target_types[1],
+				  base + 7);
+		XVT_ASSERT_INT_EQ(mission_order->secondary_targets[0],
+				  base + 8);
+		XVT_ASSERT_INT_EQ(mission_order->secondary_targets[1],
+				  base + 9);
+		XVT_ASSERT_INT_EQ(mission_order->target3_or_target4, 1);
+		XVT_ASSERT_INT_EQ(mission_order->unused0, base + 3);
+		XVT_ASSERT_INT_EQ(mission_order->target1_type, base + 4);
+		XVT_ASSERT_INT_EQ(mission_order->target1, base + 5);
+		XVT_ASSERT_INT_EQ(mission_order->target2_type, base + 6);
+		XVT_ASSERT_INT_EQ(mission_order->target2, base + 7);
+		XVT_ASSERT_INT_EQ(mission_order->target1_or_target2, 1);
+		XVT_ASSERT_INT_EQ(mission_order->unused1, base + 8);
+	}
+}
+
+/* A TIE group's four goals carry their conditions' amounts, the bonus goal its
+ * points, and all four are enabled for team 0 only. */
+static void check_load_tie_group_goals(void)
+{
+	build_tie_mission();
+	struct efg_struct *tie = &g_tie_groups[1];
+	tie->pri_win_pct = 31;
+	tie->secondary_win_pct = 32;
+	tie->loss_pct = 33;
+	tie->bonus_pct = 34;
+	tie->bonus_points = -5;
+	XVT_ASSERT_INT_EQ(load_tie_mission(), 1);
+	const struct xvt_flight_group *fg = &g_mission_flight_groups[1].fg;
+	static const uint8_t amounts[4] = {31, 32, 33, 34};
+	for (int goal = 0; goal < 4; ++goal) {
+		XVT_ASSERT_INT_EQ(fg->goals[goal].amount, amounts[goal]);
+		XVT_ASSERT_INT_EQ(fg->goals[goal].enabled_teams[0], 1);
+		for (int team = 1; team < 10; ++team) {
+			XVT_ASSERT_INT_EQ(fg->goals[goal].enabled_teams[team],
+					  0);
+		}
+	}
+	XVT_ASSERT_INT_EQ(fg->goals[3].points, -5);
+	XVT_ASSERT_INT_EQ(fg->goals[0].points, 0);
+	XVT_ASSERT_INT_EQ(fg->goals[4].enabled_teams[0], 0);
+}
+
+/* A TIE message goes to the index of its place in the file with its text, its
+ * first trigger pair, voice and delay, and is sent to team 0 only. */
+static void check_load_tie_messages(void)
+{
+	build_tie_mission();
+	g_tie_message_count = 2;
+	for (int i = 0; i < 2; ++i) {
+		struct tie_radio_message *message = &g_tie_messages[i];
+		snprintf(message->message, sizeof message->message,
+			 "Hello pilot %d", i);
+		message->conditions[0] = (struct e_cond_struct){
+			(uint8_t)(2 + i), (uint8_t)(3 + i), (uint8_t)(4 + i),
+			(uint8_t)(5 + i)};
+		message->conditions[1] = (struct e_cond_struct){
+			(uint8_t)(12 + i), (uint8_t)(13 + i), (uint8_t)(14 + i),
+			(uint8_t)(15 + i)};
+		snprintf(message->voice, sizeof message->voice, "voice%d", i);
+		message->delay5s = (uint8_t)(6 + i);
+		message->condition1_or_condition2 = (uint8_t)i;
+	}
+	fresh_world();
+	memset(g_mission_messages, 0, sizeof g_mission_messages);
+	xvt_test_open_assets(&g_assets);
+	write_tie_mission("messages.tie", UINT16_MAX, &g_tie_header,
+			  g_tie_groups, 4, g_tie_goals, 2);
+	XVT_ASSERT_INT_EQ(mission_load_file("messages.tie"), 1);
+	xvt_test_close_assets(&g_assets);
+	XVT_ASSERT_INT_EQ(g_mission_header.num_messages, 2);
+	for (int i = 0; i < 2; ++i) {
+		const struct mission_message *message = &g_mission_messages[i];
+		char text[32];
+		snprintf(text, sizeof text, "Hello pilot %d", i);
+		XVT_ASSERT_TRUE(strcmp(message->message, text) == 0);
+		for (int trigger = 0; trigger < 2; ++trigger) {
+			const struct mission_trigger *loaded =
+				&message->trigger_pairs[0].triggers[trigger];
+			XVT_ASSERT_INT_EQ(loaded->condition,
+					  2 + i + 10 * trigger);
+			XVT_ASSERT_INT_EQ(loaded->variable_type,
+					  3 + i + 10 * trigger);
+			XVT_ASSERT_INT_EQ(loaded->variable,
+					  4 + i + 10 * trigger);
+			XVT_ASSERT_INT_EQ(loaded->amount, 5 + i + 10 * trigger);
+		}
+		XVT_ASSERT_INT_EQ(
+			message->trigger_pairs[0].trigger1_or_trigger2, i);
+		snprintf(text, sizeof text, "voice%d", i);
+		XVT_ASSERT_TRUE(strcmp(message->voice, text) == 0);
+		XVT_ASSERT_INT_EQ(message->delay5s, 6 + i);
+		XVT_ASSERT_INT_EQ(message->sent_to_team[0], 1);
+	}
+}
+
+/* A TIE goal becomes team 0's global goal of the same index: its first
+ * trigger pair, its name from the first 16 bytes of the editor name and its
+ * version from the 17th, its delay from the first padding byte, and no
+ * points. The seven goals a team can hold are all read, none warned of. */
+static void check_load_tie_goals(void)
+{
+	build_tie_mission();
+	for (int goal = 0; goal < 7; ++goal) {
+		struct e_mission_goal *tie = &g_tie_goals[goal];
+		uint8_t base = (uint8_t)(10 * goal);
+		tie->subcond[0] = (struct e_cond_struct){
+			MISSION_COND_DESTROYED, (uint8_t)(base + 1),
+			(uint8_t)(base + 2), (uint8_t)(base + 3)};
+		tie->subcond[1] = (struct e_cond_struct){
+			MISSION_COND_ARRIVED, (uint8_t)(base + 4),
+			(uint8_t)(base + 5), (uint8_t)(base + 6)};
+		memset(tie->editor_name, 'a' + goal, 16);
+		tie->editor_name[16] = (uint8_t)(base + 7);
+		tie->or_joined = (uint8_t)(goal % 2);
+		tie->pad[0] = (uint8_t)(base + 8);
+		tie->pad[1] = 99;
+	}
+	fresh_world();
+	g_mission_global_goals[0][2].raw_points = 5;
+	xvt_test_open_assets(&g_assets);
+	write_tie_mission("goals.tie", UINT16_MAX, &g_tie_header, g_tie_groups,
+			  4, g_tie_goals, 7);
+	XVT_ASSERT_INT_EQ(mission_load_file("goals.tie"), 1);
+	xvt_test_close_assets(&g_assets);
+	XVT_ASSERT_INT_EQ(count_lines("mission.goal_count_invalid"), 0);
+	for (int goal = 0; goal < 7; ++goal) {
+		const struct global_goal *loaded =
+			&g_mission_global_goals[0][goal];
+		uint8_t base = (uint8_t)(10 * goal);
+		const struct mission_trigger_pair *pair =
+			&loaded->trigger_pairs[0];
+		XVT_ASSERT_INT_EQ(pair->triggers[0].condition,
+				  MISSION_COND_DESTROYED);
+		XVT_ASSERT_INT_EQ(pair->triggers[0].variable_type, base + 1);
+		XVT_ASSERT_INT_EQ(pair->triggers[0].variable, base + 2);
+		XVT_ASSERT_INT_EQ(pair->triggers[0].amount, base + 3);
+		XVT_ASSERT_INT_EQ(pair->triggers[1].condition,
+				  MISSION_COND_ARRIVED);
+		XVT_ASSERT_INT_EQ(pair->triggers[1].variable_type, base + 4);
+		XVT_ASSERT_INT_EQ(pair->triggers[1].variable, base + 5);
+		XVT_ASSERT_INT_EQ(pair->triggers[1].amount, base + 6);
+		XVT_ASSERT_INT_EQ(pair->trigger1_or_trigger2, goal % 2);
+		for (int letter = 0; letter < 16; ++letter) {
+			XVT_ASSERT_INT_EQ(loaded->name[letter], 'a' + goal);
+		}
+		XVT_ASSERT_INT_EQ(loaded->version, base + 7);
+		XVT_ASSERT_INT_EQ(loaded->raw_delay, base + 8);
+		XVT_ASSERT_INT_EQ(loaded->raw_points, 0);
+	}
+}
+
 int main(int argc, char **argv)
 {
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+	SDL_SetLogOutputFunction(catch_line, NULL);
 	/* "known-failure <check>" runs one check the code is known to fail; an
 	 * unknown name runs nothing. */
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
@@ -1615,6 +2878,9 @@ int main(int argc, char **argv)
 			{"tie_header_kept", check_tie_header_replaced},
 			{"tie_goal_text_handles_kept",
 			 check_tie_goal_text_handles_cleared},
+			{"refused_version_stays_open",
+			 check_refused_version_closes_file},
+			{"goal_text_unterminated", check_goal_text_fills_place},
 		};
 		for (size_t i = 0;
 		     i < sizeof known_failures / sizeof known_failures[0];
@@ -1661,5 +2927,26 @@ int main(int argc, char **argv)
 	check_load_tie_group();
 	check_load_common_tail();
 	check_load_refuses_version();
+	check_load_stored_versions();
+	check_load_refuses_other_versions();
+	check_load_stored_messages();
+	check_load_stored_messages_over();
+	check_load_stored_team_goals();
+	check_load_stored_team_goals_over();
+	check_load_stored_team_records();
+	check_load_stored_goal_texts();
+	check_free_override_string_handles();
+	check_load_close_error();
+	check_load_stored_goal_text_lost();
+	check_load_role_upper_case();
+	check_load_role_upper_case_count();
+	check_load_goal_trigger_fill();
+	check_load_tie_header();
+	check_load_tie_team_by_iff();
+	check_load_tie_group_fields();
+	check_load_tie_orders();
+	check_load_tie_group_goals();
+	check_load_tie_messages();
+	check_load_tie_goals();
 	return 0;
 }

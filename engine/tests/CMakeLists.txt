@@ -101,6 +101,8 @@ if(NOT MSVC)
     xvt_add_known_failure(test_mission tie_third_order_code)
     xvt_add_known_failure(test_mission tie_header_kept)
     xvt_add_known_failure(test_mission tie_goal_text_handles_kept)
+    xvt_add_known_failure(test_mission refused_version_stays_open)
+    xvt_add_known_failure(test_mission goal_text_unterminated)
 endif()
 
 # The frontend's mission loaders and the launch's pilot record setup: src/xvt/frontend/frontend_mission.c.
