@@ -1,7 +1,7 @@
 """The control list: every message the page and the launcher exchange.
 
 Purpose:
-    Name, as dataclasses, the one fixed list of commands (revision 3), their
+    Name, as dataclasses, the one fixed list of commands (revision 4), their
     arguments and results, the three pushes and the error codes. The schema
     (``schema``) is built from these classes, so the list has one source.
 
@@ -34,7 +34,7 @@ from ..briefing.model import BriefingBundle
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_REVISION = 3
+SCHEMA_REVISION = 4
 """The revision of the control list; a change to any message raises it."""
 
 MAX_MESSAGE_BYTES = 64 * 1024
@@ -112,7 +112,7 @@ class HelloResult:
     """The launcher's version and the revision of the control list."""
 
     launcher_version: str
-    schema_revision: Literal[3]
+    schema_revision: Literal[4]
 
 
 @dataclass

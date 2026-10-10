@@ -1,7 +1,7 @@
 """All the planted faults of the briefing player, joined.
 
 Purpose:
-    Join the four tables so the page runner takes one.
+    Join the five tables so the page runner takes one.
 
 Flow:
     Each table lives in its own module to keep each file small.
@@ -20,6 +20,7 @@ import logging
 from plants_briefing_core_web import BRIEFING_CORE_PLANTS
 from plants_briefing_output_web import BRIEFING_OUTPUT_PLANTS
 from plants_briefing_page_web import BRIEFING_PAGE_PLANTS
+from plants_briefing_pixels_web import BRIEFING_PIXELS_PLANTS
 from plants_briefing_text_web import BRIEFING_TEXT_PLANTS
 from plants_common import Plant
 
@@ -30,4 +31,5 @@ BRIEFING_WEB_PLANTS: list[Plant] = [
     *BRIEFING_TEXT_PLANTS,
     *BRIEFING_OUTPUT_PLANTS,
     *BRIEFING_PAGE_PLANTS,
+    *BRIEFING_PIXELS_PLANTS,
 ]

@@ -64,6 +64,13 @@ test("a tint is scaled by the pixel's intensity over 31", () => {
   assert.deepEqual(tintRgb([248, 0, 248], 31), [255, 0, 255]);
 });
 
+test("a tint is cut to its 565 fields before it is scaled", () => {
+  assert.deepEqual(tintRgb([0x94, 0, 0], 24), [107, 0, 0]);
+  assert.deepEqual(tintRgb([0x94, 0, 0], 31), [148, 0, 0]);
+  assert.deepEqual(tintRgb([0, 0, 0x94], 24), [0, 0, 107]);
+  assert.deepEqual(tintRgb([0, 0xfc, 0], 24), [0, 195, 0]);
+});
+
 test("the intensity is the blue field of the pixel in 565", () => {
   assert.equal(intensityOf(255), 31);
   assert.equal(intensityOf(7), 0);

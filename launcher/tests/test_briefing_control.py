@@ -31,9 +31,11 @@ from briefingdata import flagged
 from briefingdata import make_install
 from briefingdata import mission_bytes
 from briefingdata import point
+from listdata import crlf
 from pagedata import check_valid
 from pagedata import LAUNCHER_VERSION
 from pagedata import request
+from textdata import write_files
 
 from jedimaster.__main__ import main
 from jedimaster.page.control import Control
@@ -178,3 +180,62 @@ def test_export_exits_1_for_a_file_that_is_not_a_mission(tmp_path, install):
     broken.write_bytes(b"nope")
     args = ["--install", str(install), "--file", str(broken)]
     assert main(["briefing", "export", *args, "--out", str(tmp_path / "o.json")]) == 1
+
+
+def export_backgrounds(tmp_path: Path, install: Path, source: Path, *more: str):
+    out = tmp_path / "bundle.json"
+    args = ["--install", str(install), "--file", str(source), "--out", str(out)]
+    assert main(["briefing", "export", *args, *more]) == 0
+    bundle = json.loads(out.read_text(encoding="utf-8"))
+    return [t["background"] for t in bundle["teams"]]
+
+
+def test_export_takes_the_directory_from_the_files_folder(tmp_path, install):
+    groups = [{"iff": 1, "player_number": 1, "waypoints": briefing_points(point(0, 0))}]
+    data = mission_bytes(groups, [{"viewed_by_team": flagged(0)}])
+    for folder, first, other in (
+        ("Combat", "under-imperial.png", "under-rebel.png"),
+        ("Melee", "under-neutral.png", "under-neutral.png"),
+        ("Train", "under-imperial.png", "under-imperial.png"),
+        ("Elsewhere", "under-imperial.png", "under-imperial.png"),
+    ):
+        source = tmp_path / folder / "M.TIE"
+        source.parent.mkdir()
+        source.write_bytes(data)
+        names = export_backgrounds(tmp_path, install, source)
+        assert (names[0], names[1]) == (first, other), folder
+
+
+def test_export_directory_option_beats_the_folder(tmp_path, install):
+    groups = [{"iff": 0, "player_number": 1, "waypoints": briefing_points(point(0, 0))}]
+    source = tmp_path / "Train" / "M.TIE"
+    source.parent.mkdir()
+    source.write_bytes(mission_bytes(groups, [{"viewed_by_team": flagged(0)}]))
+    assert set(export_backgrounds(tmp_path, install, source)) == {"under-rebel.png"}
+    names = export_backgrounds(tmp_path, install, source, "--directory", "melee")
+    assert set(names) == {"under-neutral.png"}
+    with pytest.raises(SystemExit):
+        export_backgrounds(tmp_path, install, source, "--directory", "nowhere")
+
+
+def test_briefing_get_gives_the_menus_type_to_the_background_rule(control, install):
+    groups = [{"iff": 0, "player_number": 1, "waypoints": briefing_points(point(0, 0))}]
+    data = mission_bytes(groups, [{"viewed_by_team": flagged(0)}])
+    (install / "BalanceOfPower" / "TRAIN" / "ALPHA.TIE").write_bytes(data)
+    bundle = get(control, "training", 1)["result"]["bundle"]
+    assert bundle["teams"][0]["background"] == "under-rebel.png"
+
+
+def test_briefing_get_for_a_combat_mission_is_imperial_for_team_0_only(
+    control, install
+):
+    menu = crlf("[Open]", "7", "ZED.TIE", "Open Field")
+    groups = [{"iff": 0, "player_number": 1, "waypoints": briefing_points(point(0, 0))}]
+    data = mission_bytes(groups, [{"viewed_by_team": flagged(0, 1)}])
+    write_files(install, {"Combat/MISSION.LST": menu, "Combat/ZED.TIE": data})
+    teams = get(control, "combat", 7)["result"]["bundle"]["teams"]
+    assert [t["background"] for t in teams[:3]] == [
+        "under-imperial.png",
+        "under-rebel.png",
+        "under-rebel.png",
+    ]

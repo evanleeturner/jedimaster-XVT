@@ -27,6 +27,7 @@ from ..lists import ListFormatError
 from ..lists import menu_game_path
 from ..lists import menu_view
 from ..lists import read_menu
+from ..lists.game import MISSION_TYPES
 from ..lists.game import sequence_game_path
 
 logger = logging.getLogger(__name__)
@@ -67,4 +68,21 @@ def mission_file(install: Path, mission_type: str, ident: int) -> Path | None:
             return None
         return found
     logger.debug("no entry %d in the %s menu", ident, mission_type)
+    return None
+
+
+def directory_of(path: Path) -> str | None:
+    """Return the mission type whose folder holds ``path``, or None.
+
+    Compares the file's parent folder name, ignoring letter case, with the
+    six types' folders (``Train``, ``Melee``, ``Tourn``, ``Combat``,
+    ``Battle``, ``CAMPAIGN``), so Balance of Power's folders match too.
+    None for any other folder. Does not check that the file exists.
+    """
+    folder = path.parent.name.casefold()
+    for name, kind in MISSION_TYPES.items():
+        if kind.folder.casefold() == folder:
+            logger.debug("folder %r is the %s type's", path.parent.name, name)
+            return name
+    logger.debug("folder %r is no mission type's", path.parent.name)
     return None

@@ -22,14 +22,17 @@ export interface BriefingBundle {
   grey_sheet: IconSheetData | null;
   font: FontData;
   sounds: SoundData[];
+  heading: string;
+  heading_font: FontData | null;
 }
 /**
- * One team: its name and the briefing it sees (None: the default one).
+ * One team: its name, its briefing (None: the default) and its background art.
  */
 export interface TeamData {
   team: number;
   name: string;
   briefing: number | null;
+  background: string;
 }
 /**
  * One briefing of the mission: running time, events, label and caption texts.

@@ -26,6 +26,8 @@ import struct
 from pathlib import Path
 from typing import Any
 
+from bmpdata import bmp
+from bmpdata import plain
 from builder import build_mission
 from iconinstall import make_install as make_icon_install
 from listdata import crlf
@@ -35,6 +37,9 @@ from textdata import write_files
 logger = logging.getLogger(__name__)
 
 PAGE_WORD = "Pg."
+HEADING_WORD = "A"
+BACKGROUND_INDEX = {"PLAYERR": 10, "PLAYERI": 20, "PLAYER": 30}
+"""The palette index each made-up background is filled with."""
 SOUNDS = {
     "jewelsound": "jewel",
     "sfxTarget1": "t1",
@@ -42,6 +47,8 @@ SOUNDS = {
     "sfxText": "tx",
 }
 FONT_SHAPE = {65: (3, [b"\x41\x02\x00", b"\x81\x00\x40"]), 66: (1, [b"\x02\x00", b""])}
+HEADING_SHAPE = {65: (6, [b"\x04\x00"] * 8), 66: (2, [b"\x01\x00"] * 8)}
+"""Font 12: glyph A is a block 4 wide and 8 high (6 wide with its gap)."""
 
 
 def wav_bytes(tag: int) -> bytes:
@@ -50,6 +57,11 @@ def wav_bytes(tag: int) -> bytes:
     head = b"fmt " + struct.pack("<IHHIIHH", 16, 1, 1, 8000, 8000, 1, 8)
     body = b"WAVE" + head + b"data" + struct.pack("<I", len(data)) + data
     return b"RIFF" + struct.pack("<I", len(body)) + body
+
+
+def solid_bmp(index: int, width: int = 640, height: int = 480) -> bytes:
+    """Return an uncompressed bitmap of ``width`` by ``height`` filled with ``index``."""
+    return bmp(width, height, plain([bytes((index,)) * width] * height), compression=0)
 
 
 def point(x: int, y: int, enabled: int = 1) -> tuple[int, int, int, int]:
@@ -85,18 +97,27 @@ def flagged(*teams: int) -> list[int]:
 def add_files(install: Path) -> None:
     """Write the made-up art and texts a briefing needs into ``install``.
 
-    The font, the front text, the sound list and four WAV files. The icon
+    Fonts 10 and 12, the front text, the pictures under the map (three
+    backgrounds, the pad, the activity frame and the map's shading), the
+    sound list and four WAV files. The icon
     sheets come from ``make_install``; the menu and the missions are the
     caller's.
     """
     front = [f"line {n}" for n in range(641)]
     front[640] = PAGE_WORD
+    front[207] = HEADING_WORD
     entries = [f"sfx\\{tag}.wav {name}" for name, tag in SOUNDS.items()]
     files: dict[str, bytes] = {
         "TIMES10.ABP": font_bytes(FONT_SHAPE, height=2, spacing=0),
+        "TIMES12.ABP": font_bytes(HEADING_SHAPE, height=8, spacing=1),
+        "frontres/BLANKPAD.BMP": solid_bmp(0),
+        "frontres/ALLACTIV.BMP": solid_bmp(0),
+        "frontres/MAP.BMP": solid_bmp(0),
         "FRONTTXT.TXT": crlf(*front),
         "SFX/SFX.LST": crlf("// made up", *entries),
     }
+    for name, index in BACKGROUND_INDEX.items():
+        files[f"frontres/{name}.BMP"] = solid_bmp(index)
     wavs = {f"SFX/{tag}.wav": wav_bytes(i + 1) for i, tag in enumerate(SOUNDS.values())}
     write_files(install, {**files, **wavs})
 

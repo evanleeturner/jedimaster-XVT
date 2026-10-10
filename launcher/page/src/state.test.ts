@@ -103,7 +103,7 @@ test("a hello reply gives the launcher's version", () => {
       message({
         id: 1,
         ok: true,
-        result: { launcher_version: "2.0", schema_revision: 3 },
+        result: { launcher_version: "2.0", schema_revision: 4 },
       }),
     ),
   );

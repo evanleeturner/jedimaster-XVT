@@ -343,10 +343,7 @@ BRIEFING_OUTPUT_PLANTS: list[Plant] = [
         "page/src/briefing/colors.ts",
         "const red = rgb[0] >> 3;",
         "const red = rgb[0] >> 2;",
-        (
-            "node: 565 keeps 5, 6 and 5 bits and widens by repeating the top bits",
-            "node: a tint is scaled by the pixel's intensity over 31",
-        ),
+        ("node: 565 keeps 5, 6 and 5 bits and widens by repeating the top bits",),
     ),
     Plant(
         "web-col-black",

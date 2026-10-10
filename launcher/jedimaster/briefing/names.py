@@ -9,7 +9,8 @@ Flow:
     accepts only ``ART_NAMES``.
 
 Invariants:
-    - ``ART_NAMES`` is the whole list of files the art route serves.
+    - ``ART_NAMES`` is the whole list of files the art route serves (the
+      sheets, the two font atlases, the three backgrounds and the sounds).
     - A sound's art name is its list name plus ``.wav``.
 
 Call:
@@ -26,6 +27,8 @@ ICON_SHEETS = ("mapicon0", "mapicon1", "mapicon2", "mapicon3", "mapicon4")
 GREY_SHEET = "greyicon"
 FONT_KIND = "font10"
 FONT_GAME_NAME = "times10.abp"
+HEADING_FONT_NAME = "times12.abp"
+HEADING_STRING = 207
 SOUND_NAMES = ("jewelsound", "sfxTarget1", "sfxTarget2", "sfxText")
 SOUND_LIST = "sfx\\sfx.lst"
 FRONT_FILE = "fronttxt.txt"

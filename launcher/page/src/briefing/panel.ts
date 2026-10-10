@@ -178,6 +178,7 @@ export class BriefingPanel {
     if (painter === null || player === null) return;
     painter.paint(
       this.#motion.matches ? drawFrame(settled(player)) : this.#records,
+      player.team,
     );
   }
 

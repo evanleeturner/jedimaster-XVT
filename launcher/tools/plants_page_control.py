@@ -584,9 +584,9 @@ SHOW_PLANTS: list[Plant] = [
     Plant(
         "page-show-hello-says-revision-1",
         PRO,
-        "SCHEMA_REVISION = 2",
+        "SCHEMA_REVISION = 4",
         "SCHEMA_REVISION = 1",
-        (TC + "test_hello", TC + "test_the_list_has_six_commands_and_revision_2"),
+        (TC + "test_hello", TC + "test_the_list_has_seven_commands_and_revision_4"),
     ),
     Plant(
         "page-show-command-dropped",

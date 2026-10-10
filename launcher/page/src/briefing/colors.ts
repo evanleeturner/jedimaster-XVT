@@ -4,7 +4,7 @@
 // and tint a grey icon pixel.
 // Flow: `colorRgb` maps a name (`shade N`, `white`, `yellow`, `major`,
 // `minor`, `codeN`) to an exact color and passes it through 565; `tintRgb`
-// scales a tint by a pixel's intensity (0 to 31) and passes it through 565.
+// scales a tint's 565 fields by a pixel's intensity (0 to 31).
 // Invariants: 565 keeps 5 bits of red, 6 of green and 5 of blue; a 565 color
 // widens back by repeating its top bits; the 40 shades are rows of 8 steps
 // (green, red, yellow, blue, purple).
@@ -78,11 +78,19 @@ export function colorRgb(name: string, textColors: readonly number[]): Rgb {
   return name.startsWith("code") ? fixed : through565(fixed);
 }
 
-/** Return `tint` scaled by `intensity` (0 to 31), as the 565 screen shows it. */
+/**
+ * Return `tint` scaled by `intensity` (0 to 31), as the 565 screen shows it:
+ * the tint is cut to its 5-6-5 fields first and each field is scaled
+ * (rounding down) by the intensity over 31.
+ */
 export function tintRgb(tint: Rgb, intensity: number): Rgb {
-  const scale = (channel: number): number =>
-    Math.trunc((channel * intensity) / FULL_INTENSITY);
-  return through565([scale(tint[0]), scale(tint[1]), scale(tint[2])]);
+  const scale = (field: number): number =>
+    Math.trunc((field * intensity) / FULL_INTENSITY);
+  return fromColor565(
+    (scale(tint[0] >> 3) << 11) |
+      (scale(tint[1] >> 2) << 5) |
+      scale(tint[2] >> 3),
+  );
 }
 
 /** Return a pixel's intensity: the blue field (0 to 31) of its color in 565. */

@@ -1,7 +1,7 @@
 """The briefing's art: the store, and the route that serves it.
 
 Purpose:
-    Prove the fixed set of eleven files is built from a made-up install
+    Prove the fixed set of fifteen files is built from a made-up install
     (PNG pictures and WAV sounds), kept once built, never anything else;
     and that ``GET /art/briefing/<name>`` answers each name 200 with the
     right media type, any other name 404, and a request without the run's
@@ -33,6 +33,7 @@ from pagedata import LAUNCHER_VERSION
 from jedimaster.briefing import ART_NAMES
 from jedimaster.briefing import ArtStore
 from jedimaster.briefing.art import FONT_ART
+from jedimaster.briefing.art import HEADING_FONT_ART
 from jedimaster.briefing.art import read_font10
 from jedimaster.briefing.art import SHEET_ART
 from jedimaster.briefing.art import sound_files
@@ -63,8 +64,8 @@ def png_size(data: bytes) -> tuple[int, int]:
     return width, height
 
 
-def test_the_set_is_eleven_names():
-    assert len(ART_NAMES) == 11 == len(set(ART_NAMES))
+def test_the_set_is_fifteen_names():
+    assert len(ART_NAMES) == 15 == len(set(ART_NAMES))
     assert ART_NAMES[:6] == (
         "mapicon0.png",
         "mapicon1.png",
@@ -80,6 +81,13 @@ def test_the_set_is_eleven_names():
         "sfxTarget2.wav",
         "sfxText.wav",
     ]
+    assert HEADING_FONT_ART == "times12.png"
+    assert ART_NAMES[-4:] == (
+        "times12.png",
+        "under-rebel.png",
+        "under-imperial.png",
+        "under-neutral.png",
+    )
 
 
 def test_every_name_builds_with_its_media_type(install):
@@ -101,6 +109,22 @@ def test_the_sheet_picture_has_the_sheets_pixels(install):
 
     sheet = icons_view(install).sheets["mapicon1"]
     assert ArtStore(install).get(SHEET_ART["mapicon1"]).data == png_bytes(sheet.bitmap)
+
+
+def test_font_12s_atlas_is_built_from_its_file_like_font_10s(install):
+    store = ArtStore(install)
+    twelve, ten = store.get("times12.png"), store.get("times10.png")
+    assert png_size(twelve.data) != png_size(ten.data) or twelve.data != ten.data
+    (install / "TIMES12.ABP").unlink()
+    assert ArtStore(install).get("times12.png") is None
+    assert ArtStore(install).get("times10.png") is not None
+
+
+def test_a_built_under_picture_is_kept(install):
+    store = ArtStore(install)
+    first = store.get("under-neutral.png")
+    (install / "frontres" / "PLAYER.BMP").unlink()
+    assert store.get("under-neutral.png") is first
 
 
 def test_a_built_file_is_kept(install):
@@ -178,7 +202,9 @@ async def test_each_art_name_is_served(client, name):
     assert len(await response.read()) > 0
 
 
-@pytest.mark.parametrize("name", ["mapicon5.png", "times12.png", "%2e%2e/x", "x"])
+@pytest.mark.parametrize(
+    "name", ["mapicon5.png", "times13.png", "under-green.png", "%2e%2e/x", "x"]
+)
 async def test_any_other_name_is_404(client, name):
     assert (await client.get(f"/art/briefing/{name}")).status == 404
 

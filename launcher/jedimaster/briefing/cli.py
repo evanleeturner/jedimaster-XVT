@@ -7,7 +7,9 @@ Purpose:
 
 Flow:
     ``add_parser`` adds the ``briefing`` command; ``run`` finds the install,
-    reads the mission, builds the bundle and writes it.
+    reads the mission, builds the bundle and writes it. The background rule
+    needs the mission's directory: ``--directory`` names it, else the file's
+    folder does (an unknown folder has no rule of its own).
 
 Invariants:
     - ``print`` carries only the command's one summary line; diagnostics go
@@ -29,10 +31,12 @@ from pathlib import Path
 
 from ..install import find_install
 from ..lists import ListFormatError
+from ..lists.game import MISSION_TYPES
 from ..mission import MissionFormatError
 from ..mission import read_mission
 from .build import BriefingBuildError
 from .build import build_bundle
+from .find import directory_of
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +52,11 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
     export.add_argument("--install", required=True, help="the install folder")
     export.add_argument("--file", required=True, help="the mission file (.tie)")
     export.add_argument("--out", required=True, help="the JSON file to write")
+    export.add_argument(
+        "--directory",
+        choices=list(MISSION_TYPES),
+        help="the mission type the mission is played from (default: its folder's)",
+    )
 
 
 def run(args: argparse.Namespace) -> int:
@@ -66,7 +75,8 @@ def run(args: argparse.Namespace) -> int:
         logger.error("mission not found: %s", source)
         return 2
     try:
-        bundle = build_bundle(install, read_mission(source))
+        directory = args.directory or directory_of(source)
+        bundle = build_bundle(install, read_mission(source), directory)
         text = json.dumps(bundle, ensure_ascii=False, separators=(",", ":"))
         Path(args.out).write_text(text + "\n", encoding="utf-8")
     except (MissionFormatError, BriefingBuildError, ListFormatError, OSError) as exc:

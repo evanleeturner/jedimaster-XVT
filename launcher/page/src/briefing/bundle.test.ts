@@ -9,7 +9,9 @@ interface Wire {
   format_version: unknown;
   front_string: unknown;
   grey_sheet: unknown;
-  teams: { team: number }[];
+  teams: { team: number; background: unknown }[];
+  heading: unknown;
+  heading_font: unknown;
   briefings: {
     index: number;
     running_time: unknown;
@@ -155,4 +157,40 @@ test("things that are not objects are refused", () => {
   for (const value of [null, 3, "x", [], undefined]) {
     assert.equal(accepts(value), false);
   }
+});
+
+test("a team's background must be text", () => {
+  assert.equal(
+    after((v) => {
+      first(v.teams).background = 3;
+    }),
+    false,
+  );
+});
+
+test("the heading must be byte text and the heading font a font or null", () => {
+  assert.equal(
+    after((v) => {
+      v.heading = 5;
+    }),
+    false,
+  );
+  assert.equal(
+    after((v) => {
+      v.heading = "\u0100";
+    }),
+    false,
+  );
+  assert.equal(
+    after((v) => {
+      v.heading_font = {};
+    }),
+    false,
+  );
+  assert.equal(
+    after((v) => {
+      v.heading_font = null;
+    }),
+    true,
+  );
 });

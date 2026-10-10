@@ -266,3 +266,46 @@ test("the briefing controls are at least 24 by 24 and the page reflows at 320 wi
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+async function panelColor(page: Page, x: number, y: number): Promise<string> {
+  return page.evaluate(
+    ([px, py]) => {
+      const canvas = document.querySelector("canvas");
+      const context = canvas?.getContext("2d");
+      if (!canvas || !context) return "";
+      const scale = canvas.width / 360;
+      const d = context.getImageData(
+        (px ?? 0) * scale + 1,
+        (py ?? 0) * scale + 1,
+        1,
+        1,
+      ).data;
+      return `${String(d[0])},${String(d[1])},${String(d[2])}`;
+    },
+    [x, y],
+  );
+}
+
+test("the panel shows the team's background, the caption band and the heading", async ({
+  page,
+  launcher,
+}) => {
+  await openBriefing(page, launcher.url);
+  // The made-up first flight group is a rebel player: the made-up rebel
+  // background is palette index 10, which the 565 screen shows as this.
+  const background = "8,247,74";
+  expect(await panelColor(page, 355, 100)).toBe(background);
+  expect(await panelColor(page, 355, 5)).toBe(background);
+  expect(await panelColor(page, 355, 208)).toBe(background);
+  expect(await panelColor(page, 355, 209)).toBe("0,121,156");
+  expect(await panelColor(page, 355, 236)).toBe("0,121,156");
+  expect(await panelColor(page, 355, 237)).toBe(background);
+  // The heading is white, in font 12, from panel (2, -4): its first glyph is
+  // a block 4 wide whose rows 0 to 3 show.
+  expect(await panelColor(page, 3, 0)).toBe("255,255,255");
+  expect(await panelColor(page, 5, 3)).toBe("255,255,255");
+  expect(await panelColor(page, 3, 4)).toBe(background);
+  expect(await panelColor(page, 6, 1)).toBe(background);
+  const result = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+  expect(result.violations).toEqual([]);
+});

@@ -29,6 +29,7 @@ from .art import ART_NAMES
 from .art import ArtStore
 from .build import BriefingBuildError
 from .build import build_bundle
+from .find import directory_of
 from .find import mission_file
 
 logger = logging.getLogger(__name__)
@@ -38,5 +39,6 @@ __all__ = [
     "ArtStore",
     "BriefingBuildError",
     "build_bundle",
+    "directory_of",
     "mission_file",
 ]

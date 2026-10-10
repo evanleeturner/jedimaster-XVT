@@ -102,6 +102,19 @@
           "items": {
             "$ref": "#/$defs/SoundData"
           }
+        },
+        "heading": {
+          "type": "string"
+        },
+        "heading_font": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FontData"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -117,7 +130,9 @@
         "sheets",
         "grey_sheet",
         "font",
-        "sounds"
+        "sounds",
+        "heading",
+        "heading_font"
       ],
       "additionalProperties": false
     },
@@ -330,7 +345,7 @@
     },
     "TeamData": {
       "type": "object",
-      "description": "One team: its name and the briefing it sees (None: the default one).",
+      "description": "One team: its name, its briefing (None: the default) and its background art.",
       "properties": {
         "team": {
           "type": "integer",
@@ -349,12 +364,16 @@
               "type": "null"
             }
           ]
+        },
+        "background": {
+          "type": "string"
         }
       },
       "required": [
         "team",
         "name",
-        "briefing"
+        "briefing",
+        "background"
       ],
       "additionalProperties": false
     }

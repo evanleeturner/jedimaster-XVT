@@ -116,8 +116,8 @@ BRIEFING_PLANTS: list[Plant] = [
     Plant(
         "briefing-team-names-lost",
         "jedimaster/briefing/build.py",
-        "TeamData(team, mission.teams[team].name, choice)",
-        'TeamData(team, "", choice)',
+        "            mission.teams[team].name,\n",
+        '            "",\n',
         ("tests/test_briefing_build.py::test_teams_list_their_briefing_and_name",),
     ),
     Plant(
@@ -344,11 +344,11 @@ BRIEFING_PLANTS: list[Plant] = [
     Plant(
         "briefing-revision-4",
         "jedimaster/page/protocol.py",
-        "SCHEMA_REVISION = 3",
         "SCHEMA_REVISION = 4",
+        "SCHEMA_REVISION = 5",
         (
             "tests/test_page_control.py::test_hello",
-            "tests/test_page_control.py::test_the_list_has_seven_commands_and_revision_3",
+            "tests/test_page_control.py::test_the_list_has_seven_commands_and_revision_4",
         ),
     ),
     Plant(

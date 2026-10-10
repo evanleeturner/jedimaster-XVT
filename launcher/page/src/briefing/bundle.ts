@@ -96,15 +96,19 @@ function listOf<T>(
 }
 
 function teamOf(value: unknown): Checked<TeamData> {
-  if (!isRecord(value) || !exactly(value, ["team", "name", "briefing"])) {
+  if (
+    !isRecord(value) ||
+    !exactly(value, ["team", "name", "briefing", "background"])
+  ) {
     return fail("a team has the wrong fields");
   }
-  const { team, name, briefing } = value;
+  const { team, name, briefing, background } = value;
   if (
     !whole(team) ||
     team < 0 ||
     team >= TEAMS ||
     typeof name !== "string" ||
+    typeof background !== "string" ||
     !(
       briefing === null ||
       (whole(briefing) && briefing >= 0 && briefing < BRIEFINGS)
@@ -112,7 +116,7 @@ function teamOf(value: unknown): Checked<TeamData> {
   ) {
     return fail("a team has a value of the wrong type");
   }
-  return { value: { team, name, briefing } };
+  return { value: { team, name, briefing, background } };
 }
 
 function eventOf(value: unknown): Checked<EventData> {
@@ -295,6 +299,8 @@ export function decodeBundle(value: unknown): Checked<BriefingBundle> {
     "grey_sheet",
     "font",
     "sounds",
+    "heading",
+    "heading_font",
   ];
   if (!isRecord(value) || !exactly(value, names)) {
     return fail("a bundle has the wrong fields");
@@ -309,6 +315,8 @@ export function decodeBundle(value: unknown): Checked<BriefingBundle> {
   const sheets = listOf(value.sheets, null, sheetOf, "sheets");
   const sounds = listOf(value.sounds, null, soundOf, "sounds");
   const font = fontOf(value.font);
+  const headingFont =
+    value.heading_font === null ? { value: null } : fontOf(value.heading_font);
   const grey =
     value.grey_sheet === null ? { value: null } : sheetOf(value.grey_sheet);
   for (const part of [
@@ -319,13 +327,15 @@ export function decodeBundle(value: unknown): Checked<BriefingBundle> {
     sheets,
     sounds,
     font,
+    headingFont,
     grey,
   ]) {
     if ("reason" in part) return fail(part.reason);
   }
-  const { front_string, craft_boxes, iff_sheets } = value;
+  const { front_string, craft_boxes, iff_sheets, heading } = value;
   if (
     typeof front_string !== "string" ||
+    !isByteText(heading) ||
     !wholes(craft_boxes, CRAFTS) ||
     !texts(iff_sheets, IFFS) ||
     "reason" in teams ||
@@ -335,6 +345,7 @@ export function decodeBundle(value: unknown): Checked<BriefingBundle> {
     "reason" in sheets ||
     "reason" in sounds ||
     "reason" in font ||
+    "reason" in headingFont ||
     "reason" in grey
   ) {
     return fail("a bundle has a value of the wrong type");
@@ -354,6 +365,8 @@ export function decodeBundle(value: unknown): Checked<BriefingBundle> {
       grey_sheet: grey.value,
       font: font.value,
       sounds: sounds.value,
+      heading,
+      heading_font: headingFont.value,
     },
   };
 }

@@ -101,7 +101,7 @@ PROTOCOL_PLANTS: list[Plant] = [
     Plant(
         "page-protocol-revision",
         PRO,
-        "    schema_revision: Literal[2]",
+        "    schema_revision: Literal[4]",
         "    schema_revision: Literal[1]",
         (TC + "test_hello", TX + "test_accepted_example[reply-ok-hello.json]"),
         regen_schema=True,

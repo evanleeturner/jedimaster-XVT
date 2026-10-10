@@ -4,7 +4,8 @@ Purpose:
     Gather, from a mission file and the install's own files, everything
     the briefing player needs: which briefing each team sees, each briefing
     used, the flight groups with their briefing points, the team names,
-    the page word, the icon tables and font 10's metrics.
+    the page word, the heading's string and font, the background each team's
+    briefing sits on, the icon tables and font 10's metrics.
 
 Flow:
     ``team_briefing`` applies the rule "the last briefing whose flag for
@@ -32,6 +33,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+from ..fonts import Font
 from ..fonts import TEXT_COLORS
 from ..fonts.to_json import atlas_name
 from ..fonts.to_json import font_atlas
@@ -46,6 +48,7 @@ from ..mission.model import Mission
 from ..text.menus import front_text
 from ..text.menus import read_front
 from .art import read_font10
+from .art import read_font12
 from .art import sound_art_name
 from .art import sound_files
 from .model import BoxData
@@ -65,10 +68,14 @@ from .names import EVENT_VARIABLES
 from .names import FONT_GAME_NAME
 from .names import FRONT_FILE
 from .names import GREY_SHEET
+from .names import HEADING_FONT_NAME
+from .names import HEADING_STRING
 from .names import ICON_SHEETS
 from .names import NO_TEXT
 from .names import PAGE_STRING
 from .names import SOUND_NAMES
+from .under import background_for
+from .under import under_art_name
 
 logger = logging.getLogger(__name__)
 
@@ -96,13 +103,13 @@ def team_briefing(viewed_by: list[list[int]], team: int) -> int | None:
     return seen
 
 
-def _page_word(install: Path) -> str:
+def _front_string(install: Path, number: int, missing: str) -> str:
     path = resolve(install, FRONT_FILE)
     if path is None or not path.is_file():
-        logger.warning("%s not found: the page word is %r", FRONT_FILE, NO_TEXT)
-        return NO_TEXT
+        logger.warning("%s not found: string %d is %r", FRONT_FILE, number, missing)
+        return missing
     entries = read_front(path)
-    return front_text(entries, PAGE_STRING).decode("iso-8859-1")
+    return front_text(entries, number).decode("iso-8859-1")
 
 
 def _groups(mission: Mission) -> list[GroupData]:
@@ -168,10 +175,7 @@ def _briefings(mission: Mission, used: list[int]) -> list[BriefingData]:
     ]
 
 
-def _font(install: Path) -> FontData:
-    font = read_font10(install)
-    if font is None:
-        raise BriefingBuildError(f"{FONT_GAME_NAME} cannot be read from the install")
+def _font_data(font: Font, game_name: str) -> FontData:
     atlas = font_atlas(font)
     return FontData(
         font.spacing,
@@ -181,8 +185,23 @@ def _font(install: Path) -> FontData:
         atlas.width // atlas.cell_width,
         atlas.cell_width,
         atlas.cell_height,
-        atlas_name(FONT_GAME_NAME),
+        atlas_name(game_name),
     )
+
+
+def _font(install: Path) -> FontData:
+    font = read_font10(install)
+    if font is None:
+        raise BriefingBuildError(f"{FONT_GAME_NAME} cannot be read from the install")
+    return _font_data(font, FONT_GAME_NAME)
+
+
+def _heading_font(install: Path) -> FontData | None:
+    font = read_font12(install)
+    if font is None:
+        logger.warning("no heading: %s cannot be read", HEADING_FONT_NAME)
+        return None
+    return _font_data(font, HEADING_FONT_NAME)
 
 
 def _sheets(install: Path) -> tuple[list[IconSheetData], IconSheetData | None]:
@@ -196,21 +215,36 @@ def _sheets(install: Path) -> tuple[list[IconSheetData], IconSheetData | None]:
     return sheets, grey if GREY_SHEET in have else None
 
 
-def build_bundle(install: Path, mission: Mission) -> dict[str, Any]:
+def build_bundle(
+    install: Path, mission: Mission, directory: str | None = None
+) -> dict[str, Any]:
     """Return the bundle for ``mission`` as JSON-ready data.
+
+    ``directory`` is the name of the mission type the mission is played
+    from (the background rule needs it); None means a directory with no
+    rule of its own (the first player flight group decides).
 
     Always returns a dict that satisfies ``schema/briefing.schema.json``.
     Raises ``BriefingBuildError`` when font 10 cannot be read, and
     ``OSError`` or a list or font reader's error when a file the bundle
     needs is unreadable. A missing front text, icon sheet or sound is left
-    out with a WARNING. Does not check the mission's references (a craft
+    out with a WARNING; a missing font 12 leaves the heading out. Does not
+    check the mission's references (a craft
     type without an icon, a group number past the list).
     """
     viewed_by = [list(b.viewed_by_team) for b in mission.briefings]
     choices = [team_briefing(viewed_by, team) for team in range(TEAM_COUNT)]
     used = sorted({c for c in choices if c is not None})
+    player_iffs = [
+        g.iff if g.player_number != 0 else None for g in mission.flight_groups
+    ]
     teams = [
-        TeamData(team, mission.teams[team].name, choice)
+        TeamData(
+            team,
+            mission.teams[team].name,
+            choice,
+            under_art_name(background_for(directory, team, player_iffs)),
+        )
         for team, choice in enumerate(choices)
     ]
     sheets, grey = _sheets(install)
@@ -219,7 +253,7 @@ def build_bundle(install: Path, mission: Mission) -> dict[str, Any]:
     bundle = BriefingBundle(
         "jedimaster.briefing",
         1,
-        _page_word(install),
+        _front_string(install, PAGE_STRING, NO_TEXT),
         teams,
         _briefings(mission, used),
         _groups(mission),
@@ -230,6 +264,8 @@ def build_bundle(install: Path, mission: Mission) -> dict[str, Any]:
         grey,
         _font(install),
         sounds,
+        _front_string(install, HEADING_STRING, ""),
+        _heading_font(install),
     )
     logger.info(
         "bundle: %d briefings used, %d groups, %d sheets, %d sounds",

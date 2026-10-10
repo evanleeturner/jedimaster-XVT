@@ -142,7 +142,7 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
   if (!isRecord(value)) return fail("a result must be an object");
   if (hasExactly(value, ["launcher_version", "schema_revision"])) {
     const { launcher_version, schema_revision } = value;
-    if (typeof launcher_version === "string" && schema_revision === 3) {
+    if (typeof launcher_version === "string" && schema_revision === 4) {
       return { value: { launcher_version, schema_revision } };
     }
     return fail("a hello result has the wrong values");

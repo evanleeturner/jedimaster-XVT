@@ -304,12 +304,9 @@ BRIEFING_PAGE_PLANTS: list[Plant] = [
     Plant(
         "web-cod-revision",
         "page/src/codec.ts",
-        "schema_revision === 3",
-        "schema_revision === 2",
-        (
-            "node: a hello reply of another revision is refused",
-            "node: accepted example reply-ok-hello.json",
-        ),
+        "schema_revision === 4",
+        "schema_revision !== 0",
+        ("node: a hello reply of another revision is refused",),
     ),
     Plant(
         "web-cod-briefing-get",

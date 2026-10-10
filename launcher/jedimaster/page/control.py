@@ -325,7 +325,9 @@ class Control:
         if path is None:
             return missing
         try:
-            bundle = build_bundle(self.install, read_mission(path))
+            bundle = build_bundle(
+                self.install, read_mission(path), args["mission_type"]
+            )
         except (
             MissionFormatError,
             BriefingBuildError,

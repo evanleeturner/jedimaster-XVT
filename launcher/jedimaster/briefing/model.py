@@ -88,11 +88,12 @@ class GroupData:
 
 @dataclass
 class TeamData:
-    """One team: its name and the briefing it sees (None: the default one)."""
+    """One team: its name, its briefing (None: the default) and its background art."""
 
     team: int = field(metadata={"minimum": 0, "maximum": TEAM_COUNT - 1})
     name: str
     briefing: int | None
+    background: str
 
 
 @dataclass
@@ -152,3 +153,5 @@ class BriefingBundle:
     grey_sheet: IconSheetData | None
     font: FontData
     sounds: list[SoundData]
+    heading: str
+    heading_font: FontData | None

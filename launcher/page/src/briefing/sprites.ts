@@ -1,13 +1,15 @@
 // The pictures the painter draws from: icon sheets, the grey sheet, the font.
 //
 // Purpose: load the briefing's art from the page's own server and prepare it
-// for exact drawing: icon sheets pass through the 565 screen once, the grey
-// sheet becomes a plane of intensities, the font atlas stays white ink.
+// for exact drawing: icon sheets (the grey one too) pass through the 565 screen
+// once and each also becomes a plane of intensities (a tint reads the plane of
+// the sheet it names), the font atlas stays white ink.
 // Flow: `loadSprites` fetches each picture named in the bundle (the art
 // route), decodes it and returns a `Sprites`; a missing picture is left out
 // and the painter skips what needs it.
 // Invariants: pictures come only from `/art/briefing/<name>`; an icon pixel
-// with alpha 0 stays transparent; every other pixel is opaque.
+// with alpha 0 stays transparent; every other pixel is opaque; a picture under
+// the map is drawn as it comes (it is already a 565 screen widened to 8 bits).
 
 import type { BriefingBundle } from "../generated/briefing.ts";
 import { logger } from "../logger.ts";
@@ -23,9 +25,15 @@ export interface Grey {
 }
 
 export interface Sprites {
+  /** Every sheet, the grey one included, as the screen shows it. */
   readonly sheets: ReadonlyMap<string, HTMLCanvasElement>;
-  readonly grey: Grey | null;
+  /** The intensities of every sheet's pixels, by sheet name. */
+  readonly planes: ReadonlyMap<string, Grey>;
   readonly atlas: HTMLCanvasElement | null;
+  /** Font 12's atlas, for the heading. */
+  readonly headingAtlas: HTMLCanvasElement | null;
+  /** The pictures under the map, by art name, as the screen shows them. */
+  readonly under: ReadonlyMap<string, HTMLCanvasElement>;
 }
 
 function loadImage(name: string): Promise<HTMLImageElement | null> {
@@ -92,25 +100,37 @@ function atlasOf(image: HTMLImageElement): HTMLCanvasElement {
 /** Load the bundle's pictures; resolve with whatever could be loaded. */
 export async function loadSprites(bundle: BriefingBundle): Promise<Sprites> {
   const sheets = new Map<string, HTMLCanvasElement>();
-  const names = bundle.sheets.map(
-    (sheet) => [sheet.name, sheet.picture] as const,
-  );
-  const [loaded, greyImage, atlasImage] = await Promise.all([
+  const planes = new Map<string, Grey>();
+  const names = [
+    ...bundle.sheets,
+    ...(bundle.grey_sheet === null ? [] : [bundle.grey_sheet]),
+  ].map((sheet) => [sheet.name, sheet.picture] as const);
+  const underNames = [...new Set(bundle.teams.map((t) => t.background))];
+  const [loaded, atlasImage, headingImage, underImages] = await Promise.all([
     Promise.all(names.map(([, picture]) => loadImage(picture))),
-    bundle.grey_sheet === null ? null : loadImage(bundle.grey_sheet.picture),
     loadImage(bundle.font.picture),
+    bundle.heading_font === null
+      ? null
+      : loadImage(bundle.heading_font.picture),
+    Promise.all(underNames.map((name) => loadImage(name))),
   ]);
   names.forEach(([name], i) => {
-    const data =
-      loaded[i] === null || loaded[i] === undefined
-        ? null
-        : pixelsOf(loaded[i]);
-    if (data !== null) sheets.set(name, quantized(data));
+    const image = loaded[i];
+    const data = image === null || image === undefined ? null : pixelsOf(image);
+    if (data === null) return;
+    planes.set(name, greyOf(data));
+    sheets.set(name, quantized(data));
   });
-  const greyData = greyImage === null ? null : pixelsOf(greyImage);
+  const under = new Map<string, HTMLCanvasElement>();
+  underNames.forEach((name, i) => {
+    const image = underImages[i];
+    if (image !== null && image !== undefined) under.set(name, atlasOf(image));
+  });
   return {
     sheets,
-    grey: greyData === null ? null : greyOf(greyData),
+    planes,
     atlas: atlasImage === null ? null : atlasOf(atlasImage),
+    headingAtlas: headingImage === null ? null : atlasOf(headingImage),
+    under,
   };
 }

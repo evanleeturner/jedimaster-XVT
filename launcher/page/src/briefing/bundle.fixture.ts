@@ -61,6 +61,9 @@ export interface BundleOptions {
   readonly teamBriefings?: Readonly<Record<number, number>>;
   readonly groups?: readonly GroupData[];
   readonly frontString?: string;
+  readonly heading?: string;
+  readonly headingFont?: boolean;
+  readonly backgrounds?: Readonly<Record<number, string>>;
 }
 
 const WIDTHS = Array.from({ length: 256 }, (_, code) =>
@@ -77,6 +80,7 @@ export function makeBundle(options: BundleOptions = {}): BriefingBundle {
       team,
       name: `Team ${String(team)}`,
       briefing: chosen[team] ?? null,
+      background: options.backgrounds?.[team] ?? "under-neutral.png",
     })),
     briefings: [...(options.briefings ?? [briefing()])],
     groups: [...(options.groups ?? [])],
@@ -104,5 +108,19 @@ export function makeBundle(options: BundleOptions = {}): BriefingBundle {
       picture: "times10.png",
     },
     sounds: [],
+    heading: options.heading ?? "Hd.",
+    heading_font:
+      options.headingFont === false
+        ? null
+        : {
+            spacing: 1,
+            height: 16,
+            widths: WIDTHS,
+            text_colors: [2016, 63488, 65504, 12703, 33823],
+            columns: 16,
+            cell_width: 9,
+            cell_height: 16,
+            picture: "times12.png",
+          },
   };
 }
