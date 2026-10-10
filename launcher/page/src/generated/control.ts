@@ -12,6 +12,7 @@ export type LauncherControlMessage =
   | SettingsGetRequest
   | SettingsSetRequest
   | ShowMissionRequest
+  | BriefingGetRequest
   | OkReply
   | ErrorReply
   | StatusPush
@@ -91,19 +92,35 @@ export interface ShowMissionArgs {
   id: number;
 }
 /**
+ * Ask for the briefing bundle of one mission of the network menus.
+ */
+export interface BriefingGetRequest {
+  id: number;
+  command: "briefing.get";
+  args: BriefingGetArgs;
+}
+/**
+ * The mission to brief: its type and its id in the network menu of that type.
+ */
+export interface BriefingGetArgs {
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  id: number;
+}
+/**
  * The command ran; its result.
  */
 export interface OkReply {
   id: number;
   ok: true;
-  result: HelloResult | InstallStatusResult | MissionsListResult | SettingsResult | ShowMissionResult;
+  result:
+    HelloResult | InstallStatusResult | MissionsListResult | SettingsResult | ShowMissionResult | BriefingGetResult;
 }
 /**
  * The launcher's version and the revision of the control list.
  */
 export interface HelloResult {
   launcher_version: string;
-  schema_revision: 2;
+  schema_revision: 3;
 }
 /**
  * The install found (home shown as ~) and whether Balance of Power is in it.
@@ -155,6 +172,113 @@ export interface Settings {
  */
 export interface ShowMissionResult {
   shown: boolean;
+}
+/**
+ * Whether the mission was found and read, and its briefing bundle.
+ */
+export interface BriefingGetResult {
+  found: boolean;
+  bundle: BriefingBundle | null;
+}
+/**
+ * Everything the briefing player needs for one mission file.
+ */
+export interface BriefingBundle {
+  format: "jedimaster.briefing";
+  format_version: 1;
+  front_string: string;
+  teams: TeamData[];
+  briefings: BriefingData[];
+  groups: GroupData[];
+  boxes: BoxData[];
+  craft_boxes: number[];
+  iff_sheets: string[];
+  sheets: IconSheetData[];
+  grey_sheet: IconSheetData | null;
+  font: FontData;
+  sounds: SoundData[];
+}
+/**
+ * One team: its name and the briefing it sees (None: the default one).
+ */
+export interface TeamData {
+  team: number;
+  name: string;
+  briefing: number | null;
+}
+/**
+ * One briefing of the mission: running time, events, label and caption texts.
+ */
+export interface BriefingData {
+  index: number;
+  running_time: number;
+  events: EventData[];
+  labels: string[];
+  captions: string[];
+}
+/**
+ * One script event: its time, its type and its variables.
+ */
+export interface EventData {
+  time: number;
+  type: number;
+  variables: number[];
+}
+/**
+ * One flight group: what the map draws for it.
+ */
+export interface GroupData {
+  number: number;
+  name: string;
+  craft_type: number;
+  iff: number;
+  team: number;
+  player_number: number;
+  points: PointData[];
+}
+/**
+ * One briefing point of a flight group: map x and y, and whether it is on.
+ */
+export interface PointData {
+  x: number;
+  y: number;
+  enabled: boolean;
+}
+/**
+ * One icon box in a sheet, all four edges inclusive.
+ */
+export interface BoxData {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+/**
+ * One icon sheet: its name and its art name.
+ */
+export interface IconSheetData {
+  name: string;
+  picture: string;
+}
+/**
+ * Font 10: spacing, height, glyph widths, text colors and the atlas cells.
+ */
+export interface FontData {
+  spacing: number;
+  height: number;
+  widths: number[];
+  text_colors: number[];
+  columns: number;
+  cell_width: number;
+  cell_height: number;
+  picture: string;
+}
+/**
+ * One sound the player uses: its name in the game's list and its art name.
+ */
+export interface SoundData {
+  name: string;
+  picture: string;
 }
 /**
  * The command did not run; the reason.

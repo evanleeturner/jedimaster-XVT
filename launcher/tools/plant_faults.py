@@ -47,6 +47,7 @@ import sys
 from pathlib import Path
 
 from plants_bot import BOT_PLANTS
+from plants_briefing import BRIEFING_PLANTS
 from plants_common import Plant
 from plants_fonts import FONTS_PLANTS
 from plants_icons import ICONS_PLANTS
@@ -116,6 +117,7 @@ PLANTS: list[Plant] = [
     *MOVIES_OUTPUT_PLANTS,
     *PAGE_PLANTS,
     *BOT_PLANTS,
+    *BRIEFING_PLANTS,
 ]
 
 

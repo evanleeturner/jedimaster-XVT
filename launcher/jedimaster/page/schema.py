@@ -89,6 +89,25 @@ def _define(cls: type, defs: dict[str, Any]) -> None:
     defs[cls.__name__] = entry
 
 
+def schema_of(root: type, schema_id: str, title: str) -> dict[str, Any]:
+    """Return the JSON Schema (draft 2020-12) of one dataclass and what it holds.
+
+    The document is the closed object of ``root`` with every class it
+    names under ``$defs``, by the same walk as the control schema. Always
+    returns the same dict for the same classes; does not encode rules
+    between fields.
+    """
+    defs: dict[str, Any] = {}
+    _define(root, defs)
+    return {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": schema_id,
+        "title": title,
+        "$ref": f"#/$defs/{root.__name__}",
+        "$defs": dict(sorted(defs.items())),
+    }
+
+
 def control_schema() -> dict[str, Any]:
     """Return the JSON Schema (draft 2020-12) of every control message.
 

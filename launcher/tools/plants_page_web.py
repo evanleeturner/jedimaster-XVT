@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import logging
 
+from plants_briefing_web import BRIEFING_WEB_PLANTS
 from plants_common import Plant
 from plants_page_web_view import VIEW_PLANTS
 
@@ -621,4 +622,10 @@ SHOW_PLANTS: list[Plant] = [
     ),
 ]
 
-WEB_PLANTS: list[Plant] = [*CODEC_PLANTS, *LOGGER_PLANTS, *VIEW_PLANTS, *SHOW_PLANTS]
+WEB_PLANTS: list[Plant] = [
+    *CODEC_PLANTS,
+    *LOGGER_PLANTS,
+    *VIEW_PLANTS,
+    *SHOW_PLANTS,
+    *BRIEFING_WEB_PLANTS,
+]

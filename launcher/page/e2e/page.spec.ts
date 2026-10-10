@@ -72,13 +72,13 @@ test("missions list each menu, with availability in words", async ({
   ).toBeVisible();
   await expect(
     missions.getByRole("listitem").filter({ hasText: "First Flight" }),
-  ).toHaveText("Basic: First Flight (alpha.tie), available");
+  ).toHaveText("Basic: First Flight (alpha.tie), available Show First Flight");
   await expect(
     missions.getByRole("listitem").filter({ hasText: "Second Flight" }),
   ).toHaveText("Basic: Second Flight (bravo.tie), not available");
   await expect(
     missions.getByRole("listitem").filter({ hasText: "Open Field" }),
-  ).toHaveText("Open: Open Field (delta.tie), available");
+  ).toHaveText("Open: Open Field (delta.tie), available Show Open Field");
   await expect(missions.getByRole("heading", { level: 3 })).toHaveCount(6);
   await expect(missions).toContainText("was not found (tourn\\mission.lst)");
 });
@@ -221,7 +221,7 @@ test("a keyboard alone reaches every control, each with a visible focus", async 
     if (document.activeElement instanceof HTMLElement)
       document.activeElement.blur();
   });
-  for (let step = 0; step < 5; step += 1) {
+  for (let step = 0; step < 8; step += 1) {
     await page.keyboard.press("Tab");
     const [name = "", outline = "none", width = "0px"] = await focusRing();
     expect(outline, `${name} shows a focus outline`).not.toBe("none");
@@ -235,7 +235,10 @@ test("a keyboard alone reaches every control, each with a visible focus", async 
     "Skip to the page content",
     "Status",
     "Missions",
+    "Briefing",
     "Settings",
+    "Show First Flight",
+    "Show Open Field",
     "Whole pixels",
   ]);
   await page.keyboard.press("ArrowDown");
@@ -359,7 +362,7 @@ async function smallControls(page: Page): Promise<string[]> {
         name: el.id || el.textContent || "",
         box: el.getBoundingClientRect(),
       }))
-      .filter(({ box }) => box.width < 24 || box.height < 24)
+      .filter(({ box }) => box.width > 0 && (box.width < 24 || box.height < 24))
       .map(({ name }) => name);
   });
 }

@@ -1,5 +1,7 @@
+import { BriefingPanel } from "./briefing/panel.ts";
 import type { Request } from "./codec.ts";
-import { decode, encodeRequest, isArtScaling } from "./codec.ts";
+import { decode, encodeRequest, isArtScaling, isMissionType } from "./codec.ts";
+import type { BriefingBundle } from "./generated/briefing.ts";
 import { logger } from "./logger.ts";
 import type { Action, MenuView, State, View } from "./state.ts";
 import { describe, initialState, PAGE_VERSION, reduce } from "./state.ts";
@@ -26,6 +28,9 @@ const shownLine = find(HTMLParagraphElement, "#mission-shown");
 const scalingGroup = find(HTMLFieldSetElement, "#art-scaling");
 
 let state: State = initialState();
+const briefingPanel = new BriefingPanel();
+let shownBundle: BriefingBundle | null = null;
+let menuSignature = "";
 let socket: WebSocket | null = null;
 let nextId = 1;
 let scrolledFor = 0;
@@ -49,13 +54,54 @@ function menuElements(menu: MenuView): HTMLElement[] {
     for (const entry of menu.entries) {
       const item = document.createElement("li");
       item.className = "mission-item";
-      item.textContent = entry.text;
+      item.append(entry.text);
       if (entry.current) item.setAttribute("aria-current", "true");
+      if (entry.pick !== null) {
+        const pick = document.createElement("button");
+        pick.type = "button";
+        pick.className = "button pick-button";
+        pick.textContent = entry.pick.label;
+        pick.dataset.missionType = entry.pick.missionType;
+        pick.dataset.missionId = String(entry.pick.id);
+        item.append(" ", pick);
+      }
       list.append(item);
     }
     parts.push(list);
   }
   return parts;
+}
+
+function renderMenus(view: View): void {
+  const signature = JSON.stringify(
+    view.menus.map((m) => [
+      m.heading,
+      m.note,
+      m.entries.map((e) => [e.text, e.pick]),
+    ]),
+  );
+  if (signature !== menuSignature) {
+    menuSignature = signature;
+    missionsBody.replaceChildren(...view.menus.flatMap(menuElements));
+  }
+  const items = missionsBody.querySelectorAll("li.mission-item");
+  const entries = view.menus.flatMap((m) => m.entries);
+  items.forEach((item, i) => {
+    if (entries[i]?.current === true) item.setAttribute("aria-current", "true");
+    else item.removeAttribute("aria-current");
+  });
+}
+
+function renderBriefing(view: View): void {
+  if (view.briefing.status !== "ready") {
+    shownBundle = null;
+    briefingPanel.hide(view.briefingNote ?? "");
+    return;
+  }
+  if (view.briefing.bundle !== shownBundle) {
+    shownBundle = view.briefing.bundle;
+    void briefingPanel.show(view.briefing.bundle);
+  }
 }
 
 function render(view: View): void {
@@ -68,13 +114,15 @@ function render(view: View): void {
   setText(problemLine, view.problem ?? "");
   missionsNote.hidden = view.missionsNote === null;
   setText(missionsNote, view.missionsNote ?? "");
-  missionsBody.replaceChildren(...view.menus.flatMap(menuElements));
+  renderMenus(view);
+  renderBriefing(view);
   setText(shownLine, view.shownText);
   const mark = missionsBody.querySelector('[aria-current="true"]');
   if (mark !== null && view.shownCount !== scrolledFor) {
     scrolledFor = view.shownCount;
     mark.scrollIntoView({ block: "center" });
   }
+  if (view.artScaling !== null) briefingPanel.setScaling(view.artScaling);
   scalingGroup.disabled = !view.settingsEnabled;
   for (const input of scalingGroup.querySelectorAll("input")) {
     input.checked = input.value === view.artScaling;
@@ -112,6 +160,13 @@ function onMessage(event: MessageEvent): void {
   }
   logger.debug("receive", decoded.message);
   dispatch({ kind: "message", message: decoded.message });
+  const { message } = decoded;
+  if ("event" in message && message.event === "page.show_mission") {
+    send({
+      command: "briefing.get",
+      args: { mission_type: message.data.mission_type, id: message.data.id },
+    });
+  }
 }
 
 function socketUrl(): URL {
@@ -148,7 +203,22 @@ function onScalingChange(event: Event): void {
   }
 }
 
+function onMissionsClick(event: Event): void {
+  const target = event.target;
+  if (
+    !(target instanceof HTMLButtonElement) ||
+    target.dataset.missionType === undefined
+  )
+    return;
+  const type = target.dataset.missionType;
+  const id = Number(target.dataset.missionId);
+  if (isMissionType(type) && Number.isInteger(id)) {
+    send({ command: "page.show_mission", args: { mission_type: type, id } });
+  }
+}
+
 scalingGroup.addEventListener("change", onScalingChange);
+missionsBody.addEventListener("click", onMissionsClick);
 reconnectButton.addEventListener("click", connect);
 render(describe(state));
 connect();

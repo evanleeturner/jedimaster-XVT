@@ -14,7 +14,7 @@ Flow:
     front end; the caller sends them.
 
 Invariants:
-    - Only the six commands of ``protocol.COMMANDS`` run; every other name
+    - Only the seven commands of ``protocol.COMMANDS`` run; every other name
       is refused and logged at WARNING.
     - ``handle`` never raises for a request, however malformed.
     - A reply to a request whose id cannot be read carries id 0.
@@ -33,6 +33,9 @@ from dataclasses import field
 from pathlib import Path
 from typing import Any
 
+from ..briefing import BriefingBuildError
+from ..briefing import build_bundle
+from ..briefing import mission_file
 from ..install import BALANCE_OF_POWER
 from ..install import child_in_any_case
 from ..install import resolve_game_path
@@ -41,6 +44,8 @@ from ..lists import read_menu
 from ..lists.game import menu_game_path
 from ..lists.game import MISSION_TYPES
 from ..lists.text import ListFormatError
+from ..mission import MissionFormatError
+from ..mission import read_mission
 from .protocol import COMMANDS
 from .protocol import MAX_ID
 from .protocol import MAX_MESSAGE_BYTES
@@ -127,6 +132,7 @@ ARG_CHECKS: dict[str, Callable[[Json], str | None]] = {
     "settings.get": _no_args,
     "settings.set": _set_args,
     "page.show_mission": _show_args,
+    "briefing.get": _show_args,
 }
 """Each command's check of its arguments: None when fine, else the reason."""
 
@@ -177,7 +183,7 @@ def _home_form(path: Path) -> str:
 
 
 class Control:
-    """The launcher's state and the six commands that read or change it."""
+    """The launcher's state and the seven commands that read or change it."""
 
     def __init__(
         self, install: Path | None, store: SettingsStore, launcher_version: str
@@ -193,6 +199,7 @@ class Control:
             "settings.get": self._settings_get,
             "settings.set": self._settings_set,
             "page.show_mission": self._show_mission,
+            "briefing.get": self._briefing_get,
         }
         self._pushes: list[Json] = []
 
@@ -309,3 +316,23 @@ class Control:
                 return {"shown": True}
         logger.debug("no mission %d in the %s menu", args["id"], args["mission_type"])
         return {"shown": False}
+
+    def _briefing_get(self, args: Json) -> Json:
+        missing: Json = {"found": False, "bundle": None}
+        if self.install is None:
+            return missing
+        path = mission_file(self.install, args["mission_type"], args["id"])
+        if path is None:
+            return missing
+        try:
+            bundle = build_bundle(self.install, read_mission(path))
+        except (
+            MissionFormatError,
+            BriefingBuildError,
+            ListFormatError,
+            OSError,
+        ) as exc:
+            logger.warning("cannot build the briefing of %s: %s", path, exc)
+            return missing
+        logger.debug("briefing of %s built", path)
+        return {"found": True, "bundle": bundle}

@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "test": "node --test 'src/**/*.test.ts'",
-    "gen:types": "json2ts --input ../schema/control.schema.json --output src/generated/control.ts",
+    "gen:types": "json2ts --input ../schema/control.schema.json --output src/generated/control.ts && json2ts --input ../schema/briefing.schema.json --output src/generated/briefing.ts",
     "build": "tsc --project tsconfig.build.json && node scripts/copy-public.ts",
     "test:browser": "playwright test"
   },

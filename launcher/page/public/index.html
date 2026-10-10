@@ -16,6 +16,7 @@
         <ul class="nav-list">
           <li><a class="nav-link" href="#status">Status</a></li>
           <li><a class="nav-link" href="#missions">Missions</a></li>
+          <li><a class="nav-link" href="#briefing">Briefing</a></li>
           <li><a class="nav-link" href="#settings">Settings</a></li>
         </ul>
       </nav>
@@ -40,11 +41,69 @@
         <p id="missions-note">The mission lists have not arrived yet.</p>
         <div id="missions-body"></div>
       </section>
+      <section class="panel" id="briefing" aria-labelledby="briefing-heading">
+        <h2 id="briefing-heading">Briefing</h2>
+        <p id="briefing-note">Pick a mission to see its briefing.</p>
+        <div id="briefing-body" hidden>
+          <div
+            class="briefing-controls"
+            role="group"
+            aria-label="Briefing controls"
+          >
+            <button class="button" id="briefing-play" type="button">
+              Play
+            </button>
+            <button class="button" id="briefing-stop" type="button">
+              Stop
+            </button>
+            <button class="button" id="briefing-rewind" type="button">
+              Rewind
+            </button>
+            <button class="button" id="briefing-forward" type="button">
+              Forward
+            </button>
+            <div class="briefing-sound">
+              <input
+                id="briefing-sound"
+                type="checkbox"
+                role="switch"
+                checked
+              />
+              <label for="briefing-sound">Sound</label>
+            </div>
+            <div class="briefing-team" id="briefing-team-box" hidden>
+              <label for="briefing-team">Team</label>
+              <select id="briefing-team"></select>
+            </div>
+            <p class="briefing-page" id="briefing-page">Page 0</p>
+          </div>
+          <div class="briefing-stage" id="briefing-stage">
+            <canvas
+              id="briefing-canvas"
+              width="360"
+              height="240"
+              role="img"
+              aria-label="Briefing map. The text below lists the caption, the labels and the highlighted flight groups."
+            ></canvas>
+          </div>
+          <h3>Caption</h3>
+          <p
+            id="briefing-caption"
+            class="briefing-caption"
+            aria-live="polite"
+            aria-atomic="true"
+          ></p>
+          <h3>Labels on the map</h3>
+          <ul id="briefing-labels" class="briefing-labels"></ul>
+          <h3>Highlighted flight groups</h3>
+          <p id="briefing-highlight">No flight group is highlighted.</p>
+        </div>
+      </section>
       <section class="panel" id="settings" aria-labelledby="settings-heading">
         <h2 id="settings-heading">Settings</h2>
         <p id="settings-note">
-          The page shows no game art yet. This choice is saved now and used once
-          it does.
+          This choice sets how the briefing map is scaled on the page. It is
+          saved for the next time.
         </p>
         <fieldset class="choice-group" id="art-scaling" disabled>
           <legend>Art scaling</legend>

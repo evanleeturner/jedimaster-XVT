@@ -1,4 +1,6 @@
-import type { ArtScaling, Message } from "./codec.ts";
+import type { ArtScaling, Message, MissionType } from "./codec.ts";
+import { isMissionType } from "./codec.ts";
+import type { BriefingBundle } from "./generated/briefing.ts";
 import type {
   InstallStatusResult,
   MenuData,
@@ -8,6 +10,12 @@ import type {
 
 export type Connection = "connecting" | "open" | "closed";
 
+export type BriefingState =
+  | { readonly status: "none" }
+  | { readonly status: "loading" }
+  | { readonly status: "missing" }
+  | { readonly status: "ready"; readonly bundle: BriefingBundle };
+
 export interface State {
   readonly connection: Connection;
   readonly launcherVersion: string | null;
@@ -16,6 +24,7 @@ export interface State {
   readonly artScaling: ArtScaling | null;
   readonly shown: ShownMission | null;
   readonly shownCount: number;
+  readonly briefing: BriefingState;
   readonly problem: string | null;
 }
 
@@ -28,6 +37,12 @@ export type Action =
 export interface MenuEntryView {
   readonly text: string;
   readonly current: boolean;
+  /** What the entry's button asks for, or null when the entry is not available. */
+  readonly pick: {
+    readonly missionType: MissionType;
+    readonly id: number;
+    readonly label: string;
+  } | null;
 }
 
 export interface MenuView {
@@ -47,6 +62,8 @@ export interface View {
   readonly artScaling: ArtScaling | null;
   readonly shownText: string;
   readonly shownCount: number;
+  readonly briefing: BriefingState;
+  readonly briefingNote: string | null;
   readonly settingsEnabled: boolean;
   readonly problem: string | null;
 }
@@ -62,11 +79,18 @@ export function initialState(): State {
     artScaling: null,
     shown: null,
     shownCount: 0,
+    briefing: { status: "none" },
     problem: null,
   };
 }
 
 function applyResult(state: State, result: OkReply["result"]): State {
+  if ("bundle" in result) {
+    if (result.found && result.bundle !== null) {
+      return { ...state, briefing: { status: "ready", bundle: result.bundle } };
+    }
+    return { ...state, briefing: { status: "missing" } };
+  }
   if ("schema_revision" in result) {
     return { ...state, launcherVersion: result.launcher_version };
   }
@@ -90,6 +114,7 @@ function applyMessage(state: State, message: Message): State {
         ...state,
         shown: message.data,
         shownCount: state.shownCount + 1,
+        briefing: { status: "loading" },
         problem: null,
       };
     }
@@ -129,6 +154,13 @@ const CONNECTION_TEXT: Record<Connection, string> = {
   closed: "The connection to the launcher has dropped.",
 };
 
+const BRIEFING_NOTE: Record<BriefingState["status"], string | null> = {
+  none: "Pick a mission to see its briefing.",
+  loading: "Loading the briefing.",
+  missing: "This mission's briefing could not be shown.",
+  ready: null,
+};
+
 function titleCase(name: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1);
 }
@@ -152,6 +184,14 @@ function menuView(menu: MenuData, shown: ShownMission | null): MenuView {
     return {
       text: `${place}${entry.title} (${entry.file}), ${word}`,
       current: index === target,
+      pick:
+        entry.available && isMissionType(menu.mission_type)
+          ? {
+              missionType: menu.mission_type,
+              id: entry.id,
+              label: `Show ${entry.title}`,
+            }
+          : null,
     };
   });
   return {
@@ -193,6 +233,8 @@ export function describe(state: State): View {
     artScaling: state.artScaling,
     shownText: state.shown === null ? "" : `Showing ${state.shown.title}`,
     shownCount: state.shownCount,
+    briefing: state.briefing,
+    briefingNote: BRIEFING_NOTE[state.briefing.status],
     settingsEnabled: state.connection === "open",
     problem: state.problem,
   };

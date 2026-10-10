@@ -1,5 +1,5 @@
 import type { ChildProcess } from "node:child_process";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -33,6 +33,25 @@ export interface Launcher {
   readonly readSettings: () => Promise<unknown>;
 }
 
+const TESTS_FOLDER = join(LAUNCHER_FOLDER, "tests");
+
+// Adds made-up art and one made-up mission (Train/ALPHA.TIE) to the install.
+function addBriefing(install: string): void {
+  const python = process.env.JEDIMASTER_PYTHON ?? "python3";
+  const done = spawnSync(
+    python,
+    [join(TESTS_FOLDER, "write_briefing_install.py"), install],
+    {
+      cwd: LAUNCHER_FOLDER,
+      encoding: "utf8",
+      env: { ...process.env, PYTHONPATH: TESTS_FOLDER },
+    },
+  );
+  if (done.status !== 0) {
+    throw new Error(`the made-up briefing was not written: ${done.stderr}`);
+  }
+}
+
 async function makeInstall(root: string): Promise<string> {
   const install = join(root, "XvT");
   await mkdir(join(install, "Train"), { recursive: true });
@@ -40,6 +59,7 @@ async function makeInstall(root: string): Promise<string> {
   await mkdir(join(install, "BalanceOfPower", "TRAIN"), { recursive: true });
   await writeFile(join(install, "Train", "MISSION.LST"), TRAIN_MENU, "latin1");
   await writeFile(join(install, "Melee", "MISSION.LST"), MELEE_MENU, "latin1");
+  addBriefing(install);
   return install;
 }
 

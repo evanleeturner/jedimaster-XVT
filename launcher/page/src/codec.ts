@@ -1,4 +1,6 @@
+import { decodeBundle } from "./briefing/bundle.ts";
 import type {
+  BriefingGetRequest,
   ErrorReply,
   HelloRequest,
   InstallStatusRequest,
@@ -24,7 +26,8 @@ export type Request =
   | MissionsListRequest
   | SettingsGetRequest
   | SettingsSetRequest
-  | ShowMissionRequest;
+  | ShowMissionRequest
+  | BriefingGetRequest;
 export type Decoded =
   | { readonly ok: true; readonly message: Message }
   | { readonly ok: false; readonly reason: string };
@@ -139,7 +142,7 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
   if (!isRecord(value)) return fail("a result must be an object");
   if (hasExactly(value, ["launcher_version", "schema_revision"])) {
     const { launcher_version, schema_revision } = value;
-    if (typeof launcher_version === "string" && schema_revision === 2) {
+    if (typeof launcher_version === "string" && schema_revision === 3) {
       return { value: { launcher_version, schema_revision } };
     }
     return fail("a hello result has the wrong values");
@@ -171,6 +174,14 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
     return "reason" in settings
       ? fail(settings.reason)
       : { value: { settings: settings.value } };
+  }
+  if (hasExactly(value, ["found", "bundle"])) {
+    const { found, bundle } = value;
+    if (typeof found !== "boolean") return fail("found must be true or false");
+    if (bundle === null) return { value: { found, bundle: null } };
+    const checked = decodeBundle(bundle);
+    if ("reason" in checked) return fail(checked.reason);
+    return { value: { found, bundle: checked.value } };
   }
   if (hasExactly(value, ["shown"])) {
     const { shown } = value;
@@ -316,6 +327,7 @@ function requestOf(value: Fields): Decoded {
         message: { id, command, args: { name, value: setting } },
       };
     }
+    case "briefing.get":
     case "page.show_mission": {
       const { mission_type, id: mission } = args;
       if (
@@ -326,7 +338,7 @@ function requestOf(value: Fields): Decoded {
       ) {
         return {
           ok: false,
-          reason: "page.show_mission takes a mission type and an id",
+          reason: `${command} takes a mission type and an id`,
         };
       }
       return {

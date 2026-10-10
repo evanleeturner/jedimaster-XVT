@@ -1,7 +1,7 @@
 """The control list: every message the page and the launcher exchange.
 
 Purpose:
-    Name, as dataclasses, the one fixed list of commands (revision 2), their
+    Name, as dataclasses, the one fixed list of commands (revision 3), their
     arguments and results, the three pushes and the error codes. The schema
     (``schema``) is built from these classes, so the list has one source.
 
@@ -30,9 +30,11 @@ from dataclasses import dataclass
 from dataclasses import field
 from typing import Literal
 
+from ..briefing.model import BriefingBundle
+
 logger = logging.getLogger(__name__)
 
-SCHEMA_REVISION = 2
+SCHEMA_REVISION = 3
 """The revision of the control list; a change to any message raises it."""
 
 MAX_MESSAGE_BYTES = 64 * 1024
@@ -98,11 +100,19 @@ class ShowMissionArgs:
 
 
 @dataclass
+class BriefingGetArgs:
+    """The mission to brief: its type and its id in the network menu of that type."""
+
+    mission_type: MissionTypeName
+    id: int = field(metadata={"minimum": 0, "maximum": MAX_ID})
+
+
+@dataclass
 class HelloResult:
     """The launcher's version and the revision of the control list."""
 
     launcher_version: str
-    schema_revision: Literal[2]
+    schema_revision: Literal[3]
 
 
 @dataclass
@@ -154,6 +164,14 @@ class ShowMissionResult:
     """Whether the mission was found in its menu and so shown."""
 
     shown: bool
+
+
+@dataclass
+class BriefingGetResult:
+    """Whether the mission was found and read, and its briefing bundle."""
+
+    found: bool
+    bundle: BriefingBundle | None
 
 
 # ---- requests -------------------------------------------------------------
@@ -213,6 +231,15 @@ class ShowMissionRequest:
     args: ShowMissionArgs
 
 
+@dataclass
+class BriefingGetRequest:
+    """Ask for the briefing bundle of one mission of the network menus."""
+
+    id: int = field(metadata=ID_RANGE)
+    command: Literal["briefing.get"]
+    args: BriefingGetArgs
+
+
 REQUEST_CLASSES = (
     HelloRequest,
     InstallStatusRequest,
@@ -220,6 +247,7 @@ REQUEST_CLASSES = (
     SettingsGetRequest,
     SettingsSetRequest,
     ShowMissionRequest,
+    BriefingGetRequest,
 )
 COMMANDS: tuple[str, ...] = tuple(
     typing.get_args(typing.get_type_hints(cls)["command"])[0] for cls in REQUEST_CLASSES
@@ -241,6 +269,7 @@ class OkReply:
         | MissionsListResult
         | SettingsResult
         | ShowMissionResult
+        | BriefingGetResult
     )
 
 

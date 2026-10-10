@@ -14,7 +14,7 @@ Flow:
     redirects to ``/``; every other request needs the cookie). ``socket``
     checks the origin, then reads one JSON message at a time, hands it to
     ``Control.handle``, sends the reply and then the pushes to every open
-    socket. ``serve`` binds, prints the page's URL and runs until stopped.
+    socket. ``art`` serves ``GET /art/briefing/<name>`` for the fixed art set. ``serve`` binds, prints the page's URL and runs until stopped.
 
 Invariants:
     - The server binds to 127.0.0.1 only.
@@ -42,6 +42,7 @@ from pathlib import Path
 from aiohttp import web
 from aiohttp import WSMsgType
 
+from ..briefing import ArtStore
 from .control import Control
 from .control import Outcome
 from .protocol import MAX_MESSAGE_BYTES
@@ -51,6 +52,7 @@ logger = logging.getLogger(__name__)
 HOST = "127.0.0.1"
 HOSTNAMES = ("127.0.0.1", "localhost")
 COOKIE_NAME = "jedimaster_key"
+ART = web.AppKey("art", ArtStore)
 CONTROL = web.AppKey("control", Control)
 KEY = web.AppKey("key", str)
 PAGE_DIR = web.AppKey("page_dir", Path)
@@ -141,6 +143,19 @@ async def index(request: web.Request) -> web.StreamResponse:
     return web.FileResponse(page)
 
 
+async def art(request: web.Request) -> web.StreamResponse:
+    """Return one file of the briefing's art set, or 404 for any other name.
+
+    The bytes come from the application's ``ArtStore``: the fixed set of
+    pictures and sounds, built from the install on first use. A name outside
+    the set, no install, or a file that cannot be built is a refusal.
+    """
+    found = request.app[ART].get(request.match_info["name"])
+    if found is None:
+        return _refuse(request, 404, "no such art")
+    return web.Response(body=found.data, content_type=found.content_type)
+
+
 async def _send(ws: web.WebSocketResponse, message: dict) -> None:
     try:
         await ws.send_str(json.dumps(message))
@@ -212,11 +227,13 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
     """
     app = web.Application(middlewares=[add_headers, check_host, check_key])
     app[CONTROL] = control
+    app[ART] = ArtStore(control.install)
     app[KEY] = key
     app[PAGE_DIR] = page_dir
     app[SOCKETS] = set()
     app.router.add_get("/", index)
     app.router.add_get("/ws", socket)
+    app.router.add_get("/art/briefing/{name}", art)
     if page_dir.is_dir():
         app.router.add_static("/", page_dir)
     app.on_shutdown.append(_close_sockets)

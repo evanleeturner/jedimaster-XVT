@@ -1,0 +1,362 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/briefing.schema.json",
+  "title": "Briefing bundle",
+  "$ref": "#/$defs/BriefingBundle",
+  "$defs": {
+    "BoxData": {
+      "type": "object",
+      "description": "One icon box in a sheet, all four edges inclusive.",
+      "properties": {
+        "left": {
+          "type": "integer"
+        },
+        "top": {
+          "type": "integer"
+        },
+        "right": {
+          "type": "integer"
+        },
+        "bottom": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "left",
+        "top",
+        "right",
+        "bottom"
+      ],
+      "additionalProperties": false
+    },
+    "BriefingBundle": {
+      "type": "object",
+      "description": "Everything the briefing player needs for one mission file.",
+      "properties": {
+        "format": {
+          "const": "jedimaster.briefing"
+        },
+        "format_version": {
+          "const": 1
+        },
+        "front_string": {
+          "type": "string"
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TeamData"
+          }
+        },
+        "briefings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BriefingData"
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/GroupData"
+          }
+        },
+        "boxes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BoxData"
+          }
+        },
+        "craft_boxes": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "iff_sheets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sheets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IconSheetData"
+          }
+        },
+        "grey_sheet": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IconSheetData"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "font": {
+          "$ref": "#/$defs/FontData"
+        },
+        "sounds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SoundData"
+          }
+        }
+      },
+      "required": [
+        "format",
+        "format_version",
+        "front_string",
+        "teams",
+        "briefings",
+        "groups",
+        "boxes",
+        "craft_boxes",
+        "iff_sheets",
+        "sheets",
+        "grey_sheet",
+        "font",
+        "sounds"
+      ],
+      "additionalProperties": false
+    },
+    "BriefingData": {
+      "type": "object",
+      "description": "One briefing of the mission: running time, events, label and caption texts.",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "running_time": {
+          "type": "integer"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EventData"
+          }
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "captions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "index",
+        "running_time",
+        "events",
+        "labels",
+        "captions"
+      ],
+      "additionalProperties": false
+    },
+    "EventData": {
+      "type": "object",
+      "description": "One script event: its time, its type and its variables.",
+      "properties": {
+        "time": {
+          "type": "integer"
+        },
+        "type": {
+          "type": "integer"
+        },
+        "variables": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      },
+      "required": [
+        "time",
+        "type",
+        "variables"
+      ],
+      "additionalProperties": false
+    },
+    "FontData": {
+      "type": "object",
+      "description": "Font 10: spacing, height, glyph widths, text colors and the atlas cells.",
+      "properties": {
+        "spacing": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        },
+        "widths": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "text_colors": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "columns": {
+          "type": "integer"
+        },
+        "cell_width": {
+          "type": "integer"
+        },
+        "cell_height": {
+          "type": "integer"
+        },
+        "picture": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "spacing",
+        "height",
+        "widths",
+        "text_colors",
+        "columns",
+        "cell_width",
+        "cell_height",
+        "picture"
+      ],
+      "additionalProperties": false
+    },
+    "GroupData": {
+      "type": "object",
+      "description": "One flight group: what the map draws for it.",
+      "properties": {
+        "number": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "craft_type": {
+          "type": "integer"
+        },
+        "iff": {
+          "type": "integer"
+        },
+        "team": {
+          "type": "integer"
+        },
+        "player_number": {
+          "type": "integer"
+        },
+        "points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PointData"
+          }
+        }
+      },
+      "required": [
+        "number",
+        "name",
+        "craft_type",
+        "iff",
+        "team",
+        "player_number",
+        "points"
+      ],
+      "additionalProperties": false
+    },
+    "IconSheetData": {
+      "type": "object",
+      "description": "One icon sheet: its name and its art name.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "picture": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "picture"
+      ],
+      "additionalProperties": false
+    },
+    "PointData": {
+      "type": "object",
+      "description": "One briefing point of a flight group: map x and y, and whether it is on.",
+      "properties": {
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "enabled"
+      ],
+      "additionalProperties": false
+    },
+    "SoundData": {
+      "type": "object",
+      "description": "One sound the player uses: its name in the game's list and its art name.",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "picture": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "picture"
+      ],
+      "additionalProperties": false
+    },
+    "TeamData": {
+      "type": "object",
+      "description": "One team: its name and the briefing it sees (None: the default one).",
+      "properties": {
+        "team": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "name": {
+          "type": "string"
+        },
+        "briefing": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "team",
+        "name",
+        "briefing"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

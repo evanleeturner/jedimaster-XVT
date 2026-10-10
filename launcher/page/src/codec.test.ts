@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { group, makeBundle } from "./briefing/bundle.fixture.ts";
 import type { Request } from "./codec.ts";
 import { decode, decodeValue, encodeRequest, MAX_ID } from "./codec.ts";
 
@@ -45,7 +46,7 @@ test("every request is read back as written", () => {
 
 test("every kind of ok reply is read back as written", () => {
   const results: unknown[] = [
-    { launcher_version: "0.1.0", schema_revision: 2 },
+    { launcher_version: "0.1.0", schema_revision: 3 },
     { found: true, path: "~/Games/XvT", balance_of_power: false },
     { found: false, path: null, balance_of_power: false },
     {
@@ -168,7 +169,7 @@ test("a reply refuses a result that matches no command", () => {
   refused(reply({ launcher_version: "0.1.0", schema_revision: 1 }));
   refused(reply({ shown: "yes" }));
   refused(reply({ shown: true, more: 1 }));
-  refused(reply({ launcher_version: 1, schema_revision: 2 }));
+  refused(reply({ launcher_version: 1, schema_revision: 3 }));
   refused(reply({ found: "yes", path: null, balance_of_power: false }));
   refused(reply({ found: true, path: 3, balance_of_power: false }));
   refused(reply({ settings: { art_scaling: "stretched" } }));
@@ -318,4 +319,57 @@ test("encodeRequest writes JSON that decode reads back", () => {
   const text = encodeRequest(request);
   assert.deepEqual(JSON.parse(text), request);
   assert.deepEqual(decode(text), { ok: true, message: request });
+});
+
+test("briefing.get is read back as written, like show_mission", () => {
+  const request = {
+    id: 9,
+    command: "briefing.get",
+    args: { mission_type: "melee", id: 0 },
+  };
+  assert.deepEqual(accepted(request), request);
+  assert.deepEqual(
+    accepted({ ...request, args: { mission_type: "training", id: MAX_ID } }),
+    { ...request, args: { mission_type: "training", id: MAX_ID } },
+  );
+});
+
+test("briefing.get refuses what show_mission refuses", () => {
+  const base = { id: 9, command: "briefing.get" };
+  refused({ ...base, args: { mission_type: "melee" } });
+  refused({ ...base, args: { mission_type: "practice", id: 1 } });
+  refused({ ...base, args: { mission_type: "melee", id: -1 } });
+  refused({ ...base, args: { mission_type: "melee", id: 1.5 } });
+  refused({ ...base, args: { mission_type: "melee", id: MAX_ID + 1 } });
+  refused({ ...base, args: { mission_type: "melee", id: 1, team: 0 } });
+});
+
+test("a briefing.get reply is read back with its bundle, or with none", () => {
+  const missing = { id: 9, ok: true, result: { found: false, bundle: null } };
+  assert.deepEqual(accepted(missing), missing);
+  const found = {
+    id: 9,
+    ok: true,
+    result: { found: true, bundle: makeBundle({ groups: [group()] }) },
+  };
+  assert.deepEqual(accepted(found), JSON.parse(JSON.stringify(found)));
+});
+
+test("a briefing.get reply refuses a bundle the player could not use", () => {
+  const bundle = JSON.parse(JSON.stringify(makeBundle())) as Record<
+    string,
+    unknown
+  >;
+  bundle.teams = [];
+  refused({ id: 9, ok: true, result: { found: true, bundle } });
+  refused({ id: 9, ok: true, result: { found: "yes", bundle: null } });
+  refused({ id: 9, ok: true, result: { found: true } });
+});
+
+test("a hello reply of another revision is refused", () => {
+  refused({
+    id: 1,
+    ok: true,
+    result: { launcher_version: "0.1.0", schema_revision: 2 },
+  });
 });

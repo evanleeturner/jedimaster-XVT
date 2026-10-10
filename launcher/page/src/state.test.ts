@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { makeBundle } from "./briefing/bundle.fixture.ts";
 import type { Message } from "./codec.ts";
 import type { MenuData, ShownMission } from "./generated/control.ts";
 import type { Action, State } from "./state.ts";
@@ -102,7 +103,7 @@ test("a hello reply gives the launcher's version", () => {
       message({
         id: 1,
         ok: true,
-        result: { launcher_version: "2.0", schema_revision: 2 },
+        result: { launcher_version: "2.0", schema_revision: 3 },
       }),
     ),
   );
@@ -138,8 +139,12 @@ test("missions list one heading per menu, availability in words", () => {
   assert.equal(training.heading, "Training missions");
   assert.equal(training.note, null);
   assert.deepEqual(training.entries, [
-    { text: "Basic: First (a.tie), available", current: false },
-    { text: "Second (b.tie), not available", current: false },
+    {
+      text: "Basic: First (a.tie), available",
+      current: false,
+      pick: { missionType: "training", id: 1, label: "Show First" },
+    },
+    { text: "Second (b.tie), not available", current: false, pick: null },
   ]);
   assert.equal(melee.heading, "Melee missions");
   assert.deepEqual(melee.entries, []);
@@ -302,4 +307,72 @@ test("a show-mission result changes nothing", () => {
     message({ id: 4, ok: true, result: { shown: true } }),
   );
   assert.deepEqual(after, before);
+});
+
+test("a mission pushed to the page makes the briefing wait for its bundle", () => {
+  const pushed = play(
+    message({
+      event: "page.show_mission",
+      data: { mission_type: "training", id: 1, title: "First" },
+    }),
+  );
+  const view = describe(pushed);
+  assert.equal(view.briefing.status, "loading");
+  assert.equal(view.briefingNote, "Loading the briefing.");
+});
+
+test("a found briefing is kept for the player", () => {
+  const bundle = makeBundle();
+  const view = describe(
+    play(message({ id: 5, ok: true, result: { found: true, bundle } })),
+  );
+  const kept = view.briefing;
+  assert.ok(kept.status === "ready");
+  assert.equal(view.briefingNote, null);
+  assert.equal(kept.bundle, bundle);
+});
+
+test("a briefing that was not found says so", () => {
+  const view = describe(
+    play(message({ id: 5, ok: true, result: { found: false, bundle: null } })),
+  );
+  assert.equal(view.briefing.status, "missing");
+  assert.match(view.briefingNote ?? "", /could not be shown/);
+});
+
+test("a new push after a briefing waits for the next one", () => {
+  const view = describe(
+    play(
+      message({
+        id: 5,
+        ok: true,
+        result: { found: true, bundle: makeBundle() },
+      }),
+      message({
+        event: "page.show_mission",
+        data: { mission_type: "melee", id: 2, title: "Open" },
+      }),
+    ),
+  );
+  assert.equal(view.briefing.status, "loading");
+});
+
+test("before anything is picked the briefing asks for a pick", () => {
+  assert.equal(
+    describe(initialState()).briefingNote,
+    "Pick a mission to see its briefing.",
+  );
+});
+
+test("an available entry has a button that asks for that mission; a locked one has none", () => {
+  const view = describe(
+    play(message({ id: 3, ok: true, result: { menus: [TRAINING, MELEE] } })),
+  );
+  const [first, second] = view.menus[0]?.entries ?? [];
+  assert.deepEqual(first?.pick, {
+    missionType: "training",
+    id: 1,
+    label: "Show First",
+  });
+  assert.equal(second?.pick, null);
 });
