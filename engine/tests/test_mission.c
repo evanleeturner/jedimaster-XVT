@@ -5866,13 +5866,17 @@ static void check_spawn_clears_all_group_damage(void)
 }
 
 /* Known failure seventh_craft_off_formation, issue #138: a group of more than
- * six craft places its seventh at a place of its own, not at the first place of
- * the next formation, which is the leader's. */
+ * six craft places its seventh at a place of its own, not at the first place
+ * of the next formation. Here the seventh craft of a group in formation 4 must
+ * not stand where the first craft of another group in formation 5 stands,
+ * which is the place formation 4's table reads past its end. */
 static void check_spawn_seventh_craft_place(void)
 {
 	init_mission(MISSION_TYPE_COMBAT);
 	arriving_group(0, 1, SPAWN_TYPE, 7);
 	g_stored.groups[0].formation = 4;
+	arriving_group(1, 1, SPAWN_TYPE, 1);
+	g_stored.groups[1].formation = 5;
 	spawn_mission_ready();
 	struct model_def saved;
 	struct model_def *model = set_test_model(&saved);
@@ -5880,7 +5884,12 @@ static void check_spawn_seventh_craft_place(void)
 	model->bound_size_y = 60;
 	model->bound_size_z = 20;
 	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
-	XVT_ASSERT_TRUE(craft_distance(craft_slot(0, 0), craft_slot(0, 6)) > 0);
+	XVT_ASSERT_INT_EQ(spawn_craft(1, UINT16_MAX), 1);
+	const struct object_record *seventh = &g_object_table[craft_slot(0, 6)];
+	const struct object_record *other = &g_object_table[craft_slot(1, 0)];
+	XVT_ASSERT_TRUE(seventh->world_x != other->world_x ||
+			seventh->world_y != other->world_y ||
+			seventh->world_z != other->world_z);
 	*model = saved;
 }
 
