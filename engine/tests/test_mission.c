@@ -6707,8 +6707,9 @@ static void check_init_craft_type_in_range(void)
 }
 
 /* Known failure ai_skill_past_table, issue #187: the skill value of a spawned
- * craft is one of the 8 entries of the skill table whatever the group's AI
- * level. A group at level 9 gets a value read past the table. */
+ * craft is an entry of the 8-entry skill table whatever the group's AI level:
+ * a group at level 9 takes the skill of the highest level the start allows
+ * (5), not a value read past the table. */
 static void check_spawn_ai_skill_in_table(void)
 {
 	init_mission(MISSION_TYPE_COMBAT);
@@ -6718,12 +6719,7 @@ static void check_spawn_ai_skill_in_table(void)
 	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
 	const struct craft_data *craft =
 		g_object_table[craft_slot(0, 0)].mobj->p_craft;
-	int in_table = 0;
-	for (int level = 0; level < 8; ++level) {
-		in_table |=
-			craft->ai_skill == g_ai_skill_value_q16_by_level[level];
-	}
-	XVT_ASSERT_TRUE(in_table);
+	XVT_ASSERT_INT_EQ(craft->ai_skill, g_ai_skill_value_q16_by_level[5]);
 }
 
 int main(int argc, char **argv)
