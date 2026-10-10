@@ -1,19 +1,29 @@
-/* Tests for xvt/flight/mission/mission.c, the mission's goals, triggers,
+/* Tests for xvt/flight/mission/mission.c, the mission's start, goals, triggers,
  * scoring and flight group arrivals. Each check builds the mission it needs in
  * the game's own tables: two flight groups, a few craft in a small object table
  * this file owns, and the goal and trigger records set field by field. The
  * loader checks read mission files this file writes, in the stored format of
- * versions 12 to 14 and in the TIE format, into a temporary asset folder; no
- * game data is read.
+ * versions 12 to 14 and in the TIE format, into a temporary asset folder; the
+ * checks of mission_init and the flight's runtime state write such a file for
+ * each mission, run the start on it and read what it made: the object table
+ * and its pools, the flight groups, the players, the clocks and the backdrop
+ * records. No game data is read.
  *
- * Not checked here, in mission_load_file:
- * - A file that does not open, or comes up short, ends the program on a
- *   message box that waits on a machine with a display.
- * - The version 10 branches never run, and a message index, a flight group
- *   count, a message count or a global goal count past its table (of the TIE
- *   format) would write past the table, which the sanitizers stop.
- * - A role that fills all 16 bytes makes the upper-casing loop read the byte
- *   after its field, which the array-bounds check of the sanitizers stops.
+ * Not checked here:
+ * - mission_load_file: a file that does not open, or comes up short, ends the
+ *   program on a message box that waits on a machine with a display. The
+ *   version 10 branches never run, and a message index, a flight group count, a
+ *   message count or a global goal count (of the TIE format) past its table
+ *   would write past the table, which the sanitizers stop. A role that fills
+ *   all 16 bytes makes the upper-casing loop read the byte after its field,
+ *   which the array-bounds check of the sanitizers stops.
+ * - mission_init: pools that cannot be allocated (the handle table is full)
+ *   and backdrop records past the 64 of their tables, which write past tables
+ *   or read a handle that does not exist; the proving grounds course, which
+ *   nothing starts (the flag is cleared before the load that precedes it).
+ * - mission_init_flight_runtime_state: loading the cockpit resources, which
+ *   reads game files, and the store to the frame step mirror, which only the
+ *   mission file's own static reads.
  *
  * POSIX only, for the temporary folder (test_asset_folder.h). */
 #define _POSIX_C_SOURCE 200809L
@@ -25,16 +35,34 @@
 
 #include "test_assert.h"
 #include "test_asset_folder.h"
+#include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/ai/pai.h"
+#include "xvt/flight/ai/paiman.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/flight_input.h"
+#include "xvt/flight/flight_object.h"
+#include "xvt/flight/flight_surface.h"
+#include "xvt/flight/flight_view.h"
+#include "xvt/flight/hud/flight_text.h"
+#include "xvt/flight/hud/hud.h"
+#include "xvt/flight/hud/msg.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/flight/object/laser.h"
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
+#include "xvt/frontend/config.h"
+#include "xvt/frontend/frontend_display.h"
 #include "xvt/frontend/mission_setup.h"
+#include "xvt/frontend/pilot_record.h"
+#include "xvt/net/flight_net.h"
+#include "xvt/net/net_session.h"
+#include "xvt/render/backdrop.h"
+#include "xvt/render/flight_palette.h"
+#include "xvt/render/renderer.h"
+#include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log.h"
 
@@ -1847,8 +1875,8 @@ static int load_stored(uint16_t version)
 	return result;
 }
 
-/* A global goal of seed-dependent bytes whose four conditions are all "destroyed",
- * so the loader's last step leaves it alone. */
+/* A global goal of seed-dependent bytes whose four conditions are all
+ * "destroyed", so the loader's last step leaves it alone. */
 static void plain_goal(struct global_goal *goal, unsigned int seed)
 {
 	pattern_fill(goal, sizeof *goal, seed);
@@ -2845,6 +2873,2178 @@ static void check_load_tie_goals(void)
 	}
 }
 
+/* ---- mission_init ----------------------------------------------------- */
+
+/* The flight's fixed buffers get a block each once, so locking them reads real
+ * blocks; the five pools mission_init makes start without handles. */
+static void init_world(void)
+{
+	static uint16_t *const fixed_buffers[8] = {
+		&g_string_data_handle,
+		&g_render_object_list_handle,
+		&g_flight_small_font_handle,
+		&g_flight_micro_font_handle,
+		&g_flight_medium_font_handle,
+		&g_flight_scratch_screen_buffer_handle,
+		&g_flight_aux_buffer_handle,
+		&g_flight_offscreen_buffer_handle,
+	};
+	fresh_world();
+	for (size_t i = 0; i < sizeof fixed_buffers / sizeof fixed_buffers[0];
+	     ++i) {
+		if (*fixed_buffers[i] == 0) {
+			*fixed_buffers[i] = memory_alloc_handle_zeroed(16, 0);
+		}
+	}
+	g_object_table_handle = 0;
+	g_mobile_object_pool_handle = 0;
+	g_mobile_object_char_data_handle = 0;
+	g_craft_data_pool_handle = 0;
+	g_warhead_guidance_pool_handle = 0;
+	memset(&g_pilot_data, 0, sizeof g_pilot_data);
+	memset(&g_game_config, 0, sizeof g_game_config);
+	memset(&g_net_session, 0, sizeof g_net_session);
+	memset(g_mission_messages, 0, sizeof g_mission_messages);
+	memset(&g_mission_countdown_clock, 0, sizeof g_mission_countdown_clock);
+	g_flight_mission_state.difficulty = GAME_DIFFICULTY_MEDIUM;
+	g_flight_conf_no_pilot = 0;
+	g_active_flight_player_count = 1;
+	g_flight_player_count = 1;
+	g_flight_bytes_per_pixel = 2;
+	g_flight_font_tier = 0;
+	g_flight_render_to_frontend = 0;
+	g_flight_page_flip = 0;
+	g_game_rand_feedback_state = 0x1234;
+	g_log_line_count = 0;
+	/* Every plan is two bytes: no target token and no first maneuver. */
+	static uint8_t plan_bytes[8] = {UINT8_MAX, UINT8_MAX};
+	for (int plan = 0; plan < 256; ++plan) {
+		g_plan_data_ptrs[plan] = plan_bytes;
+	}
+	/* mission_init unlocks the surface first and locks it last. */
+	while (flight_surface_get_lock_count() > 0) {
+		flight_surface_unlock();
+	}
+	flight_surface_lock();
+}
+
+/* A stored mission of combat type with no groups yet; init_group adds them. */
+static void init_mission(int kind)
+{
+	stored_reset();
+	g_stored.header.num_flight_groups = 0;
+	g_stored.header.mission_type = (int8_t)kind;
+}
+
+/* Group fg of the stored mission: two craft of the given type on the given
+ * team and IFF, no special cargo craft, and a player number (0 for none). */
+static void init_group(int fg, int team, int craft_type, int player_number)
+{
+	struct xvt_flight_group *group = &g_stored.groups[fg];
+	memset(group, 0, sizeof *group);
+	snprintf(group->name, sizeof group->name, "Group %d", fg);
+	group->craft_type = (craft_species)craft_type;
+	group->number_of_craft = 2;
+	group->team = (uint8_t)team;
+	group->iff = (uint8_t)team;
+	group->player_number = (uint8_t)player_number;
+	group->special_cargo_craft = TEST_NO_ORDINAL;
+	group->group_ai = 2;
+	if (g_stored.header.num_flight_groups <= fg) {
+		g_stored.header.num_flight_groups = (int16_t)(fg + 1);
+	}
+}
+
+/* Writes the stored mission as a file of the given version and runs
+ * mission_init on it; returns what mission_init returns. */
+static uint16_t run_init(uint16_t version)
+{
+	xvt_test_open_assets(&g_assets);
+	write_stored_mission("init.mis", version);
+	uint16_t result = mission_init("init.mis");
+	xvt_test_close_assets(&g_assets);
+	return result;
+}
+
+/* The first object type whose record_flags is nonzero (or zero) and that is
+ * not the given one. */
+static int type_with_record_flags(int nonzero, int not_this)
+{
+	for (int type = 1; type < 201; ++type) {
+		if (type != not_this &&
+		    (g_object_type_table[type].record_flags != 0) ==
+			    (nonzero != 0)) {
+			return type;
+		}
+	}
+	XVT_ASSERT_TRUE(0);
+	return 0;
+}
+
+/* mission_init lays the object table out as its comment says: 32 craft slots,
+ * 128 player and 32 other projectile slots, 16 debris, 16 explosions, 256
+ * character data and 8 local debris slots, then 64 static slots. It makes the
+ * five pools of that size and clears them, the players' object links, the
+ * message texts and the proving grounds state, and clears every model's
+ * "needed" flag but marks the models the mission uses. */
+static void check_init_layout(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	init_group(0, 0, TEST_XWING, 1);
+	init_world();
+	int stale_type = type_with_record_flags(1, TEST_XWING);
+	int unlisted_type = type_with_record_flags(0, TEST_XWING);
+	g_object_type_table[stale_type].asset_flags |= 0x10;
+	g_object_type_table[unlisted_type].asset_flags |= 0x10;
+	g_object_type_table[TEST_XWING].asset_flags &= (uint8_t)~0x10;
+	strcpy(g_mission_messages[10].message, "Old");
+	g_players[3].object_index = 5;
+	g_players[3].bound_object_signature = 77;
+	g_flight_mission_state.global_unit_craft_count[2] = 4;
+	g_flight_mission_state.runtime.team_has_countable_craft[1] = 1;
+	g_flight_mission_state.proving_grounds_craft_type = 2;
+	g_flight_mission_state.proving_grounds_level = 4;
+	g_flight_mission_state.proving_grounds_score = 99;
+	g_flight_mission_state.proving_grounds_checkpoints_passed = 3;
+	g_flight_mission_state.proving_grounds_checkpoints_remaining = 4;
+	g_flight_mission_state.proving_grounds_targets_destroyed = 5;
+	g_flight_mission_state.proving_grounds_time_bonus = 6;
+	g_sim_steps_per_second = 15;
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+
+	XVT_ASSERT_INT_EQ(g_projectile_object_slot_start, 32);
+	XVT_ASSERT_INT_EQ(g_projectile_object_slot_end, 192);
+	XVT_ASSERT_INT_EQ(g_debris_object_slot_start, 192);
+	XVT_ASSERT_INT_EQ(g_debris_object_slot_end, 208);
+	XVT_ASSERT_INT_EQ(g_explosion_object_slot_start, 208);
+	XVT_ASSERT_INT_EQ(g_explosion_object_slot_end, 224);
+	XVT_ASSERT_INT_EQ(g_mobile_object_char_data_slot_start, 224);
+	XVT_ASSERT_INT_EQ(g_mobile_object_char_data_slot_end, 480);
+	XVT_ASSERT_INT_EQ(g_local_transient_slot_start, 480);
+	XVT_ASSERT_INT_EQ(g_local_debris_slot_end, 488);
+	XVT_ASSERT_INT_EQ(g_region_main_object_slot_end, 488);
+	XVT_ASSERT_INT_EQ(g_region_static_object_slot_count, 64);
+	XVT_ASSERT_INT_EQ(g_active_region_object_slot_start, 0);
+	XVT_ASSERT_INT_EQ(g_active_region_craft_object_slot_end, 32);
+	XVT_ASSERT_INT_EQ(g_craft_data_pool_capacity, 32);
+	XVT_ASSERT_INT_EQ(g_mobile_object_char_data_count, 256);
+	XVT_ASSERT_INT_EQ(g_projectile_object_slots_total, 160);
+	XVT_ASSERT_INT_EQ(g_debris_object_slots_total, 16);
+	XVT_ASSERT_INT_EQ(g_local_debris_slot_count, 8);
+	for (int genus = 0; genus < 6; ++genus) {
+		XVT_ASSERT_INT_EQ(g_object_slot_range_by_genus[genus].start, 0);
+		XVT_ASSERT_INT_EQ(g_object_slot_range_by_genus[genus].end, 32);
+	}
+	static const struct {
+		int genus;
+		int start;
+		int end;
+	} ranges[] = {
+		{CRAFT_GENUS_PLAYER_PROJECTILE, 32, 160},
+		{CRAFT_GENUS_OTHER_PROJECTILE, 160, 192},
+		{8, 0, 0},
+		{9, 0, 0},
+		{10, 0, 0},
+		{11, 192, 208},
+		{12, 0, 0},
+		{CRAFT_GENUS_EXPLOSION, 208, 224},
+		{14, 0, 0},
+		{15, 0, 0},
+		{16, 224, 480},
+	};
+	for (size_t i = 0; i < sizeof ranges / sizeof ranges[0]; ++i) {
+		XVT_ASSERT_INT_EQ(
+			g_object_slot_range_by_genus[ranges[i].genus].start,
+			ranges[i].start);
+		XVT_ASSERT_INT_EQ(
+			g_object_slot_range_by_genus[ranges[i].genus].end,
+			ranges[i].end);
+	}
+	XVT_ASSERT_INT_EQ(g_handle_tables.size_table[g_object_table_handle - 1],
+			  552 * sizeof(struct object_record));
+	XVT_ASSERT_INT_EQ(
+		g_handle_tables.size_table[g_mobile_object_pool_handle - 1],
+		488 * sizeof(struct mobile_object));
+	XVT_ASSERT_INT_EQ(
+		g_handle_tables
+			.size_table[g_mobile_object_char_data_handle - 1],
+		256 * sizeof(struct mobile_object_char_data));
+	XVT_ASSERT_INT_EQ(
+		g_handle_tables.size_table[g_craft_data_pool_handle - 1],
+		32 * sizeof(struct craft_data));
+	XVT_ASSERT_INT_EQ(
+		g_handle_tables.size_table[g_warhead_guidance_pool_handle - 1],
+		161 * sizeof(struct warhead_guidance_state));
+	XVT_ASSERT_TRUE(g_object_table ==
+			memory_get_handle_block(g_object_table_handle));
+	for (int slot = 0; slot < 552; ++slot) {
+		XVT_ASSERT_INT_EQ(g_object_table[slot].object_type, 0);
+		XVT_ASSERT_INT_EQ(g_object_table[slot].player_owner_idx, -1);
+		if (slot < 488) {
+			XVT_ASSERT_TRUE(g_object_table[slot].mobj ==
+					&g_mobile_object_pool_base[slot]);
+			XVT_ASSERT_TRUE(
+				g_mobile_object_pool_base[slot].p_craft ==
+				NULL);
+			XVT_ASSERT_INT_EQ(g_mobile_object_link_indices[slot]
+						  .craft_data_idx,
+					  -1);
+			XVT_ASSERT_INT_EQ(g_mobile_object_link_indices[slot]
+						  .char_data_idx,
+					  -1);
+			XVT_ASSERT_INT_EQ(g_mobile_object_link_indices[slot]
+						  .warhead_guidance_idx,
+					  -1);
+			XVT_ASSERT_INT_EQ(
+				g_spawn_object_type_by_object_slot[slot], -1);
+		} else {
+			XVT_ASSERT_TRUE(g_object_table[slot].mobj == NULL);
+		}
+		if (slot < 32) {
+			XVT_ASSERT_INT_EQ(g_object_table[slot].mobj->iff,
+					  UINT8_MAX);
+		}
+	}
+	for (int player = 0; player < 8; ++player) {
+		XVT_ASSERT_INT_EQ(g_players[player].object_index, -1);
+		XVT_ASSERT_INT_EQ(g_players[player].bound_object_signature, 0);
+	}
+	XVT_ASSERT_INT_EQ(g_object_type_table[stale_type].asset_flags & 0x10,
+			  0);
+	XVT_ASSERT_INT_EQ(g_object_type_table[unlisted_type].asset_flags & 0x10,
+			  0x10);
+	XVT_ASSERT_INT_EQ(g_object_type_table[TEST_XWING].asset_flags & 0x10,
+			  0x10);
+	XVT_ASSERT_TRUE(strcmp(g_mission_messages[10].message, "") == 0);
+	for (size_t i = 0;
+	     i <
+	     sizeof g_flight_mission_state.global_unit_craft_count /
+		     sizeof g_flight_mission_state.global_unit_craft_count[0];
+	     ++i) {
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.global_unit_craft_count[i], 0);
+	}
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.team_has_countable_craft[1], 0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.proving_grounds_mode_active,
+			  0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.proving_grounds_craft_type, 0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.proving_grounds_level, 0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.proving_grounds_score, 0);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.proving_grounds_checkpoints_passed, 0);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.proving_grounds_checkpoints_remaining,
+		0);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.proving_grounds_targets_destroyed, 0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.proving_grounds_time_bonus, 0);
+	XVT_ASSERT_INT_EQ(g_sim_steps_per_second, 0);
+	XVT_ASSERT_INT_EQ(flight_surface_get_lock_count(), 1);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.prepared", "type=4 groups=1 messages=0"));
+	g_flight_mission_state.proving_grounds_craft_type = 0;
+}
+
+/* When the mission file cannot be loaded, mission_init returns 0 and logs why,
+ * naming a version it does not know apart from a file it could not read to the
+ * end; it has made the pools by then and leaves the flight surface unlocked,
+ * and the mission tables are as the refused file left them. */
+static void check_init_load_fails(void)
+{
+	static const struct {
+		uint16_t version;
+		int16_t seek_back;
+		const char *reason;
+	} cases[] = {
+		{11, 0, "unknown_version"},
+		{13, -32768, "read_error"},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		init_mission(MISSION_TYPE_MELEE);
+		init_group(0, 0, TEST_XWING, 1);
+		g_stored.last_briefing_length = cases[i].seek_back;
+		init_world();
+		g_mission_header.mission_type = MISSION_TYPE_COMBAT;
+		XVT_ASSERT_INT_EQ(run_init(cases[i].version), 0);
+		XVT_ASSERT_INT_EQ(flight_surface_get_lock_count(), 0);
+		XVT_ASSERT_TRUE(g_object_table_handle != 0);
+		XVT_ASSERT_TRUE(g_warhead_guidance_pool_handle != 0);
+		char reason[40];
+		snprintf(reason, sizeof reason, "reason=\"%s\"",
+			 cases[i].reason);
+		XVT_ASSERT_TRUE(line_holds("mission.load_failed", reason));
+		XVT_ASSERT_INT_EQ(count_lines("mission.prepared"), 0);
+		if (g_stream != NULL) {
+			fe_disk_io_close_global_stream(0);
+		}
+	}
+	XVT_ASSERT_INT_EQ(g_mission_header.mission_type, MISSION_TYPE_MELEE);
+}
+
+/* A pilot record's network player with every choice unset (-1) and the given
+ * session id, flight group and craft type (0 for the group's own). */
+static void set_network_player(int entry, int direct_play_id, int fg,
+			       int craft_id)
+{
+	struct pilot_network_player *player =
+		&g_pilot_data.network_players[entry];
+	memset(player, 0, sizeof *player);
+	player->direct_play_id = direct_play_id;
+	player->flight_group_id = fg;
+	player->craft_id = craft_id;
+	player->craft_option = -1;
+	player->warhead_option = -1;
+	player->beam_option = -1;
+	player->countermeasure_option = -1;
+}
+
+/* Puts a player of the given session id in roster slot slot. */
+static void set_roster_slot(int slot, int direct_play_id)
+{
+	g_net_session.players[slot].direct_play_id = direct_play_id;
+	if (g_net_session.player_count <= slot) {
+		g_net_session.player_count = slot + 1;
+	}
+}
+
+/* With a pilot record, mission_init binds each network player to the flight
+ * group the record names, at the player's roster slot, with the group's IFF
+ * and team, and applies the craft, warhead, beam and countermeasure the
+ * player chose. A craft type overrides a craft option; a starfighter gets no
+ * beam; an option at or past the count of its list, and a choice of -1, is
+ * ignored. A player the roster does not hold is warned of and binds nothing. */
+static void check_init_binds_network_players(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	for (int fg = 0; fg < 5; ++fg) {
+		init_group(fg, fg < 2 ? 0 : 1, TEST_XWING, fg + 1);
+		g_stored.groups[fg].iff = (uint8_t)(fg + 3);
+	}
+	struct xvt_flight_group *groups = g_stored.groups;
+	groups[0].optional_craft[2] = CRAFT_SPECIES_TIE_BOMBER;
+	groups[0].number_of_optional_craft[2] = 4;
+	groups[0].number_of_optional_craft_waves[2] = 5;
+	groups[0].optional_craft[3] = CRAFT_SPECIES_Y_WING;
+	groups[0].optional_warheads[1] = 3;
+	groups[0].optional_beams[2] = 4;
+	groups[0].optional_countermeasures[1] = 2;
+	groups[1].optional_beams[1] = 3;
+	for (int fg = 0; fg < 5; ++fg) {
+		groups[fg].number_of_waves = 7;
+		groups[fg].optional_warheads[7] = 9;
+		groups[fg].optional_beams[5] = 9;
+		groups[fg].optional_countermeasures[3] = 9;
+		groups[fg].optional_craft[9] = CRAFT_SPECIES_SHUTTLE;
+	}
+	init_world();
+	g_flight_mission_state.player_flight_group_wave_mode = 1;
+	set_roster_slot(1, 100);
+	set_roster_slot(4, 200);
+	set_roster_slot(6, 300);
+	set_roster_slot(7, 400);
+	set_network_player(0, 100, 0, 0);
+	g_pilot_data.network_players[0].craft_option = 2;
+	g_pilot_data.network_players[0].warhead_option = 1;
+	g_pilot_data.network_players[0].beam_option = 2;
+	g_pilot_data.network_players[0].countermeasure_option = 1;
+	set_network_player(1, 200, 1, CRAFT_SPECIES_TIE_FIGHTER);
+	g_pilot_data.network_players[1].craft_option = 3;
+	g_pilot_data.network_players[1].beam_option = 1;
+	set_network_player(2, 999, 2, 0);
+	set_network_player(3, 300, 3, CRAFT_SPECIES_Z_95_HEADHUNTER);
+	g_pilot_data.network_players[3].beam_option = 1;
+	set_network_player(4, 400, 4, 0);
+	g_pilot_data.network_players[4].craft_option = 10;
+	g_pilot_data.network_players[4].warhead_option = 8;
+	g_pilot_data.network_players[4].beam_option = 6;
+	g_pilot_data.network_players[4].countermeasure_option = 4;
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+
+	const struct mission_flight_group *group = g_mission_flight_groups;
+	XVT_ASSERT_INT_EQ(group[0].player_owner_idx, 1);
+	XVT_ASSERT_INT_EQ(group[1].player_owner_idx, 4);
+	XVT_ASSERT_INT_EQ(group[2].player_owner_idx, -1);
+	XVT_ASSERT_INT_EQ(group[3].player_owner_idx, 6);
+	XVT_ASSERT_INT_EQ(group[4].player_owner_idx, 7);
+	XVT_ASSERT_INT_EQ(g_players[1].iff, 3);
+	XVT_ASSERT_INT_EQ(g_players[1].team, 0);
+	XVT_ASSERT_INT_EQ(g_players[4].iff, 4);
+	XVT_ASSERT_INT_EQ(g_players[4].team, 0);
+	XVT_ASSERT_INT_EQ(g_players[6].iff, 6);
+	XVT_ASSERT_INT_EQ(g_players[6].team, 1);
+	/* The craft option brings its craft, count and rounds, and the other
+	 * choices come from the group's lists. */
+	XVT_ASSERT_INT_EQ(group[0].fg.craft_type, CRAFT_SPECIES_TIE_BOMBER);
+	XVT_ASSERT_INT_EQ(group[0].fg.number_of_craft, 4);
+	XVT_ASSERT_INT_EQ(group[0].fg.number_of_waves, 5);
+	XVT_ASSERT_INT_EQ(group[0].fg.warhead, 3);
+	XVT_ASSERT_INT_EQ(group[0].fg.beam, 4);
+	XVT_ASSERT_INT_EQ(group[0].fg.countermeasures, 2);
+	/* A craft type wins over a craft option, and a fighter has no beam. */
+	XVT_ASSERT_INT_EQ(group[1].fg.craft_type, CRAFT_SPECIES_TIE_FIGHTER);
+	XVT_ASSERT_INT_EQ(group[1].fg.number_of_craft, 2);
+	XVT_ASSERT_INT_EQ(group[1].fg.beam, 0);
+	XVT_ASSERT_INT_EQ(group[3].fg.craft_type,
+			  CRAFT_SPECIES_Z_95_HEADHUNTER);
+	XVT_ASSERT_INT_EQ(group[3].fg.beam, 0);
+	/* A choice past its list changes nothing. */
+	XVT_ASSERT_INT_EQ(group[4].fg.craft_type, TEST_XWING);
+	XVT_ASSERT_INT_EQ(group[4].fg.warhead, 0);
+	XVT_ASSERT_INT_EQ(group[4].fg.beam, 0);
+	XVT_ASSERT_INT_EQ(group[4].fg.countermeasures, 0);
+	XVT_ASSERT_TRUE(line_holds(
+		"mission.player_bound slot=1 entry=0 player=100 fg=0 ",
+		"team=0 iff=3 craft=7 count=4 warhead=3 beam=4 countermeasures=2"));
+	XVT_ASSERT_TRUE(line_holds("battle.player_joined who=1 ",
+				   "entry=0 player=100 fg=0 team=0"));
+	XVT_ASSERT_TRUE(line_holds("mission.player_slot_missing entry=2 ",
+				   "player=999"));
+	XVT_ASSERT_INT_EQ(count_lines("mission.player_bound"), 4);
+	XVT_ASSERT_TRUE(line_holds("mission.player_teams", "teams=2 ai=0"));
+}
+
+/* With the nopilot setting the players are bound by player number: the
+ * groups numbered 1 up to the flight's player count belong to the player of
+ * that number minus 1, who takes the group's IFF and team; the others have no
+ * owner. */
+static void check_init_binds_by_player_number(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	init_group(0, 0, TEST_XWING, 1);
+	init_group(1, 1, TEST_XWING, 2);
+	init_group(2, 1, TEST_XWING, 3);
+	init_group(3, 0, TEST_XWING, 0);
+	g_stored.groups[0].iff = 5;
+	g_stored.groups[1].iff = 6;
+	init_world();
+	g_flight_conf_no_pilot = 1;
+	g_active_flight_player_count = 2;
+	g_mission_flight_groups[2].player_owner_idx = 5;
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[0].player_owner_idx, 0);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[1].player_owner_idx, 1);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[2].player_owner_idx, -1);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[3].player_owner_idx, -1);
+	XVT_ASSERT_INT_EQ(g_players[0].iff, 5);
+	XVT_ASSERT_INT_EQ(g_players[0].team, 0);
+	XVT_ASSERT_INT_EQ(g_players[1].iff, 6);
+	XVT_ASSERT_INT_EQ(g_players[1].team, 1);
+	XVT_ASSERT_TRUE(line_holds("mission.player_number_bound slot=1 ",
+				   "fg=1 team=1 iff=6"));
+	XVT_ASSERT_INT_EQ(count_lines("mission.player_number_bound"), 2);
+}
+
+/* In a melee flown by humans of one team the AI opponents are switched on; of
+ * two teams, or in another mission type, they are left as they were. */
+static void check_init_enables_ai_opponents(void)
+{
+	static const struct {
+		int kind;
+		int second_team_owned;
+		int ai_expected;
+	} cases[] = {
+		{MISSION_TYPE_MELEE, 0, 1},
+		{MISSION_TYPE_MELEE, 1, 0},
+		{MISSION_TYPE_COMBAT, 0, 0},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		init_mission(cases[i].kind);
+		init_group(0, 0, TEST_XWING, 1);
+		init_group(1, 1, TEST_XWING, 2);
+		init_world();
+		g_flight_mission_state.player_flight_group_wave_mode = 1;
+		set_roster_slot(0, 100);
+		set_network_player(0, 100, 0, 0);
+		if (cases[i].second_team_owned) {
+			set_roster_slot(1, 200);
+			set_network_player(1, 200, 1, 0);
+		}
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		XVT_ASSERT_INT_EQ(g_flight_mission_state.ai_opponents_enabled,
+				  cases[i].ai_expected);
+	}
+}
+
+/* A seed for the game's random state whose first game_rand_range(modulus) is
+ * wanted. */
+static int16_t seed_for_draw(unsigned int modulus, unsigned int wanted)
+{
+	for (int seed = 1; seed < 65536; ++seed) {
+		g_game_rand_feedback_state = (int16_t)seed;
+		if (game_rand_range((uint16_t)modulus) == wanted) {
+			return (int16_t)seed;
+		}
+	}
+	XVT_ASSERT_TRUE(0);
+	return 0;
+}
+
+/* Three player groups: group 0 of team 0 flies an X-wing, group 1 of team 1 a
+ * TIE fighter, group 2 of team 1 an A-wing, numbered 1 to 3. The first two
+ * belong to humans, the host (group 0) and a second player. Each group has its
+ * own count, rounds, warhead, beam and countermeasure. */
+static void craft_selection_mission(int kind)
+{
+	static const int craft[3] = {CRAFT_SPECIES_X_WING,
+				     CRAFT_SPECIES_TIE_FIGHTER,
+				     CRAFT_SPECIES_A_WING};
+	init_mission(kind);
+	for (int fg = 0; fg < 3; ++fg) {
+		init_group(fg, fg == 0 ? 0 : 1, craft[fg], fg + 1);
+		g_stored.groups[fg].number_of_craft = (uint8_t)(3 + fg);
+		g_stored.groups[fg].number_of_waves = (uint8_t)(1 + fg);
+		g_stored.groups[fg].warhead = (uint8_t)(2 + fg);
+		g_stored.groups[fg].beam = (uint8_t)(1 + fg);
+		g_stored.groups[fg].countermeasures = (uint8_t)(1 + fg);
+	}
+	init_world();
+	g_flight_mission_state.player_flight_group_wave_mode = 1;
+	set_roster_slot(0, 100);
+	set_roster_slot(1, 200);
+	set_network_player(0, 100, 0, 0);
+	set_network_player(1, 200, 1, 0);
+}
+
+/* mission_init copies the host's craft to every player group when the craft
+ * selection is the host's alone, or in a melee with one human in the last
+ * mission (outside a sequence, or in a tournament of one human), or in a melee
+ * flown with the selection off inside a sequence. In a melee with the
+ * selection on it copies, inside each team, the craft of the team's human
+ * group to its other player groups. Otherwise it leaves the craft alone. */
+static void check_init_craft_selection(void)
+{
+	enum { SAME, HOST, TEAM };
+	static const struct {
+		int kind;
+		int selection;
+		unsigned int humans_last;
+		int sequence_active;
+		unsigned int tournament_humans;
+		int expected;
+	} cases[] = {
+		{MISSION_TYPE_COMBAT, CRAFT_SELECTION_HOST_ONLY, 2, 0, 0, HOST},
+		{MISSION_TYPE_COMBAT, CRAFT_SELECTION_ON, 2, 0, 0, SAME},
+		{MISSION_TYPE_COMBAT, CRAFT_SELECTION_OFF, 1, 1, 1, SAME},
+		{MISSION_TYPE_MELEE, CRAFT_SELECTION_ON, 1, 0, 0, HOST},
+		{MISSION_TYPE_MELEE, CRAFT_SELECTION_ON, 1, 1, 1, HOST},
+		{MISSION_TYPE_MELEE, CRAFT_SELECTION_ON, 1, 1, 2, TEAM},
+		{MISSION_TYPE_MELEE, CRAFT_SELECTION_ON, 2, 0, 0, TEAM},
+		{MISSION_TYPE_MELEE, CRAFT_SELECTION_OFF, 2, 1, 2, HOST},
+		{MISSION_TYPE_MELEE, CRAFT_SELECTION_OFF, 2, 0, 2, SAME},
+		{MISSION_TYPE_MELEE, CRAFT_SELECTION_HOST_ONLY, 2, 0, 0, HOST},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		craft_selection_mission(cases[i].kind);
+		g_game_config.craft_selection = cases[i].selection;
+		g_pilot_data.num_human_players_last_mission =
+			cases[i].humans_last;
+		g_pilot_data.mission_sequence_active = cases[i].sequence_active;
+		g_pilot_data.melee_tournament_sequence_state
+			.human_player_count = cases[i].tournament_humans;
+		/* The host chose the craft option, which the copy carries. */
+		g_pilot_data.network_players[0].craft_id = CRAFT_SPECIES_Y_WING;
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		const struct xvt_flight_group *host =
+			&g_mission_flight_groups[0].fg;
+		const struct xvt_flight_group *second =
+			&g_mission_flight_groups[1].fg;
+		const struct xvt_flight_group *unowned =
+			&g_mission_flight_groups[2].fg;
+		XVT_ASSERT_INT_EQ(host->craft_type, CRAFT_SPECIES_Y_WING);
+		if (cases[i].expected == HOST) {
+			XVT_ASSERT_INT_EQ(second->craft_type,
+					  CRAFT_SPECIES_Y_WING);
+			XVT_ASSERT_INT_EQ(second->number_of_craft, 3);
+			XVT_ASSERT_INT_EQ(second->number_of_waves, 1);
+			XVT_ASSERT_INT_EQ(second->beam, 1);
+			XVT_ASSERT_INT_EQ(second->countermeasures, 1);
+			XVT_ASSERT_INT_EQ(unowned->craft_type,
+					  CRAFT_SPECIES_Y_WING);
+			XVT_ASSERT_INT_EQ(unowned->number_of_craft, 3);
+		} else if (cases[i].expected == TEAM) {
+			XVT_ASSERT_INT_EQ(second->craft_type,
+					  CRAFT_SPECIES_TIE_FIGHTER);
+			XVT_ASSERT_INT_EQ(unowned->craft_type,
+					  CRAFT_SPECIES_TIE_FIGHTER);
+			XVT_ASSERT_INT_EQ(unowned->number_of_craft, 4);
+			XVT_ASSERT_INT_EQ(unowned->number_of_waves, 2);
+			XVT_ASSERT_INT_EQ(unowned->warhead, 3);
+			XVT_ASSERT_INT_EQ(unowned->beam, 2);
+			XVT_ASSERT_INT_EQ(unowned->countermeasures, 2);
+		} else {
+			XVT_ASSERT_INT_EQ(second->craft_type,
+					  CRAFT_SPECIES_TIE_FIGHTER);
+			XVT_ASSERT_INT_EQ(unowned->craft_type,
+					  CRAFT_SPECIES_A_WING);
+			XVT_ASSERT_INT_EQ(unowned->number_of_craft, 5);
+		}
+	}
+}
+
+/* The host's copy keeps the warhead of a group that flew the host's own craft
+ * and warhead before the host chose: such a group takes the host's warhead,
+ * another keeps its own. */
+static void check_init_host_warhead(void)
+{
+	craft_selection_mission(MISSION_TYPE_COMBAT);
+	g_stored.groups[1].craft_type = CRAFT_SPECIES_X_WING;
+	g_stored.groups[1].warhead = 2;
+	g_stored.groups[2].craft_type = CRAFT_SPECIES_X_WING;
+	g_stored.groups[2].warhead = 4;
+	init_world();
+	g_game_config.craft_selection = CRAFT_SELECTION_HOST_ONLY;
+	set_roster_slot(0, 100);
+	set_network_player(1, 100, 0, 0);
+	g_pilot_data.network_players[1].warhead_option = 0;
+	g_stored.groups[0].optional_warheads[0] = 7;
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[0].fg.warhead, 7);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[1].fg.warhead, 7);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[2].fg.warhead, 4);
+}
+
+/* A melee of three teams with the craft selection on and the AI opponents on:
+ * team 0 (group 0, an X-wing) and team 1 (group 1, a TIE fighter) belong to
+ * humans, team 2 (groups 2 and 3, A-wings) to the computer. */
+static void ai_team_mission(void)
+{
+	static const int craft[4] = {
+		CRAFT_SPECIES_X_WING, CRAFT_SPECIES_TIE_FIGHTER,
+		CRAFT_SPECIES_A_WING, CRAFT_SPECIES_A_WING};
+	init_mission(MISSION_TYPE_MELEE);
+	for (int fg = 0; fg < 4; ++fg) {
+		init_group(fg, fg < 2 ? fg : 2, craft[fg], fg + 1);
+		g_stored.groups[fg].number_of_craft = (uint8_t)(3 + fg);
+		g_stored.groups[fg].number_of_waves = (uint8_t)(1 + fg);
+		g_stored.groups[fg].warhead = (uint8_t)(2 + fg);
+		g_stored.groups[fg].beam = (uint8_t)(1 + fg);
+		g_stored.groups[fg].countermeasures = (uint8_t)(1 + fg);
+	}
+	init_world();
+	g_flight_mission_state.player_flight_group_wave_mode = 1;
+	g_flight_mission_state.ai_opponents_enabled = 1;
+	g_game_config.craft_selection = CRAFT_SELECTION_ON;
+	g_pilot_data.num_human_players_last_mission = 2;
+	set_roster_slot(0, 100);
+	set_roster_slot(1, 200);
+	set_network_player(0, 100, 0, 0);
+	set_network_player(1, 200, 1, 0);
+	for (int team = 0; team < 10; ++team) {
+		g_pilot_data.melee_tournament_sequence_state
+			.team_standings[team]
+			.ai_opponent_source_team_and_type_flag = 0;
+	}
+}
+
+/* With the AI opponents on, each team with player groups and no human flies
+ * the craft of a human team picked at random, with its count, rounds, warhead,
+ * beam and countermeasure. In a sequence's first melee it also stores the
+ * source team, with the top bit set for a Rebel fighter, unless the team's
+ * stored value is -1. */
+static void check_init_ai_team_craft(void)
+{
+	static const struct {
+		unsigned int ordinal;
+		int sequence_active;
+		int initial_flag;
+		int32_t expected_flag;
+	} cases[] = {
+		{0, 0, 0, 0},
+		{0, 1, 0, INT32_MIN},
+		{1, 1, 0, 1},
+		{1, 1, -1, -1},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		ai_team_mission();
+		g_pilot_data.mission_sequence_active = cases[i].sequence_active;
+		g_pilot_data.melee_tournament_sequence_state.team_standings[2]
+			.ai_opponent_source_team_and_type_flag =
+			cases[i].initial_flag;
+		g_game_rand_feedback_state = seed_for_draw(2, cases[i].ordinal);
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		const struct xvt_flight_group *source =
+			&g_mission_flight_groups[cases[i].ordinal].fg;
+		for (int fg = 2; fg < 4; ++fg) {
+			const struct xvt_flight_group *group =
+				&g_mission_flight_groups[fg].fg;
+			XVT_ASSERT_INT_EQ(group->craft_type,
+					  source->craft_type);
+			XVT_ASSERT_INT_EQ(group->number_of_craft,
+					  source->number_of_craft);
+			XVT_ASSERT_INT_EQ(group->number_of_waves,
+					  source->number_of_waves);
+			XVT_ASSERT_INT_EQ(group->warhead, source->warhead);
+			XVT_ASSERT_INT_EQ(group->beam, source->beam);
+			XVT_ASSERT_INT_EQ(group->countermeasures,
+					  source->countermeasures);
+		}
+		XVT_ASSERT_INT_EQ(
+			g_pilot_data.melee_tournament_sequence_state
+				.team_standings[2]
+				.ai_opponent_source_team_and_type_flag,
+			cases[i].expected_flag);
+		char fields[40];
+		snprintf(fields, sizeof fields, "fg=%d groups=4",
+			 (int)cases[i].ordinal);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.ai_team_craft team=2 ", fields));
+	}
+}
+
+/* In a later melee of a tournament the AI team takes the craft of the human
+ * team it was given in the first, from that team's human group, with no
+ * draw. */
+static void check_init_ai_team_craft_tournament(void)
+{
+	ai_team_mission();
+	g_pilot_data.mission_sequence_active = 1;
+	g_pilot_data.melee_tournament_sequence_state.current_mission_index = 1;
+	g_pilot_data.melee_tournament_sequence_state.team_standings[2]
+		.ai_opponent_source_team_and_type_flag = 1;
+	g_game_rand_feedback_state = 0x4321;
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[2].fg.craft_type,
+			  CRAFT_SPECIES_TIE_FIGHTER);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[3].fg.craft_type,
+			  CRAFT_SPECIES_TIE_FIGHTER);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[3].fg.number_of_craft, 4);
+	XVT_ASSERT_INT_EQ(g_game_rand_feedback_state, 0x4321);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.ai_team_craft team=2 ", "fg=1 groups=4"));
+}
+
+/* With no human in the melee there is no team to copy: the AI team is warned
+ * of and keeps its craft. */
+static void check_init_ai_team_without_source(void)
+{
+	ai_team_mission();
+	g_pilot_data.network_players[0].direct_play_id = 0;
+	g_pilot_data.network_players[1].direct_play_id = 0;
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_TRUE(line_holds("mission.ai_team_source_missing team=2 ",
+				   "teams=0"));
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[2].fg.craft_type,
+			  CRAFT_SPECIES_A_WING);
+}
+
+/* A melee of two teams in a tournament's later mission: group 0 (team 0,
+ * human) and group 1 (team 1, computer) fly the given craft, and the computer
+ * team's stored source is team 2, which no human flies, of the given side. */
+static void swap_mission(int craft0, int craft1, int source_flew_rebel)
+{
+	init_mission(MISSION_TYPE_MELEE);
+	init_group(0, 0, craft0, 1);
+	init_group(1, 1, craft1, 2);
+	init_world();
+	g_flight_mission_state.player_flight_group_wave_mode = 1;
+	g_flight_mission_state.ai_opponents_enabled = 1;
+	g_game_config.craft_selection = CRAFT_SELECTION_ON;
+	g_pilot_data.num_human_players_last_mission = 2;
+	g_pilot_data.mission_sequence_active = 1;
+	g_pilot_data.melee_tournament_sequence_state.current_mission_index = 1;
+	set_roster_slot(0, 100);
+	set_network_player(0, 100, 0, 0);
+	g_pilot_data.melee_tournament_sequence_state.team_standings[1]
+		.ai_opponent_source_team_and_type_flag =
+		source_flew_rebel ? (int)(2u | 0x80000000u) : 2;
+}
+
+/* When the source team of an AI team has no human in a later melee, the AI
+ * team's player groups fly the counterpart of their craft if their craft is of
+ * the other side from the source's, and keep it if it is of the same side. */
+static void check_init_ai_team_swap(void)
+{
+	/* The computer team's TIE fighter, against a source that flew a Rebel
+	 * fighter, is swapped for the counterpart, the Z-95. */
+	swap_mission(CRAFT_SPECIES_TIE_FIGHTER, CRAFT_SPECIES_TIE_FIGHTER, 1);
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[1].fg.craft_type,
+			  CRAFT_SPECIES_Z_95_HEADHUNTER);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[0].fg.craft_type,
+			  CRAFT_SPECIES_TIE_FIGHTER);
+	XVT_ASSERT_TRUE(line_holds("mission.ai_team_craft_replaced team=1 ",
+				   "craft=14"));
+	/* Against a source that flew an Imperial craft it keeps it. */
+	swap_mission(CRAFT_SPECIES_TIE_FIGHTER, CRAFT_SPECIES_TIE_FIGHTER, 0);
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[1].fg.craft_type,
+			  CRAFT_SPECIES_TIE_FIGHTER);
+	XVT_ASSERT_INT_EQ(count_lines("mission.ai_team_craft_replaced"), 0);
+}
+
+/* Known failure tournament_swap_wrong_group, issue #131: the side of the
+ * computer team's own player group decides the swap. In the first case the
+ * human team before it flies an X-wing, of the Rebel source's side, and the
+ * computer team a TIE fighter, of the other side: the TIE fighter must be
+ * swapped for the Z-95. In the second the human team flies an X-wing, of the
+ * other side from an Imperial source, and the computer team a TIE fighter, of
+ * its side: the TIE fighter must stay. */
+static void check_swap_tests_the_teams_own_group(void)
+{
+	swap_mission(CRAFT_SPECIES_X_WING, CRAFT_SPECIES_TIE_FIGHTER, 1);
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	int swapped_when_needed = g_mission_flight_groups[1].fg.craft_type ==
+				  CRAFT_SPECIES_Z_95_HEADHUNTER;
+	swap_mission(CRAFT_SPECIES_X_WING, CRAFT_SPECIES_TIE_FIGHTER, 0);
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	int kept_when_not = g_mission_flight_groups[1].fg.craft_type ==
+			    CRAFT_SPECIES_TIE_FIGHTER;
+	XVT_ASSERT_TRUE(swapped_when_needed && kept_when_not);
+}
+
+/* Four groups, flown by the player's team 0 (group 0, which the player flies,
+ * and group 1), by team 2, allied with team 0 (group 2), and by team 1, at
+ * war with it (group 3), each at the given AI level. The player is bound by
+ * player number. */
+static void difficulty_mission(int kind, int start_level)
+{
+	init_mission(kind);
+	init_group(0, 0, TEST_XWING, 1);
+	init_group(1, 0, TEST_XWING, 0);
+	init_group(2, 2, TEST_XWING, 0);
+	init_group(3, 1, TEST_XWING, 0);
+	for (int fg = 0; fg < 4; ++fg) {
+		g_stored.groups[fg].group_ai = (uint8_t)start_level;
+	}
+	g_stored.team_count[2] = 1;
+	g_stored.teams[2].allies[0] = 1;
+	init_world();
+	g_flight_conf_no_pilot = 1;
+	g_game_config.combat_balance = COMBAT_BALANCE_NEUTRAL;
+}
+
+/* Each group's AI level changes with the difficulty. On hard, a group at war
+ * with the player's team gains 2 (at most 5) and any other loses 1 (not below
+ * 0), except in a melee, and except in the first mission of a one-player
+ * training sequence; on easy the player's team and its allies gain 2 (at most
+ * 5) and the others lose 1; on medium nothing changes. A combat mission
+ * flown by two humans in the last mission is left alone. */
+static void check_init_difficulty(void)
+{
+	enum { TRAINING = 1 };
+	static const struct {
+		int difficulty;
+		int kind;
+		unsigned int humans_last;
+		int training;
+		int start;
+		int own;
+		int ally;
+		int hostile;
+	} cases[] = {
+		{GAME_DIFFICULTY_MEDIUM, MISSION_TYPE_COMBAT, 1, 0, 3, 3, 3, 3},
+		{GAME_DIFFICULTY_HARD, MISSION_TYPE_COMBAT, 1, 0, 3, 2, 2, 5},
+		{GAME_DIFFICULTY_HARD, MISSION_TYPE_COMBAT, 1, 0, 0, 0, 0, 2},
+		{GAME_DIFFICULTY_HARD, MISSION_TYPE_COMBAT, 1, 0, 4, 3, 3, 5},
+		{GAME_DIFFICULTY_HARD, MISSION_TYPE_MELEE, 1, 0, 3, 3, 3, 5},
+		{GAME_DIFFICULTY_HARD, MISSION_TYPE_COMBAT, 1, TRAINING, 3, 3,
+		 3, 5},
+		{GAME_DIFFICULTY_HARD, MISSION_TYPE_COMBAT, 2, 0, 3, 3, 3, 3},
+		{GAME_DIFFICULTY_EASY, MISSION_TYPE_COMBAT, 1, 0, 3, 5, 5, 2},
+		{GAME_DIFFICULTY_EASY, MISSION_TYPE_COMBAT, 1, 0, 0, 2, 2, 0},
+		{GAME_DIFFICULTY_EASY, MISSION_TYPE_COMBAT, 1, 0, 4, 5, 5, 3},
+		{GAME_DIFFICULTY_EASY, MISSION_TYPE_MELEE, 1, 0, 3, 5, 5, 2},
+		{GAME_DIFFICULTY_EASY_CHEAT, MISSION_TYPE_COMBAT, 1, 0, 3, 5, 5,
+		 2},
+		{GAME_DIFFICULTY_EASY, MISSION_TYPE_COMBAT, 2, 0, 3, 3, 3, 3},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		difficulty_mission(cases[i].kind, cases[i].start);
+		g_flight_mission_state.difficulty =
+			(uint8_t)cases[i].difficulty;
+		g_pilot_data.num_human_players_last_mission =
+			cases[i].humans_last;
+		if (cases[i].training) {
+			g_pilot_data.mission_directory_id =
+				MISSION_DIRECTORY_TRAINING_EXERCISES;
+			g_pilot_data.mission_sequence_active = 1;
+			g_flight_player_count = 1;
+		} else {
+			g_pilot_data.mission_directory_id =
+				MISSION_DIRECTORY_TRAINING_EXERCISES + 1;
+		}
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[0].fg.group_ai,
+				  cases[i].own);
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[1].fg.group_ai,
+				  cases[i].own);
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[2].fg.group_ai,
+				  cases[i].ally);
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[3].fg.group_ai,
+				  cases[i].hostile);
+	}
+}
+
+/* Known failure ai_level_past_table, issue #187: an AI level over 5 in the
+ * file is not brought into 0 to 5, which the tables it indexes hold. On
+ * medium difficulty mission_init leaves a group at level 9. */
+static void check_init_ai_level_in_range(void)
+{
+	difficulty_mission(MISSION_TYPE_COMBAT, 9);
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	for (int fg = 0; fg < 4; ++fg) {
+		XVT_ASSERT_TRUE(g_mission_flight_groups[fg].fg.group_ai <= 5);
+	}
+}
+
+/* Five player groups of teams 0 to 3 in a melee, team 0's flown by the
+ * player: group 1 of team 1, groups 2 and 3 of team 2 (group 2 already at 5)
+ * and group 4 of team 3, none of them flown, all at level 2. */
+static void boost_mission(void)
+{
+	init_mission(MISSION_TYPE_MELEE);
+	init_group(0, 0, TEST_XWING, 1);
+	init_group(1, 1, TEST_XWING, 2);
+	init_group(2, 2, TEST_XWING, 3);
+	init_group(3, 2, TEST_XWING, 4);
+	init_group(4, 3, TEST_XWING, 5);
+	for (int fg = 0; fg < 5; ++fg) {
+		g_stored.groups[fg].group_ai = 2;
+	}
+	g_stored.groups[2].group_ai = 5;
+	init_world();
+	g_flight_conf_no_pilot = 1;
+}
+
+/* In a melee the AI levels of player groups no human flies are raised by one,
+ * one boost per team in turn from a random team that has such groups: three
+ * boosts on easy, two on medium, one on hard. A boost goes to the team's first
+ * group below level 5. In a sequence's first melee the first team is kept for
+ * the later ones, which start from it. */
+static void check_init_melee_boosts(void)
+{
+	static const struct {
+		int difficulty;
+		unsigned int ordinal;
+		int sequence_active;
+		int current_index;
+		int first_team;
+		int level[5];
+		int stored_team;
+	} cases[] = {
+		{GAME_DIFFICULTY_MEDIUM, 1, 0, 0, 0, {2, 2, 5, 3, 3}, 0},
+		{GAME_DIFFICULTY_EASY, 0, 0, 0, 0, {4, 2, 5, 1, 2}, 0},
+		{GAME_DIFFICULTY_HARD, 2, 0, 0, 0, {2, 4, 5, 4, 5}, 0},
+		{GAME_DIFFICULTY_MEDIUM, 1, 1, 0, 0, {2, 2, 5, 3, 3}, 2},
+		{GAME_DIFFICULTY_MEDIUM, 0, 1, 1, 1, {2, 3, 5, 3, 2}, 1},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		boost_mission();
+		g_flight_mission_state.difficulty =
+			(uint8_t)cases[i].difficulty;
+		g_pilot_data.mission_sequence_active = cases[i].sequence_active;
+		g_pilot_data.melee_tournament_sequence_state
+			.current_mission_index = cases[i].current_index;
+		g_pilot_data.melee_tournament_sequence_state
+			.ai_boost_first_team = cases[i].first_team;
+		g_game_rand_feedback_state = seed_for_draw(3, cases[i].ordinal);
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		for (int fg = 0; fg < 5; ++fg) {
+			XVT_ASSERT_INT_EQ(
+				g_mission_flight_groups[fg].fg.group_ai,
+				cases[i].level[fg]);
+		}
+		XVT_ASSERT_INT_EQ(g_pilot_data.melee_tournament_sequence_state
+					  .ai_boost_first_team,
+				  cases[i].stored_team);
+	}
+}
+
+/* Known failure melee_boost_all_teams_owned, issue #130: when every team with
+ * player groups has a human, the boosts still go to a team that has such
+ * groups, as the first team is meant to be a team. Here two teams of two
+ * player groups each have a human, and no unowned group is boosted. */
+static void check_melee_boost_without_free_team(void)
+{
+	init_mission(MISSION_TYPE_MELEE);
+	init_group(0, 0, TEST_XWING, 1);
+	init_group(1, 1, TEST_XWING, 2);
+	init_group(2, 0, TEST_XWING, 3);
+	init_group(3, 1, TEST_XWING, 4);
+	for (int fg = 0; fg < 4; ++fg) {
+		g_stored.groups[fg].group_ai = 2;
+	}
+	init_world();
+	g_flight_conf_no_pilot = 1;
+	g_active_flight_player_count = 2;
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_TRUE(g_mission_flight_groups[2].fg.group_ai +
+				g_mission_flight_groups[3].fg.group_ai >
+			4);
+}
+
+/* In a combat mission flown by more than one human in the last mission, the
+ * balance setting raises the AI levels of the groups at war with the
+ * handicapped team: by 1 for two humans and 2 for more, at most 5. The team is
+ * the first player's on autobalance when one team has humans, 1 when
+ * favoring the Imperials and 0 when favoring the Rebels; neutral changes
+ * nothing. */
+static void check_init_combat_balance(void)
+{
+	static const struct {
+		int balance;
+		unsigned int humans;
+		int second_team_owned;
+		int start;
+		int level[3];
+	} cases[] = {
+		{COMBAT_BALANCE_AUTOBALANCE, 2, 0, 1, {1, 2, 1}},
+		{COMBAT_BALANCE_AUTOBALANCE, 3, 0, 1, {1, 3, 1}},
+		{COMBAT_BALANCE_AUTOBALANCE, 2, 1, 1, {1, 1, 1}},
+		{COMBAT_BALANCE_AUTOBALANCE, 3, 0, 4, {4, 5, 4}},
+		{COMBAT_BALANCE_FAVOR_IMPERIAL, 2, 0, 1, {2, 1, 2}},
+		{COMBAT_BALANCE_FAVOR_IMPERIAL, 3, 0, 1, {3, 1, 3}},
+		{COMBAT_BALANCE_FAVOR_IMPERIAL, 3, 0, 4, {5, 4, 5}},
+		{COMBAT_BALANCE_FAVOR_REBEL, 2, 0, 1, {1, 2, 1}},
+		{COMBAT_BALANCE_FAVOR_REBEL, 3, 0, 4, {4, 5, 4}},
+		{COMBAT_BALANCE_NEUTRAL, 2, 0, 1, {1, 1, 1}},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		init_mission(MISSION_TYPE_COMBAT);
+		init_group(0, 0, TEST_XWING, 1);
+		init_group(1, 1, TEST_XWING, 2);
+		init_group(2, 2, TEST_XWING, 3);
+		for (int fg = 0; fg < 3; ++fg) {
+			g_stored.groups[fg].group_ai = (uint8_t)cases[i].start;
+		}
+		/* Team 2 is allied with team 0. */
+		g_stored.team_count[2] = 1;
+		g_stored.teams[2].allies[0] = 1;
+		init_world();
+		g_flight_mission_state.player_flight_group_wave_mode = 1;
+		g_game_config.combat_balance = cases[i].balance;
+		g_pilot_data.num_human_players_last_mission = cases[i].humans;
+		set_roster_slot(0, 100);
+		set_network_player(0, 100, 0, 0);
+		if (cases[i].second_team_owned) {
+			set_roster_slot(1, 200);
+			set_network_player(1, 200, 1, 0);
+		}
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		for (int fg = 0; fg < 3; ++fg) {
+			XVT_ASSERT_INT_EQ(
+				g_mission_flight_groups[fg].fg.group_ai,
+				cases[i].level[fg]);
+		}
+		XVT_ASSERT_TRUE(
+			line_holds("mission.combat_balance", "humans="));
+	}
+}
+
+/* Fills the stack the next call will use with one 32-bit value. */
+__attribute__((noinline)) static void fill_stack(uint32_t word)
+{
+	volatile uint32_t scratch[16384];
+	for (size_t i = 0; i < sizeof scratch / sizeof scratch[0]; ++i) {
+		scratch[i] = word;
+	}
+}
+
+/* Writes the stored mission and runs mission_init on it with the stack under
+ * it filled with word. */
+static uint16_t run_init_on_stack(uint32_t word)
+{
+	xvt_test_open_assets(&g_assets);
+	write_stored_mission("init.mis", 14);
+	fill_stack(word);
+	uint16_t result = mission_init("init.mis");
+	xvt_test_close_assets(&g_assets);
+	return result;
+}
+
+/* Known failure nopilot_unset_team_count, issue #132: with the nopilot setting
+ * the combat balance on autobalance does not read a value nothing set. The
+ * AI level of the group at war with the player's team comes out the same
+ * whatever the stack held under mission_init: 1 and 0 here. */
+static void check_balance_without_pilot_record(void)
+{
+	int level[2];
+	for (uint32_t word = 0; word < 2; ++word) {
+		init_mission(MISSION_TYPE_COMBAT);
+		init_group(0, 0, TEST_XWING, 1);
+		init_group(1, 1, TEST_XWING, 0);
+		g_stored.groups[1].group_ai = 1;
+		init_world();
+		g_flight_conf_no_pilot = 1;
+		g_game_config.combat_balance = COMBAT_BALANCE_AUTOBALANCE;
+		g_pilot_data.num_human_players_last_mission = 2;
+		XVT_ASSERT_INT_EQ(run_init_on_stack(word), 1);
+		level[word] = g_mission_flight_groups[1].fg.group_ai;
+	}
+	XVT_ASSERT_INT_EQ(level[0], level[1]);
+}
+
+/* A seed for the game's random state whose successive game_rand_range draws,
+ * of the given moduli, are the wanted values; sets the state to it. */
+static void seed_for_draws(const unsigned int *moduli,
+			   const unsigned int *wanted, int count)
+{
+	for (int seed = 1; seed < 65536; ++seed) {
+		g_game_rand_feedback_state = (int16_t)seed;
+		int all = 1;
+		for (int i = 0; i < count && all; ++i) {
+			all = game_rand_range((uint16_t)moduli[i]) == wanted[i];
+		}
+		if (all) {
+			g_game_rand_feedback_state = (int16_t)seed;
+			return;
+		}
+	}
+	XVT_ASSERT_TRUE(0);
+}
+
+/* With random setup on, a group no human flies whose optional craft category
+ * is 4 flies one of its optional craft, or its own, by a draw, with that
+ * craft's count and rounds; a group a human flies keeps its craft. Every group
+ * also starts from its own mission point or one of the three alternatives
+ * its file enables, by a draw. With random setup off nothing is drawn. */
+static void check_init_random_variation(void)
+{
+	static const uint16_t point_refs[3] = {0x8000, 0x8001, 0x8003};
+	static const int craft[3] = {TEST_XWING, CRAFT_SPECIES_Y_WING,
+				     CRAFT_SPECIES_B_WING};
+	static const int count[3] = {2, 3, 4};
+	static const int waves[3] = {0, 1, 2};
+	for (int off = 0; off < 2; ++off) {
+		for (unsigned int craft_pick = 0; craft_pick < 3;
+		     ++craft_pick) {
+			for (unsigned int point_pick = 0; point_pick < 3;
+			     ++point_pick) {
+				init_mission(MISSION_TYPE_COMBAT);
+				init_group(0, 1, TEST_XWING, 0);
+				init_group(1, 0, TEST_XWING, 1);
+				struct xvt_flight_group *group =
+					&g_stored.groups[0];
+				group->optional_craft_category = 4;
+				group->optional_craft[1] = CRAFT_SPECIES_Y_WING;
+				group->number_of_optional_craft[1] = 3;
+				group->number_of_optional_craft_waves[1] = 1;
+				group->optional_craft[6] = CRAFT_SPECIES_B_WING;
+				group->number_of_optional_craft[6] = 4;
+				group->number_of_optional_craft_waves[6] = 2;
+				group->mission_point_enabled[1] = 1;
+				group->mission_point_enabled[3] = 1;
+				g_stored.groups[1].optional_craft_category = 4;
+				g_stored.groups[1].optional_craft[1] =
+					CRAFT_SPECIES_Y_WING;
+				init_world();
+				g_flight_conf_no_pilot = 1;
+				g_flight_mission_state
+					.player_flight_group_wave_mode = 1;
+				g_flight_mission_state
+					.random_variation_enabled =
+					(uint8_t)!off;
+				static const unsigned int moduli[3] = {3, 3, 2};
+				const unsigned int wanted[3] = {craft_pick,
+								point_pick, 0};
+				seed_for_draws(moduli, wanted, 3);
+				XVT_ASSERT_INT_EQ(run_init(14), 1);
+				const struct xvt_flight_group *first =
+					&g_mission_flight_groups[0].fg;
+				int pick = off ? 0 : (int)craft_pick;
+				XVT_ASSERT_INT_EQ(first->craft_type,
+						  craft[pick]);
+				XVT_ASSERT_INT_EQ(first->number_of_craft,
+						  count[pick]);
+				XVT_ASSERT_INT_EQ(first->number_of_waves,
+						  waves[pick]);
+				XVT_ASSERT_INT_EQ(
+					g_mission_fg_stats[0]
+						.current_mission_point_ref,
+					off ? 0x8000 : point_refs[point_pick]);
+				XVT_ASSERT_INT_EQ(g_mission_flight_groups[1]
+							  .fg.craft_type,
+						  TEST_XWING);
+			}
+		}
+	}
+}
+
+/* A group with a random special cargo craft names one of its craft by a
+ * draw: its number in the group, from 0 to the count minus 1. */
+static void check_init_random_special_cargo(void)
+{
+	for (unsigned int pick = 0; pick < 4; ++pick) {
+		init_mission(MISSION_TYPE_COMBAT);
+		init_group(0, 0, TEST_XWING, 0);
+		g_stored.groups[0].number_of_craft = 4;
+		g_stored.groups[0].random_special_cargo_craft = 1;
+		g_stored.groups[0].special_cargo_craft = 9;
+		init_group(1, 1, TEST_XWING, 0);
+		g_stored.groups[1].special_cargo_craft = 2;
+		init_world();
+		const unsigned int moduli[1] = {4};
+		seed_for_draws(moduli, &pick, 1);
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		XVT_ASSERT_INT_EQ(
+			g_mission_flight_groups[0].fg.special_cargo_craft,
+			pick);
+		XVT_ASSERT_INT_EQ(
+			g_mission_flight_groups[1].fg.special_cargo_craft, 2);
+	}
+}
+
+/* Four groups, three of them flown by players 1 to 3 (bound by player number)
+ * and one by player number 4 that no human flies, and one by the computer,
+ * each of its own count of craft, player craft and 7 rounds. */
+static void waves_mission(int kind)
+{
+	static const int crafts[5] = {2, 1, 3, 2, 2};
+	static const int player_craft[5] = {0, 1, 2, 0, 0};
+	init_mission(kind);
+	for (int fg = 0; fg < 5; ++fg) {
+		init_group(fg, fg < 3 ? 0 : 1, TEST_XWING, fg < 4 ? fg + 1 : 0);
+		g_stored.groups[fg].number_of_craft = (uint8_t)crafts[fg];
+		g_stored.groups[fg].player_craft = (uint8_t)player_craft[fg];
+		g_stored.groups[fg].number_of_waves = 7;
+	}
+	init_world();
+	g_flight_conf_no_pilot = 1;
+	g_active_flight_player_count = 3;
+}
+
+/* A group a human flies with several craft flies its second if the file said
+ * its first, and a group of one craft its first. */
+static void check_init_player_craft(void)
+{
+	waves_mission(MISSION_TYPE_COMBAT);
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[0].fg.player_craft, 1);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[1].fg.player_craft, 0);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[2].fg.player_craft, 2);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[3].fg.player_craft, 0);
+}
+
+/* The player wave setting rules the rounds of the player groups a human flies
+ * (and, in a melee, all player groups): none left on 0, the file's rounds on 1,
+ * unlimited (99) on 2. A group of the computer keeps its rounds. */
+static void check_init_player_waves(void)
+{
+	static const struct {
+		int mode;
+		int kind;
+		int level[3];
+	} cases[] = {
+		{0, MISSION_TYPE_COMBAT, {0, 7, 7}},
+		{1, MISSION_TYPE_COMBAT, {7, 7, 7}},
+		{2, MISSION_TYPE_COMBAT, {99, 7, 7}},
+		{0, MISSION_TYPE_MELEE, {0, 0, 7}},
+		{2, MISSION_TYPE_MELEE, {99, 99, 7}},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		waves_mission(cases[i].kind);
+		g_flight_mission_state.player_flight_group_wave_mode =
+			(uint8_t)cases[i].mode;
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[0].fg.number_of_waves,
+				  cases[i].level[0]);
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[3].fg.number_of_waves,
+				  cases[i].level[1]);
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[4].fg.number_of_waves,
+				  cases[i].level[2]);
+	}
+}
+
+/* Each flight group's model is marked as needed, and the model of the multipart
+ * craft (type 100) brings its parts, types 101 to 105; a model no group uses
+ * is not marked. */
+static void check_init_models_needed(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	init_group(0, 0, CRAFT_SPECIES_X_WING, 0);
+	init_group(1, 1, CRAFT_SPECIES_ASTEROID, 0);
+	init_world();
+	XVT_ASSERT_INT_EQ(g_craft_type_to_object_type[CRAFT_SPECIES_ASTEROID],
+			  100);
+	for (int type = 0; type < 201; ++type) {
+		g_object_type_table[type].asset_flags &= (uint8_t)~0x10;
+	}
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	for (int type = 1; type < 201; ++type) {
+		int needed = type == 1 || (type >= 100 && type <= 105);
+		XVT_ASSERT_INT_EQ(g_object_type_table[type].asset_flags & 0x10,
+				  needed ? 0x10 : 0);
+	}
+}
+
+/* In a melee the paint scheme of a player group flying a TIE fighter,
+ * interceptor, bomber, advanced or defender moves on by one, back to 0 past
+ * 3; other craft, other groups and other mission types keep theirs. */
+static void check_init_melee_markings(void)
+{
+	static const int craft[7] = {
+		CRAFT_SPECIES_TIE_FIGHTER,  CRAFT_SPECIES_TIE_INTERCEPTOR,
+		CRAFT_SPECIES_TIE_BOMBER,   CRAFT_SPECIES_TIE_ADVANCED,
+		CRAFT_SPECIES_TIE_DEFENDER, CRAFT_SPECIES_X_WING,
+		CRAFT_SPECIES_TIE_FIGHTER};
+	static const int before[7] = {0, 2, 3, 1, 3, 1, 1};
+	static const int melee_after[7] = {1, 3, 0, 2, 0, 1, 1};
+	for (int melee = 0; melee < 2; ++melee) {
+		init_mission(melee ? MISSION_TYPE_MELEE : MISSION_TYPE_COMBAT);
+		for (int fg = 0; fg < 7; ++fg) {
+			init_group(fg, 1, craft[fg], fg < 6 ? fg + 2 : 0);
+			g_stored.groups[fg].markings = (uint8_t)before[fg];
+		}
+		init_world();
+		g_flight_conf_no_pilot = 1;
+		g_active_flight_player_count = 1;
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		for (int fg = 0; fg < 7; ++fg) {
+			XVT_ASSERT_INT_EQ(
+				g_mission_flight_groups[fg].fg.markings,
+				melee ? melee_after[fg] : before[fg]);
+		}
+	}
+}
+
+/* In a melee, a player group no human flies on a team with no human flier is
+ * held back until a human arrives (arrive_only_if_human), unless the AI
+ * opponents are on or the tournament has an AI source for the team. */
+static void check_init_melee_arrive_only_if_human(void)
+{
+	static const struct {
+		int ai_opponents;
+		int sequence_active;
+		int source_flag;
+		int expected;
+	} cases[] = {
+		{0, 0, 0, 1},
+		{1, 0, 0, 0},
+		{0, 1, 0, 0},
+		{0, 1, -1, 1},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		init_mission(MISSION_TYPE_MELEE);
+		init_group(0, 0, TEST_XWING, 1);
+		init_group(1, 0, TEST_XWING, 2);
+		init_group(2, 1, TEST_XWING, 3);
+		init_group(3, 1, TEST_XWING, 0);
+		init_world();
+		g_flight_conf_no_pilot = 1;
+		g_active_flight_player_count = 1;
+		g_flight_mission_state.ai_opponents_enabled =
+			(uint8_t)cases[i].ai_opponents;
+		g_pilot_data.mission_sequence_active = cases[i].sequence_active;
+		g_pilot_data.melee_tournament_sequence_state.team_standings[1]
+			.ai_opponent_source_team_and_type_flag =
+			cases[i].source_flag;
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		XVT_ASSERT_INT_EQ(
+			g_mission_flight_groups[1].fg.arrive_only_if_human, 0);
+		XVT_ASSERT_INT_EQ(
+			g_mission_flight_groups[2].fg.arrive_only_if_human,
+			cases[i].expected);
+		XVT_ASSERT_INT_EQ(
+			g_mission_flight_groups[3].fg.arrive_only_if_human, 0);
+	}
+}
+
+/* The two clocks start at 0 and the countdown at the time limit: the flight's
+ * own limit in minutes, or, when that is 255, the mission file's (which the
+ * flight then keeps), or 0 for none. */
+static void check_init_clocks(void)
+{
+	static const struct {
+		int flight_limit;
+		int file_limit;
+		int minutes;
+		int kept_limit;
+	} cases[] = {
+		{0, 5, 0, 0},
+		{255, 5, 5, 5},
+		{255, 0, 0, 0},
+		{3, 5, 3, 3},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		init_mission(MISSION_TYPE_COMBAT);
+		init_group(0, 0, TEST_XWING, 1);
+		g_stored.header.time_limit_minutes =
+			(uint8_t)cases[i].file_limit;
+		init_world();
+		g_flight_mission_state.mission_time_limit_minutes =
+			(uint8_t)cases[i].flight_limit;
+		g_flight_mission_state.team_victory_time_limit_started = 1;
+		g_mission_elapsed_clock.hours = 1;
+		g_mission_elapsed_clock.minutes = 2;
+		g_mission_elapsed_clock.seconds = 3;
+		g_mission_elapsed_clock.subsecond_ticks = 4;
+		g_mission_countdown_clock.hours = 5;
+		g_mission_countdown_clock.seconds = 6;
+		g_mission_countdown_clock.subsecond_ticks = 7;
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		XVT_ASSERT_INT_EQ(g_mission_elapsed_clock.hours, 0);
+		XVT_ASSERT_INT_EQ(g_mission_elapsed_clock.minutes, 0);
+		XVT_ASSERT_INT_EQ(g_mission_elapsed_clock.seconds, 0);
+		XVT_ASSERT_INT_EQ(g_mission_elapsed_clock.subsecond_ticks, 0);
+		XVT_ASSERT_INT_EQ(g_mission_countdown_clock.hours, 0);
+		XVT_ASSERT_INT_EQ(g_mission_countdown_clock.minutes,
+				  cases[i].minutes);
+		XVT_ASSERT_INT_EQ(g_mission_countdown_clock.seconds, 0);
+		XVT_ASSERT_INT_EQ(g_mission_countdown_clock.subsecond_ticks, 0);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.mission_time_limit_minutes,
+			cases[i].kept_limit);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.team_victory_time_limit_started,
+			0);
+		char fields[40];
+		snprintf(fields, sizeof fields, "minutes=%d", cases[i].minutes);
+		XVT_ASSERT_TRUE(line_holds("mission.prepared", fields));
+	}
+}
+
+/* The asteroid field's seed follows the mission file's backdrop number alone:
+ * the same number gives the same seed and the same default backdrop records
+ * whatever the game's random state was, a different number another seed, and
+ * the random state is put back as it was. */
+static void check_init_backdrop_seed(void)
+{
+	static const struct {
+		int backdrop;
+		int16_t state;
+	} runs[] = {{7, 0x1111}, {7, 0x2222}, {8, 0x1111}};
+	uint16_t seeds[3];
+	for (size_t i = 0; i < 3; ++i) {
+		init_mission(MISSION_TYPE_COMBAT);
+		init_group(0, 0, TEST_XWING, 0);
+		g_stored.header.backdrop = (uint8_t)runs[i].backdrop;
+		init_world();
+		g_game_rand_feedback_state = runs[i].state;
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		XVT_ASSERT_INT_EQ(g_game_rand_feedback_state, runs[i].state);
+		seeds[i] = g_asteroid_field_rand_seed;
+		char fields[60];
+		snprintf(fields, sizeof fields,
+			 "backdrop=%d seed=%u defaults=22", runs[i].backdrop,
+			 (unsigned)seeds[i]);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.backdrops_generated", fields));
+	}
+	XVT_ASSERT_INT_EQ(seeds[0], seeds[1]);
+	XVT_ASSERT_TRUE(seeds[0] != seeds[2]);
+}
+
+/* Where the first backdrop record of each of the six faces starts: the default
+ * records are 4 on each of four faces and 3 on the last two. */
+static const int g_backdrop_face_start[6] = {0, 4, 8, 12, 16, 19};
+
+/* A mission of one backdrop group per entry of sides: craft type 87 (a
+ * backdrop), its image chosen by status1, its face by the z of its first
+ * mission point and its direction by the x and y of that point. */
+static void backdrop_mission(int count, const int *sides, int status1)
+{
+	static uint8_t remap_marks[17];
+	init_mission(MISSION_TYPE_COMBAT);
+	for (int fg = 0; fg < count; ++fg) {
+		init_group(fg, 0, CRAFT_SPECIES_PLANET, 0);
+		struct xvt_flight_group *group = &g_stored.groups[fg];
+		group->status1 = (uint8_t)(status1 + fg);
+		group->mission_point_z[0] = (int16_t)sides[fg];
+		group->mission_point_x[0] = (int16_t)(3 + fg);
+		group->mission_point_y[0] = (int16_t)(2 + fg);
+	}
+	init_world();
+	for (int i = 0; i < 17; ++i) {
+		g_backdrop_palette_remap_by_flight_group_status[i] =
+			&remap_marks[i];
+	}
+	for (int type = 114; type < 117; ++type) {
+		g_object_type_table[type].asset_flags &= (uint8_t)~0x10;
+		g_object_type_table[type].resource_index = 0xEE;
+		g_object_type_table[type].palette = NULL;
+	}
+}
+
+/* A backdrop group's record, at the first of its face's places, holds the
+ * spare model type it took, and the direction packed from the group's point:
+ * x in the low 4 bits and minus y in the high 4. The face is the point's z,
+ * and a z over 5 is warned of and taken as 5. */
+static void check_init_backdrop_placement(void)
+{
+	for (int side = 0; side < 7; ++side) {
+		backdrop_mission(1, &side, 0);
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		int face = side > 5 ? 5 : side;
+		int record = g_backdrop_face_start[face];
+		XVT_ASSERT_INT_EQ(g_backdrop_model_types[record], 114);
+		XVT_ASSERT_INT_EQ(g_backdrop_packed_directions[record] & 0xF,
+				  3);
+		XVT_ASSERT_INT_EQ(g_backdrop_packed_directions[record] >> 4,
+				  (-2) & 0xF);
+		XVT_ASSERT_INT_EQ(g_object_type_table[114].asset_flags & 0x10,
+				  0x10);
+		XVT_ASSERT_INT_EQ(count_lines("mission.backdrop_side_clamped"),
+				  side > 5);
+		char fields[60];
+		snprintf(fields, sizeof fields,
+			 "fg=0 model=114 side=%d record=%d", face, record);
+		XVT_ASSERT_TRUE(line_holds("mission.backdrop_placed", fields));
+	}
+	/* The default records are 4, 4, 4, 4, 3 and 3. */
+	XVT_ASSERT_INT_EQ(g_backdrop_positive_y_count, 4);
+	XVT_ASSERT_INT_EQ(g_backdrop_negative_y_count, 4);
+	XVT_ASSERT_INT_EQ(g_backdrop_positive_x_count, 4);
+	XVT_ASSERT_INT_EQ(g_backdrop_negative_x_count, 4);
+	XVT_ASSERT_INT_EQ(g_backdrop_positive_z_count, 3);
+	XVT_ASSERT_INT_EQ(g_backdrop_negative_z_count, 3);
+	/* Two groups on one face take the next two places and the two spare
+	 * types. */
+	const int sides[2] = {2, 2};
+	backdrop_mission(2, sides, 0);
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_INT_EQ(g_backdrop_model_types[g_backdrop_face_start[2]],
+			  114);
+	XVT_ASSERT_INT_EQ(g_backdrop_model_types[g_backdrop_face_start[2] + 1],
+			  115);
+	XVT_ASSERT_INT_EQ(
+		g_backdrop_packed_directions[g_backdrop_face_start[2] + 1] &
+			0xF,
+		4);
+}
+
+/* A backdrop group's spare model type is given the group's image: for a status
+ * under 8 the source type's resource index plus the status, for 8 to 16 the
+ * status plus 85, and the palette remap of the status; a status over 16 leaves
+ * both. In a paletted display (one byte a pixel) a status of 8 or more loses
+ * all but its low 3 bits first. */
+static void check_init_backdrop_images(void)
+{
+	static const struct {
+		int status1;
+		int bytes_per_pixel;
+		int resource_delta;
+		int resource_fixed;
+		int remap;
+		int status_after;
+	} cases[] = {
+		{3, 2, 3, -1, 3, 3},	 {9, 2, 0, 94, 9, 9},
+		{16, 2, 0, 101, 16, 16}, {17, 2, 0, -1, -1, 17},
+		{20, 2, 0, -1, -1, 20},	 {9, 1, 1, -1, 1, 1},
+		{2, 1, 2, -1, 2, 2},
+	};
+	static uint8_t unused_remap;
+	int side = 0;
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		backdrop_mission(1, &side, cases[i].status1);
+		g_flight_bytes_per_pixel = cases[i].bytes_per_pixel;
+		g_object_type_table[114].palette = &unused_remap;
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		uint8_t source = g_object_type_table[87].resource_index;
+		const struct object_type_info *backdrop =
+			&g_object_type_table[114];
+		if (cases[i].remap < 0) {
+			XVT_ASSERT_INT_EQ(backdrop->resource_index, 0xEE);
+			XVT_ASSERT_TRUE(backdrop->palette == &unused_remap);
+		} else {
+			int expected =
+				cases[i].resource_fixed >= 0
+					? cases[i].resource_fixed
+					: source + cases[i].resource_delta;
+			XVT_ASSERT_INT_EQ(backdrop->resource_index, expected);
+			XVT_ASSERT_TRUE(
+				backdrop->palette ==
+				g_backdrop_palette_remap_by_flight_group_status
+					[cases[i].remap]);
+		}
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[0].fg.status1,
+				  cases[i].status_after);
+	}
+	g_flight_bytes_per_pixel = 2;
+}
+
+/* Known failure backdrop_images_shared, issue #134: each backdrop group is
+ * drawn with its own image. Four groups, of four different statuses, take the
+ * spare model types in turn, but there are two spare types, and the third and
+ * fourth groups share the last type searched, so the third draws the fourth's
+ * image. */
+static void check_backdrop_groups_keep_their_images(void)
+{
+	const int sides[4] = {0, 1, 2, 3};
+	backdrop_mission(4, sides, 0);
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	uint8_t source = g_object_type_table[87].resource_index;
+	for (int fg = 0; fg < 4; ++fg) {
+		int type = g_backdrop_model_types[g_backdrop_face_start[fg]];
+		XVT_ASSERT_INT_EQ(g_object_type_table[type].resource_index,
+				  source + fg);
+	}
+}
+
+/* ---- mission_init_flight_runtime_state -------------------------------- */
+
+/* Runs the flight's start on the stored mission: mission_init and then the
+ * runtime state, with the cockpit resources counted as loaded. */
+static void start_flight(void)
+{
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	g_hud_cockpit_resources_loaded = 1;
+	/* No player is the one whose cockpit is drawn, so none is. */
+	g_local_player = 8;
+	mission_init_flight_runtime_state();
+	g_local_player = 7;
+}
+
+/* A group of the computer that arrives at the start, with the given craft
+ * and team. */
+static void arriving_group(int fg, int team, int craft_type, int count)
+{
+	init_group(fg, team, craft_type, 0);
+	g_stored.groups[fg].number_of_craft = (uint8_t)count;
+}
+
+/* The flight's start sets each group's counts: the craft it will send, in all
+ * rounds, is its craft count times its rounds plus one (the count squared for
+ * mines), the special cargo craft's is the rounds plus one when the group has
+ * one, every other outcome count is 0 and every goal state is pending (4). A
+ * group that may not arrive and no human flies has none. A group arriving at
+ * once is marked arrived. */
+static void check_runtime_group_counts(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 0, TEST_XWING, 2);
+	g_stored.groups[0].player_number = 1;
+	g_stored.groups[0].number_of_waves = 3;
+	arriving_group(1, 1, TEST_XWING, 3);
+	g_stored.groups[1].number_of_waves = 1;
+	g_stored.groups[1].special_cargo_craft = 1;
+	arriving_group(2, 1, TEST_XWING, 2);
+	g_stored.groups[2].random_special_cargo_craft = 1;
+	g_stored.groups[2].arrival_delay_minutes = 1;
+	arriving_group(3, 1, TEST_XWING, 2);
+	g_stored.groups[3].arrival_difficulty = 6;
+	arriving_group(4, 2, CRAFT_SPECIES_MINE_TYPE_A, 3);
+	g_stored.groups[4].number_of_waves = 2;
+	init_world();
+	g_flight_conf_no_pilot = 1;
+	g_flight_mission_state.player_flight_group_wave_mode = 1;
+	start_flight();
+	const struct mission_fg_runtime_stats *stats = g_mission_fg_stats;
+	XVT_ASSERT_INT_EQ(stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL],
+			  8);
+	XVT_ASSERT_INT_EQ(stats[1].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL],
+			  6);
+	XVT_ASSERT_INT_EQ(stats[2].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL],
+			  2);
+	XVT_ASSERT_INT_EQ(stats[3].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL],
+			  0);
+	XVT_ASSERT_INT_EQ(stats[4].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL],
+			  27);
+	XVT_ASSERT_INT_EQ(
+		stats[0].special_cargo_outcome[FLIGHT_GROUP_OUTCOME_TOTAL], 0);
+	XVT_ASSERT_INT_EQ(
+		stats[1].special_cargo_outcome[FLIGHT_GROUP_OUTCOME_TOTAL], 2);
+	XVT_ASSERT_INT_EQ(
+		stats[2].special_cargo_outcome[FLIGHT_GROUP_OUTCOME_TOTAL], 1);
+	XVT_ASSERT_INT_EQ(
+		stats[3].special_cargo_outcome[FLIGHT_GROUP_OUTCOME_TOTAL], 0);
+	for (int fg = 0; fg < 5; ++fg) {
+		for (int outcome = FLIGHT_GROUP_OUTCOME_DESTROYED;
+		     outcome < FLIGHT_GROUP_OUTCOME_COUNT; ++outcome) {
+			XVT_ASSERT_INT_EQ(stats[fg].outcome_count[outcome], 0);
+		}
+		for (int state = 0; state < 80; ++state) {
+			XVT_ASSERT_INT_EQ(stats[fg].goal_state[state], 4);
+		}
+	}
+	XVT_ASSERT_INT_EQ(stats[0].has_arrived, 1);
+	XVT_ASSERT_INT_EQ(stats[1].has_arrived, 1);
+	XVT_ASSERT_INT_EQ(stats[2].has_arrived, 0);
+	XVT_ASSERT_INT_EQ(stats[3].has_arrived, 0);
+	XVT_ASSERT_INT_EQ(stats[4].has_arrived, 1);
+	XVT_ASSERT_INT_EQ(stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  2);
+	XVT_ASSERT_INT_EQ(stats[1].outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  3);
+	XVT_ASSERT_INT_EQ(stats[2].outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  0);
+	XVT_ASSERT_INT_EQ(stats[0].waves_remaining, 3);
+	XVT_ASSERT_INT_EQ(stats[1].waves_remaining, 1);
+	XVT_ASSERT_INT_EQ(stats[4].waves_remaining, 0);
+	XVT_ASSERT_INT_EQ(g_next_object_signature > 1, 1);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.group_reset fg=1 ", "total=6 cargo=2"));
+}
+
+/* A group may arrive at a difficulty when its arrival difficulty setting
+ * allows it: 0 all three difficulties, 1 easy, 2 medium, 3 hard, 4 medium and
+ * hard, 5 easy and medium, 6 and 7 none. */
+static void check_runtime_arrival_difficulty(void)
+{
+	static const uint8_t allowed[8] = {7, 1, 2, 4, 6, 3, 0, 0};
+	for (int difficulty = GAME_DIFFICULTY_EASY;
+	     difficulty <= GAME_DIFFICULTY_HARD; ++difficulty) {
+		init_mission(MISSION_TYPE_COMBAT);
+		for (int fg = 0; fg < 8; ++fg) {
+			arriving_group(fg, 1, TEST_XWING, 1);
+			g_stored.groups[fg].arrival_difficulty = (uint8_t)fg;
+		}
+		init_world();
+		g_flight_mission_state.difficulty = (uint8_t)difficulty;
+		start_flight();
+		for (int fg = 0; fg < 8; ++fg) {
+			int enabled = (allowed[fg] & (1 << difficulty)) != 0;
+			XVT_ASSERT_INT_EQ(
+				g_mission_fg_stats[fg].arrival_enabled != 0,
+				enabled);
+			XVT_ASSERT_INT_EQ(g_mission_fg_stats[fg].has_arrived,
+					  enabled);
+			XVT_ASSERT_INT_EQ(g_mission_fg_stats[fg].outcome_count
+						  [FLIGHT_GROUP_OUTCOME_TOTAL],
+					  enabled ? 1 : 0);
+			if (!enabled) {
+				char fields[40];
+				snprintf(fields, sizeof fields,
+					 "difficulty=%d setting=%d", difficulty,
+					 fg);
+				char start[40];
+				snprintf(start, sizeof start,
+					 "mission.arrival_masked fg=%d ", fg);
+				XVT_ASSERT_TRUE(line_holds(start, fields));
+			}
+		}
+	}
+}
+
+/* Sets one arrival trigger pair of a stored group: the conditions on its two
+ * slots (for a player number variable of the first), and the join. */
+static void set_arrival_pair(int fg, int pair, int condition0, int variable0,
+			     int condition1, int or_join)
+{
+	struct mission_trigger_pair *trigger =
+		&g_stored.groups[fg].arrival_triggers[pair];
+	trigger->triggers[0].condition = (uint8_t)condition0;
+	trigger->triggers[0].variable_type = GOAL_TARGET_PLAYER_NUMBER;
+	trigger->triggers[0].variable = (uint8_t)variable0;
+	trigger->triggers[1].condition = (uint8_t)condition1;
+	trigger->trigger1_or_trigger2 = (uint8_t)or_join;
+}
+
+/* A group whose arrival triggers (the two pairs joined by AND, or by OR when
+ * arrivals12_or_arrivals34 is 1) can no longer hold has its arrival turned
+ * off at the start; only a pair of conditions on players connected or not,
+ * joined by AND within the pair, is judged. Player 1 is flown by a human;
+ * player 2 has a group no human flies. */
+static void check_runtime_arrival_triggers_failed(void)
+{
+	enum {
+		CONNECTED = MISSION_COND_PLAYER_CONNECTED,
+		DISCONNECTED = MISSION_COND_PLAYER_DISCONNECTED,
+		TRUE_ALWAYS = MISSION_COND_ALWAYS_TRUE,
+	};
+	static const struct {
+		int condition0;
+		int variable0;
+		int or_within;
+		int second_condition;
+		int second_variable;
+		int or_across;
+		int enabled;
+	} cases[] = {
+		/* Waiting for player 2, whose group has no human: failed. */
+		{CONNECTED, 1, 0, TRUE_ALWAYS, 0, 0, 0},
+		/* The same, with the pairs joined by OR and the second open. */
+		{CONNECTED, 1, 0, TRUE_ALWAYS, 0, 1, 1},
+		/* Both pairs failed, joined by OR: failed. */
+		{CONNECTED, 1, 0, DISCONNECTED, 0, 1, 0},
+		/* Waiting for player 1, who is flying: holds. */
+		{CONNECTED, 0, 0, TRUE_ALWAYS, 0, 0, 1},
+		{CONNECTED, 0, 0, TRUE_ALWAYS, 0, 1, 1},
+		/* A pair joined by OR is not judged. */
+		{CONNECTED, 1, 1, TRUE_ALWAYS, 0, 0, 1},
+		/* Waiting for player 1 to be gone: failed. */
+		{DISCONNECTED, 0, 0, TRUE_ALWAYS, 0, 0, 0},
+		/* Waiting for player 2 to be gone: holds. */
+		{DISCONNECTED, 1, 0, TRUE_ALWAYS, 0, 0, 1},
+	};
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 0, TEST_XWING, 1);
+	g_stored.groups[0].player_number = 1;
+	arriving_group(9, 0, TEST_XWING, 1);
+	g_stored.groups[9].player_number = 2;
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		int fg = (int)i + 1;
+		arriving_group(fg, 1, TEST_XWING, 1);
+		set_arrival_pair(fg, 0, cases[i].condition0, cases[i].variable0,
+				 TRUE_ALWAYS, cases[i].or_within);
+		set_arrival_pair(fg, 1, cases[i].second_condition,
+				 cases[i].second_variable, TRUE_ALWAYS, 0);
+		g_stored.groups[fg].arrivals12_or_arrivals34 =
+			(uint8_t)cases[i].or_across;
+	}
+	init_world();
+	g_flight_conf_no_pilot = 1;
+	g_active_flight_player_count = 1;
+	start_flight();
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		int fg = (int)i + 1;
+		XVT_ASSERT_INT_EQ(g_mission_fg_stats[fg].arrival_enabled != 0,
+				  cases[i].enabled);
+		char start[40];
+		snprintf(start, sizeof start,
+			 "mission.arrival_trigger_failed fg=%d ", fg);
+		XVT_ASSERT_INT_EQ(find_line(start) != NULL, !cases[i].enabled);
+	}
+}
+
+/* A group arrives at once when it is flown by a human, or its first arrival
+ * condition is "always" with no delay, unless a player number it has is not a
+ * human's and it waits for one (arrive_only_if_human). */
+static void check_runtime_arrival_at_start(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 0, TEST_XWING, 1);
+	g_stored.groups[0].player_number = 1;
+	g_stored.groups[0].arrival_triggers[0].triggers[0].condition =
+		MISSION_COND_ARRIVED;
+	g_stored.groups[0].arrival_delay_seconds = 9;
+	arriving_group(1, 1, TEST_XWING, 1);
+	g_stored.groups[1].player_number = 2;
+	arriving_group(2, 1, TEST_XWING, 1);
+	g_stored.groups[2].player_number = 3;
+	g_stored.groups[2].arrive_only_if_human = 1;
+	arriving_group(3, 1, TEST_XWING, 1);
+	g_stored.groups[3].arrive_only_if_human = 1;
+	arriving_group(4, 1, TEST_XWING, 1);
+	g_stored.groups[4].arrival_delay_seconds = 1;
+	arriving_group(5, 1, TEST_XWING, 1);
+	g_stored.groups[5].arrival_triggers[0].triggers[0].condition =
+		MISSION_COND_ARRIVED;
+	init_world();
+	g_flight_conf_no_pilot = 1;
+	g_active_flight_player_count = 1;
+	start_flight();
+	static const int arrived[6] = {1, 1, 0, 1, 0, 0};
+	for (int fg = 0; fg < 6; ++fg) {
+		XVT_ASSERT_INT_EQ(g_mission_fg_stats[fg].has_arrived,
+				  arrived[fg]);
+	}
+	/* Every group with craft has its team counted as having some; the
+	 * player's craft is bound to the player. */
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.team_has_countable_craft[0], 1);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.team_has_countable_craft[1], 1);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.team_has_countable_craft[2], 0);
+	XVT_ASSERT_TRUE(g_players[0].object_index >= 0);
+	XVT_ASSERT_INT_EQ(
+		g_object_table[g_players[0].object_index].player_owner_idx, 0);
+	XVT_ASSERT_INT_EQ(g_players[0].bound_flight_group_idx, 0);
+	XVT_ASSERT_INT_EQ(
+		g_players[0].bound_object_signature,
+		g_object_table[g_players[0].object_index].object_signature);
+	XVT_ASSERT_INT_EQ(g_initial_spawn_bind_player_craft_slots, 0);
+}
+
+/* The designation codes of a group's roles go to the teams the role's
+ * selector names: a digit 1 to 9 team 0 to 8, A every team, O the group's own
+ * team, F the teams allied with it and H the others; the role names are COM,
+ * BAS, STA, MIS, CON, STR, REL, PRI, SEC, TER, RES and MAN for codes 1 to 12.
+ * Entries of four characters are read to the first empty selector. */
+static void check_runtime_roles(void)
+{
+	static const struct {
+		const char *role;
+		int team;
+	} groups[] = {
+		{"1COM", 0}, {"2BAS3STA", 1},	  {"AMIS", 1},
+		{"OCON", 1}, {"FSTR", 2},	  {"HREL", 1},
+		{"9PRI", 4}, {"1XXXZREST5SE", 4}, {"1SEC2TER4MAN", 5},
+		{"3RES", 5}, {"1COM", 6},	  {"", 6},
+	};
+	init_mission(MISSION_TYPE_COMBAT);
+	for (size_t fg = 0; fg < sizeof groups / sizeof groups[0]; ++fg) {
+		arriving_group((int)fg, groups[fg].team, TEST_XWING, 1);
+		memset(g_stored.groups[fg].craft_role, 0, 16);
+		memcpy(g_stored.groups[fg].craft_role, groups[fg].role,
+		       strlen(groups[fg].role));
+	}
+	/* Team 2 is allied with team 1, as team 1 is with itself. */
+	g_stored.team_count[2] = 1;
+	g_stored.teams[2].allies[1] = 1;
+	init_world();
+	/* The loader upper-cases the roles; these already are. */
+	start_flight();
+	int codes[10][12];
+	memset(codes, 0, sizeof codes);
+	codes[0][0] = 1;
+	codes[1][1] = 2;
+	codes[2][1] = 3;
+	for (int team = 0; team < 10; ++team) {
+		codes[team][2] = 4;
+		if (team != 1) {
+			codes[team][5] = 7;
+		}
+	}
+	codes[1][3] = 5;
+	codes[1][4] = 6;
+	codes[2][4] = 6;
+	codes[8][6] = 8;
+	codes[0][8] = 9;
+	codes[1][8] = 10;
+	codes[3][8] = 12;
+	codes[2][9] = 11;
+	codes[0][10] = 1;
+	for (int team = 0; team < 10; ++team) {
+		for (int fg = 0; fg < 12; ++fg) {
+			XVT_ASSERT_INT_EQ(
+				g_flight_mission_state.runtime
+					.team_fg_designation_code[team][fg],
+				codes[team][fg]);
+		}
+	}
+}
+
+/* Counts the memory handles in use. */
+static int used_handle_count(void)
+{
+	int count = 0;
+	for (int handle = 0; handle < 32768; ++handle) {
+		count += g_handle_tables.ptr_table[handle] != NULL;
+	}
+	return count;
+}
+
+/* A second mission_init frees the five pools the first made before it makes
+ * new ones, so the handles in use do not grow, and clears the new pools. */
+static void check_init_replaces_pools(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	init_group(0, 0, TEST_XWING, 1);
+	init_world();
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	int used = used_handle_count();
+	g_object_table[40].object_type = 9;
+	g_mobile_object_pool_base[40].seconds_alive = 7;
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_INT_EQ(used_handle_count(), used);
+	XVT_ASSERT_INT_EQ(g_object_table[40].object_type, 0);
+	XVT_ASSERT_INT_EQ(g_mobile_object_pool_base[40].seconds_alive, 0);
+	XVT_ASSERT_TRUE(g_object_table[40].mobj ==
+			&g_mobile_object_pool_base[40]);
+}
+
+/* The flight's start puts the runtime state in order: the teams' scores,
+ * goal states, counts and kill stats, every player's targeting, view, timers
+ * and chat, the sim step, the signature counter, and the flags and counts the
+ * comment names. It leaves the current flight group at the group count. */
+static void check_runtime_resets(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 0, TEST_XWING, 2);
+	g_stored.groups[0].player_number = 1;
+	arriving_group(1, 1, TEST_XWING, 2);
+	init_world();
+	g_flight_conf_no_pilot = 1;
+	struct mission_flight_runtime_state *runtime =
+		&g_flight_mission_state.runtime;
+	for (int team = 0; team < 10; ++team) {
+		runtime->team_scores[0][team] = 5;
+		runtime->team_scores[1][team] = 6;
+		runtime->team_reinforcements_called[team] = 1;
+		runtime->team_mission_completion_time_seconds[team] = 8;
+		for (int goal = 0; goal < 3; ++goal) {
+			runtime->team_global_goal_state[team][goal] = 1;
+			runtime->team_goal_status[team][goal] = 2;
+			for (int trigger = 0; trigger < 4; ++trigger) {
+				runtime->global_goal_trigger_counts[0][team]
+								   [goal]
+								   [trigger] =
+					3;
+				runtime->global_goal_trigger_counts[1][team]
+								   [goal]
+								   [trigger] =
+					4;
+			}
+		}
+		for (int row = 0; row < 4; ++row) {
+			runtime->team_kill_stats[row][team] = 9;
+		}
+		runtime->team_fg_inspected_captured_counts[0][team][1] = 2;
+		runtime->team_fg_inspected_captured_counts[1][team][47] = 2;
+	}
+	runtime->global_goal_status_unused = 5;
+	runtime->global_primary_goal_status = 1;
+	runtime->global_bonus_goal_status = 1;
+	g_flight_mission_state.mission_end_pending = 1;
+	g_flight_mission_state.max_connected_player_count_this_mission = 3;
+	for (int message = 0; message < MISSION_MESSAGE_COUNT; ++message) {
+		g_flight_mission_state.message_triggered[message] = 1;
+		g_flight_mission_state.message_delay_countdown[message] = 9;
+	}
+	for (int player = 0; player < 8; ++player) {
+		g_players[player].awaiting_new_craft = 1;
+		g_players[player].target_box_enabled = 0;
+		g_players[player].current_target_object_idx = 4;
+		g_players[player].selected_target_component = 4;
+		g_players[player].targeting_state = 4;
+		g_players[player].engine_wash_source_obj_idx = 4;
+		g_players[player].target_preset_slot[2] = 4;
+		g_players[player].engine_wash_strength = 4;
+		g_players[player].msg_length = 4;
+		strcpy(g_players[player].msg_text, "chat");
+		g_players[player].chat_recipient_mode = 3;
+		g_players[player].view_state.camera_distance = 5;
+		g_players[player].view_state.external_camera_active = 1;
+		g_players[player].pending_action_timer = 6;
+		g_players[player].beam_fire_cooldown_timer = 6;
+	}
+	g_sim_steps_per_second = 0;
+	g_elapsed_ticks = 0;
+	g_input_timestamp = 99;
+	g_ready_message_queue_count = 3;
+	g_target_proximity_blink_bit = 0x400;
+	g_flight_runtime_state_initialized = 0;
+	g_render_object_ref = 4;
+	g_render_object_ref_flags = 4;
+	start_flight();
+	for (int team = 0; team < 10; ++team) {
+		XVT_ASSERT_INT_EQ(runtime->team_scores[0][team], 0);
+		XVT_ASSERT_INT_EQ(runtime->team_scores[1][team], 0);
+		XVT_ASSERT_INT_EQ(runtime->team_reinforcements_called[team], 0);
+		XVT_ASSERT_INT_EQ(
+			runtime->team_mission_completion_time_seconds[team], 0);
+		for (int goal = 0; goal < 3; ++goal) {
+			XVT_ASSERT_INT_EQ(
+				runtime->team_global_goal_state[team][goal], 4);
+			XVT_ASSERT_INT_EQ(runtime->team_goal_status[team][goal],
+					  0);
+			for (int trigger = 0; trigger < 4; ++trigger) {
+				XVT_ASSERT_INT_EQ(
+					runtime->global_goal_trigger_counts
+						[0][team][goal][trigger],
+					0);
+				XVT_ASSERT_INT_EQ(
+					runtime->global_goal_trigger_counts
+						[1][team][goal][trigger],
+					0);
+			}
+		}
+		for (int row = 0; row < 4; ++row) {
+			XVT_ASSERT_INT_EQ(runtime->team_kill_stats[row][team],
+					  0);
+		}
+		XVT_ASSERT_INT_EQ(
+			runtime->team_fg_inspected_captured_counts[0][team][1],
+			0);
+		XVT_ASSERT_INT_EQ(
+			runtime->team_fg_inspected_captured_counts[1][team][47],
+			0);
+	}
+	XVT_ASSERT_INT_EQ(runtime->global_goal_status_unused, 0);
+	XVT_ASSERT_INT_EQ(runtime->global_primary_goal_status, 0);
+	XVT_ASSERT_INT_EQ(runtime->global_bonus_goal_status, 0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.mission_end_pending, 0);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.max_connected_player_count_this_mission,
+		0);
+	for (int message = 0; message < MISSION_MESSAGE_COUNT; ++message) {
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.message_triggered[message], 0);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.message_delay_countdown[message],
+			0);
+	}
+	for (int player = 0; player < 8; ++player) {
+		const struct player_data *data = &g_players[player];
+		XVT_ASSERT_INT_EQ(data->awaiting_new_craft, 0);
+		XVT_ASSERT_INT_EQ(data->target_box_enabled, 1);
+		XVT_ASSERT_INT_EQ(data->current_target_object_idx, -1);
+		XVT_ASSERT_INT_EQ(data->target_cycle_start, -1);
+		XVT_ASSERT_INT_EQ(data->selected_target_component, -1);
+		XVT_ASSERT_INT_EQ(data->targeting_state, -1);
+		XVT_ASSERT_INT_EQ(data->engine_wash_source_obj_idx, -1);
+		for (int slot = 0; slot < 4; ++slot) {
+			XVT_ASSERT_INT_EQ(data->target_preset_slot[slot], -1);
+		}
+		XVT_ASSERT_INT_EQ(data->engine_wash_strength, 0);
+		XVT_ASSERT_INT_EQ(data->msg_length, 0);
+		XVT_ASSERT_INT_EQ(data->msg_text[0], 0);
+		XVT_ASSERT_INT_EQ(data->chat_recipient_mode,
+				  FLIGHT_CHAT_RECIPIENT_INACTIVE);
+		XVT_ASSERT_INT_EQ(data->view_state.camera_distance, 1024);
+		XVT_ASSERT_INT_EQ(data->view_state.external_camera_active, 0);
+		XVT_ASSERT_INT_EQ(data->view_state.camera_focus_obj_idx,
+				  (uint16_t)data->object_index);
+		XVT_ASSERT_INT_EQ(data->saved_hud_view_state, HUD_VIEW_FORWARD);
+		XVT_ASSERT_INT_EQ(data->pending_action_timer, 0);
+		XVT_ASSERT_INT_EQ(data->beam_fire_cooldown_timer, 0);
+	}
+	XVT_ASSERT_INT_EQ(g_sim_steps_per_second, 15);
+	XVT_ASSERT_INT_EQ(g_elapsed_ticks, 15);
+	XVT_ASSERT_INT_EQ(g_input_timestamp, 0);
+	XVT_ASSERT_INT_EQ(g_ready_message_queue_count, 0);
+	XVT_ASSERT_INT_EQ(g_target_proximity_blink_bit, 0);
+	XVT_ASSERT_INT_EQ(g_flight_runtime_state_initialized, 1);
+	XVT_ASSERT_INT_EQ(g_render_object_ref, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_render_object_ref_flags, 0);
+	XVT_ASSERT_INT_EQ(g_hud_loaded_panel_set_id, UINT8_MAX);
+	XVT_ASSERT_INT_EQ(g_local_debris_recycle_slot_cursor,
+			  g_local_transient_slot_start);
+	XVT_ASSERT_INT_EQ(g_current_flight_group_idx, 2);
+	XVT_ASSERT_INT_EQ(g_flight_initial_texture_cache_flush_pending, 1);
+	XVT_ASSERT_INT_EQ(g_flight_display_rebuild_pending, 1);
+	XVT_ASSERT_INT_EQ(g_next_object_signature, 5);
+	XVT_ASSERT_TRUE(line_holds("mission.runtime_ready", "objects=4"));
+}
+
+/* Known failure tie_global_goals_kept, issue #267: the TIE loader leaves the
+ * global goals it does not convert as they were, so the goals of an earlier
+ * mission stay in the second trigger pair of each converted goal, in team 0's
+ * goals past the file's count and in the other teams'. A loaded mission has
+ * none of them. */
+static void check_tie_global_goals_cleared(void)
+{
+	build_tie_mission();
+	fresh_world();
+	g_mission_global_goals[0][0].trigger_pairs[1].triggers[0].condition =
+		MISSION_COND_ARRIVED;
+	g_mission_global_goals[0][3].trigger_pairs[0].triggers[0].condition =
+		MISSION_COND_ARRIVED;
+	strcpy(g_mission_global_goals[0][3].name, "Old");
+	g_mission_global_goals[1][0].trigger_pairs[0].triggers[0].condition =
+		MISSION_COND_ARRIVED;
+	xvt_test_open_assets(&g_assets);
+	write_tie_mission("tie.tie", UINT16_MAX, &g_tie_header, g_tie_groups, 4,
+			  g_tie_goals, 2);
+	XVT_ASSERT_INT_EQ(mission_load_file("tie.tie"), 1);
+	xvt_test_close_assets(&g_assets);
+	XVT_ASSERT_INT_EQ(g_mission_global_goals[0][0]
+				  .trigger_pairs[1]
+				  .triggers[0]
+				  .condition,
+			  MISSION_COND_ALWAYS_TRUE);
+	XVT_ASSERT_INT_EQ(g_mission_global_goals[0][3]
+				  .trigger_pairs[0]
+				  .triggers[0]
+				  .condition,
+			  MISSION_COND_ALWAYS_TRUE);
+	XVT_ASSERT_TRUE(g_mission_global_goals[0][3].name[0] == '\0');
+	XVT_ASSERT_INT_EQ(g_mission_global_goals[1][0]
+				  .trigger_pairs[0]
+				  .triggers[0]
+				  .condition,
+			  MISSION_COND_ALWAYS_TRUE);
+}
+
+/* Known failure player_team_past_table, issue #171: a player's flight group on
+ * team 10 or more, which the loader does not refuse, is counted in arrays of
+ * the 10 teams. mission_init counts the teams that have human fliers in a
+ * stack array of 10, which a team of 10 writes past. */
+static void check_init_player_team_past_table(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	init_group(0, 10, TEST_XWING, 1);
+	init_world();
+	g_flight_mission_state.player_flight_group_wave_mode = 1;
+	set_roster_slot(0, 100);
+	set_network_player(0, 100, 0, 0);
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	XVT_ASSERT_INT_EQ(g_players[0].team, 10);
+	XVT_ASSERT_INT_EQ(g_mission_flight_groups[0].player_owner_idx, 0);
+}
+
 int main(int argc, char **argv)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -2881,6 +5081,19 @@ int main(int argc, char **argv)
 			{"refused_version_stays_open",
 			 check_refused_version_closes_file},
 			{"goal_text_unterminated", check_goal_text_fills_place},
+			{"tournament_swap_wrong_group",
+			 check_swap_tests_the_teams_own_group},
+			{"ai_level_past_table", check_init_ai_level_in_range},
+			{"melee_boost_all_teams_owned",
+			 check_melee_boost_without_free_team},
+			{"nopilot_unset_team_count",
+			 check_balance_without_pilot_record},
+			{"backdrop_images_shared",
+			 check_backdrop_groups_keep_their_images},
+			{"tie_global_goals_kept",
+			 check_tie_global_goals_cleared},
+			{"player_team_past_table",
+			 check_init_player_team_past_table},
 		};
 		for (size_t i = 0;
 		     i < sizeof known_failures / sizeof known_failures[0];
@@ -2948,5 +5161,37 @@ int main(int argc, char **argv)
 	check_load_tie_group_goals();
 	check_load_tie_messages();
 	check_load_tie_goals();
+	check_init_layout();
+	check_init_load_fails();
+	check_init_binds_network_players();
+	check_init_binds_by_player_number();
+	check_init_enables_ai_opponents();
+	check_init_craft_selection();
+	check_init_host_warhead();
+	check_init_ai_team_craft();
+	check_init_ai_team_craft_tournament();
+	check_init_ai_team_without_source();
+	check_init_ai_team_swap();
+	check_init_difficulty();
+	check_init_melee_boosts();
+	check_init_combat_balance();
+	check_init_random_variation();
+	check_init_random_special_cargo();
+	check_init_player_craft();
+	check_init_player_waves();
+	check_init_models_needed();
+	check_init_melee_markings();
+	check_init_melee_arrive_only_if_human();
+	check_init_clocks();
+	check_init_backdrop_seed();
+	check_init_backdrop_placement();
+	check_init_backdrop_images();
+	check_runtime_group_counts();
+	check_runtime_arrival_difficulty();
+	check_runtime_arrival_triggers_failed();
+	check_runtime_arrival_at_start();
+	check_runtime_roles();
+	check_init_replaces_pools();
+	check_runtime_resets();
 	return 0;
 }

@@ -103,6 +103,13 @@ if(NOT MSVC)
     xvt_add_known_failure(test_mission tie_goal_text_handles_kept)
     xvt_add_known_failure(test_mission refused_version_stays_open)
     xvt_add_known_failure(test_mission goal_text_unterminated)
+    xvt_add_known_failure(test_mission tournament_swap_wrong_group)
+    xvt_add_known_failure(test_mission ai_level_past_table)
+    xvt_add_known_failure(test_mission melee_boost_all_teams_owned)
+    xvt_add_known_failure(test_mission nopilot_unset_team_count)
+    xvt_add_known_failure(test_mission backdrop_images_shared)
+    xvt_add_known_failure(test_mission tie_global_goals_kept)
+    xvt_add_known_failure(test_mission player_team_past_table)
 endif()
 
 # The frontend's mission loaders and the launch's pilot record setup: src/xvt/frontend/frontend_mission.c.
