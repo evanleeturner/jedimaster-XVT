@@ -282,6 +282,26 @@ if(XVT_BUILD_TOOLS)
     # movie_dump takes frames off Aeron's video player queue, which only
     # Aeron's own sources declare.
     target_include_directories(movie_dump PRIVATE aeron/src)
+    # briefing_dump takes the engine's drawing and sound calls with the GNU
+    # linker's --wrap, so it builds only on Linux.
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_executable(briefing_dump tools/briefing_dump.c tools/asset_dump.c)
+        target_link_libraries(briefing_dump PRIVATE xvt_core)
+        target_compile_options(briefing_dump PRIVATE -Wall -Wextra -Wpedantic)
+        foreach(symbol IN ITEMS
+                front_image_draw_glyph
+                front_image_draw_sprite_rect_transparent
+                front_image_draw_sprite_rect_tinted
+                frontend_draw_rect
+                frontend_draw_rect_outline
+                frontend_draw_vertical_line_clipped
+                frontend_draw_horizontal_line_clipped
+                frontend_display_set_screen_clip_rect640x480
+                frontend_sound_play_ui_sound
+                mission_setup_load_mission_list)
+            target_link_options(briefing_dump PRIVATE "LINKER:--wrap=${symbol}")
+        endforeach()
+    endif()
 endif()
 
 add_library(xvt_remaster STATIC
