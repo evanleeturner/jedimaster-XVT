@@ -3040,6 +3040,7 @@ static void check_init_layout(void)
 	XVT_ASSERT_INT_EQ(g_mobile_object_char_data_count, 256);
 	XVT_ASSERT_INT_EQ(g_projectile_object_slots_total, 160);
 	XVT_ASSERT_INT_EQ(g_debris_object_slots_total, 16);
+	XVT_ASSERT_INT_EQ(g_world_state_debris_slot_count, 16);
 	XVT_ASSERT_INT_EQ(g_local_debris_slot_count, 8);
 	for (int genus = 0; genus < 6; ++genus) {
 		XVT_ASSERT_INT_EQ(g_object_slot_range_by_genus[genus].start, 0);
