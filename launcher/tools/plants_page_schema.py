@@ -78,8 +78,8 @@ PROTOCOL_PLANTS: list[Plant] = [
     Plant(
         "page-protocol-result-may-be-text",
         PRO,
-        "        | ShowMissionResult\n    )",
-        "        | ShowMissionResult\n        | str\n    )",
+        "        | BriefingGetResult\n    )",
+        "        | BriefingGetResult\n        | str\n    )",
         (TX + "test_refused_example[reply-ok-string.json]",),
         regen_schema=True,
     ),
@@ -296,8 +296,8 @@ SHOW_SCHEMA_PLANTS: list[Plant] = [
     Plant(
         "page-protocol-show-request-unlisted",
         PRO,
-        "    SettingsSetRequest,\n    ShowMissionRequest,\n)\nCOMMANDS",
-        "    SettingsSetRequest,\n)\nCOMMANDS",
+        "    ShowMissionRequest,\n    BriefingGetRequest,\n)\nCOMMANDS",
+        "    BriefingGetRequest,\n)\nCOMMANDS",
         (TX + "test_accepted_example[request-show-mission.json]",),
         regen_schema=True,
     ),
@@ -312,8 +312,8 @@ SHOW_SCHEMA_PLANTS: list[Plant] = [
     Plant(
         "page-protocol-show-result-unlisted",
         PRO,
-        "        | ShowMissionResult\n    )",
-        "    )",
+        "        | ShowMissionResult\n        | BriefingGetResult\n    )",
+        "        | BriefingGetResult\n    )",
         (TX + "test_accepted_example[reply-ok-show-mission.json]",),
         regen_schema=True,
     ),

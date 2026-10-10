@@ -591,9 +591,9 @@ SHOW_PLANTS: list[Plant] = [
     Plant(
         "page-show-command-dropped",
         PRO,
-        "    SettingsSetRequest,\n    ShowMissionRequest,\n)\nCOMMANDS",
-        "    SettingsSetRequest,\n)\nCOMMANDS",
-        (TC + "test_the_list_has_six_commands_and_revision_2",),
+        "    ShowMissionRequest,\n    BriefingGetRequest,\n)\nCOMMANDS",
+        "    BriefingGetRequest,\n)\nCOMMANDS",
+        (TC + "test_the_list_has_seven_commands_and_revision_4",),
         regen_schema=True,
     ),
     Plant(

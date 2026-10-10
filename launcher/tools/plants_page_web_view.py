@@ -546,8 +546,8 @@ SITE_PLANTS: list[Plant] = [
     Plant(
         "web-css-radio-too-small",
         CSS,
-        "  inline-size: 1.5rem;\n  block-size: 1.5rem;",
-        "  inline-size: 0.5rem;\n  block-size: 0.5rem;",
+        ".choice-input {\n  inline-size: 1.5rem;\n  block-size: 1.5rem;",
+        ".choice-input {\n  inline-size: 0.5rem;\n  block-size: 0.5rem;",
         (B + "controls are at least 24 by 24 pixels",),
     ),
     Plant(
@@ -675,8 +675,8 @@ SHOW_VIEW_PLANTS: list[Plant] = [
     Plant(
         "web-main-mark-says-page",
         MAI,
-        'item.setAttribute("aria-current", "true");',
-        'item.setAttribute("aria-current", "page");',
+        'current === true) item.setAttribute("aria-current", "true");',
+        'current === true) item.setAttribute("aria-current", "page");',
         (B + "a mission shown from a second socket",),
     ),
     Plant(
