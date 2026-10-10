@@ -113,6 +113,8 @@ if(NOT MSVC)
     xvt_add_known_failure(test_mission damage_from_groups_kept)
     xvt_add_known_failure(test_mission seventh_craft_off_formation)
     xvt_add_known_failure(test_mission debris_spot_taken)
+    xvt_add_known_failure(test_mission craft_type_past_table)
+    xvt_add_known_failure(test_mission ai_skill_past_table)
 endif()
 
 # The frontend's mission loaders and the launch's pilot record setup: src/xvt/frontend/frontend_mission.c.

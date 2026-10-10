@@ -5294,6 +5294,8 @@ static void check_spawn_craft_values(void)
 		const struct object_record *object = &g_object_table[slot];
 		const struct craft_data *craft = object->mobj->p_craft;
 		XVT_ASSERT_INT_EQ(object->object_type, SPAWN_TYPE);
+		XVT_ASSERT_INT_EQ(g_spawn_object_type_by_object_slot[slot],
+				  SPAWN_TYPE);
 		XVT_ASSERT_INT_EQ(object->object_signature,
 				  signature + (unsigned int)ordinal);
 		XVT_ASSERT_INT_EQ(object->mobj->iff, 4);
@@ -5568,20 +5570,15 @@ static void check_spawn_formation(void)
 	while (g_formation_divisor[divided] == 1) {
 		++divided;
 	}
-	int raised = 0;
-	while (g_form_pos_z[raised][1] == 0 && g_form_pos_z[raised][2] == 0) {
-		++raised;
-	}
 	static const struct {
 		int formation;
 		int spacing;
 		int shift;
-	} cases[] = {{0, 0, 0},	 {4, 1, 0},  {4, 0, 1},
-		     {15, 2, 0}, {-1, 0, 0}, {-2, 1, 0}};
+	} cases[] = {{0, 0, 0},	 {4, 1, 0}, {4, 0, 1}, {15, 2, 0}, {15, 0, 0},
+		     {13, 0, 0}, {8, 1, 0}, {8, 0, 0}, {-1, 0, 0}};
 	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
-		int formation =
-			cases[i].formation == -2 ? raised : cases[i].formation;
-		if (cases[i].formation == -1) {
+		int formation = cases[i].formation;
+		if (formation < 0) {
 			formation = divided;
 		}
 		init_mission(MISSION_TYPE_COMBAT);
@@ -6540,10 +6537,13 @@ static void check_spawn_fresh_state(void)
 	struct model_def saved;
 	struct model_def *model = set_test_model(&saved);
 	init_mission(MISSION_TYPE_COMBAT);
-	arriving_group(0, 1, SPAWN_TYPE, 1);
+	arriving_group(0, 1, SPAWN_TYPE, 2);
 	g_stored.groups[0].player_number = 1;
 	g_stored.groups[0].formation_spacing = 4;
 	spawn_mission_ready();
+	g_object_table[1].yaw = 0x5A5A;
+	g_object_table[1].pitch = 0x5A5A;
+	g_object_table[1].roll = 0x5A5A;
 	struct craft_data *craft = &g_craft_data_pool_base[0];
 	struct object_record *object = &g_object_table[0];
 	memset(craft, 0x5A, sizeof *craft);
@@ -6563,6 +6563,9 @@ static void check_spawn_fresh_state(void)
 	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
 	XVT_ASSERT_TRUE(craft_slot(0, 0) == 0);
 
+	XVT_ASSERT_INT_EQ(g_object_table[1].yaw, 0);
+	XVT_ASSERT_INT_EQ(g_object_table[1].pitch, 0x4000);
+	XVT_ASSERT_INT_EQ(g_object_table[1].roll, 0);
 	XVT_ASSERT_INT_EQ(object->yaw, 0);
 	XVT_ASSERT_INT_EQ(object->pitch, 0x4000);
 	XVT_ASSERT_INT_EQ(object->roll, 0);
@@ -6688,6 +6691,40 @@ static void check_spawn_fresh_state(void)
 	*model = saved;
 }
 
+/* Known failure craft_type_past_table, issue #187: the craft type of a flight
+ * group is checked against the 96 entries of the table of object types before
+ * it is used to index it. mission_init either refuses a mission with a craft
+ * type of 100 or brings the type into the table. */
+static void check_init_craft_type_in_range(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	init_group(0, 0, 100, 0);
+	init_world();
+	uint16_t result = run_init(14);
+	XVT_ASSERT_TRUE(result == 0 ||
+			g_mission_flight_groups[0].fg.craft_type < 96);
+}
+
+/* Known failure ai_skill_past_table, issue #187: the skill value of a spawned
+ * craft is one of the 8 entries of the skill table whatever the group's AI
+ * level. A group at level 9 gets a value read past the table. */
+static void check_spawn_ai_skill_in_table(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 1);
+	g_stored.groups[0].group_ai = 9;
+	spawn_mission_ready();
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	const struct craft_data *craft =
+		g_object_table[craft_slot(0, 0)].mobj->p_craft;
+	int in_table = 0;
+	for (int level = 0; level < 8; ++level) {
+		in_table |=
+			craft->ai_skill == g_ai_skill_value_q16_by_level[level];
+	}
+	XVT_ASSERT_TRUE(in_table);
+}
+
 int main(int argc, char **argv)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -6743,6 +6780,9 @@ int main(int argc, char **argv)
 			 check_spawn_seventh_craft_place},
 			{"debris_spot_taken",
 			 check_static_debris_redraws_taken_spot},
+			{"craft_type_past_table",
+			 check_init_craft_type_in_range},
+			{"ai_skill_past_table", check_spawn_ai_skill_in_table},
 		};
 		for (size_t i = 0;
 		     i < sizeof known_failures / sizeof known_failures[0];
