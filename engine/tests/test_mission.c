@@ -16,7 +16,11 @@
  * pass and read the team scores, goal states and statuses, the log and, for
  * the in-flight messages, the log line each message leaves (every message
  * template is a one-character text of the system pane, which is switched off,
- * so a message is built and dropped). No game data is read.
+ * so a message is built and dropped). The checks of
+ * mission_evaluate_condition set the outcome counts of a group, the live craft
+ * of the object table and the players, and read the result and the craft
+ * counts it leaves; the trigger variable checks compare the groups and objects
+ * they select. No game data is read.
  *
  * Not checked here:
  * - mission_load_file: a file that does not open, or comes up short, ends the
@@ -43,6 +47,11 @@
  *   of a message, of which only the length shows in its log line. The result
  *   of a global goal whose second pair has no second condition depends on an
  *   unset local (a known failure); the checks leave that pair's craft counts.
+ * - mission_evaluate_condition: the connected player counts of a player whose
+ *   team is past the 10 teams, and a variable past the tables it indexes.
+ * - mission_object_matches_trigger_variable: the opposites 11 and 14 of
+ *   "attacked by another team" and "identified by another team" of type 7,
+ *   which match unless every team did it.
  *
  * POSIX only, for the temporary folder (test_asset_folder.h). */
 #define _POSIX_C_SOURCE 200809L
@@ -6911,7 +6920,9 @@ static void check_logic_connected_players(void)
 	/* A pending mission end runs the pass: 3 connected is not above the
 	 * peak of 3. */
 	g_flight_mission_state.mission_end_pending = 1;
+	g_log_line_count = 0;
 	mission_update_logic();
+	XVT_ASSERT_INT_EQ(count_lines("mission.player_peak"), 0);
 	XVT_ASSERT_INT_EQ(g_flight_mission_state.connected_player_count, 3);
 	XVT_ASSERT_INT_EQ(
 		g_flight_global_countdown_timers.mission_goal_evaluation_timer,
@@ -7521,6 +7532,7 @@ static void check_logic_primary_met(void)
 	XVT_ASSERT_INT_EQ(built_count(207), 1);
 	XVT_ASSERT_TRUE(built_with(207, "length=6 sender=2 voice=0 "));
 	XVT_ASSERT_INT_EQ(built_count(305), 0);
+	XVT_ASSERT_INT_EQ(count_lines("battle.goal_failed"), 0);
 
 	/* The completed goal is not counted again. */
 	g_log_line_count = 0;
@@ -7597,17 +7609,19 @@ static void check_logic_primary_places(void)
 		int own_team;
 		int sent_305;
 		int sent_306;
+		int players;
 	} rows[] = {
-		{MISSION_TYPE_MELEE, 1, 1, 0},
-		{MISSION_TYPE_MELEE, 0, 0, 1},
-		{MISSION_TYPE_SIMULATOR_1, 0, 0, 1},
-		{MISSION_TYPE_COMBAT, 0, 0, 0},
-		{MISSION_TYPE_SIMULATOR_2, 0, 0, 0},
+		{MISSION_TYPE_MELEE, 1, 1, 0, 2},
+		{MISSION_TYPE_MELEE, 0, 0, 1, 2},
+		{MISSION_TYPE_SIMULATOR_1, 0, 0, 1, 2},
+		{MISSION_TYPE_COMBAT, 0, 0, 0, 2},
+		{MISSION_TYPE_SIMULATOR_2, 0, 0, 0, 2},
+		{MISSION_TYPE_MELEE, 1, 0, 0, 1},
 	};
 	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
 		logic_world();
 		g_mission_header.mission_type = (int8_t)rows[i].mission_type;
-		g_flight_player_count = 2;
+		g_flight_player_count = rows[i].players;
 		g_net_session.player_count = 1;
 		strcpy(g_net_session.local_player_info.player_name, "Ace");
 		/* Team 1 completes; the local player is of the team in the
@@ -7965,7 +7979,7 @@ static void check_logic_message_shown(void)
 	}
 	set_message(0, "Hello", 0x2, 0, 1);
 	set_message(15, "Sixteenth", 0x2, 0, 1);
-	set_message(17, "Late", 0x3, 0, 1);
+	set_message(16, "Late", 0x3, 0, 1);
 	set_message(3, "Other team", 0x1, 0, 1);
 	run_scan();
 	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_triggered[0], 1);
@@ -8008,7 +8022,7 @@ static void check_logic_message_delay(void)
 	}
 	set_message(0, "Slow", 0x2, 2, 1);
 	set_message(1, "Not for us", 0x1, 1, 1);
-	set_message(17, "Delayed", 0x2, 1, 1);
+	set_message(16, "Delayed", 0x2, 1, 1);
 	run_scan();
 	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_delay_countdown[0], 2);
 	XVT_ASSERT_INT_EQ(built_count(207), 0);
@@ -8066,6 +8080,1082 @@ static void check_logic_global_goal_fourth_condition(void)
 	run_logic();
 	XVT_ASSERT_INT_EQ(
 		g_flight_mission_state.runtime.team_global_goal_state[0][1], 2);
+}
+
+/* ---- mission_evaluate_condition and the trigger variables -------------- */
+
+#define OUTCOME_BIT(outcome) (1u << (outcome))
+
+/* The craft counts of the conditions that count craft: the outcomes whose
+ * craft are counted as meeting the condition and as failing it. */
+static const struct {
+	int condition;
+	int departed_as_destroyed;
+	unsigned int met;
+	unsigned int failed;
+} g_condition_outcomes[] = {
+	{MISSION_COND_ARRIVED, 0, OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_ARRIVED), 0},
+	{MISSION_COND_DESTROYED, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DESTROYED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_LEFT_REGION)},
+	{MISSION_COND_DESTROYED, 1,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DESTROYED) |
+		 OUTCOME_BIT(
+			 FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT) |
+		 OUTCOME_BIT(
+			 FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT) |
+		 OUTCOME_BIT(
+			 FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_LEFT_REGION),
+	 0},
+	{MISSION_COND_ATTACKED, 0, OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_ATTACKED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_ATTACKED)},
+	{MISSION_COND_CAPTURED, 0, OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_CAPTURED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_CAPTURED)},
+	{MISSION_COND_INSPECTED, 0, OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_INSPECTED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_INSPECTED)},
+	{MISSION_COND_BOARDED, 0, OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_BOARDED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_BOARDED)},
+	{MISSION_COND_DOCKED, 0, OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DOCKED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_DOCKED)},
+	{MISSION_COND_DISABLED, 0, OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DISABLED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_DISABLED)},
+	{MISSION_COND_DEPARTED, 0, OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DEPARTED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DESTROYED) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_ABORTED) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_DEPARTED)},
+	{MISSION_COND_NOT_ARRIVED, 0, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_ARRIVED)},
+	{MISSION_COND_NOT_ATTACKED, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_ATTACKED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_ATTACKED)},
+	{MISSION_COND_NOT_DISABLED, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_DISABLED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DISABLED)},
+	{MISSION_COND_NOT_CAPTURED, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_CAPTURED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_CAPTURED)},
+	{MISSION_COND_NOT_INSPECTED, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_INSPECTED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_INSPECTED)},
+	{MISSION_COND_COMPLETED_MISSION, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_COMPLETED_MISSION), 0},
+	{MISSION_COND_NOT_BOARDED, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_BOARDED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_BOARDED)},
+	{MISSION_COND_FAILED_MISSION, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_FAILED_MISSION), 0},
+	{MISSION_COND_NOT_DOCKED, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_DOCKED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DOCKED)},
+	{MISSION_COND_DESTROYED_OR_DEPARTED, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DESTROYED) |
+		 OUTCOME_BIT(
+			 FLIGHT_GROUP_OUTCOME_CAPTURED_MOTHERSHIP_DEPENDENT) |
+		 OUTCOME_BIT(
+			 FLIGHT_GROUP_OUTCOME_ALTERNATE_MOTHERSHIP_DEPENDENT) |
+		 OUTCOME_BIT(
+			 FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_LEFT_REGION),
+	 0},
+	{MISSION_COND_NOT_DEPARTED, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DESTROYED) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_ABORTED) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_DEPARTED),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DEPARTED_WITH_ORDER_INCOMPLETE) |
+		 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_DEPARTED)},
+	{MISSION_COND_CAPTURED_BY_DESTINATION, 0,
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_CAPTURED_BY_DESTINATION),
+	 OUTCOME_BIT(FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION)},
+};
+
+/* Each craft-counting condition counts the outcomes the table above lists as
+ * met and as failed, and no others: one craft of a group of one that ended
+ * in outcome O has met the condition (1), failed it (2) or neither (4), for
+ * "at least one" of the group's craft. The same holds for the special cargo
+ * craft's own outcomes, with the amount "all the special cargo". The counts
+ * of the met craft are left behind. */
+static void check_condition_outcome_table(void)
+{
+	for (size_t row = 0;
+	     row < sizeof g_condition_outcomes / sizeof g_condition_outcomes[0];
+	     ++row) {
+		for (int outcome = 1; outcome < FLIGHT_GROUP_OUTCOME_COUNT;
+		     ++outcome) {
+			int expected =
+				(g_condition_outcomes[row].met >> outcome) & 1u
+					? 1
+					: ((g_condition_outcomes[row].failed >>
+					    outcome) & 1u
+						   ? 2
+						   : 4);
+			fresh_world();
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+			g_mission_fg_stats[0].outcome_count[outcome] = 1;
+			XVT_ASSERT_INT_EQ(
+				condition_on_group(
+					g_condition_outcomes[row].condition, 0,
+					GOAL_AMT_AT_LEAST_1,
+					g_condition_outcomes[row]
+						.departed_as_destroyed),
+				expected);
+			XVT_ASSERT_INT_EQ(g_mission_condition_current_count,
+					  expected == 1 ? 1 : 0);
+			XVT_ASSERT_INT_EQ(g_mission_condition_total_count, 1);
+
+			fresh_world();
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+			g_mission_fg_stats[0].special_cargo_outcome
+				[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+			g_mission_fg_stats[0].special_cargo_outcome[outcome] =
+				1;
+			XVT_ASSERT_INT_EQ(
+				condition_on_group(
+					g_condition_outcomes[row].condition, 0,
+					GOAL_AMT_ALL_SPECIAL_CARGO,
+					g_condition_outcomes[row]
+						.departed_as_destroyed),
+				expected);
+		}
+	}
+}
+
+/* "Survived" counts the craft that did not end destroyed or lost with their
+ * mothership, over every group the variable selects (here all of them); the
+ * craft that did end so have failed it. The special cargo craft is counted
+ * the same way by its own outcomes. */
+static void check_condition_survived(void)
+{
+	fresh_world();
+	uint16_t *first = g_mission_fg_stats[0].outcome_count;
+	first[FLIGHT_GROUP_OUTCOME_TOTAL] = 5;
+	first[FLIGHT_GROUP_OUTCOME_DESTROYED] = 1;
+	first[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP] = 1;
+	uint16_t *second = g_mission_fg_stats[1].outcome_count;
+	second[FLIGHT_GROUP_OUTCOME_TOTAL] = 4;
+	second[FLIGHT_GROUP_OUTCOME_DESTROYED] = 2;
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(MISSION_COND_SURVIVED, 11,
+						     0, GOAL_AMT_AT_LEAST_1, 0,
+						     10),
+			  1);
+	XVT_ASSERT_INT_EQ(g_mission_condition_current_count, 5);
+	XVT_ASSERT_INT_EQ(g_mission_condition_total_count, 9);
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(MISSION_COND_SURVIVED, 11,
+						     0, GOAL_AMT_100, 0, 10),
+			  2);
+
+	/* Two special cargo craft in the first group, one destroyed. */
+	g_mission_fg_stats[0]
+		.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_TOTAL] = 2;
+	g_mission_fg_stats[0]
+		.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_DESTROYED] = 1;
+	XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_SURVIVED, 0,
+					     GOAL_AMT_ALL_SPECIAL_CARGO, 0),
+			  2);
+	g_mission_fg_stats[0]
+		.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_DESTROYED] = 0;
+	XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_SURVIVED, 0,
+					     GOAL_AMT_ALL_SPECIAL_CARGO, 0),
+			  1);
+	g_mission_fg_stats[0].special_cargo_outcome
+		[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP] = 1;
+	XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_SURVIVED, 0,
+					     GOAL_AMT_ALL_SPECIAL_CARGO, 0),
+			  2);
+}
+
+/* A group with no craft type is not counted, whatever it matches. */
+static void check_condition_skips_unknown_group(void)
+{
+	fresh_world();
+	g_mission_fg_stats[1].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 3;
+	g_mission_fg_stats[1].outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED] = 3;
+	g_mission_flight_groups[1].fg.craft_type = CRAFT_SPECIES_UNKNOWN;
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(MISSION_COND_DESTROYED, 11,
+						     0, GOAL_AMT_100, 0, 10),
+			  4);
+	XVT_ASSERT_INT_EQ(g_mission_condition_total_count, 0);
+	g_mission_flight_groups[1].fg.craft_type = TEST_XWING;
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(MISSION_COND_DESTROYED, 11,
+						     0, GOAL_AMT_100, 0, 10),
+			  1);
+	XVT_ASSERT_INT_EQ(g_mission_condition_total_count, 3);
+}
+
+/* How the amount judges the counts: the rows are the amount, the group's
+ * total, craft arrived, craft that met "destroyed" and craft that have failed
+ * it (left the region), and the result. The percentage amounts compare the
+ * craft with the total as a fraction of 65,536; the subset amounts compare the
+ * met craft with those arrived and never fail; an amount no row names leaves
+ * the condition undecided. */
+static void check_condition_amounts(void)
+{
+	static const struct {
+		int amount;
+		int total;
+		int arrived;
+		int met;
+		int failed;
+		int result;
+	} rows[] = {
+		{GOAL_AMT_100, 4, 4, 4, 0, 1},
+		{GOAL_AMT_100, 4, 4, 3, 0, 4},
+		{GOAL_AMT_100, 4, 4, 3, 1, 2},
+		{GOAL_AMT_75, 4, 4, 3, 0, 1},
+		{GOAL_AMT_75, 4, 4, 2, 1, 4},
+		{GOAL_AMT_75, 4, 4, 1, 2, 2},
+		{GOAL_AMT_50, 4, 4, 2, 0, 1},
+		{GOAL_AMT_50, 4, 4, 1, 2, 4},
+		{GOAL_AMT_50, 4, 4, 1, 3, 2},
+		{GOAL_AMT_25, 4, 4, 1, 0, 1},
+		{GOAL_AMT_25, 4, 4, 0, 3, 4},
+		{GOAL_AMT_25, 4, 4, 0, 4, 2},
+		{GOAL_AMT_AT_LEAST_1, 4, 4, 1, 0, 1},
+		{GOAL_AMT_AT_LEAST_1, 4, 4, 0, 3, 4},
+		{GOAL_AMT_AT_LEAST_1, 4, 4, 0, 4, 2},
+		{GOAL_AMT_AT_LEAST_1_ALT, 4, 4, 1, 0, 1},
+		{GOAL_AMT_AT_LEAST_1_ALT, 4, 4, 0, 4, 2},
+		{GOAL_AMT_ALL_BUT_1, 4, 4, 3, 0, 1},
+		{GOAL_AMT_ALL_BUT_1, 4, 4, 2, 1, 4},
+		{GOAL_AMT_ALL_BUT_1, 4, 4, 2, 2, 2},
+		{GOAL_AMT_100_OF_SUBSET, 4, 2, 2, 0, 1},
+		{GOAL_AMT_100_OF_SUBSET, 4, 2, 1, 1, 4},
+		{GOAL_AMT_75_OF_SUBSET, 8, 4, 3, 4, 1},
+		{GOAL_AMT_75_OF_SUBSET, 8, 4, 2, 4, 4},
+		{GOAL_AMT_50_OF_SUBSET, 8, 4, 2, 4, 1},
+		{GOAL_AMT_50_OF_SUBSET, 8, 4, 1, 4, 4},
+		{GOAL_AMT_25_OF_SUBSET, 8, 4, 1, 4, 1},
+		{GOAL_AMT_25_OF_SUBSET, 8, 4, 0, 4, 4},
+		{GOAL_AMT_ALL_BUT_1_OF_SUBSET, 8, 4, 3, 4, 1},
+		{GOAL_AMT_ALL_BUT_1_OF_SUBSET, 8, 4, 2, 4, 4},
+		{GOAL_AMT_66, 6, 6, 4, 0, 1},
+		{GOAL_AMT_66, 6, 6, 3, 2, 4},
+		{GOAL_AMT_66, 6, 6, 1, 3, 2},
+		{GOAL_AMT_33, 6, 6, 2, 0, 1},
+		{GOAL_AMT_33, 6, 6, 1, 4, 4},
+		{GOAL_AMT_33, 6, 6, 0, 5, 2},
+		{GOAL_AMT_ALL_EXCEPT_PLAYER, 4, 4, 4, 0, 4},
+		{GOAL_AMT_PLAYER_FG, 4, 4, 4, 0, 4},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		fresh_world();
+		uint16_t *counts = g_mission_fg_stats[0].outcome_count;
+		counts[FLIGHT_GROUP_OUTCOME_TOTAL] = (uint16_t)rows[i].total;
+		counts[FLIGHT_GROUP_OUTCOME_ARRIVED] =
+			(uint16_t)rows[i].arrived;
+		counts[FLIGHT_GROUP_OUTCOME_DESTROYED] = (uint16_t)rows[i].met;
+		counts[FLIGHT_GROUP_OUTCOME_LEFT_REGION] =
+			(uint16_t)rows[i].failed;
+		XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_DESTROYED, 0,
+						     (int16_t)rows[i].amount,
+						     0),
+				  rows[i].result);
+		XVT_ASSERT_INT_EQ(g_mission_condition_current_count,
+				  rows[i].met);
+		XVT_ASSERT_INT_EQ(g_mission_condition_total_count,
+				  rows[i].total);
+	}
+}
+
+/* The special cargo amounts: "all the special cargo" is met when every
+ * special cargo craft met the condition, failed when one has failed, and
+ * undecided when the group has none; "all but the special cargo" is met when
+ * the craft that did not meet the condition are the special cargo craft, and
+ * has failed when a craft failed without a special cargo craft meeting it, or
+ * two did. */
+static void check_condition_special_cargo_amounts(void)
+{
+	static const struct {
+		int amount;
+		int total;
+		int met;
+		int failed;
+		int special_total;
+		int special_met;
+		int special_failed;
+		int result;
+	} rows[] = {
+		{GOAL_AMT_ALL_SPECIAL_CARGO, 4, 1, 0, 2, 2, 0, 1},
+		{GOAL_AMT_ALL_SPECIAL_CARGO, 4, 1, 0, 2, 1, 0, 4},
+		{GOAL_AMT_ALL_SPECIAL_CARGO, 4, 1, 0, 2, 1, 1, 2},
+		{GOAL_AMT_ALL_SPECIAL_CARGO, 4, 1, 0, 0, 0, 0, 4},
+		{GOAL_AMT_ALL_NON_SPECIAL, 4, 3, 0, 1, 0, 0, 1},
+		{GOAL_AMT_ALL_NON_SPECIAL, 4, 2, 0, 1, 0, 0, 4},
+		{GOAL_AMT_ALL_NON_SPECIAL, 4, 2, 1, 1, 0, 0, 2},
+		{GOAL_AMT_ALL_NON_SPECIAL, 4, 2, 1, 1, 1, 0, 4},
+		{GOAL_AMT_ALL_NON_SPECIAL, 4, 2, 2, 1, 1, 0, 2},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		fresh_world();
+		uint16_t *counts = g_mission_fg_stats[0].outcome_count;
+		counts[FLIGHT_GROUP_OUTCOME_TOTAL] = (uint16_t)rows[i].total;
+		counts[FLIGHT_GROUP_OUTCOME_DESTROYED] = (uint16_t)rows[i].met;
+		counts[FLIGHT_GROUP_OUTCOME_LEFT_REGION] =
+			(uint16_t)rows[i].failed;
+		uint8_t *special = g_mission_fg_stats[0].special_cargo_outcome;
+		special[FLIGHT_GROUP_OUTCOME_TOTAL] =
+			(uint8_t)rows[i].special_total;
+		special[FLIGHT_GROUP_OUTCOME_DESTROYED] =
+			(uint8_t)rows[i].special_met;
+		special[FLIGHT_GROUP_OUTCOME_LEFT_REGION] =
+			(uint8_t)rows[i].special_failed;
+		XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_DESTROYED, 0,
+						     (int16_t)rows[i].amount,
+						     0),
+				  rows[i].result);
+	}
+}
+
+/* The craft of one team: with a team filter below 10, "inspected" counts the
+ * craft that team inspected and the ones that ended before it identified
+ * them; "not inspected" the other way round; "captured and departed" the
+ * craft that team captured and that left, and the ones that ended without
+ * that team capturing them. Without a team filter, "captured and departed"
+ * adds every team's captured craft, and counts the uncaptured losses of the
+ * teams that have craft only. The special cargo craft are counted the same
+ * way. */
+static void check_condition_team_filter(void)
+{
+	static const struct {
+		int condition;
+		int filter;
+		int field;
+		int result;
+	} rows[] = {
+		/* field: 0 inspected, 1 uninspected lost, 2 captured and
+		 * departed, 3 uncaptured lost. */
+		{MISSION_COND_INSPECTED, 3, 0, 1},
+		{MISSION_COND_INSPECTED, 3, 1, 2},
+		{MISSION_COND_INSPECTED, 4, 0, 4},
+		{MISSION_COND_NOT_INSPECTED, 3, 1, 1},
+		{MISSION_COND_NOT_INSPECTED, 3, 0, 2},
+		{MISSION_COND_NOT_INSPECTED, 4, 1, 4},
+		{MISSION_COND_CAPTURED_AND_DEPARTED, 3, 2, 1},
+		{MISSION_COND_CAPTURED_AND_DEPARTED, 3, 3, 2},
+		{MISSION_COND_CAPTURED_AND_DEPARTED, 4, 2, 4},
+		{MISSION_COND_CAPTURED_AND_DEPARTED, 10, 2, 1},
+		{MISSION_COND_CAPTURED_AND_DEPARTED, 10, 3, 2},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		for (int special = 0; special < 2; ++special) {
+			fresh_world();
+			struct mission_fg_runtime_stats *stats =
+				&g_mission_fg_stats[0];
+			stats->outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+			g_flight_mission_state.runtime
+				.team_has_countable_craft[3] = 1;
+			uint8_t *counts = NULL;
+			switch (rows[i].field) {
+			case 0:
+				counts =
+					special ? stats->team_special_cargo_inspected
+						: stats->team_inspected;
+				break;
+			case 1:
+				counts =
+					special ? stats->team_special_cargo_uninspected_lost
+						: stats->team_uninspected_lost;
+				break;
+			case 2:
+				counts =
+					special ? stats->team_special_cargo_captured_departed
+						: stats->team_captured_departed_count;
+				break;
+			default:
+				counts =
+					special ? stats->team_special_cargo_uncaptured_lost
+						: stats->team_uncaptured_lost;
+				break;
+			}
+			counts[3] = 1;
+			if (special) {
+				stats->special_cargo_outcome
+					[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+			}
+			XVT_ASSERT_INT_EQ(
+				mission_evaluate_condition(
+					(uint16_t)rows[i].condition,
+					GOAL_TARGET_FLIGHT_GROUP, 0,
+					special ? GOAL_AMT_ALL_SPECIAL_CARGO
+						: GOAL_AMT_AT_LEAST_1,
+					0, (uint16_t)rows[i].filter),
+				rows[i].result);
+		}
+	}
+	/* The uncaptured losses of a team with no craft are left out. */
+	fresh_world();
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+	g_mission_fg_stats[0].team_uncaptured_lost[3] = 1;
+	XVT_ASSERT_INT_EQ(
+		mission_evaluate_condition(MISSION_COND_CAPTURED_AND_DEPARTED,
+					   GOAL_TARGET_FLIGHT_GROUP, 0,
+					   GOAL_AMT_AT_LEAST_1, 0, 10),
+		4);
+}
+
+/* Craft conditions read the group's live craft in the active region: the
+ * rows are the condition, the craft's shields (the two shield arrays added),
+ * its hull damage with a hull of 400, its working subsystems and how many of
+ * its two warhead places are loaded, and the result for "at least one" craft: 1
+ * when the craft meets the condition, 2 when it does not. The model's shield
+ * strength is 100, so the craft's full shields are 200. */
+static void check_condition_live_craft(void)
+{
+	enum { ALL_SYSTEMS = 0xFFFF };
+	static const struct {
+		int condition;
+		int shield_front;
+		int shield_back;
+		int hull_damage;
+		int systems;
+		int warheads;
+		int result;
+	} rows[] = {
+		{MISSION_COND_SHIELDS_DEPLETED, 0, 0, 0, ALL_SYSTEMS, 1, 1},
+		{MISSION_COND_SHIELDS_DEPLETED, 1, 0, 0, ALL_SYSTEMS, 1, 2},
+		{MISSION_COND_SHIELDS_BELOW_25, 25, 25, 0, ALL_SYSTEMS, 1, 1},
+		{MISSION_COND_SHIELDS_BELOW_25, 26, 25, 0, ALL_SYSTEMS, 1, 2},
+		{MISSION_COND_SHIELDS_BELOW_50, 50, 50, 0, ALL_SYSTEMS, 1, 1},
+		{MISSION_COND_SHIELDS_BELOW_50, 51, 50, 0, ALL_SYSTEMS, 1, 2},
+		{MISSION_COND_HULL_DAMAGE_ABOVE_25, 100, 100, 101, ALL_SYSTEMS,
+		 1, 1},
+		{MISSION_COND_HULL_DAMAGE_ABOVE_25, 100, 100, 100, ALL_SYSTEMS,
+		 1, 2},
+		{MISSION_COND_HULL_DAMAGE_ABOVE_50, 100, 100, 201, ALL_SYSTEMS,
+		 1, 1},
+		{MISSION_COND_HULL_DAMAGE_ABOVE_50, 100, 100, 200, ALL_SYSTEMS,
+		 1, 2},
+		{MISSION_COND_HULL_DAMAGE_ABOVE_75, 100, 100, 301, ALL_SYSTEMS,
+		 1, 1},
+		{MISSION_COND_HULL_DAMAGE_ABOVE_75, 100, 100, 300, ALL_SYSTEMS,
+		 1, 2},
+		{MISSION_COND_NO_WARHEADS, 100, 100, 0, ALL_SYSTEMS, 0, 1},
+		{MISSION_COND_NO_WARHEADS, 100, 100, 0, ALL_SYSTEMS, 1, 2},
+		{MISSION_COND_NO_WARHEADS, 100, 100, 0, ALL_SYSTEMS, 2, 2},
+		{MISSION_COND_CANNONS_DISABLED, 100, 100, 0,
+		 ALL_SYSTEMS & ~CRAFT_SUBSYSTEM_FLAG_CANNONS, 1, 1},
+		{MISSION_COND_CANNONS_DISABLED, 100, 100, 0, ALL_SYSTEMS, 1, 2},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		fresh_world();
+		struct craft_data *craft = place_craft(0, 0, 4);
+		craft->model_index = (uint16_t)get_model_index_from_type(
+			(object_type_id)g_test_objects[0].object_type);
+		struct model_def *model = &g_model_defs[craft->model_index];
+		struct model_def saved = *model;
+		model->shield_strength = 100;
+		model->warhead_launcher_first_slot[0] = 2;
+		model->warhead_launcher_last_slot[0] = 3;
+		craft->warhead_launcher_count = 1;
+		craft->shield_energy[0] = (int16_t)rows[i].shield_front;
+		craft->shield_energy[1] = (int16_t)rows[i].shield_back;
+		craft->hull_max = 400;
+		craft->hull_damage = (unsigned int)rows[i].hull_damage;
+		craft->working_subsystems =
+			(craft_subsystem_flag)rows[i].systems;
+		craft->weapon_slots[2].ammo_count =
+			(uint8_t)(rows[i].warheads > 0 ? 1 : 0);
+		craft->weapon_slots[3].ammo_count =
+			(uint8_t)(rows[i].warheads > 1 ? 1 : 0);
+		g_mission_fg_stats[0]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+		XVT_ASSERT_INT_EQ(
+			condition_on_group((uint16_t)rows[i].condition, 0,
+					   GOAL_AMT_AT_LEAST_1, 0),
+			rows[i].result);
+		XVT_ASSERT_INT_EQ(g_mission_condition_current_count,
+				  rows[i].result == 1 ? 1 : 0);
+		*model = saved;
+	}
+}
+
+/* The live craft of other groups, empty slots and slots outside the active
+ * region are not counted; the group's special cargo craft is counted for the
+ * special cargo amount. */
+static void check_condition_live_craft_scope(void)
+{
+	fresh_world();
+	struct model_def *model = model_of(TEST_XWING);
+	struct model_def saved = *model;
+	model->shield_strength = 100;
+	g_mission_flight_groups[0].fg.special_cargo_craft = 1;
+	/* Group 0's craft 0 and 1 (the special cargo) have no shields; group
+	 * 1's craft 2 has none either; slot 3 is outside the region. */
+	for (int slot = 0; slot < 4; ++slot) {
+		int fg = slot == 2 ? 1 : 0;
+		struct craft_data *craft = place_craft(slot, fg, slot % 2);
+		craft->model_index = (uint16_t)get_model_index_from_type(
+			(object_type_id)g_test_objects[slot].object_type);
+		craft->shield_energy[0] = slot == 0 ? 9 : 0;
+	}
+	g_active_region_craft_object_slot_end = 3;
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 2;
+	g_mission_fg_stats[0]
+		.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+	XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_SHIELDS_DEPLETED, 0,
+					     GOAL_AMT_100, 0),
+			  2);
+	XVT_ASSERT_INT_EQ(g_mission_condition_current_count, 1);
+	g_test_craft[0].shield_energy[0] = 0;
+	XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_SHIELDS_DEPLETED, 0,
+					     GOAL_AMT_100, 0),
+			  1);
+	XVT_ASSERT_INT_EQ(g_mission_condition_current_count, 2);
+	XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_SHIELDS_DEPLETED, 0,
+					     GOAL_AMT_ALL_SPECIAL_CARGO, 0),
+			  1);
+	*model = saved;
+}
+
+/* The conditions on the players: group `fg` is flown by player number `number`
+ * (1 to 8) on a team and IFF. */
+static void player_group(int fg, int number, int team, int iff)
+{
+	struct xvt_flight_group *group = &g_mission_flight_groups[fg].fg;
+	group->player_number = (uint8_t)number;
+	group->team = (uint8_t)team;
+	group->iff = (uint8_t)iff;
+}
+
+/* "Player connected" and "player disconnected" by team or IFF compare the
+ * players connected with the groups a player number is set for: four groups
+ * on team 1 and IFF 2, two players connected on team 1 and IFF 2. The rows are
+ * the condition, the variable type, the amount and the result; an amount that
+ * is not listed leaves the condition failed (2), and so does a variable
+ * other than a team or IFF. */
+static void check_condition_players_by_group(void)
+{
+	static const struct {
+		int condition;
+		int variable_type;
+		int amount;
+		int result;
+	} rows[] = {
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_TEAM, GOAL_AMT_100,
+		 2},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_TEAM, GOAL_AMT_50,
+		 1},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_TEAM, GOAL_AMT_75,
+		 2},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_TEAM, GOAL_AMT_25,
+		 1},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_TEAM,
+		 GOAL_AMT_AT_LEAST_1, 1},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_TEAM,
+		 GOAL_AMT_ALL_BUT_1, 2},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_TEAM, GOAL_AMT_66,
+		 2},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_TEAM, GOAL_AMT_33,
+		 1},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_TEAM,
+		 GOAL_AMT_100_OF_SUBSET, 2},
+		{MISSION_COND_PLAYER_DISCONNECTED, GOAL_TARGET_TEAM,
+		 GOAL_AMT_100, 2},
+		{MISSION_COND_PLAYER_DISCONNECTED, GOAL_TARGET_TEAM,
+		 GOAL_AMT_50, 1},
+		{MISSION_COND_PLAYER_DISCONNECTED, GOAL_TARGET_TEAM,
+		 GOAL_AMT_75, 2},
+		{MISSION_COND_PLAYER_DISCONNECTED, GOAL_TARGET_TEAM,
+		 GOAL_AMT_25, 1},
+		{MISSION_COND_PLAYER_DISCONNECTED, GOAL_TARGET_TEAM,
+		 GOAL_AMT_AT_LEAST_1, 1},
+		{MISSION_COND_PLAYER_DISCONNECTED, GOAL_TARGET_TEAM,
+		 GOAL_AMT_ALL_BUT_1, 2},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_IFF, GOAL_AMT_50,
+		 1},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_IFF, GOAL_AMT_75,
+		 2},
+		{MISSION_COND_PLAYER_DISCONNECTED, GOAL_TARGET_IFF, GOAL_AMT_50,
+		 1},
+		{MISSION_COND_PLAYER_DISCONNECTED, GOAL_TARGET_IFF,
+		 GOAL_AMT_100, 2},
+		{MISSION_COND_PLAYER_CONNECTED, GOAL_TARGET_SPECIES,
+		 GOAL_AMT_AT_LEAST_1, 2},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		fresh_world();
+		g_mission_header.num_flight_groups = 4;
+		for (int fg = 0; fg < 4; ++fg) {
+			g_mission_flight_groups[fg].fg.craft_type = TEST_XWING;
+			player_group(fg, fg + 1, 1, 2);
+		}
+		g_players[0].participation_state = 1;
+		g_players[0].team = 1;
+		g_players[0].iff = 2;
+		g_players[4].participation_state = 2;
+		g_players[4].team = 1;
+		g_players[4].iff = 2;
+		g_players[5].participation_state = 0;
+		g_players[5].team = 1;
+		g_players[5].iff = 2;
+		XVT_ASSERT_INT_EQ(
+			mission_evaluate_condition(
+				(uint16_t)rows[i].condition,
+				(int16_t)rows[i].variable_type,
+				rows[i].variable_type == GOAL_TARGET_IFF ? 2
+									 : 1,
+				(int16_t)rows[i].amount, 0, 10),
+			rows[i].result);
+	}
+	/* Three of the four connected: "all" is not met, "75 percent" and "all
+	 * but one" are; for the disconnected one, "all but one" is not. */
+	fresh_world();
+	g_mission_header.num_flight_groups = 4;
+	for (int fg = 0; fg < 4; ++fg) {
+		player_group(fg, fg + 1, 1, 2);
+		g_players[fg].participation_state = fg < 3 ? 1 : 0;
+		g_players[fg].team = 1;
+	}
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_CONNECTED,
+				  GOAL_TARGET_TEAM, 1, GOAL_AMT_75, 0, 10),
+			  1);
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_CONNECTED,
+				  GOAL_TARGET_TEAM, 1, GOAL_AMT_100, 0, 10),
+			  2);
+	XVT_ASSERT_INT_EQ(
+		mission_evaluate_condition(MISSION_COND_PLAYER_CONNECTED,
+					   GOAL_TARGET_TEAM, 1,
+					   GOAL_AMT_ALL_BUT_1, 0, 10),
+		1);
+	XVT_ASSERT_INT_EQ(
+		mission_evaluate_condition(MISSION_COND_PLAYER_DISCONNECTED,
+					   GOAL_TARGET_TEAM, 1,
+					   GOAL_AMT_ALL_BUT_1, 0, 10),
+		2);
+	g_players[2].participation_state = 0;
+	XVT_ASSERT_INT_EQ(
+		mission_evaluate_condition(MISSION_COND_PLAYER_CONNECTED,
+					   GOAL_TARGET_TEAM, 1,
+					   GOAL_AMT_ALL_BUT_1, 0, 10),
+		2);
+}
+
+/* "Player connected" by player number is met when the group that has the
+ * number (variable + 1) is owned by a player, and "player disconnected" when
+ * that group has no owner; a number no group has leaves them failed. */
+static void check_condition_players_by_number(void)
+{
+	fresh_world();
+	player_group(0, 3, 0, 0);
+	player_group(1, 0, 1, 1);
+	g_mission_flight_groups[0].player_owner_idx = 2;
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_CONNECTED,
+				  GOAL_TARGET_PLAYER_NUMBER, 2, 0, 0, 10),
+			  1);
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_DISCONNECTED,
+				  GOAL_TARGET_PLAYER_NUMBER, 2, 0, 0, 10),
+			  2);
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_CONNECTED,
+				  GOAL_TARGET_PLAYER_NUMBER, 3, 0, 0, 10),
+			  2);
+	g_mission_flight_groups[0].player_owner_idx = -1;
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_CONNECTED,
+				  GOAL_TARGET_PLAYER_NUMBER, 2, 0, 0, 10),
+			  2);
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_DISCONNECTED,
+				  GOAL_TARGET_PLAYER_NUMBER, 2, 0, 0, 10),
+			  1);
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_DISCONNECTED,
+				  GOAL_TARGET_PLAYER_NUMBER, 4, 0, 0, 10),
+			  2);
+}
+
+/* The bonus goal failed is met when the any-team bonus status is failed (2)
+ * and has failed when it is complete (1); a condition number the function
+ * does not list (15 here) is undecided and leaves both craft counts at 0. */
+static void check_condition_bonus_failed_and_unlisted(void)
+{
+	fresh_world();
+	XVT_ASSERT_INT_EQ(
+		mission_evaluate_condition(MISSION_COND_BONUS_GOAL_FAILED,
+					   GOAL_TARGET_NONE, 0, 0, 0, 10),
+		4);
+	g_flight_mission_state.runtime.global_bonus_goal_status = 2;
+	XVT_ASSERT_INT_EQ(
+		mission_evaluate_condition(MISSION_COND_BONUS_GOAL_FAILED,
+					   GOAL_TARGET_NONE, 0, 0, 0, 10),
+		1);
+	g_flight_mission_state.runtime.global_bonus_goal_status = 1;
+	XVT_ASSERT_INT_EQ(
+		mission_evaluate_condition(MISSION_COND_BONUS_GOAL_FAILED,
+					   GOAL_TARGET_NONE, 0, 0, 0, 10),
+		2);
+	g_mission_condition_current_count = 5;
+	g_mission_condition_total_count = 6;
+	XVT_ASSERT_INT_EQ(
+		mission_evaluate_condition(15, GOAL_TARGET_NONE, 0, 0, 0, 10),
+		4);
+	XVT_ASSERT_INT_EQ(g_mission_condition_current_count, 0);
+	XVT_ASSERT_INT_EQ(g_mission_condition_total_count, 0);
+}
+
+/* ---- the trigger variables --------------------------------------------- */
+
+/* The value of g_genus_convert that is genus `genus` or 0xFF. */
+static int variable_for_genus(int genus)
+{
+	for (int variable = 0; variable < 12; ++variable) {
+		if (g_genus_convert[variable] == genus) {
+			return variable;
+		}
+	}
+	return -1;
+}
+
+static int variable_for_family(int family)
+{
+	for (int variable = 0; variable < 4; ++variable) {
+		if (g_family_convert[variable] == family) {
+			return variable;
+		}
+	}
+	return -1;
+}
+
+/* A flight group matches a variable of type species, genus or family when its
+ * craft type's object type has that species, genus or family; the opposite
+ * types (16 to 18) match the groups that do not. A type 6 variable is a first
+ * order; the opposite types of IFF (19), global group (20), team (21) and
+ * global unit (24) match when the group's value differs. Group 0 is an X-wing
+ * on IFF 3, team 4, global group 5, global unit 6 with the order 7; group 1 is
+ * another craft of another genus and family. */
+static void check_group_matches_variable_types(void)
+{
+	fresh_world();
+	/* A craft type other than group 0's with a different genus and family
+	 * when there is one. */
+	int other_type = TEST_XWING;
+	for (int type = 1; type < 96; ++type) {
+		uint8_t object_type = g_craft_type_to_object_type[type];
+		uint8_t mine = g_craft_type_to_object_type[TEST_XWING];
+		if (object_type != 0 && object_type != mine &&
+		    g_object_type_table[object_type].genus_id !=
+			    g_object_type_table[mine].genus_id &&
+		    (uint8_t)g_object_type_table[object_type].family_id !=
+			    (uint8_t)g_object_type_table[mine].family_id &&
+		    variable_for_genus(
+			    g_object_type_table[object_type].genus_id) >= 0 &&
+		    variable_for_family(
+			    (uint8_t)g_object_type_table[object_type]
+				    .family_id) >= 0) {
+			other_type = type;
+			break;
+		}
+	}
+	XVT_ASSERT_TRUE(other_type != TEST_XWING);
+	g_mission_flight_groups[1].fg.craft_type = (craft_species)other_type;
+	struct xvt_flight_group *group = &g_mission_flight_groups[0].fg;
+	group->iff = 3;
+	group->team = 4;
+	group->global_group = 5;
+	group->global_unit = 6;
+	group->orders[0].order = 7;
+	uint8_t my_object = g_craft_type_to_object_type[TEST_XWING];
+	int my_genus =
+		variable_for_genus(g_object_type_table[my_object].genus_id);
+	int my_family = variable_for_family(
+		(uint8_t)g_object_type_table[my_object].family_id);
+	XVT_ASSERT_TRUE(my_genus >= 0);
+	XVT_ASSERT_TRUE(my_family >= 0);
+	uint8_t other_object = g_craft_type_to_object_type[other_type];
+	int other_genus =
+		variable_for_genus(g_object_type_table[other_object].genus_id);
+	int other_family = variable_for_family(
+		(uint8_t)g_object_type_table[other_object].family_id);
+
+	static const struct {
+		int type;
+		int variable_of;
+		int expected;
+	} rows[] = {
+		/* variable_of: 0 group 0's value, 1 group 1's. */
+		{2, 0, 1}, {2, 1, 0}, {16, 0, 0}, {16, 1, 1},
+		{3, 0, 1}, {3, 1, 0}, {17, 0, 0}, {17, 1, 1},
+		{4, 0, 1}, {4, 1, 0}, {18, 0, 0}, {18, 1, 1},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		int variable = 0;
+		switch (rows[i].type) {
+		case 2:
+		case 16:
+			variable = (rows[i].variable_of == 0 ? TEST_XWING
+							     : other_type) -
+				   1;
+			break;
+		case 3:
+		case 17:
+			variable = rows[i].variable_of == 0 ? my_genus
+							    : other_genus;
+			break;
+		default:
+			variable = rows[i].variable_of == 0 ? my_family
+							    : other_family;
+			break;
+		}
+		XVT_ASSERT_INT_EQ(
+			mission_flight_group_matches_trigger_variable(
+				0, (int16_t)rows[i].type, (uint16_t)variable),
+			rows[i].expected);
+	}
+	static const struct {
+		int type;
+		int variable;
+		int expected;
+	} value_rows[] = {
+		{6, 7, 1},  {6, 8, 0},	{19, 3, 0}, {19, 2, 1}, {20, 5, 0},
+		{20, 4, 1}, {21, 4, 0}, {21, 3, 1}, {24, 6, 0}, {24, 7, 1},
+		{5, 3, 1},  {12, 4, 1}, {23, 6, 1}, {8, 5, 1},	{9, 0, 1},
+		{10, 0, 1}, {13, 0, 0}, {14, 0, 0}, {22, 0, 0},
+	};
+	for (size_t i = 0; i < sizeof value_rows / sizeof value_rows[0]; ++i) {
+		XVT_ASSERT_INT_EQ(mission_flight_group_matches_trigger_variable(
+					  0, (int16_t)value_rows[i].type,
+					  (uint16_t)value_rows[i].variable),
+				  value_rows[i].expected);
+	}
+}
+
+/* The same variables for one object (a craft in the object table, with its
+ * mobile record or without it): its group, species, genus, family, IFF and
+ * team come through its flight group, except IFF and team, which a mobile
+ * record gives. Types 15 and 16 to 24 are the opposites. Type 13 is the player
+ * number of the owner's group, type 14 the elapsed time at or before 5 seconds
+ * times the variable, and type 22 an owner other than the variable. */
+static void check_object_matches_variable(void)
+{
+	fresh_world();
+	struct xvt_flight_group *group = &g_mission_flight_groups[0].fg;
+	group->iff = 3;
+	group->team = 4;
+	group->global_group = 5;
+	group->global_unit = 6;
+	group->group_ai = 2;
+	group->status1 = 1;
+	group->orders[0].order = 7;
+	place_craft(0, 0, 0);
+	g_test_mobiles[0].team = 1;
+	g_test_mobiles[0].iff = 2;
+	uint8_t my_object = g_craft_type_to_object_type[TEST_XWING];
+	int my_genus =
+		variable_for_genus(g_object_type_table[my_object].genus_id);
+	int my_family = variable_for_family(
+		(uint8_t)g_object_type_table[my_object].family_id);
+	XVT_ASSERT_TRUE(my_genus >= 0);
+	XVT_ASSERT_TRUE(my_family >= 0);
+
+	static const struct {
+		int type;
+		int variable;
+		int expected; /* with the mobile record */
+		int bare;     /* without it */
+	} rows[] = {
+		{0, 0, 0, 0},  {1, 0, 1, 1},  {1, 1, 0, 0},  {15, 0, 0, 0},
+		{15, 1, 1, 1}, {5, 2, 1, 0},  {5, 3, 0, 1},  {19, 2, 0, 1},
+		{19, 3, 1, 0}, {6, 7, 1, 1},  {6, 8, 0, 0},  {8, 5, 1, 1},
+		{20, 5, 0, 0}, {20, 6, 1, 1}, {9, 2, 1, 1},  {10, 1, 1, 1},
+		{11, 0, 1, 1}, {12, 1, 1, 0}, {12, 4, 0, 1}, {21, 1, 0, 1},
+		{21, 4, 1, 0}, {23, 6, 1, 1}, {24, 6, 0, 0}, {24, 7, 1, 1},
+		{7, 0, 0, 0},  {99, 0, 0, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+					  0, (uint16_t)rows[i].type,
+					  (uint16_t)rows[i].variable),
+				  rows[i].expected);
+		struct mobile_object *mobile = g_test_objects[0].mobj;
+		g_test_objects[0].mobj = NULL;
+		XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+					  0, (uint16_t)rows[i].type,
+					  (uint16_t)rows[i].variable),
+				  rows[i].bare);
+		g_test_objects[0].mobj = mobile;
+	}
+	/* Species, genus and family. */
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+				  0, 2, (uint16_t)(TEST_XWING - 1)),
+			  1);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+				  0, 16, (uint16_t)(TEST_XWING - 1)),
+			  0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+				  0, 3, (uint16_t)my_genus),
+			  1);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+				  0, 17, (uint16_t)my_genus),
+			  0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+				  0, 4, (uint16_t)my_family),
+			  1);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+				  0, 18, (uint16_t)my_family),
+			  0);
+
+	/* Type 13: the owner's bound group has player number variable + 1. */
+	g_mission_flight_groups[1].fg.player_number = 4;
+	g_players[2].bound_flight_group_idx = 1;
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 13, 3), 0);
+	g_test_objects[0].player_owner_idx = 2;
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 13, 3), 1);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 13, 2), 0);
+	/* Type 22: not owned by player variable. */
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 22, 2), 0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 22, 5), 1);
+	g_test_objects[0].player_owner_idx = -1;
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 22, 2), 1);
+
+	/* Type 14: the elapsed minutes and seconds, ignoring the hours, are at
+	 * or before 5 seconds times the variable (here 90 seconds). */
+	set_elapsed(7, 1, 30);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 14, 18),
+			  1);
+	set_elapsed(7, 1, 31);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 14, 18),
+			  0);
+	set_elapsed(0, 0, 59);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 14, 18),
+			  1);
+	set_elapsed(0, 2, 0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 14, 18),
+			  0);
+}
+
+/* The craft states of type 7: each variable matches a craft in the state it
+ * names and not in the other. The rows are the variable, then whether the
+ * state is set by the craft being in it (1) or by it being out of it (0). */
+static void set_craft_state(struct craft_data *craft, int variable, int on)
+{
+	switch (variable) {
+	case 0:
+		craft->captured_by_flight_group = on ? 3 : 0;
+		break;
+	case 1:
+		craft->identified_order_by_team[4] = on ? 1 : 0;
+		break;
+	case 2:
+		craft->ai_flight.times_boarded = on ? 1 : 0;
+		break;
+	case 3:
+		craft->ai_flight.docked_target_count = on ? 1 : 0;
+		break;
+	case 4:
+		craft->working_subsystems = on ? 0 : 0xFFFF;
+		break;
+	case 5:
+		craft->attacked_by_team[4] = on ? 1 : 0;
+		break;
+	case 6:
+		craft->hull_damage = on ? 1 : 0;
+		break;
+	case 7:
+		craft->craft_ordinal = on ? 3 : 2;
+		break;
+	case 8:
+		craft->craft_ordinal = on ? 2 : 3;
+		break;
+	case 12:
+		craft->working_subsystems = on ? 0xFFFF : 0;
+		break;
+	case 13:
+		craft->captured_by_flight_group = on ? 0 : 3;
+		break;
+	case 16:
+		craft->ai_flight.times_boarded = on ? 0 : 1;
+		break;
+	case 18:
+		craft->ai_flight.docked_target_count = on ? 0 : 1;
+		break;
+	case 22:
+		craft->hull_damage = on ? 100 : 99;
+		break;
+	case 23:
+		craft->hull_damage = on ? 200 : 199;
+		break;
+	case 24:
+		craft->hull_damage = on ? 300 : 299;
+		break;
+	default:
+		break;
+	}
+}
+
+/* A craft's state variables (type 7) match a craft that is in the state and
+ * not one that is out of it: captured, identified by another team, boarded,
+ * docked, no working subsystems, attacked by another team, hull damaged,
+ * special cargo or not, and the opposites of those that have one. The hull
+ * fractions are at least a quarter, half and three quarters of the hull
+ * (400), and "no warheads left" counts the loaded launchers. A variable 15 or
+ * 17 never matches. */
+static void check_object_craft_states(void)
+{
+	static const int variables[] = {0, 1,  2,  3,  4,  5,  6,  7,
+					8, 12, 13, 16, 18, 22, 23, 24};
+	for (size_t i = 0; i < sizeof variables / sizeof variables[0]; ++i) {
+		for (int on = 0; on < 2; ++on) {
+			fresh_world();
+			g_mission_flight_groups[0].fg.special_cargo_craft = 3;
+			struct craft_data *craft = place_craft(0, 0, 0);
+			craft->hull_max = 400;
+			craft->working_subsystems = 0xFFFF;
+			g_test_mobiles[0].team = 0;
+			set_craft_state(craft, variables[i], on);
+			XVT_ASSERT_INT_EQ(
+				mission_object_matches_trigger_variable(
+					0, 7, (uint16_t)variables[i]),
+				on);
+		}
+	}
+	/* Owned or not. */
+	fresh_world();
+	place_craft(0, 0, 0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 9), 0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 10), 1);
+	g_test_objects[0].player_owner_idx = 1;
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 9), 1);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 10), 0);
+	/* Never matching variables and one past the list. */
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 15), 0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 17), 0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 30), 0);
+
+	/* No warheads left: the ammunition of each loaded launcher's first
+	 * and last slot is added up. */
+	fresh_world();
+	struct craft_data *craft = place_craft(0, 0, 0);
+	craft->model_index = (uint16_t)get_model_index_from_type(
+		(object_type_id)g_test_objects[0].object_type);
+	struct model_def *model = &g_model_defs[craft->model_index];
+	struct model_def saved = *model;
+	model->warhead_launcher_first_slot[0] = 2;
+	model->warhead_launcher_last_slot[0] = 3;
+	model->warhead_launcher_first_slot[1] = 4;
+	model->warhead_launcher_last_slot[1] = 5;
+	craft->warhead_launcher_count = 2;
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 25), 1);
+	craft->weapon_slots[3].ammo_count = 1;
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 25), 0);
+	craft->weapon_slots[3].ammo_count = 0;
+	craft->weapon_slots[4].ammo_count = 2;
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 25), 0);
+	craft->weapon_slots[4].ammo_count = 0;
+	craft->weapon_slots[5].ammo_count = 1;
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 25), 0);
+	craft->warhead_launcher_count = 1;
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 25), 1);
+	*model = saved;
 }
 
 int main(int argc, char **argv)
@@ -8279,5 +9369,19 @@ int main(int argc, char **argv)
 	check_logic_message_shown();
 	check_logic_message_delay();
 	check_logic_message_pair_join();
+	check_condition_outcome_table();
+	check_condition_survived();
+	check_condition_skips_unknown_group();
+	check_condition_amounts();
+	check_condition_special_cargo_amounts();
+	check_condition_team_filter();
+	check_condition_live_craft();
+	check_condition_live_craft_scope();
+	check_condition_players_by_group();
+	check_condition_players_by_number();
+	check_condition_bonus_failed_and_unlisted();
+	check_group_matches_variable_types();
+	check_object_matches_variable();
+	check_object_craft_states();
 	return 0;
 }
