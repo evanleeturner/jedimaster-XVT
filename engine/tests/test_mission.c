@@ -7,7 +7,11 @@
  * checks of mission_init and the flight's runtime state write such a file for
  * each mission, run the start on it and read what it made: the object table
  * and its pools, the flight groups, the players, the clocks and the backdrop
- * records. No game data is read.
+ * records. The spawn checks make a mission with mission_init, set the model of
+ * the craft they send to known values, send a group's craft with
+ * mission_spawn_flight_group_wave_craft and read each craft's record; the
+ * static object checks place mines, satellites and debris through
+ * mission_spawn_flight_group_static_objects. No game data is read.
  *
  * Not checked here:
  * - mission_load_file: a file that does not open, or comes up short, ends the
@@ -22,8 +26,13 @@
  *   or read a handle that does not exist; the proving grounds course, which
  *   nothing starts (the flag is cleared before the load that precedes it).
  * - mission_init_flight_runtime_state: loading the cockpit resources, which
- *   reads game files, and the store to the frame step mirror, which only the
- *   mission file's own static reads.
+ *   reads game files, and the store to the frame step mirror, a static of
+ *   the file that nothing outside it reads.
+ * - mission_init_flight_group_object_slot: the hit points of the damageable
+ *   meshes of a craft (they need a loaded model file), and the clamp on a
+ *   doubled shield, which needs a shield strength past a billion.
+ * - mission_spawn_flight_group_static_objects: the debris field's check for an
+ *   object already at the spot, which never repeats the draw.
  *
  * POSIX only, for the temporary folder (test_asset_folder.h). */
 #define _POSIX_C_SOURCE 200809L
@@ -5045,6 +5054,1197 @@ static void check_init_player_team_past_table(void)
 	XVT_ASSERT_INT_EQ(g_mission_flight_groups[0].player_owner_idx, 0);
 }
 
+/* ---- mission_init_flight_group_object_slot ---------------------------- */
+
+/* The craft the spawn checks use: a TIE bomber, which may carry a beam. */
+enum { SPAWN_TYPE = CRAFT_SPECIES_TIE_BOMBER };
+
+/* Makes the mission in g_stored with mission_init only, so its object table is
+ * empty, and counts the first group's craft as to come. */
+static void spawn_mission_ready(void)
+{
+	init_world();
+	g_flight_conf_no_pilot = 1;
+	g_active_flight_player_count = 1;
+	XVT_ASSERT_INT_EQ(run_init(14), 1);
+	for (int fg = 0; fg < g_stored.header.num_flight_groups; ++fg) {
+		memset(&g_mission_fg_stats[fg], 0,
+		       sizeof g_mission_fg_stats[fg]);
+		g_mission_fg_stats[fg].current_mission_point_ref = 0x8000;
+		g_mission_fg_stats[fg]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 99;
+	}
+	g_mission_elapsed_clock.seconds = 0;
+	g_initial_spawn_bind_player_craft_slots = 0;
+}
+
+/* The slot of craft ordinal in flight group fg, or -1. */
+static int craft_slot(int fg, int ordinal)
+{
+	for (int slot = 0; slot < 32; ++slot) {
+		if (g_object_table[slot].object_type != 0 &&
+		    g_object_table[slot].mobj->p_craft != NULL &&
+		    g_object_table[slot].flight_group_idx == fg &&
+		    g_object_table[slot].mobj->p_craft->craft_ordinal ==
+			    ordinal) {
+			return slot;
+		}
+	}
+	return -1;
+}
+
+/* Spawns craft ordinal of flight group fg (the whole round when ordinal is
+ * UINT16_MAX) and returns the return value of the spawn. */
+static int16_t spawn_craft(int fg, uint16_t ordinal)
+{
+	g_current_flight_group_idx = (uint16_t)fg;
+	return mission_spawn_flight_group_wave_craft(ordinal);
+}
+
+/* Sets the model of object type 1 (the X-wing) to known values, keeping the
+ * old ones in *saved. */
+static struct model_def *set_test_model(struct model_def *saved)
+{
+	struct model_def *model = model_of(SPAWN_TYPE);
+	*saved = *model;
+	model->hull_strength = 500;
+	model->system_damage_hull_threshold = 50;
+	model->shield_strength = 300;
+	model->has_shields = 1;
+	model->has_hyperdrive = 1;
+	model->max_speed = 400;
+	model->yaw_rate = 11;
+	model->roll_rate = 12;
+	model->pitch_rate = 13;
+	model->engine_glow_count = 2;
+	model->countermeasure_count = 12;
+	model->laser_group_weapon_type[0] = 7;
+	model->laser_group_first_slot[0] = 1;
+	model->laser_group_last_slot[0] = 2;
+	model->laser_group_slot_count[0] = 2;
+	model->laser_group_mount_type[0] = 0;
+	model->laser_group_weapon_type[1] = 8;
+	model->laser_group_first_slot[1] = 3;
+	model->laser_group_last_slot[1] = 3;
+	model->laser_group_slot_count[1] = 1;
+	model->laser_group_mount_type[1] = 2;
+	model->warhead_launcher_first_slot[0] = 5;
+	model->warhead_launcher_last_slot[0] = 6;
+	model->warhead_launcher_capacity[0] = 8;
+	return model;
+}
+
+/* A spawned craft takes its values from the model and the flight group: the
+ * object's type, IFF, team, genus, family, paint scheme, group and signature;
+ * hull and shields from the model (the shield strength doubled in the forward
+ * shield for a computer's craft); lasers, warheads, beam and countermeasure
+ * from the model and the group; its skill and think interval from the group's
+ * AI level; its throttle from the plan of its first order. Its counts are
+ * counted in the group. */
+static void check_spawn_craft_values(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 2);
+	struct xvt_flight_group *group = &g_stored.groups[0];
+	group->iff = 4;
+	group->markings = 3;
+	group->group_ai = 3;
+	group->warhead = 1;
+	group->beam = BEAM_TYPE_JAMMING;
+	group->countermeasures = COUNTERMEASURE_TYPE_FLARE;
+	group->orders[0].throttle = 3;
+	strcpy(group->cargo, "Spare parts");
+	strcpy(group->special_cargo, "Secret plans");
+	group->special_cargo_craft = 1;
+	spawn_mission_ready();
+	struct model_def saved;
+	struct model_def *model = set_test_model(&saved);
+	unsigned int signature = g_next_object_signature;
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	XVT_ASSERT_INT_EQ(craft_slot(0, 0), 0);
+	XVT_ASSERT_INT_EQ(craft_slot(0, 1), 1);
+	for (int ordinal = 0; ordinal < 2; ++ordinal) {
+		int slot = craft_slot(0, ordinal);
+		const struct object_record *object = &g_object_table[slot];
+		const struct craft_data *craft = object->mobj->p_craft;
+		XVT_ASSERT_INT_EQ(object->object_type, SPAWN_TYPE);
+		XVT_ASSERT_INT_EQ(object->object_signature,
+				  signature + (unsigned int)ordinal);
+		XVT_ASSERT_INT_EQ(object->mobj->iff, 4);
+		XVT_ASSERT_INT_EQ(object->mobj->team, 1);
+		XVT_ASSERT_INT_EQ(object->genus_id,
+				  g_object_type_table[SPAWN_TYPE].genus_id);
+		XVT_ASSERT_INT_EQ(object->mobj->family,
+				  g_object_type_table[SPAWN_TYPE].family_id);
+		XVT_ASSERT_INT_EQ(object->mobj->node_switch_index, 3);
+		XVT_ASSERT_INT_EQ(object->player_owner_idx, -1);
+		XVT_ASSERT_INT_EQ(craft->hull_max, 500);
+		XVT_ASSERT_INT_EQ(craft->system_damage_hull_threshold, 50);
+		XVT_ASSERT_INT_EQ(craft->shield_energy[0], 600);
+		XVT_ASSERT_INT_EQ(craft->shield_energy[1], 0);
+		XVT_ASSERT_INT_EQ(craft->shield_distrib_mode,
+				  SHIELD_DISTRIBUTION_FULLY_FORWARD);
+		XVT_ASSERT_INT_EQ(craft->shield_recharge_level,
+				  POWER_RECHARGE_MAINTENANCE);
+		XVT_ASSERT_INT_EQ(craft->ai_flight.max_speed_cache, 400);
+		XVT_ASSERT_INT_EQ(craft->ai_flight.turn_rate, 11);
+		XVT_ASSERT_INT_EQ(craft->ai_flight.roll_rate, 12);
+		XVT_ASSERT_INT_EQ(craft->ai_flight.pitch_rate, 13);
+		XVT_ASSERT_INT_EQ(craft->laser_state.projectile_type_id[0], 7);
+		XVT_ASSERT_INT_EQ(craft->laser_state.projectile_type_id[1], 8);
+		XVT_ASSERT_INT_EQ(craft->laser_slot_count, 3);
+		/* A cannon group counts unless it is a turret. */
+		XVT_ASSERT_INT_EQ(craft->cannon_group_count, 1);
+		XVT_ASSERT_INT_EQ(craft->weapon_slots[1].projectile_type_id, 7);
+		XVT_ASSERT_INT_EQ(craft->weapon_slots[2].projectile_type_id, 7);
+		XVT_ASSERT_INT_EQ(craft->weapon_slots[3].projectile_type_id, 2);
+		XVT_ASSERT_INT_EQ(craft->warhead_launcher_count, 1);
+		XVT_ASSERT_INT_EQ(craft->warhead_slot_type_ids[0],
+				  g_warhead_type_ids[1]);
+		unsigned int ammo = (unsigned int)math2_fraction(
+			8, g_warhead_ammo_fraction_q16[1]);
+		XVT_ASSERT_INT_EQ(craft->weapon_slots[5].ammo_count,
+				  ammo == 0 ? 1 : ammo);
+		XVT_ASSERT_INT_EQ(craft->beam_type_id, BEAM_TYPE_JAMMING);
+		XVT_ASSERT_INT_EQ(craft->beam_charge, 9999);
+		XVT_ASSERT_INT_EQ(craft->cm_type_id, COUNTERMEASURE_TYPE_FLARE);
+		XVT_ASSERT_INT_EQ(craft->cm_ammo_count,
+				  (uint8_t)math2_fraction(12, 0xAAACu));
+		XVT_ASSERT_INT_EQ(craft->ai_skill,
+				  g_ai_skill_value_q16_by_level[3]);
+		XVT_ASSERT_INT_EQ(craft->ai_controller.think_interval,
+				  g_ai_think_interval_by_skill[3]);
+		XVT_ASSERT_INT_EQ(craft->craft_ordinal, ordinal);
+		XVT_ASSERT_INT_EQ(craft->craft_index_in_group, ordinal + 1);
+		XVT_ASSERT_INT_EQ(craft->leader_obj_idx,
+				  ordinal == 0 ? UINT8_MAX : craft_slot(0, 0));
+		XVT_ASSERT_INT_EQ(craft->ai_controller.target_obj_idx,
+				  UINT16_MAX);
+		XVT_ASSERT_INT_EQ(craft->ai_controller.waypoint_index, 4);
+		XVT_ASSERT_INT_EQ(craft->working_subsystems,
+				  craft->system_flags);
+		XVT_ASSERT_TRUE(strcmp((const char *)craft->special_cargo_name,
+				       ordinal == 1 ? "Secret plans"
+						    : "Spare parts") == 0);
+		XVT_ASSERT_INT_EQ(craft->system_health[5], 100);
+		XVT_ASSERT_INT_EQ(craft->component_hp[49], UINT8_MAX);
+	}
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].spawned_craft_count, 2);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  2);
+	XVT_ASSERT_INT_EQ(g_next_object_signature, signature + 2);
+	XVT_ASSERT_INT_EQ(g_spawn_leader_obj_idx, 0);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.craft_spawned fg=0 ordinal=1 ", "type=7"));
+	*model = saved;
+}
+
+/* Spawns the first craft of a group of the given status (status1) and
+ * returns its craft record; the group is group 0 of a mission of that group
+ * alone. */
+static const struct craft_data *spawn_with_status(int status1, int status2)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 1);
+	g_stored.groups[0].warhead = 1;
+	g_stored.groups[0].status1 = (uint8_t)status1;
+	g_stored.groups[0].status2 = (uint8_t)status2;
+	spawn_mission_ready();
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	int slot = craft_slot(0, 0);
+	XVT_ASSERT_TRUE(slot >= 0);
+	return g_object_table[slot].mobj->p_craft;
+}
+
+/* The status codes of a group change the craft it sends: 1 doubles and 2
+ * halves its warheads (at least 1), 3 takes its shields away and turns them
+ * off, 4 halves them and turns them off, 7 empties them, 12 and 18 double them
+ * and 13 and 19 halve them, 6 flips the hyperdrive, and 9 and 16 keep a
+ * hyperdrive the model lacks. Either of the two status fields works. */
+static void check_spawn_status_codes(void)
+{
+	struct model_def saved;
+	struct model_def *model = set_test_model(&saved);
+	model->warhead_launcher_capacity[0] = 8;
+	const struct craft_data *craft = spawn_with_status(0, 0);
+	int ammo = craft->weapon_slots[5].ammo_count;
+	unsigned int system_flags = craft->system_flags;
+	XVT_ASSERT_TRUE(ammo >= 1);
+	XVT_ASSERT_TRUE((system_flags & CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0);
+	XVT_ASSERT_TRUE((system_flags & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) != 0);
+	static const struct {
+		int status;
+		int ammo_factor; /* 2 doubled, 1 as it was, 0 halved */
+		int shields;	 /* percent of the full forward shield */
+		int shield_flag;
+		int hyperdrive_flag;
+	} cases[] = {
+		{1, 2, 100, 1, 1}, {2, 0, 100, 1, 1},  {3, 1, 0, 0, 1},
+		{4, 1, 50, 0, 1},  {7, 1, 0, 1, 1},    {12, 1, 200, 1, 1},
+		{13, 1, 50, 1, 1}, {18, 1, 200, 1, 1}, {19, 1, 50, 1, 1},
+		{6, 1, 100, 1, 0}, {9, 1, 100, 1, 1},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		for (int field = 0; field < 2; ++field) {
+			craft = spawn_with_status(field ? 0 : cases[i].status,
+						  field ? cases[i].status : 0);
+			int expected_ammo =
+				cases[i].ammo_factor == 2
+					? 2 * ammo
+					: (cases[i].ammo_factor == 0
+						   ? (ammo >> 1 ? ammo >> 1 : 1)
+						   : ammo);
+			XVT_ASSERT_INT_EQ(craft->weapon_slots[5].ammo_count,
+					  expected_ammo);
+			XVT_ASSERT_INT_EQ(craft->shield_energy[0],
+					  600 * cases[i].shields / 100);
+			XVT_ASSERT_INT_EQ((craft->system_flags &
+					   CRAFT_SUBSYSTEM_FLAG_SHIELDS) != 0,
+					  cases[i].shield_flag);
+			XVT_ASSERT_INT_EQ((craft->system_flags &
+					   CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE) !=
+						  0,
+					  cases[i].hyperdrive_flag);
+		}
+	}
+	/* A model without a hyperdrive loses the flag unless status 9 or 16
+	 * keeps it; one without shields loses them unless status 8 or 16 keeps
+	 * them. */
+	model->has_hyperdrive = 0;
+	model->has_shields = 0;
+	craft = spawn_with_status(0, 0);
+	XVT_ASSERT_INT_EQ(craft->system_flags & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE,
+			  0);
+	XVT_ASSERT_INT_EQ(craft->system_flags & CRAFT_SUBSYSTEM_FLAG_SHIELDS,
+			  0);
+	XVT_ASSERT_INT_EQ(craft->shield_energy[0], 0);
+	craft = spawn_with_status(9, 0);
+	XVT_ASSERT_INT_EQ(craft->system_flags & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE,
+			  CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE);
+	craft = spawn_with_status(0, 8);
+	XVT_ASSERT_INT_EQ(craft->system_flags & CRAFT_SUBSYSTEM_FLAG_SHIELDS,
+			  CRAFT_SUBSYSTEM_FLAG_SHIELDS);
+	XVT_ASSERT_INT_EQ(craft->shield_energy[0], 600);
+	craft = spawn_with_status(16, 0);
+	XVT_ASSERT_INT_EQ(craft->system_flags & CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE,
+			  CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE);
+	XVT_ASSERT_INT_EQ(craft->system_flags & CRAFT_SUBSYSTEM_FLAG_SHIELDS,
+			  CRAFT_SUBSYSTEM_FLAG_SHIELDS);
+	*model = saved;
+}
+
+/* A craft a player flies, once the spawn binds players, belongs to the
+ * player: the object's owner, the player's object, signature and group, a
+ * clean tally, the throttle, laser, shield and beam presets, a shield split
+ * evenly with the model's strength in each bank, and linked lasers; the
+ * warheads are held to 9 a launcher slot. */
+static void check_spawn_player_craft(void)
+{
+	struct model_def saved;
+	struct model_def *model = set_test_model(&saved);
+	model->warhead_launcher_capacity[0] = 40;
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 2);
+	g_stored.groups[0].player_number = 1;
+	g_stored.groups[0].player_craft = 1;
+	g_stored.groups[0].warhead = 1;
+	g_stored.groups[0].status1 = 1;
+	spawn_mission_ready();
+	struct player_data *player = &g_players[0];
+	player->mission_stats.mission_score = 50;
+	player->per_mission_kills.kills_full_on_flight_group[7] = 3;
+	player->per_mission_kills.killed_by_ai_rating[5] = 3;
+	player->per_mission_kills.losses_by_mines = 2;
+	player->throttle_preset[0] = 5;
+	g_initial_spawn_bind_player_craft_slots = 1;
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	int bound = craft_slot(0, 1);
+	int other = craft_slot(0, 0);
+	XVT_ASSERT_INT_EQ(g_players[0].object_index, bound);
+	XVT_ASSERT_INT_EQ(g_object_table[bound].player_owner_idx, 0);
+	XVT_ASSERT_INT_EQ(g_object_table[other].player_owner_idx, -1);
+	XVT_ASSERT_INT_EQ(g_players[0].bound_object_signature,
+			  g_object_table[bound].object_signature);
+	XVT_ASSERT_INT_EQ(g_players[0].bound_flight_group_idx, 0);
+	XVT_ASSERT_INT_EQ(player->mission_stats.mission_score, 0);
+	XVT_ASSERT_INT_EQ(
+		player->per_mission_kills.kills_full_on_flight_group[7], 0);
+	XVT_ASSERT_INT_EQ(player->per_mission_kills.killed_by_ai_rating[5], 0);
+	XVT_ASSERT_INT_EQ(player->per_mission_kills.losses_by_mines, 0);
+	XVT_ASSERT_INT_EQ(player->throttle_preset[0], 21845);
+	XVT_ASSERT_INT_EQ(player->throttle_preset[1], -1);
+	XVT_ASSERT_INT_EQ(player->laser_preset[0], POWER_RECHARGE_MAINTENANCE);
+	XVT_ASSERT_INT_EQ(player->laser_preset[1], POWER_RECHARGE_INCREASED);
+	XVT_ASSERT_INT_EQ(player->shield_preset[1], POWER_RECHARGE_MAINTENANCE);
+	XVT_ASSERT_INT_EQ(player->bound_craft_engine_glow_count, 2);
+	const struct craft_data *craft = g_object_table[bound].mobj->p_craft;
+	XVT_ASSERT_INT_EQ(craft->shield_energy[0], 300);
+	XVT_ASSERT_INT_EQ(craft->shield_energy[1], 300);
+	XVT_ASSERT_INT_EQ(craft->shield_distrib_mode, SHIELD_DISTRIBUTION_EVEN);
+	XVT_ASSERT_INT_EQ(craft->laser_state.link_mode[0], 1);
+	XVT_ASSERT_INT_EQ(craft->weapon_slots[5].ammo_count, 9);
+	const struct craft_data *computer_craft =
+		g_object_table[other].mobj->p_craft;
+	XVT_ASSERT_INT_EQ(computer_craft->laser_state.link_mode[0], 0);
+	XVT_ASSERT_INT_EQ(computer_craft->shield_energy[0], 600);
+	XVT_ASSERT_INT_EQ(computer_craft->weapon_slots[5].ammo_count, 9);
+	/* The group has a player, so the computer's craft is held to 9 too. */
+	*model = saved;
+}
+
+/* The positions of the first n craft of group 0 after a spawn, as the
+ * distance of each from the first. */
+static double craft_distance(int from_slot, int to_slot)
+{
+	double dx = (double)g_object_table[to_slot].world_x -
+		    g_object_table[from_slot].world_x;
+	double dy = (double)g_object_table[to_slot].world_y -
+		    g_object_table[from_slot].world_y;
+	double dz = (double)g_object_table[to_slot].world_z -
+		    g_object_table[from_slot].world_z;
+	return sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+/* The offset of the place a craft takes in its formation, in the order side,
+ * forward and up: the place's offsets in model bounds, grown with the
+ * formation spacing (by half a bound more at spacing 0). */
+static void formation_offset(int formation, int ordinal, int spacing,
+			     double *offset)
+{
+	int x = g_form_pos_x[formation][ordinal];
+	int y = g_form_pos_y[formation][ordinal];
+	int z = g_form_pos_z[formation][ordinal];
+	int scale = spacing + 1;
+	offset[0] = x * 40.0 * scale;
+	offset[1] = y * 60.0 * scale;
+	offset[2] = z * 20.0 * scale;
+	if (scale == 1) {
+		offset[0] += x * (40 / 2);
+		offset[1] += y * (60 / 4);
+		offset[2] += z * (20 / 2);
+	}
+}
+
+/* Each craft of a group takes its place in the group's formation from the
+ * group's first mission point (times 256, y negated): the place's offsets in
+ * model bounds, grown with the formation spacing, divided by the formation's
+ * divisor, and doubled for each step of the model's bound shift. Two craft are
+ * as far apart as their places are; rotation keeps the distance. */
+static void check_spawn_formation(void)
+{
+	struct model_def saved;
+	struct model_def *model = set_test_model(&saved);
+	model->bound_size_x = 40;
+	model->bound_size_y = 60;
+	model->bound_size_z = 20;
+	int divided = 0;
+	while (g_formation_divisor[divided] == 1) {
+		++divided;
+	}
+	static const struct {
+		int formation;
+		int spacing;
+		int shift;
+	} cases[] = {{0, 0, 0}, {4, 1, 0}, {4, 0, 1}, {15, 2, 0}, {-1, 0, 0}};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		int formation =
+			cases[i].formation < 0 ? divided : cases[i].formation;
+		init_mission(MISSION_TYPE_COMBAT);
+		arriving_group(0, 1, SPAWN_TYPE, 6);
+		g_stored.groups[0].formation = (uint8_t)formation;
+		g_stored.groups[0].formation_spacing =
+			(uint8_t)cases[i].spacing;
+		g_stored.groups[0].mission_point_x[0] = 10;
+		g_stored.groups[0].mission_point_y[0] = 20;
+		g_stored.groups[0].mission_point_z[0] = 30;
+		spawn_mission_ready();
+		model->bound_size_shift = (uint8_t)cases[i].shift;
+		XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+		int leader = craft_slot(0, 0);
+		double first[3];
+		formation_offset(formation, 0, cases[i].spacing, first);
+		for (int ordinal = 1; ordinal < 6; ++ordinal) {
+			double place[3];
+			formation_offset(formation, ordinal, cases[i].spacing,
+					 place);
+			double dx = place[0] - first[0];
+			double dy = place[1] - first[1];
+			double dz = place[2] - first[2];
+			double expected = sqrt(dx * dx + dy * dy + dz * dz) /
+					  g_formation_divisor[formation] *
+					  (1 << cases[i].shift);
+			XVT_ASSERT_CLOSE(
+				craft_distance(leader, craft_slot(0, ordinal)),
+				expected, 0.08,
+				"fixed-point trigonometry and whole-number division keep a distance within 8%");
+		}
+	}
+	*model = saved;
+}
+
+/* A craft's plan and throttle come from the first order: the leader runs the
+ * leader plan of the order and a follower the follower plan; every craft of a
+ * group that arrives from hyperspace after the start runs the arrival plan
+ * for it. A plan named nullpln, stationaryldrpln, stationaryflwpln or
+ * disabledpln, for a craft no player flies, holds the throttle at 0;
+ * escortldr1pln runs at full throttle (0x8000); any other takes the order's
+ * throttle setting. */
+static void check_spawn_plans(void)
+{
+	struct model_def saved;
+	struct model_def *model = set_test_model(&saved);
+	model->max_speed = 1000;
+	uint8_t follower_name = g_order_follower_builtin_plan_name_index[0];
+	/* The radio announcement of a round that arrives after the start reads
+	 * message templates; each is one pane-type byte and no text. */
+	for (size_t message = 0;
+	     message < sizeof g_str_in_flight_messages /
+			       sizeof g_str_in_flight_messages[0];
+	     ++message) {
+		g_str_in_flight_messages[message] = "\006";
+	}
+	static const struct {
+		const char *plan_name;
+		int clock_started;
+		int expected_throttle; /* -1: the order's setting */
+		int follower_plan;
+	} cases[] = {
+		{"anyplan", 0, -1, 6},	       {"nullpln", 0, 0, 6},
+		{"stationaryldrpln", 0, 0, 6}, {"stationaryflwpln", 0, 0, 6},
+		{"disabledpln", 0, 0, 6},      {"escortldr1pln", 0, 0x8000, 6},
+		{"anyplan", 1, -1, 9},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		init_mission(MISSION_TYPE_COMBAT);
+		arriving_group(0, 1, SPAWN_TYPE, 2);
+		g_stored.groups[0].orders[0].throttle = 2;
+		spawn_mission_ready();
+		g_order_leader_builtin_plan_name_index[0] = 3;
+		memset(g_builtin_plan_id_by_name_index, 0,
+		       sizeof g_builtin_plan_id_by_name_index);
+		g_builtin_plan_id_by_name_index[3] = 5;
+		g_builtin_plan_id_by_name_index[follower_name] = 6;
+		g_builtin_plan_id_by_name_index[52] = 9;
+		g_builtin_plan_id_by_name_index[50] = 8;
+		memset(g_plan_table, 0, sizeof g_plan_table);
+		strcpy(g_plan_table[5].name, cases[i].plan_name);
+		g_mission_elapsed_clock.seconds =
+			(uint8_t)cases[i].clock_started;
+		XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+		const struct craft_data *leader =
+			g_object_table[craft_slot(0, 0)].mobj->p_craft;
+		const struct craft_data *follower =
+			g_object_table[craft_slot(0, 1)].mobj->p_craft;
+		int throttle =
+			cases[i].expected_throttle >= 0
+				? cases[i].expected_throttle
+				: g_order_throttle_to_craft_throttle_speed[2];
+		XVT_ASSERT_INT_EQ(leader->throttle_speed, throttle);
+		XVT_ASSERT_INT_EQ(follower->throttle_speed, throttle);
+		XVT_ASSERT_INT_EQ(leader->ai_controller.current_plan_id, 5);
+		XVT_ASSERT_INT_EQ(leader->ai_controller.running_plan_id,
+				  cases[i].clock_started ? 9 : 5);
+		XVT_ASSERT_INT_EQ(follower->ai_controller.current_plan_id, 5);
+		XVT_ASSERT_INT_EQ(follower->ai_controller.running_plan_id,
+				  cases[i].follower_plan);
+		XVT_ASSERT_INT_EQ(
+			g_object_table[craft_slot(0, 0)].mobj->speed,
+			(uint16_t)math2_fraction(1000, (uint16_t)throttle));
+	}
+	g_mission_elapsed_clock.seconds = 0;
+	*model = saved;
+}
+
+/* In a version 14 file the craft of object types 37 and 38 are of the
+ * transport genus; in another version they keep their genus. */
+static void check_spawn_transport_genus(void)
+{
+	static const int types[2] = {CRAFT_SPECIES_MUURIAN_TRANSPORT,
+				     CRAFT_SPECIES_CORELLIAN_TRANSPORT};
+	for (int version = 13; version <= 14; ++version) {
+		for (int i = 0; i < 2; ++i) {
+			init_mission(MISSION_TYPE_COMBAT);
+			arriving_group(0, 1, types[i], 1);
+			init_world();
+			g_flight_conf_no_pilot = 1;
+			XVT_ASSERT_INT_EQ(run_init((uint16_t)version), 1);
+			g_mission_fg_stats[0].current_mission_point_ref =
+				0x8000;
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+			XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+			int slot = craft_slot(0, 0);
+			XVT_ASSERT_INT_EQ(
+				g_object_table[slot].object_type,
+				g_craft_type_to_object_type[types[i]]);
+			XVT_ASSERT_INT_EQ(
+				g_object_table[slot].genus_id,
+				version == 14
+					? CRAFT_GENUS_TRANSPORT
+					: g_object_type_table
+						  [g_craft_type_to_object_type
+							   [types[i]]]
+							  .genus_id);
+		}
+	}
+}
+
+/* With the craft slots of the genus all taken the spawn makes no craft, warns
+ * of the full table and returns 0 for the round. */
+static void check_spawn_table_full(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 2);
+	spawn_mission_ready();
+	for (int slot = 0; slot < 32; ++slot) {
+		g_object_table[slot].object_type = 9;
+	}
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].spawned_craft_count, 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  0);
+	XVT_ASSERT_TRUE(line_holds("mission.object_table_full fg=0 ordinal=0 ",
+				   "first_slot=0 end_slot=32"));
+	XVT_ASSERT_INT_EQ(mission_init_flight_group_object_slot(), UINT16_MAX);
+	/* The slot a craft left is the one the next craft takes. */
+	g_object_table[5].object_type = 0;
+	XVT_ASSERT_INT_EQ(spawn_craft(0, 1), 1);
+	XVT_ASSERT_INT_EQ(craft_slot(0, 1), 5);
+}
+
+/* A starfighter (object types 1 to 5) gets no beam whatever its group says,
+ * and a craft without a beam loses the beam system and its two HUD features; a
+ * craft with none of the groups' countermeasures loses that system, and its
+ * count is 0. */
+static void check_spawn_beam_and_countermeasures(void)
+{
+	static const int types[2] = {CRAFT_SPECIES_X_WING, SPAWN_TYPE};
+	struct model_def saved[2];
+	for (int i = 0; i < 2; ++i) {
+		saved[i] = *model_of(types[i]);
+		model_of(types[i])->has_shields = 1;
+	}
+	for (int i = 0; i < 2; ++i) {
+		init_mission(MISSION_TYPE_COMBAT);
+		arriving_group(0, 1, types[i], 1);
+		g_stored.groups[0].beam = BEAM_TYPE_TRACTOR;
+		g_stored.groups[0].countermeasures = COUNTERMEASURE_TYPE_NONE;
+		spawn_mission_ready();
+		XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+		const struct craft_data *craft =
+			g_object_table[craft_slot(0, 0)].mobj->p_craft;
+		XVT_ASSERT_INT_EQ(craft->beam_type_id,
+				  i == 0 ? BEAM_TYPE_NONE : BEAM_TYPE_TRACTOR);
+		XVT_ASSERT_INT_EQ((craft->system_flags &
+				   CRAFT_SUBSYSTEM_FLAG_BEAM_SYSTEM) != 0,
+				  i == 1);
+		XVT_ASSERT_INT_EQ(craft->beam_charge, i == 0 ? 0 : 9999);
+		XVT_ASSERT_INT_EQ(craft->cm_ammo_count, 0);
+		XVT_ASSERT_INT_EQ(craft->system_flags &
+					  CRAFT_SUBSYSTEM_FLAG_COUNTERMEASURES,
+				  0);
+		unsigned int hud_mask =
+			craft->damage_stats.installed_hud_feature_mask;
+		XVT_ASSERT_INT_EQ(hud_mask, i == 0 ? 0x1FFF ^ 0x1010 : 0x1FFF);
+		XVT_ASSERT_INT_EQ(craft->damage_stats.active_hud_feature_mask,
+				  hud_mask);
+	}
+	for (int i = 0; i < 2; ++i) {
+		*model_of(types[i]) = saved[i];
+	}
+}
+
+/* The weapons of a model with a laser group of the turret mount type (2) are
+ * not counted as cannons; with none of the other kind the craft has no
+ * cannons, and with no warhead launcher none of those either. */
+static void check_spawn_without_cannons(void)
+{
+	struct model_def saved;
+	struct model_def *model = set_test_model(&saved);
+	model->laser_group_mount_type[0] = 2;
+	model->warhead_launcher_first_slot[0] = 5;
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 1);
+	g_stored.groups[0].warhead = 0;
+	spawn_mission_ready();
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	const struct craft_data *craft =
+		g_object_table[craft_slot(0, 0)].mobj->p_craft;
+	XVT_ASSERT_INT_EQ(craft->cannon_group_count, 0);
+	XVT_ASSERT_INT_EQ(craft->system_flags & CRAFT_SUBSYSTEM_FLAG_CANNONS,
+			  0);
+	XVT_ASSERT_INT_EQ(craft->warhead_launcher_count, 0);
+	XVT_ASSERT_INT_EQ(
+		craft->system_flags & CRAFT_SUBSYSTEM_FLAG_WARHEAD_LAUNCHER, 0);
+	XVT_ASSERT_INT_EQ(craft->weapon_slots[1].projectile_type_id, 2);
+	*model = saved;
+}
+
+/* A craft that takes a slot the mission freed starts with a clean damage
+ * tally: for the 10 teams' entries, and (as the comment says of the whole
+ * tally) for the group entries too. */
+static void check_spawn_clears_damage_tally(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 1);
+	spawn_mission_ready();
+	struct craft_data *stale = &g_craft_data_pool_base[0];
+	for (int entry = 0; entry < 10; ++entry) {
+		stale->damage_stats.damage_from_flight_group_amount[entry] = 7;
+		stale->attacked_by_team[entry] = 1;
+	}
+	stale->damage_stats.damage_received_total = 70;
+	stale->damage_stats.damage_from_player[3] = 5;
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	XVT_ASSERT_INT_EQ(craft_slot(0, 0), 0);
+	for (int entry = 0; entry < 10; ++entry) {
+		XVT_ASSERT_INT_EQ(
+			stale->damage_stats
+				.damage_from_flight_group_amount[entry],
+			0);
+		XVT_ASSERT_INT_EQ(stale->attacked_by_team[entry], 0);
+	}
+	XVT_ASSERT_INT_EQ(stale->damage_stats.damage_received_total, 0);
+	XVT_ASSERT_INT_EQ(stale->damage_stats.damage_from_player[3], 0);
+}
+
+/* Known failure damage_from_groups_kept, issue #42: every entry of the damage
+ * tally per flight group, all 48, is cleared when a craft takes a slot, not
+ * only the first 10. */
+static void check_spawn_clears_all_group_damage(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 1);
+	spawn_mission_ready();
+	struct craft_data *stale = &g_craft_data_pool_base[0];
+	for (int entry = 0; entry < 48; ++entry) {
+		stale->damage_stats.damage_from_flight_group_amount[entry] = 7;
+	}
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	for (int entry = 0; entry < 48; ++entry) {
+		XVT_ASSERT_INT_EQ(
+			stale->damage_stats
+				.damage_from_flight_group_amount[entry],
+			0);
+	}
+}
+
+/* Known failure seventh_craft_off_formation, issue #138: a group of more than
+ * six craft places its seventh at a place of its own, not at the first place of
+ * the next formation, which is the leader's. */
+static void check_spawn_seventh_craft_place(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 7);
+	g_stored.groups[0].formation = 4;
+	spawn_mission_ready();
+	struct model_def saved;
+	struct model_def *model = set_test_model(&saved);
+	model->bound_size_x = 40;
+	model->bound_size_y = 60;
+	model->bound_size_z = 20;
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	XVT_ASSERT_TRUE(craft_distance(craft_slot(0, 0), craft_slot(0, 6)) > 0);
+	*model = saved;
+}
+
+/* The craft of a group in a global unit are numbered across the unit's
+ * groups; a group that turns the numbering off, or has no unit, numbers its
+ * own from 1. */
+static void check_spawn_global_unit_numbers(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	for (int fg = 0; fg < 4; ++fg) {
+		arriving_group(fg, 1, SPAWN_TYPE, 2);
+	}
+	g_stored.groups[0].global_unit = 3;
+	g_stored.groups[1].global_unit = 3;
+	g_stored.groups[2].global_unit = 3;
+	g_stored.groups[2].disable_wave_numbering = 1;
+	spawn_mission_ready();
+	g_flight_mission_state.global_unit_craft_count[3] = 0;
+	for (int fg = 0; fg < 4; ++fg) {
+		XVT_ASSERT_INT_EQ(spawn_craft(fg, UINT16_MAX), 1);
+	}
+	static const int numbers[4][2] = {{1, 2}, {3, 4}, {1, 2}, {1, 2}};
+	for (int fg = 0; fg < 4; ++fg) {
+		for (int ordinal = 0; ordinal < 2; ++ordinal) {
+			XVT_ASSERT_INT_EQ(
+				g_object_table[craft_slot(fg, ordinal)]
+					.mobj->p_craft->craft_index_in_group,
+				numbers[fg][ordinal]);
+		}
+	}
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.global_unit_craft_count[3], 4);
+}
+
+/* The missile boat's second launcher carries the advanced missile (type 149),
+ * loaded by the share of the fifth warhead, whatever warhead the group
+ * chose for the first. */
+static void check_spawn_missile_boat_launchers(void)
+{
+	struct model_def saved;
+	struct model_def *model = model_of(CRAFT_SPECIES_MISSILE_BOAT);
+	saved = *model;
+	model->warhead_launcher_first_slot[0] = 2;
+	model->warhead_launcher_last_slot[0] = 2;
+	model->warhead_launcher_capacity[0] = 8;
+	model->warhead_launcher_first_slot[1] = 4;
+	model->warhead_launcher_last_slot[1] = 5;
+	model->warhead_launcher_capacity[1] = 6;
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, CRAFT_SPECIES_MISSILE_BOAT, 1);
+	g_stored.groups[0].warhead = 1;
+	spawn_mission_ready();
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	const struct craft_data *craft =
+		g_object_table[craft_slot(0, 0)].mobj->p_craft;
+	XVT_ASSERT_INT_EQ(craft->warhead_launcher_count, 2);
+	XVT_ASSERT_INT_EQ(craft->warhead_slot_type_ids[0],
+			  g_warhead_type_ids[1]);
+	XVT_ASSERT_INT_EQ(craft->warhead_slot_type_ids[1], 149);
+	unsigned int first =
+		(unsigned int)math2_fraction(8, g_warhead_ammo_fraction_q16[1]);
+	unsigned int second =
+		(unsigned int)math2_fraction(6, g_warhead_ammo_fraction_q16[5]);
+	XVT_ASSERT_INT_EQ(craft->weapon_slots[2].ammo_count, first ? first : 1);
+	XVT_ASSERT_INT_EQ(craft->weapon_slots[4].ammo_count,
+			  second ? second : 1);
+	XVT_ASSERT_INT_EQ(craft->weapon_slots[5].ammo_count,
+			  second ? second : 1);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.craft_warheads ",
+			   "launcher=1 type=149 first_slot=4 last_slot=5"));
+	*model = saved;
+}
+
+/* A launcher's ammunition is at least 1, also after the status code halves
+ * it. */
+static void check_spawn_least_ammo(void)
+{
+	struct model_def saved;
+	struct model_def *model = set_test_model(&saved);
+	model->warhead_launcher_capacity[0] = 0;
+	const struct craft_data *craft = spawn_with_status(0, 0);
+	XVT_ASSERT_INT_EQ(craft->weapon_slots[5].ammo_count, 1);
+	craft = spawn_with_status(2, 0);
+	XVT_ASSERT_INT_EQ(craft->weapon_slots[5].ammo_count, 1);
+	craft = spawn_with_status(1, 0);
+	XVT_ASSERT_INT_EQ(craft->weapon_slots[5].ammo_count, 2);
+	*model = saved;
+}
+
+/* The status codes 5 and 14 knock out the laser turrets and guns of a craft:
+ * those meshes get no hit points and the disabled state 4; the others keep
+ * theirs. */
+static void check_spawn_turrets_off(void)
+{
+	struct model_mesh_object_type_cache saved =
+		g_object_type_mesh_cache[SPAWN_TYPE];
+	struct model_mesh_object_type_cache *cache =
+		&g_object_type_mesh_cache[SPAWN_TYPE];
+	/* Without a loaded model file no mesh can be damaged. */
+	uint8_t saved_flags = g_object_type_table[SPAWN_TYPE].asset_flags;
+	g_object_type_table[SPAWN_TYPE].asset_flags &= (uint8_t)~1;
+	cache->mesh_count = 4;
+	cache->mesh_types[0] = MESH_COMPONENT_04_LASR_TUR;
+	cache->mesh_types[1] = MESH_COMPONENT_21_ROTATING_LASR_TUR;
+	cache->mesh_types[2] = MESH_COMPONENT_05_LASR_GUN;
+	cache->mesh_types[3] = 1;
+	static const int statuses[3] = {0, 5, 14};
+	for (int i = 0; i < 3; ++i) {
+		const struct craft_data *craft =
+			spawn_with_status(statuses[i], 0);
+		for (int mesh = 0; mesh < 4; ++mesh) {
+			int off = i != 0 && mesh < 3;
+			XVT_ASSERT_INT_EQ(craft->component_hp[mesh],
+					  off ? 0 : UINT8_MAX);
+			XVT_ASSERT_INT_EQ(craft->component_state[mesh],
+					  off ? 4 : 0);
+		}
+	}
+	g_object_type_mesh_cache[SPAWN_TYPE] = saved;
+	g_object_type_table[SPAWN_TYPE].asset_flags = saved_flags;
+}
+
+/* A platform with a beam has the components its beam cannot work through
+ * disabled: 6 for a tractor beam, 12 for another, from the platform's 12
+ * entries of the table of component numbers; one without a beam has none. */
+static void check_spawn_platform_beams(void)
+{
+	static const int beams[3] = {BEAM_TYPE_NONE, BEAM_TYPE_TRACTOR,
+				     BEAM_TYPE_JAMMING};
+	int all_disabled = 0;
+	for (int platform = 0; platform < 5; platform += 2) {
+		for (int i = 0; i < 3; ++i) {
+			init_mission(MISSION_TYPE_COMBAT);
+			arriving_group(
+				0, 1, CRAFT_SPECIES_XQ1_PLATFORM + platform, 1);
+			g_stored.groups[0].beam = (uint8_t)beams[i];
+			spawn_mission_ready();
+			XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+			const struct craft_data *craft =
+				g_object_table[craft_slot(0, 0)].mobj->p_craft;
+			int disabled[50] = {0};
+			int count =
+				beams[i] == BEAM_TYPE_NONE
+					? 0
+					: (beams[i] == BEAM_TYPE_TRACTOR ? 6
+									 : 12);
+			for (int entry = 0; entry < count; ++entry) {
+				uint8_t component =
+					g_platform_beam_disabled_component_ids
+						[platform * 12 + entry];
+				if (component != UINT8_MAX) {
+					disabled[component] = 1;
+				}
+			}
+			for (int component = 0; component < 50; ++component) {
+				XVT_ASSERT_INT_EQ(
+					craft->component_hp[component],
+					disabled[component] ? 0 : UINT8_MAX);
+				XVT_ASSERT_INT_EQ(
+					craft->component_state[component],
+					disabled[component] ? 4 : 0);
+				all_disabled += disabled[component];
+			}
+		}
+	}
+	XVT_ASSERT_TRUE(all_disabled > 0);
+}
+
+/* ---- mission_spawn_flight_group_static_objects and
+ * mission_spawn_prepared_object ------------------------------------------- */
+
+/* A mission of one group of craft_type (a static type), its first mission
+ * point at x 10, y 20, z 30 and its yaw, pitch and roll bytes 11, 12 and 13,
+ * after mission_init. */
+static void static_mission(int craft_type, int count, int status1)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, craft_type, count);
+	struct xvt_flight_group *group = &g_stored.groups[0];
+	group->status1 = (uint8_t)status1;
+	group->mission_point_x[0] = 10;
+	group->mission_point_y[0] = 20;
+	group->mission_point_z[0] = 30;
+	group->yaw = 11;
+	group->pitch = 12;
+	group->roll = 13;
+	spawn_mission_ready();
+	g_current_flight_group_idx = 0;
+}
+
+/* The static slots in use, in order. */
+static int static_objects(int *slots)
+{
+	int count = 0;
+	for (int slot = 488; slot < 552; ++slot) {
+		if (g_object_table[slot].object_type != 0) {
+			slots[count++] = slot;
+		}
+	}
+	return count;
+}
+
+/* A group of mines fills a square grid of its craft count a side, 64 mission
+ * units apart, centered on the group's first mission point, in the plane its
+ * status picks (0 x and y, 1 y and z, 2 x and z, 3 one point); each mine is
+ * placed at 256 world units a mission unit, y negated, with the group's yaw,
+ * pitch and roll bytes shifted up 8 bits. A mine's second type byte is 29
+ * times its place in the group, modulo 8. A request for one craft places only
+ * that one, and the group's total stops the grid. */
+static void check_static_mine_grid(void)
+{
+	static const struct {
+		int status;
+		int x_step;
+		int y_step;
+		int z_row_step;
+		int z_column_step;
+	} planes[4] = {{0, 64, 64, 0, 0},
+		       {1, 0, 64, 0, 64},
+		       {6, 64, 0, 64, 0},
+		       {3, 0, 0, 0, 0}};
+	for (int plane = 0; plane < 4; ++plane) {
+		static_mission(CRAFT_SPECIES_MINE_TYPE_A, 3,
+			       planes[plane].status);
+		XVT_ASSERT_INT_EQ(
+			g_object_type_table[g_craft_type_to_object_type
+						    [CRAFT_SPECIES_MINE_TYPE_A]]
+				.genus_id,
+			CRAFT_GENUS_MINE);
+		mission_spawn_flight_group_static_objects(UINT16_MAX);
+		int slots[64];
+		XVT_ASSERT_INT_EQ(static_objects(slots), 9);
+		for (int n = 0; n < 9; ++n) {
+			int row = n / 3;
+			int column = n % 3;
+			const struct object_record *mine =
+				&g_object_table[slots[n]];
+			int x = 10 - planes[plane].x_step +
+				column * planes[plane].x_step;
+			int y = -(20 + planes[plane].y_step) +
+				row * planes[plane].y_step;
+			int z = 30 - planes[plane].z_row_step -
+				planes[plane].z_column_step +
+				row * planes[plane].z_row_step +
+				column * planes[plane].z_column_step;
+			XVT_ASSERT_INT_EQ(mine->world_x, x * 256);
+			XVT_ASSERT_INT_EQ(mine->world_y, y * 256);
+			XVT_ASSERT_INT_EQ(mine->world_z, z * 256);
+			XVT_ASSERT_INT_EQ(mine->yaw, 11 << 8);
+			XVT_ASSERT_INT_EQ(mine->pitch, 12 << 8);
+			XVT_ASSERT_INT_EQ(mine->roll, 13 << 8);
+			XVT_ASSERT_INT_EQ(mine->genus_id, CRAFT_GENUS_MINE);
+			XVT_ASSERT_INT_EQ(mine->object_type,
+					  g_craft_type_to_object_type
+						  [CRAFT_SPECIES_MINE_TYPE_A]);
+			XVT_ASSERT_INT_EQ(mine->flight_group_idx, 0);
+			XVT_ASSERT_INT_EQ(mine->type_specific_word, 1023);
+			XVT_ASSERT_INT_EQ(mine->type_specific_byte[0], 0);
+			XVT_ASSERT_INT_EQ(mine->type_specific_byte[1],
+					  29 * (n & 7));
+		}
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			9);
+		XVT_ASSERT_INT_EQ(g_object_table[slots[8]].object_signature,
+				  g_object_table[slots[0]].object_signature +
+					  8);
+	}
+	/* One craft of the grid, the fifth: the middle. */
+	static_mission(CRAFT_SPECIES_MINE_TYPE_A, 3, 0);
+	mission_spawn_flight_group_static_objects(4);
+	int slots[64];
+	XVT_ASSERT_INT_EQ(static_objects(slots), 1);
+	XVT_ASSERT_INT_EQ(g_object_table[slots[0]].world_x, 10 * 256);
+	XVT_ASSERT_INT_EQ(g_object_table[slots[0]].world_y, -20 * 256);
+	/* A total of 4 stops the grid after 4 mines. */
+	static_mission(CRAFT_SPECIES_MINE_TYPE_A, 3, 0);
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 4;
+	mission_spawn_flight_group_static_objects(UINT16_MAX);
+	XVT_ASSERT_INT_EQ(static_objects(slots), 4);
+	/* A group with no craft to come, or of a craft that is not static, is
+	 * left alone. */
+	static_mission(CRAFT_SPECIES_MINE_TYPE_A, 3, 0);
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 0;
+	mission_spawn_flight_group_static_objects(UINT16_MAX);
+	XVT_ASSERT_INT_EQ(static_objects(slots), 0);
+	static_mission(SPAWN_TYPE, 3, 0);
+	mission_spawn_flight_group_static_objects(UINT16_MAX);
+	XVT_ASSERT_INT_EQ(static_objects(slots), 0);
+}
+
+/* A satellite is one object at the group's first mission point. */
+static void check_static_satellite(void)
+{
+	static_mission(CRAFT_SPECIES_COMM_SAT_1, 1, 0);
+	mission_spawn_flight_group_static_objects(UINT16_MAX);
+	int slots[64];
+	XVT_ASSERT_INT_EQ(static_objects(slots), 1);
+	const struct object_record *satellite = &g_object_table[slots[0]];
+	XVT_ASSERT_INT_EQ(satellite->world_x, 10 * 256);
+	XVT_ASSERT_INT_EQ(satellite->world_y, -20 * 256);
+	XVT_ASSERT_INT_EQ(satellite->world_z, 30 * 256);
+	XVT_ASSERT_INT_EQ(satellite->yaw, 11 << 8);
+	XVT_ASSERT_INT_EQ(satellite->pitch, 12 << 8);
+	XVT_ASSERT_INT_EQ(satellite->roll, 13 << 8);
+	XVT_ASSERT_INT_EQ(satellite->genus_id, CRAFT_GENUS_SATELLITE);
+	XVT_ASSERT_INT_EQ(satellite->type_specific_byte[1], 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  1);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.static_placed fg=0 ", "genus=9 type=70"));
+}
+
+/* Records the debris objects: their types and positions. */
+static int debris_field(int *types, int *positions)
+{
+	int slots[64];
+	int count = static_objects(slots);
+	for (int i = 0; i < count; ++i) {
+		types[i] = g_object_table[slots[i]].object_type;
+		positions[3 * i] = g_object_table[slots[i]].world_x;
+		positions[3 * i + 1] = g_object_table[slots[i]].world_y;
+		positions[3 * i + 2] = g_object_table[slots[i]].world_z;
+	}
+	return count;
+}
+
+/* A debris field is the group's craft count of objects of types 100 to 105,
+ * each within 256 mission units of the first mission point in every axis,
+ * drawn from the asteroid field's seed, which it advances; the same seed
+ * makes the same field, another a different one, and the game's random state
+ * is put back. */
+static void check_static_debris_field(void)
+{
+	int types[2][8];
+	int positions[2][24];
+	int counts[2];
+	uint16_t seeds[3] = {0x2345, 0x2345, 0x5432};
+	uint16_t after[3];
+	for (int run = 0; run < 3; ++run) {
+		static_mission(CRAFT_SPECIES_ASTEROID, 5, 0);
+		g_asteroid_field_rand_seed = seeds[run];
+		g_game_rand_feedback_state = 0x1234;
+		mission_spawn_flight_group_static_objects(UINT16_MAX);
+		XVT_ASSERT_INT_EQ(g_game_rand_feedback_state, 0x1234);
+		after[run] = g_asteroid_field_rand_seed;
+		XVT_ASSERT_TRUE(after[run] != seeds[run]);
+		int local_types[8];
+		int local_positions[24];
+		int count = debris_field(local_types, local_positions);
+		XVT_ASSERT_INT_EQ(count, 5);
+		for (int i = 0; i < count; ++i) {
+			XVT_ASSERT_TRUE(local_types[i] >= 100 &&
+					local_types[i] <= 105);
+			XVT_ASSERT_TRUE(
+				local_positions[3 * i] >= (10 - 256) * 256 &&
+				local_positions[3 * i] < (10 + 256) * 256);
+			XVT_ASSERT_TRUE(local_positions[3 * i + 1] >=
+						(-20 - 256) * 256 &&
+					local_positions[3 * i + 1] <
+						(-20 + 256) * 256);
+			XVT_ASSERT_TRUE(local_positions[3 * i + 2] >=
+						(30 - 256) * 256 &&
+					local_positions[3 * i + 2] <
+						(30 + 256) * 256);
+		}
+		if (run < 2) {
+			counts[run] = count;
+			memcpy(types[run], local_types, sizeof local_types);
+			memcpy(positions[run], local_positions,
+			       sizeof local_positions);
+		} else {
+			XVT_ASSERT_TRUE(memcmp(types[0], local_types,
+					       sizeof local_types) != 0 ||
+					memcmp(positions[0], local_positions,
+					       sizeof local_positions) != 0);
+		}
+	}
+	XVT_ASSERT_INT_EQ(counts[0], counts[1]);
+	XVT_ASSERT_INT_EQ(memcmp(types[0], types[1], 5 * sizeof(int)), 0);
+	XVT_ASSERT_INT_EQ(memcmp(positions[0], positions[1], 15 * sizeof(int)),
+			  0);
+	XVT_ASSERT_INT_EQ(after[0], after[1]);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.debris_field fg=0 count=5 ", "x=10"));
+}
+
+/* With every static slot taken a static object is not made: the slot count
+ * of the group's arrived craft does not grow and the table is warned of. */
+static void check_static_table_full(void)
+{
+	static_mission(CRAFT_SPECIES_COMM_SAT_1, 1, 0);
+	for (int slot = 488; slot < 552; ++slot) {
+		g_object_table[slot].object_type = 9;
+	}
+	mission_spawn_flight_group_static_objects(UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  0);
+	XVT_ASSERT_TRUE(line_holds("mission.static_table_full fg=0 ",
+				   "genus=9 type=70"));
+	XVT_ASSERT_INT_EQ(
+		mission_spawn_prepared_object(0, CRAFT_GENUS_SATELLITE, 70),
+		UINT16_MAX);
+}
+
+/* ---- mission_sync_pilot_network_players_to_session_slots -------------- */
+
+/* Each player in the session roster whose DirectPlay id a network player of
+ * the pilot record holds gets that id in the network record of the player at
+ * its roster slot; a roster player the record does not hold is warned of. An id
+ * of 0 matches nothing. The function returns 1. */
+static void check_sync_pilot_network_players(void)
+{
+	fresh_world();
+	memset(&g_pilot_data, 0, sizeof g_pilot_data);
+	memset(&g_net_session, 0, sizeof g_net_session);
+	g_log_line_count = 0;
+	g_net_session.player_count = 4;
+	g_net_session.players[0].direct_play_id = 11;
+	g_net_session.players[1].direct_play_id = 22;
+	g_net_session.players[2].direct_play_id = 33;
+	g_net_session.players[3].direct_play_id = 0;
+	g_pilot_data.network_players[0].direct_play_id = 22;
+	g_pilot_data.network_players[2].direct_play_id = 33;
+	g_pilot_data.network_players[3].direct_play_id = 99;
+	XVT_ASSERT_INT_EQ(mission_sync_pilot_network_players_to_session_slots(),
+			  1);
+	XVT_ASSERT_INT_EQ(g_players[0].network.direct_play_id, 0);
+	XVT_ASSERT_INT_EQ(g_players[1].network.direct_play_id, 22);
+	XVT_ASSERT_INT_EQ(g_players[2].network.direct_play_id, 33);
+	XVT_ASSERT_INT_EQ(g_players[3].network.direct_play_id, 0);
+	XVT_ASSERT_INT_EQ(count_lines("mission.session_player_bound"), 2);
+	XVT_ASSERT_TRUE(line_holds("mission.session_player_bound entry=0 ",
+				   "player=22"));
+	XVT_ASSERT_TRUE(line_holds("mission.session_player_bound entry=2 ",
+				   "player=33"));
+	XVT_ASSERT_INT_EQ(count_lines("mission.session_player_unmatched"), 2);
+	XVT_ASSERT_TRUE(line_holds(
+		"mission.session_player_unmatched player=11 ", "players=4"));
+}
+
+/* A group that arrives from a mothership's hangar after the start keeps no
+ * formation spacing and its followers run the arrival plan of the hangar; the
+ * same group with no mothership in the flight is not spawned, and the spawn
+ * says so. */
+static void check_spawn_from_mothership(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 2);
+	g_stored.groups[0].arrival_method = 1;
+	g_stored.groups[0].arrival_mothership = 1;
+	g_stored.groups[0].formation_spacing = 4;
+	arriving_group(1, 1, SPAWN_TYPE, 1);
+	uint8_t follower_name = g_order_follower_builtin_plan_name_index[0];
+	for (int mothership_present = 0; mothership_present < 2;
+	     ++mothership_present) {
+		spawn_mission_ready();
+		for (size_t message = 0;
+		     message < sizeof g_str_in_flight_messages /
+				       sizeof g_str_in_flight_messages[0];
+		     ++message) {
+			g_str_in_flight_messages[message] = "\006";
+		}
+		memset(g_builtin_plan_id_by_name_index, 0,
+		       sizeof g_builtin_plan_id_by_name_index);
+		g_builtin_plan_id_by_name_index[follower_name] = 6;
+		g_builtin_plan_id_by_name_index[50] = 8;
+		g_log_line_count = 0;
+		if (mothership_present) {
+			XVT_ASSERT_INT_EQ(spawn_craft(1, UINT16_MAX), 1);
+		}
+		g_mission_elapsed_clock.seconds = 1;
+		int16_t result = spawn_craft(0, UINT16_MAX);
+		g_mission_elapsed_clock.seconds = 0;
+		if (!mothership_present) {
+			XVT_ASSERT_INT_EQ(result, 0);
+			XVT_ASSERT_INT_EQ(craft_slot(0, 0), -1);
+			XVT_ASSERT_TRUE(
+				line_holds("mission.mothership_missing fg=0 ",
+					   "mothership=1"));
+			continue;
+		}
+		XVT_ASSERT_INT_EQ(result, 1);
+		const struct craft_data *leader =
+			g_object_table[craft_slot(0, 0)].mobj->p_craft;
+		const struct craft_data *follower =
+			g_object_table[craft_slot(0, 1)].mobj->p_craft;
+		XVT_ASSERT_INT_EQ(leader->ai_flight.separation, 0);
+		XVT_ASSERT_INT_EQ(follower->ai_flight.separation, 0);
+		XVT_ASSERT_INT_EQ(follower->ai_controller.running_plan_id, 8);
+		XVT_ASSERT_TRUE(line_holds("mission.wave_prepared fg=0 ",
+					   "mothership=1 hyperspace=0"));
+	}
+}
+
 int main(int argc, char **argv)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -5094,6 +6294,10 @@ int main(int argc, char **argv)
 			 check_tie_global_goals_cleared},
 			{"player_team_past_table",
 			 check_init_player_team_past_table},
+			{"damage_from_groups_kept",
+			 check_spawn_clears_all_group_damage},
+			{"seventh_craft_off_formation",
+			 check_spawn_seventh_craft_place},
 		};
 		for (size_t i = 0;
 		     i < sizeof known_failures / sizeof known_failures[0];
@@ -5193,5 +6397,26 @@ int main(int argc, char **argv)
 	check_runtime_roles();
 	check_init_replaces_pools();
 	check_runtime_resets();
+	check_spawn_craft_values();
+	check_spawn_status_codes();
+	check_spawn_player_craft();
+	check_spawn_formation();
+	check_spawn_plans();
+	check_spawn_transport_genus();
+	check_spawn_table_full();
+	check_spawn_beam_and_countermeasures();
+	check_spawn_without_cannons();
+	check_spawn_clears_damage_tally();
+	check_spawn_global_unit_numbers();
+	check_spawn_missile_boat_launchers();
+	check_spawn_least_ammo();
+	check_spawn_turrets_off();
+	check_spawn_platform_beams();
+	check_static_mine_grid();
+	check_static_satellite();
+	check_static_debris_field();
+	check_static_table_full();
+	check_sync_pilot_network_players();
+	check_spawn_from_mothership();
 	return 0;
 }
