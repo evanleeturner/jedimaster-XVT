@@ -1,0 +1,472 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/control.schema.json",
+  "title": "Launcher control message",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/HelloRequest"
+    },
+    {
+      "$ref": "#/$defs/InstallStatusRequest"
+    },
+    {
+      "$ref": "#/$defs/MissionsListRequest"
+    },
+    {
+      "$ref": "#/$defs/SettingsGetRequest"
+    },
+    {
+      "$ref": "#/$defs/SettingsSetRequest"
+    },
+    {
+      "$ref": "#/$defs/OkReply"
+    },
+    {
+      "$ref": "#/$defs/ErrorReply"
+    },
+    {
+      "$ref": "#/$defs/StatusPush"
+    },
+    {
+      "$ref": "#/$defs/SettingsChangedPush"
+    }
+  ],
+  "$defs": {
+    "ArtScalingChange": {
+      "type": "object",
+      "description": "Set the art scaling to one of its values.",
+      "properties": {
+        "name": {
+          "const": "art_scaling"
+        },
+        "value": {
+          "enum": [
+            "whole_pixels",
+            "engine_fit",
+            "sharp_bilinear"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "ErrorBody": {
+      "type": "object",
+      "description": "Why the command did not run.",
+      "properties": {
+        "code": {
+          "enum": [
+            "bad_message",
+            "unknown_command",
+            "bad_arguments"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "ErrorReply": {
+      "type": "object",
+      "description": "The command did not run; the reason.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "ok": {
+          "const": false
+        },
+        "error": {
+          "$ref": "#/$defs/ErrorBody"
+        }
+      },
+      "required": [
+        "id",
+        "ok",
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "HelloArgs": {
+      "type": "object",
+      "description": "The page announces its own version.",
+      "properties": {
+        "page_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "page_version"
+      ],
+      "additionalProperties": false
+    },
+    "HelloRequest": {
+      "type": "object",
+      "description": "Ask the launcher to introduce itself.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "hello"
+        },
+        "args": {
+          "$ref": "#/$defs/HelloArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "HelloResult": {
+      "type": "object",
+      "description": "The launcher's version and the revision of the control list.",
+      "properties": {
+        "launcher_version": {
+          "type": "string"
+        },
+        "schema_revision": {
+          "const": 1
+        }
+      },
+      "required": [
+        "launcher_version",
+        "schema_revision"
+      ],
+      "additionalProperties": false
+    },
+    "InstallStatusRequest": {
+      "type": "object",
+      "description": "Ask which install the launcher found.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "install.status"
+        },
+        "args": {
+          "$ref": "#/$defs/NoArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "InstallStatusResult": {
+      "type": "object",
+      "description": "The install found (home shown as ~) and whether Balance of Power is in it.",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "balance_of_power": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "found",
+        "path",
+        "balance_of_power"
+      ],
+      "additionalProperties": false
+    },
+    "MenuData": {
+      "type": "object",
+      "description": "One mission type's network menu, or the fact that it does not resolve.",
+      "properties": {
+        "mission_type": {
+          "type": "string"
+        },
+        "game_path": {
+          "type": "string"
+        },
+        "resolved": {
+          "type": "boolean"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MenuEntryData"
+          }
+        }
+      },
+      "required": [
+        "mission_type",
+        "game_path",
+        "resolved",
+        "entries"
+      ],
+      "additionalProperties": false
+    },
+    "MenuEntryData": {
+      "type": "object",
+      "description": "One mission the game's network menu lists.",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "id": {
+          "type": "integer"
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "file": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "section",
+        "id",
+        "available",
+        "file",
+        "title"
+      ],
+      "additionalProperties": false
+    },
+    "MissionsListRequest": {
+      "type": "object",
+      "description": "Ask for the network menu of every mission type.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "missions.list"
+        },
+        "args": {
+          "$ref": "#/$defs/NoArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "MissionsListResult": {
+      "type": "object",
+      "description": "The network menu of every mission type.",
+      "properties": {
+        "menus": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MenuData"
+          }
+        }
+      },
+      "required": [
+        "menus"
+      ],
+      "additionalProperties": false
+    },
+    "NoArgs": {
+      "type": "object",
+      "description": "No arguments.",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "OkReply": {
+      "type": "object",
+      "description": "The command ran; its result.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "ok": {
+          "const": true
+        },
+        "result": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HelloResult"
+            },
+            {
+              "$ref": "#/$defs/InstallStatusResult"
+            },
+            {
+              "$ref": "#/$defs/MissionsListResult"
+            },
+            {
+              "$ref": "#/$defs/SettingsResult"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "ok",
+        "result"
+      ],
+      "additionalProperties": false
+    },
+    "Settings": {
+      "type": "object",
+      "description": "The launcher's settings.",
+      "properties": {
+        "art_scaling": {
+          "enum": [
+            "whole_pixels",
+            "engine_fit",
+            "sharp_bilinear"
+          ]
+        }
+      },
+      "required": [
+        "art_scaling"
+      ],
+      "additionalProperties": false
+    },
+    "SettingsChangedPush": {
+      "type": "object",
+      "description": "Sent to every open page after a setting changed.",
+      "properties": {
+        "event": {
+          "const": "settings.changed"
+        },
+        "data": {
+          "$ref": "#/$defs/SettingsResult"
+        }
+      },
+      "required": [
+        "event",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "SettingsGetRequest": {
+      "type": "object",
+      "description": "Ask for the settings.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "settings.get"
+        },
+        "args": {
+          "$ref": "#/$defs/NoArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "SettingsResult": {
+      "type": "object",
+      "description": "The settings as they stand.",
+      "properties": {
+        "settings": {
+          "$ref": "#/$defs/Settings"
+        }
+      },
+      "required": [
+        "settings"
+      ],
+      "additionalProperties": false
+    },
+    "SettingsSetRequest": {
+      "type": "object",
+      "description": "Change one setting.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "settings.set"
+        },
+        "args": {
+          "$ref": "#/$defs/ArtScalingChange"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "StatusData": {
+      "type": "object",
+      "description": "What the launcher tells a page that just connected.",
+      "properties": {
+        "launcher_version": {
+          "type": "string"
+        },
+        "install_found": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "launcher_version",
+        "install_found"
+      ],
+      "additionalProperties": false
+    },
+    "StatusPush": {
+      "type": "object",
+      "description": "Sent to a page when it connects.",
+      "properties": {
+        "event": {
+          "const": "status"
+        },
+        "data": {
+          "$ref": "#/$defs/StatusData"
+        }
+      },
+      "required": [
+        "event",
+        "data"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

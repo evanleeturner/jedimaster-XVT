@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>jedimaster launcher</title>
+    <link rel="stylesheet" href="style.css" />
+    <script type="module" src="main.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to the page content</a>
+    <header class="page-header">
+      <h1>jedimaster launcher</h1>
+      <nav class="section-nav" aria-label="Sections">
+        <ul class="nav-list">
+          <li><a class="nav-link" href="#status">Status</a></li>
+          <li><a class="nav-link" href="#missions">Missions</a></li>
+          <li><a class="nav-link" href="#settings">Settings</a></li>
+        </ul>
+      </nav>
+    </header>
+    <main class="page-main" id="main" tabindex="-1">
+      <section class="panel" id="status" aria-labelledby="status-heading">
+        <h2 id="status-heading">Status</h2>
+        <div class="status-region" role="status">
+          <p id="status-connection">Connecting to the launcher.</p>
+          <p id="status-version">Launcher version: not known yet.</p>
+          <p id="status-install">Not known yet.</p>
+          <p id="status-balance">Not known yet.</p>
+        </div>
+        <p class="problem" id="problem" role="alert" hidden></p>
+        <button class="button" id="reconnect" type="button" hidden>
+          Reconnect
+        </button>
+      </section>
+      <section class="panel" id="missions" aria-labelledby="missions-heading">
+        <h2 id="missions-heading">Missions</h2>
+        <p id="missions-note">The mission lists have not arrived yet.</p>
+        <div id="missions-body"></div>
+      </section>
+      <section class="panel" id="settings" aria-labelledby="settings-heading">
+        <h2 id="settings-heading">Settings</h2>
+        <p id="settings-note">
+          The page shows no game art yet. This choice is saved now and used once
+          it does.
+        </p>
+        <fieldset class="choice-group" id="art-scaling" disabled>
+          <legend>Art scaling</legend>
+          <div class="choice">
+            <input
+              class="choice-input"
+              id="art-whole-pixels"
+              name="art-scaling"
+              type="radio"
+              value="whole_pixels"
+              aria-describedby="art-whole-pixels-help"
+            />
+            <label class="choice-label" for="art-whole-pixels"
+              >Whole pixels</label
+            >
+            <p class="choice-help" id="art-whole-pixels-help">
+              The picture grows only in whole steps, so every pixel stays sharp
+              and the window may show borders.
+            </p>
+          </div>
+          <div class="choice">
+            <input
+              class="choice-input"
+              id="art-engine-fit"
+              name="art-scaling"
+              type="radio"
+              value="engine_fit"
+              aria-describedby="art-engine-fit-help"
+            />
+            <label class="choice-label" for="art-engine-fit">Engine fit</label>
+            <p class="choice-help" id="art-engine-fit-help">
+              The picture is fitted to the window the way the game does it.
+            </p>
+          </div>
+          <div class="choice">
+            <input
+              class="choice-input"
+              id="art-sharp-bilinear"
+              name="art-scaling"
+              type="radio"
+              value="sharp_bilinear"
+              aria-describedby="art-sharp-bilinear-help"
+            />
+            <label class="choice-label" for="art-sharp-bilinear"
+              >Sharp bilinear</label
+            >
+            <p class="choice-help" id="art-sharp-bilinear-help">
+              The picture is enlarged in whole steps and then smoothed a little,
+              so edges stay clean at any window size.
+            </p>
+          </div>
+        </fieldset>
+      </section>
+    </main>
+  </body>
+</html>

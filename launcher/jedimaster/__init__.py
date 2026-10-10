@@ -10,10 +10,12 @@ Flow:
     and exports them; ``setup`` holds the lobby's setup document's fingerprint
     and engine values; ``icons`` reads the briefing map's icon sheets and
     draws its icons; ``text``, ``fonts`` and ``pictures`` read the menus'
-    text files, fonts and pictures; ``__main__`` is the command line.
+    text files, fonts and pictures; ``page`` serves the launcher's local web
+    page; ``__main__`` is the command line.
 
 Invariants:
-    - Standard library only at run time.
+    - Standard library only at run time, except ``page``, which needs the
+      optional ``page`` extra (aiohttp) and is imported only when run.
 
 Call:
     ``python -m jedimaster dump <mission>``

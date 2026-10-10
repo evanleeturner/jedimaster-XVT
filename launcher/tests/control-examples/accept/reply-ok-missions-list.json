@@ -1,0 +1,1 @@
+{"id": 3, "ok": true, "result": {"menus": [{"mission_type": "training", "game_path": "train\\mission.lst", "resolved": true, "entries": [{"section": "Basic", "id": 1, "available": true, "file": "alpha.tie", "title": "First Flight"}]}, {"mission_type": "melee", "game_path": "melee\\mission.lst", "resolved": false, "entries": []}]}}

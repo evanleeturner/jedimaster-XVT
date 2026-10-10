@@ -1,0 +1,1 @@
+{"id": 3, "ok": true, "result": {"menus": [{"mission_type": "training", "game_path": "train\\mission.lst", "resolved": true, "entries": [{"section": "A", "id": 1, "available": true, "file": "a.tie", "title": "T", "line": 3}]}]}}

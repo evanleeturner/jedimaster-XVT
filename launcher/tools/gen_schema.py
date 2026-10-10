@@ -5,10 +5,11 @@ Purpose:
     ``schema/lists.schema.json``, ``schema/icons.schema.json``,
     ``schema/text.schema.json``, ``schema/fonts.schema.json``,
     ``schema/pictures.schema.json``, ``schema/pilot.schema.json``,
-    ``schema/models.schema.json``, ``schema/movies.schema.json``) equal to what ``mission_schema()``,
+    ``schema/models.schema.json``, ``schema/movies.schema.json``,
+    ``schema/control.schema.json``) equal to what ``mission_schema()``,
     ``lists_schema()``, ``icons_schema()``, ``text_schema()``,
     ``fonts_schema()``, ``pictures_schema()``, ``pilot_schema()``,
-    ``models_schema()`` and ``movies_schema()`` build; a test fails when a file and its model drift.
+    ``models_schema()``, ``movies_schema()`` and ``control_schema()`` build; a test fails when a file and its model drift.
 
 Flow:
     Build each schema, dump it with sorted-free stable formatting, write it.
@@ -36,6 +37,7 @@ from jedimaster.lists.to_json import lists_schema  # noqa: E402
 from jedimaster.mission.to_json import mission_schema  # noqa: E402
 from jedimaster.models.to_json import models_schema  # noqa: E402
 from jedimaster.movies.to_json import movies_schema  # noqa: E402
+from jedimaster.page.schema import control_schema  # noqa: E402
 from jedimaster.pictures.to_json import pictures_schema  # noqa: E402
 from jedimaster.pilot.to_json import pilot_schema  # noqa: E402
 from jedimaster.text.to_json import text_schema  # noqa: E402
@@ -51,6 +53,7 @@ PICTURES_SCHEMA_PATH = HERE.parents[1] / "schema" / "pictures.schema.json"
 PILOT_SCHEMA_PATH = HERE.parents[1] / "schema" / "pilot.schema.json"
 MODELS_SCHEMA_PATH = HERE.parents[1] / "schema" / "models.schema.json"
 MOVIES_SCHEMA_PATH = HERE.parents[1] / "schema" / "movies.schema.json"
+CONTROL_SCHEMA_PATH = HERE.parents[1] / "schema" / "control.schema.json"
 
 
 def schema_text() -> str:
@@ -98,8 +101,13 @@ def movies_schema_text() -> str:
     return json.dumps(movies_schema(), indent=2) + "\n"
 
 
+def control_schema_text() -> str:
+    """Return the control schema file's text: indented JSON and a newline."""
+    return json.dumps(control_schema(), indent=2) + "\n"
+
+
 def main() -> int:
-    """Write the nine schema files; return 0."""
+    """Write the ten schema files; return 0."""
     for path, text in (
         (SCHEMA_PATH, schema_text()),
         (LISTS_SCHEMA_PATH, lists_schema_text()),
@@ -110,6 +118,7 @@ def main() -> int:
         (PILOT_SCHEMA_PATH, pilot_schema_text()),
         (MODELS_SCHEMA_PATH, models_schema_text()),
         (MOVIES_SCHEMA_PATH, movies_schema_text()),
+        (CONTROL_SCHEMA_PATH, control_schema_text()),
     ):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")

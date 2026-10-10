@@ -25,6 +25,14 @@ path = ["*.md"]
 SPDX-FileCopyrightText = "2026 Evan Lee Turner"
 SPDX-License-Identifier = "CC-BY-4.0"
 
+# The launcher's web page (launcher/page/): its own TypeScript, HTML and CSS,
+# a separate program that talks to the launcher over a socket. Its tools are
+# dev dependencies installed from the lock file; none of them ships in it.
+[[annotations]]
+path = ["launcher/page/**"]
+SPDX-FileCopyrightText = "2026 Evan Lee Turner"
+SPDX-License-Identifier = "MIT"
+
 # Two workflow files written by Adrien Moulin ("elyosh") for OpenXvT, imported
 # with the engine and pointed at engine/ here.
 [[annotations]]

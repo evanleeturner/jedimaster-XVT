@@ -10,7 +10,8 @@ requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
-test = ["pytest", "jsonschema"]
+test = ["pytest", "jsonschema", "pytest-aiohttp"]
+page = ["aiohttp==3.14.4"]
 
 [project.scripts]
 jedimaster = "jedimaster.__main__:main"
@@ -21,3 +22,4 @@ include = ["jedimaster*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = [".", "tests"]
+asyncio_mode = "auto"

@@ -7,3 +7,8 @@ launcher/*.egg-info/
 .pytest_cache/
 # A mission export holds the game's own text; it never enters the repository.
 launcher/export/
+# The page's tool installs, build output and browser-test output.
+launcher/page/node_modules/
+launcher/page/dist/
+launcher/page/test-results/
+launcher/page/playwright-report/
