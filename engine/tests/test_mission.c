@@ -11,7 +11,12 @@
  * the craft they send to known values, send a group's craft with
  * mission_spawn_flight_group_wave_craft and read each craft's record; the
  * static object checks place mines, satellites and debris through
- * mission_spawn_flight_group_static_objects. No game data is read.
+ * mission_spawn_flight_group_static_objects. The checks of
+ * mission_update_logic build the goals and scripted messages by hand, run the
+ * pass and read the team scores, goal states and statuses, the log and, for
+ * the in-flight messages, the log line each message leaves (every message
+ * template is a one-character text of the system pane, which is switched off,
+ * so a message is built and dropped). No game data is read.
  *
  * Not checked here:
  * - mission_load_file: a file that does not open, or comes up short, ends the
@@ -33,6 +38,11 @@
  *   doubled shield, which needs a shield strength past a billion.
  * - mission_spawn_flight_group_static_objects: the debris field's check for an
  *   object already at the spot, which never repeats the draw.
+ * - mission_update_logic: the commander voice a goal's end-of-mission text
+ *   asks for (the voice queue is a static of the sound module), and the text
+ *   of a message, of which only the length shows in its log line. The result
+ *   of a global goal whose second pair has no second condition depends on an
+ *   unset local (a known failure); the checks leave that pair's craft counts.
  *
  * POSIX only, for the temporary folder (test_asset_folder.h). */
 #define _POSIX_C_SOURCE 200809L
@@ -64,6 +74,7 @@
 #include "xvt/flight/player/player.h"
 #include "xvt/frontend/config.h"
 #include "xvt/frontend/frontend_display.h"
+#include "xvt/frontend/frontend_mission_list.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/math/math2.h"
@@ -6722,6 +6733,1341 @@ static void check_spawn_ai_skill_in_table(void)
 	XVT_ASSERT_INT_EQ(craft->ai_skill, g_ai_skill_value_q16_by_level[5]);
 }
 
+/* ---- mission_update_logic ---------------------------------------------- */
+
+/* The template of every in-flight message: pane type 3 (the system pane,
+ * which the checks leave switched off, so a message is built and dropped) and
+ * one character. Messages 196 and 207 take the text a caller adds, so the
+ * length in the message's log line tells which text was sent. */
+static const char g_plain_template[] = "\003-";
+static const char g_text_template[] = "\003*";
+
+/* A mission of combat type with the two groups of fresh_world, both able to
+ * arrive, no goals, no messages and no player, every in-flight message
+ * template in place, and both of the timers run out except the message scan,
+ * which waits. */
+static void logic_world(void)
+{
+	fresh_world();
+	g_log_line_count = 0;
+	memset(&g_flight_global_countdown_timers, 0,
+	       sizeof g_flight_global_countdown_timers);
+	g_flight_global_countdown_timers.mission_message_scan_timer = 1;
+	memset(g_mission_messages, 0, sizeof g_mission_messages);
+	memset(&g_pilot_data, 0, sizeof g_pilot_data);
+	memset(&g_game_config, 0, sizeof g_game_config);
+	memset(&g_net_session, 0, sizeof g_net_session);
+	memset(g_msg_arg_table, 0, sizeof g_msg_arg_table);
+	g_system_message_display_enabled = 0;
+	g_replay_view_mode = 0;
+	g_flight_player_count = 1;
+	g_game_time = 4000;
+	g_msg_sender_iff = 99;
+	g_pending_hud_message_voice_sfx_id = 0;
+	for (size_t i = 0; i < sizeof g_str_in_flight_messages /
+				       sizeof g_str_in_flight_messages[0];
+	     ++i) {
+		g_str_in_flight_messages[i] = g_plain_template;
+	}
+	g_str_in_flight_messages[IFMSG_196_CODE_02_ARGUMENT] = g_text_template;
+	g_str_in_flight_messages[IFMSG_207_CODE_01_ARGUMENT] = g_text_template;
+	g_mission_header.mission_type = MISSION_TYPE_COMBAT;
+	for (int fg = 0; fg < 2; ++fg) {
+		g_mission_fg_stats[fg].arrival_enabled = 1;
+	}
+}
+
+/* Runs the goals pass: the evaluation timer has run out. */
+static void run_logic(void)
+{
+	g_flight_global_countdown_timers.mission_goal_evaluation_timer = 0;
+	mission_update_logic();
+}
+
+static void set_elapsed(int hours, int minutes, int seconds)
+{
+	g_mission_elapsed_clock.hours = (uint8_t)hours;
+	g_mission_elapsed_clock.minutes = (uint8_t)minutes;
+	g_mission_elapsed_clock.seconds = (uint8_t)seconds;
+}
+
+/* Makes the local player (slot 7) a connected player of the given team and
+ * IFF. */
+static void connect_local_player(int team, int iff)
+{
+	g_players[g_local_player].participation_state = 1;
+	g_players[g_local_player].team = (uint8_t)team;
+	g_players[g_local_player].iff = (uint8_t)iff;
+}
+
+/* Goal `slot` of flight group fg: its kind (0 primary, 1 prevent, 2 bonus),
+ * event, amount and points, for the teams in the bit set; every team's state
+ * of it is pending. */
+static struct flight_group_goal *set_fg_goal(int fg, int slot, int kind,
+					     int condition, int amount,
+					     int points, unsigned int teams)
+{
+	struct flight_group_goal *goal =
+		&g_mission_flight_groups[fg].fg.goals[slot];
+	memset(goal, 0, sizeof *goal);
+	goal->goal_kind = (uint8_t)kind;
+	goal->event_condition = (uint8_t)condition;
+	goal->amount = (mission_goal_amount)amount;
+	goal->points = (int8_t)points;
+	for (int team = 0; team < 10; ++team) {
+		goal->enabled_teams[team] = (teams >> team) & 1u;
+		g_mission_fg_stats[fg].goal_state[8 * team + slot] = 4;
+	}
+	return goal;
+}
+
+/* Flight group fg has two craft: the given number destroyed and the given
+ * number gone from the region. All destroyed meets the condition destroyed,
+ * all of them; one gone from the region has failed it; neither leaves it
+ * undecided. */
+static void group_craft(int fg, int destroyed, int left)
+{
+	uint16_t *counts = g_mission_fg_stats[fg].outcome_count;
+	memset(counts, 0, sizeof g_mission_fg_stats[fg].outcome_count);
+	counts[FLIGHT_GROUP_OUTCOME_TOTAL] = 2;
+	counts[FLIGHT_GROUP_OUTCOME_DESTROYED] = (uint16_t)destroyed;
+	counts[FLIGHT_GROUP_OUTCOME_LEFT_REGION] = (uint16_t)left;
+}
+
+static int team_goal_state(int fg, int team, int slot)
+{
+	return g_mission_fg_stats[fg].goal_state[8 * team + slot];
+}
+
+static int bonus_score(int team)
+{
+	return g_flight_mission_state.runtime
+		.team_scores[TEAM_SCORE_BONUS][team];
+}
+
+static int goal_status(int team, int kind)
+{
+	return g_flight_mission_state.runtime.team_goal_status[team][kind];
+}
+
+/* mission_update_logic does nothing in proving grounds mode, however far the
+ * timers have run out. */
+static void check_logic_proving_grounds(void)
+{
+	logic_world();
+	g_flight_mission_state.proving_grounds_mode_active = 1;
+	g_players[0].participation_state = 1;
+	run_logic();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.connected_player_count, 0);
+	XVT_ASSERT_INT_EQ(
+		g_flight_global_countdown_timers.mission_goal_evaluation_timer,
+		0);
+	XVT_ASSERT_INT_EQ(
+		g_flight_global_countdown_timers.mission_message_scan_timer, 1);
+}
+
+/* The goals pass counts the connected players, raises the peak (and logs the
+ * new peak) only when the count passes it, and sets the evaluation timer to
+ * 236 ticks. While the timer runs and no mission end is pending, the pass
+ * does not run; a pending mission end runs it whatever the timer says. */
+static void check_logic_connected_players(void)
+{
+	logic_world();
+	g_players[0].participation_state = 1;
+	g_players[2].participation_state = 2;
+	g_players[5].participation_state = 1;
+	run_logic();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.connected_player_count, 3);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.max_connected_player_count_this_mission,
+		3);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.player_peak", "players=3 tick=4000"));
+	XVT_ASSERT_INT_EQ(
+		g_flight_global_countdown_timers.mission_goal_evaluation_timer,
+		SIMULATION_TICKS_PER_SECOND);
+
+	/* Fewer players: the count follows, the peak stays and logs nothing. */
+	g_players[2].participation_state = 0;
+	g_players[5].participation_state = 0;
+	g_log_line_count = 0;
+	run_logic();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.connected_player_count, 1);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.max_connected_player_count_this_mission,
+		3);
+	XVT_ASSERT_INT_EQ(count_lines("mission.player_peak"), 0);
+
+	/* A running timer keeps the count as it was. */
+	g_players[3].participation_state = 1;
+	g_players[4].participation_state = 1;
+	g_flight_global_countdown_timers.mission_goal_evaluation_timer = 5;
+	mission_update_logic();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.connected_player_count, 1);
+	XVT_ASSERT_INT_EQ(
+		g_flight_global_countdown_timers.mission_goal_evaluation_timer,
+		5);
+
+	/* A pending mission end runs the pass: 3 connected is not above the
+	 * peak of 3. */
+	g_flight_mission_state.mission_end_pending = 1;
+	mission_update_logic();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.connected_player_count, 3);
+	XVT_ASSERT_INT_EQ(
+		g_flight_global_countdown_timers.mission_goal_evaluation_timer,
+		SIMULATION_TICKS_PER_SECOND);
+	g_players[6].participation_state = 1;
+	mission_update_logic();
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.max_connected_player_count_this_mission,
+		4);
+}
+
+/* A pending goal of a flight group, for a team it is enabled for, is decided
+ * by its event on the group: met pays 250 times its points to the team's
+ * bonus score and is state 1; failed is state 2 and pays nothing; undecided
+ * stays pending and says nothing. A team the goal is not enabled for has
+ * state 0. A goal already decided is not looked at again. */
+static void check_logic_fg_goal_decided(void)
+{
+	logic_world();
+	/* Prevent goals, whose status adds nothing to the score; goal 4 is of
+	 * a kind no status counts. */
+	set_fg_goal(0, 0, 1, MISSION_COND_DESTROYED, GOAL_AMT_100, 4, 0x3);
+	set_fg_goal(0, 1, 1, MISSION_COND_DESTROYED, GOAL_AMT_100, -2, 0x2);
+	set_fg_goal(0, 2, 1, MISSION_COND_DEPARTED, GOAL_AMT_100, 1, 0x1);
+	set_fg_goal(0, 4, 3, MISSION_COND_DESTROYED, GOAL_AMT_100, 3, 0x8);
+
+	group_craft(0, 0, 0);
+	run_logic();
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 0), 4);
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 1, 1), 4);
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 2, 0), 0);
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 1), 0);
+	XVT_ASSERT_INT_EQ(count_lines("mission.fg_goal_decided"), 0);
+
+	group_craft(0, 2, 0);
+	run_logic();
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 0), 1);
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 1, 0), 1);
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 1, 1), 1);
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 2, 0), 0);
+	/* Team 0: 4 points of goal 0; team 1: 4 of goal 0 less 2 of goal 1. */
+	XVT_ASSERT_INT_EQ(bonus_score(0), 1000);
+	XVT_ASSERT_INT_EQ(bonus_score(1), 500);
+	XVT_ASSERT_INT_EQ(bonus_score(2), 0);
+	XVT_ASSERT_INT_EQ(bonus_score(3), 750);
+	XVT_ASSERT_TRUE(line_holds(
+		"mission.fg_goal_decided fg=0 goal=0 team=0",
+		"kind=\"prevent\" state=\"met\" points=1000 limit=0 seconds=0 tick=4000"));
+	XVT_ASSERT_TRUE(
+		line_holds("mission.fg_goal_decided fg=0 goal=1 team=1",
+			   "kind=\"prevent\" state=\"met\" points=-500"));
+	XVT_ASSERT_TRUE(line_holds("mission.fg_goal_decided fg=0 goal=4 team=3",
+				   "kind=\"other\" state=\"met\" points=750"));
+
+	/* Decided goals stay as they are, and pay once. */
+	group_craft(0, 0, 1);
+	run_logic();
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 0), 1);
+	XVT_ASSERT_INT_EQ(bonus_score(0), 1000);
+
+	/* One craft left the region: "all destroyed" has failed. */
+	set_fg_goal(0, 3, 1, MISSION_COND_DESTROYED, GOAL_AMT_100, 9, 0x4);
+	run_logic();
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 2, 3), 2);
+	XVT_ASSERT_INT_EQ(bonus_score(2), 0);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.fg_goal_decided fg=0 goal=3 team=2",
+			   "kind=\"prevent\" state=\"failed\" points=0"));
+}
+
+/* An event of always true or never is not a goal anyone can meet: its state
+ * is 0 and it pays nothing. */
+static void check_logic_fg_goal_fixed_events(void)
+{
+	logic_world();
+	set_fg_goal(0, 0, 2, MISSION_COND_ALWAYS_TRUE, GOAL_AMT_100, 5, 0x1);
+	set_fg_goal(0, 1, 2, MISSION_COND_NEVER, GOAL_AMT_100, 5, 0x1);
+	run_logic();
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 0), 0);
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 1), 0);
+	XVT_ASSERT_INT_EQ(bonus_score(0), 0);
+	XVT_ASSERT_INT_EQ(count_lines("mission.fg_goal_decided"), 0);
+}
+
+/* A goal with a time limit of 2 five-second units is met at 10 seconds
+ * elapsed and fails at 11. */
+static void check_logic_fg_goal_time_limit(void)
+{
+	static const struct {
+		int seconds;
+		int state;
+		int score;
+	} rows[] = {{10, 1, 750}, {11, 2, 0}};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		logic_world();
+		struct flight_group_goal *goal = set_fg_goal(
+			0, 0, 1, MISSION_COND_DESTROYED, GOAL_AMT_100, 3, 0x1);
+		goal->time_limit5s = 2;
+		group_craft(0, 2, 0);
+		set_elapsed(0, 0, rows[i].seconds);
+		run_logic();
+		XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 0), rows[i].state);
+		XVT_ASSERT_INT_EQ(bonus_score(0), rows[i].score);
+	}
+	XVT_ASSERT_TRUE(
+		line_holds("mission.fg_goal_decided fg=0 goal=0 team=0",
+			   "state=\"failed\" points=0 limit=10 seconds=11"));
+}
+
+/* A group that cannot arrive and no player owns has no goal states at all; a
+ * group a player owns keeps its goals though it cannot arrive. */
+static void check_logic_fg_goal_unavailable_group(void)
+{
+	logic_world();
+	set_fg_goal(0, 0, 2, MISSION_COND_DESTROYED, GOAL_AMT_100, 2, 0x1);
+	set_fg_goal(1, 0, 2, MISSION_COND_ALWAYS_FAILED, GOAL_AMT_100, 2, 0x1);
+	group_craft(0, 2, 0);
+	g_mission_fg_stats[0].arrival_enabled = 0;
+	g_mission_fg_stats[1].arrival_enabled = 0;
+	g_mission_flight_groups[1].player_owner_idx = 3;
+	run_logic();
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 0), 0);
+	XVT_ASSERT_INT_EQ(bonus_score(0), 0);
+	XVT_ASSERT_INT_EQ(team_goal_state(1, 0, 0), 2);
+}
+
+/* A per-craft bonus goal (amount 18 or 19) that is met stays state 8 and pays
+ * nothing here; the same amounts on a primary goal pay as any goal. */
+static void check_logic_fg_goal_per_craft(void)
+{
+	logic_world();
+	/* The primary goal complete is met for every team at once. */
+	g_flight_mission_state.runtime.global_primary_goal_status = 1;
+	set_fg_goal(0, 0, 2, MISSION_COND_PRIMARY_GOAL_COMPLETE, 18, 4, 0x1);
+	set_fg_goal(0, 1, 2, MISSION_COND_PRIMARY_GOAL_COMPLETE, 19, 4, 0x1);
+	set_fg_goal(0, 2, 0, MISSION_COND_PRIMARY_GOAL_COMPLETE, 18, 4, 0x1);
+	set_fg_goal(0, 3, 2, MISSION_COND_PRIMARY_GOAL_COMPLETE, 0, 4, 0x1);
+	run_logic();
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 0), 8);
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 1), 8);
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 2), 1);
+	XVT_ASSERT_INT_EQ(team_goal_state(0, 0, 3), 1);
+	/* 2,000 for the two goals, 10,000 for the primary goal they complete
+	 * and 2,500 for the bonus goal. */
+	XVT_ASSERT_INT_EQ(bonus_score(0), 14500);
+	XVT_ASSERT_TRUE(line_holds("mission.fg_goal_decided fg=0 goal=0 team=0",
+				   "state=\"met_per_craft\" points=0"));
+}
+
+/* The conditions that stand in for a trigger result in the global goal checks:
+ * 1 met (the primary goal complete, which holds once the global flag is
+ * set), 2 failed (the primary goal failed), 4 undecided (the bonus goal
+ * complete, which is open), 0 never, and NO_TRIGGER for the second trigger of
+ * a pair that has none. */
+enum { NO_TRIGGER = -1 };
+
+static void set_trigger(struct mission_trigger *trigger, int result)
+{
+	memset(trigger, 0, sizeof *trigger);
+	switch (result) {
+	case 1:
+		trigger->condition = MISSION_COND_PRIMARY_GOAL_COMPLETE;
+		break;
+	case 2:
+		trigger->condition = MISSION_COND_PRIMARY_GOAL_FAILED;
+		break;
+	case 4:
+		trigger->condition = MISSION_COND_BONUS_GOAL_COMPLETE;
+		break;
+	case 0:
+		trigger->condition = MISSION_COND_NEVER;
+		break;
+	default:
+		trigger->condition = MISSION_COND_NO_CONDITION;
+		break;
+	}
+}
+
+/* Global goal `kind` of team `team`: each pair is its two triggers' results
+ * (see set_trigger) and 1 to join them with OR, and `join` is 1 to join the
+ * pairs with OR; the goal pays `points`. */
+static struct global_goal *set_global_goal(int team, int kind, int first,
+					   int second, int or1, int third,
+					   int fourth, int or2, int join,
+					   int points)
+{
+	struct global_goal *goal = &g_mission_global_goals[team][kind];
+	memset(goal, 0, sizeof *goal);
+	set_trigger(&goal->trigger_pairs[0].triggers[0], first);
+	set_trigger(&goal->trigger_pairs[0].triggers[1], second);
+	goal->trigger_pairs[0].trigger1_or_trigger2 = (uint8_t)or1;
+	set_trigger(&goal->trigger_pairs[1].triggers[0], third);
+	set_trigger(&goal->trigger_pairs[1].triggers[1], fourth);
+	goal->trigger_pairs[1].trigger1_or_trigger2 = (uint8_t)or2;
+	goal->trigger_pair1_or_trigger_pair2 = (uint8_t)join;
+	goal->raw_points = (int8_t)points;
+	return goal;
+}
+
+/* The state of team 3's prevent goal after a pass over the stated goal. */
+static int global_state_of(int first, int second, int or1, int third,
+			   int fourth, int or2, int join)
+{
+	logic_world();
+	g_flight_mission_state.runtime.global_primary_goal_status = 1;
+	set_global_goal(3, 1, first, second, or1, third, fourth, or2, join, 0);
+	run_logic();
+	return g_flight_mission_state.runtime.team_global_goal_state[3][1];
+}
+
+/* A pair of two triggers joined by OR is met when either is met and has
+ * failed when both have; joined by AND it is met when both are and has failed
+ * when either has; otherwise it is undecided (4). A pair whose second trigger
+ * is no condition takes its first trigger's result. Never counts as neither
+ * met nor failed. The global goal's state is its pairs' results joined the
+ * same way. The rows are (first result, second result, joined by OR, result);
+ * each pair is tried as the goal's first and second pair beside a pair that
+ * is met, and the same rows join two pairs of one result each. */
+static void check_logic_global_goal_pairs(void)
+{
+	static const struct {
+		int first;
+		int second;
+		int or_joined;
+		int state;
+	} rows[] = {
+		{1, 1, 0, 1}, {1, 2, 0, 2}, {1, 4, 0, 4}, {2, 1, 0, 2},
+		{2, 2, 0, 2}, {2, 4, 0, 2}, {4, 1, 0, 4}, {4, 2, 0, 2},
+		{4, 4, 0, 4}, {1, 1, 1, 1}, {1, 2, 1, 1}, {1, 4, 1, 1},
+		{2, 1, 1, 1}, {2, 2, 1, 2}, {2, 4, 1, 4}, {4, 1, 1, 1},
+		{4, 2, 1, 4}, {4, 4, 1, 4}, {0, 1, 0, 4}, {0, 2, 0, 2},
+		{0, 1, 1, 1}, {0, 2, 1, 4}, {0, 0, 1, 4},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		XVT_ASSERT_INT_EQ(global_state_of(rows[i].first, rows[i].second,
+						  rows[i].or_joined, 1, 1, 0,
+						  0),
+				  rows[i].state);
+		XVT_ASSERT_INT_EQ(global_state_of(1, 1, 0, rows[i].first,
+						  rows[i].second,
+						  rows[i].or_joined, 0),
+				  rows[i].state);
+		if (i < 18) {
+			XVT_ASSERT_INT_EQ(
+				global_state_of(rows[i].first, rows[i].first, 0,
+						rows[i].second, rows[i].second,
+						0, rows[i].or_joined),
+				rows[i].state);
+		}
+	}
+	static const int singles[][2] = {{1, 1}, {2, 2}, {4, 4}, {0, 4}};
+	for (size_t i = 0; i < sizeof singles / sizeof singles[0]; ++i) {
+		XVT_ASSERT_INT_EQ(global_state_of(singles[i][0], NO_TRIGGER, 0,
+						  1, 1, 0, 0),
+				  singles[i][1]);
+		/* The OR join of the first pair makes no difference. */
+		XVT_ASSERT_INT_EQ(global_state_of(singles[i][0], NO_TRIGGER, 1,
+						  1, 1, 0, 0),
+				  singles[i][1]);
+	}
+}
+
+/* A goal whose four conditions are all always true or never has no state
+ * (0), whatever its pairs are joined by, and logs nothing; one condition that
+ * is anything else gives it a state. */
+static void check_logic_global_goal_fixed_conditions(void)
+{
+	logic_world();
+	struct global_goal *goal = &g_mission_global_goals[2][0];
+	memset(goal, 0, sizeof *goal);
+	goal->trigger_pairs[0].triggers[1].condition = MISSION_COND_NEVER;
+	goal->trigger_pairs[1].triggers[0].condition = MISSION_COND_NEVER;
+	goal->trigger_pair1_or_trigger_pair2 = 1;
+	goal->raw_points = 9;
+	g_flight_mission_state.runtime.team_global_goal_state[2][0] = 4;
+	run_logic();
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.team_global_goal_state[2][0], 0);
+	XVT_ASSERT_INT_EQ(bonus_score(2), 0);
+	XVT_ASSERT_INT_EQ(count_lines("mission.global_goal_state"), 0);
+	goal->trigger_pairs[1].triggers[1].condition =
+		MISSION_COND_ALWAYS_FAILED;
+	run_logic();
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.team_global_goal_state[2][0], 4);
+}
+
+/* The global goal's triggers leave the craft that met each and the craft
+ * counted in global_goal_trigger_counts, rows 0 and 1, by team, kind and
+ * trigger (1 to 4); a trigger that is no condition leaves 0. */
+static void check_logic_global_goal_trigger_counts(void)
+{
+	logic_world();
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 4;
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED] = 3;
+	g_mission_fg_stats[1].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 5;
+	g_mission_fg_stats[1].outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED] = 1;
+	struct global_goal *goal =
+		set_global_goal(4, 2, 4, 4, 0, 4, 4, 0, 0, 0);
+	for (int pair = 0; pair < 2; ++pair) {
+		for (int trigger = 0; trigger < 2; ++trigger) {
+			struct mission_trigger *t =
+				&goal->trigger_pairs[pair].triggers[trigger];
+			t->condition = MISSION_COND_DESTROYED;
+			t->variable_type = GOAL_TARGET_FLIGHT_GROUP;
+			t->variable = (uint8_t)trigger;
+			t->amount = GOAL_AMT_100;
+		}
+	}
+	/* Stale numbers from a pass before are cleared. */
+	memset(g_flight_mission_state.runtime.global_goal_trigger_counts, 0xAB,
+	       sizeof g_flight_mission_state.runtime
+		       .global_goal_trigger_counts);
+	run_logic();
+	uint16_t (*counts)[10][3][4] =
+		g_flight_mission_state.runtime.global_goal_trigger_counts;
+	XVT_ASSERT_INT_EQ(counts[0][4][2][0], 3);
+	XVT_ASSERT_INT_EQ(counts[1][4][2][0], 4);
+	XVT_ASSERT_INT_EQ(counts[0][4][2][1], 1);
+	XVT_ASSERT_INT_EQ(counts[1][4][2][1], 5);
+	XVT_ASSERT_INT_EQ(counts[0][4][2][2], 3);
+	XVT_ASSERT_INT_EQ(counts[1][4][2][2], 4);
+	XVT_ASSERT_INT_EQ(counts[0][4][2][3], 1);
+	XVT_ASSERT_INT_EQ(counts[1][4][2][3], 5);
+	XVT_ASSERT_INT_EQ(counts[0][5][2][0], 0);
+	XVT_ASSERT_INT_EQ(counts[1][4][1][0], 0);
+
+	/* The first pair's second trigger is no condition: its counts are 0. */
+	goal->trigger_pairs[0].triggers[1].condition =
+		MISSION_COND_NO_CONDITION;
+	run_logic();
+	XVT_ASSERT_INT_EQ(counts[0][4][2][0], 3);
+	XVT_ASSERT_INT_EQ(counts[0][4][2][1], 0);
+	XVT_ASSERT_INT_EQ(counts[1][4][2][1], 0);
+	XVT_ASSERT_INT_EQ(counts[1][4][2][3], 5);
+}
+
+/* The team filter of a pair whose second trigger is no condition with a team
+ * variable limits the first trigger's craft to that team, in the first pair
+ * of a global goal. Group 0's one captured-and-departed craft was taken by
+ * team 5. */
+static void check_logic_global_goal_team_filter(void)
+{
+	logic_world();
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 2;
+	g_mission_fg_stats[0].team_captured_departed_count[5] = 1;
+	g_flight_mission_state.runtime.global_primary_goal_status = 1;
+	struct global_goal *goal =
+		set_global_goal(0, 1, 1, NO_TRIGGER, 0, 1, 1, 0, 0, 0);
+	struct mission_trigger *first = &goal->trigger_pairs[0].triggers[0];
+	first->condition = MISSION_COND_CAPTURED_AND_DEPARTED;
+	first->variable_type = GOAL_TARGET_FLIGHT_GROUP;
+	first->variable = 0;
+	first->amount = GOAL_AMT_AT_LEAST_1;
+	struct mission_trigger *filter = &goal->trigger_pairs[0].triggers[1];
+	filter->variable_type = GOAL_TARGET_TEAM;
+	filter->variable = 4;
+	run_logic();
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.team_global_goal_state[0][1], 4);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .global_goal_trigger_counts[0][0][1][0],
+			  0);
+	filter->variable = 5;
+	run_logic();
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.team_global_goal_state[0][1], 1);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .global_goal_trigger_counts[0][0][1][0],
+			  1);
+
+	/* The second pair filters its first trigger the same way; only the
+	 * craft counted of its third trigger are looked at here (the goal's
+	 * state with this pair is the one of issue #34). */
+	struct mission_trigger *third = &goal->trigger_pairs[1].triggers[0];
+	*third = *first;
+	struct mission_trigger *second_filter =
+		&goal->trigger_pairs[1].triggers[1];
+	set_trigger(second_filter, NO_TRIGGER);
+	second_filter->variable_type = GOAL_TARGET_TEAM;
+	second_filter->variable = 4;
+	run_logic();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .global_goal_trigger_counts[0][0][1][2],
+			  0);
+	second_filter->variable = 5;
+	run_logic();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .global_goal_trigger_counts[0][0][1][2],
+			  1);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .global_goal_trigger_counts[1][0][1][2],
+			  2);
+}
+
+/* A goal pays 250 times its raw points when its state changes to met, once,
+ * for a prevent goal as for the others; a goal that fails or stays undecided
+ * pays nothing. The change is logged with the old and the new state, the craft
+ * counts of the first trigger and the points. */
+static void check_logic_global_goal_pays(void)
+{
+	logic_world();
+	g_flight_mission_state.runtime.global_primary_goal_status = 1;
+	set_global_goal(6, 1, 1, NO_TRIGGER, 0, 1, 1, 0, 0, 6);
+	set_global_goal(6, 2, 2, NO_TRIGGER, 0, 1, 1, 0, 0, 6);
+	set_global_goal(7, 1, 1, NO_TRIGGER, 0, 1, 1, 0, 0, -3);
+	set_global_goal(8, 1, 4, NO_TRIGGER, 0, 1, 1, 0, 0, 5);
+	run_logic();
+	XVT_ASSERT_INT_EQ(bonus_score(6), 1500);
+	XVT_ASSERT_INT_EQ(bonus_score(7), -750);
+	XVT_ASSERT_INT_EQ(bonus_score(8), 0);
+	XVT_ASSERT_TRUE(line_holds(
+		"mission.global_goal_state team=6 kind=\"prevent\"",
+		"was=0 now=1 met=0 total=0 points=1500 score=1500 tick=4000"));
+	XVT_ASSERT_INT_EQ(
+		count_lines(
+			"mission.global_goal_state team=6 kind=\"prevent\""),
+		1);
+	XVT_ASSERT_INT_EQ(count_lines("mission.global_goal_state team=8"), 1);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.global_goal_state team=8", "was=0 now=4 "));
+	XVT_ASSERT_TRUE(line_holds(
+		"mission.global_goal_state team=6 kind=\"bonus\"", "now=2 "));
+
+	/* Run again: no change, no second payment, no second line. */
+	g_log_line_count = 0;
+	run_logic();
+	XVT_ASSERT_INT_EQ(bonus_score(6), 1500);
+	XVT_ASSERT_INT_EQ(count_lines("mission.global_goal_state"), 0);
+
+	/* A bonus goal met also earns the 2,500 of the bonus status. */
+	set_global_goal(9, 2, 1, NO_TRIGGER, 0, 1, 1, 0, 0, 2);
+	run_logic();
+	XVT_ASSERT_INT_EQ(bonus_score(9), 3000);
+	XVT_ASSERT_INT_EQ(goal_status(9, 2), 1);
+}
+
+/* The log line of the last in-flight message of this id that was built, or
+ * NULL. Only messages for the local player are built. */
+static const char *built_message(int id)
+{
+	char start[48];
+	snprintf(start, sizeof start, "msg.message_built message=%d ", id);
+	return find_line(start);
+}
+
+static int built_count(int id)
+{
+	char start[48];
+	snprintf(start, sizeof start, "msg.message_built message=%d ", id);
+	return count_lines(start);
+}
+
+/* 1 when the last message of this id was built with these log fields. */
+static int built_with(int id, const char *fields)
+{
+	const char *line = built_message(id);
+	return line != NULL && strstr(line, fields) != NULL;
+}
+
+/* A primary goal of team `team`, in group `fg`, met when the group's craft
+ * are destroyed; it pays `points`. */
+static void primary_goal(int fg, int team, int points)
+{
+	set_fg_goal(fg, 0, 0, MISSION_COND_DESTROYED, GOAL_AMT_100, points,
+		    1u << team);
+}
+
+/* The pass over a goal of a flight group decides the team's goal status. The
+ * rows are the states of two goals of the kind (4 pending, 1 met, 2 failed,
+ * 0 none). Primary and bonus goals are met when every goal is met and at
+ * least one is, failed when any has failed, and open while one is pending. A
+ * prevent goal is met when any one is, whatever the others are. */
+static void check_logic_team_goal_status(void)
+{
+	static const struct {
+		int kind;
+		int first;
+		int second;
+		int status;
+	} rows[] = {
+		{0, 1, 1, 1}, {0, 1, 4, 0}, {0, 4, 4, 0}, {0, 1, 2, 2},
+		{0, 2, 4, 2}, {0, 4, 2, 2}, {0, 2, 2, 2}, {0, 0, 1, 1},
+		{0, 0, 0, 0}, {0, 8, 0, 0}, {2, 1, 1, 1}, {2, 4, 1, 0},
+		{2, 2, 1, 2}, {2, 0, 0, 0}, {1, 1, 4, 1}, {1, 4, 1, 1},
+		{1, 2, 1, 1}, {1, 2, 2, 0}, {1, 4, 4, 0}, {1, 0, 0, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		logic_world();
+		group_craft(0, 0, 0);
+		set_fg_goal(0, 0, rows[i].kind, MISSION_COND_DESTROYED,
+			    GOAL_AMT_100, 0, 0x1);
+		set_fg_goal(0, 1, rows[i].kind, MISSION_COND_DESTROYED,
+			    GOAL_AMT_100, 0, 0x1);
+		g_mission_fg_stats[0].goal_state[0] = (uint8_t)rows[i].first;
+		g_mission_fg_stats[0].goal_state[1] = (uint8_t)rows[i].second;
+		run_logic();
+		XVT_ASSERT_INT_EQ(goal_status(0, rows[i].kind), rows[i].status);
+		XVT_ASSERT_INT_EQ(goal_status(1, rows[i].kind), 0);
+	}
+	/* The status of other kinds is not touched. */
+	logic_world();
+	set_fg_goal(0, 0, 0, MISSION_COND_DESTROYED, GOAL_AMT_100, 0, 0x1);
+	g_mission_fg_stats[0].goal_state[0] = 1;
+	run_logic();
+	XVT_ASSERT_INT_EQ(goal_status(0, 0), 1);
+	XVT_ASSERT_INT_EQ(goal_status(0, 1), 0);
+	XVT_ASSERT_INT_EQ(goal_status(0, 2), 0);
+}
+
+/* A team that has met a goal keeps it, though the pass then finds the goal
+ * failed; a team whose goal failed can still meet it, and the log says so.
+ * Nothing changes while the goals are called unimportant. */
+static void check_logic_team_goal_kept(void)
+{
+	logic_world();
+	set_fg_goal(0, 0, 0, MISSION_COND_DESTROYED, GOAL_AMT_100, 0, 0x1);
+	g_mission_fg_stats[0].goal_state[0] = 1;
+	run_logic();
+	XVT_ASSERT_INT_EQ(goal_status(0, 0), 1);
+	g_mission_fg_stats[0].goal_state[0] = 2;
+	run_logic();
+	XVT_ASSERT_INT_EQ(goal_status(0, 0), 1);
+
+	logic_world();
+	set_fg_goal(0, 0, 0, MISSION_COND_DESTROYED, GOAL_AMT_100, 0, 0x1);
+	g_mission_fg_stats[0].goal_state[0] = 2;
+	run_logic();
+	XVT_ASSERT_INT_EQ(goal_status(0, 0), 2);
+	XVT_ASSERT_TRUE(line_holds(
+		"mission.goal_failed team=0 kind=\"primary\"", "tick=4000"));
+	XVT_ASSERT_TRUE(line_holds("battle.goal_failed team=0 kind=\"primary\"",
+				   "tick=4000"));
+	g_mission_fg_stats[0].goal_state[0] = 1;
+	run_logic();
+	XVT_ASSERT_INT_EQ(goal_status(0, 0), 1);
+	XVT_ASSERT_TRUE(line_holds("mission.goal_met team=0 kind=\"primary\"",
+				   "rank=1 was=\"failed\" tick=4000"));
+
+	for (int type = MISSION_TYPE_COMBAT; type >= MISSION_TYPE_MELEE;
+	     type -= 2) {
+		logic_world();
+		g_mission_header.mission_type = (int8_t)type;
+		g_mission_header.goals_unimportant = 1;
+		set_fg_goal(0, 0, 0, MISSION_COND_DESTROYED, GOAL_AMT_100, 0,
+			    0x1);
+		g_mission_fg_stats[0].goal_state[0] = 1;
+		run_logic();
+		XVT_ASSERT_INT_EQ(goal_status(0, 0), 0);
+		XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+					  .global_primary_goal_status,
+				  0);
+	}
+}
+
+/* A team's primary goal met: it is complete, the team's bonus score takes
+ * 10,000, the completion time is the elapsed seconds, the any-team flag is
+ * set, each player of the team gets finish place 1 (the count of teams that
+ * have completed), and the local player is told: the message of excellent
+ * work with the sender's IFF, then each end-of-mission text of the team that
+ * is not empty, the first with voice 111 and the second with none, as code 1
+ * to 6 (207) or other (196). */
+static void check_logic_primary_met(void)
+{
+	logic_world();
+	set_elapsed(1, 2, 3);
+	connect_local_player(0, 2);
+	g_players[1].participation_state = 1;
+	g_players[1].team = 0;
+	g_players[2].participation_state = 1;
+	g_players[2].team = 1;
+	strcpy(g_mission_teams[0].end_of_mission_messages[0], "Done");
+	strcpy(g_mission_teams[0].end_of_mission_messages[1], "3 more");
+	strcpy(g_mission_teams[0].end_of_mission_messages[2], "unused");
+	primary_goal(0, 0, 2);
+	group_craft(0, 2, 0);
+	run_logic();
+	XVT_ASSERT_INT_EQ(goal_status(0, 0), 1);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.global_primary_goal_status, 1);
+	XVT_ASSERT_INT_EQ(bonus_score(0), 10500);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .team_mission_completion_time_seconds[0],
+			  3723);
+	XVT_ASSERT_INT_EQ(g_players[7].mission_stats.primary_goal_finish_place,
+			  1);
+	XVT_ASSERT_INT_EQ(g_players[1].mission_stats.primary_goal_finish_place,
+			  1);
+	XVT_ASSERT_INT_EQ(g_players[2].mission_stats.primary_goal_finish_place,
+			  0);
+	XVT_ASSERT_TRUE(line_holds("mission.goal_met team=0 kind=\"primary\"",
+				   "rank=1 was=\"open\" tick=4000"));
+	XVT_ASSERT_TRUE(line_holds("battle.goal_met team=0 kind=\"primary\"",
+				   "rank=1 tick=4000"));
+	XVT_ASSERT_TRUE(line_holds(
+		"mission.primary_scored team=0",
+		"hostile=0 points=10000 seconds=3723 score=10500 tick=4000"));
+	XVT_ASSERT_TRUE(line_holds("mission.primary_rank slot=7",
+				   "team=0 rank=1 victory=1 local=1"));
+	XVT_ASSERT_TRUE(line_holds("mission.primary_rank slot=1",
+				   "team=0 rank=1 victory=1 local=0"));
+	XVT_ASSERT_INT_EQ(count_lines("mission.primary_rank"), 2);
+	XVT_ASSERT_INT_EQ(built_count(193), 1);
+	XVT_ASSERT_TRUE(built_with(193, "sender=2 "));
+	XVT_ASSERT_INT_EQ(built_count(196), 1);
+	XVT_ASSERT_TRUE(built_with(196, "length=4 sender=2 voice=111 "));
+	XVT_ASSERT_INT_EQ(built_count(207), 1);
+	XVT_ASSERT_TRUE(built_with(207, "length=6 sender=2 voice=0 "));
+	XVT_ASSERT_INT_EQ(built_count(305), 0);
+
+	/* The completed goal is not counted again. */
+	g_log_line_count = 0;
+	run_logic();
+	XVT_ASSERT_INT_EQ(bonus_score(0), 10500);
+	XVT_ASSERT_INT_EQ(count_lines("mission.primary_scored"), 0);
+}
+
+/* A second team's primary goal met takes finish place 2. The 10,000 points are
+ * not paid in a combat mission when a hostile team has completed already: a
+ * team whose allies include this one is not hostile to it. Any other mission
+ * type pays them whoever completed first. */
+static void check_logic_primary_second_team(void)
+{
+	static const struct {
+		int mission_type;
+		int allied;
+		int hostile;
+		int points;
+	} rows[] = {
+		{MISSION_TYPE_COMBAT, 0, 1, 0},
+		{MISSION_TYPE_COMBAT, 1, 0, 10000},
+		{MISSION_TYPE_MELEE, 0, 0, 10000},
+		{MISSION_TYPE_TRAINING, 0, 0, 10000},
+		{MISSION_TYPE_SIMULATOR_2, 0, 0, 10000},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		logic_world();
+		g_mission_header.mission_type = (int8_t)rows[i].mission_type;
+		g_mission_teams[0].allies[1] = (uint8_t)rows[i].allied;
+		g_players[0].participation_state = 1;
+		g_players[0].team = 0;
+		g_players[3].participation_state = 1;
+		g_players[3].team = 1;
+		primary_goal(0, 0, 0);
+		primary_goal(1, 1, 0);
+		group_craft(0, 2, 0);
+		run_logic();
+		XVT_ASSERT_INT_EQ(bonus_score(0), 10000);
+		XVT_ASSERT_INT_EQ(
+			g_players[0].mission_stats.primary_goal_finish_place,
+			1);
+		group_craft(1, 2, 0);
+		set_elapsed(0, 5, 0);
+		run_logic();
+		XVT_ASSERT_INT_EQ(goal_status(1, 0), 1);
+		XVT_ASSERT_INT_EQ(bonus_score(1), rows[i].points);
+		XVT_ASSERT_INT_EQ(
+			g_players[3].mission_stats.primary_goal_finish_place,
+			2);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.runtime
+				.team_mission_completion_time_seconds[1],
+			300);
+		XVT_ASSERT_TRUE(line_holds(
+			"mission.goal_met team=1 kind=\"primary\"", "rank=2 "));
+		char expected[40];
+		snprintf(expected, sizeof expected, "hostile=%d points=%d ",
+			 rows[i].hostile, rows[i].points);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.primary_scored team=1", expected));
+	}
+}
+
+/* A primary goal met in a melee with more than one player tells the local
+ * player of the team its place too (message 305, the place as an argument);
+ * a local player of another team in a melee or simulator is told whose place
+ * it is (306, the place as the second argument); in a combat mission another
+ * team's player is told nothing. */
+static void check_logic_primary_places(void)
+{
+	static const struct {
+		int mission_type;
+		int own_team;
+		int sent_305;
+		int sent_306;
+	} rows[] = {
+		{MISSION_TYPE_MELEE, 1, 1, 0},
+		{MISSION_TYPE_MELEE, 0, 0, 1},
+		{MISSION_TYPE_SIMULATOR_1, 0, 0, 1},
+		{MISSION_TYPE_COMBAT, 0, 0, 0},
+		{MISSION_TYPE_SIMULATOR_2, 0, 0, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		logic_world();
+		g_mission_header.mission_type = (int8_t)rows[i].mission_type;
+		g_flight_player_count = 2;
+		g_net_session.player_count = 1;
+		strcpy(g_net_session.local_player_info.player_name, "Ace");
+		/* Team 1 completes; the local player is of the team in the
+		 * row, and a player of team 1 is connected. */
+		g_players[2].participation_state = 1;
+		g_players[2].team = 1;
+		connect_local_player(rows[i].own_team, 3);
+		primary_goal(0, 1, 0);
+		group_craft(0, 2, 0);
+		run_logic();
+		XVT_ASSERT_INT_EQ(goal_status(1, 0), 1);
+		XVT_ASSERT_INT_EQ(built_count(305), rows[i].sent_305);
+		XVT_ASSERT_INT_EQ(built_count(306), rows[i].sent_306);
+		if (rows[i].sent_305 != 0) {
+			XVT_ASSERT_INT_EQ(g_msg_arg_table[0], 295);
+		}
+		if (rows[i].sent_306 != 0) {
+			XVT_ASSERT_INT_EQ(g_msg_arg_table[1], 295);
+		}
+	}
+}
+
+/* A primary goal that has failed is told to the local player of the team:
+ * the message that the objectives cannot be finished (206, with the sender's
+ * IFF), then each failure text of the team that is not empty, the first with
+ * voice 113 and the second with none. Nothing is told to another team's
+ * player, nor while the team's prevent goal is already met. */
+static void check_logic_primary_failed(void)
+{
+	static const struct {
+		int local_team;
+		int prevent_status;
+		int told;
+		int mission_type;
+	} rows[] = {{0, 0, 1, MISSION_TYPE_COMBAT},
+		    {1, 0, 0, MISSION_TYPE_COMBAT},
+		    {0, 1, 0, MISSION_TYPE_COMBAT},
+		    {0, 0, 1, MISSION_TYPE_MELEE}};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		logic_world();
+		g_mission_header.mission_type = (int8_t)rows[i].mission_type;
+		connect_local_player(rows[i].local_team, 4);
+		strcpy(g_mission_teams[0].end_of_mission_messages[2], "Lost");
+		strcpy(g_mission_teams[0].end_of_mission_messages[3], "5x");
+		strcpy(g_mission_teams[0].end_of_mission_messages[0], "Won");
+		g_flight_mission_state.runtime.team_goal_status[0][1] =
+			(uint8_t)rows[i].prevent_status;
+		primary_goal(0, 0, 0);
+		group_craft(0, 0, 1);
+		run_logic();
+		XVT_ASSERT_INT_EQ(goal_status(0, 0), 2);
+		XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+					  .global_primary_goal_status,
+				  0);
+		XVT_ASSERT_INT_EQ(bonus_score(0), 0);
+		XVT_ASSERT_INT_EQ(built_count(206), rows[i].told);
+		XVT_ASSERT_INT_EQ(built_count(196), rows[i].told);
+		XVT_ASSERT_INT_EQ(built_count(207), rows[i].told);
+		XVT_ASSERT_INT_EQ(built_count(193), 0);
+		if (rows[i].told != 0) {
+			XVT_ASSERT_TRUE(built_with(206, "sender=4 "));
+			XVT_ASSERT_TRUE(built_with(
+				196, "length=4 sender=4 voice=113 "));
+			XVT_ASSERT_TRUE(
+				built_with(207, "length=2 sender=4 voice=0 "));
+		}
+	}
+
+	/* An empty first text is skipped; the second keeps voice 0. */
+	logic_world();
+	connect_local_player(0, 4);
+	strcpy(g_mission_teams[0].end_of_mission_messages[3], "Last");
+	primary_goal(0, 0, 0);
+	group_craft(0, 0, 1);
+	run_logic();
+	XVT_ASSERT_INT_EQ(built_count(206), 1);
+	XVT_ASSERT_INT_EQ(built_count(207), 0);
+	XVT_ASSERT_INT_EQ(built_count(196), 1);
+	XVT_ASSERT_TRUE(built_with(196, "length=4 sender=4 voice=0 "));
+}
+
+/* A prevent goal met is told to the local player of the team as a failure
+ * (206 and the failure texts), unless the team's primary goal has failed
+ * already; in a combat mission it is not told when the primary goal was met
+ * first. The decision is logged. The goal is logged as met and, for the
+ * battle, as a failed goal. */
+static void check_logic_prevent_met(void)
+{
+	static const struct {
+		int mission_type;
+		int primary_status;
+		int abort;
+		int told;
+	} rows[] = {
+		{MISSION_TYPE_COMBAT, 0, 1, 1},
+		{MISSION_TYPE_COMBAT, 1, 0, 0},
+		{MISSION_TYPE_MELEE, 0, 1, 1},
+		{MISSION_TYPE_COMBAT, 2, -1, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		logic_world();
+		g_mission_header.mission_type = (int8_t)rows[i].mission_type;
+		connect_local_player(0, 4);
+		strcpy(g_mission_teams[0].end_of_mission_messages[2], "Lost");
+		strcpy(g_mission_teams[0].end_of_mission_messages[3], "6 gone");
+		g_flight_mission_state.runtime.team_goal_status[0][0] =
+			(uint8_t)rows[i].primary_status;
+		set_fg_goal(0, 0, 1, MISSION_COND_DESTROYED, GOAL_AMT_100, 0,
+			    1);
+		group_craft(0, 2, 0);
+		run_logic();
+		XVT_ASSERT_INT_EQ(goal_status(0, 1), 1);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.goal_met team=0 kind=\"prevent\"",
+				   "rank=1 was=\"open\" tick=4000"));
+		XVT_ASSERT_TRUE(
+			line_holds("battle.goal_failed team=0 kind=\"prevent\"",
+				   "tick=4000"));
+		XVT_ASSERT_INT_EQ(count_lines("battle.goal_met"), 0);
+		XVT_ASSERT_INT_EQ(built_count(206), rows[i].told);
+		XVT_ASSERT_INT_EQ(built_count(196), rows[i].told);
+		XVT_ASSERT_INT_EQ(built_count(207), rows[i].told);
+		if (rows[i].told != 0) {
+			XVT_ASSERT_TRUE(built_with(
+				196, "length=4 sender=4 voice=113 "));
+			XVT_ASSERT_TRUE(
+				built_with(207, "length=6 sender=4 voice=0 "));
+		}
+		XVT_ASSERT_INT_EQ(count_lines("mission.prevent_told"),
+				  rows[i].abort < 0 ? 0 : 1);
+		if (rows[i].abort >= 0) {
+			char fields[40];
+			snprintf(fields, sizeof fields, "team=0 abort=%d",
+				 rows[i].abort);
+			XVT_ASSERT_TRUE(line_holds(
+				"mission.prevent_told slot=7", fields));
+		}
+	}
+}
+
+/* A primary goal met after the team's prevent goal in a combat mission (or
+ * in the training exercises' sequence, in any type) is not told as a
+ * victory: the rebels (team 0) are told of a draw (208), any other team
+ * too (209). */
+static void check_logic_primary_draw(void)
+{
+	static const struct {
+		int mission_type;
+		int team;
+		int directory;
+		int sequence;
+		int victory;
+		int draw_message;
+	} rows[] = {
+		{MISSION_TYPE_COMBAT, 0, 5, 0, 0, 208},
+		{MISSION_TYPE_COMBAT, 1, 5, 0, 0, 209},
+		{MISSION_TYPE_MELEE, 0, 5, 0, 1, 0},
+		{MISSION_TYPE_MELEE, 1, 0, 1, 0, 209},
+		{MISSION_TYPE_MELEE, 0, 0, 1, 0, 208},
+		{MISSION_TYPE_MELEE, 0, 0, 0, 1, 0},
+		{MISSION_TYPE_MELEE, 0, 5, 1, 1, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		logic_world();
+		g_mission_header.mission_type = (int8_t)rows[i].mission_type;
+		g_pilot_data.mission_directory_id =
+			(mission_directory_id)rows[i].directory;
+		g_pilot_data.mission_sequence_active = rows[i].sequence;
+		connect_local_player(rows[i].team, 2);
+		g_flight_mission_state.runtime
+			.team_goal_status[rows[i].team][1] = 1;
+		primary_goal(0, rows[i].team, 0);
+		group_craft(0, 2, 0);
+		run_logic();
+		XVT_ASSERT_INT_EQ(goal_status(rows[i].team, 0), 1);
+		char fields[40];
+		snprintf(fields, sizeof fields, "victory=%d local=1",
+			 rows[i].victory);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.primary_rank slot=7", fields));
+		XVT_ASSERT_INT_EQ(built_count(193), rows[i].victory);
+		XVT_ASSERT_INT_EQ(built_count(208),
+				  rows[i].draw_message == 208);
+		XVT_ASSERT_INT_EQ(built_count(209),
+				  rows[i].draw_message == 209);
+	}
+}
+
+/* A prevent goal met after the team's primary goal in a combat mission is
+ * told as the other side of the draw: 210 for the rebels (team 0), 211 for
+ * any other team, and the abort message is not sent. */
+static void check_logic_prevent_draw(void)
+{
+	static const struct {
+		int team;
+		int message;
+	} rows[] = {{0, 210}, {1, 211}};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		logic_world();
+		connect_local_player(rows[i].team, 2);
+		g_flight_mission_state.runtime
+			.team_goal_status[rows[i].team][0] = 1;
+		set_fg_goal(0, 0, 1, MISSION_COND_DESTROYED, GOAL_AMT_100, 0,
+			    1u << rows[i].team);
+		group_craft(0, 2, 0);
+		run_logic();
+		XVT_ASSERT_INT_EQ(goal_status(rows[i].team, 1), 1);
+		XVT_ASSERT_INT_EQ(built_count(rows[i].message), 1);
+		XVT_ASSERT_INT_EQ(built_count(206), 0);
+	}
+}
+
+/* A bonus goal met: the team's bonus score takes 2,500, the any-team bonus
+ * flag is set, the local player of the team is told the team's bonus texts
+ * (the first with voice 112, the second with none), and the sender is its
+ * IFF; another team's player is told nothing. */
+static void check_logic_bonus_met(void)
+{
+	/* An empty text is skipped, and the next one takes the voice of the
+	 * second text, none. */
+	logic_world();
+	connect_local_player(0, 5);
+	strcpy(g_mission_teams[0].end_of_mission_messages[5], "Only");
+	set_fg_goal(0, 0, 2, MISSION_COND_DESTROYED, GOAL_AMT_100, 1, 0x1);
+	group_craft(0, 2, 0);
+	run_logic();
+	XVT_ASSERT_INT_EQ(built_count(207), 0);
+	XVT_ASSERT_INT_EQ(built_count(196), 1);
+	XVT_ASSERT_TRUE(built_with(196, "length=4 sender=5 voice=0 "));
+
+	for (int local_team = 0; local_team < 2; ++local_team) {
+		logic_world();
+		connect_local_player(local_team, 5);
+		strcpy(g_mission_teams[0].end_of_mission_messages[4], "Extra");
+		strcpy(g_mission_teams[0].end_of_mission_messages[5], "2 more");
+		set_fg_goal(0, 0, 2, MISSION_COND_DESTROYED, GOAL_AMT_100, 1,
+			    0x1);
+		group_craft(0, 2, 0);
+		run_logic();
+		XVT_ASSERT_INT_EQ(goal_status(0, 2), 1);
+		XVT_ASSERT_INT_EQ(bonus_score(0), 2750);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.runtime.global_bonus_goal_status,
+			1);
+		XVT_ASSERT_TRUE(line_holds("mission.bonus_scored team=0",
+					   "points=2500 score=2750 tick=4000"));
+		XVT_ASSERT_TRUE(
+			line_holds("battle.goal_met team=0 kind=\"bonus\"",
+				   "rank=1 tick=4000"));
+		XVT_ASSERT_INT_EQ(built_count(193), 0);
+		XVT_ASSERT_INT_EQ(built_count(196), local_team == 0);
+		XVT_ASSERT_INT_EQ(built_count(207), local_team == 0);
+		if (local_team == 0) {
+			XVT_ASSERT_TRUE(built_with(
+				196, "length=5 sender=5 voice=112 "));
+			XVT_ASSERT_TRUE(
+				built_with(207, "length=6 sender=5 voice=0 "));
+		}
+	}
+}
+
+/* In a melee the prevent goal of a team whose primary goal is met does not
+ * count; in a combat mission it does. */
+static void check_logic_melee_prevent_ignored(void)
+{
+	static const struct {
+		int mission_type;
+		int primary_status;
+		int status;
+	} rows[] = {
+		{MISSION_TYPE_MELEE, 1, 0},
+		{MISSION_TYPE_MELEE, 0, 1},
+		{MISSION_TYPE_COMBAT, 1, 1},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		logic_world();
+		g_mission_header.mission_type = (int8_t)rows[i].mission_type;
+		g_flight_mission_state.runtime.team_goal_status[0][0] =
+			(uint8_t)rows[i].primary_status;
+		set_fg_goal(0, 0, 1, MISSION_COND_DESTROYED, GOAL_AMT_100, 0,
+			    1);
+		group_craft(0, 2, 0);
+		run_logic();
+		XVT_ASSERT_INT_EQ(goal_status(0, 1), rows[i].status);
+	}
+}
+
+/* ---- the scripted messages --------------------------------------------- */
+
+/* Message `index` of the mission: its text, the teams that receive it (the
+ * bit set), the delay in 5-second units and whether its first trigger is
+ * met (1) or failed (-1); its other triggers are always true. */
+static struct mission_message *set_message(int index, const char *text,
+					   unsigned int teams, int delay,
+					   int first_result)
+{
+	struct mission_message *message = &g_mission_messages[index];
+	memset(message, 0, sizeof *message);
+	snprintf(message->message, sizeof message->message, "%s", text);
+	for (int team = 0; team < 10; ++team) {
+		message->sent_to_team[team] = (teams >> team) & 1u;
+	}
+	message->delay5s = (uint8_t)delay;
+	if (first_result < 0) {
+		message->trigger_pairs[0].triggers[0].condition =
+			MISSION_COND_ALWAYS_FAILED;
+	}
+	return message;
+}
+
+static void run_scan(void)
+{
+	g_flight_global_countdown_timers.mission_message_scan_timer = 0;
+	g_flight_global_countdown_timers.mission_goal_evaluation_timer = 99;
+	mission_update_logic();
+}
+
+/* The message scan runs only when its timer is 0 or less and sets it to 1,180
+ * ticks; a pass of the goals alone leaves it be. */
+static void check_logic_message_scan_timer(void)
+{
+	logic_world();
+	g_mission_header.num_messages = 1;
+	set_message(0, "Hello", 0x1, 0, 1);
+	g_flight_global_countdown_timers.mission_message_scan_timer = 1;
+	g_flight_global_countdown_timers.mission_goal_evaluation_timer = 99;
+	mission_update_logic();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_triggered[0], 0);
+	XVT_ASSERT_INT_EQ(
+		g_flight_global_countdown_timers.mission_message_scan_timer, 1);
+	XVT_ASSERT_INT_EQ(
+		g_flight_global_countdown_timers.mission_goal_evaluation_timer,
+		99);
+	/* A timer past 0x7FFF is below 0 as a signed number. */
+	g_flight_global_countdown_timers.mission_message_scan_timer = 0xFFFF;
+	mission_update_logic();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_triggered[0], 1);
+	XVT_ASSERT_INT_EQ(
+		g_flight_global_countdown_timers.mission_message_scan_timer,
+		1180);
+}
+
+/* A message whose trigger pairs are met is marked triggered, takes its delay
+ * as its countdown and is logged; with no delay and the local player's team
+ * among its recipients it is shown at once: message 207 with the message as
+ * its text and the voice of its number plus 95 for the first 16 messages,
+ * none for later ones. */
+static void check_logic_message_shown(void)
+{
+	logic_world();
+	connect_local_player(1, 2);
+	g_mission_header.num_messages = 18;
+	for (int i = 0; i < 18; ++i) {
+		set_message(i, "unused", 0, 0, -1);
+	}
+	set_message(0, "Hello", 0x2, 0, 1);
+	set_message(15, "Sixteenth", 0x2, 0, 1);
+	set_message(17, "Late", 0x3, 0, 1);
+	set_message(3, "Other team", 0x1, 0, 1);
+	run_scan();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_triggered[0], 1);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_triggered[1], 0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_triggered[3], 1);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_delay_countdown[0], 0);
+	XVT_ASSERT_TRUE(line_holds(
+		"mission.message_triggered message=0 pair1=1 pair2=1 delay=0",
+		"recipient=1 tick=4000"));
+	XVT_ASSERT_TRUE(line_holds("mission.message_triggered message=3 ",
+				   "recipient=0 "));
+	XVT_ASSERT_INT_EQ(built_count(207), 3);
+	XVT_ASSERT_INT_EQ(
+		count_lines(
+			"msg.message_built message=207 type=3 length=5 sender=99 voice=95 "),
+		1);
+	XVT_ASSERT_INT_EQ(
+		count_lines(
+			"msg.message_built message=207 type=3 length=9 sender=99 voice=110 "),
+		1);
+	XVT_ASSERT_INT_EQ(
+		count_lines(
+			"msg.message_built message=207 type=3 length=4 sender=99 voice=0 "),
+		1);
+	XVT_ASSERT_INT_EQ(g_msg_arg_table[0], 0x8000);
+}
+
+/* A message with a delay of 2 shows on the third scan, once: the first scan
+ * triggers it, each later scan takes one off its countdown and logs it, and
+ * it is shown when the countdown reaches 0; a countdown at 0 is left alone. A
+ * team that is not a recipient never sees it. A message after the 16th has no
+ * voice. */
+static void check_logic_message_delay(void)
+{
+	logic_world();
+	connect_local_player(1, 2);
+	g_mission_header.num_messages = 18;
+	for (int i = 0; i < 18; ++i) {
+		set_message(i, "unused", 0, 0, -1);
+	}
+	set_message(0, "Slow", 0x2, 2, 1);
+	set_message(1, "Not for us", 0x1, 1, 1);
+	set_message(17, "Delayed", 0x2, 1, 1);
+	run_scan();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_delay_countdown[0], 2);
+	XVT_ASSERT_INT_EQ(built_count(207), 0);
+	XVT_ASSERT_INT_EQ(count_lines("mission.message_delay"), 0);
+	run_scan();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_delay_countdown[0], 1);
+	XVT_ASSERT_TRUE(line_holds("mission.message_delay message=0 left=1",
+				   "recipient=1 tick=4000"));
+	XVT_ASSERT_TRUE(line_holds("mission.message_delay message=1 left=0",
+				   "recipient=0 "));
+	XVT_ASSERT_INT_EQ(built_count(207), 1);
+	XVT_ASSERT_TRUE(built_with(207, "length=7 sender=99 voice=0 "));
+	run_scan();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.message_delay_countdown[0], 0);
+	XVT_ASSERT_INT_EQ(built_count(207), 2);
+	XVT_ASSERT_TRUE(built_with(207, "length=4 sender=99 voice=95 "));
+	run_scan();
+	XVT_ASSERT_INT_EQ(built_count(207), 2);
+	XVT_ASSERT_INT_EQ(count_lines("mission.message_delay message=0 "), 2);
+	XVT_ASSERT_INT_EQ(count_lines("mission.message_delay message=1 "), 1);
+}
+
+/* A message's two trigger pairs are joined by OR when its join is 1, else by
+ * AND: with the first pair failed and the second met, OR triggers it and AND
+ * does not. */
+static void check_logic_message_pair_join(void)
+{
+	for (int join = 0; join < 2; ++join) {
+		logic_world();
+		g_mission_header.num_messages = 1;
+		struct mission_message *message =
+			set_message(0, "Joined", 0x1, 0, -1);
+		message->trigger_pair1_or_trigger_pair2 = (uint8_t)join;
+		run_scan();
+		XVT_ASSERT_INT_EQ(g_flight_mission_state.message_triggered[0],
+				  join);
+	}
+}
+
+/* Known failure global_goal_fourth_condition, issue #34: when a global goal's
+ * second pair has no second condition, the pair's result is the result of its
+ * first condition, and the goal's state is the two pairs' results joined as
+ * the goal says. Here both pairs have failed, joined by OR: the goal has
+ * failed. The code stores the second pair's result in the first pair's place
+ * and reads the second pair's result without setting it, so the state depends
+ * on what the earlier goal left in that place (a met pair, here, which makes
+ * the OR join met). */
+static void check_logic_global_goal_fourth_condition(void)
+{
+	logic_world();
+	g_flight_mission_state.runtime.global_primary_goal_status = 1;
+	/* Team 0's primary goal runs first and leaves a met second pair. */
+	set_global_goal(0, 0, 4, NO_TRIGGER, 0, 1, 1, 0, 0, 0);
+	set_global_goal(0, 1, 2, NO_TRIGGER, 0, 2, NO_TRIGGER, 0, 1, 0);
+	run_logic();
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.team_global_goal_state[0][1], 2);
+}
+
 int main(int argc, char **argv)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -6780,6 +8126,8 @@ int main(int argc, char **argv)
 			{"craft_type_past_table",
 			 check_init_craft_type_in_range},
 			{"ai_skill_past_table", check_spawn_ai_skill_in_table},
+			{"global_goal_fourth_condition",
+			 check_logic_global_goal_fourth_condition},
 		};
 		for (size_t i = 0;
 		     i < sizeof known_failures / sizeof known_failures[0];
@@ -6904,5 +8252,32 @@ int main(int argc, char **argv)
 	check_static_debris_beside_object();
 	check_static_other_genus();
 	check_spawn_from_mothership();
+	check_logic_proving_grounds();
+	check_logic_connected_players();
+	check_logic_fg_goal_decided();
+	check_logic_fg_goal_fixed_events();
+	check_logic_fg_goal_time_limit();
+	check_logic_fg_goal_unavailable_group();
+	check_logic_fg_goal_per_craft();
+	check_logic_global_goal_pairs();
+	check_logic_global_goal_fixed_conditions();
+	check_logic_global_goal_trigger_counts();
+	check_logic_global_goal_team_filter();
+	check_logic_global_goal_pays();
+	check_logic_team_goal_status();
+	check_logic_team_goal_kept();
+	check_logic_primary_met();
+	check_logic_primary_second_team();
+	check_logic_primary_places();
+	check_logic_primary_failed();
+	check_logic_prevent_met();
+	check_logic_primary_draw();
+	check_logic_prevent_draw();
+	check_logic_bonus_met();
+	check_logic_melee_prevent_ignored();
+	check_logic_message_scan_timer();
+	check_logic_message_shown();
+	check_logic_message_delay();
+	check_logic_message_pair_join();
 	return 0;
 }
