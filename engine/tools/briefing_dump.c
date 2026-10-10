@@ -79,18 +79,15 @@
 #define _DEFAULT_SOURCE
 
 #include <SDL3/SDL_log.h>
-#include <dirent.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 #include "asset_dump.h"
+#include "briefing_common.h"
 #include "xvt/audio/frontend_sound.h"
 #include "xvt/frontend/briefing_map.h"
 #include "xvt/frontend/briefing_script.h"
@@ -118,8 +115,6 @@ enum {
 	YELLOW_SENTINEL = 0x30000,
 	RUN_CAPACITY = 640,
 };
-
-static const char LINK_NAME[] = "zzbriefing.tie";
 
 /* The setup screen's map rectangle, (84, 96) to (443, 335), moved to the
  * panel's own top left. */
@@ -149,8 +144,6 @@ static struct {
 static int g_grid_major;
 static int g_grid_minor;
 static int g_unknown_glyphs;
-
-static struct mission_list_entry g_list_entry;
 
 static uint32_t crc32_of(const char *bytes, size_t length)
 {
@@ -422,87 +415,10 @@ int __wrap_frontend_sound_play_ui_sound(const char *sound_name,
 }
 
 /* In place of the training list: one entry, the linked mission. */
-void __wrap_mission_setup_load_mission_list(int mission_directory_id);
-void __wrap_mission_setup_load_mission_list(int mission_directory_id)
-{
-	(void)mission_directory_id;
-	memset(&g_list_entry, 0, sizeof(g_list_entry));
-	snprintf(g_list_entry.file_name, sizeof(g_list_entry.file_name), "%s",
-		 LINK_NAME);
-	g_list_entry.mission_idx = 0;
-	g_mission_list = &g_list_entry;
-	g_mission_count = 1;
-}
-
-/* Makes the folder of links the header comment describes and writes its
- * path into folder. Returns 0, printing why, when it cannot. */
-static int make_link_folder(const char *root, const char *file, char *folder,
-			    size_t size)
-{
-	char real_root[PATH_MAX];
-	char real_file[PATH_MAX];
-	char from[PATH_MAX * 2];
-	char to[PATH_MAX * 2];
-	if (realpath(root, real_root) == NULL ||
-	    realpath(file, real_file) == NULL) {
-		fprintf(stderr, "briefing_dump: %s or %s: not found\n", root,
-			file);
-		return 0;
-	}
-	snprintf(folder, size, "/tmp/briefing_dump_root_XXXXXX");
-	if (mkdtemp(folder) == NULL) {
-		fprintf(stderr,
-			"briefing_dump: cannot make a folder in /tmp\n");
-		return 0;
-	}
-	DIR *listing = opendir(real_root);
-	if (listing == NULL) {
-		fprintf(stderr, "briefing_dump: %s: cannot list\n", real_root);
-		return 0;
-	}
-	const struct dirent *entry;
-	while ((entry = readdir(listing)) != NULL) {
-		if (strcmp(entry->d_name, ".") == 0 ||
-		    strcmp(entry->d_name, "..") == 0 ||
-		    strcasecmp(entry->d_name, "train") == 0) {
-			continue;
-		}
-		snprintf(from, sizeof(from), "%s/%s", real_root, entry->d_name);
-		snprintf(to, sizeof(to), "%s/%s", folder, entry->d_name);
-		if (symlink(from, to) != 0) {
-			closedir(listing);
-			fprintf(stderr, "briefing_dump: cannot link %s\n", to);
-			return 0;
-		}
-	}
-	closedir(listing);
-	snprintf(to, sizeof(to), "%s/train", folder);
-	if (mkdir(to, 0700) != 0) {
-		fprintf(stderr, "briefing_dump: cannot make %s\n", to);
-		return 0;
-	}
-	snprintf(to, sizeof(to), "%s/train/%s", folder, LINK_NAME);
-	if (symlink(real_file, to) != 0) {
-		fprintf(stderr, "briefing_dump: cannot link %s\n", to);
-		return 0;
-	}
-	return 1;
-}
-
-/* Points the pilot at the linked mission for team; datapad sounds on. */
-static void set_pilot(int team)
-{
-	g_pilot_data.team = team;
-	g_pilot_data.mission_directory_id = (mission_directory_id)0;
-	g_pilot_data.mission_description_ids[0] = 0;
-	g_game_config.sfx_datapad_enabled = 1;
-	g_game_config.sfx_datapad_volume = 8;
-}
-
 static int dump_teams(void)
 {
 	for (int team = 0; team < 10; ++team) {
-		set_pilot(team);
+		briefing_set_pilot(team, MISSION_DIRECTORY_TRAINING_EXERCISES);
 		frontend_mission_init_for_briefing();
 		g_briefing_script.duration_frames = INT16_MIN;
 		frontend_mission_load_current_with_briefing();
@@ -515,47 +431,6 @@ static int dump_teams(void)
 		}
 	}
 	return 1;
-}
-
-static void print_state(int frame)
-{
-	printf("state %d play=%d t=%d c=%d,%d tc=%d,%d s=%d,%d ts=%d,%d page=%d last=%d slots=%d:%d,%d:%d markers=",
-	       frame, (int)g_briefing_playback_active,
-	       (int)g_briefing_script.current_frame,
-	       (int)g_briefing_map_center.x, (int)g_briefing_map_center.y,
-	       (int)g_briefing_map_target_center.x,
-	       (int)g_briefing_map_target_center.y, (int)g_briefing_map_scale.x,
-	       (int)g_briefing_map_scale.y, (int)g_briefing_map_target_scale.x,
-	       (int)g_briefing_map_target_scale.y, g_briefing_text_page_number,
-	       g_briefing_last_narrated_text_block_idx,
-	       (int)g_briefing_text_slot_active[0],
-	       (int)g_briefing_text_slot_block_idx[0],
-	       (int)g_briefing_text_slot_active[1],
-	       (int)g_briefing_text_slot_block_idx[1]);
-	const char *separator = "";
-	for (int slot = 0; slot < 8; ++slot) {
-		if (g_briefing_map_fg_marker_active[slot] != 0) {
-			printf("%s%d:%d:%d", separator, slot,
-			       (int)g_briefing_map_fg_marker_flight_group_idx
-				       [slot],
-			       (int)g_briefing_map_fg_marker_age[slot]);
-			separator = ";";
-		}
-	}
-	printf("%s labels=", *separator == '\0' ? "-" : "");
-	separator = "";
-	for (int slot = 0; slot < 8; ++slot) {
-		if (g_briefing_map_label_active[slot] != 0) {
-			printf("%s%d:%d:%d:%d:%d:%d", separator, slot,
-			       (int)g_briefing_map_label_text_idx[slot],
-			       (int)g_briefing_map_label_x[slot],
-			       (int)g_briefing_map_label_y[slot],
-			       (int)g_briefing_map_label_style[slot],
-			       (int)g_briefing_map_label_age[slot]);
-			separator = ";";
-		}
-	}
-	printf("%s\n", *separator == '\0' ? "-" : "");
 }
 
 /* The state less the center, the zoom and the ages, written into shape. */
@@ -613,7 +488,7 @@ static void run_frame(int list)
 	g_run.open = 0;
 	mission_briefing_draw_map_viewport(&viewport, &clip, 1);
 	close_run();
-	print_state(g_frame);
+	briefing_print_state(g_frame);
 	printf("draw %d crc=%08x records=%d\n", g_frame,
 	       (unsigned)crc32_of(g_records, g_records_length), g_record_count);
 	shape_of_state(shape, sizeof(shape));
@@ -706,7 +581,7 @@ static int dump_steps(const char *file, int team, int count, char **steps)
 	int list_all = 0;
 	int list_next = 0;
 
-	set_pilot(team);
+	briefing_set_pilot(team, MISSION_DIRECTORY_TRAINING_EXERCISES);
 	frontend_mission_load_for_briefing();
 	printf("kind briefing\nfile ");
 	asset_dump_quote(file, strlen(file));
@@ -717,7 +592,7 @@ static int dump_steps(const char *file, int team, int count, char **steps)
 	       frontend_text_get_font_height(FONT_SIZE), count_shared_glyphs());
 	printf("panel %d %d %d %d\n", PANEL_RECT.left, PANEL_RECT.top,
 	       PANEL_RECT.right, PANEL_RECT.bottom);
-	print_state(0);
+	briefing_print_state(0);
 	for (int i = 0; i < count; ++i) {
 		if (strcmp(steps[i], "run") == 0) {
 			long frames = strtol(steps[++i], NULL, 10);
@@ -731,7 +606,7 @@ static int dump_steps(const char *file, int team, int count, char **steps)
 			int offered = press(steps[i]);
 			printf("press %d %s%s\n", g_frame, steps[i],
 			       offered ? "" : " ignored");
-			print_state(g_frame);
+			briefing_print_state(g_frame);
 			list_next = 1;
 		}
 	}
@@ -754,7 +629,9 @@ int main(int argc, char **argv)
 	}
 	xvt_log_set_level(AERON_LOG_DEBUG);
 	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
-	if (!make_link_folder(argv[1], argv[2], folder, sizeof(folder)) ||
+	if (!briefing_make_link_folder("briefing_dump", argv[1], argv[2],
+				       MISSION_DIRECTORY_TRAINING_EXERCISES,
+				       folder, sizeof(folder)) ||
 	    !asset_dump_bind_root("briefing_dump", folder) ||
 	    !asset_dump_open_front_state()) {
 		return 1;

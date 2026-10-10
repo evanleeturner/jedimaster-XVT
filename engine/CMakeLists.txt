@@ -283,9 +283,11 @@ if(XVT_BUILD_TOOLS)
     # Aeron's own sources declare.
     target_include_directories(movie_dump PRIVATE aeron/src)
     # briefing_dump takes the engine's drawing and sound calls with the GNU
-    # linker's --wrap, so it builds only on Linux.
+    # linker's --wrap, and briefing_pixels its sound, CD music, pilot file
+    # and settings file calls, so they build only on Linux.
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        add_executable(briefing_dump tools/briefing_dump.c tools/asset_dump.c)
+        add_executable(briefing_dump tools/briefing_dump.c
+            tools/briefing_common.c tools/asset_dump.c)
         target_link_libraries(briefing_dump PRIVATE xvt_core)
         target_compile_options(briefing_dump PRIVATE -Wall -Wextra -Wpedantic)
         foreach(symbol IN ITEMS
@@ -300,6 +302,24 @@ if(XVT_BUILD_TOOLS)
                 frontend_sound_play_ui_sound
                 mission_setup_load_mission_list)
             target_link_options(briefing_dump PRIVATE "LINKER:--wrap=${symbol}")
+        endforeach()
+        add_executable(briefing_pixels tools/briefing_pixels.c
+            tools/briefing_common.c tools/asset_dump.c)
+        target_link_libraries(briefing_pixels PRIVATE xvt_core)
+        target_compile_options(briefing_pixels PRIVATE -Wall -Wextra -Wpedantic)
+        foreach(symbol IN ITEMS
+                frontend_sound_load_list
+                frontend_sound_play_ui_sound
+                cd_audio_initialize
+                cd_audio_enable_loop_current_track
+                cd_audio_set_aux_volume
+                cd_audio_play_track_from_time
+                cd_audio_stop_current_track
+                pilot_find_and_load_by_name
+                pilot_parse_command_line
+                xvt_config_apply
+                mission_setup_load_mission_list)
+            target_link_options(briefing_pixels PRIVATE "LINKER:--wrap=${symbol}")
         endforeach()
     endif()
 endif()
