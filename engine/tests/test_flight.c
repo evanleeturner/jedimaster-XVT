@@ -4709,6 +4709,1134 @@ static void check_target_warhead(void)
 	}
 }
 
+/* ---- Craft steering and speed, once per tick -------------------------- */
+
+enum {
+	CRAFT_A = 4, /* The craft under test. */
+	CRAFT_B = 6, /* A second craft with the same set-up. */
+	CRAFT_C = 8, /* The craft the first one may carry. */
+	ONE_SECOND = 236,
+	RULE_TURN = 1,
+	RULE_ROLL = 2,
+	RULE_PITCH = 4,
+	RULE_SPEED = 8,
+	RULE_PLAYER = 16,
+	RULE_REST = 32,
+	RULE_FROZEN = 64,
+};
+
+/* One set-up of the craft in slot CRAFT_A. A field left at zero is the quiet
+ * value: an active X-wing, an AI pilot with every system working, full
+ * throttle, 1,000 top speed, every recharge setting at maintenance, power to
+ * the engines doubling its speed, and a one-second tick. Every steering rate
+ * is rate, with no acceleration or step limit. */
+struct steer_case {
+	const char *name;
+	const char *const *lines;
+	int player, no_type, type, family, only, twin, kind;
+	int no_systems, no_engines, held;
+	uint16_t yaw, pitch, roll;
+	int roll_state, pitch_state, turn_state, through_loop, climb, dive;
+	uint16_t t_roll, t_z, t_xy;
+	int aim_z, world_z, rate, bank;
+	int speed, throttle, commanded, max_speed, levels, overdrive_off;
+	int elapsed, game_time, stamp, carried, carried_none, move_z;
+	int timer, timer2;
+	unsigned rules;
+	int want_speed;
+	/* Values the log lines do not carry, checked when the bit is set. */
+	unsigned check;
+	int w_roll_state, w_pitch_state, w_dive, w_climb, w_target_z;
+	int w_craft_pitch, w_remainder, w_carried_pitch;
+};
+
+enum {
+	CK_ROLL_STATE = 1,
+	CK_PITCH_STATE = 2,
+	CK_DIVE = 4,
+	CK_CLIMB = 8,
+	CK_TARGET_Z = 16,
+	CK_CRAFT_PITCH = 32,
+	CK_REMAINDER = 64,
+	CK_CARRIED_PITCH = 128,
+	CK_ALL_STATES = CK_ROLL_STATE | CK_PITCH_STATE | CK_DIVE | CK_CLIMB,
+};
+
+static void steer_craft(int obj, const struct steer_case *c)
+{
+	struct craft_data *craft = &g_test_craft[obj];
+	struct object_record *object = &g_test_objects[obj];
+	struct ai_flight_state *ai = &craft->ai_flight;
+	int level = c->levels ? c->levels - 1 : POWER_RECHARGE_MAINTENANCE;
+
+	if (c->player) {
+		fly(PILOT, obj, 0);
+	}
+	object->object_type = c->no_type ? 0 : (c->type ? c->type : TEST_XWING);
+	object->genus_id = 1;
+	object->world_x = 5000 + 300 * obj;
+	object->world_y = 7000 - 200 * obj;
+	object->world_z = c->world_z;
+	object->yaw = c->yaw;
+	object->pitch = c->pitch;
+	object->roll = c->roll;
+	g_test_mobiles[obj].family = (uint8_t)c->family;
+	g_test_mobiles[obj].speed = (uint16_t)c->speed;
+	g_test_mobiles[obj].move_z = c->move_z;
+	g_test_mobiles[obj].sim_state_timestamp = c->stamp;
+	craft->model_index = (uint8_t)get_model_index_from_type(TEST_XWING);
+	craft->working_subsystems = c->no_systems ? 0 : 0x03FF;
+	if (c->no_engines) {
+		craft->working_subsystems &=
+			(uint16_t)~CRAFT_SUBSYSTEM_FLAG_ENGINES;
+	}
+	craft->beam_effect_accum[1] = (uint8_t)c->held;
+	craft->object_kind = (craft_object_kind)c->kind;
+	craft->pitch = c->pitch;
+	craft->throttle_speed = (uint16_t)(c->throttle ? c->throttle : 0xFFFF);
+	craft->commanded_speed = (int16_t)c->commanded;
+	craft->engine_overdrive_off = (uint16_t)c->overdrive_off;
+	craft->shield_recharge_level = level;
+	craft->beam_recharge_level = level;
+	craft->laser_recharge_level = level;
+	craft->carried_object_index = UINT16_MAX;
+	ai->max_speed_cache = (int16_t)(c->max_speed ? c->max_speed : 1000);
+	ai->roll_state = (uint8_t)c->roll_state;
+	ai->pitch_state = (uint8_t)c->pitch_state;
+	ai->turn_state = (uint8_t)c->turn_state;
+	ai->pitch_through_loop = (uint8_t)c->through_loop;
+	ai->climb_state = (uint8_t)c->climb;
+	ai->dive_state = (uint8_t)c->dive;
+	ai->roll_rate = ai->pitch_rate = ai->turn_rate = (int16_t)c->rate;
+	ai->roll_accel = ai->pitch_accel = ai->turn_accel = (int16_t)0xFFFF;
+	ai->roll_step = 0xFFFF;
+	ai->turn_step = (int16_t)0xFFFF;
+	ai->pitch_step_scale = 0xFFFF;
+	craft->ai_controller.target_roll = c->t_roll;
+	craft->ai_controller.target_z_angle = c->t_z;
+	craft->ai_controller.target_xy_angle = c->t_xy;
+	craft->ai_controller.aim_point_z = c->aim_z;
+	craft->ai_controller.maneuver_timer = c->timer;
+	craft->ai_controller.secondary_maneuver_timer = (int16_t)c->timer2;
+}
+
+static void steer_world(const struct steer_case *c)
+{
+	fresh_world();
+	g_single_object_update_override_idx = -1;
+	for (int i = 0; i < SLOT_COUNT; ++i) {
+		g_test_craft[i].carried_object_index = UINT16_MAX;
+	}
+	g_elapsed_ticks = (uint16_t)(c->elapsed ? c->elapsed : ONE_SECOND);
+	g_game_time = c->game_time;
+	g_sim_steps_per_second = 1;
+	xwing_model()->accel_rate = 100;
+	xwing_model()->decel_rate = 100;
+	xwing_model()->auto_bank_factor = (uint16_t)c->bank;
+	steer_craft(CRAFT_A, c);
+	if (c->twin) {
+		struct steer_case twin = *c;
+		twin.player = 0;
+		steer_craft(CRAFT_B, &twin);
+	}
+	if (c->only) {
+		g_single_object_update_override_idx = c->only;
+	}
+	if (c->carried) {
+		g_test_craft[CRAFT_A].carried_object_index = CRAFT_C;
+		if (c->carried_none) {
+			g_test_objects[CRAFT_C].mobj = NULL;
+		} else {
+			g_test_objects[CRAFT_C].object_type = TEST_XWING;
+		}
+	}
+}
+
+static void run_steer_case(const struct steer_case *c)
+{
+	steer_world(c);
+	scene_open();
+	flight_update_craft_steering_and_speed();
+	scene_close(c->name, c->lines);
+	/* What the log does not show: the values the case names. */
+	const struct craft_data *craft = &g_test_craft[CRAFT_A];
+	if (c->check & CK_ROLL_STATE) {
+		XVT_ASSERT_INT_EQ(craft->ai_flight.roll_state, c->w_roll_state);
+	}
+	if (c->check & CK_PITCH_STATE) {
+		XVT_ASSERT_INT_EQ(craft->ai_flight.pitch_state,
+				  c->w_pitch_state);
+	}
+	if (c->check & CK_DIVE) {
+		XVT_ASSERT_INT_EQ(craft->ai_flight.dive_state, c->w_dive);
+	}
+	if (c->check & CK_CLIMB) {
+		XVT_ASSERT_INT_EQ(craft->ai_flight.climb_state, c->w_climb);
+	}
+	if (c->check & CK_TARGET_Z) {
+		XVT_ASSERT_INT_EQ(craft->ai_controller.target_z_angle,
+				  c->w_target_z);
+	}
+	if (c->check & CK_CRAFT_PITCH) {
+		XVT_ASSERT_INT_EQ(craft->pitch, c->w_craft_pitch);
+	}
+	if (c->check & CK_REMAINDER) {
+		XVT_ASSERT_INT_EQ(g_test_mobiles[CRAFT_A].speed_remainder,
+				  c->w_remainder);
+	}
+	if (c->check & CK_CARRIED_PITCH) {
+		XVT_ASSERT_INT_EQ(g_test_craft[CRAFT_C].pitch,
+				  c->w_carried_pitch);
+	}
+}
+
+static void run_steer_cases(const struct steer_case *cases, size_t count)
+{
+	for (size_t k = 0; k < count; ++k) {
+		run_steer_case(&cases[k]);
+	}
+}
+
+static const char *const k_roll_up[] = {
+	/* recorded roll_up */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=4296 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_roll_up_reached[] = {
+	/* recorded roll_up_reached */
+	"flight.maneuver object=4 stage=\"roll_reached\" angle=12288 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=12288 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_roll_down[] = {
+	/* recorded roll_down */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=12088 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_roll_down_reached[] = {
+	/* recorded roll_down_reached */
+	"flight.maneuver object=4 stage=\"roll_reached\" angle=4096 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=4096 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_roll_two[] = {
+	/* recorded roll_two */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=4296 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_roll_barrel_up[] = {
+	/* recorded roll_barrel_up */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=16584 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_roll_barrel_down[] = {
+	/* recorded roll_barrel_down */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=16184 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_roll_done[] = {
+	/* recorded roll_done */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=4096 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+
+/* An AI craft rolling to its target roll takes the short way round in steps
+ * of twice its roll step; once the gap is no more than a step it snaps onto
+ * the target and the roll is done (the log says "roll_reached").
+ * A barrel roll (state 3) never arrives: it keeps adding the step when the
+ * target is in the lower half of the circle and subtracting when it is not.
+ * A finished roll (state 4) does not move. */
+static const struct steer_case g_roll_cases[] = {
+	{"roll_up", k_roll_up, .roll_state = 1, .roll = 0x1000,
+	 .t_roll = 0x3000, .rate = 100},
+	{"roll_up_reached", k_roll_up_reached, .roll_state = 1, .roll = 0x2FA0,
+	 .t_roll = 0x3000, .rate = 100},
+	{"roll_down", k_roll_down, .roll_state = 1, .roll = 0x3000,
+	 .t_roll = 0x1000, .rate = 100},
+	{"roll_down_reached", k_roll_down_reached, .roll_state = 1,
+	 .roll = 0x1060, .t_roll = 0x1000, .rate = 100},
+	{"roll_two", k_roll_two, .roll_state = 2, .roll = 0x1000,
+	 .t_roll = 0x3000, .rate = 100},
+	{"roll_barrel_up", k_roll_barrel_up, .roll_state = 3, .roll = 0x4000,
+	 .t_roll = 0x1000, .rate = 100},
+	{"roll_barrel_down", k_roll_barrel_down, .roll_state = 3,
+	 .roll = 0x4000, .t_roll = 0x9000, .rate = 100},
+	{"roll_done", k_roll_done, .roll_state = 4, .roll = 0x1000,
+	 .t_roll = 0x3000, .rate = 100},
+};
+
+static void check_steer_roll(void)
+{
+	run_steer_cases(g_roll_cases,
+			sizeof g_roll_cases / sizeof g_roll_cases[0]);
+}
+
+static const char *const k_pitch_up[] = {
+	/* recorded pitch_up */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=24476 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_pitch_up_reached[] = {
+	/* recorded pitch_up_reached */
+	"flight.maneuver object=4 stage=\"pitch_reached\" angle=16384 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=16384 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_pitch_up_loop[] = {
+	/* recorded pitch_up_loop */
+	"flight.maneuver object=4 stage=\"looped\" angle=80 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=32768 pitch=80 roll=32768 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_pitch_up_loop_open[] = {
+	/* recorded pitch_up_loop_open */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=16284 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_pitch_down[] = {
+	/* recorded pitch_down */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=8292 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_pitch_down_reached[] = {
+	/* recorded pitch_down_reached */
+	"flight.maneuver object=4 stage=\"pitch_reached\" angle=16384 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=16384 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_pitch_down_loop[] = {
+	/* recorded pitch_down_loop */
+	"flight.maneuver object=4 stage=\"looped\" angle=32732 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=32768 pitch=32732 roll=32768 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_pitch_done[] = {
+	/* recorded pitch_done */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=8192 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_pitch_disabled[] = {
+	/* recorded pitch_disabled */
+	NULL,
+};
+
+/* An AI craft pitching to its target angle moves its nose up (state 1, the
+ * pitch value falls) or down (state 2, it rises) by its pitch step, and
+ * snaps onto the target when the gap is no larger than a step. With the loop
+ * flag set it pitches on past the target; crossing the top or bottom turns
+ * the craft over (yaw and roll half a turn), clears the flag and pitches the
+ * other way, and the log says "looped". A pitch that has arrived (state 3)
+ * stays. A disabled craft still pitches, but its object's pitch is only
+ * copied for an active one. */
+static const struct steer_case g_pitch_cases[] = {
+	{"pitch_up", k_pitch_up, .pitch_state = 1, .pitch = 0x6000,
+	 .t_z = 0x4000, .rate = 100},
+	{"pitch_up_reached", k_pitch_up_reached, .pitch_state = 1,
+	 .pitch = 0x4040, .t_z = 0x4000, .rate = 100},
+	{"pitch_up_loop", k_pitch_up_loop, .pitch_state = 1, .through_loop = 1,
+	 .pitch = 20, .t_z = 0x4000, .rate = 100},
+	{"pitch_up_loop_open", k_pitch_up_loop_open, .pitch_state = 1,
+	 .through_loop = 1, .pitch = 0x4000, .t_z = 0x2000, .rate = 100},
+	{"pitch_down", k_pitch_down, .pitch_state = 2, .pitch = 0x2000,
+	 .t_z = 0x4000, .rate = 100},
+	{"pitch_down_reached", k_pitch_down_reached, .pitch_state = 2,
+	 .pitch = 0x3FC0, .t_z = 0x4000, .rate = 100},
+	{"pitch_down_loop", k_pitch_down_loop, .pitch_state = 2,
+	 .through_loop = 1, .pitch = 0x7FC0, .t_z = 0x4000, .rate = 100},
+	{"pitch_done", k_pitch_done, .pitch_state = 3, .pitch = 0x2000,
+	 .t_z = 0x4000, .rate = 100},
+	{"pitch_disabled", k_pitch_disabled, .kind = CRAFT_OBJECT_KIND_DISABLED,
+	 .pitch_state = 1, .pitch = 0x6000, .t_z = 0x4000, .rate = 100,
+	 .check = CK_CRAFT_PITCH, .w_craft_pitch = 0x6000 - 100},
+};
+
+static void check_steer_pitch(void)
+{
+	run_steer_cases(g_pitch_cases,
+			sizeof g_pitch_cases / sizeof g_pitch_cases[0]);
+}
+
+static const char *const k_turn_up[] = {
+	/* recorded turn_up */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4196 pitch=0 roll=65486 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_turn_down[] = {
+	/* recorded turn_down */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=8092 pitch=0 roll=50 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_turn_wrap[] = {
+	/* recorded turn_wrap */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=6 pitch=0 roll=5 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_turn_reached[] = {
+	/* recorded turn_reached */
+	"flight.maneuver object=4 stage=\"turn_reached\" angle=4160 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4160 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_turn_reached_down[] = {
+	/* recorded turn_reached_down */
+	"flight.maneuver object=4 stage=\"turn_reached\" angle=4128 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4128 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_turn_rolling[] = {
+	/* recorded turn_rolling */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4196 pitch=0 roll=200 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_turn_after_roll[] = {
+	/* recorded turn_after_roll */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4196 pitch=0 roll=65486 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_turn_disabled[] = {
+	/* recorded turn_disabled */
+	NULL,
+};
+static const char *const k_turn_on_target[] = {
+	/* recorded turn_on_target */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4096 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+
+/* An AI craft turning to its target heading takes the short way round by
+ * its turn step, and banks into the turn by a share of the step (the model's
+ * auto-bank factor) unless it is in the middle of a roll. When the gap is no
+ * more than a step it snaps onto the heading with no bank and the log says
+ * "turn_reached". A finished roll still banks; a disabled craft does not turn
+ * at all, and one already on its heading does nothing. */
+static const struct steer_case g_turn_cases[] = {
+	{"turn_up", k_turn_up, .turn_state = 1, .yaw = 0x1000, .t_xy = 0x2000,
+	 .rate = 100, .bank = 0x8000},
+	{"turn_down", k_turn_down, .turn_state = 1, .yaw = 0x2000,
+	 .t_xy = 0x1000, .rate = 100, .bank = 0x8000},
+	{"turn_wrap", k_turn_wrap, .turn_state = 1, .yaw = 0x0010,
+	 .t_xy = 0xFFF0, .rate = 10, .bank = 0x8000},
+	{"turn_reached", k_turn_reached, .turn_state = 1, .yaw = 0x1020,
+	 .t_xy = 0x1040, .rate = 100, .bank = 0x8000},
+	{"turn_reached_down", k_turn_reached_down, .turn_state = 1,
+	 .yaw = 0x1040, .t_xy = 0x1020, .rate = 100, .bank = 0x8000},
+	{"turn_rolling", k_turn_rolling, .turn_state = 1, .roll_state = 3,
+	 .t_roll = 0x1000, .yaw = 0x1000, .t_xy = 0x2000, .rate = 100,
+	 .bank = 0x8000},
+	{"turn_after_roll", k_turn_after_roll, .turn_state = 1, .roll_state = 4,
+	 .yaw = 0x1000, .t_xy = 0x2000, .rate = 100, .bank = 0x8000},
+	{"turn_disabled", k_turn_disabled, .kind = CRAFT_OBJECT_KIND_DISABLED,
+	 .turn_state = 1, .yaw = 0x1000, .t_xy = 0x2000, .rate = 100,
+	 .bank = 0x8000},
+	{"turn_on_target", k_turn_on_target, .turn_state = 1, .yaw = 0x1000,
+	 .t_xy = 0x1000, .rate = 100, .bank = 0x8000},
+};
+
+static void check_steer_turn(void)
+{
+	run_steer_cases(g_turn_cases,
+			sizeof g_turn_cases / sizeof g_turn_cases[0]);
+}
+
+static const char *const k_climb_done[] = {
+	/* recorded climb_done */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=3400 yaw=0 pitch=16384 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_climb_going[] = {
+	/* recorded climb_going */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=3400 yaw=0 pitch=12288 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_dive_level[] = {
+	/* recorded dive_level */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=3400 yaw=0 pitch=16384 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_dive_pull_out[] = {
+	/* recorded dive_pull_out */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=3400 yaw=0 pitch=20480 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_dive_high[] = {
+	/* recorded dive_high */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=3400 yaw=0 pitch=20480 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_dive_nose_up[] = {
+	/* recorded dive_nose_up */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=3400 yaw=0 pitch=12288 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+
+/* A climbing AI craft that reaches the height of its aim point levels off
+ * (level pitch, climb over); one still below it keeps climbing. A diving
+ * craft within 256 of its aim point's height levels off and its dive is
+ * over. One lower down but still falling faster than the ground is near
+ * starts pulling out: the target pitch is set halfway to level and the nose
+ * comes up from the next tick. One with room to spare, or already with its
+ * nose up, does nothing. */
+static const struct steer_case g_dive_cases[] = {
+	{"climb_done", k_climb_done, .climb = 1, .aim_z = 3000, .world_z = 3400,
+	 .pitch = 0x3000, .check = CK_CLIMB},
+	{"climb_going", k_climb_going, .climb = 1, .aim_z = 4000,
+	 .world_z = 3400, .pitch = 0x3000},
+	{"dive_level", k_dive_level, .dive = 1, .aim_z = 3300, .world_z = 3400,
+	 .pitch = 0x5000, .pitch_state = 1, .check = CK_PITCH_STATE | CK_DIVE,
+	 .w_dive = 2},
+	{"dive_pull_out", k_dive_pull_out, .dive = 1, .aim_z = 1000,
+	 .world_z = 3400, .pitch = 0x5000, .move_z = -2000,
+	 .check = CK_PITCH_STATE | CK_TARGET_Z, .w_pitch_state = 1,
+	 .w_target_z = 0x4800},
+	{"dive_high", k_dive_high, .dive = 1, .aim_z = 1000, .world_z = 3400,
+	 .pitch = 0x5000, .move_z = -100},
+	{"dive_nose_up", k_dive_nose_up, .dive = 1, .aim_z = 1000,
+	 .world_z = 3400, .pitch = 0x3000, .move_z = -2000},
+};
+
+static void check_steer_dive(void)
+{
+	run_steer_cases(g_dive_cases,
+			sizeof g_dive_cases / sizeof g_dive_cases[0]);
+}
+
+static const char *const k_speed_up[] = {
+	/* recorded speed_up */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_up_plain[] = {
+	/* recorded speed_up_plain */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=100 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_up_capped[] = {
+	/* recorded speed_up_capped */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=2000 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_hold[] = {
+	/* recorded speed_hold */
+	NULL,
+};
+static const char *const k_speed_slew_down[] = {
+	/* recorded speed_slew_down */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=2075 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_decel_far[] = {
+	/* recorded speed_decel_far */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=2667 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_half[] = {
+	/* recorded speed_half */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=189 throttle=32768 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_idle[] = {
+	/* recorded speed_idle */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=667 throttle=1 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_commanded[] = {
+	/* recorded speed_commanded */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=700 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_commanded_lower[] = {
+	/* recorded speed_commanded_lower */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=1000 throttle=32768 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_all_to_engines[] = {
+	/* recorded speed_all_to_engines */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=3300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_type7[] = {
+	/* recorded speed_type7 */
+	"world.track tick=0 object=4 signature=0 type=7 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=2756 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_type5[] = {
+	/* recorded speed_type5 */
+	"world.track tick=0 object=4 signature=0 type=5 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=3300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_type5_slow[] = {
+	/* recorded speed_type5_slow */
+	"world.track tick=0 object=4 signature=0 type=5 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=834 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_cap[] = {
+	/* recorded speed_cap */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=3600 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_half_second[] = {
+	/* recorded speed_half_second */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=150 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_one_tick[] = {
+	/* recorded speed_one_tick */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=1 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_player[] = {
+	/* recorded speed_player */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=0 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=100 rear=100 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_player_no_engines[] = {
+	/* recorded speed_player_no_engines */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=0 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=667 throttle=65535 state=0 hull=0 hull_max=0 front=100 rear=100 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_speed_ai_no_systems[] = {
+	/* recorded speed_ai_no_systems */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=667 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+
+/* An active craft's speed heads for its throttle's share of its top speed.
+ * The top speed moves with the energy settings (more with power taken from
+ * the shields, beams and lasers, by a different share for types 5 and 7),
+ * and is doubled unless the engines' overdrive is off. Below the target the
+ * speed rises at three times the model's rate, never past the target; above
+ * it by under 200 it falls slowly, and by more it falls by a third of the gap
+ * a second. A craft that has a commanded speed and full throttle uses that
+ * speed as it stands; at any lower throttle the commanded speed is ignored.
+ * The change scales with the time of the tick and the fraction carries over
+ * from tick to tick, and the speed stops at 3,600. A player's craft with
+ * dead engines has no throttle; so does an AI craft with no systems. */
+static const struct steer_case g_speed_cases[] = {
+	{"speed_up", k_speed_up},
+	{"speed_up_plain", k_speed_up_plain, .overdrive_off = 1},
+	{"speed_up_capped", k_speed_up_capped, .speed = 1900},
+	{"speed_hold", k_speed_hold, .speed = 2000},
+	{"speed_slew_down", k_speed_slew_down, .speed = 2100},
+	{"speed_decel_far", k_speed_decel_far, .speed = 3000},
+	{"speed_half", k_speed_half, .throttle = 0x8000},
+	{"speed_idle", k_speed_idle, .throttle = 1, .speed = 1000},
+	{"speed_commanded", k_speed_commanded, .commanded = 700, .speed = 600},
+	{"speed_commanded_lower", k_speed_commanded_lower, .commanded = 700,
+	 .throttle = 0x8000, .speed = 900},
+	{"speed_all_to_engines", k_speed_all_to_engines, .levels = 1,
+	 .speed = 3000},
+	{"speed_type7", k_speed_type7, .type = 7, .levels = 1, .speed = 2500},
+	{"speed_type5", k_speed_type5, .type = 5, .levels = 1, .speed = 3000},
+	{"speed_type5_slow", k_speed_type5_slow, .type = 5, .levels = 5,
+	 .speed = 1000},
+	{"speed_cap", k_speed_cap, .speed = 3590, .max_speed = 3000},
+	{"speed_half_second", k_speed_half_second, .elapsed = 118},
+	{"speed_one_tick", k_speed_one_tick, .elapsed = 1,
+	 .check = CK_REMAINDER, .w_remainder = 17772},
+	{"speed_player", k_speed_player, .player = 1},
+	{"speed_player_no_engines", k_speed_player_no_engines, .player = 1,
+	 .no_engines = 1, .speed = 1000},
+	{"speed_ai_no_systems", k_speed_ai_no_systems, .no_systems = 1,
+	 .speed = 1000},
+};
+
+static void check_steer_speed(void)
+{
+	run_steer_cases(g_speed_cases,
+			sizeof g_speed_cases / sizeof g_speed_cases[0]);
+}
+
+static const char *const k_kind_unknown[] = {
+	/* recorded kind_unknown */
+	"flight.maneuver object=4 stage=\"roll_reached\" angle=0 predicted=0",
+	"flight.maneuver object=4 stage=\"pitch_reached\" angle=0 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=1334 throttle=65535 state=1 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_kind_breaking_up[] = {
+	/* recorded kind_breaking_up */
+	"flight.maneuver object=4 stage=\"roll_reached\" angle=0 predicted=0",
+	"flight.maneuver object=4 stage=\"pitch_reached\" angle=0 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=1334 throttle=65535 state=3 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_kind_exploding[] = {
+	/* recorded kind_exploding */
+	"flight.maneuver object=4 stage=\"roll_reached\" angle=0 predicted=0",
+	"flight.maneuver object=4 stage=\"pitch_reached\" angle=0 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=1334 throttle=65535 state=4 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_kind_slow[] = {
+	/* recorded kind_slow */
+	NULL,
+};
+static const char *const k_kind_arriving[] = {
+	/* recorded kind_arriving */
+	"flight.maneuver object=4 stage=\"roll_reached\" angle=0 predicted=0",
+	"flight.maneuver object=4 stage=\"pitch_reached\" angle=0 predicted=0",
+	NULL,
+};
+static const char *const k_kind_disabled[] = {
+	/* recorded kind_disabled */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=480 throttle=65535 state=2 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_kind_disabled_stopped[] = {
+	/* recorded kind_disabled_stopped */
+	NULL,
+};
+static const char *const k_kind_jump_slow[] = {
+	/* recorded kind_jump_slow */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=50 throttle=65535 state=5 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_kind_jump_mid[] = {
+	/* recorded kind_jump_mid */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=200 throttle=65535 state=5 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_kind_jump_fast[] = {
+	/* recorded kind_jump_fast */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=500 throttle=65535 state=5 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_kind_jump_stall[] = {
+	/* recorded kind_jump_stall */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=10 throttle=65535 state=5 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_kind_jump_stalled[] = {
+	/* recorded kind_jump_stalled */
+	"flight.hyperspace_stalled object=4 fg=0 predicted=0",
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=0 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+
+/* A craft that is breaking up, exploding or in the unknown state slows by a
+ * third of what it has over its top speed each second, and one of any of
+ * those or arriving from hyperspace loses its climb, dive, roll and pitch.
+ * A disabled craft slows by 20 a second. A craft jumping to hyperspace
+ * speeds up by 50 a second while its secondary timer runs, 200 while its
+ * maneuver timer runs, otherwise 500; with no working systems it slows by 20
+ * and when it stops it is a normal active craft again, the log saying the
+ * jump stalled. */
+static const struct steer_case g_kind_cases[] = {
+	{"kind_unknown", k_kind_unknown, .kind = CRAFT_OBJECT_KIND_UNKNOWN_1,
+	 .speed = 1500, .climb = 1, .dive = 1, .roll_state = 1,
+	 .pitch_state = 1, .check = CK_ALL_STATES},
+	{"kind_breaking_up", k_kind_breaking_up,
+	 .kind = CRAFT_OBJECT_KIND_BREAKING_UP, .speed = 1500, .climb = 1,
+	 .dive = 1, .roll_state = 1, .pitch_state = 1, .check = CK_ALL_STATES},
+	{"kind_exploding", k_kind_exploding,
+	 .kind = CRAFT_OBJECT_KIND_EXPLODING, .speed = 1500, .climb = 1,
+	 .dive = 1, .roll_state = 1, .pitch_state = 1, .check = CK_ALL_STATES},
+	{"kind_slow", k_kind_slow, .kind = CRAFT_OBJECT_KIND_UNKNOWN_1,
+	 .speed = 800},
+	{"kind_arriving", k_kind_arriving,
+	 .kind = CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE, .speed = 500,
+	 .climb = 1, .dive = 1, .roll_state = 1, .pitch_state = 1,
+	 .check = CK_ALL_STATES},
+	{"kind_disabled", k_kind_disabled, .kind = CRAFT_OBJECT_KIND_DISABLED,
+	 .speed = 500},
+	{"kind_disabled_stopped", k_kind_disabled_stopped,
+	 .kind = CRAFT_OBJECT_KIND_DISABLED},
+	{"kind_jump_slow", k_kind_jump_slow,
+	 .kind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE, .timer2 = 1,
+	 .timer = 1},
+	{"kind_jump_mid", k_kind_jump_mid,
+	 .kind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE, .timer = 1},
+	{"kind_jump_fast", k_kind_jump_fast,
+	 .kind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE},
+	{"kind_jump_stall", k_kind_jump_stall,
+	 .kind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE, .no_systems = 1,
+	 .speed = 30},
+	{"kind_jump_stalled", k_kind_jump_stalled,
+	 .kind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE, .no_systems = 1,
+	 .speed = 15},
+};
+
+static void check_steer_kinds(void)
+{
+	run_steer_cases(g_kind_cases,
+			sizeof g_kind_cases / sizeof g_kind_cases[0]);
+}
+
+static const char *const k_carry_copies[] = {
+	/* recorded carry_copies */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4196 pitch=12288 roll=512 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	"world.track tick=0 object=8 signature=0 type=1 fg=0 player=-1 team=0 x=0 y=0 z=0 yaw=4196 pitch=12288 roll=512 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_carry_no_object[] = {
+	/* recorded carry_no_object */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4196 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+
+/* A craft that carries another object hands it its pitch, yaw and roll each
+ * tick; when the carried slot holds no object nothing is copied. */
+static const struct steer_case g_carry_cases[] = {
+	{"carry_copies", k_carry_copies, .carried = 1, .turn_state = 1,
+	 .yaw = 0x1000, .pitch = 0x3000, .roll = 0x0200, .t_xy = 0x2000,
+	 .rate = 100, .check = CK_CARRIED_PITCH, .w_carried_pitch = 0x3000},
+	{"carry_no_object", k_carry_no_object, .carried = 1, .carried_none = 1,
+	 .turn_state = 1, .yaw = 0x1000, .t_xy = 0x2000, .rate = 100},
+};
+
+static void check_steer_carry(void)
+{
+	run_steer_cases(g_carry_cases,
+			sizeof g_carry_cases / sizeof g_carry_cases[0]);
+}
+
+static uint16_t short_gap(uint16_t a, uint16_t b)
+{
+	uint16_t d = (uint16_t)(a - b);
+	return d >= 0x8000u ? (uint16_t)-d : d;
+}
+
+/* Craft that fly for 200 ticks under each of these set-ups. A row's rules
+ * say which of the rules below it must hold on top of the ones for every
+ * craft. */
+static const struct steer_case g_rule_cases[] = {
+	{.rules = RULE_TURN,
+	 .turn_state = 1,
+	 .yaw = 0x1000,
+	 .t_xy = 0x2000,
+	 .rate = 100,
+	 .bank = 0x8000},
+	{.rules = RULE_TURN,
+	 .turn_state = 1,
+	 .yaw = 0xF000,
+	 .t_xy = 0x1000,
+	 .rate = 70,
+	 .bank = 0x4000},
+	{.rules = RULE_TURN,
+	 .turn_state = 1,
+	 .yaw = 0x5000,
+	 .t_xy = 0x1000,
+	 .rate = 90,
+	 .bank = 0x8000,
+	 .roll_state = 3,
+	 .t_roll = 0x2000},
+	{.rules = RULE_FROZEN,
+	 .kind = CRAFT_OBJECT_KIND_DISABLED,
+	 .turn_state = 1,
+	 .yaw = 0x1000,
+	 .t_xy = 0x2000,
+	 .rate = 100,
+	 .speed = 800},
+	{.rules = RULE_ROLL,
+	 .roll_state = 1,
+	 .roll = 0x1000,
+	 .t_roll = 0x3000,
+	 .rate = 100},
+	{.rules = RULE_ROLL,
+	 .roll_state = 2,
+	 .roll = 0xF000,
+	 .t_roll = 0x1000,
+	 .rate = 60},
+	{.rules = RULE_PITCH,
+	 .pitch_state = 1,
+	 .pitch = 0x6000,
+	 .t_z = 0x4000,
+	 .rate = 100},
+	{.rules = RULE_PITCH,
+	 .pitch_state = 2,
+	 .pitch = 0x2000,
+	 .t_z = 0x4000,
+	 .rate = 80},
+	{.rules = RULE_SPEED, .want_speed = 2000},
+	{.rules = RULE_SPEED, .want_speed = 2000, .speed = 3500},
+	{.rules = RULE_SPEED,
+	 .want_speed = 1000,
+	 .overdrive_off = 0,
+	 .throttle = 0x8000,
+	 .speed = 2500},
+	{.rules = RULE_SPEED,
+	 .want_speed = 1000,
+	 .overdrive_off = 1,
+	 .speed = 3000},
+	{.rules = RULE_SPEED,
+	 .want_speed = 700,
+	 .commanded = 700,
+	 .speed = 3000},
+	{.rules = RULE_SPEED,
+	 .want_speed = 2756,
+	 .type = 7,
+	 .levels = 1,
+	 .speed = 100},
+	{.rules = RULE_SPEED,
+	 .want_speed = 3400,
+	 .type = 5,
+	 .levels = 1,
+	 .max_speed = 800},
+	{.rules = RULE_SPEED, .want_speed = 2000, .player = 1, .speed = 3000},
+	{.rules = RULE_SPEED | RULE_PLAYER,
+	 .want_speed = 0,
+	 .player = 1,
+	 .no_engines = 1,
+	 .speed = 1000,
+	 .turn_state = 1,
+	 .roll_state = 1,
+	 .pitch_state = 1,
+	 .t_xy = 0x2000,
+	 .t_roll = 0x2000,
+	 .t_z = 0x2000,
+	 .pitch = 0x4000,
+	 .rate = 100},
+	{.rules = RULE_REST,
+	 .kind = CRAFT_OBJECT_KIND_BREAKING_UP,
+	 .speed = 2500,
+	 .climb = 1,
+	 .dive = 1,
+	 .roll_state = 3,
+	 .pitch_state = 1,
+	 .t_roll = 0x1000,
+	 .t_z = 0x2000,
+	 .pitch = 0x4000,
+	 .rate = 100},
+	{.rules = RULE_REST,
+	 .kind = CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE,
+	 .climb = 1,
+	 .dive = 1,
+	 .roll_state = 1,
+	 .pitch_state = 2,
+	 .t_roll = 0x1000,
+	 .t_z = 0x2000,
+	 .pitch = 0x4000,
+	 .rate = 100},
+};
+
+/* Rules that hold on every tick, over 200 ticks of one second each:
+ * - A craft's speed is never above 3,600.
+ * - An active craft's speed moves toward its commanded speed and never
+ *   passes it.
+ * - A player's craft never changes yaw or roll, and its object's pitch is
+ *   its craft's pitch.
+ * - The craft record's yaw is the object's yaw.
+ * - A turning craft's gap to its heading shrinks every tick until it is
+ *   zero, when the turn is done; a disabled craft's yaw never changes.
+ * - A rolling craft's gap to its target roll never grows and ends at zero
+ *   with the roll done.
+ * - A pitching craft (no loop) ends on its target pitch with the pitch done,
+ *   its pitch always in the upper half of the range 0 to 0x8000.
+ * - The orientation is marked for recomputing exactly when yaw, pitch or
+ *   roll changed in the tick.
+ * - Breaking up, exploding and arriving craft end each tick with no climb,
+ *   dive, roll or pitch.
+ * - A craft of another family is never touched. */
+static void check_steer_rules(void)
+{
+	for (size_t k = 0; k < sizeof g_rule_cases / sizeof g_rule_cases[0];
+	     ++k) {
+		const struct steer_case *c = &g_rule_cases[k];
+		struct craft_data *craft = &g_test_craft[CRAFT_A];
+		struct object_record *object = &g_test_objects[CRAFT_A];
+		struct mobile_object *mobile = &g_test_mobiles[CRAFT_A];
+		struct steer_case twin = *c;
+		struct object_record other;
+		uint16_t start_speed;
+
+		steer_world(c);
+		twin.player = 0;
+		steer_craft(CRAFT_B, &twin);
+		g_test_mobiles[CRAFT_B].family = 1;
+		other = g_test_objects[CRAFT_B];
+		start_speed = mobile->speed;
+		for (int tick = 0; tick < 200; ++tick) {
+			uint16_t yaw = object->yaw, pitch = object->pitch,
+				 roll = object->roll;
+			uint16_t turn_gap = short_gap(
+				craft->ai_controller.target_xy_angle, yaw);
+			uint16_t roll_gap = short_gap(
+				craft->ai_controller.target_roll, roll);
+			uint16_t pitch_gap =
+				short_gap(craft->ai_controller.target_z_angle,
+					  craft->pitch);
+			int changed;
+
+			mobile->move_vector_dirty = 0;
+			mobile->orient_matrix_dirty = 0;
+			flight_update_craft_steering_and_speed();
+			changed = object->yaw != yaw ||
+				  object->pitch != pitch ||
+				  object->roll != roll;
+
+			XVT_ASSERT_TRUE(mobile->speed <= 3600);
+			XVT_ASSERT_INT_EQ(craft->yaw, object->yaw);
+			XVT_ASSERT_INT_EQ(mobile->move_vector_dirty, changed);
+			XVT_ASSERT_INT_EQ(mobile->orient_matrix_dirty, changed);
+			XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_B].yaw,
+					  other.yaw);
+			XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_B].roll,
+					  other.roll);
+			XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_B].pitch,
+					  other.pitch);
+			if (c->rules & RULE_SPEED) {
+				if (start_speed <= c->want_speed) {
+					XVT_ASSERT_TRUE(mobile->speed <=
+							c->want_speed);
+				} else {
+					XVT_ASSERT_TRUE(mobile->speed >=
+							c->want_speed);
+				}
+			}
+			if (c->rules & RULE_PLAYER) {
+				XVT_ASSERT_INT_EQ(object->yaw, c->yaw);
+				XVT_ASSERT_INT_EQ(object->roll, c->roll);
+				XVT_ASSERT_INT_EQ(object->pitch, craft->pitch);
+			}
+			if (c->rules & RULE_FROZEN) {
+				XVT_ASSERT_INT_EQ(object->yaw, c->yaw);
+			}
+			if (c->rules & RULE_TURN) {
+				uint16_t gap = short_gap(
+					craft->ai_controller.target_xy_angle,
+					object->yaw);
+				if (turn_gap != 0) {
+					XVT_ASSERT_TRUE(gap < turn_gap);
+				}
+				if (gap == 0) {
+					XVT_ASSERT_INT_EQ(
+						craft->ai_flight.turn_state, 3);
+				}
+			}
+			if (c->rules & RULE_ROLL) {
+				XVT_ASSERT_TRUE(short_gap(craft->ai_controller
+								  .target_roll,
+							  object->roll) <=
+						roll_gap);
+			}
+			if (c->rules & RULE_PITCH) {
+				XVT_ASSERT_TRUE(
+					short_gap(craft->ai_controller
+							  .target_z_angle,
+						  craft->pitch) <= pitch_gap);
+				XVT_ASSERT_TRUE(craft->pitch <= 0x8000);
+			}
+			if (c->rules & RULE_REST) {
+				XVT_ASSERT_INT_EQ(craft->ai_flight.climb_state,
+						  0);
+				XVT_ASSERT_INT_EQ(craft->ai_flight.dive_state,
+						  0);
+				XVT_ASSERT_INT_EQ(craft->ai_flight.roll_state,
+						  0);
+				XVT_ASSERT_INT_EQ(craft->ai_flight.pitch_state,
+						  0);
+			}
+		}
+		if (c->rules & RULE_TURN) {
+			XVT_ASSERT_INT_EQ(object->yaw,
+					  craft->ai_controller.target_xy_angle);
+			XVT_ASSERT_INT_EQ(craft->ai_flight.turn_state, 3);
+		}
+		if (c->rules & RULE_ROLL) {
+			XVT_ASSERT_INT_EQ(object->roll,
+					  craft->ai_controller.target_roll);
+			XVT_ASSERT_INT_EQ(craft->ai_flight.roll_state, 4);
+		}
+		if (c->rules & RULE_PITCH) {
+			XVT_ASSERT_INT_EQ(craft->pitch,
+					  craft->ai_controller.target_z_angle);
+			XVT_ASSERT_INT_EQ(craft->ai_flight.pitch_state, 3);
+		}
+		if (c->rules & RULE_SPEED) {
+			XVT_ASSERT_INT_EQ(mobile->speed, c->want_speed);
+		}
+	}
+}
+
+static const char *const k_gate_override[] = {
+	/* recorded gate_override */
+	"world.track tick=0 object=6 signature=0 type=1 fg=0 player=-1 team=0 x=6800 y=5800 z=0 yaw=4196 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_gate_stamp_skipped[] = {
+	/* recorded gate_stamp_skipped */
+	NULL,
+};
+static const char *const k_gate_stamp_scaled[] = {
+	/* recorded gate_stamp_scaled */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4146 pitch=0 roll=0 speed=150 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_gate_stamp_long[] = {
+	/* recorded gate_stamp_long */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4223 pitch=0 roll=0 speed=381 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_gate_family[] = {
+	/* recorded gate_family */
+	NULL,
+};
+static const char *const k_gate_no_type[] = {
+	/* recorded gate_no_type */
+	NULL,
+};
+static const char *const k_gate_player_turn[] = {
+	/* recorded gate_player_turn */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=0 team=0 x=6200 y=6200 z=0 yaw=4096 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=100 rear=100 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_gate_no_systems[] = {
+	/* recorded gate_no_systems */
+	NULL,
+};
+static const char *const k_gate_held[] = {
+	/* recorded gate_held */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4096 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_gate_turning[] = {
+	/* recorded gate_turning */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4196 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+
+/* Steering is for AI craft with working systems that no tractor beam holds,
+ * and only for craft that are in the update at all. With one slot named, only
+ * that slot is updated. A craft with its own clock stamp is stepped by the
+ * time since the stamp (none at all: skipped), and a craft of another family
+ * or with no object type is left alone. A player's craft is never steered
+ * here; an AI craft with no working systems or held by a beam does not steer
+ * either, while the same set-up free turns toward its target. */
+static const struct steer_case g_steer_gate_cases[] = {
+	{"gate_override", k_gate_override, .only = CRAFT_B, .twin = 1,
+	 .turn_state = 1, .yaw = 0x1000, .t_xy = 0x2000, .rate = 100},
+	{"gate_stamp_skipped", k_gate_stamp_skipped, .stamp = 300,
+	 .game_time = 64, .turn_state = 1, .yaw = 0x1000, .t_xy = 0x2000,
+	 .rate = 100},
+	{"gate_stamp_scaled", k_gate_stamp_scaled, .stamp = 500,
+	 .game_time = 382, .turn_state = 1, .yaw = 0x1000, .t_xy = 0x2000,
+	 .rate = 100},
+	{"gate_stamp_long", k_gate_stamp_long, .stamp = 500, .game_time = 564,
+	 .turn_state = 1, .yaw = 0x1000, .t_xy = 0x2000, .rate = 100},
+	{"gate_family", k_gate_family, .family = 1, .turn_state = 1,
+	 .yaw = 0x1000, .t_xy = 0x2000, .rate = 100},
+	{"gate_no_type", k_gate_no_type, .no_type = 1, .turn_state = 1,
+	 .yaw = 0x1000, .t_xy = 0x2000, .rate = 100},
+	{"gate_player_turn", k_gate_player_turn, .player = 1, .turn_state = 1,
+	 .roll_state = 1, .t_roll = 0x3000, .yaw = 0x1000, .t_xy = 0x2000,
+	 .rate = 100},
+	{"gate_no_systems", k_gate_no_systems, .no_systems = 1, .turn_state = 1,
+	 .yaw = 0x1000, .t_xy = 0x2000, .rate = 100},
+	{"gate_held", k_gate_held, .held = 1, .turn_state = 1, .yaw = 0x1000,
+	 .t_xy = 0x2000, .rate = 100},
+	{"gate_turning", k_gate_turning, .turn_state = 1, .yaw = 0x1000,
+	 .t_xy = 0x2000, .rate = 100},
+};
+
+static void check_steer_gates(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_steer_gate_cases / sizeof g_steer_gate_cases[0];
+	     ++k) {
+		run_steer_case(&g_steer_gate_cases[k]);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	fail_after_seconds(20);
@@ -4842,5 +5970,14 @@ int main(int argc, char **argv)
 	check_target_nearest_hostile();
 	check_target_attacker();
 	check_target_warhead();
+	check_steer_gates();
+	check_steer_roll();
+	check_steer_pitch();
+	check_steer_turn();
+	check_steer_dive();
+	check_steer_speed();
+	check_steer_kinds();
+	check_steer_carry();
+	check_steer_rules();
 	return 0;
 }
