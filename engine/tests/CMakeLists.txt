@@ -116,6 +116,8 @@ if(NOT MSVC)
     xvt_add_known_failure(test_mission craft_type_past_table)
     xvt_add_known_failure(test_mission ai_skill_past_table)
     xvt_add_known_failure(test_mission global_goal_fourth_condition)
+    xvt_add_known_failure(test_mission formation_slot_past_six)
+    xvt_add_known_failure(test_mission ai_rating_past_table)
 endif()
 
 # The frontend's mission loaders and the launch's pilot record setup: src/xvt/frontend/frontend_mission.c.

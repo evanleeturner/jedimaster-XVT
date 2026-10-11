@@ -20,7 +20,15 @@
  * mission_evaluate_condition set the outcome counts of a group, the live craft
  * of the object table and the players, and read the result and the craft
  * counts it leaves; the trigger variable checks compare the groups and objects
- * they select. No game data is read.
+ * they select. The arrival checks make a mission with mission_init and run
+ * the flight's start on it, then run mission_update_flight_group_arrivals and
+ * mission_process_flight_group_wave_completion and read the groups' counts,
+ * the object table and the log; the formation place checks fill the model's
+ * box by hand. The kill credit checks put a killer and a victim in the object
+ * table with the damage the victim took by player, computer craft, collision,
+ * starship and mine, and read the players' kill tables, ratings and scores,
+ * the teams' scores and the log; the shot checks use a table of 140 objects.
+ * No game data is read.
  *
  * Not checked here:
  * - mission_load_file: a file that does not open, or comes up short, ends the
@@ -52,6 +60,17 @@
  * - mission_object_matches_trigger_variable: the opposites 11 and 14 of
  *   "attacked by another team" and "identified by another team" of type 7,
  *   which match unless every team did it.
+ * - mission_update_flight_group_arrivals: the second operand of "no player
+ *   owner or the waves are not unlimited" before the stop rules, which no
+ *   group reaches (the loop skips a group a player owns first).
+ * - mission_credit_player_kill_contribution: the voice a full kill asks for
+ *   (the voice settings are off here) and a tier other than 1 to 3, which the
+ *   callers never pass.
+ * - mission_credit_destruction_damage_contributors: the branch for a victim
+ *   with no craft record, which reads the craft it lacks and stops on a null
+ *   pointer.
+ * - mission_apply_team_goal_score_for_team: a goal past its time limit, which
+ *   adds an unset score (a known failure).
  *
  * POSIX only, for the temporary folder (test_asset_folder.h). */
 #define _POSIX_C_SOURCE 200809L
@@ -63,6 +82,7 @@
 
 #include "test_assert.h"
 #include "test_asset_folder.h"
+#include "xvt/assets/model_bounds.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/ai/pai.h"
@@ -87,6 +107,7 @@
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/math/math2.h"
+#include "xvt/math/trig2.h"
 #include "xvt/net/flight_net.h"
 #include "xvt/net/net_session.h"
 #include "xvt/render/backdrop.h"
@@ -8268,6 +8289,25 @@ static void check_condition_survived(void)
 	XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_SURVIVED, 0,
 					     GOAL_AMT_ALL_SPECIAL_CARGO, 0),
 			  2);
+
+	/* A group whose craft all ended destroyed or lost has none surviving
+	 * and every craft failed it; the same for its special cargo craft. */
+	fresh_world();
+	uint16_t *gone = g_mission_fg_stats[0].outcome_count;
+	gone[FLIGHT_GROUP_OUTCOME_TOTAL] = 3;
+	gone[FLIGHT_GROUP_OUTCOME_DESTROYED] = 1;
+	gone[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP] = 2;
+	XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_SURVIVED, 0,
+					     GOAL_AMT_AT_LEAST_1, 0),
+			  2);
+	XVT_ASSERT_INT_EQ(g_mission_condition_current_count, 0);
+	uint8_t *gone_special = g_mission_fg_stats[0].special_cargo_outcome;
+	gone_special[FLIGHT_GROUP_OUTCOME_TOTAL] = 2;
+	gone_special[FLIGHT_GROUP_OUTCOME_DESTROYED] = 1;
+	gone_special[FLIGHT_GROUP_OUTCOME_LOST_WITH_MOTHERSHIP] = 1;
+	XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_SURVIVED, 0,
+					     GOAL_AMT_ALL_SPECIAL_CARGO, 0),
+			  2);
 }
 
 /* A group with no craft type is not counted, whatever it matches. */
@@ -8486,6 +8526,8 @@ static void check_condition_team_filter(void)
 						: GOAL_AMT_AT_LEAST_1,
 					0, (uint16_t)rows[i].filter),
 				rows[i].result);
+			XVT_ASSERT_INT_EQ(g_mission_condition_current_count,
+					  !special && rows[i].result == 1);
 		}
 	}
 	/* The uncaptured losses of a team with no craft are left out. */
@@ -9158,6 +9200,2586 @@ static void check_object_craft_states(void)
 	*model = saved;
 }
 
+/* ---- mission_update_flight_group_arrivals ------------------------------ */
+
+/* Condition numbers that stand in for an arrival or departure trigger that
+ * holds and one that has failed, once the any-team primary goal flag is set
+ * (it is open at the start, so both are undecided then). */
+enum {
+	TRIGGER_HOLDS = MISSION_COND_PRIMARY_GOAL_COMPLETE,
+	TRIGGER_FAILED = MISSION_COND_PRIMARY_GOAL_FAILED,
+};
+
+/* Group fg of the stored mission waits for a trigger: the first arrival pair's
+ * first condition, joined by AND to an always-true one. */
+static void arrival_waits_for(int fg, int condition)
+{
+	struct xvt_flight_group *group = &g_stored.groups[fg];
+	memset(group->arrival_triggers, 0, sizeof group->arrival_triggers);
+	group->arrival_triggers[0].triggers[0].condition = (uint8_t)condition;
+}
+
+/* Starts the flight of the stored mission with the sound and cockpit
+ * resources counted as loaded, the log empty and every timer run out. */
+static void begin_arrivals(void)
+{
+	init_world();
+	g_flight_conf_no_pilot = 1;
+	g_active_flight_player_count = 1;
+	start_flight();
+	g_log_line_count = 0;
+	memset(&g_flight_global_countdown_timers, 0,
+	       sizeof g_flight_global_countdown_timers);
+}
+
+/* The mission of the arrival checks: group 0 is two craft of team 0 that
+ * arrive at once with one more round to come; the groups from 1 on are two
+ * craft of team 1 each, set up by the check. */
+static void arrivals_mission(int waiting_groups)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 0, TEST_XWING, 2);
+	g_stored.groups[0].number_of_waves = 1;
+	for (int fg = 1; fg <= waiting_groups; ++fg) {
+		arriving_group(fg, 1, TEST_XWING, 2);
+		arrival_waits_for(fg, TRIGGER_HOLDS);
+	}
+}
+
+static int craft_count_in_group(int fg)
+{
+	int count = 0;
+	for (int slot = 0; slot < 32; ++slot) {
+		if (g_object_table[slot].object_type != 0 &&
+		    g_object_table[slot].flight_group_idx == fg) {
+			++count;
+		}
+	}
+	return count;
+}
+
+/* The arrival trigger scan runs only when its timer is 0 and sets it to 236;
+ * the delay scan likewise. A group that has not arrived, whose triggers do
+ * not hold, is left as it is. */
+static void check_arrivals_scan_timers(void)
+{
+	arrivals_mission(1);
+	begin_arrivals();
+	g_flight_global_countdown_timers.mission_arrival_trigger_scan_timer = 9;
+	g_flight_global_countdown_timers.mission_arrival_delay_scan_timer = 8;
+	g_flight_mission_state.runtime.global_primary_goal_status = 1;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].arrival_delay_pending, 0);
+	XVT_ASSERT_INT_EQ(g_flight_global_countdown_timers
+				  .mission_arrival_trigger_scan_timer,
+			  9);
+	XVT_ASSERT_INT_EQ(g_flight_global_countdown_timers
+				  .mission_arrival_delay_scan_timer,
+			  8);
+	g_flight_global_countdown_timers.mission_arrival_trigger_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].arrival_delay_pending, 1);
+	XVT_ASSERT_INT_EQ(g_flight_global_countdown_timers
+				  .mission_arrival_trigger_scan_timer,
+			  SIMULATION_TICKS_PER_SECOND);
+	XVT_ASSERT_INT_EQ(g_flight_global_countdown_timers
+				  .mission_arrival_delay_scan_timer,
+			  8);
+	g_flight_global_countdown_timers.mission_arrival_delay_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_flight_global_countdown_timers
+				  .mission_arrival_delay_scan_timer,
+			  SIMULATION_TICKS_PER_SECOND);
+}
+
+/* A waiting group whose two arrival pairs are joined by OR needs one to hold,
+ * joined by AND needs both; it then waits out its delay, and the log gives
+ * both pairs' results. */
+static void check_arrivals_trigger_joins(void)
+{
+	static const struct {
+		int first;
+		int second;
+		int or_joined;
+		int scheduled;
+	} rows[] = {
+		{TRIGGER_HOLDS, TRIGGER_HOLDS, 0, 1},
+		{TRIGGER_HOLDS, TRIGGER_FAILED, 0, 0},
+		{TRIGGER_FAILED, TRIGGER_HOLDS, 0, 0},
+		{TRIGGER_FAILED, TRIGGER_FAILED, 0, 0},
+		{TRIGGER_HOLDS, TRIGGER_HOLDS, 1, 1},
+		{TRIGGER_HOLDS, TRIGGER_FAILED, 1, 1},
+		{TRIGGER_FAILED, TRIGGER_HOLDS, 1, 1},
+		{TRIGGER_FAILED, TRIGGER_FAILED, 1, 0},
+	};
+	arrivals_mission(8);
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		int fg = (int)i + 1;
+		arrival_waits_for(fg, rows[i].first);
+		g_stored.groups[fg].arrival_triggers[1].triggers[0].condition =
+			(uint8_t)rows[i].second;
+		g_stored.groups[fg].arrivals12_or_arrivals34 =
+			(uint8_t)rows[i].or_joined;
+	}
+	begin_arrivals();
+	g_flight_mission_state.runtime.global_primary_goal_status = 1;
+	mission_update_flight_group_arrivals();
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[i + 1].arrival_delay_pending,
+			rows[i].scheduled);
+	}
+	/* A pair that has failed reads 0, not met. */
+	XVT_ASSERT_TRUE(line_holds("mission.arrival_scheduled fg=1 ",
+				   "first=1 second=1 either=0"));
+	XVT_ASSERT_TRUE(line_holds("mission.arrival_scheduled fg=6 ",
+				   "first=1 second=0 either=1"));
+	XVT_ASSERT_TRUE(line_holds("mission.arrival_scheduled fg=7 ",
+				   "first=0 second=1 either=1"));
+	XVT_ASSERT_INT_EQ(count_lines("mission.arrival_scheduled"), 4);
+}
+
+/* A group's arrival delay is its fixed delay in minutes and seconds plus
+ * half its random delay; with random variation on, a draw below the random
+ * delay instead. A group that waits for a human (arrive_only_if_human) and
+ * has none is not scheduled; one a player owns is. A group that cannot
+ * arrive, or has no craft to send, is left alone. */
+static void check_arrivals_delay_set(void)
+{
+	arrivals_mission(6);
+	struct xvt_flight_group *plain = &g_stored.groups[1];
+	plain->arrival_delay_minutes = 1;
+	plain->arrival_delay_seconds = 5;
+	plain->arrival_rand_delay_minutes = 0;
+	plain->arrival_rand_delay_seconds = 10;
+	struct xvt_flight_group *varied = &g_stored.groups[2];
+	varied->arrival_delay_seconds = 3;
+	varied->arrival_rand_delay_minutes = 1;
+	varied->arrival_rand_delay_seconds = 40;
+	g_stored.groups[3].arrive_only_if_human = 1;
+	g_stored.groups[4].arrive_only_if_human = 1;
+	g_stored.groups[4].player_number = 5;
+	begin_arrivals();
+	g_flight_mission_state.runtime.global_primary_goal_status = 1;
+	g_mission_flight_groups[4].player_owner_idx = 1;
+	g_mission_fg_stats[5].arrival_enabled = 0;
+	g_mission_fg_stats[6].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 0;
+	g_flight_mission_state.random_variation_enabled = 0;
+	/* The delay scan waits, so the delay is read as it was set. */
+	g_flight_global_countdown_timers.mission_arrival_delay_scan_timer = 99;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].arrival_delay_timer, 70);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.arrival_scheduled fg=1 ",
+			   "delay=70 fixed=65 random=5 range=10 varied=0"));
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[2].arrival_delay_timer, 53);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[3].arrival_delay_pending, 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[4].arrival_delay_pending, 1);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[5].arrival_delay_pending, 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[6].arrival_delay_pending, 0);
+
+	/* With variation on, the draw is below the random delay: 100. */
+	for (int fg = 1; fg <= 2; ++fg) {
+		g_mission_fg_stats[fg].arrival_delay_pending = 0;
+	}
+	g_flight_mission_state.random_variation_enabled = 1;
+	const unsigned int moduli[] = {10};
+	const unsigned int wanted[] = {7};
+	seed_for_draws(moduli, wanted, 1);
+	g_flight_global_countdown_timers.mission_arrival_trigger_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].arrival_delay_timer, 72);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.arrival_scheduled fg=1 ",
+			   "delay=72 fixed=65 random=7 range=10 varied=1"));
+	XVT_ASSERT_TRUE(g_mission_fg_stats[2].arrival_delay_timer >= 3 &&
+			g_mission_fg_stats[2].arrival_delay_timer < 103);
+}
+
+/* A scheduled arrival counts down by one a second; at 0 it starts when the
+ * region has room for the group's craft: the group has arrived, its craft
+ * are in the table, and the rounds left are its number of waves. With no
+ * room it waits at 0 and says so. */
+static void check_arrivals_delay_runs_out(void)
+{
+	arrivals_mission(1);
+	g_stored.groups[1].number_of_waves = 2;
+	begin_arrivals();
+	g_mission_fg_stats[1].arrival_delay_pending = 1;
+	g_mission_fg_stats[1].arrival_delay_timer = 2;
+	for (int left = 1; left >= 0; --left) {
+		g_flight_global_countdown_timers
+			.mission_arrival_delay_scan_timer = 0;
+		g_flight_global_countdown_timers
+			.mission_arrival_trigger_scan_timer = 5;
+		mission_update_flight_group_arrivals();
+		XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].arrival_delay_timer,
+				  left);
+		XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].has_arrived, 0);
+	}
+	XVT_ASSERT_TRUE(
+		line_holds("mission.arrival_countdown fg=1 ", "left=0"));
+	XVT_ASSERT_INT_EQ(count_lines("mission.arrival_countdown fg=1 "), 2);
+	/* No room: the group needs 100 places. */
+	g_mission_flight_groups[1].fg.number_of_craft = 100;
+	g_flight_global_countdown_timers.mission_arrival_delay_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].has_arrived, 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].arrival_delay_timer, 0);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.wave_no_room fg=1 needed=100 ", ""));
+	g_mission_flight_groups[1].fg.number_of_craft = 2;
+	g_flight_global_countdown_timers.mission_arrival_delay_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].has_arrived, 1);
+	XVT_ASSERT_INT_EQ(craft_count_in_group(1), 2);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  2);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].waves_remaining, 2);
+	XVT_ASSERT_TRUE(line_holds("mission.group_arrived fg=1 ",
+				   "kind=\"craft\" ordinal=-1 waves=2"));
+}
+
+/* Remove the craft of flight group fg from the table, as if they were gone. */
+static void remove_group_craft(int fg)
+{
+	for (int slot = 0; slot < 32; ++slot) {
+		if (g_object_table[slot].object_type != 0 &&
+		    g_object_table[slot].flight_group_idx == fg) {
+			g_object_table[slot].object_type = 0;
+		}
+	}
+}
+
+/* A group that has arrived, has rounds to come and has none of its craft left
+ * sends its next round when there is room, and a round fewer remain; a craft
+ * that is breaking up or exploding no longer counts; a group with a craft in
+ * flight, no rounds left, a player owner or no room waits. */
+static void check_arrivals_next_round(void)
+{
+	arrivals_mission(0);
+	begin_arrivals();
+	XVT_ASSERT_INT_EQ(craft_count_in_group(0), 2);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 1);
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 1);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  2);
+
+	/* A craft breaking up does not count, but the other one still does. */
+	int first = craft_slot(0, 0);
+	int second = craft_slot(0, 1);
+	g_object_table[first].mobj->p_craft->object_kind =
+		CRAFT_OBJECT_KIND_BREAKING_UP;
+	g_flight_global_countdown_timers.mission_arrival_trigger_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 1);
+	g_object_table[second].mobj->p_craft->object_kind =
+		CRAFT_OBJECT_KIND_EXPLODING;
+
+	/* Both gone: a player owner, no room and no rounds left each hold the
+	 * group back. */
+	g_mission_flight_groups[0].player_owner_idx = 0;
+	g_flight_global_countdown_timers.mission_arrival_trigger_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 1);
+	g_mission_flight_groups[0].player_owner_idx = -1;
+	g_mission_flight_groups[0].fg.number_of_craft = 100;
+	g_flight_global_countdown_timers.mission_arrival_trigger_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 1);
+	g_mission_flight_groups[0].fg.number_of_craft = 2;
+	g_mission_fg_stats[0].waves_remaining = 0;
+	g_flight_global_countdown_timers.mission_arrival_trigger_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  2);
+	g_mission_fg_stats[0].waves_remaining = 1;
+
+	g_flight_global_countdown_timers.mission_arrival_trigger_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  4);
+	XVT_ASSERT_INT_EQ(craft_count_in_group(0), 4);
+	XVT_ASSERT_TRUE(line_holds("mission.wave_arrived fg=0 ",
+				   "kind=\"craft\" waves=0 arrived=4"));
+}
+
+/* A group a player number is set for, that no player flies, does not send
+ * another round while its team's primary and prevent goals are met and met,
+ * met and failed, or failed and met; with other states it does. */
+static void check_arrivals_player_group_held(void)
+{
+	static const struct {
+		int primary;
+		int prevent;
+		int sent;
+	} rows[] = {
+		{1, 1, 0}, {1, 2, 0}, {2, 1, 0}, {1, 0, 1},
+		{0, 1, 1}, {2, 2, 1}, {0, 0, 1},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		arrivals_mission(0);
+		g_stored.groups[0].player_number = 3;
+		begin_arrivals();
+		g_flight_mission_state.runtime.team_goal_status[0][0] =
+			(uint8_t)rows[i].primary;
+		g_flight_mission_state.runtime.team_goal_status[0][1] =
+			(uint8_t)rows[i].prevent;
+		remove_group_craft(0);
+		mission_update_flight_group_arrivals();
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			rows[i].sent ? 4 : 2);
+	}
+}
+
+/* The rule that stops a group's arrivals: the departure trigger holding, or
+ * the group's stop_arriving_when rule (1 a craft of the group departed, 2 the
+ * team's primary goal complete, 3 its primary failed or its prevent goal
+ * complete). Craft that never arrived are counted as arrived, not departed,
+ * not inspected, not disabled, not captured, not attacked, not boarded, and
+ * as left the region, or as dependent on the primary mothership when the
+ * group departs into one; no round is left, and the special cargo craft are
+ * counted the same way. */
+static void check_arrivals_stop_rules(void)
+{
+	static const struct {
+		int rule;
+		int departed;
+		int primary;
+		int prevent;
+		int departure_trigger;
+		int stops;
+	} rows[] = {
+		{0, 0, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 1}, {1, 0, 0, 0, 0, 0},
+		{2, 0, 1, 0, 0, 1}, {2, 0, 2, 0, 0, 0}, {3, 0, 2, 0, 0, 1},
+		{3, 0, 0, 1, 0, 1}, {3, 0, 1, 0, 0, 0}, {0, 0, 0, 0, 1, 1},
+		{0, 0, 0, 0, 2, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		for (int mothership = 0; mothership < 2; ++mothership) {
+			arrivals_mission(0);
+			g_stored.groups[0].stop_arriving_when =
+				(uint8_t)rows[i].rule;
+			g_stored.groups[0].departure_method =
+				(uint8_t)mothership;
+			begin_arrivals();
+			g_flight_mission_state.runtime
+				.global_primary_goal_status = 1;
+			g_mission_flight_groups[0].fg.special_cargo_craft = 1;
+			g_mission_fg_stats[0].special_cargo_outcome
+				[FLIGHT_GROUP_OUTCOME_TOTAL] = 2;
+			g_mission_fg_stats[0].special_cargo_outcome
+				[FLIGHT_GROUP_OUTCOME_ARRIVED] = 1;
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_DEPARTED] =
+				(uint16_t)rows[i].departed;
+			g_flight_mission_state.runtime.team_goal_status[0][0] =
+				(uint8_t)rows[i].primary;
+			g_flight_mission_state.runtime.team_goal_status[0][1] =
+				(uint8_t)rows[i].prevent;
+			if (rows[i].departure_trigger != 0) {
+				g_mission_flight_groups[0]
+					.fg.departure_trigger.triggers[0]
+					.condition =
+					rows[i].departure_trigger == 1
+						? TRIGGER_HOLDS
+						: TRIGGER_FAILED;
+			}
+			remove_group_craft(0);
+			uint16_t *counts = g_mission_fg_stats[0].outcome_count;
+			uint8_t *special =
+				g_mission_fg_stats[0].special_cargo_outcome;
+			uint16_t total = counts[FLIGHT_GROUP_OUTCOME_TOTAL];
+			uint16_t arrived = counts[FLIGHT_GROUP_OUTCOME_ARRIVED];
+			mission_update_flight_group_arrivals();
+			uint16_t missing = (uint16_t)(total - arrived);
+			/* Stopped, the missing craft count as arrived; not
+			 * stopped, the next round arrives: the same total. */
+			XVT_ASSERT_INT_EQ(counts[FLIGHT_GROUP_OUTCOME_ARRIVED],
+					  total);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED],
+				rows[i].stops ? missing : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_INSPECTED],
+				rows[i].stops ? missing : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_DISABLED],
+				rows[i].stops ? missing : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED],
+				rows[i].stops ? missing : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_ATTACKED],
+				rows[i].stops ? missing : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_BOARDED],
+				rows[i].stops ? missing : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT],
+				rows[i].stops && mothership ? missing : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_LEFT_REGION],
+				rows[i].stops && !mothership ? missing : 0);
+			XVT_ASSERT_INT_EQ(
+				special[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED],
+				rows[i].stops ? 1 : 0);
+			XVT_ASSERT_INT_EQ(
+				special[FLIGHT_GROUP_OUTCOME_NOT_INSPECTED],
+				rows[i].stops ? 1 : 0);
+			XVT_ASSERT_INT_EQ(
+				special[FLIGHT_GROUP_OUTCOME_NOT_DISABLED],
+				rows[i].stops ? 1 : 0);
+			XVT_ASSERT_INT_EQ(
+				special[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED],
+				rows[i].stops ? 1 : 0);
+			XVT_ASSERT_INT_EQ(
+				special[FLIGHT_GROUP_OUTCOME_NOT_ATTACKED],
+				rows[i].stops ? 1 : 0);
+			XVT_ASSERT_INT_EQ(
+				special[FLIGHT_GROUP_OUTCOME_NOT_BOARDED],
+				rows[i].stops ? 1 : 0);
+			XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining,
+					  0);
+			XVT_ASSERT_INT_EQ(
+				count_lines("mission.group_arrivals_stopped"),
+				rows[i].stops);
+			if (rows[i].stops != 0) {
+				char fields[48];
+				snprintf(fields, sizeof fields,
+					 "rule=%d count=%d special=1",
+					 rows[i].rule, (int)missing);
+				XVT_ASSERT_TRUE(line_holds(
+					"mission.group_arrivals_stopped fg=0 ",
+					fields));
+				XVT_ASSERT_TRUE(line_holds(
+					"mission.arrivals_stop_reason fg=0 ",
+					mothership
+						? "counted=\"mothership_dependent\""
+						: "counted=\"left_region\""));
+			}
+		}
+	}
+}
+
+/* ---- mission_process_flight_group_wave_completion ---------------------- */
+
+/* Sends group 0's next round once its current one is gone: nothing happens
+ * with no rounds or no craft to come, or while a craft of the group is flying
+ * (one breaking up or exploding does not count). */
+static void check_wave_completion_waits(void)
+{
+	arrivals_mission(0);
+	begin_arrivals();
+	uint16_t *arrived =
+		&g_mission_fg_stats[0]
+			 .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED];
+	mission_process_flight_group_wave_completion(0);
+	XVT_ASSERT_INT_EQ(*arrived, 2);
+
+	int first = craft_slot(0, 0);
+	int second = craft_slot(0, 1);
+	g_object_table[first].mobj->p_craft->object_kind =
+		CRAFT_OBJECT_KIND_EXPLODING;
+	mission_process_flight_group_wave_completion(0);
+	XVT_ASSERT_INT_EQ(*arrived, 2);
+	g_object_table[second].mobj->p_craft->object_kind =
+		CRAFT_OBJECT_KIND_BREAKING_UP;
+
+	g_mission_fg_stats[0].waves_remaining = 0;
+	mission_process_flight_group_wave_completion(0);
+	XVT_ASSERT_INT_EQ(*arrived, 2);
+	g_mission_fg_stats[0].waves_remaining = 1;
+	uint16_t total =
+		g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL];
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 0;
+	mission_process_flight_group_wave_completion(0);
+	XVT_ASSERT_INT_EQ(*arrived, 2);
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = total;
+
+	mission_process_flight_group_wave_completion(0);
+	XVT_ASSERT_INT_EQ(*arrived, 4);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 0);
+	XVT_ASSERT_INT_EQ(g_current_flight_group_idx, 0);
+	XVT_ASSERT_INT_EQ(craft_count_in_group(0), 4);
+	XVT_ASSERT_INT_EQ(count_lines("mission.wave_room_made"), 0);
+}
+
+/* The next round is held back while the team's primary and prevent goals are
+ * met and met, met and failed, or failed and met, and the hold is logged. */
+static void check_wave_completion_held(void)
+{
+	static const struct {
+		int primary;
+		int prevent;
+		int held;
+	} rows[] = {{1, 1, 1}, {1, 2, 1}, {2, 1, 1}, {1, 0, 0}, {2, 2, 0}};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		arrivals_mission(0);
+		begin_arrivals();
+		remove_group_craft(0);
+		g_flight_mission_state.runtime.team_goal_status[0][0] =
+			(uint8_t)rows[i].primary;
+		g_flight_mission_state.runtime.team_goal_status[0][1] =
+			(uint8_t)rows[i].prevent;
+		mission_process_flight_group_wave_completion(0);
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			rows[i].held ? 2 : 4);
+		XVT_ASSERT_INT_EQ(count_lines("mission.wave_held fg=0 "),
+				  rows[i].held);
+		if (rows[i].held != 0) {
+			char fields[40];
+			snprintf(fields, sizeof fields,
+				 "team=0 primary=%d prevent=%d",
+				 rows[i].primary, rows[i].prevent);
+			XVT_ASSERT_TRUE(
+				line_holds("mission.wave_held fg=0 ", fields));
+		}
+	}
+}
+
+/* The rules that stop a group's arrivals hold for the next round as for the
+ * first (see the arrivals checks): the round does not come, the craft that
+ * never arrived are counted as arrived, not departed and left the region (or
+ * dependent on the mothership), and the stop is logged. In the mode where a
+ * player's group has unlimited rounds the rules are not looked at. */
+static void check_wave_completion_stops(void)
+{
+	static const struct {
+		int rule;
+		int departed;
+		int primary;
+		int prevent;
+		int departure_trigger;
+		int unlimited;
+		int stops;
+	} rows[] = {
+		{1, 1, 0, 0, 0, 0, 1}, {1, 0, 0, 0, 0, 0, 0},
+		{2, 0, 1, 0, 0, 0, 1}, {2, 0, 2, 0, 0, 0, 0},
+		{3, 0, 2, 0, 0, 0, 1}, {3, 0, 0, 1, 0, 0, 1},
+		{3, 0, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 1, 0, 1},
+		{0, 0, 0, 0, 2, 0, 0}, {2, 0, 1, 0, 1, 1, 0},
+		{3, 0, 0, 1, 1, 1, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		for (int mothership = 0; mothership < 2; ++mothership) {
+			arrivals_mission(0);
+			g_stored.groups[0].stop_arriving_when =
+				(uint8_t)rows[i].rule;
+			g_stored.groups[0].alternate_mothership_used =
+				(uint8_t)mothership;
+			begin_arrivals();
+			g_flight_mission_state.runtime
+				.global_primary_goal_status = 1;
+			g_flight_mission_state.player_flight_group_wave_mode =
+				rows[i].unlimited ? CRAFT_WAVES_UNLIMITED
+						  : CRAFT_WAVES_DEFAULT;
+			g_mission_flight_groups[0].fg.special_cargo_craft = 1;
+			g_mission_fg_stats[0].special_cargo_outcome
+				[FLIGHT_GROUP_OUTCOME_TOTAL] = 3;
+			g_mission_fg_stats[0].special_cargo_outcome
+				[FLIGHT_GROUP_OUTCOME_ARRIVED] = 1;
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_DEPARTED] =
+				(uint16_t)rows[i].departed;
+			g_flight_mission_state.runtime.team_goal_status[0][0] =
+				(uint8_t)rows[i].primary;
+			g_flight_mission_state.runtime.team_goal_status[0][1] =
+				(uint8_t)rows[i].prevent;
+			if (rows[i].departure_trigger != 0) {
+				g_mission_flight_groups[0]
+					.fg.departure_trigger.triggers[0]
+					.condition =
+					rows[i].departure_trigger == 1
+						? TRIGGER_HOLDS
+						: TRIGGER_FAILED;
+			}
+			remove_group_craft(0);
+			uint16_t *counts = g_mission_fg_stats[0].outcome_count;
+			uint8_t *special =
+				g_mission_fg_stats[0].special_cargo_outcome;
+			mission_process_flight_group_wave_completion(0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED],
+				rows[i].stops ? 2 : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_INSPECTED],
+				rows[i].stops ? 2 : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_DISABLED],
+				rows[i].stops ? 2 : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED],
+				rows[i].stops ? 2 : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_ATTACKED],
+				rows[i].stops ? 2 : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_NOT_BOARDED],
+				rows[i].stops ? 2 : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_PRIMARY_MOTHERSHIP_DEPENDENT],
+				rows[i].stops && mothership ? 2 : 0);
+			XVT_ASSERT_INT_EQ(
+				counts[FLIGHT_GROUP_OUTCOME_LEFT_REGION],
+				rows[i].stops && !mothership ? 2 : 0);
+			XVT_ASSERT_INT_EQ(
+				special[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED],
+				rows[i].stops ? 2 : 0);
+			XVT_ASSERT_INT_EQ(
+				special[FLIGHT_GROUP_OUTCOME_NOT_BOARDED],
+				rows[i].stops ? 2 : 0);
+			XVT_ASSERT_INT_EQ(counts[FLIGHT_GROUP_OUTCOME_ARRIVED],
+					  4);
+			XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining,
+					  0);
+			XVT_ASSERT_INT_EQ(craft_count_in_group(0),
+					  rows[i].stops ? 0 : 2);
+			XVT_ASSERT_INT_EQ(
+				count_lines("mission.group_arrivals_stopped"),
+				rows[i].stops);
+			if (rows[i].stops != 0) {
+				char fields[48];
+				snprintf(fields, sizeof fields,
+					 "rule=%d count=2 special=2",
+					 rows[i].rule);
+				XVT_ASSERT_TRUE(line_holds(
+					"mission.group_arrivals_stopped fg=0 ",
+					fields));
+				XVT_ASSERT_TRUE(line_holds(
+					"mission.arrivals_stop_reason fg=0 ",
+					mothership
+						? "counted=\"mothership_dependent\""
+						: "counted=\"left_region\""));
+			}
+		}
+	}
+}
+
+/* Make room for a round with more craft than the table has free places:
+ * the objects of the explosion genus that no player owns go first, then the
+ * craft that are breaking up or exploding and that no player owns, each
+ * counted as destroyed in its group; the round then comes. Here the group of
+ * 32 craft finds 30 places free, and its two old craft are an explosion and
+ * a craft breaking up. When too few can be freed the log counts what is
+ * missing. */
+static void check_wave_completion_makes_room(void)
+{
+	static const struct {
+		int craft;
+		int freed;
+		int missing;
+	} rows[] = {{32, 2, 0}, {40, 2, 8}, {31, 1, 0}};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		arrivals_mission(0);
+		begin_arrivals();
+		int first = craft_slot(0, 0);
+		int second = craft_slot(0, 1);
+		g_object_table[first].mobj->p_craft->object_kind =
+			CRAFT_OBJECT_KIND_EXPLODING;
+		g_object_table[first].genus_id = CRAFT_GENUS_EXPLOSION;
+		g_object_table[second].mobj->p_craft->object_kind =
+			CRAFT_OBJECT_KIND_BREAKING_UP;
+		g_mission_flight_groups[0].fg.number_of_craft =
+			(uint8_t)rows[i].craft;
+		mission_process_flight_group_wave_completion(0);
+		char fields[64];
+		snprintf(fields, sizeof fields,
+			 "needed=%d free=30 freed=%d missing=%d", rows[i].craft,
+			 rows[i].freed, rows[i].missing);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.wave_room_made fg=0 ", fields));
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+			rows[i].freed);
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			4);
+		XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 0);
+	}
+	/* A player-owned explosion or craft is not taken. */
+	arrivals_mission(0);
+	begin_arrivals();
+	int owned = craft_slot(0, 0);
+	g_object_table[owned].mobj->p_craft->object_kind =
+		CRAFT_OBJECT_KIND_EXPLODING;
+	g_object_table[owned].player_owner_idx = 0;
+	g_object_table[craft_slot(0, 1)].mobj->p_craft->object_kind =
+		CRAFT_OBJECT_KIND_BREAKING_UP;
+	g_mission_flight_groups[0].fg.number_of_craft = 31;
+	mission_process_flight_group_wave_completion(0);
+	XVT_ASSERT_INT_EQ(g_object_table[owned].object_type != 0, 1);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[0]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+		1);
+}
+
+/* ---- mission_resolve_formation_slot_world_loc -------------------------- */
+
+/* Gives the craft type of the group an object type whose largest box corner
+ * has z = 12 without reading a model: the box cache is filled by hand. */
+static void set_box_cache(int object_type)
+{
+	g_model_bounds_cached[object_type] = 1;
+	memset(&g_model_bounds_max[object_type], 0,
+	       sizeof g_model_bounds_max[object_type]);
+	g_model_bounds_max[object_type].z = 12.0f;
+}
+
+/* The offsets of formation place `slot` in model bounds of 40, 64 and 20: the
+ * place's offsets grown with the formation spacing, by half a bound (a quarter
+ * for the forward one) more at spacing 0. */
+static void place_offsets(int formation, int slot, int spacing, int *side,
+			  int *up, int *forward)
+{
+	int x = g_form_pos_x[formation][slot];
+	int y = g_form_pos_y[formation][slot];
+	int z = g_form_pos_z[formation][slot];
+	int scale = spacing + 1;
+	*side = scale * x * 40;
+	*forward = scale * y * 64;
+	*up = scale * z * 20;
+	if (scale == 1) {
+		*side += x * (40 / 2);
+		*forward += y * (64 / 4);
+		*up += z * (20 / 2);
+	}
+}
+
+/* A craft of formation place `slot` stands at the group's current mission
+ * point plus the place's offsets (see check_spawn_formation), turned by the
+ * basis object's orientation, and raised by the model's largest box z. With
+ * no basis (0xFFFF) the offset is 0. The basis here halves each axis, so the
+ * side offset ends in x, the forward one in y and the up one in z; a bound
+ * shift doubles the turned offset per step. */
+static void check_formation_slot_world_loc(void)
+{
+	static const struct {
+		int formation;
+		int slot;
+		int spacing;
+		int shift;
+	} rows[] = {
+		{0, 0, 0, 0}, {4, 2, 0, 0}, {4, 5, 1, 0},  {15, 3, 2, 0},
+		{4, 2, 0, 1}, {8, 4, 1, 2}, {13, 1, 0, 0}, {33, 5, 3, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		fresh_world();
+		struct xvt_flight_group *group = &g_mission_flight_groups[0].fg;
+		group->mission_point_x[0] = 10;
+		group->mission_point_y[0] = 20;
+		group->mission_point_z[0] = 30;
+		group->formation = (uint8_t)rows[i].formation;
+		group->formation_spacing = (uint8_t)rows[i].spacing;
+		g_mission_fg_stats[0].current_mission_point_ref = 0x8000;
+		uint8_t object_type = g_craft_type_to_object_type[TEST_XWING];
+		set_box_cache(object_type);
+		struct model_def *model = model_of(object_type);
+		struct model_def saved = *model;
+		model->bound_size_x = 40;
+		model->bound_size_y = 64;
+		model->bound_size_z = 20;
+		model->bound_size_shift = (uint8_t)rows[i].shift;
+		struct mobile_object *basis = &g_test_mobiles[3];
+		basis->orient_matrix_dirty = 0;
+		basis->cached_side_x = 0x4000;
+		basis->cached_fwd_y = 0x4000;
+		basis->cached_up_z = 0x4000;
+
+		mission_resolve_formation_slot_world_loc(
+			0, (uint16_t)rows[i].slot, UINT16_MAX);
+		XVT_ASSERT_INT_EQ(g_world_loc_x, 10 * 256);
+		XVT_ASSERT_INT_EQ(g_world_loc_y, -20 * 256);
+		XVT_ASSERT_INT_EQ(g_world_loc_z, 30 * 256 + 12);
+
+		int side;
+		int up;
+		int forward;
+		place_offsets(rows[i].formation, rows[i].slot, rows[i].spacing,
+			      &side, &up, &forward);
+		mission_resolve_formation_slot_world_loc(
+			0, (uint16_t)rows[i].slot, 3);
+		int doubled = 1 << rows[i].shift;
+		XVT_ASSERT_INT_EQ(g_rotated_x, side / 2 * doubled);
+		XVT_ASSERT_INT_EQ(g_rotated_y, forward / 2 * doubled);
+		XVT_ASSERT_INT_EQ(g_rotated_z, up / 2 * doubled);
+		XVT_ASSERT_INT_EQ(g_world_loc_x, 10 * 256 + side / 2 * doubled);
+		XVT_ASSERT_INT_EQ(g_world_loc_y,
+				  -20 * 256 + forward / 2 * doubled);
+		XVT_ASSERT_INT_EQ(g_world_loc_z,
+				  30 * 256 + up / 2 * doubled + 12);
+		*model = saved;
+	}
+}
+
+/* Known failure formation_slot_past_six, issue #138: a formation has six
+ * places, and the seventh craft of a group (place 6) takes a place of its own,
+ * not the first place of the next formation. Here the seventh place of a group
+ * in formation 4 must not be where the first place of a group in formation 5
+ * is, the two groups starting from the same mission point. */
+static void check_formation_slot_past_six(void)
+{
+	fresh_world();
+	g_mission_flight_groups[0].fg.formation = 4;
+	g_mission_flight_groups[1].fg.formation = 5;
+	for (int fg = 0; fg < 2; ++fg) {
+		g_mission_fg_stats[fg].current_mission_point_ref = 0x8000;
+	}
+	uint8_t object_type = g_craft_type_to_object_type[TEST_XWING];
+	set_box_cache(object_type);
+	struct model_def *model = model_of(object_type);
+	struct model_def saved = *model;
+	model->bound_size_x = 40;
+	model->bound_size_y = 60;
+	model->bound_size_z = 20;
+	struct mobile_object *basis = &g_test_mobiles[3];
+	basis->orient_matrix_dirty = 0;
+	basis->cached_side_x = 0x4000;
+	basis->cached_fwd_y = 0x4000;
+	basis->cached_up_z = 0x4000;
+	mission_resolve_formation_slot_world_loc(0, 6, 3);
+	int seventh[3] = {g_world_loc_x, g_world_loc_y, g_world_loc_z};
+	mission_resolve_formation_slot_world_loc(1, 0, 3);
+	*model = saved;
+	XVT_ASSERT_TRUE(seventh[0] != g_world_loc_x ||
+			seventh[1] != g_world_loc_y ||
+			seventh[2] != g_world_loc_z);
+}
+
+/* The first craft type of a static type, from 1, whose object type has the
+ * given genus (or, for -1, a genus other than a mine's or a satellite's), or
+ * 0. */
+static int static_craft_of_genus(int genus)
+{
+	for (int type = 1; type < 96; ++type) {
+		uint8_t object_type = g_craft_type_to_object_type[type];
+		if (object_type != 0 &&
+		    (g_object_type_table[object_type].behavior_flags & 0x80) !=
+			    0 &&
+		    (genus < 0 ? (g_object_type_table[object_type].genus_id !=
+					  CRAFT_GENUS_MINE &&
+				  g_object_type_table[object_type].genus_id !=
+					  CRAFT_GENUS_SATELLITE)
+			       : g_object_type_table[object_type].genus_id ==
+					 genus)) {
+			return type;
+		}
+	}
+	return 0;
+}
+
+/* A static group stands where its kind puts it: genus 9 at the group's first
+ * mission point, a mine at its cell of the grid (the cells of
+ * mission_spawn_flight_group_static_objects, here 3 a side in the plane the
+ * status picks), any other kind, and a mine's cell past the grid, at the
+ * group's current mission point; each raised by the box's z. */
+static void check_formation_slot_static(void)
+{
+	static const struct {
+		int status;
+		int x_step;
+		int y_step;
+		int z_row_step;
+		int z_column_step;
+	} planes[4] = {{0, 64, 64, 0, 0},
+		       {1, 0, 64, 0, 64},
+		       {2, 64, 0, 64, 0},
+		       {3, 0, 0, 0, 0}};
+	for (int plane = 0; plane < 4; ++plane) {
+		static_mission(CRAFT_SPECIES_MINE_TYPE_A, 3,
+			       planes[plane].status);
+		uint8_t object_type =
+			g_craft_type_to_object_type[CRAFT_SPECIES_MINE_TYPE_A];
+		set_box_cache(object_type);
+		for (int cell = 0; cell < 9; ++cell) {
+			int row = cell / 3;
+			int column = cell % 3;
+			mission_resolve_formation_slot_world_loc(
+				0, (uint16_t)cell, UINT16_MAX);
+			XVT_ASSERT_INT_EQ(g_world_loc_x,
+					  (10 - planes[plane].x_step +
+					   column * planes[plane].x_step) *
+						  256);
+			XVT_ASSERT_INT_EQ(g_world_loc_y,
+					  (-(20 + planes[plane].y_step) +
+					   row * planes[plane].y_step) *
+						  256);
+			XVT_ASSERT_INT_EQ(
+				g_world_loc_z,
+				(30 - planes[plane].z_row_step -
+				 planes[plane].z_column_step +
+				 row * planes[plane].z_row_step +
+				 column * planes[plane].z_column_step) *
+						256 +
+					12);
+		}
+	}
+	/* A cell past the grid: the current mission point (here point 2). */
+	static_mission(CRAFT_SPECIES_MINE_TYPE_A, 3, 0);
+	set_box_cache(g_craft_type_to_object_type[CRAFT_SPECIES_MINE_TYPE_A]);
+	g_mission_flight_groups[0].fg.mission_point_x[1] = 7;
+	g_mission_flight_groups[0].fg.mission_point_y[1] = 8;
+	g_mission_flight_groups[0].fg.mission_point_z[1] = 9;
+	g_mission_fg_stats[0].current_mission_point_ref = 0x8001;
+	g_log_line_count = 0;
+	mission_resolve_formation_slot_world_loc(0, 9, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_world_loc_x, 7 * 256);
+	XVT_ASSERT_INT_EQ(g_world_loc_y, -8 * 256);
+	XVT_ASSERT_INT_EQ(g_world_loc_z, 9 * 256 + 12);
+	XVT_ASSERT_TRUE(line_holds("mission.mine_slot_outside_grid fg=0 ",
+				   "cell=9 size=3"));
+
+	/* Genus 9 stands at the first point, though the current one is the
+	 * second; another static kind at the current one. */
+	int type9 = static_craft_of_genus(CRAFT_GENUS_SATELLITE);
+	int other = static_craft_of_genus(-1);
+	if (type9 != 0) {
+		static_mission(type9, 1, 0);
+		set_box_cache(g_craft_type_to_object_type[type9]);
+		g_mission_flight_groups[0].fg.mission_point_x[1] = 7;
+		g_mission_fg_stats[0].current_mission_point_ref = 0x8001;
+		mission_resolve_formation_slot_world_loc(0, 0, UINT16_MAX);
+		XVT_ASSERT_INT_EQ(g_world_loc_x, 10 * 256);
+		XVT_ASSERT_INT_EQ(g_world_loc_y, -20 * 256);
+		XVT_ASSERT_INT_EQ(g_world_loc_z, 30 * 256 + 12);
+	}
+	if (other != 0) {
+		static_mission(other, 1, 0);
+		set_box_cache(g_craft_type_to_object_type[other]);
+		g_mission_flight_groups[0].fg.mission_point_x[1] = 7;
+		g_mission_flight_groups[0].fg.mission_point_y[1] = 8;
+		g_mission_flight_groups[0].fg.mission_point_z[1] = 9;
+		g_mission_fg_stats[0].current_mission_point_ref = 0x8001;
+		mission_resolve_formation_slot_world_loc(0, 0, UINT16_MAX);
+		XVT_ASSERT_INT_EQ(g_world_loc_x, 7 * 256);
+		XVT_ASSERT_INT_EQ(g_world_loc_z, 9 * 256 + 12);
+	}
+	XVT_ASSERT_TRUE(type9 != 0 || other != 0);
+}
+
+/* ---- the arrival of a static group and the next round ------------------ */
+
+/* A static group that arrives has arrived and is placed; its rounds left are
+ * its number of waves in a melee mission and none in any other. The next
+ * round of a static group is placed the same way, and takes one off its
+ * rounds. A group a player number is set for does not use up a round while
+ * its waves are unlimited. */
+static void check_static_group_arrival_and_rounds(void)
+{
+	for (int melee = 0; melee < 2; ++melee) {
+		static_mission(CRAFT_SPECIES_MINE_TYPE_A, 2, 0);
+		g_mission_header.mission_type =
+			melee ? MISSION_TYPE_MELEE : MISSION_TYPE_COMBAT;
+		g_mission_flight_groups[0].fg.number_of_waves = 2;
+		g_mission_fg_stats[0].has_arrived = 0;
+		XVT_ASSERT_INT_EQ(
+			mission_start_flight_group_arrival(UINT16_MAX), 1);
+		XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].has_arrived, 1);
+		XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining,
+				  melee ? 2 : 0);
+		int slots[64];
+		XVT_ASSERT_INT_EQ(static_objects(slots), 4);
+		XVT_ASSERT_TRUE(line_holds("mission.group_arrived fg=0 ",
+					   "kind=\"static\" ordinal=-1"));
+	}
+	/* The next round of a static group. */
+	static_mission(CRAFT_SPECIES_MINE_TYPE_A, 2, 0);
+	g_mission_fg_stats[0].waves_remaining = 2;
+	mission_spawn_current_flight_group_wave();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 1);
+	/* A player group with unlimited waves keeps its round count. */
+	g_mission_flight_groups[0].fg.player_number = 1;
+	g_flight_mission_state.player_flight_group_wave_mode =
+		CRAFT_WAVES_UNLIMITED;
+	mission_spawn_current_flight_group_wave();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 1);
+	g_flight_mission_state.player_flight_group_wave_mode =
+		CRAFT_WAVES_DEFAULT;
+	mission_spawn_current_flight_group_wave();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 0);
+	mission_spawn_current_flight_group_wave();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 0);
+}
+
+/* ---- mission_spawn_flight_group_wave_craft after the start ------------- */
+
+/* Marks the mission as started (the clock reads a second) and makes every
+ * in-flight message a plain one, for the announcement of an arriving round. */
+static void start_the_clock(void)
+{
+	for (size_t message = 0;
+	     message < sizeof g_str_in_flight_messages /
+			       sizeof g_str_in_flight_messages[0];
+	     ++message) {
+		g_str_in_flight_messages[message] = "\006";
+	}
+	g_mission_elapsed_clock.seconds = 1;
+	g_log_line_count = 0;
+}
+
+/* The place of craft `ordinal` of group fg, from the table. */
+static void craft_place(int fg, int ordinal, int *x, int *y, int *z)
+{
+	const struct object_record *craft =
+		&g_object_table[craft_slot(fg, ordinal)];
+	*x = craft->world_x;
+	*y = craft->world_y;
+	*z = craft->world_z;
+}
+
+/* A whole round that comes from hyperspace after the start (a group with no
+ * mothership, that no player owns) is put 8 times 65,535 units back along
+ * its heading, which is yaw 0 and pitch 0x4000 when the group has no
+ * fifth mission point; the spawn says so. A single craft asked for, a round
+ * before the start and a round a player owns come at the mission point. */
+static void check_spawn_hyperspace_arrival(void)
+{
+	static const struct {
+		int ordinal;
+		int started;
+		int owner;
+		int hyperspace;
+	} rows[] = {
+		{UINT16_MAX, 1, -1, 1},
+		{0, 1, -1, 0},
+		{UINT16_MAX, 0, -1, 0},
+		{UINT16_MAX, 1, 2, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		init_mission(MISSION_TYPE_COMBAT);
+		arriving_group(0, 1, SPAWN_TYPE, 2);
+		g_stored.groups[0].mission_point_x[0] = 10;
+		g_stored.groups[0].mission_point_y[0] = 20;
+		g_stored.groups[0].mission_point_z[0] = 30;
+		spawn_mission_ready();
+		if (rows[i].started != 0) {
+			start_the_clock();
+		}
+		g_mission_flight_groups[0].player_owner_idx = rows[i].owner;
+		XVT_ASSERT_INT_EQ(spawn_craft(0, (uint16_t)rows[i].ordinal), 1);
+		g_mission_elapsed_clock.seconds = 0;
+		int x;
+		int y;
+		int z;
+		craft_place(0, 0, &x, &y, &z);
+		int expected_x = 10 * 256;
+		int expected_y = -20 * 256;
+		int expected_z = 30 * 256;
+		if (rows[i].hyperspace != 0) {
+			trig2_movexyz(UINT16_MAX, (int16_t)0x8000, 0x4000);
+			expected_x += 8 * trig2_xmovedist;
+			expected_y += 8 * trig2_ymovedist;
+			expected_z += 8 * trig2_zmovedist;
+			XVT_ASSERT_TRUE(expected_x != 10 * 256 ||
+					expected_y != -20 * 256 ||
+					expected_z != 30 * 256);
+		}
+		XVT_ASSERT_INT_EQ(x, expected_x);
+		XVT_ASSERT_INT_EQ(y, expected_y);
+		XVT_ASSERT_INT_EQ(z, expected_z);
+		char fields[40];
+		snprintf(fields, sizeof fields,
+			 "started=%d mothership=0 hyperspace=%d",
+			 rows[i].started, rows[i].hyperspace);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.wave_prepared fg=0 ", fields));
+		XVT_ASSERT_TRUE(line_holds("mission.wave_prepared fg=0 ",
+					   "yaw=0 pitch=16384"));
+	}
+}
+
+/* A group with a fifth mission point faces it from where it starts, and one
+ * without faces yaw 0 and pitch 0x4000. */
+static void check_spawn_faces_fifth_point(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 1);
+	struct xvt_flight_group *group = &g_stored.groups[0];
+	group->mission_point_x[0] = 10;
+	group->mission_point_y[0] = 20;
+	group->mission_point_z[0] = 30;
+	group->mission_point_x[4] = 100;
+	group->mission_point_y[4] = 50;
+	group->mission_point_z[4] = -40;
+	group->mission_point_enabled[4] = 1;
+	spawn_mission_ready();
+	XVT_ASSERT_INT_EQ(spawn_craft(0, 0), 1);
+	trig2_ctop((100 - 10) * 256, -(50 - 20) * 256, (-40 - 30) * 256);
+	char fields[48];
+	snprintf(fields, sizeof fields, "yaw=%u pitch=%u",
+		 (unsigned)(uint16_t)trig2_xyangle,
+		 (unsigned)(uint16_t)trig2_pitch);
+	XVT_ASSERT_TRUE((uint16_t)trig2_xyangle != 0);
+	XVT_ASSERT_TRUE(line_holds("mission.wave_prepared fg=0 ", fields));
+}
+
+/* In a version 14 mission, after the start, a player's group with a second
+ * mission point starts there, not at the first; before the start it starts at
+ * the first. */
+static void check_spawn_second_point(void)
+{
+	for (int started = 0; started < 2; ++started) {
+		init_mission(MISSION_TYPE_COMBAT);
+		arriving_group(0, 1, SPAWN_TYPE, 1);
+		g_stored.groups[0].player_number = 3;
+		g_stored.groups[0].mission_point_x[0] = 10;
+		g_stored.groups[0].mission_point_y[0] = 20;
+		g_stored.groups[0].mission_point_z[0] = 30;
+		g_stored.groups[0].mission_point_x[1] = 77;
+		g_stored.groups[0].mission_point_y[1] = 88;
+		g_stored.groups[0].mission_point_z[1] = 99;
+		g_stored.groups[0].mission_point_enabled[1] = 1;
+		spawn_mission_ready();
+		if (started != 0) {
+			start_the_clock();
+		}
+		XVT_ASSERT_INT_EQ(g_mission_file_version, 14);
+		XVT_ASSERT_INT_EQ(spawn_craft(0, 0), 1);
+		g_mission_elapsed_clock.seconds = 0;
+		int x;
+		int y;
+		int z;
+		craft_place(0, 0, &x, &y, &z);
+		XVT_ASSERT_INT_EQ(x, (started ? 77 : 10) * 256);
+		XVT_ASSERT_INT_EQ(y, -(started ? 88 : 20) * 256);
+		XVT_ASSERT_INT_EQ(z, (started ? 99 : 30) * 256);
+	}
+}
+
+/* In a melee, after the start, when team 0 has one group a player flies, that
+ * group's round starts at the first mission point of the player group its
+ * round and player number pick: for player number p and round r (the craft
+ * sent so far over the group's craft), player (3 * d + p) mod 8 + 1, where d
+ * is r - 3 for an odd p and -3 - r for an even one. A group of another team
+ * starts at its own point. */
+static void check_spawn_melee_start_points(void)
+{
+	static const struct {
+		int player_number;
+		int craft_sent;
+		int team;
+		int target;
+	} rows[] = {
+		{1, 0, 0, 1}, {1, 2, 0, 4}, {2, 2, 0, 7},
+		{2, 0, 0, 2}, {1, 2, 1, 1},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		init_mission(MISSION_TYPE_MELEE);
+		arriving_group(0, rows[i].team, SPAWN_TYPE, 2);
+		g_stored.groups[0].player_number =
+			(uint8_t)rows[i].player_number;
+		/* The other player numbers, on team 1 (and team 2). */
+		int group = 1;
+		for (int number = 1; number <= 8; ++number) {
+			if (number == rows[i].player_number) {
+				continue;
+			}
+			arriving_group(group, 1 + group % 2, SPAWN_TYPE, 1);
+			g_stored.groups[group].player_number = (uint8_t)number;
+			g_stored.groups[group].mission_point_x[0] =
+				(int16_t)(100 * number);
+			++group;
+		}
+		g_stored.groups[0].mission_point_x[0] =
+			(int16_t)(100 * rows[i].player_number);
+		spawn_mission_ready();
+		start_the_clock();
+		/* No player owns any of the groups here. */
+		for (int fg = 0; fg < 8; ++fg) {
+			g_mission_flight_groups[fg].player_owner_idx = -1;
+		}
+		g_mission_fg_stats[0].spawned_craft_count =
+			(uint16_t)rows[i].craft_sent;
+		XVT_ASSERT_INT_EQ(spawn_craft(0, 0), 1);
+		g_mission_elapsed_clock.seconds = 0;
+		int x;
+		int y;
+		int z;
+		craft_place(0, 0, &x, &y, &z);
+		XVT_ASSERT_INT_EQ(x, 100 * rows[i].target * 256);
+	}
+}
+
+/* In a melee, the round of a player's group starts within 0x7FFF units of its
+ * point in x and y, by draws of the game's random numbers: an amount, and a
+ * sign taken from the next draw's low bit, for x and then for y. */
+static void check_spawn_melee_random_offset(void)
+{
+	for (int combination = 0; combination < 4; ++combination) {
+		/* A seed whose draws have the wanted signs: the low bit of the
+		 * second draw for x and of the fourth for y. */
+		int seed = 1;
+		int draws[4];
+		for (; seed < 1000; ++seed) {
+			g_game_rand_feedback_state = (int16_t)seed;
+			for (int i = 0; i < 4; ++i) {
+				draws[i] = game_rand();
+			}
+			if ((draws[1] & 1) == (combination & 1) &&
+			    (draws[3] & 1) == (combination >> 1)) {
+				break;
+			}
+		}
+		XVT_ASSERT_TRUE(seed < 1000);
+		init_mission(MISSION_TYPE_MELEE);
+		arriving_group(0, 1, SPAWN_TYPE, 1);
+		g_stored.groups[0].player_number = 5;
+		g_stored.groups[0].mission_point_x[0] = 10;
+		g_stored.groups[0].mission_point_y[0] = 20;
+		g_stored.groups[0].mission_point_z[0] = 30;
+		spawn_mission_ready();
+		start_the_clock();
+		g_mission_flight_groups[0].player_owner_idx = 4;
+		int expected_x = 10 * 256 + ((draws[1] & 1) != 0 ? 1 : -1) *
+						    (draws[0] & 0x7FFF);
+		int expected_y = -20 * 256 + ((draws[3] & 1) != 0 ? 1 : -1) *
+						     (draws[2] & 0x7FFF);
+		g_game_rand_feedback_state = (int16_t)seed;
+		XVT_ASSERT_INT_EQ(spawn_craft(0, 0), 1);
+		g_mission_elapsed_clock.seconds = 0;
+		int x;
+		int y;
+		int z;
+		craft_place(0, 0, &x, &y, &z);
+		XVT_ASSERT_INT_EQ(x, expected_x);
+		XVT_ASSERT_INT_EQ(y, expected_y);
+		XVT_ASSERT_INT_EQ(z, 30 * 256);
+	}
+}
+
+/* A whole round from a mothership with more than 3 craft keeps formation 6,
+ * and with 3 or fewer formation 0. */
+static void check_spawn_mothership_formation(void)
+{
+	for (int count = 3; count <= 4; ++count) {
+		init_mission(MISSION_TYPE_COMBAT);
+		arriving_group(0, 1, SPAWN_TYPE, count);
+		g_stored.groups[0].arrival_method = 1;
+		g_stored.groups[0].arrival_mothership = 1;
+		g_stored.groups[0].formation = 2;
+		arriving_group(1, 1, SPAWN_TYPE, 1);
+		spawn_mission_ready();
+		/* The followers run the plans the hangar's arrival names. */
+		memset(g_builtin_plan_id_by_name_index, 0,
+		       sizeof g_builtin_plan_id_by_name_index);
+		g_builtin_plan_id_by_name_index
+			[g_order_follower_builtin_plan_name_index[0]] = 6;
+		g_builtin_plan_id_by_name_index[50] = 8;
+		XVT_ASSERT_INT_EQ(spawn_craft(1, UINT16_MAX), 1);
+		start_the_clock();
+		XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+		g_mission_elapsed_clock.seconds = 0;
+		char fields[40];
+		snprintf(fields, sizeof fields, "mothership=1 hyperspace=0");
+		XVT_ASSERT_TRUE(
+			line_holds("mission.wave_prepared fg=0 ", fields));
+		snprintf(fields, sizeof fields, "formation=%d spacing=0",
+			 count > 3 ? 6 : 0);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.wave_prepared fg=0 ", fields));
+	}
+}
+
+/* ---- kill credit, losses and projectile hits --------------------------- */
+
+/* Every in-flight message a plain one of the system pane, which is off. */
+static void plain_messages(void)
+{
+	g_system_message_display_enabled = 0;
+	g_replay_view_mode = 0;
+	for (size_t i = 0; i < sizeof g_str_in_flight_messages /
+				       sizeof g_str_in_flight_messages[0];
+	     ++i) {
+		g_str_in_flight_messages[i] = g_plain_template;
+	}
+}
+
+/* kill_credit_world with the game's settings clear (no voices), the in-flight
+ * messages plain, an empty log, and the victim's group at AI level 2. Player 0
+ * flies group 0 and is not the local player; the victim has taken 100 damage,
+ * all from player 0. */
+static void credit_world(void)
+{
+	kill_credit_world();
+	memset(&g_game_config, 0, sizeof g_game_config);
+	memset(&g_pilot_data, 0, sizeof g_pilot_data);
+	memset(g_msg_arg_table, 0, sizeof g_msg_arg_table);
+	g_log_line_count = 0;
+	plain_messages();
+	g_msg_sender_iff = 99;
+	g_mission_flight_groups[1].fg.group_ai = 2;
+	g_players[0].pilot_rating = 1;
+}
+
+/* The victim has taken `total` damage, `by_player` of it from player 0. */
+static void victim_damage(int total, int by_player)
+{
+	g_test_craft[1].damage_stats.damage_received_total = total;
+	g_test_craft[1].damage_stats.damage_from_player[0] = by_player;
+}
+
+/* A player's share of a craft's damage sets the credit's tier: two thirds or
+ * more is a full kill (3), about 35 percent a shared one (2), about 5 percent
+ * an assist (1), less nothing. A kill counts by the victim's flight group and
+ * by the AI level of its group, and adds the kill score (half for a shared
+ * kill, a tenth for an assist) to the player's score, doubled at difficulty 2
+ * and halved at 0. The rating points of the kill are half and a tenth of the
+ * full kill's for a shared kill and an assist. */
+static void check_credit_tiers(void)
+{
+	static const struct {
+		int damage;
+		int tier;
+	} rows[] = {{3, 0},  {4, 0},  {5, 1},  {34, 1},
+		    {35, 2}, {66, 2}, {67, 3}, {100, 3}};
+	/* The rating points of a full kill. */
+	credit_world();
+	victim_damage(100, 100);
+	mission_credit_destruction_damage_contributors(0, 1);
+	int full_points = g_players[0].mission_stats.rating_promo_points;
+	XVT_ASSERT_TRUE(full_points > 0);
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		for (int difficulty = 0; difficulty < 3; ++difficulty) {
+			credit_world();
+			g_flight_mission_state.difficulty = (uint8_t)difficulty;
+			victim_damage(100, rows[i].damage);
+			int score = mission_compute_kill_score_for_object(1);
+			XVT_ASSERT_TRUE(score > 20);
+			mission_credit_destruction_damage_contributors(0, 1);
+			const struct player_data *player = &g_players[0];
+			const struct per_mission_kills *kills =
+				&player->per_mission_kills;
+			int expected = rows[i].tier == 3   ? score
+				       : rows[i].tier == 2 ? score / 2
+				       : rows[i].tier == 1 ? score / 10
+							   : 0;
+			if (rows[i].tier != 0) {
+				expected = difficulty == 2   ? expected * 2
+					   : difficulty == 0 ? expected / 2
+							     : expected;
+			}
+			XVT_ASSERT_INT_EQ(player->mission_stats.mission_score,
+					  expected);
+			XVT_ASSERT_INT_EQ(kills->kills_full_on_flight_group[1],
+					  rows[i].tier == 3);
+			XVT_ASSERT_INT_EQ(
+				kills->kills_shared_on_flight_group[1],
+				rows[i].tier == 2);
+			XVT_ASSERT_INT_EQ(
+				kills->kills_assist_on_flight_group[1],
+				rows[i].tier == 1);
+			XVT_ASSERT_INT_EQ(kills->kills_full_on_ai_rating[2],
+					  rows[i].tier == 3);
+			XVT_ASSERT_INT_EQ(kills->kills_shared_on_ai_rating[2],
+					  rows[i].tier == 2);
+			XVT_ASSERT_INT_EQ(kills->kills_assist_on_ai_rating[2],
+					  rows[i].tier == 1);
+			XVT_ASSERT_INT_EQ(count_lines("battle.kill by=0 "),
+					  rows[i].tier != 0);
+			if (difficulty != 1) {
+				continue;
+			}
+			int points = player->mission_stats.rating_promo_points;
+			if (rows[i].tier == 3) {
+				XVT_ASSERT_INT_EQ(points, full_points);
+			} else if (rows[i].tier == 2) {
+				XVT_ASSERT_INT_EQ(points, full_points / 2);
+			} else if (rows[i].tier == 1) {
+				XVT_ASSERT_INT_EQ(points, full_points / 10);
+			} else if (rows[i].tier == 0) {
+				XVT_ASSERT_INT_EQ(points, 0);
+			}
+		}
+	}
+	XVT_ASSERT_TRUE(line_holds("battle.kill by=0 victim=1 owner=-1 fg=1 ",
+				   "share=\"full\""));
+}
+
+/* A per-craft bonus goal for destroying the victim's group is paid with the
+ * kill: in full for a full kill, half for a shared one and a tenth for an
+ * assist; the kill score is added unless the goal paid less than 0, and then
+ * only the goal's penalty counts. */
+static void check_credit_goal_scores(void)
+{
+	static const struct {
+		int damage;
+		int points;
+		int score_share; /* the goal's pay in tenths of its points */
+		int kill_share;	 /* the kill score's divisor, 0 for none */
+	} rows[] = {
+		{100, 4, 10, 1},
+		{40, 4, 5, 2},
+		{10, 4, 1, 10},
+		{100, -3, 10, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		credit_world();
+		victim_damage(100, rows[i].damage);
+		set_fg_goal(1, 0, 2, MISSION_COND_DESTROYED, 18, rows[i].points,
+			    0x1);
+		int score = mission_compute_kill_score_for_object(1);
+		mission_credit_destruction_damage_contributors(0, 1);
+		int goal_pay = 250 * rows[i].points;
+		if (goal_pay > 0) {
+			goal_pay = goal_pay * rows[i].score_share / 10;
+		}
+		int expected = goal_pay;
+		if (rows[i].kill_share != 0) {
+			expected += score / rows[i].kill_share;
+		}
+		XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score,
+				  expected);
+		XVT_ASSERT_INT_EQ(count_lines("mission.kill_score_withheld "),
+				  rows[i].kill_share == 0);
+	}
+}
+
+/* A kill of a craft of an allied team counts as a friendly kill from a shared
+ * share up: the kill score comes off the score, 500 off the promotion points,
+ * a friendly kill is counted, and the local player is told (281, and 200 for
+ * the points); an assist and a kill of an enemy do not. */
+static void check_credit_friendly_kill(void)
+{
+	static const struct {
+		int damage;
+		int allied;
+		int friendly;
+	} rows[] = {{100, 1, 1}, {40, 1, 1}, {10, 1, 0}, {100, 0, 0}};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		credit_world();
+		g_local_player = 0;
+		g_players[0].iff = 3;
+		g_mission_teams[0].allies[1] = (uint8_t)rows[i].allied;
+		victim_damage(100, rows[i].damage);
+		int score = mission_compute_kill_score_for_object(1);
+		mission_credit_destruction_damage_contributors(0, 1);
+		const struct player_data *player = &g_players[0];
+		XVT_ASSERT_INT_EQ(player->per_mission_kills.friendlies_killed,
+				  rows[i].friendly);
+		if (rows[i].allied != 0) {
+			XVT_ASSERT_INT_EQ(player->mission_stats.mission_score,
+					  rows[i].friendly ? -score : 0);
+			XVT_ASSERT_INT_EQ(
+				player->mission_stats.rating_promo_points,
+				rows[i].friendly ? -500 : 0);
+		} else {
+			/* An enemy: the kill is worth its score. */
+			XVT_ASSERT_INT_EQ(player->mission_stats.mission_score,
+					  score);
+			XVT_ASSERT_TRUE(
+				player->mission_stats.rating_promo_points > 0);
+		}
+		XVT_ASSERT_INT_EQ(built_count(281), rows[i].friendly);
+		XVT_ASSERT_INT_EQ(built_count(200), rows[i].friendly);
+		if (rows[i].friendly != 0) {
+			XVT_ASSERT_INT_EQ(g_msg_arg_table[0], score);
+			XVT_ASSERT_TRUE(built_with(281, "sender=3 "));
+			XVT_ASSERT_TRUE(line_holds(
+				"battle.friendly_kill by=0 victim=1 ",
+				rows[i].damage == 100 ? "share=\"full\""
+						      : "share=\"shared\""));
+		}
+		if (rows[i].allied != 0) {
+			XVT_ASSERT_INT_EQ(
+				player->per_mission_kills
+						.kills_full_on_flight_group[1] +
+					player->per_mission_kills
+						.kills_shared_on_flight_group
+							[1] +
+					player->per_mission_kills
+						.kills_assist_on_flight_group
+							[1],
+				0);
+		}
+	}
+}
+
+/* A victim flown by a player (the player-owned craft did at least half its
+ * damage) is counted by the owner's rating and by owner as well: full kills
+ * and shared kills of the player, the kills from the killer in the owner's
+ * counts, and the kill table of the victim's rating. */
+static void check_credit_player_victim(void)
+{
+	static const struct {
+		int damage;
+		int tier;
+	} rows[] = {{100, 3}, {40, 2}, {10, 1}};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		credit_world();
+		g_mission_flight_groups[1].player_owner_idx = 1;
+		g_players[1].pilot_rating = 9;
+		g_players[1].participation_state = 0;
+		g_test_craft[1]
+			.damage_stats.damage_received_by_player_owned_craft =
+			100;
+		victim_damage(100, rows[i].damage);
+		mission_credit_destruction_damage_contributors(0, 1);
+		const struct per_mission_kills *kills =
+			&g_players[0].per_mission_kills;
+		const struct per_mission_kills *victim_kills =
+			&g_players[1].per_mission_kills;
+		XVT_ASSERT_INT_EQ(kills->kills_full_on_player[1],
+				  rows[i].tier == 3);
+		XVT_ASSERT_INT_EQ(kills->kills_shared_on_player[1],
+				  rows[i].tier == 2);
+		XVT_ASSERT_INT_EQ(kills->kills_full_on_player_rating[9],
+				  rows[i].tier == 3);
+		XVT_ASSERT_INT_EQ(kills->kills_shared_on_player_rating[9],
+				  rows[i].tier == 2);
+		XVT_ASSERT_INT_EQ(kills->kills_assist_on_player_rating[9],
+				  rows[i].tier == 1);
+		XVT_ASSERT_INT_EQ(victim_kills->kills_full_from_player[0],
+				  rows[i].tier == 3);
+		XVT_ASSERT_INT_EQ(victim_kills->kills_shared_from_player[0],
+				  rows[i].tier == 2);
+		XVT_ASSERT_INT_EQ(kills->kills_full_on_ai_rating[2], 0);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.kill_damage object=1 source=0 ",
+				   "owner=1 rating=9 "));
+	}
+}
+
+/* The object type of a craft whose model is not the X-wing's. */
+static int craft_of_other_model(void)
+{
+	int mine = g_object_type_table[g_craft_type_to_object_type[TEST_XWING]]
+			   .model_index;
+	for (int type = 1; type < 96; ++type) {
+		uint8_t object_type = g_craft_type_to_object_type[type];
+		int model = g_object_type_table[object_type].model_index;
+		if (object_type != 0 && model < 73 && model != mine &&
+		    g_model_defs[model].rating_weight != 0) {
+			return object_type;
+		}
+	}
+	XVT_ASSERT_TRUE(0);
+	return 0;
+}
+
+/* The rating points of a kill go to the better total when the victim's rating
+ * is at most 4 below the player's, and to the worse total otherwise, always
+ * for a victim with a rating weight of 0 and for a computer's craft on a
+ * resting plan (null, stationary, formation, hangar, disabled or
+ * self-destruct); a kill of a mine adds 4 to the worse total when it has no
+ * damage record. */
+static void check_credit_worse_rating(void)
+{
+	static const char *const resting_plans[] = {
+		"nullpln",	  "stationaryldrpln", "formldr1pln",
+		"formflw1pln",	  "formevadeldr1pln", "formevadeflw1pln",
+		"exithangarpln",  "enterhangarpln",   "disabledpln",
+		"selfdestroypln",
+	};
+	for (size_t i = 0; i < sizeof resting_plans / sizeof resting_plans[0];
+	     ++i) {
+		credit_world();
+		strcpy(g_plan_table[3].name, resting_plans[i]);
+		g_test_craft[1].ai_controller.current_plan_id = 3;
+		mission_credit_destruction_damage_contributors(0, 1);
+		XVT_ASSERT_INT_EQ(
+			g_players[0].mission_stats.rating_promo_points, 0);
+		XVT_ASSERT_TRUE(
+			g_players[0].mission_stats.worse_rating_promo_points >
+			0);
+	}
+	/* Another plan: better points. */
+	credit_world();
+	strcpy(g_plan_table[3].name, "attackpln");
+	g_test_craft[1].ai_controller.current_plan_id = 3;
+	mission_credit_destruction_damage_contributors(0, 1);
+	XVT_ASSERT_TRUE(g_players[0].mission_stats.rating_promo_points > 0);
+	XVT_ASSERT_INT_EQ(g_players[0].mission_stats.worse_rating_promo_points,
+			  0);
+	/* A victim whose model weighs nothing. */
+	credit_world();
+	g_test_objects[1].object_type = (uint8_t)craft_of_other_model();
+	struct model_def *model = model_of(g_test_objects[1].object_type);
+	struct model_def saved = *model;
+	model->rating_weight = 0;
+	mission_credit_destruction_damage_contributors(0, 1);
+	*model = saved;
+	XVT_ASSERT_INT_EQ(g_players[0].mission_stats.rating_promo_points, 0);
+	XVT_ASSERT_TRUE(g_players[0].mission_stats.worse_rating_promo_points >
+			0);
+	/* A mine with no damage record: 4 worse points to the source's
+	 * player, and the source's team is credited. */
+	credit_world();
+	victim_damage(0, 0);
+	g_test_objects[1].genus_id = CRAFT_GENUS_MINE;
+	mission_credit_destruction_damage_contributors(0, 1);
+	XVT_ASSERT_INT_EQ(g_players[0].mission_stats.worse_rating_promo_points,
+			  4);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.mine_rating_awarded slot=0 ", "total=4"));
+}
+
+/* A craft with no damage recorded is credited to its destroyer in full: the
+ * player who owns the source object gets a full kill, and the source's team
+ * gets a full team kill; a source no player owns gives its team the kill. */
+static void check_credit_without_damage(void)
+{
+	credit_world();
+	victim_damage(0, 0);
+	mission_credit_destruction_damage_contributors(0, 1);
+	XVT_ASSERT_INT_EQ(
+		g_players[0].per_mission_kills.kills_full_on_flight_group[1],
+		1);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime.team_kill_stats[0][0],
+			  1);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.kill_credit_direct object=1 source=0 ",
+			   "slot=0 team=0 record=1"));
+	credit_world();
+	victim_damage(0, 0);
+	g_test_objects[0].player_owner_idx = -1;
+	mission_credit_destruction_damage_contributors(0, 1);
+	XVT_ASSERT_INT_EQ(
+		g_players[0].per_mission_kills.kills_full_on_flight_group[1],
+		0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime.team_kill_stats[0][0],
+			  1);
+}
+
+/* The team's share of the damage comes from its flight groups. A team that
+ * did a full share (two thirds) without a player doing it is counted a full
+ * kill, and its most damaging group is attributed the kill (for a player's
+ * victim, in the owner's kills from flight groups); with a share of 35 percent
+ * a shared one; a team whose players already took the credit (full: 2,
+ * shared: 1) gets no more. */
+static void check_credit_team_share(void)
+{
+	static const struct {
+		int group_damage;
+		int player_damage;
+		int full_from_group;
+		int shared_from_group;
+		int team_full;
+		int team_shared;
+	} rows[] = {
+		{100, 0, 1, 0, 1, 0},	{40, 0, 0, 1, 0, 1},
+		{100, 100, 0, 0, 1, 0}, {40, 40, 0, 0, 0, 1},
+		{10, 0, 0, 0, 0, 0},	{70, 40, 0, 1, 1, 0},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		credit_world();
+		g_mission_flight_groups[1].player_owner_idx = 1;
+		g_players[1].participation_state = 0;
+		g_test_craft[1]
+			.damage_stats.damage_received_by_player_owned_craft =
+			100;
+		victim_damage(100, rows[i].player_damage);
+		g_test_craft[1]
+			.damage_stats.damage_from_flight_group_amount[0] =
+			rows[i].group_damage;
+		mission_credit_destruction_damage_contributors(0, 1);
+		const struct per_mission_kills *victim_kills =
+			&g_players[1].per_mission_kills;
+		XVT_ASSERT_INT_EQ(victim_kills->kills_full_from_flight_group[0],
+				  rows[i].full_from_group);
+		XVT_ASSERT_INT_EQ(
+			victim_kills->kills_shared_from_flight_group[0],
+			rows[i].shared_from_group);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.runtime.team_kill_stats[0][0],
+			rows[i].team_full);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.runtime.team_kill_stats[1][0],
+			rows[i].team_shared);
+	}
+}
+
+/* Known failure ai_rating_past_table, issue #125: a kill of a craft of a group
+ * with an AI level past the 6 levels is counted in the six-entry table of AI
+ * levels, not past it (where it lands in the next table). Here the group is at
+ * level 9. */
+static void check_credit_ai_level_past_table(void)
+{
+	credit_world();
+	g_mission_flight_groups[1].fg.group_ai = 9;
+	mission_credit_destruction_damage_contributors(0, 1);
+	const struct per_mission_kills *kills = &g_players[0].per_mission_kills;
+	int counted = 0;
+	int spilled = 0;
+	for (int level = 0; level < 6; ++level) {
+		counted += kills->kills_full_on_ai_rating[level];
+		spilled += kills->kills_shared_on_ai_rating[level] +
+			   kills->kills_assist_on_ai_rating[level];
+	}
+	XVT_ASSERT_INT_EQ(counted, 1);
+	XVT_ASSERT_INT_EQ(spilled, 0);
+}
+
+/* ---- mission_credit_team_kill_contribution ----------------------------- */
+
+/* A team's share counts a kill in its team kill stats (rows full, shared and
+ * assist), adds the kill score (a half, a tenth) to the team's mission score at
+ * the difficulty, and pays a per-craft bonus goal of the victim's group into
+ * the same score, reduced for a shared kill; a goal that pays a penalty
+ * withholds the kill score. */
+static void check_team_kill_tiers(void)
+{
+	for (int tier = 1; tier <= 3; ++tier) {
+		for (int difficulty = 0; difficulty < 3; ++difficulty) {
+			credit_world();
+			g_flight_mission_state.difficulty = (uint8_t)difficulty;
+			int score = mission_compute_kill_score_for_object(1);
+			mission_credit_team_kill_contribution(1, 0, tier, 0);
+			int expected = tier == 3   ? score
+				       : tier == 2 ? score / 2
+						   : score / 10;
+			expected = difficulty == 2   ? expected * 2
+				   : difficulty == 0 ? expected / 2
+						     : expected;
+			XVT_ASSERT_INT_EQ(
+				g_flight_mission_state.runtime
+					.team_scores[TEAM_SCORE_MISSION][0],
+				expected);
+			XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+						  .team_kill_stats[3 - tier][0],
+					  1);
+			XVT_ASSERT_INT_EQ(
+				g_flight_mission_state.runtime
+						.team_kill_stats[0][0] +
+					g_flight_mission_state.runtime
+						.team_kill_stats[1][0] +
+					g_flight_mission_state.runtime
+						.team_kill_stats[2][0],
+				1);
+		}
+	}
+	/* The goal of the victim's group pays the team's bonus score as well,
+	 * and a penalty withholds the kill score. */
+	credit_world();
+	set_fg_goal(1, 0, 2, MISSION_COND_DESTROYED, 18, 4, 0x1);
+	int score = mission_compute_kill_score_for_object(1);
+	mission_credit_team_kill_contribution(1, 0, 2, 0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .team_scores[TEAM_SCORE_MISSION][0],
+			  500 + score / 2);
+	credit_world();
+	set_fg_goal(1, 0, 2, MISSION_COND_DESTROYED, 18, -2, 0x1);
+	mission_credit_team_kill_contribution(1, 0, 3, 0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .team_scores[TEAM_SCORE_MISSION][0],
+			  -500);
+	XVT_ASSERT_TRUE(line_holds("mission.team_kill_score_withheld team=0 ",
+				   "tier=3"));
+}
+
+/* A team's share of the kill of an allied craft, from a shared share up, takes
+ * the kill score off the team's mission score and counts no kill. */
+static void check_team_kill_friendly(void)
+{
+	for (int tier = 1; tier <= 3; ++tier) {
+		credit_world();
+		g_mission_teams[0].allies[1] = 1;
+		int score = mission_compute_kill_score_for_object(1);
+		mission_credit_team_kill_contribution(1, 0, tier, 0);
+		XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+					  .team_scores[TEAM_SCORE_MISSION][0],
+				  tier == 1 ? 0 : -score);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.runtime.team_kill_stats[0][0] +
+				g_flight_mission_state.runtime
+					.team_kill_stats[1][0] +
+				g_flight_mission_state.runtime
+					.team_kill_stats[2][0],
+			0);
+	}
+}
+
+/* ---- mission_record_player_craft_loss and its attribution -------------- */
+
+/* Player 0 flies group 0's craft (object 0, hull 100, shields 0), and the
+ * other players, 2 and 3, are connected, rated 7 and 9; the craft has taken
+ * no damage. The game's settings are clear and the messages plain. */
+static void loss_world(void)
+{
+	credit_world();
+	g_test_objects[0].player_owner_idx = 0;
+	g_mission_flight_groups[0].player_owner_idx = 0;
+	g_players[2].participation_state = 1;
+	g_players[2].team = 1;
+	g_players[2].pilot_rating = 7;
+	g_players[3].participation_state = 1;
+	g_players[3].team = 1;
+	g_players[3].pilot_rating = 9;
+	g_test_craft[0].hull_max = 100;
+	g_test_craft[0].hull_damage = 0;
+}
+
+/* The damage a craft took, by source, all of it to a flown craft. */
+static void craft_damage(int from_player_2, int from_player_3, int from_ai,
+			 int collision, int starship, int mine)
+{
+	struct craft_damage_stats *stats = &g_test_craft[0].damage_stats;
+	memset(stats, 0, sizeof *stats);
+	stats->damage_from_player[2] = from_player_2;
+	stats->damage_from_player[3] = from_player_3;
+	stats->damage_from_ai_skill[1] = from_ai;
+	stats->damage_from_collision = collision;
+	stats->damage_from_starship = starship;
+	stats->damage_from_mine = mine;
+	int total = from_player_2 + from_player_3 + from_ai + collision +
+		    starship + mine;
+	stats->damage_received_total = total;
+	stats->damage_received_by_player_owned_craft = total;
+}
+
+/* A craft's loss takes half its point value from its team's mission score and
+ * from its owner's, counts a loss for the team, and returns the credit: when
+ * the craft was flown, the player who did the most damage if players did the
+ * most, else -1; with no connected owner, the points taken. Then the loss is
+ * sorted by who did the most damage (collisions, starships, mines, players,
+ * computer craft; ties in that order), counted in the owner's collisions,
+ * starships or mines, and logged with the cause. */
+static void check_craft_loss_classes(void)
+{
+	static const struct {
+		int p2;
+		int p3;
+		int ai;
+		int collision;
+		int starship;
+		int mine;
+		const char *cause;
+		int credited;
+		int by_collision;
+		int by_starship;
+		int by_mine;
+	} rows[] = {
+		{0, 0, 0, 40, 10, 10, "collision", -1, 1, 0, 0},
+		{0, 0, 0, 10, 40, 10, "starship", -1, 0, 1, 0},
+		{0, 0, 0, 10, 10, 40, "mine", -1, 0, 0, 1},
+		{40, 0, 0, 10, 10, 10, "player", 2, 0, 0, 0},
+		{10, 50, 0, 10, 10, 10, "player", 3, 0, 0, 0},
+		{0, 0, 40, 10, 10, 10, "computer", -1, 0, 0, 0},
+		{0, 0, 0, 0, 0, 0, "unknown", -1, 0, 0, 0},
+		{0, 0, 0, 20, 20, 20, "collision", -1, 1, 0, 0},
+		{0, 0, 0, 0, 20, 20, "starship", -1, 0, 1, 0},
+		{20, 0, 20, 0, 0, 0, "player", 2, 0, 0, 0},
+		{0, 0, 0, 0, 0, 20, "mine", -1, 0, 0, 1},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		loss_world();
+		craft_damage(rows[i].p2, rows[i].p3, rows[i].ai,
+			     rows[i].collision, rows[i].starship, rows[i].mine);
+		int value = mission_compute_craft_point_value(0) / 2;
+		XVT_ASSERT_TRUE(value > 0);
+		XVT_ASSERT_INT_EQ(mission_record_player_craft_loss(0, 0),
+				  rows[i].credited);
+		XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+					  .team_scores[TEAM_SCORE_MISSION][0],
+				  -value);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.runtime.team_kill_stats[3][0],
+			1);
+		XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score,
+				  -value);
+		const struct per_mission_kills *kills =
+			&g_players[0].per_mission_kills;
+		XVT_ASSERT_INT_EQ(kills->total_craft_losses, 1);
+		XVT_ASSERT_INT_EQ(kills->losses_by_collisions,
+				  rows[i].by_collision);
+		XVT_ASSERT_INT_EQ(kills->losses_by_starships,
+				  rows[i].by_starship);
+		XVT_ASSERT_INT_EQ(kills->losses_by_mines, rows[i].by_mine);
+		char fields[48];
+		snprintf(fields, sizeof fields, "cause=\"%s\" by=%d eject=0",
+			 rows[i].cause, rows[i].credited);
+		XVT_ASSERT_TRUE(line_holds("battle.loss who=0 ", fields));
+	}
+}
+
+/* A craft that the players and computer craft did half or more of the
+ * hull and shields it had left in damage to is credited to them first when
+ * the caller allows it (the player ejected); less than that is not. A loss
+ * where players did not do at least half the damage is not counted for the
+ * owner. A craft that has no owner of its own, in a group whose player is
+ * not there, only costs its team. */
+static void check_craft_loss_pending_and_owner(void)
+{
+	static const struct {
+		int damage;
+		int allow;
+		int credited;
+	} pending[] = {{51, 1, 1}, {50, 1, 0}, {51, 0, 0}};
+	for (size_t i = 0; i < sizeof pending / sizeof pending[0]; ++i) {
+		loss_world();
+		craft_damage(pending[i].damage, 0, 0, 0, 0, 0);
+		g_test_craft[0].hull_damage = 0;
+		g_test_craft[0].shield_energy[0] = 0;
+		/* The 100 points of hull left are halved: 50. */
+		mission_record_player_craft_loss(0, pending[i].allow);
+		XVT_ASSERT_INT_EQ(
+			g_players[2].per_mission_kills.kills_full_on_player[0] +
+				g_players[2]
+					.per_mission_kills
+					.kills_shared_on_player[0],
+			pending[i].credited);
+		char fields[48];
+		snprintf(fields, sizeof fields,
+			 "pending=%d remaining=50 credited=%d",
+			 pending[i].damage, pending[i].credited);
+		XVT_ASSERT_INT_EQ(count_lines("mission.pending_damage "),
+				  pending[i].allow);
+		if (pending[i].allow != 0) {
+			XVT_ASSERT_TRUE(line_holds(
+				"mission.pending_damage object=0 ", fields));
+		}
+	}
+	/* Shields count for what is left, the hull when it is not spent. */
+	loss_world();
+	craft_damage(60, 0, 0, 0, 0, 0);
+	g_test_craft[0].hull_damage = 30;
+	g_test_craft[0].shield_energy[0] = 20;
+	g_test_craft[0].shield_energy[1] = 10;
+	mission_record_player_craft_loss(0, 1);
+	XVT_ASSERT_TRUE(line_holds("mission.pending_damage object=0 ",
+				   "pending=60 remaining=50 credited=1"));
+	loss_world();
+	craft_damage(5, 0, 0, 0, 0, 0);
+	g_test_craft[0].hull_damage = 150;
+	g_test_craft[0].shield_energy[0] = -9;
+	mission_record_player_craft_loss(0, 1);
+	XVT_ASSERT_TRUE(line_holds("mission.pending_damage object=0 ",
+				   "pending=5 remaining=0 credited=1"));
+
+	/* Less than half of the damage done to the flown craft: the loss is
+	 * not counted. */
+	loss_world();
+	craft_damage(40, 0, 0, 0, 0, 0);
+	g_test_craft[0].damage_stats.damage_received_by_player_owned_craft = 10;
+	XVT_ASSERT_INT_EQ(mission_record_player_craft_loss(0, 0), -1);
+	XVT_ASSERT_INT_EQ(g_players[0].per_mission_kills.total_craft_losses, 0);
+	XVT_ASSERT_TRUE(line_holds("mission.loss_not_counted slot=0 object=0 ",
+				   "flown=10 total=40"));
+
+	/* The owner is the group's player when the object has none. */
+	loss_world();
+	craft_damage(40, 0, 0, 0, 0, 0);
+	g_test_objects[0].player_owner_idx = -1;
+	XVT_ASSERT_INT_EQ(mission_record_player_craft_loss(0, 0), 2);
+	XVT_ASSERT_INT_EQ(g_players[0].per_mission_kills.total_craft_losses, 1);
+
+	/* No owner, and an owner who is not there: the team's points back. */
+	loss_world();
+	craft_damage(40, 0, 0, 0, 0, 0);
+	int value = mission_compute_craft_point_value(0) / 2;
+	g_test_objects[0].player_owner_idx = -1;
+	g_mission_flight_groups[0].player_owner_idx = -1;
+	XVT_ASSERT_INT_EQ(mission_record_player_craft_loss(0, 0), value);
+	XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score, 0);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime.team_kill_stats[3][0],
+			  1);
+	loss_world();
+	g_test_objects[0].player_owner_idx = -1;
+	g_players[0].participation_state = 0;
+	XVT_ASSERT_INT_EQ(mission_record_player_craft_loss(0, 0), value);
+	XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score, 0);
+	XVT_ASSERT_INT_EQ(g_players[0].per_mission_kills.total_craft_losses, 0);
+}
+
+/* The loss of a flown craft is attributed, at a full kill (tier 3) only, to
+ * the killer's pilot rating when a player flies the attacking group and to
+ * its AI level when none does; a shared kill (2) and a victim whose damage was
+ * not mostly done to a flown craft are not counted; neither is another tier. A
+ * victim with no owner of its own is the group's player's. */
+static void check_loss_attribution(void)
+{
+	static const struct {
+		int tier;
+		int attacker_player; /* player of the attacking group or -1 */
+		int owner_on_object;
+		int flown;
+		int counted;
+	} rows[] = {
+		{3, 2, 1, 100, 1}, {3, -1, 1, 100, 1}, {3, 2, 0, 100, 1},
+		{2, 2, 1, 100, 0}, {1, 2, 1, 100, 0},  {4, 2, 1, 100, 0},
+		{3, 2, 1, 49, 0},  {3, 2, 1, 50, 1},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		loss_world();
+		craft_damage(40, 0, 0, 0, 0, 0);
+		g_test_craft[0].damage_stats.damage_received_total = 100;
+		g_test_craft[0]
+			.damage_stats.damage_received_by_player_owned_craft =
+			rows[i].flown;
+		g_test_objects[0].player_owner_idx =
+			rows[i].owner_on_object ? 0 : -1;
+		g_mission_flight_groups[1].player_owner_idx =
+			rows[i].attacker_player;
+		g_mission_flight_groups[1].fg.group_ai = 4;
+		mission_record_player_craft_loss_attribution(1, 0,
+							     rows[i].tier);
+		const struct per_mission_kills *kills =
+			&g_players[0].per_mission_kills;
+		int by_player = 0;
+		int by_ai = 0;
+		for (int rating = 0; rating < 25; ++rating) {
+			by_player += kills->killed_by_player_rating[rating];
+		}
+		for (int level = 0; level < 6; ++level) {
+			by_ai += kills->killed_by_ai_rating[level];
+		}
+		int player_attacker = rows[i].attacker_player != -1;
+		XVT_ASSERT_INT_EQ(by_player,
+				  rows[i].counted && player_attacker);
+		XVT_ASSERT_INT_EQ(by_ai, rows[i].counted && !player_attacker);
+		if (rows[i].counted != 0 && player_attacker) {
+			XVT_ASSERT_INT_EQ(kills->killed_by_player_rating[7], 1);
+		}
+		if (rows[i].counted != 0 && !player_attacker) {
+			XVT_ASSERT_INT_EQ(kills->killed_by_ai_rating[4], 1);
+		}
+	}
+}
+
+/* ---- mission_record_projectile_hit_stats ------------------------------- */
+
+enum { HIT_OBJECT_COUNT = 140 };
+
+static struct object_record g_hit_objects[HIT_OBJECT_COUNT];
+static struct mobile_object g_hit_mobiles[HIT_OBJECT_COUNT];
+static struct craft_data g_hit_craft;
+
+/* An object table of 140 slots: object 1 is a craft of group 0 (flown by
+ * player 3 when asked), objects 5 and 130 are shots it fired, and the
+ * projectile slots start at 0 (so the first 128 are a player's). */
+static void hit_world(int owner_player, int projectile_type)
+{
+	credit_world();
+	memset(g_hit_objects, 0, sizeof g_hit_objects);
+	memset(g_hit_mobiles, 0, sizeof g_hit_mobiles);
+	memset(&g_hit_craft, 0, sizeof g_hit_craft);
+	for (int i = 0; i < HIT_OBJECT_COUNT; ++i) {
+		g_hit_objects[i].mobj = &g_hit_mobiles[i];
+		g_hit_objects[i].player_owner_idx = -1;
+		g_hit_mobiles[i].p_craft = &g_hit_craft;
+	}
+	g_object_table = g_hit_objects;
+	g_active_region_object_slot_start = 0;
+	g_active_region_craft_object_slot_end = 8;
+	g_projectile_object_slot_start = 0;
+	g_hit_objects[1].object_type = TEST_XWING;
+	g_hit_objects[1].flight_group_idx = 0;
+	g_mission_flight_groups[0].player_owner_idx = owner_player;
+	g_mission_flight_groups[0].fg.team = 4;
+	for (int shot = 5; shot <= 130; shot += 125) {
+		g_hit_objects[shot].object_type = (uint8_t)projectile_type;
+		g_hit_mobiles[shot].source_obj_idx = 1;
+	}
+}
+
+/* A shot's hit is counted for the craft that fired it: a laser (or turbo
+ * laser) hit in its laser hits, an ion hit in its ion hits, a warhead hit in
+ * its warhead hits; the player flying it, when the shot is one of the 128
+ * player shots, has the same counted (a warhead hit in the player's warhead
+ * hits and the warhead's points in the player's score); every warhead hit adds
+ * its points to the firing team's mission score. Other shots, and shots of a
+ * craft no longer there or not in the craft slots, count nothing. */
+static void check_projectile_hits(void)
+{
+	static const struct {
+		int type;
+		int kind; /* 1 laser, 2 ion, 3 warhead */
+	} types[] = {
+		{PROJECTILE_OBJECT_TYPE_REBEL_LASER, 1},
+		{PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER, 1},
+		{PROJECTILE_OBJECT_TYPE_IMPERIAL_LASER, 1},
+		{PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER, 1},
+		{PROJECTILE_OBJECT_TYPE_ION_LASER, 2},
+		{PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER, 2},
+		{WARHEAD_OBJECT_TYPE_PROTON_TORPEDO, 3},
+		{WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 3},
+		{WARHEAD_OBJECT_TYPE_ADVANCED_PROTON_TORPEDO, 3},
+		{WARHEAD_OBJECT_TYPE_ADVANCED_CONCUSSION_MISSILE, 3},
+		{WARHEAD_OBJECT_TYPE_SPACE_BOMB, 3},
+		{WARHEAD_OBJECT_TYPE_HEAVY_ROCKET, 3},
+		{WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE, 3},
+		{WARHEAD_OBJECT_TYPE_ION_PULSE, 3},
+		{WARHEAD_OBJECT_TYPE_LASER_3, 3},
+		{129, 0},
+	};
+	for (size_t i = 0; i < sizeof types / sizeof types[0]; ++i) {
+		for (int owner = -1; owner <= 3; owner += 4) {
+			for (int shot = 5; shot <= 130; shot += 125) {
+				hit_world(owner, types[i].type);
+				int points =
+					types[i].kind == 3
+						? g_projectile_type_data.warhead_point_value
+							  [types[i].type -
+							   PROJECTILE_OBJECT_TYPE_FIRST]
+						: 0;
+				mission_record_projectile_hit_stats(
+					(uint16_t)shot);
+				int player_shot = shot < 128 && owner != -1;
+				XVT_ASSERT_INT_EQ(g_hit_craft.weapon_stats
+							  .laser_hits_scored,
+						  types[i].kind == 1);
+				XVT_ASSERT_INT_EQ(g_hit_craft.weapon_stats
+							  .ion_hits_scored,
+						  types[i].kind == 2);
+				XVT_ASSERT_INT_EQ(g_hit_craft.weapon_stats
+							  .warhead_hits_scored,
+						  types[i].kind == 3);
+				const struct player_data *player =
+					&g_players[3];
+				XVT_ASSERT_INT_EQ(
+					player->mission_stats.laser_hits_scored,
+					types[i].kind == 1 && player_shot);
+				XVT_ASSERT_INT_EQ(
+					player->mission_stats.ion_hits_scored,
+					types[i].kind == 2 && player_shot);
+				XVT_ASSERT_INT_EQ(
+					player->per_mission_kills.warhead_hits,
+					types[i].kind == 3 && player_shot);
+				XVT_ASSERT_INT_EQ(
+					player->mission_stats.mission_score,
+					player_shot ? points : 0);
+				XVT_ASSERT_INT_EQ(
+					g_flight_mission_state.runtime
+						.team_scores[TEAM_SCORE_MISSION]
+							    [4],
+					points);
+				XVT_ASSERT_INT_EQ(
+					count_lines("battle.warhead_hit "),
+					types[i].kind == 3 && player_shot);
+				XVT_ASSERT_INT_EQ(
+					count_lines("mission.hit_uncounted "),
+					types[i].kind == 0);
+			}
+		}
+	}
+	XVT_ASSERT_TRUE(
+		line_holds("mission.hit_uncounted ", "reason=\"type\""));
+
+	/* A shot of a craft past the craft slots, or one that is gone. */
+	hit_world(3, PROJECTILE_OBJECT_TYPE_REBEL_LASER);
+	g_hit_mobiles[5].source_obj_idx = 8;
+	mission_record_projectile_hit_stats(5);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.hit_uncounted projectile=5 source=8 ",
+			   "reason=\"not_craft\""));
+	hit_world(3, PROJECTILE_OBJECT_TYPE_REBEL_LASER);
+	g_hit_objects[1].object_type = 0;
+	mission_record_projectile_hit_stats(5);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.hit_uncounted projectile=5 source=1 ",
+			   "reason=\"gone\""));
+	XVT_ASSERT_INT_EQ(g_hit_craft.weapon_stats.laser_hits_scored, 0);
+	XVT_ASSERT_INT_EQ(g_players[3].mission_stats.laser_hits_scored, 0);
+}
+
+/* ---- the goal score of a kill, told to the local player ---------------- */
+
+/* A per-craft bonus goal paid to the local player tells them of the points
+ * (message 199) or of a penalty (200), with the amount as the argument; a
+ * goal paid to another player tells nothing. A team's bonus for the goal is
+ * paid inside its time limit and logged. */
+static void check_goal_score_messages(void)
+{
+	static const struct {
+		int points;
+		int message;
+		int amount;
+	} rows[] = {{4, 199, 1000}, {-3, 200, 750}};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		credit_world();
+		g_local_player = 0;
+		set_fg_goal(1, 0, 2, MISSION_COND_DESTROYED, 18, rows[i].points,
+			    0x1);
+		XVT_ASSERT_INT_EQ(
+			mission_apply_flight_group_goal_score(
+				MISSION_COND_DESTROYED, 1, 0, 0, 0, 0),
+			250 * rows[i].points);
+		XVT_ASSERT_INT_EQ(built_count(rows[i].message), 1);
+		XVT_ASSERT_INT_EQ(g_msg_arg_table[0], rows[i].amount);
+		g_local_player = 5;
+		g_log_line_count = 0;
+		mission_apply_flight_group_goal_score(MISSION_COND_DESTROYED, 1,
+						      0, 0, 0, 0);
+		XVT_ASSERT_INT_EQ(built_count(rows[i].message), 0);
+	}
+	/* The team's bonus, paid inside the time limit. */
+	credit_world();
+	struct flight_group_goal *goal =
+		set_fg_goal(1, 0, 2, MISSION_COND_DESTROYED, 18, 2, 0x3);
+	goal->time_limit5s = 2;
+	set_elapsed(0, 0, 10);
+	mission_apply_team_goal_score_for_team(MISSION_COND_DESTROYED, 1, 0, 0);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.runtime.team_scores[TEAM_SCORE_BONUS][0],
+		500);
+	XVT_ASSERT_INT_EQ(count_lines("mission.bonus_score_stale"), 0);
+	XVT_ASSERT_TRUE(
+		line_holds("mission.team_bonus_paid team=0 fg=1 goal=0 ",
+			   "score=500 total=500 late=0"));
+}
+
+/* A destroyed special cargo craft gives back its capture, its departure and
+ * its abort in the special cargo counts as in the group's; a special cargo
+ * craft of a player that ended without a departure counts as not departed. */
+static void check_outcome_special_cargo_takebacks(void)
+{
+	fresh_world();
+	g_mission_flight_groups[0].fg.special_cargo_craft = 3;
+	struct craft_data *craft = place_craft(0, 0, 3);
+	craft->captured_by_flight_group = 0x81;
+	craft->ai_flight.depart_timer_flag = 1;
+	craft->ai_flight.mission_aborted_flag = 1;
+	struct mission_fg_runtime_stats *stats = &g_mission_fg_stats[0];
+	stats->outcome_count[FLIGHT_GROUP_OUTCOME_CAPTURED] = 1;
+	stats->outcome_count[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED] = 1;
+	stats->outcome_count[FLIGHT_GROUP_OUTCOME_ABORTED] = 1;
+	stats->special_cargo_outcome[FLIGHT_GROUP_OUTCOME_CAPTURED] = 1;
+	stats->special_cargo_outcome[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED] = 1;
+	stats->special_cargo_outcome[FLIGHT_GROUP_OUTCOME_ABORTED] = 1;
+	mission_record_craft_outcome(0, 0, FLIGHT_GROUP_OUTCOME_DESTROYED);
+	XVT_ASSERT_INT_EQ(
+		stats->special_cargo_outcome[FLIGHT_GROUP_OUTCOME_CAPTURED], 0);
+	XVT_ASSERT_INT_EQ(
+		stats->special_cargo_outcome[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED],
+		0);
+	XVT_ASSERT_INT_EQ(
+		stats->special_cargo_outcome[FLIGHT_GROUP_OUTCOME_ABORTED], 0);
+	XVT_ASSERT_INT_EQ(stats->outcome_count[FLIGHT_GROUP_OUTCOME_CAPTURED],
+			  0);
+	XVT_ASSERT_INT_EQ(
+		stats->special_cargo_outcome
+			[FLIGHT_GROUP_OUTCOME_NOT_CAPTURED_BY_DESTINATION],
+		1);
+
+	/* A player's special cargo craft, ending in another way. */
+	fresh_world();
+	g_mission_flight_groups[0].fg.special_cargo_craft = 3;
+	place_craft(0, 0, 3);
+	g_test_objects[0].player_owner_idx = 1;
+	mission_record_craft_outcome(0, 0, FLIGHT_GROUP_OUTCOME_LEFT_REGION);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].special_cargo_outcome
+				  [FLIGHT_GROUP_OUTCOME_NOT_DEPARTED],
+			  1);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[0]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_NOT_DEPARTED],
+		1);
+}
+
+/* ---- more of the running mission --------------------------------------- */
+
+/* The "better" rating points of a kill take the rating factor of the victim's
+ * rating over the killer's plus 4, but at least 4 for a killer rated below 15
+ * and at least 3 from 15 up. The victim here is flown by player 1 and did
+ * not make the kill any shorter: a full share of the damage. */
+static void check_credit_rating_factor(void)
+{
+	static const struct {
+		int killer;
+		int victim;
+		int factor;
+	} rows[] = {
+		{10, 8, 4},  {10, 12, 6}, {14, 10, 4},
+		{20, 17, 3}, {20, 22, 6}, {15, 12, 3},
+	};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		credit_world();
+		g_players[0].pilot_rating = (uint16_t)rows[i].killer;
+		g_players[1].pilot_rating = (uint16_t)rows[i].victim;
+		g_mission_flight_groups[1].player_owner_idx = 1;
+		g_test_craft[1]
+			.damage_stats.damage_received_by_player_owned_craft =
+			100;
+		mission_credit_destruction_damage_contributors(0, 1);
+		char fields[64];
+		snprintf(fields, sizeof fields, "kind=\"better\" ");
+		XVT_ASSERT_TRUE(
+			line_holds("mission.rating_awarded slot=0 ", fields));
+		snprintf(fields, sizeof fields, "award=%d factor=%d ",
+			 rows[i].victim, rows[i].factor);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.rating_awarded slot=0 ", fields));
+	}
+}
+
+/* The rating points of the "worse" total: always at least 1; half for a shared
+ * kill and a tenth for an assist, but at least 1. A victim on a resting plan
+ * counts for 1 point of rating. */
+static void check_credit_worse_tiers(void)
+{
+	int base = 0;
+	static const struct {
+		int damage;
+		int divisor;
+	} rows[] = {{100, 1}, {40, 2}, {10, 10}};
+	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
+		credit_world();
+		strcpy(g_plan_table[3].name, "nullpln");
+		g_test_craft[1].ai_controller.current_plan_id = 3;
+		victim_damage(100, rows[i].damage);
+		mission_credit_destruction_damage_contributors(0, 1);
+		const char *line = find_line(
+			"mission.rating_awarded slot=0 kind=\"worse\"");
+		XVT_ASSERT_TRUE(line != NULL);
+		int weight = atoi(strstr(line, "weight=") + 7);
+		int attacker = atoi(strstr(line, "attacker=") + 9);
+		if (i == 0) {
+			base = weight / attacker;
+			if (base == 0) {
+				base = 1;
+			}
+		}
+		int expected = base / rows[i].divisor;
+		if (expected == 0) {
+			expected = 1;
+		}
+		XVT_ASSERT_INT_EQ(
+			g_players[0].mission_stats.worse_rating_promo_points,
+			expected);
+		XVT_ASSERT_TRUE(strstr(line, "award=1 ") != NULL);
+	}
+}
+
+/* A special cargo craft's kill is the special craft's: the victim here is
+ * craft 0 of a group whose special cargo craft is 0, and a goal for the special
+ * cargo (amount 19) pays; it does not pay for another craft. */
+static void check_credit_special_cargo_victim(void)
+{
+	for (int special = 0; special < 2; ++special) {
+		credit_world();
+		g_mission_flight_groups[1].fg.special_cargo_craft =
+			special ? 0 : TEST_NO_ORDINAL;
+		set_fg_goal(1, 0, 2, MISSION_COND_DESTROYED, 19, 4, 0x1);
+		int score = mission_compute_kill_score_for_object(1);
+		mission_credit_destruction_damage_contributors(0, 1);
+		XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score,
+				  score + (special ? 1000 : 0));
+		char fields[16];
+		snprintf(fields, sizeof fields, "special=%d ", special);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.kill_damage object=1 ", fields));
+	}
+}
+
+/* A prevent goal met tells the local player of the team the failure texts that
+ * are set, skipping an empty first one. */
+static void check_logic_prevent_met_skips_empty_text(void)
+{
+	logic_world();
+	connect_local_player(0, 4);
+	strcpy(g_mission_teams[0].end_of_mission_messages[3], "Next");
+	set_fg_goal(0, 0, 1, MISSION_COND_DESTROYED, GOAL_AMT_100, 0, 1);
+	group_craft(0, 2, 0);
+	run_logic();
+	XVT_ASSERT_INT_EQ(built_count(206), 1);
+	XVT_ASSERT_INT_EQ(built_count(207), 0);
+	XVT_ASSERT_INT_EQ(built_count(196), 1);
+	XVT_ASSERT_TRUE(built_with(196, "length=4 sender=4 voice=0 "));
+}
+
+/* More of the conditions: the bonus goal complete has failed when the bonus
+ * status is failed; a counting condition number no case lists is undecided with
+ * the group's total left behind; the players by team judge "all" and 66 percent
+ * met when they are (all four connected, three of four), and "disconnected"
+ * all is met when none is connected. */
+static void check_condition_more_cases(void)
+{
+	fresh_world();
+	g_flight_mission_state.runtime.global_bonus_goal_status = 2;
+	XVT_ASSERT_INT_EQ(
+		mission_evaluate_condition(MISSION_COND_BONUS_GOAL_COMPLETE,
+					   GOAL_TARGET_NONE, 0, 0, 0, 10),
+		2);
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 3;
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED] = 3;
+	XVT_ASSERT_INT_EQ(condition_on_group(11, 0, GOAL_AMT_100, 0), 4);
+	XVT_ASSERT_INT_EQ(g_mission_condition_current_count, 0);
+	XVT_ASSERT_INT_EQ(g_mission_condition_total_count, 3);
+
+	fresh_world();
+	g_mission_header.num_flight_groups = 4;
+	for (int fg = 0; fg < 4; ++fg) {
+		player_group(fg, fg + 1, 1, 2);
+		g_players[fg].team = 1;
+		g_players[fg].participation_state = 1;
+	}
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_CONNECTED,
+				  GOAL_TARGET_TEAM, 1, GOAL_AMT_100, 0, 10),
+			  1);
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_DISCONNECTED,
+				  GOAL_TARGET_TEAM, 1, GOAL_AMT_100, 0, 10),
+			  2);
+	g_players[3].participation_state = 0;
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_CONNECTED,
+				  GOAL_TARGET_TEAM, 1, GOAL_AMT_66, 0, 10),
+			  1);
+	for (int player = 0; player < 4; ++player) {
+		g_players[player].participation_state = 0;
+	}
+	XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+				  MISSION_COND_PLAYER_DISCONNECTED,
+				  GOAL_TARGET_TEAM, 1, GOAL_AMT_100, 0, 10),
+			  1);
+
+	/* A special cargo craft that fails a craft condition. */
+	fresh_world();
+	struct model_def *model = model_of(TEST_XWING);
+	struct model_def saved = *model;
+	model->shield_strength = 100;
+	g_mission_flight_groups[0].fg.special_cargo_craft = 0;
+	struct craft_data *craft = place_craft(0, 0, 0);
+	craft->model_index = (uint16_t)get_model_index_from_type(
+		(object_type_id)g_test_objects[0].object_type);
+	craft->shield_energy[0] = 50;
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+	g_mission_fg_stats[0]
+		.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+	XVT_ASSERT_INT_EQ(condition_on_group(MISSION_COND_SHIELDS_DEPLETED, 0,
+					     GOAL_AMT_ALL_SPECIAL_CARGO, 0),
+			  2);
+	*model = saved;
+}
+
+/* The opposites of the species, genus and family variables of an object
+ * (16, 17, 18) match an object of another species, genus and family. */
+static void check_object_matches_opposite_kinds(void)
+{
+	fresh_world();
+	place_craft(0, 0, 0);
+	uint8_t mine = g_craft_type_to_object_type[TEST_XWING];
+	int other_species = -1;
+	int other_genus = -1;
+	int other_family = -1;
+	for (int type = 1; type < 96; ++type) {
+		uint8_t object_type = g_craft_type_to_object_type[type];
+		if (object_type == 0 || object_type >= 201) {
+			continue;
+		}
+		if (object_type != mine && other_species < 0) {
+			other_species = type;
+		}
+		int genus = variable_for_genus(
+			g_object_type_table[object_type].genus_id);
+		if (genus >= 0 && g_object_type_table[object_type].genus_id !=
+					  g_object_type_table[mine].genus_id) {
+			other_genus = genus;
+		}
+		int family = variable_for_family(
+			(uint8_t)g_object_type_table[object_type].family_id);
+		if (family >= 0 &&
+		    (uint8_t)g_object_type_table[object_type].family_id !=
+			    (uint8_t)g_object_type_table[mine].family_id) {
+			other_family = family;
+		}
+	}
+	XVT_ASSERT_TRUE(other_species >= 0 && other_genus >= 0 &&
+			other_family >= 0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+				  0, 16, (uint16_t)(other_species - 1)),
+			  1);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+				  0, 17, (uint16_t)other_genus),
+			  1);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+				  0, 18, (uint16_t)other_family),
+			  1);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
+				  0, 2, (uint16_t)(other_species - 1)),
+			  0);
+}
+
+/* A single craft asked for when the table is full is not spawned and says so;
+ * a single craft that is the group's special cargo craft is counted as that. */
+static void check_spawn_single_craft_counts(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 2);
+	g_stored.groups[0].special_cargo_craft = 1;
+	spawn_mission_ready();
+	XVT_ASSERT_INT_EQ(spawn_craft(0, 0), 1);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[0]
+			.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_ARRIVED],
+		0);
+	XVT_ASSERT_INT_EQ(spawn_craft(0, 1), 1);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[0]
+			.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_ARRIVED],
+		1);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  2);
+	for (int slot = 0; slot < 32; ++slot) {
+		g_object_table[slot].object_type = 9;
+	}
+	g_mission_fg_stats[0].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 5;
+	XVT_ASSERT_INT_EQ(spawn_craft(0, 1), 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  2);
+}
+
+/* A static group that has arrived in a melee and has rounds to come sends its
+ * next round when none of its static objects is left. */
+static void check_arrivals_static_group_next_round(void)
+{
+	init_mission(MISSION_TYPE_MELEE);
+	arriving_group(0, 1, CRAFT_SPECIES_MINE_TYPE_A, 2);
+	g_stored.groups[0].number_of_waves = 1;
+	begin_arrivals();
+	int slots[64];
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].has_arrived, 1);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 1);
+	int placed = static_objects(slots);
+	XVT_ASSERT_TRUE(placed > 0);
+	/* While one is left, nothing comes. */
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 1);
+	XVT_ASSERT_INT_EQ(static_objects(slots), placed);
+	for (int i = 0; i < placed; ++i) {
+		g_object_table[slots[i]].object_type = 0;
+	}
+	g_flight_global_countdown_timers.mission_arrival_trigger_scan_timer = 0;
+	mission_update_flight_group_arrivals();
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 0);
+	XVT_ASSERT_INT_EQ(static_objects(slots), placed);
+}
+
+/* A craft that ends while its group's order says to drop off at another group
+ * closes that group's arrival, as a craft that never comes. */
+static void check_outcome_dropoff_closes_group(void)
+{
+	fresh_world();
+	g_order_leader_builtin_plan_name_index[1] = 5;
+	g_builtin_plan_id_by_name_index[5] = 9;
+	strcpy(g_plan_table[9].name, "dropoffldr1pln");
+	g_mission_flight_groups[0].fg.orders[0].order = 1;
+	g_mission_flight_groups[0].fg.orders[0].variable2 = 2;
+	g_mission_fg_stats[1].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 3;
+	place_craft(0, 0, 0);
+	mission_record_craft_outcome(0, 0, FLIGHT_GROUP_OUTCOME_DESTROYED);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].has_arrived, 1);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			  3);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].has_arrived, 0);
+}
+
 int main(int argc, char **argv)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -9218,6 +11840,10 @@ int main(int argc, char **argv)
 			{"ai_skill_past_table", check_spawn_ai_skill_in_table},
 			{"global_goal_fourth_condition",
 			 check_logic_global_goal_fourth_condition},
+			{"formation_slot_past_six",
+			 check_formation_slot_past_six},
+			{"ai_rating_past_table",
+			 check_credit_ai_level_past_table},
 		};
 		for (size_t i = 0;
 		     i < sizeof known_failures / sizeof known_failures[0];
@@ -9383,5 +12009,49 @@ int main(int argc, char **argv)
 	check_group_matches_variable_types();
 	check_object_matches_variable();
 	check_object_craft_states();
+	check_arrivals_scan_timers();
+	check_arrivals_trigger_joins();
+	check_arrivals_delay_set();
+	check_arrivals_delay_runs_out();
+	check_arrivals_next_round();
+	check_arrivals_player_group_held();
+	check_arrivals_stop_rules();
+	check_wave_completion_waits();
+	check_wave_completion_held();
+	check_wave_completion_stops();
+	check_wave_completion_makes_room();
+	check_formation_slot_world_loc();
+	check_formation_slot_static();
+	check_static_group_arrival_and_rounds();
+	check_spawn_hyperspace_arrival();
+	check_spawn_faces_fifth_point();
+	check_spawn_second_point();
+	check_spawn_melee_start_points();
+	check_spawn_melee_random_offset();
+	check_spawn_mothership_formation();
+	check_credit_tiers();
+	check_credit_goal_scores();
+	check_credit_friendly_kill();
+	check_credit_player_victim();
+	check_credit_worse_rating();
+	check_credit_without_damage();
+	check_credit_team_share();
+	check_team_kill_tiers();
+	check_team_kill_friendly();
+	check_craft_loss_classes();
+	check_craft_loss_pending_and_owner();
+	check_loss_attribution();
+	check_projectile_hits();
+	check_goal_score_messages();
+	check_outcome_special_cargo_takebacks();
+	check_credit_rating_factor();
+	check_credit_worse_tiers();
+	check_credit_special_cargo_victim();
+	check_logic_prevent_met_skips_empty_text();
+	check_condition_more_cases();
+	check_object_matches_opposite_kinds();
+	check_spawn_single_craft_counts();
+	check_arrivals_static_group_next_round();
+	check_outcome_dropoff_closes_group();
 	return 0;
 }
