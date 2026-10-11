@@ -103,7 +103,7 @@ test("a hello reply gives the launcher's version", () => {
       message({
         id: 1,
         ok: true,
-        result: { launcher_version: "2.0", schema_revision: 4 },
+        result: { launcher_version: "2.0", schema_revision: 5 },
       }),
     ),
   );
@@ -375,4 +375,192 @@ test("an available entry has a button that asks for that mission; a locked one h
     label: "Show First",
   });
   assert.equal(second?.pick, null);
+});
+
+const STARTED: Message = {
+  event: "launch.started",
+  data: {
+    launch_id: 4,
+    mission_type: "training",
+    side: "rebel",
+    mission: "a.tie",
+    title: "First Flight",
+    pilot: "Ace",
+  },
+};
+const ENDED: Message = {
+  event: "launch.ended",
+  data: { launch_id: 4, status: "flown", line: "flown: completed, score 10" },
+};
+
+test("with no battle the page says battles start in Discord and shows no Cancel", () => {
+  const view = describe(play({ kind: "opened" }));
+  assert.equal(
+    view.battleNote,
+    "No battle is flying. Battles start in Discord.",
+  );
+  assert.equal(view.battleLine, null);
+  assert.equal(view.battleEnding, null);
+  assert.equal(view.cancelShown, false);
+  assert.equal(view.cancelEnabled, false);
+});
+
+test("a started battle is shown with Cancel until it ends", () => {
+  const view = describe(play({ kind: "opened" }, message(STARTED)));
+  assert.equal(view.battleNote, "A battle is flying.");
+  assert.equal(view.battleLine, "First Flight, flown by Ace.");
+  assert.equal(view.cancelShown, true);
+  assert.equal(view.cancelEnabled, true);
+  assert.equal(view.battleEnding, null);
+});
+
+test("Cancel can be pressed once; the page then says it is cancelling", () => {
+  const view = describe(
+    play(
+      { kind: "opened" },
+      message(STARTED),
+      { kind: "cancelling" },
+      { kind: "cancelling" },
+    ),
+  );
+  assert.equal(view.battleNote, "Cancelling the battle.");
+  assert.equal(view.cancelShown, true);
+  assert.equal(view.cancelEnabled, false);
+});
+
+test("a dropped connection stops Cancel being offered as enabled", () => {
+  const view = describe(
+    play({ kind: "opened" }, message(STARTED), { kind: "closed" }),
+  );
+  assert.equal(view.cancelEnabled, false);
+});
+
+test("the ending line replaces Cancel", () => {
+  const view = describe(
+    play({ kind: "opened" }, message(STARTED), message(ENDED)),
+  );
+  assert.equal(view.battleNote, "The battle is over.");
+  assert.equal(view.battleEnding, "flown: completed, score 10");
+  assert.equal(view.battleLine, "First Flight, flown by Ace.");
+  assert.equal(view.cancelShown, false);
+});
+
+test("an ending for another battle is ignored, and so is one with none flying", () => {
+  const other: Message = {
+    event: "launch.ended",
+    data: { launch_id: 9, status: "flown", line: "elsewhere" },
+  };
+  const during = describe(play(message(STARTED), message(other)));
+  assert.equal(during.battleEnding, null);
+  assert.equal(during.cancelShown, true);
+  assert.equal(describe(play(message(other))).battleEnding, null);
+});
+
+test("pressing Cancel with nothing flying changes nothing", () => {
+  assert.deepEqual(play({ kind: "cancelling" }), initialState());
+  const ended = play(message(STARTED), message(ENDED));
+  assert.deepEqual(reduce(ended, { kind: "cancelling" }), ended);
+});
+
+test("a new battle clears the last ending", () => {
+  const view = describe(
+    play(message(STARTED), message(ENDED), message(STARTED)),
+  );
+  assert.equal(view.battleEnding, null);
+  assert.equal(view.cancelShown, true);
+});
+
+test("a refused cancel is shown in the battle note", () => {
+  const view = describe(
+    play(
+      message(STARTED),
+      message({
+        id: 5,
+        ok: true,
+        result: {
+          cancelled: false,
+          message: "No battle with that number is flying.",
+        },
+      }),
+    ),
+  );
+  assert.equal(view.battleNote, "No battle with that number is flying.");
+});
+
+const NONE = {
+  difficulty: null,
+  collisions: null,
+  craft_jumping: null,
+  random_setup: null,
+  battle_length: null,
+  mission_time_limit: null,
+  continue_sequence: null,
+} as const;
+
+test("the options are not shown until they arrive", () => {
+  assert.equal(describe(initialState()).optionsRows, null);
+});
+
+test("the options reply fills the rows in words, unset ones as the game has them", () => {
+  const options = {
+    ...NONE,
+    difficulty: "easy_cheat",
+    collisions: "off",
+    battle_length: "3",
+    mission_time_limit: "1",
+    continue_sequence: "restart",
+  } as const;
+  const view = describe(
+    play(message({ id: 1, ok: true, result: { player: "7", options } })),
+  );
+  assert.deepEqual(
+    view.optionsRows?.map((r) => [r.label, r.value]),
+    [
+      ["Difficulty", "Easy with cheats (campaigns)"],
+      ["Collisions", "Off"],
+      ["Craft jumping", "As the game has it"],
+      ["Random setup", "As the game has it"],
+      ["Battle length", "3 wins"],
+      [
+        "Mission time limit (multiplayer only: no effect in solo play)",
+        "1 minute",
+      ],
+      ["Battle or campaign", "Start again"],
+    ],
+  );
+});
+
+test("options.changed redraws the rows", () => {
+  const first = play(
+    message({ event: "options.changed", data: { player: "7", options: NONE } }),
+  );
+  const next = reduce(
+    first,
+    message({
+      event: "options.changed",
+      data: {
+        player: "7",
+        options: { ...NONE, mission_time_limit: "none", random_setup: "on" },
+      },
+    }),
+  );
+  const rows = describe(next).optionsRows ?? [];
+  assert.equal(
+    rows.find((r) => r.name === "mission_time_limit")?.value,
+    "No limit",
+  );
+  assert.equal(rows.find((r) => r.name === "random_setup")?.value, "On");
+  assert.equal(describe(first).optionsRows?.[3]?.value, "As the game has it");
+});
+
+test("a time limit of 20 is in minutes and the mission's own limit is in words", () => {
+  const rows = describe(
+    play(
+      message({
+        event: "options.changed",
+        data: { player: null, options: { ...NONE, mission_time_limit: "20" } },
+      }),
+    ),
+  ).optionsRows;
+  assert.equal(rows?.[5]?.value, "20 minutes");
 });

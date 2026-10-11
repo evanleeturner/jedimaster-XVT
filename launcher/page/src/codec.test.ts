@@ -46,7 +46,7 @@ test("every request is read back as written", () => {
 
 test("every kind of ok reply is read back as written", () => {
   const results: unknown[] = [
-    { launcher_version: "0.1.0", schema_revision: 4 },
+    { launcher_version: "0.1.0", schema_revision: 5 },
     { found: true, path: "~/Games/XvT", balance_of_power: false },
     { found: false, path: null, balance_of_power: false },
     {
@@ -169,7 +169,7 @@ test("a reply refuses a result that matches no command", () => {
   refused(reply({ launcher_version: "0.1.0", schema_revision: 1 }));
   refused(reply({ shown: "yes" }));
   refused(reply({ shown: true, more: 1 }));
-  refused(reply({ launcher_version: 1, schema_revision: 4 }));
+  refused(reply({ launcher_version: 1, schema_revision: 5 }));
   refused(reply({ found: "yes", path: null, balance_of_power: false }));
   refused(reply({ found: true, path: 3, balance_of_power: false }));
   refused(reply({ settings: { art_scaling: "stretched" } }));
@@ -372,4 +372,235 @@ test("a hello reply of another revision is refused", () => {
     ok: true,
     result: { launcher_version: "0.1.0", schema_revision: 2 },
   });
+});
+
+const NO_OPTIONS = {
+  difficulty: null,
+  collisions: null,
+  craft_jumping: null,
+  random_setup: null,
+  battle_length: null,
+  mission_time_limit: null,
+  continue_sequence: null,
+};
+const SOME_OPTIONS = {
+  ...NO_OPTIONS,
+  difficulty: "hard",
+  mission_time_limit: "5",
+};
+
+test("the launch and option requests are read back as written", () => {
+  const requests: unknown[] = [
+    {
+      id: 1,
+      command: "launch.menu",
+      args: { mission_type: "training", side: "rebel" },
+    },
+    {
+      id: 2,
+      command: "launch.menu",
+      args: { mission_type: "melee", side: "none" },
+    },
+    { id: 3, command: "pilots.list", args: {} },
+    {
+      id: 4,
+      command: "launch.solo",
+      args: {
+        player: "123456789012345678",
+        mission_type: "combat",
+        side: "imperial",
+        mission: "8braw10.tie",
+        pilot: "Ace",
+      },
+    },
+    { id: 5, command: "launch.cancel", args: { launch_id: 7 } },
+    { id: 6, command: "options.get", args: { player: null } },
+    { id: 7, command: "options.get", args: { player: "42" } },
+    {
+      id: 8,
+      command: "options.set",
+      args: { player: "42", name: "battle_length", value: "3" },
+    },
+    {
+      id: 9,
+      command: "options.set",
+      args: { player: "42", name: "collisions", value: null },
+    },
+  ];
+  for (const request of requests) assert.deepEqual(accepted(request), request);
+});
+
+test("a launch or option request with a value off the list is refused", () => {
+  const solo = {
+    player: "42",
+    mission_type: "training",
+    side: "rebel",
+    mission: "a.tie",
+    pilot: "Ace",
+  };
+  const bad: [string, unknown][] = [
+    ["launch.menu", { mission_type: "training", side: "none" }],
+    ["launch.menu", { mission_type: "melee", side: "rebel" }],
+    ["launch.menu", { mission_type: "arena", side: "none" }],
+    ["pilots.list", { all: true }],
+    ["launch.solo", { ...solo, player: "abc" }],
+    ["launch.solo", { ...solo, pilot: "" }],
+    ["launch.solo", { ...solo, pilot: "x".repeat(13) }],
+    ["launch.solo", { ...solo, mission: "x".repeat(65) }],
+    ["launch.solo", { ...solo, side: "none" }],
+    ["launch.solo", { ...solo, engine: "/bin/true" }],
+    ["launch.cancel", { launch_id: 0 }],
+    ["launch.cancel", { launch_id: 1.5 }],
+    ["options.get", {}],
+    ["options.get", { player: "x" }],
+    ["options.set", { player: "42", name: "speed", value: "on" }],
+    ["options.set", { player: "42", name: "difficulty", value: "weak" }],
+    ["options.set", { player: "42", name: "collisions", value: 1 }],
+    ["options.set", { player: "42", name: "collisions" }],
+  ];
+  for (const [command, args] of bad) {
+    refused({ id: 1, command, args });
+  }
+});
+
+test("the launch and option replies are read back as written", () => {
+  const results: unknown[] = [
+    {
+      mission_type: "training",
+      side: "rebel",
+      game_path: "train\\rebel.lst",
+      resolved: true,
+      entries: [
+        { section: "A", file: "a.tie", title: "T", opens_once_flown: true },
+      ],
+    },
+    { found: true, pilots: ["Ace"] },
+    { started: true, launch_id: 3, message: "Started." },
+    { started: false, launch_id: 0, message: "Busy." },
+    { cancelled: true, message: "Cancelling the battle." },
+    { player: "42", options: SOME_OPTIONS },
+    { player: null, options: NO_OPTIONS },
+  ];
+  for (const result of results) {
+    const reply = { id: 1, ok: true, result };
+    assert.deepEqual(accepted(reply), reply);
+  }
+});
+
+test("a launch or option reply with a wrong value is refused", () => {
+  const results: unknown[] = [
+    { found: "yes", pilots: [] },
+    { found: true, pilots: [1] },
+    { started: true, launch_id: -1, message: "x" },
+    { cancelled: "yes", message: "x" },
+    { player: "42", options: { ...NO_OPTIONS, difficulty: "weak" } },
+    { player: "x", options: NO_OPTIONS },
+    { player: "42", options: { difficulty: null } },
+    {
+      mission_type: "melee",
+      side: "rebel",
+      game_path: "m",
+      resolved: true,
+      entries: [],
+    },
+    {
+      mission_type: "training",
+      side: "rebel",
+      game_path: "m",
+      resolved: true,
+      entries: [{ section: "", file: "a", title: "t" }],
+    },
+  ];
+  for (const result of results) refused({ id: 1, ok: true, result });
+});
+
+test("the three new pushes are read back as written and bad ones refused", () => {
+  const good: unknown[] = [
+    {
+      event: "launch.started",
+      data: {
+        launch_id: 1,
+        mission_type: "training",
+        side: "rebel",
+        mission: "a.tie",
+        title: "First",
+        pilot: "Ace",
+      },
+    },
+    {
+      event: "launch.ended",
+      data: { launch_id: 1, status: "cancelled", line: "cancelled" },
+    },
+    { event: "options.changed", data: { player: "42", options: SOME_OPTIONS } },
+  ];
+  for (const push of good) assert.deepEqual(accepted(push), push);
+  refused({
+    event: "launch.ended",
+    data: { launch_id: 1, status: "won", line: "x" },
+  });
+  refused({
+    event: "launch.ended",
+    data: { launch_id: 0, status: "flown", line: "x" },
+  });
+  refused({
+    event: "launch.started",
+    data: { launch_id: 1, mission_type: "training", side: "rebel" },
+  });
+  refused({
+    event: "options.changed",
+    data: { player: "42", options: { ...NO_OPTIONS, collisions: "maybe" } },
+  });
+});
+
+const CHOICES: Record<string, string[]> = {
+  difficulty: ["easy", "medium", "hard", "easy_cheat"],
+  collisions: ["on", "off"],
+  craft_jumping: ["on", "off"],
+  random_setup: ["on", "off"],
+  battle_length: ["2", "3", "4"],
+  mission_time_limit: [
+    "none",
+    "default",
+    ...Array.from({ length: 20 }, (_, i) => String(i + 1)),
+  ],
+  continue_sequence: ["restart", "continue"],
+};
+
+test("options.set takes every choice of every option and nothing else", () => {
+  for (const [name, texts] of Object.entries(CHOICES)) {
+    for (const value of [...texts, null]) {
+      const request = {
+        id: 1,
+        command: "options.set",
+        args: { player: "42", name, value },
+      };
+      assert.deepEqual(accepted(request), request);
+    }
+    for (const value of ["0", "21", "weak", ""]) {
+      if (texts.includes(value)) continue;
+      refused({
+        id: 1,
+        command: "options.set",
+        args: { player: "42", name, value },
+      });
+    }
+  }
+});
+
+test("an options reply holds every choice of every option and nothing else", () => {
+  for (const [name, texts] of Object.entries(CHOICES)) {
+    for (const value of texts) {
+      const reply = {
+        id: 1,
+        ok: true,
+        result: { player: "42", options: { ...NO_OPTIONS, [name]: value } },
+      };
+      assert.deepEqual(accepted(reply), reply);
+    }
+    refused({
+      id: 1,
+      ok: true,
+      result: { player: "42", options: { ...NO_OPTIONS, [name]: "21" } },
+    });
+  }
 });

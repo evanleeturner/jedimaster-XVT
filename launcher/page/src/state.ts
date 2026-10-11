@@ -2,7 +2,9 @@ import type { ArtScaling, Message, MissionType } from "./codec.ts";
 import { isMissionType } from "./codec.ts";
 import type { BriefingBundle } from "./generated/briefing.ts";
 import type {
+  GameOptions,
   InstallStatusResult,
+  LaunchStartedData,
   MenuData,
   OkReply,
   ShownMission,
@@ -16,6 +18,13 @@ export type BriefingState =
   | { readonly status: "missing" }
   | { readonly status: "ready"; readonly bundle: BriefingBundle };
 
+export interface LaunchState {
+  readonly started: LaunchStartedData;
+  readonly cancelling: boolean;
+  /** The ending line once the battle is over, else null. */
+  readonly ending: string | null;
+}
+
 export interface State {
   readonly connection: Connection;
   readonly launcherVersion: string | null;
@@ -25,6 +34,9 @@ export interface State {
   readonly shown: ShownMission | null;
   readonly shownCount: number;
   readonly briefing: BriefingState;
+  readonly launch: LaunchState | null;
+  readonly notice: string | null;
+  readonly options: GameOptions | null;
   readonly problem: string | null;
 }
 
@@ -32,6 +44,7 @@ export type Action =
   | { readonly kind: "connecting" }
   | { readonly kind: "opened" }
   | { readonly kind: "closed" }
+  | { readonly kind: "cancelling" }
   | { readonly kind: "message"; readonly message: Message };
 
 export interface MenuEntryView {
@@ -65,7 +78,19 @@ export interface View {
   readonly briefing: BriefingState;
   readonly briefingNote: string | null;
   readonly settingsEnabled: boolean;
+  readonly battleNote: string;
+  readonly battleLine: string | null;
+  readonly battleEnding: string | null;
+  readonly cancelEnabled: boolean;
+  readonly cancelShown: boolean;
+  readonly optionsRows: readonly OptionRow[] | null;
   readonly problem: string | null;
+}
+
+export interface OptionRow {
+  readonly name: string;
+  readonly label: string;
+  readonly value: string;
 }
 
 export const PAGE_VERSION = "0.1.0";
@@ -80,6 +105,9 @@ export function initialState(): State {
     shown: null,
     shownCount: 0,
     briefing: { status: "none" },
+    launch: null,
+    notice: null,
+    options: null,
     problem: null,
   };
 }
@@ -94,6 +122,12 @@ function applyResult(state: State, result: OkReply["result"]): State {
   if ("schema_revision" in result) {
     return { ...state, launcherVersion: result.launcher_version };
   }
+  if ("pilots" in result || "mission_type" in result) return state;
+  if ("started" in result) return state;
+  if ("cancelled" in result) {
+    return result.cancelled ? state : { ...state, notice: result.message };
+  }
+  if ("options" in result) return { ...state, options: result.options };
   if ("found" in result) return { ...state, install: result };
   if ("menus" in result) return { ...state, menus: result.menus };
   if ("shown" in result) return state;
@@ -117,6 +151,31 @@ function applyMessage(state: State, message: Message): State {
         briefing: { status: "loading" },
         problem: null,
       };
+    }
+    if (message.event === "launch.started") {
+      return {
+        ...state,
+        launch: { started: message.data, cancelling: false, ending: null },
+        notice: null,
+        problem: null,
+      };
+    }
+    if (message.event === "launch.ended") {
+      const current = state.launch;
+      if (current?.started.launch_id !== message.data.launch_id) return state;
+      return {
+        ...state,
+        launch: {
+          started: current.started,
+          cancelling: false,
+          ending: message.data.line,
+        },
+        notice: null,
+        problem: null,
+      };
+    }
+    if (message.event === "options.changed") {
+      return { ...state, options: message.data.options, problem: null };
     }
     return {
       ...state,
@@ -143,6 +202,9 @@ export function reduce(state: State, action: Action): State {
       return { ...state, connection: "open", problem: null };
     case "closed":
       return { ...state, connection: "closed" };
+    case "cancelling":
+      if (state.launch?.ending !== null) return state;
+      return { ...state, launch: { ...state.launch, cancelling: true } };
     case "message":
       return applyMessage(state, action.message);
   }
@@ -160,6 +222,95 @@ const BRIEFING_NOTE: Record<BriefingState["status"], string | null> = {
   missing: "This mission's briefing could not be shown.",
   ready: null,
 };
+
+export const OPTION_LABELS: Record<string, string> = {
+  difficulty: "Difficulty",
+  collisions: "Collisions",
+  craft_jumping: "Craft jumping",
+  random_setup: "Random setup",
+  battle_length: "Battle length",
+  mission_time_limit:
+    "Mission time limit (multiplayer only: no effect in solo play)",
+  continue_sequence: "Battle or campaign",
+};
+
+const VALUE_WORDS: Record<string, string> = {
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
+  easy_cheat: "Easy with cheats (campaigns)",
+  on: "On",
+  off: "Off",
+  none: "No limit",
+  default: "The mission's own limit",
+  restart: "Start again",
+  continue: "Continue",
+};
+
+export function optionWords(name: string, value: string | null): string {
+  if (value === null) return "As the game has it";
+  if (name === "battle_length") return `${value} wins`;
+  if (name === "mission_time_limit" && /^[0-9]+$/.test(value)) {
+    return value === "1" ? "1 minute" : `${value} minutes`;
+  }
+  return VALUE_WORDS[value] ?? value;
+}
+
+const OPTION_ORDER: (keyof GameOptions)[] = [
+  "difficulty",
+  "collisions",
+  "craft_jumping",
+  "random_setup",
+  "battle_length",
+  "mission_time_limit",
+  "continue_sequence",
+];
+
+function optionRows(options: GameOptions | null): OptionRow[] | null {
+  if (options === null) return null;
+  return OPTION_ORDER.map((name) => ({
+    name,
+    label: OPTION_LABELS[name] ?? name,
+    value: optionWords(name, options[name]),
+  }));
+}
+
+function battleView(
+  state: State,
+): Pick<
+  View,
+  "battleNote" | "battleLine" | "battleEnding" | "cancelEnabled" | "cancelShown"
+> {
+  const { launch, notice } = state;
+  if (launch === null) {
+    return {
+      battleNote: notice ?? "No battle is flying. Battles start in Discord.",
+      battleLine: null,
+      battleEnding: null,
+      cancelEnabled: false,
+      cancelShown: false,
+    };
+  }
+  const { started, cancelling, ending } = launch;
+  const line = `${started.title}, flown by ${started.pilot}.`;
+  if (ending !== null) {
+    return {
+      battleNote: notice ?? "The battle is over.",
+      battleLine: line,
+      battleEnding: ending,
+      cancelEnabled: false,
+      cancelShown: false,
+    };
+  }
+  return {
+    battleNote:
+      notice ?? (cancelling ? "Cancelling the battle." : "A battle is flying."),
+    battleLine: line,
+    battleEnding: null,
+    cancelEnabled: !cancelling && state.connection === "open",
+    cancelShown: true,
+  };
+}
 
 function titleCase(name: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1);
@@ -236,6 +387,8 @@ export function describe(state: State): View {
     briefing: state.briefing,
     briefingNote: BRIEFING_NOTE[state.briefing.status],
     settingsEnabled: state.connection === "open",
+    ...battleView(state),
+    optionsRows: optionRows(state.options),
     problem: state.problem,
   };
 }

@@ -88,10 +88,19 @@ async function askFromSecondSocket(
   origin: string,
   mission: { mission_type: string; id: number },
 ): Promise<unknown> {
+  return callFromSecondSocket(context, origin, "page.show_mission", mission);
+}
+
+async function callFromSecondSocket(
+  context: BrowserContext,
+  origin: string,
+  command: string,
+  args: Record<string, unknown>,
+): Promise<{ ok: boolean; result: Record<string, unknown> }> {
   const caller = await context.newPage();
   await caller.goto(`${origin}/style.css`);
   const reply = await caller.evaluate(
-    (args) =>
+    (call) =>
       new Promise<unknown>((resolve, reject) => {
         const socket = new WebSocket(`ws://${location.host}/ws`);
         socket.addEventListener("error", () => {
@@ -106,14 +115,14 @@ async function askFromSecondSocket(
         });
         socket.addEventListener("open", () => {
           socket.send(
-            JSON.stringify({ id: 1, command: "page.show_mission", args }),
+            JSON.stringify({ id: 1, command: call.command, args: call.args }),
           );
         });
       }),
-    mission,
+    { command, args },
   );
   await caller.close();
-  return reply;
+  return reply as { ok: boolean; result: Record<string, unknown> };
 }
 
 test("a mission shown from a second socket is marked, scrolled to and announced", async ({
@@ -221,7 +230,7 @@ test("a keyboard alone reaches every control, each with a visible focus", async 
     if (document.activeElement instanceof HTMLElement)
       document.activeElement.blur();
   });
-  for (let step = 0; step < 8; step += 1) {
+  for (let step = 0; step < 10; step += 1) {
     await page.keyboard.press("Tab");
     const [name = "", outline = "none", width = "0px"] = await focusRing();
     expect(outline, `${name} shows a focus outline`).not.toBe("none");
@@ -236,6 +245,8 @@ test("a keyboard alone reaches every control, each with a visible focus", async 
     "Status",
     "Missions",
     "Briefing",
+    "Battle",
+    "Game options",
     "Settings",
     "Show First Flight",
     "Show Open Field",
@@ -399,3 +410,206 @@ test("smooth scrolling is only for people who have not asked for less motion", a
   await page.emulateMedia({ reducedMotion: "no-preference" });
   expect(await behavior()).toBe("smooth");
 });
+
+const SOLO = {
+  player: "7001",
+  mission_type: "training",
+  side: "rebel",
+  mission: "alpha.tie",
+  pilot: "Ace",
+};
+
+async function startBattle(
+  context: BrowserContext,
+  origin: string,
+  changes: Record<string, string> = {},
+): Promise<Record<string, unknown>> {
+  const reply = await callFromSecondSocket(context, origin, "launch.solo", {
+    ...SOLO,
+    ...changes,
+  });
+  return reply.result;
+}
+
+test("with no battle the page says so and offers no Cancel", async ({
+  page,
+  launcher,
+}) => {
+  await openPage(page, launcher.url);
+  await expect(page.locator("#battle-note")).toHaveText(
+    "No battle is flying. Battles start in Discord.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Cancel the battle" }),
+  ).toBeHidden();
+  await expect(page.locator("#battle-ending")).toHaveAttribute("hidden", "");
+  await expect(page.locator("#options-list dt")).toHaveCount(7);
+  await expect(page.locator("#options-list dd")).toHaveText(
+    Array<string>(7).fill("As the game has it"),
+  );
+});
+
+test("no control on the page starts a battle", async ({ page, launcher }) => {
+  await openPage(page, launcher.url);
+  const names = await page
+    .getByRole("button")
+    .evaluateAll((all) => all.map((b) => b.textContent.trim()));
+  for (const name of names) expect(name).not.toMatch(/launch|fly|start|solo/i);
+  await expect(
+    page.locator(
+      "#battle select, #battle input, #options input, #options select",
+    ),
+  ).toHaveCount(0);
+});
+
+test("a battle started from a second socket is shown with Cancel, and Cancel stops it", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await openPage(page, launcher.url);
+  const result = await startBattle(context, launcher.origin);
+  expect(result.started).toBe(true);
+  await expect(page.locator("#battle-note")).toHaveText("A battle is flying.");
+  await expect(page.locator("#battle-line")).toHaveText(
+    "First Flight, flown by Ace.",
+  );
+  const cancel = page.getByRole("button", { name: "Cancel the battle" });
+  await expect(cancel).toBeVisible();
+  await expect(cancel).toBeEnabled();
+  await cancel.click();
+  await expect(page.locator("#battle-ending")).toHaveText("cancelled");
+  await expect(page.locator("#battle-note")).toHaveText("The battle is over.");
+  await expect(cancel).toBeHidden();
+  const again = await startBattle(context, launcher.origin);
+  expect(again.started).toBe(true);
+});
+
+test("Cancel works from the keyboard and keeps focus in the battle section", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await openPage(page, launcher.url);
+  await startBattle(context, launcher.origin);
+  const cancel = page.getByRole("button", { name: "Cancel the battle" });
+  await expect(cancel).toBeVisible();
+  await cancel.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#battle-ending")).toHaveText("cancelled");
+  await expect(page.locator("#battle-note")).toBeFocused();
+  await expect(page.locator("#battle-note")).toHaveAttribute(
+    "aria-live",
+    "polite",
+  );
+});
+
+test("a battle that ends by itself shows its ending line", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await launcher.behave("done");
+  await openPage(page, launcher.url);
+  const result = await startBattle(context, launcher.origin);
+  expect(result.started).toBe(true);
+  await expect(page.locator("#battle-ending")).toHaveText(
+    "flown: completed, score 10, kills 2, losses 0, 61 s",
+  );
+  await expect(
+    page.getByRole("button", { name: "Cancel the battle" }),
+  ).toBeHidden();
+});
+
+test("a page opened while a battle flies shows it and can cancel it", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await openPage(page, launcher.url);
+  await startBattle(context, launcher.origin);
+  const late = await context.newPage();
+  await late.goto(launcher.origin + "/");
+  await expect(late.locator("#battle-line")).toHaveText(
+    "First Flight, flown by Ace.",
+  );
+  await late.getByRole("button", { name: "Cancel the battle" }).click();
+  await expect(late.locator("#battle-ending")).toHaveText("cancelled");
+  await expect(page.locator("#battle-ending")).toHaveText("cancelled");
+});
+
+test("a second battle while one flies is refused in words and the first stays", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await openPage(page, launcher.url);
+  await startBattle(context, launcher.origin);
+  const second = await startBattle(context, launcher.origin, { pilot: "Cee" });
+  expect(second.started).toBe(false);
+  expect(second.message).toContain("already flying");
+  await expect(page.locator("#battle-line")).toHaveText(
+    "First Flight, flown by Ace.",
+  );
+});
+
+test("the game options are shown read-only and redrawn when they change", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await openPage(page, launcher.url);
+  const set = async (name: string, value: string | null) =>
+    callFromSecondSocket(context, launcher.origin, "options.set", {
+      player: "7001",
+      name,
+      value,
+    });
+  await set("difficulty", "hard");
+  await set("mission_time_limit", "5");
+  await expect(
+    page.getByRole("region", { name: "Game options" }),
+  ).toBeVisible();
+  const terms = page.locator("#options-list dt");
+  await expect(terms).toHaveCount(7);
+  await expect(page.locator("#options-list dd").first()).toHaveText("Hard");
+  await expect(
+    page.locator("#options-list dt", { hasText: "Mission time limit" }),
+  ).toBeVisible();
+  await expect(page.locator("#options-list")).toContainText("5 minutes");
+  await expect(page.locator("#options-list")).toContainText(
+    "As the game has it",
+  );
+  await set("difficulty", null);
+  await expect(page.locator("#options-list dd").first()).toHaveText(
+    "As the game has it",
+  );
+  await expect(
+    page.locator("#options input, #options select, #options button"),
+  ).toHaveCount(0);
+});
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`axe finds nothing in the ${scheme} scheme with a battle flying and options set`, async ({
+    page,
+    launcher,
+    context,
+  }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await openPage(page, launcher.url);
+    await callFromSecondSocket(context, launcher.origin, "options.set", {
+      player: "7001",
+      name: "collisions",
+      value: "off",
+    });
+    await startBattle(context, launcher.origin);
+    await expect(page.locator("#battle-line")).toBeVisible();
+    await expect(page.locator("#options-list")).toContainText("Off");
+    const flying = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+    expect(flying.violations).toEqual([]);
+    await page.getByRole("button", { name: "Cancel the battle" }).click();
+    await expect(page.locator("#battle-ending")).toBeVisible();
+    const ended = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+    expect(ended.violations).toEqual([]);
+  });
+}

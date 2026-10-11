@@ -26,6 +26,11 @@ const missionsNote = find(HTMLParagraphElement, "#missions-note");
 const missionsBody = find(HTMLDivElement, "#missions-body");
 const shownLine = find(HTMLParagraphElement, "#mission-shown");
 const scalingGroup = find(HTMLFieldSetElement, "#art-scaling");
+const battleNote = find(HTMLParagraphElement, "#battle-note");
+const battleLine = find(HTMLParagraphElement, "#battle-line");
+const battleEnding = find(HTMLParagraphElement, "#battle-ending");
+const cancelButton = find(HTMLButtonElement, "#battle-cancel");
+const optionsList = find(HTMLElement, "#options-list");
 
 let state: State = initialState();
 const briefingPanel = new BriefingPanel();
@@ -92,6 +97,32 @@ function renderMenus(view: View): void {
   });
 }
 
+function renderBattle(view: View): void {
+  setText(battleNote, view.battleNote);
+  battleLine.hidden = view.battleLine === null;
+  setText(battleLine, view.battleLine ?? "");
+  battleEnding.hidden = view.battleEnding === null;
+  setText(battleEnding, view.battleEnding ?? "");
+  cancelButton.hidden = !view.cancelShown;
+  cancelButton.disabled = !view.cancelEnabled;
+}
+
+function renderOptions(view: View): void {
+  const rows = view.optionsRows ?? [];
+  const signature = JSON.stringify(rows);
+  if (optionsList.dataset.signature === signature) return;
+  optionsList.dataset.signature = signature;
+  optionsList.replaceChildren(
+    ...rows.flatMap((row) => {
+      const term = document.createElement("dt");
+      term.textContent = row.label;
+      const value = document.createElement("dd");
+      value.textContent = row.value;
+      return [term, value];
+    }),
+  );
+}
+
 function renderBriefing(view: View): void {
   if (view.briefing.status !== "ready") {
     shownBundle = null;
@@ -116,6 +147,8 @@ function render(view: View): void {
   setText(missionsNote, view.missionsNote ?? "");
   renderMenus(view);
   renderBriefing(view);
+  renderBattle(view);
+  renderOptions(view);
   setText(shownLine, view.shownText);
   const mark = missionsBody.querySelector('[aria-current="true"]');
   if (mark !== null && view.shownCount !== scrolledFor) {
@@ -185,6 +218,7 @@ function connect(): void {
     send({ command: "install.status", args: {} });
     send({ command: "missions.list", args: {} });
     send({ command: "settings.get", args: {} });
+    send({ command: "options.get", args: { player: null } });
   });
   opened.addEventListener("message", onMessage);
   opened.addEventListener("close", () => {
@@ -217,6 +251,18 @@ function onMissionsClick(event: Event): void {
   }
 }
 
+function onCancel(): void {
+  const launch = state.launch;
+  if (launch?.ending !== null) return;
+  dispatch({ kind: "cancelling" });
+  send({
+    command: "launch.cancel",
+    args: { launch_id: launch.started.launch_id },
+  });
+  battleNote.focus();
+}
+
+cancelButton.addEventListener("click", onCancel);
 scalingGroup.addEventListener("change", onScalingChange);
 missionsBody.addEventListener("click", onMissionsClick);
 reconnectButton.addEventListener("click", connect);

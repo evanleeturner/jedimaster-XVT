@@ -17,6 +17,8 @@
           <li><a class="nav-link" href="#status">Status</a></li>
           <li><a class="nav-link" href="#missions">Missions</a></li>
           <li><a class="nav-link" href="#briefing">Briefing</a></li>
+          <li><a class="nav-link" href="#battle">Battle</a></li>
+          <li><a class="nav-link" href="#options">Game options</a></li>
           <li><a class="nav-link" href="#settings">Settings</a></li>
         </ul>
       </nav>
@@ -98,6 +100,30 @@
           <h3>Highlighted flight groups</h3>
           <p id="briefing-highlight">No flight group is highlighted.</p>
         </div>
+      </section>
+      <section class="panel" id="battle" aria-labelledby="battle-heading">
+        <h2 id="battle-heading">Battle</h2>
+        <p id="battle-note" aria-live="polite" tabindex="-1">
+          No battle is flying. Battles start in Discord.
+        </p>
+        <p id="battle-line" class="battle-line" hidden></p>
+        <button class="button" id="battle-cancel" type="button" hidden>
+          Cancel the battle
+        </button>
+        <p
+          id="battle-ending"
+          class="battle-ending"
+          aria-live="polite"
+          hidden
+        ></p>
+      </section>
+      <section class="panel" id="options" aria-labelledby="options-heading">
+        <h2 id="options-heading">Game options</h2>
+        <p id="options-note">
+          These are the options kept for your Discord account. Change them in
+          Discord with Game options; each battle you start uses them.
+        </p>
+        <dl class="options-list" id="options-list" aria-live="polite"></dl>
       </section>
       <section class="panel" id="settings" aria-labelledby="settings-heading">
         <h2 id="settings-heading">Settings</h2>

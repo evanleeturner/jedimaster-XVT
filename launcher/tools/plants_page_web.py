@@ -30,6 +30,7 @@ import logging
 
 from plants_briefing_web import BRIEFING_WEB_PLANTS
 from plants_common import Plant
+from plants_launch_web import LAUNCH_WEB_PLANTS
 from plants_page_web_view import VIEW_PLANTS
 
 logger = logging.getLogger(__name__)
@@ -209,8 +210,8 @@ CODEC_PLANTS: list[Plant] = [
     Plant(
         "web-codec-no-args-ignored",
         COD,
-        "      return empty\n",
-        "      return !empty || empty\n",
+        '    case "settings.get":\n      return empty\n',
+        '    case "settings.get":\n      return !empty || empty\n',
         (N + "a request refuses arguments its command does not take",),
     ),
     Plant(
@@ -240,7 +241,7 @@ CODEC_PLANTS: list[Plant] = [
     Plant(
         "web-codec-hello-revision",
         COD,
-        '    if (typeof launcher_version === "string" && schema_revision === 4) {',
+        '    if (typeof launcher_version === "string" && schema_revision === 5) {',
         '    if (typeof launcher_version === "string" && schema_revision !== 0) {',
         (
             N + "a reply refuses a result that matches no command",
@@ -285,7 +286,9 @@ CODEC_PLANTS: list[Plant] = [
     Plant(
         "web-codec-menu-resolved-unchecked",
         COD,
+        '    typeof mission_type !== "string" ||\n    typeof game_path !== "string" ||\n'
         '    typeof resolved !== "boolean" ||\n    !isList(entries)',
+        '    typeof mission_type !== "string" ||\n    typeof game_path !== "string" ||\n'
         "    !isList(entries)",
         (N + "a menu refuses a wrong field or a wrong entry",),
     ),
@@ -462,7 +465,7 @@ SHOW_PLANTS: list[Plant] = [
     Plant(
         "web-codec-hello-promises-revision-1",
         COD,
-        '    if (typeof launcher_version === "string" && schema_revision === 4) {',
+        '    if (typeof launcher_version === "string" && schema_revision === 5) {',
         '    if (typeof launcher_version === "string" && schema_revision === 1) {',
         (ACC + "reply-ok-hello.json",),
     ),
@@ -510,8 +513,8 @@ SHOW_PLANTS: list[Plant] = [
     Plant(
         "web-codec-show-push-extra-field",
         COD,
-        "      !hasExactly(data, names) ||",
-        "      false ||",
+        "    const { mission_type, id, title } = data;\n    if (\n      !hasExactly(data, names) ||",
+        "    const { mission_type, id, title } = data;\n    if (\n      false ||",
         (N + "a show-mission push refuses a wrong payload",),
     ),
     Plant(
@@ -628,4 +631,5 @@ WEB_PLANTS: list[Plant] = [
     *VIEW_PLANTS,
     *SHOW_PLANTS,
     *BRIEFING_WEB_PLANTS,
+    *LAUNCH_WEB_PLANTS,
 ]

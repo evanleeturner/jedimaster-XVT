@@ -30,6 +30,8 @@ export interface Launcher {
   readonly installFolder: string;
   readonly settingsFile: string;
   readonly stop: () => Promise<void>;
+  /** Sets what the stand-in game program does next: "hang" or "done". */
+  readonly behave: (word: "hang" | "done") => Promise<void>;
   readonly readSettings: () => Promise<unknown>;
 }
 
@@ -52,6 +54,25 @@ function addBriefing(install: string): void {
   }
 }
 
+// Adds solo lists, a pilot folder and the stand-in game program under root.
+function addBattle(install: string, root: string): void {
+  const python = process.env.JEDIMASTER_PYTHON ?? "python3";
+  const done = spawnSync(
+    python,
+    [join(TESTS_FOLDER, "write_battle_install.py"), install, root],
+    {
+      cwd: LAUNCHER_FOLDER,
+      encoding: "utf8",
+      env: { ...process.env, PYTHONPATH: TESTS_FOLDER },
+    },
+  );
+  if (done.status !== 0) {
+    throw new Error(
+      `the made-up battle files were not written: ${done.stderr}`,
+    );
+  }
+}
+
 async function makeInstall(root: string): Promise<string> {
   const install = join(root, "XvT");
   await mkdir(join(install, "Train"), { recursive: true });
@@ -60,6 +81,7 @@ async function makeInstall(root: string): Promise<string> {
   await writeFile(join(install, "Train", "MISSION.LST"), TRAIN_MENU, "latin1");
   await writeFile(join(install, "Melee", "MISSION.LST"), MELEE_MENU, "latin1");
   addBriefing(install);
+  addBattle(install, root);
   return install;
 }
 
@@ -95,7 +117,9 @@ async function startLauncher(root: string): Promise<Launcher> {
     python,
     ["-m", "jedimaster", "page", "--install", installFolder, "--port", "0"]
       .concat(["--no-open", "--page-dir", PAGE_FOLDER])
-      .concat(["--settings", settingsFile]),
+      .concat(["--settings", settingsFile])
+      .concat(["--engine", join(root, "engine.py")])
+      .concat(["--pilot-folder", join(root, "pilots")]),
     { cwd: LAUNCHER_FOLDER, stdio: ["ignore", "pipe", "pipe"] },
   );
   const url = await waitForUrl(child);
@@ -117,6 +141,7 @@ async function startLauncher(root: string): Promise<Launcher> {
         });
         child.kill("SIGTERM");
       }),
+    behave: (word) => writeFile(join(root, "behave"), word, "utf8"),
     readSettings: async () =>
       JSON.parse(await readFile(settingsFile, "utf8")) as unknown,
   };
