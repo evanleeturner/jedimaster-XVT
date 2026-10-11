@@ -4807,8 +4807,12 @@ static void steer_craft(int obj, const struct steer_case *c)
 	ai->pitch_through_loop = (uint8_t)c->through_loop;
 	ai->climb_state = (uint8_t)c->climb;
 	ai->dive_state = (uint8_t)c->dive;
-	ai->roll_rate = ai->pitch_rate = ai->turn_rate = (int16_t)c->rate;
-	ai->roll_accel = ai->pitch_accel = ai->turn_accel = (int16_t)0xFFFF;
+	ai->roll_rate = (int16_t)c->rate;
+	ai->pitch_rate = (int16_t)c->rate;
+	ai->turn_rate = (int16_t)c->rate;
+	ai->roll_accel = (int16_t)0xFFFF;
+	ai->pitch_accel = (int16_t)0xFFFF;
+	ai->turn_accel = (int16_t)0xFFFF;
 	ai->roll_step = 0xFFFF;
 	ai->turn_step = (int16_t)0xFFFF;
 	ai->pitch_step_scale = 0xFFFF;
