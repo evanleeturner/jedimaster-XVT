@@ -768,6 +768,8 @@ static void check_goal_line_height_of_pieces(void)
 		{GOAL_AMT_ALL_SPECIAL_CARGO, 3, 0, NULL, -1, 1},
 		{GOAL_AMT_ALL_NON_SPECIAL, 3, 13, NULL, -1, 2},
 		{GOAL_AMT_50, 3, 0, "Escort", -1, 1},
+		{GOAL_AMT_ALL_SPECIAL_CARGO, 3, 0, "Escort", -1, 1},
+		{GOAL_AMT_ALL_NON_SPECIAL, 3, 13, "Escort", 42, 3},
 	};
 	for (size_t i = 0; i < sizeof flight_group / sizeof flight_group[0];
 	     ++i) {
@@ -785,6 +787,47 @@ static void check_goal_line_height_of_pieces(void)
 						   flight_group[i].percent, 0),
 				  BASE + PIECE * flight_group[i].pieces);
 	}
+	/* A global group of three flight groups (Red of two craft, Blue, Gold):
+	 * each group's craft type and name, the word for a group of several,
+	 * the word between the last two, and the condition; with the caller's
+	 * text, the flight group the global group number names, its type and
+	 * name, and that text. */
+	fresh_page();
+	load_condition_text(g_str_goal_cond_masculine);
+	name_species(species_with_model());
+	static const char *const names[5] = {"Red", "Blue", "Gray", "Gold",
+					     "Green"};
+	g_mission_header.num_flight_groups = 5;
+	for (int fg = 0; fg < 5; ++fg) {
+		set_group(fg, names[fg], fg == 0 ? 2 : 1);
+		g_mission_flight_groups[fg].fg.global_group = fg == 4 ? 5 : 4;
+		g_mission_fg_stats[fg].arrival_enabled = fg == 2 ? 0 : 1;
+	}
+	g_flight_clip_right = NEAR_CLIP;
+	XVT_ASSERT_INT_EQ(goals_outputgoal(4, MISSION_COND_DESTROYED,
+					   GOAL_TARGET_GLOBAL_GROUP, 0,
+					   GOAL_AMT_100, 0, NULL, -1, 0),
+			  BASE + PIECE * 9);
+	g_drawn_length = 0;
+	g_drawn[0] = '\0';
+	XVT_ASSERT_INT_EQ(goals_outputgoal(4, MISSION_COND_DESTROYED,
+					   GOAL_TARGET_GLOBAL_GROUP, 0,
+					   GOAL_AMT_100, 0, "Escort", -1, 0),
+			  BASE + PIECE * 3);
+	/* An AI level target draws its escape text, then the condition of the
+	 * species one above it when that has a model. */
+	fresh_page();
+	load_condition_text(g_str_goal_cond_masculine);
+	name_species(species_with_model());
+	g_str_goal_escape[0] = "Escape";
+	g_flight_clip_right = NEAR_CLIP;
+	int has_model = get_model_index_from_type((object_type_id)2) !=
+			MODEL_INDEX_NONE;
+	XVT_ASSERT_INT_EQ(goals_outputgoal(1, MISSION_COND_DESTROYED,
+					   GOAL_TARGET_AI_LEVEL, 0,
+					   GOAL_AMT_100, 0, NULL, -1, 0),
+			  BASE + PIECE * (1 + has_model));
+
 	static const struct {
 		uint16_t type;
 		uint16_t target;
