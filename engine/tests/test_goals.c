@@ -865,6 +865,76 @@ static void check_goal_line_height_of_pieces(void)
 	}
 }
 
+/* Known failure global_group_condition_wording, issue #268: the condition of a
+ * global group's goal is worded for the craft of the flight groups the global
+ * group lists. Here global group 4 lists flight group 0, whose craft is
+ * masculine in the text tables, and the flight group with the number 4 is a
+ * feminine craft of another global group: the goal reads "r2c0", the
+ * masculine wording, and not the feminine one. */
+static void check_goal_line_global_group_wording(void)
+{
+	fresh_page();
+	load_condition_text(g_str_goal_cond_masculine);
+	g_str_goal_cond_feminine[2][0] = "fem";
+	int first = species_with_model();
+	int second = first + 1;
+	while (get_model_index_from_type((object_type_id)second) ==
+	       MODEL_INDEX_NONE) {
+		++second;
+	}
+	name_species(first);
+	name_species(second);
+	g_craft_gender[get_model_index_from_type((object_type_id)first)] =
+		CRAFT_GENDER_MASCULINE;
+	g_craft_gender[get_model_index_from_type((object_type_id)second)] =
+		CRAFT_GENDER_FEMININE;
+	g_mission_header.num_flight_groups = 5;
+	set_group(0, "Red", 1);
+	g_mission_flight_groups[0].fg.craft_type = (craft_species)first;
+	g_mission_flight_groups[0].fg.global_group = 4;
+	g_mission_fg_stats[0].arrival_enabled = 1;
+	set_group(4, "Blue", 1);
+	g_mission_flight_groups[4].fg.craft_type = (craft_species)second;
+	g_mission_flight_groups[4].fg.global_group = 5;
+	goals_outputgoal(4, MISSION_COND_DESTROYED, GOAL_TARGET_GLOBAL_GROUP, 0,
+			 GOAL_AMT_100, 0, NULL, -1, 0);
+	XVT_ASSERT_TRUE(strstr(g_drawn, ": r2c0\n") != NULL);
+}
+
+/* A global group's goal lists only the flight groups the mission has: with
+ * none it lists none, and a flight group record past the mission's count is
+ * left out though it names the global group. */
+static void check_goal_line_global_group_bounds(void)
+{
+	for (int count = 0; count <= 2; count += 2) {
+		fresh_page();
+		load_condition_text(g_str_goal_cond_masculine);
+		name_species(species_with_model());
+		g_mission_header.num_flight_groups = (uint16_t)count;
+		for (int fg = 0; fg < 3; ++fg) {
+			set_group(fg,
+				  fg == 0 ? "Red" : (fg == 1 ? "Blue" : "Gold"),
+				  1);
+			g_mission_flight_groups[fg].fg.global_group = 4;
+			g_mission_fg_stats[fg].arrival_enabled = 1;
+		}
+		/* The condition is worded by the craft of the flight group
+		 * numbered like the global group (see the known failure). */
+		set_group(4, "Pad", 1);
+		g_mission_flight_groups[4].fg.global_group = 9;
+		goals_outputgoal(4, MISSION_COND_DESTROYED,
+				 GOAL_TARGET_GLOBAL_GROUP, 0, GOAL_AMT_100, 0,
+				 NULL, -1, 0);
+		if (count == 0) {
+			XVT_ASSERT_TRUE(strcmp(g_drawn, ": r2c0\n") == 0);
+		} else {
+			XVT_ASSERT_TRUE(drawn_in_order("Red", " and ", "Blue",
+						       ": r2c0\n", NULL));
+			XVT_ASSERT_TRUE(strstr(g_drawn, "Gold") == NULL);
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
 	/* "known-failure <check>" runs one check the code is known to fail; an
@@ -880,6 +950,8 @@ int main(int argc, char **argv)
 			 check_condition_47_unloaded_text},
 			{"condition_47_past_table",
 			 check_condition_47_past_table},
+			{"global_group_condition_wording",
+			 check_goal_line_global_group_wording},
 		};
 		for (size_t i = 0;
 		     i < sizeof known_failures / sizeof known_failures[0];
@@ -907,5 +979,6 @@ int main(int argc, char **argv)
 	check_goal_line_percent_other_titles();
 	check_goal_line_unknown_target();
 	check_goal_line_height_of_pieces();
+	check_goal_line_global_group_bounds();
 	return 0;
 }

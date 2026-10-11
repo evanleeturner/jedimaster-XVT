@@ -173,6 +173,7 @@ add_test(NAME goals COMMAND test_goals)
 xvt_add_known_failure(test_goals ai_level_escape_text_missing)
 xvt_add_known_failure(test_goals condition_47_unloaded_text)
 xvt_add_known_failure(test_goals condition_47_past_table)
+xvt_add_known_failure(test_goals global_group_condition_wording)
 
 
 # The mission setup screens' lists, sequences, rosters, teams and flight assignments:
