@@ -3965,6 +3965,750 @@ static void check_order_state_changes(void)
 		PILOT_CRAFT);
 }
 
+/* ---- Targeting keys: I, Shift+P, P and E ------------------------------- */
+
+enum {
+	T_LOCATE = 1,		 /* The mission allows locating players. */
+	T_COMP_OUT = 2,		 /* The presser's targeting computer is out. */
+	T_NO_MATE = 4,		 /* The teammate is not in the flight. */
+	T_NO_HOSTILE = 8,	 /* The enemy players are not in the flight. */
+	T_DECOY6 = 16,		 /* The near enemy player's decoy beam is on. */
+	T_BREAKING6 = 32,	 /* That craft is breaking up. */
+	T_EXPLOSION6 = 64,	 /* That object is an explosion. */
+	T_FAMILY6 = 128,	 /* That record has a nonzero family. */
+	T_MAP = 256,		 /* The presser is in the map view. */
+	T_HUD = 512,		 /* The HUD target readout is on. */
+	T_NOCRAFT = 1024,	 /* The presser has no craft. */
+	T_ALLY_THEIRS = 2048,	 /* Team 2 lists the pilot's team as allied. */
+	T_ALLY_MINE = 4096,	 /* The pilot's team lists team 2 as allied. */
+	T_MATE_FAMILY = 8192,	 /* The teammate's record has a family. */
+	T_MATE_NOMOBJ = 16384,	 /* The teammate's object has no mobile. */
+	T_AI_DEAD = 32768,	 /* The computer attacker has no systems. */
+	T_AI_KIND = 65536,	 /* The computer attacker is breaking up. */
+	T_RECENT6 = 131072,	 /* The near enemy player just hit the pilot. */
+	T_STALE = 262144,	 /* The hit was over five seconds ago. */
+	T_RECENT_MATE = 524288,	 /* The teammate just hit the pilot. */
+	T_AIMS_AT_ME6 = 1048576, /* The near enemy player targets the pilot. */
+	T_AIMS_AT_ME_MATE = 2097152, /* The teammate targets the pilot. */
+};
+
+enum {
+	FOE_NEAR = 6,	    /* The near enemy player's craft. */
+	FOE_FAR = 9,	    /* The far enemy player's craft. */
+	CRAFT_END = 12,	    /* The craft slots end here; shots follow. */
+	SHOT_WARHEAD = 144, /* A warhead's object type. */
+	SHOT_CANNON = 137,  /* A cannon shot's object type. */
+	NO_GUIDANCE = -2,
+};
+
+/* A shot in flight: its object type and genus, what its guidance aims at
+ * and how far past the pilot it flies. */
+struct shot {
+	int type;
+	int genus;
+	int aim;
+	int distance;
+};
+
+struct target_case {
+	const char *name;
+	const char *const *lines;
+	uint16_t key;
+	int flags;
+	int target;		  /* Object slot the presser targets, or -1. */
+	int ai_aim;		  /* Whom the computer craft is aimed at. */
+	int maneuver;		  /* The computer craft's maneuver mode. */
+	const struct shot *shots; /* Ended by a zero type and genus. */
+};
+
+static struct warhead_guidance_state g_test_guidance[SLOT_COUNT];
+
+static void target_world(const struct target_case *c)
+{
+	int flags = c->flags;
+	fresh_world();
+	g_active_region_craft_object_slot_end = CRAFT_END;
+	g_projectile_object_slot_start = CRAFT_END;
+	g_projectile_object_slot_end = SLOT_COUNT;
+	memset(g_test_guidance, 0, sizeof g_test_guidance);
+	fly(PILOT, PILOT_CRAFT, 0);
+	if (!(flags & T_NO_MATE)) {
+		fly(MATE, MATE_CRAFT, 0);
+	}
+	if (!(flags & T_NO_HOSTILE)) {
+		fly(2, FOE_NEAR, 1);
+		fly(3, FOE_FAR, 1);
+	}
+	g_active_flight_player_count = 4;
+	g_flight_mission_state.locate_players_enabled =
+		flags & T_LOCATE ? 1 : 0;
+	computer_craft(ENEMY, 2, 2, P_WORK);
+	g_test_craft[ENEMY].ai_controller.target_obj_idx = (uint16_t)c->ai_aim;
+	g_test_craft[ENEMY].ai_controller.maneuver_mode = (uint8_t)c->maneuver;
+	struct craft_data *own = &g_test_craft[PILOT_CRAFT];
+	if (flags & T_COMP_OUT) {
+		own->working_subsystems &=
+			~CRAFT_SUBSYSTEM_FLAG_TARGETING_COMPUTER;
+	}
+	if (flags & T_MAP) {
+		g_players[PILOT].map_camera_state = 1;
+	}
+	if (flags & T_HUD) {
+		g_players[PILOT].view_state.hud_state_live = HUD_VIEW_FORWARD;
+		own->damage_stats.active_hud_feature_mask = 1;
+	}
+	if (flags & T_DECOY6) {
+		g_test_craft[FOE_NEAR].beam_active = 1;
+		g_test_craft[FOE_NEAR].beam_type_id = BEAM_TYPE_DECOY;
+		g_test_craft[FOE_NEAR].beam_output = 1;
+	}
+	if (flags & T_BREAKING6) {
+		g_test_craft[FOE_NEAR].object_kind =
+			CRAFT_OBJECT_KIND_BREAKING_UP;
+	}
+	if (flags & T_EXPLOSION6) {
+		g_test_objects[FOE_NEAR].genus_id = CRAFT_GENUS_EXPLOSION;
+	}
+	if (flags & T_FAMILY6) {
+		g_test_mobiles[FOE_NEAR].family = 1;
+	}
+	if (flags & T_MATE_FAMILY) {
+		g_test_mobiles[MATE_CRAFT].family = 1;
+	}
+	if (flags & T_MATE_NOMOBJ) {
+		g_test_objects[MATE_CRAFT].mobj = NULL;
+	}
+	if (flags & T_ALLY_THEIRS) {
+		g_mission_teams[2].allies[0] = 1;
+	}
+	if (flags & T_ALLY_MINE) {
+		g_mission_teams[0].allies[2] = 1;
+	}
+	if (flags & T_AI_DEAD) {
+		g_test_craft[ENEMY].working_subsystems = 0;
+	}
+	if (flags & T_AI_KIND) {
+		g_test_craft[ENEMY].object_kind = CRAFT_OBJECT_KIND_BREAKING_UP;
+	}
+	if (flags & (T_RECENT6 | T_RECENT_MATE)) {
+		own->last_attacker_obj_idx =
+			flags & T_RECENT6 ? FOE_NEAR : MATE_CRAFT;
+		own->last_hit_mission_second = 0;
+	}
+	if (flags & T_STALE) {
+		g_mission_elapsed_clock.seconds = 10;
+	}
+	if (flags & T_AIMS_AT_ME6) {
+		g_players[2].current_target_object_idx = PILOT_CRAFT;
+	}
+	if (flags & T_AIMS_AT_ME_MATE) {
+		g_players[MATE].current_target_object_idx = PILOT_CRAFT;
+	}
+	g_players[PILOT].current_target_object_idx = (int16_t)c->target;
+	if (flags & T_NOCRAFT) {
+		g_players[PILOT].object_index = -1;
+	}
+	for (int n = 0; c->shots != NULL &&
+			(c->shots[n].type != 0 || c->shots[n].genus != 0);
+	     ++n) {
+		int slot = CRAFT_END + n;
+		const struct shot *shot = &c->shots[n];
+		struct object_record *pilot = &g_test_objects[PILOT_CRAFT];
+		g_test_objects[slot].object_type = (uint16_t)shot->type;
+		g_test_objects[slot].genus_id = (uint8_t)shot->genus;
+		g_test_objects[slot].world_x = pilot->world_x + shot->distance;
+		g_test_objects[slot].world_y = pilot->world_y;
+		g_test_objects[slot].world_z = pilot->world_z;
+		if (shot->aim != NO_GUIDANCE) {
+			g_test_guidance[slot].target_obj_idx =
+				(uint16_t)shot->aim;
+			g_test_mobiles[slot].p_warhead_guidance =
+				&g_test_guidance[slot];
+		}
+	}
+}
+
+static void run_target_case(const struct target_case *c)
+{
+	target_world(c);
+	scene_open();
+	press(PILOT, c->key);
+	scene_close(c->name, c->lines);
+}
+
+#define SP_ROW(n, f, t) {#n, k_##n, FLIGHT_KEY_SHIFT_P, f, t, 0, 0, NULL}
+#define P_ROW(n, f, t) {#n, k_##n, FLIGHT_KEY_P, f, t, 0, 0, NULL}
+#define E_ROW(n, f, t, a, m) {#n, k_##n, FLIGHT_KEY_E, f, t, a, m, NULL}
+#define I_ROW(n, f, ...)                                                       \
+	{                                                                      \
+		#n, k_##n, FLIGHT_KEY_I, f, -1, 0, 0, (const struct shot[])    \
+		{                                                              \
+			__VA_ARGS__, {0, 0, 0, 0}                              \
+		}                                                              \
+	}
+
+static const char *const k_sp_first[] = {
+	/* recorded sp_first */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=3 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=3 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=3 ai_target=0",
+	NULL,
+};
+static const char *const k_sp_next[] = {
+	/* recorded sp_next */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=6 previous=3 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+static const char *const k_sp_wrap[] = {
+	/* recorded sp_wrap */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=3 previous=9 map=0 predicted=0",
+	"player.target_component slot=0 target=3 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=3 ai_target=0",
+	NULL,
+};
+static const char *const k_sp_off_friend[] = {
+	/* recorded sp_off_friend */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=3 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=3 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=3 ai_target=0",
+	NULL,
+};
+static const char *const k_sp_off_none[] = {
+	/* recorded sp_off_none */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"msg.message_built message=225 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=225 type=1 length=7 args=\"32768,32769,258,0\" waiting=1 tick=0",
+	NULL,
+};
+static const char *const k_sp_on_none[] = {
+	/* recorded sp_on_none */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_sp_decoy[] = {
+	/* recorded sp_decoy */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=9 previous=3 map=0 predicted=0",
+	"player.target_component slot=0 target=9 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=9 ai_target=0",
+	NULL,
+};
+static const char *const k_sp_breaking[] = {
+	/* recorded sp_breaking */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=9 previous=3 map=0 predicted=0",
+	"player.target_component slot=0 target=9 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=9 ai_target=0",
+	NULL,
+};
+static const char *const k_sp_family[] = {
+	/* recorded sp_family */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=6 previous=3 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+static const char *const k_sp_explosion[] = {
+	/* recorded sp_explosion */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=9 previous=3 map=0 predicted=0",
+	"player.target_component slot=0 target=9 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=9 ai_target=0",
+	NULL,
+};
+static const char *const k_sp_comp_out[] = {
+	/* recorded sp_comp_out */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_refused slot=0 target=3 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"96,87,258,0\" waiting=1 tick=0",
+	NULL,
+};
+static const char *const k_sp_same[] = {
+	/* recorded sp_same */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_sp_map[] = {
+	/* recorded sp_map */
+	"flight.action_key slot=0 key=80 object=2 map=1 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=3 previous=-1 map=1 predicted=0",
+	"player.target_component slot=0 target=3 component=0 predicted=0",
+	"msg.message_built message=309 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=309 type=1 length=7 args=\"32768,331,323,331\" waiting=1 tick=0",
+	"msg.target_described slot=0 target=3 relation=331 designation=323 phrase=331 actionable=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=3 ai_target=0",
+	NULL,
+};
+static const char *const k_sp_hud[] = {
+	/* recorded sp_hud */
+	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=3 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=3 component=0 predicted=0",
+	"msg.message_built message=309 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=309 type=1 length=7 args=\"32768,331,323,331\" waiting=1 tick=0",
+	"msg.target_described slot=0 target=3 relation=331 designation=323 phrase=331 actionable=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=3 ai_target=0",
+	NULL,
+};
+
+/* Shift+P cycles through the other players' craft in slot order, from the
+ * one after the current target round to the current one, and takes the first
+ * that qualifies, a teammate before a nearer enemy. Enemy players only count
+ * when the mission allows locating players; with none to take it says
+ * auto locating is off (only when it is). Decoys, explosions and craft
+ * breaking up are skipped; the targeting computer being out refuses the new
+ * target; coming round to the current target changes nothing. The map view
+ * and the HUD readout add a target description. */
+static const struct target_case g_shift_p_cases[] = {
+	SP_ROW(sp_first, T_LOCATE, -1),
+	SP_ROW(sp_next, T_LOCATE, MATE_CRAFT),
+	SP_ROW(sp_wrap, T_LOCATE, FOE_FAR),
+	SP_ROW(sp_off_friend, 0, -1),
+	SP_ROW(sp_off_none, T_NO_MATE, -1),
+	SP_ROW(sp_on_none, T_LOCATE | T_NO_MATE | T_NO_HOSTILE, -1),
+	SP_ROW(sp_decoy, T_LOCATE | T_DECOY6, MATE_CRAFT),
+	SP_ROW(sp_breaking, T_LOCATE | T_BREAKING6, MATE_CRAFT),
+	SP_ROW(sp_family, T_LOCATE | T_BREAKING6 | T_FAMILY6, MATE_CRAFT),
+	SP_ROW(sp_explosion, T_LOCATE | T_EXPLOSION6, MATE_CRAFT),
+	SP_ROW(sp_comp_out, T_LOCATE | T_COMP_OUT, -1),
+	SP_ROW(sp_same, T_LOCATE | T_NO_HOSTILE, MATE_CRAFT),
+	SP_ROW(sp_map, T_LOCATE | T_MAP, -1),
+	SP_ROW(sp_hud, T_LOCATE | T_HUD, -1),
+};
+
+static void check_target_next_player(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_shift_p_cases / sizeof g_shift_p_cases[0]; ++k) {
+		run_target_case(&g_shift_p_cases[k]);
+	}
+}
+
+static const char *const k_p_off[] = {
+	/* recorded p_off */
+	"flight.action_key slot=0 key=112 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_p_nearest[] = {
+	/* recorded p_nearest */
+	"flight.action_key slot=0 key=112 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=6 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+static const char *const k_p_same[] = {
+	/* recorded p_same */
+	"flight.action_key slot=0 key=112 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_p_decoy[] = {
+	/* recorded p_decoy */
+	"flight.action_key slot=0 key=112 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=9 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=9 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=9 ai_target=0",
+	NULL,
+};
+static const char *const k_p_breaking[] = {
+	/* recorded p_breaking */
+	"flight.action_key slot=0 key=112 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=9 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=9 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=9 ai_target=0",
+	NULL,
+};
+static const char *const k_p_family[] = {
+	/* recorded p_family */
+	"flight.action_key slot=0 key=112 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=6 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+static const char *const k_p_explosion[] = {
+	/* recorded p_explosion */
+	"flight.action_key slot=0 key=112 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=9 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=9 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=9 ai_target=0",
+	NULL,
+};
+static const char *const k_p_no_hostile[] = {
+	/* recorded p_no_hostile */
+	"flight.action_key slot=0 key=112 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_p_comp_out[] = {
+	/* recorded p_comp_out */
+	"flight.action_key slot=0 key=112 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_refused slot=0 target=6 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"96,87,323,331\" waiting=1 tick=0",
+	NULL,
+};
+static const char *const k_p_map[] = {
+	/* recorded p_map */
+	"flight.action_key slot=0 key=112 object=2 map=1 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=6 previous=-1 map=1 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"msg.message_built message=309 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=309 type=1 length=7 args=\"32768,332,324,331\" waiting=1 tick=0",
+	"msg.target_described slot=0 target=6 relation=332 designation=324 phrase=331 actionable=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+
+/* P targets the nearest hostile player's craft (never a teammate), and only
+ * when the mission allows locating players; otherwise it does nothing. It
+ * skips decoys, explosions and craft breaking up, does nothing when the
+ * nearest is already the target or no enemy player is in the flight, and
+ * the targeting computer being out refuses it. */
+static const struct target_case g_p_cases[] = {
+	P_ROW(p_off, 0, -1),
+	P_ROW(p_nearest, T_LOCATE, -1),
+	P_ROW(p_same, T_LOCATE, FOE_NEAR),
+	P_ROW(p_decoy, T_LOCATE | T_DECOY6, -1),
+	P_ROW(p_breaking, T_LOCATE | T_BREAKING6, -1),
+	P_ROW(p_family, T_LOCATE | T_BREAKING6 | T_FAMILY6, -1),
+	P_ROW(p_explosion, T_LOCATE | T_EXPLOSION6, -1),
+	P_ROW(p_no_hostile, T_LOCATE | T_NO_HOSTILE, -1),
+	P_ROW(p_comp_out, T_LOCATE | T_COMP_OUT, -1),
+	P_ROW(p_map, T_LOCATE | T_MAP, -1),
+};
+
+static void check_target_nearest_hostile(void)
+{
+	for (size_t k = 0; k < sizeof g_p_cases / sizeof g_p_cases[0]; ++k) {
+		run_target_case(&g_p_cases[k]);
+	}
+}
+
+static const char *const k_e_no_craft[] = {
+	/* recorded e_no_craft */
+	"flight.action_key slot=0 key=101 object=-1 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_nobody[] = {
+	/* recorded e_nobody */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_ai_12[] = {
+	/* recorded e_ai_12 */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=5 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=5 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+static const char *const k_e_ai_23[] = {
+	/* recorded e_ai_23 */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=5 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=5 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+static const char *const k_e_ai_mode[] = {
+	/* recorded e_ai_mode */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_ai_aim[] = {
+	/* recorded e_ai_aim */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_ai_dead[] = {
+	/* recorded e_ai_dead */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_ai_inactive[] = {
+	/* recorded e_ai_inactive */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_recent[] = {
+	/* recorded e_recent */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=6 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+static const char *const k_e_stale[] = {
+	/* recorded e_stale */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_recent_mate[] = {
+	/* recorded e_recent_mate */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_aimed[] = {
+	/* recorded e_aimed */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=6 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+static const char *const k_e_aimed_mate[] = {
+	/* recorded e_aimed_mate */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_decoy[] = {
+	/* recorded e_decoy */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_explosion[] = {
+	/* recorded e_explosion */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_e_order[] = {
+	/* recorded e_order */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=5 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=5 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+static const char *const k_e_wrap[] = {
+	/* recorded e_wrap */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=5 previous=6 map=0 predicted=0",
+	"player.target_component slot=0 target=5 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+static const char *const k_e_comp_out[] = {
+	/* recorded e_comp_out */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_refused slot=0 target=5 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"96,87,324,331\" waiting=1 tick=0",
+	NULL,
+};
+static const char *const k_e_map[] = {
+	/* recorded e_map */
+	"flight.action_key slot=0 key=101 object=2 map=1 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=5 previous=-1 map=1 predicted=0",
+	"player.target_component slot=0 target=5 component=0 predicted=0",
+	"msg.message_built message=309 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=309 type=1 length=7 args=\"32768,332,324,331\" waiting=1 tick=0",
+	"msg.target_described slot=0 target=5 relation=332 designation=324 phrase=331 actionable=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+
+/* Recorded as the code does it: a teammate who hit the pilot in the last five
+ * seconds is not targeted by E (e_recent_mate records no target), though an
+ * enemy who did is. The product lines that decide it are flight.c 5827-5855.
+ *
+ * E targets whoever is attacking the pilot: the first craft in slot order,
+ * after the current target, that is a computer craft aimed at the pilot in
+ * attack mode 12 or 23, a player who hit the pilot in the last five seconds,
+ * or a hostile player who has the pilot targeted. Craft
+ * with no working systems, not active, with a decoy beam on, and explosions
+ * are passed over. With no attacker, or a pilot without a craft, nothing
+ * happens; the targeting computer being out refuses the target. */
+static const struct target_case g_e_cases[] = {
+	E_ROW(e_no_craft, T_NOCRAFT, -1, 0, 0),
+	E_ROW(e_nobody, 0, -1, 0, 0),
+	E_ROW(e_ai_12, 0, -1, PILOT_CRAFT, 12),
+	E_ROW(e_ai_23, 0, -1, PILOT_CRAFT, 23),
+	E_ROW(e_ai_mode, 0, -1, PILOT_CRAFT, 5),
+	E_ROW(e_ai_aim, 0, -1, MATE_CRAFT, 12),
+	E_ROW(e_ai_dead, T_AI_DEAD, -1, PILOT_CRAFT, 12),
+	E_ROW(e_ai_inactive, T_AI_KIND, -1, PILOT_CRAFT, 12),
+	E_ROW(e_recent, T_RECENT6, -1, 0, 0),
+	E_ROW(e_stale, T_RECENT6 | T_STALE, -1, 0, 0),
+	E_ROW(e_recent_mate, T_RECENT_MATE, -1, 0, 0),
+	E_ROW(e_aimed, T_AIMS_AT_ME6, -1, 0, 0),
+	E_ROW(e_aimed_mate, T_AIMS_AT_ME_MATE, -1, 0, 0),
+	E_ROW(e_decoy, T_RECENT6 | T_DECOY6, -1, 0, 0),
+	E_ROW(e_explosion, T_RECENT6 | T_EXPLOSION6, -1, 0, 0),
+	E_ROW(e_order, T_RECENT6, -1, PILOT_CRAFT, 12),
+	E_ROW(e_wrap, 0, FOE_NEAR, PILOT_CRAFT, 12),
+	E_ROW(e_comp_out, T_COMP_OUT, -1, PILOT_CRAFT, 12),
+	E_ROW(e_map, T_MAP, -1, PILOT_CRAFT, 12),
+};
+
+static void check_target_attacker(void)
+{
+	for (size_t k = 0; k < sizeof g_e_cases / sizeof g_e_cases[0]; ++k) {
+		run_target_case(&g_e_cases[k]);
+	}
+}
+
+static const char *const k_i_none[] = {
+	/* recorded i_none */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_i_nearest[] = {
+	/* recorded i_nearest */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=13 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=13 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=13 ai_target=0",
+	NULL,
+};
+static const char *const k_i_tie[] = {
+	/* recorded i_tie */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=12 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=12 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=12 ai_target=0",
+	NULL,
+};
+static const char *const k_i_skips[] = {
+	/* recorded i_skips */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=15 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=15 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=15 ai_target=0",
+	NULL,
+};
+static const char *const k_i_friend[] = {
+	/* recorded i_friend */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=13 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=13 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=13 ai_target=0",
+	NULL,
+};
+static const char *const k_i_you_first[] = {
+	/* recorded i_you_first */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=13 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=13 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=13 ai_target=0",
+	NULL,
+};
+static const char *const k_i_foe[] = {
+	/* recorded i_foe */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_i_unaimed[] = {
+	/* recorded i_unaimed */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_i_friend_family[] = {
+	/* recorded i_friend_family */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_i_friend_nomobj[] = {
+	/* recorded i_friend_nomobj */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_i_friend_skips[] = {
+	/* recorded i_friend_skips */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=15 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=15 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=15 ai_target=0",
+	NULL,
+};
+static const char *const k_i_ally_theirs[] = {
+	/* recorded i_ally_theirs */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=12 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=12 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=12 ai_target=0",
+	NULL,
+};
+static const char *const k_i_ally_mine[] = {
+	/* recorded i_ally_mine */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_i_comp_out[] = {
+	/* recorded i_comp_out */
+	"flight.action_key slot=0 key=105 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_refused slot=0 target=12 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"96,87,324,331\" waiting=1 tick=0",
+	NULL,
+};
+static const char *const k_i_map[] = {
+	/* recorded i_map */
+	"flight.action_key slot=0 key=105 object=2 map=1 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=12 previous=-1 map=1 predicted=0",
+	"player.target_component slot=0 target=12 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=12 ai_target=0",
+	NULL,
+};
+
+#define WH(genus, aim, dist) {SHOT_WARHEAD, genus, aim, dist}
+#define PLAYER_SHOT CRAFT_GENUS_PLAYER_PROJECTILE
+#define OTHER_SHOT CRAFT_GENUS_OTHER_PROJECTILE
+
+/* Recorded as the code does it: i_ally_mine, a warhead aimed at a team the
+ * pilot's team lists as allied, is not targeted, while i_ally_theirs, a team
+ * that lists the pilot's team, is: I reads the alliance the other way round
+ * from Shift+P, P and E (flight.c 5996-5998).
+ *
+ * I targets the nearest warhead aimed at the pilot (the lower slot on a tie,
+ * either shot genus); empty slots, craft, cannon shots and unguided shots are
+ * not warheads. When none is aimed at the pilot it takes the nearest aimed at
+ * a teammate or at a craft of an allied team, and ignores one aimed at an
+ * enemy, at nothing, or at something that is not a craft. A warhead aimed
+ * at the pilot wins over a nearer one aimed at a friend. The targeting
+ * computer being out refuses the target. */
+static const struct target_case g_i_cases[] = {
+	I_ROW(i_none, 0, {0, 0, 0, 0}),
+	I_ROW(i_nearest, 0, WH(PLAYER_SHOT, PILOT_CRAFT, 800),
+	      WH(PLAYER_SHOT, PILOT_CRAFT, 100)),
+	I_ROW(i_tie, 0, WH(PLAYER_SHOT, PILOT_CRAFT, 100),
+	      WH(PLAYER_SHOT, PILOT_CRAFT, 100)),
+	I_ROW(i_skips, 0, WH(CRAFT_GENUS_STARSHIP, PILOT_CRAFT, 10),
+	      {SHOT_CANNON, PLAYER_SHOT, PILOT_CRAFT, 10},
+	      WH(PLAYER_SHOT, NO_GUIDANCE, 10),
+	      WH(OTHER_SHOT, PILOT_CRAFT, 500)),
+	I_ROW(i_friend, 0, WH(PLAYER_SHOT, MATE_CRAFT, 800),
+	      WH(PLAYER_SHOT, MATE_CRAFT, 100)),
+	I_ROW(i_you_first, 0, WH(PLAYER_SHOT, MATE_CRAFT, 10),
+	      WH(PLAYER_SHOT, PILOT_CRAFT, 900)),
+	I_ROW(i_foe, 0, WH(PLAYER_SHOT, ENEMY, 100)),
+	I_ROW(i_unaimed, 0, WH(PLAYER_SHOT, UINT16_MAX, 100)),
+	I_ROW(i_friend_family, T_MATE_FAMILY, WH(PLAYER_SHOT, MATE_CRAFT, 100)),
+	I_ROW(i_friend_nomobj, T_MATE_NOMOBJ, WH(PLAYER_SHOT, MATE_CRAFT, 100)),
+	I_ROW(i_friend_skips, 0, {0, PLAYER_SHOT, MATE_CRAFT, 10},
+	      {SHOT_CANNON, PLAYER_SHOT, MATE_CRAFT, 10},
+	      WH(PLAYER_SHOT, NO_GUIDANCE, 10),
+	      WH(OTHER_SHOT, MATE_CRAFT, 500)),
+	I_ROW(i_ally_theirs, T_ALLY_THEIRS, WH(PLAYER_SHOT, ENEMY, 100)),
+	I_ROW(i_ally_mine, T_ALLY_MINE, WH(PLAYER_SHOT, ENEMY, 100)),
+	I_ROW(i_comp_out, T_COMP_OUT, WH(PLAYER_SHOT, PILOT_CRAFT, 100)),
+	I_ROW(i_map, T_MAP, WH(PLAYER_SHOT, PILOT_CRAFT, 100)),
+};
+
+static void check_target_warhead(void)
+{
+	for (size_t k = 0; k < sizeof g_i_cases / sizeof g_i_cases[0]; ++k) {
+		run_target_case(&g_i_cases[k]);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	fail_after_seconds(20);
@@ -4094,5 +4838,9 @@ int main(int argc, char **argv)
 	check_order_home_already_going();
 	check_order_ask_param();
 	check_order_state_changes();
+	check_target_next_player();
+	check_target_nearest_hostile();
+	check_target_attacker();
+	check_target_warhead();
 	return 0;
 }
