@@ -40,6 +40,7 @@
 #include "xvt/flight/transfm2.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/math/math.h"
+#include "xvt/net/net_session.h"
 #include "xvt/render/renderer.h"
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
@@ -5841,6 +5842,891 @@ static void check_steer_gates(void)
 	}
 }
 
+/* ---- The SPACE key: answering the order that waits ---- */
+
+enum {
+	SP_LIVE = 5,  /* A live object, on the pilot's team. */
+	SP_FOE = 6,   /* An enemy fighter, when the case asks for one. */
+	SP_EMPTY = 7, /* A slot with no object. */
+};
+
+enum {
+	SPF_NO_TC = 1,	      /* The targeting computer is damaged. */
+	SPF_REMOTE = 2,	      /* Another player sent the order. */
+	SPF_FOE = 4,	      /* An enemy fighter is in the world. */
+	SPF_TARGET_CAM = 8,   /* The target camera is on. */
+	SPF_INTERDICTOR = 16, /* An enemy Interdictor is in the world. */
+	SPF_NO_DRIVE = 32,    /* The hyperdrive is damaged. */
+};
+
+/* A SPACE press with an order waiting. A field of 0 means "none" (-1, or
+ * UINT16_MAX for the camera's slots): slot 0 is never used. */
+struct space_case {
+	const char *name;
+	const char *const *lines;
+	int request;
+	int param;
+	int flags;
+	int map;    /* The map camera state. */
+	int focus;  /* The camera's focus slot. */
+	int aim;    /* The camera's aim slot. */
+	int target; /* The pilot's target slot. */
+};
+
+static void space_world(const struct space_case *c)
+{
+	fresh_world();
+	g_active_region_craft_object_slot_end = 12;
+	fly(PILOT, PILOT_CRAFT, 0)->throttle_speed = 1000;
+	g_test_objects[SP_LIVE].object_type = TEST_XWING;
+	g_test_objects[SP_LIVE].genus_id = 1;
+	g_test_objects[SP_LIVE].world_x = 9000;
+	g_test_objects[SP_LIVE].world_y = 1000;
+	g_test_objects[SP_LIVE].world_z = 500;
+	if (c->flags & (SPF_FOE | SPF_INTERDICTOR)) {
+		fly(2, SP_FOE, 1);
+	}
+	if (c->flags & SPF_INTERDICTOR) {
+		g_test_objects[SP_FOE].object_type = CRAFT_SPECIES_INTERDICTOR;
+	}
+	if (c->flags & SPF_NO_DRIVE) {
+		g_test_craft[PILOT_CRAFT].working_subsystems &=
+			~CRAFT_SUBSYSTEM_FLAG_HYPERDRIVE;
+	}
+	struct player_data *p = &g_players[PILOT];
+	if (c->flags & SPF_NO_TC) {
+		g_test_craft[PILOT_CRAFT].working_subsystems &=
+			~CRAFT_SUBSYSTEM_FLAG_TARGETING_COMPUTER;
+	}
+	p->pending_action_id = (uint8_t)c->request;
+	p->pending_action_param = (int16_t)(c->param ? c->param : -1);
+	p->pending_action_issuer_player_idx = c->flags & SPF_REMOTE ? 1 : 0;
+	p->map_camera_state = (uint8_t)c->map;
+	p->view_state.camera_focus_obj_idx =
+		c->focus ? (uint16_t)c->focus : UINT16_MAX;
+	p->view_state.aim_target_idx = c->aim ? (uint16_t)c->aim : UINT16_MAX;
+	p->view_state.camera_world_x = 100;
+	p->view_state.camera_world_y = 200;
+	p->view_state.camera_world_z = 300;
+	p->view_state.target_camera_active = c->flags & SPF_TARGET_CAM ? 1 : 0;
+	p->current_target_object_idx = (int16_t)(c->target ? c->target : -1);
+}
+
+static void run_space_case(const struct space_case *c)
+{
+	space_world(c);
+	scene_open();
+	press(PILOT, FLIGHT_KEY_SPACE);
+	scene_close(c->name, c->lines);
+	XVT_ASSERT_INT_EQ(g_players[PILOT].pending_action_id, 0);
+	if (c->request == 1 && (c->flags & SPF_TARGET_CAM) &&
+	    !(c->flags & SPF_NO_TC) && c->map == 0) {
+		/* The target camera follows the new target (no log line). */
+		XVT_ASSERT_INT_EQ(
+			g_players[PILOT].view_state.camera_focus_obj_idx,
+			c->param);
+	}
+}
+
+static const char *const k_sp0_idle[] = {
+	/* recorded sp0_idle */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=0 predicted=0",
+	NULL,
+};
+static const char *const k_sp0_map_focus[] = {
+	/* recorded sp0_map_focus */
+	"flight.action_key slot=0 key=32 object=2 map=1 hyper=0 request=0 predicted=0",
+	"flight.map_view_set slot=0 key=32 map=129 focus=5 aim=65535 distance=9150 x=9000 y=1000 z=300 predicted=0",
+	NULL,
+};
+static const char *const k_sp0_map_aim[] = {
+	/* recorded sp0_map_aim */
+	"flight.action_key slot=0 key=32 object=2 map=1 hyper=0 request=0 predicted=0",
+	"flight.map_view_set slot=0 key=32 map=129 focus=5 aim=65535 distance=9150 x=9000 y=1000 z=300 predicted=0",
+	NULL,
+};
+static const char *const k_sp0_map_target[] = {
+	/* recorded sp0_map_target */
+	"flight.action_key slot=0 key=32 object=2 map=1 hyper=0 request=0 predicted=0",
+	"flight.map_view_set slot=0 key=32 map=129 focus=5 aim=65535 distance=9150 x=9000 y=1000 z=300 predicted=0",
+	NULL,
+};
+static const char *const k_sp0_map_overview[] = {
+	/* recorded sp0_map_overview */
+	"flight.action_key slot=0 key=32 object=2 map=1 hyper=0 request=0 predicted=0",
+	"flight.map_view_set slot=0 key=32 map=129 focus=65535 aim=65535 distance=262144 x=100 y=200 z=262144 predicted=0",
+	NULL,
+};
+static const char *const k_sp0_toggled_target[] = {
+	/* recorded sp0_toggled_target */
+	"flight.action_key slot=0 key=32 object=2 map=129 hyper=0 request=0 predicted=0",
+	"flight.map_view_set slot=0 key=32 map=1 focus=5 aim=65535 distance=9150 x=100 y=200 z=300 predicted=0",
+	NULL,
+};
+static const char *const k_sp0_toggled_none[] = {
+	/* recorded sp0_toggled_none */
+	"flight.action_key slot=0 key=32 object=2 map=129 hyper=0 request=0 predicted=0",
+	"flight.map_view_set slot=0 key=32 map=1 focus=65535 aim=65535 distance=0 x=100 y=200 z=300 predicted=0",
+	NULL,
+};
+
+/* With no order waiting, SPACE does nothing in flight. In the map view it
+ * re-centres the map camera on the camera's focus, else on the aimed
+ * object, else on the pilot's target, and flips the map's 0x80 mark. With
+ * nothing to centre on it shows the whole map. A map view that is already
+ * marked (not state 1) keeps its camera and only focuses the target. */
+static const struct space_case g_space_map_cases[] = {
+	{"sp0_idle", k_sp0_idle, 0},
+	{"sp0_map_focus", k_sp0_map_focus, 0, .map = 1, .focus = SP_LIVE},
+	{"sp0_map_aim", k_sp0_map_aim, 0, .map = 1, .aim = SP_LIVE},
+	{"sp0_map_target", k_sp0_map_target, 0, .map = 1, .target = SP_LIVE},
+	{"sp0_map_overview", k_sp0_map_overview, 0, .map = 1},
+	{"sp0_toggled_target", k_sp0_toggled_target, 0, .map = 0x81,
+	 .target = SP_LIVE},
+	{"sp0_toggled_none", k_sp0_toggled_none, 0, .map = 0x81},
+};
+
+static void check_space_map(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_space_map_cases / sizeof g_space_map_cases[0]; ++k) {
+		run_space_case(&g_space_map_cases[k]);
+	}
+}
+
+static const char *const k_sp1_target[] = {
+	/* recorded sp1_target */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=1 predicted=0",
+	"flight.request_accepted slot=0 request=1 by=0 param=5 target=5 throttle=1000 predicted=0",
+	"msg.message_built message=264 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=264 type=1 length=7 args=\"96,87,324,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,331\" waiting=2 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+static const char *const k_sp1_target_cam[] = {
+	/* recorded sp1_target_cam */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=1 predicted=0",
+	"flight.request_accepted slot=0 request=1 by=0 param=5 target=5 throttle=1000 predicted=0",
+	"msg.message_built message=264 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=264 type=1 length=7 args=\"32768,32769,154,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,331\" waiting=2 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+static const char *const k_sp1_gone[] = {
+	/* recorded sp1_gone */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=1 predicted=0",
+	"flight.request_accepted slot=0 request=1 by=0 param=7 target=7 throttle=1000 predicted=0",
+	"msg.message_built message=265 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=265 type=1 length=7 args=\"32768,32769,154,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,331\" waiting=2 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=7 ai_target=0",
+	NULL,
+};
+static const char *const k_sp1_none[] = {
+	/* recorded sp1_none */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=1 predicted=0",
+	"flight.request_accepted slot=0 request=1 by=0 param=-1 target=-1 throttle=1000 predicted=0",
+	"msg.message_built message=265 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=265 type=1 length=7 args=\"32768,32769,154,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,331\" waiting=2 tick=0",
+	NULL,
+};
+static const char *const k_sp1_remote[] = {
+	/* recorded sp1_remote */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=1 predicted=0",
+	"flight.request_accepted slot=0 request=1 by=1 param=5 target=5 throttle=1000 predicted=0",
+	"msg.message_built message=264 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=264 type=1 length=7 args=\"32768,32769,154,331\" waiting=1 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+static const char *const k_sp1_map[] = {
+	/* recorded sp1_map */
+	"flight.action_key slot=0 key=32 object=2 map=1 hyper=0 request=1 predicted=0",
+	NULL,
+};
+static const char *const k_sp1_no_tc[] = {
+	/* recorded sp1_no_tc */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=1 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"96,87,154,331\" waiting=1 tick=0",
+	NULL,
+};
+static const char *const k_sp1_own_slot[] = {
+	/* recorded sp1_own_slot */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=1 predicted=0",
+	"flight.request_accepted slot=0 request=1 by=0 param=2 target=2 throttle=1000 predicted=0",
+	"msg.message_built message=264 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=264 type=1 length=7 args=\"96,87,154,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,331\" waiting=2 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=2 ai_target=0",
+	NULL,
+};
+static const char *const k_sp5_target[] = {
+	/* recorded sp5_target */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=5 predicted=0",
+	"flight.request_accepted slot=0 request=5 by=0 param=5 target=5 throttle=1000 predicted=0",
+	"msg.message_built message=264 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=264 type=1 length=7 args=\"32768,32769,154,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,150,331\" waiting=2 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+static const char *const k_sp5_remote[] = {
+	/* recorded sp5_remote */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=5 predicted=0",
+	"flight.request_accepted slot=0 request=5 by=1 param=5 target=5 throttle=1000 predicted=0",
+	"msg.message_built message=264 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=264 type=1 length=7 args=\"32768,32769,150,331\" waiting=1 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+static const char *const k_sp5_no_tc[] = {
+	/* recorded sp5_no_tc */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=5 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"96,87,150,331\" waiting=1 tick=0",
+	NULL,
+};
+
+/* A wingman's "target this" order (1 or 5) answered with SPACE makes its
+ * object the pilot's target and says so; a gone or missing object says it
+ * is destroyed. The order's sender hears a radio reply only when it is the
+ * local player. In the map view nothing happens, and with the targeting
+ * computer damaged the pilot is told so.
+ *
+ * Recorded as the code does it (sp1_own_slot): the order's object is written
+ * straight into the target, so an order naming the pilot's own craft makes
+ * the pilot target themselves and the radio says "object targeted". */
+static const struct space_case g_space_attack_cases[] = {
+	{"sp1_target", k_sp1_target, 1, SP_LIVE},
+	{"sp1_target_cam", k_sp1_target_cam, 1, SP_LIVE,
+	 .flags = SPF_TARGET_CAM},
+	{"sp1_gone", k_sp1_gone, 1, SP_EMPTY},
+	{"sp1_none", k_sp1_none, 1, 0},
+	{"sp1_remote", k_sp1_remote, 1, SP_LIVE, .flags = SPF_REMOTE},
+	{"sp1_map", k_sp1_map, 1, SP_LIVE, .map = 1},
+	{"sp1_no_tc", k_sp1_no_tc, 1, SP_LIVE, .flags = SPF_NO_TC},
+	{"sp1_own_slot", k_sp1_own_slot, 1, PILOT_CRAFT},
+	{"sp5_target", k_sp5_target, 5, SP_LIVE},
+	{"sp5_remote", k_sp5_remote, 5, SP_LIVE, .flags = SPF_REMOTE},
+	{"sp5_no_tc", k_sp5_no_tc, 5, SP_LIVE, .flags = SPF_NO_TC},
+};
+
+static void check_space_attack(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_space_attack_cases / sizeof g_space_attack_cases[0];
+	     ++k) {
+		run_space_case(&g_space_attack_cases[k]);
+	}
+}
+
+static const char *const k_sp4_map[] = {
+	/* recorded sp4_map */
+	"flight.action_key slot=0 key=32 object=2 map=1 hyper=0 request=4 predicted=0",
+	NULL,
+};
+static const char *const k_sp4_no_tc[] = {
+	/* recorded sp4_no_tc */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=4 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"96,87,150,331\" waiting=1 tick=0",
+	NULL,
+};
+static const char *const k_sp4_other_target[] = {
+	/* recorded sp4_other_target */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=4 predicted=0",
+	NULL,
+};
+static const char *const k_sp4_none[] = {
+	/* recorded sp4_none */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=4 predicted=0",
+	"flight.request_accepted slot=0 request=4 by=0 param=5 target=5 throttle=1000 predicted=0",
+	"msg.message_built message=266 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=266 type=1 length=7 args=\"96,87,150,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,155,331\" waiting=2 tick=0",
+	NULL,
+};
+static const char *const k_sp4_foe[] = {
+	/* recorded sp4_foe */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=4 predicted=0",
+	"player.target_changed slot=0 target=6 previous=5 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"flight.request_accepted slot=0 request=4 by=0 param=5 target=6 throttle=1000 predicted=0",
+	"msg.message_built message=266 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=266 type=1 length=7 args=\"32768,32769,155,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,155,331\" waiting=2 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+static const char *const k_sp4_gone[] = {
+	/* recorded sp4_gone */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=4 predicted=0",
+	"player.target_changed slot=0 target=6 previous=7 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"flight.request_accepted slot=0 request=4 by=0 param=7 target=6 throttle=1000 predicted=0",
+	"msg.message_built message=265 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=265 type=1 length=7 args=\"32768,32769,155,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,155,331\" waiting=2 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+static const char *const k_sp4_param_none[] = {
+	/* recorded sp4_param_none */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=4 predicted=0",
+	"player.target_changed slot=0 target=6 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"flight.request_accepted slot=0 request=4 by=0 param=-1 target=6 throttle=1000 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+static const char *const k_sp4_remote[] = {
+	/* recorded sp4_remote */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=4 predicted=0",
+	"player.target_changed slot=0 target=6 previous=5 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"flight.request_accepted slot=0 request=4 by=1 param=5 target=6 throttle=1000 predicted=0",
+	"msg.message_built message=266 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=266 type=1 length=7 args=\"32768,32769,155,331\" waiting=1 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+
+/* An "ignore this target" order (4) answered with SPACE drops the target if
+ * it is the one named, and picks the nearest enemy fighter instead when
+ * there is one. It says the object is ignored (or destroyed, when it is
+ * gone). A different current target is left alone.
+ *
+ * Recorded as the code does it (sp4_none, and sp9_none below): with no other
+ * enemy fighter the search answers 65535, not -1, so the target is not
+ * cleared; it stays on the ignored object and the message still says the
+ * object is ignored. */
+static const struct space_case g_space_ignore_cases[] = {
+	{"sp4_map", k_sp4_map, 4, SP_LIVE, .map = 1, .target = SP_LIVE},
+	{"sp4_no_tc", k_sp4_no_tc, 4, SP_LIVE, .flags = SPF_NO_TC,
+	 .target = SP_LIVE},
+	{"sp4_other_target", k_sp4_other_target, 4, SP_LIVE, .flags = SPF_FOE,
+	 .target = SP_FOE},
+	{"sp4_none", k_sp4_none, 4, SP_LIVE, .target = SP_LIVE},
+	{"sp4_foe", k_sp4_foe, 4, SP_LIVE, .flags = SPF_FOE, .target = SP_LIVE},
+	{"sp4_gone", k_sp4_gone, 4, SP_EMPTY, .flags = SPF_FOE,
+	 .target = SP_EMPTY},
+	{"sp4_param_none", k_sp4_param_none, 4, 0, .flags = SPF_FOE},
+	{"sp4_remote", k_sp4_remote, 4, SP_LIVE, .flags = SPF_FOE | SPF_REMOTE,
+	 .target = SP_LIVE},
+};
+
+static void check_space_ignore(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_space_ignore_cases / sizeof g_space_ignore_cases[0];
+	     ++k) {
+		run_space_case(&g_space_ignore_cases[k]);
+	}
+}
+
+static const char *const k_sp6_interdictor[] = {
+	/* recorded sp6_interdictor */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=6 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,149,331\" waiting=1 tick=0",
+	"player.hyperspace_refused slot=0 reason=\"interdictor\" predicted=0",
+	"msg.message_built message=109 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=109 type=1 length=7 args=\"32768,32769,149,331\" waiting=2 tick=0",
+	"flight.request_accepted slot=0 request=6 by=0 param=-1 target=-1 throttle=1000 predicted=0",
+	NULL,
+};
+static const char *const k_sp6_remote[] = {
+	/* recorded sp6_remote */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=6 predicted=0",
+	"player.hyperspace_refused slot=0 reason=\"interdictor\" predicted=0",
+	"msg.message_built message=109 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=109 type=1 length=7 args=\"32768,32769,149,331\" waiting=1 tick=0",
+	"flight.request_accepted slot=0 request=6 by=1 param=-1 target=-1 throttle=1000 predicted=0",
+	NULL,
+};
+static const char *const k_sp6_damaged[] = {
+	/* recorded sp6_damaged */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=6 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,149,331\" waiting=1 tick=0",
+	"player.hyperspace_refused slot=0 reason=\"damaged\" predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"99,87,149,331\" waiting=2 tick=0",
+	"flight.request_accepted slot=0 request=6 by=0 param=-1 target=-1 throttle=1000 predicted=0",
+	NULL,
+};
+static const char *const k_sp6_map[] = {
+	/* recorded sp6_map */
+	"flight.action_key slot=0 key=32 object=2 map=1 hyper=0 request=6 predicted=0",
+	NULL,
+};
+static const char *const k_sp7_wait[] = {
+	/* recorded sp7_wait */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=7 predicted=0",
+	"flight.request_accepted slot=0 request=7 by=0 param=-1 target=-1 throttle=0 predicted=0",
+	"msg.message_built message=267 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=267 type=1 length=7 args=\"99,87,149,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,152,331\" waiting=2 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_sp7_remote[] = {
+	/* recorded sp7_remote */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=7 predicted=0",
+	"flight.request_accepted slot=0 request=7 by=1 param=-1 target=-1 throttle=0 predicted=0",
+	"msg.message_built message=267 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=267 type=1 length=7 args=\"32768,32769,152,331\" waiting=1 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_sp7_map[] = {
+	/* recorded sp7_map */
+	"flight.action_key slot=0 key=32 object=2 map=1 hyper=0 request=7 predicted=0",
+	NULL,
+};
+static const char *const k_sp8_resume[] = {
+	/* recorded sp8_resume */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=8 predicted=0",
+	"flight.request_accepted slot=0 request=8 by=0 param=-1 target=-1 throttle=65535 predicted=0",
+	"msg.message_built message=268 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=268 type=1 length=7 args=\"32768,32769,152,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,153,331\" waiting=2 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=65535 state=0 hull=0 hull_max=0 front=100 rear=100 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_sp8_remote[] = {
+	/* recorded sp8_remote */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=8 predicted=0",
+	"flight.request_accepted slot=0 request=8 by=1 param=-1 target=-1 throttle=65535 predicted=0",
+	"msg.message_built message=268 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=268 type=1 length=7 args=\"32768,32769,153,331\" waiting=1 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=65535 state=0 hull=0 hull_max=0 front=100 rear=100 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_sp8_map[] = {
+	/* recorded sp8_map */
+	"flight.action_key slot=0 key=32 object=2 map=1 hyper=0 request=8 predicted=0",
+	NULL,
+};
+static const char *const k_sp9_none[] = {
+	/* recorded sp9_none */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=9 predicted=0",
+	"flight.request_accepted slot=0 request=9 by=0 param=5 target=5 throttle=1000 predicted=0",
+	"msg.message_built message=264 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=264 type=1 length=7 args=\"32768,32769,153,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,151,331\" waiting=2 tick=0",
+	NULL,
+};
+static const char *const k_sp9_foe[] = {
+	/* recorded sp9_foe */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=9 predicted=0",
+	"player.target_changed slot=0 target=6 previous=5 map=0 predicted=0",
+	"player.target_component slot=0 target=6 component=0 predicted=0",
+	"flight.request_accepted slot=0 request=9 by=0 param=5 target=6 throttle=1000 predicted=0",
+	"msg.message_built message=264 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=264 type=1 length=7 args=\"32768,32769,151,331\" waiting=1 tick=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=2 total=2 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,151,331\" waiting=2 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=1000 state=0 hull=0 hull_max=0 front=100 rear=100 target=6 ai_target=0",
+	NULL,
+};
+static const char *const k_sp9_map[] = {
+	/* recorded sp9_map */
+	"flight.action_key slot=0 key=32 object=2 map=1 hyper=0 request=9 predicted=0",
+	NULL,
+};
+static const char *const k_sp_unknown[] = {
+	/* recorded sp_unknown */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=10 predicted=0",
+	NULL,
+};
+
+/* "Hyperspace now" (6) sends the radio reply, then tries the jump; it is
+ * recorded here with an enemy Interdictor in the way and with a damaged
+ * hyperdrive. (A clear jump crashes in the test: with the ready pane
+ * emptied for the jump, the message pane calls a null function.)
+ * Recorded as the code does it (sp6_interdictor, sp6_damaged): the radio
+ * says "going to hyperspace" even though the jump is then refused. "Wait"
+ * (7) cuts the throttle to nothing and "resume" (8) sets it full; each says
+ * so on the radio and in a message. "Target attacker" (9) targets the
+ * nearest enemy fighter, or clears the target when there is none. In the
+ * map view none of them act, and an order the game does not know is
+ * dropped without effect. */
+static const struct space_case g_space_orders_cases[] = {
+	{"sp6_interdictor", k_sp6_interdictor, 6, .flags = SPF_INTERDICTOR},
+	{"sp6_remote", k_sp6_remote, 6, .flags = SPF_REMOTE | SPF_INTERDICTOR},
+	{"sp6_damaged", k_sp6_damaged, 6, .flags = SPF_NO_DRIVE},
+	{"sp6_map", k_sp6_map, 6, .map = 1},
+	{"sp7_wait", k_sp7_wait, 7},
+	{"sp7_remote", k_sp7_remote, 7, .flags = SPF_REMOTE},
+	{"sp7_map", k_sp7_map, 7, .map = 1},
+	{"sp8_resume", k_sp8_resume, 8},
+	{"sp8_remote", k_sp8_remote, 8, .flags = SPF_REMOTE},
+	{"sp8_map", k_sp8_map, 8, .map = 1},
+	{"sp9_none", k_sp9_none, 9, SP_LIVE, .target = SP_LIVE},
+	{"sp9_foe", k_sp9_foe, 9, SP_LIVE, .flags = SPF_FOE, .target = SP_LIVE},
+	{"sp9_map", k_sp9_map, 9, SP_LIVE, .map = 1},
+	{"sp_unknown", k_sp_unknown, 10},
+};
+
+static void check_space_orders(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_space_orders_cases / sizeof g_space_orders_cases[0];
+	     ++k) {
+		run_space_case(&g_space_orders_cases[k]);
+	}
+}
+
+enum {
+	SP_HANGAR = 9,	   /* The flight group's mothership, a live craft. */
+	SP_HANGAR_FG = 2,  /* The mothership's flight group. */
+	SP_POINTS = 25,	   /* The X-wing's craft point value. */
+	SP_OTHER_HOST = 5, /* A network id that is not the host's. */
+};
+
+enum {
+	SXF_SUPPRESS = 1,     /* The sim's side effects are off. */
+	SXF_MATE = 2,	      /* A second player is in the flight. */
+	SXF_BY_MATE = 4,      /* The second player presses SPACE. */
+	SXF_MELEE = 8,	      /* A melee mission with one human player. */
+	SXF_STATE0 = 16,      /* The presser is not in the flight (state 0). */
+	SXF_STATE2 = 32,      /* The presser is out of the mission (state 2). */
+	SXF_HOST = 64,	      /* The local player hosts the session. */
+	SXF_NET = 128,	      /* The presser's network id is not the host's. */
+	SXF_WAVE = 256,	      /* The player's group flies in waves. */
+	SXF_WAVE_99 = 512,    /* The group has 99 waves (endless). */
+	SXF_ALTERNATE = 2048, /* The hangar is the group's mothership. */
+	SXF_GOAL_MET = 4096,  /* The team's first goal is already met. */
+};
+
+/* A SPACE press with a "confirm" (2) order waiting: param -1 quits the
+ * mission, a hangar slot docks the player's craft there. */
+struct space_exit_case {
+	const char *name;
+	const char *const *lines;
+	int dock; /* 1 to dock at a hangar; 0 to quit. */
+	int flags;
+};
+
+static void run_exit_case(const struct space_exit_case *c)
+{
+	int flags = c->flags;
+	int presser = flags & SXF_BY_MATE ? MATE : PILOT;
+	fresh_world();
+	memset(g_mission_fg_stats, 0, sizeof g_mission_fg_stats);
+	g_active_region_craft_object_slot_end = 12;
+	g_net_session.player_count = 1;
+	g_net_session.host_dplay_id = 0;
+	g_net_session.local_is_host = flags & SXF_HOST ? 1 : 0;
+	fly(PILOT, PILOT_CRAFT, 0);
+	if (flags & (SXF_MATE | SXF_BY_MATE)) {
+		fly(MATE, MATE_CRAFT, 0);
+	}
+	struct player_data *p = &g_players[presser];
+	if (c->dock) {
+		p->pending_action_param = SP_HANGAR;
+		g_test_objects[SP_HANGAR].object_type = TEST_XWING;
+		g_test_objects[SP_HANGAR].genus_id = 1;
+		g_test_objects[SP_HANGAR].flight_group_idx = SP_HANGAR_FG;
+		g_test_craft[SP_HANGAR].leader_obj_idx = 0xFF;
+		g_mission_flight_groups[0].player_owner_idx = (int8_t)presser;
+		g_mission_flight_groups[SP_HANGAR_FG].player_owner_idx = 7;
+		g_mission_flight_groups[0].fg.departure_mothership =
+			SP_HANGAR_FG;
+		if (!(flags & SXF_ALTERNATE)) {
+			p->pending_action_param = 4;
+		}
+		xwing_model()->craft_point_value = SP_POINTS;
+		g_flight_mission_state.player_flight_group_wave_mode =
+			flags & SXF_WAVE ? 1 : 0;
+		g_mission_flight_groups[0].fg.number_of_waves =
+			flags & SXF_WAVE_99 ? 99 : 3;
+	} else {
+		p->pending_action_param = -1;
+	}
+	if (flags & SXF_MELEE) {
+		g_mission_header.mission_type = MISSION_TYPE_MELEE;
+		g_pilot_data.num_human_players_last_mission = 1;
+	}
+	if (flags & SXF_GOAL_MET) {
+		g_flight_mission_state.runtime.team_goal_status[0][0] = 1;
+	}
+	if (flags & SXF_STATE0) {
+		p->participation_state = 0;
+	}
+	if (flags & SXF_STATE2) {
+		p->participation_state = 2;
+	}
+	if (flags & SXF_NET) {
+		p->network.direct_play_id = SP_OTHER_HOST;
+	}
+	if (flags & SXF_SUPPRESS) {
+		g_flight_sim_side_effects_suppressed = 1;
+	}
+	p->pending_action_id = 2;
+	p->pending_action_issuer_player_idx = 0;
+	scene_open();
+	press(presser, FLIGHT_KEY_SPACE);
+	scene_close(c->name, c->lines);
+	XVT_ASSERT_INT_EQ(p->pending_action_id, 0);
+	g_flight_sim_side_effects_suppressed = 0;
+}
+
+static const char *const k_sx_quit_suppressed[] = {
+	/* recorded sx_quit_suppressed */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=1",
+	NULL,
+};
+static const char *const k_sx_quit_alone[] = {
+	/* recorded sx_quit_alone */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"player.out_of_mission slot=0 flying=0 tick=0",
+	"battle.player_out who=0 flying=0 tick=0",
+	"flight.mission_ending reason=\"last_player_out\" slot=0 tick=0",
+	"flight.player_quit slot=0 player=0 players=1 penalty=0 tick=0",
+	"battle.player_quit who=0 penalty=0 tick=0",
+	NULL,
+};
+static const char *const k_sx_quit_with_mate[] = {
+	/* recorded sx_quit_with_mate */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"combat.proximity_reset object=2 count=0 predicted=0",
+	"player.settings_saved slot=0 object=2 throttle=0 laser_level=2 shield_level=2 beam_level=2 distribution=1 links=\"0,0\" warheads=\"0,0\" predicted=0",
+	"player.release_plan_craft slot=0 object=2 same=0 predicted=0",
+	"ai.plan_started object=2 fg=0 plan=0 target_code=255 target=0 x=0 y=0 z=0 maneuver=0 tier=0 timer=0 same=1 predicted=0",
+	"player.craft_released slot=0 object=2 fg=0 orders=1 plan=0 tick=0",
+	"player.out_of_mission slot=0 flying=1 tick=0",
+	"battle.player_out who=0 flying=1 tick=0",
+	"hud.view_refused slot=0 view=21 current=0 predicted=0",
+	"flight.player_quit slot=0 player=0 players=2 penalty=0 tick=0",
+	"battle.player_quit who=0 penalty=0 tick=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=-1 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=200 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_sx_quit_mate[] = {
+	/* recorded sx_quit_mate */
+	"flight.action_key slot=1 key=32 object=3 map=0 hyper=0 request=2 predicted=0",
+	"combat.proximity_reset object=3 count=0 predicted=0",
+	"player.settings_saved slot=1 object=3 throttle=0 laser_level=2 shield_level=2 beam_level=2 distribution=1 links=\"0,0\" warheads=\"0,0\" predicted=0",
+	"player.release_plan_craft slot=1 object=3 same=0 predicted=0",
+	"ai.plan_started object=3 fg=0 plan=0 target_code=255 target=0 x=0 y=0 z=0 maneuver=0 tier=0 timer=0 same=1 predicted=0",
+	"player.craft_released slot=1 object=3 fg=0 orders=1 plan=0 tick=0",
+	"player.out_of_mission slot=1 flying=1 tick=0",
+	"battle.player_out who=1 flying=1 tick=0",
+	"hud.view_state_set slot=1 view=21 from=0 last=0 local=0 predicted=0",
+	"msg.message_built message=380 type=1 length=7 sender=0 voice=0 clock=\"0:00:10\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=380 type=1 length=7 args=\"32768,32769,151,331\" waiting=1 tick=0",
+	"flight.player_quit slot=1 player=0 players=2 penalty=0 tick=0",
+	"battle.player_quit who=1 penalty=0 tick=0",
+	"world.track tick=0 object=3 signature=0 type=1 fg=0 player=-1 team=0 x=5900 y=6400 z=3300 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=200 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_sx_quit_melee[] = {
+	/* recorded sx_quit_melee */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"player.out_of_mission slot=0 flying=0 tick=0",
+	"battle.player_out who=0 flying=0 tick=0",
+	"flight.mission_ending reason=\"last_player_out\" slot=0 tick=0",
+	"flight.quit_penalty slot=0 team=0 score=-2000 team_score=-2000 predicted=0",
+	"flight.player_quit slot=0 player=0 players=1 penalty=2000 tick=0",
+	"battle.player_quit who=0 penalty=2000 tick=0",
+	NULL,
+};
+static const char *const k_sx_quit_melee_won[] = {
+	/* recorded sx_quit_melee_won */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"player.out_of_mission slot=0 flying=0 tick=0",
+	"battle.player_out who=0 flying=0 tick=0",
+	"flight.mission_ending reason=\"last_player_out\" slot=0 tick=0",
+	"flight.player_quit slot=0 player=0 players=1 penalty=0 tick=0",
+	"battle.player_quit who=0 penalty=0 tick=0",
+	NULL,
+};
+static const char *const k_sx_out_local[] = {
+	/* recorded sx_out_local */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"flight.mission_ending reason=\"local_left\" slot=0 tick=0",
+	"flight.players_counted active=0 states=\"00000000\" predicted=0",
+	"flight.player_departed slot=0 player=0 local=1 host=1 players=0 tick=0",
+	NULL,
+};
+static const char *const k_sx_out_state2[] = {
+	/* recorded sx_out_state2 */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"flight.mission_ending reason=\"local_left\" slot=0 tick=0",
+	"flight.players_counted active=0 states=\"00000000\" predicted=0",
+	"network.pilot_entry_missing slot=0",
+	"network.session_abort_sent tick=0",
+	"flight.player_departed slot=0 player=5 local=1 host=0 players=0 tick=0",
+	NULL,
+};
+static const char *const k_sx_out_net_host[] = {
+	/* recorded sx_out_net_host */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"flight.mission_ending reason=\"local_left\" slot=0 tick=0",
+	"flight.players_counted active=0 states=\"00000000\" predicted=0",
+	"network.pilot_entry_missing slot=0",
+	"network.session_abort_sent tick=0",
+	"flight.player_departed slot=0 player=5 local=1 host=0 players=0 tick=0",
+	NULL,
+};
+static const char *const k_sx_out_mate[] = {
+	/* recorded sx_out_mate */
+	"flight.action_key slot=1 key=32 object=3 map=0 hyper=0 request=2 predicted=0",
+	"flight.players_counted active=1 states=\"10000000\" predicted=0",
+	"flight.player_departed slot=1 player=0 local=0 host=1 players=1 tick=0",
+	NULL,
+};
+
+/* A "confirm quit" order answered with SPACE: with other players in the
+ * flight the quitter's craft is handed back to the computer, and the
+ * quitter leaves the flight; the others hear who quit. Quitting a melee
+ * alone, with the team's first goal unmet, costs 2000 points. A player
+ * who is not in the flight (state 0 or 2) is only counted out: the local
+ * player ends the mission, and a player on the network is reported as
+ * left; the host also ends the session when the local player leaves.
+ *
+ * Recorded as the code does it (sx_quit_melee): the 2000-point penalty
+ * applies only when one human flew the last mission, so quitting a melee
+ * with several human players costs nothing. */
+static const struct space_exit_case g_space_quit_cases[] = {
+	{"sx_quit_suppressed", k_sx_quit_suppressed, 0, SXF_SUPPRESS},
+	{"sx_quit_alone", k_sx_quit_alone, 0, 0},
+	{"sx_quit_with_mate", k_sx_quit_with_mate, 0, SXF_MATE},
+	{"sx_quit_mate", k_sx_quit_mate, 0, SXF_BY_MATE},
+	{"sx_quit_melee", k_sx_quit_melee, 0, SXF_MELEE},
+	{"sx_quit_melee_won", k_sx_quit_melee_won, 0, SXF_MELEE | SXF_GOAL_MET},
+	{"sx_out_local", k_sx_out_local, 0, SXF_STATE0},
+	{"sx_out_state2", k_sx_out_state2, 0, SXF_STATE2 | SXF_NET | SXF_HOST},
+	{"sx_out_net_host", k_sx_out_net_host, 0,
+	 SXF_STATE0 | SXF_NET | SXF_HOST},
+	{"sx_out_mate", k_sx_out_mate, 0, SXF_BY_MATE | SXF_STATE0},
+};
+
+static void check_space_quit(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_space_quit_cases / sizeof g_space_quit_cases[0];
+	     ++k) {
+		run_exit_case(&g_space_quit_cases[k]);
+	}
+}
+
+static const char *const k_sx_dock_primary[] = {
+	/* recorded sx_dock_primary */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"mission.craft_outcome object=2 fg=0 outcome=18 slot=0 ordinal=0 special=1 count=1 captured=0 departing=0 aborted=0 predicted=0",
+	"player.settings_saved slot=0 object=2 throttle=0 laser_level=2 shield_level=2 beam_level=2 distribution=1 links=\"0,0\" warheads=\"0,0\" predicted=0",
+	"player.craft_unavailable slot=0 previous=-1 preferred=0 predicted=0",
+	"player.out_of_mission slot=0 flying=0 tick=0",
+	"battle.player_out who=0 flying=0 tick=0",
+	"flight.mission_ending reason=\"last_player_out\" slot=0 tick=0",
+	"flight.player_docked slot=0 object=2 fg=0 hangar=4 next=2 state=2 tick=0",
+	NULL,
+};
+static const char *const k_sx_dock_alternate[] = {
+	/* recorded sx_dock_alternate */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"mission.craft_outcome object=2 fg=0 outcome=19 slot=0 ordinal=0 special=1 count=1 captured=0 departing=0 aborted=0 predicted=0",
+	"player.settings_saved slot=0 object=2 throttle=0 laser_level=2 shield_level=2 beam_level=2 distribution=1 links=\"0,0\" warheads=\"0,0\" predicted=0",
+	"player.craft_unavailable slot=0 previous=-1 preferred=0 predicted=0",
+	"player.out_of_mission slot=0 flying=0 tick=0",
+	"battle.player_out who=0 flying=0 tick=0",
+	"flight.mission_ending reason=\"last_player_out\" slot=0 tick=0",
+	"flight.player_docked slot=0 object=2 fg=0 hangar=9 next=2 state=2 tick=0",
+	NULL,
+};
+static const char *const k_sx_dock_bonus[] = {
+	/* recorded sx_dock_bonus */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"mission.craft_outcome object=2 fg=0 outcome=18 slot=0 ordinal=0 special=1 count=1 captured=0 departing=0 aborted=0 predicted=0",
+	"flight.dock_bonus slot=0 object=2 score=1000 predicted=0",
+	"player.settings_saved slot=0 object=2 throttle=0 laser_level=2 shield_level=2 beam_level=2 distribution=1 links=\"0,0\" warheads=\"0,0\" predicted=0",
+	"player.craft_unavailable slot=0 previous=-1 preferred=0 predicted=0",
+	"player.out_of_mission slot=0 flying=0 tick=0",
+	"battle.player_out who=0 flying=0 tick=0",
+	"flight.mission_ending reason=\"last_player_out\" slot=0 tick=0",
+	"flight.player_docked slot=0 object=2 fg=0 hangar=4 next=2 state=2 tick=0",
+	NULL,
+};
+static const char *const k_sx_dock_endless[] = {
+	/* recorded sx_dock_endless */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"mission.craft_outcome object=2 fg=0 outcome=18 slot=0 ordinal=0 special=1 count=1 captured=0 departing=0 aborted=0 predicted=0",
+	"player.settings_saved slot=0 object=2 throttle=0 laser_level=2 shield_level=2 beam_level=2 distribution=1 links=\"0,0\" warheads=\"0,0\" predicted=0",
+	"player.craft_unavailable slot=0 previous=-1 preferred=0 predicted=0",
+	"player.out_of_mission slot=0 flying=0 tick=0",
+	"battle.player_out who=0 flying=0 tick=0",
+	"flight.mission_ending reason=\"last_player_out\" slot=0 tick=0",
+	"flight.player_docked slot=0 object=2 fg=0 hangar=4 next=2 state=2 tick=0",
+	NULL,
+};
+static const char *const k_sx_dock_melee[] = {
+	/* recorded sx_dock_melee */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=0",
+	"mission.craft_outcome object=2 fg=0 outcome=18 slot=0 ordinal=0 special=1 count=1 captured=0 departing=0 aborted=0 predicted=0",
+	"player.settings_saved slot=0 object=2 throttle=0 laser_level=2 shield_level=2 beam_level=2 distribution=1 links=\"0,0\" warheads=\"0,0\" predicted=0",
+	"player.craft_unavailable slot=0 previous=-1 preferred=0 predicted=0",
+	"player.out_of_mission slot=0 flying=0 tick=0",
+	"battle.player_out who=0 flying=0 tick=0",
+	"flight.mission_ending reason=\"last_player_out\" slot=0 tick=0",
+	"flight.player_docked slot=0 object=2 fg=0 hangar=4 next=2 state=2 tick=0",
+	NULL,
+};
+static const char *const k_sx_dock_suppressed[] = {
+	/* recorded sx_dock_suppressed */
+	"flight.action_key slot=0 key=32 object=2 map=0 hyper=0 request=2 predicted=1",
+	NULL,
+};
+
+/* A "confirm docking" order answered with SPACE records the craft's
+ * outcome by which hangar it docks at, pays 40 times the craft's point
+ * value in a group that flies in waves (not endless, not melee), and
+ * removes the craft. The player then takes over a waiting craft of their
+ * own, or, with none, leaves the flight. (Taking over a waiting craft is
+ * not recorded: it crashes in the test, in the HUD's view change for the
+ * local player and in the world checksum for any other.)
+ *
+ * Recorded as the code does it (sx_dock_primary, sx_dock_alternate): docking
+ * at the group's own departure mothership counts as the alternate
+ * mothership outcome (19) and any other hangar as the primary one (18). When
+ * no craft waits, the dock line's next craft is still the docked craft's
+ * slot, not -1. */
+static const struct space_exit_case g_space_dock_cases[] = {
+	{"sx_dock_primary", k_sx_dock_primary, 1, 0},
+	{"sx_dock_alternate", k_sx_dock_alternate, 1, SXF_ALTERNATE},
+	{"sx_dock_bonus", k_sx_dock_bonus, 1, SXF_WAVE},
+	{"sx_dock_endless", k_sx_dock_endless, 1, SXF_WAVE | SXF_WAVE_99},
+	{"sx_dock_melee", k_sx_dock_melee, 1, SXF_WAVE | SXF_MELEE},
+	{"sx_dock_suppressed", k_sx_dock_suppressed, 1, SXF_SUPPRESS},
+};
+
+static void check_space_dock(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_space_dock_cases / sizeof g_space_dock_cases[0];
+	     ++k) {
+		run_exit_case(&g_space_dock_cases[k]);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	fail_after_seconds(20);
@@ -5983,5 +6869,11 @@ int main(int argc, char **argv)
 	check_steer_kinds();
 	check_steer_carry();
 	check_steer_rules();
+	check_space_map();
+	check_space_attack();
+	check_space_ignore();
+	check_space_orders();
+	check_space_quit();
+	check_space_dock();
 	return 0;
 }
