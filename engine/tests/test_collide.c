@@ -6919,6 +6919,764 @@ static void check_jam_off_axis_entry_point(void)
 	}
 }
 
+/* ------------------------------------------------------------------------ */
+/* Sharper checks: results pinned to the figure the comment's rule gives. */
+
+/* The n-th value (counting from 1) game_rand returns from the state seed,
+ * which is what the first n draws of a craft with that seed see; the shared
+ * state is put back. */
+static uint16_t nth_draw(uint16_t seed, int n)
+{
+	int16_t saved = g_game_rand_feedback_state;
+	uint16_t value = 0;
+	g_game_rand_feedback_state = (int16_t)seed;
+	for (int i = 0; i < n; ++i) {
+		value = (uint16_t)game_rand();
+	}
+	g_game_rand_feedback_state = saved;
+	return value;
+}
+
+/* The heading a bounce leaves a craft with, from the rule in the comment of
+ * collide_apply_craft_impact_bounce: it turns toward its move vector plus a
+ * push away from the other along the line between them, 1,000 times the
+ * closing speed over the squared distance (a push of 100 along Y when the two
+ * touch, within a squared distance of 50); a push that would turn a move
+ * component round is dropped. dx, dy and dz are the craft's offset from the
+ * other. */
+static unsigned int bounce_heading(int speed, int dx, int dy, int dz,
+				   int move_x, int move_y)
+{
+	int distance_squared = dx * dx + dy * dy + dz * dz;
+	int force_x;
+	int force_y;
+	if (distance_squared > 50) {
+		force_x = (int16_t)((int32_t)(1000u * (uint32_t)speed *
+					      (uint32_t)dx) /
+				    distance_squared);
+		force_y = (int16_t)((int32_t)(1000u * (uint32_t)speed *
+					      (uint32_t)dy) /
+				    distance_squared);
+	} else {
+		force_x = 0;
+		force_y = 100;
+	}
+	force_x = (int16_t)(force_x + move_x);
+	if (((force_x ^ move_x) & 0x8000) != 0) {
+		force_x = move_x;
+	}
+	force_y = (int16_t)(force_y + move_y);
+	if (((force_y ^ move_y) & 0x8000) != 0) {
+		force_y = move_y;
+	}
+	return (uint16_t)trig2_arctan(force_x, force_y);
+}
+
+/* Comment: the craft's yaw turns toward its move vector plus a push away from
+ * the other along the line between them, and a shot turns it further by 8
+ * times the shot's speed, either way. The heading is the one the log line
+ * records. The cases run the push for a distance apart and for touching
+ * (squared distance 25, 50 and 51 around the edge of 50). */
+static void check_bounce_heading(void)
+{
+	static const struct {
+		int other;
+		int x;
+		int y;
+		int z;
+		int move_x;
+		int move_y;
+	} cases[] = {
+		{TEST_MINE, 100, 50, 0, 2000, 3000},
+		{TEST_MINE, 5, 0, 0, 2000, 3000},
+		{TEST_MINE, 5, 5, 0, 2000, 3000},
+		{TEST_MINE, 1, 5, 5, 2000, 3000},
+		{TEST_MINE, 100, 50, 0, -300, -200},
+		{TEST_MINE, 100, 50, 0, 20, 3000},
+		{TEST_MINE, 100, 50, 0, 2000, 20},
+		{TEST_SHOT, 100, 50, 0, 2000, 3000},
+		{TEST_SHOT, 100, 50, 0, 3000, 2000},
+		{TEST_SHOT, 5, 5, 0, 2000, 3000},
+		{0, 100, 50, 0, 2000, 3000},
+		{0, 1, 5, 5, 2000, 3000},
+	};
+	int turned_down = 0;
+	int turned_up = 0;
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		fresh_world();
+		int other = cases[i].other;
+		g_test_objects[1].yaw = 0x2000;
+		place(1, cases[i].x, cases[i].y, cases[i].z);
+		g_test_mobiles[1].prev_world_x = cases[i].x;
+		g_test_mobiles[1].prev_world_y = cases[i].y;
+		g_test_mobiles[1].prev_world_z = cases[i].z;
+		g_test_mobiles[1].speed = 100;
+		g_test_mobiles[1].move_vector_dirty = 0;
+		g_test_mobiles[1].move_x = (int16_t)cases[i].move_x;
+		g_test_mobiles[1].move_y = (int16_t)cases[i].move_y;
+		int speed = 100;
+		if (other == TEST_MINE) {
+			place_mine(0, 0, 0);
+		} else if (other == TEST_SHOT) {
+			place_shot(TEST_SHOT,
+				   WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 0, 0,
+				   0, 0, 0, 0, 0);
+			g_test_mobiles[TEST_SHOT].speed = 40;
+		} else {
+			place(0, 0, 0, 0);
+			g_test_objects[0].yaw = 0x2000;
+			g_test_mobiles[0].speed = BOUNCE_OTHER_SPEED;
+			speed = abs_int(100 -
+					(int)(int16_t)trig2_cosinewordmult(
+						BOUNCE_OTHER_SPEED, 0));
+		}
+		collide_apply_craft_impact_bounce(1, (uint16_t)other);
+		unsigned int heading = bounce_heading(
+			speed, cases[i].x, cases[i].y, cases[i].z,
+			cases[i].move_x, cases[i].move_y);
+		if (other == TEST_SHOT) {
+			int16_t step = (int16_t)(8 * 40);
+			if (0x2000 > heading) {
+				step = (int16_t)-step;
+				++turned_down;
+			} else {
+				++turned_up;
+			}
+			heading = (uint16_t)(heading + step);
+		}
+		XVT_ASSERT_INT_EQ(g_test_objects[1].yaw, heading);
+		XVT_ASSERT_TRUE(find_line("combat.craft_bounced") != NULL);
+	}
+	/* Both ways of turning for a shot were run. */
+	XVT_ASSERT_TRUE(turned_down > 0 && turned_up > 0);
+}
+
+/* Comment: the bounce of a player's craft off another craft turns the player's
+ * craft by the same rule, with the other's move and position as they are in
+ * the step: the heading the step leaves it with, as the DEBUG line of the
+ * bounce records, from the push of 1,000 times the closing speed (20 here)
+ * over the squared distance, with a push that would turn a move component round
+ * dropped. */
+static void check_collisions_player_bounce_heading(void)
+{
+	static const int moves[][2] = {
+		{2000, 3000}, {2000, 10}, {10, 3000}, {-300, 10}, {10, -300},
+	};
+	for (size_t i = 0; i < sizeof moves / sizeof moves[0]; ++i) {
+		craft_meet();
+		g_flight_mission_state.collisions_enabled = 0;
+		place(1, 100, 60, 0);
+		g_test_mobiles[1].prev_world_x = 100;
+		g_test_mobiles[1].prev_world_y = 60;
+		g_test_mobiles[0].speed = 50;
+		g_test_mobiles[1].speed = BOUNCE_OTHER_SPEED;
+		g_test_mobiles[0].move_vector_dirty = 0;
+		g_test_mobiles[0].move_x = (int16_t)moves[i][0];
+		g_test_mobiles[0].move_y = (int16_t)moves[i][1];
+		collide_collisions();
+		unsigned int heading = bounce_heading(
+			abs_int(50 - (int)(int16_t)trig2_cosinewordmult(
+					     BOUNCE_OTHER_SPEED, 0)),
+			-100, -60, 0, moves[i][0], moves[i][1]);
+		XVT_ASSERT_INT_EQ(g_test_objects[0].yaw, heading);
+		XVT_ASSERT_TRUE(find_line("combat.craft_bounced") != NULL);
+	}
+}
+
+/* Comment: the wash lies behind the engine mesh and widens with depth; at its
+ * start it is 1.5 times the engine's width across, to either side and up or
+ * down: a victim 1 unit into the wash is hit 148 units to the side and not 153
+ * (the engine is 100 across). */
+static void check_wash_width_at_its_start(void)
+{
+	wash_world(TEST_SHIP_TYPE);
+	for (int sign = -1; sign <= 1; sign += 2) {
+		XVT_ASSERT_TRUE(wash_at(sign * 148, 99, 0) > 0);
+		XVT_ASSERT_INT_EQ(wash_at(sign * 153, 99, 0), 0);
+		XVT_ASSERT_TRUE(wash_at(0, 99, sign * 148) > 0);
+		XVT_ASSERT_INT_EQ(wash_at(0, 99, sign * 153), 0);
+	}
+}
+
+/* Comment: a Super Star Destroyer's wash is placed differently and cut to
+ * 3/32. Its damage at a depth is 3/32 of the wash a craft of any other kind
+ * would take there, where the wash is 8 times the engine's largest size
+ * long: about the engine's 48,000 here, falling off linearly with depth. */
+static void check_wash_super_destroyer_cut(void)
+{
+	wash_world(SUPER_TYPE);
+	mesh_box(0, -3000, -3000, -3000, 3000, 3000, 3000, 0, 0);
+	g_object_type_table[SUPER_TYPE].max_bounds_extent = 30000;
+	int length = 8 * 6000;
+	/* The wash reaches its start 3,000 up the tail's length: 687 units
+	 * deep at 3,500 behind the middle. */
+	int depth = (length >> 8) - 3000 + 3500;
+	double wash = (length / 256.0) * (1.0 - (double)depth / length);
+	int loss = wash_at(0, -3500, 0);
+	XVT_ASSERT_TRUE(loss >= wash * 3.0 / 32.0 - 2.0);
+	XVT_ASSERT_TRUE(loss <= wash * 3.0 / 32.0 + 2.0);
+}
+
+/* Comment: the Super Star Destroyer's engine mesh counts for a 64th of its
+ * length when the wash's length is set: the wash is 8 times the largest of the
+ * mesh's three sizes, here 200 (its 12,800 long, over 64) against 100 across,
+ * 1,600 long, measured from the mesh's far end. */
+static void check_wash_super_destroyer_length(void)
+{
+	wash_world(SUPER_TYPE);
+	mesh_box(0, -50, -6400, -50, 50, 6400, 50, 0, 0);
+	g_object_type_table[SUPER_TYPE].max_bounds_extent = 30000;
+	/* 106, 1,006 and 2,006 deep. */
+	XVT_ASSERT_TRUE(wash_at(0, -6500, 0) > 0);
+	XVT_ASSERT_TRUE(wash_at(0, -7400, 0) > 0);
+	XVT_ASSERT_INT_EQ(wash_at(0, -8400, 0), 0);
+}
+
+/* Comment: at a Super Star Destroyer the craft must be within an eighth of
+ * the extent of the hangar entry point, whichever way it lies from the middle
+ * (forward or aft, to either side) and level with it. */
+static void check_jam_super_destroyer_entry_point(void)
+{
+	static const struct {
+		int side;
+		int forward;
+		int jammed;
+	} cases[] = {
+		{200, 700, 1},	{200, -700, 0}, {-900, 700, 0}, {900, 700, 1},
+		{-200, 700, 1}, {200, 1600, 1}, {200, 1800, 0},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		jam_world(SUPER_TYPE, 8000, cases[i].side, cases[i].forward,
+			  -400);
+		g_model_defs[TEST_MODEL].hangar_points.inside.side = 200;
+		g_model_defs[TEST_MODEL].hangar_points.inside.up = -400;
+		g_model_defs[TEST_MODEL].hangar_points.inside.forward = 700;
+		collide_apply_hostile_proximity_weapon_disruption(0, 1);
+		XVT_ASSERT_INT_EQ(is_jammed(), cases[i].jammed);
+	}
+}
+
+/* A square in the plane z = 0, 100 on a side, its corners in order. */
+static const float g_square_corners[12] = {0,	0,   0, 100, 0,	  0,
+					   100, 100, 0, 0,   100, 0};
+
+/* Comment: the polygon test takes the face's corners by their indices, from
+ * any of them: the same square with each corner first, either way round, holds
+ * the same points. */
+static void check_point_in_face_from_any_corner(void)
+{
+	static const int32_t faces[8][4] = {
+		{0, 1, 2, 3}, {1, 2, 3, 0}, {2, 3, 0, 1}, {3, 0, 1, 2},
+		{0, 3, 2, 1}, {3, 2, 1, 0}, {2, 1, 0, 3}, {1, 0, 3, 2},
+	};
+	const float normal[3] = {0.0f, 0.0f, 1.0f};
+	static const float points[][3] = {
+		{50, 50, 0},  {10, 10, 0},  {90, 90, 0},
+		{10, 90, 0},  {90, 10, 0},  {150, 50, 0},
+		{-20, 50, 0}, {50, -20, 0}, {50, 120, 0},
+	};
+	for (size_t face = 0; face < 8; ++face) {
+		for (size_t p = 0; p < sizeof points / sizeof points[0]; ++p) {
+			float point[3] = {points[p][0], points[p][1],
+					  points[p][2]};
+			int inside = points[p][0] >= 0 && points[p][0] <= 100 &&
+				     points[p][1] >= 0 && points[p][1] <= 100;
+			XVT_ASSERT_INT_EQ(collide_point_in_face_polygon(
+						  normal, g_square_corners,
+						  faces[face], point),
+					  inside);
+		}
+	}
+}
+
+/* Craft 1 at (20,000, 3,000, -2,000) in the face world: off every axis, so a
+ * sum taken for a difference shows. */
+static void face_world_off_axis(void)
+{
+	face_world();
+	place(1, 20000, 3000, -2000);
+}
+
+static int walk_off_axis(int sx, int sy, int sz, int ex, int ey, int ez)
+{
+	g_collision_segment_start_world_x = 20000 + sx;
+	g_collision_segment_start_world_y = 3000 + sy;
+	g_collision_segment_start_world_z = -2000 + sz;
+	g_collision_probe_world_x = 20000 + ex;
+	g_collision_probe_world_y = 3000 + ey;
+	g_collision_probe_world_z = -2000 + ez;
+	return collide_check_swept_model_collision(0, 1);
+}
+
+/* Comment: the sweep is moved into the target's own axes from the target's
+ * position: a model not at the origin on Y or Z is hit where it is. */
+static void check_model_walk_target_off_axis(void)
+{
+	face_world_off_axis();
+	XVT_ASSERT_INT_EQ(walk_off_axis(0, 0, 200, 0, 0, -200), 1);
+	XVT_ASSERT_TRUE(g_collision_hit_offset_z >= -162 &&
+			g_collision_hit_offset_z <= -158);
+	XVT_ASSERT_INT_EQ(walk_off_axis(50, 30, -200, 50, 30, 200), 1);
+	/* Where the model would be if the target's Y or Z were added, no
+	 * hit. */
+	XVT_ASSERT_INT_EQ(walk_off_axis(0, 6000, 200, 0, 6000, -200), 0);
+	XVT_ASSERT_INT_EQ(walk_off_axis(0, 0, 4200, 0, 0, 3800), 0);
+	XVT_ASSERT_INT_EQ(walk_off_axis(0, 0, 200, 0, 0, 100), 0);
+}
+
+/* Comment: it skips laser turret and gun meshes of the target's own ship; a
+ * mesh past the ones the cache holds is read as the last one it holds: a ship
+ * whose cache holds a turret and a second mesh, of which the cache knows no
+ * more, skips that second mesh too. */
+static void check_model_walk_mesh_past_the_cache(void)
+{
+	face_world();
+	face_mesh(0, 0, OPT_NODEREF + 100);
+	face_mesh(1, 0, OPT_NODEREF + 100);
+	face_model(TEST_FIGHTER_TYPE, 2);
+	g_object_type_mesh_cache[TEST_FIGHTER_TYPE].mesh_count = 1;
+	g_object_type_mesh_cache[TEST_FIGHTER_TYPE].mesh_types[0] =
+		MESH_COMPONENT_04_LASR_TUR;
+	g_object_type_mesh_cache[TEST_FIGHTER_TYPE].mesh_types[1] =
+		MESH_COMPONENT_03_FUSELAGE;
+	g_test_craft[1].component_hp[0] = 20;
+	g_test_craft[1].component_hp[1] = 20;
+	g_collision_segment_start_world_x = 20000;
+	g_collision_segment_start_world_y = 0;
+	g_collision_segment_start_world_z = 200;
+	g_collision_probe_world_x = 20000;
+	g_collision_probe_world_y = 0;
+	g_collision_probe_world_z = -200;
+	XVT_ASSERT_INT_EQ(collide_check_swept_model_collision(1, 1), 0);
+	XVT_ASSERT_INT_EQ(collide_check_swept_model_collision(0, 1), 1);
+}
+
+/* Comment: it walks each mesh whose box the sweep does not lie wholly beside:
+ * a model whose box is smaller than its face decides the hit, at the box's
+ * edges as well. */
+static void check_model_walk_box_decides(void)
+{
+	/* The walk takes the sweep into the model's axes with a Q15 dot product
+	 * that rounds down: world 51 is 50 on the side axis and -50 is -50, and
+	 * the forward axis is reversed (world -50 is 50, 51 is -50). The box is
+	 * 50 either way. A sweep crossing the face half way between its ends
+	 * meets it inside the 100 across. */
+	static const struct {
+		int x0;
+		int y0;
+		int x1;
+		int y1;
+		int hit;
+	} cases[] = {
+		/* Both ends on one line. */
+		{0, 0, 0, 0, 1},
+		{51, 0, 51, 0, 1},
+		{-50, 0, -50, 0, 1},
+		{0, -50, 0, -50, 1},
+		{0, 51, 0, 51, 1},
+		{52, 0, 52, 0, 0},
+		{-51, 0, -51, 0, 0},
+		{0, -51, 0, -51, 0},
+		{0, 52, 0, 52, 0},
+		{75, 0, 75, 0, 0},
+		{0, 75, 0, 75, 0},
+		{-75, -75, -75, -75, 0},
+		{75, 75, 75, 75, 0},
+		{51, -50, 51, -50, 1},
+		{-50, 51, -50, 51, 1},
+		/* One end on the box's edge, the other past it: either end
+		 * holds the sweep in the box. */
+		{51, 0, 101, 0, 1},
+		{101, 0, 51, 0, 1},
+		{52, 0, 101, 0, 0},
+		{101, 0, 52, 0, 0},
+		{-50, 0, -100, 0, 1},
+		{-100, 0, -50, 0, 1},
+		{-51, 0, -100, 0, 0},
+		{-100, 0, -51, 0, 0},
+		{0, -50, 0, -100, 1},
+		{0, -100, 0, -50, 1},
+		{0, -51, 0, -100, 0},
+		{0, -100, 0, -51, 0},
+		{0, 51, 0, 101, 1},
+		{0, 101, 0, 51, 1},
+		{0, 52, 0, 101, 0},
+		{0, 101, 0, 52, 0},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		face_world();
+		g_craft_model_descriptors[0].box_min =
+			(struct opt_vector){-50, -50, -5};
+		g_craft_model_descriptors[0].box_max =
+			(struct opt_vector){50, 50, 5};
+		XVT_ASSERT_INT_EQ(walk(cases[i].x0, cases[i].y0, 200,
+				       cases[i].x1, cases[i].y1, -200),
+				  cases[i].hit);
+	}
+	/* The box's lower edge in height is the face's own: a sweep starting
+	 * or ending on the face from below is in it, one wholly below is not.
+	 * And the other way about for a box ending at the face. */
+	face_world();
+	g_craft_model_descriptors[0].box_min = (struct opt_vector){-50, -50, 0};
+	g_craft_model_descriptors[0].box_max = (struct opt_vector){50, 50, 5};
+	XVT_ASSERT_INT_EQ(walk(0, 0, 0, 0, 0, -200), 1);
+	XVT_ASSERT_INT_EQ(walk(0, 0, -200, 0, 0, 0), 1);
+	XVT_ASSERT_INT_EQ(walk(0, 0, -200, 0, 0, -100), 0);
+	face_world();
+	g_craft_model_descriptors[0].box_min =
+		(struct opt_vector){-50, -50, -5};
+	g_craft_model_descriptors[0].box_max = (struct opt_vector){50, 50, 0};
+	XVT_ASSERT_INT_EQ(walk(0, 0, 0, 0, 0, 200), 1);
+	XVT_ASSERT_INT_EQ(walk(0, 0, 200, 0, 0, 0), 1);
+	XVT_ASSERT_INT_EQ(walk(0, 0, 200, 0, 0, 100), 0);
+}
+
+/* Comment: a craft with a fuselage and one wing tears that wing off, when the
+ * seed's side is the wing's: the second draw of the craft's seed, odd for the
+ * left wing (negative X); with the other side drawn it breaks up whole. */
+static void check_kill_the_only_wing(void)
+{
+	static const int types[2] = {MESH_COMPONENT_03_FUSELAGE,
+				     MESH_COMPONENT_02_WING};
+	static const int center_x[2] = {0, -100};
+	static const int flags[2] = {0, 0};
+	int torn = 0;
+	int whole = 0;
+	for (int seed = 0; seed < 16; ++seed) {
+		killing_shot();
+		craft_model(2, types, center_x, flags);
+		g_test_craft[1].system_damage_hull_threshold = 100000;
+		g_test_craft[1].ai_controller.saved_rand_seed = (uint16_t)seed;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		int side = nth_draw((uint16_t)seed, 2) & 1;
+		XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+				  CRAFT_OBJECT_KIND_BREAKING_UP);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].component_state[1] ==
+					  TORN_OFF_STATE,
+				  side != 0);
+		XVT_ASSERT_INT_EQ(g_test_objects[TEST_DEBRIS].object_type ==
+					  CRAFT_SPECIES_COMPONENT,
+				  side != 0);
+		if (side != 0) {
+			++torn;
+		} else {
+			++whole;
+		}
+	}
+	XVT_ASSERT_TRUE(torn > 0 && whole > 0);
+}
+
+static struct opt_vector g_two_face_vertices[10];
+static union {
+	struct opt_packed_face_data data;
+	unsigned char bytes[sizeof(int) +
+			    2 * sizeof(struct opt_packed_face_record) +
+			    6 * sizeof(struct opt_vector)];
+} g_two_face_data;
+
+/* Comment: a face is hit by the sweep when it crosses its plane inside it;
+ * each face has its own normal: a floor square (normal up) and a wall (normal
+ * along X) in one mesh are each hit by the sweep that crosses them. */
+static void check_model_walk_faces_of_one_mesh(void)
+{
+	face_world();
+	g_two_face_vertices[0] = (struct opt_vector){-100, -100, 0};
+	g_two_face_vertices[1] = (struct opt_vector){100, -100, 0};
+	g_two_face_vertices[2] = (struct opt_vector){100, 100, 0};
+	g_two_face_vertices[3] = (struct opt_vector){-100, 100, 0};
+	g_two_face_vertices[4] = (struct opt_vector){150, -100, -100};
+	g_two_face_vertices[5] = (struct opt_vector){150, 100, -100};
+	g_two_face_vertices[6] = (struct opt_vector){150, 100, 100};
+	g_two_face_vertices[7] = (struct opt_vector){150, -100, 100};
+	g_two_face_vertices[8] = (struct opt_vector){-120, -120, -120};
+	g_two_face_vertices[9] = (struct opt_vector){160, 120, 120};
+	memset(&g_two_face_data, 0, sizeof g_two_face_data);
+	struct opt_packed_face_record *records = g_two_face_data.data.records;
+	for (int corner = 0; corner < 4; ++corner) {
+		records[0].vertex_indices[corner] = corner;
+		records[1].vertex_indices[corner] = 4 + corner;
+	}
+	struct opt_vector *normals = (struct opt_vector *)&records[2];
+	normals[0] = (struct opt_vector){0, 0, 1};
+	normals[1] = (struct opt_vector){1, 0, 0};
+	g_face_vertex_nodes[0].payload = g_two_face_vertices;
+	g_face_vertex_nodes[0].payload_count = 10;
+	g_face_face_nodes[0].payload = &g_two_face_data;
+	g_face_face_nodes[0].payload_count = 2;
+	g_craft_model_descriptors[0].box_min =
+		(struct opt_vector){-120, -120, -120};
+	g_craft_model_descriptors[0].box_max =
+		(struct opt_vector){160, 120, 120};
+	/* Down through the floor. */
+	XVT_ASSERT_INT_EQ(walk(0, 0, 200, 0, 0, -200), 1);
+	/* In along X at height 50, through the wall at 150: 0.75 of the way,
+	 * less 0.1, of the 200 travelled. */
+	XVT_ASSERT_INT_EQ(walk(300, 0, 50, 100, 0, 50), 1);
+	XVT_ASSERT_TRUE(g_collision_hit_offset_x >= -133 &&
+			g_collision_hit_offset_x <= -127);
+	/* Past the wall's top, or short of it. */
+	XVT_ASSERT_INT_EQ(walk(300, 0, 130, 100, 0, 130), 0);
+	XVT_ASSERT_INT_EQ(walk(300, 0, 50, 200, 0, 50), 0);
+}
+
+/* The reach of a shot of type fired by a craft moving at source_speed, from
+ * the game's figures: its life (the seconds and the fraction of one) times
+ * the speed of the shot and the craft together, as the aim code works it
+ * out. */
+static int shot_reach(int type, int source_speed, int with_fraction)
+{
+	int index = type - PROJECTILE_OBJECT_TYPE_FIRST;
+	int ticks = SIMULATION_TICKS_PER_SECOND *
+		    g_projectile_type_data.lifetime_seconds[index];
+	if (with_fraction) {
+		ticks += (uint16_t)math2_fraction(
+			SIMULATION_TICKS_PER_SECOND,
+			g_projectile_type_data.lifetime_frac_q16[index]);
+	}
+	return ticks *
+	       ((4660 * (g_projectile_type_data.speed[index] + source_speed) +
+		 128) >>
+		8) /
+	       SIMULATION_TICKS_PER_SECOND;
+}
+
+/* Comment: the shot is swept for its whole life, at the shot's speed plus the
+ * source's: the Rebel turbo laser lives 1 second and a fraction, and the
+ * craft's own speed carries it further. */
+static void check_would_shot_hit_life_and_speed(void)
+{
+	aim_world();
+	g_model_defs[TEST_MODEL].laser_group_weapon_type[0] =
+		PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER;
+	int whole = shot_reach(PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER, 0, 1);
+	int bare = shot_reach(PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER, 0, 0);
+	XVT_ASSERT_TRUE(whole > bare + 5000);
+	place(1, 0, (bare + whole) / 2, 0);
+	XVT_ASSERT_TRUE(collide_would_shot_hit_target(0, 1, 0) != 0);
+	place(1, 0, whole + 600, 0);
+	XVT_ASSERT_INT_EQ(collide_would_shot_hit_target(0, 1, 0), 0);
+	place(1, 0, whole - 500, 0);
+	XVT_ASSERT_TRUE(collide_would_shot_hit_target(0, 1, 0) != 0);
+
+	g_test_mobiles[0].speed = 1000;
+	int fast =
+		shot_reach(PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER, 1000, 1);
+	XVT_ASSERT_TRUE(fast > whole + 5000);
+	place(1, 0, (whole + fast) / 2, 0);
+	XVT_ASSERT_TRUE(collide_would_shot_hit_target(0, 1, 0) != 0);
+	place(1, 0, fast + 600, 0);
+	XVT_ASSERT_INT_EQ(collide_would_shot_hit_target(0, 1, 0), 0);
+	place(1, 0, fast - 500, 0);
+	XVT_ASSERT_TRUE(collide_would_shot_hit_target(0, 1, 0) != 0);
+
+	/* The edge: the shot's last point reaches the target's box (150 half
+	 * size, a few units less for the step's rounding of the entry time)
+	 * at the reach plus 147 for the shot alone, plus 146 with the craft's
+	 * speed, and not 2 units further. */
+	g_test_mobiles[0].speed = 0;
+	place(1, 0, whole + 147, 0);
+	XVT_ASSERT_TRUE(collide_would_shot_hit_target(0, 1, 0) != 0);
+	place(1, 0, whole + 149, 0);
+	XVT_ASSERT_INT_EQ(collide_would_shot_hit_target(0, 1, 0), 0);
+	g_test_mobiles[0].speed = 1000;
+	place(1, 0, fast + 146, 0);
+	XVT_ASSERT_TRUE(collide_would_shot_hit_target(0, 1, 0) != 0);
+	place(1, 0, fast + 149, 0);
+	XVT_ASSERT_INT_EQ(collide_would_shot_hit_target(0, 1, 0), 0);
+}
+
+/* The pair test on the face world's craft 1, made 1,100 across, for the sweep
+ * of craft 0 from (sx, 0, sz) to (ex, 0, ez) relative to it, with the aim flag
+ * as given and craft 1 moving at target_speed. */
+static int pair_on_face_model(int sx, int sz, int ex, int ez, int aim,
+			      int target_speed)
+{
+	g_collision_segment_start_world_x = 20000 + sx;
+	g_collision_segment_start_world_y = 0;
+	g_collision_segment_start_world_z = sz;
+	g_collision_probe_world_x = 20000 + ex;
+	g_collision_probe_world_y = 0;
+	g_collision_probe_world_z = ez;
+	g_collision_sweep_start_x = 20000;
+	g_collision_sweep_start_y = 0;
+	g_collision_sweep_start_z = 0;
+	g_collision_sweep_end_x = 20000;
+	g_collision_sweep_end_y = 0;
+	g_collision_sweep_end_z = 0;
+	g_collision_is_aim_prediction = aim;
+	g_test_mobiles[1].speed = target_speed;
+	return collide_test_swept_pair_collision(0, 1);
+}
+
+/* Comment: a target of extent 1,095 or more gets the polygon test; under the
+ * aim flag, which the call clears, only a target slower than 40 does, else
+ * the box test; otherwise a source that has not moved gets 0. */
+static void check_swept_pair_polygon_test_paths(void)
+{
+	face_world();
+	g_object_type_table[TEST_FIGHTER_TYPE].max_bounds_extent = 1100;
+	/* Straight down through the face: the polygon test says mesh 1, with or
+	 * without the aim flag for a slow target. */
+	XVT_ASSERT_INT_EQ(pair_on_face_model(0, 200, 0, -200, 0, 0), 1);
+	XVT_ASSERT_INT_EQ(pair_on_face_model(0, 200, 0, -200, 1, 0), 1);
+	XVT_ASSERT_INT_EQ(g_collision_is_aim_prediction, 0);
+	/* 300 off to the side: past the face, within the box test's reach.
+	 * The polygon test says no; the box test says yes. */
+	XVT_ASSERT_INT_EQ(pair_on_face_model(300, 200, 300, -200, 0, 0), 0);
+	XVT_ASSERT_INT_EQ(pair_on_face_model(300, 200, 300, -200, 1, 0), 0);
+	XVT_ASSERT_INT_EQ(pair_on_face_model(300, 200, 300, -200, 1, 39), 0);
+	XVT_ASSERT_INT_EQ(pair_on_face_model(300, 200, 300, -200, 1, 40), -1);
+	XVT_ASSERT_INT_EQ(g_collision_is_aim_prediction, 0);
+	XVT_ASSERT_INT_EQ(pair_on_face_model(300, 200, 300, -200, 1, 100), -1);
+	/* The box test's own reach is not met from further out. */
+	XVT_ASSERT_INT_EQ(pair_on_face_model(500, 200, 500, -200, 1, 100), 0);
+	/* A source that has not moved, on the face: no hit from the polygon
+	 * test, which would find it on the plane. */
+	XVT_ASSERT_INT_EQ(pair_on_face_model(0, 0, 0, 0, 0, 0), 0);
+	XVT_ASSERT_INT_EQ(pair_on_face_model(0, 0, 0, 0, 1, 0), 1);
+}
+
+/* Comment: the kill is credited to the craft that fired, or that rammed: a
+ * craft already at its hull maximum, hit for nothing, is credited to the
+ * player behind the shot's firer, and behind the ramming craft itself. */
+static void check_kill_credit_goes_to_the_firer(void)
+{
+	for (int ram = 0; ram < 2; ++ram) {
+		player_kills_craft();
+		g_test_craft[1].hull_damage = g_test_craft[1].hull_max;
+		if (ram) {
+			g_test_mobiles[0].damage_amount = 0;
+			g_test_mobiles[0].source_obj_idx = 1;
+			collide_damagecraft(1, -1, 0, 0);
+		} else {
+			g_test_mobiles[TEST_SHOT].damage_amount = 0;
+			collide_damagecraft(1, -1, TEST_SHOT, 0);
+		}
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[1]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+			1);
+		XVT_ASSERT_TRUE(g_players[0].mission_stats.mission_score > 0);
+		XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score,
+				  mission_compute_kill_score_for_object(1));
+	}
+}
+
+/* Comment: the kill of a player's craft credits the killer once: the player's
+ * loss is recorded without sharing out the kill again. */
+static void check_kill_of_players_craft_credits_once(void)
+{
+	player_kills_craft();
+	player_flies(1, 1);
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[1]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+		1);
+	XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score,
+			  mission_compute_kill_score_for_object(1));
+	XVT_ASSERT_INT_EQ(g_players[1].per_mission_kills.total_craft_losses, 1);
+}
+
+/* Comment: a moving craft hit by something small breaks up, tearing off a
+ * wing when one is left, on a randomly chosen side: the craft's own seed gives
+ * the side with its second draw (the first is the player's one in four), the
+ * left wing (negative X) for an odd one and the right for an even one. */
+static void check_kill_wing_side_follows_the_seed(void)
+{
+	int left = 0;
+	int right = 0;
+	for (int seed = 0; seed < 32; ++seed) {
+		killing_shot();
+		winged_craft_model();
+		g_test_craft[1].system_damage_hull_threshold = 100000;
+		g_test_craft[1].ai_controller.saved_rand_seed = (uint16_t)seed;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		int side = nth_draw((uint16_t)seed, 2) & 1;
+		XVT_ASSERT_INT_EQ(g_test_craft[1].component_state[WING_LEFT] ==
+					  TORN_OFF_STATE,
+				  side != 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].component_state[WING_RIGHT] ==
+					  TORN_OFF_STATE,
+				  side == 0);
+		if (side != 0) {
+			++left;
+		} else {
+			++right;
+		}
+	}
+	XVT_ASSERT_TRUE(left > 0 && right > 0);
+}
+
+/* Comment: a craft with one mesh has no wing to lose and its breakup is
+ * drawn from its seed alone: the life, 236 ticks a second, is the second draw
+ * after the roll's, as the DEBUG line records. */
+static void check_kill_one_mesh_breakup_life(void)
+{
+	static const uint16_t seeds[] = {0x1234, 0x0F0F, 0x7ACE, 0x2B67,
+					 0x31C5, 0x0555, 0x6E3D, 0x1111};
+	for (size_t i = 0; i < sizeof seeds / sizeof seeds[0]; ++i) {
+		killing_shot();
+		fuselage_craft_model();
+		g_test_craft[1].system_damage_hull_threshold = 100000;
+		g_test_craft[1].ai_controller.saved_rand_seed = seeds[i];
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		int expected = SIMULATION_TICKS_PER_SECOND *
+			       ((nth_draw(seeds[i], 3) & 3) +
+				(nth_draw(seeds[i], 4) & 7) + 1);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+				  CRAFT_OBJECT_KIND_BREAKING_UP);
+		XVT_ASSERT_INT_EQ(g_test_mobiles[1].lifetime_timer, expected);
+		XVT_ASSERT_TRUE(line_holds("combat.craft_breakup", "state=3"));
+	}
+}
+
+/* Comment: only wings are torn off: a ship with a mesh on each side that is
+ * a turret loses none; rotating wings are wings. */
+static void check_kill_which_meshes_tear_off(void)
+{
+	static const int center_x[3] = {0, -100, 100};
+	static const int flags[3] = {0, 0, 0};
+	int torn_left = 0;
+	int torn_right = 0;
+	for (int rotating = 0; rotating < 2; ++rotating) {
+		int types[3] = {MESH_COMPONENT_03_FUSELAGE,
+				rotating ? MESH_COMPONENT_20_ROTATING_WING
+					 : MESH_COMPONENT_04_LASR_TUR,
+				rotating ? MESH_COMPONENT_20_ROTATING_WING
+					 : MESH_COMPONENT_04_LASR_TUR};
+		for (int seed = 0; seed < 16; ++seed) {
+			killing_shot();
+			craft_model(3, types, center_x, flags);
+			g_test_craft[1].system_damage_hull_threshold = 100000;
+			g_test_craft[1].ai_controller.saved_rand_seed =
+				(uint16_t)seed;
+			collide_damagecraft(1, -1, TEST_SHOT, 0);
+			XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+					  CRAFT_OBJECT_KIND_BREAKING_UP);
+			int left = g_test_craft[1].component_state[WING_LEFT] ==
+				   TORN_OFF_STATE;
+			int right =
+				g_test_craft[1].component_state[WING_RIGHT] ==
+				TORN_OFF_STATE;
+			if (rotating) {
+				XVT_ASSERT_TRUE(left != right);
+				XVT_ASSERT_INT_EQ(
+					g_test_objects[TEST_DEBRIS].object_type,
+					CRAFT_SPECIES_COMPONENT);
+				torn_left += left;
+				torn_right += right;
+			} else {
+				XVT_ASSERT_TRUE(!left && !right);
+				XVT_ASSERT_INT_EQ(
+					g_test_objects[TEST_DEBRIS].object_type,
+					0);
+			}
+		}
+	}
+	XVT_ASSERT_TRUE(torn_left > 0 && torn_right > 0);
+}
+
 int main(int argc, char **argv)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -7074,5 +7832,24 @@ int main(int argc, char **argv)
 	check_swept_pair_extent_cap();
 	check_collisions_destroyed_candidate_dropped();
 	check_collisions_shot_meets_shot_in_first_slot();
+	check_bounce_heading();
+	check_collisions_player_bounce_heading();
+	check_wash_width_at_its_start();
+	check_wash_super_destroyer_cut();
+	check_wash_super_destroyer_length();
+	check_jam_super_destroyer_entry_point();
+	check_point_in_face_from_any_corner();
+	check_model_walk_target_off_axis();
+	check_model_walk_mesh_past_the_cache();
+	check_model_walk_box_decides();
+	check_model_walk_faces_of_one_mesh();
+	check_would_shot_hit_life_and_speed();
+	check_swept_pair_polygon_test_paths();
+	check_kill_credit_goes_to_the_firer();
+	check_kill_of_players_craft_credits_once();
+	check_kill_wing_side_follows_the_seed();
+	check_kill_one_mesh_breakup_life();
+	check_kill_which_meshes_tear_off();
+	check_kill_the_only_wing();
 	return 0;
 }
