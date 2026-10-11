@@ -738,6 +738,90 @@ static void check_goal_line_unknown_target(void)
 	XVT_ASSERT_TRUE(strcmp(g_drawn, "r2c2\n") == 0);
 }
 
+/* With a clip edge so near that every piece of two or more characters ends
+ * beyond it (the edge less 11 is 1), the line's height is the font's line
+ * height plus 2, plus the line height plus 1 for each piece the line measures:
+ * a flight group's condition (and, for a single craft, its craft type), a time
+ * limit, a percent, a species' name and its condition, and the two conditions
+ * of a craft-when or status target. Genus, family and IFF names are drawn
+ * without being measured. */
+static void check_goal_line_height_of_pieces(void)
+{
+	enum {
+		BASE = TEST_LINE_HEIGHT + 2,
+		PIECE = TEST_LINE_HEIGHT + 1,
+		NEAR_CLIP = 12,
+	};
+	static const struct {
+		uint16_t amount;
+		int craft_count;
+		uint16_t time_limit;
+		const char *override;
+		int percent;
+		int pieces;
+	} flight_group[] = {
+		{GOAL_AMT_100, 3, 0, NULL, -1, 1},
+		{GOAL_AMT_100, 3, 13, NULL, -1, 2},
+		{GOAL_AMT_100, 3, 13, NULL, 42, 3},
+		{GOAL_AMT_100, 1, 0, NULL, -1, 2},
+		{GOAL_AMT_100, 1, 13, "Escort", 42, 4},
+		{GOAL_AMT_ALL_SPECIAL_CARGO, 3, 0, NULL, -1, 1},
+		{GOAL_AMT_ALL_NON_SPECIAL, 3, 13, NULL, -1, 2},
+		{GOAL_AMT_50, 3, 0, "Escort", -1, 1},
+	};
+	for (size_t i = 0; i < sizeof flight_group / sizeof flight_group[0];
+	     ++i) {
+		fresh_page();
+		load_condition_text(g_str_goal_cond_masculine);
+		name_species(species_with_model());
+		set_group(0, "Red", flight_group[i].craft_count);
+		g_str_goal_conjunctions[GOAL_CONJ_STR_LESS_THAN] = "under";
+		g_flight_clip_right = NEAR_CLIP;
+		XVT_ASSERT_INT_EQ(goals_outputgoal(0, MISSION_COND_DESTROYED,
+						   GOAL_TARGET_FLIGHT_GROUP, 0,
+						   flight_group[i].amount,
+						   flight_group[i].time_limit,
+						   flight_group[i].override,
+						   flight_group[i].percent, 0),
+				  BASE + PIECE * flight_group[i].pieces);
+	}
+	static const struct {
+		uint16_t type;
+		uint16_t target;
+		int pieces;
+	} named[] = {
+		{GOAL_TARGET_SPECIES, 0, 2}, {GOAL_TARGET_GENUS, 2, 1},
+		{GOAL_TARGET_FAMILY, 2, 1},  {GOAL_TARGET_IFF, 0, 1},
+		{GOAL_TARGET_IFF, 3, 1},     {GOAL_TARGET_CRAFT_WHEN, 0, 2},
+		{GOAL_TARGET_STATUS, 0, 2},
+	};
+	for (size_t i = 0; i < sizeof named / sizeof named[0]; ++i) {
+		int species = species_with_model();
+		fresh_page();
+		load_condition_text(g_str_goal_cond_masculine);
+		name_species(species);
+		g_str_goal_genus_names[3] = "Freighters";
+		g_str_goal_family_names[2] = "Satellites";
+		g_str_goal_sides[0] = "Rebel";
+		g_str_goal_sides[1] = "Imperial";
+		g_str_goal_sides[2] = " craft";
+		strcpy(g_mission_header.iff_names[0], "Traders");
+		strcpy(g_mission_header.iff_names[1], "1Pirates");
+		g_flight_clip_right = NEAR_CLIP;
+		uint16_t target = named[i].target;
+		if (named[i].type == GOAL_TARGET_SPECIES ||
+		    named[i].type == GOAL_TARGET_CRAFT_WHEN ||
+		    named[i].type == GOAL_TARGET_STATUS) {
+			target = (uint16_t)(species - 1);
+		}
+		XVT_ASSERT_INT_EQ(goals_outputgoal(target,
+						   MISSION_COND_DESTROYED,
+						   named[i].type, 0,
+						   GOAL_AMT_75, 0, NULL, -1, 0),
+				  BASE + PIECE * named[i].pieces);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	/* "known-failure <check>" runs one check the code is known to fail; an
@@ -779,5 +863,6 @@ int main(int argc, char **argv)
 	check_goal_line_single_craft();
 	check_goal_line_percent_other_titles();
 	check_goal_line_unknown_target();
+	check_goal_line_height_of_pieces();
 	return 0;
 }
