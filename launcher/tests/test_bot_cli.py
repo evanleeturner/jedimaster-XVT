@@ -40,6 +40,7 @@ from jedimaster.bot.credentials import read_token
 from jedimaster.bot.link import ALPHABET
 from jedimaster.bot.link import BotFile
 from jedimaster.page import server
+from jedimaster.page.settings import SettingsStore
 
 logger = logging.getLogger(__name__)
 
@@ -253,7 +254,7 @@ async def test_the_bot_starts_in_the_pages_loop_and_shares_its_control(
     monkeypatch.setattr(discord_door.Door, "run", fake_run)
     cli.setup(settings, typed(SECRET))
     token = cli.check(settings)
-    control = object.__new__(server.Control)
+    control = server.Control(None, SettingsStore(tmp_path / "s.json"), "0")
     start = cli.starter(control, settings, token)
     start(object())
     await asyncio.sleep(0)

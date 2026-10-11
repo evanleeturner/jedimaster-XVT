@@ -9,7 +9,9 @@ Flow:
     own, runs ``<engine> --launch FILE [extra arguments]`` with a time limit,
     then reads and checks the result file: the one the description names,
     or the one the engine writes beside the description when it refuses a
-    description it could not read or check.
+    description it could not read or check. ``fly_async`` does the same
+    without blocking the event loop, and stops the engine when its task is
+    cancelled: ``terminate``, then ``kill`` after ``STOP_SECONDS``.
 
 Invariants:
     - A description that breaks its schema is never given to the engine.
@@ -21,11 +23,13 @@ Invariants:
       the engine starts, so it is never read as this run's.
 
 Call:
-    ``fly(engine, description, extra=(), result=None, timeout=3600.0)``
+    ``fly(engine, description, extra=(), result=None, timeout=3600.0)`` or
+    ``await fly_async(engine, description, extra=(), timeout=3600.0)``
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import subprocess
@@ -39,6 +43,9 @@ from .schema import launch_schema
 from .schema import result_schema
 
 logger = logging.getLogger(__name__)
+
+STOP_SECONDS = 10.0
+"""How long a stopped engine may take to exit before it is killed."""
 
 
 class LaunchError(RuntimeError):
@@ -61,16 +68,7 @@ def fly(
     schema. A refusal by the engine is a result, not an error.
     """
     with tempfile.TemporaryDirectory(prefix="jedimaster-launch-") as folder:
-        result_path = Path(result) if result else Path(folder) / "result.json"
-        written = dict(description, result=str(result_path))
-        problems = errors(written, launch_schema(), "the description")
-        if problems:
-            raise LaunchError("; ".join(problems))
-        description_path = Path(folder) / "launch.json"
-        description_path.write_text(
-            json.dumps(written, indent=2) + "\n", encoding="utf-8"
-        )
-        result_path.unlink(missing_ok=True)
+        description_path, result_path = _prepare(description, folder, result)
         command = [engine, "--launch", str(description_path), *extra]
         logger.info("starting %s", command)
         try:
@@ -84,6 +82,75 @@ def fly(
         logger.info("engine exit code %s", done.returncode)
         written_path = _result_written(result_path, description_path)
         return _read_result(written_path), done.returncode
+
+
+def _prepare(
+    description: dict[str, Any], folder: str, result: str | None
+) -> tuple[Path, Path]:
+    """Check and write the description in ``folder``; return (its path, the result path).
+
+    Raises LaunchError when the description breaks its schema. Removes a result
+    file an earlier run left at the result path.
+    """
+    result_path = Path(result) if result else Path(folder) / "result.json"
+    written = dict(description, result=str(result_path))
+    problems = errors(written, launch_schema(), "the description")
+    if problems:
+        raise LaunchError("; ".join(problems))
+    description_path = Path(folder) / "launch.json"
+    description_path.write_text(json.dumps(written, indent=2) + "\n", encoding="utf-8")
+    result_path.unlink(missing_ok=True)
+    return description_path, result_path
+
+
+async def _stop(process: asyncio.subprocess.Process) -> None:
+    """Ask the engine to exit; kill it if it has not exited after ``STOP_SECONDS``."""
+    if process.returncode is not None:
+        return
+    process.terminate()
+    try:
+        await asyncio.wait_for(process.wait(), STOP_SECONDS)
+    except TimeoutError:
+        logger.info("the engine did not exit in %g seconds: killed", STOP_SECONDS)
+        process.kill()
+        await process.wait()
+
+
+async def fly_async(
+    engine: str,
+    description: dict[str, Any],
+    extra: Sequence[str] = (),
+    timeout: float = 3600.0,
+) -> tuple[dict[str, Any], int]:
+    """Fly one battle without blocking the event loop; return (result, exit code).
+
+    Checks and runs as ``fly`` does, with the result in a temporary folder.
+    Raises LaunchError as ``fly`` does. When the awaiting task is cancelled the
+    engine is stopped (``terminate``, then ``kill`` after ``STOP_SECONDS``)
+    and the cancellation passes on. Does not read a result after a stop.
+    """
+    with tempfile.TemporaryDirectory(prefix="jedimaster-launch-") as folder:
+        description_path, result_path = _prepare(description, folder, None)
+        command = [engine, "--launch", str(description_path), *extra]
+        logger.info("starting %s", command)
+        try:
+            process = await asyncio.create_subprocess_exec(*command)
+        except OSError as exc:
+            raise LaunchError(f"the engine could not be started: {exc}") from exc
+        try:
+            await asyncio.wait_for(process.wait(), timeout)
+        except TimeoutError as exc:
+            await _stop(process)
+            raise LaunchError(
+                f"the engine ran past {timeout:g} seconds and was stopped"
+            ) from exc
+        except asyncio.CancelledError:
+            logger.info("the battle was cancelled: stopping the engine")
+            await asyncio.shield(_stop(process))
+            raise
+        logger.info("engine exit code %s", process.returncode)
+        written_path = _result_written(result_path, description_path)
+        return _read_result(written_path), int(process.returncode)
 
 
 def _result_written(result_path: Path, description_path: Path) -> Path:

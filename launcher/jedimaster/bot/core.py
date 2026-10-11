@@ -8,7 +8,8 @@ Purpose:
 
 Flow:
     A method (``link``, ``status``, ``missions``, ``pick_mission``,
-    ``settings``, ``pick_setting``, ``unlink``) first checks the asker
+    ``settings``, ``pick_setting``, ``unlink``, and from ``walk`` ``solo``,
+    ``pick_solo``, ``launch_solo``, ``options``, ``pick_option``) first checks the asker
     (``Linker``), then builds each request as JSON text and hands it to
     ``Control.handle`` through ``send``, so the page's own checks apply. It
     returns a ``Reply``: the words, the menus to pick from and the pushes
@@ -18,7 +19,10 @@ Flow:
 Invariants:
     - Only the linked account is answered; any other gets ``HOST_ONLY``
       (``/link`` has its own answers) and a WARNING.
-    - ``/link``, ``/settings`` and ``/unlink`` are for a direct message only.
+    - ``/link``, ``/settings`` and ``/unlink`` are for a direct message only;
+      the rest answer anywhere, privately.
+    - The person a right-click item was used on is never an argument: every
+      method takes the asker only.
     - Every request goes through ``send``; a name off the fixed list comes
       back as ``unknown_command`` from ``Control``, never runs.
     - No reply holds the link code or the token.
@@ -33,8 +37,6 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
-from dataclasses import field
 from typing import Any
 
 from ..page.control import Control
@@ -43,6 +45,14 @@ from ..page.protocol import MAX_ID
 from ..page.protocol import MISSION_TYPE_NAMES
 from . import link as linking
 from .link import Linker
+from .reply import clip
+from .reply import menus
+from .reply import Option
+from .reply import Picker
+from .reply import Reply
+from .reply import title_case
+from .walk import kind_options
+from .walk import Walk
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +63,6 @@ DM_ONLY = "Send this command in a direct message to the bot."
 NO_PAGE = "No page is open, so nothing changed on screen."
 REFUSED = "The launcher refused that request."
 BOT_VERSION_NAME = "bot"
-MENU_SIZE = 25
-MENUS_PER_REPLY = 5
-LABEL_LIMIT = 100
 
 LINK_WORDS = {
     linking.LINKED: "Linked. This launcher answers this account only.",
@@ -94,53 +101,35 @@ SETTING_WORDS: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
 """Each setting's name in words, and each value's name and one plain sentence."""
 
 
-@dataclass(frozen=True)
-class Option:
-    """One line of a menu."""
-
-    label: str
-    value: str
-    description: str = ""
-    default: bool = False
-
-
-@dataclass(frozen=True)
-class Picker:
-    """One menu to pick from: ``kind`` is ``mission`` or ``setting``, ``key`` the
-    mission type or the setting's name."""
-
-    kind: str
-    key: str
-    placeholder: str
-    options: tuple[Option, ...]
-
-
-@dataclass
-class Reply:
-    """What to send back: the words, the menus and the pushes for open pages."""
-
-    text: str
-    pickers: tuple[Picker, ...] = ()
-    pushes: list[Json] = field(default_factory=list)
-
-
-def _clip(text: str) -> str:
-    return text if len(text) <= LABEL_LIMIT else text[: LABEL_LIMIT - 3] + "..."
-
-
-def _title_case(name: str) -> str:
-    return name[:1].upper() + name[1:]
-
-
-class Core:
+class Core(Walk):
     """The bot's decisions over one ``Control`` and one ``Linker``."""
 
     def __init__(self, control: Control, linker: Linker, first_id: int = 1) -> None:
         """Hold the launcher's control and the link; request ids count from ``first_id``."""
         self.control = control
         self.linker = linker
+        control.host_player = self._host_player
         self._next_id = first_id
         self._ids: list[int] = []
+
+    def _host_player(self) -> str | None:
+        user = self.linker.linked_user_id
+        return None if user is None else str(user)
+
+    def end_notice(self, push: Json) -> tuple[int, str] | None:
+        """Return (the linked account, the line) for a ``launch.ended`` push, else None.
+
+        The line is the push's one line: the summary of the battle, or the
+        reason it failed or that it was cancelled. None for any other push
+        or when no account is linked. The caller sends it by direct message.
+        """
+        if push.get("event") != "launch.ended":
+            return None
+        user = self.linker.linked_user_id
+        if user is None:
+            logger.debug("a battle ended and no account is linked")
+            return None
+        return user, push["data"]["line"]
 
     # ---- the request path ---------------------------------------------
 
@@ -254,19 +243,28 @@ class Core:
         self._end("status", user_id, "ok")
         return Reply("\n".join(lines))
 
-    def missions(self, user_id: int, mission_type: str, in_dm: bool = False) -> Reply:
-        """Answer ``/missions``: one mission type's network menu as menus to pick from.
+    def missions(
+        self, user_id: int, mission_type: str | None, in_dm: bool = False
+    ) -> Reply:
+        """Answer ``/missions`` and the Show mission item: one type's network menu.
 
-        Offers each id once (the first entry of a repeated id), 25 to a menu
-        and at most 5 menus; says so when the list is longer. Returns words
-        only (no menus) for another account, an unknown type, a list the
-        install lacks or an empty list. Does not check that a file named in
-        the list exists.
+        Without a type (None) offers the six types as a menu to pick from.
+        With one, offers each id once (the first entry of a repeated id), 25
+        to a menu and at most 5 menus; says so when the list is longer.
+        Returns words only (no menus) for another account, an unknown type, a
+        list the install lacks or an empty list. Does not check that a file
+        named in the list exists.
         """
         self._begin("missions", user_id)
         refusal = self._gate("missions", user_id, in_dm, dm_only=False)
         if refusal is not None:
             return refusal
+        if mission_type is None:
+            self._end("missions", user_id, "kinds")
+            return Reply(
+                "Pick a kind of mission to show.",
+                (Picker("missions_kind", "", "Kind of mission", kind_options()),),
+            )
         if mission_type not in MISSION_TYPE_NAMES:
             self._end("missions", user_id, "bad type")
             return Reply(f"The mission type is one of {', '.join(MISSION_TYPE_NAMES)}.")
@@ -275,7 +273,7 @@ class Core:
             self._end("missions", user_id, "error")
             return Reply(REFUSED)
         menu = next(m for m in listed["menus"] if m["mission_type"] == mission_type)
-        name = _title_case(mission_type)
+        name = title_case(mission_type)
         if not menu["resolved"]:
             self._end("missions", user_id, "no list")
             return Reply(f"The game's list of {mission_type} missions was not found.")
@@ -289,29 +287,18 @@ class Core:
             word = "" if entry["available"] else ", not available"
             options.append(
                 Option(
-                    _clip(f"{place}{entry['title']}"),
+                    clip(f"{place}{entry['title']}"),
                     str(entry["id"]),
-                    _clip(f"{entry['file']}{word}"),
+                    clip(f"{entry['file']}{word}"),
                 )
             )
         if not options:
             self._end("missions", user_id, "empty")
             return Reply(f"The list of {mission_type} missions is empty.")
-        room = MENU_SIZE * MENUS_PER_REPLY
-        chunks = [options[i : i + MENU_SIZE] for i in range(0, room, MENU_SIZE)]
-        pickers = tuple(
-            Picker(
-                "mission",
-                mission_type,
-                f"{name} missions {n * MENU_SIZE + 1} to {n * MENU_SIZE + len(chunk)}",
-                tuple(chunk),
-            )
-            for n, chunk in enumerate(chunks)
-            if chunk
-        )
+        pickers, left_out = menus("mission", mission_type, f"{name} missions", options)
         text = f"{name} missions: pick one to show it on the page."
-        if len(options) > room:
-            text += f" Showing the first {room} of {len(options)}."
+        if left_out:
+            text += f" Showing the first {len(options) - left_out} of {len(options)}."
         self._end("missions", user_id, f"{len(options)} listed")
         return Reply(text, pickers)
 

@@ -12,9 +12,9 @@ Flow:
     every response, refusals included), ``check_host`` (DNS-rebinding
     guard), ``check_key`` (the secret: ``GET /?key=K`` sets a cookie and
     redirects to ``/``; every other request needs the cookie). ``socket``
-    checks the origin, then reads one JSON message at a time, hands it to
-    ``Control.handle``, sends the reply and then the pushes to every open
-    socket. ``art`` serves ``GET /art/briefing/<name>`` for the fixed art set. ``serve`` binds, prints the page's URL and runs until stopped.
+    checks the origin, sends the status (and the battle that flies, if any),
+    then reads one JSON message at a time, hands it to ``Control.handle``,
+    sends the reply and then the pushes to every open socket. ``art`` serves ``GET /art/briefing/<name>`` for the fixed art set. ``serve`` binds, prints the page's URL and runs until stopped.
 
 Invariants:
     - The server binds to 127.0.0.1 only.
@@ -197,6 +197,8 @@ async def socket(request: web.Request) -> web.StreamResponse:
     logger.info("page connected")
     try:
         await _send(ws, control.status_push())
+        for push in control.connect_pushes():
+            await _send(ws, push)
         async for msg in ws:
             if msg.type == WSMsgType.TEXT:
                 outcome = control.handle(msg.data)
@@ -224,6 +226,8 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
 
     Does not bind a port. A ``page_dir`` that does not exist serves nothing
     (``/`` answers 404). Every request still passes the three middlewares.
+    The control learns here how many pages are open and sends them every push
+    that no request caused (a battle's start and end).
     """
     app = web.Application(middlewares=[add_headers, check_host, check_key])
     app[CONTROL] = control
@@ -231,6 +235,12 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
     app[KEY] = key
     app[PAGE_DIR] = page_dir
     app[SOCKETS] = set()
+    control.pages_open = lambda: len(app[SOCKETS])
+
+    async def tell_pages(push: dict) -> None:
+        await broadcast(app, [push])
+
+    control.subscribe(tell_pages)
     app.router.add_get("/", index)
     app.router.add_get("/ws", socket)
     app.router.add_get("/art/briefing/{name}", art)

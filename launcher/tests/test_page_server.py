@@ -491,3 +491,99 @@ async def test_serve_calls_on_start_once_with_the_bound_application(
     with pytest.raises(asyncio.CancelledError):
         await task
     assert len(started) == 1
+
+
+# ---- battles seen through the socket --------------------------------------
+
+
+@pytest.fixture
+def flying(tmp_path):
+    from solodata import make_control
+
+    control, _ = make_control(tmp_path, "hang")
+    return control
+
+
+async def test_the_page_count_is_the_open_sockets_and_a_launch_needs_one(
+    aiohttp_client, flying, page_dir
+):
+    from solodata import solo_args
+
+    client = await aiohttp_client(make_app(flying, KEY, page_dir))
+    await client.get(f"/?key={KEY}", allow_redirects=False)
+    assert flying.pages_open() == 0
+    refused = flying.handle(request(1, "launch.solo", solo_args()))
+    assert refused.reply["result"]["started"] is False
+    ws = await connect(client)
+    await receive(ws)
+    assert flying.pages_open() == 1
+    await ws.close()
+    for _ in range(100):
+        if flying.pages_open() == 0:
+            break
+        await asyncio.sleep(0.02)
+    assert flying.pages_open() == 0
+
+
+async def test_a_launch_is_pushed_to_every_page_and_the_ending_too(
+    aiohttp_client, flying, page_dir
+):
+    from solodata import solo_args
+
+    client = await aiohttp_client(make_app(flying, KEY, page_dir))
+    await client.get(f"/?key={KEY}", allow_redirects=False)
+    first, second = await connect(client), await connect(client)
+    await receive(first)
+    await receive(second)
+    reply = await ask(first, 1, "launch.solo", solo_args())
+    assert reply["result"]["started"] is True
+    launch_id = reply["result"]["launch_id"]
+    for ws in (first, second):
+        started = await receive(ws)
+        assert started["event"] == "launch.started"
+        assert started["data"]["launch_id"] == launch_id
+    cancelled = await ask(second, 2, "launch.cancel", {"launch_id": launch_id})
+    assert cancelled["result"]["cancelled"] is True
+    for ws in (first, second):
+        ended = await receive(ws)
+        assert ended["event"] == "launch.ended"
+        assert (ended["data"]["status"], ended["data"]["line"]) == (
+            "cancelled",
+            "cancelled",
+        )
+
+
+async def test_a_page_that_connects_mid_battle_is_told_of_it(
+    aiohttp_client, flying, page_dir
+):
+    from solodata import solo_args
+
+    client = await aiohttp_client(make_app(flying, KEY, page_dir))
+    await client.get(f"/?key={KEY}", allow_redirects=False)
+    first = await connect(client)
+    await receive(first)
+    reply = await ask(first, 1, "launch.solo", solo_args())
+    await receive(first)
+    late = await connect(client)
+    assert (await receive(late))["event"] == "status"
+    started = await receive(late)
+    assert started["event"] == "launch.started"
+    assert started["data"]["launch_id"] == reply["result"]["launch_id"]
+    flying.battles.cancel(reply["result"]["launch_id"])
+    await receive(late)
+
+
+async def test_options_set_on_one_page_are_pushed_to_the_other(
+    aiohttp_client, flying, page_dir
+):
+    client = await aiohttp_client(make_app(flying, KEY, page_dir))
+    await client.get(f"/?key={KEY}", allow_redirects=False)
+    first, second = await connect(client), await connect(client)
+    await receive(first)
+    await receive(second)
+    args = {"player": "7001", "name": "difficulty", "value": "hard"}
+    await ask(first, 1, "options.set", args)
+    for ws in (first, second):
+        pushed = await receive(ws)
+        assert pushed["event"] == "options.changed"
+        assert pushed["data"]["options"]["difficulty"] == "hard"

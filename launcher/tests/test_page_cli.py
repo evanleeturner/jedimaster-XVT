@@ -151,3 +151,74 @@ def test_without_the_web_framework_the_command_says_so():
     done = run_python(code)
     assert done.returncode == 2
     assert "jedimaster[page]" in done.stderr
+
+
+# ---- the game program and the pilot folder ---------------------------------
+
+
+def serve_argv(tmp_path, page_dir, *extra):
+    install = make_install(tmp_path)
+    argv = ["page", "--install", str(install), "--port", "0", "--no-open"]
+    return argv + [
+        "--page-dir",
+        str(page_dir),
+        "--settings",
+        str(tmp_path / "s.json"),
+        *extra,
+    ]
+
+
+def test_without_an_engine_no_battle_can_start(tmp_path, page_dir, served):
+    assert main(serve_argv(tmp_path, page_dir)) == 0
+    assert served[0][0].launching.flight is None
+
+
+def test_engine_engine_args_and_pilot_folder_reach_the_control(
+    tmp_path, page_dir, served
+):
+    engine = tmp_path / "game"
+    engine.write_text("x")
+    folder = tmp_path / "pilots"
+    argv = serve_argv(tmp_path, page_dir, "--engine", str(engine))
+    argv += ["--engine-arg=--game-data", f"--engine-arg={tmp_path}"]
+    argv += ["--pilot-folder", str(folder)]
+    assert main(argv) == 0
+    flight = served[0][0].launching.flight
+    assert flight.engine == str(engine)
+    assert flight.args == ("--game-data", str(tmp_path))
+    assert flight.pilot_folder == folder
+    assert flight.timeout == 3600.0
+
+
+def test_the_pilot_folder_defaults_to_the_games_user_folder(tmp_path, page_dir, served):
+    from jedimaster.launch.pilots import default_pilot_folder
+
+    engine = tmp_path / "game"
+    engine.write_text("x")
+    assert main(serve_argv(tmp_path, page_dir, "--engine", str(engine))) == 0
+    assert served[0][0].launching.flight.pilot_folder == default_pilot_folder()
+
+
+def test_an_engine_that_is_not_a_file_exits_2(tmp_path, page_dir, served, caplog):
+    assert main(serve_argv(tmp_path, page_dir, "--engine", str(tmp_path / "no"))) == 2
+    assert "engine not found" in caplog.text and served == []
+
+
+@pytest.mark.parametrize("flag", [["--engine-arg=x"], ["--pilot-folder", "p"]])
+def test_engine_options_without_an_engine_exit_2(tmp_path, page_dir, served, flag):
+    assert main(serve_argv(tmp_path, page_dir, *flag)) == 2
+    assert served == []
+
+
+def test_a_system_with_no_default_folder_must_be_given_one(
+    tmp_path, page_dir, served, monkeypatch, caplog
+):
+    engine = tmp_path / "game"
+    engine.write_text("x")
+    monkeypatch.setattr(cli, "default_pilot_folder", lambda: None)
+    assert main(serve_argv(tmp_path, page_dir, "--engine", str(engine))) == 2
+    assert "give --pilot-folder" in caplog.text
+    given = serve_argv(
+        tmp_path, page_dir, "--engine", str(engine), "--pilot-folder", "p"
+    )
+    assert main(given) == 0

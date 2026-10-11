@@ -132,3 +132,120 @@ def test_unwritable_file_warns_and_keeps_the_value(tmp_path, caplog):
         assert store.set("art_scaling", "engine_fit") is False
     assert store.get() == {"art_scaling": "engine_fit"}
     assert "cannot write the settings file" in caplog.text
+
+
+# ---- each player's game options ------------------------------------------
+
+
+def test_options_start_empty_and_are_per_player(tmp_path):
+    store = SettingsStore(tmp_path / "s.json")
+    assert store.get_options("7") == {}
+    assert store.options == {}, "reading a player's options makes no entry"
+    store.set_option("7", "difficulty", "hard")
+    assert store.get_options("7") == {"difficulty": "hard"}
+    assert store.get_options("8") == {}
+
+
+def test_the_file_holds_only_the_options_that_are_set(tmp_path):
+    store = SettingsStore(tmp_path / "s.json")
+    assert store.set_option("7", "collisions", False) is True
+    store.set_option("7", "battle_length", 3)
+    on_disk = json.loads(store.path.read_text())
+    assert on_disk == {
+        "art_scaling": "whole_pixels",
+        "game_options": {"7": {"collisions": False, "battle_length": 3}},
+    }
+    store.set_option("7", "collisions", None)
+    assert json.loads(store.path.read_text())["game_options"] == {
+        "7": {"battle_length": 3}
+    }
+    store.set_option("7", "battle_length", None)
+    assert "game_options" not in json.loads(store.path.read_text())
+
+
+def test_options_and_settings_share_the_file_without_losing_each_other(tmp_path):
+    store = SettingsStore(tmp_path / "s.json")
+    store.set_option("7", "difficulty", "easy")
+    store.set("art_scaling", "engine_fit")
+    again = SettingsStore(store.path)
+    assert again.get() == {"art_scaling": "engine_fit"}
+    assert again.get_options("7") == {"difficulty": "easy"}
+
+
+def test_the_write_is_atomic_and_leaves_no_temporary_file(tmp_path):
+    store = SettingsStore(tmp_path / "config" / "s.json")
+    store.set_option("7", "difficulty", "easy")
+    assert sorted(p.name for p in store.path.parent.iterdir()) == ["s.json"]
+
+
+@pytest.mark.parametrize(
+    "player, name, value",
+    [
+        ("x", "difficulty", "easy"),
+        ("", "difficulty", "easy"),
+        ("1" * 21, "difficulty", "easy"),
+        ("7", "speed", "fast"),
+        ("7", "speed", None),
+        ("7", "difficulty", "impossible"),
+        ("7", "collisions", 1),
+        ("7", "mission_time_limit", True),
+    ],
+)
+def test_a_bad_player_option_or_value_raises_and_changes_nothing(
+    tmp_path, player, name, value
+):
+    store = SettingsStore(tmp_path / "s.json")
+    with pytest.raises(ValueError):
+        store.set_option(player, name, value)
+    assert store.options == {} and not store.path.exists()
+
+
+def test_a_broken_game_options_entry_is_dropped_with_a_warning(tmp_path, caplog):
+    path = tmp_path / "s.json"
+    path.write_text(
+        json.dumps(
+            {
+                "art_scaling": "engine_fit",
+                "game_options": {
+                    "7": {"difficulty": "hard", "collisions": 1, "speed": "x"},
+                    "bad": {"difficulty": "easy"},
+                    "9": "nope",
+                },
+            }
+        )
+    )
+    with caplog.at_level(logging.WARNING):
+        store = SettingsStore(path)
+    assert store.get_options("7") == {"difficulty": "hard"}
+    assert store.get_options("bad") == {} and store.get_options("9") == {}
+    assert store.get() == {"art_scaling": "engine_fit"}
+    assert caplog.text.count("WARNING") >= 4
+
+
+def test_game_options_that_are_not_an_object_are_ignored_with_a_warning(
+    tmp_path, caplog
+):
+    path = tmp_path / "s.json"
+    path.write_text('{"game_options": [1]}')
+    with caplog.at_level(logging.WARNING):
+        assert SettingsStore(path).options == {}
+    assert "not an object" in caplog.text
+
+
+def test_a_broken_file_is_not_overwritten_until_an_option_is_set(tmp_path):
+    path = tmp_path / "s.json"
+    path.write_text("{broken")
+    store = SettingsStore(path)
+    assert path.read_text() == "{broken"
+    store.set_option("7", "difficulty", "easy")
+    assert json.loads(path.read_text())["game_options"] == {"7": {"difficulty": "easy"}}
+
+
+def test_an_unwritable_file_keeps_the_option_in_memory_and_warns(tmp_path, caplog):
+    blocker = tmp_path / "blocker"
+    blocker.write_text("a file, not a folder")
+    store = SettingsStore(blocker / "s.json")
+    with caplog.at_level(logging.WARNING):
+        assert store.set_option("7", "difficulty", "easy") is False
+    assert store.get_options("7") == {"difficulty": "easy"}
+    assert "cannot write" in caplog.text

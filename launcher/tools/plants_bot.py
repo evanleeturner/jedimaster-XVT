@@ -28,6 +28,9 @@ import logging
 from plants_bot_core import CORE_PLANTS
 from plants_bot_core import DOOR_PLANTS
 from plants_common import Plant
+from plants_solo import SOLO_PLANTS
+from plants_solo_bot import SOLO_BOT_PLANTS
+from plants_solo_schema import SOLO_SCHEMA_PLANTS
 
 logger = logging.getLogger(__name__)
 
@@ -642,4 +645,7 @@ BOT_PLANTS: list[Plant] = [
     *CORE_PLANTS,
     *DOOR_PLANTS,
     *CLI_PLANTS,
+    *SOLO_PLANTS,
+    *SOLO_BOT_PLANTS,
+    *SOLO_SCHEMA_PLANTS,
 ]

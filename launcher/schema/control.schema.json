@@ -25,6 +25,24 @@
       "$ref": "#/$defs/BriefingGetRequest"
     },
     {
+      "$ref": "#/$defs/LaunchMenuRequest"
+    },
+    {
+      "$ref": "#/$defs/PilotsListRequest"
+    },
+    {
+      "$ref": "#/$defs/LaunchSoloRequest"
+    },
+    {
+      "$ref": "#/$defs/LaunchCancelRequest"
+    },
+    {
+      "$ref": "#/$defs/OptionsGetRequest"
+    },
+    {
+      "$ref": "#/$defs/OptionsSetRequest"
+    },
+    {
       "$ref": "#/$defs/OkReply"
     },
     {
@@ -38,6 +56,15 @@
     },
     {
       "$ref": "#/$defs/ShowMissionPush"
+    },
+    {
+      "$ref": "#/$defs/LaunchStartedPush"
+    },
+    {
+      "$ref": "#/$defs/LaunchEndedPush"
+    },
+    {
+      "$ref": "#/$defs/OptionsChangedPush"
     }
   ],
   "$defs": {
@@ -422,6 +449,136 @@
       ],
       "additionalProperties": false
     },
+    "GameOptions": {
+      "type": "object",
+      "description": "The game options a player has set; null is left as the game has it.",
+      "properties": {
+        "difficulty": {
+          "anyOf": [
+            {
+              "enum": [
+                "easy",
+                "medium",
+                "hard",
+                "easy_cheat"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "collisions": {
+          "anyOf": [
+            {
+              "enum": [
+                "on",
+                "off"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "craft_jumping": {
+          "anyOf": [
+            {
+              "enum": [
+                "on",
+                "off"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "random_setup": {
+          "anyOf": [
+            {
+              "enum": [
+                "on",
+                "off"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "battle_length": {
+          "anyOf": [
+            {
+              "enum": [
+                "2",
+                "3",
+                "4"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mission_time_limit": {
+          "anyOf": [
+            {
+              "enum": [
+                "none",
+                "default",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "10",
+                "11",
+                "12",
+                "13",
+                "14",
+                "15",
+                "16",
+                "17",
+                "18",
+                "19",
+                "20"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "continue_sequence": {
+          "anyOf": [
+            {
+              "enum": [
+                "restart",
+                "continue"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "difficulty",
+        "collisions",
+        "craft_jumping",
+        "random_setup",
+        "battle_length",
+        "mission_time_limit",
+        "continue_sequence"
+      ],
+      "additionalProperties": false
+    },
     "GroupData": {
       "type": "object",
       "description": "One flight group: what the map draws for it.",
@@ -509,7 +666,7 @@
           "type": "string"
         },
         "schema_revision": {
-          "const": 4
+          "const": 5
         }
       },
       "required": [
@@ -583,6 +740,286 @@
         "found",
         "path",
         "balance_of_power"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchCancelArgs": {
+      "type": "object",
+      "description": "The launch to stop.",
+      "properties": {
+        "launch_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "launch_id"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchCancelRequest": {
+      "type": "object",
+      "description": "Stop the battle that is flying.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "launch.cancel"
+        },
+        "args": {
+          "$ref": "#/$defs/LaunchCancelArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchCancelResult": {
+      "type": "object",
+      "description": "Whether a flying launch was stopped, and one plain sentence.",
+      "properties": {
+        "cancelled": {
+          "type": "boolean"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cancelled",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchEndedData": {
+      "type": "object",
+      "description": "How the battle ended: its status and the one line that says so.",
+      "properties": {
+        "launch_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "status": {
+          "enum": [
+            "flown",
+            "refused",
+            "not_reached",
+            "failed",
+            "cancelled",
+            "error"
+          ]
+        },
+        "line": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "launch_id",
+        "status",
+        "line"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchEndedPush": {
+      "type": "object",
+      "description": "Sent to every open page when a battle ends.",
+      "properties": {
+        "event": {
+          "const": "launch.ended"
+        },
+        "data": {
+          "$ref": "#/$defs/LaunchEndedData"
+        }
+      },
+      "required": [
+        "event",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchMenuRequest": {
+      "type": "object",
+      "description": "Ask for the solo list of a kind of battle and side.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "launch.menu"
+        },
+        "args": {
+          "$ref": "#/$defs/SoloMenuArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchSoloArgs": {
+      "type": "object",
+      "description": "One battle to fly: who asks, the kind, the side, the mission's file and the pilot.",
+      "properties": {
+        "player": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "mission_type": {
+          "enum": [
+            "training",
+            "melee",
+            "tournament",
+            "combat",
+            "battle",
+            "campaign"
+          ]
+        },
+        "side": {
+          "enum": [
+            "rebel",
+            "imperial",
+            "none"
+          ]
+        },
+        "mission": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "pilot": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 12
+        }
+      },
+      "required": [
+        "player",
+        "mission_type",
+        "side",
+        "mission",
+        "pilot"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchSoloRequest": {
+      "type": "object",
+      "description": "Fly one solo battle in the background, if every value is on the lists.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "launch.solo"
+        },
+        "args": {
+          "$ref": "#/$defs/LaunchSoloArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchSoloResult": {
+      "type": "object",
+      "description": "Whether the battle started (``launch_id`` is 0 when not), and one plain sentence.",
+      "properties": {
+        "started": {
+          "type": "boolean"
+        },
+        "launch_id": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "started",
+        "launch_id",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchStartedData": {
+      "type": "object",
+      "description": "The battle that started, as a page shows it.",
+      "properties": {
+        "launch_id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "mission_type": {
+          "enum": [
+            "training",
+            "melee",
+            "tournament",
+            "combat",
+            "battle",
+            "campaign"
+          ]
+        },
+        "side": {
+          "enum": [
+            "rebel",
+            "imperial",
+            "none"
+          ]
+        },
+        "mission": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "pilot": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "launch_id",
+        "mission_type",
+        "side",
+        "mission",
+        "title",
+        "pilot"
+      ],
+      "additionalProperties": false
+    },
+    "LaunchStartedPush": {
+      "type": "object",
+      "description": "Sent to every open page when a battle starts.",
+      "properties": {
+        "event": {
+          "const": "launch.started"
+        },
+        "data": {
+          "$ref": "#/$defs/LaunchStartedData"
+        }
+      },
+      "required": [
+        "event",
+        "data"
       ],
       "additionalProperties": false
     },
@@ -719,6 +1156,21 @@
             },
             {
               "$ref": "#/$defs/BriefingGetResult"
+            },
+            {
+              "$ref": "#/$defs/SoloMenuResult"
+            },
+            {
+              "$ref": "#/$defs/PilotsListResult"
+            },
+            {
+              "$ref": "#/$defs/LaunchSoloResult"
+            },
+            {
+              "$ref": "#/$defs/LaunchCancelResult"
+            },
+            {
+              "$ref": "#/$defs/OptionsResult"
             }
           ]
         }
@@ -727,6 +1179,194 @@
         "id",
         "ok",
         "result"
+      ],
+      "additionalProperties": false
+    },
+    "OptionsChangedPush": {
+      "type": "object",
+      "description": "Sent to every open page after a player's game options changed.",
+      "properties": {
+        "event": {
+          "const": "options.changed"
+        },
+        "data": {
+          "$ref": "#/$defs/OptionsResult"
+        }
+      },
+      "required": [
+        "event",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "OptionsGetArgs": {
+      "type": "object",
+      "description": "The player whose game options to read; null is the account this launcher answers.",
+      "properties": {
+        "player": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "player"
+      ],
+      "additionalProperties": false
+    },
+    "OptionsGetRequest": {
+      "type": "object",
+      "description": "Ask for a player's game options.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "options.get"
+        },
+        "args": {
+          "$ref": "#/$defs/OptionsGetArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "OptionsResult": {
+      "type": "object",
+      "description": "One player's game options (``player`` is null when no account is linked).",
+      "properties": {
+        "player": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "options": {
+          "$ref": "#/$defs/GameOptions"
+        }
+      },
+      "required": [
+        "player",
+        "options"
+      ],
+      "additionalProperties": false
+    },
+    "OptionsSetArgs": {
+      "type": "object",
+      "description": "Set one game option of a player to a choice, or null to leave it as the game has it.",
+      "properties": {
+        "player": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "name": {
+          "enum": [
+            "difficulty",
+            "collisions",
+            "craft_jumping",
+            "random_setup",
+            "battle_length",
+            "mission_time_limit",
+            "continue_sequence"
+          ]
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "player",
+        "name",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "OptionsSetRequest": {
+      "type": "object",
+      "description": "Set one game option of a player.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "options.set"
+        },
+        "args": {
+          "$ref": "#/$defs/OptionsSetArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "PilotsListRequest": {
+      "type": "object",
+      "description": "Ask for the pilots the game has.",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "command": {
+          "const": "pilots.list"
+        },
+        "args": {
+          "$ref": "#/$defs/NoArgs"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "args"
+      ],
+      "additionalProperties": false
+    },
+    "PilotsListResult": {
+      "type": "object",
+      "description": "The pilots the game has; ``found`` is false when the pilot folder cannot be read.",
+      "properties": {
+        "found": {
+          "type": "boolean"
+        },
+        "pilots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "found",
+        "pilots"
       ],
       "additionalProperties": false
     },
@@ -950,6 +1590,102 @@
         "mission_type",
         "id",
         "title"
+      ],
+      "additionalProperties": false
+    },
+    "SoloEntryData": {
+      "type": "object",
+      "description": "One mission a solo list offers; ``opens_once_flown`` marks a mission not yet open.",
+      "properties": {
+        "section": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "opens_once_flown": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "section",
+        "file",
+        "title",
+        "opens_once_flown"
+      ],
+      "additionalProperties": false
+    },
+    "SoloMenuArgs": {
+      "type": "object",
+      "description": "A kind of battle and a side: the solo list to read.",
+      "properties": {
+        "mission_type": {
+          "enum": [
+            "training",
+            "melee",
+            "tournament",
+            "combat",
+            "battle",
+            "campaign"
+          ]
+        },
+        "side": {
+          "enum": [
+            "rebel",
+            "imperial",
+            "none"
+          ]
+        }
+      },
+      "required": [
+        "mission_type",
+        "side"
+      ],
+      "additionalProperties": false
+    },
+    "SoloMenuResult": {
+      "type": "object",
+      "description": "A solo list, or the fact that it does not resolve.",
+      "properties": {
+        "mission_type": {
+          "enum": [
+            "training",
+            "melee",
+            "tournament",
+            "combat",
+            "battle",
+            "campaign"
+          ]
+        },
+        "side": {
+          "enum": [
+            "rebel",
+            "imperial",
+            "none"
+          ]
+        },
+        "game_path": {
+          "type": "string"
+        },
+        "resolved": {
+          "type": "boolean"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SoloEntryData"
+          }
+        }
+      },
+      "required": [
+        "mission_type",
+        "side",
+        "game_path",
+        "resolved",
+        "entries"
       ],
       "additionalProperties": false
     },

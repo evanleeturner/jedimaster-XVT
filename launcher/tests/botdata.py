@@ -14,8 +14,9 @@ Flow:
 Invariants:
     - No network, no discord.py client connection, no game data.
     - The stand-in has only what the handlers read: ``user.id``, ``guild``,
-      ``response`` (``send_message``, ``defer``, ``is_done``) and
-      ``followup.send``.
+      ``response`` (``send_message``, ``edit_message``, ``send_modal``,
+      ``defer``, ``is_done``), ``followup.send`` and
+      ``edit_original_response``.
 
 Call:
     ``bot = make_bot(tmp_path); bot.link_account(7); talk = Talk(7)``
@@ -32,6 +33,7 @@ from typing import Any
 
 from pagedata import LAUNCHER_VERSION
 from pagedata import make_install
+from solodata import make_control
 
 from jedimaster.bot.core import Core
 from jedimaster.bot.link import BotFile
@@ -66,6 +68,14 @@ class Response:
         self.calls.append(("send_message", args, kwargs))
         self.done = True
 
+    async def edit_message(self, *args: Any, **kwargs: Any) -> None:
+        self.calls.append(("edit_message", args, kwargs))
+        self.done = True
+
+    async def send_modal(self, *args: Any, **kwargs: Any) -> None:
+        self.calls.append(("send_modal", args, kwargs))
+        self.done = True
+
     async def defer(self, *args: Any, **kwargs: Any) -> None:
         self.calls.append(("defer", args, kwargs))
         self.done = True
@@ -92,6 +102,11 @@ class Talk:
     in_server: bool = False
     response: Response = field(default_factory=Response)
     followup: Followup = field(default_factory=Followup)
+    edits: list[dict] = field(default_factory=list)
+
+    async def edit_original_response(self, **kwargs: Any) -> None:
+        """Record an edit of the message that was clicked."""
+        self.edits.append(kwargs)
 
     @property
     def user(self) -> SimpleNamespace:
@@ -108,7 +123,15 @@ class Talk:
             for name, args, kwargs in self.response.calls
             if name == "send_message"
         ]
-        return sent + [(args[0], kwargs) for args, kwargs in self.followup.calls]
+        edited = [
+            (kwargs["content"], kwargs)
+            for name, _, kwargs in self.response.calls
+            if name == "edit_message"
+        ]
+        edited += [(kwargs["content"], kwargs) for kwargs in self.edits]
+        return (
+            sent + [(args[0], kwargs) for args, kwargs in self.followup.calls] + edited
+        )
 
     def texts(self) -> list[str]:
         """Return every text sent."""
@@ -133,10 +156,18 @@ class Bot:
         assert self.linker.attempt(user_id, code) == "linked"
 
 
-def make_bot(tmp_path: Path) -> Bot:
-    """Return a bot over a made-up install, with nothing linked yet."""
-    store = SettingsStore(tmp_path / "config" / "settings.json")
-    control = Control(make_install(tmp_path), store, LAUNCHER_VERSION)
+def make_bot(tmp_path: Path, engine: str | None = None, *extra: str) -> Bot:
+    """Return a bot over a made-up install, with nothing linked yet.
+
+    With ``engine`` (a behaviour of the stand-in engine, see ``solodata``)
+    the install has solo lists, the launcher has pilots and the stand-in
+    engine, and one page counts as open; ``extra`` are more engine arguments.
+    """
+    if engine is None:
+        store = SettingsStore(tmp_path / "config" / "settings.json")
+        control = Control(make_install(tmp_path), store, LAUNCHER_VERSION)
+    else:
+        control, _ = make_control(tmp_path, engine, *extra)
     clock = Clock()
     bot_file = BotFile(tmp_path / "config" / "bot.json")
     linker = Linker(bot_file, clock=clock)

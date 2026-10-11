@@ -433,10 +433,10 @@ SETTINGS_PLANTS: list[Plant] = [
     ),
     Plant(
         "page-settings-set-not-written",
-        SET,
-        "        return self._write()",
-        "        return True",
-        (TS + "test_a_change_is_written_and_read_back",),
+        "jedimaster/page/settings.py",
+        '        logger.debug("setting %s = %s", name, value)\n        return self._write()',
+        '        logger.debug("setting %s = %s", name, value)\n        return True',
+        ("tests/test_page_settings.py::test_a_change_is_written_and_read_back",),
     ),
     Plant(
         "page-settings-no-folder-made",
@@ -447,10 +447,10 @@ SETTINGS_PLANTS: list[Plant] = [
     ),
     Plant(
         "page-settings-write-in-place",
-        SET,
-        '            temp.write_text(json.dumps(self.values, indent=2) + "\\n", encoding="utf-8")\n            os.replace(temp, self.path)',
-        '            self.path.write_text(json.dumps(self.values, indent=2) + "\\n", encoding="utf-8")\n            temp.write_text("half", encoding="utf-8")',
-        (TS + "test_a_change_is_written_and_read_back",),
+        "jedimaster/page/settings.py",
+        '            temp.write_text(json.dumps(document, indent=2) + "\\n", encoding="utf-8")\n            os.replace(temp, self.path)',
+        '            self.path.write_text(json.dumps(document, indent=2) + "\\n", encoding="utf-8")\n            temp.write_text("half", encoding="utf-8")',
+        ("tests/test_page_settings.py::test_a_change_is_written_and_read_back",),
     ),
     Plant(
         "page-settings-write-failure-hidden",
@@ -492,10 +492,10 @@ SHOW_PLANTS: list[Plant] = [
     ),
     Plant(
         "page-show-type-unchecked",
-        CTL,
-        "    if not isinstance(kind, str) or kind not in MISSION_TYPE_NAMES:",
-        "    if not isinstance(kind, str):",
-        (TC + "test_bad_arguments[show-unknown-type]",),
+        "jedimaster/page/control.py",
+        '    kind, ident = args["mission_type"], args["id"]\n    if not isinstance(kind, str) or kind not in MISSION_TYPE_NAMES:',
+        '    kind, ident = args["mission_type"], args["id"]\n    if not isinstance(kind, str):',
+        ("tests/test_page_control.py::test_bad_arguments[show-unknown-type]",),
     ),
     Plant(
         "page-show-negative-id-allowed",
@@ -583,18 +583,23 @@ SHOW_PLANTS: list[Plant] = [
     ),
     Plant(
         "page-show-hello-says-revision-1",
-        PRO,
-        "SCHEMA_REVISION = 4",
+        "jedimaster/page/protocol.py",
+        "SCHEMA_REVISION = 5",
         "SCHEMA_REVISION = 1",
-        (TC + "test_hello", TC + "test_the_list_has_seven_commands_and_revision_4"),
+        (
+            "tests/test_page_control.py::test_hello",
+            "tests/test_page_control.py::test_the_list_has_thirteen_commands_and_revision_5",
+        ),
     ),
     Plant(
         "page-show-command-dropped",
-        PRO,
-        "    ShowMissionRequest,\n    BriefingGetRequest,\n)\nCOMMANDS",
-        "    BriefingGetRequest,\n)\nCOMMANDS",
-        (TC + "test_the_list_has_seven_commands_and_revision_4",),
-        regen_schema=True,
+        "jedimaster/page/protocol.py",
+        "    ShowMissionRequest,\n    BriefingGetRequest,\n",
+        "    BriefingGetRequest,\n",
+        (
+            "tests/test_page_control.py::test_the_list_has_thirteen_commands_and_revision_5",
+        ),
+        True,
     ),
     Plant(
         "page-show-type-name-dropped",

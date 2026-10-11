@@ -1,14 +1,16 @@
 """The control list: every message the page and the launcher exchange.
 
 Purpose:
-    Name, as dataclasses, the one fixed list of commands (revision 4), their
-    arguments and results, the three pushes and the error codes. The schema
+    Name, as dataclasses, the one fixed list of commands (revision 5), their
+    arguments and results, the pushes and the error codes. The schema
     (``schema``) is built from these classes, so the list has one source.
 
 Flow:
     A request is one of the ``*Request`` classes; the launcher answers with
     ``OkReply`` (its ``result`` one of the ``*Result`` classes) or
-    ``ErrorReply``; it also sends ``StatusPush`` and ``SettingsChangedPush`` and ``ShowMissionPush``.
+    ``ErrorReply``; it also sends ``StatusPush``, ``SettingsChangedPush``,
+    ``ShowMissionPush``, ``LaunchStartedPush``, ``LaunchEndedPush`` and
+    ``OptionsChangedPush``.
     The classes describe the JSON shapes; ``control`` builds the dicts.
 
 Invariants:
@@ -34,7 +36,7 @@ from ..briefing.model import BriefingBundle
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_REVISION = 4
+SCHEMA_REVISION = 5
 """The revision of the control list; a change to any message raises it."""
 
 MAX_MESSAGE_BYTES = 64 * 1024
@@ -52,6 +54,37 @@ MissionTypeName = Literal[
 ]
 MISSION_TYPE_NAMES: tuple[str, ...] = typing.get_args(MissionTypeName)
 """The six mission types a page can be told to show."""
+
+SideName = Literal["rebel", "imperial", "none"]
+SIDE_NAMES: tuple[str, ...] = typing.get_args(SideName)
+"""The three sides a solo battle names: ``none`` for a type that takes no side."""
+
+OptionName = Literal[
+    "difficulty",
+    "collisions",
+    "craft_jumping",
+    "random_setup",
+    "battle_length",
+    "mission_time_limit",
+    "continue_sequence",
+]
+OPTION_NAMES: tuple[str, ...] = typing.get_args(OptionName)
+"""The seven game options, in the order the menus list them."""
+DifficultyText = Literal["easy", "medium", "hard", "easy_cheat"]
+SwitchText = Literal["on", "off"]
+BattleLengthText = Literal["2", "3", "4"]
+TimeLimitText = Literal[
+    "none", "default", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+    "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
+]  # fmt: skip
+SequenceText = Literal["restart", "continue"]
+LaunchStatus = Literal[
+    "flown", "refused", "not_reached", "failed", "cancelled", "error"
+]
+LAUNCH_STATUSES: tuple[str, ...] = typing.get_args(LaunchStatus)
+"""How a launch can end: the engine's four results, ``cancelled`` and ``error``."""
+MAX_PLAYER_DIGITS = 20
+"""A player is named by a Discord account id: 1 to 20 digits, as text."""
 
 ERROR_CODES = ("bad_message", "unknown_command", "bad_arguments")
 ErrorCode = Literal["bad_message", "unknown_command", "bad_arguments"]
@@ -108,11 +141,53 @@ class BriefingGetArgs:
 
 
 @dataclass
+class SoloMenuArgs:
+    """A kind of battle and a side: the solo list to read."""
+
+    mission_type: MissionTypeName
+    side: SideName
+
+
+@dataclass
+class LaunchSoloArgs:
+    """One battle to fly: who asks, the kind, the side, the mission's file and the pilot."""
+
+    player: str = field(metadata={"minLength": 1, "maxLength": MAX_PLAYER_DIGITS})
+    mission_type: MissionTypeName
+    side: SideName
+    mission: str = field(metadata={"minLength": 1, "maxLength": 64})
+    pilot: str = field(metadata={"minLength": 1, "maxLength": 12})
+
+
+@dataclass
+class LaunchCancelArgs:
+    """The launch to stop."""
+
+    launch_id: int = field(metadata={"minimum": 1, "maximum": MAX_ID})
+
+
+@dataclass
+class OptionsGetArgs:
+    """The player whose game options to read; null is the account this launcher answers."""
+
+    player: str | None
+
+
+@dataclass
+class OptionsSetArgs:
+    """Set one game option of a player to a choice, or null to leave it as the game has it."""
+
+    player: str = field(metadata={"minLength": 1, "maxLength": MAX_PLAYER_DIGITS})
+    name: OptionName
+    value: str | None
+
+
+@dataclass
 class HelloResult:
     """The launcher's version and the revision of the control list."""
 
     launcher_version: str
-    schema_revision: Literal[4]
+    schema_revision: Literal[5]
 
 
 @dataclass
@@ -164,6 +239,73 @@ class ShowMissionResult:
     """Whether the mission was found in its menu and so shown."""
 
     shown: bool
+
+
+@dataclass
+class SoloEntryData:
+    """One mission a solo list offers; ``opens_once_flown`` marks a mission not yet open."""
+
+    section: str
+    file: str
+    title: str
+    opens_once_flown: bool
+
+
+@dataclass
+class SoloMenuResult:
+    """A solo list, or the fact that it does not resolve."""
+
+    mission_type: MissionTypeName
+    side: SideName
+    game_path: str
+    resolved: bool
+    entries: list[SoloEntryData]
+
+
+@dataclass
+class PilotsListResult:
+    """The pilots the game has; ``found`` is false when the pilot folder cannot be read."""
+
+    found: bool
+    pilots: list[str]
+
+
+@dataclass
+class LaunchSoloResult:
+    """Whether the battle started (``launch_id`` is 0 when not), and one plain sentence."""
+
+    started: bool
+    launch_id: int = field(metadata={"minimum": 0, "maximum": MAX_ID})
+    message: str
+
+
+@dataclass
+class LaunchCancelResult:
+    """Whether a flying launch was stopped, and one plain sentence."""
+
+    cancelled: bool
+    message: str
+
+
+@dataclass
+class GameOptions:
+    """The game options a player has set; null is left as the game has it."""
+
+    difficulty: DifficultyText | None
+    collisions: SwitchText | None
+    craft_jumping: SwitchText | None
+    random_setup: SwitchText | None
+    battle_length: BattleLengthText | None
+    mission_time_limit: TimeLimitText | None
+    continue_sequence: SequenceText | None
+
+
+@dataclass
+class OptionsResult:
+    """One player's game options (``player`` is null when no account is linked)."""
+
+    player: str | None
+    options: GameOptions
 
 
 @dataclass
@@ -240,6 +382,60 @@ class BriefingGetRequest:
     args: BriefingGetArgs
 
 
+@dataclass
+class LaunchMenuRequest:
+    """Ask for the solo list of a kind of battle and side."""
+
+    id: int = field(metadata=ID_RANGE)
+    command: Literal["launch.menu"]
+    args: SoloMenuArgs
+
+
+@dataclass
+class PilotsListRequest:
+    """Ask for the pilots the game has."""
+
+    id: int = field(metadata=ID_RANGE)
+    command: Literal["pilots.list"]
+    args: NoArgs
+
+
+@dataclass
+class LaunchSoloRequest:
+    """Fly one solo battle in the background, if every value is on the lists."""
+
+    id: int = field(metadata=ID_RANGE)
+    command: Literal["launch.solo"]
+    args: LaunchSoloArgs
+
+
+@dataclass
+class LaunchCancelRequest:
+    """Stop the battle that is flying."""
+
+    id: int = field(metadata=ID_RANGE)
+    command: Literal["launch.cancel"]
+    args: LaunchCancelArgs
+
+
+@dataclass
+class OptionsGetRequest:
+    """Ask for a player's game options."""
+
+    id: int = field(metadata=ID_RANGE)
+    command: Literal["options.get"]
+    args: OptionsGetArgs
+
+
+@dataclass
+class OptionsSetRequest:
+    """Set one game option of a player."""
+
+    id: int = field(metadata=ID_RANGE)
+    command: Literal["options.set"]
+    args: OptionsSetArgs
+
+
 REQUEST_CLASSES = (
     HelloRequest,
     InstallStatusRequest,
@@ -248,6 +444,12 @@ REQUEST_CLASSES = (
     SettingsSetRequest,
     ShowMissionRequest,
     BriefingGetRequest,
+    LaunchMenuRequest,
+    PilotsListRequest,
+    LaunchSoloRequest,
+    LaunchCancelRequest,
+    OptionsGetRequest,
+    OptionsSetRequest,
 )
 COMMANDS: tuple[str, ...] = tuple(
     typing.get_args(typing.get_type_hints(cls)["command"])[0] for cls in REQUEST_CLASSES
@@ -270,6 +472,11 @@ class OkReply:
         | SettingsResult
         | ShowMissionResult
         | BriefingGetResult
+        | SoloMenuResult
+        | PilotsListResult
+        | LaunchSoloResult
+        | LaunchCancelResult
+        | OptionsResult
     )
 
 
@@ -331,6 +538,51 @@ class ShowMissionPush:
     data: ShownMission
 
 
+@dataclass
+class LaunchStartedData:
+    """The battle that started, as a page shows it."""
+
+    launch_id: int = field(metadata={"minimum": 1, "maximum": MAX_ID})
+    mission_type: MissionTypeName
+    side: SideName
+    mission: str
+    title: str
+    pilot: str
+
+
+@dataclass
+class LaunchStartedPush:
+    """Sent to every open page when a battle starts."""
+
+    event: Literal["launch.started"]
+    data: LaunchStartedData
+
+
+@dataclass
+class LaunchEndedData:
+    """How the battle ended: its status and the one line that says so."""
+
+    launch_id: int = field(metadata={"minimum": 1, "maximum": MAX_ID})
+    status: LaunchStatus
+    line: str
+
+
+@dataclass
+class LaunchEndedPush:
+    """Sent to every open page when a battle ends."""
+
+    event: Literal["launch.ended"]
+    data: LaunchEndedData
+
+
+@dataclass
+class OptionsChangedPush:
+    """Sent to every open page after a player's game options changed."""
+
+    event: Literal["options.changed"]
+    data: OptionsResult
+
+
 MESSAGE_CLASSES = (
     *REQUEST_CLASSES,
     OkReply,
@@ -338,4 +590,7 @@ MESSAGE_CLASSES = (
     StatusPush,
     SettingsChangedPush,
     ShowMissionPush,
+    LaunchStartedPush,
+    LaunchEndedPush,
+    OptionsChangedPush,
 )

@@ -11,10 +11,12 @@ Flow:
     runs the command from ``Control.commands`` and builds the reply dict.
     ``settings.set`` also builds the ``settings.changed`` push, and
     ``page.show_mission`` the ``page.show_mission`` push, for every open
-    front end; the caller sends them.
+    front end; the caller sends them. The launch and option commands live in
+    ``launching``; a battle's ending reaches front ends through
+    ``Control.subscribe``.
 
 Invariants:
-    - Only the seven commands of ``protocol.COMMANDS`` run; every other name
+    - Only the commands of ``protocol.COMMANDS`` run; every other name
       is refused and logged at WARNING.
     - ``handle`` never raises for a request, however malformed.
     - A reply to a request whose id cannot be read carries id 0.
@@ -27,6 +29,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Awaitable
 from collections.abc import Callable
 from dataclasses import dataclass
 from dataclasses import field
@@ -46,14 +49,21 @@ from ..lists.game import MISSION_TYPES
 from ..lists.text import ListFormatError
 from ..mission import MissionFormatError
 from ..mission import read_mission
+from .battles import Battles
+from .battles import Flight
+from .launching import Launching
+from .launching import option_value_problem
 from .protocol import COMMANDS
 from .protocol import MAX_ID
 from .protocol import MAX_MESSAGE_BYTES
+from .protocol import MAX_PLAYER_DIGITS
 from .protocol import MISSION_TYPE_NAMES
+from .protocol import OPTION_NAMES
 from .protocol import SCHEMA_REVISION
 from .protocol import SETTINGS
 from .protocol import UNKNOWN_ID
 from .settings import SettingsStore
+from .solo import side_problem
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +135,71 @@ def _show_args(args: Json) -> str | None:
     return None
 
 
+def _is_player(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and value.isascii()
+        and value.isdigit()
+        and 1 <= len(value) <= MAX_PLAYER_DIGITS
+    )
+
+
+def _kind_and_side(args: Json) -> str | None:
+    kind, side = args["mission_type"], args["side"]
+    if not isinstance(kind, str) or kind not in MISSION_TYPE_NAMES:
+        return f"no such mission type; one of {list(MISSION_TYPE_NAMES)}"
+    return side_problem(kind, side)
+
+
+def _menu_args(args: Json) -> str | None:
+    if set(args) != {"mission_type", "side"}:
+        return "arguments must be exactly mission_type and side"
+    return _kind_and_side(args)
+
+
+def _solo_args(args: Json) -> str | None:
+    names = {"player", "mission_type", "side", "mission", "pilot"}
+    if set(args) != names:
+        return "arguments must be exactly player, mission_type, side, mission and pilot"
+    if not _is_player(args["player"]):
+        return "player must be an account id: 1 to 20 digits as text"
+    problem = _kind_and_side(args)
+    if problem is not None:
+        return problem
+    for name, limit in (("mission", 64), ("pilot", 12)):
+        value = args[name]
+        if not isinstance(value, str) or not 1 <= len(value) <= limit:
+            return f"{name} must be text of 1 to {limit} characters"
+    return None
+
+
+def _cancel_args(args: Json) -> str | None:
+    if set(args) != {"launch_id"}:
+        return "arguments must be exactly launch_id"
+    if not _is_int(args["launch_id"]) or not 1 <= args["launch_id"] <= MAX_ID:
+        return "launch_id must be a whole number from 1 to 2147483647"
+    return None
+
+
+def _options_get_args(args: Json) -> str | None:
+    if set(args) != {"player"}:
+        return "arguments must be exactly player"
+    if args["player"] is not None and not _is_player(args["player"]):
+        return "player must be null or an account id: 1 to 20 digits as text"
+    return None
+
+
+def _options_set_args(args: Json) -> str | None:
+    if set(args) != {"player", "name", "value"}:
+        return "arguments must be exactly player, name and value"
+    if not _is_player(args["player"]):
+        return "player must be an account id: 1 to 20 digits as text"
+    name = args["name"]
+    if not isinstance(name, str) or name not in OPTION_NAMES:
+        return f"no such option; one of {list(OPTION_NAMES)}"
+    return option_value_problem(name, args["value"])
+
+
 ARG_CHECKS: dict[str, Callable[[Json], str | None]] = {
     "hello": _hello_args,
     "install.status": _no_args,
@@ -133,6 +208,12 @@ ARG_CHECKS: dict[str, Callable[[Json], str | None]] = {
     "settings.set": _set_args,
     "page.show_mission": _show_args,
     "briefing.get": _show_args,
+    "launch.menu": _menu_args,
+    "pilots.list": _no_args,
+    "launch.solo": _solo_args,
+    "launch.cancel": _cancel_args,
+    "options.get": _options_get_args,
+    "options.set": _options_set_args,
 }
 """Each command's check of its arguments: None when fine, else the reason."""
 
@@ -183,15 +264,36 @@ def _home_form(path: Path) -> str:
 
 
 class Control:
-    """The launcher's state and the seven commands that read or change it."""
+    """The launcher's state and the commands that read or change it."""
 
     def __init__(
-        self, install: Path | None, store: SettingsStore, launcher_version: str
+        self,
+        install: Path | None,
+        store: SettingsStore,
+        launcher_version: str,
+        flight: Flight | None = None,
     ) -> None:
-        """Hold the install found (or None), the settings and the version."""
+        """Hold the install found (or None), the settings, the version and the game program.
+
+        Without ``flight`` no battle can start. ``pages_open`` and
+        ``host_player`` are set by the front end that serves the pages and by
+        the bot; until then no page is open and no account is linked.
+        """
         self.install = install
         self.store = store
         self.launcher_version = launcher_version
+        self.pages_open: Callable[[], int] = lambda: 0
+        self.host_player: Callable[[], str | None] = lambda: None
+        self.listeners: list[Callable[[Json], Awaitable[None]]] = []
+        self.battles = Battles(self._publish)
+        self.launching = Launching(
+            install,
+            store,
+            flight,
+            self.battles,
+            lambda: self.pages_open(),
+            lambda: self.host_player(),
+        )
         self.commands: dict[str, Callable[[Json], Json]] = {
             "hello": self._hello,
             "install.status": self._install_status,
@@ -200,8 +302,44 @@ class Control:
             "settings.set": self._settings_set,
             "page.show_mission": self._show_mission,
             "briefing.get": self._briefing_get,
+            "launch.menu": self.launching.menu,
+            "pilots.list": self.launching.pilots,
+            "launch.solo": self._launch_solo,
+            "launch.cancel": self.launching.cancel,
+            "options.get": self.launching.options_get,
+            "options.set": self._options_set,
         }
         self._pushes: list[Json] = []
+
+    def subscribe(self, listener: Callable[[Json], Awaitable[None]]) -> None:
+        """Send every later push that no request caused (a battle's ending) to ``listener``."""
+        self.listeners.append(listener)
+
+    async def _publish(self, push: Json) -> None:
+        for listener in list(self.listeners):
+            try:
+                await listener(push)
+            except Exception as exc:  # one failing front end must not stop the others
+                logger.warning("a listener failed on %s: %s", push["event"], exc)
+
+    def connect_pushes(self) -> list[Json]:
+        """Return the pushes a page gets after ``status`` when it connects.
+
+        The ``launch.started`` push of the battle that is flying, if any, so
+        a page opened late still shows it and can cancel it.
+        """
+        running = self.battles.running_push()
+        return [running] if running is not None else []
+
+    def _launch_solo(self, args: Json) -> Json:
+        result, pushes = self.launching.solo(args)
+        self._pushes.extend(pushes)
+        return result
+
+    def _options_set(self, args: Json) -> Json:
+        result, pushes = self.launching.options_set(args)
+        self._pushes.extend(pushes)
+        return result
 
     def status_push(self) -> Json:
         """Return the ``status`` push a front end sends when one connects."""

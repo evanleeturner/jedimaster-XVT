@@ -1,0 +1,1 @@
+{"id": 1, "ok": true, "result": {"mission_type": "training", "side": "rebel", "game_path": "train\\rebel.lst", "resolved": true, "entries": [{"section": "Basic", "file": "1ta02bz.tie", "title": "First Flight", "opens_once_flown": false}, {"section": "", "file": "1ta09bz.tie", "title": "Later Flight", "opens_once_flown": true}]}}

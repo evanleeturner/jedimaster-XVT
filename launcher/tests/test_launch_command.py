@@ -285,3 +285,45 @@ def test_the_summary_line_for_each_status():
     )
     assert summary({**base, "status": "not_reached"}) == "not reached: Because."
     assert summary({**base, "status": "refused"}) == "refused: Because."
+
+
+def test_setting_flags_become_the_settings_of_the_description(
+    monkeypatch, engine, capsys
+):
+    from jedimaster.launch import cli as launch_cli
+
+    seen = []
+    real = launch_cli.fly
+
+    def spy(engine_path, description, *rest):
+        seen.append(description)
+        return real(engine_path, description, *rest)
+
+    monkeypatch.setattr(launch_cli, "fly", spy)
+    argv = command(engine, "Ace", "--setting", "difficulty=hard")
+    argv += ["--setting", "collisions=off", "--setting", "mission_time_limit=5"]
+    assert main(argv) == 0
+    assert seen[0]["settings"] == {
+        "difficulty": "hard",
+        "collisions": False,
+        "mission_time_limit": 5,
+    }
+
+
+def test_without_a_setting_flag_the_description_has_no_settings(monkeypatch, engine):
+    from jedimaster.launch import cli as launch_cli
+
+    seen = []
+    real = launch_cli.fly
+    monkeypatch.setattr(
+        launch_cli, "fly", lambda e, d, *r: (seen.append(d), real(e, d, *r))[1]
+    )
+    assert main(command(engine)) == 0
+    assert "settings" not in seen[0]
+
+
+@pytest.mark.parametrize(
+    "flag", ["difficulty=impossible", "speed=fast", "difficulty", "collisions=1"]
+)
+def test_a_setting_flag_that_is_not_an_option_exits_2(engine, flag, caplog):
+    assert main(command(engine, "Ace", "--setting", flag)) == 2

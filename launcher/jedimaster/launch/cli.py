@@ -9,7 +9,9 @@ Flow:
     ``add_parser`` adds the command; ``run`` builds the description, flies it
     through ``run.fly`` and prints the line. ``--engine-arg`` hands one extra
     argument to the engine (for example ``--engine-arg=--game-data`` then
-    ``--engine-arg=/path``), and ``--result`` keeps the result file.
+    ``--engine-arg=/path``), ``--result`` keeps the result file, and
+    ``--setting NAME=VALUE`` (repeatable) sets one game option of the
+    description (see ``options``).
 
 Invariants:
     - ``print`` carries only the one line; diagnostics go to the logging
@@ -32,6 +34,7 @@ from typing import Any
 from .model import build_description
 from .model import GAME_TYPES
 from .model import SIDES
+from .options import parse_setting
 from .run import fly
 from .run import LaunchError
 
@@ -63,6 +66,13 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
     launch.add_argument(
         "--engine-arg", action="append", default=[], help="one extra engine argument"
     )
+    launch.add_argument(
+        "--setting",
+        action="append",
+        default=[],
+        metavar="NAME=VALUE",
+        help="one game option, for example difficulty=hard (repeatable)",
+    )
 
 
 def summary(result: dict[str, Any]) -> str:
@@ -83,8 +93,14 @@ def run(args: argparse.Namespace) -> int:
     arguments make no description.
     """
     try:
+        settings = dict(parse_setting(item) for item in args.setting)
         description = build_description(
-            args.game_type, args.side, args.mission, args.pilot, seed=args.seed
+            args.game_type,
+            args.side,
+            args.mission,
+            args.pilot,
+            seed=args.seed,
+            settings=settings,
         )
     except ValueError as exc:
         logger.error("%s", exc)

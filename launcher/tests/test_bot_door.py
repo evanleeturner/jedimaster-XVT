@@ -72,15 +72,38 @@ def test_the_door_asks_for_the_guilds_intent_only(rig):
     assert rig.door.client.intents.value == discord.Intents(guilds=True).value
 
 
-def test_the_commands_are_the_five_in_the_table(rig):
-    names = sorted(c.name for c in rig.door.tree.get_commands())
-    assert names == ["link", "missions", "settings", "status", "unlink"]
+def test_the_commands_are_the_seven_slash_commands_and_the_seven_right_click_items(rig):
+    slash = sorted(
+        c.name
+        for c in rig.door.tree.get_commands(type=discord.AppCommandType.chat_input)
+    )
+    right_click = sorted(
+        c.name for c in rig.door.tree.get_commands(type=discord.AppCommandType.user)
+    )
+    assert slash == [
+        "link",
+        "missions",
+        "options",
+        "settings",
+        "solo",
+        "status",
+        "unlink",
+    ]
+    assert right_click == [
+        "Game options",
+        "Launcher settings",
+        "Link",
+        "Show mission",
+        "Single player",
+        "Status",
+        "Unlink",
+    ]
 
 
 def test_direct_message_commands_are_dm_only_and_the_others_anywhere(rig):
     for command in rig.door.tree.get_commands():
         contexts = command.allowed_contexts
-        if command.name in ("link", "settings", "unlink"):
+        if command.name.lower() in ("link", "launcher settings", "settings", "unlink"):
             assert (contexts.guild, contexts.dm_channel, contexts.private_channel) == (
                 False,
                 True,
@@ -335,7 +358,7 @@ async def test_the_list_syncs_when_new_and_not_again_while_unchanged(
         assert await rig.door.sync_if_changed() is True
         assert await rig.door.sync_if_changed() is False
     assert syncs == [1]
-    assert "synced 5 commands" in caplog.text
+    assert "synced 14 commands" in caplog.text
     assert rig.store.commands_digest == commands_digest(rig.door.tree)
 
 

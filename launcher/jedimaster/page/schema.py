@@ -7,7 +7,7 @@ Purpose:
 Flow:
     ``control_schema`` walks the dataclasses of ``protocol`` through their
     type hints: ``int``, ``str``, ``bool``, ``Literal`` (one value is a
-    ``const``, several an ``enum``), ``X | None``, ``list[X]``, a union of
+    ``const``, several an ``enum``), ``X | None`` (also for a ``Literal``), ``list[X]``, a union of
     dataclasses (``oneOf``) and a nested dataclass (``$ref``). A field's
     ``minimum``, ``maximum``, ``minLength`` and ``maxLength`` metadata pass
     through.
@@ -58,7 +58,7 @@ def _type_schema(hint: Any, defs: dict[str, Any]) -> dict[str, Any]:
     if typing.get_origin(hint) is list:
         (inner,) = typing.get_args(hint)
         return {"type": "array", "items": _type_schema(inner, defs)}
-    if isinstance(hint, types.UnionType):
+    if isinstance(hint, types.UnionType) or typing.get_origin(hint) is typing.Union:
         args = typing.get_args(hint)
         if type(None) in args:
             (inner,) = [a for a in args if a is not type(None)]
@@ -111,8 +111,7 @@ def schema_of(root: type, schema_id: str, title: str) -> dict[str, Any]:
 def control_schema() -> dict[str, Any]:
     """Return the JSON Schema (draft 2020-12) of every control message.
 
-    Always returns the same dict for the same model: one of the six
-    requests, the two replies or the three pushes, each a closed object. Does
+    Always returns the same dict for the same model: one of the requests, the two replies or the six pushes, each a closed object. Does
     not encode which result answers which command, or that a setting's value
     belongs to its name beyond what the argument classes say.
     """

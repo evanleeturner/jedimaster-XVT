@@ -13,11 +13,20 @@ export type LauncherControlMessage =
   | SettingsSetRequest
   | ShowMissionRequest
   | BriefingGetRequest
+  | LaunchMenuRequest
+  | PilotsListRequest
+  | LaunchSoloRequest
+  | LaunchCancelRequest
+  | OptionsGetRequest
+  | OptionsSetRequest
   | OkReply
   | ErrorReply
   | StatusPush
   | SettingsChangedPush
-  | ShowMissionPush;
+  | ShowMissionPush
+  | LaunchStartedPush
+  | LaunchEndedPush
+  | OptionsChangedPush;
 
 /**
  * Ask the launcher to introduce itself.
@@ -107,20 +116,122 @@ export interface BriefingGetArgs {
   id: number;
 }
 /**
+ * Ask for the solo list of a kind of battle and side.
+ */
+export interface LaunchMenuRequest {
+  id: number;
+  command: "launch.menu";
+  args: SoloMenuArgs;
+}
+/**
+ * A kind of battle and a side: the solo list to read.
+ */
+export interface SoloMenuArgs {
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  side: "rebel" | "imperial" | "none";
+}
+/**
+ * Ask for the pilots the game has.
+ */
+export interface PilotsListRequest {
+  id: number;
+  command: "pilots.list";
+  args: NoArgs;
+}
+/**
+ * Fly one solo battle in the background, if every value is on the lists.
+ */
+export interface LaunchSoloRequest {
+  id: number;
+  command: "launch.solo";
+  args: LaunchSoloArgs;
+}
+/**
+ * One battle to fly: who asks, the kind, the side, the mission's file and the pilot.
+ */
+export interface LaunchSoloArgs {
+  player: string;
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  side: "rebel" | "imperial" | "none";
+  mission: string;
+  pilot: string;
+}
+/**
+ * Stop the battle that is flying.
+ */
+export interface LaunchCancelRequest {
+  id: number;
+  command: "launch.cancel";
+  args: LaunchCancelArgs;
+}
+/**
+ * The launch to stop.
+ */
+export interface LaunchCancelArgs {
+  launch_id: number;
+}
+/**
+ * Ask for a player's game options.
+ */
+export interface OptionsGetRequest {
+  id: number;
+  command: "options.get";
+  args: OptionsGetArgs;
+}
+/**
+ * The player whose game options to read; null is the account this launcher answers.
+ */
+export interface OptionsGetArgs {
+  player: string | null;
+}
+/**
+ * Set one game option of a player.
+ */
+export interface OptionsSetRequest {
+  id: number;
+  command: "options.set";
+  args: OptionsSetArgs;
+}
+/**
+ * Set one game option of a player to a choice, or null to leave it as the game has it.
+ */
+export interface OptionsSetArgs {
+  player: string;
+  name:
+    | "difficulty"
+    | "collisions"
+    | "craft_jumping"
+    | "random_setup"
+    | "battle_length"
+    | "mission_time_limit"
+    | "continue_sequence";
+  value: string | null;
+}
+/**
  * The command ran; its result.
  */
 export interface OkReply {
   id: number;
   ok: true;
   result:
-    HelloResult | InstallStatusResult | MissionsListResult | SettingsResult | ShowMissionResult | BriefingGetResult;
+    | HelloResult
+    | InstallStatusResult
+    | MissionsListResult
+    | SettingsResult
+    | ShowMissionResult
+    | BriefingGetResult
+    | SoloMenuResult
+    | PilotsListResult
+    | LaunchSoloResult
+    | LaunchCancelResult
+    | OptionsResult;
 }
 /**
  * The launcher's version and the revision of the control list.
  */
 export interface HelloResult {
   launcher_version: string;
-  schema_revision: 4;
+  schema_revision: 5;
 }
 /**
  * The install found (home shown as ~) and whether Balance of Power is in it.
@@ -284,6 +395,91 @@ export interface SoundData {
   picture: string;
 }
 /**
+ * A solo list, or the fact that it does not resolve.
+ */
+export interface SoloMenuResult {
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  side: "rebel" | "imperial" | "none";
+  game_path: string;
+  resolved: boolean;
+  entries: SoloEntryData[];
+}
+/**
+ * One mission a solo list offers; ``opens_once_flown`` marks a mission not yet open.
+ */
+export interface SoloEntryData {
+  section: string;
+  file: string;
+  title: string;
+  opens_once_flown: boolean;
+}
+/**
+ * The pilots the game has; ``found`` is false when the pilot folder cannot be read.
+ */
+export interface PilotsListResult {
+  found: boolean;
+  pilots: string[];
+}
+/**
+ * Whether the battle started (``launch_id`` is 0 when not), and one plain sentence.
+ */
+export interface LaunchSoloResult {
+  started: boolean;
+  launch_id: number;
+  message: string;
+}
+/**
+ * Whether a flying launch was stopped, and one plain sentence.
+ */
+export interface LaunchCancelResult {
+  cancelled: boolean;
+  message: string;
+}
+/**
+ * One player's game options (``player`` is null when no account is linked).
+ */
+export interface OptionsResult {
+  player: string | null;
+  options: GameOptions;
+}
+/**
+ * The game options a player has set; null is left as the game has it.
+ */
+export interface GameOptions {
+  difficulty: ("easy" | "medium" | "hard" | "easy_cheat") | null;
+  collisions: ("on" | "off") | null;
+  craft_jumping: ("on" | "off") | null;
+  random_setup: ("on" | "off") | null;
+  battle_length: ("2" | "3" | "4") | null;
+  mission_time_limit:
+    | (
+        | "none"
+        | "default"
+        | "1"
+        | "2"
+        | "3"
+        | "4"
+        | "5"
+        | "6"
+        | "7"
+        | "8"
+        | "9"
+        | "10"
+        | "11"
+        | "12"
+        | "13"
+        | "14"
+        | "15"
+        | "16"
+        | "17"
+        | "18"
+        | "19"
+        | "20"
+      )
+    | null;
+  continue_sequence: ("restart" | "continue") | null;
+}
+/**
  * The command did not run; the reason.
  */
 export interface ErrorReply {
@@ -333,4 +529,44 @@ export interface ShownMission {
   mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
   id: number;
   title: string;
+}
+/**
+ * Sent to every open page when a battle starts.
+ */
+export interface LaunchStartedPush {
+  event: "launch.started";
+  data: LaunchStartedData;
+}
+/**
+ * The battle that started, as a page shows it.
+ */
+export interface LaunchStartedData {
+  launch_id: number;
+  mission_type: "training" | "melee" | "tournament" | "combat" | "battle" | "campaign";
+  side: "rebel" | "imperial" | "none";
+  mission: string;
+  title: string;
+  pilot: string;
+}
+/**
+ * Sent to every open page when a battle ends.
+ */
+export interface LaunchEndedPush {
+  event: "launch.ended";
+  data: LaunchEndedData;
+}
+/**
+ * How the battle ended: its status and the one line that says so.
+ */
+export interface LaunchEndedData {
+  launch_id: number;
+  status: "flown" | "refused" | "not_reached" | "failed" | "cancelled" | "error";
+  line: string;
+}
+/**
+ * Sent to every open page after a player's game options changed.
+ */
+export interface OptionsChangedPush {
+  event: "options.changed";
+  data: OptionsResult;
 }

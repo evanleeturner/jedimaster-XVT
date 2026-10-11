@@ -109,6 +109,6 @@ def test_the_mission_id_runs_from_zero_to_the_largest_id():
         assert defs[name]["properties"]["id"]["maximum"] == 2**31 - 1
 
 
-def test_hello_promises_revision_4_only():
+def test_hello_promises_revision_5_only():
     defs = control_schema()["$defs"]
-    assert defs["HelloResult"]["properties"]["schema_revision"] == {"const": 4}
+    assert defs["HelloResult"]["properties"]["schema_revision"] == {"const": 5}
