@@ -8988,6 +8988,7 @@ static void check_object_matches_variable(void)
 	group->group_ai = 2;
 	group->status1 = 1;
 	group->orders[0].order = 7;
+	g_mission_flight_groups[1] = g_mission_flight_groups[0];
 	place_craft(0, 0, 0);
 	g_test_mobiles[0].team = 1;
 	g_test_mobiles[0].iff = 2;
@@ -9018,12 +9019,21 @@ static void check_object_matches_variable(void)
 					  0, (uint16_t)rows[i].type,
 					  (uint16_t)rows[i].variable),
 				  rows[i].expected);
+		/* Without a mobile record the object's group gives it all; here
+		 * it is group 1, a copy of group 0. */
 		struct mobile_object *mobile = g_test_objects[0].mobj;
 		g_test_objects[0].mobj = NULL;
+		g_test_objects[0].flight_group_idx = 1;
+		int bare = rows[i].bare;
+		if ((rows[i].type == 1 || rows[i].type == 15) &&
+		    rows[i].variable <= 1) {
+			bare = !bare;
+		}
 		XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(
 					  0, (uint16_t)rows[i].type,
 					  (uint16_t)rows[i].variable),
-				  rows[i].bare);
+				  bare);
+		g_test_objects[0].flight_group_idx = 0;
 		g_test_objects[0].mobj = mobile;
 	}
 	/* Species, genus and family. */
@@ -9877,11 +9887,18 @@ static void check_wave_completion_makes_room(void)
 {
 	static const struct {
 		int craft;
+		int free;
 		int freed;
 		int missing;
-	} rows[] = {{32, 2, 0}, {40, 2, 8}, {31, 1, 0}};
+	} rows[] = {{32, 29, 2, 1},
+		    {40, 29, 2, 9},
+		    {31, 29, 2, 0},
+		    {30, 29, 1, 0},
+		    {29, 29, 0, 0}};
 	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
 		arrivals_mission(0);
+		/* Another group's craft is flying: it is never taken. */
+		arriving_group(1, 1, TEST_XWING, 1);
 		begin_arrivals();
 		int first = craft_slot(0, 0);
 		int second = craft_slot(0, 1);
@@ -9892,13 +9909,20 @@ static void check_wave_completion_makes_room(void)
 			CRAFT_OBJECT_KIND_BREAKING_UP;
 		g_mission_flight_groups[0].fg.number_of_craft =
 			(uint8_t)rows[i].craft;
+		g_log_line_count = 0;
 		mission_process_flight_group_wave_completion(0);
-		char fields[64];
-		snprintf(fields, sizeof fields,
-			 "needed=%d free=30 freed=%d missing=%d", rows[i].craft,
-			 rows[i].freed, rows[i].missing);
-		XVT_ASSERT_TRUE(
-			line_holds("mission.wave_room_made fg=0 ", fields));
+		if (rows[i].craft > rows[i].free) {
+			char fields[64];
+			snprintf(fields, sizeof fields,
+				 "needed=%d free=%d freed=%d missing=%d",
+				 rows[i].craft, rows[i].free, rows[i].freed,
+				 rows[i].missing);
+			XVT_ASSERT_TRUE(line_holds(
+				"mission.wave_room_made fg=0 ", fields));
+		} else {
+			XVT_ASSERT_INT_EQ(count_lines("mission.wave_room_made"),
+					  0);
+		}
 		XVT_ASSERT_INT_EQ(
 			g_mission_fg_stats[0]
 				.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
@@ -9908,6 +9932,7 @@ static void check_wave_completion_makes_room(void)
 				.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
 			4);
 		XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].waves_remaining, 0);
+		XVT_ASSERT_INT_EQ(craft_count_in_group(1), 1);
 	}
 	/* A player-owned explosion or craft is not taken. */
 	arrivals_mission(0);
@@ -10868,10 +10893,12 @@ static void check_credit_team_share(void)
 		int shared_from_group;
 		int team_full;
 		int team_shared;
+		int team_assist;
 	} rows[] = {
-		{100, 0, 1, 0, 1, 0},	{40, 0, 0, 1, 0, 1},
-		{100, 100, 0, 0, 1, 0}, {40, 40, 0, 0, 0, 1},
-		{10, 0, 0, 0, 0, 0},	{70, 40, 0, 1, 1, 0},
+		{100, 0, 1, 0, 1, 0, 0},   {40, 0, 0, 1, 0, 1, 0},
+		{100, 100, 0, 0, 1, 0, 0}, {40, 40, 0, 0, 0, 1, 0},
+		{10, 0, 0, 0, 0, 0, 1},	   {70, 40, 0, 1, 1, 0, 0},
+		{5, 0, 0, 0, 0, 0, 1},	   {4, 0, 0, 0, 0, 0, 0},
 	};
 	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
 		credit_world();
@@ -10898,6 +10925,9 @@ static void check_credit_team_share(void)
 		XVT_ASSERT_INT_EQ(
 			g_flight_mission_state.runtime.team_kill_stats[1][0],
 			rows[i].team_shared);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.runtime.team_kill_stats[2][0],
+			rows[i].team_assist);
 	}
 }
 
@@ -11072,6 +11102,7 @@ static void check_craft_loss_classes(void)
 		{0, 0, 0, 0, 20, 20, "starship", -1, 0, 1, 0},
 		{20, 0, 20, 0, 0, 0, "player", 2, 0, 0, 0},
 		{0, 0, 0, 0, 0, 20, "mine", -1, 0, 0, 1},
+		{10, 0, 40, 10, 10, 10, "computer", -1, 0, 0, 0},
 	};
 	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
 		loss_world();
@@ -11141,6 +11172,16 @@ static void check_craft_loss_pending_and_owner(void)
 				"mission.pending_damage object=0 ", fields));
 		}
 	}
+	/* A shield of 1 counts for what is left: two of them are 2, halved 1,
+	 * and one damage is not more than that. */
+	loss_world();
+	craft_damage(1, 0, 0, 0, 0, 0);
+	g_test_craft[0].hull_damage = 100;
+	g_test_craft[0].shield_energy[0] = 1;
+	g_test_craft[0].shield_energy[1] = 1;
+	mission_record_player_craft_loss(0, 1);
+	XVT_ASSERT_TRUE(line_holds("mission.pending_damage object=0 ",
+				   "pending=1 remaining=1 credited=0"));
 	/* Shields count for what is left, the hull when it is not spent. */
 	loss_world();
 	craft_damage(60, 0, 0, 0, 0, 0);
@@ -11524,12 +11565,24 @@ static void check_credit_worse_tiers(void)
 		int damage;
 		int divisor;
 	} rows[] = {{100, 1}, {40, 2}, {10, 10}};
+	XVT_ASSERT_TRUE(craft_of_other_model() != 0);
 	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
 		credit_world();
 		strcpy(g_plan_table[3].name, "nullpln");
 		g_test_craft[1].ai_controller.current_plan_id = 3;
 		victim_damage(100, rows[i].damage);
+		/* A victim worth a hundred times the killer. */
+		g_test_objects[1].object_type = (uint8_t)craft_of_other_model();
+		struct model_def *victim_model =
+			model_of(g_test_objects[1].object_type);
+		struct model_def *killer_model = model_of(TEST_XWING);
+		struct model_def saved_victim = *victim_model;
+		struct model_def saved_killer = *killer_model;
+		victim_model->rating_weight = 100;
+		killer_model->rating_weight = 1;
 		mission_credit_destruction_damage_contributors(0, 1);
+		*victim_model = saved_victim;
+		*killer_model = saved_killer;
 		const char *line = find_line(
 			"mission.rating_awarded slot=0 kind=\"worse\"");
 		XVT_ASSERT_TRUE(line != NULL);
@@ -11653,6 +11706,46 @@ static void check_condition_more_cases(void)
 					     GOAL_AMT_ALL_SPECIAL_CARGO, 0),
 			  2);
 	*model = saved;
+	/* Exact thresholds of the percentages: 1 of 4 is 25, 4 of 6 is 66 and 2
+	 * of 6 is 33 percent; and with all four connected nobody is missing for
+	 * "at least one disconnected". */
+	static const struct {
+		int groups;
+		int connected;
+		int amount;
+		int condition;
+		int result;
+	} exact[] = {
+		{4, 1, GOAL_AMT_25, MISSION_COND_PLAYER_CONNECTED, 1},
+		{6, 4, GOAL_AMT_66, MISSION_COND_PLAYER_CONNECTED, 1},
+		{6, 2, GOAL_AMT_33, MISSION_COND_PLAYER_CONNECTED, 1},
+		{4, 4, GOAL_AMT_AT_LEAST_1, MISSION_COND_PLAYER_DISCONNECTED,
+		 2},
+		{4, 3, GOAL_AMT_AT_LEAST_1, MISSION_COND_PLAYER_DISCONNECTED,
+		 1},
+	};
+	for (size_t i = 0; i < sizeof exact / sizeof exact[0]; ++i) {
+		for (int by_iff = 0; by_iff < 2; ++by_iff) {
+			fresh_world();
+			g_mission_header.num_flight_groups =
+				(uint16_t)exact[i].groups;
+			for (int fg = 0; fg < exact[i].groups; ++fg) {
+				player_group(fg, fg + 1, 1, 2);
+				g_players[fg].team = 1;
+				g_players[fg].iff = 2;
+				g_players[fg].participation_state =
+					fg < exact[i].connected;
+			}
+			XVT_ASSERT_INT_EQ(mission_evaluate_condition(
+						  (uint16_t)exact[i].condition,
+						  by_iff ? GOAL_TARGET_IFF
+							 : GOAL_TARGET_TEAM,
+						  by_iff ? 2 : 1,
+						  (int16_t)exact[i].amount, 0,
+						  10),
+					  exact[i].result);
+		}
+	}
 }
 
 /* The opposites of the species, genus and family variables of an object
@@ -11778,6 +11871,103 @@ static void check_outcome_dropoff_closes_group(void)
 				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
 			  3);
 	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].has_arrived, 0);
+}
+
+/* A primary goal on the victim's group, for the killer's team, does not change
+ * what the kill is worth: the same kill counts and the same score is added,
+ * whatever the goal's event (a kill by the local player also asks the wingman
+ * for a word, which the voice settings here leave off). */
+static void check_credit_with_primary_goal(void)
+{
+	static const int events[] = {MISSION_COND_ALWAYS_TRUE,
+				     MISSION_COND_DESTROYED, MISSION_COND_NEVER,
+				     MISSION_COND_DISABLED};
+	for (size_t i = 0; i < sizeof events / sizeof events[0]; ++i) {
+		credit_world();
+		g_local_player = 0;
+		set_fg_goal(1, 0, 0, events[i], GOAL_AMT_100, 0, 0x1);
+		int score = mission_compute_kill_score_for_object(1);
+		mission_credit_destruction_damage_contributors(0, 1);
+		XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score,
+				  score);
+		XVT_ASSERT_INT_EQ(g_players[0]
+					  .per_mission_kills
+					  .kills_full_on_flight_group[1],
+				  1);
+	}
+}
+
+/* A victim whose rating is more than 4 below the killer's, and whose rating is
+ * 0, gives the worse total a rating of 1 for the kill. */
+static void check_credit_worse_rating_of_zero(void)
+{
+	credit_world();
+	g_players[0].pilot_rating = 6;
+	g_players[1].pilot_rating = 0;
+	g_mission_flight_groups[1].player_owner_idx = 1;
+	g_test_craft[1].damage_stats.damage_received_by_player_owned_craft =
+		100;
+	mission_credit_destruction_damage_contributors(0, 1);
+	XVT_ASSERT_INT_EQ(g_players[0].mission_stats.rating_promo_points, 0);
+	XVT_ASSERT_TRUE(g_players[0].mission_stats.worse_rating_promo_points >
+			0);
+	XVT_ASSERT_TRUE(line_holds(
+		"mission.rating_awarded slot=0 kind=\"worse\" ", "award=1 "));
+}
+
+/* The craft states 11 and 14 of type 7 (the opposites of "attacked by another
+ * team" and "identified by another team") match a craft that no team attacked
+ * or identified, and not one that every team did. */
+static void check_object_states_untouched_and_all(void)
+{
+	fresh_world();
+	struct craft_data *craft = place_craft(0, 0, 0);
+	memset(craft->identified_order_by_team, 0,
+	       sizeof craft->identified_order_by_team);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 11), 1);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 5), 0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 14), 1);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 1), 0);
+	for (int team = 0; team < 10; ++team) {
+		craft->attacked_by_team[team] = 1;
+		craft->identified_order_by_team[team] = 1;
+	}
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 11), 0);
+	XVT_ASSERT_INT_EQ(mission_object_matches_trigger_variable(0, 7, 14), 0);
+}
+
+/* A round that comes from hyperspace heads for the group's fifth mission
+ * point and starts 8 times 65,535 units back along that heading, in all
+ * three axes. */
+static void check_spawn_hyperspace_toward_fifth_point(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 1);
+	struct xvt_flight_group *group = &g_stored.groups[0];
+	group->mission_point_x[0] = 10;
+	group->mission_point_y[0] = 20;
+	group->mission_point_z[0] = 30;
+	group->mission_point_x[4] = 100;
+	group->mission_point_y[4] = 50;
+	group->mission_point_z[4] = -40;
+	group->mission_point_enabled[4] = 1;
+	spawn_mission_ready();
+	start_the_clock();
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	g_mission_elapsed_clock.seconds = 0;
+	trig2_ctop((100 - 10) * 256, -(50 - 20) * 256, (-40 - 30) * 256);
+	trig2_xyangle += 0x8000;
+	trig2_pitch = 0x8000 - trig2_pitch;
+	trig2_movexyz(UINT16_MAX, trig2_xyangle, (uint16_t)trig2_pitch);
+	XVT_ASSERT_TRUE(trig2_xmovedist != 0 && trig2_ymovedist != 0 &&
+			trig2_zmovedist != 0);
+	int x;
+	int y;
+	int z;
+	craft_place(0, 0, &x, &y, &z);
+	XVT_ASSERT_INT_EQ(x, 10 * 256 + 8 * trig2_xmovedist);
+	XVT_ASSERT_INT_EQ(y, -20 * 256 + 8 * trig2_ymovedist);
+	XVT_ASSERT_INT_EQ(z, 30 * 256 + 8 * trig2_zmovedist);
 }
 
 int main(int argc, char **argv)
@@ -12053,5 +12243,9 @@ int main(int argc, char **argv)
 	check_spawn_single_craft_counts();
 	check_arrivals_static_group_next_round();
 	check_outcome_dropoff_closes_group();
+	check_credit_with_primary_goal();
+	check_credit_worse_rating_of_zero();
+	check_object_states_untouched_and_all();
+	check_spawn_hyperspace_toward_fifth_point();
 	return 0;
 }
