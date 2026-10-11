@@ -1,31 +1,55 @@
 /* Tests for xvt/flight/object/collide.c, the collision tests and what a hit
  * does. Each check builds the flight it needs in the game's own tables: a small
- * object table this file owns, with two craft slots, three shot slots and two
- * static slots, the craft and guidance records behind them, and the flight
- * group, object type and model figures the code reads. The model walk checks
- * build small model trees in memory. No game data is read.
+ * object table this file owns, with two craft slots, three shot slots, two
+ * static slots and one free debris slot, the craft, guidance and player
+ * records behind them, and the flight group, object type and model figures
+ * the code reads. The model walk checks build small model trees in memory.
+ * No game data is read.
+ *
+ * Checked: a hit on a craft (collide_damagecraft and collide_laserhitcraft:
+ * the damage by source and its tallies, the shields, the ion damage, the
+ * hull, the kill and how a craft ends, what a shot does to its target), the
+ * explosion figures, the neighbour list entries, the face tests and the
+ * model walk's boxes.
+ *
+ * Not checked here: the sounds and voice lines a hit asks for, which queue
+ * only from the game's loaded sound tables, so only the state around them is
+ * read; the proving grounds' lines, which run only while a flag that nothing
+ * sets is on; the last branch of collide_damagecraft, which needs the flag
+ * that makes the function return at once.
  *
  * POSIX only, for the alarm that stops a check whose call does not return. */
 #define _POSIX_C_SOURCE 200809L
 
+#include <SDL3/SDL_log.h>
+#include <math.h>
 #include <signal.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "test_assert.h"
+#include "xvt/assets/model_mesh.h"
 #include "xvt/assets/object_genus.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
+#include "xvt/flight/ai/pai.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/hud/hud.h"
+#include "xvt/flight/hud/msg.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/flight/object/collide.h"
 #include "xvt/flight/object/laser.h"
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt/frontend/config.h"
+#include "xvt/math/math2.h"
+#include "xvt/math/trig2.h"
 #include "xvt/util/game_rand.h"
+#include "xvt/util/memory.h"
+#include "xvt_runtime/log/log.h"
 
 enum {
 	TEST_SLOTS = 8,
@@ -36,8 +60,10 @@ enum {
 	TEST_SHOT = 2,
 	TEST_OTHER_SHOT = 3,
 	TEST_MINE = 5,
+	TEST_DEBRIS = 7, /* The one free slot a detached wing can take. */
 	TEST_FIGHTER_TYPE = 1,
 	TEST_MINE_TYPE = 75,
+	TEST_LATE_TYPE = 73,
 	TEST_FIGHTER_EXTENT = 400,
 	TEST_MINE_EXTENT = 800,
 	TEST_MODEL = 1,
@@ -45,9 +71,30 @@ enum {
 	TEST_EXPLOSION_TYPE = 129,
 };
 
+/* A system message (pane type 3): with system messages off, the message
+ * code builds it, logs it and drops it. */
+static char g_test_message[] = "\003message";
+
+enum {
+	MODEL_MESH_SLOTS = 8,
+	WING_LEFT = 1,
+	WING_RIGHT = 2,
+	TORN_OFF_STATE = 4,
+	BREAKUP_STEP_STATE = 2,
+};
+
+static struct opt_node g_craft_model_nodes[MODEL_MESH_SLOTS];
+static struct opt_node *g_craft_model_roots[MODEL_MESH_SLOTS];
+static struct mesh_descriptor g_craft_model_descriptors[MODEL_MESH_SLOTS];
+static uint16_t g_craft_model_handle;
+/* The object type craft_model gives the model to: the starfighter type, or
+ * TEST_LATE_TYPE, an object type past the 73 that have a mesh cache. */
+static int g_craft_model_type = TEST_FIGHTER_TYPE;
+
 static struct object_record g_test_objects[TEST_SLOTS];
 static struct mobile_object g_test_mobiles[TEST_MAIN_END];
-static struct craft_data g_test_craft[TEST_CRAFT_END];
+static struct mobile_object g_test_debris_mobile;
+static struct craft_data g_test_craft[TEST_MAIN_END];
 static struct warhead_guidance_state
 	g_test_guidance[TEST_MAIN_END - TEST_SHOT_START];
 
@@ -70,6 +117,65 @@ static void fail_after_seconds(unsigned int seconds)
 	alarm(seconds);
 }
 
+/* The engine's log lines, kept without Aeron's "xvt: " prefix; lines past the
+ * capacity are dropped. Checks read the values the DEBUG lines record. */
+enum {
+	LOG_LINE_CAPACITY = 400,
+	LOG_LINE_SIZE = 320,
+};
+
+static char g_log_lines[LOG_LINE_CAPACITY][LOG_LINE_SIZE];
+static int g_log_line_count;
+
+static void catch_line(void *userdata, int category, SDL_LogPriority priority,
+		       const char *message)
+{
+	static const char prefix[] = "xvt: ";
+	(void)userdata;
+	(void)category;
+	(void)priority;
+	if (g_log_line_count >= LOG_LINE_CAPACITY) {
+		return;
+	}
+	if (strncmp(message, prefix, sizeof prefix - 1) == 0) {
+		message += sizeof prefix - 1;
+	}
+	snprintf(g_log_lines[g_log_line_count++], LOG_LINE_SIZE, "%s", message);
+}
+
+/* The last kept line that starts with start (an event and any of its first
+ * fields), or NULL. */
+static const char *find_line(const char *start)
+{
+	size_t length = strlen(start);
+	for (int i = g_log_line_count - 1; i >= 0; --i) {
+		if (strncmp(g_log_lines[i], start, length) == 0) {
+			return g_log_lines[i];
+		}
+	}
+	return NULL;
+}
+
+/* 1 when the last kept line that starts with start also holds fields. */
+static int line_holds(const char *start, const char *fields)
+{
+	const char *line = find_line(start);
+	return line != NULL && strstr(line, fields) != NULL;
+}
+
+/* The number of kept lines that start with start. */
+static int count_lines(const char *start)
+{
+	size_t length = strlen(start);
+	int count = 0;
+	for (int i = 0; i < g_log_line_count; ++i) {
+		if (strncmp(g_log_lines[i], start, length) == 0) {
+			++count;
+		}
+	}
+	return count;
+}
+
 static void place(int slot, int x, int y, int z)
 {
 	g_test_objects[slot].world_x = x;
@@ -80,12 +186,21 @@ static void place(int slot, int x, int y, int z)
 /* Two computer-flown starfighters in flight groups 0 and 1 (teams 0 and 1),
  * at the origin and 20,000 units along X, neither moving; empty shot and
  * static slots; every proximity list empty and not due for a rebuild. Sounds
- * are off, so nothing is queued. */
+ * are off, so nothing is queued. No player flies, the mission's running
+ * figures are clear, collisions are off, and the models and system messages
+ * the checks set are put back to none. */
 static void fresh_world(void)
 {
+	g_log_line_count = 0;
 	memset(g_test_objects, 0, sizeof g_test_objects);
 	memset(g_test_mobiles, 0, sizeof g_test_mobiles);
+	memset(&g_test_debris_mobile, 0, sizeof g_test_debris_mobile);
 	memset(g_test_craft, 0, sizeof g_test_craft);
+	memset(g_players, 0, sizeof g_players);
+	memset(g_player_flight_transient_timers, 0,
+	       sizeof g_player_flight_transient_timers);
+	memset(g_object_slot_range_by_genus, 0,
+	       sizeof g_object_slot_range_by_genus);
 	memset(g_test_guidance, 0, sizeof g_test_guidance);
 	memset(g_mission_flight_groups, 0,
 	       3 * sizeof g_mission_flight_groups[0]);
@@ -104,11 +219,37 @@ static void fresh_world(void)
 	g_object_type_table[TEST_MINE_TYPE].max_bounds_extent =
 		TEST_MINE_EXTENT;
 	g_model_defs[TEST_MODEL].max_speed = TEST_MODEL_MAX_SPEED;
+	g_loaded_models[TEST_FIGHTER_TYPE] = 0;
+	g_object_type_table[TEST_FIGHTER_TYPE].asset_flags &= ~1;
+	g_object_type_mesh_cache[TEST_FIGHTER_TYPE].mesh_count = 0;
+	g_loaded_models[TEST_LATE_TYPE] = 0;
+	g_object_type_table[TEST_LATE_TYPE].asset_flags &= ~1;
+	static const int model_types[] = {30, 49, 54, 91};
+	for (size_t i = 0; i < sizeof model_types / sizeof model_types[0];
+	     ++i) {
+		g_loaded_models[model_types[i]] = 0;
+		g_object_type_table[model_types[i]].asset_flags &= ~1;
+		if (model_types[i] < 73) {
+			g_object_type_mesh_cache[model_types[i]].mesh_count = 0;
+		}
+	}
+	g_craft_model_type = TEST_FIGHTER_TYPE;
+	for (size_t id = 0; id < sizeof g_str_in_flight_messages /
+					 sizeof g_str_in_flight_messages[0];
+	     ++id) {
+		g_str_in_flight_messages[id] = g_test_message;
+	}
+	g_system_message_display_enabled = 0;
+	g_replay_view_mode = 0;
 	g_flight_conf_sfx_enabled = 0;
 	g_flight_sfx_side_effect_gate = 0;
 	g_flight_sim_side_effects_suppressed = 0;
+	memset(&g_flight_mission_state.runtime, 0,
+	       sizeof g_flight_mission_state.runtime);
 	g_flight_mission_state.proving_grounds_mode_active = 0;
 	g_flight_mission_state.craft_impact_bounce_enabled = 0;
+	g_flight_mission_state.collisions_enabled = 0;
+	g_flight_mission_state.difficulty = 0;
 	g_game_config.voice_tactical_officer_level = 0;
 	g_mission_file_version = 0;
 	g_cache_resolved_opt_node_refs = 0;
@@ -125,6 +266,15 @@ static void fresh_world(void)
 	}
 	for (int slot = TEST_MAIN_END; slot < TEST_SLOTS; ++slot) {
 		g_test_objects[slot].player_owner_idx = -1;
+	}
+	g_test_objects[TEST_DEBRIS].mobj = &g_test_debris_mobile;
+	g_object_slot_range_by_genus[CRAFT_GENUS_SMALL_DEBRIS].start =
+		TEST_DEBRIS;
+	g_object_slot_range_by_genus[CRAFT_GENUS_SMALL_DEBRIS].end =
+		TEST_DEBRIS + 1;
+	for (int player = 0; player < 8; ++player) {
+		g_players[player].object_index = -1;
+		g_players[player].current_target_object_idx = -1;
 	}
 	for (int slot = 0; slot < TEST_CRAFT_END; ++slot) {
 		g_test_objects[slot].object_type = TEST_FIGHTER_TYPE;
@@ -1181,6 +1331,33 @@ static void check_pulse_on_large_craft(void)
 	XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_fire_inhibit_timer, 7080);
 }
 
+/* Comment: a magnetic pulse adds 3,540 ticks to an AI craft's
+ * weapon_fire_inhibit_timer, or 7,080 for a craft other than a starfighter,
+ * transport or utility vehicle. */
+static void check_pulse_inhibit_by_genus(void)
+{
+	/* Other than a starfighter, transport or utility vehicle: 7,080. */
+	static const struct {
+		uint8_t genus;
+		int ticks;
+	} genera[] = {
+		{CRAFT_GENUS_STARFIGHTER, 3540},
+		{CRAFT_GENUS_TRANSPORT, 3540},
+		{CRAFT_GENUS_UTILITY_VEHICLE, 3540},
+		{CRAFT_GENUS_STARSHIP, 7080},
+		{CRAFT_GENUS_FREIGHTER, 7080},
+		{CRAFT_GENUS_PLATFORM, 7080},
+	};
+	for (size_t i = 0; i < sizeof genera / sizeof genera[0]; ++i) {
+		pulse_at_craft();
+		g_test_objects[1].genus_id = genera[i].genus;
+		g_test_craft[1].weapon_fire_inhibit_timer = 0;
+		collide_laserhitcraft(TEST_SHOT, 1, -1);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_fire_inhibit_timer,
+				  genera[i].ticks);
+	}
+}
+
 static void check_hit_from_itself(void)
 {
 	/* A shot from the craft itself does nothing. */
@@ -1233,8 +1410,2379 @@ static void check_explosion_stops_homing(void)
 	XVT_ASSERT_TRUE(!homes_on(TEST_SHOT, 1));
 }
 
+/* ------------------------------------------------------------------------ */
+/* collide_damagecraft: who dealt the damage, and how much. */
+
+/* Player flies craft slot: the slot keeps its flight group and team. */
+static void player_flies(int slot, int player)
+{
+	g_test_objects[slot].player_owner_idx = player;
+	g_players[player].object_index = slot;
+	g_players[player].team = (int16_t)slot;
+	g_players[player].participation_state = 1;
+	g_players[player].bound_flight_group_idx = (uint16_t)slot;
+}
+
+/* The tallies of damage_stats that name a source, in the order total,
+ * collision, starship, mine; fails when one differs. */
+static void expect_tallies(const struct craft_damage_stats *stats, int total,
+			   int collision, int starship, int mine)
+{
+	XVT_ASSERT_INT_EQ(stats->damage_received_total, total);
+	XVT_ASSERT_INT_EQ(stats->damage_from_collision, collision);
+	XVT_ASSERT_INT_EQ(stats->damage_from_starship, starship);
+	XVT_ASSERT_INT_EQ(stats->damage_from_mine, mine);
+}
+
+static int tallied_for_players(const struct craft_damage_stats *stats)
+{
+	int sum = 0;
+	for (int player = 0; player < 8; ++player) {
+		sum += stats->damage_from_player[player];
+	}
+	return sum;
+}
+
+static int tallied_for_ai(const struct craft_damage_stats *stats)
+{
+	int sum = 0;
+	for (int level = 0; level < 6; ++level) {
+		sum += stats->damage_from_ai_skill[level];
+	}
+	return sum;
+}
+
+/* damage.h: damage_from_player names the player flying the craft that hit,
+ * or for a shot the player flying its firer or the one its guidance record
+ * names; a craft's hit on another also counts in damage_from_collision, and
+ * the attacker's flight group gets the amount. */
+static void check_tally_player_sources(void)
+{
+	/* A craft flown by player 3 rams craft 1. */
+	laser_at_craft();
+	player_flies(0, 3);
+	g_test_mobiles[0].damage_amount = 300;
+	collide_damagecraft(1, -1, 0, 0);
+	struct craft_damage_stats *stats = &g_test_craft[1].damage_stats;
+	XVT_ASSERT_INT_EQ(stats->damage_from_player[3], 300);
+	XVT_ASSERT_INT_EQ(tallied_for_players(stats), 300);
+	XVT_ASSERT_INT_EQ(tallied_for_ai(stats), 0);
+	XVT_ASSERT_INT_EQ(stats->damage_from_flight_group_amount[0], 300);
+	expect_tallies(stats, 300, 300, 0, 0);
+
+	/* A shot whose guidance record names player 4: that player, not the
+	 * one flying its firer. */
+	laser_at_craft();
+	player_flies(0, 2);
+	g_test_guidance[0].source_player_idx = 4;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(stats->damage_from_player[4], 250);
+	XVT_ASSERT_INT_EQ(tallied_for_players(stats), 250);
+	XVT_ASSERT_INT_EQ(tallied_for_ai(stats), 0);
+	XVT_ASSERT_INT_EQ(stats->damage_from_flight_group_amount[0], 250);
+	expect_tallies(stats, 250, 0, 0, 0);
+
+	/* A shot with no guidance record: the player flying its firer. */
+	laser_at_craft();
+	player_flies(0, 2);
+	g_test_mobiles[TEST_SHOT].p_warhead_guidance = NULL;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(stats->damage_from_player[2], 250);
+	XVT_ASSERT_INT_EQ(tallied_for_players(stats), 250);
+	expect_tallies(stats, 250, 0, 0, 0);
+}
+
+/* damage.h: damage_from_collision is a craft's hit whoever flew it;
+ * damage_from_starship and damage_from_mine are shots from sources that are
+ * neither a player nor a starfighter, by whether the source sits in a
+ * static slot; engine wash counts as a starship's. */
+static void check_tally_other_sources(void)
+{
+	struct craft_damage_stats *stats = &g_test_craft[1].damage_stats;
+
+	/* A computer-flown craft rams craft 1. */
+	laser_at_craft();
+	g_test_mobiles[0].damage_amount = 300;
+	collide_damagecraft(1, -1, 0, 0);
+	XVT_ASSERT_INT_EQ(tallied_for_players(stats), 0);
+	XVT_ASSERT_INT_EQ(tallied_for_ai(stats), 0);
+	XVT_ASSERT_INT_EQ(stats->damage_from_flight_group_amount[0], 300);
+	expect_tallies(stats, 300, 300, 0, 0);
+
+	/* A shot from a computer-flown starship. */
+	laser_at_craft();
+	g_test_objects[0].genus_id = CRAFT_GENUS_STARSHIP;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(tallied_for_ai(stats), 0);
+	XVT_ASSERT_INT_EQ(stats->damage_from_flight_group_amount[0], 250);
+	expect_tallies(stats, 250, 0, 250, 0);
+
+	/* A shot from a static slot, a mine's: the mine tally, and its own
+	 * flight group's. */
+	laser_at_craft();
+	place_mine(20000, 0, 0);
+	g_test_mobiles[TEST_SHOT].source_obj_idx = TEST_MINE;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(stats->damage_from_flight_group_amount[2], 250);
+	XVT_ASSERT_INT_EQ(stats->damage_from_flight_group_amount[0], 0);
+	expect_tallies(stats, 250, 0, 0, 250);
+
+	/* A static object that is not debris: in the total only. */
+	laser_at_craft();
+	g_test_craft[1].hull_max = 1000000;
+	place_mine(20000, 0, 0);
+	collide_damagecraft(1, -1, TEST_MINE, 0);
+	XVT_ASSERT_INT_EQ(tallied_for_players(stats), 0);
+	XVT_ASSERT_INT_EQ(tallied_for_ai(stats), 0);
+	expect_tallies(stats, 4 * TEST_MINE_EXTENT, 0, 0, 0);
+
+	/* Engine wash of 300: the starship tally, no flight group's. */
+	laser_at_craft();
+	collide_damagecraft(1, -1, UINT16_MAX - 1, 300);
+	XVT_ASSERT_INT_EQ(stats->damage_from_flight_group_amount[0], 0);
+	XVT_ASSERT_INT_EQ(stats->damage_from_flight_group_amount[1], 0);
+	XVT_ASSERT_INT_EQ(tallied_for_players(stats), 0);
+	expect_tallies(stats, 300, 0, 300, 0);
+
+	/* No source at all: the total only. */
+	laser_at_craft();
+	g_test_craft[1].hull_max = 1000000;
+	collide_damagecraft(1, -1, UINT16_MAX, 0);
+	XVT_ASSERT_INT_EQ(tallied_for_players(stats), 0);
+	XVT_ASSERT_INT_EQ(tallied_for_ai(stats), 0);
+	expect_tallies(stats, 0x20000, 0, 0, 0);
+}
+
+/* damage.h: damage_received_by_player_owned_craft is the part of the total
+ * taken while a player flew the craft. */
+static void check_tally_player_owned_victim(void)
+{
+	laser_at_craft();
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	struct craft_damage_stats *stats = &g_test_craft[1].damage_stats;
+	XVT_ASSERT_INT_EQ(stats->damage_received_by_player_owned_craft, 0);
+	player_flies(1, 5);
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(stats->damage_received_total, 500);
+	XVT_ASSERT_INT_EQ(stats->damage_received_by_player_owned_craft, 250);
+}
+
+/* The damage comment: no source is 0x20000, and a static object deals 4
+ * times its max_bounds_extent, or 0x20000 from 0x8000 up. */
+static void check_damage_fixed_amounts(void)
+{
+	/* No source: 0x20000, shared out as shield first, then hull. */
+	laser_at_craft();
+	g_test_craft[1].hull_max = 1000000;
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, UINT16_MAX, 0), 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 500);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 0x20000 - 1000);
+	XVT_ASSERT_TRUE(line_holds("combat.damage_taken", "amount=131072"));
+	XVT_ASSERT_TRUE(line_holds("combat.damage_taken", "through=130072"));
+
+	/* A static object of extent 0x7FFF deals 4 times that; of 0x8000, the
+	 * default. */
+	int extent[2] = {0x7FFF, 0x8000};
+	int expected[2] = {4 * 0x7FFF, 0x20000};
+	for (int case_index = 0; case_index < 2; ++case_index) {
+		laser_at_craft();
+		g_test_craft[1].hull_max = 1000000;
+		place_mine(20000, 0, 0);
+		g_object_type_table[TEST_MINE_TYPE].max_bounds_extent =
+			extent[case_index];
+		collide_damagecraft(1, -1, TEST_MINE, 0);
+		XVT_ASSERT_INT_EQ(
+			g_test_craft[1].damage_stats.damage_received_total,
+			expected[case_index]);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage,
+				  expected[case_index] - 1000);
+	}
+	g_object_type_table[TEST_MINE_TYPE].max_bounds_extent =
+		TEST_MINE_EXTENT;
+}
+
+/* The engine wash: source UINT16_MAX - 1 makes the hit_side_or_damage_amount
+ * argument the damage, taken by the front shield; a starship's is divided by
+ * 16 like any other. */
+static void check_damage_engine_wash(void)
+{
+	laser_at_craft();
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, UINT16_MAX - 1, 300), 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 300);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 500);
+	XVT_ASSERT_TRUE(line_holds("combat.damage_taken", "wash=1"));
+	XVT_ASSERT_TRUE(line_holds("combat.damage_taken", "amount=300"));
+
+	laser_at_craft();
+	g_test_objects[1].genus_id = CRAFT_GENUS_STARSHIP;
+	collide_damagecraft(1, -1, UINT16_MAX - 1, 320);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 320 / 16);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].damage_stats.damage_from_starship,
+			  320 / 16);
+
+	/* A shot is not wash. */
+	laser_at_craft();
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_TRUE(line_holds("combat.damage_taken", "wash=0"));
+}
+
+/* The damage comment: in mission file version 14 the Muurian and Corellian
+ * transports take a quarter, as a freighter does; in no other version. */
+static void check_damage_transport_scale(void)
+{
+	int types[2] = {CRAFT_SPECIES_MUURIAN_TRANSPORT,
+			CRAFT_SPECIES_CORELLIAN_TRANSPORT};
+	for (int case_index = 0; case_index < 2; ++case_index) {
+		laser_at_craft();
+		g_test_objects[1].object_type = (uint8_t)types[case_index];
+		g_mission_file_version = 14;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0],
+				  1000 - 250 / 4);
+		laser_at_craft();
+		g_test_objects[1].object_type = (uint8_t)types[case_index];
+		g_mission_file_version = 13;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 250);
+	}
+	g_mission_file_version = 0;
+}
+
+/* ------------------------------------------------------------------------ */
+/* collide_damagecraft: shields, hull and the systems that fail. */
+
+/* Every subsystem of a fighter installed and working: all the bits of
+ * CRAFT_SUBSYSTEM_FLAGS_ALL. */
+static void all_systems_work(struct craft_data *craft)
+{
+	craft->system_flags = CRAFT_SUBSYSTEM_FLAGS_ALL;
+	craft->working_subsystems = CRAFT_SUBSYSTEM_FLAGS_ALL;
+}
+
+/* Comment: the shield on the hit side takes what it can; what gets through
+ * goes to the hull. A hit exactly the shield's size gets nothing through. */
+static void check_damage_hull_through_shield(void)
+{
+	laser_at_craft();
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].system_damage_hull_threshold = 1000;
+	g_test_craft[1].shield_energy[0] = 100;
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 0), 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 0);
+	/* A computer-flown craft's shields are not evened. */
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 500);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 150);
+	XVT_ASSERT_TRUE(
+		line_holds("combat.hull_hit", "damage=150 hull=150 max=1000"));
+	XVT_ASSERT_TRUE(line_holds("combat.damage_taken", "through=150"));
+
+	/* Each hit adds to the hull. */
+	g_test_craft[1].shield_energy[0] = 0;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 150 + 250);
+
+	/* The shield exactly the damage's size: emptied, nothing through. */
+	laser_at_craft();
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].shield_energy[0] = 250;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 0);
+
+	/* The rear shield takes a rear hit, the front a front hit. */
+	laser_at_craft();
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].shield_energy[1] = 100;
+	collide_damagecraft(1, -1, TEST_SHOT, 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 150);
+}
+
+/* Comment: a player's craft evens its two shields after a hit. A hit the
+ * shield takes whole, leaving it below the other, moves half the difference
+ * across; a hit that empties it moves half the other's energy over. Both mark
+ * the shield-hit flash and set even distribution. */
+static void check_damage_player_shields_even(void)
+{
+	/* Front 300, rear 900; 100 off the front leaves 200: half of the 700
+	 * between them moves across. */
+	laser_at_craft();
+	player_flies(1, 1);
+	g_test_mobiles[TEST_SHOT].damage_amount = 100;
+	g_test_craft[1].shield_energy[0] = 300;
+	g_test_craft[1].shield_energy[1] = 900;
+	g_test_craft[1].shield_distrib_mode = SHIELD_DISTRIBUTION_FULLY_FORWARD;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 550);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 550);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_distrib_mode,
+			  SHIELD_DISTRIBUTION_EVEN);
+	XVT_ASSERT_INT_EQ(
+		g_player_flight_transient_timers[1].shield_hit_flash_timer, 59);
+	XVT_ASSERT_INT_EQ(g_last_shield_damage_side, 0);
+
+	/* A rear hit that leaves the rear above the front moves nothing, and
+	 * leaves the distribution alone; the flash names the rear. */
+	laser_at_craft();
+	player_flies(1, 1);
+	g_test_mobiles[TEST_SHOT].damage_amount = 100;
+	g_test_craft[1].shield_energy[0] = 500;
+	g_test_craft[1].shield_energy[1] = 900;
+	g_test_craft[1].shield_distrib_mode = SHIELD_DISTRIBUTION_FULLY_FORWARD;
+	collide_damagecraft(1, -1, TEST_SHOT, 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 500);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 800);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_distrib_mode,
+			  SHIELD_DISTRIBUTION_FULLY_FORWARD);
+	XVT_ASSERT_INT_EQ(g_last_shield_damage_side, 1);
+
+	/* A hit that empties the front shield: the rear gives half its energy
+	 * to the front; the part through goes to the hull. */
+	laser_at_craft();
+	player_flies(1, 1);
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].system_damage_hull_threshold = 1000;
+	g_test_craft[1].shield_energy[0] = 100;
+	g_test_craft[1].shield_distrib_mode = SHIELD_DISTRIBUTION_FULLY_FORWARD;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 250);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 250);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_distrib_mode,
+			  SHIELD_DISTRIBUTION_EVEN);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 150);
+	/* A computer-flown craft keeps its shields and distribution, and has
+	 * no flash. */
+	laser_at_craft();
+	g_test_craft[1].shield_energy[0] = 300;
+	g_test_craft[1].shield_energy[1] = 900;
+	g_test_craft[1].shield_distrib_mode = SHIELD_DISTRIBUTION_FULLY_FORWARD;
+	g_test_mobiles[TEST_SHOT].damage_amount = 100;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 200);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 900);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_distrib_mode,
+			  SHIELD_DISTRIBUTION_FULLY_FORWARD);
+}
+
+/* Comment: hull damage on a player's craft marks the hull-hit flash and, one
+ * time in 4, knocks out a random system; the return is 0 when a hull sound
+ * played, which the local player's craft hears. With the craft's own seed at
+ * 0 every draw is 0, so the first of the random choices (the engines) goes;
+ * from 0x7FFF none. */
+static void check_damage_hull_hit_on_player(void)
+{
+	laser_at_craft();
+	player_flies(1, 1);
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].system_damage_hull_threshold = 1000;
+	g_test_craft[1].shield_energy[1] = 100;
+	g_test_craft[1].ai_controller.saved_rand_seed = 0;
+	all_systems_work(&g_test_craft[1]);
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 1), 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 150);
+	XVT_ASSERT_INT_EQ(
+		g_player_flight_transient_timers[1].hull_hit_flash_timer, 59);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems,
+			  CRAFT_SUBSYSTEM_FLAGS_ALL ^
+				  g_subsystem_id_to_flag[0]);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_health[0], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_repair_seconds[0],
+			  g_subsystem_repair_duration[0]);
+	XVT_ASSERT_TRUE(line_holds("combat.system_failed", "system=0"));
+	XVT_ASSERT_TRUE(line_holds("combat.system_failed", "cause=\"hull\""));
+
+	/* A second hit adds to the flash. */
+	g_test_craft[1].shield_energy[1] = 0;
+	g_test_craft[1].ai_controller.saved_rand_seed = 0x7FFF;
+	collide_damagecraft(1, -1, TEST_SHOT, 1);
+	XVT_ASSERT_INT_EQ(
+		g_player_flight_transient_timers[1].hull_hit_flash_timer, 118);
+	/* The seed 0x7FFF is past the 1 in 4: no second failure. */
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems,
+			  CRAFT_SUBSYSTEM_FLAGS_ALL ^
+				  g_subsystem_id_to_flag[0]);
+
+	/* The local player's craft hears the hull, one of two sounds: return
+	 * 0. */
+	for (int sound = 0; sound < 2; ++sound) {
+		laser_at_craft();
+		player_flies(1, 0);
+		g_test_craft[1].hull_max = 1000;
+		g_test_craft[1].system_damage_hull_threshold = 1000;
+		g_test_craft[1].shield_energy[1] = 0;
+		g_test_craft[1].ai_controller.saved_rand_seed = 0x7FFF;
+		g_game_rand2_feedback_state = sound == 0 ? 0 : 0x8000;
+		XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 1), 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 250);
+	}
+}
+
+/* Comment: once hull_damage has reached system_damage_hull_threshold, a hit
+ * can knock out HUD features: one picked by the craft's seed from
+ * g_subsystem_failure_hud_mask_by_random_slot, only if the craft has it
+ * installed. A computer-flown craft's first draw is the seed itself, so seeds
+ * 0 to 15 name the slots in turn. */
+static void check_damage_hud_feature_loss(void)
+{
+	for (int slot = 0; slot < 16; ++slot) {
+		uint16_t lost =
+			g_subsystem_failure_hud_mask_by_random_slot[slot];
+
+		laser_at_craft();
+		g_test_craft[1].hull_max = 1000;
+		g_test_craft[1].system_damage_hull_threshold = 0;
+		g_test_craft[1].shield_energy[0] = 0;
+		g_test_craft[1].ai_controller.saved_rand_seed = (uint16_t)slot;
+		g_test_craft[1].damage_stats.installed_hud_feature_mask =
+			0xFFFF;
+		g_test_craft[1].damage_stats.active_hud_feature_mask = 0xFFFF;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(
+			g_test_craft[1].damage_stats.active_hud_feature_mask,
+			0xFFFF & ~lost);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 250);
+
+		/* A feature the craft does not have is not lost. */
+		laser_at_craft();
+		g_test_craft[1].hull_max = 1000;
+		g_test_craft[1].system_damage_hull_threshold = 0;
+		g_test_craft[1].shield_energy[0] = 0;
+		g_test_craft[1].ai_controller.saved_rand_seed = (uint16_t)slot;
+		g_test_craft[1].damage_stats.installed_hud_feature_mask =
+			0xFFFF & ~lost;
+		g_test_craft[1].damage_stats.active_hud_feature_mask =
+			0xFFFF & ~lost;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(
+			g_test_craft[1].damage_stats.active_hud_feature_mask,
+			0xFFFF & ~lost);
+	}
+
+	/* Below the threshold no feature goes. */
+	laser_at_craft();
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].system_damage_hull_threshold = 500;
+	g_test_craft[1].shield_energy[0] = 0;
+	g_test_craft[1].ai_controller.saved_rand_seed = 1;
+	g_test_craft[1].damage_stats.installed_hud_feature_mask = 0xFFFF;
+	g_test_craft[1].damage_stats.active_hud_feature_mask = 0xFFFF;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].damage_stats.active_hud_feature_mask,
+			  0xFFFF);
+	/* The second hit reaches it. */
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 500);
+	XVT_ASSERT_TRUE(g_test_craft[1].damage_stats.active_hud_feature_mask !=
+			0xFFFF);
+}
+
+/* Player 1 flies craft 1, of object_type, whose hull and shields give no
+ * cover; the craft's seed is seed. Returns the HUD features the hit knocked
+ * out, and the value collide_damagecraft returned in *result. */
+static int hud_lost_by_player_craft(int object_type, int seed, int16_t *result)
+{
+	laser_at_craft();
+	player_flies(1, 1);
+	g_test_objects[1].object_type = (uint8_t)object_type;
+	g_test_craft[1].hull_max = 100000;
+	g_test_craft[1].system_damage_hull_threshold = 0;
+	g_test_craft[1].shield_energy[1] = 0;
+	g_test_craft[1].ai_controller.saved_rand_seed = (uint16_t)seed;
+	g_test_craft[1].damage_stats.installed_hud_feature_mask = 0xFFFF;
+	g_test_craft[1].damage_stats.active_hud_feature_mask = 0xFFFF;
+	/* A rear hit, so no draw is made for the front's sound. */
+	*result = collide_damagecraft(1, -1, TEST_SHOT, 1);
+	return 0xFFFF & ~g_test_craft[1].damage_stats.active_hud_feature_mask;
+}
+
+/* Comment: a feature lost on a player's craft plays the internal-hit sound,
+ * so the return is 0. In a starfighter of object types 1 to 4 or 14, a lost
+ * display brings its related ones with it (log field lost): 0x2, 0x4 and 0x8
+ * all of 0xE; 0x80 and 0x100 of 0x180; 0x200 to 0x1000 of 0xE00. Other
+ * craft lose the one the table names. The same seed names the same table
+ * slot for both craft. */
+static void check_damage_hud_loss_player_craft(void)
+{
+	static const int widened[][2] = {
+		{0x2, 0xE},	{0x4, 0xE},	{0x8, 0xE},
+		{0x80, 0x180},	{0x100, 0x180}, {0x200, 0xE00},
+		{0x400, 0xE00}, {0x800, 0xE00}, {0x1000, 0xE00},
+	};
+	int widened_count = 0;
+	int plain_count = 0;
+	for (int seed = 0; seed < 1024; ++seed) {
+		int16_t other_result;
+		int16_t fighter_result;
+		int other = hud_lost_by_player_craft(6, seed, &other_result);
+		int fighter =
+			hud_lost_by_player_craft(1, seed, &fighter_result);
+		int expected = other;
+		for (size_t i = 0; i < sizeof widened / sizeof widened[0];
+		     ++i) {
+			if (widened[i][0] == other) {
+				expected = widened[i][1];
+			}
+		}
+		XVT_ASSERT_INT_EQ(fighter, expected);
+		if (other == 0) {
+			XVT_ASSERT_INT_EQ(other_result, 1);
+			XVT_ASSERT_INT_EQ(fighter_result, 1);
+			continue;
+		}
+		XVT_ASSERT_INT_EQ(other_result, 0);
+		XVT_ASSERT_INT_EQ(fighter_result, 0);
+		if (fighter != other) {
+			++widened_count;
+		} else {
+			++plain_count;
+		}
+	}
+	XVT_ASSERT_TRUE(widened_count > 0);
+	XVT_ASSERT_TRUE(plain_count > 0);
+}
+
+/* ------------------------------------------------------------------------ */
+/* collide_damagecraft: ion hits. */
+
+enum {
+	TEST_ION_STRENGTH = 100,
+};
+
+/* An ion shot of type, damage_amount damage, from craft 0 onto craft 1,
+ * whose shields are down, whose model's system_strength is TEST_ION_STRENGTH
+ * and whose subsystems all work; no hull damage can end it. */
+static void ion_at_craft(uint8_t type, int damage_amount)
+{
+	laser_at_craft();
+	g_test_objects[TEST_SHOT].object_type = type;
+	g_test_mobiles[TEST_SHOT].damage_amount = (uint16_t)damage_amount;
+	g_test_craft[1].model_index = TEST_MODEL;
+	g_model_defs[TEST_MODEL].system_strength = TEST_ION_STRENGTH;
+	g_test_craft[1].hull_max = 100000;
+	g_test_craft[1].shield_energy[0] = 0;
+	g_test_craft[1].shield_energy[1] = 0;
+	all_systems_work(&g_test_craft[1]);
+}
+
+/* Comment: an ion shot adds 1, 2 or 4 to subsystem_damage (while under
+ * 1,000) instead of hurting the hull. */
+static void check_damage_ion_counts_up(void)
+{
+	static const struct {
+		uint8_t type;
+		int step;
+	} kinds[] = {
+		{PROJECTILE_OBJECT_TYPE_ION_LASER, 1},
+		{PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER, 2},
+		{PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER_2, 4},
+	};
+	for (size_t i = 0; i < sizeof kinds / sizeof kinds[0]; ++i) {
+		ion_at_craft(kinds[i].type, 250);
+		g_model_defs[TEST_MODEL].system_strength = 5000;
+		g_test_craft[1].subsystem_damage = 20;
+		XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 0), 1);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].subsystem_damage,
+				  20 + kinds[i].step);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems,
+				  CRAFT_SUBSYSTEM_FLAGS_ALL);
+		XVT_ASSERT_TRUE(line_holds("combat.ion_hit", "ion="));
+
+		/* Not once it has reached 1,000. */
+		ion_at_craft(kinds[i].type, 250);
+		g_model_defs[TEST_MODEL].system_strength = 5000;
+		g_test_craft[1].subsystem_damage = 1000;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].subsystem_damage, 1000);
+		g_test_craft[1].subsystem_damage = 999;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].subsystem_damage,
+				  999 + kinds[i].step);
+	}
+
+	/* On the local player's craft the hit is heard and the indicators
+	 * redrawn; the count goes up the same. */
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 250);
+	g_model_defs[TEST_MODEL].system_strength = 5000;
+	player_flies(1, 0);
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].subsystem_damage, 1);
+
+	/* An ion shot that the shield takes whole counts for nothing. */
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 250);
+	g_test_craft[1].shield_energy[0] = 1000;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].subsystem_damage, 0);
+}
+
+/* Comment: once the model's system_strength is within 10 of the ion damage,
+ * one working system goes per 200 damage (rounded up) in the order of the
+ * subsystem table; on a player's craft each is also marked failed with its
+ * repair time. The damage that counts is what got through the shield. */
+static void check_damage_ion_knocks_out_systems(void)
+{
+	/* Remaining strength 11: nothing yet. */
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 250);
+	g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 12;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems,
+			  CRAFT_SUBSYSTEM_FLAGS_ALL);
+
+	/* Remaining strength 10: one system per 200 through; 250 through shield
+	 * 100 is 150 through: one. */
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 250);
+	g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 11;
+	g_test_craft[1].shield_energy[0] = 100;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems,
+			  CRAFT_SUBSYSTEM_FLAGS_ALL ^
+				  g_subsystem_id_to_flag[0]);
+	/* A computer-flown craft's repair records are left alone. */
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_repair_seconds[0], 0);
+
+	/* 450 through: three (201 to 400 would be two, 401 to 600 three). */
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 550);
+	g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 11;
+	g_test_craft[1].shield_energy[0] = 100;
+	player_flies(1, 1);
+	for (int system = 0; system < 3; ++system) {
+		g_test_craft[1].system_health[system] = 55;
+	}
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems,
+			  CRAFT_SUBSYSTEM_FLAGS_ALL ^
+				  (g_subsystem_id_to_flag[0] |
+				   g_subsystem_id_to_flag[1] |
+				   g_subsystem_id_to_flag[2]));
+	for (int system = 0; system < 3; ++system) {
+		XVT_ASSERT_INT_EQ(g_test_craft[1].system_health[system], 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].system_repair_seconds[system],
+				  g_subsystem_repair_duration[system]);
+	}
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_health[3], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_repair_seconds[3], 0);
+	XVT_ASSERT_TRUE(line_holds("combat.ion_hit", "remaining="));
+
+	/* 200 through is one; 201 two. */
+	for (int through = 200; through <= 201; ++through) {
+		ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, through);
+		g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 11;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		int working = g_test_craft[1].working_subsystems;
+		int knocked = 0;
+		for (int system = 0; system < CRAFT_SUBSYSTEM_COUNT; ++system) {
+			knocked +=
+				(working & g_subsystem_id_to_flag[system]) == 0;
+		}
+		XVT_ASSERT_INT_EQ(knocked, through == 200 ? 1 : 2);
+	}
+}
+
+/* Comment: a craft left with no working system is disabled: both shields
+ * 0, subsystem_damage at the model's system_strength, a disabled outcome
+ * for its flight group; a computer-flown craft's turrets lose their
+ * targets and its cannon groups their links. */
+static void check_damage_ion_disables_craft(void)
+{
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 2001);
+	g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 11;
+	g_test_craft[1].laser_slot_count = 2;
+	g_test_craft[1].cannon_group_count = 2;
+	g_test_craft[1].weapon_slots[0].projectile_type_id = 2;
+	g_test_craft[1].weapon_slots[1].projectile_type_id = 1;
+	g_test_craft[1].turret_target_states[0].target_obj_idx = 0;
+	g_test_craft[1].turret_target_states[1].target_obj_idx = 0;
+	g_test_craft[1].laser_state.link_mode[0] = 1;
+	g_test_craft[1].laser_state.link_mode[1] = 1;
+	g_mission_flight_groups[1].fg.special_cargo_craft =
+		g_test_craft[1].craft_ordinal;
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 0), 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].subsystem_damage, TEST_ION_STRENGTH);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_DISABLED],
+			  1);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[1]
+			.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_DISABLED],
+		1);
+	XVT_ASSERT_INT_EQ(
+		g_test_craft[1].turret_target_states[0].target_obj_idx,
+		UINT16_MAX);
+	XVT_ASSERT_INT_EQ(
+		g_test_craft[1].turret_target_states[1].target_obj_idx, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].laser_state.link_mode[0], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].laser_state.link_mode[1], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 0);
+	XVT_ASSERT_TRUE(line_holds("combat.craft_disabled", "object=1 fg=1"));
+	XVT_ASSERT_TRUE(line_holds("combat.craft_disabled", "count=1"));
+
+	/* A player's craft with the strength used up loses every system with
+	 * its repair marks, and is disabled; it keeps its turret targets. */
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 30);
+	g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 1;
+	player_flies(1, 1);
+	g_test_craft[1].laser_slot_count = 1;
+	g_test_craft[1].weapon_slots[0].projectile_type_id = 2;
+	g_test_craft[1].turret_target_states[0].target_obj_idx = 0;
+	for (int system = 0; system < CRAFT_SUBSYSTEM_COUNT; ++system) {
+		g_test_craft[1].system_health[system] = 40;
+	}
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].subsystem_damage, TEST_ION_STRENGTH);
+	for (int system = 0; system < CRAFT_SUBSYSTEM_COUNT; ++system) {
+		XVT_ASSERT_INT_EQ(g_test_craft[1].system_health[system], 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].system_repair_seconds[system],
+				  g_subsystem_repair_duration[system]);
+	}
+	XVT_ASSERT_INT_EQ(
+		g_test_craft[1].turret_target_states[0].target_obj_idx, 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_DISABLED],
+			  1);
+
+	/* A craft with no working system to begin with is not counted
+	 * disabled again... it was already: no second outcome from a hit that
+	 * finds nothing to knock out. */
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 30);
+	g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH;
+	g_test_craft[1].working_subsystems = 0;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_DISABLED],
+			  0);
+}
+
+/* ------------------------------------------------------------------------ */
+/* collide_damagecraft: the kill. */
+
+enum {
+	TEST_TUMBLE_LIMIT = 1000,
+};
+
+/* Craft 0 (group 0, AI level 2) shoots craft 1 (group 1), whose shields are
+ * down and whose hull has 100 to give; the shot deals 250. Craft 1's model
+ * limits its tumble to TEST_TUMBLE_LIMIT. */
+static void killing_shot(void)
+{
+	laser_at_craft();
+	g_test_craft[1].shield_energy[0] = 0;
+	g_test_craft[1].shield_energy[1] = 0;
+	g_test_craft[1].model_index = TEST_MODEL;
+	g_model_defs[TEST_MODEL].max_tumble_rate = TEST_TUMBLE_LIMIT;
+	g_test_mobiles[1].speed = 50;
+}
+
+/* The same as killing_shot, with player 0 flying craft 0, a team hostile to
+ * craft 1's, and mission scoring set up as for a kill credit. */
+static void player_kills_craft(void)
+{
+	killing_shot();
+	g_mission_teams[0].allies[0] = 1;
+	g_mission_teams[1].allies[1] = 1;
+	g_mission_teams[0].allies[1] = 0;
+	g_mission_teams[1].allies[0] = 0;
+	g_flight_mission_state.difficulty = 1;
+	player_flies(0, 0);
+	g_players[0].pilot_rating = 5;
+	/* The kill's rating points divide by the weight of the model of the
+	 * craft type that player 0's flight group flies: a craft type whose
+	 * object type is TEST_FIGHTER_TYPE, which has the model of the
+	 * victim. */
+	int craft_type = 1;
+	while (craft_type < 96 &&
+	       g_craft_type_to_object_type[craft_type] != TEST_FIGHTER_TYPE) {
+		++craft_type;
+	}
+	XVT_ASSERT_TRUE(craft_type < 96);
+	g_mission_flight_groups[0].fg.craft_type = (craft_species)craft_type;
+	g_model_defs[TEST_MODEL].rating_weight = 5;
+	memset(&g_players[0].mission_stats, 0,
+	       sizeof g_players[0].mission_stats);
+	g_test_guidance[0].source_player_idx = 0;
+}
+
+/* Comment: when hull_damage reaches hull_max on an active craft, the kill
+ * is credited, the loss recorded, a destroyed outcome counted, the links to
+ * the craft cleared and messages sent. */
+static void check_kill_records(void)
+{
+	player_kills_craft();
+	g_test_craft[0].carried_object_index = 1;
+	g_test_craft[0].carrier_obj_idx = 1;
+	g_test_craft[1].carried_object_index = 0;
+	XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+			  CRAFT_OBJECT_KIND_ACTIVE);
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+
+	XVT_ASSERT_TRUE(g_test_craft[1].hull_damage >=
+			g_test_craft[1].hull_max);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[1]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+		1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].mission_accounting_done, 1);
+	/* The player whose shot did all the damage gets the kill's score. */
+	XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score,
+			  mission_compute_kill_score_for_object(1));
+	XVT_ASSERT_TRUE(g_players[0].mission_stats.mission_score > 0);
+	/* The loss is counted against the victim's team, as a loss. */
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime.team_kill_stats[3][1],
+			  1);
+	/* The craft it carried, and the carrier it rode, forget it. */
+	XVT_ASSERT_INT_EQ(g_test_craft[0].carried_object_index, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].carrier_obj_idx, UINT16_MAX);
+	XVT_ASSERT_TRUE(count_lines("msg.message_built") >= 1);
+	XVT_ASSERT_TRUE(line_holds("combat.craft_destroyed", "object=1 fg=1"));
+	XVT_ASSERT_TRUE(
+		line_holds("battle.killing_blow",
+			   "victim=1 by=0 attacker=0 weapon=\"cannon\""));
+}
+
+/* The killing blow's log line names what struck: a shot from a cannon or a
+ * warhead, a collision, a static object, the engine wash or nothing. */
+static void check_kill_weapon_names(void)
+{
+	static const struct {
+		const char *weapon;
+		uint16_t source;
+		uint8_t shot_type;
+	} cases[] = {
+		{"cannon", TEST_SHOT, PROJECTILE_OBJECT_TYPE_REBEL_LASER},
+		{"warhead", TEST_SHOT, WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE},
+		{"collision", 0, 0},
+		{"object", TEST_MINE, 0},
+		{"wash", UINT16_MAX - 1, 0},
+		{"none", UINT16_MAX, 0},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		killing_shot();
+		g_test_mobiles[0].damage_amount = 250;
+		place_mine(20000, 0, 0);
+		g_object_type_table[TEST_MINE_TYPE].max_bounds_extent = 200;
+		if (cases[i].shot_type != 0) {
+			g_test_objects[TEST_SHOT].object_type =
+				cases[i].shot_type;
+		}
+		collide_damagecraft(1, -1, cases[i].source,
+				    cases[i].source == UINT16_MAX - 1 ? 300
+								      : 0);
+		char expected[32];
+		snprintf(expected, sizeof expected, "weapon=\"%s\"",
+			 cases[i].weapon);
+		XVT_ASSERT_TRUE(line_holds("battle.killing_blow", expected));
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[1]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+			1);
+	}
+	g_object_type_table[TEST_MINE_TYPE].max_bounds_extent =
+		TEST_MINE_EXTENT;
+}
+
+/* Comment: only a craft that is active or entering hyperspace is killed; one
+ * in another state takes the damage and is not counted lost. */
+static void check_kill_needs_live_craft(void)
+{
+	killing_shot();
+	g_test_craft[1].object_kind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[1]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+		1);
+	XVT_ASSERT_TRUE(line_holds("combat.craft_destroyed", "hyperspace=1"));
+
+	static const uint8_t others[] = {
+		CRAFT_OBJECT_KIND_DISABLED,
+		CRAFT_OBJECT_KIND_BREAKING_UP,
+		CRAFT_OBJECT_KIND_EXPLODING,
+		CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE,
+	};
+	for (size_t i = 0; i < sizeof others; ++i) {
+		killing_shot();
+		g_test_craft[1].object_kind = others[i];
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 250);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind, others[i]);
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[1]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+			0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].mission_accounting_done, 0);
+	}
+}
+
+/* Comment: a craft without a fuselage tumbles and breaks up after a time:
+ * object_kind breaking up, a roll within the model's tumble limit in either
+ * direction, and a life of 8 to 15 seconds, or by the flight group's craft
+ * explosion time when it has one. */
+static void check_kill_tumbles_without_fuselage(void)
+{
+	int turned[2] = {0, 0};
+	for (int seed = 0; seed < 64; ++seed) {
+		killing_shot();
+		g_test_craft[1].ai_controller.saved_rand_seed = (uint16_t)seed;
+		XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 0), 1);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+				  CRAFT_OBJECT_KIND_BREAKING_UP);
+		int roll = g_test_mobiles[1].roll_impulse_rate;
+		XVT_ASSERT_TRUE(roll != 0);
+		XVT_ASSERT_TRUE(roll >= -TEST_TUMBLE_LIMIT &&
+				roll <= TEST_TUMBLE_LIMIT);
+		++turned[roll < 0];
+		int life = g_test_mobiles[1].lifetime_timer;
+		XVT_ASSERT_INT_EQ(life % SIMULATION_TICKS_PER_SECOND, 0);
+		XVT_ASSERT_TRUE(life >= 8 * SIMULATION_TICKS_PER_SECOND &&
+				life <= 15 * SIMULATION_TICKS_PER_SECOND);
+		XVT_ASSERT_TRUE(line_holds("combat.craft_breakup", "state=3"));
+	}
+	XVT_ASSERT_TRUE(turned[0] > 0);
+	XVT_ASSERT_TRUE(turned[1] > 0);
+
+	/* The flight group's craft explosion time, in 5-second steps. */
+	killing_shot();
+	g_mission_flight_groups[1].fg.craft_explosion_time = 3;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_mobiles[1].lifetime_timer, 1180 * 3 - 1179);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+			  CRAFT_OBJECT_KIND_BREAKING_UP);
+}
+
+/* ------------------------------------------------------------------------ */
+/* collide_damagecraft: how a destroyed craft ends. */
+
+/* Gives the starfighter object type a model of count meshes, mesh i of
+ * component type types[i], with center x center_x[i] and the component
+ * flags flags[i]. */
+static void craft_model(int count, const int *types, const int *center_x,
+			const int *flags)
+{
+	struct optimized_poly_object *model =
+		memory_get_handle_block(g_craft_model_handle);
+	memset(model, 0, sizeof *model);
+	model->self_marker = model;
+	model->root_node_count = count;
+	model->root_nodes = g_craft_model_roots;
+	if (g_craft_model_type < 73) {
+		g_object_type_mesh_cache[g_craft_model_type].mesh_count = count;
+	}
+	for (int i = 0; i < count; ++i) {
+		memset(&g_craft_model_nodes[i], 0,
+		       sizeof g_craft_model_nodes[i]);
+		memset(&g_craft_model_descriptors[i], 0,
+		       sizeof g_craft_model_descriptors[i]);
+		g_craft_model_nodes[i].node_type = OPT_MESHDESC;
+		g_craft_model_nodes[i].payload = &g_craft_model_descriptors[i];
+		g_craft_model_roots[i] = &g_craft_model_nodes[i];
+		g_craft_model_descriptors[i].mesh_type = types[i];
+		g_craft_model_descriptors[i].component_flags = flags[i];
+		g_craft_model_descriptors[i].center.x = (float)center_x[i];
+		if (g_craft_model_type < 73) {
+			g_object_type_mesh_cache[g_craft_model_type]
+				.mesh_types[i] = types[i];
+			g_object_type_mesh_cache[g_craft_model_type]
+				.mesh_descriptors[i] =
+				&g_craft_model_descriptors[i];
+		}
+	}
+	g_loaded_models[g_craft_model_type] = g_craft_model_handle;
+	g_object_type_table[g_craft_model_type].asset_flags |= 1;
+}
+
+/* A fuselage and a wing on each side: mesh 0 the fuselage, mesh 1 the wing at
+ * x -100, mesh 2 the wing at x 100. */
+static void winged_craft_model(void)
+{
+	static const int types[3] = {MESH_COMPONENT_03_FUSELAGE,
+				     MESH_COMPONENT_02_WING,
+				     MESH_COMPONENT_02_WING};
+	static const int center_x[3] = {0, -100, 100};
+	static const int flags[3] = {0, 0, 0};
+	craft_model(3, types, center_x, flags);
+}
+
+/* A fuselage alone. */
+static void fuselage_craft_model(void)
+{
+	static const int types[1] = {MESH_COMPONENT_03_FUSELAGE};
+	static const int center_x[1] = {0};
+	static const int flags[1] = {0};
+	craft_model(1, types, center_x, flags);
+}
+
+/* Comment: a moving craft hit by something small breaks up, tearing off a
+ * wing when one is left, on a randomly chosen side: the wing becomes a piece
+ * of debris, the craft is marked breaking up, and the craft's life is
+ * a whole number of seconds. */
+static void check_kill_tears_off_wing(void)
+{
+	/* A craft of an object type with a mesh cache, and one past them. */
+	for (int type_index = 0; type_index < 2; ++type_index) {
+		int type = type_index == 0 ? TEST_FIGHTER_TYPE : TEST_LATE_TYPE;
+		int torn[3] = {0, 0, 0};
+		for (int seed = 0; seed < 64; ++seed) {
+			killing_shot();
+			g_craft_model_type = type;
+			g_test_objects[1].object_type = (uint8_t)type;
+			winged_craft_model();
+			/* Either of the two breakup sounds. */
+			g_game_rand2_feedback_state =
+				(seed & 1) != 0 ? 0x8000 : 0;
+			g_test_craft[1].ai_controller.saved_rand_seed =
+				(uint16_t)seed;
+			XVT_ASSERT_INT_EQ(
+				collide_damagecraft(1, -1, TEST_SHOT, 0), 0);
+			XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+					  CRAFT_OBJECT_KIND_BREAKING_UP);
+			int left = g_test_craft[1].component_state[WING_LEFT];
+			int right = g_test_craft[1].component_state[WING_RIGHT];
+			/* Exactly one wing is torn off. */
+			XVT_ASSERT_TRUE((left == TORN_OFF_STATE) !=
+					(right == TORN_OFF_STATE));
+			XVT_ASSERT_INT_EQ(left + right, TORN_OFF_STATE);
+			++torn[left == TORN_OFF_STATE ? WING_LEFT : WING_RIGHT];
+			int wing =
+				left == TORN_OFF_STATE ? WING_LEFT : WING_RIGHT;
+			/* The step after the last mesh marks the breakup. */
+			XVT_ASSERT_INT_EQ(g_test_craft[1].component_state[3],
+					  BREAKUP_STEP_STATE);
+			/* The debris slot holds the wing: its mesh twice, drawn
+			 * from the breakup step. */
+			XVT_ASSERT_INT_EQ(
+				g_test_objects[TEST_DEBRIS].object_type,
+				CRAFT_SPECIES_COMPONENT);
+			XVT_ASSERT_INT_EQ(g_test_objects[TEST_DEBRIS]
+						  .type_specific_byte[0],
+					  2 * wing);
+			XVT_ASSERT_INT_EQ(g_test_objects[TEST_DEBRIS]
+						  .type_specific_byte[1],
+					  BREAKUP_STEP_STATE);
+			int life = g_test_mobiles[1].lifetime_timer;
+			XVT_ASSERT_INT_EQ(life % SIMULATION_TICKS_PER_SECOND,
+					  0);
+			XVT_ASSERT_TRUE(
+				life >= SIMULATION_TICKS_PER_SECOND &&
+				life <= 11 * SIMULATION_TICKS_PER_SECOND);
+			XVT_ASSERT_TRUE(
+				g_test_debris_mobile.roll_impulse_rate != 0);
+		}
+		XVT_ASSERT_TRUE(torn[WING_LEFT] > 0);
+		XVT_ASSERT_TRUE(torn[WING_RIGHT] > 0);
+	}
+}
+
+/* Comment: a wing that is not left, or a debris slot that is not free, means
+ * no wing is torn off; the craft still breaks up. A craft with a fuselage
+ * alone has no wing to lose. */
+static void check_kill_without_a_wing_to_tear(void)
+{
+	/* Both wings already gone. */
+	killing_shot();
+	winged_craft_model();
+	g_test_craft[1].component_state[WING_LEFT] = TORN_OFF_STATE;
+	g_test_craft[1].component_state[WING_RIGHT] = TORN_OFF_STATE;
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 0), 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+			  CRAFT_OBJECT_KIND_BREAKING_UP);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_DEBRIS].object_type, 0);
+
+	/* No free debris slot. */
+	killing_shot();
+	winged_craft_model();
+	g_test_objects[TEST_DEBRIS].object_type = 9;
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 0), 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+			  CRAFT_OBJECT_KIND_BREAKING_UP);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_state[WING_LEFT], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_state[WING_RIGHT], 0);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_DEBRIS].object_type, 9);
+
+	/* One mesh. */
+	killing_shot();
+	fuselage_craft_model();
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 0), 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+			  CRAFT_OBJECT_KIND_BREAKING_UP);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_DEBRIS].object_type, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_state[1],
+			  BREAKUP_STEP_STATE);
+}
+
+/* Comment: a craft that is not moving, or struck by a large craft or by a
+ * container, explodes at once: object_kind exploding, a life of 1 tick and
+ * the explosion sound (return 0). */
+static void check_kill_explodes_at_once(void)
+{
+	/* Not moving. */
+	killing_shot();
+	winged_craft_model();
+	g_test_mobiles[1].speed = 0;
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 0), 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+			  CRAFT_OBJECT_KIND_EXPLODING);
+	XVT_ASSERT_INT_EQ(g_test_mobiles[1].lifetime_timer, 1);
+	XVT_ASSERT_TRUE(
+		line_holds("combat.craft_breakup", "state=4 lifetime=1"));
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_DEBRIS].object_type, 0);
+
+	/* Rammed by a large space craft: the source's type is wider than 1,095
+	 * units. */
+	killing_shot();
+	winged_craft_model();
+	g_test_mobiles[0].damage_amount = 250;
+	g_object_type_table[TEST_FIGHTER_TYPE].max_bounds_extent = 1096;
+	g_object_type_table[TEST_FIGHTER_TYPE].family_id =
+		CRAFT_FAMILY_SPACE_CRAFT;
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, 0, 0), 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+			  CRAFT_OBJECT_KIND_EXPLODING);
+	/* At 1,095 it breaks up. */
+	killing_shot();
+	winged_craft_model();
+	g_test_mobiles[0].damage_amount = 250;
+	g_object_type_table[TEST_FIGHTER_TYPE].max_bounds_extent = 1095;
+	collide_damagecraft(1, -1, 0, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+			  CRAFT_OBJECT_KIND_BREAKING_UP);
+	/* A large source that is not a space craft breaks it up too. */
+	killing_shot();
+	winged_craft_model();
+	g_test_mobiles[0].damage_amount = 250;
+	g_object_type_table[TEST_FIGHTER_TYPE].max_bounds_extent = 1096;
+	g_object_type_table[TEST_FIGHTER_TYPE].family_id = CRAFT_FAMILY_DEBRIS;
+	collide_damagecraft(1, -1, 0, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+			  CRAFT_OBJECT_KIND_BREAKING_UP);
+	g_object_type_table[TEST_FIGHTER_TYPE].max_bounds_extent =
+		TEST_FIGHTER_EXTENT;
+	g_object_type_table[TEST_FIGHTER_TYPE].family_id = 0;
+
+	/* Rammed by a container of class H, object type 58. */
+	killing_shot();
+	winged_craft_model();
+	g_test_objects[0].object_type = 58;
+	g_test_mobiles[0].damage_amount = 250;
+	collide_damagecraft(1, -1, 0, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+			  CRAFT_OBJECT_KIND_EXPLODING);
+}
+
+/* Comment: for a player, one time in 4 the craft explodes at once instead of
+ * breaking up; a breaking-up player's craft lasts 708 ticks. A computer-flown
+ * craft never explodes at once for that reason. */
+static void check_kill_of_player_craft(void)
+{
+	int exploded = 0;
+	int broke_up = 0;
+	for (int seed = 0; seed < 512; ++seed) {
+		killing_shot();
+		winged_craft_model();
+		player_flies(1, 1);
+		g_test_craft[1].ai_controller.saved_rand_seed = (uint16_t)seed;
+		int16_t result = collide_damagecraft(1, -1, TEST_SHOT, 0);
+		if (g_test_craft[1].object_kind ==
+		    CRAFT_OBJECT_KIND_EXPLODING) {
+			++exploded;
+			XVT_ASSERT_INT_EQ(result, 0);
+			XVT_ASSERT_INT_EQ(g_test_mobiles[1].lifetime_timer, 1);
+		} else {
+			++broke_up;
+			XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+					  CRAFT_OBJECT_KIND_BREAKING_UP);
+			XVT_ASSERT_INT_EQ(g_test_mobiles[1].lifetime_timer,
+					  708);
+		}
+	}
+	/* About one in 4. */
+	XVT_ASSERT_TRUE(exploded * 8 > 512 && exploded * 2 < 512);
+	XVT_ASSERT_INT_EQ(exploded + broke_up, 512);
+}
+
+/* ------------------------------------------------------------------------ */
+/* collide_laserhitcraft: who hit, and what the hit does. */
+
+enum {
+	FORWARD_X = 0x7FFF, /* The Q15 one a craft facing along +X has. */
+	TEST_CLOCK_SECOND = 3723,
+};
+
+/* The step's hit geometry for a shot moving along +X from 19,000 to 20,000
+ * into craft 1: the hit point lies 600 units on. Craft 1 faces along +X. */
+static void hit_geometry(void)
+{
+	g_collision_segment_start_world_x = 19000;
+	g_collision_segment_start_world_y = 0;
+	g_collision_segment_start_world_z = 0;
+	g_collision_probe_world_x = 20000;
+	g_collision_probe_world_y = 0;
+	g_collision_probe_world_z = 0;
+	g_collision_hit_offset_x = 600;
+	g_collision_hit_offset_y = 0;
+	g_collision_hit_offset_z = 0;
+	g_test_mobiles[1].cached_fwd_x = FORWARD_X;
+	g_test_mobiles[1].orient_matrix_dirty = 0;
+	g_mission_elapsed_clock.hours = 1;
+	g_mission_elapsed_clock.minutes = 2;
+	g_mission_elapsed_clock.seconds = 3;
+}
+
+/* The same hit as laser_at_craft, with the geometry set; the hull is deep
+ * enough to survive. */
+static void laser_hits_craft(void)
+{
+	laser_at_craft();
+	hit_geometry();
+	g_test_craft[1].hull_max = 100000;
+}
+
+/* Comment: at tactical officer voice level 2 the first hit from a team
+ * names the attacker when the craft is on the local player's team and not a
+ * starfighter. The hit marks the craft and counts the outcome whatever the
+ * speech. The shots are a missile, a torpedo, a rocket, a bomb, then a
+ * cannon shot from a starfighter, a starship and a static source. */
+static void check_hit_attacker_named(void)
+{
+	static const struct {
+		uint8_t shot_type;
+		int source;
+		uint8_t source_genus;
+	} cases[] = {
+		{WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 0,
+		 CRAFT_GENUS_STARFIGHTER},
+		{WARHEAD_OBJECT_TYPE_ADVANCED_CONCUSSION_MISSILE, 0,
+		 CRAFT_GENUS_STARFIGHTER},
+		{WARHEAD_OBJECT_TYPE_PROTON_TORPEDO, 0,
+		 CRAFT_GENUS_STARFIGHTER},
+		{WARHEAD_OBJECT_TYPE_ADVANCED_PROTON_TORPEDO, 0,
+		 CRAFT_GENUS_STARFIGHTER},
+		{WARHEAD_OBJECT_TYPE_HEAVY_ROCKET, 0, CRAFT_GENUS_STARFIGHTER},
+		{WARHEAD_OBJECT_TYPE_SPACE_BOMB, 0, CRAFT_GENUS_STARFIGHTER},
+		{PROJECTILE_OBJECT_TYPE_REBEL_LASER, 0,
+		 CRAFT_GENUS_STARFIGHTER},
+		{PROJECTILE_OBJECT_TYPE_REBEL_LASER, 0, CRAFT_GENUS_STARSHIP},
+		{PROJECTILE_OBJECT_TYPE_REBEL_LASER, 0, CRAFT_GENUS_TRANSPORT},
+		{PROJECTILE_OBJECT_TYPE_REBEL_LASER, TEST_MINE,
+		 CRAFT_GENUS_MINE},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		laser_hits_craft();
+		place_mine(20000, 0, 0);
+		g_test_objects[TEST_SHOT].object_type = cases[i].shot_type;
+		g_test_mobiles[TEST_SHOT].source_obj_idx =
+			(uint16_t)cases[i].source;
+		g_test_objects[cases[i].source].genus_id =
+			cases[i].source_genus;
+		g_test_objects[1].genus_id = CRAFT_GENUS_STARSHIP;
+		g_game_config.voice_tactical_officer_level = 2;
+		g_players[0].object_index = 1;
+		g_players[0].team = 1;
+		g_flight_mission_state.runtime.team_fg_designation_code[1][1] =
+			1;
+		g_mission_flight_groups[1].fg.special_cargo_craft =
+			g_test_craft[1].craft_ordinal;
+		collide_laserhitcraft(TEST_SHOT, 1, -1);
+		/* The mine belongs to flight group 2, team 2. */
+		XVT_ASSERT_INT_EQ(
+			g_test_craft[1].attacked_by_team
+					[cases[i].source == TEST_MINE ? 2 : 0] &
+				1,
+			1);
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[1]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_ATTACKED],
+			1);
+		/* The group's special cargo craft is marked attacked. */
+		XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].special_cargo_outcome
+					  [FLIGHT_GROUP_OUTCOME_ATTACKED],
+				  1);
+		XVT_ASSERT_TRUE(line_holds("combat.craft_attacked", "count=1"));
+		XVT_ASSERT_TRUE(
+			line_holds("combat.craft_attacked", "special=1"));
+	}
+	g_game_config.voice_tactical_officer_level = 0;
+
+	/* Any other craft's group is not the special cargo. */
+	laser_hits_craft();
+	g_mission_flight_groups[1].fg.special_cargo_craft =
+		(uint8_t)(g_test_craft[1].craft_ordinal + 1);
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[1]
+			.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_ATTACKED],
+		0);
+	XVT_ASSERT_TRUE(line_holds("combat.craft_attacked", "special=0"));
+}
+
+/* Comment: a player's shot scores the attacked goal once per team: the 0x80
+ * bit of attacked_by_team marks it done, and the outcome counts once per
+ * team whoever shoots. A computer-flown craft's shot scores nothing. */
+static void check_hit_attacked_goal_once(void)
+{
+	laser_hits_craft();
+	player_flies(0, 2);
+	g_test_craft[1].attacked_by_team[0] = 0;
+	/* A bonus goal (kind 2, amount 18) for the attack pays the player 250
+	 * times its points, and the team too. */
+	struct flight_group_goal *goal =
+		&g_mission_flight_groups[1].fg.goals[0];
+	goal->enabled_teams[0] = 1;
+	goal->event_condition = MISSION_COND_ATTACKED;
+	goal->goal_kind = 2;
+	goal->amount = 18;
+	goal->points = 2;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(((uint8_t)g_test_craft[1].attacked_by_team[0]) & 0x81,
+			  0x81);
+	XVT_ASSERT_INT_EQ(g_players[2].mission_stats.mission_score, 250 * 2);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .team_scores[TEAM_SCORE_MISSION][0],
+			  250 * 2);
+	/* A second shot from the same team leaves the mark and the count, and
+	 * scores nothing more. */
+	place_shot(TEST_OTHER_SHOT, PROJECTILE_OBJECT_TYPE_REBEL_LASER, 0,
+		   19000, 0, 0, 20000, 0, 0);
+	collide_laserhitcraft(TEST_OTHER_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(((uint8_t)g_test_craft[1].attacked_by_team[0]) & 0x81,
+			  0x81);
+	XVT_ASSERT_INT_EQ(g_players[2].mission_stats.mission_score, 250 * 2);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .team_scores[TEAM_SCORE_MISSION][0],
+			  250 * 2);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1]
+				  .outcome_count[FLIGHT_GROUP_OUTCOME_ATTACKED],
+			  1);
+
+	/* A shot from no player: the bit stays clear. */
+	laser_hits_craft();
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(((uint8_t)g_test_craft[1].attacked_by_team[0]) & 0x80,
+			  0);
+	XVT_ASSERT_INT_EQ(((uint8_t)g_test_craft[1].attacked_by_team[0]) & 0x01,
+			  1);
+}
+
+/* Comment: with no attacker recorded, a firing craft other than a freighter,
+ * starship or platform becomes last_attacker_obj_idx with
+ * last_hit_mission_second; a source in a static slot or one of those genera
+ * does not. */
+static void check_hit_records_attacker(void)
+{
+	static const struct {
+		uint8_t genus;
+		int recorded;
+	} sources[] = {
+		{CRAFT_GENUS_STARFIGHTER, 1}, {CRAFT_GENUS_TRANSPORT, 1},
+		{CRAFT_GENUS_STARSHIP, 0},    {CRAFT_GENUS_PLATFORM, 0},
+		{CRAFT_GENUS_FREIGHTER, 0},
+	};
+	for (size_t i = 0; i < sizeof sources / sizeof sources[0]; ++i) {
+		laser_hits_craft();
+		g_test_objects[0].genus_id = sources[i].genus;
+		g_test_craft[1].last_hit_mission_second = 0;
+		collide_laserhitcraft(TEST_SHOT, 1, -1);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx,
+				  sources[i].recorded ? 0 : UINT16_MAX);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].last_hit_mission_second,
+				  sources[i].recorded ? TEST_CLOCK_SECOND : 0);
+		/* The threat is the source whether or not it is recorded. */
+		XVT_ASSERT_INT_EQ(g_test_craft[1].ai_flight.threat_obj_idx, 0);
+	}
+
+	/* A source in a static slot is no attacker, though a threat. */
+	laser_hits_craft();
+	place_mine(20000, 0, 0);
+	g_test_mobiles[TEST_SHOT].source_obj_idx = TEST_MINE;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].ai_flight.threat_obj_idx, TEST_MINE);
+	/* Likewise when the static slot is the first one past the craft's. */
+	laser_hits_craft();
+	place_mine(20000, 0, 0);
+	g_test_mobiles[TEST_SHOT].source_obj_idx = TEST_MINE;
+	g_active_region_craft_object_slot_end = TEST_MINE;
+	g_test_objects[TEST_MINE].mobj = &g_test_mobiles[TEST_MINE - 1];
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx, UINT16_MAX);
+	g_test_objects[TEST_MINE].mobj = NULL;
+
+	/* With one recorded, a player's craft takes each new attacker, with the
+	 * time; a computer-flown craft keeps the first. */
+	for (int owned = 0; owned < 2; ++owned) {
+		laser_hits_craft();
+		g_test_craft[1].last_attacker_obj_idx = 7;
+		g_test_craft[1].last_hit_mission_second = 5;
+		if (owned) {
+			player_flies(1, 1);
+		}
+		collide_laserhitcraft(TEST_SHOT, 1, -1);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx,
+				  owned ? 0 : 7);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].last_hit_mission_second,
+				  owned ? TEST_CLOCK_SECOND : 5);
+	}
+}
+
+/* Comment: a friendly player's shots on a craft other than a starfighter
+ * count only once warhead hits fill the 3-bit count in attacked_by_team:
+ * cannon shots add nothing, a warhead adds 4 and the count holds at 7; the
+ * attacker is recorded when the count has reached 7, and always for a hostile
+ * player or a starfighter. */
+static void check_hit_friendly_player_counts(void)
+{
+	/* Player 2 flies craft 0 on team 0; craft 1 is team 1, allied to
+	 * team 0 in this check. */
+	laser_hits_craft();
+	player_flies(0, 2);
+	g_mission_teams[0].allies[1] = 1;
+	g_test_objects[1].genus_id = CRAFT_GENUS_TRANSPORT;
+	/* A cannon shot from a friendly player: nothing recorded, count 0. */
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(
+		((uint8_t)g_test_craft[1].attacked_by_team[0] >> 4) & 7, 0);
+
+	/* A warhead: count 4, not recorded; the next: 7, recorded. */
+	g_test_objects[TEST_SHOT].object_type =
+		WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(
+		((uint8_t)g_test_craft[1].attacked_by_team[0] >> 4) & 7, 4);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx, UINT16_MAX);
+	g_test_objects[TEST_SHOT].object_type =
+		WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(
+		((uint8_t)g_test_craft[1].attacked_by_team[0] >> 4) & 7, 7);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx, 0);
+	/* The goal mark and first-hit bit are kept. */
+	XVT_ASSERT_INT_EQ(((uint8_t)g_test_craft[1].attacked_by_team[0]) & 0x81,
+			  0x81);
+
+	/* A friendly player's hit on a starfighter is recorded at once. */
+	laser_hits_craft();
+	player_flies(0, 2);
+	g_mission_teams[0].allies[1] = 1;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx, 0);
+
+	/* A hostile player's hit on a transport too. */
+	laser_hits_craft();
+	player_flies(0, 2);
+	g_mission_teams[0].allies[1] = 0;
+	g_test_objects[1].genus_id = CRAFT_GENUS_TRANSPORT;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx, 0);
+
+	/* The same team: friendly without any alliance. */
+	laser_hits_craft();
+	player_flies(0, 2);
+	g_test_mobiles[0].team = 1;
+	g_test_objects[1].genus_id = CRAFT_GENUS_TRANSPORT;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx, UINT16_MAX);
+	g_mission_teams[0].allies[1] = 0;
+
+	/* A count of 5 is past the laser limit: a warhead adds nothing more,
+	 * and the attacker is not recorded. */
+	laser_hits_craft();
+	player_flies(0, 2);
+	g_test_mobiles[0].team = 1;
+	g_test_objects[1].genus_id = CRAFT_GENUS_TRANSPORT;
+	g_test_craft[1].attacked_by_team[0] = 0x51;
+	g_test_objects[TEST_SHOT].object_type =
+		WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(
+		((uint8_t)g_test_craft[1].attacked_by_team[0] >> 4) & 7, 5);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx, UINT16_MAX);
+
+	/* A computer-flown firer, friendly to a transport: recorded at once,
+	 * with no count kept. */
+	laser_hits_craft();
+	g_test_mobiles[0].team = 1;
+	g_test_objects[1].genus_id = CRAFT_GENUS_TRANSPORT;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].last_attacker_obj_idx, 0);
+	XVT_ASSERT_INT_EQ(
+		((uint8_t)g_test_craft[1].attacked_by_team[1] >> 4) & 7, 0);
+}
+
+/* Comment: a hit on a player's craft takes the rear shield (side 1) when the
+ * shot travels the way the craft faces, else the front; a computer-flown
+ * craft's hit is always on side 0 (front). */
+static void check_hit_side_by_travel(void)
+{
+	/* Travelling along +X, the way craft 1 faces: the rear shield. */
+	laser_hits_craft();
+	player_flies(1, 1);
+	/* The rear is the stronger bank, so evening leaves it alone. */
+	g_test_craft[1].shield_energy[0] = 500;
+	g_test_craft[1].shield_energy[1] = 1000;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 500);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 1000 - 250);
+	XVT_ASSERT_TRUE(line_holds("combat.shot_hit", "side=1"));
+
+	/* Travelling against it: the front. */
+	laser_hits_craft();
+	player_flies(1, 1);
+	g_collision_probe_world_x = 18000;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 250);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 500);
+	XVT_ASSERT_TRUE(line_holds("combat.shot_hit", "side=0"));
+
+	/* A computer-flown craft: the front whichever way. */
+	laser_hits_craft();
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 250);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[1], 500);
+
+	/* A craft whose axes are out of date has them recomputed first. */
+	laser_hits_craft();
+	g_test_mobiles[1].orient_matrix_dirty = 1;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_mobiles[1].orient_matrix_dirty, 0);
+}
+
+/* Comment: active chaff stops a warhead coming from behind (the shot
+ * travelling the way the craft faces), with a message to the craft's
+ * player, and no damage is dealt; a cannon shot, a warhead from the front,
+ * spent chaff, or another countermeasure does not stop. The shot becomes its
+ * impact effect either way. */
+static void check_hit_chaff(void)
+{
+	static const struct {
+		uint8_t shot_type;
+		int toward_front;
+		int chaff_seconds;
+		countermeasure_type countermeasure;
+		int stopped;
+	} cases[] = {
+		{WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 0, 5,
+		 COUNTERMEASURE_TYPE_CHAFF, 1},
+		{WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 1, 5,
+		 COUNTERMEASURE_TYPE_CHAFF, 0},
+		{WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 0, 0,
+		 COUNTERMEASURE_TYPE_CHAFF, 0},
+		{PROJECTILE_OBJECT_TYPE_REBEL_LASER, 0, 5,
+		 COUNTERMEASURE_TYPE_CHAFF, 0},
+		{WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 0, 5,
+		 COUNTERMEASURE_TYPE_CHAFF + 1, 0},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		laser_hits_craft();
+		g_test_objects[TEST_SHOT].object_type = cases[i].shot_type;
+		g_test_mobiles[TEST_SHOT].damage_amount = 250;
+		if (cases[i].toward_front) {
+			g_collision_probe_world_x = 18000;
+		}
+		g_test_craft[1].cm_type_id = cases[i].countermeasure;
+		g_test_craft[1].chaff_active_seconds =
+			(uint16_t)cases[i].chaff_seconds;
+		player_flies(1, 0);
+		collide_laserhitcraft(TEST_SHOT, 1, -1);
+		int taken = 1000 - g_test_craft[1].shield_energy[0] + 500 -
+			    g_test_craft[1].shield_energy[1];
+		XVT_ASSERT_INT_EQ(taken, cases[i].stopped ? 0 : 250);
+		XVT_ASSERT_INT_EQ(count_lines("combat.warhead_scattered"),
+				  cases[i].stopped);
+		/* The shot ends as an impact effect even when scattered. */
+		XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].genus_id,
+				  CRAFT_GENUS_EXPLOSION);
+		XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].world_x, 19600);
+	}
+}
+
+/* Comment: the shot becomes object type 129 from a warhead, 132 when ion
+ * and 131 when a laser, at the hit point. */
+static void check_hit_impact_effect_types(void)
+{
+	static const struct {
+		uint8_t shot_type;
+		int effect;
+	} cases[] = {
+		{PROJECTILE_OBJECT_TYPE_REBEL_LASER, 131},
+		{PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER, 131},
+		{PROJECTILE_OBJECT_TYPE_IMPERIAL_LASER, 131},
+		{PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER, 131},
+		{PROJECTILE_OBJECT_TYPE_REBEL_TURBO_LASER_2, 131},
+		{PROJECTILE_OBJECT_TYPE_IMPERIAL_TURBO_LASER_2, 131},
+		{PROJECTILE_OBJECT_TYPE_ION_LASER, 132},
+		{PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER, 132},
+		{WARHEAD_OBJECT_TYPE_PROTON_TORPEDO, 129},
+		{WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 129},
+		{WARHEAD_OBJECT_TYPE_ADVANCED_PROTON_TORPEDO, 129},
+		{WARHEAD_OBJECT_TYPE_ADVANCED_CONCUSSION_MISSILE, 129},
+		{WARHEAD_OBJECT_TYPE_SPACE_BOMB, 129},
+		{WARHEAD_OBJECT_TYPE_HEAVY_ROCKET, 129},
+		{WARHEAD_OBJECT_TYPE_MAGNETIC_PULSE, 129},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		laser_hits_craft();
+		g_test_objects[TEST_SHOT].object_type = cases[i].shot_type;
+		collide_laserhitcraft(TEST_SHOT, 1, -1);
+		XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].object_type,
+				  cases[i].effect);
+		XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].genus_id,
+				  CRAFT_GENUS_EXPLOSION);
+		XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].world_x, 19600);
+	}
+}
+
+/* Comment: a magnetic pulse on a player's craft empties its cannons' charge
+ * and knocks out the cannon system if it worked; with the cannons already
+ * out it only drains. The weapon_fire_inhibit_timer of a computer-flown craft
+ * holds at 0xFFFF rather than wrapping. */
+static void check_pulse_on_player_craft(void)
+{
+	/* A working cannon system: its charge is gone, the system out and
+	 * marked for repair. */
+	pulse_at_craft();
+	hit_geometry();
+	player_flies(1, 0);
+	all_systems_work(&g_test_craft[1]);
+	g_test_craft[1].laser_slot_count = 2;
+	g_test_craft[1].weapon_slots[0].laser_charge = 90;
+	g_test_craft[1].weapon_slots[1].laser_charge = 80;
+	g_test_craft[1].weapon_slots[2].laser_charge = 70;
+	g_test_craft[1].system_health[3] = 50;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_slots[0].laser_charge, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_slots[1].laser_charge, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_slots[2].laser_charge, 70);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems,
+			  CRAFT_SUBSYSTEM_FLAGS_ALL ^
+				  CRAFT_SUBSYSTEM_FLAG_CANNONS);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_health[3], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_repair_seconds[3],
+			  g_subsystem_repair_duration[3]);
+	XVT_ASSERT_TRUE(line_holds("combat.system_failed", "cause=\"pulse\""));
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 1);
+	/* Nothing is added to a player's inhibit timer. */
+	XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_fire_inhibit_timer, 0);
+
+	/* Cannons already out: the drain message, no repair mark. */
+	pulse_at_craft();
+	hit_geometry();
+	player_flies(1, 0);
+	all_systems_work(&g_test_craft[1]);
+	g_test_craft[1].working_subsystems &= ~CRAFT_SUBSYSTEM_FLAG_CANNONS;
+	g_test_craft[1].system_repair_seconds[3] = 0;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_repair_seconds[3], 0);
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 1);
+	XVT_ASSERT_INT_EQ(count_lines("combat.system_failed"), 0);
+
+	/* A pulse on the other player's craft: no message for the local one. */
+	pulse_at_craft();
+	hit_geometry();
+	player_flies(1, 1);
+	all_systems_work(&g_test_craft[1]);
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems,
+			  CRAFT_SUBSYSTEM_FLAGS_ALL ^
+				  CRAFT_SUBSYSTEM_FLAG_CANNONS);
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 0);
+
+	/* The AI craft's timer holds at the top. */
+	pulse_at_craft();
+	hit_geometry();
+	g_test_craft[1].weapon_fire_inhibit_timer = -1000;
+	collide_laserhitcraft(TEST_SHOT, 1, -1);
+	XVT_ASSERT_INT_EQ((uint16_t)g_test_craft[1].weapon_fire_inhibit_timer,
+			  0xFFFF);
+}
+
+/* ------------------------------------------------------------------------ */
+/* collide_damagecraft: hits on a mesh, and what the local player sees. */
+
+enum {
+	MESH_EXPLOSION_BIT = 1,
+	MESH_DAMAGEABLE_BIT = 2,
+};
+
+/* A hull mesh and two gun meshes for the starfighter object type: mesh 1
+ * has component flags first, meshes 2 and 3 flags guns. g_cur_craft is craft
+ * 1, as the model walk leaves it. */
+static void gun_craft_model(int first, int guns)
+{
+	static const int types[3] = {MESH_COMPONENT_01_MAIN_HULL,
+				     MESH_COMPONENT_05_LASR_GUN,
+				     MESH_COMPONENT_05_LASR_GUN};
+	static const int center_x[3] = {0, 0, 0};
+	int flags[3] = {first, guns, guns};
+	craft_model(3, types, center_x, flags);
+	g_cur_craft = &g_test_craft[1];
+}
+
+/* Comment: a hit on a mesh whose explosion type has bit 0 set goes first to
+ * craft_damage_component, on difficulty 0 always, otherwise only with both
+ * shields down. A component that takes the whole hit leaves nothing for the
+ * shield; a destroyed one passes on only the rest; a mesh without the bit
+ * is not looked at. */
+static void check_damage_component_first(void)
+{
+	/* Difficulty 0: the component takes the hit while the shield is up. */
+	laser_at_craft();
+	gun_craft_model(0, MESH_EXPLOSION_BIT);
+	g_test_craft[1].hull_max = 100000;
+	g_flight_mission_state.difficulty = 0;
+	g_test_craft[1].component_hp[1] = 20;
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, 2, TEST_SHOT, 0), 1);
+	/* 16 * 20 = 320 over 250 left: a quarter of the component stays,
+	 * rounded down: (320 - 250) / 16. */
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_hp[1], (320 - 250) / 16);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].damage_stats.damage_received_total,
+			  250);
+
+	/* A component with too little left is destroyed and the shield takes
+	 * the rest. */
+	laser_at_craft();
+	gun_craft_model(0, MESH_EXPLOSION_BIT);
+	g_test_craft[1].hull_max = 100000;
+	g_flight_mission_state.difficulty = 0;
+	g_test_craft[1].component_hp[1] = 10;
+	collide_damagecraft(1, 2, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_hp[1], 0);
+	XVT_ASSERT_TRUE(g_test_craft[1].shield_energy[0] < 1000);
+	XVT_ASSERT_TRUE(g_test_craft[1].shield_energy[0] > 1000 - 250);
+
+	/* A mesh without the bit: the shield takes it all. */
+	laser_at_craft();
+	gun_craft_model(0, MESH_DAMAGEABLE_BIT);
+	g_test_craft[1].hull_max = 100000;
+	g_flight_mission_state.difficulty = 0;
+	g_test_craft[1].component_hp[1] = 20;
+	collide_damagecraft(1, 2, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_hp[1], 20);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 250);
+
+	/* Any other difficulty: not while a shield holds energy; with both
+	 * down, yes. */
+	laser_at_craft();
+	gun_craft_model(0, MESH_EXPLOSION_BIT);
+	g_test_craft[1].hull_max = 100000;
+	g_flight_mission_state.difficulty = 1;
+	g_test_craft[1].component_hp[1] = 20;
+	collide_damagecraft(1, 2, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_hp[1], 20);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 250);
+	laser_at_craft();
+	gun_craft_model(0, MESH_EXPLOSION_BIT);
+	g_test_craft[1].hull_max = 100000;
+	g_flight_mission_state.difficulty = 1;
+	g_test_craft[1].shield_energy[0] = 0;
+	g_test_craft[1].shield_energy[1] = 0;
+	g_test_craft[1].component_hp[1] = 20;
+	collide_damagecraft(1, 2, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_hp[1], (320 - 250) / 16);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 0);
+	/* Only one shield down is not both. */
+	laser_at_craft();
+	gun_craft_model(0, MESH_EXPLOSION_BIT);
+	g_test_craft[1].hull_max = 100000;
+	g_flight_mission_state.difficulty = 1;
+	g_test_craft[1].shield_energy[0] = 0;
+	g_test_craft[1].component_hp[1] = 20;
+	collide_damagecraft(1, 2, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_hp[1], 20);
+	g_flight_mission_state.difficulty = 0;
+}
+
+/* Comment: hull damage on a damageable mesh goes to the component too, and
+ * the hull takes the rest; an obstacle takes nothing at all. */
+static void check_damage_component_in_hull(void)
+{
+	/* Shields down; the mesh is damageable only: the hull takes the part
+	 * the component cannot. */
+	laser_at_craft();
+	gun_craft_model(0, MESH_DAMAGEABLE_BIT);
+	g_test_craft[1].hull_max = 100000;
+	g_test_craft[1].system_damage_hull_threshold = 100000;
+	g_test_craft[1].shield_energy[0] = 0;
+	g_test_craft[1].shield_energy[1] = 0;
+	g_test_craft[1].component_hp[1] = 10;
+	collide_damagecraft(1, 2, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_hp[1], 0);
+	XVT_ASSERT_TRUE(g_test_craft[1].hull_damage > 0);
+	XVT_ASSERT_TRUE(g_test_craft[1].hull_damage < 250);
+
+	laser_at_craft();
+	gun_craft_model(0, MESH_DAMAGEABLE_BIT);
+	g_test_craft[1].hull_max = 100000;
+	g_test_craft[1].system_damage_hull_threshold = 100000;
+	g_test_craft[1].shield_energy[0] = 0;
+	g_test_craft[1].shield_energy[1] = 0;
+	g_test_craft[1].component_hp[1] = 20;
+	collide_damagecraft(1, 2, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_hp[1], (320 - 250) / 16);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 0);
+
+	/* An obstacle takes nothing. */
+	laser_at_craft();
+	g_test_objects[1].genus_id = CRAFT_GENUS_OBSTACLE;
+	g_test_craft[1].hull_max = 100000;
+	g_test_craft[1].shield_energy[0] = 0;
+	g_test_craft[1].shield_energy[1] = 0;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].damage_stats.damage_received_total,
+			  250);
+}
+
+/* The tactical officer is on at level 2 and the local player flies craft 0
+ * on team 0, so lines about craft 1 (team 1, designation 1) are spoken. */
+static void officer_speaks(void)
+{
+	g_game_config.voice_tactical_officer_level = 2;
+	g_players[0].object_index = 0;
+	g_players[0].team = 0;
+	for (int team = 0; team < 2; ++team) {
+		for (int group = 0; group < 2; ++group) {
+			g_flight_mission_state.runtime
+				.team_fg_designation_code[team][group] = 1;
+		}
+	}
+}
+
+/* Comment: tactical officer reports come as hull_damage passes thresholds
+ * (95%, 75% and 25% of hull_max, on a craft that is not a starfighter), and a
+ * shield going out. Speech cannot be read back here; the hull sums can: each
+ * hit adds to hull_damage and no hit ends the craft before hull_max. */
+static void check_damage_hull_thresholds(void)
+{
+	static const int hits[] = {240, 20, 300, 200, 160, 45};
+	laser_at_craft();
+	officer_speaks();
+	g_test_objects[1].genus_id = CRAFT_GENUS_TRANSPORT;
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].system_damage_hull_threshold = 1000;
+	g_test_craft[1].shield_energy[0] = 10;
+	g_test_craft[1].shield_energy[1] = 0;
+	int expected = 0;
+	/* The first hit empties the shield, and 230 reaches the hull. */
+	for (size_t i = 0; i < sizeof hits / sizeof hits[0]; ++i) {
+		g_test_mobiles[TEST_SHOT].damage_amount = (uint16_t)hits[i];
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		expected += hits[i] - (i == 0 ? 10 : 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, expected);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+				  CRAFT_OBJECT_KIND_ACTIVE);
+	}
+	/* 955 in all: past 95% of 1,000, short of the end. */
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 955);
+
+	/* A shield that still has energy when it goes out: reported once; a
+	 * hit that leaves it in place reports nothing. */
+	laser_at_craft();
+	officer_speaks();
+	g_test_objects[1].genus_id = CRAFT_GENUS_TRANSPORT;
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].shield_energy[0] = 100;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 150);
+	g_game_config.voice_tactical_officer_level = 0;
+}
+
+/* Comment: a disabled craft sends the officer's line and a warning tone for
+ * the local player's own side; the hit still disables it. */
+static void check_damage_disabled_with_officer(void)
+{
+	for (int own_side = 0; own_side < 3; ++own_side) {
+		ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 2001);
+		officer_speaks();
+		g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 1;
+		if (own_side != 0) {
+			g_players[0].team = 1;
+		}
+		/* The local player flies a type 1 craft, which has the R2
+		 * warning, or a type 6 craft, which has the general one. */
+		g_test_objects[0].object_type = own_side == 2 ? 6 : 1;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems, 0);
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[1]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_DISABLED],
+			1);
+		g_game_config.voice_tactical_officer_level = 0;
+	}
+	/* A player with no craft of its own to hear: still disabled. */
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 2001);
+	officer_speaks();
+	g_players[0].object_index = 1;
+	g_test_objects[1].object_type = 1;
+	g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 1;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems, 0);
+	g_game_config.voice_tactical_officer_level = 0;
+}
+
+/* Comment: the local player's own craft is told when a system fails, and
+ * its HUD indicators are redrawn when features or systems go. */
+static void check_damage_local_player_systems(void)
+{
+	/* Hull damage knocks out the engines (seed 0) of the local player's
+	 * craft; the message follows. */
+	laser_at_craft();
+	player_flies(1, 0);
+	g_players[0].awaiting_new_craft = 0;
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].system_damage_hull_threshold = 1000;
+	g_test_craft[1].shield_energy[1] = 0;
+	g_test_craft[1].ai_controller.saved_rand_seed = 0;
+	all_systems_work(&g_test_craft[1]);
+	collide_damagecraft(1, -1, TEST_SHOT, 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems,
+			  CRAFT_SUBSYSTEM_FLAGS_ALL ^
+				  g_subsystem_id_to_flag[0]);
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 1);
+
+	/* A craft waiting for its replacement hears nothing. */
+	laser_at_craft();
+	player_flies(1, 0);
+	g_players[0].awaiting_new_craft = 1;
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].system_damage_hull_threshold = 1000;
+	g_test_craft[1].shield_energy[1] = 0;
+	g_test_craft[1].ai_controller.saved_rand_seed = 0;
+	all_systems_work(&g_test_craft[1]);
+	collide_damagecraft(1, -1, TEST_SHOT, 1);
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 0);
+	g_players[0].awaiting_new_craft = 0;
+
+	/* Features lost on the local player's craft: the indicators redrawn
+	 * (the call is made while the craft is local, not in a replay). */
+	laser_at_craft();
+	player_flies(1, 0);
+	g_test_craft[1].hull_max = 100000;
+	g_test_craft[1].system_damage_hull_threshold = 0;
+	g_test_craft[1].shield_energy[1] = 0;
+	g_test_craft[1].ai_controller.saved_rand_seed = 0x7FFF;
+	g_test_craft[1].damage_stats.installed_hud_feature_mask = 0xFFFF;
+	g_test_craft[1].damage_stats.active_hud_feature_mask = 0xFFFF;
+	collide_damagecraft(1, -1, TEST_SHOT, 1);
+	XVT_ASSERT_TRUE(g_test_craft[1].damage_stats.active_hud_feature_mask !=
+			0xFFFF);
+}
+
+/* Comment: a kill is reported to the local player by the wingman and
+ * tactical officer lines, whatever their speech: the craft is destroyed the
+ * same in every case: its own flight group the local player's (a loss), its
+ * killer in the local player's group but not the local player (a kill by a
+ * wingman, of a starfighter or something larger), and the officer on, the
+ * victim on the player's side or an enemy, the player in either kind of
+ * craft. */
+static void check_kill_is_reported_to_player(void)
+{
+	static const struct {
+		int bound_group;
+		uint8_t victim_genus;
+		int allied;
+		int officer;
+		uint8_t local_type;
+	} cases[] = {
+		{1, CRAFT_GENUS_STARFIGHTER, 0, 0, 1},
+		{0, CRAFT_GENUS_STARFIGHTER, 0, 0, 1},
+		{0, CRAFT_GENUS_TRANSPORT, 0, 0, 1},
+		{0, CRAFT_GENUS_STARSHIP, 0, 0, 1},
+		{2, CRAFT_GENUS_STARFIGHTER, 0, 1, 1},
+		{2, CRAFT_GENUS_STARFIGHTER, 1, 1, 1},
+		{2, CRAFT_GENUS_STARFIGHTER, 1, 1, 6},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		killing_shot();
+		/* Enough to end a starship, which takes a sixteenth. */
+		g_test_mobiles[TEST_SHOT].damage_amount = 5000;
+		g_test_objects[1].genus_id = cases[i].victim_genus;
+		g_players[0].bound_flight_group_idx =
+			(uint16_t)cases[i].bound_group;
+		g_players[0].object_index = cases[i].officer ? 0 : -1;
+		g_players[0].team = 0;
+		g_test_objects[0].object_type = cases[i].local_type;
+		g_mission_teams[0].allies[1] = (uint8_t)cases[i].allied;
+		if (cases[i].officer) {
+			officer_speaks();
+			g_players[0].object_index = 0;
+		}
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+				  CRAFT_OBJECT_KIND_BREAKING_UP);
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[1]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+			1);
+		g_mission_teams[0].allies[1] = 0;
+		g_game_config.voice_tactical_officer_level = 0;
+	}
+}
+
+/* Comment: when a player's craft is destroyed the player is put to waiting
+ * for a new craft (player.h: awaiting_new_craft 1), and the player's scan
+ * for arriving craft restarts. */
+static void check_kill_of_players_own_craft(void)
+{
+	for (int local = 0; local < 2; ++local) {
+		killing_shot();
+		player_flies(1, local);
+		g_players[local].awaiting_new_craft = 0;
+		g_flight_global_countdown_timers
+			.mission_arrival_trigger_scan_timer = 77;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+				  CRAFT_OBJECT_KIND_BREAKING_UP);
+		XVT_ASSERT_INT_EQ(g_players[local].awaiting_new_craft, 1);
+		XVT_ASSERT_INT_EQ(g_flight_global_countdown_timers
+					  .mission_arrival_trigger_scan_timer,
+				  0);
+	}
+}
+
+/* ------------------------------------------------------------------------ */
+/* collide_apply_craft_impact_bounce. */
+
+enum {
+	BOUNCE_CRAFT_SPEED = 100,
+	BOUNCE_OTHER_SPEED = 30,
+};
+
+static int abs_int(int value) { return value < 0 ? -value : value; }
+
+/* ------------------------------------------------------------------------ */
+/* collide_apply_engine_wash_damage and
+ * collide_apply_hostile_proximity_weapon_disruption: effects on craft
+ * nearby. */
+
+enum {
+	TEST_SHIP_TYPE = 30,
+	SHIP_EXTENT = 2000,
+	JAMMED = 163840,
+	REPAIR_YARD_TYPE = 91,
+	X7_FACTORY_TYPE = 69,
+	INTERDICTOR_TYPE = 51,
+	VICTORY_TYPE = 52,
+	IMPERIAL_TYPE = 53,
+	SUPER_TYPE = 54,
+	CALAMARI_TYPE = 49,
+};
+
+/* Both craft of the wash and jam checks sit away from the origin, so that a
+ * difference of their positions is not mistaken for either one. */
+enum {
+	NEAR_OFFSET_X = 7000,
+	NEAR_OFFSET_Y = -5000,
+	NEAR_OFFSET_Z = 3000,
+};
+
+/* ------------------------------------------------------------------------ */
+/* collide_damagecraft and collide_laserhitcraft: edges. */
+
+/* Comment: a hit is refused (1, nothing dealt) when a source craft's flight
+ * group has status 20; a source that is not a craft is not refused for its
+ * group's status. */
+static void check_damage_protected_sources(void)
+{
+	laser_at_craft();
+	g_test_mobiles[0].damage_amount = 300;
+	g_mission_flight_groups[0].fg.status1 = 20;
+	XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, 0, 0), 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_TRUE(line_holds("combat.damage_refused",
+				   "reason=\"source_protected\""));
+	g_mission_flight_groups[0].fg.status1 = 0;
+	collide_damagecraft(1, -1, 0, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 300);
+
+	/* A mine of a protected group still hurts. */
+	laser_at_craft();
+	place_mine(20000, 0, 0);
+	g_test_craft[1].hull_max = 100000;
+	g_mission_flight_groups[2].fg.status1 = 20;
+	collide_damagecraft(1, -1, TEST_MINE, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].damage_stats.damage_received_total,
+			  4 * TEST_MINE_EXTENT);
+	XVT_ASSERT_TRUE(find_line("combat.damage_refused") == NULL);
+	/* So does a shot slot. */
+	laser_at_craft();
+	g_mission_flight_groups[0].fg.status2 = 20;
+	g_test_mobiles[TEST_SHOT].source_obj_idx = TEST_MINE;
+	g_test_objects[TEST_SHOT].flight_group_idx = 0;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 250);
+}
+
+/* Comment: a craft's ram deals collide_compute_craft_damage_amount; another
+ * mobile object deals its damage_amount. In mission file version 14 a
+ * craft with warheads deals more to a starship. */
+static void check_damage_craft_source_uses_warheads(void)
+{
+	laser_at_craft();
+	g_mission_file_version = 14;
+	g_test_objects[1].genus_id = CRAFT_GENUS_STARSHIP;
+	g_test_craft[1].hull_max = 100000;
+	g_test_mobiles[0].damage_amount = 1200;
+	g_test_craft[0].warhead_launcher_count = 1;
+	g_model_defs[TEST_MODEL].warhead_launcher_first_slot[0] = 2;
+	g_model_defs[TEST_MODEL].warhead_launcher_last_slot[0] = 3;
+	g_test_craft[0].weapon_slots[2].ammo_count = 8;
+	g_test_craft[0].weapon_slots[3].ammo_count = 8;
+	g_test_craft[0].warhead_slot_type_ids[0] =
+		WARHEAD_OBJECT_TYPE_PROTON_TORPEDO;
+	unsigned int ram = collide_compute_craft_damage_amount(1, 0);
+	XVT_ASSERT_TRUE(ram > 1200);
+	collide_damagecraft(1, -1, 0, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].damage_stats.damage_received_total,
+			  (int)(ram / 16));
+	/* A shot of the same craft deals its own figure. */
+	laser_at_craft();
+	g_test_objects[1].genus_id = CRAFT_GENUS_STARSHIP;
+	g_test_craft[1].hull_max = 100000;
+	g_test_mobiles[TEST_SHOT].damage_amount = 1200;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].damage_stats.damage_received_total,
+			  1200 / 16);
+	g_mission_file_version = 0;
+}
+
+/* Comment: with difficulty above 0 a mesh hit goes to the component only
+ * when both shields are down: two shields holding the same energy are not
+ * down. */
+static void check_damage_component_equal_shields(void)
+{
+	laser_at_craft();
+	gun_craft_model(0, MESH_EXPLOSION_BIT);
+	g_test_craft[1].hull_max = 100000;
+	g_flight_mission_state.difficulty = 1;
+	g_test_craft[1].shield_energy[0] = 400;
+	g_test_craft[1].shield_energy[1] = 400;
+	g_test_craft[1].component_hp[1] = 20;
+	collide_damagecraft(1, 2, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].component_hp[1], 20);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 400 - 250);
+	g_flight_mission_state.difficulty = 0;
+}
+
+/* One point through the shield is damage: the hull takes it, and an ion
+ * hit still knocks out a system. */
+static void check_damage_one_point_through(void)
+{
+	laser_at_craft();
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].system_damage_hull_threshold = 1000;
+	g_test_craft[1].shield_energy[0] = 249;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 1);
+	XVT_ASSERT_TRUE(line_holds("combat.hull_hit", "damage=1 hull=1"));
+
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 251);
+	g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 11;
+	g_test_craft[1].shield_energy[0] = 250;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems,
+			  CRAFT_SUBSYSTEM_FLAGS_ALL ^
+				  g_subsystem_id_to_flag[0]);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 0);
+}
+
+/* Comment: a player's craft whose systems are already out keeps their
+ * repair records when it loses all its strength; a computer-flown craft
+ * with turrets and cannon groups loses the aim of each turret (projectile
+ * type 2) and each group's link. */
+static void check_damage_ion_spares_failed_systems(void)
+{
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 30);
+	g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 1;
+	player_flies(1, 1);
+	g_test_craft[1].working_subsystems &= ~g_subsystem_id_to_flag[9];
+	g_test_craft[1].system_health[9] = 33;
+	g_test_craft[1].system_repair_seconds[9] = 12;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_health[9], 33);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_repair_seconds[9], 12);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_health[0], 0);
+
+	ion_at_craft(PROJECTILE_OBJECT_TYPE_ION_LASER, 2001);
+	g_test_craft[1].subsystem_damage = TEST_ION_STRENGTH - 11;
+	g_test_craft[1].laser_slot_count = 3;
+	g_test_craft[1].cannon_group_count = 2;
+	g_test_craft[1].weapon_slots[0].projectile_type_id = 2;
+	g_test_craft[1].weapon_slots[1].projectile_type_id = 1;
+	g_test_craft[1].weapon_slots[2].projectile_type_id = 2;
+	for (int slot = 0; slot < 3; ++slot) {
+		g_test_craft[1].turret_target_states[slot].target_obj_idx = 0;
+	}
+	g_test_craft[1].laser_state.link_mode[0] = 1;
+	g_test_craft[1].laser_state.link_mode[1] = 1;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(
+		g_test_craft[1].turret_target_states[0].target_obj_idx,
+		UINT16_MAX);
+	XVT_ASSERT_INT_EQ(
+		g_test_craft[1].turret_target_states[1].target_obj_idx, 0);
+	XVT_ASSERT_INT_EQ(
+		g_test_craft[1].turret_target_states[2].target_obj_idx,
+		UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].laser_state.link_mode[1], 0);
+	/* The disabled craft is announced: message 137 follows the craft. */
+	XVT_ASSERT_TRUE(g_msg_arg_table[2] == 137 || g_msg_arg_table[3] == 137);
+}
+
+/* Comment: the hull hit on a player's craft knocks out a system one time in
+ * 4: the craft's first draw below 0x4000. The edges: 0x3FFF fails a system,
+ * 0x4000 does not; a system already out keeps its repair record. */
+static void check_damage_hull_hit_seed_edges(void)
+{
+	for (int edge = 0; edge < 2; ++edge) {
+		laser_at_craft();
+		player_flies(1, 1);
+		g_test_craft[1].hull_max = 1000;
+		g_test_craft[1].system_damage_hull_threshold = 1000;
+		g_test_craft[1].shield_energy[1] = 0;
+		g_test_craft[1].ai_controller.saved_rand_seed =
+			edge == 0 ? 0x3FFF : 0x4000;
+		all_systems_work(&g_test_craft[1]);
+		collide_damagecraft(1, -1, TEST_SHOT, 1);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].working_subsystems !=
+					  CRAFT_SUBSYSTEM_FLAGS_ALL,
+				  edge == 0);
+	}
+	laser_at_craft();
+	player_flies(1, 1);
+	g_test_craft[1].hull_max = 1000;
+	g_test_craft[1].system_damage_hull_threshold = 1000;
+	g_test_craft[1].shield_energy[1] = 0;
+	g_test_craft[1].ai_controller.saved_rand_seed = 0;
+	all_systems_work(&g_test_craft[1]);
+	g_test_craft[1].working_subsystems &= ~g_subsystem_id_to_flag[0];
+	g_test_craft[1].system_health[0] = 42;
+	collide_damagecraft(1, -1, TEST_SHOT, 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].system_health[0], 42);
+	XVT_ASSERT_TRUE(find_line("combat.system_failed") == NULL);
+}
+
+/* Comment: the kill comes when hull_damage reaches hull_max: equal is
+ * enough. */
+static void check_kill_exact_boundary(void)
+{
+	for (int spare = 0; spare < 2; ++spare) {
+		killing_shot();
+		g_test_craft[1].hull_max = 250 + spare;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[1]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+			spare == 0);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].hull_damage, 250);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].object_kind,
+				  spare == 0 ? CRAFT_OBJECT_KIND_BREAKING_UP
+					     : CRAFT_OBJECT_KIND_ACTIVE);
+	}
+}
+
+/* Comment: the kill clears the carried and carrier links that name the
+ * victim and no others, tells the craft message 136, and leaves a computer
+ * flown victim's player scan alone. */
+static void check_kill_clears_only_its_links(void)
+{
+	killing_shot();
+	g_test_craft[0].carried_object_index = 1;
+	g_test_craft[0].carrier_obj_idx = 1;
+	g_test_craft[1].carried_object_index = 0;
+	g_test_craft[1].carrier_obj_idx = 0;
+	g_flight_global_countdown_timers.mission_arrival_trigger_scan_timer =
+		77;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].carried_object_index, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].carrier_obj_idx, UINT16_MAX);
+	/* The victim's own links to craft 0 stay. */
+	XVT_ASSERT_INT_EQ(g_test_craft[1].carried_object_index, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].carrier_obj_idx, 0);
+	XVT_ASSERT_INT_EQ(g_flight_global_countdown_timers
+				  .mission_arrival_trigger_scan_timer,
+			  77);
+	XVT_ASSERT_TRUE(g_msg_arg_table[2] == 136 || g_msg_arg_table[3] == 136);
+
+	/* A slot that holds nothing is not read as a carrier. */
+	killing_shot();
+	g_test_objects[0].object_type = 0;
+	g_test_craft[0].carried_object_index = 1;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].carried_object_index, 1);
+}
+
+/* Comment: a player's craft that is destroyed has its throttle, recharge
+ * levels, shield distribution and link modes saved for the next craft
+ * (player_save_craft_settings), and its loss counted against the player. */
+static void check_kill_saves_player_settings(void)
+{
+	killing_shot();
+	player_flies(1, 1);
+	g_test_craft[1].throttle_speed = 1234;
+	g_test_craft[1].laser_state.link_mode[0] = 1;
+	g_test_craft[1].laser_state.link_mode[1] = 0;
+	g_test_craft[1].warhead_launcher_flags[0] = 7;
+	g_test_craft[1].shield_distrib_mode = SHIELD_DISTRIBUTION_FULLY_AFT;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_players[1].saved_craft_settings.throttle_speed,
+			  1234);
+	XVT_ASSERT_INT_EQ(g_players[1].saved_craft_settings.laser_link_mode[0],
+			  1);
+	XVT_ASSERT_INT_EQ(g_players[1].saved_craft_settings.laser_link_mode[1],
+			  0);
+	XVT_ASSERT_INT_EQ(
+		g_players[1].saved_craft_settings.warhead_launcher_flags[0], 3);
+	XVT_ASSERT_INT_EQ(g_players[1].per_mission_kills.total_craft_losses, 1);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime.team_kill_stats[3][1],
+			  1);
+}
+
+/* Comment: a torn wing throws the craft back: the craft's yaw turns by half
+ * the wing's deflection the other way; with no wing torn, it does not
+ * turn. */
+static void check_kill_wing_recoil(void)
+{
+	for (int seed = 0; seed < 16; ++seed) {
+		killing_shot();
+		winged_craft_model();
+		g_test_objects[1].yaw = 0x1234;
+		g_test_craft[1].ai_controller.saved_rand_seed = (uint16_t)seed;
+		collide_damagecraft(1, -1, TEST_SHOT, 0);
+		int debris =
+			(int16_t)(g_test_objects[TEST_DEBRIS].yaw - 0x1234);
+		int craft = (int16_t)(g_test_objects[1].yaw - 0x1234);
+		XVT_ASSERT_TRUE(abs_int(debris) >= 2048 &&
+				abs_int(debris) <= 4095);
+		XVT_ASSERT_TRUE(abs_int(craft + debris / 2) <= 1);
+	}
+	killing_shot();
+	fuselage_craft_model();
+	g_test_objects[1].yaw = 0x1234;
+	collide_damagecraft(1, -1, TEST_SHOT, 0);
+	XVT_ASSERT_INT_EQ(g_test_objects[1].yaw, 0x1234);
+}
+
+/* ------------------------------------------------------------------------ */
+/* The model walk: collide_check_swept_model_collision and what it calls,
+ * on models with faces. */
+
+enum {
+	FACE_MESHES = 2,
+};
+
 int main(int argc, char **argv)
 {
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+	SDL_SetLogOutputFunction(catch_line, NULL);
 	/* "known-failure <check>" runs one check the code is known to fail; an
 	 * unknown name runs nothing. */
 	if (argc == 3 && strcmp(argv[1], "known-failure") == 0) {
@@ -1258,6 +3806,9 @@ int main(int argc, char **argv)
 		}
 		return 0;
 	}
+	g_craft_model_handle = memory_alloc_handle_zeroed(
+		sizeof(struct optimized_poly_object), 0);
+	XVT_ASSERT_TRUE(g_craft_model_handle != 0);
 	fail_after_seconds(20);
 	check_rough_distance();
 	check_proximity_speed();
@@ -1279,6 +3830,54 @@ int main(int argc, char **argv)
 	check_shots_collide();
 	check_pulse_hit();
 	check_pulse_on_large_craft();
+	check_pulse_inhibit_by_genus();
 	check_hit_from_itself();
+	check_tally_player_sources();
+	check_tally_other_sources();
+	check_tally_player_owned_victim();
+	check_damage_fixed_amounts();
+	check_damage_engine_wash();
+	check_damage_transport_scale();
+	check_damage_hull_through_shield();
+	check_damage_player_shields_even();
+	check_damage_hull_hit_on_player();
+	check_damage_hud_feature_loss();
+	check_damage_hud_loss_player_craft();
+	check_damage_ion_counts_up();
+	check_damage_ion_knocks_out_systems();
+	check_damage_ion_disables_craft();
+	check_kill_records();
+	check_kill_weapon_names();
+	check_kill_needs_live_craft();
+	check_kill_tumbles_without_fuselage();
+	check_kill_tears_off_wing();
+	check_kill_without_a_wing_to_tear();
+	check_kill_explodes_at_once();
+	check_kill_of_player_craft();
+	check_hit_attacker_named();
+	check_hit_attacked_goal_once();
+	check_hit_records_attacker();
+	check_hit_friendly_player_counts();
+	check_hit_side_by_travel();
+	check_hit_chaff();
+	check_hit_impact_effect_types();
+	check_pulse_on_player_craft();
+	check_damage_component_first();
+	check_damage_component_in_hull();
+	check_damage_hull_thresholds();
+	check_damage_disabled_with_officer();
+	check_damage_local_player_systems();
+	check_kill_is_reported_to_player();
+	check_kill_of_players_own_craft();
+	check_damage_protected_sources();
+	check_damage_craft_source_uses_warheads();
+	check_damage_component_equal_shields();
+	check_damage_one_point_through();
+	check_damage_ion_spares_failed_systems();
+	check_damage_hull_hit_seed_edges();
+	check_kill_exact_boundary();
+	check_kill_clears_only_its_links();
+	check_kill_saves_player_settings();
+	check_kill_wing_recoil();
 	return 0;
 }
