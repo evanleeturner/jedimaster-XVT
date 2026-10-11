@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/launch.schema.json",
+  "title": "Launch description",
+  "description": "One single-player battle for the engine's --launch option to fly.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mode",
+    "game_type",
+    "side",
+    "mission",
+    "pilot"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "mode": {
+      "const": "single_player"
+    },
+    "game_type": {
+      "enum": [
+        "training",
+        "melee",
+        "tournament",
+        "combat",
+        "battle",
+        "campaign"
+      ]
+    },
+    "side": {
+      "description": "rebel or imperial for training, combat and campaign; none for the rest.",
+      "enum": [
+        "rebel",
+        "imperial",
+        "none"
+      ]
+    },
+    "mission": {
+      "description": "folder/file as the game's own list names it; a sequence's file for a tournament, battle or campaign.",
+      "type": "string",
+      "pattern": "^[A-Za-z]+/[A-Za-z0-9_.]{1,63}$"
+    },
+    "pilot": {
+      "description": "A pilot the game already has: 1 to 12 letters, digits, spaces, underscores, hyphens or dots, starting and ending with a letter or digit, holding none of the flight switch words.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12
+    },
+    "result": {
+      "description": "Where the engine writes the result file; beside the description when left out.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 511
+    },
+    "seed": {
+      "description": "The random seed a sequence starts from; the engine draws one when left out.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "settings": {
+      "description": "Settings of the game's solo screen; one left out keeps the game's own value.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "battle_length": {
+          "enum": [
+            2,
+            3,
+            4
+          ]
+        },
+        "collisions": {
+          "type": "boolean"
+        },
+        "continue_sequence": {
+          "enum": [
+            "restart",
+            "continue"
+          ]
+        },
+        "craft_jumping": {
+          "type": "boolean"
+        },
+        "difficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard",
+            "easy_cheat"
+          ]
+        },
+        "mission_time_limit": {
+          "oneOf": [
+            {
+              "enum": [
+                "none",
+                "default"
+              ]
+            },
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          ]
+        },
+        "random_setup": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

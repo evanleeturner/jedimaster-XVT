@@ -1,0 +1,168 @@
+"""The JSON Schemas of the launch description and the launch result.
+
+Purpose:
+    Publish the two schemas (draft 2020-12) the engine's ``--launch`` option
+    and the launcher's ``launch`` command both hold to.
+
+Flow:
+    ``launch_schema`` and ``result_schema`` build each document's schema from
+    the words of ``model``.
+
+Invariants:
+    - Same words, same dict.
+    - Every object is closed (``additionalProperties`` false).
+    - The description's optional members are ``result``, ``seed`` and
+      ``settings``, and each setting is optional; a setting left out keeps
+      the game's own value.
+
+Call:
+    ``json.dumps(launch_schema(), indent=2)``
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from . import model
+
+logger = logging.getLogger(__name__)
+
+LAUNCH_ID = "https://jedimaster.invalid/schema/launch.schema.json"
+RESULT_ID = "https://jedimaster.invalid/schema/result.schema.json"
+DRAFT = "https://json-schema.org/draft/2020-12/schema"
+
+
+def _settings() -> dict[str, Any]:
+    """Return the schema of the description's settings object."""
+    properties: dict[str, Any] = {
+        "difficulty": {"enum": list(model.DIFFICULTIES)},
+        "battle_length": {"enum": list(model.BATTLE_LENGTHS)},
+        "mission_time_limit": {
+            "oneOf": [
+                {"enum": list(model.TIME_LIMIT_WORDS)},
+                {
+                    "type": "integer",
+                    "minimum": model.TIME_LIMIT_MINUTES[0],
+                    "maximum": model.TIME_LIMIT_MINUTES[1],
+                },
+            ]
+        },
+        "continue_sequence": {"enum": list(model.SEQUENCE_CHOICES)},
+    }
+    for name in model.BOOLEAN_SETTINGS:
+        properties[name] = {"type": "boolean"}
+    return {
+        "description": "Settings of the game's solo screen; one left out keeps the game's own value.",
+        "type": "object",
+        "additionalProperties": False,
+        "properties": dict(sorted(properties.items())),
+    }
+
+
+def launch_schema() -> dict[str, Any]:
+    """Return the JSON Schema of the launch description.
+
+    Always the same dict. Does not encode the rules between members: that a
+    game type takes a side only when it needs one, that easy_cheat is for a
+    campaign, or that the mission's folder is the game type's; the engine
+    refuses those with a plain sentence.
+    """
+    return {
+        "$schema": DRAFT,
+        "$id": LAUNCH_ID,
+        "title": "Launch description",
+        "description": "One single-player battle for the engine's --launch option to fly.",
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "schema_version",
+            "mode",
+            "game_type",
+            "side",
+            "mission",
+            "pilot",
+        ],
+        "properties": {
+            "schema_version": {"const": model.SCHEMA_VERSION},
+            "mode": {"const": model.MODE},
+            "game_type": {"enum": list(model.GAME_TYPES)},
+            "side": {
+                "description": "rebel or imperial for training, combat and campaign; none for the rest.",
+                "enum": list(model.SIDES),
+            },
+            "mission": {
+                "description": "folder/file as the game's own list names it; a sequence's file for a tournament, battle or campaign.",
+                "type": "string",
+                "pattern": model.MISSION_PATTERN,
+            },
+            "pilot": {
+                "description": "A pilot the game already has: 1 to 12 letters, digits, spaces, underscores, hyphens or dots, starting and ending with a letter or digit, holding none of the flight switch words.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 12,
+            },
+            "result": {
+                "description": "Where the engine writes the result file; beside the description when left out.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 511,
+            },
+            "seed": {
+                "description": "The random seed a sequence starts from; the engine draws one when left out.",
+                "type": "integer",
+                "minimum": 0,
+                "maximum": model.SEED_MAXIMUM,
+            },
+            "settings": _settings(),
+        },
+    }
+
+
+def result_schema() -> dict[str, Any]:
+    """Return the JSON Schema of the launch result.
+
+    Always the same dict. The score may be below zero; the counts and the time
+    may not. Does not encode that a status and its exit code go together, or that a battle not flown has zeros for its numbers.
+    """
+    numbers = {
+        name: {"type": "integer", "minimum": 0}
+        for name in ("kills", "losses", "flight_seconds")
+    }
+    numbers["score"] = {
+        "description": "The pilot's score; below zero when the pilot leaves a melee early.",
+        "type": "integer",
+    }
+    return {
+        "$schema": DRAFT,
+        "$id": RESULT_ID,
+        "title": "Launch result",
+        "description": "How a --launch battle ended: what the battle wrote into the pilot record, or why it did not run.",
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "schema_version",
+            "status",
+            "exit_code",
+            "outcome",
+            "score",
+            "kills",
+            "losses",
+            "flight_seconds",
+            "why",
+        ],
+        "properties": {
+            "schema_version": {"const": model.SCHEMA_VERSION},
+            "status": {"enum": list(model.STATUSES)},
+            "exit_code": {
+                "description": "The engine's exit code: 0 flown, 3 refused, 4 not reached, 5 failed.",
+                "enum": sorted(model.EXIT_CODES.values()),
+            },
+            "outcome": {"enum": list(model.OUTCOMES)},
+            **numbers,
+            "why": {
+                "description": "A plain sentence when the battle was not flown; empty otherwise.",
+                "type": "string",
+            },
+        },
+    }

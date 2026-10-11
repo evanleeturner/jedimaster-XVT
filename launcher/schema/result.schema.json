@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jedimaster.invalid/schema/result.schema.json",
+  "title": "Launch result",
+  "description": "How a --launch battle ended: what the battle wrote into the pilot record, or why it did not run.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "exit_code",
+    "outcome",
+    "score",
+    "kills",
+    "losses",
+    "flight_seconds",
+    "why"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "flown",
+        "refused",
+        "not_reached",
+        "failed"
+      ]
+    },
+    "exit_code": {
+      "description": "The engine's exit code: 0 flown, 3 refused, 4 not reached, 5 failed.",
+      "enum": [
+        0,
+        3,
+        4,
+        5
+      ]
+    },
+    "outcome": {
+      "enum": [
+        "none",
+        "completed",
+        "not_completed"
+      ]
+    },
+    "kills": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "losses": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "flight_seconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "score": {
+      "description": "The pilot's score; below zero when the pilot leaves a melee early.",
+      "type": "integer"
+    },
+    "why": {
+      "description": "A plain sentence when the battle was not flown; empty otherwise.",
+      "type": "string"
+    }
+  }
+}

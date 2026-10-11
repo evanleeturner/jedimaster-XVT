@@ -22,8 +22,8 @@ Flow:
     ``plants_fonts``, ``plants_pictures``, ``plants_pilot``,
     ``plants_models_read``, ``plants_models_draw``,
     ``plants_models_output``, ``plants_movies_read``,
-    ``plants_movies_subtitles``, ``plants_movies_output``, ``plants_page`` and
-    ``plants_bot``;
+    ``plants_movies_subtitles``, ``plants_movies_output``, ``plants_page``, ``plants_bot`` and
+    ``plants_launch``;
     ``PLANTS`` joins them in that order.
 
 Invariants:
@@ -52,6 +52,7 @@ from plants_briefing_under import BRIEFING_UNDER_PLANTS
 from plants_common import Plant
 from plants_fonts import FONTS_PLANTS
 from plants_icons import ICONS_PLANTS
+from plants_launch import LAUNCH_PLANTS
 from plants_lists_output import LISTS_OUTPUT_PLANTS
 from plants_lists_read import LISTS_READ_PLANTS
 from plants_mission import MISSION_PLANTS
@@ -96,6 +97,8 @@ SCHEMA_FILES = (
     ROOT / "schema/models.schema.json",
     ROOT / "schema/movies.schema.json",
     ROOT / "schema/control.schema.json",
+    ROOT / "schema/launch.schema.json",
+    ROOT / "schema/result.schema.json",
 )
 
 PLANTS: list[Plant] = [
@@ -120,6 +123,7 @@ PLANTS: list[Plant] = [
     *BOT_PLANTS,
     *BRIEFING_PLANTS,
     *BRIEFING_UNDER_PLANTS,
+    *LAUNCH_PLANTS,
 ]
 
 

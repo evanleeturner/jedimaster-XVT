@@ -6,10 +6,11 @@ Purpose:
     ``schema/text.schema.json``, ``schema/fonts.schema.json``,
     ``schema/pictures.schema.json``, ``schema/pilot.schema.json``,
     ``schema/models.schema.json``, ``schema/movies.schema.json``,
-    ``schema/control.schema.json``, ``schema/briefing.schema.json``) equal to what ``mission_schema()``,
+    ``schema/control.schema.json``, ``schema/briefing.schema.json``,
+    ``schema/launch.schema.json``, ``schema/result.schema.json``) equal to what ``mission_schema()``,
     ``lists_schema()``, ``icons_schema()``, ``text_schema()``,
     ``fonts_schema()``, ``pictures_schema()``, ``pilot_schema()``,
-    ``models_schema()``, ``movies_schema()`` and ``control_schema()`` and ``briefing_schema()`` build; a test fails when a file and its model drift.
+    ``models_schema()``, ``movies_schema()`` and ``control_schema()``, ``briefing_schema()``, ``launch_schema()`` and ``result_schema()`` build; a test fails when a file and its model drift.
 
 Flow:
     Build each schema, dump it with sorted-free stable formatting, write it.
@@ -34,6 +35,8 @@ sys.path.insert(0, str(HERE.parents[1]))
 from jedimaster.briefing.schema import briefing_schema  # noqa: E402
 from jedimaster.fonts.to_json import fonts_schema  # noqa: E402
 from jedimaster.icons.to_json import icons_schema  # noqa: E402
+from jedimaster.launch.schema import launch_schema  # noqa: E402
+from jedimaster.launch.schema import result_schema  # noqa: E402
 from jedimaster.lists.to_json import lists_schema  # noqa: E402
 from jedimaster.mission.to_json import mission_schema  # noqa: E402
 from jedimaster.models.to_json import models_schema  # noqa: E402
@@ -56,6 +59,8 @@ MODELS_SCHEMA_PATH = HERE.parents[1] / "schema" / "models.schema.json"
 MOVIES_SCHEMA_PATH = HERE.parents[1] / "schema" / "movies.schema.json"
 CONTROL_SCHEMA_PATH = HERE.parents[1] / "schema" / "control.schema.json"
 BRIEFING_SCHEMA_PATH = HERE.parents[1] / "schema" / "briefing.schema.json"
+LAUNCH_SCHEMA_PATH = HERE.parents[1] / "schema" / "launch.schema.json"
+RESULT_SCHEMA_PATH = HERE.parents[1] / "schema" / "result.schema.json"
 
 
 def schema_text() -> str:
@@ -113,8 +118,18 @@ def briefing_schema_text() -> str:
     return json.dumps(briefing_schema(), indent=2) + "\n"
 
 
+def launch_schema_text() -> str:
+    """Return the launch schema file's text: indented JSON and a newline."""
+    return json.dumps(launch_schema(), indent=2) + "\n"
+
+
+def result_schema_text() -> str:
+    """Return the result schema file's text: indented JSON and a newline."""
+    return json.dumps(result_schema(), indent=2) + "\n"
+
+
 def main() -> int:
-    """Write the eleven schema files; return 0."""
+    """Write the thirteen schema files; return 0."""
     for path, text in (
         (SCHEMA_PATH, schema_text()),
         (LISTS_SCHEMA_PATH, lists_schema_text()),
@@ -127,6 +142,8 @@ def main() -> int:
         (MOVIES_SCHEMA_PATH, movies_schema_text()),
         (CONTROL_SCHEMA_PATH, control_schema_text()),
         (BRIEFING_SCHEMA_PATH, briefing_schema_text()),
+        (LAUNCH_SCHEMA_PATH, launch_schema_text()),
+        (RESULT_SCHEMA_PATH, result_schema_text()),
     ):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")

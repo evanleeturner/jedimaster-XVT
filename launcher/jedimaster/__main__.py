@@ -2,7 +2,7 @@
 
 Purpose:
     The commands are ``dump``, ``export``, ``lists``, ``icons``, ``text``,
-    ``fonts``, ``pictures``, ``pilot``, ``models``, ``movies``, ``page``, ``bot`` and ``briefing``.
+    ``fonts``, ``pictures``, ``pilot``, ``models``, ``movies``, ``page``, ``bot``, ``briefing`` and ``launch``.
     Print one mission in the answer-sheet text format, or export every
     mission of an install as JSON files; ``lists`` does the same for the game's text lists;
     ``icons`` reads the briefing map's icon sheets; ``text``, ``fonts`` and
@@ -55,6 +55,7 @@ from .icons import cli as icons_cli
 from .install import find_install
 from .install import list_missions
 from .install import resolve_game_path
+from .launch import cli as launch_cli
 from .lists import kind_of
 from .lists import list_files
 from .lists import list_to_json
@@ -85,6 +86,7 @@ SUBCOMMANDS = {
     "page": page_cli,
     "bot": bot_cli,
     "briefing": briefing_cli,
+    "launch": launch_cli,
 }
 """The commands whose modules parse and run their own subcommands."""
 
@@ -120,6 +122,7 @@ def _parser() -> argparse.ArgumentParser:
     page_cli.add_parser(sub)
     bot_cli.add_parser(sub)
     briefing_cli.add_parser(sub)
+    launch_cli.add_parser(sub)
     return parser
 
 
