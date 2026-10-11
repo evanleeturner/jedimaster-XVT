@@ -11,26 +11,37 @@
  * POSIX only, for the alarm that stops a check whose call does not return. */
 #define _POSIX_C_SOURCE 200809L
 
+#include <SDL3/SDL_log.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "log_lines.h"
 #include "test_assert.h"
+#include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
+#include "xvt/flight/fview.h"
 #include "xvt/flight/hud/hud.h"
 #include "xvt/flight/hud/mfd.h"
 #include "xvt/flight/hud/msg.h"
 #include "xvt/flight/mission/mission.h"
+#include "xvt/flight/object/laser.h"
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
+#include "xvt/flight/transfm2.h"
 #include "xvt/frontend/pilot_record.h"
+#include "xvt/math/math.h"
+#include "xvt/render/renderer.h"
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
+#include "xvt_runtime/log/log.h"
 
 enum {
 	SLOT_COUNT = 16,
@@ -72,6 +83,37 @@ static void fail_after_seconds(unsigned int seconds)
 	alarm(seconds);
 }
 
+/* The last kept line that starts with start (an event and any of its first
+ * fields), or NULL. */
+static const char *find_line(const char *start)
+{
+	size_t length = strlen(start);
+	for (int i = g_log_line_count - 1; i >= 0; --i) {
+		if (strncmp(g_log_lines[i], start, length) == 0) {
+			return g_log_lines[i];
+		}
+	}
+	return NULL;
+}
+
+/* 1 when the last kept line that starts with start also holds fields. */
+static int line_holds(const char *start, const char *fields)
+{
+	const char *line = find_line(start);
+	return line != NULL && strstr(line, fields) != NULL;
+}
+
+/* 1 when a kept line starts with the text printed from format. */
+__attribute__((format(printf, 1, 2))) static int logged(const char *format, ...)
+{
+	char start[LOG_LINES_SIZE];
+	va_list args;
+	va_start(args, format);
+	vsnprintf(start, sizeof start, format, args);
+	va_end(args);
+	return find_line(start) != NULL;
+}
+
 static struct model_def *xwing_model(void)
 {
 	return &g_model_defs[get_model_index_from_type(TEST_XWING)];
@@ -85,6 +127,7 @@ static struct model_def *xwing_model(void)
  * pane holds a message, so a new one waits behind it. */
 static void fresh_world(void)
 {
+	g_log_line_count = 0;
 	memset(g_test_objects, 0, sizeof g_test_objects);
 	memset(g_test_mobiles, 0, sizeof g_test_mobiles);
 	memset(g_test_craft, 0, sizeof g_test_craft);
@@ -181,9 +224,10 @@ static struct craft_data *fly(int player, int obj, int team)
 	return craft;
 }
 
-/* Presses key for player. */
+/* Presses key for player; the log lines kept are the ones it writes. */
 static void press(int player, uint16_t key)
 {
+	g_log_line_count = 0;
 	g_current_action_key = key;
 	flight_process_player_actions(player);
 }
@@ -1802,9 +1846,942 @@ static void check_last_team_team_ten(void)
 		g_flight_mission_state.team_victory_time_limit_started, 0);
 }
 
+/* ------------------------------------------------------------------------ */
+/* The map view's keys. */
+
+enum {
+	MAP_TARGET = MATE_CRAFT,
+	TARGET_EXTENT = 800,
+	MAP_DEFAULT_DISTANCE = 512,
+	CAMERA_START_X = 11,
+	CAMERA_START_Y = 22,
+	CAMERA_START_Z = 33,
+};
+
+/* The pilot flies with the map view open in the given camera state, a free
+ * camera at (11, 22, 33), no object followed and no aim object. The craft
+ * of object type 1 has a bounding extent of 800 and MATE's craft is placed
+ * apart from every coordinate of the camera. */
+static struct player_view_state *map_world(int camera_state)
+{
+	fresh_world();
+	fly(PILOT, PILOT_CRAFT, 0);
+	fly(MATE, MATE_CRAFT, 1);
+	g_object_type_table[TEST_XWING].max_bounds_extent = TARGET_EXTENT;
+	g_players[PILOT].map_camera_state = (uint8_t)camera_state;
+	struct player_view_state *view = &g_players[PILOT].view_state;
+	view->camera_world_x = CAMERA_START_X;
+	view->camera_world_y = CAMERA_START_Y;
+	view->camera_world_z = CAMERA_START_Z;
+	view->camera_focus_obj_idx = UINT16_MAX;
+	view->aim_target_idx = UINT16_MAX;
+	view->camera_distance = 0;
+	return view;
+}
+
+/* C in the map view, from a camera state above 1 with a target, puts the
+ * camera over the target in x and y and leaves its height; otherwise the
+ * camera stays where it was. */
+static void check_map_c_centers_on_target(void)
+{
+	static const struct {
+		int state;
+		int has_target;
+	} cases[] = {{1, 1}, {2, 1}, {3, 1}, {2, 0}};
+	for (size_t k = 0; k < sizeof cases / sizeof cases[0]; ++k) {
+		struct player_view_state *view = map_world(cases[k].state);
+		g_players[PILOT].current_target_object_idx =
+			cases[k].has_target ? MAP_TARGET : -1;
+		press(PILOT, FLIGHT_KEY_C);
+		int moved = cases[k].state > 1 && cases[k].has_target;
+		XVT_ASSERT_INT_EQ(view->camera_world_x,
+				  moved ? g_test_objects[MAP_TARGET].world_x
+					: CAMERA_START_X);
+		XVT_ASSERT_INT_EQ(view->camera_world_y,
+				  moved ? g_test_objects[MAP_TARGET].world_y
+					: CAMERA_START_Y);
+		XVT_ASSERT_INT_EQ(view->camera_world_z, CAMERA_START_Z);
+	}
+}
+
+/* Z in the map view above camera state 1 puts the camera over the target in
+ * x and y, and above it in height by 16 times the target type's bounding
+ * extent. With no target nothing moves. */
+static void check_map_z_over_target(void)
+{
+	struct player_view_state *view = map_world(2);
+	g_players[PILOT].current_target_object_idx = MAP_TARGET;
+	press(PILOT, FLIGHT_KEY_Z);
+	XVT_ASSERT_INT_EQ(view->camera_world_x,
+			  g_test_objects[MAP_TARGET].world_x);
+	XVT_ASSERT_INT_EQ(view->camera_world_y,
+			  g_test_objects[MAP_TARGET].world_y);
+	XVT_ASSERT_INT_EQ(view->camera_world_z,
+			  g_test_objects[MAP_TARGET].world_z +
+				  16 * TARGET_EXTENT);
+	view = map_world(3);
+	press(PILOT, FLIGHT_KEY_Z);
+	XVT_ASSERT_INT_EQ(view->camera_world_x, CAMERA_START_X);
+	XVT_ASSERT_INT_EQ(view->camera_world_y, CAMERA_START_Y);
+	XVT_ASSERT_INT_EQ(view->camera_world_z, CAMERA_START_Z);
+}
+
+/* Z in camera state 1 with a followed object sets the camera's distance to
+ * that object type's bounding extent plus 512 and moves nothing else. */
+static void check_map_z_distance_to_followed(void)
+{
+	struct player_view_state *view = map_world(1);
+	view->camera_focus_obj_idx = PILOT_CRAFT;
+	g_players[PILOT].current_target_object_idx = MAP_TARGET;
+	press(PILOT, FLIGHT_KEY_Z);
+	XVT_ASSERT_INT_EQ(view->camera_distance,
+			  TARGET_EXTENT + MAP_DEFAULT_DISTANCE);
+	XVT_ASSERT_INT_EQ(view->camera_world_x, CAMERA_START_X);
+	XVT_ASSERT_INT_EQ(view->camera_world_y, CAMERA_START_Y);
+	XVT_ASSERT_INT_EQ(view->camera_world_z, CAMERA_START_Z);
+}
+
+/* Z in camera state 1 with nothing followed and a target puts the camera
+ * behind the target as the view angles look at it: the target's position
+ * less the distance (the extent plus 512) along the view's third axis. The
+ * camera ends that distance from the target. */
+static void check_map_z_behind_target(void)
+{
+	static const struct {
+		int16_t pitch;
+		int16_t yaw;
+	} angles[] = {{0x1000, 0x2000}, {-0x0900, 0x5400}};
+	for (size_t k = 0; k < sizeof angles / sizeof angles[0]; ++k) {
+		struct player_view_state *view = map_world(1);
+		view->view_pitch = angles[k].pitch;
+		view->view_yaw = angles[k].yaw;
+		g_players[PILOT].current_target_object_idx = MAP_TARGET;
+		press(PILOT, FLIGHT_KEY_Z);
+		int distance = TARGET_EXTENT + MAP_DEFAULT_DISTANCE;
+		XVT_ASSERT_INT_EQ(view->camera_distance, distance);
+		fview_build_camera_orient(0, angles[k].pitch, angles[k].yaw, 0,
+					  0, 0, NULL);
+		const struct object_record *target =
+			&g_test_objects[MAP_TARGET];
+		XVT_ASSERT_INT_EQ(
+			view->camera_world_x,
+			target->world_x -
+				math_mul_q15(distance, g_cam_mat_r2_x));
+		XVT_ASSERT_INT_EQ(
+			view->camera_world_y,
+			target->world_y -
+				math_mul_q15(distance, g_cam_mat_r2_y));
+		XVT_ASSERT_INT_EQ(
+			view->camera_world_z,
+			target->world_z -
+				math_mul_q15(distance, g_cam_mat_r2_z));
+		double dx = view->camera_world_x - target->world_x;
+		double dy = view->camera_world_y - target->world_y;
+		double dz = view->camera_world_z - target->world_z;
+		double length = dx * dx + dy * dy + dz * dz;
+		XVT_ASSERT_TRUE(length > (distance - 3.0) * (distance - 3.0));
+		XVT_ASSERT_TRUE(length < (distance + 3.0) * (distance + 3.0));
+	}
+}
+
+/* Z in camera state 1 with nothing followed and no target changes nothing. */
+static void check_map_z_nothing_to_follow(void)
+{
+	struct player_view_state *view = map_world(1);
+	press(PILOT, FLIGHT_KEY_Z);
+	XVT_ASSERT_INT_EQ(view->camera_distance, 0);
+	XVT_ASSERT_INT_EQ(view->camera_world_x, CAMERA_START_X);
+	XVT_ASSERT_INT_EQ(view->camera_world_y, CAMERA_START_Y);
+	XVT_ASSERT_INT_EQ(view->camera_world_z, CAMERA_START_Z);
+}
+
+/* The keypad minus key lets go of the object the map camera looks at, and
+ * the keypad plus key aims the camera at the target: from a camera state
+ * above 1 it also sets the state to 1 and the look offset to 0, and from
+ * state 1 it leaves both. With no target it changes nothing. */
+static void check_map_aim_keys(void)
+{
+	struct player_view_state *view = map_world(2);
+	view->aim_target_idx = MAP_TARGET;
+	press(PILOT, FLIGHT_KEY_PAD_MINUS);
+	XVT_ASSERT_INT_EQ(view->aim_target_idx, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_players[PILOT].map_camera_state, 2);
+
+	for (int state = 1; state <= 3; ++state) {
+		view = map_world(state);
+		view->hud_aim_x = 77;
+		g_players[PILOT].current_target_object_idx = MAP_TARGET;
+		press(PILOT, FLIGHT_KEY_PAD_PLUS);
+		XVT_ASSERT_INT_EQ(view->aim_target_idx, MAP_TARGET);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].map_camera_state,
+				  state > 1 ? 1 : state);
+		XVT_ASSERT_INT_EQ(view->hud_aim_x, state > 1 ? 0 : 77);
+	}
+	view = map_world(2);
+	view->hud_aim_x = 77;
+	press(PILOT, FLIGHT_KEY_PAD_PLUS);
+	XVT_ASSERT_INT_EQ(view->aim_target_idx, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_players[PILOT].map_camera_state, 2);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x, 77);
+}
+
+/* ------------------------------------------------------------------------ */
+/* Shift+C, a call to cover the pilot. */
+
+enum { ATTACKER = 6, WINGMAN = 8, REQUEST_COVER = 5 };
+
+/* The pilot (team 0, in the local seat) flies with MATE, a second player of
+ * team 0, and a wingman of the computer's of team 0 that no player flies.
+ * A hostile craft of the computer's, in object slot 6, has the pilot's craft
+ * for its target and is on the attack. */
+static void cover_world(void)
+{
+	fresh_world();
+	fly(PILOT, PILOT_CRAFT, 0);
+	fly(MATE, MATE_CRAFT, 0);
+	g_active_flight_player_count = 2;
+	for (int obj = ATTACKER; obj <= WINGMAN; obj += 2) {
+		int team = obj == ATTACKER ? 2 : 0;
+		g_test_objects[obj].object_type = TEST_XWING;
+		g_test_objects[obj].genus_id = 1;
+		g_test_objects[obj].flight_group_idx = (uint8_t)team;
+		g_test_objects[obj].world_x = 5000 + 1000 * obj;
+		g_test_objects[obj].world_y = 7000;
+		g_test_objects[obj].world_z = 3000;
+		g_test_mobiles[obj].team = (uint8_t)team;
+		g_test_craft[obj].working_subsystems = 0x03FF;
+	}
+	g_test_craft[ATTACKER].ai_controller.target_obj_idx = PILOT_CRAFT;
+	g_test_craft[ATTACKER].ai_controller.maneuver_mode =
+		AI_MANEUVER_MODE_ATTACK;
+	g_test_craft[WINGMAN].ai_controller.candidate_target_idx = UINT16_MAX;
+	g_mission_flight_groups[2].fg.team = 2;
+	g_mission_flight_groups[2].fg.iff = 2;
+	g_mission_teams[0].allies[0] = 1;
+	g_mission_teams[1].allies[1] = 1;
+	g_mission_teams[2].allies[2] = 1;
+}
+
+/* Shift+C asks every other player of the pilot's side to cover the pilot:
+ * request 5 from the pilot, naming the craft attacking the pilot, with the
+ * 1416 ticks to answer a new request gets. Nothing is posted for the pilot. */
+static void check_cover_request_names_attacker(void)
+{
+	cover_world();
+	press(PILOT, FLIGHT_KEY_SHIFT_C);
+	XVT_ASSERT_INT_EQ(g_players[MATE].pending_action_id, REQUEST_COVER);
+	XVT_ASSERT_INT_EQ(g_players[MATE].pending_action_issuer_player_idx,
+			  PILOT);
+	XVT_ASSERT_INT_EQ(g_players[MATE].pending_action_param, ATTACKER);
+	XVT_ASSERT_INT_EQ(g_players[MATE].pending_action_timer, 1416);
+	XVT_ASSERT_INT_EQ(g_players[PILOT].pending_action_id, 0);
+}
+
+/* The call also goes to the pilot's computer wingmen as an order to attack
+ * the craft hitting the pilot: the wingman takes it as its candidate target. */
+static void check_cover_orders_wingman(void)
+{
+	cover_world();
+	press(PILOT, FLIGHT_KEY_SHIFT_C);
+	XVT_ASSERT_INT_EQ(
+		g_test_craft[WINGMAN].ai_controller.candidate_target_idx,
+		ATTACKER);
+}
+
+/* With no craft attacking the pilot, the request names the pilot's own craft
+ * and no order goes to the wingmen. */
+static void check_cover_without_attacker(void)
+{
+	cover_world();
+	g_test_craft[ATTACKER].ai_controller.maneuver_mode =
+		AI_MANEUVER_MODE_NULL;
+	press(PILOT, FLIGHT_KEY_SHIFT_C);
+	XVT_ASSERT_INT_EQ(g_players[MATE].pending_action_id, REQUEST_COVER);
+	XVT_ASSERT_INT_EQ(g_players[MATE].pending_action_param, PILOT_CRAFT);
+	XVT_ASSERT_INT_EQ(
+		g_test_craft[WINGMAN].ai_controller.candidate_target_idx,
+		UINT16_MAX);
+}
+
+/* A player who is the pilot's ally on another team gets the request; one
+ * whose team is not allied to the pilot's does not, and neither does a
+ * player who already has a request pending, has no craft, has left the
+ * flight, has a radio that is out, or is the attacking craft's pilot. */
+static void check_cover_who_is_asked(void)
+{
+	static const struct {
+		int ally_team;
+		int allied;
+		int busy;
+		int craft;
+		int active;
+		int radio;
+		int attacker;
+		int asked;
+	} cases[] = {
+		{0, 0, 0, 1, 1, 1, 0, 1}, {1, 1, 0, 1, 1, 1, 0, 1},
+		{1, 0, 0, 1, 1, 1, 0, 0}, {0, 0, 1, 1, 1, 1, 0, 0},
+		{0, 0, 0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 0, 1, 0, 0},
+		{0, 0, 0, 1, 1, 0, 0, 0}, {0, 0, 0, 1, 1, 1, 1, 0},
+	};
+	for (size_t k = 0; k < sizeof cases / sizeof cases[0]; ++k) {
+		cover_world();
+		g_players[MATE].team = (int16_t)cases[k].ally_team;
+		g_mission_teams[1].allies[0] = (uint8_t)cases[k].allied;
+		g_mission_teams[0].allies[1] = (uint8_t)cases[k].allied;
+		if (cases[k].busy) {
+			g_players[MATE].pending_action_id = 3;
+		}
+		if (!cases[k].craft) {
+			g_players[MATE].object_index = -1;
+		}
+		if (!cases[k].active) {
+			g_players[MATE].participation_state = 0;
+		}
+		if (!cases[k].radio) {
+			g_test_craft[MATE_CRAFT].working_subsystems = 0;
+		}
+		if (cases[k].attacker) {
+			g_players[MATE].object_index = ATTACKER;
+		}
+		press(PILOT, FLIGHT_KEY_SHIFT_C);
+		XVT_ASSERT_INT_EQ(g_players[MATE].pending_action_id,
+				  cases[k].asked ? REQUEST_COVER
+						 : (cases[k].busy ? 3 : 0));
+	}
+}
+
+/* When the player asked is the one in the local seat, the call is announced
+ * with a message that says to hit Space to target the attacker, or the
+ * caller when there is no attacker; nothing is announced to the seat of a
+ * player who is not asked. */
+static void check_cover_announced_to_local(void)
+{
+	cover_world();
+	g_test_craft[ATTACKER].ai_controller.target_obj_idx = MATE_CRAFT;
+	press(MATE, FLIGHT_KEY_SHIFT_C);
+	XVT_ASSERT_INT_EQ(g_players[PILOT].pending_action_id, REQUEST_COVER);
+	XVT_ASSERT_INT_EQ(g_players[PILOT].pending_action_param, ATTACKER);
+	XVT_ASSERT_INT_EQ(
+		last_message(),
+		IFMSG_277_FROM_ARG_COVER_ME_HIT_SPACE_TO_TARGET_ATTACKER);
+	cover_world();
+	g_test_craft[ATTACKER].ai_controller.maneuver_mode =
+		AI_MANEUVER_MODE_NULL;
+	press(MATE, FLIGHT_KEY_SHIFT_C);
+	XVT_ASSERT_INT_EQ(g_players[PILOT].pending_action_param, MATE_CRAFT);
+	XVT_ASSERT_INT_EQ(last_message(),
+			  IFMSG_278_FROM_ARG_COVER_ME_HIT_SPACE_TO_TARGET_ME);
+}
+
+/* With the radio out, Shift+C asks nobody and says the system is down. */
+static void check_cover_radio_out(void)
+{
+	cover_world();
+	g_test_craft[PILOT_CRAFT].working_subsystems = 0;
+	press(PILOT, FLIGHT_KEY_SHIFT_C);
+	XVT_ASSERT_INT_EQ(g_players[MATE].pending_action_id, 0);
+	XVT_ASSERT_INT_EQ(
+		g_test_craft[WINGMAN].ai_controller.candidate_target_idx,
+		UINT16_MAX);
+	XVT_ASSERT_INT_EQ(last_message(), IFMSG_086_ARG_SYSTEM_IS_ARG);
+}
+
+/* ------------------------------------------------------------------------ */
+/* W, the weapon selection. */
+
+enum { FIRST_WARHEAD_SLOT = 2 };
+
+/* The pilot's craft has two cannon groups and two warhead launchers, proton
+ * torpedoes and concussion missiles, six of each in either of the launchers'
+ * slots, in the launcher mode 1, with cannons selected at bank 0. */
+static struct craft_data *armed_world(void)
+{
+	fresh_world();
+	struct craft_data *craft = fly(PILOT, PILOT_CRAFT, 0);
+	xwing_model()->warhead_launcher_first_slot[0] = FIRST_WARHEAD_SLOT;
+	craft->cannon_group_count = 2;
+	craft->warhead_launcher_count = 2;
+	craft->warhead_slot_type_ids[0] = WARHEAD_OBJECT_TYPE_PROTON_TORPEDO;
+	craft->warhead_slot_type_ids[1] =
+		WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE;
+	craft->weapon_slots[FIRST_WARHEAD_SLOT].ammo_count = 6;
+	craft->weapon_slots[FIRST_WARHEAD_SLOT + 1].ammo_count = 6;
+	craft->warhead_launcher_flags[0] = 1;
+	return craft;
+}
+
+/* W steps through the cannon groups and then the warhead launchers and round
+ * to the first cannon group, naming each one it arms. */
+static void check_weapon_cycle(void)
+{
+	static const struct {
+		int mode;
+		int bank;
+		int message;
+	} steps[] = {
+		{0, 1, IFMSG_004_ION_CANNONS_ARMED},
+		{1, 0, IFMSG_008_PROTON_TORPEDO_LAUNCHER_ARMED},
+		{1, 1, IFMSG_009_CONCUSSION_MISSILE_LAUNCHER_ARMED},
+		{0, 0, IFMSG_003_LASER_CANNONS_ARMED},
+		{0, 1, IFMSG_004_ION_CANNONS_ARMED},
+	};
+	armed_world();
+	for (size_t k = 0; k < sizeof steps / sizeof steps[0]; ++k) {
+		press(PILOT, FLIGHT_KEY_W);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].selected_weapon_mode,
+				  steps[k].mode);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].selected_weapon_bank,
+				  steps[k].bank);
+		XVT_ASSERT_INT_EQ(last_message(), steps[k].message);
+	}
+}
+
+/* Without a launcher, or with no warheads in a launcher's slots, W goes on
+ * from the last cannon group to the first; with one cannon group it stays at
+ * it. */
+static void check_weapon_skips_empty_launchers(void)
+{
+	for (int cause = 0; cause < 3; ++cause) {
+		struct craft_data *craft = armed_world();
+		if (cause == 0) {
+			craft->warhead_launcher_count = 0;
+		} else if (cause == 1) {
+			craft->weapon_slots[FIRST_WARHEAD_SLOT].ammo_count = 0;
+			craft->weapon_slots[FIRST_WARHEAD_SLOT + 1].ammo_count =
+				0;
+		} else {
+			craft->cannon_group_count = 1;
+			craft->warhead_launcher_count = 0;
+		}
+		g_players[PILOT].selected_weapon_bank = 0;
+		press(PILOT, FLIGHT_KEY_W);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].selected_weapon_mode, 0);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].selected_weapon_bank,
+				  cause == 2 ? 0 : 1);
+		press(PILOT, FLIGHT_KEY_W);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].selected_weapon_mode, 0);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].selected_weapon_bank, 0);
+		XVT_ASSERT_INT_EQ(last_message(),
+				  IFMSG_003_LASER_CANNONS_ARMED);
+	}
+}
+
+/* A craft with launchers and no cannon groups starts at the first launcher,
+ * steps to the second and comes round to the first, never leaving the
+ * launchers. */
+static void check_weapon_launchers_only(void)
+{
+	struct craft_data *craft = armed_world();
+	craft->cannon_group_count = 0;
+	static const struct {
+		int bank;
+		int message;
+	} steps[] = {
+		{0, IFMSG_008_PROTON_TORPEDO_LAUNCHER_ARMED},
+		{1, IFMSG_009_CONCUSSION_MISSILE_LAUNCHER_ARMED},
+		{0, IFMSG_008_PROTON_TORPEDO_LAUNCHER_ARMED},
+	};
+	for (size_t k = 0; k < sizeof steps / sizeof steps[0]; ++k) {
+		press(PILOT, FLIGHT_KEY_W);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].selected_weapon_mode, 1);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].selected_weapon_bank,
+				  steps[k].bank);
+		XVT_ASSERT_INT_EQ(last_message(), steps[k].message);
+	}
+}
+
+/* Arming a launcher drops the warhead lock built so far, and picks the
+ * launcher's first slot to fire from unless it has the mode 3: bit 7 of the
+ * launcher's flags is set when the second slot holds more warheads than the
+ * first and cleared when it holds fewer, and an equal count leaves it. */
+static void check_weapon_launcher_flags(void)
+{
+	static const struct {
+		int8_t flags;
+		int first;
+		int second;
+		int8_t expected;
+	} cases[] = {
+		{1, 6, 9, (int8_t)0x81},
+		{1, 9, 6, 1},
+		{1, 6, 6, 1},
+		{(int8_t)0x81, 9, 6, 1},
+		{(int8_t)0x81, 6, 9, (int8_t)0x81},
+		{(int8_t)0x81, 6, 6, (int8_t)0x81},
+		{3, 6, 9, 3},
+		{(int8_t)0x83, 9, 6, (int8_t)0x83},
+	};
+	for (size_t k = 0; k < sizeof cases / sizeof cases[0]; ++k) {
+		struct craft_data *craft = armed_world();
+		craft->warhead_launcher_flags[0] = cases[k].flags;
+		craft->weapon_slots[FIRST_WARHEAD_SLOT].ammo_count =
+			(uint8_t)cases[k].first;
+		craft->weapon_slots[FIRST_WARHEAD_SLOT + 1].ammo_count =
+			(uint8_t)cases[k].second;
+		craft->warhead_lock_ticks = 77;
+		g_players[PILOT].missile_lock_state = 2;
+		g_players[PILOT].selected_weapon_bank = 1;
+		press(PILOT, FLIGHT_KEY_W);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].selected_weapon_mode, 1);
+		XVT_ASSERT_INT_EQ(craft->warhead_launcher_flags[0],
+				  cases[k].expected);
+		XVT_ASSERT_INT_EQ(craft->warhead_lock_ticks, 0);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].missile_lock_state, 0);
+	}
+}
+
+/* When the cannons are out, W names the cannon group it has come to as down;
+ * when the launchers are, it names the launchers. */
+static void check_weapon_system_out(void)
+{
+	struct craft_data *craft = armed_world();
+	craft->working_subsystems &= ~CRAFT_SUBSYSTEM_FLAG_CANNONS;
+	press(PILOT, FLIGHT_KEY_W);
+	XVT_ASSERT_INT_EQ(last_message(), IFMSG_086_ARG_SYSTEM_IS_ARG);
+	XVT_ASSERT_INT_EQ(g_msg_arg_table[0], 93);
+	XVT_ASSERT_INT_EQ(g_msg_arg_table[1], 87);
+	craft = armed_world();
+	craft->working_subsystems &= ~CRAFT_SUBSYSTEM_FLAG_WARHEAD_LAUNCHER;
+	g_players[PILOT].selected_weapon_bank = 1;
+	press(PILOT, FLIGHT_KEY_W);
+	XVT_ASSERT_INT_EQ(g_players[PILOT].selected_weapon_mode, 1);
+	XVT_ASSERT_INT_EQ(last_message(), IFMSG_086_ARG_SYSTEM_IS_ARG);
+	XVT_ASSERT_INT_EQ(g_msg_arg_table[0], 94);
+	XVT_ASSERT_INT_EQ(g_msg_arg_table[1], 87);
+}
+
+/* ------------------------------------------------------------------------ */
+/* X, the fire link. */
+
+/* Steps the cannon group's link mode of a group with slot_count slots, from
+ * start: each step gives the mode and the message that says so. */
+static void run_link_steps(int bank, int slot_count, int start,
+			   const int *modes, size_t step_count)
+{
+	armed_world();
+	struct craft_data *craft = &g_test_craft[PILOT_CRAFT];
+	xwing_model()->laser_group_slot_count[bank] = (uint8_t)slot_count;
+	xwing_model()->laser_group_first_slot[bank] = (uint8_t)(3 + bank);
+	g_players[PILOT].selected_weapon_bank = (uint8_t)bank;
+	craft->laser_state.link_mode[bank] = (uint8_t)start;
+	for (size_t k = 0; k < step_count; ++k) {
+		craft->laser_state.next_slot[bank] = 99;
+		press(PILOT, FLIGHT_KEY_X);
+		XVT_ASSERT_INT_EQ(craft->laser_state.link_mode[bank], modes[k]);
+		XVT_ASSERT_INT_EQ(craft->laser_state.next_slot[bank], 3 + bank);
+		XVT_ASSERT_INT_EQ(last_message(), modes[k] + 4);
+	}
+}
+
+/* X steps the selected cannon group through single, dual and linked fire and
+ * back to single, saying which, and starts it from the group's first slot. A
+ * group of four slots has all three; any other group has no dual fire. */
+static void check_link_cycle(void)
+{
+	static const int four[] = {2, 3, 1, 2};
+	static const int two[] = {3, 1, 3, 1};
+	for (int bank = 0; bank < 2; ++bank) {
+		run_link_steps(bank, 4, 1, four, 4);
+		run_link_steps(bank, 2, 1, two, 4);
+		run_link_steps(bank, 3, 2, two + 2, 2);
+	}
+}
+
+/* A cannon group of one slot has nothing to link: X changes nothing and says
+ * nothing. */
+static void check_link_single_slot_group(void)
+{
+	armed_world();
+	struct craft_data *craft = &g_test_craft[PILOT_CRAFT];
+	xwing_model()->laser_group_slot_count[0] = 1;
+	craft->laser_state.link_mode[0] = 1;
+	craft->laser_state.next_slot[0] = 99;
+	press(PILOT, FLIGHT_KEY_X);
+	XVT_ASSERT_INT_EQ(craft->laser_state.link_mode[0], 1);
+	XVT_ASSERT_INT_EQ(craft->laser_state.next_slot[0], 99);
+	XVT_ASSERT_INT_EQ(g_message_log_total_count, 0);
+}
+
+/* Only the player in the local seat is told of a change of link; the change
+ * is made for any player. */
+static void check_link_message_local_only(void)
+{
+	armed_world();
+	struct craft_data *mate_craft = fly(MATE, MATE_CRAFT, 0);
+	xwing_model()->laser_group_slot_count[0] = 4;
+	mate_craft->laser_state.link_mode[0] = 1;
+	press(MATE, FLIGHT_KEY_X);
+	XVT_ASSERT_INT_EQ(mate_craft->laser_state.link_mode[0], 2);
+	XVT_ASSERT_INT_EQ(g_message_log_total_count, 0);
+}
+
+/* With launchers selected, X flips the selected launcher between single and
+ * dual fire, by bit 2 of its flags, and names the launcher's warhead. */
+static void check_link_warheads(void)
+{
+	static const int bank_message[2][2] = {
+		{IFMSG_028_PROTON_TORPEDO_LAUNCHER_SET_TO_DUAL_FIRE,
+		 IFMSG_018_PROTON_TORPEDO_LAUNCHER_SET_TO_SINGLE_FIRE},
+		{IFMSG_029_CONCUSSION_MISSILE_LAUNCHER_SET_TO_DUAL_FIRE,
+		 IFMSG_019_CONCUSSION_MISSILE_LAUNCHER_SET_TO_SINGLE_FIRE},
+	};
+	for (int bank = 0; bank < 2; ++bank) {
+		struct craft_data *craft = armed_world();
+		g_players[PILOT].selected_weapon_mode = 1;
+		g_players[PILOT].selected_weapon_bank = (uint8_t)bank;
+		craft->warhead_launcher_flags[0] = 1;
+		craft->warhead_launcher_flags[1] = 5;
+		press(PILOT, FLIGHT_KEY_X);
+		XVT_ASSERT_INT_EQ(craft->warhead_launcher_flags[bank],
+				  bank == 0 ? 3 : 7);
+		XVT_ASSERT_INT_EQ(craft->warhead_launcher_flags[1 - bank],
+				  bank == 0 ? 5 : 1);
+		XVT_ASSERT_INT_EQ(last_message(), bank_message[bank][0]);
+		press(PILOT, FLIGHT_KEY_X);
+		XVT_ASSERT_INT_EQ(craft->warhead_launcher_flags[bank],
+				  bank == 0 ? 1 : 5);
+		XVT_ASSERT_INT_EQ(last_message(), bank_message[bank][1]);
+	}
+}
+
+/* ------------------------------------------------------------------------ */
+/* Alt+E, the eject key. */
+
+/* The pilot's craft has settings that differ from every default: the throttle
+ * at 31000, the recharge levels, the shield distribution forward, link modes
+ * 2 and 3, and launcher flags with bits above the low two set. */
+static struct craft_data *settled_craft(void)
+{
+	fresh_world();
+	struct craft_data *craft = fly(PILOT, PILOT_CRAFT, 0);
+	craft->throttle_speed = 31000;
+	craft->laser_recharge_level = POWER_RECHARGE_MAXIMUM;
+	craft->shield_recharge_level = POWER_RECHARGE_INCREASED;
+	craft->beam_recharge_level = POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES;
+	craft->shield_distrib_mode = SHIELD_DISTRIBUTION_FULLY_FORWARD;
+	craft->laser_state.link_mode[0] = 2;
+	craft->laser_state.link_mode[1] = 3;
+	craft->warhead_launcher_flags[0] = (int8_t)0x87;
+	craft->warhead_launcher_flags[1] = 0x1A;
+	return craft;
+}
+
+static void assert_settings_saved(const struct craft_data *craft)
+{
+	const struct player_saved_craft_settings *saved =
+		&g_players[PILOT].saved_craft_settings;
+	XVT_ASSERT_INT_EQ(saved->throttle_speed, 31000);
+	XVT_ASSERT_INT_EQ(saved->laser_recharge_level, POWER_RECHARGE_MAXIMUM);
+	XVT_ASSERT_INT_EQ(saved->shield_recharge_level,
+			  POWER_RECHARGE_INCREASED);
+	XVT_ASSERT_INT_EQ(saved->beam_level,
+			  POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES);
+	XVT_ASSERT_INT_EQ(saved->shield_distrib_mode,
+			  SHIELD_DISTRIBUTION_FULLY_FORWARD);
+	XVT_ASSERT_INT_EQ(saved->laser_link_mode[0], 2);
+	XVT_ASSERT_INT_EQ(saved->laser_link_mode[1], 3);
+	XVT_ASSERT_INT_EQ(saved->warhead_launcher_flags[0], 3);
+	XVT_ASSERT_INT_EQ(saved->warhead_launcher_flags[1], 2);
+	(void)craft;
+}
+
+/* Alt+E ejects: it keeps the craft's settings, counts the craft lost for its
+ * team, sets it breaking up for 472 ticks with a roll between 0x2000 and 0x5FFF
+ * (halved until it is no more than the model's greatest tumble) and leaves the
+ * player waiting for a new craft with no camera on one. */
+static void check_eject(void)
+{
+	static const uint16_t limits[] = {0x7FFF, 0x1000, 0x0900};
+	for (size_t k = 0; k < sizeof limits / sizeof limits[0]; ++k) {
+		struct craft_data *craft = settled_craft();
+		xwing_model()->max_tumble_rate = limits[k];
+		craft->object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+		g_test_mobiles[PILOT_CRAFT].lifetime_timer = 5;
+		press(PILOT, FLIGHT_KEY_ALT_E);
+		g_game_rand_value_state = 0x1234;
+		g_game_rand_feedback_state = 0x5678;
+		int tumble = (game_rand() & 0x3FFF) + 0x2000;
+		while (tumble > limits[k]) {
+			tumble >>= 1;
+		}
+		XVT_ASSERT_INT_EQ(craft->object_kind,
+				  CRAFT_OBJECT_KIND_BREAKING_UP);
+		XVT_ASSERT_INT_EQ(g_test_mobiles[PILOT_CRAFT].lifetime_timer,
+				  472);
+		XVT_ASSERT_INT_EQ(g_test_mobiles[PILOT_CRAFT].roll_impulse_rate,
+				  tumble);
+		XVT_ASSERT_INT_EQ(
+			g_flight_mission_state.runtime.team_kill_stats[3][0],
+			1);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].awaiting_new_craft, 1);
+		XVT_ASSERT_INT_EQ(
+			g_players[PILOT].view_state.camera_focus_obj_idx,
+			UINT16_MAX);
+		assert_settings_saved(craft);
+	}
+}
+
+/* In a replay the eject is refused with a click, but the craft's settings are
+ * kept before the key is refused: the craft is not lost. */
+static void check_eject_in_replay(void)
+{
+	struct craft_data *craft = settled_craft();
+	craft->object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	g_test_mobiles[PILOT_CRAFT].lifetime_timer = 5;
+	g_replay_view_mode = 1;
+	press(PILOT, FLIGHT_KEY_ALT_E);
+	g_replay_view_mode = 0;
+	XVT_ASSERT_INT_EQ(craft->object_kind, CRAFT_OBJECT_KIND_ACTIVE);
+	XVT_ASSERT_INT_EQ(g_test_mobiles[PILOT_CRAFT].lifetime_timer, 5);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime.team_kill_stats[3][0],
+			  0);
+	XVT_ASSERT_INT_EQ(g_players[PILOT].awaiting_new_craft, 0);
+	assert_settings_saved(craft);
+}
+
+/* ------------------------------------------------------------------------ */
+/* The throttle steps and the view keys. */
+
+enum { HUD_FORWARD = 0, HUD_SNAPPED = 8, HUD_CENTRE = 16, HUD_ONLY = 19 };
+
+/* Plus, equals and keypad plus raise the throttle by 2048, minus and keypad
+ * minus lower it by 2048, and neither goes past the ends of the range. */
+static void check_throttle_steps(void)
+{
+	static const struct {
+		uint16_t key;
+		int step;
+	} keys[] = {
+		{FLIGHT_KEY_PLUS, 2048},       {FLIGHT_KEY_EQUAL, 2048},
+		{FLIGHT_KEY_PAD_PLUS, 2048},   {FLIGHT_KEY_MINUS, -2048},
+		{FLIGHT_KEY_PAD_MINUS, -2048},
+	};
+	static const int starts[] = {30000, 64000, 1000};
+	for (size_t k = 0; k < sizeof keys / sizeof keys[0]; ++k) {
+		for (size_t j = 0; j < sizeof starts / sizeof starts[0]; ++j) {
+			fresh_world();
+			struct craft_data *craft = fly(PILOT, PILOT_CRAFT, 0);
+			craft->throttle_speed = (uint16_t)starts[j];
+			press(PILOT, keys[k].key);
+			int expected = starts[j] + keys[k].step;
+			expected = expected < 0 ? 0 : expected;
+			expected = expected > 65535 ? 65535 : expected;
+			XVT_ASSERT_INT_EQ(craft->throttle_speed, expected);
+		}
+	}
+}
+
+/* The pilot flies in the cockpit: the camera follows the pilot's craft, the
+ * external camera is off and the HUD shows view 0. The saved view is the
+ * HUD only view. The cockpit has no pictures, so a request for a view is
+ * refused and logged with the view asked for. */
+static struct player_view_state *cockpit_world(void)
+{
+	fresh_world();
+	fly(PILOT, PILOT_CRAFT, 0);
+	fly(MATE, MATE_CRAFT, 1);
+	struct player_view_state *view = &g_players[PILOT].view_state;
+	view->camera_focus_obj_idx = PILOT_CRAFT;
+	view->external_camera_active = 0;
+	view->hud_state_live = HUD_FORWARD;
+	view->hud_aim_x_snap_state = 0;
+	view->hud_aim_x = 1234;
+	view->hud_aim_y = -4321;
+	g_players[PILOT].saved_hud_view_state = HUD_ONLY;
+	return view;
+}
+
+/* The keypad look keys turn the view to the direction the key lies in on the
+ * keypad (7 8 9 over 4 5 6 over 1 2 3, 8 straight ahead): the aim turns by
+ * the direction's angle, 65,536 to a circle, the HUD shows the direction's
+ * view added to the keypad 0 snap of 0 or 8, and straight ahead returns to the
+ * player's saved view. */
+static void check_look_keys(void)
+{
+	static const struct {
+		uint16_t key;
+		int view;
+		int angle;
+	} keys[] = {
+		{FLIGHT_KEY_PAD_1, 3, -0x6000}, {FLIGHT_KEY_PAD_2, 4, -0x8000},
+		{FLIGHT_KEY_PAD_3, 5, 0x6000},	{FLIGHT_KEY_PAD_4, 2, -0x4000},
+		{FLIGHT_KEY_PAD_6, 6, 0x4000},	{FLIGHT_KEY_PAD_7, 1, -0x2000},
+		{FLIGHT_KEY_PAD_8, 0, 0},	{FLIGHT_KEY_PAD_9, 7, 0x2000},
+	};
+	for (size_t k = 0; k < sizeof keys / sizeof keys[0]; ++k) {
+		for (int snap = 0; snap <= HUD_SNAPPED; snap += HUD_SNAPPED) {
+			struct player_view_state *view = cockpit_world();
+			view->hud_aim_x_snap_state = (uint8_t)snap;
+			press(PILOT, keys[k].key);
+			int shown = snap + keys[k].view;
+			XVT_ASSERT_TRUE(
+				logged("hud.view_refused slot=0 view=%d ",
+				       shown != 0 ? shown : HUD_ONLY));
+			XVT_ASSERT_INT_EQ(view->hud_aim_x, snap << 10);
+			XVT_ASSERT_INT_EQ(view->hud_aim_y,
+					  (int16_t)keys[k].angle);
+		}
+	}
+}
+
+/* The keys turn the aim but ask for no new view when the camera is on
+ * another object or outside the cockpit. */
+static void check_look_keys_outside_cockpit(void)
+{
+	for (int cause = 0; cause < 2; ++cause) {
+		struct player_view_state *view = cockpit_world();
+		if (cause == 0) {
+			view->camera_focus_obj_idx = MATE_CRAFT;
+		} else {
+			view->external_camera_active = 1;
+		}
+		press(PILOT, FLIGHT_KEY_PAD_6);
+		XVT_ASSERT_TRUE(!logged("hud.view_refused"));
+		XVT_ASSERT_INT_EQ(view->hud_aim_x, 0);
+		XVT_ASSERT_INT_EQ(view->hud_aim_y, 0x4000);
+		press(PILOT, FLIGHT_KEY_PAD_5);
+		XVT_ASSERT_TRUE(!logged("hud.view_refused"));
+		XVT_ASSERT_INT_EQ(view->hud_aim_x, 0x4000);
+		XVT_ASSERT_INT_EQ(view->hud_aim_y, 0);
+	}
+}
+
+/* Keypad 5 turns the aim a quarter circle in x and none in y, and asks for
+ * view 16. */
+static void check_look_centre_key(void)
+{
+	struct player_view_state *view = cockpit_world();
+	press(PILOT, FLIGHT_KEY_PAD_5);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x, 0x4000);
+	XVT_ASSERT_INT_EQ(view->hud_aim_y, 0);
+	XVT_ASSERT_TRUE(logged("hud.view_refused slot=0 view=%d ", HUD_CENTRE));
+}
+
+/* Keypad 0 flips the snap between 0 and 8 and puts the aim at the snap
+ * shifted left 10, asking for the live view with 8 flipped. It does nothing
+ * from a view of 16 or more, unless the external camera is on, when it flips
+ * the snap and asks for nothing. */
+static void check_look_snap_key(void)
+{
+	struct player_view_state *view = cockpit_world();
+	press(PILOT, FLIGHT_KEY_PAD_0);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x_snap_state, 8);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x, 8 << 10);
+	XVT_ASSERT_TRUE(logged("hud.view_refused slot=0 view=%d ", 8));
+	press(PILOT, FLIGHT_KEY_PAD_0);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x_snap_state, 0);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x, 0);
+
+	view = cockpit_world();
+	view->hud_state_live = 11;
+	press(PILOT, FLIGHT_KEY_PAD_0);
+	XVT_ASSERT_TRUE(logged("hud.view_refused slot=0 view=%d ", 3));
+
+	view = cockpit_world();
+	view->hud_state_live = HUD_CENTRE;
+	press(PILOT, FLIGHT_KEY_PAD_0);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x_snap_state, 0);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x, 1234);
+	XVT_ASSERT_TRUE(!logged("hud.view_refused"));
+
+	view = cockpit_world();
+	view->hud_state_live = HUD_CENTRE;
+	view->external_camera_active = 1;
+	press(PILOT, FLIGHT_KEY_PAD_0);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x_snap_state, 8);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x, 8 << 10);
+	XVT_ASSERT_TRUE(!logged("hud.view_refused"));
+}
+
+/* The period key (and keypad period) toggles between the HUD only view and
+ * the cockpit view: it remembers the one it asks for as the player's saved
+ * view, and centres the aim. Outside the cockpit it only centres the aim. */
+static void check_period_toggles_hud_only(void)
+{
+	static const uint16_t keys[] = {FLIGHT_KEY_PERIOD, FLIGHT_KEY_PAD_DOT};
+	for (size_t k = 0; k < sizeof keys / sizeof keys[0]; ++k) {
+		struct player_view_state *view = cockpit_world();
+		g_players[PILOT].saved_hud_view_state = 5;
+		press(PILOT, keys[k]);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].saved_hud_view_state,
+				  HUD_ONLY);
+		XVT_ASSERT_TRUE(
+			logged("hud.view_refused slot=0 view=%d ", HUD_ONLY));
+		XVT_ASSERT_INT_EQ(view->hud_aim_x, 0);
+		XVT_ASSERT_INT_EQ(view->hud_aim_y, 0);
+
+		view = cockpit_world();
+		view->hud_state_live = HUD_ONLY;
+		g_players[PILOT].saved_hud_view_state = 5;
+		press(PILOT, keys[k]);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].saved_hud_view_state,
+				  HUD_FORWARD);
+		XVT_ASSERT_TRUE(logged("hud.view_refused slot=0 view=%d ",
+				       HUD_FORWARD));
+
+		view = cockpit_world();
+		view->external_camera_active = 1;
+		g_players[PILOT].saved_hud_view_state = 5;
+		press(PILOT, keys[k]);
+		XVT_ASSERT_INT_EQ(g_players[PILOT].saved_hud_view_state, 5);
+		XVT_ASSERT_TRUE(!logged("hud.view_refused"));
+		XVT_ASSERT_INT_EQ(view->hud_aim_x, 0);
+		XVT_ASSERT_INT_EQ(view->hud_aim_y, 0);
+	}
+}
+
+/* Z turns the target camera on: it keeps the cockpit view and aim to come
+ * back to, follows the target from outside the cockpit and asks for the
+ * target camera view. With no target it says so and changes nothing. Z again
+ * brings the camera back to the pilot's craft, asking for the saved view. */
+static void check_target_camera(void)
+{
+	struct player_view_state *view = cockpit_world();
+	view->hud_state_live = 7;
+	view->hud_aim_x = 111;
+	view->hud_aim_y = 222;
+	press(PILOT, FLIGHT_KEY_Z);
+	XVT_ASSERT_INT_EQ(last_message(), IFMSG_223_NO_CRAFT_TARGETED);
+	XVT_ASSERT_INT_EQ(view->target_camera_active, 0);
+	XVT_ASSERT_INT_EQ(view->external_camera_active, 0);
+	XVT_ASSERT_INT_EQ(view->camera_focus_obj_idx, PILOT_CRAFT);
+
+	g_players[PILOT].current_target_object_idx = MATE_CRAFT;
+	press(PILOT, FLIGHT_KEY_Z);
+	XVT_ASSERT_INT_EQ(view->target_camera_active, 1);
+	XVT_ASSERT_INT_EQ(view->external_camera_active, 1);
+	XVT_ASSERT_INT_EQ(view->camera_focus_obj_idx, MATE_CRAFT);
+	XVT_ASSERT_INT_EQ(view->saved_hud_state_byte, 7);
+	XVT_ASSERT_INT_EQ(view->saved_hud_aim_x, 111);
+	XVT_ASSERT_INT_EQ(view->saved_hud_aim_y, 222);
+	XVT_ASSERT_INT_EQ(g_render_object_ref_flags, 1024);
+	XVT_ASSERT_TRUE(logged("hud.view_refused slot=0 view=%d ", 20));
+
+	view->player_input_blocked = 1;
+	g_hud_cached_target_object_idx = 5;
+	press(PILOT, FLIGHT_KEY_Z);
+	XVT_ASSERT_INT_EQ(view->target_camera_active, 0);
+	XVT_ASSERT_INT_EQ(view->external_camera_active, 0);
+	XVT_ASSERT_INT_EQ(view->camera_focus_obj_idx, PILOT_CRAFT);
+	XVT_ASSERT_INT_EQ(view->player_input_blocked, 0);
+	XVT_ASSERT_INT_EQ(g_hud_cached_target_object_idx, -2);
+	XVT_ASSERT_INT_EQ(g_render_object_ref_flags, 0);
+	XVT_ASSERT_INT_EQ(view->hud_aim_x, 0);
+	XVT_ASSERT_INT_EQ(view->hud_aim_y, 0);
+	XVT_ASSERT_TRUE(logged("hud.view_refused slot=0 view=%d ", HUD_ONLY));
+
+	g_players[PILOT].saved_hud_view_state = 5;
+	view->target_camera_active = 1;
+	press(PILOT, FLIGHT_KEY_Z);
+	XVT_ASSERT_TRUE(
+		logged("hud.view_refused slot=0 view=%d ", HUD_FORWARD));
+}
+
 int main(int argc, char **argv)
 {
 	fail_after_seconds(20);
+	log_lines_start();
 	g_saved_xwing_model = *xwing_model();
 	g_message_log = memory_alloc_handle_zeroed(
 		301 * sizeof(struct hud_in_flight_message_record), 0);
@@ -1888,5 +2865,35 @@ int main(int argc, char **argv)
 	check_clock_second();
 	check_time_limit();
 	check_repairs();
+	check_map_c_centers_on_target();
+	check_map_z_over_target();
+	check_map_z_distance_to_followed();
+	check_map_z_behind_target();
+	check_map_z_nothing_to_follow();
+	check_map_aim_keys();
+	check_cover_request_names_attacker();
+	check_cover_orders_wingman();
+	check_cover_without_attacker();
+	check_cover_who_is_asked();
+	check_cover_announced_to_local();
+	check_cover_radio_out();
+	check_weapon_cycle();
+	check_weapon_skips_empty_launchers();
+	check_weapon_launchers_only();
+	check_weapon_launcher_flags();
+	check_weapon_system_out();
+	check_link_cycle();
+	check_link_single_slot_group();
+	check_link_message_local_only();
+	check_link_warheads();
+	check_eject();
+	check_eject_in_replay();
+	check_throttle_steps();
+	check_look_keys();
+	check_look_keys_outside_cockpit();
+	check_look_centre_key();
+	check_look_snap_key();
+	check_period_toggles_hud_only();
+	check_target_camera();
 	return 0;
 }
