@@ -24,9 +24,12 @@ import json
 import logging
 from pathlib import Path
 from typing import Any
+from typing import TYPE_CHECKING
 
-import jsonschema
 from listdata import crlf
+
+if TYPE_CHECKING:
+    import jsonschema
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +72,13 @@ def make_install(root: Path) -> Path:
 
 
 def validator() -> jsonschema.Draft202012Validator:
-    """Return a draft 2020-12 validator for the published control schema."""
+    """Return a draft 2020-12 validator for the published control schema.
+
+    jsonschema is imported here, not at the top, so the browser tests' helpers
+    that use this module run with the page's packages alone.
+    """
+    import jsonschema
+
     schema = json.loads(SCHEMA_FILE.read_text(encoding="utf-8"))
     jsonschema.Draft202012Validator.check_schema(schema)
     return jsonschema.Draft202012Validator(schema)
