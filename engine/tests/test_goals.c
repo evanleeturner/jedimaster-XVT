@@ -4,7 +4,11 @@
  * is a table of this file's in which every glyph is one pixel wide, and the
  * text tables hold short marker strings set here: a condition text names its
  * row and column, "r2c5". The flight groups and the model names are set field
- * by field in the game's own tables; no game data is read. */
+ * by field in the game's own tables; no game data is read.
+ *
+ * Not checked here: the error lines for a condition text or an escape text
+ * that was never loaded (known failures: the draw then reads through the null
+ * entry). */
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -657,6 +661,83 @@ static void check_condition_47_past_table(void)
 	XVT_ASSERT_INT_EQ(g_drawn_length, 0);
 }
 
+/* A flight group of one craft (or none yet counted) is drawn by its craft
+ * type's long name, its name and the condition text in the column for a
+ * single craft (9), whatever the amount, from the row block its status picks
+ * (status 5, a goal to prevent, is the last block); with condition text given
+ * by the caller, by the short name and that text, and a time limit after it. */
+static void check_goal_line_single_craft(void)
+{
+	static const uint16_t amounts[] = {GOAL_AMT_100, GOAL_AMT_50,
+					   GOAL_AMT_ALL_BUT_1};
+	for (int craft = 0; craft < 2; ++craft) {
+		for (size_t i = 0; i < sizeof amounts / sizeof amounts[0];
+		     ++i) {
+			fresh_page();
+			load_condition_text(g_str_goal_cond_masculine);
+			name_species(species_with_model());
+			set_group(0, "Red", craft);
+			XVT_ASSERT_INT_EQ(
+				goals_outputgoal(0, MISSION_COND_DESTROYED,
+						 GOAL_TARGET_FLIGHT_GROUP, 0,
+						 amounts[i], 0, NULL, -1, 0),
+				TEST_LINE_HEIGHT + 2);
+			XVT_ASSERT_TRUE(strcmp(g_drawn, "X-wing Red: r2c9\n") ==
+					0);
+		}
+	}
+	fresh_page();
+	load_condition_text(g_str_goal_cond_masculine);
+	name_species(species_with_model());
+	set_group(0, "Red", 1);
+	g_str_goal_conjunctions[GOAL_CONJ_STR_LESS_THAN] = "under";
+	goals_outputgoal(0, MISSION_COND_DESTROYED, GOAL_TARGET_FLIGHT_GROUP, 3,
+			 GOAL_AMT_100, 13, "Escort", -1, 0);
+	XVT_ASSERT_TRUE(strcmp(g_drawn, "XW Red: Escort (under 1:05)\n") == 0);
+	fresh_page();
+	load_condition_text(g_str_goal_cond_masculine);
+	name_species(species_with_model());
+	set_group(0, "Red", 1);
+	goals_outputgoal(0, MISSION_COND_ATTACKED, GOAL_TARGET_FLIGHT_GROUP, 5,
+			 GOAL_AMT_100, 0, NULL, -1, 0);
+	XVT_ASSERT_TRUE(strcmp(g_drawn, "X-wing Red: r144c9\n") == 0);
+}
+
+/* A percent drawn after any goal title color from 4 to 7 reads the same, and
+ * the color goes back to the title's. */
+static void check_goal_line_percent_other_titles(void)
+{
+	for (int title = 4; title < 8; ++title) {
+		fresh_page();
+		name_species(species_with_model());
+		set_group(0, "Red", 2);
+		flight_text_set_color(g_goal_title_color_by_index[title]);
+		uint8_t section_color = g_flight_text_color_index;
+		flight_text_set_color(0);
+		goals_outputgoal(0, MISSION_COND_DESTROYED,
+				 GOAL_TARGET_FLIGHT_GROUP, 0, GOAL_AMT_100, 0,
+				 "Escort", 7, title);
+		XVT_ASSERT_TRUE(strcmp(g_drawn, "XW Red: Escort (7%)\n") == 0);
+		XVT_ASSERT_INT_EQ(g_flight_text_color_index, section_color);
+	}
+}
+
+/* A target type the line does not know draws no target at all, only the
+ * condition text of the species one above the target number. */
+static void check_goal_line_unknown_target(void)
+{
+	fresh_page();
+	load_condition_text(g_str_goal_cond_masculine);
+	int species = species_with_model();
+	name_species(species);
+	XVT_ASSERT_INT_EQ(goals_outputgoal((uint16_t)(species - 1),
+					   MISSION_COND_DESTROYED,
+					   GOAL_TARGET_NONE, 0, GOAL_AMT_50, 0,
+					   NULL, -1, 0),
+			  TEST_LINE_HEIGHT + 2);
+	XVT_ASSERT_TRUE(strcmp(g_drawn, "r2c2\n") == 0);
+}
+
 int main(int argc, char **argv)
 {
 	/* "known-failure <check>" runs one check the code is known to fail; an
@@ -695,5 +776,8 @@ int main(int argc, char **argv)
 	check_goal_line_named_targets();
 	check_goal_line_status_targets();
 	check_goal_line_percent();
+	check_goal_line_single_craft();
+	check_goal_line_percent_other_titles();
+	check_goal_line_unknown_target();
 	return 0;
 }
