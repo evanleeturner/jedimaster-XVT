@@ -2780,7 +2780,7 @@ static void check_target_camera(void)
 		logged("hud.view_refused slot=0 view=%d ", HUD_FORWARD));
 }
 
-/* ---- Wingman orders: Shift+A, I, W, H, G and the resupply call Shift+B ---- */
+/* ---- Wingman orders: Shift+A, I, W, H, G and the resupply call Shift+B --- */
 
 enum {
 	WING = 4,	 /* A computer craft in the pilot's own flight group. */
