@@ -729,6 +729,28 @@ endif()
 xvt_add_engine_test(test_frontend_task test_frontend_task.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/frontend_task.c")
 add_test(NAME frontend_task COMMAND test_frontend_task)
+# The --launch description, its result file and the door's opening and ending: src/xvt_runtime/runtime/launch_*.c.
+# cJSON is the one JSON reader the tree already holds; the temporary-folder checks use POSIX calls.
+if(NOT MSVC)
+    xvt_add_engine_test(test_launch_description test_launch_description.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_description.c")
+    target_link_libraries(test_launch_description PRIVATE aeron_cjson)
+    add_test(NAME launch_description COMMAND test_launch_description)
+    xvt_add_engine_test(test_launch_result test_launch_result.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_result.c")
+    target_link_libraries(test_launch_result PRIVATE aeron_cjson)
+    add_test(NAME launch_result COMMAND test_launch_result)
+    xvt_add_engine_test(test_launch_record test_launch_record.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_record.c")
+    add_test(NAME launch_record COMMAND test_launch_record)
+    xvt_add_engine_test(test_launch_door test_launch_door.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_door.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_description.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_result.c")
+    target_link_libraries(test_launch_door PRIVATE aeron_cjson)
+    add_test(NAME launch_door COMMAND test_launch_door)
+endif()
+
 xvt_add_engine_test(test_launch_task test_launch_task.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_task.c")
 add_test(NAME launch_task COMMAND test_launch_task)

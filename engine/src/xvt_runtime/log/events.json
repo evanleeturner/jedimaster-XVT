@@ -2613,10 +2613,80 @@
       "fields": ["command"],
       "text": "The queued launch command is {command}"
     },
+    "launch.described": {
+      "level": "I",
+      "fields": ["directory", "side", "mission", "pilot"],
+      "text": "The launch description asks for a battle in mission folder number {directory} (0 training, 1 melee, 2 tournament, 3 combat, 4 battle, 5 campaign), side {side} (-1 none, 0 rebel, 1 imperial), mission file {mission}, flown by pilot {pilot}"
+    },
+    "launch.faction_chosen": {
+      "level": "D",
+      "fields": ["faction", "team", "directory"],
+      "text": "The launch door picked faction {faction} as the pilot list and the faction buttons do: team {team}, mission folder number {directory}"
+    },
+    "launch.mission_chosen": {
+      "level": "D",
+      "fields": ["directory", "mission", "index"],
+      "text": "The launch door picked mission id {mission} at place {index} of the list of mission folder number {directory}"
+    },
+    "launch.opened": {
+      "level": "I",
+      "fields": ["path"],
+      "text": "The launch door opened the description file {path}"
+    },
     "launch.queued": {
       "level": "I",
       "fields": [],
       "text": "A flight launch is queued"
+    },
+    "launch.record_failed": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "The start-up recording could not be written to {path} and its .pilot file"
+    },
+    "launch.record_path": {
+      "level": "D",
+      "fields": ["path"],
+      "text": "The start-up recording will be written to {path} (empty for none)"
+    },
+    "launch.recorded": {
+      "level": "I",
+      "fields": ["path", "pilot_bytes"],
+      "text": "The start-up recording was written to {path}, with a pilot record of {pilot_bytes} bytes beside it"
+    },
+    "launch.refused": {
+      "level": "I",
+      "fields": ["code", "why"],
+      "text": "The launch door ended with exit code {code} (3 refused, 4 battle not reached, 5 flight failed): {why}"
+    },
+    "launch.result_read": {
+      "level": "D",
+      "fields": ["local", "team", "score", "kills", "losses", "seconds", "outcome"],
+      "text": "The launch door read the battle's result from the pilot record: local player {local}, team {team}, score {score}, kills {kills}, losses {losses}, mission time {seconds} seconds, outcome {outcome} (1 completed, 2 not completed)"
+    },
+    "launch.result_unwritten": {
+      "level": "E",
+      "fields": ["path"],
+      "text": "The launch result file {path} could not be written"
+    },
+    "launch.result_written": {
+      "level": "I",
+      "fields": ["path", "exit"],
+      "text": "The launch result file {path} was written, with exit code {exit}"
+    },
+    "launch.settings": {
+      "level": "D",
+      "fields": ["difficulty", "collisions", "craft_jumping", "random_setup", "battle_length", "time_limit", "continue", "seed", "has_seed"],
+      "text": "The launch description's settings in the game's own values, -1 for a setting it leaves alone: difficulty {difficulty}, collisions {collisions}, craft jumping {craft_jumping}, random setup {random_setup}, battle length {battle_length}, mission time limit {time_limit}, continue {continue}, random seed {seed} (given: {has_seed})"
+    },
+    "launch.solo_opened": {
+      "level": "I",
+      "fields": ["faction"],
+      "text": "The launch door pressed Fly Solo with faction {faction} selected"
+    },
+    "launch.started": {
+      "level": "I",
+      "fields": ["directory", "mission"],
+      "text": "The launch door pressed Quick Start for the mission {mission} in mission folder number {directory}"
     },
     "map.object_picked": {
       "level": "D",

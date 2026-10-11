@@ -13,6 +13,8 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/flight_task.h"
 #include "xvt_runtime/runtime/frontend_task.h"
+#include "xvt_runtime/runtime/launch_door.h"
+#include "xvt_runtime/runtime/launch_record.h"
 #include "xvt_runtime/runtime/launch_task.h"
 #include "xvt_runtime/runtime/movie_task.h"
 #include "xvt_runtime/runtime/network_session.h"
@@ -47,6 +49,12 @@ int xvt_port_network_requires_progress(void)
 	return AeronDplay_IsActive() || xvt_network_task_is_active() ||
 	       xvt_network_task_browser_visible() ||
 	       xvt_flight_task_continues_without_focus();
+}
+
+void xvt_port_request_exit(int exit_code)
+{
+	g_xvt_exit_code = exit_code;
+	Aeron_RequestQuit();
 }
 
 void xvt_port_set_skip_intro(int skip_intro)
@@ -193,6 +201,7 @@ void xvt_port_update(int32_t delta_us)
 		xvt_flight_task_update();
 	} else {
 		xvt_frontend_task_update();
+		xvt_launch_door_step();
 	}
 	if (xvt_flight_task_is_complete()) {
 		int result = xvt_flight_task_get_result();
@@ -203,6 +212,7 @@ void xvt_port_update(int32_t delta_us)
 	if (xvt_launch_task_has_pending_launch()) {
 		xvt_network_session_begin_flight();
 		const char *command = xvt_launch_task_begin_pending_launch();
+		xvt_launch_record_write(command);
 		if (!xvt_flight_task_begin(command)) {
 			xvt_launch_task_complete(0);
 		}

@@ -16,6 +16,10 @@ extern "C" {
  * clock, presentation and input and starts the frontend; a frontend that fails to start sets exit
  * code 1, shuts the port down and returns 0. Returns 1, at once when already initialized. */
 int xvt_port_init(void);
+/* Sets the exit code the program ends with and asks it to quit, as a closed
+ * window does. Used by the --launch door when its battle has ended or cannot
+ * start. */
+void xvt_port_request_exit(int exit_code);
 /* Before Init only: start at the concourse instead of the opening movie. */
 void xvt_port_set_skip_intro(int skip_intro);
 /* 1 between a successful Init and Shutdown. */

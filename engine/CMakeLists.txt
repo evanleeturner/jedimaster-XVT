@@ -228,6 +228,10 @@ set(XVT_RUNTIME_SOURCES
     src/xvt_runtime/runtime/network_task.c
     src/xvt_runtime/runtime/frontend_actions.c
     src/xvt_runtime/runtime/launch_task.c
+    src/xvt_runtime/runtime/launch_description.c
+    src/xvt_runtime/runtime/launch_result.c
+    src/xvt_runtime/runtime/launch_door.c
+    src/xvt_runtime/runtime/launch_record.c
     src/xvt_runtime/runtime/flight_task.c
     src/xvt_runtime/runtime/flight_checkpoint.c
     src/xvt_runtime/runtime/flight_wire.c
@@ -260,6 +264,7 @@ set(XVT_RUNTIME_SOURCES
 add_library(xvt_core STATIC ${XVT_RECOVERED_SOURCES} ${XVT_RUNTIME_SOURCES})
 target_include_directories(xvt_core PUBLIC src)
 target_link_libraries(xvt_core PUBLIC aeron_compat aeron_video aeron_audio_decode aeron_scene)
+target_link_libraries(xvt_core PRIVATE aeron_cjson)
 if(NOT MSVC)
     target_link_libraries(xvt_core PUBLIC m)
 endif()

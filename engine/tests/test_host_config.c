@@ -96,6 +96,14 @@ static void check_values(void)
 	XVT_ASSERT_TRUE(options.log_file == g_argv[10] + strlen("--log-file="));
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--log-file", "b.log"), 1);
 	XVT_ASSERT_TRUE(options.log_file == g_argv[2]);
+	/* The battle door's two options take their values the same way. */
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--launch=/x/launch.json",
+				"--record-launch", "rec"),
+			  1);
+	XVT_ASSERT_TRUE(options.launch == g_argv[1] + strlen("--launch="));
+	XVT_ASSERT_TRUE(options.record_launch == g_argv[3]);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--launch"), 0);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--launch=a", "--launch=b"), 0);
 }
 
 static void check_value_refusals(void)
@@ -152,6 +160,19 @@ static void check_combination_refusals(void)
 	XVT_ASSERT_INT_EQ(
 		PARSE(&options, "--setup", "--resource-root=r", "--skip-intro"),
 		1);
+
+	/* --launch flies one battle; it cannot also set up, check or import. */
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--launch=a.json", "--setup"), 0);
+	XVT_ASSERT_INT_EQ(
+		PARSE(&options, "--launch=a.json", "--check-installation"), 0);
+	XVT_ASSERT_INT_EQ(
+		PARSE(&options, "--launch=a.json", "--import-config=c.cfg"), 0);
+	XVT_ASSERT_INT_EQ(
+		PARSE(&options, "--launch=a.json", "--import-pilot=p.plt"), 0);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--launch=a.json", "--game-data=d",
+				"--skip-intro", "--record-launch=r"),
+			  1);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--record-launch=r", "--setup"), 1);
 }
 
 static void check_init_aeron(void)

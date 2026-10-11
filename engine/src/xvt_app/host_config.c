@@ -5,6 +5,29 @@
 
 #include "xvt_app/window_icon.h"
 
+/* Returns 1 when the options parsed go together, else 0 with a message on
+ * stderr: --pilot-name needs --import-pilot, --setup cannot join --game-data or
+ * --check-installation, and --launch cannot join --setup, --check-installation,
+ * --import-config or --import-pilot. */
+static int options_combination_valid(const struct xvt_launch_options *options)
+{
+	if ((options->pilot_name && !options->import_pilot) ||
+	    (options->setup &&
+	     (options->check_installation || options->game_data))) {
+		fprintf(stderr,
+			"OpenXvT: --pilot-name requires --import-pilot; --setup cannot be combined with --game-data or --check-installation.\n");
+		return 0;
+	}
+	if (options->launch &&
+	    (options->setup || options->check_installation ||
+	     options->import_config || options->import_pilot)) {
+		fprintf(stderr,
+			"OpenXvT: --launch cannot be combined with --setup, --check-installation, --import-config or --import-pilot.\n");
+		return 0;
+	}
+	return 1;
+}
+
 int xvt_launch_options_parse(int argc, char *argv[],
 			     struct xvt_launch_options *options)
 {
@@ -25,7 +48,9 @@ int xvt_launch_options_parse(int argc, char *argv[],
 			{"--import-pilot", &options->import_pilot},
 			{"--pilot-name", &options->pilot_name},
 			{"--log-level", &options->log_level},
-			{"--log-file", &options->log_file}};
+			{"--log-file", &options->log_file},
+			{"--launch", &options->launch},
+			{"--record-launch", &options->record_launch}};
 
 		struct {
 			const char *name;
@@ -76,14 +101,7 @@ int xvt_launch_options_parse(int argc, char *argv[],
 		}
 		*destination = value;
 	}
-	if ((options->pilot_name && !options->import_pilot) ||
-	    (options->setup &&
-	     (options->check_installation || options->game_data))) {
-		fprintf(stderr,
-			"OpenXvT: --pilot-name requires --import-pilot; --setup cannot be combined with --game-data or --check-installation.\n");
-		return 0;
-	}
-	return 1;
+	return options_combination_valid(options);
 }
 
 void xvt_host_config_fill_aeron_config(const struct xvt_launch_options *options,

@@ -30,8 +30,10 @@ const char *xvt_launch_task_begin_pending_launch(void);
 /* Ignored when idle. Returns to idle and cancels the fade. After a running flight, restores the
  * frontend surfaces (a failure ends the program), reloads the sound list, writes the config,
  * refreshes the rating name, saves the pilot and reinitializes CD audio. With datapad music on,
- * plays track 7 at the configured volume. Then opens the debrief when succeeded, or shows the
- * cursor, shuts down the DirectPlay session and opens the concourse. The new screen starts at
+ * plays track 7 at the configured volume. Then, while the --launch door is
+ * open, shows the cursor, hands the result to the door and stops there.
+ * Otherwise opens the debrief when succeeded, or shows the cursor, shuts down
+ * the DirectPlay session and opens the concourse. The new screen starts at
  * frame 0, and no exit callback runs for the switch. */
 void xvt_launch_task_complete(int succeeded);
 /* Returns to idle and clears the command without restoring anything. */

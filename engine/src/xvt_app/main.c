@@ -26,6 +26,8 @@ int main(int argc, char *argv[])
 			"  --log-level <level>         Write log lines at debug, info, warn or error (default info)\n"
 			"  --log-file <path>           Append log lines to this file (default: a new file per run\n"
 			"                              in logs/ beside config.yaml; the newest 10 are kept)\n"
+			"  --launch <file>             Fly one single-player battle described by a JSON file, then write its result file and quit\n"
+			"  --record-launch <file>      Write the state a battle starts from to <file> and <file>.pilot, for comparing starts\n"
 			"  --help                      Show this help\n");
 		return valid ? 0 : 2;
 	}

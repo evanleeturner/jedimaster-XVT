@@ -13,6 +13,9 @@
 #include "xvt_runtime/input/controller_mapping.h"
 #include "xvt_runtime/input/keyboard_mapping.h"
 #include "xvt_runtime/log/log.h"
+#include "xvt_runtime/runtime/launch_door.h"
+#include "xvt_runtime/runtime/launch_record.h"
+#include "xvt_runtime/runtime/launch_result.h"
 #include "xvt_runtime/runtime/port.h"
 #include "xvt_runtime/snapshot/render_snapshot.h"
 #include "xvt_runtime/storage/storage.h"
@@ -107,6 +110,10 @@ int xvt_application_run(const struct xvt_launch_options *options)
 	if (!xvt_log_sink_install(options)) {
 		return 2;
 	}
+	xvt_launch_record_set_path(options->record_launch);
+	if (options->launch && !xvt_launch_door_open(options->launch)) {
+		return XVT_LAUNCH_EXIT_REFUSED;
+	}
 	if (options->check_installation) {
 		char resource_root[XVT_PATH_CAPACITY];
 		if (!xvt_host_config_resolve_resource_root(
@@ -164,7 +171,7 @@ int xvt_application_run(const struct xvt_launch_options *options)
 		XVT_LOG_ERROR("setup.music_failed");
 		goto cleanup;
 	}
-	xvt_port_set_skip_intro(options->skip_intro ||
+	xvt_port_set_skip_intro(options->skip_intro || options->launch ||
 				xvt_config_settings()->skip_intro);
 	if (xvt_port_init()) {
 		XVT_LOG_INFO("app.ready");

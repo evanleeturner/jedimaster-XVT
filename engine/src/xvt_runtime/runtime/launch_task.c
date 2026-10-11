@@ -25,6 +25,7 @@
 #include "xvt/input/keyboard.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/cd_task.h"
+#include "xvt_runtime/runtime/launch_door.h"
 #include "xvt_runtime/snapshot/render_frontend.h"
 
 enum {
@@ -170,6 +171,11 @@ void xvt_launch_task_complete(int succeeded)
 		pilot_save(0);
 		cd_audio_initialize();
 		cd_audio_enable_loop_current_track();
+	}
+	if (xvt_launch_door_is_active()) {
+		frontend_cursor_show();
+		xvt_launch_door_finish(launched && succeeded);
+		return;
 	}
 	if (g_game_config.datapad_music_enabled) {
 		cd_audio_play_track_from_time(7, 0, 0);
