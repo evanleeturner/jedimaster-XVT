@@ -9583,6 +9583,10 @@ static void check_arrivals_stop_rules(void)
 			begin_arrivals();
 			g_flight_mission_state.runtime
 				.global_primary_goal_status = 1;
+			/* The waves of a player's group being unlimited makes
+			 * no difference to a group no player owns. */
+			g_flight_mission_state.player_flight_group_wave_mode =
+				CRAFT_WAVES_UNLIMITED;
 			g_mission_flight_groups[0].fg.special_cargo_craft = 1;
 			g_mission_fg_stats[0].special_cargo_outcome
 				[FLIGHT_GROUP_OUTCOME_TOTAL] = 2;
@@ -11103,6 +11107,7 @@ static void check_craft_loss_classes(void)
 		{20, 0, 20, 0, 0, 0, "player", 2, 0, 0, 0},
 		{0, 0, 0, 0, 0, 20, "mine", -1, 0, 0, 1},
 		{10, 0, 40, 10, 10, 10, "computer", -1, 0, 0, 0},
+		{30, 30, 0, 10, 10, 10, "player", 2, 0, 0, 0},
 	};
 	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
 		loss_world();
@@ -11817,6 +11822,29 @@ static void check_spawn_single_craft_counts(void)
 	XVT_ASSERT_INT_EQ(g_mission_fg_stats[0]
 				  .outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
 			  2);
+	/* A whole round counts its special cargo craft once; one with none
+	 * counts none. */
+	for (int special = 0; special < 2; ++special) {
+		init_mission(MISSION_TYPE_COMBAT);
+		arriving_group(0, 1, SPAWN_TYPE, 3);
+		g_stored.groups[0].special_cargo_craft =
+			special ? 1 : TEST_NO_ORDINAL;
+		spawn_mission_ready();
+		XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+		XVT_ASSERT_INT_EQ(g_mission_fg_stats[0].special_cargo_outcome
+					  [FLIGHT_GROUP_OUTCOME_ARRIVED],
+				  special);
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[0]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED],
+			3);
+	}
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 2);
+	g_stored.groups[0].special_cargo_craft = 1;
+	spawn_mission_ready();
+	XVT_ASSERT_INT_EQ(spawn_craft(0, 0), 1);
+	XVT_ASSERT_INT_EQ(spawn_craft(0, 1), 1);
 	for (int slot = 0; slot < 32; ++slot) {
 		g_object_table[slot].object_type = 9;
 	}
