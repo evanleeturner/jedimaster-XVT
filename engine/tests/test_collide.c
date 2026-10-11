@@ -9,8 +9,9 @@
  * Checked: a hit on a craft (collide_damagecraft and collide_laserhitcraft:
  * the damage by source and its tallies, the shields, the ion damage, the
  * hull, the kill and how a craft ends, what a shot does to its target), the
- * explosion figures, the neighbour list entries, the face tests and the
- * model walk's boxes.
+ * collision step (collide_collisions: the pairs it tests, the player's
+ * engine wash scan, inspections and hangar offers), the explosion figures,
+ * the neighbour list entries, the face tests and the model walk's boxes.
  *
  * Not checked here: the sounds and voice lines a hit asks for, which queue
  * only from the game's loaded sound tables, so only the state around them is
@@ -3454,6 +3455,21 @@ enum {
 	BOUNCE_OTHER_SPEED = 30,
 };
 
+/* The heading difference diff (in 65,536ths of a turn) folded into a quarter
+ * turn: mirrored into a half turn, then what lies past the quarter reflected
+ * back, as the bounce comment says. */
+static int fold_into_quarter(unsigned int diff)
+{
+	diff &= 0xFFFF;
+	if (diff >= 0x8000) {
+		diff = 0x10000 - diff;
+	}
+	if (diff > 0x4000) {
+		diff = 0x8000 - diff;
+	}
+	return (int)diff;
+}
+
 static int abs_int(int value) { return value < 0 ? -value : value; }
 
 /* ------------------------------------------------------------------------ */
@@ -3474,6 +3490,22 @@ enum {
 	CALAMARI_TYPE = 49,
 };
 
+/* Sets mesh i of the model craft_model built to the box (min..max), center
+ * (cx, 0, cz). */
+static void mesh_box(int mesh, float min_x, float min_y, float min_z,
+		     float max_x, float max_y, float max_z, float cx, float cz)
+{
+	struct mesh_descriptor *descriptor = &g_craft_model_descriptors[mesh];
+	descriptor->box_min.x = min_x;
+	descriptor->box_min.y = min_y;
+	descriptor->box_min.z = min_z;
+	descriptor->box_max.x = max_x;
+	descriptor->box_max.y = max_y;
+	descriptor->box_max.z = max_z;
+	descriptor->center.x = cx;
+	descriptor->center.z = cz;
+}
+
 /* Both craft of the wash and jam checks sit away from the origin, so that a
  * difference of their positions is not mistaken for either one. */
 enum {
@@ -3481,6 +3513,1135 @@ enum {
 	NEAR_OFFSET_Y = -5000,
 	NEAR_OFFSET_Z = 3000,
 };
+
+static void place_rel(int slot, int x, int y, int z)
+{
+	place(slot, NEAR_OFFSET_X + x, NEAR_OFFSET_Y + y, NEAR_OFFSET_Z + z);
+}
+
+/* Craft 1 is a ship of ship_type with one engine mesh (box +-100 along its
+ * length, +-50 across), working systems and axes along the world's; craft 0
+ * is a fighter with its shields up at the origin; ship at the origin too. */
+static void wash_world(int ship_type)
+{
+	static const int types[1] = {MESH_COMPONENT_06_ENGINE};
+	static const int center_x[1] = {0};
+	static const int flags[1] = {0};
+	fresh_world();
+	g_craft_model_type = ship_type;
+	craft_model(1, types, center_x, flags);
+	mesh_box(0, -50, -100, -50, 50, 100, 50, 0, 0);
+	g_object_type_table[ship_type].max_bounds_extent = SHIP_EXTENT;
+	g_test_objects[1].object_type = (uint8_t)ship_type;
+	g_test_objects[1].genus_id = CRAFT_GENUS_STARSHIP;
+	g_test_craft[1].working_subsystems = 1;
+	g_test_mobiles[1].cached_side_x = FORWARD_X;
+	g_test_mobiles[1].cached_fwd_y = FORWARD_X;
+	g_test_mobiles[1].cached_up_z = FORWARD_X;
+	place_rel(1, 0, 0, 0);
+	place_rel(0, 0, 0, 0);
+	g_test_craft[0].shield_energy[0] = 1000;
+	g_test_craft[0].shield_energy[1] = 500;
+	g_test_craft[0].hull_max = 100000;
+	g_test_craft[0].system_damage_hull_threshold = 100000;
+}
+
+/* ------------------------------------------------------------------------ */
+/* collide_collisions: the pairs a step tests. */
+
+/* Slot owner's proximity list holds slot candidate, due now; the shot-free
+ * pairs all start from this. */
+static void list_holds(int owner, int candidate)
+{
+	struct mobile_object_proximity_list *list =
+		&g_test_mobiles[owner].proximity_list;
+	list->count = 1;
+	list->obj_idx[0] = (uint16_t)candidate;
+	list->contact_ticks[0] = 0;
+}
+
+/* Craft 0, flown by the local player 0 and facing +X, and craft 1, a
+ * computer-flown starfighter 100 units off, neither moving; collisions are
+ * on; each deals 300 (craft 0) or 200 (craft 1) when it rams. Shields 1,000
+ * front and 500 rear on both, a deep hull. */
+static void craft_meet(void)
+{
+	fresh_world();
+	player_flies(0, 0);
+	place(0, 0, 0, 0);
+	place(1, 100, 0, 0);
+	g_test_mobiles[1].prev_world_x = 100;
+	g_test_mobiles[0].cached_fwd_x = FORWARD_X;
+	g_test_mobiles[0].damage_amount = 300;
+	g_test_mobiles[1].damage_amount = 200;
+	g_test_mobiles[0].speed = 50;
+	g_test_mobiles[1].speed = 20;
+	for (int slot = 0; slot < 2; ++slot) {
+		g_test_craft[slot].shield_energy[0] = 1000;
+		g_test_craft[slot].shield_energy[1] = 500;
+		g_test_craft[slot].hull_max = 100000;
+	}
+	g_flight_mission_state.collisions_enabled = 1;
+	list_holds(0, 1);
+}
+
+/* Comment: a player's craft against a mobile object uses the swept pair
+ * test; a hit on a starfighter, transport or utility vehicle bounces both
+ * (each records the other as its impact object), and, with collisions on,
+ * collide_damagecraft damages both: the other from the player's craft, the
+ * player's from the other on the rear shield when the other moves against
+ * the way the player faces. */
+static void check_collisions_player_meets_craft(void)
+{
+	craft_meet();
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].ai_flight.impact_obj_idx, 0);
+	/* They close at 50 less 20, side by side: each spins at 100 times
+	 * that. */
+	XVT_ASSERT_INT_EQ(abs_int(g_test_mobiles[0].roll_impulse_rate), 3000);
+	XVT_ASSERT_INT_EQ(abs_int(g_test_mobiles[1].roll_impulse_rate), 3000);
+	XVT_ASSERT_TRUE(find_line("combat.craft_bounced") != NULL);
+	/* The player is told of the collision. */
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 1);
+	/* Each takes the other's ram on its front shield. */
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 300);
+	XVT_ASSERT_TRUE(line_holds("combat.damage_taken", "object=0 source=1"));
+	XVT_ASSERT_TRUE(line_holds("combat.damage_taken", "side=0"));
+
+	/* The other moving back against the player's heading: the rear
+	 * shield takes it. */
+	craft_meet();
+	g_test_mobiles[1].prev_world_x = 110;
+	collide_collisions();
+	/* The player's shields then even out, so read the side from the log. */
+	XVT_ASSERT_TRUE(line_holds("combat.damage_taken", "object=0 source=1"));
+	XVT_ASSERT_TRUE(line_holds("combat.damage_taken", "side=1"));
+
+	/* Collisions off: the bounce, no damage. */
+	craft_meet();
+	g_flight_mission_state.collisions_enabled = 0;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].shield_energy[0], 1000);
+
+	/* Collisions off, but the other is a starship, platform or
+	 * freighter: no bounce, and damage. */
+	static const uint8_t large[] = {CRAFT_GENUS_STARSHIP,
+					CRAFT_GENUS_PLATFORM,
+					CRAFT_GENUS_FREIGHTER};
+	for (size_t i = 0; i < sizeof large; ++i) {
+		craft_meet();
+		g_flight_mission_state.collisions_enabled = 0;
+		g_test_objects[1].genus_id = large[i];
+		collide_collisions();
+		XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx,
+				  UINT16_MAX);
+		XVT_ASSERT_TRUE(g_test_craft[1].shield_energy[0] < 1000);
+		XVT_ASSERT_TRUE(g_test_craft[0].shield_energy[0] < 1000);
+	}
+
+	/* The player's axes are recomputed before the damage side is read. */
+	craft_meet();
+	g_test_mobiles[0].orient_matrix_dirty = 1;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_mobiles[0].orient_matrix_dirty, 0);
+	XVT_ASSERT_TRUE(g_test_craft[1].shield_energy[0] < 1000);
+
+	/* Out of reach: nothing. */
+	craft_meet();
+	place(1, 5000, 0, 0);
+	g_test_mobiles[1].prev_world_x = 5000;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+}
+
+/* Comment: pairs the plans want left alone go back in the list untested: a
+ * craft the player's craft has just bounced off, and a craft boarding to give
+ * to the player's craft. */
+static void check_collisions_player_pair_left_alone(void)
+{
+	craft_meet();
+	g_test_craft[0].ai_flight.impact_obj_idx = 1;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].ai_flight.impact_obj_idx, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].shield_energy[0], 1000);
+	/* It stays in the list. */
+	XVT_ASSERT_INT_EQ(g_test_mobiles[0].proximity_list.count, 1);
+	XVT_ASSERT_INT_EQ(g_test_mobiles[0].proximity_list.obj_idx[0], 1);
+
+	craft_meet();
+	strcpy(g_plan_table[7].name, "boardtogivepln");
+	g_test_craft[1].ai_controller.current_plan_id = 7;
+	g_test_craft[1].ai_controller.target_obj_idx = 0;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_mobiles[0].proximity_list.count, 1);
+	/* Aimed at some other craft, it is tested. */
+	craft_meet();
+	g_test_craft[1].ai_controller.current_plan_id = 7;
+	g_test_craft[1].ai_controller.target_obj_idx = 1;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 300);
+	g_plan_table[7].name[0] = '\0';
+}
+
+/* Static slot 5 holds a mine at (1,000, 0, 0); craft 0 flies from the origin
+ * through it to (2,000, 0, 0); its list holds the mine. */
+static void craft_meets_mine(void)
+{
+	fresh_world();
+	place_mine(1000, 0, 0);
+	place(0, 2000, 0, 0);
+	g_test_craft[0].shield_energy[0] = 5000;
+	g_test_craft[0].shield_energy[1] = 5000;
+	g_test_craft[0].hull_max = 100000;
+	g_test_craft[0].ai_controller.target_obj_idx = TEST_MINE;
+	g_object_type_table[TEST_MINE_TYPE].max_bounds_extent = 200;
+	g_flight_mission_state.collisions_enabled = 1;
+	list_holds(0, TEST_MINE);
+}
+
+/* Comment: a player's craft against a static object bounces off it and,
+ * with collisions on, destroys the mine (static_apply_static_hit, unless a
+ * flight group has status 20) and takes damage from it. */
+static void check_collisions_player_meets_static(void)
+{
+	craft_meets_mine();
+	player_flies(0, 0);
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, TEST_MINE);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_MINE].object_type, 0);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[2]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_DESTROYED],
+		1);
+	/* A protected flight group: the mine stays, and deals 4 times its
+	 * extent to the craft. */
+	for (int group = 0; group < 2; ++group) {
+		craft_meets_mine();
+		player_flies(0, 0);
+		g_mission_flight_groups[group == 0 ? 0 : 2].fg.status1 = 20;
+		collide_collisions();
+		XVT_ASSERT_INT_EQ(g_test_objects[TEST_MINE].object_type,
+				  TEST_MINE_TYPE);
+		XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx,
+				  TEST_MINE);
+		/* The craft's own group protected, the craft takes nothing; the
+		 * mine's, it still does. */
+		XVT_ASSERT_TRUE(
+			line_holds(group == 0 ? "combat.damage_refused"
+					      : "combat.damage_taken",
+				   group == 0 ? "reason=\"victim_protected\""
+					      : "amount=800"));
+	}
+
+	/* Collisions off: the bounce only. */
+	craft_meets_mine();
+	player_flies(0, 0);
+	g_flight_mission_state.collisions_enabled = 0;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, TEST_MINE);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_MINE].object_type,
+			  TEST_MINE_TYPE);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].shield_energy[0], 5000);
+
+	/* A craft that misses the mine does nothing. */
+	craft_meets_mine();
+	player_flies(0, 0);
+	place_mine(1000, 9000, 0);
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, UINT16_MAX);
+}
+
+/* Comment: a computer-flown starfighter is tested only against static
+ * objects: damage when collisions are on, else a bounce. One aimed at some
+ * other object passes a mine by (static_test_swept_static_collision). */
+static void check_collisions_ai_craft_meets_static(void)
+{
+	craft_meets_mine();
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].shield_energy[0], 5000 - 4 * 200);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, UINT16_MAX);
+
+	craft_meets_mine();
+	g_flight_mission_state.collisions_enabled = 0;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].shield_energy[0], 5000);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, TEST_MINE);
+
+	craft_meets_mine();
+	g_test_craft[0].ai_controller.target_obj_idx = 1;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].shield_energy[0], 5000);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, UINT16_MAX);
+
+	/* Another craft in the list is not tested at all. */
+	craft_meet();
+	g_test_objects[0].player_owner_idx = -1;
+	g_players[0].object_index = -1;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, UINT16_MAX);
+}
+
+/* Craft 0, a computer-flown starship, rams craft 1 100 units from it. */
+static void starship_meets_craft(void)
+{
+	craft_meet();
+	g_test_objects[0].player_owner_idx = -1;
+	g_test_objects[0].genus_id = CRAFT_GENUS_STARSHIP;
+	g_players[0].object_index = -1;
+	g_test_mobiles[0].damage_amount = 800;
+}
+
+static int untouched(void)
+{
+	return g_test_craft[0].shield_energy[0] == 1000 &&
+	       g_test_craft[1].shield_energy[0] == 1000;
+}
+
+/* Comment: an AI freighter, starship or platform is tested against craft
+ * that are not docking, launching, entering a hangar, boarding, jumping or
+ * dropping off, and a hit damages both. The pairs for those goings-on go
+ * back in the list untested. */
+static void check_collisions_capital_ship_meets_craft(void)
+{
+	/* A plain hit: the craft takes 800; the starship takes the craft's
+	 * 200 less a sixteenth. */
+	starship_meets_craft();
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 800);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].shield_energy[0], 1000 - 200 / 16);
+
+	/* A starship boarding some other craft is not passed over. */
+	starship_meets_craft();
+	g_test_craft[0].ai_controller.maneuver_mode = AI_MANEUVER_MODE_BOARD;
+	g_test_craft[0].ai_controller.target_obj_idx = 0;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 800);
+
+	/* A platform and a freighter the same. */
+	static const uint8_t large[] = {CRAFT_GENUS_PLATFORM,
+					CRAFT_GENUS_FREIGHTER};
+	for (size_t i = 0; i < sizeof large; ++i) {
+		starship_meets_craft();
+		g_test_objects[0].genus_id = large[i];
+		collide_collisions();
+		XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 800);
+		XVT_ASSERT_TRUE(g_test_craft[0].shield_energy[0] < 1000);
+	}
+
+	/* Out of reach. */
+	starship_meets_craft();
+	place(1, 5000, 0, 0);
+	g_test_mobiles[1].prev_world_x = 5000;
+	collide_collisions();
+	XVT_ASSERT_TRUE(untouched());
+
+	/* The ship's own goings-on. */
+	for (int own = 0; own < 4; ++own) {
+		starship_meets_craft();
+		if (own == 0) {
+			g_test_craft[0].ai_controller.maneuver_mode =
+				AI_MANEUVER_MODE_DROPOFF;
+		} else if (own == 1) {
+			g_test_craft[0].carrier_obj_idx = 1;
+		} else if (own == 2) {
+			g_test_craft[0].carried_object_index = 1;
+		} else {
+			g_test_craft[0].ai_controller.maneuver_mode =
+				AI_MANEUVER_MODE_BOARD;
+			g_test_craft[0].ai_controller.target_obj_idx = 1;
+		}
+		collide_collisions();
+		XVT_ASSERT_TRUE(untouched());
+	}
+
+	/* The craft's: hangar and hyperspace plans, a leader's hangar plan, a
+	 * carrier, boarding, jumping, dropping off. */
+	static const char *const plans[] = {
+		"exithangarpln", "outofhyperspacepln", "enterhangarpln"};
+	for (size_t i = 0; i < sizeof plans / sizeof plans[0]; ++i) {
+		starship_meets_craft();
+		strcpy(g_plan_table[9].name, plans[i]);
+		g_test_craft[1].ai_controller.running_plan_id = 9;
+		collide_collisions();
+		XVT_ASSERT_TRUE(untouched());
+	}
+	for (size_t i = 0; i < 2; ++i) {
+		starship_meets_craft();
+		strcpy(g_plan_table[9].name, "followhomeevadepln");
+		strcpy(g_plan_table[10].name,
+		       i == 0 ? "exithangarpln" : "enterhangarpln");
+		g_test_craft[1].ai_controller.running_plan_id = 9;
+		g_test_craft[1].leader_obj_idx = 0;
+		g_test_craft[0].ai_controller.running_plan_id = 10;
+		collide_collisions();
+		XVT_ASSERT_TRUE(untouched());
+	}
+	/* A leader that is doing something else leaves the follower tested. */
+	starship_meets_craft();
+	strcpy(g_plan_table[9].name, "followhomeevadepln");
+	strcpy(g_plan_table[10].name, "attackpln");
+	g_test_craft[1].ai_controller.running_plan_id = 9;
+	g_test_craft[1].leader_obj_idx = 0;
+	g_test_craft[0].ai_controller.running_plan_id = 10;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 800);
+	g_plan_table[9].name[0] = '\0';
+	g_plan_table[10].name[0] = '\0';
+	for (int mode = 0; mode < 4; ++mode) {
+		starship_meets_craft();
+		if (mode == 0) {
+			g_test_craft[1].carrier_obj_idx = 0;
+		} else if (mode == 1) {
+			g_test_craft[1].ai_controller.maneuver_mode =
+				AI_MANEUVER_MODE_BOARD;
+		} else if (mode == 2) {
+			g_test_craft[1].ai_controller.maneuver_mode =
+				AI_MANEUVER_MODE_INTO_HYPERSPACE;
+		} else {
+			g_test_craft[1].ai_controller.maneuver_mode =
+				AI_MANEUVER_MODE_DROPOFF;
+		}
+		collide_collisions();
+		XVT_ASSERT_TRUE(untouched());
+	}
+}
+
+/* Shot 2, a laser of craft 0's, moving through craft 1 at (20,000, 0, 0);
+ * its list holds craft 1, due now. */
+static void laser_meets_craft(void)
+{
+	laser_at_craft();
+	g_test_craft[1].hull_max = 100000;
+	list_holds(TEST_SHOT, 1);
+}
+
+/* Comment: a shot that hits a craft goes to collide_laserhitcraft, after
+ * the hit is counted for its firer (mission_record_projectile_hit_stats);
+ * a warhead from a player's flight group is logged as struck. A shot that
+ * misses, or that a boarding craft is waiting for, is not. */
+static void check_collisions_shot_meets_craft(void)
+{
+	laser_meets_craft();
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 250);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].weapon_stats.laser_hits_scored, 1);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].object_type, 131);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].attacked_by_team[0] & 1, 1);
+	XVT_ASSERT_TRUE(find_line("battle.warhead_struck") == NULL);
+
+	/* A warhead of a player's group: struck, and a warhead hit. */
+	laser_meets_craft();
+	g_test_objects[TEST_SHOT].object_type =
+		WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE;
+	g_mission_flight_groups[0].player_owner_idx = 3;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].weapon_stats.warhead_hits_scored, 1);
+	XVT_ASSERT_TRUE(
+		line_holds("battle.warhead_struck", "by=3 warhead=144"));
+	XVT_ASSERT_TRUE(line_holds("battle.warhead_struck", "target=1"));
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].object_type, 129);
+
+	/* A warhead of a computer-flown group is not logged. */
+	laser_meets_craft();
+	g_test_objects[TEST_SHOT].object_type =
+		WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].weapon_stats.warhead_hits_scored, 1);
+	XVT_ASSERT_TRUE(find_line("battle.warhead_struck") == NULL);
+
+	/* A miss. */
+	laser_meets_craft();
+	place(1, 20000, 9000, 0);
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].object_type,
+			  PROJECTILE_OBJECT_TYPE_REBEL_LASER);
+
+	/* A player's shot, with the craft boarding to give to it: left. */
+	laser_meets_craft();
+	player_flies(0, 2);
+	strcpy(g_plan_table[7].name, "boardtogivepln");
+	g_test_craft[1].ai_controller.current_plan_id = 7;
+	g_test_craft[1].ai_controller.maneuver_mode = AI_MANEUVER_MODE_BOARD;
+	g_test_craft[1].ai_controller.maneuver_phase = 2;
+	g_test_craft[1].ai_controller.target_obj_idx = TEST_SHOT;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_mobiles[TEST_SHOT].proximity_list.count, 1);
+	/* In another phase, it is tested. */
+	laser_meets_craft();
+	player_flies(0, 2);
+	g_test_craft[1].ai_controller.current_plan_id = 7;
+	g_test_craft[1].ai_controller.maneuver_mode = AI_MANEUVER_MODE_BOARD;
+	g_test_craft[1].ai_controller.maneuver_phase = 3;
+	g_test_craft[1].ai_controller.target_obj_idx = TEST_SHOT;
+	collide_collisions();
+	XVT_ASSERT_TRUE(g_test_craft[1].shield_energy[0] < 1000);
+	g_plan_table[7].name[0] = '\0';
+}
+
+/* Two shots of craft 0 (slot 2) and craft 1 (slot 3) crossing at (1,000, 0,
+ * 0); shot 2's list holds shot 3. */
+static void shots_meet(uint8_t type, uint8_t other_type)
+{
+	shots_cross(type, other_type);
+}
+
+/* Comment: a warhead that hits another warhead counts the hit for the
+ * warhead aimed at the other (the owner's firer first); both become
+ * explosions; a cannon shot meeting a cannon shot counts for the owner's
+ * and the other explodes as a warhead does. */
+static void check_collisions_shot_meets_shot(void)
+{
+	/* The owner's warhead is aimed at the other: the owner's firer
+	 * scores. */
+	fresh_world();
+	g_object_type_table[WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE]
+		.max_bounds_extent = 400;
+	g_object_type_table[WARHEAD_OBJECT_TYPE_PROTON_TORPEDO]
+		.max_bounds_extent = 400;
+	place_shot(TEST_SHOT, WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 0, 0, 0,
+		   0, 2000, 0, 0);
+	place_shot(TEST_OTHER_SHOT, WARHEAD_OBJECT_TYPE_PROTON_TORPEDO, 1, 1000,
+		   0, 0, 1000, 0, 0);
+	g_test_guidance[0].target_obj_idx = TEST_OTHER_SHOT;
+	list_holds(TEST_SHOT, TEST_OTHER_SHOT);
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].weapon_stats.warhead_hits_scored, 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_stats.warhead_hits_scored, 0);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].object_type, 129);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_OTHER_SHOT].object_type, 129);
+
+	/* The other's warhead is aimed at the owner: the other's firer
+	 * scores. */
+	fresh_world();
+	g_object_type_table[WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE]
+		.max_bounds_extent = 400;
+	g_object_type_table[WARHEAD_OBJECT_TYPE_PROTON_TORPEDO]
+		.max_bounds_extent = 400;
+	place_shot(TEST_SHOT, WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 0, 0, 0,
+		   0, 2000, 0, 0);
+	place_shot(TEST_OTHER_SHOT, WARHEAD_OBJECT_TYPE_PROTON_TORPEDO, 1, 1000,
+		   0, 0, 1000, 0, 0);
+	g_test_guidance[1].target_obj_idx = TEST_SHOT;
+	list_holds(TEST_SHOT, TEST_OTHER_SHOT);
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].weapon_stats.warhead_hits_scored, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_stats.warhead_hits_scored, 1);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].object_type, 129);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_OTHER_SHOT].object_type, 129);
+
+	/* Aimed at neither: nobody scores; both explode. */
+	fresh_world();
+	g_object_type_table[WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE]
+		.max_bounds_extent = 400;
+	g_object_type_table[WARHEAD_OBJECT_TYPE_PROTON_TORPEDO]
+		.max_bounds_extent = 400;
+	place_shot(TEST_SHOT, WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 0, 0, 0,
+		   0, 2000, 0, 0);
+	place_shot(TEST_OTHER_SHOT, WARHEAD_OBJECT_TYPE_PROTON_TORPEDO, 1, 1000,
+		   0, 0, 1000, 0, 0);
+	list_holds(TEST_SHOT, TEST_OTHER_SHOT);
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[0].weapon_stats.warhead_hits_scored, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_stats.warhead_hits_scored, 0);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].object_type, 129);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_OTHER_SHOT].object_type, 129);
+
+	/* Two cannon shots: the owner's hit counts and it becomes a laser
+	 * impact; the other explodes as a warhead does. */
+	shots_meet(PROJECTILE_OBJECT_TYPE_REBEL_LASER,
+		   PROJECTILE_OBJECT_TYPE_IMPERIAL_LASER);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].weapon_stats.laser_hits_scored, 1);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_stats.laser_hits_scored, 0);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].object_type, 131);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_OTHER_SHOT].object_type, 129);
+	shots_meet(PROJECTILE_OBJECT_TYPE_ION_TURBO_LASER,
+		   PROJECTILE_OBJECT_TYPE_IMPERIAL_LASER);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].object_type, 132);
+	XVT_ASSERT_TRUE(find_line("combat.shots_collided") != NULL);
+}
+
+/* Comment: a pair where either object is younger than 3 simulated seconds
+ * is passed over (untested, nothing counted down for a young candidate)
+ * unless a shot is in it; a candidate whose time has not come is not
+ * tested; one that is gone, or an explosion, is dropped from the list. */
+static void check_collisions_young_and_not_due(void)
+{
+	/* A young candidate: untouched, and its due time not counted down. */
+	craft_meet();
+	g_test_mobiles[1].seconds_alive = 2;
+	g_test_mobiles[0].proximity_list.contact_ticks[0] = 0;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(g_test_mobiles[0].proximity_list.contact_ticks[0], 0);
+	/* At 3 seconds it is old enough. */
+	craft_meet();
+	g_test_mobiles[1].seconds_alive = 3;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 300);
+
+	/* A young owner: the pair is put back with a fresh due time. */
+	craft_meet();
+	place(1, 3000, 0, 0);
+	g_test_mobiles[1].prev_world_x = 3000;
+	g_test_mobiles[0].seconds_alive = 2;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_mobiles[0].proximity_list.count, 1);
+	XVT_ASSERT_INT_EQ(g_test_mobiles[0].proximity_list.contact_ticks[0],
+			  expected_contact_ticks(3000 - 2 * TEST_FIGHTER_EXTENT,
+						 TEST_MODEL_MAX_SPEED,
+						 TEST_MODEL_MAX_SPEED));
+
+	/* A young owner whose pair would hit is passed over. */
+	craft_meet();
+	g_test_mobiles[0].seconds_alive = 0;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, UINT16_MAX);
+
+	/* A candidate not yet due: counted down by the step, not tested. */
+	craft_meet();
+	g_test_mobiles[0].proximity_list.contact_ticks[0] = 5;
+	g_elapsed_ticks = 2;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_mobiles[0].proximity_list.contact_ticks[0], 3);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	/* Due after one more. */
+	g_test_mobiles[0].proximity_list.contact_ticks[0] = 2;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 300);
+
+	/* A candidate that is gone, or an explosion, is dropped from the list
+	 * and the next is tested. */
+	for (int explosion = 0; explosion < 2; ++explosion) {
+		craft_meet();
+		g_test_objects[TEST_MINE].object_type = 0;
+		struct mobile_object_proximity_list *list =
+			&g_test_mobiles[0].proximity_list;
+		list->count = 2;
+		list->obj_idx[0] = TEST_SHOT;
+		list->contact_ticks[0] = 0;
+		list->obj_idx[1] = 1;
+		list->contact_ticks[1] = 0;
+		if (explosion) {
+			g_test_objects[TEST_SHOT].object_type =
+				TEST_EXPLOSION_TYPE;
+			g_test_objects[TEST_SHOT].genus_id =
+				CRAFT_GENUS_EXPLOSION;
+		}
+		collide_collisions();
+		XVT_ASSERT_INT_EQ(list->count, 1);
+		XVT_ASSERT_INT_EQ(list->obj_idx[0], 1);
+		XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 300);
+	}
+}
+
+/* ------------------------------------------------------------------------ */
+/* collide_collisions: what a player's craft does each step. */
+
+/* Comment: an object that is gone or an explosion is passed over, and so is
+ * a player's craft in hyperspace (phase 2): the step's countdown of its
+ * proximity list does not run for them. */
+static void check_collisions_skips_hidden_objects(void)
+{
+	for (int skipped = 0; skipped < 4; ++skipped) {
+		fresh_world();
+		for (int slot = 0; slot < TEST_MAIN_END; ++slot) {
+			g_test_mobiles[slot].proximity_list.rebuild_ticks = 5;
+		}
+		if (skipped == 1) {
+			g_test_objects[1].object_type = 0;
+		} else if (skipped == 2) {
+			g_test_objects[1].genus_id = CRAFT_GENUS_EXPLOSION;
+		} else if (skipped == 3) {
+			player_flies(1, 1);
+			g_players[1].hyperspace_phase = 2;
+		}
+		collide_collisions();
+		/* Craft 0 is always counted down. */
+		XVT_ASSERT_INT_EQ(
+			g_test_mobiles[0].proximity_list.rebuild_ticks, 4);
+		XVT_ASSERT_INT_EQ(
+			g_test_mobiles[1].proximity_list.rebuild_ticks,
+			skipped == 0 ? 4 : 5);
+	}
+	/* A player's craft in another phase is counted down. */
+	fresh_world();
+	player_flies(1, 1);
+	g_players[1].hyperspace_phase = 1;
+	g_test_mobiles[1].proximity_list.rebuild_ticks = 5;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_mobiles[1].proximity_list.rebuild_ticks, 4);
+}
+
+/* Comment: every 29 ticks it clears a player's engine wash and rescans
+ * every freighter and starship with working systems. The scan has not come
+ * until the game time passes next_engine_wash_check_time. */
+static void check_collisions_engine_wash_scan(void)
+{
+	static const struct {
+		uint8_t genus;
+		int working;
+		int scanned;
+	} ships[] = {
+		{CRAFT_GENUS_STARSHIP, 1, 1}, {CRAFT_GENUS_FREIGHTER, 1, 1},
+		{CRAFT_GENUS_PLATFORM, 1, 0}, {CRAFT_GENUS_TRANSPORT, 1, 0},
+		{CRAFT_GENUS_STARSHIP, 0, 0},
+	};
+	for (size_t i = 0; i < sizeof ships / sizeof ships[0]; ++i) {
+		wash_world(TEST_SHIP_TYPE);
+		g_test_objects[1].genus_id = ships[i].genus;
+		g_test_craft[1].working_subsystems = (uint16_t)ships[i].working;
+		player_flies(0, 0);
+		place_rel(0, 0, -300, 0);
+		/* A third craft slot that holds nothing is passed over. */
+		g_active_region_craft_object_slot_end = 3;
+		g_game_time = 100;
+		g_players[0].next_engine_wash_check_time = 50;
+		g_players[0].engine_wash_strength = 9;
+		g_players[0].engine_wash_source_obj_idx = 1;
+		collide_collisions();
+		/* The check is rescheduled 29 ticks on, the wash recomputed. */
+		XVT_ASSERT_INT_EQ(g_players[0].next_engine_wash_check_time,
+				  129);
+		XVT_ASSERT_TRUE(g_players[0].engine_wash_strength != 9);
+		if (ships[i].scanned) {
+			XVT_ASSERT_TRUE(g_players[0].engine_wash_strength > 0);
+			XVT_ASSERT_INT_EQ(
+				g_players[0].engine_wash_source_obj_idx, 1);
+			XVT_ASSERT_TRUE(
+				g_test_craft[0].shield_energy[0] +
+					g_test_craft[0].shield_energy[1] <
+				1500);
+		} else {
+			XVT_ASSERT_INT_EQ(g_players[0].engine_wash_strength, 0);
+			XVT_ASSERT_INT_EQ(
+				g_players[0].engine_wash_source_obj_idx, -1);
+			XVT_ASSERT_INT_EQ(
+				g_test_craft[0].shield_energy[0] +
+					g_test_craft[0].shield_energy[1],
+				1500);
+		}
+	}
+	/* Not due yet: nothing is touched. */
+	wash_world(TEST_SHIP_TYPE);
+	player_flies(0, 0);
+	place_rel(0, 0, -300, 0);
+	g_game_time = 100;
+	g_players[0].next_engine_wash_check_time = 100;
+	g_players[0].engine_wash_strength = 9;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_players[0].next_engine_wash_check_time, 100);
+	XVT_ASSERT_INT_EQ(g_players[0].engine_wash_strength, 9);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].shield_energy[0], 1000);
+	g_game_time = 0;
+}
+
+/* Player 0 flies craft 0 (team 0); the target is craft 1, 1,000 units off,
+ * on team 1 in flight group 1, known to its own team only. */
+static void inspection_world(void)
+{
+	fresh_world();
+	player_flies(0, 0);
+	place(1, 1000, 0, 0);
+	g_test_mobiles[1].prev_world_x = 1000;
+	g_players[0].current_target_object_idx = 1;
+	g_test_craft[1].identified_order_by_team[1] = 1;
+	g_hud_cached_target_object_idx = 0;
+}
+
+/* Comment: the current target is inspected, once per team, when within 4
+ * times its max_bounds_extent (halved above 3,000): the team's order among
+ * those who inspected it, the counts of the inspection for its flight group,
+ * the team and the player, and the messages. */
+static void check_collisions_inspects_target(void)
+{
+	inspection_world();
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].identified_order_by_team[0], 2);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[1]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_INSPECTED],
+		1);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].team_inspected[0], 1);
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.runtime
+				  .team_fg_inspected_captured_counts[0][0][1],
+			  1);
+	XVT_ASSERT_INT_EQ(g_players[0].per_mission_kills.num_craft_inspected,
+			  1);
+	XVT_ASSERT_INT_EQ(g_players[0].per_mission_kills.num_special_inspected,
+			  0);
+	XVT_ASSERT_INT_EQ(g_hud_cached_target_object_idx, -3);
+	XVT_ASSERT_TRUE(line_holds("player.inspection_counted",
+				   "slot=0 object=1 fg=1 team=0 order=2"));
+	XVT_ASSERT_TRUE(find_line("player.craft_inspected") != NULL);
+	/* A starfighter with no goal about it: no message. */
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 0);
+
+	/* Once the team has it, a second step does not count again. */
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[1]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_INSPECTED],
+		1);
+
+	/* The next team's inspection takes the next order. */
+	inspection_world();
+	g_test_craft[1].identified_order_by_team[2] = 5;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].identified_order_by_team[0], 6);
+
+	/* A player's craft whose own team (craft 0's mobile team) already
+	 * knows the target does not inspect it. */
+	inspection_world();
+	g_test_craft[1].identified_order_by_team[0] = 1;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[1]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_INSPECTED],
+		0);
+
+	/* A target breaking up or exploding is not inspected. */
+	for (int kind = 0; kind < 2; ++kind) {
+		inspection_world();
+		g_test_craft[1].object_kind =
+			kind == 0 ? CRAFT_OBJECT_KIND_BREAKING_UP
+				  : CRAFT_OBJECT_KIND_EXPLODING;
+		collide_collisions();
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[1]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_INSPECTED],
+			0);
+	}
+}
+
+/* Comment: the inspection range is 4 times the extent: 1,599 units for 400
+ * is in, 1,600 is out; above 3,000 the extent is halved first. */
+static void check_collisions_inspection_range(void)
+{
+	static const struct {
+		int extent;
+		int distance;
+		int inspected;
+	} cases[] = {
+		{400, 1599, 1},	  {400, 1600, 0},  {3000, 11999, 1},
+		{3000, 12000, 0}, {4000, 7999, 1}, {4000, 8000, 0},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		inspection_world();
+		g_object_type_table[TEST_FIGHTER_TYPE].max_bounds_extent =
+			cases[i].extent;
+		place(1, cases[i].distance, 0, 0);
+		g_test_mobiles[1].prev_world_x = cases[i].distance;
+		collide_collisions();
+		XVT_ASSERT_INT_EQ(
+			g_mission_fg_stats[1]
+				.outcome_count[FLIGHT_GROUP_OUTCOME_INSPECTED],
+			cases[i].inspected);
+	}
+}
+
+/* Comment: inspecting a special cargo craft is counted for the group and
+ * the player, and the goal score and message follow when a goal asks for
+ * the inspection and the player is the local one: the messages are the goal's
+ * (357, or 358 for special cargo) and the craft's (142). */
+static void check_collisions_inspection_goal_and_messages(void)
+{
+	/* A goal on the target's group asks for inspection: its completion
+	 * message, the craft message, the target description refreshed. */
+	inspection_world();
+	g_mission_flight_groups[1].fg.goals[0].enabled_teams[0] = 1;
+	g_mission_flight_groups[1].fg.goals[0].event_condition =
+		MISSION_COND_INSPECTED;
+	g_mission_flight_groups[1].fg.goals[0].goal_kind = 0;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 2);
+	XVT_ASSERT_INT_EQ(g_player_flight_transient_timers[0]
+				  .target_description_refresh_timer,
+			  944);
+
+	/* A bonus goal (kind 2, amount 18) for the inspection pays the player
+	 * 250 times its points. In a melee with other players the inspector is
+	 * also told its place: one message more. */
+	for (int mode = 0; mode < 4; ++mode) {
+		/* 0: one player; 1: a melee of two; 2: two players, not a
+		 * melee; 3: a melee of one. */
+		int melee = mode == 1;
+		inspection_world();
+		struct flight_group_goal *goal =
+			&g_mission_flight_groups[1].fg.goals[0];
+		goal->enabled_teams[0] = 1;
+		goal->event_condition = MISSION_COND_INSPECTED;
+		goal->goal_kind = 2;
+		goal->amount = 18;
+		goal->points = 2;
+		g_flight_player_count = (mode == 1 || mode == 2) ? 2 : 1;
+		g_mission_header.mission_type =
+			(mode == 1 || mode == 3) ? MISSION_TYPE_MELEE : 0;
+		collide_collisions();
+		XVT_ASSERT_INT_EQ(g_players[0].mission_stats.mission_score,
+				  250 * 2);
+		XVT_ASSERT_INT_EQ(count_lines("msg.message_built"),
+				  3 + (melee ? 1 : 0));
+		XVT_ASSERT_INT_EQ(g_player_flight_transient_timers[0]
+					  .target_description_refresh_timer,
+				  944);
+	}
+	g_flight_player_count = 1;
+	g_mission_header.mission_type = 0;
+
+	/* A goal for the special cargo of the group: asked for by the special
+	 * cargo craft's inspection, with its own message. */
+	inspection_world();
+	g_mission_flight_groups[1].fg.special_cargo_craft =
+		g_test_craft[1].craft_ordinal;
+	g_mission_flight_groups[1].fg.goals[0].enabled_teams[0] = 1;
+	g_mission_flight_groups[1].fg.goals[0].goal_kind = 0;
+	g_mission_flight_groups[1].fg.goals[0].amount =
+		GOAL_AMT_ALL_SPECIAL_CARGO;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 2);
+	XVT_ASSERT_INT_EQ(g_player_flight_transient_timers[0]
+				  .target_description_refresh_timer,
+			  944);
+
+	/* The special cargo craft: counted for the group, team and player. */
+	inspection_world();
+	g_mission_flight_groups[1].fg.special_cargo_craft =
+		g_test_craft[1].craft_ordinal;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[1]
+			.special_cargo_outcome[FLIGHT_GROUP_OUTCOME_INSPECTED],
+		1);
+	XVT_ASSERT_INT_EQ(g_players[0].per_mission_kills.num_special_inspected,
+			  1);
+	XVT_ASSERT_INT_EQ(g_mission_fg_stats[1].team_special_cargo_inspected[0],
+			  1);
+	XVT_ASSERT_TRUE(line_holds("player.craft_inspected", "special=1"));
+
+	/* Not a starfighter: the craft message alone, with no goal. */
+	inspection_world();
+	g_test_objects[1].genus_id = CRAFT_GENUS_STARSHIP;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 1);
+	XVT_ASSERT_INT_EQ(g_player_flight_transient_timers[0]
+				  .target_description_refresh_timer,
+			  0);
+
+	/* A player's craft that is not the local one gets no message. */
+	inspection_world();
+	g_test_objects[0].player_owner_idx = 1;
+	g_players[1] = g_players[0];
+	g_players[0].object_index = -1;
+	g_test_objects[1].genus_id = CRAFT_GENUS_STARSHIP;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 0);
+	XVT_ASSERT_INT_EQ(
+		g_mission_fg_stats[1]
+			.outcome_count[FLIGHT_GROUP_OUTCOME_INSPECTED],
+		1);
+}
+
+/* Player 0 flies craft 0, alive 45 seconds, whose flight group departs
+ * through the hangar of flight group 1, which is craft 1, 5,000 units away
+ * with its hangar entry at its center. */
+static void hangar_world(void)
+{
+	fresh_world();
+	player_flies(0, 0);
+	g_test_mobiles[0].seconds_alive = 45;
+	g_mission_flight_groups[0].fg.departure_method = 1;
+	g_mission_flight_groups[0].fg.departure_mothership = 1;
+	place(1, 5000, 0, 0);
+	g_test_mobiles[1].prev_world_x = 5000;
+	g_test_mobiles[1].cached_side_x = FORWARD_X;
+	g_test_mobiles[1].cached_fwd_y = FORWARD_X;
+	g_test_mobiles[1].cached_up_z = FORWARD_X;
+	g_test_craft[1].model_index = TEST_MODEL;
+	memset(&g_model_defs[TEST_MODEL].hangar_points, 0,
+	       sizeof g_model_defs[TEST_MODEL].hangar_points);
+}
+
+/* Comment: after 45 simulated seconds of life a player's craft is offered the
+ * hangar of its flight group's departure (or alternate) mothership when the
+ * hangar entry is within 0x2000 units, or 0x4000 for a starship while the
+ * team's first goal status is 1; pending_action_id 2 (enter the hangar), the
+ * mothership as its parameter and a prompt time. */
+static void check_collisions_hangar_offer(void)
+{
+	static const struct {
+		int distance;
+		uint8_t genus;
+		int goal_status;
+		int offered;
+	} ranges[] = {
+		{5000, CRAFT_GENUS_STARSHIP, 0, 1},
+		{0x1FFF, CRAFT_GENUS_STARFIGHTER, 0, 1},
+		{0x2000, CRAFT_GENUS_STARFIGHTER, 0, 0},
+		{0x3000, CRAFT_GENUS_STARSHIP, 0, 0},
+		{0x3000, CRAFT_GENUS_STARSHIP, 1, 1},
+		{0x3FFF, CRAFT_GENUS_STARSHIP, 1, 1},
+		{0x4000, CRAFT_GENUS_STARSHIP, 1, 0},
+		{0x3000, CRAFT_GENUS_STARFIGHTER, 1, 0},
+	};
+	for (size_t i = 0; i < sizeof ranges / sizeof ranges[0]; ++i) {
+		hangar_world();
+		place(1, ranges[i].distance, 0, 0);
+		g_test_mobiles[1].prev_world_x = ranges[i].distance;
+		g_test_objects[1].genus_id = ranges[i].genus;
+		g_flight_mission_state.runtime.team_goal_status[0][0] =
+			(uint8_t)ranges[i].goal_status;
+		collide_collisions();
+		XVT_ASSERT_INT_EQ(g_players[0].pending_action_id,
+				  ranges[i].offered ? 2 : 0);
+		if (ranges[i].offered) {
+			XVT_ASSERT_INT_EQ(g_players[0].pending_action_param, 1);
+			XVT_ASSERT_INT_EQ(g_players[0].pending_action_timer,
+					  1888);
+			XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 1);
+			XVT_ASSERT_TRUE(find_line("player.hangar_offered") !=
+					NULL);
+		}
+	}
+
+	/* Too young; already a pending request; no departure hangar; the
+	 * mothership not active; another group; not a player's craft. */
+	for (int refusal = 0; refusal < 7; ++refusal) {
+		hangar_world();
+		if (refusal == 0) {
+			g_test_mobiles[0].seconds_alive = 44;
+		} else if (refusal == 1) {
+			g_players[0].pending_action_id = 5;
+		} else if (refusal == 2) {
+			g_mission_flight_groups[0].fg.departure_method = 0;
+		} else if (refusal == 3) {
+			g_test_craft[1].object_kind =
+				CRAFT_OBJECT_KIND_DISABLED;
+		} else if (refusal == 4) {
+			g_mission_flight_groups[0].fg.departure_mothership = 2;
+		} else if (refusal == 5) {
+			g_test_objects[1].object_type = 0;
+		} else {
+			g_test_objects[0].player_owner_idx = -1;
+			g_players[0].object_index = -1;
+		}
+		collide_collisions();
+		XVT_ASSERT_INT_EQ(g_players[0].pending_action_id,
+				  refusal == 1 ? 5 : 0);
+	}
+
+	/* The alternate mothership, when the departure one does not offer. */
+	hangar_world();
+	g_mission_flight_groups[0].fg.departure_method = 0;
+	g_mission_flight_groups[0].fg.alternate_mothership_used = 1;
+	g_mission_flight_groups[0].fg.alternate_mothership = 1;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_players[0].pending_action_id, 2);
+	XVT_ASSERT_TRUE(line_holds("player.hangar_offered", "pass=1"));
+
+	/* A request the local player did not make is not announced. */
+	hangar_world();
+	g_test_objects[0].player_owner_idx = 1;
+	g_players[1] = g_players[0];
+	g_players[0].object_index = -1;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_players[1].pending_action_id, 2);
+	XVT_ASSERT_INT_EQ(count_lines("msg.message_built"), 0);
+}
+
+/* Comment: when a player's craft bounces off another craft, each spins at 100
+ * times the closing speed, at most 0x7FFF: the craft's speed less the other's
+ * times the cosine of their headings' difference folded into a quarter turn,
+ * in size. */
+static void check_collisions_player_bounce_spin(void)
+{
+	/* Headings (the other's, the player's being 0) that do not fold to
+	 * exactly a quarter turn. */
+	static const unsigned int headings[] = {
+		0x0000, 0x1000, 0x2000, 0x3000, 0x5000, 0x6000, 0x7000,
+		0x8000, 0x9000, 0xA000, 0xB000, 0xD000, 0xE000, 0xF000};
+	static const int speeds[][2] = {{50, 30}, {10, 60}, {400, 20}, {0, 0}};
+	for (size_t s = 0; s < sizeof speeds / sizeof speeds[0]; ++s) {
+		for (size_t h = 0; h < sizeof headings / sizeof headings[0];
+		     ++h) {
+			for (int touching = 0; touching < 2; ++touching) {
+				craft_meet();
+				g_flight_mission_state.collisions_enabled = 0;
+				g_test_mobiles[0].speed = speeds[s][0];
+				g_test_mobiles[1].speed = speeds[s][1];
+				g_test_objects[1].yaw = (uint16_t)headings[h];
+				g_test_mobiles[0].move_vector_dirty =
+					(h & 1) != 0;
+				g_test_mobiles[1].move_vector_dirty =
+					(h & 2) != 0;
+				if (touching) {
+					place(1, 5, 0, 0);
+					g_test_mobiles[1].prev_world_x = 5;
+				}
+				collide_collisions();
+				int cosine = (int)(int16_t)trig2_cosinewordmult(
+					(uint16_t)speeds[s][1],
+					(int16_t)fold_into_quarter(
+						headings[h]));
+				int closing = abs_int(speeds[s][0] - cosine);
+				int spin = 100 * closing;
+				if (spin > 0x7FFF) {
+					spin = 0x7FFF;
+				}
+				XVT_ASSERT_INT_EQ(
+					abs_int(g_test_mobiles[0]
+							.roll_impulse_rate),
+					spin);
+				XVT_ASSERT_INT_EQ(
+					abs_int(g_test_mobiles[1]
+							.roll_impulse_rate),
+					spin);
+				XVT_ASSERT_INT_EQ(
+					g_test_craft[0]
+						.ai_flight.impact_obj_idx,
+					1);
+				XVT_ASSERT_INT_EQ(
+					g_test_craft[1]
+						.ai_flight.impact_obj_idx,
+					0);
+			}
+		}
+	}
+}
+
+/* Comment: an object whose list is walked but has no mobile_object is
+ * passed over, and one of a genus the step does not test does nothing. */
+static void check_collisions_other_genera_ignored(void)
+{
+	craft_meet();
+	g_test_objects[0].player_owner_idx = -1;
+	g_players[0].object_index = -1;
+	g_test_objects[0].genus_id = CRAFT_GENUS_SATELLITE;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].shield_energy[0], 1000);
+	XVT_ASSERT_INT_EQ(g_test_craft[1].ai_flight.impact_obj_idx, UINT16_MAX);
+
+	fresh_world();
+	g_test_objects[4].object_type = 9;
+	g_test_objects[4].genus_id = CRAFT_GENUS_OTHER_PROJECTILE;
+	g_test_objects[4].mobj = NULL;
+	g_test_mobiles[0].proximity_list.rebuild_ticks = 5;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_mobiles[0].proximity_list.rebuild_ticks, 4);
+}
 
 /* ------------------------------------------------------------------------ */
 /* collide_damagecraft and collide_laserhitcraft: edges. */
@@ -3778,6 +4939,54 @@ enum {
 	FACE_MESHES = 2,
 };
 
+/* Comment: a destroyed candidate is dropped from the list and the one after
+ * it is tested in the same step; objects ending the step out of the list
+ * stay out. */
+static void check_collisions_destroyed_candidate_dropped(void)
+{
+	craft_meets_mine();
+	player_flies(0, 0);
+	place(1, 2100, 0, 0);
+	g_test_mobiles[1].prev_world_x = 2100;
+	g_test_craft[1].shield_energy[0] = 1000;
+	g_test_craft[1].hull_max = 100000;
+	struct mobile_object_proximity_list *list =
+		&g_test_mobiles[0].proximity_list;
+	list->count = 2;
+	list->obj_idx[0] = TEST_MINE;
+	list->contact_ticks[0] = 0;
+	list->obj_idx[1] = 1;
+	list->contact_ticks[1] = 0;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_MINE].object_type, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[0].ai_flight.impact_obj_idx, 1);
+	XVT_ASSERT_INT_EQ(list->count, 1);
+	XVT_ASSERT_INT_EQ(list->obj_idx[0], 1);
+}
+
+/* Comment: a shot that hits another shot explodes with it; the pair works the
+ * same whichever slot is the owner's: here the owner is the second shot
+ * slot and the other the first, the first slot past the craft's. */
+static void check_collisions_shot_meets_shot_in_first_slot(void)
+{
+	fresh_world();
+	g_object_type_table[PROJECTILE_OBJECT_TYPE_REBEL_LASER]
+		.max_bounds_extent = 400;
+	g_object_type_table[WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE]
+		.max_bounds_extent = 400;
+	place_shot(TEST_OTHER_SHOT, PROJECTILE_OBJECT_TYPE_REBEL_LASER, 1, 0, 0,
+		   0, 2000, 0, 0);
+	place_shot(TEST_SHOT, WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE, 0, 1000,
+		   0, 0, 1000, 0, 0);
+	list_holds(TEST_OTHER_SHOT, TEST_SHOT);
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].weapon_stats.laser_hits_scored, 1);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_OTHER_SHOT].object_type, 131);
+	XVT_ASSERT_INT_EQ(g_test_objects[TEST_SHOT].object_type, 129);
+	XVT_ASSERT_TRUE(
+		line_holds("combat.shots_collided", "shot=3 type=137 other=2"));
+}
+
 int main(int argc, char **argv)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -3869,6 +5078,22 @@ int main(int argc, char **argv)
 	check_damage_local_player_systems();
 	check_kill_is_reported_to_player();
 	check_kill_of_players_own_craft();
+	check_collisions_player_meets_craft();
+	check_collisions_player_pair_left_alone();
+	check_collisions_player_meets_static();
+	check_collisions_ai_craft_meets_static();
+	check_collisions_capital_ship_meets_craft();
+	check_collisions_shot_meets_craft();
+	check_collisions_shot_meets_shot();
+	check_collisions_young_and_not_due();
+	check_collisions_skips_hidden_objects();
+	check_collisions_engine_wash_scan();
+	check_collisions_inspects_target();
+	check_collisions_inspection_range();
+	check_collisions_inspection_goal_and_messages();
+	check_collisions_hangar_offer();
+	check_collisions_player_bounce_spin();
+	check_collisions_other_genera_ignored();
 	check_damage_protected_sources();
 	check_damage_craft_source_uses_warheads();
 	check_damage_component_equal_shields();
@@ -3879,5 +5104,7 @@ int main(int argc, char **argv)
 	check_kill_clears_only_its_links();
 	check_kill_saves_player_settings();
 	check_kill_wing_recoil();
+	check_collisions_destroyed_candidate_dropped();
+	check_collisions_shot_meets_shot_in_first_slot();
 	return 0;
 }
