@@ -39,13 +39,19 @@
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt/flight/transfm2.h"
+#include "xvt/frontend/config.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/math/math.h"
+#include "xvt/net/flight_net.h"
 #include "xvt/net/net_session.h"
 #include "xvt/render/renderer.h"
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log.h"
+#include "xvt_runtime/snapshot/world_state.h"
+#include "xvt_runtime/timing/flight_integration.h"
+#include "xvt_runtime/timing/flight_timing.h"
+#include "xvt_runtime/timing/host_clock.h"
 
 enum {
 	SLOT_COUNT = 16,
@@ -8234,6 +8240,997 @@ static void check_player_keys(void)
 	}
 }
 
+/* ====================================================================
+ * The per-tick functions: timers, music, recount, world buffers, checksum
+ * and the steering step under unlocked timing
+ * ==================================================================== */
+
+static struct mobile_object_char_data g_test_char_data[SLOT_COUNT];
+
+/* A world for the timer step: nothing counting, every clock at 0:00, ten
+ * ticks in the step. */
+static void tick_world(void)
+{
+	fresh_world();
+	memset(&g_flight_global_countdown_timers, 0,
+	       sizeof g_flight_global_countdown_timers);
+	memset(&g_mission_countdown_clock, 0, sizeof g_mission_countdown_clock);
+	memset(&g_mission_elapsed_clock, 0, sizeof g_mission_elapsed_clock);
+	g_elapsed_ticks = 10;
+	g_game_time = 0;
+}
+
+/* Opens an unlocked session whose step has the given ticks; 0 keeps the
+ * timing locked. */
+static void tick_timing_begin(int unlocked)
+{
+	if (unlocked != 0) {
+		xvt_flight_timing_begin_session(
+			XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+		xvt_flight_timing_begin_advance((uint16_t)unlocked);
+	}
+}
+
+static void tick_timing_end(int unlocked)
+{
+	if (unlocked != 0) {
+		xvt_flight_timing_end_advance();
+		xvt_flight_timing_end_session();
+	}
+}
+
+/* The countdown timers: slots 1 to 5 and 10 drop by 8 on a due step of an
+ * unlocked flight and not at all on the others; the rest, and every timer
+ * of a locked flight, drop by the step's ticks. None goes below 0. */
+struct timer_case {
+	const char *name;
+	const char *const *lines;
+	int unlocked;
+	uint16_t want[6]; /* Slots 0, 1, 2, 5, 6 and 10. */
+};
+
+static const int g_timer_slots[6] = {0, 1, 2, 5, 6, 10};
+
+static void run_timer_case(const struct timer_case *c)
+{
+	uint16_t *timer = (uint16_t *)&g_flight_global_countdown_timers;
+	tick_world();
+	tick_timing_begin(c->unlocked);
+	for (int i = 0; i < 6; ++i) {
+		timer[g_timer_slots[i]] = 20;
+	}
+	timer[2] = 5;
+	scene_open();
+	flight_update_timers();
+	scene_close(c->name, c->lines);
+	for (int i = 0; i < 6; ++i) {
+		XVT_ASSERT_INT_EQ(timer[g_timer_slots[i]], c->want[i]);
+	}
+	tick_timing_end(c->unlocked);
+}
+
+static const char *const k_tm_due[] = {
+	/* recorded tm_due */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	NULL,
+};
+static const char *const k_tm_not_due[] = {
+	/* recorded tm_not_due */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	NULL,
+};
+static const char *const k_tm_locked[] = {
+	/* recorded tm_locked */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	NULL,
+};
+
+/* In an unlocked flight the goal, special-behaviour, arrival, message and
+ * weapon-power timers drop by 8 when the step is a reference step and keep
+ * their value when it is not; the other timers drop by the step's ticks. A
+ * locked flight drops all of them by the step's ticks. */
+static const struct timer_case g_timer_cases[] = {
+	{"tm_due", k_tm_due, 8, {10, 12, 0, 12, 10, 12}},
+	{"tm_not_due", k_tm_not_due, 3, {10, 20, 5, 20, 10, 20}},
+	{"tm_locked", k_tm_locked, 0, {10, 10, 0, 10, 10, 10}},
+};
+
+static void check_tick_timers(void)
+{
+	for (size_t k = 0; k < sizeof g_timer_cases / sizeof g_timer_cases[0];
+	     ++k) {
+		run_timer_case(&g_timer_cases[k]);
+	}
+}
+
+/* The AI timers of craft in the character-data slots. */
+struct ai_timer_case {
+	const char *name;
+	const char *const *lines;
+	int unlocked;
+	int think, maneuver, secondary;
+	int w_think, w_maneuver, w_secondary;
+};
+
+static void run_ai_timer_case(const struct ai_timer_case *c)
+{
+	tick_world();
+	tick_timing_begin(c->unlocked);
+	g_mobile_object_char_data_slot_start = 4;
+	g_mobile_object_char_data_slot_end = 6;
+	memset(g_test_char_data, 0, sizeof g_test_char_data);
+	for (int slot = 4; slot < 6; ++slot) {
+		g_test_mobiles[slot].p_char_data = &g_test_char_data[slot];
+		g_test_char_data[slot].ai_controller.think_timer = c->think;
+		g_test_char_data[slot].ai_controller.maneuver_timer =
+			(int16_t)c->maneuver;
+		g_test_char_data[slot].ai_controller.secondary_maneuver_timer =
+			(int16_t)c->secondary;
+	}
+	g_test_objects[4].object_type = TEST_XWING;
+	scene_open();
+	flight_update_timers();
+	scene_close(c->name, c->lines);
+	const struct ai_controller *ai = &g_test_char_data[4].ai_controller;
+	XVT_ASSERT_INT_EQ(ai->think_timer, c->w_think);
+	XVT_ASSERT_INT_EQ(ai->maneuver_timer, c->w_maneuver);
+	XVT_ASSERT_INT_EQ(ai->secondary_maneuver_timer, c->w_secondary);
+	/* The empty slot beside it keeps its timers. */
+	ai = &g_test_char_data[5].ai_controller;
+	XVT_ASSERT_INT_EQ(ai->think_timer, c->think);
+	XVT_ASSERT_INT_EQ(ai->maneuver_timer, c->maneuver);
+	g_mobile_object_char_data_slot_end = 0;
+	tick_timing_end(c->unlocked);
+}
+
+static const char *const k_ai_due[] = {
+	/* recorded ai_due */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	NULL,
+};
+static const char *const k_ai_not_due[] = {
+	/* recorded ai_not_due */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	NULL,
+};
+static const char *const k_ai_locked[] = {
+	/* recorded ai_locked */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	NULL,
+};
+
+/* A craft's AI think and manoeuvre timers drop by 8 on a due step of an
+ * unlocked flight and stay on the others. The think timer may fall below 0;
+ * the two manoeuvre timers stop at 0. A locked flight drops them by the
+ * step's ticks. A slot with no object is left alone. */
+static const struct ai_timer_case g_ai_timer_cases[] = {
+	{"ai_due", k_ai_due, 8, 5, 5, 5, -3, 0, 0},
+	{"ai_not_due", k_ai_not_due, 3, 5, 5, 5, 5, 5, 5},
+	{"ai_locked", k_ai_locked, 0, 5, 25, 15, -5, 15, 5},
+};
+
+static void check_tick_ai_timers(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_ai_timer_cases / sizeof g_ai_timer_cases[0]; ++k) {
+		run_ai_timer_case(&g_ai_timer_cases[k]);
+	}
+}
+
+/* The blink of the target on the render reference: when its timer runs out
+ * the bit flips and the timer is set again, 118 ticks if the bit is now set
+ * and the target is closer than its size, else 14. The timer is private to
+ * the game, so the check counts one-tick steps until the bit flips again. */
+struct blink_case {
+	const char *name;
+	const char *const *lines;
+	int target_x;
+	int want_steps;
+};
+
+static void run_blink_case(const struct blink_case *c)
+{
+	tick_world();
+	fly(PILOT, PILOT_CRAFT, 0);
+	g_test_objects[5].object_type = TEST_XWING;
+	g_test_objects[5].genus_id = 1;
+	g_test_objects[5].world_x = c->target_x;
+	g_test_objects[5].world_y = g_test_objects[PILOT_CRAFT].world_y;
+	g_test_objects[5].world_z = g_test_objects[PILOT_CRAFT].world_z;
+	g_players[PILOT].current_target_object_idx = 5;
+	uint32_t extent = g_object_type_table[TEST_XWING].max_bounds_extent;
+	g_object_type_table[TEST_XWING].max_bounds_extent = 50;
+	g_target_proximity_blink_bit = 0;
+	g_elapsed_ticks = 1000;
+	scene_open();
+	flight_update_timers();
+	scene_close(c->name, c->lines);
+	XVT_ASSERT_INT_EQ(g_target_proximity_blink_bit, 0x0400);
+	g_elapsed_ticks = 1;
+	int steps = 0;
+	while (g_target_proximity_blink_bit == 0x0400 && steps < 300) {
+		flight_update_timers();
+		++steps;
+	}
+	XVT_ASSERT_INT_EQ(steps, c->want_steps);
+	g_object_type_table[TEST_XWING].max_bounds_extent = (int)extent;
+}
+
+static const char *const k_bl_near[] = {
+	/* recorded bl_near */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_bl_far[] = {
+	/* recorded bl_far */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+
+/* The blink bit comes on for 118 ticks when the local player's target is
+ * nearer than its size, and for 14 when it is farther. */
+static const struct blink_case g_blink_cases[] = {
+	{"bl_near", k_bl_near, 5610, 119},
+	{"bl_far", k_bl_far, 25000, 15},
+};
+
+static void check_tick_blink(void)
+{
+	for (size_t k = 0; k < sizeof g_blink_cases / sizeof g_blink_cases[0];
+	     ++k) {
+		run_blink_case(&g_blink_cases[k]);
+	}
+}
+
+/* The mission countdown clock. At 0:16 it drops to 0:15 and the radio
+ * warning plays, a droid's for the rebel fighters and two beeps for any
+ * other craft or none. type is the local craft's object type, -1 for no
+ * craft. */
+struct clock_case {
+	const char *name;
+	const char *const *lines;
+	int type;
+};
+
+static void run_clock_case(const struct clock_case *c)
+{
+	tick_world();
+	fly(PILOT, PILOT_CRAFT, 0);
+	if (c->type < 0) {
+		g_players[PILOT].object_index = -1;
+	} else {
+		g_test_objects[PILOT_CRAFT].object_type = (uint16_t)c->type;
+	}
+	g_flight_mission_state.mission_time_limit_minutes = 1;
+	g_mission_countdown_clock.minutes = 0;
+	g_mission_countdown_clock.seconds = 16;
+	scene_open();
+	flight_update_timers();
+	scene_close(c->name, c->lines);
+	XVT_ASSERT_INT_EQ(g_mission_countdown_clock.minutes, 0);
+	XVT_ASSERT_INT_EQ(g_mission_countdown_clock.seconds, 15);
+}
+
+static const char *const k_ck_type1[] = {
+	/* recorded ck_type1 */
+	"flight.clock_second elapsed=1 left=15 limit=1 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:15\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_ck_type2[] = {
+	/* recorded ck_type2 */
+	"flight.clock_second elapsed=1 left=15 limit=1 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:15\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_ck_type3[] = {
+	/* recorded ck_type3 */
+	"flight.clock_second elapsed=1 left=15 limit=1 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:15\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_ck_type14[] = {
+	/* recorded ck_type14 */
+	"flight.clock_second elapsed=1 left=15 limit=1 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:15\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_ck_type4[] = {
+	/* recorded ck_type4 */
+	"flight.clock_second elapsed=1 left=15 limit=1 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:15\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_ck_other[] = {
+	/* recorded ck_other */
+	"flight.clock_second elapsed=1 left=15 limit=1 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:15\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_ck_nocraft[] = {
+	/* recorded ck_nocraft */
+	"flight.clock_second elapsed=1 left=15 limit=1 tick=0 predicted=0",
+	NULL,
+};
+
+/* With 16 seconds left the clock drops to 15 and a warning sounds: the
+ * droid's for craft of type 1, 2, 3, 4 or 14, two beeps otherwise. */
+static const struct clock_case g_clock_cases[] = {
+	{"ck_type1", k_ck_type1, 1},	  {"ck_type2", k_ck_type2, 2},
+	{"ck_type3", k_ck_type3, 3},	  {"ck_type14", k_ck_type14, 14},
+	{"ck_type4", k_ck_type4, 4},	  {"ck_other", k_ck_other, 5},
+	{"ck_nocraft", k_ck_nocraft, -1},
+};
+
+static void check_tick_clock(void)
+{
+	for (size_t k = 0; k < sizeof g_clock_cases / sizeof g_clock_cases[0];
+	     ++k) {
+		run_clock_case(&g_clock_cases[k]);
+	}
+}
+
+/* The team victory clock of a flight with several players: when a time limit
+ * L is set and the clock is past L minutes or has run out, one team left
+ * flying (and, outside a melee, a goal done or lost) starts a countdown of
+ * L minutes. */
+struct victory_case {
+	const char *name;
+	const char *const *lines;
+	int type;
+	int minutes, seconds; /* The clock before the step. */
+	int two_teams;	      /* A second team has a player's flight group. */
+	int goal0, goal1;     /* Team 0's goal status. */
+	int want_started, want_minutes, want_seconds;
+};
+
+static void run_victory_case(const struct victory_case *c)
+{
+	tick_world();
+	fly(PILOT, PILOT_CRAFT, 0);
+	g_mission_header.mission_type = (uint8_t)c->type;
+	g_flight_mission_state.max_connected_player_count_this_mission = 2;
+	g_flight_mission_state.team_victory_time_limit_minutes = 2;
+	g_flight_mission_state.runtime.team_goal_status[0][0] =
+		(uint8_t)c->goal0;
+	g_flight_mission_state.runtime.team_goal_status[0][1] =
+		(uint8_t)c->goal1;
+	g_mission_countdown_clock.minutes = (uint8_t)c->minutes;
+	g_mission_countdown_clock.seconds = (uint8_t)c->seconds;
+	if (c->two_teams) {
+		g_test_objects[5].object_type = TEST_XWING;
+		g_test_objects[5].flight_group_idx = 1;
+		g_mission_flight_groups[1].fg.player_number = 1;
+		g_mission_flight_groups[1].fg.team = 1;
+	}
+	scene_open();
+	flight_update_timers();
+	scene_close(c->name, c->lines);
+	XVT_ASSERT_INT_EQ(
+		g_flight_mission_state.team_victory_time_limit_started,
+		c->want_started);
+	XVT_ASSERT_INT_EQ(g_mission_countdown_clock.minutes, c->want_minutes);
+	XVT_ASSERT_INT_EQ(g_mission_countdown_clock.seconds, c->want_seconds);
+}
+
+static const char *const k_tv_melee_one[] = {
+	/* recorded tv_melee_one */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	"flight.victory_countdown team=0 minutes=2 reason=\"one_team\" tick=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:02:00\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_tv_melee_two[] = {
+	/* recorded tv_melee_two */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_tv_melee_late[] = {
+	/* recorded tv_melee_late */
+	"flight.clock_second elapsed=1 left=329 limit=0 tick=0 predicted=0",
+	"flight.victory_countdown team=0 minutes=2 reason=\"one_team\" tick=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:02:00\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_tv_melee_inside[] = {
+	/* recorded tv_melee_inside */
+	"flight.clock_second elapsed=1 left=149 limit=0 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_tv_combat_won[] = {
+	/* recorded tv_combat_won */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	"flight.victory_countdown team=0 minutes=2 reason=\"one_team\" tick=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:02:00\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_tv_combat_lost[] = {
+	/* recorded tv_combat_lost */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	"flight.victory_countdown team=0 minutes=2 reason=\"one_team\" tick=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:02:00\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_tv_combat_bonus[] = {
+	/* recorded tv_combat_bonus */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	"flight.victory_countdown team=0 minutes=2 reason=\"one_team\" tick=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:02:00\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+static const char *const k_tv_combat_none[] = {
+	/* recorded tv_combat_none */
+	"flight.clock_second elapsed=1 left=0 limit=0 tick=0 predicted=0",
+	"msg.message_built message=86 type=1 length=7 sender=3 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"90,88,324,331\" waiting=1 tick=0",
+	"flight.system_repaired slot=0 object=2 system=0 working=03ff predicted=0",
+	NULL,
+};
+
+/* A melee with one team left flying starts the victory countdown at once,
+ * with two teams it does not, and with the clock still inside the limit it
+ * waits. A combat mission starts it for one team left only when that team's
+ * main goal is done or lost or its bonus goal is done. */
+static const struct victory_case g_victory_cases[] = {
+	{"tv_melee_one", k_tv_melee_one, MISSION_TYPE_MELEE, 0, 0, 0, 0, 0, 1,
+	 2, 0},
+	{"tv_melee_two", k_tv_melee_two, MISSION_TYPE_MELEE, 0, 0, 1, 0, 0, 0,
+	 0, 0},
+	{"tv_melee_late", k_tv_melee_late, MISSION_TYPE_MELEE, 5, 30, 0, 0, 0,
+	 1, 2, 0},
+	{"tv_melee_inside", k_tv_melee_inside, MISSION_TYPE_MELEE, 2, 30, 0, 0,
+	 0, 0, 2, 29},
+	{"tv_combat_won", k_tv_combat_won, MISSION_TYPE_COMBAT, 0, 0, 0, 1, 0,
+	 1, 2, 0},
+	{"tv_combat_lost", k_tv_combat_lost, MISSION_TYPE_COMBAT, 0, 0, 0, 2, 0,
+	 1, 2, 0},
+	{"tv_combat_bonus", k_tv_combat_bonus, MISSION_TYPE_COMBAT, 0, 0, 0, 0,
+	 1, 1, 2, 0},
+	{"tv_combat_none", k_tv_combat_none, MISSION_TYPE_COMBAT, 0, 0, 0, 0, 0,
+	 0, 0, 0},
+};
+
+static void check_tick_victory(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_victory_cases / sizeof g_victory_cases[0]; ++k) {
+		run_victory_case(&g_victory_cases[k]);
+	}
+}
+
+/* The dynamic music. */
+struct music_case {
+	const char *name;
+	const char *const *lines;
+	int enabled, volume, humans;
+	int state, latched, type, iff, goal0, goal1;
+	int remaining, host_us;
+	int want_state, want_latched, want_remaining;
+};
+
+static void run_music_case(const struct music_case *c)
+{
+	fresh_world();
+	g_game_config.music_enabled = (uint8_t)c->enabled;
+	g_game_config.music_volume = (uint8_t)c->volume;
+	g_pilot_data.num_human_players_last_mission = (uint8_t)c->humans;
+	g_dynamic_music_state = (uint8_t)c->state;
+	g_dynamic_music_outcome_latched = (uint8_t)c->latched;
+	g_dynamic_music_track_remaining_ms = c->remaining;
+	g_dynamic_music_last_update_ms = 0;
+	g_mission_header.mission_type = (uint8_t)c->type;
+	g_players[PILOT].iff = (int16_t)c->iff;
+	g_flight_mission_state.runtime.team_goal_status[0][0] =
+		(uint8_t)c->goal0;
+	g_flight_mission_state.runtime.team_goal_status[0][1] =
+		(uint8_t)c->goal1;
+	xvt_time_reset();
+	xvt_time_advance_host_clock(c->host_us);
+	scene_open();
+	flight_update_dynamic_music_state();
+	scene_close(c->name, c->lines);
+	XVT_ASSERT_INT_EQ(g_dynamic_music_state, c->want_state);
+	XVT_ASSERT_INT_EQ(g_dynamic_music_outcome_latched, c->want_latched);
+	XVT_ASSERT_INT_EQ(g_dynamic_music_track_remaining_ms,
+			  c->want_remaining);
+}
+
+static const char *const k_mu_off[] = {
+	/* recorded mu_off */
+	NULL,
+};
+static const char *const k_mu_quiet[] = {
+	/* recorded mu_quiet */
+	NULL,
+};
+static const char *const k_mu_humans[] = {
+	/* recorded mu_humans */
+	NULL,
+};
+static const char *const k_mu_lost[] = {
+	/* recorded mu_lost */
+	"flight.music_track track=7 reason=\"outcome\" ms=0 predicted=0",
+	NULL,
+};
+static const char *const k_mu_bonus[] = {
+	/* recorded mu_bonus */
+	"flight.music_track track=7 reason=\"outcome\" ms=0 predicted=0",
+	NULL,
+};
+static const char *const k_mu_combat_iff1[] = {
+	/* recorded mu_combat_iff1 */
+	"flight.music_track track=6 reason=\"outcome\" ms=0 predicted=0",
+	NULL,
+};
+static const char *const k_mu_combat_iff0[] = {
+	/* recorded mu_combat_iff0 */
+	"flight.music_track track=4 reason=\"outcome\" ms=0 predicted=0",
+	NULL,
+};
+static const char *const k_mu_other_iff1[] = {
+	/* recorded mu_other_iff1 */
+	"flight.music_track track=5 reason=\"outcome\" ms=0 predicted=0",
+	NULL,
+};
+static const char *const k_mu_other_iff0[] = {
+	/* recorded mu_other_iff0 */
+	"flight.music_track track=3 reason=\"outcome\" ms=0 predicted=0",
+	NULL,
+};
+static const char *const k_mu_melee_won[] = {
+	/* recorded mu_melee_won */
+	NULL,
+};
+static const char *const k_mu_latched_repeat[] = {
+	/* recorded mu_latched_repeat */
+	"flight.music_track track=2 reason=\"repeat\" ms=0 predicted=0",
+	NULL,
+};
+static const char *const k_mu_latched_wait[] = {
+	/* recorded mu_latched_wait */
+	NULL,
+};
+static const char *const k_mu_state_wait[] = {
+	/* recorded mu_state_wait */
+	NULL,
+};
+
+/* The music does nothing with music off, the volume at 0 or other than one
+ * human player last mission. Otherwise, while the battle track plays (state
+ * 2) and no outcome track has played, a lost main goal or a done bonus goal
+ * starts track 7, a won main goal starts 6 or 4 in a combat mission and 5 or
+ * 3 in any other but a melee, by the player's side, and the outcome is
+ * latched. With no outcome the battle track starts over once its time has
+ * run out. */
+static const struct music_case g_music_cases[] = {
+	{"mu_off", k_mu_off, 0, 1, 1, 2, 0, 0, 0, 2, 0, 1000, 5000, 2, 0, 1000},
+	{"mu_quiet", k_mu_quiet, 1, 0, 1, 2, 0, 0, 0, 2, 0, 1000, 5000, 2, 0,
+	 1000},
+	{"mu_humans", k_mu_humans, 1, 1, 2, 2, 0, 0, 0, 2, 0, 1000, 5000, 2, 0,
+	 1000},
+	{"mu_lost", k_mu_lost, 1, 1, 1, 2, 0, 0, 0, 2, 0, 1000, 5000, 7, 1, 0},
+	{"mu_bonus", k_mu_bonus, 1, 1, 1, 2, 0, 0, 0, 0, 1, 1000, 5000, 7, 1,
+	 0},
+	{"mu_combat_iff1", k_mu_combat_iff1, 1, 1, 1, 2, 0, MISSION_TYPE_COMBAT,
+	 1, 1, 0, 1000, 5000, 6, 1, 0},
+	{"mu_combat_iff0", k_mu_combat_iff0, 1, 1, 1, 2, 0, MISSION_TYPE_COMBAT,
+	 0, 1, 0, 1000, 5000, 4, 1, 0},
+	{"mu_other_iff1", k_mu_other_iff1, 1, 1, 1, 2, 0, 0, 1, 1, 0, 1000,
+	 5000, 5, 1, 0},
+	{"mu_other_iff0", k_mu_other_iff0, 1, 1, 1, 2, 0, 0, 0, 1, 0, 1000,
+	 5000, 3, 1, 0},
+	{"mu_melee_won", k_mu_melee_won, 1, 1, 1, 2, 0, MISSION_TYPE_MELEE, 1,
+	 1, 0, 1000, 5000, 2, 0, 995},
+	{"mu_latched_repeat", k_mu_latched_repeat, 1, 1, 1, 2, 1, 0, 0, 2, 0, 3,
+	 5000, 2, 1, 0},
+	{"mu_latched_wait", k_mu_latched_wait, 1, 1, 1, 2, 1, 0, 0, 2, 0, 1000,
+	 5000, 2, 1, 995},
+	{"mu_state_wait", k_mu_state_wait, 1, 1, 1, 7, 0, 0, 0, 2, 0, 1000,
+	 5000, 7, 0, 995},
+};
+
+static void check_tick_music(void)
+{
+	for (size_t k = 0; k < sizeof g_music_cases / sizeof g_music_cases[0];
+	     ++k) {
+		run_music_case(&g_music_cases[k]);
+	}
+}
+
+/* The recount of players and the mission end. */
+struct recount_case {
+	const char *name;
+	const char *const *lines;
+	uint8_t states[8];
+	int local, pending, same_tick;
+	int want_return, want_count;
+};
+
+static void run_recount_case(const struct recount_case *c)
+{
+	fresh_world();
+	for (int i = 0; i < 8; ++i) {
+		g_players[i].participation_state = c->states[i];
+	}
+	g_local_player = (uint8_t)c->local;
+	g_flight_mission_state.mission_end_pending = (uint8_t)c->pending;
+	g_game_time = 50;
+	g_server_tick_time = c->same_tick ? 50 : 51;
+	scene_open();
+	int result = flight_recount_players_and_check_mission_end();
+	scene_close(c->name, c->lines);
+	XVT_ASSERT_INT_EQ(result, c->want_return);
+	XVT_ASSERT_INT_EQ(g_active_flight_player_count, c->want_count);
+	g_local_player = PILOT;
+}
+
+static const char *const k_rc_flying[] = {
+	/* recorded rc_flying */
+	NULL,
+};
+static const char *const k_rc_pending[] = {
+	/* recorded rc_pending */
+	NULL,
+};
+static const char *const k_rc_nobody[] = {
+	/* recorded rc_nobody */
+	"flight.mission_ending reason=\"nobody_flying\" slot=-1 tick=50",
+	NULL,
+};
+static const char *const k_rc_nobody_late[] = {
+	/* recorded rc_nobody_late */
+	NULL,
+};
+static const char *const k_rc_nobody_pending[] = {
+	/* recorded rc_nobody_pending */
+	NULL,
+};
+static const char *const k_rc_all_out[] = {
+	/* recorded rc_all_out */
+	"flight.mission_ending reason=\"nobody_flying\" slot=-1 tick=50",
+	NULL,
+};
+static const char *const k_rc_local_gone[] = {
+	/* recorded rc_local_gone */
+	"flight.mission_ending reason=\"local_gone\" slot=0 tick=50",
+	NULL,
+};
+static const char *const k_rc_local_gone_late[] = {
+	/* recorded rc_local_gone_late */
+	NULL,
+};
+static const char *const k_rc_local_gone_pending[] = {
+	/* recorded rc_local_gone_pending */
+	NULL,
+};
+
+/* The recount counts the players flying (state 1) and those flying or
+ * leaving (state 1 or 2). With nobody flying, or the local player gone
+ * (state 0), the mission is set to end and the log says why, the first time
+ * and only on the server's own tick. The answer is whether the mission is
+ * ending. */
+static const struct recount_case g_recount_cases[] = {
+	{"rc_flying", k_rc_flying, {1, 1}, 0, 0, 1, 0, 2},
+	{"rc_pending", k_rc_pending, {1, 2}, 0, 0, 1, 0, 2},
+	{"rc_nobody", k_rc_nobody, {0}, 0, 0, 1, 1, 0},
+	{"rc_nobody_late", k_rc_nobody_late, {0}, 0, 0, 0, 1, 0},
+	{"rc_nobody_pending", k_rc_nobody_pending, {0}, 0, 1, 1, 1, 0},
+	{"rc_all_out", k_rc_all_out, {2, 2}, 0, 0, 1, 1, 2},
+	{"rc_local_gone", k_rc_local_gone, {0, 1}, 0, 0, 1, 1, 1},
+	{"rc_local_gone_late", k_rc_local_gone_late, {0, 1}, 0, 0, 0, 1, 1},
+	{"rc_local_gone_pending",
+	 k_rc_local_gone_pending,
+	 {0, 1},
+	 0,
+	 1,
+	 1,
+	 1,
+	 1},
+};
+
+static void check_tick_recount(void)
+{
+	for (size_t k = 0;
+	     k < sizeof g_recount_cases / sizeof g_recount_cases[0]; ++k) {
+		run_recount_case(&g_recount_cases[k]);
+	}
+}
+
+static void world_buffers_clear(void)
+{
+	g_world_state_handle = 0;
+	g_world_state_dup_handle = 0;
+	g_world_state_buffer = NULL;
+	g_world_state_dup_buffer = NULL;
+}
+
+static const char *const k_wb_alloc[] = {
+	/* recorded wb_alloc */
+	"memory.allocated handle=2 bytes=40865 zeroed=0",
+	"memory.allocated handle=3 bytes=40865 zeroed=0",
+	"flight.world_buffers bytes=40865 main=2 copy=3",
+	NULL,
+};
+static const char *const k_wb_free[] = {
+	/* recorded wb_free */
+	"flight.world_freed held=2 bytes=0",
+	"memory.freed handle=2 bytes=40865",
+	"memory.freed handle=3 bytes=40865",
+	NULL,
+};
+static const char *const k_wb_free_none[] = {
+	/* recorded wb_free_none */
+	"flight.world_freed held=0 bytes=0",
+	NULL,
+};
+static const char *const k_wb_save_fails[] = {
+	/* recorded wb_save_fails */
+	"flight.world_save_failed held=0 tick=7",
+	NULL,
+};
+
+/* The rewind buffers: two blocks the size of a world copy are taken for the
+ * flight and freed at its end (the log says how many were held). A save with
+ * no buffer writes nothing and the log says it failed. */
+static void check_world_buffers(void)
+{
+	fresh_world();
+	world_buffers_clear();
+	scene_open();
+	flight_alloc_world_state_buffers();
+	scene_close("wb_alloc", k_wb_alloc);
+	XVT_ASSERT_TRUE(g_world_state_handle != 0);
+	XVT_ASSERT_TRUE(g_world_state_dup_handle != 0);
+	XVT_ASSERT_TRUE(g_world_state_buffer != NULL);
+	XVT_ASSERT_TRUE(g_world_state_dup_buffer != NULL);
+	XVT_ASSERT_TRUE(flight_calculate_world_state_buffer_size() > 0);
+	XVT_ASSERT_INT_EQ(flight_compute_live_world_state_checksum(),
+			  flight_compute_live_world_state_checksum());
+
+	scene_open();
+	flight_free_world_state_buffers();
+	scene_close("wb_free", k_wb_free);
+	XVT_ASSERT_INT_EQ(g_world_state_handle, 0);
+	XVT_ASSERT_INT_EQ(g_world_state_dup_handle, 0);
+	XVT_ASSERT_TRUE(g_world_state_buffer == NULL);
+	XVT_ASSERT_TRUE(g_world_state_dup_buffer == NULL);
+
+	scene_open();
+	flight_free_world_state_buffers();
+	scene_close("wb_free_none", k_wb_free_none);
+
+	g_world_state_size = 0;
+	g_game_time = 7;
+	scene_open();
+	flight_save_world_state();
+	scene_close("wb_save_fails", k_wb_save_fails);
+}
+
+/* The rotate-xor checksum of the first size bytes of a buffer: whole four-byte
+ * words, then a two-byte and a one-byte tail, each xored in and rotated left
+ * by one bit. */
+static void check_checksum(void)
+{
+	static const uint8_t data[8] = {0x01, 0x23, 0x45, 0x67,
+					0x89, 0xAB, 0xCD, 0xEF};
+	static const unsigned int want[9] = {
+		0,	    2,		0x4602,	    0x8C8E,    0xCE8A4602,
+		0x9D148D17, 0x9D15DB17, 0x3A2BB7B5, 0x428FDB16};
+	for (unsigned int size = 0; size < 9; ++size) {
+		XVT_ASSERT_INT_EQ(flight_checksum_buffer_rotate_xor(data, size),
+				  want[size]);
+	}
+}
+
+/* The steering step under unlocked timing, one craft, rate 100 on every
+ * channel and the step of one second (236 ticks). */
+static void run_unlocked_steer_case(const struct steer_case *c)
+{
+	xvt_flight_timing_begin_session(XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+	XVT_ASSERT_TRUE(xvt_flight_integration_init(16) != 0);
+	run_steer_case(c);
+	xvt_flight_integration_shutdown();
+	xvt_flight_timing_end_session();
+}
+
+static const char *const k_u_roll_up[] = {
+	/* recorded u_roll_up */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=4296 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_roll_down[] = {
+	/* recorded u_roll_down */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=12088 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_pitch_up[] = {
+	/* recorded u_pitch_up */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=24476 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_pitch_down[] = {
+	/* recorded u_pitch_down */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=8292 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_pitch_done[] = {
+	/* recorded u_pitch_done */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=8192 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_turn_up[] = {
+	/* recorded u_turn_up */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4196 pitch=0 roll=65486 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_turn_down[] = {
+	/* recorded u_turn_down */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=8092 pitch=0 roll=50 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_bank_half[] = {
+	/* recorded u_bank_half */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=5096 pitch=0 roll=65286 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_bank_full[] = {
+	/* recorded u_bank_full */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=5096 pitch=0 roll=64536 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_turn_on_target[] = {
+	/* recorded u_turn_on_target */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=4096 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_player[] = {
+	/* recorded u_player */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=0 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=4096 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=100 rear=100 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_no_systems[] = {
+	/* recorded u_no_systems */
+	NULL,
+};
+static const char *const k_u_held[] = {
+	/* recorded u_held */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=4096 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_idle[] = {
+	/* recorded u_idle */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=0 speed=300 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_stamp[] = {
+	/* recorded u_stamp */
+	"world.track tick=0 object=4 signature=0 type=1 fg=0 player=-1 team=0 x=6200 y=6200 z=0 yaw=0 pitch=0 roll=4112 speed=24 throttle=65535 state=0 hull=0 hull_max=0 front=0 rear=0 target=-1 ai_target=0",
+	NULL,
+};
+static const char *const k_u_kind7[] = {
+	/* recorded u_kind7 */
+	NULL,
+};
+
+/* Under unlocked timing an AI craft steers by the step's length: its roll
+ * moves by twice the roll rate's share of the step, its pitch and its turn
+ * by their rates' shares, and its bank into a turn by the model's bank factor
+ * of the turn step, with the sign of the turn. A craft a player flies, one
+ * with no working systems or one held by a beam, steers with no remainder
+ * carried; so does a channel with nothing to do. A craft whose clock stamp
+ * differs from the game time steps by the time since the stamp. A craft of an
+ * unknown kind makes no kind-specific move. */
+static const struct steer_case g_unlocked_steer_cases[] = {
+	{"u_roll_up", k_u_roll_up, .roll_state = 1, .roll = 0x1000,
+	 .t_roll = 0x3000, .rate = 100},
+	{"u_roll_down", k_u_roll_down, .roll_state = 1, .roll = 0x3000,
+	 .t_roll = 0x1000, .rate = 100},
+	{"u_pitch_up", k_u_pitch_up, .pitch_state = 1, .pitch = 0x6000,
+	 .t_z = 0x4000, .rate = 100},
+	{"u_pitch_down", k_u_pitch_down, .pitch_state = 2, .pitch = 0x2000,
+	 .t_z = 0x4000, .rate = 100},
+	{"u_pitch_done", k_u_pitch_done, .pitch_state = 3, .pitch = 0x2000,
+	 .t_z = 0x4000, .rate = 100},
+	{"u_turn_up", k_u_turn_up, .turn_state = 1, .yaw = 0x1000,
+	 .t_xy = 0x2000, .rate = 100, .bank = 0x8000},
+	{"u_turn_down", k_u_turn_down, .turn_state = 1, .yaw = 0x2000,
+	 .t_xy = 0x1000, .rate = 100, .bank = 0x8000},
+	{"u_bank_half", k_u_bank_half, .turn_state = 1, .yaw = 0x1000,
+	 .t_xy = 0x2000, .rate = 1000, .bank = 0x4000},
+	{"u_bank_full", k_u_bank_full, .turn_state = 1, .yaw = 0x1000,
+	 .t_xy = 0x2000, .rate = 1000, .bank = 0xFFFF},
+	{"u_turn_on_target", k_u_turn_on_target, .turn_state = 1, .yaw = 0x1000,
+	 .t_xy = 0x1000, .rate = 100, .bank = 0x8000},
+	{"u_player", k_u_player, .player = 1, .roll_state = 1, .roll = 0x1000,
+	 .t_roll = 0x3000, .rate = 100},
+	{"u_no_systems", k_u_no_systems, .no_systems = 1, .roll_state = 1,
+	 .roll = 0x1000, .t_roll = 0x3000, .rate = 100},
+	{"u_held", k_u_held, .held = 1, .roll_state = 1, .roll = 0x1000,
+	 .t_roll = 0x3000, .rate = 100},
+	{"u_idle", k_u_idle, .rate = 100},
+	{"u_stamp", k_u_stamp, .roll_state = 1, .roll = 0x1000,
+	 .t_roll = 0x3000, .rate = 100, .elapsed = 10, .game_time = 10,
+	 .stamp = 1},
+	{"u_kind7", k_u_kind7, .kind = 7, .rate = 100},
+};
+
+static void check_steer_unlocked(void)
+{
+	for (size_t k = 0; k < sizeof g_unlocked_steer_cases /
+				       sizeof g_unlocked_steer_cases[0];
+	     ++k) {
+		run_unlocked_steer_case(&g_unlocked_steer_cases[k]);
+	}
+}
+
+/* Over many steps an AI craft's roll sums to the exact share of the rate: the
+ * remainder of each step is carried to the next while the direction holds. A
+ * craft a player flies does not roll by the AI's steering at all. */
+static void check_steer_unlocked_sum(void)
+{
+	static const int ticks[] = {100, 50, 7};
+	for (size_t k = 0; k < sizeof ticks / sizeof ticks[0]; ++k) {
+		struct steer_case c = {.roll_state = 1,
+				       .roll = 0x1000,
+				       .t_roll = 0x7000,
+				       .rate = 7,
+				       .elapsed = ticks[k]};
+		xvt_flight_timing_begin_session(
+			XVT_FLIGHT_TIMING_OFFLINE_UNLOCKED);
+		XVT_ASSERT_TRUE(xvt_flight_integration_init(16) != 0);
+		steer_world(&c);
+		const int steps = 10;
+		for (int n = 0; n < steps; ++n) {
+			flight_update_craft_steering_and_speed();
+		}
+		int expect = 2 * (steps * 7 * ticks[k] / ONE_SECOND);
+		XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_A].roll - 0x1000,
+				  expect);
+		steer_world(&c);
+		g_test_objects[CRAFT_A].player_owner_idx = PILOT;
+		for (int n = 0; n < steps; ++n) {
+			flight_update_craft_steering_and_speed();
+		}
+		XVT_ASSERT_INT_EQ(g_test_objects[CRAFT_A].roll, 0x1000);
+		xvt_flight_integration_shutdown();
+		xvt_flight_timing_end_session();
+	}
+}
+
 int main(int argc, char **argv)
 {
 	fail_after_seconds(20);
@@ -8386,5 +9383,16 @@ int main(int argc, char **argv)
 	check_small_keys_more();
 	check_energy_limits();
 	check_player_keys();
+	check_tick_timers();
+	check_tick_ai_timers();
+	check_tick_blink();
+	check_tick_clock();
+	check_tick_victory();
+	check_tick_music();
+	check_tick_recount();
+	check_world_buffers();
+	check_checksum();
+	check_steer_unlocked();
+	check_steer_unlocked_sum();
 	return 0;
 }
