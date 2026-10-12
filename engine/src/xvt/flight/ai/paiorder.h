@@ -3,22 +3,12 @@
 
 #include <stdint.h>
 
+#include "xvt/flight/ai_state.h"
 #include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-struct ai_order_progress {
-	/* Per order slot: 2 once its plan's goal is met, 3 once a boarding
-	 * order has no target left, else 0; set by
-	 * paiorder_completegohomeorder. */
-	uint8_t completion_state[4];
-	/* Per order slot, progress toward the order's goal (laps of the
-	 * waypoints, boardings, deliveries), compared with the order's
-	 * variable1 or variable2. */
-	uint8_t goal_progress[4];
-};
 
 typedef int16_t (*pai_order_func)(void);
 

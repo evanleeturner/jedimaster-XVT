@@ -3,19 +3,12 @@
 
 #include <stdint.h>
 
+#include "xvt/flight/ai_state.h"
 #include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-enum ai_targeting_constant {
-	AI_TARGET_ABORT = 251,
-	AI_DECOY_RANGE_SMALL = 0x8000,
-	AI_DECOY_RANGE_LARGE = 0x10000,
-	AI_TARGET_RANGE_MAX = 0x10000,
-	AI_TURRET_TARGET_PENALTY = 0x8000,
-};
 
 extern int g_gunner_collision_probe_count;
 
