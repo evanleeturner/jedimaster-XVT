@@ -110,6 +110,7 @@ GOOD_DESCRIPTIONS = [
     ),
     changed(GOOD_DESCRIPTION, settings={"mission_time_limit": "none"}),
     changed(GOOD_DESCRIPTION, settings={"mission_time_limit": "default"}),
+    changed(GOOD_DESCRIPTION, ai_program={"python": "python3", "path": "ai/x"}),
 ]
 
 BAD_DESCRIPTIONS = [
@@ -131,6 +132,11 @@ BAD_DESCRIPTIONS = [
     changed(GOOD_DESCRIPTION, seed=-1),
     changed(GOOD_DESCRIPTION, seed=4294967296),
     changed(GOOD_DESCRIPTION, seed="7"),
+    changed(GOOD_DESCRIPTION, ai_program="python3"),
+    changed(GOOD_DESCRIPTION, ai_program={"python": "python3"}),
+    changed(GOOD_DESCRIPTION, ai_program={"python": "python3", "path": ""}),
+    changed(GOOD_DESCRIPTION, ai_program={"python": "p", "path": "a" * 512}),
+    changed(GOOD_DESCRIPTION, ai_program={"python": "p", "path": "a", "args": "b"}),
     changed(GOOD_DESCRIPTION, players=2),
     changed(GOOD_DESCRIPTION, settings=[]),
     changed(GOOD_DESCRIPTION, settings={"volume": 3}),

@@ -2,8 +2,9 @@
  * promises in its header that hold without a window, a pilot loaded from the
  * game's files or the game's mission lists: opening a description (a missing
  * file, text that is not a description, a pilot name holding a switch word, a
- * good one with and without a result path), the result file each ending
- * writes, and the exit code the door asks the program to end with. The test
+ * good one with and without a result path, an AI program that cannot be
+ * started), the result file each ending writes, and the exit code the door
+ * asks the program to end with. The test
  * keeps its description and result files in a temporary folder and sets the
  * pilot record numbers the result is read from.
  *
@@ -101,7 +102,13 @@ static void check_refusals_leave_a_result(void)
 	} cases[] = {{"not json", "not a JSON object"},
 		     {"{\"schema_version\":1,\"mode\":\"multiplayer\"}",
 		      "Only single player"},
-		     {NOSFX_DESCRIPTION, "switch word"}};
+		     {NOSFX_DESCRIPTION, "switch word"},
+		     {"{\"schema_version\":1,\"mode\":\"single_player\","
+		      "\"game_type\":\"training\",\"side\":\"rebel\","
+		      "\"mission\":\"train/1ta02bz.tie\",\"pilot\":\"Ace\","
+		      "\"ai_program\":{\"python\":\"/nonexistent/python\","
+		      "\"path\":\"x\"}}",
+		      "could not be started"}};
 	for (size_t index = 0; index < sizeof(cases) / sizeof(cases[0]);
 	     ++index) {
 		char path[256];

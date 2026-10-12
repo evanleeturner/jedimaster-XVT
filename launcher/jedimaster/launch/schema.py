@@ -11,8 +11,8 @@ Flow:
 Invariants:
     - Same words, same dict.
     - Every object is closed (``additionalProperties`` false).
-    - The description's optional members are ``result``, ``seed`` and
-      ``settings``, and each setting is optional; a setting left out keeps
+    - The description's optional members are ``result``, ``seed``,
+      ``ai_program`` and ``settings``, and each setting is optional; a setting left out keeps
       the game's own value.
 
 Call:
@@ -113,6 +113,26 @@ def launch_schema() -> dict[str, Any]:
                 "type": "integer",
                 "minimum": 0,
                 "maximum": model.SEED_MAXIMUM,
+            },
+            "ai_program": {
+                "description": "The AI program the engine starts to decide what computer craft do; no computer craft decides anything when left out.",
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["python", "path"],
+                "properties": {
+                    "python": {
+                        "description": "The Python that runs the AI program.",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 511,
+                    },
+                    "path": {
+                        "description": "The AI program's path, as the Python is given it.",
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 511,
+                    },
+                },
             },
             "settings": _settings(),
         },

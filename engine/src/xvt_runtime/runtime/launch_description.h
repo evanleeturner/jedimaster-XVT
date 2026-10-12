@@ -52,6 +52,10 @@ struct xvt_launch_description {
 	char result_path[XVT_LAUNCH_PATH_CAPACITY];
 	int has_seed;
 	unsigned int seed;
+	/* The AI program to start, from "ai_program": the Python that runs it
+	 * and the program's path. Both are empty when it is absent. */
+	char ai_python[XVT_LAUNCH_PATH_CAPACITY];
+	char ai_path[XVT_LAUNCH_PATH_CAPACITY];
 	struct xvt_launch_settings settings;
 };
 
@@ -63,12 +67,15 @@ struct xvt_launch_description {
  * "mission" ("<folder>/<file>", the folder being the game type's own and
  * the file letters, digits, underscore and dot), "pilot" (see
  * xvt_launch_name_check) and "result" (a path, at most 511 characters, or
- * absent). It may also hold "seed" (0 to 4294967295) and "settings" with any
+ * absent). It may also hold "seed" (0 to 4294967295), "ai_program" (an
+ * object holding only "python" and "path", each 1 to 511 characters) and
+ * "settings" with any
  * of difficulty (easy, medium, hard, easy_cheat), collisions, craft_jumping,
  * random_setup (booleans), battle_length (2, 3 or 4), mission_time_limit
  * (none, default or 1 to 20) and continue_sequence (restart or continue).
  * Easy cheat is for a campaign only. On success fills out (settings not
- * given are XVT_LAUNCH_SETTING_UNSET, an absent result path is empty) and
+ * given are XVT_LAUNCH_SETTING_UNSET, an absent result path or AI program is
+ * empty) and
  * returns 1. Otherwise returns 0 with a plain sentence in why, at most
  * XVT_LAUNCH_WHY_CAPACITY - 1 characters, and out holds only what was read
  * before the refusal. */

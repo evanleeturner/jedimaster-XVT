@@ -61,6 +61,29 @@
       "minimum": 0,
       "maximum": 4294967295
     },
+    "ai_program": {
+      "description": "The AI program the engine starts to decide what computer craft do; no computer craft decides anything when left out.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "python",
+        "path"
+      ],
+      "properties": {
+        "python": {
+          "description": "The Python that runs the AI program.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 511
+        },
+        "path": {
+          "description": "The AI program's path, as the Python is given it.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 511
+        }
+      }
+    },
     "settings": {
       "description": "Settings of the game's solo screen; one left out keeps the game's own value.",
       "type": "object",

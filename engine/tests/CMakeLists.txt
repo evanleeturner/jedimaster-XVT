@@ -785,6 +785,23 @@ else()
     message(STATUS "Python 3 was not found; the log catalog check is not added as a test")
 endif()
 
+# The AI program run as a child process: src/xvt_runtime/ai/ai_program.c. Its checks start Python
+# programs, the stand-in in the repository's ai/ folder among them, so it is a test only where an
+# interpreter is found. A build that mounts the engine alone names the mounted ai/ folder here.
+set(XVT_TEST_AI_PROGRAM_DIR "${PROJECT_SOURCE_DIR}/../ai" CACHE PATH
+    "The folder holding the AI program's package, for test_ai_program")
+if(Python3_Interpreter_FOUND)
+    xvt_add_engine_test(test_ai_program test_ai_program.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/ai/ai_program.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/ai/ai_wire.c")
+    target_compile_definitions(test_ai_program PRIVATE
+        XVT_TEST_PYTHON="${Python3_EXECUTABLE}"
+        XVT_TEST_AI_PROGRAM_DIR="${XVT_TEST_AI_PROGRAM_DIR}")
+    add_test(NAME ai_program COMMAND test_ai_program)
+else()
+    message(STATUS "Python 3 was not found; the AI program check is not added as a test")
+endif()
+
 # UBSan prints and carries on by default; a test must stop at the first report.
 # The timeout turns a hung test into a failure instead of a stalled run.
 get_property(XVT_TEST_NAMES DIRECTORY PROPERTY TESTS)

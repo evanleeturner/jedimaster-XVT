@@ -332,7 +332,38 @@ static int read_settings(const cJSON *settings,
 	return 1;
 }
 
-/* Reads "seed" and "result" into out when present. */
+/* 1 when item is a string of 1 to XVT_LAUNCH_PATH_CAPACITY - 1 characters. */
+static int is_path(const cJSON *item)
+{
+	return cJSON_IsString(item) && item->valuestring[0] &&
+	       strlen(item->valuestring) < XVT_LAUNCH_PATH_CAPACITY;
+}
+
+/* Reads "ai_program", an object holding only "python" and "path". */
+static int read_ai_program(const cJSON *program,
+			   struct xvt_launch_description *out, char *why,
+			   size_t why_size)
+{
+	const cJSON *python =
+		cJSON_IsObject(program)
+			? cJSON_GetObjectItemCaseSensitive(program, "python")
+			: NULL;
+	const cJSON *path =
+		cJSON_IsObject(program)
+			? cJSON_GetObjectItemCaseSensitive(program, "path")
+			: NULL;
+	if (!is_path(python) || !is_path(path) ||
+	    cJSON_GetArraySize(program) != 2) {
+		return refuse(
+			why, why_size, "%s",
+			"\"ai_program\" must hold only \"python\" and \"path\", each 1 to 511 characters.");
+	}
+	strcpy(out->ai_python, python->valuestring);
+	strcpy(out->ai_path, path->valuestring);
+	return 1;
+}
+
+/* Reads "seed", "result" and "ai_program" into out when present. */
 static int read_optionals(const cJSON *root, struct xvt_launch_description *out,
 			  char *why, size_t why_size)
 {
@@ -359,19 +390,22 @@ static int read_optionals(const cJSON *root, struct xvt_launch_description *out,
 		}
 		strcpy(out->result_path, result->valuestring);
 	}
-	return 1;
+	const cJSON *program =
+		cJSON_GetObjectItemCaseSensitive(root, "ai_program");
+	return !program || read_ai_program(program, out, why, why_size);
 }
 
 /* Checks the members that must be there and nothing else is there. */
 static int check_members(const cJSON *root, char *why, size_t why_size)
 {
 	static const char *const known[] = {
-		"schema_version", "mode",   "game_type", "side",    "mission",
-		"pilot",	  "result", "seed",	 "settings"};
+		"schema_version", "mode",    "game_type", "side",
+		"mission",	  "pilot",   "result",	  "seed",
+		"ai_program",	  "settings"};
 	const cJSON *item;
 	cJSON_ArrayForEach(item, root)
 	{
-		if (index_of(known, 9, item->string) < 0) {
+		if (index_of(known, 10, item->string) < 0) {
 			return refuse(
 				why, why_size,
 				"The description holds \"%s\", which it does not take.",

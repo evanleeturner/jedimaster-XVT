@@ -92,10 +92,12 @@ jobs:
               -DXVT_ENABLE_ASAN=OFF \
               -DXVT_ENABLE_UBSAN=OFF \
               -DXVT_ENABLE_DEBUG_UI=OFF \
-              -DXVT_BUILD_TESTS=ON
+              -DXVT_BUILD_TESTS=ON \
+              -DXVT_TEST_AI_PROGRAM_DIR=/work/ai
             cmake --build /work/build --target xvt_tests
             ctest --test-dir /work/build --output-on-failure
-        # The sources are mounted read-only; everything the build writes
+        # The sources are mounted read-only, the AI program's folder beside
+        # them for the AI program test; everything the build writes
         # lands in a folder outside the checkout.
         run: |
           mkdir -p "${RUNNER_TEMP}/tests-build"
@@ -103,6 +105,7 @@ jobs:
             --user "$(id -u):$(id -g)" \
             --env HOME=/tmp \
             --volume "${GITHUB_WORKSPACE}/engine:/work/src:ro" \
+            --volume "${GITHUB_WORKSPACE}/ai:/work/ai:ro" \
             --volume "${RUNNER_TEMP}/tests-build:/work/build" \
             openxvt-tests:ci \
             bash -euo pipefail -c "${TEST_SCRIPT}"

@@ -13,6 +13,31 @@
       "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "predicted"],
       "text": "Craft {object} took the pilot program's answer, action bits {actions}: it now turns to heading {yaw}, pitch {pitch} and roll {roll}, at throttle {throttle}, activity {activity}, thinking every {interval} ticks ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.program_exchanged": {
+      "level": "D",
+      "fields": ["question_bytes", "answer_bytes", "wait_us"],
+      "text": "The AI program was sent a {question_bytes}-byte question and answered in {answer_bytes} bytes after {wait_us} microseconds"
+    },
+    "ai.program_failed": {
+      "level": "E",
+      "fields": ["exit", "why"],
+      "text": "The AI program was stopped for good and killed, exit code {exit} (a negative one is the signal that ended it): {why}"
+    },
+    "ai.program_started": {
+      "level": "I",
+      "fields": ["program", "pid"],
+      "text": "The AI program {program} was started as process {pid}, its standard input and output piped to the engine"
+    },
+    "ai.program_stopped": {
+      "level": "I",
+      "fields": ["exit", "killed"],
+      "text": "The AI program was told to exit by closing its standard input and ended with exit code {exit} ({killed} is 1 when it had to be killed)"
+    },
+    "ai.program_unstarted": {
+      "level": "E",
+      "fields": ["program", "error"],
+      "text": "The AI program {program} could not be started: {error}"
+    },
     "ai.think": {
       "level": "D",
       "fields": ["tick", "craft", "question_bytes", "answer_bytes", "predicted"],

@@ -8,6 +8,7 @@
 #include "xvt_app/setup.h"
 #include "xvt_app/ui.h"
 #include "xvt_remaster/xvt_remaster.h"
+#include "xvt_runtime/ai/ai_program.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/input/capture.h"
 #include "xvt_runtime/input/controller_mapping.h"
@@ -181,6 +182,7 @@ cleanup:
 	xvt_settings_menu_flush_for_exit();
 	xvt_settings_menu_shutdown();
 	xvt_port_shutdown();
+	ai_program_stop();
 	xvt_remaster_shutdown();
 	xvt_render_snapshot_shutdown();
 	xvt_app_ui_shutdown(&ui);

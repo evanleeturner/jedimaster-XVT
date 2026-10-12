@@ -318,6 +318,43 @@ static void check_seed_and_result_refusals(void)
 	refused(doc("melee", "none", "melee/a.tie", big), "\"result\"");
 }
 
+/* "ai_program" fills both paths, which are empty when it is left out;
+ * anything but an object of exactly two paths is refused. */
+static void check_ai_program(void)
+{
+	char rest[TEXT_CAPACITY];
+	XVT_ASSERT_INT_EQ(parse(doc("melee", "none", "melee/a.tie", PILOT)), 1);
+	XVT_ASSERT_INT_EQ(g_out.ai_python[0], 0);
+	XVT_ASSERT_INT_EQ(g_out.ai_path[0], 0);
+	snprintf(rest, sizeof(rest),
+		 PILOT ",\"ai_program\":{\"python\":\"/usr/bin/python3\","
+		       "\"path\":\"/ai/jedimaster_ai\"}");
+	XVT_ASSERT_INT_EQ(parse(doc("melee", "none", "melee/a.tie", rest)), 1);
+	XVT_ASSERT_INT_EQ(strcmp(g_out.ai_python, "/usr/bin/python3"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_out.ai_path, "/ai/jedimaster_ai"), 0);
+	static const char *const bad[] = {
+		"\"python3\"",
+		"{\"python\":\"p\"}",
+		"{\"python\":\"p\",\"path\":\"\"}",
+		"{\"python\":\"p\",\"path\":5}",
+		"{\"python\":\"p\",\"script\":\"a\"}",
+		"{\"python\":\"p\",\"path\":\"a\",\"args\":\"b\"}"};
+	for (size_t index = 0; index < sizeof(bad) / sizeof(bad[0]); ++index) {
+		snprintf(rest, sizeof(rest), PILOT ",\"ai_program\":%s",
+			 bad[index]);
+		refused(doc("melee", "none", "melee/a.tie", rest),
+			"\"ai_program\"");
+	}
+	char long_path[600];
+	memset(long_path, 'a', sizeof(long_path));
+	long_path[sizeof(long_path) - 1] = '\0';
+	char big[TEXT_CAPACITY];
+	snprintf(big, sizeof(big),
+		 PILOT ",\"ai_program\":{\"python\":\"p\",\"path\":\"%s\"}",
+		 long_path);
+	refused(doc("melee", "none", "melee/a.tie", big), "\"ai_program\"");
+}
+
 /* Checks a name is refused by the name check with a sentence holding needle. */
 static void name_refused(const char *name, const char *needle)
 {
@@ -426,6 +463,7 @@ int main(void)
 	check_mission_refusals();
 	check_setting_refusals();
 	check_seed_and_result_refusals();
+	check_ai_program();
 	check_name_checks();
 	check_switch_words();
 	check_text_check();

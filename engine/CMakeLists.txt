@@ -207,6 +207,7 @@ set(XVT_RUNTIME_SOURCES
     src/xvt_runtime/snapshot/render_frontend.c
     src/xvt_runtime/snapshot/render_assets.c
     src/xvt_runtime/snapshot/render_cockpit_assets.c
+    src/xvt_runtime/ai/ai_program.c
     src/xvt_runtime/ai/ai_wire.c
     src/xvt_runtime/snapshot/records.c
     src/xvt_runtime/snapshot/world_checksum.c

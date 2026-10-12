@@ -5,6 +5,7 @@
 #include <string.h>
 #include <strings.h>
 
+#include "xvt/flight/ai_brain.h"
 #include "xvt/frontend/concourse.h"
 #include "xvt/frontend/config.h"
 #include "xvt/frontend/frontend.h"
@@ -17,6 +18,7 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt_runtime/ai/ai_program.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_cleanup.h"
@@ -87,6 +89,32 @@ static int read_file(const char *path, char *text, size_t size)
 	return ended;
 }
 
+/* Ends the flight when the AI program fails: no computer craft would decide
+ * anything again, and a machine that flew on without it would part from the
+ * others in a network game. */
+static void end_on_ai_failure(const char *why)
+{
+	fail(XVT_LAUNCH_EXIT_FLIGHT_FAILED, why);
+}
+
+/* Starts the description's AI program and asks it about computer craft from
+ * now on. Returns 1, or 0 after writing the refusal. */
+static int start_ai_program(void)
+{
+	const char *args[] = {g_description.ai_python, g_description.ai_path,
+			      NULL};
+	char why[XVT_LAUNCH_WHY_CAPACITY];
+	if (!ai_program_start(args, AI_PROGRAM_ANSWER_LIMIT_MS,
+			      end_on_ai_failure, why, sizeof(why))) {
+		XVT_LOG_INFO("launch.refused code=%d why=\"%s\"",
+			     XVT_LAUNCH_EXIT_REFUSED, why);
+		write_failure(XVT_LAUNCH_EXIT_REFUSED, why);
+		return 0;
+	}
+	ai_brain_set_exchange(ai_program_exchange);
+	return 1;
+}
+
 int xvt_launch_door_open(const char *path)
 {
 	XVT_LOG_INFO("launch.opened path=\"%s\"", path);
@@ -135,6 +163,9 @@ int xvt_launch_door_open(const char *path)
 		g_description.settings.mission_time_limit,
 		g_description.settings.continue_sequence, g_description.seed,
 		g_description.has_seed);
+	if (g_description.ai_python[0] && !start_ai_program()) {
+		return 0;
+	}
 	g_phase = PHASE_WAIT_CONCOURSE;
 	g_timer_started = 0;
 	return 1;
