@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jedimaster-ai"
+version = "0.1.0"
+description = "The program that decides what computer craft do in the jedimaster engine"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools]
+packages = ["jedimaster_ai", "jedimaster_ai.behaviors"]
+
+[tool.setuptools.package-data]
+jedimaster_ai = ["events.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,52 @@
+{
+  "program": "jedimaster_ai",
+  "grammar": 1,
+  "line": "HH:MM:SS.mmm L event key=value ...",
+  "events": {
+    "notebook.unreadable": {
+      "level": "W",
+      "fields": ["object", "behavior", "error"],
+      "text": "Craft {object}'s notebook could not be read ({error}); behavior {behavior} starts it again"
+    },
+    "order.no_behavior": {
+      "level": "W",
+      "fields": ["object", "code"],
+      "text": "No behavior flies order code {code}, the order of craft {object}; it drifts"
+    },
+    "program.crashed": {
+      "level": "C",
+      "fields": ["error_type", "error", "where"],
+      "text": "The AI program failed with {error_type} at {where}: {error}; it stops with exit code 1"
+    },
+    "program.refused": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "A question broke the message format and was not answered ({error}); the AI program stops with exit code 2"
+    },
+    "program.started": {
+      "level": "I",
+      "fields": ["wire", "pid"],
+      "text": "The AI program started as process {pid}, reading messages of wire version {wire}"
+    },
+    "program.stopped": {
+      "level": "I",
+      "fields": ["questions"],
+      "text": "Standard input ended after {questions} questions; the AI program stops with exit code 0"
+    },
+    "think.answer": {
+      "level": "D",
+      "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "notebook"],
+      "text": "Craft {object} is answered with action bits {actions}: turn to heading {yaw}, pitch {pitch} and roll {roll}, throttle {throttle}, activity {activity}, think every {interval} ticks (0 where not sent); notebook {notebook}"
+    },
+    "think.question": {
+      "level": "D",
+      "fields": ["tick", "craft"],
+      "text": "The question for tick {tick} asks about {craft} craft"
+    },
+    "think.view": {
+      "level": "D",
+      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "notebook"],
+      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; notebook {notebook}"
+    }
+  }
+}

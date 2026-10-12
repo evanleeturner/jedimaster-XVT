@@ -1,0 +1,100 @@
+"""The engine's C and the program's Python share every protocol number.
+
+Each constant both sides use is read from the engine's headers and compared
+with the program's own, so a change on one side fails here until the other
+side follows.
+"""
+
+from __future__ import annotations
+
+import pathlib
+import re
+
+from conftest import ENGINE
+
+from jedimaster_ai import wire
+from jedimaster_ai.orders import OrderCode
+from jedimaster_ai.world import Actions
+from jedimaster_ai.world import Activity
+from jedimaster_ai.world import Answer
+from jedimaster_ai.world import CraftAnswer
+from jedimaster_ai.world import NOTEBOOK_BYTES
+from jedimaster_ai.world import Steer
+
+AI_WIRE_H = ENGINE / "src" / "xvt_runtime" / "ai" / "ai_wire.h"
+AI_STATE_H = ENGINE / "src" / "xvt" / "flight" / "ai_state.h"
+MISSION_H = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.h"
+C_TYPES = {"uint8_t": "B", "uint16_t": "H", "int16_t": "h", "int32_t": "i"}
+
+
+def _without_comments(text: str) -> str:
+    return re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+
+
+def _value(text: str, known: dict[str, int]) -> int:
+    """Return a C constant's value: literals and names joined by +."""
+    total = 0
+    for term in text.split("+"):
+        term = term.strip()
+        total += known[term] if term in known else int(term, 0)
+    return total
+
+
+def c_enum(path: pathlib.Path, name: str, prefix: str) -> dict[str, int]:
+    """Return a C enum's members, prefix dropped, with their values."""
+    text = _without_comments(path.read_text())
+    body = re.search(rf"enum {name} \{{(.*?)\}};", text, re.S).group(1)
+    members: dict[str, int] = {}
+    known = {"AI_NOTEBOOK_BYTES": NOTEBOOK_BYTES}
+    for entry in body.split(","):
+        key, _, value = " ".join(entry.split()).partition("=")
+        if key:
+            members[key.strip().removeprefix(prefix)] = _value(value, known)
+    return members
+
+
+def test_notebook_bytes_match() -> None:
+    text = AI_STATE_H.read_text()
+    assert int(re.search(r"AI_NOTEBOOK_BYTES = (\d+)", text).group(1)) == NOTEBOOK_BYTES
+
+
+def test_wire_constants_match() -> None:
+    constants = c_enum(AI_WIRE_H, "ai_wire_constant", "AI_WIRE_")
+    every_action = Actions(Steer(1, 2, 3), 4, Activity.WAITING, 5)
+    answer = Answer(1, (CraftAnswer(1, bytes(NOTEBOOK_BYTES), every_action),))
+    assert constants == {
+        "MAGIC": wire.MAGIC,
+        "VERSION": wire.VERSION,
+        "KIND_QUESTION": wire.KIND_QUESTION,
+        "KIND_ANSWER": wire.KIND_ANSWER,
+        "HEAD_BYTES": wire.HEAD_BYTES,
+        "CRAFT_VIEW_BYTES": wire.CRAFT_VIEW_BYTES,
+        "CRAFT_ANSWER_BYTES_MAX": len(wire.answer_bytes(answer)) - wire.HEAD_BYTES,
+    }
+
+
+def test_action_kinds_match() -> None:
+    kinds = c_enum(AI_WIRE_H, "ai_wire_action_kind", "AI_WIRE_ACTION_")
+    assert kinds.pop("KIND_END") == len(wire.ActionKind) + 1
+    assert kinds == {kind.name: kind.value for kind in wire.ActionKind}
+
+
+def test_craft_view_fields_match() -> None:
+    text = _without_comments(AI_WIRE_H.read_text())
+    body = re.search(r"struct ai_wire_craft_view \{(.*?)\};", text, re.S).group(1)
+    members = re.findall(r"(\w+) (\w+)(\[\w+\])?;", body)
+    assert members[-1][1:] == ("notebook", "[AI_NOTEBOOK_BYTES]")
+    assert tuple(name for _, name, _ in members[:-1]) == wire.VIEW_FIELD_NAMES
+    shape = "<" + "".join(C_TYPES[kind] for kind, _, _ in members[:-1])
+    assert shape == wire.VIEW_FIELDS.format
+
+
+def test_activities_match() -> None:
+    activities = c_enum(AI_STATE_H, "ai_activity", "AI_ACTIVITY_")
+    assert activities.pop("COUNT") == len(Activity)
+    assert activities == {activity.name: activity.value for activity in Activity}
+
+
+def test_order_codes_match() -> None:
+    orders = c_enum(MISSION_H, "mission_order_code", "MISSION_ORDER_")
+    assert orders == {order.name: order.value for order in OrderCode}
