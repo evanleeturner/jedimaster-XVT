@@ -11075,6 +11075,14 @@ uint16_t mission_init_flight_group_object_slot(void)
 	memset(g_cur_craft->ai_notebook, 0, sizeof g_cur_craft->ai_notebook);
 	g_cur_craft->ai_controller.think_interval =
 		g_ai_think_interval_by_skill[ai_skill_level];
+	/* The first think comes an eighth of the interval later for each step
+	 * of the slot's lowest 3 bits, so a group's craft do not all think on
+	 * one step; the 1997 AI's rule. A reused slot would keep the last
+	 * craft's count. */
+	g_cur_craft->ai_controller.think_timer =
+		((object_index & 7) *
+		 g_cur_craft->ai_controller.think_interval) >>
+		3;
 	g_cur_craft->ai_controller.saved_rand_seed = game_rand() ^ 0xBEEF;
 	g_cur_craft->ai_controller.maneuver_mode = AI_MANEUVER_MODE_NULL;
 	g_cur_craft->ai_controller.maneuver_phase = 0;

@@ -125,9 +125,11 @@ struct ai_controller {
 	/* Ticks between two AI thinks: the AI level's g_ai_think_interval_by_skill
 	 * entry at spawn; a few orders and maneuvers set 29 or 59. */
 	int think_interval;
-	/* Ticks to the next AI think. flight_update_timers lowers it by the
-	 * ticks that pass; at 0 or below the 1997 AI thought and added
-	 * think_interval. Nothing thinks now, so it keeps falling. */
+	/* Ticks to the next AI think. Spawn spreads it by slot over one
+	 * think_interval; flight_update_timers lowers it by the ticks that
+	 * pass; at 0 or below ai_brain_think_due_craft asks the pilot program
+	 * and adds think_interval. While no pilot program is set, nothing asks
+	 * and it keeps falling. */
 	int think_timer;
 	/* The craft's own state of the game's random generator:
 	 * collide_damagecraft swaps it into g_game_rand_feedback_state while it

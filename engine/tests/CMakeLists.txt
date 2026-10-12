@@ -357,6 +357,9 @@ xvt_add_known_failure(test_targeting aim_ahead_past_eight_million)
 xvt_add_engine_test(test_flight_geometry test_flight_geometry.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/flight_geometry.c")
 add_test(NAME flight_geometry COMMAND test_flight_geometry)
 
+# The think loop that asks the pilot program about craft due to think: src/xvt/flight/ai_brain.c.
+xvt_add_engine_test(test_ai_brain test_ai_brain.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_brain.c")
+add_test(NAME ai_brain COMMAND test_ai_brain)
 # The byte form of the questions to and answers from the AI program: src/xvt_runtime/ai/ai_wire.c.
 xvt_add_engine_test(test_ai_wire test_ai_wire.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/ai/ai_wire.c")
 add_test(NAME ai_wire COMMAND test_ai_wire)

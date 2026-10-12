@@ -5295,7 +5295,8 @@ static struct model_def *set_test_model(struct model_def *saved)
  * hull and shields from the model (the shield strength doubled in the forward
  * shield for a computer's craft); lasers, warheads, beam and countermeasure
  * from the model and the group; its skill and think interval from the group's
- * AI level; its throttle from its first order. Its counts are
+ * AI level, and its first think an eighth of the interval later per step of
+ * the slot's low 3 bits; its throttle from its first order. Its counts are
  * counted in the group. */
 static void check_spawn_craft_values(void)
 {
@@ -5313,10 +5314,13 @@ static void check_spawn_craft_values(void)
 	strcpy(group->special_cargo, "Secret plans");
 	group->special_cargo_craft = 1;
 	spawn_mission_ready();
-	/* A reused pool slot still holds the last craft's notebook. */
+	/* A reused pool slot still holds the last craft's notebook and think
+	 * timer. */
 	for (int index = 0; index < g_craft_data_pool_capacity; ++index) {
 		memset(g_craft_data_pool_base[index].ai_notebook, 0xEE,
 		       sizeof g_craft_data_pool_base[index].ai_notebook);
+		g_craft_data_pool_base[index].ai_controller.think_timer =
+			0x7777;
 	}
 	struct model_def saved;
 	struct model_def *model = set_test_model(&saved);
@@ -5377,6 +5381,9 @@ static void check_spawn_craft_values(void)
 				  g_ai_skill_value_q16_by_level[3]);
 		XVT_ASSERT_INT_EQ(craft->ai_controller.think_interval,
 				  g_ai_think_interval_by_skill[3]);
+		XVT_ASSERT_INT_EQ(
+			craft->ai_controller.think_timer,
+			((slot & 7) * g_ai_think_interval_by_skill[3]) >> 3);
 		for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 			XVT_ASSERT_INT_EQ(craft->ai_notebook[byte], 0);
 		}

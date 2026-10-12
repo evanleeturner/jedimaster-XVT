@@ -3,6 +3,21 @@
   "grammar": 1,
   "line": "HH:MM:SS.mmm L event key=value ...",
   "events": {
+    "ai.answer_refused": {
+      "level": "E",
+      "fields": ["tick", "craft", "result", "answer_bytes", "predicted"],
+      "text": "At tick {tick} the pilot program's {answer_bytes}-byte answer about {craft} craft was refused whole with ai_wire_result {result}; no craft took any of it ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.craft_answered": {
+      "level": "D",
+      "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "predicted"],
+      "text": "Craft {object} took the pilot program's answer, action bits {actions}: it now turns to heading {yaw}, pitch {pitch} and roll {roll}, at throttle {throttle}, activity {activity}, thinking every {interval} ticks ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.think": {
+      "level": "D",
+      "fields": ["tick", "craft", "question_bytes", "answer_bytes", "predicted"],
+      "text": "At tick {tick} the pilot program was asked about {craft} craft due to think in {question_bytes} bytes and answered in {answer_bytes} bytes ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "app.crash_exception": {
       "level": "C",
       "fields": ["code", "addr"],
