@@ -315,14 +315,10 @@ struct pai_context {
 
 extern struct pai_context g_pai_context;
 extern int g_pai_skip_to_order4_checked;
-extern int g_last_rough_distance;
 extern uint16_t g_ai_skill_value_q16_by_level[8];
 extern const uint16_t g_ai_think_interval_by_skill[8];
 extern struct pai_plan_record g_plan_table[256];
 extern uint8_t g_plan_order_data[0x20000];
-extern int g_rotated_x;
-extern int g_rotated_y;
-extern int g_rotated_z;
 extern uint8_t *g_plan_data_ptrs[256];
 extern int g_plan_count;
 extern const char *const g_builtin_plan_name_table[76];
@@ -352,15 +348,6 @@ void pai_update_aim_point_from_order_target(void);
 void pai_set_flight_group_formation(unsigned int flight_group_idx,
 				    unsigned int formation_type,
 				    unsigned int formation_spacing);
-void pai_object_ref_direction_to_object_ref(unsigned int from_ref,
-					    unsigned int to_ref);
-void pai_object_ref_update_rough_distance(unsigned int from_ref,
-					  unsigned int to_ref);
-void pai_calcrotatedpoint(const struct object_record *obj, int16_t side_arg,
-			  int16_t up_arg, int16_t fwd_arg);
-void pai_rotate_local_vector_to_world_scratch(
-	const struct object_record *obj_record, int local_side, int local_up,
-	int local_fwd);
 void pai_calc_angles_to_aim_point(void);
 int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 					 uint16_t target1,

@@ -10,6 +10,7 @@
 #include "xvt/flight/ai/pai.h"
 #include "xvt/flight/ai/paifight.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/flight_view.h"
 #include "xvt/flight/fview.h"
 #include "xvt/flight/hud/hud.h"

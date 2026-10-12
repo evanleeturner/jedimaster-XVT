@@ -10,6 +10,7 @@
 #include "xvt/flight/ai/paiman.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/hud/hud.h"
 #include "xvt/flight/hud/msg.h"
 #include "xvt/flight/mission/mission.h"

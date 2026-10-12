@@ -9,6 +9,7 @@
 #include "xvt/flight/ai/pai.h"
 #include "xvt/flight/ai/paiman.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/flight_input.h"
 #include "xvt/flight/flight_view.h"
 #include "xvt/flight/fview.h"

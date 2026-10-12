@@ -4,6 +4,7 @@
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/fview.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/flight/player/player.h"

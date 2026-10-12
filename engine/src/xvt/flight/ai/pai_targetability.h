@@ -4,6 +4,7 @@
 #include "xvt/flight/ai/pai.h"
 #include "xvt/flight/ai/paifight.h"
 #include "xvt/flight/craft.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/object/object.h"
 
 #ifdef __cplusplus

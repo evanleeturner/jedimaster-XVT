@@ -8,6 +8,7 @@
 #include "xvt/flight/ai/paiorder.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/flight/object/collide.h"
 #include "xvt/flight/object/object.h"

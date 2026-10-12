@@ -5,6 +5,7 @@
 #include "xvt/assets/object_type.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/flight_surface.h"
 #include "xvt/flight/flight_view.h"
 #include "xvt/flight/fview.h"

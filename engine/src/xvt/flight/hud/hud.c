@@ -13,6 +13,7 @@
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_display.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/flight_render.h"
 #include "xvt/flight/flight_surface.h"
 #include "xvt/flight/flight_view.h"

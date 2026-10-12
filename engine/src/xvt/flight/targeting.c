@@ -5,6 +5,7 @@
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/fview.h"
 #include "xvt/flight/hud/flight_map.h"
 #include "xvt/flight/hud/hud.h"

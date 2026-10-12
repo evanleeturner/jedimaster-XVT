@@ -8,6 +8,7 @@
 #include "xvt/flight/ai/pai.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/flight_surface.h"
 #include "xvt/flight/fview.h"
 #include "xvt/flight/hud/hud.h"

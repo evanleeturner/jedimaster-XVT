@@ -17,6 +17,7 @@
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight_display.h"
+#include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/flight_input.h"
 #include "xvt/flight/flight_loading.h"
 #include "xvt/flight/flight_object.h"

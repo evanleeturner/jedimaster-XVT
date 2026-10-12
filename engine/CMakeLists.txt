@@ -67,6 +67,7 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/flight/fediskio.c
     src/xvt/flight/flight.c
     src/xvt/flight/flight_display.c
+    src/xvt/flight/flight_geometry.c
     src/xvt/flight/flight_hyperspace.c
     src/xvt/flight/flight_input.c
     src/xvt/flight/flight_loading.c
