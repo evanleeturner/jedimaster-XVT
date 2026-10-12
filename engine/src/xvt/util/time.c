@@ -1,3 +1,39 @@
+/* The game's tick, the unit every flight clock counts in.
+ *
+ * One tick is 4 ms: 250 ticks to a real second, at any frame rate.
+ * time_consume_elapsed_ticks below makes them by cutting timeGetTime's
+ * milliseconds into whole 4 ms pieces and carrying the rest into the next
+ * call, so no time is lost between frames.
+ *
+ * Two different "seconds" are counted in ticks. Do not mix them up:
+ *
+ *   250 ticks  one real second (this file).
+ *   236 ticks  one simulated second (SIMULATION_TICKS_PER_SECOND,
+ *              xvt/flight/flight.h): the second in speeds, acceleration,
+ *              shot lifetimes and the flight's timers. It lasts 944 ms,
+ *              so the flight runs about 6% faster than its per-second
+ *              figures say.
+ *
+ * Both numbers come from the 1997 game, and this port keeps them.
+ *
+ * Where the time comes from in this port: the frame timer
+ * (Aeron_BeginFrame, on SDL's clock) measures each frame and clamps the gap
+ * to 250 ms; xvt_port_update adds it to the host clock
+ * (xvt_runtime/timing/host_clock.c), whose whole milliseconds timeGetTime
+ * returns. A frame that takes longer than 250 ms loses the rest. Outside
+ * network play the host clock does not move while the settings menu is open
+ * or the window is out of focus, so ticks stop too.
+ *
+ * Each simulation step covers some ticks: 2 (8 ms, 125 steps a second) in
+ * network play; 1 in a solo flight with the unlocked setting on; in a solo
+ * flight with it off, at least 8 (32 ms), following the recent frame length.
+ * Logic written for the 1997 step runs once per 8-tick reference period.
+ *
+ * Measured without a game: the host clock and this file, driven with frames
+ * from 1 microsecond to 1 second long, gave 15,000 ticks in 60 seconds for
+ * every frame length up to 250 ms. The full account, with every tick length
+ * the engine names: TICK.md at the top of the repository. */
+
 #include "xvt/util/time.h"
 
 /* Real time in ms, from timeGetTime, of the last whole 4 ms tick
