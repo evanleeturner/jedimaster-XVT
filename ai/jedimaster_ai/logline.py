@@ -57,8 +57,14 @@ class LineFormatter(logging.Formatter):
 
 
 def shorten_home(path: str, home: str) -> str:
-    """Return path with the home folder at its start written as ~."""
-    if home and (path == home or path.startswith(home + os.sep)):
+    """Return path with the home folder at its start written as ~.
+
+    Either of the system's separators may follow the home folder: Windows
+    takes / as well as \\.
+    """
+    separators = [sep for sep in (os.sep, os.altsep) if sep]
+    starts = tuple(home + sep for sep in separators)
+    if home and (path == home or path.startswith(starts)):
         return "~" + path[len(home) :]
     return path
 

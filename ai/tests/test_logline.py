@@ -13,6 +13,7 @@ import datetime
 import io
 import json
 import logging
+import os
 import pathlib
 import re
 
@@ -60,6 +61,11 @@ def test_each_level_has_its_letter(level: int, letter: str) -> None:
 )
 def test_the_home_folder_is_written_as_a_tilde(path: str, shown: str) -> None:
     assert logline.shorten_home(path, "/srv/pilot") == shown
+
+
+def test_the_systems_own_separator_follows_the_home_folder() -> None:
+    home = os.path.join(os.sep + "srv", "pilot")
+    assert logline.shorten_home(os.path.join(home, "x"), home) == "~" + os.sep + "x"
 
 
 def test_the_header_states_the_runs_constants() -> None:
