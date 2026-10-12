@@ -47,8 +47,8 @@ struct craft_damage_stats {
 	uint16_t installed_hud_feature_mask;
 	/* HUD features working now: the fitted set at spawn.
 	 * collide_damagecraft knocks out random features on a hull hit once
-	 * hull_damage has reached system_damage_hull_threshold, and a boarding
-	 * repair (paiman_boardmaneuver) restores them. */
+	 * hull_damage has reached system_damage_hull_threshold (the 1997 AI's
+	 * boarding repair restored them). */
 	uint16_t active_hud_feature_mask;
 };
 

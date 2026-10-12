@@ -21,9 +21,9 @@ enum ai_targeting_constant {
 };
 
 struct ai_order_progress {
-	/* Per order slot: 2 once its plan's goal is met, 3 once a boarding
-	 * order has no target left, else 0; set by
-	 * paiorder_completegohomeorder. */
+	/* Per order slot: 2 once its order's goal was met, 3 once a boarding
+	 * order had no target left, else 0. The 1997 AI set it; spawn clears
+	 * it and nothing sets it now. */
 	uint8_t completion_state[4];
 	/* Per order slot, progress toward the order's goal (laps of the
 	 * waypoints, boardings, deliveries), compared with the order's
@@ -121,12 +121,12 @@ struct ai_controller {
 	 * entry at spawn; a few orders and maneuvers set 29 or 59. */
 	int think_interval;
 	/* Ticks to the next AI think. flight_update_timers lowers it by the
-	 * ticks that pass; at 0 or below pai_update_all_craft_ai thinks and adds
-	 * think_interval. */
+	 * ticks that pass; at 0 or below the 1997 AI thought and added
+	 * think_interval. Nothing thinks now, so it keeps falling. */
 	int think_timer;
 	/* The craft's own state of the game's random generator:
-	 * pai_update_all_craft_ai and collide_damagecraft swap it into
-	 * g_game_rand_feedback_state while they work on the craft. game_rand() XOR
+	 * collide_damagecraft swaps it into g_game_rand_feedback_state while it
+	 * works on the craft, as the 1997 AI's think did. game_rand() XOR
 	 * 0xBEEF at spawn. */
 	int16_t saved_rand_seed;
 	/* What the craft steers or fires at: an object index, 0x8000 plus a
@@ -140,11 +140,10 @@ struct ai_controller {
 	 * into each warhead's guidance. 0xFFFF at spawn. */
 	uint16_t target_component;
 	/* 1 when a target search or command set the target, 0 when an order
-	 * pointed the craft at a mission point or, in
-	 * paifight_coverleaderorder, at its leader's attacker. Apart from
-	 * paiorder_leaderdeadorder copying it, read only for the cannons on
-	 * disableldr1pln: with it set the ion cannons fire, their speed setting
-	 * the aim ahead, and without it the others fire. */
+	 * pointed the craft at a mission point or at its leader's attacker.
+	 * The 1997 AI read it only for the cannons of one disabling plan: with
+	 * it set the ion cannons fired, their speed setting the aim ahead, and
+	 * without it the others. Spawn clears it; nothing else uses it now. */
 	uint8_t has_live_target;
 	/* X of the world point the craft steers at: its target's position, a
 	 * point ahead of it, a hangar or docking point, or a mission point. */
@@ -155,10 +154,10 @@ struct ai_controller {
 	int aim_point_z;
 	/* Target a player's command gave the craft, which the target orders
 	 * take up; 0xFFFF for none. Another radio command sets AI_TARGET_ABORT
-	 * (251), which paiorder_evasiveorder answers by dropping the target. */
+	 * (251), which the 1997 AI answered by dropping the target. */
 	uint16_t candidate_target_idx;
-	/* Flight group the craft escorts, set by paifight_checkescortorder; 255
-	 * for none and at spawn. */
+	/* Flight group the craft escorts, set by the 1997 AI; 255 for none and
+	 * at spawn, and nothing sets it now. */
 	uint8_t escort_target_fg;
 	/* Pitch the steering turns the craft to, in angle units, 0x4000 being
 	 * level; 0x4000 at spawn. */
@@ -168,10 +167,10 @@ struct ai_controller {
 	uint16_t target_roll;
 	/* Heading the steering turns the craft to, in angle units. */
 	uint16_t target_xy_angle;
-	/* Maneuver the craft flies, an AI_MANEUVER_MODE_ value;
-	 * paiorder_updatecourseorder runs its step function on each think. */
+	/* Maneuver the craft flies, an AI_MANEUVER_MODE_ value; the 1997 AI ran
+	 * its step function on each think. AI_MANEUVER_MODE_NULL at spawn. */
 	ai_maneuver_mode maneuver_mode;
-	/* Step within the maneuver; paiman_initmaneuver sets 0. */
+	/* Step within the maneuver; 0 at spawn. */
 	uint8_t maneuver_phase;
 	/* Ticks left in the maneuver or its current step; flight_update_timers
 	 * lowers it to 0. The HUD's target display shows it as the order
@@ -192,13 +191,13 @@ struct ai_flight_state {
 	/* 1 once all the craft's orders are complete, or its leader's are; it
 	 * lets the departure count as departed. */
 	uint8_t go_home_flag;
-	/* 1 once the craft has aborted the mission, by
-	 * paiorder_abortmissionorder or a player's radio command; the abort
-	 * outcome is counted once. */
+	/* 1 once the craft has aborted the mission, by a player's radio command
+	 * (the 1997 AI also aborted on the order's condition); the abort outcome
+	 * is counted once. */
 	uint8_t mission_aborted_flag;
-	/* 1 once the flight group's departure has started for the craft, by
-	 * paiorder_stopgohomeorder or from its leader; the delay counts from
-	 * the departClock fields. */
+	/* 1 once the flight group's departure had started for the craft, set
+	 * by the 1997 AI for itself or from its leader; the delay counted from
+	 * the departClock fields. Spawn clears it and nothing sets it now. */
 	uint8_t depart_timer_flag;
 	/* Mission clock hours when the departure started. */
 	uint8_t depart_clock_hours;
@@ -206,11 +205,11 @@ struct ai_flight_state {
 	uint8_t depart_clock_minutes;
 	/* Mission clock seconds when the departure started. */
 	uint8_t depart_clock_seconds;
-	/* Warheads fired since the maneuver started; paifight_fightershootorder
-	 * stops at its limit. */
+	/* Warheads fired since the maneuver started; the 1997 AI stopped firing
+	 * at its limit. Nothing uses it now. */
 	uint8_t warheads_fired_this_maneuver;
-	/* Hits taken since the maneuver started; paiman_attackmaneuver breaks
-	 * off at the model's reaction_threshold. */
+	/* Hits taken since the maneuver started, counted by collide.c; the 1997
+	 * AI broke off an attack at the model's reaction_threshold. */
 	uint8_t hits_this_maneuver;
 	/* 1 once a boarding of this craft counted its group's
 	 * FLIGHT_GROUP_OUTCOME_COMPLETED_MISSION outcome. */
@@ -234,8 +233,8 @@ struct ai_flight_state {
 	 * copy. */
 	int16_t motion_scale;
 	/* 1 while a climb runs, which the steering code ends at the aim point's
-	 * Z by setting a level pitch. Only paiman_cruisemaneuver sets 1, and
-	 * its own paiman_setflighttotarget call clears it in the same think. */
+	 * Z by setting a level pitch. The 1997 AI's cruise set 1 and cleared
+	 * it in the same think; nothing sets 1 now. */
 	uint8_t climb_state;
 	/* 1 while a dive pull-out runs, which
 	 * flight_update_dive_pullout_pitch_target steps and ends with 2. Nothing

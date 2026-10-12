@@ -96,9 +96,8 @@ struct mobile_object {
 	 * sets it from the flight group and shots fired by craft copy their
 	 * source's; mission_init sets 0xFF in the craft slots. */
 	uint8_t iff;
-	/* Team, 0 to 9, set at spawn and on capture
-	 * (paiman_transfer_object_to_ai_team); countermeasure shots copy their
-	 * owner's. */
+	/* Team, 0 to 9, set at spawn (and by the 1997 AI's capture);
+	 * countermeasure shots copy their owner's. */
 	uint8_t team;
 	/* Variant of the model's switchable nodes to draw; spawn sets the
 	 * flight group's markings. */
@@ -148,7 +147,7 @@ struct turret_target_state {
 
 /* A character record, an entry of g_mobile_object_char_data_pool. */
 struct mobile_object_char_data {
-	/* AI skill, which pai_get_effective_skill_value reads through a craft's
+	/* AI skill, which ai_brain_effective_skill reads through a craft's
 	 * effective_ai_object_link; no code sets it other than by clearing or
 	 * copying the whole record. */
 	uint16_t skill_value;

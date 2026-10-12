@@ -12,11 +12,10 @@
 
 /* The last rough distance a range test worked out, in world units; callers read
  * it right after the call that sets it.
- * flight_geometry_rough_distance_between_refs and
- * pai_is_object_within_range_of_craft take the larger of the X and Y offsets plus
- * half the smaller, then add half the Z offset when that sum is the larger,
- * else halve the sum and add the Z offset. Many functions write it, chiefly
- * those two. */
+ * flight_geometry_rough_distance_between_refs takes the larger of the X and Y
+ * offsets plus half the smaller, then adds half the Z offset when that sum is
+ * the larger, else halves the sum and adds the Z offset. It and
+ * targeting_test_aim_cone write it. */
 // GLOBAL: XVT 0x9A1FF8
 int g_last_rough_distance = 0;
 

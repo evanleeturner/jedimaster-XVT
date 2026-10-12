@@ -80,9 +80,10 @@ struct model_def {
 	 * craft_get_object_max_shield returns 2 times it. build_craft_tech_stats
 	 * rates it divided by 50. */
 	int shield_strength;
-	/* Hits paiman_attackmaneuver lets the craft take before it breaks off;
+	/* Hits the 1997 AI let the craft take before it broke off an attack;
 	 * halved with the front shield under an eighth, 1 at
-	 * system_damage_hull_threshold, both only for a craft with shields. */
+	 * system_damage_hull_threshold, both only for a craft with shields.
+	 * Nothing reads it now. */
 	uint8_t reaction_threshold;
 	/* Nothing reads or writes it by name. */
 	/* Static 0/1 model-class discriminator; exact runtime behavior is not
@@ -173,8 +174,8 @@ struct model_def {
 	 * which fe_disk_io_build_model_def fills from the model's hardpoints. */
 	struct model_weapon_hardpoint weapon_hardpoints[16];
 	/* Countermeasures a craft carries: its cm_ammo_count at spawn, 0xAAAC
-	 * over 65,536 of it for flares, and again when paiman_boardmaneuver
-	 * resupplies it. */
+	 * over 65,536 of it for flares (the 1997 AI's resupply loaded it
+	 * again). */
 	uint8_t countermeasure_count;
 	/* Forward offset of the model's hardpoint of type 31, HARDPOINT_COCKPIT
 	 * among the importer's names; the player code turns it into the
@@ -182,7 +183,7 @@ struct model_def {
 	int16_t primary_hardpoint_y;
 	/* Up offset of that type 31 hardpoint. */
 	int16_t primary_hardpoint_z;
-	/* Read by paiman_boardmaneuver and object_update_lifetime_and_movement. */
+	/* Read by object_update_lifetime_and_movement. */
 	/* Shared local-forward coordinate from OPT docking hardpoints 27-30. */
 	int16_t dock_forward;
 	/* fe_disk_io_build_model_def sets both from the model's largest z when the

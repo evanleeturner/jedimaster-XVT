@@ -39,9 +39,8 @@
 #include "xvt_runtime/log/log.h"
 
 /* Side offset, in model bound sizes, of each place in each of the 34
- * formations, by craft_ordinal 0 to 5. paiman_calcformation,
- * mission_init_flight_group_object_slot and mission_resolve_formation_slot_world_loc
- * read it. */
+ * formations, by craft_ordinal 0 to 5. mission_init_flight_group_object_slot
+ * and mission_resolve_formation_slot_world_loc read it. */
 // GLOBAL: XVT 0x527970
 const int16_t g_form_pos_x[34][6] = {
 	{0, 1, -1, 2, -2, 3},	  {0, 1, -2, -3, 2, 3},
@@ -110,7 +109,7 @@ const int16_t g_form_pos_z[34][6] = {
 };
 
 /* What each formation's offsets are divided by: 3 for formations 1 and 28 to
- * 30, 2 for 31 to 33, else 1. Read by paiman_calcformation and
+ * 30, 2 for 31 to 33, else 1. Read by
  * mission_init_flight_group_object_slot. */
 // GLOBAL: XVT 0x527E38
 const int16_t g_formation_divisor[34] = {1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -190,8 +189,7 @@ uint16_t g_prepared_spawn_roll_byte = 0;
 /* Object index each spawned craft takes as its leader_obj_idx, UINT8_MAX until
  * the round's first craft exists; mission_init_flight_group_object_slot copies it
  * into each craft and sets it to the first craft's slot.
- * mission_spawn_flight_group_wave_craft sets UINT8_MAX for a whole round;
- * paiman_dropoffmaneuver sets its basis object before it starts an arrival. */
+ * mission_spawn_flight_group_wave_craft sets UINT8_MAX for a whole round. */
 // GLOBAL: XVT 0x99F982
 uint8_t g_spawn_leader_obj_idx = 0;
 /* Team of the craft being spawned, from the flight group; set by
@@ -335,10 +333,9 @@ struct mission_flight_group g_mission_flight_groups[48];
 // GLOBAL: XVT 0x9FD440
 struct team g_mission_teams[10] = {{0}};
 /* Index of the flight group being spawned or scanned; the spawn functions
- * read it. 5 functions write it: mission_init, mission_init_flight_runtime_state
+ * read it. 4 functions write it: mission_init, mission_init_flight_runtime_state
  * and mission_update_flight_group_arrivals as a loop index,
- * mission_process_flight_group_wave_completion and paiman_dropoffmaneuver
- * before a spawn. */
+ * mission_process_flight_group_wave_completion before a spawn. */
 // GLOBAL: XVT 0x9A1834
 uint16_t g_current_flight_group_idx = 0;
 /* Mission time elapsed, in simulated seconds: flight_update_timers counts
@@ -494,8 +491,8 @@ uint8_t g_flight_runtime_state_initialized = 1;
 static uint16_t g_flight_frame_step_mirror = 0;
 
 /* Returns a flag, the flight group's special_cargo_outcome entry for
- * FLIGHT_GROUP_OUTCOME_INSPECTED, which collide_collisions and
- * paiman_boardmaneuver set to 1 when the special cargo craft is inspected.
+ * FLIGHT_GROUP_OUTCOME_INSPECTED, which collide_collisions sets to 1 when
+ * the special cargo craft is inspected.
  * special_cargo_craft is ignored. Does not check the index. */
 // FLAGS: /O2 /G5
 // FUNCTION: XVT 0x415A40

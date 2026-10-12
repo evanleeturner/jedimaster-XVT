@@ -125,9 +125,9 @@ struct craft_weapon_slot {
 	 * launch; laser_fireturretslot reads it in a turret slot as an ion
 	 * flag. */
 	uint8_t ammo_count;
-	/* Missile defense order updates before this turret slot picks another
-	 * missile; paifight_missiledefenseorder sets 20 and takes 1 an
-	 * update. */
+	/* Missile defense updates before this turret slot picks another
+	 * missile; the 1997 AI set 20 and took 1 an update. Nothing uses it
+	 * now. */
 	uint8_t missile_defense_cooldown;
 };
 
@@ -152,8 +152,8 @@ struct craft_data {
 	 * so it counts only once; 0 at spawn. */
 	uint8_t mission_accounting_done;
 	/* AI skill as a fraction of 65,536, from g_ai_skill_value_q16_by_level by
-	 * the flight group's AI level at spawn; the AI reads it through
-	 * pai_get_effective_skill_value. */
+	 * the flight group's AI level at spawn; ai_brain_effective_skill
+	 * reads it. */
 	uint16_t ai_skill;
 	/* No game code reads or writes it; only the snapshot copies it. */
 	uint8_t unused00b[2];
@@ -220,7 +220,7 @@ struct craft_data {
 	 * and they drop when no gun holds charge. */
 	uint16_t engine_overdrive_off;
 	/* Speed the current order asks for, 5 times the order's speed, set by
-	 * paiman_initmaneuver; flight_update_craft_steering_and_speed aims for a
+	 * the 1997 AI (0 at spawn); flight_update_craft_steering_and_speed aims for a
 	 * nonzero value in place of the throttle when its throttle fraction is
 	 * full. */
 	int16_t commanded_speed;
@@ -260,8 +260,9 @@ struct craft_data {
 	 * 0. */
 	uint8_t not_disabled_accounting_suppress;
 	/* 0 unless captured; then a flag bit with the capturing flight group in
-	 * the low 7 bits. Set and cleared by paiman_transfer_object_to_ai_team;
-	 * cleared when the craft is destroyed. */
+	 * the low 7 bits. The 1997 AI's capture set and cleared
+	 * it; nothing sets it now. Cleared at spawn and when the craft is
+	 * destroyed. */
 	uint8_t captured_by_flight_group;
 	/* Per team, nonzero once that team has hit the craft: bit 0 marks the
 	 * first hit; collide.c also keeps a hit count in bits 4 to 6 and a flag
@@ -271,9 +272,9 @@ struct craft_data {
 	 * that inspection among the teams, from 1; the craft's own team starts
 	 * at 1. */
 	uint8_t identified_order_by_team[10];
-	/* Outcome of the last boarding involving the craft, set by
-	 * paiman_boardmaneuver: 1 its cargo was taken, 2 it got cargo, swapped
-	 * it or was contacted, 3 it was repaired; 0 at spawn. */
+	/* Outcome of the last boarding involving the craft, set by the 1997
+	 * AI: 1 its cargo was taken, 2 it got cargo, swapped it or was
+	 * contacted, 3 it was repaired; 0 at spawn, and nothing sets it now. */
 	uint8_t boarding_state;
 	/* Cargo name shown on inspection: the flight group's special cargo for
 	 * its special cargo craft, else its cargo; boarding moves it between

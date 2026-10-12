@@ -96,7 +96,7 @@ void xvt_flight_loading_reset(void);
  * for multiplayer in a directory from combat engagements on, and a configured value above hard
  * becomes easy; the time limits and AI opponents come from the config only in multiplayer. Seeds
  * the game random state from the configured seed in multiplayer and from the clock in single
- * player. Loads the AI plans. */
+ * player. */
 void xvt_flight_loading_globals(void);
 /* Configures the display for the resolution, loads the flight palette with its color order
  * reversed and channels scaled to 6 bits, and allocates the global buffers. In 8-bit color, loads

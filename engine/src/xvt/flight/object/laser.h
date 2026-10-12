@@ -43,8 +43,8 @@ struct craft_laser_state {
 	/* Shot object type the group fires, from the model; 0 for no group. */
 	uint8_t projectile_type_id[2];
 	/* How the group fires: 1 one cannon at a time, 2 pairs, 3 all at once.
-	 * On an AI craft 0 holds fire, and paifight_fightershootorder sets a
-	 * mode to start a burst. */
+	 * On an AI craft 0 holds fire; the 1997 AI set a mode to start a
+	 * burst. */
 	uint8_t link_mode[2];
 	/* Shots left in an AI burst; laser_weaponsfire sets link_mode to 0 when
 	 * it reaches 0. */

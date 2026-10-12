@@ -146,7 +146,7 @@ struct hud_panel_sprite_file_info g_hud_panel_sprite_file_info = {{0}, 0, 0};
  * hud_update_targeting_computer_display and hud_draw_cmd_target_details record the
  * target; hud_init_hud and hud_update_craft_system_status_indicators set -1;
  * flight_process_player_actions and player_validate_current_targets set -2, and
- * collide_collisions and paiman_boardmaneuver -3, to force a redraw. After any
+ * collide_collisions -3, to force a redraw. After any
  * of -1 to -3 the targeting computer also redraws its labels. */
 // GLOBAL: XVT 0xA08C74
 int16_t g_hud_cached_target_object_idx = 0;

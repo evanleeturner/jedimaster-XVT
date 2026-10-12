@@ -121,10 +121,7 @@ static float g_collide_sweep_hit_fraction = 0.0f;
  * collide_test_swept_pair_collision): its current position, or where it will
  * be for a test ahead of time. Set before each test by
  * collide_collisions, collide_would_shot_hit_target,
- * collide_craftstarshipcollision, laser_fireturretslot,
- * paifight_gunnerselfdefenseorder,
- * paifight_find_nearest_gunner_target_in_candidate_set and
- * paifight_find_nearest_matching_target_from_origin. */
+ * collide_craftstarshipcollision and laser_fireturretslot. */
 // GLOBAL: XVT 0x9A1FD4
 int g_collision_probe_world_x = 0;
 /* End point, Y; see g_collision_probe_world_x. */
@@ -136,8 +133,7 @@ int g_collision_probe_world_z = 0;
 /* Start point, X, of the sweep of the object under test: its previous
  * position or its launch point. Set before each test by
  * collide_collisions, collide_would_shot_hit_target,
- * collide_craftstarshipcollision, laser_fireturretslot,
- * paifight_gunnerselfdefenseorder and paifight_gunneroffenseorder. */
+ * collide_craftstarshipcollision and laser_fireturretslot. */
 // GLOBAL: XVT 0x9EC604
 int g_collision_segment_start_world_x = 0;
 /* Start point, Y; see g_collision_segment_start_world_x. */
@@ -3399,8 +3395,8 @@ int collide_would_shot_hit_target(uint16_t source_obj_idx,
 	return result;
 }
 
-/* Looks lookahead_seconds ahead for source_obj_idx, for
- * paiorder_avoidstarshiporder: sweeps it from its position along its move
+/* Looks lookahead_seconds ahead for source_obj_idx (the 1997 AI's starship
+ * avoidance called it; only the tests do now): sweeps it from its position along its move
  * vector by one step's travel times g_sim_steps_per_second times
  * lookahead_seconds, against each freighter, starship and platform swept
  * the same way, then against the static objects in its proximity list.

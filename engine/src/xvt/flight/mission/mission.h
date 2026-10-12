@@ -98,8 +98,8 @@ struct mission_order {
 	/* 1 joins targets 1 and 2 with OR, else AND. */
 	uint8_t target1_or_target2;
 	uint8_t unused1; /* Loaded with the record; nothing reads it. */
-	/* Speed for the order; paiman_initmaneuver sets commanded_speed to 5
-	 * times it. */
+	/* Speed for the order; the 1997 AI set commanded_speed to 5 times
+	 * it. */
 	uint8_t speed;
 	/* Order text mission_setup_draw_flight_assignments shows for the first
 	 * order; empty shows a default. */
@@ -209,8 +209,8 @@ struct xvt_flight_group {
 	/* Delay after the departure trigger, seconds. */
 	uint8_t departure_delay_seconds;
 	/* Condition, 1 to 9, on which a craft aborts its mission (shields,
-	 * cannons, launcher, hull or attack); tested by
-	 * paiorder_abortmissionorder. */
+	 * cannons, launcher, hull or attack); the 1997 AI tested it, and
+	 * nothing does now. */
 	uint8_t abort_trigger;
 	/* Random part of the arrival delay, seconds. */
 	uint8_t arrival_rand_delay_seconds;
@@ -490,8 +490,8 @@ struct mission_flight_runtime_state {
 	 * lost (row 3). */
 	uint16_t team_kill_stats[4][10];
 	/* Per team and flight group: craft it inspected (row 0, by
-	 * collide_collisions) and captured (row 1, by
-	 * paiman_transfer_object_to_ai_team). Nothing reads it by name. */
+	 * collide_collisions) and captured (row 1, by the 1997 AI's capture;
+	 * nothing writes it now). Nothing reads it by name. */
 	uint16_t team_fg_inspected_captured_counts[2][10][48];
 	/* Per team and flight group, the role code 1 to 12 from craft_role, 0
 	 * for none. */

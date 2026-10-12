@@ -25,9 +25,8 @@
 /* AI skill as a fraction of 65,536 for each flight group AI level:
  * mission_init_flight_group_object_slot copies the entry for g_spawn_group_ai into a
  * new craft's ai_skill. Levels 4 and 5 hold 0xFFFF, which math2_fraction treats
- * as a whole; entries 6 and 7 are 0. pai_is_object_targetable_near_craft and
- * pai_is_object_within_skill_range_of_craft index it by the skill tier, 0 to 2,
- * instead. Nothing writes it. */
+ * as a whole; entries 6 and 7 are 0. The 1997 AI's target tests also indexed
+ * it by the skill tier, 0 to 2. Nothing writes it. */
 // GLOBAL: XVT 0x524100
 uint16_t g_ai_skill_value_q16_by_level[8] = {0x0000, 0x4000, 0x8000, 0xC000,
 					     0xFFFF, 0xFFFF, 0x0000, 0x0000};

@@ -44,9 +44,9 @@ uint16_t g_message_log_wrapped = 0;
  * msg functions and flight_process_player_actions, just before they emit. */
 // GLOBAL: XVT 0xA07BE0
 uint16_t g_msg_arg_table[4];
-/* Second name buffer for messages that name two objects: paiman_boardmaneuver
- * and player_handle_hyperspace_command write a name into it with
- * msg_format_object_name and pass it as argument 1. */
+/* Second name buffer for messages that name two objects:
+ * player_handle_hyperspace_command writes a name into it with
+ * msg_format_object_name and passes it as argument 1. */
 // GLOBAL: XVT 0x9EC4D0
 char g_flight_secondary_object_name_buffer[256] = {0};
 /* Text for '*' arguments marked slot + 0x8000 in g_msg_arg_table; only

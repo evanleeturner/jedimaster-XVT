@@ -63,8 +63,7 @@ const struct projectile_type_data_tables g_projectile_type_data = {
 const uint8_t g_warhead_type_ids[11] = {0x00, 0x96, 0x97, 0x90, 0x8F, 0x95,
 					0x94, 0x98, 0x99, 0x9A, 0x90};
 /* Share of a launcher's capacity loaded with each warhead choice, in
- * 65,536ths (0xFFFF loads it full); spawn loads at least 1.
- * paiman_boardmaneuver reads it too. */
+ * 65,536ths (0xFFFF loads it full); spawn loads at least 1. */
 // GLOBAL: XVT 0x524208
 const uint16_t g_warhead_ammo_fraction_q16[12] = {
 	0x0000, 0x4000, 0x8000, 0xFFFF, 0xC000, 0xFFFF,
@@ -2863,8 +2862,9 @@ void laser_warnplayer(uint16_t projectile_guidance_idx)
  * countdown in type_specific_byte[1]; when that runs out the countdown is
  * reset to 236 (two simulated seconds) and the mine looks for the nearest
  * target matching its flight group's first order, targets 1 and 2 and then
- * targets 3 and 4 (paifight_find_nearest_matching_target_from_origin; a Mine
- * Type B asks for a target that is not disabled). It fires only at a
+ * targets 3 and 4, through ai_brain_find_mine_target (a Mine Type B asks for
+ * a target that is not disabled); that door answers no target until the
+ * pilot program answers, so mines hold fire now. It fires only at a
  * target closer than 0x10000 world units, aiming ahead of a moving one by
  * its last step's motion times the expected flight steps (plus a random 0
  * to 3, less 1), from a point 150 world units out (170 for mines after
@@ -3199,7 +3199,7 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
  * source_obj_idx, against target_ref. Does nothing when the craft has no
  * working systems or the slot's mesh is destroyed. The low 7 bits of the
  * slot's laser_charge are a refire countdown: while it runs, each call takes
- * off a step set by the gunner's skill (pai_get_effective_skill_value), or,
+ * off a step set by the gunner's skill (ai_brain_effective_skill), or,
  * while a jamming beam holds the craft (beam_effect_accum[2]), 1 or 2 during
  * part of each simulated second and nothing at all from 0x28000 up; and
  * nothing fires. At 0 it is reset to 59 and the turret tries to fire: from

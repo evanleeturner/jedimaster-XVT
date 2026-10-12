@@ -14,8 +14,8 @@ int16_t g_game_rand_value_state = 0;
  * g_game_config.random_seed when g_active_flight_player_count is not 1, else
  * from timeGetTime XOR 0xBEEF (xvt_flight_loading_globals). Many functions
  * write it, chiefly game_rand; mission_init,
- * mission_spawn_flight_group_static_objects, pai_update_all_craft_ai and
- * collide_damagecraft swap another seed in for a while and put it back. The
+ * mission_spawn_flight_group_static_objects and collide_damagecraft swap
+ * another seed in for a while and put it back. The
  * saved world state carries it and the world checksum includes it. */
 // GLOBAL: XVT 0x9D113C
 int16_t g_game_rand_feedback_state = 0;
