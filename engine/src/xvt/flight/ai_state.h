@@ -12,6 +12,11 @@
 extern "C" {
 #endif
 
+/* Bytes in each craft's AI notebook (struct craft_data ai_notebook).
+ * The notebook rides the world save, both world checksums and a rewind, so a
+ * new size is a new save format. */
+enum { AI_NOTEBOOK_BYTES = 64 };
+
 enum ai_targeting_constant {
 	AI_TARGET_ABORT = 251,
 	AI_DECOY_RANGE_SMALL = 0x8000,

@@ -441,7 +441,9 @@ static void big_world(int flight_groups, int crafts, int statics)
 
 /* Region sums and lengths of three big worlds, recorded from the code at fork
  * commit 03e9d80 and again when the computer pilots' plan table, plan count
- * and plan index left the image, 22,020 bytes fewer in each world. They pin
+ * and plan index left the image, 22,020 bytes fewer in each world, and again
+ * when each craft record gained its 64-byte AI notebook: every region
+ * grew by 64 bytes for each craft it holds, and no sum moved. They pin
  * where today's regions close: inside the object section, after the
  * flight-group tables and right after the 3,376-byte table; the two short
  * tables that follow it no longer reach the region size and ride in the last
@@ -450,16 +452,16 @@ static void big_world(int flight_groups, int crafts, int statics)
 static const unsigned k_big4_sums[16] = {0x00000106, 0x000001be, 0x00000177,
 					 0x0000012d, 0x0004983d, 0x00000000,
 					 0x00001c49};
-static const unsigned k_big4_lengths[16] = {2670, 2670, 2670, 2670,
+static const unsigned k_big4_lengths[16] = {2798, 2798, 2798, 2798,
 					    6954, 3376, 11873};
 static const unsigned k_big12_sums[16] = {0x000001ef, 0x0000024c, 0x0001380e,
 					  0x000dca94, 0x00000000, 0x00001c49};
-static const unsigned k_big_small_lengths[16] = {2670, 2670, 2670, 3262,
+static const unsigned k_big_small_lengths[16] = {2798, 2798, 2798, 3326,
 						 5528, 3376, 11873};
 static const unsigned k_big_small_sums[16] = {
 	0x00000106, 0x000001be, 0x00000177, 0x00005df4,
 	0x0004427c, 0x00000000, 0x00001c51};
-static const unsigned k_big12_lengths[16] = {4005,  4005, 6448,
+static const unsigned k_big12_lengths[16] = {4197,  4197, 6576,
 					     16584, 3376, 11873};
 
 static void check_checksum_regions_in_big_worlds(void)
@@ -548,10 +550,12 @@ static void set_mixed_only_values(int seed)
 
 /* The live checksum of the rich world with 3 flight groups and player 0
  * connected, recorded from the code at fork commit 03e9d80 and again when
- * the plan table, plan count and plan bytes left the checksum, with
+ * the plan table, plan count and plan bytes left the checksum, and again
+ * when each craft record's checked bytes grew by the 64-byte AI notebook
+ * (zero here: the rotation still moves the result), with
  * set_mixed_only_values(1). Every pool loop, both flight-group loops and the
  * player loop run. */
-static const unsigned k_rich_live_checksum = 0x1b6c8af6u;
+static const unsigned k_rich_live_checksum = 0x1d6c8cf6u;
 
 static void check_live_checksum_of_rich_world(void)
 {
@@ -730,6 +734,97 @@ static void check_apply_presence_map_inserts_zeroed_blocks(void)
 	XVT_ASSERT_TRUE(inserted(written, slot1 + 1, OBJ_SIZE));
 }
 
+/* ---- the AI notebook in each craft record ---------------------------- */
+
+static uint8_t notebook_byte(int craft, int byte)
+{
+	return (uint8_t)(craft * 7 + byte * 13 + 1);
+}
+
+/* The 8-craft big world with a different byte pattern in each craft's
+ * notebook. */
+static void notebook_world(void)
+{
+	big_world(4, 8, 2);
+	g_flight_mission_state.mission_end_pending = 0;
+	for (int craft = 0; craft < 8; ++craft) {
+		for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
+			g_big_craft[craft].ai_notebook[byte] =
+				notebook_byte(craft, byte);
+		}
+	}
+}
+
+static void scramble_notebooks(void)
+{
+	for (int craft = 0; craft < 8; ++craft) {
+		memset(g_big_craft[craft].ai_notebook, 0xEE,
+		       sizeof g_big_craft[craft].ai_notebook);
+	}
+}
+
+/* Notebook bytes that differ from notebook_world's pattern. */
+static int notebook_mismatches(void)
+{
+	int mismatches = 0;
+	for (int craft = 0; craft < 8; ++craft) {
+		for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
+			mismatches += g_big_craft[craft].ai_notebook[byte] !=
+				      notebook_byte(craft, byte);
+		}
+	}
+	return mismatches;
+}
+
+/* A world save and restore, and an image encode and decode, give every
+ * craft its notebook back. */
+static void check_notebooks_survive_save_and_image(void)
+{
+	notebook_world();
+	uint8_t *saved_buffer = g_world_state_buffer;
+	g_world_state_buffer = g_image;
+	xvt_snapshot_save();
+	XVT_ASSERT_TRUE(g_world_state_size > 0);
+	scramble_notebooks();
+	xvt_snapshot_restore();
+	XVT_ASSERT_INT_EQ(g_flight_mission_state.mission_end_pending, 0);
+	XVT_ASSERT_INT_EQ(notebook_mismatches(), 0);
+	g_world_state_buffer = saved_buffer;
+
+	size_t written = xvt_snapshot_encode(g_image, g_capacity);
+	XVT_ASSERT_TRUE(written > 0);
+	scramble_notebooks();
+	XVT_ASSERT_INT_EQ(xvt_snapshot_decode(g_image, written), 1);
+	XVT_ASSERT_INT_EQ(notebook_mismatches(), 0);
+}
+
+/* One more in a notebook byte moves the region sums the network compares
+ * and the live checksum. Bytes 32 and up are the ones a live checksum of the
+ * record's old fixed length missed. */
+static void check_notebook_bytes_move_checksums(void)
+{
+	static const int bytes[] = {
+		0, 1, 31, 32, 33, AI_NOTEBOOK_BYTES - 2, AI_NOTEBOOK_BYTES - 1};
+	notebook_world();
+	for (size_t i = 0; i < sizeof bytes / sizeof bytes[0]; ++i) {
+		unsigned before[16];
+		unsigned after[16];
+		unsigned lengths[16];
+		size_t written = xvt_snapshot_encode(g_image, g_capacity);
+		xvt_snapshot_checksum_image(g_image, written, before, lengths);
+		int live_before = xvt_snapshot_live_checksum();
+
+		++g_big_craft[5].ai_notebook[bytes[i]];
+		written = xvt_snapshot_encode(g_image, g_capacity);
+		xvt_snapshot_checksum_image(g_image, written, after, lengths);
+		int live_after = xvt_snapshot_live_checksum();
+		--g_big_craft[5].ai_notebook[bytes[i]];
+
+		XVT_ASSERT_TRUE(memcmp(before, after, sizeof before) != 0);
+		XVT_ASSERT_TRUE(live_before != live_after);
+	}
+}
+
 int main(void)
 {
 	check_calculate_size();
@@ -751,6 +846,8 @@ int main(void)
 	check_apply_presence_map_keeps_matching_image();
 	check_apply_presence_map_removes_blocks();
 	check_apply_presence_map_inserts_zeroed_blocks();
+	check_notebooks_survive_save_and_image();
+	check_notebook_bytes_move_checksums();
 	free(g_dup);
 	free(g_image);
 	return 0;

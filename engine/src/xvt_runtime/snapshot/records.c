@@ -342,6 +342,7 @@ static const struct xvt_snapshot_field g_craft_data_fields[] = {
 	CRAFT_DATA_FIELD(weapon_slots),
 	CRAFT_DATA_FIELD(effective_ai_object_signature),
 	CRAFT_DATA_FIELD(turret_target_states),
+	CRAFT_DATA_FIELD(ai_notebook),
 	CRAFT_DATA_FIELD(unused3f2),
 };
 #undef CRAFT_DATA_FIELD

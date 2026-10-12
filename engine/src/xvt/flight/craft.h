@@ -386,6 +386,11 @@ struct craft_data {
 	uint16_t effective_ai_object_signature;
 	/* Per weapon slot, the turret's target and retarget timing. */
 	struct turret_target_state turret_target_states[16];
+	/* The pilot program's own memory for this craft, which only the program
+	 * reads: zeroed at spawn, sent with each think and replaced by the
+	 * program's answer. It sits before unused3f2 so the world checksums
+	 * cover it. */
+	uint8_t ai_notebook[AI_NOTEBOOK_BYTES];
 	/* No game code reads or writes it; the world checksums subtract its
 	 * size from the record bytes they sum. */
 	uint8_t unused3f2[44];

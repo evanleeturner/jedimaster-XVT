@@ -5313,6 +5313,11 @@ static void check_spawn_craft_values(void)
 	strcpy(group->special_cargo, "Secret plans");
 	group->special_cargo_craft = 1;
 	spawn_mission_ready();
+	/* A reused pool slot still holds the last craft's notebook. */
+	for (int index = 0; index < g_craft_data_pool_capacity; ++index) {
+		memset(g_craft_data_pool_base[index].ai_notebook, 0xEE,
+		       sizeof g_craft_data_pool_base[index].ai_notebook);
+	}
 	struct model_def saved;
 	struct model_def *model = set_test_model(&saved);
 	unsigned int signature = g_next_object_signature;
@@ -5372,6 +5377,9 @@ static void check_spawn_craft_values(void)
 				  g_ai_skill_value_q16_by_level[3]);
 		XVT_ASSERT_INT_EQ(craft->ai_controller.think_interval,
 				  g_ai_think_interval_by_skill[3]);
+		for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
+			XVT_ASSERT_INT_EQ(craft->ai_notebook[byte], 0);
+		}
 		XVT_ASSERT_INT_EQ(craft->craft_ordinal, ordinal);
 		XVT_ASSERT_INT_EQ(craft->craft_index_in_group, ordinal + 1);
 		XVT_ASSERT_INT_EQ(craft->leader_obj_idx,

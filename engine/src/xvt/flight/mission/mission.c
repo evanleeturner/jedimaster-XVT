@@ -11072,6 +11072,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 	g_cur_craft->ai_controller.target_xy_angle = 0;
 	g_cur_craft->ai_controller.waypoint_index = ORDER_GOAL_COUNT;
 	g_cur_craft->ai_controller.activity = AI_ACTIVITY_NONE;
+	memset(g_cur_craft->ai_notebook, 0, sizeof g_cur_craft->ai_notebook);
 	g_cur_craft->ai_controller.think_interval =
 		g_ai_think_interval_by_skill[ai_skill_level];
 	g_cur_craft->ai_controller.saved_rand_seed = game_rand() ^ 0xBEEF;

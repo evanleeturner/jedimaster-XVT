@@ -266,6 +266,7 @@ struct xvt_snapshot_craft_data {
 	struct craft_weapon_slot weapon_slots[16];
 	uint16_t effective_ai_object_signature;
 	struct turret_target_state turret_target_states[16];
+	uint8_t ai_notebook[AI_NOTEBOOK_BYTES];
 	uint8_t unused3f2[44];
 	uint32_t turret_object_links[16];
 	uint32_t effective_ai_object_link;
@@ -405,7 +406,7 @@ typedef char xvt_snapshot_size_object_record
 typedef char xvt_snapshot_size_mobile_object
 	[(sizeof(struct xvt_snapshot_mobile_object) == 177) ? 1 : -1];
 typedef char xvt_snapshot_size_craft_data
-	[(sizeof(struct xvt_snapshot_craft_data) == 1122) ? 1 : -1];
+	[(sizeof(struct xvt_snapshot_craft_data) == 1186) ? 1 : -1];
 typedef char xvt_snapshot_size_mobile_object_char_data
 	[(sizeof(struct xvt_snapshot_mobile_object_char_data) == 76) ? 1 : -1];
 typedef char xvt_snapshot_size_player_data
@@ -426,7 +427,7 @@ enum {
 		32
 };
 typedef char xvt_snapshot_checked_bytes_craft_data
-	[(XVT_SNAPSHOT_CRAFT_DATA_CHECKED_BYTES == 1042) ? 1 : -1];
+	[(XVT_SNAPSHOT_CRAFT_DATA_CHECKED_BYTES == 1106) ? 1 : -1];
 
 /* Encode fills every byte of record: the listed fields are copied as they are, and each link
  * to a live object or pool entry becomes its byte offset in the matching record array plus 1
