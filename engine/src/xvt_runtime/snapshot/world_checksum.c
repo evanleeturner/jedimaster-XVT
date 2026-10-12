@@ -76,11 +76,7 @@ static unsigned int xvt_snapshot_sum_slot_records(uint8_t **cursor)
 			struct xvt_snapshot_craft_data *craft_state =
 				(struct xvt_snapshot_craft_data *)*cursor;
 			int craft_data_bytes =
-				sizeof(*craft_state) -
-				sizeof(craft_state->unused3f2) -
-				sizeof(craft_state->turret_object_links) -
-				sizeof(craft_state->effective_ai_object_link) +
-				32;
+				XVT_SNAPSHOT_CRAFT_DATA_CHECKED_BYTES;
 			do {
 				sum += *(*cursor)++;
 			} while (--craft_data_bytes != 0);
@@ -256,7 +252,8 @@ xvt_snapshot_checksum_craft_data(const struct craft_data *live)
 {
 	struct xvt_snapshot_craft_data record;
 	xvt_snapshot_encode_craft_data(&record, live);
-	return flight_checksum_buffer_rotate_xor(&record, 0x412);
+	return flight_checksum_buffer_rotate_xor(
+		&record, XVT_SNAPSHOT_CRAFT_DATA_CHECKED_BYTES);
 }
 
 static unsigned int

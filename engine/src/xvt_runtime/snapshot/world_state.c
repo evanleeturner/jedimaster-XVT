@@ -93,7 +93,8 @@ static uint8_t *xvt_snapshot_restore_objects(uint8_t *cursor)
 					struct xvt_snapshot_craft_data craft;
 					xvt_snapshot_encode_craft_data(
 						&craft, mobile->p_craft);
-					memset(&craft, 0, 0x412);
+					memset(&craft, 0,
+					       XVT_SNAPSHOT_CRAFT_DATA_CHECKED_BYTES);
 					xvt_snapshot_decode_craft_data(
 						mobile->p_craft, &craft);
 				}

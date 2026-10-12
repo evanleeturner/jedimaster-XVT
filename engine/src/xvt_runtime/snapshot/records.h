@@ -411,6 +411,23 @@ typedef char xvt_snapshot_size_mobile_object_char_data
 typedef char xvt_snapshot_size_player_data
 	[(sizeof(struct xvt_snapshot_player_data) == 1469) ? 1 : -1];
 
+/* The bytes at the start of a craft record that the world checksums read: all
+ * but the last 12 bytes of unused3f2 and the two object-link fields after it.
+ * A world restore clears the same bytes of an empty slot's craft. A field
+ * placed before unused3f2 is read and cleared with them. */
+enum {
+	XVT_SNAPSHOT_CRAFT_DATA_CHECKED_BYTES =
+		sizeof(struct xvt_snapshot_craft_data) -
+		sizeof(((struct xvt_snapshot_craft_data *)0)->unused3f2) -
+		sizeof(((struct xvt_snapshot_craft_data *)0)
+			       ->turret_object_links) -
+		sizeof(((struct xvt_snapshot_craft_data *)0)
+			       ->effective_ai_object_link) +
+		32
+};
+typedef char xvt_snapshot_checked_bytes_craft_data
+	[(XVT_SNAPSHOT_CRAFT_DATA_CHECKED_BYTES == 1042) ? 1 : -1];
+
 /* Encode fills every byte of record: the listed fields are copied as they are, and each link
  * to a live object or pool entry becomes its byte offset in the matching record array plus 1
  * (0 for NULL). Native padding never reaches the record.
