@@ -9,7 +9,10 @@ name: Tests
 # its own: it is compiled with the MinGW compiler of
 # engine/packaging/windows/Dockerfile, the one the Windows package is built
 # with, and run on a Windows runner, where it crashes child processes on
-# purpose.
+# purpose. The AI program's test runs there too, built against the Windows SDL
+# of the same file, because SDL starts the AI program and pipes to it with
+# Windows code of its own; it starts the stand-in in ai/ with the runner's
+# Python.
 
 on:
   workflow_dispatch:
@@ -111,7 +114,7 @@ jobs:
             bash -euo pipefail -c "${TEST_SCRIPT}"
 
   windows-build:
-    name: Build the crash note test for Windows
+    name: Build the Windows tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -131,7 +134,8 @@ jobs:
           context: engine
           file: engine/packaging/windows/Dockerfile
           platforms: linux/amd64
-          target: build-base
+          # The MinGW compiler with the Windows SDL under /opt/xvt-windows.
+          target: sdl-windows
           load: true
           tags: openxvt-mingw:ci
           # The Windows package job's cache (scope windows) holds this stage.
@@ -157,29 +161,64 @@ jobs:
               tests/test_crash_note.c src/xvt_app/crash_note.c src/xvt_app/log_file.c \
               -o /work/out/test_crash_note.exe
 
-      - name: Keep the test program for the Windows job
+      - name: Compile the AI program test
+        # The test needs the AI program's process code, the wire format, the
+        # log header's code and SDL; nothing else from Aeron. Aeron's log
+        # funnel is replaced by tests/debug_lines_to_stderr.c, so the run
+        # prints each exchange's wait. The interpreter is the runner's python
+        # and the stand-in's folder is ai/, both found from the checkout.
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --volume "${GITHUB_WORKSPACE}/engine:/work/src:ro" \
+            --volume "${RUNNER_TEMP}/windows-tests:/work/out" \
+            --workdir /work/src \
+            openxvt-mingw:ci \
+            sh -euc '
+              x86_64-w64-mingw32-gcc-posix -std=c99 -Wall -Wextra -Wpedantic -g \
+                -Isrc -Itests -Iaeron/include -I/opt/xvt-windows/include \
+                -DXVT_TEST_PYTHON="\"python\"" -DXVT_TEST_AI_PROGRAM_DIR="\"ai\"" \
+                tests/test_ai_program.c src/xvt_runtime/ai/ai_program.c \
+                src/xvt_runtime/ai/ai_wire.c src/xvt_runtime/log/log.c \
+                tests/debug_lines_to_stderr.c \
+                -L/opt/xvt-windows/lib -lSDL3 -o /work/out/test_ai_program.exe
+              cp /opt/xvt-windows/bin/SDL3.dll /work/out/'
+
+      - name: Keep the test programs for the Windows job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
-          name: windows-crash-note-test
-          path: ${{ runner.temp }}/windows-tests/test_crash_note.exe
+          name: windows-tests
+          path: ${{ runner.temp }}/windows-tests/
           if-no-files-found: error
           retention-days: 1
 
   windows:
-    name: Windows crash note test
+    name: Windows tests
     needs: windows-build
     runs-on: windows-2025
     timeout-minutes: 10
     steps:
-      - name: Fetch the test program
+      - name: Check out sources
+        # The AI program test starts the stand-in in ai/.
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Fetch the test programs
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
         with:
-          name: windows-crash-note-test
-          path: ${{ runner.temp }}/windows-tests
+          name: windows-tests
+          path: windows-tests
 
       - name: Run the crash note test
         # Each child process crashes on purpose and has Windows error
         # reporting dialogs switched off; the test reads their exit codes and
         # the notes they wrote.
-        working-directory: ${{ runner.temp }}/windows-tests
+        working-directory: windows-tests
         run: ./test_crash_note.exe
+
+      - name: Run the AI program test
+        # Run from the checkout, where ai/ is; SDL3.dll sits beside the test.
+        run: |
+          python --version
+          ./windows-tests/test_ai_program.exe
