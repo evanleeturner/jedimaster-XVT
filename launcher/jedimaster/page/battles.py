@@ -57,6 +57,8 @@ class Flight:
     args: tuple[str, ...] = ()
     pilot_folder: Path | None = None
     timeout: float = DEFAULT_TIMEOUT
+    # The description's ``ai_program`` (``model.ai_program_of``); None starts none.
+    ai_program: dict[str, str] | None = None
 
 
 class Battles:

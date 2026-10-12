@@ -30,12 +30,18 @@ from pathlib import Path
 import pytest
 
 from jedimaster.__main__ import main
+from jedimaster.launch.check import errors
 from jedimaster.launch.cli import summary
+from jedimaster.launch.model import ai_program_of
 from jedimaster.launch.model import build_description
 from jedimaster.launch.run import fly
 from jedimaster.launch.run import LaunchError
+from jedimaster.launch.schema import launch_schema
 
 logger = logging.getLogger(__name__)
+
+# The repository's own AI program, which a checkout's launcher points at.
+REPO_AI_PROGRAM = Path(__file__).resolve().parents[2] / "ai" / "jedimaster_ai"
 
 STAND_IN = """#!__PYTHON__
 import json, sys, time
@@ -308,6 +314,72 @@ def test_setting_flags_become_the_settings_of_the_description(
         "collisions": False,
         "mission_time_limit": 5,
     }
+
+
+def make_ai_folder(tmp_path: Path) -> Path:
+    """Return a folder holding an empty ``__main__.py``, as the AI program's does."""
+    folder = tmp_path / "brain"
+    folder.mkdir()
+    (folder / "__main__.py").write_text("", encoding="utf-8")
+    return folder
+
+
+def test_the_ai_program_is_this_python_and_the_folder_made_absolute(
+    tmp_path, monkeypatch
+):
+    folder = make_ai_folder(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    program = ai_program_of("brain")
+    assert program == {"python": sys.executable, "path": str(folder.resolve())}
+    doc = build_description(
+        "combat", "imperial", "8braw10.tie", "Ace", ai_program=program
+    )
+    assert doc["ai_program"] == program and doc["ai_program"] is not program
+    assert errors(doc, launch_schema()) == []
+    assert "ai_program" not in build_description(
+        "combat", "imperial", "8braw10.tie", "Ace"
+    )
+
+
+def test_the_repositorys_own_ai_program_is_found():
+    assert ai_program_of(REPO_AI_PROGRAM)["path"] == str(REPO_AI_PROGRAM.resolve())
+
+
+def test_a_folder_without_the_ai_program_is_refused(tmp_path):
+    (tmp_path / "file").write_text("", encoding="utf-8")
+    for folder in (tmp_path, tmp_path / "missing", tmp_path / "file"):
+        with pytest.raises(ValueError, match="no AI program"):
+            ai_program_of(folder)
+
+
+def test_the_ai_program_flag_reaches_the_description(monkeypatch, engine, tmp_path):
+    from jedimaster.launch import cli as launch_cli
+
+    folder = make_ai_folder(tmp_path)
+    seen = []
+    real = launch_cli.fly
+    monkeypatch.setattr(
+        launch_cli, "fly", lambda e, d, *r: (seen.append(d), real(e, d, *r))[1]
+    )
+    assert main(command(engine, "Ace", "--ai-program", str(folder))) == 0
+    assert seen[0]["ai_program"] == {
+        "python": sys.executable,
+        "path": str(folder.resolve()),
+    }
+    assert main(command(engine)) == 0
+    assert "ai_program" not in seen[1]
+
+
+def test_an_ai_program_folder_without_the_program_exits_2(
+    monkeypatch, engine, tmp_path, caplog
+):
+    from jedimaster.launch import cli as launch_cli
+
+    flown = []
+    monkeypatch.setattr(launch_cli, "fly", lambda *a: flown.append(a))
+    assert main(command(engine, "Ace", "--ai-program", str(tmp_path))) == 2
+    assert "no AI program" in caplog.text
+    assert flown == []
 
 
 def test_without_a_setting_flag_the_description_has_no_settings(monkeypatch, engine):

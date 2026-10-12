@@ -136,7 +136,12 @@ class Launching:
             return self._refused(NO_PILOT)
         settings, note = for_description(self.store.get_options(args["player"]), kind)
         description = build_description(
-            kind, side, entry["file"], pilot, settings=settings
+            kind,
+            side,
+            entry["file"],
+            pilot,
+            settings=settings,
+            ai_program=self.flight.ai_program,
         )
         data = {
             "mission_type": kind,

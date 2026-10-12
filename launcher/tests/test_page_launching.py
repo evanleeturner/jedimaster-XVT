@@ -237,6 +237,17 @@ async def test_no_options_set_means_no_settings_in_the_description(tmp_path):
     assert "settings" not in json.loads(copy.read_text())
 
 
+async def test_the_flights_ai_program_rides_in_the_description(tmp_path):
+    program = {"python": "/usr/bin/python3", "path": "/srv/ai/jedimaster_ai"}
+    for root, given in ((tmp_path / "with", program), (tmp_path / "without", None)):
+        root.mkdir()
+        copy = root / "copy.json"
+        control, _ = make_control(root, "done", f"--copy={copy}", ai_program=given)
+        ask(control, "launch.solo", solo_args())
+        await finish(control)
+        assert json.loads(copy.read_text()).get("ai_program") == given
+
+
 async def test_an_easy_cheat_outside_a_campaign_is_sent_as_easy_and_the_answer_says_so(
     tmp_path,
 ):

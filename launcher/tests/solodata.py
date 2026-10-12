@@ -135,16 +135,24 @@ CONTROLS: list[Control] = []
 
 
 def make_control(
-    root: Path, behave: str = "done", *extra: str, timeout: float = 30.0
+    root: Path,
+    behave: str = "done",
+    *extra: str,
+    timeout: float = 30.0,
+    ai_program: dict[str, str] | None = None,
 ) -> tuple[Control, Flight]:
     """Return a control over the solo install with the stand-in engine, and its flight.
 
     One page is reported open. ``behave`` and ``extra`` are the engine's
-    extra arguments.
+    extra arguments; ``ai_program`` is the flight's.
     """
     store = SettingsStore(root / "config" / "settings.json")
     flight = Flight(
-        str(make_engine(root)), (behave, *extra), make_pilots(root), timeout
+        str(make_engine(root)),
+        (behave, *extra),
+        make_pilots(root),
+        timeout,
+        ai_program=ai_program,
     )
     control = Control(make_solo_install(root), store, LAUNCHER_VERSION, flight)
     control.pages_open = lambda: 1

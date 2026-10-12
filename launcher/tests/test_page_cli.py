@@ -188,6 +188,31 @@ def test_engine_engine_args_and_pilot_folder_reach_the_control(
     assert flight.args == ("--game-data", str(tmp_path))
     assert flight.pilot_folder == folder
     assert flight.timeout == 3600.0
+    assert flight.ai_program is None
+
+
+def test_the_ai_program_reaches_the_flight(tmp_path, page_dir, served):
+    engine = tmp_path / "game"
+    engine.write_text("x")
+    folder = tmp_path / "brain"
+    folder.mkdir()
+    (folder / "__main__.py").write_text("")
+    argv = serve_argv(tmp_path, page_dir, "--engine", str(engine))
+    assert main(argv + ["--ai-program", str(folder)]) == 0
+    assert served[0][0].launching.flight.ai_program == {
+        "python": sys.executable,
+        "path": str(folder.resolve()),
+    }
+
+
+def test_an_ai_program_folder_without_the_program_exits_2(
+    tmp_path, page_dir, served, caplog
+):
+    engine = tmp_path / "game"
+    engine.write_text("x")
+    argv = serve_argv(tmp_path, page_dir, "--engine", str(engine))
+    assert main(argv + ["--ai-program", str(tmp_path)]) == 2
+    assert "no AI program" in caplog.text and served == []
 
 
 def test_the_pilot_folder_defaults_to_the_games_user_folder(tmp_path, page_dir, served):
@@ -204,7 +229,9 @@ def test_an_engine_that_is_not_a_file_exits_2(tmp_path, page_dir, served, caplog
     assert "engine not found" in caplog.text and served == []
 
 
-@pytest.mark.parametrize("flag", [["--engine-arg=x"], ["--pilot-folder", "p"]])
+@pytest.mark.parametrize(
+    "flag", [["--engine-arg=x"], ["--pilot-folder", "p"], ["--ai-program", "p"]]
+)
 def test_engine_options_without_an_engine_exit_2(tmp_path, page_dir, served, flag):
     assert main(serve_argv(tmp_path, page_dir, *flag)) == 2
     assert served == []

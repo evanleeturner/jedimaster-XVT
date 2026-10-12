@@ -9,9 +9,10 @@ Flow:
     ``add_parser`` adds the command; ``run`` builds the description, flies it
     through ``run.fly`` and prints the line. ``--engine-arg`` hands one extra
     argument to the engine (for example ``--engine-arg=--game-data`` then
-    ``--engine-arg=/path``), ``--result`` keeps the result file, and
+    ``--engine-arg=/path``), ``--result`` keeps the result file,
     ``--setting NAME=VALUE`` (repeatable) sets one game option of the
-    description (see ``options``).
+    description (see ``options``), and ``--ai-program FOLDER`` has the engine
+    start the AI program in that folder with this Python.
 
 Invariants:
     - ``print`` carries only the one line; diagnostics go to the logging
@@ -19,7 +20,8 @@ Invariants:
     - Exit status: the engine's own (0 flown, 3 refused, 4 not reached, 5
       failed) when its result says so; 1 when the battle could not be
       started or its result cannot be trusted; 2 for arguments that do not
-      make a description.
+      make a description, an AI program folder without the program
+      included.
 
 Call:
     ``python -m jedimaster launch --type training --side rebel --mission 1ta02bz.tie --pilot Ace --engine ./OpenXvT``
@@ -31,6 +33,7 @@ import argparse
 import logging
 from typing import Any
 
+from .model import ai_program_of
 from .model import build_description
 from .model import GAME_TYPES
 from .model import SIDES
@@ -67,6 +70,11 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
         "--engine-arg", action="append", default=[], help="one extra engine argument"
     )
     launch.add_argument(
+        "--ai-program",
+        metavar="FOLDER",
+        help="the AI program that flies the computer craft, for example ai/jedimaster_ai",
+    )
+    launch.add_argument(
         "--setting",
         action="append",
         default=[],
@@ -94,6 +102,7 @@ def run(args: argparse.Namespace) -> int:
     """
     try:
         settings = dict(parse_setting(item) for item in args.setting)
+        ai_program = ai_program_of(args.ai_program) if args.ai_program else None
         description = build_description(
             args.game_type,
             args.side,
@@ -101,6 +110,7 @@ def run(args: argparse.Namespace) -> int:
             args.pilot,
             seed=args.seed,
             settings=settings,
+            ai_program=ai_program,
         )
     except ValueError as exc:
         logger.error("%s", exc)

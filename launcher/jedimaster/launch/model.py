@@ -7,7 +7,9 @@ Purpose:
 
 Flow:
     ``build_description`` turns the command's arguments into the description
-    dict the engine reads; ``folder_of`` gives a game type's mission folder.
+    dict the engine reads; ``folder_of`` gives a game type's mission folder;
+    ``ai_program_of`` turns the AI program's folder into the description's
+    ``ai_program``, run by this launcher's own Python.
 
 Invariants:
     - The description names settings by the lobby setup document's names and
@@ -22,6 +24,8 @@ Call:
 from __future__ import annotations
 
 import logging
+import sys
+from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -63,6 +67,23 @@ def folder_of(game_type: str) -> str:
     return FOLDERS[game_type]
 
 
+def ai_program_of(folder: str | Path) -> dict[str, str]:
+    """Return the description's ``ai_program`` for the AI program in ``folder``.
+
+    ``folder`` is the program's package folder, ``ai/jedimaster_ai`` in the
+    repository; the engine runs it with the Python running this launcher, and
+    the path is made absolute because the engine starts it from its own
+    working folder. Raises ValueError when ``folder`` holds no
+    ``__main__.py``.
+    """
+    path = Path(folder).resolve()
+    if not (path / "__main__.py").is_file():
+        raise ValueError(f"no AI program in {folder}: the folder holds no __main__.py")
+    program = {"python": sys.executable, "path": str(path)}
+    logger.debug("ai program %s", program)
+    return program
+
+
 def build_description(
     game_type: str,
     side: str | None,
@@ -71,6 +92,7 @@ def build_description(
     result: str | None = None,
     seed: int | None = None,
     settings: dict[str, Any] | None = None,
+    ai_program: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Return the description of one single-player battle.
 
@@ -104,5 +126,7 @@ def build_description(
         description["seed"] = seed
     if settings:
         description["settings"] = dict(settings)
+    if ai_program is not None:
+        description["ai_program"] = dict(ai_program)
     logger.debug("description %s", description)
     return description

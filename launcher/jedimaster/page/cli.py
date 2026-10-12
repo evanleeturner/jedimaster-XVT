@@ -11,7 +11,9 @@ Flow:
     same event loop and shares the ``Control``. ``--engine`` names the game
     program a solo battle is flown in (``--engine-arg`` hands it extra
     arguments); ``--pilot-folder`` names the folder of the game's pilot files,
-    which defaults to the game's own user folder (``launch.pilots``). The web framework is imported only
+    which defaults to the game's own user folder (``launch.pilots``);
+    ``--ai-program`` names the AI program's folder, which every solo battle's
+    description then carries (``launch.model.ai_program_of``). The web framework is imported only
     inside ``run``, so the package's other commands work without it.
 
 Invariants:
@@ -44,6 +46,7 @@ from pathlib import Path
 
 from .. import __version__
 from ..install import find_install
+from ..launch.model import ai_program_of
 from ..launch.pilots import default_pilot_folder
 from .battles import Flight
 from .control import Control
@@ -83,6 +86,11 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
         help="the folder of the game's pilot files (default: the game's user folder)",
     )
     page.add_argument(
+        "--ai-program",
+        metavar="FOLDER",
+        help="the AI program that flies the computer craft, for example ai/jedimaster_ai",
+    )
+    page.add_argument(
         "--bot",
         action="store_true",
         help="also run the Discord bot (jedimaster bot setup first)",
@@ -95,17 +103,23 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
 def flight_from(args: argparse.Namespace) -> Flight | None | int:
     """Return the ``Flight`` the options describe, None without ``--engine``, or the exit status 2.
 
-    Logs why when the options do not fit: ``--engine-arg`` or
-    ``--pilot-folder`` without ``--engine``, an engine that is not a file, or
-    a system with no default pilot folder and no ``--pilot-folder``.
+    Logs why when the options do not fit: ``--engine-arg``,
+    ``--pilot-folder`` or ``--ai-program`` without ``--engine``, an engine
+    that is not a file, an AI program folder without the program, or a system
+    with no default pilot folder and no ``--pilot-folder``.
     """
     if not args.engine:
-        if args.engine_arg or args.pilot_folder:
-            logger.error("--engine-arg and --pilot-folder need --engine")
+        if args.engine_arg or args.pilot_folder or args.ai_program:
+            logger.error("--engine-arg, --pilot-folder and --ai-program need --engine")
             return 2
         return None
     if not Path(args.engine).is_file():
         logger.error("engine not found: %s", args.engine)
+        return 2
+    try:
+        ai_program = ai_program_of(args.ai_program) if args.ai_program else None
+    except ValueError as exc:
+        logger.error("%s", exc)
         return 2
     folder = Path(args.pilot_folder) if args.pilot_folder else default_pilot_folder()
     if folder is None:
@@ -113,7 +127,7 @@ def flight_from(args: argparse.Namespace) -> Flight | None | int:
             "no default pilot folder is known for %s: give --pilot-folder", sys.platform
         )
         return 2
-    return Flight(args.engine, tuple(args.engine_arg), folder)
+    return Flight(args.engine, tuple(args.engine_arg), folder, ai_program=ai_program)
 
 
 def run(args: argparse.Namespace) -> int:
