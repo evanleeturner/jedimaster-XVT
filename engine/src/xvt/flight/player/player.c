@@ -8,6 +8,7 @@
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai/pai.h"
 #include "xvt/flight/ai/paiman.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/flight_input.h"
@@ -550,9 +551,7 @@ int player_unbind_from_current_craft(int player_index,
 				throttle_speed);
 		g_object_table[object_idx].mobj->speed_remainder = 0;
 		g_cur_craft = craft;
-		pai_setupcraftcontext((uint16_t)object_idx);
-		pai_apply_running_plan_target_and_maneuver(
-			(unsigned int)object_idx);
+		ai_brain_restart_craft_plan((unsigned int)object_idx);
 
 		if (g_players[player_index].current_target_object_idx != -1) {
 			int target_obj_idx = (uint16_t)g_players[player_index]
@@ -569,7 +568,7 @@ int player_unbind_from_current_craft(int player_index,
 				     ++order_slot) {
 					g_pai_context.order_slot =
 						(uint16_t)order_slot;
-					if (pai_current_order_targets_match_object(
+					if (ai_brain_order_targets_match_object(
 						    (uint16_t)g_players[player_index]
 							    .current_target_object_idx) !=
 					    0) {
@@ -590,9 +589,7 @@ int player_unbind_from_current_craft(int player_index,
 		g_cur_craft->ai_controller.current_plan_id =
 			g_cur_craft->ai_controller.running_plan_id;
 		g_cur_craft = craft;
-		pai_setupcraftcontext((uint16_t)object_idx);
-		pai_apply_running_plan_target_and_maneuver(
-			(unsigned int)object_idx);
+		ai_brain_restart_craft_plan((unsigned int)object_idx);
 		craft->ai_flight.roll_state = 0;
 		craft->ai_flight.pitch_state = 0;
 		craft->ai_flight.turn_state = 0;
@@ -3004,9 +3001,7 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 			if (strcmp(plan_name, "craftwaitforgopln") == 0) {
 				ai->running_plan_id = ai->saved_plan_id;
 				g_cur_craft = craft;
-				pai_setupcraftcontext(object_index);
-				pai_apply_running_plan_target_and_maneuver(
-					object_index);
+				ai_brain_restart_craft_plan(object_index);
 				XVT_LOG_DEBUG(
 					"player.wingman_released slot=%d object=%d plan=%d predicted=%d",
 					player_idx, (int)object_index,

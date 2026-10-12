@@ -1,3 +1,4 @@
+#include "xvt/flight/ai_brain.h"
 #include "xvt_runtime/runtime/flight_internal.h"
 
 enum {
@@ -202,8 +203,7 @@ void xvt_flight_loading_globals(void)
 	if (g_flight_conf_no_pilot == 0) {
 		mission_sync_pilot_network_players_to_session_slots();
 	}
-	pai_loadplans((char *)g_pai_plan_resource_base_name);
-	pai_cache_builtin_plan_ids();
+	ai_brain_start_flight();
 	g_hud_cockpit_resources_loaded = 0;
 	g_flight_sw_rot_sprite_coeff_cache_valid = 0;
 	g_unused_flight_startup_object_pass_state = 0;

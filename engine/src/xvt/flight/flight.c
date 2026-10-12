@@ -14,6 +14,7 @@
 #include "xvt/audio/sound.h"
 #include "xvt/flight/ai/pai.h"
 #include "xvt/flight/ai/paifight.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight_display.h"
@@ -2259,7 +2260,7 @@ void flight_process_player_actions(int player_idx)
 							.mobj->p_craft;
 					struct ai_controller *controller =
 						&g_cur_craft->ai_controller;
-					pai_setupcraftcontext(
+					ai_brain_prepare_craft(
 						(uint16_t)target_index);
 					if ((strcmp(g_plan_table
 							    [controller
@@ -2271,7 +2272,7 @@ void flight_process_player_actions(int player_idx)
 								     ->running_plan_id]
 								    .name,
 						    "board3pln") == 0) &&
-					    pai_current_order_targets_match_object(
+					    ai_brain_order_targets_match_object(
 						    (uint16_t)g_players[player_idx]
 							    .object_index) !=
 						    0) {
@@ -4342,7 +4343,7 @@ void flight_process_player_actions(int player_idx)
 					uint16_t flight_group_idx =
 						g_players[player_idx]
 							.bound_flight_group_idx;
-					uint16_t mothership = pai_find_mothership_object(
+					uint16_t mothership = ai_brain_find_mothership(
 						g_mission_flight_groups[flight_group_idx]
 							.fg
 							.departure_mothership);
@@ -5091,8 +5092,7 @@ void flight_process_player_actions(int player_idx)
 				   "craftwaitforgopln") == 0) {
 				controller->running_plan_id =
 					controller->saved_plan_id;
-				pai_setupcraftcontext((uint16_t)target_index);
-				pai_apply_running_plan_target_and_maneuver(
+				ai_brain_restart_craft_plan(
 					(uint16_t)target_index);
 			}
 			controller->candidate_target_idx = AI_TARGET_ABORT;
@@ -5177,8 +5177,7 @@ void flight_process_player_actions(int player_idx)
 				g_cur_craft->ai_controller.running_plan_id =
 					g_cur_craft->ai_controller
 						.saved_plan_id;
-				pai_setupcraftcontext((uint16_t)target_index);
-				pai_apply_running_plan_target_and_maneuver(
+				ai_brain_restart_craft_plan(
 					(uint16_t)target_index);
 				XVT_LOG_DEBUG(
 					"flight.craft_ordered slot=%d command=\"go\" target=%d plan=%d saved=%d predicted=%d",
@@ -5304,8 +5303,7 @@ void flight_process_player_actions(int player_idx)
 								CRAFT_GENUS_STARSHIP
 							? "starshipintohyperpln"
 							: "flyhomeevadepln");
-				pai_setupcraftcontext((uint16_t)target_index);
-				pai_apply_running_plan_target_and_maneuver(
+				ai_brain_restart_craft_plan(
 					(uint16_t)target_index);
 				XVT_LOG_DEBUG(
 					"flight.craft_ordered slot=%d command=\"home\" target=%d plan=%d saved=%d predicted=%d",
@@ -5714,8 +5712,7 @@ void flight_process_player_actions(int player_idx)
 								CRAFT_GENUS_STARSHIP
 							? "starshipwaitforgopln"
 							: "craftwaitforgopln");
-				pai_setupcraftcontext((uint16_t)target_index);
-				pai_apply_running_plan_target_and_maneuver(
+				ai_brain_restart_craft_plan(
 					(uint16_t)target_index);
 				XVT_LOG_DEBUG(
 					"flight.craft_ordered slot=%d command=\"wait\" target=%d plan=%d saved=%d predicted=%d",

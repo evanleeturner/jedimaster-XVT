@@ -9,6 +9,7 @@
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai/pai.h"
 #include "xvt/flight/ai/paifight.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/flight_view.h"
@@ -2931,7 +2932,7 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 	    MINE_TYPE_B_LIVE_TARGET) {
 		g_pai_context.require_undisabled_target = 0;
 	}
-	uint16_t target_ref = paifight_find_nearest_matching_target_from_origin(
+	uint16_t target_ref = ai_brain_find_mine_target(
 		g_mission_flight_groups[flight_group_idx]
 			.fg.orders[0]
 			.target1_type,
@@ -2945,7 +2946,7 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 		g_mission_flight_groups[flight_group_idx].fg.orders[0].target2,
 		0);
 	if (target_ref == UINT16_MAX) {
-		target_ref = paifight_find_nearest_matching_target_from_origin(
+		target_ref = ai_brain_find_mine_target(
 			g_mission_flight_groups[flight_group_idx]
 				.fg.orders[0]
 				.secondary_target_types[0],
@@ -3276,7 +3277,7 @@ void laser_fireturretslot(uint16_t source_obj_idx, uint16_t weapon_slot_idx,
 	}
 
 	struct object_record *source_object = &g_object_table[source_obj_idx];
-	uint16_t effective_skill = pai_get_effective_skill_value(g_cur_craft);
+	uint16_t effective_skill = ai_brain_effective_skill(g_cur_craft);
 	uint8_t charge = (uint8_t)g_cur_craft->weapon_slots[weapon_slot_idx]
 				 .laser_charge;
 	uint8_t refire_countdown = charge & LASER_CHARGE_VALUE_MASK;

@@ -1,5 +1,6 @@
 #include "xvt_runtime/runtime/flight_sim.h"
 
+#include "xvt/flight/ai_brain.h"
 #include "xvt_runtime/input/flight_controls.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/flight_checkpoint.h"
@@ -855,7 +856,7 @@ xvt_flight_step_result xvt_flight_sim_step_to_time(int target_game_time)
 			struct xvt_flight_clock clock =
 				xvt_flight_timing_enter_reference();
 			mission_update_flight_group_arrivals();
-			pai_update_all_craft_ai();
+			ai_brain_think_due_craft();
 			xvt_flight_timing_restore_clock(clock);
 		}
 		flight_update_timers();

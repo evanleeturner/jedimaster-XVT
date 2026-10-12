@@ -10,6 +10,7 @@
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai/pai.h"
 #include "xvt/flight/ai/paiman.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -11013,8 +11014,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 		g_cur_craft->system_health[index] = 100;
 		g_cur_craft->system_repair_seconds[index] = 0;
 	}
-	pai_setupcraftcontext(object_index);
-	pai_apply_running_plan_target_and_maneuver(object_index);
+	ai_brain_restart_craft_plan(object_index);
 	craft_clear_turret_object_links(g_cur_craft);
 	g_cur_craft->player_command_avoid_target_obj_idx = UINT16_MAX;
 	++g_mission_fg_stats[g_current_flight_group_idx].spawned_craft_count;

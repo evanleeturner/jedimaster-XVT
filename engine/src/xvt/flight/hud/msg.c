@@ -7,6 +7,7 @@
 #include "xvt/assets/file.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/hud/flight_text.h"
@@ -1105,7 +1106,7 @@ int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
 		} else {
 			g_msg_arg_table[3] = IFMSG_347_OTHERS_WILL_DISABLE_IT;
 		}
-		if (pai_setup_context_and_find_order_plan_on_target(
+		if (ai_brain_order_gives_plan_on_target(
 			    g_players[player_idx].object_index, 19,
 			    target_obj_idx) == 1) {
 			++g_msg_arg_table[3];
@@ -1117,7 +1118,7 @@ int msg_build_target_description(uint16_t target_obj_idx, int player_idx,
 		g_msg_arg_table[3] = IFMSG_345_TO_BE_BOARDED;
 	} else if (destroy_flag != 0) {
 		g_msg_arg_table[3] = IFMSG_337_OTHERS_WILL_DESTROY_IT;
-		if (pai_setup_context_and_find_order_plan_on_target(
+		if (ai_brain_order_gives_plan_on_target(
 			    g_players[player_idx].object_index, 69,
 			    target_obj_idx) == 1) {
 			++g_msg_arg_table[3];
