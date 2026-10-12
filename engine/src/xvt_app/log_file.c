@@ -65,6 +65,31 @@ int xvt_log_file_is_run_name(const char *name)
 	return name[i] == 0;
 }
 
+int xvt_log_file_ai_path(char *out, size_t capacity, const char *run_path)
+{
+	static const char log_suffix[] = ".log";
+	const size_t suffix_length = sizeof(log_suffix) - 1;
+	if (capacity == 0) {
+		return 0;
+	}
+	out[0] = 0;
+	if (!run_path || !run_path[0]) {
+		return 0;
+	}
+	size_t stem = strlen(run_path);
+	if (stem >= suffix_length &&
+	    !strcmp(run_path + stem - suffix_length, log_suffix)) {
+		stem -= suffix_length;
+	}
+	int written =
+		snprintf(out, capacity, "%.*s-ai.log", (int)stem, run_path);
+	if (written < 0 || (size_t)written >= capacity) {
+		out[0] = 0;
+		return 0;
+	}
+	return 1;
+}
+
 static int xvt_log_file_compare_names(const void *a, const void *b)
 {
 	return strcmp(*(const char *const *)a, *(const char *const *)b);

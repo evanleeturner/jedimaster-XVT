@@ -1,6 +1,8 @@
 /* Tests for xvt_runtime/ai/ai_program.c with real child processes. The
  * stand-in AI program in the repository's ai/ folder answers questions this
- * file builds, and the engine's reader takes each answer whole. Short Python
+ * file builds, and the engine's reader takes each answer whole; started with
+ * the command line the engine fills, it writes its log where it is told,
+ * naming the run and at the level given. Short Python
  * programs given on the command line answer in pieces, exit, stay silent or
  * send a length too long; each fault must run the failure callback once and
  * leave every later exchange answering 0. XVT_TEST_PYTHON names the
@@ -119,6 +121,68 @@ static void check_stand_in_answers_with_nothing(void)
 	XVT_ASSERT_INT_EQ(g_failures, 0);
 }
 
+/* The command line holds the run id as eight lowercase hex digits and the
+ * level, and the log file only when one is named. */
+static void check_fill_command(void)
+{
+	struct ai_program_command command;
+	ai_program_fill_command(&command, "py", "prog", 0x2au, "info", "");
+	const char *short_line[] = {"py",	"prog",	       "--run-id",
+				    "0000002a", "--log-level", "info",
+				    NULL};
+	for (size_t i = 0; i < sizeof(short_line) / sizeof(short_line[0]);
+	     ++i) {
+		XVT_ASSERT_TRUE(
+			command.args[i] && short_line[i]
+				? !strcmp(command.args[i], short_line[i])
+				: command.args[i] == short_line[i]);
+	}
+	ai_program_fill_command(&command, "py", "prog", 0xfedcba98u, "debug",
+				"/srv/logs/run-ai.log");
+	const char *long_line[] = {
+		"py",	       "prog",	"--run-id",   "fedcba98",
+		"--log-level", "debug", "--log-file", "/srv/logs/run-ai.log",
+		NULL};
+	XVT_ASSERT_INT_EQ((int)(sizeof(long_line) / sizeof(long_line[0])),
+			  AI_PROGRAM_ARGS_CAPACITY);
+	for (size_t i = 0; i < sizeof(long_line) / sizeof(long_line[0]); ++i) {
+		XVT_ASSERT_TRUE(command.args[i] && long_line[i]
+					? !strcmp(command.args[i], long_line[i])
+					: command.args[i] == long_line[i]);
+	}
+}
+
+/* Started with the command line the engine fills, the stand-in appends its
+ * log to the named file: the header names the run, and the debug level lets
+ * the per-craft view line through. The file sits in the working folder. */
+static void check_stand_in_writes_its_log(void)
+{
+	static const char log_path[] = "test_ai_program-ai.log";
+	remove(log_path);
+	struct ai_program_command command;
+	ai_program_fill_command(&command, XVT_TEST_PYTHON,
+				XVT_TEST_AI_PROGRAM_DIR "/jedimaster_ai",
+				0x1a2b3c4du, "debug", log_path);
+	start(command.args, TEST_LIMIT_MS);
+	XVT_ASSERT_INT_EQ((int)exchange_about_one_craft(),
+			  AI_WIRE_HEAD_BYTES + TEST_IDLE_ANSWER_BYTES);
+	ai_program_stop();
+	XVT_ASSERT_INT_EQ(g_failures, 0);
+	static char text[65536];
+	FILE *file = fopen(log_path, "rb");
+	XVT_ASSERT_TRUE(file != NULL);
+	size_t length = fread(text, 1, sizeof(text) - 1, file);
+	fclose(file);
+	text[length] = '\0';
+	XVT_ASSERT_TRUE(
+		strncmp(text, "= jedimaster_ai run 1a2b3c4d fmt 1 ",
+			strlen("= jedimaster_ai run 1a2b3c4d fmt 1 ")) == 0);
+	XVT_ASSERT_TRUE(strstr(text, " I program.started") != NULL);
+	XVT_ASSERT_TRUE(strstr(text, " D think.view") != NULL);
+	XVT_ASSERT_TRUE(strstr(text, " I program.stopped") != NULL);
+	remove(log_path);
+}
+
 /* An answer that arrives in two pieces with a pause between comes back
  * whole, its length field first. */
 static void check_answer_in_pieces(void)
@@ -212,7 +276,9 @@ static void check_stop(void)
 
 int main(void)
 {
+	check_fill_command();
 	check_stand_in_answers_with_nothing();
+	check_stand_in_writes_its_log();
 	check_answer_in_pieces();
 	check_exit_is_a_fault();
 	check_silence_is_a_fault();

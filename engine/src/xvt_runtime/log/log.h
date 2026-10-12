@@ -83,6 +83,11 @@ AeronLogLevel xvt_log_level(void);
  * Writes the level to out and returns 1; returns 0, out untouched, for NULL or
  * any other text. */
 int xvt_log_parse_level(const char *name, AeronLogLevel *out);
+/* Returns the name xvt_log_parse_level reads as level: "debug", "info",
+ * "warn" or "error". A level below debug gives "debug" and one above error
+ * gives "error", the nearest name, so a child program told the name writes
+ * at least the lines the engine writes. */
+const char *xvt_log_level_name(AeronLogLevel level);
 /* Splits a message Aeron formatted into an event and its fields. "xvt: <event>
  * <fields>" (a line from these macros) gives the event word and the text after
  * it; "<category>: <text>" (a line from Aeron, the category holding no space)

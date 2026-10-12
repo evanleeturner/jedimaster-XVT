@@ -1,6 +1,8 @@
 #ifndef XVT_RUNTIME_LAUNCH_DOOR_H
 #define XVT_RUNTIME_LAUNCH_DOOR_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -19,8 +21,12 @@ extern "C" {
 /* Reads and checks the description in the file at path. On success keeps it
  * and returns 1. Otherwise writes a result file that says why (beside the
  * description as "<path>.result.json" when it names none) and returns 0; the
- * caller ends the program with XVT_LAUNCH_EXIT_REFUSED. */
-int xvt_launch_door_open(const char *path);
+ * caller ends the program with XVT_LAUNCH_EXIT_REFUSED. A description that
+ * names an AI program starts it first (ai_program.h), telling it run_id, the
+ * engine's log level and ai_log_file ("" for standard error only), so its log
+ * names the engine's run; a program that cannot be started is a refusal. */
+int xvt_launch_door_open(const char *path, uint32_t run_id,
+			 const char *ai_log_file);
 /* 1 from a successful open until the result is written. */
 int xvt_launch_door_is_active(void);
 /* Advances the door by one step after a frontend frame; does nothing when

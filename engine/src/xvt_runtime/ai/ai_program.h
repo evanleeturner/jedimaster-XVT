@@ -23,10 +23,33 @@ enum ai_program_constant {
 	/* The time a stopped program may take to exit before it is killed. */
 	AI_PROGRAM_STOP_LIMIT_MS = 1000,
 	AI_PROGRAM_WHY_CAPACITY = 256,
+	/* A command line's entries, its ending NULL included: the Python, the
+	 * program's path, and three options each with its value. */
+	AI_PROGRAM_ARGS_CAPACITY = 9,
+	/* Eight hex digits and the terminator. */
+	AI_PROGRAM_RUN_ID_CAPACITY = 9,
+};
+
+/* The AI program's command line, for ai_program_start. args points into this
+ * record and at the strings given to ai_program_fill_command, which must
+ * outlive the start. */
+struct ai_program_command {
+	const char *args[AI_PROGRAM_ARGS_CAPACITY];
+	char run_id[AI_PROGRAM_RUN_ID_CAPACITY];
 };
 
 /* Runs once, at the first fault, with why the program was stopped. */
 typedef void (*ai_program_failure_fn)(const char *why);
+
+/* Fills command with the AI program's command line: python, path,
+ * "--run-id" and run_id as eight lowercase hex digits, "--log-level" and
+ * level, and, unless log_file is "", "--log-file" and log_file; NULL ends the
+ * list. The program's log then names the engine's run, at the engine's level,
+ * in the file the engine chose (with no file, standard error only). */
+void ai_program_fill_command(struct ai_program_command *command,
+			     const char *python, const char *path,
+			     uint32_t run_id, const char *level,
+			     const char *log_file);
 
 /* Starts the program args names: args[0] is the file to run, looked up on
  * PATH when it names no folder, and the list ends with NULL. Each later

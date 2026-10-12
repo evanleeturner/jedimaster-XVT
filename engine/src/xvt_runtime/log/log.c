@@ -31,26 +31,43 @@ static int xvt_log_equals_ignoring_case(const char *a, const char *b)
 	return *a == *b;
 }
 
+/* The level names --log-level and OPENXVT_LOG_LEVEL take, lowest first. */
+static const struct {
+	const char *name;
+	AeronLogLevel level;
+} g_xvt_log_level_names[] = {{"debug", AERON_LOG_DEBUG},
+			     {"info", AERON_LOG_INFO},
+			     {"warn", AERON_LOG_WARN},
+			     {"error", AERON_LOG_ERROR}};
+
+enum {
+	XVT_LOG_LEVEL_NAME_COUNT =
+		sizeof(g_xvt_log_level_names) / sizeof(g_xvt_log_level_names[0])
+};
+
 int xvt_log_parse_level(const char *name, AeronLogLevel *out)
 {
-	static const struct {
-		const char *name;
-		AeronLogLevel level;
-	} names[] = {{"debug", AERON_LOG_DEBUG},
-		     {"info", AERON_LOG_INFO},
-		     {"warn", AERON_LOG_WARN},
-		     {"error", AERON_LOG_ERROR}};
-
 	if (!name) {
 		return 0;
 	}
-	for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
-		if (xvt_log_equals_ignoring_case(name, names[i].name)) {
-			*out = names[i].level;
+	for (size_t i = 0; i < XVT_LOG_LEVEL_NAME_COUNT; ++i) {
+		if (xvt_log_equals_ignoring_case(
+			    name, g_xvt_log_level_names[i].name)) {
+			*out = g_xvt_log_level_names[i].level;
 			return 1;
 		}
 	}
 	return 0;
+}
+
+const char *xvt_log_level_name(AeronLogLevel level)
+{
+	size_t i = 0;
+	while (i + 1 < XVT_LOG_LEVEL_NAME_COUNT &&
+	       g_xvt_log_level_names[i].level < level) {
+		++i;
+	}
+	return g_xvt_log_level_names[i].name;
 }
 
 int xvt_log_split_message(const char *message, const char **event,

@@ -2233,6 +2233,11 @@
       "fields": ["stick", "x_neg", "x_pos", "y_neg", "y_pos"],
       "text": "Joystick {stick} was centered less than 255 steps from an end of an axis (scales {x_neg} and {x_pos} for left and right, {y_neg} and {y_pos} for up and down); each scale under 1 was raised to 1 so reading the stick cannot divide by zero"
     },
+    "launch.ai_program": {
+      "level": "I",
+      "fields": ["path", "run", "level", "log_file"],
+      "text": "The AI program at {path} is started for run {run}, logging at level {level} to {log_file} (empty: standard error only)"
+    },
     "launch.command": {
       "level": "D",
       "fields": ["command"],

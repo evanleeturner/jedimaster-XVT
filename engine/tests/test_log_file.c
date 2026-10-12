@@ -1,8 +1,9 @@
 /* Checks the run log file module (xvt_app/log_file.h) against the promises in
- * its header: the run name's shape, which old files a folder keeps, how a log's
- * end shows the way its run ended, and the append-only handle every line goes
- * through, including two threads writing at once. The file checks run in a
- * temporary folder; nothing is written elsewhere. */
+ * its header: the run name's shape, the AI program's log name beside it,
+ * which old files a folder keeps, how a log's end shows the way its run ended,
+ * and the append-only handle every line goes through, including two threads
+ * writing at once. The file checks run in a temporary folder; nothing is
+ * written elsewhere. */
 #define _POSIX_C_SOURCE 200809L
 
 #include <pthread.h>
@@ -93,6 +94,50 @@ static void check_is_run_name(void)
 	XVT_ASSERT_INT_EQ(xvt_log_file_is_run_name(
 				  "openxvt_20261001-205153-1a2b3c4d.log"),
 			  0);
+}
+
+/* The AI program's log sits beside the run log, "-ai" before ".log", and is
+ * never a run name; a path that does not fit writes "". */
+static void check_ai_path(void)
+{
+	static const struct {
+		const char *run_path;
+		const char *want;
+	} cases[] = {
+		{"openxvt-20261001-205153-1a2b3c4d.log",
+		 "openxvt-20261001-205153-1a2b3c4d-ai.log"},
+		{"/srv/logs/openxvt-20261001-205153-1a2b3c4d.log",
+		 "/srv/logs/openxvt-20261001-205153-1a2b3c4d-ai.log"},
+		{"/srv/logs/game.log", "/srv/logs/game-ai.log"},
+		{"/srv/logs/game.txt", "/srv/logs/game.txt-ai.log"},
+		{"/srv/logs/game.LOG", "/srv/logs/game.LOG-ai.log"},
+		{"log", "log-ai.log"},
+		{".log", "-ai.log"},
+	};
+	char out[128];
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		XVT_ASSERT_INT_EQ(xvt_log_file_ai_path(out, sizeof out,
+						       cases[i].run_path),
+				  1);
+		XVT_ASSERT_INT_EQ(strcmp(out, cases[i].want), 0);
+		XVT_ASSERT_INT_EQ(xvt_log_file_is_run_name(out), 0);
+	}
+	const char *run = cases[0].run_path;
+	size_t fits = strlen(cases[0].want) + 1;
+	XVT_ASSERT_INT_EQ(xvt_log_file_ai_path(out, fits, run), 1);
+	XVT_ASSERT_INT_EQ(strcmp(out, cases[0].want), 0);
+	strcpy(out, "x");
+	XVT_ASSERT_INT_EQ(xvt_log_file_ai_path(out, fits - 1, run), 0);
+	XVT_ASSERT_INT_EQ(out[0], 0);
+	strcpy(out, "x");
+	XVT_ASSERT_INT_EQ(xvt_log_file_ai_path(out, sizeof out, ""), 0);
+	XVT_ASSERT_INT_EQ(out[0], 0);
+	strcpy(out, "x");
+	XVT_ASSERT_INT_EQ(xvt_log_file_ai_path(out, sizeof out, NULL), 0);
+	XVT_ASSERT_INT_EQ(out[0], 0);
+	strcpy(out, "x");
+	XVT_ASSERT_INT_EQ(xvt_log_file_ai_path(out, 0, run), 0);
+	XVT_ASSERT_INT_EQ(strcmp(out, "x"), 0);
 }
 
 static void check_select_expired(void)
@@ -339,6 +384,7 @@ int main(void)
 {
 	check_format_name();
 	check_is_run_name();
+	check_ai_path();
 	check_select_expired();
 	check_read_ending();
 	char folder[XVT_TEST_PATH_CAPACITY];

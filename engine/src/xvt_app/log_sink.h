@@ -1,6 +1,9 @@
 #ifndef XVT_APP_LOG_SINK_H
 #define XVT_APP_LOG_SINK_H
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "xvt_app/host_config.h"
 
 #ifdef __cplusplus
@@ -30,7 +33,8 @@ extern "C" {
  * is the --log-file option, else the OPENXVT_LOG_FILE environment variable,
  * appended to; else a new file per run, named for the run's start, in the
  * "logs" folder of the preferences folder, where the oldest run logs are
- * removed so the newest XVT_LOG_FILE_KEEP remain. The first line after the
+ * removed, each with its AI program's log, so the newest XVT_LOG_FILE_KEEP
+ * remain. The first line after the
  * header names the file (app.log_file), or says why there is none
  * (app.log_file_failed) and the run goes on with stderr only. The file holds
  * DEBUG lines only when the level asks for them, as stderr does. Install also
@@ -45,8 +49,8 @@ extern "C" {
  * note, ended="without_stop" when it simply stops (the run was killed, hung and
  * was ended from outside, lost power, ended by the fatal file error path, or is
  * still running), with the last event it wrote. State: the home folder, the log
- * file and whether Install ran, found once at install; SDL holds the output
- * function, the log header the level. */
+ * file, its path, the run id and whether Install ran, found once at install;
+ * SDL holds the output function, the log header the level. */
 
 /* Installs the writer and opens the log file as described above, and returns 1.
  * Returns 0, with nothing changed, no file opened and a message on stderr, when
@@ -59,6 +63,12 @@ int xvt_log_sink_install(const struct xvt_launch_options *options);
  * Install has not succeeded. Call once, after every other thread that logs has
  * stopped. */
 void xvt_log_sink_finish(int exit_code);
+/* Writes into path where the AI program writes its log, beside this run's log
+ * file with "-ai" before ".log" (xvt_log_file_ai_path), and returns this run's
+ * id, so the two logs name one run. path holds "" when the run has no log file
+ * (lines reach stderr only, and the AI program's too) or the path does not
+ * fit; Install not yet run returns 0 with "". Capacity 0 writes nothing. */
+uint32_t xvt_log_sink_ai_log(char *path, size_t capacity);
 
 #ifdef __cplusplus
 }

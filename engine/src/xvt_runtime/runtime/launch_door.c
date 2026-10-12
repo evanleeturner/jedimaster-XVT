@@ -98,13 +98,21 @@ static void end_on_ai_failure(const char *why)
 }
 
 /* Starts the description's AI program and asks it about computer craft from
- * now on. Returns 1, or 0 after writing the refusal. */
-static int start_ai_program(void)
+ * now on. Its log names run_id, keeps the engine's level and goes to
+ * ai_log_file ("" for standard error only). Returns 1, or 0 after writing the
+ * refusal. */
+static int start_ai_program(uint32_t run_id, const char *ai_log_file)
 {
-	const char *args[] = {g_description.ai_python, g_description.ai_path,
-			      NULL};
+	const char *level = xvt_log_level_name(xvt_log_level());
+	struct ai_program_command command;
+	ai_program_fill_command(&command, g_description.ai_python,
+				g_description.ai_path, run_id, level,
+				ai_log_file);
+	XVT_LOG_INFO(
+		"launch.ai_program path=\"%s\" run=%08x level=\"%s\" log_file=\"%s\"",
+		g_description.ai_path, (unsigned)run_id, level, ai_log_file);
 	char why[XVT_LAUNCH_WHY_CAPACITY];
-	if (!ai_program_start(args, AI_PROGRAM_ANSWER_LIMIT_MS,
+	if (!ai_program_start(command.args, AI_PROGRAM_ANSWER_LIMIT_MS,
 			      end_on_ai_failure, why, sizeof(why))) {
 		XVT_LOG_INFO("launch.refused code=%d why=\"%s\"",
 			     XVT_LAUNCH_EXIT_REFUSED, why);
@@ -115,7 +123,8 @@ static int start_ai_program(void)
 	return 1;
 }
 
-int xvt_launch_door_open(const char *path)
+int xvt_launch_door_open(const char *path, uint32_t run_id,
+			 const char *ai_log_file)
 {
 	XVT_LOG_INFO("launch.opened path=\"%s\"", path);
 	snprintf(g_result_path, sizeof(g_result_path), "%s.result.json", path);
@@ -163,7 +172,8 @@ int xvt_launch_door_open(const char *path)
 		g_description.settings.mission_time_limit,
 		g_description.settings.continue_sequence, g_description.seed,
 		g_description.has_seed);
-	if (g_description.ai_python[0] && !start_ai_program()) {
+	if (g_description.ai_python[0] &&
+	    !start_ai_program(run_id, ai_log_file)) {
 		return 0;
 	}
 	g_phase = PHASE_WAIT_CONCOURSE;

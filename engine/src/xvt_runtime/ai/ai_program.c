@@ -102,6 +102,27 @@ static int ai_program_read(uint8_t *bytes, size_t count, uint64_t deadline_ns)
 	return 1;
 }
 
+void ai_program_fill_command(struct ai_program_command *command,
+			     const char *python, const char *path,
+			     uint32_t run_id, const char *level,
+			     const char *log_file)
+{
+	size_t count = 0;
+	snprintf(command->run_id, sizeof(command->run_id), "%08x",
+		 (unsigned)run_id);
+	command->args[count++] = python;
+	command->args[count++] = path;
+	command->args[count++] = "--run-id";
+	command->args[count++] = command->run_id;
+	command->args[count++] = "--log-level";
+	command->args[count++] = level;
+	if (log_file[0]) {
+		command->args[count++] = "--log-file";
+		command->args[count++] = log_file;
+	}
+	command->args[count] = NULL;
+}
+
 int ai_program_start(const char *const *args, uint32_t answer_limit_ms,
 		     ai_program_failure_fn on_failure, char *why,
 		     size_t why_capacity)

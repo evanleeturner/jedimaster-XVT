@@ -40,8 +40,17 @@ int xvt_log_file_format_name(char *out, size_t capacity, int year, int month,
 			     uint32_t run_id);
 /* Returns 1 when name has exactly the shape xvt_log_file_format_name writes
  * (digits where it writes digits, lowercase hex for the run id), 0 for anything
- * else, NULL included. Only such files are ever removed. */
+ * else, NULL included. Only such files, and the AI program's log beside each
+ * (xvt_log_file_ai_path), are ever removed. */
 int xvt_log_file_is_run_name(const char *name);
+/* Writes into out the path of the AI program's log for the run log at
+ * run_path: run_path with "-ai" put before its final ".log", or with "-ai.log"
+ * added when it does not end in ".log". "openxvt-20261001-205153-1a2b3c4d.log"
+ * gives "openxvt-20261001-205153-1a2b3c4d-ai.log", which is not a run name, so
+ * it never counts toward the run logs a folder keeps. Returns 1; returns 0,
+ * out holding "", when run_path is NULL or "" or the path does not fit in
+ * capacity. Capacity 0 writes nothing. */
+int xvt_log_file_ai_path(char *out, size_t capacity, const char *run_path);
 /* Reorders names so the run names (xvt_log_file_is_run_name) come first, oldest
  * first, and the other names after them in no particular order. Returns how
  * many run names, counted from the front, to remove so that keep remain once

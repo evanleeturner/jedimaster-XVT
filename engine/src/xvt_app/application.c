@@ -112,8 +112,14 @@ int xvt_application_run(const struct xvt_launch_options *options)
 		return 2;
 	}
 	xvt_launch_record_set_path(options->record_launch);
-	if (options->launch && !xvt_launch_door_open(options->launch)) {
-		return XVT_LAUNCH_EXIT_REFUSED;
+	if (options->launch) {
+		char ai_log_file[XVT_PATH_CAPACITY];
+		uint32_t run_id =
+			xvt_log_sink_ai_log(ai_log_file, sizeof(ai_log_file));
+		if (!xvt_launch_door_open(options->launch, run_id,
+					  ai_log_file)) {
+			return XVT_LAUNCH_EXIT_REFUSED;
+		}
 	}
 	if (options->check_installation) {
 		char resource_root[XVT_PATH_CAPACITY];

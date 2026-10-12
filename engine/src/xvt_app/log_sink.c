@@ -22,6 +22,10 @@ static size_t g_log_sink_home_length;
  * then reach stderr only. */
 static xvt_log_file_handle g_log_sink_file = XVT_LOG_FILE_NONE;
 static int g_log_sink_installed;
+/* The run's id and its log file's path, set at install; the path is "" when no
+ * file could be opened. Read by xvt_log_sink_ai_log. */
+static uint32_t g_log_sink_run_id;
+static char g_log_sink_path[XVT_LOG_SINK_PATH_CAPACITY];
 
 static SDL_LogPriority xvt_log_sink_priority(AeronLogLevel level)
 {
@@ -218,9 +222,10 @@ static int xvt_log_sink_default_folder(const struct xvt_launch_options *options,
 }
 
 /* Removes the oldest run logs in folder (a path ending in a separator) so that
- * XVT_LOG_FILE_KEEP remain once this run's file is made, and writes the path of
- * the newest one into newest ("" when there is none). Only names of the run-log
- * shape are touched; a file that cannot be removed is left in place. */
+ * XVT_LOG_FILE_KEEP remain once this run's file is made, each with the AI
+ * program's log beside it, and writes the path of the newest one into newest
+ * ("" when there is none). Only names of the run-log shape and their AI logs
+ * are touched; a file that cannot be removed is left in place. */
 static void xvt_log_sink_prune(const char *folder, char *newest,
 			       size_t capacity)
 {
@@ -247,8 +252,13 @@ static void xvt_log_sink_prune(const char *folder, char *newest,
 		char path[XVT_LOG_SINK_PATH_CAPACITY];
 		int written =
 			snprintf(path, sizeof(path), "%s%s", folder, names[i]);
+		char ai_path[XVT_LOG_SINK_PATH_CAPACITY];
 		if (written > 0 && (size_t)written < sizeof(path)) {
 			SDL_RemovePath(path);
+			if (xvt_log_file_ai_path(ai_path, sizeof(ai_path),
+						 path)) {
+				SDL_RemovePath(ai_path);
+			}
 		}
 	}
 	SDL_free(names);
@@ -371,6 +381,10 @@ int xvt_log_sink_install(const struct xvt_launch_options *options)
 	if (chosen) {
 		g_log_sink_file = xvt_log_file_open(path, error, sizeof(error));
 	}
+	g_log_sink_run_id = xvt_log_sink_run_id(start);
+	if (g_log_sink_file != XVT_LOG_FILE_NONE) {
+		memcpy(g_log_sink_path, path, strlen(path) + 1);
+	}
 	xvt_crash_note_install(g_log_sink_file);
 	xvt_log_sink_write_header(options, start);
 	if (g_log_sink_file != XVT_LOG_FILE_NONE) {
@@ -390,6 +404,21 @@ int xvt_log_sink_install(const struct xvt_launch_options *options)
 	}
 	g_log_sink_installed = 1;
 	return 1;
+}
+
+uint32_t xvt_log_sink_ai_log(char *path, size_t capacity)
+{
+	if (capacity == 0) {
+		return g_log_sink_installed ? g_log_sink_run_id : 0;
+	}
+	path[0] = 0;
+	if (!g_log_sink_installed) {
+		return 0;
+	}
+	if (g_log_sink_path[0]) {
+		xvt_log_file_ai_path(path, capacity, g_log_sink_path);
+	}
+	return g_log_sink_run_id;
 }
 
 void xvt_log_sink_finish(int exit_code)

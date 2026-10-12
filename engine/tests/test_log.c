@@ -86,6 +86,27 @@ static void check_parse(void)
 	XVT_ASSERT_INT_EQ(level, AERON_LOG_ERROR);
 }
 
+/* Each name reads back as its level; the levels without a name take the
+ * nearest. */
+static void check_level_name(void)
+{
+	static const AeronLogLevel named[] = {AERON_LOG_DEBUG, AERON_LOG_INFO,
+					      AERON_LOG_WARN, AERON_LOG_ERROR};
+	for (size_t i = 0; i < sizeof(named) / sizeof(named[0]); ++i) {
+		AeronLogLevel level = AERON_LOG_CRITICAL;
+		XVT_ASSERT_TRUE(xvt_log_parse_level(
+			xvt_log_level_name(named[i]), &level));
+		XVT_ASSERT_INT_EQ(level, named[i]);
+	}
+	XVT_ASSERT_TRUE(!strcmp(xvt_log_level_name(AERON_LOG_DEBUG), "debug"));
+	XVT_ASSERT_TRUE(!strcmp(xvt_log_level_name(AERON_LOG_TRACE), "debug"));
+	XVT_ASSERT_TRUE(
+		!strcmp(xvt_log_level_name(AERON_LOG_VERBOSE), "debug"));
+	XVT_ASSERT_TRUE(!strcmp(xvt_log_level_name(AERON_LOG_ERROR), "error"));
+	XVT_ASSERT_TRUE(
+		!strcmp(xvt_log_level_name(AERON_LOG_CRITICAL), "error"));
+}
+
 static void check_split(void)
 {
 	const char *event;
@@ -247,6 +268,7 @@ int main(void)
 {
 	check_gate();
 	check_parse();
+	check_level_name();
 	check_split();
 	check_format();
 	check_shorten_home();

@@ -35,6 +35,9 @@ static const char *tmp_base(void)
 
 static char g_folder[64];
 
+/* The run id the tests open the door with. */
+#define TEST_RUN_ID 0x1a2b3c4du
+
 /* Writes text to a file in the folder and returns its path in path. */
 static void put(const char *name, const char *text, char *path, size_t size)
 {
@@ -65,7 +68,7 @@ static void check_missing_file(void)
 	char text[2048];
 	snprintf(path, sizeof(path), "%s/none.json", g_folder);
 	snprintf(result, sizeof(result), "%s.result.json", path);
-	XVT_ASSERT_INT_EQ(xvt_launch_door_open(path), 0);
+	XVT_ASSERT_INT_EQ(xvt_launch_door_open(path, TEST_RUN_ID, ""), 0);
 	XVT_ASSERT_INT_EQ(xvt_launch_door_is_active(), 0);
 	XVT_ASSERT_INT_EQ(slurp(result, text, sizeof(text)), 1);
 	XVT_ASSERT_TRUE(strstr(text, "\"status\":\"refused\"") != NULL);
@@ -116,7 +119,8 @@ static void check_refusals_leave_a_result(void)
 		char text[2048];
 		put("bad.json", cases[index].text, path, sizeof(path));
 		snprintf(result, sizeof(result), "%s.result.json", path);
-		XVT_ASSERT_INT_EQ(xvt_launch_door_open(path), 0);
+		XVT_ASSERT_INT_EQ(xvt_launch_door_open(path, TEST_RUN_ID, ""),
+				  0);
 		XVT_ASSERT_INT_EQ(xvt_launch_door_is_active(), 0);
 		XVT_ASSERT_INT_EQ(slurp(result, text, sizeof(text)), 1);
 		XVT_ASSERT_TRUE(strstr(text, "\"status\":\"refused\"") != NULL);
@@ -144,7 +148,7 @@ static void open_good(const char *extra, char *path, size_t size)
 	strcat(text, extra);
 	strcat(text, "}");
 	put("good.json", text, path, size);
-	XVT_ASSERT_INT_EQ(xvt_launch_door_open(path), 1);
+	XVT_ASSERT_INT_EQ(xvt_launch_door_open(path, TEST_RUN_ID, ""), 1);
 	XVT_ASSERT_INT_EQ(xvt_launch_door_is_active(), 1);
 }
 
