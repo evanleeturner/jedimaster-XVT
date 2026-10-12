@@ -18,7 +18,8 @@ extern "C" {
 
 struct model_weapon_hardpoint {
 	/* Side offset from the model's origin, the OPT hardpoint's x; readers
-	 * pass x, z and y to pai_calcrotatedpoint as side, up and forward. */
+	 * pass x, z and y to flight_geometry_local_to_world_i16 as side, up and
+	 * forward. */
 	int16_t x;
 	int16_t z; /* Up offset, the OPT hardpoint's z. */
 	/* Forward offset: the OPT hardpoint's y negated, as

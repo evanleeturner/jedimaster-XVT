@@ -9765,7 +9765,7 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 			g_cur_craft = g_object_table[mothership_object_index]
 					      .mobj->p_craft;
 			uint16_t model_index = g_cur_craft->model_index;
-			pai_rotate_local_vector_to_world_scratch(
+			flight_geometry_local_to_world(
 				&g_object_table[mothership_object_index],
 				g_model_defs[model_index]
 					.hangar_points.inside.side,
@@ -9782,7 +9782,7 @@ int16_t mission_spawn_flight_group_wave_craft(uint16_t craft_ordinal)
 			g_spawn_world_z =
 				g_rotated_z +
 				g_object_table[mothership_object_index].world_z;
-			pai_rotate_local_vector_to_world_scratch(
+			flight_geometry_local_to_world(
 				&g_object_table[mothership_object_index],
 				g_model_defs[model_index]
 					.hangar_points.outside.side,
@@ -10325,10 +10325,10 @@ uint16_t mission_init_flight_group_object_slot(void)
 		g_object_table[object_index].mobj->orient_matrix_dirty = 1;
 		g_object_table[object_index].mobj->move_vector_dirty =
 			g_object_table[object_index].mobj->orient_matrix_dirty;
-		pai_calcrotatedpoint(&g_object_table[object_index], side, up,
-				     forward);
+		flight_geometry_local_to_world_i16(
+			&g_object_table[object_index], side, up, forward);
 	} else {
-		pai_calcrotatedpoint(
+		flight_geometry_local_to_world_i16(
 			&g_object_table[g_cur_craft->leader_obj_idx], side, up,
 			forward);
 	}
@@ -11624,8 +11624,9 @@ void mission_resolve_formation_slot_world_loc(uint16_t flight_group_idx,
 				0x8000, flight_group_idx);
 			rotated_x = 0;
 		} else {
-			pai_calcrotatedpoint(&g_object_table[basis_obj_idx],
-					     side, up, forward);
+			flight_geometry_local_to_world_i16(
+				&g_object_table[basis_obj_idx], side, up,
+				forward);
 			rotated_x = g_rotated_x;
 			rotated_y = g_rotated_y;
 			rotated_z = g_rotated_z;

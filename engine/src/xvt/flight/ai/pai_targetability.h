@@ -54,7 +54,7 @@ static __inline int pai_is_object_targetable(unsigned int obj_idx)
 			    craft->beam_active != 0) {
 				uint8_t source_genus;
 
-				pai_object_ref_update_rough_distance(
+				flight_geometry_rough_distance_between_refs(
 					obj_idx, g_pai_context.object_index);
 				source_genus =
 					g_object_table[g_pai_context

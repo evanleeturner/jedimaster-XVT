@@ -1012,7 +1012,7 @@ void flight_map_draw_object_overlay(int object_idx)
 		flight_text_set_background_color(0x40);
 		if (g_players[g_local_player].view_state.camera_focus_obj_idx !=
 		    UINT16_MAX) {
-			pai_object_ref_direction_to_object_ref(
+			flight_geometry_direction_between_refs(
 				g_players[g_local_player]
 					.view_state.camera_focus_obj_idx,
 				object_idx);

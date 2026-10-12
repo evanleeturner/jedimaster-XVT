@@ -207,7 +207,7 @@ int16_t paiorder_underattackorder(void)
 						g_cur_craft
 							->last_attacker_obj_idx =
 							object_idx;
-						pai_object_ref_direction_to_object_ref(
+						flight_geometry_direction_between_refs(
 							g_pai_context
 								.object_index,
 							object_idx);
@@ -329,7 +329,7 @@ int16_t paiorder_underattackorder(void)
 							    (unsigned int)
 								    max_range_score) ==
 							    1) {
-							pai_object_ref_direction_to_object_ref(
+							flight_geometry_direction_between_refs(
 								object_idx,
 								self_obj_idx);
 							uint16_t horizontal_angle =
@@ -366,7 +366,7 @@ int16_t paiorder_underattackorder(void)
 		}
 
 		if (g_cur_craft->last_attacker_obj_idx != UINT16_MAX) {
-			pai_object_ref_direction_to_object_ref(
+			flight_geometry_direction_between_refs(
 				self_obj_idx,
 				g_cur_craft->last_attacker_obj_idx);
 			uint8_t threat_bearing =
@@ -564,7 +564,7 @@ int16_t paiorder_flyhomeorder(void)
 		g_pai_context.controller->has_live_target = 0;
 		int model_index = g_object_table[mothership_object]
 					  .mobj->p_craft->model_index;
-		pai_rotate_local_vector_to_world_scratch(
+		flight_geometry_local_to_world(
 			&g_object_table[mothership_object],
 			g_model_defs[model_index].hangar_points.outside.side,
 			g_model_defs[model_index].hangar_points.outside.up,
@@ -720,7 +720,7 @@ int16_t paiorder_enterhangarorder(void)
 		g_pai_context.controller->has_live_target = 0;
 		uint16_t model_index = g_object_table[mothership_object]
 					       .mobj->p_craft->model_index;
-		pai_rotate_local_vector_to_world_scratch(
+		flight_geometry_local_to_world(
 			&g_object_table[mothership_object],
 			g_model_defs[model_index].hangar_points.inside.side,
 			g_model_defs[model_index].hangar_points.inside.up,
@@ -1195,7 +1195,7 @@ int16_t paiorder_breakofforder(void)
 		if (g_active_region_craft_object_slot_end <=
 		    (int)target_obj_idx) {
 		} else if (object_has_active_decoy_beam(target_obj_idx) == 1) {
-			pai_object_ref_update_rough_distance(
+			flight_geometry_rough_distance_between_refs(
 				g_pai_context.object_index, target_obj_idx);
 			if (g_last_rough_distance > 0x4000) {
 				g_pai_context.controller->target_obj_idx =
@@ -1650,7 +1650,7 @@ int16_t paiorder_ontailorder(void)
 	if (g_pai_context.controller->maneuver_mode ==
 		    g_pai_context.initial_maneuver_id &&
 	    g_cur_craft->last_attacker_obj_idx != UINT16_MAX) {
-		pai_object_ref_direction_to_object_ref(
+		flight_geometry_direction_between_refs(
 			object_index, g_cur_craft->last_attacker_obj_idx);
 		if (g_ai_threat_bearing_class_by_octant
 			    [(uint16_t)(trig2_xyangle -
@@ -2127,7 +2127,7 @@ int16_t paiorder_avoidhitorder(void)
 						g_cur_craft
 							->last_attacker_obj_idx =
 							object_idx;
-						pai_object_ref_direction_to_object_ref(
+						flight_geometry_direction_between_refs(
 							g_pai_context
 								.object_index,
 							object_idx);
@@ -2249,7 +2249,7 @@ int16_t paiorder_avoidhitorder(void)
 						    (unsigned int)
 							    max_range_score) ==
 						    1) {
-						pai_object_ref_direction_to_object_ref(
+						flight_geometry_direction_between_refs(
 							object_idx,
 							g_pai_context
 								.object_index);
@@ -2289,7 +2289,7 @@ int16_t paiorder_avoidhitorder(void)
 		      g_cur_craft->shield_energy[0] < 500) ||
 		     g_cur_craft->hull_damage >=
 			     g_cur_craft->system_damage_hull_threshold)) {
-			pai_object_ref_direction_to_object_ref(
+			flight_geometry_direction_between_refs(
 				g_cur_craft->last_attacker_obj_idx,
 				g_pai_context.object_index);
 			if (trig2_polardistance < 0x8000 &&

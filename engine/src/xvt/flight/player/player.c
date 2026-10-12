@@ -341,7 +341,7 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 		model_index model_index = get_model_index_from_type(
 			g_object_table[g_players[player_idx].object_index]
 				.object_type);
-		pai_calcrotatedpoint(
+		flight_geometry_local_to_world_i16(
 			&g_object_table[g_players[player_idx].object_index], 0,
 			g_model_defs[model_index].primary_hardpoint_z,
 			g_model_defs[model_index].primary_hardpoint_y);
@@ -3118,7 +3118,7 @@ int16_t player_find_attacker_of_target(uint16_t target_obj_idx,
 			if ((uint16_t)g_players[player_owner_idx]
 				    .current_target_object_idx ==
 			    target_obj_idx) {
-				pai_object_ref_update_rough_distance(
+				flight_geometry_rough_distance_between_refs(
 					object_idx, target_obj_idx);
 				if (g_last_rough_distance < 0x10000 &&
 				    targeting_test_aim_cone(target_obj_idx, 0,
@@ -3131,7 +3131,7 @@ int16_t player_find_attacker_of_target(uint16_t target_obj_idx,
 			}
 		}
 		if (qualifies != 0) {
-			pai_object_ref_direction_to_object_ref(target_obj_idx,
+			flight_geometry_direction_between_refs(target_obj_idx,
 							       object_idx);
 			if (nearest_distance >
 			    (unsigned int)trig2_polardistance) {
@@ -3320,7 +3320,7 @@ void player_compute_polar_to_object_ref(int player_idx, unsigned int object_ref)
 		delta_z = g_world_loc_z - delta_z;
 		trig2_ctop(delta_x, delta_y, delta_z);
 	} else {
-		pai_object_ref_direction_to_object_ref(object_index,
+		flight_geometry_direction_between_refs(object_index,
 						       object_ref);
 	}
 }

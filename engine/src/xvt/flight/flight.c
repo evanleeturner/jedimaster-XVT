@@ -796,7 +796,7 @@ void flight_update_timers(void)
 		if ((uint16_t)g_players[g_local_player]
 				    .current_target_object_idx != UINT16_MAX &&
 		    g_players[g_local_player].object_index != -1) {
-			pai_object_ref_direction_to_object_ref(
+			flight_geometry_direction_between_refs(
 				(uint16_t)g_players[g_local_player]
 					.current_target_object_idx,
 				g_players[g_local_player].object_index);
@@ -5952,7 +5952,7 @@ void flight_process_player_actions(int player_idx)
 				    g_players[player_idx].object_index) {
 				continue;
 			}
-			pai_object_ref_direction_to_object_ref(
+			flight_geometry_direction_between_refs(
 				g_players[player_idx].object_index,
 				projectile_index);
 			if ((unsigned int)trig2_polardistance <
@@ -5999,7 +5999,7 @@ void flight_process_player_actions(int player_idx)
 						    .allies[player_team] == 0) {
 					continue;
 				}
-				pai_object_ref_direction_to_object_ref(
+				flight_geometry_direction_between_refs(
 					g_players[player_idx].object_index,
 					projectile_index);
 				if ((unsigned int)trig2_polardistance <

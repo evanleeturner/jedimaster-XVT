@@ -8,9 +8,10 @@
 #include "xvt_runtime/assets/opt_native.h"
 
 /* X of the vector the last point rotation produced. Many functions write it,
- * chiefly pai_calcrotatedpoint, which turns a local vector into world axes
- * here, and model_mesh_apply_animated_mesh_rotation_to_point; callers read it right
- * after the call and often scale or offset it in place. */
+ * chiefly flight_geometry_local_to_world_i16, which turns a local vector into
+ * world axes here, and model_mesh_apply_animated_mesh_rotation_to_point;
+ * callers read it right after the call and often scale or offset it in
+ * place. */
 // GLOBAL: XVT 0x9D8A58
 int g_rotated_x = 0;
 /* Y of the vector the last point rotation produced; written and read like

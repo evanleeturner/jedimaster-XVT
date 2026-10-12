@@ -58,9 +58,9 @@ static void place_objects(int x, int y, int z)
 static void check_rough_distance(void)
 {
 	place_objects(-1000, 400, 300);
-	pai_object_ref_update_rough_distance(0, 1);
+	flight_geometry_rough_distance_between_refs(0, 1);
 	XVT_ASSERT_INT_EQ(g_last_rough_distance, 1000 + 200 + 150);
-	pai_object_ref_update_rough_distance(1, 0);
+	flight_geometry_rough_distance_between_refs(1, 0);
 	XVT_ASSERT_INT_EQ(g_last_rough_distance, 1350);
 	/* It leaves the world position at the second reference. */
 	XVT_ASSERT_INT_EQ(g_world_loc_x, FROM_X);
@@ -68,17 +68,17 @@ static void check_rough_distance(void)
 	XVT_ASSERT_INT_EQ(g_world_loc_z, FROM_Z);
 
 	place_objects(400, -1000, 300);
-	pai_object_ref_update_rough_distance(0, 1);
+	flight_geometry_rough_distance_between_refs(0, 1);
 	XVT_ASSERT_INT_EQ(g_last_rough_distance, 1350);
 
 	/* Z larger than the X and Y sum: half the sum plus Z. */
 	place_objects(400, 100, -3000);
-	pai_object_ref_update_rough_distance(0, 1);
+	flight_geometry_rough_distance_between_refs(0, 1);
 	XVT_ASSERT_INT_EQ(g_last_rough_distance, (400 + 50) / 2 + 3000);
 
 	/* X equal to Y counts Y as the larger. */
 	place_objects(500, -500, 0);
-	pai_object_ref_update_rough_distance(0, 1);
+	flight_geometry_rough_distance_between_refs(0, 1);
 	XVT_ASSERT_INT_EQ(g_last_rough_distance, 500 + 250);
 }
 
@@ -90,7 +90,7 @@ static void check_rough_distance_to_mission_point(void)
 	g_mission_flight_groups[0].fg.mission_point_x[3] = 30;
 	g_mission_flight_groups[0].fg.mission_point_y[3] = 20;
 	g_mission_flight_groups[0].fg.mission_point_z[3] = 10;
-	pai_object_ref_update_rough_distance(0, POINT_REF);
+	flight_geometry_rough_distance_between_refs(0, POINT_REF);
 	int dx = 30 * 256 - FROM_X;    /* 2,680 */
 	int dy = -(20 * 256) - FROM_Y; /* -2,120, so 2,120 */
 	int dz = 10 * 256 - FROM_Z;    /* 560 */
@@ -114,7 +114,7 @@ static void check_direction_between_refs(void)
 	trig2_xyangle = 0;
 	trig2_pitch = 0;
 	trig2_polardistance = 0;
-	pai_object_ref_direction_to_object_ref(0, 1);
+	flight_geometry_direction_between_refs(0, 1);
 	XVT_ASSERT_INT_EQ(trig2_xyangle, xyangle);
 	XVT_ASSERT_INT_EQ(trig2_pitch, pitch);
 	XVT_ASSERT_INT_EQ(trig2_polardistance, distance);
@@ -129,20 +129,18 @@ static void check_direction_between_refs(void)
 static void check_local_to_world(void)
 {
 	place_objects(0, 0, 0);
-	pai_calcrotatedpoint(&g_test_objects[0], 100, 200, 300);
+	flight_geometry_local_to_world_i16(&g_test_objects[0], 100, 200, 300);
 	XVT_ASSERT_INT_EQ(g_rotated_x, -100);
 	XVT_ASSERT_INT_EQ(g_rotated_y, -300);
 	XVT_ASSERT_INT_EQ(g_rotated_z, -200);
 
-	pai_rotate_local_vector_to_world_scratch(&g_test_objects[0], 100, 200,
-						 300);
+	flight_geometry_local_to_world(&g_test_objects[0], 100, 200, 300);
 	XVT_ASSERT_INT_EQ(g_rotated_x, -100);
 	XVT_ASSERT_INT_EQ(g_rotated_y, -300);
 	XVT_ASSERT_INT_EQ(g_rotated_z, -200);
 
 	/* The int form keeps a vector longer than 16 bits. */
-	pai_rotate_local_vector_to_world_scratch(&g_test_objects[0], 100000, 0,
-						 -70000);
+	flight_geometry_local_to_world(&g_test_objects[0], 100000, 0, -70000);
 	XVT_ASSERT_INT_EQ(g_rotated_x, -100000);
 	XVT_ASSERT_INT_EQ(g_rotated_y, 70000);
 	XVT_ASSERT_INT_EQ(g_rotated_z, 0);

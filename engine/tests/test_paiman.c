@@ -509,7 +509,7 @@ static void check_escort_station(void)
 			(uint8_t)station;
 		think_as(0);
 		paiman_escortmaneuver();
-		pai_calcrotatedpoint(
+		flight_geometry_local_to_world_i16(
 			&g_test_objects[1],
 			g_ai_escort_station_offset_x_by_variable[station],
 			g_ai_escort_station_offset_y_by_variable[station],
@@ -811,7 +811,7 @@ static void check_board_separates(void)
 	controller->maneuver_timer = 10;
 	think_as(0);
 	XVT_ASSERT_INT_EQ(paiman_boardmaneuver(), 0);
-	pai_calcrotatedpoint(&g_test_objects[0], 0, 0x4000, 0);
+	flight_geometry_local_to_world_i16(&g_test_objects[0], 0, 0x4000, 0);
 	XVT_ASSERT_INT_EQ(craft->push_accum_x, g_rotated_x - 0x10000);
 	XVT_ASSERT_INT_EQ(craft->push_accum_z, g_rotated_z);
 

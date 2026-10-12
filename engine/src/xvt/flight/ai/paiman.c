@@ -837,7 +837,7 @@ int16_t paiman_followleadermaneuver(void)
 {
 	uint16_t leader_object_idx = (uint8_t)g_cur_craft->leader_obj_idx;
 
-	pai_object_ref_direction_to_object_ref((uint16_t)leader_object_idx,
+	flight_geometry_direction_between_refs((uint16_t)leader_object_idx,
 					       g_pai_context.object_index);
 	struct object_record *object =
 		&g_object_table[g_pai_context.object_index];
@@ -1054,7 +1054,7 @@ int16_t paiman_attackmaneuver(void)
 		break;
 	case 0: {
 
-		pai_object_ref_direction_to_object_ref(
+		flight_geometry_direction_between_refs(
 			g_pai_context.object_index,
 			g_pai_context.controller->target_obj_idx);
 		unsigned int target_distance = trig2_polardistance;
@@ -1272,7 +1272,7 @@ int16_t paiman_attackmaneuver(void)
 									->p_craft;
 						if (g_cur_craft->craft_ordinal >
 						    wingman->craft_ordinal) {
-							pai_object_ref_update_rough_distance(
+							flight_geometry_rough_distance_between_refs(
 								g_pai_context
 									.object_index,
 								object_index);
@@ -2110,7 +2110,7 @@ int16_t paiman_escortmaneuver(void)
 		}
 	}
 	if (target_idx != UINT8_MAX) {
-		pai_object_ref_direction_to_object_ref(target_idx,
+		flight_geometry_direction_between_refs(target_idx,
 						       object_index);
 		struct craft_data *target_craft =
 			g_object_table[target_idx].mobj->p_craft;
@@ -2244,7 +2244,7 @@ int16_t paiman_escortmaneuver(void)
 				(int)g_pai_context.order_slot, variable1,
 				g_flight_sim_side_effects_suppressed);
 		}
-		pai_calcrotatedpoint(
+		flight_geometry_local_to_world_i16(
 			&g_object_table[target_idx],
 			g_ai_escort_station_offset_x_by_variable[variable1],
 			g_ai_escort_station_offset_y_by_variable[variable1],
@@ -2426,7 +2426,7 @@ int16_t paiman_boardmaneuver(void)
 			if (approach_up_offset < 0) {
 				approach_up_offset = DOCKING_UP_FALLBACK;
 			}
-			pai_calcrotatedpoint(
+			flight_geometry_local_to_world_i16(
 				&g_object_table[target_object_index], 0,
 				approach_up_offset,
 				g_model_defs[target_model_index].dock_forward);
@@ -2551,7 +2551,7 @@ int16_t paiman_boardmaneuver(void)
 					g_model_defs[g_cur_craft->model_index]
 						.dock_to_up[1];
 			}
-			pai_calcrotatedpoint(
+			flight_geometry_local_to_world_i16(
 				&g_object_table[target_object_index], 0,
 				docking_up_offset,
 				g_model_defs[target_model_index].dock_forward);
@@ -3400,7 +3400,7 @@ int16_t paiman_boardmaneuver(void)
 			return 1;
 		}
 		if (target_mobile_object != NULL) {
-			pai_calcrotatedpoint(
+			flight_geometry_local_to_world_i16(
 				&g_object_table[g_pai_context.object_index], 0,
 				0x4000, 0);
 			g_cur_craft->push_accum_x =
@@ -4180,7 +4180,7 @@ void paiman_calcplanelead(int target_obj_idx)
 		lead_frames = 0;
 	} else {
 		uint16_t object_index = g_pai_context.object_index;
-		pai_object_ref_direction_to_object_ref(
+		flight_geometry_direction_between_refs(
 			object_index, g_pai_context.controller->target_obj_idx);
 		uint16_t projectile_type;
 		if (strcmp(g_plan_table[g_pai_context.controller
@@ -4297,8 +4297,9 @@ void paiman_calcformation(void)
 		displacement_y /= divisor;
 		displacement_z /= divisor;
 	}
-	pai_calcrotatedpoint(&g_object_table[g_pai_context.leader_object_index],
-			     displacement_x, displacement_z, displacement_y);
+	flight_geometry_local_to_world_i16(
+		&g_object_table[g_pai_context.leader_object_index],
+		displacement_x, displacement_z, displacement_y);
 	uint16_t bound_size_shift = g_model_defs[model_index].bound_size_shift;
 	if (bound_size_shift != 0) {
 		g_rotated_x <<= bound_size_shift;

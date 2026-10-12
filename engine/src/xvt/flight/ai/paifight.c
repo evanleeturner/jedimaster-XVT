@@ -417,7 +417,7 @@ int16_t paifight_find_nearest_attack_order_target(int16_t target1_type,
 							g_pai_context
 								.target_search_origin_z);
 				} else {
-					pai_object_ref_update_rough_distance(
+					flight_geometry_rough_distance_between_refs(
 						g_pai_context.object_index,
 						object_index);
 				}
@@ -477,7 +477,7 @@ int16_t paifight_find_nearest_attack_order_target(int16_t target1_type,
 			     paifight_target_has_attack_capacity(
 				     object_index,
 				     (uint16_t)candidate_count))) {
-				pai_object_ref_update_rough_distance(
+				flight_geometry_rough_distance_between_refs(
 					g_pai_context.object_index,
 					object_index);
 				if (best_score >
@@ -618,7 +618,7 @@ int16_t paifight_target_nearest_escort_leader(int16_t target1_type,
 							     paifight_target_has_attack_capacity(
 								     object_index,
 								     UINT8_MAX))) {
-								pai_object_ref_update_rough_distance(
+								flight_geometry_rough_distance_between_refs(
 									g_pai_context
 										.object_index,
 									object_index);
@@ -850,7 +850,7 @@ int16_t paifight_find_nearest_attacker_of_matching_target(
 													g_pai_context
 														.target_search_origin_z);
 										} else {
-											pai_object_ref_update_rough_distance(
+											flight_geometry_rough_distance_between_refs(
 												g_pai_context
 													.object_index,
 												object_index);
@@ -1310,7 +1310,7 @@ int16_t paifight_escorttargetorder(void)
 				if (targets_escort_flight_group != 0 &&
 				    paifight_target_has_attack_capacity(
 					    scan_obj_idx, 0xFF)) {
-					pai_object_ref_update_rough_distance(
+					flight_geometry_rough_distance_between_refs(
 						source_obj_idx, scan_obj_idx);
 					if (best_range_score >
 					    (unsigned int)
@@ -1453,7 +1453,7 @@ int16_t paifight_fightershootorder(void)
 			}
 		}
 
-		pai_object_ref_direction_to_object_ref(
+		flight_geometry_direction_between_refs(
 			g_pai_context.object_index, target_index);
 		target_angle =
 			(uint16_t)(trig2_xyangle -
@@ -2089,7 +2089,7 @@ int16_t paifight_missiledefenseorder(void)
 						g_paifight_search_origin_z =
 							g_pai_context
 								.craft_position_z;
-						pai_calcrotatedpoint(
+						flight_geometry_local_to_world_i16(
 							&g_object_table
 								[g_pai_context
 									 .object_index],
@@ -2517,7 +2517,7 @@ int16_t paifight_gunnerselfdefenseorder(void)
 			g_paifight_search_origin_z =
 				g_pai_context.craft_position_z;
 			if (!is_super_star_destroyer) {
-				pai_calcrotatedpoint(
+				flight_geometry_local_to_world_i16(
 					&g_object_table[g_pai_context
 								.object_index],
 					g_model_defs[g_cur_craft->model_index]
@@ -3090,7 +3090,7 @@ int16_t paifight_gunneroffenseorder(void)
 			g_pai_context.target_search_origin_z =
 				g_pai_context.craft_position_z;
 		} else {
-			pai_calcrotatedpoint(
+			flight_geometry_local_to_world_i16(
 				&g_object_table[g_pai_context.object_index],
 				g_model_defs[g_cur_craft->model_index]
 					.weapon_hardpoints[weapon_slot_index]
@@ -3899,7 +3899,7 @@ int16_t paifight_followleadatkorder(void)
 
 		if (valid_target != 0) {
 			if (leader_player_owner != -1) {
-				pai_object_ref_update_rough_distance(
+				flight_geometry_rough_distance_between_refs(
 					g_pai_context.object_index,
 					candidate_target_idx);
 				if (g_last_rough_distance >
@@ -4291,7 +4291,7 @@ int16_t paifight_searchforclosestingroup(int16_t target1_type, uint16_t target1,
 				    g_object_table[object_index]
 						    .flight_group_idx ==
 					    flight_group_idx) {
-					pai_object_ref_update_rough_distance(
+					flight_geometry_rough_distance_between_refs(
 						g_pai_context.object_index,
 						object_index);
 					if (best_range_score >
@@ -4319,7 +4319,7 @@ int16_t paifight_searchforclosestingroup(int16_t target1_type, uint16_t target1,
 				    g_object_table[object_index]
 						    .flight_group_idx ==
 					    flight_group_idx) {
-					pai_object_ref_update_rough_distance(
+					flight_geometry_rough_distance_between_refs(
 						g_pai_context.object_index,
 						object_index);
 					if (best_range_score >

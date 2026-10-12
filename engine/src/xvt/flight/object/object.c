@@ -241,7 +241,7 @@ void object_update_lifetime_and_movement(void)
 			     player_object_index)) {
 			player_model_index = get_model_index_from_type(
 				player_object->object_type);
-			pai_calcrotatedpoint(
+			flight_geometry_local_to_world_i16(
 				&g_object_table[g_players[player_index]
 							.object_index],
 				0,
@@ -275,7 +275,7 @@ void object_update_lifetime_and_movement(void)
 				get_model_index_from_type(
 					player_object->object_type);
 
-			pai_calcrotatedpoint(
+			flight_geometry_local_to_world_i16(
 				&g_object_table[g_players[player_index]
 							.object_index],
 				0,
@@ -785,9 +785,9 @@ void object_update_lifetime_and_movement(void)
 									  .dock_from_up
 										  [1]);
 					}
-					pai_calcrotatedpoint(object, 0,
-							     docking_up_offset,
-							     docking_forward);
+					flight_geometry_local_to_world_i16(
+						object, 0, docking_up_offset,
+						docking_forward);
 					carried_object =
 						&g_object_table
 							[carried_object_index];
@@ -934,7 +934,7 @@ void object_update_lifetime_and_movement(void)
 									target_object_type,
 									target_component_index);
 							}
-							pai_rotate_local_vector_to_world_scratch(
+							flight_geometry_local_to_world(
 								target_object,
 								center_x,
 								center_z,
@@ -1762,9 +1762,8 @@ unsigned int object_direction_and_distance_to_mesh_center(
 	g_rotated_x = model_mesh_get_center_x(object_type, mesh_idx);
 	g_rotated_y = model_mesh_get_center_z(object_type, mesh_idx);
 	g_rotated_z = -model_mesh_get_center_y(object_type, mesh_idx);
-	pai_rotate_local_vector_to_world_scratch(
-		&g_object_table[target_obj_idx], g_rotated_x, g_rotated_y,
-		g_rotated_z);
+	flight_geometry_local_to_world(&g_object_table[target_obj_idx],
+				       g_rotated_x, g_rotated_y, g_rotated_z);
 
 	int delta_x = g_rotated_x + target_world_x - origin_x;
 	int delta_y = g_rotated_y + target_world_y - origin_y;

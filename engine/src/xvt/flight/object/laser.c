@@ -247,7 +247,7 @@ void laser_weaponsfire(void)
 							(uint16_t)g_players[player_idx]
 								.selected_target_component);
 					} else {
-						pai_object_ref_direction_to_object_ref(
+						flight_geometry_direction_between_refs(
 							object_idx,
 							target_obj_idx);
 					}
@@ -2168,7 +2168,7 @@ int laser_createprojectile(int source_object_index, int weapon_slot_index,
 			g_model_defs[model_index]
 				.weapon_hardpoints[weapon_slot_index]
 				.z;
-		pai_calcrotatedpoint(
+		flight_geometry_local_to_world_i16(
 			source,
 			g_model_defs[model_index]
 				.weapon_hardpoints[weapon_slot_index]
@@ -2653,7 +2653,7 @@ int laser_createcountermeasureprojectile(unsigned int owner_obj_idx,
 								++interceptor_count;
 							}
 						}
-						pai_object_ref_direction_to_object_ref(
+						flight_geometry_direction_between_refs(
 							owner_obj_idx,
 							candidate_index);
 						if (interceptor_count != 0) {
@@ -2742,7 +2742,7 @@ int laser_createcountermeasureprojectile(unsigned int owner_obj_idx,
 								}
 							}
 							if (is_enemy != 0) {
-								pai_object_ref_direction_to_object_ref(
+								flight_geometry_direction_between_refs(
 									owner_obj_idx,
 									craft_index);
 								if ((unsigned int)trig2_polardistance <
@@ -3490,8 +3490,8 @@ void laser_fireturretslot(uint16_t source_obj_idx, uint16_t weapon_slot_idx,
 			hardpoint_y = (int16_t)g_rotated_y;
 			hardpoint_z = (int16_t)g_rotated_z;
 		}
-		pai_calcrotatedpoint(source_object, hardpoint_x, hardpoint_z,
-				     hardpoint_y);
+		flight_geometry_local_to_world_i16(source_object, hardpoint_x,
+						   hardpoint_z, hardpoint_y);
 	}
 	if (source_object->object_type == IMPERIAL_STAR_DESTROYER_OBJECT_TYPE) {
 		g_rotated_x *= 2;

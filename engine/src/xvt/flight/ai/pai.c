@@ -926,7 +926,7 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 				}
 			}
 			if (craft_reserved_count == 0) {
-				pai_object_ref_update_rough_distance(
+				flight_geometry_rough_distance_between_refs(
 					g_pai_context.object_index, object_idx);
 				if ((unsigned int)g_last_rough_distance >=
 				    nearest_range) {
@@ -1044,7 +1044,7 @@ int16_t pai_find_nearest_boarding_target(uint16_t target1_type,
 					}
 				}
 				if (reserved_count == 0) {
-					pai_object_ref_update_rough_distance(
+					flight_geometry_rough_distance_between_refs(
 						g_pai_context.object_index,
 						object_idx);
 					if ((unsigned int)

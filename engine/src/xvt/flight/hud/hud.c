@@ -2566,7 +2566,7 @@ void hud_add_blip_to_radar(int16_t obj_idx)
 		}
 	}
 
-	pai_object_ref_update_rough_distance(
+	flight_geometry_rough_distance_between_refs(
 		g_players[g_local_player].object_index, object_idx);
 	if (g_last_rough_distance > 122166) {
 		if (g_radar_blip_color == 47) {
@@ -6048,7 +6048,7 @@ void hud_update_threat_indicators(int hud_mode)
 				    player_object_idx &&
 			    g_players[player_owner_idx].selected_weapon_mode ==
 				    0) {
-				pai_object_ref_update_rough_distance(
+				flight_geometry_rough_distance_between_refs(
 					object_idx, player_object_idx);
 				if (g_last_rough_distance < 0x10000 &&
 				    targeting_test_aim_cone(player_object_idx,
@@ -7094,7 +7094,7 @@ void hud_draw_cmd_target_details(void)
 			if (order_target_object_idx != UINT16_MAX) {
 				if (g_object_table[current_target_object_idx]
 					    .player_owner_idx != -1) {
-					pai_object_ref_direction_to_object_ref(
+					flight_geometry_direction_between_refs(
 						current_target_object_idx,
 						order_target_object_idx);
 				} else {
@@ -8981,7 +8981,7 @@ void hud_update3d_crt(uint16_t screen_x, uint16_t screen_y, uint16_t width,
 						.object_type,
 				(uint16_t)g_players[g_local_player]
 					.selected_target_component);
-			pai_rotate_local_vector_to_world_scratch(
+			flight_geometry_local_to_world(
 				&g_object_table
 					[(uint16_t)g_players[g_local_player]
 						 .current_target_object_idx],

@@ -749,8 +749,7 @@ static void check_component_destroyed_explodes(void)
 	struct object_record *blast = &g_test_objects[EXPLOSION_START + 1];
 	XVT_ASSERT_INT_EQ(blast->genus_id, CRAFT_GENUS_EXPLOSION);
 	XVT_ASSERT_TRUE(blast->object_type != 0);
-	pai_rotate_local_vector_to_world_scratch(&g_test_objects[VICTIM], 100,
-						 300, -200);
+	flight_geometry_local_to_world(&g_test_objects[VICTIM], 100, 300, -200);
 	XVT_ASSERT_INT_EQ(blast->world_x,
 			  g_test_objects[VICTIM].world_x + g_rotated_x);
 	XVT_ASSERT_INT_EQ(blast->world_y,
@@ -945,8 +944,7 @@ static void check_explosion_at_mesh_center(void)
 							1, 640, 0);
 	XVT_ASSERT_INT_EQ(slot, EXPLOSION_START);
 	struct object_record *blast = &g_test_objects[slot];
-	pai_rotate_local_vector_to_world_scratch(&g_test_objects[VICTIM], 101,
-						 301, -201);
+	flight_geometry_local_to_world(&g_test_objects[VICTIM], 101, 301, -201);
 	XVT_ASSERT_INT_EQ(blast->world_x,
 			  g_test_objects[VICTIM].world_x + g_rotated_x);
 	XVT_ASSERT_INT_EQ(blast->world_y,
@@ -989,8 +987,7 @@ static void check_forced_main_hull_explosion(void)
 	struct object_record *blast = &g_test_objects[EXPLOSION_START];
 	XVT_ASSERT_INT_EQ(blast->genus_id, CRAFT_GENUS_EXPLOSION);
 	XVT_ASSERT_INT_EQ(blast->mobj->effect_size, 100);
-	pai_rotate_local_vector_to_world_scratch(&g_test_objects[VICTIM], 101,
-						 301, -201);
+	flight_geometry_local_to_world(&g_test_objects[VICTIM], 101, 301, -201);
 	XVT_ASSERT_INT_EQ(blast->world_x,
 			  g_test_objects[VICTIM].world_x + g_rotated_x);
 	XVT_ASSERT_INT_EQ(blast->world_z,

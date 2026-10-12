@@ -11,7 +11,8 @@
 #include "xvt/math/trig2.h"
 
 /* The last rough distance a range test worked out, in world units; callers read
- * it right after the call that sets it. pai_object_ref_update_rough_distance and
+ * it right after the call that sets it.
+ * flight_geometry_rough_distance_between_refs and
  * pai_is_object_within_range_of_craft take the larger of the X and Y offsets plus
  * half the smaller, then add half the Z offset when that sum is the larger,
  * else halve the sum and add the Z offset. Many functions write it, chiefly
@@ -24,7 +25,7 @@ int g_last_rough_distance = 0;
  * trig2_polardistance. A mission point reference is read from flight group 0's
  * points. Leaves g_world_loc_x, g_world_loc_y and g_world_loc_z at from_ref. */
 // FUNCTION: XVT 0x4034E0
-void pai_object_ref_direction_to_object_ref(unsigned int from_ref,
+void flight_geometry_direction_between_refs(unsigned int from_ref,
 					    unsigned int to_ref)
 {
 	mission_resolve_object_or_mission_point_world_loc(to_ref, 0);
@@ -44,8 +45,8 @@ void pai_object_ref_direction_to_object_ref(unsigned int from_ref,
  * group 0's points. Leaves g_world_loc_x, g_world_loc_y and g_world_loc_z at
  * to_ref. */
 // FUNCTION: XVT 0x403540
-void pai_object_ref_update_rough_distance(unsigned int from_ref,
-					  unsigned int to_ref)
+void flight_geometry_rough_distance_between_refs(unsigned int from_ref,
+						 unsigned int to_ref)
 {
 	mission_resolve_object_or_mission_point_world_loc(from_ref, 0);
 	int delta_x = g_world_loc_x;
@@ -90,8 +91,9 @@ void pai_object_ref_update_rough_distance(unsigned int from_ref,
  * and axes with fview_calcrotatemove and fview_calcrotateorient, which also set
  * the shared matrix globals those two write. */
 // FUNCTION: XVT 0x4035D0
-void pai_calcrotatedpoint(const struct object_record *obj, int16_t side_arg,
-			  int16_t up_arg, int16_t fwd_arg)
+void flight_geometry_local_to_world_i16(const struct object_record *obj,
+					int16_t side_arg, int16_t up_arg,
+					int16_t fwd_arg)
 {
 	/* Rotate local coordinates through the cached Q15 orientation basis. */
 	if (obj->mobj->orient_matrix_dirty != 0) {
@@ -111,11 +113,11 @@ void pai_calcrotatedpoint(const struct object_record *obj, int16_t side_arg,
 	g_rotated_z += math_mul_q15(fwd_arg, obj->mobj->cached_fwd_z);
 }
 
-/* Does the same as pai_calcrotatedpoint, with the vector passed as int. */
+/* Does the same as flight_geometry_local_to_world_i16, with the vector passed
+ * as int. */
 // FUNCTION: XVT 0x4037B0
-void pai_rotate_local_vector_to_world_scratch(
-	const struct object_record *obj_record, int local_side, int local_up,
-	int local_fwd)
+void flight_geometry_local_to_world(const struct object_record *obj_record,
+				    int local_side, int local_up, int local_fwd)
 {
 	if (obj_record->mobj->orient_matrix_dirty != 0) {
 		fview_calcrotatemove(obj_record->pitch, obj_record->yaw,

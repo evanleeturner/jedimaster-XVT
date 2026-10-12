@@ -957,7 +957,7 @@ void collide_collisions(void)
 							    CRAFT_OBJECT_KIND_ACTIVE) {
 								continue;
 							}
-							pai_rotate_local_vector_to_world_scratch(
+							flight_geometry_local_to_world(
 								mothership,
 								g_model_defs[mothership_craft
 										     ->model_index]
@@ -3293,16 +3293,17 @@ int collide_would_shot_hit_target(uint16_t source_obj_idx,
 	g_collision_segment_start_world_x = source_object->world_x;
 	g_collision_segment_start_world_y = source_object->world_y;
 	g_collision_segment_start_world_z = source_object->world_z;
-	pai_calcrotatedpoint(source_object,
-			     g_model_defs[source_model_index]
-				     .weapon_hardpoints[hardpoint_index]
-				     .x,
-			     g_model_defs[source_model_index]
-				     .weapon_hardpoints[hardpoint_index]
-				     .z,
-			     g_model_defs[source_model_index]
-				     .weapon_hardpoints[hardpoint_index]
-				     .y);
+	flight_geometry_local_to_world_i16(
+		source_object,
+		g_model_defs[source_model_index]
+			.weapon_hardpoints[hardpoint_index]
+			.x,
+		g_model_defs[source_model_index]
+			.weapon_hardpoints[hardpoint_index]
+			.z,
+		g_model_defs[source_model_index]
+			.weapon_hardpoints[hardpoint_index]
+			.y);
 	if (source_object->object_type ==
 	    CRAFT_SPECIES_IMPERIAL_STAR_DESTROYER) {
 		g_rotated_x *= 2;
@@ -3353,7 +3354,7 @@ int collide_would_shot_hit_target(uint16_t source_obj_idx,
 					.selected_target_component;
 			int object_type = target_object->object_type;
 
-			pai_rotate_local_vector_to_world_scratch(
+			flight_geometry_local_to_world(
 				target_object,
 				model_mesh_get_center_x(object_type,
 							component_index),
@@ -6595,7 +6596,7 @@ void collide_apply_hostile_proximity_weapon_disruption(int owner_obj_idx,
 							model_mesh_get_center_y(
 								object_type,
 								mesh_index);
-						pai_rotate_local_vector_to_world_scratch(
+						flight_geometry_local_to_world(
 							hostile, center_x,
 							center_z, -center_y);
 						if (mesh_extent >

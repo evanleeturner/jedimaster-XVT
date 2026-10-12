@@ -50,7 +50,7 @@ int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
 	if (g_players[player_idx].object_index == -1) {
 		return 0;
 	}
-	pai_object_ref_update_rough_distance(
+	flight_geometry_rough_distance_between_refs(
 		object_index, g_players[player_idx].object_index);
 
 	int16_t scale_shift;
@@ -72,7 +72,7 @@ int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
 				uint16_t mesh_index =
 					(uint16_t)g_players[player_idx]
 						.selected_target_component;
-				pai_rotate_local_vector_to_world_scratch(
+				flight_geometry_local_to_world(
 					target,
 					model_mesh_get_center_x(object_type,
 								mesh_index),
@@ -507,8 +507,8 @@ void targeting_project_object_or_mission_point(
 		int local_side =
 			model_mesh_get_center_x(object_type, component_idx);
 
-		pai_rotate_local_vector_to_world_scratch(object, local_side,
-							 local_up, local_fwd);
+		flight_geometry_local_to_world(object, local_side, local_up,
+					       local_fwd);
 		g_world_loc_x += g_rotated_x;
 		g_world_loc_y += g_rotated_y;
 		g_world_loc_z += g_rotated_z;

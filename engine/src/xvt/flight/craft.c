@@ -956,7 +956,7 @@ int craft_damage_component(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 					g_rotated_x = center_x;
 					g_rotated_y = center_z;
 					g_rotated_z = -center_y;
-					pai_rotate_local_vector_to_world_scratch(
+					flight_geometry_local_to_world(
 						&g_object_table[victim_idx],
 						center_x, center_z, -center_y);
 					g_object_table[explosion_obj_idx]
@@ -1270,8 +1270,7 @@ int craft_spawn_explosion_object_at_mesh(const struct object_record *obj_record,
 						  use_random_vertex);
 	}
 
-	pai_rotate_local_vector_to_world_scratch(obj_record, local_x, local_z,
-						 -local_y);
+	flight_geometry_local_to_world(obj_record, local_x, local_z, -local_y);
 	{
 		uint16_t object_idx = object_alloc_slot_for_genus(13);
 		if (object_idx == UINT16_MAX) {
