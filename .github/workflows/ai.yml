@@ -1,0 +1,61 @@
+---
+name: AI program
+
+# Lint and test the AI program's Python package (ai/, the jedimaster_ai
+# package) on the oldest Python it supports, on each system the game runs
+# on. Its tests read the engine's headers and its own wire test from engine/,
+# so the whole tree is checked out; nothing is built and no game data is used.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-${{ github.ref }}
+  # Every commit on main keeps its own result; a newer push to a pull
+  # request replaces the run for the older one.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    # Named so each step runs with -e and -o pipefail.
+    shell: bash
+
+jobs:
+  ai:
+    name: AI program (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    steps:
+      - name: Check out the tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11, the oldest the package supports
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install the package with its test tools
+        run: |
+          python -m pip install --disable-pip-version-check \
+            "./ai[test]" "ruff==0.15.20"
+
+      - name: Check the package's form
+        if: runner.os == 'Linux'
+        run: |
+          ruff format --check ai
+          ruff check ai
+
+      - name: Run the package's tests
+        run: python -m pytest -q ai/tests
