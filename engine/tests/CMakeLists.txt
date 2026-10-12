@@ -357,6 +357,10 @@ xvt_add_known_failure(test_targeting aim_ahead_past_eight_million)
 xvt_add_engine_test(test_flight_geometry test_flight_geometry.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/flight_geometry.c")
 add_test(NAME flight_geometry COMMAND test_flight_geometry)
 
+# The byte form of the questions to and answers from the AI program: src/xvt_runtime/ai/ai_wire.c.
+xvt_add_engine_test(test_ai_wire test_ai_wire.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/ai/ai_wire.c")
+add_test(NAME ai_wire COMMAND test_ai_wire)
+
 # How a player step's input is applied, latched and cut by the dead zone: src/xvt/flight/flight_input.c.
 xvt_add_engine_test(test_flight_input test_flight_input.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/flight_input.c")
 add_test(NAME flight_input COMMAND test_flight_input)
