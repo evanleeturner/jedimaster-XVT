@@ -12,8 +12,6 @@
 #include "xvt/audio/fsfx.h"
 #include "xvt/audio/music_cd.h"
 #include "xvt/audio/sound.h"
-#include "xvt/flight/ai/pai.h"
-#include "xvt/flight/ai/paifight.h"
 #include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
@@ -125,10 +123,6 @@ uint8_t g_dynamic_music_initial_start_minute_choices[4] = {0, 4, 8, 12};
  * g_dynamic_music_initial_start_minute_choices, same index. Never written. */
 // GLOBAL: XVT 0x523648
 uint8_t g_dynamic_music_initial_start_second_choices[4] = {0, 1, 40, 52};
-/* "paiplan": the name flight start passes to pai_loadplans to load the AI plans
- * (xvt_flight_loading_globals). */
-// GLOBAL: XVT 0x5236BC
-const char g_pai_plan_resource_base_name[8] = "paiplan";
 /* 1 when the launch command line holds "traincourse": flight start then sets
  * the proving grounds craft type to 2 and level to 4 before the mission loads
  * (xvt_flight_loading_mission_setup). Set by
@@ -2260,18 +2254,8 @@ void flight_process_player_actions(int player_idx)
 							.mobj->p_craft;
 					struct ai_controller *controller =
 						&g_cur_craft->ai_controller;
-					ai_brain_prepare_craft(
-						(uint16_t)target_index);
-					if ((strcmp(g_plan_table
-							    [controller
-								     ->running_plan_id]
-								    .name,
-						    "boardtogivepln") == 0 ||
-					     strcmp(g_plan_table
-							    [controller
-								     ->running_plan_id]
-								    .name,
-						    "board3pln") == 0) &&
+					if ((controller->activity ==
+					     AI_ACTIVITY_BOARDING) &&
 					    ai_brain_order_targets_match_object(
 						    (uint16_t)g_players[player_idx]
 							    .object_index) !=
@@ -2282,11 +2266,11 @@ void flight_process_player_actions(int player_idx)
 								[player_idx]
 									.object_index;
 						XVT_LOG_DEBUG(
-							"flight.resupply_called slot=%d target=%d plan=%d predicted=%d",
+							"flight.resupply_called slot=%d target=%d activity=%d predicted=%d",
 							player_idx,
 							target_index,
 							(int)controller
-								->running_plan_id,
+								->activity,
 							g_flight_sim_side_effects_suppressed);
 						msg_radio_message(
 							(uint16_t)target_index,
@@ -5087,20 +5071,11 @@ void flight_process_player_actions(int player_idx)
 				g_object_table[target_index].mobj->p_craft;
 			struct ai_controller *controller =
 				&g_cur_craft->ai_controller;
-			if (strcmp(g_plan_table[controller->running_plan_id]
-					   .name,
-				   "craftwaitforgopln") == 0) {
-				controller->running_plan_id =
-					controller->saved_plan_id;
-				ai_brain_restart_craft_plan(
-					(uint16_t)target_index);
-			}
 			controller->candidate_target_idx = AI_TARGET_ABORT;
 			XVT_LOG_DEBUG(
-				"flight.craft_ordered slot=%d command=\"evade\" target=%d plan=%d saved=%d predicted=%d",
+				"flight.craft_ordered slot=%d command=\"evade\" target=%d activity=%d predicted=%d",
 				player_idx, target_index,
-				(int)controller->running_plan_id,
-				(int)controller->saved_plan_id,
+				(int)controller->activity,
 				g_flight_sim_side_effects_suppressed);
 			msg_radio_message((uint16_t)target_index,
 					  (uint8_t *)g_cur_craft, 0x97, 7, 0);
@@ -5170,24 +5145,13 @@ void flight_process_player_actions(int player_idx)
 						   .current_target_object_idx;
 			g_cur_craft =
 				g_object_table[target_index].mobj->p_craft;
-			if (strcmp(g_plan_table[g_cur_craft->ai_controller
-							.running_plan_id]
-					   .name,
-				   "craftwaitforgopln") == 0) {
-				g_cur_craft->ai_controller.running_plan_id =
-					g_cur_craft->ai_controller
-						.saved_plan_id;
-				ai_brain_restart_craft_plan(
-					(uint16_t)target_index);
+			if (g_cur_craft->ai_controller.activity ==
+			    AI_ACTIVITY_WAITING_FOR_GO) {
 				XVT_LOG_DEBUG(
-					"flight.craft_ordered slot=%d command=\"go\" target=%d plan=%d saved=%d predicted=%d",
+					"flight.craft_ordered slot=%d command=\"go\" target=%d activity=%d predicted=%d",
 					player_idx, target_index,
-					(int)g_object_table[target_index]
-						.mobj->p_craft->ai_controller
-						.running_plan_id,
-					(int)g_object_table[target_index]
-						.mobj->p_craft->ai_controller
-						.saved_plan_id,
+					(int)g_cur_craft->ai_controller
+						.activity,
 					g_flight_sim_side_effects_suppressed);
 				msg_radio_message((uint16_t)target_index,
 						  (uint8_t *)g_cur_craft, 0x99,
@@ -5262,12 +5226,10 @@ void flight_process_player_actions(int player_idx)
 			g_cur_craft = target->mobj->p_craft;
 			struct ai_controller *controller =
 				&g_cur_craft->ai_controller;
-			if (strcmp(g_plan_table[controller->running_plan_id]
-					   .name,
-				   "flyhomeevadepln") != 0 &&
-			    strcmp(g_plan_table[controller->running_plan_id]
-					   .name,
-				   "starshipintohyperpln") != 0) {
+			if (controller->activity !=
+				    AI_ACTIVITY_GOING_HOME_EVADING &&
+			    controller->activity !=
+				    AI_ACTIVITY_LEAVING_BY_HYPERSPACE) {
 				if (g_cur_craft->ai_flight
 					    .mission_aborted_flag == 0) {
 					++g_mission_fg_stats[target->flight_group_idx]
@@ -5297,19 +5259,10 @@ void flight_process_player_actions(int player_idx)
 						g_flight_sim_side_effects_suppressed);
 				}
 				g_cur_craft->ai_flight.mission_aborted_flag = 1;
-				controller->running_plan_id =
-					pai_find_plan_id_by_name_or_zero(
-						target->genus_id ==
-								CRAFT_GENUS_STARSHIP
-							? "starshipintohyperpln"
-							: "flyhomeevadepln");
-				ai_brain_restart_craft_plan(
-					(uint16_t)target_index);
 				XVT_LOG_DEBUG(
-					"flight.craft_ordered slot=%d command=\"home\" target=%d plan=%d saved=%d predicted=%d",
+					"flight.craft_ordered slot=%d command=\"home\" target=%d activity=%d predicted=%d",
 					player_idx, target_index,
-					(int)controller->running_plan_id,
-					(int)controller->saved_plan_id,
+					(int)controller->activity,
 					g_flight_sim_side_effects_suppressed);
 			}
 			msg_radio_message((uint16_t)target_index,
@@ -5531,10 +5484,10 @@ void flight_process_player_actions(int player_idx)
 					msg_reportmessage(
 						(uint16_t)target_index,
 						g_cur_craft,
-						g_plan_report_message_id_by_plan_id
+						g_ai_activity_status_message_id
 							[g_cur_craft
 								 ->ai_controller
-								 .running_plan_id]);
+								 .activity]);
 				} else {
 					for (int16_t other_player_idx = 0;
 					     other_player_idx < 8;
@@ -5694,31 +5647,16 @@ void flight_process_player_actions(int player_idx)
 				g_object_table[target_index].mobj->p_craft;
 			struct ai_controller *controller =
 				&g_cur_craft->ai_controller;
-			if (strcmp(g_plan_table[controller->running_plan_id]
-					   .name,
-				   "craftwaitforgopln") != 0 &&
-			    strcmp(g_plan_table[controller->running_plan_id]
-					   .name,
-				   "intohyperspacepln") != 0 &&
-			    strcmp(g_plan_table[controller->running_plan_id]
-					   .name,
-				   "outofhyperspacepln") != 0) {
-				controller->saved_plan_id =
-					controller->running_plan_id;
-				controller->running_plan_id =
-					pai_find_plan_id_by_name_or_zero(
-						g_object_table[target_index]
-									.genus_id ==
-								CRAFT_GENUS_STARSHIP
-							? "starshipwaitforgopln"
-							: "craftwaitforgopln");
-				ai_brain_restart_craft_plan(
-					(uint16_t)target_index);
+			if (controller->activity !=
+				    AI_ACTIVITY_WAITING_FOR_GO &&
+			    controller->activity !=
+				    AI_ACTIVITY_LEAVING_BY_HYPERSPACE &&
+			    controller->activity !=
+				    AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE) {
 				XVT_LOG_DEBUG(
-					"flight.craft_ordered slot=%d command=\"wait\" target=%d plan=%d saved=%d predicted=%d",
+					"flight.craft_ordered slot=%d command=\"wait\" target=%d activity=%d predicted=%d",
 					player_idx, target_index,
-					(int)controller->running_plan_id,
-					(int)controller->saved_plan_id,
+					(int)controller->activity,
 					g_flight_sim_side_effects_suppressed);
 				msg_radio_message((uint16_t)target_index,
 						  (uint8_t *)g_cur_craft, 0x98,

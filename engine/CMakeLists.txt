@@ -59,10 +59,6 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/audio/fsfx.c
     src/xvt/audio/music_cd.c
     src/xvt/audio/sound.c
-    src/xvt/flight/ai/pai.c
-    src/xvt/flight/ai/paifight.c
-    src/xvt/flight/ai/paiman.c
-    src/xvt/flight/ai/paiorder.c
     src/xvt/flight/ai_brain.c
     src/xvt/flight/craft.c
     src/xvt/flight/fediskio.c

@@ -6,8 +6,6 @@
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
-#include "xvt/flight/ai/pai.h"
-#include "xvt/flight/ai/paiman.h"
 #include "xvt/flight/ai_brain.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
@@ -325,8 +323,7 @@ int player_bind_to_available_craft(int player_idx, uint32_t previous_object_idx,
 	}
 	player_validate_current_targets(player_idx);
 	g_players[player_idx].missile_lock_state = 0;
-	craft->ai_controller.running_plan_id =
-		(uint8_t)pai_find_plan_id_by_name_or_zero("nullpln");
+	craft->ai_controller.activity = AI_ACTIVITY_NONE;
 	craft->ai_controller.target_obj_idx = UINT16_MAX;
 	g_players[player_idx].pending_action_timer = 0;
 	g_players[player_idx].beam_fire_cooldown_timer = 0;
@@ -516,24 +513,14 @@ int player_unbind_from_current_craft(int player_index,
 	g_cur_craft->ai_controller.current_order_slot = 0;
 
 	if (assign_ai_plan != 0) {
-		uint16_t plan_id = g_builtin_plan_id_by_name_index
-			[g_order_leader_builtin_plan_name_index
-				 [g_mission_flight_groups
-					  [g_object_table[object_idx]
-						   .flight_group_idx]
-						  .fg.orders[0]
-						  .order]];
-
-		g_cur_craft->ai_controller.current_plan_id = plan_id;
-		g_cur_craft->ai_controller.running_plan_id = plan_id;
-		const char *plan_name = g_plan_table[plan_id].name;
+		int order = g_mission_flight_groups[g_object_table[object_idx]
+							    .flight_group_idx]
+				    .fg.orders[0]
+				    .order;
 		uint16_t throttle_speed;
-		if (strcmp(plan_name, "nullpln") == 0 ||
-		    strcmp(plan_name, "stationaryldrpln") == 0 ||
-		    strcmp(plan_name, "stationaryflwpln") == 0 ||
-		    strcmp(plan_name, "disabledpln") == 0) {
+		if (mission_order_starts_stopped(order)) {
 			throttle_speed = 0;
-		} else if (strcmp(plan_name, "escortldr1pln") == 0) {
+		} else if (order == MISSION_ORDER_ESCORT) {
 			throttle_speed = ESCORT_THROTTLE_SPEED;
 		} else {
 			throttle_speed =
@@ -551,7 +538,6 @@ int player_unbind_from_current_craft(int player_index,
 				throttle_speed);
 		g_object_table[object_idx].mobj->speed_remainder = 0;
 		g_cur_craft = craft;
-		ai_brain_restart_craft_plan((unsigned int)object_idx);
 
 		if (g_players[player_index].current_target_object_idx != -1) {
 			int target_obj_idx = (uint16_t)g_players[player_index]
@@ -566,8 +552,6 @@ int player_unbind_from_current_craft(int player_index,
 				for (unsigned int order_slot = 0;
 				     order_slot < ORDER_SLOT_COUNT;
 				     ++order_slot) {
-					g_pai_context.order_slot =
-						(uint16_t)order_slot;
 					if (ai_brain_order_targets_match_object(
 						    (uint16_t)g_players[player_index]
 							    .current_target_object_idx) !=
@@ -584,12 +568,8 @@ int player_unbind_from_current_craft(int player_index,
 			}
 		}
 	} else {
-		g_cur_craft->ai_controller.running_plan_id =
-			(uint8_t)pai_find_plan_id_by_name_or_zero("nullpln");
-		g_cur_craft->ai_controller.current_plan_id =
-			g_cur_craft->ai_controller.running_plan_id;
+		g_cur_craft->ai_controller.activity = AI_ACTIVITY_NONE;
 		g_cur_craft = craft;
-		ai_brain_restart_craft_plan((unsigned int)object_idx);
 		craft->ai_flight.roll_state = 0;
 		craft->ai_flight.pitch_state = 0;
 		craft->ai_flight.turn_state = 0;
@@ -597,10 +577,10 @@ int player_unbind_from_current_craft(int player_index,
 		craft->ai_flight.dive_state = 0;
 	}
 	XVT_LOG_INFO(
-		"player.craft_released slot=%d object=%d fg=%d orders=%d plan=%d tick=%d",
+		"player.craft_released slot=%d object=%d fg=%d orders=%d activity=%d tick=%d",
 		player_index, object_idx,
 		(int)g_object_table[object_idx].flight_group_idx,
-		assign_ai_plan != 0, (int)craft->ai_controller.running_plan_id,
+		assign_ai_plan != 0, (int)craft->ai_controller.activity,
 		g_game_time);
 	return 1;
 }
@@ -2984,29 +2964,14 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 		}
 		struct ai_controller *ai = &craft->ai_controller;
 		if (command_id != 155) {
-			const char *plan_name =
-				g_plan_table[ai->running_plan_id].name;
-			if (strcmp(plan_name, "nullpln") == 0 ||
-			    strcmp(plan_name, "stationaryldrpln") == 0 ||
-			    strcmp(plan_name, "stationaryflwpln") == 0 ||
-			    strcmp(plan_name, "formldr1pln") == 0 ||
-			    strcmp(plan_name, "formflw1pln") == 0 ||
-			    strcmp(plan_name, "formevadeldr1pln") == 0 ||
-			    strcmp(plan_name, "formevadeflw1pln") == 0 ||
-			    strcmp(plan_name, "flyhomeevadepln") == 0 ||
-			    strcmp(plan_name, "intohyperspacepln") == 0 ||
-			    strcmp(plan_name, "enterhangarpln") == 0) {
+			uint8_t activity = ai->activity;
+			if (activity == AI_ACTIVITY_NONE ||
+			    activity == AI_ACTIVITY_HOLDING_STATION ||
+			    activity == AI_ACTIVITY_IN_FORMATION ||
+			    activity == AI_ACTIVITY_GOING_HOME_EVADING ||
+			    activity == AI_ACTIVITY_LEAVING_BY_HYPERSPACE ||
+			    activity == AI_ACTIVITY_ENTERING_HANGAR) {
 				continue;
-			}
-			if (strcmp(plan_name, "craftwaitforgopln") == 0) {
-				ai->running_plan_id = ai->saved_plan_id;
-				g_cur_craft = craft;
-				ai_brain_restart_craft_plan(object_index);
-				XVT_LOG_DEBUG(
-					"player.wingman_released slot=%d object=%d plan=%d predicted=%d",
-					player_idx, (int)object_index,
-					(int)ai->running_plan_id,
-					g_flight_sim_side_effects_suppressed);
 			}
 			ai->candidate_target_idx = target_obj_idx;
 			if (craft->player_command_avoid_target_obj_idx ==

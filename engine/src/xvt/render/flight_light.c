@@ -1,7 +1,7 @@
 #include "xvt/render/flight_light.h"
 
 #include "xvt/assets/opt_model.h"
-#include "xvt/flight/ai/pai.h"
+#include "xvt/flight/ai_state.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/fview.h"
 #include "xvt/flight/object/collide.h"

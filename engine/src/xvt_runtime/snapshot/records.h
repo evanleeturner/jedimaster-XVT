@@ -22,10 +22,10 @@ struct xvt_snapshot_ai_controller {
 	uint8_t current_order_slot;
 	struct ai_order_progress order_progress;
 	uint8_t skipped_to_order4;
-	uint8_t running_plan_id;
-	uint8_t current_plan_id;
+	uint8_t activity;
+	uint8_t unused0b;
 	uint8_t waypoint_index;
-	uint8_t saved_plan_id;
+	uint8_t unused0d;
 	int32_t think_interval;
 	int32_t think_timer;
 	int16_t saved_rand_seed;

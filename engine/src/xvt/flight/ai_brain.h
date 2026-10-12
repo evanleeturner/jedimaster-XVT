@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "xvt/flight/ai_state.h"
 #include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus
@@ -11,10 +12,12 @@ extern "C" {
 
 struct craft_data;
 
+extern uint16_t g_ai_skill_value_q16_by_level[8];
+extern const uint16_t g_ai_think_interval_by_skill[8];
+extern const uint8_t g_ai_activity_status_message_id[AI_ACTIVITY_COUNT];
+
 void ai_brain_start_flight(void);
 void ai_brain_think_due_craft(void);
-void ai_brain_restart_craft_plan(unsigned int object_index);
-void ai_brain_prepare_craft(uint16_t object_index);
 int16_t ai_brain_order_targets_match_object(uint16_t object_index);
 int ai_brain_order_gives_plan_on_target(int object_index,
 					int leader_plan_name_index,

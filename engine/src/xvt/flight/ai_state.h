@@ -72,6 +72,32 @@ enum {
 	AI_MANEUVER_MODE_COUNT = 34,
 };
 
+/* What a craft is doing, as far as the engine must know: the HUD's status
+ * line, collisions near hangars, the player's radio commands and the turret
+ * mounts read it. Only the pilot program sets it; until it does, every craft's
+ * is AI_ACTIVITY_NONE. Beside each, the 1997 plans it stands for. */
+enum ai_activity {
+	AI_ACTIVITY_NONE = 0, /* nullpln */
+	AI_ACTIVITY_HOLDING_STATION =
+		1,		      /* stationaryldrpln, stationaryflwpln */
+	AI_ACTIVITY_IN_FORMATION = 2, /* formldr1pln, formflw1pln, form evade */
+	AI_ACTIVITY_WAITING_FOR_GO =
+		3,		 /* craftwaitforgopln, starshipwaitforgopln */
+	AI_ACTIVITY_WAITING = 4, /* waitpln */
+	AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE = 5, /* outofhyperspacepln */
+	AI_ACTIVITY_LEAVING_BY_HYPERSPACE =
+		6, /* intohyperspacepln, starshipintohyperpln */
+	AI_ACTIVITY_LEAVING_HANGAR = 7,	 /* exithangarpln */
+	AI_ACTIVITY_ENTERING_HANGAR = 8, /* enterhangarpln */
+	AI_ACTIVITY_GOING_HOME =
+		9, /* flyhomepln, followhomepln, starshipfollowhomepln */
+	AI_ACTIVITY_GOING_HOME_EVADING =
+		10,		   /* flyhomeevadepln, followhomeevadepln */
+	AI_ACTIVITY_BOARDING = 11, /* board2pln, board3pln, boardtogivepln */
+	AI_ACTIVITY_DISABLED = 12, /* disabledpln */
+	AI_ACTIVITY_COUNT = 13,
+};
+
 struct ai_controller {
 	/* Mission order slot, 0 to 3, the craft works on: 0 at spawn, moved by
 	 * the order-switching orders, 3 after a skip to order 4. */
@@ -80,22 +106,17 @@ struct ai_controller {
 	struct ai_order_progress order_progress;
 	/* 1 once the skip-to-order-4 trigger moved the craft to slot 3. */
 	uint8_t skipped_to_order4;
-	/* The plan the craft runs now: pai_setupcraftcontext reads its orders,
-	 * and pai_process_plan replaces it when one of them fires. */
-	uint8_t running_plan_id;
-	/* Leader plan of the craft's current order, for a follower too, set
-	 * when the order starts or changes; plans and orders test it by
-	 * name. */
-	uint8_t current_plan_id;
+	/* What the craft is doing, an AI_ACTIVITY_ value. */
+	uint8_t activity;
+	/* Held the 1997 AI's plan for the current order. */
+	uint8_t unused0b;
 	/* The mission point the craft is flying to; waypoints are points 4
 	 * to 11. The drop-off order reuses it: it starts at 0 when the craft
 	 * reaches the destination group, names the formation slot of the next
 	 * craft to deliver, and counts the deliveries made. */
 	uint8_t waypoint_index; /* 4 at spawn; past 11 it wraps to 4. */
-	/* Plan the craft ran when a player's radio command put it on
-	 * craftwaitforgopln or starshipwaitforgopln; the commands that release
-	 * it from craftwaitforgopln put it back. 0 at spawn. */
-	uint8_t saved_plan_id;
+	/* Held the plan the 1997 AI went back to after a wait command. */
+	uint8_t unused0d;
 	/* Ticks between two AI thinks: the AI level's g_ai_think_interval_by_skill
 	 * entry at spawn; a few orders and maneuvers set 29 or 59. */
 	int think_interval;

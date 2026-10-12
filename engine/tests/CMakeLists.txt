@@ -71,17 +71,6 @@ xvt_add_engine_test(test_world_state test_world_state.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/snapshot/world_checksum.c")
 add_test(NAME world_state COMMAND test_world_state)
 
-# The computer pilots' context, range tests and plans: src/xvt/flight/ai/pai.c.
-# The plan file checks write their files into a temporary folder made with POSIX calls.
-if(NOT MSVC)
-    xvt_add_engine_test(test_pai test_pai.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/pai.c")
-    add_test(NAME pai COMMAND test_pai)
-    xvt_add_known_failure(test_pai plan_text_crlf)
-    xvt_add_known_failure(test_pai plan_word_too_long)
-    xvt_add_known_failure(test_pai plan_name_unknown)
-    xvt_add_known_failure(test_pai plo_table_too_large)
-    xvt_add_known_failure(test_pai plo_data_too_large)
-endif()
 
 # The mission's goals, triggers, scoring, arrivals and loader: src/xvt/flight/mission/mission.c.
 # The loader checks write their mission files into a temporary folder made with POSIX calls.
@@ -312,37 +301,8 @@ if(NOT MSVC)
     xvt_add_known_failure(test_mission_briefing_craft ready_flag_unlisted_player)
 endif()
 
-# The computer pilots' fighting orders, the wingman's attack and the warhead defense: src/xvt/flight/ai/paifight.c.
-xvt_add_engine_test(test_paifight test_paifight.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/paifight.c")
-add_test(NAME paifight COMMAND test_paifight)
-xvt_add_known_failure(test_paifight follow_leader_attacker_none)
-xvt_add_known_failure(test_paifight follow_leader_avoid_target)
-xvt_add_known_failure(test_paifight follow_leader_static_skip)
-xvt_add_known_failure(test_paifight defense_last_attacker)
 
-# The maneuvers of the computer pilots: src/xvt/flight/ai/paiman.c.
-xvt_add_engine_test(test_paiman test_paiman.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/paiman.c")
-add_test(NAME paiman COMMAND test_paiman)
-xvt_add_known_failure(test_paiman escort_player_craft_push)
-xvt_add_known_failure(test_paiman escort_station_past_table)
-xvt_add_known_failure(test_paiman speed_away_push_sign)
-xvt_add_known_failure(test_paiman board_approach_full_throttle)
-xvt_add_known_failure(test_paiman dropoff_no_basis)
-xvt_add_known_failure(test_paiman tenth_docking_remembered)
-xvt_add_known_failure(test_paiman formation_seventh_place)
-xvt_add_known_failure(test_paiman reload_display_other_machine)
-xvt_add_known_failure(test_paiman single_waypoint_round)
-xvt_add_known_failure(test_paiman destroy_delay_without_countdown)
 
-# The orders of the computer pilots' plans: src/xvt/flight/ai/paiorder.c.
-xvt_add_engine_test(test_paiorder test_paiorder.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai/paiorder.c")
-add_test(NAME paiorder COMMAND test_paiorder)
-xvt_add_known_failure(test_paiorder self_destruct_delay_wraps)
-xvt_add_known_failure(test_paiorder follower_departure_time)
-xvt_add_known_failure(test_paiorder wait_go_other_by_order_code)
-xvt_add_known_failure(test_paiorder cannons_abort_reason)
-xvt_add_known_failure(test_paiorder hangar_takes_other_followers)
-xvt_add_known_failure(test_paiorder hangar_departure_by_hyperspace)
 
 # The collision tests and what a hit does: src/xvt/flight/object/collide.c. The alarm that stops a check whose
 # call does not return is POSIX.
@@ -405,7 +365,7 @@ add_test(NAME flight_input COMMAND test_flight_input)
 xvt_add_engine_test(test_player test_player.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/player/player.c")
 add_test(NAME player COMMAND test_player)
 xvt_add_known_failure(test_player nearest_enemy_none_minus_one)
-xvt_add_known_failure(test_player unbind_plan_to_released_craft)
+xvt_add_known_failure(test_player unbind_order_slot_to_released_craft)
 xvt_add_known_failure(test_player objective_second_pair_first_trigger)
 
 # Shield banks, the Tech Library's ratings, warhead kinds and the damage a hit

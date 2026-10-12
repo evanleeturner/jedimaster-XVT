@@ -201,10 +201,7 @@ void xvt_snapshot_checksum_prefix(const uint8_t *image, size_t prefix,
 	/* The 20 range dwords: 4 pool sizes, the world-state debris slot count
 	 * and 15 slot-range bounds. */
 	checksum += xvt_snapshot_sum_bytes(&cursor, 20 * 4);
-	checksum += xvt_snapshot_sum_bytes(&cursor, 21760);
 	checksum += xvt_snapshot_sum_bytes(&cursor, 4);
-	checksum += xvt_snapshot_sum_bytes(&cursor, 4);
-	checksum += xvt_snapshot_sum_bytes(&cursor, 256);
 	xvt_snapshot_close_checksum_region(
 		checksums, lengths, last_region, region_target_size, cursor,
 		&region_start, &checksum_region_index, &checksum);
@@ -460,13 +457,6 @@ int xvt_snapshot_live_checksum(void)
 	checksum = xvt_snapshot_mix_checksum(checksum,
 					     g_world_state_reserved_byte);
 	checksum = xvt_snapshot_mix_slot_layout(checksum);
-	checksum = xvt_snapshot_mix_checksum(
-		checksum,
-		flight_checksum_buffer_rotate_xor(g_plan_table, 0x5500));
-	checksum = xvt_snapshot_mix_checksum(checksum, g_plan_count);
-	checksum = xvt_snapshot_mix_checksum(
-		checksum,
-		flight_checksum_buffer_rotate_xor(g_plan_order_data, 0x1FFFF));
 	checksum = xvt_snapshot_mix_checksum(
 		checksum, g_unused_world_state_serialized_dword);
 	checksum = xvt_snapshot_mix_checksum(

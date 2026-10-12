@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "xvt/flight/ai/pai.h"
+#include "xvt/flight/ai_state.h"
 #include "xvt/xvt_typedefs.h"
 
 #ifdef __cplusplus

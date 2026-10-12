@@ -8,7 +8,7 @@
 #include <string.h>
 
 #include "test_assert.h"
-#include "xvt/flight/ai/pai.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/mission/mission.h"
@@ -181,34 +181,27 @@ static void check_decode_refusal_leaves_world(void)
 	XVT_ASSERT_INT_EQ(g_next_object_signature, 0x4321);
 }
 
-/* The save keeps a copy of g_pai_context beside the image and the restore puts
- * it back; a refused restore leaves it as it is. */
-static void check_save_restore_keeps_pai_context(void)
+/* The restore puts back the world the save kept; a refused restore leaves the
+ * world as it is and asks for the mission to end. */
+static void check_save_restore_and_refusal(void)
 {
 	empty_world();
 	uint8_t *saved_buffer = g_world_state_buffer;
 	g_world_state_buffer = g_image;
-	memset(&g_pai_context, 0, sizeof g_pai_context);
-	g_pai_context.object_index = 5;
-	g_pai_context.order_slot = 2;
-	g_pai_context.target_search_origin_x = -7;
+	g_next_object_signature = 0x1234;
 	xvt_snapshot_save();
 	XVT_ASSERT_TRUE(g_world_state_size > 0);
 
-	g_pai_context.object_index = 9;
-	g_pai_context.order_slot = 0;
-	g_pai_context.target_search_origin_x = 0;
+	g_next_object_signature = 0x4321;
 	xvt_snapshot_restore();
 	XVT_ASSERT_INT_EQ(g_flight_mission_state.mission_end_pending, 0);
-	XVT_ASSERT_INT_EQ(g_pai_context.object_index, 5);
-	XVT_ASSERT_INT_EQ(g_pai_context.order_slot, 2);
-	XVT_ASSERT_INT_EQ(g_pai_context.target_search_origin_x, -7);
+	XVT_ASSERT_INT_EQ(g_next_object_signature, 0x1234);
 
-	g_pai_context.object_index = 9;
+	g_next_object_signature = 0x4321;
 	--g_world_state_size;
 	xvt_snapshot_restore();
 	XVT_ASSERT_INT_EQ(g_flight_mission_state.mission_end_pending, 1);
-	XVT_ASSERT_INT_EQ(g_pai_context.object_index, 9);
+	XVT_ASSERT_INT_EQ(g_next_object_signature, 0x4321);
 	g_world_state_buffer = saved_buffer;
 }
 
@@ -447,22 +440,27 @@ static void big_world(int flight_groups, int crafts, int statics)
 }
 
 /* Region sums and lengths of three big worlds, recorded from the code at fork
- * commit 03e9d80. They pin where today's regions close: inside the object
- * section, after the flight-group tables, after the fixed trailer tables, and
- * (in the third world, whose 3,400-byte region shows it) right after the two
- * short tables that follow the 3,376-byte one. A change to the image layout or
- * to the region rule must update them. */
-static const unsigned k_big4_sums[16] = {0x000001ef, 0x0000024c, 0x000056ee,
-					 0x0004427c, 0x00000015, 0x00001c34};
-static const unsigned k_big4_lengths[16] = {4005, 4005,	 4096,
-					    5528, 25509, 11760};
-static const unsigned k_big12_sums[16] = {0x000002c4, 0x000002a4, 0x000f0175,
-					  0x00000015, 0x00001c34};
-static const unsigned k_big_small_lengths[16] = {4005, 4005,  8790,
-						 3400, 22109, 11760};
+ * commit 03e9d80 and again when the computer pilots' plan table, plan count
+ * and plan index left the image, 22,020 bytes fewer in each world. They pin
+ * where today's regions close: inside the object section, after the
+ * flight-group tables and right after the 3,376-byte table; the two short
+ * tables that follow it no longer reach the region size and ride in the last
+ * region. A change to the image layout or to the region rule must update
+ * them. */
+static const unsigned k_big4_sums[16] = {0x00000106, 0x000001be, 0x00000177,
+					 0x0000012d, 0x0004983d, 0x00000000,
+					 0x00001c49};
+static const unsigned k_big4_lengths[16] = {2670, 2670, 2670, 2670,
+					    6954, 3376, 11873};
+static const unsigned k_big12_sums[16] = {0x000001ef, 0x0000024c, 0x0001380e,
+					  0x000dca94, 0x00000000, 0x00001c49};
+static const unsigned k_big_small_lengths[16] = {2670, 2670, 2670, 3262,
+						 5528, 3376, 11873};
 static const unsigned k_big_small_sums[16] = {
-	0x000001ef, 0x0000024c, 0x0004a070, 0x00000000, 0x0000001d, 0x00001c34};
-static const unsigned k_big12_lengths[16] = {5340, 5340, 20362, 25509, 11760};
+	0x00000106, 0x000001be, 0x00000177, 0x00005df4,
+	0x0004427c, 0x00000000, 0x00001c51};
+static const unsigned k_big12_lengths[16] = {4005,  4005, 6448,
+					     16584, 3376, 11873};
 
 static void check_checksum_regions_in_big_worlds(void)
 {
@@ -541,7 +539,6 @@ static void set_mixed_only_values(int seed)
 	g_explosion_object_slot_start = v + 10;
 	g_explosion_object_slot_end = v + 11;
 	g_debris_object_slots_total = (unsigned)(v + 12);
-	g_plan_count = v + 13;
 	g_unused_world_state_serialized_dword = v + 14;
 	g_game_rand_feedback_state = (int16_t)(v + 15);
 	g_flight_conf_new_net = v + 16;
@@ -550,10 +547,11 @@ static void set_mixed_only_values(int seed)
 }
 
 /* The live checksum of the rich world with 3 flight groups and player 0
- * connected, recorded from the code at fork commit 03e9d80, with
+ * connected, recorded from the code at fork commit 03e9d80 and again when
+ * the plan table, plan count and plan bytes left the checksum, with
  * set_mixed_only_values(1). Every pool loop, both flight-group loops and the
  * player loop run. */
-static const unsigned k_rich_live_checksum = 0xdb657f64u;
+static const unsigned k_rich_live_checksum = 0x1b6c8af6u;
 
 static void check_live_checksum_of_rich_world(void)
 {
@@ -739,7 +737,7 @@ int main(void)
 	check_validate();
 	check_decode_round_trip();
 	check_decode_refusal_leaves_world();
-	check_save_restore_keeps_pai_context();
+	check_save_restore_and_refusal();
 	check_checksum_image();
 	check_rich_round_trip();
 	check_empty_slot_keeps_pool_link();

@@ -4,7 +4,6 @@
 
 #include "xvt/assets/model_mesh.h"
 #include "xvt/audio/fsfx.h"
-#include "xvt/flight/ai/pai.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/fview.h"
@@ -164,20 +163,13 @@ void flight_object_update_special_behavior(void)
 						      .mobj->p_craft;
 				int allow_system_rotation;
 				if (g_cur_craft->working_subsystems != 0) {
-					const char *plan_name =
-						g_plan_table
-							[g_cur_craft
-								 ->ai_controller
-								 .running_plan_id]
-								.name;
+					uint8_t activity =
+						g_cur_craft->ai_controller
+							.activity;
 					allow_system_rotation =
-						strcmp(plan_name, "nullpln") !=
-							0 &&
-						strcmp(plan_name,
-						       "stationaryldrpln") !=
-							0 &&
-						strcmp(plan_name,
-						       "stationaryflwpln") != 0;
+						activity != AI_ACTIVITY_NONE &&
+						activity !=
+							AI_ACTIVITY_HOLDING_STATION;
 				} else {
 					allow_system_rotation = 0;
 				}

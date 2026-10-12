@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-#include "xvt/flight/ai/pai.h"
+#include "xvt/flight/ai_state.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_display.h"
 #include "xvt/flight/hud/flight_text.h"

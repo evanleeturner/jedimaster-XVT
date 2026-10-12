@@ -85,8 +85,7 @@
 #include "xvt/assets/model_bounds.h"
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
-#include "xvt/flight/ai/pai.h"
-#include "xvt/flight/ai/paiman.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -145,11 +144,6 @@ static void fresh_world(void)
 	memset(&g_mission_elapsed_clock, 0, sizeof g_mission_elapsed_clock);
 	memset(&g_flight_mission_state, 0, sizeof g_flight_mission_state);
 	memset(g_players, 0, sizeof g_players);
-	memset(g_plan_table, 0, sizeof g_plan_table);
-	memset(g_builtin_plan_id_by_name_index, 0,
-	       sizeof g_builtin_plan_id_by_name_index);
-	memset(g_order_leader_builtin_plan_name_index, 0,
-	       sizeof g_order_leader_builtin_plan_name_index);
 	g_object_table = g_test_objects;
 	for (int i = 0; i < TEST_OBJECT_COUNT; ++i) {
 		g_test_objects[i].player_owner_idx = -1;
@@ -1058,8 +1052,8 @@ static void check_kill_score(void)
 
 /* Player 0 flies group 0's craft against group 1's, teams 0 and 1 not
  * allied (each allied only with itself), at the middle difficulty. The
- * player's craft is object 0 and group 1's is object 1, which has taken 100
- * damage, all from player 0. */
+ * player's craft is object 0 and group 1's is object 1, on an Attack order,
+ * which has taken 100 damage, all from player 0. */
 static void kill_credit_world(void)
 {
 	fresh_world();
@@ -1073,6 +1067,7 @@ static void kill_credit_world(void)
 	place_craft(0, 0, 0);
 	g_test_objects[0].player_owner_idx = 0;
 	struct craft_data *victim = place_craft(1, 1, 0);
+	g_mission_flight_groups[1].fg.orders[0].order = MISSION_ORDER_ATTACK;
 	victim->damage_stats.damage_received_total = 100;
 	victim->damage_stats.damage_from_player[0] = 100;
 }
@@ -1310,10 +1305,7 @@ static void check_uncaptured_special_cargo_mark(void)
 static void check_dropoff_naming_missing_group(void)
 {
 	fresh_world();
-	g_order_leader_builtin_plan_name_index[1] = 5;
-	g_builtin_plan_id_by_name_index[5] = 9;
-	strcpy(g_plan_table[9].name, "dropoffldr1pln");
-	g_mission_flight_groups[0].fg.orders[0].order = 1;
+	g_mission_flight_groups[0].fg.orders[0].order = MISSION_ORDER_DROP_OFF;
 	g_mission_flight_groups[0].fg.orders[0].variable2 = 49;
 	place_craft(0, 0, 0);
 	mission_record_craft_outcome(0, 0, FLIGHT_GROUP_OUTCOME_DESTROYED);
@@ -2968,11 +2960,6 @@ static void init_world(void)
 	g_flight_page_flip = 0;
 	g_game_rand_feedback_state = 0x1234;
 	g_log_line_count = 0;
-	/* Every plan is two bytes: no target token and no first maneuver. */
-	static uint8_t plan_bytes[8] = {UINT8_MAX, UINT8_MAX};
-	for (int plan = 0; plan < 256; ++plan) {
-		g_plan_data_ptrs[plan] = plan_bytes;
-	}
 	/* mission_init unlocks the surface first and locks it last. */
 	while (flight_surface_get_lock_count() > 0) {
 		flight_surface_unlock();
@@ -5308,7 +5295,7 @@ static struct model_def *set_test_model(struct model_def *saved)
  * hull and shields from the model (the shield strength doubled in the forward
  * shield for a computer's craft); lasers, warheads, beam and countermeasure
  * from the model and the group; its skill and think interval from the group's
- * AI level; its throttle from the plan of its first order. Its counts are
+ * AI level; its throttle from its first order. Its counts are
  * counted in the group. */
 static void check_spawn_craft_values(void)
 {
@@ -5657,19 +5644,17 @@ static void check_spawn_formation(void)
 	*model = saved;
 }
 
-/* A craft's plan and throttle come from the first order: the leader runs the
- * leader plan of the order and a follower the follower plan; every craft of a
- * group that arrives from hyperspace after the start runs the arrival plan
- * for it. A plan named nullpln, stationaryldrpln, stationaryflwpln or
- * disabledpln, for a craft no player flies, holds the throttle at 0;
- * escortldr1pln runs at full throttle (0x8000); any other takes the order's
- * throttle setting. */
-static void check_spawn_plans(void)
+/* A craft's throttle comes from the first order, and every craft starts with
+ * no activity, the pilot program not having set one. An order that starts
+ * stopped (the Hold Steady orders, Disabled and the null order), for a craft
+ * no player flies, holds the throttle at 0; Escort runs at full throttle
+ * (0x8000); any other order takes the order's throttle setting, in a group
+ * that arrives after the start too. */
+static void check_spawn_order_throttle(void)
 {
 	struct model_def saved;
 	struct model_def *model = set_test_model(&saved);
 	model->max_speed = 1000;
-	uint8_t follower_name = g_order_follower_builtin_plan_name_index[0];
 	/* The radio announcement of a round that arrives after the start reads
 	 * message templates; each is one pane-type byte and no text. */
 	for (size_t message = 0;
@@ -5679,30 +5664,24 @@ static void check_spawn_plans(void)
 		g_str_in_flight_messages[message] = "\006";
 	}
 	static const struct {
-		const char *plan_name;
+		int order;
 		int clock_started;
 		int expected_throttle; /* -1: the order's setting */
-		int follower_plan;
 	} cases[] = {
-		{"anyplan", 0, -1, 6},	       {"nullpln", 0, 0, 6},
-		{"stationaryldrpln", 0, 0, 6}, {"stationaryflwpln", 0, 0, 6},
-		{"disabledpln", 0, 0, 6},      {"escortldr1pln", 0, 0x8000, 6},
-		{"anyplan", 1, -1, 9},
+		{MISSION_ORDER_CIRCLE, 0, -1},
+		{MISSION_ORDER_HOLD_STEADY, 0, 0},
+		{MISSION_ORDER_DISABLED, 0, 0},
+		{MISSION_ORDER_HOLD_STEADY_7, 0, 0},
+		{MISSION_ORDER_NULL, 0, 0},
+		{MISSION_ORDER_ESCORT, 0, 0x8000},
+		{MISSION_ORDER_CIRCLE, 1, -1},
 	};
 	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
 		init_mission(MISSION_TYPE_COMBAT);
 		arriving_group(0, 1, SPAWN_TYPE, 2);
+		g_stored.groups[0].orders[0].order = (uint8_t)cases[i].order;
 		g_stored.groups[0].orders[0].throttle = 2;
 		spawn_mission_ready();
-		g_order_leader_builtin_plan_name_index[0] = 3;
-		memset(g_builtin_plan_id_by_name_index, 0,
-		       sizeof g_builtin_plan_id_by_name_index);
-		g_builtin_plan_id_by_name_index[3] = 5;
-		g_builtin_plan_id_by_name_index[follower_name] = 6;
-		g_builtin_plan_id_by_name_index[52] = 9;
-		g_builtin_plan_id_by_name_index[50] = 8;
-		memset(g_plan_table, 0, sizeof g_plan_table);
-		strcpy(g_plan_table[5].name, cases[i].plan_name);
 		g_mission_elapsed_clock.seconds =
 			(uint8_t)cases[i].clock_started;
 		XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
@@ -5716,12 +5695,10 @@ static void check_spawn_plans(void)
 				: g_order_throttle_to_craft_throttle_speed[2];
 		XVT_ASSERT_INT_EQ(leader->throttle_speed, throttle);
 		XVT_ASSERT_INT_EQ(follower->throttle_speed, throttle);
-		XVT_ASSERT_INT_EQ(leader->ai_controller.current_plan_id, 5);
-		XVT_ASSERT_INT_EQ(leader->ai_controller.running_plan_id,
-				  cases[i].clock_started ? 9 : 5);
-		XVT_ASSERT_INT_EQ(follower->ai_controller.current_plan_id, 5);
-		XVT_ASSERT_INT_EQ(follower->ai_controller.running_plan_id,
-				  cases[i].follower_plan);
+		XVT_ASSERT_INT_EQ(leader->ai_controller.activity,
+				  AI_ACTIVITY_NONE);
+		XVT_ASSERT_INT_EQ(follower->ai_controller.activity,
+				  AI_ACTIVITY_NONE);
 		XVT_ASSERT_INT_EQ(
 			g_object_table[craft_slot(0, 0)].mobj->speed,
 			(uint16_t)math2_fraction(1000, (uint16_t)throttle));
@@ -6401,9 +6378,8 @@ static void check_sync_pilot_network_players(void)
 }
 
 /* A group that arrives from a mothership's hangar after the start keeps no
- * formation spacing and its followers run the arrival plan of the hangar; the
- * same group with no mothership in the flight is not spawned, and the spawn
- * says so. */
+ * formation spacing and its craft start with no activity; the same group
+ * with no mothership in the flight is not spawned, and the spawn says so. */
 static void check_spawn_from_mothership(void)
 {
 	init_mission(MISSION_TYPE_COMBAT);
@@ -6412,7 +6388,6 @@ static void check_spawn_from_mothership(void)
 	g_stored.groups[0].arrival_mothership = 1;
 	g_stored.groups[0].formation_spacing = 4;
 	arriving_group(1, 1, SPAWN_TYPE, 1);
-	uint8_t follower_name = g_order_follower_builtin_plan_name_index[0];
 	for (int mothership_present = 0; mothership_present < 2;
 	     ++mothership_present) {
 		spawn_mission_ready();
@@ -6422,10 +6397,6 @@ static void check_spawn_from_mothership(void)
 		     ++message) {
 			g_str_in_flight_messages[message] = "\006";
 		}
-		memset(g_builtin_plan_id_by_name_index, 0,
-		       sizeof g_builtin_plan_id_by_name_index);
-		g_builtin_plan_id_by_name_index[follower_name] = 6;
-		g_builtin_plan_id_by_name_index[50] = 8;
 		g_log_line_count = 0;
 		if (mothership_present) {
 			XVT_ASSERT_INT_EQ(spawn_craft(1, UINT16_MAX), 1);
@@ -6448,7 +6419,8 @@ static void check_spawn_from_mothership(void)
 			g_object_table[craft_slot(0, 1)].mobj->p_craft;
 		XVT_ASSERT_INT_EQ(leader->ai_flight.separation, 0);
 		XVT_ASSERT_INT_EQ(follower->ai_flight.separation, 0);
-		XVT_ASSERT_INT_EQ(follower->ai_controller.running_plan_id, 8);
+		XVT_ASSERT_INT_EQ(follower->ai_controller.activity,
+				  AI_ACTIVITY_NONE);
 		XVT_ASSERT_TRUE(line_holds("mission.wave_prepared fg=0 ",
 					   "mothership=1 hyperspace=0"));
 	}
@@ -6654,7 +6626,7 @@ static void check_spawn_fresh_state(void)
 	XVT_ASSERT_INT_EQ(controller->target_z_angle, 0x4000);
 	XVT_ASSERT_INT_EQ(controller->target_roll, 0);
 	XVT_ASSERT_INT_EQ(controller->target_xy_angle, 0);
-	XVT_ASSERT_INT_EQ(controller->saved_plan_id, 0);
+	XVT_ASSERT_INT_EQ(controller->activity, AI_ACTIVITY_NONE);
 	XVT_ASSERT_INT_EQ(controller->maneuver_phase, 0);
 	XVT_ASSERT_INT_EQ(controller->maneuver_timer, 0);
 	XVT_ASSERT_INT_EQ(controller->current_order_slot, 0);
@@ -10502,12 +10474,6 @@ static void check_spawn_mothership_formation(void)
 		g_stored.groups[0].formation = 2;
 		arriving_group(1, 1, SPAWN_TYPE, 1);
 		spawn_mission_ready();
-		/* The followers run the plans the hangar's arrival names. */
-		memset(g_builtin_plan_id_by_name_index, 0,
-		       sizeof g_builtin_plan_id_by_name_index);
-		g_builtin_plan_id_by_name_index
-			[g_order_follower_builtin_plan_name_index[0]] = 6;
-		g_builtin_plan_id_by_name_index[50] = 8;
 		XVT_ASSERT_INT_EQ(spawn_craft(1, UINT16_MAX), 1);
 		start_the_clock();
 		XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
@@ -10802,22 +10768,24 @@ static int craft_of_other_model(void)
 /* The rating points of a kill go to the better total when the victim's rating
  * is at most 4 below the player's, and to the worse total otherwise, always
  * for a victim with a rating weight of 0 and for a computer's craft on a
- * resting plan (null, stationary, formation, hangar, disabled or
- * self-destruct); a kill of a mine adds 4 to the worse total when it has no
+ * resting order (one that starts stopped, Circle, Circle and Evade or Self
+ * Destruct); a kill of a mine adds 4 to the worse total when it has no
  * damage record. */
 static void check_credit_worse_rating(void)
 {
-	static const char *const resting_plans[] = {
-		"nullpln",	  "stationaryldrpln", "formldr1pln",
-		"formflw1pln",	  "formevadeldr1pln", "formevadeflw1pln",
-		"exithangarpln",  "enterhangarpln",   "disabledpln",
-		"selfdestroypln",
+	static const int resting_orders[] = {
+		MISSION_ORDER_HOLD_STEADY,	MISSION_ORDER_CIRCLE,
+		MISSION_ORDER_CIRCLE_AND_EVADE, MISSION_ORDER_DISABLED,
+		MISSION_ORDER_HOLD_STEADY_2,	MISSION_ORDER_HOLD_STEADY_3,
+		MISSION_ORDER_HOLD_STEADY_4,	MISSION_ORDER_HOLD_STEADY_5,
+		MISSION_ORDER_HOLD_STEADY_6,	MISSION_ORDER_SELF_DESTRUCT,
+		MISSION_ORDER_HOLD_STEADY_7,	MISSION_ORDER_NULL,
 	};
-	for (size_t i = 0; i < sizeof resting_plans / sizeof resting_plans[0];
+	for (size_t i = 0; i < sizeof resting_orders / sizeof resting_orders[0];
 	     ++i) {
 		credit_world();
-		strcpy(g_plan_table[3].name, resting_plans[i]);
-		g_test_craft[1].ai_controller.current_plan_id = 3;
+		g_mission_flight_groups[1].fg.orders[0].order =
+			(uint8_t)resting_orders[i];
 		mission_credit_destruction_damage_contributors(0, 1);
 		XVT_ASSERT_INT_EQ(
 			g_players[0].mission_stats.rating_promo_points, 0);
@@ -10825,10 +10793,8 @@ static void check_credit_worse_rating(void)
 			g_players[0].mission_stats.worse_rating_promo_points >
 			0);
 	}
-	/* Another plan: better points. */
+	/* Another order, Attack: better points. */
 	credit_world();
-	strcpy(g_plan_table[3].name, "attackpln");
-	g_test_craft[1].ai_controller.current_plan_id = 3;
 	mission_credit_destruction_damage_contributors(0, 1);
 	XVT_ASSERT_TRUE(g_players[0].mission_stats.rating_promo_points > 0);
 	XVT_ASSERT_INT_EQ(g_players[0].mission_stats.worse_rating_promo_points,
@@ -11562,8 +11528,8 @@ static void check_credit_rating_factor(void)
 }
 
 /* The rating points of the "worse" total: always at least 1; half for a shared
- * kill and a tenth for an assist, but at least 1. A victim on a resting plan
- * counts for 1 point of rating. */
+ * kill and a tenth for an assist, but at least 1. A victim on a resting
+ * order counts for 1 point of rating. */
 static void check_credit_worse_tiers(void)
 {
 	int base = 0;
@@ -11574,8 +11540,8 @@ static void check_credit_worse_tiers(void)
 	XVT_ASSERT_TRUE(craft_of_other_model() != 0);
 	for (size_t i = 0; i < sizeof rows / sizeof rows[0]; ++i) {
 		credit_world();
-		strcpy(g_plan_table[3].name, "nullpln");
-		g_test_craft[1].ai_controller.current_plan_id = 3;
+		g_mission_flight_groups[1].fg.orders[0].order =
+			MISSION_ORDER_NULL;
 		victim_damage(100, rows[i].damage);
 		/* A victim worth a hundred times the killer. */
 		g_test_objects[1].object_type = (uint8_t)craft_of_other_model();
@@ -11887,10 +11853,7 @@ static void check_arrivals_static_group_next_round(void)
 static void check_outcome_dropoff_closes_group(void)
 {
 	fresh_world();
-	g_order_leader_builtin_plan_name_index[1] = 5;
-	g_builtin_plan_id_by_name_index[5] = 9;
-	strcpy(g_plan_table[9].name, "dropoffldr1pln");
-	g_mission_flight_groups[0].fg.orders[0].order = 1;
+	g_mission_flight_groups[0].fg.orders[0].order = MISSION_ORDER_DROP_OFF;
 	g_mission_flight_groups[0].fg.orders[0].variable2 = 2;
 	g_mission_fg_stats[1].outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] = 3;
 	place_craft(0, 0, 0);
@@ -12166,7 +12129,7 @@ int main(int argc, char **argv)
 	check_spawn_status_codes();
 	check_spawn_player_craft();
 	check_spawn_formation();
-	check_spawn_plans();
+	check_spawn_order_throttle();
 	check_spawn_transport_genus();
 	check_spawn_table_full();
 	check_spawn_beam_and_countermeasures();

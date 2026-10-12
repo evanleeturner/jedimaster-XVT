@@ -4,8 +4,8 @@
  * globals they touch itself, with the flight drawing to its own staging buffer
  * rather than the frontend's surface.
  *
- * Not checked here: Globals loads the AI plans from the retail game files,
- * Palette loads the flight palette and the mission's .pal file from them and
+ * Not checked here: Globals reads the network session, the clock and the
+ * window's messages, Palette loads the flight palette and the mission's .pal file from them and
  * configures the display, and Runtime initializes the mission runtime of a
  * loaded mission and starts the music CD; they need the retail game files and a
  * running flight's display. */

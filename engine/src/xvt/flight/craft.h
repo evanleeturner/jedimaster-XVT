@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 #include "xvt/assets/object_type.h"
-#include "xvt/flight/ai/pai.h"
+#include "xvt/flight/ai_state.h"
 #include "xvt/flight/object/damage.h"
 #include "xvt/flight/object/laser.h"
 #include "xvt/flight/object/object.h"

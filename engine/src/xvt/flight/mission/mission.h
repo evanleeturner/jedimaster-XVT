@@ -11,12 +11,71 @@
 extern "C" {
 #endif
 
+extern const int16_t g_form_pos_x[34][6];
+
+extern const int16_t g_form_pos_y[34][6];
+
+extern const int16_t g_form_pos_z[34][6];
+
+extern const int16_t g_formation_divisor[34];
+
+extern uint16_t g_order_throttle_to_craft_throttle_speed[12];
+
+/* A flight group order's order code, 0 to 39, by its name in the mission
+ * editor. */
+enum mission_order_code {
+	MISSION_ORDER_HOLD_STEADY = 0,
+	MISSION_ORDER_GO_HOME = 1,
+	MISSION_ORDER_CIRCLE = 2,
+	MISSION_ORDER_CIRCLE_AND_EVADE = 3,
+	MISSION_ORDER_RENDEZVOUS = 4,
+	MISSION_ORDER_DISABLED = 5,
+	MISSION_ORDER_AWAIT_BOARDING = 6,
+	MISSION_ORDER_ATTACK = 7,
+	MISSION_ORDER_ATTACK_ESCORTS = 8,
+	MISSION_ORDER_PROTECT = 9,
+	MISSION_ORDER_ESCORT = 10,
+	MISSION_ORDER_DISABLE = 11,
+	MISSION_ORDER_BOARD_AND_GIVE_CARGO = 12,
+	MISSION_ORDER_BOARD_AND_TAKE_CARGO = 13,
+	MISSION_ORDER_BOARD_AND_EXCHANGE_CARGO = 14,
+	MISSION_ORDER_BOARD_AND_CAPTURE_CARGO = 15,
+	MISSION_ORDER_BOARD_AND_DESTROY_CARGO = 16,
+	MISSION_ORDER_PICK_UP = 17,
+	MISSION_ORDER_DROP_OFF = 18,
+	MISSION_ORDER_WAIT = 19,
+	MISSION_ORDER_WAIT_2 = 20,
+	MISSION_ORDER_SS_PATROL_LOOP = 21,
+	MISSION_ORDER_SS_AWAIT_RETURN = 22,
+	MISSION_ORDER_SS_LAUNCH = 23,
+	MISSION_ORDER_SS_PROTECT = 24,
+	MISSION_ORDER_SS_PROTECT_2 = 25,
+	MISSION_ORDER_SS_PATROL_AND_ATTACK = 26,
+	MISSION_ORDER_SS_PATROL_AND_DISABLE = 27,
+	MISSION_ORDER_HOLD_STEADY_2 = 28,
+	MISSION_ORDER_SS_GO_HOME = 29,
+	MISSION_ORDER_HOLD_STEADY_3 = 30,
+	MISSION_ORDER_SS_BOARD = 31,
+	MISSION_ORDER_BOARD_TO_REPAIR = 32,
+	MISSION_ORDER_HOLD_STEADY_4 = 33,
+	MISSION_ORDER_HOLD_STEADY_5 = 34,
+	MISSION_ORDER_HOLD_STEADY_6 = 35,
+	MISSION_ORDER_SELF_DESTRUCT = 36,
+	MISSION_ORDER_KAMIKAZE = 37,
+	MISSION_ORDER_HOLD_STEADY_7 = 38,
+	MISSION_ORDER_NULL = 39,
+};
+
+/* 1 when a craft spawned on this order starts stopped. */
+int mission_order_starts_stopped(int order_code);
+/* The order code of the order the craft in object_idx works on: its flight
+ * group's order in the craft's current order slot. */
+int mission_current_order_code(uint16_t object_idx);
+
 #pragma pack(push, 1)
 
 struct mission_order {
-	/* Order code; picks the AI plans through
-	 * g_order_leader_builtin_plan_name_index and
-	 * g_order_follower_builtin_plan_name_index, 0 for none. */
+	/* Order code, a MISSION_ORDER_ value. */
 	uint8_t order;
 	uint8_t throttle; /* Index into g_order_throttle_to_craft_throttle_speed. */
 	uint8_t variable1; /* Parameter whose meaning depends on the order. */

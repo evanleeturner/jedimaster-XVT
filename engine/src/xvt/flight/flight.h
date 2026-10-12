@@ -237,7 +237,6 @@ extern const float g_lod_config_curve_threshold;
 extern const float g_mipmap_config_scale_factor;
 extern uint8_t g_dynamic_music_initial_start_minute_choices[4];
 extern uint8_t g_dynamic_music_initial_start_second_choices[4];
-extern const char g_pai_plan_resource_base_name[8];
 extern int g_flight_conf_train_course;
 extern int g_unused_flight_cmd_line_plus_switch_flag;
 extern int g_flight_conf_no_launcher;

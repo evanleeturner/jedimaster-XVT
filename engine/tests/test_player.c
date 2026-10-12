@@ -3,7 +3,7 @@
  * objective, and the smaller steps on the player's craft. Each check builds
  * the flight it needs in the game's own tables: an object table this file
  * owns with eight craft slots, four shot slots and four static slots, four
- * flight groups on teams 0, 1 and 2, and plans whose bytes change nothing.
+ * flight groups on teams 0, 1 and 2.
  * Player 2 flies the craft in slot 1 for team 0; team 2 is team 0's ally.
  * No game data is read. */
 #include <stddef.h>
@@ -13,8 +13,7 @@
 #include "test_assert.h"
 #include "xvt/assets/object_genus.h"
 #include "xvt/assets/opt_model.h"
-#include "xvt/flight/ai/pai.h"
-#include "xvt/flight/ai/paiman.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_input.h"
@@ -38,9 +37,6 @@ enum {
 	PLAYER_SLOT = 1,
 	NO_PLAYER = 7, /* The local player, flying nothing. */
 	TEST_XWING = 1,
-	NULL_PLAN = 2,
-	ORDER_PLAN = 3,
-	OTHER_PLAN = 7,
 	/* Flight groups: 0 the player's, on team 0; 1 and 3 on team 1, the
 	 * enemy; 2 on team 2, team 0's ally. */
 	OWN_FG = 0,
@@ -57,8 +53,6 @@ enum {
 static struct object_record g_test_objects[TEST_SLOTS];
 static struct mobile_object g_test_mobiles[MAIN_END];
 static struct craft_data g_test_craft[CRAFT_SLOTS];
-/* Every plan's bytes: keep the target, keep the maneuver. */
-static uint8_t g_test_plan[4] = {255, 255, 0, 0};
 /* Every in-flight message's text, a system message: with system messages
  * off, the message code drops it. */
 static const char g_test_message[] = "\x03message";
@@ -96,13 +90,6 @@ static struct craft_data *fresh_world(void)
 	memset(g_mission_teams, 0, sizeof g_mission_teams);
 	memset(g_mission_global_goals, 0, sizeof g_mission_global_goals);
 	memset(g_players, 0, sizeof g_players);
-	memset(g_plan_table, 0, sizeof g_plan_table);
-	for (int plan = 0; plan < 256; ++plan) {
-		g_plan_data_ptrs[plan] = g_test_plan;
-	}
-	strcpy(g_plan_table[NULL_PLAN].name, "nullpln");
-	strcpy(g_plan_table[ORDER_PLAN].name, "attackpln");
-	strcpy(g_plan_table[OTHER_PLAN].name, "otherpln");
 	for (size_t id = 0; id < sizeof g_str_in_flight_messages /
 					 sizeof g_str_in_flight_messages[0];
 	     ++id) {
@@ -304,8 +291,8 @@ static void check_unbind_keeps_last_craft(void)
 
 /* Released without orders, the craft keeps nothing of the player's: no owner,
  * cleared laser banks, launcher cooldowns and lock, launchers on link mode 1
- * keeping bit 7, every shield's energy in the front bank, plan nullpln at
- * order slot 0 and no steering. The player keeps a copy of the craft's
+ * keeping bit 7, every shield's energy in the front bank, activity none
+ * at order slot 0 and no steering. The player keeps a copy of the craft's
  * settings and loses the craft, hyperspace, lock, input smoothing and engine
  * wash state. g_cur_craft, already at this craft, stays there. */
 static void check_unbind_without_orders(void)
@@ -330,8 +317,7 @@ static void check_unbind_without_orders(void)
 	craft->warhead_launcher_flags[0] = (int8_t)0x83;
 	craft->warhead_launcher_flags[1] = 0x02;
 	craft->warhead_lock_ticks = 9;
-	craft->ai_controller.running_plan_id = OTHER_PLAN;
-	craft->ai_controller.current_plan_id = OTHER_PLAN;
+	craft->ai_controller.activity = AI_ACTIVITY_WAITING;
 	craft->ai_controller.current_order_slot = 2;
 	craft->ai_flight.roll_state = 1;
 	craft->ai_flight.pitch_state = 1;
@@ -370,8 +356,7 @@ static void check_unbind_without_orders(void)
 	XVT_ASSERT_INT_EQ(craft->shield_energy[1], 0);
 	XVT_ASSERT_INT_EQ(craft->shield_distrib_mode,
 			  SHIELD_DISTRIBUTION_FULLY_FORWARD);
-	XVT_ASSERT_INT_EQ(craft->ai_controller.running_plan_id, NULL_PLAN);
-	XVT_ASSERT_INT_EQ(craft->ai_controller.current_plan_id, NULL_PLAN);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.activity, AI_ACTIVITY_NONE);
 	XVT_ASSERT_INT_EQ(craft->ai_controller.current_order_slot, 0);
 	XVT_ASSERT_INT_EQ(craft->ai_flight.roll_state, 0);
 	XVT_ASSERT_INT_EQ(craft->ai_flight.pitch_state, 0);
@@ -396,43 +381,41 @@ static void check_unbind_without_orders(void)
 	XVT_ASSERT_INT_EQ(player->engine_wash_source_obj_idx, -1);
 }
 
-/* Gives the player's flight group a first order whose leader plan is the
- * plan in slot 3, named plan_name, at throttle setting 5, then hands the
- * craft back with orders. */
-static struct craft_data *release_to_order_plan(const char *plan_name)
+/* Gives the player's flight group a first order with code order_code at
+ * throttle setting 2, then hands the craft back with orders. Setting 5
+ * would hide Escort: it is 0x8000 too. */
+static struct craft_data *release_to_order(int order_code)
 {
 	struct craft_data *craft = fresh_world();
 	struct mission_order *order =
 		&g_mission_flight_groups[OWN_FG].fg.orders[0];
-	order->order = 2;
-	order->throttle = 5;
-	g_builtin_plan_id_by_name_index
-		[g_order_leader_builtin_plan_name_index[2]] = ORDER_PLAN;
-	strcpy(g_plan_table[ORDER_PLAN].name, plan_name);
+	order->order = (uint8_t)order_code;
+	order->throttle = 2;
 	g_model_defs[craft->model_index].max_speed = 100;
-	craft->ai_controller.running_plan_id = NULL_PLAN;
+	craft->ai_controller.activity = AI_ACTIVITY_WAITING;
 	craft->ai_controller.current_order_slot = 1;
 	g_test_mobiles[PLAYER_SLOT].speed_remainder = 7;
 	XVT_ASSERT_INT_EQ(player_unbind_from_current_craft(PLAYER, 0, 1), 1);
 	return craft;
 }
 
-/* Released with orders, the craft takes its flight group's first order: its
- * plan as current and running plan at order slot 0, and the throttle the
- * order's setting names, which with the model's top speed sets the craft's
- * speed. A plan that stands still gets throttle 0, escortldr1pln 0x8000. */
+/* Released with orders, the craft takes its flight group's first order at
+ * order slot 0, and the throttle the order's setting names, which with the
+ * model's top speed sets the craft's speed; its activity is left for the
+ * pilot program to set. An order that starts stopped gets throttle 0,
+ * Escort 0x8000. */
 static void check_unbind_takes_first_order(void)
 {
-	static const char *const still_plans[] = {
-		"nullpln",
-		"stationaryldrpln",
-		"stationaryflwpln",
-		"disabledpln",
+	static const int still_orders[] = {
+		MISSION_ORDER_HOLD_STEADY,   MISSION_ORDER_DISABLED,
+		MISSION_ORDER_HOLD_STEADY_2, MISSION_ORDER_HOLD_STEADY_3,
+		MISSION_ORDER_HOLD_STEADY_4, MISSION_ORDER_HOLD_STEADY_5,
+		MISSION_ORDER_HOLD_STEADY_6, MISSION_ORDER_HOLD_STEADY_7,
+		MISSION_ORDER_NULL,
 	};
-	struct craft_data *craft = release_to_order_plan("attackpln");
-	uint16_t throttle = g_order_throttle_to_craft_throttle_speed[5];
-	XVT_ASSERT_INT_EQ(craft->ai_controller.running_plan_id, ORDER_PLAN);
-	XVT_ASSERT_INT_EQ(craft->ai_controller.current_plan_id, ORDER_PLAN);
+	struct craft_data *craft = release_to_order(MISSION_ORDER_CIRCLE);
+	uint16_t throttle = g_order_throttle_to_craft_throttle_speed[2];
+	XVT_ASSERT_INT_EQ(craft->ai_controller.activity, AI_ACTIVITY_WAITING);
 	XVT_ASSERT_INT_EQ(craft->ai_controller.current_order_slot, 0);
 	XVT_ASSERT_INT_EQ(craft->throttle_speed, throttle);
 	XVT_ASSERT_INT_EQ(g_test_mobiles[PLAYER_SLOT].speed,
@@ -440,41 +423,34 @@ static void check_unbind_takes_first_order(void)
 	XVT_ASSERT_INT_EQ(g_test_mobiles[PLAYER_SLOT].speed_remainder, 0);
 	XVT_ASSERT_TRUE(g_cur_craft == craft);
 
-	for (size_t i = 0; i < sizeof still_plans / sizeof still_plans[0];
+	for (size_t i = 0; i < sizeof still_orders / sizeof still_orders[0];
 	     ++i) {
-		craft = release_to_order_plan(still_plans[i]);
+		craft = release_to_order(still_orders[i]);
 		XVT_ASSERT_INT_EQ(craft->throttle_speed, 0);
 		XVT_ASSERT_INT_EQ(g_test_mobiles[PLAYER_SLOT].speed, 0);
 	}
-	craft = release_to_order_plan("escortldr1pln");
+	craft = release_to_order(MISSION_ORDER_ESCORT);
 	XVT_ASSERT_INT_EQ(craft->throttle_speed, 0x8000);
 }
 
-/* Known failure unbind_plan_to_released_craft, issue #170: a craft handed
- * back to the computer pilot takes its flight group's first order, the order
- * slot and plan included, whichever craft g_cur_craft names when the call is
- * made; no other craft's plan changes. The function's comment describes the
- * writes through g_cur_craft as intended, so the check rests on the issue.
- * The throwaway fix writes the order slot and the plans through the released
- * craft, as the rest of the function does; the comment changes with it. */
-static void check_unbind_plan_to_released_craft(void)
+/* Known failure unbind_order_slot_to_released_craft, issue #170: a craft
+ * handed back to the computer pilot with orders starts at order slot 0,
+ * whichever craft g_cur_craft names when the call is made; no other craft's
+ * order slot changes. The function's comment describes the writes through
+ * g_cur_craft as intended, so the check rests on the issue. The throwaway
+ * fix writes the order slot through the released craft, as the rest of the
+ * function does; the comment changes with it. */
+static void check_unbind_order_slot_to_released_craft(void)
 {
 	struct craft_data *craft = fresh_world();
 	struct craft_data *other = place_craft(5, ENEMY_FG, 4000, 0, 0);
-	other->ai_controller.running_plan_id = OTHER_PLAN;
-	other->ai_controller.current_plan_id = OTHER_PLAN;
 	other->ai_controller.current_order_slot = 2;
 	g_cur_craft = other;
-	g_mission_flight_groups[OWN_FG].fg.orders[0].order = 2;
-	g_builtin_plan_id_by_name_index
-		[g_order_leader_builtin_plan_name_index[2]] = ORDER_PLAN;
-	craft->ai_controller.running_plan_id = NULL_PLAN;
+	g_mission_flight_groups[OWN_FG].fg.orders[0].order =
+		MISSION_ORDER_CIRCLE;
 	craft->ai_controller.current_order_slot = 1;
 	XVT_ASSERT_INT_EQ(player_unbind_from_current_craft(PLAYER, 0, 1), 1);
-	XVT_ASSERT_INT_EQ(other->ai_controller.running_plan_id, OTHER_PLAN);
-	XVT_ASSERT_INT_EQ(other->ai_controller.current_plan_id, OTHER_PLAN);
 	XVT_ASSERT_INT_EQ(other->ai_controller.current_order_slot, 2);
-	XVT_ASSERT_INT_EQ(craft->ai_controller.running_plan_id, ORDER_PLAN);
 	XVT_ASSERT_INT_EQ(craft->ai_controller.current_order_slot, 0);
 }
 
@@ -790,8 +766,8 @@ int main(int argc, char **argv)
 		} known_failures[] = {
 			{"nearest_enemy_none_minus_one",
 			 check_nearest_enemy_none},
-			{"unbind_plan_to_released_craft",
-			 check_unbind_plan_to_released_craft},
+			{"unbind_order_slot_to_released_craft",
+			 check_unbind_order_slot_to_released_craft},
 			{"objective_second_pair_first_trigger",
 			 check_objective_second_pair_first_trigger},
 		};

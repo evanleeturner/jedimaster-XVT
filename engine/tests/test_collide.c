@@ -36,7 +36,7 @@
 #include "xvt/assets/object_genus.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
-#include "xvt/flight/ai/pai.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/hud/hud.h"
@@ -4143,9 +4143,9 @@ static void check_collisions_player_meets_craft(void)
 	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
 }
 
-/* Comment: pairs the plans want left alone go back in the list untested: a
- * craft the player's craft has just bounced off, and a craft boarding to give
- * to the player's craft. */
+/* Comment: pairs the craft's activity or order wants left alone go back in
+ * the list untested: a craft the player's craft has just bounced off, and a
+ * craft whose order is to board the player's craft and give it cargo. */
 static void check_collisions_player_pair_left_alone(void)
 {
 	craft_meet();
@@ -4159,19 +4159,19 @@ static void check_collisions_player_pair_left_alone(void)
 	XVT_ASSERT_INT_EQ(g_test_mobiles[0].proximity_list.obj_idx[0], 1);
 
 	craft_meet();
-	strcpy(g_plan_table[7].name, "boardtogivepln");
-	g_test_craft[1].ai_controller.current_plan_id = 7;
+	g_mission_flight_groups[1].fg.orders[0].order =
+		MISSION_ORDER_BOARD_AND_GIVE_CARGO;
 	g_test_craft[1].ai_controller.target_obj_idx = 0;
 	collide_collisions();
 	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000);
 	XVT_ASSERT_INT_EQ(g_test_mobiles[0].proximity_list.count, 1);
 	/* Aimed at some other craft, it is tested. */
 	craft_meet();
-	g_test_craft[1].ai_controller.current_plan_id = 7;
+	g_mission_flight_groups[1].fg.orders[0].order =
+		MISSION_ORDER_BOARD_AND_GIVE_CARGO;
 	g_test_craft[1].ai_controller.target_obj_idx = 1;
 	collide_collisions();
 	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 300);
-	g_plan_table[7].name[0] = '\0';
 }
 
 /* Static slot 5 holds a mine at (1,000, 0, 0); craft 0 flies from the origin
@@ -4347,39 +4347,45 @@ static void check_collisions_capital_ship_meets_craft(void)
 		XVT_ASSERT_TRUE(untouched());
 	}
 
-	/* The craft's: hangar and hyperspace plans, a leader's hangar plan, a
-	 * carrier, boarding, jumping, dropping off. */
-	static const char *const plans[] = {
-		"exithangarpln", "outofhyperspacepln", "enterhangarpln"};
-	for (size_t i = 0; i < sizeof plans / sizeof plans[0]; ++i) {
+	/* The craft's: leaving or entering a hangar, arriving from hyperspace,
+	 * a leader's hangar activity, a carrier, boarding, jumping, dropping
+	 * off. */
+	static const uint8_t activities[] = {
+		AI_ACTIVITY_LEAVING_HANGAR,
+		AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE,
+		AI_ACTIVITY_ENTERING_HANGAR};
+	for (size_t i = 0; i < sizeof activities / sizeof activities[0]; ++i) {
 		starship_meets_craft();
-		strcpy(g_plan_table[9].name, plans[i]);
-		g_test_craft[1].ai_controller.running_plan_id = 9;
+		g_test_craft[1].ai_controller.activity = activities[i];
 		collide_collisions();
 		XVT_ASSERT_TRUE(untouched());
 	}
 	for (size_t i = 0; i < 2; ++i) {
 		starship_meets_craft();
-		strcpy(g_plan_table[9].name, "followhomeevadepln");
-		strcpy(g_plan_table[10].name,
-		       i == 0 ? "exithangarpln" : "enterhangarpln");
-		g_test_craft[1].ai_controller.running_plan_id = 9;
+		g_test_craft[1].ai_controller.activity =
+			AI_ACTIVITY_GOING_HOME_EVADING;
 		g_test_craft[1].leader_obj_idx = 0;
-		g_test_craft[0].ai_controller.running_plan_id = 10;
+		g_test_craft[0].ai_controller.activity =
+			i == 0 ? AI_ACTIVITY_LEAVING_HANGAR
+			       : AI_ACTIVITY_ENTERING_HANGAR;
 		collide_collisions();
 		XVT_ASSERT_TRUE(untouched());
 	}
 	/* A leader that is doing something else leaves the follower tested. */
 	starship_meets_craft();
-	strcpy(g_plan_table[9].name, "followhomeevadepln");
-	strcpy(g_plan_table[10].name, "attackpln");
-	g_test_craft[1].ai_controller.running_plan_id = 9;
+	g_test_craft[1].ai_controller.activity = AI_ACTIVITY_GOING_HOME_EVADING;
 	g_test_craft[1].leader_obj_idx = 0;
-	g_test_craft[0].ai_controller.running_plan_id = 10;
+	g_test_craft[0].ai_controller.activity = AI_ACTIVITY_NONE;
 	collide_collisions();
 	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 800);
-	g_plan_table[9].name[0] = '\0';
-	g_plan_table[10].name[0] = '\0';
+	/* So does going home without a leader, the leader's hangar activity
+	 * notwithstanding. */
+	starship_meets_craft();
+	g_test_craft[1].ai_controller.activity = AI_ACTIVITY_GOING_HOME_EVADING;
+	g_test_craft[1].leader_obj_idx = UINT8_MAX;
+	g_test_craft[0].ai_controller.activity = AI_ACTIVITY_ENTERING_HANGAR;
+	collide_collisions();
+	XVT_ASSERT_INT_EQ(g_test_craft[1].shield_energy[0], 1000 - 800);
 	for (int mode = 0; mode < 4; ++mode) {
 		starship_meets_craft();
 		if (mode == 0) {
@@ -4453,8 +4459,8 @@ static void check_collisions_shot_meets_craft(void)
 	/* A player's shot, with the craft boarding to give to it: left. */
 	laser_meets_craft();
 	player_flies(0, 2);
-	strcpy(g_plan_table[7].name, "boardtogivepln");
-	g_test_craft[1].ai_controller.current_plan_id = 7;
+	g_mission_flight_groups[1].fg.orders[0].order =
+		MISSION_ORDER_BOARD_AND_GIVE_CARGO;
 	g_test_craft[1].ai_controller.maneuver_mode = AI_MANEUVER_MODE_BOARD;
 	g_test_craft[1].ai_controller.maneuver_phase = 2;
 	g_test_craft[1].ai_controller.target_obj_idx = TEST_SHOT;
@@ -4464,13 +4470,13 @@ static void check_collisions_shot_meets_craft(void)
 	/* In another phase, it is tested. */
 	laser_meets_craft();
 	player_flies(0, 2);
-	g_test_craft[1].ai_controller.current_plan_id = 7;
+	g_mission_flight_groups[1].fg.orders[0].order =
+		MISSION_ORDER_BOARD_AND_GIVE_CARGO;
 	g_test_craft[1].ai_controller.maneuver_mode = AI_MANEUVER_MODE_BOARD;
 	g_test_craft[1].ai_controller.maneuver_phase = 3;
 	g_test_craft[1].ai_controller.target_obj_idx = TEST_SHOT;
 	collide_collisions();
 	XVT_ASSERT_TRUE(g_test_craft[1].shield_energy[0] < 1000);
-	g_plan_table[7].name[0] = '\0';
 }
 
 /* Two shots of craft 0 (slot 2) and craft 1 (slot 3) crossing at (1,000, 0,

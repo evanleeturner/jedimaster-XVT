@@ -2,7 +2,6 @@
 
 #include <string.h>
 
-#include "xvt/flight/ai/pai.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/hud/hud.h"
 #include "xvt/flight/mission/mission.h"
@@ -248,15 +247,9 @@ size_t xvt_snapshot_encode(uint8_t *image, size_t capacity)
 	*cursor++ = g_world_state_reserved_byte;
 
 	cursor = xvt_snapshot_encode_slot_layout(cursor);
-	memcpy(cursor, g_plan_table, 21760);
-	cursor += 21760;
-	memcpy(cursor, &g_plan_count, sizeof(g_plan_count));
-	cursor += sizeof(g_plan_count);
 	memcpy(cursor, &g_unused_world_state_serialized_dword,
 	       sizeof(g_unused_world_state_serialized_dword));
 	cursor += sizeof(g_unused_world_state_serialized_dword);
-	memcpy(cursor, g_builtin_plan_id_by_name_index, 256);
-	cursor += 256;
 	memcpy(cursor, &g_game_rand_feedback_state,
 	       sizeof(g_game_rand_feedback_state));
 	cursor += sizeof(g_game_rand_feedback_state);
@@ -370,16 +363,9 @@ static void xvt_snapshot_decode_prefix(const uint8_t *image)
 	memcpy(&g_region_static_object_slot_count, cursor,
 	       sizeof(g_region_static_object_slot_count));
 	cursor += sizeof(g_region_static_object_slot_count);
-	memcpy(g_plan_table, cursor, sizeof(g_plan_table));
-	cursor += sizeof(g_plan_table);
-	memcpy(&g_plan_count, cursor, sizeof(g_plan_count));
-	cursor += sizeof(g_plan_count);
 	memcpy(&g_unused_world_state_serialized_dword, cursor,
 	       sizeof(g_unused_world_state_serialized_dword));
 	cursor += sizeof(g_unused_world_state_serialized_dword);
-	memcpy(g_builtin_plan_id_by_name_index, cursor,
-	       sizeof(g_builtin_plan_id_by_name_index));
-	cursor += sizeof(g_builtin_plan_id_by_name_index);
 	memcpy(&g_game_rand_feedback_state, cursor,
 	       sizeof(g_game_rand_feedback_state));
 	cursor += sizeof(g_game_rand_feedback_state);
@@ -422,17 +408,15 @@ size_t xvt_snapshot_calculate_size(void)
 		return 0;
 	}
 
-	/* The fixed trailer contains 24 dwords, three words, and one byte
+	/* The fixed trailer contains 23 dwords, three words, and one byte
 	 * around the fixed arrays. */
 	size_t size =
 		(int)(2 * sizeof(struct mission_clock) +
 		      sizeof(struct mission_header) +
 		      sizeof(struct xvt_snapshot_flight_mission_state) +
 		      sizeof(struct flight_global_countdown_timers) +
-		      sizeof(g_plan_table) +
-		      sizeof(g_builtin_plan_id_by_name_index) +
 		      8 * sizeof(struct xvt_snapshot_player_data) +
-		      24 * sizeof(uint32_t) + 3 * sizeof(uint16_t) +
+		      23 * sizeof(uint32_t) + 3 * sizeof(uint16_t) +
 		      sizeof(uint8_t) + sizeof(struct warhead_guidance_state));
 	size += (int)(sizeof(struct mission_fg_runtime_stats) +
 		      sizeof(struct mission_flight_group)) *
@@ -939,9 +923,7 @@ xvt_snapshot_validate_prefix(const uint8_t *image, size_t size,
 		sizeof(g_mission_file_version) + sizeof(g_flight_player_count) +
 		sizeof(g_world_state_reserved_byte);
 	size_t after_ranges =
-		sizeof(g_plan_table) + sizeof(g_plan_count) +
 		sizeof(g_unused_world_state_serialized_dword) +
-		sizeof(g_builtin_plan_id_by_name_index) +
 		sizeof(g_game_rand_feedback_state) +
 		sizeof(g_next_object_signature) +
 		sizeof(g_laser_fire_timestamp_tracking_enabled) +
@@ -989,16 +971,10 @@ int xvt_snapshot_decode(const uint8_t *image, size_t size)
 	return 1;
 }
 
-/* The computer pilots' working state as it was at the last save. It is not in
- * the image (no schema or checksum change), but a step that is rolled back can
- * leave it changed, and a mine's decoy test reads what a step left there. */
-static struct pai_context s_saved_pai_context;
-
 void xvt_snapshot_save(void)
 {
 	g_world_state_size = (unsigned)xvt_snapshot_encode(
 		g_world_state_buffer, xvt_snapshot_calculate_size());
-	s_saved_pai_context = g_pai_context;
 }
 
 void xvt_snapshot_restore(void)
@@ -1007,7 +983,6 @@ void xvt_snapshot_restore(void)
 		g_flight_mission_state.mission_end_pending = 1;
 		return;
 	}
-	g_pai_context = s_saved_pai_context;
 }
 
 int xvt_snapshot_checksum_image(const uint8_t *image, size_t size,

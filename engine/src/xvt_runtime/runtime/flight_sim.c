@@ -803,7 +803,6 @@ xvt_flight_step_result xvt_flight_sim_step_to_time(int target_game_time)
 	if (!g_sim.step_pending) {
 		g_sim.target = target_game_time;
 		g_sim.step_game_time = g_game_time;
-		g_gunner_collision_probe_count = 0;
 	}
 	target_game_time = g_sim.target;
 	int game_time = g_sim.step_game_time;

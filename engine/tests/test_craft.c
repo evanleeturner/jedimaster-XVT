@@ -14,7 +14,7 @@
 #include "xvt/assets/object_genus.h"
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
-#include "xvt/flight/ai/pai.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"

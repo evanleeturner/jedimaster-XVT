@@ -7,8 +7,6 @@
 #include "xvt/assets/model_mesh_internal.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
-#include "xvt/flight/ai/pai.h"
-#include "xvt/flight/ai/paifight.h"
 #include "xvt/flight/ai_brain.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
@@ -2876,8 +2874,7 @@ void laser_warnplayer(uint16_t projectile_guidance_idx)
  * (the speed term is 16 bits and wraps from 700 up). The shot is an ion turbo
  * laser from a Mine Type B, else an imperial (IFF 1 or 4) or rebel turbo
  * laser, at half its type's speed and twice its life, with no homing.
- * Writes g_paifightSearchOrigin*, g_pai_context.require_undisabled_target,
- * g_worldLoc* and the trig2 outputs. */
+ * Writes g_worldLoc* and the trig2 outputs. */
 // FUNCTION: XVT 0x446C60
 void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 {
@@ -2922,16 +2919,8 @@ void laser_update_mine_weapon_fire(uint16_t mine_obj_idx)
 	int mine_x = g_object_table[mine_obj_idx].world_x;
 	int mine_y = g_object_table[mine_obj_idx].world_y;
 	int mine_z = g_object_table[mine_obj_idx].world_z;
-	g_paifight_search_origin_x = mine_x;
-	g_paifight_search_origin_y = mine_y;
-	g_paifight_search_origin_z = mine_z;
 	uint16_t flight_group_idx =
 		g_object_table[mine_obj_idx].flight_group_idx;
-	g_pai_context.require_undisabled_target = 1;
-	if (g_object_table[mine_obj_idx].object_type !=
-	    MINE_TYPE_B_LIVE_TARGET) {
-		g_pai_context.require_undisabled_target = 0;
-	}
 	uint16_t target_ref = ai_brain_find_mine_target(
 		g_mission_flight_groups[flight_group_idx]
 			.fg.orders[0]

@@ -8,7 +8,7 @@
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
-#include "xvt/flight/ai/pai.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -55,6 +55,18 @@
 #include "xvt_runtime/snapshot/render_assets.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 #include "xvt_runtime/snapshot/render_hud.h"
+
+/* 1 when a stopped craft doing this shows "Waiting" on the HUD instead: going
+ * home, leaving or arriving by hyperspace, entering or leaving a hangar. */
+static int hud_activity_shows_waiting_when_stopped(uint8_t activity)
+{
+	return activity == AI_ACTIVITY_GOING_HOME ||
+	       activity == AI_ACTIVITY_GOING_HOME_EVADING ||
+	       activity == AI_ACTIVITY_LEAVING_BY_HYPERSPACE ||
+	       activity == AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE ||
+	       activity == AI_ACTIVITY_LEAVING_HANGAR ||
+	       activity == AI_ACTIVITY_ENTERING_HANGAR;
+}
 
 struct lfd_entry_header {
 	uint8_t resource_type[4]; /* Type tag; PLTT marks a palette. */
@@ -3783,42 +3795,19 @@ void hud_update_targeting_computer_display(void)
 			}
 			struct ai_controller *ai_controller =
 				&order_craft->ai_controller;
-			uint16_t display_plan_id =
-				ai_controller->running_plan_id;
+			uint8_t display_activity = ai_controller->activity;
 			if (order_craft->working_subsystems == 0) {
-				display_plan_id = (uint16_t)
-					pai_find_plan_id_by_name_or_zero(
-						"disabledpln");
-			} else if (order_mobile_object->speed == 0) {
-				const char *plan_name =
-					g_plan_table[ai_controller
-							     ->running_plan_id]
-						.name;
-				if (strcmp(plan_name, "flyhomepln") == 0 ||
-				    strcmp(plan_name, "followhomepln") == 0 ||
-				    strcmp(plan_name, "flyhomeevadepln") == 0 ||
-				    strcmp(plan_name, "followhomeevadepln") ==
-					    0 ||
-				    strcmp(plan_name, "enterhangarpln") == 0 ||
-				    strcmp(plan_name, "exithangarpln") == 0 ||
-				    strcmp(plan_name, "intohyperspacepln") ==
-					    0 ||
-				    strcmp(plan_name, "outofhyperspacepln") ==
-					    0 ||
-				    strcmp(plan_name, "starshipintohyperpln") ==
-					    0 ||
-				    strcmp(plan_name,
-					   "starshipfollowhomepln") == 0) {
-					display_plan_id = (uint16_t)
-						pai_find_plan_id_by_name_or_zero(
-							"waitpln");
-				}
+				display_activity = AI_ACTIVITY_DISABLED;
+			} else if (order_mobile_object->speed == 0 &&
+				   hud_activity_shows_waiting_when_stopped(
+					   display_activity)) {
+				display_activity = AI_ACTIVITY_WAITING;
 			}
-			if (display_plan_id !=
+			if (display_activity !=
 			    g_hud_element_state_cache[TARGET_CARGO_ELEMENT]) {
 				g_hud_element_state_cache
 					[TARGET_CARGO_ELEMENT] =
-						display_plan_id;
+						display_activity;
 				left = g_hud_element_layouts
 					       [g_hud_instrument_set_base_index +
 						TARGET_CARGO_ELEMENT]
@@ -3837,9 +3826,10 @@ void hud_update_targeting_computer_display(void)
 				g_flight_fill_clip_rect_fn();
 				flight_text_set_cursor(left, top);
 				flight_text_set_color(0x46);
-				const char *status_text = g_str_in_flight_messages
-					[g_plan_report_message_id_by_plan_id
-						 [display_plan_id]];
+				const char *status_text =
+					g_str_in_flight_messages
+						[g_ai_activity_status_message_id
+							 [display_activity]];
 				const char *status_char = status_text;
 				for (uint16_t word_length = 0;
 				     word_length < MAX_STATUS_FIRST_WORD_LENGTH;
@@ -6836,33 +6826,19 @@ void hud_draw_cmd_target_details(void)
 			}
 		}
 
-		int display_plan_id = controller->running_plan_id;
+		uint8_t display_activity = controller->activity;
 		if (target_craft->working_subsystems == 0) {
-			display_plan_id =
-				pai_find_plan_id_by_name_or_zero("disabledpln");
-		} else if (target_mobile_object->speed == 0) {
-			const char *plan_name =
-				g_plan_table[display_plan_id].name;
-			if (strcmp(plan_name, "flyhomepln") == 0 ||
-			    strcmp(plan_name, "followhomepln") == 0 ||
-			    strcmp(plan_name, "flyhomeevadepln") == 0 ||
-			    strcmp(plan_name, "followhomeevadepln") == 0 ||
-			    strcmp(plan_name, "enterhangarpln") == 0 ||
-			    strcmp(plan_name, "exithangarpln") == 0 ||
-			    strcmp(plan_name, "intohyperspacepln") == 0 ||
-			    strcmp(plan_name, "outofhyperspacepln") == 0 ||
-			    strcmp(plan_name, "starshipintohyperpln") == 0 ||
-			    strcmp(plan_name, "starshipfollowhomepln") == 0) {
-				display_plan_id =
-					pai_find_plan_id_by_name_or_zero(
-						"waitpln");
-			}
+			display_activity = AI_ACTIVITY_DISABLED;
+		} else if (target_mobile_object->speed == 0 &&
+			   hud_activity_shows_waiting_when_stopped(
+				   display_activity)) {
+			display_activity = AI_ACTIVITY_WAITING;
 		}
 
 		if ((uint16_t)g_hud_element_state_cache[CMD_ORDERS_ELEMENT] !=
-		    display_plan_id) {
+		    display_activity) {
 			g_hud_element_state_cache[CMD_ORDERS_ELEMENT] =
-				(int16_t)display_plan_id;
+				(int16_t)display_activity;
 			uint16_t left =
 				g_hud_element_layouts[CMD_ORDERS_ELEMENT].x;
 			uint16_t top =
@@ -6902,13 +6878,13 @@ void hud_draw_cmd_target_details(void)
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_CMD_ORDERS,
 				g_str_in_flight_messages
-					[g_plan_report_message_id_by_plan_id
-						 [display_plan_id]],
+					[g_ai_activity_status_message_id
+						 [display_activity]],
 				XVT_COCKPIT_ALIGN_LEFT);
 			flight_text_draw_string(
 				g_str_in_flight_messages
-					[g_plan_report_message_id_by_plan_id
-						 [display_plan_id]]);
+					[g_ai_activity_status_message_id
+						 [display_activity]]);
 
 			left = g_hud_element_layouts[CMD_ORDER_TIME_ELEMENT].x;
 			top = g_hud_element_layouts[CMD_ORDER_TIME_ELEMENT].y;
@@ -6968,8 +6944,7 @@ void hud_draw_cmd_target_details(void)
 			if (target_craft->working_subsystems == 0) {
 				order_target_object_idx = UINT16_MAX;
 			}
-			if (strcmp(g_plan_table[display_plan_id].name,
-				   "waitpln") == 0) {
+			if (display_activity == AI_ACTIVITY_WAITING) {
 				order_target_object_idx = UINT16_MAX;
 			}
 
@@ -7179,14 +7154,10 @@ void hud_draw_cmd_target_details(void)
 			flight_text_set_cursor(value_left, value_top);
 			if (g_object_table[current_target_object_idx]
 				    .mobj->speed == 0) {
-				if (strcmp(g_plan_table
-						   [controller->running_plan_id]
-							   .name,
-					   "board2pln") != 0 &&
-				    strcmp(g_plan_table
-						   [controller->running_plan_id]
-							   .name,
-					   "waitpln") != 0) {
+				if (controller->activity !=
+					    AI_ACTIVITY_BOARDING &&
+				    controller->activity !=
+					    AI_ACTIVITY_WAITING) {
 					if (target_distance == 0) {
 						g_hud_element_state_cache
 							[CMD_ORDER_TIME_ELEMENT] =

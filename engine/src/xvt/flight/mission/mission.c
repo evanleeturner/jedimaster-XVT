@@ -8,8 +8,6 @@
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
-#include "xvt/flight/ai/pai.h"
-#include "xvt/flight/ai/paiman.h"
 #include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
@@ -39,6 +37,124 @@
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
+
+/* Side offset, in model bound sizes, of each place in each of the 34
+ * formations, by craft_ordinal 0 to 5. paiman_calcformation,
+ * mission_init_flight_group_object_slot and mission_resolve_formation_slot_world_loc
+ * read it. */
+// GLOBAL: XVT 0x527970
+const int16_t g_form_pos_x[34][6] = {
+	{0, 1, -1, 2, -2, 3},	  {0, 1, -2, -3, 2, 3},
+	{0, 0, 0, 0, 0, 0},	  {0, 1, -1, 2, -2, 3},
+	{1, 2, 3, 4, 5, 6},	  {-1, -2, -3, -4, -5, -6},
+	{0, -1, 0, -1, 0, -1},	  {0, 1, -1, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0},	  {0, 1, -1, 1, -1, 0},
+	{0, 1, -1, 2, -2, 3},	  {0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0},	  {0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0},	  {0, 1, 2, 3, 4, 5},
+	{-1, -2, -3, -4, -5, -6}, {0, 0, 1, 2, 3, 4},
+	{1, 2, 3, 4, 5, 6},	  {0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0},	  {0, 1, -1, 2, -2, 3},
+	{0, 1, -1, 2, -2, 3},	  {-1, 1, -1, 1, -1, 1},
+	{0, 0, 0, 0, 0, 0},	  {-1, 1, -1, 1, -1, 1},
+	{0, 0, 0, -1, 1, 0},	  {0, 1, -1, 0, 0, 0},
+	{0, 2, -3, 3, -2, 0},	  {0, 0, 0, 0, 0, 0},
+	{0, 2, -3, 3, -2, 0},	  {-1, 1, -2, 2, -1, 1},
+	{0, 0, 0, 0, 0, 0},	  {-1, 1, -2, 2, -1, 1},
+};
+
+/* Forward offset, in model bound sizes, of each place in each of the 34
+ * formations, by craft_ordinal 0 to 5; see g_form_pos_x. */
+// GLOBAL: XVT 0x527B08
+const int16_t g_form_pos_y[34][6] = {
+	{0, -1, -1, -2, -2, -3},  {3, 2, 1, 0, -1, -2},
+	{-1, -2, -3, -4, -5, -6}, {0, 0, 0, 0, 0, 0},
+	{0, -1, -2, -3, -4, -5},  {0, -1, -2, -3, -4, -5},
+	{0, 0, -1, -1, -2, -2},	  {1, 0, 0, -1, 0, 0},
+	{0, 0, 0, 0, 0, 0},	  {0, 0, 0, 0, 0, -1},
+	{1, 2, 2, 3, 3, 4},	  {0, -1, -1, -2, -2, -3},
+	{1, 2, 2, 3, 3, 4},	  {0, 1, 2, 3, 4, 5},
+	{0, 0, 0, 0, 0, 0},	  {0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0},	  {0, 1, 2, 3, 4, 5},
+	{-1, -2, -3, -4, -5, -6}, {0, -1, -2, -3, -4, -5},
+	{0, -1, -2, -3, -4, -5},  {0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0},	  {2, 2, 0, 0, -2, -2},
+	{2, 2, 0, 0, -2, -2},	  {0, 0, 0, 0, 0, 0},
+	{1, 0, 0, 0, 0, -1},	  {0, 0, 0, 0, 1, -1},
+	{3, -3, 1, 1, -3, 0},	  {3, -3, 1, 1, -3, 0},
+	{0, 0, 0, 0, 0, 0},	  {2, 2, 0, 0, -2, -2},
+	{2, 2, 0, 0, -2, -2},	  {0, 0, 0, 0, 0, 0},
+};
+
+/* Up offset, in model bound sizes, of each place in each of the 34 formations,
+ * by craft_ordinal 0 to 5; see g_form_pos_x. */
+// GLOBAL: XVT 0x527CA0
+const int16_t g_form_pos_z[34][6] = {
+	{0, 0, 0, 0, 0, 0},	  {0, 1, -1, -2, 2, 3},
+	{0, 0, 0, 0, 0, 0},	  {0, 0, 0, 0, 0, 0},
+	{0, 1, 2, 3, 4, 5},	  {0, 1, 2, 3, 4, 5},
+	{0, 0, 0, 0, 0, 0},	  {0, 0, 0, 0, 1, -1},
+	{0, 1, 2, 3, 4, 5},	  {0, 1, 1, -1, -1, 0},
+	{0, 0, 0, 0, 0, 0},	  {0, 1, -1, 2, -2, 3},
+	{0, 1, -1, 2, -2, 3},	  {0, 0, 0, 0, 0, 0},
+	{-1, -2, -3, -4, -5, -6}, {0, 0, 0, 0, 0, 0},
+	{0, 0, 0, 0, 0, 0},	  {0, 1, 2, 3, 4, 5},
+	{1, 2, 3, 4, 5, 6},	  {0, 1, 2, 3, 4, 5},
+	{-1, -2, -3, -4, -5, -6}, {0, 1, 1, 2, 2, 3},
+	{0, -1, -1, -2, -2, -3},  {0, 0, 0, 0, 0, 0},
+	{1, -1, 1, -1, 1, -1},	  {2, 2, 0, 0, -2, -2},
+	{0, 1, -1, 0, 0, 0},	  {1, 0, 0, -1, 0, 0},
+	{0, 0, 0, 0, 0, 0},	  {0, 2, -3, 3, -2, 0},
+	{3, -3, 1, 1, -3, 0},	  {0, 0, 0, 0, 0, 0},
+	{1, -1, 2, -2, 1, -1},	  {2, 2, 0, 0, -2, -2},
+};
+
+/* What each formation's offsets are divided by: 3 for formations 1 and 28 to
+ * 30, 2 for 31 to 33, else 1. Read by paiman_calcformation and
+ * mission_init_flight_group_object_slot. */
+// GLOBAL: XVT 0x527E38
+const int16_t g_formation_divisor[34] = {1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+					 1, 1, 1, 1, 3, 3, 3, 2, 2, 2};
+
+/* Throttle, as a fraction of 65,535, for each mission order throttle setting 0
+ * to 10, in tenths; entry 11 is 0. The cruise and rendezvous maneuvers,
+ * mission_init_flight_group_object_slot and player_unbind_from_current_craft read it.
+ * Nothing writes it. */
+// GLOBAL: XVT 0x527810
+uint16_t g_order_throttle_to_craft_throttle_speed[12] = {
+	0,     6553,  13108, 19662, 26216, 32768,
+	39322, 45876, 52430, 58984, 65535, 0};
+
+/* 1 when a craft spawned on this order starts stopped: the Hold Steady
+ * orders, Disabled and the null order, whose 1997 leader plans were nullpln,
+ * stationaryldrpln and disabledpln. */
+int mission_order_starts_stopped(int order_code)
+{
+	switch (order_code) {
+	case MISSION_ORDER_HOLD_STEADY:
+	case MISSION_ORDER_DISABLED:
+	case MISSION_ORDER_HOLD_STEADY_2:
+	case MISSION_ORDER_HOLD_STEADY_3:
+	case MISSION_ORDER_HOLD_STEADY_4:
+	case MISSION_ORDER_HOLD_STEADY_5:
+	case MISSION_ORDER_HOLD_STEADY_6:
+	case MISSION_ORDER_HOLD_STEADY_7:
+	case MISSION_ORDER_NULL:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+int mission_current_order_code(uint16_t object_idx)
+{
+	struct object_record *object = &g_object_table[object_idx];
+	return g_mission_flight_groups[object->flight_group_idx]
+		.fg
+		.orders[object->mobj->p_craft->ai_controller.current_order_slot]
+		.order;
+}
 
 /* Text that sprintf fills with debug lines: rating and promotion points, team
  * score and place, update-time histograms. Nothing reads it. 3 functions write
@@ -3944,12 +4060,7 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 					.fg.orders;
 			int orders_remaining = 4;
 			do {
-				if (strcmp(g_plan_table
-						   [g_builtin_plan_id_by_name_index
-							    [g_order_leader_builtin_plan_name_index
-								     [order->order]]]
-							   .name,
-					   "dropoffldr1pln") == 0) {
+				if (order->order == MISSION_ORDER_DROP_OFF) {
 					if (g_flight_sim_side_effects_suppressed ==
 						    0 &&
 					    (order->variable2 == 0 ||
@@ -4313,37 +4424,23 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 								     ->flight_group_idx]
 								    .fg.team] ==
 				    0) {
-					uint8_t plan_id =
-						craft->ai_controller
-							.current_plan_id;
-					const char *plan_name =
-						g_plan_table[plan_id].name;
+					int order_code =
+						g_mission_flight_groups
+							[damaged_victim
+								 ->flight_group_idx]
+								.fg
+								.orders[craft->ai_controller
+										.current_order_slot]
+								.order;
 					int minimum_rating_award =
-						(strcmp(plan_name, "nullpln") ==
-							 0 ||
-						 strcmp(plan_name,
-							"stationaryldrpln") ==
-							 0 ||
-						 strcmp(plan_name,
-							"formldr1pln") == 0 ||
-						 strcmp(plan_name,
-							"formflw1pln") == 0 ||
-						 strcmp(plan_name,
-							"formevadeldr1pln") ==
-							 0 ||
-						 strcmp(plan_name,
-							"formevadeflw1pln") ==
-							 0 ||
-						 strcmp(plan_name,
-							"exithangarpln") == 0 ||
-						 strcmp(plan_name,
-							"enterhangarpln") ==
-							 0 ||
-						 strcmp(plan_name,
-							"disabledpln") == 0 ||
-						 strcmp(plan_name,
-							"selfdestroypln") ==
-							 0) &&
+						(mission_order_starts_stopped(
+							 order_code) ||
+						 order_code ==
+							 MISSION_ORDER_CIRCLE ||
+						 order_code ==
+							 MISSION_ORDER_CIRCLE_AND_EVADE ||
+						 order_code ==
+							 MISSION_ORDER_SELF_DESTRUCT) &&
 						victim_owner_idx == -1;
 
 					int victim_rating_weight =
@@ -10154,8 +10251,6 @@ uint16_t mission_init_flight_group_object_slot(void)
 		PLATFORM_OBJECT_TYPE_FIRST = 60,
 		PLATFORM_OBJECT_TYPE_END = 65,
 		DYNAMIC_MODEL_OBJECT_TYPE_FIRST = 73,
-		OUT_OF_HYPERSPACE_PLAN_NAME_INDEX = 52,
-		FROM_MOTHERSHIP_PLAN_NAME_INDEX = 50,
 		MISSION_VERSION_14 = 14,
 		LEGACY_GENUS_OBJECT_TYPE_FIRST = 37,
 		LEGACY_GENUS_OBJECT_TYPE_END = 38,
@@ -10895,35 +10990,13 @@ uint16_t mission_init_flight_group_object_slot(void)
 		int order = g_mission_flight_groups[g_current_flight_group_idx]
 				    .fg.orders[0]
 				    .order;
-		uint16_t leader_plan = g_builtin_plan_id_by_name_index
-			[g_order_leader_builtin_plan_name_index[order]];
-		uint8_t follower_plan = g_builtin_plan_id_by_name_index
-			[g_order_follower_builtin_plan_name_index[order]];
-		g_cur_craft->ai_controller.running_plan_id =
-			(uint8_t)leader_plan;
-		g_cur_craft->ai_controller.current_plan_id =
-			g_cur_craft->ai_controller.running_plan_id;
-		if (g_spawn_out_of_hyperspace_flag != 0) {
-			follower_plan = g_builtin_plan_id_by_name_index
-				[OUT_OF_HYPERSPACE_PLAN_NAME_INDEX];
-		} else if (g_spawn_from_mothership_flag != 0) {
-			follower_plan = g_builtin_plan_id_by_name_index
-				[FROM_MOTHERSHIP_PLAN_NAME_INDEX];
-		} else if (g_cur_craft->leader_obj_idx == UINT8_MAX) {
-			follower_plan = (uint8_t)leader_plan;
-		}
-		g_cur_craft->ai_controller.running_plan_id = follower_plan;
-		struct pai_plan_record *plan = &g_plan_table[leader_plan];
 		uint16_t throttle_speed;
-		if ((strcmp(plan->name, "nullpln") == 0 ||
-		     strcmp(plan->name, "stationaryldrpln") == 0 ||
-		     strcmp(plan->name, "stationaryflwpln") == 0 ||
-		     strcmp(plan->name, "disabledpln") == 0) &&
+		if (mission_order_starts_stopped(order) &&
 		    player_craft_bound == 0) {
 			throttle_speed = 0;
 		} else {
 			throttle_speed = DEFAULT_THROTTLE;
-			if (strcmp(plan->name, "escortldr1pln") != 0) {
+			if (order != MISSION_ORDER_ESCORT) {
 				throttle_speed = g_order_throttle_to_craft_throttle_speed
 					[g_mission_flight_groups
 						 [g_current_flight_group_idx]
@@ -11001,7 +11074,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 	g_cur_craft->ai_controller.target_roll = 0;
 	g_cur_craft->ai_controller.target_xy_angle = 0;
 	g_cur_craft->ai_controller.waypoint_index = ORDER_GOAL_COUNT;
-	g_cur_craft->ai_controller.saved_plan_id = 0;
+	g_cur_craft->ai_controller.activity = AI_ACTIVITY_NONE;
 	g_cur_craft->ai_controller.think_interval =
 		g_ai_think_interval_by_skill[ai_skill_level];
 	g_cur_craft->ai_controller.saved_rand_seed = game_rand() ^ 0xBEEF;
@@ -11014,7 +11087,6 @@ uint16_t mission_init_flight_group_object_slot(void)
 		g_cur_craft->system_health[index] = 100;
 		g_cur_craft->system_repair_seconds[index] = 0;
 	}
-	ai_brain_restart_craft_plan(object_index);
 	craft_clear_turret_object_links(g_cur_craft);
 	g_cur_craft->player_command_avoid_target_obj_idx = UINT16_MAX;
 	++g_mission_fg_stats[g_current_flight_group_idx].spawned_craft_count;
@@ -11026,7 +11098,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 		g_object_table[object_index].genus_id = CRAFT_GENUS_TRANSPORT;
 	}
 	XVT_LOG_DEBUG(
-		"mission.craft_spawned fg=%d ordinal=%d object=%u type=%u genus=%d signature=%u number=%d leader=%d slot=%d x=%d y=%d z=%d yaw=%u pitch=%u hull=%u front=%d rear=%d lasers=%d warheads=%d beam=%d cm=%d cm_count=%d systems=%04x leader_plan=%d plan=%d throttle=%u speed=%u ai=%d ai_seed=%d predicted=%d",
+		"mission.craft_spawned fg=%d ordinal=%d object=%u type=%u genus=%d signature=%u number=%d leader=%d slot=%d x=%d y=%d z=%d yaw=%u pitch=%u hull=%u front=%d rear=%d lasers=%d warheads=%d beam=%d cm=%d cm_count=%d systems=%04x activity=%d throttle=%u speed=%u ai=%d ai_seed=%d predicted=%d",
 		(int)g_current_flight_group_idx,
 		(int)g_cur_craft->craft_ordinal, (unsigned)object_index,
 		(unsigned)object_type,
@@ -11047,8 +11119,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 		(int)g_cur_craft->beam_type_id, (int)g_cur_craft->cm_type_id,
 		(int)g_cur_craft->cm_ammo_count,
 		(unsigned)g_cur_craft->system_flags,
-		(int)g_cur_craft->ai_controller.current_plan_id,
-		(int)g_cur_craft->ai_controller.running_plan_id,
+		(int)g_cur_craft->ai_controller.activity,
 		(unsigned)g_cur_craft->throttle_speed,
 		(unsigned)g_object_table[object_index].mobj->speed,
 		ai_skill_level, (int)g_cur_craft->ai_controller.saved_rand_seed,

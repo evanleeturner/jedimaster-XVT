@@ -5,7 +5,6 @@
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
-#include "xvt/flight/ai/pai.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
@@ -1137,12 +1136,9 @@ void collide_collisions(void)
 							[candidate_obj_idx]
 								.mobj->p_craft;
 
-					if (strcmp(g_plan_table
-							   [candidate_craft
-								    ->ai_controller
-								    .current_plan_id]
-								   .name,
-						   "boardtogivepln") == 0 &&
+					if (mission_current_order_code(
+						    candidate_obj_idx) ==
+						    MISSION_ORDER_BOARD_AND_GIVE_CARGO &&
 					    candidate_craft->ai_controller
 							    .target_obj_idx ==
 						    owner_obj_idx) {
@@ -1854,55 +1850,38 @@ void collide_collisions(void)
 						g_object_table
 							[candidate_obj_idx]
 								.mobj->p_craft;
-					if (strcmp(g_plan_table
-							   [candidate_craft
-								    ->ai_controller
-								    .running_plan_id]
-								   .name,
-						   "exithangarpln") == 0 ||
-					    strcmp(g_plan_table
-							   [candidate_craft
-								    ->ai_controller
-								    .running_plan_id]
-								   .name,
-						   "outofhyperspacepln") == 0 ||
-					    strcmp(g_plan_table
-							   [candidate_craft
-								    ->ai_controller
-								    .running_plan_id]
-								   .name,
-						   "enterhangarpln") == 0) {
+					if (candidate_craft->ai_controller
+							    .activity ==
+						    AI_ACTIVITY_LEAVING_HANGAR ||
+					    candidate_craft->ai_controller
+							    .activity ==
+						    AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE ||
+					    candidate_craft->ai_controller
+							    .activity ==
+						    AI_ACTIVITY_ENTERING_HANGAR) {
 						collide_insert_mobile_object_proximity_candidate(
 							list, owner_obj_idx,
 							candidate_obj_idx);
 						continue;
 					}
-					if (strcmp(g_plan_table
-							   [candidate_craft
-								    ->ai_controller
-								    .running_plan_id]
-								   .name,
-						   "followhomeevadepln") == 0) {
+					if (candidate_craft->ai_controller
+							    .activity ==
+						    AI_ACTIVITY_GOING_HOME_EVADING &&
+					    (uint8_t)candidate_craft
+							    ->leader_obj_idx !=
+						    UINT8_MAX) {
 						struct craft_data *leader_craft =
 							g_object_table
 								[candidate_craft
 									 ->leader_obj_idx]
 									.mobj
 									->p_craft;
-						if (strcmp(g_plan_table
-								   [leader_craft
-									    ->ai_controller
-									    .running_plan_id]
-									   .name,
-							   "exithangarpln") ==
-							    0 ||
-						    strcmp(g_plan_table
-								   [leader_craft
-									    ->ai_controller
-									    .running_plan_id]
-									   .name,
-							   "enterhangarpln") ==
-							    0) {
+						if (leader_craft->ai_controller
+								    .activity ==
+							    AI_ACTIVITY_LEAVING_HANGAR ||
+						    leader_craft->ai_controller
+								    .activity ==
+							    AI_ACTIVITY_ENTERING_HANGAR) {
 							collide_insert_mobile_object_proximity_candidate(
 								list,
 								owner_obj_idx,
@@ -2006,13 +1985,9 @@ void collide_collisions(void)
 								[candidate_obj_idx]
 									.mobj
 									->p_craft;
-						if (strcmp(g_plan_table
-								   [candidate_craft
-									    ->ai_controller
-									    .current_plan_id]
-									   .name,
-							   "boardtogivepln") ==
-							    0 &&
+						if (mission_current_order_code(
+							    candidate_obj_idx) ==
+							    MISSION_ORDER_BOARD_AND_GIVE_CARGO &&
 						    candidate_craft->ai_controller
 								    .maneuver_mode ==
 							    AI_MANEUVER_MODE_BOARD &&
