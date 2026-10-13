@@ -7,7 +7,8 @@ Purpose:
     behavior that flies it.
 
 Invariants:
-    - Every order code maps to drift until its behavior is written.
+    - Every order code maps to drift until its behavior is written. Written:
+      Attack (``behaviors.attack``).
     - A code with no behavior in the table, one no order has included, is
       flown by drift after one WARN line.
 """
@@ -19,6 +20,7 @@ import logging
 import types
 import typing as t
 
+from .behaviors import attack
 from .behaviors import Behavior
 from .behaviors import drift
 from .world import CraftView
@@ -72,7 +74,7 @@ class OrderCode(enum.IntEnum):
 
 
 BEHAVIORS: t.Mapping[int, Behavior] = types.MappingProxyType(
-    {code: drift.think for code in OrderCode}
+    {code: drift.think for code in OrderCode} | {OrderCode.ATTACK: attack.think}
 )
 
 

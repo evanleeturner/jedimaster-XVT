@@ -25,8 +25,9 @@ from jedimaster_ai.world import Steer
 WANDER = 200
 
 
-def wander(view, tick: int) -> Decision:
+def wander(view, question: Question) -> Decision:
     """Turn to a random heading each think; every third, change phase."""
+    tick = question.tick
     book = notebook.open_for(view, WANDER, tick)
     heading, state = roll(book.dice, 0x10000)
     book = dataclasses.replace(book, dice=state)
@@ -76,8 +77,12 @@ def test_answers_follow_the_questions_order(view) -> None:
     assert [craft.object_index for craft in answer.craft] == [9, 2, 7]
 
 
-def test_every_craft_drifts_for_now(view) -> None:
-    craft = (view(object_index=1), view(object_index=2, notebook=bytes(range(64))))
+def test_a_craft_whose_order_has_no_behavior_drifts(view) -> None:
+    hold = {"order_code": OrderCode.HOLD_STEADY, "turret_slot_mask": 0}
+    craft = (
+        view(object_index=1, **hold),
+        view(object_index=2, notebook=bytes(range(64)), **hold),
+    )
     for view_, said in zip(craft, think(Question(5, craft)).craft, strict=True):
         assert (said.notebook, said.actions) == (view_.notebook, NO_ACTIONS)
 

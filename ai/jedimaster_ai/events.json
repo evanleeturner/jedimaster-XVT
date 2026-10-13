@@ -3,6 +3,21 @@
   "grammar": 1,
   "line": "HH:MM:SS.mmm L event key=value ...",
   "events": {
+    "attack.break": {
+      "level": "D",
+      "fields": ["object", "target", "distance", "yaw"],
+      "text": "Craft {object} broke off from target {target}, {distance} units ahead, turning to yaw {yaw}"
+    },
+    "attack.evade": {
+      "level": "D",
+      "fields": ["object", "threat", "yaw", "pitch"],
+      "text": "Craft {object} jinked away from craft {threat} on its tail, to yaw {yaw} and pitch {pitch}"
+    },
+    "attack.target": {
+      "level": "I",
+      "fields": ["object", "target", "distance"],
+      "text": "Craft {object} attacks craft {target}, {distance} units away"
+    },
     "notebook.unreadable": {
       "level": "W",
       "fields": ["object", "behavior", "error"],

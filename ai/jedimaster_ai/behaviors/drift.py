@@ -10,9 +10,10 @@ Purpose:
 from __future__ import annotations
 
 from ..world import CraftView
+from ..world import Question
 from . import Decision
 
 
-def think(view: CraftView, tick: int) -> Decision:
+def think(view: CraftView, question: Question) -> Decision:
     """Return the craft's own notebook and no action."""
     return Decision(view.notebook)

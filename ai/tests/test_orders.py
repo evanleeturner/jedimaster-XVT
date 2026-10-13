@@ -5,11 +5,14 @@ from __future__ import annotations
 import pytest
 
 from jedimaster_ai import orders
+from jedimaster_ai.behaviors import attack
 from jedimaster_ai.behaviors import drift
 
 
-def test_every_order_is_flown_by_drift_for_now() -> None:
-    assert dict(orders.BEHAVIORS) == {code: drift.think for code in orders.OrderCode}
+def test_attack_has_its_behavior_and_every_other_order_drifts() -> None:
+    expected = {code: drift.think for code in orders.OrderCode}
+    expected[orders.OrderCode.ATTACK] = attack.think
+    assert dict(orders.BEHAVIORS) == expected
 
 
 def test_there_are_40_order_codes() -> None:

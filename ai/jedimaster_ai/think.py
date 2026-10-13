@@ -2,8 +2,8 @@
 
 Purpose:
     The program's one decision. For each craft in the question, in order,
-    the behavior its order code picks decides, and the decisions become the
-    answer.
+    the behavior its order code picks decides, its turrets are aimed
+    (``behaviors.turrets``), and the decisions become the answer.
 
 Invariants:
     - The answer depends only on the question and the behavior table: the
@@ -19,6 +19,7 @@ import logging
 import typing as t
 
 from .behaviors import Behavior
+from .behaviors import turrets
 from .orders import behavior_for
 from .orders import BEHAVIORS
 from .world import Answer
@@ -50,7 +51,8 @@ def think(
     for view in question.craft:
         if debug:
             _log_view(view)
-        decision = behavior_for(view, behaviors)(view, question.tick)
+        decision = behavior_for(view, behaviors)(view, question)
+        decision = turrets.defend(view, question, decision)
         answer = CraftAnswer(view.object_index, decision.notebook, decision.actions)
         if debug:
             _log_answer(answer)
