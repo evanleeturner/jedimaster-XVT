@@ -169,6 +169,24 @@ def test_too_close_ahead_it_breaks_off_and_comes_round(craft, foe, ask) -> None:
     assert again.actions.steer.yaw == 0
 
 
+def test_it_breaks_off_from_a_cruiser_at_its_clearance(craft, foe, ask) -> None:
+    # The retail cruiser model's longest side (test_tactics.py).
+    cruiser = {"genus": 4, "size": 18449}
+    keep = 18449 * 3 // 4 + 0x1000
+    assert phase_of(ask(craft(), foe(y=keep - 1, **cruiser))) == attack.BREAK
+    assert phase_of(ask(craft(), foe(y=keep, **cruiser))) == attack.ATTACK
+
+
+@pytest.mark.parametrize("tier", range(3))
+def test_every_tier_fires_on_a_mon_cal_from_outside_its_clearance(
+    craft, foe, ask, tier
+) -> None:
+    keep = 53188 * 3 // 4 + 0x1000
+    decision = ask(craft(skill=TIER_SKILL[tier]), foe(y=keep, genus=4, size=53188))
+    assert phase_of(decision) == attack.ATTACK
+    assert decision.actions.lasers != (HOLD_FIRE, HOLD_FIRE)
+
+
 def test_an_enemy_on_the_tail_makes_it_jink(craft, foe, ask) -> None:
     chaser = foe(object_index=12, y=-0x2000, target=ME)
     jink = ask(craft(), foe(x=0x4000, y=0x1000), chaser)

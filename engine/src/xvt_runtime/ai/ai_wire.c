@@ -80,6 +80,7 @@ static uint8_t *put_contact(uint8_t *at, const struct ai_wire_contact *contact)
 	at = put_u32(at, contact->hull_damage);
 	at = put_u32(at, contact->hull_strength);
 	*at++ = contact->activity;
+	at = put_u32(at, contact->size);
 	return at;
 }
 

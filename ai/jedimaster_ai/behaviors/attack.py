@@ -3,8 +3,9 @@
 Purpose:
     A craft with the Attack order picks the nearest craft its order names,
     turns toward it, closes, and fires its cannons while the target sits
-    inside its aim cone and firing range. Too close ahead, it breaks off a
-    quarter turn aside and comes round again; with an enemy on its tail that
+    inside its aim cone and firing range. Inside the target's clearance
+    ahead (``tactics.clearance``, which grows with the target's size), it
+    breaks off a quarter turn aside and comes round again; with an enemy on its tail that
     targets it, it jinks to a random side. Skill sets the aim cone, the
     firing range, the burst, how soon it looks again for a nearer target and
     how long a jink lasts.
@@ -18,7 +19,8 @@ Phases, the notebook's phase byte:
 
     SEEK    no target: hold fire, keep course, look again each think
     ATTACK  steer at the target, fire when lined up
-    BREAK   too close ahead: hold a heading a quarter turn aside
+    BREAK   inside the target's clearance ahead: hold a heading a quarter
+            turn aside
     EVADE   an enemy on the tail: hold a jink heading
 
 The scratch bytes, little-endian: u16 target index, u16 its signature,
@@ -94,7 +96,6 @@ LARGE_TARGET_BONUS = 0x6000
 ALL_CANNONS_RANGE = 0x2000
 PAIRS_RANGE = 0x4000
 
-BREAK_RANGE = 0x1000
 BREAK_CONE = 0x2000
 BREAK_TICKS = 250
 # An enemy within this range, more than this angle off the nose and
@@ -173,16 +174,18 @@ def think(view: CraftView, question: Question) -> Decision:
         and reach < fire_range(view, target, tier)
     )
 
-    if reach < BREAK_RANGE and off_nose < BREAK_CONE:
+    keep = tactics.clearance(target)
+    if reach < keep and off_nose < BREAK_CONE:
         side, state = dice.roll(book.dice, 2)
         held_yaw = (
             view.yaw + (geometry.QUARTER_TURN if side else -geometry.QUARTER_TURN)
         ) % geometry.TURN
         logger.debug(
-            "attack.break object=%d target=%d distance=%d yaw=%d",
+            "attack.break object=%d target=%d distance=%d clearance=%d yaw=%d",
             view.object_index,
             target.object_index,
             reach,
+            keep,
             held_yaw,
         )
         memory = dataclasses.replace(memory, yaw=held_yaw, pitch=geometry.LEVEL)

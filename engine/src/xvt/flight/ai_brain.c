@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <string.h>
 
+#include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
@@ -100,7 +101,7 @@ void ai_brain_set_exchange(ai_brain_exchange_fn exchange)
 
 /* Writes what the pilot program is told about the object in object_index, a
  * craft in the active region: its target is its player's target when a
- * player flies it, else its AI target. */
+ * player flies it, else its AI target; its size is its object type's. */
 static void ai_brain_view_contact(uint16_t object_index,
 				  struct ai_wire_contact *contact)
 {
@@ -133,6 +134,8 @@ static void ai_brain_view_contact(uint16_t object_index,
 	contact->hull_damage = craft->hull_damage;
 	contact->hull_strength = craft->hull_max;
 	contact->activity = craft->ai_controller.activity;
+	contact->size = (uint32_t)g_object_type_table[object->object_type]
+				.max_bounds_extent;
 }
 
 /* Fills the batch's contacts: each craft in the active region's craft slots,

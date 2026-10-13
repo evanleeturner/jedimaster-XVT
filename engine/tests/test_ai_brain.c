@@ -9,6 +9,7 @@
 #include <string.h>
 
 #include "test_assert.h"
+#include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
@@ -297,6 +298,8 @@ static void check_question_bytes(void)
 	craft->weapon_slots[6].ammo_count = 2;
 	/* What only the contact shows. */
 	object->genus_id = 4;
+	int saved_size = g_object_type_table[0x21].max_bounds_extent;
+	g_object_type_table[0x21].max_bounds_extent = 18449;
 	controller->target_obj_idx = 7;
 	craft->last_attacker_obj_idx = 5;
 	craft->shield_energy[0] = 500;
@@ -382,6 +385,8 @@ static void check_question_bytes(void)
 	XVT_ASSERT_INT_EQ(get_u32(contact + 40), 40);
 	XVT_ASSERT_INT_EQ(get_u32(contact + 44), 300);
 	XVT_ASSERT_INT_EQ(contact[48], AI_ACTIVITY_WAITING);
+	XVT_ASSERT_INT_EQ(get_u32(contact + 49), 18449);
+	g_object_type_table[0x21].max_bounds_extent = saved_size;
 	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 0;
 }
 

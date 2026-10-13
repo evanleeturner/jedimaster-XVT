@@ -3,7 +3,7 @@
 Purpose:
     The judgments every behavior shares: a craft's skill tier, its own entry
     among the contacts, which contacts it may fight, which its order names,
-    and where a contact sits from it.
+    where a contact sits from it, and how far from it to keep.
 
 Invariants:
     - A craft fights only a craft the engine marks hostile by the mission's
@@ -28,9 +28,17 @@ _TIER_2_SKILL = 0xC000
 OBJECT_KIND_ACTIVE = 0
 OBJECT_KIND_DISABLED = 2
 _FIGHTABLE_KINDS = (OBJECT_KIND_ACTIVE, OBJECT_KIND_DISABLED)
-# The engine's craft genus codes (object_genus.h) of large targets.
+# The engine's craft genus codes (object_genus.h): starships and platforms
+# are large targets; with freighters they are the bulky craft that small
+# craft keep clear of (ruling 24).
+GENUS_FREIGHTER = 3
 GENUS_STARSHIP = 4
 GENUS_PLATFORM = 5
+_BULKY_GENERA = (GENUS_FREIGHTER, GENUS_STARSHIP, GENUS_PLATFORM)
+# How far past three quarters of its size a craft keeps from another: 4,096
+# units, about 100 m at the HUD's 40,700 units a kilometre, the break-off
+# range every target had before the engine sent sizes.
+CLEARANCE_MARGIN = 0x1000
 
 
 def skill_tier(skill: int) -> int:
@@ -75,3 +83,22 @@ def offset(view: CraftView, contact: Contact) -> tuple[int, int, int]:
 def is_large(contact: Contact) -> bool:
     """Return whether a contact is a starship or a platform."""
     return contact.genus in (GENUS_STARSHIP, GENUS_PLATFORM)
+
+
+def is_bulky(contact: Contact) -> bool:
+    """Return whether a contact is a freighter, a starship or a platform."""
+    return contact.genus in _BULKY_GENERA
+
+
+def clearance(contact: Contact) -> int:
+    """Return how far from a contact's position a craft keeps: three
+    quarters of its size, plus CLEARANCE_MARGIN.
+
+    The size is the longest side of the model's box, and the box need not
+    sit centred on the position: a Star Destroyer's longest side is 65,396
+    units, and its farthest corner 46,909 from its position. Three quarters
+    reaches past the farthest corner of every model measured from a
+    freighter up, half does not, and the margin covers the small craft
+    (``tests/test_tactics.py``).
+    """
+    return contact.size * 3 // 4 + CLEARANCE_MARGIN

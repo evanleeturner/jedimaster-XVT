@@ -118,7 +118,9 @@ class Contact:
     when a player flies the craft, else its AI target; ``target`` and
     ``last_attacker`` are NO_OBJECT for none. Shields and hull are the craft
     record's own numbers. ``activity`` is the engine's activity code
-    (``Activity``).
+    (``Activity``). ``size`` is the longest side of the box around the craft
+    type's model, in world units: the number the engine's flight code takes
+    as the craft's size.
     """
 
     object_index: int
@@ -142,6 +144,7 @@ class Contact:
     hull_damage: int
     hull_strength: int
     activity: int
+    size: int
 
     @property
     def player_flown(self) -> bool:

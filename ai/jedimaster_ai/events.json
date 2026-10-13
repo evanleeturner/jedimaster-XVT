@@ -15,8 +15,8 @@
     },
     "attack.break": {
       "level": "D",
-      "fields": ["object", "target", "distance", "yaw"],
-      "text": "Craft {object} broke off from target {target}, {distance} units ahead, turning to yaw {yaw}"
+      "fields": ["object", "target", "distance", "clearance", "yaw"],
+      "text": "Craft {object} broke off from target {target}, {distance} units ahead inside its clearance of {clearance}, turning to yaw {yaw}"
     },
     "attack.evade": {
       "level": "D",
@@ -27,6 +27,11 @@
       "level": "I",
       "fields": ["object", "target", "distance"],
       "text": "Craft {object} attacks craft {target}, {distance} units away"
+    },
+    "avoidance.steer": {
+      "level": "D",
+      "fields": ["object", "around", "distance", "clearance", "yaw"],
+      "text": "Craft {object} steered clear of craft {around}, {distance} units away with a clearance of {clearance}, to yaw {yaw}"
     },
     "notebook.unreadable": {
       "level": "W",
@@ -65,8 +70,8 @@
     },
     "think.contact": {
       "level": "D",
-      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull", "activity"],
-      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}; activity {activity}"
+      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull", "activity", "size"],
+      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}; activity {activity}; size {size}"
     },
     "think.question": {
       "level": "D",

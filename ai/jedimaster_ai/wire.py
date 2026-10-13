@@ -46,7 +46,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 4
+VERSION = 5
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -114,6 +114,7 @@ CONTACT_LAYOUT = (
     ("hull_damage", "I"),
     ("hull_strength", "I"),
     ("activity", "B"),
+    ("size", "I"),
 )
 CONTACT_FIELDS = struct.Struct("<" + "".join(code for _, code in CONTACT_LAYOUT))
 U8 = struct.Struct("<B")

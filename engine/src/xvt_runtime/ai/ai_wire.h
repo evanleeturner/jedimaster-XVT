@@ -31,7 +31,8 @@
  * u8 object kind, u8 flags (bit 0: a player flies it), i32 x, i32 y, i32 z,
  * u16 yaw, u16 pitch, u16 speed, u16 target, u16 last attacker (both 0xFFFF
  * for none), i32 front shield, i32 rear shield, u32 hull damage, u32 hull
- * strength, u8 activity (an AI_ACTIVITY_ value).
+ * strength, u8 activity (an AI_ACTIVITY_ value), u32 size (the longest side
+ * of the box around the craft type's model, in world units).
  *
  * An answer (kind 2) holds one craft answer per craft, in the question's
  * order: u16 object index, the new notebook, u8 action count, then each
@@ -70,7 +71,7 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 4,
+	AI_WIRE_VERSION = 5,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
@@ -78,7 +79,7 @@ enum ai_wire_constant {
 	AI_WIRE_CRAFT_VIEW_BYTES = 62 + AI_NOTEBOOK_BYTES,
 	/* The contact count and its zero. */
 	AI_WIRE_CONTACT_HEAD_BYTES = 4,
-	AI_WIRE_CONTACT_BYTES = 49,
+	AI_WIRE_CONTACT_BYTES = 53,
 	/* The active region's craft slots; the order target mask has a bit for
 	 * each. */
 	AI_WIRE_CONTACTS_MAX = 32,
@@ -146,7 +147,9 @@ struct ai_wire_craft_view {
 
 /* What the question tells the program about one craft in the active region,
  * due to think or not. Shields and hull are the craft record's own numbers;
- * target is the player's target for a craft a player flies. */
+ * target is the player's target for a craft a player flies; size is its
+ * object type's max_bounds_extent, the number the flight code takes as the
+ * craft's size. */
 struct ai_wire_contact {
 	uint16_t object_index;
 	uint16_t object_signature;
@@ -169,6 +172,7 @@ struct ai_wire_contact {
 	uint32_t hull_damage;
 	uint32_t hull_strength;
 	uint8_t activity;
+	uint32_t size;
 };
 
 /* One question: the craft due to think and every contact, at one tick. */

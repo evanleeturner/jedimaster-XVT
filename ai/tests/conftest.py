@@ -71,6 +71,7 @@ CONTACT = Contact(
     hull_damage=10,
     hull_strength=200,
     activity=0,
+    size=0,
 )
 
 

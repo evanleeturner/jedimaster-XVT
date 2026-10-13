@@ -4,8 +4,9 @@ Purpose:
     A behavior decides for one craft at a time. It is a function from the
     craft's view and the question (its tick and every contact) to a
     Decision: the craft's new notebook and its actions. ``orders`` picks the
-    behavior from the craft's order code; ``turrets.defend`` then aims the
-    craft's turrets, whatever the order.
+    behavior from the craft's order code; ``avoidance.steer_clear`` then
+    turns its steering clear of bulky craft in the way and
+    ``turrets.defend`` aims the craft's turrets, whatever the order.
 
 Invariants:
     - A behavior is pure: its decision depends only on the view and the
