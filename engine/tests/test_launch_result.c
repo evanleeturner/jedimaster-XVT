@@ -27,7 +27,7 @@ static struct xvt_launch_result sample(int exit_code, int outcome)
 	r.score = 120;
 	r.kills = 4;
 	r.losses = 1;
-	r.flight_seconds = 305;
+	r.goals_met_seconds = 305;
 	return r;
 }
 
@@ -41,14 +41,14 @@ static void check_flown(void)
 	XVT_ASSERT_TRUE(length > 0);
 	XVT_ASSERT_INT_EQ(length, strlen(text));
 	XVT_ASSERT_INT_EQ(text[length - 1], '\n');
-	XVT_ASSERT_TRUE(strstr(text, "\"schema_version\":1") != NULL);
+	XVT_ASSERT_TRUE(strstr(text, "\"schema_version\":2") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"status\":\"flown\"") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"exit_code\":0") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"outcome\":\"completed\"") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"score\":120") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"kills\":4") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"losses\":1") != NULL);
-	XVT_ASSERT_TRUE(strstr(text, "\"flight_seconds\":305") != NULL);
+	XVT_ASSERT_TRUE(strstr(text, "\"goals_met_seconds\":305") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"why\":\"\"") != NULL);
 }
 

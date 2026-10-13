@@ -53,15 +53,15 @@ description = json.load(open(path))
 for a in args:
     if a.startswith("--copy="):
         json.dump(description, open(a[7:], "w"))
-RESULT = dict(schema_version=1, status="flown", exit_code=0, outcome="completed",
-              score=10, kills=2, losses=0, flight_seconds=61, why="")
+RESULT = dict(schema_version=2, status="flown", exit_code=0, outcome="completed",
+              score=10, kills=2, losses=0, goals_met_seconds=61, why="")
 def write(**changes):
     json.dump(dict(RESULT, **changes), open(description["result"], "w"))
 if behave == "done":
     write()
 elif behave == "refuse":
     write(status="refused", exit_code=3, outcome="none", score=0, kills=0,
-          losses=0, flight_seconds=0, why="The mission is not open.")
+          losses=0, goals_met_seconds=0, why="The mission is not open.")
     sys.exit(3)
 elif behave == "mismatch":
     write()

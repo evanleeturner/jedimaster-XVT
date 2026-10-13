@@ -47,14 +47,14 @@ GOOD_DESCRIPTION = {
     "pilot": "Ace",
 }
 GOOD_RESULT = {
-    "schema_version": 1,
+    "schema_version": 2,
     "status": "flown",
     "exit_code": 0,
     "outcome": "completed",
     "score": 120,
     "kills": 4,
     "losses": 1,
-    "flight_seconds": 305,
+    "goals_met_seconds": 305,
     "why": "",
 }
 
@@ -163,18 +163,18 @@ def test_bad_descriptions_are_refused_by_both_validators():
 
 
 BAD_RESULTS = [
-    changed(GOOD_RESULT, schema_version=2),
+    changed(GOOD_RESULT, schema_version=1),
     changed(GOOD_RESULT, status="done"),
     changed(GOOD_RESULT, exit_code=1),
     changed(GOOD_RESULT, exit_code=6),
     changed(GOOD_RESULT, outcome="won"),
     changed(GOOD_RESULT, kills=-1),
     changed(GOOD_RESULT, losses=-1),
-    changed(GOOD_RESULT, flight_seconds=-1),
+    changed(GOOD_RESULT, goals_met_seconds=-1),
     changed(GOOD_RESULT, score=1.5),
     changed(GOOD_RESULT, kills="4"),
     changed(GOOD_RESULT, losses=1.5),
-    changed(GOOD_RESULT, flight_seconds=True),
+    changed(GOOD_RESULT, goals_met_seconds=True),
     changed(GOOD_RESULT, why=None),
     changed(GOOD_RESULT, why=7),
     changed(GOOD_RESULT, extra=1),

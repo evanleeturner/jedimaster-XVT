@@ -753,7 +753,7 @@ static int xvt_flight_frame_network_update(void)
 			msg_write_message_log_file();
 			g_radio_message_backup_enabled = 0;
 		}
-		return xvt_flight_frame_end("mission_complete");
+		return xvt_flight_frame_end("mission_end_pending");
 	}
 	xvt_flight_frame_adjust_clock();
 	if (g_input_timestamp >= INT32_MAX - 258) {
@@ -819,7 +819,7 @@ int xvt_flight_frame_update(void)
 			msg_write_message_log_file();
 			g_radio_message_backup_enabled = 0;
 		}
-		return xvt_flight_frame_end("mission_complete");
+		return xvt_flight_frame_end("mission_end_pending");
 	}
 	g_frame.frame_start_timestamp = g_input_timestamp;
 	g_input_timestamp += time_consume_elapsed_ticks();

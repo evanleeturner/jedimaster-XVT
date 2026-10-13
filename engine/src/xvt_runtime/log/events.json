@@ -2320,8 +2320,8 @@
     },
     "launch.result_read": {
       "level": "D",
-      "fields": ["local", "team", "score", "kills", "losses", "seconds", "outcome"],
-      "text": "The launch door read the battle's result from the pilot record: local player {local}, team {team}, score {score}, kills {kills}, losses {losses}, mission time {seconds} seconds, outcome {outcome} (1 completed, 2 not completed)"
+      "fields": ["local", "team", "score", "kills", "losses", "goals_met_seconds", "outcome"],
+      "text": "The launch door read the battle's result from the pilot record: local player {local}, team {team}, score {score}, kills {kills}, losses {losses}, goals met {goals_met_seconds} seconds into the mission (0: never), outcome {outcome} (1 completed, 2 not completed)"
     },
     "launch.result_unwritten": {
       "level": "E",

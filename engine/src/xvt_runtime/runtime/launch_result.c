@@ -49,14 +49,15 @@ size_t xvt_launch_result_format(const struct xvt_launch_result *r, char *out,
 	if (!root) {
 		return 0;
 	}
-	cJSON_AddNumberToObject(root, "schema_version", 1);
+	cJSON_AddNumberToObject(root, "schema_version", 2);
 	cJSON_AddStringToObject(root, "status", status);
 	cJSON_AddNumberToObject(root, "exit_code", r->exit_code);
 	cJSON_AddStringToObject(root, "outcome", outcome);
 	cJSON_AddNumberToObject(root, "score", r->score);
 	cJSON_AddNumberToObject(root, "kills", r->kills);
 	cJSON_AddNumberToObject(root, "losses", r->losses);
-	cJSON_AddNumberToObject(root, "flight_seconds", r->flight_seconds);
+	cJSON_AddNumberToObject(root, "goals_met_seconds",
+				r->goals_met_seconds);
 	cJSON_AddStringToObject(root, "why", r->why);
 	char *text = cJSON_PrintUnformatted(root);
 	cJSON_Delete(root);

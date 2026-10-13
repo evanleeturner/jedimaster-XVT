@@ -49,16 +49,16 @@ args = sys.argv[1:]
 description = json.load(open(args[1]))
 open(args[1] + ".argv", "w").write(json.dumps(args))
 pilot = description["pilot"]
-result = {"schema_version": 1, "status": "flown", "exit_code": 0, "outcome": "completed",
-          "score": 120, "kills": 4, "losses": 1, "flight_seconds": 305, "why": ""}
+result = {"schema_version": 2, "status": "flown", "exit_code": 0, "outcome": "completed",
+          "score": 120, "kills": 4, "losses": 1, "goals_met_seconds": 305, "why": ""}
 code = 0
 if pilot == "Refused":
     result.update(status="refused", exit_code=3, outcome="none", score=0, kills=0,
-                  losses=0, flight_seconds=0, why="The pilot is not among the pilots.")
+                  losses=0, goals_met_seconds=0, why="The pilot is not among the pilots.")
     code = 3
 if pilot == "Unchecked":
     result.update(status="refused", exit_code=3, outcome="none", score=0, kills=0,
-                  losses=0, flight_seconds=0, why="A name holds a flight switch word.")
+                  losses=0, goals_met_seconds=0, why="A name holds a flight switch word.")
     open(args[1] + ".result.json", "w").write(json.dumps(result))
     sys.exit(3)
 if pilot == "Failed":
@@ -174,7 +174,7 @@ def test_a_flown_battle_prints_one_line_and_exits_zero(engine, capsys):
     assert main(command(engine)) == 0
     assert (
         capsys.readouterr().out
-        == "flown: completed, score 120, kills 4, losses 1, 305 s\n"
+        == "flown: completed, score 120, kills 4, losses 1, goals met at 305 s\n"
     )
 
 
@@ -205,8 +205,8 @@ def test_the_engine_sees_the_arguments_in_order(tmp_path):
         f"#!{sys.executable}\nimport json, sys\n"
         f"d = json.load(open(sys.argv[2]))\n"
         f"json.dump({{'args': sys.argv[1:2] + sys.argv[3:], 'description': d}}, open({str(seen)!r}, 'w'))\n"
-        "json.dump({'schema_version': 1, 'status': 'refused', 'exit_code': 3, 'outcome': 'none',"
-        " 'score': 0, 'kills': 0, 'losses': 0, 'flight_seconds': 0, 'why': 'x'}, open(d['result'], 'w'))\n"
+        "json.dump({'schema_version': 2, 'status': 'refused', 'exit_code': 3, 'outcome': 'none',"
+        " 'score': 0, 'kills': 0, 'losses': 0, 'goals_met_seconds': 0, 'why': 'x'}, open(d['result'], 'w'))\n"
         "sys.exit(3)\n",
         encoding="utf-8",
     )
@@ -284,10 +284,10 @@ def test_bad_arguments_exit_two(engine, capsys):
 
 def test_the_summary_line_for_each_status():
     base = {"why": "Because.", "outcome": "not_completed", "score": 0, "kills": 0,
-            "losses": 2, "flight_seconds": 9}  # fmt: skip
+            "losses": 2, "goals_met_seconds": 9}  # fmt: skip
     assert (
         summary({**base, "status": "flown"})
-        == "flown: not completed, score 0, kills 0, losses 2, 9 s"
+        == "flown: not completed, score 0, kills 0, losses 2"
     )
     assert summary({**base, "status": "not_reached"}) == "not reached: Because."
     assert summary({**base, "status": "refused"}) == "refused: Because."

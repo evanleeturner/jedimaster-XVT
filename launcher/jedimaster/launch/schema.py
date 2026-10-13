@@ -147,8 +147,11 @@ def result_schema() -> dict[str, Any]:
     """
     numbers = {
         name: {"type": "integer", "minimum": 0}
-        for name in ("kills", "losses", "flight_seconds")
+        for name in ("kills", "losses", "goals_met_seconds")
     }
+    numbers["goals_met_seconds"]["description"] = (
+        "Seconds into the mission when the pilot's team met its goals; 0 when it never did."
+    )
     numbers["score"] = {
         "description": "The pilot's score; below zero when the pilot leaves a melee early.",
         "type": "integer",
@@ -168,11 +171,11 @@ def result_schema() -> dict[str, Any]:
             "score",
             "kills",
             "losses",
-            "flight_seconds",
+            "goals_met_seconds",
             "why",
         ],
         "properties": {
-            "schema_version": {"const": model.SCHEMA_VERSION},
+            "schema_version": {"const": model.RESULT_SCHEMA_VERSION},
             "status": {"enum": list(model.STATUSES)},
             "exit_code": {
                 "description": "The engine's exit code: 0 flown, 3 refused, 4 not reached, 5 failed.",

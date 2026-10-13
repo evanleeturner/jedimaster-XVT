@@ -189,7 +189,7 @@ static void check_flown_result(void)
 	XVT_ASSERT_TRUE(strstr(text, "\"score\":120") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"kills\":4") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"losses\":1") != NULL);
-	XVT_ASSERT_TRUE(strstr(text, "\"flight_seconds\":305") != NULL);
+	XVT_ASSERT_TRUE(strstr(text, "\"goals_met_seconds\":305") != NULL);
 	unlink(result);
 	/* A finished door ignores a second ending. */
 	xvt_launch_door_finish(0);
@@ -211,7 +211,7 @@ static void check_not_completed_and_out_of_range(void)
 	xvt_launch_door_finish(1);
 	XVT_ASSERT_INT_EQ(slurp(result, text, sizeof(text)), 1);
 	XVT_ASSERT_TRUE(strstr(text, "\"outcome\":\"not_completed\"") != NULL);
-	XVT_ASSERT_TRUE(strstr(text, "\"flight_seconds\":305") != NULL);
+	XVT_ASSERT_TRUE(strstr(text, "\"goals_met_seconds\":305") != NULL);
 	unlink(result);
 	/* A local player or team outside the tables reads as zeros. */
 	open_good(extra, path, sizeof(path));
@@ -222,7 +222,7 @@ static void check_not_completed_and_out_of_range(void)
 	XVT_ASSERT_INT_EQ(slurp(result, text, sizeof(text)), 1);
 	XVT_ASSERT_TRUE(strstr(text, "\"outcome\":\"not_completed\"") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"score\":0") != NULL);
-	XVT_ASSERT_TRUE(strstr(text, "\"flight_seconds\":0") != NULL);
+	XVT_ASSERT_TRUE(strstr(text, "\"goals_met_seconds\":0") != NULL);
 	unlink(result);
 	open_good(extra, path, sizeof(path));
 	set_battle_numbers(0, 2);

@@ -86,10 +86,13 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
 def summary(result: dict[str, Any]) -> str:
     """Return the one line that says how a battle ended."""
     if result["status"] == "flown":
-        return (
+        line = (
             f"flown: {result['outcome'].replace('_', ' ')}, score {result['score']}, "
-            f"kills {result['kills']}, losses {result['losses']}, {result['flight_seconds']} s"
+            f"kills {result['kills']}, losses {result['losses']}"
         )
+        if result["outcome"] == "completed":
+            line += f", goals met at {result['goals_met_seconds']} s"
+        return line
     return f"{result['status'].replace('_', ' ')}: {result['why']}"
 
 

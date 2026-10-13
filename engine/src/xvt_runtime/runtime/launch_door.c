@@ -422,16 +422,17 @@ void xvt_launch_door_finish(int flown)
 	}
 	result.outcome = XVT_LAUNCH_OUTCOME_NOT_COMPLETED;
 	if (team >= 0 && team < 10) {
-		result.flight_seconds = g_pilot_data.teams[team].mission_time;
+		result.goals_met_seconds =
+			g_pilot_data.teams[team].mission_time;
 		if (g_pilot_data.teams[team].is_mission_completed) {
 			result.outcome = XVT_LAUNCH_OUTCOME_COMPLETED;
 		}
 	}
 	/* The zeroed exit code is XVT_LAUNCH_EXIT_FLOWN. */
 	XVT_LOG_DEBUG(
-		"launch.result_read local=%d team=%d score=%d kills=%d losses=%d seconds=%d outcome=%d",
+		"launch.result_read local=%d team=%d score=%d kills=%d losses=%d goals_met_seconds=%d outcome=%d",
 		local, team, result.score, result.kills, result.losses,
-		result.flight_seconds, result.outcome);
+		result.goals_met_seconds, result.outcome);
 	if (!xvt_launch_result_write(&result, g_result_path)) {
 		XVT_LOG_ERROR("launch.result_unwritten path=\"%s\"",
 			      g_result_path);

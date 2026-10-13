@@ -31,6 +31,8 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 SCHEMA_VERSION = 1
+# The result file's version: 2 since flight_seconds became goals_met_seconds.
+RESULT_SCHEMA_VERSION = 2
 MODE = "single_player"
 
 GAME_TYPES = ("training", "melee", "tournament", "combat", "battle", "campaign")

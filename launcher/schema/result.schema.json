@@ -13,12 +13,12 @@
     "score",
     "kills",
     "losses",
-    "flight_seconds",
+    "goals_met_seconds",
     "why"
   ],
   "properties": {
     "schema_version": {
-      "const": 1
+      "const": 2
     },
     "status": {
       "enum": [
@@ -52,9 +52,10 @@
       "type": "integer",
       "minimum": 0
     },
-    "flight_seconds": {
+    "goals_met_seconds": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "description": "Seconds into the mission when the pilot's team met its goals; 0 when it never did."
     },
     "score": {
       "description": "The pilot's score; below zero when the pilot leaves a melee early.",
