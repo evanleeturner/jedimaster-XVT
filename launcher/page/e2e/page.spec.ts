@@ -514,7 +514,7 @@ test("a battle that ends by itself shows its ending line", async ({
   const result = await startBattle(context, launcher.origin);
   expect(result.started).toBe(true);
   await expect(page.locator("#battle-ending")).toHaveText(
-    "flown: completed, score 10, kills 2, losses 0, 61 s",
+    "flown: completed, score 10, kills 2, losses 0, goals met at 61 s",
   );
   await expect(
     page.getByRole("button", { name: "Cancel the battle" }),

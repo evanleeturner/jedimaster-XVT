@@ -401,7 +401,7 @@ ENDED = {
     "data": {
         "launch_id": 3,
         "status": "flown",
-        "line": "flown: completed, score 10, kills 2, losses 0, 61 s",
+        "line": "flown: completed, score 10, kills 2, losses 0, goals met at 61 s",
     },
 }
 

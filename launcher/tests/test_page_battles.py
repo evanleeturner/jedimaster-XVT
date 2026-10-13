@@ -64,7 +64,10 @@ async def test_a_flown_battle_ends_with_the_summary_line(tmp_path):
     assert result_of(outcome.reply)["started"] is True
     data = await ending(pushes)
     assert data["status"] == "flown"
-    assert data["line"] == "flown: completed, score 10, kills 2, losses 0, goals met at 61 s"
+    assert (
+        data["line"]
+        == "flown: completed, score 10, kills 2, losses 0, goals met at 61 s"
+    )
 
 
 async def test_a_started_push_comes_in_the_outcome_and_the_ending_through_the_listener(
