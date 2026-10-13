@@ -104,6 +104,13 @@ static void check_values(void)
 	XVT_ASSERT_TRUE(options.record_launch == g_argv[3]);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--launch"), 0);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--launch=a", "--launch=b"), 0);
+	/* So do the AI program's two. */
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--ai-python=/usr/bin/python3",
+				"--ai-program", "ai/jedimaster_ai"),
+			  1);
+	XVT_ASSERT_TRUE(options.ai_python ==
+			g_argv[1] + strlen("--ai-python="));
+	XVT_ASSERT_TRUE(options.ai_program == g_argv[3]);
 }
 
 static void check_value_refusals(void)
@@ -173,6 +180,13 @@ static void check_combination_refusals(void)
 				"--skip-intro", "--record-launch=r"),
 			  1);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--record-launch=r", "--setup"), 1);
+
+	/* The AI program's Python and folder come together. */
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--ai-python=p"), 0);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--ai-program=a"), 0);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--ai-python=p", "--ai-program=a",
+				"--save-config", "--check-installation"),
+			  1);
 }
 
 static void check_init_aeron(void)

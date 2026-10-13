@@ -38,6 +38,26 @@
       "fields": ["object", "launcher", "paired", "fired", "predicted"],
       "text": "Craft {object} was told to fire warhead launcher {launcher} (paired {paired}); fired is {fired}, 0 when the craft was not active or its weapons were held ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.flight_ending": {
+      "level": "I",
+      "fields": ["why"],
+      "text": "The flight ends because its AI program failed, as a flight ends at a network fault: {why}"
+    },
+    "ai.flight_program": {
+      "level": "I",
+      "fields": ["path", "run", "level", "log_file"],
+      "text": "The AI program at {path}, named in the settings, is started for this flight in run {run}, logging at level {level} to {log_file} (empty: standard error only)"
+    },
+    "ai.flight_program_unset": {
+      "level": "W",
+      "fields": [],
+      "text": "No AI program is set (ai.python and ai.program in config.yaml), so computer craft sit in every flight the launch door did not start; said once a run"
+    },
+    "ai.flight_unstarted": {
+      "level": "E",
+      "fields": ["why"],
+      "text": "The AI program named in the settings could not be started, so computer craft sit this flight: {why}"
+    },
     "ai.leader_named": {
       "level": "D",
       "fields": ["object", "lost", "group", "followers", "predicted"],

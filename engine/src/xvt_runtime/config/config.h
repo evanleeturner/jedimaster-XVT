@@ -69,6 +69,10 @@ bool xvt_config_restore_keyboard(char *error, size_t capacity);
 /* Sets paths.game_data to path; with save, writes the user file. */
 int xvt_config_set_game_data(const char *path, int save, char *error,
 			     size_t capacity);
+/* Sets ai.python and ai.program, the AI program every flight not started by
+ * the launch door runs; with save, writes the user file. */
+int xvt_config_set_ai_program(const char *python, const char *program, int save,
+			      char *error, size_t capacity);
 /* Updates the preference consumed at the next mission start; Save persists it. */
 /* Removes flight.update_rate when unlocked matches the shipped default, else
  * sets it to "unlocked" or "native". */

@@ -8,7 +8,8 @@
 /* Returns 1 when the options parsed go together, else 0 with a message on
  * stderr: --pilot-name needs --import-pilot, --setup cannot join --game-data or
  * --check-installation, and --launch cannot join --setup, --check-installation,
- * --import-config or --import-pilot. */
+ * --import-config or --import-pilot; --ai-python and --ai-program come
+ * together. */
 static int options_combination_valid(const struct xvt_launch_options *options)
 {
 	if ((options->pilot_name && !options->import_pilot) ||
@@ -23,6 +24,11 @@ static int options_combination_valid(const struct xvt_launch_options *options)
 	     options->import_config || options->import_pilot)) {
 		fprintf(stderr,
 			"OpenXvT: --launch cannot be combined with --setup, --check-installation, --import-config or --import-pilot.\n");
+		return 0;
+	}
+	if (!options->ai_python != !options->ai_program) {
+		fprintf(stderr,
+			"OpenXvT: --ai-python and --ai-program are given together.\n");
 		return 0;
 	}
 	return 1;
@@ -50,7 +56,9 @@ int xvt_launch_options_parse(int argc, char *argv[],
 			{"--log-level", &options->log_level},
 			{"--log-file", &options->log_file},
 			{"--launch", &options->launch},
-			{"--record-launch", &options->record_launch}};
+			{"--record-launch", &options->record_launch},
+			{"--ai-python", &options->ai_python},
+			{"--ai-program", &options->ai_program}};
 
 		struct {
 			const char *name;

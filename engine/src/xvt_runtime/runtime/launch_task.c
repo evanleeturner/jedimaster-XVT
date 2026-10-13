@@ -23,6 +23,8 @@
 #include "xvt/frontend/pilot.h"
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/input/keyboard.h"
+#include "xvt_runtime/ai/ai_flight.h"
+#include "xvt_runtime/config/config.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/cd_task.h"
 #include "xvt_runtime/runtime/launch_door.h"
@@ -142,6 +144,7 @@ const char *xvt_launch_task_begin_pending_launch(void)
 	xvt_render_frontend_release_surfaces();
 	frontend_display_set_wnd_proc_mode(1);
 	g_phase = XVT_LAUNCH_RUNNING;
+	ai_flight_begin(xvt_config_settings(), xvt_launch_door_is_active());
 	return g_command;
 }
 
@@ -152,6 +155,7 @@ void xvt_launch_task_complete(int succeeded)
 		return;
 	}
 	g_phase = XVT_LAUNCH_IDLE;
+	ai_flight_end();
 	xvt_cd_task_cancel_fade();
 	if (launched) {
 		if (!frontend_display_reinit_surfaces()) {

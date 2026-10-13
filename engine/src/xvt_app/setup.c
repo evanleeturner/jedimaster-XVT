@@ -373,6 +373,11 @@ xvt_setup_result xvt_setup_run(const struct xvt_launch_options *options,
 				    error, capacity)) {
 		return XVT_SETUP_ERROR;
 	}
+	if (options->ai_program &&
+	    !xvt_config_set_ai_program(options->ai_python, options->ai_program,
+				       0, error, capacity)) {
+		return XVT_SETUP_ERROR;
+	}
 	if (save_due) {
 		if (!xvt_config_set_game_data(selected, 1, error, capacity)) {
 			return XVT_SETUP_ERROR;

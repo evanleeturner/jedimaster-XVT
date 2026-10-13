@@ -40,6 +40,8 @@ static const struct xvt_setting_field g_fields[] = {
 	SETTING_STRING("paths.game_data", game_data),
 	SETTING_STRING("ui.font", ui_font),
 	SETTING_STRING("network.lobby_url", lobby_url),
+	SETTING_STRING("ai.python", ai_python),
+	SETTING_STRING("ai.program", ai_program),
 	SETTING_INT("presentation.vsync_divisor",
 		    render.presentation.vsync_divisor, 1, 2),
 	SETTING_BOOL("presentation.hdr_output", render.presentation.hdr_output),

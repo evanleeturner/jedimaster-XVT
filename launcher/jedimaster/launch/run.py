@@ -39,6 +39,7 @@ from pathlib import Path
 from typing import Any
 
 from .check import errors
+from .model import ai_program_of
 from .schema import launch_schema
 from .schema import result_schema
 
@@ -180,3 +181,36 @@ def _read_result(path: Path) -> dict[str, Any]:
     if problems:
         raise LaunchError("; ".join(problems))
     return document
+
+
+def save_ai_program(engine: str, folder: str | Path, timeout: float = 120.0) -> int:
+    """Keep the AI program in ``folder`` in the engine's settings; return its exit code.
+
+    Runs ``<engine> --ai-python PYTHON --ai-program FOLDER --save-config
+    --check-installation``: the engine writes both into its config.yaml and
+    exits without a window, and every later flight not started by --launch
+    runs that program. Raises ValueError when ``folder`` holds no AI program,
+    and LaunchError when the engine cannot be started or runs past
+    ``timeout`` seconds (it is killed).
+    """
+    program = ai_program_of(folder)
+    command = [
+        engine,
+        "--ai-python",
+        program["python"],
+        "--ai-program",
+        program["path"],
+        "--save-config",
+        "--check-installation",
+    ]
+    logger.info("starting %s", command)
+    try:
+        done = subprocess.run(command, timeout=timeout, check=False)
+    except subprocess.TimeoutExpired as exc:
+        raise LaunchError(
+            f"the engine ran past {timeout:g} seconds and was stopped"
+        ) from exc
+    except OSError as exc:
+        raise LaunchError(f"the engine could not be started: {exc}") from exc
+    logger.info("engine exit code %s", done.returncode)
+    return done.returncode

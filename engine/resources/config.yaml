@@ -263,6 +263,12 @@ input:
       view_forward: rightstick
 network:
   lobby_url: "https://aeron.rgb-labs.io"
+ai:
+  # The AI program that flies computer craft in every flight not started
+  # with --launch: the Python that runs it and its package folder. Both empty:
+  # computer craft sit. The launcher's ai-setup command fills both.
+  python: ""
+  program: ""
 game:
   lastpilot: ""
   single_player:

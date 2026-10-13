@@ -28,6 +28,9 @@ int main(int argc, char *argv[])
 			"                              in logs/ beside config.yaml; the newest 10 are kept)\n"
 			"  --launch <file>             Fly one single-player battle described by a JSON file, then write its result file and quit\n"
 			"  --record-launch <file>      Write the state a battle starts from to <file> and <file>.pilot, for comparing starts\n"
+			"  --ai-python <path>          The Python that runs the AI program, given with --ai-program\n"
+			"  --ai-program <folder>       The AI program every flight not started by --launch runs;\n"
+			"                              with --save-config both are kept in config.yaml\n"
 			"  --help                      Show this help\n");
 		return valid ? 0 : 2;
 	}

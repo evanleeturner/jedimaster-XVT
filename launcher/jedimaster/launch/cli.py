@@ -1,4 +1,4 @@
-"""Command line of the launch command: ``python -m jedimaster launch``.
+"""Command lines of the launch command, ``python -m jedimaster launch``, and of ai-setup.
 
 Purpose:
     ``launch --type T [--side S] --mission ID --pilot NAME --engine PATH``
@@ -40,6 +40,7 @@ from .model import SIDES
 from .options import parse_setting
 from .run import fly
 from .run import LaunchError
+from .run import save_ai_program
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,16 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
         metavar="NAME=VALUE",
         help="one game option, for example difficulty=hard (repeatable)",
     )
+    ai_setup = sub.add_parser(
+        "ai-setup",
+        help="keep the AI program in the game's settings, for every flight not started by launch",
+    )
+    ai_setup.add_argument("--engine", required=True, help="the engine program")
+    ai_setup.add_argument(
+        "--ai-program",
+        required=True,
+        help="the AI program's package folder (ai/jedimaster_ai in the repository)",
+    )
 
 
 def summary(result: dict[str, Any]) -> str:
@@ -97,12 +108,14 @@ def summary(result: dict[str, Any]) -> str:
 
 
 def run(args: argparse.Namespace) -> int:
-    """Run the ``launch`` command; return its exit status.
+    """Run the ``launch`` command, or ``ai-setup`` (``run_ai_setup``); return its exit status.
 
     Returns the engine's exit code when the result agrees with it, 1 when the
     battle cannot be started or the result cannot be trusted, 2 when the
     arguments make no description.
     """
+    if args.command == "ai-setup":
+        return run_ai_setup(args)
     try:
         settings = dict(parse_setting(item) for item in args.setting)
         ai_program = ai_program_of(args.ai_program) if args.ai_program else None
@@ -133,4 +146,20 @@ def run(args: argparse.Namespace) -> int:
             result["exit_code"],
         )
         return 1
+    return code
+
+
+def run_ai_setup(args: argparse.Namespace) -> int:
+    """Run the ``ai-setup`` command; return its exit status.
+
+    Returns the engine's exit code, or 1 when the folder holds no AI program
+    or the engine cannot be run.
+    """
+    try:
+        code = save_ai_program(args.engine, args.ai_program)
+    except (ValueError, LaunchError) as exc:
+        logger.error("%s", exc)
+        return 1
+    if code == 0:
+        print("kept: every flight not started by launch runs this AI program")
     return code

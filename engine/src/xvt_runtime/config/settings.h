@@ -124,6 +124,10 @@ struct xvt_settings {
 	char game_data[XVT_PATH_CAPACITY];
 	char ui_font[XVT_PATH_CAPACITY];
 	char lobby_url[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
+	/* The AI program every flight not started by the launch door runs: the
+	 * Python that runs it and its package folder; "" when unset. */
+	char ai_python[XVT_PATH_CAPACITY];
+	char ai_program[XVT_PATH_CAPACITY];
 	int fullscreen;
 	struct xvt_controller_options controller;
 	struct xvt_controller_profile gamepad_defaults;

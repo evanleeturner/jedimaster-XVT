@@ -87,6 +87,7 @@ SUBCOMMANDS = {
     "bot": bot_cli,
     "briefing": briefing_cli,
     "launch": launch_cli,
+    "ai-setup": launch_cli,
 }
 """The commands whose modules parse and run their own subcommands."""
 

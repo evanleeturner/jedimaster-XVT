@@ -654,6 +654,27 @@ int xvt_config_set_game_data(const char *path, int save, char *error,
 	return success;
 }
 
+int xvt_config_set_ai_program(const char *python, const char *program, int save,
+			      char *error, size_t capacity)
+{
+	if (!g_writable) {
+		return xvt_config_error(error, capacity,
+					"configuration is not loaded", NULL);
+	}
+	AeronConfigFile *updated = NULL;
+	AeronConfigError detail;
+	if (!AeronConfigFile_Clone(g_user, &updated, &detail) ||
+	    !AeronConfigFile_SetString(updated, "ai.python", python, &detail) ||
+	    !AeronConfigFile_SetString(updated, "ai.program", program,
+				       &detail)) {
+		AeronConfigFile_Destroy(updated);
+		return xvt_settings_file_error(&detail, error, capacity);
+	}
+	int success = xvt_config_update_user(updated, save, error, capacity);
+	AeronConfigFile_Destroy(updated);
+	return success;
+}
+
 bool xvt_config_set_flight_rate(bool unlocked, char *error, size_t capacity)
 {
 	if (!g_writable) {

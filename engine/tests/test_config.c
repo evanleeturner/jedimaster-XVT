@@ -512,6 +512,38 @@ static void check_set_game_data(void)
 	fixture_end();
 }
 
+static void check_set_ai_program(void)
+{
+	fixture_begin();
+	fixture_load();
+	char error[1024];
+	/* The shipped settings name no AI program. */
+	XVT_ASSERT_INT_EQ(xvt_config_settings()->ai_python[0], 0);
+	XVT_ASSERT_INT_EQ(xvt_config_settings()->ai_program[0], 0);
+	XVT_ASSERT_INT_EQ(xvt_config_set_ai_program("/usr/bin/python3",
+						    "ai/jedimaster_ai", 0,
+						    error, sizeof error),
+			  1);
+	XVT_ASSERT_INT_EQ(
+		strcmp(xvt_config_settings()->ai_python, "/usr/bin/python3"),
+		0);
+	XVT_ASSERT_INT_EQ(
+		strcmp(xvt_config_settings()->ai_program, "ai/jedimaster_ai"),
+		0);
+	XVT_ASSERT_TRUE(!fixture_exists("user/config.yaml"));
+
+	/* With save the user file is written, and the next load reads both back. */
+	XVT_ASSERT_INT_EQ(xvt_config_set_ai_program("py", "folder", 1, error,
+						    sizeof error),
+			  1);
+	XVT_ASSERT_TRUE(fixture_exists("user/config.yaml"));
+	fixture_load();
+	XVT_ASSERT_INT_EQ(strcmp(xvt_config_settings()->ai_python, "py"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(xvt_config_settings()->ai_program, "folder"),
+			  0);
+	fixture_end();
+}
+
 static void check_apply(void)
 {
 	fixture_begin();
@@ -799,6 +831,7 @@ int main(int argc, char **argv)
 	check_skip_intro_and_flight_rate();
 	check_keyboard_setters();
 	check_set_game_data();
+	check_set_ai_program();
 	check_apply();
 	check_write();
 	check_save();

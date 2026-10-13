@@ -22,6 +22,8 @@ struct xvt_launch_options {
 	const char *log_file;
 	const char *launch;
 	const char *record_launch;
+	const char *ai_python;
+	const char *ai_program;
 	int show_help;
 	int setup;
 	int save_config;
@@ -35,14 +37,15 @@ struct xvt_launch_options {
  * or -h, --setup, --skip-intro, --save-config, --reset-config,
  * --check-installation; a repeat is harmless. A value option (--resource-root,
  * --game-data, --import-config, --import-pilot, --pilot-name, --log-level,
- * --log-file, --launch, --record-launch) takes its value after '=' or from the
+ * --log-file, --launch, --record-launch, --ai-python, --ai-program) takes its value after '=' or from the
  * next argument; the value is kept as text, unchecked. Returns 0, with a
  * message on stderr, for an unknown argument, a value option given twice, or a
  * value that is missing, empty or starts with '-'; and after the loop when
  * --pilot-name lacks --import-pilot, --setup is combined with --game-data or
  * --check-installation, or --launch is combined with --setup,
- * --check-installation, --import-config or --import-pilot. On 0, options holds
- * what was parsed before the failure. */
+ * --check-installation, --import-config or --import-pilot, or only one of
+ * --ai-python and --ai-program is given. On 0, options holds what was parsed
+ * before the failure. */
 int xvt_launch_options_parse(int argc, char *argv[],
 			     struct xvt_launch_options *options);
 /* Zeroes config and fills it for this host: organization "TotallyOpen",

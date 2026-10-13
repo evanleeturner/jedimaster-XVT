@@ -8,6 +8,7 @@
 #include "xvt_app/setup.h"
 #include "xvt_app/ui.h"
 #include "xvt_remaster/xvt_remaster.h"
+#include "xvt_runtime/ai/ai_flight.h"
 #include "xvt_runtime/ai/ai_program.h"
 #include "xvt_runtime/config/config.h"
 #include "xvt_runtime/input/capture.h"
@@ -112,10 +113,10 @@ int xvt_application_run(const struct xvt_launch_options *options)
 		return 2;
 	}
 	xvt_launch_record_set_path(options->record_launch);
+	char ai_log_file[XVT_PATH_CAPACITY];
+	uint32_t run_id = xvt_log_sink_ai_log(ai_log_file, sizeof(ai_log_file));
+	ai_flight_set_log(run_id, ai_log_file);
 	if (options->launch) {
-		char ai_log_file[XVT_PATH_CAPACITY];
-		uint32_t run_id =
-			xvt_log_sink_ai_log(ai_log_file, sizeof(ai_log_file));
 		if (!xvt_launch_door_open(options->launch, run_id,
 					  ai_log_file)) {
 			return XVT_LAUNCH_EXIT_REFUSED;

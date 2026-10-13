@@ -798,8 +798,15 @@ if(Python3_Interpreter_FOUND)
         XVT_TEST_PYTHON="${Python3_EXECUTABLE}"
         XVT_TEST_AI_PROGRAM_DIR="${XVT_TEST_AI_PROGRAM_DIR}")
     add_test(NAME ai_program COMMAND test_ai_program)
+    # Which AI program a flight runs: src/xvt_runtime/ai/ai_flight.c.
+    xvt_add_engine_test(test_ai_flight test_ai_flight.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/ai/ai_flight.c")
+    target_compile_definitions(test_ai_flight PRIVATE
+        XVT_TEST_PYTHON="${Python3_EXECUTABLE}"
+        XVT_TEST_AI_PROGRAM_DIR="${XVT_TEST_AI_PROGRAM_DIR}")
+    add_test(NAME ai_flight COMMAND test_ai_flight)
 else()
-    message(STATUS "Python 3 was not found; the AI program check is not added as a test")
+    message(STATUS "Python 3 was not found; the AI program checks are not added as tests")
 endif()
 
 # UBSan prints and carries on by default; a test must stop at the first report.

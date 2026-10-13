@@ -399,3 +399,31 @@ def test_without_a_setting_flag_the_description_has_no_settings(monkeypatch, eng
 )
 def test_a_setting_flag_that_is_not_an_option_exits_2(engine, flag, caplog):
     assert main(command(engine, "Ace", "--setting", flag)) == 2
+
+
+AI_SETUP_STAND_IN = """#!__PYTHON__
+import json, pathlib, sys
+pathlib.Path(__file__).with_name("argv.json").write_text(json.dumps(sys.argv[1:]))
+"""
+
+
+def test_ai_setup_hands_the_engine_the_program_to_keep(tmp_path, capsys):
+    engine = tmp_path / "engine"
+    engine.write_text(
+        AI_SETUP_STAND_IN.replace("__PYTHON__", sys.executable), encoding="utf-8"
+    )
+    engine.chmod(engine.stat().st_mode | stat.S_IXUSR)
+    folder = tmp_path / "jedimaster_ai"
+    folder.mkdir()
+    (folder / "__main__.py").write_text("", encoding="utf-8")
+    assert main(["ai-setup", "--engine", str(engine), "--ai-program", str(folder)]) == 0
+    assert json.loads((tmp_path / "argv.json").read_text(encoding="utf-8")) == [
+        "--ai-python", sys.executable, "--ai-program", str(folder.resolve()),
+        "--save-config", "--check-installation",
+    ]  # fmt: skip
+    assert capsys.readouterr().out.startswith("kept:")
+
+
+def test_ai_setup_refuses_a_folder_without_a_program(tmp_path, engine, caplog):
+    assert main(["ai-setup", "--engine", engine, "--ai-program", str(tmp_path)]) == 1
+    assert "no AI program" in caplog.text
