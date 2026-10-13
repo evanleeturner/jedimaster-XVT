@@ -19,8 +19,18 @@ from jedimaster_ai.world import Steer
         {"think_interval": 0},
         {"think_interval": 0x10000},
         {"activity": len(Activity)},
+        {"activity": Activity.ARRIVING_FROM_HYPERSPACE},
+        {"activity": Activity.LEAVING_HANGAR},
     ],
-    ids=["throttle low", "throttle high", "interval 0", "interval high", "activity"],
+    ids=[
+        "throttle low",
+        "throttle high",
+        "interval 0",
+        "interval high",
+        "activity",
+        "arriving",
+        "leaving",
+    ],  # fmt: skip
 )
 def test_actions_out_of_range_are_refused(changes: dict[str, int]) -> None:
     with pytest.raises(ValueError):

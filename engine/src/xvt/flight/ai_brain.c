@@ -132,6 +132,7 @@ static void ai_brain_view_contact(uint16_t object_index,
 	contact->rear_shield = craft->shield_energy[1];
 	contact->hull_damage = craft->hull_damage;
 	contact->hull_strength = craft->hull_max;
+	contact->activity = craft->ai_controller.activity;
 }
 
 /* Fills the batch's contacts: each craft in the active region's craft slots,
@@ -183,6 +184,18 @@ static int ai_brain_order_targets_match(uint16_t flight_group,
 	return primary != 0 || secondary != 0;
 }
 
+/* Whether a craft of team other is hostile to a craft of team own: another
+ * team that own's record in the mission's teams does not mark allied, the rule
+ * the HUD's colors and the player's nearest-enemy search use. A team past the
+ * mission's records is not hostile. */
+static int ai_brain_teams_hostile(uint8_t own, uint8_t other)
+{
+	const size_t teams = sizeof g_mission_teams / sizeof g_mission_teams[0];
+	return own != other && own < teams &&
+	       other < sizeof g_mission_teams[own].allies &&
+	       g_mission_teams[own].allies[other] == 0;
+}
+
 /* Writes the craft's weapons into its view: which weapon slots are turrets,
  * its cannon groups' shot types, and per warhead launcher its warhead type,
  * the warheads left in its two slots (at most 255) and its cooldown. */
@@ -231,7 +244,9 @@ static void ai_brain_view_weapons(const struct craft_data *craft,
 /* Writes what the pilot program is told about the craft in object_index. The
  * pitch is the craft record's, the one the steering turns; the heading and
  * roll are the object's. Bit n of the order target mask is set when the
- * batch's contact n matches the targets of the craft's current order. */
+ * batch's contact n matches the targets of the craft's current order, and bit
+ * n of the enemy mask when contact n is hostile to the craft. The leader is
+ * the craft's leader_obj_idx, 0xFFFF when it leads. */
 static void ai_brain_view_craft(uint16_t object_index,
 				const struct ai_brain_batch *batch,
 				struct ai_wire_craft_view *view)
@@ -260,6 +275,7 @@ static void ai_brain_view_craft(uint16_t object_index,
 	view->speed = object->mobj->speed;
 	view->random_seed = controller->saved_rand_seed;
 	view->order_target_mask = 0;
+	view->enemy_mask = 0;
 	for (int contact = 0; contact < batch->contact_count; ++contact) {
 		if (ai_brain_order_targets_match(
 			    object->flight_group_idx,
@@ -267,7 +283,14 @@ static void ai_brain_view_craft(uint16_t object_index,
 			    batch->contacts[contact].object_index)) {
 			view->order_target_mask |= 1u << contact;
 		}
+		if (ai_brain_teams_hostile(view->team,
+					   batch->contacts[contact].team)) {
+			view->enemy_mask |= 1u << contact;
+		}
 	}
+	view->leader = craft->leader_obj_idx == UINT8_MAX
+			       ? UINT16_MAX
+			       : craft->leader_obj_idx;
 	ai_brain_view_weapons(craft, view);
 	memcpy(view->notebook, craft->ai_notebook, sizeof view->notebook);
 }
@@ -393,15 +416,19 @@ static void ai_brain_apply_turrets(uint16_t object_index,
 
 /* Marks the craft arriving from hyperspace, or active again, as the answer's
  * arrival says, and sets its speed at once, as the 1997 AI's arrival from
- * hyperspace did. Only a craft that is active or arriving changes: one
- * disabled, entering hyperspace, breaking up or exploding keeps its kind and
- * speed. */
+ * hyperspace did. Only a craft that was arriving from hyperspace when it was
+ * asked about (was_arriving) and is active or arriving changes; any other
+ * keeps its kind and speed, so the pilot program sets no speed outside an
+ * arrival at the game's levels. A harder level may lift that later. */
 static void ai_brain_apply_arrival(uint16_t object_index,
 				   struct craft_data *craft,
-				   const struct ai_wire_craft_answer *answer)
+				   const struct ai_wire_craft_answer *answer,
+				   int was_arriving)
 {
-	if (craft->object_kind == CRAFT_OBJECT_KIND_ACTIVE ||
-	    craft->object_kind == CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE) {
+	if (was_arriving &&
+	    (craft->object_kind == CRAFT_OBJECT_KIND_ACTIVE ||
+	     craft->object_kind ==
+		     CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE)) {
 		craft->object_kind =
 			answer->arriving != 0
 				? CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE
@@ -424,6 +451,10 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 		g_object_table[answer->object_index].mobj->p_craft;
 	struct ai_controller *controller = &craft->ai_controller;
 
+	/* The activity as asked about: the activity action below may change it
+	 * before the arrival action is applied. */
+	int was_arriving =
+		controller->activity == AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE;
 	memcpy(craft->ai_notebook, answer->notebook, sizeof craft->ai_notebook);
 	if ((answer->actions & (1u << AI_WIRE_ACTION_STEER)) != 0) {
 		ai_brain_apply_steer(craft, answer);
@@ -451,7 +482,8 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 		ai_brain_apply_turrets(object_index, craft, answer);
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_ARRIVAL)) != 0) {
-		ai_brain_apply_arrival(object_index, craft, answer);
+		ai_brain_apply_arrival(object_index, craft, answer,
+				       was_arriving);
 	}
 	XVT_LOG_DEBUG(
 		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d predicted=%d",
@@ -514,6 +546,82 @@ static void ai_brain_ask(struct ai_brain_batch *batch, uint32_t tick)
 	batch->count = 0;
 }
 
+/* Whether the slot holds a craft that is not breaking up or exploding. */
+static int ai_brain_is_live_craft(uint16_t object_index)
+{
+	const struct object_record *object = &g_object_table[object_index];
+	if (object->object_type == 0 || object->mobj->family != 0) {
+		return 0;
+	}
+	craft_object_kind kind = object->mobj->p_craft->object_kind;
+	return kind != CRAFT_OBJECT_KIND_BREAKING_UP &&
+	       kind != CRAFT_OBJECT_KIND_EXPLODING;
+}
+
+/* Whether the slot holds a live craft of the flight group whose
+ * leader_obj_idx is leader. */
+static int ai_brain_follows(uint16_t object_index, uint8_t leader,
+			    uint16_t flight_group)
+{
+	return ai_brain_is_live_craft(object_index) &&
+	       g_object_table[object_index].flight_group_idx == flight_group &&
+	       g_object_table[object_index].mobj->p_craft->leader_obj_idx ==
+		       leader;
+}
+
+/* Names a new leader for each flight whose leader is lost, the mission's
+ * rule, never the pilot program's: a leader is lost when its slot no longer
+ * holds a live craft of its followers' flight group that leads (leader_obj_idx
+ * 255). Its live followers in the active region then follow the one with the
+ * lowest readout number, craft_index_in_group (on a tie the lowest slot),
+ * which leads. */
+static void ai_brain_name_lost_leaders(void)
+{
+	const uint16_t start = (uint16_t)g_active_region_object_slot_start;
+	const uint16_t end = g_active_region_craft_object_slot_end;
+	for (uint16_t follower = start; follower < end; ++follower) {
+		if (!ai_brain_is_live_craft(follower)) {
+			continue;
+		}
+		const struct object_record *object = &g_object_table[follower];
+		uint8_t lost = object->mobj->p_craft->leader_obj_idx;
+		uint16_t flight_group = object->flight_group_idx;
+		/* A leader is a live craft of the group that follows no one. */
+		if (lost == UINT8_MAX ||
+		    ai_brain_follows(lost, UINT8_MAX, flight_group)) {
+			continue;
+		}
+		/* Followers in lower slots already follow a new leader. */
+		uint16_t successor = follower;
+		int lowest = object->mobj->p_craft->craft_index_in_group;
+		for (uint16_t other = follower; other < end; ++other) {
+			if (!ai_brain_follows(other, lost, flight_group)) {
+				continue;
+			}
+			struct craft_data *craft =
+				g_object_table[other].mobj->p_craft;
+			if (craft->craft_index_in_group < lowest) {
+				successor = other;
+				lowest = craft->craft_index_in_group;
+			}
+		}
+		int followers = 0;
+		for (uint16_t other = follower; other < end; ++other) {
+			if (!ai_brain_follows(other, lost, flight_group)) {
+				continue;
+			}
+			g_object_table[other].mobj->p_craft->leader_obj_idx =
+				other == successor ? UINT8_MAX
+						   : (uint8_t)successor;
+			++followers;
+		}
+		XVT_LOG_DEBUG(
+			"ai.leader_named object=%d lost=%d group=%d followers=%d predicted=%d",
+			(int)successor, (int)lost, (int)flight_group,
+			followers - 1, g_flight_sim_side_effects_suppressed);
+	}
+}
+
 /* Asks the pilot program about each computer craft whose think timer has run
  * out, once per reference step, by the 1997 AI's rule for which craft are
  * due: it walks the active region's craft slots and skips empty slots,
@@ -521,7 +629,8 @@ static void ai_brain_ask(struct ai_brain_batch *batch, uint32_t tick)
  * exploding, and craft whose think_timer is above 0. A craft a player flies
  * is not asked, but its timer grows by its think interval as an asked
  * craft's does. Every question of the step shows the contacts as they were
- * at its start. Does nothing while no exchange is set. */
+ * at its start; before it, a flight whose leader is lost gets a new one
+ * (ai_brain_name_lost_leaders). Does nothing while no exchange is set. */
 void ai_brain_think_due_craft(void)
 {
 	static struct ai_brain_batch batch;
@@ -530,6 +639,7 @@ void ai_brain_think_due_craft(void)
 		return;
 	}
 	uint32_t tick = (uint32_t)g_game_time;
+	ai_brain_name_lost_leaders();
 	ai_brain_view_contacts(&batch);
 	for (uint16_t object_index =
 		     (uint16_t)g_active_region_object_slot_start;

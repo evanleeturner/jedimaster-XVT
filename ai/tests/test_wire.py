@@ -37,14 +37,14 @@ DISTINCT = CraftView(
     0x0102, 0x0304, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0C0B, 0x0E0D, 0x100F,
     0x14131211, -2, 0x1C1B1A19, 0x1E1D, 0x201F, 0x2221, 0x2423, -3,
     0x28272625, 0x2A29, 0x2B, 0x2C, (0x2D, 0x2E), (0x2F, 0x30), (0x31, 0x32),
-    (0x3433, 0x3635),
+    (0x3433, 0x3635), 0x3A393837, 0x3C3B,
     notebook=bytes(0x40 + byte for byte in range(NOTEBOOK_BYTES)),
 )  # fmt: skip
 # contact_with_distinct_bytes in the C test.
 DISTINCT_CONTACT = Contact(
     0x4241, 0x4443, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4E4D4C4B, 0x5251504F,
     -4, 0x5453, 0x5655, 0x5857, 0x5A59, 0x5C5B, -5, 0x605F5E5D, 0x64636261,
-    0x68676665,
+    0x68676665, 0x69,
 )  # fmt: skip
 
 
@@ -190,6 +190,8 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
         (b"\x01\x0a", "not one of the nine"),
         (b"\x02\x02\x01\x00\x02\x02\x00", "sent twice"),
         (b"\x01\x03\x0d", "out of range"),
+        (b"\x01\x03\x05", "set by the engine alone"),
+        (b"\x01\x03\x07", "set by the engine alone"),
         (b"\x01\x04\x00\x00", "out of range"),
         (b"\x02\x02\x01\x00", "ends inside a value"),
         (b"\x00\x00", "past its end"),
@@ -211,7 +213,7 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
         (b"\x01\x09\x01\x10", "ends inside a value"),
     ],
     ids=[
-        "kind 0", "kind 10", "twice", "activity 13", "interval 0", "short", "long",
+        "kind 0", "kind 10", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
         "target not shown", "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
         "not a turret", "slot 16", "slot twice", "turret target not shown",

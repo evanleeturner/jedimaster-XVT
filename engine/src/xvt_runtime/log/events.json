@@ -16,7 +16,7 @@
     "ai.craft_arrival": {
       "level": "D",
       "fields": ["object", "arriving", "kind", "speed", "predicted"],
-      "text": "Craft {object} took the pilot program's arrival, arriving {arriving}: its object kind is now {kind} (6 arriving from hyperspace, 0 active; a craft that was neither keeps its kind) and its speed {speed} ({predicted} is 1 in a predicted step, run again once confirmed)"
+      "text": "Craft {object} took the pilot program's arrival, arriving {arriving}: its object kind is now {kind} (6 arriving from hyperspace, 0 active; a craft that was neither, or was not arriving when asked about, keeps its kind and speed) and its speed {speed} ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.craft_lasers": {
       "level": "D",
@@ -37,6 +37,11 @@
       "level": "D",
       "fields": ["object", "launcher", "paired", "fired", "predicted"],
       "text": "Craft {object} was told to fire warhead launcher {launcher} (paired {paired}); fired is {fired}, 0 when the craft was not active or its weapons were held ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.leader_named": {
+      "level": "D",
+      "fields": ["object", "lost", "group", "followers", "predicted"],
+      "text": "Craft {object} of flight group {group} now leads: the leader in slot {lost} was lost, and {followers} other craft follow it, the live follower with the lowest readout number ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.program_exchanged": {
       "level": "D",

@@ -51,6 +51,8 @@ static uint8_t *put_craft_view(uint8_t *at,
 	     ++launcher) {
 		at = put_u16(at, view->launcher_cooldown[launcher]);
 	}
+	at = put_u32(at, view->enemy_mask);
+	at = put_u16(at, view->leader);
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
@@ -76,7 +78,9 @@ static uint8_t *put_contact(uint8_t *at, const struct ai_wire_contact *contact)
 	at = put_u32(at, (uint32_t)contact->front_shield);
 	at = put_u32(at, (uint32_t)contact->rear_shield);
 	at = put_u32(at, contact->hull_damage);
-	return put_u32(at, contact->hull_strength);
+	at = put_u32(at, contact->hull_strength);
+	*at++ = contact->activity;
+	return at;
 }
 
 size_t ai_wire_question_bytes(int craft_count, int contact_count)
@@ -279,7 +283,10 @@ static int take_action(struct wire_reader *reader,
 	case AI_WIRE_ACTION_ACTIVITY:
 		answer->activity = (uint8_t)take_u8(reader);
 		return reader->short_read ||
-		       answer->activity < AI_ACTIVITY_COUNT;
+		       (answer->activity < AI_ACTIVITY_COUNT &&
+			answer->activity !=
+				AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE &&
+			answer->activity != AI_ACTIVITY_LEAVING_HANGAR);
 	case AI_WIRE_ACTION_THINK_INTERVAL:
 		answer->think_interval = (uint16_t)take_u16(reader);
 		return reader->short_read || answer->think_interval != 0;

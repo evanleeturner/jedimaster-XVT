@@ -11071,11 +11071,12 @@ uint16_t mission_init_flight_group_object_slot(void)
 	g_cur_craft->ai_controller.target_roll = 0;
 	g_cur_craft->ai_controller.target_xy_angle = 0;
 	g_cur_craft->ai_controller.waypoint_index = ORDER_GOAL_COUNT;
-	/* A round out of hyperspace after the start, or out of a mothership's
-	 * hangar, starts arriving; the pilot program flies each craft in and
-	 * then sets its activity. A player's group's round out of a hangar
-	 * starts with none: the program is never asked about a player's
-	 * craft, so nothing would end it. */
+	/* A round out of hyperspace after the start starts arriving, and the
+	 * pilot program flies each craft in, then sets its activity. A round
+	 * out of a mothership's hangar starts leaving it, and the program ends
+	 * that at the craft's first think, when it starts flying its order. A
+	 * player's group's round out of a hangar starts with none: the program
+	 * is never asked about a player's craft, so nothing would end it. */
 	g_cur_craft->ai_controller.activity = AI_ACTIVITY_NONE;
 	if (g_spawn_out_of_hyperspace_flag != 0) {
 		g_cur_craft->ai_controller.activity =

@@ -3,7 +3,8 @@
 Purpose:
     The program's one decision. For each craft in the question, in order,
     the behavior its order code picks decides (``behaviors.arrival`` while
-    the craft arrives), its turrets are aimed
+    the craft arrives from hyperspace; out of a hangar its order decides at
+    once and the leaving mark ends), its turrets are aimed
     (``behaviors.turrets``), and the decisions become the answer.
 
 Invariants:
@@ -57,6 +58,8 @@ def think(
             decision = arrival.think(view, question)
         else:
             decision = behavior_for(view, behaviors)(view, question)
+            if arrival.is_leaving_hangar(view):
+                decision = arrival.leave_hangar(view, decision)
         decision = turrets.defend(view, question, decision)
         answer = CraftAnswer(view.object_index, decision.notebook, decision.actions)
         if debug:
@@ -69,7 +72,7 @@ def _log_contact(contact: Contact) -> None:
     logger.debug(
         "think.contact object=%d signature=%d type=%d genus=%d team=%d group=%d "
         "kind=%d flags=%d x=%d y=%d z=%d yaw=%d pitch=%d speed=%d target=%d "
-        "attacker=%d front=%d rear=%d hull_damage=%d hull=%d",
+        "attacker=%d front=%d rear=%d hull_damage=%d hull=%d activity=%d",
         contact.object_index,
         contact.object_signature,
         contact.object_type,
@@ -90,6 +93,7 @@ def _log_contact(contact: Contact) -> None:
         contact.rear_shield,
         contact.hull_damage,
         contact.hull_strength,
+        contact.activity,
     )
 
 
@@ -99,7 +103,8 @@ def _log_view(view: CraftView) -> None:
         "activity=%d team=%d skill=%d interval=%d throttle=%d x=%d y=%d z=%d "
         "yaw=%d pitch=%d roll=%d speed=%d seed=%d targets=%d turrets=%d "
         "cannons=%d launchers=%d cannon_first=%d cannon_second=%d warhead_first=%d warhead_second=%d "
-        'left_first=%d left_second=%d cooldown_first=%d cooldown_second=%d notebook="%s"',
+        "left_first=%d left_second=%d cooldown_first=%d cooldown_second=%d "
+        'enemies=%d leader=%d notebook="%s"',
         view.object_index,
         view.object_signature,
         view.object_type,
@@ -131,6 +136,8 @@ def _log_view(view: CraftView) -> None:
         view.warheads_left[1],
         view.launcher_cooldown[0],
         view.launcher_cooldown[1],
+        view.enemy_mask,
+        view.leader,
         view.notebook.hex(),
     )
 

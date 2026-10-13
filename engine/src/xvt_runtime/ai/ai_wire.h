@@ -21,21 +21,25 @@
  * u16 turret slot mask (bit n set when weapon slot n is a turret), u8 cannon
  * group count, u8 warhead launcher count, u8 cannon type[2] (each group's shot
  * object type), u8 warhead type[2], u8 warheads left[2], u16 launcher
- * cooldown[2] (ticks before each launcher may fire), then the notebook's
- * AI_NOTEBOOK_BYTES. Then u16 contact count, u16 zero, and one contact per
- * craft in the active region, at most AI_WIRE_CONTACTS_MAX, each
- * AI_WIRE_CONTACT_BYTES long: u16 object index, u16 object signature,
- * u8 object type, u8 genus, u8 team, u8 flight group, u8 object kind, u8 flags
- * (bit 0: a player flies it), i32 x, i32 y, i32 z, u16 yaw, u16 pitch,
- * u16 speed, u16 target, u16 last attacker (both 0xFFFF for none), i32 front
- * shield, i32 rear shield, u32 hull damage, u32 hull strength.
+ * cooldown[2] (ticks before each launcher may fire), u32 enemy mask (bit n
+ * set when contact n is hostile to the craft by the mission's alliances),
+ * u16 leader (the object index of the craft its flight follows, 0xFFFF when
+ * it leads), then the notebook's AI_NOTEBOOK_BYTES. Then u16 contact count,
+ * u16 zero, and one contact per craft in the active region, at most
+ * AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
+ * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
+ * u8 object kind, u8 flags (bit 0: a player flies it), i32 x, i32 y, i32 z,
+ * u16 yaw, u16 pitch, u16 speed, u16 target, u16 last attacker (both 0xFFFF
+ * for none), i32 front shield, i32 rear shield, u32 hull damage, u32 hull
+ * strength, u8 activity (an AI_ACTIVITY_ value).
  *
  * An answer (kind 2) holds one craft answer per craft, in the question's
  * order: u16 object index, the new notebook, u8 action count, then each
  * action as a u8 kind and its fields:
  *   1 steer: u16 yaw, u16 pitch, u16 roll to turn to
  *   2 throttle: u16, a fraction of 65,536
- *   3 activity: u8, an AI_ACTIVITY_ value
+ *   3 activity: u8, an AI_ACTIVITY_ value other than arriving from
+ *     hyperspace and leaving a hangar, which the engine alone sets
  *   4 think interval: u16 ticks, 1 or more
  *   5 target: u16 object index, a contact's or 0xFFFF for none
  *   6 lasers: for cannon group 0 then 1, u8 link mode (0 holds fire, 1 to 3
@@ -50,6 +54,8 @@
  *     Arriving 1 marks the craft arriving from hyperspace: while it is, the
  *     engine neither turns it nor changes its speed. Arriving 0 marks it
  *     active again. Either way the speed becomes the craft's speed at once.
+ *     The engine applies it only to a craft that was arriving from
+ *     hyperspace when the question was asked.
  * A craft answer names each action kind at most once, and names only what
  * the question showed. */
 
@@ -64,15 +70,15 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 3,
+	AI_WIRE_VERSION = 4,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 56 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 62 + AI_NOTEBOOK_BYTES,
 	/* The contact count and its zero. */
 	AI_WIRE_CONTACT_HEAD_BYTES = 4,
-	AI_WIRE_CONTACT_BYTES = 48,
+	AI_WIRE_CONTACT_BYTES = 49,
 	/* The active region's craft slots; the order target mask has a bit for
 	 * each. */
 	AI_WIRE_CONTACTS_MAX = 32,
@@ -133,6 +139,8 @@ struct ai_wire_craft_view {
 	uint8_t warhead_type[AI_WIRE_WARHEAD_LAUNCHERS];
 	uint8_t warheads_left[AI_WIRE_WARHEAD_LAUNCHERS];
 	uint16_t launcher_cooldown[AI_WIRE_WARHEAD_LAUNCHERS];
+	uint32_t enemy_mask;
+	uint16_t leader;
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 
@@ -160,6 +168,7 @@ struct ai_wire_contact {
 	int32_t rear_shield;
 	uint32_t hull_damage;
 	uint32_t hull_strength;
+	uint8_t activity;
 };
 
 /* One question: the craft due to think and every contact, at one tick. */
@@ -209,9 +218,10 @@ enum ai_wire_result {
 	/* A craft answer's object index is not the question's craft there. */
 	AI_WIRE_WRONG_CRAFT,
 	/* An unknown action kind, a kind sent twice, an activity at or past
-	 * AI_ACTIVITY_COUNT, a think interval of 0, an arrival's arriving past 1
-	 * or speed past AI_WIRE_ARRIVAL_SPEED_MAX, or a target, cannon group,
-	 * launcher or turret the question did not show. */
+	 * AI_ACTIVITY_COUNT or one the engine alone sets, a think interval of 0,
+	 * an arrival's arriving past 1 or speed past AI_WIRE_ARRIVAL_SPEED_MAX,
+	 * or a target, cannon group, launcher or turret the question did not
+	 * show. */
 	AI_WIRE_BAD_ACTION,
 };
 

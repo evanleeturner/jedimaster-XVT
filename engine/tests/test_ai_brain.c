@@ -163,7 +163,7 @@ static void fresh_world(void)
 }
 
 /* Makes slot a computer craft due to think: think timer 0, think interval
- * TEST_INTERVAL, in flight group TEST_GROUP. */
+ * TEST_INTERVAL, in flight group TEST_GROUP, leading its own flight. */
 static struct craft_data *due_craft(int slot)
 {
 	g_test_objects[slot].object_type = 5;
@@ -172,6 +172,7 @@ static struct craft_data *due_craft(int slot)
 	g_test_craft[slot].object_kind = CRAFT_OBJECT_KIND_ACTIVE;
 	g_test_craft[slot].ai_controller.think_interval = TEST_INTERVAL;
 	g_test_craft[slot].ai_controller.think_timer = 0;
+	g_test_craft[slot].leader_obj_idx = UINT8_MAX;
 	return &g_test_craft[slot];
 }
 
@@ -349,6 +350,9 @@ static void check_question_bytes(void)
 	XVT_ASSERT_INT_EQ(view[51], 0);
 	XVT_ASSERT_INT_EQ(get_u16(view + 52), 300);
 	XVT_ASSERT_INT_EQ(get_u16(view + 54), 0);
+	/* No contact but itself, so no enemy; it leads its flight. */
+	XVT_ASSERT_INT_EQ(get_u32(view + 56), 0);
+	XVT_ASSERT_INT_EQ(get_u16(view + 60), 0xFFFF);
 	for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 		XVT_ASSERT_INT_EQ(view[VIEW_NOTEBOOK + byte], 0x60 + byte);
 	}
@@ -377,6 +381,7 @@ static void check_question_bytes(void)
 	XVT_ASSERT_INT_EQ((int32_t)get_u32(contact + 36), -1);
 	XVT_ASSERT_INT_EQ(get_u32(contact + 40), 40);
 	XVT_ASSERT_INT_EQ(get_u32(contact + 44), 300);
+	XVT_ASSERT_INT_EQ(contact[48], AI_ACTIVITY_WAITING);
 	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 0;
 }
 
@@ -439,6 +444,78 @@ static void check_contacts_and_order_targets(void)
 	ai_brain_think_due_craft();
 	XVT_ASSERT_INT_EQ(get_u32(g_fake.question[0] + AI_WIRE_HEAD_BYTES + 38),
 			  0);
+}
+
+/* Bit n of a craft's enemy mask is set when contact n is on a team that the
+ * craft's team's record does not mark allied. The asked craft, slot 3, is on
+ * team 1 and follows slot 0; slot 1 (team 2) is hostile, slot 2 (team 3)
+ * allied, slots 0 and 3 its own team, slot 4 (team 10) past the mission's ten
+ * teams. A craft on team 10 has no enemy. */
+static void check_enemy_mask_and_leader(void)
+{
+	static const uint8_t teams[5] = {1, 2, 3, 1, 10};
+	for (int round = 0; round < 2; ++round) {
+		fresh_world();
+		memset(g_mission_teams, 0, sizeof g_mission_teams);
+		g_mission_teams[1].allies[1] = 1;
+		g_mission_teams[1].allies[3] = 1;
+		for (int slot = 0; slot < 5; ++slot) {
+			due_craft(slot)->ai_controller.think_timer = 5;
+			g_test_mobiles[slot].team = teams[slot];
+		}
+		g_test_craft[3].ai_controller.think_timer = 0;
+		g_test_craft[3].leader_obj_idx = 0;
+		if (round == 1) {
+			g_test_mobiles[3].team = 10;
+		}
+		g_fake.echo = 1;
+
+		ai_brain_think_due_craft();
+
+		XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+		const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+		XVT_ASSERT_INT_EQ(get_u16(view), 3);
+		XVT_ASSERT_INT_EQ(get_u32(view + 56), round == 0 ? 0x2u : 0u);
+		XVT_ASSERT_INT_EQ(get_u16(view + 60), 0);
+	}
+	memset(g_mission_teams, 0, sizeof g_mission_teams);
+}
+
+/* A flight whose leader is lost gets a new one before anyone is asked: slot
+ * 0 led slots 1, 2, 3, 4 and 7 (readouts 4, 3, 1, 2 and 2) and is exploding.
+ * Slot 3, the lowest readout, is breaking up and keeps its leader; slots 4 and
+ * 7 tie, so slot 4 leads and 1, 2 and 7 follow it, the asked slot 1 says so.
+ * Slot 5, of another group, follows slot 6, which lives, and is left alone. */
+static void check_lost_leader_named(void)
+{
+	static const int readouts[8] = {1, 4, 3, 1, 2, 7, 1, 2};
+	fresh_world();
+	for (int slot = 0; slot < 8; ++slot) {
+		due_craft(slot)->ai_controller.think_timer = 5;
+		g_test_craft[slot].craft_index_in_group = readouts[slot];
+		g_test_craft[slot].leader_obj_idx = 0;
+	}
+	g_test_craft[0].leader_obj_idx = UINT8_MAX;
+	g_test_craft[0].object_kind = CRAFT_OBJECT_KIND_EXPLODING;
+	g_test_craft[3].object_kind = CRAFT_OBJECT_KIND_BREAKING_UP;
+	g_test_objects[5].flight_group_idx = TEST_GROUP + 1;
+	g_test_objects[6].flight_group_idx = TEST_GROUP + 1;
+	g_test_craft[5].leader_obj_idx = 6;
+	g_test_craft[6].leader_obj_idx = UINT8_MAX;
+	g_test_craft[1].ai_controller.think_timer = 0;
+	g_fake.echo = 1;
+
+	ai_brain_think_due_craft();
+
+	static const int expected[8] = {UINT8_MAX, 4, 4,	 0,
+					UINT8_MAX, 6, UINT8_MAX, 4};
+	for (int slot = 0; slot < 8; ++slot) {
+		XVT_ASSERT_INT_EQ(g_test_craft[slot].leader_obj_idx,
+				  expected[slot]);
+	}
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	XVT_ASSERT_INT_EQ(get_u16(g_fake.question[0] + AI_WIRE_HEAD_BYTES + 60),
+			  4);
 }
 
 /* An answer with every action: the notebook, the three steering goals with
@@ -682,17 +759,24 @@ static void check_warhead_action(void)
 	XVT_ASSERT_INT_EQ(launcher_flags_after(0, 5, 0, 0), 0x55);
 }
 
-/* Answers the one due craft in slot 1, of the object kind given and at speed
- * 900, with an arrival; returns its object kind after and sets *speed. */
-static int kind_after_arrival(int kind, int arriving, unsigned int sent,
+/* Answers the one due craft in slot 1, of the object kind and activity given
+ * and at speed 900, with an arrival, after an activity action unless
+ * new_activity is -1; returns its object kind after and sets *speed. */
+static int kind_after_arrival(int kind, int activity, int new_activity,
+			      int arriving, unsigned int sent,
 			      unsigned int *speed)
 {
 	fresh_world();
 	struct craft_data *craft = due_craft(1);
 	craft->object_kind = (craft_object_kind)kind;
+	craft->ai_controller.activity = (uint8_t)activity;
 	g_test_mobiles[1].speed = 900;
 	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
-	at = craft_answer(at, 1, 0, 1);
+	at = craft_answer(at, 1, 0, new_activity == -1 ? 1 : 2);
+	if (new_activity != -1) {
+		*at++ = AI_WIRE_ACTION_ACTIVITY;
+		*at++ = (uint8_t)new_activity;
+	}
 	*at++ = AI_WIRE_ACTION_ARRIVAL;
 	*at++ = (uint8_t)arriving;
 	at = put_u16(at, sent);
@@ -705,34 +789,47 @@ static int kind_after_arrival(int kind, int arriving, unsigned int sent,
 	return craft->object_kind;
 }
 
-/* The arrival marks an active craft arriving from hyperspace, or an arriving
- * one active again, and sets its speed at once; a disabled craft, or one
- * entering hyperspace, keeps its kind and speed. */
+/* While a craft arrives from hyperspace, the arrival marks it, active or
+ * arriving, arriving or active again, and sets its speed at once, even when
+ * the same answer first ends the arriving activity; a disabled craft, or one
+ * entering hyperspace, keeps its kind and speed. Outside an arrival, out of a
+ * hangar too, it changes nothing: no speed is set at the game's levels. */
 static void check_arrival_action(void)
 {
+	const int jumping = AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE;
 	unsigned int speed = 0;
-	XVT_ASSERT_INT_EQ(
-		kind_after_arrival(CRAFT_OBJECT_KIND_ACTIVE, 1, 3600, &speed),
-		CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE);
+	XVT_ASSERT_INT_EQ(kind_after_arrival(CRAFT_OBJECT_KIND_ACTIVE, jumping,
+					     -1, 1, 3600, &speed),
+			  CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE);
 	XVT_ASSERT_INT_EQ(speed, 3600);
 	XVT_ASSERT_INT_EQ(
 		kind_after_arrival(CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE,
-				   1, 1800, &speed),
+				   jumping, -1, 1, 1800, &speed),
 		CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE);
 	XVT_ASSERT_INT_EQ(speed, 1800);
 	XVT_ASSERT_INT_EQ(
 		kind_after_arrival(CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE,
-				   0, 250, &speed),
+				   jumping, AI_ACTIVITY_NONE, 0, 250, &speed),
 		CRAFT_OBJECT_KIND_ACTIVE);
 	XVT_ASSERT_INT_EQ(speed, 250);
-	XVT_ASSERT_INT_EQ(
-		kind_after_arrival(CRAFT_OBJECT_KIND_DISABLED, 1, 3600, &speed),
-		CRAFT_OBJECT_KIND_DISABLED);
+	XVT_ASSERT_INT_EQ(kind_after_arrival(CRAFT_OBJECT_KIND_DISABLED,
+					     jumping, -1, 1, 3600, &speed),
+			  CRAFT_OBJECT_KIND_DISABLED);
 	XVT_ASSERT_INT_EQ(speed, 900);
 	XVT_ASSERT_INT_EQ(
-		kind_after_arrival(CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE, 0, 0,
-				   &speed),
+		kind_after_arrival(CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE,
+				   jumping, -1, 0, 0, &speed),
 		CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE);
+	XVT_ASSERT_INT_EQ(speed, 900);
+	XVT_ASSERT_INT_EQ(kind_after_arrival(CRAFT_OBJECT_KIND_ACTIVE,
+					     AI_ACTIVITY_NONE, -1, 1, 3600,
+					     &speed),
+			  CRAFT_OBJECT_KIND_ACTIVE);
+	XVT_ASSERT_INT_EQ(speed, 900);
+	XVT_ASSERT_INT_EQ(kind_after_arrival(CRAFT_OBJECT_KIND_ACTIVE,
+					     AI_ACTIVITY_LEAVING_HANGAR, -1, 0,
+					     3600, &speed),
+			  CRAFT_OBJECT_KIND_ACTIVE);
 	XVT_ASSERT_INT_EQ(speed, 900);
 }
 
@@ -742,6 +839,8 @@ int main(void)
 	check_who_is_asked();
 	check_question_bytes();
 	check_contacts_and_order_targets();
+	check_enemy_mask_and_leader();
+	check_lost_leader_named();
 	check_warhead_action();
 	check_arrival_action();
 	check_answer_applied();

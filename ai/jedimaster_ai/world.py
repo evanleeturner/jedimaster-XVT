@@ -52,6 +52,13 @@ class Activity(enum.IntEnum):
     DISABLED = 12
 
 
+# The activities only the engine sets: a round's arrival out of hyperspace or
+# out of a hangar. An answer may end them, never start them.
+ENGINE_ACTIVITIES = frozenset(
+    {Activity.ARRIVING_FROM_HYPERSPACE, Activity.LEAVING_HANGAR}
+)
+
+
 @dataclasses.dataclass(frozen=True)
 class CraftView:
     """One craft due to think, as a question describes it.
@@ -62,7 +69,10 @@ class CraftView:
     targets of that order; bit n of ``turret_slot_mask`` when weapon slot n
     is a turret. The four pairs hold each cannon group's shot object type,
     and each warhead launcher's warhead type, warheads left and ticks before
-    it may fire. ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
+    it may fire. Bit n of ``enemy_mask`` is set when contact n is hostile to
+    the craft by the mission's alliances: never its own team or an allied
+    one. ``leader`` is the object index of the craft its flight follows,
+    NO_OBJECT when it leads; the engine names it. ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
     program last wrote it, or all zero bytes before the program first writes
     it.
     """
@@ -94,6 +104,8 @@ class CraftView:
     warhead_type: tuple[int, int]
     warheads_left: tuple[int, int]
     launcher_cooldown: tuple[int, int]
+    enemy_mask: int
+    leader: int
     notebook: bytes
 
 
@@ -105,7 +117,8 @@ class Contact:
     mine; active, breaking up, exploding). ``target`` is the player's target
     when a player flies the craft, else its AI target; ``target`` and
     ``last_attacker`` are NO_OBJECT for none. Shields and hull are the craft
-    record's own numbers.
+    record's own numbers. ``activity`` is the engine's activity code
+    (``Activity``).
     """
 
     object_index: int
@@ -128,6 +141,7 @@ class Contact:
     rear_shield: int
     hull_damage: int
     hull_strength: int
+    activity: int
 
     @property
     def player_flown(self) -> bool:
@@ -244,7 +258,8 @@ class Actions:
     until the craft is asked about again, 1 or more. ``target`` is an object
     index, NO_OBJECT to clear the target. ``lasers`` sets both cannon groups.
     ``turrets`` aims 1 to 16 turrets, each slot once. ``arrival`` marks the
-    craft arriving from hyperspace or active again. What these name must
+    craft arriving from hyperspace or active again. ``activity`` is never
+    one of ENGINE_ACTIVITIES. What these name must
     be what the question showed (``wire.read_answer`` holds the rules).
     """
 
@@ -270,7 +285,10 @@ class Actions:
         if self.throttle is not None:
             _check_u16("throttle", self.throttle)
         if self.activity is not None:
-            object.__setattr__(self, "activity", Activity(self.activity))
+            activity = Activity(self.activity)
+            if activity in ENGINE_ACTIVITIES:
+                raise ValueError(f"activity {activity.name} is set by the engine alone")
+            object.__setattr__(self, "activity", activity)
         if self.think_interval is not None:
             _check_u16("think_interval", self.think_interval, low=1)
 

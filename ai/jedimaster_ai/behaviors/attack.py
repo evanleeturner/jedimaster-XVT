@@ -30,7 +30,7 @@ Invariants:
       random choices come from the craft's dice in its notebook.
     - It names only what the question showed: its target is a contact, and
       it fires only the cannon groups the view counts.
-    - It never targets itself or its own team (``tactics.can_fight``).
+    - It targets only craft the engine marks hostile (``tactics.can_fight``).
     - A fighting craft thinks every FIGHT_INTERVAL ticks, whatever its skill.
 """
 
@@ -257,8 +257,10 @@ def cannon_fire(
 def tail_threat(view: CraftView, question: Question) -> Contact | None:
     """Return the nearest enemy on the craft's tail that targets it, or None."""
     nearest = None
-    for contact in question.contacts:
-        if contact.target != view.object_index or not tactics.can_fight(view, contact):
+    for position, contact in enumerate(question.contacts):
+        if contact.target != view.object_index:
+            continue
+        if not tactics.can_fight(view, position, contact):
             continue
         dx, dy, dz = tactics.offset(view, contact)
         reach = geometry.distance(dx, dy, dz)

@@ -25,6 +25,8 @@ from jedimaster_ai.world import Question
 
 ME = 4
 FOE = 9
+# The engine marks every contact hostile but the craft's own, the first.
+ALL_BUT_OWN = 0xFFFFFFFE
 TIER_SKILL = (0x0000, 0x8000, 0xFFFF)
 
 
@@ -44,6 +46,7 @@ def craft(view):
             "think_interval": attack.FIGHT_INTERVAL,
             "order_code": 7,
             "order_target_mask": 0b10,
+            "enemy_mask": ALL_BUT_OWN,
             "turret_slot_mask": 0,
             "cannon_group_count": 1,
         }
@@ -192,6 +195,16 @@ def test_an_enemy_ahead_or_not_targeting_it_is_no_tail_threat(craft, foe) -> Non
     assert attack.tail_threat(me, question) is None
 
 
+def test_only_a_chaser_the_engine_marks_hostile_is_a_tail_threat(craft, foe) -> None:
+    contacts = (foe(object_index=12, y=-0x2000, target=ME), foe(y=0x2000))
+    hostile = craft(enemy_mask=0b01)
+    friendly = craft(enemy_mask=0b10)
+    assert (
+        attack.tail_threat(hostile, Question(1000, (hostile,), contacts)) == contacts[0]
+    )
+    assert attack.tail_threat(friendly, Question(1000, (friendly,), contacts)) is None
+
+
 def test_it_keeps_its_target_until_it_looks_again(craft, foe, ask) -> None:
     first = ask(craft(order_target_mask=0b10), foe(y=0x6000), tick=1000)
     nearer = foe(object_index=15, y=0x2000)
@@ -240,8 +253,10 @@ def test_a_craft_breaking_up_or_in_hyperspace_is_not_fought(
     assert ask(craft(), foe(object_kind=kind)).actions.target == NO_OBJECT
 
 
-def test_its_own_team_is_never_fought(craft, foe, ask) -> None:
-    assert ask(craft(), foe(team=1)).actions.target == NO_OBJECT
+def test_a_craft_the_engine_does_not_mark_hostile_is_never_fought(
+    craft, foe, ask
+) -> None:
+    assert ask(craft(enemy_mask=0), foe()).actions.target == NO_OBJECT
 
 
 def random_question(
@@ -266,6 +281,8 @@ def random_question(
         )
         for index in range(1, count)
     )
+    # The engine marks other teams hostile when the mission allies none.
+    hostile = sum(1 << c.object_index for c in others if c.team != 1)
     me = view(
         object_index=ME,
         team=1,
@@ -278,6 +295,7 @@ def random_question(
         pitch=dice.randrange(0x8001),
         cannon_group_count=dice.randint(0, 2),
         order_target_mask=dice.getrandbits(count),
+        enemy_mask=hostile,
         turret_slot_mask=dice.getrandbits(16),
         think_interval=dice.choice((16, 59)),
         notebook=notebooks.get(ME, bytes(64)),

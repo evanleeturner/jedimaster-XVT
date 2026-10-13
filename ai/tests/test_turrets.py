@@ -27,6 +27,7 @@ def starship(view):
             "order_code": 0,
             "order_target_mask": 0,
             "turret_slot_mask": 0b10110,
+            "enemy_mask": 0xFFFFFFFF,
         }
         return view(**(mine | changes))
 
@@ -70,7 +71,8 @@ def test_with_no_threat_every_turret_holds(starship, other) -> None:
 def test_threats_are_shared_out_nearest_first(starship, other, contact) -> None:
     own = contact(object_index=ME, team=1, x=0, y=0, z=0, last_attacker=7)
     decision = defend(
-        starship(order_target_mask=0b10000),
+        # Craft 5, at position 3, is on the starship's team: not hostile.
+        starship(order_target_mask=0b10000, enemy_mask=0b10110),
         own,
         other(9, target=ME),
         other(7),

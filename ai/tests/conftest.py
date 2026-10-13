@@ -44,6 +44,8 @@ VIEW = CraftView(
     warhead_type=(60, 0),
     warheads_left=(4, 0),
     launcher_cooldown=(0, 0),
+    enemy_mask=0b10,
+    leader=0xFFFF,
     notebook=bytes(NOTEBOOK_BYTES),
 )
 # Contact 0 is VIEW's own craft; contact 1 another craft, its order's target.
@@ -68,6 +70,7 @@ CONTACT = Contact(
     rear_shield=-1,
     hull_damage=10,
     hull_strength=200,
+    activity=0,
 )
 
 

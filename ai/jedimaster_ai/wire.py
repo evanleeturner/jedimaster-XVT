@@ -19,7 +19,7 @@ Invariants:
     - A message that breaks the format raises WireError; nothing is guessed.
     - ``read_answer`` refuses what the engine's reader refuses: a wrong
       header, tick, count or craft, an unknown or repeated action kind, an
-      activity past the last, a think interval of 0, an arrival's arriving
+      activity past the last or one the engine alone sets, a think interval of 0, an arrival's arriving
       past 1 or speed past 3,600, a short or long message, and a target, cannon group, launcher or turret the question
       did not show.
 """
@@ -46,7 +46,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 3
+VERSION = 4
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -83,6 +83,8 @@ VIEW_LAYOUT = (
     ("warhead_type", "B", 2),
     ("warheads_left", "B", 2),
     ("launcher_cooldown", "H", 2),
+    ("enemy_mask", "I", 1),
+    ("leader", "H", 1),
 )
 VIEW_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in VIEW_LAYOUT)
@@ -111,6 +113,7 @@ CONTACT_LAYOUT = (
     ("rear_shield", "i"),
     ("hull_damage", "I"),
     ("hull_strength", "I"),
+    ("activity", "B"),
 )
 CONTACT_FIELDS = struct.Struct("<" + "".join(code for _, code in CONTACT_LAYOUT))
 U8 = struct.Struct("<B")

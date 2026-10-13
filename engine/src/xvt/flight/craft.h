@@ -139,8 +139,10 @@ struct craft_data {
 	/* Index into g_model_defs, set at spawn from the object type. */
 	uint8_t model_index;
 	/* Object slot of the craft this one follows, 255 for a leader. At spawn
-	 * the first craft of each batch a flight group sends leads the rest;
-	 * the AI order code names a new leader when the old one is lost. */
+	 * the first craft of each batch a flight group sends leads the rest.
+	 * While the pilot program runs, ai_brain_think_due_craft names a new
+	 * leader when the old one is lost: the live follower with the lowest
+	 * craft_index_in_group. */
 	uint8_t leader_obj_idx;
 	/* No game code reads or writes it; only the snapshot copies it. */
 	uint8_t unused006;

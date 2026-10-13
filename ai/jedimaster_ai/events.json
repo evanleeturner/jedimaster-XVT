@@ -5,13 +5,13 @@
   "events": {
     "arrival.finished": {
       "level": "I",
-      "fields": ["object", "activity", "ticks", "interval"],
-      "text": "Craft {object} has arrived after {ticks} ticks (activity {activity} ends: 5 out of hyperspace, 7 out of a hangar); its order flies it from its next think, every {interval} ticks"
+      "fields": ["object", "activity", "ticks", "interval", "leader"],
+      "text": "Craft {object} has arrived after {ticks} ticks (activity {activity} ends: 5 out of hyperspace, its order flying it from its next think; 7 out of a hangar, at its first think, its order flying it already), thinking every {interval} ticks; it follows {leader} (65535 when it leads)"
     },
     "arrival.started": {
       "level": "I",
       "fields": ["object", "activity", "ticks"],
-      "text": "Craft {object} starts arriving (activity {activity}: 5 out of hyperspace, 7 out of a hangar), for {ticks} ticks"
+      "text": "Craft {object} starts arriving out of hyperspace (activity {activity}), for at most {ticks} ticks; a follower ends with its leader"
     },
     "attack.break": {
       "level": "D",
@@ -65,8 +65,8 @@
     },
     "think.contact": {
       "level": "D",
-      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull"],
-      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}"
+      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull", "activity"],
+      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}; activity {activity}"
     },
     "think.question": {
       "level": "D",
@@ -80,8 +80,8 @@
     },
     "think.view": {
       "level": "D",
-      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "targets", "turrets", "cannons", "launchers", "cannon_first", "cannon_second", "warhead_first", "warhead_second", "left_first", "left_second", "cooldown_first", "cooldown_second", "notebook"],
-      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; order target mask {targets}, turret slot mask {turrets}; {cannons} cannon groups firing types {cannon_first} and {cannon_second}; {launchers} launchers holding types {warhead_first} and {warhead_second}, {left_first} and {left_second} left, ready in {cooldown_first} and {cooldown_second} ticks; notebook {notebook}"
+      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "targets", "turrets", "cannons", "launchers", "cannon_first", "cannon_second", "warhead_first", "warhead_second", "left_first", "left_second", "cooldown_first", "cooldown_second", "enemies", "leader", "notebook"],
+      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; order target mask {targets}, turret slot mask {turrets}; {cannons} cannon groups firing types {cannon_first} and {cannon_second}; {launchers} launchers holding types {warhead_first} and {warhead_second}, {left_first} and {left_second} left, ready in {cooldown_first} and {cooldown_second} ticks; enemy mask {enemies}, leader {leader} (65535 when it leads); notebook {notebook}"
     }
   }
 }

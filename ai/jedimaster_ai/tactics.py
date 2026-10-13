@@ -6,10 +6,10 @@ Purpose:
     and where a contact sits from it.
 
 Invariants:
-    - A craft never fights itself, its own team, or a craft that is breaking
-      up, exploding or in hyperspace. Teams allied by the mission are not
-      known here (the engine does not send the mission's alliances), so only
-      the order's targets and craft that target this one count as enemies.
+    - A craft fights only a craft the engine marks hostile by the mission's
+      alliances (``CraftView.enemy_mask``), never itself, and never one that
+      is breaking up, exploding or in hyperspace. The engine never marks the
+      craft's own team or a team allied with it.
     - Lists keep the question's contact order, so every machine sees the same.
 """
 
@@ -48,11 +48,12 @@ def own_contact(view: CraftView, question: Question) -> Contact | None:
     return None
 
 
-def can_fight(view: CraftView, contact: Contact) -> bool:
-    """Return whether the craft may fight a contact."""
+def can_fight(view: CraftView, position: int, contact: Contact) -> bool:
+    """Return whether the craft may fight the contact at a position in the
+    question's contacts."""
     return (
         contact.object_index != view.object_index
-        and contact.team != view.team
+        and bool(view.enemy_mask >> position & 1)
         and contact.object_kind in _FIGHTABLE_KINDS
     )
 
@@ -62,7 +63,7 @@ def order_targets(view: CraftView, question: Question) -> list[Contact]:
     return [
         contact
         for position, contact in enumerate(question.contacts)
-        if view.order_target_mask >> position & 1 and can_fight(view, contact)
+        if view.order_target_mask >> position & 1 and can_fight(view, position, contact)
     ]
 
 

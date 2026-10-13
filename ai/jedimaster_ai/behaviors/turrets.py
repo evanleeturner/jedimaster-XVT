@@ -3,16 +3,16 @@
 Purpose:
     After a craft's order behavior decides, its turrets get targets: the
     craft's threats, nearest first, shared out over its turret slots in
-    turn. A threat is an enemy within TURRET_RANGE that targets the craft,
-    last hit it, or is one its order names. With no threat every turret is
+    turn. A threat is a craft the engine marks hostile, within TURRET_RANGE,
+    that targets the craft, last hit it, or is one its order names. With no threat every turret is
     told to hold (NO_OBJECT). The engine aims and fires each turret at its
     target (``laser_fireturretslot``).
 
 Invariants:
     - A behavior that aimed the turrets itself keeps its own choice.
     - The decision's notebook is never changed.
-    - Only the order's targets and craft that target or hit this one count
-      as threats: the engine does not send the mission's alliances.
+    - A hostile craft that neither targets nor hit this one, and that its
+      order does not name, is not a threat.
 """
 
 from __future__ import annotations
@@ -54,8 +54,8 @@ def threats(view: CraftView, question: Question) -> list[Contact]:
     hit_by = NO_OBJECT if own is None else own.last_attacker
     named = {contact.object_index for contact in tactics.order_targets(view, question)}
     found = []
-    for contact in question.contacts:
-        if not tactics.can_fight(view, contact):
+    for position, contact in enumerate(question.contacts):
+        if not tactics.can_fight(view, position, contact):
             continue
         if not (
             contact.target == view.object_index
