@@ -15,10 +15,12 @@ from conftest import ENGINE
 
 from jedimaster_ai import wire
 from jedimaster_ai import world
+from jedimaster_ai.behaviors import arrival
 from jedimaster_ai.orders import OrderCode
 from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Activity
 from jedimaster_ai.world import Answer
+from jedimaster_ai.world import Arrival
 from jedimaster_ai.world import CannonGroup
 from jedimaster_ai.world import Contact
 from jedimaster_ai.world import CraftAnswer
@@ -30,6 +32,7 @@ from jedimaster_ai.world import Warhead
 AI_WIRE_H = ENGINE / "src" / "xvt_runtime" / "ai" / "ai_wire.h"
 AI_STATE_H = ENGINE / "src" / "xvt" / "flight" / "ai_state.h"
 MISSION_H = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.h"
+MISSION_C = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.c"
 C_TYPES = {
     "uint8_t": "B",
     "uint16_t": "H",
@@ -87,6 +90,7 @@ def test_wire_constants_match() -> None:
         lasers=(CannonGroup(1, 1), CannonGroup()),
         warhead=Warhead(1),
         turrets=tuple(Turret(slot, 7) for slot in range(world.WEAPON_SLOTS)),
+        arrival=Arrival(True, world.ARRIVAL_SPEED_MAX),
     )
     answer = Answer(1, (CraftAnswer(1, bytes(NOTEBOOK_BYTES), every_action),))
     assert constants == {
@@ -103,6 +107,7 @@ def test_wire_constants_match() -> None:
         "WARHEAD_LAUNCHERS": world.WARHEAD_LAUNCHERS,
         "WEAPON_SLOTS": world.WEAPON_SLOTS,
         "CRAFT_ANSWER_BYTES_MAX": len(wire.answer_bytes(answer)) - wire.HEAD_BYTES,
+        "ARRIVAL_SPEED_MAX": world.ARRIVAL_SPEED_MAX,
     }
 
 
@@ -153,3 +158,14 @@ def test_activities_match() -> None:
 def test_order_codes_match() -> None:
     orders = c_enum(MISSION_H, "mission_order_code", "MISSION_ORDER_")
     assert orders == {order.name: order.value for order in OrderCode}
+
+
+def test_stopped_orders_match() -> None:
+    text = _without_comments(MISSION_C.read_text())
+    body = re.search(
+        r"int mission_order_starts_stopped\(int order_code\)\s*\{(.*?)return 1;",
+        text,
+        re.S,
+    ).group(1)
+    names = re.findall(r"case MISSION_ORDER_(\w+):", body)
+    assert {OrderCode[name] for name in names} == arrival.STOPPED_ORDERS

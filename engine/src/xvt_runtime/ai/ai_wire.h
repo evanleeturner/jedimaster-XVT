@@ -46,6 +46,10 @@
  *   8 turrets: u8 count, 1 to 16, then per turret u8 weapon slot, one the
  *     view's turret mask names, each once, and u16 target, a contact's or
  *     0xFFFF for none
+ *   9 arrival: u8 arriving and u16 speed, at most AI_WIRE_ARRIVAL_SPEED_MAX.
+ *     Arriving 1 marks the craft arriving from hyperspace: while it is, the
+ *     engine neither turns it nor changes its speed. Arriving 0 marks it
+ *     active again. Either way the speed becomes the craft's speed at once.
  * A craft answer names each action kind at most once, and names only what
  * the question showed. */
 
@@ -60,7 +64,7 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 2,
+	AI_WIRE_VERSION = 3,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
@@ -77,7 +81,10 @@ enum ai_wire_constant {
 	/* Weapon slots a craft has, and so turrets one answer may aim. */
 	AI_WIRE_WEAPON_SLOTS = 16,
 	/* A craft answer with every action kind once and all 16 turrets. */
-	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 79 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 83 + AI_NOTEBOOK_BYTES,
+	/* The fastest speed an arrival may set: the 1997 AI's speed out of
+	 * hyperspace. */
+	AI_WIRE_ARRIVAL_SPEED_MAX = 3600,
 };
 
 enum ai_wire_action_kind {
@@ -89,7 +96,8 @@ enum ai_wire_action_kind {
 	AI_WIRE_ACTION_LASERS = 6,
 	AI_WIRE_ACTION_WARHEAD = 7,
 	AI_WIRE_ACTION_TURRETS = 8,
-	AI_WIRE_ACTION_KIND_END = 9,
+	AI_WIRE_ACTION_ARRIVAL = 9,
+	AI_WIRE_ACTION_KIND_END = 10,
 };
 
 enum ai_wire_contact_flag {
@@ -183,6 +191,8 @@ struct ai_wire_craft_answer {
 	uint8_t turret_count;
 	uint8_t turret_slot[AI_WIRE_WEAPON_SLOTS];
 	uint16_t turret_target[AI_WIRE_WEAPON_SLOTS];
+	uint8_t arriving;
+	uint16_t speed;
 };
 
 /* Why an answer was refused. The reader stops at the first fault. */
@@ -199,7 +209,8 @@ enum ai_wire_result {
 	/* A craft answer's object index is not the question's craft there. */
 	AI_WIRE_WRONG_CRAFT,
 	/* An unknown action kind, a kind sent twice, an activity at or past
-	 * AI_ACTIVITY_COUNT, a think interval of 0, or a target, cannon group,
+	 * AI_ACTIVITY_COUNT, a think interval of 0, an arrival's arriving past 1
+	 * or speed past AI_WIRE_ARRIVAL_SPEED_MAX, or a target, cannon group,
 	 * launcher or turret the question did not show. */
 	AI_WIRE_BAD_ACTION,
 };

@@ -2,7 +2,8 @@
 
 Purpose:
     The program's one decision. For each craft in the question, in order,
-    the behavior its order code picks decides, its turrets are aimed
+    the behavior its order code picks decides (``behaviors.arrival`` while
+    the craft arrives), its turrets are aimed
     (``behaviors.turrets``), and the decisions become the answer.
 
 Invariants:
@@ -18,6 +19,7 @@ from __future__ import annotations
 import logging
 import typing as t
 
+from .behaviors import arrival
 from .behaviors import Behavior
 from .behaviors import turrets
 from .orders import behavior_for
@@ -51,7 +53,10 @@ def think(
     for view in question.craft:
         if debug:
             _log_view(view)
-        decision = behavior_for(view, behaviors)(view, question)
+        if arrival.is_arriving(view):
+            decision = arrival.think(view, question)
+        else:
+            decision = behavior_for(view, behaviors)(view, question)
         decision = turrets.defend(view, question, decision)
         answer = CraftAnswer(view.object_index, decision.notebook, decision.actions)
         if debug:
@@ -143,13 +148,15 @@ def _log_answer(answer: CraftAnswer) -> None:
         | (actions.lasers is not None) << 6
         | (actions.warhead is not None) << 7
         | (actions.turrets is not None) << 8
+        | (actions.arrival is not None) << 9
     )
     first, second = actions.lasers or (HOLD_FIRE, HOLD_FIRE)
     warhead = actions.warhead
+    arrived = actions.arrival
     logger.debug(
         "think.answer object=%d actions=%d yaw=%d pitch=%d roll=%d throttle=%d "
         "activity=%d interval=%d target=%d mode_first=%d burst_first=%d mode_second=%d burst_second=%d "
-        'launcher=%d paired=%d turrets=%d notebook="%s"',
+        'launcher=%d paired=%d turrets=%d arriving=%d speed=%d notebook="%s"',
         answer.object_index,
         bits,
         steer.yaw if steer else 0,
@@ -166,6 +173,8 @@ def _log_answer(answer: CraftAnswer) -> None:
         -1 if warhead is None else warhead.launcher,
         0 if warhead is None else int(warhead.paired),
         len(actions.turrets or ()),
+        0 if arrived is None else int(arrived.arriving),
+        0 if arrived is None else arrived.speed,
         answer.notebook.hex(),
     )
     for turret in actions.turrets or ():

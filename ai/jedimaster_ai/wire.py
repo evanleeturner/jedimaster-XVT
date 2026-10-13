@@ -19,8 +19,8 @@ Invariants:
     - A message that breaks the format raises WireError; nothing is guessed.
     - ``read_answer`` refuses what the engine's reader refuses: a wrong
       header, tick, count or craft, an unknown or repeated action kind, an
-      activity past the last, a think interval of 0, a short or long
-      message, and a target, cannon group, launcher or turret the question
+      activity past the last, a think interval of 0, an arrival's arriving
+      past 1 or speed past 3,600, a short or long message, and a target, cannon group, launcher or turret the question
       did not show.
 """
 
@@ -32,6 +32,7 @@ import typing as t
 
 from .world import Actions
 from .world import Answer
+from .world import Arrival
 from .world import CannonGroup
 from .world import Contact
 from .world import CONTACTS_MAX
@@ -45,7 +46,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 2
+VERSION = 3
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -118,6 +119,7 @@ STEER = struct.Struct("<HHH")
 LASERS = struct.Struct("<BBBB")
 WARHEAD = struct.Struct("<BB")
 TURRET = struct.Struct("<BH")
+ARRIVAL = struct.Struct("<BH")
 
 
 class ActionKind(enum.IntEnum):
@@ -131,6 +133,7 @@ class ActionKind(enum.IntEnum):
     LASERS = 6
     WARHEAD = 7
     TURRETS = 8
+    ARRIVAL = 9
 
 
 class WireError(ValueError):
@@ -267,6 +270,10 @@ def _actions_bytes(actions: Actions) -> bytes:
         for turret in actions.turrets:
             written += TURRET.pack(turret.slot, turret.target)
         count += 1
+    if actions.arrival is not None:
+        written += U8.pack(ActionKind.ARRIVAL)
+        written += ARRIVAL.pack(int(actions.arrival.arriving), actions.arrival.speed)
+        count += 1
     return U8.pack(count) + bytes(written)
 
 
@@ -324,6 +331,11 @@ def _take_action(reader: _Reader, kind: ActionKind) -> t.Any:
         return Warhead(launcher, bool(paired))
     if kind == ActionKind.TURRETS:
         return _take_turrets(reader)
+    if kind == ActionKind.ARRIVAL:
+        arriving, speed = reader.take(ARRIVAL)
+        if arriving > 1:
+            raise ValueError(f"arriving is {arriving}, not 0 or 1")
+        return Arrival(bool(arriving), speed)
     return reader.take(U16)[0]
 
 
@@ -335,7 +347,7 @@ def _read_actions(reader: _Reader) -> Actions:
         try:
             kind = ActionKind(code)
         except ValueError:
-            raise WireError(f"action kind {code} is not one of the eight") from None
+            raise WireError(f"action kind {code} is not one of the nine") from None
         name = kind.name.lower()
         if name in found:
             raise WireError(f"action kind {code} is sent twice")

@@ -221,8 +221,8 @@ static uint8_t g_spawn_group_ai = 0;
 static uint16_t g_spawn_yaw = 0;
 /* 1 while the round being spawned arrives by hyperspace after the mission
  * start; mission_spawn_flight_group_wave_craft sets it to 0 and then 1 when it
- * moves the round back, and mission_init_flight_group_object_slot then makes the
- * out-of-hyperspace plan the craft's pending plan. */
+ * moves the round back, and mission_init_flight_group_object_slot then starts
+ * each craft arriving from hyperspace. */
 // GLOBAL: XVT 0x99F98A
 static uint8_t g_spawn_out_of_hyperspace_flag = 0;
 /* status1 of the round being spawned; set by mission_spawn_flight_group_wave_craft.
@@ -232,8 +232,8 @@ static uint8_t g_spawn_out_of_hyperspace_flag = 0;
 static uint8_t g_spawn_status1 = 0;
 /* 1 while the round being spawned comes out of a mothership's hangar;
  * mission_spawn_flight_group_wave_craft sets it to 0 and then 1, and
- * mission_init_flight_group_object_slot then uses spacing 0 and makes the
- * from-mothership plan the craft's pending plan. */
+ * mission_init_flight_group_object_slot then uses spacing 0 and starts each
+ * craft leaving the hangar, unless a player's group owns the round. */
 // GLOBAL: XVT 0x99F98C
 static uint8_t g_spawn_from_mothership_flag = 0;
 /* Pitch of the round being spawned, 65,536 units per circle (0x4000 when no
@@ -11071,7 +11071,19 @@ uint16_t mission_init_flight_group_object_slot(void)
 	g_cur_craft->ai_controller.target_roll = 0;
 	g_cur_craft->ai_controller.target_xy_angle = 0;
 	g_cur_craft->ai_controller.waypoint_index = ORDER_GOAL_COUNT;
+	/* A round out of hyperspace after the start, or out of a mothership's
+	 * hangar, starts arriving; the pilot program flies each craft in and
+	 * then sets its activity. A player's group's round out of a hangar
+	 * starts with none: the program is never asked about a player's
+	 * craft, so nothing would end it. */
 	g_cur_craft->ai_controller.activity = AI_ACTIVITY_NONE;
+	if (g_spawn_out_of_hyperspace_flag != 0) {
+		g_cur_craft->ai_controller.activity =
+			AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE;
+	} else if (g_spawn_from_mothership_flag != 0 && has_player_owner == 0) {
+		g_cur_craft->ai_controller.activity =
+			AI_ACTIVITY_LEAVING_HANGAR;
+	}
 	memset(g_cur_craft->ai_notebook, 0, sizeof g_cur_craft->ai_notebook);
 	g_cur_craft->ai_controller.think_interval =
 		g_ai_think_interval_by_skill[ai_skill_level];

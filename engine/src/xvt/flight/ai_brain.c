@@ -391,6 +391,31 @@ static void ai_brain_apply_turrets(uint16_t object_index,
 	}
 }
 
+/* Marks the craft arriving from hyperspace, or active again, as the answer's
+ * arrival says, and sets its speed at once, as the 1997 AI's arrival from
+ * hyperspace did. Only a craft that is active or arriving changes: one
+ * disabled, entering hyperspace, breaking up or exploding keeps its kind and
+ * speed. */
+static void ai_brain_apply_arrival(uint16_t object_index,
+				   struct craft_data *craft,
+				   const struct ai_wire_craft_answer *answer)
+{
+	if (craft->object_kind == CRAFT_OBJECT_KIND_ACTIVE ||
+	    craft->object_kind == CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE) {
+		craft->object_kind =
+			answer->arriving != 0
+				? CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE
+				: CRAFT_OBJECT_KIND_ACTIVE;
+		g_object_table[object_index].mobj->speed = answer->speed;
+	}
+	XVT_LOG_DEBUG(
+		"ai.craft_arrival object=%d arriving=%d kind=%d speed=%u predicted=%d",
+		(int)object_index, (int)answer->arriving,
+		(int)craft->object_kind,
+		(unsigned)g_object_table[object_index].mobj->speed,
+		g_flight_sim_side_effects_suppressed);
+}
+
 /* Applies one craft answer the reader accepted: the notebook always, then
  * each action the pilot program sent. */
 static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
@@ -424,6 +449,9 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_TURRETS)) != 0) {
 		ai_brain_apply_turrets(object_index, craft, answer);
+	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_ARRIVAL)) != 0) {
+		ai_brain_apply_arrival(object_index, craft, answer);
 	}
 	XVT_LOG_DEBUG(
 		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d predicted=%d",

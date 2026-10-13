@@ -5659,8 +5659,9 @@ static void check_spawn_formation(void)
 	*model = saved;
 }
 
-/* A craft's throttle comes from the first order, and every craft starts with
- * no activity, the pilot program not having set one. An order that starts
+/* A craft's throttle comes from the first order, and it starts with no
+ * activity unless its round comes out of hyperspace after the start, which
+ * starts it arriving. An order that starts
  * stopped (the Hold Steady orders, Disabled and the null order), for a craft
  * no player flies, holds the throttle at 0; Escort runs at full throttle
  * (0x8000); any other order takes the order's throttle setting, in a group
@@ -5682,14 +5683,16 @@ static void check_spawn_order_throttle(void)
 		int order;
 		int clock_started;
 		int expected_throttle; /* -1: the order's setting */
+		int expected_activity;
 	} cases[] = {
-		{MISSION_ORDER_CIRCLE, 0, -1},
-		{MISSION_ORDER_HOLD_STEADY, 0, 0},
-		{MISSION_ORDER_DISABLED, 0, 0},
-		{MISSION_ORDER_HOLD_STEADY_7, 0, 0},
-		{MISSION_ORDER_NULL, 0, 0},
-		{MISSION_ORDER_ESCORT, 0, 0x8000},
-		{MISSION_ORDER_CIRCLE, 1, -1},
+		{MISSION_ORDER_CIRCLE, 0, -1, AI_ACTIVITY_NONE},
+		{MISSION_ORDER_HOLD_STEADY, 0, 0, AI_ACTIVITY_NONE},
+		{MISSION_ORDER_DISABLED, 0, 0, AI_ACTIVITY_NONE},
+		{MISSION_ORDER_HOLD_STEADY_7, 0, 0, AI_ACTIVITY_NONE},
+		{MISSION_ORDER_NULL, 0, 0, AI_ACTIVITY_NONE},
+		{MISSION_ORDER_ESCORT, 0, 0x8000, AI_ACTIVITY_NONE},
+		{MISSION_ORDER_CIRCLE, 1, -1,
+		 AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE},
 	};
 	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
 		init_mission(MISSION_TYPE_COMBAT);
@@ -5711,15 +5714,39 @@ static void check_spawn_order_throttle(void)
 		XVT_ASSERT_INT_EQ(leader->throttle_speed, throttle);
 		XVT_ASSERT_INT_EQ(follower->throttle_speed, throttle);
 		XVT_ASSERT_INT_EQ(leader->ai_controller.activity,
-				  AI_ACTIVITY_NONE);
+				  cases[i].expected_activity);
 		XVT_ASSERT_INT_EQ(follower->ai_controller.activity,
-				  AI_ACTIVITY_NONE);
+				  cases[i].expected_activity);
 		XVT_ASSERT_INT_EQ(
 			g_object_table[craft_slot(0, 0)].mobj->speed,
 			(uint16_t)math2_fraction(1000, (uint16_t)throttle));
 	}
 	g_mission_elapsed_clock.seconds = 0;
 	*model = saved;
+}
+
+/* A player's group's round out of a hangar after the start starts with no
+ * activity: the pilot program is never asked about a player's craft, so
+ * nothing would end it (check_spawn_from_mothership has an unowned round). */
+static void check_spawn_player_round_from_hangar(void)
+{
+	init_mission(MISSION_TYPE_COMBAT);
+	arriving_group(0, 1, SPAWN_TYPE, 1);
+	arriving_group(1, 1, SPAWN_TYPE, 2);
+	g_stored.groups[1].arrival_method = 1;
+	g_stored.groups[1].arrival_mothership = 0;
+	spawn_mission_ready();
+	XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+	g_mission_flight_groups[1].player_owner_idx = 0;
+	g_mission_elapsed_clock.seconds = 1;
+	XVT_ASSERT_INT_EQ(spawn_craft(1, UINT16_MAX), 1);
+	g_mission_elapsed_clock.seconds = 0;
+	for (int ordinal = 0; ordinal < 2; ++ordinal) {
+		XVT_ASSERT_INT_EQ(
+			g_object_table[craft_slot(1, ordinal)]
+				.mobj->p_craft->ai_controller.activity,
+			AI_ACTIVITY_NONE);
+	}
 }
 
 /* In a version 14 file the craft of object types 37 and 38 are of the
@@ -6393,7 +6420,7 @@ static void check_sync_pilot_network_players(void)
 }
 
 /* A group that arrives from a mothership's hangar after the start keeps no
- * formation spacing and its craft start with no activity; the same group
+ * formation spacing and its craft start leaving the hangar; the same group
  * with no mothership in the flight is not spawned, and the spawn says so. */
 static void check_spawn_from_mothership(void)
 {
@@ -6434,8 +6461,10 @@ static void check_spawn_from_mothership(void)
 			g_object_table[craft_slot(0, 1)].mobj->p_craft;
 		XVT_ASSERT_INT_EQ(leader->ai_flight.separation, 0);
 		XVT_ASSERT_INT_EQ(follower->ai_flight.separation, 0);
+		XVT_ASSERT_INT_EQ(leader->ai_controller.activity,
+				  AI_ACTIVITY_LEAVING_HANGAR);
 		XVT_ASSERT_INT_EQ(follower->ai_controller.activity,
-				  AI_ACTIVITY_NONE);
+				  AI_ACTIVITY_LEAVING_HANGAR);
 		XVT_ASSERT_TRUE(line_holds("mission.wave_prepared fg=0 ",
 					   "mothership=1 hyperspace=0"));
 	}
@@ -12145,6 +12174,7 @@ int main(int argc, char **argv)
 	check_spawn_player_craft();
 	check_spawn_formation();
 	check_spawn_order_throttle();
+	check_spawn_player_round_from_hangar();
 	check_spawn_transport_genus();
 	check_spawn_table_full();
 	check_spawn_beam_and_countermeasures();

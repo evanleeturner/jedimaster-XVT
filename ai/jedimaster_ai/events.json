@@ -3,6 +3,16 @@
   "grammar": 1,
   "line": "HH:MM:SS.mmm L event key=value ...",
   "events": {
+    "arrival.finished": {
+      "level": "I",
+      "fields": ["object", "activity", "ticks", "interval"],
+      "text": "Craft {object} has arrived after {ticks} ticks (activity {activity} ends: 5 out of hyperspace, 7 out of a hangar); its order flies it from its next think, every {interval} ticks"
+    },
+    "arrival.started": {
+      "level": "I",
+      "fields": ["object", "activity", "ticks"],
+      "text": "Craft {object} starts arriving (activity {activity}: 5 out of hyperspace, 7 out of a hangar), for {ticks} ticks"
+    },
     "attack.break": {
       "level": "D",
       "fields": ["object", "target", "distance", "yaw"],
@@ -50,8 +60,8 @@
     },
     "think.answer": {
       "level": "D",
-      "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "target", "mode_first", "burst_first", "mode_second", "burst_second", "launcher", "paired", "turrets", "notebook"],
-      "text": "Craft {object} is answered with action bits {actions}: turn to heading {yaw}, pitch {pitch} and roll {roll}, throttle {throttle}, activity {activity}, think every {interval} ticks (0 where not sent); target {target} (65535 where not sent); cannon group 0 link mode {mode_first} burst {burst_first}, group 1 mode {mode_second} burst {burst_second}; fire launcher {launcher} (-1 for none), paired {paired}; aim {turrets} turrets; notebook {notebook}"
+      "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "target", "mode_first", "burst_first", "mode_second", "burst_second", "launcher", "paired", "turrets", "arriving", "speed", "notebook"],
+      "text": "Craft {object} is answered with action bits {actions}: turn to heading {yaw}, pitch {pitch} and roll {roll}, throttle {throttle}, activity {activity}, think every {interval} ticks (0 where not sent); target {target} (65535 where not sent); cannon group 0 link mode {mode_first} burst {burst_first}, group 1 mode {mode_second} burst {burst_second}; fire launcher {launcher} (-1 for none), paired {paired}; aim {turrets} turrets; arrival {arriving} at speed {speed} (0 and 0 where not sent); notebook {notebook}"
     },
     "think.contact": {
       "level": "D",

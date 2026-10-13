@@ -13,6 +13,11 @@
       "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "predicted"],
       "text": "Craft {object} took the pilot program's answer, action bits {actions}: it now turns to heading {yaw}, pitch {pitch} and roll {roll}, at throttle {throttle}, activity {activity}, thinking every {interval} ticks ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.craft_arrival": {
+      "level": "D",
+      "fields": ["object", "arriving", "kind", "speed", "predicted"],
+      "text": "Craft {object} took the pilot program's arrival, arriving {arriving}: its object kind is now {kind} (6 arriving from hyperspace, 0 active; a craft that was neither keeps its kind) and its speed {speed} ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "ai.craft_lasers": {
       "level": "D",
       "fields": ["object", "mode_first", "burst_first", "mode_second", "burst_second", "predicted"],

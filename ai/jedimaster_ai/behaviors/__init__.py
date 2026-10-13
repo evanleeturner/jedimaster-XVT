@@ -31,6 +31,7 @@ class BehaviorCode(enum.IntEnum):
     """Each behavior's code in the notebooks it writes."""
 
     ATTACK = 1
+    ARRIVAL = 2
 
 
 @dataclasses.dataclass(frozen=True)

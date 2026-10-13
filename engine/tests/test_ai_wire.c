@@ -42,7 +42,7 @@ static struct ai_wire_contact contact_with_distinct_bytes(void)
 static void check_question_bytes(void)
 {
 	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 56] = {
-		0xBC, 0x00, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x02, 0x00,
+		0xBC, 0x00, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x03, 0x00,
 		0x01, 0x00, 0x0D, 0x0C, 0x0B, 0x0A, 0x01, 0x00, 0x00, 0x00,
 		0x02, 0x01, 0x04, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
 		0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
@@ -185,7 +185,10 @@ static void good_answer(struct test_bytes *bytes)
 {
 	start_answer(bytes, 2);
 	add_craft(bytes, 7, 0x5A);
-	add_u8(bytes, 8);
+	add_u8(bytes, 9);
+	add_u8(bytes, AI_WIRE_ACTION_ARRIVAL);
+	add_u8(bytes, 1);
+	add_u16(bytes, AI_WIRE_ARRIVAL_SPEED_MAX);
 	add_u8(bytes, AI_WIRE_ACTION_TURRETS);
 	add_u8(bytes, 2);
 	add_u8(bytes, 5);
@@ -237,7 +240,7 @@ static void check_good_answer(void)
 	XVT_ASSERT_INT_EQ(answers[0].object_index, 7);
 	XVT_ASSERT_INT_EQ(answers[0].notebook[0], 0x5A);
 	XVT_ASSERT_INT_EQ(answers[0].notebook[AI_NOTEBOOK_BYTES - 1], 0x5A);
-	XVT_ASSERT_INT_EQ(answers[0].actions, 0x1FE);
+	XVT_ASSERT_INT_EQ(answers[0].actions, 0x3FE);
 	XVT_ASSERT_INT_EQ(answers[0].steer_yaw, 0x1234);
 	XVT_ASSERT_INT_EQ(answers[0].steer_pitch, 0x4000);
 	XVT_ASSERT_INT_EQ(answers[0].steer_roll, 0xFFFF);
@@ -256,10 +259,14 @@ static void check_good_answer(void)
 	XVT_ASSERT_INT_EQ(answers[0].turret_target[0], UINT16_MAX);
 	XVT_ASSERT_INT_EQ(answers[0].turret_slot[1], 3);
 	XVT_ASSERT_INT_EQ(answers[0].turret_target[1], 12);
+	XVT_ASSERT_INT_EQ(answers[0].arriving, 1);
+	XVT_ASSERT_INT_EQ(answers[0].speed, 3600);
 	XVT_ASSERT_INT_EQ(answers[1].object_index, 9);
 	XVT_ASSERT_INT_EQ(answers[1].notebook[0], 0xA5);
 	XVT_ASSERT_INT_EQ(answers[1].actions, 0);
 	XVT_ASSERT_INT_EQ(answers[1].throttle, 0);
+	XVT_ASSERT_INT_EQ(answers[1].arriving, 0);
+	XVT_ASSERT_INT_EQ(answers[1].speed, 0);
 }
 
 /* The good answer with the byte at offset set to value. */
@@ -429,6 +436,12 @@ static void check_action_faults(void)
 						0, 0};
 	static const uint8_t interval_one[] = {AI_WIRE_ACTION_THINK_INTERVAL, 1,
 					       0};
+	/* Arriving 2; speed 3,601; arriving 0 at speed 3,600. */
+	static const uint8_t arriving_two[] = {AI_WIRE_ACTION_ARRIVAL, 2, 0, 0};
+	static const uint8_t too_fast[] = {AI_WIRE_ACTION_ARRIVAL, 1, 0x11,
+					   0x0E};
+	static const uint8_t fastest[] = {AI_WIRE_ACTION_ARRIVAL, 0, 0x10,
+					  0x0E};
 	XVT_ASSERT_INT_EQ(read_actions(1, kind_zero, sizeof kind_zero),
 			  AI_WIRE_BAD_ACTION);
 	XVT_ASSERT_INT_EQ(read_actions(1, kind_end, sizeof kind_end),
@@ -443,6 +456,11 @@ static void check_action_faults(void)
 			  AI_WIRE_BAD_ACTION);
 	XVT_ASSERT_INT_EQ(read_actions(1, interval_one, sizeof interval_one),
 			  AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(read_actions(1, arriving_two, sizeof arriving_two),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, too_fast, sizeof too_fast),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, fastest, sizeof fastest), AI_WIRE_OK);
 	/* An action cut off by the end of the message. */
 	XVT_ASSERT_INT_EQ(read_actions(1, twice, 2), AI_WIRE_SHORT);
 }

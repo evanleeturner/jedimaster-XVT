@@ -682,6 +682,60 @@ static void check_warhead_action(void)
 	XVT_ASSERT_INT_EQ(launcher_flags_after(0, 5, 0, 0), 0x55);
 }
 
+/* Answers the one due craft in slot 1, of the object kind given and at speed
+ * 900, with an arrival; returns its object kind after and sets *speed. */
+static int kind_after_arrival(int kind, int arriving, unsigned int sent,
+			      unsigned int *speed)
+{
+	fresh_world();
+	struct craft_data *craft = due_craft(1);
+	craft->object_kind = (craft_object_kind)kind;
+	g_test_mobiles[1].speed = 900;
+	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+	at = craft_answer(at, 1, 0, 1);
+	*at++ = AI_WIRE_ACTION_ARRIVAL;
+	*at++ = (uint8_t)arriving;
+	at = put_u16(at, sent);
+	g_fake.answer_length = finish_answer(g_fake.answer, at);
+
+	ai_brain_think_due_craft();
+
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	*speed = g_test_mobiles[1].speed;
+	return craft->object_kind;
+}
+
+/* The arrival marks an active craft arriving from hyperspace, or an arriving
+ * one active again, and sets its speed at once; a disabled craft, or one
+ * entering hyperspace, keeps its kind and speed. */
+static void check_arrival_action(void)
+{
+	unsigned int speed = 0;
+	XVT_ASSERT_INT_EQ(
+		kind_after_arrival(CRAFT_OBJECT_KIND_ACTIVE, 1, 3600, &speed),
+		CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE);
+	XVT_ASSERT_INT_EQ(speed, 3600);
+	XVT_ASSERT_INT_EQ(
+		kind_after_arrival(CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE,
+				   1, 1800, &speed),
+		CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE);
+	XVT_ASSERT_INT_EQ(speed, 1800);
+	XVT_ASSERT_INT_EQ(
+		kind_after_arrival(CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE,
+				   0, 250, &speed),
+		CRAFT_OBJECT_KIND_ACTIVE);
+	XVT_ASSERT_INT_EQ(speed, 250);
+	XVT_ASSERT_INT_EQ(
+		kind_after_arrival(CRAFT_OBJECT_KIND_DISABLED, 1, 3600, &speed),
+		CRAFT_OBJECT_KIND_DISABLED);
+	XVT_ASSERT_INT_EQ(speed, 900);
+	XVT_ASSERT_INT_EQ(
+		kind_after_arrival(CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE, 0, 0,
+				   &speed),
+		CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE);
+	XVT_ASSERT_INT_EQ(speed, 900);
+}
+
 int main(void)
 {
 	check_no_exchange_changes_nothing();
@@ -689,6 +743,7 @@ int main(void)
 	check_question_bytes();
 	check_contacts_and_order_targets();
 	check_warhead_action();
+	check_arrival_action();
 	check_answer_applied();
 	check_pitch_direction();
 	check_notebook_only_answer();

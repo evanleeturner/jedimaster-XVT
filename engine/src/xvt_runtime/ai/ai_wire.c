@@ -291,6 +291,12 @@ static int take_action(struct wire_reader *reader,
 		return take_lasers(reader, view, answer);
 	case AI_WIRE_ACTION_WARHEAD:
 		return take_warhead(reader, view, answer);
+	case AI_WIRE_ACTION_ARRIVAL:
+		answer->arriving = (uint8_t)take_u8(reader);
+		answer->speed = (uint16_t)take_u16(reader);
+		return reader->short_read ||
+		       (answer->arriving <= 1 &&
+			answer->speed <= AI_WIRE_ARRIVAL_SPEED_MAX);
 	default:
 		return take_turrets(reader, question, view, answer);
 	}

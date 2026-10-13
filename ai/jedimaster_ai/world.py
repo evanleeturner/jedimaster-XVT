@@ -30,6 +30,8 @@ WARHEAD_LAUNCHERS = 2
 WEAPON_SLOTS = 16
 # Contacts a question shows at most: the active region's craft slots.
 CONTACTS_MAX = 32
+# The fastest speed an arrival may set: the 1997 AI's speed out of hyperspace.
+ARRIVAL_SPEED_MAX = 3600
 
 
 class Activity(enum.IntEnum):
@@ -217,13 +219,32 @@ class Turret:
 
 
 @dataclasses.dataclass(frozen=True)
+class Arrival:
+    """The craft marked arriving from hyperspace, or active again, at a speed.
+
+    While a craft is marked arriving the engine flies it straight on and
+    leaves its speed alone; either way the speed is set at once.
+    """
+
+    arriving: bool
+    speed: int
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.speed <= ARRIVAL_SPEED_MAX:
+            raise ValueError(
+                f"arrival speed {self.speed!r} is outside 0 to {ARRIVAL_SPEED_MAX}"
+            )
+
+
+@dataclasses.dataclass(frozen=True)
 class Actions:
     """What one craft is told to do; None sends nothing of that kind.
 
     ``throttle`` is a fraction of 65,536. ``think_interval`` is the ticks
     until the craft is asked about again, 1 or more. ``target`` is an object
     index, NO_OBJECT to clear the target. ``lasers`` sets both cannon groups.
-    ``turrets`` aims 1 to 16 turrets, each slot once. What these name must
+    ``turrets`` aims 1 to 16 turrets, each slot once. ``arrival`` marks the
+    craft arriving from hyperspace or active again. What these name must
     be what the question showed (``wire.read_answer`` holds the rules).
     """
 
@@ -235,6 +256,7 @@ class Actions:
     lasers: tuple[CannonGroup, CannonGroup] | None = None
     warhead: Warhead | None = None
     turrets: tuple[Turret, ...] | None = None
+    arrival: Arrival | None = None
 
     def __post_init__(self) -> None:
         if self.target is not None:

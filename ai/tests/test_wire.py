@@ -17,6 +17,7 @@ from jedimaster_ai import wire
 from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Activity
 from jedimaster_ai.world import Answer
+from jedimaster_ai.world import Arrival
 from jedimaster_ai.world import CannonGroup
 from jedimaster_ai.world import Contact
 from jedimaster_ai.world import CraftAnswer
@@ -103,6 +104,7 @@ def good_answer() -> tuple[Question, Answer]:
         lasers=(CannonGroup(LinkMode.ALL, 4), CannonGroup(LinkMode.ONE_AT_A_TIME, 2)),
         warhead=Warhead(0, paired=True),
         turrets=(Turret(5, NO_OBJECT), Turret(3, 12)),
+        arrival=Arrival(True, 3600),
     )
     answer = Answer(
         TEST_TICK,
@@ -118,7 +120,7 @@ def test_answer_bytes_read_back() -> None:
     question, answer = good_answer()
     message = wire.answer_bytes(answer)
     # The length the C test's check_good_answer expects.
-    assert len(message) == wire.HEAD_BYTES + 101 + 3 + NOTEBOOK_BYTES
+    assert len(message) == wire.HEAD_BYTES + 105 + 3 + NOTEBOOK_BYTES
     assert wire.read_answer(message[4:], question) == answer
 
 
@@ -126,11 +128,11 @@ def test_answer_writes_actions_in_kind_order() -> None:
     _, answer = good_answer()
     message = wire.answer_bytes(answer)
     start = wire.HEAD_BYTES + 2 + NOTEBOOK_BYTES
-    # Count 8; steer 0x1234 0x4000 0xFFFF; throttle 0x8000; activity 12;
+    # Count 9; steer 0x1234 0x4000 0xFFFF; throttle 0x8000; activity 12;
     # think interval 59; target 12; lasers 3 4 1 2; warhead 0 paired;
-    # turrets: slot 5 none, slot 3 at 12.
-    assert message[start : start + 35] == bytes.fromhex(
-        "080134120040ffff020080030c043b00050c000603040102070001080205ffff030c00"
+    # turrets: slot 5 none, slot 3 at 12; arriving at 3,600.
+    assert message[start : start + 39] == bytes.fromhex(
+        "090134120040ffff020080030c043b00050c000603040102070001080205ffff030c000901100e"
     )
 
 
@@ -184,8 +186,8 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
 @pytest.mark.parametrize(
     ("actions", "match"),
     [
-        (b"\x01\x00", "not one of the eight"),
-        (b"\x01\x09", "not one of the eight"),
+        (b"\x01\x00", "not one of the nine"),
+        (b"\x01\x0a", "not one of the nine"),
         (b"\x02\x02\x01\x00\x02\x02\x00", "sent twice"),
         (b"\x01\x03\x0d", "out of range"),
         (b"\x01\x04\x00\x00", "out of range"),
@@ -204,13 +206,16 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
         (b"\x01\x08\x02\x03\xff\xff\x03\xff\xff", "out of range"),
         (b"\x01\x08\x01\x03\x0b\x00", "turret target 11 is not a contact"),
         (b"\x01\x08\x01\x03\x09", "ends inside a value"),
+        (b"\x01\x09\x02\x00\x00", "out of range"),
+        (b"\x01\x09\x01\x11\x0e", "out of range"),
+        (b"\x01\x09\x01\x10", "ends inside a value"),
     ],
     ids=[
-        "kind 0", "kind 9", "twice", "activity 13", "interval 0", "short", "long",
+        "kind 0", "kind 10", "twice", "activity 13", "interval 0", "short", "long",
         "target not shown", "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
         "not a turret", "slot 16", "slot twice", "turret target not shown",
-        "turret cut off",
+        "turret cut off", "arriving 2", "speed 3601", "arrival cut off",
     ],
 )  # fmt: skip
 def test_answer_breaking_the_engines_rules_is_refused(
