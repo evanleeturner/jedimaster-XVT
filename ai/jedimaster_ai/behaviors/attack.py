@@ -5,10 +5,11 @@ Purpose:
     turns toward it, closes, and fires its cannons while the target sits
     inside its aim cone and firing range. Inside the target's clearance
     ahead (``tactics.clearance``, which grows with the target's size), it
-    breaks off a quarter turn aside and comes round again; with an enemy on its tail that
-    targets it, it jinks to a random side. Skill sets the aim cone, the
-    firing range, the burst, how soon it looks again for a nearer target and
-    how long a jink lasts.
+    breaks off a quarter turn to the side away from the target, holds that
+    heading until it is outside the clearance, and comes round again; with
+    an enemy on its tail that targets it, it jinks to a random side. Skill
+    sets the aim cone, the firing range, the burst, how soon it looks again
+    for a nearer target and how long a jink lasts.
 
     The rules' shape follows Starshatter Open's fighter pilot (target choice,
     fire control, breaking off, jinking with times by skill), written new in
@@ -20,7 +21,8 @@ Phases, the notebook's phase byte:
     SEEK    no target: hold fire, keep course, look again each think
     ATTACK  steer at the target, fire when lined up
     BREAK   inside the target's clearance ahead: hold a heading a quarter
-            turn aside
+            turn away from the target's side until outside the clearance,
+            for BREAK_LIMIT_TICKS at most
     EVADE   an enemy on the tail: hold a jink heading
 
 The scratch bytes, little-endian: u16 target index, u16 its signature,
@@ -33,6 +35,9 @@ Invariants:
     - It names only what the question showed: its target is a contact, and
       it fires only the cannon groups the view counts.
     - It targets only craft the engine marks hostile (``tactics.can_fight``).
+    - A break turns away from the side its target is on, so the turn never
+      swings the nose across the target; the dice pick the side only when
+      the target is dead ahead.
     - A fighting craft thinks every FIGHT_INTERVAL ticks, whatever its skill.
 """
 
@@ -41,6 +46,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import struct
+import typing as t
 
 from .. import dice
 from .. import geometry
@@ -97,7 +103,15 @@ ALL_CANNONS_RANGE = 0x2000
 PAIRS_RANGE = 0x4000
 
 BREAK_CONE = 0x2000
-BREAK_TICKS = 250
+# A break ends at this many ticks even inside the clearance, so a target
+# that keeps up cannot hold a craft flying straight with its cannons cold: 4
+# real seconds, the slowest quarter turn measured in test flights (420 ticks,
+# craft type 4) and 580 ticks more, about 9,200 units at that type's best
+# pace, more than a freighter's whole clearance (7,816).
+BREAK_LIMIT_TICKS = 1000
+# Within this many yaw units of the nose a target is dead ahead: the
+# arctangent's own error (``geometry``), too small to name a side.
+DEAD_AHEAD = 4
 # An enemy within this range, more than this angle off the nose and
 # targeting the craft, is on its tail.
 TAIL_RANGE = 0x8000
@@ -141,16 +155,16 @@ def think(view: CraftView, question: Question) -> Decision:
     tier = tactics.skill_tier(view.skill)
     interval = None if view.think_interval == FIGHT_INTERVAL else FIGHT_INTERVAL
 
-    if book.phase in (BREAK, EVADE):
-        held = BREAK_TICKS if book.phase == BREAK else JINK_TICKS[tier]
-        if tick - book.phase_tick < held:
-            actions = Actions(
-                steer=Steer(memory.yaw, memory.pitch, view.roll),
-                throttle=FULL_THROTTLE,
-                think_interval=interval,
-                lasers=(HOLD_FIRE, HOLD_FIRE),
-            )
-            return Decision(book.encode(), actions)
+    if (book.phase == BREAK and break_holds(view, question, book, memory)) or (
+        book.phase == EVADE and tick - book.phase_tick < JINK_TICKS[tier]
+    ):
+        actions = Actions(
+            steer=Steer(memory.yaw, memory.pitch, view.roll),
+            throttle=FULL_THROTTLE,
+            think_interval=interval,
+            lasers=(HOLD_FIRE, HOLD_FIRE),
+        )
+        return Decision(book.encode(), actions)
 
     target, memory = _choose_target(view, question, memory, tier)
     if target is None:
@@ -176,10 +190,7 @@ def think(view: CraftView, question: Question) -> Decision:
 
     keep = tactics.clearance(target)
     if reach < keep and off_nose < BREAK_CONE:
-        side, state = dice.roll(book.dice, 2)
-        held_yaw = (
-            view.yaw + (geometry.QUARTER_TURN if side else -geometry.QUARTER_TURN)
-        ) % geometry.TURN
+        held_yaw, state = break_heading(view.yaw, yaw, book.dice)
         logger.debug(
             "attack.break object=%d target=%d distance=%d clearance=%d yaw=%d",
             view.object_index,
@@ -257,6 +268,56 @@ def cannon_fire(
     return first, second
 
 
+def break_heading(heading: int, toward: int, state: int) -> tuple[int, int]:
+    """Return the yaw a break holds, a quarter turn from the craft's heading
+    away from the side its target lies on, and the dice state after it.
+
+    ``toward`` is the yaw that points at the target. Only a target dead
+    ahead, within DEAD_AHEAD of the heading, lets the dice pick the side.
+    """
+    if geometry.angle_between(toward, heading) <= DEAD_AHEAD:
+        coin, state = dice.roll(state, 2)
+        clockwise = coin == 1
+    else:
+        # Turn clockwise when the target lies to the left: more than a half
+        # turn clockwise of the heading.
+        clockwise = (toward - heading) % geometry.TURN > geometry.HALF_TURN
+    turn = geometry.QUARTER_TURN if clockwise else -geometry.QUARTER_TURN
+    return (heading + turn) % geometry.TURN, state
+
+
+def break_holds(
+    view: CraftView, question: Question, book: notebook.Notebook, memory: Memory
+) -> bool:
+    """Return whether a break goes on: its target still shown, the craft still
+    inside the target's clearance, for less than BREAK_LIMIT_TICKS."""
+    held = question.tick - book.phase_tick
+    target = _remembered(question.contacts, memory)
+    if target is None:
+        logger.debug(
+            "attack.break_lost object=%d target=%d ticks=%d",
+            view.object_index,
+            memory.target,
+            held,
+        )
+        return False
+    reach = geometry.distance(*tactics.offset(view, target))
+    keep = tactics.clearance(target)
+    if reach < keep and held < BREAK_LIMIT_TICKS:
+        return True
+    logger.debug(
+        'attack.break_end object=%d target=%d reason="%s" ticks=%d distance=%d '
+        "clearance=%d",
+        view.object_index,
+        target.object_index,
+        "outside" if reach >= keep else "limit",
+        held,
+        reach,
+        keep,
+    )
+    return False
+
+
 def tail_threat(view: CraftView, question: Question) -> Contact | None:
     """Return the nearest enemy on the craft's tail that targets it, or None."""
     nearest = None
@@ -282,15 +343,7 @@ def _choose_target(
 ) -> tuple[Contact | None, Memory]:
     """Return the target to fight, kept or new, and the memory naming it."""
     targets = tactics.order_targets(view, question)
-    kept = next(
-        (
-            contact
-            for contact in targets
-            if contact.object_index == memory.target
-            and contact.object_signature == memory.signature
-        ),
-        None,
-    )
+    kept = _remembered(targets, memory)
     if kept is not None and question.tick < memory.look_again:
         return kept, memory
     if not targets:
@@ -317,6 +370,20 @@ def _choose_target(
         look_again=look_again,
     )
     return nearest, memory
+
+
+def _remembered(contacts: t.Iterable[Contact], memory: Memory) -> Contact | None:
+    """Return the contact the memory names, the same craft by its signature,
+    or None when none is."""
+    return next(
+        (
+            contact
+            for contact in contacts
+            if contact.object_index == memory.target
+            and contact.object_signature == memory.signature
+        ),
+        None,
+    )
 
 
 def _hold(

@@ -18,6 +18,16 @@
       "fields": ["object", "target", "distance", "clearance", "yaw"],
       "text": "Craft {object} broke off from target {target}, {distance} units ahead inside its clearance of {clearance}, turning to yaw {yaw}"
     },
+    "attack.break_end": {
+      "level": "D",
+      "fields": ["object", "target", "reason", "ticks", "distance", "clearance"],
+      "text": "Craft {object} ended its break from target {target} after {ticks} ticks ({reason}: outside, or the limit reached first), {distance} units away against its clearance of {clearance}"
+    },
+    "attack.break_lost": {
+      "level": "D",
+      "fields": ["object", "target", "ticks"],
+      "text": "Craft {object} ended its break after {ticks} ticks: target {target} is no longer shown"
+    },
     "attack.evade": {
       "level": "D",
       "fields": ["object", "threat", "yaw", "pitch"],

@@ -151,22 +151,92 @@ def test_a_rookie_holds_back_its_throttle(craft, foe, ask) -> None:
     assert ask(craft(), foe(y=0x1800)).actions.throttle == attack.CLOSE_THROTTLE
 
 
-def test_too_close_ahead_it_breaks_off_and_comes_round(craft, foe, ask) -> None:
-    first = ask(craft(), foe(y=0x800), tick=1000)
+def at(yaw: int, reach: int) -> dict:
+    """Return the x and y of a point reach away from the origin along a yaw."""
+    radians = yaw * 2 * math.pi / 0x10000
+    return {
+        "x": round(reach * math.sin(radians)),
+        "y": round(reach * math.cos(radians)),
+    }
+
+
+@pytest.mark.parametrize(
+    ("heading", "toward", "held"),
+    [
+        (0x0000, 0x0A00, 0xC000),
+        (0x0000, 0xF600, 0x4000),
+        (0x7000, 0x7400, 0x3000),
+        (0x1000, 0x0400, 0x5000),
+        (0xF800, 0x0400, 0xB800),
+    ],
+)
+def test_too_close_ahead_it_breaks_off_away_from_the_target(
+    craft, foe, ask, heading, toward, held
+) -> None:
+    first = ask(craft(yaw=heading), foe(**at(toward, 0x800)), tick=1000)
     assert phase_of(first) == attack.BREAK
-    turned = first.actions.steer.yaw
-    assert turned in (0x4000, 0xC000)
+    assert first.actions.steer.yaw == held
+    assert first.actions.steer.pitch == LEVEL
     assert first.actions.throttle == attack.FULL_THROTTLE
     assert first.actions.lasers == (HOLD_FIRE, HOLD_FIRE)
 
-    held = ask(craft(notebook=first.notebook, yaw=0x2000), foe(y=0x2000), tick=1100)
-    assert held.actions.steer.yaw == turned
 
-    again = ask(
-        craft(notebook=held.notebook), foe(y=0x3000), tick=1000 + attack.BREAK_TICKS
-    )
-    assert phase_of(again) == attack.ATTACK
-    assert again.actions.steer.yaw == 0
+def test_only_a_target_dead_ahead_lets_the_dice_pick_the_side(craft, foe, ask) -> None:
+    assert attack.break_heading(0x1000, 0x1005, 77) == (0xD000, 77)
+    assert attack.break_heading(0x1000, 0x0FFB, 77) == (0x5000, 77)
+    for toward in (0x0FFC, 0x1000, 0x1004):
+        held, state = attack.break_heading(0x1000, toward, 77)
+        assert held in (0x5000, 0xD000) and state != 77
+    sides = {
+        ask(craft(random_seed=seed), foe(y=0x800)).actions.steer.yaw
+        for seed in range(16)
+    }
+    assert sides == {0x4000, 0xC000}
+
+
+def test_a_break_holds_until_the_craft_is_outside_the_clearance(
+    craft, foe, ask, caplog
+) -> None:
+    caplog.set_level("DEBUG")
+    first = ask(craft(), foe(x=0x200, y=0x800), tick=1000)
+    held = ask(craft(notebook=first.notebook), foe(x=0x200, y=0xF00), tick=1700)
+    assert held.notebook == first.notebook
+    assert held.actions.steer.yaw == 0xC000
+    assert held.actions.lasers == (HOLD_FIRE, HOLD_FIRE)
+    caplog.clear()
+    out = ask(craft(notebook=held.notebook), foe(y=0x1000), tick=1716)
+    assert phase_of(out) == attack.ATTACK
+    assert out.actions.steer.yaw == 0
+    assert (
+        f'attack.break_end object={ME} target={FOE} reason="outside" ticks=716 '
+        "distance=4096 clearance=4096"
+    ) in caplog.text
+
+
+def test_a_break_ends_at_its_limit_even_inside_the_clearance(
+    craft, foe, ask, caplog
+) -> None:
+    caplog.set_level("DEBUG")
+    first = ask(craft(), foe(x=0x200, y=0x800), tick=1000)
+    held = ask(craft(notebook=first.notebook), foe(y=-0x800), tick=1999)
+    assert held.actions.steer.yaw == 0xC000
+    caplog.clear()
+    ended = ask(craft(notebook=first.notebook), foe(y=-0x800), tick=2000)
+    assert phase_of(ended) == attack.ATTACK
+    assert ended.actions.steer.yaw == 0x8000
+    assert (
+        f'attack.break_end object={ME} target={FOE} reason="limit" ticks=1000 '
+        "distance=2048 clearance=4096"
+    ) in caplog.text
+
+
+def test_a_break_ends_when_its_target_is_gone(craft, foe, ask, caplog) -> None:
+    caplog.set_level("DEBUG")
+    first = ask(craft(), foe(x=0x200, y=0x800), tick=1000)
+    caplog.clear()
+    gone = ask(craft(notebook=first.notebook), tick=1100)
+    assert phase_of(gone) == attack.SEEK
+    assert f"attack.break_lost object={ME} target={FOE} ticks=100" in caplog.text
 
 
 def test_it_breaks_off_from_a_cruiser_at_its_clearance(craft, foe, ask) -> None:
@@ -375,6 +445,42 @@ def test_an_attacker_runs_down_a_fleeing_target_and_fires(craft, foe, ask) -> No
     else:
         pytest.fail("the attacker never fired")
     assert step > 5
+
+
+@pytest.mark.parametrize("start", range(0, 0x10000, 0x1000))
+def test_a_bomber_never_rams_the_freighter_it_attacks(craft, foe, ask, start) -> None:
+    """A toy flight from a network game where bombers rammed a freighter 10
+    times in 10: per 16-tick think the bomber turns at most 764 yaw units and
+    flies 190 units, the freighter flies 48 along +x (as measured in that
+    game). The bomber starts 20,000 units out, its nose a 64th of a turn off
+    the freighter, and must never come within 3,410 units of it: the
+    freighter's farthest corner, 3,069 units from its position, and the
+    bomber's own, 341 (test_tactics.py)."""
+    turn, pace, freighter_pace = 764, 190, 48
+    freighter = {"genus": 3, "size": 4960, "yaw": 0x4000, "speed": 40}
+    radians = start * 2 * math.pi / 0x10000
+    x, y = round(-20000 * math.sin(radians)), round(-20000 * math.cos(radians))
+    yaw = (start + 0x400) % 0x10000
+    freighter_x = 0
+    book = bytes(64)
+    nearest, breaks = 20000, 0
+    for step in range(400):
+        tick = 1000 + attack.FIGHT_INTERVAL * step
+        me = craft(x=x, y=y, yaw=yaw, notebook=book, random_seed=start)
+        decision = ask(me, foe(x=freighter_x, y=0, **freighter), tick=tick)
+        breaks += phase_of(decision) == attack.BREAK and decision.notebook != book
+        book = decision.notebook
+        steer = decision.actions.steer
+        yaw = (
+            yaw + max(-turn, min(turn, (steer.yaw - yaw + 0x8000) % 0x10000 - 0x8000))
+        ) % 0x10000
+        radians = yaw * 2 * math.pi / 0x10000
+        x += round(pace * math.sin(radians))
+        y += round(pace * math.cos(radians))
+        freighter_x += freighter_pace
+        nearest = min(nearest, math.isqrt((x - freighter_x) ** 2 + y * y))
+    assert breaks >= 2
+    assert nearest > 3069 + 341
 
 
 def test_the_decision_is_pure(craft, foe, ask) -> None:
