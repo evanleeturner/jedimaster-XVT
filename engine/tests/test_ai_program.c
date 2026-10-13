@@ -25,10 +25,14 @@ enum {
 };
 
 static uint8_t g_question[AI_WIRE_HEAD_BYTES +
-			  TEST_CRAFT_MAX * AI_WIRE_CRAFT_VIEW_BYTES];
+			  TEST_CRAFT_MAX * AI_WIRE_CRAFT_VIEW_BYTES +
+			  AI_WIRE_CONTACT_HEAD_BYTES +
+			  AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES];
 static uint8_t g_answer[AI_WIRE_HEAD_BYTES +
 			TEST_CRAFT_MAX * AI_WIRE_CRAFT_ANSWER_BYTES_MAX];
 static struct ai_wire_craft_view g_views[TEST_CRAFT_MAX];
+static struct ai_wire_contact g_contacts[TEST_CRAFT_MAX];
+static struct ai_wire_question g_asked;
 static struct ai_wire_craft_answer g_answers[TEST_CRAFT_MAX];
 static int g_failures;
 static char g_why[AI_PROGRAM_WHY_CAPACITY];
@@ -60,7 +64,8 @@ static void start_python(const char *code, uint32_t limit_ms)
 }
 
 /* Writes into g_question a question about count craft at tick, each craft
- * with its own object index and notebook bytes; returns its length. */
+ * with its own object index and notebook bytes and shown as a contact too;
+ * returns its length. */
 static size_t question_about(int count, uint32_t tick)
 {
 	for (int craft = 0; craft < count; ++craft) {
@@ -73,9 +78,21 @@ static size_t question_about(int count, uint32_t tick)
 				(uint8_t)(craft * 7 + byte);
 		}
 	}
+	for (int craft = 0; craft < count; ++craft) {
+		memset(&g_contacts[craft], 0, sizeof(g_contacts[craft]));
+		g_contacts[craft].object_index = g_views[craft].object_index;
+		g_contacts[craft].object_signature =
+			g_views[craft].object_signature;
+		g_contacts[craft].x = g_views[craft].x;
+		g_contacts[craft].target = UINT16_MAX;
+		g_contacts[craft].last_attacker = UINT16_MAX;
+	}
+	g_asked = (struct ai_wire_question){tick, count, g_views, count,
+					    g_contacts};
 	size_t length = ai_wire_write_question(g_question, sizeof(g_question),
-					       tick, g_views, count);
-	XVT_ASSERT_INT_EQ((int)length, (int)ai_wire_question_bytes(count));
+					       &g_asked);
+	XVT_ASSERT_INT_EQ((int)length,
+			  (int)ai_wire_question_bytes(count, count));
 	return length;
 }
 
@@ -103,9 +120,8 @@ static void check_stand_in_answers_with_nothing(void)
 		XVT_ASSERT_INT_EQ((int)length,
 				  AI_WIRE_HEAD_BYTES +
 					  count * TEST_IDLE_ANSWER_BYTES);
-		XVT_ASSERT_INT_EQ(ai_wire_read_answer(g_answer, length, tick,
-						      g_views, count,
-						      g_answers),
+		XVT_ASSERT_INT_EQ(ai_wire_read_answer(g_answer, length,
+						      &g_asked, g_answers),
 				  AI_WIRE_OK);
 		for (int craft = 0; craft < count; ++craft) {
 			XVT_ASSERT_INT_EQ(g_answers[craft].object_index,

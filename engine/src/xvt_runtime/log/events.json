@@ -13,6 +13,26 @@
       "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "predicted"],
       "text": "Craft {object} took the pilot program's answer, action bits {actions}: it now turns to heading {yaw}, pitch {pitch} and roll {roll}, at throttle {throttle}, activity {activity}, thinking every {interval} ticks ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.craft_lasers": {
+      "level": "D",
+      "fields": ["object", "mode_first", "burst_first", "mode_second", "burst_second", "predicted"],
+      "text": "Craft {object} set its cannon groups by the pilot program's answer: group 0 link mode {mode_first} with {burst_first} shots left in its burst, group 1 link mode {mode_second} with {burst_second} (mode 0 holds fire; {predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.craft_target": {
+      "level": "D",
+      "fields": ["object", "target", "predicted"],
+      "text": "Craft {object} took object {target} as its target by the pilot program's answer (65535 is none; {predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.craft_turret": {
+      "level": "D",
+      "fields": ["object", "slot", "target", "predicted"],
+      "text": "Craft {object} aimed the turret in weapon slot {slot} at object {target} by the pilot program's answer (65535 is none; {predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.craft_warhead": {
+      "level": "D",
+      "fields": ["object", "launcher", "paired", "fired", "predicted"],
+      "text": "Craft {object} was told to fire warhead launcher {launcher} (paired {paired}); fired is {fired}, 0 when the craft was not active or its weapons were held ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "ai.program_exchanged": {
       "level": "D",
       "fields": ["question_bytes", "answer_bytes", "wait_us"],
@@ -40,8 +60,8 @@
     },
     "ai.think": {
       "level": "D",
-      "fields": ["tick", "craft", "question_bytes", "answer_bytes", "predicted"],
-      "text": "At tick {tick} the pilot program was asked about {craft} craft due to think in {question_bytes} bytes and answered in {answer_bytes} bytes ({predicted} is 1 in a predicted step, run again once confirmed)"
+      "fields": ["tick", "craft", "contacts", "question_bytes", "answer_bytes", "predicted"],
+      "text": "At tick {tick} the pilot program was asked about {craft} craft due to think, showing {contacts} contacts, in {question_bytes} bytes and answered in {answer_bytes} bytes ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "app.crash_exception": {
       "level": "C",

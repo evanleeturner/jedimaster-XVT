@@ -37,22 +37,66 @@ static uint8_t *put_craft_view(uint8_t *at,
 	at = put_u16(at, view->roll);
 	at = put_u16(at, view->speed);
 	at = put_u16(at, (uint16_t)view->random_seed);
+	at = put_u32(at, view->order_target_mask);
+	at = put_u16(at, view->turret_slot_mask);
+	*at++ = view->cannon_group_count;
+	*at++ = view->warhead_launcher_count;
+	memcpy(at, view->cannon_type, AI_WIRE_CANNON_GROUPS);
+	at += AI_WIRE_CANNON_GROUPS;
+	memcpy(at, view->warhead_type, AI_WIRE_WARHEAD_LAUNCHERS);
+	at += AI_WIRE_WARHEAD_LAUNCHERS;
+	memcpy(at, view->warheads_left, AI_WIRE_WARHEAD_LAUNCHERS);
+	at += AI_WIRE_WARHEAD_LAUNCHERS;
+	for (int launcher = 0; launcher < AI_WIRE_WARHEAD_LAUNCHERS;
+	     ++launcher) {
+		at = put_u16(at, view->launcher_cooldown[launcher]);
+	}
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
 
-size_t ai_wire_question_bytes(int count)
+static uint8_t *put_contact(uint8_t *at, const struct ai_wire_contact *contact)
 {
-	return AI_WIRE_HEAD_BYTES + (size_t)count * AI_WIRE_CRAFT_VIEW_BYTES;
+	at = put_u16(at, contact->object_index);
+	at = put_u16(at, contact->object_signature);
+	*at++ = contact->object_type;
+	*at++ = contact->genus;
+	*at++ = contact->team;
+	*at++ = contact->flight_group;
+	*at++ = contact->object_kind;
+	*at++ = contact->flags;
+	at = put_u32(at, (uint32_t)contact->x);
+	at = put_u32(at, (uint32_t)contact->y);
+	at = put_u32(at, (uint32_t)contact->z);
+	at = put_u16(at, contact->yaw);
+	at = put_u16(at, contact->pitch);
+	at = put_u16(at, contact->speed);
+	at = put_u16(at, contact->target);
+	at = put_u16(at, contact->last_attacker);
+	at = put_u32(at, (uint32_t)contact->front_shield);
+	at = put_u32(at, (uint32_t)contact->rear_shield);
+	at = put_u32(at, contact->hull_damage);
+	return put_u32(at, contact->hull_strength);
 }
 
-size_t ai_wire_write_question(uint8_t *out, size_t capacity, uint32_t tick,
-			      const struct ai_wire_craft_view *craft, int count)
+size_t ai_wire_question_bytes(int craft_count, int contact_count)
 {
-	if (count < 0 || count > UINT16_MAX) {
+	return AI_WIRE_HEAD_BYTES +
+	       (size_t)craft_count * AI_WIRE_CRAFT_VIEW_BYTES +
+	       AI_WIRE_CONTACT_HEAD_BYTES +
+	       (size_t)contact_count * AI_WIRE_CONTACT_BYTES;
+}
+
+size_t ai_wire_write_question(uint8_t *out, size_t capacity,
+			      const struct ai_wire_question *question)
+{
+	int count = question->craft_count;
+	int contacts = question->contact_count;
+	if (count < 0 || count > UINT16_MAX || contacts < 0 ||
+	    contacts > AI_WIRE_CONTACTS_MAX) {
 		return 0;
 	}
-	size_t total = ai_wire_question_bytes(count);
+	size_t total = ai_wire_question_bytes(count, contacts);
 	if (total > capacity) {
 		return 0;
 	}
@@ -60,11 +104,16 @@ size_t ai_wire_write_question(uint8_t *out, size_t capacity, uint32_t tick,
 	at = put_u32(at, AI_WIRE_MAGIC);
 	at = put_u16(at, AI_WIRE_VERSION);
 	at = put_u16(at, AI_WIRE_KIND_QUESTION);
-	at = put_u32(at, tick);
+	at = put_u32(at, question->tick);
 	at = put_u16(at, (unsigned int)count);
 	at = put_u16(at, 0);
 	for (int index = 0; index < count; ++index) {
-		at = put_craft_view(at, &craft[index]);
+		at = put_craft_view(at, &question->craft[index]);
+	}
+	at = put_u16(at, (unsigned int)contacts);
+	at = put_u16(at, 0);
+	for (int index = 0; index < contacts; ++index) {
+		at = put_contact(at, &question->contacts[index]);
 	}
 	return total;
 }
@@ -118,9 +167,98 @@ static void take_bytes(struct wire_reader *reader, uint8_t *out, size_t bytes)
 	}
 }
 
+/* Whether object_index is 0xFFFF, no object, or one of the question's
+ * contacts. */
+static int is_contact_or_none(const struct ai_wire_question *question,
+			      unsigned int object_index)
+{
+	if (object_index == UINT16_MAX) {
+		return 1;
+	}
+	for (int index = 0; index < question->contact_count; ++index) {
+		if (question->contacts[index].object_index == object_index) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* Reads the lasers action: per cannon group a link mode and a burst, a mode
+ * 1 to 3 with 1 or more shots on a group the view counts, else 0 and 0. */
+static int take_lasers(struct wire_reader *reader,
+		       const struct ai_wire_craft_view *view,
+		       struct ai_wire_craft_answer *answer)
+{
+	int good = 1;
+	for (int group = 0; group < AI_WIRE_CANNON_GROUPS; ++group) {
+		unsigned int mode = take_u8(reader);
+		unsigned int burst = take_u8(reader);
+		answer->laser_mode[group] = (uint8_t)mode;
+		answer->laser_burst[group] = (uint8_t)burst;
+		if (mode == 0) {
+			good &= burst == 0;
+		} else {
+			good &= mode <= 3 && burst != 0 &&
+				group < view->cannon_group_count;
+		}
+	}
+	return reader->short_read || good;
+}
+
+/* Reads the warhead action: a launcher the view counts and shows ready, and
+ * a paired flag of 0 or 1. */
+static int take_warhead(struct wire_reader *reader,
+			const struct ai_wire_craft_view *view,
+			struct ai_wire_craft_answer *answer)
+{
+	unsigned int launcher = take_u8(reader);
+	unsigned int paired = take_u8(reader);
+	answer->warhead_launcher = (uint8_t)launcher;
+	answer->warhead_paired = (uint8_t)paired;
+	return reader->short_read ||
+	       (launcher < AI_WIRE_WARHEAD_LAUNCHERS &&
+		launcher < view->warhead_launcher_count &&
+		view->launcher_cooldown[launcher] == 0 && paired <= 1);
+}
+
+/* Reads the turrets action: 1 to AI_WIRE_WEAPON_SLOTS turrets, each a slot
+ * the view's turret mask names, once, and a contact or no target. */
+static int take_turrets(struct wire_reader *reader,
+			const struct ai_wire_question *question,
+			const struct ai_wire_craft_view *view,
+			struct ai_wire_craft_answer *answer)
+{
+	unsigned int count = take_u8(reader);
+	if (count == 0 || count > AI_WIRE_WEAPON_SLOTS) {
+		return reader->short_read;
+	}
+	unsigned int seen = 0;
+	for (unsigned int turret = 0; turret < count; ++turret) {
+		unsigned int slot = take_u8(reader);
+		unsigned int target = take_u16(reader);
+		if (reader->short_read) {
+			return 1;
+		}
+		if (slot >= AI_WIRE_WEAPON_SLOTS ||
+		    (view->turret_slot_mask & (1u << slot)) == 0 ||
+		    (seen & (1u << slot)) != 0 ||
+		    !is_contact_or_none(question, target)) {
+			return 0;
+		}
+		seen |= 1u << slot;
+		answer->turret_slot[turret] = (uint8_t)slot;
+		answer->turret_target[turret] = (uint16_t)target;
+	}
+	answer->turret_count = (uint8_t)count;
+	return 1;
+}
+
 /* Reads one action into answer; returns 0 for a kind that is unknown or
- * already sent, or a value out of range. */
+ * already sent, a value out of range, or a thing the question did not
+ * show. */
 static int take_action(struct wire_reader *reader,
+		       const struct ai_wire_question *question,
+		       const struct ai_wire_craft_view *view,
 		       struct ai_wire_craft_answer *answer)
 {
 	unsigned int kind = take_u8(reader);
@@ -142,14 +280,25 @@ static int take_action(struct wire_reader *reader,
 		answer->activity = (uint8_t)take_u8(reader);
 		return reader->short_read ||
 		       answer->activity < AI_ACTIVITY_COUNT;
-	default:
+	case AI_WIRE_ACTION_THINK_INTERVAL:
 		answer->think_interval = (uint16_t)take_u16(reader);
 		return reader->short_read || answer->think_interval != 0;
+	case AI_WIRE_ACTION_TARGET:
+		answer->target = (uint16_t)take_u16(reader);
+		return reader->short_read ||
+		       is_contact_or_none(question, answer->target);
+	case AI_WIRE_ACTION_LASERS:
+		return take_lasers(reader, view, answer);
+	case AI_WIRE_ACTION_WARHEAD:
+		return take_warhead(reader, view, answer);
+	default:
+		return take_turrets(reader, question, view, answer);
 	}
 }
 
 static enum ai_wire_result
 take_craft_answer(struct wire_reader *reader,
+		  const struct ai_wire_question *question,
 		  const struct ai_wire_craft_view *view,
 		  struct ai_wire_craft_answer *answer)
 {
@@ -161,7 +310,7 @@ take_craft_answer(struct wire_reader *reader,
 	take_bytes(reader, answer->notebook, sizeof answer->notebook);
 	unsigned int action_count = take_u8(reader);
 	for (unsigned int action = 0; action < action_count; ++action) {
-		if (!take_action(reader, answer)) {
+		if (!take_action(reader, question, view, answer)) {
 			return AI_WIRE_BAD_ACTION;
 		}
 	}
@@ -192,9 +341,7 @@ static enum ai_wire_result take_head(struct wire_reader *reader, uint32_t tick,
 }
 
 enum ai_wire_result ai_wire_read_answer(const uint8_t *in, size_t length,
-					uint32_t tick,
-					const struct ai_wire_craft_view *craft,
-					int count,
+					const struct ai_wire_question *question,
 					struct ai_wire_craft_answer *answers)
 {
 	struct wire_reader reader = {in, in + length, 0};
@@ -205,9 +352,12 @@ enum ai_wire_result ai_wire_read_answer(const uint8_t *in, size_t length,
 	if (body < length - 4) {
 		return AI_WIRE_LONG;
 	}
-	enum ai_wire_result result = take_head(&reader, tick, count);
-	for (int index = 0; result == AI_WIRE_OK && index < count; ++index) {
-		result = take_craft_answer(&reader, &craft[index],
+	enum ai_wire_result result =
+		take_head(&reader, question->tick, question->craft_count);
+	for (int index = 0;
+	     result == AI_WIRE_OK && index < question->craft_count; ++index) {
+		result = take_craft_answer(&reader, question,
+					   &question->craft[index],
 					   &answers[index]);
 	}
 	if (result == AI_WIRE_OK && reader.at != reader.end) {

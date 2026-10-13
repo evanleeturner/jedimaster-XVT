@@ -1,4 +1,5 @@
-"""Shared test values: a craft view with every field set, changed per test."""
+"""Shared test values: a craft view and a contact with every field set, changed
+per test."""
 
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ import typing as t
 
 import pytest
 
+from jedimaster_ai.world import Contact
 from jedimaster_ai.world import CraftView
 from jedimaster_ai.world import NOTEBOOK_BYTES
 
@@ -34,7 +36,38 @@ VIEW = CraftView(
     roll=300,
     speed=40,
     random_seed=-3,
+    order_target_mask=0b10,
+    turret_slot_mask=0b1000,
+    cannon_group_count=1,
+    warhead_launcher_count=1,
+    cannon_type=(56, 0),
+    warhead_type=(60, 0),
+    warheads_left=(4, 0),
+    launcher_cooldown=(0, 0),
     notebook=bytes(NOTEBOOK_BYTES),
+)
+# Contact 0 is VIEW's own craft; contact 1 another craft, its order's target.
+CONTACT = Contact(
+    object_index=9,
+    object_signature=11,
+    object_type=5,
+    genus=1,
+    team=2,
+    flight_group=3,
+    object_kind=0,
+    flags=0,
+    x=1000,
+    y=-2000,
+    z=300,
+    yaw=0x4000,
+    pitch=0,
+    speed=30,
+    target=4,
+    last_attacker=0xFFFF,
+    front_shield=400,
+    rear_shield=-1,
+    hull_damage=10,
+    hull_strength=200,
 )
 
 
@@ -44,6 +77,16 @@ def view() -> t.Callable[..., CraftView]:
 
     def make(**changes: t.Any) -> CraftView:
         return dataclasses.replace(VIEW, **changes)
+
+    return make
+
+
+@pytest.fixture
+def contact() -> t.Callable[..., Contact]:
+    """Return a maker of CONTACT with the named fields changed."""
+
+    def make(**changes: t.Any) -> Contact:
+        return dataclasses.replace(CONTACT, **changes)
 
     return make
 

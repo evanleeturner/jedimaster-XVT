@@ -35,18 +35,28 @@
     },
     "think.answer": {
       "level": "D",
-      "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "notebook"],
-      "text": "Craft {object} is answered with action bits {actions}: turn to heading {yaw}, pitch {pitch} and roll {roll}, throttle {throttle}, activity {activity}, think every {interval} ticks (0 where not sent); notebook {notebook}"
+      "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "target", "mode_first", "burst_first", "mode_second", "burst_second", "launcher", "paired", "turrets", "notebook"],
+      "text": "Craft {object} is answered with action bits {actions}: turn to heading {yaw}, pitch {pitch} and roll {roll}, throttle {throttle}, activity {activity}, think every {interval} ticks (0 where not sent); target {target} (65535 where not sent); cannon group 0 link mode {mode_first} burst {burst_first}, group 1 mode {mode_second} burst {burst_second}; fire launcher {launcher} (-1 for none), paired {paired}; aim {turrets} turrets; notebook {notebook}"
+    },
+    "think.contact": {
+      "level": "D",
+      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull"],
+      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}"
     },
     "think.question": {
       "level": "D",
-      "fields": ["tick", "craft"],
-      "text": "The question for tick {tick} asks about {craft} craft"
+      "fields": ["tick", "craft", "contacts"],
+      "text": "The question for tick {tick} asks about {craft} craft and shows {contacts} contacts"
+    },
+    "think.turret": {
+      "level": "D",
+      "fields": ["object", "slot", "target"],
+      "text": "Craft {object} aims the turret in weapon slot {slot} at object {target} (65535 for none)"
     },
     "think.view": {
       "level": "D",
-      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "notebook"],
-      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; notebook {notebook}"
+      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "targets", "turrets", "cannons", "launchers", "cannon_first", "cannon_second", "warhead_first", "warhead_second", "left_first", "left_second", "cooldown_first", "cooldown_second", "notebook"],
+      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; order target mask {targets}, turret slot mask {turrets}; {cannons} cannon groups firing types {cannon_first} and {cannon_second}; {launchers} launchers holding types {warhead_first} and {warhead_second}, {left_first} and {left_second} left, ready in {cooldown_first} and {cooldown_second} ticks; notebook {notebook}"
     }
   }
 }

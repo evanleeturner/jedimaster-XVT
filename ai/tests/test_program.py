@@ -64,7 +64,7 @@ def test_each_question_gets_thinks_answer(view) -> None:
         wire.answer_bytes(think(question)) for question in asked
     )
     lines = check_log(done.stderr)
-    assert " I program.started wire=1 pid=" in lines[0]
+    assert f" I program.started wire={wire.VERSION} pid=" in lines[0]
     assert " W order.no_behavior object=9 code=99" in lines[1]
     assert lines[-1].endswith(" I program.stopped questions=2")
 

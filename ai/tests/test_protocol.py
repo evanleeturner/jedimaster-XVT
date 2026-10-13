@@ -7,24 +7,42 @@ side follows.
 
 from __future__ import annotations
 
+import dataclasses
 import pathlib
 import re
 
 from conftest import ENGINE
 
 from jedimaster_ai import wire
+from jedimaster_ai import world
 from jedimaster_ai.orders import OrderCode
 from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Activity
 from jedimaster_ai.world import Answer
+from jedimaster_ai.world import CannonGroup
+from jedimaster_ai.world import Contact
 from jedimaster_ai.world import CraftAnswer
 from jedimaster_ai.world import NOTEBOOK_BYTES
 from jedimaster_ai.world import Steer
+from jedimaster_ai.world import Turret
+from jedimaster_ai.world import Warhead
 
 AI_WIRE_H = ENGINE / "src" / "xvt_runtime" / "ai" / "ai_wire.h"
 AI_STATE_H = ENGINE / "src" / "xvt" / "flight" / "ai_state.h"
 MISSION_H = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.h"
-C_TYPES = {"uint8_t": "B", "uint16_t": "H", "int16_t": "h", "int32_t": "i"}
+C_TYPES = {
+    "uint8_t": "B",
+    "uint16_t": "H",
+    "int16_t": "h",
+    "int32_t": "i",
+    "uint32_t": "I",
+}
+# Array sizes the wire's structs name, by the program's own numbers.
+C_SIZES = {
+    "AI_WIRE_CANNON_GROUPS": world.CANNON_GROUPS,
+    "AI_WIRE_WARHEAD_LAUNCHERS": world.WARHEAD_LAUNCHERS,
+    "AI_NOTEBOOK_BYTES": NOTEBOOK_BYTES,
+}
 
 
 def _without_comments(text: str) -> str:
@@ -60,7 +78,16 @@ def test_notebook_bytes_match() -> None:
 
 def test_wire_constants_match() -> None:
     constants = c_enum(AI_WIRE_H, "ai_wire_constant", "AI_WIRE_")
-    every_action = Actions(Steer(1, 2, 3), 4, Activity.WAITING, 5)
+    every_action = Actions(
+        Steer(1, 2, 3),
+        4,
+        Activity.WAITING,
+        5,
+        target=6,
+        lasers=(CannonGroup(1, 1), CannonGroup()),
+        warhead=Warhead(1),
+        turrets=tuple(Turret(slot, 7) for slot in range(world.WEAPON_SLOTS)),
+    )
     answer = Answer(1, (CraftAnswer(1, bytes(NOTEBOOK_BYTES), every_action),))
     assert constants == {
         "MAGIC": wire.MAGIC,
@@ -69,6 +96,12 @@ def test_wire_constants_match() -> None:
         "KIND_ANSWER": wire.KIND_ANSWER,
         "HEAD_BYTES": wire.HEAD_BYTES,
         "CRAFT_VIEW_BYTES": wire.CRAFT_VIEW_BYTES,
+        "CONTACT_HEAD_BYTES": wire.CONTACT_HEAD.size,
+        "CONTACT_BYTES": wire.CONTACT_FIELDS.size,
+        "CONTACTS_MAX": world.CONTACTS_MAX,
+        "CANNON_GROUPS": world.CANNON_GROUPS,
+        "WARHEAD_LAUNCHERS": world.WARHEAD_LAUNCHERS,
+        "WEAPON_SLOTS": world.WEAPON_SLOTS,
         "CRAFT_ANSWER_BYTES_MAX": len(wire.answer_bytes(answer)) - wire.HEAD_BYTES,
     }
 
@@ -79,14 +112,36 @@ def test_action_kinds_match() -> None:
     assert kinds == {kind.name: kind.value for kind in wire.ActionKind}
 
 
-def test_craft_view_fields_match() -> None:
+def c_struct(name: str) -> list[tuple[str, str, int]]:
+    """Return a C struct's members as (name, struct code, count)."""
     text = _without_comments(AI_WIRE_H.read_text())
-    body = re.search(r"struct ai_wire_craft_view \{(.*?)\};", text, re.S).group(1)
-    members = re.findall(r"(\w+) (\w+)(\[\w+\])?;", body)
-    assert members[-1][1:] == ("notebook", "[AI_NOTEBOOK_BYTES]")
-    assert tuple(name for _, name, _ in members[:-1]) == wire.VIEW_FIELD_NAMES
-    shape = "<" + "".join(C_TYPES[kind] for kind, _, _ in members[:-1])
-    assert shape == wire.VIEW_FIELDS.format
+    body = re.search(rf"struct {name} \{{(.*?)\}};", text, re.S).group(1)
+    members = re.findall(r"(\w+) (\w+)(?:\[(\w+)\])?;", body)
+    return [
+        (member, C_TYPES[kind], C_SIZES[size] if size else 1)
+        for kind, member, size in members
+    ]
+
+
+def test_craft_view_fields_match() -> None:
+    members = c_struct("ai_wire_craft_view")
+    assert members[-1] == ("notebook", "B", NOTEBOOK_BYTES)
+    assert members[:-1] == list(wire.VIEW_LAYOUT)
+
+
+def test_contact_fields_match() -> None:
+    members = c_struct("ai_wire_contact")
+    assert [(name, code) for name, code, _ in members] == list(wire.CONTACT_LAYOUT)
+    assert {count for _, _, count in members} == {1}
+    assert [name for name, _ in wire.CONTACT_LAYOUT] == [
+        field.name for field in dataclasses.fields(Contact)
+    ]
+
+
+def test_contact_flags_match() -> None:
+    flags = c_enum(AI_WIRE_H, "ai_wire_contact_flag", "AI_WIRE_CONTACT_")
+    assert flags == {"PLAYER": 1}
+    assert Contact(*([0] * 7), flags["PLAYER"], *([0] * 12)).player_flown
 
 
 def test_activities_match() -> None:

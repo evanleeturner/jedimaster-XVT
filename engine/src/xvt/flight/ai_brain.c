@@ -10,6 +10,7 @@
 #include <limits.h>
 #include <string.h>
 
+#include "xvt/assets/opt_model.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -17,7 +18,9 @@
 #include "xvt/flight/fview.h"
 #include "xvt/flight/hud/msg.h"
 #include "xvt/flight/mission/mission.h"
+#include "xvt/flight/object/laser.h"
 #include "xvt/flight/object/object.h"
+#include "xvt/flight/player/player.h"
 #include "xvt/math/math.h"
 #include "xvt/math/math2.h"
 #include "xvt/math/trig2.h"
@@ -70,12 +73,22 @@ enum {
 	 * region, CRAFT_SLOT_COUNT, so one question holds a mission's craft.
 	 * More craft due in one step are asked about in a further question. */
 	AI_BRAIN_QUESTION_CRAFT = 32,
+	/* A weapon slot's projectile_type_id for a turret mount. */
+	AI_BRAIN_TURRET_PROJECTILE_TYPE = 2,
+	/* warhead_launcher_flags as laser_firewarheadsystem reads them: the
+	 * launcher's first slot, both slots, or its second slot. */
+	AI_BRAIN_LAUNCHER_NORMAL = 1,
+	AI_BRAIN_LAUNCHER_PAIRED = 3,
+	AI_BRAIN_LAUNCHER_SECOND_SLOT = 0x81,
 };
 
-/* The craft due to think that one question asks about, in slot order. */
+/* The craft due to think that one question asks about, in slot order, and
+ * the contacts every question of the step shows. */
 struct ai_brain_batch {
 	int count;
 	struct ai_wire_craft_view views[AI_BRAIN_QUESTION_CRAFT];
+	int contact_count;
+	struct ai_wire_contact contacts[AI_WIRE_CONTACTS_MAX];
 };
 
 static ai_brain_exchange_fn g_ai_brain_exchange;
@@ -85,10 +98,142 @@ void ai_brain_set_exchange(ai_brain_exchange_fn exchange)
 	g_ai_brain_exchange = exchange;
 }
 
+/* Writes what the pilot program is told about the object in object_index, a
+ * craft in the active region: its target is its player's target when a
+ * player flies it, else its AI target. */
+static void ai_brain_view_contact(uint16_t object_index,
+				  struct ai_wire_contact *contact)
+{
+	const struct object_record *object = &g_object_table[object_index];
+	const struct craft_data *craft = object->mobj->p_craft;
+
+	contact->object_index = object_index;
+	contact->object_signature = object->object_signature;
+	contact->object_type = object->object_type;
+	contact->genus = object->genus_id;
+	contact->team = object->mobj->team;
+	contact->flight_group = (uint8_t)object->flight_group_idx;
+	contact->object_kind = craft->object_kind;
+	contact->flags = 0;
+	contact->target = craft->ai_controller.target_obj_idx;
+	if (object->player_owner_idx != -1) {
+		contact->flags = AI_WIRE_CONTACT_PLAYER;
+		contact->target = (uint16_t)g_players[object->player_owner_idx]
+					  .current_target_object_idx;
+	}
+	contact->x = object->world_x;
+	contact->y = object->world_y;
+	contact->z = object->world_z;
+	contact->yaw = object->yaw;
+	contact->pitch = craft->pitch;
+	contact->speed = object->mobj->speed;
+	contact->last_attacker = craft->last_attacker_obj_idx;
+	contact->front_shield = craft->shield_energy[0];
+	contact->rear_shield = craft->shield_energy[1];
+	contact->hull_damage = craft->hull_damage;
+	contact->hull_strength = craft->hull_max;
+}
+
+/* Fills the batch's contacts: each craft in the active region's craft slots,
+ * by the walk ai_brain_think_due_craft makes, at most AI_WIRE_CONTACTS_MAX. */
+static void ai_brain_view_contacts(struct ai_brain_batch *batch)
+{
+	batch->contact_count = 0;
+	for (uint16_t object_index =
+		     (uint16_t)g_active_region_object_slot_start;
+	     object_index < g_active_region_craft_object_slot_end &&
+	     batch->contact_count < AI_WIRE_CONTACTS_MAX;
+	     ++object_index) {
+		const struct object_record *object =
+			&g_object_table[object_index];
+		if (object->object_type == 0 || object->mobj->family != 0) {
+			continue;
+		}
+		ai_brain_view_contact(object_index,
+				      &batch->contacts[batch->contact_count]);
+		++batch->contact_count;
+	}
+}
+
+/* Whether the object matches the targets of the order in order_slot of the
+ * flight group: targets 1 and 2, joined by "or" when target1_or_target2 is
+ * 1, else by "and", or targets 3 and 4, joined the same way by
+ * target3_or_target4. The 1997 AI's test, pai_current_order_targets_match_
+ * object, read the same fields. */
+static int ai_brain_order_targets_match(uint16_t flight_group,
+					uint8_t order_slot,
+					uint16_t object_index)
+{
+	const struct mission_order *order =
+		&g_mission_flight_groups[flight_group].fg.orders[order_slot];
+	int first = mission_object_matches_trigger_variable(
+		object_index, order->target1_type, order->target1);
+	int second = mission_object_matches_trigger_variable(
+		object_index, order->target2_type, order->target2);
+	int primary = order->target1_or_target2 == 1 ? first | second
+						     : first & second;
+	first = mission_object_matches_trigger_variable(
+		object_index, order->secondary_target_types[0],
+		order->secondary_targets[0]);
+	second = mission_object_matches_trigger_variable(
+		object_index, order->secondary_target_types[1],
+		order->secondary_targets[1]);
+	int secondary = order->target3_or_target4 == 1 ? first | second
+						       : first & second;
+	return primary != 0 || secondary != 0;
+}
+
+/* Writes the craft's weapons into its view: which weapon slots are turrets,
+ * its cannon groups' shot types, and per warhead launcher its warhead type,
+ * the warheads left in its two slots (at most 255) and its cooldown. */
+static void ai_brain_view_weapons(const struct craft_data *craft,
+				  struct ai_wire_craft_view *view)
+{
+	unsigned int turrets = 0;
+	for (int slot = 0;
+	     slot < craft->laser_slot_count && slot < AI_WIRE_WEAPON_SLOTS;
+	     ++slot) {
+		if (craft->weapon_slots[slot].projectile_type_id ==
+		    AI_BRAIN_TURRET_PROJECTILE_TYPE) {
+			turrets |= 1u << slot;
+		}
+	}
+	view->turret_slot_mask = (uint16_t)turrets;
+	view->cannon_group_count = craft->cannon_group_count;
+	view->warhead_launcher_count = craft->warhead_launcher_count;
+	for (int group = 0; group < AI_WIRE_CANNON_GROUPS; ++group) {
+		view->cannon_type[group] =
+			craft->laser_state.projectile_type_id[group];
+	}
+	for (int launcher = 0; launcher < AI_WIRE_WARHEAD_LAUNCHERS;
+	     ++launcher) {
+		view->warhead_type[launcher] = 0;
+		view->warheads_left[launcher] = 0;
+		view->launcher_cooldown[launcher] = 0;
+		if (launcher >= craft->warhead_launcher_count) {
+			continue;
+		}
+		int first = g_model_defs[craft->model_index]
+				    .warhead_launcher_first_slot[launcher];
+		int left = craft->weapon_slots[first].ammo_count +
+			   craft->weapon_slots[first + 1].ammo_count;
+		int16_t cooldown =
+			craft->warhead_launcher_cooldown_ticks[launcher];
+		view->warhead_type[launcher] =
+			craft->warhead_slot_type_ids[launcher];
+		view->warheads_left[launcher] =
+			(uint8_t)(left > UINT8_MAX ? UINT8_MAX : left);
+		view->launcher_cooldown[launcher] =
+			(uint16_t)(cooldown > 0 ? cooldown : 0);
+	}
+}
+
 /* Writes what the pilot program is told about the craft in object_index. The
  * pitch is the craft record's, the one the steering turns; the heading and
- * roll are the object's. */
+ * roll are the object's. Bit n of the order target mask is set when the
+ * batch's contact n matches the targets of the craft's current order. */
 static void ai_brain_view_craft(uint16_t object_index,
+				const struct ai_brain_batch *batch,
 				struct ai_wire_craft_view *view)
 {
 	const struct object_record *object = &g_object_table[object_index];
@@ -114,6 +259,16 @@ static void ai_brain_view_craft(uint16_t object_index,
 	view->roll = object->roll;
 	view->speed = object->mobj->speed;
 	view->random_seed = controller->saved_rand_seed;
+	view->order_target_mask = 0;
+	for (int contact = 0; contact < batch->contact_count; ++contact) {
+		if (ai_brain_order_targets_match(
+			    object->flight_group_idx,
+			    controller->current_order_slot,
+			    batch->contacts[contact].object_index)) {
+			view->order_target_mask |= 1u << contact;
+		}
+	}
+	ai_brain_view_weapons(craft, view);
 	memcpy(view->notebook, craft->ai_notebook, sizeof view->notebook);
 }
 
@@ -147,6 +302,95 @@ static void ai_brain_apply_steer(struct craft_data *craft,
 	flight->roll_step = UINT16_MAX;
 }
 
+/* Sets the craft's AI target, the object its shots and warheads fly at, with
+ * the target's signature; UINT16_MAX clears it. */
+static void ai_brain_apply_target(uint16_t object_index,
+				  struct ai_controller *controller,
+				  uint16_t target)
+{
+	controller->target_obj_idx = target;
+	controller->target_signature =
+		target == UINT16_MAX ? 0
+				     : g_object_table[target].object_signature;
+	controller->has_live_target = target != UINT16_MAX;
+	XVT_LOG_DEBUG("ai.craft_target object=%d target=%u predicted=%d",
+		      (int)object_index, (unsigned)target,
+		      g_flight_sim_side_effects_suppressed);
+}
+
+/* Sets each cannon group's link mode and burst, as the 1997 AI did; the
+ * weapons loop in laser_weaponsfire fires a burst while its mode is not 0. */
+static void ai_brain_apply_lasers(uint16_t object_index,
+				  struct craft_data *craft,
+				  const struct ai_wire_craft_answer *answer)
+{
+	for (int group = 0;
+	     group < craft->cannon_group_count && group < AI_WIRE_CANNON_GROUPS;
+	     ++group) {
+		craft->laser_state.link_mode[group] = answer->laser_mode[group];
+		craft->laser_state.burst_remaining[group] =
+			answer->laser_burst[group];
+	}
+	XVT_LOG_DEBUG(
+		"ai.craft_lasers object=%d mode_first=%u burst_first=%u mode_second=%u burst_second=%u predicted=%d",
+		(int)object_index, (unsigned)answer->laser_mode[0],
+		(unsigned)answer->laser_burst[0],
+		(unsigned)answer->laser_mode[1],
+		(unsigned)answer->laser_burst[1],
+		g_flight_sim_side_effects_suppressed);
+}
+
+/* Fires the answer's warhead launcher through laser_firewarheadsystem, as the
+ * 1997 AI did, unless the craft is not active or its weapons are held: both
+ * slots when paired, else the first, or the second when it holds more. The
+ * reader let through only a launcher the view showed ready. */
+static void ai_brain_apply_warhead(uint16_t object_index,
+				   struct craft_data *craft,
+				   const struct ai_wire_craft_answer *answer)
+{
+	unsigned int launcher = answer->warhead_launcher;
+	int fired = 0;
+	if (craft->object_kind == CRAFT_OBJECT_KIND_ACTIVE &&
+	    craft->weapon_fire_inhibit_timer == 0) {
+		int first = g_model_defs[craft->model_index]
+				    .warhead_launcher_first_slot[launcher];
+		int8_t flags = AI_BRAIN_LAUNCHER_NORMAL;
+		if (answer->warhead_paired != 0) {
+			flags = AI_BRAIN_LAUNCHER_PAIRED;
+		} else if (craft->weapon_slots[first].ammo_count <
+			   craft->weapon_slots[first + 1].ammo_count) {
+			flags = (int8_t)AI_BRAIN_LAUNCHER_SECOND_SLOT;
+		}
+		craft->warhead_launcher_flags[launcher] = flags;
+		struct craft_data *kept = g_cur_craft;
+		laser_firewarheadsystem(object_index, launcher);
+		g_cur_craft = kept;
+		fired = 1;
+	}
+	XVT_LOG_DEBUG(
+		"ai.craft_warhead object=%d launcher=%u paired=%u fired=%d predicted=%d",
+		(int)object_index, launcher, (unsigned)answer->warhead_paired,
+		fired, g_flight_sim_side_effects_suppressed);
+}
+
+/* Aims each named turret slot at its target, which laser_weaponsfire then
+ * fires at while it is not UINT16_MAX. */
+static void ai_brain_apply_turrets(uint16_t object_index,
+				   struct craft_data *craft,
+				   const struct ai_wire_craft_answer *answer)
+{
+	for (int turret = 0; turret < answer->turret_count; ++turret) {
+		craft->turret_target_states[answer->turret_slot[turret]]
+			.target_obj_idx = answer->turret_target[turret];
+		XVT_LOG_DEBUG(
+			"ai.craft_turret object=%d slot=%u target=%u predicted=%d",
+			(int)object_index,
+			(unsigned)answer->turret_slot[turret],
+			(unsigned)answer->turret_target[turret],
+			g_flight_sim_side_effects_suppressed);
+	}
+}
+
 /* Applies one craft answer the reader accepted: the notebook always, then
  * each action the pilot program sent. */
 static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
@@ -168,6 +412,19 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	if ((answer->actions & (1u << AI_WIRE_ACTION_THINK_INTERVAL)) != 0) {
 		controller->think_interval = answer->think_interval;
 	}
+	uint16_t object_index = answer->object_index;
+	if ((answer->actions & (1u << AI_WIRE_ACTION_TARGET)) != 0) {
+		ai_brain_apply_target(object_index, controller, answer->target);
+	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_LASERS)) != 0) {
+		ai_brain_apply_lasers(object_index, craft, answer);
+	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_WARHEAD)) != 0) {
+		ai_brain_apply_warhead(object_index, craft, answer);
+	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_TURRETS)) != 0) {
+		ai_brain_apply_turrets(object_index, craft, answer);
+	}
 	XVT_LOG_DEBUG(
 		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d predicted=%d",
 		(int)answer->object_index, answer->actions,
@@ -187,23 +444,28 @@ static void ai_brain_ask(struct ai_brain_batch *batch, uint32_t tick)
 {
 	static uint8_t
 		question[AI_WIRE_HEAD_BYTES +
-			 AI_BRAIN_QUESTION_CRAFT * AI_WIRE_CRAFT_VIEW_BYTES];
+			 AI_BRAIN_QUESTION_CRAFT * AI_WIRE_CRAFT_VIEW_BYTES +
+			 AI_WIRE_CONTACT_HEAD_BYTES +
+			 AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES];
 	static uint8_t answer[AI_WIRE_HEAD_BYTES +
 			      AI_BRAIN_QUESTION_CRAFT *
 				      AI_WIRE_CRAFT_ANSWER_BYTES_MAX];
 	static struct ai_wire_craft_answer answers[AI_BRAIN_QUESTION_CRAFT];
 
-	size_t question_length = ai_wire_write_question(
-		question, sizeof question, tick, batch->views, batch->count);
+	const struct ai_wire_question asked = {tick, batch->count, batch->views,
+					       batch->contact_count,
+					       batch->contacts};
+	size_t question_length =
+		ai_wire_write_question(question, sizeof question, &asked);
 	size_t answer_length = g_ai_brain_exchange(question, question_length,
 						   answer, sizeof answer);
 	enum ai_wire_result result =
-		ai_wire_read_answer(answer, answer_length, tick, batch->views,
-				    batch->count, answers);
+		ai_wire_read_answer(answer, answer_length, &asked, answers);
 	XVT_LOG_DEBUG(
-		"ai.think tick=%u craft=%d question_bytes=%d answer_bytes=%d predicted=%d",
-		(unsigned)tick, batch->count, (int)question_length,
-		(int)answer_length, g_flight_sim_side_effects_suppressed);
+		"ai.think tick=%u craft=%d contacts=%d question_bytes=%d answer_bytes=%d predicted=%d",
+		(unsigned)tick, batch->count, batch->contact_count,
+		(int)question_length, (int)answer_length,
+		g_flight_sim_side_effects_suppressed);
 	if (result == AI_WIRE_OK) {
 		for (int index = 0; index < batch->count; ++index) {
 			ai_brain_apply_answer(&answers[index]);
@@ -230,7 +492,8 @@ static void ai_brain_ask(struct ai_brain_batch *batch, uint32_t tick)
  * objects whose mobile object family is not 0, craft breaking up or
  * exploding, and craft whose think_timer is above 0. A craft a player flies
  * is not asked, but its timer grows by its think interval as an asked
- * craft's does. Does nothing while no exchange is set. */
+ * craft's does. Every question of the step shows the contacts as they were
+ * at its start. Does nothing while no exchange is set. */
 void ai_brain_think_due_craft(void)
 {
 	static struct ai_brain_batch batch;
@@ -239,6 +502,7 @@ void ai_brain_think_due_craft(void)
 		return;
 	}
 	uint32_t tick = (uint32_t)g_game_time;
+	ai_brain_view_contacts(&batch);
 	for (uint16_t object_index =
 		     (uint16_t)g_active_region_object_slot_start;
 	     object_index < g_active_region_craft_object_slot_end;
@@ -258,7 +522,8 @@ void ai_brain_think_due_craft(void)
 			controller->think_timer += controller->think_interval;
 			continue;
 		}
-		ai_brain_view_craft(object_index, &batch.views[batch.count]);
+		ai_brain_view_craft(object_index, &batch,
+				    &batch.views[batch.count]);
 		++batch.count;
 		if (batch.count == AI_BRAIN_QUESTION_CRAFT) {
 			ai_brain_ask(&batch, tick);

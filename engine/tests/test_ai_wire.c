@@ -13,30 +13,59 @@ enum { TEST_TICK = 0x0A0B0C0D };
 static struct ai_wire_craft_view view_with_distinct_bytes(void)
 {
 	struct ai_wire_craft_view view = {
-		0x0102, 0x0304, 0x05,	0x06,	0x07,	    0x08, 0x09,
-		0x0A,	0x0C0B, 0x0E0D, 0x100F, 0x14131211, -2,	  0x1C1B1A19,
-		0x1E1D, 0x201F, 0x2221, 0x2423, -3,	    {0}};
+		0x0102,	      0x0304,	    0x05,
+		0x06,	      0x07,	    0x08,
+		0x09,	      0x0A,	    0x0C0B,
+		0x0E0D,	      0x100F,	    0x14131211,
+		-2,	      0x1C1B1A19,   0x1E1D,
+		0x201F,	      0x2221,	    0x2423,
+		-3,	      0x28272625,   0x2A29,
+		0x2B,	      0x2C,	    {0x2D, 0x2E},
+		{0x2F, 0x30}, {0x31, 0x32}, {0x3433, 0x3635},
+		{0}};
 	for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 		view.notebook[byte] = (uint8_t)(0x40 + byte);
 	}
 	return view;
 }
 
+static struct ai_wire_contact contact_with_distinct_bytes(void)
+{
+	struct ai_wire_contact contact = {
+		0x4241, 0x4443, 0x45,	    0x46,	0x47,
+		0x48,	0x49,	0x4A,	    0x4E4D4C4B, 0x5251504F,
+		-4,	0x5453, 0x5655,	    0x5857,	0x5A59,
+		0x5C5B, -5,	0x605F5E5D, 0x64636261, 0x68676665};
+	return contact;
+}
+
 static void check_question_bytes(void)
 {
-	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 38] = {
-		0x76, 0x00, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x01, 0x00,
+	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 56] = {
+		0xBC, 0x00, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x02, 0x00,
 		0x01, 0x00, 0x0D, 0x0C, 0x0B, 0x0A, 0x01, 0x00, 0x00, 0x00,
 		0x02, 0x01, 0x04, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
 		0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
 		0xFE, 0xFF, 0xFF, 0xFF, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E,
-		0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0xFD, 0xFF};
+		0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0xFD, 0xFF, 0x25, 0x26,
+		0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30,
+		0x31, 0x32, 0x33, 0x34, 0x35, 0x36};
+	static const uint8_t expected_contacts[AI_WIRE_CONTACT_HEAD_BYTES +
+					       AI_WIRE_CONTACT_BYTES] = {
+		0x01, 0x00, 0x00, 0x00, 0x41, 0x42, 0x43, 0x44, 0x45,
+		0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E,
+		0x4F, 0x50, 0x51, 0x52, 0xFC, 0xFF, 0xFF, 0xFF, 0x53,
+		0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C,
+		0xFB, 0xFF, 0xFF, 0xFF, 0x5D, 0x5E, 0x5F, 0x60, 0x61,
+		0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68};
 	struct ai_wire_craft_view view = view_with_distinct_bytes();
-	uint8_t out[AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES];
-	XVT_ASSERT_INT_EQ(ai_wire_question_bytes(1), sizeof out);
-	XVT_ASSERT_INT_EQ(
-		ai_wire_write_question(out, sizeof out, TEST_TICK, &view, 1),
-		sizeof out);
+	struct ai_wire_contact contact = contact_with_distinct_bytes();
+	struct ai_wire_question question = {TEST_TICK, 1, &view, 1, &contact};
+	uint8_t out[AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES +
+		    AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES];
+	XVT_ASSERT_INT_EQ(ai_wire_question_bytes(1, 1), sizeof out);
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  sizeof out);
 	for (size_t byte = 0; byte < sizeof expected; ++byte) {
 		XVT_ASSERT_INT_EQ(out[byte], expected[byte]);
 	}
@@ -44,28 +73,43 @@ static void check_question_bytes(void)
 		XVT_ASSERT_INT_EQ(out[sizeof expected + (size_t)byte],
 				  0x40 + byte);
 	}
+	const uint8_t *contacts =
+		out + AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES;
+	for (size_t byte = 0; byte < sizeof expected_contacts; ++byte) {
+		XVT_ASSERT_INT_EQ(contacts[byte], expected_contacts[byte]);
+	}
 }
 
 static void check_question_refusals(void)
 {
 	struct ai_wire_craft_view view = view_with_distinct_bytes();
-	uint8_t out[AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES];
+	struct ai_wire_contact contact = contact_with_distinct_bytes();
+	struct ai_wire_question question = {TEST_TICK, 1, &view, 1, &contact};
+	uint8_t out[AI_WIRE_HEAD_BYTES + AI_WIRE_CRAFT_VIEW_BYTES +
+		    AI_WIRE_CONTACT_HEAD_BYTES + AI_WIRE_CONTACT_BYTES];
 	memset(out, 0xEE, sizeof out);
-	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out - 1, TEST_TICK,
-						 &view, 1),
-			  0);
+	XVT_ASSERT_INT_EQ(
+		ai_wire_write_question(out, sizeof out - 1, &question), 0);
 	XVT_ASSERT_INT_EQ(out[0], 0xEE);
-	XVT_ASSERT_INT_EQ(
-		ai_wire_write_question(out, sizeof out, TEST_TICK, &view, -1),
-		0);
-	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, TEST_TICK,
-						 &view, UINT16_MAX + 1),
+	question.craft_count = -1;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
 			  0);
-	/* No craft due: the header alone. */
-	XVT_ASSERT_INT_EQ(
-		ai_wire_write_question(out, sizeof out, TEST_TICK, &view, 0),
-		AI_WIRE_HEAD_BYTES);
-	XVT_ASSERT_INT_EQ(out[0], AI_WIRE_HEAD_BYTES - 4);
+	question.craft_count = UINT16_MAX + 1;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  0);
+	question.craft_count = 0;
+	question.contact_count = -1;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  0);
+	question.contact_count = AI_WIRE_CONTACTS_MAX + 1;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  0);
+	/* No craft due and no contacts: the header and the contact count. */
+	question.contact_count = 0;
+	XVT_ASSERT_INT_EQ(ai_wire_write_question(out, sizeof out, &question),
+			  AI_WIRE_HEAD_BYTES + AI_WIRE_CONTACT_HEAD_BYTES);
+	XVT_ASSERT_INT_EQ(out[0],
+			  AI_WIRE_HEAD_BYTES + AI_WIRE_CONTACT_HEAD_BYTES - 4);
 }
 
 /* An answer built byte by byte; finish_answer sets its length field. */
@@ -121,15 +165,43 @@ static void finish_answer(struct test_bytes *bytes)
 	}
 }
 
-static struct ai_wire_craft_view g_views[2] = {{.object_index = 7},
-					       {.object_index = 9}};
+/* Craft 7 has two cannon groups, one launcher ready and turrets in weapon
+ * slots 3 and 5; craft 9 none. The contacts are the two craft and object
+ * 12. */
+static struct ai_wire_craft_view g_views[2] = {
+	{.object_index = 7,
+	 .turret_slot_mask = 1u << 3 | 1u << 5,
+	 .cannon_group_count = 2,
+	 .warhead_launcher_count = 1},
+	{.object_index = 9}};
+static struct ai_wire_contact g_contacts[3] = {
+	{.object_index = 7}, {.object_index = 9}, {.object_index = 12}};
+static struct ai_wire_question g_question = {TEST_TICK, 2, g_views, 3,
+					     g_contacts};
 
-/* Craft 7 sends every action kind, last to first; craft 9 sends none. */
+/* Craft 7 sends every action kind, last to first, aiming two turrets; craft
+ * 9 sends none. */
 static void good_answer(struct test_bytes *bytes)
 {
 	start_answer(bytes, 2);
 	add_craft(bytes, 7, 0x5A);
+	add_u8(bytes, 8);
+	add_u8(bytes, AI_WIRE_ACTION_TURRETS);
+	add_u8(bytes, 2);
+	add_u8(bytes, 5);
+	add_u16(bytes, UINT16_MAX);
+	add_u8(bytes, 3);
+	add_u16(bytes, 12);
+	add_u8(bytes, AI_WIRE_ACTION_WARHEAD);
+	add_u8(bytes, 0);
+	add_u8(bytes, 1);
+	add_u8(bytes, AI_WIRE_ACTION_LASERS);
+	add_u8(bytes, 3);
 	add_u8(bytes, 4);
+	add_u8(bytes, 1);
+	add_u8(bytes, 2);
+	add_u8(bytes, AI_WIRE_ACTION_TARGET);
+	add_u16(bytes, 12);
 	add_u8(bytes, AI_WIRE_ACTION_THINK_INTERVAL);
 	add_u16(bytes, 59);
 	add_u8(bytes, AI_WIRE_ACTION_ACTIVITY);
@@ -148,8 +220,8 @@ static void good_answer(struct test_bytes *bytes)
 static enum ai_wire_result read_two(const struct test_bytes *bytes,
 				    struct ai_wire_craft_answer *answers)
 {
-	return ai_wire_read_answer(bytes->data, bytes->length, TEST_TICK,
-				   g_views, 2, answers);
+	return ai_wire_read_answer(bytes->data, bytes->length, &g_question,
+				   answers);
 }
 
 static void check_good_answer(void)
@@ -157,20 +229,33 @@ static void check_good_answer(void)
 	struct test_bytes bytes;
 	struct ai_wire_craft_answer answers[2];
 	good_answer(&bytes);
+	/* Craft 7's answer is the longest but for 14 turrets of 3 bytes. */
 	XVT_ASSERT_INT_EQ(bytes.length, AI_WIRE_HEAD_BYTES +
-						AI_WIRE_CRAFT_ANSWER_BYTES_MAX +
-						3 + AI_NOTEBOOK_BYTES);
+						AI_WIRE_CRAFT_ANSWER_BYTES_MAX -
+						14 * 3 + 3 + AI_NOTEBOOK_BYTES);
 	XVT_ASSERT_INT_EQ(read_two(&bytes, answers), AI_WIRE_OK);
 	XVT_ASSERT_INT_EQ(answers[0].object_index, 7);
 	XVT_ASSERT_INT_EQ(answers[0].notebook[0], 0x5A);
 	XVT_ASSERT_INT_EQ(answers[0].notebook[AI_NOTEBOOK_BYTES - 1], 0x5A);
-	XVT_ASSERT_INT_EQ(answers[0].actions, 0x1E);
+	XVT_ASSERT_INT_EQ(answers[0].actions, 0x1FE);
 	XVT_ASSERT_INT_EQ(answers[0].steer_yaw, 0x1234);
 	XVT_ASSERT_INT_EQ(answers[0].steer_pitch, 0x4000);
 	XVT_ASSERT_INT_EQ(answers[0].steer_roll, 0xFFFF);
 	XVT_ASSERT_INT_EQ(answers[0].throttle, 0x8000);
 	XVT_ASSERT_INT_EQ(answers[0].activity, AI_ACTIVITY_DISABLED);
 	XVT_ASSERT_INT_EQ(answers[0].think_interval, 59);
+	XVT_ASSERT_INT_EQ(answers[0].target, 12);
+	XVT_ASSERT_INT_EQ(answers[0].laser_mode[0], 3);
+	XVT_ASSERT_INT_EQ(answers[0].laser_burst[0], 4);
+	XVT_ASSERT_INT_EQ(answers[0].laser_mode[1], 1);
+	XVT_ASSERT_INT_EQ(answers[0].laser_burst[1], 2);
+	XVT_ASSERT_INT_EQ(answers[0].warhead_launcher, 0);
+	XVT_ASSERT_INT_EQ(answers[0].warhead_paired, 1);
+	XVT_ASSERT_INT_EQ(answers[0].turret_count, 2);
+	XVT_ASSERT_INT_EQ(answers[0].turret_slot[0], 5);
+	XVT_ASSERT_INT_EQ(answers[0].turret_target[0], UINT16_MAX);
+	XVT_ASSERT_INT_EQ(answers[0].turret_slot[1], 3);
+	XVT_ASSERT_INT_EQ(answers[0].turret_target[1], 12);
 	XVT_ASSERT_INT_EQ(answers[1].object_index, 9);
 	XVT_ASSERT_INT_EQ(answers[1].notebook[0], 0xA5);
 	XVT_ASSERT_INT_EQ(answers[1].actions, 0);
@@ -190,7 +275,7 @@ static enum ai_wire_result read_with_byte(size_t offset, uint8_t value)
 static void check_header_faults(void)
 {
 	XVT_ASSERT_INT_EQ(read_with_byte(4, 0x4B), AI_WIRE_BAD_HEADER);
-	XVT_ASSERT_INT_EQ(read_with_byte(8, 2), AI_WIRE_BAD_HEADER);
+	XVT_ASSERT_INT_EQ(read_with_byte(8, 1), AI_WIRE_BAD_HEADER);
 	XVT_ASSERT_INT_EQ(read_with_byte(10, AI_WIRE_KIND_QUESTION),
 			  AI_WIRE_BAD_HEADER);
 	XVT_ASSERT_INT_EQ(read_with_byte(18, 1), AI_WIRE_BAD_HEADER);
@@ -215,9 +300,9 @@ static void check_length_faults(void)
 	XVT_ASSERT_INT_EQ(read_two(&bytes, answers), AI_WIRE_LONG);
 	finish_answer(&bytes);
 	XVT_ASSERT_INT_EQ(read_two(&bytes, answers), AI_WIRE_LONG);
-	XVT_ASSERT_INT_EQ(ai_wire_read_answer(bytes.data, 3, TEST_TICK, g_views,
-					      2, answers),
-			  AI_WIRE_SHORT);
+	XVT_ASSERT_INT_EQ(
+		ai_wire_read_answer(bytes.data, 3, &g_question, answers),
+		AI_WIRE_SHORT);
 }
 
 /* One craft, object 7, sending the action bytes given. */
@@ -232,8 +317,102 @@ read_actions(unsigned int count, const uint8_t *actions, size_t action_bytes)
 	memcpy(&bytes.data[bytes.length], actions, action_bytes);
 	bytes.length += action_bytes;
 	finish_answer(&bytes);
-	return ai_wire_read_answer(bytes.data, bytes.length, TEST_TICK, g_views,
-				   1, &answer);
+	struct ai_wire_question question = g_question;
+	question.craft_count = 1;
+	return ai_wire_read_answer(bytes.data, bytes.length, &question,
+				   &answer);
+}
+
+/* A craft 7 whose only launcher is cooling down, sending the action bytes
+ * given. */
+static enum ai_wire_result read_actions_cooling(const uint8_t *actions,
+						size_t action_bytes)
+{
+	g_views[0].launcher_cooldown[0] = 1;
+	enum ai_wire_result result = read_actions(1, actions, action_bytes);
+	g_views[0].launcher_cooldown[0] = 0;
+	return result;
+}
+
+/* Each new action kind against what the question showed: craft 7 has
+ * cannon groups 0 and 1, launcher 0 and turrets in slots 3 and 5, and the
+ * contacts are 7, 9 and 12. */
+static void check_shown_faults(void)
+{
+	static const uint8_t target_none[] = {AI_WIRE_ACTION_TARGET, 0xFF,
+					      0xFF};
+	static const uint8_t target_9[] = {AI_WIRE_ACTION_TARGET, 9, 0};
+	static const uint8_t target_11[] = {AI_WIRE_ACTION_TARGET, 11, 0};
+	static const uint8_t lasers_ok[] = {AI_WIRE_ACTION_LASERS, 1, 1, 0, 0};
+	static const uint8_t mode_4[] = {AI_WIRE_ACTION_LASERS, 4, 1, 0, 0};
+	static const uint8_t mode_no_burst[] = {AI_WIRE_ACTION_LASERS, 1, 0, 0,
+						0};
+	static const uint8_t burst_no_mode[] = {AI_WIRE_ACTION_LASERS, 0, 5, 0,
+						0};
+	static const uint8_t warhead_ok[] = {AI_WIRE_ACTION_WARHEAD, 0, 1};
+	static const uint8_t launcher_1[] = {AI_WIRE_ACTION_WARHEAD, 1, 0};
+	static const uint8_t launcher_2[] = {AI_WIRE_ACTION_WARHEAD, 2, 0};
+	static const uint8_t paired_2[] = {AI_WIRE_ACTION_WARHEAD, 0, 2};
+	static const uint8_t turret_ok[] = {AI_WIRE_ACTION_TURRETS, 1, 3, 9, 0};
+	static const uint8_t turrets_0[] = {AI_WIRE_ACTION_TURRETS, 0};
+	static const uint8_t turrets_17[] = {AI_WIRE_ACTION_TURRETS, 17};
+	static const uint8_t not_turret[] = {AI_WIRE_ACTION_TURRETS, 1, 4, 0xFF,
+					     0xFF};
+	static const uint8_t slot_16[] = {AI_WIRE_ACTION_TURRETS, 1, 16, 0xFF,
+					  0xFF};
+	static const uint8_t slot_twice[] = {
+		AI_WIRE_ACTION_TURRETS, 2, 3, 0xFF, 0xFF, 3, 0xFF, 0xFF};
+	static const uint8_t turret_11[] = {AI_WIRE_ACTION_TURRETS, 1, 3, 11,
+					    0};
+	XVT_ASSERT_INT_EQ(read_actions(1, target_none, sizeof target_none),
+			  AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(read_actions(1, target_9, sizeof target_9),
+			  AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(read_actions(1, target_11, sizeof target_11),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, lasers_ok, sizeof lasers_ok),
+			  AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(read_actions(1, mode_4, sizeof mode_4),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, mode_no_burst, sizeof mode_no_burst),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, burst_no_mode, sizeof burst_no_mode),
+			  AI_WIRE_BAD_ACTION);
+	g_views[0].cannon_group_count = 1;
+	XVT_ASSERT_INT_EQ(read_actions(1, lasers_ok, sizeof lasers_ok),
+			  AI_WIRE_OK);
+	static const uint8_t group_1[] = {AI_WIRE_ACTION_LASERS, 0, 0, 1, 1};
+	XVT_ASSERT_INT_EQ(read_actions(1, group_1, sizeof group_1),
+			  AI_WIRE_BAD_ACTION);
+	g_views[0].cannon_group_count = 2;
+	XVT_ASSERT_INT_EQ(read_actions(1, group_1, sizeof group_1), AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(read_actions(1, warhead_ok, sizeof warhead_ok),
+			  AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(read_actions_cooling(warhead_ok, sizeof warhead_ok),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, launcher_1, sizeof launcher_1),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, launcher_2, sizeof launcher_2),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, paired_2, sizeof paired_2),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, turret_ok, sizeof turret_ok),
+			  AI_WIRE_OK);
+	XVT_ASSERT_INT_EQ(read_actions(1, turrets_0, sizeof turrets_0),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, turrets_17, sizeof turrets_17),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, not_turret, sizeof not_turret),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, slot_16, sizeof slot_16),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, slot_twice, sizeof slot_twice),
+			  AI_WIRE_BAD_ACTION);
+	XVT_ASSERT_INT_EQ(read_actions(1, turret_11, sizeof turret_11),
+			  AI_WIRE_BAD_ACTION);
+	/* A turret cut off by the end of the message. */
+	XVT_ASSERT_INT_EQ(read_actions(1, turret_ok, sizeof turret_ok - 1),
+			  AI_WIRE_SHORT);
 }
 
 static void check_action_faults(void)
@@ -276,5 +455,6 @@ int main(void)
 	check_header_faults();
 	check_length_faults();
 	check_action_faults();
+	check_shown_faults();
 	return 0;
 }

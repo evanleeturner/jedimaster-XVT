@@ -9,11 +9,13 @@
 #include <string.h>
 
 #include "test_assert.h"
+#include "xvt/assets/opt_model.h"
 #include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/mission/mission.h"
 #include "xvt/flight/object/object.h"
+#include "xvt/flight/player/player.h"
 #include "xvt_runtime/ai/ai_wire.h"
 
 enum {
@@ -23,8 +25,12 @@ enum {
 	TEST_INTERVAL = 59,
 	/* Craft in one question: ai_brain.c's AI_BRAIN_QUESTION_CRAFT. */
 	QUESTION_CRAFT = 32,
-	QUESTION_CAPACITY =
-		AI_WIRE_HEAD_BYTES + QUESTION_CRAFT * AI_WIRE_CRAFT_VIEW_BYTES,
+	QUESTION_CAPACITY = AI_WIRE_HEAD_BYTES +
+			    QUESTION_CRAFT * AI_WIRE_CRAFT_VIEW_BYTES +
+			    AI_WIRE_CONTACT_HEAD_BYTES +
+			    AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES,
+	/* Where a craft view's notebook starts. */
+	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
 	ANSWER_CAPACITY = AI_WIRE_HEAD_BYTES +
 			  QUESTION_CRAFT * AI_WIRE_CRAFT_ANSWER_BYTES_MAX,
 	MAX_CALLS = 2,
@@ -124,7 +130,7 @@ static size_t fake_exchange(const uint8_t *question, size_t question_length,
 		const uint8_t *view = question + AI_WIRE_HEAD_BYTES +
 				      (size_t)craft * AI_WIRE_CRAFT_VIEW_BYTES;
 		at = put_u16(at, get_u16(view));
-		memcpy(at, view + 38, AI_NOTEBOOK_BYTES);
+		memcpy(at, view + VIEW_NOTEBOOK, AI_NOTEBOOK_BYTES);
 		at[0] = ECHO_MARK;
 		at += AI_NOTEBOOK_BYTES;
 		*at++ = 0;
@@ -272,14 +278,39 @@ static void check_question_bytes(void)
 	for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 		craft->ai_notebook[byte] = (uint8_t)(0x60 + byte);
 	}
+	/* Weapons: two cannon groups, a turret in weapon slot 2 of 4, one
+	 * launcher of type 60 whose slots 5 and 6 hold 3 and 2, cooling down. */
+	craft->cannon_group_count = 2;
+	craft->laser_state.projectile_type_id[0] = 0x2A;
+	craft->laser_state.projectile_type_id[1] = 0x2B;
+	craft->laser_slot_count = 4;
+	craft->weapon_slots[2].projectile_type_id = 2;
+	craft->weapon_slots[5].projectile_type_id =
+		2; /* past the laser slots */
+	craft->warhead_launcher_count = 1;
+	craft->warhead_slot_type_ids[0] = 60;
+	craft->warhead_launcher_cooldown_ticks[0] = 300;
+	craft->warhead_launcher_cooldown_ticks[1] = 9; /* no second launcher */
+	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 5;
+	craft->weapon_slots[5].ammo_count = 3;
+	craft->weapon_slots[6].ammo_count = 2;
+	/* What only the contact shows. */
+	object->genus_id = 4;
+	controller->target_obj_idx = 7;
+	craft->last_attacker_obj_idx = 5;
+	craft->shield_energy[0] = 500;
+	craft->shield_energy[1] = -1;
+	craft->hull_damage = 40;
+	craft->hull_max = 300;
 	g_fake.echo = 1;
 
 	ai_brain_think_due_craft();
 
 	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
 	const uint8_t *q = g_fake.question[0];
-	XVT_ASSERT_INT_EQ(g_fake.question_length[0], ai_wire_question_bytes(1));
-	XVT_ASSERT_INT_EQ(get_u32(q), ai_wire_question_bytes(1) - 4);
+	XVT_ASSERT_INT_EQ(g_fake.question_length[0],
+			  ai_wire_question_bytes(1, 1));
+	XVT_ASSERT_INT_EQ(get_u32(q), ai_wire_question_bytes(1, 1) - 4);
 	XVT_ASSERT_INT_EQ(get_u32(q + 4), AI_WIRE_MAGIC);
 	XVT_ASSERT_INT_EQ(get_u16(q + 8), AI_WIRE_VERSION);
 	XVT_ASSERT_INT_EQ(get_u16(q + 10), AI_WIRE_KIND_QUESTION);
@@ -306,9 +337,108 @@ static void check_question_bytes(void)
 	XVT_ASSERT_INT_EQ(get_u16(view + 32), 0x2468);
 	XVT_ASSERT_INT_EQ(get_u16(view + 34), 0x0190);
 	XVT_ASSERT_INT_EQ((int16_t)get_u16(view + 36), -2);
+	XVT_ASSERT_INT_EQ(get_u32(view + 38), 0);
+	XVT_ASSERT_INT_EQ(get_u16(view + 42), 1u << 2);
+	XVT_ASSERT_INT_EQ(view[44], 2);
+	XVT_ASSERT_INT_EQ(view[45], 1);
+	XVT_ASSERT_INT_EQ(view[46], 0x2A);
+	XVT_ASSERT_INT_EQ(view[47], 0x2B);
+	XVT_ASSERT_INT_EQ(view[48], 60);
+	XVT_ASSERT_INT_EQ(view[49], 0);
+	XVT_ASSERT_INT_EQ(view[50], 5);
+	XVT_ASSERT_INT_EQ(view[51], 0);
+	XVT_ASSERT_INT_EQ(get_u16(view + 52), 300);
+	XVT_ASSERT_INT_EQ(get_u16(view + 54), 0);
 	for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
-		XVT_ASSERT_INT_EQ(view[38 + byte], 0x60 + byte);
+		XVT_ASSERT_INT_EQ(view[VIEW_NOTEBOOK + byte], 0x60 + byte);
 	}
+	/* The one contact is the craft itself. */
+	const uint8_t *head = view + AI_WIRE_CRAFT_VIEW_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(head), 1);
+	XVT_ASSERT_INT_EQ(get_u16(head + 2), 0);
+	const uint8_t *contact = head + AI_WIRE_CONTACT_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(contact), 3);
+	XVT_ASSERT_INT_EQ(get_u16(contact + 2), 0x4321);
+	XVT_ASSERT_INT_EQ(contact[4], 0x21);
+	XVT_ASSERT_INT_EQ(contact[5], 4);
+	XVT_ASSERT_INT_EQ(contact[6], 3);
+	XVT_ASSERT_INT_EQ(contact[7], TEST_GROUP);
+	XVT_ASSERT_INT_EQ(contact[8], CRAFT_OBJECT_KIND_ACTIVE);
+	XVT_ASSERT_INT_EQ(contact[9], 0);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(contact + 10), -0x123456);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(contact + 14), 0x234567);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(contact + 18), -65536);
+	XVT_ASSERT_INT_EQ(get_u16(contact + 22), 0x1357);
+	XVT_ASSERT_INT_EQ(get_u16(contact + 24), 0x4100);
+	XVT_ASSERT_INT_EQ(get_u16(contact + 26), 0x0190);
+	XVT_ASSERT_INT_EQ(get_u16(contact + 28), 7);
+	XVT_ASSERT_INT_EQ(get_u16(contact + 30), 5);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(contact + 32), 500);
+	XVT_ASSERT_INT_EQ((int32_t)get_u32(contact + 36), -1);
+	XVT_ASSERT_INT_EQ(get_u32(contact + 40), 40);
+	XVT_ASSERT_INT_EQ(get_u32(contact + 44), 300);
+	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 0;
+}
+
+/* The contacts are every craft in the active region's craft slots, empty
+ * slots and other families skipped, a player's craft flagged with its
+ * player's target; bit n of a craft's order target mask is set when contact
+ * n matches its order's targets: here flight group TEST_GROUP + 1 (trigger
+ * variable type 1), either of targets 1 and 2. */
+static void check_contacts_and_order_targets(void)
+{
+	fresh_world();
+	due_craft(1);
+	due_craft(2)->ai_controller.think_timer = 5; /* not due */
+	g_test_objects[2].flight_group_idx = TEST_GROUP + 1;
+	due_craft(4)->ai_controller.think_timer = 5;
+	g_test_objects[4].player_owner_idx = 1;
+	g_players[1].current_target_object_idx = 2;
+	g_test_objects[5].object_type = 5;
+	g_test_mobiles[5].family = 1; /* not a craft's */
+	due_craft(6)->ai_controller.think_timer = 5;
+	g_test_objects[6].flight_group_idx = TEST_GROUP + 1;
+	struct mission_order *order =
+		&g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+	order->target2_type = 1;
+	order->target2 = TEST_GROUP + 1;
+	order->target1_or_target2 = 1;
+	g_fake.echo = 1;
+
+	ai_brain_think_due_craft();
+
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	const uint8_t *q = g_fake.question[0];
+	XVT_ASSERT_INT_EQ(g_fake.question_length[0],
+			  ai_wire_question_bytes(1, 4));
+	const uint8_t *view = q + AI_WIRE_HEAD_BYTES;
+	/* Contacts 1, 2, 4, 6: bits 1 and 3 are flight group TEST_GROUP + 1. */
+	XVT_ASSERT_INT_EQ(get_u32(view + 38), 0xA);
+	const uint8_t *head = view + AI_WIRE_CRAFT_VIEW_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(head), 4);
+	const uint8_t *contact = head + AI_WIRE_CONTACT_HEAD_BYTES;
+	static const int expected_objects[4] = {1, 2, 4, 6};
+	for (int index = 0; index < 4; ++index) {
+		XVT_ASSERT_INT_EQ(
+			get_u16(contact + index * AI_WIRE_CONTACT_BYTES),
+			expected_objects[index]);
+	}
+	const uint8_t *player = contact + 2 * AI_WIRE_CONTACT_BYTES;
+	XVT_ASSERT_INT_EQ(player[9], AI_WIRE_CONTACT_PLAYER);
+	XVT_ASSERT_INT_EQ(get_u16(player + 28), 2);
+	/* With "and", flight group TEST_GROUP + 1 must also match target 1's
+	 * none (type 0), so nothing matches. */
+	fresh_world();
+	due_craft(1);
+	due_craft(2)->ai_controller.think_timer = 5;
+	g_test_objects[2].flight_group_idx = TEST_GROUP + 1;
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].target2_type = 1;
+	g_mission_flight_groups[TEST_GROUP].fg.orders[0].target2 =
+		TEST_GROUP + 1;
+	g_fake.echo = 1;
+	ai_brain_think_due_craft();
+	XVT_ASSERT_INT_EQ(get_u32(g_fake.question[0] + AI_WIRE_HEAD_BYTES + 38),
+			  0);
 }
 
 /* An answer with every action: the notebook, the three steering goals with
@@ -322,7 +452,25 @@ static void check_answer_applied(void)
 	craft->pitch = 0x4000;
 	craft->ai_flight.pitch_through_loop = 1;
 	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
-	at = craft_answer(at, 4, 0x80, 4);
+	/* Two cannon groups, a turret in weapon slot 1, and a craft in slot 6
+	 * to aim at. */
+	craft->cannon_group_count = 2;
+	craft->laser_slot_count = 2;
+	craft->weapon_slots[1].projectile_type_id = 2;
+	craft->turret_target_states[1].target_obj_idx = UINT16_MAX;
+	due_craft(6)->ai_controller.think_timer = 5;
+	at = craft_answer(at, 4, 0x80, 7);
+	*at++ = AI_WIRE_ACTION_TARGET;
+	at = put_u16(at, 6);
+	*at++ = AI_WIRE_ACTION_LASERS;
+	*at++ = 3;
+	*at++ = 5;
+	*at++ = 2;
+	*at++ = 1;
+	*at++ = AI_WIRE_ACTION_TURRETS;
+	*at++ = 1;
+	*at++ = 1;
+	at = put_u16(at, 6);
 	*at++ = AI_WIRE_ACTION_STEER;
 	at = put_u16(at, 0x1111);
 	at = put_u16(at, 0x5000);
@@ -341,6 +489,14 @@ static void check_answer_applied(void)
 	for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 		XVT_ASSERT_INT_EQ(craft->ai_notebook[byte], 0x80 + byte);
 	}
+	XVT_ASSERT_INT_EQ(craft->ai_controller.target_obj_idx, 6);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.target_signature, 0x106);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.has_live_target, 1);
+	XVT_ASSERT_INT_EQ(craft->laser_state.link_mode[0], 3);
+	XVT_ASSERT_INT_EQ(craft->laser_state.burst_remaining[0], 5);
+	XVT_ASSERT_INT_EQ(craft->laser_state.link_mode[1], 2);
+	XVT_ASSERT_INT_EQ(craft->laser_state.burst_remaining[1], 1);
+	XVT_ASSERT_INT_EQ(craft->turret_target_states[1].target_obj_idx, 6);
 	XVT_ASSERT_INT_EQ(craft->ai_controller.target_xy_angle, 0x1111);
 	XVT_ASSERT_INT_EQ(craft->ai_flight.turn_state, 2);
 	XVT_ASSERT_INT_EQ(craft->ai_flight.turn_step, -1);
@@ -477,11 +633,62 @@ static void check_more_craft_than_one_question(void)
 	}
 }
 
+/* Answers the one due craft in slot 1, whose launcher 0 has slots 2 and 3
+ * with no warhead type (so nothing launches), with a target of none and a
+ * warhead action; returns its launcher flags after. */
+static int launcher_flags_after(int paired, int inhibit, int first_ammo,
+				int second_ammo)
+{
+	fresh_world();
+	struct craft_data *craft = due_craft(1);
+	craft->ai_controller.target_obj_idx = 1;
+	craft->ai_controller.has_live_target = 1;
+	craft->warhead_launcher_count = 1;
+	craft->warhead_launcher_flags[0] = 0x55;
+	craft->weapon_fire_inhibit_timer = (int16_t)inhibit;
+	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 2;
+	craft->weapon_slots[2].ammo_count = (uint8_t)first_ammo;
+	craft->weapon_slots[3].ammo_count = (uint8_t)second_ammo;
+	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+	at = craft_answer(at, 1, 0, 2);
+	*at++ = AI_WIRE_ACTION_TARGET;
+	at = put_u16(at, UINT16_MAX);
+	*at++ = AI_WIRE_ACTION_WARHEAD;
+	*at++ = 0;
+	*at++ = (uint8_t)paired;
+	g_fake.answer_length = finish_answer(g_fake.answer, at);
+
+	ai_brain_think_due_craft();
+
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.target_obj_idx, UINT16_MAX);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.target_signature, 0);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.has_live_target, 0);
+	/* laser_firewarheadsystem adds 472 ticks whether or not it fired. */
+	XVT_ASSERT_INT_EQ(craft->warhead_launcher_cooldown_ticks[0],
+			  inhibit == 0 ? 472 : 0);
+	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 0;
+	return (uint8_t)craft->warhead_launcher_flags[0];
+}
+
+/* The warhead action fires through laser_firewarheadsystem with the 1997
+ * AI's launcher flags: both slots when paired, else the first, or the second
+ * when it holds more; not at all while the craft's weapons are held. */
+static void check_warhead_action(void)
+{
+	XVT_ASSERT_INT_EQ(launcher_flags_after(1, 0, 0, 0), 3);
+	XVT_ASSERT_INT_EQ(launcher_flags_after(0, 0, 1, 1), 1);
+	XVT_ASSERT_INT_EQ(launcher_flags_after(0, 0, 1, 2), 0x81);
+	XVT_ASSERT_INT_EQ(launcher_flags_after(0, 5, 0, 0), 0x55);
+}
+
 int main(void)
 {
 	check_no_exchange_changes_nothing();
 	check_who_is_asked();
 	check_question_bytes();
+	check_contacts_and_order_targets();
+	check_warhead_action();
 	check_answer_applied();
 	check_pitch_direction();
 	check_notebook_only_answer();
