@@ -584,7 +584,7 @@ SHOW_PLANTS: list[Plant] = [
     Plant(
         "page-show-hello-says-revision-1",
         "jedimaster/page/protocol.py",
-        "SCHEMA_REVISION = 5",
+        "SCHEMA_REVISION = 6",
         "SCHEMA_REVISION = 1",
         (
             "tests/test_page_control.py::test_hello",

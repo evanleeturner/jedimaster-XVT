@@ -257,7 +257,7 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
   if (!isRecord(value)) return fail("a result must be an object");
   if (hasExactly(value, ["launcher_version", "schema_revision"])) {
     const { launcher_version, schema_revision } = value;
-    if (typeof launcher_version === "string" && schema_revision === 5) {
+    if (typeof launcher_version === "string" && schema_revision === 6) {
       return { value: { launcher_version, schema_revision } };
     }
     return fail("a hello result has the wrong values");
@@ -309,16 +309,17 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
   ) {
     return soloMenuOf(value);
   }
-  if (hasExactly(value, ["found", "pilots"])) {
-    const { found, pilots } = value;
+  if (hasExactly(value, ["found", "pilots", "engine_given"])) {
+    const { found, pilots, engine_given } = value;
     if (
       typeof found !== "boolean" ||
       !isList(pilots) ||
-      !pilots.every((p) => typeof p === "string")
+      !pilots.every((p) => typeof p === "string") ||
+      typeof engine_given !== "boolean"
     ) {
       return fail("a pilots result has the wrong values");
     }
-    return { value: { found, pilots: pilots } };
+    return { value: { found, pilots: pilots, engine_given } };
   }
   if (hasExactly(value, ["started", "launch_id", "message"])) {
     const { started, launch_id, message } = value;

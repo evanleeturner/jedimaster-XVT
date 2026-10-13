@@ -89,7 +89,11 @@ def test_launch_menu_refuses_a_side_that_does_not_fit(tmp_path):
 def test_pilots_list_answers_with_the_folders_pilots(tmp_path):
     control, _ = make_control(tmp_path)
     reply, _ = ask(control, "pilots.list")
-    assert result_of(reply) == {"found": True, "pilots": ["Ace", "Bravo Two", "Cee"]}
+    assert result_of(reply) == {
+        "found": True,
+        "pilots": ["Ace", "Bravo Two", "Cee"],
+        "engine_given": True,
+    }
 
 
 def test_pilots_list_says_not_found_without_a_game_program(tmp_path):
@@ -97,7 +101,7 @@ def test_pilots_list_says_not_found_without_a_game_program(tmp_path):
         make_solo_install(tmp_path), SettingsStore(tmp_path / "s.json"), "0.1.0"
     )
     reply, _ = ask(control, "pilots.list")
-    assert result_of(reply) == {"found": False, "pilots": []}
+    assert result_of(reply) == {"found": False, "pilots": [], "engine_given": False}
 
 
 def test_the_refusals_come_in_the_promised_order(tmp_path):

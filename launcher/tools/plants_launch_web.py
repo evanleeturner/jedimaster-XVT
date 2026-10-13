@@ -153,6 +153,13 @@ CODEC_PLANTS: list[Plant] = [
         RES_BAD,
     ),
     plant(
+        "pilots-engine-flag-unchecked",
+        COD,
+        '      typeof engine_given !== "boolean"\n',
+        "      false\n",
+        RES_BAD,
+    ),
+    plant(
         "pilots-not-text",
         COD,
         '      !pilots.every((p) => typeof p === "string")',
@@ -221,15 +228,15 @@ CODEC_PLANTS: list[Plant] = [
     plant(
         "revision",
         COD,
+        "schema_revision === 6",
         "schema_revision === 5",
-        "schema_revision === 4",
         ACC + "reply-ok-hello.json",
     ),
     plant(
         "reply-shapes-merged",
         COD,
-        'hasExactly(value, ["found", "pilots"])',
-        'hasExactly(value, ["found", "pilotz"])',
+        'hasExactly(value, ["found", "pilots", "engine_given"])',
+        'hasExactly(value, ["found", "pilotz", "engine_given"])',
         RES_OK,
         ACC + "reply-ok-pilots-list",
     ),

@@ -128,6 +128,22 @@ WALK_PLANTS: list[Plant] = [
         TW + "test_an_unreadable_pilot_folder_says_so",
     ),
     plant(
+        "walk-no-engine-unchecked",
+        WLK,
+        '        if not got["engine_given"]:',
+        "        if False:",
+        TW + "test_no_game_program_is_named_before_the_pilot_folder",
+    ),
+    plant(
+        "walk-folder-before-engine",
+        WLK,
+        '        if not got["engine_given"]:\n            return Reply(NO_ENGINE)\n'
+        '        if not got["found"]:\n            return Reply(NO_PILOT_FOLDER)\n',
+        '        if not got["found"]:\n            return Reply(NO_PILOT_FOLDER)\n'
+        '        if not got["engine_given"]:\n            return Reply(NO_ENGINE)\n',
+        TW + "test_no_game_program_is_named_before_the_pilot_folder",
+    ),
+    plant(
         "walk-no-pilots-unchecked",
         WLK,
         '        if not got["pilots"]:',

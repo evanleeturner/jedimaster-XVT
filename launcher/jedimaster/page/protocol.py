@@ -1,7 +1,7 @@
 """The control list: every message the page and the launcher exchange.
 
 Purpose:
-    Name, as dataclasses, the one fixed list of commands (revision 5), their
+    Name, as dataclasses, the one fixed list of commands (revision 6), their
     arguments and results, the pushes and the error codes. The schema
     (``schema``) is built from these classes, so the list has one source.
 
@@ -36,7 +36,7 @@ from ..briefing.model import BriefingBundle
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_REVISION = 5
+SCHEMA_REVISION = 6
 """The revision of the control list; a change to any message raises it."""
 
 MAX_MESSAGE_BYTES = 64 * 1024
@@ -187,7 +187,7 @@ class HelloResult:
     """The launcher's version and the revision of the control list."""
 
     launcher_version: str
-    schema_revision: Literal[5]
+    schema_revision: Literal[6]
 
 
 @dataclass
@@ -264,10 +264,16 @@ class SoloMenuResult:
 
 @dataclass
 class PilotsListResult:
-    """The pilots the game has; ``found`` is false when the pilot folder cannot be read."""
+    """The pilots the game has, and whether a battle can be flown at all.
+
+    ``found`` is false when no pilot folder is known or it cannot be read;
+    ``engine_given`` is false when the launcher was started without the game
+    program, so no battle can be flown.
+    """
 
     found: bool
     pilots: list[str]
+    engine_given: bool
 
 
 @dataclass

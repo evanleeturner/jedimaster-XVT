@@ -94,10 +94,18 @@ class Launching:
         return solo_menu(self.install, args["mission_type"], args["side"])
 
     def pilots(self, args: Json) -> Json:
-        """Return the pilots the game has; ``found`` is false if the folder is unreadable."""
+        """Return the pilots the game has (``PilotsListResult``).
+
+        Without the game program no pilot folder is known: ``found`` and
+        ``engine_given`` are both false.
+        """
         folder = self.flight.pilot_folder if self.flight else None
         names = list_pilots(folder)
-        return {"found": names is not None, "pilots": names or []}
+        return {
+            "found": names is not None,
+            "pilots": names or [],
+            "engine_given": self.flight is not None,
+        }
 
     def _refused(self, reason: str) -> tuple[Json, Pushes]:
         logger.info("launch refused: %s", reason)

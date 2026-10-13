@@ -480,6 +480,13 @@ LAUNCHING_PLANTS: list[Plant] = [
         TL + "test_the_refusals_come_in_the_promised_order",
     ),
     plant(
+        "launching-pilots-engine-always",
+        LNG,
+        '            "engine_given": self.flight is not None,',
+        '            "engine_given": True,',
+        TL + "test_pilots_list_says_not_found_without_a_game_program",
+    ),
+    plant(
         "launching-no-page-needed",
         LNG,
         "        if self.pages_open() == 0:",
@@ -730,8 +737,8 @@ CONTROL_PLANTS: list[Plant] = [
     plant(
         "control-revision",
         PRO,
+        "SCHEMA_REVISION = 6",
         "SCHEMA_REVISION = 5",
-        "SCHEMA_REVISION = 4",
         "tests/test_page_control.py::test_hello",
         "tests/test_page_control.py::test_the_list_has_thirteen",
     ),

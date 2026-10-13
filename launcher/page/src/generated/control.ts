@@ -231,7 +231,7 @@ export interface OkReply {
  */
 export interface HelloResult {
   launcher_version: string;
-  schema_revision: 5;
+  schema_revision: 6;
 }
 /**
  * The install found (home shown as ~) and whether Balance of Power is in it.
@@ -414,11 +414,12 @@ export interface SoloEntryData {
   opens_once_flown: boolean;
 }
 /**
- * The pilots the game has; ``found`` is false when the pilot folder cannot be read.
+ * The pilots the game has, and whether a battle can be flown at all.
  */
 export interface PilotsListResult {
   found: boolean;
   pilots: string[];
+  engine_given: boolean;
 }
 /**
  * Whether the battle started (``launch_id`` is 0 when not), and one plain sentence.

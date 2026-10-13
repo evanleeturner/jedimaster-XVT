@@ -171,6 +171,13 @@ def test_an_unreadable_pilot_folder_says_so(bot):
     assert reply.text == "The launcher cannot read the game's pilot folder."
 
 
+def test_no_game_program_is_named_before_the_pilot_folder(bot):
+    bot.control.launching.flight = None
+    reply = bot.core.pick_solo(HOST, "mission", "training|rebel", "alpha.tie")
+    assert reply.text == "This launcher was started without the game program."
+    assert reply.pickers == ()
+
+
 def test_menus_are_cut_at_25_to_a_menu_and_five_menus(bot):
     options = [Option(f"m{n}", f"v{n}") for n in range(130)]
     pickers, left_out = menus("solo_mission", "k", "Missions", options)

@@ -21,6 +21,8 @@ Invariants:
       program name ever comes from or goes to Discord.
     - A mission marked ``&`` never appears; one marked ``*`` says in its
       description that it opens once flown.
+    - A launcher started without the game program is named as the reason at
+      the pilot step, before the pilot folder is.
     - Every step goes through ``_gate``: only the linked account is answered.
     - The first choice of every option menu is "As the game has it", and the
       current choice is marked.
@@ -39,6 +41,7 @@ from ..launch.options import AS_GAME_WORDS
 from ..launch.options import OPTIONS
 from ..launch.options import words_of
 from ..page.control import Outcome
+from ..page.launching import NO_ENGINE
 from ..page.protocol import MISSION_TYPE_NAMES
 from ..page.protocol import OPTION_NAMES
 from ..page.solo import side_problem
@@ -184,6 +187,8 @@ class Walk:
         got = self._result(self.send("pilots.list", {}))
         if got is None:
             return Reply(REFUSED)
+        if not got["engine_given"]:
+            return Reply(NO_ENGINE)
         if not got["found"]:
             return Reply(NO_PILOT_FOLDER)
         if not got["pilots"]:

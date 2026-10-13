@@ -241,7 +241,7 @@ CODEC_PLANTS: list[Plant] = [
     Plant(
         "web-codec-hello-revision",
         COD,
-        '    if (typeof launcher_version === "string" && schema_revision === 5) {',
+        '    if (typeof launcher_version === "string" && schema_revision === 6) {',
         '    if (typeof launcher_version === "string" && schema_revision !== 0) {',
         (
             N + "a reply refuses a result that matches no command",
@@ -465,7 +465,7 @@ SHOW_PLANTS: list[Plant] = [
     Plant(
         "web-codec-hello-promises-revision-1",
         COD,
-        '    if (typeof launcher_version === "string" && schema_revision === 5) {',
+        '    if (typeof launcher_version === "string" && schema_revision === 6) {',
         '    if (typeof launcher_version === "string" && schema_revision === 1) {',
         (ACC + "reply-ok-hello.json",),
     ),

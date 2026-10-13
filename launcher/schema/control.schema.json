@@ -666,7 +666,7 @@
           "type": "string"
         },
         "schema_revision": {
-          "const": 5
+          "const": 6
         }
       },
       "required": [
@@ -1352,7 +1352,7 @@
     },
     "PilotsListResult": {
       "type": "object",
-      "description": "The pilots the game has; ``found`` is false when the pilot folder cannot be read.",
+      "description": "The pilots the game has, and whether a battle can be flown at all.",
       "properties": {
         "found": {
           "type": "boolean"
@@ -1362,11 +1362,15 @@
           "items": {
             "type": "string"
           }
+        },
+        "engine_given": {
+          "type": "boolean"
         }
       },
       "required": [
         "found",
-        "pilots"
+        "pilots",
+        "engine_given"
       ],
       "additionalProperties": false
     },
