@@ -195,7 +195,8 @@ def test_status_without_balance_of_power(tmp_path):
     (tmp_path / "XvT" / "BalanceOfPower" / "TRAIN" / "notes.txt").unlink()
     (tmp_path / "XvT" / "BalanceOfPower" / "TRAIN").rmdir()
     (tmp_path / "XvT" / "BalanceOfPower").rmdir()
-    assert made.core.status(HOST).text.endswith("Balance of Power: not found.")
+    lines = made.core.status(HOST).text.splitlines()
+    assert lines[2] == "Balance of Power: not found."
 
 
 def test_status_without_an_install(tmp_path):
@@ -412,7 +413,7 @@ def test_requests_are_json_text_with_ids_from_a_counter(bot):
 
 
 def test_the_counter_starts_again_after_the_largest_id(bot):
-    bot.core = core_module.Core(bot.control, bot.linker, first_id=MAX_ID)
+    bot.core = core_module.Core(bot.control, bot.linker, bot.pilots, first_id=MAX_ID)
     bot.core.send("settings.get", {})
     bot.core.send("settings.get", {})
     assert [r["id"] for r, _ in bot.sent] == [MAX_ID, 1]

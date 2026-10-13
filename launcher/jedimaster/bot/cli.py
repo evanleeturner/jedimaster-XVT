@@ -36,6 +36,8 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
+from ..launch.pilot_store import pilot_folder
+from ..launch.pilot_store import PilotStore
 from ..page.control import Control
 from ..page.settings import default_settings_path
 from .credentials import check_token
@@ -157,6 +159,7 @@ def starter(
 
     store = BotFile(bot_file_path(settings_path))
     linker = Linker(store)
+    pilots = PilotStore(pilot_folder(settings_path))
     code = linker.start()
     if code is not None:
         minutes = int(LIFETIME_SECONDS // 60)
@@ -171,7 +174,7 @@ def starter(
         async def deliver(pushes: list[dict]) -> int:
             return await broadcast(app, pushes)
 
-        door = Door(Core(control, linker), store, deliver)
+        door = Door(Core(control, linker, pilots), store, deliver)
         task = asyncio.get_running_loop().create_task(door.run(token))
         tasks.append(task)
 

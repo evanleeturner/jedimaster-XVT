@@ -110,7 +110,7 @@ def typed_into(modal, text):
 # ---- the table ------------------------------------------------------------
 
 
-def test_the_table_has_the_seven_rows_in_order():
+def test_the_table_has_the_eight_rows_in_order():
     assert [(i.title, i.method, i.where, i.slash) for i in ITEMS] == [
         ("Single player", "solo", "anywhere", "solo"),
         ("Game options", "options", "anywhere", "options"),
@@ -119,6 +119,7 @@ def test_the_table_has_the_seven_rows_in_order():
         ("Status", "status", "anywhere", "status"),
         ("Link", "link", "dm", "link"),
         ("Unlink", "unlink", "dm", "unlink"),
+        ("Pilot", "pilot", "dm", "pilot"),
     ]
     assert len(ITEMS) <= MAX_USER_COMMANDS == 15
 
@@ -154,7 +155,7 @@ def test_a_right_click_item_takes_no_options_and_has_no_description(rig):
 
 def test_the_tree_holds_more_than_discord_py_s_own_five_user_commands(rig):
     users = rig.door.tree.get_commands(type=discord.AppCommandType.user)
-    assert len(users) == 7
+    assert len(users) == 8
 
 
 def test_the_sixteenth_user_command_is_refused(rig):
@@ -163,7 +164,7 @@ def test_the_sixteenth_user_command_is_refused(rig):
     async def nothing(interaction, who: discord.User):
         return None
 
-    for n in range(MAX_USER_COMMANDS - 7):
+    for n in range(MAX_USER_COMMANDS - 8):
         rig.door.tree.add_command(
             app_commands.ContextMenu(
                 name=f"Extra {n}", callback=nothing, type=discord.AppCommandType.user
@@ -262,7 +263,14 @@ async def test_link_by_slash_and_by_the_window_make_the_same_call_and_reply(rig)
     submit = Talk(STRANGER)
     await modal.on_submit(submit)
     first, second = rig.calls
-    assert first == second == ("link", (STRANGER, "ABCD-EFGH", True))
+    assert (
+        first
+        == second
+        == (
+            "link",
+            (STRANGER, "ABCD-EFGH", True, ("Mr. Webbin", "mr.webbin")),
+        )
+    )
     assert shape(twin) == shape(submit)
 
 

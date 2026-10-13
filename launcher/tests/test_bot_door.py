@@ -72,7 +72,7 @@ def test_the_door_asks_for_the_guilds_intent_only(rig):
     assert rig.door.client.intents.value == discord.Intents(guilds=True).value
 
 
-def test_the_commands_are_the_seven_slash_commands_and_the_seven_right_click_items(rig):
+def test_the_commands_are_the_eight_slash_commands_and_the_eight_right_click_items(rig):
     slash = sorted(
         c.name
         for c in rig.door.tree.get_commands(type=discord.AppCommandType.chat_input)
@@ -84,6 +84,7 @@ def test_the_commands_are_the_seven_slash_commands_and_the_seven_right_click_ite
         "link",
         "missions",
         "options",
+        "pilot",
         "settings",
         "solo",
         "status",
@@ -93,6 +94,7 @@ def test_the_commands_are_the_seven_slash_commands_and_the_seven_right_click_ite
         "Game options",
         "Launcher settings",
         "Link",
+        "Pilot",
         "Show mission",
         "Single player",
         "Status",
@@ -103,7 +105,8 @@ def test_the_commands_are_the_seven_slash_commands_and_the_seven_right_click_ite
 def test_direct_message_commands_are_dm_only_and_the_others_anywhere(rig):
     for command in rig.door.tree.get_commands():
         contexts = command.allowed_contexts
-        if command.name.lower() in ("link", "launcher settings", "settings", "unlink"):
+        dm_only = ("link", "launcher settings", "settings", "unlink", "pilot")
+        if command.name.lower() in dm_only:
             assert (contexts.guild, contexts.dm_channel, contexts.private_channel) == (
                 False,
                 True,
@@ -178,7 +181,9 @@ async def test_link_from_a_stranger_in_a_direct_message_with_the_code_links(tmp_
     talk = Talk(STRANGER)
     await door.tree.get_command("link").callback(talk, code.lower())
     assert talk.texts()[0].startswith("Linked")
-    assert talk.said()[0][1] == {"ephemeral": True}
+    options = talk.said()[0][1]
+    assert options["ephemeral"] is True
+    assert [b.label for b in options["view"].children] == ["Keep name", "Change name"]
     assert bot.linker.linked_user_id == STRANGER
 
 
@@ -358,7 +363,7 @@ async def test_the_list_syncs_when_new_and_not_again_while_unchanged(
         assert await rig.door.sync_if_changed() is True
         assert await rig.door.sync_if_changed() is False
     assert syncs == [1]
-    assert "synced 14 commands" in caplog.text
+    assert "synced 16 commands" in caplog.text
     assert rig.store.commands_digest == commands_digest(rig.door.tree)
 
 

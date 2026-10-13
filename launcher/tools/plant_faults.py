@@ -62,6 +62,7 @@ from plants_models_read import MODELS_READ_PLANTS
 from plants_movies_output import MOVIES_OUTPUT_PLANTS
 from plants_movies_read import MOVIES_READ_PLANTS
 from plants_movies_subtitles import SUBTITLE_PLANTS
+from plants_own_pilot import OWN_PILOT_PLANTS
 from plants_page import PAGE_PLANTS
 from plants_pictures import PICTURES_PLANTS
 from plants_pilot import PILOT_PLANTS
@@ -121,6 +122,7 @@ PLANTS: list[Plant] = [
     *MOVIES_OUTPUT_PLANTS,
     *PAGE_PLANTS,
     *BOT_PLANTS,
+    *OWN_PILOT_PLANTS,
     *BRIEFING_PLANTS,
     *BRIEFING_UNDER_PLANTS,
     *LAUNCH_PLANTS,

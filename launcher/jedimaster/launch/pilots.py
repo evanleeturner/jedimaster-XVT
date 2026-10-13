@@ -9,7 +9,8 @@ Flow:
     ``default_pilot_folder`` names the game's user folder for a system.
     ``list_pilots`` reads the first 14 bytes of each ``*.plt`` file in a
     folder (the name, ended by a zero byte) and keeps the names the launch
-    door accepts (``name_ok``).
+    door accepts (``name_ok``). ``fit_name`` makes any text (a Discord
+    name) into a name ``name_ok`` accepts, or gives up.
 
 Invariants:
     - The folder is the one the engine opens: SDL's per-user data folder for
@@ -32,7 +33,9 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import sys
+import unicodedata
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -90,6 +93,39 @@ def name_ok(name: str) -> bool:
         return False
     lowered = name.lower()
     return not any(word in lowered for word in SWITCH_WORDS)
+
+
+def _trimmed(text: str) -> str:
+    start, end = 0, len(text)
+    while start < end and not text[start].isalnum():
+        start += 1
+    while end > start and not text[end - 1].isalnum():
+        end -= 1
+    return text[start:end]
+
+
+def fit_name(text: str) -> str:
+    """Return ``text`` made into a name ``name_ok`` accepts, or "" when none is left.
+
+    Letters lose their accents (``José`` becomes ``Jose``); every other
+    character the rule does not allow is dropped; the flight switch words
+    are taken out, again until none is left; runs of spaces become one; the
+    ends are trimmed to a letter or digit; then the name is cut to 12 and
+    its end trimmed again. Does not look at any file.
+    """
+    plain = unicodedata.normalize("NFKD", text)
+    kept = "".join(
+        c for c in plain if c.isascii() and (c.isalnum() or c in EXTRA_CHARACTERS)
+    )
+    previous = None
+    while kept != previous:
+        previous = kept
+        for word in SWITCH_WORDS:
+            kept = re.sub(re.escape(word), "", kept, flags=re.IGNORECASE)
+    kept = _trimmed(re.sub(" +", " ", kept))
+    kept = _trimmed(kept[:NAME_LIMIT])
+    logger.debug("name %r fitted to %r", text, kept)
+    return kept
 
 
 def _name_in(path: Path) -> str | None:

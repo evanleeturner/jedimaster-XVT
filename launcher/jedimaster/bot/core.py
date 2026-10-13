@@ -8,8 +8,10 @@ Purpose:
 
 Flow:
     A method (``link``, ``status``, ``missions``, ``pick_mission``,
-    ``settings``, ``pick_setting``, ``unlink``, and from ``walk`` ``solo``,
-    ``pick_solo``, ``launch_solo``, ``options``, ``pick_option``) first checks the asker
+    ``settings``, ``pick_setting``, ``unlink``, from ``walk`` ``solo``,
+    ``pick_solo``, ``launch_solo``, ``options``, ``pick_option``, and from
+    ``pilot_walk`` ``pilot``, ``keep_name``, ``change_name``,
+    ``rename_pilot``) first checks the asker
     (``Linker``), then builds each request as JSON text and hands it to
     ``Control.handle`` through ``send``, so the page's own checks apply. It
     returns a ``Reply``: the words, the menus to pick from and the pushes
@@ -26,11 +28,13 @@ Invariants:
     - Every request goes through ``send``; a name off the fixed list comes
       back as ``unknown_command`` from ``Control``, never runs.
     - No reply holds the link code or the token.
+    - A link that succeeds makes the account's pilot if it has none
+      (``PilotWalk.offer``).
     - This module imports nothing from discord and nothing from the web
       server.
 
 Call:
-    ``core = Core(control, linker); reply = core.status(user_id)``
+    ``core = Core(control, linker, pilots); reply = core.status(user_id)``
 """
 
 from __future__ import annotations
@@ -39,12 +43,15 @@ import json
 import logging
 from typing import Any
 
+from ..launch.pilot_store import PilotFileError
+from ..launch.pilot_store import PilotStore
 from ..page.control import Control
 from ..page.control import Outcome
 from ..page.protocol import MAX_ID
 from ..page.protocol import MISSION_TYPE_NAMES
 from . import link as linking
 from .link import Linker
+from .pilot_walk import PilotWalk
 from .reply import clip
 from .reply import menus
 from .reply import Option
@@ -101,13 +108,16 @@ SETTING_WORDS: dict[str, tuple[str, dict[str, tuple[str, str]]]] = {
 """Each setting's name in words, and each value's name and one plain sentence."""
 
 
-class Core(Walk):
-    """The bot's decisions over one ``Control`` and one ``Linker``."""
+class Core(Walk, PilotWalk):
+    """The bot's decisions over one ``Control``, one ``Linker`` and the pilots."""
 
-    def __init__(self, control: Control, linker: Linker, first_id: int = 1) -> None:
-        """Hold the launcher's control and the link; request ids count from ``first_id``."""
+    def __init__(
+        self, control: Control, linker: Linker, pilots: PilotStore, first_id: int = 1
+    ) -> None:
+        """Hold the control, the link and the pilots; request ids count from ``first_id``."""
         self.control = control
         self.linker = linker
+        self.pilots = pilots
         control.host_player = self._host_player
         self._next_id = first_id
         self._ids: list[int] = []
@@ -185,19 +195,25 @@ class Core(Walk):
 
     # ---- the commands -------------------------------------------------
 
-    def link(self, user_id: int, code: str, in_dm: bool) -> Reply:
+    def link(
+        self, user_id: int, code: str, in_dm: bool, names: tuple[str, str] = ("", "")
+    ) -> Reply:
         """Answer ``/link``: the outcome of using ``code`` from account ``user_id``.
 
         Returns a reply that never holds the code. Off a direct message the
         code is not looked at (and so not spent) and the reply says to use
-        a direct message.
+        a direct message. A link that succeeds adds the account's pilot,
+        made from ``names`` (display name, account name) if it has none.
         """
         self._begin("link", user_id)
         if not in_dm:
             return self._refused("link", user_id, "not a direct message", DM_ONLY)
         outcome = self.linker.attempt(user_id, code)
         self._end("link", user_id, outcome)
-        return Reply(LINK_WORDS[outcome])
+        if outcome != linking.LINKED:
+            return Reply(LINK_WORDS[outcome])
+        offer = self.offer(user_id, names)
+        return Reply(f"{LINK_WORDS[outcome]}\n{offer.text}", buttons=offer.buttons)
 
     def unlink(self, user_id: int, in_dm: bool) -> Reply:
         """Answer ``/unlink``: remove the link when ``user_id`` is the linked account.
@@ -240,6 +256,7 @@ class Core(Walk):
             lines.append(f"Balance of Power: {word}.")
         else:
             lines.append("No game install was found.")
+        lines.append(self._pilot_line(user_id))
         self._end("status", user_id, "ok")
         return Reply("\n".join(lines))
 
@@ -383,6 +400,16 @@ class Core(Walk):
         words, values = SETTING_WORDS[name]
         self._end("pick_setting", user_id, "set")
         return Reply(f"{words} set to {values[value][0]}.", pushes=outcome.pushes)
+
+    def _pilot_line(self, user_id: int) -> str:
+        try:
+            pilot = self.pilots.get(user_id)
+        except PilotFileError as exc:
+            logger.warning("pilot of account %d: %s", user_id, exc)
+            return "Pilot: the pilot file cannot be read."
+        if pilot is None:
+            return "Pilot: none yet; the Pilot command makes one."
+        return f"Pilot: {pilot.name}."
 
     def delivered_text(self, reply: Reply, pages: int) -> str:
         """Return the reply's words, with ``NO_PAGE`` added when it had pushes

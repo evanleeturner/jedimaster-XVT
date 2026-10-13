@@ -8,8 +8,9 @@ Purpose:
     two cannot drift apart.
 
 Flow:
-    ``ITEMS`` is the table. ``arguments`` turns a row, the asker and the one
-    typed value (if the row takes one) into the call ``core.<method>(...)``.
+    ``ITEMS`` is the table. ``arguments`` turns a row, the asker, the one
+    typed value (if the row takes one) and the asker's names (if the row
+    takes them) into the call ``core.<method>(...)``.
 
 Invariants:
     - Every row has a right-click name and a slash twin, and both call the
@@ -21,6 +22,8 @@ Invariants:
       is for a direct message or a server.
     - A row that reads files answers after Discord is told to wait
       (``defers``).
+    - A row with ``names`` also gets the asker's two Discord names, the
+      display name and the account name, as plain text.
 
 Call:
     ``for item in ITEMS: print(item.title, "->", item.slash)``
@@ -65,6 +68,7 @@ class Item:
     summary: str
     param: Param | None = None
     defers: bool = False
+    names: bool = False
 
 
 ITEMS: tuple[Item, ...] = (
@@ -96,17 +100,32 @@ ITEMS: tuple[Item, ...] = (
         "link",
         "Link this launcher to your account",
         Param("code", "The code the launcher printed"),
+        names=True,
     ),
     Item("Unlink", "unlink", DM, "unlink", "Unlink this launcher"),
+    Item(
+        "Pilot",
+        "pilot",
+        DM,
+        "pilot",
+        "Show your pilot; change its name once",
+        names=True,
+    ),
 )
 
 
-def arguments(item: Item, user_id: int, in_dm: bool, value: str | None) -> tuple:
+def arguments(
+    item: Item,
+    user_id: int,
+    in_dm: bool,
+    value: str | None,
+    names: tuple[str, str] = ("", ""),
+) -> tuple:
     """Return the arguments of ``core.<item.method>`` for this asker.
 
     The asker's id first, then the typed value when the row takes one, then
-    whether the command came in a direct message. Does not call anything.
+    whether the command came in a direct message, then ``names`` (display
+    name, account name) when the row takes them. Does not call anything.
     """
-    if item.param is None:
-        return (user_id, in_dm)
-    return (user_id, value, in_dm)
+    head = (user_id, in_dm) if item.param is None else (user_id, value, in_dm)
+    return head + (names,) if item.names else head

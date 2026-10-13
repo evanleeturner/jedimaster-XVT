@@ -14,7 +14,9 @@ Flow:
     registry's rows, twice each. A handler calls the matching ``Core`` method
     with the asker's account id (never the person right-clicked), sends the
     reply's pushes to the open pages (``deliver``), then answers with
-    ``answer``. A pick or press goes through ``Door.picked`` / ``pressed``.
+    ``answer``, or opens the reply's window (``TextWindow``), whose typed
+    text goes through ``Door.typed``. A pick or press goes through
+    ``Door.picked`` / ``pressed``.
     ``on_push`` receives a battle's ending from the control. ``Door.run``
     logs in and runs until stopped; on start ``sync_if_changed`` sends the
     command list to Discord only when it differs from the last one sent.
@@ -62,6 +64,7 @@ from .registry import MAX_USER_COMMANDS
 from .reply import Button
 from .reply import Picker
 from .reply import Reply
+from .reply import Window
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +78,11 @@ Deliver = Callable[[list[dict[str, Any]]], Awaitable[int]]
 def in_dm(interaction: discord.Interaction) -> bool:
     """Return True when the command came in a direct message (no server)."""
     return interaction.guild is None
+
+
+def names_of(user: discord.abc.User) -> tuple[str, str]:
+    """Return the person's (display name, account name); "" for a display name not set."""
+    return (user.global_name or "", user.name)
 
 
 def commands_digest(tree: app_commands.CommandTree) -> str:
@@ -140,6 +148,26 @@ class _LinkWindow(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction) -> None:
         """Call the row's method with the typed code; the code is not logged."""
         await self.door.act(self.item, interaction, self.code.value)
+
+
+class TextWindow(discord.ui.Modal):
+    """A window a reply asks for: one text field, starting at the reply's value."""
+
+    def __init__(self, door: Door, window: Window) -> None:
+        super().__init__(title=window.title)
+        self.door = door
+        self.window = window
+        self.text = discord.ui.TextInput(
+            label=window.label,
+            default=window.value,
+            min_length=1,
+            max_length=window.max_length,
+        )
+        self.add_item(self.text)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        """Hand the typed text to the door."""
+        await self.door.typed(interaction, self.window, self.text.value)
 
 
 class Door:
@@ -229,7 +257,8 @@ class Door:
         if item.defers:
             await interaction.response.defer(ephemeral=True)
         user, dm = interaction.user.id, in_dm(interaction)
-        reply = getattr(self.core, item.method)(*arguments(item, user, dm, value))
+        call = arguments(item, user, dm, value, names_of(interaction.user))
+        reply = getattr(self.core, item.method)(*call)
         await self.answer(interaction, reply)
 
     async def answer(self, interaction: discord.Interaction, reply: Reply) -> None:
@@ -238,8 +267,13 @@ class Door:
         Adds the reply's menus and buttons. A reply that edits replaces the
         clicked message; otherwise it is a new private message (a follow-up
         when the interaction was already deferred). Replies in ``then`` follow
-        as messages of their own. Does not check who asked.
+        as messages of their own. A reply with a window opens it instead,
+        which must be the interaction's first answer. Does not check who
+        asked.
         """
+        if reply.window is not None:
+            await interaction.response.send_modal(TextWindow(self, reply.window))
+            return
         pages = await self.deliver(reply.pushes) if reply.pushes else 0
         text = self.core.delivered_text(reply, pages)
         view = self._view(reply)
@@ -336,11 +370,39 @@ class Door:
         await self.answer(interaction, reply)
 
     async def pressed(self, interaction: discord.Interaction, spec: Button) -> None:
-        """Answer a button press: the Launch button asks the launcher to fly the battle."""
-        await interaction.response.defer()
+        """Answer a button press by its kind.
+
+        Launch asks the launcher to fly the battle (deferred first, as it
+        starts a program); Keep name and Change name answer at once, as
+        Change name's window must be the first answer. Another kind is
+        logged and left unanswered.
+        """
         user, dm = interaction.user.id, in_dm(interaction)
-        reply = self.core.launch_solo(user, spec.key, dm)
+        if spec.kind == "solo_launch":
+            await interaction.response.defer()
+            reply = self.core.launch_solo(user, spec.key, dm)
+        elif spec.kind == "pilot_keep":
+            reply = self.core.keep_name(user, dm)
+        elif spec.kind == "pilot_change":
+            reply = self.core.change_name(user, dm)
+        else:
+            logger.warning("a button of unknown kind %r was pressed", spec.kind)
+            return
         await self.answer(interaction, reply)
+
+    async def typed(
+        self, interaction: discord.Interaction, window: Window, text: str
+    ) -> None:
+        """Answer a window's typed text by the window's kind.
+
+        The pilot name window renames the asker's pilot. Another kind is
+        logged and left unanswered.
+        """
+        user, dm = interaction.user.id, in_dm(interaction)
+        if window.kind != "pilot_name":
+            logger.warning("a window of unknown kind %r was sent", window.kind)
+            return
+        await self.answer(interaction, self.core.rename_pilot(user, text, dm))
 
     async def on_push(self, push: dict[str, Any]) -> None:
         """Send a battle's ending to the linked account by direct message.

@@ -8,12 +8,14 @@ Purpose:
 Flow:
     ``make_bot`` builds a ``Control`` over ``pagedata.make_install``, a
     ``Linker`` over a temporary ``bot.json`` with a clock that tests move,
-    and a ``Core``; ``Talk`` is one interaction; ``everything_said`` reads
-    every word the stand-in was given.
+    a ``PilotStore`` over a temporary folder, and a ``Core``; ``Talk`` is
+    one interaction; ``everything_said`` reads every word the stand-in was
+    given.
 
 Invariants:
     - No network, no discord.py client connection, no game data.
-    - The stand-in has only what the handlers read: ``user.id``, ``guild``,
+    - The stand-in has only what the handlers read: ``user.id``,
+      ``user.global_name``, ``user.name``, ``guild``,
       ``response`` (``send_message``, ``edit_message``, ``send_modal``,
       ``defer``, ``is_done``), ``followup.send`` and
       ``edit_original_response``.
@@ -38,6 +40,7 @@ from solodata import make_control
 from jedimaster.bot.core import Core
 from jedimaster.bot.link import BotFile
 from jedimaster.bot.link import Linker
+from jedimaster.launch.pilot_store import PilotStore
 from jedimaster.page.control import Control
 from jedimaster.page.settings import SettingsStore
 
@@ -45,6 +48,8 @@ logger = logging.getLogger(__name__)
 
 HOST = 7001
 STRANGER = 9009
+DISPLAY = "Mr. Webbin"
+ACCOUNT = "mr.webbin"
 
 
 class Clock:
@@ -100,6 +105,8 @@ class Talk:
 
     user_id: int
     in_server: bool = False
+    display: str | None = DISPLAY
+    account: str = ACCOUNT
     response: Response = field(default_factory=Response)
     followup: Followup = field(default_factory=Followup)
     edits: list[dict] = field(default_factory=list)
@@ -110,7 +117,9 @@ class Talk:
 
     @property
     def user(self) -> SimpleNamespace:
-        return SimpleNamespace(id=self.user_id)
+        return SimpleNamespace(
+            id=self.user_id, global_name=self.display, name=self.account
+        )
 
     @property
     def guild(self) -> object | None:
@@ -148,6 +157,7 @@ class Bot:
     store: BotFile
     clock: Clock
     folder: Path
+    pilots: PilotStore
 
     def link_account(self, user_id: int = HOST) -> None:
         """Link ``user_id`` the way a right code would."""
@@ -171,7 +181,9 @@ def make_bot(tmp_path: Path, engine: str | None = None, *extra: str) -> Bot:
     clock = Clock()
     bot_file = BotFile(tmp_path / "config" / "bot.json")
     linker = Linker(bot_file, clock=clock)
-    return Bot(Core(control, linker), linker, control, bot_file, clock, tmp_path)
+    pilots = PilotStore(tmp_path / "config" / "pilots")
+    core = Core(control, linker, pilots)
+    return Bot(core, linker, control, bot_file, clock, tmp_path, pilots)
 
 
 def typed(text: str):

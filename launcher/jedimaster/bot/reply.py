@@ -7,7 +7,8 @@ Purpose:
 
 Flow:
     A ``Reply`` holds the words, the ``Picker`` menus, the ``Button`` s, the
-    pushes for open pages and further replies to send as separate messages.
+    pushes for open pages and further replies to send as separate messages;
+    or, instead of words, a ``Window`` to open, one text field to type in.
     ``menus`` cuts a list of ``Option`` s into pickers.
 
 Invariants:
@@ -70,13 +71,25 @@ class Button:
     key: str
 
 
+@dataclass(frozen=True)
+class Window:
+    """A window with one text field: what it is for, its words, its start value."""
+
+    kind: str
+    title: str
+    label: str
+    value: str
+    max_length: int
+
+
 @dataclass
 class Reply:
     """What to send back.
 
     ``text`` the words; ``pickers`` and ``buttons`` the controls under them;
     ``pushes`` for open pages; ``then`` further replies, each its own message;
-    ``edit`` true when the reply replaces the message that was clicked.
+    ``edit`` true when the reply replaces the message that was clicked;
+    ``window`` a window to open instead of answering in words.
     """
 
     text: str
@@ -85,6 +98,7 @@ class Reply:
     buttons: tuple[Button, ...] = ()
     then: tuple[Reply, ...] = ()
     edit: bool = False
+    window: Window | None = None
 
 
 def clip(text: str) -> str:
