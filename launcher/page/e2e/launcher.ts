@@ -4,7 +4,8 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { test as base } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect as baseExpect, test as base } from "@playwright/test";
 
 const LAUNCHER_FOLDER = join(import.meta.dirname, "..", "..");
 const PAGE_FOLDER = join(import.meta.dirname, "..", "dist");
@@ -21,7 +22,25 @@ const TRAIN_MENU = [
   "Second Flight",
   "",
 ].join("\r\n");
-const MELEE_MENU = ["[Open]", "7", "DELTA.TIE", "Open Field", ""].join("\r\n");
+// Ten filler missions come first so that "Open Field" sits below the fold of
+// its scrolling list: only a scroll to the mark brings it into view.
+const MELEE_FILLER = Array.from({ length: 10 }, (_, i) => [
+  String(101 + i),
+  `FILL${String(i)}.TIE`,
+  `Filler ${String(i)}`,
+]).flat();
+const MELEE_MENU = [
+  "[Open]",
+  ...MELEE_FILLER,
+  "7",
+  "DELTA.TIE",
+  "Open Field",
+  "[Later]",
+  "8",
+  "DELTA.TIE",
+  "Later Field",
+  "",
+].join("\r\n");
 
 export interface Launcher {
   readonly url: string;
@@ -162,4 +181,29 @@ export const test = base.extend<{ launcher: Launcher }>({
   },
 });
 
-export { expect } from "@playwright/test";
+export const expect = baseExpect;
+
+/** Open the menu whose button reads `name` (Missions, Battle, Pilot, ...). */
+export async function openMenu(page: Page, name: string): Promise<void> {
+  const button = page.locator(".menu-btn", { hasText: name });
+  if ((await button.getAttribute("aria-expanded")) !== "true") {
+    await button.click();
+  }
+  await expect(button).toHaveAttribute("aria-expanded", "true");
+}
+
+/** Show `title` from the Missions menu, picking its kind first. */
+export async function showMission(
+  page: Page,
+  title: string,
+  kind = "Training",
+): Promise<void> {
+  await openMenu(page, "Missions");
+  await page
+    .locator("#missions-kinds")
+    .getByRole("button", { name: new RegExp(`^${kind}`) })
+    .click();
+  await page
+    .getByRole("button", { name: `Show ${title}`, exact: true })
+    .click();
+}

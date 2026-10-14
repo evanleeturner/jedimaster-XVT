@@ -51,6 +51,7 @@ export function pickerTeams(bundle: BriefingBundle): number[] {
 export class BriefingPanel {
   readonly #body = find(HTMLDivElement, "#briefing-body");
   readonly #note = find(HTMLParagraphElement, "#briefing-note");
+  readonly #empty = find(HTMLDivElement, "#briefing-empty");
   readonly #stage = find(HTMLDivElement, "#briefing-stage");
   readonly #canvas = find(HTMLCanvasElement, "#briefing-canvas");
   readonly #page = find(HTMLParagraphElement, "#briefing-page");
@@ -108,6 +109,7 @@ export class BriefingPanel {
     this.#player = null;
     this.#body.hidden = true;
     this.#note.hidden = false;
+    this.#empty.hidden = false;
     setText(this.#note, note);
   }
 
@@ -124,6 +126,7 @@ export class BriefingPanel {
     this.#opening = ticket;
     setText(this.#note, "Loading the briefing.");
     this.#note.hidden = false;
+    this.#empty.hidden = false;
     this.#body.hidden = true;
     const sprites = await loadSprites(bundle);
     if (ticket !== this.#opening) return;
@@ -146,6 +149,7 @@ export class BriefingPanel {
     );
     this.#teamBox.hidden = teams.length < 2;
     this.#note.hidden = true;
+    this.#empty.hidden = true;
     this.#body.hidden = false;
     this.#openTeam(teams[0] ?? 0);
   }

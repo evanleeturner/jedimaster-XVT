@@ -564,3 +564,82 @@ test("a time limit of 20 is in minutes and the mission's own limit is in words",
   ).optionsRows;
   assert.equal(rows?.[5]?.value, "20 minutes");
 });
+
+const SHOW_FIRST: Message = {
+  event: "page.show_mission",
+  data: { mission_type: "training", id: 1, title: "First" },
+};
+
+test("the kinds list each type with its groups in the game's order and its count", () => {
+  const view = describe(
+    play(message({ id: 3, ok: true, result: { menus: [TRAINING, MELEE] } })),
+  );
+  assert.deepEqual(
+    view.kinds.map((k) => [k.id, k.label, k.count]),
+    [
+      ["training", "Training", 2],
+      ["melee", "Melee", 0],
+    ],
+  );
+  assert.deepEqual(
+    view.kinds[0]?.groups.map((g) => [g.name, g.missions.length]),
+    [
+      ["Basic", 1],
+      ["All missions", 1],
+    ],
+  );
+  assert.deepEqual(
+    view.kinds.map((k) => k.note),
+    [
+      null,
+      "The game's list for this kind of mission was not found (melee\\mission.lst).",
+    ],
+  );
+  assert.deepEqual(view.kinds[1]?.groups, []);
+});
+
+test("a mission row has a Show request only when available, and the shown one is current", () => {
+  const view = describe(
+    play(
+      message({ id: 3, ok: true, result: { menus: [TRAINING] } }),
+      message(SHOW_FIRST),
+    ),
+  );
+  const [basic, rest] = view.kinds[0]?.groups ?? [];
+  assert.deepEqual(basic?.missions[0], {
+    title: "First",
+    current: true,
+    pick: { missionType: "training", id: 1, label: "Show First" },
+  });
+  assert.deepEqual(rest?.missions[0], {
+    title: "Second",
+    current: false,
+    pick: null,
+  });
+  const other: MenuData = {
+    ...MELEE,
+    resolved: true,
+    entries: [
+      { section: "", id: 1, available: true, file: "m.tie", title: "Melee" },
+    ],
+  };
+  const both = describe(
+    play(menusReply(TRAINING, other), showPush("training", 1)),
+  );
+  assert.equal(both.kinds[1]?.groups[0]?.missions[0]?.current, false);
+});
+
+test("the shown heading names the kind, the group and the title; it is null before a pick", () => {
+  assert.equal(describe(initialState()).shownWhere, null);
+  const view = describe(
+    play(
+      message({ id: 3, ok: true, result: { menus: [TRAINING] } }),
+      message(SHOW_FIRST),
+    ),
+  );
+  assert.deepEqual(view.shownWhere, {
+    kind: "Training",
+    group: "Basic",
+    title: "First",
+  });
+});

@@ -361,9 +361,9 @@ SITE_PLANTS: list[Plant] = [
     Plant(
         "web-main-missions-not-drawn",
         MAI,
-        "  missionsBody.replaceChildren(...view.menus.flatMap(menuElements));",
-        "  missionsBody.replaceChildren();",
-        (B + "missions list each menu",),
+        "    missionList.replaceChildren(...rows.map(missionItem));",
+        "    missionList.replaceChildren();",
+        ("browser: missions list each menu",),
     ),
     Plant(
         "web-main-choice-not-shown",
@@ -381,17 +381,17 @@ SITE_PLANTS: list[Plant] = [
     ),
     Plant(
         "web-main-headings-flat",
-        MAI,
-        '  const heading = document.createElement("h3");',
-        '  const heading = document.createElement("h5");',
-        (B + "missions list each menu",),
+        HTM,
+        "<h3>Kind</h3>",
+        "<h5>Kind</h5>",
+        ("browser: Missions shows Kind, then Group, then Mission",),
     ),
     Plant(
         "web-main-list-as-text",
         MAI,
-        '      const item = document.createElement("li");',
-        '      const item = document.createElement("div");',
-        (B + "missions list each menu",),
+        '  const item = document.createElement("li");\n  item.className = "mission-item";',
+        '  const item = document.createElement("div");\n  item.className = "mission-item";',
+        ("browser: missions list each menu",),
     ),
     Plant(
         "web-main-inline-style",
@@ -438,16 +438,16 @@ SITE_PLANTS: list[Plant] = [
     Plant(
         "web-html-status-not-live",
         HTM,
-        '<div class="status-region" role="status">',
-        '<div class="status-region">',
-        (B + "status shows the connection",),
+        '<p class="connection-line" id="status-connection" role="status">',
+        '<p class="connection-line" id="status-connection">',
+        ("browser: status shows the connection",),
     ),
     Plant(
         "web-html-region-unnamed",
         HTM,
-        ' id="missions" aria-labelledby="missions-heading">',
-        ' id="missions">',
-        (B + "missions list each menu",),
+        '                  id="missions"\n                  aria-labelledby="missions-heading"\n',
+        '                  id="missions"\n',
+        ("browser: missions list each menu",),
     ),
     Plant(
         "web-html-legend-changed",
@@ -466,19 +466,19 @@ SITE_PLANTS: list[Plant] = [
     Plant(
         "web-html-label-unlinked",
         HTM,
-        '<label class="choice-label" for="art-engine-fit">Engine fit</label>',
-        '<label class="choice-label" for="art-nothing">Engine fit</label>',
+        'for="art-engine-fit"',
+        'for="art-nothing"',
         (
-            B + "art scaling has three choices",
-            B + "axe finds nothing in the light scheme",
+            "browser: art scaling has three choices",
+            "browser: axe finds nothing in the dark scheme",
         ),
     ),
     Plant(
         "web-html-radios-in-two-groups",
         HTM,
-        '              name="art-scaling"\n              type="radio"\n              value="engine_fit"',
-        '              name="art-scaling-2"\n              type="radio"\n              value="engine_fit"',
-        (B + "a keyboard alone reaches every control",),
+        '                        name="art-scaling"\n                        type="radio"\n                        value="engine_fit"',
+        '                        name="art-scaling-2"\n                        type="radio"\n                        value="engine_fit"',
+        ("browser: a keyboard alone reaches every control",),
     ),
     Plant(
         "web-html-inline-handler",
@@ -495,11 +495,11 @@ SITE_PLANTS: list[Plant] = [
         (B + "the page keeps scripts and styles in their files",),
     ),
     Plant(
-        "web-html-nav-link-lost",
+        "web-html-pilot-menu-not-tabbable",
         HTM,
-        '          <li><a class="nav-link" href="#missions">Missions</a></li>\n',
-        "",
-        (B + "a keyboard alone reaches every control",),
+        'aria-controls="panel-pilot"',
+        'aria-controls="panel-pilot"\n                tabindex="-1"',
+        ("browser: a keyboard alone reaches every control",),
     ),
     Plant(
         "web-css-focus-ring-gone",
@@ -516,32 +516,28 @@ SITE_PLANTS: list[Plant] = [
         (B + "a keyboard alone reaches every control",),
     ),
     Plant(
-        "web-css-muted-text-faint-light",
-        CSS,
-        "  --text-muted: #464b55;",
-        "  --text-muted: #a0a4ad;",
-        (B + "axe finds nothing in the light scheme",),
-    ),
-    Plant(
         "web-css-muted-text-faint-dark",
         CSS,
-        "    --text-muted: #b9bec7;",
-        "    --text-muted: #4a4f59;",
-        (B + "axe finds nothing in the dark scheme",),
+        "  --text-muted: #a3b1c2;",
+        "  --text-muted: #4a4f59;",
+        ("browser: axe finds nothing in the dark scheme",),
     ),
     Plant(
-        "web-css-link-faint-dark",
+        "web-css-soft-text-faint-dark",
         CSS,
-        "    --link: #8db6ff;",
-        "    --link: #2a4a80;",
-        (B + "axe finds nothing in the dark scheme",),
+        "  --text-soft: #c9d4e1;",
+        "  --text-soft: #3a4a5e;",
+        ("browser: axe finds nothing in the dark scheme",),
     ),
     Plant(
         "web-css-dark-scheme-missing",
         CSS,
-        "@media (prefers-color-scheme: dark) {\n  :root {",
-        "@media (prefers-color-scheme: nothing) {\n  :root {",
-        (B + "the dark scheme has a dark background",),
+        "  --page-bg: #0a0e13;",
+        "  --page-bg: #f0f2f5;",
+        (
+            "browser: the dark scheme has a dark background",
+            "browser: the light scheme still has a dark background",
+        ),
     ),
     Plant(
         "web-css-radio-too-small",
@@ -560,9 +556,9 @@ SITE_PLANTS: list[Plant] = [
     Plant(
         "web-css-page-wider-than-phone",
         CSS,
-        "  max-inline-size: 60rem;",
-        "  min-inline-size: 30rem;\n  max-inline-size: 60rem;",
-        (B + "controls are at least 24 by 24 pixels and the page reflows",),
+        "  max-inline-size: 90rem;\n  margin-inline: auto;",
+        "  min-inline-size: 30rem;\n  max-inline-size: 90rem;\n  margin-inline: auto;",
+        ("browser: controls are at least 24 by 24 pixels and the page reflows",),
     ),
     Plant(
         "web-css-motion-always",
@@ -619,9 +615,9 @@ SHOW_VIEW_PLANTS: list[Plant] = [
     Plant(
         "web-state-mark-any-type",
         STA,
-        "    shown?.mission_type === menu.mission_type",
-        "    shown !== null",
-        (N + "the mark needs the same type as well as the same id",),
+        "    shown?.mission_type === menu.mission_type\n      ? menu.entries.findIndex(",
+        "    shown !== null\n      ? menu.entries.findIndex(",
+        ("node: the mark needs the same type as well as the same id",),
     ),
     Plant(
         "web-state-mark-any-id",
@@ -668,30 +664,30 @@ SHOW_VIEW_PLANTS: list[Plant] = [
     Plant(
         "web-main-mark-never-set",
         MAI,
-        '      if (entry.current) item.setAttribute("aria-current", "true");\n',
-        "",
-        (B + "a mission shown from a second socket",),
+        '    if (current) item.setAttribute("aria-current", "true");',
+        '    if (current) item.removeAttribute("aria-current");',
+        ("browser: a mission shown from a second socket",),
     ),
     Plant(
         "web-main-mark-says-page",
         MAI,
-        'current === true) item.setAttribute("aria-current", "true");',
-        'current === true) item.setAttribute("aria-current", "page");',
-        (B + "a mission shown from a second socket",),
+        '    if (current) item.setAttribute("aria-current", "true");',
+        '    if (current) item.setAttribute("aria-current", "page");',
+        ("browser: a mission shown from a second socket",),
     ),
     Plant(
         "web-main-no-scroll",
         MAI,
-        '    mark.scrollIntoView({ block: "center" });',
+        "    missionList.scrollTop = mark.offsetTop - missionList.clientHeight / 2;",
         "    void mark;",
-        (B + "a mission shown from a second socket",),
+        ("browser: a mission shown from a second socket",),
     ),
     Plant(
         "web-main-focus-moves",
         MAI,
-        '    mark.scrollIntoView({ block: "center" });',
-        '    mark.setAttribute("tabindex", "-1");\n    (mark as HTMLElement).focus();\n    mark.scrollIntoView({ block: "center" });',
-        (B + "a mission shown from a second socket",),
+        '  setText(shownTitle, where?.title ?? "");',
+        '  setText(shownTitle, where?.title ?? "");\n  if (where !== null) {\n    shownTitle.setAttribute("tabindex", "-1");\n    shownTitle.focus();\n  }',
+        ("browser: a mission shown from a second socket",),
     ),
     Plant(
         "web-main-nothing-announced",
@@ -723,4 +719,434 @@ SHOW_VIEW_PLANTS: list[Plant] = [
     ),
 ]
 
-VIEW_PLANTS: list[Plant] = [*STATE_PLANTS, *SITE_PLANTS, *SHOW_VIEW_PLANTS]
+MENU_PLANTS: list[Plant] = [
+    Plant(
+        "web-main-escape-ignored",
+        MAI,
+        'event.key === "Escape" && openPanel',
+        'event.key === "Escapes" && openPanel',
+        ("browser: Escape closes the open menu and returns focus to its button",),
+    ),
+    Plant(
+        "web-main-escape-no-refocus",
+        MAI,
+        'if (event.key === "Escape" && openPanel !== "") closePanel(true);',
+        'if (event.key === "Escape" && openPanel !== "") closePanel(false);',
+        ("browser: Escape closes the open menu and returns focus to its button",),
+    ),
+    Plant(
+        "web-main-pick-no-refocus",
+        MAI,
+        "    closePanel(true);\n  }\n}\n\nfunction onCancel",
+        "    closePanel(false);\n  }\n}\n\nfunction onCancel",
+        (
+            "browser: Missions shows Kind, then Group, then Mission, and marks the shown one",
+        ),
+    ),
+    Plant(
+        "web-main-pick-keeps-menu-open",
+        MAI,
+        "    closePanel(true);\n  }\n}\n\nfunction onCancel",
+        "  }\n}\n\nfunction onCancel",
+        (
+            "browser: Missions shows Kind, then Group, then Mission, and marks the shown one",
+        ),
+    ),
+    Plant(
+        "web-main-two-panels-open",
+        MAI,
+        "    const open = panel?.id === id;",
+        '    const open = panel?.id === id || (id !== "" && panel?.hidden === false);',
+        ("browser: only one menu panel is open at a time",),
+    ),
+    Plant(
+        "web-main-expanded-never-set",
+        MAI,
+        '    button.setAttribute("aria-expanded", String(open));',
+        "    void open;",
+        ("browser: aria-expanded on each menu button follows its panel",),
+    ),
+    Plant(
+        "web-main-expanded-always-true",
+        MAI,
+        '    button.setAttribute("aria-expanded", String(open));',
+        '    button.setAttribute("aria-expanded", "true");',
+        ("browser: aria-expanded on each menu button follows its panel",),
+    ),
+    Plant(
+        "web-main-outside-click-ignored",
+        MAI,
+        'document.addEventListener("click", onDocumentClick);\n',
+        "",
+        ("browser: a click outside closes the open menu without moving focus",),
+    ),
+    Plant(
+        "web-main-outside-click-moves-focus",
+        MAI,
+        'if (target.closest(".dd, #open-missions") === null) closePanel(false);',
+        'if (target.closest(".dd, #open-missions") === null) closePanel(true);',
+        ("browser: a click outside closes the open menu without moving focus",),
+    ),
+    Plant(
+        "web-main-click-inside-closes",
+        MAI,
+        'target.closest(".dd, #open-missions") === null',
+        'target.closest("#open-missions") === null',
+        ("browser: missions list each menu",),
+    ),
+    Plant(
+        "web-html-live-region-in-panel",
+        HTM,
+        '<p id="status-version">',
+        '<p id="status-version" aria-live="polite">',
+        ("browser: no live region sits inside a menu panel",),
+    ),
+    Plant(
+        "web-html-alert-in-panel",
+        HTM,
+        '<p id="status-install">',
+        '<p id="status-install" role="alert">',
+        ("browser: no live region sits inside a menu panel",),
+    ),
+    Plant(
+        "web-html-status-role-in-panel",
+        HTM,
+        '<p id="status-balance">',
+        '<p id="status-balance" role="status">',
+        ("browser: no live region sits inside a menu panel",),
+    ),
+    Plant(
+        "web-html-options-list-live",
+        HTM,
+        '<dl class="options-list" id="options-list"></dl>',
+        '<dl class="options-list" id="options-list" aria-live="polite"></dl>',
+        ("browser: no live region sits inside a menu panel",),
+    ),
+    Plant(
+        "web-html-problem-not-alert",
+        HTM,
+        '<p class="problem" id="problem" role="alert" hidden></p>',
+        '<p class="problem" id="problem" hidden></p>',
+        ("browser: no live region sits inside a menu panel",),
+    ),
+    Plant(
+        "web-css-missions-columns-stacked",
+        CSS,
+        ".missions-body {\n  display: flex;\n  flex-wrap: wrap;",
+        ".missions-body {\n  display: flex;\n  flex-direction: column;\n  flex-wrap: wrap;",
+        (
+            "browser: Missions shows Kind, then Group, then Mission, and marks the shown one",
+        ),
+    ),
+    Plant(
+        "web-html-group-heading-renamed",
+        HTM,
+        "<h3>Group</h3>",
+        "<h3>Section</h3>",
+        (
+            "browser: Missions shows Kind, then Group, then Mission, and marks the shown one",
+        ),
+    ),
+    Plant(
+        "web-main-kind-not-pressed",
+        MAI,
+        "      String(button.dataset.kind === pickedKind),",
+        '      "false",',
+        (
+            "browser: Missions shows Kind, then Group, then Mission, and marks the shown one",
+        ),
+    ),
+    Plant(
+        "web-main-group-heading-fixed",
+        MAI,
+        'setText(groupHeading, pickedGroup === "" ? "Mission" : pickedGroup);',
+        'setText(groupHeading, "Mission");',
+        (
+            "browser: Missions shows Kind, then Group, then Mission, and marks the shown one",
+        ),
+    ),
+    Plant(
+        "web-state-empty-note-changed",
+        STA,
+        'none: "Pick a mission to see its briefing.",',
+        'none: "Pick one.",',
+        (
+            "browser: with nothing shown the centre pane asks for a pick and Open Missions opens the menu",
+        ),
+    ),
+    Plant(
+        "web-main-open-missions-dead",
+        MAI,
+        'openMissionsButton.addEventListener("click", onOpenMissions);\n',
+        "",
+        (
+            "browser: with nothing shown the centre pane asks for a pick and Open Missions opens the menu",
+        ),
+    ),
+    Plant(
+        "web-main-open-missions-no-focus",
+        MAI,
+        '  openerOf("panel-missions")?.focus();\n',
+        "",
+        (
+            "browser: with nothing shown the centre pane asks for a pick and Open Missions opens the menu",
+        ),
+    ),
+    Plant(
+        "web-main-shown-heading-always",
+        MAI,
+        "  shownHeading.hidden = where === null;",
+        "  shownHeading.hidden = false;",
+        (
+            "browser: with nothing shown the centre pane asks for a pick and Open Missions opens the menu",
+        ),
+    ),
+    Plant(
+        "web-main-follow-kind-lost",
+        MAI,
+        "  pickedKind = view.kinds.find((k) => k.label === where.kind)?.id ?? pickedKind;",
+        "  void pickedKind;",
+        (
+            "browser: a mission shown by the bot moves the centre pane and the Missions mark",
+        ),
+    ),
+    Plant(
+        "web-main-follow-group-lost",
+        MAI,
+        "  pickedGroup = where.group;\n",
+        '  pickedGroup = "";\n',
+        (
+            "browser: a mission shown by the bot moves the centre pane and the Missions mark",
+        ),
+    ),
+    Plant(
+        "web-main-follow-never",
+        MAI,
+        "  if (view.shownCount === syncedFor) return;",
+        "  if (view.shownCount >= 0) return;",
+        (
+            "browser: a mission shown by the bot moves the centre pane and the Missions mark",
+        ),
+    ),
+    Plant(
+        "web-main-shown-title-unset",
+        MAI,
+        '  setText(shownTitle, where?.title ?? "");\n',
+        '  setText(shownTitle, "");\n',
+        (
+            "browser: a mission shown by the bot moves the centre pane and the Missions mark",
+        ),
+    ),
+    Plant(
+        "web-main-shown-where-no-kind",
+        MAI,
+        "`${where.kind} \\u00b7 ${where.group}`",
+        "`${where.group}`",
+        (
+            "browser: a mission shown by the bot moves the centre pane and the Missions mark",
+        ),
+    ),
+    Plant(
+        "web-main-strip-always-shown",
+        MAI,
+        "  stripRow.hidden = !strip;",
+        "  stripRow.hidden = false;",
+        (
+            "browser: the battle strip shows while a battle flies, offers Cancel and shows the ending",
+        ),
+    ),
+    Plant(
+        "web-main-strip-tag-fixed",
+        MAI,
+        'view.battleEnding === null ? "Battle flying" : "Battle over",',
+        '"Battle flying",',
+        (
+            "browser: the battle strip shows while a battle flies, offers Cancel and shows the ending",
+        ),
+    ),
+    Plant(
+        "web-main-badge-never",
+        MAI,
+        "  battleBadge.hidden = !view.cancelShown;",
+        "  battleBadge.hidden = true;",
+        (
+            "browser: the battle strip shows while a battle flies, offers Cancel and shows the ending",
+        ),
+    ),
+    Plant(
+        "web-main-strip-line-unset",
+        MAI,
+        '  setText(battleLine, view.battleLine ?? "");',
+        '  setText(battleLine, "");',
+        (
+            "browser: the battle strip shows while a battle flies, offers Cancel and shows the ending",
+        ),
+    ),
+    Plant(
+        "web-css-panels-wider-than-phone",
+        CSS,
+        "    inset-inline: 1rem;\n    inline-size: auto;\n    max-inline-size: none;",
+        "    inset-inline: 1rem;\n    inline-size: 40rem;\n    max-inline-size: none;",
+        ("browser: with a menu open nothing scrolls sideways at 320 wide",),
+    ),
+    Plant(
+        "web-css-menu-bar-no-wrap",
+        CSS,
+        ".nav-list {\n  display: flex;\n  flex-wrap: wrap;",
+        ".nav-list {\n  display: flex;\n  flex-wrap: nowrap;",
+        ("browser: with a menu open nothing scrolls sideways at 320 wide",),
+    ),
+    Plant(
+        "web-css-row-count-faint",
+        CSS,
+        "  font-size: 0.8125rem;\n  color: var(--text-muted);\n}\n\n.battle-strip",
+        "  font-size: 0.8125rem;\n  color: #2a3a4e;\n}\n\n.battle-strip",
+        (
+            "browser: axe finds nothing in the dark scheme with each menu open",
+            "browser: axe finds nothing in the light scheme with each menu open",
+        ),
+    ),
+    Plant(
+        "web-html-menu-controls-dangling",
+        HTM,
+        'aria-controls="panel-status"',
+        'aria-controls="panel-nothing"',
+        (
+            "browser: axe finds nothing in the dark scheme with each menu open",
+            "browser: axe finds nothing in the light scheme with each menu open",
+        ),
+    ),
+    Plant(
+        "web-css-briefing-never-stacks",
+        CSS,
+        "@media (width <= 900px) {\n  .briefing-layout {",
+        "@media (width <= 300px) {\n  .briefing-layout {",
+        (
+            "browser: below 900 wide the briefing text sits under the stage, and beside it when wider",
+        ),
+    ),
+    Plant(
+        "web-css-briefing-always-stacks",
+        CSS,
+        "  grid-template-columns: minmax(0, 1fr) 20rem;",
+        "  grid-template-columns: minmax(0, 1fr);",
+        (
+            "browser: below 900 wide the briefing text sits under the stage, and beside it when wider",
+        ),
+    ),
+    Plant(
+        "web-state-kind-count-wrong",
+        STA,
+        "    count: menu.entries.length,",
+        "    count: 0,",
+        (
+            "node: the kinds list each type with its groups in the game's order and its count",
+        ),
+    ),
+    Plant(
+        "web-state-kind-note-lost",
+        STA,
+        "  const note = menuView(menu, shown).note;",
+        "  const note = null;",
+        (
+            "node: the kinds list each type with its groups in the game's order and its count",
+        ),
+    ),
+    Plant(
+        "web-state-kind-ungrouped-nameless",
+        STA,
+        '    const name = entry.section === "" ? UNGROUPED : entry.section;',
+        "    const name = entry.section;",
+        (
+            "node: the kinds list each type with its groups in the game's order and its count",
+        ),
+    ),
+    Plant(
+        "web-state-kind-label-raw",
+        STA,
+        "  const label = titleCase(menu.mission_type);",
+        "  const label = menu.mission_type;",
+        (
+            "node: the kinds list each type with its groups in the game's order and its count",
+        ),
+    ),
+    Plant(
+        "web-state-kind-current-never",
+        STA,
+        "      current:\n        shown?.mission_type === menu.mission_type && shown.id === entry.id,",
+        "      current: false,",
+        (
+            "node: a mission row has a Show request only when available, and the shown one is current",
+        ),
+    ),
+    Plant(
+        "web-state-kind-mark-any-type",
+        STA,
+        "        shown?.mission_type === menu.mission_type && shown.id === entry.id,",
+        "        shown !== null && shown.id === entry.id,",
+        (
+            "node: a mission row has a Show request only when available, and the shown one is current",
+        ),
+    ),
+    Plant(
+        "web-state-kind-locked-button",
+        STA,
+        "shown.id === entry.id,\n      pick:\n        entry.available && isMissionType(menu.mission_type)",
+        "shown.id === entry.id,\n      pick:\n        isMissionType(menu.mission_type)",
+        (
+            "node: a mission row has a Show request only when available, and the shown one is current",
+        ),
+    ),
+    Plant(
+        "web-state-kind-pick-label",
+        STA,
+        "shown.id === entry.id,\n      pick:\n        entry.available && isMissionType(menu.mission_type)\n          ? {\n              missionType: menu.mission_type,\n              id: entry.id,\n              label: `Show ${entry.title}`",
+        "shown.id === entry.id,\n      pick:\n        entry.available && isMissionType(menu.mission_type)\n          ? {\n              missionType: menu.mission_type,\n              id: entry.id,\n              label: `Show ${entry.file}`",
+        (
+            "node: a mission row has a Show request only when available, and the shown one is current",
+        ),
+    ),
+    Plant(
+        "web-state-where-no-kind",
+        STA,
+        "    kind: titleCase(shown.mission_type),",
+        "    kind: shown.mission_type,",
+        (
+            "node: the shown heading names the kind, the group and the title; it is null before a pick",
+        ),
+    ),
+    Plant(
+        "web-state-where-section-lost",
+        STA,
+        '  const section = entry?.section ?? "";',
+        '  const section = "";',
+        (
+            "node: the shown heading names the kind, the group and the title; it is null before a pick",
+        ),
+    ),
+    Plant(
+        "web-state-where-before-pick",
+        STA,
+        "  if (shown === null) return null;\n  const menu",
+        '  if (shown === null) return { kind: "", group: "", title: "" };\n  const menu',
+        (
+            "node: the shown heading names the kind, the group and the title; it is null before a pick",
+        ),
+    ),
+    Plant(
+        "web-state-where-title-lost",
+        STA,
+        "    title: shown.title,\n  };\n}",
+        "    title: shown.mission_type,\n  };\n}",
+        (
+            "node: the shown heading names the kind, the group and the title; it is null before a pick",
+        ),
+    ),
+]
+
+VIEW_PLANTS: list[Plant] = [
+    *STATE_PLANTS,
+    *SITE_PLANTS,
+    *SHOW_VIEW_PLANTS,
+    *MENU_PLANTS,
+]

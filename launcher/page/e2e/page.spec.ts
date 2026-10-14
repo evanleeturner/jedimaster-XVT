@@ -1,17 +1,17 @@
 import { AxeBuilder } from "@axe-core/playwright";
-import type { BrowserContext, Page } from "@playwright/test";
+import type { BrowserContext, Locator, Page } from "@playwright/test";
 
-import { expect, test } from "./launcher.ts";
+import { expect, openMenu, showMission, test } from "./launcher.ts";
 
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"];
 
 async function openPage(page: Page, url: string): Promise<void> {
   await page.goto(url);
   await expect(page.getByText("Connected to the launcher.")).toBeVisible();
-  await expect(page.getByText("Launcher version: 0.1.0")).toBeVisible();
-  await expect(
-    page.getByText("Training missions", { exact: true }),
-  ).toBeVisible();
+  await expect(page.locator("#status-version")).toHaveText(
+    "Launcher version: 0.1.0",
+  );
+  await expect(page.locator("#missions-kinds button")).toHaveCount(6);
   await expect(page.getByLabel("Whole pixels")).toBeEnabled();
 }
 
@@ -53,8 +53,15 @@ test("status shows the connection, the version, the install and Balance of Power
   launcher,
 }) => {
   await openPage(page, launcher.url);
-  const region = page.getByRole("status");
-  await expect(region).toContainText("Connected to the launcher.");
+  await expect(page.locator("#status-connection")).toHaveText(
+    "Connected to the launcher.",
+  );
+  await expect(page.locator("#status-connection")).toHaveAttribute(
+    "role",
+    "status",
+  );
+  await openMenu(page, "Status");
+  const region = page.getByRole("region", { name: "Status" });
   await expect(region).toContainText("Launcher version: 0.1.0");
   await expect(region).toContainText(`Game install: ${launcher.installFolder}`);
   await expect(region).toContainText("Balance of Power: found.");
@@ -66,21 +73,36 @@ test("missions list each menu, with availability in words", async ({
   launcher,
 }) => {
   await openPage(page, launcher.url);
+  await openMenu(page, "Missions");
   const missions = page.getByRole("region", { name: "Missions" });
+  const kinds = missions.locator("#missions-kinds").getByRole("button");
+  await expect(kinds).toHaveCount(6);
+  await expect(kinds.first()).toHaveText(/Training\s*2/);
+  await expect(missions.locator("#missions-groups button")).toHaveText([
+    /Basic\s*2/,
+  ]);
+  const rows = missions.locator("#missions-list li");
+  await expect(rows.filter({ hasText: "First Flight" })).toHaveText(
+    /^First Flight\s+Show$/,
+    { useInnerText: true },
+  );
   await expect(
-    missions.getByRole("heading", { level: 3, name: "Training missions" }),
-  ).toBeVisible();
-  await expect(
-    missions.getByRole("listitem").filter({ hasText: "First Flight" }),
-  ).toHaveText("Basic: First Flight (alpha.tie), available Show First Flight");
-  await expect(
-    missions.getByRole("listitem").filter({ hasText: "Second Flight" }),
-  ).toHaveText("Basic: Second Flight (bravo.tie), not available");
-  await expect(
-    missions.getByRole("listitem").filter({ hasText: "Open Field" }),
-  ).toHaveText("Open: Open Field (delta.tie), available Show Open Field");
-  await expect(missions.getByRole("heading", { level: 3 })).toHaveCount(6);
-  await expect(missions).toContainText("was not found (tourn\\mission.lst)");
+    rows.filter({ hasText: "First Flight" }).getByRole("button"),
+  ).toHaveAccessibleName("Show First Flight");
+  await expect(rows.filter({ hasText: "Second Flight" })).toHaveText(
+    /^Second Flight\s+Not open yet$/,
+    { useInnerText: true },
+  );
+  await kinds.nth(1).click();
+  await expect(rows.filter({ hasText: "Open Field" })).toHaveText(
+    /^Open Field\s+Show$/,
+    { useInnerText: true },
+  );
+  await expect(missions.locator("#missions-group-heading")).toHaveText("Open");
+  await kinds.nth(2).click();
+  await expect(missions.locator("#missions-kind-note")).toContainText(
+    "was not found (tourn\\mission.lst)",
+  );
 });
 
 async function askFromSecondSocket(
@@ -125,42 +147,46 @@ async function callFromSecondSocket(
   return reply as { ok: boolean; result: Record<string, unknown> };
 }
 
-test("a mission shown from a second socket is marked, scrolled to and announced", async ({
+test("a mission shown from a second socket is marked, shown and announced", async ({
   page,
   launcher,
   context,
 }) => {
-  await page.setViewportSize({ width: 800, height: 260 });
   await openPage(page, launcher.url);
-  const far = page.getByRole("listitem").filter({ hasText: "Open Field" });
-  const first = page.getByRole("listitem").filter({ hasText: "First Flight" });
+  const settings = page.locator(".menu-btn", { hasText: "Settings" });
   await expect(page.locator("[aria-current]")).toHaveCount(0);
-  await expect(far).not.toBeInViewport();
-  await page.getByRole("link", { name: "Settings" }).focus();
+  await settings.focus();
   const reply = await askFromSecondSocket(context, launcher.origin, {
     mission_type: "melee",
     id: 7,
   });
   expect(reply).toEqual({ id: 1, ok: true, result: { shown: true } });
-  await expect(far).toHaveAttribute("aria-current", "true");
-  await expect(page.locator("[aria-current]")).toHaveCount(1);
-  await expect(far).toBeInViewport();
   await expect(page.locator("#mission-shown")).toHaveText("Showing Open Field");
   await expect(page.locator("#mission-shown")).toHaveAttribute(
     "aria-live",
     "polite",
   );
+  await expect(settings).toBeFocused();
+  await openMenu(page, "Missions");
+  const far = page
+    .locator("#missions-list li")
+    .filter({ hasText: "Open Field" });
+  await expect(far).toHaveAttribute("aria-current", "true");
+  await expect(page.locator("[aria-current]")).toHaveCount(1);
+  await expect(far).toBeInViewport();
   const mark = await far.evaluate(
     (el) => getComputedStyle(el, "::before").content,
   );
   expect(mark).toContain("\u25B6");
-  await expect(page.getByRole("link", { name: "Settings" })).toBeFocused();
   await askFromSecondSocket(context, launcher.origin, {
     mission_type: "training",
     id: 1,
   });
+  const first = page
+    .locator("#missions-list li")
+    .filter({ hasText: "First Flight" });
   await expect(first).toHaveAttribute("aria-current", "true");
-  await expect(far).not.toHaveAttribute("aria-current", "true");
+  await expect(page.locator("[aria-current]")).toHaveCount(1);
   await expect(page.locator("#mission-shown")).toHaveText(
     "Showing First Flight",
   );
@@ -179,6 +205,7 @@ test("art scaling has three choices, one plain sentence each", async ({
   launcher,
 }) => {
   await openPage(page, launcher.url);
+  await openMenu(page, "Settings");
   const group = page.getByRole("group", { name: "Art scaling" });
   await expect(group.getByRole("radio")).toHaveCount(3);
   await expect(group.getByLabel("Whole pixels")).toBeChecked();
@@ -197,6 +224,7 @@ test("a setting is saved, survives a reload and reaches a second page", async ({
   const second = await context.newPage();
   await second.goto(`${launcher.origin}/`);
   await expect(second.getByLabel("Whole pixels")).toBeEnabled();
+  await openMenu(page, "Settings");
   await page.getByText("Engine fit", { exact: true }).click();
   await expect(page.getByLabel("Engine fit")).toBeChecked();
   await expect(second.getByLabel("Engine fit")).toBeChecked();
@@ -212,7 +240,6 @@ test("a keyboard alone reaches every control, each with a visible focus", async 
   launcher,
 }) => {
   await openPage(page, launcher.url);
-  await page.locator("body").click({ position: { x: 1, y: 1 } });
   const seen: string[] = [];
   const focusRing = async (): Promise<string[]> =>
     page.evaluate(() => {
@@ -223,14 +250,14 @@ test("a keyboard alone reaches every control, each with a visible focus", async 
         el.getAttribute("aria-label") ??
         (el instanceof HTMLInputElement
           ? (el.labels?.[0]?.textContent ?? "")
-          : el.textContent);
+          : (el as HTMLElement).innerText);
       return [name.trim(), style.outlineStyle, style.outlineWidth];
     });
   await page.evaluate(() => {
     if (document.activeElement instanceof HTMLElement)
       document.activeElement.blur();
   });
-  for (let step = 0; step < 10; step += 1) {
+  for (let step = 0; step < 8; step += 1) {
     await page.keyboard.press("Tab");
     const [name = "", outline = "none", width = "0px"] = await focusRing();
     expect(outline, `${name} shows a focus outline`).not.toBe("none");
@@ -240,18 +267,20 @@ test("a keyboard alone reaches every control, each with a visible focus", async 
     ).toBeGreaterThanOrEqual(3);
     seen.push(name);
   }
-  expect(seen).toEqual([
-    "Skip to the page content",
-    "Status",
-    "Missions",
-    "Briefing",
-    "Battle",
-    "Game options",
-    "Settings",
-    "Show First Flight",
-    "Show Open Field",
-    "Whole pixels",
+  expect(seen.map((name) => name.toLowerCase())).toEqual([
+    "skip to the page content",
+    "missions",
+    "battle",
+    "pilot",
+    "game options",
+    "settings",
+    "status",
+    "open missions",
   ]);
+  await page.locator(".menu-btn", { hasText: "Settings" }).focus();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await expect(page.getByLabel("Whole pixels")).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByLabel("Engine fit")).toBeChecked();
   await expect(page.getByLabel("Engine fit")).toBeFocused();
@@ -309,21 +338,22 @@ for (const scheme of ["light", "dark"] as const) {
     expect(found.passes.map((rule) => rule.id)).toContain("color-contrast");
   });
 
-  test(`the ${scheme} scheme has a ${scheme} background`, async ({
-    page,
-    launcher,
-  }) => {
-    await page.emulateMedia({ colorScheme: scheme });
-    await openPage(page, launcher.url);
-    const brightness = await page.evaluate(() => {
-      const color = getComputedStyle(document.body).backgroundColor;
-      const [red = 0, green = 0, blue = 0] =
-        color.match(/\d+/g)?.map(Number) ?? [];
-      return (red + green + blue) / 3;
-    });
-    if (scheme === "dark") expect(brightness).toBeLessThan(60);
-    else expect(brightness).toBeGreaterThan(200);
-  });
+  test(
+    scheme === "dark"
+      ? "the dark scheme has a dark background"
+      : "the light scheme still has a dark background",
+    async ({ page, launcher }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await openPage(page, launcher.url);
+      const brightness = await page.evaluate(() => {
+        const color = getComputedStyle(document.body).backgroundColor;
+        const [red = 0, green = 0, blue = 0] =
+          color.match(/\d+/g)?.map(Number) ?? [];
+        return (red + green + blue) / 3;
+      });
+      expect(brightness).toBeLessThan(60);
+    },
+  );
 
   test(`axe finds nothing in the ${scheme} scheme once the connection drops`, async ({
     page,
@@ -385,6 +415,10 @@ test("controls are at least 24 by 24 pixels and the page reflows at 320 wide", a
   await page.setViewportSize({ width: 320, height: 640 });
   await openPage(page, launcher.url);
   expect(await smallControls(page)).toEqual([]);
+  for (const name of MENUS) {
+    await openMenu(page, name);
+    expect(await smallControls(page), `${name} open`).toEqual([]);
+  }
   await launcher.stop();
   await expect(page.getByRole("button", { name: "Reconnect" })).toBeVisible();
   expect(await smallControls(page)).toEqual([]);
@@ -442,6 +476,7 @@ test("with no battle the page says so and offers no Cancel", async ({
   await expect(
     page.getByRole("button", { name: "Cancel the battle" }),
   ).toBeHidden();
+  await expect(page.locator("#battle-cancel")).toHaveAttribute("hidden", "");
   await expect(page.locator("#battle-ending")).toHaveAttribute("hidden", "");
   await expect(page.locator("#options-list dt")).toHaveCount(7);
   await expect(page.locator("#options-list dd")).toHaveText(
@@ -453,7 +488,9 @@ test("no control on the page starts a battle", async ({ page, launcher }) => {
   await openPage(page, launcher.url);
   const names = await page
     .getByRole("button")
-    .evaluateAll((all) => all.map((b) => b.textContent.trim()));
+    .evaluateAll((all) =>
+      all.map((b) => (b instanceof HTMLElement ? b.innerText.trim() : "")),
+    );
   for (const name of names) expect(name).not.toMatch(/launch|fly|start|solo/i);
   await expect(
     page.locator(
@@ -497,11 +534,8 @@ test("Cancel works from the keyboard and keeps focus in the battle section", asy
   await cancel.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#battle-ending")).toHaveText("cancelled");
-  await expect(page.locator("#battle-note")).toBeFocused();
-  await expect(page.locator("#battle-note")).toHaveAttribute(
-    "aria-live",
-    "polite",
-  );
+  await expect(page.locator("#battle-strip")).toBeFocused();
+  await expect(page.locator("#battle-strip")).toHaveAttribute("role", "status");
 });
 
 test("a battle that ends by itself shows its ending line", async ({
@@ -559,6 +593,7 @@ test("the game options are shown read-only and redrawn when they change", async 
   context,
 }) => {
   await openPage(page, launcher.url);
+  await openMenu(page, "Game options");
   const set = async (name: string, value: string | null) =>
     callFromSecondSocket(context, launcher.origin, "options.set", {
       player: "7001",
@@ -611,5 +646,252 @@ for (const scheme of ["light", "dark"] as const) {
     await expect(page.locator("#battle-ending")).toBeVisible();
     const ended = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
     expect(ended.violations).toEqual([]);
+  });
+}
+
+const MENUS = [
+  "Missions",
+  "Battle",
+  "Pilot",
+  "Game options",
+  "Settings",
+  "Status",
+];
+
+function menuButton(page: Page, name: string): Locator {
+  return page.locator(".menu-btn", { hasText: name });
+}
+
+test("aria-expanded on each menu button follows its panel", async ({
+  page,
+  launcher,
+}) => {
+  await openPage(page, launcher.url);
+  for (const name of MENUS) {
+    const button = menuButton(page, name);
+    const panel = page.locator(
+      `#${(await button.getAttribute("aria-controls")) ?? "none"}`,
+    );
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await expect(panel).toBeHidden();
+    await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "true");
+    await expect(panel).toBeVisible();
+    await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "false");
+    await expect(panel).toBeHidden();
+  }
+});
+
+test("only one menu panel is open at a time", async ({ page, launcher }) => {
+  await openPage(page, launcher.url);
+  await openMenu(page, "Missions");
+  await openMenu(page, "Battle");
+  await expect(menuButton(page, "Missions")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(page.locator(".dd-panel:not([hidden])")).toHaveCount(1);
+  await openMenu(page, "Status");
+  await expect(page.locator(".dd-panel:not([hidden])")).toHaveCount(1);
+  await expect(page.locator("#panel-status")).toBeVisible();
+});
+
+test("Escape closes the open menu and returns focus to its button", async ({
+  page,
+  launcher,
+}) => {
+  await openPage(page, launcher.url);
+  await openMenu(page, "Missions");
+  await page.locator("#missions-kinds button").nth(1).focus();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#panel-missions")).toBeHidden();
+  await expect(menuButton(page, "Missions")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(menuButton(page, "Missions")).toBeFocused();
+  await menuButton(page, "Settings").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#panel-settings")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(menuButton(page, "Settings")).toBeFocused();
+});
+
+test("a click outside closes the open menu without moving focus", async ({
+  page,
+  launcher,
+}) => {
+  await openPage(page, launcher.url);
+  await openMenu(page, "Settings");
+  await page.locator("#briefing-empty").click({ position: { x: 10, y: 200 } });
+  await expect(page.locator("#panel-settings")).toBeHidden();
+  await expect(menuButton(page, "Settings")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(menuButton(page, "Settings")).not.toBeFocused();
+  await showMission(page, "First Flight");
+  await expect(page.locator("#briefing-canvas")).toBeVisible();
+  await openMenu(page, "Battle");
+  const play = page.getByRole("button", { name: "Play", exact: true });
+  await play.click();
+  await expect(page.locator("#panel-battle")).toBeHidden();
+  await expect(play).toBeFocused();
+});
+
+test("no live region sits inside a menu panel", async ({ page, launcher }) => {
+  await openPage(page, launcher.url);
+  await expect(
+    page.locator(
+      ".dd-panel [aria-live], .dd-panel [role='alert'], .dd-panel [role='status']",
+    ),
+  ).toHaveCount(0);
+  await expect(page.locator("#problem")).toHaveAttribute("role", "alert");
+  await expect(page.locator(".dd-panel #problem")).toHaveCount(0);
+  await expect(page.locator(".dd-panel #status-connection")).toHaveCount(0);
+});
+
+test("Missions shows Kind, then Group, then Mission, and marks the shown one", async ({
+  page,
+  launcher,
+}) => {
+  await openPage(page, launcher.url);
+  await openMenu(page, "Missions");
+  const panel = page.locator("#panel-missions");
+  await expect(panel.getByRole("heading", { level: 3 })).toHaveText([
+    "Kind",
+    "Group",
+    "Basic",
+  ]);
+  const kinds = await page.locator("#missions-kinds").boundingBox();
+  const groups = await page.locator("#missions-groups").boundingBox();
+  const list = await page.locator("#missions-list").boundingBox();
+  expect(kinds?.x ?? 0).toBeLessThan(groups?.x ?? 0);
+  expect(groups?.x ?? 0).toBeLessThan(list?.x ?? 0);
+  await expect(page.locator("#missions-kinds button").first()).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await page.getByRole("button", { name: "Show First Flight" }).click();
+  await expect(page.locator("#panel-missions")).toBeHidden();
+  await expect(menuButton(page, "Missions")).toBeFocused();
+  await openMenu(page, "Missions");
+  await expect(page.locator("#missions-group-heading")).toHaveText("Basic");
+  await expect(page.locator("#missions-list li[aria-current]")).toHaveText(
+    /First Flight/,
+  );
+  await expect(page.locator("#missions-list [aria-current]")).toHaveCount(1);
+});
+
+test("with nothing shown the centre pane asks for a pick and Open Missions opens the menu", async ({
+  page,
+  launcher,
+}) => {
+  await openPage(page, launcher.url);
+  await expect(page.locator("#briefing-note")).toBeVisible();
+  await expect(page.locator("#briefing-note")).toHaveText(
+    "Pick a mission to see its briefing.",
+  );
+  await expect(page.locator("#shown-heading")).toBeHidden();
+  await expect(page.locator("#shown-heading")).toHaveAttribute("hidden", "");
+  await page.getByRole("button", { name: "Open Missions" }).click();
+  await expect(menuButton(page, "Missions")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await expect(menuButton(page, "Missions")).toBeFocused();
+});
+
+test("a mission shown by the bot moves the centre pane and the Missions mark", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await openPage(page, launcher.url);
+  await askFromSecondSocket(context, launcher.origin, {
+    mission_type: "training",
+    id: 1,
+  });
+  await expect(page.locator("#shown-title")).toHaveText("First Flight");
+  await expect(page.locator("#shown-where")).toHaveText(/Training.*Basic/);
+  await expect(page.locator("#briefing-canvas")).toBeVisible();
+  await expect(page.locator("#briefing-empty")).toBeHidden();
+  await openMenu(page, "Missions");
+  await expect(page.locator("#missions-list li[aria-current]")).toHaveText(
+    /First Flight/,
+  );
+  await askFromSecondSocket(context, launcher.origin, {
+    mission_type: "melee",
+    id: 7,
+  });
+  await expect(page.locator("#shown-title")).toHaveText("Open Field");
+  await expect(page.locator("#missions-list li[aria-current]")).toHaveText(
+    /Open Field/,
+  );
+  await askFromSecondSocket(context, launcher.origin, {
+    mission_type: "melee",
+    id: 8,
+  });
+  await expect(page.locator("#shown-where")).toHaveText(/Melee.*Later/);
+  await expect(page.locator("#missions-group-heading")).toHaveText("Later");
+  await expect(page.locator("#missions-list li[aria-current]")).toHaveText(
+    /Later Field/,
+  );
+});
+
+test("the battle strip shows while a battle flies, offers Cancel and shows the ending", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await openPage(page, launcher.url);
+  const row = page.locator("#strip-row");
+  await expect(row).toBeHidden();
+  await startBattle(context, launcher.origin);
+  await expect(row).toBeVisible();
+  await expect(page.locator("#strip-tag")).toHaveText("Battle flying");
+  await expect(page.locator("#battle-line")).toHaveText(
+    "First Flight, flown by Ace.",
+  );
+  await expect(page.locator("#battle-badge")).toBeVisible();
+  await expect(menuButton(page, "Battle")).toContainText("flying");
+  await row.getByRole("button", { name: "Cancel the battle" }).click();
+  await expect(page.locator("#strip-tag")).toHaveText("Battle over");
+  await expect(page.locator("#battle-ending")).toBeVisible();
+  await expect(
+    row.getByRole("button", { name: "Cancel the battle" }),
+  ).toBeHidden();
+});
+
+test("with a menu open nothing scrolls sideways at 320 wide", async ({
+  page,
+  launcher,
+}) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await openPage(page, launcher.url);
+  for (const name of MENUS) {
+    await openMenu(page, name);
+    const overflow = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    );
+    expect(overflow, `${name} open`).toBeLessThanOrEqual(0);
+  }
+});
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`axe finds nothing in the ${scheme} scheme with each menu open`, async ({
+    page,
+    launcher,
+  }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await openPage(page, launcher.url);
+    for (const name of MENUS) {
+      await openMenu(page, name);
+      const found = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+      expect(found.violations, name).toEqual([]);
+    }
   });
 }

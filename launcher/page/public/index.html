@@ -3,185 +3,348 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="color-scheme" content="dark" />
     <title>jedimaster launcher</title>
     <link rel="stylesheet" href="style.css" />
     <script type="module" src="main.js"></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to the page content</a>
-    <header class="page-header">
-      <h1>jedimaster launcher</h1>
-      <nav class="section-nav" aria-label="Sections">
-        <ul class="nav-list">
-          <li><a class="nav-link" href="#status">Status</a></li>
-          <li><a class="nav-link" href="#missions">Missions</a></li>
-          <li><a class="nav-link" href="#briefing">Briefing</a></li>
-          <li><a class="nav-link" href="#battle">Battle</a></li>
-          <li><a class="nav-link" href="#options">Game options</a></li>
-          <li><a class="nav-link" href="#settings">Settings</a></li>
-        </ul>
-      </nav>
+    <header class="page-header" id="menu-header">
+      <div class="menu-bar">
+        <h1>jedimaster launcher</h1>
+        <nav class="section-nav" aria-label="Launcher menus">
+          <ul class="nav-list">
+            <li class="dd dd-mega">
+              <button
+                class="menu-btn"
+                type="button"
+                aria-expanded="false"
+                aria-controls="panel-missions"
+              >
+                Missions
+              </button>
+              <div class="dd-panel" id="panel-missions" hidden>
+                <section
+                  class="panel"
+                  id="missions"
+                  aria-labelledby="missions-heading"
+                >
+                  <h2 id="missions-heading">Missions</h2>
+                  <p id="missions-note">
+                    The mission lists have not arrived yet.
+                  </p>
+                  <div id="missions-body" class="missions-body">
+                    <div class="pick-column">
+                      <h3>Kind</h3>
+                      <ul class="pick-list" id="missions-kinds"></ul>
+                    </div>
+                    <div class="pick-column">
+                      <h3>Group</h3>
+                      <ul
+                        class="pick-list scroll-list"
+                        id="missions-groups"
+                      ></ul>
+                    </div>
+                    <div class="pick-column pick-wide">
+                      <h3 id="missions-group-heading">Mission</h3>
+                      <p id="missions-kind-note" hidden></p>
+                      <ul
+                        class="mission-list scroll-list"
+                        id="missions-list"
+                      ></ul>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </li>
+            <li class="dd">
+              <button
+                class="menu-btn"
+                type="button"
+                aria-expanded="false"
+                aria-controls="panel-battle"
+              >
+                Battle
+                <span class="flying-badge" id="battle-badge" hidden
+                  >flying</span
+                >
+              </button>
+              <div class="dd-panel" id="panel-battle" hidden>
+                <section
+                  class="panel"
+                  id="battle"
+                  aria-labelledby="battle-heading"
+                >
+                  <h2 id="battle-heading">Battle</h2>
+                  <p id="battle-note">
+                    No battle is flying. Battles start in Discord.
+                  </p>
+                </section>
+              </div>
+            </li>
+            <li class="dd">
+              <button
+                class="menu-btn"
+                type="button"
+                aria-expanded="false"
+                aria-controls="panel-pilot"
+              >
+                Pilot
+              </button>
+              <div class="dd-panel" id="panel-pilot" hidden>
+                <section
+                  class="panel"
+                  id="pilot"
+                  aria-labelledby="pilot-heading"
+                >
+                  <h2 id="pilot-heading">Pilot</h2>
+                  <p>
+                    The launcher keeps a pilot for your Discord account. Its
+                    name can change once, in Discord, with the Pilot command.
+                  </p>
+                  <p>This page does not show the pilot yet.</p>
+                </section>
+              </div>
+            </li>
+            <li class="dd dd-right">
+              <button
+                class="menu-btn"
+                type="button"
+                aria-expanded="false"
+                aria-controls="panel-options"
+              >
+                Game options
+              </button>
+              <div class="dd-panel panel-medium" id="panel-options" hidden>
+                <section
+                  class="panel"
+                  id="options"
+                  aria-labelledby="options-heading"
+                >
+                  <h2 id="options-heading">Game options</h2>
+                  <p id="options-note">
+                    These are the options kept for your Discord account. Change
+                    them in Discord with Game options; each battle you start
+                    uses them.
+                  </p>
+                  <dl class="options-list" id="options-list"></dl>
+                </section>
+              </div>
+            </li>
+            <li class="dd dd-right">
+              <button
+                class="menu-btn"
+                type="button"
+                aria-expanded="false"
+                aria-controls="panel-settings"
+              >
+                Settings
+              </button>
+              <div class="dd-panel panel-medium" id="panel-settings" hidden>
+                <section
+                  class="panel"
+                  id="settings"
+                  aria-labelledby="settings-heading"
+                >
+                  <h2 id="settings-heading">Settings</h2>
+                  <p id="settings-note">
+                    This choice sets how the briefing map is scaled on the page.
+                    It is saved for the next time.
+                  </p>
+                  <fieldset class="choice-group" id="art-scaling" disabled>
+                    <legend>Art scaling</legend>
+                    <div class="choice">
+                      <input
+                        class="choice-input"
+                        id="art-whole-pixels"
+                        name="art-scaling"
+                        type="radio"
+                        value="whole_pixels"
+                        aria-describedby="art-whole-pixels-help"
+                      />
+                      <label class="choice-label" for="art-whole-pixels"
+                        >Whole pixels</label
+                      >
+                      <p class="choice-help" id="art-whole-pixels-help">
+                        The picture grows only in whole steps, so every pixel
+                        stays sharp and the window may show borders.
+                      </p>
+                    </div>
+                    <div class="choice">
+                      <input
+                        class="choice-input"
+                        id="art-engine-fit"
+                        name="art-scaling"
+                        type="radio"
+                        value="engine_fit"
+                        aria-describedby="art-engine-fit-help"
+                      />
+                      <label class="choice-label" for="art-engine-fit"
+                        >Engine fit</label
+                      >
+                      <p class="choice-help" id="art-engine-fit-help">
+                        The picture is fitted to the window the way the game
+                        does it.
+                      </p>
+                    </div>
+                    <div class="choice">
+                      <input
+                        class="choice-input"
+                        id="art-sharp-bilinear"
+                        name="art-scaling"
+                        type="radio"
+                        value="sharp_bilinear"
+                        aria-describedby="art-sharp-bilinear-help"
+                      />
+                      <label class="choice-label" for="art-sharp-bilinear"
+                        >Sharp bilinear</label
+                      >
+                      <p class="choice-help" id="art-sharp-bilinear-help">
+                        The picture is enlarged in whole steps and then smoothed
+                        a little, so edges stay clean at any window size.
+                      </p>
+                    </div>
+                  </fieldset>
+                </section>
+              </div>
+            </li>
+          </ul>
+        </nav>
+        <div class="bar-status">
+          <p class="connection-line" id="status-connection" role="status">
+            Connecting to the launcher.
+          </p>
+          <button class="button" id="reconnect" type="button" hidden>
+            Reconnect
+          </button>
+          <div class="dd dd-right">
+            <button
+              class="menu-btn"
+              type="button"
+              aria-expanded="false"
+              aria-controls="panel-status"
+            >
+              Status
+            </button>
+            <div class="dd-panel" id="panel-status" hidden>
+              <section
+                class="panel"
+                id="status"
+                aria-labelledby="status-heading"
+              >
+                <h2 id="status-heading">Status</h2>
+                <p id="status-version">Launcher version: not known yet.</p>
+                <p id="status-install">Not known yet.</p>
+                <p id="status-balance">Not known yet.</p>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="problem" id="problem" role="alert" hidden></p>
     </header>
-    <main class="page-main" id="main" tabindex="-1">
-      <section class="panel" id="status" aria-labelledby="status-heading">
-        <h2 id="status-heading">Status</h2>
-        <div class="status-region" role="status">
-          <p id="status-connection">Connecting to the launcher.</p>
-          <p id="status-version">Launcher version: not known yet.</p>
-          <p id="status-install">Not known yet.</p>
-          <p id="status-balance">Not known yet.</p>
-        </div>
-        <p class="problem" id="problem" role="alert" hidden></p>
-        <button class="button" id="reconnect" type="button" hidden>
-          Reconnect
-        </button>
-      </section>
-      <section class="panel" id="missions" aria-labelledby="missions-heading">
-        <h2 id="missions-heading">Missions</h2>
-        <p id="mission-shown" class="mission-shown" aria-live="polite"></p>
-        <p id="missions-note">The mission lists have not arrived yet.</p>
-        <div id="missions-body"></div>
-      </section>
-      <section class="panel" id="briefing" aria-labelledby="briefing-heading">
-        <h2 id="briefing-heading">Briefing</h2>
-        <p id="briefing-note">Pick a mission to see its briefing.</p>
-        <div id="briefing-body" hidden>
-          <div
-            class="briefing-controls"
-            role="group"
-            aria-label="Briefing controls"
-          >
-            <button class="button" id="briefing-play" type="button">
-              Play
-            </button>
-            <button class="button" id="briefing-stop" type="button">
-              Stop
-            </button>
-            <button class="button" id="briefing-rewind" type="button">
-              Rewind
-            </button>
-            <button class="button" id="briefing-forward" type="button">
-              Forward
-            </button>
-            <div class="briefing-sound">
-              <input
-                id="briefing-sound"
-                type="checkbox"
-                role="switch"
-                checked
-              />
-              <label for="briefing-sound">Sound</label>
-            </div>
-            <div class="briefing-team" id="briefing-team-box" hidden>
-              <label for="briefing-team">Team</label>
-              <select id="briefing-team"></select>
-            </div>
-            <p class="briefing-page" id="briefing-page">Page 0</p>
-          </div>
-          <div class="briefing-stage" id="briefing-stage">
-            <canvas
-              id="briefing-canvas"
-              width="360"
-              height="240"
-              role="img"
-              aria-label="Briefing map. The text below lists the caption, the labels and the highlighted flight groups."
-            ></canvas>
-          </div>
-          <h3>Caption</h3>
-          <p
-            id="briefing-caption"
-            class="briefing-caption"
-            aria-live="polite"
-            aria-atomic="true"
-          ></p>
-          <h3>Labels on the map</h3>
-          <ul id="briefing-labels" class="briefing-labels"></ul>
-          <h3>Highlighted flight groups</h3>
-          <p id="briefing-highlight">No flight group is highlighted.</p>
-        </div>
-      </section>
-      <section class="panel" id="battle" aria-labelledby="battle-heading">
-        <h2 id="battle-heading">Battle</h2>
-        <p id="battle-note" aria-live="polite" tabindex="-1">
-          No battle is flying. Battles start in Discord.
-        </p>
-        <p id="battle-line" class="battle-line" hidden></p>
+    <div
+      class="battle-strip is-idle"
+      id="battle-strip"
+      role="status"
+      tabindex="-1"
+    >
+      <div class="strip-row" id="strip-row" hidden>
+        <span class="strip-tag" id="strip-tag">Battle flying</span>
+        <span class="battle-line" id="battle-line" hidden></span>
+        <span class="battle-ending" id="battle-ending" hidden></span>
         <button class="button" id="battle-cancel" type="button" hidden>
           Cancel the battle
         </button>
-        <p
-          id="battle-ending"
-          class="battle-ending"
-          aria-live="polite"
-          hidden
-        ></p>
-      </section>
-      <section class="panel" id="options" aria-labelledby="options-heading">
-        <h2 id="options-heading">Game options</h2>
-        <p id="options-note">
-          These are the options kept for your Discord account. Change them in
-          Discord with Game options; each battle you start uses them.
-        </p>
-        <dl class="options-list" id="options-list" aria-live="polite"></dl>
-      </section>
-      <section class="panel" id="settings" aria-labelledby="settings-heading">
-        <h2 id="settings-heading">Settings</h2>
-        <p id="settings-note">
-          This choice sets how the briefing map is scaled on the page. It is
-          saved for the next time.
-        </p>
-        <fieldset class="choice-group" id="art-scaling" disabled>
-          <legend>Art scaling</legend>
-          <div class="choice">
-            <input
-              class="choice-input"
-              id="art-whole-pixels"
-              name="art-scaling"
-              type="radio"
-              value="whole_pixels"
-              aria-describedby="art-whole-pixels-help"
-            />
-            <label class="choice-label" for="art-whole-pixels"
-              >Whole pixels</label
+      </div>
+    </div>
+    <main class="page-main" id="main" tabindex="-1">
+      <p id="mission-shown" class="mission-shown" aria-live="polite"></p>
+      <div class="shown-heading" id="shown-heading" hidden>
+        <p class="shown-where" id="shown-where"></p>
+        <h2 id="shown-title"></h2>
+      </div>
+      <section
+        class="briefing"
+        id="briefing"
+        aria-labelledby="briefing-heading"
+      >
+        <h2 class="visually-hidden" id="briefing-heading">Briefing</h2>
+        <div class="briefing-empty" id="briefing-empty">
+          <p class="empty-title" id="briefing-note">
+            Pick a mission to see its briefing.
+          </p>
+          <p id="empty-hint">
+            Open Missions above, or show one from Discord with Show mission.
+          </p>
+          <button
+            class="button"
+            id="open-missions"
+            type="button"
+            aria-controls="panel-missions"
+          >
+            Open Missions
+          </button>
+        </div>
+        <div class="briefing-layout" id="briefing-body" hidden>
+          <div class="briefing-main">
+            <div class="briefing-stage" id="briefing-stage">
+              <canvas
+                id="briefing-canvas"
+                width="360"
+                height="240"
+                role="img"
+                aria-label="Briefing map. The briefing text lists the caption, the labels and the highlighted flight groups."
+              ></canvas>
+            </div>
+            <div
+              class="briefing-controls"
+              role="group"
+              aria-label="Briefing controls"
             >
-            <p class="choice-help" id="art-whole-pixels-help">
-              The picture grows only in whole steps, so every pixel stays sharp
-              and the window may show borders.
-            </p>
+              <button class="button" id="briefing-play" type="button">
+                Play
+              </button>
+              <button class="button" id="briefing-stop" type="button">
+                Stop
+              </button>
+              <button class="button" id="briefing-rewind" type="button">
+                Rewind
+              </button>
+              <button class="button" id="briefing-forward" type="button">
+                Forward
+              </button>
+              <div class="briefing-sound">
+                <input
+                  id="briefing-sound"
+                  type="checkbox"
+                  role="switch"
+                  checked
+                />
+                <label for="briefing-sound">Sound</label>
+              </div>
+              <div class="briefing-team" id="briefing-team-box" hidden>
+                <label for="briefing-team">Team</label>
+                <select id="briefing-team"></select>
+              </div>
+              <p class="briefing-page" id="briefing-page">Page 0</p>
+            </div>
           </div>
-          <div class="choice">
-            <input
-              class="choice-input"
-              id="art-engine-fit"
-              name="art-scaling"
-              type="radio"
-              value="engine_fit"
-              aria-describedby="art-engine-fit-help"
-            />
-            <label class="choice-label" for="art-engine-fit">Engine fit</label>
-            <p class="choice-help" id="art-engine-fit-help">
-              The picture is fitted to the window the way the game does it.
-            </p>
-          </div>
-          <div class="choice">
-            <input
-              class="choice-input"
-              id="art-sharp-bilinear"
-              name="art-scaling"
-              type="radio"
-              value="sharp_bilinear"
-              aria-describedby="art-sharp-bilinear-help"
-            />
-            <label class="choice-label" for="art-sharp-bilinear"
-              >Sharp bilinear</label
-            >
-            <p class="choice-help" id="art-sharp-bilinear-help">
-              The picture is enlarged in whole steps and then smoothed a little,
-              so edges stay clean at any window size.
-            </p>
-          </div>
-        </fieldset>
+          <aside class="briefing-text" aria-label="Briefing text">
+            <h3>Caption</h3>
+            <p
+              id="briefing-caption"
+              class="briefing-caption"
+              aria-live="polite"
+              aria-atomic="true"
+            ></p>
+            <h3>Labels on the map</h3>
+            <ul id="briefing-labels" class="briefing-labels"></ul>
+            <h3>Highlighted flight groups</h3>
+            <p id="briefing-highlight">No flight group is highlighted.</p>
+          </aside>
+        </div>
       </section>
     </main>
   </body>

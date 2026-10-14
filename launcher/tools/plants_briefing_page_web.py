@@ -372,8 +372,8 @@ BRIEFING_PAGE_PLANTS: list[Plant] = [
     Plant(
         "web-sta-locked-button",
         "page/src/state.ts",
-        "entry.available && isMissionType(menu.mission_type)",
-        "isMissionType(menu.mission_type)",
+        "      current: index === target,\n      pick:\n        entry.available && isMissionType(menu.mission_type)",
+        "      current: index === target,\n      pick:\n        isMissionType(menu.mission_type)",
         (
             "node: an available entry has a button that asks for that mission; a locked one has none",
             "node: missions list one heading per menu, availability in words",
@@ -382,8 +382,8 @@ BRIEFING_PAGE_PLANTS: list[Plant] = [
     Plant(
         "web-sta-pick-label",
         "page/src/state.ts",
-        "label: `Show ${entry.title}`",
-        "label: `Show ${entry.file}`",
+        "      current: index === target,\n      pick:\n        entry.available && isMissionType(menu.mission_type)\n          ? {\n              missionType: menu.mission_type,\n              id: entry.id,\n              label: `Show ${entry.title}`",
+        "      current: index === target,\n      pick:\n        entry.available && isMissionType(menu.mission_type)\n          ? {\n              missionType: menu.mission_type,\n              id: entry.id,\n              label: `Show ${entry.file}`",
         (
             "node: an available entry has a button that asks for that mission; a locked one has none",
             "node: missions list one heading per menu, availability in words",
@@ -505,8 +505,8 @@ BRIEFING_PAGE_PLANTS: list[Plant] = [
     Plant(
         "web-htm-live-off",
         "page/public/index.html",
-        '            aria-live="polite"\n            aria-atomic="true"',
-        '            aria-live="off"\n            aria-atomic="true"',
+        '              aria-live="polite"\n              aria-atomic="true"',
+        '              aria-live="off"\n              aria-atomic="true"',
         (
             "browser: a picked mission opens its briefing stopped, with its words for a screen reader",
         ),

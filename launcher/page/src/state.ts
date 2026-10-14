@@ -64,6 +64,42 @@ export interface MenuView {
   readonly entries: readonly MenuEntryView[];
 }
 
+/** One mission in the Missions menu's list. */
+export interface MissionRow {
+  readonly title: string;
+  readonly current: boolean;
+  /** What the Show button asks for, or null when the mission is not available. */
+  readonly pick: {
+    readonly missionType: MissionType;
+    readonly id: number;
+    readonly label: string;
+  } | null;
+}
+
+/** One group (the game's section) of a kind, in the order the game lists it. */
+export interface GroupView {
+  readonly name: string;
+  readonly missions: readonly MissionRow[];
+}
+
+/** One kind of mission: its groups, or the reason it has none. */
+export interface KindView {
+  readonly id: string;
+  readonly label: string;
+  readonly count: number;
+  readonly note: string | null;
+  readonly groups: readonly GroupView[];
+}
+
+/** Where the shown mission sits, for the heading above the briefing. */
+export interface ShownView {
+  readonly kind: string;
+  readonly group: string;
+  readonly title: string;
+}
+
+export const UNGROUPED = "All missions";
+
 export interface View {
   readonly connectionText: string;
   readonly showReconnect: boolean;
@@ -71,6 +107,8 @@ export interface View {
   readonly installText: string;
   readonly balanceText: string;
   readonly menus: readonly MenuView[];
+  readonly kinds: readonly KindView[];
+  readonly shownWhere: ShownView | null;
   readonly missionsNote: string | null;
   readonly artScaling: ArtScaling | null;
   readonly shownText: string;
@@ -352,6 +390,55 @@ function menuView(menu: MenuData, shown: ShownMission | null): MenuView {
   };
 }
 
+function kindView(menu: MenuData, shown: ShownMission | null): KindView {
+  const label = titleCase(menu.mission_type);
+  const note = menuView(menu, shown).note;
+  const groups: { name: string; missions: MissionRow[] }[] = [];
+  for (const entry of menu.entries) {
+    const name = entry.section === "" ? UNGROUPED : entry.section;
+    let group = groups.find((g) => g.name === name);
+    if (group === undefined) {
+      group = { name, missions: [] };
+      groups.push(group);
+    }
+    group.missions.push({
+      title: entry.title,
+      current:
+        shown?.mission_type === menu.mission_type && shown.id === entry.id,
+      pick:
+        entry.available && isMissionType(menu.mission_type)
+          ? {
+              missionType: menu.mission_type,
+              id: entry.id,
+              label: `Show ${entry.title}`,
+            }
+          : null,
+    });
+  }
+  return {
+    id: menu.mission_type,
+    label,
+    count: menu.entries.length,
+    note,
+    groups,
+  };
+}
+
+function shownWhere(
+  menus: readonly MenuData[],
+  shown: ShownMission | null,
+): ShownView | null {
+  if (shown === null) return null;
+  const menu = menus.find((m) => m.mission_type === shown.mission_type);
+  const entry = menu?.entries.find((e) => e.id === shown.id);
+  const section = entry?.section ?? "";
+  return {
+    kind: titleCase(shown.mission_type),
+    group: section === "" ? UNGROUPED : section,
+    title: shown.title,
+  };
+}
+
 function installText(state: State): string {
   if (state.install === null) return "Not known yet.";
   if (!state.install.found || state.install.path === null) {
@@ -379,6 +466,8 @@ export function describe(state: State): View {
     installText: installText(state),
     balanceText: balanceText(state),
     menus: menus.map((menu) => menuView(menu, state.shown)),
+    kinds: menus.map((menu) => kindView(menu, state.shown)),
+    shownWhere: shownWhere(menus, state.shown),
     missionsNote:
       state.menus === null ? "The mission lists have not arrived yet." : null,
     artScaling: state.artScaling,

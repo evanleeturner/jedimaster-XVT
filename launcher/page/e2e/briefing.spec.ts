@@ -1,7 +1,7 @@
 import { AxeBuilder } from "@axe-core/playwright";
 import type { Locator, Page } from "@playwright/test";
 
-import { expect, test } from "./launcher.ts";
+import { expect, openMenu, showMission, test } from "./launcher.ts";
 
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"];
 const CAPTION = "Intro Brief words here to read.";
@@ -9,7 +9,7 @@ const CAPTION = "Intro Brief words here to read.";
 async function openBriefing(page: Page, url: string): Promise<void> {
   await page.goto(url);
   await expect(page.getByLabel("Whole pixels")).toBeEnabled();
-  await page.getByRole("button", { name: "Show First Flight" }).click();
+  await showMission(page, "First Flight");
   await expect(page.locator("#briefing-canvas")).toBeVisible();
   await expect(page.locator("#briefing-caption")).toHaveText(CAPTION);
 }
@@ -47,7 +47,7 @@ test("a picked mission opens its briefing stopped, with its words for a screen r
   await expect(page.locator("#briefing-note")).toHaveText(
     "Pick a mission to see its briefing.",
   );
-  await page.getByRole("button", { name: "Show First Flight" }).click();
+  await showMission(page, "First Flight");
   const section = page.getByRole("region", { name: "Briefing" });
   await expect(section.getByRole("img")).toBeVisible();
   await expect(section.getByRole("img")).toHaveAttribute(
@@ -155,6 +155,7 @@ test("whole pixels draws the largest whole multiple, sharp", async ({
   expect(await canvas.evaluate((c) => getComputedStyle(c).imageRendering)).toBe(
     "pixelated",
   );
+  await openMenu(page, "Settings");
   await page.getByLabel("Engine fit").check();
   await expect
     .poll(() => canvas.evaluate((c) => getComputedStyle(c).imageRendering))
@@ -178,7 +179,7 @@ test("with reduced motion the map shows the marker's final box at once", async (
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
   await expect(page.getByLabel("Whole pixels")).toBeEnabled();
-  await page.getByRole("button", { name: "Show First Flight" }).click();
+  await showMission(page, "First Flight");
   await expect(page.locator("#briefing-caption")).toHaveText(CAPTION);
   expect(await start()).toContain("0,227,0");
 });
@@ -219,7 +220,7 @@ test("a pick from another socket reaches the page the same way", async ({
 test("a mission without a bundle says so", async ({ page, launcher }) => {
   await page.goto(launcher.url);
   await expect(page.getByLabel("Whole pixels")).toBeEnabled();
-  await page.getByRole("button", { name: "Show Open Field" }).click();
+  await showMission(page, "Open Field", "Melee");
   await expect(page.locator("#briefing-note")).toHaveText(
     "This mission's briefing could not be shown.",
   );
@@ -308,4 +309,25 @@ test("the panel shows the team's background, the caption band and the heading", 
   expect(await panelColor(page, 6, 1)).toBe(background);
   const result = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
   expect(result.violations).toEqual([]);
+});
+
+test("below 900 wide the briefing text sits under the stage, and beside it when wider", async ({
+  page,
+  launcher,
+}) => {
+  await page.setViewportSize({ width: 800, height: 900 });
+  await openBriefing(page, launcher.url);
+  const stage = await page.locator("#briefing-stage").boundingBox();
+  const text = await page.locator(".briefing-text").boundingBox();
+  expect(text?.y ?? 0).toBeGreaterThanOrEqual(
+    (stage?.y ?? 0) + (stage?.height ?? 0),
+  );
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect
+    .poll(async () => (await page.locator(".briefing-text").boundingBox())?.x)
+    .toBeGreaterThan(
+      (stage?.x ?? 0) +
+        ((await page.locator("#briefing-stage").boundingBox())?.width ?? 0) -
+        1,
+    );
 });
