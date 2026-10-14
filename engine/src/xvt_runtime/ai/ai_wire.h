@@ -29,11 +29,13 @@
  * goal was met, 3 once a boarding order had no target left, else 0), u16
  * order throttle (the current order's, as a craft throttle, a fraction of
  * 65,536), u8 order variable1, u8 order variable2, u8 order speed (the
- * current order's, as the mission holds them), u16 books (AI_WIRE_BOOKS_
+ * current order's, as the mission holds them), u16 full speed (the speed
+ * full throttle gives it, by the 1997 rule), u16 books (AI_WIRE_BOOKS_
  * bits), u16 mothership (the object index of the craft it goes home into,
  * 0xFFFF for none), i32 x, i32 y, i32 z of that craft's outside hangar point
- * and then of its inside one, and i32 x, i32 y, i32 z of the flight group's
- * mission point 13, where it leaves by hyperspace (points not given are 0),
+ * and then of its inside one, and i32 x, i32 y, i32 z of its home point,
+ * where it leaves by hyperspace: its group's mission point 13, or point 12
+ * for a captured craft when that point is on (points not given are 0),
  * then the notebook's AI_NOTEBOOK_BYTES. Then u16 contact count,
  * u16 zero, and one contact per craft in the active region, at most
  * AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
@@ -94,12 +96,12 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 6,
+	AI_WIRE_VERSION = 7,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 115 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 117 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
@@ -155,7 +157,8 @@ enum ai_wire_books {
 	/* It skipped to order 4. */
 	AI_WIRE_BOOKS_SKIPPED = 0x010,
 	/* It may depart: it is active, its model has a hyperdrive and its
-	 * group leaves by hyperspace. */
+	 * group leaves by hyperspace, or by a mothership that is gone with
+	 * none of its groups still to arrive. */
 	AI_WIRE_BOOKS_MAY_JUMP = 0x020,
 	/* It may dock: it is active and within 512 world units of its
 	 * mothership's inside hangar point by rough distance, 1,024 for a
@@ -163,8 +166,11 @@ enum ai_wire_books {
 	AI_WIRE_BOOKS_AT_HANGAR = 0x040,
 	/* Its group leaves by mothership, not by hyperspace. */
 	AI_WIRE_BOOKS_BY_MOTHERSHIP = 0x080,
-	/* Its group's mission point 13 is on, so the home point is given. */
+	/* Its home point is on, so it is given. */
 	AI_WIRE_BOOKS_HOME_POINT = 0x100,
+	/* Its current order still has a target, in the battle or in a group
+	 * still to arrive, by the 1997 count. */
+	AI_WIRE_BOOKS_TARGETS_LEFT = 0x200,
 };
 
 enum ai_wire_contact_flag {
@@ -208,6 +214,7 @@ struct ai_wire_craft_view {
 	uint8_t order_variable1;
 	uint8_t order_variable2;
 	uint8_t order_speed;
+	uint16_t full_speed;
 	uint16_t books;
 	uint16_t mothership;
 	int32_t outside_hangar[AI_WIRE_POINT_AXES];

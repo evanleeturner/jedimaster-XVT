@@ -7,10 +7,16 @@ import pytest
 from jedimaster_ai import orders
 from jedimaster_ai.behaviors import attack
 from jedimaster_ai.behaviors import drift
+from jedimaster_ai.behaviors import hold
+from jedimaster_ai.behaviors import home
 
 
-def test_attack_has_its_behavior_and_every_other_order_drifts() -> None:
+def test_written_orders_have_their_behaviors_and_every_other_order_drifts() -> None:
     expected = {code: drift.think for code in orders.OrderCode}
+    for code in (0, 28, 30, 33, 34, 35, 38):
+        expected[orders.OrderCode(code)] = hold.think
+    expected[orders.OrderCode.GO_HOME] = home.think
+    expected[orders.OrderCode.SS_GO_HOME] = home.think
     expected[orders.OrderCode.ATTACK] = attack.think
     assert dict(orders.BEHAVIORS) == expected
 

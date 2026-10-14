@@ -50,7 +50,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 6
+VERSION = 7
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -95,6 +95,7 @@ VIEW_LAYOUT = (
     ("order_variable1", "B", 1),
     ("order_variable2", "B", 1),
     ("order_speed", "B", 1),
+    ("full_speed", "H", 1),
     ("books", "H", 1),
     ("mothership", "H", 1),
     ("outside_hangar", "i", 3),

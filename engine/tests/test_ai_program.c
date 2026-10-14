@@ -63,6 +63,10 @@ static void start_python(const char *code, uint32_t limit_ms)
 	start(args, limit_ms);
 }
 
+/* Escort, an order whose behavior is not written yet: the program leaves
+ * its craft drifting, with no action. */
+enum { TEST_DRIFTING_ORDER = 10 };
+
 /* Writes into g_question a question about count craft at tick, each craft
  * with its own object index and notebook bytes and shown as a contact too;
  * returns its length. */
@@ -73,6 +77,7 @@ static size_t question_about(int count, uint32_t tick)
 		g_views[craft].object_index = (uint16_t)(3 * craft + 5);
 		g_views[craft].object_signature = (uint16_t)(0x100 + craft);
 		g_views[craft].x = -1000 * craft;
+		g_views[craft].order_code = TEST_DRIFTING_ORDER;
 		for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 			g_views[craft].notebook[byte] =
 				(uint8_t)(craft * 7 + byte);

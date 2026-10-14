@@ -69,6 +69,7 @@ static uint8_t *put_craft_view(uint8_t *at,
 	*at++ = view->order_variable1;
 	*at++ = view->order_variable2;
 	*at++ = view->order_speed;
+	at = put_u16(at, view->full_speed);
 	at = put_u16(at, view->books);
 	at = put_u16(at, view->mothership);
 	at = put_point(at, view->outside_hangar);

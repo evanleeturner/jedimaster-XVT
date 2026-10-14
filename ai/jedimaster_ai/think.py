@@ -2,7 +2,9 @@
 
 Purpose:
     The program's one decision. For each craft in the question, in order,
-    the behavior its order code picks decides (``behaviors.arrival`` while
+    ``progress`` reads its books and either sends it home
+    (``behaviors.home`` decides) or lets the behavior its order code picks
+    decide, adding any move of its order slot (``behaviors.arrival`` while
     the craft arrives from hyperspace; out of a hangar its order decides at
     once and the leaving mark ends), it steers clear of a bulky craft in its
     way (``behaviors.avoidance``), its turrets are aimed
@@ -21,9 +23,11 @@ from __future__ import annotations
 import logging
 import typing as t
 
+from . import progress
 from .behaviors import arrival
 from .behaviors import avoidance
 from .behaviors import Behavior
+from .behaviors import home
 from .behaviors import turrets
 from .orders import behavior_for
 from .orders import BEHAVIORS
@@ -59,7 +63,9 @@ def think(
         if arrival.is_arriving(view):
             decision = arrival.think(view, question)
         else:
-            decision = behavior_for(view, behaviors)(view, question)
+            step = progress.decide(view)
+            behavior = home.think if step.home else behavior_for(view, behaviors)
+            decision = progress.with_move(behavior(view, question), step.move)
             if arrival.is_leaving_hangar(view):
                 decision = arrival.leave_hangar(view, decision)
             decision = avoidance.steer_clear(view, question, decision)
@@ -108,7 +114,11 @@ def _log_view(view: CraftView) -> None:
         "yaw=%d pitch=%d roll=%d speed=%d seed=%d targets=%d turrets=%d "
         "cannons=%d launchers=%d cannon_first=%d cannon_second=%d warhead_first=%d warhead_second=%d "
         "left_first=%d left_second=%d cooldown_first=%d cooldown_second=%d "
-        'enemies=%d leader=%d notebook="%s"',
+        'enemies=%d leader=%d codes="%s" states="%s" order_throttle=%d '
+        "variable_first=%d variable_second=%d order_speed=%d full_speed=%d books=%d "
+        "mothership=%d outside_x=%d outside_y=%d outside_z=%d inside_x=%d "
+        "inside_y=%d inside_z=%d home_x=%d home_y=%d home_z=%d "
+        'notebook="%s"',
         view.object_index,
         view.object_signature,
         view.object_type,
@@ -142,6 +152,24 @@ def _log_view(view: CraftView) -> None:
         view.launcher_cooldown[1],
         view.enemy_mask,
         view.leader,
+        bytes(view.order_codes).hex(),
+        bytes(view.order_states).hex(),
+        view.order_throttle,
+        view.order_variable1,
+        view.order_variable2,
+        view.order_speed,
+        view.full_speed,
+        view.books,
+        view.mothership,
+        view.outside_hangar[0],
+        view.outside_hangar[1],
+        view.outside_hangar[2],
+        view.inside_hangar[0],
+        view.inside_hangar[1],
+        view.inside_hangar[2],
+        view.home_point[0],
+        view.home_point[1],
+        view.home_point[2],
         view.notebook.hex(),
     )
 
@@ -160,14 +188,19 @@ def _log_answer(answer: CraftAnswer) -> None:
         | (actions.warhead is not None) << 7
         | (actions.turrets is not None) << 8
         | (actions.arrival is not None) << 9
+        | (actions.order is not None) << 10
+        | actions.depart << 11
+        | actions.dock << 12
     )
     first, second = actions.lasers or (HOLD_FIRE, HOLD_FIRE)
     warhead = actions.warhead
     arrived = actions.arrival
+    order = actions.order
     logger.debug(
         "think.answer object=%d actions=%d yaw=%d pitch=%d roll=%d throttle=%d "
         "activity=%d interval=%d target=%d mode_first=%d burst_first=%d mode_second=%d burst_second=%d "
-        'launcher=%d paired=%d turrets=%d arriving=%d speed=%d notebook="%s"',
+        "launcher=%d paired=%d turrets=%d arriving=%d speed=%d order_slot=%d "
+        'order_state=%d notebook="%s"',
         answer.object_index,
         bits,
         steer.yaw if steer else 0,
@@ -186,6 +219,8 @@ def _log_answer(answer: CraftAnswer) -> None:
         len(actions.turrets or ()),
         0 if arrived is None else int(arrived.arriving),
         0 if arrived is None else arrived.speed,
+        -1 if order is None else order.slot,
+        0 if order is None else order.state,
         answer.notebook.hex(),
     )
     for turret in actions.turrets or ():

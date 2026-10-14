@@ -75,12 +75,14 @@ class Books(enum.IntFlag):
     - SKIP_DUE: its group's skip-to-order-4 trigger holds
     - SKIPPED: it skipped to order 4
     - MAY_JUMP: it may depart: active, with a hyperdrive, its group leaving
-      by hyperspace
+      by hyperspace, or by a mothership that is gone with none of its
+      groups still to arrive
     - AT_HANGAR: it may dock: active, within 512 world units of its
       mothership's inside hangar point (1,024 for a starship)
     - BY_MOTHERSHIP: its group leaves by mothership, not by hyperspace
-    - HOME_POINT: its group's mission point 13 is on, so ``home_point`` is
-      given
+    - HOME_POINT: its home point is on, so ``home_point`` is given
+    - TARGETS_LEFT: its current order still has a target, in the battle or
+      in a group still to arrive, by the 1997 count
     """
 
     ORDERS_DONE = 0x001
@@ -92,6 +94,7 @@ class Books(enum.IntFlag):
     AT_HANGAR = 0x040
     BY_MOTHERSHIP = 0x080
     HOME_POINT = 0x100
+    TARGETS_LEFT = 0x200
 
 
 @dataclasses.dataclass(frozen=True)
@@ -112,13 +115,16 @@ class CraftView:
     goal was met, 3 once a boarding order had no target left, else 0);
     ``order_throttle`` (a craft throttle, a fraction of 65,536),
     ``order_variable1``, ``order_variable2`` and ``order_speed`` are the
-    current order's. ``books`` holds ``Books`` bits. ``mothership`` is the
-    object index of the craft it goes home into, NO_OBJECT for none, with
-    that craft's ``outside_hangar`` and ``inside_hangar`` points; ``home_point``
-    is its group's mission point 13, where it leaves by hyperspace. Points
-    are world (x, y, z), all 0 when not given. ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
-    program last wrote it, or all zero bytes before the program first writes
-    it.
+    current order's. ``full_speed`` is the speed full throttle gives the
+    craft, by the 1997 set-speed rule. ``books`` holds ``Books`` bits.
+    ``mothership`` is the object index of the craft it goes home into,
+    NO_OBJECT for none, with that craft's ``outside_hangar`` and
+    ``inside_hangar`` points; ``home_point`` is where it leaves by
+    hyperspace, its group's mission point 13, or 12 for a captured craft
+    when that point is on. Points are world (x, y, z), all 0 when not
+    given. ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
+    program last wrote it, or all zero bytes before the program first
+    writes it.
     """
 
     object_index: int
@@ -156,6 +162,7 @@ class CraftView:
     order_variable1: int
     order_variable2: int
     order_speed: int
+    full_speed: int
     books: int
     mothership: int
     outside_hangar: tuple[int, int, int]

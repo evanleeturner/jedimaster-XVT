@@ -24,7 +24,7 @@ def starship(view):
             "x": 0,
             "y": 0,
             "z": 0,
-            "order_code": 0,
+            "order_code": 10,
             "order_target_mask": 0,
             "turret_slot_mask": 0b10110,
             "enemy_mask": 0xFFFFFFFF,

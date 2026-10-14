@@ -1,6 +1,7 @@
 /* The mission's books for the computer craft, ported from the 1997 AI's
- * orders 15, 38, 39 and 41, its into-hyperspace maneuver and its hangar order
- * (paiorder.c and paiman.c, deleted with the 1997 AI). The counts follow the
+ * orders 15, 38, 39, 41 and 46, its into-hyperspace maneuver, its hangar
+ * order, its set-speed rule and its count of an order's targets left
+ * (paiorder.c, paiman.c and paifight.c, deleted with the 1997 AI). The counts follow the
  * 1997 rules. Three of its faults are not kept: a craft docking took every
  * formation follower of its group into the hangar with it, wherever they
  * were (each craft now docks alone); a follower took its leader's departure
@@ -69,6 +70,29 @@ enum {
 	BOOKS_GENUS_FREIGHTER = 3,
 	/* Entries in g_order_throttle_to_craft_throttle_speed. */
 	BOOKS_THROTTLE_ENTRIES = 12,
+	/* Mission point 12, where a captured craft leaves by hyperspace when
+	 * that point is on, as an order target reference and as a point
+	 * index. */
+	BOOKS_CAPTURED_HOME_POINT_REF = 0x800C,
+	BOOKS_CAPTURED_HOME_POINT = 12,
+	/* The books an order's 1997 leader plan kept: its departure (order
+	 * 38), its abort (order 15) and the skip-to-order-4 test (orders 40
+	 * and 43). */
+	BOOKS_KEEPS_DEPARTURE = 0x1,
+	BOOKS_KEEPS_ABORT = 0x2,
+	BOOKS_KEEPS_SKIP = 0x4,
+	BOOKS_KEEPS_ALL = 0x7,
+	/* An order's two target pairs, the join that makes a pair "or", and
+	 * the object type flag that makes a static object count as a
+	 * target. */
+	BOOKS_TARGET_PAIRS = 2,
+	BOOKS_TARGETS_JOINED_BY_OR = 1,
+	BOOKS_STATIC_TARGET_FLAG = 2,
+	/* A recharge level step's share of the full speed, an eighth of
+	 * 65,536, and the recharge sum at which the full speed is the
+	 * model's own. */
+	BOOKS_SPEED_STEP = 0x2000,
+	BOOKS_RECHARGE_EVEN = 6,
 };
 
 static struct craft_data *books_craft(uint16_t object_index)
@@ -223,6 +247,252 @@ static void books_leave(uint16_t object_index, uint16_t outcome, int message)
 	object->object_type = 0;
 	craft_free_linked_objects(craft);
 	books_carry_out(object_index, outcome);
+}
+
+/* The books the 1997 leader plan of order kept, BOOKS_KEEPS_ bits, read
+ * from the retail plan file: none for Hold Steady and its copies, Go Home,
+ * SS Go Home, Self Destruct and the null order; departure and abort for
+ * Rendezvous; the skip test alone for Disabled and Await Boarding; departure
+ * and the skip test for Kamikaze; all three for every other order. A code no
+ * order has keeps none. The followers' plans kept the same abort. */
+static unsigned int books_kept_by_order(uint8_t order)
+{
+	switch (order) {
+	case MISSION_ORDER_HOLD_STEADY:
+	case MISSION_ORDER_GO_HOME:
+	case MISSION_ORDER_HOLD_STEADY_2:
+	case MISSION_ORDER_SS_GO_HOME:
+	case MISSION_ORDER_HOLD_STEADY_3:
+	case MISSION_ORDER_HOLD_STEADY_4:
+	case MISSION_ORDER_HOLD_STEADY_5:
+	case MISSION_ORDER_HOLD_STEADY_6:
+	case MISSION_ORDER_SELF_DESTRUCT:
+	case MISSION_ORDER_HOLD_STEADY_7:
+	case MISSION_ORDER_NULL:
+		return 0;
+	case MISSION_ORDER_RENDEZVOUS:
+		return BOOKS_KEEPS_DEPARTURE | BOOKS_KEEPS_ABORT;
+	case MISSION_ORDER_DISABLED:
+	case MISSION_ORDER_AWAIT_BOARDING:
+		return BOOKS_KEEPS_SKIP;
+	case MISSION_ORDER_KAMIKAZE:
+		return BOOKS_KEEPS_DEPARTURE | BOOKS_KEEPS_SKIP;
+	default:
+		return order < MISSION_ORDER_NULL ? BOOKS_KEEPS_ALL : 0;
+	}
+}
+
+/* The books the craft's current order kept. */
+static unsigned int books_kept(uint16_t object_index)
+{
+	uint8_t slot =
+		books_craft(object_index)->ai_controller.current_order_slot;
+	return books_kept_by_order(
+		books_group(object_index)->fg.orders[slot].order);
+}
+
+/* Whether flight group group matches a pair of order targets, joined by "or"
+ * when join is BOOKS_TARGETS_JOINED_BY_OR, else by "and", as the 1997 count
+ * joined them. */
+static int books_targets_match(uint16_t group, uint8_t first_type,
+			       uint8_t first, uint8_t join, uint8_t second_type,
+			       uint8_t second)
+{
+	int16_t matches = mission_flight_group_matches_trigger_variable(
+		group, first_type, first);
+	int16_t also = mission_flight_group_matches_trigger_variable(
+		group, second_type, second);
+	if (join == BOOKS_TARGETS_JOINED_BY_OR) {
+		return (matches | also) != 0;
+	}
+	return (matches & also) != 0;
+}
+
+/* Whether the order's target pair, 0 for targets 1 and 2 and 1 for targets 3
+ * and 4, matches flight group group. */
+static int books_pair_matches(const struct mission_order *order, int pair,
+			      uint16_t group)
+{
+	if (pair == 0) {
+		return books_targets_match(group, order->target1_type,
+					   order->target1,
+					   order->target1_or_target2,
+					   order->target2_type, order->target2);
+	}
+	return books_targets_match(
+		group, order->secondary_target_types[0],
+		order->secondary_targets[0], order->target3_or_target4,
+		order->secondary_target_types[1], order->secondary_targets[1]);
+}
+
+/* Whether the object may count as a target left, the 1997 targetability
+ * test: a live object, and for a craft one not entering hyperspace, of kind
+ * 1, breaking up or exploding, and for a computer craft one whose hull damage
+ * is at most its hull. The 1997 test also passed over a craft with its decoy
+ * beam on beyond a range of the asking craft; a decoy no longer ends an
+ * order. */
+static int books_target_counts(uint16_t object_index)
+{
+	const struct object_record *object = &g_object_table[object_index];
+	if (object->object_type == 0) {
+		return 0;
+	}
+	if (object->mobj == NULL || object->mobj->p_craft == NULL) {
+		return 1;
+	}
+	const struct craft_data *craft = object->mobj->p_craft;
+	uint8_t kind = craft->object_kind;
+	if (kind == CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE ||
+	    kind == CRAFT_OBJECT_KIND_UNKNOWN_1 ||
+	    kind == CRAFT_OBJECT_KIND_BREAKING_UP ||
+	    kind == CRAFT_OBJECT_KIND_EXPLODING) {
+		return 0;
+	}
+	return object->player_owner_idx != -1 ||
+	       craft->hull_damage <= craft->hull_max;
+}
+
+/* Whether a target of the order's pair is in the battle now, the 1997
+ * count: a craft of another group in the active region's craft slots that
+ * matches and may count, for a Disable order one in working order not
+ * captured by the asking craft's team; or a static object whose type counts
+ * as a target. */
+static int books_pair_has_target_now(uint16_t object_index,
+				     const struct mission_order *order,
+				     int pair)
+{
+	const struct object_record *asking = &g_object_table[object_index];
+	int working_only = order->order == MISSION_ORDER_DISABLE;
+	for (uint16_t slot = (uint16_t)g_active_region_object_slot_start;
+	     slot < g_active_region_craft_object_slot_end; ++slot) {
+		const struct object_record *object = &g_object_table[slot];
+		if (object->object_type == 0 ||
+		    object->flight_group_idx == asking->flight_group_idx ||
+		    !books_pair_matches(order, pair,
+					object->flight_group_idx) ||
+		    !books_target_counts(slot)) {
+			continue;
+		}
+		const struct craft_data *craft = object->mobj->p_craft;
+		if (!working_only || craft == NULL ||
+		    (craft->working_subsystems != 0 &&
+		     (craft->captured_by_flight_group == 0 ||
+		      asking->mobj->team != object->mobj->team))) {
+			return 1;
+		}
+	}
+	int end = g_region_main_object_slot_end +
+		  g_region_static_object_slot_count;
+	for (int slot = g_region_main_object_slot_end; slot < end; ++slot) {
+		const struct object_record *object = &g_object_table[slot];
+		if (object->object_type != 0 &&
+		    (g_object_type_table[object->object_type].behavior_flags &
+		     BOOKS_STATIC_TARGET_FLAG) != 0 &&
+		    books_pair_matches(order, pair, object->flight_group_idx) &&
+		    books_target_counts((uint16_t)slot)) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* Whether a flight group that matches the order's pair is still to arrive,
+ * the 1997 test: one that may arrive, or a player's, that has not arrived or
+ * has waves still to come. */
+static int books_pair_has_target_later(const struct mission_order *order,
+				       int pair)
+{
+	for (uint16_t group = 0; group < g_mission_header.num_flight_groups;
+	     ++group) {
+		const struct mission_fg_runtime_stats *stats =
+			&g_mission_fg_stats[group];
+		if ((stats->arrival_enabled != 0 ||
+		     g_mission_flight_groups[group].player_owner_idx != -1) &&
+		    books_pair_matches(order, pair, group) &&
+		    (stats->has_arrived == 0 || stats->waves_remaining != 0)) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* Whether the craft's current order still has a target in either of its
+ * target pairs, now or later: the 1997 test that ended the Attack, Attack
+ * Escorts, Protect, Escort and Disable orders and a starship's protect,
+ * attack and disable orders. Attack Escorts' own search, which made the
+ * nearest escort leader the target, is not kept: its targets count as any
+ * order's do. */
+static int books_targets_left(uint16_t object_index)
+{
+	uint8_t slot =
+		books_craft(object_index)->ai_controller.current_order_slot;
+	const struct mission_order *order =
+		&books_group(object_index)->fg.orders[slot];
+	for (int pair = 0; pair < BOOKS_TARGET_PAIRS; ++pair) {
+		if (books_pair_has_target_now(object_index, order, pair) ||
+		    books_pair_has_target_later(order, pair)) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* The speed full throttle gives the craft, the 1997 set-speed rule: its
+ * model's top speed, raised by an eighth for each step the sum of its
+ * shield, beam and laser recharge levels falls below 6, or lowered by an
+ * eighth for each step above. */
+static uint16_t books_full_speed(const struct craft_data *craft)
+{
+	uint16_t top = craft->ai_flight.max_speed_cache;
+	int below = BOOKS_RECHARGE_EVEN - (int)craft->shield_recharge_level -
+		    (int)craft->beam_recharge_level -
+		    (int)craft->laser_recharge_level;
+	uint16_t steps =
+		(uint16_t)((below < 0 ? -below : below) * BOOKS_SPEED_STEP);
+	uint16_t share = (uint16_t)math2_fraction(steps, top);
+	return (uint16_t)(below < 0 ? top - share : top + share);
+}
+
+/* Whether flight group group has arrived in full, with none of its craft
+ * still to come. */
+static int books_group_all_arrived(int group)
+{
+	const struct mission_fg_runtime_stats *stats =
+		&g_mission_fg_stats[group];
+	return stats->outcome_count[FLIGHT_GROUP_OUTCOME_TOTAL] ==
+	       stats->outcome_count[FLIGHT_GROUP_OUTCOME_ARRIVED];
+}
+
+/* Whether every mothership group a craft whose group leaves by mothership
+ * could go home into has arrived in full, the 1997 order 46's test: for a
+ * captured craft its captured departure group; else its departure group and
+ * its alternate group when used. */
+static int books_motherships_all_arrived(uint16_t object_index)
+{
+	const struct mission_flight_group *group = books_group(object_index);
+	if (books_craft(object_index)->captured_by_flight_group != 0) {
+		return books_group_all_arrived(
+			group->fg.captured_departure_mothership);
+	}
+	return (group->fg.departure_method == 0 ||
+		books_group_all_arrived(group->fg.departure_mothership)) &&
+	       (group->fg.alternate_mothership_used == 0 ||
+		books_group_all_arrived(group->fg.alternate_mothership));
+}
+
+/* The mission point reference of the craft's home point, where it leaves by
+ * hyperspace, the 1997 home target's: point 12 for a captured craft when that
+ * point is on, else point 13 when it is on; 0 for none. */
+static unsigned int books_home_point_ref(uint16_t object_index)
+{
+	const struct mission_flight_group *group = books_group(object_index);
+	if (books_craft(object_index)->captured_by_flight_group != 0 &&
+	    group->fg.mission_point_enabled[BOOKS_CAPTURED_HOME_POINT] != 0) {
+		return BOOKS_CAPTURED_HOME_POINT_REF;
+	}
+	return group->fg.mission_point_enabled[BOOKS_HOME_POINT] != 0
+		       ? BOOKS_HOME_POINT_REF
+		       : 0;
 }
 
 /* Whether the craft still flies its orders, the only time the 1997 plans
@@ -557,6 +827,7 @@ static int books_skip_due(uint16_t object_index)
 	const struct mission_trigger_pair *skip =
 		&books_group(object_index)->fg.skip_to_order4;
 	return craft->leader_obj_idx == UINT8_MAX &&
+	       (books_kept(object_index) & BOOKS_KEEPS_SKIP) != 0 &&
 	       craft->ai_controller.skipped_to_order4 == 0 &&
 	       books_on_orders(craft) &&
 	       (skip->triggers[0].condition != MISSION_COND_ALWAYS_TRUE ||
@@ -688,6 +959,7 @@ static void books_view_orders(uint16_t object_index,
 	view->order_variable1 = order->variable1;
 	view->order_variable2 = order->variable2;
 	view->order_speed = order->speed;
+	view->full_speed = books_full_speed(craft);
 	unsigned int books = 0;
 	books |= craft->ai_flight.go_home_flag != 0 ? AI_WIRE_BOOKS_ORDERS_DONE
 						    : 0;
@@ -699,6 +971,8 @@ static void books_view_orders(uint16_t object_index,
 			 : 0;
 	books |= books_skip_due(object_index) ? AI_WIRE_BOOKS_SKIP_DUE : 0;
 	books |= controller->skipped_to_order4 != 0 ? AI_WIRE_BOOKS_SKIPPED : 0;
+	books |= books_targets_left(object_index) ? AI_WIRE_BOOKS_TARGETS_LEFT
+						  : 0;
 	view->books = (uint16_t)books;
 }
 
@@ -722,12 +996,14 @@ static void books_view_home(uint16_t object_index,
 		view->inside_hangar[axis] = 0;
 		view->home_point[axis] = 0;
 	}
+	int may_jump =
+		active && g_model_defs[craft->model_index].has_hyperdrive != 0;
 	if (books_by_mothership(object_index)) {
 		books |= AI_WIRE_BOOKS_BY_MOTHERSHIP;
-	} else if (active &&
-		   g_model_defs[craft->model_index].has_hyperdrive != 0) {
-		books |= AI_WIRE_BOOKS_MAY_JUMP;
+		may_jump = may_jump && mothership == UINT16_MAX &&
+			   books_motherships_all_arrived(object_index);
 	}
+	books |= may_jump ? AI_WIRE_BOOKS_MAY_JUMP : 0;
 	view->mothership = mothership;
 	if (mothership != UINT16_MAX) {
 		const struct model_hangar_points *hangar =
@@ -750,10 +1026,10 @@ static void books_view_home(uint16_t object_index,
 			books |= AI_WIRE_BOOKS_AT_HANGAR;
 		}
 	}
-	if (books_group(object_index)
-		    ->fg.mission_point_enabled[BOOKS_HOME_POINT] != 0) {
+	unsigned int home = books_home_point_ref(object_index);
+	if (home != 0) {
 		mission_resolve_object_or_mission_point_world_loc(
-			BOOKS_HOME_POINT_REF, object->flight_group_idx);
+			home, object->flight_group_idx);
 		view->home_point[0] = g_world_loc_x;
 		view->home_point[1] = g_world_loc_y;
 		view->home_point[2] = g_world_loc_z;
@@ -768,13 +1044,15 @@ void ai_books_view_craft(uint16_t object_index, struct ai_wire_craft_view *view)
 	if (books_on_orders(craft)) {
 		if (craft->leader_obj_idx != UINT8_MAX) {
 			books_follow_leader(object_index);
-		} else {
+		} else if ((books_kept(object_index) & BOOKS_KEEPS_DEPARTURE) !=
+			   0) {
 			books_keep_departure(object_index);
 		}
 	}
 	/* As in 1997, a departure that came due ends the craft's orders
 	 * before its abort is tested. */
-	if (books_on_orders(craft)) {
+	if (books_on_orders(craft) &&
+	    (books_kept(object_index) & BOOKS_KEEPS_ABORT) != 0) {
 		books_keep_abort(object_index);
 	}
 	books_view_orders(object_index, view);

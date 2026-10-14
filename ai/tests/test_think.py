@@ -18,7 +18,10 @@ from jedimaster_ai.orders import OrderCode
 from jedimaster_ai.think import think
 from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Activity
+from jedimaster_ai.world import Answer
+from jedimaster_ai.world import Books
 from jedimaster_ai.world import NO_ACTIONS
+from jedimaster_ai.world import OrderMove
 from jedimaster_ai.world import Question
 from jedimaster_ai.world import Steer
 
@@ -78,10 +81,10 @@ def test_answers_follow_the_questions_order(view) -> None:
 
 
 def test_a_craft_whose_order_has_no_behavior_drifts(view) -> None:
-    hold = {"order_code": OrderCode.HOLD_STEADY, "turret_slot_mask": 0}
+    unwritten = {"order_code": OrderCode.ESCORT, "turret_slot_mask": 0}
     craft = (
-        view(object_index=1, **hold),
-        view(object_index=2, notebook=bytes(range(64)), **hold),
+        view(object_index=1, **unwritten),
+        view(object_index=2, notebook=bytes(range(64)), **unwritten),
     )
     for view_, said in zip(craft, think(Question(5, craft)).craft, strict=True):
         assert (said.notebook, said.actions) == (view_.notebook, NO_ACTIONS)
@@ -133,3 +136,60 @@ def test_without_debug_nothing_is_recorded(view, caplog) -> None:
     caplog.set_level(logging.INFO, logger="jedimaster_ai")
     think(first_question(view))
     assert caplog.text == ""
+
+
+def answered(question: Question) -> Answer:
+    """Return the answer as the engine's reader takes it, through its bytes."""
+    answer = think(question)
+    return wire.read_answer(wire.answer_bytes(answer)[4:], question)
+
+
+def test_books_send_a_craft_home_whatever_its_order(view) -> None:
+    craft = view(order_code=OrderCode.ESCORT, books=Books.ABORTED | Books.MAY_JUMP)
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert (said.activity, said.depart) == (Activity.LEAVING_BY_HYPERSPACE, True)
+
+
+def test_a_real_attack_flight_finishes_both_orders_and_docks(view, contact) -> None:
+    carrier = contact(object_index=9, genus=4, speed=20, target=0xFFFF)
+    flight = {
+        "order_codes": (7, 7, 0, 0),
+        "books": Books.TARGETS_LEFT | Books.BY_MOTHERSHIP,
+        "mothership": 9,
+        "outside_hangar": (90_000, 6, 7),
+        "inside_hangar": (90_100, 6, 7),
+        "turret_slot_mask": 0,
+    }
+
+    def step(**changes):
+        craft = view(**(flight | changes))
+        return answered(Question(1, (craft,), (carrier,))).craft[0].actions
+
+    assert step().order is None
+    assert step(books=Books.BY_MOTHERSHIP).order == OrderMove(1, 2)
+    assert step(order_slot=1, order_states=(2, 0, 0, 0)).order is None
+    last = step(order_slot=1, order_states=(2, 0, 0, 0), books=Books.BY_MOTHERSHIP)
+    assert (last.order, last.activity, last.target) == (
+        OrderMove(1, 2),
+        Activity.GOING_HOME,
+        9,
+    )
+    home_books = Books.BY_MOTHERSHIP | Books.ORDERS_DONE
+    going = step(order_slot=1, order_states=(2, 2, 0, 0), books=home_books, activity=9)
+    assert (going.order, going.activity) == (None, Activity.GOING_HOME)
+    turning = step(
+        order_slot=1,
+        order_states=(2, 2, 0, 0),
+        books=home_books,
+        activity=9,
+        x=89_000,
+    )
+    assert turning.activity == Activity.ENTERING_HANGAR
+    docking = step(
+        order_slot=1,
+        order_states=(2, 2, 0, 0),
+        books=home_books | Books.AT_HANGAR,
+        activity=8,
+        x=90_090,
+    )
+    assert docking.dock

@@ -49,8 +49,9 @@ static struct craft_data g_craft[SLOT_COUNT];
 static char g_test_message[] = "\003message";
 
 /* Empty slots whose mobile and craft records come from the pools the world
- * image saves, every slot in the active region, GROUP_COUNT empty flight
- * groups with no player, the clocks at 0, the three test models, and no
+ * image saves, every slot in the active region, GROUP_COUNT flight groups
+ * with no player whose first order is Attack, an order whose 1997 plan
+ * kept every book, the clocks at 0, the three test models, and no
  * pilot program. */
 static void fresh_world(void)
 {
@@ -85,6 +86,8 @@ static void fresh_world(void)
 	}
 	for (int group = 0; group < GROUP_COUNT; ++group) {
 		g_mission_flight_groups[group].player_owner_idx = -1;
+		g_mission_flight_groups[group].fg.orders[0].order =
+			MISSION_ORDER_ATTACK;
 	}
 	g_active_region_object_slot_start = 0;
 	g_active_region_craft_object_slot_end = SLOT_COUNT;
@@ -240,6 +243,9 @@ static void check_follower(void)
 	leader->ai_flight.depart_clock_minutes = 1;
 	leader->ai_flight.depart_clock_seconds = 30;
 	leader->ai_controller.current_order_slot = 2;
+	/* Slot 2 holds an order whose 1997 plan kept the departure. */
+	g_mission_flight_groups[TEST_GROUP].fg.orders[2].order =
+		MISSION_ORDER_ATTACK;
 	clock_at(0, 1, 35);
 	view_of(2);
 	view_of(2);
@@ -400,7 +406,7 @@ static void check_skip_and_orders(void)
 	struct craft_data *craft = make_craft(1, TEST_GROUP);
 	struct mission_flight_group *group =
 		&g_mission_flight_groups[TEST_GROUP];
-	group->fg.orders[0].order = 1;
+	group->fg.orders[0].order = MISSION_ORDER_ATTACK;
 	group->fg.orders[1].order = 2;
 	group->fg.orders[3].order = 1;
 	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_SKIP_DUE));
@@ -498,12 +504,15 @@ static void check_view_orders_and_home(void)
 	craft->object_kind = CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE;
 	XVT_ASSERT_INT_EQ(view_of(1).books, 0);
 	craft->object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	/* No mothership here and none to come: it may jump (order 46). */
 	group->fg.departure_method = 1;
-	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_BY_MOTHERSHIP);
+	XVT_ASSERT_INT_EQ(view_of(1).books,
+			  AI_WIRE_BOOKS_BY_MOTHERSHIP | AI_WIRE_BOOKS_MAY_JUMP);
 	group->fg.departure_method = 0;
 	craft->captured_by_flight_group = 1;
 	group->fg.captured_depart_via_mothership = 1;
-	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_BY_MOTHERSHIP);
+	XVT_ASSERT_INT_EQ(view_of(1).books,
+			  AI_WIRE_BOOKS_BY_MOTHERSHIP | AI_WIRE_BOOKS_MAY_JUMP);
 	craft->captured_by_flight_group = 0;
 
 	group->fg.mission_point_enabled[13] = 1;
@@ -515,6 +524,206 @@ static void check_view_orders_and_home(void)
 	XVT_ASSERT_INT_EQ(view.home_point[0], 2560);
 	XVT_ASSERT_INT_EQ(view.home_point[1], -5120);
 	XVT_ASSERT_INT_EQ(view.home_point[2], 7680);
+}
+
+/* The books an order kept in 1997, with its departure started and not yet
+ * due, its skip-to-order-4 trigger holding and, when aborting, its abort
+ * trigger holding: BOOKS_STARTED while its departure runs, and its aborted
+ * and skip-due bits. An abort ends a departure that started, as in 1997. */
+enum { BOOKS_STARTED = 0x1000 };
+
+static unsigned int books_kept_for(uint8_t order, int aborting)
+{
+	fresh_world();
+	struct craft_data *craft = make_craft(1, TEST_GROUP);
+	struct mission_flight_group *group =
+		&g_mission_flight_groups[TEST_GROUP];
+	group->fg.orders[0].order = order;
+	group->fg.departure_clock_min = 1;
+	group->fg.departure_delay_seconds = 20;
+	clock_at(0, 1, 0);
+	if (aborting) {
+		group->fg.abort_trigger = 1;
+		set_abort_state(1, 1, 1);
+	}
+	group->fg.skip_to_order4.triggers[0].condition = MISSION_COND_NEVER;
+	group->fg.skip_to_order4.triggers[1].condition =
+		MISSION_COND_ALWAYS_TRUE;
+	group->fg.skip_to_order4.trigger1_or_trigger2 = GOAL_OPERATOR_STR_OR;
+	unsigned int books = view_of(1).books;
+	return (craft->ai_flight.depart_timer_flag != 0 ? BOOKS_STARTED : 0) |
+	       (books & (AI_WIRE_BOOKS_ABORTED | AI_WIRE_BOOKS_SKIP_DUE));
+}
+
+/* The books each order's 1997 leader plan kept, read from the retail plan
+ * file: Hold Steady and Go Home none; Attack all three; Rendezvous departure
+ * and abort; Disabled the skip test alone; Kamikaze departure and the skip
+ * test, never an abort; a code no order has none. */
+static void check_books_kept_by_order(void)
+{
+	static const struct {
+		uint8_t order;
+		unsigned int flying;
+		unsigned int aborting;
+	} kept[] = {
+		{MISSION_ORDER_HOLD_STEADY, 0, 0},
+		{MISSION_ORDER_HOLD_STEADY_7, 0, 0},
+		{MISSION_ORDER_GO_HOME, 0, 0},
+		{MISSION_ORDER_ATTACK, BOOKS_STARTED | AI_WIRE_BOOKS_SKIP_DUE,
+		 AI_WIRE_BOOKS_ABORTED},
+		{MISSION_ORDER_RENDEZVOUS, BOOKS_STARTED,
+		 AI_WIRE_BOOKS_ABORTED},
+		{MISSION_ORDER_DISABLED, AI_WIRE_BOOKS_SKIP_DUE,
+		 AI_WIRE_BOOKS_SKIP_DUE},
+		{MISSION_ORDER_KAMIKAZE, BOOKS_STARTED | AI_WIRE_BOOKS_SKIP_DUE,
+		 BOOKS_STARTED | AI_WIRE_BOOKS_SKIP_DUE},
+		{40, 0, 0},
+	};
+	for (size_t row = 0; row < sizeof kept / sizeof kept[0]; ++row) {
+		XVT_ASSERT_INT_EQ(books_kept_for(kept[row].order, 0),
+				  kept[row].flying);
+		XVT_ASSERT_INT_EQ(books_kept_for(kept[row].order, 1),
+				  kept[row].aborting);
+	}
+}
+
+/* The 1997 count of an order's targets left: a matching craft of another
+ * group in the battle that may count, a static object whose type counts, a
+ * matching group still to arrive or with waves to come; either target pair;
+ * for a Disable order a target in working order only. */
+static void check_targets_left(void)
+{
+	fresh_world();
+	make_craft(1, TEST_GROUP);
+	struct mission_order *order =
+		&g_mission_flight_groups[TEST_GROUP].fg.orders[0];
+	order->target1_type = 1;
+	order->target1 = CARGO_GROUP;
+	order->target1_or_target2 = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	struct craft_data *target = make_craft(2, CARGO_GROUP);
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	target->object_kind = CRAFT_OBJECT_KIND_EXPLODING;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	target->object_kind = CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	target->object_kind = CRAFT_OBJECT_KIND_ACTIVE;
+	target->hull_damage = 2;
+	target->hull_max = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	g_objects[2].player_owner_idx = 0;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	g_objects[2].player_owner_idx = -1;
+	target->hull_damage = 0;
+
+	order->order = MISSION_ORDER_DISABLE;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	target->working_subsystems = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	order->order = MISSION_ORDER_ATTACK;
+
+	order->target1_or_target2 = 0;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	order->secondary_target_types[0] = 1;
+	order->secondary_targets[0] = CARGO_GROUP;
+	order->target3_or_target4 = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	order->secondary_targets[0] = TEST_GROUP;
+	make_craft(3, TEST_GROUP);
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+
+	order->secondary_targets[0] = ALTERNATE_GROUP;
+	struct mission_fg_runtime_stats *later =
+		&g_mission_fg_stats[ALTERNATE_GROUP];
+	later->arrival_enabled = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	later->has_arrived = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	later->waves_remaining = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	later->arrival_enabled = 0;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+
+	enum { STATIC_SLOT = SLOT_COUNT - 1, STATIC_TYPE = 20 };
+	g_region_main_object_slot_end = STATIC_SLOT;
+	g_region_static_object_slot_count = 1;
+	g_active_region_craft_object_slot_end = STATIC_SLOT;
+	g_objects[STATIC_SLOT].object_type = STATIC_TYPE;
+	g_objects[STATIC_SLOT].flight_group_idx = ALTERNATE_GROUP;
+	uint8_t flags = g_object_type_table[STATIC_TYPE].behavior_flags;
+	g_object_type_table[STATIC_TYPE].behavior_flags = 0;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	g_object_type_table[STATIC_TYPE].behavior_flags = 2;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
+	g_object_type_table[STATIC_TYPE].behavior_flags = flags;
+}
+
+/* The 1997 set-speed rule's full speed: the top speed, 128 here, plus an
+ * eighth for each step the recharge levels' sum falls below 6, less an
+ * eighth for each step above. */
+static void check_full_speed(void)
+{
+	fresh_world();
+	struct craft_data *craft = make_craft(1, TEST_GROUP);
+	craft->ai_flight.max_speed_cache = 128;
+	XVT_ASSERT_INT_EQ(view_of(1).full_speed, 224);
+	craft->shield_recharge_level = 2;
+	craft->beam_recharge_level = 2;
+	craft->laser_recharge_level = 2;
+	XVT_ASSERT_INT_EQ(view_of(1).full_speed, 128);
+	craft->laser_recharge_level = 3;
+	XVT_ASSERT_INT_EQ(view_of(1).full_speed, 112);
+	craft->shield_recharge_level = 4;
+	craft->beam_recharge_level = 4;
+	craft->laser_recharge_level = 4;
+	XVT_ASSERT_INT_EQ(view_of(1).full_speed, 32);
+}
+
+/* Order 46: a craft whose group leaves by mothership may jump once its
+ * mothership is gone and every mothership group it could go home into has
+ * arrived in full; not while one is still to come, nor with its mothership
+ * here, nor without a hyperdrive. A captured craft's home point is point 12
+ * when that point is on. */
+static void check_mothership_gone(void)
+{
+	fresh_world();
+	struct craft_data *craft = make_craft(1, TEST_GROUP);
+	struct mission_flight_group *group =
+		&g_mission_flight_groups[TEST_GROUP];
+	group->fg.departure_method = 1;
+	group->fg.departure_mothership = CARRIER_GROUP;
+	uint16_t *carriers = g_mission_fg_stats[CARRIER_GROUP].outcome_count;
+	carriers[FLIGHT_GROUP_OUTCOME_TOTAL] = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_MAY_JUMP));
+	carriers[FLIGHT_GROUP_OUTCOME_ARRIVED] = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_MAY_JUMP));
+	group->fg.alternate_mothership_used = 1;
+	group->fg.alternate_mothership = ALTERNATE_GROUP;
+	uint16_t *alternates =
+		g_mission_fg_stats[ALTERNATE_GROUP].outcome_count;
+	alternates[FLIGHT_GROUP_OUTCOME_TOTAL] = 2;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_MAY_JUMP));
+	group->fg.alternate_mothership_used = 0;
+	make_carrier(3, CARRIER_GROUP, 50000);
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_MAY_JUMP));
+	g_objects[3].object_type = 0;
+	craft->model_index = NO_JUMP_MODEL;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_MAY_JUMP));
+	craft->model_index = JUMP_MODEL;
+	craft->captured_by_flight_group = 1;
+	group->fg.captured_depart_via_mothership = 1;
+	group->fg.captured_departure_mothership = ALTERNATE_GROUP;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_MAY_JUMP));
+	alternates[FLIGHT_GROUP_OUTCOME_ARRIVED] = 2;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_MAY_JUMP));
+
+	group->fg.mission_point_enabled[13] = 1;
+	group->fg.mission_point_x[13] = 10;
+	group->fg.mission_point_enabled[12] = 1;
+	group->fg.mission_point_x[12] = 1;
+	XVT_ASSERT_INT_EQ(view_of(1).home_point[0], 256);
+	craft->captured_by_flight_group = 0;
+	XVT_ASSERT_INT_EQ(view_of(1).home_point[0], 2560);
 }
 
 /* The hangar point at side, up and forward of the carrier in slot. */
@@ -862,5 +1071,9 @@ int main(void)
 	check_dock();
 	check_departure_counts();
 	check_jump_and_replay();
+	check_books_kept_by_order();
+	check_targets_left();
+	check_full_speed();
+	check_mothership_gone();
 	return 0;
 }

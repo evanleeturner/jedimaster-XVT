@@ -43,6 +43,11 @@
       "fields": ["object", "around", "distance", "clearance", "yaw"],
       "text": "Craft {object} steered clear of craft {around}, {distance} units away with a clearance of {clearance}, to yaw {yaw}"
     },
+    "home.route": {
+      "level": "D",
+      "fields": ["object", "route", "from", "books"],
+      "text": "Craft {object} goes home by route {route} (jump, hangar, enter, wait or stop) from activity {from}, with books bits {books}"
+    },
     "notebook.unreadable": {
       "level": "W",
       "fields": ["object", "behavior", "error"],
@@ -73,10 +78,15 @@
       "fields": ["questions"],
       "text": "Standard input ended after {questions} questions; the AI program stops with exit code 0"
     },
+    "progress.move": {
+      "level": "D",
+      "fields": ["object", "from", "to", "state", "why"],
+      "text": "Craft {object} moves from order slot {from} to slot {to}, the slot it left taking completion state {state} ({why}: next, skip, done or home)"
+    },
     "think.answer": {
       "level": "D",
-      "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "target", "mode_first", "burst_first", "mode_second", "burst_second", "launcher", "paired", "turrets", "arriving", "speed", "notebook"],
-      "text": "Craft {object} is answered with action bits {actions}: turn to heading {yaw}, pitch {pitch} and roll {roll}, throttle {throttle}, activity {activity}, think every {interval} ticks (0 where not sent); target {target} (65535 where not sent); cannon group 0 link mode {mode_first} burst {burst_first}, group 1 mode {mode_second} burst {burst_second}; fire launcher {launcher} (-1 for none), paired {paired}; aim {turrets} turrets; arrival {arriving} at speed {speed} (0 and 0 where not sent); notebook {notebook}"
+      "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "target", "mode_first", "burst_first", "mode_second", "burst_second", "launcher", "paired", "turrets", "arriving", "speed", "order_slot", "order_state", "notebook"],
+      "text": "Craft {object} is answered with action bits {actions}: turn to heading {yaw}, pitch {pitch} and roll {roll}, throttle {throttle}, activity {activity}, think every {interval} ticks (0 where not sent); target {target} (65535 where not sent); cannon group 0 link mode {mode_first} burst {burst_first}, group 1 mode {mode_second} burst {burst_second}; fire launcher {launcher} (-1 for none), paired {paired}; aim {turrets} turrets; arrival {arriving} at speed {speed} (0 and 0 where not sent); order slot {order_slot}, the slot left taking state {order_state} (-1 and 0 where not sent); notebook {notebook}"
     },
     "think.contact": {
       "level": "D",
@@ -95,8 +105,8 @@
     },
     "think.view": {
       "level": "D",
-      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "targets", "turrets", "cannons", "launchers", "cannon_first", "cannon_second", "warhead_first", "warhead_second", "left_first", "left_second", "cooldown_first", "cooldown_second", "enemies", "leader", "notebook"],
-      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; order target mask {targets}, turret slot mask {turrets}; {cannons} cannon groups firing types {cannon_first} and {cannon_second}; {launchers} launchers holding types {warhead_first} and {warhead_second}, {left_first} and {left_second} left, ready in {cooldown_first} and {cooldown_second} ticks; enemy mask {enemies}, leader {leader} (65535 when it leads); notebook {notebook}"
+      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "targets", "turrets", "cannons", "launchers", "cannon_first", "cannon_second", "warhead_first", "warhead_second", "left_first", "left_second", "cooldown_first", "cooldown_second", "enemies", "leader", "codes", "states", "order_throttle", "variable_first", "variable_second", "order_speed", "full_speed", "books", "mothership", "outside_x", "outside_y", "outside_z", "inside_x", "inside_y", "inside_z", "home_x", "home_y", "home_z", "notebook"],
+      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; order target mask {targets}, turret slot mask {turrets}; {cannons} cannon groups firing types {cannon_first} and {cannon_second}; {launchers} launchers holding types {warhead_first} and {warhead_second}, {left_first} and {left_second} left, ready in {cooldown_first} and {cooldown_second} ticks; enemy mask {enemies}, leader {leader} (65535 when it leads); order codes {codes} and completion states {states} by slot, order throttle {order_throttle}, variables {variable_first} and {variable_second}, order speed {order_speed}; full speed {full_speed}; books bits {books}; mothership {mothership} (65535 for none) with its outside hangar point ({outside_x}, {outside_y}, {outside_z}) and inside one ({inside_x}, {inside_y}, {inside_z}); home point ({home_x}, {home_y}, {home_z}); notebook {notebook}"
     }
   }
 }

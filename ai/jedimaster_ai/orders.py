@@ -8,7 +8,8 @@ Purpose:
 
 Invariants:
     - Every order code maps to drift until its behavior is written. Written:
-      Attack (``behaviors.attack``).
+      Attack (``behaviors.attack``), Hold Steady and its six copies
+      (``behaviors.hold``), Go Home and SS Go Home (``behaviors.home``).
     - A code with no behavior in the table, one no order has included, is
       flown by drift after one WARN line.
 """
@@ -23,6 +24,8 @@ import typing as t
 from .behaviors import attack
 from .behaviors import Behavior
 from .behaviors import drift
+from .behaviors import hold
+from .behaviors import home
 from .world import CraftView
 
 logger = logging.getLogger(__name__)
@@ -73,8 +76,27 @@ class OrderCode(enum.IntEnum):
     NULL = 39
 
 
+# Hold Steady and the six codes whose 1997 plan was Hold Steady's.
+HOLD_STEADY_ORDERS = frozenset(
+    {
+        OrderCode.HOLD_STEADY,
+        OrderCode.HOLD_STEADY_2,
+        OrderCode.HOLD_STEADY_3,
+        OrderCode.HOLD_STEADY_4,
+        OrderCode.HOLD_STEADY_5,
+        OrderCode.HOLD_STEADY_6,
+        OrderCode.HOLD_STEADY_7,
+    }
+)
+
 BEHAVIORS: t.Mapping[int, Behavior] = types.MappingProxyType(
-    {code: drift.think for code in OrderCode} | {OrderCode.ATTACK: attack.think}
+    {code: drift.think for code in OrderCode}
+    | {code: hold.think for code in HOLD_STEADY_ORDERS}
+    | {
+        OrderCode.GO_HOME: home.think,
+        OrderCode.ATTACK: attack.think,
+        OrderCode.SS_GO_HOME: home.think,
+    }
 )
 
 

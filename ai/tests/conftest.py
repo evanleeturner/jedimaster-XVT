@@ -10,6 +10,7 @@ import typing as t
 
 import pytest
 
+from jedimaster_ai.world import Books
 from jedimaster_ai.world import Contact
 from jedimaster_ai.world import CraftView
 from jedimaster_ai.world import NOTEBOOK_BYTES
@@ -52,7 +53,8 @@ VIEW = CraftView(
     order_variable1=0,
     order_variable2=0,
     order_speed=0,
-    books=0,
+    full_speed=300,
+    books=Books.TARGETS_LEFT,
     mothership=0xFFFF,
     outside_hangar=(0, 0, 0),
     inside_hangar=(0, 0, 0),

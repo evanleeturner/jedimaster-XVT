@@ -18,12 +18,13 @@ extern "C" {
 #endif
 
 /* Keeps the books of the computer craft in object_index, as the 1997 plans
- * did on each think while it flew its orders, then writes into view what the
- * question tells the pilot program about them: each order slot's code and
- * completion state, the current order's throttle, variables and speed, the
- * AI_WIRE_BOOKS_ bits, its mothership with that craft's two hangar points,
- * and its flight group's mission point 13. Call it before the view's order
- * fields are read: a follower takes its leader's order slot here. */
+ * did on each think while it flew its orders, those its order's plan kept,
+ * then writes into view what the question tells the pilot program about
+ * them: each order slot's code and completion state, the current order's
+ * throttle, variables and speed, the craft's full speed, the AI_WIRE_BOOKS_
+ * bits, its mothership with that craft's two hangar points, and its home
+ * point. Call it before the view's order fields are read: a follower takes
+ * its leader's order slot here. */
 void ai_books_view_craft(uint16_t object_index,
 			 struct ai_wire_craft_view *view);
 
