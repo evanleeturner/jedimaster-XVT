@@ -33,6 +33,7 @@ class BehaviorCode(enum.IntEnum):
 
     ATTACK = 1
     ARRIVAL = 2
+    HOME = 3
 
 
 @dataclasses.dataclass(frozen=True)

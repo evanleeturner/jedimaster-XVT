@@ -15,7 +15,20 @@ Purpose:
       inside point at the mothership's speed plus 25 (40 under a mothership
       slower than 25), thinking every 29 ticks; it docks once its books say
       it is at the hangar
-    - else to its home point, where it stops: a craft with no way out
+    - else, with no way out, it fights the nearest enemy in the battle when
+      it can dogfight (ruling 31: hiding at a jump point is no way out); with
+      none, it flies to its home point and stops there. A mothership that
+      arrives for it, or a jump its books allow, takes it home again
+
+    On the way to its jump or its hangar, an enemy after it (``attack.
+    pursuer``: a small craft that targets it and hit it last or sits on its
+    tail) turns it round to fight while it may fight back (``attack.
+    fights_back``: its hull at three quarters or more, ruling 34), and
+    otherwise it flies home evading, weaving about its way home whenever the
+    enemy sits on its tail (ruling 33). Once the enemy is dead, gone, or
+    targets another craft, it goes home again. At the door it goes on: a
+    craft departing, turning in to the hangar or docking is not turned
+    round.
 
     A craft on a starship's order (STARSHIP_ORDERS) goes home as the 1997
     starship plan did: by hyperspace, or, when its group leaves by
@@ -29,17 +42,23 @@ Invariants:
       they say it is at the hangar: the engine takes every answer.
     - A craft already entering hyperspace is sent nothing; the engine flies
       it out.
-    - Pure: the way out is read from the view each think, the activity it
-      set last the only memory. The notebook goes back as it came. A new
-      way out is logged at DEBUG when the activity changes.
+    - The way out is read from the view each think. A fight is attack's,
+      with attack's notebook; a weave home keeps its state in a home
+      notebook (BehaviorCode.HOME, the weave's STATE_BYTES first in the
+      scratch), which ends a weave under way once no enemy is after the
+      craft. Otherwise the notebook goes back as it came. A new route is
+      logged at DEBUG when the activity changes: a fighting craft's is NONE.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 
 from .. import geometry
+from .. import notebook
 from .. import tactics
+from .. import weave
 from ..world import Actions
 from ..world import Activity
 from ..world import Books
@@ -47,10 +66,13 @@ from ..world import CraftView
 from ..world import NO_OBJECT
 from ..world import Question
 from ..world import Steer
+from . import attack
+from . import BehaviorCode
 from . import Decision
 
 logger = logging.getLogger(__name__)
 
+CODE = BehaviorCode.HOME
 FULL_THROTTLE = 0xFFFF
 # Within 16,384 units of its home point a craft leaves by hyperspace.
 JUMP_RANGE = 0x4000
@@ -78,20 +100,15 @@ def think(view: CraftView, question: Question) -> Decision:
     if own is not None and own.object_kind == OBJECT_KIND_ENTERING_HYPERSPACE:
         return Decision(view.notebook)
     if view.order_code in STARSHIP_ORDERS:
-        if view.books & Books.BY_MOTHERSHIP:
-            route = "stop"
-            actions = Actions(throttle=0, activity=Activity.NONE, target=NO_OBJECT)
-        elif view.books & Books.MAY_JUMP:
-            route, actions = "jump", _jump(view)
-        else:
-            route, actions = "wait", _wait(view)
+        route, decision = _starship(view)
     elif view.books & Books.MAY_JUMP:
-        route, actions = "jump", _jump(view)
+        route, decision = _on_the_way(view, question, "jump", _jump(view))
     elif view.mothership != NO_OBJECT:
-        route, actions = _hangar(view, question)
+        route, decision = _on_the_way(view, question, *_hangar(view, question))
     else:
-        route, actions = "wait", _wait(view)
-    if actions.activity is not None and actions.activity != view.activity:
+        route, decision = _stranded(view, question)
+    activity = decision.actions.activity
+    if activity is not None and activity != view.activity:
         logger.debug(
             'home.route object=%d route="%s" from=%d books=%d',
             view.object_index,
@@ -99,7 +116,7 @@ def think(view: CraftView, question: Question) -> Decision:
             view.activity,
             view.books,
         )
-    return Decision(view.notebook, actions)
+    return decision
 
 
 def throttle_for(view: CraftView, speed: int) -> int:
@@ -109,6 +126,96 @@ def throttle_for(view: CraftView, speed: int) -> int:
     if view.full_speed <= speed:
         return FULL_THROTTLE
     return (speed << 16) // view.full_speed
+
+
+def _starship(view: CraftView) -> tuple[str, Decision]:
+    """Go home by the 1997 starship plan: stop for good when the group leaves
+    by mothership, else jump, or wait with no jump allowed."""
+    if view.books & Books.BY_MOTHERSHIP:
+        actions = Actions(throttle=0, activity=Activity.NONE, target=NO_OBJECT)
+        return "stop", Decision(view.notebook, actions)
+    if view.books & Books.MAY_JUMP:
+        return "jump", Decision(view.notebook, _jump(view))
+    return "wait", Decision(view.notebook, _wait(view))
+
+
+def _on_the_way(
+    view: CraftView, question: Question, route: str, actions: Actions
+) -> tuple[str, Decision]:
+    """Fly a route out, unless an enemy is after the craft on the way to its
+    jump or its hangar: then fight it while the craft may fight back, else
+    fly the route evading."""
+    if route not in ("jump", "hangar") or actions.depart:
+        return route, Decision(view.notebook, actions)
+    chaser = attack.pursuer(view, question)
+    if chaser is None:
+        return route, _clear(view, question, actions)
+    if attack.fights_back(view, question, chaser):
+        return "fight", _fighting(attack.fight(view, question, [chaser]))
+    return "evade", _evade(view, question, actions)
+
+
+def _stranded(view: CraftView, question: Question) -> tuple[str, Decision]:
+    """With no way out, fight the nearest enemy when the craft can dogfight;
+    else wait at the home point."""
+    enemies = tactics.enemies(view, question)
+    if enemies and attack.can_dogfight(view):
+        return "stranded", _fighting(attack.fight(view, question, enemies))
+    return "wait", Decision(view.notebook, _wait(view))
+
+
+def _fighting(decision: Decision) -> Decision:
+    """Return attack's decision for a craft no longer going home: its
+    activity NONE."""
+    actions = dataclasses.replace(decision.actions, activity=Activity.NONE)
+    return dataclasses.replace(decision, actions=actions)
+
+
+def _evade(view: CraftView, question: Question, actions: Actions) -> Decision:
+    """Fly the route's actions going home evading, weaving about the route's
+    heading while an enemy sits on the craft's tail."""
+    tick = question.tick
+    book = notebook.open_for(view, CODE, tick)
+    flown = weave.Weave.read(book.scratch)
+    threat = attack.tail_threat(view, question)
+    move = None
+    state = book.dice
+    if flown.flying:
+        flown, move, state = weave.fly(view, flown, threat is not None, state, tick)
+    elif threat is not None and weave.may_start(flown, tick):
+        course = None if actions.steer is None else actions.steer.yaw
+        flown, move, state = weave.start(
+            view, threat.object_index, flown, state, tick, course
+        )
+    book = dataclasses.replace(book, dice=state, scratch=_scratch(flown))
+    actions = dataclasses.replace(actions, activity=Activity.GOING_HOME_EVADING)
+    if move is not None:
+        actions = dataclasses.replace(
+            actions,
+            steer=move.steer,
+            throttle=FULL_THROTTLE,
+            countermeasure=move.flare,
+        )
+    return Decision(book.encode(), actions)
+
+
+def _clear(view: CraftView, question: Question, actions: Actions) -> Decision:
+    """Fly the route's actions with no enemy after the craft, ending a weave
+    its home notebook has under way: the tail is clear."""
+    tick = question.tick
+    book = notebook.open_for(view, CODE, tick)
+    flown = weave.Weave.read(book.scratch)
+    if not flown.flying:
+        return Decision(view.notebook, actions)
+    flown, _, state = weave.fly(view, flown, False, book.dice, tick)
+    book = dataclasses.replace(book, dice=state, scratch=_scratch(flown))
+    return Decision(book.encode(), actions)
+
+
+def _scratch(flown: weave.Weave) -> bytes:
+    """Return a home notebook's scratch: the weave's state, then zeros."""
+    packed = flown.write()
+    return packed + bytes(notebook.SCRATCH_BYTES - len(packed))
 
 
 def _jump(view: CraftView) -> Actions:

@@ -28,6 +28,11 @@
       "fields": ["object", "target", "ticks"],
       "text": "Craft {object} ended its break after {ticks} ticks: target {target} is no longer shown"
     },
+    "attack.pursued": {
+      "level": "D",
+      "fields": ["object", "pursuer", "hull_left", "hull_strength", "fights"],
+      "text": "Craft {object} has craft {pursuer} after it, with {hull_left} of its hull strength {hull_strength} left; it fights back: {fights} (1 with cannons, able to move and three quarters of its hull or more left)"
+    },
     "attack.target": {
       "level": "I",
       "fields": ["object", "target", "distance"],
@@ -46,7 +51,7 @@
     "home.route": {
       "level": "D",
       "fields": ["object", "route", "from", "books"],
-      "text": "Craft {object} goes home by route {route} (jump, hangar, enter, wait or stop) from activity {from}, with books bits {books}"
+      "text": "Craft {object} goes home by route {route} (jump, hangar, enter, wait or stop; fight, turned on the craft after it; evade, home weaving from it; stranded, no way out, fighting any enemy) from activity {from}, with books bits {books}"
     },
     "notebook.unreadable": {
       "level": "W",

@@ -3,10 +3,11 @@
 Purpose:
     A behavior whose craft is chased starts a weave, then flies it at each
     think until it ends. Each swerve holds a heading SWERVE_YAW to one side
-    of the course the craft flew when the weave began, at a pitch the dice
-    pick, and the next swerve takes the other side, so a chaser has to turn
-    after it again and again. The craft rolls without stopping the way it
-    swerves. The weave ends at the first think the behavior says the tail is
+    of the weave's course (the craft's own when the weave began, or the one
+    the behavior names, such as the way home), at a pitch the dice pick,
+    and the next swerve takes the other side, so a chaser has to turn after
+    it again and again. The craft rolls without stopping the way it swerves.
+    The weave ends at the first think the behavior says the tail is
     clear, or once SWERVES_MAX swerves are flown; ended at its limit, the
     craft must fight for REST_TICKS before it may weave again.
 
@@ -131,14 +132,19 @@ def may_start(weave: Weave, tick: int) -> bool:
 
 
 def start(
-    view: CraftView, threat: int, weave: Weave, state: int, tick: int
+    view: CraftView,
+    threat: int,
+    weave: Weave,
+    state: int,
+    tick: int,
+    course: int | None = None,
 ) -> tuple[Weave, Move, int]:
-    """Return the weave a chased craft starts on its present course, its first
-    move, and the dice after them."""
+    """Return the weave a chased craft starts about a course, its present
+    course when None, its first move, and the dice after them."""
     side, state = dice.roll(state, 2)
     pitch, state = _swerve_pitch(state)
     weave = Weave(
-        course=view.yaw,
+        course=view.yaw if course is None else course,
         pitch=pitch,
         side=side,
         swerves=1,

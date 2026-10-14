@@ -1,4 +1,5 @@
-"""Fence for tactics: how far a craft keeps from another, and which craft are bulky.
+"""Fence for tactics: how far a craft keeps from another, which craft are bulky,
+and which a craft may fight.
 
 The sizes are measured, not chosen: on 2026-10-13 the engine's ``opt_dump``
 (its ``file`` kind) read the retail models, and each model's box runs from
@@ -12,6 +13,7 @@ from __future__ import annotations
 import pytest
 
 from jedimaster_ai import tactics
+from jedimaster_ai.world import Question
 
 # Model file: (longest side, farthest box corner from the position).
 SMALL_MODELS = {
@@ -55,3 +57,18 @@ def test_a_fighter_is_kept_from_about_as_far_as_before_sizes(contact) -> None:
 @pytest.mark.parametrize("genus", range(17))
 def test_freighters_starships_and_platforms_are_bulky(contact, genus) -> None:
     assert tactics.is_bulky(contact(genus=genus)) == (genus in (3, 4, 5))
+
+
+def test_enemies_are_every_hostile_craft_it_may_fight_in_order(view, contact) -> None:
+    """The engine's mask marks contacts 0, 1, 2 and 4; 0 is the craft's own,
+    2 is exploding (kind 4) and 4 disabled (kind 2); 3 is not marked."""
+    craft = view(object_index=4, enemy_mask=0b10111)
+    contacts = (
+        contact(object_index=4),
+        contact(object_index=20),
+        contact(object_index=21, object_kind=4),
+        contact(object_index=22),
+        contact(object_index=23, object_kind=2),
+    )
+    found = tactics.enemies(craft, Question(1, (craft,), contacts))
+    assert [c.object_index for c in found] == [20, 23]

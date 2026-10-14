@@ -12,6 +12,14 @@ Purpose:
     sets the aim cone, the firing range, the burst and how soon it looks
     again for a nearer target.
 
+    With no target its order names in the battle, a craft an enemy is after
+    (``pursuer``) fights that enemy while it may fight back (``fights_back``:
+    it has cannons, it can move, and its hull is at FIGHT_BACK_HULL or more),
+    and otherwise weaves when the enemy sits on its tail (rulings 34 and 43).
+    ``fight`` is the dogfight itself, at the targets a behavior gives it:
+    ``home`` flies it for a craft going home that turns on its attacker, and
+    for a craft with no way out (rulings 31 and 33).
+
     The rules' shape follows Starshatter Open's fighter pilot (target choice,
     fire control, breaking off), written new in this program's integer
     units; no Starshatter code is copied. The firing numbers are the game's
@@ -19,7 +27,8 @@ Purpose:
 
 Phases, the notebook's phase byte:
 
-    SEEK    no target: hold fire, keep course, look again each think
+    SEEK    no target: hold fire, keep course, look again each think; an
+            enemy on the tail starts a weave
     ATTACK  steer at the target, fire when lined up
     BREAK   inside the target's clearance ahead: hold a heading a quarter
             turn away from the target's side until outside the clearance,
@@ -29,7 +38,8 @@ Phases, the notebook's phase byte:
 The scratch bytes, little-endian: u16 target index, u16 its signature,
 u16 yaw and u16 pitch a break holds, u32 the tick to look again for a
 nearer target, then the weave's state (``weave.STATE_BYTES``); the rest
-zero.
+zero. In SEEK only the weave's bytes are kept, so a weave's rest outlasts
+the search.
 
 Invariants:
     - The decision follows from the view, the question and the notebook;
@@ -37,6 +47,8 @@ Invariants:
     - It names only what the question showed: its target is a contact, and
       it fires only the cannon groups the view counts.
     - It targets only craft the engine marks hostile (``tactics.can_fight``).
+    - Only a small craft is ever after a craft: a freighter, a starship or a
+      platform shooting at it is no pursuer (ruling 42).
     - A break turns away from the side its target is on, so the turn never
       swings the nose across the target; the dice pick the side only when
       the target is dead ahead.
@@ -118,6 +130,10 @@ DEAD_AHEAD = 4
 # targeting the craft, is on its tail.
 TAIL_RANGE = 0x8000
 TAIL_ANGLE = 0x6000
+# A craft an enemy is after fights back while its hull, the hull strength less
+# the hull damage, is at least this share of the strength (ruling 34: three
+# quarters); shields never count.
+FIGHT_BACK_HULL = (3, 4)
 
 _SCRATCH = struct.Struct("<HHHHI")
 _U32_MAX = 0xFFFFFFFF
@@ -152,10 +168,25 @@ class Memory:
 
 
 def think(view: CraftView, question: Question) -> Decision:
-    """Return the craft's next move in its dogfight."""
+    """Return the craft's next move in its dogfight: at the targets its order
+    names, or, with none in the battle, at the enemy after it while it may
+    fight back."""
+    targets = tactics.order_targets(view, question)
+    if not targets:
+        chaser = pursuer(view, question)
+        if chaser is not None and fights_back(view, question, chaser):
+            targets = [chaser]
+    return fight(view, question, targets)
+
+
+def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decision:
+    """Return the craft's next move in a dogfight at the nearest of targets,
+    each a contact it may fight."""
     tick = question.tick
     book = notebook.open_for(view, CODE, tick)
-    memory = Memory.read(book.scratch) if book.phase != SEEK else Memory()
+    memory = Memory.read(book.scratch)
+    if book.phase == SEEK:
+        memory = Memory(weave=memory.weave)
     tier = tactics.skill_tier(view.skill)
     interval = None if view.think_interval == FIGHT_INTERVAL else FIGHT_INTERVAL
 
@@ -175,16 +206,9 @@ def think(view: CraftView, question: Question) -> Decision:
         if move is not None:
             return Decision(book.encode(), _weave_actions(move, interval))
 
-    target, memory = _choose_target(view, question, memory, tier)
+    target, memory = _choose_target(view, targets, memory, tier, tick)
     if target is None:
-        book = book if book.phase == SEEK else book.in_phase(SEEK, tick)
-        actions = Actions(
-            think_interval=interval, target=NO_OBJECT, lasers=(HOLD_FIRE, HOLD_FIRE)
-        )
-        return Decision(
-            dataclasses.replace(book, scratch=bytes(len(book.scratch))).encode(),
-            actions,
-        )
+        return _seek(view, question, book, memory, interval)
 
     dx, dy, dz = tactics.offset(view, target)
     reach = geometry.distance(dx, dy, dz)
@@ -331,28 +355,132 @@ def tail_threat(view: CraftView, question: Question) -> Contact | None:
             continue
         if not tactics.can_fight(view, position, contact):
             continue
-        dx, dy, dz = tactics.offset(view, contact)
-        reach = geometry.distance(dx, dy, dz)
-        if reach >= TAIL_RANGE:
+        if not _on_tail(view, contact):
             continue
-        yaw, _ = geometry.bearing(dx, dy, dz)
-        if geometry.angle_between(yaw, view.yaw) <= TAIL_ANGLE:
-            continue
+        reach = geometry.distance(*tactics.offset(view, contact))
         if nearest is None or (reach, contact.object_index) < nearest[0]:
             nearest = ((reach, contact.object_index), contact)
     return None if nearest is None else nearest[1]
 
 
+def pursuer(view: CraftView, question: Question) -> Contact | None:
+    """Return the enemy after the craft, or None.
+
+    An enemy is after the craft while it targets it, the engine marks it
+    hostile, and it is a small craft. The one the craft's attack notebook
+    names as its target stays the pursuer while it is after the craft, so a
+    craft that turned on its attacker keeps fighting it; otherwise the
+    pursuer is the nearest enemy after the craft that hit it last or sits on
+    its tail.
+    """
+    own = tactics.own_contact(view, question)
+    fought = _fought(view)
+    nearest = None
+    for position, contact in enumerate(question.contacts):
+        if contact.target != view.object_index or tactics.is_bulky(contact):
+            continue
+        if not tactics.can_fight(view, position, contact):
+            continue
+        if (contact.object_index, contact.object_signature) == fought:
+            return contact
+        hit = own is not None and own.last_attacker == contact.object_index
+        if not hit and not _on_tail(view, contact):
+            continue
+        reach = geometry.distance(*tactics.offset(view, contact))
+        if nearest is None or (reach, contact.object_index) < nearest[0]:
+            nearest = ((reach, contact.object_index), contact)
+    return None if nearest is None else nearest[1]
+
+
+def fights_back(view: CraftView, question: Question, chaser: Contact) -> bool:
+    """Return whether the craft fights a chaser: it has cannons, it can move,
+    and its hull is at FIGHT_BACK_HULL of its strength or more. A craft whose
+    own contact is not shown, or whose hull strength is 0, counts as whole."""
+    own = tactics.own_contact(view, question)
+    strength = 0 if own is None else own.hull_strength
+    left = strength if own is None else strength - own.hull_damage
+    share, whole = FIGHT_BACK_HULL
+    fights = can_dogfight(view) and (strength <= 0 or left * whole >= strength * share)
+    logger.debug(
+        "attack.pursued object=%d pursuer=%d hull_left=%d hull_strength=%d fights=%d",
+        view.object_index,
+        chaser.object_index,
+        left,
+        strength,
+        int(fights),
+    )
+    return fights
+
+
+def can_dogfight(view: CraftView) -> bool:
+    """Return whether the craft can fly a dogfight: it has cannons and can
+    move."""
+    return view.cannon_group_count > 0 and view.full_speed != 0
+
+
+def _on_tail(view: CraftView, contact: Contact) -> bool:
+    """Whether a contact sits on the craft's tail: within TAIL_RANGE, more
+    than TAIL_ANGLE off its nose."""
+    dx, dy, dz = tactics.offset(view, contact)
+    if geometry.distance(dx, dy, dz) >= TAIL_RANGE:
+        return False
+    yaw, _ = geometry.bearing(dx, dy, dz)
+    return geometry.angle_between(yaw, view.yaw) > TAIL_ANGLE
+
+
+def _fought(view: CraftView) -> tuple[int, int] | None:
+    """The object index and signature of the target the craft's attack
+    notebook names, or None when it has none or another behavior wrote it."""
+    try:
+        book = notebook.decode(view.notebook)
+    except notebook.NotebookError:
+        return None
+    if book is None or book.behavior != CODE or book.phase == SEEK:
+        return None
+    memory = Memory.read(book.scratch)
+    return memory.target, memory.signature
+
+
+def _seek(
+    view: CraftView,
+    question: Question,
+    book: notebook.Notebook,
+    memory: Memory,
+    interval: int | None,
+) -> Decision:
+    """Return the decision of a craft with no target, its memory holding only
+    the weave's state: weave from an enemy on its tail, else hold fire on its
+    course."""
+    tick = question.tick
+    threat = tail_threat(view, question)
+    if threat is not None and weave.may_start(memory.weave, tick):
+        started, move, state = weave.start(
+            view, threat.object_index, memory.weave, book.dice, tick
+        )
+        book = dataclasses.replace(
+            book.in_phase(EVADE, tick),
+            dice=state,
+            scratch=Memory(weave=started).write(),
+        )
+        actions = dataclasses.replace(_weave_actions(move, interval), target=NO_OBJECT)
+        return Decision(book.encode(), actions)
+    book = book if book.phase == SEEK else book.in_phase(SEEK, tick)
+    actions = Actions(
+        think_interval=interval, target=NO_OBJECT, lasers=(HOLD_FIRE, HOLD_FIRE)
+    )
+    return Decision(dataclasses.replace(book, scratch=memory.write()).encode(), actions)
+
+
 def _choose_target(
-    view: CraftView, question: Question, memory: Memory, tier: int
+    view: CraftView, targets: list[Contact], memory: Memory, tier: int, tick: int
 ) -> tuple[Contact | None, Memory]:
-    """Return the target to fight, kept or new, and the memory naming it."""
-    targets = tactics.order_targets(view, question)
+    """Return the target to fight, kept or new, and the memory naming it; with
+    no target, a memory holding only the weave's state."""
     kept = _remembered(targets, memory)
-    if kept is not None and question.tick < memory.look_again:
+    if kept is not None and tick < memory.look_again:
         return kept, memory
     if not targets:
-        return None, Memory()
+        return None, Memory(weave=memory.weave)
     nearest = min(
         targets,
         key=lambda contact: (
@@ -367,7 +495,7 @@ def _choose_target(
             nearest.object_index,
             geometry.distance(*tactics.offset(view, nearest)),
         )
-    look_again = min(question.tick + LOOK_AGAIN_TICKS[tier], _U32_MAX)
+    look_again = min(tick + LOOK_AGAIN_TICKS[tier], _U32_MAX)
     memory = dataclasses.replace(
         memory,
         target=nearest.object_index,

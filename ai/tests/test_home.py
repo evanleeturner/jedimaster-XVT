@@ -6,6 +6,13 @@ the mothership's speed and the dock; with no way out, to the home point and
 stop; a starship's order stopping for good or jumping. Then the craft already
 jumping, the throttle for a speed, the route log, Hold Steady, and the
 wave 2 bugs #211 and #213 as checks.
+
+Then rulings 31, 33 and 34: with no way out, it fights any enemy; attacked
+on the way, it fights back at three quarters of its hull or more, else flies
+home weaving about its way home, and goes home again once no enemy is after
+it; at the door it goes on; a starship's order is never turned round; and no
+departure without the jump the books allow (the engine's side is
+``test_ai_books.c``: a model with no hyperdrive gets no MAY_JUMP).
 """
 
 from __future__ import annotations
@@ -16,6 +23,8 @@ import logging
 import pytest
 
 from jedimaster_ai import geometry
+from jedimaster_ai import notebook
+from jedimaster_ai import weave
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import hold
 from jedimaster_ai.behaviors import home
@@ -205,3 +214,274 @@ def test_bug_213_the_craft_flies_to_the_one_mothership_the_engine_chose(
     craft = hangar_view(view, (70_000, 6, 7))
     actions = ask(craft, [carrier])
     assert (actions.target, actions.steer) == (CARRIER, toward((70_000, 6, 7)))
+
+
+# Rulings 31, 33 and 34. The craft flies to its jump at FAR, its nose on the
+# way home; contact 0 is its own, contact 1 the enemy (VIEW's enemy mask).
+ME = 4
+CHASER = 12
+HOME_YAW = toward(FAR).yaw
+JUMPING = {
+    "books": Books.MAY_JUMP | Books.HOME_POINT,
+    "home_point": FAR,
+    "yaw": HOME_YAW,
+    "pitch": geometry.LEVEL,
+    "skill": 0xFFFF,
+}
+# A whole hull, and 299 of 400 left: under three quarters.
+WHOLE = {"hull_strength": 400, "hull_damage": 0}
+HURT = {"hull_strength": 400, "hull_damage": 101}
+
+
+@pytest.fixture
+def mine(contact):
+    """Return the craft's own contact, its fields changed as named."""
+
+    def make(craft, **changes):
+        fields = {"object_index": ME, "team": 1, "x": craft.x, "y": craft.y}
+        fields |= {"z": craft.z, "target": NO_OBJECT} | WHOLE
+        return contact(**(fields | changes))
+
+    return make
+
+
+@pytest.fixture
+def enemy(contact):
+    """Return a small enemy craft after the craft, 0x2000 behind it unless
+    placed elsewhere."""
+
+    def make(**changes):
+        fields = {"object_index": CHASER, "team": 2, "genus": 0, "target": ME}
+        fields |= {"x": -5 - 0x2000, "y": 6, "z": 7, "speed": 0}
+        return contact(**(fields | changes))
+
+    return make
+
+
+def decide(craft, contacts, tick=1000):
+    """Return the home behavior's decision, its actions checked against the
+    engine's reader."""
+    question = Question(tick, (craft,), tuple(contacts))
+    decision = home.think(craft, question)
+    wire.check_shown(decision.actions, craft, question)
+    return decision
+
+
+AHEAD_X = -5 + 0x2000
+
+
+def test_attacked_on_the_way_a_whole_craft_turns_to_fight(view, mine, enemy) -> None:
+    craft = view(**JUMPING)
+    decision = decide(craft, [mine(craft, last_attacker=CHASER), enemy(x=AHEAD_X)])
+    assert decision.actions.target == CHASER
+    assert decision.actions.activity == Activity.NONE
+    assert notebook.decode(decision.notebook).behavior == 1  # attack's
+
+
+def test_attacked_below_three_quarters_it_weaves_about_its_way_home(
+    view, mine, enemy
+) -> None:
+    craft = view(**JUMPING | {"yaw": (HOME_YAW + 0x1000) % geometry.TURN})
+    decision = decide(craft, [mine(craft, **HURT), enemy()])
+    flown = weave.Weave.read(notebook.decode(decision.notebook).scratch)
+    assert notebook.decode(decision.notebook).behavior == 3  # home's
+    assert flown.flying and flown.course == HOME_YAW
+    actions = decision.actions
+    assert actions.steer.yaw in {
+        (HOME_YAW + d) % geometry.TURN for d in (0x3000, -0x3000)
+    }
+    assert actions.throttle == home.FULL_THROTTLE
+    assert actions.activity == Activity.GOING_HOME_EVADING
+    assert actions.target == NO_OBJECT
+
+
+def test_evading_with_the_enemy_off_its_tail_it_flies_straight_home(
+    view, mine, enemy
+) -> None:
+    craft = view(**JUMPING)
+    hit = mine(craft, last_attacker=CHASER, **HURT)
+    actions = decide(craft, [hit, enemy(x=AHEAD_X)]).actions
+    assert actions.steer == toward(FAR, roll=craft.roll)
+    assert actions.activity == Activity.GOING_HOME_EVADING
+
+
+def test_once_no_enemy_is_after_it_it_goes_home_ending_its_weave(
+    view, mine, enemy, caplog
+) -> None:
+    craft = view(**JUMPING)
+    evading = decide(craft, [mine(craft, **HURT), enemy()])
+    caplog.set_level("DEBUG")
+    later = view(**JUMPING | {"notebook": evading.notebook})
+    gone = decide(later, [mine(later, **HURT), enemy(target=15)], tick=1016)
+    assert gone.actions.steer == toward(FAR, roll=craft.roll)
+    assert gone.actions.activity == Activity.LEAVING_BY_HYPERSPACE
+    assert not weave.Weave.read(notebook.decode(gone.notebook).scratch).flying
+    assert f'weave.end object={ME} reason="clear" swerves=1 rest_until=0' in (
+        caplog.text
+    )
+
+
+def test_at_the_door_it_goes_on(view, mine, enemy, carrier) -> None:
+    near = view(**JUMPING | {"home_point": (home.JUMP_RANGE - 10, 6, 7)})
+    assert decide(near, [mine(near, last_attacker=CHASER), enemy()]).actions.depart
+    entering = hangar_view(
+        view, (5_000, 6, 7), activity=Activity.ENTERING_HANGAR, skill=0xFFFF
+    )
+    contacts = [mine(entering, last_attacker=CHASER), enemy(), carrier]
+    actions = decide(entering, contacts).actions
+    assert actions.activity == Activity.ENTERING_HANGAR
+    at = hangar_view(view, (5_000, 6, 7), books=Books.BY_MOTHERSHIP | Books.AT_HANGAR)
+    assert decide(at, [mine(at), enemy(), carrier]).actions == Actions(dock=True)
+
+
+def test_attacked_on_the_hangar_approach_it_fights_too(
+    view, mine, enemy, carrier
+) -> None:
+    craft = hangar_view(view, (70_000, 6, 7))
+    contacts = [mine(craft, last_attacker=CHASER), enemy(), carrier]
+    actions = decide(craft, contacts).actions
+    assert actions.target == CHASER and actions.activity == Activity.NONE
+
+
+def test_with_no_way_out_it_fights_any_enemy(view, mine, enemy, caplog) -> None:
+    caplog.set_level("DEBUG")
+    craft = view(
+        order_code=OrderCode.GO_HOME,
+        order_target_mask=0,
+        books=Books.HOME_POINT,
+        home_point=FAR,
+        activity=Activity.GOING_HOME,
+    )
+    foe = enemy(x=AHEAD_X, target=NO_OBJECT)
+    decision = decide(craft, [mine(craft, **HURT), foe])
+    assert decision.actions.target == CHASER
+    assert decision.actions.activity == Activity.NONE
+    assert f'home.route object={ME} route="stranded" from=9 ' in caplog.text
+
+
+@pytest.mark.parametrize("changes", [{"cannon_group_count": 0}, {"full_speed": 0}])
+def test_with_no_way_out_and_no_dogfight_in_it_it_waits(
+    view, mine, enemy, changes
+) -> None:
+    craft = view(
+        order_code=OrderCode.GO_HOME,
+        **{"books": Books.HOME_POINT, "home_point": FAR} | changes,
+    )
+    actions = decide(craft, [mine(craft), enemy(x=AHEAD_X)]).actions
+    assert actions.activity == Activity.GOING_HOME and actions.target == NO_OBJECT
+
+
+def test_a_mothership_arriving_takes_a_stranded_craft_home(
+    view, mine, enemy, carrier
+) -> None:
+    craft = hangar_view(view, (70_000, 6, 7))
+    foe = enemy(x=AHEAD_X, target=NO_OBJECT)
+    actions = decide(craft, [mine(craft), foe, carrier]).actions
+    assert actions.activity == Activity.GOING_HOME and actions.target == CARRIER
+
+
+@pytest.mark.parametrize("code", [OrderCode.SS_PATROL_LOOP, OrderCode.SS_GO_HOME])
+def test_a_starship_order_is_never_turned_round(view, mine, enemy, code) -> None:
+    craft = view(**JUMPING | {"order_code": code})
+    actions = decide(craft, [mine(craft, last_attacker=CHASER), enemy()]).actions
+    assert actions.activity == Activity.LEAVING_BY_HYPERSPACE
+    assert actions.target == NO_OBJECT
+
+
+def test_no_order_departs_without_the_jump_its_books_allow(view) -> None:
+    near = (home.JUMP_RANGE - 10, 6, 7)
+    for code in OrderCode:
+        for books in (Books.HOME_POINT, Books.HOME_POINT | Books.BY_MOTHERSHIP):
+            craft = view(order_code=code, books=books, home_point=near)
+            assert not home.think(craft, Question(1, (craft,), ())).actions.depart
+
+
+def test_a_whole_craft_fights_then_runs_when_hurt_then_goes_home(
+    view, mine, enemy, caplog
+) -> None:
+    """A real case: a craft heading for its jump is hit, turns and fights; its
+    hull falls under three quarters and it runs for home weaving; its attacker
+    turns away and it flies on to its jump."""
+    caplog.set_level("DEBUG", logger="jedimaster_ai.behaviors.home")
+    craft = view(**JUMPING | {"activity": Activity.LEAVING_BY_HYPERSPACE})
+    fought = decide(craft, [mine(craft, last_attacker=CHASER), enemy(x=AHEAD_X)])
+    craft = view(**JUMPING | {"activity": Activity.NONE, "notebook": fought.notebook})
+    hurt = mine(craft, last_attacker=CHASER, **HURT)
+    ran = decide(craft, [hurt, enemy()], tick=1016)
+    state = {"activity": Activity.GOING_HOME_EVADING, "notebook": ran.notebook}
+    craft = view(**JUMPING | state)
+    left = decide(craft, [hurt, enemy(target=15)], tick=1032)
+    activities = [d.actions.activity for d in (fought, ran, left)]
+    assert activities == [
+        Activity.NONE,
+        Activity.GOING_HOME_EVADING,
+        Activity.LEAVING_BY_HYPERSPACE,
+    ]
+    routes = [m.split('"')[1] for m in caplog.messages if m.startswith("home.route")]
+    assert routes == ["fight", "evade", "jump"]
+
+
+def weave_home(craft, contacts, ticks):
+    """Return each decision of a craft evading home at the ticks, its notebook
+    carried from one to the next."""
+    decisions = []
+    for tick in ticks:
+        if decisions:
+            craft = dataclasses.replace(craft, notebook=decisions[-1].notebook)
+        decisions.append(decide(craft, contacts(craft), tick))
+    return decisions
+
+
+def test_a_weave_home_ends_when_the_tail_clears_though_the_enemy_is_after_it(
+    view, mine, enemy
+) -> None:
+    craft = view(**JUMPING)
+    hit = {"last_attacker": CHASER} | HURT
+    (first,) = weave_home(craft, lambda c: [mine(c, **hit), enemy()], [1000])
+    later = view(**JUMPING | {"notebook": first.notebook})
+    ahead = decide(later, [mine(later, **hit), enemy(x=AHEAD_X)], tick=1016)
+    assert ahead.actions.steer == toward(FAR, roll=craft.roll)
+    assert ahead.actions.activity == Activity.GOING_HOME_EVADING
+    assert not weave.Weave.read(notebook.decode(ahead.notebook).scratch).flying
+
+
+def test_weaving_home_the_dice_move_on_at_each_swerve(view, mine, enemy) -> None:
+    craft = view(**JUMPING)
+    decisions = weave_home(
+        craft, lambda c: [mine(c, **HURT), enemy()], range(1000, 2400, 16)
+    )
+    swerves = 0
+    for before, after in zip(decisions, decisions[1:], strict=False):
+        dice = (notebook.decode(d.notebook).dice for d in (before, after))
+        if after.actions.steer.yaw != before.actions.steer.yaw:
+            swerves += 1
+            assert len(set(dice)) == 2
+    assert swerves == 2
+
+
+def test_weaving_home_a_top_pilot_drops_flares_as_the_weave_says(
+    view, mine, enemy
+) -> None:
+    """At its second swerve, one weave in four drops a flare: over 40 dice
+    seeds some do, and none whose view shows no flare ready."""
+    ready = {"countermeasure": 2, "countermeasures_left": 4}
+    ready |= {"countermeasure_working": 1}
+    dropped = {True: 0, False: 0}
+    for seed in range(1, 41):
+        for flare in (True, False):
+            craft = view(**JUMPING | {"random_seed": seed} | (ready if flare else {}))
+            decisions = weave_home(
+                craft, lambda c: [mine(c, **HURT), enemy()], range(1000, 1520, 16)
+            )
+            dropped[flare] += any(d.actions.countermeasure for d in decisions)
+    assert 4 <= dropped[True] <= 20 and dropped[False] == 0
+
+
+def test_weaving_on_the_hangar_approach_is_at_full_throttle(
+    view, mine, enemy, carrier
+) -> None:
+    craft = hangar_view(view, (60_000, 6, 7), yaw=HOME_YAW, skill=0xFFFF)
+    decision = decide(craft, [mine(craft, **HURT), enemy(), carrier])
+    assert decision.actions.activity == Activity.GOING_HOME_EVADING
+    assert decision.actions.throttle == home.FULL_THROTTLE
+    assert decision.actions.target == CARRIER

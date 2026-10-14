@@ -52,6 +52,12 @@ def to_second_swerve(me, seed: int):
     return weave.fly(me, begun, True, state, 1472)
 
 
+def test_a_weave_may_start_about_a_course_the_behavior_names(craft) -> None:
+    begun, move, _ = weave.start(craft(yaw=0x1000), CHASER, Weave(), 7, 1000, 0x8000)
+    assert begun.course == 0x8000
+    assert move.steer.yaw == swerve_yaw(0x8000, begun.side)
+
+
 def test_a_weave_starts_with_a_swerve_to_either_side_of_its_course(
     craft, caplog
 ) -> None:

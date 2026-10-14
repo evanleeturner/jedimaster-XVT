@@ -68,6 +68,15 @@ def can_fight(view: CraftView, position: int, contact: Contact) -> bool:
     )
 
 
+def enemies(view: CraftView, question: Question) -> list[Contact]:
+    """Return every contact the craft may fight."""
+    return [
+        contact
+        for position, contact in enumerate(question.contacts)
+        if can_fight(view, position, contact)
+    ]
+
+
 def order_targets(view: CraftView, question: Question) -> list[Contact]:
     """Return the contacts the craft's order names that it may fight."""
     return [
