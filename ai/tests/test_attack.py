@@ -12,6 +12,7 @@ import random
 import pytest
 
 from jedimaster_ai import notebook
+from jedimaster_ai import weave
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import attack
 from jedimaster_ai.geometry import angle_between
@@ -257,16 +258,115 @@ def test_every_tier_fires_on_a_mon_cal_from_outside_its_clearance(
     assert decision.actions.lasers != (HOLD_FIRE, HOLD_FIRE)
 
 
-def test_an_enemy_on_the_tail_makes_it_jink(craft, foe, ask) -> None:
+def test_an_enemy_on_the_tail_makes_it_weave(craft, foe, ask, caplog) -> None:
+    caplog.set_level("DEBUG")
     chaser = foe(object_index=12, y=-0x2000, target=ME)
-    jink = ask(craft(), foe(x=0x4000, y=0x1000), chaser)
-    assert phase_of(jink) == attack.EVADE
-    swing = angle_between(jink.actions.steer.yaw, 0)
-    assert (
-        attack.JINK_YAW_LEAST <= swing < attack.JINK_YAW_LEAST + attack.JINK_YAW_SPREAD
+    first = ask(craft(), foe(x=0x4000, y=0x1000), chaser)
+    assert phase_of(first) == attack.EVADE
+    actions = first.actions
+    assert actions.steer.yaw in (0x3000, 0xD000)
+    assert actions.steer.roll == (0x4000 if actions.steer.yaw == 0x3000 else 0xC000)
+    assert angle_between(actions.steer.pitch, LEVEL) <= 0x1800
+    assert actions.target == FOE and actions.throttle == 0xFFFF
+    assert actions.lasers == (HOLD_FIRE, HOLD_FIRE)
+    assert f"weave.start object={ME} threat=12 course=0 " in caplog.text
+
+
+def test_a_weave_flies_on_and_ends_when_the_tail_is_clear(
+    craft, foe, ask, caplog
+) -> None:
+    caplog.set_level("DEBUG")
+    target, chaser = foe(x=0x4000, y=0x1000), foe(object_index=12, y=-0x2000, target=ME)
+    first = ask(craft(), target, chaser, tick=1000)
+    held = ask(craft(notebook=first.notebook), target, chaser, tick=1016)
+    assert phase_of(held) == attack.EVADE
+    assert held.actions.steer == first.actions.steer
+    assert held.actions.target is None
+    caplog.clear()
+    out = ask(craft(notebook=held.notebook), target, tick=1032)
+    assert phase_of(out) == attack.ATTACK
+    assert out.actions.steer.yaw == 0x3604 and out.actions.target == FOE
+    assert f'weave.end object={ME} reason="clear" swerves=1 rest_until=0' in (
+        caplog.text
     )
-    assert angle_between(jink.actions.steer.pitch, LEVEL) <= attack.JINK_PITCH_SPREAD
-    assert jink.actions.target == FOE
+
+
+def weave_of(decision) -> weave.Weave:
+    return attack.Memory.read(notebook.decode(decision.notebook).scratch).weave
+
+
+def test_an_evade_with_no_weave_under_way_starts_one_on_its_course(
+    craft, foe, ask, caplog
+) -> None:
+    """A notebook saved in the evade phase before the weave, its scratch
+    holding no weave, starts a weave on the craft's own course."""
+    caplog.set_level("DEBUG")
+    old = notebook.Notebook(attack.CODE, attack.EVADE, 77, 990).encode()
+    chaser = foe(object_index=12, x=-0x600, y=-0x2000, target=ME)
+    decision = ask(craft(yaw=0x1000, notebook=old), foe(x=0x4000, y=0x1000), chaser)
+    assert weave_of(decision).course == 0x1000
+    assert f"weave.start object={ME} threat=12 course=4096 " in caplog.text
+
+
+def test_after_a_full_weave_it_fights_before_weaving_again(craft, foe, ask) -> None:
+    target, chaser = foe(x=0x4000, y=0x1000), foe(object_index=12, y=-0x2000, target=ME)
+    decision, tick, phases = None, 1000, []
+    while len(phases) < 400:
+        me = craft() if decision is None else craft(notebook=decision.notebook)
+        decision = ask(me, target, chaser, tick=tick)
+        phases.append((tick, phase_of(decision)))
+        tick += 16
+    evading = [at for at, phase in phases if phase == attack.EVADE]
+    first_end = next(at for at, phase in phases if phase == attack.ATTACK)
+    assert 1000 + 1416 <= first_end < 1000 + 1886 + 16
+    again = next(at for at in evading if at > first_end)
+    assert first_end + 1886 <= again < first_end + 1886 + 16
+    assert all(
+        phase == attack.ATTACK for at, phase in phases if first_end <= at < again
+    )
+
+
+def test_each_swerve_moves_the_craft_dice_on(craft, foe, ask) -> None:
+    target, chaser = foe(x=0x4000, y=0x1000), foe(object_index=12, y=-0x2000, target=ME)
+    decision = ask(craft(), target, chaser, tick=1000)
+    swerves = 0
+    for tick in range(1016, 2400, 16):
+        before = notebook.decode(decision.notebook).dice
+        yaw = decision.actions.steer.yaw
+        decision = ask(craft(notebook=decision.notebook), target, chaser, tick=tick)
+        after = notebook.decode(decision.notebook).dice
+        if decision.actions.steer.yaw == yaw:
+            assert after == before
+        else:
+            swerves += 1
+            assert after != before
+    assert swerves == 2
+
+
+def test_a_weaving_top_pilot_drops_its_flare(craft, foe, ask) -> None:
+    target, chaser = foe(x=0x4000, y=0x1000), foe(object_index=12, y=-0x2000, target=ME)
+    ready = {
+        "countermeasure": 2,
+        "countermeasures_left": 4,
+        "countermeasure_working": 1,
+    }
+    flares = {}
+    for skill in (0xFFFF, 0x8000):
+        flares[skill] = 0
+        for seed in range(40):
+            decision = None
+            for step in range(120):
+                me = craft(skill=skill, random_seed=seed, **ready)
+                if decision is not None:
+                    me = craft(
+                        skill=skill,
+                        random_seed=seed,
+                        notebook=decision.notebook,
+                        **ready,
+                    )
+                decision = ask(me, target, chaser, tick=1000 + 16 * step)
+                flares[skill] += decision.actions.countermeasure
+    assert flares[0xFFFF] > 0 and flares[0x8000] == 0
 
 
 def test_a_lined_up_shot_is_taken_even_with_an_enemy_on_the_tail(

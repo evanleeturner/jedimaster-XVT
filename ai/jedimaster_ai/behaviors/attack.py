@@ -7,14 +7,15 @@ Purpose:
     ahead (``tactics.clearance``, which grows with the target's size), it
     breaks off a quarter turn to the side away from the target, holds that
     heading until it is outside the clearance, and comes round again; with
-    an enemy on its tail that targets it, it jinks to a random side. Skill
-    sets the aim cone, the firing range, the burst, how soon it looks again
-    for a nearer target and how long a jink lasts.
+    an enemy on its tail that targets it, it weaves (``weave``) until the
+    tail is clear or the weave's swerves are flown, then fights again. Skill
+    sets the aim cone, the firing range, the burst and how soon it looks
+    again for a nearer target.
 
     The rules' shape follows Starshatter Open's fighter pilot (target choice,
-    fire control, breaking off, jinking with times by skill), written new in
-    this program's integer units; no Starshatter code is copied. The firing
-    numbers are the game's own: the 1997 pilot's ranges, cone and bursts.
+    fire control, breaking off), written new in this program's integer
+    units; no Starshatter code is copied. The firing numbers are the game's
+    own: the 1997 pilot's ranges, cone and bursts.
 
 Phases, the notebook's phase byte:
 
@@ -23,11 +24,12 @@ Phases, the notebook's phase byte:
     BREAK   inside the target's clearance ahead: hold a heading a quarter
             turn away from the target's side until outside the clearance,
             for BREAK_LIMIT_TICKS at most
-    EVADE   an enemy on the tail: hold a jink heading
+    EVADE   an enemy on the tail: weave
 
 The scratch bytes, little-endian: u16 target index, u16 its signature,
-u16 yaw and u16 pitch a break or jink holds, u32 the tick to look again for
-a nearer target; the rest zero.
+u16 yaw and u16 pitch a break holds, u32 the tick to look again for a
+nearer target, then the weave's state (``weave.STATE_BYTES``); the rest
+zero.
 
 Invariants:
     - The decision follows from the view, the question and the notebook;
@@ -52,6 +54,7 @@ from .. import dice
 from .. import geometry
 from .. import notebook
 from .. import tactics
+from .. import weave
 from ..world import Actions
 from ..world import CANNON_GROUPS
 from ..world import CannonGroup
@@ -87,7 +90,6 @@ AIM_CONE = (0x800, 0x600, 0x400)
 FIRE_RANGE = (0x6000, 0x8000, 0xA000)
 BURST = (3, 4, 5)
 LOOK_AGAIN_TICKS = (1500, 750, 250)
-JINK_TICKS = (250, 200, 150)
 
 # The 1997 pilot's range changes: a fast target flying the same way, or
 # across, is harder to hit; a starship or platform is easier.
@@ -116,9 +118,6 @@ DEAD_AHEAD = 4
 # targeting the craft, is on its tail.
 TAIL_RANGE = 0x8000
 TAIL_ANGLE = 0x6000
-JINK_YAW_LEAST = 0x2000
-JINK_YAW_SPREAD = 0x2000
-JINK_PITCH_SPREAD = 0x1800
 
 _SCRATCH = struct.Struct("<HHHHI")
 _U32_MAX = 0xFFFFFFFF
@@ -133,18 +132,23 @@ class Memory:
     yaw: int = 0
     pitch: int = geometry.LEVEL
     look_again: int = 0
+    weave: weave.Weave = weave.Weave()
 
     @classmethod
     def read(cls, scratch: bytes) -> Memory:
         """Return the memory scratch bytes hold."""
-        return cls(*_SCRATCH.unpack_from(scratch))
+        return cls(
+            *_SCRATCH.unpack_from(scratch),
+            weave.Weave.read(scratch[_SCRATCH.size :]),
+        )
 
     def write(self) -> bytes:
         """Return the memory as scratch bytes."""
         packed = _SCRATCH.pack(
             self.target, self.signature, self.yaw, self.pitch, self.look_again
         )
-        return packed + bytes(notebook.SCRATCH_BYTES - _SCRATCH.size)
+        packed += self.weave.write()
+        return packed + bytes(notebook.SCRATCH_BYTES - len(packed))
 
 
 def think(view: CraftView, question: Question) -> Decision:
@@ -155,9 +159,7 @@ def think(view: CraftView, question: Question) -> Decision:
     tier = tactics.skill_tier(view.skill)
     interval = None if view.think_interval == FIGHT_INTERVAL else FIGHT_INTERVAL
 
-    if (book.phase == BREAK and break_holds(view, question, book, memory)) or (
-        book.phase == EVADE and tick - book.phase_tick < JINK_TICKS[tier]
-    ):
+    if book.phase == BREAK and break_holds(view, question, book, memory):
         actions = Actions(
             steer=Steer(memory.yaw, memory.pitch, view.roll),
             throttle=FULL_THROTTLE,
@@ -165,6 +167,13 @@ def think(view: CraftView, question: Question) -> Decision:
             lasers=(HOLD_FIRE, HOLD_FIRE),
         )
         return Decision(book.encode(), actions)
+    if book.phase == EVADE and memory.weave.flying:
+        chased = tail_threat(view, question) is not None
+        flown, move, state = weave.fly(view, memory.weave, chased, book.dice, tick)
+        memory = dataclasses.replace(memory, weave=flown)
+        book = dataclasses.replace(book, dice=state, scratch=memory.write())
+        if move is not None:
+            return Decision(book.encode(), _weave_actions(move, interval))
 
     target, memory = _choose_target(view, question, memory, tier)
     if target is None:
@@ -203,22 +212,18 @@ def think(view: CraftView, question: Question) -> Decision:
         return _hold(view, book, state, BREAK, tick, memory, target, interval)
 
     threat = tail_threat(view, question)
-    if threat is not None and not lined_up:
-        turn, state = dice.roll(book.dice, JINK_YAW_SPREAD)
-        side, state = dice.roll(state, 2)
-        lift, state = dice.roll(state, 2 * JINK_PITCH_SPREAD + 1)
-        swing = JINK_YAW_LEAST + turn
-        held_yaw = (view.yaw + (swing if side else -swing)) % geometry.TURN
-        held_pitch = geometry.LEVEL + lift - JINK_PITCH_SPREAD
-        logger.debug(
-            "attack.evade object=%d threat=%d yaw=%d pitch=%d",
-            view.object_index,
-            threat.object_index,
-            held_yaw,
-            held_pitch,
+    if threat is not None and not lined_up and weave.may_start(memory.weave, tick):
+        started, move, state = weave.start(
+            view, threat.object_index, memory.weave, book.dice, tick
         )
-        memory = dataclasses.replace(memory, yaw=held_yaw, pitch=held_pitch)
-        return _hold(view, book, state, EVADE, tick, memory, target, interval)
+        memory = dataclasses.replace(memory, weave=started)
+        book = dataclasses.replace(
+            book.in_phase(EVADE, tick), dice=state, scratch=memory.write()
+        )
+        actions = dataclasses.replace(
+            _weave_actions(move, interval), target=target.object_index
+        )
+        return Decision(book.encode(), actions)
 
     if book.phase != ATTACK:
         book = book.in_phase(ATTACK, tick)
@@ -386,6 +391,18 @@ def _remembered(contacts: t.Iterable[Contact], memory: Memory) -> Contact | None
     )
 
 
+def _weave_actions(move: weave.Move, interval: int | None) -> Actions:
+    """Return the actions of a weaving craft: the weave's move at full
+    throttle, its cannons cold."""
+    return Actions(
+        steer=move.steer,
+        throttle=FULL_THROTTLE,
+        think_interval=interval,
+        lasers=(HOLD_FIRE, HOLD_FIRE),
+        countermeasure=move.flare,
+    )
+
+
 def _hold(
     view: CraftView,
     book: notebook.Notebook,
@@ -396,7 +413,7 @@ def _hold(
     target: Contact,
     interval: int | None,
 ) -> Decision:
-    """Return the decision that starts a break or a jink."""
+    """Return the decision that starts a break."""
     book = dataclasses.replace(
         book.in_phase(phase, tick), dice=state, scratch=memory.write()
     )
