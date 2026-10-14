@@ -12,6 +12,7 @@
 
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
+#include "xvt/flight/ai_books.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -244,8 +245,10 @@ static void ai_brain_view_weapons(const struct craft_data *craft,
 	}
 }
 
-/* Writes what the pilot program is told about the craft in object_index. The
- * pitch is the craft record's, the one the steering turns; the heading and
+/* Writes what the pilot program is told about the craft in object_index,
+ * keeping its books first (ai_books_view_craft), which can move a follower
+ * to its leader's order slot. The pitch is the craft record's, the one the
+ * steering turns; the heading and
  * roll are the object's. Bit n of the order target mask is set when the
  * batch's contact n matches the targets of the craft's current order, and bit
  * n of the enemy mask when contact n is hostile to the craft. The leader is
@@ -258,6 +261,7 @@ static void ai_brain_view_craft(uint16_t object_index,
 	const struct craft_data *craft = object->mobj->p_craft;
 	const struct ai_controller *controller = &craft->ai_controller;
 
+	ai_books_view_craft(object_index, view);
 	view->object_index = object_index;
 	view->object_signature = object->object_signature;
 	view->object_type = object->object_type;
@@ -447,7 +451,8 @@ static void ai_brain_apply_arrival(uint16_t object_index,
 }
 
 /* Applies one craft answer the reader accepted: the notebook always, then
- * each action the pilot program sent. */
+ * each action the pilot program sent, a steer only to a craft not entering
+ * hyperspace; the order, depart and dock actions last, through ai_books. */
 static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 {
 	struct craft_data *craft =
@@ -459,7 +464,8 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	int was_arriving =
 		controller->activity == AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE;
 	memcpy(craft->ai_notebook, answer->notebook, sizeof craft->ai_notebook);
-	if ((answer->actions & (1u << AI_WIRE_ACTION_STEER)) != 0) {
+	if ((answer->actions & (1u << AI_WIRE_ACTION_STEER)) != 0 &&
+	    craft->object_kind != CRAFT_OBJECT_KIND_ENTERING_HYPERSPACE) {
 		ai_brain_apply_steer(craft, answer);
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_THROTTLE)) != 0) {
@@ -487,6 +493,16 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	if ((answer->actions & (1u << AI_WIRE_ACTION_ARRIVAL)) != 0) {
 		ai_brain_apply_arrival(object_index, craft, answer,
 				       was_arriving);
+	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_ORDER)) != 0) {
+		ai_books_apply_order(object_index, answer->order_slot,
+				     answer->order_state);
+	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_DEPART)) != 0) {
+		ai_books_depart(object_index);
+	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_DOCK)) != 0) {
+		ai_books_dock(object_index);
 	}
 	XVT_LOG_DEBUG(
 		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d predicted=%d",
@@ -632,8 +648,10 @@ static void ai_brain_name_lost_leaders(void)
  * exploding, and craft whose think_timer is above 0. A craft a player flies
  * is not asked, but its timer grows by its think interval as an asked
  * craft's does. Every question of the step shows the contacts as they were
- * at its start; before it, a flight whose leader is lost gets a new one
- * (ai_brain_name_lost_leaders). Does nothing while no exchange is set. */
+ * at its start; before it, each computer craft entering hyperspace at the
+ * jump speed leaves the battle (ai_books_finish_jumps), then a flight whose
+ * leader is lost gets a new one (ai_brain_name_lost_leaders). Does nothing
+ * while no exchange is set. */
 void ai_brain_think_due_craft(void)
 {
 	static struct ai_brain_batch batch;
@@ -642,6 +660,7 @@ void ai_brain_think_due_craft(void)
 		return;
 	}
 	uint32_t tick = (uint32_t)g_game_time;
+	ai_books_finish_jumps();
 	ai_brain_name_lost_leaders();
 	ai_brain_view_contacts(&batch);
 	for (uint16_t object_index =

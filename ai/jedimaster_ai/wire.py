@@ -20,8 +20,9 @@ Invariants:
     - ``read_answer`` refuses what the engine's reader refuses: a wrong
       header, tick, count or craft, an unknown or repeated action kind, an
       activity past the last or one the engine alone sets, a think interval of 0, an arrival's arriving
-      past 1 or speed past 3,600, a short or long message, and a target, cannon group, launcher or turret the question
-      did not show.
+      past 1 or speed past 3,600, a short or long message, a target, cannon group, launcher or turret the question
+      did not show, an order from a follower or to a slot the view does not
+      allow, and a depart or dock the view's books do not show, or both.
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ import typing as t
 from .world import Actions
 from .world import Answer
 from .world import Arrival
+from .world import Books
 from .world import CannonGroup
 from .world import Contact
 from .world import CONTACTS_MAX
@@ -40,13 +42,15 @@ from .world import CraftAnswer
 from .world import CraftView
 from .world import NO_OBJECT
 from .world import NOTEBOOK_BYTES
+from .world import ORDER_SLOTS
+from .world import OrderMove
 from .world import Question
 from .world import Steer
 from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 5
+VERSION = 6
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -85,6 +89,17 @@ VIEW_LAYOUT = (
     ("launcher_cooldown", "H", 2),
     ("enemy_mask", "I", 1),
     ("leader", "H", 1),
+    ("order_codes", "B", 4),
+    ("order_states", "B", 4),
+    ("order_throttle", "H", 1),
+    ("order_variable1", "B", 1),
+    ("order_variable2", "B", 1),
+    ("order_speed", "B", 1),
+    ("books", "H", 1),
+    ("mothership", "H", 1),
+    ("outside_hangar", "i", 3),
+    ("inside_hangar", "i", 3),
+    ("home_point", "i", 3),
 )
 VIEW_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in VIEW_LAYOUT)
@@ -124,6 +139,7 @@ LASERS = struct.Struct("<BBBB")
 WARHEAD = struct.Struct("<BB")
 TURRET = struct.Struct("<BH")
 ARRIVAL = struct.Struct("<BH")
+ORDER = struct.Struct("<BB")
 
 
 class ActionKind(enum.IntEnum):
@@ -138,6 +154,9 @@ class ActionKind(enum.IntEnum):
     WARHEAD = 7
     TURRETS = 8
     ARRIVAL = 9
+    ORDER = 10
+    DEPART = 11
+    DOCK = 12
 
 
 class WireError(ValueError):
@@ -278,6 +297,16 @@ def _actions_bytes(actions: Actions) -> bytes:
         written += U8.pack(ActionKind.ARRIVAL)
         written += ARRIVAL.pack(int(actions.arrival.arriving), actions.arrival.speed)
         count += 1
+    if actions.order is not None:
+        written += U8.pack(ActionKind.ORDER)
+        written += ORDER.pack(actions.order.slot, actions.order.state)
+        count += 1
+    if actions.depart:
+        written += U8.pack(ActionKind.DEPART)
+        count += 1
+    if actions.dock:
+        written += U8.pack(ActionKind.DOCK)
+        count += 1
     return U8.pack(count) + bytes(written)
 
 
@@ -340,6 +369,10 @@ def _take_action(reader: _Reader, kind: ActionKind) -> t.Any:
         if arriving > 1:
             raise ValueError(f"arriving is {arriving}, not 0 or 1")
         return Arrival(bool(arriving), speed)
+    if kind == ActionKind.ORDER:
+        return OrderMove(*reader.take(ORDER))
+    if kind in (ActionKind.DEPART, ActionKind.DOCK):
+        return True
     return reader.take(U16)[0]
 
 
@@ -351,7 +384,7 @@ def _read_actions(reader: _Reader) -> Actions:
         try:
             kind = ActionKind(code)
         except ValueError:
-            raise WireError(f"action kind {code} is not one of the nine") from None
+            raise WireError(f"action kind {code} is not one of the twelve") from None
         name = kind.name.lower()
         if name in found:
             raise WireError(f"action kind {code} is sent twice")
@@ -367,13 +400,30 @@ def _read_actions(reader: _Reader) -> Actions:
         raise WireError(f"an action is out of range: {err}") from err
 
 
+def _check_order(order: OrderMove, view: CraftView) -> None:
+    if view.leader != NO_OBJECT:
+        raise WireError(
+            f"craft {view.object_index} follows a leader; it sends no order"
+        )
+    allowed = order.slot == view.order_slot
+    if order.slot < ORDER_SLOTS - 1:
+        allowed |= view.order_codes[order.slot] != 0 and not view.books & Books.SKIPPED
+    else:
+        allowed |= bool(view.books & Books.SKIP_DUE)
+    if not allowed:
+        raise WireError(f"order slot {order.slot} is not one the view allows")
+
+
 def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
     """Raise WireError when the actions name what the question did not show.
 
     The engine's reader refuses the whole answer for: a target or turret
     target that is neither NO_OBJECT nor a contact, a firing cannon group
     the view does not count, a launcher the view does not count or shows
-    cooling down, and a turret slot the view's turret mask does not name.
+    cooling down, a turret slot the view's turret mask does not name, an
+    order from a craft that follows a leader or to a slot other than its
+    own, one of 0 to 2 with an order (not after a skip to order 4) or 3 with
+    the skip due, and a depart or dock the view's books do not allow.
     """
     shown = {contact.object_index for contact in question.contacts} | {NO_OBJECT}
     if actions.target is not None and actions.target not in shown:
@@ -392,6 +442,12 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
             raise WireError(f"weapon slot {turret.slot} is not a turret")
         if turret.target not in shown:
             raise WireError(f"turret target {turret.target} is not a contact")
+    if actions.order is not None:
+        _check_order(actions.order, view)
+    if actions.depart and not view.books & Books.MAY_JUMP:
+        raise WireError("depart is not one the view's books allow")
+    if actions.dock and not view.books & Books.AT_HANGAR:
+        raise WireError("dock is not one the view's books allow")
 
 
 def read_answer(body: bytes, question: Question) -> Answer:

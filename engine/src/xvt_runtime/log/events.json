@@ -3,10 +3,20 @@
   "grammar": 1,
   "line": "HH:MM:SS.mmm L event key=value ...",
   "events": {
+    "ai.abort_state": {
+      "level": "D",
+      "fields": ["object", "front", "rear", "hull", "hull_max", "special", "reason", "predicted"],
+      "text": "Computer-flown craft {object} aborted with shields {front} front and {rear} rear and hull damage {hull} of {hull_max}; it is its group's special cargo craft: {special}; its group's player, if any, was told the reason as in-flight message {reason} (87 damaged and inoperative for cannons down, where 1997 said 394 warheads out); predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.answer_refused": {
       "level": "E",
       "fields": ["tick", "craft", "result", "answer_bytes", "predicted"],
       "text": "At tick {tick} the pilot program's {answer_bytes}-byte answer about {craft} craft was refused whole with ai_wire_result {result}; no craft took any of it ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.cargo_departed": {
+      "level": "D",
+      "fields": ["object", "carried", "fg", "captured", "delivered", "undelivered", "predicted"],
+      "text": "Computer-flown craft {object} took the object it carried, {carried} of flight group {fg}, out of the battle with it: capture mark {captured} (0 when not captured); that group's counts 'taken by the destination' {delivered} and 'not taken by the destination' {undelivered}; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.craft_answered": {
       "level": "D",
@@ -17,6 +27,16 @@
       "level": "D",
       "fields": ["object", "arriving", "kind", "speed", "predicted"],
       "text": "Craft {object} took the pilot program's arrival, arriving {arriving}: its object kind is now {kind} (6 arriving from hyperspace, 0 active; a craft that was neither, or was not arriving when asked about, keeps its kind and speed) and its speed {speed} ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.craft_depart": {
+      "level": "D",
+      "fields": ["object", "speed", "predicted"],
+      "text": "Craft {object} took the pilot program's depart: it is marked entering hyperspace at full throttle with its turns stopped, at speed {speed}, and leaves the battle once its speed reaches 3,600 ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.craft_dock": {
+      "level": "D",
+      "fields": ["object", "hangar", "docked", "predicted"],
+      "text": "Craft {object} took the pilot program's dock into the hangar of object {hangar} (-1 when its mothership left the battle after the question): docked {docked} ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.craft_lasers": {
       "level": "D",
@@ -38,6 +58,21 @@
       "fields": ["object", "launcher", "paired", "fired", "predicted"],
       "text": "Craft {object} was told to fire warhead launcher {launcher} (paired {paired}); fired is {fired}, 0 when the craft was not active or its weapons were held ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.departure_counted": {
+      "level": "D",
+      "fields": ["object", "fg", "departed", "incomplete", "home", "aborted", "departing", "skipped", "captured", "team_departed", "predicted"],
+      "text": "As computer-flown craft {object} of flight group {fg} left the battle, through hyperspace or into a hangar, its group had {departed} craft counted departed and {incomplete} departed with orders unfinished; the craft's marks: told to go home {home}, aborted {aborted}, departure under way {departing}, skipped to its fourth order {skipped}, capture mark {captured} (0 when not captured); its team's count of the group's captured craft that left is {team_departed}; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.departure_started": {
+      "level": "D",
+      "fields": ["object", "fg", "from", "count", "minutes", "seconds", "predicted"],
+      "text": "Computer-flown craft {object} of flight group {fg} began its departure, with its departure clock at {minutes}:{seconds} ({from}: own when its group's departure time or condition came and it set that clock to the mission clock, leader when it took the departure and its clock from its leader); {count} craft of its group are now counted as not yet departed; it withdraws when its group's departure delay has passed since that clock time; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.entered_hangar": {
+      "level": "I",
+      "fields": ["object", "fg", "hangar", "outcome", "tick"],
+      "text": "Computer-flown craft {object} of flight group {fg} flew into the hangar of object {hangar} and left the battle, counted as outcome {outcome} (18 into the departure mothership, 19 into the alternate one, 20 into the mothership of the group that captured it); at tick {tick}"
+    },
     "ai.flight_ending": {
       "level": "I",
       "fields": ["why"],
@@ -58,10 +93,30 @@
       "fields": ["why"],
       "text": "The AI program named in the settings could not be started, so computer craft sit this flight: {why}"
     },
+    "ai.hyperspace_departed": {
+      "level": "I",
+      "fields": ["object", "fg", "craft", "captured", "carried", "tick"],
+      "text": "Computer-flown craft {object} of flight group {fg} (craft type {craft}) left the battle through hyperspace at tick {tick}; it left as a captured craft {captured}, carrying object {carried} (-1 for none)"
+    },
     "ai.leader_named": {
       "level": "D",
       "fields": ["object", "lost", "group", "followers", "predicted"],
       "text": "Craft {object} of flight group {group} now leads: the leader in slot {lost} was lost, and {followers} other craft follow it, the live follower with the lowest readout number ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.mission_aborted": {
+      "level": "I",
+      "fields": ["object", "fg", "trigger", "aborted", "departing", "tick"],
+      "text": "Computer-flown craft {object} of flight group {fg} aborted its mission: its group's abort condition {trigger} held (1 shields down, 2 cannons out, 3 warheads spent, 4 hull damage at half, 5 attacked, 6 shields at half, 7 shields at a quarter, 8 hull damage at a quarter, 9 hull damage at three quarters); {aborted} craft of its group have now aborted; it had already begun its departure: {departing} (if so, that departure was undone); at tick {tick}"
+    },
+    "ai.order_moved": {
+      "level": "D",
+      "fields": ["object", "from", "to", "state", "why", "predicted"],
+      "text": "Computer-flown craft {object} moved from order {from} to order {to} (counted from 0), the order it left taking completion state {state} (0 unchanged, 2 its goal met, 3 no boarding target left) ({why}: program when the pilot program sent the move, leader to follow its leader's order); predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.orders_done": {
+      "level": "D",
+      "fields": ["object", "fg", "from", "predicted"],
+      "text": "Computer-flown craft {object} of flight group {fg} counted all its orders as done ({from}: own when its own orders were all met, leader when it took this from its leader), so its departure will count as a normal one; predicted step {predicted} (1 in a step that is run again later)"
     },
     "ai.program_exchanged": {
       "level": "D",
@@ -92,6 +147,16 @@
       "level": "D",
       "fields": ["tick", "craft", "contacts", "question_bytes", "answer_bytes", "predicted"],
       "text": "At tick {tick} the pilot program was asked about {craft} craft due to think, showing {contacts} contacts, in {question_bytes} bytes and answered in {answer_bytes} bytes ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.withdraw_timing": {
+      "level": "D",
+      "fields": ["object", "delay", "elapsed", "predicted"],
+      "text": "Craft {object} withdrew {elapsed} seconds after its departure began, against its group's delay of {delay} seconds; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.withdrew": {
+      "level": "I",
+      "fields": ["object", "fg", "tick"],
+      "text": "Computer-flown craft {object} of flight group {fg} withdrew from the combat area at the end of its departure delay and the pilot program is told its departure is due; at tick {tick}"
     },
     "app.crash_exception": {
       "level": "C",

@@ -32,6 +32,9 @@ WEAPON_SLOTS = 16
 CONTACTS_MAX = 32
 # The fastest speed an arrival may set: the 1997 AI's speed out of hyperspace.
 ARRIVAL_SPEED_MAX = 3600
+# A flight group's order slots, 0 to 3, and the axes of a point.
+ORDER_SLOTS = 4
+POINT_AXES = 3
 
 
 class Activity(enum.IntEnum):
@@ -59,6 +62,38 @@ ENGINE_ACTIVITIES = frozenset(
 )
 
 
+class Books(enum.IntFlag):
+    """The bits of a craft view's ``books`` (``enum ai_wire_books``).
+
+    The engine keeps the mission's books by the 1997 rules and the program
+    decides what to do about them:
+
+    - ORDERS_DONE: every order its group has in slots 0 to 2 is done
+      (state 2), or its leader's are
+    - ABORTED: its group's abort trigger held, or a player sent it home
+    - DEPARTURE_DUE: its group's departure came and the delay has passed
+    - SKIP_DUE: its group's skip-to-order-4 trigger holds
+    - SKIPPED: it skipped to order 4
+    - MAY_JUMP: it may depart: active, with a hyperdrive, its group leaving
+      by hyperspace
+    - AT_HANGAR: it may dock: active, within 512 world units of its
+      mothership's inside hangar point (1,024 for a starship)
+    - BY_MOTHERSHIP: its group leaves by mothership, not by hyperspace
+    - HOME_POINT: its group's mission point 13 is on, so ``home_point`` is
+      given
+    """
+
+    ORDERS_DONE = 0x001
+    ABORTED = 0x002
+    DEPARTURE_DUE = 0x004
+    SKIP_DUE = 0x008
+    SKIPPED = 0x010
+    MAY_JUMP = 0x020
+    AT_HANGAR = 0x040
+    BY_MOTHERSHIP = 0x080
+    HOME_POINT = 0x100
+
+
 @dataclasses.dataclass(frozen=True)
 class CraftView:
     """One craft due to think, as a question describes it.
@@ -72,7 +107,16 @@ class CraftView:
     it may fire. Bit n of ``enemy_mask`` is set when contact n is hostile to
     the craft by the mission's alliances: never its own team or an allied
     one. ``leader`` is the object index of the craft its flight follows,
-    NO_OBJECT when it leads; the engine names it. ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
+    NO_OBJECT when it leads; the engine names it. ``order_codes`` and
+    ``order_states`` are each order slot's order and completion (2 once its
+    goal was met, 3 once a boarding order had no target left, else 0);
+    ``order_throttle`` (a craft throttle, a fraction of 65,536),
+    ``order_variable1``, ``order_variable2`` and ``order_speed`` are the
+    current order's. ``books`` holds ``Books`` bits. ``mothership`` is the
+    object index of the craft it goes home into, NO_OBJECT for none, with
+    that craft's ``outside_hangar`` and ``inside_hangar`` points; ``home_point``
+    is its group's mission point 13, where it leaves by hyperspace. Points
+    are world (x, y, z), all 0 when not given. ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
     program last wrote it, or all zero bytes before the program first writes
     it.
     """
@@ -106,6 +150,17 @@ class CraftView:
     launcher_cooldown: tuple[int, int]
     enemy_mask: int
     leader: int
+    order_codes: tuple[int, int, int, int]
+    order_states: tuple[int, int, int, int]
+    order_throttle: int
+    order_variable1: int
+    order_variable2: int
+    order_speed: int
+    books: int
+    mothership: int
+    outside_hangar: tuple[int, int, int]
+    inside_hangar: tuple[int, int, int]
+    home_point: tuple[int, int, int]
     notebook: bytes
 
 
@@ -254,6 +309,22 @@ class Arrival:
 
 
 @dataclasses.dataclass(frozen=True)
+class OrderMove:
+    """The order slot a craft works on from now, 0 to 3, and the completion
+    state the slot it worked on takes: 0 leaves it, 2 its goal was met, 3 a
+    boarding order had no target left."""
+
+    slot: int
+    state: int = 0
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.slot < ORDER_SLOTS:
+            raise ValueError(f"order slot {self.slot!r} is outside 0 to 3")
+        if self.state not in (0, 2, 3):
+            raise ValueError(f"order state {self.state!r} is not 0, 2 or 3")
+
+
+@dataclasses.dataclass(frozen=True)
 class Actions:
     """What one craft is told to do; None sends nothing of that kind.
 
@@ -261,8 +332,10 @@ class Actions:
     until the craft is asked about again, 1 or more. ``target`` is an object
     index, NO_OBJECT to clear the target. ``lasers`` sets both cannon groups.
     ``turrets`` aims 1 to 16 turrets, each slot once. ``arrival`` marks the
-    craft arriving from hyperspace or active again. ``activity`` is never
-    one of ENGINE_ACTIVITIES. What these name must
+    craft arriving from hyperspace or active again. ``order`` moves the
+    craft's order slot; ``depart`` starts it out of the battle by
+    hyperspace and ``dock`` takes it into its mothership's hangar, never
+    both. ``activity`` is never one of ENGINE_ACTIVITIES. What these name must
     be what the question showed (``wire.read_answer`` holds the rules).
     """
 
@@ -275,8 +348,13 @@ class Actions:
     warhead: Warhead | None = None
     turrets: tuple[Turret, ...] | None = None
     arrival: Arrival | None = None
+    order: OrderMove | None = None
+    depart: bool = False
+    dock: bool = False
 
     def __post_init__(self) -> None:
+        if self.depart and self.dock:
+            raise ValueError("depart and dock are both sent")
         if self.target is not None:
             _check_u16("target", self.target)
         if self.lasers is not None and len(self.lasers) != CANNON_GROUPS:

@@ -360,6 +360,10 @@ add_test(NAME flight_geometry COMMAND test_flight_geometry)
 # The think loop that asks the pilot program about craft due to think: src/xvt/flight/ai_brain.c.
 xvt_add_engine_test(test_ai_brain test_ai_brain.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_brain.c")
 add_test(NAME ai_brain COMMAND test_ai_brain)
+# The mission's books for computer craft: departures, aborts, order slots, jumping out and docking:
+# src/xvt/flight/ai_books.c.
+xvt_add_engine_test(test_ai_books test_ai_books.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_books.c")
+add_test(NAME ai_books COMMAND test_ai_books)
 # The byte form of the questions to and answers from the AI program: src/xvt_runtime/ai/ai_wire.c.
 xvt_add_engine_test(test_ai_wire test_ai_wire.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/ai/ai_wire.c")
 add_test(NAME ai_wire COMMAND test_ai_wire)

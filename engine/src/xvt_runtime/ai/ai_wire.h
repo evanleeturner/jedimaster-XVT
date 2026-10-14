@@ -24,7 +24,17 @@
  * cooldown[2] (ticks before each launcher may fire), u32 enemy mask (bit n
  * set when contact n is hostile to the craft by the mission's alliances),
  * u16 leader (the object index of the craft its flight follows, 0xFFFF when
- * it leads), then the notebook's AI_NOTEBOOK_BYTES. Then u16 contact count,
+ * it leads), then the mission's books: u8 order code[4] (each order slot's
+ * order, 0 for none), u8 order state[4] (each slot's completion: 2 once its
+ * goal was met, 3 once a boarding order had no target left, else 0), u16
+ * order throttle (the current order's, as a craft throttle, a fraction of
+ * 65,536), u8 order variable1, u8 order variable2, u8 order speed (the
+ * current order's, as the mission holds them), u16 books (AI_WIRE_BOOKS_
+ * bits), u16 mothership (the object index of the craft it goes home into,
+ * 0xFFFF for none), i32 x, i32 y, i32 z of that craft's outside hangar point
+ * and then of its inside one, and i32 x, i32 y, i32 z of the flight group's
+ * mission point 13, where it leaves by hyperspace (points not given are 0),
+ * then the notebook's AI_NOTEBOOK_BYTES. Then u16 contact count,
  * u16 zero, and one contact per craft in the active region, at most
  * AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
  * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
@@ -57,8 +67,21 @@
  *     active again. Either way the speed becomes the craft's speed at once.
  *     The engine applies it only to a craft that was arriving from
  *     hyperspace when the question was asked.
+ *  10 order: u8 slot and u8 state. The craft works on order slot slot from
+ *     now, and the slot the view shows it on takes completion state state
+ *     when state is not 0. Only a craft the view shows leading or alone may
+ *     send it (the engine moves a follower with its leader); state is 0, 2
+ *     or 3; slot is the view's slot, one of 0 to 2 whose order code is not 0
+ *     while the craft has not skipped to order 4, or 3 while the view's books
+ *     show the skip due.
+ *  11 depart: no fields. The craft starts out of the battle by hyperspace;
+ *     only while the view's books show it may jump.
+ *  12 dock: no fields. The craft enters its mothership's hangar and leaves
+ *     the battle; only while the view's books show it at the hangar, and
+ *     never with a depart in the same craft answer.
  * A craft answer names each action kind at most once, and names only what
- * the question showed. */
+ * the question showed. While a craft enters hyperspace the engine does not
+ * turn it, whatever the steer action says. */
 
 #include <stddef.h>
 #include <stdint.h>
@@ -71,12 +94,16 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 5,
+	AI_WIRE_VERSION = 6,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 62 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 115 + AI_NOTEBOOK_BYTES,
+	/* A flight group's order slots, 0 to 3. */
+	AI_WIRE_ORDER_SLOTS = 4,
+	/* The x, y and z of a point. */
+	AI_WIRE_POINT_AXES = 3,
 	/* The contact count and its zero. */
 	AI_WIRE_CONTACT_HEAD_BYTES = 4,
 	AI_WIRE_CONTACT_BYTES = 53,
@@ -87,8 +114,9 @@ enum ai_wire_constant {
 	AI_WIRE_WARHEAD_LAUNCHERS = 2,
 	/* Weapon slots a craft has, and so turrets one answer may aim. */
 	AI_WIRE_WEAPON_SLOTS = 16,
-	/* A craft answer with every action kind once and all 16 turrets. */
-	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 83 + AI_NOTEBOOK_BYTES,
+	/* A craft answer with every action kind once, but depart or dock, never
+	 * both, and all 16 turrets. */
+	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 87 + AI_NOTEBOOK_BYTES,
 	/* The fastest speed an arrival may set: the 1997 AI's speed out of
 	 * hyperspace. */
 	AI_WIRE_ARRIVAL_SPEED_MAX = 3600,
@@ -104,7 +132,39 @@ enum ai_wire_action_kind {
 	AI_WIRE_ACTION_WARHEAD = 7,
 	AI_WIRE_ACTION_TURRETS = 8,
 	AI_WIRE_ACTION_ARRIVAL = 9,
-	AI_WIRE_ACTION_KIND_END = 10,
+	AI_WIRE_ACTION_ORDER = 10,
+	AI_WIRE_ACTION_DEPART = 11,
+	AI_WIRE_ACTION_DOCK = 12,
+	AI_WIRE_ACTION_KIND_END = 13,
+};
+
+/* The bits of a craft view's books, as the engine keeps them by the 1997
+ * rules. */
+enum ai_wire_books {
+	/* Every order the craft's group has in slots 0 to 2 is done, state 2,
+	 * or its leader's are. */
+	AI_WIRE_BOOKS_ORDERS_DONE = 0x001,
+	/* The craft aborted the mission: its group's abort trigger held, or a
+	 * player sent it home. */
+	AI_WIRE_BOOKS_ABORTED = 0x002,
+	/* Its group's departure came, by the clock or the trigger, and the
+	 * group's departure delay has passed since. */
+	AI_WIRE_BOOKS_DEPARTURE_DUE = 0x004,
+	/* Its group's skip-to-order-4 trigger holds: it may move to slot 3. */
+	AI_WIRE_BOOKS_SKIP_DUE = 0x008,
+	/* It skipped to order 4. */
+	AI_WIRE_BOOKS_SKIPPED = 0x010,
+	/* It may depart: it is active, its model has a hyperdrive and its
+	 * group leaves by hyperspace. */
+	AI_WIRE_BOOKS_MAY_JUMP = 0x020,
+	/* It may dock: it is active and within 512 world units of its
+	 * mothership's inside hangar point by rough distance, 1,024 for a
+	 * starship. */
+	AI_WIRE_BOOKS_AT_HANGAR = 0x040,
+	/* Its group leaves by mothership, not by hyperspace. */
+	AI_WIRE_BOOKS_BY_MOTHERSHIP = 0x080,
+	/* Its group's mission point 13 is on, so the home point is given. */
+	AI_WIRE_BOOKS_HOME_POINT = 0x100,
 };
 
 enum ai_wire_contact_flag {
@@ -142,6 +202,17 @@ struct ai_wire_craft_view {
 	uint16_t launcher_cooldown[AI_WIRE_WARHEAD_LAUNCHERS];
 	uint32_t enemy_mask;
 	uint16_t leader;
+	uint8_t order_codes[AI_WIRE_ORDER_SLOTS];
+	uint8_t order_states[AI_WIRE_ORDER_SLOTS];
+	uint16_t order_throttle;
+	uint8_t order_variable1;
+	uint8_t order_variable2;
+	uint8_t order_speed;
+	uint16_t books;
+	uint16_t mothership;
+	int32_t outside_hangar[AI_WIRE_POINT_AXES];
+	int32_t inside_hangar[AI_WIRE_POINT_AXES];
+	int32_t home_point[AI_WIRE_POINT_AXES];
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 
@@ -206,6 +277,8 @@ struct ai_wire_craft_answer {
 	uint16_t turret_target[AI_WIRE_WEAPON_SLOTS];
 	uint8_t arriving;
 	uint16_t speed;
+	uint8_t order_slot;
+	uint8_t order_state;
 };
 
 /* Why an answer was refused. The reader stops at the first fault. */
@@ -224,8 +297,9 @@ enum ai_wire_result {
 	/* An unknown action kind, a kind sent twice, an activity at or past
 	 * AI_ACTIVITY_COUNT or one the engine alone sets, a think interval of 0,
 	 * an arrival's arriving past 1 or speed past AI_WIRE_ARRIVAL_SPEED_MAX,
-	 * or a target, cannon group, launcher or turret the question did not
-	 * show. */
+	 * a target, cannon group, launcher or turret the question did not
+	 * show, an order the view does not allow, or a depart or dock its books
+	 * do not show, or both. */
 	AI_WIRE_BAD_ACTION,
 };
 

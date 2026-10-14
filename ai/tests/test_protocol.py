@@ -25,6 +25,7 @@ from jedimaster_ai.world import CannonGroup
 from jedimaster_ai.world import Contact
 from jedimaster_ai.world import CraftAnswer
 from jedimaster_ai.world import NOTEBOOK_BYTES
+from jedimaster_ai.world import OrderMove
 from jedimaster_ai.world import Steer
 from jedimaster_ai.world import Turret
 from jedimaster_ai.world import Warhead
@@ -45,6 +46,8 @@ C_SIZES = {
     "AI_WIRE_CANNON_GROUPS": world.CANNON_GROUPS,
     "AI_WIRE_WARHEAD_LAUNCHERS": world.WARHEAD_LAUNCHERS,
     "AI_NOTEBOOK_BYTES": NOTEBOOK_BYTES,
+    "AI_WIRE_ORDER_SLOTS": world.ORDER_SLOTS,
+    "AI_WIRE_POINT_AXES": world.POINT_AXES,
 }
 
 
@@ -91,6 +94,8 @@ def test_wire_constants_match() -> None:
         warhead=Warhead(1),
         turrets=tuple(Turret(slot, 7) for slot in range(world.WEAPON_SLOTS)),
         arrival=Arrival(True, world.ARRIVAL_SPEED_MAX),
+        order=OrderMove(1, 2),
+        depart=True,
     )
     answer = Answer(1, (CraftAnswer(1, bytes(NOTEBOOK_BYTES), every_action),))
     assert constants == {
@@ -108,7 +113,14 @@ def test_wire_constants_match() -> None:
         "WEAPON_SLOTS": world.WEAPON_SLOTS,
         "CRAFT_ANSWER_BYTES_MAX": len(wire.answer_bytes(answer)) - wire.HEAD_BYTES,
         "ARRIVAL_SPEED_MAX": world.ARRIVAL_SPEED_MAX,
+        "ORDER_SLOTS": world.ORDER_SLOTS,
+        "POINT_AXES": world.POINT_AXES,
     }
+
+
+def test_books_bits_match() -> None:
+    books = c_enum(AI_WIRE_H, "ai_wire_books", "AI_WIRE_BOOKS_")
+    assert books == {bit.name: bit.value for bit in world.Books}
 
 
 def test_action_kinds_match() -> None:

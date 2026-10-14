@@ -15,6 +15,14 @@ static uint8_t *put_u32(uint8_t *at, uint32_t value)
 	return put_u16(at, value >> 16);
 }
 
+static uint8_t *put_point(uint8_t *at, const int32_t point[AI_WIRE_POINT_AXES])
+{
+	for (int axis = 0; axis < AI_WIRE_POINT_AXES; ++axis) {
+		at = put_u32(at, (uint32_t)point[axis]);
+	}
+	return at;
+}
+
 static uint8_t *put_craft_view(uint8_t *at,
 			       const struct ai_wire_craft_view *view)
 {
@@ -53,6 +61,19 @@ static uint8_t *put_craft_view(uint8_t *at,
 	}
 	at = put_u32(at, view->enemy_mask);
 	at = put_u16(at, view->leader);
+	memcpy(at, view->order_codes, AI_WIRE_ORDER_SLOTS);
+	at += AI_WIRE_ORDER_SLOTS;
+	memcpy(at, view->order_states, AI_WIRE_ORDER_SLOTS);
+	at += AI_WIRE_ORDER_SLOTS;
+	at = put_u16(at, view->order_throttle);
+	*at++ = view->order_variable1;
+	*at++ = view->order_variable2;
+	*at++ = view->order_speed;
+	at = put_u16(at, view->books);
+	at = put_u16(at, view->mothership);
+	at = put_point(at, view->outside_hangar);
+	at = put_point(at, view->inside_hangar);
+	at = put_point(at, view->home_point);
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
@@ -258,6 +279,30 @@ static int take_turrets(struct wire_reader *reader,
 	return 1;
 }
 
+/* Reads the order action: for a craft the view shows leading or alone, a
+ * slot the view allows and a state of 0, 2 or 3. */
+static int take_order(struct wire_reader *reader,
+		      const struct ai_wire_craft_view *view,
+		      struct ai_wire_craft_answer *answer)
+{
+	unsigned int slot = take_u8(reader);
+	unsigned int state = take_u8(reader);
+	answer->order_slot = (uint8_t)slot;
+	answer->order_state = (uint8_t)state;
+	if (reader->short_read) {
+		return 1;
+	}
+	int allowed = slot == view->order_slot;
+	if (slot < AI_WIRE_ORDER_SLOTS - 1) {
+		allowed |= view->order_codes[slot] != 0 &&
+			   (view->books & AI_WIRE_BOOKS_SKIPPED) == 0;
+	} else if (slot == AI_WIRE_ORDER_SLOTS - 1) {
+		allowed |= (view->books & AI_WIRE_BOOKS_SKIP_DUE) != 0;
+	}
+	return allowed && view->leader == UINT16_MAX &&
+	       (state == 0 || state == 2 || state == 3);
+}
+
 /* Reads one action into answer; returns 0 for a kind that is unknown or
  * already sent, a value out of range, or a thing the question did not
  * show. */
@@ -305,6 +350,12 @@ static int take_action(struct wire_reader *reader,
 		return reader->short_read ||
 		       (answer->arriving <= 1 &&
 			answer->speed <= AI_WIRE_ARRIVAL_SPEED_MAX);
+	case AI_WIRE_ACTION_ORDER:
+		return take_order(reader, view, answer);
+	case AI_WIRE_ACTION_DEPART:
+		return (view->books & AI_WIRE_BOOKS_MAY_JUMP) != 0;
+	case AI_WIRE_ACTION_DOCK:
+		return (view->books & AI_WIRE_BOOKS_AT_HANGAR) != 0;
 	default:
 		return take_turrets(reader, question, view, answer);
 	}
@@ -327,6 +378,11 @@ take_craft_answer(struct wire_reader *reader,
 		if (!take_action(reader, question, view, answer)) {
 			return AI_WIRE_BAD_ACTION;
 		}
+	}
+	const unsigned int leaving =
+		1u << AI_WIRE_ACTION_DEPART | 1u << AI_WIRE_ACTION_DOCK;
+	if (!reader->short_read && (answer->actions & leaving) == leaving) {
+		return AI_WIRE_BAD_ACTION;
 	}
 	return reader->short_read ? AI_WIRE_SHORT : AI_WIRE_OK;
 }

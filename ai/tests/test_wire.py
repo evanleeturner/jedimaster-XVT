@@ -6,6 +6,7 @@ The question bytes are the engine's own test's, read from
 
 from __future__ import annotations
 
+import dataclasses
 import io
 import re
 import struct
@@ -18,6 +19,7 @@ from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Activity
 from jedimaster_ai.world import Answer
 from jedimaster_ai.world import Arrival
+from jedimaster_ai.world import Books
 from jedimaster_ai.world import CannonGroup
 from jedimaster_ai.world import Contact
 from jedimaster_ai.world import CraftAnswer
@@ -25,6 +27,7 @@ from jedimaster_ai.world import CraftView
 from jedimaster_ai.world import LinkMode
 from jedimaster_ai.world import NO_OBJECT
 from jedimaster_ai.world import NOTEBOOK_BYTES
+from jedimaster_ai.world import OrderMove
 from jedimaster_ai.world import Question
 from jedimaster_ai.world import Steer
 from jedimaster_ai.world import Turret
@@ -37,7 +40,10 @@ DISTINCT = CraftView(
     0x0102, 0x0304, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0C0B, 0x0E0D, 0x100F,
     0x14131211, -2, 0x1C1B1A19, 0x1E1D, 0x201F, 0x2221, 0x2423, -3,
     0x28272625, 0x2A29, 0x2B, 0x2C, (0x2D, 0x2E), (0x2F, 0x30), (0x31, 0x32),
-    (0x3433, 0x3635), 0x3A393837, 0x3C3B,
+    (0x3433, 0x3635), 0x3A393837, 0x3C3B, (0x3D, 0x3E, 0x3F, 0x40),
+    (0x41, 0x42, 0x43, 0x44), 0x4645, 0x47, 0x48, 0x49, 0x4B4A, 0x4D4C,
+    (0x51504F4E, 0x55545352, 0x59585756), (0x5D5C5B5A, 0x61605F5E, -6),
+    (0x65646362, 0x69686766, 0x6D6C6B6A),
     notebook=bytes(0x40 + byte for byte in range(NOTEBOOK_BYTES)),
 )  # fmt: skip
 # contact_with_distinct_bytes in the C test.
@@ -74,7 +80,9 @@ def test_writes_the_engines_question() -> None:
 
 def plain_view(index: int, **changes: object) -> CraftView:
     """Return a craft view of object index, every other field 0."""
-    fields = {name: (0, 0) if count == 2 else 0 for name, _, count in wire.VIEW_LAYOUT}
+    fields = {
+        name: (0,) * count if count > 1 else 0 for name, _, count in wire.VIEW_LAYOUT
+    }
     fields.update(object_index=index, **changes)
     return CraftView(**fields, notebook=bytes(NOTEBOOK_BYTES))
 
@@ -85,15 +93,23 @@ def plain_contact(index: int) -> Contact:
 
 
 # The C test's g_question: craft 7 with two cannon groups, launcher 0 ready
-# and turrets in weapon slots 3 and 5; craft 9 with none; contacts 7, 9, 12.
+# and turrets in weapon slots 3 and 5, leading, with orders in slots 0 and 1,
+# at its hangar; craft 9 with none of these; contacts 7, 9, 12.
 CRAFT_7 = plain_view(
-    7, turret_slot_mask=1 << 3 | 1 << 5, cannon_group_count=2, warhead_launcher_count=1
+    7,
+    turret_slot_mask=1 << 3 | 1 << 5,
+    cannon_group_count=2,
+    warhead_launcher_count=1,
+    order_codes=(1, 2, 0, 0),
+    leader=NO_OBJECT,
+    books=Books.AT_HANGAR,
 )
 CONTACTS = tuple(plain_contact(index) for index in (7, 9, 12))
 
 
 def good_answer() -> tuple[Question, Answer]:
-    """The C test's good answer: craft 7 sends every kind, craft 9 none."""
+    """The C test's good answer: craft 7 sends every kind but depart, craft 9
+    none."""
     question = Question(TEST_TICK, (CRAFT_7, plain_view(9)), CONTACTS)
     every = Actions(
         Steer(0x1234, 0x4000, 0xFFFF),
@@ -105,6 +121,8 @@ def good_answer() -> tuple[Question, Answer]:
         warhead=Warhead(0, paired=True),
         turrets=(Turret(5, NO_OBJECT), Turret(3, 12)),
         arrival=Arrival(True, 3600),
+        order=OrderMove(1, 2),
+        dock=True,
     )
     answer = Answer(
         TEST_TICK,
@@ -120,7 +138,7 @@ def test_answer_bytes_read_back() -> None:
     question, answer = good_answer()
     message = wire.answer_bytes(answer)
     # The length the C test's check_good_answer expects.
-    assert len(message) == wire.HEAD_BYTES + 105 + 3 + NOTEBOOK_BYTES
+    assert len(message) == wire.HEAD_BYTES + 109 + 3 + NOTEBOOK_BYTES
     assert wire.read_answer(message[4:], question) == answer
 
 
@@ -128,11 +146,13 @@ def test_answer_writes_actions_in_kind_order() -> None:
     _, answer = good_answer()
     message = wire.answer_bytes(answer)
     start = wire.HEAD_BYTES + 2 + NOTEBOOK_BYTES
-    # Count 9; steer 0x1234 0x4000 0xFFFF; throttle 0x8000; activity 12;
+    # Count 11; steer 0x1234 0x4000 0xFFFF; throttle 0x8000; activity 12;
     # think interval 59; target 12; lasers 3 4 1 2; warhead 0 paired;
-    # turrets: slot 5 none, slot 3 at 12; arriving at 3,600.
-    assert message[start : start + 39] == bytes.fromhex(
-        "090134120040ffff020080030c043b00050c000603040102070001080205ffff030c000901100e"
+    # turrets: slot 5 none, slot 3 at 12; arriving at 3,600; order slot 1
+    # state 2; dock.
+    assert message[start : start + 43] == bytes.fromhex(
+        "0b0134120040ffff020080030c043b00050c000603040102070001080205ffff030c000901100e"
+        "0a01020c"
     )
 
 
@@ -186,8 +206,8 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
 @pytest.mark.parametrize(
     ("actions", "match"),
     [
-        (b"\x01\x00", "not one of the nine"),
-        (b"\x01\x0a", "not one of the nine"),
+        (b"\x01\x00", "not one of the twelve"),
+        (b"\x01\x0d", "not one of the twelve"),
         (b"\x02\x02\x01\x00\x02\x02\x00", "sent twice"),
         (b"\x01\x03\x0d", "out of range"),
         (b"\x01\x03\x05", "set by the engine alone"),
@@ -211,13 +231,22 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
         (b"\x01\x09\x02\x00\x00", "out of range"),
         (b"\x01\x09\x01\x11\x0e", "out of range"),
         (b"\x01\x09\x01\x10", "ends inside a value"),
+        (b"\x01\x0a\x02\x00", "order slot 2 is not one the view allows"),
+        (b"\x01\x0a\x03\x00", "order slot 3 is not one the view allows"),
+        (b"\x01\x0a\x04\x00", "out of range"),
+        (b"\x01\x0a\x01\x01", "out of range"),
+        (b"\x01\x0a\x01", "ends inside a value"),
+        (b"\x01\x0b", "depart is not one the view's books allow"),
+        (b"\x02\x0b\x0c", "depart and dock are both sent"),
     ],
     ids=[
-        "kind 0", "kind 10", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
+        "kind 0", "kind 13", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
         "target not shown", "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
         "not a turret", "slot 16", "slot twice", "turret target not shown",
         "turret cut off", "arriving 2", "speed 3601", "arrival cut off",
+        "order to an empty slot", "order to slot 3", "order slot 4",
+        "order state 1", "order cut off", "depart not allowed", "depart and dock",
     ],
 )  # fmt: skip
 def test_answer_breaking_the_engines_rules_is_refused(
@@ -225,6 +254,36 @@ def test_answer_breaking_the_engines_rules_is_refused(
 ) -> None:
     with pytest.raises(wire.WireError, match=match):
         wire.read_answer(answer_with_actions(actions), QUESTION_7)
+
+
+def _actions_of(body: bytes, view: CraftView) -> Actions:
+    return (
+        wire.read_answer(body, Question(TEST_TICK, (view,), CONTACTS)).craft[0].actions
+    )
+
+
+def test_order_depart_and_dock_follow_the_views_books() -> None:
+    """The C test's check_books_faults: an order to a slot with an order, to
+    slot 3 with the skip due, none from a follower or after a skip; a depart
+    only when the craft may jump, a dock only at its hangar."""
+    order_1 = answer_with_actions(b"\x01\x0a\x01\x02")
+    order_3 = answer_with_actions(b"\x01\x0a\x03\x00")
+    depart = answer_with_actions(b"\x01\x0b")
+    dock = answer_with_actions(b"\x01\x0c")
+    assert _actions_of(order_1, CRAFT_7).order == OrderMove(1, 2)
+    assert _actions_of(dock, CRAFT_7).dock
+    skip_due = dataclasses.replace(CRAFT_7, books=Books.SKIP_DUE)
+    assert _actions_of(order_3, skip_due).order == OrderMove(3)
+    skipped = dataclasses.replace(CRAFT_7, order_slot=3, books=Books.SKIPPED)
+    assert _actions_of(order_3, skipped).order == OrderMove(3)
+    with pytest.raises(wire.WireError, match="order slot 1 is not one"):
+        _actions_of(order_1, skipped)
+    with pytest.raises(wire.WireError, match="follows a leader"):
+        _actions_of(order_1, dataclasses.replace(CRAFT_7, leader=9))
+    may_jump = dataclasses.replace(CRAFT_7, books=Books.MAY_JUMP)
+    assert _actions_of(depart, may_jump).depart
+    with pytest.raises(wire.WireError, match="dock is not one"):
+        _actions_of(dock, may_jump)
 
 
 def test_answer_firing_a_cannon_group_the_craft_lacks_is_refused() -> None:
