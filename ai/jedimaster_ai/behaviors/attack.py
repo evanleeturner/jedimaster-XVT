@@ -11,7 +11,8 @@ Purpose:
     (``avoidance.in_the_way``), away from the two of them alike; it holds
     that heading until it is outside the clearance, and comes round again; with
     an enemy on its tail that targets it, it weaves (``weave``) until the
-    tail is clear or the weave's swerves are flown, then fights again. Skill
+    tail is clear or the weave's swerves are flown, steering clear of every
+    bulky craft its own target among them, then fights again. Skill
     sets the aim cone, the firing range, the burst and how soon it looks
     again for a nearer target.
 
@@ -64,9 +65,11 @@ Invariants:
       swings the nose across the target; the dice pick the side only when
       the target is dead ahead. A break another bulky craft's clearance
       blocks heads away from both instead, unless the craft lies nearly in
-      line between them (``escape``).
+      line between them (``escape``) or the turn there swings the nose
+      across either; then it keeps the quarter turn, and avoidance turns it
+      round the other.
     - Unless it weaves, a craft inside a bulky target's clearance breaks
-      off from it rather than steer at it.
+      off from it rather than steer at it; a weave steers clear of it.
     - A fighting craft thinks every FIGHT_INTERVAL ticks, whatever its skill.
 """
 
@@ -230,6 +233,7 @@ def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decisi
         )
         book = dataclasses.replace(book, dice=state, scratch=memory.write())
         if move is not None:
+            move = _clear_of_all(view, question, move)
             return Decision(book.encode(), _weave_actions(move, interval))
 
     target, memory = _choose_target(view, targets, memory, tier, tick)
@@ -255,7 +259,10 @@ def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decisi
             view, question, held_yaw, held_pitch, target.object_index
         )
         away = None if obstacle is None else escape(view, target, obstacle.contact)
-        if away is not None:
+        crosses = away is not None and any(
+            geometry.sweeps(view.yaw, away[0], toward) for toward in (yaw, obstacle.yaw)
+        )
+        if away is not None and not crosses:
             (held_yaw, held_pitch), blocked = away, obstacle.contact.object_index
         logger.debug(
             "attack.break object=%d target=%d distance=%d clearance=%d yaw=%d "
@@ -280,6 +287,7 @@ def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decisi
         book = dataclasses.replace(
             book.in_phase(EVADE, tick), dice=state, scratch=memory.write()
         )
+        move = _clear_of_all(view, question, move)
         actions = dataclasses.replace(
             _weave_actions(move, interval), target=target.object_index
         )
@@ -616,6 +624,15 @@ def _ordered_on(memory: Memory, tick: int) -> bool:
     return bool(memory.ordered) and (
         tick < flown.swerve_ends or flown.swerves < weave.SWERVES_MAX
     )
+
+
+def _clear_of_all(view: CraftView, question: Question, move: weave.Move) -> weave.Move:
+    """Return the weave's move with its yaw turned clear of the bulky craft in
+    its way, the craft's own target among them: a weave aims at nothing, and
+    avoidance skips the target an attack aims at."""
+    steer = move.steer
+    yaw = avoidance.clear_yaw(view, question, steer.yaw, steer.pitch, NO_OBJECT)
+    return dataclasses.replace(move, steer=Steer(yaw, steer.pitch, steer.roll))
 
 
 def _weave_actions(move: weave.Move, interval: int | None) -> Actions:

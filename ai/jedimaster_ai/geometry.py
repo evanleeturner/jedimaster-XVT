@@ -67,3 +67,16 @@ def angle_between(first: int, second: int) -> int:
     """Return how far apart two angles are, either way round: 0 to 0x8000."""
     apart = (first - second) % TURN
     return TURN - apart if apart > HALF_TURN else apart
+
+
+def signed(angle: int) -> int:
+    """Return an angle as -0x8000 to 0x7FFF: negative counterclockwise."""
+    return (angle + HALF_TURN) % TURN - HALF_TURN
+
+
+def sweeps(nose: int, heading: int, toward: int) -> bool:
+    """Return whether turning from nose to heading the shortest way swings
+    the nose across toward, the angles alike yaws."""
+    turn = signed(heading - nose)
+    off = signed(toward - nose)
+    return 0 < off < turn or turn < off < 0

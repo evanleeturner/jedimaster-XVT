@@ -56,8 +56,10 @@ def ship(contact):
 def steer(view, contact):
     """Return the decision after avoidance, from a decision steering as given."""
 
-    def decide(*others, heading=AHEAD, target=None, own_genus=0, own_target=NO_OBJECT):
-        me = view(object_index=ME, x=0, y=0, z=0, yaw=0, pitch=LEVEL, roll=0)
+    def decide(
+        *others, heading=AHEAD, target=None, own_genus=0, own_target=NO_OBJECT, nose=0
+    ):
+        me = view(object_index=ME, x=0, y=0, z=0, yaw=nose, pitch=LEVEL, roll=0)
         own = contact(
             object_index=ME, genus=own_genus, x=0, y=0, z=0, target=own_target
         )
@@ -79,6 +81,22 @@ def test_a_frigate_dead_ahead_turns_the_craft_past_its_edge(ship, steer) -> None
     assert decision.actions.steer == Steer(edge + avoidance.EDGE_PAD, LEVEL, 0)
     assert decision.actions.throttle == 0x8000
     assert decision.notebook == NOTEBOOK
+
+
+def test_the_nose_picks_the_side_so_the_turn_never_crosses_the_frigate(
+    ship, steer
+) -> None:
+    """The behavior's heading lies a little left of the frigate dead ahead
+    and the nose a little right: the craft goes round the right, the side
+    its nose is on; the left edge would swing its nose across the frigate
+    (AI5e's Y-wing in raw10). With the nose dead on, the heading's side."""
+    frigate = ship(16000)
+    clockwise = avoidance.edge_angle(16000, keep_of(frigate)) + avoidance.EDGE_PAD
+    left = Steer(TURN - 0x200, LEVEL, 0)
+    turned = steer(frigate, heading=left, nose=0x800)
+    assert turned.actions.steer == Steer(clockwise, LEVEL, 0)
+    dead_on = steer(frigate, heading=left, nose=0)
+    assert dead_on.actions.steer == Steer(TURN - clockwise, LEVEL, 0)
 
 
 def test_a_frigate_past_the_look_ahead_is_not_yet_in_the_way(ship, steer) -> None:

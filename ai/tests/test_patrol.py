@@ -317,7 +317,7 @@ def test_a_starship_turns_round_a_starship_in_its_way_and_moves_on(
         geometry.LEVEL,
         NO_OBJECT,
     )
-    clear = around.past_edge(toward(P0).yaw)
+    clear = around.past_edge(toward(P0).yaw, craft.yaw)
     assert geometry.angle_between(clear, toward(P0).yaw) >= patrol.STARSHIP_TURN
     with caplog.at_level("DEBUG"):
         turning = decide(craft, [mine(craft, genus=STARSHIP), frigate()])

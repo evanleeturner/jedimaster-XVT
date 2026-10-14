@@ -12,6 +12,8 @@ from jedimaster_ai.geometry import arctangent
 from jedimaster_ai.geometry import bearing
 from jedimaster_ai.geometry import distance
 from jedimaster_ai.geometry import LEVEL
+from jedimaster_ai.geometry import signed
+from jedimaster_ai.geometry import sweeps
 
 
 def exact_angle(y: int, x: int) -> int:
@@ -65,3 +67,23 @@ def test_distance_is_the_length_rounded_down() -> None:
 )
 def test_angles_are_apart_the_short_way_round(first, second, apart) -> None:
     assert angle_between(first, second) == apart
+
+
+def test_sweeps_names_a_turn_across_the_bearing_the_shortest_way() -> None:
+    assert sweeps(0, 0x3000, 0x1000)
+    assert sweeps(0, 0xD000, 0xF000)
+    assert not sweeps(0, 0x3000, 0xF000)
+    assert not sweeps(0, 0x3000, 0x3000)
+    assert not sweeps(0x1000, 0x3000, 0x1000)
+    # Past a half turn the shortest way is the other way round.
+    assert sweeps(0, 0x9000, 0xC000)
+    assert not sweeps(0, 0x9000, 0x4000)
+
+
+def test_signed_runs_from_minus_a_half_turn() -> None:
+    assert [signed(a) for a in (0, 0x7FFF, 0x8000, 0xFFFF)] == [
+        0,
+        0x7FFF,
+        -0x8000,
+        -1,
+    ]

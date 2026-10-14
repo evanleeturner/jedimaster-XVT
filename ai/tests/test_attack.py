@@ -16,6 +16,7 @@ from jedimaster_ai import notebook
 from jedimaster_ai import weave
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import attack
+from jedimaster_ai.behaviors import avoidance
 from jedimaster_ai.behaviors import BehaviorCode
 from jedimaster_ai.geometry import angle_between
 from jedimaster_ai.geometry import LEVEL
@@ -286,20 +287,21 @@ def test_inside_a_bulky_targets_clearance_it_breaks_wherever_the_target_lies(
 def test_a_break_another_freighters_clearance_blocks_heads_away_from_both(
     craft, foe, ask, caplog
 ) -> None:
-    """The target ahead on the left makes the usual break a turn to +x, where
-    a second freighter sits 6,265 units off and a little above, inside its
-    clearance; the way out dives a little."""
-    target = foe(x=-2000, y=2000, genus=FREIGHTER, size=BULK_FREIGHTER_SIZE)
+    """The target behind on the left makes the usual break a turn to +x,
+    where a second freighter sits 6,184 units off, behind on the right and a
+    little above, inside its clearance; the way out, away from both, turns
+    a little right, across neither, and dives a little."""
+    target = foe(x=-2560, y=-451, genus=FREIGHTER, size=BULK_FREIGHTER_SIZE)
     other = foe(
         object_index=FOE + 1,
-        x=6000,
-        y=1000,
+        x=3000,
+        y=-5196,
         z=1500,
         genus=FREIGHTER,
         size=BULK_FREIGHTER_SIZE,
     )
     me = craft()
-    assert attack.break_heading(0, geometry.bearing(-2000, 2000, 0)[0], 0)[0] == 0x4000
+    assert attack.break_heading(0, geometry.bearing(-2560, -451, 0)[0], 0)[0] == 0x4000
     caplog.set_level("DEBUG")
     decision = ask(me, target, other)
     assert phase_of(decision) == attack.BREAK
@@ -313,6 +315,39 @@ def test_a_break_another_freighters_clearance_blocks_heads_away_from_both(
     assert f"blocked={FOE + 1}" in caplog.text
     alone = ask(me, target)
     assert alone.actions.steer == Steer(0x4000, LEVEL, 0)
+    assert "blocked=65535" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("target_at", "other_at", "held", "crossed"),
+    [
+        ((-2000, 2000, 0), (6000, 1000, 1500), 0x4000, "target"),
+        ((6568, 4104, 0), (-5426, 4553, 0), 0xC000, "other"),
+    ],
+)
+def test_an_escape_that_swings_the_nose_across_either_keeps_the_quarter_turn(
+    craft, foe, ask, caplog, target_at, other_at, held, crossed
+) -> None:
+    """Away from both lies nearly behind, and the shortest turn there swings
+    the nose across one of them: the target, ahead on the left with the
+    other off on the right and a little above (AI5e's network bomber); or
+    the other, ahead on the left with the target ahead on the right, the
+    craft flying into the gap between them (the toy's column 12,000). The
+    break keeps its quarter turn away from the target, and no craft is
+    named as blocking it."""
+    shape = {"genus": FREIGHTER, "size": BULK_FREIGHTER_SIZE}
+    target = foe(**dict(zip("xyz", target_at, strict=True)), **shape)
+    other = foe(
+        object_index=FOE + 1, **dict(zip("xyz", other_at, strict=True)), **shape
+    )
+    me = craft()
+    yaw, _ = attack.escape(me, target, other)
+    swept = {"target": target_at, "other": other_at}[crossed]
+    assert geometry.sweeps(0, yaw, geometry.bearing(*swept)[0])
+    caplog.set_level("DEBUG")
+    decision = ask(me, target, other)
+    assert phase_of(decision) == attack.BREAK
+    assert decision.actions.steer == Steer(held, LEVEL, 0)
     assert "blocked=65535" in caplog.text
 
 
@@ -350,6 +385,32 @@ def test_an_enemy_on_the_tail_makes_it_weave(craft, foe, ask, caplog) -> None:
     assert actions.target == FOE and actions.throttle == 0xFFFF
     assert actions.lasers == (HOLD_FIRE, HOLD_FIRE)
     assert f"weave.start object={ME} threat=12 course=0 " in caplog.text
+
+
+def test_a_weave_steers_clear_of_its_own_bulky_target(craft, foe, ask) -> None:
+    """The freighter it attacks lies 10,000 units off, 0x3000 to the right,
+    outside its clearance but within the look past it, where the weave's
+    first swerve points (dice seed 1). The swerve turns past the clearance's
+    edge, on the nose's side, at the start and at the next think; avoidance
+    alone would skip the target (AI5e's Y-wing in raw10)."""
+    freighter = foe(x=9239, y=3827, genus=FREIGHTER, size=BULK_FREIGHTER_SIZE)
+    chaser = foe(object_index=12, y=-0x2000, target=ME)
+    toward = geometry.bearing(9239, 3827, 0)[0]
+    reach = geometry.distance(9239, 3827, 0)
+    clear = (
+        toward
+        - avoidance.edge_angle(reach, avoidance.tactics.clearance(freighter))
+        - avoidance.EDGE_PAD
+    )
+    first = ask(craft(random_seed=1), freighter, chaser)
+    assert phase_of(first) == attack.EVADE
+    assert weave_of(first).swerves == 1
+    assert first.actions.steer.yaw == clear
+    then = ask(
+        craft(random_seed=1, notebook=first.notebook), freighter, chaser, tick=1016
+    )
+    assert phase_of(then) == attack.EVADE
+    assert then.actions.steer.yaw == clear
 
 
 def test_a_weave_flies_on_and_ends_when_the_tail_is_clear(
@@ -668,9 +729,11 @@ def test_a_fighter_keeps_off_a_freighter_pair_12000_apart(craft, foe, shown) -> 
     12,000 units apart, through think (the attack, then avoidance), from 32
     starts 20,000 units out. The fighter takes the freighter it targets as
     its own contact's target, as the engine does. It comes no nearer than
-    3,334 units to either (two starts graze 3,410, the freighter's corner and
-    the fighter's own; 23 of 32 starts do at 9,000 apart); before the break
-    from a bulky target anywhere inside its clearance, 1,784 (15 of 32)."""
+    3,964 units to either, outside 3,410, the freighter's corner and the
+    fighter's own (3 of 32 starts come inside at 9,000 apart); with
+    avoidance's side taken from the behavior's heading (AI5e), 2 starts
+    grazed (3,334) and 23 of 32 at 9,000; before the break from a bulky
+    target anywhere inside its clearance, 1,784 (15 of 32)."""
     turn, pace, gap = 764, 190, 12000
     freighter = {"genus": FREIGHTER, "size": BULK_FREIGHTER_SIZE, "yaw": 0x4000}
     nearest = 20000
@@ -703,7 +766,7 @@ def test_a_fighter_keeps_off_a_freighter_pair_12000_apart(craft, foe, shown) -> 
             nearest = min(
                 nearest, math.isqrt(x * x + y * y), math.isqrt((x - gap) ** 2 + y * y)
             )
-    assert nearest >= 3300
+    assert nearest > 3069 + 341
 
 
 def test_the_decision_is_pure(craft, foe, ask) -> None:

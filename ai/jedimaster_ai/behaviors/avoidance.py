@@ -3,10 +3,11 @@
 Purpose:
     After a craft's order behavior decides where to steer, a freighter,
     starship or platform whose clearance (``tactics.clearance``) that
-    heading enters turns it aside: the craft takes the nearer edge of the
-    clearance as seen from where it is, EDGE_PAD past it, and keeps its
-    pitch. Inside a clearance the edge is a quarter turn off the centre, so
-    the craft turns outward. The next think looks again. Ruling 24 names
+    heading enters turns it aside: the craft takes the edge of the clearance, as seen from where it
+    is, on the side its nose lies, EDGE_PAD past it, and keeps its pitch, so
+    the turn never swings the nose across the craft it steers round. Inside
+    a clearance the edge is a quarter turn off the centre, so the craft
+    turns outward. The next think looks again. Ruling 24 names
     the bulky kinds; without this step craft flew into their own carrier,
     and the bulky craft of one group, flying to the group's same points,
     flew into each other.
@@ -50,6 +51,9 @@ logger = logging.getLogger(__name__)
 LOOK_AHEAD = 0x2000
 # A 64th of a turn past the clearance's edge.
 EDGE_PAD = 0x400
+# Within this many yaw units the nose points dead at a craft: the
+# arctangent's own error (``geometry``), too small to name a side.
+DEAD_ON = 4
 
 
 @dataclasses.dataclass(frozen=True)
@@ -63,10 +67,13 @@ class Obstacle:
     yaw: int
     edge: int
 
-    def past_edge(self, yaw: int) -> int:
-        """Return the yaw EDGE_PAD past the clearance's edge on the side yaw
-        already lies on, clockwise when dead on."""
-        clockwise = (yaw - self.yaw) % geometry.TURN < geometry.HALF_TURN
+    def past_edge(self, yaw: int, nose: int) -> int:
+        """Return the yaw EDGE_PAD past the clearance's edge on the side the
+        nose lies on, so the turn there never swings the nose across the
+        craft; on the side yaw lies on when the nose points dead at it, and
+        clockwise when yaw does too."""
+        side = yaw if geometry.angle_between(nose, self.yaw) <= DEAD_ON else nose
+        clockwise = (side - self.yaw) % geometry.TURN < geometry.HALF_TURN
         turn = self.edge + EDGE_PAD
         return (self.yaw + (turn if clockwise else -turn)) % geometry.TURN
 
@@ -99,7 +106,7 @@ def clear_yaw(
     obstacle = in_the_way(view, question, yaw, pitch, skip)
     if obstacle is None:
         return yaw
-    clear = obstacle.past_edge(yaw)
+    clear = obstacle.past_edge(yaw, view.yaw)
     logger.debug(
         "avoidance.steer object=%d around=%d distance=%d clearance=%d yaw=%d",
         view.object_index,
