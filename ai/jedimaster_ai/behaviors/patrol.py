@@ -22,7 +22,9 @@ Purpose:
       speed, the one that gives SPEED_SCALE times that speed (ruling 39),
       never more than full;
     - a starship STARSHIP_TURN or more off its course to the waypoint has
-      throttle 0.
+      throttle 0. The course is read past the bulky craft in its way
+      (``avoidance.clear_yaw``), so a starship stopped to turn round another
+      moves on once it faces the way round, and never waits on it for good.
 
     With no waypoint on, the craft stops where it is and counts one round, as
     a starship does on its one waypoint. Circle and Evade weaves while an
@@ -54,11 +56,13 @@ from .. import notebook
 from .. import tactics
 from .. import weave
 from ..world import Actions
+from ..world import Contact
 from ..world import CraftView
 from ..world import Question
 from ..world import Steer
 from ..world import WAYPOINTS
 from . import attack
+from . import avoidance
 from . import BehaviorCode
 from . import Decision
 from . import home
@@ -117,7 +121,7 @@ def think(view: CraftView, question: Question) -> Decision:
     own = tactics.own_contact(view, question)
     genus = None if own is None else own.genus
     route = _advance(view, route, genus)
-    actions = _cruise(view, route, genus)
+    actions = _cruise(view, question, route, own)
     state = book.dice
     if view.order_code == CIRCLE_AND_EVADE:
         flown, actions, state = _evade(view, question, flown, actions, state)
@@ -193,13 +197,18 @@ def _lone(view: CraftView, route: Route, within: bool, bulky: bool) -> Route:
     return route
 
 
-def _cruise(view: CraftView, route: Route, genus: int | None) -> Actions:
+def _cruise(
+    view: CraftView, question: Question, route: Route, own: Contact | None
+) -> Actions:
     """Return the craft's steering and throttle toward its waypoint, or
     throttle 0 when it is stopped for good."""
+    genus = None if own is None else own.genus
     lone = _next(view, route.waypoint) == route.waypoint
     if not view.waypoint_on(0) or (lone and route.held and genus in BULKY_GENERA):
         return Actions(throttle=0)
     yaw, pitch = geometry.bearing(*_offset(view, view.waypoint(route.waypoint)))
+    if own is not None:
+        yaw = avoidance.clear_yaw(view, question, yaw, pitch, own.target)
     throttle = cruise_throttle(view)
     if (
         genus == tactics.GENUS_STARSHIP

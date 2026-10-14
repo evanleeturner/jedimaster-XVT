@@ -6,7 +6,8 @@ exact distance, within 4,095 units (8,191 for a starship); back to waypoint 0
 past the last one on, a round counted; rounds kept per order slot; the goals
 of the four orders; one waypoint (bug #205 as a check), and a starship or
 freighter stopping on it; no waypoint on; five times the order's speed at
-full throttle (ruling 39); a starship off its course; Circle and Evade
+full throttle (ruling 39); a starship off its course, and turned round a
+bulky craft in its way without waiting on it for good; Circle and Evade
 weaving while chased and going back to its round (ruling 29), Circle not; a
 follower flying the round too; the log lines. Then a real case: a
 three-point Circle flown round once, done, and going home.
@@ -23,6 +24,7 @@ from jedimaster_ai import notebook
 from jedimaster_ai import progress
 from jedimaster_ai import weave
 from jedimaster_ai import wire
+from jedimaster_ai.behaviors import avoidance
 from jedimaster_ai.behaviors import patrol
 from jedimaster_ai.think import think
 from jedimaster_ai.world import Actions
@@ -289,6 +291,67 @@ def test_a_starship_4096_or_more_off_its_course_stops(
     craft = patrolling(order_code=SS_PATROL_LOOP, yaw=(toward(P0).yaw + off) % 0x10000)
     actions = decide(craft, [mine(craft, genus=genus)]).actions
     assert actions == Actions(steer=toward(P0), throttle=throttle)
+
+
+@pytest.fixture
+def frigate(contact):
+    """Return a frigate on the course to P0, 20,005 units ahead: within its
+    clearance (11,872) and LOOK_AHEAD."""
+
+    def make(**changes):
+        fields = {"object_index": 30, "team": 1, "genus": STARSHIP, "size": 10368}
+        fields |= {"x": 20_000, "y": 6, "z": 7, "target": NO_OBJECT}
+        return contact(**(fields | changes))
+
+    return make
+
+
+def test_a_starship_turns_round_a_starship_in_its_way_and_moves_on(
+    patrolling, mine, frigate, caplog
+) -> None:
+    craft = patrolling(order_code=SS_PATROL_LOOP)
+    around = avoidance.in_the_way(
+        craft,
+        Question(1000, (craft,), (frigate(),)),
+        toward(P0).yaw,
+        geometry.LEVEL,
+        NO_OBJECT,
+    )
+    clear = around.past_edge(toward(P0).yaw)
+    assert geometry.angle_between(clear, toward(P0).yaw) >= patrol.STARSHIP_TURN
+    with caplog.at_level("DEBUG"):
+        turning = decide(craft, [mine(craft, genus=STARSHIP), frigate()])
+    assert turning.actions == Actions(
+        steer=dataclasses.replace(toward(P0), yaw=clear), throttle=0
+    )
+    assert "avoidance.steer object=4 around=30" in caplog.text
+    facing = patrolling(order_code=SS_PATROL_LOOP, yaw=clear)
+    moving = decide(facing, [mine(facing, genus=STARSHIP), frigate()])
+    assert moving.actions == Actions(
+        steer=dataclasses.replace(toward(P0), yaw=clear), throttle=HALF
+    )
+
+
+def test_a_starship_does_not_turn_round_its_own_target(
+    patrolling, mine, frigate
+) -> None:
+    craft = patrolling(order_code=SS_PATROL_LOOP)
+    own = mine(craft, genus=STARSHIP, target=30)
+    assert decide(craft, [own, frigate()]).actions.steer == toward(P0)
+
+
+def test_think_turns_a_patrolling_starship_round_once(
+    patrolling, mine, frigate
+) -> None:
+    craft = patrolling(
+        order_code=SS_PATROL_LOOP,
+        order_codes=(SS_PATROL_LOOP, 0, 0, 0),
+        order_variable1=1,
+    )
+    alone = decide(craft, [mine(craft, genus=STARSHIP), frigate()]).actions.steer
+    answer = think(Question(1000, (craft,), (mine(craft, genus=STARSHIP), frigate())))
+    assert answer.craft[0].actions.steer == alone
+    assert alone != toward(P0)
 
 
 def test_circle_and_evade_weaves_about_its_course_with_an_enemy_on_its_tail(

@@ -4,9 +4,12 @@ Purpose:
     A craft with the Attack order picks the nearest craft its order names,
     turns toward it, closes, and fires its cannons while the target sits
     inside its aim cone and firing range. Inside the target's clearance
-    ahead (``tactics.clearance``, which grows with the target's size), it
-    breaks off a quarter turn to the side away from the target, holds that
-    heading until it is outside the clearance, and comes round again; with
+    (``tactics.clearance``, which grows with the target's size), with the
+    target ahead, or anywhere when the target is a freighter, starship or
+    platform, it breaks off a quarter turn to the side away from the
+    target, or, when another bulky craft lies in that heading's way
+    (``avoidance.in_the_way``), away from the two of them alike; it holds
+    that heading until it is outside the clearance, and comes round again; with
     an enemy on its tail that targets it, it weaves (``weave``) until the
     tail is clear or the weave's swerves are flown, then fights again. Skill
     sets the aim cone, the firing range, the burst and how soon it looks
@@ -37,9 +40,10 @@ Phases, the notebook's phase byte:
     SEEK    no target: hold fire, keep course, look again each think; an
             enemy on the tail starts a weave
     ATTACK  steer at the target, fire when lined up
-    BREAK   inside the target's clearance ahead: hold a heading a quarter
-            turn away from the target's side until outside the clearance,
-            for BREAK_LIMIT_TICKS at most
+    BREAK   inside the target's clearance, ahead, or anywhere for a bulky
+            target: hold a heading a quarter turn away from the target's
+            side, or away from it and the bulky craft in that way, until
+            outside the clearance, for BREAK_LIMIT_TICKS at most
     EVADE   an enemy on the tail: weave
 
 The scratch bytes, little-endian: u16 target index, u16 its signature,
@@ -58,7 +62,11 @@ Invariants:
       platform shooting at it is no pursuer (ruling 42).
     - A break turns away from the side its target is on, so the turn never
       swings the nose across the target; the dice pick the side only when
-      the target is dead ahead.
+      the target is dead ahead. A break another bulky craft's clearance
+      blocks heads away from both instead, unless the craft lies nearly in
+      line between them (``escape``).
+    - Unless it weaves, a craft inside a bulky target's clearance breaks
+      off from it rather than steer at it.
     - A fighting craft thinks every FIGHT_INTERVAL ticks, whatever its skill.
 """
 
@@ -85,6 +93,7 @@ from ..world import LinkMode
 from ..world import NO_OBJECT
 from ..world import Question
 from ..world import Steer
+from . import avoidance
 from . import BehaviorCode
 from . import Decision
 
@@ -134,6 +143,8 @@ BREAK_LIMIT_TICKS = 1000
 # Within this many yaw units of the nose a target is dead ahead: the
 # arctangent's own error (``geometry``), too small to name a side.
 DEAD_AHEAD = 4
+# The length escape scales each direction to before it sums them.
+UNIT = 0x10000
 # An enemy within this range, more than this angle off the nose and
 # targeting the craft, is on its tail.
 TAIL_RANGE = 0x8000
@@ -237,17 +248,27 @@ def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decisi
     )
 
     keep = tactics.clearance(target)
-    if reach < keep and off_nose < BREAK_CONE:
+    if reach < keep and (off_nose < BREAK_CONE or tactics.is_bulky(target)):
         held_yaw, state = break_heading(view.yaw, yaw, book.dice)
+        held_pitch, blocked = geometry.LEVEL, NO_OBJECT
+        obstacle = avoidance.in_the_way(
+            view, question, held_yaw, held_pitch, target.object_index
+        )
+        away = None if obstacle is None else escape(view, target, obstacle.contact)
+        if away is not None:
+            (held_yaw, held_pitch), blocked = away, obstacle.contact.object_index
         logger.debug(
-            "attack.break object=%d target=%d distance=%d clearance=%d yaw=%d",
+            "attack.break object=%d target=%d distance=%d clearance=%d yaw=%d "
+            "pitch=%d blocked=%d",
             view.object_index,
             target.object_index,
             reach,
             keep,
             held_yaw,
+            held_pitch,
+            blocked,
         )
-        memory = dataclasses.replace(memory, yaw=held_yaw, pitch=geometry.LEVEL)
+        memory = dataclasses.replace(memory, yaw=held_yaw, pitch=held_pitch)
         return _hold(view, book, state, BREAK, tick, memory, target, interval)
 
     threat = tail_threat(view, question)
@@ -328,6 +349,22 @@ def break_heading(heading: int, toward: int, state: int) -> tuple[int, int]:
         clockwise = (toward - heading) % geometry.TURN > geometry.HALF_TURN
     turn = geometry.QUARTER_TURN if clockwise else -geometry.QUARTER_TURN
     return (heading + turn) % geometry.TURN, state
+
+
+def escape(view: CraftView, first: Contact, second: Contact) -> tuple[int, int] | None:
+    """Return the yaw and pitch that point away from two contacts alike,
+    opposite the sum of the directions to them, each scaled to UNIT; None
+    when that sum is under an eighth of UNIT, the craft nearly in line
+    between them."""
+    away = [0, 0, 0]
+    for contact in (first, second):
+        offset = tactics.offset(view, contact)
+        reach = max(geometry.distance(*offset), 1)
+        for axis in range(3):
+            away[axis] -= offset[axis] * UNIT // reach
+    if geometry.distance(*away) < UNIT // 8:
+        return None
+    return geometry.bearing(*away)
 
 
 def break_holds(

@@ -11,6 +11,7 @@ import random
 
 import pytest
 
+from jedimaster_ai import geometry
 from jedimaster_ai import notebook
 from jedimaster_ai import weave
 from jedimaster_ai import wire
@@ -25,11 +26,14 @@ from jedimaster_ai.world import HOLD_FIRE
 from jedimaster_ai.world import LinkMode
 from jedimaster_ai.world import NO_OBJECT
 from jedimaster_ai.world import Question
+from jedimaster_ai.world import Steer
 
 ME = 4
 FOE = 9
 # The engine marks every contact hostile but the craft's own, the first.
 ALL_BUT_OWN = 0xFFFFFFFE
+FREIGHTER = 3
+BULK_FREIGHTER_SIZE = 4960
 TIER_SKILL = (0x0000, 0x8000, 0xFFFF)
 
 
@@ -263,6 +267,65 @@ def test_it_breaks_off_from_a_cruiser_at_its_clearance(craft, foe, ask) -> None:
     keep = 18449 * 3 // 4 + 0x1000
     assert phase_of(ask(craft(), foe(y=keep - 1, **cruiser))) == attack.BREAK
     assert phase_of(ask(craft(), foe(y=keep, **cruiser))) == attack.ATTACK
+
+
+@pytest.mark.parametrize(
+    ("toward", "held"), [(0x4000, 0xC000), (0xC000, 0x4000), (0xA000, 0x4000)]
+)
+def test_inside_a_bulky_targets_clearance_it_breaks_wherever_the_target_lies(
+    craft, foe, ask, toward, held
+) -> None:
+    freighter = foe(**at(toward, 3000), genus=FREIGHTER, size=BULK_FREIGHTER_SIZE)
+    decision = ask(craft(), freighter)
+    assert phase_of(decision) == attack.BREAK
+    assert decision.actions.steer == Steer(held, LEVEL, 0)
+    fighter = foe(**at(toward, 3000))
+    assert phase_of(ask(craft(), fighter)) == attack.ATTACK
+
+
+def test_a_break_another_freighters_clearance_blocks_heads_away_from_both(
+    craft, foe, ask, caplog
+) -> None:
+    """The target ahead on the left makes the usual break a turn to +x, where
+    a second freighter sits 6,265 units off and a little above, inside its
+    clearance; the way out dives a little."""
+    target = foe(x=-2000, y=2000, genus=FREIGHTER, size=BULK_FREIGHTER_SIZE)
+    other = foe(
+        object_index=FOE + 1,
+        x=6000,
+        y=1000,
+        z=1500,
+        genus=FREIGHTER,
+        size=BULK_FREIGHTER_SIZE,
+    )
+    me = craft()
+    assert attack.break_heading(0, geometry.bearing(-2000, 2000, 0)[0], 0)[0] == 0x4000
+    caplog.set_level("DEBUG")
+    decision = ask(me, target, other)
+    assert phase_of(decision) == attack.BREAK
+    yaw, pitch = attack.escape(me, target, other)
+    assert decision.actions.steer == Steer(yaw, pitch, 0)
+    assert pitch > LEVEL
+    for contact in (target, other):
+        toward = geometry.bearing(contact.x, contact.y, 0)[0]
+        assert geometry.angle_between(yaw, toward) > geometry.QUARTER_TURN
+    assert f"attack.break object={ME} target={FOE} " in caplog.text
+    assert f"blocked={FOE + 1}" in caplog.text
+    alone = ask(me, target)
+    assert alone.actions.steer == Steer(0x4000, LEVEL, 0)
+    assert "blocked=65535" in caplog.text
+
+
+def test_escape_points_away_from_both_unless_nearly_in_line(craft, foe) -> None:
+    me = craft()
+    north, south = foe(x=0, y=3000), foe(x=0, y=-3000)
+    assert attack.escape(me, north, south) is None
+    east = foe(x=3000, y=0)
+    yaw, pitch = attack.escape(me, north, east)
+    assert geometry.angle_between(yaw, 0xA000) <= 4
+    assert pitch == LEVEL
+    above = foe(x=0, y=0, z=3000)
+    assert attack.escape(me, north, above)[1] > LEVEL
 
 
 @pytest.mark.parametrize("tier", range(3))
@@ -598,6 +661,49 @@ def test_a_bomber_never_rams_the_freighter_it_attacks(craft, foe, ask, start) ->
         nearest = min(nearest, math.isqrt((x - freighter_x) ** 2 + y * y))
     assert breaks >= 2
     assert nearest > 3069 + 341
+
+
+def test_a_fighter_keeps_off_a_freighter_pair_12000_apart(craft, foe, shown) -> None:
+    """The bomber's toy flight above, against one of two still freighters
+    12,000 units apart, through think (the attack, then avoidance), from 32
+    starts 20,000 units out. The fighter takes the freighter it targets as
+    its own contact's target, as the engine does. It comes no nearer than
+    3,334 units to either (two starts graze 3,410, the freighter's corner and
+    the fighter's own; 23 of 32 starts do at 9,000 apart); before the break
+    from a bulky target anywhere inside its clearance, 1,784 (15 of 32)."""
+    turn, pace, gap = 764, 190, 12000
+    freighter = {"genus": FREIGHTER, "size": BULK_FREIGHTER_SIZE, "yaw": 0x4000}
+    nearest = 20000
+    for start in range(0, 0x10000, 0x800):
+        radians = start * 2 * math.pi / 0x10000
+        x, y = round(-20000 * math.sin(radians)), round(-20000 * math.cos(radians))
+        yaw, book, mine = (start + 0x400) % 0x10000, bytes(64), NO_OBJECT
+        for step in range(500):
+            me = craft(x=x, y=y, yaw=yaw, notebook=book, random_seed=start)
+            pair = (
+                foe(x=0, y=0, **freighter),
+                foe(object_index=FOE + 1, x=gap, y=0, **freighter),
+            )
+            question = shown(
+                me, *pair, tick=1000 + attack.FIGHT_INTERVAL * step, target=mine
+            )
+            answer = think(question).craft[0]
+            actions, book = answer.actions, answer.notebook
+            mine = mine if actions.target is None else actions.target
+            yaw = (
+                yaw
+                + max(
+                    -turn,
+                    min(turn, (actions.steer.yaw - yaw + 0x8000) % 0x10000 - 0x8000),
+                )
+            ) % 0x10000
+            radians = yaw * 2 * math.pi / 0x10000
+            x += round(pace * math.sin(radians))
+            y += round(pace * math.cos(radians))
+            nearest = min(
+                nearest, math.isqrt(x * x + y * y), math.isqrt((x - gap) ** 2 + y * y)
+            )
+    assert nearest >= 3300
 
 
 def test_the_decision_is_pure(craft, foe, ask) -> None:

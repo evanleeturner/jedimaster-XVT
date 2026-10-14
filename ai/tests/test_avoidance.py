@@ -1,4 +1,4 @@
-"""Fence for avoidance: a small craft steering clear of the bulky craft in its way.
+"""Fence for avoidance: a craft steering clear of the bulky craft in its way.
 
 The craft flies at the origin facing +y (yaw 0), level; its behavior steers
 it straight on unless a test says otherwise. The frigate has the retail
@@ -27,6 +27,11 @@ ME = 4
 FRIGATE = 20
 FRIGATE_SIZE = 10368
 STARSHIP = 4
+FREIGHTER = 3
+BULK_FREIGHTER_SIZE = 4960
+FIGHTER_SIZE = 901
+# The nearest two bulky craft of one group started, in the flights measured.
+SPAWN_NEAREST = 17685
 AHEAD = Steer(0, LEVEL, 0)
 NOTEBOOK = bytes(range(NOTEBOOK_BYTES))
 
@@ -123,8 +128,42 @@ def test_only_bulky_craft_are_steered_around(ship, steer, genus, turned) -> None
     assert (steer(ship(16000, genus=genus)).actions.steer != AHEAD) == turned
 
 
-def test_a_bulky_craft_steers_clear_of_nothing(ship, steer) -> None:
-    assert steer(ship(16000), own_genus=STARSHIP).actions.steer == AHEAD
+def test_a_bulky_craft_steers_clear_of_other_bulky_craft(ship, steer) -> None:
+    frigate = ship(16000)
+    edge = avoidance.edge_angle(16000, keep_of(frigate))
+    decision = steer(frigate, own_genus=STARSHIP)
+    assert decision.actions.steer == Steer(edge + avoidance.EDGE_PAD, LEVEL, 0)
+    assert steer(ship(16000), own_genus=FREIGHTER).actions.steer != AHEAD
+
+
+@pytest.mark.parametrize("own_genus", [0, FREIGHTER, STARSHIP])
+def test_no_craft_steers_clear_of_a_small_craft(ship, steer, own_genus) -> None:
+    fighter = ship(3000, genus=0, size=FIGHTER_SIZE)
+    assert steer(fighter, own_genus=own_genus).actions.steer == AHEAD
+
+
+def test_a_bulky_group_starts_outside_its_neighbours_look_ahead(ship, steer) -> None:
+    """Two freighters of one group were seen to start 17,685 units apart at
+    the least (three retail missions flown, one networked); dead ahead at
+    that distance a freighter's neighbour is not yet in its way, so a
+    group's starting formation is not turned apart."""
+    freighter = ship(SPAWN_NEAREST, genus=FREIGHTER, size=BULK_FREIGHTER_SIZE)
+    assert keep_of(freighter) + avoidance.LOOK_AHEAD < SPAWN_NEAREST
+    assert steer(freighter, own_genus=FREIGHTER).actions.steer == AHEAD
+
+
+def test_in_the_way_names_the_nearest_and_skips_one(view, contact, ship) -> None:
+    me = view(object_index=ME, x=0, y=0, z=0, yaw=0, pitch=LEVEL, roll=0)
+    near = ship(8000, object_index=21, genus=FREIGHTER, size=BULK_FREIGHTER_SIZE)
+    question = Question(1000, (me,), (ship(16000), near))
+    found = avoidance.in_the_way(me, question, 0, LEVEL, NO_OBJECT)
+    assert (found.contact.object_index, found.distance) == (21, 8000)
+    assert found.clearance == keep_of(near)
+    assert (found.yaw, found.edge) == (0, avoidance.edge_angle(8000, keep_of(near)))
+    assert (
+        avoidance.in_the_way(me, question, 0, LEVEL, 21).contact.object_index == FRIGATE
+    )
+    assert avoidance.in_the_way(me, question, QUARTER_TURN, LEVEL, NO_OBJECT) is None
 
 
 def test_a_craft_that_does_not_steer_keeps_drifting(ship, steer) -> None:

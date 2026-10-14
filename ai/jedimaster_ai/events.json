@@ -15,8 +15,8 @@
     },
     "attack.break": {
       "level": "D",
-      "fields": ["object", "target", "distance", "clearance", "yaw"],
-      "text": "Craft {object} broke off from target {target}, {distance} units ahead inside its clearance of {clearance}, turning to yaw {yaw}"
+      "fields": ["object", "target", "distance", "clearance", "yaw", "pitch", "blocked"],
+      "text": "Craft {object} broke off from target {target}, {distance} units away inside its clearance of {clearance}, turning to yaw {yaw} and pitch {pitch}; {blocked} is the bulky craft whose clearance turned it from the side away from the target (65535 when none did)"
     },
     "attack.break_end": {
       "level": "D",
