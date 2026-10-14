@@ -22,7 +22,8 @@ Invariants:
       activity past the last or one the engine alone sets, a think interval of 0, an arrival's arriving
       past 1 or speed past 3,600, a short or long message, a target, cannon group, launcher or turret the question
       did not show, an order from a follower or to a slot the view does not
-      allow, and a depart or dock the view's books do not show, or both.
+      allow, a depart or dock the view's books do not show, or both, and a
+      countermeasure the view does not show ready.
 """
 
 from __future__ import annotations
@@ -50,7 +51,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 7
+VERSION = 8
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -101,6 +102,18 @@ VIEW_LAYOUT = (
     ("outside_hangar", "i", 3),
     ("inside_hangar", "i", 3),
     ("home_point", "i", 3),
+    ("countermeasure", "B", 1),
+    ("countermeasures_left", "B", 1),
+    ("countermeasure_working", "B", 1),
+    ("threat_count", "B", 1),
+    ("chaff_seconds", "H", 1),
+    ("countermeasure_cooldown", "H", 1),
+    ("threat_object", "H", 4),
+    ("threat_type", "B", 4),
+    ("threat_decoyed", "B", 4),
+    ("threat_x", "i", 4),
+    ("threat_y", "i", 4),
+    ("threat_z", "i", 4),
 )
 VIEW_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in VIEW_LAYOUT)
@@ -158,6 +171,7 @@ class ActionKind(enum.IntEnum):
     ORDER = 10
     DEPART = 11
     DOCK = 12
+    COUNTERMEASURE = 13
 
 
 class WireError(ValueError):
@@ -308,6 +322,9 @@ def _actions_bytes(actions: Actions) -> bytes:
     if actions.dock:
         written += U8.pack(ActionKind.DOCK)
         count += 1
+    if actions.countermeasure:
+        written += U8.pack(ActionKind.COUNTERMEASURE)
+        count += 1
     return U8.pack(count) + bytes(written)
 
 
@@ -372,7 +389,7 @@ def _take_action(reader: _Reader, kind: ActionKind) -> t.Any:
         return Arrival(bool(arriving), speed)
     if kind == ActionKind.ORDER:
         return OrderMove(*reader.take(ORDER))
-    if kind in (ActionKind.DEPART, ActionKind.DOCK):
+    if kind in (ActionKind.DEPART, ActionKind.DOCK, ActionKind.COUNTERMEASURE):
         return True
     return reader.take(U16)[0]
 
@@ -385,7 +402,7 @@ def _read_actions(reader: _Reader) -> Actions:
         try:
             kind = ActionKind(code)
         except ValueError:
-            raise WireError(f"action kind {code} is not one of the twelve") from None
+            raise WireError(f"action kind {code} is not one of the thirteen") from None
         name = kind.name.lower()
         if name in found:
             raise WireError(f"action kind {code} is sent twice")
@@ -424,7 +441,8 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
     cooling down, a turret slot the view's turret mask does not name, an
     order from a craft that follows a leader or to a slot other than its
     own, one of 0 to 2 with an order (not after a skip to order 4) or 3 with
-    the skip due, and a depart or dock the view's books do not allow.
+    the skip due, a depart or dock the view's books do not allow, and a
+    countermeasure the view does not show ready.
     """
     shown = {contact.object_index for contact in question.contacts} | {NO_OBJECT}
     if actions.target is not None and actions.target not in shown:
@@ -449,6 +467,8 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
         raise WireError("depart is not one the view's books allow")
     if actions.dock and not view.books & Books.AT_HANGAR:
         raise WireError("dock is not one the view's books allow")
+    if actions.countermeasure and not view.countermeasure_ready:
+        raise WireError("the countermeasure is not shown ready")
 
 
 def read_answer(body: bytes, question: Question) -> Answer:

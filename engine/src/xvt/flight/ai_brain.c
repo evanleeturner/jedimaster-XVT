@@ -13,6 +13,7 @@
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/ai_books.h"
+#include "xvt/flight/ai_countermeasures.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -252,7 +253,9 @@ static void ai_brain_view_weapons(const struct craft_data *craft,
  * roll are the object's. Bit n of the order target mask is set when the
  * batch's contact n matches the targets of the craft's current order, and bit
  * n of the enemy mask when contact n is hostile to the craft. The leader is
- * the craft's leader_obj_idx, 0xFFFF when it leads. */
+ * the craft's leader_obj_idx, 0xFFFF when it leads. Its countermeasures
+ * and the homing shots aimed at it come from
+ * ai_countermeasures_view_craft. */
 static void ai_brain_view_craft(uint16_t object_index,
 				const struct ai_brain_batch *batch,
 				struct ai_wire_craft_view *view)
@@ -299,6 +302,7 @@ static void ai_brain_view_craft(uint16_t object_index,
 			       ? UINT16_MAX
 			       : craft->leader_obj_idx;
 	ai_brain_view_weapons(craft, view);
+	ai_countermeasures_view_craft(object_index, view);
 	memcpy(view->notebook, craft->ai_notebook, sizeof view->notebook);
 }
 
@@ -503,6 +507,9 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_DOCK)) != 0) {
 		ai_books_dock(object_index);
+	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_COUNTERMEASURE)) != 0) {
+		ai_countermeasures_launch(object_index);
 	}
 	XVT_LOG_DEBUG(
 		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d predicted=%d",

@@ -12,48 +12,61 @@ enum { TEST_TICK = 0x0A0B0C0D };
 
 static struct ai_wire_craft_view view_with_distinct_bytes(void)
 {
-	struct ai_wire_craft_view view = {0x0102,
-					  0x0304,
-					  0x05,
-					  0x06,
-					  0x07,
-					  0x08,
-					  0x09,
-					  0x0A,
-					  0x0C0B,
-					  0x0E0D,
-					  0x100F,
-					  0x14131211,
-					  -2,
-					  0x1C1B1A19,
-					  0x1E1D,
-					  0x201F,
-					  0x2221,
-					  0x2423,
-					  -3,
-					  0x28272625,
-					  0x2A29,
-					  0x2B,
-					  0x2C,
-					  {0x2D, 0x2E},
-					  {0x2F, 0x30},
-					  {0x31, 0x32},
-					  {0x3433, 0x3635},
-					  0x3A393837,
-					  0x3C3B,
-					  {0x3D, 0x3E, 0x3F, 0x40},
-					  {0x41, 0x42, 0x43, 0x44},
-					  0x4645,
-					  0x47,
-					  0x48,
-					  0x49,
-					  0x9291,
-					  0x4B4A,
-					  0x4D4C,
-					  {0x51504F4E, 0x55545352, 0x59585756},
-					  {0x5D5C5B5A, 0x61605F5E, -6},
-					  {0x65646362, 0x69686766, 0x6D6C6B6A},
-					  {0}};
+	struct ai_wire_craft_view view = {
+		0x0102,
+		0x0304,
+		0x05,
+		0x06,
+		0x07,
+		0x08,
+		0x09,
+		0x0A,
+		0x0C0B,
+		0x0E0D,
+		0x100F,
+		0x14131211,
+		-2,
+		0x1C1B1A19,
+		0x1E1D,
+		0x201F,
+		0x2221,
+		0x2423,
+		-3,
+		0x28272625,
+		0x2A29,
+		0x2B,
+		0x2C,
+		{0x2D, 0x2E},
+		{0x2F, 0x30},
+		{0x31, 0x32},
+		{0x3433, 0x3635},
+		0x3A393837,
+		0x3C3B,
+		{0x3D, 0x3E, 0x3F, 0x40},
+		{0x41, 0x42, 0x43, 0x44},
+		0x4645,
+		0x47,
+		0x48,
+		0x49,
+		0x9291,
+		0x4B4A,
+		0x4D4C,
+		{0x51504F4E, 0x55545352, 0x59585756},
+		{0x5D5C5B5A, 0x61605F5E, -6},
+		{0x65646362, 0x69686766, 0x6D6C6B6A},
+		0x6E,
+		0x6F,
+		0x70,
+		0x71,
+		0x7372,
+		0x7574,
+		{0x7776, 0x7978, 0x7B7A, 0x7D7C},
+		{0x7E, 0x7F, 0x80, 0x81},
+		{0x82, 0x83, 0x84, 0x85},
+		{0x13121110, 0x17161514, 0x1B1A1918, 0x1F1E1D1C},
+		{0x23222120, 0x27262524, 0x2B2A2928, -7},
+		{0x2F2E2D2C, 0x33323130, 0x37363534, 0x3B3A3938},
+		{0}};
 	for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 		view.notebook[byte] = (uint8_t)(0x40 + byte);
 	}
@@ -73,8 +86,8 @@ static struct ai_wire_contact contact_with_distinct_bytes(void)
 
 static void check_question_bytes(void)
 {
-	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 117] = {
-		0xFE, 0x00, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x07, 0x00,
+	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 189] = {
+		0x46, 0x01, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x08, 0x00,
 		0x01, 0x00, 0x0D, 0x0C, 0x0B, 0x0A, 0x01, 0x00, 0x00, 0x00,
 		0x02, 0x01, 0x04, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
 		0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
@@ -87,7 +100,14 @@ static void check_question_bytes(void)
 		0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56,
 		0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60,
 		0x61, 0xFA, 0xFF, 0xFF, 0xFF, 0x62, 0x63, 0x64, 0x65, 0x66,
-		0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D};
+		0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x70,
+		0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A,
+		0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x80, 0x81, 0x82, 0x83, 0x84,
+		0x85, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+		0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22,
+		0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0xF9,
+		0xFF, 0xFF, 0xFF, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32,
+		0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B};
 	static const uint8_t expected_contacts[AI_WIRE_CONTACT_HEAD_BYTES +
 					       AI_WIRE_CONTACT_BYTES] = {
 		0x01, 0x00, 0x00, 0x00, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
@@ -203,8 +223,9 @@ static void finish_answer(struct test_bytes *bytes)
 	}
 }
 
-/* Craft 7 has two cannon groups, one launcher ready and turrets in weapon
- * slots 3 and 5, and leads, with orders in slots 0 and 1, at its hangar;
+/* Craft 7 has two cannon groups, one launcher ready, turrets in weapon
+ * slots 3 and 5 and a flare ready, and leads, with orders in slots 0 and
+ * 1, at its hangar;
  * craft 9 has none of these and follows craft 0. The contacts are the two
  * craft and object 12. */
 static struct ai_wire_craft_view g_views[2] = {
@@ -214,7 +235,10 @@ static struct ai_wire_craft_view g_views[2] = {
 	 .warhead_launcher_count = 1,
 	 .order_codes = {1, 2, 0, 0},
 	 .leader = UINT16_MAX,
-	 .books = AI_WIRE_BOOKS_AT_HANGAR},
+	 .books = AI_WIRE_BOOKS_AT_HANGAR,
+	 .countermeasure = AI_WIRE_COUNTERMEASURE_FLARE,
+	 .countermeasures_left = 3,
+	 .countermeasure_working = 1},
 	{.object_index = 9}};
 static struct ai_wire_contact g_contacts[3] = {
 	{.object_index = 7}, {.object_index = 9}, {.object_index = 12}};
@@ -227,7 +251,8 @@ static void good_answer(struct test_bytes *bytes)
 {
 	start_answer(bytes, 2);
 	add_craft(bytes, 7, 0x5A);
-	add_u8(bytes, 11);
+	add_u8(bytes, 12);
+	add_u8(bytes, AI_WIRE_ACTION_COUNTERMEASURE);
 	add_u8(bytes, AI_WIRE_ACTION_DOCK);
 	add_u8(bytes, AI_WIRE_ACTION_ORDER);
 	add_u8(bytes, 1);
@@ -286,7 +311,7 @@ static void check_good_answer(void)
 	XVT_ASSERT_INT_EQ(answers[0].object_index, 7);
 	XVT_ASSERT_INT_EQ(answers[0].notebook[0], 0x5A);
 	XVT_ASSERT_INT_EQ(answers[0].notebook[AI_NOTEBOOK_BYTES - 1], 0x5A);
-	XVT_ASSERT_INT_EQ(answers[0].actions, 0x17FE);
+	XVT_ASSERT_INT_EQ(answers[0].actions, 0x37FE);
 	XVT_ASSERT_INT_EQ(answers[0].order_slot, 1);
 	XVT_ASSERT_INT_EQ(answers[0].order_state, 2);
 	XVT_ASSERT_INT_EQ(answers[0].steer_yaw, 0x1234);
@@ -581,6 +606,46 @@ static void check_books_faults(void)
 	XVT_ASSERT_INT_EQ(read_actions(1, order_1, 2), AI_WIRE_SHORT);
 }
 
+/* A countermeasure goes through only while the view shows it ready: chaff
+ * with no chaff seconds left, or a flare with its cooldown at 0, either
+ * working with one left; nothing else launches. */
+static void check_countermeasure_faults(void)
+{
+	static const uint8_t launch[] = {AI_WIRE_ACTION_COUNTERMEASURE};
+	struct ai_wire_craft_view *view = &g_views[0];
+	XVT_ASSERT_INT_EQ(read_actions(1, launch, sizeof launch), AI_WIRE_OK);
+	view->countermeasure_cooldown = 1;
+	XVT_ASSERT_INT_EQ(read_actions(1, launch, sizeof launch),
+			  AI_WIRE_BAD_ACTION);
+	view->countermeasure_cooldown = 0;
+	view->countermeasures_left = 0;
+	XVT_ASSERT_INT_EQ(read_actions(1, launch, sizeof launch),
+			  AI_WIRE_BAD_ACTION);
+	view->countermeasures_left = 3;
+	view->countermeasure_working = 0;
+	XVT_ASSERT_INT_EQ(read_actions(1, launch, sizeof launch),
+			  AI_WIRE_BAD_ACTION);
+	view->countermeasure_working = 1;
+	/* A flare's chaff seconds do not matter; chaff's cooldown does not. */
+	view->chaff_seconds = 4;
+	XVT_ASSERT_INT_EQ(read_actions(1, launch, sizeof launch), AI_WIRE_OK);
+	view->countermeasure = AI_WIRE_COUNTERMEASURE_CHAFF;
+	XVT_ASSERT_INT_EQ(read_actions(1, launch, sizeof launch),
+			  AI_WIRE_BAD_ACTION);
+	view->chaff_seconds = 0;
+	view->countermeasure_cooldown = 1;
+	XVT_ASSERT_INT_EQ(read_actions(1, launch, sizeof launch), AI_WIRE_OK);
+	view->countermeasure_cooldown = 0;
+	view->countermeasure = AI_WIRE_COUNTERMEASURE_NONE;
+	XVT_ASSERT_INT_EQ(read_actions(1, launch, sizeof launch),
+			  AI_WIRE_BAD_ACTION);
+	/* A cluster mine, the engine's next type, is not one to launch. */
+	view->countermeasure = 3;
+	XVT_ASSERT_INT_EQ(read_actions(1, launch, sizeof launch),
+			  AI_WIRE_BAD_ACTION);
+	view->countermeasure = AI_WIRE_COUNTERMEASURE_FLARE;
+}
+
 int main(void)
 {
 	check_question_bytes();
@@ -591,5 +656,6 @@ int main(void)
 	check_action_faults();
 	check_shown_faults();
 	check_books_faults();
+	check_countermeasure_faults();
 	return 0;
 }

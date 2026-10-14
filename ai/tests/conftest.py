@@ -59,6 +59,18 @@ VIEW = CraftView(
     outside_hangar=(0, 0, 0),
     inside_hangar=(0, 0, 0),
     home_point=(0, 0, 0),
+    countermeasure=0,
+    countermeasures_left=0,
+    countermeasure_working=0,
+    threat_count=0,
+    chaff_seconds=0,
+    countermeasure_cooldown=0,
+    threat_object=(0, 0, 0, 0),
+    threat_type=(0, 0, 0, 0),
+    threat_decoyed=(0, 0, 0, 0),
+    threat_x=(0, 0, 0, 0),
+    threat_y=(0, 0, 0, 0),
+    threat_z=(0, 0, 0, 0),
     notebook=bytes(NOTEBOOK_BYTES),
 )
 # Contact 0 is VIEW's own craft; contact 1 another craft, its order's target.

@@ -75,6 +75,28 @@ static uint8_t *put_craft_view(uint8_t *at,
 	at = put_point(at, view->outside_hangar);
 	at = put_point(at, view->inside_hangar);
 	at = put_point(at, view->home_point);
+	*at++ = view->countermeasure;
+	*at++ = view->countermeasures_left;
+	*at++ = view->countermeasure_working;
+	*at++ = view->threat_count;
+	at = put_u16(at, view->chaff_seconds);
+	at = put_u16(at, view->countermeasure_cooldown);
+	for (int threat = 0; threat < AI_WIRE_THREATS_MAX; ++threat) {
+		at = put_u16(at, view->threat_object[threat]);
+	}
+	memcpy(at, view->threat_type, AI_WIRE_THREATS_MAX);
+	at += AI_WIRE_THREATS_MAX;
+	memcpy(at, view->threat_decoyed, AI_WIRE_THREATS_MAX);
+	at += AI_WIRE_THREATS_MAX;
+	for (int threat = 0; threat < AI_WIRE_THREATS_MAX; ++threat) {
+		at = put_u32(at, (uint32_t)view->threat_x[threat]);
+	}
+	for (int threat = 0; threat < AI_WIRE_THREATS_MAX; ++threat) {
+		at = put_u32(at, (uint32_t)view->threat_y[threat]);
+	}
+	for (int threat = 0; threat < AI_WIRE_THREATS_MAX; ++threat) {
+		at = put_u32(at, (uint32_t)view->threat_z[threat]);
+	}
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
@@ -304,6 +326,22 @@ static int take_order(struct wire_reader *reader,
 	       (state == 0 || state == 2 || state == 3);
 }
 
+/* Whether the view shows the craft's countermeasure ready to launch: chaff
+ * with no chaff seconds left, or a flare with its cooldown run out, either
+ * working with one left. */
+static int countermeasure_ready(const struct ai_wire_craft_view *view)
+{
+	if (view->countermeasure_working == 0 ||
+	    view->countermeasures_left == 0) {
+		return 0;
+	}
+	if (view->countermeasure == AI_WIRE_COUNTERMEASURE_CHAFF) {
+		return view->chaff_seconds == 0;
+	}
+	return view->countermeasure == AI_WIRE_COUNTERMEASURE_FLARE &&
+	       view->countermeasure_cooldown == 0;
+}
+
 /* Reads one action into answer; returns 0 for a kind that is unknown or
  * already sent, a value out of range, or a thing the question did not
  * show. */
@@ -357,6 +395,8 @@ static int take_action(struct wire_reader *reader,
 		return (view->books & AI_WIRE_BOOKS_MAY_JUMP) != 0;
 	case AI_WIRE_ACTION_DOCK:
 		return (view->books & AI_WIRE_BOOKS_AT_HANGAR) != 0;
+	case AI_WIRE_ACTION_COUNTERMEASURE:
+		return countermeasure_ready(view);
 	default:
 		return take_turrets(reader, question, view, answer);
 	}

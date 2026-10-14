@@ -28,6 +28,11 @@
       "fields": ["object", "arriving", "kind", "speed", "predicted"],
       "text": "Craft {object} took the pilot program's arrival, arriving {arriving}: its object kind is now {kind} (6 arriving from hyperspace, 0 active; a craft that was neither, or was not arriving when asked about, keeps its kind and speed) and its speed {speed} ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.craft_countermeasure": {
+      "level": "D",
+      "fields": ["object", "kind", "launched", "seconds", "left", "predicted"],
+      "text": "Craft {object} was told to launch its countermeasure of type {kind} (1 chaff, 2 flare); launched is {launched}, 0 when the craft was not active, its countermeasure system did not work, it had none left, chaff was still running or a flare was cooling down; it now has {seconds} simulated seconds of chaff and {left} countermeasures left ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "ai.craft_depart": {
       "level": "D",
       "fields": ["object", "speed", "predicted"],

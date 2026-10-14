@@ -22,6 +22,7 @@ from jedimaster_ai.world import Arrival
 from jedimaster_ai.world import Books
 from jedimaster_ai.world import CannonGroup
 from jedimaster_ai.world import Contact
+from jedimaster_ai.world import Countermeasure
 from jedimaster_ai.world import CraftAnswer
 from jedimaster_ai.world import CraftView
 from jedimaster_ai.world import LinkMode
@@ -43,7 +44,11 @@ DISTINCT = CraftView(
     (0x3433, 0x3635), 0x3A393837, 0x3C3B, (0x3D, 0x3E, 0x3F, 0x40),
     (0x41, 0x42, 0x43, 0x44), 0x4645, 0x47, 0x48, 0x49, 0x9291, 0x4B4A, 0x4D4C,
     (0x51504F4E, 0x55545352, 0x59585756), (0x5D5C5B5A, 0x61605F5E, -6),
-    (0x65646362, 0x69686766, 0x6D6C6B6A),
+    (0x65646362, 0x69686766, 0x6D6C6B6A), 0x6E, 0x6F, 0x70, 0x71, 0x7372,
+    0x7574, (0x7776, 0x7978, 0x7B7A, 0x7D7C), (0x7E, 0x7F, 0x80, 0x81),
+    (0x82, 0x83, 0x84, 0x85), (0x13121110, 0x17161514, 0x1B1A1918, 0x1F1E1D1C),
+    (0x23222120, 0x27262524, 0x2B2A2928, -7),
+    (0x2F2E2D2C, 0x33323130, 0x37363534, 0x3B3A3938),
     notebook=bytes(0x40 + byte for byte in range(NOTEBOOK_BYTES)),
 )  # fmt: skip
 # contact_with_distinct_bytes in the C test.
@@ -92,9 +97,10 @@ def plain_contact(index: int) -> Contact:
     return Contact(index, *([0] * (len(wire.CONTACT_LAYOUT) - 1)))
 
 
-# The C test's g_question: craft 7 with two cannon groups, launcher 0 ready
-# and turrets in weapon slots 3 and 5, leading, with orders in slots 0 and 1,
-# at its hangar; craft 9 with none of these; contacts 7, 9, 12.
+# The C test's g_question: craft 7 with two cannon groups, launcher 0 ready,
+# turrets in weapon slots 3 and 5 and a flare ready, leading, with orders in
+# slots 0 and 1, at its hangar; craft 9 with none of these; contacts 7, 9,
+# 12.
 CRAFT_7 = plain_view(
     7,
     turret_slot_mask=1 << 3 | 1 << 5,
@@ -103,6 +109,9 @@ CRAFT_7 = plain_view(
     order_codes=(1, 2, 0, 0),
     leader=NO_OBJECT,
     books=Books.AT_HANGAR,
+    countermeasure=Countermeasure.FLARE,
+    countermeasures_left=3,
+    countermeasure_working=1,
 )
 CONTACTS = tuple(plain_contact(index) for index in (7, 9, 12))
 
@@ -123,6 +132,7 @@ def good_answer() -> tuple[Question, Answer]:
         arrival=Arrival(True, 3600),
         order=OrderMove(1, 2),
         dock=True,
+        countermeasure=True,
     )
     answer = Answer(
         TEST_TICK,
@@ -138,7 +148,7 @@ def test_answer_bytes_read_back() -> None:
     question, answer = good_answer()
     message = wire.answer_bytes(answer)
     # The length the C test's check_good_answer expects.
-    assert len(message) == wire.HEAD_BYTES + 109 + 3 + NOTEBOOK_BYTES
+    assert len(message) == wire.HEAD_BYTES + 110 + 3 + NOTEBOOK_BYTES
     assert wire.read_answer(message[4:], question) == answer
 
 
@@ -146,13 +156,13 @@ def test_answer_writes_actions_in_kind_order() -> None:
     _, answer = good_answer()
     message = wire.answer_bytes(answer)
     start = wire.HEAD_BYTES + 2 + NOTEBOOK_BYTES
-    # Count 11; steer 0x1234 0x4000 0xFFFF; throttle 0x8000; activity 12;
+    # Count 12; steer 0x1234 0x4000 0xFFFF; throttle 0x8000; activity 12;
     # think interval 59; target 12; lasers 3 4 1 2; warhead 0 paired;
     # turrets: slot 5 none, slot 3 at 12; arriving at 3,600; order slot 1
-    # state 2; dock.
-    assert message[start : start + 43] == bytes.fromhex(
-        "0b0134120040ffff020080030c043b00050c000603040102070001080205ffff030c000901100e"
-        "0a01020c"
+    # state 2; dock; countermeasure.
+    assert message[start : start + 44] == bytes.fromhex(
+        "0c0134120040ffff020080030c043b00050c000603040102070001080205ffff030c000901100e"
+        "0a01020c0d"
     )
 
 
@@ -206,8 +216,8 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
 @pytest.mark.parametrize(
     ("actions", "match"),
     [
-        (b"\x01\x00", "not one of the twelve"),
-        (b"\x01\x0d", "not one of the twelve"),
+        (b"\x01\x00", "not one of the thirteen"),
+        (b"\x01\x0e", "not one of the thirteen"),
         (b"\x02\x02\x01\x00\x02\x02\x00", "sent twice"),
         (b"\x01\x03\x0d", "out of range"),
         (b"\x01\x03\x05", "set by the engine alone"),
@@ -240,7 +250,7 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
         (b"\x02\x0b\x0c", "depart and dock are both sent"),
     ],
     ids=[
-        "kind 0", "kind 13", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
+        "kind 0", "kind 14", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
         "target not shown", "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
         "not a turret", "slot 16", "slot twice", "turret target not shown",
@@ -284,6 +294,47 @@ def test_order_depart_and_dock_follow_the_views_books() -> None:
     assert _actions_of(depart, may_jump).depart
     with pytest.raises(wire.WireError, match="dock is not one"):
         _actions_of(dock, may_jump)
+
+
+@pytest.mark.parametrize(
+    ("changes", "ready"),
+    [
+        ({}, True),
+        ({"countermeasure_cooldown": 1}, False),
+        ({"countermeasures_left": 0}, False),
+        ({"countermeasure_working": 0}, False),
+        ({"chaff_seconds": 4}, True),
+        ({"countermeasure": Countermeasure.CHAFF, "chaff_seconds": 4}, False),
+        ({"countermeasure": Countermeasure.CHAFF, "countermeasure_cooldown": 1}, True),
+        ({"countermeasure": Countermeasure.NONE}, False),
+        ({"countermeasure": 3}, False),
+    ],
+    ids=[
+        "flare",
+        "flare cooling",
+        "none left",
+        "not working",
+        "flare with chaff seconds",
+        "chaff running",
+        "chaff with a cooldown",
+        "no type",
+        "cluster mine",
+    ],
+)
+def test_countermeasure_follows_what_the_view_shows(
+    changes: dict[str, int], ready: bool
+) -> None:
+    """The C test's check_countermeasure_faults: chaff only with no chaff
+    seconds left, a flare only with its cooldown at 0, either working with
+    one left."""
+    launch = answer_with_actions(b"\x01\x0d")
+    shown = dataclasses.replace(CRAFT_7, **changes)
+    assert shown.countermeasure_ready == ready
+    if ready:
+        assert _actions_of(launch, shown).countermeasure
+    else:
+        with pytest.raises(wire.WireError, match="countermeasure is not shown"):
+            _actions_of(launch, shown)
 
 
 def test_answer_firing_a_cannon_group_the_craft_lacks_is_refused() -> None:

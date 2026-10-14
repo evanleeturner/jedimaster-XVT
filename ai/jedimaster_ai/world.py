@@ -35,6 +35,8 @@ ARRIVAL_SPEED_MAX = 3600
 # A flight group's order slots, 0 to 3, and the axes of a point.
 ORDER_SLOTS = 4
 POINT_AXES = 3
+# The homing shots aimed at a craft that its view can name.
+THREATS_MAX = 4
 
 
 class Activity(enum.IntEnum):
@@ -60,6 +62,31 @@ class Activity(enum.IntEnum):
 ENGINE_ACTIVITIES = frozenset(
     {Activity.ARRIVING_FROM_HYPERSPACE, Activity.LEAVING_HANGAR}
 )
+
+
+class Countermeasure(enum.IntEnum):
+    """A craft's countermeasure (``enum ai_wire_countermeasure``).
+
+    The engine's own countermeasure type; a view may carry a later type,
+    such as a cluster mine, which the program cannot launch.
+    """
+
+    NONE = 0
+    CHAFF = 1
+    FLARE = 2
+
+
+@dataclasses.dataclass(frozen=True)
+class Threat:
+    """A homing shot aimed at a craft: its object index, its object type,
+    where it is, and whether a countermeasure already homes on it."""
+
+    object_index: int
+    object_type: int
+    x: int
+    y: int
+    z: int
+    decoyed: bool
 
 
 class Books(enum.IntFlag):
@@ -122,7 +149,14 @@ class CraftView:
     ``inside_hangar`` points; ``home_point`` is where it leaves by
     hyperspace, its group's mission point 13, or 12 for a captured craft
     when that point is on. Points are world (x, y, z), all 0 when not
-    given. ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
+    given. ``countermeasure`` is the craft's countermeasure type, with
+    ``countermeasures_left``, ``countermeasure_working`` (1 while its
+    countermeasure system works), ``chaff_seconds`` (simulated seconds of
+    chaff left) and ``countermeasure_cooldown`` (ticks before another
+    launches). The ``threat_`` fields hold up to THREATS_MAX homing shots
+    aimed at the craft, in the engine's slot order, the first
+    ``threat_count`` filled and the rest 0; ``threats`` reads them.
+    ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
     program last wrote it, or all zero bytes before the program first
     writes it.
     """
@@ -168,7 +202,48 @@ class CraftView:
     outside_hangar: tuple[int, int, int]
     inside_hangar: tuple[int, int, int]
     home_point: tuple[int, int, int]
+    countermeasure: int
+    countermeasures_left: int
+    countermeasure_working: int
+    threat_count: int
+    chaff_seconds: int
+    countermeasure_cooldown: int
+    threat_object: tuple[int, int, int, int]
+    threat_type: tuple[int, int, int, int]
+    threat_decoyed: tuple[int, int, int, int]
+    threat_x: tuple[int, int, int, int]
+    threat_y: tuple[int, int, int, int]
+    threat_z: tuple[int, int, int, int]
     notebook: bytes
+
+    @property
+    def threats(self) -> tuple[Threat, ...]:
+        """The homing shots aimed at the craft, in the engine's slot order."""
+        return tuple(
+            Threat(
+                self.threat_object[n],
+                self.threat_type[n],
+                self.threat_x[n],
+                self.threat_y[n],
+                self.threat_z[n],
+                bool(self.threat_decoyed[n]),
+            )
+            for n in range(min(self.threat_count, THREATS_MAX))
+        )
+
+    @property
+    def countermeasure_ready(self) -> bool:
+        """Whether the engine takes a countermeasure action from the craft:
+        chaff with no chaff seconds left, or a flare with its cooldown run
+        out, either working with one left."""
+        if not self.countermeasure_working or not self.countermeasures_left:
+            return False
+        if self.countermeasure == Countermeasure.CHAFF:
+            return self.chaff_seconds == 0
+        return (
+            self.countermeasure == Countermeasure.FLARE
+            and self.countermeasure_cooldown == 0
+        )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -342,7 +417,8 @@ class Actions:
     craft arriving from hyperspace or active again. ``order`` moves the
     craft's order slot; ``depart`` starts it out of the battle by
     hyperspace and ``dock`` takes it into its mothership's hangar, never
-    both. ``activity`` is never one of ENGINE_ACTIVITIES. What these name must
+    both. ``countermeasure`` launches the craft's chaff or a flare.
+    ``activity`` is never one of ENGINE_ACTIVITIES. What these name must
     be what the question showed (``wire.read_answer`` holds the rules).
     """
 
@@ -358,6 +434,7 @@ class Actions:
     order: OrderMove | None = None
     depart: bool = False
     dock: bool = False
+    countermeasure: bool = False
 
     def __post_init__(self) -> None:
         if self.depart and self.dock:

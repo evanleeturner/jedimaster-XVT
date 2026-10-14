@@ -43,6 +43,11 @@
       "fields": ["object", "around", "distance", "clearance", "yaw"],
       "text": "Craft {object} steered clear of craft {around}, {distance} units away with a clearance of {clearance}, to yaw {yaw}"
     },
+    "countermeasures.threat": {
+      "level": "D",
+      "fields": ["object", "threat", "type", "distance", "range", "kind", "launch"],
+      "text": "Craft {object} weighs homing shot {threat} (object type {type}), {distance} units away inside its range of {range}, the first such shot aimed at it; its countermeasure type is {kind} (1 chaff, 2 flare) and it launches one: {launch} (0 when a countermeasure already homes on that shot)"
+    },
     "home.route": {
       "level": "D",
       "fields": ["object", "route", "from", "books"],
@@ -98,6 +103,11 @@
       "fields": ["tick", "craft", "contacts"],
       "text": "The question for tick {tick} asks about {craft} craft and shows {contacts} contacts"
     },
+    "think.threat": {
+      "level": "D",
+      "fields": ["object", "threat", "type", "decoyed", "x", "y", "z"],
+      "text": "Homing shot {threat} (object type {type}) is aimed at craft {object} from ({x}, {y}, {z}); a countermeasure homes on it: {decoyed}"
+    },
     "think.turret": {
       "level": "D",
       "fields": ["object", "slot", "target"],
@@ -105,8 +115,8 @@
     },
     "think.view": {
       "level": "D",
-      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "targets", "turrets", "cannons", "launchers", "cannon_first", "cannon_second", "warhead_first", "warhead_second", "left_first", "left_second", "cooldown_first", "cooldown_second", "enemies", "leader", "codes", "states", "order_throttle", "variable_first", "variable_second", "order_speed", "full_speed", "books", "mothership", "outside_x", "outside_y", "outside_z", "inside_x", "inside_y", "inside_z", "home_x", "home_y", "home_z", "notebook"],
-      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; order target mask {targets}, turret slot mask {turrets}; {cannons} cannon groups firing types {cannon_first} and {cannon_second}; {launchers} launchers holding types {warhead_first} and {warhead_second}, {left_first} and {left_second} left, ready in {cooldown_first} and {cooldown_second} ticks; enemy mask {enemies}, leader {leader} (65535 when it leads); order codes {codes} and completion states {states} by slot, order throttle {order_throttle}, variables {variable_first} and {variable_second}, order speed {order_speed}; full speed {full_speed}; books bits {books}; mothership {mothership} (65535 for none) with its outside hangar point ({outside_x}, {outside_y}, {outside_z}) and inside one ({inside_x}, {inside_y}, {inside_z}); home point ({home_x}, {home_y}, {home_z}); notebook {notebook}"
+      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "targets", "turrets", "cannons", "launchers", "cannon_first", "cannon_second", "warhead_first", "warhead_second", "left_first", "left_second", "cooldown_first", "cooldown_second", "enemies", "leader", "codes", "states", "order_throttle", "variable_first", "variable_second", "order_speed", "full_speed", "books", "mothership", "outside_x", "outside_y", "outside_z", "inside_x", "inside_y", "inside_z", "home_x", "home_y", "home_z", "countermeasure", "countermeasures_left", "countermeasure_working", "chaff_seconds", "countermeasure_cooldown", "threats", "notebook"],
+      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; order target mask {targets}, turret slot mask {turrets}; {cannons} cannon groups firing types {cannon_first} and {cannon_second}; {launchers} launchers holding types {warhead_first} and {warhead_second}, {left_first} and {left_second} left, ready in {cooldown_first} and {cooldown_second} ticks; enemy mask {enemies}, leader {leader} (65535 when it leads); order codes {codes} and completion states {states} by slot, order throttle {order_throttle}, variables {variable_first} and {variable_second}, order speed {order_speed}; full speed {full_speed}; books bits {books}; mothership {mothership} (65535 for none) with its outside hangar point ({outside_x}, {outside_y}, {outside_z}) and inside one ({inside_x}, {inside_y}, {inside_z}); home point ({home_x}, {home_y}, {home_z}); countermeasure {countermeasure} (0 none, 1 chaff, 2 flare), {countermeasures_left} left, system working {countermeasure_working}, chaff running for {chaff_seconds} more simulated seconds, {countermeasure_cooldown} ticks before another launches; {threats} homing shots aimed at it, each on a think.threat line; notebook {notebook}"
     }
   }
 }

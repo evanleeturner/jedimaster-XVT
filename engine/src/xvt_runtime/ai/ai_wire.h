@@ -36,6 +36,16 @@
  * and then of its inside one, and i32 x, i32 y, i32 z of its home point,
  * where it leaves by hyperspace: its group's mission point 13, or point 12
  * for a captured craft when that point is on (points not given are 0),
+ * then its countermeasures: u8 countermeasure (an AI_WIRE_COUNTERMEASURE_
+ * value, the engine's countermeasure type), u8 countermeasures left, u8
+ * countermeasure working (1 while its countermeasure system works, else
+ * 0), u8 threat count, u16 chaff seconds (simulated seconds of chaff
+ * left), u16 countermeasure cooldown (ticks before another countermeasure
+ * launches), then the homing shots aimed at it, the first threat count of
+ * AI_WIRE_THREATS_MAX entries filled in projectile slot order and the rest
+ * 0: u16 threat object[4] (each shot's object index), u8 threat type[4]
+ * (its object type), u8 threat decoyed[4] (1 when a countermeasure
+ * already homes on it), i32 threat x[4], i32 threat y[4], i32 threat z[4];
  * then the notebook's AI_NOTEBOOK_BYTES. Then u16 contact count,
  * u16 zero, and one contact per craft in the active region, at most
  * AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
@@ -81,6 +91,10 @@
  *  12 dock: no fields. The craft enters its mothership's hangar and leaves
  *     the battle; only while the view's books show it at the hangar, and
  *     never with a depart in the same craft answer.
+ *  13 countermeasure: no fields. The craft launches its countermeasure:
+ *     chaff only while the view shows chaff, working, with one left and
+ *     no chaff seconds; a flare only while it shows a flare, working,
+ *     with one left and a cooldown of 0.
  * A craft answer names each action kind at most once, and names only what
  * the question showed. While a craft enters hyperspace the engine does not
  * turn it, whatever the steer action says. */
@@ -96,12 +110,12 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 7,
+	AI_WIRE_VERSION = 8,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 117 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 189 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
@@ -116,9 +130,11 @@ enum ai_wire_constant {
 	AI_WIRE_WARHEAD_LAUNCHERS = 2,
 	/* Weapon slots a craft has, and so turrets one answer may aim. */
 	AI_WIRE_WEAPON_SLOTS = 16,
+	/* The homing shots aimed at a craft that its view can name. */
+	AI_WIRE_THREATS_MAX = 4,
 	/* A craft answer with every action kind once, but depart or dock, never
 	 * both, and all 16 turrets. */
-	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 87 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 88 + AI_NOTEBOOK_BYTES,
 	/* The fastest speed an arrival may set: the 1997 AI's speed out of
 	 * hyperspace. */
 	AI_WIRE_ARRIVAL_SPEED_MAX = 3600,
@@ -137,7 +153,8 @@ enum ai_wire_action_kind {
 	AI_WIRE_ACTION_ORDER = 10,
 	AI_WIRE_ACTION_DEPART = 11,
 	AI_WIRE_ACTION_DOCK = 12,
-	AI_WIRE_ACTION_KIND_END = 13,
+	AI_WIRE_ACTION_COUNTERMEASURE = 13,
+	AI_WIRE_ACTION_KIND_END = 14,
 };
 
 /* The bits of a craft view's books, as the engine keeps them by the 1997
@@ -171,6 +188,14 @@ enum ai_wire_books {
 	/* Its current order still has a target, in the battle or in a group
 	 * still to arrive, by the 1997 count. */
 	AI_WIRE_BOOKS_TARGETS_LEFT = 0x200,
+};
+
+/* A craft view's countermeasure, the engine's countermeasure type; the
+ * types after these the pilot program cannot launch. */
+enum ai_wire_countermeasure {
+	AI_WIRE_COUNTERMEASURE_NONE = 0,
+	AI_WIRE_COUNTERMEASURE_CHAFF = 1,
+	AI_WIRE_COUNTERMEASURE_FLARE = 2,
 };
 
 enum ai_wire_contact_flag {
@@ -220,6 +245,18 @@ struct ai_wire_craft_view {
 	int32_t outside_hangar[AI_WIRE_POINT_AXES];
 	int32_t inside_hangar[AI_WIRE_POINT_AXES];
 	int32_t home_point[AI_WIRE_POINT_AXES];
+	uint8_t countermeasure;
+	uint8_t countermeasures_left;
+	uint8_t countermeasure_working;
+	uint8_t threat_count;
+	uint16_t chaff_seconds;
+	uint16_t countermeasure_cooldown;
+	uint16_t threat_object[AI_WIRE_THREATS_MAX];
+	uint8_t threat_type[AI_WIRE_THREATS_MAX];
+	uint8_t threat_decoyed[AI_WIRE_THREATS_MAX];
+	int32_t threat_x[AI_WIRE_THREATS_MAX];
+	int32_t threat_y[AI_WIRE_THREATS_MAX];
+	int32_t threat_z[AI_WIRE_THREATS_MAX];
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 
@@ -305,8 +342,9 @@ enum ai_wire_result {
 	 * AI_ACTIVITY_COUNT or one the engine alone sets, a think interval of 0,
 	 * an arrival's arriving past 1 or speed past AI_WIRE_ARRIVAL_SPEED_MAX,
 	 * a target, cannon group, launcher or turret the question did not
-	 * show, an order the view does not allow, or a depart or dock its books
-	 * do not show, or both. */
+	 * show, an order the view does not allow, a depart or dock its books
+	 * do not show, or both, or a countermeasure the view does not show
+	 * ready. */
 	AI_WIRE_BAD_ACTION,
 };
 

@@ -364,6 +364,10 @@ add_test(NAME ai_brain COMMAND test_ai_brain)
 # src/xvt/flight/ai_books.c.
 xvt_add_engine_test(test_ai_books test_ai_books.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_books.c")
 add_test(NAME ai_books COMMAND test_ai_books)
+# A computer craft's countermeasures: the homing shots aimed at it in its view, and its chaff and flare
+# launches: src/xvt/flight/ai_countermeasures.c.
+xvt_add_engine_test(test_ai_countermeasures test_ai_countermeasures.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_countermeasures.c")
+add_test(NAME ai_countermeasures COMMAND test_ai_countermeasures)
 # The byte form of the questions to and answers from the AI program: src/xvt_runtime/ai/ai_wire.c.
 xvt_add_engine_test(test_ai_wire test_ai_wire.c "${PROJECT_SOURCE_DIR}/src/xvt_runtime/ai/ai_wire.c")
 add_test(NAME ai_wire COMMAND test_ai_wire)

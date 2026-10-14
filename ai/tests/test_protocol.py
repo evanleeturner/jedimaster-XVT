@@ -16,6 +16,7 @@ from conftest import ENGINE
 from jedimaster_ai import wire
 from jedimaster_ai import world
 from jedimaster_ai.behaviors import arrival
+from jedimaster_ai.behaviors import countermeasures
 from jedimaster_ai.orders import OrderCode
 from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Activity
@@ -48,6 +49,7 @@ C_SIZES = {
     "AI_NOTEBOOK_BYTES": NOTEBOOK_BYTES,
     "AI_WIRE_ORDER_SLOTS": world.ORDER_SLOTS,
     "AI_WIRE_POINT_AXES": world.POINT_AXES,
+    "AI_WIRE_THREATS_MAX": world.THREATS_MAX,
 }
 
 
@@ -96,6 +98,7 @@ def test_wire_constants_match() -> None:
         arrival=Arrival(True, world.ARRIVAL_SPEED_MAX),
         order=OrderMove(1, 2),
         depart=True,
+        countermeasure=True,
     )
     answer = Answer(1, (CraftAnswer(1, bytes(NOTEBOOK_BYTES), every_action),))
     assert constants == {
@@ -115,12 +118,30 @@ def test_wire_constants_match() -> None:
         "ARRIVAL_SPEED_MAX": world.ARRIVAL_SPEED_MAX,
         "ORDER_SLOTS": world.ORDER_SLOTS,
         "POINT_AXES": world.POINT_AXES,
+        "THREATS_MAX": world.THREATS_MAX,
     }
 
 
 def test_books_bits_match() -> None:
     books = c_enum(AI_WIRE_H, "ai_wire_books", "AI_WIRE_BOOKS_")
     assert books == {bit.name: bit.value for bit in world.Books}
+
+
+def test_countermeasures_match() -> None:
+    kinds = c_enum(AI_WIRE_H, "ai_wire_countermeasure", "AI_WIRE_COUNTERMEASURE_")
+    assert kinds == {kind.name: kind.value for kind in world.Countermeasure}
+
+
+def test_concussion_missile_types_match() -> None:
+    text = (ENGINE / "src" / "xvt" / "flight" / "object" / "laser.h").read_text()
+    found = {
+        name: int(re.search(rf"WARHEAD_OBJECT_TYPE_{name} = (\d+),", text).group(1))
+        for name in ("CONCUSSION_MISSILE", "ADVANCED_CONCUSSION_MISSILE")
+    }
+    assert found == {
+        "CONCUSSION_MISSILE": countermeasures.CONCUSSION_MISSILE,
+        "ADVANCED_CONCUSSION_MISSILE": countermeasures.ADVANCED_CONCUSSION_MISSILE,
+    }
 
 
 def test_action_kinds_match() -> None:

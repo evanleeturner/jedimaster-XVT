@@ -30,7 +30,9 @@ OBJECT_KIND_DISABLED = 2
 _FIGHTABLE_KINDS = (OBJECT_KIND_ACTIVE, OBJECT_KIND_DISABLED)
 # The engine's craft genus codes (object_genus.h): starships and platforms
 # are large targets; with freighters they are the bulky craft that small
-# craft keep clear of (ruling 24).
+# craft keep clear of (ruling 24). Only a starfighter answers homing shots
+# with countermeasures.
+GENUS_STARFIGHTER = 0
 GENUS_FREIGHTER = 3
 GENUS_STARSHIP = 4
 GENUS_PLATFORM = 5

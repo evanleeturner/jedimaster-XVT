@@ -15,6 +15,7 @@
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/mission/mission.h"
+#include "xvt/flight/object/laser.h"
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/ai/ai_wire.h"
@@ -32,6 +33,10 @@ enum {
 			    AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
+	/* Where its countermeasures start, the 72 bytes before the notebook,
+	 * and where the first threat's object index is. */
+	VIEW_COUNTERMEASURES = VIEW_NOTEBOOK - 72,
+	VIEW_FIRST_THREAT = VIEW_COUNTERMEASURES + 8,
 	ANSWER_CAPACITY = AI_WIRE_HEAD_BYTES +
 			  QUESTION_CRAFT * AI_WIRE_CRAFT_ANSWER_BYTES_MAX,
 	MAX_CALLS = 2,
@@ -141,8 +146,8 @@ static size_t fake_exchange(const uint8_t *question, size_t question_length,
 }
 
 /* Empty slots 0 to SLOT_COUNT - 1 with their mobile objects and craft
- * records, the active region's craft slots 0 to 8, the clock at TEST_TICK,
- * and the fake exchange set, canned with no answer. */
+ * records, the active region's craft slots 0 to 8, no shot slots, the
+ * clock at TEST_TICK, and the fake exchange set, canned with no answer. */
 static void fresh_world(void)
 {
 	memset(g_test_objects, 0, sizeof g_test_objects);
@@ -158,6 +163,8 @@ static void fresh_world(void)
 	}
 	g_active_region_object_slot_start = 0;
 	g_active_region_craft_object_slot_end = 8;
+	g_projectile_object_slot_start = 0;
+	g_projectile_object_slot_end = 0;
 	g_game_time = TEST_TICK;
 	g_flight_sim_side_effects_suppressed = 0;
 	ai_brain_set_exchange(fake_exchange);
@@ -838,6 +845,44 @@ static void check_arrival_action(void)
 	XVT_ASSERT_INT_EQ(speed, 900);
 }
 
+/* The view carries the craft's countermeasures and the homing shots aimed
+ * at it, from ai_countermeasures_view_craft, and the countermeasure
+ * action launches through ai_countermeasures_launch: here chaff, for a
+ * missile in shot slot 31. */
+static void check_countermeasure_action(void)
+{
+	fresh_world();
+	struct craft_data *craft = due_craft(1);
+	struct warhead_guidance_state guidance = {0};
+	craft->cm_type_id = COUNTERMEASURE_TYPE_CHAFF;
+	craft->cm_ammo_count = 2;
+	craft->working_subsystems = CRAFT_SUBSYSTEM_FLAG_COUNTERMEASURES;
+	g_projectile_object_slot_start = 30;
+	g_projectile_object_slot_end = 32;
+	g_test_objects[31].object_type = WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE;
+	g_test_mobiles[31].p_warhead_guidance = &guidance;
+	guidance.target_obj_idx = 1;
+	guidance.homing_tier = 2;
+	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+	at = craft_answer(at, 1, 0, 1);
+	*at++ = AI_WIRE_ACTION_COUNTERMEASURE;
+	g_fake.answer_length = finish_answer(g_fake.answer, at);
+
+	ai_brain_think_due_craft();
+
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(view[VIEW_COUNTERMEASURES],
+			  AI_WIRE_COUNTERMEASURE_CHAFF);
+	XVT_ASSERT_INT_EQ(view[VIEW_COUNTERMEASURES + 1], 2);
+	XVT_ASSERT_INT_EQ(view[VIEW_COUNTERMEASURES + 2], 1);
+	XVT_ASSERT_INT_EQ(view[VIEW_COUNTERMEASURES + 3], 1);
+	XVT_ASSERT_INT_EQ(get_u16(view + VIEW_FIRST_THREAT), 31);
+	XVT_ASSERT_INT_EQ(craft->chaff_active_seconds, 10);
+	XVT_ASSERT_INT_EQ(craft->cm_ammo_count, 1);
+	g_test_mobiles[31].p_warhead_guidance = NULL;
+}
+
 int main(void)
 {
 	check_no_exchange_changes_nothing();
@@ -847,6 +892,7 @@ int main(void)
 	check_enemy_mask_and_leader();
 	check_lost_leader_named();
 	check_warhead_action();
+	check_countermeasure_action();
 	check_arrival_action();
 	check_answer_applied();
 	check_pitch_direction();

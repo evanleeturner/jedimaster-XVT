@@ -8,7 +8,9 @@ Purpose:
     the craft arrives from hyperspace; out of a hangar its order decides at
     once and the leaving mark ends), it steers clear of a bulky craft in its
     way (``behaviors.avoidance``), its turrets are aimed
-    (``behaviors.turrets``), and the decisions become the answer.
+    (``behaviors.turrets``), a starfighter answers a homing shot closing
+    on it with chaff or a flare (``behaviors.countermeasures``), and the
+    decisions become the answer.
 
 Invariants:
     - The answer depends only on the question and the behavior table: the
@@ -27,6 +29,7 @@ from . import progress
 from .behaviors import arrival
 from .behaviors import avoidance
 from .behaviors import Behavior
+from .behaviors import countermeasures
 from .behaviors import home
 from .behaviors import turrets
 from .orders import behavior_for
@@ -70,6 +73,7 @@ def think(
                 decision = arrival.leave_hangar(view, decision)
             decision = avoidance.steer_clear(view, question, decision)
         decision = turrets.defend(view, question, decision)
+        decision = countermeasures.answer(view, question, decision)
         answer = CraftAnswer(view.object_index, decision.notebook, decision.actions)
         if debug:
             _log_answer(answer)
@@ -118,6 +122,8 @@ def _log_view(view: CraftView) -> None:
         "variable_first=%d variable_second=%d order_speed=%d full_speed=%d books=%d "
         "mothership=%d outside_x=%d outside_y=%d outside_z=%d inside_x=%d "
         "inside_y=%d inside_z=%d home_x=%d home_y=%d home_z=%d "
+        "countermeasure=%d countermeasures_left=%d countermeasure_working=%d "
+        "chaff_seconds=%d countermeasure_cooldown=%d threats=%d "
         'notebook="%s"',
         view.object_index,
         view.object_signature,
@@ -170,8 +176,25 @@ def _log_view(view: CraftView) -> None:
         view.home_point[0],
         view.home_point[1],
         view.home_point[2],
+        view.countermeasure,
+        view.countermeasures_left,
+        view.countermeasure_working,
+        view.chaff_seconds,
+        view.countermeasure_cooldown,
+        view.threat_count,
         view.notebook.hex(),
     )
+    for threat in view.threats:
+        logger.debug(
+            "think.threat object=%d threat=%d type=%d decoyed=%d x=%d y=%d z=%d",
+            view.object_index,
+            threat.object_index,
+            threat.object_type,
+            int(threat.decoyed),
+            threat.x,
+            threat.y,
+            threat.z,
+        )
 
 
 def _log_answer(answer: CraftAnswer) -> None:
@@ -191,6 +214,7 @@ def _log_answer(answer: CraftAnswer) -> None:
         | (actions.order is not None) << 10
         | actions.depart << 11
         | actions.dock << 12
+        | actions.countermeasure << 13
     )
     first, second = actions.lasers or (HOLD_FIRE, HOLD_FIRE)
     warhead = actions.warhead
