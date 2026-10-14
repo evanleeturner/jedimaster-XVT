@@ -26,6 +26,7 @@ from .behaviors import Behavior
 from .behaviors import drift
 from .behaviors import hold
 from .behaviors import home
+from .behaviors import patrol
 from .world import CraftView
 
 logger = logging.getLogger(__name__)
@@ -96,6 +97,10 @@ BEHAVIORS: t.Mapping[int, Behavior] = types.MappingProxyType(
         OrderCode.GO_HOME: home.think,
         OrderCode.ATTACK: attack.think,
         OrderCode.SS_GO_HOME: home.think,
+        OrderCode.CIRCLE: patrol.think,
+        OrderCode.CIRCLE_AND_EVADE: patrol.think,
+        OrderCode.SS_PATROL_LOOP: patrol.think,
+        OrderCode.SS_PATROL_AND_ATTACK: patrol.think,
     }
 )
 

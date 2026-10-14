@@ -33,9 +33,11 @@ enum {
 			    AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
-	/* Where its countermeasures start, the 72 bytes before the notebook,
-	 * and where the first threat's object index is. */
-	VIEW_COUNTERMEASURES = VIEW_NOTEBOOK - 72,
+	/* Where its waypoints start, the 97 bytes before the notebook. */
+	VIEW_WAYPOINTS = VIEW_NOTEBOOK - 97,
+	/* Where its countermeasures start, the 72 bytes before the
+	 * waypoints, and where the first threat's object index is. */
+	VIEW_COUNTERMEASURES = VIEW_WAYPOINTS - 72,
 	VIEW_FIRST_THREAT = VIEW_COUNTERMEASURES + 8,
 	ANSWER_CAPACITY = AI_WIRE_HEAD_BYTES +
 			  QUESTION_CRAFT * AI_WIRE_CRAFT_ANSWER_BYTES_MAX,
@@ -883,6 +885,34 @@ static void check_countermeasure_action(void)
 	g_test_mobiles[31].p_warhead_guidance = NULL;
 }
 
+/* The view carries the craft's group's waypoints, from
+ * ai_waypoints_view_craft: here mission point 4 on, point 5 off. */
+static void check_view_waypoints(void)
+{
+	fresh_world();
+	due_craft(1);
+	struct mission_flight_group *group =
+		&g_mission_flight_groups[TEST_GROUP];
+	group->fg.mission_point_enabled[4] = 1;
+	group->fg.mission_point_x[4] = 10;
+	group->fg.mission_point_y[4] = 20;
+	group->fg.mission_point_z[4] = 30;
+	group->fg.mission_point_x[5] = 40;
+	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+	at = craft_answer(at, 1, 0, 0);
+	g_fake.answer_length = finish_answer(g_fake.answer, at);
+
+	ai_brain_think_due_craft();
+
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(view[VIEW_WAYPOINTS], 0x01);
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_WAYPOINTS + 1), 2560);
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_WAYPOINTS + 5), 0);
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_WAYPOINTS + 33), (uint32_t)-5120);
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_WAYPOINTS + 65), 7680);
+}
+
 int main(void)
 {
 	check_no_exchange_changes_nothing();
@@ -893,6 +923,7 @@ int main(void)
 	check_lost_leader_named();
 	check_warhead_action();
 	check_countermeasure_action();
+	check_view_waypoints();
 	check_arrival_action();
 	check_answer_applied();
 	check_pitch_direction();

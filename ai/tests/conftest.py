@@ -71,6 +71,10 @@ VIEW = CraftView(
     threat_x=(0, 0, 0, 0),
     threat_y=(0, 0, 0, 0),
     threat_z=(0, 0, 0, 0),
+    waypoint_mask=0,
+    waypoint_x=(0,) * 8,
+    waypoint_y=(0,) * 8,
+    waypoint_z=(0,) * 8,
     notebook=bytes(NOTEBOOK_BYTES),
 )
 # Contact 0 is VIEW's own craft; contact 1 another craft, its order's target.

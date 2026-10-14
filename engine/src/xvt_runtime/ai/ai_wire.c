@@ -23,6 +23,24 @@ static uint8_t *put_point(uint8_t *at, const int32_t point[AI_WIRE_POINT_AXES])
 	return at;
 }
 
+/* Writes the view's waypoint mask, then each waypoint's x, then each y, then
+ * each z. */
+static uint8_t *put_waypoints(uint8_t *at,
+			      const struct ai_wire_craft_view *view)
+{
+	*at++ = view->waypoint_mask;
+	for (int point = 0; point < AI_WIRE_WAYPOINTS; ++point) {
+		at = put_u32(at, (uint32_t)view->waypoint_x[point]);
+	}
+	for (int point = 0; point < AI_WIRE_WAYPOINTS; ++point) {
+		at = put_u32(at, (uint32_t)view->waypoint_y[point]);
+	}
+	for (int point = 0; point < AI_WIRE_WAYPOINTS; ++point) {
+		at = put_u32(at, (uint32_t)view->waypoint_z[point]);
+	}
+	return at;
+}
+
 static uint8_t *put_craft_view(uint8_t *at,
 			       const struct ai_wire_craft_view *view)
 {
@@ -97,6 +115,7 @@ static uint8_t *put_craft_view(uint8_t *at,
 	for (int threat = 0; threat < AI_WIRE_THREATS_MAX; ++threat) {
 		at = put_u32(at, (uint32_t)view->threat_z[threat]);
 	}
+	at = put_waypoints(at, view);
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }

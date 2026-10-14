@@ -46,7 +46,10 @@
  * 0: u16 threat object[4] (each shot's object index), u8 threat type[4]
  * (its object type), u8 threat decoyed[4] (1 when a countermeasure
  * already homes on it), i32 threat x[4], i32 threat y[4], i32 threat z[4];
- * then the notebook's AI_NOTEBOOK_BYTES. Then u16 contact count,
+ * then its flight group's waypoints, mission points 4 to 11: u8 waypoint
+ * mask (bit n set when point 4 + n is on), i32 waypoint x[8], i32 waypoint
+ * y[8], i32 waypoint z[8] (each point's world position, 0 for a point
+ * that is off); then the notebook's AI_NOTEBOOK_BYTES. Then u16 contact count,
  * u16 zero, and one contact per craft in the active region, at most
  * AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
  * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
@@ -110,12 +113,12 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 8,
+	AI_WIRE_VERSION = 9,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 189 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 286 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
@@ -132,6 +135,9 @@ enum ai_wire_constant {
 	AI_WIRE_WEAPON_SLOTS = 16,
 	/* The homing shots aimed at a craft that its view can name. */
 	AI_WIRE_THREATS_MAX = 4,
+	/* A flight group's waypoints, mission points 4 to 11: the points the
+	 * patrol orders fly in turn. */
+	AI_WIRE_WAYPOINTS = 8,
 	/* A craft answer with every action kind once, but depart or dock, never
 	 * both, and all 16 turrets. */
 	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 88 + AI_NOTEBOOK_BYTES,
@@ -257,6 +263,10 @@ struct ai_wire_craft_view {
 	int32_t threat_x[AI_WIRE_THREATS_MAX];
 	int32_t threat_y[AI_WIRE_THREATS_MAX];
 	int32_t threat_z[AI_WIRE_THREATS_MAX];
+	uint8_t waypoint_mask;
+	int32_t waypoint_x[AI_WIRE_WAYPOINTS];
+	int32_t waypoint_y[AI_WIRE_WAYPOINTS];
+	int32_t waypoint_z[AI_WIRE_WAYPOINTS];
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 

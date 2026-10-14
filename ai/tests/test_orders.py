@@ -9,6 +9,7 @@ from jedimaster_ai.behaviors import attack
 from jedimaster_ai.behaviors import drift
 from jedimaster_ai.behaviors import hold
 from jedimaster_ai.behaviors import home
+from jedimaster_ai.behaviors import patrol
 
 
 def test_written_orders_have_their_behaviors_and_every_other_order_drifts() -> None:
@@ -18,6 +19,8 @@ def test_written_orders_have_their_behaviors_and_every_other_order_drifts() -> N
     expected[orders.OrderCode.GO_HOME] = home.think
     expected[orders.OrderCode.SS_GO_HOME] = home.think
     expected[orders.OrderCode.ATTACK] = attack.think
+    for code in (2, 3, 21, 26):
+        expected[orders.OrderCode(code)] = patrol.think
     assert dict(orders.BEHAVIORS) == expected
 
 

@@ -37,6 +37,8 @@ ORDER_SLOTS = 4
 POINT_AXES = 3
 # The homing shots aimed at a craft that its view can name.
 THREATS_MAX = 4
+# A flight group's waypoints, mission points 4 to 11.
+WAYPOINTS = 8
 
 
 class Activity(enum.IntEnum):
@@ -155,7 +157,11 @@ class CraftView:
     chaff left) and ``countermeasure_cooldown`` (ticks before another
     launches). The ``threat_`` fields hold up to THREATS_MAX homing shots
     aimed at the craft, in the engine's slot order, the first
-    ``threat_count`` filled and the rest 0; ``threats`` reads them.
+    ``threat_count`` filled and the rest 0; ``threats`` reads them. Bit n
+    of ``waypoint_mask`` is set when its group's waypoint n, mission point
+    4 + n, is on, and the ``waypoint_`` fields hold each waypoint's world
+    position, 0 for one that is off; ``waypoint_on`` and ``waypoint`` read
+    them.
     ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
     program last wrote it, or all zero bytes before the program first
     writes it.
@@ -214,6 +220,10 @@ class CraftView:
     threat_x: tuple[int, int, int, int]
     threat_y: tuple[int, int, int, int]
     threat_z: tuple[int, int, int, int]
+    waypoint_mask: int
+    waypoint_x: tuple[int, ...]
+    waypoint_y: tuple[int, ...]
+    waypoint_z: tuple[int, ...]
     notebook: bytes
 
     @property
@@ -229,6 +239,19 @@ class CraftView:
                 bool(self.threat_decoyed[n]),
             )
             for n in range(min(self.threat_count, THREATS_MAX))
+        )
+
+    def waypoint_on(self, number: int) -> bool:
+        """Whether waypoint number, mission point 4 + number, is on."""
+        return bool(self.waypoint_mask >> number & 1)
+
+    def waypoint(self, number: int) -> tuple[int, int, int]:
+        """Return waypoint number's world position, (0, 0, 0) when it is
+        off."""
+        return (
+            self.waypoint_x[number],
+            self.waypoint_y[number],
+            self.waypoint_z[number],
         )
 
     @property

@@ -63,6 +63,16 @@
       "fields": ["object", "code"],
       "text": "No behavior flies order code {code}, the order of craft {object}; it drifts"
     },
+    "patrol.hold": {
+      "level": "D",
+      "fields": ["object", "rounds"],
+      "text": "Craft {object} has no waypoint on and stops where it is; rounds flown on this order: {rounds}"
+    },
+    "patrol.reached": {
+      "level": "D",
+      "fields": ["object", "waypoint", "next", "rounds"],
+      "text": "Craft {object} reached waypoint {waypoint} and makes for waypoint {next} (the same one when it is its only waypoint); rounds flown on this order: {rounds}"
+    },
     "program.crashed": {
       "level": "C",
       "fields": ["error_type", "error", "where"],
@@ -115,8 +125,13 @@
     },
     "think.view": {
       "level": "D",
-      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "targets", "turrets", "cannons", "launchers", "cannon_first", "cannon_second", "warhead_first", "warhead_second", "left_first", "left_second", "cooldown_first", "cooldown_second", "enemies", "leader", "codes", "states", "order_throttle", "variable_first", "variable_second", "order_speed", "full_speed", "books", "mothership", "outside_x", "outside_y", "outside_z", "inside_x", "inside_y", "inside_z", "home_x", "home_y", "home_z", "countermeasure", "countermeasures_left", "countermeasure_working", "chaff_seconds", "countermeasure_cooldown", "threats", "notebook"],
-      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; order target mask {targets}, turret slot mask {turrets}; {cannons} cannon groups firing types {cannon_first} and {cannon_second}; {launchers} launchers holding types {warhead_first} and {warhead_second}, {left_first} and {left_second} left, ready in {cooldown_first} and {cooldown_second} ticks; enemy mask {enemies}, leader {leader} (65535 when it leads); order codes {codes} and completion states {states} by slot, order throttle {order_throttle}, variables {variable_first} and {variable_second}, order speed {order_speed}; full speed {full_speed}; books bits {books}; mothership {mothership} (65535 for none) with its outside hangar point ({outside_x}, {outside_y}, {outside_z}) and inside one ({inside_x}, {inside_y}, {inside_z}); home point ({home_x}, {home_y}, {home_z}); countermeasure {countermeasure} (0 none, 1 chaff, 2 flare), {countermeasures_left} left, system working {countermeasure_working}, chaff running for {chaff_seconds} more simulated seconds, {countermeasure_cooldown} ticks before another launches; {threats} homing shots aimed at it, each on a think.threat line; notebook {notebook}"
+      "fields": ["object", "signature", "type", "group", "order", "slot", "activity", "team", "skill", "interval", "throttle", "x", "y", "z", "yaw", "pitch", "roll", "speed", "seed", "targets", "turrets", "cannons", "launchers", "cannon_first", "cannon_second", "warhead_first", "warhead_second", "left_first", "left_second", "cooldown_first", "cooldown_second", "enemies", "leader", "codes", "states", "order_throttle", "variable_first", "variable_second", "order_speed", "full_speed", "books", "mothership", "outside_x", "outside_y", "outside_z", "inside_x", "inside_y", "inside_z", "home_x", "home_y", "home_z", "countermeasure", "countermeasures_left", "countermeasure_working", "chaff_seconds", "countermeasure_cooldown", "threats", "waypoints", "notebook"],
+      "text": "Craft {object} (signature {signature}, type {type}, flight group {group}, team {team}, skill {skill}) on order {order} in slot {slot}, activity {activity}, thinking every {interval} ticks, is at ({x}, {y}, {z}) heading {yaw} pitch {pitch} roll {roll}, speed {speed}, throttle {throttle}, random seed {seed}; order target mask {targets}, turret slot mask {turrets}; {cannons} cannon groups firing types {cannon_first} and {cannon_second}; {launchers} launchers holding types {warhead_first} and {warhead_second}, {left_first} and {left_second} left, ready in {cooldown_first} and {cooldown_second} ticks; enemy mask {enemies}, leader {leader} (65535 when it leads); order codes {codes} and completion states {states} by slot, order throttle {order_throttle}, variables {variable_first} and {variable_second}, order speed {order_speed}; full speed {full_speed}; books bits {books}; mothership {mothership} (65535 for none) with its outside hangar point ({outside_x}, {outside_y}, {outside_z}) and inside one ({inside_x}, {inside_y}, {inside_z}); home point ({home_x}, {home_y}, {home_z}); countermeasure {countermeasure} (0 none, 1 chaff, 2 flare), {countermeasures_left} left, system working {countermeasure_working}, chaff running for {chaff_seconds} more simulated seconds, {countermeasure_cooldown} ticks before another launches; {threats} homing shots aimed at it, each on a think.threat line; waypoint mask {waypoints} (bit n set when mission point 4 + n is on), each point on a think.waypoint line; notebook {notebook}"
+    },
+    "think.waypoint": {
+      "level": "D",
+      "fields": ["object", "waypoint", "x", "y", "z"],
+      "text": "The group of craft {object} has waypoint {waypoint} (mission point 4 + {waypoint}) on, at ({x}, {y}, {z})"
     },
     "weave.end": {
       "level": "D",

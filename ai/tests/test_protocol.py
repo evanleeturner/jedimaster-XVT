@@ -50,6 +50,7 @@ C_SIZES = {
     "AI_WIRE_ORDER_SLOTS": world.ORDER_SLOTS,
     "AI_WIRE_POINT_AXES": world.POINT_AXES,
     "AI_WIRE_THREATS_MAX": world.THREATS_MAX,
+    "AI_WIRE_WAYPOINTS": world.WAYPOINTS,
 }
 
 
@@ -119,6 +120,7 @@ def test_wire_constants_match() -> None:
         "ORDER_SLOTS": world.ORDER_SLOTS,
         "POINT_AXES": world.POINT_AXES,
         "THREATS_MAX": world.THREATS_MAX,
+        "WAYPOINTS": world.WAYPOINTS,
     }
 
 

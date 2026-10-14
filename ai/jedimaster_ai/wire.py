@@ -51,7 +51,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 8
+VERSION = 9
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -114,6 +114,10 @@ VIEW_LAYOUT = (
     ("threat_x", "i", 4),
     ("threat_y", "i", 4),
     ("threat_z", "i", 4),
+    ("waypoint_mask", "B", 1),
+    ("waypoint_x", "i", 8),
+    ("waypoint_y", "i", 8),
+    ("waypoint_z", "i", 8),
 )
 VIEW_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in VIEW_LAYOUT)

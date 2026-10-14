@@ -36,6 +36,7 @@ import types
 import typing as t
 
 from .behaviors import Decision
+from .behaviors import patrol
 from .orders import OrderCode
 from .world import Books
 from .world import CraftView
@@ -60,10 +61,18 @@ def _no_target_left(view: CraftView) -> bool:
     return not view.books & Books.TARGETS_LEFT
 
 
-# Each written order's goal test, True once the goal is met. Attack: no
-# target left, now or in a group still to arrive, by the engine's 1997 count.
+# Each written order's goal test, True once the goal is met. Attack and SS
+# Patrol and Attack: no target left, now or in a group still to arrive, by
+# the engine's 1997 count. Circle, Circle and Evade and SS Patrol Loop: their
+# rounds reached the order's variable1.
 GOALS: t.Mapping[int, t.Callable[[CraftView], bool]] = types.MappingProxyType(
-    {OrderCode.ATTACK: _no_target_left}
+    {
+        OrderCode.ATTACK: _no_target_left,
+        OrderCode.SS_PATROL_AND_ATTACK: _no_target_left,
+        OrderCode.CIRCLE: patrol.rounds_done,
+        OrderCode.CIRCLE_AND_EVADE: patrol.rounds_done,
+        OrderCode.SS_PATROL_LOOP: patrol.rounds_done,
+    }
 )
 
 

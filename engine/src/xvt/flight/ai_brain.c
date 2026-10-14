@@ -14,6 +14,7 @@
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/ai_books.h"
 #include "xvt/flight/ai_countermeasures.h"
+#include "xvt/flight/ai_waypoints.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
 #include "xvt/flight/flight.h"
@@ -255,7 +256,8 @@ static void ai_brain_view_weapons(const struct craft_data *craft,
  * n of the enemy mask when contact n is hostile to the craft. The leader is
  * the craft's leader_obj_idx, 0xFFFF when it leads. Its countermeasures
  * and the homing shots aimed at it come from
- * ai_countermeasures_view_craft. */
+ * ai_countermeasures_view_craft, its group's waypoints from
+ * ai_waypoints_view_craft. */
 static void ai_brain_view_craft(uint16_t object_index,
 				const struct ai_brain_batch *batch,
 				struct ai_wire_craft_view *view)
@@ -303,6 +305,7 @@ static void ai_brain_view_craft(uint16_t object_index,
 			       : craft->leader_obj_idx;
 	ai_brain_view_weapons(craft, view);
 	ai_countermeasures_view_craft(object_index, view);
+	ai_waypoints_view_craft(object_index, view);
 	memcpy(view->notebook, craft->ai_notebook, sizeof view->notebook);
 }
 

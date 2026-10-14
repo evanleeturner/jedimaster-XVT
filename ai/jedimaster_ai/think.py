@@ -41,6 +41,7 @@ from .world import CraftView
 from .world import HOLD_FIRE
 from .world import NO_OBJECT
 from .world import Question
+from .world import WAYPOINTS
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ def _log_view(view: CraftView) -> None:
         "mothership=%d outside_x=%d outside_y=%d outside_z=%d inside_x=%d "
         "inside_y=%d inside_z=%d home_x=%d home_y=%d home_z=%d "
         "countermeasure=%d countermeasures_left=%d countermeasure_working=%d "
-        "chaff_seconds=%d countermeasure_cooldown=%d threats=%d "
+        "chaff_seconds=%d countermeasure_cooldown=%d threats=%d waypoints=%d "
         'notebook="%s"',
         view.object_index,
         view.object_signature,
@@ -182,6 +183,7 @@ def _log_view(view: CraftView) -> None:
         view.chaff_seconds,
         view.countermeasure_cooldown,
         view.threat_count,
+        view.waypoint_mask,
         view.notebook.hex(),
     )
     for threat in view.threats:
@@ -195,6 +197,16 @@ def _log_view(view: CraftView) -> None:
             threat.y,
             threat.z,
         )
+    for number in range(WAYPOINTS):
+        if view.waypoint_on(number):
+            logger.debug(
+                "think.waypoint object=%d waypoint=%d x=%d y=%d z=%d",
+                view.object_index,
+                number,
+                view.waypoint_x[number],
+                view.waypoint_y[number],
+                view.waypoint_z[number],
+            )
 
 
 def _log_answer(answer: CraftAnswer) -> None:
