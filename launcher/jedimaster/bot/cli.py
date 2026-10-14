@@ -150,10 +150,12 @@ def starter(
 
     When no account is linked, prints a link code and one instruction first.
     The returned function takes the running web application and starts the
-    bot as a task in the same event loop, sharing ``control`` and sending
-    pushes to the application's open pages. Needs discord.py.
+    bot as a task in the same event loop, sharing ``control``, sending
+    pushes to the application's open pages and opening the page through
+    the application when none is open. Needs discord.py.
     """
     from ..page.server import broadcast
+    from ..page.server import open_page
     from .core import Core
     from .discord_door import Door
 
@@ -174,7 +176,9 @@ def starter(
         async def deliver(pushes: list[dict]) -> int:
             return await broadcast(app, pushes)
 
-        door = Door(Core(control, linker, pilots), store, deliver)
+        door = Door(
+            Core(control, linker, pilots), store, deliver, lambda: open_page(app)
+        )
         task = asyncio.get_running_loop().create_task(door.run(token))
         tasks.append(task)
 

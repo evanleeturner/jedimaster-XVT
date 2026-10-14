@@ -262,6 +262,32 @@ async def test_the_bot_starts_in_the_pages_loop_and_shares_its_control(
     assert given is token and door.core.control is control
 
 
+async def test_the_bot_opens_the_page_through_the_pages_application(
+    tmp_path, page_dir, monkeypatch, settings
+):
+    ran: list = []
+    opened: list[str] = []
+
+    async def fake_run(self, token):
+        ran.append(self)
+
+    def fake_open(url: str) -> bool:
+        opened.append(url)
+        return True
+
+    monkeypatch.setattr(discord_door.Door, "run", fake_run)
+    monkeypatch.setattr(server.webbrowser, "open", fake_open)
+    cli.setup(settings, typed(SECRET))
+    control = server.Control(None, SettingsStore(tmp_path / "s.json"), "0")
+    app = server.make_app(control, "key", page_dir)
+    app[server.OPENER].url = "http://127.0.0.1:8780/?key=key"
+    cli.starter(control, settings, cli.check(settings))(app)
+    await asyncio.sleep(0)
+    (door,) = ran
+    assert door.open_page() is True
+    assert opened == ["http://127.0.0.1:8780/?key=key"]
+
+
 def test_check_hides_the_token_from_the_handlers(tmp_path, settings):
     cli.setup(settings, typed(SECRET))
     handler = logging.StreamHandler()

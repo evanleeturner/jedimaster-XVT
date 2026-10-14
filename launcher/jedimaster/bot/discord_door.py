@@ -13,8 +13,9 @@ Flow:
     ``Door`` builds a client with the guilds intent and a command tree of the
     registry's rows, twice each. A handler calls the matching ``Core`` method
     with the asker's account id (never the person right-clicked), sends the
-    reply's pushes to the open pages (``deliver``), then answers with
-    ``answer``, or opens the reply's window (``TextWindow``), whose typed
+    reply's pushes to the open pages (``deliver``), asks for the page to be
+    opened (``open_page``) when the reply ``opens_page`` and none is open,
+    then answers with ``answer``, or opens the reply's window (``TextWindow``), whose typed
     text goes through ``Door.typed``. A pick or press goes through
     ``Door.picked`` / ``pressed``.
     ``on_push`` receives a battle's ending from the control. ``Door.run``
@@ -37,7 +38,7 @@ Invariants:
       Discord refuses is a WARNING, never a crash.
 
 Call:
-    ``asyncio.create_task(Door(core, store, deliver).run(token))``
+    ``asyncio.create_task(Door(core, store, deliver, open_page).run(token))``
 """
 
 from __future__ import annotations
@@ -73,6 +74,8 @@ HOST_INSTALL = app_commands.AppInstallationType(guild=True, user=False)
 """Every command is for the host's own server install, not for a person's account."""
 Deliver = Callable[[list[dict[str, Any]]], Awaitable[int]]
 """Send pushes to every open page; return how many pages are open."""
+OpenPage = Callable[[], bool]
+"""Open the launcher's page; return True when a page is on its way."""
 
 
 def in_dm(interaction: discord.Interaction) -> bool:
@@ -173,11 +176,14 @@ class TextWindow(discord.ui.Modal):
 class Door:
     """The bot's connection to Discord and its commands."""
 
-    def __init__(self, core: Core, store: BotFile, deliver: Deliver) -> None:
+    def __init__(
+        self, core: Core, store: BotFile, deliver: Deliver, open_page: OpenPage
+    ) -> None:
         """Build the client and the command tree; connect to nothing."""
         self.core = core
         self.store = store
         self.deliver = deliver
+        self.open_page = open_page
         self.client = _Client(self)
         self.tree = _Tree(self.client)
         self._register()
@@ -264,6 +270,9 @@ class Door:
     async def answer(self, interaction: discord.Interaction, reply: Reply) -> None:
         """Send the reply's pushes to the open pages, then answer privately.
 
+        A reply that ``opens_page`` asks for the page when no page is open,
+        and its words say whether one is on its way.
+
         Adds the reply's menus and buttons. A reply that edits replaces the
         clicked message; otherwise it is a new private message (a follow-up
         when the interaction was already deferred). Replies in ``then`` follow
@@ -274,8 +283,10 @@ class Door:
         if reply.window is not None:
             await interaction.response.send_modal(TextWindow(self, reply.window))
             return
-        pages = await self.deliver(reply.pushes) if reply.pushes else 0
-        text = self.core.delivered_text(reply, pages)
+        asks = bool(reply.pushes) or reply.opens_page
+        pages = await self.deliver(reply.pushes) if asks else 0
+        opening = reply.opens_page and pages == 0 and self.open_page()
+        text = self.core.delivered_text(reply, pages, opening)
         view = self._view(reply)
         done = interaction.response.is_done()
         if reply.edit and done:

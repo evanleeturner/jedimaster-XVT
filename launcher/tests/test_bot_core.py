@@ -38,6 +38,7 @@ from pagedata import check_valid
 from jedimaster.bot import core as core_module
 from jedimaster.bot.core import HOST_ONLY
 from jedimaster.bot.core import SETTING_WORDS
+from jedimaster.bot.reply import Reply
 from jedimaster.page.protocol import MAX_ID
 from jedimaster.page.protocol import MISSION_TYPE_NAMES
 from jedimaster.page.protocol import SETTINGS
@@ -334,12 +335,31 @@ def test_a_pick_with_an_id_too_large_is_refused_by_the_list(bot):
     assert reply.text == core_module.REFUSED and reply.pushes == []
 
 
-def test_when_no_page_is_open_the_reply_says_so(bot):
+def test_when_no_page_is_open_the_reply_says_whether_one_is_opening(bot):
     reply = bot.core.pick_mission(HOST, "training", "1")
-    assert bot.core.delivered_text(reply, 0).endswith(core_module.NO_PAGE)
-    assert bot.core.delivered_text(reply, 1) == reply.text
+    assert reply.opens_page is True
+    opening = bot.core.delivered_text(reply, 0, True)
+    assert opening == "Showing First Flight on the page. " + core_module.OPENING
+    failed = bot.core.delivered_text(reply, 0, False)
+    assert failed == "Showing First Flight on the page. " + core_module.NOT_OPENED
+    assert bot.core.delivered_text(reply, 1, True) == reply.text
+    assert bot.core.delivered_text(reply, 2) == reply.text
+    pushed = Reply("Done.", pushes=[{"event": "settings.changed", "data": {}}])
+    assert bot.core.delivered_text(pushed, 0) == "Done. " + core_module.NO_PAGE
+    assert bot.core.delivered_text(pushed, 1) == "Done."
     plain = bot.core.status(HOST)
+    assert plain.opens_page is False
     assert bot.core.delivered_text(plain, 0) == plain.text
+
+
+def test_a_mission_or_setting_pick_asks_for_the_page_and_the_rest_do_not(bot):
+    assert bot.core.pick_setting(HOST, "art_scaling", "engine_fit", True).opens_page
+    assert bot.core.pick_mission(HOST, "training", "1").opens_page
+    assert not bot.core.pick_mission(HOST, "training", "99").opens_page
+    assert not bot.core.missions(HOST, "training").opens_page
+    assert not bot.core.settings(HOST, True).opens_page
+    assert not bot.core.status(HOST).opens_page
+    assert not bot.core.pick_mission(STRANGER, "training", "1").opens_page
 
 
 # ---- /settings ------------------------------------------------------------

@@ -82,7 +82,7 @@ async def whole_run(tmp_path: Path, monkeypatch, raw: Collect, hidden: Collect):
     async def deliver(pushes):
         return 1
 
-    door = Door(bot.core, bot.store, deliver)
+    door = Door(bot.core, bot.store, deliver, lambda: False)
 
     async def refuse(self, given, *, reconnect=True):
         raise discord.LoginFailure(f"Improper token {given} has been passed.")

@@ -179,7 +179,8 @@ test("with reduced motion the map shows the marker's final box at once", async (
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.reload();
   await expect(page.getByLabel("Whole pixels")).toBeEnabled();
-  await showMission(page, "First Flight");
+  // The launcher keeps the last mission shown and sends it to the reloaded page.
+  await expect(page.locator("#shown-title")).toHaveText("First Flight");
   await expect(page.locator("#briefing-caption")).toHaveText(CAPTION);
   expect(await start()).toContain("0,227,0");
 });

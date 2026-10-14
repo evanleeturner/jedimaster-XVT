@@ -587,3 +587,149 @@ async def test_options_set_on_one_page_are_pushed_to_the_other(
         pushed = await receive(ws)
         assert pushed["event"] == "options.changed"
         assert pushed["data"]["options"]["difficulty"] == "hard"
+
+
+async def test_a_late_page_gets_the_shown_mission_then_the_battle_that_flies(
+    aiohttp_client, flying, page_dir
+):
+    from solodata import solo_args
+
+    client = await aiohttp_client(make_app(flying, KEY, page_dir))
+    await client.get(f"/?key={KEY}", allow_redirects=False)
+    first = await connect(client)
+    await receive(first)
+    await ask(first, 1, "page.show_mission", {"mission_type": "training", "id": 1})
+    await receive(first)
+    reply = await ask(first, 2, "launch.solo", solo_args())
+    await receive(first)
+    late = await connect(client)
+    events = [(await receive(late))["event"] for _ in range(3)]
+    assert events == ["status", "page.show_mission", "launch.started"]
+    flying.battles.cancel(reply["result"]["launch_id"])
+    await receive(late)
+
+
+# ---- opening the page -------------------------------------------------------
+
+
+class Clock:
+    """A clock the test moves by hand."""
+
+    def __init__(self) -> None:
+        self.now = 100.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+@pytest.fixture
+def browser(monkeypatch) -> list[str]:
+    """Return the list each URL given to the browser lands in; the browser starts."""
+    opened: list[str] = []
+
+    def fake_open(url: str) -> bool:
+        opened.append(url)
+        return True
+
+    monkeypatch.setattr(server.webbrowser, "open", fake_open)
+    return opened
+
+
+def opener_at(clock: Clock) -> server.PageOpener:
+    opener = server.PageOpener(clock)
+    opener.url = f"http://127.0.0.1:8780/?key={KEY}"
+    return opener
+
+
+def test_the_opener_opens_once_until_the_wait_passes(browser, caplog):
+    clock = Clock()
+    opener = opener_at(clock)
+    with caplog.at_level(logging.DEBUG):
+        assert opener.open() is True
+        clock.now += server.OPEN_WAIT_SECONDS - 0.5
+        assert opener.open() is True
+        assert browser == [opener.url], "a page on its way is not opened twice"
+        clock.now += 0.5
+        assert opener.open() is True
+    assert browser == [opener.url, opener.url], "after the wait it opens again"
+    assert KEY not in caplog.text
+    assert "opened the page in the browser" in caplog.text
+
+
+def test_a_page_that_connects_lets_the_next_ask_open_at_once(browser):
+    opener = opener_at(Clock())
+    assert opener.open() is True
+    opener.connected()
+    assert opener.open() is True
+    assert len(browser) == 2
+
+
+@pytest.mark.parametrize("failure", ["refused", "raised"])
+def test_with_no_browser_the_opener_says_no_and_tries_again_next_time(
+    monkeypatch, caplog, failure
+):
+    calls: list[str] = []
+
+    def fake_open(url: str) -> bool:
+        calls.append(url)
+        if failure == "raised":
+            raise server.webbrowser.Error("could not locate runnable browser")
+        return False
+
+    monkeypatch.setattr(server.webbrowser, "open", fake_open)
+    opener = opener_at(Clock())
+    with caplog.at_level(logging.WARNING):
+        assert opener.open() is False
+        assert opener.open() is False
+    assert len(calls) == 2, "a failed open is not a page on its way"
+    assert [r.levelno for r in caplog.records] == [logging.WARNING] * 2
+    assert KEY not in caplog.text
+
+
+def test_before_the_port_is_bound_nothing_is_opened(browser):
+    assert server.PageOpener(Clock()).open() is False
+    assert browser == []
+
+
+async def test_a_page_that_connects_tells_the_applications_opener(client, browser):
+    client.app[server.OPENER].url = f"http://127.0.0.1:8780/?key={KEY}"
+    assert server.open_page(client.app) is True
+    ws = await connect(client)
+    await receive(ws)
+    assert server.open_page(client.app) is True
+    assert len(browser) == 2
+    await ws.close()
+
+
+async def test_a_page_that_connects_after_a_show_gets_the_mission_after_the_status(
+    client,
+):
+    first = await connect(client)
+    await receive(first)
+    await ask(first, 1, "page.show_mission", {"mission_type": "training", "id": 1})
+    await receive(first)
+    await ask(first, 2, "page.show_mission", {"mission_type": "training", "id": 99})
+    await first.close()
+    late = await connect(client)
+    assert (await receive(late))["event"] == "status"
+    assert await receive(late) == {
+        "event": "page.show_mission",
+        "data": {"mission_type": "training", "id": 1, "title": "First Flight"},
+    }
+    await late.close()
+
+
+async def test_the_start_up_open_counts_as_a_page_on_its_way(
+    control, page_dir, browser, capsys
+):
+    apps: list = []
+    task = asyncio.create_task(serve(control, KEY, 0, page_dir, True, apps.append))
+    for _ in range(100):
+        if browser:
+            break
+        await asyncio.sleep(0.05)
+    assert server.open_page(apps[0]) is True
+    assert browser == [capsys.readouterr().out.strip()]
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task

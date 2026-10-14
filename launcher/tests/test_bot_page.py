@@ -22,6 +22,7 @@ Call:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from pathlib import Path
@@ -34,17 +35,24 @@ from pagedata import check_valid
 from pagedata import request
 
 from jedimaster.bot.discord_door import Door
+from jedimaster.page import server
 from jedimaster.page.server import broadcast
 from jedimaster.page.server import make_app
 
 logger = logging.getLogger(__name__)
 
 KEY = "test-secret-key"
+URL = f"http://127.0.0.1:8780/?key={KEY}"
 
 
 @pytest.fixture
-async def rig(aiohttp_client, tmp_path: Path):
-    """Return a linked bot sharing its control with a running page application."""
+async def rig(aiohttp_client, tmp_path: Path, monkeypatch):
+    """Return a linked bot sharing its control with a running page application.
+
+    The browser is a list: ``bot.opened`` holds each URL given to it.
+    """
+    opened: list[str] = []
+    monkeypatch.setattr(server.webbrowser, "open", lambda url: not opened.append(url))
     bot = make_bot(tmp_path)
     bot.link_account(HOST)
     page_dir = tmp_path / "dist"
@@ -55,8 +63,10 @@ async def rig(aiohttp_client, tmp_path: Path):
     async def deliver(pushes):
         return await broadcast(client.app, pushes)
 
-    bot.door = Door(bot.core, bot.store, deliver)
+    client.app[server.OPENER].url = URL
+    bot.door = Door(bot.core, bot.store, deliver, lambda: server.open_page(client.app))
     bot.client = client
+    bot.opened = opened
     return bot
 
 
@@ -120,11 +130,36 @@ async def test_a_mission_the_menu_lacks_sends_the_page_nothing(rig):
     await ws.close()
 
 
-async def test_with_no_page_open_the_answer_says_so_and_nothing_breaks(rig):
+async def test_with_no_page_open_a_pick_opens_one_that_shows_the_pick(rig):
     picker = rig.core.missions(HOST, "training").pickers[0]
     talk = Talk(HOST)
     await rig.door.picked(talk, picker, ["1"])
-    assert talk.texts()[0].endswith("No page is open, so nothing changed on screen.")
+    assert talk.texts() == [
+        "Showing First Flight on the page. "
+        "The launcher is opening its page on its computer."
+    ]
+    assert rig.opened == [URL]
+    await rig.door.picked(Talk(HOST), picker, ["2"])
+    assert rig.opened == [URL], "a page on its way is not opened twice"
+    ws = await open_page(rig.client)
+    assert await next_push(ws) == {
+        "event": "page.show_mission",
+        "data": {"mission_type": "training", "id": 2, "title": "Second Flight"},
+    }
+    await ws.close()
+
+
+async def test_after_the_opened_page_connects_and_closes_the_next_pick_opens_again(rig):
+    picker = rig.core.missions(HOST, "training").pickers[0]
+    await rig.door.picked(Talk(HOST), picker, ["1"])
+    ws = await open_page(rig.client)
+    await ws.close()
+    for _ in range(50):
+        if await broadcast(rig.client.app, []) == 0:
+            break
+        await asyncio.sleep(0.02)
+    await rig.door.picked(Talk(HOST), picker, ["1"])
+    assert rig.opened == [URL, URL]
 
 
 async def test_the_page_count_is_the_number_of_open_sockets(rig):

@@ -96,7 +96,9 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
         help="also run the Discord bot (jedimaster bot setup first)",
     )
     page.add_argument(
-        "--no-open", action="store_true", help="print the URL, do not open it"
+        "--no-open",
+        action="store_true",
+        help="print the URL, do not open it at the start (with --bot, a pick in Discord still opens it when no page is open)",
     )
 
 

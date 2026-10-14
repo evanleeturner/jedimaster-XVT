@@ -244,7 +244,7 @@ def door(bot):
     async def deliver(pushes):
         return 0
 
-    return Door(bot.core, bot.store, deliver)
+    return Door(bot.core, bot.store, deliver, lambda: False)
 
 
 async def test_the_slash_link_makes_the_pilot_from_the_asker_s_names(bot, door):

@@ -574,6 +574,27 @@ test("a page opened while a battle flies shows it and can cancel it", async ({
   await expect(page.locator("#battle-ending")).toHaveText("cancelled");
 });
 
+test("a page opened after a mission was shown lands on its briefing", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await openPage(page, launcher.url);
+  await askFromSecondSocket(context, launcher.origin, {
+    mission_type: "training",
+    id: 1,
+  });
+  const late = await context.newPage();
+  await late.goto(launcher.origin + "/");
+  await expect(late.locator("#shown-title")).toHaveText("First Flight");
+  await expect(late.locator("#briefing-canvas")).toBeVisible();
+  await expect(late.locator("#briefing-empty")).toBeHidden();
+  await openMenu(late, "Missions");
+  await expect(late.locator("#missions-list li[aria-current]")).toHaveText(
+    /First Flight/,
+  );
+});
+
 test("a second battle while one flies is refused in words and the first stays", async ({
   page,
   launcher,

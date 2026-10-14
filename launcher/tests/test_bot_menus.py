@@ -61,7 +61,7 @@ def build(tmp_path):
         bot.delivered.append(pushes)
         return 1
 
-    bot.door = Door(bot.core, bot.store, deliver)
+    bot.door = Door(bot.core, bot.store, deliver, lambda: False)
     bot.calls = []
     for item in ITEMS:
         real = getattr(bot.core, item.method)
@@ -358,7 +358,8 @@ async def test_the_whole_walk_edits_one_message_and_launch_starts_the_battle(rig
         == "Started First Flight as Ace. Watch it on the page."
     )
     assert press.edits[-1]["view"] is None, "the button goes once the battle starts"
-    ((push,),) = rig.delivered
+    assert rig.delivered[0] == [], "the first step counted the open pages"
+    ((push,),) = rig.delivered[1:]
     assert push["event"] == "launch.started" and push["data"]["pilot"] == "Ace"
     rig.control.battles.cancel(push["data"]["launch_id"])
     await asyncio.sleep(0.3)

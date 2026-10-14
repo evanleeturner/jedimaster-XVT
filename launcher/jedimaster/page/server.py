@@ -15,12 +15,17 @@ Flow:
     checks the origin, sends the status (and the battle that flies, if any),
     then reads one JSON message at a time, hands it to ``Control.handle``,
     sends the reply and then the pushes to every open socket. ``art`` serves ``GET /art/briefing/<name>`` for the fixed art set and ``frame`` serves ``GET /art/frame/<name>`` for the twelve menu frame pictures. ``serve`` binds, prints the page's URL and runs until stopped.
+    ``PageOpener`` opens the page in the browser, at the start and when the
+    bot finds no page open (``open_page``), at most once while an opened
+    page has not yet connected.
 
 Invariants:
     - The server binds to 127.0.0.1 only.
     - The secret is compared in constant time and is never logged; the
       access log is off because it would print the secret's URL.
     - Every refusal is logged at WARNING, without the secret or the cookie.
+    - The page's URL is printed once and given to the browser; no log line
+      holds it.
     - A message over 64 KiB closes the socket.
     - This is the only module that imports the web framework.
 
@@ -34,6 +39,7 @@ import asyncio
 import hmac
 import json
 import logging
+import time
 import webbrowser
 from collections.abc import Awaitable
 from collections.abc import Callable
@@ -59,10 +65,59 @@ CONTROL = web.AppKey("control", Control)
 KEY = web.AppKey("key", str)
 PAGE_DIR = web.AppKey("page_dir", Path)
 SOCKETS = web.AppKey("sockets", set)
+OPEN_WAIT_SECONDS = 30.0
+"""How long an opened page has to connect before the next ask opens another."""
 RUNNER_OPTIONS = {"access_log": None}
 """The access log is off: it would print the secret's URL."""
 
 Handler = Callable[[web.Request], Awaitable[web.StreamResponse]]
+
+
+class PageOpener:
+    """Open the page in the browser, once until it connects or ``OPEN_WAIT_SECONDS`` pass."""
+
+    def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
+        """Hold no URL yet (``serve`` sets ``url`` once the port is bound) and ``clock``."""
+        self.url: str | None = None
+        self._clock = clock
+        self._opened_at: float | None = None
+
+    def open(self) -> bool:
+        """Open the page unless an opened page is still on its way; return True if one is.
+
+        Returns False, and opens nothing, before ``url`` is set or when the
+        browser cannot be started (logged at WARNING: a computer with no
+        screen has none). Does not check whether a page is open; the caller
+        does.
+        """
+        now = self._clock()
+        if self._opened_at is not None and now - self._opened_at < OPEN_WAIT_SECONDS:
+            logger.debug(
+                "a page opened %.1f s ago is still on its way", now - self._opened_at
+            )
+            return True
+        if self.url is None:
+            logger.warning("cannot open the page before the server is bound")
+            return False
+        began = self._clock()
+        try:
+            opened = webbrowser.open(self.url)
+        except webbrowser.Error as exc:
+            logger.warning("cannot open the page in a browser: %s", exc)
+            return False
+        if not opened:
+            logger.warning("no browser could open the page on this computer")
+            return False
+        self._opened_at = now
+        logger.info("opened the page in the browser in %.2f s", self._clock() - began)
+        return True
+
+    def connected(self) -> None:
+        """Note that a page connected: the next ask may open a page at once."""
+        self._opened_at = None
+
+
+OPENER = web.AppKey("opener", PageOpener)
 
 
 def _local_port(request: web.Request) -> int:
@@ -196,6 +251,14 @@ async def _broadcast(app: web.Application, outcome: Outcome) -> None:
     await broadcast(app, outcome.pushes)
 
 
+def open_page(app: web.Application) -> bool:
+    """Open the page for a front end that found none open; return True if one is on its way.
+
+    See ``PageOpener.open``. Does not check whether a page is open.
+    """
+    return app[OPENER].open()
+
+
 async def socket(request: web.Request) -> web.StreamResponse:
     """Run one page's socket until it closes; return the closed socket.
 
@@ -209,6 +272,7 @@ async def socket(request: web.Request) -> web.StreamResponse:
     await ws.prepare(request)
     control = request.app[CONTROL]
     request.app[SOCKETS].add(ws)
+    request.app[OPENER].connected()
     logger.info("page connected")
     try:
         await _send(ws, control.status_push())
@@ -251,6 +315,7 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
     app[KEY] = key
     app[PAGE_DIR] = page_dir
     app[SOCKETS] = set()
+    app[OPENER] = PageOpener()
     control.pages_open = lambda: len(app[SOCKETS])
 
     async def tell_pages(push: dict) -> None:
@@ -278,7 +343,8 @@ async def serve(
     """Bind 127.0.0.1:``port`` (0 takes a free one), print the URL, run on.
 
     Prints ``http://127.0.0.1:PORT/?key=SECRET`` and opens it in the browser
-    unless ``open_browser`` is False. Calls ``on_start`` once, with the
+    (through the application's ``PageOpener``) unless ``open_browser`` is
+    False. Calls ``on_start`` once, with the
     application, after the port is bound (a second user of the same event
     loop starts there). Runs until cancelled, then closes the sockets and
     the server. Raises ``OSError`` when the port cannot be bound.
@@ -291,10 +357,11 @@ async def serve(
         url = f"http://{HOST}:{bound}/?key={key}"
         logger.info("serving on %s:%d", HOST, bound)
         print(url, flush=True)
+        runner.app[OPENER].url = url
         if on_start is not None:
             on_start(runner.app)
         if open_browser:
-            webbrowser.open(url)
+            runner.app[OPENER].open()
         await asyncio.Event().wait()
     finally:
         await runner.cleanup()

@@ -51,14 +51,22 @@ async def rig(tmp_path):
     bot.link_account(HOST)
     delivered: list[list[dict]] = []
     open_pages = [1]
+    opened: list[bool] = []
+    can_open = [True]
 
     async def deliver(pushes):
         delivered.append(pushes)
         return open_pages[0]
 
-    bot.door = Door(bot.core, bot.store, deliver)
+    def open_page():
+        opened.append(can_open[0])
+        return can_open[0]
+
+    bot.door = Door(bot.core, bot.store, deliver, open_page)
     bot.delivered = delivered
     bot.open_pages = open_pages
+    bot.opened = opened
+    bot.can_open = can_open
     return bot
 
 
@@ -176,7 +184,7 @@ async def test_link_from_a_stranger_in_a_direct_message_with_the_code_links(tmp_
     async def deliver(pushes):
         return 0
 
-    door = Door(bot.core, bot.store, deliver)
+    door = Door(bot.core, bot.store, deliver, lambda: False)
     code = bot.linker.start()
     talk = Talk(STRANGER)
     await door.tree.get_command("link").callback(talk, code.lower())
@@ -193,7 +201,7 @@ async def test_link_in_a_server_is_refused(tmp_path):
     async def deliver(pushes):
         return 0
 
-    door = Door(bot.core, bot.store, deliver)
+    door = Door(bot.core, bot.store, deliver, lambda: False)
     code = bot.linker.start()
     talk = Talk(STRANGER, in_server=True)
     await door.tree.get_command("link").callback(talk, code)
@@ -306,21 +314,61 @@ async def test_a_pick_from_the_second_menu_uses_that_menus_choice(rig):
     assert talk.texts()[0].startswith("Showing Mission 27 on the page.")
 
 
-async def test_with_no_page_open_the_answer_says_so(rig):
-    rig.open_pages[0] = 0
+async def pick_art_scaling(rig, value):
     shown = Talk(HOST)
     await call(rig, "settings", shown)
     (select,) = shown.said()[0][1]["view"].children
     talk = Talk(HOST)
-    marker = selected_values.set({select.custom_id: ["sharp_bilinear"]})
+    marker = selected_values.set({select.custom_id: [value]})
     try:
         await select.callback(talk)
     finally:
         selected_values.reset(marker)
+    return talk
+
+
+async def test_with_no_page_open_a_pick_opens_the_page_and_says_so(rig):
+    rig.open_pages[0] = 0
+    talk = await pick_art_scaling(rig, "sharp_bilinear")
     assert talk.texts() == [
-        "Art scaling set to Sharp bilinear. No page is open, so nothing changed on screen."
+        "Art scaling set to Sharp bilinear. "
+        "The launcher is opening its page on its computer."
     ]
+    assert rig.opened == [True]
     assert rig.control.store.get() == {"art_scaling": "sharp_bilinear"}
+
+
+async def test_when_the_page_cannot_be_opened_the_answer_says_so(rig):
+    rig.open_pages[0] = 0
+    rig.can_open[0] = False
+    talk = await pick_art_scaling(rig, "engine_fit")
+    assert talk.texts() == [
+        "Art scaling set to Engine fit. "
+        "No page is open, and the launcher could not open one on its computer."
+    ]
+    assert rig.opened == [False]
+
+
+async def test_with_a_page_open_nothing_is_opened(rig):
+    talk = await pick_art_scaling(rig, "engine_fit")
+    assert talk.texts() == ["Art scaling set to Engine fit."]
+    assert rig.opened == []
+
+
+async def test_single_player_with_no_page_open_opens_it_before_any_push(rig):
+    rig.open_pages[0] = 0
+    talk = Talk(HOST)
+    await call(rig, "solo", talk)
+    assert rig.delivered == [[]], "the open pages were counted"
+    assert rig.opened == [True]
+    assert talk.texts()[0].endswith("The launcher is opening its page on its computer.")
+
+
+async def test_a_reply_that_does_not_ask_for_the_page_counts_and_opens_nothing(rig):
+    rig.open_pages[0] = 0
+    talk = Talk(HOST)
+    await call(rig, "status", talk)
+    assert rig.delivered == [] and rig.opened == []
 
 
 async def test_a_pick_from_a_stranger_changes_nothing(rig):

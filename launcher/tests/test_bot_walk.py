@@ -69,6 +69,8 @@ def test_solo_offers_the_six_kinds_in_one_menu(bot):
         "training", "melee", "tournament", "combat", "battle", "campaign",
     ]  # fmt: skip
     assert bot.sent == []
+    assert reply.opens_page is True, "the Launch at the end needs an open page"
+    assert bot.core.pick_solo(HOST, "kind", "", "training").opens_page is False
 
 
 def test_a_kind_with_a_side_asks_for_the_side(bot):
@@ -212,6 +214,7 @@ async def test_launch_asks_the_launcher_and_reports_its_words(bot):
     }
     assert reply.text == "Started First Flight as Ace. Watch it on the page."
     assert reply.edit is True
+    assert reply.opens_page is False
     assert [p["event"] for p in reply.pushes] == ["launch.started"]
     bot.control.battles.cancel(1)
     await asyncio.sleep(0.3)
@@ -222,6 +225,13 @@ def test_a_refused_launch_says_why_and_keeps_the_button(bot):
     reply = bot.core.launch_solo(HOST, "training|rebel|alpha.tie|Ace")
     assert reply.text.startswith("Open the launcher's page first")
     assert reply.edit is False and reply.pushes == []
+    assert reply.opens_page is True
+
+
+def test_a_launch_refused_for_another_reason_does_not_ask_for_the_page(bot):
+    reply = bot.core.launch_solo(HOST, "training|rebel|alpha.tie|Nobody")
+    assert reply.text == "That pilot is not among the game's pilots."
+    assert reply.opens_page is False
 
 
 def test_the_launcher_checks_what_the_bot_sent(bot):
@@ -308,6 +318,7 @@ def test_a_pick_sets_the_option_for_that_player_and_tells_the_pages(bot):
     reply = bot.core.pick_option(HOST, "battle_length", "4")
     assert reply.text == "Battle length set to 4 wins."
     assert [p["event"] for p in reply.pushes] == ["options.changed"]
+    assert reply.opens_page is True
     assert bot.control.store.get_options(str(HOST)) == {"battle_length": 4}
 
 

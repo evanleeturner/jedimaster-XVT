@@ -11,7 +11,8 @@ Flow:
     runs the command from ``Control.commands`` and builds the reply dict.
     ``settings.set`` also builds the ``settings.changed`` push, and
     ``page.show_mission`` the ``page.show_mission`` push, for every open
-    front end; the caller sends them. The launch and option commands live in
+    front end; the caller sends them. The last mission shown is kept and
+    sent to each page that connects later (``connect_pushes``). The launch and option commands live in
     ``launching``; a battle's ending reaches front ends through
     ``Control.subscribe``.
 
@@ -310,6 +311,7 @@ class Control:
             "options.set": self._options_set,
         }
         self._pushes: list[Json] = []
+        self._shown: Json | None = None
 
     def subscribe(self, listener: Callable[[Json], Awaitable[None]]) -> None:
         """Send every later push that no request caused (a battle's ending) to ``listener``."""
@@ -325,11 +327,14 @@ class Control:
     def connect_pushes(self) -> list[Json]:
         """Return the pushes a page gets after ``status`` when it connects.
 
-        The ``launch.started`` push of the battle that is flying, if any, so
-        a page opened late still shows it and can cancel it.
+        The ``page.show_mission`` push of the last mission shown, if any, so
+        a page opened after a pick in the bot shows the pick; then the
+        ``launch.started`` push of the battle that is flying, if any, so a
+        page opened late still shows it and can cancel it.
         """
+        pushes = [self._shown] if self._shown is not None else []
         running = self.battles.running_push()
-        return [running] if running is not None else []
+        return pushes + [running] if running is not None else pushes
 
     def _launch_solo(self, args: Json) -> Json:
         result, pushes = self.launching.solo(args)
@@ -441,16 +446,15 @@ class Control:
         menu = self._menu(args["mission_type"])
         for entry in menu["entries"]:
             if entry["id"] == args["id"]:
-                self._pushes.append(
-                    {
-                        "event": "page.show_mission",
-                        "data": {
-                            "mission_type": args["mission_type"],
-                            "id": args["id"],
-                            "title": entry["title"],
-                        },
-                    }
-                )
+                self._shown = {
+                    "event": "page.show_mission",
+                    "data": {
+                        "mission_type": args["mission_type"],
+                        "id": args["id"],
+                        "title": entry["title"],
+                    },
+                }
+                self._pushes.append(self._shown)
                 return {"shown": True}
         logger.debug("no mission %d in the %s menu", args["id"], args["mission_type"])
         return {"shown": False}

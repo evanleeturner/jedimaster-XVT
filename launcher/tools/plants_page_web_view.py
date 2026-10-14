@@ -296,6 +296,16 @@ SITE_PLANTS: list[Plant] = [
         (B + "the page is refused without the key",),
     ),
     Plant(
+        "web-control-shown-not-sent",
+        "jedimaster/page/control.py",
+        "        pushes = [self._shown] if self._shown is not None else []",
+        "        pushes = []",
+        (
+            B + "a page opened after a mission was shown lands on its briefing",
+            B + "with reduced motion the map shows the marker's final box at once",
+        ),
+    ),
+    Plant(
         "web-main-status-not-asked",
         MAI,
         '    send({ command: "install.status", args: {} });\n',

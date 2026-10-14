@@ -42,6 +42,7 @@ from ..launch.options import OPTIONS
 from ..launch.options import words_of
 from ..page.control import Outcome
 from ..page.launching import NO_ENGINE
+from ..page.launching import NO_PAGE
 from ..page.protocol import MISSION_TYPE_NAMES
 from ..page.protocol import OPTION_NAMES
 from ..page.solo import side_problem
@@ -81,7 +82,8 @@ class Walk:
         """Answer ``/solo`` and the Single player item: offer the six kinds of battle.
 
         Returns the kinds as one menu, or ``HOST_ONLY`` for another account.
-        Starts nothing.
+        The menu ``opens_page``, so the page the Launch needs opens while the
+        host picks. Starts nothing.
         """
         self._begin("solo", user_id)
         refusal = self._gate("solo", user_id, in_dm, dm_only=False)
@@ -91,6 +93,7 @@ class Walk:
         return Reply(
             "Single player: pick a kind of battle.",
             (Picker("solo_kind", "", "Kind of battle", kind_options()),),
+            opens_page=True,
         )
 
     def pick_solo(
@@ -224,8 +227,9 @@ class Walk:
         The launcher checks every value again against the lists and the
         pilot folder and answers in words; its push for the open pages goes
         with the reply, which replaces the Launch message only when the battle
-        started (a refusal leaves the button to try again). Returns words alone for another account or a key that
-        is not four parts.
+        started (a refusal leaves the button to try again; one because no page
+        is open ``opens_page``). Returns words alone for another account or a
+        key that is not four parts.
         """
         self._begin("launch_solo", user_id)
         refusal = self._gate("launch_solo", user_id, in_dm, dm_only=False)
@@ -250,7 +254,10 @@ class Walk:
             return Reply(REFUSED)
         self._end("launch_solo", user_id, f"started={result['started']}")
         return Reply(
-            result["message"], pushes=outcome.pushes, edit=bool(result["started"])
+            result["message"],
+            pushes=outcome.pushes,
+            edit=bool(result["started"]),
+            opens_page=result["message"] == NO_PAGE,
         )
 
     def options(self, user_id: int, in_dm: bool = False) -> Reply:
@@ -319,7 +326,7 @@ class Walk:
             words = next(c.words for c in spec.choices if c.text == sent)
             text = f"{spec.words} set to {words}."
         self._end("pick_option", user_id, "set")
-        return Reply(text, pushes=outcome.pushes)
+        return Reply(text, pushes=outcome.pushes, opens_page=True)
 
 
 def _native(name: str, text: str) -> Any:

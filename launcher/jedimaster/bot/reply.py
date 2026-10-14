@@ -89,7 +89,9 @@ class Reply:
     ``text`` the words; ``pickers`` and ``buttons`` the controls under them;
     ``pushes`` for open pages; ``then`` further replies, each its own message;
     ``edit`` true when the reply replaces the message that was clicked;
-    ``window`` a window to open instead of answering in words.
+    ``window`` a window to open instead of answering in words;
+    ``opens_page`` true when the launcher should open its page if none is
+    open (a pick meant to show on it).
     """
 
     text: str
@@ -99,6 +101,7 @@ class Reply:
     then: tuple[Reply, ...] = ()
     edit: bool = False
     window: Window | None = None
+    opens_page: bool = False
 
 
 def clip(text: str) -> str:

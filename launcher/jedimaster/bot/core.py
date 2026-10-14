@@ -16,7 +16,10 @@ Flow:
     ``Control.handle`` through ``send``, so the page's own checks apply. It
     returns a ``Reply``: the words, the menus to pick from and the pushes
     for the open pages. The caller sends the pushes and then the words
-    (``delivered_text`` adds a note when no page was open).
+    (``delivered_text`` adds a note when no page was open). A reply that
+    ``opens_page`` asks the caller to open the launcher's page when none is
+    open: a mission or setting pick, a game option, and the Single player
+    walk, whose Launch needs an open page.
 
 Invariants:
     - Only the linked account is answered; any other gets ``HOST_ONLY``
@@ -68,6 +71,8 @@ Json = dict[str, Any]
 HOST_ONLY = "This launcher answers its host only."
 DM_ONLY = "Send this command in a direct message to the bot."
 NO_PAGE = "No page is open, so nothing changed on screen."
+OPENING = "The launcher is opening its page on its computer."
+NOT_OPENED = "No page is open, and the launcher could not open one on its computer."
 REFUSED = "The launcher refused that request."
 BOT_VERSION_NAME = "bot"
 
@@ -351,7 +356,9 @@ class Core(Walk, PilotWalk):
             )
         title = outcome.pushes[0]["data"]["title"]
         self._end("pick_mission", user_id, "shown")
-        return Reply(f"Showing {title} on the page.", pushes=outcome.pushes)
+        return Reply(
+            f"Showing {title} on the page.", pushes=outcome.pushes, opens_page=True
+        )
 
     def settings(self, user_id: int, in_dm: bool) -> Reply:
         """Answer ``/settings``: each setting as a menu with its values in words.
@@ -399,7 +406,11 @@ class Core(Walk, PilotWalk):
             return Reply(REFUSED)
         words, values = SETTING_WORDS[name]
         self._end("pick_setting", user_id, "set")
-        return Reply(f"{words} set to {values[value][0]}.", pushes=outcome.pushes)
+        return Reply(
+            f"{words} set to {values[value][0]}.",
+            pushes=outcome.pushes,
+            opens_page=True,
+        )
 
     def _pilot_line(self, user_id: int) -> str:
         try:
@@ -411,9 +422,17 @@ class Core(Walk, PilotWalk):
             return "Pilot: none yet; the Pilot command makes one."
         return f"Pilot: {pilot.name}."
 
-    def delivered_text(self, reply: Reply, pages: int) -> str:
-        """Return the reply's words, with ``NO_PAGE`` added when it had pushes
-        and no page (``pages`` is 0) was open to get them."""
-        if reply.pushes and pages == 0:
+    def delivered_text(self, reply: Reply, pages: int, opening: bool = False) -> str:
+        """Return the reply's words, with a note when no page (``pages`` is 0) was open.
+
+        For a reply that ``opens_page``: ``OPENING`` when a page is on its way
+        (``opening``), else ``NOT_OPENED``. For any other reply with pushes:
+        ``NO_PAGE``. The words alone when a page was open.
+        """
+        if pages > 0:
+            return reply.text
+        if reply.opens_page:
+            return f"{reply.text} {OPENING if opening else NOT_OPENED}"
+        if reply.pushes:
             return f"{reply.text} {NO_PAGE}"
         return reply.text
