@@ -211,10 +211,8 @@ BRIEFING_UNDER_PLANTS: list[Plant] = [
     Plant(
         "briefing-under-frame-before-pad",
         U,
-        "    if pad is not None:\n        _lay(panel, pad, whole=False)\n"
-        "    if frame is not None:\n        _lay(panel, frame, whole=False)\n",
-        "    if frame is not None:\n        _lay(panel, frame, whole=False)\n"
-        "    if pad is not None:\n        _lay(panel, pad, whole=False)\n",
+        "(background, True), (pad, False), (frame, False)",
+        "(background, True), (frame, False), (pad, False)",
         (TU + "test_the_layers_go_in_order_background_pad_frame_shading",),
     ),
     Plant(
@@ -568,7 +566,7 @@ BRIEFING_UNDER_PLANTS: list[Plant] = [
     Plant(
         "briefing-under-png-size-unchecked",
         U,
-        "    if len(panel) != PANEL_WIDTH * PANEL_HEIGHT:\n        raise",
+        "    if len(panel) != width * height:\n        raise",
         "    if False:\n        raise",
         (TU + "test_a_png_of_the_wrong_size_is_refused",),
     ),

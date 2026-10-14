@@ -109,6 +109,10 @@ export interface View {
   readonly menus: readonly MenuView[];
   readonly kinds: readonly KindView[];
   readonly shownWhere: ShownView | null;
+  /** The shown mission's kind (`training`...), or null when none is shown. */
+  readonly shownType: MissionType | null;
+  /** The launcher's version, or null before it arrives. */
+  readonly launcherVersion: string | null;
   readonly missionsNote: string | null;
   readonly artScaling: ArtScaling | null;
   readonly shownText: string;
@@ -468,6 +472,8 @@ export function describe(state: State): View {
     menus: menus.map((menu) => menuView(menu, state.shown)),
     kinds: menus.map((menu) => kindView(menu, state.shown)),
     shownWhere: shownWhere(menus, state.shown),
+    shownType: state.shown?.mission_type ?? null,
+    launcherVersion: state.launcherVersion,
     missionsNote:
       state.menus === null ? "The mission lists have not arrived yet." : null,
     artScaling: state.artScaling,

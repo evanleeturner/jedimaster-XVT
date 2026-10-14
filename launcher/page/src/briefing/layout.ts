@@ -1,8 +1,10 @@
-// Where the 360 x 240 panel goes on the page, for each art scaling setting.
+// Where a picture goes on the page (the 360 x 240 panel, or any size), for each
+// art scaling setting.
 //
 // Purpose: choose the size the panel is shown at and how its pixels are
 // scaled, from the room the page has.
-// Flow: `layoutFor(setting, width, height)` returns the canvas's backing
+// Flow: `layoutIn` does the sums for any size; `layoutFor(setting, width, height)`
+// is the panel's case. Both return the canvas's backing
 // scale (`factor`), its shown size and whether the browser smooths it.
 // Invariants: `whole_pixels` shows the largest whole multiple that fits (at
 // least 1), sharp; `engine_fit` shows the largest size of the same shape
@@ -22,26 +24,41 @@ export interface PanelLayout {
   readonly smooth: boolean;
 }
 
+/**
+ * Return the layout of a picture `baseW` x `baseH` in a box of `width` x
+ * `height` CSS pixels, by the rules above (the shape is kept, and the
+ * multiple is at least 1 even when the box is smaller).
+ */
+export function layoutIn(
+  setting: Scaling,
+  baseW: number,
+  baseH: number,
+  width: number,
+  height: number,
+): PanelLayout {
+  const fit = Math.max(0.1, Math.min(width / baseW, height / baseH));
+  const whole = Math.max(1, Math.floor(fit));
+  if (setting === "whole_pixels") {
+    return {
+      factor: whole,
+      width: baseW * whole,
+      height: baseH * whole,
+      smooth: false,
+    };
+  }
+  const shown = {
+    width: Math.floor(baseW * fit),
+    height: Math.floor(baseH * fit),
+  };
+  if (setting === "engine_fit") return { factor: 1, ...shown, smooth: true };
+  return { factor: whole, ...shown, smooth: true };
+}
+
 /** Return the layout of the panel in a box of `width` x `height` CSS pixels. */
 export function layoutFor(
   setting: Scaling,
   width: number,
   height: number,
 ): PanelLayout {
-  const fit = Math.max(0.1, Math.min(width / PANEL_W, height / PANEL_H));
-  const whole = Math.max(1, Math.floor(fit));
-  if (setting === "whole_pixels") {
-    return {
-      factor: whole,
-      width: PANEL_W * whole,
-      height: PANEL_H * whole,
-      smooth: false,
-    };
-  }
-  const shown = {
-    width: Math.floor(PANEL_W * fit),
-    height: Math.floor(PANEL_H * fit),
-  };
-  if (setting === "engine_fit") return { factor: 1, ...shown, smooth: true };
-  return { factor: whole, ...shown, smooth: true };
+  return layoutIn(setting, PANEL_W, PANEL_H, width, height);
 }

@@ -1,0 +1,711 @@
+/*
+ * The menu frame skin: the page inside the 1997 game's metal setup screen.
+ *
+ * Everything here is under `html.framed`, a class the page sets only when
+ * the frame picture loaded, the window is at least 640 x 480 CSS px and
+ * forced colors are off. Without the class this file changes nothing (the
+ * framed-only paragraphs below stay out of the page entirely), so V1's
+ * plain layout is what a phone, a 200% zoom or a missing install shows.
+ *
+ * Scaling: the whole screen is one 640 x 480 box and `zoom: var(--s)`
+ * scales it. One `zoom` keeps every position below in the preview's own
+ * 1x pixels and scales text and borders with it; the alternative,
+ * `calc(var(--s) * Npx)` on every value, would repeat the factor in
+ * every rule. The page sets --s from the art scaling setting.
+ *
+ * Contrast over ANY art: every text sits on a plate of the preview's
+ * panel colour, rgb(10 6 44), at alpha 0.8. Over a white art pixel the
+ * plate is 0.8 * (10, 6, 44) + 0.2 * 255 = (59, 56, 86); against it
+ * white is 11.1:1, yellow #F8EC48 9.1:1, cyan #58D8F0 6.6:1 and the muted
+ * #9FB8C0 5.4:1, all above 4.5:1. Opened menus use alpha 0.98, which is
+ * darker still. The cyan bars carry their own opaque ground (#10205A on
+ * #58D8F0 is 9.1:1).
+ */
+
+.frame-only,
+.frame-art {
+  display: none;
+}
+
+html.framed {
+  --plate: rgb(10 6 44 / 80%);
+  --drop: rgb(10 6 44 / 98%);
+  --f-yellow: #f8ec48;
+  --f-cyan: #58d8f0;
+  --f-navy: #10205a;
+  --f-edge: #2a8ca8;
+  --f-muted: #9fb8c0;
+  --f-rule: #56686c;
+
+  background: #000;
+}
+
+html.framed body {
+  display: grid;
+  place-items: center;
+  block-size: 100vh;
+  overflow: hidden;
+  background: #000;
+}
+
+html.framed .screen {
+  position: relative;
+  inline-size: 640px;
+  block-size: 480px;
+  overflow: hidden;
+  zoom: var(--s);
+  background: #000;
+  color: #ffffff;
+  font:
+    11px/1.25 "Times New Roman",
+    Times,
+    "Liberation Serif",
+    "DejaVu Serif",
+    serif;
+  letter-spacing: 0;
+}
+
+html.framed .frame-art {
+  z-index: 0;
+  display: block;
+  position: absolute;
+  inset: 0;
+  inline-size: 640px;
+  block-size: 480px;
+}
+
+html.framed .frame-only {
+  display: block;
+}
+
+html.framed .frame-only:empty {
+  display: none;
+}
+
+/* Focus rings that show over any art: yellow between two black rings. */
+html.framed :focus-visible {
+  outline: 2px solid var(--f-yellow);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 5px #000;
+}
+
+html.framed [hidden] {
+  display: none !important;
+}
+
+/* The page's boxes stay in the DOM but take no room of their own: every
+   piece below is placed on the screen box. */
+html.framed .page-header,
+html.framed .menu-bar,
+html.framed .section-nav,
+html.framed .nav-list,
+html.framed .dd,
+html.framed .dd-mega,
+html.framed .dd-right,
+html.framed .bar-status,
+html.framed .page-main,
+html.framed .briefing,
+html.framed .briefing-layout,
+html.framed .briefing-main,
+html.framed .battle-strip {
+  position: static;
+  display: block;
+  max-inline-size: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+html.framed .page-header h1 {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+html.framed .skip-link {
+  inset-inline-start: 8px;
+  z-index: 50;
+  padding: 4px 8px;
+  background: var(--drop);
+  font-size: 11px;
+}
+
+/* The six menu buttons, centred on the painted tabs (x, y of the preview). */
+html.framed .menu-btn {
+  position: absolute;
+  z-index: 3;
+  display: inline-flex;
+  justify-content: center;
+  min-inline-size: 24px;
+  min-block-size: 24px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--plate);
+  color: #ffffff;
+  font: inherit;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+html.framed .menu-btn::after {
+  display: none;
+}
+
+html.framed .menu-btn:hover,
+html.framed .menu-btn[aria-expanded="true"] {
+  background: var(--plate);
+  color: var(--f-yellow);
+}
+
+html.framed .menu-btn[aria-controls="panel-pilot"] {
+  inset: 27px auto auto 34px;
+}
+
+html.framed .menu-btn[aria-controls="panel-missions"] {
+  inset: 26px auto auto 104px;
+}
+
+html.framed .menu-btn[aria-controls="panel-battle"] {
+  inset: 19px auto auto 205px;
+}
+
+html.framed .menu-btn[aria-controls="panel-options"] {
+  inset: 19px auto auto 327px;
+}
+
+html.framed .menu-btn[aria-controls="panel-status"] {
+  inset: 19px auto auto 444px;
+}
+
+html.framed .menu-btn[aria-controls="panel-settings"] {
+  inset: 26px auto auto 541px;
+}
+
+html.framed .flying-badge {
+  padding: 0 4px;
+  font-size: 10px;
+}
+
+html.framed .connection-line {
+  position: absolute;
+  inset: 54px auto auto 160px;
+  z-index: 2;
+  max-inline-size: 300px;
+  padding: 1px 4px;
+  background: var(--plate);
+  color: var(--f-cyan);
+}
+
+html.framed #reconnect {
+  position: absolute;
+  inset: 50px auto auto 470px;
+  z-index: 2;
+}
+
+html.framed .problem {
+  position: absolute;
+  inset: 116px auto auto 84px;
+  z-index: 6;
+  inline-size: 360px;
+  margin: 0;
+  padding: 4px 6px;
+  border-radius: 0;
+}
+
+/* The opened menu: one drop-down under the tabs. */
+html.framed .dd-panel,
+html.framed .dd-right .dd-panel,
+html.framed .dd-mega .dd-panel,
+html.framed .dd-panel.panel-medium {
+  position: absolute;
+  inset: 52px auto auto 72px;
+  z-index: 20;
+  inline-size: 520px;
+  max-inline-size: none;
+  max-block-size: 390px;
+  padding: 0 8px 6px;
+  overflow-y: auto;
+  border: 2px solid var(--f-rule);
+  border-radius: 0;
+  background: var(--drop);
+  box-shadow:
+    inset 0 0 0 1px #1c2828,
+    0 6px 14px rgb(0 0 0 / 70%);
+}
+
+html.framed .panel h2 {
+  margin: 0 -8px 6px;
+  padding: 0 8px;
+  background: linear-gradient(#3c4a4e, #232d30);
+  border-block-end: 1px solid var(--f-rule);
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 20px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html.framed .panel h3 {
+  margin: 0 0 2px;
+  color: var(--f-muted);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html.framed .panel p {
+  margin-block: 0 6px;
+}
+
+html.framed .missions-body {
+  flex-wrap: nowrap;
+  gap: 0;
+}
+
+html.framed .pick-column {
+  flex: 0 0 100px;
+}
+
+html.framed .pick-column + .pick-column {
+  margin-inline-start: 6px;
+  padding-inline-start: 6px;
+  border-inline-start: 1px solid var(--f-rule);
+  flex-basis: 170px;
+}
+
+html.framed .pick-column.pick-wide {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+html.framed .scroll-list {
+  max-block-size: 144px;
+  scrollbar-color: var(--f-rule) transparent;
+}
+
+html.framed .row-btn {
+  min-block-size: 24px;
+  padding: 0 4px;
+  border-radius: 0;
+  color: #ffffff;
+}
+
+html.framed .row-btn:hover {
+  background: #1e4652;
+  color: var(--f-yellow);
+}
+
+html.framed .row-btn[aria-pressed="true"] {
+  background: #1e4652;
+  color: var(--f-yellow);
+  font-weight: 400;
+}
+
+html.framed .row-count {
+  color: var(--f-muted);
+  font-family: inherit;
+  font-size: 11px;
+}
+
+html.framed .mission-item {
+  min-block-size: 24px;
+  padding: 0 4px;
+  border-block-end: 0;
+}
+
+html.framed .mission-item:hover {
+  background: #1e4652;
+}
+
+html.framed .mission-item[aria-current="true"] {
+  border-inline-start: 0;
+  background: #1e4652;
+  color: var(--f-yellow);
+  font-weight: 400;
+}
+
+html.framed .mission-now {
+  color: var(--f-yellow);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html.framed .mission-locked {
+  color: var(--f-muted);
+}
+
+html.framed .choice-group {
+  padding: 2px 6px;
+  border-color: var(--f-rule);
+  border-radius: 0;
+}
+
+html.framed .choice {
+  padding-block: 2px;
+}
+
+html.framed .choice-input {
+  inline-size: 20px;
+  block-size: 20px;
+  accent-color: var(--f-cyan);
+}
+
+html.framed .choice-label {
+  min-block-size: 24px;
+  font-weight: 400;
+}
+
+html.framed .choice-help {
+  color: var(--f-muted);
+}
+
+html.framed .options-list {
+  gap: 2px 10px;
+}
+
+html.framed .options-list dt {
+  font-weight: 400;
+}
+
+/* The two main panels' plates. */
+html.framed .page-main::before,
+html.framed .page-main::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  background: var(--plate);
+}
+
+html.framed .page-main::before {
+  inset: 76px auto auto 76px;
+  inline-size: 376px;
+  block-size: 362px;
+}
+
+html.framed .page-main::after {
+  inset: 114px auto auto 456px;
+  inline-size: 166px;
+  block-size: 248px;
+}
+
+html.framed .mission-shown {
+  position: absolute;
+  inset: 454px auto auto 84px;
+  z-index: 2;
+  inline-size: 120px;
+  margin: 0;
+  padding: 1px 4px;
+  overflow: hidden;
+  background: var(--plate);
+  color: #ffffff;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.framed .mission-shown:empty {
+  display: none;
+}
+
+html.framed .shown-heading {
+  position: absolute;
+  inset: 78px auto auto 84px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column-reverse;
+  inline-size: 360px;
+  margin: 0;
+}
+
+html.framed .shown-heading h2 {
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+html.framed .shown-heading h2::before {
+  content: "Briefing: " / "";
+}
+
+html.framed .shown-where {
+  margin: 0;
+  color: var(--f-yellow);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html.framed .briefing-empty,
+html.framed .briefing-stage {
+  position: absolute;
+  inset: 116px auto auto 84px;
+  z-index: 2;
+  inline-size: 360px;
+  block-size: 240px;
+  min-block-size: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 1px solid var(--f-edge);
+  background-color: #000000;
+  background-image:
+    linear-gradient(rgb(88 216 240 / 10%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(88 216 240 / 10%) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: 0 0;
+}
+
+html.framed .briefing-empty {
+  gap: 6px;
+  padding: 8px;
+}
+
+html.framed .empty-title {
+  font-size: 14px;
+}
+
+html.framed .briefing-stage {
+  display: block;
+  overflow: hidden;
+}
+
+html.framed .briefing-stage canvas {
+  max-inline-size: none;
+}
+
+/* Buttons are the game's cyan bars. */
+html.framed .button,
+html.framed .briefing-team select {
+  min-block-size: 24px;
+  min-inline-size: 24px;
+  padding: 0 5px;
+  border: 1px solid var(--f-edge);
+  border-radius: 0;
+  background: var(--f-cyan);
+  color: var(--f-navy);
+  font: inherit;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+html.framed .button[aria-disabled="true"] {
+  border-style: dashed;
+  border-color: var(--f-muted);
+  background: #1c2a36;
+  color: var(--f-muted);
+}
+
+html.framed .pick-button {
+  min-block-size: 24px;
+  border-color: var(--f-edge);
+  background: var(--f-cyan);
+  color: var(--f-navy);
+}
+
+html.framed .briefing-controls {
+  position: absolute;
+  inset: 361px auto auto 84px;
+  z-index: 2;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+  align-items: center;
+  inline-size: 366px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+html.framed .briefing-controls .button {
+  flex: none;
+}
+
+html.framed .briefing-sound,
+html.framed .briefing-team {
+  gap: 3px;
+  min-block-size: 24px;
+  white-space: nowrap;
+}
+
+html.framed .briefing-sound input {
+  flex: none;
+  margin: 0;
+  inline-size: 24px;
+  block-size: 24px;
+  accent-color: var(--f-cyan);
+}
+
+/* The team picker is drawn in the right panel under the words (its DOM
+   place, after the Sound switch in the controls, is unchanged, so the tab
+   order reads on from the controls into the words). Its offsets are
+   relative to the controls row: (462 - 84, 335 - 361). */
+html.framed .briefing-team {
+  position: absolute;
+  inset: -26px auto auto 378px;
+  inline-size: 156px;
+  background: var(--plate);
+}
+
+/* The word "Team" stays the select's accessible name but is not drawn. */
+html.framed .briefing-team label {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+html.framed .briefing-team select {
+  flex: none;
+  inline-size: 156px;
+  min-inline-size: 0;
+  padding: 0 2px;
+}
+
+html.framed .briefing-sound {
+  flex: none;
+  margin-inline-end: 4px;
+}
+
+html.framed .briefing-page {
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+html.framed .briefing-text {
+  position: absolute;
+  inset: 118px auto auto 462px;
+  z-index: 2;
+  display: block;
+  inline-size: 156px;
+  max-block-size: 214px;
+  padding: 0;
+  overflow-y: auto;
+  border: 0;
+  background: none;
+}
+
+html.framed .briefing-text h3 {
+  margin: 8px 0 2px;
+  color: #ffffff;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html.framed .briefing-text h3:first-child {
+  margin-block-start: 0;
+}
+
+html.framed .briefing-text p {
+  margin: 0;
+}
+
+html.framed .briefing-caption {
+  min-block-size: 0;
+  margin-block: 0;
+}
+
+html.framed .briefing-labels {
+  margin: 0;
+  padding-inline-start: 12px;
+}
+
+html.framed .battle-strip {
+  position: absolute;
+  inset: 366px auto auto 460px;
+  z-index: 8;
+  inline-size: 160px;
+}
+
+html.framed .strip-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-inline-size: none;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--f-yellow);
+  background: var(--drop);
+}
+
+html.framed .strip-tag {
+  color: var(--f-yellow);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+html.framed .battle-line,
+html.framed .battle-ending {
+  flex: none;
+}
+
+html.framed .bar-pilot,
+html.framed .bar-version,
+html.framed .discord-note {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  background: var(--plate);
+  color: #ffffff;
+}
+
+html.framed .bar-pilot {
+  inset: 454px auto auto 210px;
+  inline-size: 224px;
+  text-align: center;
+}
+
+html.framed .bar-version {
+  inset: 454px auto auto 506px;
+  inline-size: 58px;
+  text-align: center;
+}
+
+html.framed .discord-note {
+  inset: 396px auto auto 462px;
+  inline-size: 156px;
+  padding: 2px 4px;
+  color: var(--f-muted);
+}
+
+html.framed .options-copy {
+  position: absolute;
+  inset: 385px auto auto 84px;
+  z-index: 2;
+  inline-size: 360px;
+}
+
+html.framed .options-copy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 10px;
+  font-size: 10px;
+}
+
+html.framed .options-copy-item {
+  display: flex;
+  gap: 4px;
+  min-inline-size: 0;
+  line-height: 13px;
+  white-space: nowrap;
+}
+
+html.framed .options-copy-item.is-wide {
+  grid-column: 1 / -1;
+  order: 1;
+}
+
+html.framed .options-copy-value {
+  color: var(--f-cyan);
+}

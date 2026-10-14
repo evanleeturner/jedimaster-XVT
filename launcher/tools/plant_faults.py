@@ -48,6 +48,7 @@ from pathlib import Path
 
 from plants_bot import BOT_PLANTS
 from plants_briefing import BRIEFING_PLANTS
+from plants_briefing_frame import BRIEFING_FRAME_PLANTS
 from plants_briefing_under import BRIEFING_UNDER_PLANTS
 from plants_common import Plant
 from plants_fonts import FONTS_PLANTS
@@ -125,6 +126,7 @@ PLANTS: list[Plant] = [
     *OWN_PILOT_PLANTS,
     *BRIEFING_PLANTS,
     *BRIEFING_UNDER_PLANTS,
+    *BRIEFING_FRAME_PLANTS,
     *LAUNCH_PLANTS,
 ]
 

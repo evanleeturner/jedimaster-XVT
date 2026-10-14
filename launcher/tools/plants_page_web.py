@@ -31,6 +31,7 @@ import logging
 from plants_briefing_web import BRIEFING_WEB_PLANTS
 from plants_common import Plant
 from plants_launch_web import LAUNCH_WEB_PLANTS
+from plants_page_frame_web import FRAME_WEB_PLANTS
 from plants_page_web_view import VIEW_PLANTS
 
 logger = logging.getLogger(__name__)
@@ -632,4 +633,5 @@ WEB_PLANTS: list[Plant] = [
     *SHOW_PLANTS,
     *BRIEFING_WEB_PLANTS,
     *LAUNCH_WEB_PLANTS,
+    *FRAME_WEB_PLANTS,
 ]

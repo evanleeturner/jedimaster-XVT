@@ -1,6 +1,7 @@
 import { BriefingPanel } from "./briefing/panel.ts";
 import type { Request } from "./codec.ts";
 import { decode, encodeRequest, isArtScaling, isMissionType } from "./codec.ts";
+import { FrameSkin } from "./frame/skin.ts";
 import type { BriefingBundle } from "./generated/briefing.ts";
 import { logger } from "./logger.ts";
 import type { Action, KindView, State, View } from "./state.ts";
@@ -45,12 +46,23 @@ const battleLine = find(HTMLSpanElement, "#battle-line");
 const battleEnding = find(HTMLSpanElement, "#battle-ending");
 const cancelButton = find(HTMLButtonElement, "#battle-cancel");
 const optionsList = find(HTMLElement, "#options-list");
+const optionsCopy = find(HTMLElement, "#options-copy-grid");
+const barVersion = find(HTMLParagraphElement, "#bar-version");
 const menuButtons = Array.from(
   document.querySelectorAll<HTMLButtonElement>(".menu-btn[aria-controls]"),
 );
 
 let state: State = initialState();
 const briefingPanel = new BriefingPanel();
+const frameSkin = new FrameSkin(
+  find(HTMLCanvasElement, "#frame-art"),
+  (layout) => {
+    briefingPanel.setFrame(layout);
+  },
+);
+briefingPanel.onTeam = (background) => {
+  frameSkin.setTeam(background);
+};
 let shownBundle: BriefingBundle | null = null;
 let openPanel = "";
 let pickedKind = "";
@@ -303,6 +315,21 @@ function renderOptions(view: View): void {
       return [term, value];
     }),
   );
+  optionsCopy.replaceChildren(
+    ...rows.map((row) => {
+      const item = document.createElement("span");
+      item.className = "options-copy-item";
+      if (row.name === "mission_time_limit") item.classList.add("is-wide");
+      const label = document.createElement("span");
+      label.className = "options-copy-label";
+      label.textContent = `${row.label}:`;
+      const value = document.createElement("span");
+      value.className = "options-copy-value";
+      value.textContent = row.value;
+      item.append(label, value);
+      return item;
+    }),
+  );
 }
 
 function renderBriefing(view: View): void {
@@ -335,7 +362,12 @@ function render(view: View): void {
   renderBattle(view);
   renderOptions(view);
   setText(shownLine, view.shownText);
-  if (view.artScaling !== null) briefingPanel.setScaling(view.artScaling);
+  setText(barVersion, view.launcherVersion ?? "");
+  frameSkin.setMission(view.shownType);
+  if (view.artScaling !== null) {
+    briefingPanel.setScaling(view.artScaling);
+    frameSkin.setScaling(view.artScaling);
+  }
   scalingGroup.disabled = !view.settingsEnabled;
   for (const input of scalingGroup.querySelectorAll("input")) {
     input.checked = input.value === view.artScaling;

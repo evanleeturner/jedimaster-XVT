@@ -361,8 +361,8 @@ BRIEFING_PLANTS: list[Plant] = [
     Plant(
         "briefing-art-type-lost",
         "jedimaster/page/server.py",
-        "web.Response(body=found.data, content_type=found.content_type)",
-        'web.Response(body=found.data, content_type="application/octet-stream")',
+        '"no such art")\n    return web.Response(body=found.data, content_type=found.content_type)',
+        '"no such art")\n    return web.Response(body=found.data, content_type="application/octet-stream")',
         ("tests/test_briefing_art.py::test_each_art_name_is_served",),
     ),
     Plant(

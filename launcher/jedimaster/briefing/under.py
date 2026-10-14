@@ -8,12 +8,15 @@ Purpose:
 
 Flow:
     ``background_for`` applies the background rule to a mission's directory,
-    a team and the flight groups; ``saved_picture`` lays the five layers
-    over the panel in 5-6-5 pixels; ``widened_png`` turns those pixels into
-    an 8-bit PNG, each channel widened by repeating its top bits so that
+    a team and the flight groups; ``screen_picture`` lays the first three
+    layers over the whole 640 by 480 screen; ``saved_picture`` crops the
+    panel from that screen and lays the last two over it, in 5-6-5 pixels;
+    ``widened_png`` turns pixels into an 8-bit PNG, each channel widened by repeating its top bits so that
     packing the PNG's colors gives the 5-6-5 pixels back.
 
 Invariants:
+    - The screen is 640 by 480; a layer sits at (0, 0) and only its part
+      inside the screen counts.
     - The panel is the screen rectangle from (84, 96) to (443, 335); a
       layer sits at screen (0, 0) and only its part inside the panel counts.
     - The background keeps every pixel (index 0 included); the pad and the
@@ -38,6 +41,8 @@ from ..icons.png import rgba_png
 
 logger = logging.getLogger(__name__)
 
+SCREEN_WIDTH = 640
+SCREEN_HEIGHT = 480
 PANEL_LEFT = 84
 PANEL_TOP = 96
 PANEL_WIDTH = 360
@@ -136,6 +141,32 @@ def _lay(panel: list[int], bitmap: BmpFile, whole: bool, shaded: bool = False) -
         panel[at] = shade(panel[at], colors[index]) if shaded else colors[index]
 
 
+def screen_picture(
+    background: BmpFile | None, pad: BmpFile | None, frame: BmpFile | None
+) -> list[int]:
+    """Return the screen's 307,200 5-6-5 pixels, rows top first, under the map.
+
+    Lays, in order, ``background`` (every pixel), then ``pad`` and ``frame``
+    (skipping index 0), each at (0, 0) and clipped to the screen. A layer
+    given as None is left out. A layer smaller than the screen leaves the
+    rest as it was. Does not check the layers' sizes.
+    """
+    screen = [0] * (SCREEN_WIDTH * SCREEN_HEIGHT)
+    for layer, whole in ((background, True), (pad, False), (frame, False)):
+        if layer is None:
+            continue
+        colors = [color_565(*entry) for entry in layer.palette]
+        columns = min(SCREEN_WIDTH, layer.width)
+        for row in range(min(SCREEN_HEIGHT, layer.height)):
+            start = row * layer.width
+            base = row * SCREEN_WIDTH
+            for column, index in enumerate(layer.pixels[start : start + columns]):
+                if index != TRANSPARENT or whole:
+                    screen[base + column] = colors[index]
+    logger.debug("screen picture laid: %d pixels", len(screen))
+    return screen
+
+
 def saved_picture(
     background: BmpFile | None,
     pad: BmpFile | None,
@@ -150,13 +181,11 @@ def saved_picture(
     None is left out (the panel stays as it was). Does not check the
     layers' sizes: the part inside the panel is used.
     """
-    panel = [0] * (PANEL_WIDTH * PANEL_HEIGHT)
-    if background is not None:
-        _lay(panel, background, whole=True)
-    if pad is not None:
-        _lay(panel, pad, whole=False)
-    if frame is not None:
-        _lay(panel, frame, whole=False)
+    screen = screen_picture(background, pad, frame)
+    panel: list[int] = []
+    for row in range(PANEL_HEIGHT):
+        start = (PANEL_TOP + row) * SCREEN_WIDTH + PANEL_LEFT
+        panel += screen[start : start + PANEL_WIDTH]
     if shading is not None:
         _lay(panel, shading, whole=False, shaded=True)
     for row in range(BAND_FIRST_ROW, BAND_LAST_ROW + 1):
@@ -177,20 +206,20 @@ def widen6(value: int) -> int:
     return value << 2 | value >> 4
 
 
-def widened_png(panel: Sequence[int]) -> bytes:
-    """Return the 360 by 240 panel as an opaque 8-bit PNG.
+def widened_png(
+    panel: Sequence[int], width: int = PANEL_WIDTH, height: int = PANEL_HEIGHT
+) -> bytes:
+    """Return ``panel`` (360 by 240 unless sized) as an opaque 8-bit PNG.
 
     Each 5-6-5 pixel's channels are widened (``widen5``, ``widen6``), so
     packing the PNG's colors to 5-6-5 gives the pixel back. Raises
-    ``ValueError`` when ``panel`` is not 86,400 pixels.
+    ``ValueError`` when ``panel`` is not ``width`` times ``height`` pixels.
     """
-    if len(panel) != PANEL_WIDTH * PANEL_HEIGHT:
-        raise ValueError(
-            f"{len(panel)} pixels are not a {PANEL_WIDTH}x{PANEL_HEIGHT} panel"
-        )
+    if len(panel) != width * height:
+        raise ValueError(f"{len(panel)} pixels are not a {width}x{height} panel")
     rgba = bytearray()
     for pixel in panel:
         rgba += bytes(
             (widen5(pixel >> 11), widen6((pixel >> 5) & 63), widen5(pixel & 31), 255)
         )
-    return rgba_png(PANEL_WIDTH, PANEL_HEIGHT, bytes(rgba))
+    return rgba_png(width, height, bytes(rgba))

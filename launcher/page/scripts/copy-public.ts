@@ -1,7 +1,7 @@
 import { copyFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
-const FILES = ["index.html", "style.css"];
+const FILES = ["index.html", "style.css", "frame.css"];
 
 await mkdir("dist", { recursive: true });
 for (const name of FILES) {

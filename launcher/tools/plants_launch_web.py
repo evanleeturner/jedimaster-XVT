@@ -426,15 +426,15 @@ WIRING_PLANTS: list[Plant] = [
     plant(
         "note-not-live",
         HTM,
-        '      role="status"\n      tabindex="-1"\n    >',
-        '      tabindex="-1"\n    >',
+        '        role="status"\n        tabindex="-1"\n      >',
+        '        tabindex="-1"\n      >',
         "browser: Cancel works from the keyboard",
     ),
     plant(
         "note-not-focusable",
         HTM,
-        '      role="status"\n      tabindex="-1"\n    >',
-        '      role="status"\n    >',
+        '        role="status"\n        tabindex="-1"\n      >',
+        '        role="status"\n      >',
         "browser: Cancel works from the keyboard",
     ),
     plant(
@@ -469,8 +469,8 @@ WIRING_PLANTS: list[Plant] = [
     plant(
         "options-unlabelled",
         HTM,
-        '                  id="options"\n                  aria-labelledby="options-heading"\n',
-        '                  id="options"\n',
+        '                    id="options"\n                    aria-labelledby="options-heading"\n',
+        '                    id="options"\n',
         "browser: the game options are shown read-only",
     ),
     plant(

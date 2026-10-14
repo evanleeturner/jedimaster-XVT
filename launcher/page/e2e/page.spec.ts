@@ -375,6 +375,8 @@ test("the page keeps scripts and styles in their files", async ({
   const problems: string[] = [];
   page.on("pageerror", (error) => problems.push(error.message));
   page.on("console", (message) => {
+    // An install without the menu frame answers its picture 404 by design.
+    if (message.location().url.includes("/art/frame/")) return;
     if (message.type() === "error") problems.push(message.text());
   });
   await openPage(page, launcher.url);

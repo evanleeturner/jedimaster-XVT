@@ -443,7 +443,7 @@ BRIEFING_PAGE_PLANTS: list[Plant] = [
     Plant(
         "web-main-scaling-unused",
         "page/src/main.ts",
-        "if (view.artScaling !== null) briefingPanel.setScaling(view.artScaling);",
+        "    briefingPanel.setScaling(view.artScaling);\n",
         "",
         ("browser: whole pixels draws the largest whole multiple, sharp",),
     ),
@@ -505,8 +505,8 @@ BRIEFING_PAGE_PLANTS: list[Plant] = [
     Plant(
         "web-htm-live-off",
         "page/public/index.html",
-        '              aria-live="polite"\n              aria-atomic="true"',
-        '              aria-live="off"\n              aria-atomic="true"',
+        '                aria-live="polite"\n                aria-atomic="true"',
+        '                aria-live="off"\n                aria-atomic="true"',
         (
             "browser: a picked mission opens its briefing stopped, with its words for a screen reader",
         ),

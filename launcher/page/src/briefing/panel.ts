@@ -20,7 +20,8 @@ import type { Button, Player } from "./core.ts";
 import { BUTTONS, loadBriefing, offered, press, updateFrame } from "./core.ts";
 import { drawFrame } from "./draw.ts";
 import type { Scaling } from "./layout.ts";
-import { layoutFor, PANEL_H } from "./layout.ts";
+import type { PanelLayout } from "./layout.ts";
+import { layoutFor, PANEL_H, PANEL_W } from "./layout.ts";
 import { Painter } from "./paint.ts";
 import type { DrawRecord } from "./records.ts";
 import { settled } from "./reduced.ts";
@@ -72,9 +73,13 @@ export class BriefingPanel {
   #sounds: Sounds | null = null;
   #records: readonly DrawRecord[] = [];
   #scaling: Scaling = "whole_pixels";
+  #framed: PanelLayout | null = null;
   #frameRequest = 0;
   #opening = 0;
   #spoken = { caption: "", labels: "", highlight: "" };
+
+  /** Called with the shown team's under-map art name (null: none shown). */
+  onTeam: (background: string | null) => void = () => undefined;
 
   constructor() {
     for (const [button, element] of this.#buttons) {
@@ -111,11 +116,22 @@ export class BriefingPanel {
     this.#note.hidden = false;
     this.#empty.hidden = false;
     setText(this.#note, note);
+    this.onTeam(null);
   }
 
   /** Set the art scaling and re-place the map. */
   setScaling(scaling: Scaling): void {
     this.#scaling = scaling;
+    this.#place();
+  }
+
+  /**
+   * Draw the map at the menu frame's scale (null: not framed). Framed, the
+   * stage is a fixed 360 x 240 box that the page's `zoom` scales, so the
+   * canvas is drawn at the frame's factor and shown at 360 x 240.
+   */
+  setFrame(layout: PanelLayout | null): void {
+    this.#framed = layout;
     this.#place();
   }
 
@@ -161,6 +177,7 @@ export class BriefingPanel {
     const player = loadBriefing(bundle, team);
     press(player, "stop");
     this.#player = player;
+    this.onTeam(bundle.teams.find((t) => t.team === team)?.background ?? null);
     this.#spoken = { caption: "", labels: "", highlight: "" };
     this.#place();
     this.#runFrame();
@@ -170,6 +187,12 @@ export class BriefingPanel {
   #place(): void {
     const painter = this.#painter;
     if (painter === null) return;
+    if (this.#framed !== null) {
+      const { factor, smooth } = this.#framed;
+      painter.place({ factor, width: PANEL_W, height: PANEL_H, smooth });
+      this.#repaint();
+      return;
+    }
     const width = this.#stage.clientWidth;
     const height = Math.max(PANEL_H, Math.floor(window.innerHeight * 0.7));
     painter.place(layoutFor(this.#scaling, Math.max(width, 1), height));

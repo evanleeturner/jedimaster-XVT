@@ -34,11 +34,11 @@ from iconinstall import make_install as make_icon_install
 logger = logging.getLogger(__name__)
 
 
-def main(argv: list[str]) -> int:
-    """Write the made-up briefing files into the folder ``argv[0]``; return 0."""
-    install = Path(argv[0])
-    make_icon_install(install)
-    add_files(install)
+def mission_file(team_names: list[str] | None = None) -> bytes:
+    """Return the made-up mission (two teams, a caption, a label, a marker).
+
+    The teams are called ``team_names`` (default ``Red`` and ``Blue``).
+    """
     groups = [
         {
             "name": "Alpha Wing",
@@ -71,8 +71,15 @@ def main(argv: list[str]) -> int:
         "tags": ["Rally point"],
         "strings": ["", ">Intro$Brief words [here] to read."],
     }
-    data = mission_bytes(groups, [brief], ["Red", "Blue"])
-    (install / "Train" / "ALPHA.TIE").write_bytes(data)
+    return mission_bytes(groups, [brief], team_names or ["Red", "Blue"])
+
+
+def main(argv: list[str]) -> int:
+    """Write the made-up briefing files into the folder ``argv[0]``; return 0."""
+    install = Path(argv[0])
+    make_icon_install(install)
+    add_files(install)
+    (install / "Train" / "ALPHA.TIE").write_bytes(mission_file())
     return 0
 
 

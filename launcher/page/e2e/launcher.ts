@@ -73,6 +73,23 @@ function addBriefing(install: string): void {
   }
 }
 
+// Adds twelve made-up menu frame backgrounds (frontres/GAME*.BMP) to the install.
+function addFrames(install: string): void {
+  const python = process.env.JEDIMASTER_PYTHON ?? "python3";
+  const done = spawnSync(
+    python,
+    [join(TESTS_FOLDER, "write_frame_install.py"), install],
+    {
+      cwd: LAUNCHER_FOLDER,
+      encoding: "utf8",
+      env: { ...process.env, PYTHONPATH: TESTS_FOLDER },
+    },
+  );
+  if (done.status !== 0) {
+    throw new Error(`the made-up frames were not written: ${done.stderr}`);
+  }
+}
+
 // Adds solo lists, a pilot folder and the stand-in game program under root.
 function addBattle(install: string, root: string): void {
   const python = process.env.JEDIMASTER_PYTHON ?? "python3";
@@ -92,7 +109,7 @@ function addBattle(install: string, root: string): void {
   }
 }
 
-async function makeInstall(root: string): Promise<string> {
+async function makeInstall(root: string, frames: boolean): Promise<string> {
   const install = join(root, "XvT");
   await mkdir(join(install, "Train"), { recursive: true });
   await mkdir(join(install, "Melee"), { recursive: true });
@@ -101,6 +118,7 @@ async function makeInstall(root: string): Promise<string> {
   await writeFile(join(install, "Melee", "MISSION.LST"), MELEE_MENU, "latin1");
   addBriefing(install);
   addBattle(install, root);
+  if (frames) addFrames(install);
   return install;
 }
 
@@ -128,8 +146,8 @@ function waitForUrl(child: ChildProcess): Promise<string> {
   });
 }
 
-async function startLauncher(root: string): Promise<Launcher> {
-  const installFolder = await makeInstall(root);
+async function startLauncher(root: string, frames: boolean): Promise<Launcher> {
+  const installFolder = await makeInstall(root, frames);
   const settingsFile = join(root, "config", "settings.json");
   const python = process.env.JEDIMASTER_PYTHON ?? "python3";
   const child = spawn(
@@ -166,19 +184,32 @@ async function startLauncher(root: string): Promise<Launcher> {
   };
 }
 
-export const test = base.extend<{ launcher: Launcher }>({
-  // Playwright reads the fixture's needs from this pattern; it needs none.
-  // eslint-disable-next-line no-empty-pattern
-  launcher: async ({}, use) => {
+function launcherFixture(frames: boolean) {
+  return async (
+    // Playwright reads the fixture's needs from this pattern; it needs none.
+    // eslint-disable-next-line no-empty-pattern
+    {}: object,
+    use: (launcher: Launcher) => Promise<void>,
+  ): Promise<void> => {
     const root = await mkdtemp(join(tmpdir(), "jedimaster-page-"));
-    const launcher = await startLauncher(root);
+    const launcher = await startLauncher(root, frames);
     try {
       await use(launcher);
     } finally {
       await launcher.stop();
       await rm(root, { recursive: true, force: true });
     }
-  },
+  };
+}
+
+/** The plain fixture: an install without the menu frame backgrounds. */
+export const test = base.extend<{ launcher: Launcher }>({
+  launcher: launcherFixture(false),
+});
+
+/** The framed fixture: the same install plus made-up frame backgrounds. */
+export const framedTest = base.extend<{ launcher: Launcher }>({
+  launcher: launcherFixture(true),
 });
 
 export const expect = baseExpect;

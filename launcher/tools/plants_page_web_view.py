@@ -445,8 +445,8 @@ SITE_PLANTS: list[Plant] = [
     Plant(
         "web-html-region-unnamed",
         HTM,
-        '                  id="missions"\n                  aria-labelledby="missions-heading"\n',
-        '                  id="missions"\n',
+        '                    id="missions"\n                    aria-labelledby="missions-heading"\n',
+        '                    id="missions"\n',
         ("browser: missions list each menu",),
     ),
     Plant(
@@ -476,8 +476,8 @@ SITE_PLANTS: list[Plant] = [
     Plant(
         "web-html-radios-in-two-groups",
         HTM,
-        '                        name="art-scaling"\n                        type="radio"\n                        value="engine_fit"',
-        '                        name="art-scaling-2"\n                        type="radio"\n                        value="engine_fit"',
+        '                          name="art-scaling"\n                          type="radio"\n                          value="engine_fit"',
+        '                          name="art-scaling-2"\n                          type="radio"\n                          value="engine_fit"',
         ("browser: a keyboard alone reaches every control",),
     ),
     Plant(

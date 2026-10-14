@@ -14,7 +14,7 @@ Flow:
     redirects to ``/``; every other request needs the cookie). ``socket``
     checks the origin, sends the status (and the battle that flies, if any),
     then reads one JSON message at a time, hands it to ``Control.handle``,
-    sends the reply and then the pushes to every open socket. ``art`` serves ``GET /art/briefing/<name>`` for the fixed art set. ``serve`` binds, prints the page's URL and runs until stopped.
+    sends the reply and then the pushes to every open socket. ``art`` serves ``GET /art/briefing/<name>`` for the fixed art set and ``frame`` serves ``GET /art/frame/<name>`` for the twelve menu frame pictures. ``serve`` binds, prints the page's URL and runs until stopped.
 
 Invariants:
     - The server binds to 127.0.0.1 only.
@@ -43,6 +43,7 @@ from aiohttp import web
 from aiohttp import WSMsgType
 
 from ..briefing import ArtStore
+from ..briefing.frame import FrameStore
 from .control import Control
 from .control import Outcome
 from .protocol import MAX_MESSAGE_BYTES
@@ -53,6 +54,7 @@ HOST = "127.0.0.1"
 HOSTNAMES = ("127.0.0.1", "localhost")
 COOKIE_NAME = "jedimaster_key"
 ART = web.AppKey("art", ArtStore)
+FRAMES = web.AppKey("frames", FrameStore)
 CONTROL = web.AppKey("control", Control)
 KEY = web.AppKey("key", str)
 PAGE_DIR = web.AppKey("page_dir", Path)
@@ -156,6 +158,19 @@ async def art(request: web.Request) -> web.StreamResponse:
     return web.Response(body=found.data, content_type=found.content_type)
 
 
+async def frame(request: web.Request) -> web.StreamResponse:
+    """Return one of the menu frame pictures, or 404 for any other name.
+
+    The bytes come from the application's ``FrameStore``: the twelve whole
+    setup screens, built from the install on first use. A name outside the
+    set, no install, or a picture that cannot be built is a refusal.
+    """
+    found = request.app[FRAMES].get(request.match_info["name"])
+    if found is None:
+        return _refuse(request, 404, "no such frame")
+    return web.Response(body=found.data, content_type=found.content_type)
+
+
 async def _send(ws: web.WebSocketResponse, message: dict) -> None:
     try:
         await ws.send_str(json.dumps(message))
@@ -232,6 +247,7 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
     app = web.Application(middlewares=[add_headers, check_host, check_key])
     app[CONTROL] = control
     app[ART] = ArtStore(control.install)
+    app[FRAMES] = FrameStore(control.install)
     app[KEY] = key
     app[PAGE_DIR] = page_dir
     app[SOCKETS] = set()
@@ -244,6 +260,7 @@ def make_app(control: Control, key: str, page_dir: Path) -> web.Application:
     app.router.add_get("/", index)
     app.router.add_get("/ws", socket)
     app.router.add_get("/art/briefing/{name}", art)
+    app.router.add_get("/art/frame/{name}", frame)
     if page_dir.is_dir():
         app.router.add_static("/", page_dir)
     app.on_shutdown.append(_close_sockets)

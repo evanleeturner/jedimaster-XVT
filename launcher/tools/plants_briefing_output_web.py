@@ -293,8 +293,8 @@ BRIEFING_OUTPUT_PLANTS: list[Plant] = [
     Plant(
         "web-lay-fit-min",
         "page/src/briefing/layout.ts",
-        "Math.min(width / PANEL_W, height / PANEL_H)",
-        "Math.max(width / PANEL_W, height / PANEL_H)",
+        "Math.min(width / baseW, height / baseH)",
+        "Math.max(width / baseW, height / baseH)",
         (
             "node: engine fit: the largest size of the same shape that fits, smoothed",
             "node: the shape is always 3 to 2",
