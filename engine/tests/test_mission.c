@@ -6675,6 +6675,7 @@ static void check_spawn_fresh_state(void)
 	XVT_ASSERT_INT_EQ(controller->maneuver_timer, 0);
 	XVT_ASSERT_INT_EQ(controller->current_order_slot, 0);
 	XVT_ASSERT_INT_EQ(controller->skipped_to_order4, 0);
+	XVT_ASSERT_INT_EQ(controller->wait_command, 0);
 	for (int goal = 0; goal < 4; ++goal) {
 		XVT_ASSERT_INT_EQ(
 			controller->order_progress.completion_state[goal], 0);

@@ -21,6 +21,7 @@ from jedimaster_ai.world import Answer
 from jedimaster_ai.world import Arrival
 from jedimaster_ai.world import Books
 from jedimaster_ai.world import CannonGroup
+from jedimaster_ai.world import Commands
 from jedimaster_ai.world import Contact
 from jedimaster_ai.world import Countermeasure
 from jedimaster_ai.world import CraftAnswer
@@ -54,7 +55,7 @@ DISTINCT = CraftView(
     (0x605F5E5D, 0x64636261, 0x68676665, 0x6C6B6A69, 0x706F6E6D, 0x74737271,
      0x78777675, 0x7C7B7A79),
     (0x107F7E7D, 0x14131211, 0x18171615, 0x1C1B1A19, 0x201F1E1D, 0x24232221,
-     0x28272625, -8),
+     0x28272625, -8), 0x29, 0x2B2A, 0x2D2C,
     notebook=bytes(0x40 + byte for byte in range(NOTEBOOK_BYTES)),
 )  # fmt: skip
 # contact_with_distinct_bytes in the C test.
@@ -105,8 +106,8 @@ def plain_contact(index: int) -> Contact:
 
 # The C test's g_question: craft 7 with two cannon groups, launcher 0 ready,
 # turrets in weapon slots 3 and 5 and a flare ready, leading, with orders in
-# slots 0 and 1, at its hangar; craft 9 with none of these; contacts 7, 9,
-# 12.
+# slots 0 and 1, at its hangar, told to evade; craft 9 with none of these;
+# contacts 7, 9, 12.
 CRAFT_7 = plain_view(
     7,
     turret_slot_mask=1 << 3 | 1 << 5,
@@ -118,6 +119,7 @@ CRAFT_7 = plain_view(
     countermeasure=Countermeasure.FLARE,
     countermeasures_left=3,
     countermeasure_working=1,
+    commands=Commands.EVADE,
 )
 CONTACTS = tuple(plain_contact(index) for index in (7, 9, 12))
 
@@ -139,6 +141,7 @@ def good_answer() -> tuple[Question, Answer]:
         order=OrderMove(1, 2),
         dock=True,
         countermeasure=True,
+        evaded=True,
     )
     answer = Answer(
         TEST_TICK,
@@ -154,7 +157,7 @@ def test_answer_bytes_read_back() -> None:
     question, answer = good_answer()
     message = wire.answer_bytes(answer)
     # The length the C test's check_good_answer expects.
-    assert len(message) == wire.HEAD_BYTES + 110 + 3 + NOTEBOOK_BYTES
+    assert len(message) == wire.HEAD_BYTES + 111 + 3 + NOTEBOOK_BYTES
     assert wire.read_answer(message[4:], question) == answer
 
 
@@ -162,13 +165,13 @@ def test_answer_writes_actions_in_kind_order() -> None:
     _, answer = good_answer()
     message = wire.answer_bytes(answer)
     start = wire.HEAD_BYTES + 2 + NOTEBOOK_BYTES
-    # Count 12; steer 0x1234 0x4000 0xFFFF; throttle 0x8000; activity 12;
+    # Count 13; steer 0x1234 0x4000 0xFFFF; throttle 0x8000; activity 12;
     # think interval 59; target 12; lasers 3 4 1 2; warhead 0 paired;
     # turrets: slot 5 none, slot 3 at 12; arriving at 3,600; order slot 1
-    # state 2; dock; countermeasure.
-    assert message[start : start + 44] == bytes.fromhex(
-        "0c0134120040ffff020080030c043b00050c000603040102070001080205ffff030c000901100e"
-        "0a01020c0d"
+    # state 2; dock; countermeasure; evaded.
+    assert message[start : start + 45] == bytes.fromhex(
+        "0d0134120040ffff020080030c043b00050c000603040102070001080205ffff030c000901100e"
+        "0a01020c0d0e"
     )
 
 
@@ -222,8 +225,8 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
 @pytest.mark.parametrize(
     ("actions", "match"),
     [
-        (b"\x01\x00", "not one of the thirteen"),
-        (b"\x01\x0e", "not one of the thirteen"),
+        (b"\x01\x00", "not one of the fourteen"),
+        (b"\x01\x0f", "not one of the fourteen"),
         (b"\x02\x02\x01\x00\x02\x02\x00", "sent twice"),
         (b"\x01\x03\x0d", "out of range"),
         (b"\x01\x03\x05", "set by the engine alone"),
@@ -256,7 +259,7 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
         (b"\x02\x0b\x0c", "depart and dock are both sent"),
     ],
     ids=[
-        "kind 0", "kind 14", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
+        "kind 0", "kind 15", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
         "target not shown", "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
         "not a turret", "slot 16", "slot twice", "turret target not shown",
@@ -439,3 +442,25 @@ def test_read_message_takes_messages_in_turn() -> None:
 def test_read_message_refuses_a_cut_message(data: bytes, match: str) -> None:
     with pytest.raises(wire.WireError, match=match):
         wire.read_message(io.BytesIO(data))
+
+
+@pytest.mark.parametrize(
+    ("commands", "allowed"),
+    [
+        (Commands.EVADE, True),
+        (Commands.WAIT | Commands.EVADE, True),
+        (Commands.WAIT, False),
+        (Commands(0), False),
+    ],
+    ids=["evade", "wait and evade", "wait", "none"],
+)
+def test_evaded_follows_the_view_commands(commands: Commands, allowed: bool) -> None:
+    """The C test's check_evaded_faults: an evaded only while the view shows
+    the evade command."""
+    evaded = answer_with_actions(b"\x01\x0e")
+    shown = dataclasses.replace(CRAFT_7, commands=commands)
+    if allowed:
+        assert _actions_of(evaded, shown).evaded
+    else:
+        with pytest.raises(wire.WireError, match="no evade command"):
+            _actions_of(evaded, shown)

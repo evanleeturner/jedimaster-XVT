@@ -25,7 +25,7 @@ struct xvt_snapshot_ai_controller {
 	uint8_t activity;
 	uint8_t unused0b;
 	uint8_t waypoint_index;
-	uint8_t unused0d;
+	uint8_t wait_command;
 	int32_t think_interval;
 	int32_t think_timer;
 	int16_t saved_rand_seed;

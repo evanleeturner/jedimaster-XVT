@@ -73,6 +73,9 @@ static struct ai_wire_craft_view view_with_distinct_bytes(void)
 		 0x74737271, 0x78777675, 0x7C7B7A79},
 		{0x107F7E7D, 0x14131211, 0x18171615, 0x1C1B1A19, 0x201F1E1D,
 		 0x24232221, 0x28272625, -8},
+		0x29,
+		0x2B2A,
+		0x2D2C,
 		{0}};
 	for (int byte = 0; byte < AI_NOTEBOOK_BYTES; ++byte) {
 		view.notebook[byte] = (uint8_t)(0x40 + byte);
@@ -93,8 +96,8 @@ static struct ai_wire_contact contact_with_distinct_bytes(void)
 
 static void check_question_bytes(void)
 {
-	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 286] = {
-		0xA7, 0x01, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x09, 0x00,
+	static const uint8_t expected[AI_WIRE_HEAD_BYTES + 291] = {
+		0xAC, 0x01, 0x00, 0x00, 0x4A, 0x4D, 0x50, 0x57, 0x0A, 0x00,
 		0x01, 0x00, 0x0D, 0x0C, 0x0B, 0x0A, 0x01, 0x00, 0x00, 0x00,
 		0x02, 0x01, 0x04, 0x03, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
 		0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
@@ -124,7 +127,8 @@ static void check_question_bytes(void)
 		0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x10, 0x11, 0x12,
 		0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C,
 		0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26,
-		0x27, 0x28, 0xF8, 0xFF, 0xFF, 0xFF};
+		0x27, 0x28, 0xF8, 0xFF, 0xFF, 0xFF, 0x29, 0x2A, 0x2B, 0x2C,
+		0x2D};
 	static const uint8_t expected_contacts[AI_WIRE_CONTACT_HEAD_BYTES +
 					       AI_WIRE_CONTACT_BYTES] = {
 		0x01, 0x00, 0x00, 0x00, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46,
@@ -255,7 +259,8 @@ static struct ai_wire_craft_view g_views[2] = {
 	 .books = AI_WIRE_BOOKS_AT_HANGAR,
 	 .countermeasure = AI_WIRE_COUNTERMEASURE_FLARE,
 	 .countermeasures_left = 3,
-	 .countermeasure_working = 1},
+	 .countermeasure_working = 1,
+	 .commands = AI_WIRE_COMMAND_EVADE},
 	{.object_index = 9}};
 static struct ai_wire_contact g_contacts[3] = {
 	{.object_index = 7}, {.object_index = 9}, {.object_index = 12}};
@@ -268,7 +273,8 @@ static void good_answer(struct test_bytes *bytes)
 {
 	start_answer(bytes, 2);
 	add_craft(bytes, 7, 0x5A);
-	add_u8(bytes, 12);
+	add_u8(bytes, 13);
+	add_u8(bytes, AI_WIRE_ACTION_EVADED);
 	add_u8(bytes, AI_WIRE_ACTION_COUNTERMEASURE);
 	add_u8(bytes, AI_WIRE_ACTION_DOCK);
 	add_u8(bytes, AI_WIRE_ACTION_ORDER);
@@ -328,7 +334,7 @@ static void check_good_answer(void)
 	XVT_ASSERT_INT_EQ(answers[0].object_index, 7);
 	XVT_ASSERT_INT_EQ(answers[0].notebook[0], 0x5A);
 	XVT_ASSERT_INT_EQ(answers[0].notebook[AI_NOTEBOOK_BYTES - 1], 0x5A);
-	XVT_ASSERT_INT_EQ(answers[0].actions, 0x37FE);
+	XVT_ASSERT_INT_EQ(answers[0].actions, 0x77FE);
 	XVT_ASSERT_INT_EQ(answers[0].order_slot, 1);
 	XVT_ASSERT_INT_EQ(answers[0].order_state, 2);
 	XVT_ASSERT_INT_EQ(answers[0].steer_yaw, 0x1234);
@@ -663,6 +669,22 @@ static void check_countermeasure_faults(void)
 	view->countermeasure = AI_WIRE_COUNTERMEASURE_FLARE;
 }
 
+/* An evaded goes through only while the view shows the evade command; the
+ * wait command alone does not let it through. */
+static void check_evaded_faults(void)
+{
+	static const uint8_t evaded[] = {AI_WIRE_ACTION_EVADED};
+	struct ai_wire_craft_view *view = &g_views[0];
+	XVT_ASSERT_INT_EQ(read_actions(1, evaded, sizeof evaded), AI_WIRE_OK);
+	view->commands = AI_WIRE_COMMAND_WAIT;
+	XVT_ASSERT_INT_EQ(read_actions(1, evaded, sizeof evaded),
+			  AI_WIRE_BAD_ACTION);
+	view->commands = 0;
+	XVT_ASSERT_INT_EQ(read_actions(1, evaded, sizeof evaded),
+			  AI_WIRE_BAD_ACTION);
+	view->commands = AI_WIRE_COMMAND_EVADE;
+}
+
 int main(void)
 {
 	check_question_bytes();
@@ -674,5 +696,6 @@ int main(void)
 	check_shown_faults();
 	check_books_faults();
 	check_countermeasure_faults();
+	check_evaded_faults();
 	return 0;
 }

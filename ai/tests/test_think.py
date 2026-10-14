@@ -20,6 +20,7 @@ from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Activity
 from jedimaster_ai.world import Answer
 from jedimaster_ai.world import Books
+from jedimaster_ai.world import Commands
 from jedimaster_ai.world import NO_ACTIONS
 from jedimaster_ai.world import OrderMove
 from jedimaster_ai.world import Question
@@ -193,3 +194,33 @@ def test_a_real_attack_flight_finishes_both_orders_and_docks(view, contact) -> N
         x=90_090,
     )
     assert docking.dock
+
+
+def test_a_waiting_craft_waits_whatever_its_books_say(view) -> None:
+    """Books that would send it home move nothing while the wait stands."""
+    craft = view(
+        order_code=OrderCode.ATTACK,
+        commands=Commands.WAIT,
+        books=Books.ORDERS_DONE | Books.MAY_JUMP,
+    )
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert (said.throttle, said.activity) == (0, Activity.WAITING_FOR_GO)
+    assert (said.order, said.depart) == (None, False)
+
+
+def test_released_a_wingman_attacks_the_craft_its_player_named(view, contact) -> None:
+    """A wingman of a player's flight (leader 0, the player's craft) told to
+    wait, then given a target by the attack order, which ends the wait."""
+    own = contact(object_index=4, team=1, x=0, y=0, z=0)
+    named = contact(object_index=15, team=2, x=0, y=0x6000, z=0, target=0xFFFF)
+    craft = view(
+        order_code=OrderCode.ATTACK,
+        activity=Activity.WAITING_FOR_GO,
+        leader=0,
+        command_target=15,
+        enemy_mask=0b01,
+        books=Books.TARGETS_LEFT,
+        turret_slot_mask=0,
+    )
+    said = answered(Question(1, (craft,), (named, own))).craft[0].actions
+    assert (said.target, said.activity) == (15, Activity.NONE)

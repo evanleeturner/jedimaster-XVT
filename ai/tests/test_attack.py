@@ -15,10 +15,12 @@ from jedimaster_ai import notebook
 from jedimaster_ai import weave
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import attack
+from jedimaster_ai.behaviors import BehaviorCode
 from jedimaster_ai.geometry import angle_between
 from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.think import think
 from jedimaster_ai.world import CannonGroup
+from jedimaster_ai.world import Commands
 from jedimaster_ai.world import HOLD_FIRE
 from jedimaster_ai.world import LinkMode
 from jedimaster_ai.world import NO_OBJECT
@@ -737,3 +739,90 @@ def test_only_an_attack_notebook_names_the_enemy_it_fights(craft, foe, shown) ->
         me = craft(order_target_mask=0, notebook=book)
         found = attack.pursuer(me, shown(me, foe(**AHEAD)))
         assert (found and found.object_index) == after
+
+
+# ---- A player's commands ------------------------------------------------
+
+OTHER = 15
+
+
+def test_a_commanded_target_comes_before_a_nearer_order_target(
+    craft, foe, ask, caplog
+) -> None:
+    """The craft an attack or cover order named is fought first, though the
+    order names a nearer one: 1997's target search took the candidate first."""
+    caplog.set_level("INFO")
+    named = foe(object_index=OTHER, y=0x6000)
+    decision = ask(craft(command_target=OTHER), foe(y=0x2000), named)
+    assert decision.actions.target == OTHER
+    assert f"attack.target object={ME} target={OTHER} distance=24576" in caplog.text
+
+
+def test_a_command_target_it_may_not_fight_changes_nothing(craft, foe, ask) -> None:
+    """A friendly craft (a supply call names the player's own), a craft not in
+    the battle, or none: the order's target is fought."""
+    friend = foe(object_index=OTHER, team=1, y=0x1000)
+    for command_target in (OTHER, 77, NO_OBJECT):
+        me = craft(command_target=command_target, enemy_mask=0b10)
+        assert ask(me, foe(y=0x2000), friend).actions.target == FOE
+
+
+def test_an_ignored_craft_is_never_picked(craft, foe, ask) -> None:
+    far = foe(object_index=OTHER, y=0x6000)
+    two = ask(craft(order_target_mask=0b110, avoid_target=FOE), foe(y=0x2000), far)
+    assert two.actions.target == OTHER
+    alone = ask(craft(avoid_target=FOE), foe(y=0x2000))
+    assert alone.actions.target == NO_OBJECT
+
+
+def test_an_evade_command_drops_the_target_and_weaves(craft, foe, ask, caplog) -> None:
+    caplog.set_level("INFO")
+    chaser = foe(object_index=12, y=-0x2000, target=ME)
+    decision = ask(craft(commands=Commands.EVADE), foe(y=0x2000), chaser)
+    actions = decision.actions
+    assert actions.evaded and actions.target == NO_OBJECT
+    assert actions.steer.yaw in (0x3000, 0xD000) and actions.throttle == 0xFFFF
+    assert actions.lasers == (HOLD_FIRE, HOLD_FIRE)
+    assert phase_of(decision) == attack.EVADE
+    memory = attack.Memory.read(notebook.decode(decision.notebook).scratch)
+    assert (memory.ordered, memory.target) == (1, NO_OBJECT)
+    assert f"attack.evade_ordered object={ME} chaser=12" in caplog.text
+
+
+def test_an_ordered_weave_flies_every_swerve_with_no_chaser(
+    craft, foe, ask, caplog
+) -> None:
+    """With nothing on its tail the weave still flies its three swerves, then
+    ends clear, with no rest, and the craft fights its target again."""
+    caplog.set_level("DEBUG")
+    target = foe(x=0x4000, y=0x1000)
+    decision = ask(craft(commands=Commands.EVADE), target, tick=1000)
+    tick, swerves, last_ends = 1000, set(), 0
+    while phase_of(decision) == attack.EVADE and tick < 5000:
+        swerves.add(weave_of(decision).swerves)
+        if weave_of(decision).swerves == weave.SWERVES_MAX:
+            last_ends = weave_of(decision).swerve_ends
+        tick += attack.FIGHT_INTERVAL
+        decision = ask(craft(notebook=decision.notebook), target, tick=tick)
+    assert swerves == {1, 2, weave.SWERVES_MAX}
+    assert tick >= last_ends > 0
+    assert phase_of(decision) == attack.ATTACK and decision.actions.target == FOE
+    memory = attack.Memory.read(notebook.decode(decision.notebook).scratch)
+    assert memory.ordered == 0
+    assert f'reason="clear" swerves={weave.SWERVES_MAX} rest_until=0' in caplog.text
+
+
+def test_the_memory_keeps_the_ordered_weave() -> None:
+    memory = attack.Memory(target=9, signature=11, look_again=5, ordered=1)
+    assert attack.Memory.read(memory.write()) == memory
+
+
+def test_weaving_reads_the_notebook(craft, foe, ask) -> None:
+    evading = ask(craft(commands=Commands.EVADE), foe(y=0x2000))
+    fighting = ask(craft(), foe(y=0x2000))
+    assert attack.weaving(craft(notebook=evading.notebook))
+    assert not attack.weaving(craft(notebook=fighting.notebook))
+    assert not attack.weaving(craft())
+    flying = attack.Memory(weave=weave.Weave(swerves=1)).write()
+    other = notebook.Notebook(BehaviorCode.HOME, attack.EVADE, 77, 990, flying)
+    assert not attack.weaving(craft(notebook=other.encode()))

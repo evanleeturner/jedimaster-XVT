@@ -72,3 +72,38 @@ def test_enemies_are_every_hostile_craft_it_may_fight_in_order(view, contact) ->
     )
     found = tactics.enemies(craft, Question(1, (craft,), contacts))
     assert [c.object_index for c in found] == [20, 23]
+
+
+def _command_question(contact, *indices: int) -> Question:
+    """Contacts at positions 1, 2, ... with these object indices, the craft's
+    own (4) first."""
+    own = contact(object_index=4)
+    return Question(1, (), (own, *(contact(object_index=i) for i in indices)))
+
+
+def test_a_commanded_enemy_is_the_only_target(view, contact) -> None:
+    question = _command_question(contact, 20, 21, 22)
+    craft = view(enemy_mask=0b1110, command_target=22)
+    targets = list(question.contacts[1:2])
+    assert [c.object_index for c in tactics.commanded(craft, question, targets)] == [22]
+
+
+@pytest.mark.parametrize("command_target", [0xFFFF, 4, 23, 21])
+def test_a_command_target_that_is_no_enemy_shown_leaves_the_targets(
+    view, contact, command_target
+) -> None:
+    """No command (bug #50's 0xFFFF), the craft itself, a craft not shown, or
+    one the engine does not mark hostile (21, here)."""
+    question = _command_question(contact, 20, 21)
+    craft = view(enemy_mask=0b010, command_target=command_target)
+    targets = list(question.contacts[1:2])
+    assert tactics.commanded(craft, question, targets) == targets
+
+
+def test_only_the_ignored_craft_leaves_the_targets(view, contact) -> None:
+    """Matched by object index, not by place in the list (bug #51), and the
+    craft after it stay (bug #52)."""
+    question = _command_question(contact, 30, 1, 31, 32)
+    craft = view(enemy_mask=0b11110, avoid_target=31)
+    kept = tactics.commanded(craft, question, list(question.contacts[1:]))
+    assert [c.object_index for c in kept] == [30, 1, 32]

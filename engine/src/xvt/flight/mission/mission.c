@@ -11039,6 +11039,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 	}
 	g_cur_craft->ai_controller.current_order_slot = 0;
 	g_cur_craft->ai_controller.skipped_to_order4 = 0;
+	g_cur_craft->ai_controller.wait_command = 0;
 	g_cur_craft->ai_controller.target_obj_idx = UINT16_MAX;
 	g_cur_craft->ai_controller.candidate_target_idx =
 		g_cur_craft->ai_controller.target_obj_idx;

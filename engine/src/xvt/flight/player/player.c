@@ -2885,11 +2885,13 @@ int16_t player_can_radio_command_craft(int player_idx)
  * sharing its global unit or whose radio setting minus the player's group's
  * player_number is 8. For commandId 155 each avoids the target
  * (player_command_avoid_target_obj_idx) and drops it as candidate target. For any
- * other command each takes it as candidate target and stops avoiding it, after
- * leaving craftwaitforgopln for its saved plan; craft on the still, formation,
- * fly-home, into-hyperspace or hangar plans are skipped. For the local player
- * the last wingman answers by radio. Writes g_cur_craft when a wingman leaves
- * craftwaitforgopln. */
+ * other command each takes it as candidate target, stops avoiding it and is
+ * released from a wait command; craft holding station, in formation, going
+ * home evading, leaving by hyperspace or entering a hangar are skipped, as
+ * the 1997 still, formation, fly-home-evade, into-hyperspace and hangar plans
+ * were (its null plan was a passing state; a craft flying an order has no
+ * activity now, so none is skipped for it). For the local player the last
+ * wingman answers by radio. */
 // FUNCTION: XVT 0x484320
 void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 					  uint16_t command_id,
@@ -2965,8 +2967,7 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 		struct ai_controller *ai = &craft->ai_controller;
 		if (command_id != 155) {
 			uint8_t activity = ai->activity;
-			if (activity == AI_ACTIVITY_NONE ||
-			    activity == AI_ACTIVITY_HOLDING_STATION ||
+			if (activity == AI_ACTIVITY_HOLDING_STATION ||
 			    activity == AI_ACTIVITY_IN_FORMATION ||
 			    activity == AI_ACTIVITY_GOING_HOME_EVADING ||
 			    activity == AI_ACTIVITY_LEAVING_BY_HYPERSPACE ||
@@ -2974,6 +2975,7 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 				continue;
 			}
 			ai->candidate_target_idx = target_obj_idx;
+			ai->wait_command = 0;
 			if (craft->player_command_avoid_target_obj_idx ==
 			    target_obj_idx) {
 				craft->player_command_avoid_target_obj_idx =

@@ -2861,6 +2861,9 @@ static void computer_craft(int obj, int group, int team, int activity)
 	craft->player_command_avoid_target_obj_idx = UINT16_MAX;
 	craft->ai_controller.candidate_target_idx = UINT16_MAX;
 	craft->ai_controller.activity = (uint8_t)activity;
+	/* A craft waiting for the go carries the wait mark Shift+W set. */
+	craft->ai_controller.wait_command =
+		(uint8_t)(activity == AI_ACTIVITY_WAITING_FOR_GO);
 }
 
 /* The pilot (player 0, the local seat) and a mate (player 1) on team 0 in
@@ -3002,7 +3005,9 @@ static const char *const k_gate_map_a[] = {
 	/* recorded gate_map_a */
 	"flight.action_key slot=0 key=65 object=2 map=1 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=0 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=5 wingmen=1 last=4 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	"flight.request_posted slot=1 request=1 by=0 param=5 timer=1416 predicted=0",
 	NULL,
 };
@@ -3044,7 +3049,9 @@ static const char *const k_attack_hostile[] = {
 	/* recorded attack_hostile */
 	"flight.action_key slot=0 key=65 object=2 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=0 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=5 wingmen=1 last=4 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	"flight.request_posted slot=1 request=1 by=0 param=5 timer=1416 predicted=0",
 	NULL,
 };
@@ -3052,7 +3059,9 @@ static const char *const k_attack_two_wings[] = {
 	/* recorded attack_two_wings */
 	"flight.action_key slot=0 key=65 object=2 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=0 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=5 wingmen=2 last=8 predicted=0",
+	"msg.message_built message=269 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=269 type=1 length=7 args=\"32768,154,154,0\" waiting=1 tick=0",
 	"flight.request_posted slot=1 request=1 by=0 param=5 timer=1416 predicted=0",
 	NULL,
 };
@@ -3080,11 +3089,13 @@ static const char *const k_attack_skips_hangar[] = {
 	"flight.request_posted slot=1 request=1 by=0 param=5 timer=1416 predicted=0",
 	NULL,
 };
-static const char *const k_attack_skips_null[] = {
-	/* recorded attack_skips_null */
+static const char *const k_attack_flying_order[] = {
+	/* recorded attack_flying_order */
 	"flight.action_key slot=0 key=65 object=2 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=0 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=5 wingmen=1 last=4 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	"flight.request_posted slot=1 request=1 by=0 param=5 timer=1416 predicted=0",
 	NULL,
 };
@@ -3126,7 +3137,9 @@ static const char *const k_attack_clears_avoid[] = {
 	/* recorded attack_clears_avoid */
 	"flight.action_key slot=0 key=65 object=2 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=0 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=5 wingmen=1 last=4 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	"flight.request_posted slot=1 request=1 by=0 param=5 timer=1416 predicted=0",
 	NULL,
 };
@@ -3134,49 +3147,61 @@ static const char *const k_attack_mate_busy[] = {
 	/* recorded attack_mate_busy */
 	"flight.action_key slot=0 key=65 object=2 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=0 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=5 wingmen=1 last=4 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	NULL,
 };
 static const char *const k_attack_mate_away[] = {
 	/* recorded attack_mate_away */
 	"flight.action_key slot=0 key=65 object=2 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=0 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=5 wingmen=1 last=4 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	NULL,
 };
 static const char *const k_attack_mate_no_radio[] = {
 	/* recorded attack_mate_no_radio */
 	"flight.action_key slot=0 key=65 object=2 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=0 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=5 wingmen=1 last=4 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	NULL,
 };
 static const char *const k_attack_mate_foreign[] = {
 	/* recorded attack_mate_foreign */
 	"flight.action_key slot=0 key=65 object=2 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=0 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=5 wingmen=1 last=4 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	NULL,
 };
 static const char *const k_attack_mate_no_craft[] = {
 	/* recorded attack_mate_no_craft */
 	"flight.action_key slot=0 key=65 object=2 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=0 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=5 wingmen=1 last=4 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	NULL,
 };
 static const char *const k_attack_mate_is_target[] = {
 	/* recorded attack_mate_is_target */
 	"flight.action_key slot=0 key=65 object=2 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=0 command=\"attack\" target=3 predicted=0",
-	"player.order_passed slot=0 command=154 target=3 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=0 command=154 target=3 wingmen=1 last=4 predicted=0",
+	"msg.message_built message=148 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
+	"msg.message_queued message=148 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	NULL,
 };
 static const char *const k_attack_asks_local[] = {
 	/* recorded attack_asks_local */
 	"flight.action_key slot=1 key=65 object=3 map=0 hyper=0 request=0 predicted=0",
 	"flight.order_given slot=1 command=\"attack\" target=5 predicted=0",
-	"player.order_passed slot=1 command=154 target=5 wingmen=0 last=-1 predicted=0",
+	"player.order_passed slot=1 command=154 target=5 wingmen=1 last=4 predicted=0",
 	"flight.request_posted slot=0 request=1 by=1 param=5 timer=1416 predicted=0",
 	"network.player_name_missing slot=1 players=0",
 	"msg.message_built message=270 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
@@ -3197,8 +3222,8 @@ static const struct order_case g_attack_cases[] = {
 	 ENEMY, AI_ACTIVITY_HOLDING_STATION, 0, 0},
 	{"attack_skips_hangar", k_attack_skips_hangar, FLIGHT_KEY_SHIFT_A,
 	 PILOT, ENEMY, AI_ACTIVITY_ENTERING_HANGAR, 0, 0},
-	{"attack_skips_null", k_attack_skips_null, FLIGHT_KEY_SHIFT_A, PILOT,
-	 ENEMY, AI_ACTIVITY_NONE, 0, 0},
+	{"attack_flying_order", k_attack_flying_order, FLIGHT_KEY_SHIFT_A,
+	 PILOT, ENEMY, AI_ACTIVITY_NONE, 0, 0},
 	{"attack_skips_form", k_attack_skips_form, FLIGHT_KEY_SHIFT_A, PILOT,
 	 ENEMY, AI_ACTIVITY_IN_FORMATION, 0, 0},
 	{"attack_skips_home", k_attack_skips_home, FLIGHT_KEY_SHIFT_A, PILOT,
@@ -3227,10 +3252,11 @@ static const struct order_case g_attack_cases[] = {
 
 /* Shift+A sends the pilot's wingmen after the targeted enemy and asks the
  * teammate players to attack it. A friendly target is ignored. A wingman
- * doing nothing (every craft, until the pilot program sets an activity),
+ * flying its order (activity none, as the pilot program leaves it) takes
+ * the target and answers by radio, as does one waiting for the go; one
  * holding station, in formation, going home evading, leaving by hyperspace
  * or entering a hangar is left alone, and with no wingman taking it the
- * radio stays quiet; one waiting for the go takes it as it is. A teammate
+ * radio stays quiet. A teammate
  * who is busy, away, has no radio, is on another team, has no craft or
  * flies the target is not asked. A teammate at the local seat is told with
  * a message. */
@@ -3902,6 +3928,56 @@ static void check_order_state_changes(void)
 		UINT16_MAX);
 }
 
+/* The wait mark: Shift+W sets it on a craft flying its order and a second
+ * Shift+W leaves it; Shift+G clears it, on a starship as on a craft (bug
+ * #292: the 1997 go named the craft's hold plan alone); Shift+E and the
+ * attack order clear it too, as they released the 1997 hold. The attack
+ * order now reaches a wingman flying its order, activity none. */
+static void check_order_wait_mark(void)
+{
+	struct order_case c = {"mark", NULL, FLIGHT_KEY_SHIFT_W,
+			       PILOT,  WING, AI_ACTIVITY_NONE,
+			       0,      0};
+	order_world(&c);
+	press(PILOT, c.key);
+	XVT_ASSERT_INT_EQ(g_test_craft[WING].ai_controller.wait_command, 1);
+	press(PILOT, c.key);
+	XVT_ASSERT_INT_EQ(g_test_craft[WING].ai_controller.wait_command, 1);
+
+	c.key = FLIGHT_KEY_SHIFT_G;
+	c.activity = AI_ACTIVITY_WAITING_FOR_GO;
+	order_world(&c);
+	press(PILOT, c.key);
+	XVT_ASSERT_INT_EQ(g_test_craft[WING].ai_controller.wait_command, 0);
+
+	c.flags = F_STARSHIP;
+	order_world(&c);
+	press(PILOT, c.key);
+	XVT_ASSERT_INT_EQ(g_test_craft[WING].ai_controller.wait_command, 0);
+
+	c.key = FLIGHT_KEY_SHIFT_E;
+	c.flags = 0;
+	order_world(&c);
+	press(PILOT, c.key);
+	XVT_ASSERT_INT_EQ(g_test_craft[WING].ai_controller.wait_command, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[WING].ai_controller.candidate_target_idx,
+			  AI_TARGET_ABORT);
+
+	c.key = FLIGHT_KEY_SHIFT_A;
+	c.target = ENEMY;
+	order_world(&c);
+	press(PILOT, c.key);
+	XVT_ASSERT_INT_EQ(g_test_craft[WING].ai_controller.wait_command, 0);
+	XVT_ASSERT_INT_EQ(g_test_craft[WING].ai_controller.candidate_target_idx,
+			  ENEMY);
+
+	c.activity = AI_ACTIVITY_NONE;
+	order_world(&c);
+	press(PILOT, c.key);
+	XVT_ASSERT_INT_EQ(g_test_craft[WING].ai_controller.candidate_target_idx,
+			  ENEMY);
+}
+
 /* ---- Targeting keys: I, Shift+P, P and E ------------------------------- */
 
 enum {
@@ -4120,7 +4196,7 @@ static const char *const k_sp_off_none[] = {
 	/* recorded sp_off_none */
 	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
 	"msg.message_built message=225 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
-	"msg.message_queued message=225 type=1 length=7 args=\"32768,32769,155,0\" waiting=1 tick=0",
+	"msg.message_queued message=225 type=1 length=7 args=\"32768,32769,154,0\" waiting=1 tick=0",
 	NULL,
 };
 static const char *const k_sp_on_none[] = {
@@ -4165,7 +4241,7 @@ static const char *const k_sp_comp_out[] = {
 	"flight.action_key slot=0 key=80 object=2 map=0 hyper=0 request=0 predicted=0",
 	"player.target_refused slot=0 target=3 predicted=0",
 	"msg.message_built message=86 type=1 length=7 sender=0 voice=0 clock=\"0:00:01\" logged=1 index=1 total=1 wrapped=0 predicted=0",
-	"msg.message_queued message=86 type=1 length=7 args=\"96,87,155,0\" waiting=1 tick=0",
+	"msg.message_queued message=86 type=1 length=7 args=\"96,87,154,0\" waiting=1 tick=0",
 	NULL,
 };
 static const char *const k_sp_same[] = {
@@ -9288,6 +9364,7 @@ int main(int argc, char **argv)
 	check_order_home_already_going();
 	check_order_ask_param();
 	check_order_state_changes();
+	check_order_wait_mark();
 	check_target_next_player();
 	check_target_nearest_hostile();
 	check_target_attacker();

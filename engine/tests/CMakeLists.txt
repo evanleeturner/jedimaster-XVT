@@ -364,6 +364,10 @@ add_test(NAME ai_brain COMMAND test_ai_brain)
 # src/xvt/flight/ai_books.c.
 xvt_add_engine_test(test_ai_books test_ai_books.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_books.c")
 add_test(NAME ai_books COMMAND test_ai_books)
+# A player's commands to a computer craft in its view, and the evade command taken up:
+# src/xvt/flight/ai_commands.c.
+xvt_add_engine_test(test_ai_commands test_ai_commands.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_commands.c")
+add_test(NAME ai_commands COMMAND test_ai_commands)
 # A computer craft's countermeasures: the homing shots aimed at it in its view, and its chaff and flare
 # launches: src/xvt/flight/ai_countermeasures.c.
 xvt_add_engine_test(test_ai_countermeasures test_ai_countermeasures.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_countermeasures.c")

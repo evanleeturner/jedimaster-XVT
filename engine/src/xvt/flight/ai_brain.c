@@ -13,6 +13,7 @@
 #include "xvt/assets/object_type.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/flight/ai_books.h"
+#include "xvt/flight/ai_commands.h"
 #include "xvt/flight/ai_countermeasures.h"
 #include "xvt/flight/ai_waypoints.h"
 #include "xvt/flight/craft.h"
@@ -306,6 +307,7 @@ static void ai_brain_view_craft(uint16_t object_index,
 	ai_brain_view_weapons(craft, view);
 	ai_countermeasures_view_craft(object_index, view);
 	ai_waypoints_view_craft(object_index, view);
+	ai_commands_view_craft(object_index, view);
 	memcpy(view->notebook, craft->ai_notebook, sizeof view->notebook);
 }
 
@@ -513,6 +515,9 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_COUNTERMEASURE)) != 0) {
 		ai_countermeasures_launch(object_index);
+	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_EVADED)) != 0) {
+		ai_commands_evaded(object_index);
 	}
 	XVT_LOG_DEBUG(
 		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d predicted=%d",

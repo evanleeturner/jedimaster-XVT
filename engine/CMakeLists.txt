@@ -61,6 +61,7 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/audio/sound.c
     src/xvt/flight/ai_books.c
     src/xvt/flight/ai_brain.c
+    src/xvt/flight/ai_commands.c
     src/xvt/flight/ai_countermeasures.c
     src/xvt/flight/ai_waypoints.c
     src/xvt/flight/craft.c

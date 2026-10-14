@@ -22,8 +22,9 @@ Invariants:
       activity past the last or one the engine alone sets, a think interval of 0, an arrival's arriving
       past 1 or speed past 3,600, a short or long message, a target, cannon group, launcher or turret the question
       did not show, an order from a follower or to a slot the view does not
-      allow, a depart or dock the view's books do not show, or both, and a
-      countermeasure the view does not show ready.
+      allow, a depart or dock the view's books do not show, or both, a
+      countermeasure the view does not show ready, and an evaded with no
+      evade command shown.
 """
 
 from __future__ import annotations
@@ -37,6 +38,7 @@ from .world import Answer
 from .world import Arrival
 from .world import Books
 from .world import CannonGroup
+from .world import Commands
 from .world import Contact
 from .world import CONTACTS_MAX
 from .world import CraftAnswer
@@ -51,7 +53,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 9
+VERSION = 10
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -118,6 +120,9 @@ VIEW_LAYOUT = (
     ("waypoint_x", "i", 8),
     ("waypoint_y", "i", 8),
     ("waypoint_z", "i", 8),
+    ("commands", "B", 1),
+    ("command_target", "H", 1),
+    ("avoid_target", "H", 1),
 )
 VIEW_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in VIEW_LAYOUT)
@@ -176,6 +181,7 @@ class ActionKind(enum.IntEnum):
     DEPART = 11
     DOCK = 12
     COUNTERMEASURE = 13
+    EVADED = 14
 
 
 class WireError(ValueError):
@@ -329,6 +335,9 @@ def _actions_bytes(actions: Actions) -> bytes:
     if actions.countermeasure:
         written += U8.pack(ActionKind.COUNTERMEASURE)
         count += 1
+    if actions.evaded:
+        written += U8.pack(ActionKind.EVADED)
+        count += 1
     return U8.pack(count) + bytes(written)
 
 
@@ -393,7 +402,12 @@ def _take_action(reader: _Reader, kind: ActionKind) -> t.Any:
         return Arrival(bool(arriving), speed)
     if kind == ActionKind.ORDER:
         return OrderMove(*reader.take(ORDER))
-    if kind in (ActionKind.DEPART, ActionKind.DOCK, ActionKind.COUNTERMEASURE):
+    if kind in (
+        ActionKind.DEPART,
+        ActionKind.DOCK,
+        ActionKind.COUNTERMEASURE,
+        ActionKind.EVADED,
+    ):
         return True
     return reader.take(U16)[0]
 
@@ -406,7 +420,7 @@ def _read_actions(reader: _Reader) -> Actions:
         try:
             kind = ActionKind(code)
         except ValueError:
-            raise WireError(f"action kind {code} is not one of the thirteen") from None
+            raise WireError(f"action kind {code} is not one of the fourteen") from None
         name = kind.name.lower()
         if name in found:
             raise WireError(f"action kind {code} is sent twice")
@@ -445,8 +459,9 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
     cooling down, a turret slot the view's turret mask does not name, an
     order from a craft that follows a leader or to a slot other than its
     own, one of 0 to 2 with an order (not after a skip to order 4) or 3 with
-    the skip due, a depart or dock the view's books do not allow, and a
-    countermeasure the view does not show ready.
+    the skip due, a depart or dock the view's books do not allow, a
+    countermeasure the view does not show ready, and an evaded with no
+    evade command in the view's commands.
     """
     shown = {contact.object_index for contact in question.contacts} | {NO_OBJECT}
     if actions.target is not None and actions.target not in shown:
@@ -473,6 +488,8 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
         raise WireError("dock is not one the view's books allow")
     if actions.countermeasure and not view.countermeasure_ready:
         raise WireError("the countermeasure is not shown ready")
+    if actions.evaded and not view.commands & Commands.EVADE:
+        raise WireError("evaded with no evade command shown")
 
 
 def read_answer(body: bytes, question: Question) -> Answer:

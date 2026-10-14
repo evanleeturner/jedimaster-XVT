@@ -13,6 +13,7 @@ import pytest
 from jedimaster_ai.world import Books
 from jedimaster_ai.world import Contact
 from jedimaster_ai.world import CraftView
+from jedimaster_ai.world import NO_OBJECT
 from jedimaster_ai.world import NOTEBOOK_BYTES
 
 ENGINE = pathlib.Path(__file__).resolve().parents[2] / "engine"
@@ -75,6 +76,9 @@ VIEW = CraftView(
     waypoint_x=(0,) * 8,
     waypoint_y=(0,) * 8,
     waypoint_z=(0,) * 8,
+    commands=0,
+    command_target=NO_OBJECT,
+    avoid_target=NO_OBJECT,
     notebook=bytes(NOTEBOOK_BYTES),
 )
 # Contact 0 is VIEW's own craft; contact 1 another craft, its order's target.

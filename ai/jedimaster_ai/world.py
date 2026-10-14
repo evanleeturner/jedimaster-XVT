@@ -91,6 +91,20 @@ class Threat:
     decoyed: bool
 
 
+class Commands(enum.IntFlag):
+    """The bits of a craft view's ``commands`` (``enum ai_wire_commands``):
+    a player's wingman commands that stand.
+
+    - WAIT: a wait command (Shift+W) holds the craft until a go command
+      (Shift+G), an evade command or an attack or cover order
+    - EVADE: an evade command (Shift+E): the craft drops its target and
+      says so with the ``evaded`` action
+    """
+
+    WAIT = 0x01
+    EVADE = 0x02
+
+
 class Books(enum.IntFlag):
     """The bits of a craft view's ``books`` (``enum ai_wire_books``).
 
@@ -161,7 +175,10 @@ class CraftView:
     of ``waypoint_mask`` is set when its group's waypoint n, mission point
     4 + n, is on, and the ``waypoint_`` fields hold each waypoint's world
     position, 0 for one that is off; ``waypoint_on`` and ``waypoint`` read
-    them.
+    them. ``commands`` holds ``Commands`` bits; ``command_target`` is the
+    object a player's attack or cover order gave the craft and
+    ``avoid_target`` the one an ignore order told it to leave alone, each
+    NO_OBJECT for none.
     ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
     program last wrote it, or all zero bytes before the program first
     writes it.
@@ -224,6 +241,9 @@ class CraftView:
     waypoint_x: tuple[int, ...]
     waypoint_y: tuple[int, ...]
     waypoint_z: tuple[int, ...]
+    commands: int
+    command_target: int
+    avoid_target: int
     notebook: bytes
 
     @property
@@ -441,6 +461,7 @@ class Actions:
     craft's order slot; ``depart`` starts it out of the battle by
     hyperspace and ``dock`` takes it into its mothership's hangar, never
     both. ``countermeasure`` launches the craft's chaff or a flare.
+    ``evaded`` says the craft took up its evade command.
     ``activity`` is never one of ENGINE_ACTIVITIES. What these name must
     be what the question showed (``wire.read_answer`` holds the rules).
     """
@@ -458,6 +479,7 @@ class Actions:
     depart: bool = False
     dock: bool = False
     countermeasure: bool = False
+    evaded: bool = False
 
     def __post_init__(self) -> None:
         if self.depart and self.dock:

@@ -120,8 +120,10 @@ struct ai_controller {
 	 * reaches the destination group, names the formation slot of the next
 	 * craft to deliver, and counts the deliveries made. */
 	uint8_t waypoint_index; /* 4 at spawn; past 11 it wraps to 4. */
-	/* Held the plan the 1997 AI went back to after a wait command. */
-	uint8_t unused0d;
+	/* 1 while a player's wait command (Shift+W) holds the craft: set by
+	 * Shift+W, cleared by Shift+G, Shift+E and the wingman attack and cover
+	 * orders. The pilot program reads it and keeps the craft waiting. */
+	uint8_t wait_command;
 	/* Ticks between two AI thinks: the AI level's g_ai_think_interval_by_skill
 	 * entry at spawn; a few orders and maneuvers set 29 or 59. */
 	int think_interval;
@@ -160,8 +162,9 @@ struct ai_controller {
 	 * with the craft's Z. */
 	int aim_point_z;
 	/* Target a player's command gave the craft, which the target orders
-	 * take up; 0xFFFF for none. Another radio command sets AI_TARGET_ABORT
-	 * (251), which the 1997 AI answered by dropping the target. */
+	 * take up; 0xFFFF for none. The evade command (Shift+E) sets
+	 * AI_TARGET_ABORT (251): the pilot program drops its target and clears
+	 * it, as the 1997 AI did. */
 	uint16_t candidate_target_idx;
 	/* Flight group the craft escorts, set by the 1997 AI; 255 for none and
 	 * at spawn, and nothing sets it now. */

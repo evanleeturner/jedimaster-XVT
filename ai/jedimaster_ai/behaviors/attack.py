@@ -20,6 +20,13 @@ Purpose:
     ``home`` flies it for a craft going home that turns on its attacker, and
     for a craft with no way out (rulings 31 and 33).
 
+    A player's commands come first, as the 1997 target orders took them:
+    the craft an attack or cover order named is the target while the craft
+    may fight it, and the one an ignore order named is never picked
+    (``tactics.commanded``). An evade command drops the target and starts
+    a weave that flies all its swerves, chased or not; the ``evaded`` action
+    tells the engine it was taken up.
+
     The rules' shape follows Starshatter Open's fighter pilot (target choice,
     fire control, breaking off), written new in this program's integer
     units; no Starshatter code is copied. The firing numbers are the game's
@@ -37,8 +44,8 @@ Phases, the notebook's phase byte:
 
 The scratch bytes, little-endian: u16 target index, u16 its signature,
 u16 yaw and u16 pitch a break holds, u32 the tick to look again for a
-nearer target, then the weave's state (``weave.STATE_BYTES``); the rest
-zero. In SEEK only the weave's bytes are kept, so a weave's rest outlasts
+nearer target, then the weave's state (``weave.STATE_BYTES``), then u8 1
+while the weave flies an evade command, else 0; the rest zero. In SEEK only the weave's bytes are kept, so a weave's rest outlasts
 the search.
 
 Invariants:
@@ -70,6 +77,7 @@ from .. import weave
 from ..world import Actions
 from ..world import CANNON_GROUPS
 from ..world import CannonGroup
+from ..world import Commands
 from ..world import Contact
 from ..world import CraftView
 from ..world import HOLD_FIRE
@@ -136,6 +144,7 @@ TAIL_ANGLE = 0x6000
 FIGHT_BACK_HULL = (3, 4)
 
 _SCRATCH = struct.Struct("<HHHHI")
+_ORDERED = struct.Struct("<B")
 _U32_MAX = 0xFFFFFFFF
 
 
@@ -149,6 +158,7 @@ class Memory:
     pitch: int = geometry.LEVEL
     look_again: int = 0
     weave: weave.Weave = weave.Weave()
+    ordered: int = 0
 
     @classmethod
     def read(cls, scratch: bytes) -> Memory:
@@ -156,6 +166,7 @@ class Memory:
         return cls(
             *_SCRATCH.unpack_from(scratch),
             weave.Weave.read(scratch[_SCRATCH.size :]),
+            *_ORDERED.unpack_from(scratch, _SCRATCH.size + weave.STATE_BYTES),
         )
 
     def write(self) -> bytes:
@@ -163,15 +174,17 @@ class Memory:
         packed = _SCRATCH.pack(
             self.target, self.signature, self.yaw, self.pitch, self.look_again
         )
-        packed += self.weave.write()
+        packed += self.weave.write() + _ORDERED.pack(self.ordered)
         return packed + bytes(notebook.SCRATCH_BYTES - len(packed))
 
 
 def think(view: CraftView, question: Question) -> Decision:
     """Return the craft's next move in its dogfight: at the targets its order
     names, or, with none in the battle, at the enemy after it while it may
-    fight back."""
-    targets = tactics.order_targets(view, question)
+    fight back; a player's commands first."""
+    if view.commands & Commands.EVADE:
+        return _evade_ordered(view, question)
+    targets = tactics.commanded(view, question, tactics.order_targets(view, question))
     if not targets:
         chaser = pursuer(view, question)
         if chaser is not None and fights_back(view, question, chaser):
@@ -199,9 +212,11 @@ def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decisi
         )
         return Decision(book.encode(), actions)
     if book.phase == EVADE and memory.weave.flying:
-        chased = tail_threat(view, question) is not None
+        chased = tail_threat(view, question) is not None or _ordered_on(memory, tick)
         flown, move, state = weave.fly(view, memory.weave, chased, book.dice, tick)
-        memory = dataclasses.replace(memory, weave=flown)
+        memory = dataclasses.replace(
+            memory, weave=flown, ordered=memory.ordered if flown.flying else 0
+        )
         book = dataclasses.replace(book, dice=state, scratch=memory.write())
         if move is not None:
             return Decision(book.encode(), _weave_actions(move, interval))
@@ -412,6 +427,21 @@ def fights_back(view: CraftView, question: Question, chaser: Contact) -> bool:
     return fights
 
 
+def weaving(view: CraftView) -> bool:
+    """Return whether the craft's notebook shows this behavior's weave under
+    way."""
+    try:
+        book = notebook.decode(view.notebook)
+    except notebook.NotebookError:
+        return False
+    return (
+        book is not None
+        and book.behavior == CODE
+        and book.phase == EVADE
+        and Memory.read(book.scratch).weave.flying
+    )
+
+
 def can_dogfight(view: CraftView) -> bool:
     """Return whether the craft can fly a dogfight: it has cannons and can
     move."""
@@ -516,6 +546,38 @@ def _remembered(contacts: t.Iterable[Contact], memory: Memory) -> Contact | None
             and contact.object_signature == memory.signature
         ),
         None,
+    )
+
+
+def _evade_ordered(view: CraftView, question: Question) -> Decision:
+    """Return the decision that takes up a player's evade command: the
+    target dropped and a weave begun on the craft's course, flown to its
+    last swerve (1997's evasive order dropped the target and flew an
+    evasive maneuver)."""
+    tick = question.tick
+    book = notebook.open_for(view, CODE, tick)
+    memory = Memory.read(book.scratch)
+    threat = tail_threat(view, question)
+    chaser = NO_OBJECT if threat is None else threat.object_index
+    started, move, state = weave.start(view, chaser, memory.weave, book.dice, tick)
+    memory = Memory(weave=started, ordered=1)
+    book = dataclasses.replace(
+        book.in_phase(EVADE, tick), dice=state, scratch=memory.write()
+    )
+    interval = None if view.think_interval == FIGHT_INTERVAL else FIGHT_INTERVAL
+    logger.info("attack.evade_ordered object=%d chaser=%d", view.object_index, chaser)
+    actions = dataclasses.replace(
+        _weave_actions(move, interval), target=NO_OBJECT, evaded=True
+    )
+    return Decision(book.encode(), actions)
+
+
+def _ordered_on(memory: Memory, tick: int) -> bool:
+    """Return whether the memory's weave flies an evade command with a
+    swerve still to fly."""
+    flown = memory.weave
+    return bool(memory.ordered) and (
+        tick < flown.swerve_ends or flown.swerves < weave.SWERVES_MAX
     )
 
 

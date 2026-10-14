@@ -18,6 +18,11 @@
       "fields": ["object", "carried", "fg", "captured", "delivered", "undelivered", "predicted"],
       "text": "Computer-flown craft {object} took the object it carried, {carried} of flight group {fg}, out of the battle with it: capture mark {captured} (0 when not captured); that group's counts 'taken by the destination' {delivered} and 'not taken by the destination' {undelivered}; predicted step {predicted} (1 in a step that is run again later)"
     },
+    "ai.command_target_gone": {
+      "level": "D",
+      "fields": ["object", "target", "predicted"],
+      "text": "Craft {object} lost the target a player's attack or cover order gave it: object {target} left the battle, so the order is cleared ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "ai.craft_answered": {
       "level": "D",
       "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "predicted"],
@@ -42,6 +47,11 @@
       "level": "D",
       "fields": ["object", "hangar", "docked", "predicted"],
       "text": "Craft {object} took the pilot program's dock into the hangar of object {hangar} (-1 when its mothership left the battle after the question): docked {docked} ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.craft_evaded": {
+      "level": "D",
+      "fields": ["object", "predicted"],
+      "text": "Craft {object} took up a player's evade command and dropped its target; the command is cleared ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.craft_lasers": {
       "level": "D",

@@ -33,8 +33,10 @@ enum {
 			    AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
-	/* Where its waypoints start, the 97 bytes before the notebook. */
-	VIEW_WAYPOINTS = VIEW_NOTEBOOK - 97,
+	/* Where its commands start, the 5 bytes before the notebook. */
+	VIEW_COMMANDS = VIEW_NOTEBOOK - 5,
+	/* Where its waypoints start, the 97 bytes before the commands. */
+	VIEW_WAYPOINTS = VIEW_COMMANDS - 97,
 	/* Where its countermeasures start, the 72 bytes before the
 	 * waypoints, and where the first threat's object index is. */
 	VIEW_COUNTERMEASURES = VIEW_WAYPOINTS - 72,
@@ -183,6 +185,9 @@ static struct craft_data *due_craft(int slot)
 	g_test_craft[slot].ai_controller.think_interval = TEST_INTERVAL;
 	g_test_craft[slot].ai_controller.think_timer = 0;
 	g_test_craft[slot].leader_obj_idx = UINT8_MAX;
+	/* As spawn leaves them: no player's command. */
+	g_test_craft[slot].ai_controller.candidate_target_idx = UINT16_MAX;
+	g_test_craft[slot].player_command_avoid_target_obj_idx = UINT16_MAX;
 	return &g_test_craft[slot];
 }
 
@@ -913,6 +918,36 @@ static void check_view_waypoints(void)
 	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_WAYPOINTS + 65), 7680);
 }
 
+/* The view carries a player's commands to the craft, from
+ * ai_commands_view_craft: here the wait mark, the evade command and an
+ * avoided target; the evaded action clears the evade command through
+ * ai_commands_evaded and leaves the rest. */
+static void check_commands_and_evaded(void)
+{
+	fresh_world();
+	struct craft_data *craft = due_craft(1);
+	craft->ai_controller.wait_command = 1;
+	craft->ai_controller.candidate_target_idx = AI_TARGET_ABORT;
+	craft->player_command_avoid_target_obj_idx = 2;
+	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+	at = craft_answer(at, 1, 0, 1);
+	*at++ = AI_WIRE_ACTION_EVADED;
+	g_fake.answer_length = finish_answer(g_fake.answer, at);
+
+	ai_brain_think_due_craft();
+
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(view[VIEW_COMMANDS],
+			  AI_WIRE_COMMAND_WAIT | AI_WIRE_COMMAND_EVADE);
+	XVT_ASSERT_INT_EQ(get_u16(view + VIEW_COMMANDS + 1), UINT16_MAX);
+	XVT_ASSERT_INT_EQ(get_u16(view + VIEW_COMMANDS + 3), 2);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.candidate_target_idx,
+			  UINT16_MAX);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.wait_command, 1);
+	XVT_ASSERT_INT_EQ(craft->player_command_avoid_target_obj_idx, 2);
+}
+
 int main(void)
 {
 	check_no_exchange_changes_nothing();
@@ -924,6 +959,7 @@ int main(void)
 	check_warhead_action();
 	check_countermeasure_action();
 	check_view_waypoints();
+	check_commands_and_evaded();
 	check_arrival_action();
 	check_answer_applied();
 	check_pitch_direction();

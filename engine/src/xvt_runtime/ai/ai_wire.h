@@ -49,7 +49,11 @@
  * then its flight group's waypoints, mission points 4 to 11: u8 waypoint
  * mask (bit n set when point 4 + n is on), i32 waypoint x[8], i32 waypoint
  * y[8], i32 waypoint z[8] (each point's world position, 0 for a point
- * that is off); then the notebook's AI_NOTEBOOK_BYTES. Then u16 contact count,
+ * that is off); then a player's commands to it: u8 commands (bit 0 the
+ * wait mark, bit 1 the evade command), u16 command target (the object a
+ * player's attack or cover order gave it, 0xFFFF for none), u16 avoid
+ * target (the object a player's ignore order told it to leave alone,
+ * 0xFFFF for none); then the notebook's AI_NOTEBOOK_BYTES. Then u16 contact count,
  * u16 zero, and one contact per craft in the active region, at most
  * AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
  * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
@@ -98,6 +102,9 @@
  *     chaff only while the view shows chaff, working, with one left and
  *     no chaff seconds; a flare only while it shows a flare, working,
  *     with one left and a cooldown of 0.
+ *  14 evaded: no fields. The craft took up the evade command and dropped
+ *     its target; the engine clears the command. Only while the view shows
+ *     the evade command.
  * A craft answer names each action kind at most once, and names only what
  * the question showed. While a craft enters hyperspace the engine does not
  * turn it, whatever the steer action says. */
@@ -113,12 +120,12 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 9,
+	AI_WIRE_VERSION = 10,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 286 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 291 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
@@ -140,7 +147,7 @@ enum ai_wire_constant {
 	AI_WIRE_WAYPOINTS = 8,
 	/* A craft answer with every action kind once, but depart or dock, never
 	 * both, and all 16 turrets. */
-	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 88 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 89 + AI_NOTEBOOK_BYTES,
 	/* The fastest speed an arrival may set: the 1997 AI's speed out of
 	 * hyperspace. */
 	AI_WIRE_ARRIVAL_SPEED_MAX = 3600,
@@ -160,7 +167,18 @@ enum ai_wire_action_kind {
 	AI_WIRE_ACTION_DEPART = 11,
 	AI_WIRE_ACTION_DOCK = 12,
 	AI_WIRE_ACTION_COUNTERMEASURE = 13,
-	AI_WIRE_ACTION_KIND_END = 14,
+	AI_WIRE_ACTION_EVADED = 14,
+	AI_WIRE_ACTION_KIND_END = 15,
+};
+
+/* The bits of a craft view's commands: a player's wingman commands that
+ * stand. */
+enum ai_wire_commands {
+	/* A wait command (Shift+W) holds the craft until a go command
+	 * (Shift+G), an evade command or an attack or cover order. */
+	AI_WIRE_COMMAND_WAIT = 0x01,
+	/* An evade command (Shift+E): the craft drops its target. */
+	AI_WIRE_COMMAND_EVADE = 0x02,
 };
 
 /* The bits of a craft view's books, as the engine keeps them by the 1997
@@ -267,6 +285,9 @@ struct ai_wire_craft_view {
 	int32_t waypoint_x[AI_WIRE_WAYPOINTS];
 	int32_t waypoint_y[AI_WIRE_WAYPOINTS];
 	int32_t waypoint_z[AI_WIRE_WAYPOINTS];
+	uint8_t commands;
+	uint16_t command_target;
+	uint16_t avoid_target;
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 
@@ -353,8 +374,8 @@ enum ai_wire_result {
 	 * an arrival's arriving past 1 or speed past AI_WIRE_ARRIVAL_SPEED_MAX,
 	 * a target, cannon group, launcher or turret the question did not
 	 * show, an order the view does not allow, a depart or dock its books
-	 * do not show, or both, or a countermeasure the view does not show
-	 * ready. */
+	 * do not show, or both, a countermeasure the view does not show
+	 * ready, or an evaded with no evade command shown. */
 	AI_WIRE_BAD_ACTION,
 };
 

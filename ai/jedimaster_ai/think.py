@@ -4,7 +4,8 @@ Purpose:
     The program's one decision. For each craft in the question, in order,
     ``progress`` reads its books and either sends it home
     (``behaviors.home`` decides) or lets the behavior its order code picks
-    decide, adding any move of its order slot (``behaviors.arrival`` while
+    decide, adding any move of its order slot, or, while a player's wait
+    command holds it, ``behaviors.wait`` decides (``behaviors.arrival`` while
     the craft arrives from hyperspace; out of a hangar its order decides at
     once and the leaving mark ends), it steers clear of a bulky craft in its
     way (``behaviors.avoidance``), its turrets are aimed
@@ -32,9 +33,11 @@ from .behaviors import Behavior
 from .behaviors import countermeasures
 from .behaviors import home
 from .behaviors import turrets
+from .behaviors import wait
 from .orders import behavior_for
 from .orders import BEHAVIORS
 from .world import Answer
+from .world import Commands
 from .world import Contact
 from .world import CraftAnswer
 from .world import CraftView
@@ -67,9 +70,13 @@ def think(
         if arrival.is_arriving(view):
             decision = arrival.think(view, question)
         else:
-            step = progress.decide(view)
-            behavior = home.think if step.home else behavior_for(view, behaviors)
-            decision = progress.with_move(behavior(view, question), step.move)
+            if view.commands & Commands.WAIT:
+                decision = wait.think(view, question)
+            else:
+                step = progress.decide(view)
+                behavior = home.think if step.home else behavior_for(view, behaviors)
+                decision = progress.with_move(behavior(view, question), step.move)
+                decision = wait.ended(view, decision)
             if arrival.is_leaving_hangar(view):
                 decision = arrival.leave_hangar(view, decision)
             decision = avoidance.steer_clear(view, question, decision)
@@ -125,6 +132,7 @@ def _log_view(view: CraftView) -> None:
         "inside_y=%d inside_z=%d home_x=%d home_y=%d home_z=%d "
         "countermeasure=%d countermeasures_left=%d countermeasure_working=%d "
         "chaff_seconds=%d countermeasure_cooldown=%d threats=%d waypoints=%d "
+        "commands=%d command_target=%d avoid_target=%d "
         'notebook="%s"',
         view.object_index,
         view.object_signature,
@@ -184,6 +192,9 @@ def _log_view(view: CraftView) -> None:
         view.countermeasure_cooldown,
         view.threat_count,
         view.waypoint_mask,
+        view.commands,
+        view.command_target,
+        view.avoid_target,
         view.notebook.hex(),
     )
     for threat in view.threats:

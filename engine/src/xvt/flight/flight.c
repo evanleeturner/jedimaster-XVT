@@ -5072,6 +5072,7 @@ void flight_process_player_actions(int player_idx)
 			struct ai_controller *controller =
 				&g_cur_craft->ai_controller;
 			controller->candidate_target_idx = AI_TARGET_ABORT;
+			controller->wait_command = 0;
 			XVT_LOG_DEBUG(
 				"flight.craft_ordered slot=%d command=\"evade\" target=%d activity=%d predicted=%d",
 				player_idx, target_index,
@@ -5145,8 +5146,8 @@ void flight_process_player_actions(int player_idx)
 						   .current_target_object_idx;
 			g_cur_craft =
 				g_object_table[target_index].mobj->p_craft;
-			if (g_cur_craft->ai_controller.activity ==
-			    AI_ACTIVITY_WAITING_FOR_GO) {
+			if (g_cur_craft->ai_controller.wait_command != 0) {
+				g_cur_craft->ai_controller.wait_command = 0;
 				XVT_LOG_DEBUG(
 					"flight.craft_ordered slot=%d command=\"go\" target=%d activity=%d predicted=%d",
 					player_idx, target_index,
@@ -5647,12 +5648,12 @@ void flight_process_player_actions(int player_idx)
 				g_object_table[target_index].mobj->p_craft;
 			struct ai_controller *controller =
 				&g_cur_craft->ai_controller;
-			if (controller->activity !=
-				    AI_ACTIVITY_WAITING_FOR_GO &&
+			if (controller->wait_command == 0 &&
 			    controller->activity !=
 				    AI_ACTIVITY_LEAVING_BY_HYPERSPACE &&
 			    controller->activity !=
 				    AI_ACTIVITY_ARRIVING_FROM_HYPERSPACE) {
+				controller->wait_command = 1;
 				XVT_LOG_DEBUG(
 					"flight.craft_ordered slot=%d command=\"wait\" target=%d activity=%d predicted=%d",
 					player_idx, target_index,

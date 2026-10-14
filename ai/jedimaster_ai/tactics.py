@@ -3,7 +3,8 @@
 Purpose:
     The judgments every behavior shares: a craft's skill tier, its own entry
     among the contacts, which contacts it may fight, which its order names,
-    where a contact sits from it, and how far from it to keep.
+    where a contact sits from it, how far from it to keep, and which
+    targets a player's commands leave it.
 
 Invariants:
     - A craft fights only a craft the engine marks hostile by the mission's
@@ -84,6 +85,21 @@ def order_targets(view: CraftView, question: Question) -> list[Contact]:
         for position, contact in enumerate(question.contacts)
         if view.order_target_mask >> position & 1 and can_fight(view, position, contact)
     ]
+
+
+def commanded(
+    view: CraftView, question: Question, targets: list[Contact]
+) -> list[Contact]:
+    """Return the targets the craft fights once a player's commands apply:
+    the craft an attack or cover order gave it, alone, while it may fight
+    it; else targets without the craft an ignore order told it to leave
+    alone. Each is matched by object index (the 1997 searches, bugs #50 to
+    #52, read the object table at 0xFFFF, compared the ignored craft with a
+    loop count, and stopped at the first static object they skipped)."""
+    for contact in enemies(view, question):
+        if contact.object_index == view.command_target:
+            return [contact]
+    return [contact for contact in targets if contact.object_index != view.avoid_target]
 
 
 def offset(view: CraftView, contact: Contact) -> tuple[int, int, int]:

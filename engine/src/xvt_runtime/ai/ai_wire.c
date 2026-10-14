@@ -41,6 +41,15 @@ static uint8_t *put_waypoints(uint8_t *at,
 	return at;
 }
 
+/* Writes the view's command bits, then its command target and its avoid
+ * target. */
+static uint8_t *put_commands(uint8_t *at, const struct ai_wire_craft_view *view)
+{
+	*at++ = view->commands;
+	at = put_u16(at, view->command_target);
+	return put_u16(at, view->avoid_target);
+}
+
 static uint8_t *put_craft_view(uint8_t *at,
 			       const struct ai_wire_craft_view *view)
 {
@@ -116,6 +125,7 @@ static uint8_t *put_craft_view(uint8_t *at,
 		at = put_u32(at, (uint32_t)view->threat_z[threat]);
 	}
 	at = put_waypoints(at, view);
+	at = put_commands(at, view);
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
@@ -416,6 +426,8 @@ static int take_action(struct wire_reader *reader,
 		return (view->books & AI_WIRE_BOOKS_AT_HANGAR) != 0;
 	case AI_WIRE_ACTION_COUNTERMEASURE:
 		return countermeasure_ready(view);
+	case AI_WIRE_ACTION_EVADED:
+		return (view->commands & AI_WIRE_COMMAND_EVADE) != 0;
 	default:
 		return take_turrets(reader, question, view, answer);
 	}

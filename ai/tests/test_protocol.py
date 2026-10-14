@@ -100,6 +100,7 @@ def test_wire_constants_match() -> None:
         order=OrderMove(1, 2),
         depart=True,
         countermeasure=True,
+        evaded=True,
     )
     answer = Answer(1, (CraftAnswer(1, bytes(NOTEBOOK_BYTES), every_action),))
     assert constants == {
@@ -127,6 +128,11 @@ def test_wire_constants_match() -> None:
 def test_books_bits_match() -> None:
     books = c_enum(AI_WIRE_H, "ai_wire_books", "AI_WIRE_BOOKS_")
     assert books == {bit.name: bit.value for bit in world.Books}
+
+
+def test_commands_bits_match() -> None:
+    bits = c_enum(AI_WIRE_H, "ai_wire_commands", "AI_WIRE_COMMAND_")
+    assert bits == {bit.name: bit.value for bit in world.Commands}
 
 
 def test_countermeasures_match() -> None:
