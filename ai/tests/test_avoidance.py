@@ -13,8 +13,10 @@ from jedimaster_ai import tactics
 from jedimaster_ai.behaviors import avoidance
 from jedimaster_ai.behaviors import Decision
 from jedimaster_ai.geometry import angle_between
+from jedimaster_ai.geometry import bearing
 from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.geometry import QUARTER_TURN
+from jedimaster_ai.geometry import sweeps
 from jedimaster_ai.geometry import TURN
 from jedimaster_ai.think import think
 from jedimaster_ai.world import Actions
@@ -68,6 +70,16 @@ def steer(view, contact):
         return avoidance.steer_clear(me, question, Decision(NOTEBOOK, actions))
 
     return decide
+
+
+@pytest.fixture
+def freighter(ship):
+    def make(index, x, y):
+        return ship(
+            y, x=x, object_index=index, genus=FREIGHTER, size=BULK_FREIGHTER_SIZE
+        )
+
+    return make
 
 
 def keep_of(ship) -> int:
@@ -204,3 +216,61 @@ def test_every_order_behavior_steers_clear(view, contact, ship) -> None:
     }
     answer = think(Question(1000, (me,), (own, ship(16000))), straight_on)
     assert answer.craft[0].actions.steer != AHEAD
+
+
+def test_a_break_steers_clear_of_its_target_too(freighter, steer) -> None:
+    """Inside its target's clearance, a craft breaks off eastward from a
+    freighter to its west, and another freighter north-east lies in that
+    way. Going round that one on the nose's side would point it back toward
+    its target (yaw 64,886, AI5e-2's answer); the target counts while the
+    heading asked does not aim at it, so it turns on round, away from both.
+    A heading aimed at the target is the behavior's (AI5e-3: in the gap
+    toy, breaks turned into their own target)."""
+    target, beside = freighter(9, -6000, 0), freighter(10, 8000, 5000)
+    east = Steer(QUARTER_TURN, LEVEL, 0)
+    turned = steer(target, beside, heading=east, target=9).actions.steer.yaw
+    assert turned == 0x4A00
+    assert angle_between(turned, 3 * QUARTER_TURN) > QUARTER_TURN
+    west = Steer(3 * QUARTER_TURN, LEVEL, 0)
+    assert steer(target, beside, heading=west, target=9).actions.steer == west
+
+
+def test_the_turn_back_to_a_target_goes_the_long_way_round_a_neighbour(
+    freighter, steer
+) -> None:
+    """Inside a neighbour's clearance, a craft turns back toward its target
+    beyond it; the shortest way swings its nose across the neighbour (the
+    escort network game's bombers 9 and 10, AI5e-3's fourth cause), so it
+    turns the long way, a quarter turn at a time. A neighbour outside its
+    clearance is no wall: the heading is kept."""
+    target = freighter(9, -7000, -5000)
+    back = Steer(bearing(-7000, -5000, 0)[0], LEVEL, 0)
+    assert sweeps(0, back.yaw, bearing(-3000, 5000, 0)[0])
+    inside = freighter(10, -3000, 5000)
+    turned = steer(target, inside, heading=back, target=9).actions.steer
+    assert turned == Steer(QUARTER_TURN, LEVEL, 0)
+    outside = freighter(10, -6000, 10000)
+    assert steer(target, outside, heading=back, target=9).actions.steer == back
+
+
+def test_between_two_the_craft_takes_the_widest_pass(freighter, steer) -> None:
+    """Between two freighters, inside both clearances, with each an eighth
+    of a turn off the nose: a turn out either way swings the nose across
+    one, so it flies on between them, on the heading whose nearer pass is
+    widest (3,278 and 3,335 units), not halfway between their bearings
+    (2,693 from the nearer: AI5e-3's draft ranked by angle and grazed the
+    nearer freighter in the gap toy)."""
+    nearer, farther = freighter(9, 3000, 3000), freighter(10, -5000, 5000)
+    assert steer(nearer, farther).actions.steer.yaw == 0xF800
+
+
+def test_a_nose_dead_on_a_craft_it_is_inside_turns_out_past_both(
+    freighter, steer
+) -> None:
+    """The nose points dead at a freighter whose clearance the craft is
+    inside, a second freighter to the right: going round the first on the
+    heading's side would point it at the second (yaw 17,408); the search
+    turns it left, out past both edges. A wall dead on the nose blocks
+    neither way (AI5e-3's draft found no heading at all)."""
+    ahead, right = freighter(10, 0, 5000), freighter(11, 7000, 0)
+    assert steer(ahead, right).actions.steer.yaw == 0xBC00

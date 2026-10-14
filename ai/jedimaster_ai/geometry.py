@@ -12,7 +12,8 @@ The engine's conventions (``engine/src/xvt/math/trig2.c``, ``trig2_ctop``):
 Invariants:
     - Integers only, so every machine and every Python gets the same numbers:
       the arctangent is a CORDIC with the 16 step angles below, and lengths
-      are ``math.isqrt``. Within 4 units of the exact angle.
+      are ``math.isqrt``. Within 4 units of the exact angle. The sine runs
+      the same steps the other way, within 20 65,536ths, and is odd.
     - An offset of 0 has yaw 0x4000 and is level.
 """
 
@@ -72,6 +73,32 @@ def angle_between(first: int, second: int) -> int:
 def signed(angle: int) -> int:
     """Return an angle as -0x8000 to 0x7FFF: negative counterclockwise."""
     return (angle + HALF_TURN) % TURN - HALF_TURN
+
+
+# The CORDIC's gain over its 16 steps, inverted, in 65,536ths: a vector
+# started this long ends 65,536 long.
+_GAIN = 39797
+
+
+def sine(angle: int) -> int:
+    """Return the sine of an angle, in 65,536ths: 0 at 0 and a half turn,
+    which the steps alone miss by 3."""
+    angle = signed(angle)
+    sign = -1 if angle < 0 else 1
+    angle = abs(angle)
+    if angle > QUARTER_TURN:
+        angle = HALF_TURN - angle
+    if angle == 0:
+        return 0
+    x, y = _GAIN << 8, 0
+    for step, step_angle in enumerate(_STEP_ANGLES):
+        if angle >= 0:
+            x, y = x - (y >> step), y + (x >> step)
+            angle -= step_angle
+        else:
+            x, y = x + (y >> step), y - (x >> step)
+            angle += step_angle
+    return sign * ((y + 0x80) >> 8)
 
 
 def sweeps(nose: int, heading: int, toward: int) -> bool:

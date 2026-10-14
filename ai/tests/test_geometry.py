@@ -13,6 +13,7 @@ from jedimaster_ai.geometry import bearing
 from jedimaster_ai.geometry import distance
 from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.geometry import signed
+from jedimaster_ai.geometry import sine
 from jedimaster_ai.geometry import sweeps
 
 
@@ -87,3 +88,11 @@ def test_signed_runs_from_minus_a_half_turn() -> None:
         -0x8000,
         -1,
     ]
+
+
+def test_sine_is_odd_and_within_20_of_the_exact_sine() -> None:
+    assert [sine(a) for a in (0, 0x4000, 0x8000, 0xC000)] == [0, 0x10000, 0, -0x10000]
+    for angle in range(0, 0x10000, 0x101):
+        exact = round(0x10000 * math.sin(angle * 2 * math.pi / 0x10000))
+        assert abs(sine(angle) - exact) <= 20
+        assert sine(-angle % 0x10000) == -sine(angle)

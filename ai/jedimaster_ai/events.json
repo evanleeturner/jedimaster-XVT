@@ -45,8 +45,8 @@
     },
     "avoidance.steer": {
       "level": "D",
-      "fields": ["object", "around", "distance", "clearance", "yaw"],
-      "text": "Craft {object} steered clear of craft {around}, {distance} units away with a clearance of {clearance}, to yaw {yaw}"
+      "fields": ["object", "around", "distance", "clearance", "yaw", "searched"],
+      "text": "Craft {object} steered clear of craft {around}, {distance} units away with a clearance of {clearance}, to yaw {yaw}; searched {searched} (1 when the way past the nearest was not free and it searched the headings its nose could reach)"
     },
     "countermeasures.threat": {
       "level": "D",

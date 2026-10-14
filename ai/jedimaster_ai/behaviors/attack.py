@@ -69,7 +69,8 @@ Invariants:
       across either; then it keeps the quarter turn, and avoidance turns it
       round the other.
     - Unless it weaves, a craft inside a bulky target's clearance breaks
-      off from it rather than steer at it; a weave steers clear of it.
+      off from it rather than steer at it; a weave steers clear of it, and
+      avoidance turns a break clear of it as of any bulky craft.
     - A fighting craft thinks every FIGHT_INTERVAL ticks, whatever its skill.
 """
 
