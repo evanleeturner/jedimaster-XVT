@@ -63,6 +63,11 @@
       "fields": ["object", "threat", "type", "distance", "range", "kind", "launch"],
       "text": "Craft {object} weighs homing shot {threat} (object type {type}), {distance} units away inside its range of {range}, the first such shot aimed at it; its countermeasure type is {kind} (1 chaff, 2 flare) and it launches one: {launch} (0 when a countermeasure already homes on that shot)"
     },
+    "disable.targets": {
+      "level": "D",
+      "fields": ["object", "named", "working", "chosen", "ion_groups"],
+      "text": "Craft {object} on a Disable order has {named} targets its order names, {working} of them with subsystems that work; once a player's commands apply it fights the nearest of {chosen}, with its {ion_groups} ion cannon groups alone (none fire when it has none)"
+    },
     "formation.far": {
       "level": "D",
       "fields": ["object", "leader", "distance"],
