@@ -34,6 +34,7 @@ from .behaviors import countermeasures
 from .behaviors import home
 from .behaviors import turrets
 from .behaviors import wait
+from .behaviors import waiting
 from .orders import behavior_for
 from .orders import BEHAVIORS
 from .world import Answer
@@ -77,6 +78,7 @@ def think(
                 behavior = home.think if step.home else behavior_for(view, behaviors)
                 decision = progress.with_move(behavior(view, question), step.move)
                 decision = wait.ended(view, decision)
+                decision = waiting.ended(view, decision)
             if arrival.is_leaving_hangar(view):
                 decision = arrival.leave_hangar(view, decision)
             decision = avoidance.steer_clear(view, question, decision)
@@ -134,7 +136,7 @@ def _log_view(view: CraftView) -> None:
         "countermeasure=%d countermeasures_left=%d countermeasure_working=%d "
         "chaff_seconds=%d countermeasure_cooldown=%d threats=%d waypoints=%d "
         "commands=%d command_target=%d avoid_target=%d place_x=%d place_y=%d "
-        "place_z=%d "
+        "place_z=%d timer=%d "
         'notebook="%s"',
         view.object_index,
         view.object_signature,
@@ -200,6 +202,7 @@ def _log_view(view: CraftView) -> None:
         view.place[0],
         view.place[1],
         view.place[2],
+        view.maneuver_timer,
         view.notebook.hex(),
     )
     for threat in view.threats:

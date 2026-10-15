@@ -237,6 +237,20 @@ def test_released_a_wingman_attacks_the_craft_its_player_named(view, contact) ->
     assert (said.target, said.activity) == (15, Activity.NONE)
 
 
+def test_a_craft_past_its_mission_wait_stops_showing_it(view) -> None:
+    """A craft that still shows WAITING from a Wait order it left without
+    its done think (a skip) clears it when its new order names no activity."""
+    craft = view(order_code=OrderCode.HOLD_STEADY, activity=Activity.WAITING)
+    said = answered(Question(1, (craft,))).craft[0].actions
+    assert said.activity == Activity.NONE
+
+
+def test_debug_records_the_maneuver_timer(view, caplog) -> None:
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    think(Question(1000, (view(maneuver_timer=1180),)))
+    assert " timer=1180 " in caplog.text
+
+
 def test_debug_records_who_last_shot_a_contact(view, contact, caplog) -> None:
     caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
     think(Question(1000, (view(),), (contact(hit_by=17), contact(hit_by=65535))))
