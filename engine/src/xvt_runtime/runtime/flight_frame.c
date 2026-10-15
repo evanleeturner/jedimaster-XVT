@@ -630,7 +630,12 @@ static xvt_flight_replay_result xvt_flight_frame_confirm(xvt_flight_queue queue)
 		}
 	}
 	flight_view_update_player_camera(g_local_player);
+	int confirmed_from = g_server_tick_time;
 	g_server_tick_time = g_game_time;
+	if (queue == XVT_QUEUE_PENDING) {
+		xvt_flight_record_warhead_beat(confirmed_from,
+					       g_server_tick_time);
+	}
 	sound_flush_queued_effects();
 	flight_save_world_state();
 	XVT_LOG_DEBUG(

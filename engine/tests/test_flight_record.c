@@ -1,18 +1,25 @@
-/* Tests for xvt_runtime/runtime/flight_record.c, the record point. Checks
- * the lines a record point writes, word for word, on craft this file builds
- * itself: one record.point line, then one world.track line per craft slot
- * holding a craft with a craft record, in slot order; a slot in use without
- * a craft record counted and not tracked; free slots and slots past the
- * craft slots left out; a player's target read only for a player number in
- * the player table; and nothing written with DEBUG lines off. The lines are
- * caught at SDL's log output, where Aeron's log funnel sends them. No game
- * data is read. */
+/* Tests for xvt_runtime/runtime/flight_record.c, the record point and the
+ * warhead track. Checks the lines a record point writes, word for word, on
+ * craft this file builds itself: one record.point line, then one world.track
+ * line per craft slot holding a craft with a craft record, in slot order; a
+ * slot in use without a craft record counted and not tracked; free slots and
+ * slots past the craft slots left out; a player's target read only for a
+ * player number in the player table; and nothing written with DEBUG lines
+ * off. Also the warhead track on shots this file builds: one
+ * world.warhead_track line per shot slot holding a warhead (a countermeasure
+ * included, a laser bolt, a free slot, a type outside the shot types and a
+ * slot outside the shot slots left out); a warhead without a guidance record;
+ * which steps cross the 16-tick warhead beat (xvt_flight_record_warhead_beat);
+ * and nothing written with DEBUG off. The lines are caught at SDL's log output,
+ * where Aeron's log funnel sends them. The shot type table is the engine's
+ * own; no game data is read. */
 #include <SDL3/SDL_log.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "test_assert.h"
 #include "xvt/flight/craft.h"
+#include "xvt/flight/object/laser.h"
 #include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/log/log.h"
@@ -274,6 +281,105 @@ static void check_empty_world(void)
 	check_line(0, "record.point tick=960 craft=0 unlinked=0");
 }
 
+static struct warhead_guidance_state g_test_guidance[SLOTS];
+
+/* Shot slots 2 to 6 (one past the end is 7). Slot 2: a proton torpedo (143)
+ * aimed at object 5 with homing tier 4. Slot 3: a laser bolt (137). Slot 4:
+ * free. Slot 5: a countermeasure (155) with no guidance record. Slot 6: a
+ * type past the shot types (200). Slot 0, before the shot slots, and slot 7,
+ * after them, hold concussion missiles (144); slot 1 holds type 5, below the
+ * shot types. */
+static void build_shots(void)
+{
+	memset(g_test_objects, 0, sizeof g_test_objects);
+	memset(g_test_mobiles, 0, sizeof g_test_mobiles);
+	memset(g_test_guidance, 0, sizeof g_test_guidance);
+	for (int slot = 0; slot < SLOTS; ++slot) {
+		g_test_objects[slot].mobj = &g_test_mobiles[slot];
+	}
+	g_object_table = g_test_objects;
+	g_projectile_object_slot_start = 2;
+	g_projectile_object_slot_end = 7;
+	static const unsigned char types[SLOTS] = {144, 5,   143, 137,
+						   0,	155, 200, 144};
+	for (int slot = 0; slot < SLOTS; ++slot) {
+		g_test_objects[slot].object_type = types[slot];
+		g_test_objects[slot].object_signature = (uint16_t)(100 + slot);
+		g_test_objects[slot].world_x = slot;
+	}
+	struct object_record *torpedo = &g_test_objects[2];
+	torpedo->world_x = -50000;
+	torpedo->world_y = 123456;
+	torpedo->world_z = -7;
+	torpedo->yaw = 65535;
+	torpedo->pitch = 16384;
+	torpedo->roll = 2;
+	g_test_mobiles[2].speed = 2750;
+	g_test_mobiles[2].source_obj_idx = 1;
+	g_test_mobiles[2].p_warhead_guidance = &g_test_guidance[2];
+	g_test_guidance[2].target_obj_idx = 5;
+	g_test_guidance[2].homing_tier = 4;
+	g_test_mobiles[5].source_obj_idx = 3;
+	g_test_mobiles[5].speed = 300;
+	g_test_objects[5].world_x = 9;
+	g_test_objects[5].world_y = 8;
+	g_test_objects[5].world_z = 7;
+}
+
+static void check_warheads_off(void)
+{
+	build_shots();
+	g_line_count = 0;
+	xvt_log_set_level(AERON_LOG_INFO);
+	xvt_flight_record_warheads(TICK);
+	xvt_flight_record_warhead_beat(8, 16);
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+}
+
+static void check_warhead_lines(void)
+{
+	build_shots();
+	g_line_count = 0;
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	xvt_flight_record_warheads(TICK);
+	XVT_ASSERT_INT_EQ(g_line_count, 2);
+	check_line(0, "world.warhead_track tick=960 object=2 signature=102 "
+		      "type=143 source=1 target=5 homing=4 x=-50000 "
+		      "y=123456 z=-7 yaw=65535 pitch=16384 roll=2 "
+		      "speed=2750");
+	check_line(1, "world.warhead_track tick=960 object=5 signature=105 "
+		      "type=155 source=3 target=-1 homing=-1 x=9 y=8 z=7 "
+		      "yaw=0 pitch=0 roll=0 speed=300");
+}
+
+/* A beat is crossed or landed on: 8 to 16 and 10 to 17 write, 16 to 24 and
+ * 1-tick steps within a beat do not, 15 to 16 writes, 0 to 8 does not. */
+static void check_warhead_beat(void)
+{
+	static const int steps[][2] = {{8, 16},	 {16, 24}, {10, 17},
+				       {15, 16}, {16, 17}, {0, 8},
+				       {17, 16}, {-8, 8},  {0, 40}};
+	static const int writes[] = {1, 0, 1, 1, 0, 0, 0, 0, 1};
+	for (unsigned i = 0; i < sizeof writes / sizeof writes[0]; ++i) {
+		build_shots();
+		g_line_count = 0;
+		xvt_log_set_level(AERON_LOG_DEBUG);
+		xvt_flight_record_warhead_beat(steps[i][0], steps[i][1]);
+		if (g_line_count != 2 * writes[i]) {
+			fprintf(stderr, "step %d to %d wrote %d lines\n",
+				steps[i][0], steps[i][1], g_line_count);
+			exit(1);
+		}
+	}
+	build_shots();
+	g_line_count = 0;
+	xvt_flight_record_warhead_beat(8, 16);
+	check_line(0, "world.warhead_track tick=16 object=2 signature=102 "
+		      "type=143 source=1 target=5 homing=4 x=-50000 "
+		      "y=123456 z=-7 yaw=65535 pitch=16384 roll=2 "
+		      "speed=2750");
+}
+
 int main(void)
 {
 	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
@@ -281,5 +387,8 @@ int main(void)
 	check_writes_nothing_with_debug_off();
 	check_record_point_lines();
 	check_empty_world();
+	check_warheads_off();
+	check_warhead_lines();
+	check_warhead_beat();
 	return 0;
 }

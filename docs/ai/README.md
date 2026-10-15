@@ -329,9 +329,6 @@ the project's owner closes them. This table says what became of each one.
   the boarding orders, Pick up, Drop off, Self-destruct, Kamikaze, Disabled,
   Await Boarding, SS Board and SS Launch.
 - Two skill levels above Jedi, Sith Apprentice and Sith Lord (below).
-- The debug log will record each warhead's path in flight. Today it
-  records a warhead only when it is fired, decoyed, loses its target,
-  runs out or hits.
 - Possible later work that has not started: capital ships, advanced fighters and
   turbolasers, ion cannons, and aiming at parts of a ship.
 
@@ -355,6 +352,8 @@ their powers to predict your movements in space and time. In the game, the
 pilot program gets a live record of every craft and every warhead in
 flight, the same kind of record the engine writes to its debug log for its
 tests, and uses it to the full.
+The debug log now holds each warhead's, chaff's and flare's path in flight
+every 64 ms in network battles.
 
 | Behavior | Levels 0 to 5 (up to Jedi) | Sith Apprentice (6) | Sith Lord (7) |
 | --- | --- | --- | --- |
