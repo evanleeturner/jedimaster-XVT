@@ -341,7 +341,9 @@ the project's owner closes them. This table says what became of each one.
 Partly built. The launcher's Sith setting (None, Apprentices or A Lord)
 promotes the enemy's best computer fighter flight in a single-player
 battle, and the message at the end of the battle says how its craft
-fared. Until the behaviors in the table below are built, Sith craft fly
+fared. The cockpit's two target readouts mark these craft: "Sith"
+after a Sith Apprentice's name, "Sith Lord" after a Sith Lord's.
+Until the behaviors in the table below are built, Sith craft fly
 with a Jedi's skill. A mission gives each computer craft a skill level
 from 0 to 5, and the launcher's mission reader names them Rookie,
 Officer, Veteran, Ace, Top Ace and Jedi, and now Sith Apprentice and

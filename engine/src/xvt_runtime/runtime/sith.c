@@ -6,7 +6,10 @@
 
 #include "xvt/assets/object_genus.h"
 #include "xvt/assets/object_type.h"
+#include "xvt/flight/craft.h"
+#include "xvt/flight/hud/flight_text.h"
 #include "xvt/flight/mission/mission.h"
+#include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/log/log.h"
 
@@ -52,6 +55,42 @@ void xvt_sith_note_craft_destroyed(int ai_rank)
 	} else if (ai_rank == XVT_SITH_LORD_LEVEL) {
 		++g_lord_lost;
 	}
+}
+
+const char *xvt_sith_rank_tag(int ai_rank)
+{
+	switch (ai_rank) {
+	case XVT_SITH_APPRENTICE_LEVEL:
+		return " Sith";
+	case XVT_SITH_LORD_LEVEL:
+		return " Sith Lord";
+	default:
+		return "";
+	}
+}
+
+int xvt_sith_append_target_tag(unsigned int object_slot, int log_change)
+{
+	if (g_object_table == NULL ||
+	    object_slot >=
+		    (unsigned int)g_active_region_craft_object_slot_end) {
+		return 0;
+	}
+	const struct mobile_object *mobile = g_object_table[object_slot].mobj;
+	if (mobile == NULL || mobile->p_craft == NULL) {
+		return 0;
+	}
+	int ai_rank = mobile->p_craft->ai_rank;
+	const char *tag = xvt_sith_rank_tag(ai_rank);
+	if (tag[0] == '\0') {
+		return 0;
+	}
+	flight_text_append_scratch_string(tag);
+	if (log_change) {
+		XVT_LOG_DEBUG("sith.target_tag slot=%u rank=%d tag=\"%s\"",
+			      object_slot, ai_rank, tag);
+	}
+	return 1;
 }
 
 void xvt_sith_get_report(struct xvt_sith_report *out)

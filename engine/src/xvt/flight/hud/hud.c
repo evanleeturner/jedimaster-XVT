@@ -46,6 +46,7 @@
 #include "xvt/render/sw3d.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log.h"
+#include "xvt_runtime/runtime/sith.h"
 #include "xvt_runtime/snapshot/cockpit_capture.h"
 #include "xvt_runtime/snapshot/cockpit_instruments.h"
 #include "xvt_runtime/snapshot/cockpit_messages.h"
@@ -2663,8 +2664,9 @@ void hud_add_blip_to_radar(int16_t obj_idx)
  * before, and draws the new name, or the cover panel when there is no target
  * now.
  *
- * With a target it then draws every frame: the name, with the owning player's
- * name added when it may be shown; shields, the mean of the two shield values
+ * With a target it then draws every frame: the name, with a Sith craft's tag
+ * (xvt_sith_append_target_tag) and the owning player's name added when it
+ * may be shown; shields, the mean of the two shield values
  * against the model's strength; hull, what is left of hull_max; systems, what is
  * left of the model's system strength, at most 25 while weapon fire is
  * inhibited; and the distance, to the selected component for a starship or
@@ -3127,6 +3129,8 @@ void hud_update_targeting_computer_display(void)
 					current_target_object_index,
 					NORMAL_TARGET_DISPLAY_FLAGS);
 			}
+			xvt_sith_append_target_tag(current_target_object_index,
+						   1);
 			target_object =
 				&g_object_table[current_target_object_index];
 			if (target_object->player_owner_idx != -1) {
@@ -3358,6 +3362,9 @@ void hud_update_targeting_computer_display(void)
 				.current_target_object_idx,
 			NORMAL_TARGET_DISPLAY_FLAGS);
 	}
+	xvt_sith_append_target_tag(
+		(uint16_t)g_players[g_local_player].current_target_object_idx,
+		0);
 	target_object = &g_object_table[(uint16_t)g_players[g_local_player]
 						.current_target_object_idx];
 	if (target_object->player_owner_idx != -1) {
@@ -6514,7 +6521,8 @@ void hud_update_craft_system_status_indicators(void)
  * name, range, cargo, and for a craft its orders, the order's target or
  * destination, the range to it and the time to reach it. On a target change it
  * records the target in g_hud_cached_target_object_idx, marks the CMD entries of
- * g_hud_element_state_cache for redraw, draws the name, and clears the panel
+ * g_hud_element_state_cache for redraw, draws the name (a Sith craft's name
+ * carries its tag, xvt_sith_append_target_tag), and clears the panel
  * (layout 143) for a target outside the craft slots. With a target it draws the
  * range label when there was none before, the range as whole.hundredths (polar
  * distance * 161 / 65,536, at most 99.99), and the cargo, unknown until the
@@ -6661,6 +6669,8 @@ void hud_draw_cmd_target_details(void)
 					current_target_object_idx,
 					NORMAL_TARGET_DISPLAY_FLAGS);
 			}
+			xvt_sith_append_target_tag(current_target_object_idx,
+						   1);
 			xvt_cockpit_text_record_field(
 				XVT_COCKPIT_TEXT_TARGET_NAME,
 				g_flight_text_scratch_buffer,

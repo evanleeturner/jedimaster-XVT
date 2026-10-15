@@ -5,7 +5,11 @@
  * on flight-group tables this file seeds: which group is chosen (hostile,
  * flown by no player, starfighters, the highest level, a tie to the lowest
  * index), what each setting does to it, and that nothing is touched or logged
- * with the setting none. No game data is read. */
+ * with the setting none; last the tag a Sith craft's name carries on the
+ * cockpit's target readouts: the tag for every level, and the append for
+ * rank 6, 7 and 5 craft, a slot that is no craft slot and a craft slot with
+ * no mobile object or craft record, with the buffer and the log line
+ * checked. No game data is read. */
 #include <SDL3/SDL_log.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,7 +17,10 @@
 #include "test_assert.h"
 #include "xvt/assets/object_genus.h"
 #include "xvt/assets/object_type.h"
+#include "xvt/flight/craft.h"
+#include "xvt/flight/hud/flight_text.h"
 #include "xvt/flight/mission/mission.h"
+#include "xvt/flight/object/object.h"
 #include "xvt/flight/player/player.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/launch_description.h"
@@ -461,6 +468,100 @@ static void check_same_choice_each_time(void)
 	}
 }
 
+/* ---- the target tag ---------------------------------------------------- */
+
+enum { TAG_SLOTS = 8, TAG_CRAFT_SLOTS = 5 };
+
+static struct object_record g_tag_objects[TAG_SLOTS];
+static struct mobile_object g_tag_mobiles[TAG_SLOTS];
+static struct craft_data g_tag_crafts[TAG_SLOTS];
+
+/* Slots 0 to 4 are craft slots and 5 to 7 are not. Slot 0 holds rank 6, 1
+ * rank 7, 2 rank 5, 3 a mobile object with no craft record, 4 no mobile
+ * object. Slot 6, past the craft slots, holds a full rank 7 craft record. */
+static void seed_tag_slots(void)
+{
+	memset(g_tag_objects, 0, sizeof g_tag_objects);
+	memset(g_tag_mobiles, 0, sizeof g_tag_mobiles);
+	memset(g_tag_crafts, 0, sizeof g_tag_crafts);
+	static const uint8_t ranks[TAG_SLOTS] = {6, 7, 5, 7, 7, 0, 7, 0};
+	for (int i = 0; i < TAG_SLOTS; ++i) {
+		g_tag_crafts[i].ai_rank = ranks[i];
+		g_tag_mobiles[i].p_craft = &g_tag_crafts[i];
+		g_tag_objects[i].mobj = &g_tag_mobiles[i];
+	}
+	g_tag_mobiles[3].p_craft = NULL;
+	g_tag_objects[4].mobj = NULL;
+	g_object_table = g_tag_objects;
+	g_active_region_craft_object_slot_end = TAG_CRAFT_SLOTS;
+	g_line_count = 0;
+}
+
+static void check_rank_tags(void)
+{
+	XVT_ASSERT_INT_EQ(strcmp(xvt_sith_rank_tag(6), " Sith"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(xvt_sith_rank_tag(7), " Sith Lord"), 0);
+	static const int others[] = {-1, 0, 1, 2, 3, 4, 5, 8, 255, 1000000};
+	for (size_t index = 0; index < sizeof(others) / sizeof(others[0]);
+	     ++index) {
+		XVT_ASSERT_INT_EQ(xvt_sith_rank_tag(others[index])[0], '\0');
+	}
+}
+
+static void check_tag_appended_for_sith_ranks(void)
+{
+	seed_tag_slots();
+	flight_text_set_scratch("Hawk");
+	XVT_ASSERT_INT_EQ(xvt_sith_append_target_tag(0, 0), 1);
+	XVT_ASSERT_INT_EQ(strcmp(g_flight_text_scratch_buffer, "Hawk Sith"), 0);
+	flight_text_set_scratch("Hawk");
+	XVT_ASSERT_INT_EQ(xvt_sith_append_target_tag(1, 0), 1);
+	XVT_ASSERT_INT_EQ(
+		strcmp(g_flight_text_scratch_buffer, "Hawk Sith Lord"), 0);
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+}
+
+static void check_no_tag_leaves_buffer(void)
+{
+	seed_tag_slots();
+	/* rank 5, no craft record, no mobile object, a slot past the craft
+	 * slots holding rank 7, the table's far end, and a slot far outside */
+	static const unsigned int slots[] = {2, 3, 4, 6, 7, 5000, 0xFFFFFFFFu};
+	for (size_t index = 0; index < sizeof(slots) / sizeof(slots[0]);
+	     ++index) {
+		flight_text_set_scratch("Hawk");
+		XVT_ASSERT_INT_EQ(xvt_sith_append_target_tag(slots[index], 1),
+				  0);
+		XVT_ASSERT_INT_EQ(strcmp(g_flight_text_scratch_buffer, "Hawk"),
+				  0);
+	}
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+	g_object_table = NULL;
+	flight_text_set_scratch("Hawk");
+	XVT_ASSERT_INT_EQ(xvt_sith_append_target_tag(0, 1), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_flight_text_scratch_buffer, "Hawk"), 0);
+}
+
+/* The log line comes once per call that asks for it, with the slot, the rank
+ * and the tag; a call that does not ask writes nothing. */
+static void check_tag_log_line(void)
+{
+	seed_tag_slots();
+	flight_text_set_scratch("Hawk");
+	xvt_sith_append_target_tag(1, 1);
+	XVT_ASSERT_INT_EQ(g_line_count, 1);
+	XVT_ASSERT_INT_EQ(lines_with("sith.target_tag"), 1);
+	XVT_ASSERT_INT_EQ(lines_with("slot=1 rank=7 tag=\" Sith Lord\""), 1);
+	flight_text_set_scratch("Hawk");
+	xvt_sith_append_target_tag(0, 1);
+	XVT_ASSERT_INT_EQ(g_line_count, 2);
+	XVT_ASSERT_INT_EQ(lines_with("slot=0 rank=6 tag=\" Sith\""), 1);
+	flight_text_set_scratch("Hawk");
+	xvt_sith_append_target_tag(0, 0);
+	XVT_ASSERT_INT_EQ(g_line_count, 2);
+	g_object_table = NULL;
+}
+
 int main(void)
 {
 	xvt_log_set_level(AERON_LOG_DEBUG);
@@ -483,5 +584,9 @@ int main(void)
 	check_report();
 	check_report_nothing_promoted();
 	check_end_flight();
+	check_rank_tags();
+	check_tag_appended_for_sith_ranks();
+	check_no_tag_leaves_buffer();
+	check_tag_log_line();
 	return 0;
 }

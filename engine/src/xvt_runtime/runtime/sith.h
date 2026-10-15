@@ -87,6 +87,21 @@ void xvt_sith_note_craft_destroyed(int ai_rank);
  * when the setting is lord) and the destroyed counts. With the setting none,
  * flight_group and craft_type are -1 and the counts 0. */
 void xvt_sith_get_report(struct xvt_sith_report *out);
+/* The tag a craft at ai_rank carries after its name on the cockpit's target
+ * readouts: " Sith" at XVT_SITH_APPRENTICE_LEVEL, " Sith Lord" at
+ * XVT_SITH_LORD_LEVEL, "" at any other value. The leading space is part of
+ * the tag. */
+const char *xvt_sith_rank_tag(int ai_rank);
+/* Appends the tag of the target in object slot object_slot to
+ * g_flight_text_scratch_buffer, where the cockpit has just formatted the
+ * target's name. It appends only when the slot is a craft slot (below
+ * g_active_region_craft_object_slot_end) holding a mobile object with a craft
+ * record whose ai_rank has a tag; every other slot leaves the buffer
+ * untouched. With log_change nonzero, which the readouts pass where they
+ * draw the name afresh (a new target, or the cockpit redrawn after a view
+ * change or a hit to the player's systems), an appended tag also logs
+ * sith.target_tag. Returns 1 when a tag was appended, else 0. */
+int xvt_sith_append_target_tag(unsigned int object_slot, int log_change);
 /* Ends the flight: the setting returns to none and the Lord's group, the
  * promoted group and the counts are cleared, so a later battle in the same
  * process inherits nothing. */

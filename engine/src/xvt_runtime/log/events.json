@@ -6468,6 +6468,11 @@
       "fields": ["setting", "fg", "team", "craft", "count", "level_was", "level", "lord_rank"],
       "text": "The Sith setting {setting} promoted flight group {fg} (team {team}, craft type {craft}, {count} craft per wave), the hostile computer-flown starfighter group with the highest level, from level {level_was} to level {level}; the first craft of its first wave flies at level {lord_rank} (0 for none)"
     },
+    "sith.target_tag": {
+      "level": "D",
+      "fields": ["slot", "rank", "tag"],
+      "text": "The cockpit's target readout shows the craft in object slot {slot}, flying at level {rank}, with the tag \"{tag}\" after its name"
+    },
     "snapshot.alert_overflow": {
       "level": "E",
       "fields": ["line"],
