@@ -133,6 +133,11 @@
       "fields": ["object", "from", "to", "state", "why"],
       "text": "Craft {object} moves from order slot {from} to slot {to}, the slot it left taking completion state {state} ({why}: next, skip, done or home)"
     },
+    "protect.attackers": {
+      "level": "D",
+      "fields": ["object", "named", "hit", "attackers"],
+      "text": "Craft {object} on a Protect order has {named} craft its order names, {hit} of them hit by a craft of some team, and {attackers} enemies attacking those: each that targets one, or whose shot hit one last"
+    },
     "think.answer": {
       "level": "D",
       "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "target", "mode_first", "burst_first", "mode_second", "burst_second", "launcher", "paired", "turrets", "arriving", "speed", "order_slot", "order_state", "notebook"],
