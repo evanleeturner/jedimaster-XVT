@@ -35,6 +35,7 @@ _FIGHTABLE_KINDS = (OBJECT_KIND_ACTIVE, OBJECT_KIND_DISABLED)
 # craft keep clear of (ruling 24). Only a starfighter answers homing shots
 # with countermeasures.
 GENUS_STARFIGHTER = 0
+GENUS_TRANSPORT = 1
 GENUS_FREIGHTER = 3
 GENUS_STARSHIP = 4
 GENUS_PLATFORM = 5

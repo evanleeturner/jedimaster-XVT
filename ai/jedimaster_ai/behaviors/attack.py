@@ -14,7 +14,9 @@ Purpose:
     tail is clear or the weave's swerves are flown, steering clear of every
     bulky craft its own target among them, then fights again. Skill
     sets the aim cone, the firing range, the burst and how soon it looks
-    again for a nearer target.
+    again for a nearer target. Lined up or not, it fires a guided warhead
+    at its target when ``warheads.choose`` lets it: its lock declared, a
+    warhead that suits the target, inside 1997's limits.
 
     With no target its order names in the battle, a craft an enemy is after
     (``pursuer``) fights that enemy while it may fight back (``fights_back``:
@@ -40,7 +42,8 @@ Phases, the notebook's phase byte:
 
     SEEK    no target: hold fire, keep course, look again each think; an
             enemy on the tail starts a weave
-    ATTACK  steer at the target, fire when lined up
+    ATTACK  steer at the target, fire when lined up; each entry to ATTACK,
+            and each new target, starts an attack run
     BREAK   inside the target's clearance, ahead, or anywhere for a bulky
             target: hold a heading a quarter turn away from the target's
             side, or away from it and the bulky craft in that way, until
@@ -50,8 +53,11 @@ Phases, the notebook's phase byte:
 The scratch bytes, little-endian: u16 target index, u16 its signature,
 u16 yaw and u16 pitch a break holds, u32 the tick to look again for a
 nearer target, then the weave's state (``weave.STATE_BYTES``), then u8 1
-while the weave flies an evade command, else 0; the rest zero. In SEEK only the weave's bytes are kept, so a weave's rest outlasts
-the search.
+while the weave flies an evade command, else 0; then u8 the warheads fired
+in this attack run, u8 1 while a shot at a starfighter or transport waits
+for the lock to lapse, else 0, and u8 the last reason the craft held its
+warheads (``warheads.Held``); the rest zero. In SEEK only the weave's bytes
+are kept, so a weave's rest outlasts the search.
 
 Invariants:
     - The decision follows from the view, the question and the notebook;
@@ -85,6 +91,7 @@ from .. import dice
 from .. import geometry
 from .. import notebook
 from .. import tactics
+from .. import warheads
 from .. import weave
 from ..world import Actions
 from ..world import CANNON_GROUPS
@@ -94,9 +101,11 @@ from ..world import Contact
 from ..world import CraftView
 from ..world import HOLD_FIRE
 from ..world import LinkMode
+from ..world import Lock
 from ..world import NO_OBJECT
 from ..world import Question
 from ..world import Steer
+from ..world import Warhead
 from . import avoidance
 from . import BehaviorCode
 from . import Decision
@@ -160,6 +169,7 @@ FIGHT_BACK_HULL = (3, 4)
 
 _SCRATCH = struct.Struct("<HHHHI")
 _ORDERED = struct.Struct("<B")
+_WARHEADS = struct.Struct("<BBB")
 _U32_MAX = 0xFFFFFFFF
 
 
@@ -174,14 +184,19 @@ class Memory:
     look_again: int = 0
     weave: weave.Weave = weave.Weave()
     ordered: int = 0
+    shots: int = 0
+    fresh: int = 0
+    held: int = warheads.Held.NONE
 
     @classmethod
     def read(cls, scratch: bytes) -> Memory:
         """Return the memory scratch bytes hold."""
+        ordered_at = _SCRATCH.size + weave.STATE_BYTES
         return cls(
             *_SCRATCH.unpack_from(scratch),
             weave.Weave.read(scratch[_SCRATCH.size :]),
-            *_ORDERED.unpack_from(scratch, _SCRATCH.size + weave.STATE_BYTES),
+            *_ORDERED.unpack_from(scratch, ordered_at),
+            *_WARHEADS.unpack_from(scratch, ordered_at + _ORDERED.size),
         )
 
     def write(self) -> bytes:
@@ -190,6 +205,7 @@ class Memory:
             self.target, self.signature, self.yaw, self.pitch, self.look_again
         )
         packed += self.weave.write() + _ORDERED.pack(self.ordered)
+        packed += _WARHEADS.pack(self.shots, self.fresh, self.held)
         return packed + bytes(notebook.SCRATCH_BYTES - len(packed))
 
 
@@ -215,6 +231,8 @@ def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decisi
     memory = Memory.read(book.scratch)
     if book.phase == SEEK:
         memory = Memory(weave=memory.weave)
+    if memory.fresh and view.lock_state != Lock.DECLARED:
+        memory = dataclasses.replace(memory, fresh=0)
     tier = tactics.skill_tier(view.skill)
     interval = None if view.think_interval == FIGHT_INTERVAL else FIGHT_INTERVAL
 
@@ -296,6 +314,8 @@ def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decisi
 
     if book.phase != ATTACK:
         book = book.in_phase(ATTACK, tick)
+        memory = dataclasses.replace(memory, shots=0)
+    shot, memory = _warhead(view, question, target, memory)
     caught = reach < ALL_CANNONS_RANGE and off_nose < AIM_CONE[tier]
     throttle = CLOSE_THROTTLE if caught else FULL_THROTTLE
     if tier == 0:
@@ -306,8 +326,52 @@ def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decisi
         think_interval=interval,
         target=target.object_index,
         lasers=cannon_fire(view, reach, tier) if lined_up else (HOLD_FIRE, HOLD_FIRE),
+        warhead=shot,
     )
     return Decision(dataclasses.replace(book, scratch=memory.write()).encode(), actions)
+
+
+def _warhead(
+    view: CraftView, question: Question, target: Contact, memory: Memory
+) -> tuple[Warhead | None, Memory]:
+    """Return the guided warhead the craft fires at its target, None when it
+    holds, and the memory counting the shot; the reason it holds is logged
+    when it changes."""
+    if view.warhead_launcher_count == 0:
+        return None, memory
+    choice = warheads.choose(view, question, target, memory.shots, bool(memory.fresh))
+    if choice.warhead is None:
+        if choice.held != memory.held:
+            logger.debug(
+                'attack.warhead_held object=%d target=%d reason="%s" lock=%d '
+                "lock_state=%d coming=%d coming_damage=%d shots=%d",
+                view.object_index,
+                target.object_index,
+                choice.held.name.lower(),
+                view.lock_ticks,
+                view.lock_state,
+                target.warheads_coming,
+                target.warheads_coming_damage,
+                memory.shots,
+            )
+        return None, dataclasses.replace(memory, held=choice.held)
+    launcher = choice.warhead.launcher
+    shots = memory.shots + 1
+    logger.info(
+        "attack.warhead object=%d target=%d launcher=%d type=%d lock=%d coming=%d "
+        "shots=%d",
+        view.object_index,
+        target.object_index,
+        launcher,
+        view.warhead_type[launcher],
+        view.lock_ticks,
+        target.warheads_coming,
+        shots,
+    )
+    fresh = 1 if warheads.needs_fresh_lock(target) else memory.fresh
+    return choice.warhead, dataclasses.replace(
+        memory, shots=shots, fresh=fresh, held=warheads.Held.NONE
+    )
 
 
 def fire_range(view: CraftView, target: Contact, tier: int) -> int:
@@ -571,6 +635,7 @@ def _choose_target(
             nearest.object_index,
             geometry.distance(*tactics.offset(view, nearest)),
         )
+        memory = dataclasses.replace(memory, shots=0, fresh=0, held=warheads.Held.NONE)
     look_again = min(tick + LOOK_AGAIN_TICKS[tier], _U32_MAX)
     memory = dataclasses.replace(
         memory,
