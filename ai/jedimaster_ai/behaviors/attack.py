@@ -66,7 +66,9 @@ Invariants:
       it fires only the cannon groups the view counts.
     - It targets only craft the engine marks hostile (``tactics.can_fight``).
     - Only a small craft is ever after a craft: a freighter, a starship or a
-      platform shooting at it is no pursuer (ruling 42).
+      platform shooting at it is no pursuer (ruling 42). A disabled craft is
+      after nothing: with none of its subsystems working it can neither fly
+      nor fire.
     - A break turns away from the side its target is on, so the turn never
       swings the nose across the target; the dice pick the side only when
       the target is dead ahead. A break another bulky craft's clearance
@@ -485,10 +487,11 @@ def break_holds(
 
 
 def tail_threat(view: CraftView, question: Question) -> Contact | None:
-    """Return the nearest enemy on the craft's tail that targets it, or None."""
+    """Return the nearest enemy on the craft's tail that targets it, or None;
+    a disabled craft is never one."""
     nearest = None
     for position, contact in enumerate(question.contacts):
-        if contact.target != view.object_index:
+        if contact.target != view.object_index or contact.disabled:
             continue
         if not tactics.can_fight(view, position, contact):
             continue
@@ -504,11 +507,11 @@ def pursuer(view: CraftView, question: Question) -> Contact | None:
     """Return the enemy after the craft, or None.
 
     An enemy is after the craft while it targets it, the engine marks it
-    hostile, and it is a small craft. The one the craft's attack notebook
-    names as its target stays the pursuer while it is after the craft, so a
-    craft that turned on its attacker keeps fighting it; otherwise the
-    pursuer is the nearest enemy after the craft that hit it last or sits on
-    its tail.
+    hostile, it is a small craft, and it is not disabled (``Contact.disabled``).
+    The one the craft's attack notebook names as its target stays the
+    pursuer while it is after the craft, so a craft that turned on its
+    attacker keeps fighting it; otherwise the pursuer is the nearest enemy
+    after the craft that hit it last or sits on its tail.
     """
     own = tactics.own_contact(view, question)
     fought = _fought(view)
@@ -516,7 +519,7 @@ def pursuer(view: CraftView, question: Question) -> Contact | None:
     for position, contact in enumerate(question.contacts):
         if contact.target != view.object_index or tactics.is_bulky(contact):
             continue
-        if not tactics.can_fight(view, position, contact):
+        if contact.disabled or not tactics.can_fight(view, position, contact):
             continue
         if (contact.object_index, contact.object_signature) == fought:
             return contact

@@ -24,6 +24,7 @@ from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.think import think
 from jedimaster_ai.world import CannonGroup
 from jedimaster_ai.world import Commands
+from jedimaster_ai.world import ContactFlags
 from jedimaster_ai.world import HOLD_FIRE
 from jedimaster_ai.world import LinkMode
 from jedimaster_ai.world import Lock
@@ -867,6 +868,32 @@ def test_the_enemy_it_fights_stays_after_it_while_it_targets_the_craft(
     assert attack.pursuer(me, shown(me, foe(**AHEAD), nearer)).object_index == 12
     turned = foe(**AHEAD | {"target": 15})
     assert attack.pursuer(me, shown(me, turned)) is None
+
+
+DISABLED = {"flags": ContactFlags.DISABLED}
+
+
+def test_a_disabled_enemy_is_never_after_the_craft(craft, foe, ask, shown) -> None:
+    """With none of its subsystems working it can neither fly nor fire: no
+    pursuer as the last hitter or as the enemy fought, and on no tail."""
+    me = craft(order_target_mask=0)
+    dead = foe(**BEHIND | DISABLED)
+    assert attack.pursuer(me, shown(me, dead, last_attacker=12)) is None
+    assert attack.tail_threat(me, shown(me, dead)) is None
+    fought = ask(me, foe(**AHEAD), last_attacker=12)
+    me = craft(order_target_mask=0, notebook=fought.notebook)
+    nearer = foe(**BEHIND | {"object_index": 15, "y": -0x1000})
+    question = shown(me, foe(**AHEAD | DISABLED), nearer)
+    assert attack.pursuer(me, question).object_index == 15
+
+
+def test_with_only_a_disabled_enemy_behind_it_holds_its_course(craft, foe, ask) -> None:
+    """Neither fought back nor woven from."""
+    dead = foe(**BEHIND | DISABLED)
+    decision = ask(craft(order_target_mask=0), dead, last_attacker=12)
+    assert decision.actions.target == NO_OBJECT
+    assert decision.actions.steer is None
+    assert phase_of(decision) == attack.SEEK
 
 
 @pytest.mark.parametrize(

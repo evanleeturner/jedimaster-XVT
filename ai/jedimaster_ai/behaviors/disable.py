@@ -21,8 +21,8 @@ Purpose:
     With no target that works, a craft an enemy is after fights that enemy
     while it may fight back (``attack.pursuer``, ``attack.fights_back``),
     with every cannon and warhead, as Attack fights back: a chaser is not
-    the order's target. A disabled chaser is no threat and is never fought.
-    Otherwise the craft holds its course, as Attack seeks.
+    the order's target; a disabled craft is never after it. Otherwise the
+    craft holds its course, as Attack seeks.
 
 Invariants:
     - It fires at a target whose subsystems work only with ion cannons:
@@ -65,11 +65,7 @@ def think(view: CraftView, question: Question) -> Decision:
     working = targets(view, question)
     if not working:
         chaser = attack.pursuer(view, question)
-        if (
-            chaser is not None
-            and not chaser.disabled
-            and attack.fights_back(view, question, chaser)
-        ):
+        if chaser is not None and attack.fights_back(view, question, chaser):
             return attack.fight(view, question, [chaser])
     decision = attack.fight(view, question, working, disabling=True)
     return dataclasses.replace(decision, actions=ion_only(view, decision.actions))
