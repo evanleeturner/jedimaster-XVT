@@ -999,8 +999,20 @@ static void check_view_place_and_hangar_exit(void)
 	}
 }
 
+/* The level the stat tables read: the group's level up to 5, the Jedi, and 5
+ * for the Sith ranks 6 and 7 and for anything above. */
+static void check_stat_level(void)
+{
+	for (int level = 0; level < 256; ++level) {
+		XVT_ASSERT_INT_EQ(ai_brain_stat_level((uint8_t)level),
+				  level > 5 ? 5 : level);
+	}
+	XVT_ASSERT_INT_EQ(AI_STAT_LEVEL_MAX, 5);
+}
+
 int main(void)
 {
+	check_stat_level();
 	check_no_exchange_changes_nothing();
 	check_who_is_asked();
 	check_question_bytes();

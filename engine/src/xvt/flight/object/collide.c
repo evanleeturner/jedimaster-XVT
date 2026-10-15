@@ -5,6 +5,7 @@
 #include "xvt/assets/model_mesh.h"
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
@@ -4197,11 +4198,11 @@ int16_t collide_damagecraft(uint16_t victim_obj_idx, int16_t hit_mesh_index,
 				if (g_object_table[attacker_source_obj_idx]
 					    .genus_id ==
 				    CRAFT_GENUS_STARFIGHTER) {
-					int ai_skill =
+					int ai_skill = ai_brain_stat_level(
 						g_mission_flight_groups
 							[g_object_table[attacker_source_obj_idx]
 								 .flight_group_idx]
-								.fg.group_ai;
+								.fg.group_ai);
 
 					craft->damage_stats.damage_from_ai_skill
 						[ai_skill] += damage_amount;

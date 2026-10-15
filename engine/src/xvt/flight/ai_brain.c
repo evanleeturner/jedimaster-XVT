@@ -52,6 +52,17 @@ uint16_t g_ai_skill_value_q16_by_level[8] = {0x0000, 0x4000, 0x8000, 0xC000,
 const uint16_t g_ai_think_interval_by_skill[8] = {
 	708, 472, SIMULATION_TICKS_PER_SECOND, 118, 59, 29, 29, 29};
 
+/* The level a flight group counts as in the stat tables: group_ai, or 5, the
+ * Jedi, when it is above 5. The tables hold 6 or 7 entries and the pilot
+ * record keeps its size, so the Sith ranks 6 and 7 count as Jedi there. */
+uint8_t ai_brain_stat_level(uint8_t group_ai)
+{
+	if (group_ai > AI_STAT_LEVEL_MAX) {
+		return AI_STAT_LEVEL_MAX;
+	}
+	return group_ai;
+}
+
 /* The HUD status line of each activity, an index in g_str_in_flight_messages:
  * chosen by meaning among the in-flight status lines; the 1997 table
  * that keyed them by plan id needed the retail plan file's order. */

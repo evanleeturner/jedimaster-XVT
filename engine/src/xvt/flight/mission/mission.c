@@ -4366,10 +4366,10 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 	if (victim_owner_idx != -1) {
 		victim_rating = g_players[victim_owner_idx].pilot_rating;
 	} else {
-		victim_rating =
+		victim_rating = ai_brain_stat_level(
 			g_mission_flight_groups[g_object_table[victim_obj_idx]
 							.flight_group_idx]
-				.fg.group_ai;
+				.fg.group_ai);
 	}
 	XVT_LOG_DEBUG(
 		"mission.kill_damage object=%d source=%d fg=%d owner=%d rating=%d special=%d total=%d flown=%d predicted=%d",
@@ -4461,10 +4461,11 @@ void mission_credit_destruction_damage_contributors(uint16_t source_obj_idx,
 								.rating_weight;
 					if (victim_owner_idx == -1) {
 						award_rating = g_default_pilot_rating_by_ai_level
-							[g_mission_flight_groups
-								 [victim_flight_group_index]
-									 .fg
-									 .group_ai];
+							[ai_brain_stat_level(
+								g_mission_flight_groups
+									[victim_flight_group_index]
+										.fg
+										.group_ai)];
 					} else {
 						award_rating =
 							g_players[victim_owner_idx]
@@ -5606,9 +5607,9 @@ void mission_record_player_craft_loss_attribution(int attacker_flight_group_idx,
 	}
 
 	{
-		unsigned int group_ai =
+		unsigned int group_ai = ai_brain_stat_level(
 			g_mission_flight_groups[attacker_flight_group_idx]
-				.fg.group_ai;
+				.fg.group_ai);
 		if (contribution_tier == 3) {
 			++g_players[victim_player_idx]
 				  .per_mission_kills

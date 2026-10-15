@@ -9,6 +9,7 @@
 #include "xvt/assets/opt_model.h"
 #include "xvt/assets/string_table.h"
 #include "xvt/audio/fsfx.h"
+#include "xvt/flight/ai_brain.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_display.h"
@@ -1197,9 +1198,11 @@ int16_t fe_disk_io_commit_flight_results(int unused1, int unused2)
 					     .current_mission_index == 0)) {
 				int group_ai = g_mission_flight_groups[fg_idx]
 						       .fg.group_ai;
+				int rating_level =
+					ai_brain_stat_level(group_ai);
 				int flight_group_rating =
 					g_flight_group_rating_base_by_ai_level
-						[group_ai];
+						[rating_level];
 				if (group_ai != 0) {
 					flight_group_rating += fg_idx & 3;
 				}

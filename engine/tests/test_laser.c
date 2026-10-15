@@ -1100,6 +1100,63 @@ static void check_overdrive_dropped_when_dry(void)
 	XVT_ASSERT_INT_EQ(craft->engine_overdrive_off, OVERDRIVE_ON);
 }
 
+/* On a power step an AI starfighter that avoids an attacker puts its shield
+ * power into its engines by its flight group's level: all of it at the Jedi
+ * level 5, part at levels 3 and 4, none below; and moves laser charge into its
+ * shield at a pace the level sets. The Sith ranks, levels 6 and 7, follow the
+ * Jedi's rules, not the lower levels' last branch. */
+static struct craft_data *shield_world(int level)
+{
+	fresh_world();
+	struct craft_data *craft = place_craft(0, 0, 0, 0, 0);
+	g_mission_flight_groups[0].fg.group_ai = (uint8_t)level;
+	xwing_model()->shield_strength = 500;
+	craft->system_flags = CRAFT_SUBSYSTEM_FLAG_SHIELDS;
+	craft->working_subsystems = CRAFT_SUBSYSTEM_FLAG_SHIELDS;
+	craft->ai_controller.maneuver_mode = AI_MANEUVER_MODE_AVOID_ATTACKER;
+	craft->shield_energy[0] = 100;
+	craft->laser_slot_count = 2;
+	craft->weapon_slots[0].laser_charge = 50;
+	craft->weapon_slots[1].laser_charge = 50;
+	craft->weapon_fire_inhibit_timer = 1;
+	g_mission_elapsed_clock.seconds = 1;
+	return craft;
+}
+
+static void check_shield_rules_by_level(void)
+{
+	static const int redirect[8] = {
+		POWER_RECHARGE_MAINTENANCE,
+		POWER_RECHARGE_MAINTENANCE,
+		POWER_RECHARGE_MAINTENANCE,
+		POWER_RECHARGE_PARTIALLY_REDIRECTED_TO_ENGINES,
+		POWER_RECHARGE_PARTIALLY_REDIRECTED_TO_ENGINES,
+		POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES,
+		POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES,
+		POWER_RECHARGE_FULLY_REDIRECTED_TO_ENGINES};
+	int jedi_shield = 0;
+	int jedi_charge = 0;
+	for (int level = 0; level <= 7; ++level) {
+		struct craft_data *craft = shield_world(level);
+		laser_weaponsfire();
+		XVT_ASSERT_INT_EQ(craft->shield_recharge_level,
+				  redirect[level]);
+		int charge = craft->weapon_slots[0].laser_charge +
+			     craft->weapon_slots[1].laser_charge;
+		if (level == 5) {
+			jedi_shield = craft->shield_energy[0];
+			jedi_charge = charge;
+			/* The Jedi moved charge into the shield. */
+			XVT_ASSERT_TRUE(jedi_shield > 100);
+			XVT_ASSERT_TRUE(jedi_charge < 100);
+		}
+		if (level > 5) {
+			XVT_ASSERT_INT_EQ(craft->shield_energy[0], jedi_shield);
+			XVT_ASSERT_INT_EQ(charge, jedi_charge);
+		}
+	}
+}
+
 /* An AI craft with a burst under way fires its group when the group's
  * cooldown is below the step's ticks, and the burst's end sets link_mode back
  * to 0; it counts its cooldowns down by the step's ticks, to no less than 0.
@@ -1262,6 +1319,7 @@ int main(int argc, char **argv)
 	check_trigger_jammed();
 	check_trigger_warhead_mode();
 	check_overdrive_dropped_when_dry();
+	check_shield_rules_by_level();
 	check_step_ai_burst();
 	check_step_chaff_countdown();
 	check_mine_countdown();

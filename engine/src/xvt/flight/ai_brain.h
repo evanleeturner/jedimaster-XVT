@@ -22,6 +22,12 @@ typedef size_t (*ai_brain_exchange_fn)(const uint8_t *question,
 
 extern uint16_t g_ai_skill_value_q16_by_level[8];
 extern const uint16_t g_ai_think_interval_by_skill[8];
+/* The highest level the stat tables and the Jedi rules know. */
+#define AI_STAT_LEVEL_MAX 5
+/* The level a flight group counts as in the damage, kill and rating tables
+ * and in the shield rules: group_ai, or AI_STAT_LEVEL_MAX when it is above
+ * it, so a Sith Apprentice (6) or Sith Lord (7) counts as a Jedi. */
+uint8_t ai_brain_stat_level(uint8_t group_ai);
 extern const uint8_t g_ai_activity_status_message_id[AI_ACTIVITY_COUNT];
 
 void ai_brain_start_flight(void);

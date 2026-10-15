@@ -328,21 +328,26 @@ static void check_wave_bonus_withheld(void)
 
 /* In a melee, each flight group's rating is
  * g_flight_group_rating_base_by_ai_level of its AI level plus, for a nonzero
- * level, the group's index & 3. It is set outside a sequence and on a
- * tournament's first mission, and left alone on its second. */
+ * level, the group's index & 3; a level above 5 (the Sith ranks 6 and 7)
+ * counts as 5. It is set outside a sequence and on a tournament's first
+ * mission, and left alone on its second. */
 static void check_melee_flight_group_rating(void)
 {
 	fresh_flight();
 	g_mission_header.mission_type = MISSION_TYPE_MELEE;
-	g_mission_header.num_flight_groups = 7;
-	for (int fg = 0; fg < 7; ++fg) {
+	g_mission_header.num_flight_groups = 8;
+	for (int fg = 0; fg < 8; ++fg) {
 		g_mission_flight_groups[fg].fg.craft_type = TEST_XWING;
-		g_mission_flight_groups[fg].fg.group_ai = (uint8_t)(6 - fg);
+		g_mission_flight_groups[fg].fg.group_ai = (uint8_t)(7 - fg);
 	}
 	XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
-	for (int fg = 0; fg < 7; ++fg) {
-		int level = 6 - fg;
-		int expected = g_flight_group_rating_base_by_ai_level[level];
+	for (int fg = 0; fg < 8; ++fg) {
+		int level = 7 - fg;
+		/* The Sith ranks, levels 6 and 7, rate as Jedi. */
+		int expected =
+			g_flight_group_rating_base_by_ai_level[level > 5
+								       ? 5
+								       : level];
 		if (level != 0) {
 			expected += fg & 3;
 		}
@@ -4395,16 +4400,22 @@ static void check_team_9_result(void)
 	XVT_ASSERT_INT_EQ(g_pilot_data.teams[9].mission_score, 500);
 }
 
-/* Known failure ai_level_past_rating_table, issue #187: the melee rating
- * table has an entry for AI levels 0 to 6, and a mission file's level is not
- * checked. A melee group of level 7 reads past the table, and the sanitizer
- * stops the program. */
-static void check_ai_level_7_rating(void)
+/* Issue #187, fixed with the Sith ranks: the melee rating table has an
+ * entry for AI levels 0 to 6, and a mission file's level is not checked. A
+ * melee group of level 7, or of a level a file could hold past it, rates as
+ * level 5 and reads nothing past the table. */
+static void check_ai_level_past_rating_table(void)
 {
-	fresh_flight();
-	g_mission_header.mission_type = MISSION_TYPE_MELEE;
-	g_mission_flight_groups[1].fg.group_ai = 7;
-	XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
+	static const uint8_t levels[] = {6, 7, 8, 9, 255};
+	for (size_t i = 0; i < sizeof levels; ++i) {
+		fresh_flight();
+		g_mission_header.mission_type = MISSION_TYPE_MELEE;
+		g_mission_flight_groups[1].fg.group_ai = levels[i];
+		XVT_ASSERT_INT_EQ(fe_disk_io_commit_flight_results(0, 0), 0);
+		XVT_ASSERT_INT_EQ(g_pilot_data.flight_group_rating[1],
+				  g_flight_group_rating_base_by_ai_level[5] +
+					  1);
+	}
 }
 
 /* Known failure battle_step_past_table, issue #185: a battle keeps ten
@@ -4449,7 +4460,6 @@ int main(int argc, char **argv)
 		} known_failures[] = {
 			{"wave_bonus_entry_slot", check_wave_bonus_by_slot},
 			{"teams_8_and_9_results", check_team_9_result},
-			{"ai_level_past_rating_table", check_ai_level_7_rating},
 			{"battle_step_past_table", check_battle_step_10},
 			{"network_campaign_finished",
 			 check_network_campaign_finished},
@@ -4479,6 +4489,7 @@ int main(int argc, char **argv)
 	check_wave_bonus_withheld();
 	check_wave_bonus_second_player();
 	check_melee_flight_group_rating();
+	check_ai_level_past_rating_table();
 	check_campaign_completed();
 	check_campaign_failed();
 	check_network_campaign_attempt();

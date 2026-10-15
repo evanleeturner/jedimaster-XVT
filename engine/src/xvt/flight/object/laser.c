@@ -551,12 +551,12 @@ void laser_weaponsfire(void)
 					if ((g_cur_craft->system_flags &
 					     CRAFT_SUBSYSTEM_FLAG_SHIELDS) !=
 					    0) {
-						uint16_t group_ai =
+						uint16_t group_ai = ai_brain_stat_level(
 							g_mission_flight_groups
 								[g_object_table[object_idx]
 									 .flight_group_idx]
 									.fg
-									.group_ai;
+									.group_ai);
 						if (g_cur_craft->ai_controller
 							    .maneuver_mode ==
 						    AI_MANEUVER_MODE_AVOID_ATTACKER) {

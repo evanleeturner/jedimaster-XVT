@@ -10974,10 +10974,10 @@ static void check_credit_team_share(void)
 	}
 }
 
-/* Known failure ai_rating_past_table, issue #125: a kill of a craft of a group
- * with an AI level past the 6 levels is counted in the six-entry table of AI
- * levels, not past it (where it lands in the next table). Here the group is at
- * level 9. */
+/* Issue #125, fixed with the Sith ranks: a kill of a craft of a group with an
+ * AI level past the 6 levels is counted in the six-entry table of AI levels
+ * as level 5, not past it (where it lands in the next table). Here the group
+ * is at level 9. */
 static void check_credit_ai_level_past_table(void)
 {
 	credit_world();
@@ -10993,6 +10993,43 @@ static void check_credit_ai_level_past_table(void)
 	}
 	XVT_ASSERT_INT_EQ(counted, 1);
 	XVT_ASSERT_INT_EQ(spilled, 0);
+}
+
+/* A kill counts in the table of AI levels by the level of the victim's group,
+ * a level above 5 as 5: the Sith ranks 6 and 7 count as Jedi, and a full,
+ * shared or assist kill of one pays the rating points of a Jedi kill. */
+static void check_credit_sith_levels(void)
+{
+	static const int damage_by_tier[3] = {10, 40, 100};
+	int jedi_points[3] = {0, 0, 0};
+	for (int level = 5; level <= 7; ++level) {
+		for (int tier = 0; tier < 3; ++tier) {
+			credit_world();
+			g_mission_flight_groups[1].fg.group_ai = (uint8_t)level;
+			victim_damage(100, damage_by_tier[tier]);
+			mission_credit_destruction_damage_contributors(0, 1);
+			const struct per_mission_kills *kills =
+				&g_players[0].per_mission_kills;
+			for (int entry = 0; entry < 6; ++entry) {
+				XVT_ASSERT_INT_EQ(
+					kills->kills_assist_on_ai_rating[entry],
+					tier == 0 && entry == 5);
+				XVT_ASSERT_INT_EQ(
+					kills->kills_shared_on_ai_rating[entry],
+					tier == 1 && entry == 5);
+				XVT_ASSERT_INT_EQ(
+					kills->kills_full_on_ai_rating[entry],
+					tier == 2 && entry == 5);
+			}
+			int points =
+				g_players[0].mission_stats.rating_promo_points;
+			XVT_ASSERT_TRUE(points > 0);
+			if (level == 5) {
+				jedi_points[tier] = points;
+			}
+			XVT_ASSERT_INT_EQ(points, jedi_points[tier]);
+		}
+	}
 }
 
 /* ---- mission_credit_team_kill_contribution ----------------------------- */
@@ -11329,6 +11366,30 @@ static void check_loss_attribution(void)
 		}
 		if (rows[i].counted != 0 && !player_attacker) {
 			XVT_ASSERT_INT_EQ(kills->killed_by_ai_rating[4], 1);
+		}
+	}
+}
+
+/* The loss of a flown craft to a computer group at level 6 or 7 is counted
+ * as a loss to a Jedi, level 5. */
+static void check_loss_attribution_sith(void)
+{
+	for (int level = 5; level <= 7; ++level) {
+		loss_world();
+		craft_damage(40, 0, 0, 0, 0, 0);
+		g_test_craft[0].damage_stats.damage_received_total = 100;
+		g_test_craft[0]
+			.damage_stats.damage_received_by_player_owned_craft =
+			100;
+		g_test_objects[0].player_owner_idx = 0;
+		g_mission_flight_groups[1].player_owner_idx = -1;
+		g_mission_flight_groups[1].fg.group_ai = (uint8_t)level;
+		mission_record_player_craft_loss_attribution(1, 0, 3);
+		const struct per_mission_kills *kills =
+			&g_players[0].per_mission_kills;
+		for (int entry = 0; entry < 6; ++entry) {
+			XVT_ASSERT_INT_EQ(kills->killed_by_ai_rating[entry],
+					  entry == 5);
 		}
 	}
 }
@@ -12096,8 +12157,6 @@ int main(int argc, char **argv)
 			 check_logic_global_goal_fourth_condition},
 			{"formation_slot_past_six",
 			 check_formation_slot_past_six},
-			{"ai_rating_past_table",
-			 check_credit_ai_level_past_table},
 		};
 		for (size_t i = 0;
 		     i < sizeof known_failures / sizeof known_failures[0];
@@ -12286,6 +12345,8 @@ int main(int argc, char **argv)
 	check_spawn_melee_random_offset();
 	check_spawn_mothership_formation();
 	check_credit_tiers();
+	check_credit_sith_levels();
+	check_credit_ai_level_past_table();
 	check_credit_goal_scores();
 	check_credit_friendly_kill();
 	check_credit_player_victim();
@@ -12297,6 +12358,7 @@ int main(int argc, char **argv)
 	check_craft_loss_classes();
 	check_craft_loss_pending_and_owner();
 	check_loss_attribution();
+	check_loss_attribution_sith();
 	check_projectile_hits();
 	check_goal_score_messages();
 	check_outcome_special_cargo_takebacks();

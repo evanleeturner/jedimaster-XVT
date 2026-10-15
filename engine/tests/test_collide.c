@@ -1454,6 +1454,29 @@ static int tallied_for_ai(const struct craft_damage_stats *stats)
 	return sum;
 }
 
+/* The Sith ranks, AI levels 6 and 7, are tallied as Jedi (level 5): the
+ * table holds 6 levels, and a level past it would write over installed_hud_feature_mask,
+ * the field after it. Levels 0 to 5 keep their own entry. */
+static void check_tally_sith_levels(void)
+{
+	for (int level = 0; level <= 7; ++level) {
+		laser_at_craft();
+		g_mission_flight_groups[0].fg.group_ai = (uint8_t)level;
+		g_test_craft[1].damage_stats.installed_hud_feature_mask =
+			0x1234;
+		XVT_ASSERT_INT_EQ(collide_damagecraft(1, -1, TEST_SHOT, 0), 1);
+		const struct craft_damage_stats *stats =
+			&g_test_craft[1].damage_stats;
+		int counted = level > 5 ? 5 : level;
+		for (int entry = 0; entry < 6; ++entry) {
+			XVT_ASSERT_INT_EQ(stats->damage_from_ai_skill[entry],
+					  entry == counted ? 250 : 0);
+		}
+		XVT_ASSERT_INT_EQ(tallied_for_ai(stats), 250);
+		XVT_ASSERT_INT_EQ(stats->installed_hud_feature_mask, 0x1234);
+	}
+}
+
 /* damage.h: damage_from_player names the player flying the craft that hit,
  * or for a shot the player flying its firer or the one its guidance record
  * names; a craft's hit on another also counts in damage_from_collision, and
@@ -7737,6 +7760,7 @@ int main(int argc, char **argv)
 	check_pulse_on_large_craft();
 	check_pulse_inhibit_by_genus();
 	check_hit_from_itself();
+	check_tally_sith_levels();
 	check_tally_player_sources();
 	check_tally_other_sources();
 	check_tally_player_owned_victim();
