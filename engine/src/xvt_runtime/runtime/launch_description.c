@@ -293,10 +293,12 @@ static int read_settings(const cJSON *settings,
 	static const char *const difficulties[] = {"easy", "medium", "hard",
 						   "easy_cheat"};
 	static const char *const sequences[] = {"restart", "continue"};
+	static const char *const sith_choices[] = {"none", "apprentices",
+						   "lord"};
 	static const char *const known[] = {
-		"difficulty",	    "collisions",    "craft_jumping",
-		"random_setup",	    "battle_length", "mission_time_limit",
-		"continue_sequence"};
+		"difficulty",	     "collisions",    "craft_jumping",
+		"random_setup",	     "battle_length", "mission_time_limit",
+		"continue_sequence", "sith"};
 	if (!cJSON_IsObject(settings)) {
 		return refuse(why, why_size, "%s",
 			      "\"settings\" must be an object.");
@@ -304,7 +306,7 @@ static int read_settings(const cJSON *settings,
 	const cJSON *item;
 	cJSON_ArrayForEach(item, settings)
 	{
-		if (index_of(known, 7, item->string) < 0) {
+		if (index_of(known, 8, item->string) < 0) {
 			return refuse(
 				why, why_size,
 				"The setting \"%s\" is not one the game takes.",
@@ -316,6 +318,8 @@ static int read_settings(const cJSON *settings,
 			 &set->difficulty, why, why_size) ||
 	    !read_choice(settings, "continue_sequence", sequences, 2,
 			 &set->continue_sequence, why, why_size) ||
+	    !read_choice(settings, "sith", sith_choices, 3, &set->sith, why,
+			 why_size) ||
 	    !read_boolean(settings, "collisions", &set->collisions, why,
 			  why_size) ||
 	    !read_boolean(settings, "craft_jumping", &set->craft_jumping, why,
@@ -446,6 +450,7 @@ static void leave_settings_alone(struct xvt_launch_settings *set)
 	set->battle_length = XVT_LAUNCH_SETTING_UNSET;
 	set->mission_time_limit = XVT_LAUNCH_SETTING_UNSET;
 	set->continue_sequence = XVT_LAUNCH_SETTING_UNSET;
+	set->sith = XVT_LAUNCH_SETTING_UNSET;
 }
 
 int xvt_launch_description_parse(const char *text,

@@ -92,6 +92,7 @@ static void check_valid_training(void)
 			  XVT_LAUNCH_SETTING_UNSET);
 	XVT_ASSERT_INT_EQ(g_out.settings.continue_sequence,
 			  XVT_LAUNCH_SETTING_UNSET);
+	XVT_ASSERT_INT_EQ(g_out.settings.sith, XVT_LAUNCH_SETTING_UNSET);
 }
 
 static void check_every_game_type(void)
@@ -296,6 +297,36 @@ static void check_setting_refusals(void)
 	XVT_ASSERT_TRUE(strstr(g_why, "campaign only") != NULL);
 }
 
+/* The sith setting takes none, apprentices or lord, as 0, 1 and 2; left out
+ * it stays unset (the game reads that as none), and any other word, or a
+ * value that is not a word, is refused as the difficulty's are. */
+static void check_sith_setting(void)
+{
+	static const struct {
+		const char *choice;
+		int value;
+	} cases[] = {{"none", 0}, {"apprentices", 1}, {"lord", 2}};
+	for (size_t index = 0; index < sizeof(cases) / sizeof(cases[0]);
+	     ++index) {
+		char settings[64];
+		snprintf(settings, sizeof(settings), "{\"sith\":\"%s\"}",
+			 cases[index].choice);
+		XVT_ASSERT_INT_EQ(with_settings(settings, "training", "rebel"),
+				  1);
+		XVT_ASSERT_INT_EQ(g_out.settings.sith, cases[index].value);
+		XVT_ASSERT_INT_EQ(g_out.settings.difficulty,
+				  XVT_LAUNCH_SETTING_UNSET);
+	}
+	XVT_ASSERT_INT_EQ(
+		with_settings("{\"difficulty\":\"hard\"}", "training", "rebel"),
+		1);
+	XVT_ASSERT_INT_EQ(g_out.settings.sith, XVT_LAUNCH_SETTING_UNSET);
+	setting_refused("{\"sith\":\"emperor\"}", "\"sith\"");
+	setting_refused("{\"sith\":\"Lord\"}", "\"sith\"");
+	setting_refused("{\"sith\":2}", "\"sith\"");
+	setting_refused("{\"sith\":true}", "\"sith\"");
+}
+
 static void check_seed_and_result_refusals(void)
 {
 	char rest[TEXT_CAPACITY];
@@ -462,6 +493,7 @@ int main(void)
 	check_side_refusals();
 	check_mission_refusals();
 	check_setting_refusals();
+	check_sith_setting();
 	check_seed_and_result_refusals();
 	check_ai_program();
 	check_name_checks();

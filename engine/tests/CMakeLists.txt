@@ -741,6 +741,11 @@ if(NOT MSVC)
     add_test(NAME launch_door COMMAND test_launch_door)
 endif()
 
+# The Sith setting and the mission-start promotion: src/xvt_runtime/runtime/sith.c.
+xvt_add_engine_test(test_sith test_sith.c
+    "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/sith.c")
+add_test(NAME sith COMMAND test_sith)
+
 xvt_add_engine_test(test_launch_task test_launch_task.c
     "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_task.c")
 add_test(NAME launch_task COMMAND test_launch_task)

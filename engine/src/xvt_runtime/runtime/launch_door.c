@@ -25,6 +25,7 @@
 #include "xvt_runtime/runtime/launch_description.h"
 #include "xvt_runtime/runtime/launch_result.h"
 #include "xvt_runtime/runtime/port.h"
+#include "xvt_runtime/runtime/sith.h"
 #include "xvt_runtime/timing/host_clock.h"
 
 enum {
@@ -163,14 +164,15 @@ int xvt_launch_door_open(const char *path, uint32_t run_id,
 		g_description.directory_id, g_description.side,
 		g_description.mission_file, g_description.pilot);
 	XVT_LOG_DEBUG(
-		"launch.settings difficulty=%d collisions=%d craft_jumping=%d random_setup=%d battle_length=%d time_limit=%d continue=%d seed=%u has_seed=%d",
+		"launch.settings difficulty=%d collisions=%d craft_jumping=%d random_setup=%d battle_length=%d time_limit=%d continue=%d sith=%d seed=%u has_seed=%d",
 		g_description.settings.difficulty,
 		g_description.settings.collisions,
 		g_description.settings.craft_jumping,
 		g_description.settings.random_setup,
 		g_description.settings.battle_length,
 		g_description.settings.mission_time_limit,
-		g_description.settings.continue_sequence, g_description.seed,
+		g_description.settings.continue_sequence,
+		g_description.settings.sith, g_description.seed,
 		g_description.has_seed);
 	if (g_description.ai_python[0] &&
 	    !start_ai_program(run_id, ai_log_file)) {
@@ -304,6 +306,7 @@ static void apply_settings(void)
 		g_game_config.continue_battle_or_campaign =
 			(sequence_continuation_choice)set->continue_sequence;
 	}
+	xvt_sith_set_from_description(set->sith);
 }
 
 /* Picks the described mission as a click on its mission type button and on

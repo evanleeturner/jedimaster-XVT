@@ -2445,8 +2445,8 @@
     },
     "launch.settings": {
       "level": "D",
-      "fields": ["difficulty", "collisions", "craft_jumping", "random_setup", "battle_length", "time_limit", "continue", "seed", "has_seed"],
-      "text": "The launch description's settings in the game's own values, -1 for a setting it leaves alone: difficulty {difficulty}, collisions {collisions}, craft jumping {craft_jumping}, random setup {random_setup}, battle length {battle_length}, mission time limit {time_limit}, continue {continue}, random seed {seed} (given: {has_seed})"
+      "fields": ["difficulty", "collisions", "craft_jumping", "random_setup", "battle_length", "time_limit", "continue", "sith", "seed", "has_seed"],
+      "text": "The launch description's settings in the game's own values, -1 for a setting it leaves alone: difficulty {difficulty}, collisions {collisions}, craft jumping {craft_jumping}, random setup {random_setup}, battle length {battle_length}, mission time limit {time_limit}, continue {continue}, Sith setting {sith} (0 none, 1 apprentices, 2 lord), random seed {seed} (given: {has_seed})"
     },
     "launch.solo_opened": {
       "level": "I",

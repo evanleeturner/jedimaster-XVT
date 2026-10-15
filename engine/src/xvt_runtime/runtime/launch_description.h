@@ -40,6 +40,8 @@ struct xvt_launch_settings {
 	/* Minutes 1 to 20, 0 for none, 255 for the mission's own. */
 	int mission_time_limit;
 	int continue_sequence; /* 0 restart, 1 continue */
+	/* The Sith setting (sith.h): 0 none, 1 apprentices, 2 lord. */
+	int sith;
 };
 
 struct xvt_launch_description {
@@ -72,7 +74,8 @@ struct xvt_launch_description {
  * "settings" with any
  * of difficulty (easy, medium, hard, easy_cheat), collisions, craft_jumping,
  * random_setup (booleans), battle_length (2, 3 or 4), mission_time_limit
- * (none, default or 1 to 20) and continue_sequence (restart or continue).
+ * (none, default or 1 to 20), continue_sequence (restart or continue) and
+ * sith (none, apprentices or lord; absent counts as none).
  * Easy cheat is for a campaign only. On success fills out (settings not
  * given are XVT_LAUNCH_SETTING_UNSET, an absent result path or AI program is
  * empty) and
