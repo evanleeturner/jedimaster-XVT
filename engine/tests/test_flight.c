@@ -2043,7 +2043,7 @@ enum { ATTACKER = 6, WINGMAN = 8, REQUEST_COVER = 5 };
 /* The pilot (team 0, in the local seat) flies with MATE, a second player of
  * team 0, and a wingman of the computer's of team 0 that no player flies.
  * A hostile craft of the computer's, in object slot 6, has the pilot's craft
- * for its target and is on the attack. */
+ * for its target. */
 static void cover_world(void)
 {
 	fresh_world();
@@ -2062,8 +2062,6 @@ static void cover_world(void)
 		g_test_craft[obj].working_subsystems = 0x03FF;
 	}
 	g_test_craft[ATTACKER].ai_controller.target_obj_idx = PILOT_CRAFT;
-	g_test_craft[ATTACKER].ai_controller.maneuver_mode =
-		AI_MANEUVER_MODE_ATTACK;
 	g_test_craft[WINGMAN].ai_controller.candidate_target_idx = UINT16_MAX;
 	g_mission_flight_groups[2].fg.team = 2;
 	g_mission_flight_groups[2].fg.iff = 2;
@@ -2106,8 +2104,7 @@ static void check_cover_orders_wingman(void)
 static void check_cover_without_attacker(void)
 {
 	cover_world();
-	g_test_craft[ATTACKER].ai_controller.maneuver_mode =
-		AI_MANEUVER_MODE_NULL;
+	g_test_craft[ATTACKER].ai_controller.target_obj_idx = UINT16_MAX;
 	press(PILOT, FLIGHT_KEY_SHIFT_C);
 	XVT_ASSERT_INT_EQ(g_players[MATE].pending_action_id, REQUEST_COVER);
 	XVT_ASSERT_INT_EQ(g_players[MATE].pending_action_param, PILOT_CRAFT);
@@ -2179,8 +2176,7 @@ static void check_cover_announced_to_local(void)
 		last_message(),
 		IFMSG_277_FROM_ARG_COVER_ME_HIT_SPACE_TO_TARGET_ATTACKER);
 	cover_world();
-	g_test_craft[ATTACKER].ai_controller.maneuver_mode =
-		AI_MANEUVER_MODE_NULL;
+	g_test_craft[ATTACKER].ai_controller.target_obj_idx = UINT16_MAX;
 	press(MATE, FLIGHT_KEY_SHIFT_C);
 	XVT_ASSERT_INT_EQ(g_players[PILOT].pending_action_param, MATE_CRAFT);
 	XVT_ASSERT_INT_EQ(last_message(),
@@ -4003,6 +3999,7 @@ enum {
 	T_RECENT_MATE = 524288,	 /* The teammate just hit the pilot. */
 	T_AIMS_AT_ME6 = 1048576, /* The near enemy player targets the pilot. */
 	T_AIMS_AT_ME_MATE = 2097152, /* The teammate targets the pilot. */
+	T_AI_HOME = 4194304,	     /* The computer attacker is flying home. */
 };
 
 enum {
@@ -4055,7 +4052,9 @@ static void target_world(const struct target_case *c)
 	g_active_flight_player_count = 4;
 	g_flight_mission_state.locate_players_enabled =
 		flags & T_LOCATE ? 1 : 0;
-	computer_craft(ENEMY, 2, 2, AI_ACTIVITY_NONE);
+	computer_craft(ENEMY, 2, 2,
+		       flags & T_AI_HOME ? AI_ACTIVITY_GOING_HOME
+					 : AI_ACTIVITY_NONE);
 	g_test_craft[ENEMY].ai_controller.target_obj_idx = (uint16_t)c->ai_aim;
 	g_test_craft[ENEMY].ai_controller.maneuver_mode = (uint8_t)c->maneuver;
 	struct craft_data *own = &g_test_craft[PILOT_CRAFT];
@@ -4434,6 +4433,14 @@ static const char *const k_e_ai_23[] = {
 static const char *const k_e_ai_mode[] = {
 	/* recorded e_ai_mode */
 	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
+	"player.target_changed slot=0 target=5 previous=-1 map=0 predicted=0",
+	"player.target_component slot=0 target=5 component=0 predicted=0",
+	"world.track tick=0 object=2 signature=0 type=1 fg=0 player=0 team=0 x=5600 y=6600 z=3200 yaw=0 pitch=0 roll=0 speed=0 throttle=0 state=0 hull=0 hull_max=0 front=100 rear=100 target=5 ai_target=0",
+	NULL,
+};
+static const char *const k_e_ai_home[] = {
+	/* recorded e_ai_home */
+	"flight.action_key slot=0 key=101 object=2 map=0 hyper=0 request=0 predicted=0",
 	NULL,
 };
 static const char *const k_e_ai_aim[] = {
@@ -4546,6 +4553,7 @@ static const struct target_case g_e_cases[] = {
 	E_ROW(e_ai_23, 0, -1, PILOT_CRAFT, 23),
 	E_ROW(e_ai_mode, 0, -1, PILOT_CRAFT, 5),
 	E_ROW(e_ai_aim, 0, -1, MATE_CRAFT, 12),
+	E_ROW(e_ai_home, T_AI_HOME, -1, PILOT_CRAFT, 0),
 	E_ROW(e_ai_dead, T_AI_DEAD, -1, PILOT_CRAFT, 12),
 	E_ROW(e_ai_inactive, T_AI_KIND, -1, PILOT_CRAFT, 12),
 	E_ROW(e_recent, T_RECENT6, -1, 0, 0),

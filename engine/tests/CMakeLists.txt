@@ -378,6 +378,10 @@ add_test(NAME ai_formation COMMAND test_ai_formation)
 # src/xvt/flight/ai_warheads.c.
 xvt_add_engine_test(test_ai_warheads test_ai_warheads.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_warheads.c")
 add_test(NAME ai_warheads COMMAND test_ai_warheads)
+# The cockpit's attack light, incoming warhead warning and target warhead light, lit by
+# the computer craft that attack: src/xvt/flight/hud/hud.c.
+xvt_add_engine_test(test_hud test_hud.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/hud/hud.c")
+add_test(NAME hud COMMAND test_hud)
 # A computer craft's waypoints in its view, its flight group's mission points 4 to 11:
 # src/xvt/flight/ai_waypoints.c.
 xvt_add_engine_test(test_ai_waypoints test_ai_waypoints.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_waypoints.c")

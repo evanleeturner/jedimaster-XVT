@@ -3013,9 +3013,9 @@ void player_issue_ai_wingman_target_order(uint16_t target_obj_idx,
 
 /* Returns the craft nearest the target among those attacking it, or -1 when
  * none or the target is UINT16_MAX. Looks at active craft with a working
- * subsystem and no active decoy beam, other than the target, excluded_obj_idx and
- * explosions. An AI craft attacks when its AI target is the target and its
- * maneuver is attack or rocket attack. A player's craft attacks when it hit the
+ * subsystem and no active decoy beam, other than the target, excluded_obj_idx
+ * and explosions. A computer craft attacks when the target is the one it
+ * attacks (ai_brain_attack_target). A player's craft attacks when it hit the
  * target craft last and the target is not a player's or was hit under 5 mission
  * seconds ago; or when its player has the target selected and it lies within
  * rough distance 0x10000 in the wide aim cone, or its warhead lock is building.
@@ -3047,11 +3047,7 @@ int16_t player_find_attacker_of_target(uint16_t target_obj_idx,
 			continue;
 		}
 		if (g_object_table[object_idx].player_owner_idx == -1) {
-			struct ai_controller *ai = &craft->ai_controller;
-			if (ai->target_obj_idx != target_obj_idx ||
-			    (ai->maneuver_mode != AI_MANEUVER_MODE_ATTACK &&
-			     ai->maneuver_mode !=
-				     AI_MANEUVER_MODE_ROCKET_ATTACK)) {
+			if (ai_brain_attack_target(craft) != target_obj_idx) {
 				continue;
 			}
 			qualifies = 1;

@@ -45,6 +45,12 @@ int16_t ai_brain_find_mine_target(int16_t target1_type, uint16_t target1,
 				  int16_t require_clear_sweep);
 uint16_t ai_brain_effective_skill(struct craft_data *craft);
 uint16_t ai_brain_find_mothership(int16_t mothership_flight_group_idx);
+/* The object the computer-flown craft is attacking: its AI target, unless it
+ * is flying home, when the target is its own mothership; UINT16_MAX when it
+ * attacks nothing. The cockpit's threat lights, lock warning and target
+ * warhead light and the attacker searches ask it where they read the 1997
+ * pilot's attack maneuvers, which nothing sets now. */
+uint16_t ai_brain_attack_target(const struct craft_data *craft);
 
 #ifdef __cplusplus
 }

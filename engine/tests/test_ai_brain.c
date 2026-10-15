@@ -1053,6 +1053,35 @@ static void check_view_lock_and_warheads_coming(void)
 	XVT_ASSERT_INT_EQ(get_u32(contact + AI_WIRE_CONTACT_BYTES - 4), 3225);
 }
 
+/* A computer craft attacks its AI target in any activity but the three of
+ * flying home, where its target is its mothership; with no target it attacks
+ * nothing. */
+static void check_attack_target(void)
+{
+	static const struct {
+		uint8_t activity;
+		uint16_t attacks;
+	} cases[] = {
+		{AI_ACTIVITY_NONE, 7},
+		{AI_ACTIVITY_IN_FORMATION, 7},
+		{AI_ACTIVITY_LEAVING_HANGAR, 7},
+		{AI_ACTIVITY_GOING_HOME, UINT16_MAX},
+		{AI_ACTIVITY_GOING_HOME_EVADING, UINT16_MAX},
+		{AI_ACTIVITY_ENTERING_HANGAR, UINT16_MAX},
+	};
+	static struct craft_data craft;
+	memset(&craft, 0, sizeof craft);
+	craft.ai_controller.target_obj_idx = 7;
+	for (size_t k = 0; k < sizeof cases / sizeof cases[0]; ++k) {
+		craft.ai_controller.activity = cases[k].activity;
+		XVT_ASSERT_INT_EQ(ai_brain_attack_target(&craft),
+				  cases[k].attacks);
+	}
+	craft.ai_controller.activity = AI_ACTIVITY_NONE;
+	craft.ai_controller.target_obj_idx = UINT16_MAX;
+	XVT_ASSERT_INT_EQ(ai_brain_attack_target(&craft), UINT16_MAX);
+}
+
 int main(void)
 {
 	check_stat_level();
@@ -1074,6 +1103,7 @@ int main(void)
 	check_notebook_only_answer();
 	check_refused_answer_applies_nothing();
 	check_more_craft_than_one_question();
+	check_attack_target();
 	ai_brain_set_exchange(NULL);
 	return 0;
 }

@@ -5962,14 +5962,16 @@ void hud_draw_cached_segmented_bar(uint16_t filled_count, uint16_t element_idx,
 }
 
 /* Draws the threat indicators of the current set from the active craft around
- * the local player: attack (element 90) when an AI craft attacks it with linked
- * laser cannons (projectile types 0x89 or 0x8B), or a player's craft hit it
- * within the last 5 mission seconds or aims lasers at it from rough distance
- * under 0x10000; turret lasers (91) when a craft's working turret targets it;
- * beam (92), the beam type of a charged beam on it. Then the incoming warhead
- * warning (93): 2 when any lock on it exceeds 944 warhead_lock_ticks, blinking
- * while any lock is building, else 0, and the missile warning sound to match.
- * hud_mode is ignored. */
+ * the local player: attack (element 90) when a computer craft attacks it
+ * (ai_brain_attack_target) with linked laser cannons (projectile types 0x89 or
+ * 0x8B), or a player's craft hit it within the last 5 mission seconds or aims
+ * lasers at it from rough distance under 0x10000; turret lasers (91) when a
+ * craft's working turret targets it; beam (92), the beam type of a charged beam
+ * on it. Then the incoming warhead warning (93), from the locks of the computer
+ * craft attacking it and of the players' craft that target it with warheads
+ * selected: 2 when any lock exceeds 944 warhead_lock_ticks, blinking while any
+ * lock is building, else 0, and the missile warning sound to match. hud_mode is
+ * ignored. */
 // FUNCTION: XVT 0x43E790
 void hud_update_threat_indicators(int hud_mode)
 {
@@ -5993,12 +5995,8 @@ void hud_update_threat_indicators(int hud_mode)
 			continue;
 		}
 		if (g_object_table[object_idx].player_owner_idx == -1) {
-			struct ai_controller *ai = &craft->ai_controller;
-
-			if (ai->target_obj_idx == player_object_idx &&
-			    (ai->maneuver_mode == AI_MANEUVER_MODE_ATTACK ||
-			     ai->maneuver_mode ==
-				     AI_MANEUVER_MODE_ROCKET_ATTACK)) {
+			if (ai_brain_attack_target(craft) ==
+			    player_object_idx) {
 				for (int cannon = 0;
 				     cannon < craft->cannon_group_count;
 				     ++cannon) {
@@ -6128,11 +6126,8 @@ void hud_update_threat_indicators(int hud_mode)
 		int player_owner_idx =
 			g_object_table[object_idx].player_owner_idx;
 		if (player_owner_idx == -1) {
-			struct ai_controller *ai = &craft->ai_controller;
-
-			if (ai->target_obj_idx == player_object_idx &&
-			    ai->maneuver_mode ==
-				    AI_MANEUVER_MODE_ROCKET_ATTACK) {
+			if (ai_brain_attack_target(craft) ==
+			    player_object_idx) {
 				int16_t warhead_lock_ticks =
 					craft->warhead_lock_ticks;
 
@@ -7277,13 +7272,13 @@ void hud_draw_cmd_target_details(void)
  * and hull percents (elements 102 and 103) and the armament sprites 98 to 101
  * for lasers, ion cannons, warheads and beam. Each shows 1 when the target
  * carries the weapon: lasers and ion cannons blink between 1 and 2 while
- * linked, warheads while a lock builds (an AI craft's count only during a
- * rocket attack), and the beam shows 2 while active and charged. While a state
- * is not 0 its label from g_str_threat_display_text is drawn at layouts 135 to
- * 138, plain for 1 and inverted for 2. A target outside the craft slots shows
- * zeros. The hull shows 100 when under 1 percent is left, and the label check
- * reads g_hud_element_state_cache 135 to 138, which nothing here writes, so the
- * labels redraw on every call. */
+ * linked, warheads while a lock builds (a computer craft's warheads only while
+ * it attacks, ai_brain_attack_target), and the beam shows 2 while active and
+ * charged. While a state is not 0 its label from g_str_threat_display_text is
+ * drawn at layouts 135 to 138, plain for 1 and inverted for 2. A target outside
+ * the craft slots shows zeros. The hull shows 100 when under 1 percent is left,
+ * and the label check reads g_hud_element_state_cache 135 to 138, which nothing
+ * here writes, so the labels redraw on every call. */
 // FUNCTION: XVT 0x440140
 void hud_draw_cmd_target_status_indicators(void)
 {
@@ -7483,8 +7478,8 @@ void hud_draw_cmd_target_status_indicators(void)
 			uint16_t i;
 			if (g_object_table[current_target_object_idx]
 				    .player_owner_idx == -1) {
-				if (craft->ai_controller.maneuver_mode ==
-				    AI_MANEUVER_MODE_ROCKET_ATTACK) {
+				if (ai_brain_attack_target(craft) !=
+				    UINT16_MAX) {
 					i = 0;
 					uint8_t warhead_launcher_count =
 						craft->warhead_launcher_count;

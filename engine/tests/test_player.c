@@ -755,6 +755,29 @@ static void check_pitch_yaw_steps(void)
 	XVT_ASSERT_TRUE(results[2][0] != results[1][0]);
 }
 
+/* A computer craft attacks the target when the target is the one it attacks
+ * (ai_brain_attack_target), whatever its maneuver: the craft in slot 4 is
+ * found, while a nearer craft aimed at the target but flying home and a still
+ * nearer one aimed elsewhere are not; once slot 4 enters its hangar, none
+ * attacks the target. */
+static void check_attacker_of_target(void)
+{
+	enum { TARGET = 3, ATTACKER = 4, HOMEWARD = 5, ELSEWHERE = 6 };
+	fresh_world();
+	place_craft(TARGET, OWN_FG, 0, 0, 0);
+	place_craft(ATTACKER, ENEMY_FG, 3000, 0, 0);
+	place_craft(HOMEWARD, ENEMY_FG, 2000, 0, 0);
+	place_craft(ELSEWHERE, ENEMY_FG, 1000, 0, 0);
+	g_test_craft[ATTACKER].ai_controller.target_obj_idx = TARGET;
+	g_test_craft[HOMEWARD].ai_controller.target_obj_idx = TARGET;
+	g_test_craft[HOMEWARD].ai_controller.activity = AI_ACTIVITY_GOING_HOME;
+	g_test_craft[ELSEWHERE].ai_controller.target_obj_idx = PLAYER_SLOT;
+	XVT_ASSERT_INT_EQ(player_find_attacker_of_target(TARGET, -1), ATTACKER);
+	g_test_craft[ATTACKER].ai_controller.activity =
+		AI_ACTIVITY_ENTERING_HANGAR;
+	XVT_ASSERT_INT_EQ(player_find_attacker_of_target(TARGET, -1), -1);
+}
+
 int main(int argc, char **argv)
 {
 	/* "known-failure <check>" runs one check the code is known to fail; an
@@ -795,5 +818,6 @@ int main(int argc, char **argv)
 	check_transfer_shield_energy();
 	check_has_available_owned_craft();
 	check_pitch_yaw_steps();
+	check_attacker_of_target();
 	return 0;
 }

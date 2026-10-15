@@ -5751,12 +5751,8 @@ void flight_process_player_actions(int player_idx)
 				continue;
 			}
 			if (object->player_owner_idx == -1) {
-				int maneuver = candidate_craft->ai_controller
-						       .maneuver_mode;
-				if (candidate_craft->ai_controller
-						    .target_obj_idx ==
-					    object_index &&
-				    (maneuver == 12 || maneuver == 23)) {
+				if (ai_brain_attack_target(candidate_craft) ==
+				    object_index) {
 					attacker = candidate;
 					break;
 				}

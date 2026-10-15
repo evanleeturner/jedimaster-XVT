@@ -829,3 +829,17 @@ uint16_t ai_brain_find_mothership(int16_t mothership_flight_group_idx)
 
 	return UINT16_MAX;
 }
+
+uint16_t ai_brain_attack_target(const struct craft_data *craft)
+{
+	const struct ai_controller *controller = &craft->ai_controller;
+
+	switch (controller->activity) {
+	case AI_ACTIVITY_GOING_HOME:
+	case AI_ACTIVITY_GOING_HOME_EVADING:
+	case AI_ACTIVITY_ENTERING_HANGAR:
+		return UINT16_MAX;
+	default:
+		return controller->target_obj_idx;
+	}
+}
