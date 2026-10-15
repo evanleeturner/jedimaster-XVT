@@ -36,7 +36,8 @@ enum {
 
 void frontend_net_find_local_roster_entry(int *roster_index);
 void frontend_net_process_setup_packet(int *packet_type, DPID sender_player_id,
-				       int *payload, uint8_t *payload_bytes);
+				       int *payload, uint8_t *payload_bytes,
+				       uint32_t packet_size);
 
 #ifdef __cplusplus
 }

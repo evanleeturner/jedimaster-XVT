@@ -58,6 +58,7 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/network_session.h"
+#include "xvt_runtime/runtime/sith.h"
 
 enum {
 	PEER_DPID = 200,
@@ -444,10 +445,13 @@ static void check_ready_player_left(void)
 {
 	lane_world(1);
 	g_front_state.net_ready_player_left_this_frame = 1;
+	xvt_sith_set_setting(XVT_SITH_LORD);
 	XVT_ASSERT_INT_EQ(frontend_net_process_network_packets(),
 			  NET_PACKET_NONE);
 	XVT_ASSERT_INT_EQ(g_frontend_net_packet_scratch.packet_type,
 			  NET_PACKET_GAME_OPTIONS);
+	/* The options packet's 20th word is the Sith setting. */
+	XVT_ASSERT_INT_EQ(scratch_word(18), XVT_SITH_LORD);
 	XVT_ASSERT_INT_EQ(count_lines("network.lobby_state_resent"), 1);
 
 	lane_world(1);
@@ -455,6 +459,14 @@ static void check_ready_player_left(void)
 			  NET_PACKET_NONE);
 	XVT_ASSERT_INT_EQ(g_frontend_net_packet_scratch.packet_type, 0);
 	XVT_ASSERT_INT_EQ(count_lines("network.lobby_state_resent"), 0);
+
+	/* The setting sent is the one the machine holds. */
+	lane_world(1);
+	g_front_state.net_ready_player_left_this_frame = 1;
+	xvt_sith_set_setting(XVT_SITH_APPRENTICES);
+	frontend_net_process_network_packets();
+	XVT_ASSERT_INT_EQ(scratch_word(18), XVT_SITH_APPRENTICES);
+	xvt_sith_set_setting(XVT_SITH_NONE);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -1197,8 +1209,9 @@ static void check_stored_words(void)
 /* ------------------------------------------------------------------------ */
 /* The packet handler: game options and the launch and loadout rosters. */
 
-/* A GAME_OPTIONS packet of 19 words with each word's low byte set to its
- * index and its next byte to 3, and a seed in word 13. */
+/* A GAME_OPTIONS packet of 20 words with each word's low byte set to its
+ * index and its next byte to 3, a seed in word 13 and the Sith setting,
+ * lord, in word 19. */
 static void game_options_packet(int *packet)
 {
 	packet[0] = NET_PACKET_GAME_OPTIONS;
@@ -1206,15 +1219,17 @@ static void game_options_packet(int *packet)
 		packet[word] = 0x300 + word;
 	}
 	packet[13] = 0x12345678;
+	packet[19] = XVT_SITH_LORD;
 }
 
 /* While this player is in the setup roster GAME_OPTIONS sets the game's
  * options from the low byte of words 1 to 18 (word 6 unused), and the seed
- * from word 13. */
+ * from word 13, and the Sith setting from word 19. */
 static void check_game_options(void)
 {
-	int packet[19];
+	int packet[20];
 	lane_world(0);
+	xvt_sith_set_setting(XVT_SITH_NONE);
 	g_mp_roster[4].player_id = LOCAL_ID;
 	game_options_packet(packet);
 	XVT_ASSERT_INT_EQ(handle_packet(packet, sizeof packet),
@@ -1237,13 +1252,51 @@ static void check_game_options(void)
 	XVT_ASSERT_INT_EQ(g_game_config.combat_balance, 17);
 	XVT_ASSERT_INT_EQ(g_game_config.continue_battle_or_campaign, 18);
 	XVT_ASSERT_INT_EQ(line_value("network.game_options", "applied"), 1);
+	XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), XVT_SITH_LORD);
+	XVT_ASSERT_INT_EQ(line_value("network.game_options", "sith"),
+			  XVT_SITH_LORD);
+	xvt_sith_set_setting(XVT_SITH_NONE);
+}
+
+/* The Sith setting the packet holds is the one this machine takes, whatever
+ * it held: each of the three values, a value that is none of them, and a
+ * packet of 19 words, from a host without the slot, which sets none. */
+static void check_game_options_sith_setting(void)
+{
+	int packet[20];
+	for (int value = 0; value <= 2; ++value) {
+		lane_world(0);
+		xvt_sith_set_setting(XVT_SITH_LORD);
+		g_mp_roster[4].player_id = LOCAL_ID;
+		game_options_packet(packet);
+		packet[19] = value;
+		XVT_ASSERT_INT_EQ(handle_packet(packet, sizeof packet),
+				  NET_PACKET_GAME_OPTIONS);
+		XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), value);
+	}
+	lane_world(0);
+	xvt_sith_set_setting(XVT_SITH_LORD);
+	g_mp_roster[4].player_id = LOCAL_ID;
+	game_options_packet(packet);
+	packet[19] = 9;
+	handle_packet(packet, sizeof packet);
+	XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), XVT_SITH_NONE);
+	/* The 19-word packet an earlier build sends. */
+	xvt_sith_set_setting(XVT_SITH_LORD);
+	game_options_packet(packet);
+	handle_packet(packet, 19 * sizeof(int));
+	XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), XVT_SITH_NONE);
+	XVT_ASSERT_INT_EQ(line_value("network.game_options", "sith"),
+			  XVT_SITH_NONE);
+	xvt_sith_set_setting(XVT_SITH_NONE);
 }
 
 /* Without this player in the setup roster GAME_OPTIONS changes nothing. */
 static void check_game_options_not_in_roster(void)
 {
-	int packet[19];
+	int packet[20];
 	lane_world(0);
+	xvt_sith_set_setting(XVT_SITH_APPRENTICES);
 	g_mp_roster[4].player_id = PEER_DPID;
 	game_options_packet(packet);
 	XVT_ASSERT_INT_EQ(handle_packet(packet, sizeof packet),
@@ -1252,6 +1305,8 @@ static void check_game_options_not_in_roster(void)
 	XVT_ASSERT_INT_EQ(g_game_config.random_seed, 0);
 	XVT_ASSERT_INT_EQ(g_game_config.continue_battle_or_campaign, 0);
 	XVT_ASSERT_INT_EQ(line_value("network.game_options", "applied"), 0);
+	XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), XVT_SITH_APPRENTICES);
+	xvt_sith_set_setting(XVT_SITH_NONE);
 }
 
 /* Fills the five loadout words of each of the 8 roster entries from word 1:
@@ -2256,6 +2311,7 @@ int main(int argc, char **argv)
 	check_flight_tables();
 	check_stored_words();
 	check_game_options();
+	check_game_options_sith_setting();
 	check_game_options_not_in_roster();
 	check_launch_roster();
 	check_loadout_roster();

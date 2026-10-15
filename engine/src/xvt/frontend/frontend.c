@@ -36,6 +36,7 @@
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_actions.h"
+#include "xvt_runtime/runtime/sith.h"
 
 enum {
 	FRONTEND_CHAT_LOG_CAPACITY = 1024,
@@ -328,7 +329,7 @@ int frontend_handle_common_screen_controls(int screen_context)
 		SOLO_HELD_SLOT = 2,
 		CRAFT_HELD_SLOT = 1,
 		PILOT_HELD_SLOT = 0,
-		CONFIG_PACKET_SIZE = 19 * sizeof(int),
+		CONFIG_PACKET_SIZE = 20 * sizeof(int),
 	};
 
 	int transition_needs_session_shutdown = 0;
@@ -688,8 +689,10 @@ int frontend_handle_common_screen_controls(int screen_context)
 					 .payload[68] =
 					(uint8_t)g_game_config
 						.continue_battle_or_campaign;
+				*(int *)&g_frontend_net_packet_scratch
+					 .payload[72] = xvt_sith_get_setting();
 				XVT_LOG_DEBUG(
-					"frontend.options_sent difficulty=%d collisions=%d jumping=%d random=%d length=%d password=%d join=%d craft=%d locate=%d waves=%d time_limit=%d team_limit=%d seed=%d internet=%d ai=%d rate=%d balance=%d continue=%d",
+					"frontend.options_sent difficulty=%d collisions=%d jumping=%d random=%d length=%d password=%d join=%d craft=%d locate=%d waves=%d time_limit=%d team_limit=%d seed=%d internet=%d ai=%d rate=%d balance=%d continue=%d sith=%d",
 					*(int *)&g_frontend_net_packet_scratch
 						 .payload[0],
 					*(int *)&g_frontend_net_packet_scratch
@@ -725,7 +728,9 @@ int frontend_handle_common_screen_controls(int screen_context)
 					*(int *)&g_frontend_net_packet_scratch
 						 .payload[64],
 					*(int *)&g_frontend_net_packet_scratch
-						 .payload[68]);
+						 .payload[68],
+					*(int *)&g_frontend_net_packet_scratch
+						 .payload[72]);
 				net_send_packet_and_flush(
 					0, &g_frontend_net_packet_scratch,
 					CONFIG_PACKET_SIZE);

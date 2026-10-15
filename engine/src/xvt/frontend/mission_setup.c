@@ -44,6 +44,7 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_cleanup.h"
 #include "xvt_runtime/runtime/mission_dialogs.h"
+#include "xvt_runtime/runtime/sith.h"
 
 /* Folder of each mission type, by mission_directory_id: training, melee,
  * tournament, combat engagement, battle, campaign. Mission lists and files are
@@ -5306,9 +5307,10 @@ int mission_setup_send_lobby_state(int to_player_id)
 	packet_words[16] = g_game_config.server_update_rate;
 	packet_words[17] = (uint8_t)g_game_config.combat_balance;
 	packet_words[18] = (uint8_t)g_game_config.continue_battle_or_campaign;
+	packet_words[19] = xvt_sith_get_setting();
 	return net_send_packet_and_flush(to_player_id,
 					 &g_frontend_net_packet_scratch,
-					 19 * sizeof(packet_words[0]));
+					 20 * sizeof(packet_words[0]));
 }
 
 /* Sends a READY_ROSTER packet to to_player_id, 0 meaning every player (its one
@@ -6585,7 +6587,7 @@ int mission_setup_draw_game_settings(void)
 		HOVER_SEQUENCE_STATUS = 33,
 		MAX_MISSION_TIME_MINUTES = 20,
 		MAX_LAST_TEAM_TIME_MINUTES = 10,
-		GAME_OPTIONS_PACKET_WORD_COUNT = 19,
+		GAME_OPTIONS_PACKET_WORD_COUNT = 20,
 	};
 
 	frontend_text_draw(SETTINGS_TITLE_FONT_SIZE,
@@ -7569,6 +7571,7 @@ int mission_setup_draw_game_settings(void)
 		packet_words[17] = (uint8_t)g_game_config.combat_balance;
 		packet_words[18] =
 			(uint8_t)g_game_config.continue_battle_or_campaign;
+		packet_words[19] = xvt_sith_get_setting();
 		net_send_packet_and_flush(0, &g_frontend_net_packet_scratch,
 					  GAME_OPTIONS_PACKET_WORD_COUNT *
 						  sizeof(packet_words[0]));

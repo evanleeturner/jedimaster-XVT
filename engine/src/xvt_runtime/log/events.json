@@ -1960,8 +1960,8 @@
     },
     "frontend.options_sent": {
       "level": "D",
-      "fields": ["difficulty", "collisions", "jumping", "random", "length", "password", "join", "craft", "locate", "waves", "time_limit", "team_limit", "seed", "internet", "ai", "rate", "balance", "continue"],
-      "text": "As host, closing the options screen sent the game options to the other players: difficulty {difficulty}, collisions {collisions}, craft jumping {jumping}, random setup {random}, battle length {length}, password required {password}, joining in progress {join}, craft selection {craft}, locate players {locate}, craft waves {waves}, mission time limit {time_limit}, last team time limit {team_limit} minutes, random seed {seed}, internet play {internet}, computer opponents {ai}, server update rate {rate}, combat balance {balance}, continue choice {continue}"
+      "fields": ["difficulty", "collisions", "jumping", "random", "length", "password", "join", "craft", "locate", "waves", "time_limit", "team_limit", "seed", "internet", "ai", "rate", "balance", "continue", "sith"],
+      "text": "As host, closing the options screen sent the game options to the other players: difficulty {difficulty}, collisions {collisions}, craft jumping {jumping}, random setup {random}, battle length {length}, password required {password}, joining in progress {join}, craft selection {craft}, locate players {locate}, craft waves {waves}, mission time limit {time_limit}, last team time limit {team_limit} minutes, random seed {seed}, internet play {internet}, computer opponents {ai}, server update rate {rate}, combat balance {balance}, continue choice {continue}, Sith setting {sith} (0 none, 1 apprentices, 2 lord)"
     },
     "frontend.pilot_required": {
       "level": "D",
@@ -4210,8 +4210,8 @@
     },
     "network.game_options": {
       "level": "D",
-      "fields": ["applied", "difficulty", "collisions", "jumping", "random", "length", "join", "craft", "locate", "waves", "time_limit", "team_limit", "seed", "internet", "ai", "rate", "balance", "continue"],
-      "text": "The host's game options arrived and were applied {applied}: difficulty {difficulty}, collisions {collisions}, craft jumping {jumping}, random setup {random}, battle length {length}, joining in progress {join}, craft selection {craft}, locate players {locate}, craft waves {waves}, mission time limit {time_limit}, last team time limit {team_limit} minutes, random seed {seed}, internet play {internet}, computer opponents {ai}, server update rate {rate}, combat balance {balance}, continue choice {continue}"
+      "fields": ["applied", "difficulty", "collisions", "jumping", "random", "length", "join", "craft", "locate", "waves", "time_limit", "team_limit", "seed", "internet", "ai", "rate", "balance", "continue", "sith"],
+      "text": "The host's game options arrived and were applied {applied}: difficulty {difficulty}, collisions {collisions}, craft jumping {jumping}, random setup {random}, battle length {length}, joining in progress {join}, craft selection {craft}, locate players {locate}, craft waves {waves}, mission time limit {time_limit}, last team time limit {team_limit} minutes, random seed {seed}, internet play {internet}, computer opponents {ai}, server update rate {rate}, combat balance {balance}, continue choice {continue}, Sith setting {sith} (0 none, 1 apprentices, 2 lord)"
     },
     "network.game_status": {
       "level": "D",

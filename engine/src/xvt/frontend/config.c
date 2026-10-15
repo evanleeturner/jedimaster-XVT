@@ -34,6 +34,7 @@
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/frontend_actions.h"
 #include "xvt_runtime/runtime/port.h"
+#include "xvt_runtime/runtime/sith.h"
 
 /* The joystick action list read from joystick.txt: each entry's action code,
  * name and description. config_load_joystick_action_dictionary fills it when the
@@ -113,7 +114,7 @@ int config_options_datapad_update(int frame_counter)
 		CONFIG_PAGE_JOYSTICK = 4,
 		CONFIG_PAGE_TAUNTS = 5,
 		CONFIG_SCREEN_CONTEXT = 2,
-		CONFIG_PACKET_SIZE = 19 * sizeof(int),
+		CONFIG_PACKET_SIZE = 20 * sizeof(int),
 		PILOT_BANNER_ANIMATION_PERIOD_FRAMES = 32,
 	};
 
@@ -295,6 +296,8 @@ int config_options_datapad_update(int frame_counter)
 			*(int *)&g_frontend_net_packet_scratch.payload[68] =
 				(uint8_t)g_game_config
 					.continue_battle_or_campaign;
+			*(int *)&g_frontend_net_packet_scratch.payload[72] =
+				xvt_sith_get_setting();
 			net_send_packet_and_flush(
 				0, &g_frontend_net_packet_scratch,
 				CONFIG_PACKET_SIZE);

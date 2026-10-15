@@ -13,6 +13,7 @@
 #include "xvt/net/net_peers.h"
 #include "xvt/net/net_send.h"
 #include "xvt_runtime/log/log.h"
+#include "xvt_runtime/runtime/sith.h"
 
 /* Part of the frontend's packet handling: sets *roster_index to the first
  * entry of g_mp_roster whose player_id is not 0 and is this player's id, or
@@ -345,10 +346,15 @@ static void frontend_net_store_released_reservation(int *payload)
 
 /* Part of frontend_net_process_setup_packet for a GAME_OPTIONS: when
  * this player is in g_mp_roster, copies the game options in payload into
- * g_game_config; logs them either way. */
-static void frontend_net_on_game_options(int *payload, uint8_t *payload_bytes)
+ * g_game_config, and the Sith setting in byte 72 into the Sith setting (none
+ * when the packet is too short to hold it); logs them either way. */
+static void frontend_net_on_game_options(int *payload, uint8_t *payload_bytes,
+					 uint32_t packet_size)
 {
+	enum { PACKET_BYTES_WITH_SITH = 20 * sizeof(int) };
 	int roster_index;
+	int sith = packet_size >= PACKET_BYTES_WITH_SITH ? payload_bytes[72]
+							 : XVT_SITH_NONE;
 
 	frontend_net_find_local_roster_entry(&roster_index);
 	if (roster_index < MAX_PLAYERS) {
@@ -369,9 +375,10 @@ static void frontend_net_on_game_options(int *payload, uint8_t *payload_bytes)
 		g_game_config.server_update_rate = payload_bytes[60];
 		g_game_config.combat_balance = payload_bytes[64];
 		g_game_config.continue_battle_or_campaign = payload_bytes[68];
+		xvt_sith_set_setting(sith);
 	}
 	XVT_LOG_DEBUG(
-		"network.game_options applied=%d difficulty=%u collisions=%u jumping=%u random=%u length=%u join=%u craft=%u locate=%u waves=%u time_limit=%u team_limit=%u seed=%u internet=%u ai=%u rate=%u balance=%u continue=%u",
+		"network.game_options applied=%d difficulty=%u collisions=%u jumping=%u random=%u length=%u join=%u craft=%u locate=%u waves=%u time_limit=%u team_limit=%u seed=%u internet=%u ai=%u rate=%u balance=%u continue=%u sith=%d",
 		roster_index < MAX_PLAYERS, (unsigned)payload_bytes[0],
 		(unsigned)payload_bytes[4], (unsigned)payload_bytes[8],
 		(unsigned)payload_bytes[12], (unsigned)payload_bytes[16],
@@ -380,7 +387,7 @@ static void frontend_net_on_game_options(int *payload, uint8_t *payload_bytes)
 		(unsigned)payload_bytes[40], (unsigned)payload_bytes[44],
 		(unsigned)payload[12], (unsigned)payload_bytes[52],
 		(unsigned)payload_bytes[56], (unsigned)payload_bytes[60],
-		(unsigned)payload_bytes[64], (unsigned)payload_bytes[68]);
+		(unsigned)payload_bytes[64], (unsigned)payload_bytes[68], sith);
 }
 
 /* Part of frontend_net_process_setup_packet for a
@@ -623,9 +630,11 @@ static void frontend_net_relay_mission_choice(DPID sender_player_id,
  * mission setup, briefing and launch screens (assignments, ready flags, game
  * options, loadouts, seeds, countdowns, reservations, battle progress, the
  * mission choice relay) as that function's comment says, and sets
- * *packet_type to NET_PACKET_NONE when the type is unknown. */
+ * *packet_type to NET_PACKET_NONE when the type is unknown. packet_size is
+ * the packet's length in bytes. */
 void frontend_net_process_setup_packet(int *packet_type, DPID sender_player_id,
-				       int *payload, uint8_t *payload_bytes)
+				       int *payload, uint8_t *payload_bytes,
+				       uint32_t packet_size)
 {
 	switch (*packet_type) {
 	case NET_PACKET_TEAM_ASSIGNMENTS_READY:
@@ -696,7 +705,8 @@ void frontend_net_process_setup_packet(int *packet_type, DPID sender_player_id,
 		frontend_net_store_released_reservation(payload);
 		break;
 	case NET_PACKET_GAME_OPTIONS:
-		frontend_net_on_game_options(payload, payload_bytes);
+		frontend_net_on_game_options(payload, payload_bytes,
+					     packet_size);
 		break;
 	case NET_PACKET_REPLAY_MISSION:
 		frontend_net_store_seed(payload);

@@ -661,8 +661,9 @@ int frontend_net_process_network_packets(void)
 		frontend_net_on_movie_sync(sender_player_id, payload);
 		break;
 	default:
-		frontend_net_process_setup_packet(
-			&packet_type, sender_player_id, payload, payload_bytes);
+		frontend_net_process_setup_packet(&packet_type,
+						  sender_player_id, payload,
+						  payload_bytes, packet_size);
 		break;
 	}
 	return packet_type;
