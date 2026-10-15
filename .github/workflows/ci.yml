@@ -32,6 +32,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Stage the AI program
+        run: python3 ai/tools/stage_package.py build/ai-package
+
       - name: Build package
         uses: docker/build-push-action@v7
         env:
@@ -41,12 +44,19 @@ jobs:
           file: engine/packaging/linux/Dockerfile
           platforms: linux/amd64
           target: artifact
+          build-contexts: |
+            ai=build/ai-package
           build-args: |
             XVT_BUILD_TYPE=${{ matrix.build-type }}
             XVT_VERSION=${{ steps.sha.outputs.short }}
           outputs: type=local,dest=build/artifacts
           cache-from: type=gha,scope=linux
           cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=linux' || '' }}
+
+      - name: Check the package carries the AI program
+        run: |
+          tar -tJf build/artifacts/*.tar.xz \
+            | grep -E '^[^/]+/ai/jedimaster_ai/__main__[.]py$' > /dev/null
 
       - name: Upload package
         uses: actions/upload-artifact@v7
@@ -73,6 +83,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Stage the AI program
+        run: python3 ai/tools/stage_package.py build/ai-package
+
       - name: Build package
         uses: docker/build-push-action@v7
         env:
@@ -82,12 +95,19 @@ jobs:
           file: engine/packaging/windows/Dockerfile
           platforms: linux/amd64
           target: artifact
+          build-contexts: |
+            ai=build/ai-package
           build-args: |
             XVT_BUILD_TYPE=${{ matrix.build-type }}
             XVT_VERSION=${{ steps.sha.outputs.short }}
           outputs: type=local,dest=build/artifacts
           cache-from: type=gha,scope=windows
           cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=windows' || '' }}
+
+      - name: Check the package carries the AI program
+        run: |
+          unzip -Z1 build/artifacts/*.zip \
+            | grep -E '^[^/]+/ai/jedimaster_ai/__main__[.]py$' > /dev/null
 
       - name: Upload package
         uses: actions/upload-artifact@v7

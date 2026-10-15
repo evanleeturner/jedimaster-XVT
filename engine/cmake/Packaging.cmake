@@ -96,6 +96,24 @@ foreach(license IN ITEMS "bc7enc/LICENSE" "fidelityfx-fsr3/LICENSE.txt"
         DESTINATION "${XVT_PACKAGE_RESOURCE_DIR}/licenses" RENAME "${library}.txt" COMPONENT Runtime)
 endforeach()
 
+# The AI program that flies the computer craft ships inside the package, so a
+# game build and its AI program always come from the same commit.
+# tools/stage_package.py (ai/) writes the folder this names.
+set(XVT_AI_PROGRAM_DIR "" CACHE PATH
+    "A folder holding jedimaster_ai/ and licenses/jedimaster_ai.txt, from ai/tools/stage_package.py")
+if(XVT_AI_PROGRAM_DIR)
+    if(NOT EXISTS "${XVT_AI_PROGRAM_DIR}/jedimaster_ai/__main__.py")
+        message(FATAL_ERROR "XVT_AI_PROGRAM_DIR has no jedimaster_ai/__main__.py: ${XVT_AI_PROGRAM_DIR}")
+    endif()
+    message(STATUS "The package carries the AI program from ${XVT_AI_PROGRAM_DIR}")
+    install(DIRECTORY "${XVT_AI_PROGRAM_DIR}/jedimaster_ai"
+        DESTINATION "${XVT_PACKAGE_RESOURCE_DIR}/ai" COMPONENT Runtime)
+    install(FILES "${XVT_AI_PROGRAM_DIR}/licenses/jedimaster_ai.txt"
+        DESTINATION "${XVT_PACKAGE_RESOURCE_DIR}/licenses" COMPONENT Runtime)
+else()
+    message(STATUS "The package carries no AI program (XVT_AI_PROGRAM_DIR is empty)")
+endif()
+
 if(WIN32)
     enable_language(RC)
     if(XVT_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)")

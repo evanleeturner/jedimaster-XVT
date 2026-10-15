@@ -25,6 +25,7 @@ struct xvt_launch_options {
 	const char *ai_python;
 	const char *ai_program;
 	int show_help;
+	int show_version;
 	int setup;
 	int save_config;
 	int reset_config;
@@ -34,7 +35,7 @@ struct xvt_launch_options {
 
 /* Launch strings borrow argv for the lifetime of the application. */
 /* Zeroes options, then reads argv from index 1. A flag is matched whole: --help
- * or -h, --setup, --skip-intro, --save-config, --reset-config,
+ * or -h, --version, --setup, --skip-intro, --save-config, --reset-config,
  * --check-installation; a repeat is harmless. A value option (--resource-root,
  * --game-data, --import-config, --import-pilot, --pilot-name, --log-level,
  * --log-file, --launch, --record-launch, --ai-python, --ai-program) takes its value after '=' or from the

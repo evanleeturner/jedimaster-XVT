@@ -373,11 +373,11 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 21 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 30 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 4,832 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
-| Lines of Python in its tests | 5,857 | the `.py` files in `ai/tests/`, counted with `wc -l` |
-| Test functions in those tests | 349 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
+| Commits that changed the pilot program | 22 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 31 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Lines of Python in the pilot program | 4,839 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Lines of Python in its tests | 5,948 | the `.py` files in `ai/tests/`, counted with `wc -l` |
+| Test functions in those tests | 356 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 11 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py` |
 | Mission order codes that have a written behavior | 14 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
 | Kinds of line the pilot program writes to its log | 35 | the entries in `ai/jedimaster_ai/events.json` |

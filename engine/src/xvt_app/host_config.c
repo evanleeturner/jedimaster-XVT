@@ -66,6 +66,7 @@ int xvt_launch_options_parse(int argc, char *argv[],
 		} flags[] = {
 			{"--help", &options->show_help},
 			{"-h", &options->show_help},
+			{"--version", &options->show_version},
 			{"--setup", &options->setup},
 			{"--skip-intro", &options->skip_intro},
 			{"--save-config", &options->save_config},

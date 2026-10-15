@@ -23,13 +23,17 @@ from __future__ import annotations
 
 import json
 import logging
+import shutil
 import stat
 import sys
 from pathlib import Path
 
 import pytest
+from solodata import make_ai_program
+from solodata import WIRE
 
 from jedimaster.__main__ import main
+from jedimaster.launch.builds import set_current
 from jedimaster.launch.check import errors
 from jedimaster.launch.cli import summary
 from jedimaster.launch.model import ai_program_of
@@ -46,6 +50,10 @@ REPO_AI_PROGRAM = Path(__file__).resolve().parents[2] / "ai" / "jedimaster_ai"
 STAND_IN = """#!__PYTHON__
 import json, sys, time
 args = sys.argv[1:]
+if args == ["--version"]:
+    print("OpenXvT stand-in")
+    print("ai_wire=__WIRE__")
+    sys.exit(0)
 description = json.load(open(args[1]))
 open(args[1] + ".argv", "w").write(json.dumps(args))
 pilot = description["pilot"]
@@ -84,8 +92,10 @@ sys.exit(code)
 def engine(tmp_path: Path) -> str:
     """Return the path of an executable stand-in engine."""
     path = tmp_path / "engine"
-    path.write_text(STAND_IN.replace("__PYTHON__", sys.executable), encoding="utf-8")
+    text = STAND_IN.replace("__PYTHON__", sys.executable)
+    path.write_text(text.replace("__WIRE__", str(WIRE)), encoding="utf-8")
     path.chmod(path.stat().st_mode | stat.S_IXUSR)
+    make_ai_program(tmp_path / "ai" / "jedimaster_ai")
     return str(path)
 
 
@@ -317,11 +327,8 @@ def test_setting_flags_become_the_settings_of_the_description(
 
 
 def make_ai_folder(tmp_path: Path) -> Path:
-    """Return a folder holding an empty ``__main__.py``, as the AI program's does."""
-    folder = tmp_path / "brain"
-    folder.mkdir()
-    (folder / "__main__.py").write_text("", encoding="utf-8")
-    return folder
+    """Return a folder holding a stand-in AI program that answers ``--version``."""
+    return make_ai_program(tmp_path / "brain")
 
 
 def test_the_ai_program_is_this_python_and_the_folder_made_absolute(
@@ -367,7 +374,11 @@ def test_the_ai_program_flag_reaches_the_description(monkeypatch, engine, tmp_pa
         "path": str(folder.resolve()),
     }
     assert main(command(engine)) == 0
-    assert "ai_program" not in seen[1]
+    packaged = Path(engine).parent / "ai" / "jedimaster_ai"
+    assert seen[1]["ai_program"] == {
+        "python": sys.executable,
+        "path": str(packaged.resolve()),
+    }
 
 
 def test_an_ai_program_folder_without_the_program_exits_2(
@@ -380,6 +391,59 @@ def test_an_ai_program_folder_without_the_program_exits_2(
     assert main(command(engine, "Ace", "--ai-program", str(tmp_path))) == 2
     assert "no AI program" in caplog.text
     assert flown == []
+
+
+def test_a_mismatched_pair_exits_1_with_the_sentence_and_never_starts_the_engine(
+    monkeypatch, engine, tmp_path, caplog
+):
+    from jedimaster.launch import cli as launch_cli
+
+    flown = []
+    monkeypatch.setattr(launch_cli, "fly", lambda *a: flown.append(a))
+    brain = make_ai_program(tmp_path / "brain", wire=100)
+    assert main(command(engine, "Ace", "--ai-program", str(brain))) == 1
+    assert (
+        "This game build speaks AI version 11 and its AI program speaks AI "
+        'version 100, so computer craft could not fly. Run "jedimaster update" '
+        "for a matching pair."
+    ) in caplog.text
+    assert flown == []
+
+
+def test_no_ai_program_beside_the_engine_exits_1(monkeypatch, engine, tmp_path, caplog):
+    from jedimaster.launch import cli as launch_cli
+
+    flown = []
+    monkeypatch.setattr(launch_cli, "fly", lambda *a: flown.append(a))
+    shutil.rmtree(tmp_path / "ai")
+    assert main(command(engine)) == 1
+    assert "No AI program was found beside this game build" in caplog.text
+    assert flown == []
+
+
+def test_without_engine_the_current_build_is_flown(engine, tmp_path, capsys):
+    builds = tmp_path / "builds"
+    build = builds / "aaaaaaaaaaaa"
+    shutil.copytree(tmp_path / "ai", build / "ai")
+    shutil.copy(engine, build / "OpenXvT")
+    set_current(builds, "aaaaaaaaaaaa")
+    argv = command(engine)
+    argv[argv.index("--engine") : argv.index("--engine") + 2] = [
+        "--builds",
+        str(builds),
+    ]
+    assert main(argv) == 0
+    assert capsys.readouterr().out.startswith("flown:")
+
+
+def test_without_engine_or_build_exits_2(tmp_path, caplog):
+    argv = command("x")
+    argv[argv.index("--engine") : argv.index("--engine") + 2] = [
+        "--builds",
+        str(tmp_path / "none"),
+    ]
+    assert main(argv) == 2
+    assert 'run "jedimaster update"' in caplog.text
 
 
 def test_without_a_setting_flag_the_description_has_no_settings(monkeypatch, engine):

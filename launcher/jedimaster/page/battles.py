@@ -20,8 +20,10 @@ Invariants:
     - An engine whose exit code disagrees with its result is an ``error``,
       and a result that cannot be trusted is an ``error`` with the reason.
     - A failing listener is logged at WARNING and never stops the others.
-    - The battle runs the engine given by the launcher's own command line;
-      nothing here takes a path from a message.
+    - The battle runs the engine given by the launcher's own command line, or
+      the current installed build; nothing here takes a path from a message.
+    - ``start`` is given a flight whose engine is already known: a flight
+      with no engine is resolved by the caller at each battle.
 
 Call:
     ``battles = Battles(notify); launch_id = battles.start(flight, description, data)``
@@ -53,12 +55,18 @@ DEFAULT_TIMEOUT = 3600.0
 class Flight:
     """The game program and what goes with it, from the launcher's command line."""
 
-    engine: str
+    # The game program as the player gave it; None means the current installed
+    # build, looked up when each battle starts (``launch.builds``).
+    engine: str | None
     args: tuple[str, ...] = ()
     pilot_folder: Path | None = None
     timeout: float = DEFAULT_TIMEOUT
-    # The description's ``ai_program`` (``model.ai_program_of``); None starts none.
-    ai_program: dict[str, str] | None = None
+    # The AI program's folder as the player gave it; None means the one packaged
+    # beside the game program. Turned into the description's ``ai_program``
+    # when each battle starts (``launch.ai_wire_check``), never at start.
+    ai_program: str | None = None
+    # The folder of installed builds; None means the user's own.
+    builds: Path | None = None
 
 
 class Battles:
@@ -137,6 +145,7 @@ class Battles:
 
     async def _fly(self, flight: Flight, description: Json) -> tuple[str, str]:
         try:
+            assert flight.engine is not None
             result, code = await fly_async(
                 flight.engine, description, flight.args, flight.timeout
             )

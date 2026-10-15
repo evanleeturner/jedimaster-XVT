@@ -23,7 +23,7 @@ Flow:
     ``plants_models_read``, ``plants_models_draw``,
     ``plants_models_output``, ``plants_movies_read``,
     ``plants_movies_subtitles``, ``plants_movies_output``, ``plants_page``, ``plants_bot``,
-    ``plants_launch`` and ``plants_page_open``;
+    ``plants_launch``, ``plants_page_open`` and ``plants_builds``;
     ``PLANTS`` joins them in that order.
 
 Invariants:
@@ -50,6 +50,7 @@ from plants_bot import BOT_PLANTS
 from plants_briefing import BRIEFING_PLANTS
 from plants_briefing_frame import BRIEFING_FRAME_PLANTS
 from plants_briefing_under import BRIEFING_UNDER_PLANTS
+from plants_builds import BUILDS_PLANTS
 from plants_common import Plant
 from plants_fonts import FONTS_PLANTS
 from plants_icons import ICONS_PLANTS
@@ -132,6 +133,7 @@ PLANTS: list[Plant] = [
     *BRIEFING_FRAME_PLANTS,
     *LAUNCH_PLANTS,
     *PAGE_OPEN_PLANTS,
+    *BUILDS_PLANTS,
 ]
 
 

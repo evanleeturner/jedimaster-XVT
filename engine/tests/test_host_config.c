@@ -41,6 +41,7 @@ static void check_zeroes_options(void)
 			options.log_level == NULL);
 	XVT_ASSERT_TRUE(options.log_file == NULL);
 	XVT_ASSERT_INT_EQ(options.show_help, 0);
+	XVT_ASSERT_INT_EQ(options.show_version, 0);
 	XVT_ASSERT_INT_EQ(options.setup, 0);
 	XVT_ASSERT_INT_EQ(options.save_config, 0);
 	XVT_ASSERT_INT_EQ(options.reset_config, 0);
@@ -66,7 +67,16 @@ static void check_flags(void)
 	XVT_ASSERT_INT_EQ(options.show_help, 1);
 	XVT_ASSERT_INT_EQ(options.setup, 1);
 
+	/* --version is a flag of its own: it does not set --help, and a repeat is harmless. */
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--version", "--version"), 1);
+	XVT_ASSERT_INT_EQ(options.show_version, 1);
+	XVT_ASSERT_INT_EQ(options.show_help, 0);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--skip-intro"), 1);
+	XVT_ASSERT_INT_EQ(options.show_version, 0);
+
 	/* A flag is matched whole. */
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--versions"), 0);
+	XVT_ASSERT_INT_EQ(PARSE(&options, "--version=1"), 0);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--helpme"), 0);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "--setup=1"), 0);
 	XVT_ASSERT_INT_EQ(PARSE(&options, "-H"), 0);

@@ -20,14 +20,18 @@ Call:
 from __future__ import annotations
 
 import logging
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 from pagedata import make_install
+from solodata import make_ai_program
+from solodata import make_engine
 
 from jedimaster.__main__ import main
+from jedimaster.launch.builds import set_current
 from jedimaster.page import cli
 from jedimaster.page import server
 
@@ -164,6 +168,8 @@ def serve_argv(tmp_path, page_dir, *extra):
         str(page_dir),
         "--settings",
         str(tmp_path / "s.json"),
+        "--builds",
+        str(tmp_path / "builds"),
         *extra,
     ]
 
@@ -199,10 +205,8 @@ def test_the_ai_program_reaches_the_flight(tmp_path, page_dir, served):
     (folder / "__main__.py").write_text("")
     argv = serve_argv(tmp_path, page_dir, "--engine", str(engine))
     assert main(argv + ["--ai-program", str(folder)]) == 0
-    assert served[0][0].launching.flight.ai_program == {
-        "python": sys.executable,
-        "path": str(folder.resolve()),
-    }
+    # Kept as the player gave it: each battle turns it into the description's.
+    assert served[0][0].launching.flight.ai_program == str(folder)
 
 
 def test_an_ai_program_folder_without_the_program_exits_2(
@@ -213,6 +217,47 @@ def test_an_ai_program_folder_without_the_program_exits_2(
     argv = serve_argv(tmp_path, page_dir, "--engine", str(engine))
     assert main(argv + ["--ai-program", str(tmp_path)]) == 2
     assert "no AI program" in caplog.text and served == []
+
+
+def test_a_mismatched_pair_is_a_warning_at_start_and_the_launcher_runs(
+    tmp_path, page_dir, served, caplog
+):
+    engine = make_engine(tmp_path)
+    brain = make_ai_program(tmp_path / "brain", wire=12)
+    argv = serve_argv(tmp_path, page_dir, "--engine", str(engine))
+    assert main(argv + ["--ai-program", str(brain)]) == 0
+    assert len(served) == 1
+    (warning,) = [r for r in caplog.records if r.levelname == "WARNING"]
+    assert warning.getMessage() == (
+        "This game build speaks AI version 11 and its AI program speaks AI "
+        'version 12, so computer craft could not fly. Run "jedimaster update" '
+        "for a matching pair."
+    )
+
+
+def test_a_matching_pair_says_nothing_at_start(tmp_path, page_dir, served, caplog):
+    engine = make_engine(tmp_path)
+    assert main(serve_argv(tmp_path, page_dir, "--engine", str(engine))) == 0
+    assert [r for r in caplog.records if r.levelname == "WARNING"] == []
+
+
+def test_without_an_engine_the_current_build_is_flown_at_each_battle(
+    tmp_path, page_dir, served
+):
+    builds = tmp_path / "builds"
+    build = builds / "aaaaaaaaaaaa"
+    shutil.copy(make_engine(build), build / "OpenXvT")
+    set_current(builds, "aaaaaaaaaaaa")
+    argv = serve_argv(tmp_path, page_dir, "--engine-arg=--x")
+    assert main(argv) == 0
+    flight = served[0][0].launching.flight
+    assert flight.engine is None and flight.builds == builds
+    assert flight.args == ("--x",) and flight.ai_program is None
+
+
+def test_without_an_engine_or_a_build_no_battle_can_start(tmp_path, page_dir, served):
+    assert main(serve_argv(tmp_path, page_dir)) == 0
+    assert served[0][0].launching.flight is None
 
 
 def test_the_pilot_folder_defaults_to_the_games_user_folder(tmp_path, page_dir, served):

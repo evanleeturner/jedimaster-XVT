@@ -13,6 +13,8 @@ Flow:
 
 Invariants:
     - No game data: every title, file and pilot name is a generic word.
+    - The stand-in engine and AI program answer ``--version`` as the real ones
+      do (``ai_wire=11``); the AI program sits where a package keeps it.
     - The stand-in engine's behaviours (``#BEHAVE#`` is filled by ``make_engine``): ``done`` (writes a flown result,
       exits 0), ``refuse`` (a refused result, exit 3), ``mismatch`` (a flown
       result, exit 5), ``silent`` (exits 0 without a result), ``hang``
@@ -47,6 +49,8 @@ PILOTS = ("Ace", "Bravo Two", "Cee")
 ENGINE = f"""#!{sys.executable}
 import json, signal, sys, time
 args = sys.argv[1:]
+if args == ["--version"]:
+#VERSION#
 path = args[args.index("--launch") + 1]
 #BEHAVE#
 description = json.load(open(path))
@@ -74,6 +78,42 @@ elif behave in ("hang", "stubborn"):
     open(description["result"] + ".started", "w").write("up")
     time.sleep(60)
 """
+
+
+WIRE = 11
+"""The AI version both stand-ins speak unless a test says otherwise."""
+
+SAYS_WIRE = """    print("OpenXvT stand-in")
+    print("ai_wire=#WIRE#")
+    sys.exit(0)"""
+SAYS_NOTHING = """    sys.stderr.write("OpenXvT: unknown argument: --version\\n")
+    sys.exit(2)"""
+
+AI_PROGRAM = """import sys
+if sys.argv[1:] == ["--version"]:
+#SAYS#
+"""
+
+
+def make_ai_program(
+    folder: Path, wire: int | None = WIRE, says: str | None = None
+) -> Path:
+    """Write a stand-in AI program into ``folder``; return ``folder``.
+
+    It answers ``--version`` with ``ai_wire=<wire>``; ``wire`` None makes it
+    exit 2 with a complaint, and ``says`` replaces the whole reply code.
+    """
+    folder.mkdir(parents=True, exist_ok=True)
+    if says is None:
+        says = (
+            f'    print("ai_wire={wire}")\n    sys.exit(0)'
+            if wire is not None
+            else '    sys.stderr.write("unknown argument\\n")\n    sys.exit(2)'
+        )
+    (folder / "__main__.py").write_text(
+        AI_PROGRAM.replace("#SAYS#", says), encoding="utf-8"
+    )
+    return folder
 
 
 def make_solo_install(root: Path) -> Path:
@@ -115,17 +155,31 @@ BEHAVE_FROM_ARGS = """behave = next((a for a in args if a in
     ("done", "refuse", "mismatch", "silent", "hang", "stubborn", "crash")), "done")"""
 
 
-def make_engine(root: Path, behave_file: Path | None = None) -> Path:
+def make_engine(
+    root: Path,
+    behave_file: Path | None = None,
+    wire: int | None = WIRE,
+    packaged: bool = True,
+) -> Path:
     """Write the stand-in engine script; return its path.
 
     The behaviour is the first extra argument that names one, or, when
     ``behave_file`` is given, the word that file holds each time the engine runs.
+    ``--version`` says ``ai_wire=<wire>``, or is refused as an old build's is
+    when ``wire`` is None. With ``packaged`` the stand-in AI program is written
+    where a package keeps it, ``root/ai/jedimaster_ai``, speaking ``WIRE``.
     """
     path = root / "engine.py"
     line = BEHAVE_FROM_ARGS
     if behave_file is not None:
         line = f"behave = open({str(behave_file)!r}).read().strip()"
-    path.write_text(ENGINE.replace("#BEHAVE#", line), encoding="utf-8")
+    version = (
+        SAYS_WIRE.replace("#WIRE#", str(wire)) if wire is not None else SAYS_NOTHING
+    )
+    text = ENGINE.replace("#BEHAVE#", line).replace("#VERSION#", version)
+    if packaged:
+        make_ai_program(root / "ai" / "jedimaster_ai")
+    path.write_text(text, encoding="utf-8")
     path.chmod(path.stat().st_mode | stat.S_IXUSR)
     return path
 
@@ -139,12 +193,12 @@ def make_control(
     behave: str = "done",
     *extra: str,
     timeout: float = 30.0,
-    ai_program: dict[str, str] | None = None,
+    ai_program: str | None = None,
 ) -> tuple[Control, Flight]:
     """Return a control over the solo install with the stand-in engine, and its flight.
 
     One page is reported open. ``behave`` and ``extra`` are the engine's
-    extra arguments; ``ai_program`` is the flight's.
+    extra arguments; ``ai_program`` is the flight's folder (None: the one packaged beside the engine).
     """
     store = SettingsStore(root / "config" / "settings.json")
     flight = Flight(

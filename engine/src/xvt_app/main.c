@@ -4,11 +4,19 @@
 
 #include "xvt_app/application.h"
 #include "xvt_app/log_sink.h"
+#include "xvt_runtime/ai/ai_wire.h"
 
 int main(int argc, char *argv[])
 {
 	struct xvt_launch_options options;
 	int valid = xvt_launch_options_parse(argc, argv, &options);
+	if (valid && options.show_version) {
+		/* Two lines, no window, no config, no log file: the launcher reads
+		 * the second to check the game and its AI program match. */
+		printf("OpenXvT " OPENXVT_VERSION "\nai_wire=%d\n",
+		       (int)AI_WIRE_VERSION);
+		return 0;
+	}
 	if (!valid || options.show_help) {
 		fprintf(valid ? stdout : stderr,
 			"OpenXvT " OPENXVT_VERSION "\n"
@@ -31,6 +39,7 @@ int main(int argc, char *argv[])
 			"  --ai-python <path>          The Python that runs the AI program, given with --ai-program\n"
 			"  --ai-program <folder>       The AI program every flight not started by --launch runs;\n"
 			"                              with --save-config both are kept in config.yaml\n"
+			"  --version                   Show the version and the AI version this game speaks\n"
 			"  --help                      Show this help\n");
 		return valid ? 0 : 2;
 	}

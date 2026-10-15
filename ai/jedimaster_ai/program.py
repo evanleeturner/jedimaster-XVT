@@ -20,7 +20,8 @@ Invariants:
 Call:
     ``python3 ai/jedimaster_ai [--log-level LEVEL] [--log-file PATH]
     [--run-id ID]``; ``--run-id`` is the game's run id, so the two logs
-    name the same run.
+    name the same run. ``--version`` prints ``ai_wire=<version>`` and exits
+    0 before any logging starts; the launcher compares it with the engine's.
 """
 
 from __future__ import annotations
@@ -58,6 +59,12 @@ def parse_options(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="jedimaster_ai",
         description="Answer the engine's questions about computer craft.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"ai_wire={VERSION}",
+        help="print the AI version this program speaks and exit",
     )
     parser.add_argument("--log-level", choices=logline.LEVELS, default="info")
     parser.add_argument("--log-file", help="also append the log lines to this file")

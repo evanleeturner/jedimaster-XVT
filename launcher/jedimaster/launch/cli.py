@@ -1,9 +1,10 @@
 """Command lines of the launch command, ``python -m jedimaster launch``, and of ai-setup.
 
 Purpose:
-    ``launch --type T [--side S] --mission ID --pilot NAME --engine PATH``
+    ``launch --type T [--side S] --mission ID --pilot NAME [--engine PATH]``
     flies one single-player battle in the engine and prints one line saying
-    how it ended.
+    how it ended. Without ``--engine`` the current build ``jedimaster update``
+    installed is flown.
 
 Flow:
     ``add_parser`` adds the command; ``run`` builds the description, flies it
@@ -12,16 +13,20 @@ Flow:
     ``--engine-arg=/path``), ``--result`` keeps the result file,
     ``--setting NAME=VALUE`` (repeatable) sets one game option of the
     description (see ``options``), and ``--ai-program FOLDER`` has the engine
-    start the AI program in that folder with this Python.
+    start the AI program in that folder with this Python; without it the AI
+    program packaged beside the engine is used. Before the engine starts, the
+    two must speak the same AI version (``ai_wire_check``).
 
 Invariants:
     - ``print`` carries only the one line; diagnostics go to the logging
       module.
+    - A battle never starts without an AI program that speaks the engine's
+      AI version: the refusal sentence goes to the log and the status is 1.
     - Exit status: the engine's own (0 flown, 3 refused, 4 not reached, 5
       failed) when its result says so; 1 when the battle could not be
       started or its result cannot be trusted; 2 for arguments that do not
       make a description, an AI program folder without the program
-      included.
+      included, no ``--engine`` and no current build.
 
 Call:
     ``python -m jedimaster launch --type training --side rebel --mission 1ta02bz.tie --pilot Ace --engine ./OpenXvT``
@@ -31,8 +36,12 @@ from __future__ import annotations
 
 import argparse
 import logging
+from pathlib import Path
 from typing import Any
 
+from .ai_wire_check import check_pair
+from .ai_wire_check import PairRefused
+from .builds import current_engine
 from .model import ai_program_of
 from .model import build_description
 from .model import GAME_TYPES
@@ -58,7 +67,13 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
         "--mission", required=True, help="the mission's file name in its game list"
     )
     launch.add_argument("--pilot", required=True, help="a pilot the game already has")
-    launch.add_argument("--engine", required=True, help="the engine program")
+    launch.add_argument(
+        "--engine",
+        help="the engine program (default: the current build installed by jedimaster update)",
+    )
+    launch.add_argument(
+        "--builds", help="the folder of installed builds (default: the user's own)"
+    )
     launch.add_argument("--result", help="keep the result file here")
     launch.add_argument("--seed", type=int, help="the random seed of a sequence")
     launch.add_argument(
@@ -73,7 +88,7 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
     launch.add_argument(
         "--ai-program",
         metavar="FOLDER",
-        help="the AI program that flies the computer craft, for example ai/jedimaster_ai",
+        help="the AI program that flies the computer craft (default: the one packaged beside the engine)",
     )
     launch.add_argument(
         "--setting",
@@ -116,9 +131,20 @@ def run(args: argparse.Namespace) -> int:
     """
     if args.command == "ai-setup":
         return run_ai_setup(args)
+    engine = args.engine
+    if not engine:
+        found = current_engine(Path(args.builds) if args.builds else None)
+        if found is None:
+            logger.error(
+                'no game program: give --engine, or run "jedimaster update" first'
+            )
+            return 2
+        engine = str(found)
     try:
         settings = dict(parse_setting(item) for item in args.setting)
-        ai_program = ai_program_of(args.ai_program) if args.ai_program else None
+        if args.ai_program:
+            ai_program_of(args.ai_program)
+        ai_program = check_pair(engine, args.ai_program).program
         description = build_description(
             args.game_type,
             args.side,
@@ -131,9 +157,12 @@ def run(args: argparse.Namespace) -> int:
     except ValueError as exc:
         logger.error("%s", exc)
         return 2
+    except PairRefused as exc:
+        logger.error("%s", exc)
+        return 1
     try:
         result, code = fly(
-            args.engine, description, args.engine_arg, args.result, args.timeout
+            engine, description, args.engine_arg, args.result, args.timeout
         )
     except LaunchError as exc:
         logger.error("%s", exc)

@@ -25,18 +25,26 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import shutil
+import sys
+from dataclasses import replace
+from pathlib import Path
 
 import pytest
 from pagedata import check_valid
 from pagedata import request
+from solodata import make_ai_program
 from solodata import make_control
+from solodata import make_engine
 from solodata import make_solo_install
 from solodata import PLAYER
 from solodata import result_of
 from solodata import solo_args
 
+from jedimaster.launch.builds import set_current
 from jedimaster.page.control import Control
 from jedimaster.page.launching import BUSY
+from jedimaster.page.launching import NO_BUILD
 from jedimaster.page.launching import NO_ENGINE
 from jedimaster.page.launching import NO_INSTALL
 from jedimaster.page.launching import NO_MISSION
@@ -267,14 +275,75 @@ async def test_no_options_set_means_all_seven_defaults_in_the_description(tmp_pa
 
 
 async def test_the_flights_ai_program_rides_in_the_description(tmp_path):
-    program = {"python": "/usr/bin/python3", "path": "/srv/ai/jedimaster_ai"}
-    for root, given in ((tmp_path / "with", program), (tmp_path / "without", None)):
+    named = make_ai_program(tmp_path / "named")
+    for root, given in ((tmp_path / "with", str(named)), (tmp_path / "without", None)):
         root.mkdir()
         copy = root / "copy.json"
         control, _ = make_control(root, "done", f"--copy={copy}", ai_program=given)
         ask(control, "launch.solo", solo_args())
         await finish(control)
-        assert json.loads(copy.read_text()).get("ai_program") == given
+        folder = Path(given) if given else root / "ai" / "jedimaster_ai"
+        assert json.loads(copy.read_text())["ai_program"] == {
+            "python": sys.executable,
+            "path": str(folder.resolve()),
+        }
+
+
+def test_a_mismatched_pair_refuses_the_launch_and_never_starts_the_engine(tmp_path):
+    copy = tmp_path / "copy.json"
+    control, _ = make_control(tmp_path, "done", f"--copy={copy}")
+    make_ai_program(tmp_path / "ai" / "jedimaster_ai", wire=100)
+    assert refusal(control) == (
+        "This game build speaks AI version 11 and its AI program speaks AI "
+        'version 100, so computer craft could not fly. Run "jedimaster update" '
+        "for a matching pair."
+    )
+    assert not copy.exists() and not control.battles.busy()
+
+
+def test_an_old_engine_and_a_missing_ai_program_each_get_their_sentence(tmp_path):
+    control, _ = make_control(tmp_path / "old", "done")
+    make_engine(tmp_path / "old", wire=None)
+    assert refusal(control).startswith("This game build is too old to say")
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    control, _ = make_control(bare, "done")
+    shutil.rmtree(bare / "ai")
+    assert refusal(control).startswith("No AI program was found beside this game build")
+
+
+async def test_the_pair_is_looked_up_again_for_every_battle(tmp_path):
+    control, _ = make_control(tmp_path, "done")
+    program = tmp_path / "ai" / "jedimaster_ai"
+    for wire, expected in ((9, "AI version 9"), (100, "AI version 100"), (11, None)):
+        make_ai_program(program, wire=wire)
+        if expected is None:
+            result = result_of(ask(control, "launch.solo", solo_args())[0])
+            assert result["started"] is True
+            await finish(control)
+        else:
+            assert expected in refusal(control)
+
+
+async def test_a_flight_without_an_engine_flies_the_current_build_at_each_battle(
+    tmp_path,
+):
+    builds = tmp_path / "builds"
+    control, flight = make_control(tmp_path, "done")
+    control.launching.flight = replace(flight, engine=None, builds=builds)
+    assert refusal(control) == NO_BUILD
+    first = builds / "aaaaaaaaaaaa"
+    shutil.copy(make_engine(first), first / "OpenXvT")
+    set_current(builds, "aaaaaaaaaaaa")
+    assert result_of(ask(control, "launch.solo", solo_args())[0])["started"] is True
+    await finish(control)
+    second = builds / "bbbbbbbbbbbb"
+    shutil.copy(make_engine(second, wire=12), second / "OpenXvT")
+    set_current(builds, "bbbbbbbbbbbb")
+    assert "AI version 12" in refusal(control)
+    set_current(builds, "aaaaaaaaaaaa")
+    assert result_of(ask(control, "launch.solo", solo_args())[0])["started"] is True
+    await finish(control)
 
 
 async def test_an_easy_cheat_outside_a_campaign_is_sent_as_easy_and_the_answer_says_so(

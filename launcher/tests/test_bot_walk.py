@@ -31,6 +31,7 @@ from botdata import HOST
 from botdata import make_bot
 from botdata import STRANGER
 from pagedata import check_valid
+from solodata import make_ai_program
 
 from jedimaster.bot.core import HOST_ONLY
 from jedimaster.bot.reply import menus
@@ -232,6 +233,19 @@ def test_a_launch_refused_for_another_reason_does_not_ask_for_the_page(bot):
     reply = bot.core.launch_solo(HOST, "training|rebel|alpha.tie|Nobody")
     assert reply.text == "That pilot is not among the game's pilots."
     assert reply.opens_page is False
+
+
+def test_a_game_and_ai_program_that_do_not_match_refuse_the_launch_in_words(bot):
+    battles = bot.control.battles
+    make_ai_program(bot.folder / "ai" / "jedimaster_ai", wire=100)
+    reply = bot.core.launch_solo(HOST, "training|rebel|alpha.tie|Ace")
+    assert reply.text == (
+        "This game build speaks AI version 11 and its AI program speaks AI "
+        'version 100, so computer craft could not fly. Run "jedimaster update" '
+        "for a matching pair."
+    )
+    assert reply.edit is False and reply.pushes == [] and reply.opens_page is False
+    assert not battles.busy()
 
 
 def test_the_launcher_checks_what_the_bot_sent(bot):

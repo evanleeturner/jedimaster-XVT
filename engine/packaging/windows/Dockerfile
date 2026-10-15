@@ -216,6 +216,11 @@ RUN cmake -S /src/aeron -B /build/aeron-host -G Ninja \
     && cmake --build /build/aeron-host --parallel \
     && cmake --install /build/aeron-host
 
+# The AI program, staged by ai/tools/stage_package.py and passed as the named
+# build context "ai" (docker build --build-context ai=DIR). The empty stage
+# lets a build without that context still run; the package then has no AI program.
+FROM scratch AS ai
+
 FROM build-base AS xvt-build
 
 ARG XVT_BUILD_TYPE=Release
@@ -263,7 +268,14 @@ RUN case "${XVT_BUILD_TYPE}" in \
         -DXVT_VERSION="${XVT_VERSION}" \
     && cmake --build /build/xvt --target xvt --parallel
 
-RUN cmake --install /build/xvt --component Runtime --prefix /build/package/openxvt-windows-x86_64 \
+# The AI program joins after the compile, so a change to it alone leaves the
+# engine's cached build intact: configure again (no compile) with its folder.
+COPY --from=ai / /ai-program
+
+RUN if [ -f /ai-program/jedimaster_ai/__main__.py ]; then \
+        cmake -S /src -B /build/xvt -DXVT_AI_PROGRAM_DIR=/ai-program; \
+    fi \
+    && cmake --install /build/xvt --component Runtime --prefix /build/package/openxvt-windows-x86_64 \
     && mkdir -p /build/package/openxvt-windows-x86_64/licenses \
     && cp /opt/xvt-licenses/SDL3.txt \
         /build/package/openxvt-windows-x86_64/licenses/SDL3.txt \

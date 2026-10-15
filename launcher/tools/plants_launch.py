@@ -328,8 +328,8 @@ LAUNCH_PLANTS: list[Plant] = [
     Plant(
         "launch-cli-bad-arguments",
         C,
-        "        return 2\n    try:\n        result, code",
-        "        return 1\n    try:\n        result, code",
+        "        return 2\n    except PairRefused as exc:",
+        "        return 1\n    except PairRefused as exc:",
         (T_CMD + "test_bad_arguments_exit_two",),
     ),
     Plant(

@@ -41,6 +41,7 @@ shadercross_executable="${XVT_MACOS_SHADERCROSS_EXECUTABLE:-${build_root}/shader
 stage_root="${work_root}/stage-${build_variant}"
 application="${stage_root}/OpenXvT.app"
 dmg="${artifact_dir}/openxvt-${application_version}-macos-${architecture}-${build_variant}.dmg"
+ai_stage="${work_root}/ai-package"
 dmg_volume_name="OpenXvT"
 dmg_extras="${script_dir}/dmg"
 dsym_bundle=""
@@ -196,7 +197,15 @@ build_shadercross() {
     cmake --install "${build_root}/shadercross"
 }
 
+# The AI program that flies the computer craft ships inside the application,
+# so a game build and its AI program always come from the same commit.
+stage_ai_program() {
+    python3 "${repo_root}/../ai/tools/stage_package.py" "${ai_stage}"
+    test -f "${ai_stage}/jedimaster_ai/__main__.py"
+}
+
 build_application() {
+    stage_ai_program
     export PKG_CONFIG_PATH=""
     export PKG_CONFIG_LIBDIR="${dependency_prefix}/lib/pkgconfig"
 
@@ -215,7 +224,8 @@ build_application() {
         "-DXVT_ENABLE_DEBUG_UI=${debug_ui}" \
         "-DXVT_MACOS_BUILD_VERSION=${build_version}" \
         "-DXVT_MACOS_BUNDLE_IDENTIFIER=${bundle_identifier}" \
-        "-DXVT_VERSION=${application_version}"
+        "-DXVT_VERSION=${application_version}" \
+        "-DXVT_AI_PROGRAM_DIR=${ai_stage}"
     cmake --build "${build_root}/xvt-${build_variant}" --target xvt \
         --parallel "${jobs}"
 
@@ -310,6 +320,7 @@ main() {
     test -f "${application}/Contents/Resources/resources/aeron/scene3d_defaults.yaml"
     test -f "${application}/Contents/Resources/resources/config.yaml"
     test -x "${application}/Contents/MacOS/OpenXvT"
+    test -f "${application}/Contents/Resources/ai/jedimaster_ai/__main__.py"
     test -f "${application}/Contents/Resources/shaders/aeron_dx5_projected_triangle.vert.msl"
     test -f "${application}/Contents/Resources/shaders/hyperspace_streak.vert.msl"
     test -f "${application}/Contents/Resources/shaders/hyperspace_streak.frag.msl"

@@ -11,8 +11,10 @@ Flow:
     (``Flight``, or None). ``solo`` refuses, in plain words and in this
     order: no game program, a battle already flying, no page open, no install,
     a side that does not fit, a mission not on the solo list, a pilot the game
-    does not have; otherwise it builds the description with the player's
-    stored game options and starts the battle in the background. Each
+    does not have, a game build and AI program that do not speak the same AI
+    version (``launch.ai_wire_check``); otherwise it builds the description
+    with the player's stored game options and starts the battle in the
+    background. Each
     command returns its result and the pushes for the open pages.
 
 Invariants:
@@ -23,6 +25,10 @@ Invariants:
     - An easy cheat on a battle that is not a campaign is sent as easy, and
       the answer says so.
     - No path, program name or option of the engine comes from a request.
+    - The game program and the AI program are looked up again for each battle
+      (the flight keeps what the player gave), so a build installed between
+      battles is flown at the next one, and a battle never starts without an
+      AI program that speaks the engine's AI version.
 
 Call:
     ``result, pushes = Launching(install, store, flight, battles, pages).solo(args)``
@@ -32,9 +38,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+from ..launch.ai_wire_check import check_pair
+from ..launch.ai_wire_check import PairRefused
+from ..launch.builds import current_engine
 from ..launch.model import build_description
 from ..launch.options import current_text
 from ..launch.options import for_description
@@ -62,6 +72,9 @@ NO_PILOT = "That pilot is not among the game's pilots."
 NO_PILOT_FOLDER = "The launcher cannot read the game's pilot folder."
 CANNOT_START = "The launcher could not start the battle just now."
 NOT_FLYING = "No battle with that number is flying."
+NO_BUILD = (
+    'No game program was found: the current build is missing. Run "jedimaster update".'
+)
 
 
 def options_json(stored: dict[str, Any]) -> Json:
@@ -142,6 +155,13 @@ class Launching:
         pilot = next((n for n in names if n.lower() == args["pilot"].lower()), None)
         if pilot is None:
             return self._refused(NO_PILOT)
+        engine = self.flight.engine or current_engine(self.flight.builds)
+        if engine is None:
+            return self._refused(NO_BUILD)
+        try:
+            pair = check_pair(engine, self.flight.ai_program)
+        except PairRefused as exc:
+            return self._refused(str(exc))
         settings, note = for_description(self.store.get_options(args["player"]), kind)
         description = build_description(
             kind,
@@ -149,7 +169,7 @@ class Launching:
             entry["file"],
             pilot,
             settings=settings,
-            ai_program=self.flight.ai_program,
+            ai_program=pair.program,
         )
         data = {
             "mission_type": kind,
@@ -159,7 +179,8 @@ class Launching:
             "pilot": pilot,
         }
         try:
-            launch_id = self.battles.start(self.flight, description, data)
+            flight = replace(self.flight, engine=str(engine))
+            launch_id = self.battles.start(flight, description, data)
         except RuntimeError as exc:
             logger.error("cannot start the battle: %s", exc)
             return self._refused(CANNOT_START)

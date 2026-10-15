@@ -866,8 +866,8 @@ WIRING_PLANTS: list[Plant] = [
     plant(
         "cli-engine-unchecked",
         PCL,
-        "    if not Path(args.engine).is_file():",
-        "    if False:",
+        "    elif not Path(args.engine).is_file():",
+        "    elif False:",
         TCL + "test_an_engine_that_is_not_a_file_exits_2",
     ),
     plant(

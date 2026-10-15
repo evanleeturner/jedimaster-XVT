@@ -12,9 +12,14 @@ Flow:
     program a solo battle is flown in (``--engine-arg`` hands it extra
     arguments); ``--pilot-folder`` names the folder of the game's pilot files,
     which defaults to the game's own user folder (``launch.pilots``);
-    ``--ai-program`` names the AI program's folder, which every solo battle's
-    description then carries (``launch.model.ai_program_of``). The web framework is imported only
-    inside ``run``, so the package's other commands work without it.
+    ``--ai-program`` names the AI program's folder. Without ``--engine`` the
+    current build ``jedimaster update`` installed is flown, and without
+    ``--ai-program`` the AI program packaged beside the game program; both are
+    looked up again when each battle starts (``page.launching``), and once
+    here: a pair that does not speak the same AI version is a WARNING with the
+    sentence the player would get, and the launcher keeps running. The web
+    framework is imported only inside ``run``, so the package's other commands
+    work without it.
 
 Invariants:
     - The server binds to 127.0.0.1 only; the default port is 8780 and
@@ -23,7 +28,8 @@ Invariants:
       appears only in the URL printed on standard output.
     - Exit status: 0 after Ctrl-C, 2 for a usage problem (no web framework,
       a missing page folder, a port that cannot be bound).
-    - Without ``--engine`` no battle can start, and the bot says so.
+    - Without ``--engine`` and without a current installed build no battle can
+      start, and the bot says so.
     - With ``--engine`` the pilot folder must be known: the default exists
       for Linux, macOS and Windows only; on any other system ``--pilot-folder``
       is required.
@@ -46,6 +52,9 @@ from pathlib import Path
 
 from .. import __version__
 from ..install import find_install
+from ..launch.ai_wire_check import check_pair
+from ..launch.ai_wire_check import PairRefused
+from ..launch.builds import current_engine
 from ..launch.model import ai_program_of
 from ..launch.pilots import default_pilot_folder
 from .battles import Flight
@@ -88,7 +97,11 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
     page.add_argument(
         "--ai-program",
         metavar="FOLDER",
-        help="the AI program that flies the computer craft, for example ai/jedimaster_ai",
+        help="the AI program that flies the computer craft (default: the one packaged with the game program)",
+    )
+    page.add_argument(
+        "--builds",
+        help="the folder of installed builds (default: the user's own)",
     )
     page.add_argument(
         "--bot",
@@ -103,23 +116,31 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
 
 
 def flight_from(args: argparse.Namespace) -> Flight | None | int:
-    """Return the ``Flight`` the options describe, None without ``--engine``, or the exit status 2.
+    """Return the ``Flight`` the options describe, None without an engine, or the exit status 2.
 
-    Logs why when the options do not fit: ``--engine-arg``,
-    ``--pilot-folder`` or ``--ai-program`` without ``--engine``, an engine
-    that is not a file, an AI program folder without the program, or a system
-    with no default pilot folder and no ``--pilot-folder``.
+    Without ``--engine`` the flight has no engine of its own when a current
+    installed build exists (each battle looks it up), else it is None. Logs
+    why when the options do not fit: ``--engine-arg``, ``--pilot-folder`` or
+    ``--ai-program`` with no engine to go with, an engine that is not a file,
+    an AI program folder without the program, or a system with no default
+    pilot folder and no ``--pilot-folder``.
     """
+    builds = Path(args.builds) if args.builds else None
     if not args.engine:
-        if args.engine_arg or args.pilot_folder or args.ai_program:
-            logger.error("--engine-arg, --pilot-folder and --ai-program need --engine")
-            return 2
-        return None
-    if not Path(args.engine).is_file():
+        if current_engine(builds) is None:
+            if args.engine_arg or args.pilot_folder or args.ai_program:
+                logger.error(
+                    "--engine-arg, --pilot-folder and --ai-program need --engine"
+                    ' or an installed build ("jedimaster update")'
+                )
+                return 2
+            return None
+    elif not Path(args.engine).is_file():
         logger.error("engine not found: %s", args.engine)
         return 2
     try:
-        ai_program = ai_program_of(args.ai_program) if args.ai_program else None
+        if args.ai_program:
+            ai_program_of(args.ai_program)
     except ValueError as exc:
         logger.error("%s", exc)
         return 2
@@ -129,7 +150,28 @@ def flight_from(args: argparse.Namespace) -> Flight | None | int:
             "no default pilot folder is known for %s: give --pilot-folder", sys.platform
         )
         return 2
-    return Flight(args.engine, tuple(args.engine_arg), folder, ai_program=ai_program)
+    return Flight(
+        args.engine or None,
+        tuple(args.engine_arg),
+        folder,
+        ai_program=args.ai_program or None,
+        builds=builds,
+    )
+
+
+def warn_if_unmatched(flight: Flight) -> None:
+    """Log the sentence a battle would be refused with now, as a WARNING; return None.
+
+    Says nothing when the game program and its AI program match. The launcher
+    keeps running either way, so ``/status`` and ``/link`` still work.
+    """
+    engine = flight.engine or current_engine(flight.builds)
+    if engine is None:
+        return
+    try:
+        check_pair(engine, flight.ai_program)
+    except PairRefused as exc:
+        logger.warning("%s", exc)
 
 
 def run(args: argparse.Namespace) -> int:
@@ -156,6 +198,8 @@ def run(args: argparse.Namespace) -> int:
     flight = flight_from(args)
     if isinstance(flight, int):
         return flight
+    if flight is not None:
+        warn_if_unmatched(flight)
     page_dir = Path(args.page_dir) if args.page_dir else DEFAULT_PAGE_DIR
     if not page_dir.is_dir():
         logger.error("page folder not found: %s (build it: npm run build)", page_dir)

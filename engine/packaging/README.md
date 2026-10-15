@@ -15,6 +15,13 @@
 - Release: ImGui overlay disabled.
 - Package builds disable ASAN and UBSan.
 - Original game data is not included.
+- The AI program that flies the computer craft is included (`ai/jedimaster_ai`,
+  with its license in `licenses/`), so a package's game and its AI program always
+  come from the same commit. `ai/tools/stage_package.py FOLDER` writes the folder
+  to hand to the build: `XVT_AI_PROGRAM_DIR` in CMake, the named build context `ai`
+  for Docker (`--build-context ai=FOLDER`). Without it a package has no AI program.
+  `OpenXvT --version` prints the version and `ai_wire=<number>`, the AI version
+  the game speaks.
 
 ## macOS
 
@@ -70,7 +77,9 @@ docker buildx build --platform linux/amd64 -f packaging/windows/Dockerfile \
   --target artifact --output type=local,dest=build/artifacts .
 ```
 
-Use `--build-arg XVT_BUILD_TYPE=Debug` to build Debug packages.
+Use `--build-arg XVT_BUILD_TYPE=Debug` to build Debug packages. To carry the AI
+program, run `python3 ai/tools/stage_package.py build/ai-package` from the
+repository root first and add `--build-context ai=build/ai-package`.
 
 | Build argument | Default |
 |---|---|
