@@ -11,16 +11,29 @@ Purpose:
       roll, pitch and turn halted at once. Here a turn already begun runs on
       to the angle it was given, as the player's wait command's stop does;
       the turrets defend, as every craft's do.
-    - SS Protect, SS Protect 2 and SS Patrol and Disable are not written yet:
-      each is drift's, so the craft keeps its speed and heading, as before the
-      orders had a file of their own.
+    - SS Protect and SS Protect 2, one 1997 plan (starshipprotectpln), fly
+      the patrol cruise round the group's waypoints (``patrol``) while the
+      turrets guard (``turrets.guard``): the craft's own threats first, then
+      the attackers of the craft its order protects. The order is done once
+      no target is left (``progress.GOALS``).
+    - SS Patrol and Disable is not written yet: drift's, so the craft keeps
+      its speed and heading, as before the order had a file of its own.
 """
 
 from __future__ import annotations
 
+from ..world import CraftView
+from ..world import Question
+from . import Decision
 from . import drift
 from . import hold
+from . import patrol
+from . import turrets
 
-protect = drift.think
 await_return = hold.think
 patrol_and_disable = drift.think
+
+
+def protect(view: CraftView, question: Question) -> Decision:
+    """Return SS Protect's step: the patrol cruise, the turrets on guard."""
+    return turrets.guard(view, question, patrol.think(view, question))

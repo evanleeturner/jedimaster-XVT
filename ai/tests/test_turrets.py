@@ -8,6 +8,7 @@ from jedimaster_ai.behaviors import Decision
 from jedimaster_ai.behaviors import turrets
 from jedimaster_ai.think import think
 from jedimaster_ai.world import Actions
+from jedimaster_ai.world import ContactFlags
 from jedimaster_ai.world import NO_OBJECT
 from jedimaster_ai.world import Question
 from jedimaster_ai.world import Turret
@@ -103,3 +104,137 @@ def test_a_drifting_craft_still_defends_itself(starship, other) -> None:
     said = answer.craft[0]
     assert said.notebook == me.notebook
     assert said.actions == Actions(turrets=(Turret(1, 9), Turret(2, 9), Turret(4, 9)))
+
+
+FRIEND = 6
+
+
+def guard(me, *contacts):
+    return turrets.guard(me, Question(1000, (me,), contacts), Decision(me.notebook))
+
+
+@pytest.fixture
+def friend(contact):
+    """Return a maker of the friend the starship's order protects: contact
+    position 0, on the starship's team, hit by some team."""
+
+    def make(**changes):
+        mine = {"object_index": FRIEND, "team": 1, "x": 0, "y": 0x800, "z": 0}
+        return contact(**(mine | {"flags": ContactFlags.ATTACKED} | changes))
+
+    return make
+
+
+@pytest.fixture
+def guarding(starship):
+    """Return a maker of a starship whose order protects contact 0, its
+    friend, and whose enemies are contacts 1 up."""
+
+    def make(**changes):
+        mine = {"order_target_mask": 0b1, "enemy_mask": ~0b1 & 0xFFFFFFFF}
+        return starship(**(mine | changes))
+
+    return make
+
+
+def test_on_guard_the_turrets_take_a_protected_crafts_attacker(
+    guarding, friend, other
+) -> None:
+    me = guarding()
+    contacts = (friend(), other(9, target=FRIEND))
+    assert aims(guard(me, *contacts)) == [(1, 9), (2, 9), (4, 9)]
+    assert aims(defend(me, *contacts)) == [
+        (1, NO_OBJECT),
+        (2, NO_OBJECT),
+        (4, NO_OBJECT),
+    ]
+
+
+def test_on_guard_the_craft_whose_shot_hit_the_protected_one_is_taken(
+    guarding, friend, other
+) -> None:
+    decision = guard(guarding(), friend(hit_by=7), other(7))
+    assert aims(decision) == [(1, 7), (2, 7), (4, 7)]
+
+
+def test_a_protected_craft_no_team_has_hit_is_not_guarded(
+    guarding, friend, other
+) -> None:
+    decision = guard(
+        guarding(), friend(flags=0, hit_by=7), other(7), other(9, target=FRIEND)
+    )
+    assert aims(decision) == [(1, NO_OBJECT), (2, NO_OBJECT), (4, NO_OBJECT)]
+
+
+def test_a_craft_the_order_does_not_name_is_not_guarded(
+    guarding, friend, other
+) -> None:
+    decision = guard(guarding(order_target_mask=0), friend(), other(9, target=FRIEND))
+    assert aims(decision) == [(1, NO_OBJECT), (2, NO_OBJECT), (4, NO_OBJECT)]
+
+
+def test_a_protected_craft_a_player_said_to_leave_alone_is_not_guarded(
+    guarding, friend, other
+) -> None:
+    decision = guard(guarding(avoid_target=FRIEND), friend(), other(9, target=FRIEND))
+    assert aims(decision) == [(1, NO_OBJECT), (2, NO_OBJECT), (4, NO_OBJECT)]
+
+
+def test_an_attacker_the_craft_may_not_fight_is_left(guarding, friend, other) -> None:
+    # Craft 9, at position 1, is no enemy of the starship's.
+    decision = guard(guarding(enemy_mask=0), friend(), other(9, target=FRIEND))
+    assert aims(decision) == [(1, NO_OBJECT), (2, NO_OBJECT), (4, NO_OBJECT)]
+
+
+def test_an_attacker_beyond_turret_range_is_left(guarding, friend, other) -> None:
+    far = other(9, y=turrets.TURRET_RANGE + 1, target=FRIEND)
+    assert aims(guard(guarding(), friend(), far)) == [
+        (1, NO_OBJECT),
+        (2, NO_OBJECT),
+        (4, NO_OBJECT),
+    ]
+
+
+def test_on_guard_the_craft_own_threats_come_first(guarding, friend, other) -> None:
+    # Craft 3 attacks the friend from nearer; craft 9 attacks the starship
+    # from farther, and still comes first.
+    decision = guard(
+        guarding(),
+        friend(),
+        other(9, target=ME),
+        other(3, target=FRIEND),
+        other(2, target=FRIEND),
+    )
+    assert aims(decision) == [(1, 9), (2, 2), (4, 3)]
+
+
+def test_on_guard_a_threat_that_also_attacks_the_friend_is_aimed_once(
+    guarding, friend, other
+) -> None:
+    # Craft 7 last hit the starship and attacks the friend: it has one place
+    # in the list, after the nearer threat 9, and the fourth turret wraps to 9.
+    decision = guard(
+        guarding(turret_slot_mask=0b1111),
+        friend(),
+        other(9, target=ME),
+        other(8, target=FRIEND),
+        other(7, y=0x9800, target=FRIEND, last_attacker=FRIEND),
+        friend(object_index=ME, x=0, y=0, flags=0, last_attacker=7),
+    )
+    assert aims(decision) == [(0, 9), (1, 7), (2, 8), (3, 9)]
+
+
+def test_on_guard_a_craft_without_turrets_is_left_alone(
+    guarding, friend, other
+) -> None:
+    me = guarding(turret_slot_mask=0)
+    assert guard(me, friend(), other(9, target=FRIEND)) == Decision(me.notebook)
+
+
+def test_on_guard_a_behaviors_own_turret_choice_is_kept(
+    guarding, friend, other
+) -> None:
+    me = guarding()
+    chosen = Decision(me.notebook, Actions(turrets=(Turret(1, NO_OBJECT),)))
+    question = Question(1000, (me,), (friend(), other(9, target=FRIEND)))
+    assert turrets.guard(me, question, chosen) is chosen
