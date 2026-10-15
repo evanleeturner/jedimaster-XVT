@@ -2,13 +2,16 @@
 
 Each rule once: the leader a craft follows (only one the engine names, the
 question shows and no player flies, with its place given, flying the same
-way); the 1997 far case, and a starship's farther one; at its place it
+way); the far case, measured from its place, and a starship's farther
+reach; a place far behind its leader held, one far behind the craft never
+turned back to; at its place it
 flies the leader's heading at the leader's speed; a place ahead speeds it
 up, one behind slows it to half the leader's speed and is never turned back
 to; a place aside turns it that way; a bulky follower's think interval; the
 leader with followers eased to seven eighths (ruling 48); the jump roll
 (ruling 35). Then the two behaviors that call it: patrol, and going home by
-a jump, to a hangar and with no way out. The log lines. Then a real case: a
+a jump (the follower departing after a leader that has begun its jump), to
+a hangar and with no way out. The log lines. Then a real case: a
 follower 20,000 units behind its place flown through think() until it holds
 it.
 """
@@ -145,36 +148,67 @@ def test_a_leader_flies_its_order_until_it_is_on_its_way_out(
     assert formation.on_order(leader(activity=activity)) is flies
 
 
-def test_beyond_the_far_reach_it_flies_straight_at_its_leader(
+def test_a_place_beyond_the_far_reach_not_behind_it_is_flown_at_full_throttle(
     follower, own, leader
 ) -> None:
-    far = leader(x=formation.FAR + 1000)
-    actions = flown(follower(), [own(), far])
-    assert (actions.steer.yaw, actions.steer.pitch) == geometry.bearing(
-        formation.FAR + 1005, 0, 0
+    ahead = flown(
+        follower(place=(-5 + formation.FAR + 1000, 6 - 500, 7)), [own(), leader()]
     )
-    assert actions.throttle == formation.FULL_THROTTLE
+    assert (ahead.steer.yaw, ahead.steer.pitch) == geometry.bearing(
+        formation.FAR + 1000, -500, 0
+    )
+    assert ahead.throttle == formation.FULL_THROTTLE
+    aside = flown(follower(place=(-5, 6 - formation.FAR - 1000, 7)), [own(), leader()])
+    assert aside.steer.yaw == geometry.bearing(0, -formation.FAR - 1000, 0)[0]
+    assert aside.throttle == formation.FULL_THROTTLE
+
+
+def test_a_place_far_behind_its_leader_is_held_not_chased(
+    follower, own, leader
+) -> None:
+    # A back row the mission sets farther than FAR behind the leader: at its
+    # place the craft flies the leader's heading at the leader's speed.
+    craft = follower()
+    actions = flown(craft, [own(), leader(x=2 * formation.FAR)])
+    assert actions.steer.yaw == EAST
+    assert actions.throttle == tactics.throttle_for(craft, LEADER_SPEED)
+
+
+def test_a_place_beyond_the_far_reach_behind_it_slows_it_never_turning_back(
+    follower, own, leader
+) -> None:
+    craft = follower(place=(-5 - formation.FAR - 1000, 6, 7))
+    actions = flown(craft, [own(), leader()])
+    assert actions.steer.yaw == EAST
+    slowest = LEADER_SPEED * formation.SLOWEST // 4
+    assert actions.throttle == tactics.throttle_for(craft, slowest)
 
 
 def test_a_starship_flies_in_formation_out_to_its_own_far_reach(
     follower, own, leader
 ) -> None:
-    # Its place lies 3,000 to its right, level with it along the heading:
-    # in formation it turns that way at the leader's speed; a fighter as
-    # far out flies straight at the leader at full throttle.
-    craft = follower(place=(-5, 6 - 3000, 7))
-    near = leader(x=formation.FAR + 1000, genus=tactics.GENUS_STARSHIP)
+    # Its place lies FAR + 1,000 ahead and 3,000 to its right: a starship
+    # flies to it in formation, aiming LOOK_BULKY past it; a fighter as far
+    # from its place flies straight at it, as a starship does past its own
+    # far reach.
+    craft = follower(place=(-5 + formation.FAR + 1000, 6 - 3000, 7))
     starship = own(genus=tactics.GENUS_STARSHIP, size=20_000)
-    actions = flown(craft, [starship, near])
-    assert actions.throttle == tactics.throttle_for(craft, LEADER_SPEED)
-    assert actions.steer.yaw == geometry.bearing(formation.LOOK_BULKY, -3000, 0)[0]
+    actions = flown(craft, [starship, leader()])
+    assert (
+        actions.steer.yaw
+        == geometry.bearing(formation.FAR + 1000 + formation.LOOK_BULKY, -3000, 0)[0]
+    )
     assert actions.think_interval == formation.INTERVAL_BULKY
-    assert flown(
-        craft, [starship, leader(x=formation.FAR_STARSHIP + 1000)]
-    ).throttle == (formation.FULL_THROTTLE)
-    fighter = flown(craft, [own(), near])
+    farther = follower(place=(-5 + formation.FAR_STARSHIP + 1000, 6 - 3000, 7))
+    beyond = flown(farther, [starship, leader()])
+    assert (
+        beyond.steer.yaw == geometry.bearing(formation.FAR_STARSHIP + 1000, -3000, 0)[0]
+    )
+    assert beyond.throttle == formation.FULL_THROTTLE
+    fighter = flown(craft, [own(), leader()])
     assert fighter.think_interval == formation.INTERVAL
-    assert fighter.steer.yaw == geometry.bearing(formation.FAR + 1005, 0, 0)[0]
+    assert fighter.steer.yaw == geometry.bearing(formation.FAR + 1000, -3000, 0)[0]
+    assert fighter.throttle == formation.FULL_THROTTLE
 
 
 def test_at_its_place_it_flies_the_leaders_heading_at_the_leaders_speed(
@@ -357,6 +391,40 @@ def test_a_jumping_follower_flies_formation_and_departs_on_its_roll(
     assert home_actions(near, [own(), leader()], no).depart
 
 
+def test_after_its_leader_has_begun_its_jump_a_follower_departs_where_it_is(
+    follower, own, leader, caplog
+) -> None:
+    # Its home point lies 200,000 away: it departs on its roll all the same,
+    # flies formation between rolls, and departs surely from LAST_CALL.
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    craft = home_view(follower, place=(-5, 6 - 3000, 7))
+    gone = leader(
+        activity=Activity.LEAVING_BY_HYPERSPACE,
+        object_kind=home.OBJECT_KIND_ENTERING_HYPERSPACE,
+        speed=home.LAST_CALL - 1,
+    )
+    ticks = range(1000, 1200)
+    yes = next(tick for tick in ticks if formation.jumps_now(craft, tick))
+    no = next(tick for tick in ticks if not formation.jumps_now(craft, tick))
+    assert home_actions(craft, [own(), gone], yes).depart
+    waits = home_actions(craft, [own(), gone], no)
+    assert not waits.depart
+    assert waits == dataclasses.replace(
+        flown(craft, [own(), dataclasses.replace(gone, activity=0)], no),
+        activity=Activity.LEAVING_BY_HYPERSPACE,
+        target=NO_OBJECT,
+    )
+    last = dataclasses.replace(gone, speed=home.LAST_CALL)
+    assert home_actions(craft, [own(), last], no).depart
+    still = leader(activity=Activity.LEAVING_BY_HYPERSPACE, speed=home.LAST_CALL)
+    assert not home_actions(craft, [own(), still], yes).depart
+    lines = [r.getMessage() for r in caplog.records if "after_leader" in r.getMessage()]
+    assert lines == [
+        f"home.after_leader object=4 leader=9 speed={home.LAST_CALL - 1} sure=0",
+        f"home.after_leader object=4 leader=9 speed={home.LAST_CALL} sure=1",
+    ]
+
+
 def test_a_jumping_leader_with_a_follower_is_eased_and_departs_at_once(
     follower, own, contact
 ) -> None:
@@ -415,11 +483,11 @@ def test_debug_records_where_the_place_lies_and_the_far_case(
 ) -> None:
     caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
     flown(follower(place=(-5 + 3200, 6 - 400, 7)), [own(), leader()])
-    flown(follower(), [own(), leader(x=formation.FAR + 1000)])
+    flown(follower(place=(-5 + formation.FAR + 1000, 6, 7)), [own(), leader()])
     lines = [r.getMessage() for r in caplog.records if r.name.endswith("formation")]
     assert lines == [
         "formation.fly object=4 leader=9 ahead=3200 aside=400 speed=200 throttle=43690",
-        f"formation.far object=4 leader=9 distance={formation.FAR + 1005}",
+        f"formation.far object=4 leader=9 distance={formation.FAR + 1000}",
     ]
 
 

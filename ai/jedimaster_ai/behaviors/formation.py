@@ -9,9 +9,13 @@ Purpose:
     (``leader_for``); a fight, a weave, the turn into a hangar and the jump
     stay theirs. The rule, each think:
 
-    - farther than FAR from its leader (FAR_STARSHIP for a starship), the
-      1997 far case: straight at the leader at full throttle
-    - nearer, it steers at a point LOOK ahead of its place along the
+    - its place farther than FAR from it (FAR_STARSHIP for a starship) and
+      not behind it along the leader's heading: straight at the place at
+      full throttle. 1997 measured the far case from the leader and flew at
+      it; a mission's formation can set a place farther than FAR behind the
+      leader, and a follower there chased the leader past its place for a
+      whole flight of the raw10 mission
+    - otherwise it steers at a point LOOK ahead of its place along the
       leader's heading, so it closes on the place's line as it flies; a
       place behind it is never turned back to: it keeps aiming ahead and
       slows. Its speed is the leader's plus one for each CLOSE units its
@@ -33,8 +37,8 @@ Invariants:
     - A craft follows only a leader the engine names, that the question
       shows and that no player flies (a player's wingmen are AI5f-2b's),
       and only with its place given (``Books.PLACE``).
-    - It never steers more than a quarter turn off its leader's heading
-      while within FAR: the point it aims at is always ahead along it.
+    - It never steers more than a quarter turn off its leader's heading:
+      the point it aims at is never behind it along that heading.
 """
 
 from __future__ import annotations
@@ -57,9 +61,10 @@ from ..world import Steer
 logger = logging.getLogger(__name__)
 
 FULL_THROTTLE = 0xFFFF
-# The 1997 far case (paiman_followleadermaneuver): farther than this from
-# its leader a follower flies straight at it, a starship farther than
-# FAR_STARSHIP.
+# The far case: a follower whose place lies farther than this from it, not
+# behind it, flies straight at the place, a starship farther than
+# FAR_STARSHIP (1997's reaches, paiman_followleadermaneuver, measured there
+# from the leader).
 FAR = 0x10000
 FAR_STARSHIP = 327_680
 # How far ahead of its place along the leader's heading a follower aims: a
@@ -118,16 +123,20 @@ def on_order(leader: Contact) -> bool:
 
 def fly(view: CraftView, question: Question, leader: Contact) -> Actions:
     """Return a follower's steering, throttle and think interval to its
-    place beside its leader, or straight at a leader beyond FAR."""
+    place beside its leader, or straight at a place beyond FAR not behind
+    it."""
     own = tactics.own_contact(view, question)
     bulky = own is not None and tactics.is_bulky(own)
     far = (
         FAR_STARSHIP if own is not None and own.genus == tactics.GENUS_STARSHIP else FAR
     )
     interval = INTERVAL_BULKY if bulky else INTERVAL
-    reach = geometry.distance(*tactics.offset(view, leader))
-    if reach > far:
-        yaw, pitch = geometry.bearing(*tactics.offset(view, leader))
+    forward = _forward(leader.yaw, leader.pitch)
+    to_place = (view.place[0] - view.x, view.place[1] - view.y, view.place[2] - view.z)
+    ahead = _dot(to_place, forward)
+    reach = geometry.distance(*to_place)
+    if reach > far and ahead >= 0:
+        yaw, pitch = geometry.bearing(*to_place)
         logger.debug(
             "formation.far object=%d leader=%d distance=%d",
             view.object_index,
@@ -139,9 +148,6 @@ def fly(view: CraftView, question: Question, leader: Contact) -> Actions:
             throttle=FULL_THROTTLE,
             think_interval=interval,
         )
-    forward = _forward(leader.yaw, leader.pitch)
-    to_place = (view.place[0] - view.x, view.place[1] - view.y, view.place[2] - view.z)
-    ahead = _dot(to_place, forward)
     look = LOOK_BULKY if bulky else LOOK
     aim_ahead = max(ahead + look, look // LOOK_LEAST)
     aim = tuple(

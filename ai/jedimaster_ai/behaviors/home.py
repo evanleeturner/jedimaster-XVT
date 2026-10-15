@@ -92,6 +92,11 @@ SLOW_MOTHERSHIP = 25
 # Ticks between thinks while entering the hangar.
 ENTER_INTERVAL = 29
 OBJECT_KIND_ENTERING_HYPERSPACE = 5
+# A follower whose leader has begun its jump departs at once when the
+# leader's speed reaches LAST_CALL, half the 3,600 at which the engine takes
+# a departing craft out: a leader took about 2,000 ticks from its jump to
+# here, a bulky follower's 34 rolls of 1 in JUMP_ODDS.
+LAST_CALL = 1800
 # The starship orders, SS Patrol Loop (21) to SS Patrol and Disable (27), and
 # SS Go Home (29): their 1997 plans went home by the starship's rule.
 STARSHIP_ORDERS = frozenset((21, 22, 23, 24, 25, 26, 27, 29))
@@ -217,19 +222,29 @@ def _jump(view: CraftView, question: Question) -> Actions:
     followers, and depart within JUMP_RANGE of it; with no home point,
     depart where it is. A follower whose leader jumps too flies in
     formation and, within JUMP_RANGE, departs when its roll says
-    (``formation.jumps_now``)."""
+    (``formation.jumps_now``). Once the leader has begun its jump, the
+    follower departs on its roll wherever it is, and surely once the
+    leader's speed reaches LAST_CALL: the flight leaves one by one behind
+    its leader (ruling 35), none left to a place behind a leader gone."""
     point = view.home_point if view.books & Books.HOME_POINT else _here(view)
     dx, dy, dz = _offset(view, point)
     leader = formation.leader_for(view, question, _jumping)
+    if leader is not None and leader.object_kind == OBJECT_KIND_ENTERING_HYPERSPACE:
+        sure = leader.speed >= LAST_CALL
+        if sure or formation.jumps_now(view, question.tick):
+            logger.debug(
+                "home.after_leader object=%d leader=%d speed=%d sure=%d",
+                view.object_index,
+                leader.object_index,
+                leader.speed,
+                sure,
+            )
+            return _depart()
+        return _in_formation(view, question, leader, Activity.LEAVING_BY_HYPERSPACE)
     if geometry.distance(dx, dy, dz) < JUMP_RANGE and (
         leader is None or formation.jumps_now(view, question.tick)
     ):
-        return Actions(
-            throttle=FULL_THROTTLE,
-            activity=Activity.LEAVING_BY_HYPERSPACE,
-            target=NO_OBJECT,
-            depart=True,
-        )
+        return _depart()
     if leader is not None:
         return _in_formation(view, question, leader, Activity.LEAVING_BY_HYPERSPACE)
     return Actions(
@@ -295,6 +310,17 @@ def _hangar(view: CraftView, question: Question) -> tuple[str, Actions]:
         else tactics.throttle_for(view, slow),
         activity=Activity.GOING_HOME,
         target=target,
+    )
+
+
+def _depart() -> Actions:
+    """Return the jump out: full throttle, leaving by hyperspace, no
+    target."""
+    return Actions(
+        throttle=FULL_THROTTLE,
+        activity=Activity.LEAVING_BY_HYPERSPACE,
+        target=NO_OBJECT,
+        depart=True,
     )
 
 

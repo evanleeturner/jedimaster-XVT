@@ -56,12 +56,17 @@
     "formation.far": {
       "level": "D",
       "fields": ["object", "leader", "distance"],
-      "text": "Craft {object} is {distance} units from its leader {leader}, past the far reach: it flies straight at it at full throttle"
+      "text": "Craft {object} is {distance} units from its place beside leader {leader}, past the far reach and not behind it: it flies straight at the place at full throttle"
     },
     "formation.fly": {
       "level": "D",
       "fields": ["object", "leader", "ahead", "aside", "speed", "throttle"],
       "text": "Craft {object} flies to its place beside leader {leader}: the place lies {ahead} units ahead along the leader's heading (behind when negative) and {aside} units aside; it asks speed {speed}, throttle {throttle}"
+    },
+    "home.after_leader": {
+      "level": "D",
+      "fields": ["object", "leader", "speed", "sure"],
+      "text": "Craft {object} departs after its leader {leader}, which has begun its jump and flies at speed {speed}: sure {sure} (1 when that speed reached the last call, 0 on the craft's own roll)"
     },
     "home.route": {
       "level": "D",

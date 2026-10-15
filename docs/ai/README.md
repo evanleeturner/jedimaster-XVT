@@ -141,6 +141,10 @@ start. Going home means flying to the mothership's hangar or jumping out.
 | SS Patrol and Attack: turrets attack the order's targets; the order is done when none is left. | The same. | Kept | |
 | A finished starship patrol goes to the next order, or jumps out. | The same. | Kept | |
 | Go home at full throttle (`behaviors/home.py`). | Throttle was left as it was far out, and 113 order slots slowed to 5 times speed. | Changed | |
+| On a patrol and on the way home, a follower flies to its place beside its leader with its own turns and throttle. It aims a little ahead of the place along the leader's heading, speeds up while the place lies ahead and slows to as little as half the leader's speed while it lies behind, never turning back to it (`behaviors/formation.py`). | Followers took the leader's heading, throttle, pitch and roll, plus a push into the place. | Changed | [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296), [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138) |
+| A follower whose place lies more than 65,536 units (1.6 km) away, and not behind it, flies straight at the place at full throttle. For a starship the distance is 327,680 units (8 km). | The same distances, measured from the leader: the follower flew straight at its leader, so one whose place lay farther back than that overtook its place. | Changed | |
+| A leader with followers cruises at seven eighths of full throttle, so they have speed to close up. Fighting or evading, it flies as fast as it needs. | Leaders kept their own throttle. | New | |
+| Going home to a mothership, a follower flies in formation until the slow approach, then makes its own approach. With no way out, it stops beside its leader. | Followers followed until the leader was gone. | Changed | |
 | Into the mothership: slow to speeds of 150, 100 and 75 within 65,536, 32,768 and 16,384 units (1.6, 0.8 and 0.4 km) of the hangar. Turn in within 2,048 units (0.05 km) at the mothership's speed plus 25, or 40 under a mothership slower than 25. | The same. | Kept | [#211](https://github.com/evanleeturner/jedimaster-XVT/issues/211), [#213](https://github.com/evanleeturner/jedimaster-XVT/issues/213) |
 | Abort and departure rules: a craft aborts on shields out, cannons down, warheads out, hull at half, being attacked, shields at half or a quarter, or hull at a quarter or three quarters. The engine keeps these records (`engine/src/xvt/flight/ai_books.c`). | The same. | Kept | [#212](https://github.com/evanleeturner/jedimaster-XVT/issues/212), [#214](https://github.com/evanleeturner/jedimaster-XVT/issues/214) |
 
@@ -157,7 +161,7 @@ alone.
 | Arrive from 524,280 units (12.9 km) back at speed 3,600, then 1,800 after 6 game seconds and 900 after 9. The leader's arrival ends after 11 game seconds and the followers end with it. The craft then flies at speed 250, or stops for the orders that start stopped (`behaviors/arrival.py`). | The same speeds, and a leader also stopped within 4,096 units (0.1 km) of its point. | Kept, minus the leader's stop | [#297](https://github.com/evanleeturner/jedimaster-XVT/issues/297) |
 | Launch from a hangar and fly the order from the first decision at the craft's own throttle, with no dash. | A 2,360-tick exit (9.4 seconds), then the group formed up. The exit speed came from the script file and is unknown. | Changed | [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296), [#137](https://github.com/evanleeturner/jedimaster-XVT/issues/137) |
 | Leave by hyperspace at full throttle to point 13 and jump inside 16,384 units (0.4 km) at speed 3,600 (point 12 for a captured craft). With no home point the craft jumps where it is. A group leaving by mothership jumps once the mothership is gone and none is to come. A starship order that leaves by mothership stops for good (`behaviors/home.py`). | The same. | Kept | |
-| A flight leaves one craft at a time. Each craft goes home on its own records and jumps where it is. | A follower jumped when its leader did. | Changed | |
+| A flight leaves one craft at a time. A follower flies in formation behind a jumping leader and jumps at a moment of its own: near its point, or anywhere once its leader has begun its jump, and surely by the time the leader reaches speed 1,800 (`behaviors/home.py`). | A follower jumped when its leader did. | Changed | |
 
 ## Mission scoring
 
@@ -262,9 +266,10 @@ the project's owner closes them. This table says what became of each one.
 
 ## Planned, not in the game yet
 
-- Formation flying. Today each follower flies the group's points itself. The
-  plan is for each follower to fly to its 1997 place with its own turns and
-  throttle. Related issues: [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296), [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138).
+- Formation flying on the Attack order and for a player's wingmen. On a
+  patrol and on the way home, followers fly their places today; on the
+  Attack order, and beside a player, each follower still flies by itself.
+  Related issues: [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296), [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138).
 - The orders that still keep their speed and heading, in two groups. The
   next group of orders includes Disable, Wait, SS Protect, Wait 2, SS Await
   Return, Protect, Escort and SS Patrol and Disable. The group after it holds
@@ -368,14 +373,14 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 20 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 29 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 4,800 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
-| Lines of Python in its tests | 5,789 | the `.py` files in `ai/tests/`, counted with `wc -l` |
-| Test functions in those tests | 346 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
+| Commits that changed the pilot program | 21 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 30 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Lines of Python in the pilot program | 4,832 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Lines of Python in its tests | 5,857 | the `.py` files in `ai/tests/`, counted with `wc -l` |
+| Test functions in those tests | 349 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 11 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py` |
 | Mission order codes that have a written behavior | 14 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
-| Kinds of line the pilot program writes to its log | 34 | the entries in `ai/jedimaster_ai/events.json` |
+| Kinds of line the pilot program writes to its log | 35 | the entries in `ai/jedimaster_ai/events.json` |
 | Lines of C in the engine's computer-pilot code | 4,243 in 19 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
 | Test files and checks for that engine code | 9 files, 75 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
 | Checks of the wingman commands (Shift+A and the others) | 13 | the `check_order_...` functions in `engine/tests/test_flight.c` |
