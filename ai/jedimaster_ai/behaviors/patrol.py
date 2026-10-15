@@ -34,6 +34,11 @@ Purpose:
     full throttle, and goes back to its round once the weave ends (ruling
     29); Circle and the starship orders leave attackers to the turrets.
 
+    ``advance`` and ``cruise`` are the cruise itself, for another behavior
+    that flies its group's waypoints while it has nothing else to do: it
+    keeps a ``Route`` in its own notebook's scratch and starts it again on a
+    new order slot, as ``think`` does.
+
 The state, ROUTE_BYTES at the start of the scratch: u8 the order slot it
 counts for, u8 the waypoint it makes for, u8 the rounds (at most ROUNDS_MAX),
 u8 HELD once stopped for good, or once within reach of its one waypoint (a
@@ -122,8 +127,8 @@ def think(view: CraftView, question: Question) -> Decision:
         route, flown = Route(slot=view.order_slot), weave.Weave()
     own = tactics.own_contact(view, question)
     genus = None if own is None else own.genus
-    route = _advance(view, route, genus)
-    actions = _cruise(view, question, route, own)
+    route = advance(view, route, genus)
+    actions = cruise(view, question, route, own)
     state = book.dice
     if view.order_code == CIRCLE_AND_EVADE:
         flown, actions, state = _evade(view, question, flown, actions, state)
@@ -160,7 +165,7 @@ def cruise_throttle(view: CraftView) -> int:
     return view.order_throttle
 
 
-def _advance(view: CraftView, route: Route, genus: int | None) -> Route:
+def advance(view: CraftView, route: Route, genus: int | None) -> Route:
     """Return the route after the craft reaches what it makes for, if it
     does at this think."""
     if not view.waypoint_on(0):
@@ -199,7 +204,7 @@ def _lone(view: CraftView, route: Route, within: bool, bulky: bool) -> Route:
     return route
 
 
-def _cruise(
+def cruise(
     view: CraftView, question: Question, route: Route, own: Contact | None
 ) -> Actions:
     """Return the craft's steering and throttle toward its waypoint, or
