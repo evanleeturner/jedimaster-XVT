@@ -342,6 +342,50 @@ static void check_aim_ahead_past_eight_million(void)
 	XVT_ASSERT_INT_EQ(aim(0), 1);
 }
 
+/* The core test, asked with the player's craft as the craft that looks,
+ * gives the player's answer and score, wide and narrow, whether or not a
+ * player flies that craft: a computer craft aims by the player's cone. For
+ * the player's current target the player's selected component is measured,
+ * so the core asked for that component agrees. */
+static void check_aim_from_any_craft(void)
+{
+	static const int placements[][3] = {
+		{100, 0, 0},  {100, 50, 0},    {100, 0, 40},   {100, 170, 0},
+		{100, 0, 99}, {-100, 0, 0},    {3000, 20, 10}, {9000, 0, 0},
+		{40, 39, 0},  {2000, -60, 30},
+	};
+	for (size_t i = 0; i < sizeof placements / sizeof placements[0]; ++i) {
+		for (int narrow = 0; narrow < 2; ++narrow) {
+			fresh_world();
+			place_target(placements[i][0], placements[i][1],
+				     placements[i][2], NEAR_SCALE);
+			int answer = aim(narrow);
+			int score = g_target_angle_score;
+			g_players[PLAYER].object_index = -1;
+			XVT_ASSERT_INT_EQ(targeting_test_aim_cone_from(
+						  TARGET_SLOT, (int16_t)narrow,
+						  PLAYER_SLOT,
+						  TARGETING_NO_COMPONENT),
+					  answer);
+			XVT_ASSERT_INT_EQ(g_target_angle_score, score);
+		}
+	}
+	/* No model is loaded, so the target's type claims no mesh data. */
+	uint8_t asset_flags = g_object_type_table[TARGET_TYPE].asset_flags;
+	g_object_type_table[TARGET_TYPE].asset_flags = 0;
+	fresh_world();
+	g_players[PLAYER].current_target_object_idx = TARGET_SLOT;
+	g_players[PLAYER].selected_target_component = 0;
+	place_target(100, 30, 0, NEAR_SCALE);
+	int answer = aim(0);
+	int score = g_target_angle_score;
+	XVT_ASSERT_INT_EQ(
+		targeting_test_aim_cone_from(TARGET_SLOT, 0, PLAYER_SLOT, 0),
+		answer);
+	XVT_ASSERT_INT_EQ(g_target_angle_score, score);
+	g_object_type_table[TARGET_TYPE].asset_flags = asset_flags;
+}
+
 int main(int argc, char **argv)
 {
 	/* "known-failure <check>" runs one check the code is known to fail; an
@@ -375,6 +419,7 @@ int main(int argc, char **argv)
 	check_aim_least_bound();
 	check_aim_plain_object();
 	check_aim_far();
+	check_aim_from_any_craft();
 	check_box_extent();
 	return 0;
 }

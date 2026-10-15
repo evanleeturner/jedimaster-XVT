@@ -78,6 +78,16 @@ class Countermeasure(enum.IntEnum):
     FLARE = 2
 
 
+class Lock(enum.IntEnum):
+    """A craft's warhead lock (``enum ai_wire_lock_state``), as a player's:
+    none, counting while the target stays in aim, or declared once the count
+    reaches the ticks the craft needs."""
+
+    NONE = 0
+    COUNTING = 1
+    DECLARED = 2
+
+
 @dataclasses.dataclass(frozen=True)
 class Threat:
     """A homing shot aimed at a craft: its object index, its object type,
@@ -182,7 +192,12 @@ class CraftView:
     ``avoid_target`` the one an ignore order told it to leave alone, each
     NO_OBJECT for none. ``place`` is the world position of the craft's
     place in its flight's formation, beside its leader by the 1997 rule,
-    given with the PLACE book; (0, 0, 0) when not.
+    given with the PLACE book; (0, 0, 0) when not. ``lock_ticks`` is the
+    craft's warhead lock, which the engine counts by a player's rule against
+    its target, ``lock_needed`` the ticks it must reach to be declared (354
+    on a Missile Boat, else 708) and ``lock_state`` a ``Lock`` value.
+    ``skill_level`` is its AI rank, 0 to 7 (6 and 7 the Sith ranks), where
+    ``skill`` gives levels 4 and 5 one value.
     ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
     program last wrote it, or all zero bytes before the program first
     writes it.
@@ -249,6 +264,10 @@ class CraftView:
     command_target: int
     avoid_target: int
     place: tuple[int, int, int]
+    lock_ticks: int
+    lock_needed: int
+    lock_state: int
+    skill_level: int
     notebook: bytes
 
     @property
@@ -305,7 +324,8 @@ class Contact:
     record's own numbers. ``activity`` is the engine's activity code
     (``Activity``). ``size`` is the longest side of the box around the craft
     type's model, in world units: the number the engine's flight code takes
-    as the craft's size.
+    as the craft's size. ``warheads_coming`` counts the homing warheads in flight
+    at the craft, at most 255, and ``warheads_coming_damage`` sums their damage.
     """
 
     object_index: int
@@ -330,6 +350,8 @@ class Contact:
     hull_strength: int
     activity: int
     size: int
+    warheads_coming: int
+    warheads_coming_damage: int
 
     @property
     def player_flown(self) -> bool:

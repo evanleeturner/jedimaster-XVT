@@ -140,6 +140,11 @@ def test_countermeasures_match() -> None:
     assert kinds == {kind.name: kind.value for kind in world.Countermeasure}
 
 
+def test_lock_states_match() -> None:
+    states = c_enum(AI_WIRE_H, "ai_wire_lock_state", "AI_WIRE_LOCK_")
+    assert states == {state.name: state.value for state in world.Lock}
+
+
 def test_concussion_missile_types_match() -> None:
     text = (ENGINE / "src" / "xvt" / "flight" / "object" / "laser.h").read_text()
     found = {
@@ -187,7 +192,7 @@ def test_contact_fields_match() -> None:
 def test_contact_flags_match() -> None:
     flags = c_enum(AI_WIRE_H, "ai_wire_contact_flag", "AI_WIRE_CONTACT_")
     assert flags == {"PLAYER": 1}
-    assert Contact(*([0] * 7), flags["PLAYER"], *([0] * 14)).player_flown
+    assert Contact(*([0] * 7), flags["PLAYER"], *([0] * 16)).player_flown
 
 
 def test_activities_match() -> None:

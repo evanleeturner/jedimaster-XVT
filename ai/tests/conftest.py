@@ -80,6 +80,10 @@ VIEW = CraftView(
     command_target=NO_OBJECT,
     avoid_target=NO_OBJECT,
     place=(0, 0, 0),
+    lock_ticks=0,
+    lock_needed=0,
+    lock_state=0,
+    skill_level=0,
     notebook=bytes(NOTEBOOK_BYTES),
 )
 # Contact 0 is VIEW's own craft; contact 1 another craft, its order's target.
@@ -106,6 +110,8 @@ CONTACT = Contact(
     hull_strength=200,
     activity=0,
     size=0,
+    warheads_coming=0,
+    warheads_coming_damage=0,
 )
 
 

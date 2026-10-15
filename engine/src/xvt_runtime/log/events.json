@@ -128,6 +128,16 @@
       "fields": ["object", "lost", "group", "followers", "predicted"],
       "text": "Craft {object} of flight group {group} now leads: the leader in slot {lost} was lost, and {followers} other craft follow it, the live follower with the lowest readout number ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
+    "ai.lock_gained": {
+      "level": "D",
+      "fields": ["object", "target", "ticks", "needed", "predicted"],
+      "text": "The computer craft in object {object} got a full warhead lock on object {target} after {ticks} ticks of aiming ({needed} needed), counted by the player's rule; predicted step {predicted} (1 in a step that is run again later)"
+    },
+    "ai.lock_lost": {
+      "level": "D",
+      "fields": ["object", "target", "reason", "predicted"],
+      "text": "The full warhead lock of the computer craft in object {object} on object {target} (-1 for none) was lost: {reason}; predicted step {predicted} (1 in a step that is run again later)"
+    },
     "ai.mission_aborted": {
       "level": "I",
       "fields": ["object", "fg", "trigger", "aborted", "departing", "tick"],

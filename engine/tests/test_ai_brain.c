@@ -33,9 +33,11 @@ enum {
 			    AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
-	/* Where its formation place starts, the 12 bytes before the
-	 * notebook. */
-	VIEW_PLACE = VIEW_NOTEBOOK - 12,
+	/* Where its lock starts, the 6 bytes before the notebook: lock ticks,
+	 * lock needed, lock state, skill level. */
+	VIEW_LOCK = VIEW_NOTEBOOK - 6,
+	/* Where its formation place starts, the 12 bytes before the lock. */
+	VIEW_PLACE = VIEW_LOCK - 12,
 	/* Where its commands start, the 5 bytes before the place. */
 	VIEW_COMMANDS = VIEW_PLACE - 5,
 	/* Where its waypoints start, the 97 bytes before the commands. */
@@ -734,7 +736,9 @@ static void check_more_craft_than_one_question(void)
 
 /* Answers the one due craft in slot 1, whose launcher 0 has slots 2 and 3
  * with no warhead type (so nothing launches), with a target of none and a
- * warhead action; returns its launcher flags after. */
+ * warhead action; returns its launcher flags after. With no warhead in either
+ * slot the wire refuses the whole answer: the target stays and no cooldown
+ * is spent. */
 static int launcher_flags_after(int paired, int inhibit, int first_ammo,
 				int second_ammo)
 {
@@ -760,25 +764,29 @@ static int launcher_flags_after(int paired, int inhibit, int first_ammo,
 	ai_brain_think_due_craft();
 
 	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
-	XVT_ASSERT_INT_EQ(craft->ai_controller.target_obj_idx, UINT16_MAX);
+	int empty = first_ammo + second_ammo == 0;
+	XVT_ASSERT_INT_EQ(craft->ai_controller.target_obj_idx,
+			  empty ? 1 : UINT16_MAX);
 	XVT_ASSERT_INT_EQ(craft->ai_controller.target_signature, 0);
-	XVT_ASSERT_INT_EQ(craft->ai_controller.has_live_target, 0);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.has_live_target, empty);
 	/* laser_firewarheadsystem adds 472 ticks whether or not it fired. */
 	XVT_ASSERT_INT_EQ(craft->warhead_launcher_cooldown_ticks[0],
-			  inhibit == 0 ? 472 : 0);
+			  inhibit == 0 && !empty ? 472 : 0);
 	g_model_defs[craft->model_index].warhead_launcher_first_slot[0] = 0;
 	return (uint8_t)craft->warhead_launcher_flags[0];
 }
 
 /* The warhead action fires through laser_firewarheadsystem with the 1997
  * AI's launcher flags: both slots when paired, else the first, or the second
- * when it holds more; not at all while the craft's weapons are held. */
+ * when it holds more; not at all while the craft's weapons are held, nor
+ * from a launcher with no warhead left, whose answer is refused. */
 static void check_warhead_action(void)
 {
-	XVT_ASSERT_INT_EQ(launcher_flags_after(1, 0, 0, 0), 3);
+	XVT_ASSERT_INT_EQ(launcher_flags_after(1, 0, 1, 1), 3);
 	XVT_ASSERT_INT_EQ(launcher_flags_after(0, 0, 1, 1), 1);
 	XVT_ASSERT_INT_EQ(launcher_flags_after(0, 0, 1, 2), 0x81);
-	XVT_ASSERT_INT_EQ(launcher_flags_after(0, 5, 0, 0), 0x55);
+	XVT_ASSERT_INT_EQ(launcher_flags_after(0, 5, 1, 1), 0x55);
+	XVT_ASSERT_INT_EQ(launcher_flags_after(1, 0, 0, 0), 0x55);
 }
 
 /* Answers the one due craft in slot 1, of the object kind and activity given
@@ -1010,6 +1018,41 @@ static void check_stat_level(void)
 	XVT_ASSERT_INT_EQ(AI_STAT_LEVEL_MAX, 5);
 }
 
+/* The view carries the craft's lock and skill level, from
+ * ai_warheads_view_craft, and each contact the homing warheads at it, from
+ * ai_warheads_view_contact: here a lock of 500 ticks no step has counted
+ * yet, its AI rank 5, and a missile in shot slot 31 homing on it. */
+static void check_view_lock_and_warheads_coming(void)
+{
+	fresh_world();
+	struct craft_data *craft = due_craft(1);
+	struct warhead_guidance_state guidance = {0};
+	craft->warhead_lock_ticks = 500;
+	craft->ai_rank = 5;
+	g_projectile_object_slot_start = 30;
+	g_projectile_object_slot_end = 32;
+	g_test_objects[31].object_type = WARHEAD_OBJECT_TYPE_CONCUSSION_MISSILE;
+	g_test_mobiles[31].p_warhead_guidance = &guidance;
+	g_test_mobiles[31].damage_amount = 3225;
+	guidance.target_obj_idx = 1;
+	guidance.homing_tier = 2;
+	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+	at = craft_answer(at, 1, 0, 0);
+	g_fake.answer_length = finish_answer(g_fake.answer, at);
+	ai_brain_think_due_craft();
+	g_test_mobiles[31].p_warhead_guidance = NULL;
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(view + VIEW_LOCK), 500);
+	XVT_ASSERT_INT_EQ(view[VIEW_LOCK + 4], AI_WIRE_LOCK_NONE);
+	XVT_ASSERT_INT_EQ(view[VIEW_LOCK + 5], 5);
+	const uint8_t *contact =
+		view + AI_WIRE_CRAFT_VIEW_BYTES + AI_WIRE_CONTACT_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u16(contact), 1);
+	XVT_ASSERT_INT_EQ(contact[AI_WIRE_CONTACT_BYTES - 5], 1);
+	XVT_ASSERT_INT_EQ(get_u32(contact + AI_WIRE_CONTACT_BYTES - 4), 3225);
+}
+
 int main(void)
 {
 	check_stat_level();
@@ -1023,6 +1066,7 @@ int main(void)
 	check_countermeasure_action();
 	check_view_waypoints();
 	check_view_place_and_hangar_exit();
+	check_view_lock_and_warheads_coming();
 	check_commands_and_evaded();
 	check_arrival_action();
 	check_answer_applied();

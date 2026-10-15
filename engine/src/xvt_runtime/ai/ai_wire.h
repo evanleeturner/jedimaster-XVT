@@ -55,7 +55,11 @@
  * target (the object a player's ignore order told it to leave alone,
  * 0xFFFF for none); then its formation place: i32 x, i32 y, i32 z, the
  * world position of its place beside its leader, given with the books'
- * place bit (0 when not); then the notebook's AI_NOTEBOOK_BYTES. Then u16
+ * place bit (0 when not); then its warheads' lock: u16 lock ticks (its
+ * count), u16 lock needed (the ticks it must reach to be declared), u8 lock
+ * state (an AI_WIRE_LOCK_ value), and u8 skill level (its AI rank, 0 to 7,
+ * where skill gives levels 4 and 5 one value); then the
+ * notebook's AI_NOTEBOOK_BYTES. Then u16
  * contact count, u16 zero, and one contact per craft in the active region, at most
  * AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
  * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
@@ -63,7 +67,9 @@
  * u16 yaw, u16 pitch, u16 speed, u16 target, u16 last attacker (both 0xFFFF
  * for none), i32 front shield, i32 rear shield, u32 hull damage, u32 hull
  * strength, u8 activity (an AI_ACTIVITY_ value), u32 size (the longest side
- * of the box around the craft type's model, in world units).
+ * of the box around the craft type's model, in world units), u8 warheads
+ * coming (the homing warheads in flight at it, at most 255) and u32
+ * warheads coming damage (their damage summed).
  *
  * An answer (kind 2) holds one craft answer per craft, in the question's
  * order: u16 object index, the new notebook, u8 action count, then each
@@ -122,19 +128,19 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 11,
+	AI_WIRE_VERSION = 12,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 303 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 309 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
 	AI_WIRE_POINT_AXES = 3,
 	/* The contact count and its zero. */
 	AI_WIRE_CONTACT_HEAD_BYTES = 4,
-	AI_WIRE_CONTACT_BYTES = 53,
+	AI_WIRE_CONTACT_BYTES = 58,
 	/* The active region's craft slots; the order target mask has a bit for
 	 * each. */
 	AI_WIRE_CONTACTS_MAX = 32,
@@ -230,6 +236,14 @@ enum ai_wire_contact_flag {
 	AI_WIRE_CONTACT_PLAYER = 1,
 };
 
+/* A craft's lock state in its view, as a player's missile_lock_state: no
+ * lock, a lock counting, a lock declared. */
+enum ai_wire_lock_state {
+	AI_WIRE_LOCK_NONE = 0,
+	AI_WIRE_LOCK_COUNTING = 1,
+	AI_WIRE_LOCK_DECLARED = 2,
+};
+
 /* What the question tells the program about one craft due to think. */
 struct ai_wire_craft_view {
 	uint16_t object_index;
@@ -293,6 +307,10 @@ struct ai_wire_craft_view {
 	uint16_t command_target;
 	uint16_t avoid_target;
 	int32_t place[AI_WIRE_POINT_AXES];
+	uint16_t lock_ticks;
+	uint16_t lock_needed;
+	uint8_t lock_state;
+	uint8_t skill_level;
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 
@@ -324,6 +342,8 @@ struct ai_wire_contact {
 	uint32_t hull_strength;
 	uint8_t activity;
 	uint32_t size;
+	uint8_t warheads_coming;
+	uint32_t warheads_coming_damage;
 };
 
 /* One question: the craft due to think and every contact, at one tick. */

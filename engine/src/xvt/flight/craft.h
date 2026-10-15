@@ -396,8 +396,8 @@ struct craft_data {
 	/* The AI rank of the craft: its flight group's AI level at spawn, 0
 	 * to 5, 6 for a Sith Apprentice and 7 for a Sith Lord. The tables
 	 * that score a kill read the level clamped to 5 instead
-	 * (ai_brain_stat_level). Only spawn writes it; nothing but the log
-	 * reads it yet. It sits before unused3f2 so the world checksums cover
+	 * (ai_brain_stat_level). Only spawn writes it; the pilot program's
+	 * view sends it as the skill level. It sits before unused3f2 so the world checksums cover
 	 * it. */
 	uint8_t ai_rank;
 	/* No game code reads or writes it; the world checksums subtract its

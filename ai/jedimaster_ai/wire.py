@@ -53,7 +53,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 11
+VERSION = 12
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -124,6 +124,10 @@ VIEW_LAYOUT = (
     ("command_target", "H", 1),
     ("avoid_target", "H", 1),
     ("place", "i", 3),
+    ("lock_ticks", "H", 1),
+    ("lock_needed", "H", 1),
+    ("lock_state", "B", 1),
+    ("skill_level", "B", 1),
 )
 VIEW_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in VIEW_LAYOUT)
@@ -154,6 +158,8 @@ CONTACT_LAYOUT = (
     ("hull_strength", "I"),
     ("activity", "B"),
     ("size", "I"),
+    ("warheads_coming", "B"),
+    ("warheads_coming_damage", "I"),
 )
 CONTACT_FIELDS = struct.Struct("<" + "".join(code for _, code in CONTACT_LAYOUT))
 U8 = struct.Struct("<B")
@@ -457,7 +463,7 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
     The engine's reader refuses the whole answer for: a target or turret
     target that is neither NO_OBJECT nor a contact, a firing cannon group
     the view does not count, a launcher the view does not count or shows
-    cooling down, a turret slot the view's turret mask does not name, an
+    cooling down or empty, a turret slot the view's turret mask does not name, an
     order from a craft that follows a leader or to a slot other than its
     own, one of 0 to 2 with an order (not after a skip to order 4) or 3 with
     the skip due, a depart or dock the view's books do not allow, a
@@ -474,6 +480,7 @@ def check_shown(actions: Actions, view: CraftView, question: Question) -> None:
     if warhead is not None and (
         warhead.launcher >= view.warhead_launcher_count
         or view.launcher_cooldown[warhead.launcher] != 0
+        or view.warheads_left[warhead.launcher] == 0
     ):
         raise WireError(f"launcher {warhead.launcher} is not shown ready")
     for turret in actions.turrets or ():

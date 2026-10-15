@@ -1262,6 +1262,32 @@ static void check_overdrive_message_to_pilot(void)
 	XVT_ASSERT_INT_EQ(g_ready_message_queue_count, 0);
 }
 
+/* A craft no player flies counts its warhead lock in the weapons loop
+ * (ai_warheads_count_lock): with a warhead left and its AI target dead
+ * ahead, a step of 4 ticks makes its lock 4. */
+static void check_computer_craft_counts_lock(void)
+{
+	struct craft_data *craft =
+		cannon_world(PROJECTILE_OBJECT_TYPE_REBEL_LASER, 20);
+	place_craft(TARGET_CRAFT, 1, 0, -50000, 0);
+	g_test_mobiles[OWNER].orient_matrix_dirty = 0;
+	g_test_mobiles[OWNER].cached_fwd_y = -32768;
+	g_test_mobiles[OWNER].cached_side_x = -32768;
+	g_test_mobiles[OWNER].cached_up_z = -32768;
+	craft->warhead_launcher_count = 1;
+	int first =
+		g_model_defs[craft->model_index].warhead_launcher_first_slot[0];
+	craft->weapon_slots[first].ammo_count = 2;
+	craft->ai_controller.target_obj_idx = TARGET_CRAFT;
+	/* No model is loaded, so the X-wing claims no mesh data here. */
+	uint8_t asset_flags = g_object_type_table[TEST_XWING].asset_flags;
+	g_object_type_table[TEST_XWING].asset_flags = 0;
+	g_elapsed_ticks = 4;
+	laser_weaponsfire();
+	g_object_type_table[TEST_XWING].asset_flags = asset_flags;
+	XVT_ASSERT_INT_EQ(craft->warhead_lock_ticks, 4);
+}
+
 int main(int argc, char **argv)
 {
 	fail_after_seconds(20);
@@ -1321,6 +1347,7 @@ int main(int argc, char **argv)
 	check_overdrive_dropped_when_dry();
 	check_shield_rules_by_level();
 	check_step_ai_burst();
+	check_computer_craft_counts_lock();
 	check_step_chaff_countdown();
 	check_mine_countdown();
 	return 0;

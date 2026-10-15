@@ -16,6 +16,7 @@
 #include "xvt/flight/ai_commands.h"
 #include "xvt/flight/ai_countermeasures.h"
 #include "xvt/flight/ai_formation.h"
+#include "xvt/flight/ai_warheads.h"
 #include "xvt/flight/ai_waypoints.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
@@ -120,7 +121,8 @@ void ai_brain_set_exchange(ai_brain_exchange_fn exchange)
 
 /* Writes what the pilot program is told about the object in object_index, a
  * craft in the active region: its target is its player's target when a
- * player flies it, else its AI target; its size is its object type's. */
+ * player flies it, else its AI target; its size is its object type's; the
+ * homing warheads in flight at it come from ai_warheads_view_contact. */
 static void ai_brain_view_contact(uint16_t object_index,
 				  struct ai_wire_contact *contact)
 {
@@ -155,6 +157,7 @@ static void ai_brain_view_contact(uint16_t object_index,
 	contact->activity = craft->ai_controller.activity;
 	contact->size = (uint32_t)g_object_type_table[object->object_type]
 				.max_bounds_extent;
+	ai_warheads_view_contact(object_index, contact);
 }
 
 /* Fills the batch's contacts: each craft in the active region's craft slots,
@@ -274,8 +277,8 @@ static void ai_brain_view_weapons(const struct craft_data *craft,
  * and the homing shots aimed at it come from
  * ai_countermeasures_view_craft, its group's waypoints from
  * ai_waypoints_view_craft, a player's commands from
- * ai_commands_view_craft and its formation place from
- * ai_formation_view_craft. */
+ * ai_commands_view_craft, its formation place from ai_formation_view_craft,
+ * and its lock and skill level from ai_warheads_view_craft. */
 static void ai_brain_view_craft(uint16_t object_index,
 				const struct ai_brain_batch *batch,
 				struct ai_wire_craft_view *view)
@@ -326,6 +329,7 @@ static void ai_brain_view_craft(uint16_t object_index,
 	ai_waypoints_view_craft(object_index, view);
 	ai_commands_view_craft(object_index, view);
 	ai_formation_view_craft(object_index, view);
+	ai_warheads_view_craft(object_index, view);
 	memcpy(view->notebook, craft->ai_notebook, sizeof view->notebook);
 }
 

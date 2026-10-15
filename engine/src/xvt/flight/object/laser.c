@@ -8,6 +8,7 @@
 #include "xvt/assets/opt_model.h"
 #include "xvt/audio/fsfx.h"
 #include "xvt/flight/ai_brain.h"
+#include "xvt/flight/ai_warheads.h"
 #include "xvt/flight/flight.h"
 #include "xvt/flight/flight_geometry.h"
 #include "xvt/flight/flight_view.h"
@@ -535,6 +536,7 @@ void laser_weaponsfire(void)
 				}
 			}
 		} else {
+			ai_warheads_count_lock(object_idx);
 			if (do_periodic_power_update == 0) {
 				continue;
 			}

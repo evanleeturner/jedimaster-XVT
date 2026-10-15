@@ -127,6 +127,10 @@ static uint8_t *put_craft_view(uint8_t *at,
 	at = put_waypoints(at, view);
 	at = put_commands(at, view);
 	at = put_point(at, view->place);
+	at = put_u16(at, view->lock_ticks);
+	at = put_u16(at, view->lock_needed);
+	*at++ = view->lock_state;
+	*at++ = view->skill_level;
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
@@ -155,6 +159,8 @@ static uint8_t *put_contact(uint8_t *at, const struct ai_wire_contact *contact)
 	at = put_u32(at, contact->hull_strength);
 	*at++ = contact->activity;
 	at = put_u32(at, contact->size);
+	*at++ = contact->warheads_coming;
+	at = put_u32(at, contact->warheads_coming_damage);
 	return at;
 }
 
@@ -284,8 +290,8 @@ static int take_lasers(struct wire_reader *reader,
 	return reader->short_read || good;
 }
 
-/* Reads the warhead action: a launcher the view counts and shows ready, and
- * a paired flag of 0 or 1. */
+/* Reads the warhead action: a launcher the view counts and shows ready with
+ * a warhead left, and a paired flag of 0 or 1. */
 static int take_warhead(struct wire_reader *reader,
 			const struct ai_wire_craft_view *view,
 			struct ai_wire_craft_answer *answer)
@@ -297,7 +303,8 @@ static int take_warhead(struct wire_reader *reader,
 	return reader->short_read ||
 	       (launcher < AI_WIRE_WARHEAD_LAUNCHERS &&
 		launcher < view->warhead_launcher_count &&
-		view->launcher_cooldown[launcher] == 0 && paired <= 1);
+		view->launcher_cooldown[launcher] == 0 &&
+		view->warheads_left[launcher] != 0 && paired <= 1);
 }
 
 /* Reads the turrets action: 1 to AI_WIRE_WEAPON_SLOTS turrets, each a slot

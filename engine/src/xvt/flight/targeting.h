@@ -9,6 +9,12 @@
 extern "C" {
 #endif
 
+/* No mesh chosen: the aim is measured at the object's position. Any mesh
+ * index, 0xFFFF too, is a component. */
+enum { TARGETING_NO_COMPONENT = -1 };
+
+int16_t targeting_test_aim_cone_from(uint16_t object_idx, int16_t narrow_cone,
+				     uint16_t viewer_idx, int32_t component);
 int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
 				int player_idx);
 extern uint16_t g_target_angle_score;

@@ -56,13 +56,14 @@ DISTINCT = CraftView(
      0x78777675, 0x7C7B7A79),
     (0x107F7E7D, 0x14131211, 0x18171615, 0x1C1B1A19, 0x201F1E1D, 0x24232221,
      0x28272625, -8), 0x29, 0x2B2A, 0x2D2C, (0x31302F2E, 0x35343332, -9),
+    0x3736, 0x3938, 0x3A, 0x3B,
     notebook=bytes(0x40 + byte for byte in range(NOTEBOOK_BYTES)),
 )  # fmt: skip
 # contact_with_distinct_bytes in the C test.
 DISTINCT_CONTACT = Contact(
     0x4241, 0x4443, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4E4D4C4B, 0x5251504F,
     -4, 0x5453, 0x5655, 0x5857, 0x5A59, 0x5C5B, -5, 0x605F5E5D, 0x64636261,
-    0x68676665, 0x69, 0x6D6C6B6A,
+    0x68676665, 0x69, 0x6D6C6B6A, 0x6E, 0x7271706F,
 )  # fmt: skip
 
 
@@ -113,6 +114,7 @@ CRAFT_7 = plain_view(
     turret_slot_mask=1 << 3 | 1 << 5,
     cannon_group_count=2,
     warhead_launcher_count=1,
+    warheads_left=(2, 0),
     order_codes=(1, 2, 0, 0),
     leader=NO_OBJECT,
     books=Books.AT_HANGAR,
@@ -360,11 +362,29 @@ def test_answer_firing_a_cannon_group_the_craft_lacks_is_refused() -> None:
 def test_answer_firing_a_launcher_cooling_down_is_refused() -> None:
     cooling = Question(
         TEST_TICK,
-        (plain_view(7, warhead_launcher_count=1, launcher_cooldown=(1, 0)),),
+        (
+            plain_view(
+                7,
+                warhead_launcher_count=1,
+                warheads_left=(1, 0),
+                launcher_cooldown=(1, 0),
+            ),
+        ),
         CONTACTS,
     )
     with pytest.raises(wire.WireError, match="launcher 0 is not shown ready"):
         wire.read_answer(answer_with_actions(b"\x01\x07\x00\x01"), cooling)
+
+
+def test_answer_firing_an_empty_launcher_is_refused() -> None:
+    # The engine would spend 472 ticks of cooldown and fly nothing.
+    empty = Question(
+        TEST_TICK,
+        (plain_view(7, warhead_launcher_count=2, warheads_left=(0, 3)),),
+        CONTACTS,
+    )
+    with pytest.raises(wire.WireError, match="launcher 0 is not shown ready"):
+        wire.read_answer(answer_with_actions(b"\x01\x07\x00\x01"), empty)
 
 
 def test_answer_naming_what_the_question_showed_is_read() -> None:

@@ -29,29 +29,25 @@
 uint16_t g_target_angle_score = -1;
 
 /* Tells whether an object, or the point a reference names, lies in the aim cone
- * ahead of the player's craft: returns 1 when both its up and side slopes are
- * below a bound set by its size and distance, else 0. Returns 0 at once when
- * the player has no craft, the point is not ahead or is more than 0x20000 ahead
- * after scaling, or the side slope exceeds 160 or the up slope 100. Within a
- * rough distance of 655360 it measures at 1/16 scale and, for the player's
- * current target craft, at its selected component's center; beyond, at 1/256.
+ * ahead of the craft in viewer_idx: returns 1 when both its up and side slopes
+ * are below a bound set by its size and distance, else 0. Returns 0 when the
+ * point is not ahead or is more than 0x20000 ahead after scaling, or the side
+ * slope exceeds 160 or the up slope 100. Within a rough distance of 655360 it
+ * measures at 1/16 scale and, for a craft when component is a mesh index
+ * (0 to 0xFFFF, not TARGETING_NO_COMPONENT), at that mesh's center; beyond,
+ * at 1/256.
  * narrow_cone keeps the bound at the object's size, halving it close in;
- * otherwise the bound is tripled, at least 9. Writes g_target_angle_score (0xFFFF
- * first), g_last_rough_distance and g_world_loc_x, g_world_loc_y and g_world_loc_z.
- * Reads the size of g_object_table[object_idx] without checking that object_idx
- * names an object slot. */
-// FLAGS: /O2 /G5
-// FUNCTION: XVT 0x482640
-int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
-				int player_idx)
+ * otherwise the bound is tripled, at least 9. Writes g_target_angle_score
+ * (0xFFFF first), g_last_rough_distance and g_world_loc_x, g_world_loc_y and
+ * g_world_loc_z. Reads the size of g_object_table[object_idx] without checking
+ * that object_idx names an object slot. The player's test and a computer
+ * craft's lock both ask it, so a computer craft aims by the player's cone. */
+int16_t targeting_test_aim_cone_from(uint16_t object_idx, int16_t narrow_cone,
+				     uint16_t viewer_idx, int32_t component)
 {
 	g_target_angle_score = -1;
 	uint16_t object_index = object_idx;
-	if (g_players[player_idx].object_index == -1) {
-		return 0;
-	}
-	flight_geometry_rough_distance_between_refs(
-		object_index, g_players[player_idx].object_index);
+	flight_geometry_rough_distance_between_refs(object_index, viewer_idx);
 
 	int16_t scale_shift;
 	int dx;
@@ -61,17 +57,14 @@ int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
 	if (g_last_rough_distance < 655360) {
 		mission_resolve_object_or_mission_point_world_loc(object_index,
 								  0);
-		if (g_players[player_idx].current_target_object_idx ==
-		    (int16_t)object_index) {
+		if (component != TARGETING_NO_COMPONENT) {
 			target = &g_object_table[object_index];
 			int object_type = target->object_type;
 			if (object_type != 0 &&
 			    g_active_region_craft_object_slot_end >
 				    (int)object_index &&
 			    target->mobj->p_craft != NULL) {
-				uint16_t mesh_index =
-					(uint16_t)g_players[player_idx]
-						.selected_target_component;
+				uint16_t mesh_index = (uint16_t)component;
 				flight_geometry_local_to_world(
 					target,
 					model_mesh_get_center_x(object_type,
@@ -85,62 +78,37 @@ int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
 				g_world_loc_z += g_rotated_z;
 				g_last_rough_distance = collide_roughdistance3d(
 					g_world_loc_x -
-						g_object_table
-							[g_players[player_idx]
-								 .object_index]
-								.world_x,
+						g_object_table[viewer_idx]
+							.world_x,
 					g_world_loc_y -
-						g_object_table
-							[g_players[player_idx]
-								 .object_index]
-								.world_y,
+						g_object_table[viewer_idx]
+							.world_y,
 					g_world_loc_z -
-						g_object_table
-							[g_players[player_idx]
-								 .object_index]
-								.world_z);
+						g_object_table[viewer_idx]
+							.world_z);
 			}
 		}
-		dx = (g_world_loc_x -
-		      g_object_table[g_players[player_idx].object_index]
-			      .world_x) >>
-		     4;
-		dy = (g_world_loc_y -
-		      g_object_table[g_players[player_idx].object_index]
-			      .world_y) >>
-		     4;
-		dz = (g_world_loc_z -
-		      g_object_table[g_players[player_idx].object_index]
-			      .world_z) >>
-		     4;
+		dx = (g_world_loc_x - g_object_table[viewer_idx].world_x) >> 4;
+		dy = (g_world_loc_y - g_object_table[viewer_idx].world_y) >> 4;
+		dz = (g_world_loc_z - g_object_table[viewer_idx].world_z) >> 4;
 		scale_shift = 4;
 	} else {
 		mission_resolve_object_or_mission_point_world_loc(object_index,
 								  0);
-		dx = (g_world_loc_x -
-		      g_object_table[g_players[player_idx].object_index]
-			      .world_x) >>
-		     8;
-		dy = (g_world_loc_y -
-		      g_object_table[g_players[player_idx].object_index]
-			      .world_y) >>
-		     8;
-		dz = (g_world_loc_z -
-		      g_object_table[g_players[player_idx].object_index]
-			      .world_z) >>
-		     8;
+		dx = (g_world_loc_x - g_object_table[viewer_idx].world_x) >> 8;
+		dy = (g_world_loc_y - g_object_table[viewer_idx].world_y) >> 8;
+		dz = (g_world_loc_z - g_object_table[viewer_idx].world_z) >> 8;
 		scale_shift = 8;
 	}
 
-	target = &g_object_table[g_players[player_idx].object_index];
+	target = &g_object_table[viewer_idx];
 	if (target->mobj->orient_matrix_dirty != 0) {
 		fview_calcrotatemove(target->pitch, target->yaw, target);
-		fview_calcrotateorient(
-			g_object_table[g_players[player_idx].object_index].roll,
-			0, &g_object_table[g_players[player_idx].object_index]);
+		fview_calcrotateorient(g_object_table[viewer_idx].roll, 0,
+				       &g_object_table[viewer_idx]);
 	}
 	struct mobile_object **player_mobile_object =
-		&g_object_table[g_players[player_idx].object_index].mobj;
+		&g_object_table[viewer_idx].mobj;
 	int forward = math_mul_q15((int16_t)dx,
 				   (*player_mobile_object)->cached_fwd_x);
 	forward += math_mul_q15(dy, (*player_mobile_object)->cached_fwd_y);
@@ -209,6 +177,30 @@ int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
 	}
 	g_target_angle_score = (uint16_t)(up_score + side_slope);
 	return up_score < extent_slope && side_slope < extent_slope;
+}
+
+/* Tells whether an object, or the point a reference names, lies in the aim cone
+ * ahead of the player's craft, by targeting_test_aim_cone_from: the player's
+ * current target is measured at its selected component. Returns 0 at once,
+ * with g_target_angle_score 0xFFFF, when the player has no craft. */
+// FLAGS: /O2 /G5
+// FUNCTION: XVT 0x482640
+int16_t targeting_test_aim_cone(uint16_t object_idx, int16_t narrow_cone,
+				int player_idx)
+{
+	if (g_players[player_idx].object_index == -1) {
+		g_target_angle_score = -1;
+		return 0;
+	}
+	int32_t component = TARGETING_NO_COMPONENT;
+	if (g_players[player_idx].current_target_object_idx ==
+	    (int16_t)object_idx) {
+		component = (uint16_t)g_players[player_idx]
+				    .selected_target_component;
+	}
+	return targeting_test_aim_cone_from(
+		object_idx, narrow_cone,
+		(uint16_t)g_players[player_idx].object_index, component);
 }
 
 /* Draws a target box around craft in the active region for the local player,
