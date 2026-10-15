@@ -98,6 +98,31 @@
       "fields": ["object", "route", "from", "books"],
       "text": "Craft {object} goes home by route {route} (jump, hangar, enter, wait or stop; fight, turned on the craft after it; evade, home weaving from it; stranded, no way out, fighting any enemy) from activity {from}, with books bits {books}"
     },
+    "kamikaze.closing": {
+      "level": "D",
+      "fields": ["object", "target", "distance", "off_nose", "off_level", "lined_up", "held", "shots"],
+      "text": "Craft {object} on a Kamikaze order dives at craft {target}, {distance} units away, {off_nose} yaw units off its nose and {off_level} pitch units off level; lined up for its cannons: {lined_up}; its warheads held for {held} (none when it fires one); {shots} fired in this dive"
+    },
+    "kamikaze.cruise": {
+      "level": "D",
+      "fields": ["object", "targets", "weaving", "waypoint"],
+      "text": "Craft {object} on a Kamikaze order cruises its waypoints, making for waypoint {waypoint}: {targets} targets it may dive at, a weave under way: {weaving} (it dives once the weave ends)"
+    },
+    "kamikaze.dive": {
+      "level": "I",
+      "fields": ["object", "target", "distance", "genus", "targets"],
+      "text": "Craft {object} on a Kamikaze order begins a dive at craft {target} (genus {genus}), {distance} units away, the nearest of {targets} targets or the one a player's command named"
+    },
+    "kamikaze.evade_ordered": {
+      "level": "I",
+      "fields": ["object", "chaser"],
+      "text": "Craft {object} on a Kamikaze order took up a player's evade command: it dropped its target and weaves, craft {chaser} on its tail (65535 for none)"
+    },
+    "kamikaze.warhead": {
+      "level": "I",
+      "fields": ["object", "target", "launcher", "type", "lock", "coming", "shots"],
+      "text": "Craft {object} on a Kamikaze order fired a guided warhead of type {type} from launcher {launcher} at craft {target}, its lock at {lock} ticks, {coming} homing warheads already flying at the target; {shots} fired in this dive"
+    },
     "notebook.unreadable": {
       "level": "W",
       "fields": ["object", "behavior", "error"],
