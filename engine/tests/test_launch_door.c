@@ -124,7 +124,7 @@ static void check_refusals_leave_a_result(void)
 		const char *why;
 	} cases[] = {{"not json", "not a JSON object"},
 		     {"{\"schema_version\":1,\"mode\":\"multiplayer\"}",
-		      "Only single player"},
+		      "\\\"mode\\\" must be"},
 		     {NOSFX_DESCRIPTION, "switch word"},
 		     {"{\"schema_version\":1,\"mode\":\"single_player\","
 		      "\"game_type\":\"training\",\"side\":\"rebel\","

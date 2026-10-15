@@ -7,8 +7,9 @@
 #include <strings.h>
 
 #include "cJSON.h"
+#include "xvt_runtime/runtime/flight_wire.h"
 
-enum { MAX_NAME_LENGTH = 12 };
+enum { MAX_NAME_LENGTH = 12, GAME_ID_LENGTH = 36, MIN_NETWORK_PLAYERS = 2 };
 
 static const char *const g_directory_names[6] = {
 	"train", "melee", "tourn", "combat", "battle", "campaign"};
@@ -143,8 +144,9 @@ static int read_side(const cJSON *root, struct xvt_launch_description *out,
 			why, why_size, "%s",
 			"\"side\" is missing; it must be rebel, imperial or none.");
 	}
-	int needs_side = out->directory_id == 0 || out->directory_id == 3 ||
-			 out->directory_id == 5;
+	int needs_side = !out->is_network &&
+			 (out->directory_id == 0 || out->directory_id == 3 ||
+			  out->directory_id == 5);
 	if (!strcmp(side, "rebel")) {
 		out->side = XVT_LAUNCH_SIDE_REBEL;
 	} else if (!strcmp(side, "imperial")) {
@@ -159,6 +161,11 @@ static int read_side(const cJSON *root, struct xvt_launch_description *out,
 		return refuse(why, why_size,
 			      "A %s mission needs a side, rebel or imperial.",
 			      g_game_types[out->directory_id]);
+	}
+	if (out->is_network && out->side != XVT_LAUNCH_SIDE_NONE) {
+		return refuse(
+			why, why_size, "%s",
+			"A network battle takes no side; each seat's team decides it, so use \"none\".");
 	}
 	if (!needs_side && out->side != XVT_LAUNCH_SIDE_NONE) {
 		return refuse(why, why_size,
@@ -399,17 +406,181 @@ static int read_optionals(const cJSON *root, struct xvt_launch_description *out,
 	return !program || read_ai_program(program, out, why, why_size);
 }
 
-/* Checks the members that must be there and nothing else is there. */
-static int check_members(const cJSON *root, char *why, size_t why_size)
+/* The value of a lowercase hex digit, or -1 for any other character. */
+static int hex_digit(char letter)
+{
+	if (letter >= '0' && letter <= '9') {
+		return letter - '0';
+	}
+	if (letter >= 'a' && letter <= 'f') {
+		return letter - 'a' + 10;
+	}
+	return -1;
+}
+
+/* Reads text, the directory's form of an application id, into id. Returns 1,
+ * or 0 when the text is not 36 characters of lowercase hex digits in groups
+ * of 8, 4, 4, 4 and 12 joined by hyphens. */
+static int read_game_id(const char *text, struct xvt_launch_game_id *id)
+{
+	if (strlen(text) != GAME_ID_LENGTH) {
+		return 0;
+	}
+	uint8_t bytes[16];
+	int count = 0;
+	for (int index = 0; index < GAME_ID_LENGTH; index += 2) {
+		if (index == 8 || index == 13 || index == 18 || index == 23) {
+			if (text[index] != '-') {
+				return 0;
+			}
+			++index;
+		}
+		int high = hex_digit(text[index]);
+		int low = hex_digit(text[index + 1]);
+		if (high < 0 || low < 0) {
+			return 0;
+		}
+		bytes[count++] = (uint8_t)(high * 16 + low);
+	}
+	id->data1 = (uint32_t)bytes[0] << 24 | (uint32_t)bytes[1] << 16 |
+		    (uint32_t)bytes[2] << 8 | bytes[3];
+	id->data2 = (uint16_t)(bytes[4] << 8 | bytes[5]);
+	id->data3 = (uint16_t)(bytes[6] << 8 | bytes[7]);
+	memcpy(id->data4, bytes + 8, sizeof(id->data4));
+	return 1;
+}
+
+/* Reads "players", the seat order, into network, and finds pilot's seat. */
+static int read_players(const cJSON *players, const char *pilot,
+			struct xvt_launch_network *network, char *why,
+			size_t why_size)
+{
+	int count = cJSON_IsArray(players) ? cJSON_GetArraySize(players) : -1;
+	if (count < MIN_NETWORK_PLAYERS || count > XVT_LAUNCH_SEAT_CAPACITY) {
+		return refuse(
+			why, why_size, "%s",
+			"\"players\" must list 2 to 8 pilot names in seat order.");
+	}
+	network->seat = -1;
+	const cJSON *item;
+	cJSON_ArrayForEach(item, players)
+	{
+		if (!cJSON_IsString(item)) {
+			return refuse(
+				why, why_size, "%s",
+				"Every entry of \"players\" must be a name.");
+		}
+		if (!xvt_launch_name_check(item->valuestring, why, why_size)) {
+			return 0;
+		}
+		for (int seat = 0; seat < network->player_count; ++seat) {
+			if (!strcasecmp(network->players[seat],
+					item->valuestring)) {
+				return refuse(
+					why, why_size,
+					"\"players\" names \"%s\" twice; each seat needs its own pilot.",
+					item->valuestring);
+			}
+		}
+		if (!strcasecmp(item->valuestring, pilot)) {
+			network->seat = network->player_count;
+		}
+		strcpy(network->players[network->player_count++],
+		       item->valuestring);
+	}
+	if (network->seat < 0) {
+		return refuse(why, why_size,
+			      "The pilot \"%s\" is not among \"players\".",
+			      pilot);
+	}
+	if (network->role == XVT_LAUNCH_ROLE_HOST && network->seat != 0) {
+		return refuse(
+			why, why_size, "%s",
+			"The host's pilot must be first in \"players\": the host takes the first seat.");
+	}
+	return 1;
+}
+
+/* Reads "network", an object holding exactly role, lobby, game and players,
+ * into out->network. Needs out->pilot. */
+static int read_network(const cJSON *network,
+			struct xvt_launch_description *out, char *why,
+			size_t why_size)
+{
+	static const char *const roles[] = {"host", "join"};
+	static const char *const known[] = {"role", "lobby", "game", "players"};
+	if (!cJSON_IsObject(network)) {
+		return refuse(
+			why, why_size, "%s",
+			"A network description needs \"network\", an object.");
+	}
+	const cJSON *item;
+	cJSON_ArrayForEach(item, network)
+	{
+		if (index_of(known, 4, item->string) < 0) {
+			return refuse(
+				why, why_size,
+				"\"network\" holds \"%s\", which it does not take.",
+				item->string);
+		}
+	}
+	const char *role = string_member(network, "role");
+	out->network.role = role ? index_of(roles, 2, role) : -1;
+	if (out->network.role < 0) {
+		return refuse(why, why_size, "%s",
+			      "The network \"role\" must be host or join.");
+	}
+	const char *lobby = string_member(network, "lobby");
+	if (!lobby || strncmp(lobby, "https://", 8) != 0 ||
+	    strlen(lobby) >= sizeof(out->network.lobby)) {
+		return refuse(
+			why, why_size, "%s",
+			"The network \"lobby\" must be an https:// address of at most 511 characters.");
+	}
+	strcpy(out->network.lobby, lobby);
+	const char *game = string_member(network, "game");
+	if (!game || !read_game_id(game, &out->network.game)) {
+		return refuse(
+			why, why_size, "%s",
+			"The network \"game\" must be an application id: 36 lowercase hex digits and hyphens, grouped 8-4-4-4-12.");
+	}
+	return read_players(
+		cJSON_GetObjectItemCaseSensitive(network, "players"),
+		out->pilot, &out->network, why, why_size);
+}
+
+/* The rules a network description keeps beyond its "network" part: a game
+ * type the door flies and a shared seed. */
+static int check_network_battle(const struct xvt_launch_description *out,
+				char *why, size_t why_size)
+{
+	if (out->directory_id != 1 && out->directory_id != 3) {
+		return refuse(
+			why, why_size,
+			"A network battle is a melee or a combat engagement; \"%s\" is neither.",
+			g_game_types[out->directory_id]);
+	}
+	if (!out->has_seed) {
+		return refuse(
+			why, why_size, "%s",
+			"A network battle needs \"seed\": every machine must start from the same one.");
+	}
+	return 1;
+}
+
+/* Checks the members that must be there and nothing else is there, and reads
+ * the mode into out->is_network. */
+static int check_members(const cJSON *root, struct xvt_launch_description *out,
+			 char *why, size_t why_size)
 {
 	static const char *const known[] = {
-		"schema_version", "mode",    "game_type", "side",
-		"mission",	  "pilot",   "result",	  "seed",
-		"ai_program",	  "settings"};
+		"schema_version", "mode",     "game_type", "side",
+		"mission",	  "pilot",    "result",	   "seed",
+		"ai_program",	  "settings", "network"};
 	const cJSON *item;
 	cJSON_ArrayForEach(item, root)
 	{
-		if (index_of(known, 10, item->string) < 0) {
+		if (index_of(known, 11, item->string) < 0) {
 			return refuse(
 				why, why_size,
 				"The description holds \"%s\", which it does not take.",
@@ -432,10 +603,18 @@ static int check_members(const cJSON *root, char *why, size_t why_size)
 			      "\"schema_version\" must be 1.");
 	}
 	const char *mode = string_member(root, "mode");
-	if (!mode || strcmp(mode, "single_player") != 0) {
+	if (mode && !strcmp(mode, "network")) {
+		out->is_network = 1;
+	} else if (!mode || strcmp(mode, "single_player") != 0) {
 		return refuse(
 			why, why_size, "%s",
-			"Only single player is supported: \"mode\" must be \"single_player\".");
+			"\"mode\" must be \"single_player\" or \"network\".");
+	}
+	if (!out->is_network &&
+	    cJSON_GetObjectItemCaseSensitive(root, "network")) {
+		return refuse(
+			why, why_size, "%s",
+			"A single player description takes no \"network\".");
 	}
 	return 1;
 }
@@ -466,7 +645,7 @@ int xvt_launch_description_parse(const char *text,
 		return refuse(why, why_size, "%s",
 			      "The description is not a JSON object.");
 	}
-	int ok = check_members(root, why, why_size);
+	int ok = check_members(root, out, why, why_size);
 	const char *type = ok ? string_member(root, "game_type") : NULL;
 	if (ok && !type) {
 		ok = refuse(why, why_size, "%s", "\"game_type\" is missing.");
@@ -494,6 +673,36 @@ int xvt_launch_description_parse(const char *text,
 			cJSON_GetObjectItemCaseSensitive(root, "settings");
 		ok = !settings || read_settings(settings, out, why, why_size);
 	}
+	if (ok && out->is_network) {
+		ok = check_network_battle(out, why, why_size) &&
+		     read_network(
+			     cJSON_GetObjectItemCaseSensitive(root, "network"),
+			     out, why, why_size);
+	}
 	cJSON_Delete(root);
 	return ok;
+}
+
+uint32_t
+xvt_launch_setup_fingerprint(const struct xvt_launch_description *description)
+{
+	const struct xvt_launch_settings *set = &description->settings;
+	const struct xvt_launch_game_id *game = &description->network.game;
+	char text[512];
+	int length = snprintf(
+		text, sizeof(text),
+		"%d|%s|%u|%d,%d,%d,%d,%d,%d,%d,%d|%08x-%04x-%04x-%02x%02x%02x%02x%02x%02x%02x%02x|",
+		description->directory_id, description->mission_file,
+		description->seed, set->difficulty, set->collisions,
+		set->craft_jumping, set->random_setup, set->battle_length,
+		set->mission_time_limit, set->continue_sequence, set->sith,
+		(unsigned)game->data1, (unsigned)game->data2,
+		(unsigned)game->data3, game->data4[0], game->data4[1],
+		game->data4[2], game->data4[3], game->data4[4], game->data4[5],
+		game->data4[6], game->data4[7]);
+	for (int seat = 0; seat < description->network.player_count; ++seat) {
+		length += snprintf(text + length, sizeof(text) - (size_t)length,
+				   "%s,", description->network.players[seat]);
+	}
+	return xvt_flight_wire_crc32c((const uint8_t *)text, (size_t)length);
 }

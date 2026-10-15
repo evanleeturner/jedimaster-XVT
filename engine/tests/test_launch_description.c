@@ -3,7 +3,8 @@
  * header. The module holds no state and touches no game data: each case hands
  * it made-up JSON text. Every refusal the header lists has a case, and each
  * case checks the sentence names what is wrong, so a refusal for the wrong
- * reason is caught. */
+ * reason is caught. The network part's cases build on one made-up melee
+ * between the pilots Ace (the host) and Rook. */
 #include <stdio.h>
 #include <string.h>
 
@@ -191,8 +192,8 @@ static void check_text_refusals(void)
 		"schema_version");
 	refused("{\"mode\":\"single_player\"}", "schema_version");
 	refused("{\"schema_version\":1,\"mode\":\"multiplayer\"}",
-		"Only single player");
-	refused("{\"schema_version\":1}", "Only single player");
+		"\"mode\" must be");
+	refused("{\"schema_version\":1}", "\"mode\" must be");
 	const char *head = "{\"schema_version\":1,\"mode\":\"single_player\",";
 	char text[TEXT_CAPACITY];
 	snprintf(text, sizeof(text), "%s\"players\":2}", head);
@@ -483,6 +484,289 @@ static void check_text_check(void)
 	XVT_ASSERT_INT_EQ(xvt_launch_text_check("sfx", NULL, 10), 0);
 }
 
+/* The made-up application id and the fields it reads as. */
+#define GAME_ID "0123abcd-4567-89ef-0123-456789abcdef"
+
+/* A network description of one made-up battle: the game type, side and
+ * mission, the pilot, the members after the seed (settings, result,
+ * ai_program; "" for none), and the inside of "network". Returns a buffer
+ * valid until the next call. */
+static const char *net_doc(const char *head, const char *pilot,
+			   const char *rest, const char *network)
+{
+	static char text[TEXT_CAPACITY];
+	snprintf(text, sizeof(text),
+		 "{\"schema_version\":1,\"mode\":\"network\",%s,"
+		 "\"pilot\":\"%s\",\"seed\":7,%s\"network\":{%s}}",
+		 head, pilot, rest, network);
+	return text;
+}
+
+/* The game type, side and mission of the made-up melee. */
+#define MELEE                                                                  \
+	"\"game_type\":\"melee\",\"side\":\"none\",\"mission\":\"melee/m1.tie\""
+/* The inside of "network" for the host Ace and the joiner Rook. */
+#define HOST_PART                                                              \
+	"\"role\":\"host\",\"lobby\":\"https://192.0.2.1:8781\","              \
+	"\"game\":\"" GAME_ID "\",\"players\":[\"Ace\",\"Rook\"]"
+#define JOIN_PART                                                              \
+	"\"role\":\"join\",\"lobby\":\"https://192.0.2.1:8781\","              \
+	"\"game\":\"" GAME_ID "\",\"players\":[\"Ace\",\"Rook\"]"
+
+static void check_valid_network(void)
+{
+	XVT_ASSERT_INT_EQ(parse(net_doc(MELEE, "Ace", "", HOST_PART)), 1);
+	XVT_ASSERT_INT_EQ(g_out.is_network, 1);
+	XVT_ASSERT_INT_EQ(g_out.network.role, XVT_LAUNCH_ROLE_HOST);
+	XVT_ASSERT_INT_EQ(strcmp(g_out.network.lobby, "https://192.0.2.1:8781"),
+			  0);
+	XVT_ASSERT_INT_EQ(g_out.network.game.data1, 0x0123abcd);
+	XVT_ASSERT_INT_EQ(g_out.network.game.data2, 0x4567);
+	XVT_ASSERT_INT_EQ(g_out.network.game.data3, 0x89ef);
+	const unsigned char data4[8] = {0x01, 0x23, 0x45, 0x67,
+					0x89, 0xab, 0xcd, 0xef};
+	XVT_ASSERT_INT_EQ(memcmp(g_out.network.game.data4, data4, 8), 0);
+	XVT_ASSERT_INT_EQ(g_out.network.player_count, 2);
+	XVT_ASSERT_INT_EQ(strcmp(g_out.network.players[0], "Ace"), 0);
+	XVT_ASSERT_INT_EQ(strcmp(g_out.network.players[1], "Rook"), 0);
+	XVT_ASSERT_INT_EQ(g_out.network.seat, 0);
+	XVT_ASSERT_INT_EQ(g_out.side, XVT_LAUNCH_SIDE_NONE);
+	XVT_ASSERT_INT_EQ(g_out.has_seed, 1);
+	XVT_ASSERT_INT_EQ((int)g_out.seed, 7);
+
+	/* The joiner's seat is its place in the list, found in any case. */
+	XVT_ASSERT_INT_EQ(parse(net_doc(MELEE, "rook", "", JOIN_PART)), 1);
+	XVT_ASSERT_INT_EQ(g_out.network.role, XVT_LAUNCH_ROLE_JOIN);
+	XVT_ASSERT_INT_EQ(g_out.network.seat, 1);
+
+	/* A combat engagement takes no side in a network battle; eight seats
+	 * fit. */
+	XVT_ASSERT_INT_EQ(
+		parse(net_doc(
+			"\"game_type\":\"combat\",\"side\":\"none\","
+			"\"mission\":\"combat/c1.tie\"",
+			"H", "",
+			"\"role\":\"join\",\"lobby\":\"https://h\","
+			"\"game\":\"" GAME_ID "\",\"players\":"
+			"[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\",\"G\",\"H\"]")),
+		1);
+	XVT_ASSERT_INT_EQ(g_out.directory_id, 3);
+	XVT_ASSERT_INT_EQ(g_out.network.player_count, 8);
+	XVT_ASSERT_INT_EQ(g_out.network.seat, 7);
+
+	/* A single player description leaves the network part zeroed. */
+	XVT_ASSERT_INT_EQ(parse(doc("melee", "none", "melee/m1.tie", PILOT)),
+			  1);
+	XVT_ASSERT_INT_EQ(g_out.is_network, 0);
+	XVT_ASSERT_INT_EQ(g_out.network.player_count, 0);
+	XVT_ASSERT_INT_EQ(g_out.network.lobby[0], 0);
+}
+
+static void check_network_refusals(void)
+{
+	refused("{\"schema_version\":1,\"mode\":\"single_player\","
+		"\"game_type\":\"melee\",\"side\":\"none\","
+		"\"mission\":\"melee/m1.tie\"," PILOT ",\"network\":{}}",
+		"takes no \"network\"");
+	refused("{\"schema_version\":1,\"mode\":\"network\"," MELEE ","
+		"\"pilot\":\"Ace\",\"seed\":7}",
+		"needs \"network\"");
+	refused(net_doc(MELEE, "Ace", "", HOST_PART ",\"port\":8781"),
+		"\"port\"");
+	refused(net_doc(MELEE, "Ace", "",
+			"\"role\":\"watch\",\"lobby\":\"https://h\","
+			"\"game\":\"" GAME_ID
+			"\",\"players\":[\"Ace\",\"Rook\"]"),
+		"\"role\" must be host or join");
+	refused(net_doc(MELEE, "Ace", "",
+			"\"role\":\"host\",\"lobby\":\"http://h\","
+			"\"game\":\"" GAME_ID
+			"\",\"players\":[\"Ace\",\"Rook\"]"),
+		"\"lobby\" must be an https://");
+	refused(net_doc(MELEE, "Ace", "",
+			"\"role\":\"host\","
+			"\"game\":\"" GAME_ID
+			"\",\"players\":[\"Ace\",\"Rook\"]"),
+		"\"lobby\" must be an https://");
+
+	/* An address of 512 characters is one too many. */
+	char long_part[TEXT_CAPACITY];
+	char lobby[513];
+	memset(lobby, 'h', sizeof(lobby));
+	memcpy(lobby, "https://", 8);
+	lobby[512] = '\0';
+	snprintf(long_part, sizeof(long_part),
+		 "\"role\":\"host\",\"lobby\":\"%s\",\"game\":\"" GAME_ID
+		 "\",\"players\":[\"Ace\",\"Rook\"]",
+		 lobby);
+	static char long_doc[2 * TEXT_CAPACITY];
+	snprintf(long_doc, sizeof(long_doc),
+		 "{\"schema_version\":1,\"mode\":\"network\"," MELEE
+		 ",\"pilot\":\"Ace\",\"seed\":7,\"network\":{%s}}",
+		 long_part);
+	refused(long_doc, "at most 511");
+	lobby[511] = '\0';
+	snprintf(long_part, sizeof(long_part),
+		 "\"role\":\"host\",\"lobby\":\"%s\",\"game\":\"" GAME_ID
+		 "\",\"players\":[\"Ace\",\"Rook\"]",
+		 lobby);
+	snprintf(long_doc, sizeof(long_doc),
+		 "{\"schema_version\":1,\"mode\":\"network\"," MELEE
+		 ",\"pilot\":\"Ace\",\"seed\":7,\"network\":{%s}}",
+		 long_part);
+	XVT_ASSERT_INT_EQ(parse(long_doc), 1);
+
+	/* Application ids in upper case, too short, too long, with a hyphen
+	 * moved, with a letter past f, and missing. */
+	const char *bad_games[] = {"0123ABCD-4567-89ef-0123-456789abcdef",
+				   "0123abcd-4567-89ef-0123-456789abcde",
+				   "0123abcd-4567-89ef-0123-456789abcdef0",
+				   "0123abcd4-567-89ef-0123-456789abcdef",
+				   "0123abcd-4567-89ef-0123-456789abcdeg"};
+	char part[TEXT_CAPACITY];
+	for (size_t index = 0; index < sizeof(bad_games) / sizeof(char *);
+	     ++index) {
+		snprintf(part, sizeof(part),
+			 "\"role\":\"host\",\"lobby\":\"https://h\","
+			 "\"game\":\"%s\",\"players\":[\"Ace\",\"Rook\"]",
+			 bad_games[index]);
+		refused(net_doc(MELEE, "Ace", "", part), "application id");
+	}
+	refused(net_doc(MELEE, "Ace", "",
+			"\"role\":\"host\",\"lobby\":\"https://h\","
+			"\"players\":[\"Ace\",\"Rook\"]"),
+		"application id");
+
+	/* Seats: too few, too many, not a list, not names, a bad name, a
+	 * name twice, the pilot missing, the host not first. */
+	const struct {
+		const char *players;
+		const char *pilot;
+		const char *why;
+	} seats[] = {
+		{"[\"Ace\"]", "Ace", "2 to 8"},
+		{"[\"A\",\"B\",\"C\",\"D\",\"E\",\"F\",\"G\",\"H\",\"I\"]", "A",
+		 "2 to 8"},
+		{"\"Ace,Rook\"", "Ace", "2 to 8"},
+		{"[\"Ace\",7]", "Ace", "must be a name"},
+		{"[\"Ace\",\"Ro~ok\"]", "Ace", "\"Ro~ok\""},
+		{"[\"Ace\",\"Rook\",\"ace\"]", "Ace", "twice"},
+		{"[\"Rook\",\"Wedge\"]", "Ace", "not among"},
+		{"[\"Rook\",\"Ace\"]", "Ace", "must be first"},
+	};
+	for (size_t index = 0; index < sizeof(seats) / sizeof(seats[0]);
+	     ++index) {
+		snprintf(part, sizeof(part),
+			 "\"role\":\"host\",\"lobby\":\"https://h\","
+			 "\"game\":\"" GAME_ID "\",\"players\":%s",
+			 seats[index].players);
+		refused(net_doc(MELEE, seats[index].pilot, "", part),
+			seats[index].why);
+	}
+
+	/* The battle itself: a game type the door does not fly, a side, no
+	 * seed. */
+	refused(net_doc("\"game_type\":\"training\",\"side\":\"none\","
+			"\"mission\":\"train/t1.tie\"",
+			"Ace", "", HOST_PART),
+		"\"training\" is neither");
+	refused(net_doc("\"game_type\":\"battle\",\"side\":\"none\","
+			"\"mission\":\"battle/b1.lst\"",
+			"Ace", "", HOST_PART),
+		"\"battle\" is neither");
+	refused(net_doc("\"game_type\":\"combat\",\"side\":\"rebel\","
+			"\"mission\":\"combat/c1.tie\"",
+			"Ace", "", HOST_PART),
+		"seat's team decides");
+	refused("{\"schema_version\":1,\"mode\":\"network\"," MELEE ","
+		"\"pilot\":\"Ace\",\"network\":{" HOST_PART "}}",
+		"needs \"seed\"");
+}
+
+/* The fingerprint of text, which must parse. */
+static uint32_t fingerprint(const char *text)
+{
+	XVT_ASSERT_INT_EQ(parse(text), 1);
+	return xvt_launch_setup_fingerprint(&g_out);
+}
+
+static void check_setup_fingerprint(void)
+{
+	/* The host's and the joiner's descriptions of one battle agree, though
+	 * the pilot, role, lobby, result path and AI program differ. */
+	uint32_t host = fingerprint(
+		net_doc(MELEE, "Ace", "\"settings\":{\"difficulty\":\"hard\"},",
+			HOST_PART));
+	uint32_t joiner = fingerprint(net_doc(
+		MELEE, "Rook",
+		"\"settings\":{\"difficulty\":\"hard\"},\"result\":\"r.json\","
+		"\"ai_program\":{\"python\":\"py\",\"path\":\"ai\"},",
+		"\"role\":\"join\",\"lobby\":\"https://203.0.113.9\","
+		"\"game\":\"" GAME_ID "\",\"players\":[\"Ace\",\"Rook\"]"));
+	XVT_ASSERT_INT_EQ(host, joiner);
+
+	/* Each shared field moves it. */
+	const char *other_mission = "\"game_type\":\"melee\",\"side\":\"none\","
+				    "\"mission\":\"melee/m2.tie\"";
+	const char *other_type = "\"game_type\":\"combat\",\"side\":\"none\","
+				 "\"mission\":\"combat/m1.tie\"";
+	const struct {
+		const char *head;
+		const char *settings;
+		const char *network;
+	} changes[] = {
+		{other_mission, "\"settings\":{\"difficulty\":\"hard\"},",
+		 HOST_PART},
+		{other_type, "\"settings\":{\"difficulty\":\"hard\"},",
+		 HOST_PART},
+		{MELEE, "\"settings\":{\"difficulty\":\"easy\"},", HOST_PART},
+		{MELEE, "", HOST_PART},
+		{MELEE,
+		 "\"settings\":{\"difficulty\":\"hard\",\"sith\":\"lord\"},",
+		 HOST_PART},
+		{MELEE,
+		 "\"settings\":{\"difficulty\":\"hard\",\"collisions\":false},",
+		 HOST_PART},
+		{MELEE, "\"settings\":{\"difficulty\":\"hard\"},",
+		 "\"role\":\"host\",\"lobby\":\"https://h\","
+		 "\"game\":\"0123abcd-4567-89ef-0123-456789abcdee\","
+		 "\"players\":[\"Ace\",\"Rook\"]"},
+		{MELEE, "\"settings\":{\"difficulty\":\"hard\"},",
+		 "\"role\":\"host\",\"lobby\":\"https://h\","
+		 "\"game\":\"" GAME_ID "\",\"players\":[\"Ace\",\"Wedge\"]"},
+		{MELEE, "\"settings\":{\"difficulty\":\"hard\"},",
+		 "\"role\":\"host\",\"lobby\":\"https://h\","
+		 "\"game\":\"" GAME_ID
+		 "\",\"players\":[\"Ace\",\"Rook\",\"Wedge\"]"},
+	};
+	for (size_t index = 0; index < sizeof(changes) / sizeof(changes[0]);
+	     ++index) {
+		uint32_t changed = fingerprint(net_doc(
+			changes[index].head, "Ace", changes[index].settings,
+			changes[index].network));
+		if (changed == host) {
+			fprintf(stderr, "change %zu kept the fingerprint\n",
+				index);
+			XVT_ASSERT_TRUE(0);
+		}
+	}
+
+	/* The seed moves it, and so does the seat order. */
+	char text[TEXT_CAPACITY];
+	snprintf(text, sizeof(text),
+		 "{\"schema_version\":1,\"mode\":\"network\"," MELEE ","
+		 "\"pilot\":\"Ace\",\"seed\":8,"
+		 "\"settings\":{\"difficulty\":\"hard\"},"
+		 "\"network\":{" HOST_PART "}}");
+	XVT_ASSERT_TRUE(fingerprint(text) != host);
+	XVT_ASSERT_TRUE(
+		fingerprint(net_doc(
+			MELEE, "Ace", "\"settings\":{\"difficulty\":\"hard\"},",
+			"\"role\":\"join\",\"lobby\":\"https://h\","
+			"\"game\":\"" GAME_ID
+			"\",\"players\":[\"Rook\",\"Ace\"]")) != host);
+}
+
 int main(void)
 {
 	check_valid_training();
@@ -499,5 +783,8 @@ int main(void)
 	check_name_checks();
 	check_switch_words();
 	check_text_check();
+	check_valid_network();
+	check_network_refusals();
+	check_setup_fingerprint();
 	return 0;
 }
