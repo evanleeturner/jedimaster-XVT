@@ -10488,6 +10488,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 		g_model_defs[model_index].max_speed;
 	int ai_skill_level = g_spawn_group_ai;
 	g_cur_craft->ai_skill = g_ai_skill_value_q16_by_level[ai_skill_level];
+	g_cur_craft->ai_rank = (uint8_t)ai_skill_level;
 	g_cur_craft->cannon_group_count = 0;
 	{
 		uint16_t laser_slot_count = 0;
@@ -11119,7 +11120,7 @@ uint16_t mission_init_flight_group_object_slot(void)
 		g_object_table[object_index].genus_id = CRAFT_GENUS_TRANSPORT;
 	}
 	XVT_LOG_DEBUG(
-		"mission.craft_spawned fg=%d ordinal=%d object=%u type=%u genus=%d signature=%u number=%d leader=%d slot=%d x=%d y=%d z=%d yaw=%u pitch=%u hull=%u front=%d rear=%d lasers=%d warheads=%d beam=%d cm=%d cm_count=%d systems=%04x activity=%d throttle=%u speed=%u ai=%d ai_seed=%d predicted=%d",
+		"mission.craft_spawned fg=%d ordinal=%d object=%u type=%u genus=%d signature=%u number=%d leader=%d slot=%d x=%d y=%d z=%d yaw=%u pitch=%u hull=%u front=%d rear=%d lasers=%d warheads=%d beam=%d cm=%d cm_count=%d systems=%04x activity=%d throttle=%u speed=%u ai=%d rank=%d ai_seed=%d predicted=%d",
 		(int)g_current_flight_group_idx,
 		(int)g_cur_craft->craft_ordinal, (unsigned)object_index,
 		(unsigned)object_type,
@@ -11143,7 +11144,8 @@ uint16_t mission_init_flight_group_object_slot(void)
 		(int)g_cur_craft->ai_controller.activity,
 		(unsigned)g_cur_craft->throttle_speed,
 		(unsigned)g_object_table[object_index].mobj->speed,
-		ai_skill_level, (int)g_cur_craft->ai_controller.saved_rand_seed,
+		ai_skill_level, (int)g_cur_craft->ai_rank,
+		(int)g_cur_craft->ai_controller.saved_rand_seed,
 		g_flight_sim_side_effects_suppressed);
 	return object_index;
 }

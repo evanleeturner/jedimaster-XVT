@@ -393,9 +393,16 @@ struct craft_data {
 	 * program's answer. It sits before unused3f2 so the world checksums
 	 * cover it. */
 	uint8_t ai_notebook[AI_NOTEBOOK_BYTES];
+	/* The AI rank of the craft: its flight group's AI level at spawn, 0
+	 * to 5, 6 for a Sith Apprentice and 7 for a Sith Lord. The tables
+	 * that score a kill read the level clamped to 5 instead
+	 * (ai_brain_stat_level). Only spawn writes it; nothing but the log
+	 * reads it yet. It sits before unused3f2 so the world checksums cover
+	 * it. */
+	uint8_t ai_rank;
 	/* No game code reads or writes it; the world checksums subtract its
 	 * size from the record bytes they sum. */
-	uint8_t unused3f2[44];
+	uint8_t unused3f2[43];
 	/* Objects tied to the turrets. No code points one at an object: every
 	 * write clears, rebases or restores one, so they stay NULL. */
 	struct object_record *turret_object_links[16];

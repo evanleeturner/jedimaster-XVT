@@ -825,6 +825,50 @@ static void check_notebook_bytes_move_checksums(void)
 	}
 }
 
+/* A craft's AI rank rides a world save and an image, and one more in it
+ * moves the region sums the network compares and the live checksum. */
+static void check_ai_rank_in_save_image_and_checksums(void)
+{
+	notebook_world();
+	for (int craft = 0; craft < 8; ++craft) {
+		g_big_craft[craft].ai_rank = (uint8_t)(craft % 8);
+	}
+	uint8_t *saved_buffer = g_world_state_buffer;
+	g_world_state_buffer = g_image;
+	xvt_snapshot_save();
+	for (int craft = 0; craft < 8; ++craft) {
+		g_big_craft[craft].ai_rank = 0xEE;
+	}
+	xvt_snapshot_restore();
+	for (int craft = 0; craft < 8; ++craft) {
+		XVT_ASSERT_INT_EQ(g_big_craft[craft].ai_rank, craft % 8);
+	}
+	g_world_state_buffer = saved_buffer;
+
+	size_t written = xvt_snapshot_encode(g_image, g_capacity);
+	XVT_ASSERT_TRUE(written > 0);
+	for (int craft = 0; craft < 8; ++craft) {
+		g_big_craft[craft].ai_rank = 0xEE;
+	}
+	XVT_ASSERT_INT_EQ(xvt_snapshot_decode(g_image, written), 1);
+	for (int craft = 0; craft < 8; ++craft) {
+		XVT_ASSERT_INT_EQ(g_big_craft[craft].ai_rank, craft % 8);
+	}
+
+	unsigned before[16];
+	unsigned after[16];
+	unsigned lengths[16];
+	written = xvt_snapshot_encode(g_image, g_capacity);
+	xvt_snapshot_checksum_image(g_image, written, before, lengths);
+	int live_before = xvt_snapshot_live_checksum();
+	g_big_craft[5].ai_rank = 7;
+	written = xvt_snapshot_encode(g_image, g_capacity);
+	xvt_snapshot_checksum_image(g_image, written, after, lengths);
+	int live_after = xvt_snapshot_live_checksum();
+	XVT_ASSERT_TRUE(memcmp(before, after, sizeof before) != 0);
+	XVT_ASSERT_TRUE(live_before != live_after);
+}
+
 int main(void)
 {
 	check_calculate_size();
@@ -848,6 +892,7 @@ int main(void)
 	check_apply_presence_map_inserts_zeroed_blocks();
 	check_notebooks_survive_save_and_image();
 	check_notebook_bytes_move_checksums();
+	check_ai_rank_in_save_image_and_checksums();
 	free(g_dup);
 	free(g_image);
 	return 0;

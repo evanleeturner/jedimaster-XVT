@@ -250,6 +250,7 @@ static const struct field k_craft_fields[] = {
 	CRAFT_FIELD(weapon_slots),
 	CRAFT_FIELD(effective_ai_object_signature),
 	CRAFT_FIELD(turret_target_states),
+	CRAFT_FIELD(ai_rank),
 	CRAFT_FIELD(unused3f2),
 };
 

@@ -267,7 +267,8 @@ struct xvt_snapshot_craft_data {
 	uint16_t effective_ai_object_signature;
 	struct turret_target_state turret_target_states[16];
 	uint8_t ai_notebook[AI_NOTEBOOK_BYTES];
-	uint8_t unused3f2[44];
+	uint8_t ai_rank;
+	uint8_t unused3f2[43];
 	uint32_t turret_object_links[16];
 	uint32_t effective_ai_object_link;
 };
@@ -415,7 +416,8 @@ typedef char xvt_snapshot_size_player_data
 /* The bytes at the start of a craft record that the world checksums read: all
  * but the last 12 bytes of unused3f2 and the two object-link fields after it.
  * A world restore clears the same bytes of an empty slot's craft. A field
- * placed before unused3f2 is read and cleared with them. */
+ * placed before unused3f2 is read and cleared with them; ai_rank, carved out
+ * of the first 32 bytes of unused3f2, keeps the checked span at 1,106. */
 enum {
 	XVT_SNAPSHOT_CRAFT_DATA_CHECKED_BYTES =
 		sizeof(struct xvt_snapshot_craft_data) -
@@ -424,7 +426,7 @@ enum {
 			       ->turret_object_links) -
 		sizeof(((struct xvt_snapshot_craft_data *)0)
 			       ->effective_ai_object_link) +
-		32
+		31
 };
 typedef char xvt_snapshot_checked_bytes_craft_data
 	[(XVT_SNAPSHOT_CRAFT_DATA_CHECKED_BYTES == 1106) ? 1 : -1];

@@ -2720,8 +2720,8 @@
     },
     "mission.craft_spawned": {
       "level": "D",
-      "fields": ["fg", "ordinal", "object", "type", "genus", "signature", "number", "leader", "slot", "x", "y", "z", "yaw", "pitch", "hull", "front", "rear", "lasers", "warheads", "beam", "cm", "cm_count", "systems", "activity", "throttle", "speed", "ai", "ai_seed", "predicted"],
-      "text": "Craft {ordinal} of flight group {fg} was created in object slot {object}: type {type}, class {genus}, identity stamp {signature}, number {number} in its group, leader slot {leader}, player slot {slot} (-1 for none), at {x} {y} {z} heading {yaw} pitch {pitch}; hull {hull}, shields {front} front and {rear} rear, {lasers} laser slots, {warheads} warhead launchers, beam {beam}, countermeasure type {cm} with {cm_count}, systems {systems} (hex), activity {activity}, throttle {throttle}, speed {speed}, AI level {ai}, AI random seed {ai_seed} ({predicted} is 1 in a predicted step, run again once confirmed)"
+      "fields": ["fg", "ordinal", "object", "type", "genus", "signature", "number", "leader", "slot", "x", "y", "z", "yaw", "pitch", "hull", "front", "rear", "lasers", "warheads", "beam", "cm", "cm_count", "systems", "activity", "throttle", "speed", "ai", "rank", "ai_seed", "predicted"],
+      "text": "Craft {ordinal} of flight group {fg} was created in object slot {object}: type {type}, class {genus}, identity stamp {signature}, number {number} in its group, leader slot {leader}, player slot {slot} (-1 for none), at {x} {y} {z} heading {yaw} pitch {pitch}; hull {hull}, shields {front} front and {rear} rear, {lasers} laser slots, {warheads} warhead launchers, beam {beam}, countermeasure type {cm} with {cm_count}, systems {systems} (hex), activity {activity}, throttle {throttle}, speed {speed}, AI level {ai}, AI rank {rank} (the level, 6 for a Sith Apprentice, 7 for a Sith Lord), AI random seed {ai_seed} ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "mission.craft_value": {
       "level": "D",
