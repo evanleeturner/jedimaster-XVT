@@ -18,12 +18,15 @@
 #include "xvt/frontend/pilot_record.h"
 #include "xvt/net/frontend_net.h"
 #include "xvt/net/net.h"
+#include "xvt/net/net_send.h"
 #include "xvt_runtime/ai/ai_program.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
+#include "xvt_runtime/runtime/door_admission.h"
 #include "xvt_runtime/runtime/frontend_cleanup.h"
 #include "xvt_runtime/runtime/launch_description.h"
 #include "xvt_runtime/runtime/launch_result.h"
+#include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/port.h"
 #include "xvt_runtime/runtime/sith.h"
 #include "xvt_runtime/timing/host_clock.h"
@@ -32,18 +35,25 @@ enum {
 	DESCRIPTION_CAPACITY = 65536,
 	RESULT_SUFFIX_CAPACITY = 16,
 	/* The time allowed to get from start-up to the battle. */
-	REACH_LIMIT_US = 180 * 1000000
+	REACH_LIMIT_US = 180 * 1000000,
+	/* Packets a host reads per step while it gathers its seats. */
+	GATHER_PACKETS_PER_STEP = 32
 };
 
 enum {
 	PHASE_CLOSED,
 	PHASE_WAIT_CONCOURSE,
 	PHASE_WAIT_SETUP,
+	PHASE_OPEN_ROOM,
+	PHASE_GATHER,
 	PHASE_LAUNCHING,
 	PHASE_FINISHED
 };
 
 static struct xvt_launch_description g_description;
+/* A network host's seats and the player id that holds each (0 while free). */
+static struct xvt_door_seats g_seats;
+static DPID g_seat_players[XVT_LAUNCH_SEAT_CAPACITY];
 static char g_result_path[XVT_LAUNCH_PATH_CAPACITY + RESULT_SUFFIX_CAPACITY];
 static int g_phase = PHASE_CLOSED;
 static uint64_t g_started_us;
@@ -175,6 +185,24 @@ int xvt_launch_door_open(const char *path, uint32_t run_id,
 		g_description.settings.continue_sequence,
 		g_description.settings.sith, g_description.seed,
 		g_description.has_seed);
+	if (g_description.is_network) {
+		XVT_LOG_INFO(
+			"launch.network_described role=%d seats=%d seat=%d setup=%08x",
+			g_description.network.role,
+			g_description.network.player_count,
+			g_description.network.seat,
+			(unsigned)xvt_launch_setup_fingerprint(&g_description));
+	}
+	if (g_description.is_network &&
+	    g_description.network.role == XVT_LAUNCH_ROLE_JOIN) {
+		snprintf(
+			why, sizeof(why), "%s",
+			"This game build can host a network battle but cannot join one yet.");
+		XVT_LOG_INFO("launch.refused code=%d why=\"%s\"",
+			     XVT_LAUNCH_EXIT_REFUSED, why);
+		write_failure(XVT_LAUNCH_EXIT_REFUSED, why);
+		return 0;
+	}
 	if (g_description.ai_python[0] &&
 	    !start_ai_program(run_id, ai_log_file)) {
 		return 0;
@@ -233,9 +261,9 @@ static void restore_faction_choices(int faction)
 			.saved_mission_description_id;
 }
 
-/* The concourse step: loads the pilot named, picks the side as a click on its
- * button does, and presses Fly Solo as the button does. */
-static void open_solo_setup(void)
+/* Loads the pilot named, as the pilot list does, and checks the names the
+ * launch line will carry. Returns 1, or 0 after failing. */
+static int load_pilot(void)
 {
 	char why[XVT_LAUNCH_WHY_CAPACITY];
 	if (strcasecmp(g_pilot_data.name, g_description.pilot) != 0 &&
@@ -246,7 +274,7 @@ static void open_solo_setup(void)
 	if (strcasecmp(g_pilot_data.name, g_description.pilot) != 0) {
 		fail(XVT_LAUNCH_EXIT_REFUSED,
 		     "The pilot named in the description is not among the game's pilots.");
-		return;
+		return 0;
 	}
 	if (!xvt_launch_text_check(g_pilot_data.multiplayer_game_name, why,
 				   sizeof(why)) ||
@@ -256,6 +284,16 @@ static void open_solo_setup(void)
 			    .formal_name,
 		    why, sizeof(why))) {
 		fail(XVT_LAUNCH_EXIT_REFUSED, why);
+		return 0;
+	}
+	return 1;
+}
+
+/* The concourse step: loads the pilot named, picks the side as a click on its
+ * button does, and presses Fly Solo as the button does. */
+static void open_solo_setup(void)
+{
+	if (!load_pilot()) {
 		return;
 	}
 	if (g_description.side != XVT_LAUNCH_SIDE_NONE &&
@@ -382,6 +420,119 @@ static void start_battle(void)
 		     g_description.mission_file);
 }
 
+/* The concourse step of a network host: loads the pilot and begins hosting
+ * at the description's matchmaker under the battle's own application id, as
+ * the Host button does with the game's fixed id and the settings' lobby. */
+static void open_network_room(void)
+{
+	if (!load_pilot()) {
+		return;
+	}
+	const struct xvt_launch_game_id *id = &g_description.network.game;
+	GUID game;
+	game.Data1 = id->data1;
+	game.Data2 = id->data2;
+	game.Data3 = id->data3;
+	memcpy(game.Data4, id->data4, sizeof(game.Data4));
+	/* The description holds at most 511 characters, which the directory
+	 * takes. */
+	(void)xvt_network_session_use_door(g_description.network.lobby, &game);
+	char rating_text[2] = {(char)(g_pilot_data.rating + 1), 0};
+	xvt_network_session_begin_host(rating_text, g_pilot_data.name,
+				       g_pilot_data.multiplayer_game_name, 1);
+	g_phase = PHASE_OPEN_ROOM;
+	XVT_LOG_INFO("launch.room_opening seats=%d",
+		     g_description.network.player_count);
+}
+
+/* The host's step while its room opens: drives the session, as the network
+ * task does for the Host button, until the room is listed; then marks it
+ * accepting and seats the host. A session that fails ends the door. */
+static void wait_for_room(void)
+{
+	(void)xvt_network_session_update();
+	struct xvt_network_session_status status =
+		xvt_network_session_get_status();
+	if (status.state == XVT_NETWORK_SESSION_FAILED) {
+		char why[XVT_LAUNCH_WHY_CAPACITY];
+		snprintf(
+			why, sizeof(why),
+			"The battle's room could not be opened at the matchmaker (directory error %u).",
+			(unsigned)status.error);
+		fail(XVT_LAUNCH_EXIT_NOT_REACHED, why);
+		return;
+	}
+	if (status.state != XVT_NETWORK_SESSION_ESTABLISHED) {
+		return;
+	}
+	xvt_door_seats_fill(&g_seats, &g_description);
+	memset(g_seat_players, 0, sizeof(g_seat_players));
+	g_seat_players[0] = (DPID)net_get_local_player_id();
+	xvt_network_session_set_door_accepting(1);
+	g_phase = PHASE_GATHER;
+	XVT_LOG_INFO("launch.room_open seats=%d setup=%08x player=%u",
+		     g_seats.count, (unsigned)g_seats.setup,
+		     (unsigned)g_seat_players[0]);
+}
+
+/* Answers one asking from sender, a player of the session: admits it to its
+ * seat or refuses it, by the seats and the name its game plays as. */
+static void answer_asking(DPID sender, int protocol, uint32_t setup)
+{
+	const struct net_player_info *player = net_find_player((int)sender);
+	int seat = -1;
+	enum xvt_door_verdict verdict =
+		player ? xvt_door_admit(&g_seats, player->player_name, protocol,
+					setup, &seat)
+		       : XVT_DOOR_REFUSE_NOT_LISTED;
+	int32_t answer[XVT_DOOR_PACKET_WORDS];
+	xvt_door_make_answer(answer, verdict, seat);
+	net_send_packet_and_flush((int)sender, answer, sizeof(answer));
+	if (verdict != XVT_DOOR_ADMIT) {
+		XVT_LOG_WARN(
+			"launch.door_refused player=%u name=\"%s\" verdict=%d protocol=%d setup=%08x",
+			(unsigned)sender, player ? player->player_name : "",
+			(int)verdict, protocol, (unsigned)setup);
+		return;
+	}
+	g_seat_players[seat] = sender;
+	net_set_player_ready((int)sender);
+	XVT_LOG_INFO("launch.door_admitted player=%u seat=%d name=\"%s\"",
+		     (unsigned)sender, seat, player->player_name);
+}
+
+/* The host's step while it gathers: answers the askings that came, and once
+ * every seat is in, closes the room. A packet other than an asking is
+ * dropped: no lobby runs to read it. */
+static void gather_seats(void)
+{
+	for (int count = 0; count < GATHER_PACKETS_PER_STEP; ++count) {
+		DPID sender;
+		uint32_t size;
+		const int32_t *packet = net_get_next_app_packet(&sender, &size);
+		if (!packet) {
+			break;
+		}
+		int protocol;
+		uint32_t setup;
+		if (xvt_door_read_ask(packet, size, &protocol, &setup)) {
+			answer_asking(sender, protocol, setup);
+		} else {
+			XVT_LOG_DEBUG(
+				"launch.door_packet_dropped player=%u type=%d bytes=%u",
+				(unsigned)sender, size >= 4 ? packet[0] : -1,
+				(unsigned)size);
+		}
+	}
+	if (!xvt_door_seats_full(&g_seats)) {
+		return;
+	}
+	xvt_network_session_set_door_accepting(0);
+	XVT_LOG_INFO("launch.door_seated seats=%d", g_seats.count);
+	fail(XVT_LAUNCH_EXIT_NOT_REACHED,
+	     "Every seat is in, but this game build cannot start a network flight yet.");
+}
+
 void xvt_launch_door_step(void)
 {
 	if (!xvt_launch_door_is_active()) {
@@ -397,10 +548,18 @@ void xvt_launch_door_step(void)
 		return;
 	}
 	if (g_phase == PHASE_WAIT_CONCOURSE && screen_is(concourse_update)) {
-		open_solo_setup();
+		if (g_description.is_network) {
+			open_network_room();
+		} else {
+			open_solo_setup();
+		}
 	} else if (g_phase == PHASE_WAIT_SETUP &&
 		   screen_is(mission_setup_update)) {
 		start_battle();
+	} else if (g_phase == PHASE_OPEN_ROOM) {
+		wait_for_room();
+	} else if (g_phase == PHASE_GATHER) {
+		gather_seats();
 	}
 }
 

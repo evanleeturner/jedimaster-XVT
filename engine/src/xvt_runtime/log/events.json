@@ -2398,6 +2398,26 @@
       "fields": ["directory", "side", "mission", "pilot"],
       "text": "The launch description asks for a battle in mission folder number {directory} (0 training, 1 melee, 2 tournament, 3 combat, 4 battle, 5 campaign), side {side} (-1 none, 0 rebel, 1 imperial), mission file {mission}, flown by pilot {pilot}"
     },
+    "launch.door_admitted": {
+      "level": "I",
+      "fields": ["player", "seat", "name"],
+      "text": "The host let player {player} in, as {name} in seat {seat}"
+    },
+    "launch.door_packet_dropped": {
+      "level": "D",
+      "fields": ["player", "type", "bytes"],
+      "text": "The gathering host dropped a packet of type {type}, {bytes} bytes, from player {player}"
+    },
+    "launch.door_refused": {
+      "level": "W",
+      "fields": ["player", "name", "verdict", "protocol", "setup"],
+      "text": "The host refused player {player} playing as {name}: verdict {verdict}, its protocol {protocol} and setup fingerprint {setup}"
+    },
+    "launch.door_seated": {
+      "level": "I",
+      "fields": ["seats"],
+      "text": "Every one of the {seats} seats is in; the host's room takes no more joiners"
+    },
     "launch.faction_chosen": {
       "level": "D",
       "fields": ["faction", "team", "directory"],
@@ -2407,6 +2427,11 @@
       "level": "D",
       "fields": ["directory", "mission", "index"],
       "text": "The launch door picked mission id {mission} at place {index} of the list of mission folder number {directory}"
+    },
+    "launch.network_described": {
+      "level": "I",
+      "fields": ["role", "seats", "seat", "setup"],
+      "text": "The description names a network battle: role {role}, {seats} seats, this pilot in seat {seat}, setup fingerprint {setup}"
     },
     "launch.opened": {
       "level": "I",
@@ -2452,6 +2477,16 @@
       "level": "I",
       "fields": ["path", "exit"],
       "text": "The launch result file {path} was written, with exit code {exit}"
+    },
+    "launch.room_open": {
+      "level": "I",
+      "fields": ["seats", "setup", "player"],
+      "text": "The battle's room is listed and takes joiners: {seats} seats, setup fingerprint {setup}, the host playing as {player}"
+    },
+    "launch.room_opening": {
+      "level": "I",
+      "fields": ["seats"],
+      "text": "The door begins hosting a network battle of {seats} seats at the description's matchmaker"
     },
     "launch.settings": {
       "level": "D",
