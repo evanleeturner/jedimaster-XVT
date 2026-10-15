@@ -1,7 +1,8 @@
 /* Checks the network door's admission (xvt_runtime/runtime/door_admission.h)
  * against the promises in its header. Each case reads a made-up description
  * through the real parser, so the seats and the fingerprint are the ones a
- * host would hold: a melee whose seats are Ace (the host), Rook and Wedge. */
+ * host would hold: a melee whose seats are Ace (the host), Rook and Wedge.
+ * The room finder reads made-up matchmaker listings. */
 #include <stdio.h>
 #include <string.h>
 
@@ -172,6 +173,56 @@ static void check_packets(void)
 	XVT_ASSERT_INT_EQ(xvt_door_read_ask(packet, 12, &protocol, &setup), 0);
 }
 
+/* A matchmaker's listing, too big for the stack. */
+static AeronDplayDirectorySnapshot g_listing;
+
+/* Puts room index in the listing: joinable or not, with players names. */
+static void list_room(unsigned index, int joinable, unsigned players,
+		      const char *const *names)
+{
+	AeronDplayRoomMetadata *room = &g_listing.rooms[index].metadata;
+	memset(room, 0, sizeof(*room));
+	room->joinable = (uint8_t)joinable;
+	room->players = (uint8_t)players;
+	room->max_players = 8;
+	for (unsigned player = 0; player < players; ++player) {
+		snprintf(room->roster[player].name,
+			 sizeof(room->roster[player].name), "%s",
+			 names[player]);
+	}
+}
+
+static void check_find_room(void)
+{
+	static const char *const others[] = {"Han", "Leia"};
+	static const char *const ace_second[] = {"Rook", "ace"};
+	static const char *const ace_first[] = {"Ace"};
+	memset(&g_listing, 0, sizeof(g_listing));
+	/* An empty listing holds no room. */
+	XVT_ASSERT_INT_EQ(xvt_door_find_room(&g_listing, "Ace"), -1);
+	/* A room that takes no joiners is passed over, and so is one whose
+	 * players do not include the host. */
+	list_room(0, 0, 1, ace_first);
+	list_room(1, 1, 2, others);
+	g_listing.room_count = 2;
+	XVT_ASSERT_INT_EQ(xvt_door_find_room(&g_listing, "Ace"), -1);
+	/* The host found anywhere among a room's players, in any letter
+	 * case. */
+	list_room(2, 1, 2, ace_second);
+	g_listing.room_count = 3;
+	XVT_ASSERT_INT_EQ(xvt_door_find_room(&g_listing, "Ace"), 2);
+	/* Of two rooms that list the host, the first. */
+	list_room(3, 1, 1, ace_first);
+	g_listing.room_count = 4;
+	XVT_ASSERT_INT_EQ(xvt_door_find_room(&g_listing, "ACE"), 2);
+	/* A name past the room's player count is not one of its players. */
+	g_listing.rooms[2].metadata.players = 1;
+	XVT_ASSERT_INT_EQ(xvt_door_find_room(&g_listing, "Ace"), 3);
+	/* Rooms past the listing's count are not in it. */
+	g_listing.room_count = 3;
+	XVT_ASSERT_INT_EQ(xvt_door_find_room(&g_listing, "Ace"), -1);
+}
+
 int main(void)
 {
 	check_fill();
@@ -179,5 +230,6 @@ int main(void)
 	check_refusals();
 	check_sentences();
 	check_packets();
+	check_find_room();
 	return 0;
 }

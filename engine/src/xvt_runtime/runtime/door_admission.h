@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "aeron/compat/dplay_directory.h"
 #include "xvt_runtime/runtime/launch_description.h"
 
 #ifdef __cplusplus
@@ -13,8 +14,9 @@ extern "C" {
  * the two packets that carry a joiner's asking and the host's answer. The
  * 1997 lobby's admission (any player, by password) does not run in a battle
  * the door starts: the host admits by the description's seats and its setup
- * fingerprint. The caller holds the seat table; nothing here sends, receives
- * or touches the game's state. */
+ * fingerprint, and a joiner finds the host's room by the battle's id in place
+ * of the browser screen. The caller holds the seat table; nothing here sends,
+ * receives or touches the game's state. */
 
 enum {
 	/* The door's packet types, past the 1997 lobby's last (125) and in
@@ -78,6 +80,13 @@ int xvt_door_read_ask(const int32_t *packet, uint32_t size, int *protocol,
  * when the packet is not an answer of exactly three words. */
 int xvt_door_read_answer(const int32_t *packet, uint32_t size, int *verdict,
 			 int *seat);
+
+/* The battle's room among snapshot's rooms, which the matchmaker lists under
+ * the battle's own application id: the first that takes joiners and lists
+ * host, the host's pilot name, among its players in any letter case. Returns
+ * its index, or -1 when no room does. */
+int xvt_door_find_room(const AeronDplayDirectorySnapshot *snapshot,
+		       const char *host);
 
 #ifdef __cplusplus
 }

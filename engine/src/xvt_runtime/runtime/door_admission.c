@@ -111,3 +111,26 @@ int xvt_door_read_answer(const int32_t *packet, uint32_t size, int *verdict,
 	*seat = packet[2];
 	return 1;
 }
+
+int xvt_door_find_room(const AeronDplayDirectorySnapshot *snapshot,
+		       const char *host)
+{
+	for (uint32_t index = 0; index < snapshot->room_count &&
+				 index < AERON_DPLAY_DIRECTORY_MAX_ROOMS;
+	     ++index) {
+		const AeronDplayRoomMetadata *room =
+			&snapshot->rooms[index].metadata;
+		if (!room->joinable) {
+			continue;
+		}
+		for (unsigned player = 0;
+		     player < room->players &&
+		     player < AERON_DPLAY_DIRECTORY_MAX_PLAYERS;
+		     ++player) {
+			if (!strcasecmp(room->roster[player].name, host)) {
+				return (int)index;
+			}
+		}
+	}
+	return -1;
+}
