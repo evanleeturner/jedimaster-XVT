@@ -37,7 +37,8 @@ struct xvt_network_session_status {
  * INVALID_REQUEST for one too long or not a bare https origin. */
 AeronDplayDirectoryError xvt_network_session_configure(void);
 /* For a battle the network door starts: sessions begun from now on list and find their room at lobby
- * under the application id game, in place of the settings' URL and the fixed id. Returns 1, or 0 and
+ * under the application id game, in place of the settings' URL and the fixed id, and a joiner's
+ * handshake sends no 1997 join request (the door sends its own asking). Returns 1, or 0 and
  * changes nothing when lobby is NULL or longer than the directory takes; NULL game goes back to the
  * settings' URL and the fixed id (returning 1). Also clears the door's accepting mark. */
 int xvt_network_session_use_door(const char *lobby, const GUID *game);

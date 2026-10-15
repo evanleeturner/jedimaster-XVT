@@ -20,12 +20,15 @@
 #include "xvt/net/net.h"
 #include "xvt/net/net_send.h"
 #include "xvt_runtime/ai/ai_program.h"
+#include "xvt_runtime/config/config.h"
 #include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/dialog_task.h"
 #include "xvt_runtime/runtime/door_admission.h"
 #include "xvt_runtime/runtime/frontend_cleanup.h"
 #include "xvt_runtime/runtime/launch_description.h"
+#include "xvt_runtime/runtime/launch_options.h"
 #include "xvt_runtime/runtime/launch_result.h"
+#include "xvt_runtime/runtime/network_metadata.h"
 #include "xvt_runtime/runtime/network_session.h"
 #include "xvt_runtime/runtime/port.h"
 #include "xvt_runtime/runtime/sith.h"
@@ -36,8 +39,15 @@ enum {
 	RESULT_SUFFIX_CAPACITY = 16,
 	/* The time allowed to get from start-up to the battle. */
 	REACH_LIMIT_US = 180 * 1000000,
-	/* Packets a host reads per step while it gathers its seats. */
-	GATHER_PACKETS_PER_STEP = 32
+	/* Packets the door reads per step while a host gathers its seats or a
+	 * joiner waits for its answer. */
+	PACKETS_PER_STEP = 32,
+	/* How often a joiner asks the matchmaker for its rooms while the
+	 * battle's is not listed; the browser screen asks every ten seconds. */
+	ROOM_REFRESH_US = 2 * 1000000,
+	/* The pilot record's entry for the combat simulator, which a network
+	 * game's mission setup screen reads and saves. */
+	COMBAT_SIM_FACTION = 2
 };
 
 enum {
@@ -46,6 +56,9 @@ enum {
 	PHASE_WAIT_SETUP,
 	PHASE_OPEN_ROOM,
 	PHASE_GATHER,
+	PHASE_FIND_ROOM,
+	PHASE_JOINING,
+	PHASE_ASKED,
 	PHASE_LAUNCHING,
 	PHASE_FINISHED
 };
@@ -54,6 +67,12 @@ static struct xvt_launch_description g_description;
 /* A network host's seats and the player id that holds each (0 while free). */
 static struct xvt_door_seats g_seats;
 static DPID g_seat_players[XVT_LAUNCH_SEAT_CAPACITY];
+/* A network joiner's copy of the matchmaker's rooms, whether a refresh of it
+ * is under way, when the next one may start, and the last refresh's error. */
+static AeronDplayDirectorySnapshot g_rooms;
+static int g_rooms_pending;
+static uint64_t g_next_refresh_us;
+static AeronDplayDirectoryError g_rooms_error;
 static char g_result_path[XVT_LAUNCH_PATH_CAPACITY + RESULT_SUFFIX_CAPACITY];
 static int g_phase = PHASE_CLOSED;
 static uint64_t g_started_us;
@@ -193,16 +212,6 @@ int xvt_launch_door_open(const char *path, uint32_t run_id,
 			g_description.network.seat,
 			(unsigned)xvt_launch_setup_fingerprint(&g_description));
 	}
-	if (g_description.is_network &&
-	    g_description.network.role == XVT_LAUNCH_ROLE_JOIN) {
-		snprintf(
-			why, sizeof(why), "%s",
-			"This game build can host a network battle but cannot join one yet.");
-		XVT_LOG_INFO("launch.refused code=%d why=\"%s\"",
-			     XVT_LAUNCH_EXIT_REFUSED, why);
-		write_failure(XVT_LAUNCH_EXIT_REFUSED, why);
-		return 0;
-	}
 	if (g_description.ai_python[0] &&
 	    !start_ai_program(run_id, ai_log_file)) {
 		return 0;
@@ -320,40 +329,21 @@ static void open_solo_setup(void)
 /* Sets the settings the description gives. */
 static void apply_settings(void)
 {
-	const struct xvt_launch_settings *set = &g_description.settings;
-	if (set->difficulty != XVT_LAUNCH_SETTING_UNSET) {
-		g_game_config.difficulty = (game_difficulty)set->difficulty;
-	}
-	if (set->collisions != XVT_LAUNCH_SETTING_UNSET) {
-		g_game_config.collisions = (uint8_t)set->collisions;
-	}
-	if (set->craft_jumping != XVT_LAUNCH_SETTING_UNSET) {
-		g_game_config.craft_jumping = (uint8_t)set->craft_jumping;
-	}
-	if (set->random_setup != XVT_LAUNCH_SETTING_UNSET) {
-		g_game_config.random_setup = (uint8_t)set->random_setup;
-	}
-	if (set->battle_length != XVT_LAUNCH_SETTING_UNSET) {
-		g_game_config.battle_length_index =
-			(battle_length)set->battle_length;
-	}
-	if (set->mission_time_limit != XVT_LAUNCH_SETTING_UNSET) {
-		g_game_config.mission_time_limit =
-			(uint8_t)set->mission_time_limit;
-	}
-	if (set->continue_sequence != XVT_LAUNCH_SETTING_UNSET) {
-		g_game_config.continue_battle_or_campaign =
-			(sequence_continuation_choice)set->continue_sequence;
-	}
-	xvt_sith_set_from_description(set->sith);
+	xvt_launch_options_apply_settings(&g_game_config,
+					  &g_description.settings);
+	xvt_sith_set_from_description(g_description.settings.sith);
 }
 
 /* Picks the described mission as a click on its mission type button and on
- * its list entry does. Returns 1, or 0 after failing when the folder's list
- * does not hold the mission open to this pilot. */
+ * its list entry does, for any mission the list holds: one the pilot has not
+ * opened flies too, which the 1997 list screens did not offer. A network
+ * battle's options went through the type's rules already, alike on every
+ * machine. Returns 1, or 0 after failing when the folder's list does not
+ * hold the mission. */
 static int choose_mission(void)
 {
 	int directory = g_description.directory_id;
+	int network = g_description.is_network;
 	mission_setup_load_mission_list(directory);
 	unsigned int index;
 	for (index = 0; g_mission_list && index < g_mission_count; ++index) {
@@ -364,22 +354,14 @@ static int choose_mission(void)
 	}
 	if (!g_mission_list || index == g_mission_count) {
 		fail(XVT_LAUNCH_EXIT_REFUSED,
-		     "The mission is not in the game's list for this game type, or is not open to this pilot.");
+		     "The mission is not in the game's list for this game type.");
 		return 0;
 	}
 	if (g_pilot_data.mission_directory_id != directory) {
 		g_pilot_data.mission_directory_id = directory;
-		g_game_config.continue_battle_or_campaign = SEQUENCE_CONTINUE;
-		if (g_game_config.difficulty == GAME_DIFFICULTY_EASY_CHEAT &&
-		    directory != MISSION_DIRECTORY_CAMPAIGNS) {
-			g_game_config.difficulty = GAME_DIFFICULTY_EASY;
-		}
-		if (g_game_config.random_setup == 2 &&
-		    directory != MISSION_DIRECTORY_BATTLES) {
-			g_game_config.random_setup = 0;
-		}
-		if (directory == MISSION_DIRECTORY_CAMPAIGNS) {
-			g_game_config.random_setup = 0;
+		if (!network) {
+			xvt_launch_options_type_rules(&g_game_config,
+						      directory);
 		}
 	}
 	g_selected_mission_list_index = (int)index;
@@ -420,14 +402,63 @@ static void start_battle(void)
 		     g_description.mission_file);
 }
 
-/* The concourse step of a network host: loads the pilot and begins hosting
- * at the description's matchmaker under the battle's own application id, as
- * the Host button does with the game's fixed id and the settings' lobby. */
-static void open_network_room(void)
+/* Sets up a network battle as far as each machine can alone, without the
+ * mission setup screen the 1997 lobby ran: the session mode, the combat
+ * simulator's record as the screen's first frame reads it in a network game,
+ * the options every machine computes alike (launch_options.h), the Sith setting
+ * and the mission. Runs before any network work, so a battle this machine
+ * cannot fly is refused before a room opens or a seat is taken. Returns 1, or
+ * 0 after failing. */
+static int set_up_network_battle(void)
 {
-	if (!load_pilot()) {
-		return;
+	int host = g_description.network.role == XVT_LAUNCH_ROLE_HOST;
+	g_frontend_mission_session_mode =
+		host ? FRONTEND_MISSION_SESSION_NET_HOST
+		     : FRONTEND_MISSION_SESSION_NET_CLIENT;
+	g_mission_setup_is_host = host;
+	restore_faction_choices(COMBAT_SIM_FACTION);
+	g_pilot_data.faction_statistics[COMBAT_SIM_FACTION]
+		.mission_sequence_active = 0;
+	g_mission_setup_use_combat_sim_pilot_state = 1;
+	static struct game_config shipped;
+	shipped = g_game_config;
+	char error[XVT_LAUNCH_WHY_CAPACITY];
+	if (!xvt_config_apply_shipped(&shipped, error, sizeof(error))) {
+		XVT_LOG_ERROR("launch.shipped_unread error=\"%s\"", error);
+		fail(XVT_LAUNCH_EXIT_REFUSED,
+		     "The game's shipped settings could not be read, so the battle's settings are unknown.");
+		return 0;
 	}
+	xvt_launch_options_network(&g_game_config, &shipped, &g_description);
+	xvt_sith_set_from_description(g_description.settings.sith);
+	XVT_LOG_DEBUG(
+		"launch.network_options difficulty=%u collisions=%u jumping=%u random=%u length=%u join=%u craft=%u locate=%u waves=%u time_limit=%u team_limit=%u seed=%u internet=%u ai=%u rate=%u balance=%u continue=%u sith=%d",
+		(unsigned)g_game_config.difficulty,
+		(unsigned)g_game_config.collisions,
+		(unsigned)g_game_config.craft_jumping,
+		(unsigned)g_game_config.random_setup,
+		(unsigned)g_game_config.battle_length_index,
+		(unsigned)g_game_config.in_progress_join,
+		(unsigned)g_game_config.craft_selection,
+		(unsigned)g_game_config.locate_players,
+		(unsigned)g_game_config.craft_waves,
+		(unsigned)g_game_config.mission_time_limit,
+		(unsigned)g_game_config.last_team_time_limit_minutes,
+		g_game_config.random_seed,
+		(unsigned)g_game_config.internet_play,
+		(unsigned)g_game_config.ai_opponents,
+		(unsigned)g_game_config.server_update_rate,
+		(unsigned)g_game_config.combat_balance,
+		(unsigned)g_game_config.continue_battle_or_campaign,
+		xvt_sith_get_setting());
+	return choose_mission();
+}
+
+/* Lists and finds rooms at the description's matchmaker under the battle's
+ * own application id from now on, in place of the settings' lobby and the
+ * game's fixed id. */
+static void use_battle_lobby(void)
+{
 	const struct xvt_launch_game_id *id = &g_description.network.game;
 	GUID game;
 	game.Data1 = id->data1;
@@ -437,6 +468,17 @@ static void open_network_room(void)
 	/* The description holds at most 511 characters, which the directory
 	 * takes. */
 	(void)xvt_network_session_use_door(g_description.network.lobby, &game);
+}
+
+/* The concourse step of a network host: loads the pilot, sets up the battle
+ * and begins hosting at the battle's lobby, as the Host button does with the
+ * game's fixed id and the settings' lobby. */
+static void open_network_room(void)
+{
+	if (!load_pilot() || !set_up_network_battle()) {
+		return;
+	}
+	use_battle_lobby();
 	char rating_text[2] = {(char)(g_pilot_data.rating + 1), 0};
 	xvt_network_session_begin_host(rating_text, g_pilot_data.name,
 				       g_pilot_data.multiplayer_game_name, 1);
@@ -506,7 +548,7 @@ static void answer_asking(DPID sender, int protocol, uint32_t setup)
  * dropped: no lobby runs to read it. */
 static void gather_seats(void)
 {
-	for (int count = 0; count < GATHER_PACKETS_PER_STEP; ++count) {
+	for (int count = 0; count < PACKETS_PER_STEP; ++count) {
 		DPID sender;
 		uint32_t size;
 		const int32_t *packet = net_get_next_app_packet(&sender, &size);
@@ -533,6 +575,174 @@ static void gather_seats(void)
 	     "Every seat is in, but this game build cannot start a network flight yet.");
 }
 
+/* The concourse step of a network joiner: loads the pilot, sets up the battle
+ * and starts looking for the host's room at the battle's lobby. */
+static void look_for_room(void)
+{
+	if (!load_pilot() || !set_up_network_battle()) {
+		return;
+	}
+	use_battle_lobby();
+	g_rooms_pending = 0;
+	g_rooms_error = AERON_DPLAY_DIRECTORY_ERROR_NONE;
+	g_next_refresh_us = xvt_time_get_elapsed_us();
+	g_phase = PHASE_FIND_ROOM;
+	XVT_LOG_INFO("launch.room_looking host=\"%s\"",
+		     g_description.network.players[0]);
+}
+
+/* Joins room as the Join button does for the browser's selected room. */
+static void join_room(const AeronDplayDirectoryRoom *room)
+{
+	xvt_network_metadata_from_utf8(
+		g_pilot_data.multiplayer_game_name,
+		sizeof(g_pilot_data.multiplayer_game_name),
+		room->metadata.name);
+	char rating_text[2] = {(char)(g_pilot_data.rating + 1), 0};
+	xvt_network_session_begin_join(rating_text, g_pilot_data.name,
+				       &room->room_id);
+	g_phase = PHASE_JOINING;
+	XVT_LOG_INFO("launch.room_found players=%u rooms=%u",
+		     (unsigned)room->metadata.players,
+		     (unsigned)g_rooms.room_count);
+}
+
+/* The joiner's step while it looks: once a refresh of the matchmaker's rooms
+ * completes, joins the battle's room if it is listed; asks again every
+ * ROOM_REFRESH_US while it is not, since the host may not have listed it yet.
+ * A refresh that fails is asked again the same way. */
+static void find_room(void)
+{
+	if (g_rooms_pending) {
+		AeronDplayDirectory_GetSnapshot(&g_rooms);
+		if (g_rooms.refresh.state == AERON_DPLAY_DIRECTORY_SUCCEEDED) {
+			g_rooms_pending = 0;
+			int index = xvt_door_find_room(
+				&g_rooms, g_description.network.players[0]);
+			XVT_LOG_DEBUG("launch.rooms_read rooms=%u found=%d",
+				      (unsigned)g_rooms.room_count, index);
+			if (index >= 0) {
+				join_room(&g_rooms.rooms[index]);
+				return;
+			}
+		} else if (g_rooms.refresh.state ==
+				   AERON_DPLAY_DIRECTORY_FAILED ||
+			   g_rooms.refresh.state ==
+				   AERON_DPLAY_DIRECTORY_CANCELLED) {
+			g_rooms_pending = 0;
+			g_rooms_error = g_rooms.refresh.error;
+			XVT_LOG_DEBUG("launch.rooms_unread error=%u",
+				      (unsigned)g_rooms_error);
+		}
+	}
+	uint64_t now = xvt_time_get_elapsed_us();
+	if (g_rooms_pending || now < g_next_refresh_us) {
+		return;
+	}
+	g_next_refresh_us = now + ROOM_REFRESH_US;
+	AeronDplayDirectoryError error = xvt_network_session_configure();
+	if (!error) {
+		error = AeronDplayDirectory_Refresh();
+	}
+	if (error) {
+		g_rooms_error = error;
+		XVT_LOG_DEBUG("launch.rooms_unread error=%u", (unsigned)error);
+		return;
+	}
+	g_rooms_pending = 1;
+}
+
+/* Ends the door when the joiner's session failed; returns 1 then, else 0. */
+static int join_failed(void)
+{
+	struct xvt_network_session_status status =
+		xvt_network_session_get_status();
+	if (status.state != XVT_NETWORK_SESSION_FAILED) {
+		return 0;
+	}
+	char why[XVT_LAUNCH_WHY_CAPACITY];
+	snprintf(why, sizeof(why),
+		 "The battle's room could not be joined (directory error %u).",
+		 (unsigned)status.error);
+	fail(XVT_LAUNCH_EXIT_NOT_REACHED, why);
+	return 1;
+}
+
+/* The joiner's step while it joins: drives the session, as the network task
+ * does for the Join button, until the host's sequence status has come; then
+ * sends the door's asking to the host. */
+static void join(void)
+{
+	(void)xvt_network_session_update();
+	if (join_failed() || xvt_network_session_get_status().state !=
+				     XVT_NETWORK_SESSION_ADMISSION) {
+		return;
+	}
+	uint32_t setup = xvt_launch_setup_fingerprint(&g_description);
+	int32_t ask[XVT_DOOR_PACKET_WORDS];
+	xvt_door_make_ask(ask, setup);
+	DPID host = g_front_state.net_host_player_id;
+	net_send_packet_and_flush((int)host, ask, sizeof(ask));
+	g_phase = PHASE_ASKED;
+	XVT_LOG_INFO("launch.door_asked host=%u setup=%08x", (unsigned)host,
+		     (unsigned)setup);
+}
+
+/* Takes the host's answer: an admission finishes the join; a refusal leaves
+ * the session and ends the door with the host's reason. */
+static void take_answer(int verdict, int seat)
+{
+	DPID host = g_front_state.net_host_player_id;
+	if (verdict != XVT_DOOR_ADMIT) {
+		XVT_LOG_WARN("launch.door_turned_away verdict=%d", verdict);
+		xvt_network_session_reject();
+		fail(XVT_LAUNCH_EXIT_REFUSED,
+		     xvt_door_verdict_sentence(verdict));
+		return;
+	}
+	if (!xvt_network_session_accept_admission(
+		    host, (DPID)net_get_local_player_id())) {
+		fail(XVT_LAUNCH_EXIT_NOT_REACHED,
+		     "The host let this pilot in after the join's time ran out.");
+		return;
+	}
+	XVT_LOG_INFO("launch.door_seat_taken seat=%d described=%d", seat,
+		     g_description.network.seat);
+	fail(XVT_LAUNCH_EXIT_NOT_REACHED,
+	     "This pilot has its seat in the battle, but this game build cannot start a network flight yet.");
+}
+
+/* The joiner's step while it waits for the host's answer: reads the packets
+ * that came and takes the first answer from the host. Any other packet is
+ * dropped: no lobby runs to read it. */
+static void wait_for_answer(void)
+{
+	(void)xvt_network_session_update();
+	if (join_failed()) {
+		return;
+	}
+	DPID host = g_front_state.net_host_player_id;
+	for (int count = 0; count < PACKETS_PER_STEP; ++count) {
+		DPID sender;
+		uint32_t size;
+		const int32_t *packet = net_get_next_app_packet(&sender, &size);
+		if (!packet) {
+			break;
+		}
+		int verdict;
+		int seat;
+		if (sender == host &&
+		    xvt_door_read_answer(packet, size, &verdict, &seat)) {
+			take_answer(verdict, seat);
+			return;
+		}
+		XVT_LOG_DEBUG(
+			"launch.door_packet_dropped player=%u type=%d bytes=%u",
+			(unsigned)sender, size >= 4 ? packet[0] : -1,
+			(unsigned)size);
+	}
+}
+
 void xvt_launch_door_step(void)
 {
 	if (!xvt_launch_door_is_active()) {
@@ -543,15 +753,27 @@ void xvt_launch_door_step(void)
 		g_started_us = xvt_time_get_elapsed_us();
 	}
 	if (xvt_time_get_elapsed_us() - g_started_us > REACH_LIMIT_US) {
-		fail(XVT_LAUNCH_EXIT_NOT_REACHED,
-		     "The battle did not start within 180 seconds.");
+		char why[XVT_LAUNCH_WHY_CAPACITY];
+		if (g_phase == PHASE_FIND_ROOM) {
+			snprintf(
+				why, sizeof(why),
+				"The battle's room was not listed at the host's matchmaker within 180 seconds (last directory error %u).",
+				(unsigned)g_rooms_error);
+		} else {
+			snprintf(
+				why, sizeof(why), "%s",
+				"The battle did not start within 180 seconds.");
+		}
+		fail(XVT_LAUNCH_EXIT_NOT_REACHED, why);
 		return;
 	}
 	if (g_phase == PHASE_WAIT_CONCOURSE && screen_is(concourse_update)) {
-		if (g_description.is_network) {
+		if (!g_description.is_network) {
+			open_solo_setup();
+		} else if (g_description.network.role == XVT_LAUNCH_ROLE_HOST) {
 			open_network_room();
 		} else {
-			open_solo_setup();
+			look_for_room();
 		}
 	} else if (g_phase == PHASE_WAIT_SETUP &&
 		   screen_is(mission_setup_update)) {
@@ -560,6 +782,12 @@ void xvt_launch_door_step(void)
 		wait_for_room();
 	} else if (g_phase == PHASE_GATHER) {
 		gather_seats();
+	} else if (g_phase == PHASE_FIND_ROOM) {
+		find_room();
+	} else if (g_phase == PHASE_JOINING) {
+		join();
+	} else if (g_phase == PHASE_ASKED) {
+		wait_for_answer();
 	}
 }
 

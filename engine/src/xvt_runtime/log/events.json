@@ -2403,20 +2403,35 @@
       "fields": ["player", "seat", "name"],
       "text": "The host let player {player} in, as {name} in seat {seat}"
     },
+    "launch.door_asked": {
+      "level": "I",
+      "fields": ["host", "setup"],
+      "text": "The joining door asked host player {host} for its seat with setup fingerprint {setup}"
+    },
     "launch.door_packet_dropped": {
       "level": "D",
       "fields": ["player", "type", "bytes"],
-      "text": "The gathering host dropped a packet of type {type}, {bytes} bytes, from player {player}"
+      "text": "The door dropped a packet of type {type}, {bytes} bytes, from player {player}: no lobby runs to read it"
     },
     "launch.door_refused": {
       "level": "W",
       "fields": ["player", "name", "verdict", "protocol", "setup"],
       "text": "The host refused player {player} playing as {name}: verdict {verdict}, its protocol {protocol} and setup fingerprint {setup}"
     },
+    "launch.door_seat_taken": {
+      "level": "I",
+      "fields": ["seat", "described"],
+      "text": "The host let this pilot in, in seat {seat} (the description's seat is {described})"
+    },
     "launch.door_seated": {
       "level": "I",
       "fields": ["seats"],
       "text": "Every one of the {seats} seats is in; the host's room takes no more joiners"
+    },
+    "launch.door_turned_away": {
+      "level": "W",
+      "fields": ["verdict"],
+      "text": "The host turned this pilot away with verdict {verdict}"
     },
     "launch.faction_chosen": {
       "level": "D",
@@ -2432,6 +2447,11 @@
       "level": "I",
       "fields": ["role", "seats", "seat", "setup"],
       "text": "The description names a network battle: role {role}, {seats} seats, this pilot in seat {seat}, setup fingerprint {setup}"
+    },
+    "launch.network_options": {
+      "level": "D",
+      "fields": ["difficulty", "collisions", "jumping", "random", "length", "join", "craft", "locate", "waves", "time_limit", "team_limit", "seed", "internet", "ai", "rate", "balance", "continue", "sith"],
+      "text": "The network battle's options, alike on every machine: difficulty {difficulty}, collisions {collisions}, jumping {jumping}, random setup {random}, length {length}, joining in progress {join}, craft selection {craft}, locate players {locate}, waves {waves}, time limit {time_limit}, last team's limit {team_limit}, seed {seed}, internet play {internet}, AI opponents {ai}, update rate {rate}, balance {balance}, continue {continue}, Sith {sith}"
     },
     "launch.opened": {
       "level": "I",
@@ -2478,6 +2498,16 @@
       "fields": ["path", "exit"],
       "text": "The launch result file {path} was written, with exit code {exit}"
     },
+    "launch.room_found": {
+      "level": "I",
+      "fields": ["players", "rooms"],
+      "text": "The joining door found the battle's room, {players} players in, among {rooms} rooms, and joins it"
+    },
+    "launch.room_looking": {
+      "level": "I",
+      "fields": ["host"],
+      "text": "The joining door looks for {host}'s room at the description's matchmaker"
+    },
     "launch.room_open": {
       "level": "I",
       "fields": ["seats", "setup", "player"],
@@ -2488,10 +2518,25 @@
       "fields": ["seats"],
       "text": "The door begins hosting a network battle of {seats} seats at the description's matchmaker"
     },
+    "launch.rooms_read": {
+      "level": "D",
+      "fields": ["rooms", "found"],
+      "text": "The matchmaker listed {rooms} rooms under the battle's id; the battle's room is index {found} (-1 for none)"
+    },
+    "launch.rooms_unread": {
+      "level": "D",
+      "fields": ["error"],
+      "text": "The matchmaker's rooms could not be read (directory error {error}); the door asks again"
+    },
     "launch.settings": {
       "level": "D",
       "fields": ["difficulty", "collisions", "craft_jumping", "random_setup", "battle_length", "time_limit", "continue", "sith", "seed", "has_seed"],
       "text": "The launch description's settings in the game's own values, -1 for a setting it leaves alone: difficulty {difficulty}, collisions {collisions}, craft jumping {craft_jumping}, random setup {random_setup}, battle length {battle_length}, mission time limit {time_limit}, continue {continue}, Sith setting {sith} (0 none, 1 apprentices, 2 lord), random seed {seed} (given: {has_seed})"
+    },
+    "launch.shipped_unread": {
+      "level": "E",
+      "fields": ["error"],
+      "text": "The game's shipped settings could not be read for a network battle: {error}"
     },
     "launch.solo_opened": {
       "level": "I",
@@ -4275,8 +4320,8 @@
     },
     "network.handshake": {
       "level": "D",
-      "fields": ["peers"],
-      "text": "The host's sequence status named {peers} peers; the join request was sent"
+      "fields": ["peers", "door"],
+      "text": "The host's sequence status named {peers} peers; the join request was sent unless the battle is the door's (door={door})"
     },
     "network.history_refused": {
       "level": "W",

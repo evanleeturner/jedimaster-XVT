@@ -3,14 +3,16 @@
  * game's files or the game's mission lists: opening a description (a missing
  * file, text that is not a description, a pilot name holding a switch word, a
  * good one with and without a result path, an AI program that cannot be
- * started, a network host's description, a network joiner's, which this build
- * refuses), the result file each ending writes, and the exit code the door
- * asks the program to end with. The test
+ * started, a network host's description and a joiner's), the result file each
+ * ending writes, and the exit code the door asks the program to end with. The
+ * test
  * keeps its description and result files in a temporary folder and sets the
  * pilot record numbers the result is read from.
  *
  * Not checked here: the steps on the concourse and the mission setup screen,
- * and a network host's room and gathering.
+ * a network battle's setting up, a host's room and gathering, and a joiner's
+ * looking, joining, asking and answer; the parts they decide by are checked in
+ * test_launch_options.c and test_door_admission.c.
  * They load the pilot by the game's file lists, read the mission list from the
  * installation and switch real screens; a test would need the game's files and
  * a window. They are proven by starting the same battle through the menus and
@@ -133,15 +135,7 @@ static void check_refusals_leave_a_result(void)
 		      "\"mission\":\"train/1ta02bz.tie\",\"pilot\":\"Ace\","
 		      "\"ai_program\":{\"python\":\"/nonexistent/python\","
 		      "\"path\":\"x\"}}",
-		      "could not be started"},
-		     {"{\"schema_version\":1,\"mode\":\"network\","
-		      "\"game_type\":\"melee\",\"side\":\"none\","
-		      "\"mission\":\"melee/m1.tie\",\"pilot\":\"Rook\","
-		      "\"seed\":7,\"network\":{\"role\":\"join\","
-		      "\"lobby\":\"https://h\","
-		      "\"game\":\"0123abcd-4567-89ef-0123-456789abcdef\","
-		      "\"players\":[\"Ace\",\"Rook\"]}}",
-		      "cannot join one yet"}};
+		      "could not be started"}};
 	for (size_t index = 0; index < sizeof(cases) / sizeof(cases[0]);
 	     ++index) {
 		char path[256];
@@ -227,28 +221,38 @@ static void check_flown_result(void)
 	unlink(path);
 }
 
-static void check_network_host_opens(void)
+/* A network description opens for either role, the host's and a joiner's. */
+static void check_network_descriptions_open(void)
 {
-	char path[256];
-	put("host.json",
-	    "{\"schema_version\":1,\"mode\":\"network\","
-	    "\"game_type\":\"melee\",\"side\":\"none\","
-	    "\"mission\":\"melee/m1.tie\",\"pilot\":\"Ace\",\"seed\":7,"
-	    "\"network\":{\"role\":\"host\",\"lobby\":\"https://h\","
-	    "\"game\":\"0123abcd-4567-89ef-0123-456789abcdef\","
-	    "\"players\":[\"Ace\",\"Rook\"]}}",
-	    path, sizeof(path));
-	XVT_ASSERT_INT_EQ(xvt_launch_door_open(path, TEST_RUN_ID, ""), 1);
-	XVT_ASSERT_INT_EQ(xvt_launch_door_is_active(), 1);
-	/* It ends as any door does. */
-	xvt_launch_door_finish(0);
-	XVT_ASSERT_INT_EQ(xvt_launch_door_is_active(), 0);
-	XVT_ASSERT_INT_EQ(xvt_port_get_exit_code(),
-			  XVT_LAUNCH_EXIT_FLIGHT_FAILED);
-	char result[256];
-	snprintf(result, sizeof(result), "%s.result.json", path);
-	unlink(result);
-	unlink(path);
+	static const char *const roles[][2] = {{"host", "Ace"},
+					       {"join", "Rook"}};
+	for (size_t index = 0; index < sizeof(roles) / sizeof(roles[0]);
+	     ++index) {
+		char path[256];
+		char text[512];
+		snprintf(text, sizeof(text),
+			 "{\"schema_version\":1,\"mode\":\"network\","
+			 "\"game_type\":\"melee\",\"side\":\"none\","
+			 "\"mission\":\"melee/m1.tie\",\"pilot\":\"%s\","
+			 "\"seed\":7,\"network\":{\"role\":\"%s\","
+			 "\"lobby\":\"https://h\","
+			 "\"game\":\"0123abcd-4567-89ef-0123-456789abcdef\","
+			 "\"players\":[\"Ace\",\"Rook\"]}}",
+			 roles[index][1], roles[index][0]);
+		put("network.json", text, path, sizeof(path));
+		XVT_ASSERT_INT_EQ(xvt_launch_door_open(path, TEST_RUN_ID, ""),
+				  1);
+		XVT_ASSERT_INT_EQ(xvt_launch_door_is_active(), 1);
+		/* It ends as any door does. */
+		xvt_launch_door_finish(0);
+		XVT_ASSERT_INT_EQ(xvt_launch_door_is_active(), 0);
+		XVT_ASSERT_INT_EQ(xvt_port_get_exit_code(),
+				  XVT_LAUNCH_EXIT_FLIGHT_FAILED);
+		char result[256];
+		snprintf(result, sizeof(result), "%s.result.json", path);
+		unlink(result);
+		unlink(path);
+	}
 }
 
 static void check_not_completed_and_out_of_range(void)
@@ -470,7 +474,7 @@ int main(void)
 	check_missing_file();
 	check_refusals_leave_a_result();
 	check_flown_result();
-	check_network_host_opens();
+	check_network_descriptions_open();
 	check_not_completed_and_out_of_range();
 	check_failed_flight();
 	check_sith_result_and_reset();

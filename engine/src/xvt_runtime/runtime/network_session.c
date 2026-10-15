@@ -432,16 +432,22 @@ static int xvt_network_session_handshake(void)
 				   0};
 		net_send_direct_play_packet(sender, response, sizeof(response),
 					    0);
-		int request[6] = {NET_PACKET_JOIN_REQUEST,
-				  FRONTEND_NET_PROTOCOL_VERSION,
-				  0,
-				  0,
-				  0,
-				  0};
-		memcpy(request + 2, g_game_config.password,
-		       sizeof(g_game_config.password));
-		net_send_packet_and_flush(sender, request, sizeof(request));
-		XVT_LOG_DEBUG("network.handshake peers=%u", peers);
+		/* A door battle's joiner sends the door's asking in place of
+		 * the 1997 lobby's request. */
+		if (!g_door.active) {
+			int request[6] = {NET_PACKET_JOIN_REQUEST,
+					  FRONTEND_NET_PROTOCOL_VERSION,
+					  0,
+					  0,
+					  0,
+					  0};
+			memcpy(request + 2, g_game_config.password,
+			       sizeof(g_game_config.password));
+			net_send_packet_and_flush(sender, request,
+						  sizeof(request));
+		}
+		XVT_LOG_DEBUG("network.handshake peers=%u door=%d", peers,
+			      g_door.active);
 		g_session.phase = SESSION_ADMISSION;
 		return 1;
 	}
