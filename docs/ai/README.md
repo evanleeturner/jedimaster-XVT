@@ -380,7 +380,7 @@ every capital ship, at every level.
 ## Open AI issues
 
 <!-- ai-issues:start -->
-On 2026-10-15 (UTC) the label `ai` was on 43 open issues and 7 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
+On 2026-10-15 (UTC) the label `ai` was on 43 open issues and 8 closed ones. This list was made by `ai/tools/ai_guide.py --write`; run it again to refresh the list.
 
 - [#2](https://github.com/evanleeturner/jedimaster-XVT/issues/2): Research: enemy pilots that fight as a pack
 - [#3](https://github.com/evanleeturner/jedimaster-XVT/issues/3): Research: "Jev", a language-model commander for the enemy side
@@ -423,8 +423,8 @@ On 2026-10-15 (UTC) the label `ai` was on 43 open issues and 7 closed ones. This
 - [#300](https://github.com/evanleeturner/jedimaster-XVT/issues/300): Mines never fire
 - [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301): Shift+B resupply is always refused
 - [#302](https://github.com/evanleeturner/jedimaster-XVT/issues/302): Lowest-tier computer pilots never get in firing range of a Star Destroyer
-- [#304](https://github.com/evanleeturner/jedimaster-XVT/issues/304): The cockpit's lock warning and threat lights never light for computer-flown craft
 - [#305](https://github.com/evanleeturner/jedimaster-XVT/issues/305): Warhead fire: two 1997 rules need data the pilot program is not sent (pairs when hurt, pulses at big ships)
+- [#306](https://github.com/evanleeturner/jedimaster-XVT/issues/306): Three more engine rules read the removed 1997 pilot's maneuver, so they never act for computer-flown craft
 <!-- ai-issues:end -->
 
 ## The work behind it
