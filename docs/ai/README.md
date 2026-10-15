@@ -134,7 +134,7 @@ named in the table.
 | Weave every time an enemy within 32,768 units (0.8 km) sits more than 135 degrees off the nose, is targeting the craft, and the craft's own shot is not lined up. The weave is up to 3 swerves of 67.5 degrees to either side over 5.7 to 7.5 seconds and ends the moment the enemy is no longer behind. After a full weave the craft fights for about 7.5 seconds before it weaves again (`ai/jedimaster_ai/weave.py`). | By dice: 1 chance in 4 with an enemy behind, 1 in 8 when attacked. 4 to 8 swerves over 10 to 17 game seconds, flown without looking at the chaser. | Changed | [#46](https://github.com/evanleeturner/jedimaster-XVT/issues/46) |
 | Drop a flare at a swerve in tier 2, at the second and third swerve, 1 chance in 4, when a flare is ready. | At each swerve, level 3 or higher, 1 chance in 4. | Kept | |
 | Drop chaff or flares against the first homing shot inside 2,048, 4,096 or 6,144 units (0.05, 0.10 or 0.15 km) by tier, and 3 times that for concussion missiles. Every starfighter that carries them does this on any order, going home included. Chaff goes out when none is running; a flare goes out when nothing is chasing that shot yet and the 472-tick cooldown (about 1.9 seconds) is over (`behaviors/countermeasures.py`). | The same ranges, but only some orders answered a homing shot. | Changed: wider | [#182](https://github.com/evanleeturner/jedimaster-XVT/issues/182), [#210](https://github.com/evanleeturner/jedimaster-XVT/issues/210) |
-| Fire turrets, on every craft, at hostile craft within 65,536 units (1.6 km) that target it, last hit it, or are among its order's targets. Nearest first, shared over the turrets (`behaviors/turrets.py`). | Turrets fired by the rules of each order. Hold Steady had no turret rule, and only starship orders used turrets offensively. | Changed | [#103](https://github.com/evanleeturner/jedimaster-XVT/issues/103) |
+| Fire turrets, on every craft, at hostile craft within 65,536 units (1.6 km) that target it, last hit it, or are among its order's targets. Nearest first, shared over the turrets (`behaviors/turrets.py`). On SS Protect, also at the enemies attacking the craft it protects; on SS Patrol and Disable, ion shots at the order's targets that still work, and never at a disabled craft. | Turrets fired by the rules of each order. Hold Steady had no turret rule, and only starship orders used turrets offensively. | Changed | [#103](https://github.com/evanleeturner/jedimaster-XVT/issues/103) |
 | When attacked on the way home, a small enemy (a fighter or a player) that hit the craft or sits behind it and targets it turns the craft round to fight, while its hull is at 75% or more. Below that it flies home weaving. A freighter, starship or platform firing at it never turns it. It goes home again once the enemy is dead, gone or aims elsewhere. At the door (jumping, turning in or docking) it carries on (`behaviors/home.py`). | Flew straight on under fire. It dodged warheads and turned off a starship it would hit. | Changed | |
 | An Attack craft that is chased before its targets arrive fights the chaser at 75% hull or more, otherwise weaves, and then waits for its targets again. | Unknown | New | |
 | With no hyperdrive there is no jump on any order. With no jump and no mothership the craft fights the nearest enemy at any hull, if it has cannons and can move. A mothership that arrives takes it home. | A craft flew to its point and stayed. A starship jumped to hyperspace with no hyperdrive. | Changed | |
@@ -156,8 +156,9 @@ turning into either one. The code is in `ai/jedimaster_ai/behaviors/avoidance.py
 ## Orders, formations and wingman commands
 
 An order is the mission's instruction to a flight group. The pilot program
-flies 16 of the 40 order codes today: Attack, Disable, Protect, Go Home, SS
-Go Home, the four patrol orders and the 7 Hold Steady codes. The code is in
+flies 22 of the 40 order codes today: Attack, Disable, Protect, Wait, Wait 2,
+Go Home, SS Go Home, the four patrol orders, SS Protect, SS Protect 2, SS
+Patrol and Disable, SS Await Return and the 7 Hold Steady codes. The code is in
 `ai/jedimaster_ai/orders.py`. The rest keep their speed and heading
 until someone builds them, so a craft on an unbuilt order flies straight on.
 Disabled craft and craft on the null order start stopped. Rendezvous and
@@ -169,6 +170,7 @@ Attack Escorts are among the orders still unbuilt.
 | The 7 Hold Steady codes: throttle 0, no conditions, never moves on to a later order. The craft's turrets defend it (`behaviors/hold.py`). | The same, with no turret rule. | Kept, plus turrets | |
 | Disable: Attack's dogfight at the nearest target whose subsystems still work, with the ion cannons alone; every other cannon holds, so a craft with none never fires a cannon. No warheads yet. A chaser is fought back with everything, a disabled one never (`behaviors/disable.py`). | The same target rule and cannon rule; Disable's warhead test counted a tenth of the target's hull. | Kept; warheads later | |
 | Protect: Attack's dogfight at the nearest enemy attacking a craft the order names, once some team has hit that craft: an enemy aimed at it, or the one whose shot hit it last (`behaviors/protect.py`). | The same, where aimed at meant in an attack maneuver on it; hostility was checked only for a player's craft. | Kept, every target hostile | |
+| Wait and Wait 2: stop where it is and set the maneuver timer to the order's variable1 times 1,180 ticks, so the display shows the time left; done once the timer runs out. While it waits it defends itself as a craft told to wait with Shift+W does, and the timer runs on (`behaviors/waiting.py`). | Stopped with the same timer and never fought back. | Changed | |
 | The engine keeps the mission's records by the 1997 rules and the pilot program acts on them: go home when aborted, when the departure is due or when the orders are done. A met goal marks the order done, then the next order starts. Attack, Disable and Protect are done when no target is left now or in a group still to come (`ai/jedimaster_ai/progress.py`). | The 1997 pilot script tested these conditions at each decision. | Kept | |
 | The leader of a flight is the engine's pick: the live craft of the batch with the lowest number (Alpha 1). | The first craft of each batch. A follower took over a lost leader. | Kept | |
 | Shift+A (attack) and Shift+C (cover): an Attack-order wingman takes the named craft while it is an enemy. A wingman that is holding station, in formation, going home evading, jumping or entering a hangar ignores the order. Other orders keep flying (`ai/jedimaster_ai/tactics.py`). | Wingmen took the target unless holding, in formation or going home. In the 1997 code the command's target search was broken. | Kept, bug fixed | [#50](https://github.com/evanleeturner/jedimaster-XVT/issues/50), [#51](https://github.com/evanleeturner/jedimaster-XVT/issues/51), [#52](https://github.com/evanleeturner/jedimaster-XVT/issues/52) |
@@ -195,6 +197,9 @@ start. Going home means flying to the mothership's hangar or jumping out.
 | Circle under attack: ignore attackers and leave them to the turrets. | The same. | Kept | |
 | Circle and Evade under attack: weave while an enemy sits behind, then return to the round. Chaff and flares as for every starfighter. | Chaff or flare, a move chosen by the attacker's bearing, then back to the circle. | Changed | |
 | SS Patrol and Attack: turrets attack the order's targets; the order is done when none is left. | The same. | Kept | |
+| SS Patrol and Disable: patrol the waypoints as a starship on patrol does. Each turret first answers a craft attacking the starship, with normal shots; the turrets left over fire ion shots at the craft the order names that still work, nearest first. A disabled craft is never fired at (`behaviors/starship.py`, `behaviors/turrets.py`). Done when no target is left, disabled ones counted. | The same cruise and the same two turret rules; the turrets kept shooting a disabled craft that hit the starship last. | Changed | |
+| SS Protect and SS Protect 2: patrol the waypoints as a starship on patrol does. Each turret first answers a craft that threatens the starship; the turrets left over take the enemies attacking a craft the order names once some team has hit it, nearest first (`behaviors/starship.py`, `behaviors/turrets.py`). Done when no target is left. | Cruised the waypoints; the turrets took the starship's own attackers, then the idle ones the nearest attacker of an order target. | Kept | |
+| SS Await Return: throttle 0 until every flight group that goes home into its group has arrived, with no waves and no craft left, then the next order; its turrets defend it (`behaviors/starship.py`). | The stop maneuver, which also halted a turn at once; the same test. | Kept, a begun turn runs on | |
 | A finished starship patrol goes to the next order, or jumps out. | The same. | Kept | |
 | Go home at full throttle (`behaviors/home.py`). | Throttle was left as it was far out, and 113 order slots slowed to 5 times speed. | Changed | |
 | On a patrol and on the way home, a follower flies to its place beside its leader with its own turns and throttle. It aims a little ahead of the place along the leader's heading, speeds up while the place lies ahead and slows to as little as half the leader's speed while it lies behind, never turning back to it (`behaviors/formation.py`). | Followers took the leader's heading, throttle, pitch and roll, plus a push into the place. | Changed | [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296), [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138) |
@@ -327,8 +332,7 @@ the project's owner closes them. This table says what became of each one.
   Attack order, and beside a player, each follower still flies by itself.
   Related issues: [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296), [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138).
 - The orders that still keep their speed and heading, in two groups. The
-  next group of orders includes Wait, SS Protect, Wait 2, SS Await Return,
-  Escort and SS Patrol and Disable. The group after it holds
+  next group of orders includes Escort. The group after it holds
   the boarding orders, Pick up, Drop off, Self-destruct, Kamikaze, Disabled,
   Await Boarding, SS Board and SS Launch.
 - A warhead fired without a lock at a big ship, aimed ahead of it, at skill Jedi and above.
@@ -439,14 +443,14 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 30 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 43 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 5,558 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
-| Lines of Python in its tests | 7,101 | the `.py` files in `ai/tests/`, counted with `wc -l` |
-| Test functions in those tests | 432 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
+| Commits that changed the pilot program | 35 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 48 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Lines of Python in the pilot program | 5,816 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Lines of Python in its tests | 7,710 | the `.py` files in `ai/tests/`, counted with `wc -l` |
+| Test functions in those tests | 475 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 16 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, with the files of orders whose behavior is not written yet |
-| Mission order codes that have a written behavior | 16 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
-| Kinds of line the pilot program writes to its log | 39 | the entries in `ai/jedimaster_ai/events.json` |
+| Mission order codes that have a written behavior | 22 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
+| Kinds of line the pilot program writes to its log | 40 | the entries in `ai/jedimaster_ai/events.json` |
 | Lines of C in the engine's computer-pilot code | 4,764 in 21 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
 | Test files and checks for that engine code | 10 files, 97 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
 | Checks of the wingman commands (Shift+A and the others) | 13 | the `check_order_...` functions in `engine/tests/test_flight.c` |
