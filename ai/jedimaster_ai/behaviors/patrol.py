@@ -65,7 +65,7 @@ from . import attack
 from . import avoidance
 from . import BehaviorCode
 from . import Decision
-from . import home
+from . import formation
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +154,7 @@ def cruise_throttle(view: CraftView) -> int:
     """Return the throttle the order flies at: its own, or at full throttle
     with a speed, the throttle that gives SPEED_SCALE times that speed."""
     if view.order_throttle == FULL_THROTTLE and view.order_speed:
-        return home.throttle_for(view, view.order_speed * SPEED_SCALE)
+        return tactics.throttle_for(view, view.order_speed * SPEED_SCALE)
     return view.order_throttle
 
 
@@ -201,7 +201,11 @@ def _cruise(
     view: CraftView, question: Question, route: Route, own: Contact | None
 ) -> Actions:
     """Return the craft's steering and throttle toward its waypoint, or
-    throttle 0 when it is stopped for good."""
+    throttle 0 when it is stopped for good; a follower's to its place in
+    formation while its leader flies the order."""
+    leader = formation.leader_for(view, question, formation.on_order)
+    if leader is not None:
+        return formation.fly(view, question, leader)
     genus = None if own is None else own.genus
     lone = _next(view, route.waypoint) == route.waypoint
     if not view.waypoint_on(0) or (lone and route.held and genus in BULKY_GENERA):
@@ -209,7 +213,7 @@ def _cruise(
     yaw, pitch = geometry.bearing(*_offset(view, view.waypoint(route.waypoint)))
     if own is not None:
         yaw = avoidance.clear_yaw(view, question, yaw, pitch, own.target)
-    throttle = cruise_throttle(view)
+    throttle = formation.eased(view, question, cruise_throttle(view))
     if (
         genus == tactics.GENUS_STARSHIP
         and geometry.angle_between(view.yaw, yaw) >= STARSHIP_TURN

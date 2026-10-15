@@ -53,6 +53,16 @@
       "fields": ["object", "threat", "type", "distance", "range", "kind", "launch"],
       "text": "Craft {object} weighs homing shot {threat} (object type {type}), {distance} units away inside its range of {range}, the first such shot aimed at it; its countermeasure type is {kind} (1 chaff, 2 flare) and it launches one: {launch} (0 when a countermeasure already homes on that shot)"
     },
+    "formation.far": {
+      "level": "D",
+      "fields": ["object", "leader", "distance"],
+      "text": "Craft {object} is {distance} units from its leader {leader}, past the far reach: it flies straight at it at full throttle"
+    },
+    "formation.fly": {
+      "level": "D",
+      "fields": ["object", "leader", "ahead", "aside", "speed", "throttle"],
+      "text": "Craft {object} flies to its place beside leader {leader}: the place lies {ahead} units ahead along the leader's heading (behind when negative) and {aside} units aside; it asks speed {speed}, throttle {throttle}"
+    },
     "home.route": {
       "level": "D",
       "fields": ["object", "route", "from", "books"],

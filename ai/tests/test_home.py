@@ -24,6 +24,7 @@ import pytest
 
 from jedimaster_ai import geometry
 from jedimaster_ai import notebook
+from jedimaster_ai import tactics
 from jedimaster_ai import weave
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import hold
@@ -107,7 +108,9 @@ def test_the_approach_slows_near_the_outside_hangar_point(
 ) -> None:
     outside = (x - 5, 6, 7)
     actions = ask(hangar_view(view, outside), [carrier])
-    throttle = home.FULL_THROTTLE if speed is None else home.throttle_for(view(), speed)
+    throttle = (
+        home.FULL_THROTTLE if speed is None else tactics.throttle_for(view(), speed)
+    )
     assert actions == Actions(
         steer=toward(outside),
         throttle=throttle,
@@ -124,7 +127,7 @@ def test_the_turn_in_enters_at_the_motherships_speed(
     craft = hangar_view(view, (1_000, 6, 7))
     assert ask(craft, [mothership]) == Actions(
         steer=toward((1_100, 6, 7)),
-        throttle=home.throttle_for(craft, enter),
+        throttle=tactics.throttle_for(craft, enter),
         activity=Activity.ENTERING_HANGAR,
         think_interval=home.ENTER_INTERVAL,
         target=CARRIER,
@@ -176,7 +179,7 @@ def test_a_craft_already_entering_hyperspace_is_sent_nothing(view, contact) -> N
     [(300, 150, 0x8000), (300, 300, 0xFFFF), (0, 0, 0xFFFF)],
 )
 def test_throttle_for_is_speed_over_full_speed(view, full, speed, throttle) -> None:
-    assert home.throttle_for(view(full_speed=full), speed) == throttle
+    assert tactics.throttle_for(view(full_speed=full), speed) == throttle
 
 
 def test_a_new_route_is_logged_once(view, caplog) -> None:

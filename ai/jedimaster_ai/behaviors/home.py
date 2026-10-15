@@ -54,6 +54,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import typing as t
 
 from .. import geometry
 from .. import notebook
@@ -62,6 +63,7 @@ from .. import weave
 from ..world import Actions
 from ..world import Activity
 from ..world import Books
+from ..world import Contact
 from ..world import CraftView
 from ..world import NO_OBJECT
 from ..world import Question
@@ -69,6 +71,7 @@ from ..world import Steer
 from . import attack
 from . import BehaviorCode
 from . import Decision
+from . import formation
 
 logger = logging.getLogger(__name__)
 
@@ -100,9 +103,9 @@ def think(view: CraftView, question: Question) -> Decision:
     if own is not None and own.object_kind == OBJECT_KIND_ENTERING_HYPERSPACE:
         return Decision(view.notebook)
     if view.order_code in STARSHIP_ORDERS:
-        route, decision = _starship(view)
+        route, decision = _starship(view, question)
     elif view.books & Books.MAY_JUMP:
-        route, decision = _on_the_way(view, question, "jump", _jump(view))
+        route, decision = _on_the_way(view, question, "jump", _jump(view, question))
     elif view.mothership != NO_OBJECT:
         route, decision = _on_the_way(view, question, *_hangar(view, question))
     else:
@@ -119,24 +122,15 @@ def think(view: CraftView, question: Question) -> Decision:
     return decision
 
 
-def throttle_for(view: CraftView, speed: int) -> int:
-    """Return the throttle that gives speed, the 1997 set-speed rule: full
-    throttle once the craft's full speed is at most speed, else speed over
-    the full speed as a fraction of 65,536."""
-    if view.full_speed <= speed:
-        return FULL_THROTTLE
-    return (speed << 16) // view.full_speed
-
-
-def _starship(view: CraftView) -> tuple[str, Decision]:
+def _starship(view: CraftView, question: Question) -> tuple[str, Decision]:
     """Go home by the 1997 starship plan: stop for good when the group leaves
     by mothership, else jump, or wait with no jump allowed."""
     if view.books & Books.BY_MOTHERSHIP:
         actions = Actions(throttle=0, activity=Activity.NONE, target=NO_OBJECT)
         return "stop", Decision(view.notebook, actions)
     if view.books & Books.MAY_JUMP:
-        return "jump", Decision(view.notebook, _jump(view))
-    return "wait", Decision(view.notebook, _wait(view))
+        return "jump", Decision(view.notebook, _jump(view, question))
+    return "wait", Decision(view.notebook, _wait(view, question))
 
 
 def _on_the_way(
@@ -161,7 +155,7 @@ def _stranded(view: CraftView, question: Question) -> tuple[str, Decision]:
     enemies = tactics.enemies(view, question)
     if enemies and attack.can_dogfight(view):
         return "stranded", _fighting(attack.fight(view, question, enemies))
-    return "wait", Decision(view.notebook, _wait(view))
+    return "wait", Decision(view.notebook, _wait(view, question))
 
 
 def _fighting(decision: Decision) -> Decision:
@@ -218,36 +212,48 @@ def _scratch(flown: weave.Weave) -> bytes:
     return packed + bytes(notebook.SCRATCH_BYTES - len(packed))
 
 
-def _jump(view: CraftView) -> Actions:
-    """Fly to the home point at full throttle and depart within JUMP_RANGE
-    of it; with no home point, depart where it is."""
+def _jump(view: CraftView, question: Question) -> Actions:
+    """Fly to the home point at full throttle, or eased while leading
+    followers, and depart within JUMP_RANGE of it; with no home point,
+    depart where it is. A follower whose leader jumps too flies in
+    formation and, within JUMP_RANGE, departs when its roll says
+    (``formation.jumps_now``)."""
     point = view.home_point if view.books & Books.HOME_POINT else _here(view)
     dx, dy, dz = _offset(view, point)
-    if geometry.distance(dx, dy, dz) < JUMP_RANGE:
+    leader = formation.leader_for(view, question, _jumping)
+    if geometry.distance(dx, dy, dz) < JUMP_RANGE and (
+        leader is None or formation.jumps_now(view, question.tick)
+    ):
         return Actions(
             throttle=FULL_THROTTLE,
             activity=Activity.LEAVING_BY_HYPERSPACE,
             target=NO_OBJECT,
             depart=True,
         )
+    if leader is not None:
+        return _in_formation(view, question, leader, Activity.LEAVING_BY_HYPERSPACE)
     return Actions(
         steer=_toward(view, dx, dy, dz),
-        throttle=FULL_THROTTLE,
+        throttle=formation.eased(view, question, FULL_THROTTLE),
         activity=Activity.LEAVING_BY_HYPERSPACE,
         target=NO_OBJECT,
     )
 
 
-def _wait(view: CraftView) -> Actions:
+def _wait(view: CraftView, question: Question) -> Actions:
     """Fly home with no way out: to the home point, stopping within
-    JUMP_RANGE of it; with no home point, stop where it is."""
+    JUMP_RANGE of it; with no home point, stop where it is. A follower
+    whose leader does the same flies in formation, and stops beside it."""
+    leader = formation.leader_for(view, question, _going_home(NO_OBJECT))
+    if leader is not None:
+        return _in_formation(view, question, leader, Activity.GOING_HOME)
     point = view.home_point if view.books & Books.HOME_POINT else _here(view)
     dx, dy, dz = _offset(view, point)
     if geometry.distance(dx, dy, dz) < JUMP_RANGE:
         return Actions(throttle=0, activity=Activity.GOING_HOME, target=NO_OBJECT)
     return Actions(
         steer=_toward(view, dx, dy, dz),
-        throttle=FULL_THROTTLE,
+        throttle=formation.eased(view, question, FULL_THROTTLE),
         activity=Activity.GOING_HOME,
         target=NO_OBJECT,
     )
@@ -255,7 +261,9 @@ def _wait(view: CraftView) -> Actions:
 
 def _hangar(view: CraftView, question: Question) -> tuple[str, Actions]:
     """Fly into the mothership: to the outside hangar point, then from
-    HANGAR_TURN of it to the inside point, and dock there."""
+    HANGAR_TURN of it to the inside point, and dock there. Beyond the slow
+    approach, a follower whose leader goes home to the same mothership
+    flies in formation; nearer, each craft makes its own approach."""
     if view.books & Books.AT_HANGAR:
         return "dock", Actions(dock=True)
     mothership = next(
@@ -269,18 +277,48 @@ def _hangar(view: CraftView, question: Question) -> tuple[str, Actions]:
         enter = ENTER_FLOOR if speed < SLOW_MOTHERSHIP else speed + ENTER_MARGIN
         return "enter", Actions(
             steer=_toward(view, *_offset(view, view.inside_hangar)),
-            throttle=throttle_for(view, enter),
+            throttle=tactics.throttle_for(view, enter),
             activity=Activity.ENTERING_HANGAR,
             think_interval=ENTER_INTERVAL,
             target=target,
         )
     slow = next((speed for within, speed in APPROACH if reach < within), None)
+    if slow is None:
+        leader = formation.leader_for(view, question, _going_home(view.mothership))
+        if leader is not None:
+            actions = _in_formation(view, question, leader, Activity.GOING_HOME)
+            return "hangar", dataclasses.replace(actions, target=target)
     return "hangar", Actions(
         steer=_toward(view, dx, dy, dz),
-        throttle=FULL_THROTTLE if slow is None else throttle_for(view, slow),
+        throttle=formation.eased(view, question, FULL_THROTTLE)
+        if slow is None
+        else tactics.throttle_for(view, slow),
         activity=Activity.GOING_HOME,
         target=target,
     )
+
+
+def _jumping(leader: Contact) -> bool:
+    return leader.activity == Activity.LEAVING_BY_HYPERSPACE
+
+
+def _going_home(mothership: int) -> t.Callable[[Contact], bool]:
+    """Return the test that a leader goes home to mothership, NO_OBJECT
+    for a leader with no way out."""
+
+    def going(leader: Contact) -> bool:
+        return leader.activity == Activity.GOING_HOME and leader.target == mothership
+
+    return going
+
+
+def _in_formation(
+    view: CraftView, question: Question, leader: Contact, activity: Activity
+) -> Actions:
+    """Return a follower's formation flight on its way out, its activity
+    the route's and no target."""
+    actions = formation.fly(view, question, leader)
+    return dataclasses.replace(actions, activity=activity, target=NO_OBJECT)
 
 
 def _here(view: CraftView) -> tuple[int, int, int]:

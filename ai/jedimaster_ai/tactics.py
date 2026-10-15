@@ -3,8 +3,9 @@
 Purpose:
     The judgments every behavior shares: a craft's skill tier, its own entry
     among the contacts, which contacts it may fight, which its order names,
-    where a contact sits from it, how far from it to keep, and which
-    targets a player's commands leave it.
+    where a contact sits from it, how far from it to keep, which
+    targets a player's commands leave it, and the throttle that gives a
+    speed.
 
 Invariants:
     - A craft fights only a craft the engine marks hostile by the mission's
@@ -42,6 +43,7 @@ _BULKY_GENERA = (GENUS_FREIGHTER, GENUS_STARSHIP, GENUS_PLATFORM)
 # units, about 100 m at the HUD's 40,700 units a kilometre, the break-off
 # range every target had before the engine sent sizes.
 CLEARANCE_MARGIN = 0x1000
+FULL_THROTTLE = 0xFFFF
 
 
 def skill_tier(skill: int) -> int:
@@ -129,3 +131,12 @@ def clearance(contact: Contact) -> int:
     (``tests/test_tactics.py``).
     """
     return contact.size * 3 // 4 + CLEARANCE_MARGIN
+
+
+def throttle_for(view: CraftView, speed: int) -> int:
+    """Return the throttle that gives speed, the 1997 set-speed rule: full
+    throttle once the craft's full speed is at most speed, else speed over
+    the full speed as a fraction of 65,536."""
+    if view.full_speed <= speed:
+        return FULL_THROTTLE
+    return (speed << 16) // view.full_speed
