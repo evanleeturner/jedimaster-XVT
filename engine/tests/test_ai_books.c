@@ -491,7 +491,9 @@ static void check_view_orders_and_home(void)
 	XVT_ASSERT_INT_EQ(view.order_variable1, 7);
 	XVT_ASSERT_INT_EQ(view.order_variable2, 8);
 	XVT_ASSERT_INT_EQ(view.order_speed, 9);
-	XVT_ASSERT_INT_EQ(view.books, AI_WIRE_BOOKS_MAY_JUMP);
+	/* No group leaves into this one, so all have returned. */
+	XVT_ASSERT_INT_EQ(view.books,
+			  AI_WIRE_BOOKS_MAY_JUMP | AI_WIRE_BOOKS_ALL_RETURNED);
 	XVT_ASSERT_INT_EQ(view.mothership, UINT16_MAX);
 	XVT_ASSERT_INT_EQ(view.inside_hangar[0], 0);
 	XVT_ASSERT_INT_EQ(view.home_point[2], 0);
@@ -499,20 +501,22 @@ static void check_view_orders_and_home(void)
 	XVT_ASSERT_INT_EQ(view_of(1).order_throttle, 0);
 
 	craft->model_index = NO_JUMP_MODEL;
-	XVT_ASSERT_INT_EQ(view_of(1).books, 0);
+	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_ALL_RETURNED);
 	craft->model_index = JUMP_MODEL;
 	craft->object_kind = CRAFT_OBJECT_KIND_ARRIVING_FROM_HYPERSPACE;
-	XVT_ASSERT_INT_EQ(view_of(1).books, 0);
+	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_ALL_RETURNED);
 	craft->object_kind = CRAFT_OBJECT_KIND_ACTIVE;
 	/* No mothership here and none to come: it may jump (order 46). */
 	group->fg.departure_method = 1;
-	XVT_ASSERT_INT_EQ(view_of(1).books,
-			  AI_WIRE_BOOKS_BY_MOTHERSHIP | AI_WIRE_BOOKS_MAY_JUMP);
+	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_BY_MOTHERSHIP |
+						    AI_WIRE_BOOKS_MAY_JUMP |
+						    AI_WIRE_BOOKS_ALL_RETURNED);
 	group->fg.departure_method = 0;
 	craft->captured_by_flight_group = 1;
 	group->fg.captured_depart_via_mothership = 1;
-	XVT_ASSERT_INT_EQ(view_of(1).books,
-			  AI_WIRE_BOOKS_BY_MOTHERSHIP | AI_WIRE_BOOKS_MAY_JUMP);
+	XVT_ASSERT_INT_EQ(view_of(1).books, AI_WIRE_BOOKS_BY_MOTHERSHIP |
+						    AI_WIRE_BOOKS_MAY_JUMP |
+						    AI_WIRE_BOOKS_ALL_RETURNED);
 	craft->captured_by_flight_group = 0;
 
 	group->fg.mission_point_enabled[13] = 1;
@@ -656,6 +660,72 @@ static void check_targets_left(void)
 	g_object_type_table[STATIC_TYPE].behavior_flags = 2;
 	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_TARGETS_LEFT));
 	g_object_type_table[STATIC_TYPE].behavior_flags = flags;
+}
+
+/* The all-returned book, the 1997 order 32's test: every other flight group
+ * that leaves into the craft's group as its mothership has arrived, has no
+ * wave left and has no craft in the battle. A group with arrival off and no
+ * player, one that leaves another way or into another group, and the craft's
+ * own group, are left out. */
+static void check_all_returned(void)
+{
+	fresh_world();
+	make_craft(1, TEST_GROUP);
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	/* Group 5, the last, leaves into the craft's group but has not
+	 * arrived. */
+	struct mission_flight_group *leaver = &g_mission_flight_groups[5];
+	struct mission_fg_runtime_stats *stats = &g_mission_fg_stats[5];
+	leaver->fg.departure_method = 1;
+	leaver->fg.departure_mothership = TEST_GROUP;
+	stats->arrival_enabled = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	stats->has_arrived = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	stats->waves_remaining = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	stats->waves_remaining = 0;
+	/* A craft of the group still in the battle, then out of the craft
+	 * slots, then gone. */
+	make_craft(2, 5);
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	g_active_region_craft_object_slot_end = 2;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	g_active_region_craft_object_slot_end = SLOT_COUNT;
+	g_active_region_object_slot_start = 3;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	g_active_region_object_slot_start = 0;
+	g_objects[2].object_type = 0;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	/* Another group's craft does not matter. */
+	make_craft(3, 4);
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	/* Arrival off leaves the group out, unless a player owns it. */
+	stats->has_arrived = 0;
+	stats->arrival_enabled = 0;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	leaver->player_owner_idx = 0;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	leaver->player_owner_idx = -1;
+	stats->arrival_enabled = 1;
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	/* Leaving another way, or into another group, leaves it out. */
+	leaver->fg.departure_method = 0;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	leaver->fg.departure_method = 1;
+	leaver->fg.departure_mothership = ALTERNATE_GROUP;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	/* The craft's own group is left out even if it leaves into itself. */
+	struct mission_flight_group *own = &g_mission_flight_groups[TEST_GROUP];
+	own->fg.departure_method = 1;
+	own->fg.departure_mothership = TEST_GROUP;
+	g_mission_fg_stats[TEST_GROUP].arrival_enabled = 1;
+	XVT_ASSERT_TRUE(has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
+	/* The group asked about is the craft's: group 4 asks, and group 5's
+	 * not-yet-arrived departure into group 2 does not matter to it. */
+	leaver->fg.departure_mothership = TEST_GROUP;
+	XVT_ASSERT_TRUE(has_bit(3, AI_WIRE_BOOKS_ALL_RETURNED));
+	XVT_ASSERT_TRUE(!has_bit(1, AI_WIRE_BOOKS_ALL_RETURNED));
 }
 
 /* The 1997 set-speed rule's full speed: the top speed, 128 here, plus an
@@ -1073,6 +1143,7 @@ int main(void)
 	check_jump_and_replay();
 	check_books_kept_by_order();
 	check_targets_left();
+	check_all_returned();
 	check_full_speed();
 	check_mothership_gone();
 	return 0;

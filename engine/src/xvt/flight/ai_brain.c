@@ -101,6 +101,8 @@ enum {
 	AI_BRAIN_LAUNCHER_NORMAL = 1,
 	AI_BRAIN_LAUNCHER_PAIRED = 3,
 	AI_BRAIN_LAUNCHER_SECOND_SLOT = 0x81,
+	/* The teams a craft keeps an attacked-by record for. */
+	AI_BRAIN_TEAM_RECORDS = 10,
 };
 
 /* The craft due to think that one question asks about, in slot order, and
@@ -117,6 +119,36 @@ static ai_brain_exchange_fn g_ai_brain_exchange;
 void ai_brain_set_exchange(ai_brain_exchange_fn exchange)
 {
 	g_ai_brain_exchange = exchange;
+}
+
+/* Whether some team has hit the craft: any team's entry in its attacked-by
+ * record is set, the 1997 AI's test for a craft under attack. */
+static int ai_brain_craft_attacked(const struct craft_data *craft)
+{
+	for (int team = 0; team < AI_BRAIN_TEAM_RECORDS; ++team) {
+		if (craft->attacked_by_team[team] != 0) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+/* The object index of the craft that last hit this one, or UINT16_MAX when
+ * none did: a craft never hit has no shooter, and an index that is not a
+ * craft in the active region's craft slots, one the contact walk would not
+ * list, gives none. A slot a new craft took after its shooter died names the
+ * new craft. */
+static uint16_t ai_brain_hit_by(const struct craft_data *craft)
+{
+	uint16_t shooter = craft->ai_flight.threat_obj_idx;
+	if (!ai_brain_craft_attacked(craft) ||
+	    shooter < g_active_region_object_slot_start ||
+	    shooter >= g_active_region_craft_object_slot_end ||
+	    g_object_table[shooter].object_type == 0 ||
+	    g_object_table[shooter].mobj->family != 0) {
+		return UINT16_MAX;
+	}
+	return shooter;
 }
 
 /* Writes what the pilot program is told about the object in object_index, a
@@ -139,10 +171,17 @@ static void ai_brain_view_contact(uint16_t object_index,
 	contact->flags = 0;
 	contact->target = craft->ai_controller.target_obj_idx;
 	if (object->player_owner_idx != -1) {
-		contact->flags = AI_WIRE_CONTACT_PLAYER;
+		contact->flags |= AI_WIRE_CONTACT_PLAYER;
 		contact->target = (uint16_t)g_players[object->player_owner_idx]
 					  .current_target_object_idx;
 	}
+	if (craft->working_subsystems == 0) {
+		contact->flags |= AI_WIRE_CONTACT_DISABLED;
+	}
+	if (ai_brain_craft_attacked(craft)) {
+		contact->flags |= AI_WIRE_CONTACT_ATTACKED;
+	}
+	contact->hit_by = ai_brain_hit_by(craft);
 	contact->x = object->world_x;
 	contact->y = object->world_y;
 	contact->z = object->world_z;
@@ -330,6 +369,10 @@ static void ai_brain_view_craft(uint16_t object_index,
 	ai_commands_view_craft(object_index, view);
 	ai_formation_view_craft(object_index, view);
 	ai_warheads_view_craft(object_index, view);
+	view->maneuver_timer =
+		craft->ai_controller.maneuver_timer < 0
+			? 0
+			: (uint32_t)craft->ai_controller.maneuver_timer;
 	memcpy(view->notebook, craft->ai_notebook, sizeof view->notebook);
 }
 
@@ -435,19 +478,25 @@ static void ai_brain_apply_warhead(uint16_t object_index,
 }
 
 /* Aims each named turret slot at its target, which laser_weaponsfire then
- * fires at while it is not UINT16_MAX. */
+ * fires at while it is not UINT16_MAX, and sets whether it fires ion shots:
+ * laser_fireturretslot reads the slot's ammo_count as the ion flag, and a
+ * turret slot holds nothing else there. */
 static void ai_brain_apply_turrets(uint16_t object_index,
 				   struct craft_data *craft,
 				   const struct ai_wire_craft_answer *answer)
 {
 	for (int turret = 0; turret < answer->turret_count; ++turret) {
-		craft->turret_target_states[answer->turret_slot[turret]]
-			.target_obj_idx = answer->turret_target[turret];
+		uint8_t slot = answer->turret_slot[turret];
+		uint8_t ion = answer->turret_ion[turret];
+		craft->turret_target_states[slot].target_obj_idx =
+			answer->turret_target[turret];
+		craft->weapon_slots[slot].ammo_count = ion;
 		XVT_LOG_DEBUG(
-			"ai.craft_turret object=%d slot=%u target=%u predicted=%d",
+			"ai.craft_turret object=%d slot=%u target=%u ion=%u predicted=%d",
 			(int)object_index,
 			(unsigned)answer->turret_slot[turret],
 			(unsigned)answer->turret_target[turret],
+			(unsigned)answer->turret_ion[turret],
 			g_flight_sim_side_effects_suppressed);
 	}
 }
@@ -546,14 +595,17 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 	if ((answer->actions & (1u << AI_WIRE_ACTION_EVADED)) != 0) {
 		ai_commands_evaded(object_index);
 	}
+	if ((answer->actions & (1u << AI_WIRE_ACTION_MANEUVER_TIMER)) != 0) {
+		controller->maneuver_timer = (int)answer->maneuver_timer;
+	}
 	XVT_LOG_DEBUG(
-		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d predicted=%d",
+		"ai.craft_answered object=%d actions=%u yaw=%u pitch=%u roll=%u throttle=%u activity=%d interval=%d timer=%d predicted=%d",
 		(int)answer->object_index, answer->actions,
 		(unsigned)controller->target_xy_angle,
 		(unsigned)controller->target_z_angle,
 		(unsigned)controller->target_roll,
 		(unsigned)craft->throttle_speed, (int)controller->activity,
-		controller->think_interval,
+		controller->think_interval, craft->ai_controller.maneuver_timer,
 		g_flight_sim_side_effects_suppressed);
 }
 

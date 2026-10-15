@@ -135,8 +135,8 @@
     },
     "think.contact": {
       "level": "D",
-      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull", "activity", "size"],
-      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}; activity {activity}; size {size}"
+      "fields": ["object", "signature", "type", "genus", "team", "group", "kind", "flags", "x", "y", "z", "yaw", "pitch", "speed", "target", "attacker", "front", "rear", "hull_damage", "hull", "activity", "size", "hit_by"],
+      "text": "Contact {object} (signature {signature}, type {type}, genus {genus}, team {team}, flight group {group}, object kind {kind}, flags {flags}) is at ({x}, {y}, {z}) heading {yaw} pitch {pitch}, speed {speed}, targeting {target}, last hit by {attacker} (65535 for none); shields front {front} rear {rear}, hull damage {hull_damage} of {hull}; activity {activity}; size {size}, last shot by {hit_by} (65535 for none)"
     },
     "think.question": {
       "level": "D",
@@ -150,8 +150,8 @@
     },
     "think.turret": {
       "level": "D",
-      "fields": ["object", "slot", "target"],
-      "text": "Craft {object} aims the turret in weapon slot {slot} at object {target} (65535 for none)"
+      "fields": ["object", "slot", "target", "ion"],
+      "text": "Craft {object} aims the turret in weapon slot {slot} at object {target} (65535 for none), ion {ion} (1 fires ion shots)"
     },
     "think.view": {
       "level": "D",

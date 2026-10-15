@@ -480,6 +480,41 @@ static int books_motherships_all_arrived(uint16_t object_index)
 		books_group_all_arrived(group->fg.alternate_mothership));
 }
 
+/* Whether every other flight group that departs into the craft's group as
+ * its mothership has arrived, has no waves left and has no craft left in the
+ * active region's craft slots, the 1997 order 32's test. A group whose
+ * arrival is off and that no player owns is left out, as is a group that does
+ * not leave by mothership or leaves into another group. A group that leaves
+ * into this one and has not arrived yet, or has a wave left, or still has a
+ * craft in the battle, makes the answer no. */
+static int books_all_returned(uint16_t object_index)
+{
+	uint16_t own_group = g_object_table[object_index].flight_group_idx;
+	for (uint16_t group = 0; group < g_mission_header.num_flight_groups;
+	     ++group) {
+		const struct mission_flight_group *other =
+			&g_mission_flight_groups[group];
+		if ((g_mission_fg_stats[group].arrival_enabled == 0 &&
+		     other->player_owner_idx == -1) ||
+		    group == own_group || other->fg.departure_method == 0 ||
+		    other->fg.departure_mothership != own_group) {
+			continue;
+		}
+		if (g_mission_fg_stats[group].has_arrived == 0 ||
+		    g_mission_fg_stats[group].waves_remaining != 0) {
+			return 0;
+		}
+		for (uint16_t slot = g_active_region_object_slot_start;
+		     slot < g_active_region_craft_object_slot_end; ++slot) {
+			if (g_object_table[slot].object_type != 0 &&
+			    g_object_table[slot].flight_group_idx == group) {
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
 /* The mission point reference of the craft's home point, where it leaves by
  * hyperspace, the 1997 home target's: point 12 for a captured craft when that
  * point is on, else point 13 when it is on; 0 for none. */
@@ -937,7 +972,8 @@ static void books_world_point(uint16_t mothership, int side, int up,
 /* Writes the view's order fields and starts its books bits: each slot's
  * order code and completion state; the current slot's throttle as the craft
  * throttle it gives (0 for an index past the table), variables and speed;
- * and the orders-done, aborted, departure-due, skip-due and skipped bits. */
+ * and the orders-done, aborted, departure-due, skip-due, skipped,
+ * targets-left and all-returned bits. */
 static void books_view_orders(uint16_t object_index,
 			      struct ai_wire_craft_view *view)
 {
@@ -973,6 +1009,9 @@ static void books_view_orders(uint16_t object_index,
 	books |= controller->skipped_to_order4 != 0 ? AI_WIRE_BOOKS_SKIPPED : 0;
 	books |= books_targets_left(object_index) ? AI_WIRE_BOOKS_TARGETS_LEFT
 						  : 0;
+	if (books_all_returned(object_index)) {
+		books |= AI_WIRE_BOOKS_ALL_RETURNED;
+	}
 	view->books = (uint16_t)books;
 }
 

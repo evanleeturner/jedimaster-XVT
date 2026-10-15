@@ -11,6 +11,7 @@ import hashlib
 import logging
 
 from jedimaster_ai import notebook
+from jedimaster_ai import think as think_module
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import Decision
 from jedimaster_ai.dice import roll
@@ -21,10 +22,13 @@ from jedimaster_ai.world import Activity
 from jedimaster_ai.world import Answer
 from jedimaster_ai.world import Books
 from jedimaster_ai.world import Commands
+from jedimaster_ai.world import CraftAnswer
 from jedimaster_ai.world import NO_ACTIONS
+from jedimaster_ai.world import NOTEBOOK_BYTES
 from jedimaster_ai.world import OrderMove
 from jedimaster_ai.world import Question
 from jedimaster_ai.world import Steer
+from jedimaster_ai.world import Turret
 
 WANDER = 200
 
@@ -231,3 +235,22 @@ def test_released_a_wingman_attacks_the_craft_its_player_named(view, contact) ->
     )
     said = answered(Question(1, (craft,), (named, own))).craft[0].actions
     assert (said.target, said.activity) == (15, Activity.NONE)
+
+
+def test_debug_records_who_last_shot_a_contact(view, contact, caplog) -> None:
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    think(Question(1000, (view(),), (contact(hit_by=17), contact(hit_by=65535))))
+    lines = [line for line in caplog.text.splitlines() if "think.contact" in line]
+    assert [line.rsplit(" ", 1)[1] for line in lines] == ["hit_by=17", "hit_by=65535"]
+
+
+def test_debug_records_the_timer_evaded_and_ion_actions(caplog) -> None:
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    actions = Actions(
+        evaded=True, maneuver_timer=1180, turrets=(Turret(3, 9, True), Turret(5, 9))
+    )
+    think_module._log_answer(CraftAnswer(4, bytes(NOTEBOOK_BYTES), actions))
+    # Bit n of the actions is action kind n: turrets 8, evaded 14, timer 15.
+    assert "think.answer object=4 actions=49408 " in caplog.text
+    assert "think.turret object=4 slot=3 target=9 ion=1" in caplog.text
+    assert "think.turret object=4 slot=5 target=9 ion=0" in caplog.text

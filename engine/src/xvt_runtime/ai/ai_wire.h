@@ -58,18 +58,22 @@
  * place bit (0 when not); then its warheads' lock: u16 lock ticks (its
  * count), u16 lock needed (the ticks it must reach to be declared), u8 lock
  * state (an AI_WIRE_LOCK_ value), and u8 skill level (its AI rank, 0 to 7,
- * where skill gives levels 4 and 5 one value); then the
+ * where skill gives levels 4 and 5 one value), and u32 maneuver timer (the
+ * ticks left on the craft's maneuver timer, 0 when none); then the
  * notebook's AI_NOTEBOOK_BYTES. Then u16
  * contact count, u16 zero, and one contact per craft in the active region, at most
  * AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
  * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
- * u8 object kind, u8 flags (bit 0: a player flies it), i32 x, i32 y, i32 z,
+ * u8 object kind, u8 flags (AI_WIRE_CONTACT_ bits: a player flies it, none of its
+ * subsystems work, a team has hit it), i32 x, i32 y, i32 z,
  * u16 yaw, u16 pitch, u16 speed, u16 target, u16 last attacker (both 0xFFFF
  * for none), i32 front shield, i32 rear shield, u32 hull damage, u32 hull
  * strength, u8 activity (an AI_ACTIVITY_ value), u32 size (the longest side
  * of the box around the craft type's model, in world units), u8 warheads
- * coming (the homing warheads in flight at it, at most 255) and u32
- * warheads coming damage (their damage summed).
+ * coming (the homing warheads in flight at it, at most 255) u32
+ * warheads coming damage (their damage summed) and u16 hit by (the object
+ * index of the craft that last hit it, 0xFFFF for none, or when that object
+ * is not a craft in the active region).
  *
  * An answer (kind 2) holds one craft answer per craft, in the question's
  * order: u16 object index, the new notebook, u8 action count, then each
@@ -86,8 +90,9 @@
  *   7 warhead: u8 launcher, one the view counts and shows ready (cooldown
  *     0), and u8 paired (1 fires both its slots at once, else 0)
  *   8 turrets: u8 count, 1 to 16, then per turret u8 weapon slot, one the
- *     view's turret mask names, each once, and u16 target, a contact's or
- *     0xFFFF for none
+ *     view's turret mask names, each once, u16 target, a contact's or
+ *     0xFFFF for none, and u8 ion, 1 to have that turret fire ion shots, 0
+ *     to fire its usual ones
  *   9 arrival: u8 arriving and u16 speed, at most AI_WIRE_ARRIVAL_SPEED_MAX.
  *     Arriving 1 marks the craft arriving from hyperspace: while it is, the
  *     engine neither turns it nor changes its speed. Arriving 0 marks it
@@ -113,6 +118,8 @@
  *  14 evaded: no fields. The craft took up the evade command and dropped
  *     its target; the engine clears the command. Only while the view shows
  *     the evade command.
+ *  15 maneuver timer: u32 ticks, 0 to 0x7FFFFFFF. The craft's maneuver
+ *     timer is set to it; the engine counts it down.
  * A craft answer names each action kind at most once, and names only what
  * the question showed. While a craft enters hyperspace the engine does not
  * turn it, whatever the steer action says. */
@@ -128,19 +135,19 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 12,
+	AI_WIRE_VERSION = 13,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 309 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 313 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
 	AI_WIRE_POINT_AXES = 3,
 	/* The contact count and its zero. */
 	AI_WIRE_CONTACT_HEAD_BYTES = 4,
-	AI_WIRE_CONTACT_BYTES = 58,
+	AI_WIRE_CONTACT_BYTES = 60,
 	/* The active region's craft slots; the order target mask has a bit for
 	 * each. */
 	AI_WIRE_CONTACTS_MAX = 32,
@@ -154,8 +161,9 @@ enum ai_wire_constant {
 	 * patrol orders fly in turn. */
 	AI_WIRE_WAYPOINTS = 8,
 	/* A craft answer with every action kind once, but depart or dock, never
-	 * both, and all 16 turrets. */
-	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 89 + AI_NOTEBOOK_BYTES,
+	 * both, all 16 turrets with their ion bytes, and the maneuver
+	 * timer. */
+	AI_WIRE_CRAFT_ANSWER_BYTES_MAX = 110 + AI_NOTEBOOK_BYTES,
 	/* The fastest speed an arrival may set: the 1997 AI's speed out of
 	 * hyperspace. */
 	AI_WIRE_ARRIVAL_SPEED_MAX = 3600,
@@ -176,7 +184,8 @@ enum ai_wire_action_kind {
 	AI_WIRE_ACTION_DOCK = 12,
 	AI_WIRE_ACTION_COUNTERMEASURE = 13,
 	AI_WIRE_ACTION_EVADED = 14,
-	AI_WIRE_ACTION_KIND_END = 15,
+	AI_WIRE_ACTION_MANEUVER_TIMER = 15,
+	AI_WIRE_ACTION_KIND_END = 16,
 };
 
 /* The bits of a craft view's commands: a player's wingman commands that
@@ -222,6 +231,8 @@ enum ai_wire_books {
 	AI_WIRE_BOOKS_TARGETS_LEFT = 0x200,
 	/* It follows a leader, so its formation place is given. */
 	AI_WIRE_BOOKS_PLACE = 0x400,
+	/* Every craft its mission asks it to bring home has returned. */
+	AI_WIRE_BOOKS_ALL_RETURNED = 0x800,
 };
 
 /* A craft view's countermeasure, the engine's countermeasure type; the
@@ -233,7 +244,11 @@ enum ai_wire_countermeasure {
 };
 
 enum ai_wire_contact_flag {
-	AI_WIRE_CONTACT_PLAYER = 1,
+	AI_WIRE_CONTACT_PLAYER = 0x01,
+	/* None of its subsystems work. */
+	AI_WIRE_CONTACT_DISABLED = 0x02,
+	/* Some team has hit it. */
+	AI_WIRE_CONTACT_ATTACKED = 0x04,
 };
 
 /* A craft's lock state in its view, as a player's missile_lock_state: no
@@ -311,6 +326,7 @@ struct ai_wire_craft_view {
 	uint16_t lock_needed;
 	uint8_t lock_state;
 	uint8_t skill_level;
+	uint32_t maneuver_timer;
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 
@@ -344,6 +360,7 @@ struct ai_wire_contact {
 	uint32_t size;
 	uint8_t warheads_coming;
 	uint32_t warheads_coming_damage;
+	uint16_t hit_by;
 };
 
 /* One question: the craft due to think and every contact, at one tick. */
@@ -375,10 +392,12 @@ struct ai_wire_craft_answer {
 	uint8_t turret_count;
 	uint8_t turret_slot[AI_WIRE_WEAPON_SLOTS];
 	uint16_t turret_target[AI_WIRE_WEAPON_SLOTS];
+	uint8_t turret_ion[AI_WIRE_WEAPON_SLOTS];
 	uint8_t arriving;
 	uint16_t speed;
 	uint8_t order_slot;
 	uint8_t order_state;
+	uint32_t maneuver_timer;
 };
 
 /* Why an answer was refused. The reader stops at the first fault. */
@@ -400,7 +419,8 @@ enum ai_wire_result {
 	 * a target, cannon group, launcher or turret the question did not
 	 * show, an order the view does not allow, a depart or dock its books
 	 * do not show, or both, a countermeasure the view does not show
-	 * ready, or an evaded with no evade command shown. */
+	 * ready, an evaded with no evade command shown, a turret ion past 1, or
+	 * a maneuver timer past 0x7FFFFFFF. */
 	AI_WIRE_BAD_ACTION,
 };
 

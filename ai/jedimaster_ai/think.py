@@ -93,7 +93,7 @@ def _log_contact(contact: Contact) -> None:
     logger.debug(
         "think.contact object=%d signature=%d type=%d genus=%d team=%d group=%d "
         "kind=%d flags=%d x=%d y=%d z=%d yaw=%d pitch=%d speed=%d target=%d "
-        "attacker=%d front=%d rear=%d hull_damage=%d hull=%d activity=%d size=%d",
+        "attacker=%d front=%d rear=%d hull_damage=%d hull=%d activity=%d size=%d hit_by=%d",
         contact.object_index,
         contact.object_signature,
         contact.object_type,
@@ -116,6 +116,7 @@ def _log_contact(contact: Contact) -> None:
         contact.hull_strength,
         contact.activity,
         contact.size,
+        contact.hit_by,
     )
 
 
@@ -242,6 +243,8 @@ def _log_answer(answer: CraftAnswer) -> None:
         | actions.depart << 11
         | actions.dock << 12
         | actions.countermeasure << 13
+        | actions.evaded << 14
+        | (actions.maneuver_timer is not None) << 15
     )
     first, second = actions.lasers or (HOLD_FIRE, HOLD_FIRE)
     warhead = actions.warhead
@@ -276,8 +279,9 @@ def _log_answer(answer: CraftAnswer) -> None:
     )
     for turret in actions.turrets or ():
         logger.debug(
-            "think.turret object=%d slot=%d target=%d",
+            "think.turret object=%d slot=%d target=%d ion=%d",
             answer.object_index,
             turret.slot,
             turret.target,
+            int(turret.ion),
         )

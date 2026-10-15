@@ -57,13 +57,14 @@ DISTINCT = CraftView(
     (0x107F7E7D, 0x14131211, 0x18171615, 0x1C1B1A19, 0x201F1E1D, 0x24232221,
      0x28272625, -8), 0x29, 0x2B2A, 0x2D2C, (0x31302F2E, 0x35343332, -9),
     0x3736, 0x3938, 0x3A, 0x3B,
+    maneuver_timer=0x3F3E3D3C,
     notebook=bytes(0x40 + byte for byte in range(NOTEBOOK_BYTES)),
 )  # fmt: skip
 # contact_with_distinct_bytes in the C test.
 DISTINCT_CONTACT = Contact(
     0x4241, 0x4443, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4E4D4C4B, 0x5251504F,
     -4, 0x5453, 0x5655, 0x5857, 0x5A59, 0x5C5B, -5, 0x605F5E5D, 0x64636261,
-    0x68676665, 0x69, 0x6D6C6B6A, 0x6E, 0x7271706F,
+    0x68676665, 0x69, 0x6D6C6B6A, 0x6E, 0x7271706F, 0x7473,
 )  # fmt: skip
 
 
@@ -138,12 +139,13 @@ def good_answer() -> tuple[Question, Answer]:
         target=12,
         lasers=(CannonGroup(LinkMode.ALL, 4), CannonGroup(LinkMode.ONE_AT_A_TIME, 2)),
         warhead=Warhead(0, paired=True),
-        turrets=(Turret(5, NO_OBJECT), Turret(3, 12)),
+        turrets=(Turret(5, NO_OBJECT, True), Turret(3, 12)),
         arrival=Arrival(True, 3600),
         order=OrderMove(1, 2),
         dock=True,
         countermeasure=True,
         evaded=True,
+        maneuver_timer=0x7FFFFFFF,
     )
     answer = Answer(
         TEST_TICK,
@@ -159,7 +161,7 @@ def test_answer_bytes_read_back() -> None:
     question, answer = good_answer()
     message = wire.answer_bytes(answer)
     # The length the C test's check_good_answer expects.
-    assert len(message) == wire.HEAD_BYTES + 111 + 3 + NOTEBOOK_BYTES
+    assert len(message) == wire.HEAD_BYTES + 118 + 3 + NOTEBOOK_BYTES
     assert wire.read_answer(message[4:], question) == answer
 
 
@@ -167,14 +169,17 @@ def test_answer_writes_actions_in_kind_order() -> None:
     _, answer = good_answer()
     message = wire.answer_bytes(answer)
     start = wire.HEAD_BYTES + 2 + NOTEBOOK_BYTES
-    # Count 13; steer 0x1234 0x4000 0xFFFF; throttle 0x8000; activity 12;
+    # Count 14; steer 0x1234 0x4000 0xFFFF; throttle 0x8000; activity 12;
     # think interval 59; target 12; lasers 3 4 1 2; warhead 0 paired;
     # turrets: slot 5 none, slot 3 at 12; arriving at 3,600; order slot 1
-    # state 2; dock; countermeasure; evaded.
-    assert message[start : start + 45] == bytes.fromhex(
-        "0d0134120040ffff020080030c043b00050c000603040102070001080205ffff030c000901100e"
-        "0a01020c0d0e"
+    # state 2; dock; countermeasure; evaded; maneuver timer 0x7FFFFFFF.
+    # Turret slot 5 sets ion, slot 3 does not.
+    expected = bytes.fromhex(
+        "0e0134120040ffff020080030c043b00050c000603040102070001"
+        "080205ffff01030c0000"
+        "0901100e0a01020c0d0e0fffffff7f"
     )
+    assert message[start : start + len(expected)] == expected
 
 
 def test_answer_length_field_counts_the_rest() -> None:
@@ -227,8 +232,8 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
 @pytest.mark.parametrize(
     ("actions", "match"),
     [
-        (b"\x01\x00", "not one of the fourteen"),
-        (b"\x01\x0f", "not one of the fourteen"),
+        (b"\x01\x00", "not one of the fifteen"),
+        (b"\x01\x10", "not one of the fifteen"),
         (b"\x02\x02\x01\x00\x02\x02\x00", "sent twice"),
         (b"\x01\x03\x0d", "out of range"),
         (b"\x01\x03\x05", "set by the engine alone"),
@@ -244,11 +249,14 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
         (b"\x01\x07\x00\x02", "out of range"),
         (b"\x01\x07\x01\x00", "launcher 1 is not shown ready"),
         (b"\x01\x08\x00", "out of range"),
-        (b"\x01\x08\x01\x04\xff\xff", "slot 4 is not a turret"),
-        (b"\x01\x08\x01\x10\xff\xff", "out of range"),
-        (b"\x01\x08\x02\x03\xff\xff\x03\xff\xff", "out of range"),
-        (b"\x01\x08\x01\x03\x0b\x00", "turret target 11 is not a contact"),
+        (b"\x01\x08\x01\x04\xff\xff\x00", "slot 4 is not a turret"),
+        (b"\x01\x08\x01\x10\xff\xff\x00", "out of range"),
+        (b"\x01\x08\x02\x03\xff\xff\x00\x03\xff\xff\x00", "out of range"),
+        (b"\x01\x08\x01\x03\xff\xff\x02", "ion is 2"),
+        (b"\x01\x0f\x00\x00\x00\x80", "out of range"),
+        (b"\x01\x08\x01\x03\x0b\x00\x00", "turret target 11 is not a contact"),
         (b"\x01\x08\x01\x03\x09", "ends inside a value"),
+        (b"\x01\x0f\x00\x00\x00", "ends inside a value"),
         (b"\x01\x09\x02\x00\x00", "out of range"),
         (b"\x01\x09\x01\x11\x0e", "out of range"),
         (b"\x01\x09\x01\x10", "ends inside a value"),
@@ -261,11 +269,11 @@ QUESTION_7 = Question(TEST_TICK, (CRAFT_7,), CONTACTS)
         (b"\x02\x0b\x0c", "depart and dock are both sent"),
     ],
     ids=[
-        "kind 0", "kind 15", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
+        "kind 0", "kind 16", "twice", "activity 13", "activity 5", "activity 7", "interval 0", "short", "long",
         "target not shown", "link mode 4", "mode without burst", "burst without mode",
         "launcher 2", "paired 2", "launcher not counted", "no turrets",
-        "not a turret", "slot 16", "slot twice", "turret target not shown",
-        "turret cut off", "arriving 2", "speed 3601", "arrival cut off",
+        "not a turret", "slot 16", "slot twice", "ion 2", "timer past the limit",
+        "turret target not shown", "turret cut off", "timer cut off", "arriving 2", "speed 3601", "arrival cut off",
         "order to an empty slot", "order to slot 3", "order slot 4",
         "order state 1", "order cut off", "depart not allowed", "depart and dock",
     ],
@@ -389,13 +397,15 @@ def test_answer_firing_an_empty_launcher_is_refused() -> None:
 
 def test_answer_naming_what_the_question_showed_is_read() -> None:
     body = answer_with_actions(
-        b"\x04\x05\xff\xff\x06\x01\x01\x00\x00\x07\x00\x01\x08\x01\x03\x09\x00"
+        b"\x05\x05\xff\xff\x06\x01\x01\x00\x00\x07\x00\x01\x08\x01\x03\x09\x00\x01"
+        b"\x0f\xff\xff\xff\x7f"
     )
     assert wire.read_answer(body, QUESTION_7).craft[0].actions == Actions(
         target=NO_OBJECT,
         lasers=(CannonGroup(LinkMode.ONE_AT_A_TIME, 1), CannonGroup()),
         warhead=Warhead(0, paired=True),
-        turrets=(Turret(3, 9),),
+        turrets=(Turret(3, 9, True),),
+        maneuver_timer=0x7FFFFFFF,
     )
 
 
@@ -486,20 +496,32 @@ def test_evaded_follows_the_view_commands(commands: Commands, allowed: bool) -> 
             _actions_of(evaded, shown)
 
 
-def test_a_question_reads_what_wire_13_adds_as_absent(view, contact) -> None:
+def test_a_question_carries_the_timer_and_the_shooter(view, contact) -> None:
+    question = Question(
+        1, (view(maneuver_timer=1180),), (contact(hit_by=9), contact(hit_by=NO_OBJECT))
+    )
+    read = wire.read_question(wire.question_bytes(question)[wire.LENGTH.size :])
+    assert read.craft[0].maneuver_timer == 1180
+    assert [found.hit_by for found in read.contacts] == [9, NO_OBJECT]
+
+
+def test_a_question_reads_what_wire_14_adds_as_absent(view, contact) -> None:
     question = Question(1, (view(),), (contact(),))
     read = wire.read_question(wire.question_bytes(question)[wire.LENGTH.size :])
     (craft,) = read.craft
-    assert (craft.maneuver_timer, craft.escorted, craft.station) == (
-        0,
-        NO_OBJECT,
-        (0, 0, 0),
-    )
-    assert read.contacts[0].hit_by == NO_OBJECT
+    assert (craft.escorted, craft.station) == (NO_OBJECT, (0, 0, 0))
 
 
-def test_the_maneuver_timer_action_is_not_written_before_wire_13() -> None:
+def test_the_maneuver_timer_action_is_written() -> None:
     actions = Actions(maneuver_timer=1180)
     answer = Answer(1, (CraftAnswer(7, bytes(NOTEBOOK_BYTES), actions),))
-    with pytest.raises(wire.WireError, match="no maneuver timer action"):
-        wire.answer_bytes(answer)
+    message = wire.answer_bytes(answer)
+    assert message[-6:] == bytes.fromhex("010f9c040000")
+
+
+def test_the_ion_switch_is_written_and_read() -> None:
+    actions = Actions(turrets=(Turret(3, 9, True), Turret(5, 9, False)))
+    answer = Answer(TEST_TICK, (CraftAnswer(7, bytes(NOTEBOOK_BYTES), actions),))
+    message = wire.answer_bytes(answer)
+    assert message[-11:] == bytes.fromhex("0108020309000105090000")
+    assert wire.read_answer(message[4:], QUESTION_7) == answer

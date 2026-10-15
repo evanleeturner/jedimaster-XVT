@@ -35,11 +35,8 @@ AI_WIRE_H = ENGINE / "src" / "xvt_runtime" / "ai" / "ai_wire.h"
 AI_STATE_H = ENGINE / "src" / "xvt" / "flight" / "ai_state.h"
 MISSION_H = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.h"
 MISSION_C = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.c"
-# What the program names before the engine sends it: wire version 13 adds
-# each to the header, and then leaves this empty.
-AWAITED_BOOKS = {"ALL_RETURNED": 0x800, "STATION": 0x1000}
-AWAITED_CONTACT_FLAGS = {"DISABLED": 0x2, "ATTACKED": 0x4}
-AWAITED_CONTACT_FIELDS = ["hit_by"]
+# What the program names before the engine sends it, until the header adds it.
+AWAITED_BOOKS = {"STATION": 0x1000}
 C_TYPES = {
     "uint8_t": "B",
     "uint16_t": "H",
@@ -100,12 +97,13 @@ def test_wire_constants_match() -> None:
         target=6,
         lasers=(CannonGroup(1, 1), CannonGroup()),
         warhead=Warhead(1),
-        turrets=tuple(Turret(slot, 7) for slot in range(world.WEAPON_SLOTS)),
+        turrets=tuple(Turret(slot, 7, True) for slot in range(world.WEAPON_SLOTS)),
         arrival=Arrival(True, world.ARRIVAL_SPEED_MAX),
         order=OrderMove(1, 2),
         depart=True,
         countermeasure=True,
         evaded=True,
+        maneuver_timer=world.MANEUVER_TIMER_MAX,
     )
     answer = Answer(1, (CraftAnswer(1, bytes(NOTEBOOK_BYTES), every_action),))
     assert constants == {
@@ -190,18 +188,16 @@ def test_contact_fields_match() -> None:
     members = c_struct("ai_wire_contact")
     assert [(name, code) for name, code, _ in members] == list(wire.CONTACT_LAYOUT)
     assert {count for _, _, count in members} == {1}
-    assert [name for name, _ in wire.CONTACT_LAYOUT] + AWAITED_CONTACT_FIELDS == [
+    assert [name for name, _ in wire.CONTACT_LAYOUT] == [
         field.name for field in dataclasses.fields(Contact)
     ]
 
 
 def test_contact_flags_match() -> None:
     flags = c_enum(AI_WIRE_H, "ai_wire_contact_flag", "AI_WIRE_CONTACT_")
-    assert flags == {"PLAYER": 1}
-    assert flags | AWAITED_CONTACT_FLAGS == {
-        flag.name: flag.value for flag in world.ContactFlags
-    }
-    assert Contact(*([0] * 7), flags["PLAYER"], *([0] * 16)).player_flown
+    assert flags == {"PLAYER": 1, "DISABLED": 2, "ATTACKED": 4}
+    assert flags == {flag.name: flag.value for flag in world.ContactFlags}
+    assert Contact(*([0] * 7), flags["PLAYER"], *([0] * 17)).player_flown
 
 
 def test_activities_match() -> None:

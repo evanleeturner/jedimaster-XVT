@@ -131,6 +131,7 @@ static uint8_t *put_craft_view(uint8_t *at,
 	at = put_u16(at, view->lock_needed);
 	*at++ = view->lock_state;
 	*at++ = view->skill_level;
+	at = put_u32(at, view->maneuver_timer);
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }
@@ -161,6 +162,7 @@ static uint8_t *put_contact(uint8_t *at, const struct ai_wire_contact *contact)
 	at = put_u32(at, contact->size);
 	*at++ = contact->warheads_coming;
 	at = put_u32(at, contact->warheads_coming_damage);
+	at = put_u16(at, contact->hit_by);
 	return at;
 }
 
@@ -308,7 +310,8 @@ static int take_warhead(struct wire_reader *reader,
 }
 
 /* Reads the turrets action: 1 to AI_WIRE_WEAPON_SLOTS turrets, each a slot
- * the view's turret mask names, once, and a contact or no target. */
+ * the view's turret mask names, once, a contact or no target, and an ion
+ * switch of 0 or 1. */
 static int take_turrets(struct wire_reader *reader,
 			const struct ai_wire_question *question,
 			const struct ai_wire_craft_view *view,
@@ -322,18 +325,20 @@ static int take_turrets(struct wire_reader *reader,
 	for (unsigned int turret = 0; turret < count; ++turret) {
 		unsigned int slot = take_u8(reader);
 		unsigned int target = take_u16(reader);
+		unsigned int ion = take_u8(reader);
 		if (reader->short_read) {
 			return 1;
 		}
 		if (slot >= AI_WIRE_WEAPON_SLOTS ||
 		    (view->turret_slot_mask & (1u << slot)) == 0 ||
 		    (seen & (1u << slot)) != 0 ||
-		    !is_contact_or_none(question, target)) {
+		    !is_contact_or_none(question, target) || ion > 1) {
 			return 0;
 		}
 		seen |= 1u << slot;
 		answer->turret_slot[turret] = (uint8_t)slot;
 		answer->turret_target[turret] = (uint16_t)target;
+		answer->turret_ion[turret] = (uint8_t)ion;
 	}
 	answer->turret_count = (uint8_t)count;
 	return 1;
@@ -436,6 +441,10 @@ static int take_action(struct wire_reader *reader,
 		return countermeasure_ready(view);
 	case AI_WIRE_ACTION_EVADED:
 		return (view->commands & AI_WIRE_COMMAND_EVADE) != 0;
+	case AI_WIRE_ACTION_MANEUVER_TIMER:
+		answer->maneuver_timer = take_u32(reader);
+		return reader->short_read ||
+		       answer->maneuver_timer <= 0x7FFFFFFFu;
 	default:
 		return take_turrets(reader, question, view, answer);
 	}

@@ -144,8 +144,8 @@ class Books(enum.IntFlag):
       1997 test that ends SS Await Return
     - STATION: it escorts a craft, so ``escorted`` and ``station`` are given
 
-    ALL_RETURNED and STATION come with wire version 13; the engine sends
-    neither before it.
+    ALL_RETURNED comes with wire version 13 and STATION after it; the engine
+    sends neither before.
     """
 
     ORDERS_DONE = 0x001
@@ -232,8 +232,9 @@ class CraftView:
     time; the ``maneuver_timer`` action sets it. ``escorted`` is the object
     index of the craft it escorts, NO_OBJECT for none, and ``station`` the
     world position of its station beside that craft, (0, 0, 0) when not
-    given; both come with the STATION book. These three come with wire
-    version 13: before it they read 0, NO_OBJECT and (0, 0, 0).
+    given; both come with the STATION book and read NO_OBJECT and (0, 0, 0)
+    until the engine sends them. ``maneuver_timer`` comes with wire version
+    13 and reads 0 before it.
     """
 
     object_index: int
@@ -481,10 +482,15 @@ class Warhead:
 
 @dataclasses.dataclass(frozen=True)
 class Turret:
-    """A turret's weapon slot and the object it fires at, NO_OBJECT for none."""
+    """A turret's weapon slot and the object it fires at, NO_OBJECT for none.
+
+    ``ion`` has the turret fire ion shots, which disable a craft, instead of
+    its usual ones; it comes with wire version 13.
+    """
 
     slot: int
     target: int
+    ion: bool = False
 
     def __post_init__(self) -> None:
         if not 0 <= self.slot < WEAPON_SLOTS:

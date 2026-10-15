@@ -23,8 +23,9 @@ Invariants:
       past 1 or speed past 3,600, a short or long message, a target, cannon group, launcher or turret the question
       did not show, an order from a follower or to a slot the view does not
       allow, a depart or dock the view's books do not show, or both, a
-      countermeasure the view does not show ready, and an evaded with no
-      evade command shown.
+      countermeasure the view does not show ready, an evaded with no
+      evade command shown, a turret ion past 1, and a maneuver timer past
+      0x7FFFFFFF.
 """
 
 from __future__ import annotations
@@ -53,7 +54,7 @@ from .world import Turret
 from .world import Warhead
 
 MAGIC = 0x57504D4A  # "JMPW"
-VERSION = 12
+VERSION = 13
 KIND_QUESTION = 1
 KIND_ANSWER = 2
 LENGTH = struct.Struct("<I")
@@ -128,6 +129,7 @@ VIEW_LAYOUT = (
     ("lock_needed", "H", 1),
     ("lock_state", "B", 1),
     ("skill_level", "B", 1),
+    ("maneuver_timer", "I", 1),
 )
 VIEW_FIELDS = struct.Struct(
     "<" + "".join(code * count for _, code, count in VIEW_LAYOUT)
@@ -160,6 +162,7 @@ CONTACT_LAYOUT = (
     ("size", "I"),
     ("warheads_coming", "B"),
     ("warheads_coming_damage", "I"),
+    ("hit_by", "H"),
 )
 CONTACT_FIELDS = struct.Struct("<" + "".join(code for _, code in CONTACT_LAYOUT))
 U8 = struct.Struct("<B")
@@ -167,7 +170,8 @@ U16 = struct.Struct("<H")
 STEER = struct.Struct("<HHH")
 LASERS = struct.Struct("<BBBB")
 WARHEAD = struct.Struct("<BB")
-TURRET = struct.Struct("<BH")
+TURRET = struct.Struct("<BHB")
+U32 = struct.Struct("<I")
 ARRIVAL = struct.Struct("<BH")
 ORDER = struct.Struct("<BB")
 
@@ -189,6 +193,7 @@ class ActionKind(enum.IntEnum):
     DOCK = 12
     COUNTERMEASURE = 13
     EVADED = 14
+    MANEUVER_TIMER = 15
 
 
 class WireError(ValueError):
@@ -291,8 +296,6 @@ def question_bytes(question: Question) -> bytes:
 
 
 def _actions_bytes(actions: Actions) -> bytes:
-    if actions.maneuver_timer is not None:
-        raise WireError(f"wire version {VERSION} carries no maneuver timer action")
     written = bytearray()
     count = 0
     if actions.steer is not None:
@@ -325,7 +328,7 @@ def _actions_bytes(actions: Actions) -> bytes:
     if actions.turrets is not None:
         written += U8.pack(ActionKind.TURRETS) + U8.pack(len(actions.turrets))
         for turret in actions.turrets:
-            written += TURRET.pack(turret.slot, turret.target)
+            written += TURRET.pack(turret.slot, turret.target, int(turret.ion))
         count += 1
     if actions.arrival is not None:
         written += U8.pack(ActionKind.ARRIVAL)
@@ -346,6 +349,10 @@ def _actions_bytes(actions: Actions) -> bytes:
         count += 1
     if actions.evaded:
         written += U8.pack(ActionKind.EVADED)
+        count += 1
+    if actions.maneuver_timer is not None:
+        written += U8.pack(ActionKind.MANEUVER_TIMER)
+        written += U32.pack(actions.maneuver_timer)
         count += 1
     return U8.pack(count) + bytes(written)
 
@@ -386,7 +393,13 @@ class _Reader:
 
 def _take_turrets(reader: _Reader) -> tuple[Turret, ...]:
     (count,) = reader.take(U8)
-    return tuple(Turret(*reader.take(TURRET)) for _ in range(count))
+    turrets = []
+    for _ in range(count):
+        slot, target, ion = reader.take(TURRET)
+        if ion > 1:
+            raise ValueError(f"ion is {ion}, not 0 or 1")
+        turrets.append(Turret(slot, target, bool(ion)))
+    return tuple(turrets)
 
 
 def _take_action(reader: _Reader, kind: ActionKind) -> t.Any:
@@ -418,6 +431,8 @@ def _take_action(reader: _Reader, kind: ActionKind) -> t.Any:
         ActionKind.EVADED,
     ):
         return True
+    if kind == ActionKind.MANEUVER_TIMER:
+        return reader.take(U32)[0]
     return reader.take(U16)[0]
 
 
@@ -429,7 +444,7 @@ def _read_actions(reader: _Reader) -> Actions:
         try:
             kind = ActionKind(code)
         except ValueError:
-            raise WireError(f"action kind {code} is not one of the fourteen") from None
+            raise WireError(f"action kind {code} is not one of the fifteen") from None
         name = kind.name.lower()
         if name in found:
             raise WireError(f"action kind {code} is sent twice")

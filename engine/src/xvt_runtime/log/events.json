@@ -25,8 +25,8 @@
     },
     "ai.craft_answered": {
       "level": "D",
-      "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "predicted"],
-      "text": "Craft {object} took the pilot program's answer, action bits {actions}: it now turns to heading {yaw}, pitch {pitch} and roll {roll}, at throttle {throttle}, activity {activity}, thinking every {interval} ticks ({predicted} is 1 in a predicted step, run again once confirmed)"
+      "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "timer", "predicted"],
+      "text": "Craft {object} took the pilot program's answer, action bits {actions}: it now turns to heading {yaw}, pitch {pitch} and roll {roll}, at throttle {throttle}, activity {activity}, thinking every {interval} ticks, maneuver timer {timer} ticks ({predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.craft_arrival": {
       "level": "D",
@@ -65,8 +65,8 @@
     },
     "ai.craft_turret": {
       "level": "D",
-      "fields": ["object", "slot", "target", "predicted"],
-      "text": "Craft {object} aimed the turret in weapon slot {slot} at object {target} by the pilot program's answer (65535 is none; {predicted} is 1 in a predicted step, run again once confirmed)"
+      "fields": ["object", "slot", "target", "ion", "predicted"],
+      "text": "Craft {object} aimed the turret in weapon slot {slot} at object {target} by the pilot program's answer (65535 is none), ion {ion} (1 fires ion shots, 0 its usual ones; {predicted} is 1 in a predicted step, run again once confirmed)"
     },
     "ai.craft_warhead": {
       "level": "D",

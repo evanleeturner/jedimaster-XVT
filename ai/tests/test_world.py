@@ -10,6 +10,7 @@ from jedimaster_ai.world import ContactFlags
 from jedimaster_ai.world import CraftAnswer
 from jedimaster_ai.world import NOTEBOOK_BYTES
 from jedimaster_ai.world import Steer
+from jedimaster_ai.world import Turret
 
 
 @pytest.mark.parametrize(
@@ -76,3 +77,8 @@ def test_a_contacts_flags_say_disabled_and_attacked(
 def test_craft_answer_needs_a_whole_notebook() -> None:
     with pytest.raises(ValueError, match="63 bytes"):
         CraftAnswer(4, bytes(NOTEBOOK_BYTES - 1))
+
+
+def test_a_turret_fires_its_usual_shots_unless_set_to_ion() -> None:
+    assert Turret(3, 9).ion is False
+    assert Turret(3, 9, True).ion is True
