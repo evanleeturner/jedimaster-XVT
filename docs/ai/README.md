@@ -374,15 +374,15 @@ may trail the real count by 1, because a commit cannot name itself.
 | What it counts | Today | How to check it |
 | --- | --- | --- |
 | Commits that changed the pilot program | 23 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 31 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 36 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
 | Lines of Python in the pilot program | 4,839 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
 | Lines of Python in its tests | 5,953 | the `.py` files in `ai/tests/`, counted with `wc -l` |
 | Test functions in those tests | 356 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 11 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py` |
 | Mission order codes that have a written behavior | 14 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
 | Kinds of line the pilot program writes to its log | 35 | the entries in `ai/jedimaster_ai/events.json` |
-| Lines of C in the engine's computer-pilot code | 4,243 in 19 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
-| Test files and checks for that engine code | 9 files, 75 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
+| Lines of C in the engine's computer-pilot code | 4,263 in 19 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
+| Test files and checks for that engine code | 9 files, 76 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
 | Checks of the wingman commands (Shift+A and the others) | 13 | the `check_order_...` functions in `engine/tests/test_flight.c` |
 | Lines of the 1997 pilot code that were deleted | 14,608 in 9 files | `engine/src/xvt/flight/ai/` just before commit `7d2a109` |
 <!-- ai-numbers:end -->
