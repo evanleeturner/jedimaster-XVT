@@ -156,8 +156,8 @@ turning into either one. The code is in `ai/jedimaster_ai/behaviors/avoidance.py
 ## Orders, formations and wingman commands
 
 An order is the mission's instruction to a flight group. The pilot program
-flies 14 of the 40 order codes today: Attack, Go Home, SS Go Home, the four
-patrol orders and the 7 Hold Steady codes. The code is in
+flies 16 of the 40 order codes today: Attack, Disable, Protect, Go Home, SS
+Go Home, the four patrol orders and the 7 Hold Steady codes. The code is in
 `ai/jedimaster_ai/orders.py`. The rest keep their speed and heading
 until someone builds them, so a craft on an unbuilt order flies straight on.
 Disabled craft and craft on the null order start stopped. Rendezvous and
@@ -167,7 +167,9 @@ Attack Escorts are among the orders still unbuilt.
 | --- | --- | --- | --- |
 | An order with no behavior yet: the craft keeps its speed and heading (`ai/jedimaster_ai/orders.py`, `behaviors/drift.py`). | Flown by the 1997 pilot script for that order. | Changed, for now | |
 | The 7 Hold Steady codes: throttle 0, no conditions, never moves on to a later order. The craft's turrets defend it (`behaviors/hold.py`). | The same, with no turret rule. | Kept, plus turrets | |
-| The engine keeps the mission's records by the 1997 rules and the pilot program acts on them: go home when aborted, when the departure is due or when the orders are done. A met goal marks the order done, then the next order starts. Attack is done when no target is left now or in a group still to come (`ai/jedimaster_ai/progress.py`). | The 1997 pilot script tested these conditions at each decision. | Kept | |
+| Disable: Attack's dogfight at the nearest target whose subsystems still work, with the ion cannons alone; every other cannon holds, so a craft with none never fires a cannon. No warheads yet. A chaser is fought back with everything, a disabled one never (`behaviors/disable.py`). | The same target rule and cannon rule; Disable's warhead test counted a tenth of the target's hull. | Kept; warheads later | |
+| Protect: Attack's dogfight at the nearest enemy attacking a craft the order names, once some team has hit that craft: an enemy aimed at it, or the one whose shot hit it last (`behaviors/protect.py`). | The same, where aimed at meant in an attack maneuver on it; hostility was checked only for a player's craft. | Kept, every target hostile | |
+| The engine keeps the mission's records by the 1997 rules and the pilot program acts on them: go home when aborted, when the departure is due or when the orders are done. A met goal marks the order done, then the next order starts. Attack, Disable and Protect are done when no target is left now or in a group still to come (`ai/jedimaster_ai/progress.py`). | The 1997 pilot script tested these conditions at each decision. | Kept | |
 | The leader of a flight is the engine's pick: the live craft of the batch with the lowest number (Alpha 1). | The first craft of each batch. A follower took over a lost leader. | Kept | |
 | Shift+A (attack) and Shift+C (cover): an Attack-order wingman takes the named craft while it is an enemy. A wingman that is holding station, in formation, going home evading, jumping or entering a hangar ignores the order. Other orders keep flying (`ai/jedimaster_ai/tactics.py`). | Wingmen took the target unless holding, in formation or going home. In the 1997 code the command's target search was broken. | Kept, bug fixed | [#50](https://github.com/evanleeturner/jedimaster-XVT/issues/50), [#51](https://github.com/evanleeturner/jedimaster-XVT/issues/51), [#52](https://github.com/evanleeturner/jedimaster-XVT/issues/52) |
 | Shift+I (ignore): the wingman never picks that craft, but fights it if it sits behind. | The craft was skipped in target searches. | Kept | [#52](https://github.com/evanleeturner/jedimaster-XVT/issues/52) |
@@ -325,8 +327,8 @@ the project's owner closes them. This table says what became of each one.
   Attack order, and beside a player, each follower still flies by itself.
   Related issues: [#296](https://github.com/evanleeturner/jedimaster-XVT/issues/296), [#138](https://github.com/evanleeturner/jedimaster-XVT/issues/138).
 - The orders that still keep their speed and heading, in two groups. The
-  next group of orders includes Disable, Wait, SS Protect, Wait 2, SS Await
-  Return, Protect, Escort and SS Patrol and Disable. The group after it holds
+  next group of orders includes Wait, SS Protect, Wait 2, SS Await Return,
+  Escort and SS Patrol and Disable. The group after it holds
   the boarding orders, Pick up, Drop off, Self-destruct, Kamikaze, Disabled,
   Await Boarding, SS Board and SS Launch.
 - A warhead fired without a lock at a big ship, aimed ahead of it, at skill Jedi and above.
@@ -437,14 +439,14 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 27 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 40 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
-| Lines of Python in the pilot program | 5,393 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
-| Lines of Python in its tests | 6,562 | the `.py` files in `ai/tests/`, counted with `wc -l` |
-| Test functions in those tests | 403 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
+| Commits that changed the pilot program | 30 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 43 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Lines of Python in the pilot program | 5,558 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
+| Lines of Python in its tests | 7,101 | the `.py` files in `ai/tests/`, counted with `wc -l` |
+| Test functions in those tests | 432 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 16 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, with the files of orders whose behavior is not written yet |
-| Mission order codes that have a written behavior | 14 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
-| Kinds of line the pilot program writes to its log | 37 | the entries in `ai/jedimaster_ai/events.json` |
+| Mission order codes that have a written behavior | 16 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
+| Kinds of line the pilot program writes to its log | 39 | the entries in `ai/jedimaster_ai/events.json` |
 | Lines of C in the engine's computer-pilot code | 4,764 in 21 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
 | Test files and checks for that engine code | 10 files, 97 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
 | Checks of the wingman commands (Shift+A and the others) | 13 | the `check_order_...` functions in `engine/tests/test_flight.c` |
