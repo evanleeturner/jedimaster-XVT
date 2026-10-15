@@ -10,6 +10,7 @@
 
 #include "test_assert.h"
 #include "xvt_runtime/runtime/launch_result.h"
+#include "xvt_runtime/runtime/sith.h"
 
 /* The folder for temporary folders: $TMPDIR, else the working folder. */
 static const char *tmp_base(void)
@@ -41,7 +42,7 @@ static void check_flown(void)
 	XVT_ASSERT_TRUE(length > 0);
 	XVT_ASSERT_INT_EQ(length, strlen(text));
 	XVT_ASSERT_INT_EQ(text[length - 1], '\n');
-	XVT_ASSERT_TRUE(strstr(text, "\"schema_version\":2") != NULL);
+	XVT_ASSERT_TRUE(strstr(text, "\"schema_version\":3") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"status\":\"flown\"") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"exit_code\":0") != NULL);
 	XVT_ASSERT_TRUE(strstr(text, "\"outcome\":\"completed\"") != NULL);
@@ -121,6 +122,84 @@ static void check_size_limit(void)
 	XVT_ASSERT_INT_EQ(xvt_launch_result_format(&r, tight, 10), 0);
 }
 
+static struct xvt_launch_sith sith_sample(int setting)
+{
+	struct xvt_launch_sith s;
+	memset(&s, 0, sizeof(s));
+	s.setting = setting;
+	s.flight_group = 2;
+	snprintf(s.flight_name, sizeof(s.flight_name), "Beta \"One\" \\ x");
+	s.craft_type = 7;
+	s.apprentices_flown = 3;
+	s.apprentices_lost = 2;
+	s.lord_flown = 1;
+	s.lord_lost = 1;
+	return s;
+}
+
+/* The sith object, per setting: always every member; with none the members
+ * hold their empty values whatever the struct holds. */
+static void check_sith_block(void)
+{
+	char text[2048];
+	struct xvt_launch_result r =
+		sample(XVT_LAUNCH_EXIT_FLOWN, XVT_LAUNCH_OUTCOME_COMPLETED);
+	XVT_ASSERT_TRUE(xvt_launch_result_format(&r, text, sizeof(text)) > 0);
+	XVT_ASSERT_TRUE(
+		strstr(text,
+		       "\"sith\":{\"setting\":\"none\",\"flight_group\":-1,\"flight_name\":\"\",\"craft_type\":-1,\"apprentices_flown\":0,\"apprentices_lost\":0,\"lord_flown\":0,\"lord_lost\":0,\"why\":\"\"}") !=
+		NULL);
+	r.sith = sith_sample(XVT_SITH_NONE);
+	snprintf(r.sith.why, sizeof(r.sith.why), "ignored");
+	XVT_ASSERT_TRUE(xvt_launch_result_format(&r, text, sizeof(text)) > 0);
+	XVT_ASSERT_TRUE(strstr(text, "\"flight_group\":-1,") != NULL);
+	XVT_ASSERT_TRUE(strstr(text, "\"lord_lost\":0,\"why\":\"\"}") != NULL);
+
+	r.sith = sith_sample(XVT_SITH_LORD);
+	XVT_ASSERT_TRUE(xvt_launch_result_format(&r, text, sizeof(text)) > 0);
+	XVT_ASSERT_TRUE(
+		strstr(text,
+		       "\"sith\":{\"setting\":\"lord\",\"flight_group\":2,\"flight_name\":\"Beta \\\"One\\\" \\\\ x\",\"craft_type\":7,\"apprentices_flown\":3,\"apprentices_lost\":2,\"lord_flown\":1,\"lord_lost\":1,\"why\":\"\"}") !=
+		NULL);
+	/* The sith object ends the document. */
+	XVT_ASSERT_TRUE(strstr(text, "}}\n") != NULL);
+
+	r.sith = sith_sample(XVT_SITH_APPRENTICES);
+	XVT_ASSERT_TRUE(xvt_launch_result_format(&r, text, sizeof(text)) > 0);
+	XVT_ASSERT_TRUE(strstr(text, "\"setting\":\"apprentices\"") != NULL);
+}
+
+/* Nothing promoted: the reason travels, the group and craft read -1. */
+static void check_sith_none_promoted(void)
+{
+	char text[2048];
+	struct xvt_launch_result r =
+		sample(XVT_LAUNCH_EXIT_FLOWN, XVT_LAUNCH_OUTCOME_NOT_COMPLETED);
+	memset(&r.sith, 0, sizeof(r.sith));
+	r.sith.setting = XVT_SITH_LORD;
+	r.sith.flight_group = -1;
+	r.sith.craft_type = -1;
+	snprintf(r.sith.why, sizeof(r.sith.why),
+		 "none of those groups flies starfighters");
+	XVT_ASSERT_TRUE(xvt_launch_result_format(&r, text, sizeof(text)) > 0);
+	XVT_ASSERT_TRUE(
+		strstr(text,
+		       "\"sith\":{\"setting\":\"lord\",\"flight_group\":-1,\"flight_name\":\"\",\"craft_type\":-1,\"apprentices_flown\":0,\"apprentices_lost\":0,\"lord_flown\":0,\"lord_lost\":0,\"why\":\"none of those groups flies starfighters\"}") !=
+		NULL);
+}
+
+/* A setting that is none of the three has no words. */
+static void check_sith_refusals(void)
+{
+	char text[2048];
+	struct xvt_launch_result r =
+		sample(XVT_LAUNCH_EXIT_FLOWN, XVT_LAUNCH_OUTCOME_COMPLETED);
+	r.sith.setting = 3;
+	XVT_ASSERT_INT_EQ(xvt_launch_result_format(&r, text, sizeof(text)), 0);
+	r.sith.setting = -1;
+	XVT_ASSERT_INT_EQ(xvt_launch_result_format(&r, text, sizeof(text)), 0);
+}
+
 static void check_written_file(void)
 {
 	char folder[64];
@@ -159,6 +238,9 @@ int main(void)
 	check_each_status_and_outcome();
 	check_refusals_to_format();
 	check_size_limit();
+	check_sith_block();
+	check_sith_none_promoted();
+	check_sith_refusals();
 	check_written_file();
 	return 0;
 }

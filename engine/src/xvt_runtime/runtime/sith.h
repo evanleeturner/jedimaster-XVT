@@ -1,6 +1,8 @@
 #ifndef XVT_RUNTIME_SITH_H
 #define XVT_RUNTIME_SITH_H
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,8 +61,35 @@ int xvt_sith_craft_level(int flight_group, int group_level, int craft_number);
 /* The setting's word in logs and descriptions: "none", "apprentices" or
  * "lord"; "none" for any other value. */
 const char *xvt_sith_setting_name(int setting);
-/* Ends the flight: the setting returns to none and the Lord's group is
- * cleared, so a later battle in the same process inherits nothing. */
+
+/* What the battle's Sith setting did, for the battle result. */
+struct xvt_sith_report {
+	int setting;	       /* enum xvt_sith_setting */
+	int flight_group;      /* the promoted group, -1 when none */
+	int craft_type;	       /* its craft type, -1 when none */
+	char flight_name[21];  /* its name, "" when none */
+	int apprentices_flown; /* craft at level 6 that spawned */
+	int apprentices_lost;  /* of those, destroyed */
+	int lord_flown;	       /* 0 or 1 */
+	int lord_lost;
+	/* "" when a group was promoted or the setting is none, else the reason
+	 * sith.none_to_promote logs. */
+	char why[128];
+};
+
+/* Counts one craft destroyed, by the level it flew at: 6 adds to the
+ * apprentices lost, 7 to the Lord lost, any other level nothing. Called by the
+ * mission code when a craft's end is recorded as destroyed. A craft that left
+ * by hyperspace or still flew at the end is not counted. */
+void xvt_sith_note_craft_destroyed(int ai_rank);
+/* Fills out for the battle now ending: the promotion's choice, the craft the
+ * flight group spawned (its count of craft created, the Lord being the first
+ * when the setting is lord) and the destroyed counts. With the setting none,
+ * flight_group and craft_type are -1 and the counts 0. */
+void xvt_sith_get_report(struct xvt_sith_report *out);
+/* Ends the flight: the setting returns to none and the Lord's group, the
+ * promoted group and the counts are cleared, so a later battle in the same
+ * process inherits nothing. */
 void xvt_sith_end_flight(void);
 
 #ifdef __cplusplus

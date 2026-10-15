@@ -1,6 +1,8 @@
 #include "xvt_runtime/runtime/sith.h"
 
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "xvt/assets/object_genus.h"
 #include "xvt/assets/object_type.h"
@@ -12,6 +14,10 @@ enum { CRAFT_TYPE_COUNT = 96 };
 
 static int g_setting = XVT_SITH_NONE;
 static int g_lord_flight_group = -1;
+static int g_promoted_group = -1;
+static char g_none_reason[128];
+static int g_apprentices_lost;
+static int g_lord_lost;
 
 void xvt_sith_set_setting(int setting)
 {
@@ -39,10 +45,49 @@ const char *xvt_sith_setting_name(int setting)
 	}
 }
 
+void xvt_sith_note_craft_destroyed(int ai_rank)
+{
+	if (ai_rank == XVT_SITH_APPRENTICE_LEVEL) {
+		++g_apprentices_lost;
+	} else if (ai_rank == XVT_SITH_LORD_LEVEL) {
+		++g_lord_lost;
+	}
+}
+
+void xvt_sith_get_report(struct xvt_sith_report *out)
+{
+	memset(out, 0, sizeof(*out));
+	out->setting = g_setting;
+	out->flight_group = -1;
+	out->craft_type = -1;
+	if (g_setting == XVT_SITH_NONE) {
+		return;
+	}
+	snprintf(out->why, sizeof(out->why), "%s", g_none_reason);
+	if (g_promoted_group < 0) {
+		return;
+	}
+	const struct xvt_flight_group *group =
+		&g_mission_flight_groups[g_promoted_group].fg;
+	int spawned = g_mission_fg_stats[g_promoted_group].spawned_craft_count;
+	out->flight_group = g_promoted_group;
+	out->craft_type = group->craft_type;
+	memcpy(out->flight_name, group->name, sizeof(group->name));
+	out->flight_name[sizeof(group->name)] = '\0';
+	out->lord_flown = g_lord_flight_group >= 0 && spawned > 0;
+	out->apprentices_flown = spawned - out->lord_flown;
+	out->apprentices_lost = g_apprentices_lost;
+	out->lord_lost = g_lord_lost;
+}
+
 void xvt_sith_end_flight(void)
 {
 	g_setting = XVT_SITH_NONE;
 	g_lord_flight_group = -1;
+	g_promoted_group = -1;
+	g_none_reason[0] = '\0';
+	g_apprentices_lost = 0;
+	g_lord_lost = 0;
 }
 
 int xvt_sith_lord_flight_group(void) { return g_lord_flight_group; }
@@ -79,6 +124,10 @@ static int flies_starfighters(int index)
 void xvt_sith_promote_flight_groups(void)
 {
 	g_lord_flight_group = -1;
+	g_promoted_group = -1;
+	g_none_reason[0] = '\0';
+	g_apprentices_lost = 0;
+	g_lord_lost = 0;
 	if (g_setting == XVT_SITH_NONE) {
 		return;
 	}
@@ -100,16 +149,19 @@ void xvt_sith_promote_flight_groups(void)
 		}
 	}
 	if (chosen < 0) {
-		XVT_LOG_DEBUG(
-			"sith.none_to_promote setting=\"%s\" groups=%d hostile_computer=%d reason=\"%s\"",
-			xvt_sith_setting_name(g_setting), groups,
-			hostile_computer,
+		snprintf(
+			g_none_reason, sizeof(g_none_reason), "%s",
 			hostile_computer == 0
 				? "no hostile flight group that no player can fly"
 				: "none of those groups flies starfighters");
+		XVT_LOG_DEBUG(
+			"sith.none_to_promote setting=\"%s\" groups=%d hostile_computer=%d reason=\"%s\"",
+			xvt_sith_setting_name(g_setting), groups,
+			hostile_computer, g_none_reason);
 		return;
 	}
 	struct mission_flight_group *group = &g_mission_flight_groups[chosen];
+	g_promoted_group = chosen;
 	int level_was = group->fg.group_ai;
 	if (level_was < XVT_SITH_APPRENTICE_LEVEL) {
 		group->fg.group_ai = XVT_SITH_APPRENTICE_LEVEL;

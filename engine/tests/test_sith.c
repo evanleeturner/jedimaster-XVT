@@ -321,16 +321,122 @@ static void check_nothing_to_promote(void)
 	XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(), -1);
 }
 
-/* The flight's end returns the setting to none and clears the Lord's group. */
+/* The battle report: with the setting none the group and craft type read -1
+ * and every count 0; with a promotion it names the group and counts the craft
+ * the group spawned and the ones destroyed, by level. */
+static void check_report(void)
+{
+	struct xvt_sith_report report;
+	seed_groups();
+	xvt_sith_end_flight();
+	xvt_sith_promote_flight_groups();
+	xvt_sith_get_report(&report);
+	XVT_ASSERT_INT_EQ(report.setting, XVT_SITH_NONE);
+	XVT_ASSERT_INT_EQ(report.flight_group, -1);
+	XVT_ASSERT_INT_EQ(report.craft_type, -1);
+	XVT_ASSERT_INT_EQ(report.flight_name[0], '\0');
+	XVT_ASSERT_INT_EQ(report.apprentices_flown + report.apprentices_lost +
+				  report.lord_flown + report.lord_lost,
+			  0);
+	XVT_ASSERT_INT_EQ(report.why[0], '\0');
+
+	/* Lord: group 2 spawned 4 craft, the Lord and 3 apprentices; two
+	 * apprentices and the Lord were destroyed, and a level 5 craft that
+	 * was destroyed counts for nothing. */
+	seed_groups();
+	memset(g_mission_fg_stats, 0, sizeof g_mission_fg_stats);
+	snprintf(g_mission_flight_groups[2].fg.name, 20, "%s",
+		 "Beta \"One\" \\ x");
+	xvt_sith_set_setting(XVT_SITH_LORD);
+	xvt_sith_promote_flight_groups();
+	g_mission_fg_stats[2].spawned_craft_count = 4;
+	xvt_sith_note_craft_destroyed(6);
+	xvt_sith_note_craft_destroyed(6);
+	xvt_sith_note_craft_destroyed(7);
+	xvt_sith_note_craft_destroyed(5);
+	xvt_sith_get_report(&report);
+	XVT_ASSERT_INT_EQ(report.setting, XVT_SITH_LORD);
+	XVT_ASSERT_INT_EQ(report.flight_group, 2);
+	XVT_ASSERT_INT_EQ(report.craft_type, FIGHTER_CRAFT);
+	XVT_ASSERT_INT_EQ(strcmp(report.flight_name, "Beta \"One\" \\ x"), 0);
+	XVT_ASSERT_INT_EQ(report.apprentices_flown, 3);
+	XVT_ASSERT_INT_EQ(report.apprentices_lost, 2);
+	XVT_ASSERT_INT_EQ(report.lord_flown, 1);
+	XVT_ASSERT_INT_EQ(report.lord_lost, 1);
+	XVT_ASSERT_INT_EQ(report.why[0], '\0');
+
+	/* Apprentices: every craft spawned is an apprentice. */
+	seed_groups();
+	memset(g_mission_fg_stats, 0, sizeof g_mission_fg_stats);
+	xvt_sith_set_setting(XVT_SITH_APPRENTICES);
+	xvt_sith_promote_flight_groups();
+	g_mission_fg_stats[2].spawned_craft_count = 4;
+	xvt_sith_get_report(&report);
+	XVT_ASSERT_INT_EQ(report.apprentices_flown, 4);
+	XVT_ASSERT_INT_EQ(report.apprentices_lost, 0);
+	XVT_ASSERT_INT_EQ(report.lord_flown, 0);
+
+	/* Lord whose group never arrived: nothing flown. */
+	seed_groups();
+	memset(g_mission_fg_stats, 0, sizeof g_mission_fg_stats);
+	xvt_sith_set_setting(XVT_SITH_LORD);
+	xvt_sith_promote_flight_groups();
+	xvt_sith_get_report(&report);
+	XVT_ASSERT_INT_EQ(report.flight_group, 2);
+	XVT_ASSERT_INT_EQ(report.lord_flown, 0);
+	XVT_ASSERT_INT_EQ(report.apprentices_flown, 0);
+}
+
+/* No group promoted: the report names no group and gives the reason the log
+ * line gives. */
+static void check_report_nothing_promoted(void)
+{
+	struct xvt_sith_report report;
+	seed_groups();
+	g_mission_flight_groups[1].fg.craft_type = STARSHIP_CRAFT;
+	g_mission_flight_groups[2].fg.craft_type = STARSHIP_CRAFT;
+	xvt_sith_set_setting(XVT_SITH_LORD);
+	xvt_sith_promote_flight_groups();
+	xvt_sith_get_report(&report);
+	XVT_ASSERT_INT_EQ(report.setting, XVT_SITH_LORD);
+	XVT_ASSERT_INT_EQ(report.flight_group, -1);
+	XVT_ASSERT_INT_EQ(report.craft_type, -1);
+	XVT_ASSERT_INT_EQ(report.flight_name[0], '\0');
+	XVT_ASSERT_INT_EQ(
+		strcmp(report.why, "none of those groups flies starfighters"),
+		0);
+	seed_groups();
+	g_mission_header.num_flight_groups = 0;
+	xvt_sith_promote_flight_groups();
+	xvt_sith_get_report(&report);
+	XVT_ASSERT_INT_EQ(
+		strcmp(report.why,
+		       "no hostile flight group that no player can fly"),
+		0);
+}
+
+/* The flight's end returns the setting to none and clears the Lord's group,
+ * the promoted group and the counts. */
 static void check_end_flight(void)
 {
+	struct xvt_sith_report report;
 	seed_groups();
 	xvt_sith_set_setting(XVT_SITH_LORD);
 	xvt_sith_promote_flight_groups();
+	xvt_sith_note_craft_destroyed(7);
 	XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(), 2);
 	xvt_sith_end_flight();
 	XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), XVT_SITH_NONE);
 	XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(), -1);
+	xvt_sith_get_report(&report);
+	XVT_ASSERT_INT_EQ(report.setting, XVT_SITH_NONE);
+	XVT_ASSERT_INT_EQ(report.flight_group, -1);
+	/* The next battle starts clean even with the setting back on. */
+	xvt_sith_set_setting(XVT_SITH_LORD);
+	xvt_sith_get_report(&report);
+	XVT_ASSERT_INT_EQ(report.lord_lost, 0);
+	XVT_ASSERT_INT_EQ(report.flight_group, -1);
+	xvt_sith_end_flight();
 }
 
 /* The same tables and setting give the same choice and the same levels each
@@ -374,6 +480,8 @@ int main(void)
 	check_higher_level_kept();
 	check_nothing_to_promote();
 	check_same_choice_each_time();
+	check_report();
+	check_report_nothing_promoted();
 	check_end_flight();
 	return 0;
 }

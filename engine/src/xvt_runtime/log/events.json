@@ -2430,8 +2430,8 @@
     },
     "launch.result_read": {
       "level": "D",
-      "fields": ["local", "team", "score", "kills", "losses", "goals_met_seconds", "outcome"],
-      "text": "The launch door read the battle's result from the pilot record: local player {local}, team {team}, score {score}, kills {kills}, losses {losses}, goals met {goals_met_seconds} seconds into the mission (0: never), outcome {outcome} (1 completed, 2 not completed)"
+      "fields": ["local", "team", "score", "kills", "losses", "goals_met_seconds", "outcome", "sith", "sith_group", "sith_craft", "apprentices_flown", "apprentices_lost", "lord_flown", "lord_lost", "sith_why"],
+      "text": "The launch door read the battle's result from the pilot record: local player {local}, team {team}, score {score}, kills {kills}, losses {losses}, goals met {goals_met_seconds} seconds into the mission (0: never), outcome {outcome} (1 completed, 2 not completed); Sith setting {sith}, promoted flight group {sith_group} (-1 none) of craft type {sith_craft}, apprentices flown {apprentices_flown} and lost {apprentices_lost}, Lord flown {lord_flown} and lost {lord_lost}, reason none was promoted \"{sith_why}\""
     },
     "launch.result_unwritten": {
       "level": "E",

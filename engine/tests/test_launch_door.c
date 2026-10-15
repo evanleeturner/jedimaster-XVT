@@ -13,14 +13,20 @@
  * installation and switch real screens; a test would need the game's files and
  * a window. They are proven by starting the same battle through the menus and
  * through the door and comparing the two recordings. */
+#include <SDL3/SDL_log.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "test_assert.h"
+#include "xvt/assets/object_genus.h"
+#include "xvt/assets/object_type.h"
+#include "xvt/flight/mission/mission.h"
+#include "xvt/flight/player/player.h"
 #include "xvt/frontend/mission_setup.h"
 #include "xvt/frontend/pilot_record.h"
+#include "xvt_runtime/log/log.h"
 #include "xvt_runtime/runtime/launch_door.h"
 #include "xvt_runtime/runtime/launch_result.h"
 #include "xvt_runtime/runtime/port.h"
@@ -35,6 +41,19 @@ static const char *tmp_base(void)
 }
 
 static char g_folder[64];
+/* The last launch.result_read line the door logged. */
+static char g_read_line[640];
+
+static void catch_line(void *userdata, int category, SDL_LogPriority priority,
+		       const char *message)
+{
+	(void)userdata;
+	(void)category;
+	(void)priority;
+	if (strstr(message, "launch.result_read") != NULL) {
+		snprintf(g_read_line, sizeof(g_read_line), "%s", message);
+	}
+}
 
 /* The run id the tests open the door with. */
 #define TEST_RUN_ID 0x1a2b3c4du
@@ -256,24 +275,80 @@ static void check_failed_flight(void)
 	unlink(path);
 }
 
-/* A flown and a failed flight each end the Sith setting. */
-static void check_sith_reset_after_flights(void)
+/* Seeds one hostile starfighter flight group, "Beta", for the Sith promotion. */
+static void seed_sith_group(void)
+{
+	memset(g_mission_flight_groups, 0,
+	       2 * sizeof g_mission_flight_groups[0]);
+	memset(g_mission_teams, 0, sizeof g_mission_teams);
+	memset(g_mission_fg_stats, 0, sizeof g_mission_fg_stats);
+	memset(g_players, 0, sizeof g_players[0]);
+	g_craft_type_to_object_type[1] = 5;
+	g_object_type_table[5].genus_id = CRAFT_GENUS_STARFIGHTER;
+	g_mission_flight_groups[1].fg.team = 1;
+	g_mission_flight_groups[1].fg.group_ai = 4;
+	g_mission_flight_groups[1].fg.craft_type = 1;
+	snprintf(g_mission_flight_groups[1].fg.name, 20, "Beta");
+	g_mission_header.num_flight_groups = 2;
+}
+
+/* A flown battle with the Lord setting: the result names the flight and its
+ * fate, and the setting is none again afterward. */
+static void check_sith_result_and_reset(void)
 {
 	char path[256];
 	char result[256];
+	char text[2048];
 	snprintf(result, sizeof(result), "%s/sith.json", g_folder);
 	char extra[300];
 	snprintf(extra, sizeof(extra), ",\"result\":\"%s\"", result);
-	for (int flown = 1; flown >= 0; --flown) {
-		open_good(extra, path, sizeof(path));
-		set_battle_numbers(0, 2);
-		xvt_sith_set_setting(XVT_SITH_LORD);
-		xvt_launch_door_finish(flown);
-		XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), XVT_SITH_NONE);
-		XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(), -1);
-		unlink(result);
-		unlink(path);
-	}
+	open_good(extra, path, sizeof(path));
+	set_battle_numbers(0, 2);
+	seed_sith_group();
+	xvt_sith_set_setting(XVT_SITH_LORD);
+	xvt_sith_promote_flight_groups();
+	g_mission_fg_stats[1].spawned_craft_count = 3;
+	xvt_sith_note_craft_destroyed(7);
+	xvt_sith_note_craft_destroyed(6);
+	xvt_launch_door_finish(1);
+	XVT_ASSERT_INT_EQ(slurp(result, text, sizeof(text)), 1);
+	XVT_ASSERT_TRUE(strstr(text, "\"schema_version\":3") != NULL);
+	XVT_ASSERT_TRUE(
+		strstr(text,
+		       "\"sith\":{\"setting\":\"lord\",\"flight_group\":1,\"flight_name\":\"Beta\",\"craft_type\":1,\"apprentices_flown\":2,\"apprentices_lost\":1,\"lord_flown\":1,\"lord_lost\":1,\"why\":\"\"}") !=
+		NULL);
+	XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), XVT_SITH_NONE);
+	XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(), -1);
+	XVT_ASSERT_TRUE(
+		strstr(g_read_line,
+		       "launch.result_read local=0 team=2 score=120 kills=4 losses=1 goals_met_seconds=305 outcome=1 sith=\"lord\" sith_group=1 sith_craft=1 apprentices_flown=2 apprentices_lost=1 lord_flown=1 lord_lost=1 sith_why=\"\"") !=
+		NULL);
+	unlink(result);
+	unlink(path);
+}
+
+/* A failed flight ends the setting too, and its result shows none. */
+static void check_sith_reset_after_failed_flight(void)
+{
+	char path[256];
+	char result[256];
+	char text[2048];
+	snprintf(result, sizeof(result), "%s/sithfail.json", g_folder);
+	char extra[300];
+	snprintf(extra, sizeof(extra), ",\"result\":\"%s\"", result);
+	open_good(extra, path, sizeof(path));
+	seed_sith_group();
+	xvt_sith_set_setting(XVT_SITH_LORD);
+	xvt_sith_promote_flight_groups();
+	xvt_launch_door_finish(0);
+	XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), XVT_SITH_NONE);
+	XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(), -1);
+	XVT_ASSERT_INT_EQ(slurp(result, text, sizeof(text)), 1);
+	XVT_ASSERT_TRUE(
+		strstr(text, "\"setting\":\"none\",\"flight_group\":-1") !=
+		NULL);
+	unlink(result);
+	unlink(path);
 }
 
 static void check_default_result_path(void)
@@ -355,12 +430,16 @@ int main(void)
 	snprintf(g_folder, sizeof(g_folder), "%s/xvt_launch_door_XXXXXX",
 		 tmp_base());
 	XVT_ASSERT_TRUE(mkdtemp(g_folder) != NULL);
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
+	SDL_SetLogOutputFunction(catch_line, NULL);
 	check_missing_file();
 	check_refusals_leave_a_result();
 	check_flown_result();
 	check_not_completed_and_out_of_range();
 	check_failed_flight();
-	check_sith_reset_after_flights();
+	check_sith_result_and_reset();
+	check_sith_reset_after_failed_flight();
 	check_default_result_path();
 	check_unwritable_result();
 	check_the_door_gives_up_after_180_seconds();

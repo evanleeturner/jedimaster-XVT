@@ -3792,6 +3792,9 @@ void mission_record_craft_outcome(uint16_t obj_idx, uint16_t flight_group_idx,
 		return;
 	}
 	craft->mission_accounting_done = 1;
+	if (outcome_id == FLIGHT_GROUP_OUTCOME_DESTROYED) {
+		xvt_sith_note_craft_destroyed(craft->ai_rank);
+	}
 	++g_mission_fg_stats[flight_group_idx].outcome_count[outcome_id];
 	if (craft->craft_ordinal ==
 	    g_mission_flight_groups[flight_group_idx].fg.special_cargo_craft) {

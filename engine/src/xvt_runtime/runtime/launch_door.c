@@ -432,12 +432,28 @@ void xvt_launch_door_finish(int flown)
 			result.outcome = XVT_LAUNCH_OUTCOME_COMPLETED;
 		}
 	}
+	/* The setting is read before the flight ends it. */
+	struct xvt_sith_report sith;
+	xvt_sith_get_report(&sith);
 	xvt_sith_end_flight();
+	result.sith.setting = sith.setting;
+	result.sith.flight_group = sith.flight_group;
+	snprintf(result.sith.flight_name, sizeof(result.sith.flight_name), "%s",
+		 sith.flight_name);
+	result.sith.craft_type = sith.craft_type;
+	result.sith.apprentices_flown = sith.apprentices_flown;
+	result.sith.apprentices_lost = sith.apprentices_lost;
+	result.sith.lord_flown = sith.lord_flown;
+	result.sith.lord_lost = sith.lord_lost;
+	snprintf(result.sith.why, sizeof(result.sith.why), "%s", sith.why);
 	/* The zeroed exit code is XVT_LAUNCH_EXIT_FLOWN. */
 	XVT_LOG_DEBUG(
-		"launch.result_read local=%d team=%d score=%d kills=%d losses=%d goals_met_seconds=%d outcome=%d",
+		"launch.result_read local=%d team=%d score=%d kills=%d losses=%d goals_met_seconds=%d outcome=%d sith=\"%s\" sith_group=%d sith_craft=%d apprentices_flown=%d apprentices_lost=%d lord_flown=%d lord_lost=%d sith_why=\"%s\"",
 		local, team, result.score, result.kills, result.losses,
-		result.goals_met_seconds, result.outcome);
+		result.goals_met_seconds, result.outcome,
+		xvt_sith_setting_name(sith.setting), sith.flight_group,
+		sith.craft_type, sith.apprentices_flown, sith.apprentices_lost,
+		sith.lord_flown, sith.lord_lost, sith.why);
 	if (!xvt_launch_result_write(&result, g_result_path)) {
 		XVT_LOG_ERROR("launch.result_unwritten path=\"%s\"",
 			      g_result_path);
