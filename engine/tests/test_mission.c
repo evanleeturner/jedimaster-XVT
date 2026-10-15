@@ -116,6 +116,7 @@
 #include "xvt/util/game_rand.h"
 #include "xvt/util/memory.h"
 #include "xvt_runtime/log/log.h"
+#include "xvt_runtime/runtime/sith.h"
 
 enum {
 	TEST_OBJECT_COUNT = 8,
@@ -3836,6 +3837,61 @@ static void check_init_difficulty(void)
 	}
 }
 
+/* The Sith setting promotes one enemy group when the mission starts, after
+ * the difficulty rule: the hostile computer starfighter group (group 3 of
+ * difficulty_mission) goes to level 6, and the groups of the player's side
+ * and its ally do not change. With the setting none nothing changes and no
+ * Sith line is written. On hard the promotion follows the difficulty's own
+ * rise, which stops at 5. */
+static void check_init_sith(void)
+{
+	static const struct {
+		int setting;
+		int difficulty;
+		int start;
+		int own;
+		int hostile;
+		int lord_group;
+	} cases[] = {
+		{XVT_SITH_NONE, GAME_DIFFICULTY_MEDIUM, 3, 3, 3, -1},
+		{XVT_SITH_NONE, GAME_DIFFICULTY_HARD, 3, 2, 5, -1},
+		{XVT_SITH_APPRENTICES, GAME_DIFFICULTY_MEDIUM, 3, 3, 6, -1},
+		{XVT_SITH_APPRENTICES, GAME_DIFFICULTY_HARD, 3, 2, 6, -1},
+		{XVT_SITH_LORD, GAME_DIFFICULTY_MEDIUM, 3, 3, 6, 3},
+		{XVT_SITH_LORD, GAME_DIFFICULTY_EASY, 0, 2, 6, 3},
+	};
+	for (size_t i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
+		difficulty_mission(MISSION_TYPE_COMBAT, cases[i].start);
+		g_flight_mission_state.difficulty =
+			(uint8_t)cases[i].difficulty;
+		g_pilot_data.num_human_players_last_mission = 1;
+		g_pilot_data.mission_directory_id =
+			MISSION_DIRECTORY_TRAINING_EXERCISES + 1;
+		g_players[1].team = 5;
+		xvt_sith_set_setting(cases[i].setting);
+		g_log_line_count = 0;
+		XVT_ASSERT_INT_EQ(run_init(14), 1);
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[0].fg.group_ai,
+				  cases[i].own);
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[1].fg.group_ai,
+				  cases[i].own);
+		XVT_ASSERT_INT_EQ(g_mission_flight_groups[3].fg.group_ai,
+				  cases[i].hostile);
+		XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(),
+				  cases[i].lord_group);
+		XVT_ASSERT_INT_EQ(count_lines("sith.promoted "),
+				  cases[i].setting != XVT_SITH_NONE);
+		XVT_ASSERT_INT_EQ(count_lines("sith.none_to_promote "), 0);
+		XVT_ASSERT_INT_EQ(count_lines("mission.group_prepared fg=3 "),
+				  1);
+		char fields[24];
+		snprintf(fields, sizeof fields, " ai=%d ", cases[i].hostile);
+		XVT_ASSERT_TRUE(
+			line_holds("mission.group_prepared fg=3 ", fields));
+	}
+	xvt_sith_set_setting(XVT_SITH_NONE);
+}
+
 /* Known failure ai_level_past_table, issue #187: an AI level over 5 in the
  * file is not brought into 0 to 5, which the tables it indexes hold. On
  * medium difficulty mission_init leaves a group at level 9. */
@@ -6819,6 +6875,57 @@ static void check_spawn_sith_ranks(void)
 		XVT_ASSERT_TRUE(
 			line_holds("mission.craft_spawned fg=0 ", fields));
 	}
+}
+
+/* The Sith Lord's group spawns its first craft at rank 7 and the rest at 6;
+ * every one flies with a Jedi's skill and think interval, and the spawn's
+ * log line shows the rank. With apprentices every craft of the group is 6. */
+static void check_spawn_sith_flight(void)
+{
+	for (int setting = XVT_SITH_NONE; setting <= XVT_SITH_LORD; ++setting) {
+		init_mission(MISSION_TYPE_COMBAT);
+		arriving_group(0, 0, SPAWN_TYPE, 1);
+		g_stored.groups[0].player_number = 1;
+		arriving_group(1, 1, SPAWN_TYPE, 3);
+		g_stored.groups[1].group_ai = 2;
+		arriving_group(2, 1, SPAWN_TYPE, 2);
+		g_stored.groups[2].group_ai = 4;
+		xvt_sith_set_setting(setting);
+		spawn_mission_ready();
+		g_log_line_count = 0;
+		XVT_ASSERT_INT_EQ(spawn_craft(2, UINT16_MAX), 1);
+		XVT_ASSERT_INT_EQ(spawn_craft(1, UINT16_MAX), 1);
+		for (int ordinal = 0; ordinal < 2; ++ordinal) {
+			const struct craft_data *craft =
+				g_object_table[craft_slot(2, ordinal)]
+					.mobj->p_craft;
+			int rank = setting == XVT_SITH_NONE ? 4
+				   : setting == XVT_SITH_LORD && ordinal == 0
+					   ? 7
+					   : 6;
+			XVT_ASSERT_INT_EQ(craft->ai_rank, rank);
+			XVT_ASSERT_INT_EQ(craft->ai_skill,
+					  g_ai_skill_value_q16_by_level[rank]);
+			XVT_ASSERT_INT_EQ(craft->ai_controller.think_interval,
+					  g_ai_think_interval_by_skill[rank]);
+			char fields[32];
+			snprintf(fields, sizeof fields, " ai=%d rank=%d ", rank,
+				 rank);
+			char start[48];
+			snprintf(start, sizeof start,
+				 "mission.craft_spawned fg=2 ordinal=%d ",
+				 ordinal);
+			XVT_ASSERT_TRUE(line_holds(start, fields));
+		}
+		/* The other enemy group, at level 2, is not touched. */
+		for (int ordinal = 0; ordinal < 3; ++ordinal) {
+			const struct craft_data *craft =
+				g_object_table[craft_slot(1, ordinal)]
+					.mobj->p_craft;
+			XVT_ASSERT_INT_EQ(craft->ai_rank, 2);
+		}
+	}
+	xvt_sith_set_setting(XVT_SITH_NONE);
 }
 
 /* ---- mission_update_logic ---------------------------------------------- */
@@ -12249,6 +12356,7 @@ int main(int argc, char **argv)
 	check_init_ai_team_without_source();
 	check_init_ai_team_swap();
 	check_init_difficulty();
+	check_init_sith();
 	check_init_melee_boosts();
 	check_init_combat_balance();
 	check_init_random_variation();
@@ -12271,6 +12379,7 @@ int main(int argc, char **argv)
 	check_runtime_resets();
 	check_spawn_craft_values();
 	check_spawn_sith_ranks();
+	check_spawn_sith_flight();
 	check_spawn_status_codes();
 	check_spawn_player_craft();
 	check_spawn_formation();

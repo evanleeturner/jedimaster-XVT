@@ -37,6 +37,7 @@
 #include "xvt/util/memory.h"
 #include "xvt/util/time.h"
 #include "xvt_runtime/log/log.h"
+#include "xvt_runtime/runtime/sith.h"
 
 /* Side offset, in model bound sizes, of each place in each of the 34
  * formations, by craft_ordinal 0 to 5. mission_init_flight_group_object_slot
@@ -6036,7 +6037,9 @@ int mission_get_elapsed_clock_seconds(void)
  * countermeasures, copies craft choices to other player groups under the craft
  * selection and melee opponent rules, picks random optional craft and start
  * points when random variation is on, raises or lowers each group's group_ai for
- * difficulty, melee boosts and combat balance, sets the round count of player
+ * difficulty, melee boosts and combat balance, promotes one enemy flight group
+ * to a Sith rank when the Sith setting asks (xvt_sith_promote_flight_groups),
+ * sets the round count of player
  * groups, marks the models needed, picks random special cargo craft, places
  * backdrop objects, and starts g_mission_elapsed_clock at 0 and
  * g_mission_countdown_clock at the time limit. It sets proving_grounds_mode_active
@@ -7518,6 +7521,8 @@ uint16_t mission_init(const char *file_name)
 			}
 		}
 	}
+
+	xvt_sith_promote_flight_groups();
 
 	for (flight_group_idx = 0;
 	     flight_group_idx < (int16_t)g_mission_header.num_flight_groups;
@@ -10486,7 +10491,10 @@ uint16_t mission_init_flight_group_object_slot(void)
 	g_cur_craft->ai_flight.turn_rate = g_model_defs[model_index].yaw_rate;
 	g_cur_craft->ai_flight.max_speed_cache =
 		g_model_defs[model_index].max_speed;
-	int ai_skill_level = g_spawn_group_ai;
+	int ai_skill_level = xvt_sith_craft_level(
+		g_current_flight_group_idx, g_spawn_group_ai,
+		g_mission_fg_stats[g_current_flight_group_idx]
+			.spawned_craft_count);
 	g_cur_craft->ai_skill = g_ai_skill_value_q16_by_level[ai_skill_level];
 	g_cur_craft->ai_rank = (uint8_t)ai_skill_level;
 	g_cur_craft->cannon_group_count = 0;

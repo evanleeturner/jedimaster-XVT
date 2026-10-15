@@ -6448,6 +6448,16 @@
       "fields": [],
       "text": "The installed CD music tracks cannot be configured"
     },
+    "sith.none_to_promote": {
+      "level": "D",
+      "fields": ["setting", "groups", "hostile_computer", "reason"],
+      "text": "The Sith setting {setting} found no flight group to promote among the {groups} flight groups of the mission, {hostile_computer} of them hostile to player 0's team and flown by no player: {reason}; every flight group keeps its level"
+    },
+    "sith.promoted": {
+      "level": "D",
+      "fields": ["setting", "fg", "team", "craft", "count", "level_was", "level", "lord_rank"],
+      "text": "The Sith setting {setting} promoted flight group {fg} (team {team}, craft type {craft}, {count} craft per wave), the hostile computer-flown starfighter group with the highest level, from level {level_was} to level {level}; the first craft of its first wave flies at level {lord_rank} (0 for none)"
+    },
     "snapshot.alert_overflow": {
       "level": "E",
       "fields": ["line"],
