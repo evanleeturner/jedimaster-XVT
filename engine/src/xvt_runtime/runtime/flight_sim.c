@@ -7,6 +7,7 @@
 #include "xvt_runtime/runtime/flight_internal.h"
 #include "xvt_runtime/runtime/flight_prediction.h"
 #include "xvt_runtime/runtime/flight_protocol.h"
+#include "xvt_runtime/runtime/flight_record.h"
 #include "xvt_runtime/runtime/port.h"
 #include "xvt_runtime/snapshot/render_capture.h"
 #include "xvt_runtime/timing/flight_timing.h"
@@ -901,9 +902,13 @@ xvt_flight_step_result xvt_flight_sim_step_to_time(int target_game_time)
 			fsfx_update_flight_sfx();
 		}
 		game_time = g_game_time;
+		int step_start = game_time;
 		game_time += (uint16_t)g_elapsed_ticks;
 		g_game_time = game_time;
 		xvt_flight_timing_end_advance();
+		if (!xvt_flight_timing_is_network125()) {
+			xvt_flight_record_step(step_start, game_time);
+		}
 		if (game_time >= target_game_time) {
 			return xvt_flight_sim_finished_advance();
 		}

@@ -9,8 +9,9 @@
  * world.warhead_track line per shot slot holding a warhead (a countermeasure
  * included, a laser bolt, a free slot, a type outside the shot types and a
  * slot outside the shot slots left out); a warhead without a guidance record;
- * which steps cross the 16-tick warhead beat (xvt_flight_record_warhead_beat);
- * and nothing written with DEBUG off. The lines are caught at SDL's log output,
+ * which steps of the 16-tick warhead beat and the 472-tick record point beat
+ * write lines (xvt_flight_record_warhead_beat and xvt_flight_record_step); and
+ * nothing written with DEBUG off. The lines are caught at SDL's log output,
  * where Aeron's log funnel sends them. The shot type table is the engine's
  * own; no game data is read. */
 #include <SDL3/SDL_log.h>
@@ -333,6 +334,7 @@ static void check_warheads_off(void)
 	xvt_log_set_level(AERON_LOG_INFO);
 	xvt_flight_record_warheads(TICK);
 	xvt_flight_record_warhead_beat(8, 16);
+	xvt_flight_record_step(0, 472);
 	XVT_ASSERT_INT_EQ(g_line_count, 0);
 }
 
@@ -380,6 +382,37 @@ static void check_warhead_beat(void)
 		      "speed=2750");
 }
 
+/* The step record: warheads on the 16 beat, the record point (with the craft
+ * world of build_world) on the 472 beat. */
+static void check_step(void)
+{
+	build_world();
+	g_projectile_object_slot_start = 2;
+	g_projectile_object_slot_end = 2;
+	xvt_log_set_level(AERON_LOG_DEBUG);
+	g_line_count = 0;
+	xvt_flight_record_step(470, 478);
+	XVT_ASSERT_INT_EQ(g_line_count, 5);
+	check_line(0, "record.point tick=478 craft=4 unlinked=1");
+	g_line_count = 0;
+	xvt_flight_record_step(471, 472);
+	XVT_ASSERT_INT_EQ(g_line_count, 5);
+	g_line_count = 0;
+	xvt_flight_record_step(472, 473);
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+	g_line_count = 0;
+	xvt_flight_record_step(0, 8);
+	XVT_ASSERT_INT_EQ(g_line_count, 0);
+	build_shots();
+	g_line_count = 0;
+	xvt_flight_record_step(8, 16);
+	XVT_ASSERT_INT_EQ(g_line_count, 2);
+	check_line(0, "world.warhead_track tick=16 object=2 signature=102 "
+		      "type=143 source=1 target=5 homing=4 x=-50000 "
+		      "y=123456 z=-7 yaw=65535 pitch=16384 roll=2 "
+		      "speed=2750");
+}
+
 int main(void)
 {
 	SDL_SetLogPriorities(SDL_LOG_PRIORITY_VERBOSE);
@@ -390,5 +423,6 @@ int main(void)
 	check_warheads_off();
 	check_warhead_lines();
 	check_warhead_beat();
+	check_step();
 	return 0;
 }

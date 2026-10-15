@@ -138,3 +138,15 @@ void xvt_flight_record_warhead_beat(int from_tick, int to_tick)
 		xvt_flight_record_warheads(to_tick);
 	}
 }
+
+void xvt_flight_record_step(int from_tick, int to_tick)
+{
+	if (!xvt_log_enabled(AERON_LOG_DEBUG)) {
+		return;
+	}
+	xvt_flight_record_warhead_beat(from_tick, to_tick);
+	if (xvt_flight_record_crossed(from_tick, to_tick,
+				      XVT_WORLD_CHECKSUM_TICKS)) {
+		xvt_flight_record_point(to_tick);
+	}
+}

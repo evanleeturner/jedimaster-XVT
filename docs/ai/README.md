@@ -353,7 +353,8 @@ pilot program gets a live record of every craft and every warhead in
 flight, the same kind of record the engine writes to its debug log for its
 tests, and uses it to the full.
 The debug log now holds each warhead's, chaff's and flare's path in flight
-every 64 ms in network battles.
+every 64 ms, and a craft record every 472 ticks in single-player battles as
+well as network ones.
 
 | Behavior | Levels 0 to 5 (up to Jedi) | Sith Apprentice (6) | Sith Lord (7) |
 | --- | --- | --- | --- |

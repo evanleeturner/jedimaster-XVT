@@ -31,6 +31,12 @@ void xvt_flight_record_warheads(int tick);
  * beats writes once. Writes nothing otherwise or with DEBUG off. */
 void xvt_flight_record_warhead_beat(int from_tick, int to_tick);
 
+/* The record for a step of a flight that does not confirm world messages
+ * (a solo battle): the warhead beat, and the record point (as
+ * xvt_flight_record_point) when the step crossed or landed on a multiple of
+ * XVT_WORLD_CHECKSUM_TICKS, each with to_tick as the tick. */
+void xvt_flight_record_step(int from_tick, int to_tick);
+
 #ifdef __cplusplus
 }
 #endif
