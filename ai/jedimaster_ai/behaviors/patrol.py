@@ -37,7 +37,8 @@ Purpose:
     ``advance`` and ``cruise`` are the cruise itself, for another behavior
     that flies its group's waypoints while it has nothing else to do: it
     keeps a ``Route`` in its own notebook's scratch and starts it again on a
-    new order slot, as ``think`` does.
+    new order slot, as ``think`` does. ``evade`` is Circle and Evade's weave
+    about that cruise, for one that dodges a chaser while it cruises.
 
 The state, ROUTE_BYTES at the start of the scratch: u8 the order slot it
 counts for, u8 the waypoint it makes for, u8 the rounds (at most ROUNDS_MAX),
@@ -131,7 +132,7 @@ def think(view: CraftView, question: Question) -> Decision:
     actions = cruise(view, question, route, own)
     state = book.dice
     if view.order_code == CIRCLE_AND_EVADE:
-        flown, actions, state = _evade(view, question, flown, actions, state)
+        flown, actions, state = evade(view, question, flown, actions, state)
     scratch = route.write() + flown.write()
     scratch += bytes(notebook.SCRATCH_BYTES - len(scratch))
     book = dataclasses.replace(book, dice=state, scratch=scratch)
@@ -229,7 +230,7 @@ def cruise(
     return Actions(steer=Steer(yaw, pitch, view.roll), throttle=throttle)
 
 
-def _evade(
+def evade(
     view: CraftView,
     question: Question,
     flown: weave.Weave,
