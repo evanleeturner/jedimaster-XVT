@@ -99,7 +99,8 @@ def test_the_notebook_is_never_changed(starship, other) -> None:
 
 
 def test_a_drifting_craft_still_defends_itself(starship, other) -> None:
-    me = starship()
+    # Order 39, the null order, has no behavior of its own.
+    me = starship(order_code=39)
     answer = think(Question(1000, (me,), (other(9, target=ME),)))
     said = answer.craft[0]
     assert said.notebook == me.notebook

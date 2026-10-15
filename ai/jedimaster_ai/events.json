@@ -68,6 +68,16 @@
       "fields": ["object", "named", "working", "chosen", "ion_groups"],
       "text": "Craft {object} on a Disable order has {named} targets its order names, {working} of them with subsystems that work; once a player's commands apply it fights the nearest of {chosen}, with its {ion_groups} ion cannon groups alone (none fire when it has none)"
     },
+    "escort.station": {
+      "level": "D",
+      "fields": ["object", "escorted", "distance", "range", "disabled"],
+      "text": "Craft {object} on an Escort order keeps station {distance} units from craft {escorted}, the craft it escorts: beyond {range}, or with that craft disabled ({disabled}), it flies at it, else to its station"
+    },
+    "escort.threats": {
+      "level": "D",
+      "fields": ["object", "escorted", "group", "threats"],
+      "text": "Craft {object} on an Escort order escorts craft {escorted} (65535 for none), whose flight group shows {group} craft; {threats} enemies in reach target one of them"
+    },
     "formation.far": {
       "level": "D",
       "fields": ["object", "leader", "distance"],

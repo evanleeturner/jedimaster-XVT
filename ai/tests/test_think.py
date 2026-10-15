@@ -86,7 +86,7 @@ def test_answers_follow_the_questions_order(view) -> None:
 
 
 def test_a_craft_whose_order_has_no_behavior_drifts(view) -> None:
-    unwritten = {"order_code": OrderCode.ESCORT, "turret_slot_mask": 0}
+    unwritten = {"order_code": OrderCode.NULL, "turret_slot_mask": 0}
     craft = (
         view(object_index=1, **unwritten),
         view(object_index=2, notebook=bytes(range(64)), **unwritten),
