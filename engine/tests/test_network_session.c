@@ -2,7 +2,8 @@
  * the promises in its header, as far as they hold without a peer or a
  * directory: the player-name split, the refusals of Configure and of the Begin
  * calls, the status a setup reports, the lost mark, a close and its completion,
- * Reset and Shutdown. No setup is ticked past its first phase, so no DirectPlay
+ * Reset and Shutdown, and the door's directory standing in for the settings'
+ * one. No setup is ticked past its first phase, so no DirectPlay
  * session or directory request is ever made. Every case starts from Shutdown
  * with no settings loaded.
  *
@@ -106,6 +107,40 @@ static void check_configure_needs_a_lobby(void)
 {
 	fresh();
 	/* With no settings loaded the lobby URL is empty. */
+	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
+}
+
+static void check_door_directory(void)
+{
+	fresh();
+	/* The door's address replaces the empty one of the settings: a plain
+	 * http address reaches the directory's own check and is refused
+	 * there. */
+	XVT_ASSERT_INT_EQ(
+		xvt_network_session_use_door("http://plain.invalid", &g_room),
+		1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
+			  AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
+
+	/* An address the directory cannot hold, or none, changes nothing. */
+	char too_long[AERON_DPLAY_DIRECTORY_URL_CAPACITY + 1];
+	memset(too_long, 'h', sizeof too_long);
+	memcpy(too_long, "https://", 8);
+	too_long[AERON_DPLAY_DIRECTORY_URL_CAPACITY] = 0;
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door(too_long, &g_room), 0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door(NULL, &g_room), 0);
+	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
+			  AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST);
+
+	/* No id goes back to the settings, as Shutdown does. */
+	XVT_ASSERT_INT_EQ(xvt_network_session_use_door(NULL, NULL), 1);
+	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
+			  AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
+	XVT_ASSERT_INT_EQ(
+		xvt_network_session_use_door("http://plain.invalid", &g_room),
+		1);
+	xvt_network_session_shutdown();
 	XVT_ASSERT_INT_EQ(xvt_network_session_configure(),
 			  AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED);
 }
@@ -303,6 +338,7 @@ int main(void)
 {
 	check_copy_player_names();
 	check_configure_needs_a_lobby();
+	check_door_directory();
 	check_begin_refusals();
 	check_begin_while_under_way();
 	check_tick();

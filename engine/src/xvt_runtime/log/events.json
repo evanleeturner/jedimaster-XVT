@@ -4168,6 +4168,16 @@
       "fields": [],
       "text": "The directory listing failed; hosting registers again"
     },
+    "network.door_accepting": {
+      "level": "D",
+      "fields": ["accepting"],
+      "text": "The door's host room takes joiners: {accepting}"
+    },
+    "network.door_directory": {
+      "level": "D",
+      "fields": ["used", "lobby"],
+      "text": "Sessions use the door's directory: {used}, at {lobby}"
+    },
     "network.dplay_caps": {
       "level": "D",
       "fields": ["buffer", "queue", "players", "timeout"],

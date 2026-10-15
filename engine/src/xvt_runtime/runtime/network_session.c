@@ -60,8 +60,19 @@ static struct {
 } g_session;
 
 static char g_origin[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
+static GUID g_configured_application;
 static const GUID g_application = {
 	0x09438c20, 0xe06a, 0x11ce, {0x86, 0x81, 0, 0xaa, 0, 0x6c, 0x5d, 0x57}};
+
+/* The network door's directory: its address and application id, and whether
+ * its host's room takes joiners. Outlives a session's start, which clears
+ * g_session. */
+static struct {
+	int active;
+	int accepting;
+	char origin[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
+	GUID application;
+} g_door;
 
 int xvt_network_session_copy_player_names(
 	const struct net_player_name_message *message, char *short_name,
@@ -101,11 +112,17 @@ int xvt_network_session_copy_player_names(
 AeronDplayDirectoryError xvt_network_session_configure(void)
 {
 	const struct xvt_settings *settings = xvt_config_settings();
-	const char *origin = settings ? settings->lobby_url : "";
+	const char *origin = g_door.active ? g_door.origin
+			     : settings	   ? settings->lobby_url
+					   : "";
+	const GUID *application =
+		g_door.active ? &g_door.application : &g_application;
 	if (!*origin) {
 		return AERON_DPLAY_DIRECTORY_ERROR_NOT_CONFIGURED;
 	}
-	if (!strcmp(origin, g_origin)) {
+	if (!strcmp(origin, g_origin) &&
+	    !memcmp(application, &g_configured_application,
+		    sizeof(*application))) {
 		return AERON_DPLAY_DIRECTORY_ERROR_NONE;
 	}
 	if (strlen(origin) >= sizeof(g_origin)) {
@@ -113,14 +130,42 @@ AeronDplayDirectoryError xvt_network_session_configure(void)
 	}
 	AeronDplayDirectoryConfig config = {0};
 	strcpy(config.lobby_url, origin);
-	config.application_id = g_application;
+	config.application_id = *application;
 	snprintf(config.game_version, sizeof(config.game_version), "%d",
 		 FRONTEND_NET_PROTOCOL_VERSION);
 	AeronDplayDirectoryError error = AeronDplayDirectory_Configure(&config);
 	if (!error) {
 		strcpy(g_origin, origin);
+		g_configured_application = *application;
 	}
 	return error;
+}
+
+int xvt_network_session_use_door(const char *lobby, const GUID *game)
+{
+	if (!game) {
+		memset(&g_door, 0, sizeof(g_door));
+		XVT_LOG_DEBUG("network.door_directory used=0 lobby=\"\"");
+		return 1;
+	}
+	if (!lobby || strlen(lobby) >= sizeof(g_door.origin)) {
+		return 0;
+	}
+	g_door.active = 1;
+	g_door.accepting = 0;
+	strcpy(g_door.origin, lobby);
+	g_door.application = *game;
+	XVT_LOG_DEBUG("network.door_directory used=1 lobby=\"%s\"", lobby);
+	return 1;
+}
+
+void xvt_network_session_set_door_accepting(int accepting)
+{
+	if (g_door.active && g_door.accepting != !!accepting) {
+		g_door.accepting = !!accepting;
+		XVT_LOG_DEBUG("network.door_accepting accepting=%d",
+			      g_door.accepting);
+	}
 }
 
 static const char *xvt_network_session_role(void)
@@ -195,7 +240,7 @@ static int xvt_network_session_start(const char *rating_text,
 	memset(&g_session, 0, sizeof(g_session));
 	g_session.closing = closing;
 	g_session.cancel_join = cancel_join;
-	g_session.app = g_application;
+	g_session.app = g_door.active ? g_door.application : g_application;
 	g_session.host = host;
 	g_session.online = online;
 	if (!rating_text || !player_name || !name || (!host && !room)) {
@@ -636,6 +681,18 @@ struct xvt_network_session_status xvt_network_session_get_status(void)
 	return status;
 }
 
+/* 1 when the host's room takes joiners: with the door in use, while the door
+ * marks it so; else while mission setup runs past its first frame. */
+static int xvt_network_session_accepting(void)
+{
+	if (g_door.active) {
+		return g_door.accepting;
+	}
+	return g_front_state.screen_states[g_front_state.screen_stack_top]
+			       .update_fn == mission_setup_update &&
+	       g_front_state.frame_counter > 0;
+}
+
 void xvt_network_session_service(void)
 {
 	if (g_session.closing && !AeronDplay_IsActive()) {
@@ -677,12 +734,8 @@ void xvt_network_session_service(void)
 			xvt_network_metadata_keep_active_players(&current);
 		}
 	} else {
-		int accepting =
-			g_front_state.screen_states[g_front_state
-							    .screen_stack_top]
-					.update_fn == mission_setup_update &&
-			g_front_state.frame_counter > 0;
-		xvt_network_metadata_build(&current, accepting);
+		xvt_network_metadata_build(&current,
+					   xvt_network_session_accepting());
 	}
 	if (!current.room.players) {
 		return;
@@ -740,5 +793,7 @@ void xvt_network_session_end_flight(void)
 void xvt_network_session_shutdown(void)
 {
 	memset(&g_session, 0, sizeof(g_session));
+	memset(&g_door, 0, sizeof(g_door));
+	memset(&g_configured_application, 0, sizeof(g_configured_application));
 	g_origin[0] = 0;
 }

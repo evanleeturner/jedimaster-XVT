@@ -31,10 +31,19 @@ struct xvt_network_session_status {
 	AeronDplayDirectoryError error;
 };
 
-/* Configures the directory with the lobby URL from settings, remembering it on success; an
- * unchanged URL returns NONE at once. Returns NOT_CONFIGURED for an empty URL and INVALID_REQUEST
- * for one too long. */
+/* Configures the directory with the lobby URL from settings and the game's fixed application id, or
+ * with the door's address and id while xvt_network_session_use_door holds them, remembering both on
+ * success; an unchanged URL and id return NONE at once. Returns NOT_CONFIGURED for an empty URL and
+ * INVALID_REQUEST for one too long or not a bare https origin. */
 AeronDplayDirectoryError xvt_network_session_configure(void);
+/* For a battle the network door starts: sessions begun from now on list and find their room at lobby
+ * under the application id game, in place of the settings' URL and the fixed id. Returns 1, or 0 and
+ * changes nothing when lobby is NULL or longer than the directory takes; NULL game goes back to the
+ * settings' URL and the fixed id (returning 1). Also clears the door's accepting mark. */
+int xvt_network_session_use_door(const char *lobby, const GUID *game);
+/* While the door is in use, marks whether its host's room takes joiners: the door's own wait for
+ * its seats stands in for mission setup's screen. Ignored without the door. */
+void xvt_network_session_set_door_accepting(int accepting);
 /* Close the previous session, then advance setup through Update without blocking. */
 /* Starts hosting as player with rating info under name ("<player>'s Game." when empty), listed in
  * the directory when online. Returns -1 when started, and also, doing nothing, while another
@@ -52,7 +61,8 @@ struct xvt_network_session_status xvt_network_session_get_status(void);
 /* Finishes a close once DirectPlay is inactive, cancelling a deferred join. Fails a lost session
  * outside flight, and a join past its deadline or whose preparation failed. For an established,
  * registered host: publishes the room when it changes (joinable only on mission setup after its
- * first frame; in flight, only players still active once ready), skips an empty roster, and
+ * first frame, or with the door in use only while the door marks it accepting; in flight, only
+ * players still active once ready), skips an empty roster, and
  * retries a failed listing every 15 seconds. */
 void xvt_network_session_service(void);
 /* Leave. */
@@ -86,7 +96,8 @@ void xvt_network_session_end_flight(void);
 /* Advances setup; returns -1 while pending, 1 in admission or established, and 0 once failed or
  * idle. A lost session outside flight fails. */
 int xvt_network_session_update(void);
-/* Forgets the session state and the configured lobby URL, without closing DirectPlay. */
+/* Forgets the session state, the configured lobby URL and id, and the door's, without closing
+ * DirectPlay. */
 void xvt_network_session_shutdown(void);
 /* Splits message's short and long names, each NUL-terminated, into the outputs, truncated to fit.
  * Returns 0 for a NULL or zero-capacity argument or a name without its terminator. */
