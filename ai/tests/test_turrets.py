@@ -238,3 +238,100 @@ def test_on_guard_a_behaviors_own_turret_choice_is_kept(
     chosen = Decision(me.notebook, Actions(turrets=(Turret(1, NO_OBJECT),)))
     question = Question(1000, (me,), (friend(), other(9, target=FRIEND)))
     assert turrets.guard(me, question, chosen) is chosen
+
+
+@pytest.fixture
+def disabling(starship):
+    """Return a maker of a starship on SS Patrol and Disable: its order names
+    contacts 0 and 1, and it has three turrets."""
+
+    def make(**changes):
+        mine = {"order_code": 27, "order_target_mask": 0b11}
+        return starship(**(mine | changes))
+
+    return make
+
+
+def disable(me, *contacts):
+    return turrets.disable(me, Question(1000, (me,), contacts), Decision(me.notebook))
+
+
+def shots(decision) -> list[tuple[int, int, bool]]:
+    return [
+        (turret.slot, turret.target, turret.ion) for turret in decision.actions.turrets
+    ]
+
+
+DISABLED = {"flags": ContactFlags.DISABLED}
+HELD = [(1, NO_OBJECT, False), (2, NO_OBJECT, False), (4, NO_OBJECT, False)]
+
+
+def test_on_disable_the_order_targets_take_ion_shots(disabling, other) -> None:
+    decision = disable(disabling(), other(5), other(3))
+    assert shots(decision) == [(1, 3, True), (2, 5, True), (4, 3, True)]
+
+
+def test_on_disable_the_craft_own_attackers_come_first(disabling, other) -> None:
+    # Craft 3, the order's target, is nearer; craft 9 attacks the starship.
+    decision = disable(disabling(order_target_mask=0b1), other(3), other(9, target=ME))
+    assert shots(decision) == [(1, 9, False), (2, 3, True), (4, 9, False)]
+
+
+def test_on_disable_the_craft_that_last_hit_it_is_an_attacker(disabling, other) -> None:
+    own = other(ME, x=0, y=0, team=1, last_attacker=6)
+    decision = disable(disabling(order_target_mask=0b1), other(3), other(6), own)
+    assert shots(decision) == [(1, 6, False), (2, 3, True), (4, 6, False)]
+
+
+def test_on_disable_an_order_target_that_attacks_takes_normal_shots(
+    disabling, other
+) -> None:
+    decision = disable(disabling(order_target_mask=0b1), other(3, target=ME))
+    assert shots(decision) == [(1, 3, False), (2, 3, False), (4, 3, False)]
+
+
+def test_on_disable_a_disabled_order_target_is_left(disabling, other) -> None:
+    decision = disable(disabling(), other(3, **DISABLED), other(5))
+    assert shots(decision) == [(1, 5, True), (2, 5, True), (4, 5, True)]
+    assert shots(disable(disabling(), other(3, **DISABLED))) == HELD
+
+
+def test_on_disable_a_disabled_craft_that_hit_the_craft_is_spared(
+    disabling, other
+) -> None:
+    # The same contacts on any other order: the turrets defend against it.
+    own = other(ME, x=0, y=0, team=1, last_attacker=7)
+    hitter = other(7, target=ME, **DISABLED)
+    assert shots(disable(disabling(order_target_mask=0), hitter, own)) == HELD
+    assert aims(defend(disabling(order_target_mask=0), hitter, own)) == [
+        (1, 7),
+        (2, 7),
+        (4, 7),
+    ]
+
+
+def test_on_disable_a_craft_the_order_does_not_name_is_left(disabling, other) -> None:
+    assert shots(disable(disabling(order_target_mask=0), other(3))) == HELD
+
+
+def test_on_disable_a_target_beyond_turret_range_is_left(disabling, other) -> None:
+    far = other(3, y=turrets.TURRET_RANGE + 1)
+    assert shots(disable(disabling(), far)) == HELD
+
+
+def test_on_disable_a_target_the_craft_may_not_fight_is_left(disabling, other) -> None:
+    # No contact is the starship's enemy: craft 3 is the order's target,
+    # craft 9 targets the starship.
+    decision = disable(disabling(enemy_mask=0), other(3), other(9, target=ME))
+    assert shots(decision) == HELD
+
+
+def test_on_disable_a_craft_without_turrets_or_with_its_own_choice_is_left(
+    disabling, other
+) -> None:
+    me = disabling(turret_slot_mask=0)
+    assert disable(me, other(3)) == Decision(me.notebook)
+    me = disabling()
+    chosen = Decision(me.notebook, Actions(turrets=(Turret(1, NO_OBJECT),)))
+    question = Question(1000, (me,), (other(3),))
+    assert turrets.disable(me, question, chosen) is chosen

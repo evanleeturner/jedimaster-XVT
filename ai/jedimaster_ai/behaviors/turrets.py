@@ -15,6 +15,15 @@ Purpose:
     each turret took the craft's own attacker first, and only a turret left
     idle took an attacker of an order target.
 
+    A craft on SS Patrol and Disable disables (``disable``): its attackers
+    come first, with normal shots, then the craft its order names that
+    still work, with ion shots (``Turret.ion``), each list nearest first.
+    That is the 1997 order of the two turret rules on the starship disable
+    plan, whose second rule took only an order target in working order and
+    set the turret's ion fire. A craft none of whose subsystems work is
+    never aimed at on this order, though it once hit the craft: it cannot
+    fire. 1997 kept shooting such a craft that hit it last.
+
 Invariants:
     - A behavior that aimed the turrets itself keeps its own choice.
     - The decision's notebook is never changed.
@@ -65,10 +74,30 @@ def guard(view: CraftView, question: Question, decision: Decision) -> Decision:
     return _aim(view, decision, own + guarded)
 
 
+def disable(view: CraftView, question: Question, decision: Decision) -> Decision:
+    """Return the decision with the craft's turrets aimed at its attackers,
+    then with ion shots at the craft its order names that still work."""
+    if not view.turret_slot_mask or decision.actions.turrets is not None:
+        return decision
+    hit_by = _last_attacker(view, question)
+    named = {contact.object_index for contact in tactics.order_targets(view, question)}
+    own = []
+    working = []
+    for position, contact in enumerate(question.contacts):
+        if not tactics.can_fight(view, position, contact) or contact.disabled:
+            continue
+        if contact.target == view.object_index or contact.object_index == hit_by:
+            own.append(contact)
+        elif contact.object_index in named:
+            working.append(contact)
+    disabling = _nearest(view, working)
+    ion = frozenset(contact.object_index for contact in disabling)
+    return _aim(view, decision, _nearest(view, own) + disabling, ion)
+
+
 def threats(view: CraftView, question: Question) -> list[Contact]:
     """Return the craft's threats within TURRET_RANGE, nearest first."""
-    own = tactics.own_contact(view, question)
-    hit_by = NO_OBJECT if own is None else own.last_attacker
+    hit_by = _last_attacker(view, question)
     named = {contact.object_index for contact in tactics.order_targets(view, question)}
     return _nearest(
         view,
@@ -116,6 +145,13 @@ def attackers(view: CraftView, question: Question) -> list[Contact]:
     )
 
 
+def _last_attacker(view: CraftView, question: Question) -> int:
+    """Return the object index of the craft whose shot last hit this one,
+    NO_OBJECT for none."""
+    own = tactics.own_contact(view, question)
+    return NO_OBJECT if own is None else own.last_attacker
+
+
 def _nearest(view: CraftView, contacts: list[Contact]) -> list[Contact]:
     """Return the contacts within TURRET_RANGE of the craft, nearest first,
     the nearer of two at one range the one of lower object index."""
@@ -128,13 +164,23 @@ def _nearest(view: CraftView, contacts: list[Contact]) -> list[Contact]:
     return [contact for _, _, contact in found]
 
 
-def _aim(view: CraftView, decision: Decision, aimed: list[Contact]) -> Decision:
+def _aim(
+    view: CraftView,
+    decision: Decision,
+    aimed: list[Contact],
+    ion: frozenset[int] = frozenset(),
+) -> Decision:
     """Return the decision with the craft's turret slots given the aimed
-    craft in turn, each turret NO_OBJECT when none is aimed."""
+    craft in turn, each turret NO_OBJECT when none is aimed; a turret fires
+    ion shots at the craft whose object index is in ion."""
     slots = [slot for slot in range(WEAPON_SLOTS) if view.turret_slot_mask >> slot & 1]
+    targets = [
+        aimed[turn % len(aimed)].object_index if aimed else NO_OBJECT
+        for turn in range(len(slots))
+    ]
     turrets = tuple(
-        Turret(slot, aimed[turn % len(aimed)].object_index if aimed else NO_OBJECT)
-        for turn, slot in enumerate(slots)
+        Turret(slot, target, target in ion)
+        for slot, target in zip(slots, targets, strict=True)
     )
     actions = dataclasses.replace(decision.actions, turrets=turrets)
     return dataclasses.replace(decision, actions=actions)

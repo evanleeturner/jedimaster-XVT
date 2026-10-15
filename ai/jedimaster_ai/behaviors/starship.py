@@ -16,8 +16,12 @@ Purpose:
       turrets guard (``turrets.guard``): the craft's own threats first, then
       the attackers of the craft its order protects. The order is done once
       no target is left (``progress.GOALS``).
-    - SS Patrol and Disable is not written yet: drift's, so the craft keeps
-      its speed and heading, as before the order had a file of its own.
+    - SS Patrol and Disable, its 1997 plan starshipdisablepln, flies the
+      patrol cruise (``patrol``) while the turrets disable (``turrets.
+      disable``): the craft's own attackers first, with normal shots, then
+      the craft its order names that still work, with ion shots. The order
+      is done once no target is left, disabled ones counted, as in 1997
+      (``progress.GOALS``).
 """
 
 from __future__ import annotations
@@ -25,15 +29,19 @@ from __future__ import annotations
 from ..world import CraftView
 from ..world import Question
 from . import Decision
-from . import drift
 from . import hold
 from . import patrol
 from . import turrets
 
 await_return = hold.think
-patrol_and_disable = drift.think
 
 
 def protect(view: CraftView, question: Question) -> Decision:
     """Return SS Protect's step: the patrol cruise, the turrets on guard."""
     return turrets.guard(view, question, patrol.think(view, question))
+
+
+def patrol_and_disable(view: CraftView, question: Question) -> Decision:
+    """Return SS Patrol and Disable's step: the patrol cruise, the turrets
+    disabling."""
+    return turrets.disable(view, question, patrol.think(view, question))

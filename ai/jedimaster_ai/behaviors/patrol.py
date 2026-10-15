@@ -10,7 +10,8 @@ Purpose:
     for the order's goal (``progress.GOALS``): Circle, Circle and Evade and SS
     Patrol Loop are done once they reach the order's variable1, SS Patrol and
     Attack once no target is left. SS Protect flies the same cruise, its
-    turrets on guard (``starship.protect``).
+    turrets on guard (``starship.protect``), and SS Patrol and Disable, its
+    turrets disabling (``starship.patrol_and_disable``).
 
     The blueprint is 1997's cruise maneuver (``paiman_cruisemaneuver`` and
     ``paiman_advance_order_waypoint``, deleted with the 1997 AI), with bug

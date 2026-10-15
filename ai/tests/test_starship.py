@@ -134,3 +134,42 @@ def test_a_craft_on_ss_protect_answers_its_own_attacker_first(
         1000, (me,), (friend(), other(3, target=FRIEND), other(9, target=ME))
     )
     assert think(question).craft[0].actions.turrets == (Turret(0, 9),)
+
+
+@pytest.fixture
+def disabling(ship):
+    """Return a maker of a starship on SS Patrol and Disable: its order names
+    contact 0, and it has two waypoints."""
+
+    def make(**changes):
+        mine = {
+            "order_code": OrderCode.SS_PATROL_AND_DISABLE,
+            "order_codes": (27, 0, 0, 0),
+            "order_target_mask": 0b1,
+            "turret_slot_mask": 0b110,
+            "waypoint_mask": 0b11,
+            "waypoint_x": (0x20000, 0x20000, 0, 0, 0, 0, 0, 0),
+            "waypoint_y": (0, 0x20000, 0, 0, 0, 0, 0, 0),
+        }
+        return ship(**(mine | changes))
+
+    return make
+
+
+def test_ss_patrol_and_disable_flies_the_patrol_cruise(disabling, other) -> None:
+    me = disabling(turret_slot_mask=0)
+    question = Question(1000, (me,), (other(9),))
+    assert starship.patrol_and_disable(me, question) == patrol.think(me, question)
+
+
+def test_a_craft_on_ss_patrol_and_disable_fires_ion_at_its_target(
+    disabling, other
+) -> None:
+    me = disabling()
+    question = Question(1000, (me,), (other(9),))
+    said = think(question).craft[0]
+    cruise = patrol.think(me, question)
+    assert said.notebook == cruise.notebook
+    assert said.actions == dataclasses.replace(
+        cruise.actions, turrets=(Turret(1, 9, ion=True), Turret(2, 9, ion=True))
+    )
