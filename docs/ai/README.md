@@ -66,6 +66,58 @@ is in `ai/jedimaster_ai/behaviors/attack.py` and `ai/jedimaster_ai/tactics.py`.
 | Fire no missiles or torpedoes. Computer craft use cannons only. | Unknown | Changed: not built yet | [#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299) |
 | Tier 0 craft never get inside firing range of a Star Destroyer: the range is 49,152 units (1.2 km), measured to its centre, and the craft starts to break off at its clearance of 53,143 units (1.3 km). No tier reaches a Super Star Destroyer. | Unknown | New (a side effect) | [#302](https://github.com/evanleeturner/jedimaster-XVT/issues/302) |
 
+### Throttle and turning, measured
+
+Players of the 1997 game learned a trick: at one third throttle a fighter
+turns fastest. This project measured it in this engine on 2026-10-15, for
+craft a player flies and for craft the pilot program flies. A small test
+program ran the game's own flight code without a game window and turned
+14 fighters at 0%, 33%, 67% and 100% throttle. The rates below are
+degrees per second of real time.
+
+For a craft a player flies, the trick holds on all 14 fighters, for
+turning left and right and for looping. The engine scales a player's turn
+by throttle: a third of the craft's rate at 0%, all of it at 33%, five
+sixths at 67% and two thirds at full throttle
+(`engine/src/xvt/flight/player/player.c`).
+
+A computer-flown craft turns at one rate at every throttle
+(`engine/src/xvt/flight/flight.c`), so slowing down only makes its circle
+smaller. Left and right it turns about as fast as a player at 33%, which
+at full throttle is half again faster than a player. Its loop is under
+half a player's best, so a player at one third throttle out-loops it by
+about 2.5 to 1. This is the 1997 game's own turning; the pilot program
+only picks the throttle.
+
+| Fighter | Loop, player at 33% | Loop, player at 100% | Loop, computer | Turn, player at 33% | Turn, player at 100% | Turn, computer |
+| --- | --- | --- | --- | --- | --- | --- |
+| X-wing (X-W) | 73.8 | 49.1 | 29.7 | 56.9 | 37.9 | 59.6 |
+| Y-wing (Y-W) | 59.1 | 39.3 | 23.7 | 44.3 | 29.5 | 47.6 |
+| A-wing (A-W) | 88.6 | 59.1 | 35.7 | 75.7 | 50.6 | 74.3 |
+| B-wing (B-W) | 66.4 | 44.3 | 26.8 | 53.7 | 35.9 | 53.6 |
+| Z-95 Headhunter (Z-95) | 81.2 | 54.1 | 32.6 | 66.3 | 44.3 | 71.4 |
+| R-41 Starchaser (R-41) | 77.6 | 51.7 | 31.1 | 55.2 | 36.9 | 58.0 |
+| T-wing (T-W) | 81.2 | 54.1 | 32.6 | 56.9 | 37.9 | 56.5 |
+| TIE Fighter (T/F) | 96.0 | 64.0 | 38.4 | 72.7 | 48.4 | 71.4 |
+| TIE Interceptor (T/I) | 103.3 | 68.8 | 41.5 | 79.0 | 52.6 | 77.4 |
+| TIE Bomber (T/B) | 81.2 | 54.1 | 32.6 | 66.3 | 44.3 | 65.4 |
+| TIE Advanced (T/A) | 103.3 | 68.8 | 41.5 | 79.0 | 52.6 | 77.4 |
+| TIE Defender (T/D) | 118.1 | 78.8 | 47.6 | 79.0 | 52.6 | 77.4 |
+| Assault Gunboat (GUN) | 66.4 | 44.3 | 26.8 | 63.3 | 42.2 | 62.5 |
+| Missile Boat (MIS) | 59.1 | 39.3 | 23.7 | 82.0 | 54.7 | 80.3 |
+
+A fan-made stat sheet for the 1997 game timed each fighter's best turn at
+"33% throttle, 100% (normal) engines" with a stopwatch
+([X-Wing Vs. TIE Fighter Stats](https://home.cc.umanitoba.ca/~chrstie/gam_xvt.html)).
+The engine's rates left and right fall within 15% of the sheet's for 11 of
+its 12 fighters. The engine's loops come out 13% to 67% faster than the
+sheet's for 7 of them.
+
+Sith Apprentices and Sith Lords will use the trick. On a target's tail
+they drop to one third throttle, and they will turn and loop by the
+player's rule, so the trick works for them as it works for you. Every
+other computer pilot keeps the 1997 turning.
+
 ## Defending yourself
 
 An enemy behind a craft is the dangerous case. The weave is the main answer,
@@ -284,10 +336,14 @@ the project's owner closes them. This table says what became of each one.
 
 ### Two skill levels above Jedi: Sith Apprentice and Sith Lord
 
-Planned, not built. Today the mission gives each computer craft a skill
-level from 0 to 5, and the launcher's mission reader names them Rookie,
-Officer, Veteran, Ace, Top Ace and Jedi
-(`launcher/jedimaster/mission/names.py`). Two levels will sit above Jedi:
+Partly built. The launcher's Sith setting (None, Apprentices or A Lord)
+promotes the enemy's best computer fighter flight in a single-player
+battle, and the message at the end of the battle says how its craft
+fared. Until the behaviors in the table below are built, Sith craft fly
+with a Jedi's skill. A mission gives each computer craft a skill level
+from 0 to 5, and the launcher's mission reader names them Rookie,
+Officer, Veteran, Ace, Top Ace and Jedi, and now Sith Apprentice and
+Sith Lord (`launcher/jedimaster/mission/names.py`). Two levels will sit above Jedi:
 6, Sith Apprentice, and 7, Sith Lord. The engine's tables by skill level
 already hold 8 entries, so both fit (`engine/src/xvt/flight/ai_brain.c`).
 
@@ -308,6 +364,7 @@ tests, and uses it to the full.
 | Shoot warheads down with lasers | no | only warheads chasing itself | any warhead, anywhere |
 | Use ion cannons to disable a craft whose shields are down | weaker at lower levels | full | full |
 | Hit a big ship's shield generators and guns before its hull | higher levels | full | full |
+| Drop to one third throttle on a target's tail, and turn and loop by a player's rule (see "Throttle and turning, measured") | no | yes | yes |
 | Change speed at once at any moment, as craft arriving from hyperspace do | no | no | yes |
 | Leave the fight when damaged: the mission's abort rules, weaving instead of fighting below 75% hull | yes | yes | never |
 | A live record of every craft and warhead | no | no | yes |
