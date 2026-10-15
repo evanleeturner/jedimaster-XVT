@@ -1060,8 +1060,8 @@ def test_a_big_ship_takes_six_shots_in_one_run(craft, foe, ask) -> None:
     ship = foe(genus=4, hull_strength=90_000)
     changes = LOCKED | {"warheads_left": (9, 0)}
     fired = []
-    for think in range(8):
-        decision = ask(craft(**changes), ship, target=FOE, tick=1000 + 16 * think)
+    for step in range(8):
+        decision = ask(craft(**changes), ship, target=FOE, tick=1000 + 16 * step)
         fired.append(decision.actions.warhead is not None)
         changes = changes | {"notebook": decision.notebook}
     assert fired == [True] * 6 + [False] * 2

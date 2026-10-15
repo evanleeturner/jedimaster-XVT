@@ -30,7 +30,7 @@ Purpose:
     Of the launchers that pass kind, kept and launcher (only the Missile
     Boat has two), a small target gets the fastest warhead and a bulky one
     the heaviest: concussion missiles first at fighters, space bombs first
-    at big ships (ideas 1b and 1c). The shot homes with the lock the craft
+    at big ships. The shot homes with the lock the craft
     holds; the engine turns the lock into the shot's homing.
 
 Invariants:

@@ -4,8 +4,8 @@ the tests run in, and the launcher a Missile Boat picks.
 The craft (object 4) holds a declared lock on its target (contact 1, object
 9), a starfighter with no shield and 1,000 hull left, and one launcher of
 concussion missiles, ready; each test changes what it names. Expected
-values are the design page's (``AI_MISSILES_DESIGN.md`` section 3) and the
-engine's warhead table, written before the code ran.
+values are the fire rules in ``warheads``, as written before its code ran,
+and the engine's warhead table (``laser.c``).
 """
 
 from __future__ import annotations
