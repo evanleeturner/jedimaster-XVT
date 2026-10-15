@@ -36,10 +36,10 @@ from pathlib import Path
 from typing import Any
 
 from ..launch.model import build_description
+from ..launch.options import current_text
 from ..launch.options import for_description
 from ..launch.options import OPTIONS
 from ..launch.options import parse_value
-from ..launch.options import text_of
 from ..launch.pilots import list_pilots
 from .battles import Battles
 from .battles import Flight
@@ -65,8 +65,8 @@ NOT_FLYING = "No battle with that number is flying."
 
 
 def options_json(stored: dict[str, Any]) -> Json:
-    """Return the seven options as choice text, null for one not set."""
-    return {name: text_of(name, stored.get(name)) for name in OPTION_NAMES}
+    """Return the seven options as choice text: what was set, else the default."""
+    return {name: current_text(name, stored) for name in OPTION_NAMES}
 
 
 class Launching:
@@ -184,12 +184,10 @@ class Launching:
     def options_set(self, args: Json) -> tuple[Json, Pushes]:
         """Set one game option; return (``OptionsResult``, the ``options.changed`` push).
 
-        A null value leaves the option as the game has it. The arguments were
-        already checked against the table of options.
+        The arguments were already checked against the table of options: the
+        value is one of the option's choices. Choosing the default stores it.
         """
-        value = (
-            None if args["value"] is None else parse_value(args["name"], args["value"])
-        )
+        value = parse_value(args["name"], args["value"])
         self.store.set_option(args["player"], args["name"], value)
         result = {
             "player": args["player"],
@@ -200,9 +198,7 @@ class Launching:
 
 def option_value_problem(name: str, value: object) -> str | None:
     """Return why ``value`` is not a choice of option ``name``, or None when it is."""
-    if value is None:
-        return None
     texts = [c.text for c in OPTIONS[name].choices]
     if not isinstance(value, str) or value not in texts:
-        return f"{name} must be null or one of {texts}"
+        return f"{name} must be one of {texts}"
     return None

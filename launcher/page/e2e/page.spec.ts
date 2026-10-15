@@ -1,7 +1,14 @@
 import { AxeBuilder } from "@axe-core/playwright";
 import type { BrowserContext, Locator, Page } from "@playwright/test";
 
-import { expect, openMenu, showMission, test } from "./launcher.ts";
+import {
+  callFromSecondSocket,
+  expect,
+  openMenu,
+  routePilot,
+  showMission,
+  test,
+} from "./launcher.ts";
 
 const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"];
 
@@ -111,40 +118,6 @@ async function askFromSecondSocket(
   mission: { mission_type: string; id: number },
 ): Promise<unknown> {
   return callFromSecondSocket(context, origin, "page.show_mission", mission);
-}
-
-async function callFromSecondSocket(
-  context: BrowserContext,
-  origin: string,
-  command: string,
-  args: Record<string, unknown>,
-): Promise<{ ok: boolean; result: Record<string, unknown> }> {
-  const caller = await context.newPage();
-  await caller.goto(`${origin}/style.css`);
-  const reply = await caller.evaluate(
-    (call) =>
-      new Promise<unknown>((resolve, reject) => {
-        const socket = new WebSocket(`ws://${location.host}/ws`);
-        socket.addEventListener("error", () => {
-          reject(new Error("the second socket failed"));
-        });
-        socket.addEventListener("message", (event: MessageEvent<string>) => {
-          const message = JSON.parse(event.data) as Record<string, unknown>;
-          if ("ok" in message) {
-            socket.close();
-            resolve(message);
-          }
-        });
-        socket.addEventListener("open", () => {
-          socket.send(
-            JSON.stringify({ id: 1, command: call.command, args: call.args }),
-          );
-        });
-      }),
-    { command, args },
-  );
-  await caller.close();
-  return reply as { ok: boolean; result: Record<string, unknown> };
 }
 
 test("a mission shown from a second socket is marked, shown and announced", async ({
@@ -481,9 +454,15 @@ test("with no battle the page says so and offers no Cancel", async ({
   await expect(page.locator("#battle-cancel")).toHaveAttribute("hidden", "");
   await expect(page.locator("#battle-ending")).toHaveAttribute("hidden", "");
   await expect(page.locator("#options-list dt")).toHaveCount(7);
-  await expect(page.locator("#options-list dd")).toHaveText(
-    Array<string>(7).fill("As the game has it"),
-  );
+  await expect(page.locator("#options-list dd")).toHaveText([
+    "Medium",
+    "On",
+    "On",
+    "Off",
+    "3 wins",
+    "The mission's own limit",
+    "Continue",
+  ]);
 });
 
 test("no control on the page starts a battle", async ({ page, launcher }) => {
@@ -617,7 +596,7 @@ test("the game options are shown read-only and redrawn when they change", async 
 }) => {
   await openPage(page, launcher.url);
   await openMenu(page, "Game options");
-  const set = async (name: string, value: string | null) =>
+  const set = async (name: string, value: string) =>
     callFromSecondSocket(context, launcher.origin, "options.set", {
       player: "7001",
       name,
@@ -635,13 +614,9 @@ test("the game options are shown read-only and redrawn when they change", async 
     page.locator("#options-list dt", { hasText: "Mission time limit" }),
   ).toBeVisible();
   await expect(page.locator("#options-list")).toContainText("5 minutes");
-  await expect(page.locator("#options-list")).toContainText(
-    "As the game has it",
-  );
-  await set("difficulty", null);
-  await expect(page.locator("#options-list dd").first()).toHaveText(
-    "As the game has it",
-  );
+  await expect(page.locator("#options-list dd").nth(1)).toHaveText("On");
+  await set("difficulty", "medium");
+  await expect(page.locator("#options-list dd").first()).toHaveText("Medium");
   await expect(
     page.locator("#options input, #options select, #options button"),
   ).toHaveCount(0);
@@ -918,3 +893,69 @@ for (const scheme of ["light", "dark"] as const) {
     }
   });
 }
+
+test("a pilot push redraws the Pilot panel and an unnamed pilot says so", async ({
+  page,
+  launcher,
+}) => {
+  const push = await routePilot(page, null);
+  await openPage(page, launcher.url);
+  await openMenu(page, "Pilot");
+  const line = page.locator("#pilot-line");
+  await expect(line).toHaveText(
+    "No pilot yet. Link Discord with /link and the launcher makes one.",
+  );
+  await expect(page.locator("#panel-pilot")).toContainText(
+    "Its name can change once, in Discord",
+  );
+  push({ event: "pilot.changed", data: { pilot: "Wedge" } });
+  await expect(line).toHaveText("Your pilot is Wedge.");
+  push({ event: "pilot.changed", data: { pilot: "Biggs" } });
+  await expect(line).toHaveText("Your pilot is Biggs.");
+  push({ event: "pilot.changed", data: { pilot: null } });
+  await expect(line).toHaveText(
+    "No pilot yet. Link Discord with /link and the launcher makes one.",
+  );
+});
+
+test("the pilot's name shows at connect", async ({ page, launcher }) => {
+  await routePilot(page, "Wedge");
+  await openPage(page, launcher.url);
+  await openMenu(page, "Pilot");
+  await expect(page.locator("#pilot-line")).toHaveText("Your pilot is Wedge.");
+});
+
+test("an options push from the bot redraws the open page's options", async ({
+  page,
+  launcher,
+}) => {
+  const push = await routePilot(page, null);
+  await openPage(page, launcher.url);
+  await openMenu(page, "Game options");
+  const values = page.locator("#options-list dd");
+  await expect(values.first()).toHaveText("Medium");
+  push({
+    event: "options.changed",
+    data: {
+      player: "7001",
+      options: {
+        difficulty: "hard",
+        collisions: "off",
+        craft_jumping: "off",
+        random_setup: "on",
+        battle_length: "4",
+        mission_time_limit: "none",
+        continue_sequence: "restart",
+      },
+    },
+  });
+  await expect(values).toHaveText([
+    "Hard",
+    "Off",
+    "Off",
+    "On",
+    "4 wins",
+    "No limit",
+    "Start again",
+  ]);
+});

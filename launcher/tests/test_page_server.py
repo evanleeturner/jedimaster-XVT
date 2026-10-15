@@ -236,7 +236,11 @@ async def test_status_arrives_on_connect(client):
     ws = await connect(client)
     assert await receive(ws) == {
         "event": "status",
-        "data": {"launcher_version": LAUNCHER_VERSION, "install_found": True},
+        "data": {
+            "launcher_version": LAUNCHER_VERSION,
+            "install_found": True,
+            "pilot": None,
+        },
     }
     await ws.close()
 

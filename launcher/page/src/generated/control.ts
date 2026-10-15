@@ -26,7 +26,8 @@ export type LauncherControlMessage =
   | ShowMissionPush
   | LaunchStartedPush
   | LaunchEndedPush
-  | OptionsChangedPush;
+  | OptionsChangedPush
+  | PilotChangedPush;
 
 /**
  * Ask the launcher to introduce itself.
@@ -193,7 +194,7 @@ export interface OptionsSetRequest {
   args: OptionsSetArgs;
 }
 /**
- * Set one game option of a player to a choice, or null to leave it as the game has it.
+ * Set one game option of a player to one of its choices.
  */
 export interface OptionsSetArgs {
   player: string;
@@ -205,7 +206,7 @@ export interface OptionsSetArgs {
     | "battle_length"
     | "mission_time_limit"
     | "continue_sequence";
-  value: string | null;
+  value: string;
 }
 /**
  * The command ran; its result.
@@ -231,7 +232,7 @@ export interface OkReply {
  */
 export interface HelloResult {
   launcher_version: string;
-  schema_revision: 6;
+  schema_revision: 7;
 }
 /**
  * The install found (home shown as ~) and whether Balance of Power is in it.
@@ -444,41 +445,38 @@ export interface OptionsResult {
   options: GameOptions;
 }
 /**
- * The game options a player has set; null is left as the game has it.
+ * The game options a player has: what they set, else the option's default.
  */
 export interface GameOptions {
-  difficulty: ("easy" | "medium" | "hard" | "easy_cheat") | null;
-  collisions: ("on" | "off") | null;
-  craft_jumping: ("on" | "off") | null;
-  random_setup: ("on" | "off") | null;
-  battle_length: ("2" | "3" | "4") | null;
+  difficulty: "easy" | "medium" | "hard" | "easy_cheat";
+  collisions: "on" | "off";
+  craft_jumping: "on" | "off";
+  random_setup: "on" | "off";
+  battle_length: "2" | "3" | "4";
   mission_time_limit:
-    | (
-        | "none"
-        | "default"
-        | "1"
-        | "2"
-        | "3"
-        | "4"
-        | "5"
-        | "6"
-        | "7"
-        | "8"
-        | "9"
-        | "10"
-        | "11"
-        | "12"
-        | "13"
-        | "14"
-        | "15"
-        | "16"
-        | "17"
-        | "18"
-        | "19"
-        | "20"
-      )
-    | null;
-  continue_sequence: ("restart" | "continue") | null;
+    | "none"
+    | "default"
+    | "1"
+    | "2"
+    | "3"
+    | "4"
+    | "5"
+    | "6"
+    | "7"
+    | "8"
+    | "9"
+    | "10"
+    | "11"
+    | "12"
+    | "13"
+    | "14"
+    | "15"
+    | "16"
+    | "17"
+    | "18"
+    | "19"
+    | "20";
+  continue_sequence: "restart" | "continue";
 }
 /**
  * The command did not run; the reason.
@@ -508,6 +506,7 @@ export interface StatusPush {
 export interface StatusData {
   launcher_version: string;
   install_found: boolean;
+  pilot: string | null;
 }
 /**
  * Sent to every open page after a setting changed.
@@ -570,4 +569,17 @@ export interface LaunchEndedData {
 export interface OptionsChangedPush {
   event: "options.changed";
   data: OptionsResult;
+}
+/**
+ * Sent to every open page after the bot makes or renames the linked account's pilot.
+ */
+export interface PilotChangedPush {
+  event: "pilot.changed";
+  data: PilotChangedData;
+}
+/**
+ * The linked account's pilot name now; null when there is none.
+ */
+export interface PilotChangedData {
+  pilot: string | null;
 }

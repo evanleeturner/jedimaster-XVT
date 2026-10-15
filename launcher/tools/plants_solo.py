@@ -94,8 +94,8 @@ OPTION_PLANTS: list[Plant] = [
     plant(
         "options-cheat-edits-input",
         OPT,
-        "    settings = dict(options)",
-        "    settings = options",
+        "    settings.update(options)\n",
+        "    options.update({**settings, **options})\n    settings = options\n",
         TO + "test_for_description_does_not_change",
     ),
     plant(
@@ -124,16 +124,16 @@ OPTION_PLANTS: list[Plant] = [
     plant(
         "options-unknown-name-parsed",
         OPT,
-        '    if name not in OPTIONS:\n        raise ValueError(f"no such option {name!r}; one of {list(OPTIONS)}")',
-        "    if False:\n        raise ValueError()",
+        'its choices.\n    """\n    if name not in OPTIONS:\n        raise ValueError(f"no such option {name!r}; one of {list(OPTIONS)}")',
+        'its choices.\n    """\n    if False:\n        raise ValueError()',
         TO + "test_an_unknown_name_or_choice_is_refused",
     ),
     plant(
         "options-words-blank",
         OPT,
-        "    return AS_GAME_WORDS\n\n\ndef parse_setting",
-        '    return ""\n\n\ndef parse_setting',
-        TO + "test_words_say_as_the_game_has_it",
+        '    raise ValueError(f"{value!r} is not a choice of {name}")\n\n\ndef current_text',
+        '    return ""\n\n\ndef current_text',
+        TO + "test_words_name_a_choice_and_refuse_what_is_no_choice",
     ),
     plant(
         "options-switch-values-swapped",
@@ -590,13 +590,6 @@ LAUNCHING_PLANTS: list[Plant] = [
         TL + "test_options_get_with_no_player",
     ),
     plant(
-        "launching-options-set-null-parsed",
-        LNG,
-        'None if args["value"] is None else parse_value(args["name"], args["value"])',
-        'parse_value(args["name"], args["value"])',
-        TL + "test_null_leaves_an_option",
-    ),
-    plant(
         "launching-options-push-dropped",
         LNG,
         'return result, [{"event": "options.changed", "data": result}]',
@@ -621,7 +614,7 @@ LAUNCHING_PLANTS: list[Plant] = [
     plant(
         "launching-options-raw",
         LNG,
-        "{name: text_of(name, stored.get(name)) for name in OPTION_NAMES}",
+        "{name: current_text(name, stored) for name in OPTION_NAMES}",
         "{name: stored.get(name) for name in OPTION_NAMES}",
         TL + "test_the_description_holds_the_mission",
         TL + "test_options_are_kept_in_the_settings_file",
@@ -737,8 +730,8 @@ CONTROL_PLANTS: list[Plant] = [
     plant(
         "control-revision",
         PRO,
+        "SCHEMA_REVISION = 7",
         "SCHEMA_REVISION = 6",
-        "SCHEMA_REVISION = 5",
         "tests/test_page_control.py::test_hello",
         "tests/test_page_control.py::test_the_list_has_thirteen",
     ),

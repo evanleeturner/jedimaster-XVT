@@ -209,17 +209,10 @@ WALK_PLANTS: list[Plant] = [
         TM + "test_the_whole_walk_edits_one_message",
     ),
     plant(
-        "walk-options-first-not-marked",
-        WLK,
-        "Option(AS_GAME_WORDS, AS_GAME, spec.help, now is None)",
-        "Option(AS_GAME_WORDS, AS_GAME, spec.help, False)",
-        TW + "test_options_is_seven_menus",
-    ),
-    plant(
         "walk-options-current-unmarked",
         WLK,
-        "Option(c.words, c.text, default=c.text == now)",
-        "Option(c.words, c.text, default=False)",
+        "Option(c.words, c.text, spec.help, c.text == now)",
+        "Option(c.words, c.text, spec.help, False)",
         TW + "test_the_current_choice_is_marked",
     ),
     plant(
@@ -232,16 +225,9 @@ WALK_PLANTS: list[Plant] = [
     plant(
         "walk-options-lines",
         WLK,
-        'lines.append(f"{spec.words}: {shown}.")',
+        'lines.append(f"{spec.words}: {words_of(name, _native(name, now))}.")',
         'lines.append(f"{spec.words}.")',
         TW + "test_the_current_choice_is_marked",
-    ),
-    plant(
-        "walk-options-as-game-sent",
-        WLK,
-        "sent = None if value == AS_GAME else value",
-        "sent = value",
-        TW + "test_as_the_game_has_it_removes_the_option",
     ),
     plant(
         "walk-options-name-unchecked",
@@ -249,13 +235,6 @@ WALK_PLANTS: list[Plant] = [
         "        if name not in OPTIONS:\n            self._end",
         "        if False:\n            self._end",
         TW + "test_an_unknown_option_or_value_is_not_set",
-    ),
-    plant(
-        "walk-options-left-words",
-        WLK,
-        'text = f"{spec.words} is left as the game has it."',
-        'text = f"{spec.words} set."',
-        TW + "test_as_the_game_has_it_removes_the_option",
     ),
     plant(
         "walk-options-set-words",
@@ -276,8 +255,8 @@ WALK_PLANTS: list[Plant] = [
     plant(
         "walk-options-player",
         WLK,
-        '"options.set", {"player": str(user_id), "name": name, "value": sent}',
-        '"options.set", {"player": "1", "name": name, "value": sent}',
+        '"options.set", {"player": str(user_id), "name": name, "value": value}',
+        '"options.set", {"player": "1", "name": name, "value": value}',
         TW + "test_a_pick_sets_the_option_for_that_player",
     ),
     plant(

@@ -32,6 +32,7 @@ from plants_briefing_web import BRIEFING_WEB_PLANTS
 from plants_common import Plant
 from plants_launch_web import LAUNCH_WEB_PLANTS
 from plants_page_frame_web import FRAME_WEB_PLANTS
+from plants_page_options_web import OPTIONS_WEB_PLANTS
 from plants_page_web_view import VIEW_PLANTS
 
 logger = logging.getLogger(__name__)
@@ -242,7 +243,7 @@ CODEC_PLANTS: list[Plant] = [
     Plant(
         "web-codec-hello-revision",
         COD,
-        '    if (typeof launcher_version === "string" && schema_revision === 6) {',
+        '    if (typeof launcher_version === "string" && schema_revision === 7) {',
         '    if (typeof launcher_version === "string" && schema_revision !== 0) {',
         (
             N + "a reply refuses a result that matches no command",
@@ -310,8 +311,8 @@ CODEC_PLANTS: list[Plant] = [
     Plant(
         "web-codec-status-fields-unchecked",
         COD,
-        '      typeof install_found !== "boolean"\n',
-        "      false\n",
+        '      typeof install_found !== "boolean" ||\n',
+        "      false ||\n",
         (N + "a push refuses an unknown event and a wrong payload",),
     ),
     Plant(
@@ -466,7 +467,7 @@ SHOW_PLANTS: list[Plant] = [
     Plant(
         "web-codec-hello-promises-revision-1",
         COD,
-        '    if (typeof launcher_version === "string" && schema_revision === 6) {',
+        '    if (typeof launcher_version === "string" && schema_revision === 7) {',
         '    if (typeof launcher_version === "string" && schema_revision === 1) {',
         (ACC + "reply-ok-hello.json",),
     ),
@@ -634,4 +635,5 @@ WEB_PLANTS: list[Plant] = [
     *BRIEFING_WEB_PLANTS,
     *LAUNCH_WEB_PLANTS,
     *FRAME_WEB_PLANTS,
+    *OPTIONS_WEB_PLANTS,
 ]

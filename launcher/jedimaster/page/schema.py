@@ -111,7 +111,7 @@ def schema_of(root: type, schema_id: str, title: str) -> dict[str, Any]:
 def control_schema() -> dict[str, Any]:
     """Return the JSON Schema (draft 2020-12) of every control message.
 
-    Always returns the same dict for the same model: one of the requests, the two replies or the six pushes, each a closed object. Does
+    Always returns the same dict for the same model: one of the requests, the two replies or the seven pushes, each a closed object. Does
     not encode which result answers which command, or that a setting's value
     belongs to its name beyond what the argument classes say.
     """

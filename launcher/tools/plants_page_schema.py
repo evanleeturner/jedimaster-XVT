@@ -101,7 +101,7 @@ PROTOCOL_PLANTS: list[Plant] = [
     Plant(
         "page-protocol-revision",
         "jedimaster/page/protocol.py",
-        "    schema_revision: Literal[6]",
+        "    schema_revision: Literal[7]",
         "    schema_revision: Literal[1]",
         (
             "tests/test_page_control.py::test_hello",

@@ -5,7 +5,7 @@ import { makeBundle } from "./briefing/bundle.fixture.ts";
 import type { Message } from "./codec.ts";
 import type { MenuData, ShownMission } from "./generated/control.ts";
 import type { Action, State } from "./state.ts";
-import { describe, initialState, reduce } from "./state.ts";
+import { describe, initialState, optionWords, reduce } from "./state.ts";
 
 function play(...actions: Action[]): State {
   return actions.reduce(reduce, initialState());
@@ -90,7 +90,7 @@ test("the status push gives the launcher's version", () => {
     play(
       message({
         event: "status",
-        data: { launcher_version: "0.1.0", install_found: true },
+        data: { launcher_version: "0.1.0", install_found: true, pilot: null },
       }),
     ),
   );
@@ -103,7 +103,7 @@ test("a hello reply gives the launcher's version", () => {
       message({
         id: 1,
         ok: true,
-        result: { launcher_version: "2.0", schema_revision: 6 },
+        result: { launcher_version: "2.0", schema_revision: 7 },
       }),
     ),
   );
@@ -487,23 +487,23 @@ test("a refused cancel is shown in the battle note", () => {
   assert.equal(view.battleNote, "No battle with that number is flying.");
 });
 
-const NONE = {
-  difficulty: null,
-  collisions: null,
-  craft_jumping: null,
-  random_setup: null,
-  battle_length: null,
-  mission_time_limit: null,
-  continue_sequence: null,
+const DEFAULTS = {
+  difficulty: "medium",
+  collisions: "on",
+  craft_jumping: "on",
+  random_setup: "off",
+  battle_length: "3",
+  mission_time_limit: "default",
+  continue_sequence: "continue",
 } as const;
 
 test("the options are not shown until they arrive", () => {
   assert.equal(describe(initialState()).optionsRows, null);
 });
 
-test("the options reply fills the rows in words, unset ones as the game has them", () => {
+test("the options reply fills the rows in words", () => {
   const options = {
-    ...NONE,
+    ...DEFAULTS,
     difficulty: "easy_cheat",
     collisions: "off",
     battle_length: "3",
@@ -518,8 +518,8 @@ test("the options reply fills the rows in words, unset ones as the game has them
     [
       ["Difficulty", "Easy with cheats (campaigns)"],
       ["Collisions", "Off"],
-      ["Craft jumping", "As the game has it"],
-      ["Random setup", "As the game has it"],
+      ["Craft jumping", "On"],
+      ["Random setup", "Off"],
       ["Battle length", "3 wins"],
       [
         "Mission time limit (multiplayer only: no effect in solo play)",
@@ -532,7 +532,10 @@ test("the options reply fills the rows in words, unset ones as the game has them
 
 test("options.changed redraws the rows", () => {
   const first = play(
-    message({ event: "options.changed", data: { player: "7", options: NONE } }),
+    message({
+      event: "options.changed",
+      data: { player: "7", options: DEFAULTS },
+    }),
   );
   const next = reduce(
     first,
@@ -540,7 +543,11 @@ test("options.changed redraws the rows", () => {
       event: "options.changed",
       data: {
         player: "7",
-        options: { ...NONE, mission_time_limit: "none", random_setup: "on" },
+        options: {
+          ...DEFAULTS,
+          mission_time_limit: "none",
+          random_setup: "on",
+        },
       },
     }),
   );
@@ -550,7 +557,7 @@ test("options.changed redraws the rows", () => {
     "No limit",
   );
   assert.equal(rows.find((r) => r.name === "random_setup")?.value, "On");
-  assert.equal(describe(first).optionsRows?.[3]?.value, "As the game has it");
+  assert.equal(describe(first).optionsRows?.[3]?.value, "Off");
 });
 
 test("a time limit of 20 is in minutes and the mission's own limit is in words", () => {
@@ -558,11 +565,96 @@ test("a time limit of 20 is in minutes and the mission's own limit is in words",
     play(
       message({
         event: "options.changed",
-        data: { player: null, options: { ...NONE, mission_time_limit: "20" } },
+        data: {
+          player: null,
+          options: { ...DEFAULTS, mission_time_limit: "20" },
+        },
       }),
     ),
   ).optionsRows;
   assert.equal(rows?.[5]?.value, "20 minutes");
+});
+
+test("optionWords names every choice of every option", () => {
+  const words: [string, string, string][] = [
+    ["difficulty", "easy", "Easy"],
+    ["difficulty", "medium", "Medium"],
+    ["difficulty", "hard", "Hard"],
+    ["difficulty", "easy_cheat", "Easy with cheats (campaigns)"],
+    ["collisions", "on", "On"],
+    ["collisions", "off", "Off"],
+    ["craft_jumping", "on", "On"],
+    ["random_setup", "off", "Off"],
+    ["battle_length", "2", "2 wins"],
+    ["battle_length", "3", "3 wins"],
+    ["battle_length", "4", "4 wins"],
+    ["mission_time_limit", "none", "No limit"],
+    ["mission_time_limit", "default", "The mission's own limit"],
+    ["mission_time_limit", "1", "1 minute"],
+    ["mission_time_limit", "20", "20 minutes"],
+    ["continue_sequence", "restart", "Start again"],
+    ["continue_sequence", "continue", "Continue"],
+  ];
+  for (const [name, value, expected] of words) {
+    assert.equal(optionWords(name, value), expected);
+    assert.doesNotMatch(optionWords(name, value), /game has it/i);
+  }
+});
+
+test("the pilot is not known until the status push says", () => {
+  const view = describe(initialState());
+  assert.equal(view.pilotLine, "The pilot is not known yet.");
+  assert.equal(view.pilotBar, "Pilot: not known yet");
+});
+
+test("the status push gives the pilot and a null pilot gives the none words", () => {
+  const named = describe(
+    play(
+      message({
+        event: "status",
+        data: {
+          launcher_version: "0.1.0",
+          install_found: true,
+          pilot: "Wedge",
+        },
+      }),
+    ),
+  );
+  assert.equal(named.pilotLine, "Your pilot is Wedge.");
+  assert.equal(named.pilotBar, "Pilot: Wedge");
+  const none = describe(
+    play(
+      message({
+        event: "status",
+        data: { launcher_version: "0.1.0", install_found: true, pilot: null },
+      }),
+    ),
+  );
+  assert.equal(
+    none.pilotLine,
+    "No pilot yet. Link Discord with /link and the launcher makes one.",
+  );
+  assert.equal(none.pilotBar, "Pilot: none yet");
+});
+
+test("pilot.changed follows a rename and a pilot that goes away", () => {
+  const first = play(
+    message({
+      event: "status",
+      data: { launcher_version: "0.1.0", install_found: true, pilot: "Wedge" },
+    }),
+  );
+  const renamed = reduce(
+    first,
+    message({ event: "pilot.changed", data: { pilot: "Biggs" } }),
+  );
+  assert.equal(describe(renamed).pilotLine, "Your pilot is Biggs.");
+  assert.equal(describe(renamed).pilotBar, "Pilot: Biggs");
+  const gone = reduce(
+    renamed,
+    message({ event: "pilot.changed", data: { pilot: null } }),
+  );
+  assert.equal(describe(gone).pilotBar, "Pilot: none yet");
 });
 
 const SHOW_FIRST: Message = {

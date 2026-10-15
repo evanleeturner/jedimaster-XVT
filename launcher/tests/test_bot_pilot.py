@@ -309,3 +309,84 @@ async def test_the_pilot_file_is_readable_json_after_the_walk(bot, door):
         "name": "Mr. Webbin",
         "renamed": False,
     }
+
+
+# ---- the pilot on the page ------------------------------------------------
+
+
+def status_pilot(bot):
+    push = bot.control.status_push()
+    assert push["event"] == "status"
+    return push["data"]["pilot"]
+
+
+def test_status_names_the_linked_accounts_pilot(bot):
+    link_with_names(bot)
+    assert status_pilot(bot) == "Mr. Webbin"
+
+
+def test_status_names_no_pilot_when_the_linked_account_has_no_file(bot):
+    bot.link_account(HOST)
+    assert bot.pilots.get(HOST) is None
+    assert status_pilot(bot) is None
+
+
+def test_status_never_names_the_pilot_of_another_account(bot):
+    bot.pilots.make(STRANGER, "Rogue")
+    bot.link_account(HOST)
+    assert status_pilot(bot) is None
+
+
+def test_status_names_no_pilot_when_nothing_is_linked(bot):
+    assert status_pilot(bot) is None
+
+
+def test_status_names_no_pilot_and_warns_when_the_file_cannot_be_read(bot, caplog):
+    link_with_names(bot)
+    bot.pilots.path(HOST).write_text("not json", encoding="utf-8")
+    with caplog.at_level(logging.WARNING):
+        assert status_pilot(bot) is None
+    assert any(r.levelno == logging.WARNING for r in caplog.records)
+
+
+def test_status_follows_a_rename(bot):
+    link_with_names(bot)
+    bot.core.rename_pilot(HOST, "Biggs", True)
+    assert status_pilot(bot) == "Biggs"
+
+
+def pilot_pushes(reply):
+    return [p for p in reply.pushes if p["event"] == "pilot.changed"]
+
+
+def test_the_first_link_pushes_the_new_pilot(bot):
+    reply = link_with_names(bot)
+    assert pilot_pushes(reply) == [
+        {"event": "pilot.changed", "data": {"pilot": "Mr. Webbin"}}
+    ]
+
+
+def test_a_rename_pushes_the_new_name(bot):
+    link_with_names(bot)
+    reply = bot.core.rename_pilot(HOST, "Biggs", True)
+    assert pilot_pushes(reply) == [
+        {"event": "pilot.changed", "data": {"pilot": "Biggs"}}
+    ]
+
+
+def test_a_refused_rename_and_reading_the_pilot_push_nothing(bot):
+    link_with_names(bot)
+    assert bot.core.rename_pilot(HOST, "!!", True).pushes == []
+    assert bot.core.pilot(HOST, True, NAMES).pushes == []
+
+
+def test_the_pilot_command_that_makes_a_pilot_pushes_it(bot):
+    bot.link_account(HOST)
+    reply = bot.core.pilot(HOST, True, NAMES)
+    assert [p["data"] for p in pilot_pushes(reply)] == [{"pilot": "Mr. Webbin"}]
+
+
+def test_unlinking_pushes_no_pilot(bot):
+    link_with_names(bot)
+    reply = bot.core.unlink(HOST, True)
+    assert pilot_pushes(reply) == [{"event": "pilot.changed", "data": {"pilot": None}}]

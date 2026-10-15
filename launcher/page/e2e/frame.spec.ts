@@ -2,9 +2,11 @@ import { AxeBuilder } from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
 import {
+  callFromSecondSocket,
   expect,
   framedTest as test,
   openMenu,
+  routePilot,
   showMission,
 } from "./launcher.ts";
 
@@ -526,4 +528,64 @@ test("framed at 1x: no text in the controls row or the options copy is clipped",
     return found;
   });
   expect(clipped).toEqual([]);
+});
+
+test("framed: the bottom bar names the pilot and follows a rename", async ({
+  page,
+  launcher,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 960 });
+  const push = await routePilot(page, null);
+  await openFramed(page, launcher.url);
+  const bar = page.locator("#bar-pilot");
+  await expect(bar).toBeVisible();
+  await expect(bar).toHaveText("Pilot: none yet");
+  push({ event: "pilot.changed", data: { pilot: "Wedge" } });
+  await expect(bar).toHaveText("Pilot: Wedge");
+  push({ event: "pilot.changed", data: { pilot: "Biggs" } });
+  await expect(bar).toHaveText("Pilot: Biggs");
+  push({ event: "pilot.changed", data: { pilot: null } });
+  await expect(bar).toHaveText("Pilot: none yet");
+});
+
+test("framed: the pilot's name is in the bar at connect", async ({
+  page,
+  launcher,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 960 });
+  await routePilot(page, "Wedge");
+  await openFramed(page, launcher.url);
+  await expect(page.locator("#bar-pilot")).toHaveText("Pilot: Wedge");
+});
+
+test("framed: a change to the options shows in the copy under the map at once", async ({
+  page,
+  launcher,
+  context,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 960 });
+  await openFramed(page, launcher.url);
+  const values = page.locator(".options-copy-value");
+  await expect(values).toHaveText([
+    "Medium",
+    "On",
+    "On",
+    "Off",
+    "3 wins",
+    "The mission's own limit",
+    "Continue",
+  ]);
+  await callFromSecondSocket(context, launcher.origin, "options.set", {
+    player: "7001",
+    name: "difficulty",
+    value: "hard",
+  });
+  await callFromSecondSocket(context, launcher.origin, "options.set", {
+    player: "7001",
+    name: "battle_length",
+    value: "4",
+  });
+  await expect(values.first()).toHaveText("Hard");
+  await expect(values.nth(4)).toHaveText("4 wins");
+  await expect(page.locator("#options-list dd").first()).toHaveText("Hard");
 });

@@ -344,11 +344,11 @@ BRIEFING_PLANTS: list[Plant] = [
     Plant(
         "briefing-revision-4",
         "jedimaster/page/protocol.py",
-        "SCHEMA_REVISION = 6",
         "SCHEMA_REVISION = 7",
+        "SCHEMA_REVISION = 8",
         (
             "tests/test_page_control.py::test_hello",
-            "tests/test_page_control.py::test_the_list_has_thirteen_commands_and_revision_5",
+            "tests/test_page_control.py::test_the_list_has_thirteen_commands_and_revision_7",
         ),
     ),
     Plant(

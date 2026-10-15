@@ -61,7 +61,7 @@ def test_hello(control):
     assert reply == {
         "id": 5,
         "ok": True,
-        "result": {"launcher_version": LAUNCHER_VERSION, "schema_revision": 6},
+        "result": {"launcher_version": LAUNCHER_VERSION, "schema_revision": 7},
     }
 
 
@@ -195,7 +195,11 @@ def test_status_push_is_valid(control):
     push = check_valid(control.status_push())
     assert push == {
         "event": "status",
-        "data": {"launcher_version": LAUNCHER_VERSION, "install_found": True},
+        "data": {
+            "launcher_version": LAUNCHER_VERSION,
+            "install_found": True,
+            "pilot": None,
+        },
     }
 
 
@@ -376,7 +380,7 @@ def shown(control: Control, mission_type: str, ident: int):
     return check_valid(outcome.reply), outcome.pushes
 
 
-def test_the_list_has_thirteen_commands_and_revision_5():
+def test_the_list_has_thirteen_commands_and_revision_7():
     assert len(COMMANDS) == 13 and COMMANDS[-1] == "options.set"
     assert COMMANDS[6] == "briefing.get"
     assert COMMANDS[-6:] == (
@@ -387,7 +391,7 @@ def test_the_list_has_thirteen_commands_and_revision_5():
         "options.get",
         "options.set",
     )
-    assert SCHEMA_REVISION == 6
+    assert SCHEMA_REVISION == 7
 
 
 def test_the_mission_types_of_the_list_are_the_games_six():

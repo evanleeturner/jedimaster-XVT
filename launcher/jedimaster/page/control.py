@@ -277,14 +277,16 @@ class Control:
         """Hold the install found (or None), the settings, the version and the game program.
 
         Without ``flight`` no battle can start. ``pages_open`` and
-        ``host_player`` are set by the front end that serves the pages and by
-        the bot; until then no page is open and no account is linked.
+        ``host_player`` and ``host_pilot`` are set by the front end that serves
+        the pages and by the bot; until then no page is open, no account is
+        linked and no pilot is named.
         """
         self.install = install
         self.store = store
         self.launcher_version = launcher_version
         self.pages_open: Callable[[], int] = lambda: 0
         self.host_player: Callable[[], str | None] = lambda: None
+        self.host_pilot: Callable[[], str | None] = lambda: None
         self.listeners: list[Callable[[Json], Awaitable[None]]] = []
         self.battles = Battles(self._publish)
         self.launching = Launching(
@@ -347,12 +349,17 @@ class Control:
         return result
 
     def status_push(self) -> Json:
-        """Return the ``status`` push a front end sends when one connects."""
+        """Return the ``status`` push a front end sends when one connects.
+
+        It names the linked account's pilot (``host_pilot``), null when there
+        is none.
+        """
         return {
             "event": "status",
             "data": {
                 "launcher_version": self.launcher_version,
                 "install_found": self.install is not None,
+                "pilot": self.host_pilot(),
             },
         }
 

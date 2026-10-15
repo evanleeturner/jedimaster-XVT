@@ -24,8 +24,10 @@ Invariants:
     - A launcher started without the game program is named as the reason at
       the pilot step, before the pilot folder is.
     - Every step goes through ``_gate``: only the linked account is answered.
-    - The first choice of every option menu is "As the game has it", and the
-      current choice is marked.
+    - An option menu lists only that option's choices, and the current
+      choice is marked: what the player set, else the option's default. Each
+      choice carries the option's help as its description, since Discord
+      hides a menu's placeholder once a choice is marked.
 
 Call:
     ``reply = core.pick_solo(user_id, "kind", "", "training")``
@@ -36,8 +38,6 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from ..launch.options import AS_GAME
-from ..launch.options import AS_GAME_WORDS
 from ..launch.options import OPTIONS
 from ..launch.options import words_of
 from ..page.control import Outcome
@@ -263,8 +263,8 @@ class Walk:
     def options(self, user_id: int, in_dm: bool = False) -> Reply:
         """Answer ``/options`` and the Game options item: one menu for each option.
 
-        Each menu starts with "As the game has it" and marks the current
-        choice; five menus go in the first message and the rest in a second.
+        Each menu lists the option's choices and marks the current one (the
+        default when the player set nothing); five menus go in the first message and the rest in a second.
         Returns the menus and the current values in words, ``HOST_ONLY`` for
         another account, or ``REFUSED``. Changes nothing.
         """
@@ -281,13 +281,11 @@ class Walk:
         lines: list[str] = []
         for name in OPTION_NAMES:
             spec, now = OPTIONS[name], current[name]
-            choices = [Option(AS_GAME_WORDS, AS_GAME, spec.help, now is None)]
-            choices += [
-                Option(c.words, c.text, default=c.text == now) for c in spec.choices
-            ]
-            shown = AS_GAME_WORDS if now is None else words_of(name, _native(name, now))
-            lines.append(f"{spec.words}: {shown}.")
-            pickers.append(Picker("option", name, spec.words, tuple(choices)))
+            choices = tuple(
+                Option(c.words, c.text, spec.help, c.text == now) for c in spec.choices
+            )
+            lines.append(f"{spec.words}: {words_of(name, _native(name, now))}.")
+            pickers.append(Picker("option", name, spec.words, choices))
         first, rest = pickers[:OPTIONS_PER_MESSAGE], pickers[OPTIONS_PER_MESSAGE:]
         self._end("options", user_id, "ok")
         return Reply(
@@ -301,9 +299,8 @@ class Walk:
     ) -> Reply:
         """Answer a pick from an options menu: set option ``name`` to ``value``.
 
-        ``AS_GAME`` leaves the option out so the game keeps its own. Returns
-        the "set to" reply with the push for the open pages, or words alone
-        for another account, an unknown option or a refused value.
+        Returns the "set to" reply with the push for the open pages, or words
+        alone for another account, an unknown option or a refused value.
         """
         self._begin("pick_option", user_id)
         refusal = self._gate("pick_option", user_id, in_dm, dm_only=False)
@@ -312,19 +309,15 @@ class Walk:
         if name not in OPTIONS:
             self._end("pick_option", user_id, "bad option")
             return Reply(BAD_PICK)
-        sent = None if value == AS_GAME else value
         outcome = self.send(
-            "options.set", {"player": str(user_id), "name": name, "value": sent}
+            "options.set", {"player": str(user_id), "name": name, "value": value}
         )
         if self._result(outcome) is None:
             self._end("pick_option", user_id, "error")
             return Reply(REFUSED)
         spec = OPTIONS[name]
-        if sent is None:
-            text = f"{spec.words} is left as the game has it."
-        else:
-            words = next(c.words for c in spec.choices if c.text == sent)
-            text = f"{spec.words} set to {words}."
+        words = next(c.words for c in spec.choices if c.text == value)
+        text = f"{spec.words} set to {words}."
         self._end("pick_option", user_id, "set")
         return Reply(text, pushes=outcome.pushes, opens_page=True)
 

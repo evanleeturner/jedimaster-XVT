@@ -188,3 +188,61 @@ async def test_a_page_asking_to_show_a_mission_gets_the_same_push(rig):
     assert reply == {"id": 8, "ok": True, "result": {"shown": True}}
     assert (await next_push(ws))["data"]["title"] == "Open Field"
     await ws.close()
+
+
+async def test_an_option_picked_in_discord_reaches_an_open_page(rig):
+    ws = await open_page(rig.client)
+    reply = rig.core.options(HOST)
+    picker = next(p for p in reply.pickers if p.key == "difficulty")
+    talk = Talk(HOST)
+    await rig.door.picked(talk, picker, ["hard"])
+    pushed = await next_push(ws)
+    assert pushed["event"] == "options.changed"
+    assert pushed["data"]["options"]["difficulty"] == "hard"
+    assert talk.texts() == ["Difficulty set to Hard."]
+    await ws.close()
+
+
+async def test_a_new_pilot_made_in_discord_reaches_an_open_page(rig):
+    ws = await open_page(rig.client)
+    reply = rig.core.pilot(HOST, True, ("Mr. Webbin", "mr.webbin"))
+    await rig.door.answer(Talk(HOST), reply)
+    assert await next_push(ws) == {
+        "event": "pilot.changed",
+        "data": {"pilot": "Mr. Webbin"},
+    }
+    await ws.close()
+
+
+async def test_a_pilot_renamed_in_discord_reaches_every_open_page(rig):
+    rig.core.pilot(HOST, True, ("Mr. Webbin", "mr.webbin"))
+    first, second = await open_page(rig.client), await open_page(rig.client)
+    reply = rig.core.rename_pilot(HOST, "Biggs", True)
+    await rig.door.answer(Talk(HOST), reply)
+    for ws in (first, second):
+        assert await next_push(ws) == {
+            "event": "pilot.changed",
+            "data": {"pilot": "Biggs"},
+        }
+    await first.close()
+    await second.close()
+
+
+async def test_a_page_opened_after_the_pilot_was_made_is_told_the_pilot_at_connect(
+    rig,
+):
+    rig.core.pilot(HOST, True, ("Mr. Webbin", "mr.webbin"))
+    ws = await rig.client.ws_connect(
+        "/ws", headers={"Origin": f"http://127.0.0.1:{rig.client.port}"}
+    )
+    first = json.loads((await ws.receive(timeout=5)).data)
+    assert first["data"]["pilot"] == "Mr. Webbin"
+    await ws.close()
+
+
+async def test_a_pilot_push_alone_adds_no_no_page_note(rig):
+    talk = Talk(HOST)
+    reply = rig.core.pilot(HOST, True, ("Mr. Webbin", "mr.webbin"))
+    assert reply.pushes
+    await rig.door.answer(talk, reply)
+    assert "No page is open" not in talk.texts()[0]

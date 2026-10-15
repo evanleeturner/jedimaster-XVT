@@ -304,7 +304,7 @@ BRIEFING_PAGE_PLANTS: list[Plant] = [
     Plant(
         "web-cod-revision",
         "page/src/codec.ts",
-        "schema_revision === 6",
+        "schema_revision === 7",
         "schema_revision !== 0",
         ("node: a hello reply of another revision is refused",),
     ),

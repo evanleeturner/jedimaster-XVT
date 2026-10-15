@@ -46,7 +46,7 @@ test("every request is read back as written", () => {
 
 test("every kind of ok reply is read back as written", () => {
   const results: unknown[] = [
-    { launcher_version: "0.1.0", schema_revision: 6 },
+    { launcher_version: "0.1.0", schema_revision: 7 },
     { found: true, path: "~/Games/XvT", balance_of_power: false },
     { found: false, path: null, balance_of_power: false },
     {
@@ -89,7 +89,11 @@ test("both pushes are read back as written", () => {
   const pushes: unknown[] = [
     {
       event: "status",
-      data: { launcher_version: "0.1.0", install_found: true },
+      data: { launcher_version: "0.1.0", install_found: true, pilot: "Wedge" },
+    },
+    {
+      event: "status",
+      data: { launcher_version: "0.1.0", install_found: true, pilot: null },
     },
     { event: "settings.changed", data: { settings: SETTINGS } },
   ];
@@ -169,7 +173,7 @@ test("a reply refuses a result that matches no command", () => {
   refused(reply({ launcher_version: "0.1.0", schema_revision: 1 }));
   refused(reply({ shown: "yes" }));
   refused(reply({ shown: true, more: 1 }));
-  refused(reply({ launcher_version: 1, schema_revision: 6 }));
+  refused(reply({ launcher_version: 1, schema_revision: 7 }));
   refused(reply({ found: "yes", path: null, balance_of_power: false }));
   refused(reply({ found: true, path: 3, balance_of_power: false }));
   refused(reply({ settings: { art_scaling: "stretched" } }));
@@ -220,15 +224,23 @@ test("a push refuses an unknown event and a wrong payload", () => {
   refused({ event: "status", data: { launcher_version: "1" } });
   refused({
     event: "status",
-    data: { launcher_version: "1", install_found: "y" },
+    data: { launcher_version: "1", install_found: true },
   });
   refused({
     event: "status",
-    data: { launcher_version: 1, install_found: true },
+    data: { launcher_version: "1", install_found: "y", pilot: null },
   });
   refused({
     event: "status",
-    data: { launcher_version: "1", install_found: true, x: 1 },
+    data: { launcher_version: 1, install_found: true, pilot: null },
+  });
+  refused({
+    event: "status",
+    data: { launcher_version: "1", install_found: true, pilot: 7 },
+  });
+  refused({
+    event: "status",
+    data: { launcher_version: "1", install_found: true, pilot: null, x: 1 },
   });
   refused({ event: "settings.changed", data: {} });
   refused({
@@ -375,13 +387,13 @@ test("a hello reply of another revision is refused", () => {
 });
 
 const NO_OPTIONS = {
-  difficulty: null,
-  collisions: null,
-  craft_jumping: null,
-  random_setup: null,
-  battle_length: null,
-  mission_time_limit: null,
-  continue_sequence: null,
+  difficulty: "medium",
+  collisions: "on",
+  craft_jumping: "on",
+  random_setup: "off",
+  battle_length: "3",
+  mission_time_limit: "default",
+  continue_sequence: "continue",
 };
 const SOME_OPTIONS = {
   ...NO_OPTIONS,
@@ -421,11 +433,6 @@ test("the launch and option requests are read back as written", () => {
       command: "options.set",
       args: { player: "42", name: "battle_length", value: "3" },
     },
-    {
-      id: 9,
-      command: "options.set",
-      args: { player: "42", name: "collisions", value: null },
-    },
   ];
   for (const request of requests) assert.deepEqual(accepted(request), request);
 });
@@ -457,6 +464,7 @@ test("a launch or option request with a value off the list is refused", () => {
     ["options.set", { player: "42", name: "difficulty", value: "weak" }],
     ["options.set", { player: "42", name: "collisions", value: 1 }],
     ["options.set", { player: "42", name: "collisions" }],
+    ["options.set", { player: "42", name: "collisions", value: null }],
   ];
   for (const [command, args] of bad) {
     refused({ id: 1, command, args });
@@ -498,7 +506,8 @@ test("a launch or option reply with a wrong value is refused", () => {
     { cancelled: "yes", message: "x" },
     { player: "42", options: { ...NO_OPTIONS, difficulty: "weak" } },
     { player: "x", options: NO_OPTIONS },
-    { player: "42", options: { difficulty: null } },
+    { player: "42", options: { difficulty: "easy" } },
+    { player: "42", options: { ...NO_OPTIONS, craft_jumping: null } },
     {
       mission_type: "melee",
       side: "rebel",
@@ -535,6 +544,8 @@ test("the three new pushes are read back as written and bad ones refused", () =>
       data: { launch_id: 1, status: "cancelled", line: "cancelled" },
     },
     { event: "options.changed", data: { player: "42", options: SOME_OPTIONS } },
+    { event: "pilot.changed", data: { pilot: "Wedge" } },
+    { event: "pilot.changed", data: { pilot: null } },
   ];
   for (const push of good) assert.deepEqual(accepted(push), push);
   refused({
@@ -553,6 +564,9 @@ test("the three new pushes are read back as written and bad ones refused", () =>
     event: "options.changed",
     data: { player: "42", options: { ...NO_OPTIONS, collisions: "maybe" } },
   });
+  refused({ event: "pilot.changed", data: {} });
+  refused({ event: "pilot.changed", data: { pilot: 7 } });
+  refused({ event: "pilot.changed", data: { pilot: "Wedge", x: 1 } });
 });
 
 const CHOICES: Record<string, string[]> = {
@@ -571,7 +585,7 @@ const CHOICES: Record<string, string[]> = {
 
 test("options.set takes every choice of every option and nothing else", () => {
   for (const [name, texts] of Object.entries(CHOICES)) {
-    for (const value of [...texts, null]) {
+    for (const value of texts) {
       const request = {
         id: 1,
         command: "options.set",
@@ -579,8 +593,8 @@ test("options.set takes every choice of every option and nothing else", () => {
       };
       assert.deepEqual(accepted(request), request);
     }
-    for (const value of ["0", "21", "weak", ""]) {
-      if (texts.includes(value)) continue;
+    for (const value of ["0", "21", "weak", "", null]) {
+      if (value !== null && texts.includes(value)) continue;
       refused({
         id: 1,
         command: "options.set",

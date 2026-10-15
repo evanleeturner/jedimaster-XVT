@@ -48,6 +48,8 @@ const cancelButton = find(HTMLButtonElement, "#battle-cancel");
 const optionsList = find(HTMLElement, "#options-list");
 const optionsCopy = find(HTMLElement, "#options-copy-grid");
 const barVersion = find(HTMLParagraphElement, "#bar-version");
+const pilotLine = find(HTMLParagraphElement, "#pilot-line");
+const barPilot = find(HTMLParagraphElement, "#bar-pilot");
 const menuButtons = Array.from(
   document.querySelectorAll<HTMLButtonElement>(".menu-btn[aria-controls]"),
 );
@@ -361,6 +363,8 @@ function render(view: View): void {
   renderBriefing(view);
   renderBattle(view);
   renderOptions(view);
+  setText(pilotLine, view.pilotLine);
+  setText(barPilot, view.pilotBar);
   setText(shownLine, view.shownText);
   setText(barVersion, view.launcherVersion ?? "");
   frameSkin.setMission(view.shownType);

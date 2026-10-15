@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { Page } from "@playwright/test";
+import type { BrowserContext, Page } from "@playwright/test";
 import { expect as baseExpect, test as base } from "@playwright/test";
 
 const LAUNCHER_FOLDER = join(import.meta.dirname, "..", "..");
@@ -237,4 +237,81 @@ export async function showMission(
   await page
     .getByRole("button", { name: `Show ${title}`, exact: true })
     .click();
+}
+
+/**
+ * Call `command` from a second socket and return its reply; the page under
+ * test sees whatever pushes the call causes.
+ */
+export async function callFromSecondSocket(
+  context: BrowserContext,
+  origin: string,
+  command: string,
+  args: Record<string, unknown>,
+): Promise<{ ok: boolean; result: Record<string, unknown> }> {
+  const caller = await context.newPage();
+  await caller.goto(`${origin}/style.css`);
+  const reply = await caller.evaluate(
+    (call) =>
+      new Promise<unknown>((resolve, reject) => {
+        const socket = new WebSocket(`ws://${location.host}/ws`);
+        socket.addEventListener("error", () => {
+          reject(new Error("the second socket failed"));
+        });
+        socket.addEventListener("message", (event: MessageEvent<string>) => {
+          const message = JSON.parse(event.data) as Record<string, unknown>;
+          if ("ok" in message) {
+            socket.close();
+            resolve(message);
+          }
+        });
+        socket.addEventListener("open", () => {
+          socket.send(
+            JSON.stringify({ id: 1, command: call.command, args: call.args }),
+          );
+        });
+      }),
+    { command, args },
+  );
+  await caller.close();
+  return reply as { ok: boolean; result: Record<string, unknown> };
+}
+
+/**
+ * Make the page's socket name `pilot` in its status push (the page server
+ * has no bot to know a pilot) and return a function that sends the page any
+ * further server push. Call before `page.goto`.
+ */
+export async function routePilot(
+  page: Page,
+  pilot: string | null,
+): Promise<(message: object) => void> {
+  let toPage: ((text: string) => void) | null = null;
+  await page.routeWebSocket(/\/ws$/, (ws) => {
+    const server = ws.connectToServer();
+    server.onMessage((message) => {
+      if (typeof message === "string") {
+        const parsed = JSON.parse(message) as {
+          event?: string;
+          data?: Record<string, unknown>;
+        };
+        if (parsed.event === "status" && parsed.data !== undefined) {
+          parsed.data.pilot = pilot;
+          ws.send(JSON.stringify(parsed));
+          return;
+        }
+      }
+      ws.send(message);
+    });
+    ws.onMessage((message) => {
+      server.send(message);
+    });
+    toPage = (text) => {
+      ws.send(text);
+    };
+  });
+  return (message) => {
+    if (toPage === null) throw new Error("the page has no socket yet");
+    toPage(JSON.stringify(message));
+  };
 }

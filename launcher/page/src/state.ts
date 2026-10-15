@@ -37,6 +37,11 @@ export interface State {
   readonly launch: LaunchState | null;
   readonly notice: string | null;
   readonly options: GameOptions | null;
+  /**
+   * The linked Discord account's pilot name, null when it has none, and
+   * undefined until the launcher's status names it (the page cannot know).
+   */
+  readonly pilot: string | null | undefined;
   readonly problem: string | null;
 }
 
@@ -126,6 +131,10 @@ export interface View {
   readonly cancelEnabled: boolean;
   readonly cancelShown: boolean;
   readonly optionsRows: readonly OptionRow[] | null;
+  /** The Pilot panel's sentence. */
+  readonly pilotLine: string;
+  /** The frame's bottom bar words. */
+  readonly pilotBar: string;
   readonly problem: string | null;
 }
 
@@ -150,6 +159,7 @@ export function initialState(): State {
     launch: null,
     notice: null,
     options: null,
+    pilot: undefined,
     problem: null,
   };
 }
@@ -182,8 +192,12 @@ function applyMessage(state: State, message: Message): State {
       return {
         ...state,
         launcherVersion: message.data.launcher_version,
+        pilot: message.data.pilot,
         problem: null,
       };
+    }
+    if (message.event === "pilot.changed") {
+      return { ...state, pilot: message.data.pilot, problem: null };
     }
     if (message.event === "page.show_mission") {
       return {
@@ -289,8 +303,7 @@ const VALUE_WORDS: Record<string, string> = {
   continue: "Continue",
 };
 
-export function optionWords(name: string, value: string | null): string {
-  if (value === null) return "As the game has it";
+export function optionWords(name: string, value: string): string {
   if (name === "battle_length") return `${value} wins`;
   if (name === "mission_time_limit" && /^[0-9]+$/.test(value)) {
     return value === "1" ? "1 minute" : `${value} minutes`;
@@ -307,6 +320,21 @@ const OPTION_ORDER: (keyof GameOptions)[] = [
   "mission_time_limit",
   "continue_sequence",
 ];
+
+export const NO_PILOT_LINE =
+  "No pilot yet. Link Discord with /link and the launcher makes one.";
+
+/** The Pilot panel's sentence for a pilot name, for none, or before the launcher said. */
+export function pilotLine(pilot: string | null | undefined): string {
+  if (pilot === undefined) return "The pilot is not known yet.";
+  return pilot === null ? NO_PILOT_LINE : `Your pilot is ${pilot}.`;
+}
+
+/** The frame's bottom bar words for a pilot name, for none, or before the launcher said. */
+export function pilotBar(pilot: string | null | undefined): string {
+  if (pilot === undefined) return "Pilot: not known yet";
+  return pilot === null ? "Pilot: none yet" : `Pilot: ${pilot}`;
+}
 
 function optionRows(options: GameOptions | null): OptionRow[] | null {
   if (options === null) return null;
@@ -484,6 +512,8 @@ export function describe(state: State): View {
     settingsEnabled: state.connection === "open",
     ...battleView(state),
     optionsRows: optionRows(state.options),
+    pilotLine: pilotLine(state.pilot),
+    pilotBar: pilotBar(state.pilot),
     problem: state.problem,
   };
 }

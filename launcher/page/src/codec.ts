@@ -18,6 +18,7 @@ import type {
   OptionsChangedPush,
   OptionsGetRequest,
   OptionsSetRequest,
+  PilotChangedPush,
   PilotsListRequest,
   Settings,
   SettingsChangedPush,
@@ -208,13 +209,13 @@ function optionsOf(value: unknown): Parsed<GameOptions> {
   if (!isRecord(value) || !hasExactly(value, OPTION_NAMES)) {
     return fail("options must be exactly the seven option names");
   }
-  const kept: Record<string, string | null> = {};
+  const kept: Record<string, string> = {};
   for (const name of OPTION_NAMES) {
     const text = value[name];
-    if (text !== null && !OPTION_TEXTS[name].some((known) => known === text)) {
+    if (!OPTION_TEXTS[name].some((known) => known === text)) {
       return fail(`${name} is not one of its choices`);
     }
-    kept[name] = text as string | null;
+    kept[name] = text as string;
   }
   return { value: kept as unknown as GameOptions };
 }
@@ -257,7 +258,7 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
   if (!isRecord(value)) return fail("a result must be an object");
   if (hasExactly(value, ["launcher_version", "schema_revision"])) {
     const { launcher_version, schema_revision } = value;
-    if (typeof launcher_version === "string" && schema_revision === 6) {
+    if (typeof launcher_version === "string" && schema_revision === 7) {
       return { value: { launcher_version, schema_revision } };
     }
     return fail("a hello result has the wrong values");
@@ -394,17 +395,18 @@ function pushOf(value: Fields): Decoded {
   if (!isRecord(data))
     return { ok: false, reason: "push data must be an object" };
   if (event === "status") {
-    const { launcher_version, install_found } = data;
+    const { launcher_version, install_found, pilot } = data;
     if (
-      !hasExactly(data, ["launcher_version", "install_found"]) ||
+      !hasExactly(data, ["launcher_version", "install_found", "pilot"]) ||
       typeof launcher_version !== "string" ||
-      typeof install_found !== "boolean"
+      typeof install_found !== "boolean" ||
+      (pilot !== null && typeof pilot !== "string")
     ) {
       return { ok: false, reason: "status data has the wrong fields" };
     }
     const push: StatusPush = {
       event,
-      data: { launcher_version, install_found },
+      data: { launcher_version, install_found, pilot },
     };
     return { ok: true, message: push };
   }
@@ -498,6 +500,17 @@ function pushOf(value: Fields): Decoded {
       event,
       data: { player, options: kept.value },
     };
+    return { ok: true, message: push };
+  }
+  if (event === "pilot.changed") {
+    const { pilot } = data;
+    if (
+      !hasExactly(data, ["pilot"]) ||
+      (pilot !== null && typeof pilot !== "string")
+    ) {
+      return { ok: false, reason: "pilot.changed data has wrong fields" };
+    }
+    const push: PilotChangedPush = { event, data: { pilot } };
     return { ok: true, message: push };
   }
   return { ok: false, reason: "no such push" };
@@ -649,7 +662,7 @@ function requestOf(value: Fields): Decoded {
         !hasExactly(args, ["player", "name", "value"]) ||
         !isPlayer(player) ||
         !isOptionName(name) ||
-        (text !== null && !OPTION_TEXTS[name].some((known) => known === text))
+        !OPTION_TEXTS[name].some((known) => known === text)
       ) {
         return {
           ok: false,
@@ -661,7 +674,7 @@ function requestOf(value: Fields): Decoded {
         message: {
           id,
           command,
-          args: { player, name, value: text as string | null },
+          args: { player, name, value: text as string },
         },
       };
     }

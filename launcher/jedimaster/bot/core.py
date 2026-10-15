@@ -54,6 +54,7 @@ from ..page.protocol import MAX_ID
 from ..page.protocol import MISSION_TYPE_NAMES
 from . import link as linking
 from .link import Linker
+from .pilot_walk import pilot_push
 from .pilot_walk import PilotWalk
 from .reply import clip
 from .reply import menus
@@ -124,12 +125,25 @@ class Core(Walk, PilotWalk):
         self.linker = linker
         self.pilots = pilots
         control.host_player = self._host_player
+        control.host_pilot = self._host_pilot
         self._next_id = first_id
         self._ids: list[int] = []
 
     def _host_player(self) -> str | None:
         user = self.linker.linked_user_id
         return None if user is None else str(user)
+
+    def _host_pilot(self) -> str | None:
+        """Return the linked account's pilot name, or None (a bad file is a WARNING)."""
+        user = self.linker.linked_user_id
+        if user is None:
+            return None
+        try:
+            pilot = self.pilots.get(user)
+        except PilotFileError as exc:
+            logger.warning("pilot of account %d: %s", user, exc)
+            return None
+        return None if pilot is None else pilot.name
 
     def end_notice(self, push: Json) -> tuple[int, str] | None:
         """Return (the linked account, the line) for a ``launch.ended`` push, else None.
@@ -208,7 +222,8 @@ class Core(Walk, PilotWalk):
         Returns a reply that never holds the code. Off a direct message the
         code is not looked at (and so not spent) and the reply says to use
         a direct message. A link that succeeds adds the account's pilot,
-        made from ``names`` (display name, account name) if it has none.
+        made from ``names`` (display name, account name) if it has none, and
+        tells the open pages the pilot.
         """
         self._begin("link", user_id)
         if not in_dm:
@@ -218,14 +233,18 @@ class Core(Walk, PilotWalk):
         if outcome != linking.LINKED:
             return Reply(LINK_WORDS[outcome])
         offer = self.offer(user_id, names)
-        return Reply(f"{LINK_WORDS[outcome]}\n{offer.text}", buttons=offer.buttons)
+        return Reply(
+            f"{LINK_WORDS[outcome]}\n{offer.text}",
+            buttons=offer.buttons,
+            pushes=[pilot_push(self._host_pilot())],
+        )
 
     def unlink(self, user_id: int, in_dm: bool) -> Reply:
         """Answer ``/unlink``: remove the link when ``user_id`` is the linked account.
 
-        Returns the "Unlinked" reply, or ``HOST_ONLY`` / ``DM_ONLY`` when the
-        asker is another account or not in a direct message. Does not make a
-        new code.
+        Returns the "Unlinked" reply (with a ``pilot.changed`` push naming no
+        pilot), or ``HOST_ONLY`` / ``DM_ONLY`` when the asker is another
+        account or not in a direct message. Does not make a new code.
         """
         self._begin("unlink", user_id)
         refusal = self._gate("unlink", user_id, in_dm, dm_only=True)
@@ -235,7 +254,8 @@ class Core(Walk, PilotWalk):
         self._end("unlink", user_id, "unlinked")
         return Reply(
             "Unlinked. This launcher answers no account now; "
-            "restart it to get a new code."
+            "restart it to get a new code.",
+            pushes=[pilot_push(None)],
         )
 
     def status(self, user_id: int, in_dm: bool = False) -> Reply:
@@ -427,12 +447,14 @@ class Core(Walk, PilotWalk):
 
         For a reply that ``opens_page``: ``OPENING`` when a page is on its way
         (``opening``), else ``NOT_OPENED``. For any other reply with pushes:
-        ``NO_PAGE``. The words alone when a page was open.
+        ``NO_PAGE``; a ``pilot.changed`` push alone adds no note, since a page
+        opened later shows the pilot at once. The words alone when a page was
+        open.
         """
         if pages > 0:
             return reply.text
         if reply.opens_page:
             return f"{reply.text} {OPENING if opening else NOT_OPENED}"
-        if reply.pushes:
+        if any(push["event"] != "pilot.changed" for push in reply.pushes):
             return f"{reply.text} {NO_PAGE}"
         return reply.text

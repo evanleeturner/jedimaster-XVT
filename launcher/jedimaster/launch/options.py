@@ -9,8 +9,10 @@ Purpose:
 
 Flow:
     ``OPTIONS`` is the table. ``parse_value`` turns a choice's text into the
-    description's value; ``text_of`` turns it back; ``for_description``
-    builds the ``settings`` of one battle from a player's stored options.
+    description's value; ``text_of`` turns it back; ``current_text`` gives a
+    player's value for one option (what they set, else its default);
+    ``for_description`` builds the ``settings`` of one battle from a
+    player's stored options.
 
 Invariants:
     - The names and values are those of ``model`` and the launch schema;
@@ -18,7 +20,10 @@ Invariants:
       is not a campaign, as the game's own menus do.
     - A stored value matches a choice by value and by type: ``True`` is not
       the number 1.
-    - An option a player has not set is absent; the game keeps its own.
+    - Every option has a default, one of its choices: the engine's own
+      starting value (``engine/resources/config.yaml``, ``game:``). A
+      player's value is what they set, else the default; every battle
+      sends all seven.
 
 Call:
     ``settings, note = for_description({"difficulty": "easy_cheat"}, "melee")``
@@ -32,9 +37,6 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-AS_GAME = "as_game"
-"""The menu value that means: leave this option as the game has it."""
-AS_GAME_WORDS = "As the game has it"
 CHEAT_NOTE = "Easy with cheats is for campaigns only, so this battle was sent as easy."
 
 
@@ -49,12 +51,16 @@ class Choice:
 
 @dataclass(frozen=True)
 class OptionSpec:
-    """One option: its name, its words, what it does and its choices."""
+    """One option: its name, its words, what it does, its choices and its default.
+
+    ``default`` is the text of the choice a player has until they set another.
+    """
 
     name: str
     words: str
     help: str
     choices: tuple[Choice, ...]
+    default: str
 
 
 def _switch() -> tuple[Choice, ...]:
@@ -85,31 +91,38 @@ OPTIONS: dict[str, OptionSpec] = {
                 Choice("hard", "hard", "Hard"),
                 Choice("easy_cheat", "easy_cheat", "Easy with cheats (campaigns)"),
             ),
+            "medium",
         ),
-        OptionSpec("collisions", "Collisions", "Whether craft collide.", _switch()),
+        OptionSpec(
+            "collisions", "Collisions", "Whether craft collide.", _switch(), "on"
+        ),
         OptionSpec(
             "craft_jumping",
             "Craft jumping",
             "Whether a pilot may jump into another craft with the J key.",
             _switch(),
+            "on",
         ),
         OptionSpec(
             "random_setup",
             "Random setup",
             "Whether a battle starts from a random setup.",
             _switch(),
+            "off",
         ),
         OptionSpec(
             "battle_length",
             "Battle length",
             "How many wins end a battle.",
             tuple(Choice(str(n), n, f"{n} wins") for n in (2, 3, 4)),
+            "3",
         ),
         OptionSpec(
             "mission_time_limit",
             "Mission time limit (multiplayer only: no effect in solo play)",
             "How long a battle with other players may last; a solo battle has no limit.",
             _minutes(),
+            "default",
         ),
         OptionSpec(
             "continue_sequence",
@@ -119,6 +132,7 @@ OPTIONS: dict[str, OptionSpec] = {
                 Choice("restart", "restart", "Start again"),
                 Choice("continue", "continue", "Continue"),
             ),
+            "continue",
         ),
     )
 }
@@ -133,8 +147,7 @@ def parse_value(name: str, text: str) -> Any:
     """Return the description's value for choice ``text`` of option ``name``.
 
     Raises ``ValueError`` for an unknown option or a text that is not one of
-    its choices. Does not accept ``AS_GAME``: leaving an option out is the
-    caller's decision.
+    its choices.
     """
     if name not in OPTIONS:
         raise ValueError(f"no such option {name!r}; one of {list(OPTIONS)}")
@@ -156,11 +169,30 @@ def text_of(name: str, value: Any) -> str | None:
 
 
 def words_of(name: str, value: Any) -> str:
-    """Return the words for a stored value; ``AS_GAME_WORDS`` when it is unset or unknown."""
+    """Return the words for a stored ``value`` of option ``name``.
+
+    Raises ``ValueError`` for an unknown option or a value that is no choice.
+    """
+    if name not in OPTIONS:
+        raise ValueError(f"no such option {name!r}; one of {list(OPTIONS)}")
     for choice in OPTIONS[name].choices:
         if _same(choice.value, value):
             return choice.words
-    return AS_GAME_WORDS
+    raise ValueError(f"{value!r} is not a choice of {name}")
+
+
+def current_text(name: str, stored: dict[str, Any]) -> str:
+    """Return the choice text a player has for option ``name``.
+
+    ``stored`` holds what the player has set; the option's default stands
+    for one they have not.
+    """
+    if name in stored:
+        text = text_of(name, stored[name])
+        if text is None:
+            raise ValueError(f"{stored[name]!r} is not a choice of {name}")
+        return text
+    return OPTIONS[name].default
 
 
 def parse_setting(argument: str) -> tuple[str, Any]:
@@ -176,14 +208,17 @@ def for_description(
 ) -> tuple[dict[str, Any], str | None]:
     """Return (the ``settings`` of the description, a note or None) for one battle.
 
-    Takes the options a player has set. An easy cheat on a battle that is not
-    a campaign is sent as easy, and the note says so. Does not check the
+    Takes the options a player has set and fills in the default of each one
+    they have not, so all seven are sent. An easy cheat on a battle that is
+    not a campaign is sent as easy, and the note says so. Does not check the
     values (the store already did).
     """
-    settings = dict(options)
+    settings = {name: parse_value(name, spec.default) for name, spec in OPTIONS.items()}
+    settings.update(options)
     note = None
     if settings.get("difficulty") == "easy_cheat" and game_type != "campaign":
         settings["difficulty"] = "easy"
         note = CHEAT_NOTE
         logger.debug("easy cheat sent as easy for a %s battle", game_type)
+    logger.debug("settings for a %s battle: %s", game_type, settings)
     return settings, note

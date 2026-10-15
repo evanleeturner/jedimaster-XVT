@@ -3,7 +3,8 @@
 Purpose:
     Prove the table agrees with the launch schema and the control list,
     that texts and values convert both ways, that a stored value matches by
-    type, and that an easy cheat outside a campaign is sent as easy.
+    type, that each option has its default and every battle holds all seven,
+    and that an easy cheat outside a campaign is sent as easy.
 
 Flow:
     Read the table and the schemas; call ``parse_value``, ``text_of``,
@@ -23,8 +24,8 @@ import logging
 import pytest
 
 from jedimaster.launch.model import build_description
-from jedimaster.launch.options import AS_GAME
 from jedimaster.launch.options import CHEAT_NOTE
+from jedimaster.launch.options import current_text
 from jedimaster.launch.options import for_description
 from jedimaster.launch.options import OPTIONS
 from jedimaster.launch.options import parse_setting
@@ -65,7 +66,7 @@ def test_every_choice_value_fits_the_launch_schema():
 def test_every_choice_text_is_a_value_the_control_list_allows():
     defs = control_schema()["$defs"]["GameOptions"]["properties"]
     for name, spec in OPTIONS.items():
-        listed = defs[name]["anyOf"][0]["enum"]
+        listed = defs[name]["enum"]
         assert listed == [c.text for c in spec.choices], name
 
 
@@ -100,16 +101,19 @@ def test_a_switch_is_not_a_number():
 
 @pytest.mark.parametrize(
     "name, text",
-    [("difficulty", "impossible"), ("nothing", "on"), ("collisions", AS_GAME)],
+    [("difficulty", "impossible"), ("nothing", "on"), ("collisions", "none")],
 )
 def test_an_unknown_name_or_choice_is_refused(name, text):
     with pytest.raises(ValueError):
         parse_value(name, text)
 
 
-def test_words_say_as_the_game_has_it_for_an_unset_option():
-    assert words_of("difficulty", None) == "As the game has it"
+def test_words_name_a_choice_and_refuse_what_is_no_choice():
     assert words_of("difficulty", "hard") == "Hard"
+    with pytest.raises(ValueError):
+        words_of("difficulty", None)
+    with pytest.raises(ValueError):
+        words_of("nothing", "on")
 
 
 def test_a_setting_argument_is_name_equals_value():
@@ -124,15 +128,15 @@ def test_an_easy_cheat_outside_a_campaign_is_sent_as_easy_with_a_note():
     settings, note = for_description(
         {"difficulty": "easy_cheat", "collisions": False}, "melee"
     )
-    assert settings == {"difficulty": "easy", "collisions": False}
+    assert settings["difficulty"] == "easy" and settings["collisions"] is False
     assert note == CHEAT_NOTE
 
 
 def test_an_easy_cheat_in_a_campaign_is_kept_and_other_options_pass_through():
     settings, note = for_description({"difficulty": "easy_cheat"}, "campaign")
-    assert settings == {"difficulty": "easy_cheat"} and note is None
+    assert settings["difficulty"] == "easy_cheat" and note is None
     settings, note = for_description({"difficulty": "hard"}, "melee")
-    assert settings == {"difficulty": "hard"} and note is None
+    assert settings["difficulty"] == "hard" and note is None
 
 
 def test_for_description_does_not_change_what_it_was_given():
@@ -141,10 +145,51 @@ def test_for_description_does_not_change_what_it_was_given():
     assert stored == {"difficulty": "easy_cheat"}
 
 
-def test_an_unset_option_is_left_out_of_the_description():
+DEFAULTS = {
+    "difficulty": "medium",
+    "collisions": "on",
+    "craft_jumping": "on",
+    "random_setup": "off",
+    "battle_length": "3",
+    "mission_time_limit": "default",
+    "continue_sequence": "continue",
+}
+
+
+@pytest.mark.parametrize("name, text", sorted(DEFAULTS.items()))
+def test_each_option_has_its_default(name, text):
+    assert OPTIONS[name].default == text
+    assert text in [c.text for c in OPTIONS[name].choices]
+    assert current_text(name, {}) == text
+
+
+def test_a_set_value_beats_the_default_and_an_unset_one_keeps_it():
+    stored = {"difficulty": "hard", "collisions": False}
+    assert current_text("difficulty", stored) == "hard"
+    assert current_text("collisions", stored) == "off"
+    assert current_text("craft_jumping", stored) == "on"
+
+
+def test_every_description_holds_all_seven_options_with_the_defaults_filled_in():
+    settings, note = for_description({}, "melee")
+    assert set(settings) == set(OPTIONS) and note is None
+    assert settings == {
+        "difficulty": "medium",
+        "collisions": True,
+        "craft_jumping": True,
+        "random_setup": False,
+        "battle_length": 3,
+        "mission_time_limit": "default",
+        "continue_sequence": "continue",
+    }
+    settings, _ = for_description({"battle_length": 4}, "campaign")
+    assert set(settings) == set(OPTIONS) and settings["battle_length"] == 4
+
+
+def test_a_description_with_the_defaults_carries_all_seven_settings():
     settings, _ = for_description({}, "melee")
     description = build_description("melee", "none", "a.tie", "Ace", settings=settings)
-    assert "settings" not in description
+    assert set(description["settings"]) == set(OPTIONS)
 
 
 def test_the_control_list_refuses_a_value_off_the_table():

@@ -4,8 +4,8 @@ Purpose:
     Prove each step of the walk offers what the launcher's lists hold and
     nothing else (no ``&`` mission, ``*`` marked, sequences as files, menus
     cut at 25 and five), that picks carry what came before, that Launch asks
-    the launcher and reports its words, that the options menus start with
-    "As the game has it" and mark the current choice, and that every step is
+    the launcher and reports its words, that the options menus list only the
+    option's choices and mark the current one (the default when unset), and that every step is
     for the linked account only.
 
 Flow:
@@ -35,7 +35,7 @@ from pagedata import check_valid
 from jedimaster.bot.core import HOST_ONLY
 from jedimaster.bot.reply import menus
 from jedimaster.bot.reply import Option
-from jedimaster.launch.options import AS_GAME
+from jedimaster.launch.options import OPTIONS
 
 logger = logging.getLogger(__name__)
 
@@ -273,7 +273,7 @@ async def test_nothing_in_a_reply_is_a_path_or_the_program(bot, tmp_path):
 # ---- the game options ------------------------------------------------------
 
 
-def test_options_is_seven_menus_five_then_two_each_starting_as_the_game_has_it(bot):
+def test_options_is_seven_menus_five_then_two_each_marking_its_default(bot):
     reply = bot.core.options(HOST)
     (second,) = reply.then
     pickers = reply.pickers + second.pickers
@@ -283,24 +283,45 @@ def test_options_is_seven_menus_five_then_two_each_starting_as_the_game_has_it(b
     ]  # fmt: skip
     assert len(reply.pickers) == 5 and len(second.pickers) == 2
     for picker in pickers:
+        spec = OPTIONS[picker.key]
         assert picker.kind == "option"
-        first = picker.options[0]
-        assert (first.label, first.value) == ("As the game has it", AS_GAME)
-        assert first.default is True
+        assert [o.value for o in picker.options] == [c.text for c in spec.choices]
+        assert [o.value for o in picker.options if o.default] == [spec.default]
+        assert {o.description for o in picker.options} == {spec.help}
         assert len(picker.options) <= 25
+
+
+def test_every_menu_holds_only_its_options_choices_and_the_words_hold_no_leftover(bot):
+    reply = bot.core.options(HOST)
+    for part in (reply, *reply.then):
+        for picker in part.pickers:
+            texts = [c.text for c in OPTIONS[picker.key].choices]
+            assert [o.value for o in picker.options] == texts
+            assert [o.label for o in picker.options] == [
+                c.words for c in OPTIONS[picker.key].choices
+            ]
+
+
+def test_the_words_name_each_default_when_nothing_is_set(bot):
+    text = bot.core.options(HOST).text
+    for line in (
+        "Difficulty: Medium.",
+        "Collisions: On.",
+        "Craft jumping: On.",
+        "Random setup: Off.",
+        "Battle length: 3 wins.",
+        "Battle or campaign: Continue.",
+    ):
+        assert line in text
+    assert "The mission's own limit." in text
 
 
 def test_the_time_limit_menu_holds_all_its_values_in_words(bot):
     reply = bot.core.options(HOST)
     limit = reply.then[0].pickers[0]
     words = [o.label for o in limit.options]
-    assert words[:4] == [
-        "As the game has it",
-        "No limit",
-        "The mission's own limit",
-        "1 minute",
-    ]
-    assert words[-1] == "20 minutes" and len(words) == 23
+    assert words[:3] == ["No limit", "The mission's own limit", "1 minute"]
+    assert words[-1] == "20 minutes" and len(words) == 22
 
 
 def test_the_current_choice_is_marked_and_the_words_name_it(bot):
@@ -311,7 +332,7 @@ def test_the_current_choice_is_marked_and_the_words_name_it(bot):
     assert [o.label for o in difficulty.options if o.default] == ["Hard"]
     assert [o.label for o in collisions.options if o.default] == ["Off"]
     assert "Difficulty: Hard." in reply.text and "Collisions: Off." in reply.text
-    assert "Craft jumping: As the game has it." in reply.text
+    assert "Craft jumping: On." in reply.text
 
 
 def test_a_pick_sets_the_option_for_that_player_and_tells_the_pages(bot):
@@ -322,11 +343,10 @@ def test_a_pick_sets_the_option_for_that_player_and_tells_the_pages(bot):
     assert bot.control.store.get_options(str(HOST)) == {"battle_length": 4}
 
 
-def test_as_the_game_has_it_removes_the_option(bot):
-    bot.core.pick_option(HOST, "difficulty", "hard")
-    reply = bot.core.pick_option(HOST, "difficulty", AS_GAME)
-    assert reply.text == "Difficulty is left as the game has it."
-    assert bot.control.store.get_options(str(HOST)) == {}
+def test_picking_the_default_stores_it_and_says_so_in_the_usual_words(bot):
+    reply = bot.core.pick_option(HOST, "difficulty", "medium")
+    assert reply.text == "Difficulty set to Medium."
+    assert bot.control.store.get_options(str(HOST)) == {"difficulty": "medium"}
 
 
 def test_an_unknown_option_or_value_is_not_set(bot):

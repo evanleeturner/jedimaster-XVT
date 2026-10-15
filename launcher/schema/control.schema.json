@@ -65,6 +65,9 @@
     },
     {
       "$ref": "#/$defs/OptionsChangedPush"
+    },
+    {
+      "$ref": "#/$defs/PilotChangedPush"
     }
   ],
   "$defs": {
@@ -451,120 +454,71 @@
     },
     "GameOptions": {
       "type": "object",
-      "description": "The game options a player has set; null is left as the game has it.",
+      "description": "The game options a player has: what they set, else the option's default.",
       "properties": {
         "difficulty": {
-          "anyOf": [
-            {
-              "enum": [
-                "easy",
-                "medium",
-                "hard",
-                "easy_cheat"
-              ]
-            },
-            {
-              "type": "null"
-            }
+          "enum": [
+            "easy",
+            "medium",
+            "hard",
+            "easy_cheat"
           ]
         },
         "collisions": {
-          "anyOf": [
-            {
-              "enum": [
-                "on",
-                "off"
-              ]
-            },
-            {
-              "type": "null"
-            }
+          "enum": [
+            "on",
+            "off"
           ]
         },
         "craft_jumping": {
-          "anyOf": [
-            {
-              "enum": [
-                "on",
-                "off"
-              ]
-            },
-            {
-              "type": "null"
-            }
+          "enum": [
+            "on",
+            "off"
           ]
         },
         "random_setup": {
-          "anyOf": [
-            {
-              "enum": [
-                "on",
-                "off"
-              ]
-            },
-            {
-              "type": "null"
-            }
+          "enum": [
+            "on",
+            "off"
           ]
         },
         "battle_length": {
-          "anyOf": [
-            {
-              "enum": [
-                "2",
-                "3",
-                "4"
-              ]
-            },
-            {
-              "type": "null"
-            }
+          "enum": [
+            "2",
+            "3",
+            "4"
           ]
         },
         "mission_time_limit": {
-          "anyOf": [
-            {
-              "enum": [
-                "none",
-                "default",
-                "1",
-                "2",
-                "3",
-                "4",
-                "5",
-                "6",
-                "7",
-                "8",
-                "9",
-                "10",
-                "11",
-                "12",
-                "13",
-                "14",
-                "15",
-                "16",
-                "17",
-                "18",
-                "19",
-                "20"
-              ]
-            },
-            {
-              "type": "null"
-            }
+          "enum": [
+            "none",
+            "default",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "16",
+            "17",
+            "18",
+            "19",
+            "20"
           ]
         },
         "continue_sequence": {
-          "anyOf": [
-            {
-              "enum": [
-                "restart",
-                "continue"
-              ]
-            },
-            {
-              "type": "null"
-            }
+          "enum": [
+            "restart",
+            "continue"
           ]
         }
       },
@@ -666,7 +620,7 @@
           "type": "string"
         },
         "schema_revision": {
-          "const": 6
+          "const": 7
         }
       },
       "required": [
@@ -1268,7 +1222,7 @@
     },
     "OptionsSetArgs": {
       "type": "object",
-      "description": "Set one game option of a player to a choice, or null to leave it as the game has it.",
+      "description": "Set one game option of a player to one of its choices.",
       "properties": {
         "player": {
           "type": "string",
@@ -1287,14 +1241,7 @@
           ]
         },
         "value": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "type": "string"
         }
       },
       "required": [
@@ -1324,6 +1271,43 @@
         "id",
         "command",
         "args"
+      ],
+      "additionalProperties": false
+    },
+    "PilotChangedData": {
+      "type": "object",
+      "description": "The linked account's pilot name now; null when there is none.",
+      "properties": {
+        "pilot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "pilot"
+      ],
+      "additionalProperties": false
+    },
+    "PilotChangedPush": {
+      "type": "object",
+      "description": "Sent to every open page after the bot makes or renames the linked account's pilot.",
+      "properties": {
+        "event": {
+          "const": "pilot.changed"
+        },
+        "data": {
+          "$ref": "#/$defs/PilotChangedData"
+        }
+      },
+      "required": [
+        "event",
+        "data"
       ],
       "additionalProperties": false
     },
@@ -1719,11 +1703,22 @@
         },
         "install_found": {
           "type": "boolean"
+        },
+        "pilot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
         "launcher_version",
-        "install_found"
+        "install_found",
+        "pilot"
       ],
       "additionalProperties": false
     },

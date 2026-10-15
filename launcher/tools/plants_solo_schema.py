@@ -133,8 +133,8 @@ SCHEMA_PLANTS: list[Plant] = [
     plant(
         "schema-difficulty-free",
         PRO,
-        "    difficulty: DifficultyText | None",
-        "    difficulty: str | None",
+        "    difficulty: DifficultyText\n",
+        "    difficulty: str\n",
         TS + "test_refused_example[reply-ok-options-bad-value.json]",
         regen=True,
     ),
@@ -166,8 +166,8 @@ SCHEMA_PLANTS: list[Plant] = [
     plant(
         "schema-option-value-number",
         PRO,
-        "    name: OptionName\n    value: str | None",
-        "    name: OptionName\n    value: int | None",
+        "    name: OptionName\n    value: str\n",
+        "    name: OptionName\n    value: int\n",
         TS + "test_refused_example[request-options-set-number.json]",
         regen=True,
     ),

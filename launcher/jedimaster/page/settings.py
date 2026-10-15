@@ -162,7 +162,7 @@ class SettingsStore:
         """Set one game option of ``player`` and write the file; return whether it was saved.
 
         ``value`` is the description's value (``True``, 3, ``"hard"``), or
-        None to leave the option as the game has it, which removes it. Raises
+        None to forget the player's choice, which removes it. Raises
         ``ValueError`` for a player that is not an account id, an unknown
         option or a value that is not one of its choices; nothing changes
         then. Returns False (the value still holds in memory, a WARNING is

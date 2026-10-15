@@ -20,6 +20,8 @@ Invariants:
       name leaves the one change unused and the buttons in place.
     - A pilot file that cannot be read is never made again over itself:
       the reply says so and nothing is written.
+    - A pilot made or renamed here is announced to the open pages with a
+      ``pilot.changed`` push in the reply; reading one pushes nothing.
 
 Call:
     ``reply = core.pilot(user_id, True, ("Mr. Webbin", "mr.webbin"))``
@@ -35,6 +37,7 @@ from ..launch.pilot_store import PilotFileError
 from ..launch.pilots import NAME_LIMIT
 from ..launch.pilots import name_ok
 from .reply import Button
+from .reply import Json
 from .reply import Reply
 from .reply import Window
 
@@ -59,6 +62,11 @@ NO_PILOT = "This account has no pilot yet. Use the Pilot command to make one."
 BAD_FILE = "The launcher cannot read this account's pilot file; nothing changed."
 
 
+def pilot_push(name: str | None) -> Json:
+    """Return the ``pilot.changed`` push that tells open pages the pilot is ``name`` (None: none)."""
+    return {"event": "pilot.changed", "data": {"pilot": name}}
+
+
 class PilotWalk:
     """The pilot methods ``Core`` takes in; they use ``Core``'s own helpers."""
 
@@ -69,6 +77,7 @@ class PilotWalk:
         and Change name while the one change is left. Does not check who is
         asking: the caller has.
         """
+        pushes: list[Json] = []
         try:
             pilot = self.pilots.get(user_id)
             if pilot is None:
@@ -76,12 +85,15 @@ class PilotWalk:
                 pilot = self.pilots.make(
                     user_id, first_name(display, account_name, user_id)
                 )
+                pushes.append(pilot_push(pilot.name))
         except PilotFileError as exc:
             logger.warning("pilot of account %d: %s", user_id, exc)
             return Reply(BAD_FILE)
         if pilot.renamed:
-            return Reply(SHOWN.format(name=pilot.name))
-        return Reply(OFFER.format(name=pilot.name), buttons=(KEEP, CHANGE))
+            return Reply(SHOWN.format(name=pilot.name), pushes=pushes)
+        return Reply(
+            OFFER.format(name=pilot.name), buttons=(KEEP, CHANGE), pushes=pushes
+        )
 
     def pilot(self, user_id: int, in_dm: bool, names: tuple[str, str]) -> Reply:
         """Answer the Pilot command: the asker's pilot, made now if it has none.
@@ -166,7 +178,11 @@ class PilotWalk:
             return Reply(BAD_NAME, buttons=(KEEP, CHANGE), edit=True)
         renamed = self.pilots.rename(user_id, name)
         self._end("rename_pilot", user_id, "renamed")
-        return Reply(RENAMED.format(name=renamed.name), edit=True)
+        return Reply(
+            RENAMED.format(name=renamed.name),
+            edit=True,
+            pushes=[pilot_push(renamed.name)],
+        )
 
     def _own_pilot(self, user_id: int) -> Pilot | Reply:
         try:

@@ -47,6 +47,27 @@ from jedimaster.page.settings import SettingsStore
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_TEXTS = {
+    "difficulty": "medium",
+    "collisions": "on",
+    "craft_jumping": "on",
+    "random_setup": "off",
+    "battle_length": "3",
+    "mission_time_limit": "default",
+    "continue_sequence": "continue",
+}
+"""What a player has with nothing set: the seven defaults, as choice text."""
+DEFAULT_SETTINGS = {
+    "difficulty": "medium",
+    "collisions": True,
+    "craft_jumping": True,
+    "random_setup": False,
+    "battle_length": 3,
+    "mission_time_limit": "default",
+    "continue_sequence": "continue",
+}
+"""The same seven as a description's ``settings`` holds them."""
+
 
 def ask(control, command, args=None, ident=1):
     outcome = control.handle(request(ident, command, args))
@@ -225,7 +246,11 @@ async def test_the_description_holds_the_mission_the_pilot_and_the_players_optio
     assert description["pilot"] == "Bravo Two", (
         "the folder's spelling, not the sender's"
     )
-    assert description["settings"] == {"difficulty": "hard", "collisions": False}
+    assert description["settings"] == {
+        **DEFAULT_SETTINGS,
+        "difficulty": "hard",
+        "collisions": False,
+    }
     assert (
         result_of(reply)["message"]
         == "Started First Flight as Bravo Two. Watch it on the page."
@@ -233,12 +258,12 @@ async def test_the_description_holds_the_mission_the_pilot_and_the_players_optio
     assert pushes[0]["data"]["title"] == "First Flight"
 
 
-async def test_no_options_set_means_no_settings_in_the_description(tmp_path):
+async def test_no_options_set_means_all_seven_defaults_in_the_description(tmp_path):
     copy = tmp_path / "copy.json"
     control, _ = make_control(tmp_path, "done", f"--copy={copy}")
     ask(control, "launch.solo", solo_args())
     await finish(control)
-    assert "settings" not in json.loads(copy.read_text())
+    assert json.loads(copy.read_text())["settings"] == DEFAULT_SETTINGS
 
 
 async def test_the_flights_ai_program_rides_in_the_description(tmp_path):
@@ -264,7 +289,10 @@ async def test_an_easy_cheat_outside_a_campaign_is_sent_as_easy_and_the_answer_s
     )
     reply, _ = ask(control, "launch.solo", solo_args())
     await finish(control)
-    assert json.loads(copy.read_text())["settings"] == {"difficulty": "easy"}
+    assert json.loads(copy.read_text())["settings"] == {
+        **DEFAULT_SETTINGS,
+        "difficulty": "easy",
+    }
     assert result_of(reply)["message"].endswith(
         "Easy with cheats is for campaigns only, so this battle was sent as easy."
     )
@@ -284,7 +312,10 @@ async def test_an_easy_cheat_in_a_campaign_is_kept(tmp_path):
         solo_args(mission_type="campaign", mission="camp.cmp"),
     )
     await finish(control)
-    assert json.loads(copy.read_text())["settings"] == {"difficulty": "easy_cheat"}
+    assert json.loads(copy.read_text())["settings"] == {
+        **DEFAULT_SETTINGS,
+        "difficulty": "easy_cheat",
+    }
     assert "campaigns only" not in result_of(reply)["message"]
 
 
@@ -305,29 +336,25 @@ async def test_a_sequence_is_launched_as_its_file(tmp_path):
     )
 
 
-def test_options_start_empty_and_are_per_player(tmp_path):
+def test_options_start_at_their_defaults_and_are_per_player(tmp_path):
     control, _ = make_control(tmp_path)
     reply, _ = ask(control, "options.get", {"player": PLAYER})
-    assert result_of(reply)["options"] == dict.fromkeys(
-        [
-            "difficulty",
-            "collisions",
-            "craft_jumping",
-            "random_setup",
-            "battle_length",
-            "mission_time_limit",
-            "continue_sequence",
-        ]
-    )
+    assert result_of(reply)["options"] == DEFAULT_TEXTS
     ask(
         control,
         "options.set",
-        {"player": PLAYER, "name": "battle_length", "value": "3"},
+        {"player": PLAYER, "name": "battle_length", "value": "4"},
     )
     mine, _ = ask(control, "options.get", {"player": PLAYER})
     other, _ = ask(control, "options.get", {"player": "42"})
-    assert result_of(mine)["options"]["battle_length"] == "3"
-    assert result_of(other)["options"]["battle_length"] is None
+    assert result_of(mine)["options"] == {**DEFAULT_TEXTS, "battle_length": "4"}
+    assert result_of(other)["options"] == DEFAULT_TEXTS
+
+
+def test_options_get_with_nobody_linked_returns_the_seven_defaults(tmp_path):
+    control, _ = make_control(tmp_path)
+    reply, _ = ask(control, "options.get", {"player": None})
+    assert result_of(reply) == {"player": None, "options": DEFAULT_TEXTS}
 
 
 def test_options_get_with_no_player_reads_the_linked_account(tmp_path):
@@ -357,18 +384,16 @@ def test_setting_an_option_pushes_options_changed_with_the_new_values(tmp_path):
     assert push["data"]["options"]["difficulty"] == "medium"
 
 
-def test_null_leaves_an_option_as_the_game_has_it(tmp_path):
+def test_choosing_the_default_stores_it_like_any_other_choice(tmp_path):
     control, _ = make_control(tmp_path)
-    ask(
+    reply, pushes = ask(
         control,
         "options.set",
-        {"player": PLAYER, "name": "difficulty", "value": "hard"},
+        {"player": PLAYER, "name": "difficulty", "value": "medium"},
     )
-    reply, _ = ask(
-        control, "options.set", {"player": PLAYER, "name": "difficulty", "value": None}
-    )
-    assert result_of(reply)["options"]["difficulty"] is None
-    assert control.store.get_options(PLAYER) == {}
+    assert result_of(reply)["options"]["difficulty"] == "medium"
+    assert control.store.get_options(PLAYER) == {"difficulty": "medium"}
+    assert len(pushes) == 1
 
 
 def test_options_are_kept_in_the_settings_file_and_survive_a_restart(tmp_path):
@@ -391,6 +416,7 @@ def test_options_are_kept_in_the_settings_file_and_survive_a_restart(tmp_path):
         {"player": "x", "name": "collisions", "value": "on"},
         {"player": PLAYER, "name": "collisions", "value": 1},
         {"player": PLAYER, "name": "collisions"},
+        {"player": PLAYER, "name": "difficulty", "value": None},
     ],
 )
 def test_options_set_refuses_what_is_off_the_table(tmp_path, args):

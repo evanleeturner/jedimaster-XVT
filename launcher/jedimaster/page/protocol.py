@@ -1,7 +1,7 @@
 """The control list: every message the page and the launcher exchange.
 
 Purpose:
-    Name, as dataclasses, the one fixed list of commands (revision 6), their
+    Name, as dataclasses, the one fixed list of commands (revision 7), their
     arguments and results, the pushes and the error codes. The schema
     (``schema``) is built from these classes, so the list has one source.
 
@@ -10,7 +10,7 @@ Flow:
     ``OkReply`` (its ``result`` one of the ``*Result`` classes) or
     ``ErrorReply``; it also sends ``StatusPush``, ``SettingsChangedPush``,
     ``ShowMissionPush``, ``LaunchStartedPush``, ``LaunchEndedPush`` and
-    ``OptionsChangedPush``.
+    ``OptionsChangedPush`` and ``PilotChangedPush``.
     The classes describe the JSON shapes; ``control`` builds the dicts.
 
 Invariants:
@@ -36,7 +36,7 @@ from ..briefing.model import BriefingBundle
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_REVISION = 6
+SCHEMA_REVISION = 7
 """The revision of the control list; a change to any message raises it."""
 
 MAX_MESSAGE_BYTES = 64 * 1024
@@ -175,11 +175,11 @@ class OptionsGetArgs:
 
 @dataclass
 class OptionsSetArgs:
-    """Set one game option of a player to a choice, or null to leave it as the game has it."""
+    """Set one game option of a player to one of its choices."""
 
     player: str = field(metadata={"minLength": 1, "maxLength": MAX_PLAYER_DIGITS})
     name: OptionName
-    value: str | None
+    value: str
 
 
 @dataclass
@@ -187,7 +187,7 @@ class HelloResult:
     """The launcher's version and the revision of the control list."""
 
     launcher_version: str
-    schema_revision: Literal[6]
+    schema_revision: Literal[7]
 
 
 @dataclass
@@ -295,15 +295,15 @@ class LaunchCancelResult:
 
 @dataclass
 class GameOptions:
-    """The game options a player has set; null is left as the game has it."""
+    """The game options a player has: what they set, else the option's default."""
 
-    difficulty: DifficultyText | None
-    collisions: SwitchText | None
-    craft_jumping: SwitchText | None
-    random_setup: SwitchText | None
-    battle_length: BattleLengthText | None
-    mission_time_limit: TimeLimitText | None
-    continue_sequence: SequenceText | None
+    difficulty: DifficultyText
+    collisions: SwitchText
+    craft_jumping: SwitchText
+    random_setup: SwitchText
+    battle_length: BattleLengthText
+    mission_time_limit: TimeLimitText
+    continue_sequence: SequenceText
 
 
 @dataclass
@@ -505,10 +505,15 @@ class ErrorReply:
 
 @dataclass
 class StatusData:
-    """What the launcher tells a page that just connected."""
+    """What the launcher tells a page that just connected.
+
+    ``pilot`` is the name of the linked Discord account's pilot, null when no
+    account is linked or that account has no readable pilot.
+    """
 
     launcher_version: str
     install_found: bool
+    pilot: str | None
 
 
 @dataclass
@@ -589,6 +594,21 @@ class OptionsChangedPush:
     data: OptionsResult
 
 
+@dataclass
+class PilotChangedData:
+    """The linked account's pilot name now; null when there is none."""
+
+    pilot: str | None
+
+
+@dataclass
+class PilotChangedPush:
+    """Sent to every open page after the bot makes or renames the linked account's pilot."""
+
+    event: Literal["pilot.changed"]
+    data: PilotChangedData
+
+
 MESSAGE_CLASSES = (
     *REQUEST_CLASSES,
     OkReply,
@@ -599,4 +619,5 @@ MESSAGE_CLASSES = (
     LaunchStartedPush,
     LaunchEndedPush,
     OptionsChangedPush,
+    PilotChangedPush,
 )

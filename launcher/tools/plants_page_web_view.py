@@ -113,8 +113,8 @@ STATE_PLANTS: list[Plant] = [
     Plant(
         "web-state-status-push-ignored",
         STA,
-        "        launcherVersion: message.data.launcher_version,\n        problem: null,",
-        "        problem: null,",
+        "        launcherVersion: message.data.launcher_version,\n        pilot: message.data.pilot,\n        problem: null,",
+        "        pilot: message.data.pilot,\n        problem: null,",
         (N + "the status push gives the launcher's version",),
     ),
     Plant(

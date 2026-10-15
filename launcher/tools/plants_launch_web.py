@@ -112,7 +112,7 @@ CODEC_PLANTS: list[Plant] = [
     plant(
         "options-set-any-value",
         COD,
-        "!isOptionName(name) ||\n        (text !== null && !OPTION_TEXTS[name].some((known) => known === text))",
+        "!isOptionName(name) ||\n        !OPTION_TEXTS[name].some((known) => known === text)",
         "!isOptionName(name) ||\n        false",
         REQ,
         SET_ALL,
@@ -139,7 +139,7 @@ CODEC_PLANTS: list[Plant] = [
     plant(
         "options-values-open",
         COD,
-        "if (text !== null && !OPTION_TEXTS[name].some((known) => known === text)) {\n      return fail(",
+        "if (!OPTION_TEXTS[name].some((known) => known === text)) {\n      return fail(",
         "if (false) {\n      return fail(",
         RES_BAD,
         REP_ALL,
@@ -228,8 +228,8 @@ CODEC_PLANTS: list[Plant] = [
     plant(
         "revision",
         COD,
+        "schema_revision === 7",
         "schema_revision === 6",
-        "schema_revision === 5",
         ACC + "reply-ok-hello.json",
     ),
     plant(
@@ -321,13 +321,6 @@ STATE_PLANTS: list[Plant] = [
         'none: "No limit",',
         'none: "None",',
         N + "options.changed redraws the rows",
-    ),
-    plant(
-        "unset-words",
-        STA,
-        'if (value === null) return "As the game has it";',
-        'if (value === null) return "";',
-        N + "the options reply fills the rows",
     ),
     plant(
         "options-reply-ignored",
