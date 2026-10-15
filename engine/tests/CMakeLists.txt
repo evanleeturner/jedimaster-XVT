@@ -747,6 +747,12 @@ if(NOT MSVC)
         "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_result.c")
     target_link_libraries(test_launch_door PRIVATE aeron_cjson)
     add_test(NAME launch_door COMMAND test_launch_door)
+    # The network door's admission, with descriptions read by the real parser.
+    xvt_add_engine_test(test_door_admission test_door_admission.c
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/door_admission.c"
+        "${PROJECT_SOURCE_DIR}/src/xvt_runtime/runtime/launch_description.c")
+    target_link_libraries(test_door_admission PRIVATE aeron_cjson)
+    add_test(NAME door_admission COMMAND test_door_admission)
 endif()
 
 # The Sith setting and the mission-start promotion: src/xvt_runtime/runtime/sith.c.

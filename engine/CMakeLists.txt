@@ -238,6 +238,7 @@ set(XVT_RUNTIME_SOURCES
     src/xvt_runtime/runtime/launch_description.c
     src/xvt_runtime/runtime/launch_result.c
     src/xvt_runtime/runtime/launch_door.c
+    src/xvt_runtime/runtime/door_admission.c
     src/xvt_runtime/runtime/sith.c
     src/xvt_runtime/runtime/launch_record.c
     src/xvt_runtime/runtime/flight_task.c
