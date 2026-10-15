@@ -63,9 +63,9 @@ static void start_python(const char *code, uint32_t limit_ms)
 	start(args, limit_ms);
 }
 
-/* Escort, an order whose behavior is not written yet: the program leaves
- * its craft drifting, with no action. */
-enum { TEST_DRIFTING_ORDER = 10 };
+/* The null order, which has no behavior: the program leaves its craft
+ * drifting, with no action. */
+enum { TEST_DRIFTING_ORDER = 39 };
 
 /* Writes into g_question a question about count craft at tick, each craft
  * with its own object index and notebook bytes and shown as a contact too;
