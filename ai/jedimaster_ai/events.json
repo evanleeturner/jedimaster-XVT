@@ -183,6 +183,11 @@
       "fields": ["object"],
       "text": "Craft {object} stops and waits, as a player's wait command told it"
     },
+    "waiting.start": {
+      "level": "I",
+      "fields": ["object", "slot", "ticks"],
+      "text": "Craft {object} stops for its Wait order in slot {slot} and sets its timer to {ticks} ticks"
+    },
     "weave.end": {
       "level": "D",
       "fields": ["object", "reason", "swerves", "rest_until"],
