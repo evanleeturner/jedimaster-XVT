@@ -14,9 +14,11 @@ Purpose:
     tail is clear or the weave's swerves are flown, steering clear of every
     bulky craft its own target among them, then fights again. Skill
     sets the aim cone, the firing range, the burst and how soon it looks
-    again for a nearer target. Lined up or not, it fires a guided warhead
-    at its target when ``warheads.choose`` lets it: its lock declared, a
-    warhead that suits the target, inside 1997's limits.
+    again for a nearer target. Its ion cannons hold, as in 1997: only the
+    Disable order fires them, at its target (``cannon_fire``), so a craft
+    whose only cannons are ion cannons fires no cannon here. Lined up or not,
+    it fires a guided warhead at its target when ``warheads.choose`` lets it:
+    its lock declared, a warhead that suits the target, inside 1997's limits.
 
     With no target its order names in the battle, a craft an enemy is after
     (``pursuer``) fights that enemy while it may fight back (``fights_back``:
@@ -64,6 +66,8 @@ Invariants:
       random choices come from the craft's dice in its notebook.
     - It names only what the question showed: its target is a contact, and
       it fires only the cannon groups the view counts.
+    - Ion cannons fire only at a Disable order's target, and there no other
+      cannon does.
     - It targets only craft the engine marks hostile (``tactics.can_fight``).
     - Only a small craft is ever after a craft: a freighter, a starship or a
       platform shooting at it is no pursuer (ruling 42). A disabled craft is
@@ -147,6 +151,11 @@ LARGE_TARGET_BONUS = 0x6000
 # at a time.
 ALL_CANNONS_RANGE = 0x2000
 PAIRS_RANGE = 0x4000
+# The ion cannon's shot type (PROJECTILE_OBJECT_TYPE_ION_LASER in the
+# engine's object/laser.h). As in 1997, it fires only at a Disable order's
+# target, where every other cannon holds; the ion turbolasers, 142 and 147,
+# fire as other cannons do.
+ION_CANNON = 141
 
 BREAK_CONE = 0x2000
 # A break ends at this many ticks even inside the clearance, so a target
@@ -233,7 +242,8 @@ def fight(
 ) -> Decision:
     """Return the craft's next move in a dogfight at the nearest of targets,
     each a contact it may fight; ``disabling`` sets the Disable order's
-    warhead limit (``warheads.outlasts_disabling``)."""
+    cannons (``cannon_fire``) and warhead limit
+    (``warheads.outlasts_disabling``)."""
     tick = question.tick
     book = notebook.open_for(view, CODE, tick)
     memory = Memory.read(book.scratch)
@@ -333,7 +343,11 @@ def fight(
         throttle=throttle,
         think_interval=interval,
         target=target.object_index,
-        lasers=cannon_fire(view, reach, tier) if lined_up else (HOLD_FIRE, HOLD_FIRE),
+        lasers=(
+            cannon_fire(view, reach, tier, disabling)
+            if lined_up
+            else (HOLD_FIRE, HOLD_FIRE)
+        ),
         warhead=shot,
     )
     return Decision(dataclasses.replace(book, scratch=memory.write()).encode(), actions)
@@ -403,9 +417,11 @@ def fire_range(view: CraftView, target: Contact, tier: int) -> int:
 
 
 def cannon_fire(
-    view: CraftView, reach: int, tier: int
+    view: CraftView, reach: int, tier: int, disabling: bool = False
 ) -> tuple[CannonGroup, CannonGroup]:
-    """Return a burst for each cannon group the craft has, by range and tier."""
+    """Return a burst for each cannon group the craft has, by range and tier:
+    with ``disabling`` for its ion cannons alone, else for every group but
+    them."""
     if reach < ALL_CANNONS_RANGE:
         mode = LinkMode.ALL
     elif reach < PAIRS_RANGE:
@@ -414,7 +430,10 @@ def cannon_fire(
         mode = LinkMode.ONE_AT_A_TIME
     burst = CannonGroup(mode, BURST[tier])
     first, second = (
-        burst if group < view.cannon_group_count else HOLD_FIRE
+        burst
+        if group < view.cannon_group_count
+        and (view.cannon_type[group] == ION_CANNON) == disabling
+        else HOLD_FIRE
         for group in range(CANNON_GROUPS)
     )
     return first, second

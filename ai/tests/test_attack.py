@@ -163,6 +163,40 @@ def test_closer_targets_get_more_cannons_at_once(craft, foe, ask, reach, mode) -
     assert actions.lasers == (CannonGroup(mode, 5), CannonGroup(mode, 5))
 
 
+# Shot types (object/laser.h): PROJECTILE_OBJECT_TYPE_IMPERIAL_LASER and
+# _ION_LASER, the ion cannon; 142 and 147 are the ion turbolasers.
+LASER = 139
+ION_CANNON = 141
+
+
+@pytest.mark.parametrize(
+    ("kinds", "disabling", "fired"),
+    [
+        ((LASER, ION_CANNON), False, (True, False)),
+        ((LASER, ION_CANNON), True, (False, True)),
+        ((ION_CANNON, ION_CANNON), False, (False, False)),
+        ((142, 147), False, (True, True)),
+        ((142, 147), True, (False, False)),
+    ],
+)
+def test_ion_cannons_fire_only_for_a_disable_order_and_alone(
+    craft, kinds, disabling, fired
+) -> None:
+    """1997's rule: the ion cannon fires at a Disable order's target, where
+    every other cannon holds; the ion turbolasers fire as other cannons do."""
+    me = craft(cannon_group_count=2, cannon_type=kinds)
+    burst = CannonGroup(LinkMode.ALL, 5)
+    lasers = attack.cannon_fire(me, 0x1800, 2, disabling)
+    assert lasers == tuple(burst if fires else HOLD_FIRE for fires in fired)
+
+
+def test_an_attack_holds_its_ion_cannons(craft, foe, ask) -> None:
+    me = craft(cannon_group_count=2, cannon_type=(ION_CANNON, LASER))
+    actions = ask(me, foe()).actions
+    assert actions.target == FOE
+    assert actions.lasers == (HOLD_FIRE, CannonGroup(LinkMode.PAIRS, 5))
+
+
 def test_the_1997_range_changes_apply(craft, foe) -> None:
     me = craft(skill=0xFFFF)
     assert attack.fire_range(me, foe(speed=10), 2) == 0xA000

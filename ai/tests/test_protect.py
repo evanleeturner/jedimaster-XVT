@@ -151,13 +151,13 @@ def test_the_order_is_flown_by_protect() -> None:
     assert BEHAVIORS[OrderCode.PROTECT] is protect.think
 
 
-def test_an_enemy_aimed_at_the_hit_craft_is_fought_with_every_cannon(
+def test_an_enemy_aimed_at_the_hit_craft_is_fought_with_every_cannon_but_the_ion(
     craft, friend, foe, ask
 ) -> None:
     actions = ask(craft(), friend(), foe()).actions
     assert actions.target == FOE
     assert actions.steer.yaw == 0 and actions.steer.pitch == LEVEL
-    assert actions.lasers == (BURST, BURST)
+    assert actions.lasers == (BURST, HOLD_FIRE)
 
 
 def test_a_craft_no_team_has_hit_has_no_attackers(craft, friend, foe, ask) -> None:

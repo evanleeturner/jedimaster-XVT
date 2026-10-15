@@ -185,10 +185,11 @@ def test_the_order_is_flown_by_escort() -> None:
 
 
 def test_an_enemy_aimed_at_the_escorted_craft_is_fought(craft, host, foe, ask) -> None:
+    """With every cannon but the ion cannons."""
     actions = ask(craft(), host(), foe()).actions
     assert actions.target == FOE
     assert actions.steer.yaw == 0 and actions.steer.pitch == LEVEL
-    assert actions.lasers == (BURST, BURST)
+    assert actions.lasers == (BURST, HOLD_FIRE)
 
 
 def test_an_enemy_aimed_at_another_craft_of_its_group_is_fought(

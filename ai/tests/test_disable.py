@@ -17,7 +17,6 @@ from jedimaster_ai.behaviors import disable
 from jedimaster_ai.geometry import LEVEL
 from jedimaster_ai.orders import BEHAVIORS
 from jedimaster_ai.orders import OrderCode
-from jedimaster_ai.world import Actions
 from jedimaster_ai.world import CannonGroup
 from jedimaster_ai.world import Commands
 from jedimaster_ai.world import ContactFlags
@@ -34,9 +33,11 @@ OTHER = 10
 THIRD = 13
 # The engine marks every contact hostile but the craft's own, the first.
 ALL_BUT_OWN = 0xFFFFFFFE
-# PROJECTILE_OBJECT_TYPE_IMPERIAL_LASER and _ION_TURBO_LASER (object/laser.h).
+# PROJECTILE_OBJECT_TYPE_IMPERIAL_LASER, _ION_TURBO_LASER and _ION_LASER
+# (object/laser.h).
 LASER = 139
 ION_TURBOLASER = 142
+ION_CANNON = 141
 # Tier 2's burst at the target's 0x3000 units: pairs, five shots.
 BURST = CannonGroup(LinkMode.PAIRS, 5)
 DISABLED = ContactFlags.DISABLED
@@ -74,7 +75,7 @@ def craft(view):
             "enemy_mask": ALL_BUT_OWN,
             "turret_slot_mask": 0,
             "cannon_group_count": 2,
-            "cannon_type": (disable.ION_CANNON, LASER),
+            "cannon_type": (ION_CANNON, LASER),
             "warhead_launcher_count": 0,
         }
         return view(**(mine | changes))
@@ -140,8 +141,9 @@ def test_the_order_is_flown_by_disable() -> None:
 def test_the_ion_cannons_fire_and_every_other_cannon_holds(
     craft, foe, shown, ask
 ) -> None:
+    """Attack, at the same target, fires the other way round."""
     me = craft()
-    assert attack.think(me, shown(me, foe())).actions.lasers == (BURST, BURST)
+    assert attack.think(me, shown(me, foe())).actions.lasers == (HOLD_FIRE, BURST)
     actions = ask(me, foe()).actions
     assert actions.target == FOE
     assert actions.lasers == (BURST, HOLD_FIRE)
@@ -150,9 +152,9 @@ def test_the_ion_cannons_fire_and_every_other_cannon_holds(
 @pytest.mark.parametrize(
     "kinds, lasers",
     [
-        ((LASER, disable.ION_CANNON), (HOLD_FIRE, BURST)),
+        ((LASER, ION_CANNON), (HOLD_FIRE, BURST)),
         ((LASER, LASER), (HOLD_FIRE, HOLD_FIRE)),
-        ((ION_TURBOLASER, disable.ION_CANNON), (HOLD_FIRE, BURST)),
+        ((ION_TURBOLASER, ION_CANNON), (HOLD_FIRE, BURST)),
     ],
 )
 def test_only_the_ion_cannon_fires_so_a_craft_without_one_holds_fire(
@@ -305,13 +307,15 @@ def test_the_disable_limit_line_records_the_count(craft, foe, ask, caplog) -> No
     )
 
 
-def test_a_chaser_is_fought_with_every_cannon_and_warhead(craft, foe, ask) -> None:
+def test_a_chaser_is_fought_with_every_cannon_but_the_ion_and_warheads(
+    craft, foe, ask
+) -> None:
     """With no target that works, a chaser is fought as Attack fights back: it
-    is not the order's target."""
+    is not the order's target, so the ion cannons hold."""
     me = craft(order_target_mask=0, **LOCKED)
     actions = ask(me, foe(**CHASER), last_attacker=12, target=12).actions
     assert actions.target == 12
-    assert actions.lasers == (BURST, BURST)
+    assert actions.lasers == (HOLD_FIRE, BURST)
     assert actions.warhead == Warhead(0)
 
 
@@ -376,10 +380,6 @@ def test_the_targets_line_records_the_sort(craft, foe, ask, caplog) -> None:
         in caplog.text
     )
     caplog.clear()
-    one_group = craft(cannon_group_count=1, cannon_type=(LASER, disable.ION_CANNON))
+    one_group = craft(cannon_group_count=1, cannon_type=(LASER, ION_CANNON))
     ask(one_group, foe())
     assert "ion_groups=0" in caplog.text
-
-
-def test_actions_that_set_no_cannons_are_left_as_they_are(craft) -> None:
-    assert disable.ion_only(craft(), Actions(throttle=7)) == Actions(throttle=7)
