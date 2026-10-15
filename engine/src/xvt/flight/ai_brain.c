@@ -37,17 +37,20 @@
 /* AI skill as a fraction of 65,536 for each flight group AI level:
  * mission_init_flight_group_object_slot copies the entry for g_spawn_group_ai into a
  * new craft's ai_skill. Levels 4 and 5 hold 0xFFFF, which math2_fraction treats
- * as a whole; entries 6 and 7 are 0. The 1997 AI's target tests also indexed
- * it by the skill tier, 0 to 2. Nothing writes it. */
+ * as a whole. Levels 6 and 7 are the two Sith ranks, 6 the Sith Apprentice and
+ * 7 the Sith Lord; no mission file holds them, the promotion at mission start
+ * sets them, and they fly with a Jedi's skill. The 1997 AI's target tests also
+ * indexed it by the skill tier, 0 to 2. Nothing writes it. */
 // GLOBAL: XVT 0x524100
 uint16_t g_ai_skill_value_q16_by_level[8] = {0x0000, 0x4000, 0x8000, 0xC000,
-					     0xFFFF, 0xFFFF, 0x0000, 0x0000};
+					     0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
 /* Ticks between two AI thinks of a craft for each flight group AI level, from
  * 708 down to 29; mission_init_flight_group_object_slot copies the entry into the
- * craft's think_interval. Entries 6 and 7 are 0. */
+ * craft's think_interval. Levels 6 and 7, the Sith Apprentice and the Sith
+ * Lord, think as often as a Jedi, every 29 ticks. */
 // GLOBAL: XVT 0x524110
 const uint16_t g_ai_think_interval_by_skill[8] = {
-	708, 472, SIMULATION_TICKS_PER_SECOND, 118, 59, 29, 0, 0};
+	708, 472, SIMULATION_TICKS_PER_SECOND, 118, 59, 29, 29, 29};
 
 /* The HUD status line of each activity, an index in g_str_in_flight_messages:
  * chosen by meaning among the in-flight status lines; the 1997 table

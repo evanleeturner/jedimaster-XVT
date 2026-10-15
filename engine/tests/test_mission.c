@@ -6781,6 +6781,33 @@ static void check_spawn_ai_skill_in_table(void)
 	XVT_ASSERT_INT_EQ(craft->ai_skill, g_ai_skill_value_q16_by_level[5]);
 }
 
+/* The two Sith ranks, levels 6 and 7, spawn a craft with a Jedi's skill and
+ * think interval; levels 0 to 5 keep the entries they had. */
+static void check_spawn_sith_ranks(void)
+{
+	static const uint16_t skills[8] = {0x0000, 0x4000, 0x8000, 0xC000,
+					   0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
+	static const uint16_t intervals[8] = {708, 472, 236, 118,
+					      59,  29,	29,  29};
+	for (int level = 0; level < 8; ++level) {
+		XVT_ASSERT_INT_EQ(g_ai_skill_value_q16_by_level[level],
+				  skills[level]);
+		XVT_ASSERT_INT_EQ(g_ai_think_interval_by_skill[level],
+				  intervals[level]);
+	}
+	for (int level = 6; level <= 7; ++level) {
+		init_mission(MISSION_TYPE_COMBAT);
+		arriving_group(0, 1, SPAWN_TYPE, 1);
+		g_stored.groups[0].group_ai = (uint8_t)level;
+		spawn_mission_ready();
+		XVT_ASSERT_INT_EQ(spawn_craft(0, UINT16_MAX), 1);
+		const struct craft_data *craft =
+			g_object_table[craft_slot(0, 0)].mobj->p_craft;
+		XVT_ASSERT_INT_EQ(craft->ai_skill, 0xFFFF);
+		XVT_ASSERT_INT_EQ(craft->ai_controller.think_interval, 29);
+	}
+}
+
 /* ---- mission_update_logic ---------------------------------------------- */
 
 /* The template of every in-flight message: pane type 3 (the system pane,
@@ -12171,6 +12198,7 @@ int main(int argc, char **argv)
 	check_init_replaces_pools();
 	check_runtime_resets();
 	check_spawn_craft_values();
+	check_spawn_sith_ranks();
 	check_spawn_status_codes();
 	check_spawn_player_craft();
 	check_spawn_formation();
