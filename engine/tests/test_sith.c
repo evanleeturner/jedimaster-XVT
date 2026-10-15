@@ -321,6 +321,18 @@ static void check_nothing_to_promote(void)
 	XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(), -1);
 }
 
+/* The flight's end returns the setting to none and clears the Lord's group. */
+static void check_end_flight(void)
+{
+	seed_groups();
+	xvt_sith_set_setting(XVT_SITH_LORD);
+	xvt_sith_promote_flight_groups();
+	XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(), 2);
+	xvt_sith_end_flight();
+	XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), XVT_SITH_NONE);
+	XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(), -1);
+}
+
 /* The same tables and setting give the same choice and the same levels each
  * time: nothing in the choice reads a random number or the clock. */
 static void check_same_choice_each_time(void)
@@ -362,5 +374,6 @@ int main(void)
 	check_higher_level_kept();
 	check_nothing_to_promote();
 	check_same_choice_each_time();
+	check_end_flight();
 	return 0;
 }

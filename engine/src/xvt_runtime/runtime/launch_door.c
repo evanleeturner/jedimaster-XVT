@@ -71,6 +71,7 @@ static void fail(int exit_code, const char *why)
 {
 	XVT_LOG_INFO("launch.refused code=%d why=\"%s\"", exit_code, why);
 	write_failure(exit_code, why);
+	xvt_sith_end_flight();
 	g_phase = PHASE_FINISHED;
 	xvt_port_request_exit(exit_code);
 }
@@ -431,6 +432,7 @@ void xvt_launch_door_finish(int flown)
 			result.outcome = XVT_LAUNCH_OUTCOME_COMPLETED;
 		}
 	}
+	xvt_sith_end_flight();
 	/* The zeroed exit code is XVT_LAUNCH_EXIT_FLOWN. */
 	XVT_LOG_DEBUG(
 		"launch.result_read local=%d team=%d score=%d kills=%d losses=%d goals_met_seconds=%d outcome=%d",

@@ -59,6 +59,9 @@ int xvt_sith_craft_level(int flight_group, int group_level, int craft_number);
 /* The setting's word in logs and descriptions: "none", "apprentices" or
  * "lord"; "none" for any other value. */
 const char *xvt_sith_setting_name(int setting);
+/* Ends the flight: the setting returns to none and the Lord's group is
+ * cleared, so a later battle in the same process inherits nothing. */
+void xvt_sith_end_flight(void);
 
 #ifdef __cplusplus
 }

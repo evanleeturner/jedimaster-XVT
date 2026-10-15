@@ -24,6 +24,7 @@
 #include "xvt_runtime/runtime/launch_door.h"
 #include "xvt_runtime/runtime/launch_result.h"
 #include "xvt_runtime/runtime/port.h"
+#include "xvt_runtime/runtime/sith.h"
 #include "xvt_runtime/timing/host_clock.h"
 
 /* The folder for temporary folders: $TMPDIR, else the working folder. */
@@ -255,6 +256,26 @@ static void check_failed_flight(void)
 	unlink(path);
 }
 
+/* A flown and a failed flight each end the Sith setting. */
+static void check_sith_reset_after_flights(void)
+{
+	char path[256];
+	char result[256];
+	snprintf(result, sizeof(result), "%s/sith.json", g_folder);
+	char extra[300];
+	snprintf(extra, sizeof(extra), ",\"result\":\"%s\"", result);
+	for (int flown = 1; flown >= 0; --flown) {
+		open_good(extra, path, sizeof(path));
+		set_battle_numbers(0, 2);
+		xvt_sith_set_setting(XVT_SITH_LORD);
+		xvt_launch_door_finish(flown);
+		XVT_ASSERT_INT_EQ(xvt_sith_get_setting(), XVT_SITH_NONE);
+		XVT_ASSERT_INT_EQ(xvt_sith_lord_flight_group(), -1);
+		unlink(result);
+		unlink(path);
+	}
+}
+
 static void check_default_result_path(void)
 {
 	char path[256];
@@ -339,6 +360,7 @@ int main(void)
 	check_flown_result();
 	check_not_completed_and_out_of_range();
 	check_failed_flight();
+	check_sith_reset_after_flights();
 	check_default_result_path();
 	check_unwritable_result();
 	check_the_door_gives_up_after_180_seconds();

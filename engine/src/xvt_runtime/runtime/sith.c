@@ -39,6 +39,12 @@ const char *xvt_sith_setting_name(int setting)
 	}
 }
 
+void xvt_sith_end_flight(void)
+{
+	g_setting = XVT_SITH_NONE;
+	g_lord_flight_group = -1;
+}
+
 int xvt_sith_lord_flight_group(void) { return g_lord_flight_group; }
 
 int xvt_sith_craft_level(int flight_group, int group_level, int craft_number)
