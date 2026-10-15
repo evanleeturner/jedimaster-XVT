@@ -18,7 +18,7 @@ SOURCE = REPO / "ai" / "jedimaster_ai"
 
 
 def files_under(folder: pathlib.Path) -> set[str]:
-    return {str(p.relative_to(folder)) for p in folder.rglob("*") if p.is_file()}
+    return {p.relative_to(folder).as_posix() for p in folder.rglob("*") if p.is_file()}
 
 
 def test_the_program_is_copied_whole_without_compiled_files(tmp_path) -> None:
@@ -26,7 +26,7 @@ def test_the_program_is_copied_whole_without_compiled_files(tmp_path) -> None:
     (SOURCE / "__pycache__" / "x.cpython-311.pyc").write_bytes(b"x")
     stage_package.stage(tmp_path)
     expected = {
-        str(p.relative_to(SOURCE))
+        p.relative_to(SOURCE).as_posix()
         for p in SOURCE.rglob("*")
         if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc"
     }

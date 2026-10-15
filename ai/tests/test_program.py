@@ -117,11 +117,16 @@ def test_a_failure_ends_in_one_critical_line(view, monkeypatch) -> None:
     assert "error=\"no 'think' today\"" in last
 
 
+def one_line(stdout: bytes) -> bytes:
+    """The program's output with Windows line ends (\\r\\n) read as \\n."""
+    return stdout.replace(b"\r\n", b"\n")
+
+
 def test_version_prints_the_wire_version_and_nothing_else() -> None:
     for module in (False, True):
         done = run(b"", "--version", module=module)
         assert done.returncode == 0
-        assert done.stdout == f"ai_wire={wire.VERSION}\n".encode()
+        assert one_line(done.stdout) == f"ai_wire={wire.VERSION}\n".encode()
         assert done.stderr == b""
 
 
@@ -129,4 +134,4 @@ def test_version_wins_over_the_other_options(tmp_path) -> None:
     log = tmp_path / "never.log"
     done = run(b"", "--log-file", str(log), "--version")
     assert done.returncode == 0 and not log.exists()
-    assert done.stdout == f"ai_wire={wire.VERSION}\n".encode()
+    assert one_line(done.stdout) == f"ai_wire={wire.VERSION}\n".encode()
