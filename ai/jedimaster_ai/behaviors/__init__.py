@@ -41,6 +41,7 @@ class BehaviorCode(enum.IntEnum):
     ESCORT = 7
     WAITING = 8
     STARSHIP = 9
+    KAMIKAZE = 10
 
 
 @dataclasses.dataclass(frozen=True)

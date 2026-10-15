@@ -510,6 +510,7 @@ def test_a_question_reads_what_wire_14_adds_as_absent(view, contact) -> None:
     read = wire.read_question(wire.question_bytes(question)[wire.LENGTH.size :])
     (craft,) = read.craft
     assert (craft.escorted, craft.station) == (NO_OBJECT, (0, 0, 0))
+    assert craft.start_point == (0, 0, 0)
 
 
 def test_the_maneuver_timer_action_is_written() -> None:

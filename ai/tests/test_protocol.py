@@ -36,7 +36,7 @@ AI_STATE_H = ENGINE / "src" / "xvt" / "flight" / "ai_state.h"
 MISSION_H = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.h"
 MISSION_C = ENGINE / "src" / "xvt" / "flight" / "mission" / "mission.c"
 # What the program names before the engine sends it, until the header adds it.
-AWAITED_BOOKS = {"STATION": 0x1000}
+AWAITED_BOOKS = {"STATION": 0x1000, "START_POINT": 0x2000}
 C_TYPES = {
     "uint8_t": "B",
     "uint16_t": "H",

@@ -143,9 +143,10 @@ class Books(enum.IntFlag):
       arrived, has no waves left and has no craft left in the battle, the
       1997 test that ends SS Await Return
     - STATION: it escorts a craft, so ``escorted`` and ``station`` are given
+    - START_POINT: its group has arrived, so ``start_point`` is given
 
-    ALL_RETURNED comes with wire version 13 and STATION after it; the engine
-    sends neither before.
+    ALL_RETURNED comes with wire version 13, STATION and START_POINT after
+    it; the engine sends none of them before.
     """
 
     ORDERS_DONE = 0x001
@@ -161,6 +162,7 @@ class Books(enum.IntFlag):
     PLACE = 0x400
     ALL_RETURNED = 0x800
     STATION = 0x1000
+    START_POINT = 0x2000
 
 
 class ContactFlags(enum.IntFlag):
@@ -233,8 +235,11 @@ class CraftView:
     index of the craft it escorts, NO_OBJECT for none, and ``station`` the
     world position of its station beside that craft, (0, 0, 0) when not
     given; both come with the STATION book and read NO_OBJECT and (0, 0, 0)
-    until the engine sends them. ``maneuver_timer`` comes with wire version
-    13 and reads 0 before it.
+    until the engine sends them. ``start_point`` is where its group
+    arrived: the group's start point, or the variant the engine picked at
+    arrival, a world position as ``waypoint`` gives one; it comes with the
+    START_POINT book and reads (0, 0, 0) until the engine sends it.
+    ``maneuver_timer`` comes with wire version 13 and reads 0 before it.
     """
 
     object_index: int
@@ -306,6 +311,7 @@ class CraftView:
     maneuver_timer: int = 0
     escorted: int = NO_OBJECT
     station: tuple[int, int, int] = (0, 0, 0)
+    start_point: tuple[int, int, int] = (0, 0, 0)
 
     @property
     def threats(self) -> tuple[Threat, ...]:
