@@ -441,6 +441,16 @@ int xvt_config_apply(struct game_config *game, char *error, size_t capacity)
 	return xvt_config_apply_document(g_resolved, game, error, capacity);
 }
 
+int xvt_config_apply_shipped(struct game_config *game, char *error,
+			     size_t capacity)
+{
+	if (!g_defaults || !game) {
+		return xvt_config_error(error, capacity,
+					"configuration is not loaded", NULL);
+	}
+	return xvt_config_apply_document(g_defaults, game, error, capacity);
+}
+
 static int xvt_config_remove_obsolete_keys(AeronConfigFile *document,
 					   AeronConfigError *detail)
 {

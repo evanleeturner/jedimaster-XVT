@@ -84,6 +84,10 @@ bool xvt_config_set_skip_intro(bool enabled, char *error, size_t capacity);
  * each; limits each window size to its screen resolution, sets the network type
  * to TCP/IP and clears the IP address. On failure *game is unchanged. */
 int xvt_config_apply(struct game_config *game, char *error, size_t capacity);
+/* xvt_config_apply from the shipped settings file alone, without the user's
+ * overrides: the options every machine of one build holds alike. */
+int xvt_config_apply_shipped(struct game_config *game, char *error,
+			     size_t capacity);
 /* Stores *game's options as user overrides, removing any that equal the shipped
  * default, then saves. Each must be in range and each string terminated. */
 int xvt_config_write(const struct game_config *game, char *error,

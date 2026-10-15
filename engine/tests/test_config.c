@@ -146,6 +146,10 @@ static void check_before_load(void)
 	/* Apply fails and leaves the game options as they were. */
 	XVT_ASSERT_INT_EQ(xvt_config_apply(&game, error, sizeof error), 0);
 	XVT_ASSERT_INT_EQ(memcmp(&game, &before, sizeof game), 0);
+	XVT_ASSERT_INT_EQ(xvt_config_apply_shipped(&game, error, sizeof error),
+			  0);
+	XVT_ASSERT_INT_EQ(memcmp(&game, &before, sizeof game), 0);
+	XVT_ASSERT_TRUE(strstr(error, "configuration is not loaded") != NULL);
 
 	XVT_ASSERT_INT_EQ(xvt_config_generation(), generation);
 	XVT_ASSERT_TRUE(!fixture_exists("user/config.yaml"));
@@ -586,6 +590,33 @@ static void check_apply(void)
 	fixture_end();
 }
 
+/* The shipped file's options, whatever the user changed: the user's
+ * difficulty, waves and update rate stand in Apply and not here. The numbers
+ * are resources/config.yaml's. */
+static void check_apply_shipped(void)
+{
+	fixture_begin();
+	fixture_load();
+	accept(user_with_int("game.difficulty", GAME_DIFFICULTY_HARD));
+	accept(user_with_int("game.craft_waves", 2));
+	accept(user_with_int("game.server_update_rate", 3));
+	static struct game_config user;
+	static struct game_config shipped;
+	char error[1024];
+	XVT_ASSERT_INT_EQ(xvt_config_apply(&user, error, sizeof error), 1);
+	XVT_ASSERT_INT_EQ(user.difficulty, GAME_DIFFICULTY_HARD);
+	XVT_ASSERT_INT_EQ(user.craft_waves, 2);
+	XVT_ASSERT_INT_EQ(user.server_update_rate, 3);
+	XVT_ASSERT_INT_EQ(
+		xvt_config_apply_shipped(&shipped, error, sizeof error), 1);
+	XVT_ASSERT_INT_EQ(shipped.difficulty, 1);
+	XVT_ASSERT_INT_EQ(shipped.craft_waves, 1);
+	XVT_ASSERT_INT_EQ(shipped.server_update_rate, 8);
+	XVT_ASSERT_INT_EQ(shipped.internet_play, 1);
+	XVT_ASSERT_INT_EQ(shipped.last_team_time_limit_minutes, 1);
+	fixture_end();
+}
+
 static void check_write(void)
 {
 	fixture_begin();
@@ -833,6 +864,7 @@ int main(int argc, char **argv)
 	check_set_game_data();
 	check_set_ai_program();
 	check_apply();
+	check_apply_shipped();
 	check_write();
 	check_save();
 	check_shutdown_keeps_generation();
