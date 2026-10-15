@@ -223,9 +223,15 @@ def think(view: CraftView, question: Question) -> Decision:
     return fight(view, question, targets)
 
 
-def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decision:
+def fight(
+    view: CraftView,
+    question: Question,
+    targets: list[Contact],
+    disabling: bool = False,
+) -> Decision:
     """Return the craft's next move in a dogfight at the nearest of targets,
-    each a contact it may fight."""
+    each a contact it may fight; ``disabling`` sets the Disable order's
+    warhead limit (``warheads.outlasts_disabling``)."""
     tick = question.tick
     book = notebook.open_for(view, CODE, tick)
     memory = Memory.read(book.scratch)
@@ -315,7 +321,7 @@ def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decisi
     if book.phase != ATTACK:
         book = book.in_phase(ATTACK, tick)
         memory = dataclasses.replace(memory, shots=0)
-    shot, memory = _warhead(view, question, target, memory)
+    shot, memory = _warhead(view, question, target, memory, disabling)
     caught = reach < ALL_CANNONS_RANGE and off_nose < AIM_CONE[tier]
     throttle = CLOSE_THROTTLE if caught else FULL_THROTTLE
     if tier == 0:
@@ -332,14 +338,20 @@ def fight(view: CraftView, question: Question, targets: list[Contact]) -> Decisi
 
 
 def _warhead(
-    view: CraftView, question: Question, target: Contact, memory: Memory
+    view: CraftView,
+    question: Question,
+    target: Contact,
+    memory: Memory,
+    disabling: bool,
 ) -> tuple[Warhead | None, Memory]:
     """Return the guided warhead the craft fires at its target, None when it
     holds, and the memory counting the shot; the reason it holds is logged
     when it changes."""
     if view.warhead_launcher_count == 0:
         return None, memory
-    choice = warheads.choose(view, question, target, memory.shots, bool(memory.fresh))
+    choice = warheads.choose(
+        view, question, target, memory.shots, bool(memory.fresh), disabling
+    )
     if choice.warhead is None:
         if choice.held != memory.held:
             logger.debug(

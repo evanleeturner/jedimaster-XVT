@@ -22,7 +22,12 @@ Purpose:
               lapsed and been declared again (1997 started it over)
     limit     the target's front shield and hull left outlast the damage of
               the homing warheads already flying at it, that damage divided
-              by 16 at a starship or platform and by 4 at a freighter (1997)
+              by 16 at a starship or platform and by 4 at a freighter (1997).
+              A craft disabling its target (``disabling``) counts its front
+              shield alone, with a tenth of its hull once more than a tenth
+              is damaged, and adds to the damage flying one warhead from each
+              of its launchers whose kind may go at the target: it fires to
+              bring the shield down, never to destroy (1997's Disable plan)
     caps      fewer than 2 homing warheads already fly at a small target,
               16 at a bulky one; fewer than 1 shot in this attack run at a
               small target, 6 at a bulky one (1997)
@@ -38,15 +43,17 @@ Invariants:
       only at tier 2 with the craft hurt, and the hull damage that made a
       craft hurt is a model number the view does not carry.
     - A warhead type KINDS does not name never fires.
-    - The decision follows from the view, the question, the target and the
-      run's count alone; ``behaviors.attack`` keeps the count and the
-      fresh-lock mark in its notebook.
+    - The decision follows from the view, the question, the target, the
+      run's count and whether the craft disables the target alone;
+      ``behaviors.attack`` keeps the count and the fresh-lock mark in its
+      notebook.
 """
 
 from __future__ import annotations
 
 import dataclasses
 import enum
+import logging
 
 from . import tactics
 from .world import Contact
@@ -54,6 +61,8 @@ from .world import CraftView
 from .world import Lock
 from .world import Question
 from .world import Warhead
+
+logger = logging.getLogger(__name__)
 
 # The engine's shot object types of the warheads a flight group can load
 # (``laser.c`` ``g_warhead_type_ids``).
@@ -75,6 +84,9 @@ RUN_CAP = (1, 6)
 # at a freighter, is divided by these before the limit compares it (1997).
 LARGE_DIVISOR = 16
 FREIGHTER_DIVISOR = 4
+# A craft disabling its target counts this share of the target's hull,
+# once more than that share is damaged (1997's Disable plan).
+DISABLE_HULL_SHARE = 10
 # The genera after a shot at which the lock must lapse before another
 # fires: 1997 set the lock to 0 after a shot at these and kept it at others.
 _FRESH_LOCK_GENERA = (tactics.GENUS_STARFIGHTER, tactics.GENUS_TRANSPORT)
@@ -140,13 +152,15 @@ def choose(
     target: Contact,
     shots: int,
     fresh_needed: bool,
+    disabling: bool = False,
 ) -> Choice:
     """Return whether the craft fires a guided warhead at its target, and
     from which launcher.
 
     ``shots`` is the warheads the craft fired in this attack run;
     ``fresh_needed`` is set while a shot at a starfighter or transport waits
-    for the lock to lapse.
+    for the lock to lapse; ``disabling`` is set for a craft disabling its
+    target, which takes the Disable limit (``outlasts_disabling``).
     """
     bulky = tactics.is_bulky(target)
     allowed = [
@@ -171,7 +185,7 @@ def choose(
         return Choice(None, Held.LOCK)
     if fresh_needed:
         return Choice(None, Held.FRESH)
-    if not outlasts(target):
+    if not (outlasts_disabling(view, target) if disabling else outlasts(target)):
         return Choice(None, Held.LIMIT)
     if not under_caps(target, shots):
         return Choice(None, Held.CAPS)
@@ -216,6 +230,35 @@ def outlasts(target: Contact) -> bool:
     divided it for big ships."""
     left = target.front_shield + target.hull_strength - target.hull_damage
     return left > target.warheads_coming_damage // limit_divisor(target)
+
+
+def outlasts_disabling(view: CraftView, target: Contact) -> bool:
+    """Return whether the target's front shield, with a tenth of its hull
+    once more than a tenth is damaged, outlasts the damage of the homing
+    warheads already flying at it and of one warhead from each of the
+    craft's launchers whose kind may go at it, divided as ``outlasts``
+    divides."""
+    share = target.hull_strength // DISABLE_HULL_SHARE
+    durability = target.front_shield + (share if target.hull_damage > share else 0)
+    bulky = tactics.is_bulky(target)
+    salvo = sum(
+        KINDS[kind].damage
+        for kind in view.warhead_type[: view.warhead_launcher_count]
+        if fits(kind, bulky)
+    )
+    coming = (target.warheads_coming_damage + salvo) // limit_divisor(target)
+    lasts = durability > coming
+    logger.debug(
+        "warheads.disable_limit object=%d target=%d durability=%d salvo=%d "
+        "coming=%d lasts=%d",
+        view.object_index,
+        target.object_index,
+        durability,
+        salvo,
+        coming,
+        int(lasts),
+    )
+    return lasts
 
 
 def limit_divisor(target: Contact) -> int:

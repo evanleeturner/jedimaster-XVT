@@ -7,9 +7,11 @@ Purpose:
     leaves the list, and the craft turns to the next. At those targets only
     its ion cannons fire, every other cannon group holds, as in 1997, so a
     craft with no ion cannon flies at its target and never fires a cannon:
-    the mission wants the target whole. It fires no warhead: 1997's Disable
-    weighed a tenth of the target's hull in its warhead test, which comes
-    with a later round, and until then the dogfight is shown no launchers.
+    the mission wants the target whole. Its guided warheads fire as
+    Attack's do, but by the Disable limit (``warheads.outlasts_disabling``):
+    only while the target's front shield, with a tenth of its hull once more
+    than a tenth is damaged, outlasts the warheads flying at it and one more
+    from each launcher, so they bring the shield down and leave the hull.
 
     A player's commands come first, as for Attack (``tactics.commanded``):
     the craft an attack or cover order names is fought, with the ion
@@ -56,8 +58,8 @@ ION_CANNON = 141
 
 def think(view: CraftView, question: Question) -> Decision:
     """Return the craft's next move: Attack's dogfight at the nearest target
-    that works, with ion cannons alone and no warhead; else at an enemy
-    after it, with everything, while it may fight back."""
+    that works, with ion cannons alone and warheads by the Disable limit;
+    else at an enemy after it, with everything, while it may fight back."""
     if view.commands & Commands.EVADE:
         return attack.think(view, question)
     working = targets(view, question)
@@ -69,7 +71,7 @@ def think(view: CraftView, question: Question) -> Decision:
             and attack.fights_back(view, question, chaser)
         ):
             return attack.fight(view, question, [chaser])
-    decision = attack.fight(_unarmed(view), question, working)
+    decision = attack.fight(view, question, working, disabling=True)
     return dataclasses.replace(decision, actions=ion_only(view, decision.actions))
 
 
@@ -102,9 +104,3 @@ def ion_only(view: CraftView, actions: Actions) -> Actions:
         for group, burst in enumerate(actions.lasers)
     )
     return dataclasses.replace(actions, lasers=lasers)
-
-
-def _unarmed(view: CraftView) -> CraftView:
-    """Return the view with no warhead launchers, so the dogfight neither
-    fires, counts nor logs a warhead."""
-    return dataclasses.replace(view, warhead_launcher_count=0)

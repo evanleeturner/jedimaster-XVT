@@ -198,6 +198,11 @@
       "fields": ["object", "slot", "ticks"],
       "text": "Craft {object} stops for its Wait order in slot {slot} and sets its timer to {ticks} ticks"
     },
+    "warheads.disable_limit": {
+      "level": "D",
+      "fields": ["object", "target", "durability", "salvo", "coming", "lasts"],
+      "text": "Craft {object} disabling craft {target} counts its front shield, with a tenth of its hull once more than a tenth is damaged, as {durability}; the warheads flying at it and one from each of its launchers that may go at it ({salvo} of that) come to {coming} once divided; it fires only while the shield lasts ({lasts})"
+    },
     "weave.end": {
       "level": "D",
       "fields": ["object", "reason", "swerves", "rest_until"],

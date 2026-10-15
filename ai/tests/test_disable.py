@@ -198,7 +198,11 @@ def test_with_every_target_disabled_it_holds_fire_and_keeps_course(
     assert notebook.decode(decision.notebook).phase == attack.SEEK
 
 
-def test_no_warhead_is_fired_counted_or_logged(craft, foe, shown, ask, caplog) -> None:
+def test_a_shield_the_salvo_outlasts_holds_the_warheads(
+    craft, foe, shown, ask, caplog
+) -> None:
+    """Attack fires at the shield of 400; Disable, counting its concussion
+    missile's 3,000 as flying, holds, and counts and logs no shot."""
     caplog.set_level("DEBUG")
     me = craft(**LOCKED)
     assert attack.think(me, shown(me, foe(), target=FOE)).actions.warhead == Warhead(0)
@@ -206,7 +210,99 @@ def test_no_warhead_is_fired_counted_or_logged(craft, foe, shown, ask, caplog) -
     decision = ask(me, foe(), target=FOE)
     assert decision.actions.target == FOE and decision.actions.warhead is None
     assert memory_of(decision).shots == 0
-    assert "attack.warhead" not in caplog.text
+    assert memory_of(decision).held == warheads.Held.LIMIT
+    assert "attack.warhead " not in caplog.text
+
+
+def test_a_warhead_fires_while_the_shield_outlasts_the_salvo(craft, foe, ask) -> None:
+    me = craft(**LOCKED)
+    fired = ask(me, foe(front_shield=3001), target=FOE)
+    assert fired.actions.warhead == Warhead(0)
+    assert memory_of(fired).shots == 1
+    assert ask(me, foe(front_shield=3000), target=FOE).actions.warhead is None
+
+
+def test_a_tenth_of_the_hull_counts_once_more_than_a_tenth_is_damaged(
+    craft, foe, ask
+) -> None:
+    """A hull of 10,000: its tenth, 1,000, joins the shield of 2,500 only
+    past 1,000 damage."""
+    me = craft(**LOCKED)
+    hull = {"front_shield": 2500, "hull_strength": 10_000}
+    held = ask(me, foe(hull_damage=1000, **hull), target=FOE).actions
+    assert held.warhead is None
+    fired = ask(me, foe(hull_damage=1001, **hull), target=FOE).actions
+    assert fired.warhead == Warhead(0)
+
+
+def test_the_warheads_flying_at_the_target_count_with_the_salvo(
+    craft, foe, ask
+) -> None:
+    me = craft(**LOCKED)
+    flying = {"front_shield": 5000, "warheads_coming": 1}
+    held = ask(me, foe(warheads_coming_damage=2000, **flying), target=FOE).actions
+    assert held.warhead is None
+    fired = ask(me, foe(warheads_coming_damage=1999, **flying), target=FOE).actions
+    assert fired.warhead == Warhead(0)
+
+
+def test_one_warhead_counts_from_each_launcher_that_may_go_at_the_target(
+    craft, foe, ask
+) -> None:
+    """A space bomb never goes at a starfighter, and a launcher the craft
+    does not have holds nothing: the salvo is the one missile's 3,000."""
+    target = foe(front_shield=3001)
+    bomb = craft(
+        **(
+            LOCKED
+            | {
+                "warhead_launcher_count": 2,
+                "warhead_type": (warheads.CONCUSSION_MISSILE, warheads.SPACE_BOMB),
+            }
+        )
+    )
+    assert ask(bomb, target, target=FOE).actions.warhead == Warhead(0)
+    unloaded = craft(**(LOCKED | {"warhead_type": (warheads.CONCUSSION_MISSILE,) * 2}))
+    assert ask(unloaded, target, target=FOE).actions.warhead == Warhead(0)
+    two = craft(
+        **(
+            LOCKED
+            | {
+                "warhead_launcher_count": 2,
+                "warhead_type": (warheads.CONCUSSION_MISSILE,) * 2,
+                "warheads_left": (4, 4),
+            }
+        )
+    )
+    assert ask(two, target, target=FOE).actions.warhead is None
+
+
+def test_at_a_starship_the_damage_is_divided_by_16(craft, foe, ask) -> None:
+    """3,000 // 16 is 187."""
+    me = craft(**LOCKED)
+    ship = {"genus": 4, "size": 0}
+    fired = ask(me, foe(front_shield=188, **ship), target=FOE).actions
+    assert fired.warhead == Warhead(0)
+    held = ask(me, foe(front_shield=187, **ship), target=FOE).actions
+    assert held.warhead is None
+
+
+def test_the_disable_limit_line_records_the_count(craft, foe, ask, caplog) -> None:
+    """A shield of 2,600 and a tenth of a hull of 10,000; 500 flying and the
+    missile's 3,000."""
+    caplog.set_level("DEBUG")
+    target = foe(
+        front_shield=2600,
+        hull_strength=10_000,
+        hull_damage=1001,
+        warheads_coming=1,
+        warheads_coming_damage=500,
+    )
+    ask(craft(**LOCKED), target, target=FOE)
+    assert (
+        f"warheads.disable_limit object={ME} target={FOE} durability=3600 "
+        "salvo=3000 coming=3500 lasts=1" in caplog.text
+    )
 
 
 def test_a_chaser_is_fought_with_every_cannon_and_warhead(craft, foe, ask) -> None:
