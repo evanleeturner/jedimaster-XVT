@@ -270,9 +270,45 @@ the project's owner closes them. This table says what became of each one.
   Return, Protect, Escort and SS Patrol and Disable. The group after it holds
   the boarding orders, Pick up, Drop off, Self-destruct, Kamikaze, Disabled,
   Await Boarding, SS Board and SS Launch.
-- A difficulty level above the top one.
+- Two skill levels above Jedi, Sith Apprentice and Sith Lord (below).
+- The debug log will record each warhead's path in flight. Today it
+  records a warhead only when it is fired, decoyed, loses its target,
+  runs out or hits.
 - Possible later work that has not started: capital ships, advanced fighters and
   turbolasers, ion cannons, and aiming at parts of a ship.
+
+### Two skill levels above Jedi: Sith Apprentice and Sith Lord
+
+Planned, not built. Today the mission gives each computer craft a skill
+level from 0 to 5, and the launcher's mission reader names them Rookie,
+Officer, Veteran, Ace, Top Ace and Jedi
+(`launcher/jedimaster/mission/names.py`). Two levels will sit above Jedi:
+6, Sith Apprentice, and 7, Sith Lord. The engine's tables by skill level
+already hold 8 entries, so both fit (`engine/src/xvt/flight/ai_brain.c`).
+
+A Sith Apprentice is more experienced than a Jedi: it uses every behavior
+planned on this page at full strength, and no more. A Sith Lord is meant to
+be a nearly unbeatable foe that never retreats. In the story, the Sith use
+their powers to predict your movements in space and time. In the game, the
+pilot program gets a live record of every craft and every warhead in
+flight, the same kind of record the engine writes to its debug log for its
+tests, and uses it to the full.
+
+| Behavior | Levels 0 to 5 (up to Jedi) | Sith Apprentice (6) | Sith Lord (7) |
+| --- | --- | --- | --- |
+| Aim and fire | the 3 skill tiers | a 4th tier, sharper than Jedi | a 5th, aimed from the live record |
+| Pick the warhead to fit the target: concussion missiles at fighters, space bombs at big ships ([#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299)) | yes | yes | yes |
+| Fire a warhead with no lock at a big ship, aimed ahead of it ([#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299)) | Jedi only | yes | yes |
+| Fire a warhead with no lock at any craft, players' craft too | no | no | yes |
+| Shoot warheads down with lasers | no | only warheads chasing itself | any warhead, anywhere |
+| Use ion cannons to disable a craft whose shields are down | weaker at lower levels | full | full |
+| Hit a big ship's shield generators and guns before its hull | higher levels | full | full |
+| Change speed at once at any moment, as craft arriving from hyperspace do | no | no | yes |
+| Leave the fight when damaged: the mission's abort rules, weaving instead of fighting below 75% hull | yes | yes | never |
+| A live record of every craft and warhead | no | no | yes |
+
+Capital ships turning their working guns toward a threat is planned for
+every capital ship, at every level.
 
 ## Open AI issues
 
