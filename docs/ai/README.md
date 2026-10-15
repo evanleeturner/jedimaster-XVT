@@ -65,6 +65,7 @@ is in `ai/jedimaster_ai/behaviors/attack.py` and `ai/jedimaster_ai/tactics.py`.
 | When a second big ship blocks the way out of a break, head away from both, climbing or diving as they lie. Fighters used to break away from one freighter straight into the next (`behaviors/attack.py`, `behaviors/avoidance.py`). | Unknown | New | |
 | Fire a guided warhead once the lock on the target is declared, lined up for the cannons or not. Concussion missiles go first at fighters, and the heaviest warhead first at freighters, starships and platforms. Space bombs, heavy rockets and type 154 never go at smaller craft; magnetic and ion pulses go only at smaller craft. A craft whose order names a big ship keeps its proton torpedoes for it. No shot while the homing warheads already flying at the target would destroy it, their damage divided by 16 at a starship or platform and by 4 at a freighter. At most 2 are in flight at a smaller craft and 16 at a big ship, and an attack run fires at most 1 at a smaller craft and 6 at a big ship. After a shot at a fighter or a transport, the lock must drop and be built again. One warhead at a time, never two together (`ai/jedimaster_ai/warheads.py`). | Fired only in a rocket attack, once the lock its tier needed was built (629 to 1,416 ticks). A warhead went only at targets of its class, so proton torpedoes and rockets went only at big ships. The same limit and caps. Two together at the top tier when hurt. | Changed | [#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299), [#305](https://github.com/evanleeturner/jedimaster-XVT/issues/305) |
 | Count a warhead lock on the craft's target by the player's rule: the same aim cone and lock range, chaff on the target taking half the time back, a full lock at 708 ticks (354 on a Missile Boat). The program is told the lock, each craft's skill level and the homing warheads already flying at each craft, and fires on the lock (row above; `engine/src/xvt/flight/ai_warheads.c`). | Computer craft counted a lock of their own, by skill tier. | Changed | [#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299) |
+| Your cockpit counts a computer craft as attacking you when its target is you, unless it is flying home to its mothership. Such a craft lights the attack light while its cannons are linked and the lock warning while its lock builds, and the E key picks it. The A key finds the craft attacking your target the same way. The warhead light of the craft you have targeted shows while it attacks anything. | The cockpit read the 1997 pilot's attack and warhead-run maneuvers. Since those pilots were removed, all of these stayed dark for computer craft. | Changed | [#304](https://github.com/evanleeturner/jedimaster-XVT/issues/304) |
 | Tier 0 craft never get inside firing range of a Star Destroyer: the range is 49,152 units (1.2 km), measured to its centre, and the craft starts to break off at its clearance of 53,143 units (1.3 km). No tier reaches a Super Star Destroyer. | Unknown | New (a side effect) | [#302](https://github.com/evanleeturner/jedimaster-XVT/issues/302) |
 
 ### Throttle and turning, measured
@@ -286,7 +287,6 @@ Issues #205, #211, #212, #213, #214 and #292 are closed as fixed. Issue
 | What you may see | Related issues |
 | --- | --- |
 | Computer craft fire no warhead without a lock yet, so none at a big ship from far out, aimed ahead of it. | [#299](https://github.com/evanleeturner/jedimaster-XVT/issues/299) |
-| Your cockpit shows no lock warning when a computer craft locks on to you. The missile warning still sounds once its warhead flies at you. | [#304](https://github.com/evanleeturner/jedimaster-XVT/issues/304) |
 | Mines never fire. | [#300](https://github.com/evanleeturner/jedimaster-XVT/issues/300) |
 | Shift+B resupply is always refused. | [#301](https://github.com/evanleeturner/jedimaster-XVT/issues/301) |
 | Tier 0 pilots never get into firing range of a Star Destroyer. No tier reaches a Super Star Destroyer, and no issue covers that yet. | [#302](https://github.com/evanleeturner/jedimaster-XVT/issues/302) |
@@ -330,8 +330,6 @@ the project's owner closes them. This table says what became of each one.
   the boarding orders, Pick up, Drop off, Self-destruct, Kamikaze, Disabled,
   Await Boarding, SS Board and SS Launch.
 - A warhead fired without a lock at a big ship, aimed ahead of it, at skill Jedi and above.
-- The cockpit's lock warning for a computer craft locking on to you.
-  Related issue: [#304](https://github.com/evanleeturner/jedimaster-XVT/issues/304).
 - Two skill levels above Jedi, Sith Apprentice and Sith Lord (below).
 - Possible later work that has not started: capital ships, advanced fighters and
   turbolasers, ion cannons, and aiming at parts of a ship.
@@ -439,16 +437,16 @@ may trail the real count by 1, because a commit cannot name itself.
 <!-- ai-numbers:start -->
 | What it counts | Today | How to check it |
 | --- | --- | --- |
-| Commits that changed the pilot program | 25 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
-| Commits whose title starts with `AI:` (the game engine's side too) | 38 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
+| Commits that changed the pilot program | 26 | `git log --oneline -- ai/jedimaster_ai`, counted with `wc -l` |
+| Commits whose title starts with `AI:` (the game engine's side too) | 39 | `git log --oneline --grep='^AI:'`, counted with `wc -l` |
 | Lines of Python in the pilot program | 5,186 | the `.py` files in `ai/jedimaster_ai/` and `ai/jedimaster_ai/behaviors/`, counted with `wc -l` |
 | Lines of Python in its tests | 6,415 | the `.py` files in `ai/tests/`, counted with `wc -l` |
 | Test functions in those tests | 392 | `grep -rhE '^\s*def test_' ai/tests`, counted with `wc -l`; a test that runs on several inputs counts once here |
 | Files that each hold one kind of behavior | 11 | the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py` |
 | Mission order codes that have a written behavior | 14 of 40 | `OrderCode` and `BEHAVIORS` in `ai/jedimaster_ai/orders.py`; the rest keep their speed and heading |
 | Kinds of line the pilot program writes to its log | 37 | the entries in `ai/jedimaster_ai/events.json` |
-| Lines of C in the engine's computer-pilot code | 4,624 in 21 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
-| Test files and checks for that engine code | 10 files, 90 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
+| Lines of C in the engine's computer-pilot code | 4,644 in 21 files | the files named `ai_*.c` and `ai_*.h` under `engine/`, outside `engine/tests/` |
+| Test files and checks for that engine code | 10 files, 91 checks | `engine/tests/test_ai_*.c`; a check is a function named `check_...` |
 | Checks of the wingman commands (Shift+A and the others) | 13 | the `check_order_...` functions in `engine/tests/test_flight.c` |
 | Lines of the 1997 pilot code that were deleted | 14,608 in 9 files | `engine/src/xvt/flight/ai/` just before commit `7d2a109` |
 <!-- ai-numbers:end -->
