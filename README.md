@@ -9,6 +9,11 @@ Fighter* and *Balance of Power*, and [Aeron](https://github.com/elyosh/Aeron),
 the platform library it runs on. Both came here with their full history and
 have been modified in this project since October 2026.
 
+## The computer pilots
+
+[How the computer pilots fly](docs/ai/README.md) lists what changed from the 1997
+game, what stayed, what is not built yet and the known bugs.
+
 ## License
 
 The engine under `engine/` is GPLv3, the license OpenXvT and Aeron came with;

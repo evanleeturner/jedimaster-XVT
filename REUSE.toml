@@ -14,14 +14,14 @@
 # tools/license_boundary.py keeps that boundary.
 version = 1
 
-# This project's own files: code is MIT, prose at the root is CC BY 4.0.
+# This project's own files: code is MIT, prose at the root and under docs/ is CC BY 4.0.
 [[annotations]]
 path = ["**"]
 SPDX-FileCopyrightText = "2026 Evan Lee Turner"
 SPDX-License-Identifier = "MIT"
 
 [[annotations]]
-path = ["*.md"]
+path = ["*.md", "docs/**/*.md"]
 SPDX-FileCopyrightText = "2026 Evan Lee Turner"
 SPDX-License-Identifier = "CC-BY-4.0"
 
