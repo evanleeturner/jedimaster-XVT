@@ -37,6 +37,7 @@ import typing as t
 
 from .behaviors import Decision
 from .behaviors import patrol
+from .behaviors import waiting
 from .orders import OrderCode
 from .world import Books
 from .world import CraftView
@@ -61,17 +62,33 @@ def _no_target_left(view: CraftView) -> bool:
     return not view.books & Books.TARGETS_LEFT
 
 
-# Each written order's goal test, True once the goal is met. Attack and SS
-# Patrol and Attack: no target left, now or in a group still to arrive, by
-# the engine's 1997 count. Circle, Circle and Evade and SS Patrol Loop: their
-# rounds reached the order's variable1.
+def _all_returned(view: CraftView) -> bool:
+    return bool(view.books & Books.ALL_RETURNED)
+
+
+# Each order's goal test, True once the goal is met, by the 1997 leader
+# plans. Attack, Protect, Escort, Disable, SS Protect, SS Protect 2, SS Patrol
+# and Attack and SS Patrol and Disable: no target left, now or in a group
+# still to arrive, by the engine's 1997 count. Circle, Circle and Evade and SS
+# Patrol Loop: their rounds reached the order's variable1. Wait and Wait 2:
+# the order's time is up. SS Await Return: every group that goes home into
+# the craft's group is back.
 GOALS: t.Mapping[int, t.Callable[[CraftView], bool]] = types.MappingProxyType(
     {
         OrderCode.ATTACK: _no_target_left,
+        OrderCode.PROTECT: _no_target_left,
+        OrderCode.ESCORT: _no_target_left,
+        OrderCode.DISABLE: _no_target_left,
+        OrderCode.SS_PROTECT: _no_target_left,
+        OrderCode.SS_PROTECT_2: _no_target_left,
         OrderCode.SS_PATROL_AND_ATTACK: _no_target_left,
+        OrderCode.SS_PATROL_AND_DISABLE: _no_target_left,
         OrderCode.CIRCLE: patrol.rounds_done,
         OrderCode.CIRCLE_AND_EVADE: patrol.rounds_done,
         OrderCode.SS_PATROL_LOOP: patrol.rounds_done,
+        OrderCode.WAIT: waiting.done,
+        OrderCode.WAIT_2: waiting.done,
+        OrderCode.SS_AWAIT_RETURN: _all_returned,
     }
 )
 

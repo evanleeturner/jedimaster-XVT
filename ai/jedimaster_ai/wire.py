@@ -291,6 +291,8 @@ def question_bytes(question: Question) -> bytes:
 
 
 def _actions_bytes(actions: Actions) -> bytes:
+    if actions.maneuver_timer is not None:
+        raise WireError(f"wire version {VERSION} carries no maneuver timer action")
     written = bytearray()
     count = 0
     if actions.steer is not None:

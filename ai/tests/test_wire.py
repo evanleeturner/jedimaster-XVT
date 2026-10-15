@@ -484,3 +484,22 @@ def test_evaded_follows_the_view_commands(commands: Commands, allowed: bool) -> 
     else:
         with pytest.raises(wire.WireError, match="no evade command"):
             _actions_of(evaded, shown)
+
+
+def test_a_question_reads_what_wire_13_adds_as_absent(view, contact) -> None:
+    question = Question(1, (view(),), (contact(),))
+    read = wire.read_question(wire.question_bytes(question)[wire.LENGTH.size :])
+    (craft,) = read.craft
+    assert (craft.maneuver_timer, craft.escorted, craft.station) == (
+        0,
+        NO_OBJECT,
+        (0, 0, 0),
+    )
+    assert read.contacts[0].hit_by == NO_OBJECT
+
+
+def test_the_maneuver_timer_action_is_not_written_before_wire_13() -> None:
+    actions = Actions(maneuver_timer=1180)
+    answer = Answer(1, (CraftAnswer(7, bytes(NOTEBOOK_BYTES), actions),))
+    with pytest.raises(wire.WireError, match="no maneuver timer action"):
+        wire.answer_bytes(answer)

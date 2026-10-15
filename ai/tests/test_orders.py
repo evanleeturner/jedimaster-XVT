@@ -6,13 +6,18 @@ import pytest
 
 from jedimaster_ai import orders
 from jedimaster_ai.behaviors import attack
+from jedimaster_ai.behaviors import disable
 from jedimaster_ai.behaviors import drift
+from jedimaster_ai.behaviors import escort
 from jedimaster_ai.behaviors import hold
 from jedimaster_ai.behaviors import home
 from jedimaster_ai.behaviors import patrol
+from jedimaster_ai.behaviors import protect
+from jedimaster_ai.behaviors import starship
+from jedimaster_ai.behaviors import waiting
 
 
-def test_written_orders_have_their_behaviors_and_every_other_order_drifts() -> None:
+def test_each_order_has_its_behavior_and_every_other_order_drifts() -> None:
     expected = {code: drift.think for code in orders.OrderCode}
     for code in (0, 28, 30, 33, 34, 35, 38):
         expected[orders.OrderCode(code)] = hold.think
@@ -21,6 +26,15 @@ def test_written_orders_have_their_behaviors_and_every_other_order_drifts() -> N
     expected[orders.OrderCode.ATTACK] = attack.think
     for code in (2, 3, 21, 26):
         expected[orders.OrderCode(code)] = patrol.think
+    expected[orders.OrderCode.PROTECT] = protect.think
+    expected[orders.OrderCode.ESCORT] = escort.think
+    expected[orders.OrderCode.DISABLE] = disable.think
+    for code in (19, 20):
+        expected[orders.OrderCode(code)] = waiting.think
+    expected[orders.OrderCode.SS_AWAIT_RETURN] = starship.await_return
+    for code in (24, 25):
+        expected[orders.OrderCode(code)] = starship.protect
+    expected[orders.OrderCode.SS_PATROL_AND_DISABLE] = starship.patrol_and_disable
     assert dict(orders.BEHAVIORS) == expected
 
 

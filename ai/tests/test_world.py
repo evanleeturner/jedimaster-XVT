@@ -6,6 +6,7 @@ import pytest
 
 from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Activity
+from jedimaster_ai.world import ContactFlags
 from jedimaster_ai.world import CraftAnswer
 from jedimaster_ai.world import NOTEBOOK_BYTES
 from jedimaster_ai.world import Steer
@@ -21,6 +22,8 @@ from jedimaster_ai.world import Steer
         {"activity": len(Activity)},
         {"activity": Activity.ARRIVING_FROM_HYPERSPACE},
         {"activity": Activity.LEAVING_HANGAR},
+        {"maneuver_timer": -1},
+        {"maneuver_timer": 0x80000000},
     ],
     ids=[
         "throttle low",
@@ -30,6 +33,8 @@ from jedimaster_ai.world import Steer
         "activity",
         "arriving",
         "leaving",
+        "timer low",
+        "timer high",
     ],  # fmt: skip
 )
 def test_actions_out_of_range_are_refused(changes: dict[str, int]) -> None:
@@ -46,6 +51,26 @@ def test_steer_out_of_range_is_refused(angles: tuple[int, int, int]) -> None:
 def test_actions_at_their_limits_are_made() -> None:
     actions = Actions(Steer(0, 0xFFFF, 0), 0xFFFF, 12, 1)
     assert actions.activity is Activity.DISABLED
+    assert Actions(maneuver_timer=0).maneuver_timer == 0
+    # The engine's maneuver timer is a C int.
+    assert Actions(maneuver_timer=0x7FFFFFFF).maneuver_timer == 0x7FFFFFFF
+
+
+@pytest.mark.parametrize(
+    ("flags", "disabled", "attacked"),
+    [
+        (0, False, False),
+        (ContactFlags.PLAYER, False, False),
+        (ContactFlags.DISABLED, True, False),
+        (ContactFlags.ATTACKED, False, True),
+        (ContactFlags.DISABLED | ContactFlags.ATTACKED, True, True),
+    ],
+)
+def test_a_contacts_flags_say_disabled_and_attacked(
+    contact, flags, disabled, attacked
+) -> None:
+    found = contact(flags=flags)
+    assert (found.disabled, found.attacked) == (disabled, attacked)
 
 
 def test_craft_answer_needs_a_whole_notebook() -> None:

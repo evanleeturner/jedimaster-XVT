@@ -233,7 +233,8 @@ def compute_numbers(repo: Path, removal: str = REMOVAL_COMMIT) -> list[Number]:
             "Files that each hold one kind of behavior",
             (len(behavior_files),),
             commas(len(behavior_files)),
-            "the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`",
+            "the `.py` files in `ai/jedimaster_ai/behaviors/` except `__init__.py`, "
+            "with the files of orders whose behavior is not written yet",
         ),
         Number(
             "Mission order codes that have a written behavior",

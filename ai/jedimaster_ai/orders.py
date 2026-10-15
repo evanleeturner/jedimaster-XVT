@@ -9,7 +9,13 @@ Purpose:
 Invariants:
     - Every order code maps to drift until its behavior is written. Written:
       Attack (``behaviors.attack``), Hold Steady and its six copies
-      (``behaviors.hold``), Go Home and SS Go Home (``behaviors.home``).
+      (``behaviors.hold``), Go Home and SS Go Home (``behaviors.home``),
+      Circle, Circle and Evade, SS Patrol Loop and SS Patrol and Attack
+      (``behaviors.patrol``).
+    - Disable, Protect, Escort, Wait, Wait 2, SS Await Return, SS Protect,
+      SS Protect 2 and SS Patrol and Disable map to their own behavior files
+      (``behaviors.disable``, ``protect``, ``escort``, ``waiting``,
+      ``starship``), which fly them as drift until they are written.
     - A code with no behavior in the table, one no order has included, is
       flown by drift after one WARN line.
 """
@@ -23,10 +29,15 @@ import typing as t
 
 from .behaviors import attack
 from .behaviors import Behavior
+from .behaviors import disable
 from .behaviors import drift
+from .behaviors import escort
 from .behaviors import hold
 from .behaviors import home
 from .behaviors import patrol
+from .behaviors import protect
+from .behaviors import starship
+from .behaviors import waiting
 from .world import CraftView
 
 logger = logging.getLogger(__name__)
@@ -101,6 +112,15 @@ BEHAVIORS: t.Mapping[int, Behavior] = types.MappingProxyType(
         OrderCode.CIRCLE_AND_EVADE: patrol.think,
         OrderCode.SS_PATROL_LOOP: patrol.think,
         OrderCode.SS_PATROL_AND_ATTACK: patrol.think,
+        OrderCode.PROTECT: protect.think,
+        OrderCode.ESCORT: escort.think,
+        OrderCode.DISABLE: disable.think,
+        OrderCode.WAIT: waiting.think,
+        OrderCode.WAIT_2: waiting.think,
+        OrderCode.SS_AWAIT_RETURN: starship.await_return,
+        OrderCode.SS_PROTECT: starship.protect,
+        OrderCode.SS_PROTECT_2: starship.protect,
+        OrderCode.SS_PATROL_AND_DISABLE: starship.patrol_and_disable,
     }
 )
 

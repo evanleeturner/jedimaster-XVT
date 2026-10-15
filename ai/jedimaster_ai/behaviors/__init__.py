@@ -28,6 +28,7 @@ from ..world import NO_ACTIONS
 from ..world import Question
 
 
+@enum.unique
 class BehaviorCode(enum.IntEnum):
     """Each behavior's code in the notebooks it writes."""
 
@@ -35,6 +36,11 @@ class BehaviorCode(enum.IntEnum):
     ARRIVAL = 2
     HOME = 3
     PATROL = 4
+    DISABLE = 5
+    PROTECT = 6
+    ESCORT = 7
+    WAITING = 8
+    STARSHIP = 9
 
 
 @dataclasses.dataclass(frozen=True)

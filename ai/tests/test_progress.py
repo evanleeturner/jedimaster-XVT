@@ -16,6 +16,7 @@ import pytest
 from jedimaster_ai import progress
 from jedimaster_ai import wire
 from jedimaster_ai.behaviors import Decision
+from jedimaster_ai.behaviors import waiting
 from jedimaster_ai.orders import OrderCode
 from jedimaster_ai.world import Actions
 from jedimaster_ai.world import Books
@@ -91,8 +92,40 @@ def test_a_follower_never_moves_its_slot(view) -> None:
     assert progress.decide(view(**DONE_ATTACK, leader=3)) == progress.STAY
 
 
+@pytest.mark.parametrize(
+    "code",
+    [
+        OrderCode.PROTECT,
+        OrderCode.ESCORT,
+        OrderCode.DISABLE,
+        OrderCode.SS_PROTECT,
+        OrderCode.SS_PROTECT_2,
+        OrderCode.SS_PATROL_AND_DISABLE,
+    ],
+)
+def test_the_fighting_and_guarding_orders_are_done_with_no_target_left(
+    view, code
+) -> None:
+    done = view(**DONE_ATTACK | {"order_code": code})
+    assert progress.decide(done) == progress.Progress(move=OrderMove(1, 2))
+    left = view(**DONE_ATTACK | {"order_code": code, "books": Books.TARGETS_LEFT})
+    assert progress.decide(left) == progress.STAY
+
+
+def test_ss_await_return_is_done_once_every_group_is_back(view) -> None:
+    waiting_craft = {"order_code": OrderCode.SS_AWAIT_RETURN}
+    back = view(**DONE_ATTACK | waiting_craft | {"books": Books.ALL_RETURNED})
+    assert progress.decide(back) == progress.Progress(move=OrderMove(1, 2))
+    assert progress.decide(view(**DONE_ATTACK | waiting_craft)) == progress.STAY
+
+
+def test_wait_and_wait_2_end_when_the_waiting_behavior_says_so() -> None:
+    assert progress.GOALS[OrderCode.WAIT] is waiting.done
+    assert progress.GOALS[OrderCode.WAIT_2] is waiting.done
+
+
 def test_an_order_with_no_goal_test_is_never_done(view) -> None:
-    craft = view(**DONE_ATTACK | {"order_code": OrderCode.ESCORT})
+    craft = view(**DONE_ATTACK | {"order_code": OrderCode.RENDEZVOUS})
     assert progress.decide(craft) == progress.STAY
 
 

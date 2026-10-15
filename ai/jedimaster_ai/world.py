@@ -39,6 +39,8 @@ POINT_AXES = 3
 THREATS_MAX = 4
 # A flight group's waypoints, mission points 4 to 11.
 WAYPOINTS = 8
+# The longest maneuver timer an answer may set, in ticks: the engine's int.
+MANEUVER_TIMER_MAX = 0x7FFFFFFF
 
 
 class Activity(enum.IntEnum):
@@ -137,6 +139,13 @@ class Books(enum.IntFlag):
     - TARGETS_LEFT: its current order still has a target, in the battle or
       in a group still to arrive, by the 1997 count
     - PLACE: it follows a leader, so ``place`` is given
+    - ALL_RETURNED: every flight group that goes home into its group has
+      arrived, has no waves left and has no craft left in the battle, the
+      1997 test that ends SS Await Return
+    - STATION: it escorts a craft, so ``escorted`` and ``station`` are given
+
+    ALL_RETURNED and STATION come with wire version 13; the engine sends
+    neither before it.
     """
 
     ORDERS_DONE = 0x001
@@ -150,6 +159,24 @@ class Books(enum.IntFlag):
     HOME_POINT = 0x100
     TARGETS_LEFT = 0x200
     PLACE = 0x400
+    ALL_RETURNED = 0x800
+    STATION = 0x1000
+
+
+class ContactFlags(enum.IntFlag):
+    """The bits of a contact's ``flags`` (``enum ai_wire_contact_flag``).
+
+    - PLAYER: a player flies the craft
+    - DISABLED: none of its subsystems work, its ``working_subsystems`` 0
+    - ATTACKED: a craft of some team, any of the ten, has hit it
+
+    DISABLED and ATTACKED come with wire version 13; the engine sends
+    neither before it.
+    """
+
+    PLAYER = 0x1
+    DISABLED = 0x2
+    ATTACKED = 0x4
 
 
 @dataclasses.dataclass(frozen=True)
@@ -200,7 +227,13 @@ class CraftView:
     ``skill`` gives levels 4 and 5 one value.
     ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
     program last wrote it, or all zero bytes before the program first
-    writes it.
+    writes it. ``maneuver_timer`` is the ticks left in the craft's
+    maneuver, which the engine lowers to 0 and the HUD shows as its order
+    time; the ``maneuver_timer`` action sets it. ``escorted`` is the object
+    index of the craft it escorts, NO_OBJECT for none, and ``station`` the
+    world position of its station beside that craft, (0, 0, 0) when not
+    given; both come with the STATION book. These three come with wire
+    version 13: before it they read 0, NO_OBJECT and (0, 0, 0).
     """
 
     object_index: int
@@ -269,6 +302,9 @@ class CraftView:
     lock_state: int
     skill_level: int
     notebook: bytes
+    maneuver_timer: int = 0
+    escorted: int = NO_OBJECT
+    station: tuple[int, int, int] = (0, 0, 0)
 
     @property
     def threats(self) -> tuple[Threat, ...]:
@@ -326,6 +362,9 @@ class Contact:
     type's model, in world units: the number the engine's flight code takes
     as the craft's size. ``warheads_coming`` counts the homing warheads in flight
     at the craft, at most 255, and ``warheads_coming_damage`` sums their damage.
+    ``flags`` holds ``ContactFlags`` bits. ``hit_by`` is the object whose
+    shot last hit the craft, NO_OBJECT for none; it comes with wire version
+    13 and reads NO_OBJECT before it.
     """
 
     object_index: int
@@ -352,11 +391,22 @@ class Contact:
     size: int
     warheads_coming: int
     warheads_coming_damage: int
+    hit_by: int = NO_OBJECT
 
     @property
     def player_flown(self) -> bool:
         """Whether a player flies the craft."""
-        return bool(self.flags & 1)
+        return bool(self.flags & ContactFlags.PLAYER)
+
+    @property
+    def disabled(self) -> bool:
+        """Whether none of the craft's subsystems work."""
+        return bool(self.flags & ContactFlags.DISABLED)
+
+    @property
+    def attacked(self) -> bool:
+        """Whether a craft of some team has hit the craft."""
+        return bool(self.flags & ContactFlags.ATTACKED)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -489,6 +539,9 @@ class Actions:
     hyperspace and ``dock`` takes it into its mothership's hangar, never
     both. ``countermeasure`` launches the craft's chaff or a flare.
     ``evaded`` says the craft took up its evade command.
+    ``maneuver_timer`` sets the craft's maneuver timer, 0 to
+    MANEUVER_TIMER_MAX ticks; it comes with wire version 13, and before it
+    ``wire`` refuses to write it.
     ``activity`` is never one of ENGINE_ACTIVITIES. What these name must
     be what the question showed (``wire.read_answer`` holds the rules).
     """
@@ -507,6 +560,7 @@ class Actions:
     dock: bool = False
     countermeasure: bool = False
     evaded: bool = False
+    maneuver_timer: int | None = None
 
     def __post_init__(self) -> None:
         if self.depart and self.dock:
@@ -528,6 +582,13 @@ class Actions:
             object.__setattr__(self, "activity", activity)
         if self.think_interval is not None:
             _check_u16("think_interval", self.think_interval, low=1)
+        if self.maneuver_timer is not None and not (
+            0 <= self.maneuver_timer <= MANEUVER_TIMER_MAX
+        ):
+            raise ValueError(
+                f"maneuver_timer {self.maneuver_timer!r} is outside 0 to "
+                f"{MANEUVER_TIMER_MAX}"
+            )
 
 
 NO_ACTIONS = Actions()
