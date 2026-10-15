@@ -118,7 +118,9 @@ def phase_of(decision) -> int:
     return notebook.decode(decision.notebook).phase
 
 
-def test_with_no_target_it_holds_fire_and_keeps_course(craft, ask) -> None:
+def test_with_no_target_and_nowhere_to_cruise_it_holds_fire_and_keeps_course(
+    craft, ask
+) -> None:
     decision = ask(craft(order_target_mask=0, think_interval=59))
     actions = decision.actions
     assert actions.steer is None and actions.throttle is None
@@ -921,7 +923,9 @@ def test_a_disabled_enemy_is_never_after_the_craft(craft, foe, ask, shown) -> No
     assert attack.pursuer(me, question).object_index == 15
 
 
-def test_with_only_a_disabled_enemy_behind_it_holds_its_course(craft, foe, ask) -> None:
+def test_with_only_a_disabled_enemy_behind_and_nowhere_to_cruise_it_holds_its_course(
+    craft, foe, ask
+) -> None:
     """Neither fought back nor woven from."""
     dead = foe(**BEHIND | DISABLED)
     decision = ask(craft(order_target_mask=0), dead, last_attacker=12)

@@ -24,9 +24,11 @@ Purpose:
     (``pursuer``) fights that enemy while it may fight back (``fights_back``:
     it has cannons, it can move, and its hull is at FIGHT_BACK_HULL or more),
     and otherwise weaves when the enemy sits on its tail (rulings 34 and 43).
+    With neither, it flies 1997's cruise (``seek``): round its group's
+    waypoints, else to its group's start point, else on its course.
     ``fight`` is the dogfight itself, at the targets a behavior gives it:
     ``home`` flies it for a craft going home that turns on its attacker, and
-    for a craft with no way out (rulings 31 and 33).
+    for a craft with no way out (rulings 31 and 33), never cruising.
 
     A player's commands come first, as the 1997 target orders took them:
     the craft an attack or cover order named is the target while the craft
@@ -42,8 +44,9 @@ Purpose:
 
 Phases, the notebook's phase byte:
 
-    SEEK    no target: hold fire, keep course, look again each think; an
-            enemy on the tail starts a weave
+    SEEK    no target: hold fire, cruise when the caller says (``seek``),
+            else keep course; look again each think; an enemy on the tail
+            starts a weave
     ATTACK  steer at the target, fire when lined up; each entry to ATTACK,
             and each new target, starts an attack run
     BREAK   inside the target's clearance, ahead, or anywhere for a bulky
@@ -58,8 +61,10 @@ nearer target, then the weave's state (``weave.STATE_BYTES``), then u8 1
 while the weave flies an evade command, else 0; then u8 the warheads fired
 in this attack run, u8 1 while a shot at a starfighter or transport waits
 for the lock to lapse, else 0, and u8 the last reason the craft held its
-warheads (``warheads.Held``); the rest zero. In SEEK only the weave's bytes
-are kept, so a weave's rest outlasts the search.
+warheads (``warheads.Held``); then the route ``seek`` flies
+(``patrol.ROUTE_BYTES``); the rest zero. In SEEK only the weave's and the
+route's bytes are kept, so a weave's rest outlasts the search and the
+route outlasts every phase.
 
 Invariants:
     - The decision follows from the view, the question and the notebook;
@@ -115,6 +120,8 @@ from ..world import Warhead
 from . import avoidance
 from . import BehaviorCode
 from . import Decision
+from . import patrol
+from . import seek
 
 logger = logging.getLogger(__name__)
 
@@ -198,16 +205,20 @@ class Memory:
     shots: int = 0
     fresh: int = 0
     held: int = warheads.Held.NONE
+    # patrol imports this module, so its Route is made at call time.
+    route: patrol.Route = dataclasses.field(default_factory=lambda: patrol.Route())
 
     @classmethod
     def read(cls, scratch: bytes) -> Memory:
         """Return the memory scratch bytes hold."""
         ordered_at = _SCRATCH.size + weave.STATE_BYTES
+        warheads_at = ordered_at + _ORDERED.size
         return cls(
             *_SCRATCH.unpack_from(scratch),
             weave.Weave.read(scratch[_SCRATCH.size :]),
             *_ORDERED.unpack_from(scratch, ordered_at),
-            *_WARHEADS.unpack_from(scratch, ordered_at + _ORDERED.size),
+            *_WARHEADS.unpack_from(scratch, warheads_at),
+            patrol.Route.read(scratch[warheads_at + _WARHEADS.size :]),
         )
 
     def write(self) -> bytes:
@@ -217,6 +228,7 @@ class Memory:
         )
         packed += self.weave.write() + _ORDERED.pack(self.ordered)
         packed += _WARHEADS.pack(self.shots, self.fresh, self.held)
+        packed += self.route.write()
         return packed + bytes(notebook.SCRATCH_BYTES - len(packed))
 
 
@@ -231,7 +243,7 @@ def think(view: CraftView, question: Question) -> Decision:
         chaser = pursuer(view, question)
         if chaser is not None and fights_back(view, question, chaser):
             targets = [chaser]
-    return fight(view, question, targets)
+    return fight(view, question, targets, cruising=True)
 
 
 def fight(
@@ -239,16 +251,18 @@ def fight(
     question: Question,
     targets: list[Contact],
     disabling: bool = False,
+    cruising: bool = False,
 ) -> Decision:
     """Return the craft's next move in a dogfight at the nearest of targets,
     each a contact it may fight; ``disabling`` sets the Disable order's
     cannons (``cannon_fire``) and warhead limit
-    (``warheads.outlasts_disabling``)."""
+    (``warheads.outlasts_disabling``); ``cruising`` flies ``seek``'s cruise
+    while there is no target, else the craft keeps its course."""
     tick = question.tick
     book = notebook.open_for(view, CODE, tick)
     memory = Memory.read(book.scratch)
     if book.phase == SEEK:
-        memory = Memory(weave=memory.weave)
+        memory = Memory(weave=memory.weave, route=memory.route)
     if memory.fresh and view.lock_state != Lock.DECLARED:
         memory = dataclasses.replace(memory, fresh=0)
     tier = tactics.skill_tier(view.skill)
@@ -275,7 +289,7 @@ def fight(
 
     target, memory = _choose_target(view, targets, memory, tier, tick)
     if target is None:
-        return _seek(view, question, book, memory, interval)
+        return _seek(view, question, book, memory, interval, cruising)
 
     dx, dy, dz = tactics.offset(view, target)
     reach = geometry.distance(dx, dy, dz)
@@ -621,10 +635,11 @@ def _seek(
     book: notebook.Notebook,
     memory: Memory,
     interval: int | None,
+    cruising: bool,
 ) -> Decision:
     """Return the decision of a craft with no target, its memory holding only
-    the weave's state: weave from an enemy on its tail, else hold fire on its
-    course."""
+    the weave's state and the route: weave from an enemy on its tail, else
+    hold fire on ``seek``'s cruise when cruising, on its course when not."""
     tick = question.tick
     threat = tail_threat(view, question)
     if threat is not None and weave.may_start(memory.weave, tick):
@@ -634,13 +649,17 @@ def _seek(
         book = dataclasses.replace(
             book.in_phase(EVADE, tick),
             dice=state,
-            scratch=Memory(weave=started).write(),
+            scratch=Memory(weave=started, route=memory.route).write(),
         )
         actions = dataclasses.replace(_weave_actions(move, interval), target=NO_OBJECT)
         return Decision(book.encode(), actions)
     book = book if book.phase == SEEK else book.in_phase(SEEK, tick)
-    actions = Actions(
-        think_interval=interval, target=NO_OBJECT, lasers=(HOLD_FIRE, HOLD_FIRE)
+    moved = Actions()
+    if cruising:
+        route, moved = seek.fly(view, question, memory.route)
+        memory = dataclasses.replace(memory, route=route)
+    actions = dataclasses.replace(
+        moved, think_interval=interval, target=NO_OBJECT, lasers=(HOLD_FIRE, HOLD_FIRE)
     )
     return Decision(dataclasses.replace(book, scratch=memory.write()).encode(), actions)
 
@@ -654,7 +673,7 @@ def _choose_target(
     if kept is not None and tick < memory.look_again:
         return kept, memory
     if not targets:
-        return None, Memory(weave=memory.weave)
+        return None, Memory(weave=memory.weave, route=memory.route)
     nearest = min(
         targets,
         key=lambda contact: (
@@ -705,7 +724,7 @@ def _evade_ordered(view: CraftView, question: Question) -> Decision:
     threat = tail_threat(view, question)
     chaser = NO_OBJECT if threat is None else threat.object_index
     started, move, state = weave.start(view, chaser, memory.weave, book.dice, tick)
-    memory = Memory(weave=started, ordered=1)
+    memory = Memory(weave=started, ordered=1, route=memory.route)
     book = dataclasses.replace(
         book.in_phase(EVADE, tick), dice=state, scratch=memory.write()
     )

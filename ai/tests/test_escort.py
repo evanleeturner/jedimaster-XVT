@@ -318,7 +318,9 @@ def test_a_disabled_host_is_circled_a_quarter_turn_off(craft, host, ask) -> None
     assert actions.target == NO_OBJECT
 
 
-def test_with_no_station_given_it_holds_its_course(craft, host, foe, ask) -> None:
+def test_with_no_station_given_and_nowhere_to_cruise_it_holds_its_course(
+    craft, host, foe, ask
+) -> None:
     """Before the engine names the escorted craft, an enemy after the host is
     no threat it knows of."""
     me = craft(books=Books.TARGETS_LEFT)
@@ -327,7 +329,9 @@ def test_with_no_station_given_it_holds_its_course(craft, host, foe, ask) -> Non
     assert actions.target == NO_OBJECT
 
 
-def test_with_the_host_not_shown_it_holds_its_course(craft, foe, ask) -> None:
+def test_with_the_host_not_shown_and_nowhere_to_cruise_it_holds_its_course(
+    craft, foe, ask
+) -> None:
     actions = ask(craft(), foe()).actions
     assert actions.steer is None and actions.throttle is None
     assert actions.target == NO_OBJECT

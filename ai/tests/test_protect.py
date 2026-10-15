@@ -220,7 +220,7 @@ def test_with_no_attacker_a_chaser_is_fought_back(craft, friend, foe, ask) -> No
     assert actions.target == 12
 
 
-def test_with_no_attacker_or_chaser_it_holds_its_course(
+def test_with_no_attacker_or_chaser_and_nowhere_to_cruise_it_holds_its_course(
     craft, friend, foe, ask
 ) -> None:
     """An enemy in range that attacks neither the named craft nor this one is

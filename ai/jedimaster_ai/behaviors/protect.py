@@ -14,7 +14,7 @@ Purpose:
 
     With no attacker, a craft an enemy is after fights that enemy while it
     may fight back (``attack.pursuer``, ``attack.fights_back``), and
-    otherwise holds its course, as Attack seeks.
+    otherwise cruises as Attack seeks (``seek``).
 
 Invariants:
     - It fights only craft the engine marks hostile (``tactics.enemies``),
@@ -52,7 +52,7 @@ def think(view: CraftView, question: Question) -> Decision:
         chaser = attack.pursuer(view, question)
         if chaser is not None and attack.fights_back(view, question, chaser):
             targets = [chaser]
-    return attack.fight(view, question, targets)
+    return attack.fight(view, question, targets, cruising=True)
 
 
 def attackers(view: CraftView, question: Question) -> list[Contact]:

@@ -173,6 +173,16 @@
       "fields": ["object", "named", "hit", "attackers"],
       "text": "Craft {object} on a Protect order has {named} craft its order names, {hit} of them hit by a craft of some team, and {attackers} enemies attacking those: each that targets one, or whose shot hit one last"
     },
+    "seek.no_point": {
+      "level": "D",
+      "fields": ["object"],
+      "text": "Craft {object} has no target, no waypoint on and no start point given, and holds its course"
+    },
+    "seek.start_point": {
+      "level": "D",
+      "fields": ["object", "distance", "throttle"],
+      "text": "Craft {object} has no target and no waypoint on, and makes for its group's start point, {distance} away, at throttle {throttle} (0: a starship or freighter stopped there, or a starship turning)"
+    },
     "think.answer": {
       "level": "D",
       "fields": ["object", "actions", "yaw", "pitch", "roll", "throttle", "activity", "interval", "target", "mode_first", "burst_first", "mode_second", "burst_second", "launcher", "paired", "turrets", "arriving", "speed", "order_slot", "order_state", "notebook"],

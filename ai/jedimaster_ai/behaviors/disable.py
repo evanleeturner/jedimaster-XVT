@@ -22,8 +22,7 @@ Purpose:
     while it may fight back (``attack.pursuer``, ``attack.fights_back``),
     with every cannon but the ion cannons, and its warheads, as Attack
     fights back: a chaser is not the order's target; a disabled craft is
-    never after it. Otherwise the
-    craft holds its course, as Attack seeks.
+    never after it. Otherwise it cruises as Attack seeks (``seek``).
 
 Invariants:
     - It fires at a target whose subsystems work only with ion cannons:
@@ -60,7 +59,7 @@ def think(view: CraftView, question: Question) -> Decision:
         chaser = attack.pursuer(view, question)
         if chaser is not None and attack.fights_back(view, question, chaser):
             return attack.fight(view, question, [chaser])
-    return attack.fight(view, question, working, disabling=True)
+    return attack.fight(view, question, working, disabling=True, cruising=True)
 
 
 def targets(view: CraftView, question: Question) -> list[Contact]:

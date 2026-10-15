@@ -189,7 +189,7 @@ def test_a_target_whose_subsystems_fail_is_dropped_for_the_next(
     assert then.actions.target == OTHER
 
 
-def test_with_every_target_disabled_it_holds_fire_and_keeps_course(
+def test_with_every_target_disabled_and_nowhere_to_cruise_it_holds_fire_and_keeps_course(
     craft, foe, ask
 ) -> None:
     decision = ask(craft(), foe(flags=DISABLED))

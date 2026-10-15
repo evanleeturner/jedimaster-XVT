@@ -30,7 +30,8 @@ Purpose:
 
     An enemy on its tail with no fight to take it on, or a weave under way,
     is flown as Attack seeks: it weaves. With no craft escorted (none named,
-    or one the question does not show) it holds its course, as Attack seeks.
+    or one the question does not show) it cruises as Attack seeks
+    (``seek``) until one shows.
 
 Invariants:
     - It fights only craft the engine marks hostile (``tactics.enemies``),
@@ -92,7 +93,7 @@ def think(view: CraftView, question: Question) -> Decision:
         chaser = attack.pursuer(view, question)
         if chaser is not None and attack.fights_back(view, question, chaser):
             targets = [chaser]
-    decision = attack.fight(view, question, targets)
+    decision = attack.fight(view, question, targets, cruising=host is None)
     if host is None or notebook.decode(decision.notebook).phase != attack.SEEK:
         return decision
     return dataclasses.replace(decision, actions=station(view, question, host))
