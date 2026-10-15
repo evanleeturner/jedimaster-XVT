@@ -372,6 +372,10 @@ add_test(NAME ai_commands COMMAND test_ai_commands)
 # launches: src/xvt/flight/ai_countermeasures.c.
 xvt_add_engine_test(test_ai_countermeasures test_ai_countermeasures.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_countermeasures.c")
 add_test(NAME ai_countermeasures COMMAND test_ai_countermeasures)
+# A computer craft's formation place in its view, and the formation books its activity keeps:
+# src/xvt/flight/ai_formation.c.
+xvt_add_engine_test(test_ai_formation test_ai_formation.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_formation.c")
+add_test(NAME ai_formation COMMAND test_ai_formation)
 # A computer craft's waypoints in its view, its flight group's mission points 4 to 11:
 # src/xvt/flight/ai_waypoints.c.
 xvt_add_engine_test(test_ai_waypoints test_ai_waypoints.c "${PROJECT_SOURCE_DIR}/src/xvt/flight/ai_waypoints.c")

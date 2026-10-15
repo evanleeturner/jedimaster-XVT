@@ -133,6 +133,13 @@ def test_debug_records_each_craft_in_and_out(view, caplog) -> None:
     assert "think.question tick=1000 craft=2" in caplog.text
 
 
+def test_debug_records_the_formation_place(view, caplog) -> None:
+    caplog.set_level(logging.DEBUG, logger="jedimaster_ai")
+    placed = view(leader=4, books=Books.PLACE, place=(-1200, 3400, 56))
+    think(Question(1000, (placed,)))
+    assert " place_x=-1200 place_y=3400 place_z=56 " in caplog.text
+
+
 def test_without_debug_nothing_is_recorded(view, caplog) -> None:
     caplog.set_level(logging.INFO, logger="jedimaster_ai")
     think(first_question(view))

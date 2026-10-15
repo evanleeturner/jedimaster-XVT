@@ -132,7 +132,8 @@ def _log_view(view: CraftView) -> None:
         "inside_y=%d inside_z=%d home_x=%d home_y=%d home_z=%d "
         "countermeasure=%d countermeasures_left=%d countermeasure_working=%d "
         "chaff_seconds=%d countermeasure_cooldown=%d threats=%d waypoints=%d "
-        "commands=%d command_target=%d avoid_target=%d "
+        "commands=%d command_target=%d avoid_target=%d place_x=%d place_y=%d "
+        "place_z=%d "
         'notebook="%s"',
         view.object_index,
         view.object_signature,
@@ -195,6 +196,9 @@ def _log_view(view: CraftView) -> None:
         view.commands,
         view.command_target,
         view.avoid_target,
+        view.place[0],
+        view.place[1],
+        view.place[2],
         view.notebook.hex(),
     )
     for threat in view.threats:

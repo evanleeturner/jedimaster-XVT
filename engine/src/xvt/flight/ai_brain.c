@@ -15,6 +15,7 @@
 #include "xvt/flight/ai_books.h"
 #include "xvt/flight/ai_commands.h"
 #include "xvt/flight/ai_countermeasures.h"
+#include "xvt/flight/ai_formation.h"
 #include "xvt/flight/ai_waypoints.h"
 #include "xvt/flight/craft.h"
 #include "xvt/flight/fediskio.h"
@@ -258,7 +259,9 @@ static void ai_brain_view_weapons(const struct craft_data *craft,
  * the craft's leader_obj_idx, 0xFFFF when it leads. Its countermeasures
  * and the homing shots aimed at it come from
  * ai_countermeasures_view_craft, its group's waypoints from
- * ai_waypoints_view_craft. */
+ * ai_waypoints_view_craft, a player's commands from
+ * ai_commands_view_craft and its formation place from
+ * ai_formation_view_craft. */
 static void ai_brain_view_craft(uint16_t object_index,
 				const struct ai_brain_batch *batch,
 				struct ai_wire_craft_view *view)
@@ -308,6 +311,7 @@ static void ai_brain_view_craft(uint16_t object_index,
 	ai_countermeasures_view_craft(object_index, view);
 	ai_waypoints_view_craft(object_index, view);
 	ai_commands_view_craft(object_index, view);
+	ai_formation_view_craft(object_index, view);
 	memcpy(view->notebook, craft->ai_notebook, sizeof view->notebook);
 }
 
@@ -461,7 +465,9 @@ static void ai_brain_apply_arrival(uint16_t object_index,
 
 /* Applies one craft answer the reader accepted: the notebook always, then
  * each action the pilot program sent, a steer only to a craft not entering
- * hyperspace; the order, depart and dock actions last, through ai_books. */
+ * hyperspace, an activity after the formation books take its change
+ * (ai_formation_activity_changed); the order, depart and dock actions
+ * last, through ai_books. */
 static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 {
 	struct craft_data *craft =
@@ -481,6 +487,9 @@ static void ai_brain_apply_answer(const struct ai_wire_craft_answer *answer)
 		craft->throttle_speed = answer->throttle;
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_ACTIVITY)) != 0) {
+		ai_formation_activity_changed(answer->object_index,
+					      controller->activity,
+					      answer->activity);
 		controller->activity = answer->activity;
 	}
 	if ((answer->actions & (1u << AI_WIRE_ACTION_THINK_INTERVAL)) != 0) {

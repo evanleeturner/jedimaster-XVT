@@ -108,6 +108,16 @@
       "fields": ["why"],
       "text": "The AI program named in the settings could not be started, so computer craft sit this flight: {why}"
     },
+    "ai.formation_closed": {
+      "level": "D",
+      "fields": ["object", "activity", "predicted"],
+      "text": "Craft {object} took activity {activity}, going home or into a hangar, and its formation spacing became 1, so the craft that follow it close up ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
+    "ai.formation_set": {
+      "level": "D",
+      "fields": ["fg", "formation", "spacing", "predicted"],
+      "text": "Flight group {fg} took the mission's formation {formation} and spacing {spacing}, every craft of it in the battle, as a craft of it ended leaving a hangar ({predicted} is 1 in a predicted step, run again once confirmed)"
+    },
     "ai.hyperspace_departed": {
       "level": "I",
       "fields": ["object", "fg", "craft", "captured", "carried", "tick"],

@@ -33,8 +33,11 @@ enum {
 			    AI_WIRE_CONTACTS_MAX * AI_WIRE_CONTACT_BYTES,
 	/* Where a craft view's notebook starts. */
 	VIEW_NOTEBOOK = AI_WIRE_CRAFT_VIEW_BYTES - AI_NOTEBOOK_BYTES,
-	/* Where its commands start, the 5 bytes before the notebook. */
-	VIEW_COMMANDS = VIEW_NOTEBOOK - 5,
+	/* Where its formation place starts, the 12 bytes before the
+	 * notebook. */
+	VIEW_PLACE = VIEW_NOTEBOOK - 12,
+	/* Where its commands start, the 5 bytes before the place. */
+	VIEW_COMMANDS = VIEW_PLACE - 5,
 	/* Where its waypoints start, the 97 bytes before the commands. */
 	VIEW_WAYPOINTS = VIEW_COMMANDS - 97,
 	/* Where its countermeasures start, the 72 bytes before the
@@ -948,6 +951,54 @@ static void check_commands_and_evaded(void)
 	XVT_ASSERT_INT_EQ(craft->player_command_avoid_target_obj_idx, 2);
 }
 
+/* The view carries a follower's formation place, from
+ * ai_formation_view_craft: craft 1 follows craft 2 in formation 0's place
+ * 1 at separation 4, 499 out along the leader's side axis. Its answer ends
+ * its leaving-hangar mark, so the group takes the mission's formation and
+ * spacing through ai_formation_activity_changed. */
+static void check_view_place_and_hangar_exit(void)
+{
+	fresh_world();
+	struct craft_data *craft = due_craft(1);
+	craft->leader_obj_idx = 2;
+	craft->craft_ordinal = 1;
+	craft->ai_controller.activity = AI_ACTIVITY_LEAVING_HANGAR;
+	g_test_objects[2].object_type = 5;
+	g_test_objects[2].flight_group_idx = TEST_GROUP;
+	g_test_objects[2].world_x = 1000;
+	g_test_mobiles[2].orient_matrix_dirty = 1;
+	g_test_craft[2].ai_controller.think_timer = TEST_INTERVAL;
+	g_test_craft[2].leader_obj_idx = UINT8_MAX;
+	g_test_craft[2].ai_flight.separation = 4;
+	g_mission_flight_groups[TEST_GROUP].fg.formation = 3;
+	g_mission_flight_groups[TEST_GROUP].fg.formation_spacing = 2;
+	struct model_def kept = g_model_defs[craft->model_index];
+	g_model_defs[craft->model_index].bound_size_x = 100;
+	g_model_defs[craft->model_index].bound_size_y = 0;
+	g_model_defs[craft->model_index].bound_size_z = 0;
+	g_model_defs[craft->model_index].bound_size_shift = 0;
+	uint8_t *at = start_answer(g_fake.answer, TEST_TICK, 1);
+	at = craft_answer(at, 1, 0, 1);
+	*at++ = AI_WIRE_ACTION_ACTIVITY;
+	*at++ = AI_ACTIVITY_NONE;
+	g_fake.answer_length = finish_answer(g_fake.answer, at);
+
+	ai_brain_think_due_craft();
+
+	g_model_defs[craft->model_index] = kept;
+	XVT_ASSERT_INT_EQ(g_fake.calls, 1);
+	const uint8_t *view = g_fake.question[0] + AI_WIRE_HEAD_BYTES;
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_PLACE), 1499);
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_PLACE + 4), 0);
+	XVT_ASSERT_INT_EQ(get_u32(view + VIEW_PLACE + 8), 0);
+	XVT_ASSERT_INT_EQ(craft->ai_controller.activity, AI_ACTIVITY_NONE);
+	for (int slot = 1; slot <= 2; ++slot) {
+		XVT_ASSERT_INT_EQ(g_test_craft[slot].ai_flight.formation_type,
+				  3);
+		XVT_ASSERT_INT_EQ(g_test_craft[slot].ai_flight.separation, 2);
+	}
+}
+
 int main(void)
 {
 	check_no_exchange_changes_nothing();
@@ -959,6 +1010,7 @@ int main(void)
 	check_warhead_action();
 	check_countermeasure_action();
 	check_view_waypoints();
+	check_view_place_and_hangar_exit();
 	check_commands_and_evaded();
 	check_arrival_action();
 	check_answer_applied();

@@ -126,6 +126,7 @@ class Books(enum.IntFlag):
     - HOME_POINT: its home point is on, so ``home_point`` is given
     - TARGETS_LEFT: its current order still has a target, in the battle or
       in a group still to arrive, by the 1997 count
+    - PLACE: it follows a leader, so ``place`` is given
     """
 
     ORDERS_DONE = 0x001
@@ -138,6 +139,7 @@ class Books(enum.IntFlag):
     BY_MOTHERSHIP = 0x080
     HOME_POINT = 0x100
     TARGETS_LEFT = 0x200
+    PLACE = 0x400
 
 
 @dataclasses.dataclass(frozen=True)
@@ -178,7 +180,9 @@ class CraftView:
     them. ``commands`` holds ``Commands`` bits; ``command_target`` is the
     object a player's attack or cover order gave the craft and
     ``avoid_target`` the one an ignore order told it to leave alone, each
-    NO_OBJECT for none.
+    NO_OBJECT for none. ``place`` is the world position of the craft's
+    place in its flight's formation, beside its leader by the 1997 rule,
+    given with the PLACE book; (0, 0, 0) when not.
     ``notebook`` is the craft's NOTEBOOK_BYTES of memory, as the
     program last wrote it, or all zero bytes before the program first
     writes it.
@@ -244,6 +248,7 @@ class CraftView:
     commands: int
     command_target: int
     avoid_target: int
+    place: tuple[int, int, int]
     notebook: bytes
 
     @property

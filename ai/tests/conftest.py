@@ -79,6 +79,7 @@ VIEW = CraftView(
     commands=0,
     command_target=NO_OBJECT,
     avoid_target=NO_OBJECT,
+    place=(0, 0, 0),
     notebook=bytes(NOTEBOOK_BYTES),
 )
 # Contact 0 is VIEW's own craft; contact 1 another craft, its order's target.

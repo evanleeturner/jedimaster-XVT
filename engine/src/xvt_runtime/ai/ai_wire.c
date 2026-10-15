@@ -126,6 +126,7 @@ static uint8_t *put_craft_view(uint8_t *at,
 	}
 	at = put_waypoints(at, view);
 	at = put_commands(at, view);
+	at = put_point(at, view->place);
 	memcpy(at, view->notebook, sizeof view->notebook);
 	return at + sizeof view->notebook;
 }

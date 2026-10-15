@@ -53,8 +53,10 @@
  * wait mark, bit 1 the evade command), u16 command target (the object a
  * player's attack or cover order gave it, 0xFFFF for none), u16 avoid
  * target (the object a player's ignore order told it to leave alone,
- * 0xFFFF for none); then the notebook's AI_NOTEBOOK_BYTES. Then u16 contact count,
- * u16 zero, and one contact per craft in the active region, at most
+ * 0xFFFF for none); then its formation place: i32 x, i32 y, i32 z, the
+ * world position of its place beside its leader, given with the books'
+ * place bit (0 when not); then the notebook's AI_NOTEBOOK_BYTES. Then u16
+ * contact count, u16 zero, and one contact per craft in the active region, at most
  * AI_WIRE_CONTACTS_MAX, each AI_WIRE_CONTACT_BYTES long: u16 object index,
  * u16 object signature, u8 object type, u8 genus, u8 team, u8 flight group,
  * u8 object kind, u8 flags (bit 0: a player flies it), i32 x, i32 y, i32 z,
@@ -120,12 +122,12 @@ extern "C" {
 
 enum ai_wire_constant {
 	AI_WIRE_MAGIC = 0x57504D4A, /* "JMPW" */
-	AI_WIRE_VERSION = 10,
+	AI_WIRE_VERSION = 11,
 	AI_WIRE_KIND_QUESTION = 1,
 	AI_WIRE_KIND_ANSWER = 2,
 	/* The length field and the header. */
 	AI_WIRE_HEAD_BYTES = 20,
-	AI_WIRE_CRAFT_VIEW_BYTES = 291 + AI_NOTEBOOK_BYTES,
+	AI_WIRE_CRAFT_VIEW_BYTES = 303 + AI_NOTEBOOK_BYTES,
 	/* A flight group's order slots, 0 to 3. */
 	AI_WIRE_ORDER_SLOTS = 4,
 	/* The x, y and z of a point. */
@@ -212,6 +214,8 @@ enum ai_wire_books {
 	/* Its current order still has a target, in the battle or in a group
 	 * still to arrive, by the 1997 count. */
 	AI_WIRE_BOOKS_TARGETS_LEFT = 0x200,
+	/* It follows a leader, so its formation place is given. */
+	AI_WIRE_BOOKS_PLACE = 0x400,
 };
 
 /* A craft view's countermeasure, the engine's countermeasure type; the
@@ -288,6 +292,7 @@ struct ai_wire_craft_view {
 	uint8_t commands;
 	uint16_t command_target;
 	uint16_t avoid_target;
+	int32_t place[AI_WIRE_POINT_AXES];
 	uint8_t notebook[AI_NOTEBOOK_BYTES];
 };
 

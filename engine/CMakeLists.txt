@@ -63,6 +63,7 @@ set(XVT_RECOVERED_SOURCES
     src/xvt/flight/ai_brain.c
     src/xvt/flight/ai_commands.c
     src/xvt/flight/ai_countermeasures.c
+    src/xvt/flight/ai_formation.c
     src/xvt/flight/ai_waypoints.c
     src/xvt/flight/craft.c
     src/xvt/flight/fediskio.c
