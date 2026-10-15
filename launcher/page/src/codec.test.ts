@@ -46,7 +46,7 @@ test("every request is read back as written", () => {
 
 test("every kind of ok reply is read back as written", () => {
   const results: unknown[] = [
-    { launcher_version: "0.1.0", schema_revision: 7 },
+    { launcher_version: "0.1.0", schema_revision: 8 },
     { found: true, path: "~/Games/XvT", balance_of_power: false },
     { found: false, path: null, balance_of_power: false },
     {
@@ -173,7 +173,7 @@ test("a reply refuses a result that matches no command", () => {
   refused(reply({ launcher_version: "0.1.0", schema_revision: 1 }));
   refused(reply({ shown: "yes" }));
   refused(reply({ shown: true, more: 1 }));
-  refused(reply({ launcher_version: 1, schema_revision: 7 }));
+  refused(reply({ launcher_version: 1, schema_revision: 8 }));
   refused(reply({ found: "yes", path: null, balance_of_power: false }));
   refused(reply({ found: true, path: 3, balance_of_power: false }));
   refused(reply({ settings: { art_scaling: "stretched" } }));
@@ -394,6 +394,7 @@ const NO_OPTIONS = {
   battle_length: "3",
   mission_time_limit: "default",
   continue_sequence: "continue",
+  sith: "none",
 };
 const SOME_OPTIONS = {
   ...NO_OPTIONS,
@@ -508,6 +509,7 @@ test("a launch or option reply with a wrong value is refused", () => {
     { player: "x", options: NO_OPTIONS },
     { player: "42", options: { difficulty: "easy" } },
     { player: "42", options: { ...NO_OPTIONS, craft_jumping: null } },
+    { player: "42", options: { ...NO_OPTIONS, sith: "emperor" } },
     {
       mission_type: "melee",
       side: "rebel",
@@ -581,6 +583,7 @@ const CHOICES: Record<string, string[]> = {
     ...Array.from({ length: 20 }, (_, i) => String(i + 1)),
   ],
   continue_sequence: ["restart", "continue"],
+  sith: ["none", "apprentices", "lord"],
 };
 
 test("options.set takes every choice of every option and nothing else", () => {

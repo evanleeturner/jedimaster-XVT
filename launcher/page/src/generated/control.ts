@@ -205,7 +205,8 @@ export interface OptionsSetArgs {
     | "random_setup"
     | "battle_length"
     | "mission_time_limit"
-    | "continue_sequence";
+    | "continue_sequence"
+    | "sith";
   value: string;
 }
 /**
@@ -232,7 +233,7 @@ export interface OkReply {
  */
 export interface HelloResult {
   launcher_version: string;
-  schema_revision: 7;
+  schema_revision: 8;
 }
 /**
  * The install found (home shown as ~) and whether Balance of Power is in it.
@@ -477,6 +478,7 @@ export interface GameOptions {
     | "19"
     | "20";
   continue_sequence: "restart" | "continue";
+  sith: "none" | "apprentices" | "lord";
 }
 /**
  * The command did not run; the reason.

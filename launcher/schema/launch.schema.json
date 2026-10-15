@@ -133,6 +133,14 @@
         },
         "random_setup": {
           "type": "boolean"
+        },
+        "sith": {
+          "description": "Enemy Sith pilots; left out means none, which a game build from before the setting also flies.",
+          "enum": [
+            "none",
+            "apprentices",
+            "lord"
+          ]
         }
       }
     }

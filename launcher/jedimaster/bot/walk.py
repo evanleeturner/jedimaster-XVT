@@ -12,7 +12,7 @@ Flow:
     was picked so far carried in the next menu's key (``kind|side|mission``);
     ``launch_solo`` checks nothing itself and asks the launcher to fly the
     battle through ``launch.solo``, which checks every value again.
-    ``options`` shows the seven options as menus (five to a message, the rest
+    ``options`` shows the eight options as menus (five to a message, the rest
     in a second message) and ``pick_option`` sets one.
 
 Invariants:

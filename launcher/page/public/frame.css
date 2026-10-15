@@ -681,7 +681,7 @@ html.framed .discord-note {
 
 html.framed .options-copy {
   position: absolute;
-  inset: 385px auto auto 84px;
+  inset: 383px auto auto 84px;
   z-index: 2;
   inline-size: 360px;
 }
@@ -697,7 +697,7 @@ html.framed .options-copy-item {
   display: flex;
   gap: 4px;
   min-inline-size: 0;
-  line-height: 13px;
+  line-height: 11px;
   white-space: nowrap;
 }
 

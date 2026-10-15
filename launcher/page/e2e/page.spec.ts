@@ -453,7 +453,7 @@ test("with no battle the page says so and offers no Cancel", async ({
   ).toBeHidden();
   await expect(page.locator("#battle-cancel")).toHaveAttribute("hidden", "");
   await expect(page.locator("#battle-ending")).toHaveAttribute("hidden", "");
-  await expect(page.locator("#options-list dt")).toHaveCount(7);
+  await expect(page.locator("#options-list dt")).toHaveCount(8);
   await expect(page.locator("#options-list dd")).toHaveText([
     "Medium",
     "On",
@@ -462,6 +462,7 @@ test("with no battle the page says so and offers no Cancel", async ({
     "3 wins",
     "The mission's own limit",
     "Continue",
+    "None",
   ]);
 });
 
@@ -608,7 +609,7 @@ test("the game options are shown read-only and redrawn when they change", async 
     page.getByRole("region", { name: "Game options" }),
   ).toBeVisible();
   const terms = page.locator("#options-list dt");
-  await expect(terms).toHaveCount(7);
+  await expect(terms).toHaveCount(8);
   await expect(page.locator("#options-list dd").first()).toHaveText("Hard");
   await expect(
     page.locator("#options-list dt", { hasText: "Mission time limit" }),
@@ -946,6 +947,7 @@ test("an options push from the bot redraws the open page's options", async ({
         battle_length: "4",
         mission_time_limit: "none",
         continue_sequence: "restart",
+        sith: "lord",
       },
     },
   });
@@ -957,5 +959,6 @@ test("an options push from the bot redraws the open page's options", async ({
     "4 wins",
     "No limit",
     "Start again",
+    "A Lord",
   ]);
 });

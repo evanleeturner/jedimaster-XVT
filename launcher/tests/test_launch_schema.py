@@ -46,7 +46,7 @@ GOOD_DESCRIPTION = {
     "mission": "train/1ta02bz.tie",
     "pilot": "Ace",
 }
-GOOD_RESULT = {
+GOOD_RESULT_V2 = {
     "schema_version": 2,
     "status": "flown",
     "exit_code": 0,
@@ -57,6 +57,31 @@ GOOD_RESULT = {
     "goals_met_seconds": 305,
     "why": "",
 }
+"""A result from a game build from before the Sith setting."""
+SITH_NONE = {
+    "setting": "none",
+    "flight_group": -1,
+    "flight_name": "",
+    "craft_type": -1,
+    "apprentices_flown": 0,
+    "apprentices_lost": 0,
+    "lord_flown": 0,
+    "lord_lost": 0,
+    "why": "",
+}
+SITH_LORD = {
+    "setting": "lord",
+    "flight_group": 2,
+    "flight_name": "Beta",
+    "craft_type": 6,
+    "apprentices_flown": 2,
+    "apprentices_lost": 1,
+    "lord_flown": 1,
+    "lord_lost": 1,
+    "why": "",
+}
+GOOD_RESULT = {**GOOD_RESULT_V2, "schema_version": 3, "sith": SITH_NONE}
+"""A result of version 3: the same, with the closed ``sith`` block."""
 
 
 def reference(schema_name: str) -> jsonschema.Draft202012Validator:
@@ -178,6 +203,14 @@ BAD_RESULTS = [
     changed(GOOD_RESULT, why=None),
     changed(GOOD_RESULT, why=7),
     changed(GOOD_RESULT, extra=1),
+    changed(GOOD_RESULT, schema_version=2),
+    {k: v for k, v in GOOD_RESULT.items() if k != "sith"},
+    changed(GOOD_RESULT, sith={**SITH_NONE, "setting": "emperor"}),
+    changed(GOOD_RESULT, sith={**SITH_NONE, "extra": 1}),
+    changed(GOOD_RESULT, sith={k: v for k, v in SITH_NONE.items() if k != "why"}),
+    changed(GOOD_RESULT, sith={**SITH_LORD, "apprentices_lost": -1}),
+    changed(GOOD_RESULT, sith={**SITH_LORD, "flight_group": -2}),
+    changed(GOOD_RESULT, sith={**SITH_LORD, "flight_name": 7}),
     [],
 ]
 
@@ -194,6 +227,21 @@ def test_good_results_fit_both_validators():
         )
         assert list(reference("result.schema.json").iter_errors(doc)) == []
         assert valid(doc, result_schema())
+
+
+def test_both_result_versions_read_and_each_refuses_the_other_s_shape():
+    assert valid(GOOD_RESULT_V2, result_schema(2))
+    assert valid(changed(GOOD_RESULT, sith=SITH_LORD), result_schema(3))
+    assert valid(changed(GOOD_RESULT, sith=SITH_LORD), result_schema())
+    assert not valid(GOOD_RESULT_V2, result_schema(3))
+    assert not valid(GOOD_RESULT, result_schema(2))
+    with pytest.raises(ValueError, match="no result schema"):
+        result_schema(4)
+
+
+def test_a_flown_result_with_a_sith_flight_fits_the_reference_validator():
+    doc = changed(GOOD_RESULT, sith=SITH_LORD)
+    assert list(reference("result.schema.json").iter_errors(doc)) == []
 
 
 def test_bad_results_are_refused_by_both_validators():

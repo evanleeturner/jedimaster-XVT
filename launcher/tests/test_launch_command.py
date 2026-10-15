@@ -35,6 +35,7 @@ from solodata import WIRE
 from jedimaster.__main__ import main
 from jedimaster.launch.builds import set_current
 from jedimaster.launch.check import errors
+from jedimaster.launch.cli import sith_clause
 from jedimaster.launch.cli import summary
 from jedimaster.launch.model import ai_program_of
 from jedimaster.launch.model import build_description
@@ -81,6 +82,16 @@ if pilot == "BadJson":
     sys.exit(0)
 if pilot == "BadSchema":
     result["kills"] = -5
+SITH = {"setting": "lord", "flight_group": 2, "flight_name": "Beta", "craft_type": 6,
+        "apprentices_flown": 3, "apprentices_lost": 1, "lord_flown": 1, "lord_lost": 1,
+        "why": ""}
+if pilot in ("SithLord", "BadName"):
+    result.update(schema_version=3, sith=SITH)
+if pilot == "BadName":
+    result["sith"]["flight_name"] = "Be\u00e9ta"
+    raw = json.dumps(result, ensure_ascii=False).encode("latin-1")
+    open(description["result"], "wb").write(raw)
+    sys.exit(0)
 if pilot == "Slow":
     time.sleep(30)
 open(description["result"], "w").write(json.dumps(result))
@@ -290,6 +301,68 @@ def test_bad_arguments_exit_two(engine, capsys):
     assert main(["launch", "--type", "training", "--mission", "a.tie",
                  "--pilot", "Ace", "--engine", engine]) == 2  # fmt: skip
     capsys.readouterr()
+
+
+def test_a_version_3_result_prints_the_sith_clause_on_the_one_line(engine, capsys):
+    assert main(command(engine, "SithLord")) == 0
+    assert capsys.readouterr().out == (
+        "flown: completed, score 120, kills 4, losses 1, goals met at 305 s"
+        "; Sith flight Beta (TIE Interceptor): the Lord was destroyed, 2 of 3 apprentices lived\n"
+    )
+
+
+def test_a_result_that_is_not_clean_utf8_still_reads_with_a_replacement_mark(
+    engine, capsys
+):
+    assert main(command(engine, "BadName")) == 0
+    out = capsys.readouterr().out
+    assert "Sith flight Be\ufffdta (TIE Interceptor)" in out
+
+
+SITH_BASE = {"setting": "lord", "flight_group": 2, "flight_name": "Beta",
+             "craft_type": 6, "apprentices_flown": 3, "apprentices_lost": 1,
+             "lord_flown": 1, "lord_lost": 1, "why": ""}  # fmt: skip
+
+
+def test_the_sith_clause_for_each_fate():
+    def clause(**changes):
+        return sith_clause({**SITH_BASE, **changes})
+
+    assert clause(setting="none") == ""
+    assert clause(setting="none", flight_group=-1) == ""
+    assert clause() == (
+        "; Sith flight Beta (TIE Interceptor): the Lord was destroyed, "
+        "2 of 3 apprentices lived"
+    )
+    assert clause(lord_lost=0, apprentices_lost=0) == (
+        "; Sith flight Beta (TIE Interceptor): the Lord lived, all 3 apprentices lived"
+    )
+    assert clause(
+        setting="apprentices", lord_flown=0, lord_lost=0, apprentices_lost=3
+    ) == ("; Sith flight Beta (TIE Interceptor): all 3 apprentices were destroyed")
+    assert clause(
+        lord_flown=0, lord_lost=0, apprentices_flown=1, apprentices_lost=1
+    ) == ("; Sith flight Beta (TIE Interceptor): the apprentice was destroyed")
+    assert clause(
+        lord_flown=0, lord_lost=0, apprentices_flown=0, apprentices_lost=0
+    ) == ("; Sith flight Beta (TIE Interceptor): no Sith craft arrived")
+    assert clause(craft_type=999) == (
+        "; Sith flight Beta (craft type 999): the Lord was destroyed, "
+        "2 of 3 apprentices lived"
+    )
+    assert clause(
+        flight_group=-1, flight_name="", craft_type=-1, why="No enemy flight."
+    ) == ("; no Sith flight: No enemy flight.")
+    assert clause(flight_group=-1, flight_name="", craft_type=-1) == "; no Sith flight"
+
+
+def test_a_version_2_result_has_no_sith_clause_and_a_none_block_adds_nothing():
+    base = {"why": "", "outcome": "completed", "score": 1, "kills": 0,
+            "losses": 0, "goals_met_seconds": 9, "status": "flown"}  # fmt: skip
+    plain = summary(base)
+    assert plain == "flown: completed, score 1, kills 0, losses 0, goals met at 9 s"
+    assert summary({**base, "sith": {**SITH_BASE, "setting": "none"}}) == plain
+    assert summary({**base, "sith": SITH_BASE}).startswith(plain + "; Sith flight")
 
 
 def test_the_summary_line_for_each_status():

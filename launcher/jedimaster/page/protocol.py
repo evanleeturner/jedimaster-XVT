@@ -1,7 +1,7 @@
 """The control list: every message the page and the launcher exchange.
 
 Purpose:
-    Name, as dataclasses, the one fixed list of commands (revision 7), their
+    Name, as dataclasses, the one fixed list of commands (revision 8), their
     arguments and results, the pushes and the error codes. The schema
     (``schema``) is built from these classes, so the list has one source.
 
@@ -36,7 +36,7 @@ from ..briefing.model import BriefingBundle
 
 logger = logging.getLogger(__name__)
 
-SCHEMA_REVISION = 7
+SCHEMA_REVISION = 8
 """The revision of the control list; a change to any message raises it."""
 
 MAX_MESSAGE_BYTES = 64 * 1024
@@ -67,9 +67,10 @@ OptionName = Literal[
     "battle_length",
     "mission_time_limit",
     "continue_sequence",
+    "sith",
 ]
 OPTION_NAMES: tuple[str, ...] = typing.get_args(OptionName)
-"""The seven game options, in the order the menus list them."""
+"""The eight game options, in the order the menus list them."""
 DifficultyText = Literal["easy", "medium", "hard", "easy_cheat"]
 SwitchText = Literal["on", "off"]
 BattleLengthText = Literal["2", "3", "4"]
@@ -78,6 +79,7 @@ TimeLimitText = Literal[
     "11", "12", "13", "14", "15", "16", "17", "18", "19", "20",
 ]  # fmt: skip
 SequenceText = Literal["restart", "continue"]
+SithText = Literal["none", "apprentices", "lord"]
 LaunchStatus = Literal[
     "flown", "refused", "not_reached", "failed", "cancelled", "error"
 ]
@@ -187,7 +189,7 @@ class HelloResult:
     """The launcher's version and the revision of the control list."""
 
     launcher_version: str
-    schema_revision: Literal[7]
+    schema_revision: Literal[8]
 
 
 @dataclass
@@ -304,6 +306,7 @@ class GameOptions:
     battle_length: BattleLengthText
     mission_time_limit: TimeLimitText
     continue_sequence: SequenceText
+    sith: SithText
 
 
 @dataclass

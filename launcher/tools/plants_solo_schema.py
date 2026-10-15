@@ -157,10 +157,10 @@ SCHEMA_PLANTS: list[Plant] = [
     plant(
         "schema-option-name-free",
         PRO,
-        '    "continue_sequence",\n]\nOPTION_NAMES',
-        '    "continue_sequence",\n    "speed",\n]\nOPTION_NAMES',
+        '    "sith",\n]\nOPTION_NAMES',
+        '    "sith",\n    "speed",\n]\nOPTION_NAMES',
         TS + "test_refused_example[request-options-set-bad-name.json]",
-        "tests/test_launch_options.py::test_the_table_lists_the_seven_options",
+        "tests/test_launch_options.py::test_the_table_lists_the_eight_options",
         regen=True,
     ),
     plant(

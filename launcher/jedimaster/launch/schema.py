@@ -49,6 +49,10 @@ def _settings() -> dict[str, Any]:
             ]
         },
         "continue_sequence": {"enum": list(model.SEQUENCE_CHOICES)},
+        "sith": {
+            "description": "Enemy Sith pilots; left out means none, which a game build from before the setting also flies.",
+            "enum": list(model.SITH_SETTINGS),
+        },
     }
     for name in model.BOOLEAN_SETTINGS:
         properties[name] = {"type": "boolean"}
@@ -139,12 +143,60 @@ def launch_schema() -> dict[str, Any]:
     }
 
 
-def result_schema() -> dict[str, Any]:
-    """Return the JSON Schema of the launch result.
+def _sith_block() -> dict[str, Any]:
+    """Return the schema of the version 3 result's ``sith`` object (closed, every member present)."""
+    counts = {
+        name: {"type": "integer", "minimum": 0}
+        for name in (
+            "apprentices_flown",
+            "apprentices_lost",
+            "lord_flown",
+            "lord_lost",
+        )
+    }
+    members: dict[str, Any] = {
+        "setting": {"enum": list(model.SITH_SETTINGS)},
+        "flight_group": {
+            "description": "The promoted flight group's index; -1 when none was promoted.",
+            "type": "integer",
+            "minimum": -1,
+        },
+        "flight_name": {
+            "description": "The promoted group's name from the mission; empty when none.",
+            "type": "string",
+        },
+        "craft_type": {
+            "description": "The promoted group's craft type number; -1 when none.",
+            "type": "integer",
+            "minimum": -1,
+        },
+        **counts,
+        "why": {
+            "description": "Empty when a group was promoted or the setting is none; else why none was.",
+            "type": "string",
+        },
+    }
+    return {
+        "description": "The battle's Sith setting and how the Sith flight fared; destroyed is lost, a craft that jumped away or flew on lived.",
+        "type": "object",
+        "additionalProperties": False,
+        "required": list(members),
+        "properties": members,
+    }
 
-    Always the same dict. The score may be below zero; the counts and the time
-    may not. Does not encode that a status and its exit code go together, or that a battle not flown has zeros for its numbers.
+
+def result_schema(version: int = model.RESULT_SCHEMA_VERSION) -> dict[str, Any]:
+    """Return the JSON Schema of the launch result of ``version`` (2 or 3).
+
+    Always the same dict for a version. Version 3 adds the closed ``sith``
+    object; version 2 is what a game build from before the Sith setting
+    writes. The score may be below zero; the counts and the time may not.
+    Does not encode that a status and its exit code go together, or that a
+    battle not flown has zeros for its numbers. Raises ValueError for any
+    other version.
     """
+    if version not in model.RESULT_SCHEMA_VERSIONS:
+        raise ValueError(f"no result schema of version {version}")
     numbers = {
         name: {"type": "integer", "minimum": 0}
         for name in ("kills", "losses", "goals_met_seconds")
@@ -173,9 +225,10 @@ def result_schema() -> dict[str, Any]:
             "losses",
             "goals_met_seconds",
             "why",
+            *(["sith"] if version == 3 else []),
         ],
         "properties": {
-            "schema_version": {"const": model.RESULT_SCHEMA_VERSION},
+            "schema_version": {"const": version},
             "status": {"enum": list(model.STATUSES)},
             "exit_code": {
                 "description": "The engine's exit code: 0 flown, 3 refused, 4 not reached, 5 failed.",
@@ -187,5 +240,6 @@ def result_schema() -> dict[str, Any]:
                 "description": "A plain sentence when the battle was not flown; empty otherwise.",
                 "type": "string",
             },
+            **({"sith": _sith_block()} if version == 3 else {}),
         },
     }

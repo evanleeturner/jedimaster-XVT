@@ -78,6 +78,18 @@ ENCODE = {
 }
 
 
+NO_ENGINE_KEY = {
+    "sith": "the engine reads the Sith setting from the description and the "
+    "network, never from config.yaml; a description without it means none"
+}
+"""Options with no ``game:`` key in the engine's config, each with its reason."""
+
+
+def test_every_option_is_checked_against_the_engine_or_exempt_by_name():
+    assert set(OPTIONS) == set(ENCODE) | set(NO_ENGINE_KEY)
+    assert OPTIONS["sith"].default == "none"
+
+
 def test_the_engine_config_holds_all_seven_keys():
     assert set(_game_block()) == set(GAME_KEYS)
 

@@ -288,6 +288,7 @@ export const OPTION_LABELS: Record<string, string> = {
   mission_time_limit:
     "Mission time limit (multiplayer only: no effect in solo play)",
   continue_sequence: "Battle or campaign",
+  sith: "Sith",
 };
 
 const VALUE_WORDS: Record<string, string> = {
@@ -303,7 +304,14 @@ const VALUE_WORDS: Record<string, string> = {
   continue: "Continue",
 };
 
+const SITH_WORDS: Record<string, string> = {
+  none: "None",
+  apprentices: "Apprentices",
+  lord: "A Lord",
+};
+
 export function optionWords(name: string, value: string): string {
+  if (name === "sith") return SITH_WORDS[value] ?? value;
   if (name === "battle_length") return `${value} wins`;
   if (name === "mission_time_limit" && /^[0-9]+$/.test(value)) {
     return value === "1" ? "1 minute" : `${value} minutes`;
@@ -319,6 +327,7 @@ const OPTION_ORDER: (keyof GameOptions)[] = [
   "battle_length",
   "mission_time_limit",
   "continue_sequence",
+  "sith",
 ];
 
 export const NO_PILOT_LINE =

@@ -40,6 +40,8 @@ from typing import Any
 
 from .check import errors
 from .model import ai_program_of
+from .model import RESULT_SCHEMA_VERSION
+from .model import RESULT_SCHEMA_VERSIONS
 from .schema import launch_schema
 from .schema import result_schema
 
@@ -170,14 +172,23 @@ def _result_written(result_path: Path, description_path: Path) -> Path:
 
 
 def _read_result(path: Path) -> dict[str, Any]:
-    """Return the checked result document at path; raise LaunchError when it cannot be trusted."""
+    """Return the checked result document at path; raise LaunchError when it cannot be trusted.
+
+    Reads the file as UTF-8 with a replacement mark for any byte that is not,
+    since the result holds a flight name from the mission file, and a made
+    mission may name one in another encoding. Checks the document against the
+    schema of its own version (2 from an older game build, 3 from today's).
+    """
     try:
-        document = json.loads(path.read_text(encoding="utf-8"))
+        document = json.loads(path.read_text(encoding="utf-8", errors="replace"))
     except OSError as exc:
         raise LaunchError(f"the engine left no result file at {path}") from exc
     except ValueError as exc:
         raise LaunchError(f"the result file {path} is not JSON") from exc
-    problems = errors(document, result_schema(), "the result")
+    version = document.get("schema_version") if isinstance(document, dict) else None
+    if version not in RESULT_SCHEMA_VERSIONS:
+        version = RESULT_SCHEMA_VERSION
+    problems = errors(document, result_schema(version), "the result")
     if problems:
         raise LaunchError("; ".join(problems))
     return document

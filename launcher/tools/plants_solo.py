@@ -730,8 +730,8 @@ CONTROL_PLANTS: list[Plant] = [
     plant(
         "control-revision",
         PRO,
+        "SCHEMA_REVISION = 8",
         "SCHEMA_REVISION = 7",
-        "SCHEMA_REVISION = 6",
         "tests/test_page_control.py::test_hello",
         "tests/test_page_control.py::test_the_list_has_thirteen",
     ),

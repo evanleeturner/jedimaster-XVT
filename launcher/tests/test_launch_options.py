@@ -41,9 +41,9 @@ from jedimaster.page.schema import control_schema
 logger = logging.getLogger(__name__)
 
 
-def test_the_table_lists_the_seven_options_the_control_list_names():
+def test_the_table_lists_the_eight_options_the_control_list_names():
     assert tuple(OPTIONS) == OPTION_NAMES
-    assert len(OPTION_NAMES) == 7
+    assert len(OPTION_NAMES) == 8 and OPTION_NAMES[-1] == "sith"
 
 
 def test_every_choice_value_fits_the_launch_schema():
@@ -153,6 +153,7 @@ DEFAULTS = {
     "battle_length": "3",
     "mission_time_limit": "default",
     "continue_sequence": "continue",
+    "sith": "none",
 }
 
 
@@ -170,9 +171,9 @@ def test_a_set_value_beats_the_default_and_an_unset_one_keeps_it():
     assert current_text("craft_jumping", stored) == "on"
 
 
-def test_every_description_holds_all_seven_options_with_the_defaults_filled_in():
+def test_every_description_holds_all_eight_options_but_sith_when_none():
     settings, note = for_description({}, "melee")
-    assert set(settings) == set(OPTIONS) and note is None
+    assert set(settings) == set(OPTIONS) - {"sith"} and note is None
     assert settings == {
         "difficulty": "medium",
         "collisions": True,
@@ -183,13 +184,29 @@ def test_every_description_holds_all_seven_options_with_the_defaults_filled_in()
         "continue_sequence": "continue",
     }
     settings, _ = for_description({"battle_length": 4}, "campaign")
-    assert set(settings) == set(OPTIONS) and settings["battle_length"] == 4
+    assert set(settings) == set(OPTIONS) - {"sith"} and settings["battle_length"] == 4
+    for sith in ("apprentices", "lord"):
+        settings, _ = for_description({"sith": sith}, "melee")
+        assert set(settings) == set(OPTIONS) and settings["sith"] == sith
+    settings, _ = for_description({"sith": "none"}, "melee")
+    assert "sith" not in settings
 
 
-def test_a_description_with_the_defaults_carries_all_seven_settings():
+def test_the_sith_option_has_three_choices_in_words_and_defaults_to_none():
+    spec = OPTIONS["sith"]
+    assert [(c.text, c.value, c.words) for c in spec.choices] == [
+        ("none", "none", "None"),
+        ("apprentices", "apprentices", "Apprentices"),
+        ("lord", "lord", "A Lord"),
+    ]
+    assert spec.default == "none" and spec.words == "Sith"
+    assert parse_setting("sith=lord") == ("sith", "lord")
+
+
+def test_a_description_with_the_defaults_carries_seven_settings_and_no_sith():
     settings, _ = for_description({}, "melee")
     description = build_description("melee", "none", "a.tie", "Ace", settings=settings)
-    assert set(description["settings"]) == set(OPTIONS)
+    assert set(description["settings"]) == set(OPTIONS) - {"sith"}
 
 
 def test_the_control_list_refuses_a_value_off_the_table():

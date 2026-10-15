@@ -72,13 +72,18 @@ NO_PILOT = "That pilot is not among the game's pilots."
 NO_PILOT_FOLDER = "The launcher cannot read the game's pilot folder."
 CANNOT_START = "The launcher could not start the battle just now."
 NOT_FLYING = "No battle with that number is flying."
+SITH_CLAUSES = {
+    "apprentices": "Sith Apprentices fly with the enemy.",
+    "lord": "A Sith Lord flies with the enemy.",
+}
+"""The launch message's added sentence for each Sith setting that is not none."""
 NO_BUILD = (
     'No game program was found: the current build is missing. Run "jedimaster update".'
 )
 
 
 def options_json(stored: dict[str, Any]) -> Json:
-    """Return the seven options as choice text: what was set, else the default."""
+    """Return the eight options as choice text: what was set, else the default."""
     return {name: current_text(name, stored) for name in OPTION_NAMES}
 
 
@@ -188,6 +193,8 @@ class Launching:
         message = f"Started {entry['title']} as {pilot}. Watch it on the page."
         if note:
             message = f"{message} {note}"
+        if settings.get("sith") in SITH_CLAUSES:
+            message = f"{message} {SITH_CLAUSES[settings['sith']]}"
         return {"started": True, "launch_id": launch_id, "message": message}, [push]
 
     def cancel(self, args: Json) -> Json:

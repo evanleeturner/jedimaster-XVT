@@ -74,6 +74,7 @@ export const OPTION_NAMES = [
   "battle_length",
   "mission_time_limit",
   "continue_sequence",
+  "sith",
 ] as const;
 export type OptionName = (typeof OPTION_NAMES)[number];
 export const LAUNCH_STATUSES = [
@@ -96,6 +97,7 @@ const OPTION_TEXTS: Record<OptionName, readonly string[]> = {
     ...Array.from({ length: 20 }, (_, i) => String(i + 1)),
   ],
   continue_sequence: ["restart", "continue"],
+  sith: ["none", "apprentices", "lord"],
 };
 const PLAYER = /^[0-9]{1,20}$/;
 const ERROR_CODES = [
@@ -207,7 +209,7 @@ function menuOf(value: unknown): Parsed<MenuData> {
 
 function optionsOf(value: unknown): Parsed<GameOptions> {
   if (!isRecord(value) || !hasExactly(value, OPTION_NAMES)) {
-    return fail("options must be exactly the seven option names");
+    return fail("options must be exactly the eight option names");
   }
   const kept: Record<string, string> = {};
   for (const name of OPTION_NAMES) {
@@ -258,7 +260,7 @@ function resultOf(value: unknown): Parsed<OkReply["result"]> {
   if (!isRecord(value)) return fail("a result must be an object");
   if (hasExactly(value, ["launcher_version", "schema_revision"])) {
     const { launcher_version, schema_revision } = value;
-    if (typeof launcher_version === "string" && schema_revision === 7) {
+    if (typeof launcher_version === "string" && schema_revision === 8) {
       return { value: { launcher_version, schema_revision } };
     }
     return fail("a hello result has the wrong values");

@@ -314,7 +314,7 @@ test("framed: the options copy is out of the accessibility tree and holds nothin
   await openFramed(page, launcher.url);
   const copy = page.locator("#options-copy");
   await expect(copy).toHaveAttribute("aria-hidden", "true");
-  await expect(copy.locator("#options-copy-grid > *")).toHaveCount(7);
+  await expect(copy.locator("#options-copy-grid > *")).toHaveCount(8);
   expect(
     await copy
       .locator(
@@ -334,7 +334,7 @@ test("framed: the options copy is out of the accessibility tree and holds nothin
       copyValues: read(".options-copy-value"),
     };
   });
-  expect(rows.values.length).toBe(7);
+  expect(rows.values.length).toBe(8);
   expect(rows.copyValues).toEqual(rows.values);
   expect(rows.copyLabels).toEqual(rows.labels.map((label) => `${label}:`));
 });
@@ -455,7 +455,7 @@ test("framed at 1x: no text in the controls row or the options copy is clipped",
   await expect(page.locator("#briefing-team option").first()).toHaveText(
     "Team 0: Imaginary Wing A",
   );
-  await expect(page.locator(".options-copy-item")).toHaveCount(7);
+  await expect(page.locator(".options-copy-item")).toHaveCount(8);
   // A label of 26 characters, longer than the install's 24, must fit too.
   await page
     .locator("#briefing-team option")
@@ -574,6 +574,7 @@ test("framed: a change to the options shows in the copy under the map at once", 
     "3 wins",
     "The mission's own limit",
     "Continue",
+    "None",
   ]);
   await callFromSecondSocket(context, launcher.origin, "options.set", {
     player: "7001",

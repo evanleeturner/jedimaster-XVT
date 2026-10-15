@@ -150,3 +150,12 @@ def test_schema_rejects_bad_data(validator, path, value):
         target = target[key]
     target[path[-1]] = value
     assert list(validator.iter_errors(data)), path
+
+
+def test_the_two_sith_ranks_are_named_above_jedi():
+    from jedimaster.mission.names import name_of
+
+    assert name_of("GroupAI", 5) == "Jedi (Invincible)"
+    assert name_of("GroupAI", 6) == "Sith Apprentice"
+    assert name_of("GroupAI", 7) == "Sith Lord"
+    assert name_of("GroupAI", 8) is None

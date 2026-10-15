@@ -287,15 +287,15 @@ async def test_nothing_in_a_reply_is_a_path_or_the_program(bot, tmp_path):
 # ---- the game options ------------------------------------------------------
 
 
-def test_options_is_seven_menus_five_then_two_each_marking_its_default(bot):
+def test_options_is_eight_menus_five_then_three_each_marking_its_default(bot):
     reply = bot.core.options(HOST)
     (second,) = reply.then
     pickers = reply.pickers + second.pickers
     assert [p.key for p in pickers] == [
         "difficulty", "collisions", "craft_jumping", "random_setup",
-        "battle_length", "mission_time_limit", "continue_sequence",
+        "battle_length", "mission_time_limit", "continue_sequence", "sith",
     ]  # fmt: skip
-    assert len(reply.pickers) == 5 and len(second.pickers) == 2
+    assert len(reply.pickers) == 5 and len(second.pickers) == 3
     for picker in pickers:
         spec = OPTIONS[picker.key]
         assert picker.kind == "option"

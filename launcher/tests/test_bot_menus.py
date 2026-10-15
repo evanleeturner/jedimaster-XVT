@@ -391,7 +391,7 @@ async def test_options_arrive_as_two_messages_and_a_pick_sets_one(rig):
     talk = Talk(HOST)
     await slash(rig, ITEMS[1], talk)
     ((first, options), (second, more)) = talk.said()
-    assert len(options["view"].children) == 5 and len(more["view"].children) == 2
+    assert len(options["view"].children) == 5 and len(more["view"].children) == 3
     assert first.startswith("Game options")
     assert more["ephemeral"] is True
     select = options["view"].children[0]

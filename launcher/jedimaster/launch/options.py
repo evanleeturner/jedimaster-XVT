@@ -1,4 +1,4 @@
-"""The seven game options a player can set, in words, and how they reach a description.
+"""The eight game options a player can set, in words, and how they reach a description.
 
 Purpose:
     One table of the options the engine's launch door takes (``settings`` of
@@ -23,7 +23,7 @@ Invariants:
     - Every option has a default, one of its choices: the engine's own
       starting value (``engine/resources/config.yaml``, ``game:``). A
       player's value is what they set, else the default; every battle
-      sends all seven.
+      sends all eight, ``sith`` only when it is not ``none``.
 
 Call:
     ``settings, note = for_description({"difficulty": "easy_cheat"}, "melee")``
@@ -134,6 +134,17 @@ OPTIONS: dict[str, OptionSpec] = {
             ),
             "continue",
         ),
+        OptionSpec(
+            "sith",
+            "Sith",
+            "Whether Sith pilots fly with the enemy: none, apprentices, or a lord.",
+            (
+                Choice("none", "none", "None"),
+                Choice("apprentices", "apprentices", "Apprentices"),
+                Choice("lord", "lord", "A Lord"),
+            ),
+            "none",
+        ),
     )
 }
 """Every option by name, in the order a menu lists them."""
@@ -209,7 +220,8 @@ def for_description(
     """Return (the ``settings`` of the description, a note or None) for one battle.
 
     Takes the options a player has set and fills in the default of each one
-    they have not, so all seven are sent. An easy cheat on a battle that is
+    they have not, so all eight are sent, but ``sith`` only when it is not ``none`` (the
+    engine reads a missing one as none, so an older game build still flies). An easy cheat on a battle that is
     not a campaign is sent as easy, and the note says so. Does not check the
     values (the store already did).
     """
@@ -220,5 +232,7 @@ def for_description(
         settings["difficulty"] = "easy"
         note = CHEAT_NOTE
         logger.debug("easy cheat sent as easy for a %s battle", game_type)
+    if settings.get("sith") == "none":
+        del settings["sith"]
     logger.debug("settings for a %s battle: %s", game_type, settings)
     return settings, note

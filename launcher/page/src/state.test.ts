@@ -103,7 +103,7 @@ test("a hello reply gives the launcher's version", () => {
       message({
         id: 1,
         ok: true,
-        result: { launcher_version: "2.0", schema_revision: 7 },
+        result: { launcher_version: "2.0", schema_revision: 8 },
       }),
     ),
   );
@@ -495,6 +495,7 @@ const DEFAULTS = {
   battle_length: "3",
   mission_time_limit: "default",
   continue_sequence: "continue",
+  sith: "none",
 } as const;
 
 test("the options are not shown until they arrive", () => {
@@ -509,6 +510,7 @@ test("the options reply fills the rows in words", () => {
     battle_length: "3",
     mission_time_limit: "1",
     continue_sequence: "restart",
+    sith: "apprentices",
   } as const;
   const view = describe(
     play(message({ id: 1, ok: true, result: { player: "7", options } })),
@@ -526,6 +528,7 @@ test("the options reply fills the rows in words", () => {
         "1 minute",
       ],
       ["Battle or campaign", "Start again"],
+      ["Sith", "Apprentices"],
     ],
   );
 });
@@ -594,6 +597,9 @@ test("optionWords names every choice of every option", () => {
     ["mission_time_limit", "20", "20 minutes"],
     ["continue_sequence", "restart", "Start again"],
     ["continue_sequence", "continue", "Continue"],
+    ["sith", "none", "None"],
+    ["sith", "apprentices", "Apprentices"],
+    ["sith", "lord", "A Lord"],
   ];
   for (const [name, value, expected] of words) {
     assert.equal(optionWords(name, value), expected);

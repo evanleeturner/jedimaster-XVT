@@ -39,6 +39,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from ..mission.names import CRAFTTYPE
 from .ai_wire_check import check_pair
 from .ai_wire_check import PairRefused
 from .builds import current_engine
@@ -109,8 +110,53 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
     )
 
 
+def _count_words(flown: int, lost: int, one: str, many: str) -> str:
+    """Return how a rank's craft fared: ``one`` names a single craft, ``many`` plural ones."""
+    if flown == 1:
+        return f"the {one} {'was destroyed' if lost else 'lived'}"
+    if lost == 0:
+        return f"all {flown} {many} lived"
+    if lost == flown:
+        return f"all {flown} {many} were destroyed"
+    return f"{flown - lost} of {flown} {many} lived"
+
+
+def sith_clause(sith: dict[str, Any]) -> str:
+    """Return the end line's clause on the Sith flight, or "" when the setting is none.
+
+    Names the flight and its craft type, then how the Lord and the
+    apprentices fared (destroyed, or lived: left by hyperspace or still
+    flying at the end). A setting with no flight promoted says why instead.
+    """
+    if sith["setting"] == "none":
+        return ""
+    if sith["flight_group"] < 0:
+        return f"; no Sith flight: {sith['why']}" if sith["why"] else "; no Sith flight"
+    craft = CRAFTTYPE.get(sith["craft_type"], f"craft type {sith['craft_type']}")
+    fates = []
+    if sith["lord_flown"]:
+        fates.append(
+            _count_words(sith["lord_flown"], sith["lord_lost"], "Lord", "Lords")
+        )
+    if sith["apprentices_flown"]:
+        fates.append(
+            _count_words(
+                sith["apprentices_flown"],
+                sith["apprentices_lost"],
+                "apprentice",
+                "apprentices",
+            )
+        )
+    fate = ", ".join(fates) if fates else "no Sith craft arrived"
+    return f"; Sith flight {sith['flight_name']} ({craft}): {fate}"
+
+
 def summary(result: dict[str, Any]) -> str:
-    """Return the one line that says how a battle ended."""
+    """Return the one line that says how a battle ended.
+
+    A version 3 result with a Sith setting adds the Sith clause to a battle
+    that was flown; a version 2 result has none.
+    """
     if result["status"] == "flown":
         line = (
             f"flown: {result['outcome'].replace('_', ' ')}, score {result['score']}, "
@@ -118,6 +164,8 @@ def summary(result: dict[str, Any]) -> str:
         )
         if result["outcome"] == "completed":
             line += f", goals met at {result['goals_met_seconds']} s"
+        if "sith" in result:
+            line += sith_clause(result["sith"])
         return line
     return f"{result['status'].replace('_', ' ')}: {result['why']}"
 

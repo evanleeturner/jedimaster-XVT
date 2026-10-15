@@ -227,6 +227,8 @@ GROUPAI: dict[int, str] = {
     0x03: "Ace",
     0x04: "Top Ace",
     0x05: "Jedi (Invincible)",
+    0x06: "Sith Apprentice",
+    0x07: "Sith Lord",
 }
 MARKINGS: dict[int, str] = {
     0x00: "Red (TIE - None)",

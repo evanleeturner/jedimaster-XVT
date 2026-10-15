@@ -63,8 +63,9 @@ DEFAULT_TEXTS = {
     "battle_length": "3",
     "mission_time_limit": "default",
     "continue_sequence": "continue",
+    "sith": "none",
 }
-"""What a player has with nothing set: the seven defaults, as choice text."""
+"""What a player has with nothing set: the eight defaults, as choice text."""
 DEFAULT_SETTINGS = {
     "difficulty": "medium",
     "collisions": True,
@@ -74,7 +75,7 @@ DEFAULT_SETTINGS = {
     "mission_time_limit": "default",
     "continue_sequence": "continue",
 }
-"""The same seven as a description's ``settings`` holds them."""
+"""The seven a description's ``settings`` holds with nothing set: ``sith`` is left out when none."""
 
 
 def ask(control, command, args=None, ident=1):
@@ -266,7 +267,34 @@ async def test_the_description_holds_the_mission_the_pilot_and_the_players_optio
     assert pushes[0]["data"]["title"] == "First Flight"
 
 
-async def test_no_options_set_means_all_seven_defaults_in_the_description(tmp_path):
+@pytest.mark.parametrize(
+    "sith, clause",
+    [
+        ("apprentices", "Sith Apprentices fly with the enemy."),
+        ("lord", "A Sith Lord flies with the enemy."),
+        ("none", None),
+    ],
+)
+async def test_the_sith_setting_reaches_the_description_and_the_launch_message(
+    tmp_path, sith, clause
+):
+    copy = tmp_path / "copy.json"
+    control, _ = make_control(tmp_path, "done", f"--copy={copy}")
+    ask(control, "options.set", {"player": PLAYER, "name": "sith", "value": sith})
+    reply, _ = ask(control, "launch.solo", solo_args(pilot="bravo two"))
+    await finish(control)
+    settings = json.loads(copy.read_text())["settings"]
+    message = result_of(reply)["message"]
+    base = "Started First Flight as Bravo Two. Watch it on the page."
+    if clause is None:
+        assert "sith" not in settings and message == base
+    else:
+        assert settings["sith"] == sith and message == f"{base} {clause}"
+
+
+async def test_no_options_set_means_seven_defaults_in_the_description_and_no_sith(
+    tmp_path,
+):
     copy = tmp_path / "copy.json"
     control, _ = make_control(tmp_path, "done", f"--copy={copy}")
     ask(control, "launch.solo", solo_args())
@@ -420,7 +448,7 @@ def test_options_start_at_their_defaults_and_are_per_player(tmp_path):
     assert result_of(other)["options"] == DEFAULT_TEXTS
 
 
-def test_options_get_with_nobody_linked_returns_the_seven_defaults(tmp_path):
+def test_options_get_with_nobody_linked_returns_the_eight_defaults(tmp_path):
     control, _ = make_control(tmp_path)
     reply, _ = ask(control, "options.get", {"player": None})
     assert result_of(reply) == {"player": None, "options": DEFAULT_TEXTS}

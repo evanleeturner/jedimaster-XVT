@@ -220,7 +220,7 @@ WALK_PLANTS: list[Plant] = [
         WLK,
         "OPTIONS_PER_MESSAGE = 5",
         "OPTIONS_PER_MESSAGE = 4",
-        TW + "test_options_is_seven_menus",
+        TW + "test_options_is_eight_menus",
     ),
     plant(
         "walk-options-lines",
