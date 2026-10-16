@@ -215,7 +215,8 @@ static void StopJoin(AeronDplayDirectoryOperationState state, AeronDplayDirector
 
 AeronDplayDirectoryError AeronDplayDirectory_Configure(const AeronDplayDirectoryConfig* config) {
 	char origin[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
-	if (!config || !DpDirectory_Version(config->game_version) || !DpHttp_Origin(config->lobby_url, origin))
+	if (!config || !DpDirectory_Version(config->game_version) || !DpHttp_Origin(config->lobby_url, origin) ||
+		(config->pinned_key[0] && !DpHttp_Pin(config->pinned_key)))
 		return AERON_DPLAY_DIRECTORY_ERROR_INVALID_REQUEST;
 	if (g_dp.open || g_dp.closing || g_dp.operation.kind || DpIce_Active() || g_directory.host.active ||
 		g_directory.join.active || (g_directory.http && DpHttp_Pending(g_directory.http)))
@@ -223,7 +224,7 @@ AeronDplayDirectoryError AeronDplayDirectory_Configure(const AeronDplayDirectory
 	for (unsigned i = 0; i < DIR_OPERATIONS; ++i)
 		if (g_directory.operations[i].wanted)
 			return AERON_DPLAY_DIRECTORY_ERROR_BUSY;
-	DpHttp* http = DpHttp_Create(origin);
+	DpHttp* http = DpHttp_Create(origin, config->pinned_key);
 	if (!http)
 		return AERON_DPLAY_DIRECTORY_ERROR_UNAVAILABLE;
 	DpHttp_Destroy(g_directory.http);

@@ -564,6 +564,19 @@ endif()
 xvt_add_test_program(test_dplay_ice_log test_dplay_ice_log.c)
 target_include_directories(test_dplay_ice_log PRIVATE "${PROJECT_SOURCE_DIR}/aeron/src")
 add_test(NAME dplay_ice_log COMMAND test_dplay_ice_log)
+# The lobby's key pin in Aeron's HTTPS client, aeron/src/compat/dplay_http.c, built alone against the
+# system's curl, with tests/dplay_http_shim.c in place of Aeron's threads and clock. Run without
+# arguments it checks the pin's form; tools/pin_check.py at the repository root runs it against a
+# real matchmaker on each system (the Lobby pin workflow).
+find_package(CURL 7.68 REQUIRED COMPONENTS HTTPS)
+find_package(Threads REQUIRED)
+xvt_add_test_program(test_dplay_http_pin test_dplay_http_pin.c
+    "${PROJECT_SOURCE_DIR}/aeron/src/compat/dplay_http.c" dplay_http_shim.c)
+target_include_directories(test_dplay_http_pin PRIVATE
+    "${PROJECT_SOURCE_DIR}/aeron/include"
+    "${PROJECT_SOURCE_DIR}/aeron/src")
+target_link_libraries(test_dplay_http_pin PRIVATE CURL::libcurl Threads::Threads)
+add_test(NAME dplay_http_pin COMMAND test_dplay_http_pin)
 # The crash note crashes child processes on purpose, so its test is the one program built without the
 # sanitizers: AddressSanitizer would catch each crash itself and end the child its own way.
 add_executable(test_crash_note test_crash_note.c "${PROJECT_SOURCE_DIR}/src/xvt_app/crash_note.c"

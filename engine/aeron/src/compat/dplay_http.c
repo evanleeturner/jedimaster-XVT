@@ -26,6 +26,7 @@ struct DpHttp {
 	AeronThread* thread;
 	CURLM*       multi;
 	char         origin[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
+	char         pinned_key[AERON_DPLAY_DIRECTORY_PIN_CAPACITY];
 	uint64_t     next_id, stop_at;
 	int          failed;
 	HttpSlot     slots[DP_HTTP_SLOTS];
@@ -58,6 +59,23 @@ int DpHttp_Origin(const char* input, char output[AERON_DPLAY_DIRECTORY_URL_CAPAC
 	curl_free(path);
 	curl_url_cleanup(url);
 	return valid;
+}
+
+int DpHttp_Pin(const char* input) {
+	static const char prefix[] = "sha256//";
+	const size_t      digits   = 43; /* 32 bytes in base64, then one '=' */
+	size_t            n        = 0;
+	while (n < AERON_DPLAY_DIRECTORY_PIN_CAPACITY && input[n])
+		++n;
+	if (n != sizeof(prefix) - 1 + digits + 1 || strncmp(input, prefix, sizeof(prefix) - 1))
+		return 0;
+	for (size_t i = 0; i < digits; ++i) {
+		unsigned char c = (unsigned char)input[sizeof(prefix) - 1 + i];
+		if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '+' ||
+			  c == '/'))
+			return 0;
+	}
+	return input[sizeof(prefix) - 1 + digits] == '=';
 }
 
 static size_t HttpBody(char* bytes, size_t size, size_t count, void* user) {
@@ -153,8 +171,17 @@ static int HttpStart(DpHttp* http, HttpSlot* slot) {
 	SET(CURLOPT_NOSIGNAL, 1L);
 	SET(CURLOPT_PROTOCOLS, (long)CURLPROTO_HTTPS);
 	SET(CURLOPT_FOLLOWLOCATION, 0L);
-	SET(CURLOPT_SSL_VERIFYPEER, 1L);
-	SET(CURLOPT_SSL_VERIFYHOST, 2L);
+	if (http->pinned_key[0]) {
+		/* The key is the whole trust: no authority signed the lobby's own
+		 * certificate, and its name need not be the address dialled. A TLS
+		 * library without pinning fails the setopt, so the pin is never dropped. */
+		SET(CURLOPT_PINNEDPUBLICKEY, http->pinned_key);
+		SET(CURLOPT_SSL_VERIFYPEER, 0L);
+		SET(CURLOPT_SSL_VERIFYHOST, 0L);
+	} else {
+		SET(CURLOPT_SSL_VERIFYPEER, 1L);
+		SET(CURLOPT_SSL_VERIFYHOST, 2L);
+	}
 	SET(CURLOPT_CONNECTTIMEOUT_MS, 5000L);
 	SET(CURLOPT_TIMEOUT_MS, (long)r->timeout_ms);
 	SET(CURLOPT_WRITEFUNCTION, HttpBody);
@@ -268,7 +295,9 @@ static int HttpWorker(void* user) {
 	return 0;
 }
 
-DpHttp* DpHttp_Create(const char* origin) {
+DpHttp* DpHttp_Create(const char* origin, const char* pinned_key) {
+	if (pinned_key[0] && !DpHttp_Pin(pinned_key))
+		return NULL;
 	if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
 		return NULL;
 	DpHttp* http = calloc(1, sizeof(*http));
@@ -277,6 +306,7 @@ DpHttp* DpHttp_Create(const char* origin) {
 		return NULL;
 	}
 	strcpy(http->origin, origin);
+	strcpy(http->pinned_key, pinned_key);
 	http->mutex = Aeron_MutexCreate();
 	http->multi = curl_multi_init();
 	if (http->mutex && http->multi)

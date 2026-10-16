@@ -30,7 +30,10 @@ typedef struct DpHttpResult {
  * slot until Take. Zero means queue capacity is exhausted. Only the worker uses
  * curl handles; Cancel/Destroy wake it without waiting for network activity. */
 int      DpHttp_Origin(const char* input, char output[AERON_DPLAY_DIRECTORY_URL_CAPACITY]);
-DpHttp*  DpHttp_Create(const char* origin);
+/* One key pin: "sha256//", 43 base64 digits and '='. */
+int DpHttp_Pin(const char* input);
+/* pinned_key is empty for the system's certificate check, else a DpHttp_Pin. */
+DpHttp*  DpHttp_Create(const char* origin, const char* pinned_key);
 uint64_t DpHttp_Submit(DpHttp* http, const DpHttpRequest* request);
 void     DpHttp_Cancel(DpHttp* http, uint64_t id);
 int      DpHttp_Take(DpHttp* http, DpHttpResult* result); /* Caller frees result.body. */

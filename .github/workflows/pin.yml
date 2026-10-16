@@ -1,0 +1,199 @@
+---
+name: Lobby pin
+
+# A network battle's game trusts the host's matchmaker by the pin of its key,
+# since no authority signed the certificate the matchmaker makes for itself.
+# On each system this builds the game's HTTPS client
+# (engine/aeron/src/compat/dplay_http.c) alone, against the curl that
+# system's game package uses, starts the launcher's `jedimaster matchmaker`,
+# and checks that the printed pin is let in while another key's pin and no
+# pin are refused (tools/pin_check.py, engine/tests/test_dplay_http_pin.c).
+#
+# Linux: the system libcurl built with OpenSSL, which the Linux package's
+# game loads. Windows: the curl the Windows package carries, built with
+# Schannel by engine/packaging/windows/Dockerfile; it is compiled there with
+# the package's MinGW compiler and run on a Windows runner. macOS: the
+# system libcurl of the Xcode SDK, which the macOS package links.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lobby-pin-${{ github.ref }}
+  # Every commit on main keeps its own result; a newer push to a pull
+  # request replaces the run for the older one.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    # Named so each step runs with -e and -o pipefail.
+    shell: bash
+
+jobs:
+  linux:
+    name: Linux lobby pin
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11, the oldest the launcher supports
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install the system curl the Linux package's game loads
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends libcurl4-openssl-dev
+
+      - name: Install the launcher with its matchmaker
+        run: python -m pip install --disable-pip-version-check "./launcher[page,matchmaker]"
+
+      - name: Build the pin check against the system curl
+        run: |
+          cc -std=c99 -Wall -Wextra -Wpedantic -g \
+            -Iengine/aeron/include -Iengine/aeron/src -Iengine/tests \
+            engine/tests/test_dplay_http_pin.c \
+            engine/aeron/src/compat/dplay_http.c \
+            engine/tests/dplay_http_shim.c \
+            -lcurl -lpthread -o "${RUNNER_TEMP}/test_dplay_http_pin"
+
+      - name: Check the pin against a real matchmaker
+        run: python tools/pin_check.py "${RUNNER_TEMP}/test_dplay_http_pin"
+
+  windows-build:
+    name: Build the Windows lobby pin check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069  # v4.4.1
+
+      - name: Build the MinGW image with the package's curl
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc  # v7.4.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          context: engine
+          file: engine/packaging/windows/Dockerfile
+          platforms: linux/amd64
+          # The MinGW compiler with the Windows curl under /opt/xvt-windows.
+          target: curl-windows
+          load: true
+          tags: openxvt-mingw-curl:ci
+          # The Windows package job's cache (scope windows) holds this stage.
+          cache-from: |
+            type=gha,scope=pin-win
+            type=gha,scope=windows
+          # Only pushes to main write the cache; pull requests read it.
+          cache-to: ${{ github.event_name == 'push' && 'type=gha,mode=max,scope=pin-win' || '' }}
+
+      - name: Compile the pin check against the package's curl
+        # The check needs Aeron's HTTPS client and curl; the test's own shim
+        # stands in for Aeron's threads with the Windows API.
+        run: |
+          mkdir -p "${RUNNER_TEMP}/windows-pin"
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --volume "${GITHUB_WORKSPACE}/engine:/work/src:ro" \
+            --volume "${RUNNER_TEMP}/windows-pin:/work/out" \
+            --workdir /work/src \
+            openxvt-mingw-curl:ci \
+            sh -euc '
+              x86_64-w64-mingw32-gcc-posix -std=c99 -Wall -Wextra -Wpedantic -g \
+                -Iaeron/include -Iaeron/src -Itests -I/opt/xvt-windows/include \
+                tests/test_dplay_http_pin.c aeron/src/compat/dplay_http.c \
+                tests/dplay_http_shim.c \
+                -L/opt/xvt-windows/lib -lcurl -o /work/out/test_dplay_http_pin.exe
+              cp /opt/xvt-windows/bin/*.dll /work/out/
+              for runtime in libgcc_s_seh-1.dll libwinpthread-1.dll; do
+                found=$(x86_64-w64-mingw32-gcc-posix -print-file-name="$runtime")
+                if [ -f "$found" ]; then cp "$found" /work/out/; fi
+              done'
+
+      - name: Put the engine's license beside the test program
+        # The test program is built from the GPLv3 engine; the license text
+        # travels with it.
+        run: cp engine/LICENSE "${RUNNER_TEMP}/windows-pin/LICENSE.txt"
+
+      - name: Keep the pin check for the Windows job
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: windows-pin
+          path: ${{ runner.temp }}/windows-pin/
+          if-no-files-found: error
+          retention-days: 1
+
+  windows:
+    name: Windows lobby pin
+    needs: windows-build
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - name: Check out the tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11, the oldest the launcher supports
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install the launcher with its matchmaker
+        run: python -m pip install --disable-pip-version-check "./launcher[page,matchmaker]"
+
+      - name: Fetch the pin check
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: windows-pin
+          path: windows-pin
+
+      - name: Check the pin against a real matchmaker
+        run: python tools/pin_check.py windows-pin/test_dplay_http_pin.exe
+
+  macos:
+    name: macOS lobby pin
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - name: Check out the tree
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11, the oldest the launcher supports
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install the launcher with its matchmaker
+        run: python -m pip install --disable-pip-version-check "./launcher[page,matchmaker]"
+
+      - name: Build the pin check against the SDK's curl
+        run: |
+          cc -std=c99 -Wall -Wextra -Wpedantic -g \
+            -Iengine/aeron/include -Iengine/aeron/src -Iengine/tests \
+            engine/tests/test_dplay_http_pin.c \
+            engine/aeron/src/compat/dplay_http.c \
+            engine/tests/dplay_http_shim.c \
+            -lcurl -o "${RUNNER_TEMP}/test_dplay_http_pin"
+          otool -L "${RUNNER_TEMP}/test_dplay_http_pin"
+
+      - name: Check the pin against a real matchmaker
+        run: python tools/pin_check.py "${RUNNER_TEMP}/test_dplay_http_pin"

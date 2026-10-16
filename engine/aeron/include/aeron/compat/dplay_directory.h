@@ -16,7 +16,8 @@ enum {
 	AERON_DPLAY_DIRECTORY_NAME_CAPACITY         = 32,
 	AERON_DPLAY_DIRECTORY_MISSION_NAME_CAPACITY = 64,
 	AERON_DPLAY_DIRECTORY_VERSION_CAPACITY      = 33,
-	AERON_DPLAY_DIRECTORY_URL_CAPACITY          = 512
+	AERON_DPLAY_DIRECTORY_URL_CAPACITY          = 512,
+	AERON_DPLAY_DIRECTORY_PIN_CAPACITY          = 53
 };
 
 /* Fixed arrays include their terminating NUL. Names are UTF-8; game_version
@@ -27,6 +28,12 @@ typedef struct AeronDplayDirectoryConfig {
 	char lobby_url[AERON_DPLAY_DIRECTORY_URL_CAPACITY];
 	GUID application_id;
 	char game_version[AERON_DPLAY_DIRECTORY_VERSION_CAPACITY];
+	/* Optional public key pin of the lobby, as curl writes it: "sha256//" and
+	 * the base64 of the SHA-256 of the certificate's SubjectPublicKeyInfo.
+	 * Empty keeps the system's certificate check. Set, the lobby is trusted
+	 * by that key alone, so a lobby with a certificate it made itself can be
+	 * reached by any address the host has. */
+	char pinned_key[AERON_DPLAY_DIRECTORY_PIN_CAPACITY];
 } AeronDplayDirectoryConfig;
 
 typedef struct AeronDplayDirectoryPlayer {
