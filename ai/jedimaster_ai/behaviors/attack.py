@@ -13,10 +13,11 @@ Purpose:
     an enemy on its tail that targets it, it weaves (``weave``) until the
     tail is clear or the weave's swerves are flown, steering clear of every
     bulky craft its own target among them, then fights again. Skill
-    sets the aim cone, the firing range, the burst and how soon it looks
-    again for a nearer target. Its ion cannons hold, as in 1997: only the
-    Disable order fires them, at its target (``cannon_fire``), so a craft
-    whose only cannons are ion cannons fires no cannon here. Lined up or not,
+    sets the aim cone, the firing range and the burst (``cannons``) and how
+    soon it looks again for a nearer target. Its ion cannons hold, as in
+    1997: only the Disable order fires them, at its target
+    (``cannons.cannon_fire``), so a craft whose only cannons are ion cannons
+    fires no cannon here. Lined up or not,
     it fires a guided warhead at its target when ``warheads.choose`` lets it:
     its lock declared, a warhead that suits the target, inside 1997's limits.
     At skill level Jedi and up it may fire one unguided at a big ship, and
@@ -43,7 +44,7 @@ Purpose:
     The rules' shape follows Starshatter Open's fighter pilot (target choice,
     fire control, breaking off), written new in this program's integer
     units; no Starshatter code is copied. The firing numbers are the game's
-    own: the 1997 pilot's ranges, cone and bursts.
+    own: the 1997 pilot's ranges, cone and bursts (``cannons``).
 
 Phases, the notebook's phase byte:
 
@@ -101,6 +102,7 @@ import logging
 import struct
 import typing as t
 
+from .. import cannons
 from .. import dice
 from .. import geometry
 from .. import notebook
@@ -108,13 +110,10 @@ from .. import tactics
 from .. import warheads
 from .. import weave
 from ..world import Actions
-from ..world import CANNON_GROUPS
-from ..world import CannonGroup
 from ..world import Commands
 from ..world import Contact
 from ..world import CraftView
 from ..world import HOLD_FIRE
-from ..world import LinkMode
 from ..world import Lock
 from ..world import NO_OBJECT
 from ..world import Question
@@ -141,30 +140,8 @@ CLOSE_THROTTLE = 0xAAAA
 # Tier 0 flies at seven tenths at most while it attacks.
 ROOKIE_THROTTLE = 0xB333
 
-# By skill tier, 0 to 2. The cone narrows with skill: a better pilot holds
-# fire until the shot is good.
-AIM_CONE = (0x800, 0x600, 0x400)
-FIRE_RANGE = (0x6000, 0x8000, 0xA000)
-BURST = (3, 4, 5)
+# By skill tier, 0 to 2: how soon a craft looks again for a nearer target.
 LOOK_AGAIN_TICKS = (1500, 750, 250)
-
-# The 1997 pilot's range changes: a fast target flying the same way, or
-# across, is harder to hit; a starship or platform is easier.
-FAST_SPEED = 25
-SAME_HEADING = 0x2000
-SAME_HEADING_CUT = 0x4000
-OBLIQUE_HEADING = 0x5000
-OBLIQUE_CUT = 0x2000
-LARGE_TARGET_BONUS = 0x6000
-# Closer than these, all cannons fire together, then in pairs; farther, one
-# at a time.
-ALL_CANNONS_RANGE = 0x2000
-PAIRS_RANGE = 0x4000
-# The ion cannon's shot type (PROJECTILE_OBJECT_TYPE_ION_LASER in the
-# engine's object/laser.h). As in 1997, it fires only at a Disable order's
-# target, where every other cannon holds; the ion turbolasers, 142 and 147,
-# fire as other cannons do.
-ION_CANNON = 141
 
 BREAK_CONE = 0x2000
 # A break ends at this many ticks even inside the clearance, so a target
@@ -257,7 +234,7 @@ def fight(
 ) -> Decision:
     """Return the craft's next move in a dogfight at the nearest of targets,
     each a contact it may fight; ``disabling`` sets the Disable order's
-    cannons (``cannon_fire``) and warhead limit
+    cannons (``cannons.cannon_fire``) and warhead limit
     (``warheads.outlasts_disabling``); ``cruising`` flies ``seek``'s cruise
     while there is no target, else the craft keeps its course."""
     tick = question.tick
@@ -299,9 +276,9 @@ def fight(
     off_nose = geometry.angle_between(yaw, view.yaw)
     off_level = geometry.angle_between(pitch, view.pitch)
     lined_up = (
-        off_nose < AIM_CONE[tier]
-        and off_level < AIM_CONE[tier]
-        and reach < fire_range(view, target, tier)
+        off_nose < cannons.AIM_CONE[tier]
+        and off_level < cannons.AIM_CONE[tier]
+        and reach < cannons.fire_range(view, target, tier)
     )
 
     keep = tactics.clearance(target)
@@ -352,7 +329,7 @@ def fight(
     choice, memory = _warhead(view, question, target, memory, disabling)
     if choice.lead is not None:
         yaw, pitch = geometry.bearing(choice.lead.dx, choice.lead.dy, choice.lead.dz)
-    caught = reach < ALL_CANNONS_RANGE and off_nose < AIM_CONE[tier]
+    caught = reach < cannons.ALL_CANNONS_RANGE and off_nose < cannons.AIM_CONE[tier]
     throttle = CLOSE_THROTTLE if caught else FULL_THROTTLE
     if tier == 0:
         throttle = min(throttle, ROOKIE_THROTTLE)
@@ -362,7 +339,7 @@ def fight(
         think_interval=interval,
         target=target.object_index,
         lasers=(
-            cannon_fire(view, reach, tier, disabling)
+            cannons.cannon_fire(view, reach, tier, disabling)
             if lined_up
             else (HOLD_FIRE, HOLD_FIRE)
         ),
@@ -431,43 +408,6 @@ def _warhead(
     return choice, dataclasses.replace(
         memory, shots=shots, fresh=fresh, held=warheads.Held.NONE
     )
-
-
-def fire_range(view: CraftView, target: Contact, tier: int) -> int:
-    """Return how far the craft fires at a target, by the 1997 pilot's rules."""
-    reach = FIRE_RANGE[tier]
-    if target.speed > FAST_SPEED:
-        apart = geometry.angle_between(view.yaw, target.yaw)
-        if apart < SAME_HEADING:
-            reach -= SAME_HEADING_CUT
-        elif apart < OBLIQUE_HEADING:
-            reach -= OBLIQUE_CUT
-    if tactics.is_large(target):
-        reach += LARGE_TARGET_BONUS
-    return reach
-
-
-def cannon_fire(
-    view: CraftView, reach: int, tier: int, disabling: bool = False
-) -> tuple[CannonGroup, CannonGroup]:
-    """Return a burst for each cannon group the craft has, by range and tier:
-    with ``disabling`` for its ion cannons alone, else for every group but
-    them."""
-    if reach < ALL_CANNONS_RANGE:
-        mode = LinkMode.ALL
-    elif reach < PAIRS_RANGE:
-        mode = LinkMode.PAIRS
-    else:
-        mode = LinkMode.ONE_AT_A_TIME
-    burst = CannonGroup(mode, BURST[tier])
-    first, second = (
-        burst
-        if group < view.cannon_group_count
-        and (view.cannon_type[group] == ION_CANNON) == disabling
-        else HOLD_FIRE
-        for group in range(CANNON_GROUPS)
-    )
-    return first, second
 
 
 def break_heading(heading: int, toward: int, state: int) -> tuple[int, int]:

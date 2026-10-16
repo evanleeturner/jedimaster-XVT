@@ -9,8 +9,8 @@ Purpose:
     by an ignore command) or a player's attack command names another, as
     1997's dive kept it. While it closes it fires as Attack fires: its
     cannons, the ion cannons held, while the target sits inside Attack's
-    aim cone and firing range (``attack.AIM_CONE``, ``attack.fire_range``,
-    ``attack.cannon_fire``), and a guided warhead whenever
+    aim cone and firing range (``cannons.AIM_CONE``, ``cannons.fire_range``,
+    ``cannons.cannon_fire``), and a guided warhead whenever
     ``warheads.choose`` lets it (ruling K1). Avoidance leaves the target
     alone, since the dive steers into the target's clearance, and turns the
     craft round any other bulky craft in its way (ruling K3). The engine's
@@ -61,6 +61,7 @@ import dataclasses
 import logging
 import struct
 
+from .. import cannons
 from .. import geometry
 from .. import notebook
 from .. import tactics
@@ -187,9 +188,9 @@ def _dive(
     off_nose = geometry.angle_between(yaw, view.yaw)
     off_level = geometry.angle_between(pitch, view.pitch)
     lined_up = (
-        off_nose < attack.AIM_CONE[tier]
-        and off_level < attack.AIM_CONE[tier]
-        and reach < attack.fire_range(view, target, tier)
+        off_nose < cannons.AIM_CONE[tier]
+        and off_level < cannons.AIM_CONE[tier]
+        and reach < cannons.fire_range(view, target, tier)
     )
     shot, memory, held = _warhead(view, question, target, memory)
     logger.debug(
@@ -211,7 +212,7 @@ def _dive(
         think_interval=interval,
         target=target.object_index,
         lasers=(
-            attack.cannon_fire(view, reach, tier)
+            cannons.cannon_fire(view, reach, tier)
             if lined_up
             else (HOLD_FIRE, HOLD_FIRE)
         ),

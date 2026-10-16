@@ -1,0 +1,90 @@
+"""Cannons: when a fighting craft's cannons fire at its target, and how many.
+
+Purpose:
+    The fire control of a craft's cannon groups in a dogfight, by the 1997
+    pilot's numbers: the aim cone, the firing range and the burst by skill
+    tier, the range's changes for a fast target and a big one
+    (``fire_range``), and, by range, whether all cannons fire together, in
+    pairs or one at a time (``cannon_fire``). Its ion cannons hold, as in
+    1997: only the Disable order fires them, at its target, where every
+    other cannon holds. ``behaviors.attack``, ``behaviors.disable`` and
+    ``behaviors.kamikaze`` fire by these rules.
+
+Invariants:
+    - It fires only the cannon groups the view counts.
+    - Ion cannons fire only for a craft disabling its target, and there no
+      other cannon does.
+    - Pure: the answer depends only on the view, the target and the tier.
+"""
+
+from __future__ import annotations
+
+from . import geometry
+from . import tactics
+from .world import CANNON_GROUPS
+from .world import CannonGroup
+from .world import Contact
+from .world import CraftView
+from .world import HOLD_FIRE
+from .world import LinkMode
+
+# By skill tier, 0 to 2. The cone narrows with skill: a better pilot holds
+# fire until the shot is good.
+AIM_CONE = (0x800, 0x600, 0x400)
+FIRE_RANGE = (0x6000, 0x8000, 0xA000)
+BURST = (3, 4, 5)
+
+# The 1997 pilot's range changes: a fast target flying the same way, or
+# across, is harder to hit; a starship or platform is easier.
+FAST_SPEED = 25
+SAME_HEADING = 0x2000
+SAME_HEADING_CUT = 0x4000
+OBLIQUE_HEADING = 0x5000
+OBLIQUE_CUT = 0x2000
+LARGE_TARGET_BONUS = 0x6000
+# Closer than these, all cannons fire together, then in pairs; farther, one
+# at a time.
+ALL_CANNONS_RANGE = 0x2000
+PAIRS_RANGE = 0x4000
+# The ion cannon's shot type (PROJECTILE_OBJECT_TYPE_ION_LASER in the
+# engine's object/laser.h). As in 1997, it fires only at a Disable order's
+# target, where every other cannon holds; the ion turbolasers, 142 and 147,
+# fire as other cannons do.
+ION_CANNON = 141
+
+
+def fire_range(view: CraftView, target: Contact, tier: int) -> int:
+    """Return how far the craft fires at a target, by the 1997 pilot's rules."""
+    reach = FIRE_RANGE[tier]
+    if target.speed > FAST_SPEED:
+        apart = geometry.angle_between(view.yaw, target.yaw)
+        if apart < SAME_HEADING:
+            reach -= SAME_HEADING_CUT
+        elif apart < OBLIQUE_HEADING:
+            reach -= OBLIQUE_CUT
+    if tactics.is_large(target):
+        reach += LARGE_TARGET_BONUS
+    return reach
+
+
+def cannon_fire(
+    view: CraftView, reach: int, tier: int, disabling: bool = False
+) -> tuple[CannonGroup, CannonGroup]:
+    """Return a burst for each cannon group the craft has, by range and tier:
+    with ``disabling`` for its ion cannons alone, else for every group but
+    them."""
+    if reach < ALL_CANNONS_RANGE:
+        mode = LinkMode.ALL
+    elif reach < PAIRS_RANGE:
+        mode = LinkMode.PAIRS
+    else:
+        mode = LinkMode.ONE_AT_A_TIME
+    burst = CannonGroup(mode, BURST[tier])
+    first, second = (
+        burst
+        if group < view.cannon_group_count
+        and (view.cannon_type[group] == ION_CANNON) == disabling
+        else HOLD_FIRE
+        for group in range(CANNON_GROUPS)
+    )
+    return first, second
