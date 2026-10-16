@@ -16,12 +16,12 @@
     "attack.break": {
       "level": "D",
       "fields": ["object", "target", "distance", "clearance", "yaw", "pitch", "blocked"],
-      "text": "Craft {object} broke off from target {target}, {distance} units away inside its clearance of {clearance}, turning to yaw {yaw} and pitch {pitch}; {blocked} is the bulky craft whose clearance turned it from the side away from the target (65535 when none did)"
+      "text": "Craft {object} broke off from target {target}, {distance} units from its nearest part (its hull for a starship or platform), inside its clearance of {clearance}, turning to yaw {yaw} and pitch {pitch}; {blocked} is the bulky craft whose clearance turned it from the side away from the target (65535 when none did)"
     },
     "attack.break_end": {
       "level": "D",
       "fields": ["object", "target", "reason", "ticks", "distance", "clearance"],
-      "text": "Craft {object} ended its break from target {target} after {ticks} ticks ({reason}: outside, or the limit reached first), {distance} units away against its clearance of {clearance}"
+      "text": "Craft {object} ended its break from target {target} after {ticks} ticks ({reason}: outside, or the limit reached first), {distance} units from its nearest part (its hull for a starship or platform) against its clearance of {clearance}"
     },
     "attack.break_lost": {
       "level": "D",

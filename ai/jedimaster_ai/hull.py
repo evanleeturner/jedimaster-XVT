@@ -8,7 +8,7 @@ Purpose:
     no cannon fired at a Super Star Destroyer and the lowest skill tier
     never fired at a Star Destroyer (issue #302). A craft fights a starship
     or platform by its hull instead: the nearest point of the box around
-    its model (the owner's lane rulings A9 and A10). ``nearest`` gives that
+    its model (rulings 97 and 98). ``nearest`` gives that
     point for those targets, and the target's position for every other, as
     1997 did; ``keep`` is how near it a craft comes before it breaks off.
 
@@ -38,7 +38,7 @@ from .world import Contact
 from .world import CraftView
 
 # How near a starship's or platform's hull a craft comes before it breaks
-# off (ruling A12): the margin a fighter target's clearance already keeps
+# off (ruling 100): the margin a fighter target's clearance already keeps
 # past its position (``tactics.CLEARANCE_MARGIN``).
 KEEP = 0x1000
 # The axes' unit, as ``geometry.sine`` gives it.
@@ -61,7 +61,7 @@ class Nearest:
 def by_hull(contact: Contact) -> bool:
     """Return whether a craft measures a contact from its hull: a starship
     or a platform, the targets 1997 gave its large-target range bonus
-    (ruling A10)."""
+    (ruling 98)."""
     return tactics.is_large(contact)
 
 

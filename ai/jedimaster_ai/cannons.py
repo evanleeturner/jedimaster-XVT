@@ -7,7 +7,7 @@ Purpose:
     the cannons are lined up on a target (``aim``), and, by range, whether
     all cannons fire together, in pairs or one at a time (``bursts``). The
     range runs to a starship's or platform's hull, to any other target's
-    position (``hull.nearest``, rulings A10 and A11). Its ion cannons hold,
+    position (``hull.nearest``, rulings 98 and 99). Its ion cannons hold,
     as in 1997: only the Disable order fires them, at its target, where
     every other cannon holds. ``behaviors.attack``, ``behaviors.disable`` and
     ``behaviors.kamikaze`` fire by these rules.
@@ -42,7 +42,7 @@ BURST = (3, 4, 5)
 # The 1997 pilot's range changes: a fast target flying the same way, or
 # across, is harder to hit. 1997 also added 0x6000 for a starship or
 # platform, measured from its position; the range now runs to the hull
-# instead, without it (ruling A11).
+# instead, without it (ruling 99).
 FAST_SPEED = 25
 SAME_HEADING = 0x2000
 SAME_HEADING_CUT = 0x4000
