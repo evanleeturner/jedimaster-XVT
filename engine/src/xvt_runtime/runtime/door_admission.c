@@ -65,6 +65,13 @@ int xvt_door_seats_full(const struct xvt_door_seats *seats)
 	return 1;
 }
 
+void xvt_door_seat_free(struct xvt_door_seats *seats, int seat)
+{
+	if (seat > 0 && seat < seats->count) {
+		seats->admitted[seat] = 0;
+	}
+}
+
 const char *xvt_door_verdict_sentence(int verdict)
 {
 	if (verdict < 0 || verdict >= XVT_DOOR_VERDICT_COUNT) {
@@ -109,6 +116,41 @@ int xvt_door_read_answer(const int32_t *packet, uint32_t size, int *verdict,
 	}
 	*verdict = packet[1];
 	*seat = packet[2];
+	return 1;
+}
+
+void xvt_door_make_start(int32_t packet[XVT_DOOR_START_WORDS],
+			 const struct xvt_door_start *start)
+{
+	memset(packet, 0, XVT_DOOR_START_WORDS * sizeof(int32_t));
+	packet[0] = XVT_DOOR_PACKET_START;
+	packet[1] = start->count;
+	for (int seat = 0;
+	     seat < start->count && seat < XVT_LAUNCH_SEAT_CAPACITY; ++seat) {
+		packet[2 + 2 * seat] = (int32_t)start->players[seat];
+		packet[3 + 2 * seat] = start->ratings[seat];
+	}
+}
+
+int xvt_door_read_start(const int32_t *packet, uint32_t size,
+			struct xvt_door_start *start)
+{
+	if (!packet || size != XVT_DOOR_START_WORDS * sizeof(int32_t) ||
+	    packet[0] != XVT_DOOR_PACKET_START || packet[1] < 1 ||
+	    packet[1] > XVT_LAUNCH_SEAT_CAPACITY) {
+		return 0;
+	}
+	struct xvt_door_start read;
+	memset(&read, 0, sizeof(read));
+	read.count = packet[1];
+	for (int seat = 0; seat < read.count; ++seat) {
+		read.players[seat] = (uint32_t)packet[2 + 2 * seat];
+		read.ratings[seat] = packet[3 + 2 * seat];
+		if (read.players[seat] == 0) {
+			return 0;
+		}
+	}
+	*start = read;
 	return 1;
 }
 

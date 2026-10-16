@@ -11,7 +11,8 @@ extern "C" {
 #endif
 
 /* Who the host of a network battle started from a description lets in, and
- * the two packets that carry a joiner's asking and the host's answer. The
+ * the three packets that carry a joiner's asking, the host's answer and the
+ * host's start of the battle once every seat is in. The
  * 1997 lobby's admission (any player, by password) does not run in a battle
  * the door starts: the host admits by the description's seats and its setup
  * fingerprint, and a joiner finds the host's room by the battle's id in place
@@ -23,10 +24,15 @@ enum {
 	 * the range the network layer treats as lobby packets. */
 	XVT_DOOR_PACKET_ASK = 200,
 	XVT_DOOR_PACKET_ANSWER = 201,
-	/* The version of the two packets; a joiner of another is refused. */
-	XVT_DOOR_PROTOCOL = 1,
-	/* Both packets are three 32-bit words. */
-	XVT_DOOR_PACKET_WORDS = 3
+	XVT_DOOR_PACKET_START = 202,
+	/* The version of the door's packets; a joiner of another is refused.
+	 * Version 1 had no start packet. */
+	XVT_DOOR_PROTOCOL = 2,
+	/* The asking and the answer are three 32-bit words. */
+	XVT_DOOR_PACKET_WORDS = 3,
+	/* The start is its type, the seat count, and a player id and a rating
+	 * for each of the most seats a battle has. */
+	XVT_DOOR_START_WORDS = 2 + 2 * XVT_LAUNCH_SEAT_CAPACITY
 };
 
 enum xvt_door_verdict {
@@ -48,6 +54,14 @@ struct xvt_door_seats {
 	uint32_t setup;
 };
 
+/* The battle's seats as the host starts it, in seat order: the player id
+ * the session gave each seat's game and that pilot's rating. */
+struct xvt_door_start {
+	int count;
+	uint32_t players[XVT_LAUNCH_SEAT_CAPACITY];
+	int32_t ratings[XVT_LAUNCH_SEAT_CAPACITY];
+};
+
 /* Fills seats from a network description: its players, the setup
  * fingerprint, and seat 0, the host's own, marked in. */
 void xvt_door_seats_fill(struct xvt_door_seats *seats,
@@ -62,6 +76,10 @@ enum xvt_door_verdict xvt_door_admit(struct xvt_door_seats *seats,
 				     uint32_t setup, int *seat);
 /* 1 when every seat is in, else 0. */
 int xvt_door_seats_full(const struct xvt_door_seats *seats);
+/* Frees seat, whose game left before the start, so that it can be taken
+ * again. The host's own seat, 0, and a seat outside the count stay as they
+ * are. */
+void xvt_door_seat_free(struct xvt_door_seats *seats, int seat);
 /* A plain sentence for a verdict, for the host's log and the joiner's
  * result file; a number outside the verdicts gets a sentence saying so. */
 const char *xvt_door_verdict_sentence(int verdict);
@@ -80,6 +98,16 @@ int xvt_door_read_ask(const int32_t *packet, uint32_t size, int *protocol,
  * when the packet is not an answer of exactly three words. */
 int xvt_door_read_answer(const int32_t *packet, uint32_t size, int *verdict,
 			 int *seat);
+/* Fills packet with the start: the type, start's count, then each seat's
+ * player id and rating, the words past the count's seats zero. */
+void xvt_door_make_start(int32_t packet[XVT_DOOR_START_WORDS],
+			 const struct xvt_door_start *start);
+/* Reads a start of size bytes. Returns 1 and fills start, its entries past
+ * the count zero, or 0 when the packet is not a start of exactly
+ * XVT_DOOR_START_WORDS words, its count is outside 1 to
+ * XVT_LAUNCH_SEAT_CAPACITY, or a seat under the count holds player id 0. */
+int xvt_door_read_start(const int32_t *packet, uint32_t size,
+			struct xvt_door_start *start);
 
 /* The battle's room among snapshot's rooms, which the matchmaker lists under
  * the battle's own application id: the first that takes joiners and lists

@@ -2,7 +2,8 @@
  * against the promises in its header. Each case reads a made-up description
  * through the real parser, so the seats and the fingerprint are the ones a
  * host would hold: a melee whose seats are Ace (the host), Rook and Wedge.
- * The room finder reads made-up matchmaker listings. */
+ * The room finder reads made-up matchmaker listings; the start packet is made
+ * and read back. */
 #include <stdio.h>
 #include <string.h>
 
@@ -87,6 +88,8 @@ static void check_refusals(void)
 	fresh();
 	refused("Rook", XVT_DOOR_PROTOCOL + 1, g_setup,
 		XVT_DOOR_REFUSE_PROTOCOL);
+	/* A game of the build before the start packet speaks version 1. */
+	refused("Rook", 1, g_setup, XVT_DOOR_REFUSE_PROTOCOL);
 	refused("Rook", XVT_DOOR_PROTOCOL, g_setup + 1, XVT_DOOR_REFUSE_SETUP);
 	refused("Biggs", XVT_DOOR_PROTOCOL, g_setup,
 		XVT_DOOR_REFUSE_NOT_LISTED);
@@ -147,7 +150,7 @@ static void check_packets(void)
 	int protocol = 0;
 	uint32_t setup = 0;
 	XVT_ASSERT_INT_EQ(xvt_door_read_ask(packet, 12, &protocol, &setup), 1);
-	XVT_ASSERT_INT_EQ(protocol, 1);
+	XVT_ASSERT_INT_EQ(protocol, 2);
 	XVT_ASSERT_INT_EQ(setup, 0xfedcba98u);
 	/* A packet one word short or long, or of the other type, is no
 	 * asking. */
@@ -171,6 +174,118 @@ static void check_packets(void)
 	XVT_ASSERT_INT_EQ(seat, -1);
 	XVT_ASSERT_INT_EQ(xvt_door_read_answer(packet, 13, &verdict, &seat), 0);
 	XVT_ASSERT_INT_EQ(xvt_door_read_ask(packet, 12, &protocol, &setup), 0);
+}
+
+/* A game that left frees its seat for another game of that pilot; the
+ * host's seat and a seat outside the count stay as they are. */
+static void check_seat_free(void)
+{
+	fresh();
+	int seat;
+	XVT_ASSERT_INT_EQ(xvt_door_admit(&g_seats, "Rook", XVT_DOOR_PROTOCOL,
+					 g_setup, &seat),
+			  XVT_DOOR_ADMIT);
+	XVT_ASSERT_INT_EQ(xvt_door_admit(&g_seats, "Wedge", XVT_DOOR_PROTOCOL,
+					 g_setup, &seat),
+			  XVT_DOOR_ADMIT);
+	XVT_ASSERT_INT_EQ(xvt_door_seats_full(&g_seats), 1);
+	xvt_door_seat_free(&g_seats, 1);
+	XVT_ASSERT_INT_EQ(xvt_door_seats_full(&g_seats), 0);
+	XVT_ASSERT_INT_EQ(g_seats.admitted[2], 1);
+	XVT_ASSERT_INT_EQ(xvt_door_admit(&g_seats, "rook", XVT_DOOR_PROTOCOL,
+					 g_setup, &seat),
+			  XVT_DOOR_ADMIT);
+	XVT_ASSERT_INT_EQ(seat, 1);
+	xvt_door_seat_free(&g_seats, 0);
+	xvt_door_seat_free(&g_seats, 3);
+	xvt_door_seat_free(&g_seats, -1);
+	XVT_ASSERT_INT_EQ(g_seats.admitted[0], 1);
+	XVT_ASSERT_INT_EQ(xvt_door_seats_full(&g_seats), 1);
+}
+
+static void check_start_packet(void)
+{
+	struct xvt_door_start start;
+	memset(&start, 0, sizeof(start));
+	start.count = 3;
+	const uint32_t players[3] = {0x10u, 0x8000002au, 0x33u};
+	const int32_t ratings[3] = {4, 0, -1};
+	for (int seat = 0; seat < 3; ++seat) {
+		start.players[seat] = players[seat];
+		start.ratings[seat] = ratings[seat];
+	}
+	int32_t packet[XVT_DOOR_START_WORDS];
+	memset(packet, 0x55, sizeof(packet));
+	xvt_door_make_start(packet, &start);
+	const uint32_t size = sizeof(packet);
+	XVT_ASSERT_INT_EQ(size, 72);
+	XVT_ASSERT_INT_EQ(packet[0], 202);
+	XVT_ASSERT_INT_EQ(packet[1], 3);
+	XVT_ASSERT_INT_EQ(packet[2], 0x10);
+	XVT_ASSERT_INT_EQ(packet[3], 4);
+	XVT_ASSERT_INT_EQ(packet[4], (int32_t)0x8000002au);
+	XVT_ASSERT_INT_EQ(packet[7], -1);
+	/* The words past the seats are zero. */
+	for (int word = 8; word < XVT_DOOR_START_WORDS; ++word) {
+		XVT_ASSERT_INT_EQ(packet[word], 0);
+	}
+
+	struct xvt_door_start read;
+	memset(&read, 0x55, sizeof(read));
+	XVT_ASSERT_INT_EQ(xvt_door_read_start(packet, size, &read), 1);
+	XVT_ASSERT_INT_EQ(read.count, 3);
+	for (int seat = 0; seat < 3; ++seat) {
+		XVT_ASSERT_INT_EQ(read.players[seat], players[seat]);
+		XVT_ASSERT_INT_EQ(read.ratings[seat], ratings[seat]);
+	}
+	XVT_ASSERT_INT_EQ(read.players[3], 0);
+	XVT_ASSERT_INT_EQ(read.ratings[7], 0);
+
+	/* A packet of another size or type is no start, and leaves start as
+	 * it was. */
+	memset(&read, 0, sizeof(read));
+	XVT_ASSERT_INT_EQ(xvt_door_read_start(packet, size - 4, &read), 0);
+	XVT_ASSERT_INT_EQ(xvt_door_read_start(packet, size + 4, &read), 0);
+	XVT_ASSERT_INT_EQ(xvt_door_read_start(NULL, size, &read), 0);
+	packet[0] = XVT_DOOR_PACKET_ANSWER;
+	XVT_ASSERT_INT_EQ(xvt_door_read_start(packet, size, &read), 0);
+	packet[0] = XVT_DOOR_PACKET_START;
+	/* A count of no seats. */
+	packet[1] = 0;
+	XVT_ASSERT_INT_EQ(xvt_door_read_start(packet, size, &read), 0);
+	/* A seat under the count without a player. */
+	packet[1] = 3;
+	packet[6] = 0;
+	XVT_ASSERT_INT_EQ(xvt_door_read_start(packet, size, &read), 0);
+	XVT_ASSERT_INT_EQ(read.count, 0);
+	/* With the count at 2 that seat is past it, and the start reads. */
+	packet[1] = 2;
+	XVT_ASSERT_INT_EQ(xvt_door_read_start(packet, size, &read), 1);
+	XVT_ASSERT_INT_EQ(read.count, 2);
+	XVT_ASSERT_INT_EQ(read.players[2], 0);
+
+	/* Eight seats fill the packet. */
+	start.count = XVT_LAUNCH_SEAT_CAPACITY;
+	for (int seat = 0; seat < XVT_LAUNCH_SEAT_CAPACITY; ++seat) {
+		start.players[seat] = (uint32_t)(seat + 1);
+		start.ratings[seat] = seat;
+	}
+	xvt_door_make_start(packet, &start);
+	XVT_ASSERT_INT_EQ(packet[XVT_DOOR_START_WORDS - 2], 8);
+	XVT_ASSERT_INT_EQ(packet[XVT_DOOR_START_WORDS - 1], 7);
+	XVT_ASSERT_INT_EQ(xvt_door_read_start(packet, size, &read), 1);
+	XVT_ASSERT_INT_EQ(read.players[7], 8);
+
+	/* Nine seats are more than a battle has, though every seat holds a
+	 * player and a ninth pair of words follows the packet. */
+	int32_t longer[XVT_DOOR_START_WORDS + 2];
+	memcpy(longer, packet, sizeof(packet));
+	longer[1] = XVT_LAUNCH_SEAT_CAPACITY + 1;
+	longer[XVT_DOOR_START_WORDS] = 9;
+	longer[XVT_DOOR_START_WORDS + 1] = 9;
+	memset(&read, 0, sizeof(read));
+	XVT_ASSERT_INT_EQ(xvt_door_read_start(longer, size, &read), 0);
+	XVT_ASSERT_INT_EQ(read.count, 0);
 }
 
 /* A matchmaker's listing, too big for the stack. */
@@ -230,6 +345,8 @@ int main(void)
 	check_refusals();
 	check_sentences();
 	check_packets();
+	check_seat_free();
+	check_start_packet();
 	check_find_room();
 	return 0;
 }
