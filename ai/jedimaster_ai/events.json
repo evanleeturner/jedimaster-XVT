@@ -123,6 +123,11 @@
       "fields": ["object", "target", "boarded"],
       "text": "The engine's dock of craft {object} with craft {target} has ended: boarded {boarded} (1 when the craft boarded it and looks again where it is, 0 when the engine gave the dock up and it keeps its target)"
     },
+    "captured.still": {
+      "level": "D",
+      "fields": ["object", "full_speed", "disabled"],
+      "text": "Captured craft {object} holds still for good, as it cannot fly home: full speed {full_speed}, its systems off {disabled}"
+    },
     "countermeasures.threat": {
       "level": "D",
       "fields": ["object", "threat", "type", "distance", "range", "kind", "launch"],
