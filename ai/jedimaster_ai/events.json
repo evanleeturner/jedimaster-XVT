@@ -8,6 +8,21 @@
       "fields": ["object", "activity", "ticks", "interval", "leader"],
       "text": "Craft {object} has arrived after {ticks} ticks (activity {activity} ends: 5 out of hyperspace, its order flying it from its next think; 7 out of a hangar, at its first think, its order flying it already), thinking every {interval} ticks; it follows {leader} (65535 when it leads)"
     },
+    "arrival.formed_up": {
+      "level": "I",
+      "fields": ["object", "ticks", "interval", "why"],
+      "text": "Craft {object} ends forming up on its flight out of a hangar after {ticks} ticks (why {why}: 0 its time ran out, 1 its flight no longer forms up, 2 an enemy is after it or a homing warhead is coming), thinking every {interval} ticks again; its order flies it from its next think"
+    },
+    "arrival.forming_up": {
+      "level": "I",
+      "fields": ["object", "leader", "ticks", "interval"],
+      "text": "Craft {object} leaves a hangar in a flight and forms up on it, following {leader} (65535 when it leads), for at most {ticks} ticks; its own think interval {interval} comes back at the end"
+    },
+    "arrival.leading": {
+      "level": "D",
+      "fields": ["object", "yaw", "pitch", "throttle", "left"],
+      "text": "Craft {object} leads its flight's form-up out of a hangar on the heading it launched on, yaw {yaw} and pitch {pitch}, at throttle {throttle}, with {left} ticks left at most"
+    },
     "arrival.started": {
       "level": "I",
       "fields": ["object", "activity", "ticks"],
