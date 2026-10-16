@@ -137,3 +137,41 @@ def test_a_craft_keeps_4096_off_a_hull_and_its_clearance_off_anything_else(
     assert hull.keep(ship()) == 4096
     freighter = ship(genus=FREIGHTER, size=4960)
     assert hull.keep(freighter) == tactics.clearance(freighter) == 7816
+
+
+# A cube 2,000 a side, for the headings into a box: its near face 9,000 off,
+# each corner's angle off the line to it worked by hand as the arctangent of
+# 1,000 over 9,000, 6.34 degrees, 1,154 in 65,536ths of a turn.
+CUBE = {"box_min": (-1000, -1000, -1000), "box_max": (1000, 1000, 1000)}
+
+
+@pytest.mark.parametrize(("x", "y", "yaw"), [(0, 10000, 0), (10000, 0, 0x4000)])
+def test_the_headings_into_a_box_spread_to_its_corners(me, ship, x, y, yaw) -> None:
+    """The pitch's spread falls 6 short: the corners and the nearest point
+    stand for the face, whose steepest point, its top edge's middle, lies
+    between them."""
+    assert hull.seen(me, ship(x=x, y=y, **CUBE), 0) == hull.Seen(yaw, 1154, LEVEL, 1148)
+
+
+def test_a_grown_box_spreads_the_headings_wider(me, ship) -> None:
+    """Grown by 500, the corners lie 1,500 off the line, 8,500 ahead: the
+    arctangent is 10.01 degrees, 1,822."""
+    assert hull.seen(me, ship(y=10000, **CUBE), 500).yaw_edge == 1822
+
+
+def test_inside_a_grown_box_the_headings_spread_a_quarter_turn(me, ship) -> None:
+    near = hull.nearest(me, ship(y=1200, **CUBE))
+    toward = geometry.bearing(near.dx, near.dy, near.dz)
+    quarter = geometry.QUARTER_TURN
+    assert hull.seen(me, ship(y=1200, **CUBE), 500) == hull.Seen(
+        toward[0], quarter, toward[1], quarter
+    )
+
+
+def test_under_a_box_its_yaws_go_round_and_its_pitches_are_up(me, ship) -> None:
+    """From under it, the yaws to a box go all the way round: a quarter turn
+    either side of the nearest point's; the pitches run from straight up to
+    its near face's corners, 70.5 degrees above level."""
+    seen = hull.seen(me, ship(z=5000, **CUBE), 0)
+    assert seen.yaw_edge == geometry.QUARTER_TURN
+    assert (seen.pitch - seen.pitch_edge, seen.pitch + seen.pitch_edge) == (0, 3542)

@@ -234,6 +234,37 @@ def test_a_break_another_freighters_clearance_blocks_heads_away_from_both(
     assert "blocked=65535" in caplog.text
 
 
+def test_a_break_a_big_ships_hull_blocks_heads_away_from_its_nearest_part(
+    craft, foe, ask, caplog
+) -> None:
+    """The usual break turns to +x, where a Star Destroyer's bow lies 3,162
+    units off, its position some 47,000 to the south-east: the way out
+    heads away from the target and the bow's corner, not the ship's middle
+    (ruling 94)."""
+    target = foe(x=-2560, y=-451, genus=FREIGHTER, size=BULK_FREIGHTER_SIZE)
+    # Its flank 3,000 east, its bow (the box's smallest y, ahead) 1,000 south.
+    other = foe(
+        object_index=FOE + 1,
+        x=ISD_BOX["box_max"][0] + 3000,
+        y=ISD_BOX["box_min"][1] - 1000,
+        yaw=0,
+        pitch=LEVEL,
+        genus=STARSHIP,
+        size=65396,
+        **ISD_BOX,
+    )
+    me = craft()
+    near = hull.nearest(me, other)
+    assert (near.distance, near.dx, near.dy) == (3162, 3000, -1000)
+    caplog.set_level("DEBUG")
+    decision = ask(me, target, other)
+    assert f"blocked={FOE + 1}" in caplog.text
+    away = attack.escape(tactics.offset(me, target), (near.dx, near.dy, near.dz))
+    assert decision.actions.steer == Steer(*away, 0)
+    middle = attack.escape(tactics.offset(me, target), tactics.offset(me, other))
+    assert geometry.angle_between(away[0], middle[0]) > 0x800
+
+
 @pytest.mark.parametrize(
     ("target_at", "other_at", "held", "crossed"),
     [

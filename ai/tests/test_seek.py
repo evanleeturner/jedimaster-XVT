@@ -311,7 +311,7 @@ def test_a_bulky_craft_in_the_way_turns_it_on_its_way_to_the_start_point(
 ) -> None:
     me = craft(**GIVEN_START)
     hulk = contact(
-        object_index=20, team=2, genus=STARSHIP, x=-0x3000, y=0, z=0, size=4000
+        object_index=20, team=2, genus=STARSHIP, x=-0x2000, y=0, z=0, size=4000
     )
     question = shown(me, hulk)
     straight = toward(START)

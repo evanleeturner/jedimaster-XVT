@@ -46,6 +46,9 @@ CIRCLE_AND_EVADE = 3
 SS_PATROL_LOOP = 21
 SS_PATROL_AND_ATTACK = 26
 STARSHIP = 4
+FRIGATE_SIZE = 10368
+# A starship with the retail frigate's size, as its own contact shows it.
+FRIGATE = {"genus": STARSHIP, "size": FRIGATE_SIZE}
 FREIGHTER = 3
 FIGHTER = 0
 HALF = 0x8000
@@ -295,11 +298,17 @@ def test_a_starship_4096_or_more_off_its_course_stops(
 
 @pytest.fixture
 def frigate(contact):
-    """Return a frigate on the course to P0, 20,005 units ahead: within its
-    clearance (11,872) and LOOK_AHEAD."""
+    """Return a frigate on the course to P0, 20,005 units ahead, its box its
+    position alone: within LOOK_AHEAD of the keep a frigate keeps off its
+    hull, 4,096 and three quarters of its own size (``FRIGATE_SIZE``)."""
 
     def make(**changes):
-        fields = {"object_index": 30, "team": 1, "genus": STARSHIP, "size": 10368}
+        fields = {
+            "object_index": 30,
+            "team": 1,
+            "genus": STARSHIP,
+            "size": FRIGATE_SIZE,
+        }
         fields |= {"x": 20_000, "y": 6, "z": 7, "target": NO_OBJECT}
         return contact(**(fields | changes))
 
@@ -312,7 +321,7 @@ def test_a_starship_turns_round_a_starship_in_its_way_and_moves_on(
     craft = patrolling(order_code=SS_PATROL_LOOP)
     around = avoidance.in_the_way(
         craft,
-        Question(1000, (craft,), (frigate(),)),
+        Question(1000, (craft,), (mine(craft, **FRIGATE), frigate())),
         toward(P0).yaw,
         geometry.LEVEL,
         NO_OBJECT,
@@ -320,13 +329,13 @@ def test_a_starship_turns_round_a_starship_in_its_way_and_moves_on(
     clear = around.past_edge(toward(P0).yaw, craft.yaw)
     assert geometry.angle_between(clear, toward(P0).yaw) >= patrol.STARSHIP_TURN
     with caplog.at_level("DEBUG"):
-        turning = decide(craft, [mine(craft, genus=STARSHIP), frigate()])
+        turning = decide(craft, [mine(craft, **FRIGATE), frigate()])
     assert turning.actions == Actions(
         steer=dataclasses.replace(toward(P0), yaw=clear), throttle=0
     )
     assert "avoidance.steer object=4 around=30" in caplog.text
     facing = patrolling(order_code=SS_PATROL_LOOP, yaw=clear)
-    moving = decide(facing, [mine(facing, genus=STARSHIP), frigate()])
+    moving = decide(facing, [mine(facing, **FRIGATE), frigate()])
     assert moving.actions == Actions(
         steer=dataclasses.replace(toward(P0), yaw=clear), throttle=HALF
     )
@@ -348,8 +357,8 @@ def test_think_turns_a_patrolling_starship_round_once(
         order_codes=(SS_PATROL_LOOP, 0, 0, 0),
         order_variable1=1,
     )
-    alone = decide(craft, [mine(craft, genus=STARSHIP), frigate()]).actions.steer
-    answer = think(Question(1000, (craft,), (mine(craft, genus=STARSHIP), frigate())))
+    alone = decide(craft, [mine(craft, **FRIGATE), frigate()]).actions.steer
+    answer = think(Question(1000, (craft,), (mine(craft, **FRIGATE), frigate())))
     assert answer.craft[0].actions.steer == alone
     assert alone != toward(P0)
 

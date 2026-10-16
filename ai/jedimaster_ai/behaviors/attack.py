@@ -423,7 +423,7 @@ def _break_course(
     away = (
         None
         if obstacle is None
-        else escape((near.dx, near.dy, near.dz), tactics.offset(view, obstacle.contact))
+        else escape((near.dx, near.dy, near.dz), obstacle.offset)
     )
     if away is None or any(
         geometry.sweeps(view.yaw, away[0], across) for across in (toward, obstacle.yaw)

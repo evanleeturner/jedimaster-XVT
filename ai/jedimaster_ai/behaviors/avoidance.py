@@ -2,15 +2,25 @@
 
 Purpose:
     After a craft's order behavior decides where to steer, a freighter,
-    starship or platform whose clearance (``tactics.clearance``) that
-    heading enters turns it aside: the craft takes the edge of the clearance, as seen from where it
+    starship or platform whose clearance that heading enters turns it
+    aside: the craft takes the edge of the clearance, as seen from where it
     is, on the side its nose lies, EDGE_PAD past it, and keeps its pitch, so
     the turn never swings the nose across the craft it steers round. Inside
-    a clearance the edge is a quarter turn off the centre, so the craft
-    turns outward. The next think looks again. Ruling 24 names
+    a clearance the edge is a quarter turn off its nearest part, so the
+    craft turns outward. The next think looks again. Ruling 24 names
     the bulky kinds; without this step craft flew into their own carrier,
     and the bulky craft of one group, flying to the group's same points,
     flew into each other.
+
+    A freighter's clearance is a ball round its position
+    (``tactics.clearance``). A starship's or platform's runs off its hull
+    (ruling 94): its box grown by ``hull.KEEP`` and the craft's own reach,
+    three quarters of its size, and the headings into it are the grown
+    box's (``hull.seen``). A ball round such a ship's position turned every
+    heading with any part toward its middle while the craft was inside it,
+    up to some 250,000 units from a Super Star Destroyer; now a fighter
+    heads toward the flank until it is within LOOK_AHEAD of that keep, and
+    a starship keeps its own length off another's hull.
 
     Where that heading is not free, entering another clearance or reached
     by a turn that swings the nose across a bulky craft whose clearance the
@@ -40,9 +50,10 @@ Invariants:
     - No turn avoidance asks swings the nose across a bulky craft whose
       clearance the craft is inside.
     - A bulky craft counts once the craft is within LOOK_AHEAD of its
-      clearance; of several in the way, the nearest decides.
+      clearance; of several in the way, the nearest part decides.
     - In the way means within the clearance's edge angle in yaw and in
-      pitch, apart: the box the attack's aim cone uses too.
+      pitch, apart: the box the attack's aim cone uses too. For a hull the
+      yaw's and the pitch's edges differ (``hull.Seen``).
 """
 
 from __future__ import annotations
@@ -53,6 +64,7 @@ import math
 import typing as t
 
 from .. import geometry
+from .. import hull
 from .. import tactics
 from ..world import Contact
 from ..world import CraftView
@@ -77,14 +89,20 @@ SEARCH_STEP = 0x200
 
 @dataclasses.dataclass(frozen=True)
 class Obstacle:
-    """A bulky craft in a heading's way: how far, its clearance, the yaw
-    that points at it and its clearance's edge angle from there."""
+    """A bulky craft in a heading's way: how far its nearest part lies, its
+    clearance from there, the yaw halfway across the headings that enter
+    that clearance and how far they spread either side, the offset to its
+    nearest part, and how far off a ball of radius clearance would lie to
+    look as wide (``as_ball``: the distance itself for a freighter's ball,
+    and for any craft whose clearance the craft is inside)."""
 
     contact: Contact
     distance: int
     clearance: int
     yaw: int
     edge: int
+    offset: tuple[int, int, int]
+    as_ball: int
 
     def past_edge(self, yaw: int, nose: int) -> int:
         """Return the yaw EDGE_PAD past the clearance's edge on the side the
@@ -98,14 +116,15 @@ class Obstacle:
 
     def passes(self, yaw: int) -> int:
         """Return how near a craft flying straight on along yaw passes this
-        one, the angle between them EDGE_PAD less: its distance now when
-        that angle is a quarter turn or more."""
+        one, seen as its ball (``as_ball``), the angle between them EDGE_PAD
+        less: that ball's distance when the angle is a quarter turn or more.
+        A heading past the edge passes at the clearance or farther."""
         off = geometry.angle_between(yaw, self.yaw) - EDGE_PAD
         if off <= 0:
             return 0
         if off >= geometry.QUARTER_TURN:
-            return self.distance
-        return self.distance * geometry.sine(off) >> 16
+            return self.as_ball
+        return self.as_ball * geometry.sine(off) >> 16
 
 
 def steer_clear(view: CraftView, question: Question, decision: Decision) -> Decision:
@@ -178,25 +197,65 @@ def nearby(
     view: CraftView, question: Question, pitch: int, skip: int
 ) -> list[Obstacle]:
     """Return every bulky craft within LOOK_AHEAD of its clearance whose
-    clearance's edge angle takes in pitch, the craft itself and the contact
-    skip aside."""
+    clearance takes in pitch, the craft itself and the contact skip aside:
+    a freighter's ball (``_ball``), a starship's or platform's hull
+    (``_hull``)."""
+    own = tactics.own_contact(view, question)
+    reach = 0 if own is None else own.size * 3 // 4
     found = []
     for contact in question.contacts:
         if contact.object_index in (view.object_index, skip):
             continue
         if not tactics.is_bulky(contact):
             continue
-        dx, dy, dz = tactics.offset(view, contact)
-        reach = geometry.distance(dx, dy, dz)
-        keep = tactics.clearance(contact)
-        if reach >= keep + LOOK_AHEAD:
-            continue
-        toward, up = geometry.bearing(dx, dy, dz)
-        edge = edge_angle(reach, keep)
-        if geometry.angle_between(pitch, up) >= edge:
-            continue
-        found.append(Obstacle(contact, reach, keep, toward, edge))
+        if hull.by_hull(contact):
+            obstacle = _hull(view, contact, hull.KEEP + reach, pitch)
+        else:
+            obstacle = _ball(view, contact, pitch)
+        if obstacle is not None:
+            found.append(obstacle)
     return found
+
+
+def _ball(view: CraftView, contact: Contact, pitch: int) -> Obstacle | None:
+    """Return a freighter as an obstacle, its clearance a ball round its
+    position (``tactics.clearance``), or None when it lies farther than
+    LOOK_AHEAD from the ball or the ball's edge angle leaves out pitch."""
+    offset = tactics.offset(view, contact)
+    reach = geometry.distance(*offset)
+    keep = tactics.clearance(contact)
+    if reach >= keep + LOOK_AHEAD:
+        return None
+    toward, up = geometry.bearing(*offset)
+    edge = edge_angle(reach, keep)
+    if geometry.angle_between(pitch, up) >= edge:
+        return None
+    return Obstacle(contact, reach, keep, toward, edge, offset, reach)
+
+
+def _hull(view: CraftView, contact: Contact, keep: int, pitch: int) -> Obstacle | None:
+    """Return a starship or platform as an obstacle, its clearance keep off
+    its hull (``hull.seen``), or None when its hull lies farther than
+    LOOK_AHEAD from that clearance or the headings into it leave out pitch.
+
+    keep is ``hull.KEEP`` and the craft's own reach, three quarters of its
+    size, so a starship keeps its own length off another's hull too.
+    """
+    near = hull.nearest(view, contact)
+    if near.distance >= keep + LOOK_AHEAD:
+        return None
+    looks = hull.seen(view, contact, keep)
+    if geometry.angle_between(pitch, looks.pitch) >= looks.pitch_edge:
+        return None
+    if near.distance < keep:
+        as_ball = near.distance
+    else:
+        # Rounded up: a heading EDGE_PAD past the edge passes at keep, not short.
+        as_ball = -(-(keep << 16) // max(geometry.sine(looks.yaw_edge), 1))
+    offset = (near.dx, near.dy, near.dz)
+    return Obstacle(
+        contact, near.distance, keep, looks.yaw, looks.yaw_edge, offset, as_ball
+    )
 
 
 def _nearest(obstacles: t.Iterable[Obstacle]) -> Obstacle | None:

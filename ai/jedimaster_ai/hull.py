@@ -12,6 +12,8 @@ Purpose:
     pick of the nearest target (ruling 93). ``nearest`` gives that
     point for those targets, and the target's position for every other, as
     1997 did; ``keep`` is how near it a craft comes before it breaks off.
+    ``seen`` is how the box, grown by a margin, lies from a craft: the
+    headings that reach it, which avoidance steers clear of (ruling 94).
 
 The box comes from the engine: its smallest and largest corners in the
 model's own axes (``Contact.box_min``, ``Contact.box_max``) and the craft's
@@ -81,15 +83,68 @@ def nearest(view: CraftView, contact: Contact) -> Nearest:
     if not by_hull(contact):
         return Nearest(geometry.distance(*offset), *offset)
     craft = to_model(contact, (-offset[0], -offset[1], -offset[2]))
-    point = tuple(
-        min(max(at, low), high)
-        for at, low, high in zip(craft, contact.box_min, contact.box_max, strict=True)
-    )
+    point = _clamped(craft, contact.box_min, contact.box_max)
     gap = (point[0] - craft[0], point[1] - craft[1], point[2] - craft[2])
     distance = geometry.distance(*gap)
     if distance == 0:
         return Nearest(0, *offset)
     return Nearest(distance, *to_world(contact, gap))
+
+
+@dataclasses.dataclass(frozen=True)
+class Seen:
+    """How a box lies from a craft outside it: the yaw and the pitch halfway
+    across the headings that reach it, and how far those headings spread
+    either side of each, a quarter turn at most."""
+
+    yaw: int
+    yaw_edge: int
+    pitch: int
+    pitch_edge: int
+
+
+def seen(view: CraftView, contact: Contact, grow: int) -> Seen:
+    """Return how a contact's box, grown by ``grow`` on every side, lies from
+    the craft; a quarter turn either side of its nearest point when the
+    craft is inside the grown box.
+
+    The yaws spread as far as the grown box's eight corners: seen from
+    outside it, no point of a box lies farther round than a corner. From
+    over or under the box they go all the way round, and the spread is a
+    quarter turn either side of the nearest point. The pitches spread as far
+    as the corners and the grown box's nearest point, which stands for the
+    steepest part of the face nearest the craft.
+    """
+    offset = tactics.offset(view, contact)
+    turned = axes(contact.yaw, contact.pitch, contact.roll)
+    low = tuple(at - grow for at in contact.box_min)
+    high = tuple(at + grow for at in contact.box_max)
+    craft = _model(turned, (-offset[0], -offset[1], -offset[2]))
+    near = _clamped(craft, low, high)
+    if near == craft:
+        inside = nearest(view, contact)
+        yaw, pitch = geometry.bearing(inside.dx, inside.dy, inside.dz)
+        return Seen(yaw, geometry.QUARTER_TURN, pitch, geometry.QUARTER_TURN)
+    corners = [
+        (x, y, z)
+        for x in (low[0], high[0])
+        for y in (low[1], high[1])
+        for z in (low[2], high[2])
+    ]
+    bearings = [
+        geometry.bearing(*_added(offset, _world(turned, point)))
+        for point in (near, *corners)
+    ]
+    toward = bearings[0][0]
+    turns = [geometry.signed(yaw - toward) for yaw, _ in bearings]
+    if max(turns) - min(turns) >= geometry.HALF_TURN:
+        yaw, yaw_edge = toward, geometry.QUARTER_TURN
+    else:
+        yaw = (toward + (max(turns) + min(turns)) // 2) % geometry.TURN
+        yaw_edge = (max(turns) - min(turns) + 1) // 2
+    pitches = [pitch for _, pitch in bearings]
+    pitch = (max(pitches) + min(pitches)) // 2
+    return Seen(yaw, yaw_edge, pitch, (max(pitches) - min(pitches) + 1) // 2)
 
 
 def axes(yaw: int, pitch: int, roll: int) -> tuple[Vector, Vector, Vector]:
@@ -118,7 +173,18 @@ def axes(yaw: int, pitch: int, roll: int) -> tuple[Vector, Vector, Vector]:
 
 def to_model(contact: Contact, offset: Vector) -> Vector:
     """Return a world offset from the contact's position in its model's axes."""
-    side, up, forward = axes(contact.yaw, contact.pitch, contact.roll)
+    return _model(axes(contact.yaw, contact.pitch, contact.roll), offset)
+
+
+def to_world(contact: Contact, point: Vector) -> Vector:
+    """Return an offset in the contact's model axes in world axes."""
+    return _world(axes(contact.yaw, contact.pitch, contact.roll), point)
+
+
+def _model(turned: tuple[Vector, Vector, Vector], offset: Vector) -> Vector:
+    """Return a world offset in the model axes a craft's side, up and forward
+    give."""
+    side, up, forward = turned
     return (
         _dot(offset, side) >> _UNIT_BITS,
         -(_dot(offset, forward) >> _UNIT_BITS),
@@ -126,15 +192,29 @@ def to_model(contact: Contact, offset: Vector) -> Vector:
     )
 
 
-def to_world(contact: Contact, point: Vector) -> Vector:
-    """Return an offset in the contact's model axes in world axes."""
-    side, up, forward = axes(contact.yaw, contact.pitch, contact.roll)
+def _world(turned: tuple[Vector, Vector, Vector], point: Vector) -> Vector:
+    """Return a point in the model axes a craft's side, up and forward give in
+    world axes."""
+    side, up, forward = turned
     x, y, z = point
     return (
         (x * side[0] + z * up[0] - y * forward[0]) >> _UNIT_BITS,
         (x * side[1] + z * up[1] - y * forward[1]) >> _UNIT_BITS,
         (x * side[2] + z * up[2] - y * forward[2]) >> _UNIT_BITS,
     )
+
+
+def _clamped(point: Vector, low: Vector, high: Vector) -> Vector:
+    """Return the point of a box from low to high nearest a point."""
+    return tuple(
+        min(max(at, least), most)
+        for at, least, most in zip(point, low, high, strict=True)
+    )
+
+
+def _added(first: Vector, second: Vector) -> Vector:
+    """Return two vectors' sum."""
+    return first[0] + second[0], first[1] + second[1], first[2] + second[2]
 
 
 def _turned(axis: Vector, cosine: int, other: Vector, sine: int) -> Vector:

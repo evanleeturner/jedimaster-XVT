@@ -1,8 +1,9 @@
 """Fence for avoidance: a craft steering clear of the bulky craft in its way.
 
 The craft flies at the origin facing +y (yaw 0), level; its behavior steers
-it straight on unless a test says otherwise. The frigate has the retail
-frigate model's measured size (``test_tactics.py``).
+it straight on unless a test says otherwise. The bulky craft in the way is
+a bulk freighter, its clearance a ball round its position; a starship's or
+platform's clearance runs off its hull, tested last with retail boxes.
 """
 
 from __future__ import annotations
@@ -26,8 +27,7 @@ from jedimaster_ai.world import Question
 from jedimaster_ai.world import Steer
 
 ME = 4
-FRIGATE = 20
-FRIGATE_SIZE = 10368
+BULKY = 20
 STARSHIP = 4
 FREIGHTER = 3
 BULK_FREIGHTER_SIZE = 4960
@@ -42,9 +42,9 @@ NOTEBOOK = bytes(range(NOTEBOOK_BYTES))
 def ship(contact):
     def make(y, **changes):
         theirs = {
-            "object_index": FRIGATE,
-            "genus": STARSHIP,
-            "size": FRIGATE_SIZE,
+            "object_index": BULKY,
+            "genus": FREIGHTER,
+            "size": BULK_FREIGHTER_SIZE,
             "x": 0,
             "y": y,
             "z": 0,
@@ -59,11 +59,23 @@ def steer(view, contact):
     """Return the decision after avoidance, from a decision steering as given."""
 
     def decide(
-        *others, heading=AHEAD, target=None, own_genus=0, own_target=NO_OBJECT, nose=0
+        *others,
+        heading=AHEAD,
+        target=None,
+        own_genus=0,
+        own_target=NO_OBJECT,
+        nose=0,
+        own_size=0,
     ):
         me = view(object_index=ME, x=0, y=0, z=0, yaw=nose, pitch=LEVEL, roll=0)
         own = contact(
-            object_index=ME, genus=own_genus, x=0, y=0, z=0, target=own_target
+            object_index=ME,
+            genus=own_genus,
+            size=own_size,
+            x=0,
+            y=0,
+            z=0,
+            target=own_target,
         )
         actions = Actions(steer=heading, throttle=0x8000, target=target)
         question = Question(1000, (me,), (own, *others))
@@ -87,9 +99,9 @@ def keep_of(ship) -> int:
 
 
 def test_a_frigate_dead_ahead_turns_the_craft_past_its_edge(ship, steer) -> None:
-    frigate = ship(16000)
-    edge = avoidance.edge_angle(16000, keep_of(frigate))
-    decision = steer(frigate)
+    bulky = ship(16000)
+    edge = avoidance.edge_angle(16000, keep_of(bulky))
+    decision = steer(bulky)
     assert decision.actions.steer == Steer(edge + avoidance.EDGE_PAD, LEVEL, 0)
     assert decision.actions.throttle == 0x8000
     assert decision.notebook == NOTEBOOK
@@ -98,16 +110,16 @@ def test_a_frigate_dead_ahead_turns_the_craft_past_its_edge(ship, steer) -> None
 def test_the_nose_picks_the_side_so_the_turn_never_crosses_the_frigate(
     ship, steer
 ) -> None:
-    """The behavior's heading lies a little left of the frigate dead ahead
+    """The behavior's heading lies a little left of the bulky dead ahead
     and the nose a little right: the craft goes round the right, the side
-    its nose is on; the left edge would swing its nose across the frigate
+    its nose is on; the left edge would swing its nose across the bulky
     (AI5e's Y-wing in raw10). With the nose dead on, the heading's side."""
-    frigate = ship(16000)
-    clockwise = avoidance.edge_angle(16000, keep_of(frigate)) + avoidance.EDGE_PAD
+    bulky = ship(16000)
+    clockwise = avoidance.edge_angle(16000, keep_of(bulky)) + avoidance.EDGE_PAD
     left = Steer(TURN - 0x200, LEVEL, 0)
-    turned = steer(frigate, heading=left, nose=0x800)
+    turned = steer(bulky, heading=left, nose=0x800)
     assert turned.actions.steer == Steer(clockwise, LEVEL, 0)
-    dead_on = steer(frigate, heading=left, nose=0)
+    dead_on = steer(bulky, heading=left, nose=0)
     assert dead_on.actions.steer == Steer(TURN - clockwise, LEVEL, 0)
 
 
@@ -118,22 +130,22 @@ def test_a_frigate_past_the_look_ahead_is_not_yet_in_the_way(ship, steer) -> Non
 
 
 def test_a_heading_past_the_edge_is_kept(ship, steer) -> None:
-    frigate = ship(16000)
-    edge = avoidance.edge_angle(16000, keep_of(frigate))
+    bulky = ship(16000)
+    edge = avoidance.edge_angle(16000, keep_of(bulky))
     beside = Steer(edge, LEVEL, 0)
-    assert steer(frigate, heading=beside).actions.steer == beside
+    assert steer(bulky, heading=beside).actions.steer == beside
     inside = Steer(edge - 1, LEVEL, 0)
-    assert steer(frigate, heading=inside).actions.steer != inside
+    assert steer(bulky, heading=inside).actions.steer != inside
     over = Steer(0, LEVEL - edge, 0)
-    assert steer(frigate, heading=over).actions.steer == over
+    assert steer(bulky, heading=over).actions.steer == over
 
 
 def test_the_craft_turns_to_the_side_its_heading_lies_on(ship, steer) -> None:
-    frigate = ship(16000)
-    turn = avoidance.edge_angle(16000, keep_of(frigate)) + avoidance.EDGE_PAD
-    right = steer(frigate, heading=Steer(0x100, LEVEL, 0))
+    bulky = ship(16000)
+    turn = avoidance.edge_angle(16000, keep_of(bulky)) + avoidance.EDGE_PAD
+    right = steer(bulky, heading=Steer(0x100, LEVEL, 0))
     assert right.actions.steer.yaw == turn
-    left = steer(frigate, heading=Steer(TURN - 0x100, LEVEL, 0))
+    left = steer(bulky, heading=Steer(TURN - 0x100, LEVEL, 0))
     assert left.actions.steer.yaw == TURN - turn
 
 
@@ -144,24 +156,22 @@ def test_inside_a_clearance_the_craft_turns_outward(ship, steer) -> None:
 
 
 def test_its_target_is_left_to_its_behavior(ship, steer) -> None:
-    assert steer(ship(16000), target=FRIGATE).actions.steer == AHEAD
-    assert steer(ship(16000), own_target=FRIGATE).actions.steer == AHEAD
-    assert (
-        steer(ship(16000), target=NO_OBJECT, own_target=FRIGATE).actions.steer != AHEAD
-    )
+    assert steer(ship(16000), target=BULKY).actions.steer == AHEAD
+    assert steer(ship(16000), own_target=BULKY).actions.steer == AHEAD
+    assert steer(ship(16000), target=NO_OBJECT, own_target=BULKY).actions.steer != AHEAD
 
 
 @pytest.mark.parametrize(
     ("genus", "turned"), [(0, False), (1, False), (3, True), (4, True), (5, True)]
 )
 def test_only_bulky_craft_are_steered_around(ship, steer, genus, turned) -> None:
-    assert (steer(ship(16000, genus=genus)).actions.steer != AHEAD) == turned
+    assert (steer(ship(10000, genus=genus)).actions.steer != AHEAD) == turned
 
 
 def test_a_bulky_craft_steers_clear_of_other_bulky_craft(ship, steer) -> None:
-    frigate = ship(16000)
-    edge = avoidance.edge_angle(16000, keep_of(frigate))
-    decision = steer(frigate, own_genus=STARSHIP)
+    bulky = ship(16000)
+    edge = avoidance.edge_angle(16000, keep_of(bulky))
+    decision = steer(bulky, own_genus=STARSHIP)
     assert decision.actions.steer == Steer(edge + avoidance.EDGE_PAD, LEVEL, 0)
     assert steer(ship(16000), own_genus=FREIGHTER).actions.steer != AHEAD
 
@@ -191,7 +201,7 @@ def test_in_the_way_names_the_nearest_and_skips_one(view, contact, ship) -> None
     assert found.clearance == keep_of(near)
     assert (found.yaw, found.edge) == (0, avoidance.edge_angle(8000, keep_of(near)))
     assert (
-        avoidance.in_the_way(me, question, 0, LEVEL, 21).contact.object_index == FRIGATE
+        avoidance.in_the_way(me, question, 0, LEVEL, 21).contact.object_index == BULKY
     )
     assert avoidance.in_the_way(me, question, QUARTER_TURN, LEVEL, NO_OBJECT) is None
 
@@ -274,3 +284,119 @@ def test_a_nose_dead_on_a_craft_it_is_inside_turns_out_past_both(
     neither way (AI5e-3's draft found no heading at all)."""
     ahead, right = freighter(10, 0, 5000), freighter(11, 7000, 0)
     assert steer(ahead, right).actions.steer.yaw == 0xBC00
+
+
+# ---- A starship's or platform's hull (ruling 94) ----
+
+# Retail boxes (``test_hull.py``'s source) and sizes (``test_tactics.py``).
+ISD = {
+    "genus": STARSHIP,
+    "size": 65396,
+    "box_min": (-19140, -40940, -7132),
+    "box_max": (19140, 24456, 12570),
+}
+SSD = {
+    "genus": STARSHIP,
+    "size": 327683,
+    "box_min": (-52487, -162468, -11526),
+    "box_max": (52487, 165215, 13158),
+}
+# A fighter keeps 4,096 and three quarters of its own size off a hull.
+FIGHTER_KEEP = 4096 + FIGHTER_SIZE * 3 // 4
+EAST = Steer(QUARTER_TURN, LEVEL, 0)
+
+
+@pytest.fixture
+def destroyer(ship):
+    """Return a Super Star Destroyer, or the model named, level at yaw 0, its
+    length along y, its flank ``off`` east of the craft."""
+
+    def make(off, z=0, model=SSD):
+        x = model["box_max"][0] + off
+        return ship(0, x=x, z=z, yaw=0, pitch=LEVEL, roll=0, **model)
+
+    return make
+
+
+def test_toward_or_along_a_big_ships_flank_the_craft_keeps_its_heading(
+    destroyer, steer
+) -> None:
+    """20,000 off a Super Star Destroyer's flank, a heading 45 degrees toward
+    it is not yet in the way: the ball its clearance once kept round its
+    position, 249,858 units, turned it (to yaw 0xFC00, measured at
+    ``796786e``). 8,000 off, a heading along the flank is free."""
+    toward = Steer(0x2000, LEVEL, 0)
+    far = destroyer(20000)
+    assert tactics.clearance(far) == 249858
+    assert steer(far, heading=toward, own_size=FIGHTER_SIZE).actions.steer == toward
+    assert steer(destroyer(8000), own_size=FIGHTER_SIZE).actions.steer == AHEAD
+
+
+def test_a_heading_into_a_big_ships_flank_turns_along_it(
+    destroyer, steer, caplog
+) -> None:
+    """A heading 22.5 degrees into the flank 8,000 off turns to 4.5 degrees
+    the other side of north, the nose's side: the headings into the hull's
+    keep spread 88.9 degrees either side of east, and EDGE_PAD is 5.6."""
+    caplog.set_level("DEBUG")
+    into = Steer(0x1000, LEVEL, 0)
+    turned = steer(destroyer(8000), heading=into, own_size=FIGHTER_SIZE)
+    assert turned.actions.steer == Steer(0xFCCA, LEVEL, 0)
+    assert (
+        f"avoidance.steer object={ME} around={BULKY} distance=8000 "
+        f"clearance={FIGHTER_KEEP} yaw={0xFCCA}"
+    ) in caplog.text
+
+
+def test_a_big_ship_counts_within_look_ahead_of_its_hulls_keep(
+    destroyer, steer
+) -> None:
+    far = FIGHTER_KEEP + avoidance.LOOK_AHEAD
+    assert (
+        steer(destroyer(far), heading=EAST, own_size=FIGHTER_SIZE).actions.steer == EAST
+    )
+    near = steer(destroyer(far - 1), heading=EAST, own_size=FIGHTER_SIZE)
+    assert near.actions.steer != EAST
+
+
+def test_inside_a_big_ships_keep_the_craft_turns_away_from_its_hull(
+    destroyer, steer
+) -> None:
+    into = Steer(0x3000, LEVEL, 0)
+    turned = steer(destroyer(3000), heading=into, nose=0x3000, own_size=FIGHTER_SIZE)
+    assert turned.actions.steer.yaw == TURN - avoidance.EDGE_PAD
+
+
+def test_a_starship_keeps_its_own_reach_off_another_hull(destroyer, steer) -> None:
+    """40,000 off a Star Destroyer's flank, another Star Destroyer is inside
+    its keep, 4,096 and three quarters of its own 65,396; a fighter there
+    is not yet in the way."""
+    isd = destroyer(40000, model=ISD)
+    big = steer(isd, heading=EAST, own_genus=STARSHIP, own_size=ISD["size"])
+    assert big.actions.steer.yaw == TURN - avoidance.EDGE_PAD
+    assert steer(isd, heading=EAST, own_size=FIGHTER_SIZE).actions.steer == EAST
+
+
+def test_over_a_big_ships_deck_a_level_heading_is_free(destroyer, steer) -> None:
+    """6,000 over the middle of a Super Star Destroyer's deck, every heading
+    into its keep points down."""
+    deck = destroyer(-SSD["box_max"][0], z=-(SSD["box_max"][2] + 6000))
+    assert steer(deck, heading=EAST, own_size=FIGHTER_SIZE).actions.steer == EAST
+
+
+def test_past_a_hulls_edge_a_heading_passes_at_its_keep(
+    view, contact, destroyer
+) -> None:
+    """The search weighs a hull as the ball that looks as wide: a heading
+    EDGE_PAD past the edge passes at the keep, a 256th of a turn nearer cuts
+    into it, and from inside the keep every heading cuts into it."""
+    me = view(object_index=ME, x=0, y=0, z=0, yaw=0, pitch=LEVEL, roll=0)
+    own = contact(object_index=ME, genus=0, size=FIGHTER_SIZE, x=0, y=0, z=0)
+    outside = Question(1000, (me,), (own, destroyer(8000)))
+    found = avoidance.in_the_way(me, outside, EAST.yaw, LEVEL, NO_OBJECT)
+    past = found.yaw + found.edge + avoidance.EDGE_PAD
+    assert found.passes(past % TURN) == FIGHTER_KEEP
+    assert found.passes((past - 0x100) % TURN) < FIGHTER_KEEP
+    inside = Question(1000, (me,), (own, destroyer(3000)))
+    wall = avoidance.in_the_way(me, inside, EAST.yaw, LEVEL, NO_OBJECT)
+    assert max(wall.passes(yaw) for yaw in range(0, TURN, 0x100)) == 3000
