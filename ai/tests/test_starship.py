@@ -12,8 +12,10 @@ from jedimaster_ai.behaviors import starship
 from jedimaster_ai.orders import OrderCode
 from jedimaster_ai.think import think
 from jedimaster_ai.world import Actions
+from jedimaster_ai.world import Books
 from jedimaster_ai.world import ContactFlags
 from jedimaster_ai.world import NO_OBJECT
+from jedimaster_ai.world import OrderMove
 from jedimaster_ai.world import Question
 from jedimaster_ai.world import Turret
 
@@ -66,6 +68,20 @@ def test_a_craft_on_ss_await_return_stops_until_its_groups_are_back(ship) -> Non
     me = ship(order_code=OrderCode.SS_AWAIT_RETURN, order_codes=(22, 0, 0, 0))
     answer = think(Question(1000, (me,), ()))
     assert answer.craft[0].actions == Actions(throttle=0)
+
+
+def test_a_craft_on_ss_launch_stops_and_defends_until_its_groups_are_out(
+    ship, other
+) -> None:
+    launching = {"order_code": OrderCode.SS_LAUNCH, "order_codes": (23, 24, 0, 0)}
+    me = ship(**launching, turret_slot_mask=0b110)
+    answer = think(Question(1000, (me,), (other(9, target=ME),)))
+    assert answer.craft[0].actions == Actions(
+        throttle=0, turrets=(Turret(1, 9), Turret(2, 9))
+    )
+    out = ship(**launching, books=Books.TARGETS_LEFT | Books.ALL_LAUNCHED)
+    answer = think(Question(1000, (out,), ()))
+    assert answer.craft[0].actions == Actions(throttle=0, order=OrderMove(1, 2))
 
 
 def test_a_craft_on_ss_await_return_leaves_its_turrets_to_defend_it(

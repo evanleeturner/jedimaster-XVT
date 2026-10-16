@@ -14,6 +14,7 @@ from jedimaster_ai.behaviors import home
 from jedimaster_ai.behaviors import kamikaze
 from jedimaster_ai.behaviors import patrol
 from jedimaster_ai.behaviors import protect
+from jedimaster_ai.behaviors import selfdestruct
 from jedimaster_ai.behaviors import starship
 from jedimaster_ai.behaviors import waiting
 
@@ -33,9 +34,11 @@ def test_each_order_has_its_behavior_and_every_other_order_drifts() -> None:
     for code in (19, 20):
         expected[orders.OrderCode(code)] = waiting.think
     expected[orders.OrderCode.SS_AWAIT_RETURN] = starship.await_return
+    expected[orders.OrderCode.SS_LAUNCH] = starship.await_launch
     for code in (24, 25):
         expected[orders.OrderCode(code)] = starship.protect
     expected[orders.OrderCode.SS_PATROL_AND_DISABLE] = starship.patrol_and_disable
+    expected[orders.OrderCode.SELF_DESTRUCT] = selfdestruct.think
     expected[orders.OrderCode.KAMIKAZE] = kamikaze.think
     assert dict(orders.BEHAVIORS) == expected
 

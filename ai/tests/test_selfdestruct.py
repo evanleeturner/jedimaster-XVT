@@ -11,8 +11,11 @@ from jedimaster_ai import notebook
 from jedimaster_ai.behaviors import BehaviorCode
 from jedimaster_ai.behaviors import selfdestruct
 from jedimaster_ai.orders import OrderCode
+from jedimaster_ai.think import think
 from jedimaster_ai.world import Actions
+from jedimaster_ai.world import Books
 from jedimaster_ai.world import Question
+from jedimaster_ai.world import Turret
 
 ME = 4
 TICK = 5000
@@ -142,3 +145,20 @@ def test_the_ask_is_logged_at_info_with_the_delay_in_ticks(
             f"units={units} ticks={units * UNIT_TICKS}",
         )
     ]
+
+
+def test_a_craft_that_skipped_to_self_destruct_asks_once_and_defends_itself(
+    scuttling, contact
+) -> None:
+    skipped = {
+        "books": Books.SKIPPED,
+        "turret_slot_mask": 0b110,
+        "enemy_mask": 0xFFFFFFFF,
+    }
+    attacker = contact(object_index=9, team=2, target=ME)
+    first = think(Question(TICK, (scuttling(**skipped),), (attacker,))).craft[0]
+    defend = (Turret(1, 9), Turret(2, 9))
+    assert first.actions == Actions(throttle=0, turrets=defend, self_destruct=3)
+    again = scuttling(**skipped, notebook=first.notebook)
+    later = think(Question(TICK + 16, (again,), (attacker,))).craft[0]
+    assert later.actions == Actions(throttle=0, turrets=defend)

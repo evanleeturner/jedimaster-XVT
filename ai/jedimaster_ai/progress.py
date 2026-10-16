@@ -66,13 +66,18 @@ def _all_returned(view: CraftView) -> bool:
     return bool(view.books & Books.ALL_RETURNED)
 
 
+def _all_launched(view: CraftView) -> bool:
+    return bool(view.books & Books.ALL_LAUNCHED)
+
+
 # Each order's goal test, True once the goal is met, by the 1997 leader
 # plans. Attack, Protect, Escort, Disable, SS Protect, SS Protect 2, SS Patrol
 # and Attack and SS Patrol and Disable: no target left, now or in a group
 # still to arrive, by the engine's 1997 count. Circle, Circle and Evade and SS
 # Patrol Loop: their rounds reached the order's variable1. Wait and Wait 2:
 # the order's time is up. SS Await Return: every group that goes home into
-# the craft's group is back.
+# the craft's group is back. SS Launch: every group that comes out of the
+# craft's group has arrived with no waves left.
 GOALS: t.Mapping[int, t.Callable[[CraftView], bool]] = types.MappingProxyType(
     {
         OrderCode.ATTACK: _no_target_left,
@@ -89,6 +94,7 @@ GOALS: t.Mapping[int, t.Callable[[CraftView], bool]] = types.MappingProxyType(
         OrderCode.WAIT: waiting.done,
         OrderCode.WAIT_2: waiting.done,
         OrderCode.SS_AWAIT_RETURN: _all_returned,
+        OrderCode.SS_LAUNCH: _all_launched,
     }
 )
 

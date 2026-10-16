@@ -119,6 +119,23 @@ def test_ss_await_return_is_done_once_every_group_is_back(view) -> None:
     assert progress.decide(view(**DONE_ATTACK | waiting_craft)) == progress.STAY
 
 
+def test_ss_launch_is_done_once_every_group_is_out(view) -> None:
+    launching = {"order_code": OrderCode.SS_LAUNCH}
+    out = view(**DONE_ATTACK | launching | {"books": Books.ALL_LAUNCHED})
+    assert progress.decide(out) == progress.Progress(move=OrderMove(1, 2))
+    assert progress.decide(view(**DONE_ATTACK | launching)) == progress.STAY
+    back = view(**DONE_ATTACK | launching | {"books": Books.ALL_RETURNED})
+    assert progress.decide(back) == progress.STAY
+
+
+def test_self_destruct_is_never_done(view) -> None:
+    books = Books.ALL_RETURNED | Books.ALL_LAUNCHED
+    craft = view(
+        **DONE_ATTACK | {"order_code": OrderCode.SELF_DESTRUCT, "books": books}
+    )
+    assert progress.decide(craft) == progress.STAY
+
+
 def test_wait_and_wait_2_end_when_the_waiting_behavior_says_so() -> None:
     assert progress.GOALS[OrderCode.WAIT] is waiting.done
     assert progress.GOALS[OrderCode.WAIT_2] is waiting.done

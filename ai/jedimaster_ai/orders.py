@@ -11,7 +11,8 @@ Invariants:
       Attack (``behaviors.attack``), Hold Steady and its six copies
       (``behaviors.hold``), Go Home and SS Go Home (``behaviors.home``),
       Circle, Circle and Evade, SS Patrol Loop and SS Patrol and Attack
-      (``behaviors.patrol``), Kamikaze (``behaviors.kamikaze``).
+      (``behaviors.patrol``), Kamikaze (``behaviors.kamikaze``), SS Launch
+      (``behaviors.starship``) and Self Destruct (``behaviors.selfdestruct``).
     - Disable, Protect, Escort, Wait, Wait 2, SS Await Return, SS Protect,
       SS Protect 2 and SS Patrol and Disable map to their own behavior files
       (``behaviors.disable``, ``protect``, ``escort``, ``waiting``,
@@ -37,6 +38,7 @@ from .behaviors import home
 from .behaviors import kamikaze
 from .behaviors import patrol
 from .behaviors import protect
+from .behaviors import selfdestruct
 from .behaviors import starship
 from .behaviors import waiting
 from .world import CraftView
@@ -119,9 +121,11 @@ BEHAVIORS: t.Mapping[int, Behavior] = types.MappingProxyType(
         OrderCode.WAIT: waiting.think,
         OrderCode.WAIT_2: waiting.think,
         OrderCode.SS_AWAIT_RETURN: starship.await_return,
+        OrderCode.SS_LAUNCH: starship.await_launch,
         OrderCode.SS_PROTECT: starship.protect,
         OrderCode.SS_PROTECT_2: starship.protect,
         OrderCode.SS_PATROL_AND_DISABLE: starship.patrol_and_disable,
+        OrderCode.SELF_DESTRUCT: selfdestruct.think,
         OrderCode.KAMIKAZE: kamikaze.think,
     }
 )
